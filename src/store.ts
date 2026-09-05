@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { cad, onKernelRestart } from './cad/cadService'
 import { cardinalSketchFrame, localPointToCad } from './cad/sketchPlaneFrame'
 import { expandHoleFeature } from './cad/holeFeature'
+import { followExtrudeTopEdges } from './cad/extrudeEdgeFollow'
 import { mapKernelFailuresToTimeline } from './cad/featureFailureMap'
 import { formBoxSizeFromPoints, makePlacedBoxCage, newFormBoxDraft, type FormBoxDraft, type FormBoxPlane } from './cad/formBox'
 import { makeFormPipeCage, setSymmetricFormVert } from './cad/subdiv'   // S193：Form 镜像对称编辑（纯函数，Node 测过）
@@ -2014,7 +2015,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
 
   lastCommand: { id: string; label: string } | null  // marking-menu N sector「重复上次」replays this
   runCommand: (id: string, label: string) => void
-  applyFeatures: (features: Feature[], okMsg: string, record?: boolean, failMsg?: string, prevDoc?: AppState['undoStack'][number]) => Promise<boolean>
+  applyFeatures: (features: Feature[], okMsg: string, record?: boolean, failMsg?: string, prevDoc?: AppState['undoStack'][number], strict?: boolean) => Promise<boolean>
   extrudeSketch: () => Promise<void>
   addExtrude: (profile: SketchProfile, height: number, operation: BoolOp, baseZ?: number, opts?: { twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; toFace?: { near: [number, number, number]; offset?: number }; extent?: 'next' }) => Promise<void>
   addRevolve: (profile: SketchProfile, angle?: number, axis?: 'X' | 'Y', op?: BoolOp, wall?: number, skBundle?: { shapes: SketchShape[]; cons: SkCon[]; plane: Plane; baseZ: number; arb?: ArbBasis; datumRef?: { idx: number; base: Plane; arb?: ArbBasis } }, axisSpec?: { axisV: [number, number, number]; axisOrigin: [number, number, number]; name?: string }, symmetric?: boolean) => Promise<void>  // T781：任意轴（构造轴/Z/偏离原点）；S191：symmetric 两側对称
@@ -2241,6 +2242,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   openCombineDlg: () => void   // S128：真 Combine 对话框（活动体⊗泊车工具体，行返 bodyboolean B-rep）
   openBoundaryFillDlg: () => void // 两封闭实体的真实 B-rep cell 分割；范围明确小于 Fusion 完整 Boundary Fill
   buildGearTrain: (spec: { ratio: number; m: number; stages: number; th: number; bore: number; helix: number }) => Promise<void>  // T770（S49）：齿轮箱向导 — 目标速比 → 齿数组合 + 自动摆位 + 关节 + 运动连接
+  previewExtrudeEdit: () => Promise<MeshData | null>
   setFeatParam: (key: string, value: number | string) => void
   automatedModelPickFace: (face: { p: [number, number, number]; n: [number, number, number] } | null) => void
   openFeatDlgForEdit: (featId: string) => void   // P2 Edit Feature：双击时间线重开原创建对话框（值反填，OK=editFeature 非 push）
@@ -5677,8 +5679,8 @@ export const useApp = create<AppState>((set, get) => ({
     }
   }),
   extrudeHeight: 40,
-  // Allow NEGATIVE distance (= extrude the other way); only 0/NaN falls back to a sane default.
-  setExtrudeHeight: (h) => set((s) => ({ extrudeHeight: Number.isFinite(h) && Math.abs(h) > 1e-6 ? h : s.extrudeHeight })),   // GM-L2 #58：0/清空/非法输入唔好硬跳 40 — 保留上一有效值（用户清框准备打新值时唔会突然变 40）
+  // Keep zero while entering a distance; preview and commit reject zero solids.
+  setExtrudeHeight: (h) => set({ extrudeHeight: Number.isFinite(h) ? h : 0 }),
   extrudeFlip: false,
   toggleExtrudeFlip: () => set((s) => ({ extrudeFlip: !s.extrudeFlip })),
   extrudeDlgOpen: false,
@@ -5704,7 +5706,7 @@ export const useApp = create<AppState>((set, get) => ({
       if (reg.pfaces.length > 1 && reg.pfaces.length <= 64) regionFaces = reg.pfaces
     } catch { /* 区域检测失败 → 照旧全部拉伸 */ }
     return {
-      extrudeDlgOpen: true, sketchOp: op, extrudeStart: 0, sketchAsComponent: false,   // #3：每次新拉伸起点偏移由 0 起；#9：New Component 意图由 false 起
+      extrudeDlgOpen: true, extrudeHeight: 0, extrudeExtent: 'distance', extrudeFlip: false, sketchOp: op, extrudeStart: 0, sketchAsComponent: false,   // #3：每次新拉伸起点偏移由 0 起；#9：New Component 意图由 false 起
       // P4 审计修复：开拉伸对话框前清晒会劫持画布点击嘅拾取模式（按拉 / 直接编辑家族 / 量测 / 孔 / 壳 / 边圆角…）。
       // 否则若按拉等仲开住，Viewport 点击优先序会截走区域点选 → 拉伸拣唔到 profile（同 togglePushPull:3507 嘅互斥补齐一致）。
       pushPullMode: false, pushPullPicks: [], shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null,
@@ -11829,8 +11831,9 @@ export const useApp = create<AppState>((set, get) => ({
     }
   },
 
-  applyFeatures: async (features, okMsg, record = true, failMsg, prevDoc) => {
+  applyFeatures: async (features, okMsg, record = true, failMsg, prevDoc, strict = false) => {
     const prev = get().features
+    const previousDocument = prevDoc ?? docSnap(get())
     const prevSrcs = get().sketchSources  // 同 prev 一齐捕捉：undo 时草图源同特征树一齐回滚（T746）
     // S110：prevDoc = 调用方喺 mutating set【之前】get() 出嘅完整快照。toggleSuppress/setParam/setParamExpr/removeParam
     // 系「先改 suppressedIds/params/paramBindings 再调本函数」，内部 docSnap(s) 会读到新值令撤销变空操作 →
@@ -11871,6 +11874,16 @@ export const useApp = create<AppState>((set, get) => ({
         const noTris = (!mesh.triangles || mesh.triangles.length === 0) && !(mesh.parked && mesh.parked.length)  // 全泊车（啱啱开新实体）唔算空
         // T756：净独立草图（无实体特征）零三角形系正常 — 唔好嘈「结果为空」
         const empty = noTris && active.some((f) => SOLID_TYPES.includes(f.type))
+        if ((record || strict) && (empty || mesh.failed?.length)) {
+          const failure = mapKernelFailuresToTimeline(mesh.failed, bound)
+          // rebuild updates the worker's export body as well as returning a mesh.
+          // Restore it too, so STEP export cannot disagree with the retained view.
+          const previousBound = applyParamBindings(prev, previousDocument.params ?? get().params, previousDocument.paramBindings ?? get().paramBindings)
+          const previousSuppressed = previousDocument.suppressedIds ?? get().suppressedIds
+          await cad.rebuild(expandFeats(previousBound.filter(f => !previousSuppressed.includes(f.id))))
+          set({ busy: false, status: '⚠ 重建失败 — 已保留上一个有效模型，请修正参数后重试', failedFeatureIds: failure.ids, featureErrors: failure.errors })
+          return false
+        }
         pushHistory()
         const warn = (mesh.warnings && mesh.warnings.length) ? '　⚠ ' + mesh.warnings.join('；') : ''
         // S107 逐特征隔离：坏特征 → 时间轴标红 + 状态提示（其余照常 build past，唔 revert 整树）
@@ -11977,7 +11990,12 @@ export const useApp = create<AppState>((set, get) => ({
     const matesChanged = (prev.mates ?? cur.mates) !== cur.mates
     set((s) => ({ undoStack: s.undoStack.slice(0, -1), redoStack: [...s.redoStack, docSnap(s)], components: prev.components, componentDefs: prev.componentDefs ?? s.componentDefs, joints: prev.joints ?? s.joints, motionLinks: prev.motionLinks ?? s.motionLinks, sketchSources: prev.sketchSources ?? s.sketchSources, params: prev.params ?? s.params, paramBindings: prev.paramBindings ?? s.paramBindings, suppressedIds: prev.suppressedIds ?? s.suppressedIds, faceColors: prev.faceColors ?? s.faceColors, mates: prev.mates ?? s.mates, groups: prev.groups ?? s.groups, jointPoses: prev.jointPoses ?? s.jointPoses, jointKeyframes: prev.jointKeyframes ?? s.jointKeyframes, planes: prev.planes ?? s.planes, cpoints: prev.cpoints ?? s.cpoints, caxes: prev.caxes ?? s.caxes, jointOrigins: prev.jointOrigins ?? s.jointOrigins, rigidGroups: prev.rigidGroups ?? s.rigidGroups, contactPairs: prev.contactPairs ?? s.contactPairs, selectedFeature: null }))   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随撤销还原（旧栈缺 → 保持当前）
     if (!needRebuild) set({ status: '已撤销' })
-    else await get().applyFeatures(prev.features, '已撤销', false)
+    else if (!await get().applyFeatures(prev.features, '已撤销', false, undefined, docSnap(cur), true)) {
+      const failureStatus = get().status
+      set({ ...docSnap(cur), bodyMesh: cur.bodyMesh, bodyTopZ: cur.bodyTopZ, timelinePos: cur.timelinePos,
+        undoStack: cur.undoStack, redoStack: cur.redoStack, busy: false, status: '撤销失败，已保留原模型及历史 — ' + failureStatus })
+      return
+    }
     if (matesChanged) get().resolveMates()  // 还原配合后重算 follower 组件位姿（resolveMates 对空 mates 安全早返）
   }),
 
@@ -12001,11 +12019,20 @@ export const useApp = create<AppState>((set, get) => ({
     const matesChanged = (next.mates ?? cur.mates) !== cur.mates
     set((s) => ({ redoStack: s.redoStack.slice(0, -1), undoStack: [...s.undoStack, docSnap(s)], components: next.components, componentDefs: next.componentDefs ?? s.componentDefs, joints: next.joints ?? s.joints, motionLinks: next.motionLinks ?? s.motionLinks, sketchSources: next.sketchSources ?? s.sketchSources, params: next.params ?? s.params, paramBindings: next.paramBindings ?? s.paramBindings, suppressedIds: next.suppressedIds ?? s.suppressedIds, faceColors: next.faceColors ?? s.faceColors, mates: next.mates ?? s.mates, groups: next.groups ?? s.groups, jointPoses: next.jointPoses ?? s.jointPoses, jointKeyframes: next.jointKeyframes ?? s.jointKeyframes, planes: next.planes ?? s.planes, cpoints: next.cpoints ?? s.cpoints, caxes: next.caxes ?? s.caxes, jointOrigins: next.jointOrigins ?? s.jointOrigins, rigidGroups: next.rigidGroups ?? s.rigidGroups, contactPairs: next.contactPairs ?? s.contactPairs, selectedFeature: null }))   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随重做还原
     if (!needRebuild) set({ status: '已重做' })
-    else await get().applyFeatures(next.features, '已重做', false)
+    else if (!await get().applyFeatures(next.features, '已重做', false, undefined, docSnap(cur), true)) {
+      const failureStatus = get().status
+      set({ ...docSnap(cur), bodyMesh: cur.bodyMesh, bodyTopZ: cur.bodyTopZ, timelinePos: cur.timelinePos,
+        undoStack: cur.undoStack, redoStack: cur.redoStack, busy: false, status: '重做失败，已保留原模型及历史 — ' + failureStatus })
+      return
+    }
     if (matesChanged) get().resolveMates()
   }),
 
   extrudeSketch: async () => {
+    if (get().busy) return
+    if (['distance', 'symmetric', 'twosides'].includes(get().extrudeExtent) && !(Math.abs(get().extrudeHeight) > 1e-6)) {
+      set({ status: '请输入非零拉伸距离' }); return
+    }
     // #9 New Component（Fusion Operation=New Component）：先把现有活动体固化成一个组件（newComponent，undo-safe），
     // 保住当前草图状态越过固化（newComponent 会清 sketch）→ 之后当 op='new' 喺全新树建这个拉伸 = Fusion「新组件成活动编辑目标」语义。
     // 纯 store、零 worker；无现有实体时等同新建（唔使固化空体）。用独立 flag（唔 widen BoolOp 避免 worker 类型连锁）。
@@ -12254,28 +12281,22 @@ export const useApp = create<AppState>((set, get) => ({
     const cutMissed = (op === 'cut' || op === 'intersect') && prevVol > 1e-4 && Math.abs(_meshVol - prevVol) < _cutFloor
     const succeeded = !!(built && built.triangles && built.triangles.length > 0) && get().features.length > prevFeatures.length && _meshVol > 1e-4 && !cutMissed
     if (succeeded) {
-      // 草图源存档（重开编辑用）。★ 修 bug（用户报：喺时间轴改返个「草图」节点嘅尺寸，拉伸/实体唔跟住变）：
-      //   拉伸【独立草图】时旧版会【另开新 skId + 复制几何 + 净係隐藏原草图】→ 留低一个孤儿独立草图特征，
-      //   而拉伸用紧副本。用户喺时间轴改返佢识得嗰个「草图」(孤儿)，但实体由副本驱动 → 点改都唔郁、又睇唔到。
-      //   正确（Fusion 语义）：拉伸【消费】独立草图 —— 重用佢嘅 skId、移除嗰个独立 'sketch' 特征。
-      //   咁时间轴净係一个可重开嘅拉伸，改佢就真係驱动实体。非独立（即画即拉，无 _hydraSk）→ 照开新 skId。
-      //   sketchId 系 worker 唔读嘅标签 + 独立草图本身无几何 → 直接 set 唔使重建。
+      // Keep the sketch timeline node and share its source with the consuming
+      // extrusion. Editing that source must rebuild the consumer, not duplicate it.
       const reuse = _hydraSk; _hydraSk = null
       const skId = reuse || ('sk' + ++_skidN)
       const savedDatumRef = _pendingDatumRef; _pendingDatumRef = null   // #11 主流程关联：画到关联基准面 → 直接拉伸时捕获待写 datumRef（旧版仅 commitStandaloneSketch 消费 → 最常见流程唔跟 datum）
       set((st) => {
         const tail = st.features.slice(prevFeatures.length).map((f) => ((f.type === 'extrude' || f.type === 'extgroup') ? { ...f, sketchId: skId } : f))
-        const head = reuse
-          ? st.features.slice(0, prevFeatures.length).filter((f) => !(f.type === 'sketch' && (f as { sketchId?: string }).sketchId === reuse))   // 消费：除去孤儿独立草图特征
-          : st.features.slice(0, prevFeatures.length)
+        const head = st.features.slice(0, prevFeatures.length)
         return {
           features: [...head, ...tail],
           timelinePos: head.length + tail.length,
           sketchSources: { ...st.sketchSources, [skId]: { ...(reuse && st.sketchSources[reuse] ? st.sketchSources[reuse] : {}), shapes: allRaw.map((sh) => JSON.parse(JSON.stringify(sh)) as SketchShape), cons: JSON.parse(JSON.stringify(st.skCons)) as SkCon[], plane, baseZ: st.sketchBaseZ, op, height, twist: twist || undefined, draft: draft || undefined, symmetric: symmetric || undefined, through: throughAll || undefined, down: down || undefined, arb: savedArb ? JSON.parse(JSON.stringify(savedArb)) : undefined, visible: undefined, ...(savedDatumRef ? { datumRef: savedDatumRef } : {}) } },
         }
       })
-      set({ sketchShape: null, sketchProfiles: [], sketchArb: null, mode: 'model', extrudeDlgOpen: false, extrudeRegionFaces: null, extrudeRegionSel: [], ...(reuse ? { selSketch: null } : {}) })  // consume the sketch only on success（重用即清返指向已删草图嘅高亮）
-      if (prevFeatures.length === 0) get().requestFit()              // frame the first solid so it's clearly visible
+      set({ sketchShape: null, sketchProfiles: [], sketchArb: null, mode: 'model', extrudeDlgOpen: false, extrudeRegionFaces: null, extrudeRegionSel: [], ...(reuse ? { selSketch: null } : {}) })  // consume the sketch only on success（重用后清除草图高亮）
+      if (!hasSolid(prevFeatures)) get().requestFit()              // frame the first solid so it's clearly visible
     } else {
       _hydraSk = null
       // Failed/empty: roll back to the previous body and KEEP the sketch (re-shown as a model-mode outline).
@@ -12856,6 +12877,19 @@ export const useApp = create<AppState>((set, get) => ({
       status: tip[kind],
     }
   }),
+  previewExtrudeEdit: async () => {
+    const s = get(), d = s.featDlg
+    if (d?.kind !== 'extrude-edit' || !d.editId) return null
+    const i = s.features.findIndex(f => f.id === d.editId)
+    if (i < 0 || !(Math.abs(+d.params.height) > 1e-6)) return null
+    const features = s.features.slice(0, i + 1).map(f => f.id === d.editId ? { ...f,
+      height: Math.abs(+d.params.height), operation: String(d.params.op || 'new'),
+      draft: +d.params.draft || 0, twist: +d.params.twist || 0,
+      symmetric: d.params.extent === 'symmetric', through: d.params.extent === 'through',
+    } as Feature : f)
+    const bound = applyParamBindings(features, s.params, s.paramBindings)
+    return cad.previewRound(expandFeats(bound.filter(f => !s.suppressedIds.includes(f.id))))
+  },
   setFeatParam: (key, value) => set((s) => (s.featDlg ? { featDlg: { ...s.featDlg, params: { ...s.featDlg.params, [key]: value } } } : {})),
   automatedModelPickFace: (face) => set((s) => {
     const d = s.featDlg
@@ -14734,6 +14768,7 @@ export const useApp = create<AppState>((set, get) => ({
     let f: Feature
     let msg: string
     // P2 Edit Feature：edit-kind 早特判 — 只 patch 标量/enum；array/pick（nears/radii 冇改时/profile/toFace）靠 editFeature 淺合并+undefined 过滤透传
+    if (d.kind === 'extrude-edit' && !(Math.abs(+p.height) > 1e-6)) { set({ status: '请输入非零拉伸距离' }); return }
     if (d.editId && (d.kind === 'extrude-edit' || d.kind === 'fillet-edit' || d.kind === 'chamfer-edit' || d.kind === 'shell-edit')) {
       let patch: Record<string, number | string | number[] | boolean | undefined>
       if (d.kind === 'extrude-edit') {
@@ -16364,7 +16399,7 @@ export const useApp = create<AppState>((set, get) => ({
       for (const k of dels) if (!(detach && k === 'toFace')) delete merged[k]
       return merged as unknown as Feature
     })
-    await get().applyFeatures(features, '已更新参数并重建')
+    await get().applyFeatures(followExtrudeTopEdges(get().features, features, id), '已更新参数并重建')
   },
 
   removeFeature: async (id) => {
@@ -19995,6 +20030,14 @@ function liveSketchSources(s: AppState): AppState['sketchSources'] {
 // revolve=最后画嘅实线轮廓（审查 B1）；多轮廓按包含深度重嵌套（同创建端同一逻辑）。
 // 返回 null = 组唔存在/冇实线轮廓。live = 写返 sketchSources 嘅 live 参数。
 function regenGroupFeatures(all: Feature[], skId: string, src: AppState['sketchSources'][string], shapes: SketchShape[], extras?: { polyPts?: Pt[] }): { next: Feature[]; label: string; live: { height: number; op: BoolOp; twist?: number; symmetric?: boolean; draft?: number; down?: boolean }; srcExtra?: Partial<AppState['sketchSources'][string]> } | null {
+  const sketchNodes = all.filter((f) => f.type === 'sketch' && f.sketchId === skId)
+  if (sketchNodes.length && all.some((f) => f.type !== 'sketch' && (f as { sketchId?: string }).sketchId === skId)) {
+    const result = regenGroupFeatures(all.filter((f) => !sketchNodes.includes(f)), skId, src, shapes, extras)
+    if (!result) return null
+    const next = result.next.slice()
+    for (const node of sketchNodes) next.splice(Math.min(all.indexOf(node), next.length), 0, node)
+    return { ...result, next }
+  }
   const olds = all.filter((f) => (f as { sketchId?: string }).sketchId === skId || ((f as { sketchIds?: string[] }).sketchIds?.includes(skId) ?? false))  // T753：loft 经 sketchIds 揾
   if (!olds.length) return null
   const idx0 = all.indexOf(olds[0])

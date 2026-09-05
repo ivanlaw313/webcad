@@ -73,8 +73,9 @@ export function CommandDialog({ icon = 'default', title, okLabel = '确定', okD
   // could accidentally trigger another shortcut instead of changing a field.
   useEffect(() => {
     const id = window.setTimeout(() => {
-      const first = dialogRef.current?.querySelector<HTMLElement>('[autofocus], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)')
+      const first = dialogRef.current?.querySelector<HTMLElement>('input:not(:disabled), textarea:not(:disabled)') ?? dialogRef.current?.querySelector<HTMLElement>('select:not(:disabled), button:not(:disabled)')
       first?.focus()
+      if (first instanceof HTMLInputElement) first.select()
     }, 0)
     return () => window.clearTimeout(id)
   }, [])

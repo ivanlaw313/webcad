@@ -9,7 +9,7 @@ const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
 const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 
 test('SOLID dialogs keep Enter/Escape active while a numeric input is focused', () => {
-  assert.match(app, /const editingText = !!t && \(t\.tagName === 'INPUT' \|\| t\.tagName === 'TEXTAREA'\)/)
+  assert.match(app, /const editingText = !!t && \(t\.tagName === 'INPUT' \|\| t\.tagName === 'TEXTAREA' \|\| t\.isContentEditable\)/)
   assert.match(app, /editingText && !e\.ctrlKey && !e\.metaKey && e\.key !== 'Enter' && e\.key !== 'Escape'/)
 })
 

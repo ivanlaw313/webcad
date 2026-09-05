@@ -690,3 +690,9 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 @media (max-width: 380px) {
   .main { grid-template-columns: 0 1fr; }        /* 极窄：默认收起树（顶栏可展开），全宽视口 */
 }
+
+/* Keep labels readable instead of shrinking each character into a column. */
+.sketch-bar { max-width: calc(100% - 24px); }
+.sketch-bar > * { flex-shrink: 0; white-space: nowrap; }
+.cmd-palette-body button { white-space: nowrap; }
+.cmd-palette-body > div { flex-wrap: wrap; }

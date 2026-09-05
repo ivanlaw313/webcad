@@ -13,8 +13,8 @@ test('document undo/redo are serialized outside persisted CAD state', () => {
 
   const undo = store.slice(store.indexOf('  undo: () => enqueueHistoryTransition'), store.indexOf('  redo: () => enqueueHistoryTransition'))
   const redo = store.slice(store.indexOf('  redo: () => enqueueHistoryTransition'), store.indexOf('  extrudeSketch: async'))
-  assert.match(undo, /await get\(\)\.applyFeatures\(prev\.features, '已撤销', false\)/)
-  assert.match(redo, /await get\(\)\.applyFeatures\(next\.features, '已重做', false\)/)
+  assert.match(undo, /await get\(\)\.applyFeatures\(prev\.features, '已撤销', false, undefined, docSnap\(cur\), true\)/)
+  assert.match(redo, /await get\(\)\.applyFeatures\(next\.features, '已重做', false, undefined, docSnap\(cur\), true\)/)
   assert.match(undo, /\}\),\s*$/)
   assert.match(redo, /\}\),\s*$/)
 })

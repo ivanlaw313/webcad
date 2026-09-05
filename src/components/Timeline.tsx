@@ -115,6 +115,8 @@ export default function Timeline() {
   const toggleSuppress = useApp((s) => s.toggleSuppress)
   const moveFeature = useApp((s) => s.moveFeature)
   const timelinePos = useApp((s) => s.timelinePos)
+  const editId = useApp((s) => s.featDlg?.kind === 'extrude-edit' ? s.featDlg.editId : undefined)
+  const editIndex = editId ? features.findIndex(f => f.id === editId) : -1
   const gotoStep = useApp((s) => s.gotoStep)
   // GM-X4 #9/#10：齿轮设定（隐藏抑制 / 色板）+ 在浏览器中查找 + owning component 色板来源。
   const hideInactive = useApp((s) => s.timelineHideInactive)
@@ -253,7 +255,7 @@ export default function Timeline() {
                 }).filter(Boolean).join(' · ')
               })()
               const nameTag = label && label !== m.label ? ` 「${label}」` : ''   // 有自订名先显示
-              const rolled = i >= timelinePos  // rolled back: not built at the current scrub position
+              const rolled = i >= timelinePos || (editIndex >= 0 && i > editIndex)  // rolled back: not built at the current scrub position
               const hasSketch = ((f.type === 'extrude' || f.type === 'revolve' || f.type === 'sweep' || f.type === 'sketch' || f.type === 'extgroup') && !!f.sketchId) || (f.type === 'loft' && !!f.sketchIds?.length)  // T746/T748/T753/T756：revolve/sweep/loft/独立草图都可重开；P2 audit：extgroup（多轮廓拉伸组）都有 sketchId — 原本漏咗
               // P2 Edit Feature：白名单 kind 双击重开原对话框（Fusion Edit Feature）；改轮廓入口收入对话框「✎编辑草图」
               const editDlg = EDIT_DLG_KINDS.has(f.type)
@@ -269,7 +271,7 @@ export default function Timeline() {
                     className={'tl-chip' + (f.id === selected || multiSel.includes(f.id) ? ' sel' : '') + (suppressedIds.includes(f.id) ? ' suppressed' : '') + (isCut ? ' cut' : '') + (failedFeatureIds.includes(f.id) ? ' err' : '')}
                     style={chipStyle}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); selectFeature(f.id); setChipMenu({ x: e.clientX, y: e.clientY, id: f.id, i }) }}
-                    title={tStatus(`【${m.label}】${nameTag}${threadTag}${paramSummary ? ' · ' + paramSummary : ''}${isCut && f.type !== 'extrude' ? '（切割）' : ''}${rolled ? ' · 已回退到此步之前 — 点击重建到这' : suppressedIds.includes(f.id) ? ' · 已抑制（点击编辑/恢复）' : ' · 点击：选中编辑（参数条喺下方；回卷用拖时间线 marker）'}${editDlg ? ' · 双击：编辑特征（重开对话框）' : hasSketch ? ' · 双击：重开草图编辑（改轮廓/约束 → 全树重建）' : ''}${featureErrors[f.id] ? ' · 🔴 重建失败：' + featureErrors[f.id] + '（其余特征已照常重建；可改参数/抑制/删此特征）' : ''}`, lang)}
+                    title={tStatus(`【${m.label}】${nameTag}${threadTag}${paramSummary ? ' · ' + paramSummary : ''}${isCut && f.type !== 'extrude' ? '（切割）' : ''}${rolled ? ' · 已回退到此步之前 — 点击重建到这' : suppressedIds.includes(f.id) ? ' · 已抑制（点击编辑/恢复）' : ' · 点击：选中编辑（参数条喺下方；回卷用拖时间线 marker）'}${editDlg ? ' · 双击：编辑特征（重开对话框）' : hasSketch ? ' · 双击：重开草图编辑（改轮廓/约束 → 全树重建）' : ''}${featureErrors[f.id] ? ' · 🔴 重建失败：' + featureErrors[f.id] + '（请检查参数后重试；以状态栏的保留／重建结果为准）' : ''}`, lang)}
                     onClick={(e) => {   // detail>1 = 双击第二下（俾 onDoubleClick）。单击=只选中高亮；Ctrl/⌘+点=多选（阵列/镜像多目标）；rolled chip 点击重建到该步
                       if (e.detail > 1) return
                       if (e.ctrlKey || e.metaKey) { useApp.getState().toggleFeatureSel(f.id); return }

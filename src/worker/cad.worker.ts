@@ -872,12 +872,12 @@ function roundNearPoint(shape: any, kind: 'fillet' | 'chamfer', size: number, p:
     else { const s1 = _s1CarryMids(shape, edgeFp, edgeFpV2, [p]); if (s1 && s1.mids.length) { M = s1.mids[0]; if (_s2CarriedFlag) _s2CarriedFlag = false; else buildWarnings.push('持久边名经上游变换以拓扑顺序追踪解析（真拓扑命名 S1）') } }   // S1：漂移 → 沿上游变换以拓扑顺序追踪（或 S2 布尔血统）；任何闸唔过 → M 留近点 = 今日行为
   }
   else { const cap = _fpCapture(shape, [M]); _lastResolvedFp = cap.v1; _lastResolvedFpV2 = cap.v2 }
-  for (const s of [size, size * 0.6, size * 0.3, size * 0.15]) {
+  for (const s of [size]) {
     try {
       const r = kind === 'fillet' ? shape.fillet(s, (e: any) => e.containsPoint(M)) : shape.chamfer(s, (e: any) => e.containsPoint(M))
       if (s !== size) buildWarnings.push(`${kind === 'fillet' ? '圆角' : '倒角'} ${size} 太大，已自动缩小到 ${s.toFixed(1)} 以贴合该棱`)
       return r
-    } catch { /* retry smaller */ }
+    } catch { /* report the requested size as failed */ }
   }
   throw new Error(`${kind} near point failed`)
 }
@@ -1577,7 +1577,7 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
     if (sb) { _recordFillet(_curOpIndex, 'fillet', mids, baseR); return sb }
     buildWarnings.push('收进圆角：内核变半径律（Add_5）不可达或未收敛 — 已退回等半径圆角（结果安全）')
   }
-  for (const s of [size, size * 0.6, size * 0.3, size * 0.15]) {
+  for (const s of [size]) {
     try {
       const sc = s / size
       if (kind === 'fillet' && continuity === 'G2') {
@@ -1606,7 +1606,7 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
       // GM-γ2b：录圆角/倒角 op（实际成功半径 s；变半径圆角以起点半径 s 近似 — S2 只追拓扑对应，半径廓形不影响哪面被改）供 S2 重跑。
       _recordFillet(_curOpIndex, kind, mids, mids.map(() => s))
       return r
-    } catch { /* retry smaller */ }
+    } catch { /* report the requested size as failed */ }
   }
   throw new Error(`${kind} near points failed`)
 }

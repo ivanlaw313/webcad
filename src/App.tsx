@@ -69,7 +69,8 @@ export default function App() {
       // two command-dialog keys Fusion users rely on: Enter commits and Esc
       // cancels even while a numeric field has focus.  Modifier shortcuts (undo,
       // redo, save…) must stay available too.
-      const editingText = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')
+      const editingText = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
+      if (editingText && (e.ctrlKey || e.metaKey) && ['z', 'y'].includes(e.key.toLowerCase())) return
       if (editingText && !e.ctrlKey && !e.metaKey && e.key !== 'Enter' && e.key !== 'Escape') return
       if (e.ctrlKey || e.metaKey) {
         const ck = e.key.toLowerCase()

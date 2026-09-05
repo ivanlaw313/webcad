@@ -3599,6 +3599,18 @@ export default function Viewport() {
   const holeSlotAng = useApp((s) => s.holeSlotAng)
   const setHoleSlotAng = useApp((s) => s.setHoleSlotAng)
   const featDlg = useApp((s) => s.featDlg)
+  const [editPreview, setEditPreview] = useState<{ dialog: typeof featDlg; mesh: MeshData | null; failed: boolean } | null>(null)
+  useEffect(() => {
+    if (featDlg?.kind !== 'extrude-edit') return
+    let cancelled = false
+    const timer = setTimeout(() => {
+      void useApp.getState().previewExtrudeEdit().then(mesh => {
+        if (!cancelled) setEditPreview({ dialog: featDlg, mesh, failed: !mesh || !!mesh.failed?.length })
+      }).catch(() => { if (!cancelled) setEditPreview({ dialog: featDlg, mesh: null, failed: true }) })
+    }, 120)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [featDlg])
+  const currentEditPreview = editPreview?.dialog === featDlg ? editPreview : null
   const setFeatParam = useApp((s) => s.setFeatParam)
   const commitFeatDlg = useApp((s) => s.commitFeatDlg)
   const cancelFeatDlg = useApp((s) => s.cancelFeatDlg)
@@ -4234,7 +4246,7 @@ export default function Viewport() {
         {bodyMesh && bodyMesh.triangles.length > 0
           ? (section.on && section.capped && sectionMesh
             ? <KernelBody mesh={sectionMesh} pickable={selPicksBody(selFilter) && mode !== 'sketch'} />  /* capped section: a real solid half (filled cut face), no clip plane */
-            : <KernelBody mesh={edgeRoundPick && roundPreviewMesh ? roundPreviewMesh : bodyMesh} clip={clip} pickable={selPicksBody(selFilter) && mode !== 'sketch'} />)   /* GM-X4：selFilter.types 含 body/face/edge 先可拣（默认全类型 = 旧 'body!=comp' 逐字节）；画草图时实体唔接 raycast */
+            : <KernelBody mesh={currentEditPreview?.mesh && !currentEditPreview.failed ? currentEditPreview.mesh : edgeRoundPick && roundPreviewMesh ? roundPreviewMesh : bodyMesh} clip={clip} pickable={selPicksBody(selFilter) && mode !== 'sketch'} />)   /* GM-X4：selFilter.types 含 body/face/edge 先可拣（默认全类型 = 旧 'body!=comp' 逐字节）；画草图时实体唔接 raycast */
           : (mode === 'model' && components.length === 0 && !(bodyMesh?.parked?.length) ? <PlaceholderBody /> : null)}
         {/* 多实体（T728）：泊车实体灰显（唔可交互 — 圆角/草图/量度作用喺活动实体；要操作佢请用「实体布尔」合并返）。
             S133：编辑曲面控制点模式下变可拾（点选目标曲面）。 */}
@@ -6020,11 +6032,13 @@ export default function Viewport() {
 
       {featDlg && (
         <CommandDialog icon={featDlg.kind === 'geoPattern' ? 'pattern' : (FD_ICON[featDlg.kind] ?? 'default')} title={tStatus((featDlg.editId ? '编辑 · ' : '') + (featDlg.kind === 'geoPattern' ? '几何阵列' : (FD_TITLE[featDlg.kind] ?? featDlg.kind)), lang)} okDisabled={
+          (featDlg.kind === 'extrude-edit' && (!currentEditPreview || currentEditPreview.failed)) ||
           ((featDlg.kind === 'pattern' || featDlg.kind === 'circpattern') && (String(featDlg.params.objectType ?? 'bodies') === 'features' ? !cpSelFeat : String(featDlg.params.objectType ?? 'bodies') === 'components' ? !cpSelCompCount : String(featDlg.params.objectType ?? 'bodies') === 'faces' ? !facePatternPicks.length : !+featDlg.params.objectPicked)) ||
           (featDlg.kind === 'geoPattern' && !featDlg.editId && !cpSelFeat) ||
           (featDlg.kind === 'move' && String(featDlg.params.objectType ?? 'bodies') === 'components' && !selectedComponent && checkedComps.length === 0) ||
           (featDlg.kind === 'automatedmodel' && (((featDlg.payload as { picks?: unknown[] } | undefined)?.picks?.length ?? 0) !== 2 || !(+featDlg.params.radius > 0)))
         } onOk={() => void commitFeatDlg()} onCancel={() => cancelFeatDlg()}>
+          {featDlg.kind === 'extrude-edit' && <div role="status">{!currentEditPreview ? '正在计算上游预览…' : currentEditPreview.failed ? '预览失败，请检查距离及轮廓' : '上游预览；确定后重建下游特征'}</div>}
           {featDlg.editId && <div style={{ fontSize: 11, color: '#8a97a2', marginBottom: 4 }}>{tStatus('编辑模式：改参数 → 确定重建；棱/面选择集及轮廓保留原值', lang)}</div>}
           {featDlg.kind === 'automatedmodel' && (() => {
             const picks = ((featDlg.payload as { picks?: { p: [number, number, number] }[] } | undefined)?.picks ?? [])
@@ -6960,7 +6974,7 @@ export default function Viewport() {
           title={tStatus('拉伸', lang)}
           width={240}
           okTip={extrudeRegionTotal > 0 && extrudeRegionSelCount === 0 ? tStatus('先点画布拣要拉伸嘅 profile 区域', lang) : tStatus('生成（Enter）', lang)}
-          okDisabled={extrudeRegionTotal > 0 && extrudeRegionSelCount === 0}
+          okDisabled={busy || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6))}
           onOk={() => void extrudeSketch()}
           onCancel={() => cancelExtrudeDlg()}
           summary={<>{sketchOp === 'cut' ? tStatus('从实体切除', lang) : sketchOp === 'intersect' ? tStatus('保留公共部分', lang) : tStatus('生成/拼合实体', lang)} · {extrudeExtent === 'through' ? tStatus('贯通整个零件', lang) : extrudeExtent === 'next' ? tStatus('到下一面', lang) : extrudeExtent === 'symmetric' ? tStatus(`对称 ${extrudeHeight}mm`, lang) : `${extrudeHeight}mm`}{extrudeDraft ? tStatus(` · 拔模 ${extrudeDraft}°`, lang) : ''}</>}

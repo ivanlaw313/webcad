@@ -1016,7 +1016,7 @@ export function ExtrudePreview() {
   // keyed on 同一组输入 → 高度/⇅/操作/extent/轮廓 一改即 live 重算;体网格用 useEffect dispose 免泄漏。
   // 钩子次序：所有 useApp 之后先 useMemo,再 early-return（React 规矩:钩子唔可以喺 return 之后）。
   const vol = useMemo(() => {
-    if (!open) return null
+    if (!open || (['distance', 'symmetric', 'twosides'].includes(extent) && !(Math.abs(h) > 1e-6))) return null
     const all = [...profiles, ...(shape ? [shape] : [])] as SketchShape[]
     if (!all.length) return null
     // GM-W7 7.6 颜色语义（Fusion）：切除→红,求交→紫,新建/接合→蓝。

@@ -1,3 +1,4 @@
+import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { lengthScale } from './io/units'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
 import { create } from 'zustand'
@@ -319,8 +320,8 @@ const skSnap = (s: { sketchShape: SketchShape | null; sketchProfiles: SketchShap
 // GM-W8 β1-#36：param/公式求值到 ≤0（退化尺寸）时 withParamVals 维持原值,并把边界尺寸/参数名记入下面 set；
 // 由 applyParamSketches（主 apply 路径）解算前清空、解算后读一次併入 status（live 拖拽/probe 亦会写,但只此路径读）。
 const _degenDimNotes = new Set<string>()
-const withParamVals = (cons: SkCon[], params: { name: string; value: number }[]): SkCon[] => {
-  if (!cons.some((c) => c.kind === 'dim' && (c.param || c.expr))) return cons
+const withParamVals = (cons: SkCon[], params: Parameter[]): SkCon[] => {
+  if (!cons.some((c) => c.kind === 'dim' && (c.paramId || c.param || c.expr))) return cons
   const byName = new Map(params.map((p) => [p.name, p.value]))
   // dim-name（S195）尺寸互引：expr 嘅 vars = ƒx 参数 ∪ 同草图具名尺寸值。同名时【参数赢】——
   // addParam 默认名就系 d1/d2，旧档 expr 里嘅 d1 一直解到参数，唔可以突然改义指去尺寸。
@@ -333,10 +334,11 @@ const withParamVals = (cons: SkCon[], params: { name: string; value: number }[])
     let changed = false
     for (const c of dims) {
       let v: number | null = null
-      if (c.expr) v = evalExpr(c.expr, vars)                                  // S97 公式尺寸（缺参/语法错=保留旧值，诚实唔郁）
+      if (c.expr) { const bound=new Map(vars); for (const [token,id] of Object.entries(c.refs ?? {})) bound.set(token,params.find(p=>parameterId(p)===id)?.value ?? dims.find(d=>`dimension:${d.id}`===id)?.value ?? NaN); v = evalExpr(c.expr, bound) }                                  // S97 公式尺寸（缺参/语法错=保留旧值，诚实唔郁）
+      else if (c.paramId) v = params.find(p=>parameterId(p)===c.paramId)?.value ?? null
       else if (c.param && byName.has(c.param)) v = byName.get(c.param)!
       else continue
-      if (v == null) continue
+      if (v == null) { _degenDimNotes.add(c.name || '失效引用'); continue }
       // GM-W8 β1-#36：≤0 = 退化尺寸 → 维持原值（唔再 abs 静静翻正负值 / 静静回退 0）；记低边界名畀 applyParamSketches 出提示。
       const nv = v > 0 ? v : c.value
       if (v <= 0) _degenDimNotes.add(c.name || c.param || '尺寸')
@@ -1563,6 +1565,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   setDebugMode: (on: boolean) => void
   copyDebugReport: () => void
   addSkAngleDim: () => void      // angle dim between the 2 selected edges
+  commitSkDim: (id: string, patch: Partial<Extract<SkCon, { kind: 'dim' }>>, message: string) => Promise<void>
   editSkDim: (id: string, value: number) => void
   toggleSkDimDriven: (id: string) => void  // 从动 ⇄ 驱动尺寸（右键尺寸标签）
   toggleSkDimRadDia: (id: string) => void  // GM-FP2 #29：R↔Ø 显示翻转（右键弧/圆尺寸；display flag，type/value 不变）
@@ -6023,7 +6026,7 @@ export const useApp = create<AppState>((set, get) => ({
     _degenDimNotes.clear()   // GM-W8 β1-#36：本轮解算前清空退化尺寸记录（withParamVals 会填）
     const names = new Set(s.params.map((p) => p.name))
     const refsParam = (e: string) => [...names].some((nm) => new RegExp(`(^|[^\\w一-龥])${nm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^\\w一-龥]|$)`).test(e))
-    const entries = Object.entries(s.sketchSources).filter(([, src]) => (src.cons || []).some((c) => c.kind === 'dim' && ((c.param && names.has(c.param)) || (c.expr && refsParam(c.expr)))))   // S97：公式引用任一参数 → 改参数联动重建
+    const entries = Object.entries(s.sketchSources).filter(([, src]) => (src.cons || []).some((c) => c.kind === 'dim' && ((c.paramId && s.params.some(p=>parameterId(p)===c.paramId)) || Object.values(c.refs ?? {}).some(id=>s.params.some(p=>parameterId(p)===id)) || (c.param && names.has(c.param)) || (c.expr && refsParam(c.expr)))))   // S97：公式引用任一参数 → 改参数联动重建
     if (!entries.length) return null
     let feats = [...s.features]
     const srcs: AppState['sketchSources'] = {}
@@ -6040,7 +6043,7 @@ export const useApp = create<AppState>((set, get) => ({
       n++
     }
     // GM-W8 β1-#36：本轮有尺寸求值到 ≤0（退化）→ 併一句提示畀调用方（setParam 等）接落 status。
-    if (_degenDimNotes.size) throw new Error(`${[..._degenDimNotes].join('、')} 求值 ≤0（退化尺寸）`)
+    if (_degenDimNotes.size) throw new Error(`${[..._degenDimNotes].join('、')} 公式失效或求值 ≤0（退化尺寸）`)
     const note = undefined
     return n ? { feats, srcs, n, note } : null
   },
@@ -6211,13 +6214,8 @@ export const useApp = create<AppState>((set, get) => ({
       if (get().skCons.some((c) => c.kind === 'dim' && c.name === paramName && c.id !== conId)) { get().bindSkDimExpr(conId, paramName); return }
       set({ status: `参数「${paramName}」唔存在 — 先喺顶栏「ƒx 参数」面板加返（或输入尺寸名 d1 / 公式 d1*2）` }); return
     }
-    const degen = !(p.value > 0)   // GM-W8 β1-#36：参数值 ≤0 = 退化尺寸 → 维持原值（唔再 abs 翻正）,并诚实提示
-    set((s2) => ({
-      sketchUndo: [...s2.sketchUndo, skSnap(s2)].slice(-80), sketchRedo: [],
-      skCons: s2.skCons.map((c) => (c.id === conId && c.kind === 'dim' ? { ...c, param: paramName, expr: undefined, value: p.value > 0 ? p.value : c.value, driven: undefined } : c)),
-      status: degen ? `⚠ 参数「${paramName}」值 ${p.value} ≤0（退化尺寸）— 尺寸维持原值,绑定已建立（改参数为正数即联动）` : `尺寸已绑定 ƒx ${paramName} = ${p.value} — 改参数即全树联动（输入数字可解绑）`,
-    }))
-    void get().resolveSk()
+    if (!Number.isFinite(p.value) || p.value <= 0) { set({status:'参数尺寸必须为有限正数，未更改草图'}); return }
+    void get().commitSkDim(conId, {param:paramName,paramId:parameterId(p),refs:undefined,expr:undefined,value:p.value,driven:undefined}, `尺寸已绑定 ƒx ${paramName} = ${p.value}`)
   },
   // S97 公式尺寸：尺寸值 = 表达式（引用参数/常量/函数，如 d1*2+5）。先验证可算（失败报错不改），成功写 value + 解绑纯参数。
   bindSkDimExpr: (conId, expr) => {
@@ -6228,6 +6226,10 @@ export const useApp = create<AppState>((set, get) => ({
     const vars = new Map<string, number>()
     for (const c of s0.skCons) if (c.kind === 'dim' && c.name && c.id !== conId) vars.set(c.name, c.value)
     for (const p of s0.params) vars.set(p.name, p.value)
+    const symbols=[...s0.params,...s0.skCons.flatMap(c=>c.kind==='dim'&&c.name&&!s0.params.some(p=>p.name===c.name)?[{id:`dimension:${c.id}`,name:c.name,value:c.value}]:[])]
+    const refs=parameterExpressionRefs(expr,symbols,self?.kind==='dim'?self.refs:undefined)
+    for(const [token,id] of Object.entries(refs)) vars.set(token,symbols.find(p=>parameterId(p)===id)?.value ?? NaN)
+    try { assertParameterAcyclic(s0.skCons.flatMap(c=>c.kind==='dim'&&c.name?[{id:`dimension:${c.id}`,name:c.name,value:c.value,expr:c.id===conId?expr:c.expr,refs:c.id===conId?refs:c.refs}]:[])) } catch { set({status:'尺寸循环引用，已拒绝'}); return }
     const v = evalExpr(expr, vars)
     if (v == null) { set({ status: `⚠ 公式无法计算：「${expr}」— 检查参数名/尺寸名(d1)/括号/语法（+ - * / ^ %、pi、sqrt/sin/max 等）` }); return }
     // S195 循环引用检测（抄 setParamExpr 依赖图法）：经新 expr 直接/间接引用返自己 → 拒
@@ -6241,13 +6243,8 @@ export const useApp = create<AppState>((set, get) => ({
       while (stk.length) { const u = stk.pop()!; if (u === selfName) { cyc = true; break } if (seen.has(u)) continue; seen.add(u); for (const v2 of (depMap.get(u) || [])) stk.push(v2) }
       if (cyc) { set({ status: `⚠ 尺寸循环引用：「${selfName} = ${expr}」直接或间接引用返自己 — 已拒绝` }); return }
     }
-    const degen = !(v > 0)   // GM-W8 β1-#36：公式求值 ≤0 = 退化尺寸 → 维持原值（唔再 abs 翻正）,并诚实提示
-    set((s2) => ({
-      sketchUndo: [...s2.sketchUndo, skSnap(s2)].slice(-80), sketchRedo: [],
-      skCons: s2.skCons.map((c) => (c.id === conId && c.kind === 'dim' ? { ...c, expr, param: undefined, value: v > 0 ? v : c.value, driven: undefined } : c)),
-      status: degen ? `⚠ 公式 ƒ(${expr}) = ${+v.toFixed(3)} ≤0（退化尺寸）— 尺寸维持原值,绑定已建立` : `尺寸已绑定公式 ƒ(${expr}) = ${+v.toFixed(3)} — 改参数即全树联动（输入纯数字解绑）`,
-    }))
-    void get().resolveSk()
+    if (!Number.isFinite(v) || v <= 0) { set({status:'公式尺寸必须为有限正数，未更改草图'}); return }
+    void get().commitSkDim(conId, {expr,refs,param:undefined,paramId:undefined,value:v,driven:undefined}, `尺寸已绑定公式 ƒ(${expr}) = ${+v.toFixed(3)}`)
   },
   skClickAt: (p) => {
     const s = get()
@@ -6606,25 +6603,37 @@ export const useApp = create<AppState>((set, get) => ({
     void get().resolveSk({ promptOverconstrain: true })   // GM-FP2 #30
   },
   removeSkCon: (id) => {
+    const target = get().skCons.find(c => c.id === id)
+    if (target?.kind === 'dim' && get().skCons.some(c => c.kind === 'dim' && c.id !== id && Object.values(c.refs ?? {}).includes(`dimension:${id}`))) {
+      set({ status: '此尺寸仍被其他尺寸公式引用，请先解除引用' }); return
+    }
     set((s) => ({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: s.skCons.filter((c) => c.id !== id), status: '已移除该约束/尺寸' }))
     void get().resolveSk()
   },
+  // Solve a candidate first: a failed edit must preserve bindings, geometry and both histories.
+  commitSkDim: async (id, patch, message) => {
+    const before = get()
+    if (before.mode !== 'sketch' || !before.skCons.some(c=>c.id===id&&c.kind==='dim')) return
+    const draft = before.skCons.map(c=>c.id===id&&c.kind==='dim'?{...c,...patch}:c)
+    _degenDimNotes.clear()
+    const cons = withParamVals(draft, before.params)
+    if (_degenDimNotes.size) { set({status:'尺寸公式无效，已保留原有约束及几何'}); return }
+    const shapes = [...before.sketchProfiles,...(before.sketchShape?[before.sketchShape]:[])] as FShape[]
+    try {
+      const result = await solveFree(shapes,cons)
+      const current=get()
+      if(current.mode!=='sketch'||current.skCons!==before.skCons||current.sketchShape!==before.sketchShape||current.sketchProfiles!==before.sketchProfiles||current.params!==before.params) return
+      if(!result||result.conflict) { set({status:'尺寸修改失败：约束冲突，已保留原有公式、几何及 Undo/Redo'}); return }
+      set({sketchUndo:[...before.sketchUndo,skSnap(before)].slice(-80),sketchRedo:[],skCons:cons,
+        sketchProfiles:result.shapes.slice(0,before.sketchProfiles.length) as SketchShape[],
+        sketchShape:before.sketchShape?result.shapes[before.sketchProfiles.length] as SketchShape:null,
+        skDof:result.dof,skConflict:false,skConflictIds:[],skFreeShapes:new Set(),status:`${message} · DOF ${result.dof}`})
+      await get().resolveSk()
+    } catch { if(get().skCons===before.skCons) set({status:'尺寸求解失败，原有草图未更改'}) }
+  },
   editSkDim: (id, value) => {
-    if (!(value > 0)) return
-    const _prevCon = get().skCons.find((c) => c.id === id && c.kind === 'dim') as { value?: number; driven?: boolean } | undefined
-    const _prevVal = _prevCon?.value
-    const _prevDriven = !!_prevCon?.driven
-    // editing a 从动 (driven) dim's value implies the user wants it to DRIVE again (Fusion asks; we convert + say so)
-    set((s) => {
-      const cur = s.skCons.find((c) => c.id === id)
-      const wasDriven = cur?.kind === 'dim' && cur.driven
-      const wasParam = cur?.kind === 'dim' && cur.param
-      // 输入数字 = 解绑 ƒx 参数（Fusion 同款：直接数值接管）；解绑/转驱动都提示
-      return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: s.skCons.map((c) => (c.id === id && c.kind === 'dim' ? { ...c, value, driven: undefined, param: undefined, expr: undefined } : c)), ...(wasParam ? { status: `已解绑 ƒx ${wasParam} — 尺寸改用固定值 ${value}` } : wasDriven ? { status: '从动尺寸已转为驱动（输入数值即接管几何）' } : {}) }
-    })
-    // GM-FP2 #30 编辑路径：改值/从动转驱动 引发过约束 → 同放置路径一样弹模态（取消=还原旧值+旧从动态,唔系移除）。
-    // editSkDim 恒为用户交互（点标签改值）→ 可以弹框;还原/replay 唔行呢条路。
-    void get().resolveSk({ promptOverconstrain: true, target: { id, cancelValue: _prevVal, cancelDriven: _prevDriven } })
+    if (!Number.isFinite(value) || value <= 0) { set({status:'尺寸必须为有限正数，未更改草图'}); return }
+    void get().commitSkDim(id,{value,driven:undefined,param:undefined,paramId:undefined,refs:undefined,expr:undefined},`尺寸已改为 ${value}`)
   },
   // ── 参数化组件 edit-in-place（T734）──────────────────────────────────────
   editingComponent: null,
@@ -7595,7 +7604,11 @@ export const useApp = create<AppState>((set, get) => ({
       }
       if (s.sketchTool === 'rectangle') {
         if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '再点第二个角点完成矩形' }
-        return { sketchShape: { type: 'rect', a: s.sketchStart, b: pt }, sketchStart: null, status: '矩形已画好 — 点「拉伸」' }
+        const shape: SketchShape = { type: 'rect', a: s.sketchStart, b: pt }
+        if (Math.abs(pt[0]-s.sketchStart[0])<1e-6 || Math.abs(pt[1]-s.sketchStart[1])<1e-6) return { status: '矩形宽高必须大于零' }
+        const seq=maxDimSeq(s.sketchSources,s.skCons,s.params)+1
+        const added=rectangleConstraints([...s.sketchProfiles,shape] as FShape[],s.sketchProfiles.length,s.skCons,[`d${seq}`,`d${seq+1}`],[null,null],s.autoConstrain)
+        return { sketchShape: shape, skCons:[...s.skCons,...added], sketchStart: null, status: '矩形已画好 — 水平／垂直关系已保存' }
       }
       if (s.sketchTool === 'mline') {
         // GM-FP4 #16 中点线（Fusion Midpoint Line）：第一击 = 中点，第二击 = 一端 → 由中点向两端对称嘅直线段。
@@ -7842,6 +7855,7 @@ export const useApp = create<AppState>((set, get) => ({
     // T773（S53）：第二击落形侦测 — 头先画紧（sketchStart 有值）而家收笔（null）且出咗新 shape
     // → 重合推断（rect/crect/圆/槽/圆角矩/椭圆/多边形 全部命中；折线行 closePolyline 嗰边嘅钩）
     // GM-FP2 #33：AutoConstrain 关咗 → 画图唔再自动推断约束（Fusion palette toggle 同款）。
+    if (get().sketchTool === 'rectangle' && _preStart && !get().sketchStart && get().sketchShape?.type === 'rect' && get().sketchShape !== _preShape) { void get().resolveSk(); return }
     if (get().autoConstrain && _preStart && !get().sketchStart && get().sketchShape && get().sketchShape !== _preShape && get().mode === 'sketch') void get().applyCoincidentInference().then(() => get().applyDrawInference())
   },
 
@@ -7905,6 +7919,10 @@ export const useApp = create<AppState>((set, get) => ({
   // Edit a drawn shape's dimension (clicking its on-canvas label): resize the rect side / circle Ø
   // in place, preserving the original draw direction (sign). Poly bbox labels are display-only.
   setSketchDimValue: (target, dim, value) => {
+    const index=target==='shape'?get().sketchProfiles.length:target
+    const bound=get().skCons.find(c=>c.kind==='dim'&&!c.driven&&c.type==='len'&&c.a.kind==='edge'&&c.a.shape===index&&c.a.idx%2===(dim==='w'?0:1))
+    if ((target==='shape'?get().sketchShape:get().sketchProfiles[target])?.type==='rect'&&(dim==='w'||dim==='h')&&bound) { get().editSkDim(bound.id,value); return }
+
     set((s) => {
     if (!isFinite(value) || value <= 0) return {}
     let editError: string | null = null
@@ -7998,7 +8016,7 @@ export const useApp = create<AppState>((set, get) => ({
     })
     if (get().skCons.length > 0) void get().resolveSk()  // keep constraints/dims honoured after a direct label edit
   },
-  sketchTypeKey: (key) => { let _finishChain = false; set((s) => {
+  sketchTypeKey: (key) => { let _finishChain = false; let rectangleCommitted = false; set((s) => {
     if (s.mode !== 'sketch') return {}
     if (s.sizing) return {}   // T796b：调尺寸中由 sizeTypeKey 处理，唔好误入起点坐标输入（防幽灵 sketchStart）
     const tool = s.sketchTool
@@ -8045,9 +8063,15 @@ export const useApp = create<AppState>((set, get) => ({
     const bank = s.sketchShape ? { sketchProfiles: [...s.sketchProfiles, s.sketchShape] } : {}
     if (start && tool === 'rectangle') {
       const dx = prev[0] - start[0], dy = prev[1] - start[1]
+      if (buf.some(v=>v!==''&&(!Number.isFinite(Number(v))||Number(v)<=0))) return {status:'矩形宽高必须是完整的正数'}
       const W = num(buf[0], Math.abs(dx) || 20), H = num(buf[1], Math.abs(dy) || W)
       const b: Pt = [start[0] + (dx < 0 ? -1 : 1) * W, start[1] + (dy < 0 ? -1 : 1) * H]
-      return { ...bank, sketchShape: { type: 'rect', a: start, b }, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `矩形 ${W} × ${H} mm — 点「拉伸」` }
+      const shape: SketchShape={type:'rect',a:start,b}
+      const profiles=bank.sketchProfiles ?? s.sketchProfiles
+      const seq=maxDimSeq(s.sketchSources,s.skCons,s.params)+1
+      const added=rectangleConstraints([...profiles,shape] as FShape[],profiles.length,s.skCons,[`d${seq}`,`d${seq+1}`],[buf[0]?W:null,buf[1]?H:null],s.autoConstrain)
+      rectangleCommitted=true
+      return { ...bank, sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],skCons:[...s.skCons,...added], sketchShape: shape, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `矩形 ${W} × ${H} mm — 驱动尺寸及关系已保存` }
     }
     if (start && (tool === 'circle' || tool === 'polygon')) {
       const R = num(buf[0], Math.hypot(prev[0] - start[0], prev[1] - start[1]) || 20)
@@ -8229,7 +8253,7 @@ export const useApp = create<AppState>((set, get) => ({
     }
     if (tool === 'arc' || tool === 'circle3') return unsup   // 三点弧曲率/三点圆 单数字歧义/欠定 → 诚实提示（keys 已被吃，可接受）
     return {}
-  }); if (_finishChain) get().finishOpenPolyline() },   // GM-FP1 #14：两值全锁后收笔（set 同步完成后 polyPts 已含新点）
+  }); if (rectangleCommitted) void get().resolveSk(); if (_finishChain) get().finishOpenPolyline() },   // GM-FP1 #14：两值全锁后收笔（set 同步完成后 polyPts 已含新点）
 
   closePolyline: () => {
     let activeClosed = false   // D4-2：只有「活动 shape 被闭合 / live 链闭合」先跑 trailing 推断；profile-close 唔好跑去活动 shape 上
@@ -12006,6 +12030,7 @@ export const useApp = create<AppState>((set, get) => ({
         const cur = skSnap(s)
         return { ...snap, sketchUndo: s.sketchUndo.slice(0, -1), sketchRedo: [...s.sketchRedo, cur], sketchPreview: null, sketchSnap: null, sketchDim: null, skSel: [], skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null, status: '已撤销草图一步' }  // BOOL-2：撤销同时清拾取/预览状态（snap 唔含呢啲）
       })
+      await get().resolveSk()
       return
     }
     const u = get().undoStack
@@ -12037,6 +12062,7 @@ export const useApp = create<AppState>((set, get) => ({
         const cur = skSnap(s)
         return { ...snap, sketchRedo: s.sketchRedo.slice(0, -1), sketchUndo: [...s.sketchUndo, cur], sketchPreview: null, sketchSnap: null, sketchDim: null, skSel: [], skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null, status: '已重做草图一步' }
       })
+      await get().resolveSk()
       return
     }
     const r = get().redoStack
@@ -16629,6 +16655,8 @@ export const useApp = create<AppState>((set, get) => ({
   removeParam: async (name) => {
     if (get().busy) { set({ status: '请等待当前重建完成，再修改参数' }); return }
     const p = get().params.find(p => p.name === name)
+    const sketchDims = [...get().skCons,...Object.values(get().sketchSources).flatMap(src=>src.cons ?? [])]
+    if(p && sketchDims.some(c=>c.kind==='dim'&&(c.paramId===parameterId(p)||Object.values(c.refs??{}).includes(parameterId(p))||(!c.paramId&&c.param===name)))) { set({status:`参数 ${name} 仍被草图尺寸引用；请先解除引用`}); return }
     if (p && (get().params.some(q => Object.values(q.refs ?? {}).includes(parameterId(p))) || get().features.some(f => f.type === 'extrude' && Object.values(f.distanceExpression?.refs ?? {}).includes(parameterId(p))))) {
       set({ status: `参数 ${name} 仍被公式引用；请先解除引用` }); return
     }

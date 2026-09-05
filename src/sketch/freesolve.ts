@@ -269,7 +269,7 @@ function arcCentersFromSegs(segs: [FPt, FPt][]): FPt[] {
 export type SkConType = 'h' | 'v' | 'coincident' | 'parallel' | 'perp' | 'equal' | 'tangent' | 'fix' | 'midpoint' | 'concentric' | 'collinear' | 'symmetric'
 export type SkCon =
   | { id: string; kind: 'con'; type: SkConType; a: SkRef; b?: SkRef; c?: SkRef }  // c: symmetric 嘅对称轴（第 3 选）
-  | { id: string; kind: 'dim'; type: 'dist' | 'hdist' | 'vdist' | 'len' | 'dia' | 'rad' | 'angle' | 'p2l' | 'arclen'; a: SkRef; b?: SkRef; value: number; driven?: boolean; param?: string; expr?: string; name?: string; radDiaFlip?: boolean }  // expr（S97）= ƒx 公式：优先 param，evalExpr 求值入 value（引用参数/常量/函数 d1*2+5）; rad = R; arclen = 弧长（净系真弧：verts-poly 弧段 / 三点弧 rim — 成个圆创建侧已挡）; hdist/vdist = 水平/竖直 point-point distance (Fusion 位置尺寸); driven = 从动尺寸（只量度唔驱动，括号显示）; param = ƒx 用户参数名（T746 批3：参数驱动尺寸 — 改参数 → 草图重解 → 全树重建）; name = 尺寸稳定名 d1/d2…（创建时派、全文档唯一、序列化生还 — 其他尺寸 expr 可引用；旧档无名 → editSketchOf lazy 补）; radDiaFlip = GM-FP2 #29：R↔Ø 显示翻转旗（只影响显示/输入，type 与 value 保持自然表示 — 旧档零影响、solver 唔变；显示值经 radDiaDisplay ×2/÷2）
+  | { id: string; kind: 'dim'; type: 'dist' | 'hdist' | 'vdist' | 'len' | 'dia' | 'rad' | 'angle' | 'p2l' | 'arclen'; a: SkRef; b?: SkRef; value: number; driven?: boolean; param?: string; paramId?: string; refs?: Record<string,string>; expr?: string; name?: string; radDiaFlip?: boolean }  // expr（S97）= ƒx 公式：优先 param，evalExpr 求值入 value（引用参数/常量/函数 d1*2+5）; rad = R; arclen = 弧长（净系真弧：verts-poly 弧段 / 三点弧 rim — 成个圆创建侧已挡）; hdist/vdist = 水平/竖直 point-point distance (Fusion 位置尺寸); driven = 从动尺寸（只量度唔驱动，括号显示）; param = ƒx 用户参数名（T746 批3：参数驱动尺寸 — 改参数 → 草图重解 → 全树重建）; name = 尺寸稳定名 d1/d2…（创建时派、全文档唯一、序列化生还 — 其他尺寸 expr 可引用；旧档无名 → editSketchOf lazy 补）; radDiaFlip = GM-FP2 #29：R↔Ø 显示翻转旗（只影响显示/输入，type 与 value 保持自然表示 — 旧档零影响、solver 唔变；显示值经 radDiaDisplay ×2/÷2）
 
 // GM-FP2 #29：R↔Ø 显示（右键弧/圆尺寸切半径/直径）。stored value + type 保持自然表示（rad→R、dia→Ø），
 // 唔改内核语义/旧档；净系显示时按 radDiaFlip 翻转（rad 翻显 Ø=value×2、dia 翻显 R=value÷2）。
@@ -728,10 +728,10 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
     for (let j = 0; j < n; j++) prims.push({ id: lid(i, j), type: 'line', p1_id: pid(i, j), p2_id: pid(i, (j + 1) % n) } as SketchPrimitive)
     if (sh.type === 'rect') {
       // a rect stays a rect: bottom/top horizontal, right/left vertical
-      prims.push({ id: `ar${i}h0`, type: 'horizontal_l', l_id: lid(i, 0) } as Constraint)
-      prims.push({ id: `ar${i}h2`, type: 'horizontal_l', l_id: lid(i, 2) } as Constraint)
-      prims.push({ id: `ar${i}v1`, type: 'vertical_l', l_id: lid(i, 1) } as Constraint)
-      prims.push({ id: `ar${i}v3`, type: 'vertical_l', l_id: lid(i, 3) } as Constraint)
+      if (!cons.some(c=>c.kind==='con'&&c.type==='h'&&c.a.kind==='edge'&&c.a.shape===i&&c.a.idx===0)) prims.push({ id: `ar${i}h0`, type: 'horizontal_l', l_id: lid(i, 0) } as Constraint)
+      if (!cons.some(c=>c.kind==='con'&&c.type==='h'&&c.a.kind==='edge'&&c.a.shape===i&&c.a.idx===2)) prims.push({ id: `ar${i}h2`, type: 'horizontal_l', l_id: lid(i, 2) } as Constraint)
+      if (!cons.some(c=>c.kind==='con'&&c.type==='v'&&c.a.kind==='edge'&&c.a.shape===i&&c.a.idx===1)) prims.push({ id: `ar${i}v1`, type: 'vertical_l', l_id: lid(i, 1) } as Constraint)
+      if (!cons.some(c=>c.kind==='con'&&c.type==='v'&&c.a.kind==='edge'&&c.a.shape===i&&c.a.idx===3)) prims.push({ id: `ar${i}v3`, type: 'vertical_l', l_id: lid(i, 3) } as Constraint)
     }
   })
   for (const c of cons) {

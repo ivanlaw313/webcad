@@ -6779,10 +6779,10 @@ export default function Viewport() {
           <button className={'sb-tool' + (sketchTool === 'dimension' ? ' active' : '')} title={tStatus('尺寸工具（D）：点 边=长度 · 圆=Ø · 弧=R · 点→点→放置=距离 · 点→边=垂直距离', lang)} onClick={() => setSketchTool('dimension')}>{tStatus('⟷ 尺寸', lang)}</button>
           {skCons.length > 0 && (
             <span className="sb-hint" style={{ color: skConflict ? '#d6694e' : skDof === 0 ? '#1aa06b' : '#1572c4', fontWeight: 600 }} title={tStatus('约束求解状态：DOF = 剩余自由度（0 = 完全定义，绿色）。冲突时红色徽章 = 互相冲突嘅约束，点击其一移除即解；或按「↶撤约束」。', lang)}>
-              {skConflict ? tStatus(skConflictIds.length ? `⚠ 约束冲突 ×${skConflictIds.length}（红徽章点击移除）` : '⚠ 约束冲突', lang) : skDof === 0 && skCons.length > 0 ? tStatus(`✓ 完全定义 · 约束 ${skCons.length}`, lang) : tStatus(`约束 ${skCons.length} · DOF ${skDof ?? '—'}`, lang)}
+              {skConflict ? tStatus(skConflictIds.length ? `⚠ 约束冲突 ×${skConflictIds.length}（红徽章点击移除）` : '⚠ 约束冲突', lang) : skDof === 0 && skCons.length > 0 ? tStatus(`✓ 完全定义 · DOF 0 · 约束 ${skCons.length}`, lang) : tStatus(`约束 ${skCons.length} · DOF ${skDof ?? '—'}`, lang)}
             </span>
           )}
-          <span className="sb-hint" title={tStatus('画的时候直接打数字 → 精确尺寸（矩形：打宽 → Tab 换高 → Enter；圆：打半径 → Enter）。游标会吸附到已有的点。', lang)}>{tStatus('⌨ 打数字=尺寸', lang)}</span>
+          {['rectangle','circle','polyline','spline','bspline'].includes(sketchTool) && <span className="sb-hint" title={tStatus('画的时候直接打数字 → 精确尺寸（矩形：打宽 → Tab 换高 → Enter；圆：打半径 → Enter）。游标会吸附到已有的点。', lang)}>{tStatus('⌨ 打数字=尺寸', lang)}</span>}
           {/* GM-W8 β2-#B4：触屏精确输入 —— 绘制中（起点已落 / 折线有点）且非选择工具，出真输入框 → 手机点一下弹系统键盘，打数字经 sketchTypeKey 管线（commit 时重放）。旁边「⏸吸附」= setGeoSnapAlt 触屏版按住 Alt。 */}
           {mode === 'sketch' && sketchTool !== 'select' && (sketchStart != null || polyPts.length > 0) && (
             <span className="sb-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -6820,7 +6820,7 @@ export default function Viewport() {
           {(sketchTool === 'polyline' || sketchTool === 'spline' || sketchTool === 'bspline') && polyPts.length >= 3 && (
             <button className="sb-tool sb-finish" title={tStatus('闭合轮廓（回起点成闭合面，可拉伸）', lang)} onClick={() => closePolyline()}>{tStatus('✓ 闭合', lang)}</button>
           )}
-          <span className="sb-hint">{sketchTool === 'rectangle' ? tStatus('点两个角点', lang) : sketchTool === 'circle' ? tStatus('点圆心再点半径', lang) : sketchTool === 'trim' ? tStatus('✂ 点要剪走嗰段（剪到相交点）', lang) : sketchTool === 'extend' ? tStatus('⟶ 点开放路径嘅端段', lang) : sketchTool === 'offset' ? tStatus('⇉ 点一个轮廓锁定 → 拖鼠标调距离(外+/内−,1mm步进) → 点确定 · 打数字 · ESC', lang) : sketchTool === 'cfillet' ? tStatus('⌒ 点近一个直角顶点锁定 → 拖鼠标调半径 → 点确定（或底栏「全部角」）', lang) : sketchTool === 'cchamfer' ? tStatus('◣ 点近一个直角顶点锁定 → 拖鼠标调回缩 → 点确定（或底栏「全部角」）', lang) : sketchTool === 'mirror' ? tStatus('⇋ ①点轮廓拣（绿）→「✓拣轴线」→ ②点一条直线边做镜像轴', lang) : sketchTool === 'array' ? tStatus('▦ 底栏面板设 矩形/环形 参数（绿虚线预览）→ 应用阵列', lang) : sketchTool === 'cline' ? tStatus('┊ 点位置落构造参考线（工具面板切 竖直/水平）— 做对中参考 / 镜像轴', lang) : (sketchTool === 'polyline' || sketchTool === 'spline' || sketchTool === 'bspline') ? tStatus('连续点击；画好按「✓ 完成线」（开放直线）或回起点/「✓ 闭合」（闭合面）', lang) : tStatus('连续点击，回到起点或按「闭合」', lang)}</span>
+          <span className="sb-hint">{sketchTool === 'rectangle' ? tStatus('点两个角点', lang) : sketchTool === 'circle' ? tStatus('点圆心再点半径', lang) : sketchTool === 'trim' ? tStatus('✂ 点要剪走嗰段（剪到相交点）', lang) : sketchTool === 'extend' ? tStatus('⟶ 点开放路径嘅端段', lang) : sketchTool === 'offset' ? tStatus('⇉ 点一个轮廓锁定 → 拖鼠标调距离(外+/内−,1mm步进) → 点确定 · 打数字 · ESC', lang) : sketchTool === 'cfillet' ? tStatus('⌒ 点近一个直角顶点锁定 → 拖鼠标调半径 → 点确定（或底栏「全部角」）', lang) : sketchTool === 'cchamfer' ? tStatus('◣ 点近一个直角顶点锁定 → 拖鼠标调回缩 → 点确定（或底栏「全部角」）', lang) : sketchTool === 'mirror' ? tStatus('⇋ ①点轮廓拣（绿）→「✓拣轴线」→ ②点一条直线边做镜像轴', lang) : sketchTool === 'array' ? tStatus('▦ 底栏面板设 矩形/环形 参数（绿虚线预览）→ 应用阵列', lang) : sketchTool === 'cline' ? tStatus('┊ 点位置落构造参考线（工具面板切 竖直/水平）— 做对中参考 / 镜像轴', lang) : (sketchTool === 'polyline' || sketchTool === 'spline' || sketchTool === 'bspline') ? tStatus('连续点击；画好按「✓ 完成线」（开放直线）或回起点/「✓ 闭合」（闭合面）', lang) : sketchTool === 'select' ? tStatus('选择点／边／尺寸；拖动检验约束', lang) : ''}</span>
           <label className="sb-hint" title={tStatus('草图平面沿其法向的偏移（XY=高度 Z；XZ=沿 Y；YZ=沿 X），mm', lang)}>{sketchPlane === 'XY' ? tStatus('基准Z', lang) : sketchPlane === 'XZ' ? tStatus('偏移Y', lang) : tStatus('偏移X', lang)} <input type="number" value={Math.round(sketchBaseZ)} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setSketchBaseZ(Number(e.target.value) || 0)} style={{ width: 50 }} /></label>
           {/* GM-W2 2.3：网格捕捉步长 已收纳入「更多▾」弹层；几何捕捉 常用 → 留喺底栏 */}
           <button className={'sb-tool' + (geoSnap ? ' active' : '')} title={tStatus('几何捕捉：吸到孔心/边/点/线（开）。关咗可自由精准落点；画图时按住 Alt 可临时停', lang)} onClick={() => setGeoSnap(!geoSnap)}>{geoSnap ? tStatus('🧲 几何捕捉', lang) : tStatus('⊘ 捕捉关', lang)}</button>
@@ -6847,10 +6847,10 @@ export default function Viewport() {
           )}
           {!inSkToolMode && (<>
           <span className="sb-spacer" />
-          <label>{tStatus('高度', lang)} <input type="number" min={1} value={extrudeHeight} onFocus={(e) => e.currentTarget.select()}
+          {extrudeDlgOpen && <><label>{tStatus('高度', lang)} <input type="number" min={1} value={extrudeHeight} onFocus={(e) => e.currentTarget.select()}
             onChange={(e) => setExtrudeHeight(Number(e.target.value) || 1)} /> mm</label>
           <label className="sb-hint" title={tStatus('对称：以草图面为中心，向两侧各拉伸一半', lang)}><input type="checkbox" checked={sketchSymmetric} onChange={(e) => setSketchSymmetric(e.target.checked)} /> {tStatus('对称', lang)}</label>
-          <label className="sb-hint" title={tStatus('扭转角：拉伸时绕高度方向旋转（度）', lang)}>{tStatus('扭转', lang)} <input type="number" value={sketchTwist} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setSketchTwist(Number(e.target.value))} style={{ width: 46 }} /> °</label>
+          <label className="sb-hint" title={tStatus('扭转角：拉伸时绕高度方向旋转（度）', lang)}>{tStatus('扭转', lang)} <input type="number" value={sketchTwist} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setSketchTwist(Number(e.target.value))} style={{ width: 46 }} /> °</label></>}
           {sketchShape && (
             <>
               {(() => {

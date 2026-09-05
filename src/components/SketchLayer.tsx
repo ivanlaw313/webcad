@@ -5,7 +5,7 @@ import { DoubleSide, Vector3, BufferGeometry, Float32BufferAttribute, ShapeUtils
 import { useApp, setSnapScale, arc3, circumcircle, evalExpr, endTangent, type Pt, type SketchShape } from '../store'
 import { tStatus } from '../i18n'
 import { parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：单位感知尺寸输入（分数英寸）
-import { refMid, refPts, measureDim, dimGfx, radDiaDisplay, radDiaStore, type FShape, type SkRef } from '../sketch/freesolve'
+import { refMid, refPts, measureDim, dimGfx, radDiaDisplay, radDiaStore, type FShape, type SkCon, type SkRef } from '../sketch/freesolve'
 import { tessellateSeg } from '../sketch/sketchOps'
 import { chainSegments } from '../sketch/chainsegs'   // GM-W7 7.5：投影参考段串成 polyline → 连续虚线（唔再逐段塌成点）
 import { endpointTangentHandles } from '../sketch/splineEdit'   // #174-8：样条首尾切向手柄
@@ -2162,7 +2162,7 @@ const dimFmt = (v: number) => v.toFixed(v % 1 ? 1 : 0)
 // T794：长度标签按显示单位换算（mm 用紧凑 dimFmt；inch/cm 用 toLenInput）。角度/纯数照旧。
 const dimFmtU = (v: number, unit: LenUnit) => (unit === 'mm' ? dimFmt(v) : toLenInput(v, unit))
 
-function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], shape: SketchShape | null, unit: LenUnit, liftFn?: (p: Pt) => [number, number, number]): DimLabel[] {
+function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], shape: SketchShape | null, unit: LenUnit, constraints: SkCon[], liftFn?: (p: Pt) => [number, number, number]): DimLabel[] {
   const lift = liftFn ?? ((p: Pt): [number, number, number] => SK[plane].lift(p, baseZ))  // T746 批2：斜面（arb）传入自己嘅 lift
   const out: DimLabel[] = []
   const add = (sh: SketchShape, k: string, target: number | 'shape') => {
@@ -2174,8 +2174,8 @@ function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], sh
     if (sh.type === 'rect') {
       const [a0, a1] = sh.a, [b0, b1] = sh.b
       const ylo = Math.min(a1, b1), xlo = Math.min(a0, b0)
-      out.push({ key: k + 'w', anchor: lift([(a0 + b0) / 2, ylo]), pxOff: [0, 18], text: dimFmtU(Math.abs(b0 - a0), unit), edit: { target, dim: 'w', value: Math.abs(b0 - a0) } })
-      out.push({ key: k + 'h', anchor: lift([xlo, (a1 + b1) / 2]), pxOff: [-22, 0], text: dimFmtU(Math.abs(b1 - a1), unit), edit: { target, dim: 'h', value: Math.abs(b1 - a1) } })
+      if (!constraints.some(c=>c.kind==='dim'&&!c.driven&&c.type==='len'&&c.a.kind==='edge'&&c.a.shape===(target==='shape'?profiles.length:target)&&c.a.idx%2===0)) out.push({ key: k + 'w', anchor: lift([(a0 + b0) / 2, ylo]), pxOff: [0, 18], text: dimFmtU(Math.abs(b0 - a0), unit), edit: { target, dim: 'w', value: Math.abs(b0 - a0) } })
+      if (!constraints.some(c=>c.kind==='dim'&&!c.driven&&c.type==='len'&&c.a.kind==='edge'&&c.a.shape===(target==='shape'?profiles.length:target)&&c.a.idx%2===1)) out.push({ key: k + 'h', anchor: lift([xlo, (a1 + b1) / 2]), pxOff: [-22, 0], text: dimFmtU(Math.abs(b1 - a1), unit), edit: { target, dim: 'h', value: Math.abs(b1 - a1) } })
     } else if (sh.type === 'circle') {
       if (sh.point) return  // 草图点（r=0 构造点）唔出 Ø 标签 — 中心要畀人点
       // Ø 标签喺圆外 45°（Fusion 同款）— 圆心留返畀拾取
@@ -2266,7 +2266,7 @@ export function SketchDimLayer() {
     // T746 批2（GAP6 修复）：斜面重开都有尺寸标签/约束徽章 — 用 arbFrame.lift 替平面 lift
     const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
     const lift: (p: Pt) => [number, number, number] = fr ? fr.lift : (p) => SK[plane].lift(p, baseZ)
-    const out = skAnnot ? buildDimLabels(plane, baseZ, profiles, shape, unit, fr ? fr.lift : undefined) : []
+    const out = skAnnot ? buildDimLabels(plane, baseZ, profiles, shape, unit, skCons, fr ? fr.lift : undefined) : []
     // Constraint dims (D tool) → editable blue labels; constraint glyphs (∥/⊥/＝/…) → tiny badges (click = remove).
     const CON_GLYPH: Record<string, string> = { h: '━', v: '┃', coincident: '◉', parallel: '∥', perp: '⊥', equal: '＝', tangent: '⌒', fix: '⚓', midpoint: '⊹', concentric: '◎', collinear: '≣', symmetric: '⇆' }
     const shapesArr = [...profiles, ...(shape ? [shape] : [])] as FShape[]

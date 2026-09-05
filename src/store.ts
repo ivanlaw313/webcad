@@ -4759,14 +4759,27 @@ export const useApp = create<AppState>((set, get) => ({
     const ok = await get().applyFeatures([...get().features, f], get().filletType === 'full' ? `已建立全圆角（三组面，时间轴可改）` : `已对 ${pts.length} 条棱${cLabel}（时间轴可改）`, true, get().filletType === 'full' ? '全圆角失败（面组必须相邻，当前内核要求直线平行边界）' : get().filletMode === 'asymmetric' ? '不对称圆角失败（目前要求凸直线边及两个互相垂直平面）' : '该组棱操作失败（尺寸过大或几何受限）')
     if (ok) set({ edgeRoundPick: null, edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [], filletRuleFaceSets: [], filletRuleFaceIds: [], filletFullFaceSets: [], filletFullFaceIds: [], chamferRefFace: null, roundPreviewMesh: null, roundPreviewFail: false })
   },
-  cancelEdgeRound: () => set({ edgeRoundPick: null, edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [], filletRuleFaceSets: [], filletRuleFaceIds: [], filletFullFaceSets: [], filletFullFaceIds: [], chamferRefFace: null, roundPreviewMesh: null, roundPreviewFail: false, status: '已取消' }),
-  clearEdgeRoundPicks: () => set({ edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [], filletRuleFaceSets: [], filletRuleFaceIds: [], filletFullFaceSets: [], filletFullFaceIds: [], chamferRefFace: null, roundPreviewMesh: null, roundPreviewFail: false, status: '已清空所选 — 重新点选' }),
+  cancelEdgeRound: () => {
+    ++_roundPvSeq
+    if (_roundPvTimer) clearTimeout(_roundPvTimer)
+    _roundPvTimer = null
+    set({ edgeRoundPick: null, edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [], filletRuleFaceSets: [], filletRuleFaceIds: [], filletFullFaceSets: [], filletFullFaceIds: [], chamferRefFace: null, roundPreviewMesh: null, roundPreviewFail: false, roundPreviewBusy: false, status: '已取消' })
+  },
+  clearEdgeRoundPicks: () => {
+    ++_roundPvSeq
+    if (_roundPvTimer) clearTimeout(_roundPvTimer)
+    _roundPvTimer = null
+    set({ edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [], filletRuleFaceSets: [], filletRuleFaceIds: [], filletFullFaceSets: [], filletFullFaceIds: [], chamferRefFace: null, roundPreviewMesh: null, roundPreviewFail: false, roundPreviewBusy: false, status: '已清空所选 — 重新点选' })
+  },
   // P2 批7：实时预览 — debounce 120ms 后临时 append 特征重建（T730 缓存 → 只算新特征）。
   // bodyMesh 全程唔郁（预览住喺 roundPreviewMesh，KernelBody 读 preview ?? bodyMesh）→ 取消/ESC 即还原零成本。
   roundPreviewMesh: null,
   roundPreviewFail: false,
   roundPreviewBusy: false,
   scheduleRoundPreview: () => {
+    // Invalidate immediately, including the debounce window and invalid inputs.
+    ++_roundPvSeq
+    set({ roundPreviewMesh: null, roundPreviewFail: false, roundPreviewBusy: false })
     if (_roundPvTimer) clearTimeout(_roundPvTimer)
     _roundPvTimer = setTimeout(() => { _roundPvTimer = null; void get().runRoundPreview() }, 120)
   },
@@ -4787,7 +4800,14 @@ export const useApp = create<AppState>((set, get) => ({
     const bound = applyParamBindings([...s.features, f], s.params, s.paramBindings)
     const sup = s.suppressedIds
     const active = expandFeats(sup.length ? bound.filter((x) => !sup.includes(x.id)) : bound)
-    const mesh = await cad.previewRound(active)
+    let mesh: Awaited<ReturnType<typeof cad.previewRound>>
+    try {
+      mesh = await cad.previewRound(active)
+    } catch {
+      if (seq !== _roundPvSeq || !get().edgeRoundPick) return
+      set({ roundPreviewMesh: null, roundPreviewFail: true, roundPreviewBusy: false, status: '⚠ 预览失败 — 已保留原模型，请调整参数重试或按 Esc 取消' })
+      return
+    }
     if (seq !== _roundPvSeq || !get().edgeRoundPick) { if (seq === _roundPvSeq) set({ roundPreviewBusy: false }); return }
     const failedPv = !mesh || !mesh.triangles.length || (mesh.failed || []).some((x) => x.id === '~pv-round')
     if (!failedPv) {

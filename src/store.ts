@@ -12250,6 +12250,7 @@ export const useApp = create<AppState>((set, get) => ({
           : st.features.slice(0, prevFeatures.length)
         return {
           features: [...head, ...tail],
+          timelinePos: head.length + tail.length,
           sketchSources: { ...st.sketchSources, [skId]: { ...(reuse && st.sketchSources[reuse] ? st.sketchSources[reuse] : {}), shapes: allRaw.map((sh) => JSON.parse(JSON.stringify(sh)) as SketchShape), cons: JSON.parse(JSON.stringify(st.skCons)) as SkCon[], plane, baseZ: st.sketchBaseZ, op, height, twist: twist || undefined, draft: draft || undefined, symmetric: symmetric || undefined, through: throughAll || undefined, down: down || undefined, arb: savedArb ? JSON.parse(JSON.stringify(savedArb)) : undefined, visible: undefined, ...(savedDatumRef ? { datumRef: savedDatumRef } : {}) } },
         }
       })

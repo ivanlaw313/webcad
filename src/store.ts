@@ -1,3 +1,5 @@
+import { lengthScale } from './io/units'
+import { dimensionExpression, parameterId, type Parameter } from './cad/dimensionExpression'
 import { create } from 'zustand'
 import { cad, onKernelRestart } from './cad/cadService'
 import { cardinalSketchFrame, localPointToCad } from './cad/sketchPlaneFrame'
@@ -1334,6 +1336,11 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   removeCPoint: (i: number) => void
   removeCAxis: (i: number) => void
   extrudeHeight: number
+  extrudeExpression: string | null
+  extrudeExpressionError: string | null
+  setExtrudeExpression: (text: string) => void
+  clearExtrudeSelection: () => void
+  extrudeSelectionCleared: boolean
   setExtrudeHeight: (h: number) => void
   extrudeFlip: boolean                                   // reverse the extrude/cut direction (⇅ 反向 button)
   toggleExtrudeFlip: () => void
@@ -2292,7 +2299,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   featureErrors: Record<string, string>       // featureId → 错因（tooltip / 修复面板红横幅）
   toggleSuppress: (id: string) => Promise<void>
   moveFeature: (id: string, dir: number) => Promise<void>
-  params: { name: string; value: number; expr?: string }[]
+  params: Parameter[]
   paramBindings: Record<string, string>
   paramsOpen: boolean
   toggleParamsPanel: () => void
@@ -3302,7 +3309,14 @@ export function arc3(p0: Pt, p1: Pt, pm: Pt, seg = 24): Pt[] {
 }
 
 // Overwrite feature fields that are bound to a user parameter with the param's value.
-function applyParamBindings(features: Feature[], params: { name: string; value: number }[], bindings: Record<string, string>): Feature[] {
+function applyParamBindings(features: Feature[], params: Parameter[], bindings: Record<string, string>): Feature[] {
+  features = features.map(f => {
+    if (f.type !== 'extrude' || !f.distanceExpression) return f
+    const d = f.distanceExpression, result = dimensionExpression(d.expression, params, evalExpr, d.unit, d.refs, d.implicitScale ?? 1)
+    if ('error' in result) throw Error(`${f.id}: ${result.error}`)
+    if (!(Math.abs(result.value) > 1e-6)) throw Error(`${f.id}: 拉伸距离不可为零`)
+    return { ...f, height: Math.abs(result.value) * (f.symmetric && d.measure === 'half' ? 2 : 1), down: !!d.flip !== (result.value < 0) }
+  })
   const keys = Object.keys(bindings)
   if (!keys.length) return features
   const pv = new Map(params.map((p) => [p.name, p.value]))
@@ -3312,6 +3326,7 @@ function applyParamBindings(features: Feature[], params: { name: string; value: 
       const sep = key.indexOf(':')
       const fid = key.slice(0, sep), field = key.slice(sep + 1)
       if (fid !== f.id || !pv.has(bindings[key])) continue
+      if (field === 'height' && f.type === 'extrude' && f.distanceExpression) continue
       const val = pv.get(bindings[key]) as number
       const dot = field.indexOf('.')
       if (dot < 0) {
@@ -3384,7 +3399,7 @@ export function evalExpr(expr: string, vars: Map<string, number>): number | null
 if (import.meta.env?.DEV && typeof window !== 'undefined') (window as unknown as { __evalExpr?: unknown }).__evalExpr = (e: string, v?: Record<string, number>) => evalExpr(e, new Map(Object.entries(v || {})))
 
 // Re-evaluate parameters whose value comes from an expression (a few passes resolve chained deps).
-function recomputeParams(params: { name: string; value: number; expr?: string }[]): { name: string; value: number; expr?: string }[] {
+function recomputeParams(params: Parameter[]): Parameter[] {
   const ps = params.map((p) => ({ ...p }))
   // 审计修复：旧版每 pass 顶部建一次快照 + 固定 6 pass 上限 → 一 pass 只前进一层、>7 层链被静默截断停留残值。
   // 改：用 live vars（pass 内逐个更新），loop-until-no-change，上限 ps.length+1（足够级联任意非环链；环链由 setParamExpr 拒绝）。
@@ -3392,7 +3407,7 @@ function recomputeParams(params: { name: string; value: number; expr?: string }[
   const maxPass = ps.length + 1
   for (let pass = 0; pass < maxPass; pass++) {
     let changed = false
-    for (const p of ps) if (p.expr) { const v = evalExpr(p.expr, vars); if (v != null && Math.abs(v - p.value) > 1e-9) { p.value = v; vars.set(p.name, v); changed = true } }
+    for (const p of ps) if (p.expr) { const v = p.unit ? dimensionExpression(p.expr, ps, evalExpr, p.unit, p.refs).value : evalExpr(p.expr, vars); if (v == null) throw Error(`参数 ${p.name} 的表达式无法计算`); if (Math.abs(v - p.value) > 1e-9) { p.value = v; vars.set(p.name, v); changed = true } }
     if (!changed) break
   }
   return ps
@@ -5679,8 +5694,22 @@ export const useApp = create<AppState>((set, get) => ({
     }
   }),
   extrudeHeight: 40,
+  extrudeExpression: null,
+  extrudeExpressionError: null,
+  extrudeSelectionCleared: false,
+  clearExtrudeSelection: () => set({ extrudeSelectionCleared: true, extrudeRegionSel: get().extrudeRegionSel.map(() => false), status: '已清空轮廓；请在画布重新选择' }),
+  setExtrudeExpression: (text) => {
+    const s = get(), result = dimensionExpression(text, s.params, evalExpr, 'mm', undefined, lengthScale(s.unit))
+    set({ extrudeExpression: text, extrudeExpressionError: result.error ?? null, extrudeHeight: result.value ?? 0 })
+  },
   // Keep zero while entering a distance; preview and commit reject zero solids.
-  setExtrudeHeight: (h) => set({ extrudeHeight: Number.isFinite(h) ? h : 0 }),
+  setExtrudeHeight: (h) => {
+    const s = get()
+    if (s.extrudeDlgOpen && s.extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(s.extrudeExpression.trim())) {
+      set({ status: '此距离由公式驱动；请编辑表达式或上游参数，拖动不会替换引用' }); return
+    }
+    set({ extrudeHeight: Number.isFinite(h) ? h : 0, extrudeExpression: null, extrudeExpressionError: null })
+  },
   extrudeFlip: false,
   toggleExtrudeFlip: () => set((s) => ({ extrudeFlip: !s.extrudeFlip })),
   extrudeDlgOpen: false,
@@ -5703,17 +5732,17 @@ export const useApp = create<AppState>((set, get) => ({
       const drawn = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])].filter((sh) => !sh.construction)
       const reg = detectRegions(drawn as unknown as RShape[])
       regOverflow = !!reg.overflow
-      if (reg.pfaces.length > 1 && reg.pfaces.length <= 64) regionFaces = reg.pfaces
+      if (reg.pfaces.length > 0 && reg.pfaces.length <= 64) regionFaces = reg.pfaces
     } catch { /* 区域检测失败 → 照旧全部拉伸 */ }
     return {
-      extrudeDlgOpen: true, extrudeHeight: 0, extrudeExtent: 'distance', extrudeFlip: false, sketchOp: op, extrudeStart: 0, sketchAsComponent: false,   // #3：每次新拉伸起点偏移由 0 起；#9：New Component 意图由 false 起
+      extrudeDlgOpen: true, extrudeExpression: null, extrudeExpressionError: null, extrudeSelectionCleared: false, extrudeHeight: 0, extrudeExtent: 'distance', extrudeFlip: false, sketchOp: op, extrudeStart: 0, sketchAsComponent: false,   // #3：每次新拉伸起点偏移由 0 起；#9：New Component 意图由 false 起
       // P4 审计修复：开拉伸对话框前清晒会劫持画布点击嘅拾取模式（按拉 / 直接编辑家族 / 量测 / 孔 / 壳 / 边圆角…）。
       // 否则若按拉等仲开住，Viewport 点击优先序会截走区域点选 → 拉伸拣唔到 profile（同 togglePushPull:3507 嘅互斥补齐一致）。
       pushPullMode: false, pushPullPicks: [], shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null,
       faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false,
       measureFaceMode: false, measureAngleMode: false, delFaceMode: false, thickenMode: false, offsetSurfMode: false,
       extendSurfMode: false, splitFaceMode: false, replaceFaceMode: false, surfTrimMode: false,
-      extrudeRegionFaces: regionFaces, extrudeRegionSel: regionFaces ? regionFaces.map(() => false) : [],
+      extrudeRegionFaces: regionFaces, extrudeRegionSel: regionFaces ? regionFaces.map(() => regionFaces!.length === 1) : [],
       status: regionFaces ? `拉伸：草图有 ${regionFaces.length} 个 profile 区域 — 点画布拣要拉伸嘅（点中变蓝，可拣多个），设距离 → 确定`
         : regOverflow ? '拉伸：图元太多（简化后仍超预算）— 区域点选停用，将拉伸全部轮廓'
           : '拉伸：设 操作 / 范围 / 距离 / 拔模角 → 确定（或取消）',
@@ -5728,7 +5757,7 @@ export const useApp = create<AppState>((set, get) => ({
     if (!s.extrudeRegionFaces || i < 0 || i >= s.extrudeRegionSel.length) return {}
     const sel = s.extrudeRegionSel.slice(); sel[i] = !sel[i]
     const n = sel.filter(Boolean).length
-    return { extrudeRegionSel: sel, status: `区域拉伸已选 ${n}/${sel.length}${n === 0 ? '（至少拣一个先拉伸得）' : ''}` }
+    return { extrudeRegionSel: sel, extrudeSelectionCleared: false, status: `区域拉伸已选 ${n}/${sel.length}${n === 0 ? '（至少拣一个先拉伸得）' : ''}` }
   }),
   cancelExtrudeDlg: () => set({ extrudeDlgOpen: false, extrudeRegionFaces: null, extrudeRegionSel: [], extrudeStart: 0, sketchAsComponent: false, status: '已取消拉伸（草图保留）' }),
   setExtrudeDraft: (n) => set({ extrudeDraft: Number.isFinite(n) ? n : 0 }),
@@ -10889,7 +10918,7 @@ export const useApp = create<AppState>((set, get) => ({
   bodyMesh: null,
   timelinePos: 0,
   busy: false,
-  status: '就绪 — 点「创建草图」开始，或直接点「拉伸」用真实 OCCT 内核造个实体',
+  status: '就绪',
 
   // T805（报告 R3）：统一应用内对话框 — Promise 化，取代 native prompt/alert/confirm。
   uiDialog: null,
@@ -11881,7 +11910,7 @@ export const useApp = create<AppState>((set, get) => ({
           const previousBound = applyParamBindings(prev, previousDocument.params ?? get().params, previousDocument.paramBindings ?? get().paramBindings)
           const previousSuppressed = previousDocument.suppressedIds ?? get().suppressedIds
           await cad.rebuild(expandFeats(previousBound.filter(f => !previousSuppressed.includes(f.id))))
-          set({ busy: false, status: '⚠ 重建失败 — 已保留上一个有效模型，请修正参数后重试', failedFeatureIds: failure.ids, featureErrors: failure.errors })
+          set({ ...(prevDoc ? previousDocument : {}), busy: false, status: '⚠ 重建失败 — 已保留上一个有效模型，请修正参数后重试', failedFeatureIds: failure.ids, featureErrors: failure.errors })
           return false
         }
         pushHistory()
@@ -11960,7 +11989,7 @@ export const useApp = create<AppState>((set, get) => ({
       console.error(e)
       const suspect = [...features].reverse().find((f) => !get().suppressedIds.includes(f.id))
       const reason = `内核异常（疑似此特征；可改参数或抑制后重试）：${String(e)}`
-      set({ busy: false, status: '操作失败：' + String(e), failedFeatureIds: suspect ? [suspect.id] : [], featureErrors: suspect ? { [suspect.id]: reason } : {} })
+      set({ ...(prevDoc ? previousDocument : {}), busy: false, status: '操作失败：' + String(e), failedFeatureIds: suspect ? [suspect.id] : [], featureErrors: suspect ? { [suspect.id]: reason } : {} })
       return false
     }
   },
@@ -12030,6 +12059,8 @@ export const useApp = create<AppState>((set, get) => ({
 
   extrudeSketch: async () => {
     if (get().busy) return
+    if (get().extrudeSelectionCleared) { set({ status: '请先选择轮廓' }); return }
+    if (get().extrudeExpressionError) { set({ status: get().extrudeExpressionError! }); return }
     if (['distance', 'symmetric', 'twosides'].includes(get().extrudeExtent) && !(Math.abs(get().extrudeHeight) > 1e-6)) {
       set({ status: '请输入非零拉伸距离' }); return
     }
@@ -12051,6 +12082,9 @@ export const useApp = create<AppState>((set, get) => ({
     const all0 = allRaw.filter((sh) => !sh.construction && !(sh.type === 'poly' && sh.open))
     const degOf = (sh: SketchShape) => sh.type === 'circle' ? sh.r < 0.2 : sh.type === 'rect' ? (Math.abs(sh.b[0] - sh.a[0]) < 0.2 || Math.abs(sh.b[1] - sh.a[1]) < 0.2) : Math.abs(polyArea2(sh.pts)) < 0.04   /* GM-L2 #55：polyArea2 內部已 /2 返真面积，唔好再除多次 — 阈值统一为 <0.04mm²（同 2533/2537 等所有面积用法一致，之前 double-/2 令阈值实际放大一倍） */
     const nonDeg = all0.filter((sh) => !degOf(sh))
+    if (get().extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(get().extrudeExpression!.trim()) && (nonDeg.length > 1 || !['distance', 'symmetric'].includes(get().extrudeExtent))) {
+      set({ status: '此版本的持久公式支持单轮廓、单侧或对称距离；多轮廓及其他终止方式请先用数值' }); return
+    }
     // A：有拣中轮廓 → 只拉伸拣中嗰几个（Fusion：拣边几个孔就只拉边几个）；冇拣 → 全部。skSel.shape 索引入 allRaw。
     const selSet = new Set(get().skSel.map((r) => (r as { shape?: number }).shape).filter((i): i is number => typeof i === 'number' && i >= 0 && i < allRaw.length).map((i) => allRaw[i]))
     const allExact = selSet.size ? nonDeg.filter((sh) => selSet.has(sh)) : nonDeg
@@ -12287,7 +12321,7 @@ export const useApp = create<AppState>((set, get) => ({
       const skId = reuse || ('sk' + ++_skidN)
       const savedDatumRef = _pendingDatumRef; _pendingDatumRef = null   // #11 主流程关联：画到关联基准面 → 直接拉伸时捕获待写 datumRef（旧版仅 commitStandaloneSketch 消费 → 最常见流程唔跟 datum）
       set((st) => {
-        const tail = st.features.slice(prevFeatures.length).map((f) => ((f.type === 'extrude' || f.type === 'extgroup') ? { ...f, sketchId: skId } : f))
+        const tail = st.features.slice(prevFeatures.length).map((f) => ((f.type === 'extrude' || f.type === 'extgroup') ? { ...f, sketchId: skId, ...(st.extrudeExpression && ['distance', 'symmetric'].includes(st.extrudeExtent) ? { distanceExpression: { ...dimensionExpression(st.extrudeExpression, st.params, evalExpr, 'mm', undefined, lengthScale(st.unit)).formula!, measure: st.extrudeExtent === 'symmetric' ? st.symMeasure : 'whole', flip: st.extrudeFlip } } : {}) } : f))
         const head = st.features.slice(0, prevFeatures.length)
         return {
           features: [...head, ...tail],
@@ -12881,9 +12915,10 @@ export const useApp = create<AppState>((set, get) => ({
     const s = get(), d = s.featDlg
     if (d?.kind !== 'extrude-edit' || !d.editId) return null
     const i = s.features.findIndex(f => f.id === d.editId)
-    if (i < 0 || !(Math.abs(+d.params.height) > 1e-6)) return null
+    const r = dimensionExpression(String(d.params.heightExpr ?? d.params.height), s.params, evalExpr, 'mm', undefined, Number(d.params.heightExprScale ?? 1))
+    if (i < 0 || 'error' in r || !(Math.abs(r.value) > 1e-6)) return null
     const features = s.features.slice(0, i + 1).map(f => f.id === d.editId ? { ...f,
-      height: Math.abs(+d.params.height), operation: String(d.params.op || 'new'),
+      distanceExpression: undefined, down: !!d.params.heightExprFlip !== (r.value < 0), height: Math.abs(r.value) * (d.params.extent === 'symmetric' && d.params.symMeasure === 'half' ? 2 : 1), operation: String(d.params.op || 'new'),
       draft: +d.params.draft || 0, twist: +d.params.twist || 0,
       symmetric: d.params.extent === 'symmetric', through: d.params.extent === 'through',
     } as Feature : f)
@@ -12933,7 +12968,7 @@ export const useApp = create<AppState>((set, get) => ({
         }
       case 'extrude':
         kind = 'extrude-edit'
-        params = { height: f.height, op: f.operation || 'new', twist: f.twist ?? 0, draft: f.draft ?? 0, extent: f.extent === 'next' ? 'next' : f.through ? 'through' : f.symmetric ? 'symmetric' : f.toFace ? 'toface' : 'distance', sketchId: f.sketchId ?? '' }   // GM-W5 5.2：反填到下一面
+        params = { height: f.height, heightExpr: f.distanceExpression?.expression ?? String(f.height), heightExprScale: f.distanceExpression?.implicitScale ?? 1, heightExprFlip: Number(f.distanceExpression?.flip ?? !!f.down), symMeasure: f.distanceExpression?.measure ?? 'whole', op: f.operation || 'new', twist: f.twist ?? 0, draft: f.draft ?? 0, extent: f.extent === 'next' ? 'next' : f.through ? 'through' : f.symmetric ? 'symmetric' : f.toFace ? 'toface' : 'distance', sketchId: f.sketchId ?? '' }   // GM-W5 5.2：反填到下一面
         break
       case 'revolve':
         // ⚠ axisV 反填 dx/dy/dz + axisOrigin 反填 ox/oy/oz — 唔反填会俾 commit 嘅 dirDefault 判定当「未触碰」→ 丢自定义轴（死掣根因）
@@ -14768,7 +14803,7 @@ export const useApp = create<AppState>((set, get) => ({
     let f: Feature
     let msg: string
     // P2 Edit Feature：edit-kind 早特判 — 只 patch 标量/enum；array/pick（nears/radii 冇改时/profile/toFace）靠 editFeature 淺合并+undefined 过滤透传
-    if (d.kind === 'extrude-edit' && !(Math.abs(+p.height) > 1e-6)) { set({ status: '请输入非零拉伸距离' }); return }
+    if (d.kind === 'extrude-edit' && !(Math.abs(dimensionExpression(String(p.heightExpr ?? p.height), get().params, evalExpr, 'mm', undefined, Number(p.heightExprScale ?? 1)).value ?? 0) > 1e-6)) { set({ status: '请输入非零拉伸距离' }); return }
     if (d.editId && (d.kind === 'extrude-edit' || d.kind === 'fillet-edit' || d.kind === 'chamfer-edit' || d.kind === 'shell-edit')) {
       let patch: Record<string, number | string | number[] | boolean | undefined>
       if (d.kind === 'extrude-edit') {
@@ -14776,7 +14811,13 @@ export const useApp = create<AppState>((set, get) => ({
           symmetric: p.extent === 'symmetric', through: p.extent === 'through',
           extent: p.extent === 'next' ? 'next' : undefined }   // GM-W5 5.2：留返/清走到下一面标记（转「距离」即退成普通盲拉伸；height 仍可手改覆写烘焙值）
         // R8：extent='toface' 时唔写 height — editFeature 见 'height' in patch 会 detach 原 toFace（Fusion「打距离即离开到面」）
-        if (p.extent !== 'toface') patch.height = Math.abs(+p.height) || 1
+        if (p.extent !== 'toface') {
+          const r = dimensionExpression(String(p.heightExpr ?? p.height), get().params, evalExpr, 'mm', undefined, Number(p.heightExprScale ?? 1))
+          if ('error' in r) { set({ status: r.error }); return }
+          patch.height = Math.abs(r.value) * (p.extent === 'symmetric' && p.symMeasure === 'half' ? 2 : 1)
+          patch.distanceExpression = JSON.stringify({ ...r.formula, measure: p.extent === 'symmetric' ? p.symMeasure ?? 'whole' : 'whole', flip: !!p.heightExprFlip })
+          patch.down = !!p.heightExprFlip !== (r.value < 0)
+        }
       } else if (d.kind === 'fillet-edit') {
         patch = { radius: Math.max(0.05, +p.radius || 1), chain: !!+(p.chain || 0), radius2: +p.radius2 > 0 ? +p.radius2 : 0 }
         if (typeof p.radii === 'string' && p.radii.trim()) patch.radii = p.radii.split(',').map((x) => Math.max(0.05, +x || 1))
@@ -16386,6 +16427,8 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   editFeature: async (id, patch) => {
+    const expressionOwner = get().features.find(f => f.id === id)
+    if ('height' in patch && !('distanceExpression' in patch) && expressionOwner?.type === 'extrude' && expressionOwner.distanceExpression) { set({ status: '距离由表达式驱动；请双击特征编辑表达式' }); return }
     const features = get().features.map((f) => {
       if (f.id !== id) return f
       // P2：到面拉伸手改「高度」= 脱开目标面引用（Fusion 同款：打距离即离开 to-face 驱动，否则下次重建会覆盖你嘅值）
@@ -16397,6 +16440,7 @@ export const useApp = create<AppState>((set, get) => ({
       for (const [k, v] of Object.entries(patch)) { if (v === undefined) dels.push(k); else clean[k] = v }
       const merged = { ...f, ...clean, ...(detach ? { toFace: undefined } : {}) } as Record<string, unknown>
       for (const k of dels) if (!(detach && k === 'toFace')) delete merged[k]
+      if (typeof merged.distanceExpression === 'string') merged.distanceExpression = JSON.parse(merged.distanceExpression)
       return merged as unknown as Feature
     })
     await get().applyFeatures(followExtrudeTopEdges(get().features, features, id), '已更新参数并重建')
@@ -16541,12 +16585,12 @@ export const useApp = create<AppState>((set, get) => ({
     // Reject names that collide with a built-in function (sin/max/sqrt…) or the pi constant — they'd be
     // shadowed in expressions and the param would never resolve. (e/tau are param-overridable, so allowed.)
     if (isExprFunc(nm) || nm === 'pi' || nm === 'PI') return { status: `参数名「${nm}」係保留嘅函数／常量名——请改个名（如 ${nm}1）` }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], params: [...s.params, { name: nm, value: value || 0 }], status: `已加参数 ${nm} = ${value || 0}` }   // bt4: 加参数可撤销(仅成功分支;新参数未绑定唔改几何,inline 快照即可)
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], params: [...s.params, { id: crypto.randomUUID(), name: nm, value: value || 0, unit: 'mm' }], status: `已加参数 ${nm} = ${value || 0}` }   // bt4: 加参数可撤销(仅成功分支;新参数未绑定唔改几何,inline 快照即可)
   }),
   setParam: async (name, value) => {
     const _pd = docSnap(get())  // S110：操作前快照 → undo 真正还原 params（否则 docSnap 读到新值，撤销变空操作）
     // setting a value directly clears any expression (manual override), then re-evaluate dependents
-    set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { name, value, expr: undefined } : p))) }))
+    try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, name, value, expr: undefined, refs: undefined } : p))) })) } catch (e) { set({ status: `参数更新失败：${String(e)}，已保留原值` }); return }
     // T746 批3：先重解 ƒx 绑定嘅草图（compute-only），一次 applyFeatures 重建；srcs 成功后先写（同 applySketchEdit 政策一致）
     const r = await get().applyParamSketches()
     if (r) {
@@ -16563,7 +16607,8 @@ export const useApp = create<AppState>((set, get) => ({
     // test exactly predicts whether the recompute will take, and give a clear error instead of a fake success.
     if (expr) {
       const vars = new Map(get().params.map((p) => [p.name, p.value]))
-      if (evalExpr(expr, vars) == null) {
+      const target = get().params.find(p => p.name === name)
+      if ((target?.unit ? dimensionExpression(expr, get().params, evalExpr, target.unit).value : evalExpr(expr, vars)) == null) {
         set({ status: `⚠ 表达式无法计算：「${expr}」—— 检查变量名／括号／语法（可用 + - * / ^ %、常量 pi·e·tau、函数 sqrt·sin·max·pow 等）` })
         return
       }
@@ -16578,7 +16623,7 @@ export const useApp = create<AppState>((set, get) => ({
       if (cyc) { set({ status: `⚠ 表达式循环引用：「${name} = ${expr}」直接或间接引用返自己 — 已拒绝` }); return }
     }
     const _pd = docSnap(get())  // S110：操作前快照（undo 还原 params/绑定）
-    set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, expr: expr || undefined } : p))) }))
+    try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, expr: expr || undefined, refs: expr ? dimensionExpression(expr, s.params, evalExpr, p.unit ?? 'mm').formula?.refs : undefined } : p))) })) } catch (e) { set({ status: `参数更新失败：${String(e)}，已保留原值` }); return }
     const p = get().params.find((x) => x.name === name)
     const msg = expr ? `${name} = ${expr} = ${p ? +p.value.toFixed(2) : '?'} — 已联动` : `已清除 ${name} 的表达式`
     const r = await get().applyParamSketches()
@@ -16590,6 +16635,10 @@ export const useApp = create<AppState>((set, get) => ({
     }
   },
   removeParam: async (name) => {
+    const p = get().params.find(p => p.name === name)
+    if (p && (get().params.some(q => Object.values(q.refs ?? {}).includes(parameterId(p))) || get().features.some(f => f.type === 'extrude' && Object.values(f.distanceExpression?.refs ?? {}).includes(parameterId(p))))) {
+      set({ status: `参数 ${name} 仍被公式引用；请先解除引用` }); return
+    }
     const _pd = docSnap(get())  // S110：操作前快照（undo 还原 params/绑定）
     set((s) => {
       const paramBindings = { ...s.paramBindings }
@@ -16959,7 +17008,7 @@ export const useApp = create<AppState>((set, get) => ({
       decals: sanitizeDecals(d.decals),   // P2 Render：贴花随版本快照还原
       ...hydrateCanvases(d.canvases, d.canvasImg),   // GM-X3 #2：多张 Canvas 随快照还原（迁移旧 canvasImg → canvases[0]）
       suppressedIds: Array.isArray(d.suppressedIds) ? d.suppressedIds as string[] : [],
-      params: Array.isArray(d.params) ? d.params as AppState['params'] : [],
+      params: Array.isArray(d.params) ? (d.params as Parameter[]).map(p => ({ ...p, id: parameterId(p) })) : [],
       paramBindings: d.paramBindings && typeof d.paramBindings === 'object' ? d.paramBindings as AppState['paramBindings'] : {},
       configs: Array.isArray(d.configs) ? d.configs as AppState['configs'] : [],
       activeConfig: typeof d.activeConfig === 'string' ? d.activeConfig : null,
@@ -17619,7 +17668,7 @@ export const useApp = create<AppState>((set, get) => ({
       decals: sanitizeDecals(d.decals),   // P2 Render：贴花随存档/分享还原
       ...hydrateCanvases(d.canvases, d.canvasImg),   // GM-X3 #2：多张 Canvas 随存档/分享还原（迁移旧 canvasImg → canvases[0]）
       suppressedIds: arr('suppressedIds') as string[],
-      params: arr('params') as AppState['params'],
+      params: (arr('params') as Parameter[]).map(p => ({ ...p, id: parameterId(p) })),
       paramBindings: d.paramBindings && typeof d.paramBindings === 'object' ? d.paramBindings as AppState['paramBindings'] : {},
       configs: arr('configs') as AppState['configs'], activeConfig: typeof d.activeConfig === 'string' ? d.activeConfig : null,
       sketchSources: normalizeSrcs(d.sketchSources),
@@ -17739,7 +17788,7 @@ export const useApp = create<AppState>((set, get) => ({
         hdriIntensity: Number.isFinite(data.hdriIntensity) ? Math.min(3, Math.max(0.1, data.hdriIntensity)) : 1,
         hdriRotation: Number.isFinite(data.hdriRotation) ? Math.min(Math.PI * 2, Math.max(0, data.hdriRotation)) : 0,
         suppressedIds: Array.isArray(data.suppressedIds) ? data.suppressedIds : [],
-        params: Array.isArray(data.params) ? data.params : [],
+        params: Array.isArray(data.params) ? data.params.map((p: Parameter) => ({ ...p, id: parameterId(p) })) : [],
         paramBindings: data.paramBindings && typeof data.paramBindings === 'object' ? data.paramBindings : {},
         configs: Array.isArray(data.configs) ? data.configs : [], activeConfig: typeof data.activeConfig === 'string' ? data.activeConfig : null,
         ...hydrateX2View(data as Record<string, unknown>),   // GM-X2：unit(扩5) + 视觉样式 + 相机三态 + 单位配对预设
@@ -20091,7 +20140,7 @@ function regenGroupFeatures(all: Feature[], skId: string, src: AppState['sketchS
       return f
     })
   }
-  const splice = (nf: Feature[]): Feature[] => [...keep.slice(0, keepIdx), ...nf, ...followNears(keep.slice(keepIdx))]
+  const splice = (nf: Feature[]): Feature[] => [...keep.slice(0, keepIdx), ...nf.map(f => { const old = olds.find(o => o.id === f.id); return f.type === 'extrude' && old?.type === 'extrude' && old.distanceExpression ? { ...f, distanceExpression: old.distanceExpression } : f }), ...followNears(keep.slice(keepIdx))]
   // T756：独立草图重生成 — 特征本身无几何，保 id（ƒx 绑定/抑制生还）；shapes/cons 由 commitSrc 写返 sketchSources
   if (olds[0].type === 'sketch') {
     return { next: splice([{ ...olds[0], id: rid(0) }]), label: '独立草图已更新', live: { height: 0, op: 'new' } }

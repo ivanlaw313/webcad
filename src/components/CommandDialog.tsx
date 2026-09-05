@@ -51,7 +51,7 @@ export function ScrubNumberDrag() {
 // Fusion 式右侧命令 palette 共用外壳（.cmd-palette）：头 = 图标 + 标题 + ✕（按住可拖动），
 // 体 = 字段行（label 自动左右分布），脚 = 蓝色「确定」+「取消」，可选灰色 summary 行。
 // featDlg 同 6 个旧面板（拉伸/选边圆角/抽壳/孔/扫掠/放样）统一用呢个壳。
-export function CommandDialog({ icon = 'default', title, okLabel = '确定', okDisabled = false, okTip, onOk, onCancel, width = 256, summary, children }: {
+export function CommandDialog({ icon = 'default', title, okLabel = '确定', okDisabled = false, okTip, onOk, onCancel, width = 256, docked = true, summary, children }: {
   icon?: string
   title: string
   okLabel?: string
@@ -60,6 +60,7 @@ export function CommandDialog({ icon = 'default', title, okLabel = '确定', okD
   onOk: () => void
   onCancel: () => void
   width?: number
+  docked?: boolean
   summary?: ReactNode
   children: ReactNode
 }) {
@@ -109,16 +110,17 @@ export function CommandDialog({ icon = 'default', title, okLabel = '确定', okD
         // Keep multi-line text editing intact, and never submit while an IME
         // composition is still in progress.
         if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onCancel(); return }
-        if (e.key === 'Enter' && !e.nativeEvent.isComposing && !(e.target instanceof HTMLTextAreaElement) && !okDisabled) {
-          e.preventDefault(); e.stopPropagation(); onOk()
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing && !(e.target instanceof HTMLTextAreaElement)) {
+          e.preventDefault(); e.stopPropagation(); if (!okDisabled) onOk()
         }
       }}
     >
       <div
         className="cmd-palette-head"
-        style={{ cursor: 'move', touchAction: 'none' }}
+        style={{ cursor: docked ? 'default' : 'move', touchAction: 'none' }}
         onPointerDown={(e) => {
           if (e.button !== 0) return
+          if (docked) return // Commands stay docked; canvas controls remain usable.
           if ((e.target as HTMLElement).closest('.cmd-palette-x')) return
           drag.current = { sx: e.clientX, sy: e.clientY, dx: off.dx, dy: off.dy }
           e.currentTarget.setPointerCapture(e.pointerId)

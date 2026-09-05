@@ -696,3 +696,19 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .sketch-bar > * { flex-shrink: 0; white-space: nowrap; }
 .cmd-palette-body button { white-space: nowrap; }
 .cmd-palette-body > div { flex-wrap: wrap; }
+
+/* Command surfaces remain docked and keep actions visible at browser zoom. */
+.cmd-palette { top: 130px; right: 16px; display: flex; flex-direction: column; max-height: calc(100vh - 182px) !important; }
+.cmd-palette-head, .cmd-palette-foot, .cmd-palette-summary { flex-shrink: 0; }
+.cmd-palette-body { min-height: 0; flex: 1 1 auto; max-height: none; }
+.cmd-palette-body label { color: var(--text); }
+.dimension-expression { display: flex; flex-direction: column; gap: 3px; min-width: 0; width: 168px; }
+.dimension-expression input { width: 100%; box-sizing: border-box; }
+.dimension-expression small { font-size: 11px; white-space: normal; overflow-wrap: anywhere; }
+.input-error { color: #ce472d; }
+.dimension-expression input[aria-invalid=true] { border-color: #ce472d; }
+.symmetric-span { width: 100%; color: var(--text); font-size: 12px; }
+.params-panel { max-height: calc(100vh - 180px); overflow: auto; }
+.params-panel summary { cursor: pointer; padding: 8px 0; }
+
+.cmd-palette-body .sb-tool.active { background: var(--sel); border-color: var(--accent); color: var(--text); }

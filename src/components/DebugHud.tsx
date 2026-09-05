@@ -48,6 +48,7 @@ export default function DebugHud() {
     return () => { window.removeEventListener('pointerdown', down, true); window.removeEventListener('pointerup', up, true); window.removeEventListener('keydown', key, true); unsub(); clearInterval(id) }
   }, [debugMode])
 
+  if (!debugMode) return null
   return (
     <div ref={drag.ref} onPointerDown={drag.onPointerDown} title="可拖移：揿住拖去你想要嘅位（位置会记住）" style={{ position: 'fixed', zIndex: 99999, display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end', fontFamily: '-apple-system,Segoe UI,sans-serif', fontSize: 12, cursor: 'grab', touchAction: 'none', ...drag.style }}>
       {debugMode && (

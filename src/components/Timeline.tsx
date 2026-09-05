@@ -115,6 +115,7 @@ export default function Timeline() {
   const toggleSuppress = useApp((s) => s.toggleSuppress)
   const moveFeature = useApp((s) => s.moveFeature)
   const timelinePos = useApp((s) => s.timelinePos)
+  const commandEditing = useApp(s => !!s.featDlg || s.extrudeDlgOpen || !!s.edgeRoundPick || s.shellMode || s.pushPullMode || s.mode === 'sketch')
   const editId = useApp((s) => s.featDlg?.kind === 'extrude-edit' ? s.featDlg.editId : undefined)
   const editIndex = editId ? features.findIndex(f => f.id === editId) : -1
   const gotoStep = useApp((s) => s.gotoStep)
@@ -295,7 +296,7 @@ export default function Timeline() {
         )}
       </div>}
 
-      {sel && meta && (
+      {sel && meta && !commandEditing && (
         <div className="feat-editor">
           <span className="fe-title"><ToolIcon name={meta.icon} size={14} /> {tStatus(`编辑「${meta.label}」`, lang)}</span>
           {featureErrors[sel.id] && <div className="fe-errbar">🔴 {tStatus('此特征重建失败：', lang)}{featureErrors[sel.id]}<button className="fe-errsup" onClick={() => void toggleSuppress(sel.id)}>{tStatus('抑制此特征', lang)}</button></div>}

@@ -1000,6 +1000,8 @@ export function ExtrudePreview() {
   const baseZ = useApp((s) => s.sketchBaseZ)
   const arb = useApp((s) => s.sketchArb)
   const h = useApp((s) => s.extrudeHeight)
+  const symMeasure = useApp(s => s.symMeasure)
+  const expressionInvalid = useApp(s => !!s.extrudeExpressionError || s.extrudeSelectionCleared)
   const flip = useApp((s) => s.extrudeFlip)
   const draft = useApp((s) => s.extrudeDraft)
   const extent = useApp((s) => s.extrudeExtent)
@@ -1017,11 +1019,12 @@ export function ExtrudePreview() {
   // 钩子次序：所有 useApp 之后先 useMemo,再 early-return（React 规矩:钩子唔可以喺 return 之后）。
   const vol = useMemo(() => {
     if (!open || (['distance', 'symmetric', 'twosides'].includes(extent) && !(Math.abs(h) > 1e-6))) return null
+    if (expressionInvalid) return null
     const all = [...profiles, ...(shape ? [shape] : [])] as SketchShape[]
     if (!all.length) return null
     // GM-W7 7.6 颜色语义（Fusion）：切除→红,求交→紫,新建/接合→蓝。
     const color = op === 'cut' ? '#ff5a4d' : op === 'intersect' ? '#c78ae0' : '#1572c4'
-    const H = Math.max(0.1, Math.abs(h) || 1)
+    const H = Math.max(0.1, Math.abs(h) || 1) * (extent === 'symmetric' && symMeasure === 'half' ? 2 : 1)
     const down = flip !== (h < 0)                 // ⇅ reverse / negative distance → preview the other way
     // P3（#5）：斜面（arb）鬼影 —— 草图喺 arb 平面上（z 基准 0），沿 arb 法向 ±H 挤出；lift = arbFrame.lift(p) + z·c2t(n)。
     const arbFr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
@@ -1071,7 +1074,7 @@ export function ExtrudePreview() {
     })
     const geom = buildExtrudeVolume(bases, basesTop, (p) => liftAt(p, z0), (p) => liftAt(p, z1))
     return { color, bases, basesTop, z0, z1, liftAt, geom }
-  }, [open, profiles, shape, plane, baseZ, arb, h, flip, draft, extent, op, sketchFromFace, faceOutSign, faceCutThrough, rf, rsel, side2, tface, tfaceOff])
+  }, [symMeasure, expressionInvalid, open, profiles, shape, plane, baseZ, arb, h, flip, draft, extent, op, sketchFromFace, faceOutSign, faceCutThrough, rf, rsel, side2, tface, tfaceOff])
   useEffect(() => () => { vol?.geom?.dispose() }, [vol])
   if (!vol) return null
   const { color, bases, basesTop, z0, z1, liftAt, geom } = vol

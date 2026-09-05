@@ -1,3 +1,4 @@
+import { ExpressionInput } from './ExpressionInput'
 import { useMemo, useState, useRef, useEffect, Fragment, lazy, Suspense, type ReactNode, type CSSProperties } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { PMREMGenerator } from 'three'
@@ -3598,6 +3599,9 @@ export default function Viewport() {
   const setHoleSlotLen = useApp((s) => s.setHoleSlotLen)
   const holeSlotAng = useApp((s) => s.holeSlotAng)
   const setHoleSlotAng = useApp((s) => s.setHoleSlotAng)
+  const extrudeExpression = useApp(s => s.extrudeExpression)
+  const extrudeExpressionError = useApp(s => s.extrudeExpressionError)
+  const extrudeSelectionCleared = useApp(s => s.extrudeSelectionCleared)
   const featDlg = useApp((s) => s.featDlg)
   const [editPreview, setEditPreview] = useState<{ dialog: typeof featDlg; mesh: MeshData | null; failed: boolean } | null>(null)
   useEffect(() => {
@@ -4862,7 +4866,7 @@ export default function Viewport() {
         <CommandDialog
           icon="loft"
           title={tStatus('桥接面', lang)}
-          width={240}
+          width={320}
           okLabel={`确定（${surfBridgePicks.length}/2）`}
           okDisabled={surfBridgePicks.length !== 2}
           okTip={tStatus('桥接（Enter）', lang)}
@@ -4883,7 +4887,7 @@ export default function Viewport() {
         <CommandDialog
           icon="shell"
           title="边界补面"
-          width={240}
+          width={320}
           okLabel={`确定（${boundaryPatchPicks.length}）`}
           okDisabled={boundaryPatchPicks.length < 2}
           okTip="补面（Enter）"
@@ -6301,8 +6305,9 @@ export default function Viewport() {
               <label>{tStatus('操作', lang)} <select value={String(featDlg.params.op)} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}>
                 <option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新实体', lang)}</option></select></label>
               <label>{tStatus('范围', lang)} <select value={String(featDlg.params.extent)} onChange={(e) => setFeatParam('extent', e.target.value)} style={{ height: 26 }}>
-                <option value="distance">{tStatus('距离', lang)}</option><option value="symmetric">{tStatus('对称（总距离）', lang)}</option><option value="through">{tStatus('贯通', lang)}</option>{hasTF && <option value="toface">{tStatus('到面（保留原引用）', lang)}</option>}{hasNext && <option value="next">{tStatus('到下一面（已烘焙距离）', lang)}</option>}</select></label>
-              {featDlg.params.extent !== 'through' && featDlg.params.extent !== 'toface' && <label>{tStatus('距离', lang)} <input type="number" step={1} value={featDlg.params.height} onChange={(e) => setFeatParam('height', Number(e.target.value))} style={{ width: 56 }} /> mm</label>}
+                <option value="distance">{tStatus('距离', lang)}</option><option value="symmetric">{tStatus('对称', lang)}</option><option value="through">{tStatus('贯通', lang)}</option>{hasTF && <option value="toface">{tStatus('到面（保留原引用）', lang)}</option>}{hasNext && <option value="next">{tStatus('到下一面（已烘焙距离）', lang)}</option>}</select></label>
+              {featDlg.params.extent !== 'through' && featDlg.params.extent !== 'toface' && <label>{featDlg.params.extent === 'symmetric' ? featDlg.params.symMeasure === 'half' ? '每侧距离' : '总距离' : tStatus('距离', lang)} <ExpressionInput scale={Number(featDlg.params.heightExprScale ?? 1)} text={String(featDlg.params.heightExpr ?? featDlg.params.height)} onText={text => setFeatParam('heightExpr', text)} /></label>}
+              {featDlg.params.extent === 'symmetric' && <label>量度 <select aria-label="对称量度" value={String(featDlg.params.symMeasure ?? 'whole')} onChange={e => setFeatParam('symMeasure', e.target.value)}><option value="whole">全长（总距离）</option><option value="half">半长（每侧距离）</option></select></label>}
               <label>{tStatus('拔模角', lang)} <input type="number" step={1} min={-45} max={45} value={featDlg.params.draft} onChange={(e) => setFeatParam('draft', Number(e.target.value))} style={{ width: 50 }} />°</label>
               <label>{tStatus('扭转', lang)} <input type="number" step={5} value={featDlg.params.twist} onChange={(e) => setFeatParam('twist', Number(e.target.value))} style={{ width: 50 }} />°</label>
               {skId && <button className="tb-btn" title={tStatus('重开草图编辑轮廓（改完全树重建）', lang)} onClick={() => { const id = featDlg.editId!; cancelFeatDlg(); useApp.getState().editSketchOf(id) }}>✎ {tStatus('编辑草图', lang)}</button>}
@@ -6972,29 +6977,24 @@ export default function Viewport() {
         <CommandDialog
           icon="extrude"
           title={tStatus('拉伸', lang)}
-          width={240}
+          width={320}
           okTip={extrudeRegionTotal > 0 && extrudeRegionSelCount === 0 ? tStatus('先点画布拣要拉伸嘅 profile 区域', lang) : tStatus('生成（Enter）', lang)}
-          okDisabled={busy || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6))}
+          okDisabled={busy || (!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) || !!extrudeExpressionError || extrudeSelectionCleared || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6))}
           onOk={() => void extrudeSketch()}
           onCancel={() => cancelExtrudeDlg()}
-          summary={<>{sketchOp === 'cut' ? tStatus('从实体切除', lang) : sketchOp === 'intersect' ? tStatus('保留公共部分', lang) : tStatus('生成/拼合实体', lang)} · {extrudeExtent === 'through' ? tStatus('贯通整个零件', lang) : extrudeExtent === 'next' ? tStatus('到下一面', lang) : extrudeExtent === 'symmetric' ? tStatus(`对称 ${extrudeHeight}mm`, lang) : `${extrudeHeight}mm`}{extrudeDraft ? tStatus(` · 拔模 ${extrudeDraft}°`, lang) : ''}</>}
+
         >
-          <SelectionChip label={tStatus('轮廓', lang)} count={extrudeRegionTotal > 0 ? extrudeRegionSelCount : sketchProfiles.length + (sketchShape ? 1 : 0)} hint={extrudeRegionTotal > 0 ? tStatus('点画布区域拣 profile', lang) : tStatus('先在草图画一个闭合轮廓', lang)} />
-          {extrudeRegionTotal > 0 && <div style={{ fontSize: 11, color: extrudeRegionSelCount ? '#16a36b' : '#c9362a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ flex: 1 }}>▦ {tStatus('区域', lang)} {extrudeRegionSelCount}/{extrudeRegionTotal}{tStatus('（点画布拣要拉伸嘅区域：蓝=已选）', lang)}</span>
-            <button className="sb-tool" style={{ fontSize: 10, padding: '1px 5px' }} title={tStatus('全选区域（阵列孔等多区域一键全拣）', lang)}
-              onClick={() => { const rf0 = useApp.getState().extrudeRegionFaces; if (rf0) useApp.setState({ extrudeRegionSel: rf0.map(() => extrudeRegionSelCount < extrudeRegionTotal) }) }}>
-              {extrudeRegionSelCount < extrudeRegionTotal ? tStatus('全选区域', lang) : tStatus('清空区域', lang)}</button>
-          </div>}
-          <div style={{ color: '#6b7680' }}>{tStatus('范围', lang)}</div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button className={'sb-tool' + (extrudeExtent === 'distance' ? ' active' : '')} style={{ flex: 1 }} title={tStatus('按指定距离拉伸', lang)} onClick={() => setExtrudeExtent('distance')}>{tStatus('距离', lang)}</button>
-            <button className={'sb-tool' + (extrudeExtent === 'symmetric' ? ' active' : '')} style={{ flex: 1 }} title={tStatus('以草图面为中心向两侧各拉一半', lang)} onClick={() => setExtrudeExtent('symmetric')}>{tStatus('对称', lang)}</button>
-            <button className={'sb-tool' + (extrudeExtent === 'twosides' ? ' active' : '')} style={{ flex: 1 }} title={tStatus('两侧（Fusion Two Sides）：草图面两边各自距离（侧1向法向 / 侧2反向），非对称', lang)} onClick={() => setExtrudeExtent('twosides')}>{tStatus('两侧', lang)}</button>
-            <button className={'sb-tool' + (extrudeExtent === 'through' ? ' active' : '')} style={{ flex: 1 }} disabled={sketchOp !== 'cut'} title={sketchOp === 'cut' ? tStatus('贯通：切穿整个零件', lang) : tStatus('贯通只用于切割', lang)} onClick={() => setExtrudeExtent('through')}>{tStatus('贯通', lang)}</button>
-            <button className={'sb-tool' + (extrudeExtent === 'toface' ? ' active' : '')} style={{ flex: 1 }} title={tStatus('到面（T775 Fusion To-Object）：点目标平面，拉伸距离自动计（切除会过冲 0.5mm 防残膜）', lang)} onClick={() => setExtrudeExtent('toface')}>{tStatus('到面', lang)}</button>
-            <button className={'sb-tool' + (extrudeExtent === 'next' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh} title={bodyMesh ? tStatus('到下一面（Fusion To Next）：沿挤出方向停喺前方遇到嘅第一块实体面（方向用 ⇅ 反向；前方冇面会诚实报错）', lang) : tStatus('到下一面需要已有实体', lang)} onClick={() => setExtrudeExtent('next')}>{tStatus('到下一面', lang)}</button>
-          </div>
+          <SelectionChip label="轮廓" count={extrudeSelectionCleared ? 0 : extrudeRegionTotal > 0 ? extrudeRegionSelCount : sketchProfiles.length + (sketchShape ? 1 : 0)} hint="在画布点选闭合区域" onClear={() => useApp.getState().clearExtrudeSelection()} />
+          {extrudeRegionTotal > 1 && <button className="sb-tool" onClick={() => useApp.setState({ extrudeSelectionCleared: false, extrudeRegionSel: useApp.getState().extrudeRegionSel.map(() => true) })}>全选轮廓</button>}
+          {(!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) && <p role="alert">公式暂支持单轮廓的单侧／对称距离；其他方式请用数值。</p>}
+          <label>起点 <span>草图平面</span></label>
+          <label>方向 <select aria-label="拉伸方向" value={extrudeExtent === 'symmetric' || extrudeExtent === 'twosides' ? extrudeExtent : 'distance'} onChange={e => setExtrudeExtent(e.target.value as typeof extrudeExtent)}>
+            <option value="distance">单侧</option><option value="symmetric">对称</option><option value="twosides">两侧</option>
+          </select></label>
+          <label>范围 <select aria-label="拉伸范围" value={['symmetric','twosides'].includes(extrudeExtent) ? 'distance' : extrudeExtent} onChange={e => setExtrudeExtent(e.target.value as typeof extrudeExtent)}>
+            <option value="distance">距离</option>
+            {!['symmetric','twosides'].includes(extrudeExtent) && <><option value="through" disabled={sketchOp !== 'cut'}>贯通</option><option value="toface">到面</option><option value="next" disabled={!bodyMesh?.triangles.length}>到下一面</option></>}
+          </select></label>
           {extrudeExtent === 'toface' && (
             <div style={{ fontSize: 11, color: useApp.getState().extrudeToFaceOff != null ? '#16a36b' : '#c77d00' }}>
               {useApp.getState().extrudeToFaceOff != null ? <>{tStatus('→ 目标面 @', lang)} {useApp.getState().extrudeToFaceOff}mm <button className="sb-tool" onClick={() => useApp.setState({ extrudeToFaceOff: null, extrudeToFacePt: null, toFacePick: true })}>{tStatus('重拣', lang)}</button></> : tStatus('点实体上嘅目标平面（要同草图面平行）', lang)}
@@ -7002,7 +7002,7 @@ export default function Viewport() {
           )}
           {extrudeExtent === 'toface' && useApp.getState().extrudeToFaceOff != null && (
             <label title={tStatus('偏移（Fusion To Object Offset）：喺目标面位置上再加/减一段距离（正=过面、负=唔到面）。关联：目标面移动，拉伸会自动跟（改上游尺寸后重建自动重解析）', lang)}>
-              <span style={{ color: '#6b7680' }}>{tStatus('偏移', lang)}</span>
+              <span style={{ color: 'var(--text-dim)' }}>{tStatus('偏移', lang)}</span>
               <span><input type="number" step={1} value={extrudeToFaceOffset} onChange={(e) => useApp.getState().setExtrudeToFaceOffset(Number(e.target.value))} style={{ width: 60 }} /> mm</span>
             </label>
           )}
@@ -7011,20 +7011,20 @@ export default function Viewport() {
           )}
           {extrudeExtent !== 'through' && extrudeExtent !== 'toface' && extrudeExtent !== 'next' && (
             <label>
-              <span style={{ color: '#6b7680' }}>{extrudeExtent === 'symmetric' ? tStatus('总距离', lang) : extrudeExtent === 'twosides' ? tStatus('侧1距离', lang) : tStatus('距离', lang)}</span>
-              <span><LenInput mm={extrudeHeight} onMm={(v) => setExtrudeHeight(v)} unit={unit} w={66} title={tStatus('距离（inch 模式可打分数，如 1/2）', lang)} /> {unit === 'inch' ? 'in' : unit}</span>
+              <span style={{ color: 'var(--text-dim)' }}>{extrudeExtent === 'symmetric' ? (symMeasure === 'half' ? '每侧距离' : '总距离') : extrudeExtent === 'twosides' ? tStatus('侧1距离', lang) : tStatus('距离', lang)}</span>
+              <span><ExpressionInput text={extrudeExpression ?? toLenInput(extrudeHeight, unit)} onText={text => useApp.getState().setExtrudeExpression(text)} /></span>
             </label>
           )}
           {extrudeExtent === 'twosides' && (
             <label title={tStatus('两侧：侧2距离（草图面另一边，反法向）', lang)}>
-              <span style={{ color: '#6b7680' }}>{tStatus('侧2距离', lang)}</span>
+              <span style={{ color: 'var(--text-dim)' }}>{tStatus('侧2距离', lang)}</span>
               <span><LenInput mm={extrudeSide2} onMm={(v) => useApp.getState().setExtrudeSide2(v)} unit={unit} w={66} title={tStatus('侧2距离（反法向）', lang)} /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           )}
           {/* GM-3DV1 S12：Two Sides 侧2独立拔模（Fusion Side 2 Taper）— 与下面侧1拔模各自锥化，仅 XY 草图 */}
           {extrudeExtent === 'twosides' && (
             <label title={tStatus('侧2拔模角°：草图面另一侧独立锥度（正=越拉越窄）。设了任一侧拔模即两侧分开挤出。仅水平(XY/顶面)草图。', lang)}>
-              <span style={{ color: '#6b7680' }}>{tStatus('侧2拔模', lang)}</span>
+              <span style={{ color: 'var(--text-dim)' }}>{tStatus('侧2拔模', lang)}</span>
               <span><input type="number" step={1} value={extrudeDraft2} onChange={(e) => setExtrudeDraft2(Number(e.target.value) || 0)} style={{ width: 66 }} /> °</span>
             </label>
           )}
@@ -7032,7 +7032,7 @@ export default function Viewport() {
           {extrudeExtent === 'symmetric' && (
             <div style={{ display: 'flex', gap: 4 }} title={tStatus('量度（Fusion Symmetric Measurement）：全长=上面距离即总跨度（两侧各半）/ 半长=上面距离即每侧长度（总跨度=2×）', lang)}>
               <button className={'sb-tool' + (symMeasure === 'whole' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSymMeasure('whole')}>{tStatus('全长', lang)}</button>
-              <button className={'sb-tool' + (symMeasure === 'half' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSymMeasure('half')}>{tStatus('半长', lang)}</button>
+              <button className={'sb-tool' + (symMeasure === 'half' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSymMeasure('half')}>{tStatus('半长', lang)}</button><span className="symmetric-span">总跨度 {Number((Math.abs(extrudeHeight) * (symMeasure === 'half' ? 2 : 1)).toFixed(4))} mm</span>
             </div>
           )}
           {(extrudeExtent === 'distance' || extrudeExtent === 'next') && (
@@ -7040,20 +7040,20 @@ export default function Viewport() {
           )}
           {(extrudeExtent === 'distance' || extrudeExtent === 'symmetric') && (
             <label title={tStatus('起点偏移（Fusion Start:Offset）：拉伸起点沿草图面法向偏移一段距离（+=法向正方向 / −=反方向），草图本身唔郁。0=由草图面起。', lang)}>
-              <span style={{ color: '#6b7680' }}>{tStatus('起点偏移', lang)}</span>
+              <span style={{ color: 'var(--text-dim)' }}>{tStatus('起点偏移', lang)}</span>
               <span><LenInput mm={extrudeStart} onMm={(v) => useApp.getState().setExtrudeStart(v)} unit={unit} w={66} title={tStatus('起点偏移（0=由草图面起）', lang)} /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           )}
           <label title={tStatus('拔模角：侧壁锥度（正=越拉越窄）。仅水平(XY/顶面)草图；凹轮廓太陡会自动改直拉伸。', lang)}>
-            <span style={{ color: '#6b7680' }}>{tStatus('拔模角', lang)}</span>
+            <span style={{ color: 'var(--text-dim)' }}>{tStatus('拔模角', lang)}</span>
             <span><input type="number" step={1} value={extrudeDraft} onChange={(e) => setExtrudeDraft(Number(e.target.value) || 0)} style={{ width: 66 }} /> °</span>
           </label>
           <label title={tStatus('扭转角：拉伸时绕高度方向旋转', lang)}>
-            <span style={{ color: '#6b7680' }}>{tStatus('扭转', lang)}</span>
+            <span style={{ color: 'var(--text-dim)' }}>{tStatus('扭转', lang)}</span>
             <span><input type="number" step={5} value={sketchTwist} onChange={(e) => setSketchTwist(Number(e.target.value) || 0)} style={{ width: 66 }} /> °</span>
           </label>
           {/* P2：Operation 排最尾（Fusion 肌肉记忆：揀轮廓→设几何→最后定布尔） */}
-          <div style={{ color: '#6b7680' }}>{tStatus('操作', lang)}</div>
+          <div style={{ color: 'var(--text-dim)' }}>{tStatus('操作', lang)}</div>
           <div style={{ display: 'flex', gap: 4 }}>
             <button className={'sb-tool' + (sketchOp === 'new' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSketchOp('new')}>{tStatus('＋加料', lang)}</button>
             <button className={'sb-tool' + (sketchOp === 'cut' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh} title={bodyMesh ? tStatus('从实体切除', lang) : tStatus('没有实体可切', lang)} onClick={() => setSketchOp('cut')}>{tStatus('－切割', lang)}</button>
@@ -8102,9 +8102,6 @@ export default function Viewport() {
           {/* Flux 生成上手插画（工作台+画草图）— 令空文档画面唔咁干。缩细免阻视线（用户反馈大卡阻埞）。 */}
           <img src="/empty-canvas.png" alt="" width={104} height={104} draggable={false} style={{ display: 'block', margin: '0 auto -6px', opacity: 0.9, filter: 'drop-shadow(0 6px 16px rgba(43,108,240,.10))' }} />
           <div style={{ fontSize: 18, marginBottom: 5, color: '#3a4654', fontWeight: 700 }}>{tStatus('开始建模', lang)}</div>
-          <div style={{ fontSize: 12.5 }}>{tStatus('① 撳左上', lang)} <b style={{ color: '#1572c4' }}>{tStatus('「创建草图」', lang)}</b> {tStatus('画轮廓 →', lang)} <b>{tStatus('「拉伸」', lang)}</b> {tStatus('出实体', lang)}</div>
-          <div style={{ fontSize: 12.5 }}>{tStatus('② 或上方', lang)} <b style={{ color: '#1572c4' }}>{tStatus('「示例:」', lang)}</b> {tStatus('揀模板 →「载入」（新手推荐）', lang)}</div>
-          <div style={{ fontSize: 12.5 }}>{tStatus('③ 或直接', lang)} <b>{tStatus('长方体 / 圆柱 / 齿轮 / 钣金件', lang)}</b> {tStatus('等', lang)}</div>
           <div style={{ display: 'flex', gap: 7, justifyContent: 'center', flexWrap: 'wrap', marginTop: 10, pointerEvents: 'auto' }}>
             {([
               { label: '✏️ 画草图', fn: () => useApp.getState().startSketch() },

@@ -50,13 +50,13 @@ export default function ParamsPanel() {
   return (
     <div ref={panelDrag.ref} className={'params-panel' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} style={panelDrag.style}>
       <div className="pp-title" onPointerDown={panelDrag.onPointerDown} style={{ cursor: 'grab', userSelect: 'none' }}><span className="vp-hud-handle" title="拖動參數面板">⋮⋮</span>用户参数 <span className="pp-x" title="收合面板" onClick={() => setCollapsed(true)}>▾</span><span className="pp-x" onClick={() => toggle()}>✕</span></div>
-      <div className="pp-hint">定义命名变量，再在时间轴特征里把尺寸「绑定」到参数；改这里的值 → 全部联动重建。</div>
+      <div className="pp-hint">名称 · 数值 · 表达式（长度单位 mm）</div>
       {params.length === 0 && <div className="pp-empty">还没有参数。下面添加一个（如 d1 = 50）。</div>}
       {params.map((p) => (
         <div key={p.name} className="pp-row">
           <span className="pp-name">{p.name}</span>
           <input className="pp-val" type="number" aria-label={`参数 ${p.name} 数值`} value={Number(p.value.toFixed(3))} disabled={!!p.expr} title={p.expr ? '由表达式计算' : '直接数值'} onChange={(e) => void setParam(p.name, Number(e.target.value))} />
-          <input className="pp-expr" aria-label={`参数 ${p.name} 表达式`} placeholder="=表达式" defaultValue={p.expr ?? ''} title="如 d1*2、宽度+10、sqrt(d1*d1+d2*d2)、sin(30)、pi*r*r、max(壁厚,2)（三角函数用角度；常量 pi·e·tau；单参数 sqrt·sin·cos·tan·asin·acos·atan·round·floor·ceil·abs·sign·ln·log·log2·exp；双参数 min·max·pow·hypot·mod·atan2）" onBlur={(e) => { if ((e.target.value || '') !== (p.expr ?? '')) void setParamExpr(p.name, e.target.value) }} />
+          <input key={`${p.name}:${p.expr ?? ""}`} className="pp-expr" aria-label={`参数 ${p.name} 表达式`} placeholder="=表达式" defaultValue={p.expr ?? ''} title="如 d1*2、宽度+10、sqrt(d1*d1+d2*d2)、sin(30)、pi*r*r、max(壁厚,2)（三角函数用角度；常量 pi·e·tau；单参数 sqrt·sin·cos·tan·asin·acos·atan·round·floor·ceil·abs·sign·ln·log·log2·exp；双参数 min·max·pow·hypot·mod·atan2）" onBlur={(e) => { if ((e.target.value || '') !== (p.expr ?? '')) void setParamExpr(p.name, e.target.value) }} />
           <span className="pp-used" title="被多少个尺寸引用">×{usedBy(p.name)}</span>
           <span className="pp-del" title="删除参数" onClick={() => void removeParam(p.name)}>🗑</span>
         </div>
@@ -66,6 +66,7 @@ export default function ParamsPanel() {
         <input className="pp-val" aria-label="参数数值" type="number" value={val} onChange={(e) => setVal(Number(e.target.value))} />
         <button className="cs-btn" onClick={() => { addParam(name, val); setName('') }}>+ 添加</button>
       </div>
+      <details><summary>进阶：配置、设计表及导出</summary>
       {params.length > 0 && <div className="pp-add" style={{ justifyContent: 'flex-end' }}><button className="cs-btn" title="把参数表导出为 CSV（名称/值/表达式，方便文档/分享/Excel）" onClick={() => exportCsv()}>📋 导出参数 CSV</button></div>}
       {params.length > 0 && (
         <div className="pp-add" style={{ flexWrap: 'wrap', gap: 4, borderTop: '1px solid #2a2e33', paddingTop: 6, marginTop: 4 }}>
@@ -128,6 +129,7 @@ export default function ParamsPanel() {
           </div>
         </div>
       )}
+      </details>
     </div>
   )
 }

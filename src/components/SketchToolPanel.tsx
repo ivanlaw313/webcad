@@ -37,7 +37,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   return <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750' }}><span style={{ minWidth: 56 }}>{label}</span>{children}</label>
 }
 function Hint({ children }: { children: ReactNode }) {
-  return <div style={{ fontSize: 11.5, color: '#6b7680', lineHeight: 1.5, marginTop: 2 }}>{children}</div>
+  return <details style={{ fontSize: 11.5, color: '#6b7680', lineHeight: 1.5, marginTop: 2 }}><summary>操作说明</summary>{children}</details>
 }
 
 export function SketchToolPanel() {

@@ -65,6 +65,7 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       if (!startupReady) return
       const t = e.target as HTMLElement | null
+      if (e.isComposing || e.keyCode === 229) return
       // Keep normal text entry local to the focused field, but never swallow the
       // two command-dialog keys Fusion users rely on: Enter commits and Esc
       // cancels even while a numeric field has focus.  Modifier shortcuts (undo,

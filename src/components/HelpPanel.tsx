@@ -53,6 +53,7 @@ export default function HelpPanel() {
         <div className="dw-head">❓ 使用帮助 / 快捷键<span className="dw-x" onClick={toggle}>✕</span></div>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="🔍 搜索帮助（打「圆角」「拉伸」「导出」… 只显示相关段落）"
           style={{ width: '100%', boxSizing: 'border-box', margin: '10px 0 4px', padding: '7px 10px', fontSize: 13, border: '1px solid #cfd8e0', borderRadius: 6 }} />
+        <button className="cs-btn" onClick={() => { useApp.getState().setDebugMode(true); toggle() }}>开启诊断录制</button>
         <div className="help-grid" ref={gridRef}>
           <section>
             <h4>⓪ 最快上手：载入模板改一改</h4>

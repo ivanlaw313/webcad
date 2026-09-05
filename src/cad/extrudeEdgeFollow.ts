@@ -11,7 +11,7 @@ export function followExtrudeTopEdges(before: Feature[], after: Feature[], id: s
   if ((a.plane && a.plane !== 'XY') || a.symmetric || a.down || a.draft || a.twist || a.through || a.inward || a.toFace || a.extent || a.operation !== 'new') return after
   const { height: ah, ...ap } = a, { height: bh, ...bp } = b
   // Undefined/zero optional values are semantically equivalent in edit dialogs.
-  const clean = (p: object) => JSON.stringify(Object.fromEntries(Object.entries(p).filter(([,v]) => v !== undefined && v !== 0 && v !== false).sort(([a],[b]) => a.localeCompare(b))))
+  const clean = (p: object) => JSON.stringify(Object.fromEntries(Object.entries(p).filter(([k,v]) => k !== 'distanceExpression' && v !== undefined && v !== 0 && v !== false).sort(([a],[b]) => a.localeCompare(b))))
   if (clean(ap) !== clean(bp) || !(ah > 0 && bh > 0) || ah === bh) return after
   const top = (a.baseZ ?? 0) + ah, delta = bh - ah
   let safe = true

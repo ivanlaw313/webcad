@@ -1,3 +1,4 @@
+import vm from 'node:vm'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
@@ -26,9 +27,24 @@ test('command palettes focus a usable control while ribbon icon commands retain 
   assert.match(icons, /aria-hidden="true" focusable="false"/)
 })
 
-test('numeric command dialogs submit on Enter and cancel on Escape', () => {
+test('command Enter respects disabled, IME and textarea state; Escape cancels', () => {
   const source = readFileSync(new URL('../src/components/CommandDialog.tsx', import.meta.url), 'utf8')
-  assert.match(source, /onKeyDown=\{\(e\) => \{[\s\S]*?e\.key === 'Escape'[\s\S]*?onCancel\(\)/)
-  assert.match(source, /e\.key === 'Enter' && !e\.nativeEvent\.isComposing[\s\S]*?!\(e\.target instanceof HTMLTextAreaElement\)[\s\S]*?!okDisabled/)
-  assert.match(source, /e\.preventDefault\(\); e\.stopPropagation\(\); onOk\(\)/)
+  const body = source.split('onKeyDown={(e) => {')[1].split('\n      }}')[0]
+  class TextArea {}
+  for (const [key, disabled, composing, textarea, expected] of [
+    ['Enter', false, false, false, [1, 0, 1]],
+    ['Enter', true, false, false, [0, 0, 1]],
+    ['Enter', false, true, false, [0, 0, 0]],
+    ['Enter', false, false, true, [0, 0, 0]],
+    ['Escape', true, false, false, [0, 1, 1]],
+  ]) {
+    const counts = [0, 0, 0]
+    const handler = vm.runInNewContext('(e) => {' + body + '}', {
+      HTMLTextAreaElement: TextArea, okDisabled: disabled,
+      onOk: () => counts[0]++, onCancel: () => counts[1]++,
+    })
+    handler({key, nativeEvent: {isComposing: composing}, target: textarea ? new TextArea() : {},
+      preventDefault() {}, stopPropagation() {counts[2]++}})
+    assert.deepEqual(counts, expected)
+  }
 })

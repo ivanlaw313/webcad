@@ -7,6 +7,8 @@
 export type LenUnit = 'mm' | 'cm' | 'm' | 'inch' | 'ft'
 const PER: Record<LenUnit, number> = { mm: 1, cm: 10, m: 1000, inch: 25.4, ft: 304.8 }
 
+export const lengthScale = (unit: LenUnit): number => PER[unit]
+
 // 解析长度串 → mm。支持：
 //   "12.7"        → 当前单位（inch 模式 = 12.7 吋）
 //   "1/2" "1 1/2" "1-1/2"  → 分数（英寸钢尺式；whole + num/den）

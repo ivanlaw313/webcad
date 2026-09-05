@@ -712,3 +712,23 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .params-panel summary { cursor: pointer; padding: 8px 0; }
 
 .cmd-palette-body .sb-tool.active { background: var(--sel); border-color: var(--accent); color: var(--text); }
+
+/* Keep low-frequency manufacturing controls truly collapsed, including inline-flex children. */
+.vp-props.vp-hud-collapsed > :not(.vp-hud-handle):not(.vp-hud-collapse):not(.vp-hud-reset) { display: none !important; }
+.vp-navbar { width: max-content; max-width: calc(100% - 32px); background: var(--panel); }
+.vp-nav-advanced { position: absolute; bottom: calc(100% + 8px); left: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: min(480px, calc(100vw - 40px)); padding: 12px; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 3px 12px #0003; }
+.vp-nav-advanced > span { color: var(--text-dim) !important; }
+.params-panel { width: min(500px, calc(100vw - 32px)); color: var(--text); background: var(--panel); }
+.pp-head, .pp-row { display: grid; grid-template-columns: minmax(80px, 1fr) 80px minmax(170px, 2fr) 28px 22px; gap: 6px; align-items: center; }
+.pp-head { margin: 8px 0; color: var(--text-dim); }
+.pp-name, .pp-used, .pp-hint { color: var(--text-dim); }
+.pp-row .pp-val, .pp-row .pp-expr { width: 100%; min-width: 0; font-size: 13px; }
+.params-panel input, .cmd-palette input, .cmd-palette select { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+.cmd-palette-body .input-error { color: #cc402b; }
+:root[data-theme="dark"] .cmd-palette-body .input-error { color: #ff9e8a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) .cmd-palette-body .input-error { color: #ff9e8a; } }
+/* Theme variables must reach the controls, not only their dark backgrounds. */
+.tb-btn:not(.tb-on), .ribbon-tab:not(.ctx), .tree-row { color: var(--text); }
+.ribbon-tab.active:not(.ctx) { border-bottom-color: var(--accent); }
+.tree-row:hover { background: var(--hover); }
+.panel-label:hover, .tl-panel-head, .tl-panel-count { color: var(--text-dim); }

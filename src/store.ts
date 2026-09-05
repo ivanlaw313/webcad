@@ -1,5 +1,5 @@
 import { lengthScale } from './io/units'
-import { dimensionExpression, parameterId, type Parameter } from './cad/dimensionExpression'
+import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
 import { create } from 'zustand'
 import { cad, onKernelRestart } from './cad/cadService'
 import { cardinalSketchFrame, localPointToCad } from './cad/sketchPlaneFrame'
@@ -2244,7 +2244,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   cancelHole: () => void
   clearHolePick: () => void  // SelectionChip ✕ → unset the hole centre, keep the dialog open
   // Generic feature-param command (Fusion-style set params → 确定) for pattern/cpattern/mirror
-  featDlg: { kind: 'pattern' | 'geoPattern' | 'cpattern' | 'circpattern' | 'pathpattern' | 'mirror' | 'move' | 'scale' | 'draft' | 'revolve' | 'rib' | 'pipe' | 'box' | 'cylinder' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie' | 'tube' | 'rtube' | 'profile' | 'rbox' | 'prism' | 'pyramid' | 'coil' | 'plane' | 'cpoint' | 'cptgrid' | 'caxis' | 'thread' | 'cylpatch' | 'sheetmetal' | 'gear' | 'rack' | 'pulley' | 'gearbox' | 'worm' | 'crowngear' | 'othread' | 'ithread' | 'combine' | 'boundaryfill' | 'automatedmodel' | 'offsetsolid' | 'splitbody' | 'extrude-edit' | 'fillet-edit' | 'chamfer-edit' | 'shell-edit'; params: Record<string, number | string>; payload?: unknown; editId?: string } | null
+  featDlg: { kind: 'pattern' | 'geoPattern' | 'cpattern' | 'circpattern' | 'pathpattern' | 'mirror' | 'move' | 'scale' | 'draft' | 'revolve' | 'rib' | 'pipe' | 'box' | 'cylinder' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie' | 'tube' | 'rtube' | 'profile' | 'rbox' | 'prism' | 'pyramid' | 'coil' | 'plane' | 'cpoint' | 'cptgrid' | 'caxis' | 'thread' | 'cylpatch' | 'sheetmetal' | 'gear' | 'rack' | 'pulley' | 'gearbox' | 'worm' | 'crowngear' | 'othread' | 'ithread' | 'combine' | 'boundaryfill' | 'automatedmodel' | 'offsetsolid' | 'splitbody' | 'extrude-edit' | 'fillet-edit' | 'chamfer-edit' | 'shell-edit'; params: Record<string, number | string>; payload?: unknown; editId?: string; expressionContext?: import('./cad/dimensionExpression').DimensionExpression } | null
   openFeatDlg: (kind: 'pattern' | 'geoPattern' | 'cpattern' | 'circpattern' | 'mirror' | 'move' | 'scale' | 'draft' | 'box' | 'cylinder' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie' | 'tube' | 'rtube' | 'profile' | 'rbox' | 'prism' | 'pyramid' | 'coil' | 'plane' | 'cpoint' | 'cptgrid' | 'caxis' | 'thread' | 'cylpatch' | 'sheetmetal' | 'gear' | 'rack' | 'pulley' | 'gearbox' | 'worm' | 'crowngear' | 'othread' | 'ithread' | 'combine' | 'automatedmodel' | 'offsetsolid' | 'splitbody') => void
   openCombineDlg: () => void   // S128：真 Combine 对话框（活动体⊗泊车工具体，行返 bodyboolean B-rep）
   openBoundaryFillDlg: () => void // 两封闭实体的真实 B-rep cell 分割；范围明确小于 Fusion 完整 Boundary Fill
@@ -3355,7 +3355,7 @@ const EXPR_FUNCS: Record<string, (x: number) => number> = {
 }
 // Two-argument functions (comma-separated args). min/max clamp dimensions parametrically; pow/hypot/mod/atan2 round it out.
 const EXPR_FUNCS2: Record<string, (a: number, b: number) => number> = {
-  min: Math.min, max: Math.max, pow: Math.pow, hypot: Math.hypot, mod: (a, b) => (b === 0 ? 0 : a % b), atan2: (a, b) => Math.atan2(a, b) / D2R,
+  min: Math.min, max: Math.max, pow: Math.pow, hypot: Math.hypot, mod: (a, b) => (b === 0 ? NaN : a % b), atan2: (a, b) => Math.atan2(a, b) / D2R,
 }
 const isExprFunc = (o: string) => !!(EXPR_FUNCS[o] || EXPR_FUNCS2[o])
 export function evalExpr(expr: string, vars: Map<string, number>): number | null {
@@ -3400,6 +3400,7 @@ if (import.meta.env?.DEV && typeof window !== 'undefined') (window as unknown as
 
 // Re-evaluate parameters whose value comes from an expression (a few passes resolve chained deps).
 function recomputeParams(params: Parameter[]): Parameter[] {
+  assertParameterAcyclic(params)
   const ps = params.map((p) => ({ ...p }))
   // 审计修复：旧版每 pass 顶部建一次快照 + 固定 6 pass 上限 → 一 pass 只前进一层、>7 层链被静默截断停留残值。
   // 改：用 live vars（pass 内逐个更新），loop-until-no-change，上限 ps.length+1（足够级联任意非环链；环链由 setParamExpr 拒绝）。
@@ -3407,7 +3408,7 @@ function recomputeParams(params: Parameter[]): Parameter[] {
   const maxPass = ps.length + 1
   for (let pass = 0; pass < maxPass; pass++) {
     let changed = false
-    for (const p of ps) if (p.expr) { const v = p.unit ? dimensionExpression(p.expr, ps, evalExpr, p.unit, p.refs).value : evalExpr(p.expr, vars); if (v == null) throw Error(`参数 ${p.name} 的表达式无法计算`); if (Math.abs(v - p.value) > 1e-9) { p.value = v; vars.set(p.name, v); changed = true } }
+    for (const p of ps) if (p.expr) { const v = p.unit ? dimensionExpression(p.expr, ps, evalExpr, p.unit, p.refs).value : evalExpr(p.expr, new Map([...vars, ...Object.entries(p.refs ?? {}).map(([token,id]) => [token, ps.find(q => parameterId(q) === id)?.value ?? NaN] as [string,number])])); if (v == null) throw Error(`参数 ${p.name} 的表达式无法计算`); if (Math.abs(v - p.value) > 1e-9) { p.value = v; vars.set(p.name, v); changed = true } }
     if (!changed) break
   }
   return ps
@@ -6030,7 +6031,7 @@ export const useApp = create<AppState>((set, get) => ({
     for (const [skId, src] of entries) {
       const cons = withParamVals(src.cons, s.params)
       const res = await solveFree(JSON.parse(JSON.stringify(src.shapes)) as FShape[], cons)
-      if (!res || res.conflict) { set({ status: `⚠ 草图 ${skId.replace('sk', '草图')} 参数重解${res?.conflict ? '冲突（过约束）' : '失败'} — 该草图未更新` }); continue }
+      if (!res || res.conflict) throw new Error(`草图 ${skId} 参数重解${res?.conflict ? '冲突（过约束）' : '失败'}`)
       const shapes = res.shapes as unknown as SketchShape[]
       const r = regenGroupFeatures(feats, skId, src, shapes)
       if (!r) continue
@@ -6039,7 +6040,8 @@ export const useApp = create<AppState>((set, get) => ({
       n++
     }
     // GM-W8 β1-#36：本轮有尺寸求值到 ≤0（退化）→ 併一句提示畀调用方（setParam 等）接落 status。
-    const note = _degenDimNotes.size ? `⚠ ${[..._degenDimNotes].join('、')} 求值 ≤0（退化尺寸）— 已维持原值` : undefined
+    if (_degenDimNotes.size) throw new Error(`${[..._degenDimNotes].join('、')} 求值 ≤0（退化尺寸）`)
+    const note = undefined
     return n ? { feats, srcs, n, note } : null
   },
   skBoolPending: null,
@@ -12915,7 +12917,7 @@ export const useApp = create<AppState>((set, get) => ({
     const s = get(), d = s.featDlg
     if (d?.kind !== 'extrude-edit' || !d.editId) return null
     const i = s.features.findIndex(f => f.id === d.editId)
-    const r = dimensionExpression(String(d.params.heightExpr ?? d.params.height), s.params, evalExpr, 'mm', undefined, Number(d.params.heightExprScale ?? 1))
+    const r = dimensionExpression(String(d.params.heightExpr ?? d.params.height), s.params, evalExpr, 'mm', d.expressionContext?.refs, Number(d.params.heightExprScale ?? 1))
     if (i < 0 || 'error' in r || !(Math.abs(r.value) > 1e-6)) return null
     const features = s.features.slice(0, i + 1).map(f => f.id === d.editId ? { ...f,
       distanceExpression: undefined, down: !!d.params.heightExprFlip !== (r.value < 0), height: Math.abs(r.value) * (d.params.extent === 'symmetric' && d.params.symMeasure === 'half' ? 2 : 1), operation: String(d.params.op || 'new'),
@@ -13088,7 +13090,7 @@ export const useApp = create<AppState>((set, get) => ({
         get().selectFeature(featId)   // 非白名单 → 只选中（时间线底部内联条照旧）
         return
     }
-    set({ featDlg: { kind, params, editId: featId, ...(kind === 'rib' && f.type === 'rib' ? { payload: { isWeb: !!f.extend } } : {}) }, selectedFeature: featId,
+    set({ featDlg: { kind, params, editId: featId, expressionContext: f.type === 'extrude' ? f.distanceExpression : undefined, ...(kind === 'rib' && f.type === 'rib' ? { payload: { isWeb: !!f.extend } } : {}) }, selectedFeature: featId,
       facePatternPick: false, facePatternPicks: (f.type === 'pattern' || f.type === 'circPattern') && f.objectType === 'faces' ? [...(f.nears ?? [])] : [],
       holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, decalPick: null,
       status: '编辑特征：改参数 → 确定重建（棱/面选择集及轮廓保留原值）' })
@@ -14803,7 +14805,7 @@ export const useApp = create<AppState>((set, get) => ({
     let f: Feature
     let msg: string
     // P2 Edit Feature：edit-kind 早特判 — 只 patch 标量/enum；array/pick（nears/radii 冇改时/profile/toFace）靠 editFeature 淺合并+undefined 过滤透传
-    if (d.kind === 'extrude-edit' && !(Math.abs(dimensionExpression(String(p.heightExpr ?? p.height), get().params, evalExpr, 'mm', undefined, Number(p.heightExprScale ?? 1)).value ?? 0) > 1e-6)) { set({ status: '请输入非零拉伸距离' }); return }
+    if (d.kind === 'extrude-edit' && !(Math.abs(dimensionExpression(String(p.heightExpr ?? p.height), get().params, evalExpr, 'mm', d.expressionContext?.refs, Number(p.heightExprScale ?? 1)).value ?? 0) > 1e-6)) { set({ status: '请输入非零拉伸距离' }); return }
     if (d.editId && (d.kind === 'extrude-edit' || d.kind === 'fillet-edit' || d.kind === 'chamfer-edit' || d.kind === 'shell-edit')) {
       let patch: Record<string, number | string | number[] | boolean | undefined>
       if (d.kind === 'extrude-edit') {
@@ -14812,7 +14814,7 @@ export const useApp = create<AppState>((set, get) => ({
           extent: p.extent === 'next' ? 'next' : undefined }   // GM-W5 5.2：留返/清走到下一面标记（转「距离」即退成普通盲拉伸；height 仍可手改覆写烘焙值）
         // R8：extent='toface' 时唔写 height — editFeature 见 'height' in patch 会 detach 原 toFace（Fusion「打距离即离开到面」）
         if (p.extent !== 'toface') {
-          const r = dimensionExpression(String(p.heightExpr ?? p.height), get().params, evalExpr, 'mm', undefined, Number(p.heightExprScale ?? 1))
+          const r = dimensionExpression(String(p.heightExpr ?? p.height), get().params, evalExpr, 'mm', d.expressionContext?.refs, Number(p.heightExprScale ?? 1))
           if ('error' in r) { set({ status: r.error }); return }
           patch.height = Math.abs(r.value) * (p.extent === 'symmetric' && p.symMeasure === 'half' ? 2 : 1)
           patch.distanceExpression = JSON.stringify({ ...r.formula, measure: p.extent === 'symmetric' ? p.symMeasure ?? 'whole' : 'whole', flip: !!p.heightExprFlip })
@@ -16577,6 +16579,7 @@ export const useApp = create<AppState>((set, get) => ({
   customBed: null,
   setCustomBed: (b) => set({ customBed: b, bedPreset: b ? -1 : 0 }),
   addParam: (name, value) => set((s) => {
+    if (s.busy) return { status: '请等待当前重建完成，再修改参数' }
     const nm = (name || '').trim() || `d${s.params.length + 1}`
     if (s.params.some((p) => p.name === nm)) return { status: `参数「${nm}」已存在` }
     // Validate the name is a clean identifier the expression tokenizer can parse — must start with a
@@ -16588,10 +16591,13 @@ export const useApp = create<AppState>((set, get) => ({
     return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], params: [...s.params, { id: crypto.randomUUID(), name: nm, value: value || 0, unit: 'mm' }], status: `已加参数 ${nm} = ${value || 0}` }   // bt4: 加参数可撤销(仅成功分支;新参数未绑定唔改几何,inline 快照即可)
   }),
   setParam: async (name, value) => {
+    if (get().busy) { set({ status: '请等待当前重建完成，再修改参数' }); return }
     const _pd = docSnap(get())  // S110：操作前快照 → undo 真正还原 params（否则 docSnap 读到新值，撤销变空操作）
     // setting a value directly clears any expression (manual override), then re-evaluate dependents
     try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, name, value, expr: undefined, refs: undefined } : p))) })) } catch (e) { set({ status: `参数更新失败：${String(e)}，已保留原值` }); return }
     // T746 批3：先重解 ƒx 绑定嘅草图（compute-only），一次 applyFeatures 重建；srcs 成功后先写（同 applySketchEdit 政策一致）
+    set({ busy: true })
+    try {
     const r = await get().applyParamSketches()
     if (r) {
       const ok = await get().applyFeatures(r.feats, `参数 ${name} = ${value} — 已联动重建（${r.n} 个草图重解）${r.note ? '　' + r.note : ''}`, true, undefined, _pd)
@@ -16599,33 +16605,18 @@ export const useApp = create<AppState>((set, get) => ({
     } else {
       await get().applyFeatures(get().features, `参数 ${name} = ${value} — 已联动重建`, true, undefined, _pd)
     }
+    } catch (e) { set({ ..._pd, busy: false, status: `参数更新失败：${String(e)}，已恢复最后有效模型` }) }
   },
   setParamExpr: async (name, expr) => {
-    // Validate BEFORE applying: recomputeParams silently SKIPS a param whose expr fails to evaluate (returns
-    // null on syntax error / unknown variable), leaving the old value — which previously still reported "已联动"
-    // (success). For a non-coder that's a silent failure. Mirror recomputeParams' var map (all params) so this
-    // test exactly predicts whether the recompute will take, and give a clear error instead of a fake success.
-    if (expr) {
-      const vars = new Map(get().params.map((p) => [p.name, p.value]))
-      const target = get().params.find(p => p.name === name)
-      if ((target?.unit ? dimensionExpression(expr, get().params, evalExpr, target.unit).value : evalExpr(expr, vars)) == null) {
-        set({ status: `⚠ 表达式无法计算：「${expr}」—— 检查变量名／括号／语法（可用 + - * / ^ %、常量 pi·e·tau、函数 sqrt·sin·max·pow 等）` })
-        return
-      }
-      // 审计修复：自引用/循环检测 —— a=a+1 或 a=b+1·b=a+1 旧版单次验证通过 → recomputeParams 累加到任意值仍报「已联动」。
-      // 建依赖图（name 用新 expr），若 name 经新 expr 直接/间接引用返自己 → 拒绝。
-      const pNames = new Set(get().params.map((p) => p.name))
-      const refsOf = (e?: string) => e ? ((e.match(/[A-Za-z_一-龥][\w一-龥]*/g) || []).filter((t) => pNames.has(t))) : []
-      const depMap = new Map<string, string[]>()
-      for (const p of get().params) depMap.set(p.name, p.name === name ? refsOf(expr) : refsOf(p.expr))
-      const seen = new Set<string>(); const stk = [...refsOf(expr)]; let cyc = false
-      while (stk.length) { const u = stk.pop()!; if (u === name) { cyc = true; break } if (seen.has(u)) continue; seen.add(u); for (const v2 of (depMap.get(u) || [])) stk.push(v2) }
-      if (cyc) { set({ status: `⚠ 表达式循环引用：「${name} = ${expr}」直接或间接引用返自己 — 已拒绝` }); return }
-    }
+    if (get().busy) { set({ status: '请等待当前重建完成，再修改参数' }); return }
+    const target = get().params.find(p => p.name === name)
+    const refs = parameterExpressionRefs(expr, get().params, target?.refs)
     const _pd = docSnap(get())  // S110：操作前快照（undo 还原 params/绑定）
-    try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, expr: expr || undefined, refs: expr ? dimensionExpression(expr, s.params, evalExpr, p.unit ?? 'mm').formula?.refs : undefined } : p))) })) } catch (e) { set({ status: `参数更新失败：${String(e)}，已保留原值` }); return }
+    try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, expr: expr || undefined, refs: expr ? refs : undefined } : p))) })) } catch (e) { set({ status: `参数更新失败：${String(e)}，已保留原值` }); return }
     const p = get().params.find((x) => x.name === name)
     const msg = expr ? `${name} = ${expr} = ${p ? +p.value.toFixed(2) : '?'} — 已联动` : `已清除 ${name} 的表达式`
+    set({ busy: true })
+    try {
     const r = await get().applyParamSketches()
     if (r) {
       const ok = await get().applyFeatures(r.feats, msg + `（${r.n} 个草图重解）${r.note ? '　' + r.note : ''}`, true, undefined, _pd)
@@ -16633,8 +16624,10 @@ export const useApp = create<AppState>((set, get) => ({
     } else {
       await get().applyFeatures(get().features, msg, true, undefined, _pd)
     }
+    } catch (e) { set({ ..._pd, busy: false, status: `参数更新失败：${String(e)}，已恢复最后有效模型` }) }
   },
   removeParam: async (name) => {
+    if (get().busy) { set({ status: '请等待当前重建完成，再修改参数' }); return }
     const p = get().params.find(p => p.name === name)
     if (p && (get().params.some(q => Object.values(q.refs ?? {}).includes(parameterId(p))) || get().features.some(f => f.type === 'extrude' && Object.values(f.distanceExpression?.refs ?? {}).includes(parameterId(p))))) {
       set({ status: `参数 ${name} 仍被公式引用；请先解除引用` }); return
@@ -16665,15 +16658,18 @@ export const useApp = create<AppState>((set, get) => ({
     return { configs, activeConfig: nm, status: `已保存配置「${nm}」（${drivers.length} 参数${s.suppressedIds.length ? ` · ${s.suppressedIds.length} 抑制` : ''}${comps ? ` · ${comps.length} 组件位姿` : ''} · 颜色/材质）` }
   }),
   applyConfig: async (name) => {
+    if (get().busy) return
     const s = get(); const cfg = s.configs.find((c) => c.name === name)
     if (!cfg) { set({ status: `搵唔到配置「${name}」` }); return }
+    const previous = { ...docSnap(s), activeConfig: s.activeConfig, bodyColor: s.bodyColor, bodyDensity: s.bodyDensity }
+    try {
     // Set each stored driver to its config value (clear expr → it's a driver), then re-derive expr params + rebuild.
     const np = recomputeParams(s.params.map((p) => (cfg.values[p.name] !== undefined ? { ...p, value: cfg.values[p.name], expr: undefined } : p)))
     // Restore the variant's suppression + appearance (back-compat: older configs omit these → keep current).
     // S92：装配级配置 — 按 id 还原各组件位姿/可见性（配置内冇嘅组件保持现状）。
     const cmap = cfg.comps ? new Map(cfg.comps.map((c) => [c.id, c])) : null
     set({
-      params: np, activeConfig: name,
+      params: np, activeConfig: name, busy: true,
       ...(cfg.suppressed ? { suppressedIds: [...cfg.suppressed] } : {}),
       ...(cfg.bodyColor ? { bodyColor: cfg.bodyColor } : {}),
       ...(cfg.bodyDensity != null ? { bodyDensity: cfg.bodyDensity } : {}),
@@ -16682,11 +16678,12 @@ export const useApp = create<AppState>((set, get) => ({
     // T746 批3：配置切换都联动 ƒx 绑定嘅草图尺寸（设计表 → 草图 → 全树）
     const r = await get().applyParamSketches()
     if (r) {
-      const ok = await get().applyFeatures(r.feats, `已应用配置「${name}」— 整模型按该规格联动重建（参数 / 抑制 / 材质 · ${r.n} 个草图重解）${r.note ? '　' + r.note : ''}`)
+      const ok = await get().applyFeatures(r.feats, `已应用配置「${name}」— 整模型按该规格联动重建（参数 / 抑制 / 材质 · ${r.n} 个草图重解）${r.note ? '　' + r.note : ''}`, true, undefined, previous)
       if (ok) set((s2) => ({ sketchSources: { ...s2.sketchSources, ...r.srcs } }))
     } else {
-      await get().applyFeatures(get().features, `已应用配置「${name}」— 整模型按该规格联动重建（参数 / 抑制 / 材质）`)
+      await get().applyFeatures(get().features, `已应用配置「${name}」— 整模型按该规格联动重建（参数 / 抑制 / 材质）`, true, undefined, previous)
     }
+    } catch (e) { set({ ...previous, busy: false, status: `配置更新失败：${String(e)}，已恢复最后有效模型` }) }
   },
   deleteConfig: (name) => set((s) => ({ configs: s.configs.filter((c) => c.name !== name), activeConfig: s.activeConfig === name ? null : s.activeConfig, status: `已删除配置「${name}」` })),
   // Export EVERY configuration as its own STL, packaged in one zip (manufacture all variants at once). Applies

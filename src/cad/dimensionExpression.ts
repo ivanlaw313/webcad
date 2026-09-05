@@ -13,6 +13,19 @@ export function dimensionExpression(expression: string, params: Parameter[], eva
   type Q={ code:string; l:number; a:number; literal:boolean }
   const compatible=(a:Q,b:Q)=>a.l===b.l&&a.a===b.a
   const node=(code:string,l=0,a=0,literal=true):Q=>({code,l,a,literal})
+  // Promote only additive/function arguments, never scalar multipliers (W*2).
+  // Bare additive lengths use the input's captured display unit, also after reopening.
+  function promote(q:Q, target:Q):Q {
+   if (compatible(q,target)) return q
+   if (!q.literal) throw Error('长度、角度或无单位数不相容')
+   const scale=target.l===1&&target.a===0?implicitScale:1
+   return {...q,code:`(${q.code}*${scale})`,l:target.l,a:target.a,literal:false}
+  }
+  function align(args:Q[]):Q[] {
+   const typed=args.find(q=>!q.literal)
+   if (!typed) return args
+   return args.map(q=>promote(q,typed))
+  }
   function primary():Q {
    const t=tokens[i++]; if(!t) throw Error('表达式未完成')
    if(t==='+'||t==='-'){const q=power();return {...q,code:`(${t}${q.code})`}}
@@ -20,15 +33,15 @@ export function dimensionExpression(expression: string, params: Parameter[], eva
    if(/^[.\d]/.test(t)) {const n=Number(t);if(!Number.isFinite(n))throw Error('数值无效');const u=units[tokens[i]];if(u){i++;return node(`(${n}*${u[0]})`,u[1],u[2],false)}return node(String(n))}
    if(!/^[A-Za-z_一-龥]/.test(t))throw Error('表达式未完成')
    if(tokens[i]==='('){
-    i++;const args=[sum()];while(tokens[i]===','){i++;args.push(sum())}if(tokens[i++]!==')')throw Error('括号未配对')
+    i++;let args=[sum()];while(tokens[i]===','){i++;args.push(sum())}if(tokens[i++]!==')')throw Error('括号未配对')
     let q=args[0];
     if(['sin','cos','tan'].includes(t)){if(q.l)throw Error('三角函数需要角度');q=node('',0,0,false)}
     else if(['asin','acos','atan','atan2'].includes(t)){if(args.some(x=>x.l||x.a))throw Error('反三角函数需要无单位数');q=node('',0,1,false)}
     else if(t==='sqrt')q={...q,l:q.l/2,a:q.a/2}
-    else if(['abs','round','floor','ceil','neg','min','max','hypot','mod'].includes(t)){if(args.some(x=>!compatible(q,x)&&!x.literal))throw Error('函数参数单位不相容')}
+    else if(['abs','round','floor','ceil','neg','min','max','hypot','mod'].includes(t)){args=align(args);q=args[0];}
     else if(t==='pow'){if(args.length!==2||!args[1].literal)throw Error('指数需要无单位数');const power=evaluate(args[1].code,vars);if(power==null)throw Error('指数无效');q={...q,l:q.l*power,a:q.a*power}}
     else if(args.some(x=>x.l||x.a))throw Error('函数需要无单位数')
-    return {...q,code:`${t}(${args.map(x=>x.code).join(',')})`}
+    return {...q,literal:q.literal&&args.every(x=>x.literal),code:`${t}(${args.map(x=>x.code).join(',')})`}
    }
    const ref=refs?.[t];const p=ref?params.find(p=>parameterId(p)===ref):params.find(p=>p.name===t)
    if(p){bound[t]=parameterId(p);vars.set(t,p.value);return node(t,p.unit==='scalar'||p.unit==='deg'?0:1,p.unit==='deg'?1:0,false)}
@@ -37,12 +50,41 @@ export function dimensionExpression(expression: string, params: Parameter[], eva
    throw Error(`未知参数：${t}`)
   }
   function power():Q {let a=primary();if(tokens[i]==='^'){i++;const b=power();if(b.l||b.a)throw Error('指数需要无单位数');const v=evaluate(b.code,vars);if(v==null)throw Error('指数无效');a={...a,code:`(${a.code}^${b.code})`,l:a.l*v,a:a.a*v,literal:a.literal&&b.literal}}return a}
-  function product():Q {let a=power();while(['*','/','%'].includes(tokens[i])){const op=tokens[i++],b=power();if(op==='%'&&!compatible(a,b))throw Error('余数单位不相容');a={code:`(${a.code}${op}${b.code})`,l:op==='%'?a.l:a.l+(op==='/'?-b.l:b.l),a:op==='%'?a.a:a.a+(op==='/'?-b.a:b.a),literal:a.literal&&b.literal}}return a}
-  function sum():Q {let a=product();while(tokens[i]==='+'||tokens[i]==='-'){const op=tokens[i++];let b=product();if(!compatible(a,b)){if(a.literal)a={...a,l:b.l,a:b.a};else if(b.literal)b={...b,l:a.l,a:a.a};else throw Error('长度、角度或无单位数不相容')}a={...a,code:`(${a.code}${op}${b.code})`,literal:a.literal&&b.literal}}return a}
+  function product():Q {let a=power();while(['*','/','%'].includes(tokens[i])){const op=tokens[i++];let b=power();if(op==='%'){const matched=align([a,b]);a=matched[0];b=matched[1];}a={code:`(${a.code}${op}${b.code})`,l:op==='%'?a.l:a.l+(op==='/'?-b.l:b.l),a:op==='%'?a.a:a.a+(op==='/'?-b.a:b.a),literal:a.literal&&b.literal}}return a}
+  function sum():Q {
+   let a=product()
+   while(tokens[i]==='+'||tokens[i]==='-') {
+    const op=tokens[i++];let b=product()
+    ;[a,b]=align([a,b])
+    a={...a,code:`(${a.code}${op}${b.code})`,literal:a.literal&&b.literal}
+   }
+   return a
+  }
   const q=sum();if(i!==tokens.length)throw Error('表达式语法无效')
   const l=expected==='mm'?1:0,a=expected==='deg'?1:0
   if(!q.literal&&(q.l!==l||q.a!==a))throw Error(`此字段需要${expected==='mm'?'长度':expected==='deg'?'角度':'无单位数'}`)
   const v=evaluate(q.code,vars);if(v==null||!Number.isFinite(v))throw Error('无法计算：检查除零、函数及括号')
   return {value:v*(q.literal?implicitScale:1),formula:{expression,refs:bound,unit:expected,implicitScale}}
  }catch(e){return {error:e instanceof Error?e.message:'表达式无效'}}
+}
+
+// IDs, not display names, define parameter dependency edges.
+export function parameterExpressionRefs(expression: string, params: Parameter[], existing: Record<string,string> = {}): Record<string,string> {
+ const refs:Record<string,string>={}
+ for(const token of expression.match(/[A-Za-z_一-龥][\w一-龥]*/g) ?? []) {
+  const id=existing[token] ?? params.find(p=>p.name===token)?.id ?? (params.some(p=>p.name===token)?`legacy:${token}`:undefined)
+  if(id) refs[token]=id
+ }
+ return refs
+}
+export function assertParameterAcyclic(params: Parameter[]): void {
+ const edges=new Map(params.map(p=>[parameterId(p),Object.values(parameterExpressionRefs(p.expr ?? '',params,p.refs))]))
+ const done=new Set<string>(),active=new Set<string>()
+ function visit(id:string):void {
+  if(active.has(id)) throw Error('参数表达式循环引用')
+  if(done.has(id)) return
+  active.add(id);for(const next of edges.get(id) ?? []) visit(next)
+  active.delete(id);done.add(id)
+ }
+ for(const id of edges.keys()) visit(id)
 }

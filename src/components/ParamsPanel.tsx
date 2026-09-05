@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../store'
 import { useDraggable } from './useDraggable'
 
@@ -19,9 +19,18 @@ function parseVals(s: string): number[] {
   return [...new Set(t.split(/[,，\s]+/).map(Number).filter((n) => Number.isFinite(n)))]
 }
 
+// Commit complete numeric drafts, so normal typing does not rebuild at each digit.
+function ParameterValue({name,value,disabled,onCommit}:{name:string;value:number;disabled:boolean;onCommit:(n:number)=>void}) {
+ const [draft,setDraft]=useState(String(Number(value.toFixed(6))))
+ useEffect(()=>setDraft(String(Number(value.toFixed(6)))),[value])
+ const commit=()=>{const n=Number(draft);if(draft.trim()&&Number.isFinite(n)&&n!==value)onCommit(n);else setDraft(String(Number(value.toFixed(6))))}
+ return <input className="pp-val" type="number" aria-label={`参数 ${name} 数值`} disabled={disabled} value={draft} onChange={e=>setDraft(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.blur()}if(e.key==='Escape'){e.stopPropagation();setDraft(String(value))}}}/>
+}
+
 // User-parameter table: named variables that feature dimensions can bind to.
 // Edit a value here → every bound feature dimension updates and the model rebuilds.
 export default function ParamsPanel() {
+  const busy = useApp(s => s.busy)
   const open = useApp((s) => s.paramsOpen)
   const params = useApp((s) => s.params)
   const bindings = useApp((s) => s.paramBindings)
@@ -52,11 +61,12 @@ export default function ParamsPanel() {
       <div className="pp-title" onPointerDown={panelDrag.onPointerDown} style={{ cursor: 'grab', userSelect: 'none' }}><span className="vp-hud-handle" title="拖動參數面板">⋮⋮</span>用户参数 <span className="pp-x" title="收合面板" onClick={() => setCollapsed(true)}>▾</span><span className="pp-x" onClick={() => toggle()}>✕</span></div>
       <div className="pp-hint">名称 · 数值 · 表达式（长度单位 mm）</div>
       {params.length === 0 && <div className="pp-empty">还没有参数。下面添加一个（如 d1 = 50）。</div>}
+      {params.length > 0 && <div className="pp-head"><span>名称</span><span>数值</span><span>表达式</span><span>引用</span></div>}
       {params.map((p) => (
         <div key={p.name} className="pp-row">
           <span className="pp-name">{p.name}</span>
-          <input className="pp-val" type="number" aria-label={`参数 ${p.name} 数值`} value={Number(p.value.toFixed(3))} disabled={!!p.expr} title={p.expr ? '由表达式计算' : '直接数值'} onChange={(e) => void setParam(p.name, Number(e.target.value))} />
-          <input key={`${p.name}:${p.expr ?? ""}`} className="pp-expr" aria-label={`参数 ${p.name} 表达式`} placeholder="=表达式" defaultValue={p.expr ?? ''} title="如 d1*2、宽度+10、sqrt(d1*d1+d2*d2)、sin(30)、pi*r*r、max(壁厚,2)（三角函数用角度；常量 pi·e·tau；单参数 sqrt·sin·cos·tan·asin·acos·atan·round·floor·ceil·abs·sign·ln·log·log2·exp；双参数 min·max·pow·hypot·mod·atan2）" onBlur={(e) => { if ((e.target.value || '') !== (p.expr ?? '')) void setParamExpr(p.name, e.target.value) }} />
+          <ParameterValue name={p.name} value={p.value} disabled={busy || !!p.expr} onCommit={n => void setParam(p.name,n)} />
+          <input key={`${p.name}:${p.expr ?? ""}`} className="pp-expr" disabled={busy} aria-label={`参数 ${p.name} 表达式`} placeholder="=表达式" defaultValue={p.expr ?? ''} title="如 d1*2、宽度+10、sqrt(d1*d1+d2*d2)、sin(30)、pi*r*r、max(壁厚,2)（三角函数用角度；常量 pi·e·tau；单参数 sqrt·sin·cos·tan·asin·acos·atan·round·floor·ceil·abs·sign·ln·log·log2·exp；双参数 min·max·pow·hypot·mod·atan2）" onBlur={(e) => { if ((e.target.value || '') !== (p.expr ?? '')) void setParamExpr(p.name, e.target.value) }} />
           <span className="pp-used" title="被多少个尺寸引用">×{usedBy(p.name)}</span>
           <span className="pp-del" title="删除参数" onClick={() => void removeParam(p.name)}>🗑</span>
         </div>

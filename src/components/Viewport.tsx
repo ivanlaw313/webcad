@@ -3750,6 +3750,7 @@ export default function Viewport() {
   const navDrag = useDraggable('webcad-navigation', { left: '50%', bottom: 120, transform: 'translateX(-50%)' })
   const propsDrag = useDraggable('webcad-properties', { left: 12, bottom: 172 })
   const statusDrag = useDraggable('webcad-status', { right: 12, bottom: 172 })
+  const [navAdvanced, setNavAdvanced] = useState(false)
   const [navHudCollapsed, setNavHudCollapsed] = useState(false)
   // Fusion keeps detailed physical properties out of the modelling canvas until the user asks for them.
   // A selected body used to expand this long strip by default and collide visually with the navigation bar
@@ -6306,7 +6307,7 @@ export default function Viewport() {
                 <option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新实体', lang)}</option></select></label>
               <label>{tStatus('范围', lang)} <select value={String(featDlg.params.extent)} onChange={(e) => setFeatParam('extent', e.target.value)} style={{ height: 26 }}>
                 <option value="distance">{tStatus('距离', lang)}</option><option value="symmetric">{tStatus('对称', lang)}</option><option value="through">{tStatus('贯通', lang)}</option>{hasTF && <option value="toface">{tStatus('到面（保留原引用）', lang)}</option>}{hasNext && <option value="next">{tStatus('到下一面（已烘焙距离）', lang)}</option>}</select></label>
-              {featDlg.params.extent !== 'through' && featDlg.params.extent !== 'toface' && <label>{featDlg.params.extent === 'symmetric' ? featDlg.params.symMeasure === 'half' ? '每侧距离' : '总距离' : tStatus('距离', lang)} <ExpressionInput scale={Number(featDlg.params.heightExprScale ?? 1)} text={String(featDlg.params.heightExpr ?? featDlg.params.height)} onText={text => setFeatParam('heightExpr', text)} /></label>}
+              {featDlg.params.extent !== 'through' && featDlg.params.extent !== 'toface' && <label>{featDlg.params.extent === 'symmetric' ? featDlg.params.symMeasure === 'half' ? '每侧距离' : '总距离' : tStatus('距离', lang)} <ExpressionInput bindingRefs={featDlg.expressionContext?.refs} scale={Number(featDlg.params.heightExprScale ?? 1)} text={String(featDlg.params.heightExpr ?? featDlg.params.height)} onText={text => setFeatParam('heightExpr', text)} /></label>}
               {featDlg.params.extent === 'symmetric' && <label>量度 <select aria-label="对称量度" value={String(featDlg.params.symMeasure ?? 'whole')} onChange={e => setFeatParam('symMeasure', e.target.value)}><option value="whole">全长（总距离）</option><option value="half">半长（每侧距离）</option></select></label>}
               <label>{tStatus('拔模角', lang)} <input type="number" step={1} min={-45} max={45} value={featDlg.params.draft} onChange={(e) => setFeatParam('draft', Number(e.target.value))} style={{ width: 50 }} />°</label>
               <label>{tStatus('扭转', lang)} <input type="number" step={5} value={featDlg.params.twist} onChange={(e) => setFeatParam('twist', Number(e.target.value))} style={{ width: 50 }} />°</label>
@@ -7509,7 +7510,7 @@ export default function Viewport() {
       {marq && <div style={{ position: 'absolute', left: Math.min(marq.x0, marq.x1), top: Math.min(marq.y0, marq.y1), width: Math.abs(marq.x1 - marq.x0), height: Math.abs(marq.y1 - marq.y0), border: marq.x1 >= marq.x0 ? '1.5px solid #1572c4' : '1.5px dashed #2e9e4f', background: marq.x1 >= marq.x0 ? 'rgba(21,114,196,.08)' : 'rgba(46,158,79,.10)', pointerEvents: 'none', zIndex: 60 }} />}
       {/* GM-X4 #17：套索自由多边形橡皮筋 */}
       {lassoPath && lassoPath.length > 1 && <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 60, width: '100%', height: '100%' }}><polygon points={lassoPath.map((p) => `${p[0]},${p[1]}`).join(' ')} fill="rgba(155,111,196,.10)" stroke="#8b5fbf" strokeWidth={1.5} strokeDasharray="5 4" /></svg>}
-      <div ref={navDrag.ref} className={'vp-navbar' + (navDrag.isDragged ? ' vp-hud-dragged' : '') + (navHudCollapsed ? ' vp-hud-collapsed' : '') + (navPop ? ' vp-navbar-menu-open' : '')} style={navDrag.style} aria-label={tStatus('視圖導覽工具列', lang)} title={tStatus('工具過多時可用滑鼠滾輪左右捲動；亦可拖曳工具列位置或收合', lang)} onWheel={(e) => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { el.scrollLeft += e.deltaY; e.preventDefault() } }}>
+      <div ref={navDrag.ref} className={'vp-navbar' + (navDrag.isDragged ? ' vp-hud-dragged' : '') + (navHudCollapsed ? ' vp-hud-collapsed' : '') + (navPop || navAdvanced ? ' vp-navbar-menu-open' : '')} style={navDrag.style} aria-label={tStatus('視圖導覽工具列', lang)} title={tStatus('工具過多時可用滑鼠滾輪左右捲動；亦可拖曳工具列位置或收合', lang)} onWheel={(e) => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { el.scrollLeft += e.deltaY; e.preventDefault() } }}>
         <span className="vp-hud-handle" onPointerDown={navDrag.onPointerDown} title={tStatus('拖動導覽列', lang)}>⋮⋮</span>
         <button className="vp-hud-collapse" type="button" title={navHudCollapsed ? tStatus('展開導覽列', lang) : tStatus('收合導覽列', lang)} onClick={() => setNavHudCollapsed((v) => !v)}>{navHudCollapsed ? '⌃' : '–'}</button>
         {navDrag.isDragged && <button className="vp-hud-reset" type="button" title={tStatus('還原導覽列預設位置', lang)} onClick={navDrag.reset}>↺</button>}
@@ -7590,6 +7591,8 @@ export default function Viewport() {
         <button className={'tb-btn' + (cameraOrtho ? ' tb-on' : '')} title={tStatus('📐 正交 / 透视相机（S193）：正交 = 无透视失真，平行边保持平行 — 工程审视 / 对齐 / 截图量度 / 等轴测出图。再撳返回透视。', lang)} style={cameraOrtho ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().toggleCameraOrtho()}>📐</button>
         {/* GM-W2 2.2 对标 Fusion：草图模式下收起「渲染/外观/贴图/出图/选择过滤」集群 — 画紧 2D 平面图用唔着，减少非程序员用家眼前 option 数 */}
         {mode !== 'sketch' && (<>
+        <button className={'tb-btn' + (navAdvanced ? ' tb-on' : '')} aria-expanded={navAdvanced} onClick={() => setNavAdvanced(v => !v)}>外观／出图</button>
+        {navAdvanced && <div className="vp-nav-advanced" role="group" aria-label="外观与出图">
         <button className={'tb-btn' + (renderModeOn ? ' tb-on' : '')} title={tStatus('🌅 渲染模式（T783）：HDRI 环境反射 + 软阴影 + ACES 曝光 — 发布截图/展示用（金属玻璃质感真实）。再撳返回工作模式', lang)} onClick={() => useApp.getState().toggleRenderMode()}>🌅</button>
         <button className={'tb-btn' + (ssao ? ' tb-on' : '')} title={tStatus('🌑 环境光遮蔽 GTAO（S193）：缝隙 / 接触 / 内角 / 凹陷处加暗（接触阴影），立体感同真实感大升 — 发布截图 / 装配审视用。正交模式下唔生效。再撳关。', lang)} style={ssao && !cameraOrtho ? { background: '#3a3050', color: '#fff' } : undefined} disabled={cameraOrtho} onClick={() => useApp.getState().toggleSsao()}>🌑</button>
         {!cameraOrtho && <span title={tStatus('视野角 FOV（S193）：细 = 接近正交、透视失真小（产品出图）；大 = 广角夸张透视（戏剧感 / 局促空间）。默认 28°。', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
@@ -7644,6 +7647,7 @@ export default function Viewport() {
         </span>
         <button className="tb-btn" title={tStatus('🎬 转盘动画（T783）：录 6 秒 360° 环绕 WebM 视频自动下载 — 发 Printables / 社交平台', lang)} onClick={() => useApp.getState().setRecordReq('turntable')}>🎬</button>
         {compCountNav >= 2 && <button className="tb-btn" title={tStatus('💥 爆炸动画：录 4 秒爆炸开合 WebM 视频（装配说明 / 展示）', lang)} onClick={() => useApp.getState().setRecordReq('explode')}>💥</button>}
+        </div>}
         {(compCountNav >= 1 || !!bodyMesh) && (
           <div style={{ position: 'relative', marginLeft: 4 }}>
             {/* GM-X4 #13/#14/#15/#17/#19：选择过滤器面板 — 逐类型勾选 + 优先级 + 穿透 + Select-All + 套索 + By-Name/Size/Invert */}

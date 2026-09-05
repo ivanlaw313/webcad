@@ -1,0 +1,26 @@
+{
+  "document": "Untitled",
+  "saved": false,
+  "units": "Fusion internal centimeters; names describe millimeters",
+  "created": [
+    "Main Box 60x40x30mm",
+    "Overlap Cylinder R12x50mm",
+    "Touching Box 20mm",
+    "Separate Box 20mm",
+    "Loft Cone Body",
+    "Open Path Sketch",
+    "Sweep Guide Sketch"
+  ],
+  "componentFixture": {
+    "created": true,
+    "component": "Fixture Component",
+    "occurrence": "Fixture Component:1"
+  },
+  "counts": {
+    "rootBodies": 5,
+    "rootSketches": 8,
+    "constructionPlanes": 2,
+    "occurrences": 1,
+    "timelineGroups": 0
+  }
+}

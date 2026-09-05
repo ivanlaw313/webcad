@@ -1,0 +1,293 @@
+{
+  "document": {
+    "name": "Untitled",
+    "isSaved": false
+  },
+  "selectionCount": 0,
+  "design": {
+    "designType": 1,
+    "rootBodyCount": 5,
+    "rootSketchCount": 8,
+    "rootOccurrenceCount": 1,
+    "rootFeatureCount": 6,
+    "timelineCount": 19,
+    "timelineMarkerPosition": 19,
+    "bodies": [
+      {
+        "name": "Main Box 60x40x30mm",
+        "isSolid": true,
+        "isVisible": true,
+        "volumeCm3": 72.0,
+        "areaCm2": 108.0,
+        "minPointCm": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "maxPointCm": {
+          "x": 6.0,
+          "y": 4.0,
+          "z": 3.0
+        }
+      },
+      {
+        "name": "Overlap Cylinder R12x50mm",
+        "isSolid": true,
+        "isVisible": true,
+        "volumeCm3": 22.619467105845548,
+        "areaCm2": 46.746898685416134,
+        "minPointCm": {
+          "x": 1.7999999999999998,
+          "y": 0.7999999999999998,
+          "z": 0.0
+        },
+        "maxPointCm": {
+          "x": 4.2,
+          "y": 3.2,
+          "z": 5.0
+        }
+      },
+      {
+        "name": "Touching Box 20mm",
+        "isSolid": true,
+        "isVisible": true,
+        "volumeCm3": 8.0,
+        "areaCm2": 24.0,
+        "minPointCm": {
+          "x": 6.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "maxPointCm": {
+          "x": 8.0,
+          "y": 2.0,
+          "z": 2.0
+        }
+      },
+      {
+        "name": "Separate Box 20mm",
+        "isSolid": true,
+        "isVisible": true,
+        "volumeCm3": 40.0,
+        "areaCm2": 96.0,
+        "minPointCm": {
+          "x": 8.0,
+          "y": -1.0,
+          "z": -1.0
+        },
+        "maxPointCm": {
+          "x": 12.0,
+          "y": 3.0,
+          "z": 2.0
+        }
+      },
+      {
+        "name": "Loft Cone Body",
+        "isSolid": true,
+        "isVisible": true,
+        "volumeCm3": 11.906636157104804,
+        "areaCm2": 30.067042469514647,
+        "minPointCm": {
+          "x": 10.5,
+          "y": 3.5,
+          "z": 4.0
+        },
+        "maxPointCm": {
+          "x": 13.5,
+          "y": 6.5,
+          "z": 7.0
+        }
+      }
+    ],
+    "features": [
+      {
+        "name": "Main Box 60x40x30mm Extrude",
+        "objectType": "adsk::fusion::ExtrudeFeature",
+        "isSuppressed": false,
+        "healthState": 0,
+        "errorOrWarningMessage": ""
+      },
+      {
+        "name": "Overlap Cylinder R12x50mm Extrude",
+        "objectType": "adsk::fusion::ExtrudeFeature",
+        "isSuppressed": false,
+        "healthState": 0,
+        "errorOrWarningMessage": ""
+      },
+      {
+        "name": "Touching Box 20mm Extrude",
+        "objectType": "adsk::fusion::ExtrudeFeature",
+        "isSuppressed": false,
+        "healthState": 0,
+        "errorOrWarningMessage": ""
+      },
+      {
+        "name": "Separate Box 20mm Extrude",
+        "objectType": "adsk::fusion::ExtrudeFeature",
+        "isSuppressed": false,
+        "healthState": 0,
+        "errorOrWarningMessage": ""
+      },
+      {
+        "name": "Loft Cone Feature",
+        "objectType": "adsk::fusion::LoftFeature",
+        "isSuppressed": false,
+        "healthState": 0,
+        "errorOrWarningMessage": ""
+      },
+      {
+        "name": "Shell1",
+        "objectType": "adsk::fusion::ShellFeature",
+        "isSuppressed": false,
+        "healthState": 0,
+        "errorOrWarningMessage": "",
+        "shell": {
+          "insideThickness": {
+            "expression": null,
+            "valueCm": null
+          },
+          "outsideThickness": {
+            "expression": "10 mm",
+            "valueCm": 1.0
+          },
+          "shellType": 0
+        }
+      }
+    ],
+    "timeline": [
+      {
+        "index": 0,
+        "name": "Main Box 60x40x30mm Sketch",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Main Box 60x40x30mm Sketch",
+        "isGroup": false
+      },
+      {
+        "index": 1,
+        "name": "Main Box 60x40x30mm Extrude",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Main Box 60x40x30mm Extrude",
+        "isGroup": false
+      },
+      {
+        "index": 2,
+        "name": "Overlap Cylinder R12x50mm Sketch",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Overlap Cylinder R12x50mm Sketch",
+        "isGroup": false
+      },
+      {
+        "index": 3,
+        "name": "Overlap Cylinder R12x50mm Extrude",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Overlap Cylinder R12x50mm Extrude",
+        "isGroup": false
+      },
+      {
+        "index": 4,
+        "name": "Touching Box 20mm Sketch",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Touching Box 20mm Sketch",
+        "isGroup": false
+      },
+      {
+        "index": 5,
+        "name": "Touching Box 20mm Extrude",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Touching Box 20mm Extrude",
+        "isGroup": false
+      },
+      {
+        "index": 6,
+        "name": "Separate Box 20mm Sketch",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Separate Box 20mm Sketch",
+        "isGroup": false
+      },
+      {
+        "index": 7,
+        "name": "Separate Box 20mm Extrude",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Separate Box 20mm Extrude",
+        "isGroup": false
+      },
+      {
+        "index": 8,
+        "name": "Loft Plane Lower 40mm",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Loft Plane Lower 40mm",
+        "isGroup": false
+      },
+      {
+        "index": 9,
+        "name": "Loft Plane Upper 70mm",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Loft Plane Upper 70mm",
+        "isGroup": false
+      },
+      {
+        "index": 10,
+        "name": "Loft Lower Profile",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Loft Lower Profile",
+        "isGroup": false
+      },
+      {
+        "index": 11,
+        "name": "Loft Upper Profile",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Loft Upper Profile",
+        "isGroup": false
+      },
+      {
+        "index": 12,
+        "name": "Loft Cone Feature",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Loft Cone Feature",
+        "isGroup": false
+      },
+      {
+        "index": 13,
+        "name": "Open Path Sketch",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Open Path Sketch",
+        "isGroup": false
+      },
+      {
+        "index": 14,
+        "name": "Sweep Guide Sketch",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Sweep Guide Sketch",
+        "isGroup": false
+      },
+      {
+        "index": 15,
+        "name": " Fixture Component:1",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Fixture Component:1",
+        "isGroup": false
+      },
+      {
+        "index": 16,
+        "name": "Component Box Sketch",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Component Box Sketch",
+        "isGroup": false
+      },
+      {
+        "index": 17,
+        "name": "Component Box Extrude",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Component Box Extrude",
+        "isGroup": false
+      },
+      {
+        "index": 18,
+        "name": "Shell1",
+        "objectType": "adsk::fusion::TimelineObject",
+        "entity": "Shell1",
+        "isGroup": false
+      }
+    ]
+  }
+}

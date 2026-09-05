@@ -1,0 +1,140 @@
+﻿[
+    {
+        "commandId":  "Extrude",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\extrude.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\extrude-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "Revolve",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\revolve.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\revolve-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "Sweep",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\sweep.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\sweep-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "SolidLoft",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\solidloft.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\solidloft-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "FusionRibCommand",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionribcommand.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionribcommand-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "FusionWebCommand",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionwebcommand.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionwebcommand-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "EmbossCmd",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\embosscmd.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\embosscmd-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "FusionHoleCommand",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionholecommand.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionholecommand-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "FusionThreadCommand",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionthreadcommand.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionthreadcommand-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "PrimitiveBox",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivebox.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivebox-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "PrimitiveCylinder",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivecylinder.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivecylinder-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "PrimitiveSphere",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivesphere.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivesphere-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "PrimitiveTorus",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivetorus.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivetorus-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "PrimitiveCoil",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivecoil.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivecoil-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "PrimitivePipe",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivepipe.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\primitivepipe-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "PatternRectangular",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\patternrectangular.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\patternrectangular-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "PatternCircular",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\patterncircular.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\patterncircular-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "PatternOnPath",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\patternonpath.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\patternonpath-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "FusionPatternGeometricCommand",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionpatterngeometriccommand.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionpatterngeometriccommand-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "MirrorCommand",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\mirrorcommand.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\mirrorcommand-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "FusionSurfaceThickenCommand",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionsurfacethickencommand.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\fusionsurfacethickencommand-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "SurfaceSculpt",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\surfacesculpt.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\surfacesculpt-status.json",
+        "statusExists":  false
+    },
+    {
+        "commandId":  "JointOrigin",
+        "screenshot":  ".\\_fusion_captures\\20260715-221411-fast-probe\\jointorigin.png",
+        "status":  ".\\_fusion_captures\\20260715-221411-fast-probe\\jointorigin-status.json",
+        "statusExists":  false
+    }
+]

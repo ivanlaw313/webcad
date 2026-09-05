@@ -1,0 +1,17 @@
+{
+  "caseId": "OFFSET_PLANE_FACE",
+  "prepared": true,
+  "commandId": "ConstructionPlaneOffsetFromPlaneCommand",
+  "selectionCount": 1,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepFace",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/42RsW3DMBBFM4AXcHcLECDvTgLduEgQp3HtVqBIGnDjBEFSp88SWSM7xDN4ADduPICPFCxYskFEEnAf/x7/FyQNCFpuI9N0Cq0oA5ycGpaTl6/58en757Tf/R2mv0IgUA0RySOFVsXAXrH3Vllno2pnlVvH4FgjZVYyHkZX7tOQ6xgIqpmBNMTNL5LWpE2eSY6Nemzw2KiuDA3t6+c2xNCsnY/Ne/Sbt9gE9+HgcQGwACuISiHPIkV0D+ZNlj2CsOoQyh5elkMqVQ44Gqz7A4m7U0mlykLUgOMbjgqVXKosRN3/Gj3HhUosVRai/vkDztiRO0fYAgAA"
+      }
+    }
+  ],
+  "executeReturned": true
+}

@@ -1,0 +1,17 @@
+{
+  "caseId": "SHELL_FACE",
+  "prepared": true,
+  "commandId": "FusionShellBodyCommand",
+  "selectionCount": 1,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepFace",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/42RsW3DMBBFPUAWSHcLECDvTgLdpLBhu0mdVqBIGkgTG4Zdu/cSXsM7ODNkgDRpMkCOFCJEikFYEsCPf0//E6QGBC2vkdV0Cq0oA5ycGp4fVsenr/np/P3xfv18vAiBQDVEJI8UWhUDe8XeW2WdjaqdVm4dg2ONlFnJmIye3Kch1zEQVFMDaRE3bySNyXTbSnJs1GODx0b1x9DQbg5vIYZm7XxsdtG/bmMT3N7BbAmwBCuISiELkSK6D/Mkyx5BeOkQyh7+DodUqhxwNBj3PyTuRiWVKgtRA47/cVSo5FJlIer2afQcFyqxVFmIuvMCfgCZQDAX2AIAAA=="
+      }
+    }
+  ],
+  "executeReturned": true
+}

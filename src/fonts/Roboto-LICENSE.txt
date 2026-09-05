@@ -1,0 +1,11 @@
+Roboto-Regular.ttf — Roboto font, Copyright Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License").
+You may obtain a copy of the License at: http://www.apache.org/licenses/LICENSE-2.0
+
+Roboto is a vector (TrueType) font with proper glyph counters (interior holes),
+used here for parametric 3D text (replicad drawText, fontFamily 'cad'). Apache-2.0
+permits embedding, bundling, modification, and commercial use. No GPL/AGPL.
+
+Source: @expo-google-fonts/roboto (Roboto_400Regular.ttf), originally from Google Fonts.
+Replaces the previous kenpixel.ttf (a CC0 PIXEL font that has no counters, so
+letters like O/A/B/e/8 could not produce interior holes when extruded).

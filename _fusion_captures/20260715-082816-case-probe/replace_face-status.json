@@ -1,0 +1,25 @@
+{
+  "caseId": "REPLACE_FACE",
+  "prepared": true,
+  "commandId": "FusionReplaceFaceCommand",
+  "selectionCount": 2,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepFace",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/42RQQrCMBBFPYnMBQLpZJq2W6Fu3LlwW5o2ghsV0YsoIp7EK7j2COLGWzhJsdgqwbYwnz8v/5dWAoLkO+IZNQpTVhGQczTcztfHkfLnaT8dTg73CxMISoNOpDFkKmFjS4JsloosMShqXZFMjSI0mWc5Y9C7fJ8EX0egIM4icINd/yJurWTip5N9Q/cN6hvxhyHBrHbL2tbFvKxssbHVYm2LutyWMBoDjCFlRLiQnCWL5kG/8bJFEGYNoryH72WXcpUdTnXW7QHH/ahUocpAVIejL04FKilUGYj6/TVajgKVGKoMRP35A14yezlZ2AIAAA=="
+      }
+    },
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepFace",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/42RQQrCMBBFPYnMBQLJZBrbraAbdy7clqaN4EZF9CKKiCfxCq49grjxFk5SLLZKsC3k8+f1/5BIQJD8Kl5VrTBlpYC8Y+B2vj6ONHqe9tP+5HC/MIGgDZiBtJZsKVziSJDLUpENLIrKlCRTqwltFljO6HWe0Cch1BFoSDIFfmE3bMSPtaq35WXXMF2DukbyYUiwq92yclU+L0qXb1y5WLu8KrYFDMcAY0gZET5kxJJF/WGYBNkgCLMa0cHD97BN+coWp1vj5gfP/ajUscpIVIujL05HKilWGYn6fRoNR5FKjFVGov68gBei/mXD2AIAAA=="
+      }
+    }
+  ],
+  "executeReturned": true
+}

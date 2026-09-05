@@ -1,0 +1,122 @@
+﻿[
+    {
+        "commandId":  "CoordinateSystemCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\coordinatesystemcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\coordinatesystemcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPlaneOffsetFromPlaneCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplaneoffsetfromplanecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplaneoffsetfromplanecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPlaneAtAngleCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplaneatanglecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplaneatanglecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionTangentPlaneCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructiontangentplanecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructiontangentplanecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionMidPlaneCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionmidplanecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionmidplanecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPlanePerpendicularToPlaneCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplaneperpendiculartoplanecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplaneperpendiculartoplanecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPlaneFromTwoEdgesCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplanefromtwoedgescommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplanefromtwoedgescommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPlaneFromThreePointsCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplanefromthreepointscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplanefromthreepointscommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPlaneAlongPathCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplanealongpathcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionplanealongpathcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionAxisThroughCylinderCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionaxisthroughcylindercommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionaxisthroughcylindercommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionAxisNormalToFaceCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionaxisnormaltofacecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionaxisnormaltofacecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionAxisFromTwoPlanesCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionaxisfromtwoplanescommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionaxisfromtwoplanescommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionAxisThroughTwoPointsCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionaxisthroughtwopointscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionaxisthroughtwopointscommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionAxisThroughEdgeCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionaxisthroughedgecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionaxisthroughedgecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPointFromPointCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointfrompointcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointfrompointcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPointThroughTwoEdgesCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointthroughtwoedgescommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointthroughtwoedgescommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPointFromThreePlanesCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointfromthreeplanescommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointfromthreeplanescommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPointFromCircleOrSphereCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointfromcircleorspherecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointfromcircleorspherecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPointAtEdgeAndPlaneCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointatedgeandplanecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointatedgeandplanecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ConstructionPointAlongPathCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointalongpathcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080525-fast-probe\\constructionpointalongpathcommand-status.json",
+        "statusExists":  true
+    }
+]

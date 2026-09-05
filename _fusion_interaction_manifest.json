@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "groups": {
+    "SOLID_CORE": [
+      "EXTRUDE_PROFILE",
+      "LOFT_PROFILES",
+      "FILLET_EDGE",
+      "CHAMFER_EDGE",
+      "SHELL_FACE",
+      "PRESS_PULL_FACE",
+      "DRAFT_FACE",
+      "SCALE_BODY",
+      "COMBINE_OVERLAP",
+      "OFFSET_FACE",
+      "REPLACE_FACE",
+      "MOVE_BODY",
+      "ALIGN_BODIES",
+      "RECTANGULAR_PATTERN_BODY",
+      "MIRROR_BODY_PLANE",
+      "OFFSET_PLANE_FACE",
+      "MEASURE_TWO_EDGES",
+      "INTERFERENCE_OVERLAP",
+      "SECTION_OFFSET_PLANE",
+      "JOINT_ORIGIN_VERTEX"
+    ],
+    "ASSEMBLY_CORE": [
+      "JOINT_TWO_COMPONENT_VERTICES",
+      "AS_BUILT_TWO_COMPONENTS",
+      "RIGID_GROUP_TWO_COMPONENTS"
+    ]
+  }
+}

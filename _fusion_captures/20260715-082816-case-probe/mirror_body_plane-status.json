@@ -1,0 +1,25 @@
+{
+  "caseId": "MIRROR_BODY_PLANE",
+  "prepared": true,
+  "commandId": "MirrorCommand",
+  "selectionCount": 2,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepBody",
+        "name": "Separate Box 20mm",
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/zNQsFAwAEJDBSMgBrOMLIAsQwUTkIiZwqWZJ55MNXF9OX1SkJz35EfbgSqMFIzNFMzMDZKSTJKSdVNNU010TVItLXQtzZOMdFPMkk0MLJKMTYySLMFqgWYwoAGwfQYKYOtA1ptYGgEAvOF6nogAAAA="
+      }
+    },
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::ConstructionPlane",
+        "name": "YZ",
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/zNQsFAwAEJDBSMgBrOMLIAsQwUTkIiZwqWZJ55MNXF9OX1SkJz35EfbgSqMFIzNFMzMDZKSTJKSdVNNU010TVItLXQtzZOMdFPMkk0MLJKMTYySLMFqgWYwoAGwfQYKYOtA1puYAACuE69vhwAAAA=="
+      }
+    }
+  ],
+  "executeReturned": true
+}

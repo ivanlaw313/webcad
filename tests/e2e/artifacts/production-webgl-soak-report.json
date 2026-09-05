@@ -1,0 +1,140 @@
+{
+  "target": "https://cad.neuralworkshk.com/?ui-test=1",
+  "cycles": 20,
+  "soakMs": 30000,
+  "startedAt": "2026-07-22T13:27:36.436Z",
+  "results": [
+    {
+      "browser": "firefox",
+      "status": "passed",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "metrics": [
+        {
+          "now": 5460,
+          "resourceCount": 17,
+          "heap": null,
+          "canvases": [
+            {
+              "width": 1120,
+              "height": 649
+            }
+          ],
+          "featureCount": 0,
+          "isolated": "true"
+        },
+        {
+          "now": 7249,
+          "resourceCount": 18,
+          "heap": null,
+          "canvases": [
+            {
+              "width": 1120,
+              "height": 649
+            }
+          ],
+          "featureCount": 0,
+          "isolated": "true"
+        },
+        {
+          "now": 9194,
+          "resourceCount": 18,
+          "heap": null,
+          "canvases": [
+            {
+              "width": 1120,
+              "height": 649
+            }
+          ],
+          "featureCount": 1,
+          "isolated": "true"
+        },
+        {
+          "now": 11255,
+          "resourceCount": 18,
+          "heap": null,
+          "canvases": [
+            {
+              "width": 1120,
+              "height": 649
+            }
+          ],
+          "featureCount": 1,
+          "isolated": "true"
+        },
+        {
+          "now": 13002,
+          "resourceCount": 18,
+          "heap": null,
+          "canvases": [
+            {
+              "width": 1120,
+              "height": 649
+            }
+          ],
+          "featureCount": 1,
+          "isolated": "true"
+        },
+        {
+          "now": 23166,
+          "resourceCount": 18,
+          "heap": null,
+          "canvases": [
+            {
+              "width": 1120,
+              "height": 649
+            }
+          ],
+          "featureCount": 0,
+          "isolated": "true"
+        },
+        {
+          "now": 33181,
+          "resourceCount": 18,
+          "heap": null,
+          "canvases": [
+            {
+              "width": 1120,
+              "height": 649
+            }
+          ],
+          "featureCount": 0,
+          "isolated": "true"
+        },
+        {
+          "now": 43195,
+          "resourceCount": 18,
+          "heap": null,
+          "canvases": [
+            {
+              "width": 1120,
+              "height": 649
+            }
+          ],
+          "featureCount": 0,
+          "isolated": "true"
+        },
+        {
+          "now": 43198,
+          "resourceCount": 18,
+          "heap": null,
+          "canvases": [
+            {
+              "width": 1120,
+              "height": 649
+            }
+          ],
+          "featureCount": 0,
+          "isolated": "true"
+        }
+      ],
+      "ribbonLayout": {
+        "documentWidth": 1366,
+        "viewportWidth": 1366,
+        "ribbonWidth": 1366,
+        "controlOverlaps": 0
+      }
+    }
+  ],
+  "finishedAt": "2026-07-22T13:28:20.868Z"
+}

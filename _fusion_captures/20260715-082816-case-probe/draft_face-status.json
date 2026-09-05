@@ -1,0 +1,17 @@
+{
+  "caseId": "DRAFT_FACE",
+  "prepared": true,
+  "commandId": "FusionDraftCommand",
+  "selectionCount": 1,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepFace",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/6WQQarCMBCGPYnMBQLJZBrbraCbt3PhtjRtBDf6EL3IezzEk3gF1x5B3HgLJ6miqVrBlwby88/X+SeRgCD5U3yqWmHKSgF5x8B+szv+0eC0/hl1v34PWyYQtAHTk9aSLYVLHAlyWSqynkVRmZJkajWhzQLLPTqNFfIkhDgCDUmmwB/s8k5CWat6rDBLw6CmYZoG3hkS7Hw1q1yVT4rS5QtXTr9dXhXLAvpDgCGkjAjfdcCSRb3xVvHi4o1rRMdFjCgfGXH6WpYPXFukfhLZ0uo5R9EP7yKp7ZYUXfefkRhBHz7s69HOHQ52T9gCAAA="
+      }
+    }
+  ],
+  "executeReturned": true
+}

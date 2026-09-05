@@ -1,0 +1,25 @@
+{
+  "caseId": "LOFT_PROFILES",
+  "prepared": true,
+  "commandId": "SolidLoft",
+  "selectionCount": 2,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::Profile",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/zNQMDZSMFAwUjA0U7g088STqSauL6dPCpLznvxoO1DcUMFYwdTYFMwCqgHSQJaRBZBlqGCCU5eRgrGZgpm5QVKSSVKybqppqomuSaqlha6leZKRbopZsomBRZKxiVGSJcxmBjQAts9AAWydkYEJxD4oBLvXAMw2AAARJHVJvgAAAA=="
+      }
+    },
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::Profile",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/zNQMDZSMFAwUjA0U7g088STqSauL6dPCpLznvxoO1DcUMFYwdTMDMwCqgHSQJaRBZBlqGCCU5eRgrGZgpm5QVKSSVKybqppqomuSaqlha6leZKRbopZsomBRZKxiVGSJcxmBjQAts9AAWydkYEJxD4oNDaFuAKkAgAWVt9YvgAAAA=="
+      }
+    }
+  ],
+  "executeReturned": true
+}

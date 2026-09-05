@@ -1,0 +1,68 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Environment, credentials and local AI/tool settings.  Keep the documented
+# template only; never commit runnable environment files or authentication.
+.env
+.env.*
+!.env.example
+.claude/
+.codex/
+.netrc
+auth.json
+credentials.json
+credentials.yaml
+credentials.yml
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+*.token
+*.credential
+secrets/
+credentials/
+# Legacy local deployment helper containing machine-only credentials.
+_deploy_webcad.py
+
+# Build and tool caches
+build/
+.vite/
+.cache/
+coverage/
+__pycache__/
+*.py[cod]
+*.tmp
+*.bak
+*.WORKING
+*~
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.tmp-fea/
+_occt-build/
+_kernel_backup_*/
+
+# Local recovery snapshots created before CAD kernel changes. These are deliberately
+# not source artifacts and can contain a complete working-tree diff.
+.codex-snapshots/

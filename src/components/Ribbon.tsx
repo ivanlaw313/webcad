@@ -1,0 +1,511 @@
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { useApp, MATERIALS, SAMPLE_LABELS, type SampleKind } from '../store'
+import { ToolIcon } from '../icons'
+import { WORKSPACE_TABS, WORKSPACES, SKETCH_PANELS, FORM_PANELS, type Tool } from '../ribbon'
+import { tLabel, tGroup, tTab } from '../i18n'   // T800：i18n ribbon 标签翻译；GM-W6D：组标题 + tab 翻译
+import { FASTENER_KIND_LABEL, FASTENER_SIZES, type FastenerKind, type FastenerSize } from '../cad/fasteners'
+import { TEXTURE_KEYS } from '../render/procTextures'
+import MaterialSwatchPicker from './MaterialSwatchPicker'   // 材质球视觉拣料
+
+// Standard metric fastener library picker: choose kind / size (/length for screws) → insert a real ISO-dim
+// solid as a new assembly component. Honest: simplified (plain shank, no helical thread) — see fasteners.ts.
+function FastenerPicker() {
+  const insertFastener = useApp((s) => s.insertFastener)
+  const lang = useApp((s) => s.lang)   // GM-W8 C3：EN 模式翻译按钮/标签
+  const [kind, setKind] = useState<FastenerKind>('capscrew')
+  const [size, setSize] = useState<FastenerSize>('M5')
+  const [len, setLen] = useState(16)
+  return (
+    <>
+      <select className="tb-mat" title="标准件类型（ISO 标准尺寸）" value={kind} onChange={(e) => setKind(e.target.value as FastenerKind)}>
+        {(Object.keys(FASTENER_KIND_LABEL) as FastenerKind[]).map((k) => <option key={k} value={k}>{FASTENER_KIND_LABEL[k]}</option>)}
+      </select>
+      <select className="tb-mat" title="公制规格" value={size} onChange={(e) => setSize(e.target.value as FastenerSize)}>
+        {FASTENER_SIZES.map((sz) => <option key={sz} value={sz}>{sz}</option>)}
+      </select>
+      {kind !== 'hexnut' && kind !== 'washer' && (
+        <label title={kind === 'dowel' ? '销长 mm' : '杆长 mm（头下）'} style={{ fontSize: 12 }}>{lang === 'en' ? 'Len' : '长'}<input type="number" step={2} min={3} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ width: 46 }} /></label>
+      )}
+      <button className="tb-btn tb-text" title="插入标准件到装配（ISO 尺寸真实体；简化＝光杆无螺牙，外形标准。可用「配合」对齐）" onClick={() => void insertFastener(kind, size, len)}>
+        <ToolIcon name="component" size={15} /> {lang === 'en' ? 'Insert Fastener' : '插入标准件'}
+      </button>
+    </>
+  )
+}
+
+// Fusion's Insert Fastener uses a single configuration surface rather than a chain of prompts.
+function FastenerDialog({ onClose }: { onClose: () => void }) {
+  const insertFastener = useApp((s) => s.insertFastener)
+  const lang = useApp((s) => s.lang)
+  const [kind, setKind] = useState<FastenerKind>('capscrew')
+  const [size, setSize] = useState<FastenerSize>('M5')
+  const [len, setLen] = useState(16)
+  const needsLength = kind !== 'hexnut' && kind !== 'washer'
+  const label = (zh: string, en: string) => lang === 'en' ? en : zh
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose() } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  const submit = async () => { await insertFastener(kind, size, needsLength ? Math.max(3, len || 16) : 16); onClose() }
+  return <div role="dialog" aria-modal="true" aria-label={label('插入紧固件', 'Insert Fastener')} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(20,28,38,.28)', display: 'grid', placeItems: 'center' }} onMouseDown={onClose}>
+    <section style={{ width: 392, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 10, boxShadow: '0 16px 48px rgba(0,0,0,.28)', padding: 18, color: '#263746' }} onMouseDown={(e) => e.stopPropagation()}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}><ToolIcon name="component" size={22} /><strong style={{ fontSize: 17 }}>{label('插入紧固件', 'Insert Fastener')}</strong><button type="button" aria-label={label('关闭', 'Close')} onClick={onClose} style={{ marginLeft: 'auto', border: 0, background: 'transparent', fontSize: 22, cursor: 'pointer', color: '#637484' }}>×</button></div>
+      <div style={{ display: 'grid', gap: 11, fontSize: 13 }}>
+        <label>{label('类型', 'Type')}<select aria-label={label('紧固件类型', 'Fastener type')} value={kind} onChange={(e) => setKind(e.target.value as FastenerKind)} style={{ display: 'block', width: '100%', marginTop: 4 }}>{(Object.keys(FASTENER_KIND_LABEL) as FastenerKind[]).map((k) => <option key={k} value={k}>{FASTENER_KIND_LABEL[k]}</option>)}</select></label>
+        <label>{label('规格', 'Size')}<select aria-label={label('紧固件规格', 'Fastener size')} value={size} onChange={(e) => setSize(e.target.value as FastenerSize)} style={{ display: 'block', width: '100%', marginTop: 4 }}>{FASTENER_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
+        {needsLength && <label>{label('长度（mm）', 'Length (mm)')}<input aria-label={label('紧固件长度', 'Fastener length')} type="number" min={3} step={1} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 4 }} /></label>}
+        <p style={{ margin: '1px 0 0', color: '#637484', lineHeight: 1.45 }}>{label('ISO 尺寸实体会作为独立组件插入；螺纹以简化光杆表示，并非 Autodesk 云端供应商库。', 'An ISO-dimension solid is inserted as an independent component. Threads are simplified shanks; this is not an Autodesk cloud supplier library.')}</p>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 17 }}><button type="button" onClick={onClose}>{label('取消', 'Cancel')}</button><button type="button" onClick={() => void submit()} style={{ background: '#078acb', border: 0, borderRadius: 5, padding: '7px 15px', color: '#fff', fontWeight: 700 }}>{label('插入', 'Insert')}</button></div>
+    </section>
+  </div>
+}
+
+// Commands still clickable while a sketch is open (mirrors runCommand's gate, so the ribbon's greyed-out
+// state EXACTLY matches what runCommand allows — Fusion: in Sketch the SOLID modeling commands are disabled).
+const SKETCH_OK_CMDS = new Set(['sketch', 'csketch', 'select', 'measure', 'measureuni', 'measureedge', 'measureface', 'measureangle', 'properties', 'delete', 'appearance', 'extrude', 'revolve', 'sweep', 'pipe', 'loft', 'rib', 'pathpattern'])
+
+// Shared "is this command currently allowed" gate (Fusion modal behavior).
+// sk_* (contextual SKETCH tab tools) are exactly the sketch-mode commands, so they pass the sketch gate.
+function useCmdGate() {
+  const sketchMode = useApp((s) => s.mode === 'sketch' || s.mode === 'pickplane')
+  // Every CommandDialog is a real modal command: do not let a second ribbon
+  // command open behind it. Face fillet and Draft used to be omitted here.
+  const modal = useApp((s) => s.featDlg !== null || s.holeMode || s.shellMode || s.pushPullMode || s.edgeRoundPick !== null || s.faceFilletMode || s.draftPickMode > 0 || s.extrudeDlgOpen || s.sweepDlgOpen || s.loftDlgOpen)
+  return (id: string) => modal || (sketchMode && !SKETCH_OK_CMDS.has(id) && !id.startsWith('sk_'))
+}
+
+// Which sk_* tool id is currently the active freehand sketch tool (for Fusion-style pressed highlight).
+const SK_TOOL_OF_ID: Record<string, string> = {
+  sk_polyline: 'polyline', sk_rect: 'rectangle', sk_crect: 'crect', sk_circle: 'circle', sk_circle2p: 'circle2p', sk_circle3: 'circle3', sk_circle2t: 'circle2t', sk_circle3t: 'circle3t',
+  sk_arc: 'arc', sk_polygon: 'polygon', sk_spline: 'spline', sk_bspline: 'bspline', sk_slot: 'slot', sk_arcslot: 'arcslot', sk_rrect: 'rrect', sk_ellipse: 'ellipse', sk_earc: 'earc', sk_conic: 'conic',
+}
+
+// Quick icon in the ribbon strip — Fusion style: icon only (~26px), label lives in the tooltip,
+// the group's full command list lives in the "GROUP ▾" dropdown below.
+function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
+  const run = useApp((s) => s.runCommand)
+  const gate = useCmdGate()
+  const skTool = useApp((s) => s.sketchTool)
+  const inSketch = useApp((s) => s.mode === 'sketch')
+  const lang = useApp((s) => s.lang)
+  const off = gate(t.id)
+  const active = inSketch && SK_TOOL_OF_ID[t.id] === skTool
+  const [quickOpen, setQuickOpen] = useState(false)
+  const title = off ? `${t.label} — 请先完成或取消（ESC）当前操作 / 完成草图` : `${t.label}${t.shortcut ? ` (${t.shortcut})` : ''}${t.tip ? `\n${t.tip}` : ''}`
+  // A quick parent with children (阵列 ▸) runs its first child on direct click (Fusion: icon = default cmd).
+  const cmd = t.children?.length ? t.children[0] : t
+  // Sketch tools render a 2D text glyph (◯ ▭ ⊿ …) + their Chinese label below, so a non-coder can
+  // recognise 圆/矩形/折线 at a glance (the SVG icon set has no 2D-sketch shapes).
+  if (t.glyph) {
+    return (
+      <button
+        data-cmd={t.id}
+        className={'tool-btn sk' + (active ? ' active' : '')}
+        title={title}
+        aria-label={tLabel(t.label, lang)}
+        aria-pressed={active || undefined}
+        disabled={off}
+        style={off ? { opacity: 0.32, cursor: 'not-allowed' } : undefined}
+        onClick={() => { if (off) return; if (onRun) onRun(); else run(cmd.id, cmd.label) }}
+      >
+        <span className="sk-glyph">{t.glyph}</span>
+        <span className="sk-label">{tLabel(t.label, lang)}</span>
+      </button>
+    )
+  }
+  const mainButton = <button
+    data-cmd={t.id}
+    className={'tool-btn' + (active ? ' active' : '')}
+    title={title}
+    aria-label={tLabel(t.label, lang)}
+    aria-pressed={active || undefined}
+    disabled={off}
+    style={off ? { opacity: 0.32, cursor: 'not-allowed' } : undefined}
+    onClick={() => { if (off) return; if (onRun) onRun(); else run(cmd.id, cmd.label) }}
+  ><ToolIcon name={t.icon} size={26} /></button>
+  if (!t.quickChildren?.length) return mainButton
+  return <div className="quick-split-tool" style={{ position: 'relative', display: 'inline-flex', alignItems: 'stretch' }}>
+    {mainButton}
+    <button
+      type="button"
+      className="tool-btn-caret"
+      data-testid={`quick-tool-caret-${t.id}`}
+      aria-label={`${tLabel(t.label, lang)} ${lang === 'en' ? 'menu' : '下拉選單'}`}
+      disabled={off}
+      onClick={(e) => { e.stopPropagation(); if (!off) setQuickOpen((value) => !value) }}
+      style={{ width: 13, padding: 0, border: 0, background: 'transparent', cursor: off ? 'not-allowed' : 'pointer', color: 'inherit' }}
+    >▾</button>
+    {quickOpen && <>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 70 }} onClick={() => setQuickOpen(false)} />
+      <div className="panel-menu" data-testid={`quick-tool-menu-${t.id}`} style={{ position: 'absolute', top: '100%', left: 0, zIndex: 71, marginTop: 4, minWidth: 170 }}>
+        {t.quickChildren.map((child) => <div
+          key={child.id}
+          data-cmd={child.id}
+          className="panel-menu-item"
+          title={child.tip || child.label}
+          onClick={() => { setQuickOpen(false); run(child.id, child.label) }}
+        ><ToolIcon name={child.icon} size={16} />{tLabel(child.label, lang)}{child.shortcut && <span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>{child.shortcut}</span>}</div>)}
+      </div>
+    </>}
+  </div>
+}
+
+// One row inside a group dropdown menu (icon + label + right-aligned shortcut; optional ▸ submenu).
+function MenuRow({ t, off, onPick }: { t: Tool; off: boolean; onPick: (t: Tool) => void }) {
+  const [subOpen, setSubOpen] = useState(false)
+  const [subOpensLeft, setSubOpensLeft] = useState(false)
+  const subRef = useRef<HTMLDivElement>(null)
+  const lang = useApp((s) => s.lang)
+  const hasSub = !!t.children?.length
+  useLayoutEffect(() => {
+    if (!subOpen) return
+    const fit = () => {
+      const r = subRef.current?.getBoundingClientRect()
+      if (r) setSubOpensLeft(r.right > window.innerWidth - 8)
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  }, [subOpen])
+  return (
+    <div
+      data-cmd={t.id}
+      className={'panel-menu-item' + (off ? ' off' : '')}
+      title={off ? '请先完成或取消（ESC）当前操作 / 完成草图' : (t.tip || t.label)}
+      style={{ position: hasSub ? 'relative' : undefined }}
+      onMouseEnter={() => hasSub && setSubOpen(true)}
+      onMouseLeave={() => hasSub && setSubOpen(false)}
+      onClick={() => { if (off || hasSub) return; onPick(t) }}
+    >
+      {t.glyph ? <span style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{t.glyph}</span> : <ToolIcon name={t.icon} size={16} />}{tLabel(t.label, lang)}
+      <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        {t.shortcut && <span className="panel-menu-kbd">{t.shortcut}</span>}
+        {hasSub && <span style={{ fontSize: 10, color: '#888' }}>▸</span>}
+      </span>
+      {hasSub && subOpen && (
+        <div ref={subRef} className="panel-menu" data-testid="ribbon-submenu" style={{ position: 'absolute', left: subOpensLeft ? 'auto' : '100%', right: subOpensLeft ? '100%' : 'auto', top: -4, marginTop: 0 }}>
+          {t.children!.map((c) => (
+            <div key={c.id} data-cmd={c.id} className={'panel-menu-item' + (off ? ' off' : '')} title={c.tip || c.label}
+              onClick={(e) => { e.stopPropagation(); if (off) return; onPick(c) }}>
+              <ToolIcon name={c.icon} size={16} />{tLabel(c.label, lang)}
+              {c.shortcut && <span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>{c.shortcut}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Fusion-style group dropdown: click "CREATE ▾" → menu drops DOWN over the canvas listing ALL the
+// group's commands with section dividers, shortcuts, and ▸ submenus (Pattern ▸).
+function PanelFlyout({ name, tools, onCommand }: { name: string; tools: Tool[]; onCommand?: (t: Tool) => boolean }) {
+  const run = useApp((s) => s.runCommand)
+  const gate = useCmdGate()
+  const lang = useApp((s) => s.lang)
+  const [open, setOpen] = useState(false)
+  const [opensLeft, setOpensLeft] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (!open) return
+    const fit = () => {
+      const r = menuRef.current?.getBoundingClientRect()
+      if (r) setOpensLeft(r.right > window.innerWidth - 8)
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  }, [open])
+  const dispName = tGroup(name, lang)   // GM-W6D：zh 显示中文组名，en 保持英文
+  return (
+    <div className="panel-label" data-ribbon-group={name} style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setOpen((o) => !o)} title={lang === 'en' ? `Show all ${dispName} commands` : `展开 ${dispName} 全部命令`}>
+      {dispName} ▾
+      {open && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 70 }} onClick={(e) => { e.stopPropagation(); setOpen(false) }} />
+          <div ref={menuRef} className="panel-menu" data-testid="ribbon-group-menu" style={{ position: 'absolute', top: '100%', left: opensLeft ? 'auto' : 0, right: opensLeft ? 0 : 'auto', zIndex: 71, marginTop: 4 }} onClick={(e) => e.stopPropagation()}>
+            {tools.map((t, i) => (
+              <div key={t.id + i}>
+                {t.sep && <div className="panel-menu-divider" />}
+                <MenuRow t={t} off={gate(t.id)} onPick={(c) => { if (!onCommand?.(c)) run(c.id, c.label); setOpen(false) }} />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// Big left workspace selector block (Fusion's "DESIGN ▾" spanning the ribbon height).
+function WorkspaceSelector() {
+  const [open, setOpen] = useState(false)
+  const lang = useApp((s) => s.lang)   // GM-W6D：EN 模式显示 Design
+  return (
+    <div className="ws-big" onClick={() => setOpen((o) => !o)} title={lang === 'en' ? 'Workspace' : '工作区'}>
+      <span className="ws-big-label">{lang === 'en' ? 'Design' : '设计'}</span>
+      <span className="ws-big-caret">▾</span>
+      {open && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 70 }} onClick={(e) => { e.stopPropagation(); setOpen(false) }} />
+          <div className="panel-menu" style={{ position: 'absolute', top: '100%', left: 0, zIndex: 71, marginTop: 2 }}>
+            <div className="panel-menu-item" onClick={() => setOpen(false)}>✓ {lang === 'en' ? 'Design' : '设计'}</div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+export default function Ribbon() {
+  const activeTab = useApp((s) => s.activeTab)
+  const setActiveTab = useApp((s) => s.setActiveTab)
+  const inSketch = useApp((s) => s.mode === 'sketch')
+  const inForm = useApp((s) => s.formMode)
+  // P6 AI 教学：AI 调 explain_command 后 store.teachHi 变 → 切到该命令 tab（store 已做）+ 脉冲高亮个掣「指出畀用户睇」。
+  const teachHi = useApp((s) => s.teachHi)
+  useEffect(() => {
+    if (!teachHi) return
+    const t = setTimeout(() => {   // 等切 tab 后 DOM 重排完先揾掣；揾唔到（dropdown-only 命令/草图模式）→ 静默，AI 文字仍指路
+      const btn = document.querySelector(`[data-cmd="${teachHi.cmdId}"]`)
+      if (!btn) return
+      btn.classList.add('teach-pulse')
+      btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+      setTimeout(() => btn.classList.remove('teach-pulse'), 2400)
+    }, 90)
+    return () => clearTimeout(t)
+  }, [teachHi])
+  const [ribbonCollapsed, setRibbonCollapsed] = useState(false)   // Fusion：双击标签收起工具行（净留标签），腾画面空间
+  const [showLib, setShowLib] = useState(false)                   // 顶栏「模板/材料/螺丝」收埋入 📦 弹出，令顶栏干净似 Fusion
+  const [showFastenerDialog, setShowFastenerDialog] = useState(false)
+  const lang = useApp((s) => s.lang)   // T800：i18n 语言切换
+  const en = lang === 'en'   // GM-W8 C3：EN 模式短标签翻译
+  const finishSketch = useApp((s) => s.finishSketch)
+  const finishForm = useApp((s) => s.finishForm)
+  const exportStl = useApp((s) => s.exportStl)
+  const exportStep = useApp((s) => s.exportStep)
+  const exportAssemblyStl = useApp((s) => s.exportAssemblyStl)
+  const exportGLB = useApp((s) => s.exportGLB)
+  const saveProject = useApp((s) => s.saveProject)
+  const openProject = useApp((s) => s.openProject)
+  const requestFit = useApp((s) => s.requestFit)
+  const reset = useApp((s) => s.reset)
+  const loadSample = useApp((s) => s.loadSample)
+  const [sampleKind, setSampleKind] = useState<SampleKind>('plate')
+  const [fileMenu, setFileMenu] = useState(false)
+  const bodyColor = useApp((s) => s.bodyColor)
+  const setBodyColor = useApp((s) => s.setBodyColor)
+  const setMaterialPreset = useApp((s) => s.setMaterialPreset)
+  const material = useApp((s) => s.material)
+  const setBodyTexture = useApp((s) => s.setBodyTexture)
+  const generateDrawing = useApp((s) => s.generateDrawing)
+  const toggleHelp = useApp((s) => s.toggleHelp)
+  const setCmdPalette = useApp((s) => s.setCmdPalette)
+  const projectName = useApp((s) => s.projectName)
+  const setProjectName = useApp((s) => s.setProjectName)
+  const importStl = useApp((s) => s.importStl)
+  const importStep = useApp((s) => s.importStep)
+  const openObjDialog = useApp((s) => s.openObjDialog)
+  const openDxfDialog = useApp((s) => s.openDxfDialog)
+  const openSvgDialog = useApp((s) => s.openSvgDialog)
+  const pickFile = (accept: string, cb: (buf: ArrayBuffer, base: string) => void) => {
+    const inp = document.createElement('input')
+    inp.type = 'file'; inp.accept = accept
+    inp.onchange = async () => {
+      const f = inp.files?.[0]; if (!f) return
+      cb(await f.arrayBuffer(), f.name.replace(/\.[^.]+$/, ''))
+    }
+    inp.click()
+  }
+  const onImportStl = () => pickFile('.stl', (buf, base) => void importStl(buf, base))
+  const onImportStep = () => pickFile('.step,.stp', (buf, base) => void importStep(buf, base))
+  const import3MF = useApp((s) => s.import3MF)
+  const onImport3MF = () => pickFile('.3mf', (buf, base) => void import3MF(buf, base))
+  const exportObj = useApp((s) => s.exportObj)
+  const exportThreeMF = useApp((s) => s.exportThreeMF)
+  const exportSketchDxf = useApp((s) => s.exportSketchDxf)
+  const undo = useApp((s) => s.undo)
+  const redo = useApp((s) => s.redo)
+  const ws = WORKSPACES[activeTab] ?? WORKSPACES.SOLID
+
+  return (
+    <div className="ribbon-shell">
+      {/* top app bar — Fusion: file ▾ / save / undo / redo left, doc name centered, search/help right.
+          Everything that used to crowd this bar lives in the 文件▾ menu or the ribbon groups. */}
+      <div className="topbar">
+        <button className="tb-btn" title="适应窗口 / 主视图" onClick={() => requestFit()}><ToolIcon name="home" size={18} /></button>
+        <div className="tb-sep" />
+        <div style={{ position: 'relative' }}>
+          <button className="tb-btn tb-text" title="文件：新建 / 打开 / 保存 / 导入 / 导出 / 工程图" onClick={() => setFileMenu((o) => !o)}>
+            <ToolIcon name="menu" size={16} /> {lang === 'en' ? 'File' : '文件'} ▾
+          </button>
+          {fileMenu && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 90 }} onClick={() => setFileMenu(false)} />
+              <div className="panel-menu" style={{ position: 'absolute', top: '100%', left: 0, zIndex: 91, marginTop: 4 }} onClick={() => setFileMenu(false)}>
+                <div className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('新建空白文档？当前模型会清空（未保存的话先「保存」）。')) void reset() }}><ToolIcon name="newdoc" size={16} />{en ? 'New' : '新建'}</div>
+                <div className="panel-menu-item" onClick={() => openProject()}><ToolIcon name="insert" size={16} />{en ? 'Open…' : '打开…'}</div>
+                <div className="panel-menu-item" onClick={() => saveProject()}><ToolIcon name="save" size={16} />{en ? 'Save' : '保存'}<span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>Ctrl+S</span></div>
+                <div className="panel-menu-item" title="分享链接（T797）：整个项目压缩入一条 URL（gzip+base64,零服务器零隐私）→ 复制到剪贴板。发畀人/收藏即可重开。大模型超 1.9MB 改用「保存」传档" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{en ? '🔗 Share Link (copy URL)' : '🔗 分享链接（复制 URL）'}</div>
+                <div className="panel-menu-item" onClick={() => useApp.getState().setHistoryOpen(true)}><ToolIcon name="undo" size={16} />{en ? 'Version History…' : '版本历史…'}</div>
+                <div className="panel-menu-divider" />
+                <div className="panel-menu-item" onClick={onImportStl}><ToolIcon name="insert" size={16} />{en ? 'Import STL…' : '导入 STL…'}</div>
+                <div className="panel-menu-item" onClick={onImportStep}><ToolIcon name="insert" size={16} />{en ? 'Import STEP…' : '导入 STEP…'}</div>
+                <div className="panel-menu-item" title="保留 B-rep 入时间轴：导入后可继续 切割/圆角/抽壳/再导出 STEP（≤8MB；大文件用上面网格路线）" onClick={() => useApp.getState().openStepBrepDialog()}><ToolIcon name="insert" size={16} />{en ? 'Import STEP as Solid (B-rep)…' : '导入 STEP 为实体 (B-rep)…'}</div>
+                <div className="panel-menu-item" onClick={onImport3MF}><ToolIcon name="insert" size={16} />{en ? 'Import 3MF…' : '导入 3MF…'}</div>
+                <div className="panel-menu-item" onClick={openObjDialog}><ToolIcon name="insert" size={16} />{en ? 'Import OBJ…' : '导入 OBJ…'}</div>
+                <div className="panel-menu-item" onClick={openDxfDialog}><ToolIcon name="importdxf" size={16} />{en ? 'Import DXF…' : '导入 DXF…'}</div>
+                <div className="panel-menu-item" onClick={openSvgDialog}><ToolIcon name="importsvg" size={16} />{en ? 'Import SVG…' : '导入 SVG…'}</div>
+                <div className="panel-menu-divider" />
+                <div className="panel-menu-item" onClick={() => void exportStl()}><ToolIcon name="save" size={16} />{en ? 'Export STL' : '导出 STL'}</div>
+                <div className="panel-menu-item" onClick={() => void exportStep()}><ToolIcon name="save" size={16} />{en ? 'Export STEP' : '导出 STEP'}</div>
+                <div className="panel-menu-item" onClick={exportThreeMF}><ToolIcon name="save" size={16} />{en ? 'Export 3MF' : '导出 3MF'}</div>
+                <div className="panel-menu-item" onClick={exportObj}><ToolIcon name="save" size={16} />{en ? 'Export OBJ' : '导出 OBJ'}</div>
+                <div className="panel-menu-item" title={en ? 'Exports the current sketch profile as 2D DXF.' : '导出当前草图轮廓为 2D DXF。'} onClick={exportSketchDxf}><ToolIcon name="importdxf" size={16} />{en ? 'Export Sketch DXF' : '导出草图 DXF'}</div>
+                <div className="panel-menu-item" onClick={() => exportAssemblyStl()}><ToolIcon name="save" size={16} />{en ? 'Export Assembly STL' : '导出装配 STL'}</div>
+                <div className="panel-menu-item" title="真布尔合并单壳（manifold union）：把装配各件熔成一个水密壳再导出——慢，但打印更稳（冇内壁/重叠壳）。要各件水密；失败会诚实回退三角汤" onClick={() => exportAssemblyStl(true)}><ToolIcon name="save" size={16} />{en ? 'Export Assembly STL · Boolean Union (slow)' : '导出装配 STL · 真布尔合并单壳（慢）'}</div>
+                <div className="panel-menu-item" onClick={() => void exportGLB()}><ToolIcon name="save" size={16} />{en ? 'Export glTF/GLB' : '导出 glTF/GLB'}</div>
+                <div className="panel-menu-divider" />
+                <div className="panel-menu-item" title="导出当前 3D 视图为 PNG 截图（贴文档/邮件）" onClick={() => useApp.getState().runCommand('viewpng', '视图截图')}><ToolIcon name="save" size={16} />{en ? 'Export View PNG' : '导出视图 PNG'}</div>
+                <div className="panel-menu-item" onClick={() => void generateDrawing()}><ToolIcon name="drawing" size={16} />{en ? 'Drawing (3 Views)' : '工程图（三视图）'}</div>
+                <div className="panel-menu-item" title="装配三视图 + 气泡编号 + BOM 表（组件网格投影：轮廓+特征边）" onClick={() => void useApp.getState().generateAsmDrawing()}><ToolIcon name="drawing" size={16} />{en ? 'Assembly Drawing + BOM' : '装配工程图 + BOM'}</div>
+                <div className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('清空全部？当前模型（特征 + 组件）会清除——未保存的话请先「保存」。')) void reset() }}><ToolIcon name="trash" size={16} />{en ? 'Clear All' : '清空全部'}</div>
+              </div>
+            </>
+          )}
+        </div>
+        <button className="tb-btn" title="保存项目 (JSON)" onClick={() => saveProject()}><ToolIcon name="save" size={18} /></button>
+        <button className="tb-btn" title="撤销 (Ctrl+Z)" onClick={() => void undo()}><ToolIcon name="undo" size={18} /></button>
+        <button className="tb-btn" title="重做 (Ctrl+Y)" onClick={() => void redo()}><ToolIcon name="redo" size={18} /></button>
+        <div className="tb-spacer" />
+        <div className="doc-tab" title="文档名（用于保存档名 / 工程图标题栏）— 点击改名">
+          <span className="doc-cube" />
+          <input className="doc-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder={en ? 'Untitled' : '未命名'} />
+        </div>
+        <div className="tb-spacer" />
+        {/* GM-W2 2.1 对标 Fusion：草图模式下收起非情境嘅「模板/材料/螺丝/材质/纹理/颜色」库，只保留文件·保存·撤销·文档名·搜索·帮助·语言 */}
+        {!inSketch && !inForm && (<>
+        <button className="tb-btn tb-text" title="模板 / 材料 / 螺丝 库（收埋令顶栏干净似 Fusion；撳开拣）" onClick={() => setShowLib((v) => !v)}>📦 {showLib ? '▴' : '▾'}</button>
+        {showLib && (<>
+        <select className="tb-mat" title="选择起始模板" value={sampleKind} onChange={(e) => setSampleKind(e.target.value as SampleKind)}>
+          {(() => {
+            // Grouped template menu (was a flat 30+ list). Any kind not listed falls into 「其他」 so nothing is lost.
+            const cats: [string, SampleKind[]][] = [
+              ['基础件', ['plate', 'enclosure', 'flange', 'bracket', 'smbracket', 'washer', 'indexplate', 'angleiron', 'vent']],
+              ['机械传动', ['gear', 'gearpair', 'gearring', 'rackpinion', 'planetary', 'coupling', 'keyshaft', 'parkey', 'spring', 'bearing', 'shaft']],
+              ['紧固/标准件', ['hexnut', 'bolt', 'boltflange', 'standoff', 'bushing']],
+              ['maker/电子', ['nema17', 'knob', 'heatsink', 'tslot']],
+              ['曲面/管件', ['vase', 'elbow', 'bowl']],
+            ]
+            const seen = new Set<string>(cats.flatMap((c) => c[1]))
+            const other = (Object.keys(SAMPLE_LABELS) as SampleKind[]).filter((k) => !seen.has(k))
+            const groups = other.length ? [...cats, ['其他', other] as [string, SampleKind[]]] : cats
+            const OPTG_EN: Record<string, string> = { '基础件': 'Basic Parts', '机械传动': 'Transmission', '紧固/标准件': 'Fasteners / Standard', 'maker/电子': 'Maker / Electronics', '曲面/管件': 'Surface / Tubing', '其他': 'Other' }
+            return groups.map(([label, kinds]) => (
+              <optgroup key={label} label={en ? (OPTG_EN[label] ?? label) : label}>
+                {kinds.filter((k) => SAMPLE_LABELS[k]).map((k) => <option key={k} value={k}>{SAMPLE_LABELS[k]}</option>)}
+              </optgroup>
+            ))
+          })()}
+        </select>
+        <button className="tb-btn tb-text" title="载入选中的起始模板（载入后改 ƒx 参数即整模型联动）—— 新手可先玩这个" onClick={async () => {
+          // GM-W2 2.1 防数据丢失：有现存工作（特征/组件）先弹确认，避免 载入 静静清空未保存嘅项目
+          if (useApp.getState().features.length > 0 || useApp.getState().components.length > 0) {
+            const ok = await useApp.getState().appConfirm('载入模板会清空当前项目（包括未保存嘅工作）— 确定载入？')
+            if (!ok) return
+          }
+          void loadSample(sampleKind)
+        }}>
+          <ToolIcon name="component" size={15} /> {en ? 'Load' : '载入'}
+        </button>
+        <FastenerPicker />
+        <select className="tb-mat" title="材质预设" defaultValue="" onChange={(e) => { if (e.target.value) setMaterialPreset(e.target.value) }}>
+          <option value="">{en ? 'Material…' : '材质…'}</option>
+          {Object.keys(MATERIALS).map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+        </>)}
+        <MaterialSwatchPicker />{/* 材质球视觉拣料（Flux 生成 studio render 球）*/}
+        <select className="tb-mat" title="纹理" value={material.tex || ''} onChange={(e) => setBodyTexture(e.target.value)}>
+          {Object.entries(TEXTURE_KEYS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+        </select>
+        {/* Keep a visible label beside the native colour well.  A bare 28px input
+            looked like a non-interactive decoration and was especially easy to
+            miss on the light CAD chrome.  onInput gives immediate feedback while
+            dragging in browsers that delay change until the picker closes. */}
+        <label className="tb-color-control" title="外观颜色：点击色块选择颜色，立即套用到当前实体">
+          <span>{en ? 'Color' : '颜色'}</span>
+          <input className="tb-color" type="color" aria-label={en ? 'Body colour' : '实体颜色'} value={bodyColor}
+            onInput={(e) => setBodyColor(e.currentTarget.value)}
+            onChange={(e) => setBodyColor(e.target.value)} />
+        </label>
+        </>)}{/* GM-W2 2.1 草图库隐藏结束 */}
+        <button className="tb-btn" title="搜索命令（按 / 键）—— 打字搵任何工具，例如 齿轮 / 倒角 / 导出" onClick={() => setCmdPalette(true)}>🔍</button>
+        <button className="tb-btn" title="帮助 / 快捷键 (F1)" onClick={() => toggleHelp()} style={{ fontWeight: 700, color: '#2a7aa8' }}>?</button>
+        <div className="tb-user">U</div>
+      </div>
+
+      {/* ribbon — Fusion layout: big workspace selector on the left, tabs row + quick-icon groups on the right.
+          Entering a sketch APPENDS an active contextual 草图 tab (Fusion SKETCH/FORM pattern) whose panels are
+          the sketch tools, with a green ✓完成草图 pinned at the far right. */}
+      <div className="ribbon" style={{ display: 'flex', alignItems: 'stretch' }}>
+        <WorkspaceSelector />
+        <div className="ribbon-main">
+          <div className="ribbon-tabs">
+            {WORKSPACE_TABS.map((tab) => (
+              <div
+                key={tab}
+                className={'ribbon-tab' + (!inSketch && !inForm && tab === activeTab ? ' active' : '')}
+                style={(inSketch || inForm) ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
+                title="单击切换 · 双击收起/展开工具行（腾画面空间，对标 Fusion）"
+                onClick={() => { setActiveTab(tab); if (ribbonCollapsed) setRibbonCollapsed(false) }}
+                onDoubleClick={() => setRibbonCollapsed((c) => !c)}
+              >
+                {tTab(tab, lang)}
+              </div>
+            ))}
+            {inSketch && <div className="ribbon-tab ctx active">{useApp.getState().lang === 'en' ? 'Sketch' : '草图'}</div>}
+            {inForm && <div className="ribbon-tab ctx active">FORM</div>}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: 6 }} title="界面语言 / UI language（T800：ribbon + 导航；状态消息 v1 仍中文）">
+              {!inSketch && !inForm && <button className="ribbon-tab" title={ribbonCollapsed ? '展开工具行' : '收起工具行（净留标签，腾画面）'} onClick={() => setRibbonCollapsed((c) => !c)} style={{ fontSize: 12, opacity: 0.7 }}>{ribbonCollapsed ? '▾' : '▴'}</button>}
+              <button className="ribbon-tab" style={{ fontWeight: lang === 'zh' ? 700 : 400, opacity: lang === 'zh' ? 1 : 0.5 }} onClick={() => useApp.getState().setLang('zh')}>中</button>
+              <button className="ribbon-tab" style={{ fontWeight: lang === 'en' ? 700 : 400, opacity: lang === 'en' ? 1 : 0.5 }} onClick={() => useApp.getState().setLang('en')}>EN</button>
+            </div>
+          </div>
+
+          {(inSketch || inForm || !ribbonCollapsed) && <div className="ribbon-panels">
+            {(inSketch ? SKETCH_PANELS : inForm ? FORM_PANELS : ws.panels).map((p) => {
+              // Fusion strip: only the marked quick tools render inline; everything stays in the ▾ dropdown.
+              const quicks = p.tools.some((t) => t.quick) ? p.tools.filter((t) => t.quick) : p.tools.slice(0, 5)
+              return (
+                <div className="panel" key={p.name}>
+                  <div style={{ display: 'flex', flex: 1 }}>
+                    <div className="panel-tools">
+                      {quicks.map((t) => <ToolButton key={t.id} t={t} onRun={t.id === 'insertfastener' ? () => setShowFastenerDialog(true) : undefined} />)}
+                    </div>
+                    <div className="panel-divider" />
+                  </div>
+                  <PanelFlyout name={p.name} tools={p.tools} onCommand={(t) => { if (t.id !== 'insertfastener') return false; setShowFastenerDialog(true); return true }} />
+                </div>
+              )
+            })}
+            {inSketch && (
+              <button data-cmd="finishsketch" className="finish-sketch" title={lang === 'en' ? 'Finish the sketch and return to the modeling environment (Fusion: FINISH SKETCH)' : '完成草图，返回实体环境（Fusion: FINISH SKETCH）'} onClick={() => finishSketch()}>{/* GM-W6 E：教学指针锚点 */}
+                <span className="finish-check">✓</span>
+                <span>{lang === 'en' ? 'Finish Sketch' : '完成草图'}</span>
+              </button>
+            )}
+            {inForm && (
+              <button data-cmd="finishform" className="finish-sketch" title="Finish Form and return to SOLID" onClick={() => void finishForm()}>
+                <span className="finish-check">✓</span>
+                <span>Finish Form</span>
+              </button>
+            )}
+          </div>}
+        </div>
+      </div>
+      {showFastenerDialog && <FastenerDialog onClose={() => setShowFastenerDialog(false)} />}
+    </div>
+  )
+}

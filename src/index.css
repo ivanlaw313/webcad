@@ -1,0 +1,692 @@
+:root {
+  --chrome:      #ECECEC;
+  --chrome-2:    #F5F5F5;
+  --panel:       #FBFBFB;
+  --border:      #C7C7C7;
+  --border-soft: #E0E0E0;
+  --text:        #2B2B2B;
+  --text-dim:    #6E6E6E;
+  --accent:      #0696D7;   /* Autodesk-ish blue */
+  --hover:       #E6F2FB;
+  --hover-bd:    #9CD2EE;
+  --sel:         #CDE8F7;
+
+  font-family: "Segoe UI", Roboto, system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* GM-X2 #12：深色主题 —— Preferences「主题」偏好写 data-theme（dark/light）；'auto' 清属性交系统 media query。
+   remap 核心 CSS 变量 + 最显眼嘅硬编码白底面板（panel-menu / cmd-palette / modal / 输入框）。诚实：部分深层
+   硬编码色（个别 overlay/badge）未全覆盖，属渐进覆盖。 */
+:root[data-theme="dark"] {
+  --chrome: #23272d; --chrome-2: #2b3037; --panel: #262b31; --border: #3a4048; --border-soft: #333a42;
+  --text: #d7dde3; --text-dim: #97a1ab; --accent: #3aa0e0; --hover: #2f3944; --hover-bd: #3a5064; --sel: #274b63;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --chrome: #23272d; --chrome-2: #2b3037; --panel: #262b31; --border: #3a4048; --border-soft: #333a42;
+    --text: #d7dde3; --text-dim: #97a1ab; --accent: #3aa0e0; --hover: #2f3944; --hover-bd: #3a5064; --sel: #274b63;
+  }
+}
+:root[data-theme="dark"] .panel-menu, :root[data-theme="dark"] .cmd-palette { background: #262b31; border-color: #3a4048; color: var(--text); }
+:root[data-theme="dark"] .panel-menu-item { color: #cdd4db; }
+:root[data-theme="dark"] .panel-menu-divider { background: #3a4048; }
+:root[data-theme="dark"] .modal-backdrop { background: rgba(0,0,0,.5); }
+:root[data-theme="dark"] input, :root[data-theme="dark"] select { background: #2b3037; color: #d7dde3; border-color: #3a4048; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .panel-menu, :root:not([data-theme]) .cmd-palette { background: #262b31; border-color: #3a4048; color: var(--text); }
+  :root:not([data-theme]) .panel-menu-item { color: #cdd4db; }
+  :root:not([data-theme]) .modal-backdrop { background: rgba(0,0,0,.5); }
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { overflow: hidden; background: var(--chrome); user-select: none; }
+button { font-family: inherit; }
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* The app header is a grid item.  Without an explicit min-width it adopts the
+   min-content width of its tool rows, making the whole CAD document wider than
+   a normal laptop viewport.  Keep each row inside the viewport and let its
+   own horizontal scroller expose overflow instead of clipping/overlapping it. */
+.ribbon-shell { min-width: 0; overflow: hidden; }
+
+/* Block pointer input while the asynchronous document restore is still running. */
+.startup-restore-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 50000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 249, 252, .88);
+  color: #176b95;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  pointer-events: auto;
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  display: flex; align-items: center; gap: 4px;
+  height: 32px; padding: 0 8px;
+  background: var(--chrome);
+  border-bottom: 1px solid var(--border-soft);
+  min-width: 0; overflow-x: auto; overflow-y: hidden;
+  overscroll-behavior-x: contain; scrollbar-width: thin;
+}
+.tb-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 24px; padding: 0 4px;
+  border: 1px solid transparent; border-radius: 3px;
+  color: #555; background: transparent; cursor: pointer; font-size: 14px;
+}
+.tb-btn:hover { background: var(--hover); border-color: var(--hover-bd); }
+.tb-sep { width: 1px; height: 18px; background: var(--border-soft); margin: 0 4px; }
+/* GM-FP2 #29：尺寸右键上下文菜单项 hover 反馈 */
+.dim-menu-item:hover { background: #eef4fb; }
+.tb-spacer { flex: 1; }
+.doc-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 24px; padding: 0 10px; border: 1px solid var(--border-soft);
+  border-bottom: none; border-radius: 4px 4px 0 0; background: #fff;
+  color: #333; font-size: 12px;
+}
+.doc-tab .dot { width: 7px; height: 7px; border-radius: 50%; background: #f0a020; }
+.doc-cube { width: 11px; height: 11px; border-radius: 2px; background: linear-gradient(135deg, #ffb74d, #f0a020); border: 1px solid #e09010; }
+.doc-name { border: none; background: transparent; font-size: 12px; color: #333; width: 120px; text-align: center; outline: none; }
+.doc-name:hover, .doc-name:focus { background: #f5f8fb; border-radius: 3px; }
+.tb-user {
+  width: 22px; height: 22px; border-radius: 50%; background: #f0a020; color: #fff;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 11px;
+}
+
+/* ---------- ribbon (Fusion: big workspace block | tabs row + quick-icon groups w/ GROUP ▾ dropdowns) ---------- */
+.ribbon { background: var(--chrome-2); border-bottom: 1px solid var(--border); min-width: 0; }
+.ribbon-main { flex: 1; min-width: 0; overflow: hidden; }
+.ribbon-tabs {
+  display: flex; align-items: stretch; height: 26px; padding: 0 6px; gap: 2px;
+  border-bottom: 1px solid var(--border-soft); overflow-x: auto; overflow-y: hidden;
+  overscroll-behavior-x: contain; scrollbar-width: thin;
+}
+.ribbon-tabs::-webkit-scrollbar { height: 4px; }
+.ws-big {
+  position: relative; display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 92px; margin: 6px; border: 1px solid var(--border);
+  border-radius: 4px; background: #fff; cursor: pointer;
+  font-weight: 600; font-size: 13px; color: #333;
+}
+.ws-big:hover { background: var(--hover); }
+.ws-big-caret { font-size: 10px; color: #777; }
+.ribbon-tab {
+  display: inline-flex; align-items: center; flex: 0 0 auto; white-space: nowrap; padding: 0 11px; cursor: pointer;
+  color: #555; font-size: 12px; border-bottom: 2px solid transparent;
+}
+.ribbon-tab:hover { color: #222; }
+.ribbon-tab.active { color: #222; border-bottom-color: #333; font-weight: 700; }
+
+.ribbon-panels {
+  display: flex; align-items: stretch; height: 60px; padding: 3px 4px 0;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  scrollbar-gutter: stable both-edges; scrollbar-width: thin;
+}
+.ribbon-panels::-webkit-scrollbar { height: 5px; }
+.panel { display: flex; flex: 0 0 auto; flex-direction: column; padding: 0 2px; min-width: max-content; }
+.panel-tools {
+  display: flex; align-items: center; gap: 1px; padding: 0 2px; height: 40px;
+}
+.panel-label {
+  text-align: center; color: var(--text-dim); font-size: 10px; padding-top: 1px;
+  white-space: nowrap;
+}
+.panel-label:hover { color: #333; }
+.panel-divider { width: 1px; background: var(--border-soft); margin: 2px 4px 2px; }
+.ribbon-panels > .panel:last-of-type .panel-divider { display: none; }
+
+.tool-btn {
+  display: flex; align-items: center; justify-content: center;
+  flex: 0 0 34px; width: 34px; height: 36px; padding: 0;
+  border: 1px solid transparent; border-radius: 3px; background: transparent;
+  color: #3b6e8f; cursor: pointer;
+}
+/* A 1366px laptop still needs every SOLID group name visible.  Fusion's
+   ribbon is intentionally dense at this width; compact only the generic 3D
+   buttons (Sketch owns its larger labelled buttons below) instead of hiding
+   groups behind an un-signalled horizontal crop. */
+@media (min-width: 821px) and (max-width: 1440px) {
+  .ribbon-panels { padding-inline: 2px; }
+  .panel { padding-inline: 1px; }
+  .panel-tools { gap: 0; padding-inline: 1px; }
+  .tool-btn { flex-basis: 30px; width: 30px; }
+}
+.tool-btn:hover { background: var(--hover); border-color: var(--hover-bd); }
+.tool-btn:active { background: #d4e9f7; }
+.tool-btn:focus-visible { outline: 2px solid #1572c4; outline-offset: 1px; background: #eef6fc; }
+.tool-btn svg { display: block; }
+
+/* The visual-style picker used to be an unlabeled tiny icon in the navigation
+   bar.  Keep its CAD-compact form, but make the display workflow discoverable. */
+.vp-display-menu { width: auto; min-width: 58px; gap: 2px; padding: 0 5px; }
+.vp-display-label { font-size: 10px; line-height: 1; white-space: nowrap; }
+
+/* Group dropdown menu (Fusion: drops DOWN over the canvas; icon + label + shortcut column + dividers + ▸ submenus) */
+.panel-menu {
+  min-width: 188px; background: #fff; border: 1px solid #c4ccd4; border-radius: 6px;
+  box-sizing: border-box; max-width: calc(100vw - 16px); box-shadow: 0 6px 24px rgba(0,0,0,.18); padding: 4px;
+  max-height: min(480px, calc(100vh - 110px)); overflow-y: auto; overflow-x: visible; overscroll-behavior: contain;
+}
+.panel-menu-item {
+  display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 4px;
+  cursor: pointer; white-space: nowrap; font-size: 13px; color: #2a2f35;
+}
+button.panel-menu-item { width: 100%; border: 0; background: transparent; text-align: left; font: inherit; }
+.panel-menu-item:hover { background: var(--hover); }
+.vp-appearance-color { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 10px 4px; color: #2a3b49; font-size: 12px; }
+.vp-appearance-color label { font-weight: 600; }
+.vp-appearance-color input[type=color] { width: 42px; height: 24px; padding: 1px; border: 1px solid #637b8d; border-radius: 4px; background: #fff; cursor: pointer; }
+.vp-contrast-swatches { display: flex; align-items: center; gap: 6px; padding: 2px 10px 7px; }
+.vp-contrast-swatch { width: 24px; height: 24px; border: 2px solid #fff; outline: 1px solid #8595a2; border-radius: 4px; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.vp-contrast-swatch:hover, .vp-contrast-swatch.selected { outline: 2px solid #1572c4; }
+.vp-contrast-reset { margin-left: 2px; border: 0; border-radius: 4px; padding: 4px 6px; background: #e7f1f8; color: #205f8f; font: 600 11px inherit; cursor: pointer; }
+.vp-contrast-reset:hover { background: #d4e8f6; }
+.panel-menu-item.off { color: #aab2ba; cursor: not-allowed; opacity: 0.65; }
+.panel-menu-item.off:hover { background: transparent; }
+.panel-menu-kbd { opacity: 0.5; font-size: 11px; }
+.panel-menu-divider { height: 1px; background: #e6e9ee; margin: 4px 6px; }
+/* GM-X2：分组小标题（显示设置 / 网格 / 对象可见性 分节头） */
+.panel-menu-head { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #8a97a2; padding: 5px 10px 2px; }
+/* GM-X2 #12/#13：模态遮罩（应用偏好 / 文档单位对话框） */
+.modal-backdrop { position: fixed; inset: 0; z-index: 300; background: rgba(20,26,32,.34); display: flex; align-items: center; justify-content: center; }
+
+/* Contextual SKETCH tab + FINISH SKETCH (Fusion pattern: appended active tab + green check at far right) */
+.ribbon-tab.ctx { background: #fdebd0; border-bottom-color: #333; color: #222; font-weight: 700; border-radius: 3px 3px 0 0; }
+.finish-sketch {
+  margin-left: auto; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  /* Keep the checkmark + caption inside the 60px contextual ribbon strip;
+     the former 58px card plus strip padding/scrollbar could clip its caption. */
+  min-width: 82px; height: 50px; padding: 3px 9px; margin-right: 8px;
+  border: 1px solid transparent; border-radius: 4px; background: transparent; cursor: pointer;
+  color: #2e7d32; font-size: 12px; font-weight: 600;
+}
+.finish-sketch:hover { background: #e8f5e9; border-color: #a5d6a7; }
+.finish-check {
+  width: 26px; height: 26px; border-radius: 50%; background: #43a047; color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900;
+}
+.tool-btn.active { background: #d4e9f7; border-color: #7fb8dc; }
+/* P6 AI 教学：AI 指出命令时脉冲高亮个掣（3 下呼吸光环 + 微放大），令用户一眼睇到系边个掣。 */
+.tool-btn.teach-pulse { animation: teachPulse 0.8s ease-in-out 3; position: relative; z-index: 5; }
+@keyframes teachPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 149, 0, 0); background: var(--hover, #eef6fc); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 149, 0, 0.55), 0 0 12px 3px rgba(255, 149, 0, 0.45); background: #fff3e0; transform: scale(1.12); }
+}
+/* P6 v1.1 图像指引：AI 教学高亮命令时，个真掣下方浮弹跳箭头 + 命令名 pill 指住佢。pointer-events:none 绝不阻掣。 */
+.teach-pointer { position: fixed; transform: translateX(-50%); z-index: 25000; pointer-events: none; display: flex; flex-direction: column; align-items: center; animation: teachFade 0.18s ease-out; }
+.teach-arrow { width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 11px solid #ff9500; filter: drop-shadow(0 -1px 2px rgba(0,0,0,0.3)); animation: teachBounce 0.7s ease-in-out infinite; }
+.teach-pill { margin-top: 2px; background: #ff9500; color: #fff; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 11px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.28); }
+@keyframes teachBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes teachFade { from { opacity: 0; } to { opacity: 1; } }
+/* Sketch quick tools: 2D glyph + Chinese label (recognisable 圆/矩形/折线 for non-coders) */
+.tool-btn.sk { width: auto; min-width: 52px; height: 40px; flex-basis: auto; padding: 2px 7px; flex-direction: column; gap: 2px; overflow: hidden; }
+.sk-glyph { font-size: 19px; line-height: 1; color: #2a5d80; flex: 0 0 auto; }
+.sk-label { font-size: 10.5px; color: #4a545e; line-height: 1.15; white-space: nowrap; flex: 0 0 auto; }
+
+/* Fusion right-side command palette (header icon+title+✕, rows body, blue OK footer) */
+/* 命令对话框数字栏：ew-resize 光标暗示「可左右拖改值」（Fusion 式 scrub），仍可点入打字 */
+.cmd-palette-body input[type=number] { cursor: ew-resize; }
+.cmd-palette {
+  position: fixed; top: min(150px, calc(100vh - 180px)); right: 20px; width: 256px;
+  max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); z-index: 200;
+  background: #fff; border: 1px solid #c7d0d8; border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.20); font-size: 13px;
+}
+.cmd-palette-head {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+  border-bottom: 1px solid var(--border-soft); font-size: 14px;
+}
+.cmd-palette-x { margin-left: auto; cursor: pointer; color: #8a939c; padding: 0 4px; border: 0; background: transparent; line-height: 1; }
+.cmd-palette-x:hover { color: #d6694e; }
+.cmd-palette-x:focus-visible, .cmd-ok:focus-visible, .cmd-cancel:focus-visible { outline: 2px solid #1572c4; outline-offset: 2px; }
+.cmd-palette-body { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px; max-height: min(60vh, calc(100vh - 180px)); overflow-y: auto; }
+.cmd-palette-body label { display: flex; justify-content: space-between; align-items: center; gap: 6px; color: #4a545e; }
+.cmd-palette-foot { display: flex; gap: 6px; justify-content: flex-end; padding: 10px 12px; border-top: 1px solid var(--border-soft); }
+.cmd-ok { background: var(--accent); color: #fff; font-weight: 700; border: none; border-radius: 5px; padding: 6px 18px; cursor: pointer; }
+.cmd-ok:hover { filter: brightness(1.08); }
+.cmd-cancel { background: #f1f3f5; color: #444; border: 1px solid var(--border-soft); border-radius: 5px; padding: 6px 14px; cursor: pointer; }
+.cmd-ok:disabled { background: #9aa6af; cursor: default; filter: none; }
+.cmd-palette-summary { padding: 0 12px 8px; font-size: 11px; color: #8a939c; }
+/* GM-G4b：深色分析/属性浮卡共用 token（测量/拔模/斜度/截面/属性检查器）— 取代各处重复 ad-hoc 内联卡片 chrome。
+   刻意保留深色（分析色叠加喺模型上要够对比，非 command-dialog 浅色 palette 嘅漂移）。 */
+.info-card { background: #0f1b24; color: #eaf2f8; border: 1px solid #2a3a46; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.32); }
+.info-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.info-card-head span:first-child { font-weight: 700; }
+.info-card-x { cursor: pointer; color: #cc6666; font-weight: 700; }
+.tb-on { background: var(--sel) !important; border-color: var(--hover-bd) !important; }
+
+/* Fusion selection chip (已选 N ×): blue pill when picked, grey dashed hint pill when empty */
+.sel-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 11px; background: #d8eafa; border: 1px solid var(--hover-bd); color: #1572c4; font-weight: 600; font-size: 12px; white-space: nowrap; }
+.sel-chip-x { cursor: pointer; color: #5a8fb8; font-weight: 400; }
+.sel-chip-x:hover { color: #d6694e; }
+.sel-chip.empty { background: #f6f8fa; border: 1px dashed #c4ccd4; color: #8a939c; font-weight: 400; font-size: 11px; max-width: 158px; white-space: normal; text-align: right; line-height: 1.25; }
+
+/* Radial marking menu (Fusion right-click): 8 circular buttons at 45° steps + overflow list below */
+.mm-btn {
+  position: fixed; z-index: 61; width: 58px; height: 58px; margin: -29px 0 0 -29px;
+  border-radius: 50%; background: #fff; border: 1px solid #c4ccd4;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  cursor: pointer; color: #2a5d80; padding: 0;
+}
+.mm-btn:hover { background: var(--hover); border-color: var(--hover-bd); }
+/* GM-G4b：cursor 指向嘅扇区 — 方向高亮（flick 视觉预示，同 hover 一致外观 + 蓝光环） */
+.mm-btn.hot { background: var(--hover); border-color: var(--accent); box-shadow: 0 0 0 2px rgba(6,150,215,.30), 0 4px 14px rgba(0,0,0,.18); }
+.mm-btn.off { opacity: .38; cursor: default; }
+.mm-btn.off:hover { background: #fff; border-color: #c4ccd4; }
+.mm-glyph { font-size: 18px; line-height: 1; }
+.mm-label { font-size: 9.5px; color: #4a545e; line-height: 1.1; max-width: 52px; white-space: nowrap; overflow: hidden; }
+.mm-center { position: fixed; z-index: 61; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(6,150,215,.25); pointer-events: none; }
+
+/* ---------- main ---------- */
+.main { display: grid; grid-template-columns: clamp(208px, 18vw, 248px) minmax(0, 1fr); min-height: 0; }
+
+.browser {
+  background: var(--panel); border-right: 1px solid var(--border);
+  overflow: auto; font-size: 12.5px;
+}
+.browser-head {
+  display: flex; align-items: center; height: 26px; padding: 0 8px;
+  color: var(--text-dim); border-bottom: 1px solid var(--border-soft);
+  font-size: 11px; letter-spacing: .5px; position: sticky; top: 0; background: var(--panel);
+}
+.tree-row {
+  display: flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px;
+  white-space: nowrap; cursor: default; color: #333;
+}
+.tree-row:hover { background: #eef4f8; }
+.tree-row.sel { background: var(--sel); }
+.tw-toggle { width: 12px; display: inline-flex; justify-content: center; color: #888; cursor: pointer; }
+.tw-eye { width: 16px; color: #9a9a9a; display: inline-flex; cursor: pointer; font-size: 11px; }
+.tw-act { width: 16px; color: #b7b7b7; cursor: pointer; font-size: 11px; opacity: 0; transition: opacity .12s; text-align: center; }
+.tree-row:hover .tw-act { opacity: 1; }
+.tw-act:hover { color: var(--accent); }
+.tw-swatch { width: 15px; height: 15px; padding: 0; border: 1px solid var(--border-soft); border-radius: 3px; background: none; cursor: pointer; opacity: 0; transition: opacity .12s; }
+.tree-row:hover .tw-swatch, .tree-row.sel .tw-swatch { opacity: 1; }
+.tree-showall { color: #5a8fb8; cursor: pointer; font-size: 11.5px; }
+.tree-showall:hover { color: var(--accent); }
+.tree-rename { width: 110px; font-size: 12px; padding: 1px 4px; border: 1px solid var(--accent); border-radius: 3px; }
+.tw-ico { width: 16px; display: inline-flex; color: #6b86a3; }
+
+/* ---------- viewport ---------- */
+.viewport {
+  position: relative; min-width: 0;
+  background: radial-gradient(120% 130% at 50% 0%, #e9eef2 0%, #d4dde4 45%, #eef2f5 100%);
+}
+.viewport canvas { display: block; }
+.vp-toolbar {
+  position: absolute; left: 12px; top: 10px; display: flex; align-items: center; gap: 3px;
+  padding: 3px 6px; background: rgba(255,255,255,.85); border: 1px solid var(--border-soft);
+  border-radius: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.12);
+}
+.vp-toolbar input[type=range] { width: 90px; }
+.vp-navbar {
+  position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px; padding: 3px 6px; z-index: 80;
+  box-sizing: border-box; width: min(760px, calc(100vw - 36px)); max-width: calc(100vw - 36px);
+  overflow-x: auto; overflow-y: hidden; white-space: nowrap;
+  background: rgba(255,255,255,.85); border: 1px solid var(--border-soft); border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+}
+.vp-navbar::-webkit-scrollbar { height: 4px; }
+.vp-navbar { scrollbar-width: thin; scrollbar-color: rgba(82,105,120,.58) transparent; }
+/* A horizontal CAD navbar normally scrolls.  Its floating menus however must
+   escape that scroll clip; otherwise they look open but the WebGL canvas gets
+   the click at the menu's visible coordinates. */
+.vp-navbar.vp-navbar-menu-open { overflow: visible; }
+.vp-hud-dragged { transform: none !important; }
+.vp-hud-handle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 13px; min-height: 20px; color: #84919b; cursor: grab;
+  user-select: none; touch-action: none; letter-spacing: -2px; font-size: 14px;
+}
+.vp-hud-handle:active { cursor: grabbing; }
+.vp-hud-collapse {
+  width: 18px; height: 18px; padding: 0; border: 1px solid transparent;
+  border-radius: 4px; background: transparent; color: #647581; cursor: pointer;
+  line-height: 14px; font-size: 14px;
+}
+.vp-hud-collapse:hover { background: var(--hover); border-color: var(--border-soft); }
+.vp-hud-reset {
+  width: 18px; height: 18px; padding: 0; border: 1px solid transparent;
+  border-radius: 4px; background: transparent; color: #647581; cursor: pointer;
+  line-height: 14px; font-size: 13px;
+}
+.vp-hud-reset:hover { background: var(--hover); border-color: var(--border-soft); }
+.vp-navbar.vp-hud-collapsed, .vp-badge.vp-hud-collapsed, .vp-props.vp-hud-collapsed {
+  width: auto; max-width: none; height: 30px; min-height: 30px; overflow: hidden;
+  padding: 4px 6px; white-space: nowrap; font-size: 0;
+}
+.vp-navbar.vp-hud-collapsed > :not(.vp-hud-handle):not(.vp-hud-collapse) { display: none; }
+.vp-badge.vp-hud-collapsed { display: inline-flex; }
+.vp-props.vp-hud-collapsed { display: block; }
+.vp-props.vp-hud-collapsed > :not(.vp-hud-handle):not(.vp-hud-collapse) { display: none; }
+.vp-hud-collapsed .vp-hud-handle { float: none; margin: 0; }
+.vp-hud-collapsed .vp-hud-collapse { font-size: 14px; }
+.vp-badge {
+  position: absolute; right: 12px; bottom: 172px; color: #6d7780; font-size: 11px;
+  display: flex; align-items: flex-start; gap: 4px; max-width: min(26vw, 360px); line-height: 1.45;
+  text-align: left; padding: 4px 7px; border-radius: 6px;
+  background: rgba(255,255,255,.84); border: 1px solid var(--border-soft);
+  box-shadow: 0 1px 4px rgba(0,0,0,.08); z-index: 41;
+}
+.vp-status-message { min-width: 0; line-height: 1.7; }
+.vp-build-warning {
+  position: fixed; right: 12px; top: 130px; z-index: 60;
+  width: min(360px, calc(100vw - 24px)); box-sizing: border-box;
+  background: #fff7e6; border: 1px solid #e8c26a; border-radius: 6px;
+  padding: 6px 8px; font-size: 11px; color: #7a5b12;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+/* Warning text can contain long feature names and B-rep terminology.  Give
+   every wrapped line a real line box so it never visually collides with the
+   next line, even when OCR/browser font metrics differ. */
+.vp-build-warning-message {
+  margin-top: 3px; line-height: 2; overflow-wrap: anywhere; word-break: normal;
+}
+.vp-busy {
+  position: absolute; left: 50%; top: 16px; transform: translateX(-50%);
+  background: rgba(20,20,20,.82); color: #fff; font-size: 12px;
+  padding: 6px 14px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.vp-props {
+  position: absolute; left: 12px; bottom: 172px; color: #495560; font-size: 11px;
+  background: rgba(255,255,255,.92); padding: 5px 9px; border-radius: 5px; border: 1px solid var(--border-soft);
+  max-width: min(42vw, 720px); max-height: 54px; overflow: auto; line-height: 1.45; z-index: 40;
+}
+.vp-props > .vp-hud-handle { float: left; margin: -1px 5px 0 -3px; }
+.vp-measure {
+  position: absolute; left: 50%; top: 52px; transform: translateX(-50%);
+  background: rgba(255,59,48,.92); color: #fff; font-size: 12px; font-weight: 600;
+  padding: 5px 14px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.tb-text { padding: 0 9px !important; min-width: 0; width: auto; gap: 5px; font-size: 12px; color: #2a5c75; }
+.tb-color-control { display: inline-flex; align-items: center; gap: 4px; height: 24px; margin-left: 4px; padding: 0 5px; color: #35516a; font-size: 11px; font-weight: 600; background: rgba(255,255,255,.78); border: 1px solid var(--border-soft); border-radius: 4px; cursor: pointer; }
+.tb-color-control:hover { border-color: #4b83b5; background: #f5faff; }
+.tb-color { width: 28px; height: 20px; padding: 0; border: 1px solid #71879a; border-radius: 3px; background: none; cursor: pointer; }
+.tb-mat { height: 24px; margin-left: 4px; padding: 0 4px; font-size: 12px; color: var(--text); background: var(--panel); border: 1px solid var(--border-soft); border-radius: 4px; cursor: pointer; }
+.tb-btn.tb-on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tl-hint { color: #b0b0b0; font-size: 11px; }
+
+/* ---------- sketch toolbar ---------- */
+.sketch-bar {
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; padding: 6px 12px;
+  background: rgba(255,255,255,.96); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.16); font-size: 12px; color: #333;
+  /* 报告 P2：呢条浮动工具条（尤其选中件属性栏）按钮多，会阔过屏幕令成页横向滚动。
+     封顶到视口宽并内部横向滚动 — 任何宽度都唔会撑爆页面，亦唔会隐藏内容。 */
+  max-width: calc(100vw - 24px); overflow-x: auto; flex-wrap: nowrap;
+}
+.sketch-bar::-webkit-scrollbar { height: 6px; }
+.sketch-bar .sb-title { font-weight: 600; color: var(--accent); }
+.sketch-bar button { border: 1px solid var(--border-soft); background: #fff; border-radius: 5px; padding: 4px 10px; cursor: pointer; }
+.sketch-bar .sb-tool.active { background: var(--hover); border-color: var(--hover-bd); color: var(--accent); }
+.sketch-bar .sb-finish { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.sketch-bar .sb-finish:hover { background: #057fb8; }
+.sketch-bar input { width: 56px; padding: 2px 5px; border: 1px solid var(--border-soft); border-radius: 4px; }
+.sketch-bar .sb-hint { color: #9a9a9a; }
+.sketch-bar .sb-spacer { width: 6px; }
+
+/* Fusion Sketch's display menu remains at the lower edge even when the
+   draggable sketch toolbar is moved or collapsed.  It is deliberately inside
+   the viewport bounds and leaves room for the timeline. */
+.sketch-display-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 116;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  background: rgba(255,255,255,.96);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.16);
+}
+.sketch-display-dock .tb-btn { min-height: 27px; padding: 3px 9px; white-space: nowrap; }
+@media (max-width: 640px) {
+  .sketch-display-dock { left: auto; right: 12px; transform: none; bottom: 12px; }
+  .sketch-display-dock .tb-btn span { display: none; }
+}
+
+/* ---------- Physics Lab MVP ---------- */
+.physics-lab-backdrop { position: fixed; inset: 0; z-index: 700; background: rgba(13, 23, 33, .58); display: grid; place-items: center; padding: 18px; }
+.physics-lab { width: min(1420px, 100%); height: min(820px, calc(100vh - 36px)); min-height: 520px; display: flex; flex-direction: column; overflow: hidden; color: #24313c; background: #f5f8fa; border: 1px solid #9eabb5; border-radius: 12px; box-shadow: 0 24px 70px rgba(0,0,0,.42); }
+.physics-lab header { min-height: 56px; padding: 9px 15px; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #fff; background: linear-gradient(105deg, #174e78, #177d96); }
+.physics-lab header b { display: block; font-size: 16px; }.physics-lab header small { display: block; margin-top: 2px; opacity: .84; font-size: 11px; }.physics-lab-header-actions { display: flex; flex: 0 0 auto; gap: 6px; align-items: center; }.physics-lab-header-actions button { min-height: 31px; padding: 0 9px; color: #fff; font-size: 12px; line-height: 1; border: 0; border-radius: 6px; background: rgba(255,255,255,.15); cursor: pointer; }.physics-lab-header-actions button:hover:not(:disabled) { background: rgba(255,255,255,.26); }.physics-lab-header-actions button:disabled { opacity: .45; cursor: default; }.physics-lab-header-actions .primary { background: #0787c2; }.physics-lab-header-actions .close { width: 31px; padding: 0; font-size: 24px; }
+.physics-lab main { min-height: 0; flex: 1; display: grid; grid-template-columns: 250px minmax(360px, 1fr) 240px; }.physics-lab aside { overflow: auto; padding: 14px; background: #fff; border-right: 1px solid #d5dde3; font-size: 12px; }.physics-lab-readout { border-right: 0 !important; border-left: 1px solid #d5dde3; }
+.physics-lab h3 { margin: 2px 0 12px; font-size: 13px; color: #17618a; }.physics-lab label { display: grid; grid-template-columns: 1fr auto; gap: 4px 7px; margin: 0 0 12px; }.physics-lab label input { grid-column: 1 / -1; accent-color: #1185b7; }.physics-lab output { color: #5d6d79; font-variant-numeric: tabular-nums; }
+.physics-lab label.physics-lab-toggle { align-items: center; grid-template-columns: 1fr auto; }.physics-lab label.physics-lab-toggle input { width: 16px; height: 16px; margin: 0; grid-column: auto; }
+.physics-lab-actions { display: flex; gap: 7px; margin: 15px 0 18px; }.physics-lab-actions button { flex: 1; min-height: 30px; border: 1px solid #b8c7d1; border-radius: 5px; background: #fff; color: #334450; cursor: pointer; }.physics-lab-actions .primary { color: #fff; border-color: #087db2; background: #098ac5; }
+.physics-lab-presets { display: grid; grid-template-columns: 1fr; gap: 6px; margin: -4px 0 14px; }.physics-lab-presets button { min-height: 28px; padding: 4px 7px; border: 1px solid #bbced8; border-radius: 5px; color: #24546c; background: #f7fbfd; text-align: left; cursor: pointer; }.physics-lab-presets button:hover { border-color: #1789bd; color: #0875aa; background: #e8f6fb; }
+.physics-lab-canvas { min-width: 0; position: relative; background: radial-gradient(circle at 50% 32%, #dcebf2, #9aafb9); }.physics-lab-canvas canvas { display: block; width: 100% !important; height: 100% !important; }
+.physics-lab p { margin: 0 0 9px; line-height: 1.45; }.physics-lab-note { padding: 8px; color: #586b76; background: #eef4f7; border-left: 3px solid #69aeca; border-radius: 3px; }.physics-lab dl { margin: 0; }.physics-lab dt { margin-top: 12px; color: #74838d; font-size: 11px; }.physics-lab dd { margin: 3px 0 0; font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: #193e53; overflow-wrap: anywhere; }
+.physics-lab-events { max-height: 118px; margin: 0 0 12px; padding-left: 18px; overflow: auto; color: #52636f; font-size: 11px; line-height: 1.55; }.physics-lab-events b { color: #16749c; font-family: ui-monospace, Consolas, monospace; }
+@media (max-width: 960px) { .physics-lab { height: calc(100vh - 18px); }.physics-lab main { grid-template-columns: 210px minmax(260px, 1fr); }.physics-lab-readout { display: none; } }
+@media (max-width: 650px) { .physics-lab-backdrop { padding: 6px; }.physics-lab { height: calc(100vh - 12px); min-height: 0; }.physics-lab header { min-height: 48px; padding: 7px 9px; }.physics-lab header small { display: none; }.physics-lab-header-actions { gap: 3px; }.physics-lab-header-actions button { padding: 0 6px; font-size: 11px; }.physics-lab main { grid-template-columns: 1fr; grid-template-rows: 205px minmax(280px, 1fr); }.physics-lab aside { border-right: 0; border-bottom: 1px solid #d5dde3; }.physics-lab-canvas { min-height: 280px; } }
+
+/* ---------- timeline feature chips + editor (Fusion: bottom-left icon strip) ---------- */
+.timeline { position: relative; }
+.tl-chip {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; padding: 0; margin-right: 3px; flex: none;
+  background: #eaf4fb; border: 1px solid #b9def0; border-radius: 4px; color: #2a5c75; cursor: pointer;
+}
+.tl-chip:hover { background: #dcecfa; }
+.tl-chip.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tl-chip.sel svg { color: #fff; }
+/* GM-G4b：抑制特征 = 变暗 + 对角划线（Fusion suppressed 视觉）。用 background-image 斜纹，
+   唔占 ::before(err 感叹号)/::after(cut 角标) 伪元素 → 与错误/切割标记可共存。 */
+.tl-chip.suppressed { opacity: 0.42; filter: grayscale(0.85);
+  background-image: linear-gradient(135deg, transparent calc(50% - 1px), #6b7580 calc(50% - 1px), #6b7580 calc(50% + 1px), transparent calc(50% + 1px)); }
+.tl-chip svg { color: #2a7aa8; }
+/* cut features: purple chip + red corner badge (Fusion's removed-material cue) */
+.tl-chip.cut { background: #f3e9fb; border-color: #d4b8ee; }
+.tl-chip.cut svg { color: #8a4fc0; }
+.tl-chip.cut::after { content: ''; position: absolute; top: 1px; right: 1px; width: 0; height: 0; border-top: 6px solid #e0442e; border-left: 6px solid transparent; }
+.tl-chip.cut.sel { background: #8a4fc0; border-color: #8a4fc0; }
+.tl-chip.cut.sel svg { color: #fff; }
+/* S107 逐特征隔离：坏特征红边框 + 右上角红点 badge（其余特征照常重建） */
+.tl-chip.err { border-color: #e0442e; box-shadow: 0 0 0 1px #e0442e inset; }
+.tl-chip.err::before { content: '!'; position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; background: #e0442e; color: #fff; font-size: 9px; font-weight: 700; line-height: 13px; text-align: center; border-radius: 50%; z-index: 2; }
+.tree-row.err > span:nth-child(3) { color: #c0392b; }
+.tw-err { margin-left: 4px; font-size: 10px; }
+.fe-errbar { display: flex; align-items: center; gap: 8px; color: #b5311f; background: #fdecea; border: 1px solid #f3b5ab; border-radius: 6px; padding: 4px 8px; font-size: 11px; margin: 4px 0; }
+.fe-errsup { border: 1px solid #e0442e; color: #e0442e; background: #fff; border-radius: 4px; padding: 1px 6px; cursor: pointer; white-space: nowrap; }
+.fe-errsup:hover { background: #e0442e; color: #fff; }
+.feat-editor {
+  position: absolute; left: 130px; bottom: calc(100% + 6px);
+  display: flex; align-items: center; gap: 14px; padding: 9px 16px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,.18);
+  font-size: 12px; color: #333; z-index: 20;
+}
+.feat-editor .fe-title { font-weight: 600; color: var(--accent); display: inline-flex; align-items: center; gap: 5px; }
+.feat-editor label { display: inline-flex; align-items: center; gap: 6px; }
+.feat-editor input { width: 64px; padding: 3px 6px; border: 1px solid var(--border-soft); border-radius: 4px; }
+.feat-editor .fe-del { color: #c0392b; background: #fff; border: 1px solid #e3b4ae; border-radius: 5px; padding: 4px 12px; cursor: pointer; }
+.feat-editor .fe-del:hover { background: #fdf0ee; }
+.feat-editor .fe-close { color: #555; background: #fff; border: 1px solid var(--border-soft); border-radius: 5px; padding: 4px 12px; cursor: pointer; }
+
+/* ---------- timeline ---------- */
+.timeline {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+  display: flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 8px;
+  background: var(--chrome-2); border-top: 1px solid var(--border); box-shadow: 0 -2px 8px rgba(0,0,0,.08);
+}
+.tl-panel-head { display: inline-flex; align-items: center; gap: 4px; color: #5a6b78; font-size: 11px; cursor: grab; user-select: none; white-space: nowrap; }
+.tl-panel-head:active { cursor: grabbing; }
+.tl-panel-count { color: #8a97a2; }
+.tl-panel-toggle { border: 1px solid var(--border-soft); background: #fff; border-radius: 4px; width: 22px; height: 22px; padding: 0; cursor: pointer; color: #53636f; }
+.timeline:has(.tl-panel-head-collapsed) { left: auto; right: 12px; bottom: 12px; width: auto; min-height: 32px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 7px; box-shadow: 0 2px 10px rgba(0,0,0,.16); }
+.tl-controls { display: flex; align-items: center; gap: 1px; }
+/* Fusion: the timeline hugs the bottom-LEFT — track shrinks to its chips instead of stretching full-width */
+.tl-track {
+  flex: 0 1 auto; max-width: calc(100vw - 240px); height: 32px; border: 1px solid var(--border-soft); border-radius: 3px;
+  background: #fff; overflow-x: auto; overflow-y: hidden;
+  display: flex; align-items: center; padding: 0 5px; color: #b0b0b0; font-size: 11px;
+}
+/* thin scrollbar so an overflowing track doesn't clip the 26px chips (global bar is 10px) */
+.tl-track::-webkit-scrollbar { height: 4px; }
+/* 4px drag handle between chips = the history scrub position (drag left/right to replay) */
+.tl-marker {
+  width: 4px; height: 26px; border-radius: 2px; background: var(--accent);
+  margin: 0 3px 0 0; cursor: ew-resize; flex: none; touch-action: none;
+}
+.tl-marker:hover { box-shadow: 0 0 0 2px var(--hover-bd); }
+
+/* ---------- constraint sketch editor (2D SVG) ---------- */
+.csketch { position: fixed; inset: 0; z-index: 50; background: #fbfcfd; display: flex; flex-direction: column; }
+.cs-toolbar { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 6px 10px; background: var(--chrome-2); border-bottom: 1px solid var(--border); flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin; }
+.cs-toolbar::-webkit-scrollbar { height: 5px; }
+.cs-toolbar > * { flex: 0 0 auto; white-space: nowrap; }
+.cs-title { font-weight: 600; color: var(--accent); margin-right: 6px; }
+.cs-btn { border: 1px solid var(--border-soft); background: #fff; border-radius: 5px; padding: 4px 9px; cursor: pointer; font-size: 12px; color: #333; }
+.cs-btn:hover { background: var(--hover); }
+.cs-btn.on { background: var(--hover); border-color: var(--hover-bd); color: var(--accent); font-weight: 600; }
+.cs-btn.cs-cstr { color: #2a5c75; }
+.cs-btn.cs-finish { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.cs-btn.cs-finish:hover { background: #057fb8; }
+/* GM-3DV1 S15：共用「活动拾取槽」高亮 —— 命令等紧你喺画布拾几何（轴/中心点/面/路径边）时，个掣要【明显＋黏住】。
+   蓝底 + 蓝环 + 柔和脉冲，一眼睇到系边个槽 active；黏住（唔会因点空而静默清）。套落 revolve 轴/中心点、镜像面、环形阵列轴、扫掠路径边等拾取掣。 */
+.pick-slot.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; box-shadow: 0 0 0 2px rgba(21,114,196,.35); animation: pickSlotPulse 1.5s ease-in-out infinite; }
+.pick-slot.active:hover { background: #057fb8; }
+@keyframes pickSlotPulse { 0%, 100% { box-shadow: 0 0 0 2px rgba(21,114,196,.35); } 50% { box-shadow: 0 0 0 4px rgba(21,114,196,.18); } }
+.cs-div { width: 1px; height: 20px; background: var(--border-soft); margin: 0 4px; }
+.cs-spacer { flex: 0 0 8px; }
+.cs-h input { width: 56px; padding: 2px 5px; border: 1px solid var(--border-soft); border-radius: 4px; }
+.cs-svg { flex: 1; width: 100%; background: radial-gradient(120% 130% at 50% 40%, #ffffff, #eef2f5); cursor: crosshair; touch-action: none; }
+.cs-dims { position: absolute; right: 14px; top: 56px; width: min(188px, calc(100vw - 28px)); max-height: calc(100vh - 92px); overflow: auto; background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,.14); padding: 9px; font-size: 12px; }
+.cs-dims-title { color: var(--text-dim); margin-bottom: 6px; }
+.cs-dim { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.cs-dim span { width: 32px; color: #555; }
+.cs-dim input { width: 70px; padding: 2px 4px; border: 1px solid var(--border-soft); border-radius: 4px; }
+.cs-x { border: none; background: none; color: #c0392b; cursor: pointer; padding: 0 2px; }
+.cs-status { padding: 5px 12px; background: var(--chrome-2); border-top: 1px solid var(--border); font-size: 12px; color: #444; }
+.cs-status.bad { color: #c0392b; font-weight: 600; }
+
+/* ---------- assembly joints panel ---------- */
+.joints-panel { position: fixed; right: 14px; bottom: 210px; width: min(330px, calc(100vw - 28px)); max-height: min(62vh, calc(100vh - 246px)); overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 2px 14px rgba(0,0,0,.16); padding: 10px; font-size: 12px; z-index: 15; }
+.joints-pill { position: fixed; right: 14px; bottom: 210px; z-index: 15; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 4px 12px; font-size: 12px; color: #2a5c75; cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,.14); }
+.joints-pill:hover { background: var(--hover); }
+.params-panel { position: fixed; left: 14px; top: 128px; bottom: auto; width: min(290px, calc(100vw - 28px)); max-height: min(60vh, calc(100vh - 164px)); overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 2px 14px rgba(0,0,0,.16); padding: 10px; font-size: 12px; z-index: 15; }
+.params-pill { position: fixed; left: 14px; top: 128px; bottom: auto; z-index: 15; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 4px 12px; font-size: 12px; color: #2a5c75; cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,.14); }
+.params-pill:hover { background: var(--hover); }
+.params-panel .pp-title .vp-hud-handle { float: none; margin: 0 4px 0 0; vertical-align: middle; }
+.info-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 2px 14px rgba(0,0,0,.16); color: var(--text); max-width: calc(100vw - 28px); max-height: min(58vh, calc(100vh - 246px)); overflow: auto; }
+
+/* Keep desktop CAD chrome usable when the browser window is narrower or shorter
+   than Fusion's normal desktop workspace.  The panels remain reachable rather
+   than clipping under the ribbon/timeline; users can still drag or collapse them. */
+@media (max-width: 900px) {
+  .ws-big { width: 72px; margin: 4px; font-size: 12px; }
+  .ribbon-tab { padding: 0 7px; font-size: 11px; }
+  .tool-btn { flex-basis: 30px; width: 30px; height: 34px; }
+  .tool-btn svg { transform: scale(.9); }
+  .main { grid-template-columns: minmax(180px, 28vw) minmax(0, 1fr); }
+  .joints-panel, .joints-pill { bottom: 166px; }
+  .vp-navbar { bottom: 76px; }
+  .vp-badge, .vp-props { bottom: 128px; }
+}
+@media (max-height: 680px) {
+  .joints-panel { bottom: 118px; max-height: calc(100vh - 154px); }
+  .joints-pill { bottom: 118px; }
+  .params-panel { max-height: calc(100vh - 154px); }
+  .vp-navbar { bottom: 54px; }
+  .vp-badge, .vp-props { bottom: 104px; }
+}
+.pp-title { font-weight: 600; color: var(--accent); margin-bottom: 4px; display: flex; justify-content: space-between; }
+.pp-x { cursor: pointer; color: #999; }
+.pp-hint, .pp-empty { color: #8a929a; font-size: 11px; margin-bottom: 6px; }
+.pp-row, .pp-add { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.pp-name { flex: 1; font-family: monospace; color: #2a5c75; }
+.pp-name-in { flex: 1; width: 60px; }
+.pp-val { width: 58px; padding: 2px 5px; border: 1px solid var(--border-soft); border-radius: 4px; }
+.pp-expr { width: 66px; padding: 2px 5px; border: 1px solid var(--border-soft); border-radius: 4px; font-family: monospace; font-size: 11px; }
+.pp-used { color: #9aa6af; font-size: 11px; }
+.pp-del { cursor: pointer; }
+.fe-param { margin-left: 4px; font-size: 11px; border: 1px solid var(--border-soft); border-radius: 4px; color: #2a7aa8; background: #f3f8fb; cursor: pointer; }
+.drawing-overlay { position: fixed; inset: 0; background: rgba(20,28,36,.45); z-index: 100; display: flex; align-items: center; justify-content: center; }
+.drawing-modal { background: #f6f7f9; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,.3); width: min(92vw, 1000px); max-height: 88vh; overflow: auto; padding: 14px 18px; }
+.dw-head { font-weight: 600; color: var(--accent); font-size: 15px; display: flex; justify-content: space-between; margin-bottom: 12px; }
+.dw-x { cursor: pointer; color: #999; }
+.dw-views { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.dw-view { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 6px; }
+.dw-vtitle { text-align: center; font-size: 12px; color: #5a6b78; margin-bottom: 4px; }
+.dw-dim { text-align: center; font-size: 11px; color: #2a7aa8; margin-top: 3px; font-family: monospace; }
+.dw-foot { display: flex; align-items: center; gap: 10px; justify-content: flex-end; margin-top: 12px; }
+.dw-legend { margin-right: auto; color: #8a929a; font-size: 12px; }
+.help-modal { background: #fff; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,.3); width: min(92vw, 880px); max-height: 88vh; overflow: auto; padding: 16px 20px; }
+.intro-card-body { overflow-wrap: anywhere; }
+@media (max-height: 760px) {
+  .intro-card-modal { max-height: 82vh; }
+  .intro-card-body { padding-block: 12px !important; font-size: 13px !important; }
+  .intro-card-body .cs-btn { min-height: 30px; }
+}
+.help-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; font-size: 12.5px; color: #3a4650; line-height: 1.5; }
+.help-grid h4 { color: var(--accent); margin: 10px 0 3px; font-size: 13px; }
+.help-grid p { margin: 0 0 4px; }
+.help-keys { list-style: none; padding: 0; margin: 4px 0; }
+.help-keys li { margin: 3px 0; }
+.help-keys kbd { background: #eef1f4; border: 1px solid #c7ccd2; border-radius: 4px; padding: 1px 6px; font-family: monospace; font-size: 11px; }
+.jp-title { font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+.jp-joint { border: 1px solid var(--border-soft); border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; }
+.jp-row { display: flex; align-items: center; gap: 6px; }
+.jp-row b { color: #333; }
+.jp-type { background: #eaf4fb; border: 1px solid #b9def0; border-radius: 9px; padding: 0 7px; color: #2a5c75; }
+.jp-cc { color: var(--text-dim); flex: 1; font-size: 11px; }
+.jp-drive { display: flex; align-items: center; gap: 6px; margin-top: 5px; color: #555; }
+.jp-drive input[type=range] { flex: 1; }
+.jp-drive span { width: 36px; text-align: right; }
+.jp-lim { display: flex; align-items: center; gap: 4px; margin-top: 3px; color: #888; font-size: 11px; }
+.jp-lim input { width: 48px; padding: 1px 3px; border: 1px solid var(--border-soft); border-radius: 3px; }
+.jp-add { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; border-top: 1px solid var(--border-soft); padding-top: 8px; }
+.jp-add select { padding: 2px 4px; border: 1px solid var(--border-soft); border-radius: 4px; font-size: 12px; max-width: 90px; }
+
+/* scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #c3c3c3; border-radius: 6px; border: 2px solid var(--panel); }
+::-webkit-scrollbar-thumb:hover { background: #a9a9a9; }
+
+/* ---------- 报告 P2：窄视口响应式 ---------- */
+/* 桌面布局系固定 248px 树 + 1fr 视口；窄屏要收返树留位畀 3D 视口，浮动面板要贴边唔好溢出。
+   注：App.tsx 收起树时用 inline gridTemplateColumns:'26px 1fr'（inline 优先），故呢度只管「未收起」嘅情况。 */
+@media (max-width: 860px) {
+  .main { grid-template-columns: 184px 1fr; }   /* 树收窄 */
+  .doc-name { width: 84px; }
+  .topbar { gap: 3px; }
+  /* 防止内容（如选中件属性栏）撑爆 1fr 列令成页横向滚动 — grid/flex min-content blowout 经典修法。
+     嵌套 grid 要逐层 minmax(0,1fr) 先唔会被子内容 min-content 撑爆。 */
+  .app { overflow-x: hidden; grid-template-columns: minmax(0, 1fr); }
+  .main { min-width: 0; }
+  .main > * { min-width: 0; overflow: hidden; }
+}
+@media (max-width: 560px) {
+  .main { grid-template-columns: 148px 1fr; }   /* 手机：树再收，仍可点选；想全屏睇模型撳顶栏收起 */
+  .doc-name { width: 56px; }
+  .topbar { padding: 0 4px; gap: 2px; }
+  /* 浮动命令面板/标记菜单：贴满左右边距，唔好飞出屏幕 */
+  .cmd-palette { left: 8px; right: 8px; width: auto !important; }
+  .cmd-palette-body { max-height: 50vh; }
+}
+@media (max-width: 380px) {
+  .main { grid-template-columns: 0 1fr; }        /* 极窄：默认收起树（顶栏可展开），全宽视口 */
+}

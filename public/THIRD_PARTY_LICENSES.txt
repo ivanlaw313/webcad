@@ -1,0 +1,47 @@
+webcad — Third-party licenses and attribution
+=============================================
+
+This application is built on the following open-source software.
+The OCCT geometry kernel is loaded at runtime as a SEPARATE WebAssembly
+file (replicad_single.wasm); it is not statically linked into the
+application bundle, satisfying the LGPL library-replacement requirement.
+
+--------------------------------------------------------------------
+Open CASCADE Technology (OCCT) 7.6.2
+  Copyright (c) Open Cascade SAS and contributors
+  License: GNU Lesser General Public License v2.1 (LGPL-2.1),
+           with the additional "Open CASCADE Exception 1.0".
+  License text:  https://github.com/Open-Cascade-SAS/OCCT/blob/master/LICENSE_LGPL_21.txt
+  Exception:     https://github.com/Open-Cascade-SAS/OCCT/blob/master/OCCT_LGPL_EXCEPTION.txt
+  Source code:   https://github.com/Open-Cascade-SAS/OCCT
+  Distributed here as a WebAssembly build produced by opencascade.js.
+
+opencascade.js
+  Copyright (c) Sebastian Alff and contributors
+  License: MIT — https://github.com/donalffons/opencascade.js/blob/master/LICENSE
+  Source:  https://github.com/donalffons/opencascade.js
+
+replicad 0.23
+  Copyright (c) Steve Genoud
+  License: MIT — https://github.com/sgenoud/replicad/blob/main/LICENSE
+  Source:  https://github.com/sgenoud/replicad
+
+planegcs (FreeCAD GCS solver, WebAssembly port)
+  Copyright (c) FreeCAD contributors / Salusoft89
+  License: GNU Lesser General Public License v2.1 or later (LGPL-2.1+)
+  License text: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt
+  Source:  https://github.com/Salusoft89/planegcs
+  Loaded as a separate WebAssembly module at runtime.
+
+manifold-3d
+  License: Apache-2.0 — https://github.com/elalish/manifold/blob/master/LICENSE
+  Source:  https://github.com/elalish/manifold
+
+three.js / @react-three/fiber / @react-three/drei
+  License: MIT — https://github.com/mrdoob/three.js/blob/dev/LICENSE
+
+React, zustand, Comlink, Vite and remaining npm dependencies:
+  MIT licensed; full texts ship in their respective npm packages
+  (node_modules/<pkg>/LICENSE) and at the linked repositories.
+
+Full LGPL-2.1 text: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt

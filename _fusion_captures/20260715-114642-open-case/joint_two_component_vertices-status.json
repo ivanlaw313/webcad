@@ -1,0 +1,25 @@
+{
+  "caseId": "JOINT_TWO_COMPONENT_VERTICES",
+  "prepared": true,
+  "commandId": "JointAssembleCmdNew",
+  "selectionCount": 2,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepVertex",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/31QMU5DMQy9ABdg8wUsJbZ/miwsSLB0Zq2cxF/qVlVVxda9l+Aa3AHO0AOwsHAAnI+QEEOVSO/p6eU9OwEIgp/oGH8YZWcRZCgJ1jePp7vP+/PL1+X97eP21R0EnMCIG3GvaF0aSmsZs2bDWiadrasEYk9xp3YiKiGjOqBQi6ilCiZO2mxiW1W+3qUxFG1TxiKVUdKcUGtW9JS5ps51Vl5mF/BOD3IY5cseYzcmWtBv+i9Mf4QAR9sf7Hmzt7bd2abrQeEJMqA74AHGzzgdhH5JGMSffgOgt/U7SgEAAA=="
+      }
+    },
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepVertex",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/32QP2qDMQzFL9ALZNMFBJb8J/bSJZAsmbsGfbYM3UoIpVv2XKLX6B2SM+QAWbr0AJW/UCgdio314/GsZ9kBg7NFVulOnI0IwlASbB82x8fP1en963o53xYf5mDwCZR9Zd8m1BYqhlozZsmKU4nStUlw7K2LObn3WhtHZF86hqLeTIUxLidpRSMR9f+zKDnpTB6b2hGEBDO7ii61koiUpJT57QEs0xpZGeHzHGM2z8u52k5/hfhLcPCq+4O+7fZan1901+Qg8AQZ0BywhvEzhgP4B9wAu/oNR88gWUoBAAA="
+      }
+    }
+  ],
+  "executeReturned": true
+}

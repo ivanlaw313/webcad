@@ -1,0 +1,56 @@
+﻿[
+    {
+        "commandId":  "FusionAddEditDecalCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\fusionaddeditdecalcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\fusionaddeditdecalcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionAddCanvasCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\fusionaddcanvascommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\fusionaddcanvascommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "SketchImportSVG",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\sketchimportsvg.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\sketchimportsvg-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ImportDxfFileCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\importdxffilecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\importdxffilecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ParaMeshInsertAlignCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\parameshinsertaligncommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\parameshinsertaligncommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionImportCommandFromToolbar",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\fusionimportcommandfromtoolbar.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\fusionimportcommandfromtoolbar-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionFastenersCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\fusionfastenerscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\fusionfastenerscommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionDuplicateWithJointsCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\fusionduplicatewithjointscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\fusionduplicatewithjointscommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "PullDeriveCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\pullderivecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080729-fast-probe\\pullderivecommand-status.json",
+        "statusExists":  true
+    }
+]

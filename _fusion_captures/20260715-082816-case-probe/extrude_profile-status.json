@@ -1,0 +1,17 @@
+{
+  "caseId": "EXTRUDE_PROFILE",
+  "prepared": true,
+  "commandId": "Extrude",
+  "selectionCount": 1,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::Profile",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/3WOzQkCQQxGrUS+BgaSTHZ+CvDkzRKyTkOKiJXYgmdLEC/bheMMuyyCySGPkPA+ghcQBBzwvD3eF91N19Nhuz+/7nXP8BDiRvWmzkqSKjH075fAB4RIZmqjK0NRpyUnl6OJO4ZRKZlXsTybNz/VfISmE9Lu606m2FN8m8KKhxWnhekD8+R/f+IAAAA="
+      }
+    }
+  ],
+  "executeReturned": true
+}

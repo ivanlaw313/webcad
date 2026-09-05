@@ -1,0 +1,2472 @@
+﻿{
+    "capturedAt":  "2026-07-17T19:16:19.4379584+08:00",
+    "fusionProcessId":  2636,
+    "fusionWindowTitle":  "Untitled - Autodesk Fusion (Education License) ",
+    "label":  "dialog-Manage Materials",
+    "controls":  [
+                     {
+                         "name":  "Material Browser",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow",
+                         "className":  "Nu::MaterialTabWindow",
+                         "controlType":  "ControlType.Window",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  345,
+                                        "width":  645,
+                                        "height":  795
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget",
+                         "className":  "Nu::MaterialTabWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  345,
+                                        "width":  645,
+                                        "height":  795
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget",
+                         "className":  "QStackedWidget",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  382,
+                                        "width":  645,
+                                        "height":  757
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab",
+                         "className":  "Nu::MaterialTab",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  382,
+                                        "width":  645,
+                                        "height":  757
+                                    }
+                     },
+                     {
+                         "name":  "mpMaterialBrowser",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser",
+                         "className":  "MaterialBrowserImp",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  382,
+                                        "width":  645,
+                                        "height":  757
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter",
+                         "className":  "QSplitter",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  382,
+                                        "width":  645,
+                                        "height":  757
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel",
+                         "className":  "QFrame",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  382,
+                                        "width":  645,
+                                        "height":  757
+                                    }
+                     },
+                     {
+                         "name":  "mpBorderFrame",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame",
+                         "className":  "QFrame",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  382,
+                                        "width":  645,
+                                        "height":  757
+                                    }
+                     },
+                     {
+                         "name":  "mpTopToolbarFrame",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpTopToolBarFrame",
+                         "className":  "QFrame",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  382,
+                                        "width":  645,
+                                        "height":  54
+                                    }
+                     },
+                     {
+                         "name":  "mpSearchToolBar",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpTopToolBarFrame.QToolBar",
+                         "className":  "QToolBar",
+                         "controlType":  "ControlType.ToolBar",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  388,
+                                        "width":  645,
+                                        "height":  42
+                                    }
+                     },
+                     {
+                         "name":  "mpSearchBox",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpTopToolBarFrame.QToolBar.Autodesk::UICore::SearchBox",
+                         "className":  "Autodesk::UICore::SearchBox",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3186,
+                                        "top":  396,
+                                        "width":  630,
+                                        "height":  33
+                                    }
+                     },
+                     {
+                         "name":  "mpImageControl",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpTopToolBarFrame.QToolBar.Autodesk::UICore::SearchBox.Autodesk::UICore::ImageLabel",
+                         "className":  "Autodesk::UICore::ImageLabel",
+                         "controlType":  "ControlType.Image",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3787,
+                                        "top":  400,
+                                        "width":  24,
+                                        "height":  24
+                                    }
+                     },
+                     {
+                         "name":  "mpTextBoxControl",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpTopToolBarFrame.QToolBar.Autodesk::UICore::SearchBox.Autodesk::UICore::LineEdit",
+                         "className":  "Autodesk::UICore::LineEdit",
+                         "controlType":  "ControlType.Edit",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3192,
+                                        "top":  396,
+                                        "width":  589,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "mpSplitter",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter",
+                         "className":  "QSplitter",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  436,
+                                        "width":  645,
+                                        "height":  655
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  436,
+                                        "width":  645,
+                                        "height":  655
+                                    }
+                     },
+                     {
+                         "name":  "mpLibraryHeaderToolBarFrame",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryMaterialViewHeaderFrame",
+                         "className":  "QFrame",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  436,
+                                        "width":  645,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryMaterialViewHeaderFrame.QToolBar",
+                         "className":  "QToolBar",
+                         "controlType":  "ControlType.ToolBar",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3724,
+                                        "top":  438,
+                                        "width":  99,
+                                        "height":  45
+                                    }
+                     },
+                     {
+                         "name":  "ToggleNavigationPaneButton",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryMaterialViewHeaderFrame.QToolBar.Autodesk::UICore::ToolButton",
+                         "className":  "Autodesk::UICore::ToolButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3724,
+                                        "top":  442,
+                                        "width":  42,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "LibraryMaterialsViewRightDropDown",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryMaterialViewHeaderFrame.QToolBar.Autodesk::UICore::DropDown",
+                         "className":  "Autodesk::UICore::DropDown",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3769,
+                                        "top":  442,
+                                        "width":  54,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "mpLibraryHeaderIndicatorToolBar",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryMaterialViewHeaderFrame.QToolBar",
+                         "className":  "QToolBar",
+                         "controlType":  "ControlType.ToolBar",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  439,
+                                        "width":  360,
+                                        "height":  42
+                                    }
+                     },
+                     {
+                         "name":  "mpLibraryHeaderBreadcrumbBar",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryMaterialViewHeaderFrame.QToolBar.BreadcrumbBar",
+                         "className":  "BreadcrumbBar",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  439,
+                                        "width":  360,
+                                        "height":  42
+                                    }
+                     },
+                     {
+                         "name":  "Home",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryMaterialViewHeaderFrame.QToolBar.BreadcrumbBar.BreadcrumbButton",
+                         "className":  "BreadcrumbButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  441,
+                                        "width":  19,
+                                        "height":  42
+                                    }
+                     },
+                     {
+                         "name":  "Fusion Appearance Library",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryMaterialViewHeaderFrame.QToolBar.BreadcrumbBar.BreadcrumbButton",
+                         "className":  "BreadcrumbButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3198,
+                                        "top":  441,
+                                        "width":  130,
+                                        "height":  42
+                                    }
+                     },
+                     {
+                         "name":  "mpLibraryHeaderBreadcrumbButton0",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryMaterialViewHeaderFrame.QToolBar.BreadcrumbBar.BreadcrumbButton",
+                         "className":  "BreadcrumbButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  439,
+                                        "width":  106,
+                                        "height":  42
+                                    }
+                     },
+                     {
+                         "name":  "mpLibraryHeaderBreadcrumbButton1",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryMaterialViewHeaderFrame.QToolBar.BreadcrumbBar.BreadcrumbButton",
+                         "className":  "BreadcrumbButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3285,
+                                        "top":  439,
+                                        "width":  253,
+                                        "height":  42
+                                    }
+                     },
+                     {
+                         "name":  "mpLibraryPaneStack",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack",
+                         "className":  "QStackedWidget",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  484,
+                                        "width":  645,
+                                        "height":  607
+                                    }
+                     },
+                     {
+                         "name":  "mpSplitter",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter",
+                         "className":  "QSplitter",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  484,
+                                        "width":  645,
+                                        "height":  607
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  484,
+                                        "width":  412,
+                                        "height":  607
+                                    }
+                     },
+                     {
+                         "name":  "mpViewStack",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack",
+                         "className":  "QStackedWidget",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  484,
+                                        "width":  412,
+                                        "height":  607
+                                    }
+                     },
+                     {
+                         "name":  "mpTableView",
+                         "automationId":  "mpTableView",
+                         "className":  "MaterialTableView",
+                         "controlType":  "ControlType.Table",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  484,
+                                        "width":  412,
+                                        "height":  607
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.Pane",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.Header",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  484,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Name",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.Header",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  484,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Library",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.Header",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "Aspect",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.Header",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "Type",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.Header",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "Category",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.Header",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  484,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Country Code",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.Header",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  523,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "60Sn40Pb",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  523,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Metal",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  523,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  562,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "63Sn37Pb",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  562,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Metal",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  562,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  601,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "ABS Plastic",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  601,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Plastic",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  601,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  640,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Acetal Resin, Black",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  640,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Plastic",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  640,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  679,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Acetal Resin, White",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  679,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Plastic",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  679,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  718,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Acrylic",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  718,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Plastic",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  718,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  757,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Acrylic, Clear",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  757,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Plastic",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  757,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  796,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Air",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  796,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Gas",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  796,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  835,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Alumina (Al2O3)",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  835,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Ceramic",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  835,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  874,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Aluminum",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  874,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Metal",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  874,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  913,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Aluminum 1100-H14",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  913,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Metal",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  913,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  952,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Aluminum 1100-H18",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  952,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Metal",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  952,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  991,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Aluminum 1100-O",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  991,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Metal",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  991,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  1030,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Aluminum 2014-T4",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  1030,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Metal",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  1030,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3411,
+                                        "top":  1069,
+                                        "width":  42,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Aluminum 2014-T6",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3453,
+                                        "top":  1069,
+                                        "width":  357,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Metal",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpRightPane.mpLibraryMaterialViewStack.mpTableView",
+                         "className":  "",
+                         "controlType":  "ControlType.DataItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3810,
+                                        "top":  1069,
+                                        "width":  561,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  484,
+                                        "width":  225,
+                                        "height":  607
+                                    }
+                     },
+                     {
+                         "name":  "mpMaterialsTree",
+                         "automationId":  "mpMaterialsTree",
+                         "className":  "MaterialTreeView",
+                         "controlType":  "ControlType.Tree",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  484,
+                                        "width":  225,
+                                        "height":  607
+                                    }
+                     },
+                     {
+                         "name":  "Fusion Material Library",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3238,
+                                        "top":  484,
+                                        "width":  147,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Ceramic",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  525,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Electronics",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  565,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Fabric",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  606,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Flooring",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  646,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Gas",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  687,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Glass",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  727,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Liquid",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  768,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Metal",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  808,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Misc",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  849,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Plastic",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  889,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Stone",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  930,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Wood",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3268,
+                                        "top":  970,
+                                        "width":  117,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Fusion Additive Material Library",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3238,
+                                        "top":  1011,
+                                        "width":  147,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "Fusion Nonlinear Material Library",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.mpTopHorzontalSplitterLeftPane.mpTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3238,
+                                        "top":  1051,
+                                        "width":  147,
+                                        "height":  40
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpVerticalSplitter.mpLibraryPane.mpLibraryPaneStack.mpTopHorizontalSplitter.qt_splithandle_",
+                         "className":  "QSplitterHandle",
+                         "controlType":  "ControlType.Thumb",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3402,
+                                        "top":  484,
+                                        "width":  10,
+                                        "height":  607
+                                    }
+                     },
+                     {
+                         "name":  "mpViewToolBarPlaceholderFrame",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpViewToolBarFrame",
+                         "className":  "QFrame",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  1092,
+                                        "width":  645,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "mpViewToolBar",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpViewToolBarFrame.QToolBar",
+                         "className":  "QToolBar",
+                         "controlType":  "ControlType.ToolBar",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  1093,
+                                        "width":  156,
+                                        "height":  45
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpViewToolBarFrame.QToolBar.Autodesk::UICore::DropDown",
+                         "className":  "Autodesk::UICore::DropDown",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  1098,
+                                        "width":  54,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpViewToolBarFrame.QToolBar.NewMaterialDropDown",
+                         "className":  "NewMaterialDropDown",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3235,
+                                        "top":  1098,
+                                        "width":  54,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpViewToolBarFrame.QToolBar.Autodesk::UICore::ToolButton",
+                         "className":  "Autodesk::UICore::ToolButton",
+                         "controlType":  "ControlType.CheckBox",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3292,
+                                        "top":  1098,
+                                        "width":  42,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "mpBottomToolBar",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpViewToolBarFrame.QToolBar",
+                         "className":  "QToolBar",
+                         "controlType":  "ControlType.ToolBar",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3781,
+                                        "top":  1093,
+                                        "width":  42,
+                                        "height":  45
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_stackedwidget.Nu::MaterialTab.MaterialBrowser.mpTopFrameHorizontalSplitter.mTopFrameOfMainPanel.mpBorderFrame.mpViewToolBarFrame.QToolBar.Autodesk::UICore::ToolButton",
+                         "className":  "Autodesk::UICore::ToolButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3781,
+                                        "top":  1098,
+                                        "width":  42,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "Physical",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_tabbar",
+                         "className":  "QTabBar",
+                         "controlType":  "ControlType.Tab",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  345,
+                                        "width":  217,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Physical",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_tabbar",
+                         "className":  "",
+                         "controlType":  "ControlType.TabItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3178,
+                                        "top":  345,
+                                        "width":  91,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Appearance",
+                         "automationId":  "QTApplication.Nu::MaterialTabWindow.Nu::MaterialTabWidget.qt_tabwidget_tabbar",
+                         "className":  "",
+                         "controlType":  "ControlType.TabItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3270,
+                                        "top":  345,
+                                        "width":  126,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Fusion360",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTPalette",
+                         "controlType":  "ControlType.Window",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  1753,
+                                        "width":  450,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTMaskedFrame:ActivityFeedPalette",
+                         "className":  "QTPaletteTitleBar",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  1753,
+                                        "width":  450,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "COMMENTS",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTMaskedFrame:ActivityFeedPalette.Name",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  43,
+                                        "top":  1753,
+                                        "width":  108,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTMaskedFrame:ActivityFeedPalette.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTMaskedFrame:ActivityFeedPalette.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  420,
+                                        "top":  1761,
+                                        "width":  22,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  441,
+                                        "top":  1776,
+                                        "width":  15,
+                                        "height":  15
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  1776,
+                                        "width":  15,
+                                        "height":  15
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  21,
+                                        "top":  1783,
+                                        "width":  420,
+                                        "height":  7
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  453,
+                                        "top":  1768,
+                                        "width":  3,
+                                        "height":  7
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  441,
+                                        "top":  1753,
+                                        "width":  15,
+                                        "height":  15
+                                    }
+                     },
+                     {
+                         "name":  "Fusion360",
+                         "automationId":  "QTApplication.QTToolFrame:Browser",
+                         "className":  "QTPalette",
+                         "controlType":  "ControlType.Window",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  226,
+                                        "width":  450,
+                                        "height":  1527
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTPaletteBackground",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  264,
+                                        "width":  450,
+                                        "height":  1489
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTMaskedFrame:Browser",
+                         "className":  "QTPaletteTitleBar",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  226,
+                                        "width":  450,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "BROWSER",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTMaskedFrame:Browser.Name",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  43,
+                                        "top":  226,
+                                        "width":  94,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTMaskedFrame:Browser.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTMaskedFrame:Browser.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  10,
+                                        "top":  234,
+                                        "width":  22,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTMaskedFrame:Browser.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  420,
+                                        "top":  234,
+                                        "width":  22,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTToolFrame:Browser",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  453,
+                                        "top":  241,
+                                        "width":  3,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTToolFrame:Browser",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  441,
+                                        "top":  226,
+                                        "width":  15,
+                                        "height":  15
+                                    }
+                     },
+                     {
+                         "name":  "ToolbarFramework::QTView",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTView:(3)Browser:[0]",
+                         "className":  "ToolbarFramework::QTView",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  264,
+                                        "width":  324,
+                                        "height":  226
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central",
+                         "className":  "Nu::QTMainWindowCentral",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  2052
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0",
+                         "className":  "Nu::QTMainWindow",
+                         "controlType":  "ControlType.Window",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  2052
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central",
+                         "className":  "Nu::QTMainWindowCentral",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  220,
+                                        "width":  3840,
+                                        "height":  1876
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow",
+                         "className":  "QTWorkspaceWindow",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  220,
+                                        "width":  3840,
+                                        "height":  1876
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands",
+                         "className":  "QTPalette",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  1872,
+                                        "width":  3840,
+                                        "height":  225
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTPaletteBackground",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  1909,
+                                        "width":  3840,
+                                        "height":  187
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTMaskedFrame:TextCommands",
+                         "className":  "QTPaletteTitleBar",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  1872,
+                                        "width":  3840,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "TEXT COMMANDS",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTMaskedFrame:TextCommands.Name",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  37,
+                                        "top":  1872,
+                                        "width":  157,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTMaskedFrame:TextCommands.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTMaskedFrame:TextCommands.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  4,
+                                        "top":  1879,
+                                        "width":  22,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl",
+                         "className":  "QTTextCommandControl",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3,
+                                        "top":  1905,
+                                        "width":  3834,
+                                        "height":  189
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.ctlResults",
+                         "className":  "QPlainTextEdit",
+                         "controlType":  "ControlType.Edit",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  1908,
+                                        "width":  3828,
+                                        "height":  136
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.ctlResults.qt_scrollarea_viewport",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  19,
+                                        "top":  1915,
+                                        "width":  3801,
+                                        "height":  121
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.ctlCommand",
+                         "className":  "QLineEdit",
+                         "controlType":  "ControlType.Edit",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  2047,
+                                        "width":  3616,
+                                        "height":  43
+                                    }
+                     },
+                     {
+                         "name":  "Txt",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.radioTxt",
+                         "className":  "QRadioButton",
+                         "controlType":  "ControlType.RadioButton",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3625,
+                                        "top":  2050,
+                                        "width":  72,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "Py",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.radioPy",
+                         "className":  "QRadioButton",
+                         "controlType":  "ControlType.RadioButton",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3700,
+                                        "top":  2050,
+                                        "width":  66,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "Js",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.radioJs",
+                         "className":  "QRadioButton",
+                         "controlType":  "ControlType.RadioButton",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3769,
+                                        "top":  2050,
+                                        "width":  64,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTCanvas",
+                         "className":  "QTCanvas",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  220,
+                                        "width":  3840,
+                                        "height":  1576
+                                    }
+                     },
+                     {
+                         "name":  "ToolbarFramework::QTView",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTCanvas.Nav:QTView:(102)NavToolbar",
+                         "className":  "ToolbarFramework::QTView",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  1741,
+                                        "top":  1753,
+                                        "width":  358,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  1797,
+                                        "width":  202,
+                                        "height":  75
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel.QtTimelinePushButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  7,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel.QtTimelinePushButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  45,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel.QtTimelinePushButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  120,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel.QtTimelinePushButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  82,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel.QtTimelinePushButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  157,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QtTimelineBackgroundLabel",
+                         "className":  "Na::QtTimelineBackgroundLabel",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  201,
+                                        "top":  1797,
+                                        "width":  3577,
+                                        "height":  75
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QtTimelineBackgroundLabel.IconButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  213,
+                                        "top":  1815,
+                                        "width":  36,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QtTimelineBackgroundLabel.QTSliderForTimeline",
+                         "className":  "Na::QTSliderForTimeline",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  186,
+                                        "top":  1812,
+                                        "width":  3828,
+                                        "height":  300
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QtTimelineBackgroundLabel.QTSliderForTimeline.QWidget",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  234,
+                                        "top":  1812,
+                                        "width":  3828,
+                                        "height":  120
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.SettingsBtnLabel",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3772,
+                                        "top":  1797,
+                                        "width":  67,
+                                        "height":  75
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.SettingsBtnLabel.SettingsBtn",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3790,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "DOCKTOPNAVBAR",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2",
+                         "className":  "QTDockWidget",
+                         "controlType":  "ControlType.Window",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  171
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  171
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget",
+                         "className":  "QTDockShadowWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  171
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0",
+                         "className":  "QTApplicationBar",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  171
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QTABTabBar-0",
+                         "className":  "QTABTabBar",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  321,
+                                        "top":  45,
+                                        "width":  3249,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QTABTabBar-0.closeButton",
+                         "className":  "QTTabBarRightButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3496,
+                                        "top":  49,
+                                        "width":  24,
+                                        "height":  30
+                                    }
+                     },
+                     {
+                         "name":  "New Tab",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QTABTabBar-0.newTab",
+                         "className":  "QTNewTabButton",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3534,
+                                        "top":  51,
+                                        "width":  36,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QTABTabBar-0.newTab.newDoc",
+                         "className":  "QTIconsButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3534,
+                                        "top":  51,
+                                        "width":  36,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QATToolBar-0",
+                         "className":  "QTToolBar",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  321,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "ToolbarFramework::QTView",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QATToolBar-0.QAT:QTView:(103)QAT",
+                         "className":  "ToolbarFramework::QTView",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  321,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QATRightToolBar-0",
+                         "className":  "QTToolBar",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3570,
+                                        "top":  45,
+                                        "width":  270,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "ToolbarFramework::QTView",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QATRightToolBar-0.QAT:QTView:(103)QATRight",
+                         "className":  "ToolbarFramework::QTView",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3570,
+                                        "top":  45,
+                                        "width":  270,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "ToolbarFramework::QTView",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.CMD:QTView:(104)FusionAssetType",
+                         "className":  "ToolbarFramework::QTView",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  93,
+                                        "width":  3840,
+                                        "height":  130
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.QWidget",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     }
+                 ]
+}

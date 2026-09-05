@@ -1,0 +1,25 @@
+{
+  "caseId": "INTERFERENCE_OVERLAP",
+  "prepared": true,
+  "commandId": "InterferenceCheckCommand",
+  "selectionCount": 2,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepBody",
+        "name": "Main Box 60x40x30mm",
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/zNQsFAwAEJDBSMgBrOMLIAsQwUTkIiZwqWZJ55MNXF9OX1SkJz35EfbgSqMFIzNFMzMDZKSTJKSdVNNU010TVItLXQtzZOMdFPMkk0MLJKMTYySLMFqgWYwoAGwfQYKYOtA1huZmwAAtRUX7YgAAAA="
+      }
+    },
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepBody",
+        "name": "Overlap Cylinder R12x50mm",
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/zNQsFAwAEJDBSMgBrOMLIAsQwUTkIiZwqWZJ55MNXF9OX1SkJz35EfbgSqMFIzNFMzMDZKSTJKSdVNNU010TVItLXQtzZOMdFPMkk0MLJKMTYySLMFqgWYwoAGwfQYKYOtA1hsbWwAArfYPgYgAAAA="
+      }
+    }
+  ],
+  "executeReturned": true
+}

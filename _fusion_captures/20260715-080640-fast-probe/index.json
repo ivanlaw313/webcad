@@ -1,0 +1,68 @@
+﻿[
+    {
+        "commandId":  "MeasureCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\measurecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\measurecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "InterferenceCheckCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\interferencecheckcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\interferencecheckcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionCurvatureCombAnalysisCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusioncurvaturecombanalysiscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusioncurvaturecombanalysiscommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionZebraAnalysisCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusionzebraanalysiscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusionzebraanalysiscommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionDraftAnalysisCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusiondraftanalysiscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusiondraftanalysiscommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionCurvatureMapAnalysisCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusioncurvaturemapanalysiscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusioncurvaturemapanalysiscommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionIsoCurveAnalysisCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusionisocurveanalysiscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusionisocurveanalysiscommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionAccessibilityAnalysisCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusionaccessibilityanalysiscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusionaccessibilityanalysiscommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionMinimumRadiusAnalysisCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusionminimumradiusanalysiscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusionminimumradiusanalysiscommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionHalfSectionViewCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusionhalfsectionviewcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusionhalfsectionviewcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionCenterOfMassCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusioncenterofmasscommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080640-fast-probe\\fusioncenterofmasscommand-status.json",
+        "statusExists":  true
+    }
+]

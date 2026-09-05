@@ -1,0 +1,20 @@
+﻿[
+    {
+        "caseId":  "JOINT_TWO_COMPONENT_VERTICES",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-111111-case-probe\\joint_two_component_vertices.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-111111-case-probe\\joint_two_component_vertices-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "AS_BUILT_TWO_COMPONENTS",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-111111-case-probe\\as_built_two_components.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-111111-case-probe\\as_built_two_components-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "RIGID_GROUP_TWO_COMPONENTS",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-111111-case-probe\\rigid_group_two_components.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-111111-case-probe\\rigid_group_two_components-status.json",
+        "statusExists":  true
+    }
+]

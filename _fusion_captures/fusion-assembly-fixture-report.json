@@ -1,0 +1,34 @@
+{
+  "document": "Untitled",
+  "saved": false,
+  "designType": "1",
+  "rootOccurrenceCount": 2,
+  "occurrences": [
+    {
+      "name": "Fixture Component:1",
+      "component": "Fixture Component",
+      "bodies": [
+        "Component Box"
+      ],
+      "translationCm": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "isGrounded": false
+    },
+    {
+      "name": "Fixture Component B:1",
+      "component": "Fixture Component B",
+      "bodies": [
+        "Component B Box"
+      ],
+      "translationCm": {
+        "x": 17.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "isGrounded": false
+    }
+  ]
+}

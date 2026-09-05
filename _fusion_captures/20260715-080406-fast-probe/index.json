@@ -1,0 +1,122 @@
+﻿[
+    {
+        "commandId":  "FusionPressPullCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionpresspullcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionpresspullcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionFilletEdgesCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionfilletedgescommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionfilletedgescommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionChamferCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionchamfercommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionchamfercommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionShellBodyCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionshellbodycommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionshellbodycommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionDraftCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusiondraftcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusiondraftcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ModifyScale",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\modifyscale.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\modifyscale-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionCombineCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusioncombinecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusioncombinecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionOffsetFacesCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionoffsetfacescommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionoffsetfacescommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionReplaceFaceCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionreplacefacecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionreplacefacecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionSplitFaceCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionsplitfacecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionsplitfacecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionSplitBodyCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionsplitbodycommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionsplitbodycommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionPartingLineSplitCmd",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionpartinglinesplitcmd.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionpartinglinesplitcmd-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionMoveCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionmovecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionmovecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "AlignCmd",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\aligncmd.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\aligncmd-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionRemoveFeaturesCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionremovefeaturescommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionremovefeaturescommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionRemoveFacesCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionremovefacescommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\fusionremovefacescommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ReplaceWithPrimitivesCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\replacewithprimitivescommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\replacewithprimitivescommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "VolFieldCreateLatticeCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\volfieldcreatelatticecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\volfieldcreatelatticecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "ChangeParameterCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\changeparametercommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\changeparametercommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "MaterializedBomHybridCmd",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\materializedbomhybridcmd.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080406-fast-probe\\materializedbomhybridcmd-status.json",
+        "statusExists":  true
+    }
+]

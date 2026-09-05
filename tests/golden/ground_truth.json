@@ -1,0 +1,104 @@
+{
+  "box_40x30x20": {
+    "file": "box_40x30x20.stl",
+    "volumeMm3": 24000,
+    "surfaces": [
+      {
+        "kind": "plane",
+        "count": 6
+      }
+    ],
+    "triCount": 12
+  },
+  "cylinder_r10_h40": {
+    "file": "cylinder_r10_h40.stl",
+    "volumeMm3": 12566.370614359173,
+    "surfaces": [
+      {
+        "kind": "cylinder",
+        "axis": "Z",
+        "radius": 10,
+        "height": 40,
+        "count": 1
+      },
+      {
+        "kind": "plane",
+        "count": 2
+      }
+    ],
+    "triCount": 384
+  },
+  "sphere_r15": {
+    "file": "sphere_r15.stl",
+    "volumeMm3": 14137.166941154068,
+    "surfaces": [
+      {
+        "kind": "sphere",
+        "radius": 15,
+        "count": 1
+      }
+    ],
+    "triCount": 12320
+  },
+  "cone_r12_h30": {
+    "file": "cone_r12_h30.stl",
+    "volumeMm3": 4523.893421169302,
+    "surfaces": [
+      {
+        "kind": "cone",
+        "baseRadius": 12,
+        "height": 30,
+        "count": 1
+      },
+      {
+        "kind": "plane",
+        "count": 1
+      }
+    ],
+    "triCount": 192
+  },
+  "box_with_hole": {
+    "file": "box_with_hole.stl",
+    "volumeMm3": 35978.761403405064,
+    "surfaces": [
+      {
+        "kind": "plane",
+        "count": 7
+      },
+      {
+        "kind": "cylinder",
+        "axis": "Z",
+        "radius": 8,
+        "height": 20,
+        "count": 1
+      }
+    ],
+    "triCount": 584
+  },
+  "lbracket": {
+    "file": "lbracket.stl",
+    "volumeMm3": 32160,
+    "surfaces": [
+      {
+        "kind": "plane",
+        "count": 8
+      }
+    ],
+    "triCount": 20
+  },
+  "stepped_shaft": {
+    "file": "stepped_shaft.stl",
+    "volumeMm3": 11592.476891746337,
+    "surfaces": [
+      {
+        "kind": "cylinder",
+        "count": 3
+      },
+      {
+        "kind": "plane",
+        "count": 4
+      }
+    ],
+    "triCount": 1152
+  }
+}

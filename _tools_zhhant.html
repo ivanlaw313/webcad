@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tools - Neuralworks | 工具 - Neuralworks</title>
+    <meta name="description" content="Neuralworks tools: Image processing, text conversion, and file viewers. Free online utilities.">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7895011059664841" crossorigin="anonymous"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; background: #f4f4f4; }
+
+        header { background: linear-gradient(135deg, #222 0%, #1a1a1a 100%); color: white; padding: 1.5rem 1rem; text-align: center; display: flex; justify-content: space-between; align-items: center; }
+        .header-content { flex: 1; text-align: center; }
+        h1.site-title { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .tagline { font-size: 1rem; color: #bbb; }
+        .lang-switcher { display: flex; gap: 10px; }
+        .lang-btn { background: transparent; color: white; border: 1px solid white; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; transition: all 0.3s; }
+        .lang-btn.active { background: #4da6ff; border-color: #4da6ff; }
+        .lang-btn:hover { background: #4da6ff; border-color: #4da6ff; }
+
+        nav { background: #333; padding: 1rem; position: sticky; top: 0; z-index: 1000; overflow-x: auto; }
+        nav a { color: white; text-decoration: none; margin-right: 1.5rem; font-size: 0.95rem; display: inline-block; transition: color 0.3s; }
+        nav a:hover { color: #4da6ff; }
+        nav a.active { color: #4da6ff; border-bottom: 2px solid #4da6ff; padding-bottom: 0.5rem; }
+
+        main { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+        .page-title { text-align: center; margin: 40px 0; }
+        .page-title h2 { font-size: 2.2rem; color: #222; margin-bottom: 10px; }
+        .page-title p { font-size: 1.1rem; color: #666; }
+
+        .tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; margin: 40px 0; }
+        .tool-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: transform 0.3s, box-shadow 0.3s; }
+        .tool-card:hover { transform: translateY(-6px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+
+        .tool-header { background: linear-gradient(135deg, #0066b3 0%, #004a8d 100%); color: white; padding: 25px 20px; text-align: center; }
+        .tool-icon { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+        .tool-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 5px; }
+        .tool-subtitle { font-size: 0.9rem; opacity: 0.95; }
+
+        .tool-content { padding: 20px; }
+        .tool-desc { color: #666; margin-bottom: 15px; line-height: 1.6; font-size: 0.95rem; }
+        .tool-features { list-style: none; margin: 15px 0; }
+        .tool-features li { color: #666; margin-bottom: 8px; padding-left: 20px; position: relative; }
+        .tool-features li:before { content: "▸"; position: absolute; left: 0; color: #0066b3; font-weight: bold; }
+
+        .tool-footer { display: flex; gap: 10px; margin-top: 15px; }
+        .tool-btn { flex: 1; padding: 10px; background: #0066b3; color: white; border: none; border-radius: 6px; text-decoration: none; text-align: center; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: background 0.2s; }
+        .tool-btn:hover { background: #004a8d; }
+
+        .lang-content { display: none; }
+        .lang-content.active { display: block; }
+
+        footer { background: #222; color: #999; text-align: center; padding: 40px 20px; margin-top: 60px; }
+        .footer-links { margin-bottom: 15px; }
+        .footer-links a { color: #ccc; text-decoration: none; margin: 0 15px; transition: color 0.2s; }
+        .footer-links a:hover { color: white; }
+
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 15px; }
+            .lang-switcher { justify-content: center; }
+            h1.site-title { font-size: 1.5rem; }
+            .tool-grid { grid-template-columns: 1fr; }
+            .tool-footer { flex-direction: column; }
+            .tool-btn { width: 100%; }
+        }
+    </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-071EWB9Y0B"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-071EWB9Y0B');
+</script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1 class="site-title">Neuralworks</h1>
+            <div class="tagline">Professional iOS Apps & Creative Tools</div>
+        </div>
+        <div class="lang-switcher">
+            <button class="lang-btn active" onclick="switchLang('en')">English</button>
+            <button class="lang-btn" onclick="switchLang('zh')">中文</button>
+        </div>
+    </header>
+
+    <nav>
+        <a href="../../index.html">🏠 Home</a>
+        <a href="../../apps/">📱 Apps</a>
+        <a href="./" class="active">🛠️ Tools</a>
+        <a href="../../privacy/">🔒 Privacy</a>
+        <a href="../../about.html">ℹ️ About</a>
+        <a href="../../contact.html">📧 Contact</a>
+    </nav>
+
+    <main>
+        <!-- English Version -->
+        <div class="lang-content lang-en active">
+            <div class="page-title">
+                <h2>Useful Tools</h2>
+                <p>Free, online utilities for image processing, text conversion, and file viewing.</p>
+            </div>
+
+            <div class="tool-grid">
+                <!-- Tool 1: Cangjie Query -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">📝</span>
+                        <h3 class="tool-title">Cangjie Code Query</h3>
+                        <p class="tool-subtitle">倉頡碼查詢</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">Look up Cangjie input codes for Chinese characters. Useful for Cangjie typists.</p>
+                        <a href="../../apps/CangjieCodeQueryTool/" class="tool-btn">Open Tool</a>
+                    </div>
+                </div>
+
+                <!-- Tool 2: Cheque Converter -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">💰</span>
+                        <h3 class="tool-title">Cheque Amount Converter</h3>
+                        <p class="tool-subtitle">支票大寫轉換</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">Convert numeric amounts to written Chinese for cheques and official documents.</p>
+                        <a href="../../apps/ChequeAmountConverter/" class="tool-btn">Open Tool</a>
+                    </div>
+                </div>
+
+                <!-- Tool 3: Image Converter -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">🖼️</span>
+                        <h3 class="tool-title">Image Format Converter</h3>
+                        <p class="tool-subtitle">圖片格式轉換</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">Convert images between PNG, JPG, WebP, and other formats. Fast and browser-based.</p>
+                        <a href="../../apps/ImageConverter/" class="tool-btn">Open Tool</a>
+                    </div>
+                </div>
+
+                <!-- Tool 4: JPEG Compression -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">📦</span>
+                        <h3 class="tool-title">JPEG Compressor</h3>
+                        <p class="tool-subtitle">JPEG 壓縮</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">Compress JPEG images while maintaining quality. Reduce file size for web use.</p>
+                        <a href="../../apps/jpegSizeReducer/" class="tool-btn">Open Tool</a>
+                    </div>
+                </div>
+
+                <!-- Tool 5: Image Alignment -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">📐</span>
+                        <h3 class="tool-title">Image Alignment Tool</h3>
+                        <p class="tool-subtitle">圖片對齊工具</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">Align, crop, and position images precisely. Useful for design and layout work.</p>
+                        <a href="../../apps/ImageAlignment/" class="tool-btn">Open Tool</a>
+                    </div>
+                </div>
+
+                <!-- Tool 7: Gear Ratio Calculator -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">⚙️</span>
+                        <h3 class="tool-title">齒輪比計算工具</h3>
+                        <p class="tool-subtitle">Gear Ratio Calculator</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">為玩具工程師設計的DC馬達齒輪比計算工具。支援多級齒輪、蝸桿蝸輪及電池壽命估算。</p>
+                        <a href="../../apps/GearCalculator/" class="tool-btn">打開工具</a>
+                    </div>
+                </div>
+
+                <!-- Tool 6: STL Viewer -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">🔷</span>
+                        <h3 class="tool-title">STL Viewer</h3>
+                        <p class="tool-subtitle">STL 檢視器</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">View 3D STL files in your browser. Perfect for 3D printing and CAD models.</p>
+                        <a href="../../apps/STL/" class="tool-btn">Open Tool</a>
+                    </div>
+                </div>
+
+                <!-- Tool 8: 3D Approval Sheet Viewer -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">⬡</span>
+                        <h3 class="tool-title">3D Approval Sheet</h3>
+                        <p class="tool-subtitle">3D 審批視圖表</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">Multi-view 3D model viewer for approval sheets. Renders Front, Back, Left, Right, Top, Bottom &amp; Isometric views as a single high-resolution image. Supports GLTF, GLB, OBJ, FBX, STL, PLY, DAE, 3MF.</p>
+                        <a href="../../apps/3D-Approval/" class="tool-btn">Open Tool</a>
+                    </div>
+                </div>
+
+                <!-- Tool 9: STL Part Separator -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">🧩</span>
+                        <h3 class="tool-title">STL Part Separator</h3>
+                        <p class="tool-subtitle">STL 零件分離器</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">Automatically detect and separate disconnected parts from a single STL file. Visualize each part in 3D, then download individually or as a ZIP. Perfect for splitting multi-part 3D prints.</p>
+                        <a href="../../apps/STLPartSeparator/" class="tool-btn">Open Tool</a>
+                    </div>
+                </div>
+
+                <!-- Tool 10: Web 3D CAD -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">🧊</span>
+                        <h3 class="tool-title">Web 3D CAD</h3>
+                        <p class="tool-subtitle">網頁 3D CAD · 參數化建模</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">Browser-based parametric 3D CAD inspired by Fusion 360 — sketch, extrude/revolve, assemblies, gears &amp; mechanisms, with STL/STEP/glTF/DXF export. No install.</p>
+                        <a href="https://cad.neuralworkshk.com/" target="_blank" rel="noopener" class="tool-btn">Open Tool</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chinese Version -->
+        <div class="lang-content lang-zh">
+            <div class="page-title">
+                <h2>實用工具</h2>
+                <p>免費的在線工具，用於圖片處理、文本轉換和文件查看。</p>
+            </div>
+
+            <div class="tool-grid">
+                <!-- Tool 1: Cangjie Query -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">📝</span>
+                        <h3 class="tool-title">倉頡碼查詢</h3>
+                        <p class="tool-subtitle">Cangjie Code Query</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">查詢中文字符的倉頡輸入碼。適合倉頡打字者使用。</p>
+                        <a href="../../apps/CangjieCodeQueryTool/" class="tool-btn">打開工具</a>
+                    </div>
+                </div>
+
+                <!-- Tool 2: Cheque Converter -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">💰</span>
+                        <h3 class="tool-title">支票大寫轉換</h3>
+                        <p class="tool-subtitle">Cheque Amount Converter</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">將數字金額轉換為支票和官方文件的中文大寫形式。</p>
+                        <a href="../../apps/ChequeAmountConverter/" class="tool-btn">打開工具</a>
+                    </div>
+                </div>
+
+                <!-- Tool 3: Image Converter -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">🖼️</span>
+                        <h3 class="tool-title">圖片格式轉換</h3>
+                        <p class="tool-subtitle">Image Format Converter</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">在 PNG、JPG、WebP 等格式之間轉換圖片。快速且基於瀏覽器。</p>
+                        <a href="../../apps/ImageConverter/" class="tool-btn">打開工具</a>
+                    </div>
+                </div>
+
+                <!-- Tool 4: JPEG Compression -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">📦</span>
+                        <h3 class="tool-title">JPEG 壓縮</h3>
+                        <p class="tool-subtitle">JPEG Compressor</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">在保持品質的同時壓縮 JPEG 圖片。減少網頁使用的文件大小。</p>
+                        <a href="../../apps/jpegSizeReducer/" class="tool-btn">打開工具</a>
+                    </div>
+                </div>
+
+                <!-- Tool 5: Image Alignment -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">📐</span>
+                        <h3 class="tool-title">圖片對齊工具</h3>
+                        <p class="tool-subtitle">Image Alignment Tool</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">精確對齊、裁剪和定位圖片。適合設計和版面工作。</p>
+                        <a href="../../apps/ImageAlignment/" class="tool-btn">打開工具</a>
+                    </div>
+                </div>
+
+                <!-- Tool 7: Gear Ratio Calculator -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">⚙️</span>
+                        <h3 class="tool-title">齒輪比計算工具</h3>
+                        <p class="tool-subtitle">Gear Ratio Calculator</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">為玩具工程師設計的DC馬達齒輪比計算工具。支援多級齒輪、蝸桿蝸輪及電池壽命估算。</p>
+                        <a href="../../apps/GearCalculator/" class="tool-btn">打開工具</a>
+                    </div>
+                </div>
+
+                <!-- Tool 6: STL Viewer -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">🔷</span>
+                        <h3 class="tool-title">STL 檢視器</h3>
+                        <p class="tool-subtitle">STL Viewer</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">在瀏覽器中查看 3D STL 文件。非常適合 3D 打印和 CAD 模型。</p>
+                        <a href="../../apps/STL/" class="tool-btn">打開工具</a>
+                    </div>
+                </div>
+
+                <!-- Tool 8: 3D Approval Sheet Viewer -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">⬡</span>
+                        <h3 class="tool-title">3D 審批視圖表</h3>
+                        <p class="tool-subtitle">3D Approval Sheet</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">多視圖 3D 模型檢視器，用於製作審批視圖表。將前、後、左、右、頂、底及等距視圖渲染為一張高解像度圖片，適合迪士尼等品牌審批用途。支援 GLTF、GLB、OBJ、FBX、STL、PLY、DAE、3MF。</p>
+                        <a href="../../apps/3D-Approval/" class="tool-btn">打開工具</a>
+                    </div>
+                </div>
+
+                <!-- Tool 9: STL Part Separator -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">🧩</span>
+                        <h3 class="tool-title">STL 零件分離器</h3>
+                        <p class="tool-subtitle">STL Part Separator</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">自動偵測並分離單一 STL 檔案中的多個獨立零件。可在 3D 視窗中檢視每個零件，並單獨下載或打包成 ZIP。非常適合分離多件 3D 打印模型。</p>
+                        <a href="../../apps/STLPartSeparator/" class="tool-btn">打開工具</a>
+                    </div>
+                </div>
+
+                <!-- Tool 10: Web 3D CAD -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <span class="tool-icon">🧊</span>
+                        <h3 class="tool-title">網頁 3D CAD</h3>
+                        <p class="tool-subtitle">Web 3D CAD · 參數化建模</p>
+                    </div>
+                    <div class="tool-content">
+                        <p class="tool-desc">瀏覽器參數化 3D CAD（靈感來自 Fusion 360）—— 草圖、拉伸/旋轉、裝配、齒輪與機構，並可匯出 STL/STEP/glTF/DXF，免安裝。</p>
+                        <a href="https://cad.neuralworkshk.com/" target="_blank" rel="noopener" class="tool-btn">打開工具</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-links">
+            <a href="../../index.html">Home / 首頁</a>
+            <a href="../../about.html">About / 關於</a>
+            <a href="../../contact.html">Contact / 聯繫</a>
+            <a href="../../privacy/">Privacy / 隱私</a>
+            <a href="../../terms.html">Terms / 條款</a>
+        </div>
+        <div style="margin-top: 15px; font-size: 0.85rem;">
+            &copy; 2026 Neuralworks. All Rights Reserved.
+        </div>
+    </footer>
+
+    <script>
+        function switchLang(lang) {
+            // Update button styles
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update content visibility
+            document.querySelectorAll('.lang-content').forEach(div => div.classList.remove('active'));
+            document.querySelectorAll(`.lang-${lang}`).forEach(div => div.classList.add('active'));
+
+            // Save preference
+            localStorage.setItem('language', lang);
+        }
+
+        // Load saved language preference on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('language') || 'en';
+            const btns = document.querySelectorAll('.lang-btn');
+            btns.forEach((btn, index) => {
+                if ((savedLang === 'en' && index === 0) || (savedLang === 'zh' && index === 1)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            document.querySelectorAll('.lang-content').forEach(div => div.classList.remove('active'));
+            document.querySelectorAll(`.lang-${savedLang}`).forEach(div => div.classList.add('active'));
+        });
+    </script>
+</body>
+</html>

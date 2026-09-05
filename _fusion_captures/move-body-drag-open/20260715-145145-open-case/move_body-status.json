@@ -1,0 +1,17 @@
+{
+  "caseId": "MOVE_BODY",
+  "prepared": true,
+  "commandId": "FusionMoveCommand",
+  "selectionCount": 1,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepBody",
+        "name": "Separate Box 20mm",
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/zNQsFAwAEJDBSMgBrOMLIAsQwUTkIiZgg+Pe73de+eu+V/unTn9SnIHUIWRgrGZQqqRcbKRcUqSbmqKSbKuSXKyha5FokWqbpKlaWJaakqiiYGRMVgt0AwGNAC2z0ABbB3IehNLIwDhf9JViAAAAA=="
+      }
+    }
+  ],
+  "executeReturned": true
+}

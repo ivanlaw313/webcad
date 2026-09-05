@@ -1,0 +1,17 @@
+{
+  "caseId": "JOINT_ORIGIN_VERTEX",
+  "prepared": true,
+  "commandId": "JointOrigin",
+  "selectionCount": 1,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepVertex",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/12PQQrCMBBFPYn8CwQmyTRND6Abdy7clqbNwp2UIp6jIuJJvIJrjyBuvIWTFEGaCczj5yd/QjAgKS1dT2S8kAYnxeF5e7wvvPpcx+1yc37dxWFgHVxJIXBoVSwiK46VV1UZjOpcy+SDZROq7JU3FrOV8wg5jmGhxSNNADk6HVs9jSXbzYXiTyAcYz/EU93Hdn+IddcMDXbwUOLAGukzggnMDyiBXP0Cev55I/0AAAA="
+      }
+    }
+  ],
+  "executeReturned": true
+}

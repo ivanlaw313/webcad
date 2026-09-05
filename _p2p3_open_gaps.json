@@ -1,0 +1,715 @@
+{
+ "generated": "2026-07-07",
+ "source": "wf_cda972f5-c63 P2/P3 行为审计（91 agents, 76 confirmed / 7 refuted）+ 对照批1-11 已 ship 清单 triage",
+ "counts": {
+  "open": 57,
+  "half": 7,
+  "fixed": 12
+ },
+ "note": "triage=fixed 的条目系 cache 旧快照（审计跑喺批1-11 之前）；open 按 value 降序 = 下批优先级",
+ "gaps": [
+  {
+   "lens": "timeline-reedit",
+   "title": "雙擊時間線特徵重開【原特徵對話框】(Edit Feature)",
+   "status": "missing",
+   "gap": "Fusion：雙擊時間線任何特徵（Extrude/Fillet/Shell/Pattern…）重開該特徵嘅完整原對話框，全部字段（Profile/Start/Direction/Extent/Distance/Taper/Operation + 選擇集）還原 → 改 → OK 下游重算。webcad：雙擊只對 extrude/revolve/sweep/loft/sketch 開【草圖編輯器】（唔係特徵對話框）；prim/fillet/shell/pattern 等雙擊完全無反應；參數編輯要經時間線底部內聯條，字段係 META 表子集，同創建對話框唔係同一 UI 亦唔完整",
+   "value": 10,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "extrude",
+   "title": "Operation（Join / Cut / Intersect / New Body / New Component）",
+   "status": "partial",
+   "gap": "Fusion 五選項：Join/Cut/Intersect/New Body/New Component。webcad 只有三個，且「＋加料」語義=Join（自動 fuse 落現有實體）— 冇真「New Body」（拉伸出獨立唔合併嘅 body，多實體 workflow 核心）、冇「New Component」；Cut/Intersect 冇「Objects」選擇器揀邊啲 body 參與布爾（Fusion 可剔除某啲 body）；另 Fusion 揀 Cut 時預覽變紅 webcad 有對齊（SketchLayer.tsx:515 op 顏色）",
+   "value": 8,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "timeline-reedit",
+   "title": "Extrude 編輯字段係創建對話框子集：冇 範圍(對稱/貫通/到面)/拔模角/「相交」操作",
+   "status": "partial",
+   "gap": "用「對稱/貫通/到面/拔模角」建嘅拉伸，時間線重編輯時呢啲值唔顯示、改唔到（只能刪咗重做）；「∩相交」拉伸被選中時操作 dropdown value='intersect' 無對應 option → select 顯示成第一項「加料」— 值還原直接錯誤誤導。Fusion Edit Feature 全字段還原可改",
+   "value": 8,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "extrude",
+   "title": "Direction 字段（One Side / Two Sides / Symmetric）",
+   "status": "partial",
+   "gap": "Fusion 有獨立 Direction 下拉，其中 Two Sides = 兩側各自獨立距離 + 各自 extent type + 各自 taper，webcad 完全冇；Symmetric 喺 Fusion 係 Direction 選項且帶 Measurement 切換（Half Length / Whole Length），webcad 對稱只有「总距离」全長一種（Viewport.tsx:4316），冇半長模式；概念上 webcad 將 Symmetric 混入 Extent 按鈕組，同 Fusion 的 Direction/Extent 兩層結構唔對齊",
+   "value": 7,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "hole-thread",
+   "title": "Thread 冇全 ISO 規格表/Designation/Class/旋向：Ø 同螺距全自由數字",
+   "status": "missing",
+   "gap": "Fusion Thread 對話框 = Thread Type（ISO Metric profile 等）→ Size → Designation（M20x2.5）→ Class（6g/6H）→ Direction（Right/Left hand）。webcad 冇任何下拉表，用戶要自己識 ISO 螺距；亦冇左旋。碼內已有 fasteners.ts ISO 表（store.ts:13454-13462 threadSpecLookup 速查用緊）可直接餵 designation 下拉；左旋 = worker 螺旋掃掠反相（M 級）。",
+   "value": 7,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "hole-thread",
+   "title": "Thread 冇 Modeled/Cosmetic 開關：永遠建真牙，且結果係 compound 令下游圓角/STEP 死",
+   "status": "missing",
+   "gap": "Fusion 默認 Modeled=OFF（cosmetic 貼圖螺紋 + 元數據，工程圖/導出自動標註，B-rep 保持乾淨可繼續圓角/STEP）。webcad 唯一選項係真牙 compound，用戶包完牙成個 body 廢咗後續建模。Cosmetic 路徑 = 面上貼螺紋紋理 + feature 記 designation（渲染已有 triplanar 材質基建），可解「包牙後唔敢再改」呢個死局。",
+   "value": 7,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "pattern-mirror",
+   "title": "阵列/镜像 Object Type 覆盖 + 多选（Faces / Components / 多个 Features）",
+   "status": "partial",
+   "gap": "Fusion Object Type = Faces/Bodies/Features/Components 四种且 Objects 可多选（一次阵列几个特征/几只 body）；webcad 只有「整个活动实体」+「时间轴单一所选特征」：冇 Faces、冇 Components（对话框内）、feature 限单选。数据层 targets 已系数组 — 卡喺时间轴单选 UI，补多选（Ctrl+click chips）即解锁一大截",
+   "value": 7,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "fillet-chamfer",
+   "title": "揀中棱反饋 = 點擊處一粒橙波，唔係高亮成條棱；且無法逐條取消選擇",
+   "status": "partial",
+   "gap": "Fusion 揀邊後成條邊變藍高亮（見到 tangent chain 實際擴到邊度），再點同一條棱即取消佢。webcad：(a) 只有 click 點一粒橙點，邊解析去咗邊條棱、切線鏈擴散範圍全部睇唔到；(b) 點錯只可以 SelectionChip ✕ 全部清晒重揀；重複點同一條棱仲會加重複 pick。",
+   "value": 7,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "fillet-chamfer",
+   "title": "時間軸重編輯 fillet/chamfer 只得單一數值，唔係重開完整對話框",
+   "status": "partial",
+   "gap": "Fusion Edit Feature 重開完整對話框：可以改邊選擇、每組半徑、chamfer 類型/距離2/角度。webcad 時間軸只可以改一個標量：兩距離倒角改唔到距離2/角度/翻轉；多半徑圓角改 radius 甚至無效（worker perEdge 分支用保存嘅 radii 陣列，全局 radius 被忽略）；變徑 radius2、切線鏈、邊選擇全部鎖死。",
+   "value": 7,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "timeline-reedit",
+   "title": "Revolve 編輯：自定軸(axisV/axisOrigin)睇唔到改唔到，「繞軸」dropdown 對自定軸特徵係死掣兼顯示錯",
+   "status": "partial",
+   "gap": "用構造軸/自定軸建嘅 revolve：時間線「繞軸」dropdown fallback 顯示「Y 軸」（讀 sel.axis ?? opts[0]，axisV 唔反映），改 dropdown 寫 axis 但 worker axisV 優先 → 完全無效果（死掣）。薄壁 wall、對稱 symmetric 編輯時亦冇得改。Fusion Revolve Edit Feature 軸選擇/角度/對稱/薄壁全還原可改",
+   "value": 7,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "timeline-reedit",
+   "title": "選擇型特徵（fillet/chamfer/shell/draft）重編輯冇得重揀邊/面；多半徑 fillet 改「半徑」無效",
+   "status": "partial",
+   "gap": "Fusion Edit Feature 重開圓角/抽殼對話框時邊/面選擇集高亮還原、可增刪重揀、逐邊半徑可逐個改。webcad：選擇集完全唔可見唔可改（要刪特徵重做）；S174 多半徑圓角建好後，時間線「半徑」NumField 顯示嘅係 fallback radius，改佢對實際逐邊 radii 零作用 — 死掣；兩距倒角(cmode='two')同理只暴露 distance 一半",
+   "value": 7,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "timeline-reedit",
+   "title": "單擊 chip = 選擇 + 強制回卷到該步（Fusion 單擊只選擇高亮）",
+   "status": "partial",
+   "gap": "Fusion：單擊時間線特徵只選擇+視口高亮該特徵幾何，模型狀態唔郁；回卷只由拖 marker。webcad：想選中一個特徵改參數，模型即刻回卷到嗰步（後面特徵消失），觀感突兀且每 click 一次重建；「企喺最新狀態下編輯中段特徵」做唔到（編輯條一改 applyFeatures 又跳返最新 store.ts:7972）",
+   "value": 7,
+   "effort": "S",
+   "triage": "open"
+  },
+  {
+   "lens": "presspull-moveface",
+   "title": "Offset Face 真偏移語義（鄰面延伸重交，非棱柱 fuse/cut）",
+   "status": "partial",
+   "gap": "Fusion Offset Face 係偏移曲面後【鄰面延伸重新求交】— 拔模側壁/斜鄰面時面輪廓會隨之縮放。webcad 用棱柱擠出 fuse/cut：輪廓恆定，斜鄰面案例會出台階/凸唇而非 Fusion 結果；圓角鑲邊面同理。直立圓柱特例已對齊。需 plus 內核新 binding（BRepOffset_MakeOffset 逐面 / RemoveFaces+re-offset）。",
+   "value": 7,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "extrude",
+   "title": "Start 字段（Profile Plane / Offset / From Object）",
+   "status": "missing",
+   "gap": "Fusion Extrude 第二字段 Start 下拉：Profile Plane（默認）/ Offset Plane（輸入偏移距離，拉伸由草圖面偏移處開始）/ From Object（由揀選面/點開始）。webcad 拉伸永遠由草圖面（sketchBaseZ）起步，要偏移唯有另開 offset 構造面重畫草圖",
+   "value": 6,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "extrude",
+   "title": "畫布內操縱杆：箭頭拖改距離 + 畫布距離標籤點擊輸入",
+   "status": "partial",
+   "gap": "核心已對齊 Fusion（ghost+箭頭+inline 距離三件套）。差異：①拖拽鉗喺 ≥0.1mm 且保號（SketchLayer.tsx:917 Math.max(0.1,...)）— Fusion 可以拖過零反向（拖入實體自動變負/切除方向），webcad 反向要撳⇅或打負數；②Fusion 拖入材料會自動將 Operation 切成 Cut，webcad 唔會；③斜面（arb）草圖冇箭頭冇標籤（878、1084 !arb）、through/toface 冇操縱杆（838）；④冇拔模角球形手柄（Fusion 箭頭旁有 taper 手柄）",
+   "value": 6,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "extrude",
+   "title": "即時預覽（改字段即見）",
+   "status": "partial",
+   "gap": "Fusion 係半透明著色實體預覽（見到布爾結果）；webcad 係線框籠。具體漏洞：①extent='toface' 冇專屬分支（518-520 只處理 symmetric/through），預覽照用 extrudeHeight 畫 — 同實際到面距離唔符；②斜面（arb）草圖直接唔畫（514 return null）；③扭轉唔反映；④skSel 子集唔過濾（見 Profile 項）；⑤through 用 ±150 固定 span 示意（520）唔係實際實體範圍",
+   "value": 6,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Revolve：Profile 選擇行（對話框內可重選/多輪廓）",
+   "status": "partial",
+   "gap": "Fusion Revolve 第一欄係 Profile 選擇器：對話框開住時可以喺畫布點選/追加/取消多個 profile。webcad 喺命令啟動前就鎖定單一輪廓入 payload，對話框內無 Profile 行、無法重選、無法多輪廓一次旋轉（多 profile revolve 完全冇）。",
+   "value": 6,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "pattern-mirror",
+   "title": "路径阵列创建对话框（Distance/Quantity/Orientation/Suppress）",
+   "status": "partial",
+   "gap": "Fusion Pattern on Path 有完整对话框：Objects/Path/Distance(Extent 默认)/Quantity/Orientation(Identical|Path Direction)/Suppress；webcad 零创建对话框 — 画完 polyline 撳掣即以固定 5 副本等弧长落地，Orientation 恒 Identical 冇 Path Direction（沿路径转向），间距不可控。至少应开一个 featDlg（数量/沿路径转向勾选）",
+   "value": 6,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "shell-draft-combine",
+   "title": "Combine 默认值反 Fusion：默认 Cut + 工具体全部预勾选",
+   "status": "partial",
+   "gap": "Fusion Combine 默认 Operation=Join，Tool Bodies 初始为空、由用户喺画布逐个点选；webcad 默认 Cut + 全部工具体预勾 → 开对话框直接撳确定会一次过意外切走所有泊车体（同样操作喺 Fusion 乜都唔会发生因为未拣 tool）。工具体亦只可以喺 checkbox 列表勾，唔支持画布点体选取。修法：默认 op='fuse' + 默认全部不勾（或首个不勾）。",
+   "value": 6,
+   "effort": "S",
+   "triage": "open"
+  },
+  {
+   "lens": "timeline-reedit",
+   "title": "時間線 chip 冇右鍵菜單（Edit Feature/Edit Sketch/Suppress/Delete/回卷到此）+ 特徵冇 Rename",
+   "status": "missing",
+   "gap": "Fusion：右鍵時間線特徵 = Edit Feature/Edit Sketch/Rename/Suppress/Delete/Roll Here 全套菜單；特徵可命名（名稱喺 tooltip/瀏覽器顯示）。webcad：右鍵 chip 彈瀏覽器默認菜單；等價操作（抑制/刪除/移動/編輯草圖）藏喺選中後嘅底部編輯條（Timeline.tsx:254-261），操作語義同 Fusion 唔一致；特徵改名完全冇",
+   "value": 6,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "timeline-reedit",
+   "title": "回卷後編輯/新建：marker 位置唔保留、新特徵唔插入 marker 位（Fusion insert-at-marker）",
+   "status": "missing",
+   "gap": "Fusion：拖 marker 回卷後新建特徵會【插入 marker 位置】，下游特徵保持回卷、之後喺插入特徵之上重算；編輯特徵後 marker 留喺原位。webcad：回卷後任何編輯/新建都全樹重建並跳返最新，新特徵永遠排最尾 — 「返去中途補一個特徵」呢個 Fusion 核心工作流做唔到",
+   "value": 6,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "presspull-moveface",
+   "title": "Press Pull 統一入口（pick-time 分派：面→Offset Face／profile→Extrude／邊→Fillet）",
+   "status": "partial",
+   "gap": "Fusion Q 係入命令後【點到乜先決定】：點面=Offset Face、點 profile=Extrude、點邊=Fillet。webcad 喺撳 Q 嗰刻已定死分支 — 有未消費草圖 profile 存在時面按拉分支不可達（想移面要先完成/取消草圖）；同一 session 內冇得混合面+profile 操作。",
+   "value": 6,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "extrude",
+   "title": "Taper Angle（拔模角）",
+   "status": "partial",
+   "gap": "Fusion taper 任何草圖面都得、正負角、同 symmetric/two-sides 每側獨立、真 OCCT draft 曲面。webcad：竪直面（XZ/YZ）草圖靜默改直拉伸（只出 buildWarnings）、同扭轉互斥、凹輪廓/太斜自動退直、預覽用 bbox 縮放近似（SketchLayer.tsx:526-535）而非真偏移形狀。對話框層面字段位置同 Fusion 一致（喺 Distance 之後），存在感 OK 但幾何保真度係近似",
+   "value": 5,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Revolve：Extent Type（Angle/To/Full 三選）",
+   "status": "partial",
+   "gap": "Fusion 有顯式 Type 下拉：Full / Angle / To（旋轉到面/平面截止）。webcad 只有角度數字欄（360=Full 隱式默認，算覆蓋 Full+Angle），「To」旋轉到對象完全缺。註：To-Object 拉伸已有（S55），機制可參考但 revolve-until 要 worker 幾何工作。",
+   "value": 5,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Revolve/Sweep/Loft：Operation 缺 New Body / New Component 選項",
+   "status": "partial",
+   "gap": "Fusion 每個特徵對話框 Operation 下拉都有 Join/Cut/Intersect/New Body/New Component 五項，且無實體時默認 New Body、有實體時默認 Join。webcad 三個對話框最多得三項；「新實體」要另撳 ribbon 命令先泊車再建 — 語義有但唔喺對話框內，同 Fusion 操作路徑唔一樣。默認邏輯（hasSolid ? sketchOp : 'new'，store.ts:7628）方向啱。",
+   "value": 5,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Sweep：Profile 語義 — 默認圓截面+管徑係 Pipe 而非 Fusion Sweep",
+   "status": "partial",
+   "gap": "Fusion Sweep 的 Profile 係必選第一欄（畫布點選草圖輪廓，可多選）；圓截面+直徑係另一個命令 Pipe。webcad 默認 circle+管徑（= Pipe 語義），草圖輪廓模式隱式食「最後一個閉合輪廓」冇得揀。應：profile 模式做默認 + 加 Profile 選擇 chip；circle 模式分拆做 Pipe 命令或明確標示。",
+   "value": 5,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Loft：Profiles 有序列表 UI（逐行刪除/重排/逐行條件）",
+   "status": "partial",
+   "gap": "Fusion Loft 對話框顯示 Profiles 有序列表：每個 profile 一行，可 ✕ 移除、拖動重排、每行有連續性下拉。webcad 只顯示總數 chip；截面靠「基準Z 銀行」流程逐個加，加錯冇得喺對話框內刪單個/重排（取消對話框都保留截面 store.ts:10339）。",
+   "value": 5,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Loft：逐 profile 端條件（Connected/Direction + Takeoff Weight/Angle）",
+   "status": "partial",
+   "gap": "Fusion 每個 profile 行有獨立條件下拉（Connected / Direction，貼面時有 Tangent/Smooth）+ Takeoff Weight + Takeoff Angle，控制放樣喺【該截面】離開嘅方向同力度。webcad 係一個全局 G1/G2 選項（OCCT SetContinuity 語義 = 整體曲面連續性），冇 per-profile takeoff 方向/權重。S45 曾做「loft 端點相切」但現行 UI 只餘全局選項。",
+   "value": 5,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "hole-thread",
+   "title": "孔 Extent 缺「To」（到面/到體）；只有 貫通(All)/距離(Distance)",
+   "status": "partial",
+   "gap": "Fusion Hole Extent 下拉 = Distance / To / All 三選。webcad 拉伸已有 to-object 基建（toFacePick, store.ts:887），孔冇接。",
+   "value": 5,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "hole-thread",
+   "title": "孔類型 vs 攻牙類型冇正交組合：揀「攻牙」就冇沉頭/埋頭（Fusion 沉頭+攻牙可疊加）",
+   "status": "partial",
+   "gap": "Fusion 對話框係兩個獨立欄：Hole Type 同 Hole Tap Type，沉頭攻牙孔（cbore+tapped）好常見。webcad 五按鈕拍平成一維，做唔到組合。需要拆做兩個 state 軸再組合 commit 分支。",
+   "value": 5,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "pattern-mirror",
+   "title": "阵列实例级 Suppress（点菱形标记剔走个别实例）",
+   "status": "missing",
+   "gap": "Fusion 矩形/环形/路径阵列对话框都有 Suppress 勾选 → 画布每实例出白菱形，点击跳过该实例（改孔圈飞走一个位好常用）；webcad 完全冇，要另开切除特征代偿。需加 skip?: number[] 字段 + worker loop continue + 画布标记拾取",
+   "value": 5,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "pattern-mirror",
+   "title": "镜像 Bodies 嘅 Operation（New Body / Join）",
+   "status": "partial",
+   "gap": "Fusion 镜像 Bodies 有 Operation 下拉（New Body/Join），默认出独立新体；webcad 恒 fuse 成一件 — 镜像半边唔掂原件时都变单一 body，做「对称嘅第二只独立零件」冇门路（要靠组件级镜像绕）。需 operation 字段 + New Body 走 parked-body 路径",
+   "value": 5,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "pattern-mirror",
+   "title": "组件级阵列/镜像（Object Type = Components）",
+   "status": "partial",
+   "gap": "Fusion 同一个 Pattern/Mirror 对话框拣 Object Type=Components 即可对组件做矩形/环形阵列同任意平面镜像；webcad 组件镜像限死过原点 YZ/XY 两面（无 XZ、无构造面、无偏移），组件矩形/环形阵列完全冇 — 装配排螺栓/排脚垫要逐个 copy+move",
+   "value": 5,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "fillet-chamfer",
+   "title": "兩距離/距離+角度倒角僅支持頂/底面邊緣（refZ 平面啟發式）",
+   "status": "partial",
+   "gap": "Fusion 兩距離倒角適用任意棱（側棱、斜面棱都得），flip 切換距離1量度嘅參考面係邊條棱嘅兩個鄰面之間。webcad 參考面寫死喺 Z=refZ 嘅 XY 平面，側面棱做不對稱倒角會靜默退化成等距。",
+   "value": 5,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "shell-draft-combine",
+   "title": "Shell 方向 Inside/Outside/Both",
+   "status": "missing",
+   "gap": "Fusion Shell 有 Direction 下拉（Inside 默认 / Outside / Both），Both 时分开显示 Inside Thickness + Outside Thickness 两个数值；webcad 恒向内抽壳，无方向字段，负厚度被 UI 下限同 worker 守卫双重封死。",
+   "value": 5,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "shell-draft-combine",
+   "title": "Combine Target Body 唔可选（锁死活动实体）+ 无 New Component",
+   "status": "partial",
+   "gap": "Fusion Combine 第一步系画布点选 Target Body（任意 body 可做目标），并有 New Component checkbox；webcad 目标锁死=当前活动实体，泊车体只能做工具，想『以泊车体为目标减活动体』无任何入口（连激活/交换泊车体嘅机制都冇）。属单活动体架构性限制。",
+   "value": 5,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "shell-draft-combine",
+   "title": "Split 工具唔支持曲面切实体 + 草图刀非参数化",
+   "status": "partial",
+   "gap": "Fusion Splitting Tool 接受 平面/实体面/曲面体/草图线 且全参数化保历史；webcad 平面切参数化 OK，但草图轮廓刀（splitsketch）会烘焙死时间轴，弯曲曲面做刀切实体完全无入口（surfsurftrim 只裁曲面）。有机模切/波浪分件做唔到。",
+   "value": 5,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "presspull-moveface",
+   "title": "Move Face 旋轉模式（揀軸 + 角度）",
+   "status": "missing",
+   "gap": "Fusion Move/Copy（Faces 模式）有 Rotate：揀軸（邊/軸線）+ 角度轉面（改斜度/擺角）。webcad 只有平移向量。純特徵層可用楔形 fuse/cut 近似繞面內邊旋轉，但要對齊 Fusion 準確行為需內核 transform face + 重交。",
+   "value": 5,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Revolve：Direction（One Side/Two Sides/Symmetric + 翻向）",
+   "status": "partial",
+   "gap": "Symmetric 已有（S191 ✓）。缺：①「Two Sides」兩側各自獨立角度；②方向翻轉（Fusion 可負角/揀反向，webcad 角度鉗 1-360 無 flip 掣）。",
+   "value": 4,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Sweep：Distance（0–1 沿路徑部分掃掠）",
+   "status": "missing",
+   "gap": "Fusion Sweep 有 Distance 滑桿（0–1），控制截面沿路徑掃到幾多成。webcad 永遠掃全程；想部分掃要重畫短路徑。",
+   "value": 4,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Loft：Rails 多條 + Centerline 模式",
+   "status": "partial",
+   "gap": "Fusion Loft 的 Rails 區可加多條 rail（每條真曲線同各 profile 相交），另有 Centerline 單選（脊線模式，截面沿中心線分佈）。webcad 得 1 條「導軌」且係折線點列（點數須=截面數）— 更似簡化 spine，多 rail 同 centerline/rail 區分都缺。內核 auxiliary spine 單槽所限。",
+   "value": 4,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "hole-thread",
+   "title": "外螺紋拾面只支持 Z 軸直立圓柱；斜軸/橫軸圓柱拒絕",
+   "status": "partial",
+   "gap": "Fusion Thread 任意朝向圓柱面照包。webcad worker othread 幾何以 z0 起沿 Z 掃（cad.worker.ts:2845-2860），要支持任意軸需將牙脊掃掠沿 det.axis 變換（或先轉正-包牙-轉返）。",
+   "value": 4,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "pattern-mirror",
+   "title": "矩形阵列每方向 Direction Type（One Direction / Symmetric）",
+   "status": "missing",
+   "gap": "Fusion 每个方向可选单向/对称（对称 = 以原件为中心两边分布）；webcad 只沿 +方向单向，想对称要手动开两个阵列填负间距。实现 = commit 时把起点平移 -(n-1)/2*d 或 UI 勾选后 worker 起始索引改负",
+   "value": 4,
+   "effort": "S",
+   "triage": "open"
+  },
+  {
+   "lens": "fillet-chamfer",
+   "title": "Fillet Type 下拉（Fillet / Rule Fillet / Full Round Fillet）",
+   "status": "missing",
+   "gap": "Fusion Fillet 對話框頂部有 Type 下拉：Rule Fillet（按規則批量，如『所有邊界邊』）同 Full Round Fillet（揀3面做全圓頂）。webcad 只有普通邊圓角（filletall 算部分覆蓋 Rule 嘅『全部棱』特例，ribbon.ts:61）。Full Round 喺 OCCT 無現成 API，成本高。",
+   "value": 4,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "fillet-chamfer",
+   "title": "圓角/倒角揀『面/特徵』作選擇對象（face → 該面所有棱）",
+   "status": "missing",
+   "gap": "Fusion Fillet/Chamfer 嘅 Edges 選擇接受 邊/面/特徵 三種：點面 = 該面全部棱一齊倒。webcad 只可逐條棱點。有 faceGroups (faceId) 基建喺 mesh（cad.worker.ts:15），做 face→boundary-edges 展開係可行嘅 M 級工作。",
+   "value": 4,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "shell-draft-combine",
+   "title": "Shell 拣 Body 做全封闭空心壳（不开口抽空）",
+   "status": "missing",
+   "gap": "Fusion Shell 选择器系 Faces/Body 二态 — 拣成个 body（零开口面）= 内部掏空、全封闭壳（打印减重/浮力件常用）；webcad 冇『不开口』选项，唔拣面被强制解释成『开顶面』，永远造唔出封闭空心体。另 Fusion 有 Tangent Chain checkbox（默认开）webcad 无。",
+   "value": 4,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "shell-draft-combine",
+   "title": "Scale 对话框语义：Uniform/Non-Uniform 切换 + 默认值",
+   "status": "partial",
+   "gap": "Fusion 用 Scale Type 下拉（Uniform / Non Uniform）切换显示单一 Scale Factor（默认 1）↔ X/Y/Z 三 factor（默认各 1）；webcad 两组字段同时摆晒、非等比用『0=不缩放』非常规语义（正常理解 0=缩到零）、填咗 sx 会静默忽略上面等比字段、默认 1.5 非 Fusion 的 1。『目标最长边』系有用超集但非 Fusion 字段，应放喺 Scale Type 之后。",
+   "value": 4,
+   "effort": "S",
+   "triage": "open"
+  },
+  {
+   "lens": "timeline-reedit",
+   "title": "抑制/刪除/重排特徵（重排只有 ◀▶ 單步按鈕，冇拖拽）",
+   "status": "partial",
+   "gap": "功能齊，但 Fusion 重排 = 直接喺時間線拖特徵 chip 到新位置（跨多步一次拖）；webcad 只能選中後撳 ◀▶ 每次移一格，長時間線搬特徵好費力；另 suppress 喺 Fusion 亦可對多選特徵批量操作，webcad 單選",
+   "value": 4,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "presspull-moveface",
+   "title": "Replace Face 揀目標面語義（Source faces → Target face）",
+   "status": "partial",
+   "gap": "Fusion Replace Face = 對話框揀 Source Face(s) + Target Face（可以係另一實體/曲面嘅任意面），源面被目標曲面取代、鄰面延伸。webcad 係『打個數字沿法向削入到虛擬平面』：無目標面拾取、只能內推唔能外拉（d 被 Math.abs）、單源面、僅平面目標。操作語義同 Fusion 對話框完全兩回事 — 最少應改成拾第二張面做目標（平面版都得），距離 prompt 做 fallback。",
+   "value": 4,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Sweep：Taper Angle（角度制錐化）",
+   "status": "partial",
+   "gap": "Fusion Taper Angle 以【度】為單位、沿路徑每單位長度張開/收窄（錐角）；webcad 用【末端縮放係數】（1=不變、0.5=收半）。功能重疊但參數化唔同 — 同一模型喺 Fusion 輸入 5° 喺 webcad 要自己換算末端比例，且長路徑下兩者幾何唔等價（角度制係線性外擴，比例制係端點插值）。",
+   "value": 3,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Sweep：Orientation（Perpendicular / Parallel）",
+   "status": "missing",
+   "gap": "Fusion Sweep 有 Orientation 下拉：Perpendicular（截面垂直路徑行進，默認）/ Parallel（截面保持原平面方向平移掃）。webcad 只有 perpendicular 行為，Parallel 模式（掃斜體/平行擠出沿曲線）缺。",
+   "value": 3,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Loft：Closed（首尾截面環回閉合）",
+   "status": "missing",
+   "gap": "Fusion Loft 有 Closed checkbox：最後截面環回接第一截面成環狀體（甜甜圈/凸輪環）。webcad 完全冇此選項。OCCT ThruSections 原生支持（AddWire 首截面重複 or SetSmoothing ring），worker 加一 flag 即通。",
+   "value": 3,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "fillet-chamfer",
+   "title": "變半徑圓角中間控制點（沿棱多點半徑）",
+   "status": "partial",
+   "gap": "Fusion 變半徑圓角可以喺棱上加任意中間點（位置% + 半徑）做多段漸變，且每條棱獨立設起/末。webcad 只有全局單一 起始→末端 線性 taper，套用到所有所選棱。",
+   "value": 3,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "fillet-chamfer",
+   "title": "Chamfer 多選擇組（一個特徵內唔同組唔同距離）",
+   "status": "missing",
+   "gap": "Fusion Chamfer 同 Fillet 一樣支持多個 selection set，每組獨立距離/類型。webcad 一個 chamfer 特徵全部棱共用一個距離，要唔同距離就開多個特徵（有 workaround，痛感低）。可照抄 S174 fillet radii 模式。",
+   "value": 3,
+   "effort": "M",
+   "triage": "open"
+  },
+  {
+   "lens": "fillet-chamfer",
+   "title": "Fillet/Chamfer 對話框數值輸入唔行單位感知 LenInput（寫死 mm）",
+   "status": "partial",
+   "gap": "Fusion 所有對話框跟文檔單位（inch 模式可入分數）。webcad 其他 featDlg 已接 LenInput（S73），但 fillet/chamfer 對話框漏咗，inch 用戶喺呢度要心算 mm。內部一致性問題，改動小。",
+   "value": 3,
+   "effort": "S",
+   "triage": "open"
+  },
+  {
+   "lens": "timeline-reedit",
+   "title": "extgroup（拉伸組）時間線 chip 冇「編輯草圖」入口（editSketchOf 明明支持）",
+   "status": "partial",
+   "gap": "多輪廓一次拉伸嘅「拉伸組」特徵，喺時間線雙擊無反應、編輯條冇 ✎ 編輯草圖掣 — 用戶以為呢類特徵唔可以重開草圖；實際 store 層已支持，純 UI 條件漏咗一項",
+   "value": 3,
+   "effort": "S",
+   "triage": "open"
+  },
+  {
+   "lens": "fillet-chamfer",
+   "title": "圓角 G2（曲率連續）開關 + Radius Type: Chord Length + Corner Type (Rolling Ball/Setback)",
+   "status": "missing",
+   "gap": "Fusion Fillet 對話框有 Tangent(G1)/Curvature(G2) 切換、Chord Length 半徑類型、Corner Type（三圓角交匯頂點 Rolling Ball vs Setback）。webcad 全部冇——OCCT ChFi3d 只支持 rolling-ball G1，呢三項屬深水區低頻選項，建議最後先做。",
+   "value": 2,
+   "effort": "L",
+   "triage": "open"
+  },
+  {
+   "lens": "hole-thread",
+   "title": "孔方向永遠 -Z：唔會垂直於所揀面鑽",
+   "status": "partial",
+   "gap": "Fusion Hole 揀邊個面就沿嗰個面嘅法向鑽（側面/斜面照鑽）。webcad 點側面都係喺該 XY 由頂面垂直落，側壁孔要繞路用構造點+構造軸批量孔。單孔主流程應該用 detectFace 攞法向（threadFacePick 同款機制已存在：Viewport.tsx:492）沿法向 cut。",
+   "value": 8,
+   "effort": "L",
+   "triage": "half",
+   "shippedNote": "批1: 盲孔/沉头深度已由所拣上向面起计（holeFaceZ）；剩沿任意面法向钻（侧面/斜面）"
+  },
+  {
+   "lens": "fillet-chamfer",
+   "title": "圓角/倒角無實時預覽、無畫布內半徑拖拽操縱杆",
+   "status": "missing",
+   "gap": "Fusion 揀邊即刻顯示圓角/倒角後嘅幾何預覽，並喺棱上出拖拽箭頭可以直接拉半徑（改對話框數值預覽即時更新）。webcad 要撳「確定」做完整 rebuild 先知結果，半徑太大失敗要重來。呢個係同 Fusion 手感差距最大嘅一項。",
+   "value": 8,
+   "effort": "L",
+   "triage": "half",
+   "shippedNote": "批7: 实时预览已 ship（debounce 120ms prefix-cache rebuild + roundPreviewMesh，git 1e2e9ab）；剩画布半径拖杆（批7b，spec 有 FilletRadiusHandle design）"
+  },
+  {
+   "lens": "presspull-moveface",
+   "title": "Press Pull／移面 先選面→操縱杆/對話框→OK 流程 + 即時預覽",
+   "status": "missing",
+   "gap": "Fusion 次序 = 先拣面 → 出 Offset Face 對話框 + 面上箭頭 manipulator 可拖 → 實時 ghost 預覽 → OK 先 commit。webcad 次序倒轉：先喺 strip 打距離 → 點面即刻落 feature，無預覽、無拖桿、無確認、錯咗要 undo。呢個係三命令共用嘅最大手感落差（extrude 已有畫布操縱杆先例 task 4b-4 可參考）。",
+   "value": 8,
+   "effort": "L",
+   "triage": "half",
+   "shippedNote": "批9: 已改「点面累积→确定 commit」流程（+N面/✕/确定命令栏，git 68014e7）；剩面上箭头 manipulator + ghost 预览"
+  },
+  {
+   "lens": "extrude",
+   "title": "Profile 多選（選子集拉伸 + 對話框 chip 反映所選）",
+   "status": "partial",
+   "gap": "Fusion：對話框開住時 Profile selector 活躍，畫布點 region 逐個加/減，chip 顯示實際已選數，預覽只顯示已選。webcad：commit 確實尊重 skSel 子集，但 chip 永遠顯示全部輪廓數（唔反映子集）、ExtrudePreview 亦畫全部輪廓（用戶睇住預覽以為全拉）、chip 冇 ✕ 清空/重拣互動；region（相交曲線圍成嘅面域）只喺 commit 時自動 detectRegions（store.ts:8049-8056），唔係 Fusion 式可點選面域",
+   "value": 7,
+   "effort": "M",
+   "triage": "half",
+   "shippedNote": "批10: 相交区域画布点选已 ship（RegionPickLayer 蓝/灰 toggle，git 31e7f9f）；剩 chip 反映 skSel 子集数 + ExtrudePreview 过滤子集"
+  },
+  {
+   "lens": "extrude",
+   "title": "Extent：Distance / To Object / All",
+   "status": "partial",
+   "gap": "①「贯通」(All) 只喺 Operation=Cut 先可用 — Fusion All 對 Intersect（同 Join）都可用；且 webcad through 恆兩方向切穿（BIG 稜柱以草圖面居中），Fusion All 有方向可揀+可反向。② To Object 限制多：只支持標準面草圖（store.ts:3694 斜面拒絕）、目標面必須同草圖面平行嘅平面（Fusion 可到曲面/任意面 + Extend Face 選項）、拾到嘅係靜態 offset 數值快照（extrudeToFaceOff），非關聯引用 — 目標面後移特徵唔跟；切除硬編碼過衝 0.5mm。③ 冇 To Object 嘅 offset 欄",
+   "value": 7,
+   "effort": "M",
+   "triage": "half",
+   "shippedNote": "批4: To Object 已关联化（射线扫描重解析 + offset 栏 + detach，git index-BiqdTgJ8）；剩 ①贯通只限 Cut（Fusion 对 Intersect 都得+可反向）③斜面草图/曲面目标"
+  },
+  {
+   "lens": "extrude",
+   "title": "字段次序 + 多餘字段（Twist）",
+   "status": "partial",
+   "gap": "Operation 喺 webcad 排第 2、Fusion 排最尾（用戶肌肉記憶：Fusion 由上至下 揀輪廓→設幾何→最後定布爾）；「扭转」字段係 Fusion Extrude 對話框冇嘅嘢（Fusion 冇 twist extrude），混喺度增加噪音 — 可考慮收入進階摺疊區；「⇅反向」獨立按鈕 vs Fusion 用 Direction flip 圖標/負距離，行為等價但形式唔同",
+   "value": 4,
+   "effort": "S",
+   "triage": "half",
+   "shippedNote": "批2: Operation 已排最尾；剩 Twist 收进阶折叠区（Fusion 无此字段）"
+  },
+  {
+   "lens": "hole-thread",
+   "title": "Thread 冇 Full Length 開關/起點偏移欄：高度可改但 z0/x/y 係唯讀文字",
+   "status": "partial",
+   "gap": "Fusion Thread 有 Full Length checkbox，唔剔就出 Length+Offset 兩欄。webcad 自動填全高≈Full Length 默認，改 height 可做部分包牙，但起點 z0 鎖死喺面底，做「面中段包牙」做唔到。小修：z0 改做可編輯 input 即可。",
+   "value": 3,
+   "effort": "S",
+   "triage": "half",
+   "shippedNote": "批3 对话框化后高度可改；剩 z0 起点可编辑（面中段包牙）"
+  },
+  {
+   "lens": "hole-thread",
+   "title": "缺同心放置（Fusion At Center / 揀圓邊圓心自動對心）",
+   "status": "missing",
+   "gap": "Fusion 鑽同心孔係日常主流（揀圓柱凸台/圓邊 → 孔心鎖到圓心）。webcad 要目測點中心或者去草圖落點。可復用 detectFace 圓柱檢測（applyThreadFacePick 已示範 det.p/det.axis）：hole pick 時撞到圓柱/圓面就 snap 到軸心。",
+   "value": 8,
+   "effort": "M",
+   "triage": "fixed",
+   "shippedNote": "批3: holePickAt 收 detectFace，圆柱面 snap 轴心（At Center）"
+  },
+  {
+   "lens": "hole-thread",
+   "title": "內螺紋（ithread）入口係 appPrompt 逗號字串「8,1.25,12,0,0」，冇對話框、冇孔壁拾面",
+   "status": "partial",
+   "gap": "Fusion Thread 對內外面一視同仁：點孔內壁 → 同一個 Thread 對話框自動讀 Ø/深。webcad 用戶要手打五個逗號分隔數字兼自己知孔心座標。最小修：applyThreadFacePick 遇 concave 時改為開一個 ithread featDlg 並由 det.r/det.p/det.h0/h1 自動填 d/x/y/深度（機制同 othread 8523-8526 完全同款）。",
+   "value": 8,
+   "effort": "M",
+   "triage": "fixed",
+   "shippedNote": "批3: ithread 对话框化 + 「面加螺纹」拾孔内壁自动填 M-snap"
+  },
+  {
+   "lens": "shell-draft-combine",
+   "title": "Draft 角度/双面/翻转唔喺对话框（确定后弹文本 prompt）",
+   "status": "partial",
+   "gap": "Fusion Draft 对话框内有 Angle 数字字段 + 画布箭头 manipulator 实时预览、独立 Flip Direction 掣、Draft Sides（One Side/Two Sides/Symmetric）下拉；webcad 要撳完『确定拔模』先弹一个文本 prompt，双面要识得打『,2』暗号、翻转要打负角度、零预览。另中性面只可拾实体面（draftFaceAt 只接实体面点击 store.ts:3493-3502），Fusion 可拣构造面做 pull direction，亦无 Tangent Chain。修法：把 角度/双面下拉/Flip 三个字段搬入现有 CommandDialog，砍掉 appPrompt。",
+   "value": 8,
+   "effort": "S",
+   "triage": "fixed",
+   "shippedNote": "批3: Draft 对话框化（角度/双面/Flip 字段），git 索引 index-BbAApc0p"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Revolve：Axis 揀草圖線做軸（Fusion 最常用工作流）",
+   "status": "missing",
+   "gap": "Fusion 畫一條中心線（構造線）→ Revolve 對話框 Axis 直接點嗰條草圖線，係最常見用法。webcad 要行彎路：先用構造包整「兩點軸」再喺下拉揀，或者手填軸點+方向數字。worker 已支持任意 axisV/axisOrigin（cad.worker.ts:35），純 UI 拾取層缺。",
+   "value": 7,
+   "effort": "M",
+   "triage": "fixed",
+   "shippedNote": "已存在（另一 session）：revolve 对话框「— 揀草图线做轴 —」下拉，Viewport ~3973；本条 verify 系 cache 旧快照误报"
+  },
+  {
+   "lens": "hole-thread",
+   "title": "沉頭/埋頭尺寸不可編輯（鎖 ISO 4762/10642 表）、埋頭角固定 90°、且兩者強制貫通冇盲孔組合",
+   "status": "partial",
+   "gap": "Fusion 沉頭Ø/沉頭深、埋頭Ø/埋頭角（82/90/100/120°）全部可改，而且 cbore/csink 可配盲孔 extent。webcad 自動查表係好默認，但要俾用戶 override，同埋 cbore/csink 應該尊重 holeThrough/holeDepth。",
+   "value": 7,
+   "effort": "M",
+   "triage": "fixed",
+   "shippedNote": "批6: holeCbD/CbDepth/CsD 可覆写 + CsAngle 82/90/100/120° + 盲孔组合，git 5dd2ca0"
+  },
+  {
+   "lens": "shell-draft-combine",
+   "title": "Scale 无 Point 缩放基准点（恒绕世界原点）",
+   "status": "missing",
+   "gap": "Fusion Scale 对话框有 Point 选择器（拣顶点/草图点/原点，实体绕该点缩放）；webcad 恒绕世界原点 → 唔喺原点嘅件（分割后一半/移动过嘅体）缩放时成件漂移位置，用户预期『原地变大』实际『飞走』。修法：加 Point 字段（默认体 bbox 中心或原点）+ 3D 拾点。",
+   "value": 7,
+   "effort": "M",
+   "triage": "fixed",
+   "shippedNote": "批5: px/py/pz 基准点 + bbox 中心预填 + 构造点，git 4212f99"
+  },
+  {
+   "lens": "shell-draft-combine",
+   "title": "Split Body 无对话框：撳掣即切 Z 中面 / 拾面嗰下即 commit",
+   "status": "partial",
+   "gap": "Fusion Split Body 系一个对话框：Body to Split + Splitting Tool（面/构造面/曲面）+ Extend Splitting Tool checkbox → 画布实时预览切线 → OK 确认；webcad『分割实体』撳掣即切咗 XY 中面（要事后去时间轴改位置），『平面切』点到平面嗰下即切、冇确认冇预览，边一半留做活动体（keep:'lo'）用户拣唔到。修法：合并 splitbody/splitplane 做一个对话框（切割工具 chip + 位置/偏移字段 + 保留侧切换）。",
+   "value": 7,
+   "effort": "M",
+   "triage": "fixed",
+   "shippedNote": "批5: splitbody 对话框（轴/位置/居中/保留侧 + PICK 平面变体）"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Sweep：Type（Single Path / Path+Guide Rail）+ 導軌喺對話框內可見",
+   "status": "partial",
+   "gap": "Fusion Sweep 對話框第一欄係 Type 下拉（Single Path / Path + Guide Rail / Path + Guide Surface），揀咗 Guide Rail 就出現 Guide Rail 選擇行。webcad 導軌功能齊（worker+銀行流），但完全藏喺草圖工具欄「⤳掃掠導軌」掣，對話框內睇唔到已銀行導軌、清唔到、亦冇 Type 概念。對比 loft 對話框已有導軌 chip（Viewport.tsx:4407）— 抄過嚟即可。",
+   "value": 6,
+   "effort": "S",
+   "triage": "fixed",
+   "shippedNote": "批2: sweep 对话框导轨 chip（sweepGuide 可视可清）；Type 下拉形式未抄但功能可见"
+  },
+  {
+   "lens": "pattern-mirror",
+   "title": "镜像 Mirror Plane 画布直接点平面面（Fusion 手势）",
+   "status": "partial",
+   "gap": "Fusion 操作 = Mirror Plane selector 高亮 → 画布直接点任意平面面/构造面即选定；webcad 要先去 CONSTRUCT 造构造面先会出现喺 dropdown（世界面 + offset 数字系代偿）。任意面镜像能力有（planeN/planeO 直到 worker:1550-1554），差嘅系「点面即选」交互 — 加个 🎯拾面掣写入 planeN/planeO 即齐",
+   "value": 6,
+   "effort": "M",
+   "triage": "fixed",
+   "shippedNote": "批8: mirror 🎯拾面 → plane=PICK pickO/pickN，git 5a358d4"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Revolve/Sweep/Loft：對話框字段次序 — Operation 應排最尾",
+   "status": "partial",
+   "gap": "Fusion 三個對話框 Operation 一律最後一欄（Profile→Axis/Path→Type→參數→Operation）。webcad revolve 把 Operation 放第一、sweep/loft 放中間，肌肉記憶次序同 Fusion 相反。純 JSX 重排。",
+   "value": 4,
+   "effort": "S",
+   "triage": "fixed",
+   "shippedNote": "批2: 四个创建对话框 Operation 一律排最尾"
+  },
+  {
+   "lens": "revolve-sweep-loft",
+   "title": "Sweep：Operation 缺 ∩相交（revolve/loft 都有，sweep 冇）",
+   "status": "partial",
+   "gap": "Fusion Sweep Operation 有 Intersect。webcad worker 層 sweep op 係 BoolOp（含 intersect），淨係對話框冇個掣 — 加一個 button 即可，同 loft 對齊。",
+   "value": 4,
+   "effort": "S",
+   "triage": "fixed",
+   "shippedNote": "批2: sweep ∩ 掣 + store op coercion 放行"
+  },
+  {
+   "lens": "extrude",
+   "title": "對話框數字字段左右拖刮（Fusion/Blender 式 scrub）",
+   "status": "partial",
+   "gap": "拔模角/扭转（type=number）可拖刮，但最常用嘅「距离」字段用 LenInput（type=text 為咗分數英寸）唔入 scrub 判斷（CommandDialog.tsx:20 el.type!=='number' 即 return）— 主字段反而冇拖刮。Fusion 距離微調靠畫布箭頭+方向鍵；建議 scrub 兼容 .len-input 類 text 字段或距離改 spinner",
+   "value": 3,
+   "effort": "S",
+   "triage": "fixed",
+   "shippedNote": "批2: scrub 兼容 LenInput（type=text 纯数字先武装）"
+  }
+ ]
+}

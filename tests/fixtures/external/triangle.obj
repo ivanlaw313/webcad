@@ -1,0 +1,5 @@
+# External Blender interop probe: a 20 mm right triangle in XY.
+v 0 0 0
+v 20 0 0
+v 0 20 0
+f 1 2 3

@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Safe open-capture-cancel inventory for Fusion Design/SOLID commands",
+  "rules": {
+    "allowed": "Open a command, capture the visible state, then cancel with Escape.",
+    "excluded": "Commands that save, upload, delete, commit immediately, change materials, toggle persistent display state, or open external websites."
+  },
+  "groups": {
+    "CREATE": {
+      "commands": [
+        "Extrude",
+        "Revolve",
+        "Sweep",
+        "SolidLoft",
+        "FusionRibCommand",
+        "FusionWebCommand",
+        "EmbossCmd",
+        "FusionHoleCommand",
+        "FusionThreadCommand",
+        "PrimitiveBox",
+        "PrimitiveCylinder",
+        "PrimitiveSphere",
+        "PrimitiveTorus",
+        "PrimitiveCoil",
+        "PrimitivePipe",
+        "PatternRectangular",
+        "PatternCircular",
+        "PatternOnPath",
+        "FusionPatternGeometricCommand",
+        "MirrorCommand",
+        "FusionSurfaceThickenCommand",
+        "SurfaceSculpt",
+        "JointOrigin"
+      ],
+      "deferred": [
+        { "commandId": "SketchCreate", "reason": "changes editing context" },
+        { "commandId": "TSplineBaseFeatureCreationCommand", "reason": "changes workspace and editing context" },
+        { "commandId": "PushDeriveCommand", "reason": "cloud/source picker" },
+        { "commandId": "AutomatedModelingCommand", "reason": "cloud computation" },
+        { "commandId": "BaseFeatureCreationCommand", "reason": "changes modeling mode" }
+      ]
+    },
+    "MODIFY": {
+      "commands": [
+        "FusionPressPullCommand",
+        "FusionFilletEdgesCommand",
+        "FusionChamferCommand",
+        "FusionShellBodyCommand",
+        "FusionDraftCommand",
+        "ModifyScale",
+        "FusionCombineCommand",
+        "FusionOffsetFacesCommand",
+        "FusionReplaceFaceCommand",
+        "FusionSplitFaceCommand",
+        "FusionSplitBodyCommand",
+        "FusionPartingLineSplitCmd",
+        "FusionMoveCommand",
+        "AlignCmd",
+        "FusionRemoveFeaturesCommand",
+        "FusionRemoveFacesCommand",
+        "ReplaceWithPrimitivesCommand",
+        "VolFieldCreateLatticeCommand",
+        "ChangeParameterCommand",
+        "MaterializedBomHybridCmd"
+      ],
+      "deferred": [
+        { "commandId": "FusionDeleteCommand", "reason": "destructive immediate action" },
+        { "commandId": "SoftDeleteCommand", "reason": "destructive immediate action" },
+        { "commandId": "PhysicalMaterialCommand", "reason": "persistent material write" },
+        { "commandId": "AppearanceCommand", "reason": "persistent appearance write" },
+        { "commandId": "MaterialCommand", "reason": "material library management" },
+        { "commandId": "FusionComputeAllCommand", "reason": "immediate document recompute" }
+      ]
+    },
+    "CONSTRUCT": {
+      "commands": [
+        "CoordinateSystemCommand",
+        "ConstructionPlaneOffsetFromPlaneCommand",
+        "ConstructionPlaneAtAngleCommand",
+        "ConstructionTangentPlaneCommand",
+        "ConstructionMidPlaneCommand",
+        "ConstructionPlanePerpendicularToPlaneCommand",
+        "ConstructionPlaneFromTwoEdgesCommand",
+        "ConstructionPlaneFromThreePointsCommand",
+        "ConstructionPlaneAlongPathCommand",
+        "ConstructionAxisThroughCylinderCommand",
+        "ConstructionAxisNormalToFaceCommand",
+        "ConstructionAxisFromTwoPlanesCommand",
+        "ConstructionAxisThroughTwoPointsCommand",
+        "ConstructionAxisThroughEdgeCommand",
+        "ConstructionPointFromPointCommand",
+        "ConstructionPointThroughTwoEdgesCommand",
+        "ConstructionPointFromThreePlanesCommand",
+        "ConstructionPointFromCircleOrSphereCommand",
+        "ConstructionPointAtEdgeAndPlaneCommand",
+        "ConstructionPointAlongPathCommand"
+      ],
+      "deferred": []
+    },
+    "INSPECT": {
+      "commands": [
+        "MeasureCommand",
+        "InterferenceCheckCommand",
+        "FusionCurvatureCombAnalysisCommand",
+        "FusionZebraAnalysisCommand",
+        "FusionDraftAnalysisCommand",
+        "FusionCurvatureMapAnalysisCommand",
+        "FusionIsoCurveAnalysisCommand",
+        "FusionAccessibilityAnalysisCommand",
+        "FusionMinimumRadiusAnalysisCommand",
+        "FusionHalfSectionViewCommand",
+        "FusionCenterOfMassCommand"
+      ],
+      "deferred": [
+        { "commandId": "FusionViewColorCyclingToggleCmd", "reason": "persistent display toggle" },
+        { "commandId": "FacegroupsToggleCmd", "reason": "persistent display toggle" }
+      ]
+    },
+    "INSERT": {
+      "commands": [
+        "FusionAddEditDecalCommand",
+        "FusionAddCanvasCommand",
+        "SketchImportSVG",
+        "ImportDxfFileCommand",
+        "ParaMeshInsertAlignCommand",
+        "FusionImportCommandFromToolbar",
+        "FusionFastenersCommand",
+        "FusionDuplicateWithJointsCommand",
+        "PullDeriveCommand"
+      ],
+      "deferred": [
+        { "commandId": "InsertMcMasterCarrComponentCommand", "reason": "external website" },
+        { "commandId": "cadenasparts4cad", "reason": "external website" },
+        { "commandId": "traceparts_insert", "reason": "external website" }
+      ]
+    },
+    "ASSEMBLY": {
+      "commands": [
+        "FusionCreateNewComponentCommand",
+        "FusionDuplicateWithJointsCommand",
+        "AssemblyMateCommand",
+        "JointAssembleCmdNew",
+        "JointAsBuiltCmd",
+        "RigidGroupCmd",
+        "TransitionalRelationshipCmd",
+        "JointOrigin",
+        "FusionMoveJointsCommand",
+        "FusionMotionRelationshipCommand",
+        "FusionMotionStudyCommand",
+        "ContactSetCmd"
+      ],
+      "deferred": [
+        { "commandId": "NewAssemblyFromPartCommand", "reason": "requires save and changes document type" },
+        { "commandId": "EnableContactSetsCmd", "reason": "immediate persistent toggle" },
+        { "commandId": "EnableAllContactCmd", "reason": "immediate persistent toggle" },
+        { "commandId": "DisableAllContactCmd", "reason": "immediate persistent toggle" }
+      ]
+    }
+  }
+}

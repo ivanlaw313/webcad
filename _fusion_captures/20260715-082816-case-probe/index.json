@@ -1,0 +1,122 @@
+﻿[
+    {
+        "caseId":  "EXTRUDE_PROFILE",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\extrude_profile.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\extrude_profile-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "LOFT_PROFILES",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\loft_profiles.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\loft_profiles-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "FILLET_EDGE",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\fillet_edge.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\fillet_edge-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "CHAMFER_EDGE",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\chamfer_edge.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\chamfer_edge-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "SHELL_FACE",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\shell_face.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\shell_face-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "PRESS_PULL_FACE",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\press_pull_face.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\press_pull_face-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "DRAFT_FACE",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\draft_face.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\draft_face-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "SCALE_BODY",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\scale_body.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\scale_body-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "COMBINE_OVERLAP",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\combine_overlap.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\combine_overlap-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "OFFSET_FACE",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\offset_face.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\offset_face-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "REPLACE_FACE",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\replace_face.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\replace_face-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "MOVE_BODY",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\move_body.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\move_body-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "ALIGN_BODIES",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\align_bodies.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\align_bodies-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "RECTANGULAR_PATTERN_BODY",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\rectangular_pattern_body.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\rectangular_pattern_body-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "MIRROR_BODY_PLANE",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\mirror_body_plane.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\mirror_body_plane-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "OFFSET_PLANE_FACE",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\offset_plane_face.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\offset_plane_face-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "MEASURE_TWO_EDGES",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\measure_two_edges.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\measure_two_edges-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "INTERFERENCE_OVERLAP",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\interference_overlap.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\interference_overlap-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "SECTION_OFFSET_PLANE",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\section_offset_plane.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\section_offset_plane-status.json",
+        "statusExists":  true
+    },
+    {
+        "caseId":  "JOINT_ORIGIN_VERTEX",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\joint_origin_vertex.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-082816-case-probe\\joint_origin_vertex-status.json",
+        "statusExists":  true
+    }
+]

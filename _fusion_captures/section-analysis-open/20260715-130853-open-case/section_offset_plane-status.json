@@ -1,0 +1,17 @@
+{
+  "caseId": "SECTION_OFFSET_PLANE",
+  "prepared": true,
+  "commandId": "FusionHalfSectionViewCommand",
+  "selectionCount": 1,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::ConstructionPlane",
+        "name": "Loft Plane Lower 40mm",
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/zNQsFAwAEJDBSMgBrOMLIAsQwUTkIiZgg+Pe73de+eu+V/unTn9SnIHUIWRgrGZQqqRcbKRcUqSbmqKSbKuSXKyha5FokWqbpKlaWJaakqiiYGRMVgt0AwGNAC2z0ABbB3IehNLcwBui7gliAAAAA=="
+      }
+    }
+  ],
+  "executeReturned": true
+}

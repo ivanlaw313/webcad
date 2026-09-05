@@ -1,0 +1,25 @@
+{
+  "caseId": "RIGID_GROUP_TWO_COMPONENTS",
+  "prepared": true,
+  "commandId": "RigidGroupCmd",
+  "selectionCount": 2,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::Occurrence",
+        "name": "Fixture Component:1",
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/31OsRECMQxbgAXosoDvEttvkobmCxqWsJ1kDXqWYA12gBkYgIaGATBHz6mQTqeTlBMnTCXlQMEaqvwcScfN4bR/refL+3G/PbfXSGAiSQPJkbrB6OzA7hWq1gHWFp2jK2ekaImkdkRsuYIGAaMX0GYMQqI+Fho7o/9bWnJTXyo0NgKWKaBWFaJlmnSyqfT9/gF1Zjx+xwAAAA=="
+      }
+    },
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::Occurrence",
+        "name": "Fixture Component B:1",
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/32OvQ1CMQyEF2ABuixgKXZ+iBuaV9CwhJ/trEHPEqzBDjADA9DQMABG9Oikk3X6dL6caqKEKYeQRlz4S3o6bg6n/Ws5X96P++25vQZBqfTkVJSKreBWFarqgCHDYeUm001qphItQdKcqkYNqPCEyl4CYoK2W8XYGyLO/7+wZ5mEBczDqqDAoKyQu3FHdBTm7/YP/VARxMcAAAA="
+      }
+    }
+  ],
+  "executeReturned": true
+}

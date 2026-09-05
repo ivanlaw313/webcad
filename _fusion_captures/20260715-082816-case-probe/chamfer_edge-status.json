@@ -1,0 +1,17 @@
+{
+  "caseId": "CHAMFER_EDGE",
+  "prepared": true,
+  "commandId": "FusionChamferCommand",
+  "selectionCount": 1,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepEdge",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/22OwQ3CMAxFmQR5gUiO46bpAOXCjQPXqmkjxA0hJgEhxCSswJkREBe2wEmKRCtiS/55/rKNQIASWqrOipwoDRyJhcf1/jpz/b4cV/Pl6XkTB4GxYEv0nn2nQhFYcaicqkpPqrcdo/OGyVfJKzNmk5f2IaR1DAYILUhhoZI2tY3OZ6VbJqCYAvMDEEK/Cc0+dNtdaPr20EINDpQekmAhX4wyioGts8WMmzRyxdn/fforzOD7AJmrOJRXAQAA"
+      }
+    }
+  ],
+  "executeReturned": true
+}

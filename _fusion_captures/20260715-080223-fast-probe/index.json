@@ -1,0 +1,140 @@
+﻿[
+    {
+        "commandId":  "Extrude",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\extrude.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\extrude-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "Revolve",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\revolve.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\revolve-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "Sweep",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\sweep.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\sweep-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "SolidLoft",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\solidloft.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\solidloft-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionRibCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionribcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionribcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionWebCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionwebcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionwebcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "EmbossCmd",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\embosscmd.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\embosscmd-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionHoleCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionholecommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionholecommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionThreadCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionthreadcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionthreadcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "PrimitiveBox",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivebox.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivebox-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "PrimitiveCylinder",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivecylinder.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivecylinder-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "PrimitiveSphere",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivesphere.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivesphere-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "PrimitiveTorus",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivetorus.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivetorus-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "PrimitiveCoil",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivecoil.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivecoil-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "PrimitivePipe",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivepipe.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\primitivepipe-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "PatternRectangular",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\patternrectangular.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\patternrectangular-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "PatternCircular",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\patterncircular.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\patterncircular-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "PatternOnPath",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\patternonpath.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\patternonpath-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionPatternGeometricCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionpatterngeometriccommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionpatterngeometriccommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "MirrorCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\mirrorcommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\mirrorcommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "FusionSurfaceThickenCommand",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionsurfacethickencommand.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\fusionsurfacethickencommand-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "SurfaceSculpt",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\surfacesculpt.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\surfacesculpt-status.json",
+        "statusExists":  true
+    },
+    {
+        "commandId":  "JointOrigin",
+        "screenshot":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\jointorigin.png",
+        "status":  "C:\\ClaudeCode\\webcad\\_fusion_captures\\20260715-080223-fast-probe\\jointorigin-status.json",
+        "statusExists":  true
+    }
+]

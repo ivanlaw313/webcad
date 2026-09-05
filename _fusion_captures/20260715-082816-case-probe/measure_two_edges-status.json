@@ -1,0 +1,25 @@
+{
+  "caseId": "MEASURE_TWO_EDGES",
+  "prepared": true,
+  "commandId": "MeasureCommand",
+  "selectionCount": 2,
+  "selections": [
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepEdge",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/22OQQrCMBBFPYnMBQKTyTRND1A37ly4LU0axJ2IJ1FEPIlXcO0RxI23cJJWsMVk4P/8ecwEgQDlalHdO3LiNHBKLDyu99eZ6/fluJovT8+bEATGgi3Re/ZBxSKy4lg5VZWeVGcDo/OGyVeZlRmzycn7EPI6BgOEFkRYUimb2wZ11vyXSVBMA/MTIMRuE5t9DNtdbLr20EINDpQeimAhT0w2mSFb94gZN2lEpdn/Of01ZuA+jw6SnFcBAAA="
+      }
+    },
+    {
+      "added": true,
+      "entity": {
+        "objectType": "adsk::fusion::BRepEdge",
+        "name": null,
+        "entityToken": "/v4BAAAARlJLZXkAH4sIAAAAAAAA/22OMQ7CMAxFOQnyBSI5jpumB4CFjYG1aloLsSHESUAIcRKuwMwREAu3wEk7QNXEkn+ev+0gEKBeq9n2ioIqC5yIh+ft8b7w4nM9reer8+uuDgLnwZcYI8fWSCFsWKpgqjKS6XzLGKJjilX26ozZ6OR9CHkdgwNCD5pYqYbPZYc25/yzESjGwP0ABOm2Uh+k3e2l7ppjAwsIYOwQBEt9YpJJDGzTW9xEMQlKIs2e9rm/BvV9Acq163pXAQAA"
+      }
+    }
+  ],
+  "executeReturned": true
+}

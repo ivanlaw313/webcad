@@ -1,0 +1,1618 @@
+﻿{
+    "capturedAt":  "2026-07-17T19:16:15.7198569+08:00",
+    "fusionProcessId":  2636,
+    "fusionWindowTitle":  "Untitled - Autodesk Fusion (Education License) ",
+    "label":  "dialog-Appearance",
+    "controls":  [
+                     {
+                         "name":  "Fusion360",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory",
+                         "className":  "QTPalette",
+                         "controlType":  "ControlType.Window",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3204,
+                                        "top":  481,
+                                        "width":  630,
+                                        "height":  1099
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3204,
+                                        "top":  519,
+                                        "width":  630,
+                                        "height":  1008
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea",
+                         "className":  "QTScrollArea",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3204,
+                                        "top":  519,
+                                        "width":  630,
+                                        "height":  1008
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame",
+                         "className":  "QFrame",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3207,
+                                        "top":  519,
+                                        "width":  624,
+                                        "height":  1008
+                                    }
+                     },
+                     {
+                         "name":  "ToolbarFramework::QTView",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45",
+                         "className":  "ToolbarFramework::QTView",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3207,
+                                        "top":  519,
+                                        "width":  606,
+                                        "height":  1008
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Na::MaterialPanelWidget",
+                         "className":  "Na::MaterialPanelWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  717,
+                                        "width":  567,
+                                        "height":  168
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Na::MaterialPanelWidget.QScrollArea",
+                         "className":  "QScrollArea",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  717,
+                                        "width":  567,
+                                        "height":  168
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Na::MaterialPanelWidget.QScrollArea.qt_scrollarea_viewport",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  717,
+                                        "width":  567,
+                                        "height":  168
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Na::MaterialPanelWidget.QScrollArea.qt_scrollarea_viewport.QFrame",
+                         "className":  "QFrame",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  717,
+                                        "width":  567,
+                                        "height":  168
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Autodesk::ContentServiceUIImp::MaterialSearchBox",
+                         "className":  "Autodesk::ContentServiceUIImp::MaterialSearchBox",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  951,
+                                        "width":  567,
+                                        "height":  33
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Autodesk::ContentServiceUIImp::MaterialSearchBox.Autodesk::UICore::SearchBox",
+                         "className":  "Autodesk::UICore::SearchBox",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  951,
+                                        "width":  567,
+                                        "height":  33
+                                    }
+                     },
+                     {
+                         "name":  "mpImageControl",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Autodesk::ContentServiceUIImp::MaterialSearchBox.Autodesk::UICore::SearchBox.Autodesk::UICore::ImageLabel",
+                         "className":  "Autodesk::UICore::ImageLabel",
+                         "controlType":  "ControlType.Image",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3757,
+                                        "top":  955,
+                                        "width":  24,
+                                        "height":  24
+                                    }
+                     },
+                     {
+                         "name":  "mpTextBoxControl",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Autodesk::ContentServiceUIImp::MaterialSearchBox.Autodesk::UICore::SearchBox.Autodesk::UICore::LineEdit",
+                         "className":  "Autodesk::UICore::LineEdit",
+                         "controlType":  "ControlType.Edit",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3225,
+                                        "top":  951,
+                                        "width":  526,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Autodesk::ContentServiceUIImp::TabBar",
+                         "className":  "Autodesk::ContentServiceUIImp::TabBar",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  996,
+                                        "width":  567,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Fusion Appearances",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Autodesk::ContentServiceUIImp::TabBar.Autodesk::ContentServiceUIImp::TabButton",
+                         "className":  "Autodesk::ContentServiceUIImp::TabButton",
+                         "controlType":  "ControlType.CheckBox",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3261,
+                                        "top":  996,
+                                        "width":  168,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "My Appearances",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Autodesk::ContentServiceUIImp::TabBar.Autodesk::ContentServiceUIImp::TabButton",
+                         "className":  "Autodesk::ContentServiceUIImp::TabButton",
+                         "controlType":  "ControlType.CheckBox",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3429,
+                                        "top":  996,
+                                        "width":  174,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "Favorites",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Autodesk::ContentServiceUIImp::TabBar.Autodesk::ContentServiceUIImp::TabButton",
+                         "className":  "Autodesk::ContentServiceUIImp::TabButton",
+                         "controlType":  "ControlType.CheckBox",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3603,
+                                        "top":  996,
+                                        "width":  85,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.Autodesk::ContentServiceUIImp::TabBar.Autodesk::ContentServiceUIImp::RefreshLibraryButton",
+                         "className":  "Autodesk::ContentServiceUIImp::RefreshLibraryButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  997,
+                                        "width":  42,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "MaterialTreeView",
+                         "controlType":  "ControlType.Tree",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1101,
+                                        "width":  567,
+                                        "height":  420
+                                    }
+                     },
+                     {
+                         "name":  "Concrete",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1101,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Fabric",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1138,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Glass",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1176,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Liquid",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1213,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Metal",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1251,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Mirror",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1288,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Miscellaneous",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1326,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Other",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1363,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Paint",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1401,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Plastic",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1438,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Sitework",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1476,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "Stone",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteBackground.QTScrollArea.QFrame.CmdDg:QTView:(2)AppearanceCommandPanel-45.MaterialTreeView",
+                         "className":  "",
+                         "controlType":  "ControlType.TreeItem",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1513,
+                                        "width":  555,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteFooter",
+                         "className":  "QTPaletteFooter",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3204,
+                                        "top":  1527,
+                                        "width":  630,
+                                        "height":  54
+                                    }
+                     },
+                     {
+                         "name":  "Close",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteFooter.QTPushButton",
+                         "className":  "Nu::QTPushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3724,
+                                        "top":  1533,
+                                        "width":  91,
+                                        "height":  42
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPaletteFooter.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3214,
+                                        "top":  1542,
+                                        "width":  24,
+                                        "height":  24
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTMaskedFrame:QTCommandDialogContentPanelAppearanceDialogCategory",
+                         "className":  "QTPaletteTitleBar",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3204,
+                                        "top":  481,
+                                        "width":  630,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "APPEARANCE",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTMaskedFrame:QTCommandDialogContentPanelAppearanceDialogCategory.Name",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3241,
+                                        "top":  483,
+                                        "width":  114,
+                                        "height":  33
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTMaskedFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTMaskedFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3807,
+                                        "top":  489,
+                                        "width":  22,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTMaskedFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3217,
+                                        "top":  489,
+                                        "width":  22,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3819,
+                                        "top":  1566,
+                                        "width":  15,
+                                        "height":  15
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3204,
+                                        "top":  1566,
+                                        "width":  15,
+                                        "height":  15
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3219,
+                                        "top":  1573,
+                                        "width":  600,
+                                        "height":  7
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3204,
+                                        "top":  496,
+                                        "width":  3,
+                                        "height":  1069
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory.QTToolFrame:QTCommandDialogContentPanelAppearanceDialogCategory",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3204,
+                                        "top":  481,
+                                        "width":  15,
+                                        "height":  15
+                                    }
+                     },
+                     {
+                         "name":  "Fusion360",
+                         "automationId":  "QTApplication.Nu::QTNotificationMessage",
+                         "className":  "Nu::QTNotificationMessage",
+                         "controlType":  "ControlType.Window",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3354,
+                                        "top":  1614,
+                                        "width":  480,
+                                        "height":  147
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::QTNotificationMessage.QWidget",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3354,
+                                        "top":  1614,
+                                        "width":  480,
+                                        "height":  147
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::QTNotificationMessage.Nu::QTNotificationMessageItem",
+                         "className":  "Nu::QTNotificationMessageItem",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3369,
+                                        "top":  1632,
+                                        "width":  450,
+                                        "height":  111
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.Nu::QTNotificationMessage.Nu::QTNotificationMessageItem.QLabel",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Image",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3369,
+                                        "top":  1632,
+                                        "width":  48,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "1 warning(s)",
+                         "automationId":  "QTApplication.Nu::QTNotificationMessage.Nu::QTNotificationMessageItem.QLabel",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3432,
+                                        "top":  1632,
+                                        "width":  387,
+                                        "height":  24
+                                    }
+                     },
+                     {
+                         "name":  "Component color cycling has been disabled temporarily.",
+                         "automationId":  "QTApplication.Nu::QTNotificationMessage.Nu::QTNotificationMessageItem.QLabel",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3432,
+                                        "top":  1668,
+                                        "width":  387,
+                                        "height":  42
+                                    }
+                     },
+                     {
+                         "name":  "Fusion360",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTPalette",
+                         "controlType":  "ControlType.Window",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  1753,
+                                        "width":  450,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTMaskedFrame:ActivityFeedPalette",
+                         "className":  "QTPaletteTitleBar",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  1753,
+                                        "width":  450,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "COMMENTS",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTMaskedFrame:ActivityFeedPalette.Name",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  43,
+                                        "top":  1753,
+                                        "width":  108,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTMaskedFrame:ActivityFeedPalette.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTMaskedFrame:ActivityFeedPalette.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  420,
+                                        "top":  1761,
+                                        "width":  22,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  441,
+                                        "top":  1776,
+                                        "width":  15,
+                                        "height":  15
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  1776,
+                                        "width":  15,
+                                        "height":  15
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  21,
+                                        "top":  1783,
+                                        "width":  420,
+                                        "height":  7
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  453,
+                                        "top":  1768,
+                                        "width":  3,
+                                        "height":  7
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:ActivityFeedPalette.QTToolFrame:ActivityFeedPalette",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  441,
+                                        "top":  1753,
+                                        "width":  15,
+                                        "height":  15
+                                    }
+                     },
+                     {
+                         "name":  "Fusion360",
+                         "automationId":  "QTApplication.QTToolFrame:Browser",
+                         "className":  "QTPalette",
+                         "controlType":  "ControlType.Window",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  226,
+                                        "width":  450,
+                                        "height":  1527
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTPaletteBackground",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  264,
+                                        "width":  450,
+                                        "height":  1489
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTMaskedFrame:Browser",
+                         "className":  "QTPaletteTitleBar",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  226,
+                                        "width":  450,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "BROWSER",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTMaskedFrame:Browser.Name",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  43,
+                                        "top":  226,
+                                        "width":  94,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTMaskedFrame:Browser.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTMaskedFrame:Browser.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  10,
+                                        "top":  234,
+                                        "width":  22,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTMaskedFrame:Browser.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  420,
+                                        "top":  234,
+                                        "width":  22,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTToolFrame:Browser",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  453,
+                                        "top":  241,
+                                        "width":  3,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTToolFrame:Browser",
+                         "className":  "QTResizeHandler",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  441,
+                                        "top":  226,
+                                        "width":  15,
+                                        "height":  15
+                                    }
+                     },
+                     {
+                         "name":  "ToolbarFramework::QTView",
+                         "automationId":  "QTApplication.QTToolFrame:Browser.QTView:(3)Browser:[0]",
+                         "className":  "ToolbarFramework::QTView",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  264,
+                                        "width":  324,
+                                        "height":  226
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central",
+                         "className":  "Nu::QTMainWindowCentral",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  2052
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0",
+                         "className":  "Nu::QTMainWindow",
+                         "controlType":  "ControlType.Window",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  2052
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central",
+                         "className":  "Nu::QTMainWindowCentral",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  220,
+                                        "width":  3840,
+                                        "height":  1876
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow",
+                         "className":  "QTWorkspaceWindow",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  220,
+                                        "width":  3840,
+                                        "height":  1876
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands",
+                         "className":  "QTPalette",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  1872,
+                                        "width":  3840,
+                                        "height":  226
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTPaletteBackground",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  1909,
+                                        "width":  3840,
+                                        "height":  189
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTMaskedFrame:TextCommands",
+                         "className":  "QTPaletteTitleBar",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  1872,
+                                        "width":  3840,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "TEXT COMMANDS",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTMaskedFrame:TextCommands.Name",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  37,
+                                        "top":  1872,
+                                        "width":  157,
+                                        "height":  39
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTMaskedFrame:TextCommands.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTMaskedFrame:TextCommands.QTPushButton",
+                         "className":  "Nu::QTImageSetResourceButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  4,
+                                        "top":  1879,
+                                        "width":  22,
+                                        "height":  22
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl",
+                         "className":  "QTTextCommandControl",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3,
+                                        "top":  1905,
+                                        "width":  3834,
+                                        "height":  189
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.ctlResults",
+                         "className":  "QPlainTextEdit",
+                         "controlType":  "ControlType.Edit",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  1908,
+                                        "width":  3828,
+                                        "height":  136
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.ctlResults.qt_scrollarea_viewport",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  19,
+                                        "top":  1915,
+                                        "width":  3801,
+                                        "height":  121
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.ctlCommand",
+                         "className":  "QLineEdit",
+                         "controlType":  "ControlType.Edit",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  6,
+                                        "top":  2047,
+                                        "width":  3616,
+                                        "height":  43
+                                    }
+                     },
+                     {
+                         "name":  "Txt",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.radioTxt",
+                         "className":  "QRadioButton",
+                         "controlType":  "ControlType.RadioButton",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3625,
+                                        "top":  2050,
+                                        "width":  72,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "Py",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.radioPy",
+                         "className":  "QRadioButton",
+                         "controlType":  "ControlType.RadioButton",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3700,
+                                        "top":  2050,
+                                        "width":  66,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "Js",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTToolFrame:TextCommands.QTTextCommandControl.radioJs",
+                         "className":  "QRadioButton",
+                         "controlType":  "ControlType.RadioButton",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3769,
+                                        "top":  2050,
+                                        "width":  64,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTCanvas",
+                         "className":  "QTCanvas",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  220,
+                                        "width":  3840,
+                                        "height":  1576
+                                    }
+                     },
+                     {
+                         "name":  "ToolbarFramework::QTView",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QTCanvas.Nav:QTView:(102)NavToolbar",
+                         "className":  "ToolbarFramework::QTView",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  1741,
+                                        "top":  1753,
+                                        "width":  358,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  1797,
+                                        "width":  202,
+                                        "height":  75
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel.QtTimelinePushButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  7,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel.QtTimelinePushButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  45,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel.QtTimelinePushButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  120,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel.QtTimelinePushButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  82,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QLabel.QtTimelinePushButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  157,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QtTimelineBackgroundLabel",
+                         "className":  "Na::QtTimelineBackgroundLabel",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  201,
+                                        "top":  1797,
+                                        "width":  3577,
+                                        "height":  75
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QtTimelineBackgroundLabel.IconButton",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  213,
+                                        "top":  1815,
+                                        "width":  36,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QtTimelineBackgroundLabel.QTSliderForTimeline",
+                         "className":  "Na::QTSliderForTimeline",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  186,
+                                        "top":  1812,
+                                        "width":  3828,
+                                        "height":  300
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.QtTimelineBackgroundLabel.QTSliderForTimeline.QWidget",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  234,
+                                        "top":  1812,
+                                        "width":  3828,
+                                        "height":  120
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.SettingsBtnLabel",
+                         "className":  "QLabel",
+                         "controlType":  "ControlType.Text",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3772,
+                                        "top":  1797,
+                                        "width":  67,
+                                        "height":  75
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.MW2_0_central.Main--QTWorkspaceWindow.SettingsBtnLabel.SettingsBtn",
+                         "className":  "Na::QtTimelinePushButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3790,
+                                        "top":  1816,
+                                        "width":  37,
+                                        "height":  37
+                                    }
+                     },
+                     {
+                         "name":  "DOCKTOPNAVBAR",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2",
+                         "className":  "QTDockWidget",
+                         "controlType":  "ControlType.Window",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  171
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  171
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget",
+                         "className":  "QTDockShadowWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  171
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0",
+                         "className":  "QTApplicationBar",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  3840,
+                                        "height":  171
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QTABTabBar-0",
+                         "className":  "QTABTabBar",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  321,
+                                        "top":  45,
+                                        "width":  3249,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QTABTabBar-0.closeButton",
+                         "className":  "QTTabBarRightButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3496,
+                                        "top":  49,
+                                        "width":  24,
+                                        "height":  30
+                                    }
+                     },
+                     {
+                         "name":  "New Tab",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QTABTabBar-0.newTab",
+                         "className":  "QTNewTabButton",
+                         "controlType":  "ControlType.Custom",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3534,
+                                        "top":  51,
+                                        "width":  36,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QTABTabBar-0.newTab.newDoc",
+                         "className":  "QTIconsButton",
+                         "controlType":  "ControlType.Button",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3534,
+                                        "top":  51,
+                                        "width":  36,
+                                        "height":  36
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QATToolBar-0",
+                         "className":  "QTToolBar",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  321,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "ToolbarFramework::QTView",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QATToolBar-0.QAT:QTView:(103)QAT",
+                         "className":  "ToolbarFramework::QTView",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  45,
+                                        "width":  321,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QATRightToolBar-0",
+                         "className":  "QTToolBar",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3570,
+                                        "top":  45,
+                                        "width":  270,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "ToolbarFramework::QTView",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.QATRightToolBar-0.QAT:QTView:(103)QATRight",
+                         "className":  "ToolbarFramework::QTView",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  3570,
+                                        "top":  45,
+                                        "width":  270,
+                                        "height":  48
+                                    }
+                     },
+                     {
+                         "name":  "ToolbarFramework::QTView",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.TopNavBar_2_widgetwrapper.TopNavBar_2_widget.QTApplicationBar-0.CMD:QTView:(104)FusionAssetType",
+                         "className":  "ToolbarFramework::QTView",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  0,
+                                        "top":  93,
+                                        "width":  3840,
+                                        "height":  130
+                                    }
+                     },
+                     {
+                         "name":  "",
+                         "automationId":  "QTApplication.MW1_0.MW1_0_central.MW2_0.TopNavBar_2.QWidget",
+                         "className":  "QWidget",
+                         "controlType":  "ControlType.Group",
+                         "isEnabled":  true,
+                         "isOffscreen":  false,
+                         "bounds":  {
+                                        "left":  Infinity,
+                                        "top":  Infinity,
+                                        "width":  -Infinity,
+                                        "height":  -Infinity
+                                    }
+                     }
+                 ]
+}

@@ -3747,9 +3747,9 @@ export default function Viewport() {
   // docked defaults, but let the user move each panel out of the way.
   // Keep three independent bottom lanes: properties/status above navigation,
   // navigation above the timeline.  Users can still drag any HUD elsewhere.
-  const navDrag = useDraggable('webcad-navigation-v2', { left: '50%', bottom: 8, transform: 'translateX(-50%)' })
+  const navDrag = useDraggable('webcad-navigation-v2', { left: '50%', bottom: 44, transform: 'translateX(-50%)' })
   const propsDrag = useDraggable('webcad-properties', { left: 12, bottom: 172 })
-  const statusDrag = useDraggable('webcad-status-v2', { right: 12, bottom: 50 })
+  const statusDrag = useDraggable('webcad-status-v2', { right: 12, bottom: 86 })
   const [navAdvanced, setNavAdvanced] = useState(false)
   const [navHudCollapsed, setNavHudCollapsed] = useState(false)
   // Fusion keeps detailed physical properties out of the modelling canvas until the user asks for them.

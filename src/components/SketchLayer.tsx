@@ -261,7 +261,7 @@ export function CameraRig() {
     if (mode !== 'sketch') (camera as unknown as { clearViewOffset?: () => void }).clearViewOffset?.()
     // GM-FP4 #1：只喺【离散重新取景事件】（入草图 / 换平面 / 换基准Z / 换对焦面 / Look At）先做 tween；
     // 净系画咗个形（profiles/refGeo 变）唔 tween（否则画图时相机不停郁）。记低 orient key 比对。
-    const orientKey = `${camera.uuid}|${viewSize.width}x${viewSize.height}|${mode}|${plane}|${baseZ}|${arb ? `${arb.o.join(',')}|${arb.n.join(',')}` : '-'}|${lookAtNonce}|${focus ? 'F' : '-'}`
+    const orientKey = `${camera.uuid}|${mode === 'sketch' ? `${viewSize.width}x${viewSize.height}` : ''}|${mode}|${plane}|${baseZ}|${arb ? `${arb.o.join(',')}|${arb.n.join(',')}` : '-'}|${lookAtNonce}|${focus ? 'F' : '-'}`
     // 用户实战 bug（入草图停喺 45°）：由 model 跳入 sketch 嗰下【一定】要重新正对，唔可以净靠 orientKey 差异
     //   （旧 key 可能残留令 isReorient=false → 相机唔郁 → 卡喺入草图前嘅斜视角）。
     const justEnteredSketch = mode === 'sketch' && !_prevSketchMode
@@ -362,7 +362,7 @@ export function CameraRig() {
       if (oc.isOrthographicCamera) {
         // Reserve the tool palette, top command bar and bottom navigation/status.
         const w = oc.right - oc.left, h = oc.top - oc.bottom
-        const left = Math.min(260, w * .32), top = 76, bottom = 90
+        const left = Math.min(260, w * .32), top = 76, bottom = 126
         const view = camera as unknown as { setViewOffset: (w:number,h:number,x:number,y:number,vw:number,vh:number)=>void }
         view.setViewOffset(w, h, -left / 2, (bottom - top) / 2, w, h)
         const fr = Math.max(40, Math.min(w - left - 160, h - top - bottom - 90)) / 2

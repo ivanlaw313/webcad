@@ -219,7 +219,9 @@ export function CameraRig() {
   const focus = useApp((s) => s.sketchFocus)
   const bodyMesh = useApp((s) => s.bodyMesh)   // GM-W6 C2：冇对焦面时用实体 bbox 定相机距离
   const profiles = useApp((s) => s.sketchProfiles)   // GM-W7 7.2：重开草图时框住已有轮廓
+  const currentShape = useApp(s => s.sketchShape)
   const refGeo = useApp((s) => s.skRefGeo)           // GM-W7 7.2：框住投影参考几何 bbox
+  const viewSize = useThree(s => s.size)
   const lookAtNonce = useApp((s) => s.skLookAtNonce) // GM-FP1 #9：Look At bump → 重新正对草图平面
   const camera = useThree((s) => s.camera)
   const gl = useThree((s) => s.gl)
@@ -256,9 +258,10 @@ export function CameraRig() {
   // store 订阅系纯 JS，mode 一转即刻同步执行，无 React 时序依赖）。
   useEffect(() => {
     if (!controls) return
+    if (mode !== 'sketch') (camera as unknown as { clearViewOffset?: () => void }).clearViewOffset?.()
     // GM-FP4 #1：只喺【离散重新取景事件】（入草图 / 换平面 / 换基准Z / 换对焦面 / Look At）先做 tween；
     // 净系画咗个形（profiles/refGeo 变）唔 tween（否则画图时相机不停郁）。记低 orient key 比对。
-    const orientKey = `${mode}|${plane}|${baseZ}|${arb ? `${arb.o.join(',')}|${arb.n.join(',')}` : '-'}|${lookAtNonce}|${focus ? 'F' : '-'}`
+    const orientKey = `${camera.uuid}|${viewSize.width}x${viewSize.height}|${mode}|${plane}|${baseZ}|${arb ? `${arb.o.join(',')}|${arb.n.join(',')}` : '-'}|${lookAtNonce}|${focus ? 'F' : '-'}`
     // 用户实战 bug（入草图停喺 45°）：由 model 跳入 sketch 嗰下【一定】要重新正对，唔可以净靠 orientKey 差异
     //   （旧 key 可能残留令 isReorient=false → 相机唔郁 → 卡喺入草图前嘅斜视角）。
     const justEnteredSketch = mode === 'sketch' && !_prevSketchMode
@@ -273,6 +276,10 @@ export function CameraRig() {
     // Fusion 铁律：画图期间相机纹丝不动 —— 只有离散取景事件（入草图/换面/换基准/对焦/LookAt/出草图）先郁相机。
     if (!isReorient) return
     // 捕捉旧视角（tween 起点）— 喺覆写相机之前。
+    if (mode === 'sketch' && !arb) {
+      if (plane === 'XY') camera.up.set(0, 0, -1)
+      else camera.up.set(0, 1, 0)
+    } else if (mode !== 'sketch') camera.up.set(0, 1, 0)
     const fromPos = camera.position.clone()
     const ctv = controls as unknown as { target: { x: number; y: number; z: number } }
     const fromTgt = new Vector3(ctv.target.x, ctv.target.y, ctv.target.z)
@@ -297,14 +304,16 @@ export function CameraRig() {
       (span != null && isFinite(span) && span > 0) ? Math.max(1.6 * span, 120) : fallback
     // GM-W7 7.2：入草图取景【内容跨度】= max(已有草图轮廓 bbox, 投影参考 refGeo bbox)，喺草图面 [s,t] 度量。
     // 覆盖重开草图（框住轮廓）同投影几何（框住参考线）；空草图 → null 回落 bodyDiag / focus.size / 原距。
+    let sketchCenter: Pt | null = null
     const inPlaneSpan = (): number | null => {
       let mn0 = Infinity, mn1 = Infinity, mx0 = -Infinity, mx1 = -Infinity
       const acc = (p: Pt) => { if (p[0] < mn0) mn0 = p[0]; if (p[0] > mx0) mx0 = p[0]; if (p[1] < mn1) mn1 = p[1]; if (p[1] > mx1) mx1 = p[1] }
       // 用户实战 bug：构造几何（尤其 cline ±10000 参考线）唔应该驱动取景 —— Fusion 参考线唔影响 view。
       // 剔走 construction 后冇嘢剩 → null 回落 focus/bodyDiag/默认（同空草图一致）。
-      for (const sh of profiles) { if ((sh as { construction?: boolean }).construction) continue; for (const p of shapeLoop2D(sh)) acc(p) }
+      for (const sh of [...profiles, ...(currentShape ? [currentShape] : [])]) { if ((sh as { construction?: boolean }).construction) continue; for (const p of shapeLoop2D(sh)) acc(p) }
       if (refGeo) { for (const q of refGeo.pts) acc(q); for (const [a, b] of refGeo.segs) { acc(a); acc(b) } }
       if (!isFinite(mn0)) return null
+      sketchCenter = [(mn0 + mx0) / 2, (mn1 + mx1) / 2]
       const span = Math.max(mx0 - mn0, mx1 - mn1)
       return span > 1e-6 ? span : null
     }
@@ -339,6 +348,11 @@ export function CameraRig() {
       dir.setLength(distFrom(fitSpan, dir.length()))
       camera.position.set(tgt[0] + dir.x, tgt[1] + dir.y, tgt[2] + dir.z)
       controls.target.set(tgt[0], tgt[1], tgt[2])
+      if (sketchCenter) {
+        const centered = SK[plane].lift(sketchCenter, baseZ)
+        camera.position.add(new Vector3(centered[0] - tgt[0], centered[1] - tgt[1], centered[2] - tgt[2]))
+        controls.target.set(...centered)
+      }
     } else { camera.position.set(originX + 240, 190, 270); controls.target.set(originX, 20, 0) }
     // GM-W7 7.2/7.3：正交相机靠 zoom 取景（唔系距离）。跨度 span → 半径 span/2 → zoom = 半帧/(半径·1.15)（+15% 裕度，
     // 同 FitView 公式一致）。drei OrthographicCamera 默认 frustum = 画布像素 → right-left / top-bottom 即画布宽高。
@@ -346,7 +360,12 @@ export function CameraRig() {
     if (mode === 'sketch') {
       const oc = camera as unknown as { isOrthographicCamera?: boolean; left: number; right: number; top: number; bottom: number; zoom: number; updateProjectionMatrix: () => void }
       if (oc.isOrthographicCamera) {
-        const fr = Math.min(oc.right - oc.left, oc.top - oc.bottom) / 2
+        // Reserve the tool palette, top command bar and bottom navigation/status.
+        const w = oc.right - oc.left, h = oc.top - oc.bottom
+        const left = Math.min(260, w * .32), top = 76, bottom = 90
+        const view = camera as unknown as { setViewOffset: (w:number,h:number,x:number,y:number,vw:number,vh:number)=>void }
+        view.setViewOffset(w, h, -left / 2, (bottom - top) / 2, w, h)
+        const fr = Math.max(40, Math.min(w - left - 160, h - top - bottom - 90)) / 2
         const r = (fitSpan != null && isFinite(fitSpan) && fitSpan > 0 ? fitSpan : 120) / 2
         if (fr > 0 && r > 0) { oc.zoom = fr / (r * 1.15); oc.updateProjectionMatrix() }
       }
@@ -372,7 +391,7 @@ export function CameraRig() {
         setTimeout(() => { if (_camTween && _camTween.t0 === t0) _endCamTween(cc) }, 340 + 260)
       } else if (_camTween) { cc.enabled = _camTween.prevEnabled; _camTween = null }   // 即时正对：清走任何残留（旧 LookAt）tween，但【唔硬落地去旧 goal】—— 相机已喺新入草图 goal，还原 controls 即可
     }
-  }, [mode, baseZ, originX, plane, arb, focus, controls, camera, bodyMesh, profiles, refGeo, lookAtNonce])   // GM-FP1 #9：lookAtNonce 变 → 重新正对
+  }, [mode, baseZ, originX, plane, arb, focus, controls, camera, bodyMesh, profiles, currentShape, refGeo, lookAtNonce, viewSize.width, viewSize.height])   // GM-FP1 #9：lookAtNonce 变 → 重新正对
   return null
 }
 
@@ -2177,6 +2196,7 @@ function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], sh
       if (!constraints.some(c=>c.kind==='dim'&&!c.driven&&c.type==='len'&&c.a.kind==='edge'&&c.a.shape===(target==='shape'?profiles.length:target)&&c.a.idx%2===0)) out.push({ key: k + 'w', anchor: lift([(a0 + b0) / 2, ylo]), pxOff: [0, 18], text: dimFmtU(Math.abs(b0 - a0), unit), edit: { target, dim: 'w', value: Math.abs(b0 - a0) } })
       if (!constraints.some(c=>c.kind==='dim'&&!c.driven&&c.type==='len'&&c.a.kind==='edge'&&c.a.shape===(target==='shape'?profiles.length:target)&&c.a.idx%2===1)) out.push({ key: k + 'h', anchor: lift([xlo, (a1 + b1) / 2]), pxOff: [-22, 0], text: dimFmtU(Math.abs(b1 - a1), unit), edit: { target, dim: 'h', value: Math.abs(b1 - a1) } })
     } else if (sh.type === 'circle') {
+      if (constraints.some(c => c.kind === 'dim' && !c.driven && (c.type === 'dia' || c.type === 'rad') && c.a.kind === 'circle' && c.a.shape === (target === 'shape' ? profiles.length : target))) return
       if (sh.point) return  // 草图点（r=0 构造点）唔出 Ø 标签 — 中心要畀人点
       // Ø 标签喺圆外 45°（Fusion 同款）— 圆心留返畀拾取
       out.push({ key: k + 'd', anchor: lift([sh.c[0] + sh.r * Math.SQRT1_2, sh.c[1] + sh.r * Math.SQRT1_2]), pxOff: [16, -16], text: 'Ø' + dimFmtU(sh.r * 2, unit), edit: { target, dim: 'd', value: sh.r * 2 } })
@@ -2474,7 +2494,7 @@ export function FitView() {
   const bodyMesh = useApp((s) => s.bodyMesh)
   const components = useApp((s) => s.components)
   useEffect(() => {
-    if (fitNonce === 0 || !controls) return
+    if (fitNonce === 0 || !controls || useApp.getState().mode === 'sketch') return
     // P2 Inspect：显式 bbox 请求（requestFitBBox）→ 直接框佢，唔行组件扫描
     if (fitBBox) {
       if (fitNonce === lastBBoxNonce.current) return   // 已消费过呢次 bump（effect 因 deps 重跑）→ 唔好重框 stale 盒
@@ -2541,6 +2561,7 @@ export function ViewRig() {
   const controls = useThree((s) => s.controls) as unknown as
     | { target: { set: (x: number, y: number, z: number) => void }; update: () => void }
     | null
+  const lastViewNonce = useRef(0)
   const viewNonce = useApp((s) => s.viewNonce)
   const view = useApp((s) => s.view)
   const bodyMesh = useApp((s) => s.bodyMesh)
@@ -2548,6 +2569,8 @@ export function ViewRig() {
   const fourBar = useApp((s) => s.fourBar)
   useEffect(() => {
     if (viewNonce === 0 || !controls) return
+    if (useApp.getState().mode === 'sketch' && lastViewNonce.current === viewNonce) return
+    lastViewNonce.current = viewNonce
     // GM-W8 β2-#49：镜 FitView 嘅 {mesh, off=pos, !hidden} 累加 —— 计各组件摆位、跳过隐藏件（旧版用裸 mesh → 装配取景框歪）
     const parts: { mesh: MeshData; off: [number, number, number] }[] = [
       ...components.filter((c) => !c.hidden).map((c) => ({ mesh: c.mesh, off: c.pos })),

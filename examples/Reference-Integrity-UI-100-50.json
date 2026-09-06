@@ -1,0 +1,268 @@
+{
+  "app": "webcad",
+  "version": 4,
+  "features": [
+    {
+      "id": "F1",
+      "type": "sketch",
+      "sketchId": "sk1"
+    }
+  ],
+  "components": [],
+  "componentDefs": [],
+  "joints": [],
+  "motionLinks": [],
+  "mates": [],
+  "jointOrigins": [],
+  "rigidGroups": [],
+  "contactPairs": [],
+  "fourBar": null,
+  "sliderCrank": null,
+  "projectName": "Reference-Integrity-UI-100-50",
+  "grounded": null,
+  "bodyColor": "#4a7296",
+  "material": {
+    "metalness": 0.18,
+    "roughness": 0.5,
+    "opacity": 1
+  },
+  "bodyDensity": 2.7,
+  "originX": 0,
+  "planes": [],
+  "cpoints": [],
+  "caxes": [],
+  "ccurves": [],
+  "viewBookmarks": [],
+  "jointPoses": [],
+  "jointKeyframes": [],
+  "bgPreset": "",
+  "edgeDisplay": "on",
+  "suppressedIds": [],
+  "params": [],
+  "paramBindings": {},
+  "configs": [],
+  "activeConfig": null,
+  "unit": "mm",
+  "bedPreset": 0,
+  "customBed": null,
+  "visualStyle": "shadedVisible",
+  "hiddenEdges": false,
+  "cameraProj": "persp",
+  "unitPreset": "mm_g",
+  "massUnit": "g",
+  "sketchSources": {
+    "sk1": {
+      "shapes": [
+        {
+          "type": "rect",
+          "a": [
+            0,
+            0
+          ],
+          "b": [
+            100,
+            50
+          ]
+        },
+        {
+          "type": "rect",
+          "a": [
+            -78.61558082289658,
+            5
+          ],
+          "b": [
+            -28.61558082289658,
+            25
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "id": "k1",
+          "kind": "con",
+          "type": "h",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 0
+          }
+        },
+        {
+          "id": "k2",
+          "kind": "con",
+          "type": "v",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 1
+          }
+        },
+        {
+          "id": "k3",
+          "kind": "con",
+          "type": "h",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 2
+          }
+        },
+        {
+          "id": "k4",
+          "kind": "con",
+          "type": "v",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 3
+          }
+        },
+        {
+          "id": "k5",
+          "kind": "con",
+          "type": "coincident",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          }
+        },
+        {
+          "id": "k6",
+          "kind": "dim",
+          "type": "len",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 0
+          },
+          "value": 100,
+          "name": "d1"
+        },
+        {
+          "id": "k7",
+          "kind": "dim",
+          "type": "len",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 1
+          },
+          "value": 50,
+          "name": "d2",
+          "expr": "d1/2",
+          "refs": {
+            "d1": "dimension:k6"
+          }
+        },
+        {
+          "id": "k8",
+          "kind": "con",
+          "type": "h",
+          "a": {
+            "kind": "edge",
+            "shape": 1,
+            "idx": 0
+          }
+        },
+        {
+          "id": "k9",
+          "kind": "con",
+          "type": "v",
+          "a": {
+            "kind": "edge",
+            "shape": 1,
+            "idx": 1
+          }
+        },
+        {
+          "id": "k10",
+          "kind": "con",
+          "type": "h",
+          "a": {
+            "kind": "edge",
+            "shape": 1,
+            "idx": 2
+          }
+        },
+        {
+          "id": "k11",
+          "kind": "con",
+          "type": "v",
+          "a": {
+            "kind": "edge",
+            "shape": 1,
+            "idx": 3
+          }
+        },
+        {
+          "id": "k12",
+          "kind": "dim",
+          "type": "len",
+          "a": {
+            "kind": "edge",
+            "shape": 1,
+            "idx": 0
+          },
+          "value": 50,
+          "name": "d3",
+          "expr": "d1/2",
+          "refs": {
+            "d1": "dimension:k6"
+          }
+        },
+        {
+          "id": "k13",
+          "kind": "dim",
+          "type": "len",
+          "a": {
+            "kind": "edge",
+            "shape": 1,
+            "idx": 1
+          },
+          "value": 20,
+          "name": "d4"
+        }
+      ],
+      "plane": "XY",
+      "baseZ": 0,
+      "op": "new",
+      "height": 0,
+      "visible": true
+    }
+  },
+  "drawingAnno": {
+    "manualDims": {},
+    "manualRDims": {},
+    "manualADims": {},
+    "manualDatums": {},
+    "manualFCF": {},
+    "manualNotes": {},
+    "details": {},
+    "ordinates": {},
+    "scale": "1:1",
+    "drawnBy": "",
+    "genTol": "",
+    "materialTxt": "",
+    "firstAngle": false,
+    "gbFrame": false,
+    "sheet": "A4",
+    "autoTolOn": false,
+    "autoTol": 0.1,
+    "showHidden": true,
+    "showCallouts": true
+  },
+  "groups": [],
+  "faceColors": {},
+  "compXY": 0,
+  "compShrink": 1,
+  "renderMode": false,
+  "hdriPreset": "",
+  "hdriIntensity": 1,
+  "hdriRotation": 0,
+  "groundShadow": false,
+  "decals": []
+}

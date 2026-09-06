@@ -732,3 +732,6 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .ribbon-tab.active:not(.ctx) { border-bottom-color: var(--accent); }
 .tree-row:hover { background: var(--hover); }
 .panel-label:hover, .tl-panel-head, .tl-panel-count { color: var(--text-dim); }
+
+/* Keep default status in its bottom dock; full text remains available on hover. */
+.vp-badge:not(.vp-hud-dragged) .vp-status-message { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 420px; }

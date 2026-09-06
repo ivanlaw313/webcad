@@ -3747,9 +3747,9 @@ export default function Viewport() {
   // docked defaults, but let the user move each panel out of the way.
   // Keep three independent bottom lanes: properties/status above navigation,
   // navigation above the timeline.  Users can still drag any HUD elsewhere.
-  const navDrag = useDraggable('webcad-navigation', { left: '50%', bottom: 120, transform: 'translateX(-50%)' })
+  const navDrag = useDraggable('webcad-navigation-v2', { left: '50%', bottom: 8, transform: 'translateX(-50%)' })
   const propsDrag = useDraggable('webcad-properties', { left: 12, bottom: 172 })
-  const statusDrag = useDraggable('webcad-status', { right: 12, bottom: 172 })
+  const statusDrag = useDraggable('webcad-status-v2', { right: 12, bottom: 50 })
   const [navAdvanced, setNavAdvanced] = useState(false)
   const [navHudCollapsed, setNavHudCollapsed] = useState(false)
   // Fusion keeps detailed physical properties out of the modelling canvas until the user asks for them.
@@ -8119,7 +8119,7 @@ export default function Viewport() {
           <div style={{ fontSize: 11, marginTop: 8, opacity: 0.65 }}>{tStatus('悬停任何工具睇说明　·　需要帮助撳右上 ?　·　按 / 搜索命令', lang)}</div>
         </div>
       )}
-      <div ref={statusDrag.ref} className={'vp-badge' + (statusDrag.isDragged ? ' vp-hud-dragged' : '') + (statusHudCollapsed ? ' vp-hud-collapsed' : '')} style={statusDrag.style}><span className="vp-hud-handle" onPointerDown={statusDrag.onPointerDown} title={tStatus('拖動狀態提示', lang)}>⋮⋮</span><button className="vp-hud-collapse" type="button" title={statusHudCollapsed ? tStatus('展開狀態提示', lang) : tStatus('收合狀態提示', lang)} onClick={() => setStatusHudCollapsed((v) => !v)}>{statusHudCollapsed ? '⌃' : '–'}</button>{statusDrag.isDragged && <button className="vp-hud-reset" type="button" title={tStatus('還原狀態提示預設位置', lang)} onClick={statusDrag.reset}>↺</button>}<span className="vp-status-message">{tStatus(status, lang)}</span></div>
+      <div ref={statusDrag.ref} className={'vp-badge' + (statusDrag.isDragged ? ' vp-hud-dragged' : '') + (statusHudCollapsed ? ' vp-hud-collapsed' : '')} style={statusDrag.style}><span className="vp-hud-handle" onPointerDown={statusDrag.onPointerDown} title={tStatus('拖動狀態提示', lang)}>⋮⋮</span><button className="vp-hud-collapse" type="button" title={statusHudCollapsed ? tStatus('展開狀態提示', lang) : tStatus('收合狀態提示', lang)} onClick={() => setStatusHudCollapsed((v) => !v)}>{statusHudCollapsed ? '⌃' : '–'}</button>{statusDrag.isDragged && <button className="vp-hud-reset" type="button" title={tStatus('還原狀態提示預設位置', lang)} onClick={statusDrag.reset}>↺</button>}<span className="vp-status-message" title={tStatus(status, lang)}>{tStatus(status, lang)}</span></div>
       <InterfClearChip />
       <FormPanel />
       <QuiltPickPanel />

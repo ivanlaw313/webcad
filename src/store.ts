@@ -1,3 +1,4 @@
+import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { lengthScale } from './io/units'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
@@ -1573,6 +1574,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   autoConstrain: boolean                   // GM-FP2 #33：绘制时自动推断（H/V/重合/平行…）开关，默认开（Fusion palette 有 toggle）
   setAutoConstrain: (on: boolean) => void
   toggleConstruction: () => void           // 构造几何切换（Fusion X）：选中 shape ⇄ 虚线参考几何
+  skMutationError: string | null
   skDeleteSel: () => void                  // Delete：选中点→删顶点 / 选中边/圆→删轮廓（约束重映射）
   // 选择工具拖拽点：欠约束几何实时跟手（planegcs coordinate 钉住光标，约束实时满足 — Fusion 拖拽）
   // grab = 圆周抓取偏移（T740：揸住圆嘅圆周拖 = 拖圆心 + 保持抓点相对位置，Fusion 同款手感）
@@ -4074,7 +4076,23 @@ export function extrudeFeatsFromShapes(shapes: SketchShape[], src: SkSourceParam
 // GM-FP2 #34：tool-first 施约束状态提示用嘅约束中文名（施约束武装态 / 拣对象提示）
 const SK_CON_ZH: Record<SkConType, string> = { h: '水平', v: '竖直', coincident: '重合', parallel: '平行', perp: '垂直', equal: '相等', tangent: '相切', fix: '固定', midpoint: '中点', concentric: '同心', collinear: '共线', symmetric: '对称' }
 
-export const useApp = create<AppState>((set, get) => ({
+export const useApp = create<AppState>((rawSet, get) => {
+  // Every internal sketch write shares this transaction boundary, including
+  // Delete, vertex deletion, Trim, Break and Boolean constraint filtering.
+  const set = (update: Partial<AppState> | ((state: AppState) => Partial<AppState>)) => rawSet(state => {
+    const patch = typeof update === 'function' ? update(state) : update
+    const editing = state.mode === 'sketch' && (patch.mode ?? state.mode) === 'sketch'
+    const geometryWrite = 'skCons' in patch || 'sketchProfiles' in patch || 'sketchShape' in patch
+    if (editing && geometryWrite) {
+      const errors = sketchReferenceErrors(patch.skCons ?? state.skCons, patch.params ?? state.params)
+      if (errors.length) return { skMutationError: `修改已拒绝：尺寸引用失效 — ${errors.join('；')}`, status: `修改已拒绝：尺寸引用失效 — ${errors.join('；')}` }
+      return { ...patch, skMutationError: null }
+    }
+    if (geometryWrite) return { ...patch, skMutationError: null }
+    return patch
+  })
+  return ({
+  skMutationError: null,
   activeTab: 'SOLID',
   setActiveTab: (t) => set({ activeTab: t }),
   teachHi: null,
@@ -6125,7 +6143,6 @@ export const useApp = create<AppState>((set, get) => ({
         const dropped = s.skCons.length - ncons.length
         // GM-FP3 #38 拖扫：一次拖动多删合并成一步 undo — sweep 内第一次成功先推 pristine 快照，其后唔推。
         const undoPatch = (!_skTrimSweep || !_skTrimPushed) ? { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [] } : {}
-        if (_skTrimSweep) _skTrimPushed = true
         set({
           ...undoPatch,
           sketchProfiles: [...shapes.filter((_, j) => j !== i), ...parts], sketchShape: null, skSel: [], skCons: ncons, toolPreview: null,   // S158：清悬停红色 ghost（否则将删段虚线会留喺已删位置直到下次郁鼠标）
@@ -6133,6 +6150,7 @@ export const useApp = create<AppState>((set, get) => ({
             ? `已删除成条轮廓（同其它几何冇相交）${dropped ? ` · ${dropped} 个相关约束已移除` : ''}（Ctrl+Z 可还原）`
             : `已修剪到相交点（剩 ${parts.length} 段${parts.some((q) => q.type === 'poly' && q.open) ? '，开放路径唔参与拉伸 — 可继续剪/延伸/做扫掠路径' : ''}）${dropped ? ` · ${dropped} 个相关约束已移除` : ''}（Ctrl+Z 可还原）`,
         })
+        if (_skTrimSweep && !get().skMutationError) _skTrimPushed = true
         void get().resolveSk()
         return
       }
@@ -7146,6 +7164,9 @@ export const useApp = create<AppState>((set, get) => ({
   },
   resolveSk: async (opts) => {
     const s = get()
+    if (s.skMutationError) { set({status:s.skMutationError}); return }
+    const referenceErrors = sketchReferenceErrors(s.skCons, s.params)
+    if (referenceErrors.length) { set({skDof:null,skConflict:true,status:`尺寸引用失效：${referenceErrors.join('；')}`}); return }
     if (!s.skCons.length) { set({ skDof: null, skConflict: false, skFreeShapes: new Set() }); return }
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
     const solvedCons = withParamVals(s.skCons, s.params)
@@ -10723,7 +10744,7 @@ export const useApp = create<AppState>((set, get) => ({
   fitTargetId: null,
   lastBuildWarnings: [],
   dismissBuildWarnings: () => set({ lastBuildWarnings: [] }),
-  requestFit: (id) => set((s) => ({ fitNonce: s.fitNonce + 1, fitTargetId: id ?? null, fitBBox: null })),
+  requestFit: (id) => set((s) => s.mode === 'sketch' ? { skLookAtNonce: s.skLookAtNonce + 1 } : { fitNonce: s.fitNonce + 1, fitTargetId: id ?? null, fitBBox: null }),
   fitBBox: null,
   requestFitBBox: (min, max) => set((s) => ({ fitNonce: s.fitNonce + 1, fitTargetId: null, fitBBox: { min, max } })),
   // Timeline scrub: rebuild the model with only the first n active features (view history without
@@ -16994,6 +17015,8 @@ export const useApp = create<AppState>((set, get) => ({
   },
   // 还原历史快照：同 restoreAutosave 同一 payload 形状（buildProjectPayload）。
   applySnapshot: async (data) => {
+    const errors = documentReferenceErrors(data)
+    if(errors.length) {set({status:`快照引用失效：${errors.join('；')}`});return}
     const d = data as Record<string, unknown> & { features?: Feature[] }
     if (!d || typeof d !== 'object') { set({ status: '快照数据无效' }); return }
     const feats0: Feature[] = (Array.isArray(d.features) ? d.features : []).map((f: Feature) => ({ ...f }))
@@ -17626,6 +17649,8 @@ export const useApp = create<AppState>((set, get) => ({
     const s = get()
     // v2: persist the FULL document. T746：复用 buildProjectPayload（单一真相）— 以前手砌一份并行 payload，
     // 字段一多就甩漏（实锤：save 写咗 mates 但 open 冇还原 → .json 往返丢配合）。
+    const errors = [...documentReferenceErrors(s), ...(s.mode === 'sketch' ? sketchReferenceErrors(s.skCons,s.params) : [])]
+    if(errors.length) {set({status:`保存失败：尺寸引用失效 — ${errors.join('；')}`});return}
     const data = JSON.stringify({ ...buildProjectPayload(s) }, null, 2)   // GM-X4 ⑤：app/version 由 buildProjectPayload 提供（首二键，字节一致）— 去除被覆盖嘅重复字面量
     triggerDownload(new TextEncoder().encode(data), `${projName(s.projectName)}.json`, 'application/json')
     set({ status: `已保存项目（${s.components.length} 组件 · ${s.joints.length} 关节 · ${s.features.length} 特征）` })
@@ -17650,6 +17675,8 @@ export const useApp = create<AppState>((set, get) => ({
   // T797：共用还原 — 文件 open 同分享链接都行呢条（单一真相，避免两份 schema 漂移）。
   applyProjectData: async (data, statusVerb = '已打开项目') => {
     // GM-W8 β1-#39：先验证係咪 webcad 项目 — 唔係就拒,唔郁现有模型（以前任何 JSON 都当成功并清空）。
+    const referenceErrors = documentReferenceErrors(data)
+    if (referenceErrors.length) { set({status:`打开失败：尺寸引用失效 — ${referenceErrors.join('；')}；现有模型未动`}); return }
     if (!looksLikeWebcadDoc(data)) { set({ status: '唔似係 webcad 项目文件 — 未打开（现有模型未动）' }); return }
     // GM-W8 β1-#41：现有模型有内容 → 先确认再覆盖（撤销栈会清,救唔返）。分享链接开页时模型仲系空 → 呢度自然唔弹（cur 为空）。
     const cur = get()
@@ -17781,6 +17808,8 @@ export const useApp = create<AppState>((set, get) => ({
         }
       }
       if (!data) return
+      const referenceErrors = documentReferenceErrors(data)
+      if(referenceErrors.length) {set({status:`自动存档引用失效：${referenceErrors.join('；')}`});return}
       const feats0: Feature[] = (Array.isArray(data.features) ? data.features : []).map((f: Feature) => ({ ...f }))
       bumpFid(feats0)  // ids are kept (paramBindings/suppressedIds reference them) → counter must skip past
       const comps = Array.isArray(data.components) ? data.components : []
@@ -19987,7 +20016,7 @@ export const useApp = create<AppState>((set, get) => ({
     triggerDownload(new TextEncoder().encode(rep), `${projName(get().projectName)}-工程分析.txt`, 'text/plain')
     set({ status: '已导出工程分析报告 .txt' })
   },
-}))
+})})
 
 // Kernel self-heal status: surface worker restarts (wasm abort → terminate + respawn + replay) to the user.
 onKernelRestart((msg) => useApp.setState({ status: msg, busy: false }))
@@ -20299,6 +20328,8 @@ function hydrateX2View(d: Record<string, unknown>): Partial<AppState> {
 
 // Single source of truth for the project payload (autosave / IDB version history / restore all share it).
 export function buildProjectPayload(s: AppState) {
+  const errors = [...documentReferenceErrors(s), ...(s.mode === 'sketch' ? sketchReferenceErrors(s.skCons,s.params) : [])]
+  if(errors.length) throw new Error(`存档引用失效：${errors.join('；')}`)
   // R2 data-safety（三管齐下防静默丢档）：
   //  (b) 回收孤儿 def —— 只序列化仍被某 occurrence 引用嘅 def（detach/delete 后无引用嘅 def 唔再落盘，否则其 mesh 撑爆配额）。
   //  (a) 剥 def-linked occurrence 嘅 mesh —— 同一几何原本 occ.mesh + def.mesh 存两次（~2x 体积）。有 defId 且其 def 会带 mesh 落盘者，
@@ -20339,6 +20370,8 @@ if (typeof window !== 'undefined') {
     if (s.busy) return
     clearTimeout(saveTimer)
     clearTimeout(idbTimer)
+    // Invalid references must not replace or delete the last valid autosave.
+    if (documentReferenceErrors(s).length || (s.mode === 'sketch' && sketchReferenceErrors(s.skCons, s.params).length)) return
     saveTimer = setTimeout(() => {
       try { localStorage.setItem('webcad-autosave', JSON.stringify(buildProjectPayload(s))) } catch { try { localStorage.removeItem('webcad-autosave') } catch { /* ignore */ } }   // R2：配额溢出 → 清除 stale localStorage，令 restoreAutosave 的 if(!data) 正确 fallthrough 到更新嘅 IDB 快照（否则读到旧 stale 存档静默丢工作）
     }, 800)

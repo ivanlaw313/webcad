@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../store'
 import { useDraggable } from './useDraggable'
+import { parameterUsage } from '../cad/parameterUsage'
 
 // Parse a design-table value list: "3,4,5,6" (comma/space) OR "3:1:6" range (start:step:stop). Dedupes.
 function parseVals(s: string): number[] {
@@ -34,6 +35,10 @@ export default function ParamsPanel() {
   const open = useApp((s) => s.paramsOpen)
   const params = useApp((s) => s.params)
   const bindings = useApp((s) => s.paramBindings)
+  const sources = useApp(s => s.sketchSources)
+  const features = useApp(s => s.features)
+  const live = useApp(s => s.skCons)
+  const mode = useApp(s => s.mode)
   const addParam = useApp((s) => s.addParam)
   const setParam = useApp((s) => s.setParam)
   const setParamExpr = useApp((s) => s.setParamExpr)
@@ -55,7 +60,7 @@ export default function ParamsPanel() {
   const panelDrag = useDraggable('webcad-parameters', { left: 14, top: 128 })
   if (!open) return null
   if (collapsed) return <button ref={panelDrag.ref} className={'params-pill' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} type="button" style={panelDrag.style} onPointerDown={panelDrag.onPointerDown} title="展開用戶參數面板" onClick={() => { if (panelDrag.consumeClick()) return; setCollapsed(false) }}>ƒx 參數 ▸</button>
-  const usedBy = (pname: string) => Object.values(bindings).filter((n) => n === pname).length
+  const usedBy = parameterUsage(params, sources, bindings, features, mode === 'sketch' ? live : [])
   return (
     <div ref={panelDrag.ref} className={'params-panel' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} style={panelDrag.style}>
       <div className="pp-title" onPointerDown={panelDrag.onPointerDown} style={{ cursor: 'grab', userSelect: 'none' }}><span className="vp-hud-handle" title="拖動參數面板">⋮⋮</span>用户参数 <span className="pp-x" title="收合面板" onClick={() => setCollapsed(true)}>▾</span><span className="pp-x" onClick={() => toggle()}>✕</span></div>
@@ -67,7 +72,7 @@ export default function ParamsPanel() {
           <span className="pp-name">{p.name}</span>
           <ParameterValue name={p.name} value={p.value} disabled={busy || !!p.expr} onCommit={n => void setParam(p.name,n)} />
           <input key={`${p.name}:${p.expr ?? ""}`} className="pp-expr" disabled={busy} aria-label={`参数 ${p.name} 表达式`} placeholder="=表达式" defaultValue={p.expr ?? ''} title="如 d1*2、宽度+10、sqrt(d1*d1+d2*d2)、sin(30)、pi*r*r、max(壁厚,2)（三角函数用角度；常量 pi·e·tau；单参数 sqrt·sin·cos·tan·asin·acos·atan·round·floor·ceil·abs·sign·ln·log·log2·exp；双参数 min·max·pow·hypot·mod·atan2）" onBlur={(e) => { if ((e.target.value || '') !== (p.expr ?? '')) void setParamExpr(p.name, e.target.value) }} />
-          <span className="pp-used" title="被多少个尺寸引用">×{usedBy(p.name)}</span>
+          <span className="pp-used" title={`直接／间接引用：${usedBy(p).join("；") || "无"}`}>×{usedBy(p).length}</span>
           <span className="pp-del" title="删除参数" onClick={() => void removeParam(p.name)}>🗑</span>
         </div>
       ))}

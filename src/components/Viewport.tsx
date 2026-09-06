@@ -4550,7 +4550,7 @@ export default function Viewport() {
         <WheelZoom maxDistance={camMaxDist} />
 
         <GizmoHelper alignment="top-right" margin={[78, 92]}>
-          <GizmoViewcube color="#e3e9ef" textColor="#33404d" strokeColor="#8c99a6" hoverColor="#cdeafb" />
+          <GizmoViewcube faces={['+X', '−X', '+Z', '−Z', '−Y', '+Y']} color="#e3e9ef" textColor="#33404d" strokeColor="#8c99a6" hoverColor="#cdeafb" />
         </GizmoHelper>
       </Canvas>
 
@@ -7738,7 +7738,7 @@ export default function Viewport() {
           <button className={'tb-btn' + (navPop === 'views' ? ' tb-on' : '')} title={tStatus('视图书签：存当前任意视角起名，一键跳返（Fusion Named Views）', lang)} onClick={() => setNavPop(navPop === 'views' ? null : 'views')}>📑▾</button>
           {navPop === 'views' && (
             <div className="panel-menu" style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 6, zIndex: 120, minWidth: 150, maxHeight: 280, overflowY: 'auto' }}>
-              <div className="panel-menu-item" title={tStatus('捕捉当前相机位置/朝向存为书签', lang)} onClick={() => { const cap = (window as unknown as { __captureView?: () => { pos: [number, number, number]; target: [number, number, number] } }).__captureView; if (!cap) { setNavPop(null); return } const v = cap(); const name = window.prompt(tStatus('视图书签名', lang), `视图${viewBookmarks.length + 1}`); if (name == null) return; useApp.getState().saveViewBookmark(name.trim() || `视图${viewBookmarks.length + 1}`, v.pos, v.target); setNavPop(null) }}>{tStatus('➕ 存当前视图', lang)}</div>
+              <div className="panel-menu-item" title={tStatus('捕捉当前相机位置/朝向存为书签', lang)} onClick={async () => { const cap = (window as unknown as { __captureView?: () => import('../cad/viewBookmark').ViewCapture }).__captureView; if (!cap) { setNavPop(null); return } const v = cap(); const name = await useApp.getState().appPrompt(tStatus('视图书签名', lang), `视图${viewBookmarks.length + 1}`, tStatus('命名视图', lang)); if (name == null) return; useApp.getState().saveViewBookmark(name.trim() || `视图${viewBookmarks.length + 1}`, v.pos, v.target, v); setNavPop(null) }}>{tStatus('➕ 存当前视图', lang)}</div>
               {viewBookmarks.length === 0 && <div className="panel-menu-item" style={{ color: '#8a97a2', cursor: 'default' }}>{tStatus('（未有书签）', lang)}</div>}
               {viewBookmarks.map((b, i) => (
                 <div key={'VBM' + i} className="panel-menu-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }} title={tStatus('点跳到此视图', lang)} onClick={() => { useApp.getState().applyViewBookmark(i); setNavPop(null) }}>

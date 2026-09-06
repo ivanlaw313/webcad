@@ -1,3 +1,4 @@
+import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad/viewBookmark'
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { lengthScale } from './io/units'
@@ -1942,10 +1943,10 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   edgeDisplay: 'on' | 'off'
   setEdgeDisplay: (v: 'on' | 'off') => void
   // 相机书签（视图书签 / Named Views，Fusion 同款）：捕捉任意 orbit（pos+target）存名，一键跳返。纯 three.js/zustand 无内核。
-  viewBookmarks: { name: string; pos: [number, number, number]; target: [number, number, number] }[]
-  pendingBookmarkApply: { pos: [number, number, number]; target: [number, number, number] } | null  // BookmarkRig 消费：要套用嘅 pos/target
+  viewBookmarks: ViewBookmark[]
+  pendingBookmarkApply: ViewCapture | null  // BookmarkRig 消费：要套用嘅 pos/target
   bookmarkApplyNonce: number                                                                          // bump → BookmarkRig effect 触发（相机唔喺 store，靠 nonce 推）
-  saveViewBookmark: (name: string, pos: [number, number, number], target: [number, number, number]) => void
+  saveViewBookmark: (name: string, pos: [number, number, number], target: [number, number, number], capture?: Partial<ViewCapture>) => void
   applyViewBookmark: (i: number) => void
   deleteViewBookmark: (i: number) => void
   section: { on: boolean; axis: 'X' | 'Y' | 'Z'; offset: number; capped: boolean; flip: boolean; plane?: { origin: [number, number, number]; normal: [number, number, number]; label?: string; sourceIndex?: number } }
@@ -3020,8 +3021,7 @@ function sanitizeMaterial(m: unknown): AppState['material'] {
   return { ...src, metalness: clamp(src.metalness, 0.18), roughness: clamp(src.roughness, 0.5) } as AppState['material']
 }
 function sanitizeBookmarks(a: unknown): AppState['viewBookmarks'] {
-  const fin = (x: unknown) => typeof x === 'number' && Number.isFinite(x)
-  return (Array.isArray(a) ? a : []).filter((b: any) => b && typeof b === 'object' && Array.isArray(b.pos) && Array.isArray(b.target) && b.pos.length === 3 && b.target.length === 3 && b.pos.every(fin) && b.target.every(fin)) as AppState['viewBookmarks']
+  return (Array.isArray(a) ? a : []).map(sanitizeViewBookmark).filter((b): b is ViewBookmark => b !== null)
 }
 // 捕捉位置存档守门：丢弃非对象 / vals 缺失嘅条目，每个 DOF 只收有限数（NaN/Infinity 关节值会污染 round-trip 姿态）。
 function sanitizeJointPoses(a: unknown): AppState['jointPoses'] {
@@ -3314,6 +3314,14 @@ export function arc3(p0: Pt, p1: Pt, pm: Pt, seg = 24): Pt[] {
 }
 
 // Overwrite feature fields that are bound to a user parameter with the param's value.
+// Keep editable sketch planes at the same placement as their rebuilt, parameter-bound extrusions.
+function synchronizeSketchPlacement(sources: AppState['sketchSources'], features: Feature[]): AppState['sketchSources'] {
+  return Object.fromEntries(Object.entries(sources).map(([id, src]) => {
+    const f = features.find(f => f.type === 'extrude' && f.sketchId === id)
+    return [id, f?.type === 'extrude' ? { ...src, baseZ: f.baseZ ?? 0, height: f.height, ...(f.arbPlane ? {arb: structuredClone(f.arbPlane)} : {}) } : src]
+  }))
+}
+
 function applyParamBindings(features: Feature[], params: Parameter[], bindings: Record<string, string>): Feature[] {
   features = features.map(f => {
     if (f.type !== 'extrude' || !f.distanceExpression) return f
@@ -3340,7 +3348,8 @@ function applyParamBindings(features: Feature[], params: Parameter[], bindings: 
         // one-level nested path, e.g. "profile.r" — clone the sub-object so shared feature state isn't mutated
         const parent = field.slice(0, dot), child = field.slice(dot + 1)
         const sub = (nf as Record<string, unknown>)[parent]
-        if (sub && typeof sub === 'object') nf = { ...nf, [parent]: { ...(sub as object), [child]: val } } as Feature
+        if (Array.isArray(sub) && /^(0|1|2)$/.test(child)) { const copy = [...sub]; copy[Number(child)] = val; nf = { ...nf, [parent]: copy } as Feature }
+        else if (sub && typeof sub === 'object' && !Array.isArray(sub)) nf = { ...nf, [parent]: { ...(sub as object), [child]: val } } as Feature
       }
     }
     return nf
@@ -10786,11 +10795,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   viewBookmarks: [],
   pendingBookmarkApply: null,
   bookmarkApplyNonce: 0,
-  saveViewBookmark: (name, pos, target) => set((s) => {
-    if (![pos[0], pos[1], pos[2], target[0], target[1], target[2]].every(Number.isFinite)) return { status: '保存视图书签失败：相机位置无效（NaN/Infinity）' }   // battle-test-2 #2：唔好把损坏相机存入存档(否则 round-trip 永久污染)
-    return { viewBookmarks: [...s.viewBookmarks, { name: name || `视图${s.viewBookmarks.length + 1}`, pos: [pos[0], pos[1], pos[2]], target: [target[0], target[1], target[2]] }] }
+  saveViewBookmark: (name, pos, target, capture) => set((s) => {
+    const b = sanitizeViewBookmark({ ...capture, name: name || `视图${s.viewBookmarks.length + 1}`, pos, target })
+    if (!b) return { status: '保存视图书签失败：相机位置无效（NaN/Infinity）' }
+    return { viewBookmarks: [...s.viewBookmarks, b] }
   }),
-  applyViewBookmark: (i) => set((s) => { const b = s.viewBookmarks[i]; if (!b) return {}; return { pendingBookmarkApply: { pos: [b.pos[0], b.pos[1], b.pos[2]], target: [b.target[0], b.target[1], b.target[2]] }, bookmarkApplyNonce: s.bookmarkApplyNonce + 1 } }),
+  applyViewBookmark: (i) => set((s) => {
+    const b = sanitizeViewBookmark(s.viewBookmarks[i]); if (!b) return {}
+    return { pendingBookmarkApply: b, bookmarkApplyNonce: s.bookmarkApplyNonce + 1,
+      ...(b.projection ? {cameraProj: b.projection, cameraOrtho: b.projection === 'ortho'} : {}) }
+  }),
   deleteViewBookmark: (i) => set((s) => ({ viewBookmarks: s.viewBookmarks.filter((_, k) => k !== i) })),
   section: { on: false, axis: 'X', offset: 0, capped: false, flip: false },
   setSection: (patch) => {
@@ -16648,7 +16662,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const r = await get().applyParamSketches()
     if (r) {
       const ok = await get().applyFeatures(r.feats, `参数 ${name} = ${value} — 已联动重建（${r.n} 个草图重解）${r.note ? '　' + r.note : ''}`, true, undefined, _pd)
-      if (ok) set((s) => ({ sketchSources: { ...s.sketchSources, ...r.srcs } }))
+      if (ok) set((s) => ({ sketchSources: synchronizeSketchPlacement({ ...s.sketchSources, ...r.srcs }, s.features) }))
     } else {
       await get().applyFeatures(get().features, `参数 ${name} = ${value} — 已联动重建`, true, undefined, _pd)
     }
@@ -16667,7 +16681,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const r = await get().applyParamSketches()
     if (r) {
       const ok = await get().applyFeatures(r.feats, msg + `（${r.n} 个草图重解）${r.note ? '　' + r.note : ''}`, true, undefined, _pd)
-      if (ok) set((s) => ({ sketchSources: { ...s.sketchSources, ...r.srcs } }))
+      if (ok) set((s) => ({ sketchSources: synchronizeSketchPlacement({ ...s.sketchSources, ...r.srcs }, s.features) }))
     } else {
       await get().applyFeatures(get().features, msg, true, undefined, _pd)
     }

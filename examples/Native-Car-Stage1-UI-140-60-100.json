@@ -1,0 +1,1610 @@
+{
+  "app": "webcad",
+  "version": 4,
+  "features": [
+    {
+      "id": "F1",
+      "type": "extrude",
+      "profile": {
+        "kind": "circle",
+        "c": [
+          -70,
+          30
+        ],
+        "r": 30
+      },
+      "height": 8,
+      "operation": "new",
+      "baseZ": 50,
+      "plane": "XZ",
+      "sketchId": "sk1"
+    },
+    {
+      "id": "F2",
+      "type": "extrude",
+      "profile": {
+        "kind": "circle",
+        "c": [
+          -70,
+          30
+        ],
+        "r": 21
+      },
+      "height": 8,
+      "operation": "cut",
+      "baseZ": 50,
+      "plane": "XZ",
+      "sketchId": "sk1"
+    },
+    {
+      "id": "F3",
+      "type": "extrude",
+      "profile": {
+        "kind": "circle",
+        "c": [
+          -70,
+          30
+        ],
+        "r": 9
+      },
+      "height": 8,
+      "operation": "new",
+      "baseZ": 50,
+      "plane": "XZ",
+      "sketchId": "sk1"
+    },
+    {
+      "id": "F4",
+      "type": "extrude",
+      "profile": {
+        "kind": "rect",
+        "a": [
+          -70,
+          30
+        ],
+        "b": [
+          -43.6,
+          34
+        ]
+      },
+      "height": 8,
+      "operation": "new",
+      "baseZ": 50,
+      "plane": "XZ",
+      "sketchId": "sk2"
+    },
+    {
+      "id": "F5",
+      "type": "circPattern",
+      "targets": [
+        "F4"
+      ],
+      "origin": [
+        -70,
+        0,
+        30
+      ],
+      "dir": [
+        0,
+        1,
+        0
+      ],
+      "count": 5,
+      "totalAngle": 360,
+      "mode": "full"
+    },
+    {
+      "id": "F6",
+      "type": "mirror",
+      "plane": "XZ",
+      "offset": 0
+    },
+    {
+      "id": "F7",
+      "type": "pattern",
+      "countX": 2,
+      "countY": 1,
+      "dx": 140,
+      "dy": 0
+    },
+    {
+      "id": "F8",
+      "type": "extrude",
+      "profile": {
+        "kind": "poly",
+        "pts": [
+          [
+            -88,
+            21
+          ],
+          [
+            88,
+            21
+          ],
+          [
+            88,
+            51
+          ],
+          [
+            35,
+            60
+          ],
+          [
+            -35,
+            60
+          ],
+          [
+            -88,
+            42
+          ]
+        ]
+      },
+      "height": 80,
+      "operation": "new",
+      "baseZ": 40,
+      "plane": "XZ",
+      "sketchId": "sk3"
+    },
+    {
+      "id": "F9",
+      "type": "extrude",
+      "profile": {
+        "kind": "circle",
+        "c": [
+          -70,
+          30
+        ],
+        "r": 32
+      },
+      "height": 80,
+      "operation": "cut",
+      "baseZ": 40,
+      "plane": "XZ",
+      "sketchId": "sk4"
+    },
+    {
+      "id": "F10",
+      "type": "extrude",
+      "profile": {
+        "kind": "circle",
+        "c": [
+          70,
+          30
+        ],
+        "r": 32
+      },
+      "height": 80,
+      "operation": "cut",
+      "baseZ": 40,
+      "plane": "XZ",
+      "sketchId": "sk4"
+    },
+    {
+      "id": "F11",
+      "type": "extrude",
+      "profile": {
+        "kind": "poly",
+        "pts": [
+          [
+            -35,
+            54
+          ],
+          [
+            -16.8,
+            81
+          ],
+          [
+            30.8,
+            81
+          ],
+          [
+            56,
+            54
+          ]
+        ]
+      },
+      "height": 60,
+      "operation": "join",
+      "baseZ": 30,
+      "plane": "XZ",
+      "sketchId": "sk5"
+    },
+    {
+      "id": "F12",
+      "type": "extrude",
+      "profile": {
+        "kind": "poly",
+        "pts": [
+          [
+            -26.6,
+            61.2
+          ],
+          [
+            -12.6,
+            75
+          ],
+          [
+            26.6,
+            75
+          ],
+          [
+            40.599999999999994,
+            61.2
+          ]
+        ]
+      },
+      "height": 60,
+      "operation": "cut",
+      "baseZ": 30,
+      "plane": "XZ",
+      "sketchId": "sk6"
+    }
+  ],
+  "components": [],
+  "componentDefs": [],
+  "joints": [],
+  "motionLinks": [],
+  "mates": [],
+  "jointOrigins": [],
+  "rigidGroups": [],
+  "contactPairs": [],
+  "fourBar": null,
+  "sliderCrank": null,
+  "projectName": "Native-Car-Stage1-INCOMPLETE",
+  "grounded": null,
+  "bodyColor": "#4a7296",
+  "material": {
+    "metalness": 0.18,
+    "roughness": 0.5
+  },
+  "bodyDensity": 2.7,
+  "originX": 0,
+  "planes": [],
+  "cpoints": [],
+  "caxes": [],
+  "ccurves": [],
+  "viewBookmarks": [
+    {
+      "name": "Front (-X)",
+      "pos": [
+        -340,
+        30,
+        0
+      ],
+      "target": [
+        0,
+        30,
+        0
+      ],
+      "up": [
+        0,
+        1,
+        0
+      ],
+      "zoom": 2.8,
+      "projection": "ortho"
+    },
+    {
+      "name": "Rear (+X)",
+      "pos": [
+        340,
+        30,
+        0
+      ],
+      "target": [
+        0,
+        30,
+        0
+      ],
+      "up": [
+        0,
+        1,
+        0
+      ],
+      "zoom": 2.8,
+      "projection": "ortho"
+    },
+    {
+      "name": "Left (-Y)",
+      "pos": [
+        0,
+        30,
+        340
+      ],
+      "target": [
+        0,
+        30,
+        0
+      ],
+      "up": [
+        0,
+        1,
+        0
+      ],
+      "zoom": 2.8,
+      "projection": "ortho"
+    },
+    {
+      "name": "Right (+Y)",
+      "pos": [
+        0,
+        30,
+        -340
+      ],
+      "target": [
+        0,
+        30,
+        0
+      ],
+      "up": [
+        0,
+        1,
+        0
+      ],
+      "zoom": 2.8,
+      "projection": "ortho"
+    },
+    {
+      "name": "Top (+Z)",
+      "pos": [
+        0,
+        370,
+        0
+      ],
+      "target": [
+        0,
+        30,
+        0
+      ],
+      "up": [
+        0,
+        0,
+        -1
+      ],
+      "zoom": 2.8,
+      "projection": "ortho"
+    },
+    {
+      "name": "Isometric",
+      "pos": [
+        -340,
+        370,
+        340
+      ],
+      "target": [
+        0,
+        30,
+        0
+      ],
+      "up": [
+        0,
+        1,
+        0
+      ],
+      "zoom": 2.8,
+      "projection": "ortho"
+    },
+    {
+      "name": "UI Top saved",
+      "pos": [
+        0,
+        369.99999999999613,
+        5.684341886080802e-14
+      ],
+      "target": [
+        0,
+        30,
+        0
+      ],
+      "up": [
+        0,
+        0,
+        -1
+      ],
+      "zoom": 2.8,
+      "projection": "ortho"
+    }
+  ],
+  "jointPoses": [],
+  "jointKeyframes": [],
+  "bgPreset": "",
+  "edgeDisplay": "on",
+  "suppressedIds": [],
+  "params": [
+    {
+      "id": "rig-wb",
+      "name": "Wheelbase",
+      "value": 140,
+      "unit": "mm"
+    },
+    {
+      "id": "rig-wd",
+      "name": "WheelDiameter",
+      "value": 60,
+      "unit": "mm",
+      "expr": "Wheelbase*3/7",
+      "refs": {
+        "Wheelbase": "rig-wb"
+      }
+    },
+    {
+      "id": "rig-cw",
+      "name": "CarWidth",
+      "value": 100,
+      "unit": "mm"
+    },
+    {
+      "id": "rig-wz",
+      "name": "WheelStart",
+      "value": 50,
+      "expr": "CarWidth/2",
+      "refs": {
+        "CarWidth": "rig-cw"
+      },
+      "unit": "mm"
+    },
+    {
+      "id": "rig-bz",
+      "name": "BodyStart",
+      "value": 40,
+      "expr": "CarWidth/2-10",
+      "refs": {
+        "CarWidth": "rig-cw"
+      },
+      "unit": "mm"
+    },
+    {
+      "id": "rig-bh",
+      "name": "BodyDepth",
+      "value": 80,
+      "expr": "CarWidth-20",
+      "refs": {
+        "CarWidth": "rig-cw"
+      },
+      "unit": "mm"
+    },
+    {
+      "id": "car-front",
+      "name": "FrontStation",
+      "value": -70,
+      "expr": "-Wheelbase/2",
+      "refs": {
+        "Wheelbase": "rig-wb"
+      },
+      "unit": "mm"
+    },
+    {
+      "id": "car-axle",
+      "name": "AxleHeight",
+      "value": 30,
+      "expr": "WheelDiameter/2",
+      "refs": {
+        "WheelDiameter": "rig-wd"
+      },
+      "unit": "mm"
+    },
+    {
+      "id": "car-cabin-start",
+      "name": "CabinStart",
+      "value": 30,
+      "expr": "CarWidth/2-20",
+      "refs": {
+        "CarWidth": "rig-cw"
+      },
+      "unit": "mm"
+    },
+    {
+      "id": "car-cabin-depth",
+      "name": "CabinDepth",
+      "value": 60,
+      "expr": "CarWidth-40",
+      "refs": {
+        "CarWidth": "rig-cw"
+      },
+      "unit": "mm"
+    }
+  ],
+  "paramBindings": {
+    "F1:baseZ": "WheelStart",
+    "F2:baseZ": "WheelStart",
+    "F3:baseZ": "WheelStart",
+    "F4:baseZ": "WheelStart",
+    "F7:dx": "Wheelbase",
+    "F8:baseZ": "BodyStart",
+    "F8:height": "BodyDepth",
+    "F9:baseZ": "BodyStart",
+    "F9:height": "BodyDepth",
+    "F10:baseZ": "BodyStart",
+    "F10:height": "BodyDepth",
+    "F5:origin.0": "FrontStation",
+    "F5:origin.2": "AxleHeight",
+    "F11:baseZ": "CabinStart",
+    "F11:height": "CabinDepth",
+    "F12:baseZ": "CabinStart",
+    "F12:height": "CabinDepth"
+  },
+  "configs": [],
+  "activeConfig": null,
+  "unit": "mm",
+  "bedPreset": 0,
+  "customBed": null,
+  "visualStyle": "shadedVisible",
+  "hiddenEdges": false,
+  "cameraProj": "ortho",
+  "unitPreset": "mm_g",
+  "massUnit": "g",
+  "sketchSources": {
+    "sk1": {
+      "name": "Concentric rim + hub",
+      "shapes": [
+        {
+          "type": "circle",
+          "c": [
+            -70,
+            30
+          ],
+          "r": 30
+        },
+        {
+          "type": "circle",
+          "c": [
+            -70,
+            30
+          ],
+          "r": 21
+        },
+        {
+          "type": "circle",
+          "c": [
+            -70,
+            30
+          ],
+          "r": 9
+        }
+      ],
+      "cons": [
+        {
+          "id": "sc101",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 70,
+          "name": "sk1DatumX",
+          "expr": "Wheelbase/2",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc102",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 30,
+          "name": "sk1DatumZ",
+          "expr": "WheelDiameter/2",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc2",
+          "kind": "con",
+          "type": "concentric",
+          "a": {
+            "kind": "circle",
+            "shape": 0
+          },
+          "b": {
+            "kind": "circle",
+            "shape": 1
+          }
+        },
+        {
+          "id": "sc3",
+          "kind": "con",
+          "type": "concentric",
+          "a": {
+            "kind": "circle",
+            "shape": 0
+          },
+          "b": {
+            "kind": "circle",
+            "shape": 2
+          }
+        },
+        {
+          "id": "sc4",
+          "kind": "dim",
+          "type": "dia",
+          "a": {
+            "kind": "circle",
+            "shape": 0
+          },
+          "value": 60,
+          "name": "OuterDiameter",
+          "expr": "WheelDiameter*1",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc5",
+          "kind": "dim",
+          "type": "dia",
+          "a": {
+            "kind": "circle",
+            "shape": 1
+          },
+          "value": 42,
+          "name": "RimOpening",
+          "expr": "WheelDiameter*0.7",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc6",
+          "kind": "dim",
+          "type": "dia",
+          "a": {
+            "kind": "circle",
+            "shape": 2
+          },
+          "value": 18,
+          "name": "HubDiameter",
+          "expr": "WheelDiameter*0.3",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        }
+      ],
+      "plane": "XZ",
+      "baseZ": 50,
+      "op": "new",
+      "height": 8
+    },
+    "sk2": {
+      "name": "Driving spoke",
+      "shapes": [
+        {
+          "type": "rect",
+          "a": [
+            -70,
+            30
+          ],
+          "b": [
+            -43.6,
+            34
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "id": "sc7",
+          "kind": "con",
+          "type": "h",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 0
+          }
+        },
+        {
+          "id": "sc8",
+          "kind": "con",
+          "type": "v",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 1
+          }
+        },
+        {
+          "id": "sc9",
+          "kind": "con",
+          "type": "h",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 2
+          }
+        },
+        {
+          "id": "sc10",
+          "kind": "con",
+          "type": "v",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 3
+          }
+        },
+        {
+          "id": "sc103",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 70,
+          "name": "sk2DatumX",
+          "expr": "Wheelbase/2",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc104",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 30,
+          "name": "sk2DatumZ",
+          "expr": "WheelDiameter/2",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc12",
+          "kind": "dim",
+          "type": "len",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 0
+          },
+          "value": 26.4,
+          "name": "SpokeW",
+          "expr": "WheelDiameter*.44",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc13",
+          "kind": "dim",
+          "type": "len",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 1
+          },
+          "value": 4,
+          "name": "SpokeH"
+        }
+      ],
+      "plane": "XZ",
+      "baseZ": 50,
+      "op": "new",
+      "height": 8
+    },
+    "sk3": {
+      "name": "Body master silhouette",
+      "shapes": [
+        {
+          "type": "poly",
+          "pts": [
+            [
+              -88,
+              21
+            ],
+            [
+              88,
+              21
+            ],
+            [
+              88,
+              51
+            ],
+            [
+              35,
+              60
+            ],
+            [
+              -35,
+              60
+            ],
+            [
+              -88,
+              42
+            ]
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "id": "sc109",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 88,
+          "name": "Body1X",
+          "expr": "Wheelbase/2+WheelDiameter*.3",
+          "refs": {
+            "Wheelbase": "rig-wb",
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc110",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 21,
+          "name": "Body1Z",
+          "expr": "WheelDiameter*.35",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc111",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 1
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 88,
+          "name": "Body2X",
+          "expr": "Wheelbase/2+WheelDiameter*.3",
+          "refs": {
+            "Wheelbase": "rig-wb",
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc112",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 1
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 21,
+          "name": "Body2Z",
+          "expr": "WheelDiameter*.35",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc113",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 2
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 88,
+          "name": "Body3X",
+          "expr": "Wheelbase/2+WheelDiameter*.3",
+          "refs": {
+            "Wheelbase": "rig-wb",
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc114",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 2
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 51,
+          "name": "Body3Z",
+          "expr": "WheelDiameter*.85",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc115",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 3
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 35,
+          "name": "Body4X",
+          "expr": "Wheelbase*.25",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc116",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 3
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 60,
+          "name": "Body4Z",
+          "expr": "WheelDiameter",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc117",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 4
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 35,
+          "name": "Body5X",
+          "expr": "Wheelbase*.25",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc118",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 4
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 60,
+          "name": "Body5Z",
+          "expr": "WheelDiameter",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc119",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 5
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 88,
+          "name": "Body6X",
+          "expr": "Wheelbase/2+WheelDiameter*.3",
+          "refs": {
+            "Wheelbase": "rig-wb",
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc120",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 5
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 42,
+          "name": "Body6Z",
+          "expr": "WheelDiameter*.7",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        }
+      ],
+      "plane": "XZ",
+      "baseZ": 40,
+      "op": "new",
+      "height": 80
+    },
+    "sk4": {
+      "name": "Wheel arch clearance",
+      "shapes": [
+        {
+          "type": "circle",
+          "c": [
+            -70,
+            30
+          ],
+          "r": 32
+        },
+        {
+          "type": "circle",
+          "c": [
+            70,
+            30
+          ],
+          "r": 32
+        }
+      ],
+      "cons": [
+        {
+          "id": "sc107",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 70,
+          "name": "sk4DatumX",
+          "expr": "Wheelbase/2",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc108",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 30,
+          "name": "sk4DatumZ",
+          "expr": "WheelDiameter/2",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc22",
+          "kind": "con",
+          "type": "h",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "pt",
+            "shape": 1,
+            "idx": 0
+          }
+        },
+        {
+          "id": "sc23",
+          "kind": "con",
+          "type": "equal",
+          "a": {
+            "kind": "circle",
+            "shape": 0
+          },
+          "b": {
+            "kind": "circle",
+            "shape": 1
+          }
+        },
+        {
+          "id": "sc24",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "value": 140,
+          "name": "ArchStations",
+          "expr": "Wheelbase",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          },
+          "b": {
+            "kind": "pt",
+            "shape": 1,
+            "idx": 0
+          }
+        },
+        {
+          "id": "sc25",
+          "kind": "dim",
+          "type": "dia",
+          "a": {
+            "kind": "circle",
+            "shape": 0
+          },
+          "value": 64,
+          "name": "ArchDiameter",
+          "expr": "WheelDiameter+4",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        }
+      ],
+      "plane": "XZ",
+      "baseZ": 40,
+      "op": "cut",
+      "height": 80
+    },
+    "sk5": {
+      "name": "Cabin master",
+      "shapes": [
+        {
+          "type": "poly",
+          "pts": [
+            [
+              -35,
+              54
+            ],
+            [
+              -16.8,
+              81
+            ],
+            [
+              30.8,
+              81
+            ],
+            [
+              56,
+              54
+            ]
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "id": "sc121",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 35,
+          "name": "sk51X",
+          "expr": "Wheelbase*.25",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc122",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 54,
+          "name": "sk51Z",
+          "expr": "WheelDiameter*.9",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc123",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 1
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 16.8,
+          "name": "sk52X",
+          "expr": "Wheelbase*.12",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc124",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 1
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 81,
+          "name": "sk52Z",
+          "expr": "WheelDiameter*1.35",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc125",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 2
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 30.8,
+          "name": "sk53X",
+          "expr": "Wheelbase*.22",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc126",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 2
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 81,
+          "name": "sk53Z",
+          "expr": "WheelDiameter*1.35",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc127",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 3
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 56,
+          "name": "sk54X",
+          "expr": "Wheelbase*.4",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc128",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 3
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 54,
+          "name": "sk54Z",
+          "expr": "WheelDiameter*.9",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        }
+      ],
+      "plane": "XZ",
+      "baseZ": 30,
+      "op": "join",
+      "height": 60
+    },
+    "sk6": {
+      "name": "Window opening",
+      "shapes": [
+        {
+          "type": "poly",
+          "pts": [
+            [
+              -26.6,
+              61.2
+            ],
+            [
+              -12.6,
+              75
+            ],
+            [
+              26.6,
+              75
+            ],
+            [
+              40.599999999999994,
+              61.2
+            ]
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "id": "sc129",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 26.6,
+          "name": "sk61X",
+          "expr": "Wheelbase*.19",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc130",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 0
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 61.2,
+          "name": "sk61Z",
+          "expr": "WheelDiameter*1.02",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc131",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 1
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 12.6,
+          "name": "sk62X",
+          "expr": "Wheelbase*.09",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc132",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 1
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 75,
+          "name": "sk62Z",
+          "expr": "WheelDiameter*1.25",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc133",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 2
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 26.6,
+          "name": "sk63X",
+          "expr": "Wheelbase*.19",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc134",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 2
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 75,
+          "name": "sk63Z",
+          "expr": "WheelDiameter*1.25",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        },
+        {
+          "id": "sc135",
+          "kind": "dim",
+          "type": "hdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 3
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 40.599999999999994,
+          "name": "sk64X",
+          "expr": "Wheelbase*.29",
+          "refs": {
+            "Wheelbase": "rig-wb"
+          }
+        },
+        {
+          "id": "sc136",
+          "kind": "dim",
+          "type": "vdist",
+          "a": {
+            "kind": "pt",
+            "shape": 0,
+            "idx": 3
+          },
+          "b": {
+            "kind": "origin"
+          },
+          "value": 61.2,
+          "name": "sk64Z",
+          "expr": "WheelDiameter*1.02",
+          "refs": {
+            "WheelDiameter": "rig-wd"
+          }
+        }
+      ],
+      "plane": "XZ",
+      "baseZ": 30,
+      "op": "cut",
+      "height": 60
+    }
+  },
+  "drawingAnno": {
+    "manualDims": {},
+    "manualRDims": {},
+    "manualADims": {},
+    "manualDatums": {},
+    "manualFCF": {},
+    "manualNotes": {},
+    "details": {},
+    "ordinates": {},
+    "scale": "1:1",
+    "drawnBy": "",
+    "genTol": "",
+    "materialTxt": "",
+    "firstAngle": false,
+    "gbFrame": false,
+    "sheet": "A4",
+    "autoTolOn": false,
+    "autoTol": 0.1,
+    "showHidden": true,
+    "showCallouts": true
+  },
+  "groups": [],
+  "faceColors": {},
+  "compXY": 0,
+  "compShrink": 1,
+  "renderMode": false,
+  "hdriPreset": "",
+  "hdriIntensity": 1,
+  "hdriRotation": 0,
+  "groundShadow": false,
+  "decals": []
+}

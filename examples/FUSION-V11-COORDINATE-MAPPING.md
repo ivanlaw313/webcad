@@ -17,3 +17,7 @@ This is a −90° rotation about X plus translation. It preserves handedness and
 Planned named vehicle views: Front (camera −X), Rear (+X), Left (−Y), Right (+Y), Top (+Z), all using Z up where applicable. Left/right signs use the driver's convention facing −X and still need Windows review. These are specifications, not delivered applied native vehicle bookmarks.
 
 Windows Fusion v11 has five spokes; this preserved coupon has six. Full-car work must first reconcile the native pattern count and coordinate frame. The complete native vehicle, applied named views, body relations and 1:1 reconstruction remain unfinished. No reference GLB or STEP import is used as evidence of reconstruction.
+
+## Stage 1 implementation (2026-09-06)
+
+The preceding plan is now implemented in the separate `native-car-stage1.mjs` seed and native JSON examples. See `NATIVE-CAR-STAGE1.md` for actual native axes, persistent views, parameter tests and remaining limitations. The original six-spoke coupon is still unchanged.

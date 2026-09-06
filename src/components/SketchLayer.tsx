@@ -2649,9 +2649,9 @@ export function BookmarkRig() {
   // 暴露捕捉 helper（工具栏 save 按钮读当前相机；controls 在则用其 target，否则退回 0,0,0）。
   // 挂载即装、唔喺 cleanup delete（StrictMode/HMR re-run 唔会令 helper 消失；多 rig 实例亦只覆盖为最新）。
   useEffect(() => {
-    ;(window as unknown as { __captureView?: () => { pos: [number, number, number]; target: [number, number, number] } }).__captureView = () => {
+    ;(window as unknown as { __captureView?: () => import('../cad/viewBookmark').ViewCapture }).__captureView = () => {
       const c = liveRef.current.camera, ctl = liveRef.current.controls
-      return { pos: [c.position.x, c.position.y, c.position.z], target: ctl ? [ctl.target.x, ctl.target.y, ctl.target.z] : [0, 0, 0] }
+      return { pos: [c.position.x, c.position.y, c.position.z], target: ctl ? [ctl.target.x, ctl.target.y, ctl.target.z] : [0, 0, 0], up: [c.up.x, c.up.y, c.up.z], zoom: c.zoom, projection: (c as import('three').OrthographicCamera).isOrthographicCamera ? 'ortho' : 'persp' }
     }
   }, [])
   // nonce bump → 套用 pendingBookmarkApply（pos/target）。
@@ -2659,6 +2659,9 @@ export function BookmarkRig() {
     if (nonce === 0 || !controls) return
     const p = useApp.getState().pendingBookmarkApply
     if (!p) return
+    if (p.projection && ((camera as import('three').OrthographicCamera).isOrthographicCamera === true) !== (p.projection === 'ortho')) return
+    if (p.up) camera.up.set(...p.up)
+    if (p.zoom) { camera.zoom = p.zoom; camera.updateProjectionMatrix() }
     camera.position.set(p.pos[0], p.pos[1], p.pos[2])
     controls.target.set(p.target[0], p.target[1], p.target[2])
     controls.update()

@@ -5,16 +5,11 @@ def p(*a): print(*a, flush=True)
 LOCAL = r"C:\ClaudeCode\webcad\dist"; REMOTE = "/var/www/webcad"
 # VPS 已收紧到【只准 publickey】（sshd 关咗 password auth）→ 纯密码版会 BadAuthenticationType 挂。
 # 先揾本机 deploy key，冇 key 至退返密码（旧路径保留，方便未换 key 嘅机）。密钥/密码都唔写死喺脚本。
-PASSWORD = os.environ.get("WEBCAD_VPS_PASSWORD")
-KEY = next((k for k in (os.path.expanduser(x) for x in ("~/.ssh/nfe_deploy_ed25519", "~/.ssh/doom_vps", "~/.ssh/id_ed25519", "~/.ssh/id_rsa")) if os.path.exists(k)), None)
-if not KEY and not PASSWORD:
-    raise RuntimeError("冇 deploy key（~/.ssh/…）亦冇 WEBCAD_VPS_PASSWORD — 唔部署得。")
+from _deploy_auth import select_auth
+AUTH = select_auth()
 ssh = paramiko.SSHClient(); ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-p("connect: starting (%s)" % ("key" if KEY else "password"))
-if KEY:
-    ssh.connect("38.242.215.29", username="root", key_filename=KEY, timeout=20, banner_timeout=20, auth_timeout=20)
-else:
-    ssh.connect("38.242.215.29", username="root", password=PASSWORD, timeout=20, banner_timeout=20, auth_timeout=20)
+p("connect: starting (%s)" % ("key" if "key_filename" in AUTH else "password"))
+ssh.connect("38.242.215.29", username="root", **AUTH, timeout=20, banner_timeout=20, auth_timeout=20)
 p("connect: ready")
 def run(c, t=60):
     _i, o, e = ssh.exec_command(c, timeout=t)

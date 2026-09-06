@@ -6,16 +6,15 @@ import paramiko
 LOCAL = r"C:\ClaudeCode\webcad\dist"
 REMOTE = "/var/www/webcad"
 HOST = "38.242.215.29"
-PASSWORD = os.environ.get("WEBCAD_VPS_PASSWORD")
-if not PASSWORD:
-    raise RuntimeError("Set WEBCAD_VPS_PASSWORD before deploying.")
+from _deploy_auth import select_auth
+AUTH = select_auth()
 
 def say(*parts):
     print(*parts, flush=True)
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect(HOST, username="root", password=PASSWORD, timeout=20, banner_timeout=20, auth_timeout=20)
+ssh.connect(HOST, username="root", **AUTH, timeout=20, banner_timeout=20, auth_timeout=20)
 sftp = ssh.open_sftp()
 
 def run(command):

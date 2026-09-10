@@ -1,31 +1,36 @@
+import { useEscapeLayer } from './useEscapeLayer'
 // T805（报告 R3）：统一应用内对话框 — 取代 native window.prompt/alert/confirm。
 // 报告指出旧做法有两个问题：(1) Chrome 喺自动化/iframe 会「抑制」原生弹窗,prompt() 静默返回 null,
 // 功能默默唔执行;(2) 原生弹窗样式与 app 割裂、无校验。呢个居中模态由 store.uiDialog 驱动,
 // appPrompt/appConfirm/appAlert 系 Promise 化,撳确定/取消即 resolve。Enter 确定、Esc 取消。
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
 
 export default function PromptDialog() {
   const dlg = useApp((s) => s.uiDialog)
   const resolveDialog = useApp((s) => s.resolveDialog)
-  const [val, setVal] = useState('')
+  const [draft, setDraft] = useState({ dialog: dlg, value: dlg?.kind === 'prompt' ? dlg.def : '' })
+  // Reset before committing a new dialog, never after it becomes editable.
+  if (draft.dialog !== dlg) setDraft({ dialog: dlg, value: dlg?.kind === 'prompt' ? dlg.def : '' })
+  const val = draft.dialog === dlg ? draft.value : dlg?.kind === 'prompt' ? dlg.def : ''
   const inputRef = useRef<HTMLInputElement>(null)
 
   // 每次打开新框：重置输入为默认值,聚焦并全选（方便直接覆写）。
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (dlg?.kind === 'prompt') {
-      setVal(dlg.def)
-      // 等 DOM 上咗先聚焦
-      const id = setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select() }, 0)
-      return () => clearTimeout(id)
+      inputRef.current?.focus()
+      inputRef.current?.select()
     }
   }, [dlg])
 
+  useEscapeLayer(!!dlg, () => resolveDialog(dlg?.kind === 'confirm' ? false : null), 30000)
   if (!dlg) return null
 
   const ok = () => resolveDialog(dlg.kind === 'prompt' ? val : dlg.kind === 'confirm' ? true : null)
   const cancel = () => resolveDialog(dlg.kind === 'confirm' ? false : null)
   const onKey = (e: React.KeyboardEvent) => {
+    e.stopPropagation()
+    if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return
     if (e.key === 'Enter') { e.preventDefault(); ok() }
     else if (e.key === 'Escape') { e.preventDefault(); cancel() }
   }
@@ -59,7 +64,7 @@ export default function PromptDialog() {
               ref={inputRef}
               value={val}
               aria-label={dlg.title}
-              onChange={(e) => setVal(e.target.value)}
+              onChange={(e) => setDraft({ dialog: dlg, value: e.target.value })}
               style={{
                 padding: '8px 10px', border: '1px solid #c8d0d8', borderRadius: 6,
                 fontSize: 14, fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box',

@@ -28,6 +28,37 @@ function ParameterValue({name,value,disabled,onCommit}:{name:string;value:number
  return <input className="pp-val" type="number" aria-label={`参数 ${name} 数值`} disabled={disabled} value={draft} onChange={e=>setDraft(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.blur()}if(e.key==='Escape'){e.stopPropagation();setDraft(String(value))}}}/>
 }
 
+// A rejected edit must show the formula that still drives the model.
+function ParameterExpression({ name, expression, disabled, onCommit }: {
+  name: string
+  expression: string
+  disabled: boolean
+  onCommit: (expression: string) => Promise<void>
+}) {
+  const [draft, setDraft] = useState(expression)
+  const [pending, setPending] = useState(false)
+  useEffect(() => setDraft(expression), [expression])
+  const commit = async () => {
+    if (pending || draft === expression) return
+    setPending(true)
+    try {
+      await onCommit(draft)
+    } finally {
+      setDraft(useApp.getState().params.find(p => p.name === name)?.expr ?? '')
+      setPending(false)
+    }
+  }
+  return <input className="pp-expr" disabled={disabled || pending}
+    aria-label={`参数 ${name} 表达式`} placeholder="=表达式" value={draft}
+    title="如 d1*2、宽度+10、sqrt(d1*d1+d2*d2)、sin(30)、pi*r*r、max(壁厚,2)（三角函数用角度；常量 pi·e·tau；单参数 sqrt·sin·cos·tan·asin·acos·atan·round·floor·ceil·abs·sign·ln·log·log2·exp；双参数 min·max·pow·hypot·mod·atan2）"
+    onChange={e => setDraft(e.target.value)} onBlur={() => void commit()}
+    onKeyDown={e => {
+      if (e.nativeEvent.isComposing) return
+      if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() }
+      if (e.key === 'Escape') { e.stopPropagation(); setDraft(expression) }
+    }} />
+}
+
 // User-parameter table: named variables that feature dimensions can bind to.
 // Edit a value here → every bound feature dimension updates and the model rebuilds.
 export default function ParamsPanel() {
@@ -71,7 +102,7 @@ export default function ParamsPanel() {
         <div key={p.name} className="pp-row">
           <span className="pp-name">{p.name}</span>
           <ParameterValue name={p.name} value={p.value} disabled={busy || !!p.expr} onCommit={n => void setParam(p.name,n)} />
-          <input key={`${p.name}:${p.expr ?? ""}`} className="pp-expr" disabled={busy} aria-label={`参数 ${p.name} 表达式`} placeholder="=表达式" defaultValue={p.expr ?? ''} title="如 d1*2、宽度+10、sqrt(d1*d1+d2*d2)、sin(30)、pi*r*r、max(壁厚,2)（三角函数用角度；常量 pi·e·tau；单参数 sqrt·sin·cos·tan·asin·acos·atan·round·floor·ceil·abs·sign·ln·log·log2·exp；双参数 min·max·pow·hypot·mod·atan2）" onBlur={(e) => { if ((e.target.value || '') !== (p.expr ?? '')) void setParamExpr(p.name, e.target.value) }} />
+          <ParameterExpression name={p.name} expression={p.expr ?? ''} disabled={busy} onCommit={expr => setParamExpr(p.name, expr)} />
           <span className="pp-used" title={`直接／间接引用：${usedBy(p).join("；") || "无"}`}>×{usedBy(p).length}</span>
           <span className="pp-del" title="删除参数" onClick={() => void removeParam(p.name)}>🗑</span>
         </div>

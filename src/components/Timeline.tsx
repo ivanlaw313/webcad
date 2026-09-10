@@ -1,3 +1,4 @@
+import { useEscapeLayer } from './useEscapeLayer'
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react'
 import { ToolIcon } from '../icons'
 import { useApp } from '../store'
@@ -102,6 +103,7 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
 
 export default function Timeline() {
   const lang = useApp((s) => s.lang)
+  const hasComponentHistory = useApp(s => s.components.some(c => c.src?.features.length))
   const inSketch = useApp((s) => s.mode === 'sketch')   // GM-W2 2.2：草图态整条时间轴灰化锁定（回放/改参会喺开住嘅草图下面重建特征树 → 状态错乱）
   const features = useApp((s) => s.features)
   const selected = useApp((s) => s.selectedFeature)
@@ -129,13 +131,9 @@ export default function Timeline() {
   const [chipMenu, setChipMenu] = useState<{ x: number; y: number; id: string; i: number } | null>(null)
   const [gearOpen, setGearOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const featureEditorDrag = useDraggable('webcad-feature-editor', { left: 12, bottom: 96 })
   const panelDrag = useDraggable('webcad-timeline', { right: 0, bottom: 0 })
-  useEffect(() => {
-    if (!chipMenu && !gearOpen) return
-    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setChipMenu(null); setGearOpen(false) } }
-    window.addEventListener('keydown', onEsc)
-    return () => window.removeEventListener('keydown', onEsc)
-  }, [chipMenu, gearOpen])
+  useEscapeLayer(!!chipMenu || gearOpen, () => { if (chipMenu) setChipMenu(null); else setGearOpen(false) }, 200)
   // GM-L2 #96：播放重入锁 —— 连撳两下唔会开两条并发 play() 互抢 timelinePos；播放中按钮 disable。
   const [isPlaying, setIsPlaying] = useState(false)
   const playingRef = useRef(false)
@@ -236,7 +234,7 @@ export default function Timeline() {
 
       {!collapsed && <div className="tl-track" ref={trackRef}>
         {features.length === 0 ? (
-          <span className="tl-hint">{tStatus('参数化时间轴 — 建模后特征出现在这里，点击任意节点可改参数并自动重建', lang)}</span>
+          <span className="tl-hint">{tStatus(hasComponentHistory ? '组件内有原生特征 — 双击左侧组件，或展开 ⋯ 选择「编辑特征／草图」' : '参数化时间轴 — 建模后特征出现在这里，点击任意节点可改参数并自动重建', lang)}</span>
         ) : (
           <>
             {features.map((f, i) => {
@@ -297,8 +295,9 @@ export default function Timeline() {
       </div>}
 
       {sel && meta && !commandEditing && (
-        <div className="feat-editor">
-          <span className="fe-title"><ToolIcon name={meta.icon} size={14} /> {tStatus(`编辑「${meta.label}」`, lang)}</span>
+        <div className="feat-editor" ref={featureEditorDrag.ref} style={featureEditorDrag.style}>
+          <span className="fe-title" title="拖移特征编辑面板" onPointerDown={featureEditorDrag.onPointerDown} style={{ cursor: 'grab', touchAction: 'none' }}>⠿ <ToolIcon name={meta.icon} size={14} /> {tStatus(`编辑「${meta.label}」`, lang)}</span>
+          <button type="button" aria-label="还原特征编辑面板位置" onClick={featureEditorDrag.reset}>↺</button>
           {featureErrors[sel.id] && <div className="fe-errbar">🔴 {tStatus('此特征重建失败：', lang)}{featureErrors[sel.id]}<button className="fe-errsup" onClick={() => void toggleSuppress(sel.id)}>{tStatus('抑制此特征', lang)}</button></div>}
           {sel.type === 'surfloft' && (sel as unknown as { sheet?: boolean }).sheet && (
             <div className="fe-note">{tStatus('零厚放样曲面（无壁厚）— 真曲面件，可用「加厚」/「缝合」转实体', lang)}</div>

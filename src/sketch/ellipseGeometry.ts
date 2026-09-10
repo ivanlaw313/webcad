@@ -1,0 +1,5 @@
+export type EllipseGeometry={cx:number;cy:number;rx:number;ry:number;rot:number}
+type Pt=[number,number]
+export function ellipseControlPoints(e:EllipseGeometry):[Pt,Pt,Pt]{const a=e.rot*Math.PI/180,c=Math.cos(a),s=Math.sin(a);return [[e.cx,e.cy],[e.cx+e.rx*c,e.cy+e.rx*s],[e.cx-e.ry*s,e.cy+e.ry*c]]}
+export function ellipseSample(e:EllipseGeometry,count=64):Pt[]{const a=e.rot*Math.PI/180,c=Math.cos(a),s=Math.sin(a);return Array.from({length:count},(_,i)=>{const t=i*2*Math.PI/count,x=e.rx*Math.cos(t),y=e.ry*Math.sin(t);return [e.cx+x*c-y*s,e.cy+x*s+y*c]})}
+export function ellipseFromControls(p:[Pt,Pt,Pt],previous:EllipseGeometry):EllipseGeometry|null{const [c,u,v]=p,dx=u[0]-c[0],dy=u[1]-c[1],vx=v[0]-c[0],vy=v[1]-c[1],rx=Math.hypot(dx,dy),ry=Math.hypot(vx,vy);if(!p.flat().every(Number.isFinite)||rx<1e-8||ry<1e-8||dx*vy-dy*vx<=0||Math.abs(dx*vx+dy*vy)>1e-6*Math.max(1,rx*ry))return null;const raw=Math.atan2(dy,dx)*180/Math.PI;const rot=raw+360*Math.round((previous.rot-raw)/360);return {cx:c[0],cy:c[1],rx,ry,rot}}

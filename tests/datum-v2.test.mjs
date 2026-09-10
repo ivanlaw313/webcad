@@ -1,43 +1,13 @@
-// #11 datum v2：_rebakeDatumSketches 纯逻辑验证（忠实复制 store.ts 同名函数 —— 真函数逐字节同款 + 已过 tsc strict）。
-// datum（源面）移动后：带 datumRef 嘅草图源 baseZ + 依赖 extrude baseZ 用【delta】重烘焙，稳健于本地偏移。
-// 用 array index 做 datum key（唔用 srcNear —— rederiveDatums 会更新 src.near 到新面位置，故 srcNear 面移动后必失配）。
-const _arbNear = (u, v) => Math.abs(u[0] - v[0]) < 1e-6 && Math.abs(u[1] - v[1]) < 1e-6 && Math.abs(u[2] - v[2]) < 1e-6
-const _arbEq = (a, b) => !!a && !!b && _arbNear(a.o, b.o) && _arbNear(a.xd, b.xd) && _arbNear(a.n, b.n)
-const _cloneArb = (a) => ({ o: [...a.o], xd: [...a.xd], n: [...a.n] })
-function _rebakeDatumSketches(s) {
-  const srcs = s.sketchSources
-  const nextSrcs = { ...srcs }
-  const delta = {}
-  const arbNew = {}   // GM-3DV2 R12
-  let changed = false
-  for (const skId of Object.keys(srcs)) {
-    const src = srcs[skId]; if (!src?.datumRef) continue
-    const dr = src.datumRef
-    const dat = s.planes[dr.idx]
-    if (!dat || dat.base !== dr.base || dat.stale) continue
-    if (dr.arb && dat.arb && src.arb) {   // GM-3DV2 R12：arb/角度 datum
-      if (_arbEq(dat.arb, src.arb)) continue
-      const na = _cloneArb(dat.arb)
-      nextSrcs[skId] = { ...src, arb: na }; arbNew[skId] = na; changed = true
-      continue
-    }
-    // Any datumRef is an explicit construction-plane dependency, including a
-    // manually positioned origin-plane offset.
-    const newZ = dat.offset ?? 0
-    if (Math.abs(newZ - src.baseZ) < 1e-6) continue
-    delta[skId] = newZ - src.baseZ
-    nextSrcs[skId] = { ...src, baseZ: newZ }
-    changed = true
-  }
-  if (!changed) return null
-  const feats = s.features.map((f) => {
-    const sid = f.sketchId
-    if (f.type === 'extrude' && sid && delta[sid] != null && typeof f.baseZ === 'number') return { ...f, baseZ: f.baseZ + delta[sid] }
-    if (f.type === 'extgroup' && sid && arbNew[sid]) return { ...f, subs: f.subs.map((sub) => (sub.arbPlane ? { ...sub, arbPlane: _cloneArb(arbNew[sid]) } : sub)) }
-    return f
-  })
-  return { features: feats, sources: nextSrcs }
-}
+// Datum rebaking regression executes the production helper and its production
+// frame helpers. No handwritten copy can silently drift from the application.
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+import {stripTypeScriptTypes} from 'node:module'
+import vm from 'node:vm'
+const source=readFileSync(new URL('../src/store.ts',import.meta.url),'utf8')
+const begin=source.indexOf('const _arbNear ='),end=source.indexOf('// After restoring features',begin)
+assert.ok(begin>=0&&end>begin,'production datum helper boundaries must exist')
+const {_rebakeDatumSketches,_arbEq}=vm.runInNewContext(stripTypeScriptTypes(`(()=>{${source.slice(begin,end)};return {_rebakeDatumSketches,_arbEq}})()`))
 
 let pass = 0, fail = 0
 const ok = (n, c, info = '') => { if (c) { pass++; console.log('  ✓', n, info) } else { fail++; console.log('  ✗', n, info) } }
@@ -144,6 +114,17 @@ const arb = (o, xd, n) => ({ o, xd, n })
   const s = { sketchSources: { sk1: { arb: oldArb, datumRef: { idx: 0, base: 'XY', arb: oldArb } } }, planes: [{ base: 'XY', offset: 0, arb: newArb }], features: [{ type: 'sketch', sketchId: 'sk1' }] }
   const r = _rebakeDatumSketches(s)
   ok('R12-T4 arb 草图源烘焙、sketch 特征原样', r && _arbEq(r.sources.sk1.arb, newArb) && r.features[0].type === 'sketch')
+}
+
+// Cardinal consumers must all follow the same datum movement; failures here
+// expose missing production propagation rather than accepting stale geometry.
+for(const type of ['revolve','extgroup','sketch']) {
+ const feature=type==='extgroup'?{type,sketchId:'sk1',subs:[{baseZ:20},{baseZ:25}]}:{type,sketchId:'sk1',baseZ:20,plane:'XY'}
+ const input={sketchSources:{sk1:{baseZ:20,datumRef:{idx:0,base:'XY'}}},planes:[{base:'XY',offset:30}],features:[feature]}
+ const before=JSON.stringify(input),result=_rebakeDatumSketches(input)
+ ok(`cardinal ${type}: source moves to 30`,result&&result.sources.sk1.baseZ===30)
+ ok(`cardinal ${type}: consuming geometry follows datum and preserves local offset`,result&&(type==='extgroup'?result.features[0].subs[0].baseZ===30&&result.features[0].subs[1].baseZ===35:result.features[0].baseZ===30))
+ ok(`cardinal ${type}: input remains unchanged`,JSON.stringify(input)===before)
 }
 
 console.log(`\n#11 datum v2 + GM-3DV2 R12: ${pass} passed, ${fail} failed`)

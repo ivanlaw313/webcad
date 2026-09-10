@@ -3,8 +3,8 @@
 // 但几何本身改咗（孔搬位/件变大）标注唔会跟住郁 — 呢个限制喺 UI title 写明（纸面锚定，非几何关联）。
 
 export type DTol = { u: number; l: number }                       // 上/下偏差 mm
-export type DMDim = { x1: number; y1: number; x2: number; y2: number; tol?: DTol }   // 两点线性尺寸
-export type DRDim = { cx: number; cy: number; r: number; kind: 'r' | 'd'; tol?: DTol; fit?: string }  // 半径/直径
+export type DMDim = { offset?: number; x1: number; y1: number; x2: number; y2: number; tol?: DTol }   // 两点线性尺寸
+export type DRDim = { angle?: number; cx: number; cy: number; r: number; kind: 'r' | 'd'; tol?: DTol; fit?: string }  // 半径/直径
 export type DADim = { vx: number; vy: number; a1: number; a2: number }                // 角度（顶点+两方向）
 export type DNoteKind = 'thread' | 'chamfer' | 'surf' | 'text'
 export type DNote = { ax: number; ay: number; text: string; kind: DNoteKind }         // 螺纹/倒角/粗糙度/文字

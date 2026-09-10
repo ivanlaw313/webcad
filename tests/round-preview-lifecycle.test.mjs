@@ -20,6 +20,7 @@ function harness() {
   let timerId = 0
   const context = vm.createContext({
     get: () => state,
+    _previewFeatures: new WeakMap(),
     set: patch => { state = { ...state, ...(typeof patch === 'function' ? patch(state) : patch) } },
     cad: { previewRound: () => new Promise((resolve, reject) => pending.push({ resolve, reject })) },
     hasSolid: () => true,
@@ -87,3 +88,17 @@ test('older rejection cannot erase the newest successful preview', async () => {
   assert.equal(h.state().roundPreviewMesh.tag, 'latest')
   assert.equal(h.state().roundPreviewFail, false)
 })
+
+test('upstream feature failure rejects a misleading successful round preview', async () => {
+  const h=harness(), p=h.api.runRoundPreview();
+  h.pending[0].resolve({...mesh('fallback'),failed:[{id:'upstream-shell',type:'shell',msg:'invalid wall'}]});
+  await p;
+  assert.equal(h.state().roundPreviewMesh,null);
+  assert.equal(h.state().roundPreviewFail,true);
+  assert.equal(h.state().bodyMesh.tag,'committed');
+});
+test('direct failed refresh cannot leave the previous successful geometry visible',async()=>{
+ const h=harness(),first=h.api.runRoundPreview();h.pending[0].resolve(mesh('previous'));await first;
+ const next=h.api.runRoundPreview();h.pending[1].resolve(null);await next;
+ assert.equal(h.state().roundPreviewMesh,null);assert.equal(h.state().roundPreviewFail,true);
+});

@@ -11,6 +11,15 @@ const worker = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.u
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
 const styles = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8')
 
+// applyFeatures is the public wrapper; both model edits and private draft
+// rebuilds share this transaction. Inspect that actual implementation.
+const rebuildStart = store.indexOf('  const runFeatures = async')
+const rebuildEnd = store.indexOf('  const editActiveSketchParameter=', rebuildStart)
+assert.ok(rebuildStart >= 0 && rebuildEnd > rebuildStart)
+const rebuild = store.slice(rebuildStart, rebuildEnd)
+assert.match(store, /applyFeatures: async \(\.\.\.args\) => \(await runFeatures\(args\)\)\.ok/)
+
+
 test('timeline replay rebuilds the visible prefix and keeps datum state in sync', () => {
   const method = store.slice(store.indexOf('gotoStep: async'), store.indexOf("  view: 'iso'", store.indexOf('gotoStep: async')))
   assert.match(method, /const pos = Math\.max\(0, Math\.min\(Math\.round\(n\), total\)\)/)
@@ -29,9 +38,8 @@ test('feature edits retain dependent fields and rebuild the complete active hist
   assert.match(edit, /const merged = \{ \.\.\.f, \.\.\.clean/)
   assert.match(edit, /for \(const k of dels\) .*delete merged\[k\]/)
   assert.match(edit, /await get\(\)\.applyFeatures\(followExtrudeTopEdges\(get\(\)\.features, features, id\), '已更新参数并重建'\)/)
-  const rebuild = store.slice(store.indexOf('applyFeatures: async'), store.indexOf('  editFeature: async', store.indexOf('applyFeatures: async')))
   assert.match(rebuild, /const active = expandFeats\(/)
-  assert.match(rebuild, /timelinePos: bound\.length/)
+  assert.match(rebuild, /timelinePos: nextFeatures\.length/)
 })
 
 test('feature pattern snapshots its predecessor before replaying a cut feature', () => {
@@ -61,13 +69,12 @@ test('generic Feature Pattern rebuilds deltas for Revolve, Loft and other timeli
 test('startup blocks input until shared/autosave hydration has completed', () => {
   assert.match(app, /const \[startupReady, setStartupReady\] = useState\(false\)/)
   assert.match(app, /const shared = await useApp\.getState\(\)\.loadShareHash\(\)\s+if \(!shared\) await useApp\.getState\(\)\.restoreAutosave\(\)/)
-  assert.match(app, /if \(!startupReady\) return\s+const t = e\.target/)
+  assert.match(app, /if \(!startupReady\) return\s+if \(e\.key === 'Escape' && e\.repeat\) return\s+const t = e\.target/)
   assert.match(app, /startup-restore-gate/)
   assert.match(styles, /\.startup-restore-gate \{[\s\S]*?z-index: 50000;[\s\S]*?pointer-events: auto;/)
 })
 
 test('whole-kernel rebuild failures retain the previous model and flag a recoverable suspected feature', () => {
-  const rebuild = store.slice(store.indexOf('applyFeatures: async'), store.indexOf('  undo: async', store.indexOf('applyFeatures: async')))
   assert.match(rebuild, /已保持上一个有效状态/)
   assert.match(rebuild, /const suspect = \[\.\.\.bound\]\.reverse\(\)\.find\(\(f\) => !sup\.includes\(f\.id\)\)/)
   assert.match(rebuild, /疑似此特征；可改参数或抑制后重试/)

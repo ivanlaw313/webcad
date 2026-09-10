@@ -1,3 +1,4 @@
+import { commandContextKey, commandDisabledReason } from '../cad/commandAvailability'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useApp, SAMPLE_LABELS, type SampleKind } from '../store'
 import { WORKSPACES, SKETCH_PANELS, type Tool } from '../ribbon'
@@ -155,6 +156,8 @@ export default function CommandPalette() {
   const setOpen = useApp((s) => s.setCmdPalette)
   const run = useApp((s) => s.runCommand)
   const inSketch = useApp((s) => s.mode === 'sketch')   // GM-FP4 #50：草图内 → 草图命令排前 + placeholder 提示
+  const contextKey = useApp(commandContextKey)
+  const [showUnavailable, setShowUnavailable] = useState(false)
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -163,7 +166,8 @@ export default function CommandPalette() {
   const all = useMemo(buildCommands, [])
   const results = useMemo(() => {
     const s = q.trim().toLowerCase()
-    const base = !s ? all : all.filter((c) =>
+    const available = showUnavailable ? all : all.filter(c => !commandDisabledReason(useApp.getState(), c.id))
+    const base = !s ? available : available.filter((c) =>
       c.label.toLowerCase().includes(s) ||
       c.id.toLowerCase().includes(s) ||
       (c.tip ? c.tip.toLowerCase().includes(s) : false) ||
@@ -173,7 +177,7 @@ export default function CommandPalette() {
     if (!inSketch) return base
     const isSk = (id: string) => id.startsWith('sk_')
     return [...base].sort((a, b) => (isSk(a.id) === isSk(b.id) ? 0 : isSk(a.id) ? -1 : 1))
-  }, [q, all, inSketch])
+  }, [q, all, inSketch, contextKey, showUnavailable])
 
   // Reset query + selection each time the palette opens; focus the input.
   useEffect(() => {
@@ -188,8 +192,10 @@ export default function CommandPalette() {
 
   if (!open) return null
 
-  const choose = (c: Cmd) => { setOpen(false); if (c.run) c.run(); else run(c.id, c.label) }
+  const choose = (c: Cmd) => { if (commandDisabledReason(useApp.getState(), c.id)) return; setOpen(false); if (c.run) c.run(); else run(c.id, c.label) }
   const onKey = (e: React.KeyboardEvent) => {
+    e.stopPropagation()
+    if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return
     if (e.key === 'ArrowDown') { e.preventDefault(); setSel((i) => Math.min(i + 1, results.length - 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setSel((i) => Math.max(i - 1, 0)) }
     else if (e.key === 'Enter') { e.preventDefault(); if (results[sel]) choose(results[sel]) }
@@ -199,7 +205,7 @@ export default function CommandPalette() {
   return (
     <div
       onClick={() => setOpen(false)}
-      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(20,24,28,.32)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '12vh' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(20,24,28,.32)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '12vh' }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -218,17 +224,20 @@ export default function CommandPalette() {
           />
           <span style={{ fontSize: 11, color: '#9aa6b0' }}>↑↓ 选择 · Enter 执行 · Esc 关闭</span>
         </div>
+        <label style={{ padding: '6px 14px', fontSize: 12, color: '#556575' }}><input type="checkbox" checked={showUnavailable} onChange={e => { setShowUnavailable(e.target.checked); setSel(0) }} /> 显示当前不可用命令</label>
         <div ref={listRef} style={{ overflowY: 'auto' }}>
           {results.length === 0 && (
-            <div style={{ padding: '18px 16px', color: '#8a96a0', fontSize: 13 }}>冇搵到「{q}」相关嘅命令。试下日常讲法，例如「螺丝」「盒」「弹簧」「量距离」，或顶栏「示例」载入模板。</div>
+            <div style={{ padding: '18px 16px', color: '#8a96a0', fontSize: 13 }}>{showUnavailable ? `没有与「${q}」匹配的命令。请换一个名称或关键词。` : `当前环境没有与「${q}」匹配的可用命令。可勾选「显示当前不可用命令」查看，或先完成／取消当前操作。`}</div>
           )}
           {results.map((c, i) => (
             <div
               key={c.id}
               data-i={i}
+              role="option" aria-disabled={!!commandDisabledReason(useApp.getState(), c.id)}
+              title={commandDisabledReason(useApp.getState(), c.id) ?? c.tip}
               onMouseEnter={() => setSel(i)}
               onClick={() => choose(c)}
-              style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '8px 14px', cursor: 'pointer', background: i === sel ? '#eaf3fb' : 'transparent', borderLeft: i === sel ? '3px solid #2a7aa8' : '3px solid transparent' }}
+              style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '8px 14px', opacity: commandDisabledReason(useApp.getState(), c.id) ? .48 : 1, cursor: commandDisabledReason(useApp.getState(), c.id) ? 'not-allowed' : 'pointer', background: i === sel ? '#eaf3fb' : 'transparent', borderLeft: i === sel ? '3px solid #2a7aa8' : '3px solid transparent' }}
             >
               <span style={{ fontWeight: 600, fontSize: 14, color: '#1d2329', whiteSpace: 'nowrap' }}>{c.label}</span>
               {c.shortcut && <kbd style={{ fontSize: 10, color: '#6b7884', border: '1px solid #cfd8df', borderRadius: 4, padding: '0 4px' }}>{c.shortcut}</kbd>}

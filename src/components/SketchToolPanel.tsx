@@ -1,6 +1,11 @@
-import { useState, useRef, useEffect, useCallback, type ReactNode, type PointerEvent as RPointerEvent } from 'react'
+import {patternPreviewPlan} from './patternPreviewPlan'
+import { ellipseTangentCandidates } from './ellipseTangentVisual'
+import { ellipseArcContainsAngle } from '../sketch/ellipseArcGeometry'
+import { ellipseLineTangentPair, initialEllipseContact, refPts } from '../sketch/freesolve'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, type ReactNode, type PointerEvent as RPointerEvent } from 'react'
 import { useApp } from '../store'
 import { tStatus } from '../i18n'
+import ProjectionLinkStatus from './ProjectionLinkStatus'
 
 // T791：草图「工具选项」浮动面板 —— 只显示【当前工具】需要嘅设定，其它（CNC/激光/DXF/拉伸…）唔会喺度阻你。
 // 可拖（标题栏）、可缩放（右下角 CSS resize）、可收起；位置/尺寸/收起态存 localStorage。
@@ -8,7 +13,16 @@ const LS = 'webcad_toolpanel_v1'
 type PanelGeom = { x: number; y: number; w: number; h: number; collapsed: boolean }
 const DEFAULT_GEOM: PanelGeom = { x: 14, y: 110, w: 236, h: 0, collapsed: false }
 function loadGeom(): PanelGeom {
-  try { const j = JSON.parse(localStorage.getItem(LS) || ''); return { ...DEFAULT_GEOM, ...j } } catch { return { ...DEFAULT_GEOM } }
+  try {
+    const j = JSON.parse(localStorage.getItem(LS) || '')
+    return {
+      x: Number.isFinite(j.x) ? j.x : DEFAULT_GEOM.x,
+      y: Number.isFinite(j.y) ? j.y : DEFAULT_GEOM.y,
+      w: Number.isFinite(j.w) ? Math.max(168, Math.min(460, j.w)) : DEFAULT_GEOM.w,
+      h: Number.isFinite(j.h) ? Math.max(0, j.h) : 0,
+      collapsed: j.collapsed === true,
+    }
+  } catch { return { ...DEFAULT_GEOM } }
 }
 
 const TOOL_TITLE: Record<string, string> = {
@@ -24,7 +38,7 @@ const TOOL_HINT: Record<string, string> = {
   rectangle: '点两个对角点', crect: '点中心 → 点一角', rect3: '点 3 点（可画斜矩形）',
   circle: '点圆心 → 点半径', circle2p: '点直径两端两点（打数字=Ø）', circle3: '点圆周 3 点', circle2t: '点两条相切边 → 定半径', circle3t: '点三条相切边',
   polyline: '连续点击；回到起点或按「闭合」', mline: '点中点 → 点一端（由中点向两端对称）', polygon: '点中心 → 点一角', arc: '点 起点 / 终点 / 中点', arcc: '点圆心 → 起 → 终',
-  earc: '点中心 → 长轴端 → 短轴 → 起角 → 终角', conic: '点 起点 → 终点 → 顶点；ρ 调充满度', ellipse: '点中心 → 长轴 → 短轴', spline: '连续点击控制点；双击/闭合收尾',
+  earc: '点中心 → 长轴端 → 短轴 → 起角 → 终角', conic: '点 起点 → 终点 → 顶点；ρ 调充满度', ellipse: '点中心 → 点包围框角点确定两个半轴（可输入宽/高）', spline: '连续点击控制点；双击/闭合收尾',
   bspline: '连续点击控制点（曲线逼近）', point: '点位置落一个草图点', rrect: '点两个对角点（角自动倒圆）',
   slot: '点两个圆心 → 定槽宽', arcslot: '点弧 3 点 → 定槽宽',
   trim: '✂ 点要剪走嗰段（剪到相交点；冇相交成条删）', extend: '⟶ 点开放路径嘅端段，延到最近相交', break: '⊟ 点曲线上一点 → 一分为二（两段都保留）',
@@ -36,6 +50,11 @@ const SK_CON_LABEL_ZH: Record<string, string> = { h: '水平', v: '竖直', coin
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750' }}><span style={{ minWidth: 56 }}>{label}</span>{children}</label>
 }
+function ScaleValueInput({value,label,onValue,width=90}:{value:number;label:string;onValue:(n:number)=>void;width?:number}){
+  const [text,setText]=useState(String(value))
+  useEffect(()=>{if(Number.isFinite(value))setText(String(value))},[value])
+  return <input aria-label={label} inputMode="decimal" value={text} onChange={e=>{const raw=e.target.value;setText(raw);onValue(raw.trim()?Number(raw):NaN)}} style={{width}} />
+}
 function Hint({ children }: { children: ReactNode }) {
   return <details style={{ fontSize: 11.5, color: '#6b7680', lineHeight: 1.5, marginTop: 2 }}><summary>操作说明</summary>{children}</details>
 }
@@ -44,6 +63,8 @@ export function SketchToolPanel() {
   const mode = useApp((s) => s.mode)
   const lang = useApp((s) => s.lang)
   const tool = useApp((s) => s.sketchTool)
+  const ellipseCreation = useApp((s) => s.ellipseCreation)
+  const ellipseArcDirection = useApp((s) => s.ellipseArcDirection)
   const offsetD = useApp((s) => s.sketchOffsetD)
   const offsetBoth = useApp((s) => s.sketchOffsetBoth)
   const cornerR = useApp((s) => s.sketchCornerR)
@@ -54,6 +75,11 @@ export function SketchToolPanel() {
   const tanR = useApp((s) => s.sketchTanR)
   const dimArcLen = useApp((s) => s.dimArcLen)
   const mirrorPick = useApp((s) => s.mirrorPick)
+  const movePreview=useApp(s=>s.skMovePreview)
+  const arrayPending = useApp(s=>s.arrayPending)
+  const arrayPreview = useApp(s=>s.arrayPreview)
+  const patternSession=useApp(s=>s.skPatternSession),patternPreview=useApp(s=>s.skPatternPreview),patternData=useApp(s=>s.skPatternData)
+  const arrayProfiles=useApp(s=>s.sketchProfiles),arrayShape=useApp(s=>s.sketchShape),arraySelection=useApp(s=>s.skSel)
   const arrayCfg = useApp((s) => s.arrayCfg)
   const clineOrient = useApp((s) => s.clineOrient)
   const clineCenterline = useApp((s) => s.clineCenterline)   // GM-FP4 #23
@@ -62,7 +88,15 @@ export function SketchToolPanel() {
   const drawConstruction = useApp((s) => s.drawConstruction) // GM-FP4 #22
   const polyN = useApp((s) => s.polyPts.length)
   const autoConstrain = useApp((s) => s.autoConstrain)   // GM-FP2 #33
+  const ellipseLineSelected = useApp((s) => s.skSel.length === 2 && s.skSel.some(r => r.kind === 'ellipse' || r.kind === 'ellipse-arc') && s.skSel.some(r => r.kind === 'edge'))
+  const noEllipseTangentCandidate = useApp((s) => {if(s.skSel.length!==2)return false;const shapes=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])],pair=ellipseLineTangentPair(shapes,s.skSel[0],s.skSel[1]);return !!pair&&!initialEllipseContact(shapes,pair)})
+  const ellipseTangentNeedsRotation = useApp((s) => {if(s.skSel.length!==2)return false;const shapes=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])],pair=ellipseLineTangentPair(shapes,s.skSel[0],s.skSel[1]);if(!pair||!initialEllipseContact(shapes,pair))return false;const sh=shapes[pair.ellipse.shape];if(sh.type!=='poly'||!sh.earc)return false;const [a,b]=refPts(shapes,pair.line);return !ellipseTangentCandidates(sh.earc,a,b).some(c=>ellipseArcContainsAngle(sh.earc!,c.angleDeg))})
   const armedCon = useApp((s) => s.skArmedCon)            // GM-FP2 #34 tool-first 武装态
+  const dragging = useApp((s) => !!s.skDrag)
+  const finishingDrag = useApp((s) => !!s.skDrag?.finishing)
+  const dof = useApp((s) => s.skDof)
+  const conflict = useApp((s) => s.skConflict)
+  const skScale = useApp((s) => s.skScale)
   const skMove = useApp((s) => s.skMove)                  // GM-FP3 #39 Move gizmo 状态
   const selEmptyClear = useApp((s) => s.selEmptyClear)   // GM-FP4 #47
 
@@ -70,28 +104,44 @@ export function SketchToolPanel() {
   const ref = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{ ox: number; oy: number; px: number; py: number } | null>(null)
 
+  const fit = useCallback((g: PanelGeom): PanelGeom => {
+    const el = ref.current
+    const parent = el?.offsetParent as HTMLElement | null
+    if (!el || !parent) return g
+    const w = Math.min(g.w, Math.max(1, parent.clientWidth - 8))
+    const x = Math.max(4, Math.min(g.x, parent.clientWidth - Math.min(el.offsetWidth, w) - 4))
+    const y = Math.max(4, Math.min(g.y, parent.clientHeight - el.offsetHeight - 88))
+    return w === g.w && x === g.x && y === g.y ? g : { ...g, w, x, y }
+  }, [])
+
+  useLayoutEffect(() => { setGeom(fit) }, [mode, geom.x, geom.y, geom.w, geom.collapsed, fit])
+
   useEffect(() => { try { localStorage.setItem(LS, JSON.stringify(geom)) } catch { /* ignore quota */ } }, [geom])
 
-  // 缩放（CSS resize）后持久化宽高
+  // Observe both the panel and its canvas: opening the browser tree changes
+  // the available area without necessarily firing a window resize.
   useEffect(() => {
     const el = ref.current
     if (!el || typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(() => {
       const w = el.offsetWidth, h = el.offsetHeight
-      setGeom((gg) => (Math.abs(w - gg.w) > 1 || Math.abs(h - (gg.h || 0)) > 1) ? { ...gg, w, h } : gg)
+      setGeom((gg) => fit(gg.collapsed ? gg : { ...gg, w, h }))
     })
     ro.observe(el)
+    if (el.offsetParent) ro.observe(el.offsetParent)
     return () => ro.disconnect()
-  }, [geom.collapsed])
+  }, [mode, geom.collapsed, fit])
 
   const onHeaderDown = useCallback((e: RPointerEvent) => {
+    if (e.button !== 0) return
     if ((e.target as HTMLElement).closest('button')) return
     e.preventDefault()
     setGeom((gg) => { dragRef.current = { ox: gg.x, oy: gg.y, px: e.clientX, py: e.clientY }; return gg })
-    const move = (ev: globalThis.PointerEvent) => { const d = dragRef.current; if (!d) return; setGeom((gg) => ({ ...gg, x: Math.max(0, d.ox + ev.clientX - d.px), y: Math.max(0, d.oy + ev.clientY - d.py) })) }
-    const up = () => { dragRef.current = null; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
+    const move = (ev: globalThis.PointerEvent) => { const d = dragRef.current; if (!d) return; setGeom((gg) => fit({ ...gg, x: d.ox + ev.clientX - d.px, y: d.oy + ev.clientY - d.py })) }
+    const up = () => { dragRef.current = null; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); window.removeEventListener('blur', up) }
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
-  }, [])
+    window.addEventListener('pointercancel', up); window.addEventListener('blur', up)
+  }, [fit])
 
   if (mode !== 'sketch') return null
   const g = () => useApp.getState()
@@ -100,6 +150,23 @@ export function SketchToolPanel() {
 
   let body: ReactNode
   switch (tool) {
+    case 'earc':
+      body = <>
+        <Row label={lang === 'en' ? 'Direction' : '弧方向'}><select aria-label={lang === 'en' ? 'Elliptical arc direction' : '椭圆弧方向'} value={ellipseArcDirection} onChange={(e) => g().setEllipseArcDirection(e.target.value as 'ccw'|'cw')}>
+          <option value="ccw">{lang === 'en' ? 'Counterclockwise' : '逆时针'}</option><option value="cw">{lang === 'en' ? 'Clockwise' : '顺时针'}</option>
+        </select></Row>
+        <div style={{ fontSize: 12, lineHeight: 1.5 }}>{lang === 'en' ? 'Drag the orange arc endpoints to adjust the sweep. Drag the center or blue axis handles; press D and click a dotted semiaxis to set its length.' : '拖橙色弧端点调整弧段；拖圆心或蓝色轴手柄调整椭圆。按 D 点虚线半轴可输入长度。'}</div>
+      </>
+      break
+    case 'ellipse':
+      body = (<>
+        <Row label={lang === 'en' ? 'Method' : '绘制方式'}><select aria-label={lang === 'en' ? 'Ellipse creation method' : '椭圆绘制方式'} value={ellipseCreation} onChange={(e) => g().setEllipseCreation(e.target.value as 'axis-aligned' | 'three-point')} style={{ minWidth: 0, maxWidth: '100%', flex: 1 }}>
+          <option value="axis-aligned">{lang === 'en' ? 'Axis aligned (2 points)' : '正交椭圆（两点）'}</option>
+          <option value="three-point">{lang === 'en' ? 'Center + two axes (3 points)' : '中心 + 两个轴（三点）'}</option>
+        </select></Row>
+        <div style={{ fontSize: 12, lineHeight: 1.5 }}>{ellipseCreation === 'three-point' ? (lang === 'en' ? 'Center → major-axis endpoint → minor-axis distance. Esc returns one step.' : '中心 → 主轴端点 → 副轴距离。Esc 返回上一步。') : (lang === 'en' ? 'Center → bounding-box corner. Type width / height for exact sizes.' : '中心 → 包围框角点。输入宽 / 高可精确绘制。')}</div>
+      </>)
+      break
     case 'offset':
       body = (<>
         <Row label={T('偏移距离')}><input className="tp-num" type="number" step={1} value={offsetD} onFocus={(e) => e.currentTarget.select()} onChange={(e) => g().setSketchOffsetD(Number(e.target.value))} style={{ width: 64 }} /><span style={{ fontSize: 11, color: '#8a97a2' }}>mm</span></Row>
@@ -191,35 +258,54 @@ export function SketchToolPanel() {
       break
     case 'array': {
       const a = arrayCfg
+      const associative=!!patternSession,existingPattern=patternData?.patterns[0]
+      const sourceCount=patternSession?.mode==='reconfigure'?existingPattern?.sourceEntityIds.length??0:undefined
+      const pending=arrayPending||(associative?patternPreview.pending:arrayPreview.pending)
+      const previewError=associative?patternPreview.error:arrayPreview.error
+      const ready=associative?!!patternPreview.document&&!patternPreview.error:!!arrayPreview.shapes&&!arrayPreview.error
+      const shapeCount=arrayProfiles.length+(arrayShape?1:0),selectedCount=new Set(arraySelection.flatMap(r=>'shape'in r&&Number.isInteger(r.shape)&&r.shape>=0&&r.shape<shapeCount?[r.shape]:[])).size
+      const validation=patternPreviewPlan(a,selectedCount||shapeCount,shapeCount)
       const set = (patch: Partial<typeof a>) => g().setArrayCfg(patch)
       body = (<>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button className={'sb-tool' + (a.kind === 'rect' ? ' active' : '')} style={{ flex: 1 }} onClick={() => set({ kind: 'rect' })}>{T('▦ 矩形')}</button>
-          <button className={'sb-tool' + (a.kind === 'circ' ? ' active' : '')} style={{ flex: 1 }} onClick={() => set({ kind: 'circ' })}>{T('✳ 环形')}</button>
+        <div style={{display:'flex',flexDirection:'column',gap:5}}>
+          <button className={'sb-tool'+(!associative?' active':'')} data-array-independent onClick={()=>{if(patternSession){g().cancelSketchPattern();g().setSketchTool('array')}}}>{lang==='en'?'Independent copies':'独立副本阵列'}</button>
+          {!existingPattern&&<button className={'sb-tool'+(patternSession?.mode==='create'?' active':'')} data-pattern-create disabled={!selectedCount||pending} onClick={()=>g().beginSketchPattern('create')}>{lang==='en'?'Create associative pattern':'建立关联阵列'}</button>}
+          {existingPattern&&<div style={{display:'flex',gap:5}}><button className={'sb-tool'+(patternSession?.mode==='reconfigure'?' active':'')} data-pattern-edit style={{flex:1}} disabled={pending} onClick={()=>g().beginSketchPattern('reconfigure')}>{lang==='en'?'Edit linked pattern':'编辑关联阵列'}</button><button className="sb-tool" data-pattern-detach style={{flex:1}} disabled={pending} title={lang==='en'?'Keep geometry and remove the pattern relationship':'保留几何，解除阵列关联'} onClick={()=>g().detachSketchPattern()}>{lang==='en'?'Detach':'解除关联'}</button></div>}
         </div>
+        <div data-pattern-source-info style={{fontSize:11.5,lineHeight:1.5,color:'#1c6fb8'}}>{associative?(lang==='en'?`${sourceCount??selectedCount} source shapes; linked copies follow source edits.`:`${sourceCount??selectedCount} 个来源轮廓；修改来源时，关联副本会同步更新。`):(lang==='en'?`${selectedCount||shapeCount} shapes will be copied independently. Select sources before creating a linked pattern.`:`将独立复制 ${selectedCount||shapeCount} 个轮廓。建立关联阵列前，请先选取来源。`)}{associative&&patternPreview.document&&(lang==='en'?` Preview: ${patternPreview.document.shapes.length} total shapes.`:` 预览共 ${patternPreview.document.shapes.length} 个轮廓。`)}</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className={'sb-tool' + (a.kind === 'rect' ? ' active' : '')} style={{ flex: 1 }} disabled={patternSession?.mode==='reconfigure'&&existingPattern?.config.kind!=='rectangular'} onClick={() => set({ kind: 'rect' })}>{T('▦ 矩形')}</button>
+          <button className={'sb-tool' + (a.kind === 'circ' ? ' active' : '')} style={{ flex: 1 }} disabled={patternSession?.mode==='reconfigure'&&existingPattern?.config.kind!=='circular'} onClick={() => set({ kind: 'circ' })}>{T('✳ 环形')}</button>
+        </div>
+        {patternSession?.mode==='reconfigure'&&<div style={{fontSize:11.5}}>{lang==='en'?'Changing pattern type requires a new pattern.':'更改阵列类型需要建立新的阵列。'}</div>}
         {a.kind === 'rect' ? (<>
           {/* GM-FP4 #53：Distance Type（Fusion Rectangular Pattern）—— 间距 Spacing（每格）/ 总跨 Extent（首末总距） */}
           <div style={{ display: 'flex', gap: 4 }}>
             <button className={'sb-tool' + (a.distType === 'spacing' ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={T('间距：X/Y 值 = 相邻两格之间嘅距离')} onClick={() => set({ distType: 'spacing' })}>{T('间距 Spacing')}</button>
             <button className={'sb-tool' + (a.distType === 'extent' ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={T('总跨：X/Y 值 = 首末两件之间嘅总距（内部自动 ÷(n−1)）')} onClick={() => set({ distType: 'extent' })}>{T('总跨 Extent')}</button>
           </div>
-          <Row label={T('列数 ×')}><input className="tp-num" type="number" min={1} value={a.nx} onFocus={(e) => e.currentTarget.select()} onChange={(e) => set({ nx: Math.max(1, Math.round(Number(e.target.value)) || 1) })} style={{ width: 56 }} /></Row>
-          <Row label={a.distType === 'extent' ? T('X 总跨') : T('X 间距')}><input className="tp-num" type="number" value={a.dx} onFocus={(e) => e.currentTarget.select()} onChange={(e) => set({ dx: Number(e.target.value) || 0 })} style={{ width: 56 }} /></Row>
-          <Row label={T('行数 ×')}><input className="tp-num" type="number" min={1} value={a.ny} onFocus={(e) => e.currentTarget.select()} onChange={(e) => set({ ny: Math.max(1, Math.round(Number(e.target.value)) || 1) })} style={{ width: 56 }} /></Row>
-          <Row label={a.distType === 'extent' ? T('Y 总跨') : T('Y 间距')}><input className="tp-num" type="number" value={a.dy} onFocus={(e) => e.currentTarget.select()} onChange={(e) => set({ dy: Number(e.target.value) || 0 })} style={{ width: 56 }} /></Row>
+          <Row label={T('列数 ×')}><ScaleValueInput label="Array columns" value={a.nx} onValue={n=>set({nx:n})} width={80} /></Row>
+          <Row label={a.distType === 'extent' ? T('X 总跨') : T('X 间距')}><ScaleValueInput label="Array X distance" value={a.dx} onValue={n=>set({dx:n})} width={80} /></Row>
+          <Row label={T('行数 ×')}><ScaleValueInput label="Array rows" value={a.ny} onValue={n=>set({ny:n})} width={80} /></Row>
+          <Row label={a.distType === 'extent' ? T('Y 总跨') : T('Y 间距')}><ScaleValueInput label="Array Y distance" value={a.dy} onValue={n=>set({dy:n})} width={80} /></Row>
         </>) : (<>
-          <Row label={T('数量')}><input className="tp-num" type="number" min={2} value={a.count} onFocus={(e) => e.currentTarget.select()} onChange={(e) => set({ count: Math.max(2, Math.round(Number(e.target.value)) || 2) })} style={{ width: 56 }} /></Row>
+          <Row label={T('数量')}><ScaleValueInput label="Array count" value={a.count} onValue={n=>set({count:n})} width={80} /></Row>
           {/* GM-FP4 #53：Angle Type（Fusion Circular Pattern）—— 整圈 Full（均分 360°）/ 指定角 Angle */}
           <div style={{ display: 'flex', gap: 4 }}>
             <button className={'sb-tool' + (a.angleType === 'full' ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={T('整圈：count 份均分 360°')} onClick={() => set({ angleType: 'full' })}>{T('整圈 Full')}</button>
             <button className={'sb-tool' + (a.angleType === 'angle' ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={T('指定角：用下面「总角度」铺开')} onClick={() => set({ angleType: 'angle' })}>{T('指定角')}</button>
           </div>
-          {a.angleType === 'angle' && <Row label={T('总角度')}><input className="tp-num" type="number" value={a.angle} onFocus={(e) => e.currentTarget.select()} onChange={(e) => set({ angle: Number(e.target.value) || 0 })} style={{ width: 56 }} /> °</Row>}
-          <Row label={T('中心 X')}><input className="tp-num" type="number" value={a.cx} onFocus={(e) => e.currentTarget.select()} onChange={(e) => set({ cx: Number(e.target.value) || 0 })} style={{ width: 56 }} /></Row>
-          <Row label={T('中心 Y')}><input className="tp-num" type="number" value={a.cy} onFocus={(e) => e.currentTarget.select()} onChange={(e) => set({ cy: Number(e.target.value) || 0 })} style={{ width: 56 }} /></Row>
+          {a.angleType === 'angle' && <Row label={T('总角度')}><ScaleValueInput label="Array angle" value={a.angle} onValue={n=>set({angle:n})} width={80} /> °</Row>}
+          <Row label={T('中心 X')}><ScaleValueInput label="Array center X" value={a.cx} onValue={n=>set({cx:n})} width={80} /></Row>
+          <Row label={T('中心 Y')}><ScaleValueInput label="Array center Y" value={a.cy} onValue={n=>set({cy:n})} width={80} /></Row>
         </>)}
-        <button className="sb-tool sb-finish" title={T('按上面参数阵列当前轮廓')} onClick={() => g().applyArray()}>{T('应用阵列')}</button>
-        <Hint>{a.kind === 'circ' ? T('对【一个】轮廓环形阵列（绿虚线=预览）。「中心」要离开轮廓，否则副本会叠埋一齐。') : T('对【一个】轮廓矩形阵列（绿虚线=预览）。')}</Hint>
+        <button className="sb-tool sb-finish" title={T('按上面参数阵列当前轮廓')} data-array-apply disabled={pending||!ready||(!associative&&!validation.ok)} onClick={()=>void g().applyArray()}>{associative?(patternSession?.mode==='create'?(lang==='en'?'Apply linked pattern':'应用关联阵列'):(lang==='en'?'Apply pattern changes':'应用阵列修改')):T('应用阵列')}</button>
+        {!associative&&!validation.ok&&<div role="alert" data-array-error style={{color:'#b42318',fontSize:11.5}}>{validation.reason}</div>}
+        {previewError&&<div role="alert" data-array-error style={{color:'#b42318',fontSize:11.5}}>{previewError}</div>}
+        {pending&&<div role="status">{lang==='en'?'Validating preview…':'正在校验预览…'}</div>}
+        {associative&&patternPreview.omitted.length>0&&<div role="status" data-pattern-omitted style={{fontSize:11.5,color:'#8b5b0b'}}>{lang==='en'?`${patternPreview.omitted.length} external relationships remain on the sources and will not be copied.`:`${patternPreview.omitted.length} 个外部关系保留在来源，不会复制到副本。`}</div>}
+        {associative&&<button className="sb-tool" data-pattern-cancel onClick={()=>g().cancelSketchPattern()}>{lang==='en'?'Cancel pattern changes':'取消阵列操作'}</button>}
+        {!associative&&<div data-array-copy-help style={{fontSize:11.5,lineHeight:1.5,color:'#1c6fb8'}}>{lang==='en'?'Independent copies retain internal dimensions and relationships. Later source edits do not move these copies. Use Create associative pattern for linked updates.':'独立副本保留内部尺寸与关系；后续修改原件不会带动这些副本。如需同步更新，请选择建立关联阵列。'}</div>}
       </>)
       break
     }
@@ -248,15 +334,31 @@ export function SketchToolPanel() {
         <Hint>{`${polyN} ${T('点')} · ${TOOL_HINT[tool] || T('连续点击落点')}　—　${T('画一条直线：点 2 点 →「✓ 完成线」')}`}</Hint>
       </>)
       break
+    case 'scale':
+      body = skScale ? (<>
+        <div data-scale-help style={{fontSize:11.5,lineHeight:1.5,color:'#1c6fb8'}}>{lang==='en'?'Pick a base point, enter a factor or drag the blue handle. The dashed shape is a preview; Apply commits it. Existing dimensions and Fix constraints remain active.':'可选择基点、输入比例或拖蓝色手柄；虚线只作预览，按应用才修改草图。已有尺寸及固定约束继续生效。'}</div>
+        <label style={{display:'flex',gap:6,alignItems:'center'}}>{lang==='en'?'Factor':'比例'}<ScaleValueInput label="Scale factor" value={skScale.factor} onValue={n=>void g().setSkScaleFactor(n)} /></label>
+        <div style={{display:'flex',gap:6}}>{(['X','Y'] as const).map((axis,i)=><label key={axis}>{axis}<ScaleValueInput label={`Scale base ${axis}`} value={i?skScale.cy:skScale.cx} onValue={n=>g().setSkScaleBase(i?[skScale.cx,n]:[n,skScale.cy])} width={80} /></label>)}</div>
+        <button className="sb-tool" data-scale-pick-base onClick={()=>g().pickSkScaleBase()}>{skScale.stage==='base'?(lang==='en'?'Click the base point in the canvas…':'请在画布点击基点…'):(lang==='en'?'Pick base point':'选择基点')}</button>
+        {skScale.pending&&<div role="status">{lang==='en'?'Checking preview…':'正在校验预览…'}</div>}
+        {skScale.error&&<div role="alert" style={{color:'#b42318',fontSize:11.5}}>{skScale.error}</div>}
+        <div style={{display:'flex',gap:6}}><button className="sb-tool sb-finish" data-scale-apply disabled={skScale.pending||!!skScale.error||skScale.stage==='base'||skScale.stage==='dragging'} onClick={()=>void g().confirmSkScale()}>{lang==='en'?'Apply':'应用'}</button><button className="sb-tool" data-scale-cancel onClick={()=>g().cancelSkScale()}>{lang==='en'?'Cancel':'取消'}</button></div>
+        <button className="sb-tool" data-scale-input onClick={()=>g().skScalePrompt()}>{lang==='en'?'Legacy numeric input…':'打字精确输入…'}</button>
+      </>) : (<button className="sb-tool" onClick={()=>g().startSkScale()}>{lang==='en'?'Start Scale':'开始缩放'}</button>)
+      break
     case 'move':
       body = skMove ? (<>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('剔=复制（原件保留）；唔剔=移动')}>
           <input type="checkbox" checked={!!skMove.copy} onChange={(e) => g().setSkMoveCopy(e.target.checked)} />
           <span>{T('Create Copy 复制')}</span>
         </label>
-        <div style={{ fontSize: 11.5, color: '#6b7680' }}>{`dx ${skMove.dx.toFixed(1)} · dy ${skMove.dy.toFixed(1)} · ${skMove.ang.toFixed(0)}°`}</div>
+        {!skMove.copy && <div data-move-constraint-help style={{ fontSize: 11.5, color: '#1c6fb8', lineHeight: 1.5 }}>{lang === 'en' ? 'Move preserves existing dimensions, directions and Fix constraints. A conflicting move leaves the sketch unchanged.' : '移动会遵守已有尺寸、方向及固定约束；冲突时保留原有草图。'}</div>}
+        {!!skMove.copy && <div data-copy-constraint-help style={{ fontSize: 11.5, color: '#1c6fb8', lineHeight: 1.5 }}>{lang === 'en' ? 'Copy includes dimensions and relationships entirely within the selection, with independent IDs. Relationships to unselected geometry or the origin are not copied.' : '复制会保留选中对象内部的尺寸与关系，并建立独立编号；连到未选对象或原点的关系不会复制。'}</div>}
+        {!skMove.copy&&movePreview.pending&&<div role="status">{lang==='en'?'Checking move preview…':'正在校验移动预览…'}</div>}
+        {movePreview.error&&<div role="alert" style={{color:'#b42318'}}>{movePreview.error}</div>}
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>{(['dx','dy','ang'] as const).map(field=><Row key={field} label={field==='ang'?(lang==='en'?'Angle °':'角度 °'):`${field} mm`}><input aria-label={field==='ang'?'Move angle':'Move '+field} inputMode="decimal" value={skMove.inputDraft?.[field]??String(skMove[field])} onChange={e=>g().setSkMoveValue(field,e.target.value)} style={{width:90}} /></Row>)}</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="sb-tool sb-finish" style={{ flex: 1 }} title={T('应用（Enter）')} onClick={() => g().commitSkMove()}>{T('✓ 应用')}</button>
+          <button className="sb-tool sb-finish" style={{ flex: 1 }} title={T('应用（Enter）')} disabled={!!skMove.inputError||!skMove.copy&&(movePreview.pending||!!movePreview.error||!movePreview.shapes)} onClick={() => g().commitSkMove()}>{T('✓ 应用')}</button>
           <button className="sb-tool" style={{ flex: 1 }} title={T('取消（Esc）')} onClick={() => g().cancelSkMove()}>{T('取消')}</button>
         </div>
         <button className="sb-tool" style={{ width: '100%' }} title={T('打字精确 dx,dy[,角度][,副本数]')} onClick={() => void g().skMovePrompt()}>{T('⌨ 打字精确…')}</button>
@@ -265,6 +367,13 @@ export function SketchToolPanel() {
       break
     case 'select':
       body = (<>
+        <div role="status" data-sketch-drag-help style={{ fontSize: 12, lineHeight: 1.5, overflowWrap: 'anywhere', color: conflict ? '#a32d27' : '#3a4750' }}>
+          {lang === 'en'
+            ? (finishingDrag ? 'Confirming the release position…' : dragging ? 'Release to confirm · Esc to restore' : conflict ? 'Conflicting constraints: inspect the red markers.' : dof === 0 ? 'Fully constrained: edit a dimension to change the geometry.' : 'Drag a point to move it, an edge to move both ends, or a circle rim to resize it. Dimensions and constraints stay in force.')
+            : (finishingDrag ? '正在确认放手位置…' : dragging ? '放开确认 · Esc 还原' : conflict ? '约束有冲突：请检查红色标记。' : dof === 0 ? '几何已完全约束：点击尺寸修改形状。' : '拖点改位置、拖边移动两端、拖圆周改大小。已有尺寸与约束会保持。')}
+        </div>
+        {(armedCon === 'tangent' || ellipseLineSelected) && <div style={{ fontSize: 11.5, color: '#1c6fb8', lineHeight: 1.5 }}>{ellipseTangentNeedsRotation ? (lang === 'en' ? 'The current line direction has no contact within this arc. Tangent will try to adjust the geometry toward the orange dashed direction while preserving constraints.' : '当前直线方向没有弧内切点。套用相切会尝试按橙色虚线调整几何方向，并保留既有约束。') : noEllipseTangentCandidate ? (lang === 'en' ? 'No tangent candidate on this directed arc for the current line direction. Change the geometry or select an arc endpoint for endpoint tangency.' : '当前直线方向在此有向弧内没有相切候选。请调整几何，或选择弧端点使用端点相切。') : lang === 'en' ? 'Whole ellipse + straight edge: orange contact is the proposed branch; click Tangent to confirm. Whole arc contacts stay within the directed sweep; selecting an endpoint uses endpoint tangency.' : '整椭圆＋直线：橙色接触候选为默认分支，按相切确认。整段椭圆弧只取有向范围内候选；选端点则使用端点相切。'}</div>}
+        {dragging && <button className="sb-tool" onClick={() => g().skDragCancel()}>{lang === 'en' ? 'Cancel drag (Esc)' : '取消拖动（Esc）'}</button>}
         {armedCon
           ? <div style={{ fontSize: 12, fontWeight: 700, color: '#1c6fb8', lineHeight: 1.5 }}>{`${T('施约束武装中')}：${SK_CON_LABEL_ZH[armedCon] ?? armedCon}`}<div style={{ fontWeight: 400, color: '#5a6b78', fontSize: 11.5, marginTop: 2 }}>{T('拣要约束嘅对象（拣够即施加，保持武装）· ESC 退出')}</div></div>
           : <Hint>{T('点 点/边/圆 拣选（可多选）· 空白左拖=框选（左→右全包/右→左相触）· 双击边=链选 → 撳约束/尺寸掣。或先撳约束掣（无选择）= tool-first。')}</Hint>}
@@ -282,23 +391,28 @@ export function SketchToolPanel() {
   return (
     <div
       ref={ref}
+      data-sketch-tool-panel role="region" aria-label={T('草图工具选项')}
       style={{
         position: 'absolute', left: geom.x, top: geom.y, width: geom.collapsed ? 'auto' : geom.w,
-        minWidth: geom.collapsed ? 0 : 168, maxWidth: 460, maxHeight: '70%',
-        resize: geom.collapsed ? 'none' : 'both', overflow: geom.collapsed ? 'visible' : 'auto',
+        height: geom.collapsed ? 'auto' : geom.h || undefined,
+        minWidth: geom.collapsed ? 0 : 'min(168px, calc(100% - 8px))', maxWidth: 'calc(100% - 8px)', maxHeight: 'max(40px, calc(100% - 88px))',
+        display: 'flex', flexDirection: 'column', boxSizing: 'border-box',
+        resize: geom.collapsed ? 'none' : 'both', overflow: 'hidden',
         background: 'rgba(255,255,255,0.97)', border: '1px solid #b9cfe2', borderRadius: 9,
         boxShadow: '0 4px 18px rgba(20,60,110,0.16)', zIndex: 70, userSelect: 'none', backdropFilter: 'blur(2px)',
       }}
     >
       <div
         onPointerDown={onHeaderDown}
-        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', cursor: 'move', background: 'linear-gradient(#eef5fc,#e3eefa)', borderBottom: geom.collapsed ? 'none' : '1px solid #d3e1ef', borderRadius: '9px 9px 0 0' }}
+        style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: 6, padding: '5px 8px', cursor: 'move', touchAction: 'none', background: 'linear-gradient(#eef5fc,#e3eefa)', borderBottom: geom.collapsed ? 'none' : '1px solid #d3e1ef', borderRadius: '9px 9px 0 0' }}
       >
         <span style={{ fontSize: 12.5, fontWeight: 700, color: '#1c5a96', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={T('工具选项 · 拖动标题移动，拖右下角缩放')}>⚙ {T(title)}</span>
-        <button className="sb-tool" style={{ padding: '0 6px', minWidth: 0, lineHeight: '18px' }} title={T('收起 / 展开')} onClick={() => setGeom((gg) => ({ ...gg, collapsed: !gg.collapsed }))}>{geom.collapsed ? '▸' : '▾'}</button>
+        <button className="sb-tool" style={{ padding: '0 4px', minWidth: 0 }} title={T('恢复工具面板位置和大小')} onClick={() => setGeom({ ...DEFAULT_GEOM, collapsed: geom.collapsed })}>↺</button>
+        <button className="sb-tool" aria-expanded={!geom.collapsed} style={{ padding: '0 6px', minWidth: 0, lineHeight: '18px' }} title={T('收起 / 展开')} onClick={() => setGeom((gg) => ({ ...gg, collapsed: !gg.collapsed }))}>{geom.collapsed ? '▸' : '▾'}</button>
       </div>
       {!geom.collapsed && (
-        <div style={{ padding: '9px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: '9px 10px', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, overflow: 'auto', overflowWrap: 'anywhere' }}>
+          <ProjectionLinkStatus />
           {body}
           {/* GM-FP2 #33：AutoConstrain — 绘制时自动推断开关（默认开，Fusion palette 同款）+ 一键对选中/全部推断 */}
           <div style={{ borderTop: '1px solid #e3ebf3', marginTop: 2, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>

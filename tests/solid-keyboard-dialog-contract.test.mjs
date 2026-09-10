@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 
 test('SOLID dialogs keep Enter/Escape active while a numeric input is focused', () => {
@@ -80,7 +81,6 @@ test('Construct, Inspect, Surface, and Assembly pick modes have an explicit Esca
 test('ribbon command UI exposes command identity and prevents commands behind a modal gate', () => {
   assert.match(ribbon, /data-cmd=\{t\.id\}/)
   assert.match(ribbon, /disabled=\{off\}/)
-  assert.match(ribbon, /s\.faceFilletMode/)
-  assert.match(ribbon, /s\.draftPickMode > 0/)
-  assert.match(ribbon, /SKETCH_OK_CMDS/)
+  assert.match(ribbon, /commandDisabledReason\(useApp\.getState\(\), id\)/)
+  assert.match(store, /commandDisabledReason\(get\(\), id\)/)
 })

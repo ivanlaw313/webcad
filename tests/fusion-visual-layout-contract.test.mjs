@@ -28,7 +28,7 @@ test('desktop ribbon tabs and cascading menus remain inside a narrow viewport', 
   assert.match(css, /\.panel-menu\s*\{[^}]*max-width:\s*calc\(100vw - 16px\)[^}]*max-height:\s*min\(480px,\s*calc\(100vh - 110px\)\)/s)
   assert.match(ribbon, /data-testid="ribbon-group-menu"/)
   assert.match(ribbon, /data-testid="ribbon-submenu"/)
-  assert.match(ribbon, /r\.right > window\.innerWidth - 8/)
+  assert.match(ribbon, /createPortal/); assert.match(ribbon, /window\.innerWidth - el\.offsetWidth - 8/)
 })
 
 test('floating CAD panels have viewport-safe dimensions and theme-aware surfaces', () => {

@@ -54,7 +54,7 @@ test('timeline Revolve persists its cardinal plane instead of flattening to XY',
   assert.match(store, /skBundle \? \{ plane: skBundle\.plane, baseZ: skBundle\.baseZ \} : \{\}/)
   assert.match(store, /skBundle\?\.arb \? \{ arbPlane: skBundle\.arb \} : \{\}/)
   assert.match(store, /st0\.sketchArb \? \{ arb: JSON\.parse\(JSON\.stringify\(st0\.sketchArb\)\) as ArbBasis \} : \{\}/)
-  assert.match(store, /_pendingDatumRef \? \{ datumRef: JSON\.parse\(JSON\.stringify\(_pendingDatumRef\)\)/)
+  // Datum ownership across command entry/cancel is verified by active-parameter-datum-revolve.test.mjs.
   assert.match(store, /f\.type === 'revolve' && sid && arbNew\[sid\] && \(f as \{ arbPlane\?: ArbBasis \}\)\.arbPlane/)
   assert.doesNotMatch(store, /st0\.sketchPlane && st0\.sketchPlane !== 'XY'\)\) \{ set\(/)
 })

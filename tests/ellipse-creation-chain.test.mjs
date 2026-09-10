@@ -1,0 +1,32 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import {register,createRequire} from 'node:module'
+import {fileURLToPath} from 'node:url'
+globalThis.require=createRequire(import.meta.url);globalThis.__dirname=fileURLToPath(new URL('.',import.meta.url));register('./native-car-loader.mjs',import.meta.url)
+await import('../src/worker/cad.worker.ts');const w=globalThis.__wheelWorker;await w.ready()
+const {useApp,buildProjectPayload}=await import('../src/store.ts'),{importSTEP,measureVolume,getOC}=await import('replicad')
+const C=[20,30],U=[20+5*Math.sqrt(3),35],V=[17.5,30+2.5*Math.sqrt(3)],all=()=>[...useApp.getState().sketchProfiles,...(useApp.getState().sketchShape?[useApp.getState().sketchShape]:[])]
+const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} != ${b}`)
+function seed(plane='XY'){useApp.setState({...useApp.getInitialState(),mode:'sketch',sketchTool:'ellipse',extrudeHeight:5,sketchOp:'new',...(plane==='ARB'?{sketchPlane:'XY',sketchArb:{o:[10,20,30],xd:[0,1,0],n:[1,0,0]}}:{sketchPlane:plane})},true);useApp.getState().setSnapSize(0);useApp.getState().setGeoSnap(false);useApp.getState().setEllipseCreation('three-point')}
+function ellipse(rx=10,ry=5){const sh=all().find(s=>s.ell);assert.ok(sh?.ell,useApp.getState().status);const e=sh.ell;near(e.cx,20);near(e.cy,30);near(e.rx,rx);near(e.ry,ry);near(e.rot,30);for(const p of sh.pts){const dx=p[0]-20,dy=p[1]-30,x=dx*Math.sqrt(3)/2+dy/2,y=-dx/2+dy*Math.sqrt(3)/2;near((x/rx)**2+(y/ry)**2,1)}return sh}
+async function draw(){await useApp.getState().onSketchClick(C);await useApp.getState().onSketchClick(U);assert.equal(all().length,0);await useApp.getState().onSketchClick(V);ellipse()}
+async function volume(rx,h,count=1){const shape=await importSTEP(new Blob([await w.exportSTEP()])),check=new(getOC().BRepCheck_Analyzer)(shape.wrapped,true,false);try{assert.ok(check.IsValid_2())}finally{check.delete()}const expected=count*Math.PI*rx*5*h,actual=measureVolume(shape);assert.ok(Math.abs(actual-expected)<1e-5,`${actual} != ${expected}`)}
+for(const plane of ['XY','XZ','YZ','ARB'])test(`three-click ellipse ${plane} mirrors and updates dimensions through native history/JSON/STEP`,async()=>{
+ seed(plane);await draw();const created=structuredClone(all());await useApp.getState().undo();assert.equal(all().length,0);await useApp.getState().redo();assert.deepEqual(all(),created)
+ const center={kind:'ellipse-point',shape:0,idx:0},minor={kind:'ellipse-point',shape:0,idx:2},major={kind:'ellipse-point',shape:0,idx:1};useApp.setState({skCons:[{id:'center',kind:'con',type:'fix',a:center},{id:'minor',kind:'con',type:'fix',a:minor},{id:'radius',kind:'dim',type:'dist',a:center,b:major,value:10,expr:'10',name:'dRadius',refs:{}}]});await useApp.getState().mirrorSketch('y');assert.equal(all().filter(s=>s.ell).length,2);await useApp.getState().extrudeSketch();assert.equal(useApp.getState().mode,'model',useApp.getState().status);await volume(10,5,2)
+ let feat=useApp.getState().features.find(f=>f.sketchId);await useApp.getState().editSketchOf(feat.id);useApp.setState({skCons:useApp.getState().skCons.map(c=>c.id==='radius'?{...c,value:12,expr:'12'}:c)});await useApp.getState().resolveSk();ellipse(12);for(const sh of all().filter(s=>s.ell))near(sh.ell.rx,12);await useApp.getState().applySketchEdit(feat.sketchId);await volume(12,5,2);await useApp.getState().undo();await volume(10,5,2);await useApp.getState().redo();await volume(12,5,2)
+ const payload=JSON.parse(JSON.stringify(buildProjectPayload(useApp.getState())));useApp.setState({...useApp.getInitialState()},true);await useApp.getState().applyProjectData(payload);await volume(12,5,2);feat=useApp.getState().features.find(f=>f.sketchId);await useApp.getState().editSketchOf(feat.id);ellipse(12);await useApp.getState().applySketchEdit(feat.sketchId);await volume(12,5,2)
+})
+test('typed three-point ellipse uses semiaxis lengths and keeps cursor-defined rotation',async()=>{
+ seed();await useApp.getState().onSketchClick(C);useApp.getState().onSketchMove(U);for(const k of ['1','0','Enter'])useApp.getState().sketchTypeKey(k);assert.equal(all().length,0);useApp.getState().onSketchMove(V);for(const k of ['5','Enter'])useApp.getState().sketchTypeKey(k);ellipse();await useApp.getState().extrudeSketch();assert.equal(useApp.getState().mode,'model',useApp.getState().status);await volume(10,5)
+})
+test('Escape steps back U then C without creating ellipse or consuming history',async()=>{
+ seed();await useApp.getState().onSketchClick(C);await useApp.getState().onSketchClick(U);assert.equal(useApp.getState().escSketch(),true);assert.deepEqual(useApp.getState().sketchStart,C);assert.equal(useApp.getState().polyPts.length,0);assert.equal(useApp.getState().escSketch(),true);assert.equal(useApp.getState().sketchStart,null);assert.equal(useApp.getState().mode,'sketch');assert.equal(all().length,0);assert.equal(useApp.getState().sketchUndo.length,0)
+})
+test('zero perpendicular radius rejects mouse and typed completion without losing staged center/axis',async()=>{
+ seed();await useApp.getState().onSketchClick(C);await useApp.getState().onSketchClick(U);const before=structuredClone({start:useApp.getState().sketchStart,axis:useApp.getState().polyPts,undo:useApp.getState().sketchUndo});await useApp.getState().onSketchClick(U);assert.equal(all().length,0);assert.deepEqual(useApp.getState().sketchStart,before.start);assert.deepEqual(useApp.getState().polyPts,before.axis);assert.deepEqual(useApp.getState().sketchUndo,before.undo)
+ for(const k of ['0','Enter'])useApp.getState().sketchTypeKey(k);assert.equal(all().length,0);assert.deepEqual(useApp.getState().sketchStart,before.start);assert.deepEqual(useApp.getState().polyPts,before.axis);assert.deepEqual(useApp.getState().sketchUndo,before.undo)
+})
+test('typed center and principal axis step back with Escape and discard provisional history',()=>{
+ seed();for(const k of ['2','0','Tab','3','0','Enter'])useApp.getState().sketchTypeKey(k);assert.deepEqual(useApp.getState().sketchStart,C);useApp.getState().onSketchMove(U);for(const k of ['1','0','Enter'])useApp.getState().sketchTypeKey(k);assert.equal(useApp.getState().polyPts.length,1);assert.equal(useApp.getState().escSketch(),true);assert.deepEqual(useApp.getState().sketchStart,C);assert.equal(useApp.getState().polyPts.length,0);assert.equal(useApp.getState().escSketch(),true);assert.equal(useApp.getState().sketchStart,null);assert.equal(useApp.getState().sketchUndo.length,0);assert.equal(all().length,0);assert.equal(useApp.getState().mode,'sketch')
+})

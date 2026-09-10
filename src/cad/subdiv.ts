@@ -260,7 +260,7 @@ export function extrudeQuadFace(m: QuadMesh, faceIdx: number, dist: number): Qua
  *  axis 0/1/2 = x/y/z。平面应取 cage 一个【面边界】（例盒 z=0 底面）→ 干净 2× 体；
  *  若平面切穿实体（非面边界）镜像会几何自交（同 Fusion 一样要拣合理对称面）—— 诚实 v1 限制（边流形仍过，靠用户拣对面）。
  *  退化 / 非流形（边≠2 面）/ 体积≤0 → 返 null（调用方保原 cage + 诚实提示）。 */
-export function mirrorQuadCage(m: QuadMesh, axis: 0 | 1 | 2, planeCoord = 0): QuadMesh | null {
+export function mirrorQuadCage(m: QuadMesh, axis: 0 | 1 | 2, planeCoord = 0): (QuadMesh & { sourceMap: number[]; mirrorMap: number[] }) | null {
   if (!m || !m.verts || !m.quads || !m.verts.length || !m.quads.length) return null
   if (axis !== 0 && axis !== 1 && axis !== 2) return null
   if (!Number.isFinite(planeCoord)) return null
@@ -326,7 +326,7 @@ export function mirrorQuadCage(m: QuadMesh, axis: 0 | 1 | 2, planeCoord = 0): Qu
   const tri = (p: number[], r: number[], s: number[]) => p[0] * (r[1] * s[2] - r[2] * s[1]) + p[1] * (r[2] * s[0] - r[0] * s[2]) + p[2] * (r[0] * s[1] - r[1] * s[0])
   for (const q of quads2) { const A = verts2[q[0]], B = verts2[q[1]], C = verts2[q[2]], D = verts2[q[3]]; sv += tri(A, B, C) + tri(A, C, D) }
   if (!(sv > 1e-9)) return null
-  return { verts: verts2, quads: quads2 }
+  return { verts: verts2, quads: quads2, sourceMap: m.verts.map((_,i) => remap.get(i) ?? -1), mirrorMap: mir.map(i => remap.get(i) ?? -1) }
 }
 
 /** S193：Form 镜像笼【对称编辑】—— 移动一个顶点时自动对称移动其镜像伙伴（Fusion T-spline Symmetry 编辑）。
@@ -624,7 +624,7 @@ export function quadsToTris(m: QuadMesh): { vertices: number[]; triangles: numbe
 // ── 插入边线环（Fusion Insert Edge Loop，S180）────────────────────────────
 
 /** 闭合 2-流形检查（每条无向边恰 2 个 quad；自边/边界 → false）。 */
-function quadManifold(m: QuadMesh): boolean {
+function quadManifold(m: QuadMesh, allowBoundary = false): boolean {
   const nV = m.verts.length
   const cnt = new Map<number, number>()
   for (const q of m.quads) for (let s = 0; s < 4; s++) {
@@ -632,7 +632,7 @@ function quadManifold(m: QuadMesh): boolean {
     const lo = a < b ? a : b, hi = a < b ? b : a
     const key = lo * nV + hi; cnt.set(key, (cnt.get(key) || 0) + 1)
   }
-  for (const c of cnt.values()) if (c !== 2) return false
+  for (const c of cnt.values()) if (c !== 2 && !(allowBoundary && c === 1)) return false
   return true
 }
 
@@ -652,9 +652,10 @@ function quadSignedVol(m: QuadMesh): number {
 /** 喺 faceIdx 沿 edgeSlot 方向插入一圈边线环：环绕笼走一圈 quad，每个被穿过嘅 quad 由【两条对边中点连线】一分为二。
  *  纯数学（lift ccStep 嘅边邻接），只喺【已有边】加中点 → 顶点只落边上 ⇒ 体积不变、闭合 2-流形保持。
  *  返回新 QuadMesh；非流形 / 开边界 / 环唔闭合 / 退化 / 体积翻号 → null（调用方 no-op）。 */
-export function insertEdgeLoop(m: QuadMesh, faceIdx: number, edgeSlot: 0 | 1 | 2 | 3): QuadMesh | null {
+export function insertEdgeLoop(m: QuadMesh, faceIdx: number, edgeSlot: 0 | 1 | 2 | 3): (QuadMesh & { splitEdges: [number, number, number][] }) | null {
   const verts = m.verts, quads = m.quads
   const nV = verts.length, nF = quads.length
+  if (!Number.isInteger(edgeSlot) || edgeSlot < 0 || edgeSlot > 3 || !verts.every(p => p.every(Number.isFinite)) || !quads.every(q => q.length === 4 && new Set(q).size === 4 && q.every(i => Number.isInteger(i) && i >= 0 && i < nV))) return null
   if (!Number.isInteger(faceIdx) || faceIdx < 0 || faceIdx >= nF) return null   // S180 audit：同 extrudeQuadFace 整数守卫（自防分数 index）
   // 1) 边邻接（同 ccStep:243-271）
   const edgeIdx = new Map<number, number>()
@@ -672,20 +673,25 @@ export function insertEdgeLoop(m: QuadMesh, faceIdx: number, edgeSlot: 0 | 1 | 2
       faceEdge[f * 4 + s] = e
     }
   }
-  for (let e = 0; e < eV0.length; e++) if (eF1[e] === -1) return null   // 开边界
-  // 2) 环绕走 quad：由 (faceIdx, edgeSlot 边) 入、对边出、跨邻面续，返起点即环闭合
-  const ringCut = new Map<number, number>()   // face → 入边 edge index（出边 = 对边）
-  let cur = faceIdx, entryE = faceEdge[faceIdx * 4 + edgeSlot]
-  for (let guard = 0; guard <= nF; guard++) {
-    let s = -1
-    for (let k = 0; k < 4; k++) if (faceEdge[cur * 4 + k] === entryE) { s = k; break }
-    if (s < 0) return null
-    if (ringCut.has(cur)) break          // 返到已访问面 → 环闭合
-    const exitE = faceEdge[cur * 4 + ((s + 2) & 3)]
-    ringCut.set(cur, entryE)
-    const nb = eF0[exitE] === cur ? eF1[exitE] : eF0[exitE]
-    if (nb < 0) return null
-    entryE = exitE; cur = nb
+  const open = eF1.some(f => f === -1)
+  // Follow both directions. Closed strips loop back; open strips stop at either boundary.
+  const ringCut = new Map<number, number>()
+  const pending: [number,number][] = [[faceIdx,faceEdge[faceIdx*4+edgeSlot]]]
+  while (pending.length) {
+    const [f,entry] = pending.pop()!
+    let slot = -1
+    for(let k=0;k<4;k++) if(faceEdge[f*4+k]===entry) slot=k
+    if(slot < 0) return null
+    const prior = ringCut.get(f)
+    if(prior !== undefined) {
+      if(prior !== entry && prior !== faceEdge[f*4+((slot+2)&3)]) return null
+      continue
+    }
+    ringCut.set(f,entry)
+    for(const e of [entry,faceEdge[f*4+((slot+2)&3)]]) {
+      const neighbor = eF0[e] === f ? eF1[e] : eF0[e]
+      if(neighbor >= 0) pending.push([neighbor,e])
+    }
   }
   if (!ringCut.size) return null
   // 3) 切：每条被切边加中点（按 edge index 焊接 → 相邻环 quad 共享，非环 quad 边唔郁）
@@ -713,7 +719,7 @@ export function insertEdgeLoop(m: QuadMesh, faceIdx: number, edgeSlot: 0 | 1 | 2
     }
   }
   const out: QuadMesh = { verts: outVerts, quads: outQuads }
-  // 4) 守卫：闭合 2-流形 + 体积同号正（中点喺边上 → planar quad 体积精确不变；非平面 quad 二阶小差，靠同号正兜）
-  if (!quadManifold(out) || !(quadSignedVol(out) > 0) || quadSignedVol(m) <= 0) return null
-  return out
+  // Preserve boundary/manifold edges; closed cages also retain positive signed volume.
+  if (!quadManifold(out, open) || (!open && (!(quadSignedVol(out) > 0) || quadSignedVol(m) <= 0))) return null
+  return { ...out, splitEdges: [...midCache].map(([e,m]) => [eV0[e],eV1[e],m]) }
 }

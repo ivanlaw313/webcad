@@ -30,7 +30,7 @@ test('actual edit open and preview keep saved IDs across rename and name reuse',
  let preview
  const open=source.slice(source.lastIndexOf('  openFeatDlgForEdit: ('),source.indexOf('  // T775（S55-③）'))
  const prev=source.slice(source.indexOf('  previewExtrudeEdit: async'),source.indexOf('  setFeatParam:',source.indexOf('  previewExtrudeEdit: async')))
- const api=vm.runInNewContext(stripTypeScriptTypes('({'+open+prev+'})'),{get:()=>state,set:p=>state={...state,...p},dimensionExpression,evalExpr,applyParamBindings:f=>f,expandFeats:f=>f,cad:{previewRound:async f=>{preview=f;return f}}})
+ const api=vm.runInNewContext(stripTypeScriptTypes('({'+open+prev+'})'),{get:()=>state,set:p=>state={...state,...p},_editPreviewSeq:0,_previewFeatures:new WeakMap(),dimensionExpression,evalExpr,applyParamBindings:f=>f,expandFeats:f=>f,cad:{previewRound:async f=>{preview=f;return f}}})
  api.openFeatDlgForEdit('e');await api.previewExtrudeEdit();assert.equal(preview[0].height,193.6)
  state.featDlg.params.heightExpr='W/4';await api.previewExtrudeEdit();assert.equal(preview[0].height,96.8)
  state.featDlg.params.heightExpr='Width/2';await api.previewExtrudeEdit();assert.equal(preview[0].height,193.6)

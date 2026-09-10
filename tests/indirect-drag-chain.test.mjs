@@ -1,0 +1,21 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import {register,createRequire} from 'node:module'
+import {fileURLToPath} from 'node:url'
+globalThis.require=createRequire(import.meta.url);globalThis.__dirname=fileURLToPath(new URL('.',import.meta.url));register('./native-car-loader.mjs',import.meta.url)
+await import('../src/worker/cad.worker.ts');const w=globalThis.__wheelWorker;await w.ready()
+const {useApp,buildProjectPayload}=await import('../src/store.ts'),{pathPts}=await import('../src/sketch/sketchOps.ts'),{importSTEP,measureVolume,getOC}=await import('replicad')
+const near=(p,q)=>assert.ok(Math.hypot(p[0]-q[0],p[1]-q[1])<1e-5,`${p} != ${q}`)
+async function volume(expected){const sh=await importSTEP(new Blob([await w.exportSTEP()])),check=new(getOC().BRepCheck_Analyzer)(sh.wrapped,true,false);try{assert.ok(check.IsValid_2())}finally{check.delete()}assert.ok(Math.abs(measureVolume(sh)-expected)<1e-5);return sh}
+test('dimension-anchored center and equal-driven radius support linked arc/chord drag then native history JSON STEP',async()=>{
+ const verts=[[50,40],[30,40]],bulges=[-1],center={kind:'center',shape:0,idx:0};const cons=[{id:'cx',kind:'dim',type:'hdist',a:{kind:'origin'},b:center,value:40},{id:'cy',kind:'dim',type:'vdist',a:{kind:'origin'},b:center,value:40},{id:'radius',name:'dRadius',kind:'dim',type:'rad',a:{kind:'circle',shape:2},value:10},{id:'equal',kind:'con',type:'equal',a:{kind:'edge',shape:0,idx:0},b:{kind:'circle',shape:2}},{id:'opposite',kind:'con',type:'fix',a:{kind:'pt',shape:0,idx:1}},{id:'joinA',kind:'con',type:'coincident',a:{kind:'pt',shape:1,idx:1},b:{kind:'pt',shape:0,idx:0}},{id:'joinB',kind:'con',type:'coincident',a:{kind:'pt',shape:1,idx:0},b:{kind:'pt',shape:0,idx:1}}]
+ useApp.setState({...useApp.getInitialState(),mode:'sketch',sketchTool:'select',sketchProfiles:[{type:'poly',open:true,verts,bulges,pts:pathPts(verts,bulges)},{type:'poly',open:true,pts:[[30,40],[50,40]]},{type:'circle',c:[80,40],r:10,construction:true}],skCons:structuredClone(cons),extrudeHeight:5,sketchOp:'new'},true)
+ assert.equal(useApp.getState().skDragStart([50,40]),true);await useApp.getState().skDragEnd([49,52]);near(useApp.getState().sketchProfiles[0].verts[0],[46,48]);near(useApp.getState().sketchProfiles[1].pts[1],[46,48]);assert.deepEqual(useApp.getState().skCons,cons)
+ await useApp.getState().undo();near(useApp.getState().sketchProfiles[0].verts[0],[50,40]);await useApp.getState().redo();near(useApp.getState().sketchProfiles[0].verts[0],[46,48]);await useApp.getState().extrudeSketch();assert.equal(useApp.getState().mode,'model',useApp.getState().status)
+ const theta=Math.PI-Math.atan2(8,6),area=50*(theta-Math.sin(theta));await volume(area*5);assert.equal(await useApp.getState().applyFeatures(useApp.getState().features.map(f=>({...f,height:8})),'height8'),true);await volume(area*8);await useApp.getState().undo();await volume(area*5);await useApp.getState().redo();await volume(area*8)
+ const payload=JSON.parse(JSON.stringify(buildProjectPayload(useApp.getState())));useApp.setState({...useApp.getInitialState()},true);await useApp.getState().applyProjectData(payload);await volume(area*8);const feat=useApp.getState().features.at(-1);await useApp.getState().editSketchOf(feat.id);assert.deepEqual(useApp.getState().skCons.map(c=>c.id),cons.map(c=>c.id));await useApp.getState().applySketchEdit(feat.sketchId);await volume(area*8)
+})
+test('one coordinate dimension leaves circle center free along other axis and preserves native position',async()=>{
+ const cons=[{id:'x',kind:'dim',type:'hdist',a:{kind:'origin'},b:{kind:'pt',shape:0,idx:0},value:40},{id:'r',kind:'dim',type:'rad',a:{kind:'circle',shape:0},value:10}]
+ useApp.setState({...useApp.getInitialState(),mode:'sketch',sketchTool:'select',sketchShape:{type:'circle',c:[40,40],r:10},skCons:structuredClone(cons),extrudeHeight:5,sketchOp:'new'},true);useApp.getState().skDragStart([40,40]);await useApp.getState().skDragEnd([70,55]);near(useApp.getState().sketchShape.c,[40,55]);assert.deepEqual(useApp.getState().skCons,cons);await useApp.getState().extrudeSketch();const sh=await volume(500*Math.PI);const [lo,hi]=sh.boundingBox.bounds;near([lo[0],lo[1]],[30,-65]);near([hi[0],hi[1]],[50,-45])
+})

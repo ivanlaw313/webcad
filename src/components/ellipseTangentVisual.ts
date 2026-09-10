@@ -1,0 +1,5 @@
+import type { EllipseGeometry } from '../sketch/ellipseGeometry'
+type Pt=[number,number]
+export function ellipseContactPoint(e:EllipseGeometry,angleDeg:number):Pt{const t=angleDeg*Math.PI/180,r=e.rot*Math.PI/180;return[e.cx+e.rx*Math.cos(t)*Math.cos(r)-e.ry*Math.sin(t)*Math.sin(r),e.cy+e.rx*Math.cos(t)*Math.sin(r)+e.ry*Math.sin(t)*Math.cos(r)]}
+export function ellipseTangentCandidates(e:EllipseGeometry,a:Pt,b:Pt){const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy);if(len<1e-9)return[];const nx=-dy/len,ny=dx/len,r=e.rot*Math.PI/180,nu=nx*Math.cos(r)+ny*Math.sin(r),nv=-nx*Math.sin(r)+ny*Math.cos(r),base=Math.atan2(e.ry*nv,e.rx*nu)*180/Math.PI;return[base,base+180].map(angleDeg=>{const point=ellipseContactPoint(e,angleDeg);return{angleDeg,point,distance:Math.abs((point[0]-a[0])*nx+(point[1]-a[1])*ny)}})}
+export function tangentExtension(point:Pt,a:Pt,b:Pt):[Pt,Pt]|null{const dx=b[0]-a[0],dy=b[1]-a[1],len2=dx*dx+dy*dy;if(len2<1e-18)return null;const t=((point[0]-a[0])*dx+(point[1]-a[1])*dy)/len2,dist=Math.abs((point[0]-a[0])*dy-(point[1]-a[1])*dx)/Math.sqrt(len2);if(dist>1e-5)return null;return t<0?[point,a]:t>1?[b,point]:null}

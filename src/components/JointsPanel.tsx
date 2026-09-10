@@ -232,6 +232,8 @@ export default function JointsPanel() {
   const mechDOF = Math.max(0, totalDOF(joints) - 3 * findLoops(useApp.getState().components.map((c) => c.id), joints).length)
 
   if (collapsed) {
+    // The Assemble menu dispatches assembly-focus to reopen even an empty panel.
+    if (joints.length === 0) return null
     return (
       <button
         ref={panelDrag.ref}

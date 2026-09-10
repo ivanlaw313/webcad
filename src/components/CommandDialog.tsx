@@ -1,3 +1,4 @@
+import { useEscapeLayer } from './useEscapeLayer'
 import { useRef, useState, useEffect, type ReactNode } from 'react'
 import { ToolIcon } from '../icons'
 import { useApp } from '../store'
@@ -51,7 +52,7 @@ export function ScrubNumberDrag() {
 // Fusion 式右侧命令 palette 共用外壳（.cmd-palette）：头 = 图标 + 标题 + ✕（按住可拖动），
 // 体 = 字段行（label 自动左右分布），脚 = 蓝色「确定」+「取消」，可选灰色 summary 行。
 // featDlg 同 6 个旧面板（拉伸/选边圆角/抽壳/孔/扫掠/放样）统一用呢个壳。
-export function CommandDialog({ icon = 'default', title, okLabel = '确定', okDisabled = false, okTip, onOk, onCancel, width = 256, docked = true, summary, children }: {
+export function CommandDialog({ icon = 'default', title, okLabel = '确定', okDisabled = false, okTip, onOk, onCancel, width = 256, docked = false, summary, children }: {
   icon?: string
   title: string
   okLabel?: string
@@ -64,8 +65,10 @@ export function CommandDialog({ icon = 'default', title, okLabel = '确定', okD
   summary?: ReactNode
   children: ReactNode
 }) {
+  useEscapeLayer(true, onCancel, 90)
   const lang = useApp((s) => s.lang)
   // 拖动：记住相对默认位（top 150 / right 20）嘅偏移；pointer capture 令拖出头部都唔甩手。
+  const [collapsed, setCollapsed] = useState(false)
   const [off, setOff] = useState({ dx: 0, dy: 0 })
   const dialogRef = useRef<HTMLDivElement>(null)
   const drag = useRef<{ sx: number; sy: number; dx: number; dy: number } | null>(null)
@@ -93,9 +96,12 @@ export function CommandDialog({ icon = 'default', title, okLabel = '确定', okD
     }
   }
   useEffect(() => {
-    const repair = () => setOff((cur) => clampOffset(cur.dx, cur.dy))
+    const repair = () => setOff((cur) => { const next = clampOffset(cur.dx, cur.dy); return next.dx === cur.dx && next.dy === cur.dy ? cur : next })
+    const observer = new ResizeObserver(repair)
+    if (dialogRef.current) observer.observe(dialogRef.current)
+    repair()
     window.addEventListener('resize', repair)
-    return () => window.removeEventListener('resize', repair)
+    return () => { observer.disconnect(); window.removeEventListener('resize', repair) }
   })
   return (
     <div
@@ -109,8 +115,9 @@ export function CommandDialog({ icon = 'default', title, okLabel = '确定', okD
         // Numeric CAD command dialogs must submit with Enter just like Fusion.
         // Keep multi-line text editing intact, and never submit while an IME
         // composition is still in progress.
+        if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return
         if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onCancel(); return }
-        if (e.key === 'Enter' && !e.nativeEvent.isComposing && !(e.target instanceof HTMLTextAreaElement)) {
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing && !(e.target instanceof HTMLTextAreaElement) && !('tagName' in e.target && e.target.tagName === 'BUTTON')) {
           e.preventDefault(); e.stopPropagation(); if (!okDisabled) onOk()
         }
       }}
@@ -121,7 +128,7 @@ export function CommandDialog({ icon = 'default', title, okLabel = '确定', okD
         onPointerDown={(e) => {
           if (e.button !== 0) return
           if (docked) return // Commands stay docked; canvas controls remain usable.
-          if ((e.target as HTMLElement).closest('.cmd-palette-x')) return
+          if ((e.target as HTMLElement).closest('button')) return
           drag.current = { sx: e.clientX, sy: e.clientY, dx: off.dx, dy: off.dy }
           e.currentTarget.setPointerCapture(e.pointerId)
         }}
@@ -131,11 +138,13 @@ export function CommandDialog({ icon = 'default', title, okLabel = '确定', okD
         onLostPointerCapture={() => { drag.current = null }}
       >
         <ToolIcon name={icon} size={16} />
-        <span style={{ fontWeight: 700 }}>{tStatus(title, lang)}</span>
+        <span style={{ fontWeight: 700, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{tStatus(title, lang)}</span>
+        {!docked && <button type="button" className="cmd-palette-x" aria-label={lang === 'en' ? 'Reset command panel position' : '恢复命令面板位置'} onClick={() => setOff({ dx: 0, dy: 0 })}>↺</button>}
+        <button type="button" className="cmd-palette-x" aria-label={collapsed ? (lang === 'en' ? 'Expand command options' : '展开命令选项') : (lang === 'en' ? 'Collapse command options' : '收起命令选项')} aria-expanded={!collapsed} onClick={() => setCollapsed(v => !v)}>{collapsed ? '▸' : '▾'}</button>
         <button type="button" className="cmd-palette-x" aria-label={tStatus('取消（Esc）', lang)} title={tStatus('取消（Esc）', lang)} onClick={onCancel}>✕</button>
       </div>
-      <div className="cmd-palette-body">{children}</div>
-      {summary != null && <div className="cmd-palette-summary">{summary}</div>}
+      <div className="cmd-palette-body" hidden={collapsed}>{children}</div>
+      {!collapsed && summary != null && <div className="cmd-palette-summary">{summary}</div>}
       <div className="cmd-palette-foot">
         <button className="cmd-ok" data-testid="command-confirm" disabled={okDisabled} title={okTip ? tStatus(okTip, lang) : tStatus('确定（Enter）', lang)} onClick={onOk}>{tStatus(okLabel, lang)}</button>
         <button className="cmd-cancel" data-testid="command-cancel" title={tStatus('取消（Esc）', lang)} onClick={onCancel}>{tStatus('取消', lang)}</button>

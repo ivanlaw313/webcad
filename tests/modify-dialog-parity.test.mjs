@@ -1,12 +1,22 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import ts from 'typescript'
 
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
 const worker = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 const fullRound = readFileSync(new URL('../src/cad/fullRound.ts', import.meta.url), 'utf8')
+// Exercise the same pure feature builder used by preview and commit, rather
+// than duplicating the shell validation/serialization implementation here.
+const shellBuilderStart = store.indexOf('function buildShellFeature(')
+const shellBuilderEnd = store.indexOf('\nlet _shellPvTimer', shellBuilderStart)
+assert.ok(shellBuilderStart >= 0 && shellBuilderEnd > shellBuilderStart)
+const shellBuilderJs = ts.transpileModule(store.slice(shellBuilderStart, shellBuilderEnd), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
+const buildShellFeature = new Function(`${shellBuilderJs}; return buildShellFeature`)()
+const shellInput = { shellPicks: [[2, 3, 4]], shellThickness: 2, shellType: 'open', shellDir: 'inside', shellTangentChain: true }
+
 const asymmetric = readFileSync(new URL('../src/cad/asymmetricFillet.ts', import.meta.url), 'utf8')
 
 test('Press Pull starts at zero and never silently turns zero into 10 mm', () => {
@@ -39,7 +49,14 @@ test('Shell requires an explicit face and a positive thickness', () => {
   assert.match(store, /shellThickness:\s*0,/)
   assert.match(store, /if \(!pts\.length\) \{ set\(\{ status: shellType === 'closed' \? '请先选择要抽壳的实体' : '请先选择要移除的面'/)
   assert.match(store, /if \(!\(th > 0\)\) \{ set\(\{ status: '请输入大于 0 的壁厚'/)
-  assert.match(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\)\}/)
+  assert.match(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\) \|\| shellPreviewBusy \|\| shellPreviewFail\}/)
+  for (const shellType of ['open', 'closed']) {
+    assert.equal(buildShellFeature({ ...shellInput, shellType, shellPicks: [] }, 'shell'), null)
+    for (const shellThickness of [0, -1, NaN, Infinity]) assert.equal(buildShellFeature({ ...shellInput, shellType, shellThickness }, 'shell'), null)
+  }
+  assert.match(store, /const s = get\(\), f = buildShellFeature\(s, '~pv-shell'\)/)
+  assert.match(store, /const f = buildShellFeature\(get\(\), fid\(\)\)!/)
+
   assert.doesNotMatch(viewport, /不选=默认顶面/)
   assert.doesNotMatch(store, /不选则默认开顶面/)
 })
@@ -48,7 +65,14 @@ test('Shell Tangent Chain and Closed Body are real enabled feature paths', () =>
   assert.match(store, /shellType:\s*'open',/)
   assert.match(store, /shellTangentChain:\s*true,/)
   assert.match(store, /closed: true/)
-  assert.match(store, /tangentChain: get\(\)\.shellTangentChain/)
+  for (const tangentChain of [true, false]) {
+    for (const direction of ['inside', 'outside', 'both']) {
+      const input = { ...shellInput, shellTangentChain: tangentChain, shellDir: direction }
+      const directionFields = direction === 'inside' ? {} : { direction }
+      assert.deepEqual(buildShellFeature(input, 'shell'), { id: 'shell', type: 'shell', thickness: 2, nears: [[2, -4, 3]], tangentChain, ...directionFields })
+      assert.deepEqual(buildShellFeature({ ...input, shellType: 'closed' }, 'shell'), { id: 'shell', type: 'shell', thickness: 2, closed: true, ...directionFields })
+    }
+  }
   assert.match(viewport, /checked=\{shellTangentChain\} onChange=\{\(\) => toggleShellTangentChain\(\)\}/)
   assert.match(viewport, /<option value="closed">封闭实体<\/option>/)
   assert.doesNotMatch(viewport, /封闭实体（内核待实作）/)

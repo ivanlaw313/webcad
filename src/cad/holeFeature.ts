@@ -43,6 +43,9 @@ const cutCircle = (id: string, center: [number, number], radius: number, height:
   profile: { kind: 'circle', c: center, r: radius },
   height,
   operation: 'cut',
+  // Hole already resolves the exact floor and entry overshoot. Generic sketch
+  // cutter nudges would deepen every blind hole/counterbore by another 0.5 mm.
+  exactDistance: true,
   baseZ,
   ...(toFace ? { toFace } : {}),
 })

@@ -136,10 +136,16 @@ function buildTopo(vertices: ArrayLike<number>, triangles: ArrayLike<number>, q:
     const w = triW(t)
     for (let e = 0; e < 3; e++) { const k = edgeKey(w[e], w[(e + 1) % 3]); const arr = edgeTris.get(k); if (arr) arr.push(t); else edgeTris.set(k, [t]) }
   }
+  // Region growing visits a triangle repeatedly. Cache immutable adjacency
+  // once per topology instead of rebuilding edge strings on every visit.
+  const neighborCache: (number[] | undefined)[] = new Array(nT)
   const neighbors = (t: number): number[] => {
+    const cached = neighborCache[t]
+    if (cached) return cached
     const out: number[] = []
     const w = triW(t)
     for (let e = 0; e < 3; e++) { const arr = edgeTris.get(edgeKey(w[e], w[(e + 1) % 3])); if (arr) for (const o of arr) if (o !== t) out.push(o) }
+    neighborCache[t] = out
     return out
   }
 

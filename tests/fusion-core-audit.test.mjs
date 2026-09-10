@@ -41,7 +41,7 @@ test('input Cmd/Ctrl Undo and Redo remain local; canvas shortcuts still reach mo
 test('zero-distance extrusion is rejected before any geometry or history mutation',async()=>{
  const src=readFileSync(new URL('../src/store.ts',import.meta.url),'utf8')
  const begin=src.lastIndexOf('  extrudeSketch: async () => {')
- const body=src.slice(begin,src.indexOf('    // #9 New Component',begin))+'},'
+ const body=src.slice(begin,src.indexOf('    // #9 New Component',begin))+'} finally {} },'
  let state={busy:false,extrudeHeight:0,extrudeExtent:'distance',features:[],undoStack:[]}
  const api=vm.runInNewContext(stripTypeScriptTypes(`({${body}})`),{get:()=>state,set:p=>state={...state,...p}})
  await api.extrudeSketch()
@@ -64,13 +64,18 @@ test('picked-edge rounds never replace the requested size with a smaller success
 
 test('partial downstream rebuild cannot replace committed geometry or create history',async()=>{
  const src=readFileSync(new URL('../src/store.ts',import.meta.url),'utf8')
- const begin=src.lastIndexOf('  applyFeatures: async')
- const body=src.slice(begin,src.indexOf('  undo: () =>',begin))
+ const begin=src.indexOf('  const runFeatures = async')
+ const end=src.indexOf('  const editActiveSketchParameter=',begin)
+ assert.ok(begin>=0&&end>begin,'shared rebuild transaction must be present')
+ const shared=src.slice(begin,end)
+ const wrapperStart=src.lastIndexOf('  applyFeatures: async')
+ const wrapper=src.slice(wrapperStart,src.indexOf('  undo: () =>',wrapperStart))
+ assert.match(wrapper,/await runFeatures\(args\)/)
  const old=[{id:'e',type:'extrude'}], mesh={triangles:[0,1,2],tag:'last valid'}
  let state={features:old,bodyMesh:mesh,sketchSources:{},params:[],paramBindings:{},suppressedIds:[],undoStack:[],redoStack:['redo']}
  const builds=[]
- const api=vm.runInNewContext(stripTypeScriptTypes(`({${body}})`),{
-  get:()=>state,set:p=>state={...state,...(typeof p==='function'?p(state):p)},
+ const api=vm.runInNewContext(stripTypeScriptTypes(`(()=>{${shared};return {${wrapper}}})()`),{
+  featureLiveGet:()=>state,featureLiveSet:p=>state={...state,...(typeof p==='function'?p(state):p)},
   cad:{rebuild:async f=>{builds.push(f);return builds.length===1?{triangles:[0,1,2],failed:[{id:'f',error:'radius too large'}]}:mesh}},
   applyParamBindings:f=>f,expandFeats:f=>f,SOLID_TYPES:['extrude'],
   mapKernelFailuresToTimeline:()=>({ids:['f'],errors:{f:'radius too large'}}),docSnap:s=>s,console,

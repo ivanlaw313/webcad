@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {register,createRequire} from 'node:module';import {fileURLToPath} from 'node:url'
+globalThis.require=createRequire(import.meta.url);globalThis.__dirname=fileURLToPath(new URL('.',import.meta.url));register('./native-car-loader.mjs',import.meta.url)
+await import('../src/worker/cad.worker.ts');await globalThis.__wheelWorker.ready();const {useApp,buildProjectPayload}=await import('../src/store.ts');const {createPersistentPattern:create}=await import('../src/sketch/persistentPatterns.ts')
+const g=()=>useApp.getState(),json=()=>JSON.parse(JSON.stringify(buildProjectPayload(g())));
+const cfg=(nx=2,dx=20)=>({kind:'rectangular',nx,ny:1,dx,dy:0});
+function seed(){useApp.setState({...useApp.getInitialState(),mode:'sketch',sketchProfiles:[{type:'circle',c:[0,0],r:5}],skCons:[{id:'radius',kind:'dim',type:'rad',a:{kind:'circle',shape:0},value:5,name:'Radius'}],appConfirm:async()=>true},true)}
+const xs=()=>g().sketchProfiles.map(s=>s.c?.[0]);
+test('generated dimension deletion preserves association and future reconfigure',async()=>{seed();await g().createSketchPattern(cfg());const id=g().skPatternData.patterns[0].instances[0].generatedConstraintIds[0],before=json(),count=g().sketchUndo.length;g().removeSkCon(id);assert.deepEqual(json(),before);assert.equal(g().sketchUndo.length,count);await g().reconfigureSketchPattern(cfg(3));assert.deepEqual(xs(),[0,20,40],g().status)})
+test('remove-last constraint cannot delete pattern-owned dimension',async()=>{seed();await g().createSketchPattern(cfg());const owned=g().skPatternData.patterns[0].instances[0].generatedConstraintIds;assert.ok(owned.includes(g().skCons.at(-1).id));const before=json(),count=g().sketchUndo.length;g().undoSkCon();assert.deepEqual(json(),before);assert.equal(g().sketchUndo.length,count);await g().reconfigureSketchPattern(cfg(3));assert.equal(g().sketchProfiles.length,3,g().status)})

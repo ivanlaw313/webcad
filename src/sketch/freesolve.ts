@@ -1,3 +1,9 @@
+import {frameDirection,orientedLinePrimitives,orientedDistancePrimitives} from './orientedConstraints'
+import {ellipseLineTangentPrimitives,decodeEllipseLineContact,type EllipseContact} from './ellipseLineTangent'
+import {ellipseArcTangentPrimitives,validateEllipseArcTangent} from './ellipseArcTangent'
+import {ellipseArcPrimitives,ellipseArcPointId,decodeEllipseArc,seedEllipseArc} from './ellipseArcSolver'
+import {ellipseArcContainsAngle,ellipseArcPoint,ellipseArcSweep,ellipseArcSample,ellipseArcWithSweep,type EllipseArcGeometry} from './ellipseArcGeometry'
+import { ellipseControlPoints, ellipseSample, ellipseFromControls, type EllipseGeometry } from './ellipseGeometry'
 import type { SketchPrimitive, Constraint } from '@salusoft89/planegcs'
 import { solveSketch } from './solver'
 import { pathPts, bulgeMid, tessellateSeg, bulgeCenter, bulgeRadius, bulgeTheta, catmullRomClosed, catmullRomOpen } from './sketchOps'
@@ -16,7 +22,7 @@ export type FPt = [number, number]
 export type FShape =
   | { type: 'rect'; a: FPt; b: FPt; construction?: boolean }
   | { type: 'circle'; c: FPt; r: number; construction?: boolean; point?: boolean }  // point = 草图点（r=0，只有圆心，冇 rim）
-  | { type: 'poly'; pts: FPt[]; ctrl?: FPt[]; smooth?: boolean; bspline?: boolean; conic?: boolean; arc?: { a: FPt; b: FPt; m: FPt }; verts?: FPt[]; bulges?: number[]; construction?: boolean; open?: boolean }  // open（T760 Trim）：开放路径 — n 顶点 n−1 段，冇闭合段; bspline（S127）= 逼近型立方 B 样条（vs Catmull-Rom 插值）; conic（S177）= 有理二次圆锥曲线（smooth 但无 ctrl → solvable 排除，唔入求解器）
+  | { type: 'poly'; ell?: EllipseGeometry; earc?: EllipseArcGeometry; pts: FPt[]; ctrl?: FPt[]; smooth?: boolean; bspline?: boolean; conic?: boolean; arc?: { a: FPt; b: FPt; m: FPt }; verts?: FPt[]; bulges?: number[]; construction?: boolean; open?: boolean }  // open（T760 Trim）：开放路径 — n 顶点 n−1 段，冇闭合段; bspline（S127）= 逼近型立方 B 样条（vs Catmull-Rom 插值）; conic（S177）= 有理二次圆锥曲线（smooth 但无 ctrl → solvable 排除，唔入求解器）
 // poly.arc = "augmented poly": pts stay tessellated for every existing consumer (render/area/DXF/…),
 // while the kernel draws a TRUE circular arc (threePointsArcTo) and the solver gets a planegcs arc
 // primitive. Refs for an arc-poly: pt 0 = start a, pt 1 = end b, pt 2 = centre; edge 0 = chord; circle = rim.
@@ -34,6 +40,8 @@ export function circum3(p0: FPt, p1: FPt, p2: FPt): { c: FPt; r: number } | null
   return { c: [ux, uy], r: Math.hypot(ax - ux, ay - uy) }
 }
 
+const isEllipseArc = (sh: FShape | undefined): sh is FShape & {type:'poly';earc:EllipseArcGeometry} => !!sh && sh.type === 'poly' && !!sh.earc
+const isEllipse = (sh:FShape|undefined):sh is FShape & {type:'poly';ell:EllipseGeometry} => !!sh && sh.type==='poly' && !!sh.ell
 const isArcPoly = (sh: FShape): sh is FShape & { type: 'poly'; arc: { a: FPt; b: FPt; m: FPt } } =>
   sh.type === 'poly' && !!sh.arc
 
@@ -69,7 +77,13 @@ export function arcResample(a: FPt, b: FPt, m: FPt, seg = 24): FPt[] {
 // refpt/refedge: PROJECTED reference geometry (the body's face boundary / section on the sketch plane,
 // Fusion-style) — fixed in the solver, selectable for dims & constraints.
 export type SkRef =
+  | {kind:'ellipse-arc-end';shape:number;idx:0|1}
+  | {kind:'ellipse-arc';shape:number}
+  | { kind: 'ellipse-point'; shape:number; idx:0|1|2 }
+  | { kind: 'ellipse-axis'; shape:number; idx:0|1 }
+  | { kind: 'ellipse'; shape:number }
   | { kind: 'pt'; shape: number; idx: number }
+  | { kind: 'center'; shape: number; idx: number } // true arc center: verts/bulges segment idx; standalone arc idx 0
   | { kind: 'edge'; shape: number; idx: number }
   | { kind: 'circle'; shape: number }
   | { kind: 'origin' }
@@ -268,8 +282,8 @@ function arcCentersFromSegs(segs: [FPt, FPt][]): FPt[] {
 
 export type SkConType = 'h' | 'v' | 'coincident' | 'parallel' | 'perp' | 'equal' | 'tangent' | 'fix' | 'midpoint' | 'concentric' | 'collinear' | 'symmetric'
 export type SkCon =
-  | { id: string; kind: 'con'; type: SkConType; a: SkRef; b?: SkRef; c?: SkRef }  // c: symmetric 嘅对称轴（第 3 选）
-  | { id: string; kind: 'dim'; type: 'dist' | 'hdist' | 'vdist' | 'len' | 'dia' | 'rad' | 'angle' | 'p2l' | 'arclen'; a: SkRef; b?: SkRef; value: number; driven?: boolean; param?: string; paramId?: string; refs?: Record<string,string>; expr?: string; name?: string; radDiaFlip?: boolean }  // expr（S97）= ƒx 公式：优先 param，evalExpr 求值入 value（引用参数/常量/函数 d1*2+5）; rad = R; arclen = 弧长（净系真弧：verts-poly 弧段 / 三点弧 rim — 成个圆创建侧已挡）; hdist/vdist = 水平/竖直 point-point distance (Fusion 位置尺寸); driven = 从动尺寸（只量度唔驱动，括号显示）; param = ƒx 用户参数名（T746 批3：参数驱动尺寸 — 改参数 → 草图重解 → 全树重建）; name = 尺寸稳定名 d1/d2…（创建时派、全文档唯一、序列化生还 — 其他尺寸 expr 可引用；旧档无名 → editSketchOf lazy 补）; radDiaFlip = GM-FP2 #29：R↔Ø 显示翻转旗（只影响显示/输入，type 与 value 保持自然表示 — 旧档零影响、solver 唔变；显示值经 radDiaDisplay ×2/÷2）
+  | { id: string; kind: 'con'; type: SkConType; frameAngleDeg?:number; tangentLineEnd?:0|1; ellipseContact?:EllipseContact; a: SkRef; b?: SkRef; c?: SkRef }  // c: symmetric 嘅对称轴（第 3 选）
+  | { id: string; kind: 'dim'; type: 'dist' | 'hdist' | 'vdist' | 'len' | 'dia' | 'rad' | 'angle' | 'p2l' | 'arclen'; a: SkRef; b?: SkRef; frameAngleDeg?:number; projectionSign?:1|-1; value: number; driven?: boolean; param?: string; paramId?: string; refs?: Record<string,string>; expr?: string; name?: string; radDiaFlip?: boolean }  // expr（S97）= ƒx 公式：优先 param，evalExpr 求值入 value（引用参数/常量/函数 d1*2+5）; rad = R; arclen = 弧长（净系真弧：verts-poly 弧段 / 三点弧 rim — 成个圆创建侧已挡）; hdist/vdist = 水平/竖直 point-point distance (Fusion 位置尺寸); driven = 从动尺寸（只量度唔驱动，括号显示）; param = ƒx 用户参数名（T746 批3：参数驱动尺寸 — 改参数 → 草图重解 → 全树重建）; name = 尺寸稳定名 d1/d2…（创建时派、全文档唯一、序列化生还 — 其他尺寸 expr 可引用；旧档无名 → editSketchOf lazy 补）; radDiaFlip = GM-FP2 #29：R↔Ø 显示翻转旗（只影响显示/输入，type 与 value 保持自然表示 — 旧档零影响、solver 唔变；显示值经 radDiaDisplay ×2/÷2）
 
 // GM-FP2 #29：R↔Ø 显示（右键弧/圆尺寸切半径/直径）。stored value + type 保持自然表示（rad→R、dia→Ø），
 // 唔改内核语义/旧档；净系显示时按 radDiaFlip 翻转（rad 翻显 Ø=value×2、dia 翻显 R=value÷2）。
@@ -314,12 +328,45 @@ export function refValid(shapes: FShape[], r: SkRef): boolean {
   if (r.kind === 'refedge') return !!_refGeo && r.idx >= 0 && r.idx < _refGeo.segs.length
   const sh = shapes[r.shape]
   if (!solvable(sh)) return false
+  if(isEllipseArc(sh))return r.kind==='ellipse-arc'||r.kind==='ellipse-arc-end'&&Number.isInteger(r.idx)&&r.idx>=0&&r.idx<=1||r.kind==='ellipse-point'&&Number.isInteger(r.idx)&&r.idx>=0&&r.idx<=2||r.kind==='ellipse-axis'&&Number.isInteger(r.idx)&&r.idx>=0&&r.idx<=1
+  if(r.kind==='ellipse-arc'||r.kind==='ellipse-arc-end')return false
+  if(isEllipse(sh))return r.kind==='ellipse'||r.kind==='ellipse-point'&&Number.isInteger(r.idx)&&r.idx>=0&&r.idx<=2||r.kind==='ellipse-axis'&&Number.isInteger(r.idx)&&r.idx>=0&&r.idx<=1
+  if(r.kind==='ellipse'||r.kind==='ellipse-point'||r.kind==='ellipse-axis')return false
+  if(r.kind==='center'){
+    if(isArcPoly(sh))return r.idx===0&&!!circum3(sh.arc.a,sh.arc.m,sh.arc.b)
+    return isVertsPoly(sh)&&Number.isInteger(r.idx)&&r.idx>=0&&r.idx<(sh.open?sh.verts.length-1:sh.verts.length)&&Math.abs(sh.bulges[r.idx]||0)>1e-12&&Math.hypot(sh.verts[r.idx][0]-sh.verts[(r.idx+1)%sh.verts.length][0],sh.verts[r.idx][1]-sh.verts[(r.idx+1)%sh.verts.length][1])>1e-9
+  }
   if (isSplinePoly(sh)) return r.kind === 'pt' && r.idx >= 0 && r.idx < sh.ctrl.length  // S103[8]：样条只准 ctrl 点 ref（拒 edge/circle → 杜绝沿 48 密铺点嘅幽灵弦边）
   if (r.kind === 'circle') return (sh.type === 'circle' && !sh.point) || isArcPoly(sh)  // 草图点冇 rim
   if (sh.type === 'circle') return r.kind === 'pt' && r.idx === 0
   if (isArcPoly(sh)) return r.kind === 'pt' ? r.idx >= 0 && r.idx < 3 : r.idx === 0  // pts: a/b/centre; edge: chord
   const n = sh.type === 'rect' ? 4 : (sh.verts ?? sh.pts).length  // verts-poly refs live in verts-space
   return r.idx >= 0 && r.idx < n
+}
+
+/** Supported tangent endpoint/line pair; line endpoint ownership is persisted separately. */
+export function ellipseArcTangentPair(shapes:FShape[],a:SkRef,b?:SkRef):{arc:Extract<SkRef,{kind:'ellipse-arc-end'}>;line:Extract<SkRef,{kind:'edge'}>;pointIds:[string,string]}|null{
+ const arc=a.kind==='ellipse-arc-end'?a:b?.kind==='ellipse-arc-end'?b:null,line=a.kind==='edge'?a:b?.kind==='edge'?b:null
+ if(!arc||!line||!refValid(shapes,arc)||!refValid(shapes,line))return null
+ const sh=shapes[line.shape];if(sh.type==='circle'||sh.type==='poly'&&(sh.arc||sh.earc||sh.ell||sh.smooth||sh.ctrl||sh.conic||sh.bspline||Math.abs(sh.bulges?.[line.idx]??0)>1e-12))return null
+ const n=sh.type==='rect'?4:(sh.verts??sh.pts).length;if(line.idx>=n-(sh.type==='poly'&&sh.open?1:0))return null
+ return {arc,line,pointIds:[pid(line.shape,line.idx),pid(line.shape,(line.idx+1)%n)]}
+}
+
+export function ellipseLineTangentPair(shapes:FShape[],a:SkRef,b?:SkRef):{ellipse:Extract<SkRef,{kind:'ellipse'|'ellipse-arc'}>;line:Extract<SkRef,{kind:'edge'}>;pointIds:[string,string]}|null{
+ const ellipse=a.kind==='ellipse'||a.kind==='ellipse-arc'?a:b?.kind==='ellipse'||b?.kind==='ellipse-arc'?b:null,line=a.kind==='edge'?a:b?.kind==='edge'?b:null
+ if(!ellipse||!line||!refValid(shapes,ellipse)||!refValid(shapes,line)||!(isEllipse(shapes[ellipse.shape])||isEllipseArc(shapes[ellipse.shape])))return null
+ const sh=shapes[line.shape];if(sh.type==='circle'||sh.type==='poly'&&(sh.arc||sh.earc||sh.ell||sh.smooth||sh.ctrl||sh.conic||sh.bspline||Math.abs(sh.bulges?.[line.idx]??0)>1e-12))return null
+ const n=sh.type==='rect'?4:(sh.verts??sh.pts).length;if(line.idx<0||line.idx>=n-(sh.type==='poly'&&sh.open?1:0))return null
+ return {ellipse,line,pointIds:[pid(line.shape,line.idx),pid(line.shape,(line.idx+1)%n)]}
+}
+export function initialEllipseContact(shapes:FShape[],pair:NonNullable<ReturnType<typeof ellipseLineTangentPair>>):EllipseContact|null{
+ const sh=shapes[pair.ellipse.shape];if(!isEllipse(sh)&&!isEllipseArc(sh))return null
+ const e=isEllipse(sh)?sh.ell:sh.earc,[a,b]=refPts(shapes,pair.line),rot=e.rot*Math.PI/180,nx=-(b[1]-a[1]),ny=b[0]-a[0],t=Math.atan2(e.ry*(-nx*Math.sin(rot)+ny*Math.cos(rot)),e.rx*(nx*Math.cos(rot)+ny*Math.sin(rot)))
+ const distance=(q:number)=>{const x=e.cx+e.rx*Math.cos(q)*Math.cos(rot)-e.ry*Math.sin(q)*Math.sin(rot),y=e.cy+e.rx*Math.cos(q)*Math.sin(rot)+e.ry*Math.sin(q)*Math.cos(rot);return Math.abs((x-a[0])*(b[1]-a[1])-(y-a[1])*(b[0]-a[0]))/Math.hypot(b[0]-a[0],b[1]-a[1])}
+ const candidates=[t,t+Math.PI].filter(q=>!isEllipseArc(sh)||ellipseArcContainsAngle(sh.earc,q*180/Math.PI));if(!candidates.length)return isEllipseArc(sh)?{version:1,angleDeg:sh.earc.a0+ellipseArcSweep(sh.earc)/2}:null
+ const chosen=candidates.length===1||distance(candidates[0])<=distance(candidates[1])?candidates[0]:candidates[1]
+ return {version:1,angleDeg:chosen*180/Math.PI}
 }
 
 // Coordinates of a referenced point / the two endpoints of a referenced edge.
@@ -329,6 +376,16 @@ export function refPts(shapes: FShape[], r: SkRef): FPt[] {
   if (r.kind === 'refedge') return _refGeo ? [..._refGeo.segs[r.idx]] : []
   const sh = shapes[r.shape]
   if (!sh) return []
+  if(isEllipseArc(sh)){if(!refValid(shapes,r))return [];const e=sh.earc,ps=ellipseControlPoints(e);if(r.kind==='ellipse-arc-end')return [ellipseArcPoint(e,e.a0+(r.idx?ellipseArcSweep(e):0))];if(r.kind==='ellipse-point')return [ps[r.idx]];if(r.kind==='ellipse-axis')return [ps[0],ps[r.idx+1]];return [ellipseArcPoint(e,e.a0),ellipseArcPoint(e,e.a0+ellipseArcSweep(e))]}
+  if(r.kind==='ellipse-arc'||r.kind==='ellipse-arc-end')return []
+  if(isEllipse(sh)){if(!refValid(shapes,r))return [];const ps=ellipseControlPoints(sh.ell);return r.kind==='ellipse-point'?[ps[r.idx]]:r.kind==='ellipse-axis'?[ps[0],ps[r.idx+1]]:ps}
+  if(r.kind==='ellipse'||r.kind==='ellipse-point'||r.kind==='ellipse-axis')return []
+  if(r.kind==='center'){
+    if(!refValid(shapes,r))return []
+    if(isArcPoly(sh))return [circum3(sh.arc.a,sh.arc.m,sh.arc.b)!.c]
+    if(isVertsPoly(sh))return [bulgeCenter(sh.verts[r.idx],sh.verts[(r.idx+1)%sh.verts.length],sh.bulges[r.idx])]
+    return []
+  }
   if (sh.type === 'circle') return [sh.c]
   if (isArcPoly(sh)) {
     const cc = circum3(sh.arc.a, sh.arc.m, sh.arc.b)
@@ -348,8 +405,14 @@ export function refPts(shapes: FShape[], r: SkRef): FPt[] {
 // 一个 shape 有几多个可寻址点（addressing 同 refValid / refPts 完全一致）：
 // circle → 圆心 = pt idx 0；三点弧 poly → a / b / 圆心 = idx 0..2；rect → 4 角（rectCorners 顺序）；
 // 普通/verts-poly → verts ?? pts 逐个 idx（verts-poly 嘅 ref 住喺 verts 空间）。
-const addrPtCount = (sh: FShape): number =>
-  sh.type === 'circle' ? 1 : isArcPoly(sh) ? 3 : isSplinePoly(sh) ? sh.ctrl.length : sh.type === 'rect' ? 4 : (sh.verts ?? sh.pts).length
+/** Semantic sketch points, with actual arc ends preferred over coincident support handles. */
+export function sketchPointRefs(shapes:FShape[],shape:number):SkRef[]{
+ const sh=shapes[shape];if(!solvable(sh))return []
+ if(isEllipseArc(sh))return [{kind:'ellipse-arc-end',shape,idx:0},{kind:'ellipse-arc-end',shape,idx:1},...([0,1,2] as const).map(idx=>({kind:'ellipse-point' as const,shape,idx}))]
+ if(isEllipse(sh))return ([0,1,2] as const).map(idx=>({kind:'ellipse-point',shape,idx}))
+ const n=sh.type==='circle'?1:isArcPoly(sh)?3:isSplinePoly(sh)?sh.ctrl.length:sh.type==='rect'?4:(sh.verts??sh.pts).length
+ return Array.from({length:n},(_,idx)=>({kind:'pt' as const,shape,idx})).filter(r=>refValid(shapes,r))
+}
 
 // 两个 ref 系咪指住同一对象：kind 相同 + shape/idx 逐字段相等（origin 冇字段 → kind 相同即相等）
 const refEq = (x: SkRef, y: SkRef): boolean =>
@@ -371,19 +434,20 @@ export function inferCoincident(shapes: FShape[], newIdx: number, existing: SkCo
   const cands: { ref: SkRef; p: FPt }[] = [{ ref: { kind: 'origin' }, p: [0, 0] }]
   shapes.forEach((osh, i) => {
     if (i === newIdx || !solvable(osh) || isSplinePoly(osh)) return   // smooth spline 两边都跳过（同 line 242 新 shape 一致）：ctrl 样条虽 solvable，但重合约束会被重铺 tessellate 冲走 → 候选都唔收
-    for (let j = 0; j < addrPtCount(osh); j++) {
-      const ref: SkRef = { kind: 'pt', shape: i, idx: j }
+    for (const ref of sketchPointRefs(shapes,i)) {
       const [p] = refPts(shapes, ref)
       if (p) cands.push({ ref, p })
     }
   })
   const dup = (a: SkRef, b: SkRef): boolean =>
     existing.some((c) => !!c.b && ((refEq(c.a, a) && refEq(c.b, b)) || (refEq(c.a, b) && refEq(c.b, a))))
-  const n = addrPtCount(sh)
-  for (let j = 0; j < n && out.length < cap; j++) {
-    const a: SkRef = { kind: 'pt', shape: newIdx, idx: j }
+  const usedPoints:FPt[]=[]
+  for (const a of sketchPointRefs(shapes,newIdx)) {
+    if(out.length>=cap)break
     const [p] = refPts(shapes, a)
     if (!p) continue
+    if((isEllipse(sh)||isEllipseArc(sh))&&usedPoints.some(q=>Math.hypot(q[0]-p[0],q[1]-p[1])<=tol))continue
+    usedPoints.push(p)
     let best: { ref: SkRef; d: number } | null = null
     for (const cd of cands) {
       const d = Math.hypot(cd.p[0] - p[0], cd.p[1] - p[1])
@@ -417,12 +481,16 @@ export function refMid(shapes: FShape[], r: SkRef): FPt {
 
 // planegcs prim ids for a ref (point id / line id / circle id).
 function refPtId(shapes: FShape[], r: SkRef): string | null {
+  if(r.kind==='ellipse-arc-end')return refValid(shapes,r)?ellipseArcPointId(r.shape,r.idx):null
+  if(r.kind==='ellipse-point')return refValid(shapes,r)?pid(r.shape,r.idx):null
   if (r.kind === 'origin') return 'o0'
   if (r.kind === 'refpt') return `rp${r.idx}`
+  if(r.kind==='center')return refValid(shapes,r)?isArcPoly(shapes[r.shape])?pid(r.shape,2):paid(r.shape,r.idx):null
   if (r.kind !== 'pt') return null
   return pid(r.shape, shapes[r.shape].type === 'circle' ? 0 : r.idx)
 }
 function refLineId(r: SkRef): string | null {
+  if(r.kind==='ellipse-axis')return lid(r.shape,r.idx)
   if (r.kind === 'refedge') return `rl${r.idx}`
   return r.kind === 'edge' ? lid(r.shape, r.idx) : null
 }
@@ -438,12 +506,15 @@ export function hitTest(shapes: FShape[], p: FPt, tol: number, exclude?: (r: SkR
   // tier 1: points (incl. the sketch origin ⊕ and projected reference points)
   let best: SkRef | null = null
   let bestD = (tol * 0.6) ** 2
-  const cand = (r: SkRef, d: number) => { if (d < bestD && ok(r)) { best = r; bestD = d } }
+  // Within a sub-pixel picking margin prefer editable geometry over the origin; exclusion still exposes the origin for dimensions.
+  const cand = (r: SkRef, d: number) => { if ((d < bestD || (d <= bestD + (tol * 0.05) ** 2 && best?.kind === 'origin' && 'shape' in r)) && ok(r)) { best = r; bestD = d } }
   const dO = p[0] * p[0] + p[1] * p[1]
   cand({ kind: 'origin' }, dO)
   if (_refGeo) _refGeo.pts.forEach((q, j) => cand({ kind: 'refpt', idx: j }, d2(q, p)))
   shapes.forEach((sh, i) => {
     if (!solvable(sh)) return
+    if(isEllipseArc(sh)){ellipseControlPoints(sh.earc).forEach((q,idx)=>cand({kind:'ellipse-point',shape:i,idx:idx as 0|1|2},d2(q,p)));for(const idx of [0,1] as const)cand({kind:'ellipse-arc-end',shape:i,idx},d2(ellipseArcPoint(sh.earc,sh.earc.a0+(idx?ellipseArcSweep(sh.earc):0)),p));return}
+    if(isEllipse(sh)){ellipseControlPoints(sh.ell).forEach((q,idx)=>cand({kind:'ellipse-point',shape:i,idx:idx as 0|1|2},d2(q,p)));return}
     if (sh.type === 'circle') { cand({ kind: 'pt', shape: i, idx: 0 }, d2(sh.c, p)); return }
     if (isArcPoly(sh)) {
       const cc = circum3(sh.arc.a, sh.arc.m, sh.arc.b)
@@ -454,6 +525,7 @@ export function hitTest(shapes: FShape[], p: FPt, tol: number, exclude?: (r: SkR
     if (isSplinePoly(sh)) { sh.ctrl.forEach((q, j) => cand({ kind: 'pt', shape: i, idx: j }, d2(q, p))); return }  // S103[8]：样条只命中 ctrl 控制点
     const pts = sh.type === 'rect' ? rectCorners(sh) : (sh.verts ?? sh.pts)  // verts-poly: only TRUE corners are pickable points
     pts.forEach((q, j) => cand({ kind: 'pt', shape: i, idx: j }, d2(q, p)))
+    if(isVertsPoly(sh))sh.bulges.forEach((_,idx)=>{const r:SkRef={kind:'center',shape:i,idx};if(refValid(shapes,r))cand(r,d2(refPts(shapes,r)[0],p))})
   })
   // #52 GM-L2：记住 tier-1 最佳点（含永久原点 ⊕）同其距离²。原本「一命中即 return best」令近原点／顶点
   //   嘅边、圆周成日拣唔到（顶点贪食）。改为：点若非常贴近（≤0.35tol）先算定胜（细半径点优先区，Fusion 手感），
@@ -516,6 +588,14 @@ export function hitTest(shapes: FShape[], p: FPt, tol: number, exclude?: (r: SkR
       }
       return
     }
+    if(isEllipse(sh)||isEllipseArc(sh)){
+      const segmentDistance=(a:FPt,b:FPt)=>{const dx=b[0]-a[0],dy=b[1]-a[1],len2=dx*dx+dy*dy;if(len2<1e-18)return Infinity;const t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/len2));return d2([a[0]+dx*t,a[1]+dy*t],p)}
+      const support=isEllipse(sh)?sh.ell:sh.earc
+      const [c,u,v]=ellipseControlPoints(support)
+      cand({kind:'ellipse-axis',shape:i,idx:0},segmentDistance(c,u));cand({kind:'ellipse-axis',shape:i,idx:1},segmentDistance(c,v))
+      const arc=isEllipseArc(sh),rim=arc?ellipseArcSample(sh.earc,128):ellipseSample(support,128);for(let j=0;j<(arc?rim.length-1:rim.length);j++)cand({kind:arc?'ellipse-arc':'ellipse',shape:i},segmentDistance(rim[j],rim[(j+1)%rim.length]))
+      return
+    }
     if (isSplinePoly(sh)) return  // S103[8]：样条只命中 ctrl 点（tier-1），唔做边命中 → 无幽灵弦边可落假约束
     const pts = sh.type === 'rect' ? rectCorners(sh) : sh.pts
     const n = pts.length
@@ -543,7 +623,7 @@ type ChainSeg = { ref: SkRef; a: FPt; b: FPt }
 function chainSegsOf(shapes: FShape[]): ChainSeg[] {
   const out: ChainSeg[] = []
   shapes.forEach((sh, i) => {
-    if (!solvable(sh) || sh.type === 'circle' || isSplinePoly(sh)) return   // 圆无 edge；样条只 ctrl，唔入链
+    if (!solvable(sh) || sh.type === 'circle' || isSplinePoly(sh) || isEllipse(sh) || isEllipseArc(sh)) return   // 圆无 edge；样条只 ctrl，唔入链
     if (isArcPoly(sh)) { out.push({ ref: { kind: 'edge', shape: i, idx: 0 }, a: sh.arc.a, b: sh.arc.b }); return }  // 三点弧：chord 两端
     const pts = sh.type === 'rect' ? rectCorners(sh) : (sh.verts ?? sh.pts)
     const n = pts.length
@@ -610,6 +690,8 @@ export function marqueeHits(shapes: FShape[], a: FPt, b: FPt, crossing: boolean)
       const n = ol.pts.length, segN = ol.closed ? n : n - 1   // 或任一轮廓段穿过框边（框细过轮廓、边穿过嘅情形）
       for (let j = 0; j < segN && !sel; j++) { const p = ol.pts[j], q = ol.pts[(j + 1) % n]; for (let k = 0; k < 4 && !sel; k++) if (segSegX(p, q, corners[k], corners[(k + 1) % 4])) sel = true }
     }
+    if(sel&&isEllipseArc(sh)){out.push({kind:'ellipse-arc',shape:i});return}
+    if (sel && isEllipse(sh)){out.push({kind:'ellipse',shape:i});return}
     if (sel) out.push(sh.type === 'circle' ? (sh.point ? { kind: 'pt', shape: i, idx: 0 } : { kind: 'circle', shape: i }) : { kind: 'edge', shape: i, idx: 0 })
   })
   return out
@@ -621,6 +703,9 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
   for (const c of cons) {
     if (c.kind !== 'con' || c.type !== 'fix') continue
     const r = c.a
+    if(r.kind==='ellipse-arc'){for(let j=0;j<3;j++)fixedPts.add(pid(r.shape,j));for(let j=0;j<2;j++)fixedPts.add(ellipseArcPointId(r.shape,j));continue}
+    if(r.kind==='ellipse'){for(let j=0;j<3;j++)fixedPts.add(pid(r.shape,j));continue}
+    if(r.kind==='ellipse-axis'){fixedPts.add(pid(r.shape,0));fixedPts.add(pid(r.shape,r.idx+1));continue}
     // S198 实体级 Fix：成条边 → 钉两端点；圆 → 钉圆心（半径喺下面 cons 循环补 circle_radius/arc_radius）；
     // 三点弧（rim 或 chord edge）→ a/b/圆心三点全钉（arc_rules 联动下半径/扫角随之封死）
     if (r.kind === 'edge' && shapes[r.shape] && solvable(shapes[r.shape])) {
@@ -663,6 +748,8 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
   }
   shapes.forEach((sh, i) => {
     if (!solvable(sh)) return
+    if(isEllipseArc(sh)){prims.push(...ellipseArcPrimitives(i,sh.earc,fixedPts));return}
+    if(isEllipse(sh)){ellipseControlPoints(sh.ell).forEach((q,j)=>prims.push({id:pid(i,j),type:'point',x:q[0],y:q[1],fixed:fixedPts.has(pid(i,j))} as SketchPrimitive));for(let j=0;j<2;j++)prims.push({id:lid(i,j),type:'line',p1_id:pid(i,0),p2_id:pid(i,j+1)} as SketchPrimitive);prims.push({id:`ellipse-axes-${i}`,type:'perpendicular_ll',l1_id:lid(i,0),l2_id:lid(i,1)} as Constraint);return}
     if (sh.type === 'circle') {
       prims.push({ id: pid(i, 0), type: 'point', x: sh.c[0], y: sh.c[1], fixed: fixedPts.has(pid(i, 0)) } as SketchPrimitive)
       if (!sh.point) prims.push({ id: cid(i), type: 'circle', c_id: pid(i, 0), radius: sh.r } as SketchPrimitive)  // 草图点：只有圆心，冇 circle prim
@@ -706,7 +793,7 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
         const a = vs[j], b = vs[(j + 1) % n]
         if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 1e-9) continue
         const ctr = bulgeCenter(a, b, bu), R = bulgeRadius(a, b, bu)
-        prims.push({ id: paid(i, j), type: 'point', x: ctr[0], y: ctr[1], fixed: false } as SketchPrimitive)
+        prims.push({ id: paid(i, j), type: 'point', x: ctr[0], y: ctr[1], fixed: fixedPts.has(paid(i,j)) } as SketchPrimitive)
         const a0 = Math.atan2(a[1] - ctr[1], a[0] - ctr[0]), a1 = Math.atan2(b[1] - ctr[1], b[0] - ctr[0])
         const arcP = bu < 0
           ? { start_id: pid(i, j), end_id: pid(i, (j + 1) % n), start_angle: a0, end_angle: a0 + ((a1 - a0 + TAU2) % TAU2) }
@@ -759,9 +846,12 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
         if (c.a.kind === 'circle' && isArcPoly(shapes[c.a.shape])) prims.push({ id: c.id, type: 'arc_length', a_id: cid(c.a.shape), dist: c.value } as Constraint)
         continue
       }
+      if(c.type==='len'&&c.a.kind==='ellipse-axis'){prims.push({id:c.id,type:'p2p_distance',p1_id:pid(c.a.shape,0),p2_id:pid(c.a.shape,c.a.idx+1),distance:c.value} as Constraint);continue}
       if (c.type === 'len' && c.a.kind === 'edge') { const l = c.a; const sh = shapes[l.shape]; const pts = sh.type === 'rect' ? 4 : ((sh as { verts?: FPt[]; pts: FPt[] }).verts ?? (sh as { pts: FPt[] }).pts).length; prims.push({ id: c.id, type: 'p2p_distance', p1_id: pid(l.shape, l.idx), p2_id: pid(l.shape, (l.idx + 1) % pts), distance: c.value } as Constraint); continue }
       if (c.type === 'dist' && c.b) { const a = refPtId(shapes, c.a), b = refPtId(shapes, c.b); if (a && b) prims.push({ id: c.id, type: 'p2p_distance', p1_id: a, p2_id: b, distance: c.value } as Constraint); continue }
       if ((c.type === 'hdist' || c.type === 'vdist') && c.b) {
+        if(c.frameAngleDeg!==undefined){const a=refPtId(shapes,c.a),b=refPtId(shapes,c.b),[A]=refPts(shapes,c.a);if(a&&b&&A)prims.push(...orientedDistancePrimitives(c.id,c.frameAngleDeg,c.type==='vdist',a,b,A,c.value));continue}
+
         // Fusion 位置尺寸: horizontal / vertical distance between two points (difference on x or y
         // params). Params ordered at creation so the difference stays POSITIVE (label edits stay simple).
         const a = refPtId(shapes, c.a), b = refPtId(shapes, c.b)
@@ -783,10 +873,12 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
     const aPt = refPtId(shapes, A), bPt = B ? refPtId(shapes, B) : null
     switch (c.type) {
       case 'h':
+        if(c.frameAngleDeg!==undefined){prims.push(...orientedLinePrimitives(c.id,c.frameAngleDeg,false,aLn,aPt&&bPt?[aPt,bPt]:null,(B?[refPts(shapes,A)[0],refPts(shapes,B)[0]]:refPts(shapes,A)) as [FPt,FPt]));break}
         if (aLn) prims.push({ id: c.id, type: 'horizontal_l', l_id: aLn } as Constraint)
         else if (aPt && bPt) prims.push({ id: c.id, type: 'horizontal_pp', p1_id: aPt, p2_id: bPt } as Constraint)
         break
       case 'v':
+        if(c.frameAngleDeg!==undefined){prims.push(...orientedLinePrimitives(c.id,c.frameAngleDeg,true,aLn,aPt&&bPt?[aPt,bPt]:null,(B?[refPts(shapes,A)[0],refPts(shapes,B)[0]]:refPts(shapes,A)) as [FPt,FPt]));break}
         if (aLn) prims.push({ id: c.id, type: 'vertical_l', l_id: aLn } as Constraint)
         else if (aPt && bPt) prims.push({ id: c.id, type: 'vertical_pp', p1_id: aPt, p2_id: bPt } as Constraint)
         break
@@ -815,6 +907,17 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
         break
       }
       case 'tangent': {
+        const general=ellipseLineTangentPair(shapes,A,B);if(general&&c.ellipseContact){const sh=shapes[general.ellipse.shape];if(isEllipse(sh)||isEllipseArc(sh)){
+          const e=isEllipse(sh)?sh.ell:sh.earc
+          // Seed a two-point line on the requested tangent without redefining any Fix. Every persisted relation is still solved and validated.
+          const lineShape=shapes[general.line.shape]
+          if(lineShape.type==='poly'&&lineShape.open&&(lineShape.verts??lineShape.pts).length===2&&!cons.some(other=>other.kind==='con'&&other.type==='fix'&&[other.a,other.b,...('c' in other?[other.c]:[])].some(r=>r&&'shape' in r&&r.shape===general.line.shape))){
+            const [A,B]=refPts(shapes,general.line),length=Math.hypot(B[0]-A[0],B[1]-A[1]),t=c.ellipseContact.angleDeg*Math.PI/180,a=e.rot*Math.PI/180,E=ellipseArcPoint(e,c.ellipseContact.angleDeg),dx=-e.rx*Math.sin(t)*Math.cos(a)-e.ry*Math.cos(t)*Math.sin(a),dy=-e.rx*Math.sin(t)*Math.sin(a)+e.ry*Math.cos(t)*Math.cos(a),dl=Math.hypot(dx,dy),sign=dx*(B[0]-A[0])+dy*(B[1]-A[1])<0?-1:1,ux=sign*dx/dl,uy=sign*dy/dl,offset=((A[0]+B[0])/2-E[0])*ux+((A[1]+B[1])/2-E[1])*uy
+            for(const j of [0,1]){const p=prims.find(p=>p.id===general.pointIds[j]);if(p?.type==='point'&&!p.fixed){p.x=E[0]+(offset+(j-.5)*length)*ux;p.y=E[1]+(offset+(j-.5)*length)*uy}}
+          }
+          prims.push(...ellipseLineTangentPrimitives(general.ellipse.shape,e,c.ellipseContact,lid(general.line.shape,general.line.idx),general.pointIds,c.id))
+        }break}
+        const pair=ellipseArcTangentPair(shapes,A,B);if(pair&&c.tangentLineEnd!==undefined){prims.push(...ellipseArcTangentPrimitives(pair.arc.shape,(shapes[pair.arc.shape] as FShape&{type:'poly';earc:EllipseArcGeometry}).earc,pair.arc.idx,lid(pair.line.shape,pair.line.idx),pair.pointIds,c.tangentLineEnd,c.id));break}
         const sgA = arcSegOf(shapes, A), sgB = B ? arcSegOf(shapes, B) : null
         if (sgA || sgB) {
           if (sgA && sgB) { prims.push({ id: c.id, type: 'tangent_aa', a1_id: sgA, a2_id: sgB } as Constraint); break }  // 弧段↔弧段（T726 实测 tangent_aa 收敛良好）
@@ -879,9 +982,12 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
       }
       case 'collinear':
         // planegcs 无直接 collinear：parallel + B 嘅起点落喺 A 线上（两条约束，同 csketch T706）
-        if (aLn && bLn && B?.kind === 'edge') {
+        if (aLn && bLn && (B?.kind === 'edge' || B?.kind === 'refedge')) {
+          // A projected edge can be selected second too: use its fixed endpoint,
+          // rather than silently dropping the entire collinear constraint.
+          const start = B.kind === 'refedge' ? `rl${B.idx}a` : pid(B.shape, B.idx)
           prims.push({ id: c.id + 'a', type: 'parallel', l1_id: aLn, l2_id: bLn } as Constraint)
-          prims.push({ id: c.id + 'b', type: 'point_on_line_pl', p_id: pid(B.shape, B.idx), l_id: aLn } as Constraint)
+          prims.push({ id: c.id + 'b', type: 'point_on_line_pl', p_id: start, l_id: aLn } as Constraint)
         }
         break
       case 'symmetric': {
@@ -990,8 +1096,7 @@ export function measureDim(shapes: FShape[], c: SkCon): number | null {
   const P = (r?: SkRef) => (r ? refPts(shapes, r) : [])
   switch (c.type) {
     case 'dist': { const [a] = P(c.a), [b] = P(c.b); return a && b ? Math.hypot(b[0] - a[0], b[1] - a[1]) : null }
-    case 'hdist': { const [a] = P(c.a), [b] = P(c.b); return a && b ? Math.abs(b[0] - a[0]) : null }
-    case 'vdist': { const [a] = P(c.a), [b] = P(c.b); return a && b ? Math.abs(b[1] - a[1]) : null }
+    case 'hdist': case 'vdist': { const [a]=P(c.a),[b]=P(c.b);if(!a||!b)return null;const u=frameDirection(c.frameAngleDeg??0,c.type==='vdist');return Math.abs((b[0]-a[0])*u[0]+(b[1]-a[1])*u[1]) }
     case 'len': { const [a, b] = P(c.a); return a && b ? Math.hypot(b[0] - a[0], b[1] - a[1]) : null }
     case 'dia': case 'rad': {
       const r = c.a
@@ -1062,6 +1167,11 @@ export function dimGfx(shapes: FShape[], c: SkCon, off = 9): DimGfx | null {
   if (c.kind !== 'dim') return null
   const P = (r?: SkRef) => (r ? refPts(shapes, r) : [])
   const mid = (a: FPt, b: FPt): FPt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+  if(c.frameAngleDeg!==undefined&&(c.type==='hdist'||c.type==='vdist')){
+    const [a]=P(c.a),[b]=P(c.b);if(!a||!b||!Number.isFinite(c.frameAngleDeg))return null
+    const u=frameDirection(c.frameAngleDeg,c.type==='vdist'),v:FPt=[-u[1],u[0]],dot=(p:FPt,q:FPt)=>p[0]*q[0]+p[1]*q[1],height=Math.max(dot(a,v),dot(b,v))+off,to=(p:FPt):FPt=>[u[0]*dot(p,u)+v[0]*height,u[1]*dot(p,u)+v[1]*height],A=to(a),B=to(b)
+    return {lines:[[a,A],[b,B],[A,B]],label:mid(A,B)}
+  }
   switch (c.type) {
     case 'dist': case 'len': {
       const pts = c.type === 'len' ? P(c.a) : [P(c.a)[0], P(c.b)[0]]
@@ -1184,7 +1294,7 @@ export function solveTangentCircle(lines: TanLine[], rFixed?: number): { c: Pt; 
   return { c: [x[0], x[1]], r: x[2] }
 }
 
-export type FreeSolveResult = { shapes: FShape[]; dof: number; conflict: boolean; conflictIds: string[] }  // conflictIds（S194）= planegcs 报嘅冲突约束 id（=SkCon.id），UI 逐个红标俾用户拣删边个（Fusion 式）
+export type FreeSolveResult = { shapes: FShape[]; dof: number; conflict: boolean; conflictIds: string[]; relationUpdates?:{id:string;ellipseContact:EllipseContact}[] }  // conflictIds（S194）= planegcs 报嘅冲突约束 id（=SkCon.id），UI 逐个红标俾用户拣删边个（Fusion 式）
 
 // Solve and write the solution back into (copies of) the shapes.
 // drag (to): pin the referenced POINT to the cursor (coordinate_x/y, FreeCAD-style drag solve) — the rest of
@@ -1193,6 +1303,49 @@ export type FreeSolveResult = { shapes: FShape[]; dof: number; conflict: boolean
 // ref.kind='edge'（poly/rect 直段、verts-poly 弧段、三点弧 chord）或 'circle'（三点弧 rim）。
 // 弧另加 arc_radius 钉住当前半径：唔钉嘅话圆心只受等距约束，Newton 会沿新弦中垂线搵最近点 → 半径逐帧漂移弧变形。
 export async function solveFree(shapes: FShape[], cons: SkCon[], drag?: { ref: SkRef; to: FPt } | { ref: SkRef; ends: [FPt, FPt] }): Promise<FreeSolveResult | null> {
+  if(drag&&'to' in drag&&drag.ref.kind==='ellipse-arc-end'){
+    const sh=shapes[drag.ref.shape];if(isEllipseArc(sh)&&Math.abs(Math.abs(ellipseArcSweep(sh.earc))-360)<1e-8){const current=refPts(shapes,drag.ref)[0];if(Math.hypot(current[0]-drag.to[0],current[1]-drag.to[1])>1e-8)return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:[]}}
+  }
+  const framed=cons.filter(c=>c.frameAngleDeg!==undefined)
+  const invalidFrame=framed.filter(c=>!Number.isFinite(c.frameAngleDeg)||!refValid(shapes,c.a)||(c.b&&!refValid(shapes,c.b))||(c.kind==='con'? !['h','v'].includes(c.type)||!(refLineId(c.a)||c.b&&refPtId(shapes,c.a)&&refPtId(shapes,c.b)):!['hdist','vdist'].includes(c.type)||!c.b||!refPtId(shapes,c.a)||!refPtId(shapes,c.b)||!Number.isFinite(c.value)||c.value<0||!c.driven&&c.projectionSign!==1&&c.projectionSign!==-1))
+  if(invalidFrame.length)return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:invalidFrame.map(c=>c.id)}
+  const invalidTangents=cons.filter(c=>c.kind==='con'&&c.type==='tangent'&&[c.a,c.b].some(r=>r?.kind==='ellipse'||r?.kind==='ellipse-arc'||r?.kind==='ellipse-arc-end'||r?.kind==='ellipse-point')&&!((ellipseArcTangentPair(shapes,c.a,c.b)&&(c.tangentLineEnd===0||c.tangentLineEnd===1))||(ellipseLineTangentPair(shapes,c.a,c.b)&&c.ellipseContact?.version===1&&Number.isFinite(c.ellipseContact.angleDeg))))
+  if(invalidTangents.length)return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:invalidTangents.map(c=>c.id)}
+  if(shapes.some(sh=>isEllipse(sh)&&(!Object.values(sh.ell).every(Number.isFinite)||sh.ell.rx<=0||sh.ell.ry<=0)))return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:[]}
+  try{for(const sh of shapes)if(isEllipseArc(sh)){if(![sh.earc.cx,sh.earc.cy,sh.earc.rx,sh.earc.ry,sh.earc.rot,sh.earc.a0].every(Number.isFinite)||sh.earc.rx<=1e-8||sh.earc.ry<=1e-8)throw new Error();ellipseArcSweep(sh.earc)}}catch{return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:[]}}
+  const invalidEllipseRef=(r:SkRef|undefined)=>!!r&&(('shape'in r&&(isEllipse(shapes[r.shape])||isEllipseArc(shapes[r.shape])))||r.kind==='ellipse-arc'||r.kind==='ellipse-arc-end'||r.kind==='ellipse'||r.kind==='ellipse-point'||r.kind==='ellipse-axis')&&!refValid(shapes,r)
+  const badEllipse=cons.filter(c=>[c.a,c.b,'c'in c?c.c:undefined].some(invalidEllipseRef))
+  if(badEllipse.length||invalidEllipseRef(drag?.ref))return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:badEllipse.map(c=>c.id)}
+  const invalidCenters=cons.filter(c=>[c.a,c.b,'c'in c?c.c:undefined].some(r=>r?.kind==='center'&&!refValid(shapes,r)))
+  if(invalidCenters.length||(drag?.ref.kind==='center'&&!refValid(shapes,drag.ref)))return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:invalidCenters.map(c=>c.id)}
+  // A free arc-center drag starts from a rigid translation, so unconstrained
+  // endpoints keep radius and sweep instead of being left behind at the cursor.
+  if(drag && 'to'in drag && drag.ref.kind==='center' && refValid(shapes,drag.ref) && !cons.some(c=>c.kind==='con'&&c.type==='fix'&&'shape'in c.a&&c.a.shape===('shape'in drag.ref?drag.ref.shape:-1))) {
+    const r=drag.ref,old=refPts(shapes,r)[0],dx=drag.to[0]-old[0],dy=drag.to[1]-old[1],sh=shapes[r.shape],move=(p:FPt):FPt=>[p[0]+dx,p[1]+dy]
+    if(isArcPoly(sh)){const arc={a:move(sh.arc.a),b:move(sh.arc.b),m:move(sh.arc.m)};shapes=shapes.map((s,i)=>i===r.shape?{...sh,arc,pts:arcResample(arc.a,arc.b,arc.m)}:s)}
+    else if(isVertsPoly(sh)){const verts=sh.verts.map((p,i)=>i===r.idx||i===(r.idx+1)%sh.verts.length?move(p):p);shapes=shapes.map((s,i)=>i===r.shape?{...sh,verts,pts:pathPts(verts,sh.bulges)}:s)}
+  }
+  if(drag && 'to'in drag && drag.ref.kind==='pt') {
+    const r=drag.ref,sh=shapes[r.shape]
+    if(sh && isVertsPoly(sh)) {
+      const segN=sh.open?sh.verts.length-1:sh.verts.length
+      for(let j=0;j<segN;j++) {
+        if(r.idx!==j&&r.idx!==(j+1)%sh.verts.length)continue
+        const bu=sh.bulges[j];if(Math.abs(bu||0)<1e-12)continue
+        const centerFixed=cons.some(c=>c.kind==='con'&&c.type==='fix'&&c.a.kind==='center'&&c.a.shape===r.shape&&c.a.idx===j)
+        const radiusFixed=cons.some(c=>c.kind==='dim'&&!c.driven&&(c.type==='rad'||c.type==='dia')&&c.a.kind==='edge'&&c.a.shape===r.shape&&c.a.idx===j)
+        const endpointFixed=cons.some(c=>c.kind==='con'&&c.type==='fix'&&'shape'in c.a&&c.a.shape===r.shape&&(c.a.kind==='pt'?c.a.idx===r.idx:c.a.kind==='edge'?c.a.idx===r.idx||(c.a.idx+1)%sh.verts.length===r.idx:c.a.kind==='circle'))
+        if(!centerFixed||!radiusFixed||endpointFixed)continue
+        const center=bulgeCenter(sh.verts[j],sh.verts[(j+1)%sh.verts.length],bu),radius=bulgeRadius(sh.verts[j],sh.verts[(j+1)%sh.verts.length],bu)
+        if(Math.abs(Math.hypot(drag.to[0]-center[0],drag.to[1]-center[1])-radius)>1e-6)continue
+        const verts=sh.verts.map((p,k)=>k===r.idx?[...drag.to] as FPt:p),a=verts[j],b=verts[(j+1)%verts.length],a0=Math.atan2(a[1]-center[1],a[0]-center[0]),a1=Math.atan2(b[1]-center[1],b[0]-center[0]),TAU=Math.PI*2
+        const sweep=bu>0?(a0-a1+TAU)%TAU:(a1-a0+TAU)%TAU
+        if(sweep<1e-6||sweep>TAU-1e-6)continue
+        const bulges=sh.bulges.map((v,k)=>k===j?Math.sign(bu)*Math.tan(sweep/4):v)
+        shapes=shapes.map((s,k)=>k===r.shape?{...sh,verts,bulges,pts:pathPts(verts,bulges)}:s);break
+      }
+    }
+  }
   const prims = buildPrims(shapes, cons)
   if (!prims) return null
   if (drag && 'ends' in drag) {
@@ -1212,12 +1365,43 @@ export async function solveFree(shapes: FShape[], cons: SkCon[], drag?: { ref: S
       if (seg && isVertsPoly(sh)) radPin = { id: '_dgr', type: 'arc_radius', a_id: seg, radius: bulgeRadius(sh.verts[r.idx], sh.verts[(r.idx + 1) % sh.verts.length], sh.bulges[r.idx]) } as Constraint
     }
     if (ids && ids[0] !== ids[1]) {   // 零长段守卫：同一点钉两对 x/y = 即时假冲突
+      if (radPin && sh) {
+        // Equal endpoint deltas mean a rigid drag. Seed the arc in that frame
+        // before solving: two endpoints + radius admit two centers, and a large
+        // cursor step otherwise lets Newton choose the reflected center. These
+        // are initial guesses only; fixed points and user constraints still win.
+        const oldEnds = isArcPoly(sh) ? [sh.arc.a, sh.arc.b] : refPts(shapes, r)
+        if (oldEnds.length === 2) {
+          const dx = drag.ends[0][0] - oldEnds[0][0], dy = drag.ends[0][1] - oldEnds[0][1]
+          if (Math.abs(drag.ends[1][0] - oldEnds[1][0] - dx) < 1e-8 && Math.abs(drag.ends[1][1] - oldEnds[1][1] - dy) < 1e-8) {
+            const centerId = isArcPoly(sh) && 'shape' in r ? pid(r.shape, 2) : r.kind === 'edge' ? paid(r.shape, r.idx) : null
+            for (const prim of prims) {
+              if (prim.type === 'point' && !prim.fixed && (ids.includes(prim.id) || prim.id === centerId)) { prim.x += dx; prim.y += dy }
+            }
+          }
+        }
+      }
       prims.push({ id: '_dgx0', type: 'coordinate_x', p_id: ids[0], x: drag.ends[0][0] } as Constraint)
       prims.push({ id: '_dgy0', type: 'coordinate_y', p_id: ids[0], y: drag.ends[0][1] } as Constraint)
       prims.push({ id: '_dgx1', type: 'coordinate_x', p_id: ids[1], x: drag.ends[1][0] } as Constraint)
       prims.push({ id: '_dgy1', type: 'coordinate_y', p_id: ids[1], y: drag.ends[1][1] } as Constraint)
       if (radPin) prims.push(radPin)
     }
+  } else if(drag&&'to'in drag&&'shape'in drag.ref&&isEllipseArc(shapes[drag.ref.shape])&&(drag.ref.kind==='ellipse-point'||drag.ref.kind==='ellipse-arc-end')){
+    const i=drag.ref.shape,e=(shapes[i] as FShape&{type:'poly';earc:EllipseArcGeometry}).earc,[c,,v]=ellipseControlPoints(e);let target=e
+    if(drag.ref.kind==='ellipse-arc-end'){const dx=drag.to[0]-c[0],dy=drag.to[1]-c[1],rot=e.rot*Math.PI/180,x=(dx*Math.cos(rot)+dy*Math.sin(rot))/e.rx,y=(-dx*Math.sin(rot)+dy*Math.cos(rot))/e.ry;if(Math.hypot(x,y)<1e-10)return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:[]};const raw=Math.atan2(y,x)*180/Math.PI,old=e.a0+(drag.ref.idx?ellipseArcSweep(e):0),t=raw+360*Math.round((old-raw)/360),start=drag.ref.idx?e.a0:t,end=drag.ref.idx?t:e.a0+ellipseArcSweep(e);let sweep=end-start;if(ellipseArcSweep(e)>0){while(sweep<=0)sweep+=360}else{while(sweep>=0)sweep-=360}target={...e,...ellipseArcWithSweep(e,start,sweep)}}
+    else if(drag.ref.idx===0)target={...e,cx:drag.to[0],cy:drag.to[1]}
+    else if(drag.ref.idx===1){const dx=drag.to[0]-c[0],dy=drag.to[1]-c[1],rx=Math.hypot(dx,dy);if(rx<1e-8)return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:[]};target={...e,rx,rot:Math.atan2(dy,dx)*180/Math.PI}}
+    else{const vx=(v[0]-c[0])/e.ry,vy=(v[1]-c[1])/e.ry,ry=(drag.to[0]-c[0])*vx+(drag.to[1]-c[1])*vy;if(ry<1e-8)return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:[]};target={...e,ry}}
+    seedEllipseArc(i,target,prims);const targets=[...ellipseControlPoints(target),ellipseArcPoint(target,target.a0),ellipseArcPoint(target,target.a0+ellipseArcSweep(target))];targets.forEach((p,j)=>{const id=j<3?pid(i,j):ellipseArcPointId(i,j-3);prims.push({id:`_earcDragX${j}`,type:'coordinate_x',p_id:id,x:p[0]} as Constraint);prims.push({id:`_earcDragY${j}`,type:'coordinate_y',p_id:id,y:p[1]} as Constraint)})
+  } else if (drag && drag.ref.kind==='ellipse-point' && isEllipse(shapes[drag.ref.shape])) {
+    const sh=shapes[drag.ref.shape] as FShape & {type:'poly';ell:EllipseGeometry},ps=ellipseControlPoints(sh.ell),[c,u,v]=ps
+    let targets:[FPt,FPt,FPt]
+    if(drag.ref.idx===0){const dx=drag.to[0]-c[0],dy=drag.to[1]-c[1];targets=ps.map(p=>[p[0]+dx,p[1]+dy]) as [FPt,FPt,FPt]}
+    else if(drag.ref.idx===1){const dx=drag.to[0]-c[0],dy=drag.to[1]-c[1],len=Math.hypot(dx,dy);if(len<1e-8)return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:[]};targets=[c,drag.to,[c[0]-dy*sh.ell.ry/len,c[1]+dx*sh.ell.ry/len]]}
+    else {const vx=v[0]-c[0],vy=v[1]-c[1],len=Math.hypot(vx,vy),d=((drag.to[0]-c[0])*vx+(drag.to[1]-c[1])*vy)/len;if(d<1e-8)return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:[]};targets=[c,u,[c[0]+vx*d/len,c[1]+vy*d/len]]}
+    const ellipseShapeIndex=drag.ref.shape
+    targets.forEach((p,j)=>{const primitive=prims.find(v=>v.id===pid(ellipseShapeIndex,j));if(primitive?.type==='point'&&!primitive.fixed){primitive.x=p[0];primitive.y=p[1]}prims.push({id:`_ellipseDragX${j}`,type:'coordinate_x',p_id:pid(ellipseShapeIndex,j),x:p[0]} as Constraint);prims.push({id:`_ellipseDragY${j}`,type:'coordinate_y',p_id:pid(ellipseShapeIndex,j),y:p[1]} as Constraint)})
   } else if (drag) {
     const pId = refPtId(shapes, drag.ref)
     if (pId) {
@@ -1229,8 +1413,11 @@ export async function solveFree(shapes: FShape[], cons: SkCon[], drag?: { ref: S
   const byId = new Map<string, { x?: number; y?: number; radius?: number }>()
   for (const g of res.geometry) byId.set((g as { id: string }).id, g as { x?: number; y?: number; radius?: number })
   const P = (i: number, j: number): FPt | null => { const g = byId.get(pid(i, j)); return g && g.x != null && g.y != null ? [g.x, g.y] : null }
+  let invalidEllipse=shapes.some(isEllipseArc)&&prims.some(p=>{if(p.type!=='point'||!p.fixed)return false;const q=byId.get(String(p.id));return !q||q.x==null||q.y==null||!Number.isFinite(q.x)||!Number.isFinite(q.y)||Math.hypot(q.x-p.x,q.y-p.y)>1e-7})
   const out: FShape[] = shapes.map((sh, i) => {
     if (!solvable(sh)) return sh
+    if(isEllipseArc(sh)){const earc=decodeEllipseArc(i,sh.earc,res.geometry);if(!earc){invalidEllipse=true;return sh}if(['cx','cy','rx','ry','rot','a0'].every(k=>Math.abs(earc[k as keyof EllipseArcGeometry] as number-(sh.earc[k as keyof EllipseArcGeometry] as number))<1e-8)&&Math.abs(ellipseArcSweep(earc)-ellipseArcSweep(sh.earc))<1e-8)return sh;return {...sh,earc,pts:ellipseArcSample(earc,Math.max(16,sh.pts.length-1))}}
+    if(isEllipse(sh)){const old=ellipseControlPoints(sh.ell),ps=old.map((q,j)=>P(i,j)??q) as [FPt,FPt,FPt],ell=ellipseFromControls(ps,sh.ell);if(!ell){invalidEllipse=true;return sh}return {...sh,ell,pts:ellipseSample(ell,Math.max(16,sh.pts.length))}}
     if (sh.type === 'circle') {
       const c = P(i, 0)
       const g = byId.get(cid(i))
@@ -1248,8 +1435,13 @@ export async function solveFree(shapes: FShape[], cons: SkCon[], drag?: { ref: S
       const [cx, cy] = ctr, r = g.radius
       const TAU = Math.PI * 2
       const a0 = Math.atan2(a[1] - cy, a[0] - cx), a1 = Math.atan2(b[1] - cy, b[0] - cx)
-      const amOld = Math.atan2(sh.arc.m[1] - cy, sh.arc.m[0] - cx)
-      const ccw = ((a1 - a0 + TAU) % TAU) >= ((amOld - a0 + TAU) % TAU)  // keep the original sweep side
+      // Determine orientation entirely in the original arc's frame. Comparing
+      // the old midpoint with the NEW center changes a quarter arc into its
+      // complementary 270-degree arc when the user drags it across the canvas.
+      const oldCenter = circum3(sh.arc.a, sh.arc.m, sh.arc.b)?.c ?? ctr
+      const oldAngle = (q: FPt) => Math.atan2(q[1] - oldCenter[1], q[0] - oldCenter[0])
+      const oldA = oldAngle(sh.arc.a), oldB = oldAngle(sh.arc.b), oldM = oldAngle(sh.arc.m)
+      const ccw = ((oldB - oldA + TAU) % TAU) >= ((oldM - oldA + TAU) % TAU)
       const span = ccw ? (a1 - a0 + TAU) % TAU : -((a0 - a1 + TAU) % TAU)
       const tm = a0 + span / 2
       const m: FPt = [cx + r * Math.cos(tm), cy + r * Math.sin(tm)]
@@ -1287,7 +1479,16 @@ export async function solveFree(shapes: FShape[], cons: SkCon[], drag?: { ref: S
   })
   // S198：展开式约束嘅衍生 prim id（collinear a/b、实体fix r、对称 a/b/c、弧中点 L/a/b）归一化返父 SkCon id（k<数字>）
   // → S194 红徽章先对得上（store resolveSk 按 skCons id 过滤）。'_px'/'ar3h0' 等内部 id 唔匹配 pattern，原样保留。
-  return { shapes: out, dof: res.dof, conflict: res.conflicts.length > 0 || res.status !== 0, conflictIds: res.conflicts.map((x) => String(x).replace(/^(k\d+)[A-Za-z]$/, '$1')) }
+  const frameFailures:string[]=[]
+  for(const c of framed){if(c.kind==='dim'&&c.driven)continue;const A=refPts(out,c.a),B=c.b?refPts(out,c.b):[],a=A[0],b=c.kind==='con'&&!c.b?A[1]:B[0],u=frameDirection(c.frameAngleDeg!,c.type==='v'||c.type==='vdist');if(!a||!b){frameFailures.push(c.id);continue}const dx=b[0]-a[0],dy=b[1]-a[1],error=c.kind==='dim'?Math.abs(dx*u[0]+dy*u[1]-c.projectionSign!*c.value):Math.abs(dx*u[1]-dy*u[0]);if(!Number.isFinite(error)||error>1e-7)frameFailures.push(c.id)}
+  if(framed.length&&(frameFailures.length||invalidEllipse||res.conflicts.length||res.status!==0)){const ids=[...frameFailures,...res.conflicts.map(x=>cons.find(c=>String(x)===c.id||String(x).startsWith(c.id+':'))?.id??String(x))];return {shapes:structuredClone(shapes),dof:res.dof,conflict:true,conflictIds:[...new Set(ids)]}}
+  const tangentFailures:string[]=[],relationUpdates:NonNullable<FreeSolveResult['relationUpdates']>=[]
+  for(const c of cons)if(c.kind==='con'&&c.type==='tangent'&&c.ellipseContact){const pair=ellipseLineTangentPair(shapes,c.a,c.b);if(pair){const sh=out[pair.ellipse.shape],contact=isEllipse(sh)||isEllipseArc(sh)?decodeEllipseLineContact(pair.ellipse.shape,isEllipse(sh)?sh.ell:sh.earc,c.ellipseContact,pair.pointIds,c.id,res.geometry):null;if(contact&&(!isEllipseArc(sh)||ellipseArcContainsAngle(sh.earc,contact.angleDeg)))relationUpdates.push({id:c.id,ellipseContact:contact});else tangentFailures.push(c.id)}}
+  for(const c of cons)if(c.kind==='con'&&c.type==='tangent'&&c.tangentLineEnd!==undefined){const pair=ellipseArcTangentPair(shapes,c.a,c.b);if(pair){const sh=out[pair.arc.shape];if(!isEllipseArc(sh)||!validateEllipseArcTangent(pair.arc.shape,sh.earc,pair.arc.idx,pair.pointIds,c.tangentLineEnd,c.id,res.geometry))tangentFailures.push(c.id)}}
+  const publicConflictId=(id:string)=>cons.find(c=>id===c.id||id.startsWith(c.id+':'))?.id??id
+  if(tangentFailures.length)return {shapes:structuredClone(shapes),dof:res.dof,conflict:true,conflictIds:[...new Set([...res.conflicts.map(x=>publicConflictId(String(x))),...tangentFailures])]}
+  if((shapes.some(isEllipseArc)||relationUpdates.length>0)&&(invalidEllipse||res.conflicts.length>0||res.status!==0))return {shapes:structuredClone(shapes),dof:res.dof,conflict:true,conflictIds:[...new Set(res.conflicts.map(x=>publicConflictId(String(x))))]}
+  return { shapes: out, relationUpdates, dof: res.dof, conflict: invalidEllipse || res.conflicts.length > 0 || res.status !== 0, conflictIds: res.conflicts.map((x) => String(x).replace(/^(k\d+)[A-Za-z]$/, '$1')) }
 }
 
 // 每个 shape 嘅自由度探针枚举：点（坐标 pid）+ 半径（圆／三点弧 cid，或 verts-poly 弧段 said）。
@@ -1298,7 +1499,9 @@ export async function solveFree(shapes: FShape[], cons: SkCon[], drag?: { ref: S
 function shapeDofProbes(sh: FShape, i: number): { kind: 'pt' | 'rad'; id: string }[] {
   if (!solvable(sh)) return []
   const out: { kind: 'pt' | 'rad'; id: string }[] = []
-  if (sh.type === 'circle') { out.push({ kind: 'pt', id: pid(i, 0) }); if (!sh.point) out.push({ kind: 'rad', id: cid(i) }) }
+  if(isEllipseArc(sh)){for(let j=0;j<3;j++)out.push({kind:'pt',id:pid(i,j)});for(let j=0;j<2;j++)out.push({kind:'pt',id:ellipseArcPointId(i,j)})}
+  else if(isEllipse(sh)){for(let j=0;j<3;j++)out.push({kind:'pt',id:pid(i,j)})}
+  else if (sh.type === 'circle') { out.push({ kind: 'pt', id: pid(i, 0) }); if (!sh.point) out.push({ kind: 'rad', id: cid(i) }) }
   else if (isArcPoly(sh)) { for (let j = 0; j < 3; j++) out.push({ kind: 'pt', id: pid(i, j) }); out.push({ kind: 'rad', id: cid(i) }) }
   else if (isSplinePoly(sh)) { for (let j = 0; j < sh.ctrl.length; j++) out.push({ kind: 'pt', id: pid(i, j) }) }  // S103[8]：样条只探 ctrl 控制点（唔好读 48 密铺 pts 烧爆探针上限）
   else {
@@ -1360,7 +1563,7 @@ export const SK_CON_REQ: Record<SkConType, string> = {
 export function conApplicable(t: SkConType, sel: SkRef[], shapes?: FShape[]): boolean {
   const [a, b, c] = sel
   if (!a) return false
-  const isPt = (r?: SkRef) => r?.kind === 'pt' || r?.kind === 'origin' || r?.kind === 'refpt', isE = (r?: SkRef) => r?.kind === 'edge' || r?.kind === 'refedge'
+  const isPt = (r?: SkRef) => r?.kind === 'pt' || r?.kind === 'center' || r?.kind === 'ellipse-point' || r?.kind === 'ellipse-arc-end' || r?.kind === 'origin' || r?.kind === 'refpt', isE = (r?: SkRef) => r?.kind === 'edge' || r?.kind === 'refedge' || r?.kind === 'ellipse-axis'
   const isArcSeg = (r?: SkRef) => !!shapes && !!r && r.kind === 'edge' && !!arcSegOf(shapes, r)
   const isC = (r?: SkRef) => r?.kind === 'circle' || isArcSeg(r)
   const isSE = (r?: SkRef) => isE(r) && !isArcSeg(r)   // 直线边（refedge 实体直边亦计）。弧段 edge 喺 refLineId 只得「弦线」id → coincident/parallel/perp/collinear/midpoint 会静默锁去弦而非弧 → 喺呢度拒绝（弧请用 tangent/concentric/equal）
@@ -1369,8 +1572,8 @@ export function conApplicable(t: SkConType, sel: SkRef[], shapes?: FShape[]): bo
     case 'coincident': return ((isPt(a) && isPt(b)) || (isPt(a) && isSE(b)) || (isSE(a) && isPt(b))) && !c
     case 'parallel': case 'perp': case 'collinear': return isSE(a) && isSE(b) && !c
     case 'equal': return ((isSE(a) && isSE(b)) || (isC(a) && isC(b))) && !c
-    case 'tangent': return ((isE(a) && isC(b)) || (isC(a) && isE(b)) || (isC(a) && isC(b))) && !c
-    case 'fix': return (isPt(a) || a.kind === 'edge' || a.kind === 'circle') && !b   // S198 实体级：成条边/圆/弧都得（refedge/refpt 本身固定，唔收）
+    case 'tangent': return (!!shapes&&(!!ellipseArcTangentPair(shapes,a,b)||!!ellipseLineTangentPair(shapes,a,b))&&!c)||((isE(a) && isC(b)) || (isC(a) && isE(b)) || (isC(a) && isC(b))) && !c
+    case 'fix': return (isPt(a) || a.kind === 'ellipse' || a.kind === 'ellipse-arc' || a.kind === 'ellipse-axis' || a.kind === 'edge' || a.kind === 'circle') && !b   // S198 实体级：成条边/圆/弧都得（refedge/refpt 本身固定，唔收）
     case 'midpoint': {
       // 点 + 直边/参考边（弦中点原有）或 点 + 弧（弧段 / 三点弧 rim·弦 — 真弧中点）；整圆冇中点照拒
       const isArc = (r?: SkRef) => isArcSeg(r) || (!!shapes && !!r && (r.kind === 'circle' || r.kind === 'edge') && !!shapes[(r as { shape: number }).shape] && isArcPoly(shapes[(r as { shape: number }).shape]))
@@ -1391,3 +1594,11 @@ export function conApplicable(t: SkConType, sel: SkRef[], shapes?: FShape[]): bo
 // ------------------------------------------------------------------ 测试钩子
 // （同 voxelfea/moldflow 嘅 _internals 模式一致 — node 测试直接验 buildPrims / shapeDofProbes 输出，签名不变）
 export const _internals = { buildPrims, shapeDofProbes }
+
+/** Apply branch state only together with a successful geometry transaction. */
+export function applyRelationUpdates(cons:SkCon[],result:FreeSolveResult|null):SkCon[]{
+ if(!result||result.conflict||!result.relationUpdates?.length)return cons
+ const updates=new Map(result.relationUpdates.map(u=>[u.id,u.ellipseContact]));let changed=false
+ const next=cons.map(c=>{const contact=updates.get(c.id);if(c.kind!=='con'||!contact||c.ellipseContact&&Math.abs(c.ellipseContact.angleDeg-contact.angleDeg)<1e-8)return c;changed=true;return {...c,ellipseContact:contact}})
+ return changed?next:cons
+}

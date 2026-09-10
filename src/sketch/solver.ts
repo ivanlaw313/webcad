@@ -1,3 +1,4 @@
+import {prepareNativeTranslation} from './nativeCoordinates'
 import {
   make_gcs_wrapper,
   is_sketch_geometry,
@@ -26,11 +27,28 @@ export type SolveResult = {
   dof: number   // remaining degrees of freedom: 0 = fully defined (draw black), >0 = under-defined (blue)
 }
 
-// Feed a full primitive+constraint list, solve, and read the updated geometry back.
-export async function solveSketch(primitives: (SketchPrimitive | SketchParam)[]): Promise<SolveResult> {
-  const w = await wrapper()
+function pushCheckedPrimitives(w:GcsWrapper,primitives:(SketchPrimitive|SketchParam)[]):void {
   w.clear_data()
   w.push_primitives_and_params(primitives)
+  // PlaneGCS can report success without evaluating contradictions when every
+  // parameter is fixed. Keep identical anchors as explicit equations so that
+  // fully fixed projected loops still validate their driving dimensions.
+  const nParams=w.gcs.params_size()
+  if(nParams>0 && Array.from({length:nParams},(_,i)=>w.gcs.get_is_fixed(i)).every(Boolean)) {
+    const locks:SketchPrimitive[]=[]
+    const checked=primitives.map(p=>{
+      if(p.type!=='point'||!p.fixed)return p
+      locks.push({id:`_fixed_check_x_${p.id}`,type:'coordinate_x',p_id:p.id,x:p.x},{id:`_fixed_check_y_${p.id}`,type:'coordinate_y',p_id:p.id,y:p.y})
+      return {...p,fixed:false}
+    })
+    if(locks.length){w.clear_data();w.push_primitives_and_params([...checked,...locks])}
+  }
+ }
+
+// Feed a full primitive+constraint list, solve, and read the updated geometry back.
+async function solveRawSketch(primitives: (SketchPrimitive | SketchParam)[]): Promise<SolveResult> {
+  const w = await wrapper()
+  pushCheckedPrimitives(w, primitives)
   const status = w.solve()
   w.apply_solution()
   const geometry = w.sketch_index.get_primitives().filter(is_sketch_geometry) as SketchGeometry[]
@@ -39,6 +57,14 @@ export async function solveSketch(primitives: (SketchPrimitive | SketchParam)[])
   let dof = -1
   try { dof = w.gcs.dof() } catch { /* dof unavailable */ }
   return { geometry, status, conflicts, redundant, dof }
+}
+
+/** Public solver boundary uses the same native coordinate convention for every caller. */
+export async function solveSketch(primitives:(SketchPrimitive|SketchParam)[],opts:{offset?:[number,number]}={}):Promise<SolveResult>{
+ const normalized=prepareNativeTranslation(primitives,opts.offset)
+ if(!normalized.ok)return{geometry:primitives.filter(is_sketch_geometry) as SketchGeometry[],status:2,conflicts:[],redundant:[],dof:-1}
+ const result=await solveRawSketch(normalized.primitives)
+ return{...result,geometry:normalized.restore(result.geometry)}
 }
 
 export async function initSolver(): Promise<void> {
@@ -85,6 +111,9 @@ export async function diagnoseSketchDof(
   primitives: (SketchPrimitive | SketchParam)[],
   opts: { maxPoints?: number } = {},
 ): Promise<SketchDof> {
+  const normalized=prepareNativeTranslation(primitives)
+  if(!normalized.ok)return {...EMPTY_DOF}
+  primitives=normalized.primitives
   const maxPoints = opts.maxPoints ?? 200
   const points = primitives.filter((o) => (o as SketchPrimitive).type === 'point') as (SketchPrimitive & { id: string; x: number; y: number; fixed?: boolean })[]
   const circles = primitives.filter((o) => (o as SketchPrimitive).type === 'circle') as (SketchPrimitive & { id: string; c_id: string })[]
@@ -95,9 +124,9 @@ export async function diagnoseSketchDof(
     const w = await wrapper()
     // ---- 基线解 ----
     w.debug_mode = 0 // 收声：钉冲突时 planegcs 会喷 RedundantSolving debug log
-    w.clear_data()
-    w.push_primitives_and_params(primitives)
-    w.solve()
+    pushCheckedPrimitives(w,primitives)
+    const baselineStatus=w.solve()
+    if(baselineStatus!==0||w.has_gcs_conflicting_constraints())return {...EMPTY_DOF}
     w.apply_solution()
     const dof = w.gcs.dof()
 

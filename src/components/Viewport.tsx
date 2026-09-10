@@ -1,3 +1,11 @@
+import { LiveSketchReadout } from './LiveSketchReadout'
+import { revolvePointToCad, type RevolveFrameSource } from '../cad/revolvePreviewFrame'
+import { FloatingViewMenu } from './FloatingViewMenu'
+import { useEscapeLayer } from './useEscapeLayer'
+import { sketchFacePlane } from '../geom/sketchFacePlane'
+import { FormTransformFields } from './FormTransformFields'
+import { FormPalette } from './FormPalette'
+import { activeModelCommand } from '../cad/commandAvailability'
 import { ExpressionInput } from './ExpressionInput'
 import { useMemo, useState, useRef, useEffect, Fragment, lazy, Suspense, type ReactNode, type CSSProperties } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
@@ -11,6 +19,7 @@ import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry.js'  
 import GcodeBackplot from './GcodeBackplot'   // T790：刀路回放预览（激光 + CNC 共用）
 import { Grid, GizmoHelper, GizmoViewcube, OrbitControls, OrthographicCamera, Edges, Line, TransformControls, ContactShadows, MeshReflectorMaterial, Html } from '@react-three/drei'
 import { wheelZoomFactor } from '../cad/wheelZoom'
+import { visibleEdgeColor } from '../cad/visibleEdgeColor'
 import { brepEdgePositions } from '../cad/brepEdges'
 import { cad } from '../cad/cadService'
 import { chamferAngleFromDrag, chamferDistanceFromDrag, filletRadiusFromDrag } from '../cad/chamferDrag'
@@ -99,7 +108,7 @@ import { buildFaceGroupColors } from '../cad/faceGroupColors'   // GM-X1 #16：�
 // GM-X1 #16：面组上色调色板（同 store COMP_PALETTE 精神一致，此处独立以免跨模块耦合）
 const FG_PALETTE = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#42d4d4', '#f032e6', '#bf9000', '#469990', '#9a6324']
 import { pathArea, bulgeRadius } from '../sketch/sketchOps'
-import { CameraRig, SketchSurface, SketchDraw, SkSelDraw, MirrorPickDraw, MarqueeDraw, MoveGizmoDraw, ArrayPreview, ToolHoverPreview, SizingHandle, CommittedSketches, CanvasImageLayer, ExtrudePreview, RevolvePreview, RevolveAngleHandle, RegionPickLayer, ExtrudeArrow, LoftPreview, FitView, ViewRig, BookmarkRig, SketchDimProjector, SketchDimLayer, HolePreview, FaceOffsetGhost, MoveScaleGhost, CoilPreview, SweepPreview } from './SketchLayer'
+import { CameraRig, SketchSurface, SketchDraw, DimensionEditPreview, SkSelDraw, MirrorPickDraw, MarqueeDraw, MoveGizmoDraw, ScaleGizmoDraw, ArrayPreview, ToolHoverPreview, SizingHandle, CommittedSketches, CanvasImageLayer, ExtrudePreview, RevolvePreview, RevolveAngleHandle, RegionPickLayer, ExtrudeArrow, LoftPreview, FitView, ViewRig, BookmarkRig, SketchDimProjector, SketchDimLayer, HolePreview, FaceOffsetGhost, MoveScaleGhost, CoilPreview, SweepPreview } from './SketchLayer'
 import { SketchToolPanel } from './SketchToolPanel'
 import { useDraggable } from './useDraggable'            // GM-W6 A4：草图工具条可拖移（同 AI ✦ / 🩺诊断 钮共用 hook）
 import MarkingMenu, { type MMItem } from './MarkingMenu'
@@ -382,7 +391,7 @@ function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: {
   )
 }
 
-function BrepEdgeOverlay({ mesh, color, fallbackThreshold = 25, hidden = false }: { mesh: Pick<MeshData, 'vertices' | 'triangles' | 'faceGroups'>; color: string; fallbackThreshold?: number; hidden?: boolean }) {
+function BrepEdgeOverlay({ mesh, color, fallbackThreshold = 25, hidden = false, clip = [], through = false }: { mesh: Pick<MeshData, 'vertices' | 'triangles' | 'faceGroups'>; color: string; fallbackThreshold?: number; hidden?: boolean; clip?: Plane[]; through?: boolean }) {
   const positions = useMemo(() => brepEdgePositions(mesh), [mesh])
   const geometry = useMemo(() => {
     if (!positions?.length) return null
@@ -400,18 +409,18 @@ function BrepEdgeOverlay({ mesh, color, fallbackThreshold = 25, hidden = false }
     return g
   }, [positions])
   useEffect(() => () => geometry?.dispose(), [geometry])
-  if (!geometry) return <Edges threshold={fallbackThreshold} color={color} />
+  if (!geometry) return <Edges threshold={fallbackThreshold}><lineBasicMaterial color={color} clippingPlanes={clip} depthTest={!through} depthWrite={false} /></Edges>
   // Hidden lines must be tested *after* the solid has filled the depth buffer.
   // GreaterDepth renders only edge fragments behind the shaded B-rep faces;
   // disabling depth test would wrongly fade every visible edge as well.
   return <lineSegments geometry={geometry} renderOrder={hidden ? 2 : 1}>
     {hidden
-      ? <lineDashedMaterial color={color} transparent opacity={0.42} dashSize={1.8} gapSize={1.4} scale={1} depthTest depthFunc={GreaterDepth} depthWrite={false} />
-      : <lineBasicMaterial color={color} depthTest depthWrite={false} />}
+      ? <lineDashedMaterial color={color} clippingPlanes={clip} transparent opacity={0.42} dashSize={1.8} gapSize={1.4} scale={1} depthTest depthFunc={GreaterDepth} depthWrite={false} />
+      : <lineBasicMaterial color={color} clippingPlanes={clip} depthTest={!through} depthWrite={false} />}
   </lineSegments>
 }
 
-function KernelBody({ mesh, frozen = false, compId, pos = [0, 0, 0], rot, rotationCenter, selected = false, motion, explodeOffset, clip = [], compColor, compOpacity = 1, pickable = true, moldTarget = false, onSelect, onFocus, onFaceMatePick, onPointMatePick }: { mesh: MeshData; frozen?: boolean; compId?: string; pos?: [number, number, number]; rot?: [number, number, number]; rotationCenter?: [number, number, number]; selected?: boolean; motion?: Matrix4; explodeOffset?: [number, number, number]; clip?: Plane[]; compColor?: string; compOpacity?: number; pickable?: boolean; moldTarget?: boolean; onSelect?: () => void; onFocus?: () => void; onFaceMatePick?: (face: import('../assembly/faceMate').MateFace) => void; onPointMatePick?: (point: [number, number, number]) => void }) {
+function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = false, compId, pos = [0, 0, 0], rot, rotationCenter, selected = false, motion, explodeOffset, clip = [], compColor, compOpacity = 1, pickable = true, moldTarget = false, onSelect, onFocus, onFaceMatePick, onPointMatePick }: { mesh: MeshData; pickOnly?: boolean; displayOnly?: boolean; frozen?: boolean; compId?: string; pos?: [number, number, number]; rot?: [number, number, number]; rotationCenter?: [number, number, number]; selected?: boolean; motion?: Matrix4; explodeOffset?: [number, number, number]; clip?: Plane[]; compColor?: string; compOpacity?: number; pickable?: boolean; moldTarget?: boolean; onSelect?: () => void; onFocus?: () => void; onFaceMatePick?: (face: import('../assembly/faceMate').MateFace) => void; onPointMatePick?: (point: [number, number, number]) => void }) {
   const meshFaceGroupColors = useApp((s) => s.meshFaceGroupColors)   // GM-X1 #16
   // GM-X1 #16：面组上色 —— 仅活动实体（有 faceGroups）；导入网格无逐面身份 → null（照旧单色）
   const fgColors = useMemo(() => (meshFaceGroupColors && !frozen ? buildFaceGroupColors(mesh as { vertices: number[]; triangles: number[]; faceGroups?: { start: number; count: number; faceId: number }[] }, FG_PALETTE) : null), [meshFaceGroupColors, frozen, mesh])
@@ -628,7 +637,7 @@ function KernelBody({ mesh, frozen = false, compId, pos = [0, 0, 0], rot, rotati
     <mesh
       geometry={geom}
       userData={{ compId, cadBody: true }}
-      raycast={pickableWithCmdOverride(pickable, commandArmed) ? MESH_RAYCAST : NULL_RAYCAST}
+      raycast={!displayOnly && pickableWithCmdOverride(pickable, commandArmed) ? MESH_RAYCAST : NULL_RAYCAST}
       onPointerOver={(e) => {
         e.stopPropagation(); setHovered(true)
         const cv = document.querySelector('canvas'); if (!cv) return
@@ -762,7 +771,17 @@ function KernelBody({ mesh, frozen = false, compId, pos = [0, 0, 0], rot, rotati
           else useApp.getState().chooseFormBoxPlane('YZ', det.p[0])
           return
         }
-        if ((mode === 'pickplane' || faceSketchPick) && !frozen && e.face) { e.stopPropagation(); startSketchOnFace([e.point.x, e.point.y, e.point.z], [e.face.normal.x, e.face.normal.y, e.face.normal.z]); return }
+        if ((mode === 'pickplane' || faceSketchPick) && !frozen && e.face) {
+          e.stopPropagation()
+          const det = e.faceIndex != null ? sketchFacePlane(faceGroupTris(mesh,e.faceIndex)) : null
+          if (!det) { useApp.setState({ status: '请选择平面面；曲面请先创建相切参考平面。' }); return }
+          // The displayed buffer is Float32. Project its pick onto the original double-precision face plane.
+          const q: [number,number,number] = [e.point.x,-e.point.z,e.point.y]
+          const distance = (q[0]-det.p[0])*det.n[0]+(q[1]-det.p[1])*det.n[1]+(q[2]-det.p[2])*det.n[2]
+          const p = q.map((v,i)=>v-distance*det.n[i])
+          startSketchOnFace([p[0],p[2],-p[1]],det.n)
+          return
+        }
         // GM-W4 4.3：网格件（frozen 组件）面上画草图 — 平面区拟合，交 store 做 CAD 世界系烘焙
         if ((mode === 'pickplane' || faceSketchPick) && frozen && compId && e.faceIndex != null) { e.stopPropagation(); useApp.getState().sketchOnMeshFaceAt(compId, e.faceIndex, [e.point.x, e.point.y, e.point.z]); return }
         if (pushPullMode && !frozen && e.face) {
@@ -896,18 +915,18 @@ function KernelBody({ mesh, frozen = false, compId, pos = [0, 0, 0], rot, rotati
         // Fusion-style wire display is B-rep-like: hide the shaded triangles
         // and retain only the geometry edge overlay below.
         wireframe={false}
-        transparent={wire || xray || skSee || feaGhost || compOpacity < 1 || (!frozen && material.opacity < 1)}
+        transparent={!wire && (xray || skSee || feaGhost || compOpacity < 1 || (!frozen && material.opacity < 1))}
         opacity={wire ? 0 : (xray ? 0.3 : skSee ? 0.35 : feaGhost ? 0.18 : (frozen ? compOpacity : material.opacity))}
         // Wire-with-edges still needs the body's depth.  Without this prepass
         // every B-rep edge is treated as visible, and GreaterDepth has no
         // surface against which it can identify hidden dashed lines.
-        colorWrite={wire ? false : undefined}
-        depthWrite={wire ? edgeDisplay !== 'off' : (xray || skSee || feaGhost || compOpacity < 1 ? false : undefined)}
+        colorWrite={!pickOnly && !wire}
+        depthWrite={!pickOnly && (wire ? edgeDisplay !== 'off' : !(xray || skSee || feaGhost || compOpacity < 1 || (!frozen && material.opacity < 1)))}
         side={xray || skSee || feaGhost || compOpacity < 1 || clip.length || (!frozen && material.opacity < 1) ? DoubleSide : undefined}
       />
-      {(wire || edgeDisplay !== 'off' || selected || hot) && <BrepEdgeOverlay mesh={mesh} color={selected ? '#e08a2b' : hot ? '#0a5a85' : '#33373b'} />}
+      {!pickOnly && (wire || edgeDisplay !== 'off' || selected || hot) && <BrepEdgeOverlay mesh={mesh} clip={clip} through={wire && edgeDisplay === 'off'} color={selected ? '#e08a2b' : hot ? '#0a5a85' : wire ? '#425466' : visibleEdgeColor(color)} />}
       {/* GM-X2 #1：隐藏边暗显 —— 第二层 <Edges> 关深度测试、淡显被遮挡边（对标 Fusion Hidden Edge Dimming）。 */}
-      {hiddenEdges && !selected && !hot && <BrepEdgeOverlay mesh={mesh} color="#9aa3ac" hidden />}
+      {!pickOnly && hiddenEdges && !selected && !hot && <BrepEdgeOverlay mesh={mesh} clip={clip} color="#9aa3ac" hidden />}
     </mesh>
   )
   // OCCT is Z-up; rotate -90° about X so the solid sits on the (Y-up) ground grid.
@@ -2966,6 +2985,7 @@ function ConfigGrid({ show, xform }: { show: boolean; xform: { quaternion: [numb
       <Grid
         {...(xform ? { quaternion: xform.quaternion, position: xform.position } : {})}
         infiniteGrid
+        followCamera
         cellSize={g.cellSize}
         cellThickness={0.6}
         sectionSize={g.sectionSize}
@@ -3112,6 +3132,9 @@ function FormCage() {
       return g
     })
   }, [cage])
+  useEffect(() => () => { geo?.dispose() }, [geo])
+  useEffect(() => () => { edgeGeo?.dispose() }, [edgeGeo])
+  useEffect(() => () => { faceGeos?.forEach(g => g.dispose()) }, [faceGeos])
   if (!cage) return null
   const sv = cage.sel != null && (cage.msel ?? []).length <= 1 ? cage.verts[cage.sel] : null
   return (
@@ -3141,7 +3164,9 @@ function FormCage() {
           {target && (
             <TransformControls
               object={target} mode="translate" size={0.7}
-              onObjectChange={() => { if (cage.sel != null) useApp.getState().setFormVert(cage.sel, [target.position.x, -target.position.z, target.position.y]) }}
+              onMouseDown={() => useApp.getState().beginFormEdit()}
+              onMouseUp={() => useApp.getState().endFormEdit()}
+              onObjectChange={() => { if (cage.sel != null && useApp.getState().formEditStart) useApp.getState().setFormVert(cage.sel, [target.position.x, -target.position.z, target.position.y]) }}
             />
           )}
         </group>
@@ -3169,13 +3194,16 @@ function FormMultiGizmo({ verts, msel }: { verts: [number, number, number][]; ms
       {target && (
         <TransformControls
           object={target} mode={mode === 'move' ? 'translate' : mode} size={0.85}
+          onMouseDown={() => useApp.getState().beginFormEdit()}
           onMouseUp={() => {
+            if (!useApp.getState().formEditStart) { setGen(g => g + 1); return }
             const Mw = new Matrix4().compose(target.position, target.quaternion, target.scale)
             const Pre = new Matrix4().makeTranslation(C[0], C[2], -C[1])
             const DeltaThree = Mw.multiply(Pre.invert())
             const R = new Matrix4().makeRotationX(-Math.PI / 2)     // CAD→three
             const DeltaCad = R.clone().invert().multiply(DeltaThree).multiply(R)
             useApp.getState().transformFormVerts(DeltaCad.toArray())
+            useApp.getState().endFormEdit()
             setGen((g) => g + 1)
           }}
         />
@@ -3295,6 +3323,8 @@ function MarqueeCamBridge() {
 }
 
 export default function Viewport() {
+  const formMode = useApp(s => s.formMode)
+  const modelingCommandActive = useApp(activeModelCommand)
   useEffect(() => {
     window.addEventListener('webcad:export-view-png', exportViewPNG)
     return () => window.removeEventListener('webcad:export-view-png', exportViewPNG)
@@ -3402,6 +3432,9 @@ export default function Viewport() {
   const shellMode = useApp((s) => s.shellMode)
   const shellPicks = useApp((s) => s.shellPicks)
   const shellThickness = useApp((s) => s.shellThickness)
+  const shellPreviewMesh = useApp(s => s.shellPreviewMesh)
+  const shellPreviewBusy = useApp(s => s.shellPreviewBusy)
+  const shellPreviewFail = useApp(s => s.shellPreviewFail)
   const setShellThickness = useApp((s) => s.setShellThickness)
   const shellType = useApp((s) => s.shellType)
   const setShellType = useApp((s) => s.setShellType)
@@ -3603,8 +3636,13 @@ export default function Viewport() {
   const extrudeExpressionError = useApp(s => s.extrudeExpressionError)
   const extrudeSelectionCleared = useApp(s => s.extrudeSelectionCleared)
   const featDlg = useApp((s) => s.featDlg)
+  const editPreviewParams = useApp(s => s.params)
+  const editPreviewBindings = useApp(s => s.paramBindings)
+  const editPreviewSuppressed = useApp(s => s.suppressedIds)
+  const editPreviewFeatures = useApp(s => s.features)
   const [editPreview, setEditPreview] = useState<{ dialog: typeof featDlg; mesh: MeshData | null; failed: boolean } | null>(null)
   useEffect(() => {
+    setEditPreview(null)
     if (featDlg?.kind !== 'extrude-edit') return
     let cancelled = false
     const timer = setTimeout(() => {
@@ -3613,8 +3651,9 @@ export default function Viewport() {
       }).catch(() => { if (!cancelled) setEditPreview({ dialog: featDlg, mesh: null, failed: true }) })
     }, 120)
     return () => { cancelled = true; clearTimeout(timer) }
-  }, [featDlg])
+  }, [featDlg, bodyMesh, editPreviewParams, editPreviewBindings, editPreviewSuppressed, editPreviewFeatures])
   const currentEditPreview = editPreview?.dialog === featDlg ? editPreview : null
+  const editPreviewMesh = useApp(s => s.editPreviewMesh)
   const setFeatParam = useApp((s) => s.setFeatParam)
   const commitFeatDlg = useApp((s) => s.commitFeatDlg)
   const cancelFeatDlg = useApp((s) => s.cancelFeatDlg)
@@ -3672,6 +3711,7 @@ export default function Viewport() {
   const closeSliderCrank = useApp((s) => s.closeSliderCrank)
   const section = useApp((s) => s.section)
   const sectionMesh = useApp((s) => s.sectionMesh)
+  const sectionCapStatus = useApp(s => s.sectionCapStatus)
   const setSection = useApp((s) => s.setSection)
   const setView = useApp((s) => s.setView)
   const busy = useApp((s) => s.busy)
@@ -3770,6 +3810,7 @@ export default function Viewport() {
   const setSketchTwist = useApp((s) => s.setSketchTwist)
   const sketchSymmetric = useApp((s) => s.sketchSymmetric)
   const setSketchSymmetric = useApp((s) => s.setSketchSymmetric)
+  const sketchDragging = useApp((s) => !!s.skDrag)
   const finishSketch = useApp((s) => s.finishSketch)
   const skLookAt = useApp((s) => s.skLookAt)   // GM-FP1 #9：正对草图平面
   const extrudeSketch = useApp((s) => s.extrudeSketch)
@@ -3852,13 +3893,8 @@ export default function Viewport() {
   const skSelN = useApp((s) => s.skSel.length)   // GM-W6 B5：草图选中数（🗑删除掣）
   const polyArcMode = useApp((s) => s.polyArcMode)   // GM-W6 B6：折线相切弧 submode 掣
   const rcDown = useRef<{ x: number; y: number } | null>(null)
-  // Esc closes the context menu (capture phase, before App's global Esc handler).
-  useEffect(() => {
-    if (!ctxMenu) return
-    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setCtxMenu(null) } }
-    window.addEventListener('keydown', onEsc, true)
-    return () => window.removeEventListener('keydown', onEsc, true)
-  }, [ctxMenu])
+  useEscapeLayer(!!ctxMenu, () => setCtxMenu(null), 250)
+  useEscapeLayer(!!navPop, () => setNavPop(null), 120)
   // 按住 Alt → 临时停几何捕捉（画图时精准落点，Fusion 同款）；放开/失焦即恢复。
   useEffect(() => {
     const dn = (e: KeyboardEvent) => { if (e.key === 'Alt') setGeoSnapAlt(true) }
@@ -3940,6 +3976,7 @@ export default function Viewport() {
   const toggleCompBar = () => setCompBarMin((v) => { const n = !v; try { localStorage.setItem('webcad-compbar-min', n ? '1' : '0') } catch { /* ignore */ } return n })
   // GM-W2 2.3：草图底栏「更多▾」收纳弹层开关（把 CAM/导出DXF·激光·CNC·车削 + 参考图 + 网格捕捉步长等罕用控件收埋，对齐 Fusion 精简草图上下文）
   const [skMorePop, setSkMorePop] = useState(false)
+  useEscapeLayer(skMorePop, () => setSkMorePop(false), 120)
   const skMoreRef = useRef<HTMLButtonElement>(null)
   // 弹层用 fixed 定位（草图条 overflow-x:auto 会剪裁 absolute 子元素）→ 开时量度按钮位置，向下弹出并夹住视口
   const [skMorePos, setSkMorePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -4033,14 +4070,16 @@ export default function Viewport() {
       const len = Math.hypot(ref.normal[0], ref.normal[1], ref.normal[2]) || 1
       const point = new Vector3(ref.origin[0] + ref.normal[0] / len * section.offset, ref.origin[2] + ref.normal[2] / len * section.offset, -(ref.origin[1] + ref.normal[1] / len * section.offset))
       const normal = new Vector3(ref.normal[0] / len, ref.normal[2] / len, -ref.normal[1] / len)
-      return [new Plane().setFromNormalAndCoplanarPoint(normal, point)]
+      const plane = new Plane().setFromNormalAndCoplanarPoint(normal, point)
+      return [section.flip ? plane.negate() : plane]
     }
     // GM-W8 β2-#33：裁剪平面喺 three-world 空间生效；模型渲染喺 <group rotation=[-90°X]> 内 → CAD(x,y,z)→world(x, z, -y)。
     // offset 系 CAD 轴坐标（同 capped splitBuild 一致）。要「选Y切CAD-Y、选Z切CAD-Z」且同实心剖面一致，法向须按组转重映射：
     //   X→world_x（=CAD x，不变）(-1,0,0)；Y→CAD y=-world_z → (0,0,1)；Z→CAD z=world_y → (0,-1,0)。三者皆保留「CAD轴≤offset」半（同 X 及 capped res.a 一致）。
     // 旧版 Y=(0,-1,0) 实切 CAD z、Z=(0,0,-1) 实切 CAD y（且半反）→ 与实心剖面不符。
     const n = section.axis === 'X' ? [-1, 0, 0] : section.axis === 'Y' ? [0, 0, 1] : [0, -1, 0]
-    return [new Plane().setComponents(n[0], n[1], n[2], section.offset)]
+    const plane = new Plane().setComponents(n[0], n[1], n[2], section.offset)
+    return [section.flip ? plane.negate() : plane]
   }, [section])
   // GM-W8 β2-#34：剖切滑杆范围由当前模型 bbox 沿所选轴推导（旧版硬编 ±150 → >300mm 或离原点件切唔到）。
   // offset 系 CAD 轴坐标：body 顶点即 CAD 系（v[i]=x,v[i+1]=y,v[i+2]=z）；组件 pos 系 three-world → CAD 偏移 (pos0, -pos2, pos1)。
@@ -4242,17 +4281,21 @@ export default function Viewport() {
           const isEditing = !!editingComp
           const dimmed = isEditing && c.id !== editingComp
           const compOpacity = dimmed ? 0.25 : ((c as { opacity?: number }).opacity ?? 1)
-          const pickable = (isEditing ? (!dimmed && selPicksComp(selFilter)) : selPicksComp(selFilter)) && mode !== 'sketch'   // GM-X4：selFilter.types 含 component 先可拣（默认全类型 = 旧 'all' 逐字节）；画草图时组件唔接 raycast
+          const pickable = (isEditing ? (!dimmed && selPicksComp(selFilter)) : selPicksComp(selFilter)) && mode !== 'sketch' && !formMode   // GM-X4：selFilter.types 含 component 先可拣（默认全类型 = 旧 'all' 逐字节）；画草图时组件唔接 raycast
           const def = c.defId ? componentDefs.find((d) => d.id === c.defId) : undefined
           const bodies = def?.bodies?.length ? def.bodies : [{ id: c.id + '_B1', name: c.name, mesh: c.mesh }]
           const pivot = meshCenter3(c.mesh)
           return <Fragment key={c.id}>{bodies.filter((b) => !b.hidden).map((b) => <KernelBody key={b.id} mesh={b.mesh} frozen compId={c.id} pos={c.pos} explodeOffset={o} rot={c.rot} rotationCenter={pivot} selected={c.id === selectedComponent} motion={motion} clip={clip} compColor={b.color || c.color} compOpacity={compOpacity} pickable={pickable || c.id === moldTargetCompId} moldTarget={c.id === moldTargetCompId} onSelect={() => selectComponent(c.id === selectedComponent ? null : c.id)} onFocus={() => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.src?.features?.length) { void useApp.getState().editComponent(c.id) } else { selectComponent(c.id); requestFit(c.id) } }} onFaceMatePick={(face) => { const st = useApp.getState(); if (st.jointHolePick) st.applyJointHolePick(c.id, face); else if (st.screwFitMode) void st.fitScrewToHole(c.id, face); else if (st.jointPickMode) st.pickFaceForJoint(c.id, face); else st.pickFaceForMate(c.id, face) }} onPointMatePick={(point) => useApp.getState().pickPointForMate(c.id, point)} />)}</Fragment>
         })}
         {bodyMesh && bodyMesh.triangles.length > 0
-          ? (section.on && section.capped && sectionMesh
-            ? <KernelBody mesh={sectionMesh} pickable={selPicksBody(selFilter) && mode !== 'sketch'} />  /* capped section: a real solid half (filled cut face), no clip plane */
-            : <KernelBody mesh={currentEditPreview?.mesh && !currentEditPreview.failed ? currentEditPreview.mesh : edgeRoundPick && roundPreviewMesh ? roundPreviewMesh : bodyMesh} clip={clip} pickable={selPicksBody(selFilter) && mode !== 'sketch'} />)   /* GM-X4：selFilter.types 含 body/face/edge 先可拣（默认全类型 = 旧 'body!=comp' 逐字节）；画草图时实体唔接 raycast */
-          : (mode === 'model' && components.length === 0 && !(bodyMesh?.parked?.length) ? <PlaceholderBody /> : null)}
+          ? <>
+            {section.on && section.capped && sectionCapStatus === 'empty' ? null
+              : section.on && section.capped && sectionCapStatus === 'ready' && sectionMesh
+                ? <KernelBody mesh={sectionMesh} displayOnly={!!((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh))} pickable={selPicksBody(selFilter) && mode !== 'sketch' && !formMode} />
+                : <KernelBody mesh={editPreviewMesh || (shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh) || bodyMesh} displayOnly={!!((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh))} clip={clip} pickable={selPicksBody(selFilter) && mode !== 'sketch' && !formMode} />}
+            {((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh)) && <KernelBody mesh={bodyMesh} pickOnly clip={clip} />}
+          </>
+          : (mode === 'model' && !formMode && components.length === 0 && !(bodyMesh?.parked?.length) ? <PlaceholderBody /> : null)}
         {/* 多实体（T728）：泊车实体灰显（唔可交互 — 圆角/草图/量度作用喺活动实体；要操作佢请用「实体布尔」合并返）。
             S133：编辑曲面控制点模式下变可拾（点选目标曲面）。 */}
         {bodyMesh?.parked?.map((b, i) => <ParkedBody key={'pk' + i} mesh={b} index={i} pickable={editPolesMode || quiltPickMode} picked={(editPolesMode && editPolesTarget === i) || quiltPickMode} onPick={(idx, face) => {
@@ -4263,7 +4306,7 @@ export default function Viewport() {
         {editPolesMode && <PoleNet />}
         <OverhangView />
         <WallThinView />
-        <FaceHoverView />
+        {!(shellMode && shellPreviewMesh) && <FaceHoverView />}
         <CutFaceOverlay />{/* S186：实心剖面切面上色（暖色填充+轮廓，Fusion section-view 观感） */}
         <PaintedFacesView />{/* S102[3]：逐面外观 — 已涂色 B-rep 面叠真材质覆盖层 */}
         <DraftOverlay />{/* S118：拔模分析 — 逐面按拔模角分类着色 */}
@@ -4271,7 +4314,7 @@ export default function Viewport() {
         <AccessOverlay />{/* #174-7：脱模可达性 — 逐三角射线遮挡着色（红=倒扣/绿=可脱） */}
         <MeasureSnapMarkers />{/* #174-6：测量捕捉点标记（特征边端点/中点） */}
         {needsCurvatureAnalysis && <Suspense fallback={null}><CurvatureAnalysisOverlays /></Suspense>}
-        <ComponentGizmo />
+        {mode === 'model' && !editingComp && !modelingCommandActive && <ComponentGizmo />}
 
         {/* S102[5]：关节 DOF/限位 3D 操纵器 — 旋转扇形(aMin→aMax)+clamp 指针 / 滑动限位段+位珠+双向箭头（取代旧虚线轴） */}
         {mode === 'model' && objectVis.joints && joints.map((j) => <JointGizmo key={'jg' + j.id} j={j} />)}{/* GM-X2 #8：关节主开关 */}
@@ -4490,12 +4533,12 @@ export default function Viewport() {
         <ConfigGrid show={mode === 'sketch' ? skGrid : showGrid} xform={skGridXform} />
 
         <SketchSurface />
-        <SketchDraw />
+        <SketchDraw /><DimensionEditPreview />
         <CanvasImageLayer />
         <SkSelDraw />
         <MirrorPickDraw />
         <MarqueeDraw />{/* GM-FP3 #44：草图框选橡皮筋 */}
-        <MoveGizmoDraw />{/* GM-FP3 #39：Move gizmo */}
+        <MoveGizmoDraw /><ScaleGizmoDraw />{/* GM-FP3 #39：Move gizmo */}
         <ArrayPreview />
         <ToolHoverPreview />
         <SizingHandle />
@@ -4530,7 +4573,6 @@ export default function Viewport() {
 
         <OrbitControls
           makeDefault
-          target={[0, 20, 0]}
           enableDamping
           dampingFactor={0.08}
           zoomToCursor
@@ -4607,7 +4649,7 @@ export default function Viewport() {
             { key: 'circle2p', label: '⊘ 两点圆', fn: () => setSketchTool('circle2p') },
             { key: 'circle3', label: '◓ 三点圆', fn: () => setSketchTool('circle3') },
             { key: 'polygon', label: '⬡ 多边形', fn: () => setSketchTool('polygon') },
-            ...(sketchShape || sketchProfiles.length === 1 ? [{ key: 'skarr', label: '▦ 阵列轮廓…', fn: () => useApp.getState().runCommand('sketcharray', '阵列轮廓') } as MMItem] : []),
+            ...(sketchShape || sketchProfiles.length > 0 ? [{ key: 'skarr', label: '▦ 阵列轮廓…', fn: () => useApp.getState().runCommand('sketcharray', '阵列轮廓') } as MMItem] : []),
             'sep',
             { key: 'tgfill', label: `${skView.fill ? '☑' : '☐'} 轮廓填充`, fn: () => setSkView({ fill: !skView.fill }) },
             { key: 'tgannot', label: `${skView.annot ? '☑' : '☐'} 尺寸标注`, fn: () => setSkView({ annot: !skView.annot }) },
@@ -4913,12 +4955,13 @@ export default function Viewport() {
           title="抽壳"
           width={236}
           okLabel={tStatus('确定', lang)}
-          okDisabled={!shellPicks.length || !(shellThickness > 0)}
+          okDisabled={!shellPicks.length || !(shellThickness > 0) || shellPreviewBusy || shellPreviewFail}
           okTip="抽壳（Enter）"
           onOk={() => void commitShell()}
           onCancel={() => cancelShell()}
           summary={<>{shellType === 'closed' ? '封闭实体' : `开 ${shellPicks.length} 面`} · 壁厚 {shellThickness}</>}
         >
+          <div role="status" aria-live="polite" data-testid="shell-preview-status">{shellPreviewBusy ? '正在计算预览…' : shellPreviewFail ? '预览失败：已保留原模型，请调整壁厚、方向或开口面' : shellPreviewMesh ? '实时预览；确定后才保存操作' : '选择开口面并输入壁厚，即时预览结果'}</div>
           <SelectionChip label={shellType === 'closed' ? '实体' : '面'} count={shellPicks.length} hint={shellType === 'closed' ? '点选要建立封闭空腔的实体' : '点选要移除的面（再点取消）'} onClear={() => useApp.getState().clearShellPicks()} />
           {shellType === 'open' && <label style={{ justifyContent: 'flex-start', gap: 6 }} title="Fusion Tangent Chain：沿共享边自动加入 G1 相切连续面">
             <input type="checkbox" checked={shellTangentChain} onChange={() => toggleShellTangentChain()} /> 切线链
@@ -6351,12 +6394,14 @@ export default function Viewport() {
             <label>{tStatus('角度', lang)} <input type="number" step={1} value={featDlg.params.angle} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 56 }} />°</label>
           )}
           {featDlg.kind === 'revolve' && (<>
-            <label title={tStatus('旋转轴：世界 X/Y/Z 过原点，或任意构造轴（先用「构造轴」造轴 — 两点轴/拣圆柱面取轴，偏离原点车削用呢个）', lang)}>{tStatus('旋转轴', lang)} <select value={featDlg.params.axis} onChange={(e) => setFeatParam('axis', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option>{useApp.getState().caxes.map((ca, i) => <option key={'A' + i} value={'A' + i}>{tStatus('构造轴', lang)}{i + 1}（{ca.dirV ? ca.dirV.map((v) => +v.toFixed(1)).join(',') : ca.dir}）</option>)}</select></label>
+            {featDlg.params.axisReference !== undefined && <label>{tStatus('轴参照', lang)} <select aria-label={tStatus('旋转轴参照', lang)} value={featDlg.params.axisReference} onChange={e=>setFeatParam('axisReference',e.target.value)}><option value="sketch">{tStatus('随草图移动', lang)}</option><option value="world">{tStatus('固定世界轴', lang)}</option></select></label>}
+            {featDlg.params.axisReference !== undefined && <div style={{fontSize:12, flexBasis:'100%',lineHeight:1.4}}>{tStatus(featDlg.params.axisReference === 'world' ? '来源面移动时，轴点保持当前世界坐标。' : '来源面移动时，轴点与草图一起移动。',lang)}</div>}
+            <label title={tStatus('旋转轴方向：世界 X/Y/Z；位置由轴点及轴参照决定，或选任意构造轴（先用「构造轴」造轴 — 两点轴/拣圆柱面取轴，偏离原点车削用呢个）', lang)}>{tStatus('旋转轴', lang)} <select aria-label={tStatus('旋转轴', lang)} value={featDlg.params.axis} onChange={(e) => setFeatParam('axis', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option>{useApp.getState().caxes.map((ca, i) => <option key={'A' + i} value={'A' + i}>{tStatus('构造轴', lang)}{i + 1}（{ca.dirV ? ca.dirV.map((v) => +v.toFixed(1)).join(',') : ca.dir}）</option>)}</select></label>
             {/* P2：Fusion 最常用工作流 — 画一条（构造）线做中心轴 → Axis 直接揀嗰条草图线。
                 坐标映射同 profile 完全一致：shapeToProfile 默认 XY ⇒ (s,t)→CAD(s,−t,0)。候选 = 草图快照内
                 两点直线（poly pts=2，非弧/样条），构造线（中心线）排先；排除最尾一个（被消费嘅轮廓本身）。 */}
             {(() => {
-              const pl = featDlg.payload as { bundle?: { shapes: { type: string; pts?: [number, number][]; arc?: unknown; smooth?: boolean; bspline?: boolean; conic?: boolean; construction?: boolean }[] } } | undefined
+              const pl = featDlg.payload as { bundle?: RevolveFrameSource & { shapes: { type: string; pts?: [number, number][]; arc?: unknown; smooth?: boolean; bspline?: boolean; conic?: boolean; construction?: boolean }[] } } | undefined
               const shapes = pl?.bundle?.shapes
               if (!shapes || shapes.length < 2) return null
               const lines = shapes.slice(0, -1).map((sh, i) => ({ sh, i }))
@@ -6369,7 +6414,7 @@ export default function Viewport() {
                   const ln = lines[k]; if (!ln || !ln.sh.pts) return
                   const [a, b] = ln.sh.pts
                   // 同 shapeToProfile('XY') 一致：CAD = (s, −t, 0)
-                  const A: [number, number, number] = [a[0], -a[1], 0], B: [number, number, number] = [b[0], -b[1], 0]
+                  const A = revolvePointToCad(a, pl?.bundle ?? {}, true), B = revolvePointToCad(b, pl?.bundle ?? {}, true)
                   const d: [number, number, number] = [B[0] - A[0], B[1] - A[1], B[2] - A[2]]
                   if (Math.hypot(d[0], d[1], d[2]) < 1e-9) return
                   setFeatParam('ox', A[0]); setFeatParam('oy', A[1]); setFeatParam('oz', A[2])
@@ -6396,8 +6441,8 @@ export default function Viewport() {
             <span title={tStatus('方向：过上面轴点，沿 X / Y / Z 做旋转轴', lang)} style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }}>{tStatus('轴向', lang)}
               {(['X', 'Y', 'Z'] as const).map((ax) => { const on = (ax === 'X' && featDlg.params.dx === 1 && !featDlg.params.dy && !featDlg.params.dz) || (ax === 'Y' && featDlg.params.dy === 1 && !featDlg.params.dx && !featDlg.params.dz) || (ax === 'Z' && featDlg.params.dz === 1 && !featDlg.params.dx && !featDlg.params.dy); return <button key={ax} className={'cs-btn' + (on ? ' on' : '')} title={tStatus(`沿 ${ax} 轴（过上面轴点）`, lang)} onClick={() => { setFeatParam('dx', ax === 'X' ? 1 : 0); setFeatParam('dy', ax === 'Y' ? 1 : 0); setFeatParam('dz', ax === 'Z' ? 1 : 0) }} style={{ padding: '2px 7px', ...(on ? { background: '#1572c4', color: '#fff' } : {}) }}>{ax}</button> })}
             </span>
-            <label title={tStatus('旋转轴经过嘅点（CAD 坐标）— 偏离原点车削设置；默认 0,0,0 = 用上面旋转轴预设', lang)}>{tStatus('轴点', lang)} <input type="number" step={5} value={featDlg.params.ox} onChange={(e) => setFeatParam('ox', Number(e.target.value))} style={{ width: 40 }} /><input type="number" step={5} value={featDlg.params.oy} onChange={(e) => setFeatParam('oy', Number(e.target.value))} style={{ width: 40 }} /><input type="number" step={5} value={featDlg.params.oz} onChange={(e) => setFeatParam('oz', Number(e.target.value))} style={{ width: 40 }} /></label>
-            <label title={tStatus('旋转轴方向分量（可斜轴，例 1,0,1）— 默认 0,1,0 = 世界 Y。注意：轮廓必须完全喺轴一侧，否则建模失败', lang)}>{tStatus('方向', lang)} <input type="number" step={1} value={featDlg.params.dx} onChange={(e) => setFeatParam('dx', Number(e.target.value))} style={{ width: 36 }} /><input type="number" step={1} value={featDlg.params.dy} onChange={(e) => setFeatParam('dy', Number(e.target.value))} style={{ width: 36 }} /><input type="number" step={1} value={featDlg.params.dz} onChange={(e) => setFeatParam('dz', Number(e.target.value))} style={{ width: 36 }} /></label>
+            <label title={tStatus('旋转轴经过嘅点（CAD 坐标）— 偏离原点车削设置；默认 0,0,0 = 用上面旋转轴预设', lang)}>{tStatus('轴点', lang)} <input type="number" step={5} aria-label={tStatus('旋转轴点 X', lang)} value={featDlg.params.ox} onChange={(e) => setFeatParam('ox', Number(e.target.value))} style={{ width: 40 }} /><input type="number" step={5} aria-label={tStatus('旋转轴点 Y', lang)} value={featDlg.params.oy} onChange={(e) => setFeatParam('oy', Number(e.target.value))} style={{ width: 40 }} /><input type="number" step={5} aria-label={tStatus('旋转轴点 Z', lang)} value={featDlg.params.oz} onChange={(e) => setFeatParam('oz', Number(e.target.value))} style={{ width: 40 }} /></label>
+            <label title={tStatus('旋转轴方向分量（可斜轴，例 1,0,1）— 默认 0,1,0 = 世界 Y。注意：轮廓必须完全喺轴一侧，否则建模失败', lang)}>{tStatus('方向', lang)} <input type="number" step={1} aria-label={tStatus('旋转轴方向 X', lang)} value={featDlg.params.dx} onChange={(e) => setFeatParam('dx', Number(e.target.value))} style={{ width: 36 }} /><input type="number" step={1} aria-label={tStatus('旋转轴方向 Y', lang)} value={featDlg.params.dy} onChange={(e) => setFeatParam('dy', Number(e.target.value))} style={{ width: 36 }} /><input type="number" step={1} aria-label={tStatus('旋转轴方向 Z', lang)} value={featDlg.params.dz} onChange={(e) => setFeatParam('dz', Number(e.target.value))} style={{ width: 36 }} /></label>
             <label>{tStatus('角度', lang)} <input type="number" step={15} min={1} max={360} value={featDlg.params.angle} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 56 }} />°</label>
             <label title={tStatus('薄壁 mm：>0 把旋转体抽成薄壳（灯罩/碗壳/漏斗等曲面壳），0=实心', lang)}>{tStatus('薄壁', lang)} <input type="number" step={0.5} min={0} value={featDlg.params.wall ?? 0} onChange={(e) => setFeatParam('wall', Number(e.target.value))} style={{ width: 48 }} /> mm</label>
             {Number(featDlg.params.angle) > 0 && Number(featDlg.params.angle) < 360 && (
@@ -6704,9 +6749,11 @@ export default function Viewport() {
       })()}
 
       {mode === 'pickplane' && (
-        <div className="sketch-bar" style={{ gap: 10 }}>
+        <div className="sketch-bar sketch-plane-picker" style={{ gap: 8, flexWrap: 'wrap' }}>
           <span className="sb-title">{tStatus('选择草图基准面', lang)}</span>
-          <span className="sb-hint">{tStatus('点', lang)} <b style={{ color: '#d6694e' }}>{tStatus('红 XY', lang)}</b> / <b style={{ color: '#4e9e5e' }}>{tStatus('绿 XZ', lang)}</b> / <b style={{ color: '#4e7fd6' }}>{tStatus('蓝 YZ', lang)}</b> {tStatus('基准面，或直接点实体的一个平面', lang)}　·　<b>Esc</b> {tStatus('取消', lang)}</span>
+          {(['XY', 'XZ', 'YZ'] as const).map(plane => <button key={plane} className="sb-tool" aria-label={`${plane} ${lang === 'en' ? 'sketch plane' : '草图平面'}`} onClick={() => useApp.getState().chooseSketchPlane(plane)}>{plane} · {lang === 'en' ? ({ XY: 'Top', XZ: 'Front', YZ: 'Right' })[plane] : ({ XY: '上', XZ: '前', YZ: '右' })[plane]}</button>)}
+          <button className="sb-tool" onClick={() => void useApp.getState().tryExitSketch()}>{tStatus('取消', lang)} (Esc)</button>
+          <span className="sb-hint">{lang === 'en' ? 'Or select a planar face in the canvas.' : '亦可直接点画布中的实体平面。'}</span>
         </div>
       )}
 
@@ -6726,17 +6773,17 @@ export default function Viewport() {
         <div style={{ position: 'fixed', top: 96, left: '50%', transform: 'translateX(-50%)', zIndex: 220, background: '#fff8ec', border: '1px solid #d9a64e', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,.18)', padding: '6px 12px', display: 'flex', gap: 10, alignItems: 'center', fontSize: 13 }}>
           <b>{tStatus('✎ 编辑组件「', lang)}{components.find((c) => c.id === editingComp)?.name ?? editingComp}{tStatus('」中', lang)}</b>
           <span style={{ color: '#8a7a55', fontSize: 12 }}>{tStatus('时间轴改参数 / 双击重开草图 / 加特征', lang)}</span>
-          <button className="sb-finish" onClick={() => useApp.getState().finishComponentEdit()}>{tStatus('✓ 完成编辑', lang)}</button>
+          <button className="sb-finish" disabled={mode === 'sketch' || busy} title={mode === 'sketch' ? '请先完成草图，再完成组件编辑' : undefined} onClick={() => useApp.getState().finishComponentEdit()}>{tStatus('✓ 完成编辑', lang)}</button>
           <button className="sb-tool" onClick={() => void useApp.getState().cancelComponentEdit()}>{tStatus('✕ 取消', lang)}</button>
         </div>
       )}
 
-      {mode === 'sketch' && sketchDim && (
-        <div className="vp-measure" style={{ left: '50%', transform: 'translateX(-50%)', fontWeight: 600, color: '#1572c4' }}>{sketchDim}</div>
+      {mode === 'sketch' && !modelingCommandActive && sketchDim && (
+        <LiveSketchReadout text={sketchDim} />
       )}
 
-      <SketchToolPanel />
-      <SkTextDialog />
+      {!modelingCommandActive && <SketchToolPanel />}
+      {!modelingCommandActive && <SkTextDialog />}
 
       {/* Fusion-style always-recoverable display control while sketching.  It is
           intentionally separate from the draggable sketch bar, so collapsing or
@@ -6754,7 +6801,7 @@ export default function Viewport() {
         </div>
       )}
 
-      {mode === 'sketch' && (skBarMin ? (
+      {mode === 'sketch' && !modelingCommandActive && (skBarMin ? (
         // GM-W6 A4：收起态 —— 缩成一粒「▤ 草图工具」pill（可 ⠿ 拖移 · 撳还原），位置同展开态共用 webcad-sketch-bar key
         <div ref={skBarDrag.ref} className="sketch-bar" style={{ gap: 6, ...skBarPos }}>
           <span className="sb-grip" onPointerDown={skBarDrag.onPointerDown} onClick={() => skBarDrag.consumeClick()} title={tStatus('拖移工具条', lang)} style={{ cursor: 'grab', touchAction: 'none', userSelect: 'none', color: '#9aa4ad' }}>⠿</span>
@@ -6768,7 +6815,7 @@ export default function Viewport() {
           <span className="sb-title" onPointerDown={skBarDrag.onPointerDown} onClick={() => skBarDrag.consumeClick()} title={tStatus('拖移工具条', lang)} style={{ cursor: 'grab', touchAction: 'none', userSelect: 'none' }}>{tStatus('草图', lang)}</span>
           <button className={'sb-tool' + (sketchTool === 'select' ? ' active' : '')} title={tStatus('选择工具：点 点/边/圆/参考几何（最多 3 个）→ 按约束按钮', lang)} onClick={() => setSketchTool('select')}>↖</button>
           {/* GM-FP1 #3：常驻「完成草图」绿掣（对标 Fusion FINISH SKETCH）— 唔使靠 ESC/右键 */}
-          <button className="sb-tool sb-finish" style={{ fontWeight: 700 }} title={tStatus('完成草图（存成独立草图特征 · 退出草图环境）— 对标 Fusion 绿色 FINISH SKETCH', lang)} onClick={() => finishSketch()}>✓ {tStatus('完成草图', lang)}</button>
+          <button className="sb-tool sb-finish" disabled={sketchDragging} style={{ fontWeight: 700 }} title={tStatus('完成草图（存成独立草图特征 · 退出草图环境）— 对标 Fusion 绿色 FINISH SKETCH', lang)} onClick={() => finishSketch()}>✓ {tStatus('完成草图', lang)}</button>
           {/* GM-FP1 #9：Look At 正对掣 — orbit 打斜睇后一键返正对草图平面 */}
           <button className="sb-tool" title={tStatus('正对（Look At）：一键把相机转返正对草图平面法向（用 ViewCube/orbit 打斜睇后返正）', lang)} onClick={() => skLookAt()}>⊥ {tStatus('正对', lang)}</button>
           {skRefGeo && skRefGeo.segs && skRefGeo.segs.length > 0 && (<>
@@ -6798,13 +6845,13 @@ export default function Viewport() {
             </span>
           )}
           {sketchPreview && <span className="sb-hint" title={tStatus('当前光标在草图平面的 (X, Y) 坐标 mm（已吸附）', lang)} style={{ fontVariantNumeric: 'tabular-nums', color: '#5a6b78' }}>⌖ {sketchPreview[0].toFixed(1)}, {sketchPreview[1].toFixed(1)}</span>}
-          <label className="sb-hint" title={tStatus('草图平面：上=水平面 XY；前=竖直面 XZ（拉伸沿 Y 出料）；右=竖直面 YZ（拉伸沿 X 出料）。做 L 形件/加强筋时选竖直面。', lang)}>{tStatus('面', lang)}
+          {sketchArb ? <span className="sb-hint">自定草图平面</span> : <label className="sb-hint" title={tStatus('草图平面：上=水平面 XY；前=竖直面 XZ（拉伸沿 Y 出料）；右=竖直面 YZ（拉伸沿 X 出料）。做 L 形件/加强筋时选竖直面。', lang)}>{tStatus('面', lang)}
             <select value={sketchPlane} onChange={(e) => setSketchOrient(e.target.value as 'XY' | 'XZ' | 'YZ')}>
               <option value="XY">{tStatus('上 XY', lang)}</option>
               <option value="XZ">{tStatus('前 XZ', lang)}</option>
               <option value="YZ">{tStatus('右 YZ', lang)}</option>
             </select>
-          </label>
+          </label>}
           {/* Fusion SKETCH PALETTE 显示开关：一键 show/hide 草图元素（清爽睇 / 还原 Fusion 右侧面板）。 */}
           <span className="sb-hint" style={{ borderLeft: '1px solid #d7dde2', paddingLeft: 8, display: 'inline-flex', gap: 4, alignItems: 'center' }} title={tStatus('草图显示开关（对标 Fusion Sketch Palette）：填充 / 尺寸 / 约束 / 点 / 构造 / 网格 独立 show/hide，睇清几何', lang)}>👁
             {/* GM-FP4 #4/#5：Fusion palette 独立 Dimensions(尺寸) / Constraints(约束) / Points(点) 开关 */}
@@ -6821,7 +6868,7 @@ export default function Viewport() {
             <button className="sb-tool sb-finish" title={tStatus('闭合轮廓（回起点成闭合面，可拉伸）', lang)} onClick={() => closePolyline()}>{tStatus('✓ 闭合', lang)}</button>
           )}
           <span className="sb-hint">{sketchTool === 'rectangle' ? tStatus('点两个角点', lang) : sketchTool === 'circle' ? tStatus('点圆心再点半径', lang) : sketchTool === 'trim' ? tStatus('✂ 点要剪走嗰段（剪到相交点）', lang) : sketchTool === 'extend' ? tStatus('⟶ 点开放路径嘅端段', lang) : sketchTool === 'offset' ? tStatus('⇉ 点一个轮廓锁定 → 拖鼠标调距离(外+/内−,1mm步进) → 点确定 · 打数字 · ESC', lang) : sketchTool === 'cfillet' ? tStatus('⌒ 点近一个直角顶点锁定 → 拖鼠标调半径 → 点确定（或底栏「全部角」）', lang) : sketchTool === 'cchamfer' ? tStatus('◣ 点近一个直角顶点锁定 → 拖鼠标调回缩 → 点确定（或底栏「全部角」）', lang) : sketchTool === 'mirror' ? tStatus('⇋ ①点轮廓拣（绿）→「✓拣轴线」→ ②点一条直线边做镜像轴', lang) : sketchTool === 'array' ? tStatus('▦ 底栏面板设 矩形/环形 参数（绿虚线预览）→ 应用阵列', lang) : sketchTool === 'cline' ? tStatus('┊ 点位置落构造参考线（工具面板切 竖直/水平）— 做对中参考 / 镜像轴', lang) : (sketchTool === 'polyline' || sketchTool === 'spline' || sketchTool === 'bspline') ? tStatus('连续点击；画好按「✓ 完成线」（开放直线）或回起点/「✓ 闭合」（闭合面）', lang) : sketchTool === 'select' ? tStatus('选择点／边／尺寸；拖动检验约束', lang) : ''}</span>
-          <label className="sb-hint" title={tStatus('草图平面沿其法向的偏移（XY=高度 Z；XZ=沿 Y；YZ=沿 X），mm', lang)}>{sketchPlane === 'XY' ? tStatus('基准Z', lang) : sketchPlane === 'XZ' ? tStatus('偏移Y', lang) : tStatus('偏移X', lang)} <input type="number" value={Math.round(sketchBaseZ)} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setSketchBaseZ(Number(e.target.value) || 0)} style={{ width: 50 }} /></label>
+          {!sketchArb && <label className="sb-hint" title={tStatus('草图平面沿其法向的偏移（XY=高度 Z；XZ=沿 Y；YZ=沿 X），mm', lang)}>{sketchPlane === 'XY' ? tStatus('基准Z', lang) : sketchPlane === 'XZ' ? tStatus('偏移Y', lang) : tStatus('偏移X', lang)} <input type="number" value={Math.round(sketchBaseZ)} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setSketchBaseZ(Number(e.target.value) || 0)} style={{ width: 50 }} /></label>}
           {/* GM-W2 2.3：网格捕捉步长 已收纳入「更多▾」弹层；几何捕捉 常用 → 留喺底栏 */}
           <button className={'sb-tool' + (geoSnap ? ' active' : '')} title={tStatus('几何捕捉：吸到孔心/边/点/线（开）。关咗可自由精准落点；画图时按住 Alt 可临时停', lang)} onClick={() => setGeoSnap(!geoSnap)}>{geoSnap ? tStatus('🧲 几何捕捉', lang) : tStatus('⊘ 捕捉关', lang)}</button>
           {/* GM-W6 A1：草图透视 —— 实体半透明，喺实体中间/背面画草图睇得到线（用户报「实心遮住个圆」）。默认开 */}
@@ -7049,21 +7096,27 @@ export default function Viewport() {
             <span style={{ color: 'var(--text-dim)' }}>{tStatus('拔模角', lang)}</span>
             <span><input type="number" step={1} value={extrudeDraft} onChange={(e) => setExtrudeDraft(Number(e.target.value) || 0)} style={{ width: 66 }} /> °</span>
           </label>
+          <details className="command-advanced"><summary>{lang === 'en' ? 'Advanced · twist' : '高级 · 扭转'}</summary>
           <label title={tStatus('扭转角：拉伸时绕高度方向旋转', lang)}>
             <span style={{ color: 'var(--text-dim)' }}>{tStatus('扭转', lang)}</span>
             <span><input type="number" step={5} value={sketchTwist} onChange={(e) => setSketchTwist(Number(e.target.value) || 0)} style={{ width: 66 }} /> °</span>
           </label>
-          {/* P2：Operation 排最尾（Fusion 肌肉记忆：揀轮廓→设几何→最后定布尔） */}
-          <div style={{ color: 'var(--text-dim)' }}>{tStatus('操作', lang)}</div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button className={'sb-tool' + (sketchOp === 'new' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSketchOp('new')}>{tStatus('＋加料', lang)}</button>
-            <button className={'sb-tool' + (sketchOp === 'cut' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh} title={bodyMesh ? tStatus('从实体切除', lang) : tStatus('没有实体可切', lang)} onClick={() => setSketchOp('cut')}>{tStatus('－切割', lang)}</button>
-            <button className={'sb-tool' + (sketchOp === 'intersect' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh} title={bodyMesh ? tStatus('只保留公共部分', lang) : tStatus('没有实体可相交', lang)} onClick={() => setSketchOp('intersect')}>{tStatus('∩相交', lang)}</button>
-            <button className={'sb-tool' + (sketchOp === 'newbody' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh} title={bodyMesh ? tStatus('新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）', lang) : tStatus('没有实体时直接建做活动实体', lang)} onClick={() => setSketchOp('newbody')}>{tStatus('⬡新实体', lang)}</button>
-          </div>
-          {bodyMesh && (
-            <button className={'sb-tool' + (sketchAsComp ? ' active' : '')} style={{ width: '100%' }} title={tStatus('新组件（Fusion Operation=New Component）：先把当前实体固化成一个组件，再喺全新时间轴建此拉伸做新组件（各自独立参数树/BOM 项）', lang)} onClick={() => useApp.setState({ sketchAsComponent: true, sketchOp: 'new' })}>{tStatus('🧩 新组件', lang)}</button>
-          )}
+          </details>
+          <label>
+            <span>{tStatus('操作', lang)}</span>
+            <select aria-label={tStatus('拉伸操作', lang)} value={sketchAsComp ? 'component' : sketchOp}
+              onChange={e => e.target.value === 'component' ? useApp.setState({ sketchAsComponent: true, sketchOp: 'new' }) : setSketchOp(e.target.value as typeof sketchOp)}>
+              <option value="new">{bodyMesh ? (lang === 'en' ? 'Join' : '合并 / Join') : (lang === 'en' ? 'New Body' : '新实体 / New Body')}</option>
+              {sketchOp === 'join' && <option value="join">{lang === 'en' ? 'Join' : '合并 / Join'}</option>}
+              <option value="cut" disabled={!bodyMesh}>{lang === 'en' ? 'Cut' : '切除 / Cut'}</option>
+              <option value="intersect" disabled={!bodyMesh}>{lang === 'en' ? 'Intersect' : '相交 / Intersect'}</option>
+              {bodyMesh && <option value="newbody">{lang === 'en' ? 'New Body' : '新实体 / New Body'}</option>}
+              {bodyMesh && <option value="component">{lang === 'en' ? 'New Component' : '新组件 / New Component'}</option>}
+            </select>
+          </label>
+          <p className="operation-help">{lang === 'en'
+            ? (sketchAsComp ? 'Create an independent component with its own history.' : sketchOp === 'cut' ? 'Remove the extruded region from the active body.' : sketchOp === 'intersect' ? 'Keep only the volume shared with the active body.' : sketchOp === 'newbody' ? 'Keep the extrusion as a separate body.' : bodyMesh ? 'Add the extrusion to the active body. Disjoint regions may remain separate solids.' : 'Create the first solid from the selected profile.')
+            : (sketchAsComp ? '建立独立组件及其特征历史。' : sketchOp === 'cut' ? '从活动实体减去拉伸区域。' : sketchOp === 'intersect' ? '只保留与活动实体重叠的体积。' : sketchOp === 'newbody' ? '保留为独立实体，不合入活动实体。' : bodyMesh ? '加入活动实体；不相接的区域可能保留为分离实体。' : '用所选封闭轮廓建立第一个实体。')}</p>
         </CommandDialog>
       )}
 
@@ -7316,7 +7369,7 @@ export default function Viewport() {
         </div>
       )}
 
-      {selComp && (
+      {selComp && !editingComp && !modelingCommandActive && mode !== 'sketch' && (
         <div className="sketch-bar">
           <button className="sb-tool" title={compBarMin ? tStatus('展开零件工具栏', lang) : tStatus('折叠零件工具栏（净留名称同完成，唔挡视图）', lang)} onClick={toggleCompBar} style={{ fontWeight: 700, minWidth: 22 }}>{compBarMin ? '▸' : '▾'}</button>
           <span className="sb-title">{tStatus('移动/旋转', lang)} {selComp.name}</span>
@@ -7375,6 +7428,7 @@ export default function Viewport() {
             <input type="range" min={sectionRange.min} max={sectionRange.max} value={section.offset} onChange={(e) => setSection({ offset: Number(e.target.value) })} style={{ width: 130 }} />
           </label>
           <label className="sb-hint" title={tStatus('实心封盖：布尔交集真正切开实体（截面填实）— Fusion 式剖面', lang)}><input type="checkbox" checked={section.capped} onChange={() => setSection({ capped: !section.capped })} /> {tStatus('实心封盖', lang)}</label>
+          {section.capped && <div role="status" aria-live="polite" data-testid="section-cap-status" className="sb-hint">{sectionCapStatus === 'busy' ? '正在计算当前模型截面；暂时显示未封盖剖视' : sectionCapStatus === 'unavailable' ? '当前截面无法封盖；显示未封盖剖视，请调整平面或参数' : sectionCapStatus === 'empty' ? '此侧没有实体' : sectionCapStatus === 'ready' ? '当前模型截面已封盖' : ''}</div>}
           {section.capped && <label className="sb-hint" title={tStatus('保留剖切平面的另一半', lang)}><input type="checkbox" checked={!!section.flip} onChange={() => setSection({ flip: !section.flip })} /> {tStatus('翻面', lang)}</label>}
           {/* S185：剖面截面属性 — 切面 面积/形心/截面惯矩 实时读出（Fusion Inspect Section） */}
           <button className="sb-tool" style={{ width: '100%', marginTop: 2 }} title={tStatus('量该剖面：面积 / 形心 / 截面惯性矩 Ixx,Iyy / 主轴 / 周长（随位置滑杆实时更新；网格密铺近似）', lang)} onClick={() => (sectionResult?.fromCut ? useApp.getState().clearSectionProps() : useApp.getState().computeSectionCut())}>{sectionResult?.fromCut ? tStatus('✕ 关截面属性', lang) : tStatus('Σ 剖面截面属性', lang)}</button>
@@ -7426,13 +7480,13 @@ export default function Viewport() {
       {/* Fusion 式 ViewCube 旁「Home 小屋仔」（右上角立方左上角）：一键回正等轴测主视图 + 画面置中。对标影片右上角小屋。
           GM-X2 #3：右键小屋 = ViewCube 上下文菜单（回 Home / 投影三态 / 设为前视）—— drei ViewCube 无右键，喺此补返。 */}
       <button title={tStatus('主视图 Home：左键回正等轴测 + 置中；右键 = 视图菜单（投影 / 设为前视）', lang)}
-        style={{ position: 'fixed', top: 172, right: 116, width: 26, height: 26, zIndex: 50, background: 'rgba(255,255,255,.94)', border: '1px solid #c4ccd4', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.14)', color: '#3b6e8f', padding: 0 }}
+        style={{ position: 'absolute', top: 64, right: 116, width: 26, height: 26, zIndex: 20, background: 'rgba(255,255,255,.94)', border: '1px solid #c4ccd4', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.14)', color: '#3b6e8f', padding: 0 }}
         onClick={() => { setView('iso'); requestFit() }}
         onContextMenu={(e) => { e.preventDefault(); setCubeMenu((v) => !v) }}>
         <ToolIcon name="home" size={15} />
       </button>
       {cubeMenu && (
-        <div className="panel-menu" style={{ position: 'fixed', top: 200, right: 92, zIndex: 130, minWidth: 150 }} onMouseLeave={() => setCubeMenu(false)}>
+        <div className="panel-menu" style={{ position: 'absolute', top: 94, right: 8, zIndex: 130, minWidth: 150, maxWidth: 'calc(100% - 16px)', maxHeight: 'calc(100% - 102px)', overflow: 'auto' }} onMouseLeave={() => setCubeMenu(false)}>
           <div className="panel-menu-head">{tStatus('ViewCube', lang)}</div>
           <div className="panel-menu-item" onClick={() => { setView('iso'); requestFit(); setCubeMenu(false) }}>🏠 {tStatus('回 Home（等轴测）', lang)}</div>
           <div className="panel-menu-head" style={{ marginTop: 2 }}>{tStatus('投影', lang)}</div>
@@ -7469,7 +7523,7 @@ export default function Viewport() {
       })()}
       {/* P2 Inspect + GM-X1 #6：干涉检查面板（两步：拣集 → Compute）— 子集 + 含共面 + 逐对体积 + 🔍 + 📋 */}
       {interfPanelOpen && (
-        <div className="cmd-palette" style={{ position: 'fixed', right: 12, top: 208, width: 316, zIndex: 70, maxHeight: '62vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="cmd-palette" style={{ position: 'fixed', right: 12, top: 'min(208px, 18vh)', width: 'min(316px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: 70, maxHeight: 'calc(82vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <b style={{ fontSize: 12 }}>{interfReport ? (interfReport.hits.length ? `⚠ ${tStatus('干涉', lang)} ${interfReport.hits.length} ${lang === 'en' ? 'hit(s)' : '处'}` : `✓ ${tStatus('无干涉', lang)}`) : `🔍 ${tStatus('干涉检查', lang)}`}</b>
             <button className="tb-btn" onClick={() => useApp.getState().setInterfPanelOpen(false)}>✕</button>
@@ -7530,7 +7584,7 @@ export default function Viewport() {
           >▰</button>
           <button data-testid="visual-style-menu-trigger" className={'tb-btn vp-display-menu' + (navPop === 'display' ? ' tb-on' : '')} aria-label={tStatus('顯示方式', lang)} title={tStatus(`顯示方式：${VISUAL_STYLE_LABELS[visualStyle]}。可選實體、實體+可見邊、實體+隱藏邊、線框。`, lang)} onClick={() => setNavPop(navPop === 'display' ? null : 'display')}><ToolIcon name="display" size={17} /><span className="vp-display-label">{tStatus('顯示', lang)}</span><span style={{ fontSize: 9 }}>▾</span></button>
           {navPop === 'display' && (
-            <div data-testid="visual-style-picker" data-visual-style={visualStyle} className="panel-menu" style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 6, zIndex: 120, minWidth: 210, maxHeight: '72vh', overflowY: 'auto' }}>
+            <FloatingViewMenu styleName={visualStyle}>
               {/* GM-X2 #1：6 视觉样式枚举（Ctrl+4..9） */}
               <div className="panel-menu-head">{tStatus('B-rep 视觉样式', lang)}</div>
               {VISUAL_STYLES.map((vs, i) => (
@@ -7538,6 +7592,9 @@ export default function Viewport() {
               ))}
               <div className="panel-menu-divider" />
               <div className="panel-menu-head">{tStatus('模型外观', lang)}</div>
+              <button type="button" data-testid="display-xray" className="panel-menu-item" aria-pressed={xray} onClick={() => { if (!xray && wireframe) setVisualStyle('shadedVisible'); toggleXray() }}>{xray ? '✓ ' : '　'}{tStatus('半透明 X-ray', lang)}</button>
+              <button type="button" data-testid="display-section" className="panel-menu-item" aria-pressed={section.on} onClick={() => { setSection({ on: !section.on }); setNavPop(null) }}>{section.on ? '✓ ' : '　'}{tStatus('剖切分析', lang)}</button>
+              <button type="button" data-testid="display-grid" className="panel-menu-item" aria-pressed={showGrid} onClick={() => useApp.getState().toggleGrid()}>{showGrid ? '✓ ' : '　'}{tStatus('地面网格', lang)}</button>
               <div className="vp-appearance-color" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
                 <label htmlFor="viewport-body-colour">{tStatus('实体颜色', lang)}</label>
                 <input id="viewport-body-colour" data-testid="viewport-body-colour" type="color" aria-label={tStatus('实体颜色', lang)} value={viewportBodyColor}
@@ -7569,7 +7626,7 @@ export default function Viewport() {
               <div className="panel-menu-item" title={tStatus('接地阴影：工作模式柔和落地阴影。', lang)} onClick={() => { toggleGroundShadow() }}>{groundShadow ? '✓ ' : '　'}{tStatus('接地阴影', lang)}</div>
               {groundShadow && <div className="panel-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'default' }} onClick={(e) => e.stopPropagation()}>
                 <span style={{ opacity: 0.7, minWidth: 52 }}>{tStatus('阴影深浅', lang)}</span>
-                <input type="range" min={0.05} max={1} step={0.05} value={groundShadowOpacity} onChange={(e) => useApp.getState().setGroundShadowOpacity(Number(e.target.value))} style={{ width: 72, accentColor: '#1572c4' }} />
+                <input aria-label="接地阴影深浅" type="range" min={0.05} max={1} step={0.05} value={groundShadowOpacity} onChange={(e) => useApp.getState().setGroundShadowOpacity(Number(e.target.value))} style={{ width: 72, accentColor: '#1572c4' }} />
                 <span style={{ minWidth: 26, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{groundShadowOpacity.toFixed(2)}</span>
               </div>}
               <div className="panel-menu-item" title={tStatus('地面反射：光面反射地板，镜出模型。', lang)} onClick={() => { toggleGroundReflection() }}>{groundReflection ? '✓ ' : '　'}{tStatus('地面反射', lang)}</div>
@@ -7581,7 +7638,7 @@ export default function Viewport() {
                 <input type="range" min={-200} max={200} step={1} value={groundPlaneOffset} onChange={(e) => useApp.getState().setGroundPlaneOffset(Number(e.target.value))} style={{ width: 72, accentColor: '#1572c4' }} />
                 <span style={{ minWidth: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{groundPlaneOffset}</span>
               </div>
-            </div>
+            </FloatingViewMenu>
           )}
         </div>
         {/* GM-X2 #14：标准视图按钮（前/上/右）复用 setView */}
@@ -7598,7 +7655,7 @@ export default function Viewport() {
         {!cameraOrtho && <span title={tStatus('视野角 FOV（S193）：细 = 接近正交、透视失真小（产品出图）；大 = 广角夸张透视（戏剧感 / 局促空间）。默认 28°。', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
           <span style={{ opacity: 0.8 }}>FOV</span>
           <input type="range" min={12} max={55} step={1} value={cameraFov} onChange={(e) => useApp.getState().setCameraFov(Number(e.target.value))} style={{ width: 58, accentColor: '#1572c4', cursor: 'ew-resize' }} />
-          <span style={{ width: 24, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{cameraFov}°</span>
+          <span style={{ minWidth: 30, whiteSpace: 'nowrap', flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{cameraFov}°</span>
         </span>}
         <button className={'tb-btn' + (matLibOpen ? ' tb-on' : '')} title={tStatus('📚 外观材质库（S187）：把当前外观（颜色+金属度+粗糙度+纹理）存做具名预设，一击套用 — 对标 Fusion Appearance 收藏。跨文档全局保存。', lang)} onClick={() => useApp.getState().setMatLibOpen(!matLibOpen)}>📚</button>
         <span title={tStatus('实时微调当前实体外观：金属度（0 漫反射→1 金属）/ 粗糙度（0 镜面→1 哑光）—— 脱离预设直接拖（Fusion appearance 滑杆）', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
@@ -7616,7 +7673,7 @@ export default function Viewport() {
             <button className="tb-btn" title={tStatus('旋转贴花 +45°', lang)} onClick={() => useApp.getState().setDecalRot(lastDecal.id, (lastDecal.rot + Math.PI / 4) % (Math.PI * 2))}>⟳</button>
             {/* GM-X3 #5：Decal 逐项字段 —— 非等比 W/H · 透明 · U/V 位置 · H/V 翻转 · 锁比例 · 链面 */}
             <label className="sb-hint" title={tStatus('非等比 宽 W / 高 H (mm，覆盖大小)', lang)}>W<input type="number" min={1} max={500} value={Math.round(lastDecal.w ?? lastDecal.size)} onChange={(e) => useApp.getState().updateDecal(lastDecal.id, { w: Number(e.target.value) || lastDecal.size })} style={{ width: 40 }} />H<input type="number" min={1} max={500} value={Math.round(lastDecal.h ?? lastDecal.size)} onChange={(e) => useApp.getState().updateDecal(lastDecal.id, { h: Number(e.target.value) || lastDecal.size })} style={{ width: 40 }} /></label>
-            <input type="range" min={0.05} max={1} step={0.05} value={lastDecal.opacity ?? 1} onChange={(e) => useApp.getState().updateDecal(lastDecal.id, { opacity: Number(e.target.value) })} title={tStatus('透明度', lang)} style={{ width: 42 }} />
+            <input aria-label="贴花透明度" type="range" min={0.05} max={1} step={0.05} value={lastDecal.opacity ?? 1} onChange={(e) => useApp.getState().updateDecal(lastDecal.id, { opacity: Number(e.target.value) })} title={tStatus('透明度', lang)} style={{ width: 42 }} />
             <label className="sb-hint" title={tStatus('U / V 位置偏移 (mm)', lang)}>U<input type="number" step={1} value={Math.round(lastDecal.u ?? 0)} onChange={(e) => useApp.getState().updateDecal(lastDecal.id, { u: Number(e.target.value) || 0 })} style={{ width: 36 }} />V<input type="number" step={1} value={Math.round(lastDecal.v ?? 0)} onChange={(e) => useApp.getState().updateDecal(lastDecal.id, { v: Number(e.target.value) || 0 })} style={{ width: 36 }} /></label>
             <button className="tb-btn" style={{ background: lastDecal.flipH ? '#1572c4' : undefined, color: lastDecal.flipH ? '#fff' : undefined }} title={tStatus('水平翻转', lang)} onClick={() => useApp.getState().updateDecal(lastDecal.id, { flipH: !lastDecal.flipH })}>⇄</button>
             <button className="tb-btn" style={{ background: lastDecal.flipV ? '#1572c4' : undefined, color: lastDecal.flipV ? '#fff' : undefined }} title={tStatus('垂直翻转', lang)} onClick={() => useApp.getState().updateDecal(lastDecal.id, { flipV: !lastDecal.flipV })}>⇅</button>
@@ -7732,7 +7789,7 @@ export default function Viewport() {
           </div>}
         </div>
         {/* GM-X2 #16：全屏 */}
-        <button className="tb-btn" title={tStatus('全屏 (Ctrl+Shift+F)', lang)} onClick={() => { try { const el = document.documentElement; if (document.fullscreenElement) void document.exitFullscreen(); else void el.requestFullscreen() } catch { /* 不支持 */ } }}>⛶⛶</button>
+        <button className="tb-btn" title={tStatus('全屏 (Ctrl+Shift+F)；浏览器 Esc 可退出全屏，设计会保留', lang)} onClick={() => { try { const el = document.documentElement; if (document.fullscreenElement) void document.exitFullscreen(); else void el.requestFullscreen() } catch { /* 不支持 */ } }}>⛶⛶</button>
         {/* 相机书签（视图书签 / Named Views，Fusion 同款）：存当前任意 orbit 起名、一键跳返 */}
         <div style={{ position: 'relative' }}>
           <button className={'tb-btn' + (navPop === 'views' ? ' tb-on' : '')} title={tStatus('视图书签：存当前任意视角起名，一键跳返（Fusion Named Views）', lang)} onClick={() => setNavPop(navPop === 'views' ? null : 'views')}>📑▾</button>
@@ -7798,6 +7855,7 @@ export default function Viewport() {
             const fmtV = () => {
               if (r.value == null) return r.type === 'point' && r.delta ? `(${r.delta.map((c) => fmtLen(c, unit, measurePrecision, secondaryUnit)).join(', ')})` : (r.note || tStatus('继续点第二个实体', lang))
               if (r.valueUnit === 'len') return fmtLen(r.value, unit, measurePrecision, secondaryUnit)
+              if (r.valueUnit === 'vol') return fmtVol(r.value, unit, measurePrecision, secondaryUnit)
               if (r.valueUnit === 'area') return fmtArea(r.value, unit, measurePrecision, secondaryUnit)
               if (r.valueUnit === 'angle') return `${r.value.toFixed(measurePrecision == null ? 2 : measurePrecision)}°`
               return String(r.value)
@@ -7807,7 +7865,7 @@ export default function Viewport() {
               <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1 }}>{fmtV()}</div>
               {r.type === 'angle' && r.supplement != null && <div style={{ fontSize: 11, color: '#9fb2bf' }}>{tStatus('补角', lang)} {r.supplement.toFixed(2)}°</div>}
               {r.type === 'distance' && r.delta && <div style={{ marginTop: 4, fontSize: 11, color: '#9fb2bf' }}>ΔX {fmtLen(r.delta[0], unit, measurePrecision, secondaryUnit)}　ΔY {fmtLen(r.delta[1], unit, measurePrecision, secondaryUnit)}　ΔZ {fmtLen(r.delta[2], unit, measurePrecision, secondaryUnit)}</div>}
-              {r.parts.length > 0 && <div style={{ marginTop: 4, fontSize: 11, color: '#7d8b96' }}>{r.parts.map((p, i) => <span key={i}>{tStatus(p.label, lang)}{p.value != null ? ` ${p.kindUnit === 'area' ? fmtArea(p.value, unit, measurePrecision, secondaryUnit) : fmtLen(p.value, unit, measurePrecision, secondaryUnit)}` : ''}{i < r.parts.length - 1 ? ' · ' : ''}</span>)}</div>}
+              {r.parts.length > 0 && <div style={{ marginTop: 4, fontSize: 11, color: '#7d8b96' }}>{r.parts.map((p, i) => <span key={i}>{tStatus(p.label, lang)}{p.value != null ? ` ${p.kindUnit === 'vol' ? fmtVol(p.value, unit, measurePrecision, secondaryUnit) : p.kindUnit === 'area' ? fmtArea(p.value, unit, measurePrecision, secondaryUnit) : fmtLen(p.value, unit, measurePrecision, secondaryUnit)}` : ''}{i < r.parts.length - 1 ? ' · ' : ''}</span>)}</div>}
               {r.note && <div style={{ marginTop: 3, fontSize: 10, color: '#8a7d5a' }}>{tStatus(r.note, lang)}</div>}
             </>
           })()}
@@ -7834,7 +7892,7 @@ export default function Viewport() {
       )}
       {/* GM-X1 #10：模态 Properties 对话框（面积/密度/质量/体积/材质/包围盒/质心/惯性 + 精度 + 坐标切换 + 复制） */}
       {propsDialog && propsDialogData && (
-        <div className="cmd-palette" style={{ position: 'fixed', right: 12, top: 150, width: 320, zIndex: 210, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="cmd-palette" style={{ position: 'fixed', right: 12, top: 'min(150px, 18vh)', width: 'min(320px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: 210, maxHeight: 'calc(82vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <b style={{ fontSize: 13 }}>⚖ {tStatus('物理属性', lang)}</b>
             <button className="tb-btn" title={tStatus('关闭', lang)} onClick={() => useApp.getState().closePropertiesDialog()}>✕</button>
@@ -8101,7 +8159,7 @@ export default function Viewport() {
         })()}
         </div>
       )}
-      {!bodyMesh && components.length === 0 && mode === 'model' && !fourBar && !sliderCrank && (
+      {!bodyMesh && components.length === 0 && mode === 'model' && !formMode && !fourBar && !sliderCrank && (
         <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', color: '#7a8893', pointerEvents: 'none', maxWidth: 360, lineHeight: 1.55, userSelect: 'none' }}>
           {/* Flux 生成上手插画（工作台+画草图）— 令空文档画面唔咁干。缩细免阻视线（用户反馈大卡阻埞）。 */}
           <img src="/empty-canvas.png" alt="" width={104} height={104} draggable={false} style={{ display: 'block', margin: '0 auto -6px', opacity: 0.9, filter: 'drop-shadow(0 6px 16px rgba(43,108,240,.10))' }} />
@@ -8146,12 +8204,16 @@ function QuiltPickPanel() {
 
 // T793：Form 模式浮动面板 — 级数 + 完成/取消（formCage 活动先出现）
 function FormPanel() {
+  const formGizmoMode = useApp(s => s.formGizmoMode)
   const formMode = useApp((s) => s.formMode)
   const createKind = useApp((s) => s.formCreateKind)
   const cage = useApp((s) => s.formCage)
   const boxDraft = useApp((s) => s.formBoxDraft)
   const formSym = useApp((s) => s.formSym)   // S193：对称编辑状态
   const lang = useApp((s) => s.lang)
+  const undoN = useApp(s => s.formUndo.length)
+  const redoN = useApp(s => s.formRedo.length)
+  const formDragging = useApp(s => !!s.formEditStart)
   const [extD, setExtD] = useState(5)
   const [formPlane, setFormPlane] = useState('XY')
   const [formL, setFormL] = useState(40)
@@ -8170,7 +8232,7 @@ function FormPanel() {
       const field: CSSProperties = { width: 86, height: 23, boxSizing: 'border-box' }
       const stageHint = boxDraft.stage === 'plane' ? 'Select a plane or planar face' : boxDraft.stage === 'center' ? 'Specify center point' : boxDraft.stage === 'size' ? 'Specify size of rectangle' : boxDraft.stage === 'height' ? 'Specify height' : 'Ready'
       return (
-        <div style={{ position: 'absolute', top: 70, right: 14, width: 222, background: '#f8fafb', border: '1px solid #c3cbd1', borderRadius: 3, padding: 10, fontSize: 12, boxShadow: '0 2px 10px rgba(0,0,0,.14)', zIndex: 60 }}>
+        <FormPalette title="Create Form">
           <div style={{ fontWeight: 700, color: '#4c5a64', borderBottom: '1px solid #d8dee3', paddingBottom: 6, marginBottom: 8 }}>−　BOX</div>
           <label style={row}>Rectangle
             <select value="center" disabled style={field}><option value="center">Center</option></select>
@@ -8194,7 +8256,7 @@ function FormPanel() {
             <button className="cs-btn" disabled={boxDraft.stage !== 'ready'} onClick={() => void useApp.getState().commitFormBoxDraft()}>OK</button>
             <button className="cs-btn" onClick={() => useApp.getState().cancelFormCreate()}>Cancel</button>
           </div>
-        </div>
+        </FormPalette>
       )
     }
     const makePrimitive = async () => {
@@ -8216,20 +8278,21 @@ function FormPanel() {
         }
         await s.startFormPipe(path as [number, number, number][], a, Math.max(3, na))
       }
+      if (createKind !== 'box' && createKind !== 'pipe') useApp.getState().orientFormCage(formPlane as 'XY' | 'XZ' | 'YZ')
     }
     const title = createKind === 'quadball' ? 'QUADBALL' : createKind.toUpperCase()
     return (
-      <div style={{ position: 'absolute', top: 70, right: 14, width: 222, background: '#f8fafb', border: '1px solid #c3cbd1', borderRadius: 3, padding: 10, fontSize: 12, boxShadow: '0 2px 10px rgba(0,0,0,.14)', zIndex: 60 }}>
+      <FormPalette title="Create Form">
         <div style={{ fontWeight: 700, color: '#4c5a64', borderBottom: '1px solid #d8dee3', paddingBottom: 6, marginBottom: 8 }}>−　{title}</div>
         {createKind !== 'pipe' && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>Plane
-          <select value={formPlane} onChange={(e) => setFormPlane(e.target.value)} style={{ width: 105 }}><option>XY</option><option>XZ</option><option>YZ</option></select>
+          <select aria-label="Form plane" value={formPlane} onChange={(e) => setFormPlane(e.target.value)} style={{ width: 105 }}><option>XY</option><option>XZ</option><option>YZ</option></select>
         </label>}
         {createKind === 'box' && <>
           <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>Rectangle <select style={{ width: 105 }} defaultValue="Center"><option>Center</option><option>Two Point</option></select></label>
           <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>Direction <select style={{ width: 105 }} defaultValue="One Side"><option>One Side</option><option>Symmetric</option></select></label>
         </>}
         {createKind === 'pipe' ? <>
-          <div style={{ color: '#4c5a64', lineHeight: 1.4, marginBottom: 7 }}>创建开放端 T-spline 管状控制笼；不是 SOLID Sweep。建立后可拖控制点、拉面及插边。</div>
+          <div style={{ color: '#4c5a64', lineHeight: 1.4, marginBottom: 7 }}>创建开放端细分管状控制笼。建立后可拖控制点、拉面及插边。</div>
           <label style={{ display: 'block', marginBottom: 6 }}>Path points (x,y,z; …)
             <textarea aria-label="FORM Pipe path points" value={formPipePath} onChange={(e) => setFormPipePath(e.target.value)} rows={3} style={{ width: '100%', boxSizing: 'border-box', marginTop: 3, resize: 'vertical', fontSize: 11 }} />
           </label>
@@ -8238,25 +8301,27 @@ function FormPanel() {
           <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>Profile Faces <input aria-label="FORM Pipe profile faces" type="number" min={3} max={32} value={formSegA} onChange={(e) => setFormSegA(Number(e.target.value))} style={{ width: 72 }} /></label>
         </> : <>
           <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{createKind === 'sphere' || createKind === 'quadball' ? 'Diameter' : createKind === 'cylinder' ? 'Diameter' : createKind === 'torus' ? 'Major Ø' : 'Length'} <input type="number" min={1} value={formL} onChange={(e) => setFormL(Number(e.target.value))} style={{ width: 72 }} /></label>
-          {!['sphere', 'quadball'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{createKind === 'torus' ? 'Tube Ø' : 'Width'} <input type="number" min={1} value={formW} onChange={(e) => setFormW(Number(e.target.value))} style={{ width: 72 }} /></label>}
+          {!['sphere', 'quadball', 'cylinder'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{createKind === 'torus' ? 'Tube Ø' : 'Width'} <input type="number" min={1} value={formW} onChange={(e) => setFormW(Number(e.target.value))} style={{ width: 72 }} /></label>}
           {['box', 'cylinder'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>Height <input type="number" min={1} value={formH} onChange={(e) => setFormH(Number(e.target.value))} style={{ width: 72 }} /></label>}
           <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>Faces <span><input type="number" min={1} value={formSegA} onChange={(e) => setFormSegA(Number(e.target.value))} style={{ width: 45 }} /> × <input type="number" min={1} value={formSegB} onChange={(e) => setFormSegB(Number(e.target.value))} style={{ width: 45 }} /></span></label>
         </>}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, borderTop: '1px solid #d8dee3', paddingTop: 8, marginTop: 8 }}>
           <button className="cs-btn" onClick={() => void makePrimitive()}>OK</button>
-          <button className="cs-btn" onClick={() => useApp.getState().setFormCreateKind(null)}>Cancel</button>
+          <button className="cs-btn" onClick={() => useApp.getState().cancelFormCreate()}>Cancel</button>
         </div>
-      </div>
+      </FormPalette>
     )
   }
   return (
-    <div style={{ position: 'absolute', top: 64, left: '50%', transform: 'translateX(-50%)', background: '#fff', border: '1px solid #7bb8e8', borderRadius: 8, padding: '6px 12px', display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, boxShadow: '0 2px 10px rgba(0,0,0,.12)', zIndex: 60 }}>
+    <FormPalette title="Edit Form">
       <b style={{ color: '#1572c4' }}>{tStatus('🫧 Form 细分建模', lang)}</b>
       <span style={{ color: '#5a6b78' }}>{tStatus('点控制点拖箭嘴捏形 / 点面拉伸（', lang)}{cage.verts.length} {tStatus('点）', lang)}</span>
+      {cage.sel != null && <fieldset style={{ minWidth: 0, width: '100%', display: 'flex', flexWrap: 'wrap', gap: 6 }}><legend>{lang === 'en' ? 'Control point · mm' : '控制点坐标 · mm'}</legend>{(['X','Y','Z'] as const).map((axis,k) => <label key={axis}>{axis} <input aria-label={'Form point '+axis} key={cage.sel+'|'+cage.verts[cage.sel!][k]} type="number" defaultValue={cage.verts[cage.sel!][k]} style={{ width: 64 }} onBlur={e => { const n=Number(e.currentTarget.value), c=useApp.getState().formCage; if (e.currentTarget.value.trim() && Number.isFinite(n) && c?.sel != null) { const p=[...c.verts[c.sel]] as [number,number,number];p[k]=n;useApp.getState().setFormVert(c.sel,p) } }} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){e.currentTarget.value=String(cage.verts[cage.sel!][k]);e.currentTarget.blur()}}}/></label>)}</fieldset>}
       <label title={tStatus('细分级数：越高越圆滑（三角数 ×4/级）', lang)}>{tStatus('级数', lang)} <select value={cage.levels} onChange={(e) => useApp.getState().setFormLevels(Number(e.target.value))} style={{ height: 22 }}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
       <button className={'cs-btn' + (formSym !== null ? ' on' : '')} title={tStatus('对称编辑（S193）：开后拖一边控制点，对面镜像点自动同步（X/Y 轴镜像，对称平面 0）—— Fusion T-spline Symmetry。再撳切换 关→X→Y', lang)} style={formSym !== null ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().cycleFormSym()}>{tStatus('对称', lang)}{formSym === 0 ? ':X' : formSym === 1 ? ':Y' : ''}</button>
+      {(cage.msel ?? []).length >= 2 && <FormTransformFields />}
       {(cage.msel ?? []).length >= 2 && (() => {
-        const gm = useApp.getState().formGizmoMode
+        const gm = formGizmoMode
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('群组变换（Fusion Edit Form）：对选中控制点集 移/旋/缩（绕选集中心）。Shift+点加选；Ctrl+Z 撤销变换步。', lang)}>
             <span style={{ color: '#c77d00', fontWeight: 600 }}>{(cage.msel ?? []).length}{tStatus('点', lang)}</span>
@@ -8268,7 +8333,7 @@ function FormPanel() {
         )
       })()}
       {cage.selFace != null && (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('拉伸选中 cage 面（push-pull）：外推 = 抽肢/凸台，内压 = 凹陷/孔。可连续拉抽长。', lang)}>
+        <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('拉伸选中 cage 面（push-pull）：外推 = 抽肢/凸台，内压 = 凹陷/孔。可连续拉抽长。', lang)}>
           <span style={{ color: '#c77d00', fontWeight: 600 }}>{tStatus('拉伸面', lang)}</span>
           <input type="number" step={1} value={extD} onChange={(e) => setExtD(Number(e.target.value))} style={{ width: 46 }} />mm
           <button className="cs-btn" title={tStatus('外推（凸出/抽肢）', lang)} onClick={() => void useApp.getState().formExtrudeFace(Math.abs(extD) || 5)}>{tStatus('外推▲', lang)}</button>
@@ -8276,25 +8341,30 @@ function FormPanel() {
           {/* S172：折痕 / Crease — 折硬选中面 4 条边界边（二元无限锐），细分时棱角企硬唔被磨圆；再撳取消 */}
           <button className="cs-btn" title={tStatus('折痕 Crease：折硬此面 4 条边界边（细分时棱角企硬，做凸台/筋/硬边）。再撳取消。', lang)} onClick={() => useApp.getState().formCrease()}>{tStatus('◣ 折痕', lang)}</button>
           {/* S180：插入边线环（Fusion Insert Edge Loop）— 两个方向（↔ 切 0/2 对边、↕ 切 1/3 对边），环绕笼加一圈细分密度 */}
-          <button className="cs-btn" title={tStatus('插入边线环（横向）：沿此面一对边方向环绕笼加一圈边线，体积不变，加局部细分密度。', lang)} onClick={() => void useApp.getState().formInsertLoop(0)}>{tStatus('⊞环↔', lang)}</button>
+          <button className="cs-btn" title={tStatus('插入边线环（横向）：沿此面一对边方向环绕笼加一圈边线，增加局部细分密度；平滑外形可能改变。', lang)} onClick={() => void useApp.getState().formInsertLoop(0)}>{tStatus('⊞环↔', lang)}</button>
           <button className="cs-btn" title={tStatus('插入边线环（纵向）：沿此面另一对边方向环绕笼加一圈边线。', lang)} onClick={() => void useApp.getState().formInsertLoop(1)}>{tStatus('⊞环↕', lang)}</button>
         </span>
       )}
       {cage.creases.length > 0 && <span style={{ color: '#c0392b', fontWeight: 600 }} title={tStatus('当前折痕（锐边）数', lang)}>◣ {new Set(cage.creases.map(([a, b]) => (a < b ? a : b) + '_' + (a < b ? b : a))).size}</span>}
       {cage.creases.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6b7680' }} title={tStatus('折痕软硬（semi-sharp crease）：1=硬棱角（旧二元锐），拖细 = 软棱 / 倒角感渐变（车身板/有机硬边过渡）。即时预览。', lang)}>
         <span>软硬</span>
-        <input type="range" min={0.05} max={1} step={0.05} value={cage.creaseSoft ?? 1} onChange={(e) => useApp.getState().setFormCreaseSoft(Number(e.target.value))} style={{ width: 64, accentColor: '#c0392b' }} />
-        <span style={{ width: 24, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(cage.creaseSoft ?? 1).toFixed(2)}</span>
+        <input aria-label="接地阴影深浅" type="range" min={0.05} max={1} step={0.05} value={cage.creaseSoft ?? 1} onChange={(e) => useApp.getState().setFormCreaseSoft(Number(e.target.value))} style={{ width: 64, accentColor: '#c0392b' }} />
+        <span style={{ minWidth: 30, whiteSpace: 'nowrap', flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(cage.creaseSoft ?? 1).toFixed(2)}</span>
       </span>}
       {/* S169：Form 镜像/对称 — cage 沿该轴最小边界面反射焊接成对称翻倍笼（Fusion T-spline Mirror） */}
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('镜像/对称：cage 沿该轴最小边界面反射并焊接成对称翻倍笼（先造一半再镜成对称形）。', lang)}>
+      <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('镜像/对称：cage 沿该轴最小边界面反射并焊接成对称翻倍笼（先造一半再镜成对称形）。', lang)}>
         <span style={{ color: '#2a6fb0', fontWeight: 600 }}>{tStatus('镜像', lang)}</span>
         <button className="cs-btn" title={tStatus('沿 X 最小边界面镜像', lang)} onClick={() => void useApp.getState().formMirror(0)}>X</button>
         <button className="cs-btn" title={tStatus('沿 Y 最小边界面镜像', lang)} onClick={() => void useApp.getState().formMirror(1)}>Y</button>
         <button className="cs-btn" title={tStatus('沿 Z 最小边界面镜像', lang)} onClick={() => void useApp.getState().formMirror(2)}>Z</button>
       </span>
-      <span style={{ color: '#5a6b78' }}>{tStatus('完成后按顶栏 FINISH FORM', lang)}</span>
-    </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <button className="cs-btn" disabled={!undoN && !formDragging} onClick={() => useApp.getState().formUndoPop()}>↶ {lang === 'en' ? 'Undo' : '复原'}</button>
+        <button className="cs-btn" disabled={!redoN || formDragging} onClick={() => useApp.getState().formRedoPop()}>↷ {lang === 'en' ? 'Redo' : '重做'}</button>
+        <button className="cs-btn" disabled={formDragging} onClick={() => void useApp.getState().finishForm()}>✓ Finish Form</button>
+        <button className="cs-btn" onClick={() => useApp.getState().cancelForm()}>Cancel Form</button>
+      </div>
+    </FormPalette>
   )
 }
 

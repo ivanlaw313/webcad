@@ -1,3 +1,7 @@
+import { prismaticInwardShell, validShellSolid } from '../cad/prismaticShell'
+import { ellipseArcPoint, ellipseArcSweep, type EllipseArcGeometry } from '../sketch/ellipseArcGeometry'
+import type { CubicBezierSegment } from '../sketch/splineBezier'
+import { shiftBoundSketchFeature, type SketchFaceBinding, type ResolvedSketchFace } from '../cad/sketchFaceBinding'
 import type { DimensionExpression } from '../cad/dimensionExpression'
 /// <reference lib="webworker" />
 import { expose, transfer } from 'comlink'
@@ -6,7 +10,7 @@ import { expose, transfer } from 'comlink'
 // 构建配方喺 _occt-build/custom_build_plus.yml，docker run donalffons/opencascade.js 一条命令重现。
 import opencascade from '../kernel/replicad_plus.js'
 import wasmUrl from '../kernel/replicad_plus.wasm?url'
-import { setOC, cast, draw, drawCircle, drawSingleEllipse, makeBaseBox, makeBox, makeSphere, makeCylinder, makeHelix, genericSweep, complexExtrude, loft, makeCompound, makeBSplineApproximation, assembleWire, importSTEP, drawProjection, ProjectionCamera, basicFaceExtrusion, loadFont, getFont, drawText, makePolygon, Vector, Plane as RPlane, GCWithScope } from 'replicad'
+import { measureVolume, measureArea, setOC, cast, iterTopo, draw, drawCircle, drawSingleEllipse, makeBaseBox, makeBox, makeSphere, makeCylinder, makeHelix, genericSweep, complexExtrude, loft, makeCompound, makeBSplineApproximation, assembleWire, importSTEP, drawProjection, ProjectionCamera, basicFaceExtrusion, loadFont, getFont, drawText, makePolygon, Vector, Plane as RPlane, GCWithScope } from 'replicad'
 import { frameTwistTaperSweep } from '../cad/sweepTwist'
 import { textToSketchShapes } from '../sketch/textShapes'   // S189：草图文字 → 草图几何（worker 有 'cad' 字体）
 import fontUrl from '../fonts/Roboto-Regular.ttf?url'  // S120：Roboto（Apache-2.0）真矢量字体 — 字母有真实内孔（O/A/B/e/8 counters）；取代 kenpixel 像素字体（无孔）。无 GPL/AGPL。
@@ -21,7 +25,7 @@ import { fullRoundFilletFromFaces } from '../cad/fullRound'
 import { asymmetricFilletNearPoints } from '../cad/asymmetricFillet'
 import { hasUnsafeLoftShellAdjacency } from '../cad/loftShellSafety'
 
-export type MeshData = { vertices: number[]; triangles: number[]; normals: number[]; faceGroups?: { start: number; count: number; faceId: number }[]; warnings?: string[]; failed?: { id: string; type: string; msg: string }[]; parked?: { name: string; vertices: number[]; triangles: number[]; normals: number[]; faceGroups?: { start: number; count: number; faceId: number }[] }[]; resolvedEdgeFp?: Record<string, string[]>; resolvedEdgeFpV2?: Record<string, string[]>; resolvedFaceFp?: Record<string, string[]>; resolvedFaceFpV2?: Record<string, string[]>; resolvedFaceFpTopo?: Record<string, string[]> }  // resolvedEdgeFp（S122）= 本次首次解析嘅 fillet/chamfer 边指纹；resolvedEdgeFpV2（S134）= 平行嘅旋转不变指纹；resolvedFaceFp（S125）= shell 抽壳面指纹；resolvedFaceFpV2（S136）= 平行嘅旋转不变面指纹；store 写回 feature.edgeFp/edgeFpV2/faceFp/faceFpV2 做持久命名  // failed（S107）= 逐特征隔离：重建时 throw 嘅坏特征 {id,type,错因}，其余照常建（build past，唔 revert 整树）。parked = 多实体（T728）：活动实体以外嘅 bodies（灰显渲染）; faceGroups（S99）= 逐 B-rep 面三角 run（start/count 系 triangles 下标，faceId=hashCode）→ 共面分割子面可分开拣/着色
+export type MeshData = { resolvedSketchFaces?: Record<string, ResolvedSketchFace>; vertices: number[]; triangles: number[]; normals: number[]; faceGroups?: { start: number; count: number; faceId: number }[]; warnings?: string[]; failed?: { id: string; type: string; msg: string }[]; parked?: { name: string; vertices: number[]; triangles: number[]; normals: number[]; faceGroups?: { start: number; count: number; faceId: number }[] }[]; resolvedEdgeFp?: Record<string, string[]>; resolvedEdgeFpV2?: Record<string, string[]>; resolvedFaceFp?: Record<string, string[]>; resolvedFaceFpV2?: Record<string, string[]>; resolvedFaceFpTopo?: Record<string, string[]> }  // resolvedEdgeFp（S122）= 本次首次解析嘅 fillet/chamfer 边指纹；resolvedEdgeFpV2（S134）= 平行嘅旋转不变指纹；resolvedFaceFp（S125）= shell 抽壳面指纹；resolvedFaceFpV2（S136）= 平行嘅旋转不变面指纹；store 写回 feature.edgeFp/edgeFpV2/faceFp/faceFpV2 做持久命名  // failed（S107）= 逐特征隔离：重建时 throw 嘅坏特征 {id,type,错因}，其余照常建（build past，唔 revert 整树）。parked = 多实体（T728）：活动实体以外嘅 bodies（灰显渲染）; faceGroups（S99）= 逐 B-rep 面三角 run（start/count 系 triangles 下标，faceId=hashCode）→ 共面分割子面可分开拣/着色
 export type EdgeSel = 'all' | 'top' | 'bottom' | 'vertical'
 export type Plane = 'XY' | 'XZ' | 'YZ'
 // Unit normal of each sketch plane (the direction extrude/offset travels).
@@ -33,9 +37,9 @@ export type DrawView = { name: string; vb: string; visible: string[]; hidden: st
 
 export type RectProfile = { kind: 'rect'; a: [number, number]; b: [number, number] }
 export type CircleProfile = { kind: 'circle'; c: [number, number]; r: number }
-export type PolyProfile = { kind: 'poly'; pts: [number, number][]; smooth?: boolean; conic?: boolean; arc?: { a: [number, number]; b: [number, number]; m: [number, number] }; verts?: [number, number][]; bulges?: number[]; earc?: { cx: number; cy: number; rx: number; ry: number; rot: number; a0: number; a1: number; sweep: boolean } }  // conic（S177）→ smooth 在线点 + 闭合时收笔走【直弦】（唔好 smoothSplineTo 返起点 → 弦边鼓起）  // arc → TRUE circular arc edge (threePointsArcTo), pts are display-only; verts+bulges → mixed line/arc path; earc（S101）→ TRUE elliptical arc edge (ellipseTo)+chord close, pts display-only, sweep 由 store 按草图平面镜射定向（XZ/raw=逆时针 true，XY/YZ=顺时针 false）
+export type PolyProfile = { kind: 'poly'; cubics?: CubicBezierSegment[]; pts: [number, number][]; smooth?: boolean; conic?: boolean; arc?: { a: [number, number]; b: [number, number]; m: [number, number] }; verts?: [number, number][]; bulges?: number[]; earc?: EllipseArcGeometry }  // conic（S177）→ smooth 在线点 + 闭合时收笔走【直弦】（唔好 smoothSplineTo 返起点 → 弦边鼓起）  // arc → TRUE circular arc edge (threePointsArcTo), pts are display-only; verts+bulges → mixed line/arc path; earc（S101）→ TRUE elliptical arc edge (ellipseTo)+chord close, pts display-only, sweep 由 store 按草图平面镜射定向（XZ/raw=逆时针 true，XY/YZ=顺时针 false）
 export type EllipseProfile = { kind: 'ellipse'; c: [number, number]; rx: number; ry: number; rot?: number }  // S87：真椭圆边（drawSingleEllipse 单曲线，非 48 边形）— rx/ry = x/y 半轴，rot=旋转°
-export type SketchProfile = RectProfile | CircleProfile | PolyProfile | EllipseProfile
+export type SketchProfile = (RectProfile | CircleProfile | PolyProfile | EllipseProfile) & { holes?: SketchProfile[]; islands?: SketchProfile[] }
 export type BoolOp = 'new' | 'join' | 'cut' | 'intersect' | 'newbody'   // P2 五选项：newbody=独立泊车体（唔并入活动体；同 type:'newbody' 特征相反 — 嗰个系泊走【当前】体）
 
 // A parametric feature: replayed in order to (re)build the body.
@@ -48,8 +52,8 @@ export type Feature =
   // existing cut features immediately before kernel rebuild, so the worker
   // never needs a parallel Hole implementation.
   | { id: string; type: 'hole'; kind: 'simple' | 'counterbore' | 'countersink' | 'tapped'; center: [number, number]; centers?: [number, number][]; pattern?: { kind: 'bolt-circle'; origin: [number, number]; count: number; pcd: number }; top: number; diameter: number; nominalDiameter?: number; clearance?: number; through?: boolean; depth?: number; extent?: 'distance' | 'through-all' | 'to-next' | 'to-object'; nextFaceZ?: number | null; toFace?: { near: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[]; offset?: number }; chamfer?: number; drillPoint?: { angle: number }; counterbore?: { diameter: number; depth: number }; countersink?: { diameter: number; angle: number }; tap?: { drillDiameter: number; nominalDiameter: number; pitch: number; fine?: boolean } }
-  | { id: string; type: 'extrude'; distanceExpression?: DimensionExpression & { measure: 'whole' | 'half'; flip?: boolean }; profile: SketchProfile; height: number; operation: BoolOp; baseZ?: number; twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; toFace?: { near: [number, number, number]; n?: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[]; offset?: number }; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; extent?: 'next' /* GM-W5 5.2：到下一面标记 — worker 不读几何（height 创建时已烘焙成实停距，净系 META 显示/编辑对话框认得 */; sketchId?: string /* 草图源 id（store.sketchSources）— 重开草图编辑用，worker 不读 */ }
-  | { id: string; type: 'revolve'; profile: SketchProfile; angle: number; axis?: 'X' | 'Y'; axisV?: [number, number, number]; axisOrigin?: [number, number, number] /* T781：任意轴（构造轴/偏离原点），优先于 axis */; plane?: Plane; baseZ?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } /* Arbitrary datum/planar-face sketch frame. */; op?: BoolOp; wall?: number; symmetric?: boolean /* S191：两侧/对称 — 部分角(0<ang<360)绕轴均分跨越截面平面（Fusion symmetric revolve）*/; sketchId?: string /* T746：旋转特征都可重开草图编辑 — worker 不读 */ }
+  | { id: string; type: 'extrude'; sketchFaceBinding?: SketchFaceBinding; exactDistance?: boolean; distanceExpression?: DimensionExpression & { measure: 'whole' | 'half'; flip?: boolean }; profile: SketchProfile; height: number; operation: BoolOp; baseZ?: number; twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; toFace?: { near: [number, number, number]; n?: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[]; offset?: number }; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; extent?: 'next' /* GM-W5 5.2：到下一面标记 — worker 不读几何（height 创建时已烘焙成实停距，净系 META 显示/编辑对话框认得 */; sketchId?: string /* 草图源 id（store.sketchSources）— 重开草图编辑用，worker 不读 */ }
+  | { id: string; type: 'revolve'; sketchFaceBinding?: SketchFaceBinding; axisReference?: 'sketch' | 'world'; profile: SketchProfile; angle: number; axis?: 'X' | 'Y'; axisV?: [number, number, number]; axisOrigin?: [number, number, number] /* T781：任意轴（构造轴/偏离原点），优先于 axis */; plane?: Plane; baseZ?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } /* Arbitrary datum/planar-face sketch frame. */; op?: BoolOp; wall?: number; symmetric?: boolean /* S191：两侧/对称 — 部分角(0<ang<360)绕轴均分跨越截面平面（Fusion symmetric revolve）*/; sketchId?: string /* T746：旋转特征都可重开草图编辑 — worker 不读 */ }
   | { id: string; type: 'fillet'; radius: number; edges?: EdgeSel; near?: [number, number, number]; nears?: [number, number, number][]; radius2?: number; radii?: number[]; chain?: boolean; edgeFp?: string[]; edgeFpV2?: string[]; mode?: 'chord'; chord?: number; setbackRatio?: number; continuity?: 'G1' | 'G2'; continuities?: ('G1' | 'G2')[]; asymmetric?: { offset2: number; flip?: boolean }; rule?: { mode: 'all' | 'between'; faces1: [number, number, number][]; faces2?: [number, number, number][] }; fullRound?: { side1: [number, number, number][]; center: [number, number, number][]; side2: [number, number, number][] } }  // R1 修改圆角：普通多组 + Asymmetric + Rule Fillet + Full Round。Full Round 无半径输入，由三组面推导完整相切圆柱 blend。
   | { id: string; type: 'chamfer'; distance: number; edges?: EdgeSel; near?: [number, number, number]; nears?: [number, number, number][]; dist2?: number; angle?: number; cmode?: 'equal' | 'two' | 'angle'; refFaceNear?: [number, number, number]; flip?: boolean; chain?: boolean; distances?: number[]; edgeFp?: string[]; edgeFpV2?: string[] }  // refFaceNear = Distance and Angle 用户真正点中参考面的内点（重算时从边的两个相邻面中解析）；edgeFp（S122）= 持久边指纹（同上）；edgeFpV2（S134）= 旋转不变指纹（同上）；distances（GM-3DV3 M7）= 逐边距离（equal 模式，与 nears 平行）
   // R1 面圆角 face-fillet（clean-room 窄版）：拾【两张唔相邻嘅面】+ 半径 → 平面/柱面对解析切点 → G1 blend 带（MakeFilling/BridgeG1）。
@@ -66,7 +70,7 @@ export type Feature =
   // store 喺送 worker 前 expandFeats() 展开成 N 个 extrude（worker 几何零改动）；时间轴只见一个节点、可改行列数。
   | { id: string; type: 'featpattern'; cols: number; dx: number; rows: number; dy: number; subs: { profile: SketchProfile; height: number; operation: BoolOp; baseZ?: number; through?: boolean; plane?: Plane; twist?: number; symmetric?: boolean; draft?: number; down?: boolean; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[] }
   // 拉伸组（多轮廓一次拉伸 → 一个时间轴节点）：subs = 各轮廓+各自参数，共享一个 height（改 height 即全部一齐变）。store expandFeats() 送 worker 前展开成 N 个 extrude（worker 零改动）。
-  | { id: string; type: 'extgroup'; height: number; sketchId?: string; subs: { profile: SketchProfile; operation: BoolOp; baseZ?: number; twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[] }
+  | { id: string; type: 'extgroup'; sketchFaceBinding?: SketchFaceBinding; height: number; sketchId?: string; subs: { profile: SketchProfile; operation: BoolOp; baseZ?: number; twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[] }
   | { id: string; type: 'prim'; shape: 'box' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie'; a: number; b: number; c: number; op?: BoolOp; sides?: number; outerTrue?: boolean /* GM-W8 β1-#29：torus 专用 — 有此 flag 时 a=真外半径（中线半径=a−管半径）；缺=旧语义 a=中线半径 */ }
   // Automated Modeling Connector v1 core: an analytic connector between two
   // face-derived seed points. UI may only create this after two planar-face
@@ -97,13 +101,13 @@ export type Feature =
   // 環形阵列（T757 — 抄足 Fusion）：对象=整个实体（无 targets）或指定特征（targets=特征 id，snapshot-delta 重切/重融）；
   // 任意轴（origin+dir，CAD 坐标）；mode: full=均分 360（副本唔叠原件）/ angle=端点含 / sym=对称（±k·step，偶数偏 + 侧）
   | { id: string; type: 'circPattern'; targets?: string[]; origin: [number, number, number]; dir: [number, number, number]; count: number; totalAngle: number; mode: 'full' | 'angle' | 'sym'; suppress?: boolean[] /* GM-3DV1 S3：逐实例抑制 — 索引 0=seed(0°)、1..count-1=依 cpAngles 顺序嘅副本；suppress[i]=true 跳过（缺省 ⇒ 全出，旧档逐字节） */; compute?: 'optimized' | 'identical' | 'adjust'; objectType?: 'bodies' | 'faces' | 'features' | 'components'; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
-  | { id: string; type: 'transform'; dx: number; dy: number; dz: number; rz: number; rx?: number; ry?: number; copy?: boolean }   // copy（GM-3DV3 M1 Create Copy）：留原件、fuse 一个变换后副本（Fusion Move/Copy 嘅复制半边）；缺省=就地变换（旧档逐字节）
+  | { id: string; type: 'transform'; origin?: [number, number, number]; dx: number; dy: number; dz: number; rz: number; rx?: number; ry?: number; copy?: boolean }   // copy（GM-3DV3 M1 Create Copy）：留原件、fuse 一个变换后副本（Fusion Move/Copy 嘅复制半边）；缺省=就地变换（旧档逐字节）
   | { id: string; type: 'pushpull'; near: [number, number, number]; nears?: [number, number, number][]; dist: number; dir?: [number, number, number]; offsetType?: 'modify' | 'new' | 'auto'; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // faceFp（S128/S125 扩展）= 拾取面持久面指纹（缺省退回 near-point）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行）；dir（S192）= 任意方向移面向量（缺省=沿面法向，即旧按拉）；offsetType（GM-3DV3 M5 Offset Type）= Fusion Press Pull 面偏移嘅 Offset Type 元数据（modify/new/auto）— worker 不读几何（webcad 恒加节点=New 语义）
   | { id: string; type: 'rib'; path: [number, number][]; thickness: number; height: number; baseZ?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; op?: BoolOp; draft?: number /* S191：拔模角°——筋身向远端逐渐收窄（注塑/冲压脱模），逐段 base→top 锥化 loft */; thDir?: 'sym' | 'one' /* GM-3DV1 S1：厚度方向 — sym=中心线两側各半（旧行为，缺省）/ one=全部厚度落中心线单侧(+法向) */; extent?: 'next' | 'distance' /* GM-3DV1 S1：范围 — next=有实体时落到实体底并融合（旧行为，缺省）/ distance=永远向上 height（就算有实体） */; flip?: boolean /* GM-3DV1 S1：翻转筋挤出方向（up↔down） */; extend?: boolean /* GM-3DV1 S1（Web Extend Curves）：把开放折线端点沿末段方向外延（有实体时钳到实体 XY 包围盒边，令筋网到墙；无实体 = 固定外延），令交叉/近墙筋网自动闭合 */ }
   | { id: string; type: 'text'; text: string; size: number; height: number; op: BoolOp; plane?: Plane; baseZ?: number; x?: number; y?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }  // S162 Emboss：arbPlane = 落喺拾中嘅面上（沿法向 raise/engrave），无 = 旧 XY 文字
   // 独立草图（T756）：纯 2D 草图特征 — 无实体输出，净系喺时间轴锚住一个 sketchSources 入口（Fusion「完成草图」同款）。
   // 对 pattern/cpattern 嘅 prevBefore 邻接逻辑完全透明（见 buildShape 三处 sketch 跳过）。
-  | { id: string; type: 'sketch'; sketchId?: string }
+  | { id: string; type: 'sketch'; sketchId?: string; sketchFaceBinding?: SketchFaceBinding; plane?: Plane; baseZ?: number; arbPlane?: { o: [number,number,number]; xd: [number,number,number]; n: [number,number,number] } }
   // GM-W5 5.1：参考面 / datum 平面 = 真时间轴特征（零几何 —— 同独立草图一样纯占位节点）。base/offset/angle/aaxis/arb/src
   // 由 store 映射自 planes[] 元素形状（而家 planes[] 反过来由呢啲 datum 特征派生）。rebuild 回放时【SKIP】（贡献零几何）。
   // stale = 关联源面（有 src）搵唔返，rederiveDatums 写返落 feature（诚实黄标，几何唔郁）。
@@ -151,6 +155,7 @@ export type Feature =
   // v/t = 烘焙咗世界位姿嘅顶点/三角；缝合成 shell → solid → UnifySameDomain 合并共面（boxy 件出真平面/真边）。
   | { id: string; type: 'meshbody'; v: number[]; t: number[]; op?: BoolOp; fit?: 'faceted' | 'param' | 'prismatic' }  // B4：fit='param' → 圆柱区重建真 Geom_CylindricalSurface（识别失败/未封实体 → 退 faceted，零迴歸）；缺省/faceted = 旧逐三角路（逐字节）
 
+let resolvedSketchFaces: Record<string, ResolvedSketchFace> = {}
 let current: any = null
 let _stepDbg = ''   // T762 DEV 探针：importStepAssembly 行到边一步（getStepDbg 读）
 // Collected per-rebuild: honest notes when an op had to auto-adjust (e.g. fillet radius shrunk to fit, shell thinned).
@@ -406,7 +411,30 @@ function _nurbsNetOfFace(r: (h: any) => any, faceWrapped: any): { bs: any; ow: a
 }
 
 // The 2D outline (replicad Drawing) of a profile — before placing on a plane. Reused for offset/draft.
+function ellipseArcProfilePen(e: EllipseArcGeometry) {
+  const sweep=ellipseArcSweep(e),start=ellipseArcPoint(e,e.a0)
+  if(![e.cx,e.cy,e.rx,e.ry,e.rot,e.a0].every(Number.isFinite)||e.rx<=0||e.ry<=0)throw new Error('Invalid elliptical arc profile')
+  let pen=draw(start)
+  // A full legacy turn has identical endpoints; two exact half-arcs avoid SVG
+  // endpoint ambiguity without tessellating the native curve.
+  const count=Math.abs(sweep)>=360-1e-9?2:1
+  for(let i=1;i<=count;i++){const end=ellipseArcPoint(e,e.a0+sweep*i/count);pen=pen.ellipseTo(end,e.rx,e.ry,e.rot,Math.abs(sweep/count)>180,sweep>0)}
+  return pen
+}
+
+function cubicProfilePen(segments: CubicBezierSegment[]) {
+  if(!segments.length || segments.some((seg,i)=>seg.length!==4||seg.some(q=>q.length!==2||!q.every(Number.isFinite))||(i>0&&Math.hypot(seg[0][0]-segments[i-1][3][0],seg[0][1]-segments[i-1][3][1])>1e-7)))throw new Error('Invalid or discontinuous cubic spline profile')
+  let pen=draw(segments[0][0]);for(const seg of segments)pen=pen.cubicBezierCurveTo(seg[3],seg[1],seg[2]);return pen
+}
 function profileToDrawing(p: SketchProfile): any {
+  if (p.islands) {
+    const { islands, ...outer } = p
+    return islands.reduce((drawing, island) => drawing.fuse(profileToDrawing(island)), profileToDrawing(outer))
+  }
+  if (p.holes?.length) {
+    const { holes, ...outer } = p
+    return holes.reduce((drawing, hole) => drawing.cut(profileToDrawing(hole)), profileToDrawing(outer))
+  }
   if (p.kind === 'ellipse') {
     // S87：真椭圆单曲线（drawSingleEllipse 要 major≥minor，沿 X 为长轴）→ 旋转/平移到位。
     const rx = Math.max(1e-3, p.rx), ry = Math.max(1e-3, p.ry), rot = p.rot || 0
@@ -420,25 +448,18 @@ function profileToDrawing(p: SketchProfile): any {
     return draw([x0, y0]).lineTo([x1, y0]).lineTo([x1, y1]).lineTo([x0, y1]).close()
   }
   if (p.kind === 'poly') {
+    if(p.cubics?.length)return cubicProfilePen(p.cubics).close()
     // Augmented arc-poly → a TRUE circular-arc edge + chord close (real B-rep arc, not a 24-gon):
     // downstream fillet / drawings / STEP all see one circular edge instead of facet soup.
     if (p.arc) return draw([p.arc.a[0], p.arc.a[1]]).threePointsArcTo([p.arc.b[0], p.arc.b[1]], [p.arc.m[0], p.arc.m[1]]).close()
     // S101[3] 椭圆弧：真椭圆弧边（ellipseTo）+ 弦封口（close）成弓形，可挤出。sweep/longAxis 由 store 端定向
     // （pts 同此边须取同一条弧）；rot/a0/a1 单位=度，与 replicad ellipseTo 一致。
-    if (p.earc) {
-      const e = p.earc
-      const cr = Math.cos(e.rot * Math.PI / 180), sr = Math.sin(e.rot * Math.PI / 180)
-      const P = (ang: number): [number, number] => { const t = ang * Math.PI / 180, ex = e.rx * Math.cos(t), ey = e.ry * Math.sin(t); return [e.cx + ex * cr - ey * sr, e.cy + ex * sr + ey * cr] }
-      const S = P(e.a0), E = P(e.a1)
-      let dA = e.sweep ? (e.a1 - e.a0) : (e.a0 - e.a1)   // 沿 sweep 方向嘅扫角
-      while (dA <= 0) dA += 360; while (dA > 360) dA -= 360
-      const longAxis = dA > 180
-      return draw([S[0], S[1]]).ellipseTo([E[0], E[1]], e.rx, e.ry, e.rot, longAxis, e.sweep).close()
-    }
+    if (p.earc) return ellipseArcProfilePen(p.earc).close()
+
     // Mixed line/arc path (verts+bulges, bulge=tan(θ/4), +=凸向行进左侧): each non-zero bulge becomes a TRUE
     // circular edge. A closing ARC segment must be drawn explicitly — close() only draws a straight chord —
     // and end exactly on verts[0] (bit-identical) so close() doesn't add a sliver edge.
-    if (p.verts && p.bulges && p.verts.length >= 3 && !p.smooth) {
+    if (p.verts && p.bulges && (p.verts.length >= 3 || p.verts.length === 2 && p.bulges.some(b => Math.abs(b) >= 1e-6)) && !p.smooth) {
       const vs = p.verts, n = vs.length
       let pen = draw([vs[0][0], vs[0][1]])
       for (let i = 0; i < n; i++) {
@@ -509,29 +530,25 @@ function lastExtrudeHeight(features: Feature[]): number {
 function edgeFilter(shape: any, edges?: EdgeSel): ((e: any) => any) | undefined {
   if (!edges || edges === 'all') return undefined
   if (edges === 'vertical') return (e: any) => e.inDirection([0, 0, 1])
-  let z = 0
-  try { const b = shape.boundingBox.bounds; z = edges === 'top' ? b[1][2] : b[0][2] } catch { /* default */ }
+  // Meshing may enlarge OCCT's bounding box by its tessellation deflection.
+  // Resolve the actual horizontal edge levels instead of using that display bound.
+  const levels: number[] = []
+  for (const edge of shape.edges) {
+    const zs = [0,.25,.5,.75,1].map(t => edge.pointAt(t).z)
+    if (zs.every(Number.isFinite) && Math.max(...zs)-Math.min(...zs) < 1e-7) levels.push(zs[0])
+  }
+  if (!levels.length) throw new Error('没有可用的水平顶边／底边，请直接选择边')
+  const z = edges === 'top' ? Math.max(...levels) : Math.min(...levels)
   return (e: any) => e.inPlane('XY', z)
 }
-// Fillet/chamfer (all edges, or a selected group); retry smaller sizes if OCCT fails.
+// Apply the requested size exactly; a failed group must not silently shrink or become a no-op.
 function roundEdges(shape: any, kind: 'fillet' | 'chamfer', size: number, edges?: EdgeSel): any {
+  if (!Number.isFinite(size) || size <= 0) throw new Error('圆角／倒角尺寸必须大于零')
   const filt = edgeFilter(shape, edges)
-  const label = kind === 'fillet' ? '圆角' : '倒角'
-  // All-edge rounding can yield an un-meshable solid at the corners (3 blends meet) even when OCCT
-  // returns a shape — so for the no-filter case we mesh-validate each candidate before accepting it.
-  const meshOk = (sh: any): boolean => { try { const m = sh.mesh({ tolerance: 0.2, angularTolerance: 0.5 }); return !!(m && m.triangles && m.triangles.length) } catch { return false } }
-  for (const s of [size, size * 0.6, size * 0.35, size * 0.2]) {
-    try {
-      const r = filt ? (kind === 'fillet' ? shape.fillet(s, filt) : shape.chamfer(s, filt)) : (kind === 'fillet' ? shape.fillet(s) : shape.chamfer(s))
-      if (!filt && !meshOk(r)) continue   // corner blend produced bad geometry — try a smaller radius
-      if (s !== size) buildWarnings.push(`${label} ${size} 太大，已自动缩小到 ${s.toFixed(1)} 以贴合几何`)
-      return r
-    } catch { /* try a smaller size */ }
-  }
-  // All-edge rounding exhausted every radius → keep the original shape (don't crash the whole model) and
-  // steer the user to selective edge picking. Selective rounding still throws (caller surfaces the error).
-  if (!filt) { buildWarnings.push(`${label}全棱失败（角部干涉）— 已保留原形，请用「选边${label}」逐边处理`); return shape }
-  throw new Error(`${kind} failed at all radii`)
+  const result = filt ? (kind === 'fillet' ? shape.fillet(size, filt) : shape.chamfer(size, filt)) : (kind === 'fillet' ? shape.fillet(size) : shape.chamfer(size))
+  const mesh = result.mesh({ tolerance: 0.2, angularTolerance: 0.5 })
+  if (!mesh?.triangles?.length || !mesh.vertices.every(Number.isFinite)) throw new Error('圆角／倒角结果无法显示，请缩小尺寸或减少选择的边')
+  return result
 }
 
 // ── S122 持久边命名 helpers ───────────────────────────────────────────────────────────────
@@ -1406,17 +1423,14 @@ function _rawContinuityFillet(shape: any, mids: [number, number, number][], midR
   } catch { return null }
 }
 
-// ── R1 面圆角 face-fillet（clean-room 窄版）—— 见 _fusion_r1_fillet_plan.md §3 ──────────────────────
-// 拾两张唔相邻面（near1/near2）→ 分类面对 → 平面/柱面(轴⟂平面)对解析切点（filletMath）。
-// 【诚实降级】：真 B-rep blend 裁面+缝合需内核滚球/G1 迭代（真滚球机器 BRepBlend_* 未暴露；GeomPlate G1 对
-//   一般工况实测过冲，且【离线无法验证收敛】）→ 窄版只做【解析切点计算 + 诚实报告】，活动实体【逐字节不变】
-//   （HARD FLOOR：绝不产生退化几何）。真 G1 品质版走 cad2 改核管线（BUILD_CAD2.md），本波唔做。
-// 揾唔到面 / 同一面 / 不支持面对 → 诚实警告，返回原 shape 不变。
+// Adjacent-face fillet resolves a shared B-rep edge and builds the exact radius.
+// Non-adjacent face blends remain unsupported and fail without changing the source.
 function faceFillet(shape: any, radius: number, near1: [number, number, number], near2: [number, number, number]): any {
-  const r = Math.max(0.05, radius || 0)
+  const r = radius
+  if (!Number.isFinite(r) || r <= 0) throw new Error('面圆角半径必须大于零')
   try { shape.mesh({ tolerance: 0.1, angularTolerance: 0.5 }) } catch { /* 三角化供拾面/法向 */ }
   const faces = shape.faces as any[]
-  if (!faces || !faces.length) { buildWarnings.push('面圆角：实体无面 — 已保留原实体'); return shape }
+  if (!faces || !faces.length) throw new Error('面圆角：实体无面 — 已保留原实体')
   const pickFace = (p: [number, number, number]): any => {
     let bf: any = null, bd = Infinity
     for (const fc of faces) {
@@ -1430,8 +1444,8 @@ function faceFillet(shape: any, radius: number, near1: [number, number, number],
     return bf
   }
   const f1 = pickFace(near1), f2 = pickFace(near2)
-  if (!f1 || !f2) { buildWarnings.push('面圆角：拾面解析唔到（近点唔喺任何面上）— 已保留原实体'); return shape }
-  if (f1 === f2) { buildWarnings.push('面圆角：两次拾中同一张面 — 请拾两张唔同嘅面'); return shape }
+  if (!f1 || !f2) throw new Error('面圆角：拾面解析唔到 — 已保留原实体')
+  if (f1 === f2) throw new Error('面圆角：两次拾中同一张面 — 请拾两张唔同嘅面')
   const sharedMid = (() => {
     const d2 = (a: any, b: any) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2
     for (const a of (f1.edges as any[])) {
@@ -1443,22 +1457,16 @@ function faceFillet(shape: any, radius: number, near1: [number, number, number],
     }
     return null
   })()
-  if (!sharedMid) { buildWarnings.push('面圆角：两张面没有共同 B-rep 边 — 当前可靠模式只支持相邻面；已保留原实体'); return shape }
-  // Adjacent-face Face Fillet is a genuine edge fillet resolved from the two
-  // selected faces' shared topological edge.  Retry a smaller radius exactly
-  // like the standard Fillet command; never retain a bad result.
-  for (const rr of [r, r * 0.6, r * 0.35, r * 0.2]) {
-    try {
-      const out = shape.fillet(rr, (edge: any) => edge.containsPoint(sharedMid))
-      const mesh = out.mesh({ tolerance: 0.15, angularTolerance: 0.5 })
-      if (out?.wrapped && !out.wrapped.IsNull() && mesh?.triangles?.length) {
-        if (rr !== r) buildWarnings.push(`面圆角 R${r} 太大，已自动缩小到 ${rr.toFixed(1)} 以贴合共同边`)
-        return out
-      }
-    } catch { /* try a smaller valid radius */ }
-  }
-  buildWarnings.push(`面圆角 R${r} 无法在两面共同边生成有效 B-rep — 已保留原实体`)
-  return shape
+  if (!sharedMid) throw new Error('面圆角：两张面没有共同 B-rep 边 — 当前可靠模式只支持相邻面；已保留原实体')
+  // Use the exact requested radius; the rebuild transaction records failure
+  // and keeps the predecessor if this adjacent-face blend cannot be made.
+  const rr = r
+  try {
+    const out = shape.fillet(rr, (edge: any) => edge.containsPoint(sharedMid))
+    if (validShellSolid(out)) return out
+  } catch { /* report the exact-radius failure below */ }
+  throw new Error(`面圆角 R${r} 无法在两面共同边生成有效 B-rep — 已保留原实体`)
+
 }
 
 // Fillet/chamfer the edges nearest a SET of 3D points (CAD coords) — Fusion-style multi-edge selection.
@@ -1956,7 +1964,97 @@ function meshToBrepParametric(v: number[], t: number[], mode: 'param' | 'prismat
   return { shape: shp, cylCount: 1, coverage }
 }
 
+// Only planar, geometrically unchanged faces with the same oriented normal may
+// carry a sketch in this first version. A nearest-face guess could select a boss
+// or the opposite side after deletion, so ambiguity is a hard failure.
+function sketchPlanarDescriptor(face: any): { normal: [number, number, number]; offset: number; area: number; edgeLengths: number[]; outline: string[]; center: [number, number, number] } | null {
+  if (String(face.geomType).toUpperCase() !== 'PLANE') return null
+  const c = face.center, nn = face.normalAt([c.x, c.y, c.z]).normalized()
+  const normal: [number, number, number] = [nn.x, nn.y, nn.z]
+  const center: [number, number, number] = [c.x, c.y, c.z]
+  const area=measureArea(face)
+  const q=(p: number[])=>p.map((x,i)=>Math.round((x-center[i])*1e6)).join(',')
+  const outline=face.edges.map((edge: any)=> {
+    if (edge.geomType==='LINE') return 'LINE:'+ [q(edge.startPoint.toTuple()),q(edge.endPoint.toTuple())].sort().join(';')
+    return edge.geomType+':'+Array.from({length:16},(_,i)=>q(edge.pointAt(i/16).toTuple())).sort().join(';')
+  }).sort()
+  const edgeLengths = face.edges.map((e: any) => e.length).sort((a: number,b: number)=>a-b)
+  return { normal, center, offset: center.reduce((sum, x, i)=>sum+x*normal[i],0), area, edgeLengths, outline }
+}
+function resolveSketchFace(shape: any, binding: SketchFaceBinding): ResolvedSketchFace {
+  if (!shape) throw new Error('草图来源面失效：来源实体不存在')
+  shape.mesh({ tolerance: 0.1, angularTolerance: 0.5 })
+  // Exact geometric containment is independent of the display triangulation
+  // fingerprint. It is never a nearest-face or nearest-point selection.
+  const containsOriginalAnchor = ({face,desc}: any): boolean => {
+    if (!desc || !desc.normal.every((x: number,i: number)=>Math.abs(x-binding.normal[i])<1e-7) || Math.abs(desc.offset-binding.offset)>1e-6) return false
+    const tri=face.triangulation(),v=tri?.vertices,t=tri?.trianglesIndexes,p=binding.near
+    if (!v || !t) return false
+    for (let i=0;i<t.length;i+=3) {
+      const a=t[i]*3,b=t[i+1]*3,c=t[i+2]*3
+      if (ptTriDist2(p[0],p[1],p[2],v[a],v[a+1],v[a+2],v[b],v[b+1],v[b+2],v[c],v[c+1],v[c+2])<1e-12) return true
+    }
+    return false
+  }
+
+  const planarFaces = shape.faces.map((face: any)=>({face,desc:sketchPlanarDescriptor(face)}))
+  const anchoredFaces = planarFaces.filter(containsOriginalAnchor)
+  let candidates = planarFaces.filter(({desc}: any)=>desc &&
+    desc.normal.every((x: number,i: number)=>Math.abs(x-binding.normal[i])<1e-7) &&
+    Math.abs(desc.area-binding.area)<Math.max(1e-5,binding.area*1e-7) &&
+    JSON.stringify(desc.outline)===JSON.stringify(binding.outline) && desc.edgeLengths.length===binding.edgeLengths.length && desc.edgeLengths.every((x: number,i: number)=>Math.abs(x-binding.edgeLengths[i])<1e-6))
+  let boundaryChanged = false
+  if (!candidates.length) {
+    // A changed outline may still be the very same support plane (e.g. grow an
+    // upstream boss radius). Require the original picked interior point to lie
+    // on exactly one face of that exact plane; never choose the closest face.
+    candidates=anchoredFaces
+    boundaryChanged=true
+  }
+  if (candidates.length > 1 && !boundaryChanged) {
+    const bbox = _fpBboxVerts(shape)
+    // Equal faces can coexist. Rebuilding a compound source can change mesh
+    // fingerprints without moving its faces. If exact fingerprint identity is
+    // unavailable, require exactly one original-anchor-containing support face.
+    const fingerprintMatches = candidates.filter(({face}: any)=>_ffFaceFp(face,bbox)===binding.faceFp[0])
+    if (fingerprintMatches.length === 1) candidates = fingerprintMatches
+    else {
+      // The picked face may have changed its boundary while other repeated
+      // faces still match the old descriptor. Search every exact support face.
+      candidates = anchoredFaces
+      boundaryChanged = true
+    }
+  }
+  // A different unchanged repeated face can be the only old-descriptor match.
+  // Prefer the unique face that still contains the actual original anchor.
+  // If both identify the same face, retain its translation-following behavior.
+  if (anchoredFaces.length === 1 && (candidates.length !== 1 || candidates[0] !== anchoredFaces[0])) {
+    candidates = anchoredFaces
+    boundaryChanged = true
+  }
+  if (candidates.length !== 1) {throw new Error('草图来源面失效或有歧义：请修复面关联；已保留原模型')}
+  // Fingerprints provide the same persistent identity vocabulary as other face
+  // tools. Descriptor uniqueness is additionally required even if an old near
+  // point would let the general face picker choose one of multiple candidates.
+  const desc = candidates[0].desc
+  // The descriptor above selected the unique support face. This advisory
+  // consistency check must not report the general picker's unused fallback.
+  const warningCount = buildWarnings.length
+  const selected = _ffSelectPts(shape,binding.faceFp,[binding.near],binding.faceFpV2,binding.faceFpTopo)
+  buildWarnings.splice(warningCount)
+  if (!boundaryChanged && selected?.length && Math.abs(selected[0].reduce((sum: number,x: number,i: number)=>sum+x*desc.normal[i],0)-desc.offset)>1e-5)
+    throw new Error('草图来源面引用不一致：请重新选择来源面')
+  const delta = (boundaryChanged ? binding.normal.map(x=>x*(desc.offset-binding.offset)) : desc.center.map((x: number,i: number)=>x-binding.center[i])) as [number,number,number]
+  const near=binding.near.map((x,i)=>x+delta[i]) as [number,number,number]
+  const refs = _ffCapture(shape,[near])
+  return { delta, binding: { ...binding, near, center:desc.center, outline:desc.outline, area:desc.area, edgeLengths:desc.edgeLengths, offset: desc.offset, faceFp: refs.v1, faceFpV2: refs.v2, faceFpTopo: refs.topo } }
+
+}
+
 function buildShape(features: Feature[], noCache = false): any {
+  resolvedSketchFaces = {}
+  // Complete prefix history is needed even when a consumer itself is cached.
+  if (features.some(f=>(f.type==='extrude' || f.type==='sketch' || f.type==='revolve') && f.sketchFaceBinding)) noCache = true
   buildWarnings = []
   failedFeatures = []
   parkedBodies = []
@@ -1981,23 +2079,27 @@ function buildShape(features: Feature[], noCache = false): any {
   const TARGETED = new Set(['circPattern', 'pattern', 'pathpattern', 'mirror', 'geoPattern'])
   const cpTargets = new Set<string>()
   for (const f of features) { const t = (f as { targets?: string[] }).targets; if (TARGETED.has(f.type) && t) for (const x of t) cpTargets.add(x) }
-  const cpSnap: Record<string, { before: any; after: any }> = {}
+  const cpSnap: Record<string, { before: any; after: any; cutTool?: any }> = {}
   // T781：对一组变换逐目标重放 delta — 切除目标重切 removed 区域，加料目标 fuse added 区域（T757 语义照搬）
   const applyTargetDeltas = (targets: string[], xforms: ((s: any) => any)[], label: string, nudge: [number, number, number] = [0, 0, 1]) => {
     for (const tid of targets) {
       const snap = cpSnap[tid]
-      if (!snap || !snap.after) { buildWarnings.push(`${label}：目标特征唔存在/被抑制 — 已跳过该目标`); continue }
+      if (!snap || !snap.after) throw new Error(`${label}：目标特征不存在或已被抑制，原模型保留`)
       const tf = features.find((x) => x.id === tid) as { operation?: string; op?: string } | undefined
       const wasCut = !!tf && (tf.operation === 'cut' || tf.op === 'cut')
       try {
         if (wasCut && snap.before) {
-          const removed = snap.before.clone().cut(snap.after.clone())
+          const removed = snap.cutTool ? snap.cutTool.clone() : snap.before.clone().cut(snap.after.clone())
           for (const xf of xforms) shape = shape.cut(xf(removed.clone()))
         } else {
+          if (snap.before) {
+            const removed = snap.before.clone().cut(snap.after.clone())
+            if (removed.faces.length) for (const xf of xforms) shape = shape.cut(xf(removed.clone()))
+          }
           const added = snap.before ? snap.after.clone().cut(snap.before.clone()) : snap.after.clone()
-          for (const xf of xforms) shape = fuseRobust(shape, xf(added.clone()), nudge)   // #70：兜底微沉沿真正错开方向（阵列轴/平移方向），唔再写死世界 Z
+          if (added.faces.length) for (const xf of xforms) shape = fuseRobust(shape, xf(added.clone()), nudge)   // #70：兜底微沉沿真正错开方向（阵列轴/平移方向），唔再写死世界 Z
         }
-      } catch (e) { buildWarnings.push(`${label}副本失败（目标 delta 布尔）：` + ((e as any)?.message || e)) }
+      } catch (e) { throw new Error(`${label}副本失败（目标 delta 布尔）：` + ((e as any)?.message || e)) }
     }
   }
   // ── 增量重建（T730）：揾同上次特征序列嘅最长公共前缀，由该处快照续算 ──
@@ -2075,6 +2177,21 @@ function buildShape(features: Feature[], noCache = false): any {
     const _shapeBefore = shape  // S107 逐特征隔离：dispatch 前快照，坏特征回滚（hole/boolean 可能改到一半先 throw）
     const _parkedBefore = parkedBodies.slice()  // S110：parked 亦要原子回滚（newbody push 后才 throw 唔会污染后续）
     try {
+      const f = (() => {
+        let candidate = features[_i]
+      if ((candidate.type === 'extrude' || candidate.type === 'sketch' || candidate.type === 'revolve') && candidate.sketchFaceBinding) {
+        const binding = candidate.sketchFaceBinding
+        const sourceIndex = features.findIndex(x=>x.id===binding.sourceId)
+        if (sourceIndex < 0 || sourceIndex >= _i || failedFeatures.some(x=>x.id===binding.sourceId)) throw new Error('草图来源面失效：来源时间轴特征不存在或顺序无效')
+        const resolved = resolveSketchFace(_shapeHistory[sourceIndex],binding)
+        resolvedSketchFaces[candidate.id] = resolved
+        const d = resolved.delta
+        candidate = shiftBoundSketchFeature(candidate,d)
+      }
+        return candidate
+      })()
+
+
     if (f.type === 'extrude') {
       if (f.arbPlane) {
         // Sketch on an arbitrary flat face/plane (origin o, xDir xd, normal n — all CAD coords).
@@ -2127,7 +2244,7 @@ function buildShape(features: Feature[], noCache = false): any {
             if (_lastResolvedFaceFpTopo?.length) { _resolvedFaceFpTopo[f.id] = _lastResolvedFaceFpTopo; _lastResolvedFaceFpTopo = null }
           } catch (e) { buildWarnings.push('任意面到面拉伸解析失败：' + ((e as any)?.message || e) + ' — 已用上次已知高度') }
         }
-        const h = f.operation === 'cut' ? effHeight + 1 : effHeight
+        const h = f.operation === 'cut' && !f.exactDistance ? effHeight + 1 : effHeight
         // GM-W1 1.3：尊重 f.down（⇅ 反向）— 旧版方向硬编 cut→−n / add→+n，斜面/角度面草图撳反向完全无效
         //（预览有跟、内核唔跟 → 静默切空）。byte-compat：旧特征 down=undefined → dir=1 → 几何逐字节不变。
         const dirA = effDown ? -1 : 1
@@ -2137,6 +2254,7 @@ function buildShape(features: Feature[], noCache = false): any {
         else if (f.operation === 'intersect') { _recordBool(_i, 'intersect', solid); shape = shape.intersect(solid) }
         else if (f.operation === 'newbody') parkedBodies.push({ name: `实体${parkedBodies.length + 1}`, shape: solid })   // P2 New Body（斜面拉伸同样支持）
         else { _recordBool(_i, 'fuse', solid); shape = shape.fuse(solid) }
+        if (_cpT) cpSnap[f.id] = { before: _cpB, after: shape ? shape.clone() : null, cutTool: _boolKindAt[_i] === 'cut' ? _boolToolAt[_i]?.clone() : undefined }
         prevBefore = snapBefore; prevWasCut = f.operation === 'cut'
         rcRecord(_i)
         recordHistory(_i)   // S1：arbPlane extrude 早 continue 分支亦录 shape 历史（index-keyed 对齐）
@@ -2221,7 +2339,7 @@ function buildShape(features: Feature[], noCache = false): any {
         if (shape) { _recordBool(_i, 'cut', tool); shape = shape.cut(tool) }   // GM-γ2b：面盲袋切除亦录工具体供 S2
       } else {
         // Cuts extrude a bit below their base plane so they slice cleanly through.
-        const h = f.operation === 'cut' ? effHeight + 1 : effHeight   // P2：effHeight/effDown = toFace 实时解析值（无 toFace 时 === f.height/f.down 逐字节）
+        const h = f.operation === 'cut' && !f.exactDistance ? effHeight + 1 : effHeight   // P2：effHeight/effDown = toFace 实时解析值（无 toFace 时 === f.height/f.down 逐字节）
         // Direction: `down` flips the extrude to the opposite side of the sketch plane (reverse button /
         // negative distance). Symmetric is centred either way, so it ignores the flip.
         const dn = (effDown && !f.symmetric) ? -1 : 1
@@ -2258,7 +2376,7 @@ function buildShape(features: Feature[], noCache = false): any {
         // Cut overshoots 0.5 BEHIND the base along the actual travel direction. 实战 T744 截到：旧式用 dn
         // 冇计 RES_SIGN（XZ 面 extrude(+) 走 −Y）→ XZ+反向 嘅盲切 overshoot 摆错边，留 0.5mm 皮切唔穿。
         const trav = (RES_SIGN[plane] * Math.sign(eh)) || 1   // 工具实际行进方向（沿 n 嘅正负）
-        let off = f.operation === 'cut' ? base - 0.5 * trav : base
+        let off = f.operation === 'cut' && !f.exactDistance ? base - 0.5 * trav : base
         if (f.symmetric) off -= RES_SIGN[plane] * f.height / 2   // 居中要沿实际行进方向（XZ 面 RES_SIGN=−1，旧版恒减 h/2 → 整段偏到一边、同草图唔对位）
         if (off !== 0) solid = solid.translate(n[0] * off, n[1] * off, n[2] * off)
         if (!shape) shape = solid
@@ -2273,9 +2391,13 @@ function buildShape(features: Feature[], noCache = false): any {
       const ang = f.angle ?? 360
       // Keep a Revolve profile in the sketch frame it was authored on.  Flattening XZ/YZ
       // or arbitrary planar-face profiles to XY produces a plausible but wrong solid.
+      // Named XZ offsets run along -Y; bound baseZ records the actual CAD Y coordinate.
+      // Keep unbound legacy files on their historical offset convention.
       const sk = f.arbPlane
         ? profileOnPlane(f.profile, new RPlane(f.arbPlane.o as any, f.arbPlane.xd as any, f.arbPlane.n as any))
-        : profileToSketch(f.profile, f.baseZ ?? 0, f.plane ?? 'XY')
+        : f.sketchFaceBinding && f.plane === 'XZ'
+          ? profileToSketch(f.profile, -(f.baseZ ?? 0), 'XZ')
+          : profileToSketch(f.profile, f.baseZ ?? 0, f.plane ?? 'XY')
       let rax: [number, number, number] = f.axis === 'X' ? [1, 0, 0] : [0, 1, 0]
       if (f.axisV) {
         const al = Math.hypot(f.axisV[0], f.axisV[1], f.axisV[2])
@@ -2329,16 +2451,16 @@ function buildShape(features: Feature[], noCache = false): any {
     } else if (f.type === 'bodyboolean') {
       // 活动实体 ⊗ 泊车实体（真 B-rep 布尔 — 结果仲可以圆角/抽壳/导 STEP，对比 T723 网格级组件布尔）
       const t = parkedBodies[f.target]
-      if (!shape) buildWarnings.push('⚠ 实体布尔：冇活动实体 — 已忽略')
-      else if (!t) buildWarnings.push(`⚠ 实体布尔：揾唔到目标实体 #${f.target + 1} — 已忽略`)
+      if (!shape) throw new Error('实体布尔：没有活动实体')
+      else if (!t) throw new Error(`实体布尔：工具实体 #${f.target + 1} 不存在或已被前一步消耗；请重新选择工具体`)
       else {
         try {
           // GM-γ2b：实体布尔（活动体 ⊗ 泊车体）录工具体供 S2 追踪。common → intersect（同款 BRepAlgoAPI_Common）。
           const bKind = f.bop === 'cut' ? 'cut' : f.bop === 'common' ? 'intersect' : 'fuse'
           _recordBool(_i, bKind, t.shape)
-          shape = f.bop === 'cut' ? shape.cut(t.shape) : f.bop === 'common' ? shape.intersect(t.shape) : shape.fuse(t.shape)
+          shape = f.bop === 'cut' ? shape.clone().cut(t.shape.clone()) : f.bop === 'common' ? shape.clone().intersect(t.shape.clone()) : shape.clone().fuse(t.shape.clone())
           if (!f.keep) parkedBodies.splice(f.target, 1)   // S185 Keep Tools：keep 时工具体保留做泊车体（可复用）；缺省=消耗（旧档逐字节回放）
-        } catch (e) { buildWarnings.push(`⚠ 实体布尔失败（${(e as Error)?.message || e}）— 已保留原实体`) }
+        } catch (e) { throw new Error(`实体布尔失败：${(e as Error)?.message || e}`) }
       }
     } else if (f.type === 'boundaryfill') {
       // 两个封闭 solid 的 Boundary Fill：用独立 clone 构建 3 个互斥 cell。切勿复用布尔 operand，OCCT/replicad
@@ -2402,7 +2524,7 @@ function buildShape(features: Feature[], noCache = false): any {
         if (resolved?.length === 2) { n1 = resolved[0]; n2 = resolved[1] }
         else buildWarnings.push('面圆角：面指纹无法唯一解析，已退回原拾面点')
       }
-      try { shape = faceFillet(shape, f.radius, n1, n2) ?? shape } catch (e) { buildWarnings.push(`⚠ 面圆角失败（${(e as Error)?.message || e}）— 已保留原实体`) }
+      shape = faceFillet(shape, f.radius, n1, n2)
     } else if (f.type === 'shell' && shape) {
       const shellFeatureIndex = features.findIndex((feature) => feature.id === f.id)
       const followsUnsafeLoft = shellFeatureIndex > 0 && hasUnsafeLoftShellAdjacency(features[shellFeatureIndex - 1])
@@ -2430,7 +2552,7 @@ function buildShape(features: Feature[], noCache = false): any {
       const finder = (ns && ns.length)
         ? (ns.length === 1 ? (ff: any) => ff.containsPoint(ns[0]) : (ff: any) => ff.either(ns.map((M) => (g: any) => g.containsPoint(M))))
         : (ff: any) => ff.inPlane('XY', _shellTopZ)
-      // Shelling a solid whose edges are already rounded is brittle in OCCT; retry thinner walls.
+      // Preserve the requested thickness and direction; failed offsets must not change dimensions.
       // GM-3DV3 M2 壁厚方向 Direction（Inside/Outside/Both）—— 取代旧「负壁厚一律当非法」嘅 guard：
       //   inside（缺省）: shell(+t)，墙向内长、外形保留（旧行为逐字节）。
       //   outside: shell(−t)，墙向外长（replicad/OCCT 负厚度 = 向外壳；外尺寸 +t）。
@@ -2440,7 +2562,7 @@ function buildShape(features: Feature[], noCache = false): any {
       const _sign = _dir === 'outside' ? -1 : 1
       let shelled: any = null
       if (f.thickness > 0) {
-        const retry = [f.thickness, f.thickness * 0.6, f.thickness * 0.35, f.thickness * 0.2]
+        const retry = [f.thickness]
         if (f.closed) {
           // Fusion Closed Body：零移除面先得到内缩/外扩实体，再以布林差集形成真正封闭空腔。
           // inside = 原体−内缩体；outside = 外扩体−原体；both = 外扩半厚−内缩半厚。
@@ -2449,7 +2571,6 @@ function buildShape(features: Feature[], noCache = false): any {
               if (_dir === 'inside') shelled = shape.cut(_shellExactFaces(shape, t, []))
               else if (_dir === 'outside') shelled = _shellExactFaces(shape, -t, []).cut(shape)
               else shelled = _shellExactFaces(shape, -t / 2, []).cut(_shellExactFaces(shape, t / 2, []))
-              if (t !== f.thickness) buildWarnings.push(`封闭抽壳壁厚 ${f.thickness} 太厚，已自动减薄到 ${t.toFixed(1)} 才成功`)
               break
             } catch { shelled = null }
           }
@@ -2459,16 +2580,16 @@ function buildShape(features: Feature[], noCache = false): any {
             try {
               const r = GCWithScope()
               const mos: any = r(new (_oc as any).BRepOffsetAPI_MakeOffsetShape())
-              mos.PerformByJoin(shape.wrapped, f.thickness / 2, 1e-3, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, false, false, (_oc as any).GeomAbs_JoinType.GeomAbs_Arc, false, r(new (_oc as any).Message_ProgressRange_1()))
-              if (mos.IsDone && mos.IsDone()) { const off = r(mos.Shape()); if (off && !off.IsNull()) { _shellBase = cast(_orientSolidOutward(off)); try { _shellBase.mesh({ tolerance: 0.1, angularTolerance: 0.5 }) } catch { /* face resolve will retry */ } } else buildWarnings.push('抽壳「两侧」：外扩半壁返空 — 已退回向内抽壳') }
-              else buildWarnings.push('抽壳「两侧」：外扩半壁失败 — 已退回向内抽壳')
-            } catch { buildWarnings.push('抽壳「两侧」：外扩半壁抛错 — 已退回向内抽壳') }
+              mos.PerformByJoin(shape.wrapped, f.thickness / 2, 1e-3, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, false, false, (_oc as any).GeomAbs_JoinType.GeomAbs_Intersection, false, r(new (_oc as any).Message_ProgressRange_1()))
+              if (mos.IsDone && mos.IsDone()) { const off = r(mos.Shape()); if (off && !off.IsNull()) { _shellBase = cast(_orientSolidOutward(off)); try { _shellBase.mesh({ tolerance: 0.1, angularTolerance: 0.5 }) } catch { /* face resolve will retry */ } } else throw new Error('empty offset') }
+              else throw new Error('offset failed')
+            } catch { throw new Error('抽殼兩側外擴失敗，已保留原模型；請調整壁厚') }
           }
           let chainReported = false
           const openAttempt = (base: any, t: number, signed = _sign) => {
-            if (f.tangentChain && ns?.length) {
+            if ((f.tangentChain || _dir === 'both') && ns?.length) {
               const seeds = _shellFaceIndicesNear(base, ns)
-              const chain = _shellTangentClosure(base, seeds)
+              const chain = f.tangentChain ? _shellTangentClosure(base, seeds) : seeds
               if (!chain.length) throw new Error('shell face resolution failed')
               if (!chainReported && chain.length > seeds.length) { buildWarnings.push(`抽壳切线链：由 ${seeds.length} 个所选面扩展到 ${chain.length} 个 G1 连续面`); chainReported = true }
               return _shellExactFaces(base, signed * t, chain)
@@ -2476,18 +2597,20 @@ function buildShape(features: Feature[], noCache = false): any {
             return base.shell(signed * t, finder)
           }
           for (const t of retry) {
-            try { shelled = openAttempt(_shellBase, t); if (t !== f.thickness) buildWarnings.push(`抽壳壁厚 ${f.thickness} 太厚，已自动减薄到 ${t.toFixed(1)} 才成功`); break } catch { shelled = null }
+            try { shelled = openAttempt(_shellBase, t); break } catch { shelled = null }
           }
-          // both 外扩后仍失败 → 退回原实体向内抽壳（诚实 fallback）
-          if (!shelled && _dir === 'both' && _shellBase !== shape) {
-            for (const t of retry.slice(0, 3)) { try { shelled = openAttempt(shape, t, 1); break } catch { shelled = null } }
-            if (shelled) buildWarnings.push('抽壳「两侧」：外扩壳抽壳失败 — 已退回纯向内抽壳（壁全喺内侧）')
-          }
+
         }
+      }
+      if (shelled && !validShellSolid(shelled)) {
+        const openings = ns?.length ? _shellFaceIndicesNear(shape, ns) : shape.faces.map((face: any, i: number) => ({face,i})).filter(({face}: any) => face.geomType === 'PLANE' && Math.abs(face.center.z-_shellTopZ)<1e-7).map(({i}: any) => i)
+        if (_dir !== 'inside' || f.closed || openings.length !== 1) throw new Error('抽殼產生無效實體，已保留原模型；請調整開口或壁厚')
+        shelled = prismaticInwardShell(shape, openings[0], f.thickness)
+        buildWarnings.push('抽殼：相鄰內壁偏移相交，已按原壁厚重建直柱型腔')
       }
       if (shelled) shape = shelled
       else if (!(f.thickness > 0)) buildWarnings.push(`抽壳：壁厚必须 > 0（值 ${f.thickness} 非法，可能来自参数驱动绕过 UI 下限）— 已跳过抽壳，保留实体`)   // 零壁厚 OCCT 全 retry 抛错 → 改诚实跳过而非泛型「shell failed」
-      else throw new Error('shell failed at all thicknesses')
+      else throw new Error('抽殼無法按指定壁厚及方向完成，已保留原模型；請調整壁厚或開口面')
       { const _cap = _lastResolvedFaceFp as string[] | null; if (_cap && _cap.length) { _resolvedFaceFp[f.id] = _cap; _lastResolvedFaceFp = null } }
       { const _capV2 = _lastResolvedFaceFpV2 as string[] | null; if (_capV2 && _capV2.length) { _resolvedFaceFpV2[f.id] = _capV2; _lastResolvedFaceFpV2 = null } { const _capTopo = _lastResolvedFaceFpTopo as string[] | null; if (_capTopo && _capTopo.length) { _resolvedFaceFpTopo[f.id] = _capTopo; _lastResolvedFaceFpTopo = null } } }   // S136：v2 平行写回
       }
@@ -2834,6 +2957,7 @@ function buildShape(features: Feature[], noCache = false): any {
                   ...p,
                   pts: (p.pts ?? []).map((q) => [q[0] + dx, q[1] + dy] as [number, number]),
                   verts: p.verts?.map((q) => [q[0] + dx, q[1] + dy] as [number, number]),
+                  cubics:p.cubics?.map(seg=>seg.map(q=>[q[0]+dx,q[1]+dy]) as CubicBezierSegment),
                   arc: p.arc ? { a: [p.arc.a[0] + dx, p.arc.a[1] + dy], b: [p.arc.b[0] + dx, p.arc.b[1] + dy], m: [p.arc.m[0] + dx, p.arc.m[1] + dy] } : undefined,
                   earc: p.earc ? { ...p.earc, cx: p.earc.cx + dx, cy: p.earc.cy + dy } : undefined,  // S101：椭圆弧边随平移，唔好同 pts 脱节
                 }
@@ -3332,7 +3456,9 @@ function buildShape(features: Feature[], noCache = false): any {
           const pts = f.profile.pts
           let pen = draw([pts[0][0], pts[0][1]])
           const sm = (f.profile as { smooth?: boolean }).smooth && pts.length >= 3   // S177：开放 smooth 截面（圆锥曲线/样条）走 smoothSplineTo 拟合真平滑边，唔好 lineTo 出 facet
-          for (let i = 1; i < pts.length; i++) pen = sm ? pen.smoothSplineTo([pts[i][0], pts[i][1]]) : pen.lineTo([pts[i][0], pts[i][1]])
+          if(f.profile.earc)pen=ellipseArcProfilePen(f.profile.earc)
+          else if(f.profile.cubics?.length)pen=cubicProfilePen(f.profile.cubics)
+          else for (let i = 1; i < pts.length; i++) pen = sm ? pen.smoothSplineTo([pts[i][0], pts[i][1]]) : pen.lineTo([pts[i][0], pts[i][1]])
           wire = (pen.done().sketchOnPlane(plane, baseZ) as any).wire   // 开放折线 → 开放 wire（.done 非 .close）
         } else {
           wire = (profileToSketch(f.profile, baseZ, plane) as any).wire   // 闭合截面 → 闭合 wire（无盖 tube）
@@ -3357,7 +3483,9 @@ function buildShape(features: Feature[], noCache = false): any {
           const pts = f.profile.pts
           let pen = draw([pts[0][0], pts[0][1]])
           const sm = (f.profile as { smooth?: boolean }).smooth && pts.length >= 3   // S177：smooth 截面（圆锥曲线/样条）走 smoothSplineTo
-          for (let i = 1; i < pts.length; i++) pen = sm ? pen.smoothSplineTo([pts[i][0], pts[i][1]]) : pen.lineTo([pts[i][0], pts[i][1]])
+          if(f.profile.earc)pen=ellipseArcProfilePen(f.profile.earc)
+          else if(f.profile.cubics?.length)pen=cubicProfilePen(f.profile.cubics)
+          else for (let i = 1; i < pts.length; i++) pen = sm ? pen.smoothSplineTo([pts[i][0], pts[i][1]]) : pen.lineTo([pts[i][0], pts[i][1]])
           profWire = (pen.done().sketchOnPlane(plane, baseZ) as any).wire
         } else {
           profWire = (profileToSketch(f.profile, baseZ, plane) as any).wire
@@ -3393,7 +3521,9 @@ function buildShape(features: Feature[], noCache = false): any {
         if (f.profile.kind === 'poly' && f.profile.pts && f.profile.pts.length >= 2) {
           const pts = f.profile.pts
           let pen = draw([pts[0][0], pts[0][1]])
-          for (let i = 1; i < pts.length; i++) pen = pen.lineTo([pts[i][0], pts[i][1]])
+          if(f.profile.earc)pen=ellipseArcProfilePen(f.profile.earc)
+          else if(f.profile.cubics?.length)pen=cubicProfilePen(f.profile.cubics)
+          else for (let i = 1; i < pts.length; i++) pen = pen.lineTo([pts[i][0], pts[i][1]])
           revSk = pen.done().sketchOnPlane(plane, baseZ)
         } else {
           revSk = profileToSketch(f.profile, baseZ, plane)
@@ -4614,8 +4744,8 @@ function buildShape(features: Feature[], noCache = false): any {
       const applyXf = (sh: any): any => {
         let s2 = sh
         if (rx || ry || rz) {
-          let c: [number, number, number] = [0, 0, 0]
-          try { const b = s2.boundingBox.bounds; c = [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2, (b[0][2] + b[1][2]) / 2] } catch { /* origin */ }
+          let c: [number, number, number] = f.origin ?? [0, 0, 0]
+          try { if (!f.origin) { const b = s2.boundingBox.bounds; c = [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2, (b[0][2] + b[1][2]) / 2] } } catch { /* origin */ }
           if (rx) s2 = s2.rotate(rx, c, [1, 0, 0])
           if (ry) s2 = s2.rotate(ry, c, [0, 1, 0])
           if (rz) s2 = s2.rotate(rz, c, [0, 0, 1])
@@ -4907,11 +5037,15 @@ function buildShape(features: Feature[], noCache = false): any {
             const wasCut = !!tf && (tf.operation === 'cut' || tf.op === 'cut')
             try {
               if (wasCut && snap.before) {
-                const removed = snap.before.clone().cut(snap.after.clone())
+                const removed = snap.cutTool ? snap.cutTool.clone() : snap.before.clone().cut(snap.after.clone())
                 for (const a of angles) shape = shape.cut(removed.clone().rotate(a, ctr, ax))
               } else {
+                if (snap.before) {
+                  const removed = snap.before.clone().cut(snap.after.clone())
+                  if (removed.faces.length) for (const a of angles) shape = shape.cut(removed.clone().rotate(a, ctr, ax))
+                }
                 const added = snap.before ? snap.after.clone().cut(snap.before.clone()) : snap.after.clone()
-                for (const a of angles) shape = fuseRobust(shape, added.clone().rotate(a, ctr, ax), ax)   // #70：兜底微沉沿旋转轴，唔再写死世界 Z（绕 X/Y/斜轴阵列先救得到共面失败）
+                if (added.faces.length) for (const a of angles) shape = fuseRobust(shape, added.clone().rotate(a, ctr, ax), ax)   // #70：兜底微沉沿旋转轴，唔再写死世界 Z（绕 X/Y/斜轴阵列先救得到共面失败）
               }
             } catch (e) { buildWarnings.push('环形阵列副本失败（目标 delta 布尔）：' + ((e as any)?.message || e)) }
           }
@@ -4986,7 +5120,7 @@ function buildShape(features: Feature[], noCache = false): any {
       recordHistory(_i)   // S1：坏特征已回滚到 _shapeBefore，录返呢个回滚态（index-keyed 对齐，回望见到稳定旧态）
       continue  // 跳过 cpSnap / prevBefore / rcRecord，用上一有效 shape 续 build（build past）
     }
-    if (_cpT) cpSnap[f.id] = { before: _cpB, after: shape ? shape.clone() : null }  // T757：执行后快照
+    if (_cpT) cpSnap[f.id] = { before: _cpB, after: shape ? shape.clone() : null, cutTool: _boolKindAt[_i] === 'cut' ? _boolToolAt[_i]?.clone() : undefined }  // T757：执行后快照
     if (f.type !== 'cpattern' && f.type !== 'pattern' && f.type !== 'sketch') { prevBefore = snapBefore; prevWasCut = f.type === 'extrude' && f.operation === 'cut' }
     rcRecord(_i)
     recordHistory(_i)   // S1：逐特征录 shape 历史 + 变换保序标记
@@ -5172,7 +5306,7 @@ const api = {
         return null
       }
       current = shape
-      return { ...meshOf(shape), parked, warnings: buildWarnings.length ? buildWarnings.slice() : undefined, failed: failedFeatures.length ? failedFeatures.slice() : undefined, resolvedEdgeFp: Object.keys(_resolvedEdgeFp).length ? { ..._resolvedEdgeFp } : undefined, resolvedEdgeFpV2: Object.keys(_resolvedEdgeFpV2).length ? { ..._resolvedEdgeFpV2 } : undefined, resolvedFaceFp: Object.keys(_resolvedFaceFp).length ? { ..._resolvedFaceFp } : undefined, resolvedFaceFpV2: Object.keys(_resolvedFaceFpV2).length ? { ..._resolvedFaceFpV2 } : undefined, resolvedFaceFpTopo: Object.keys(_resolvedFaceFpTopo).length ? { ..._resolvedFaceFpTopo } : undefined }
+      return { ...meshOf(shape), resolvedSketchFaces: { ...resolvedSketchFaces }, parked, warnings: buildWarnings.length ? buildWarnings.slice() : undefined, failed: failedFeatures.length ? failedFeatures.slice() : undefined, resolvedEdgeFp: Object.keys(_resolvedEdgeFp).length ? { ..._resolvedEdgeFp } : undefined, resolvedEdgeFpV2: Object.keys(_resolvedEdgeFpV2).length ? { ..._resolvedEdgeFpV2 } : undefined, resolvedFaceFp: Object.keys(_resolvedFaceFp).length ? { ..._resolvedFaceFp } : undefined, resolvedFaceFpV2: Object.keys(_resolvedFaceFpV2).length ? { ..._resolvedFaceFpV2 } : undefined, resolvedFaceFpTopo: Object.keys(_resolvedFaceFpTopo).length ? { ..._resolvedFaceFpTopo } : undefined }
     } catch (e) {
       console.error('[cad.worker] rebuild failed:', e)
       return null
@@ -5188,8 +5322,9 @@ const api = {
       await prepareStepBodies(features)
       // noCache：两个独立 build 各自畀一个布尔用（clone 共享底层 shape 喂两个布尔唔稳阵 — 原注释教训）
       const s1 = buildShape(features, true)
+      if (!s1 || failedFeatures.length) return null
       const s2 = buildShape(features, true)
-      if (!s1 || !s2) return null
+      if (!s2 || failedFeatures.length) return null
       const S = 2000
       // makeBaseBox is centered in X,Y but spans z∈[0,S] (corner at Z=0) → only Z needs -S/2 to center.
       const box = (cx: number, cy: number, cz: number) => makeBaseBox(S, S, S).translate(cx, cy, cz - S / 2)
@@ -5574,7 +5709,7 @@ const api = {
     }
   },
 
-  async importStepAssembly(buf: ArrayBuffer): Promise<{ name: string; color?: string; mesh: MeshData }[] | null> {
+  async importStepAssembly(buf: ArrayBuffer): Promise<{ name: string; color?: string; mesh: MeshData; step?: string }[] | null> {
     await ready
     const oc = _oc
     if (!oc) { _stepDbg = 'no _oc'; return null }
@@ -5631,14 +5766,28 @@ const api = {
           return out
         } catch { return undefined }
       }
-      const parts: { name: string; color?: string; mesh: MeshData }[] = []
-      leafs.forEach((lab, i) => {
+      const parts: { name: string; color?: string; mesh: MeshData; step?: string }[] = []
+      for (let i = 0; i < leafs.length; i++) {
+        const lab = leafs[i]
         try {
           const shp = oc.XCAFDoc_ShapeTool.GetShape_2(lab)   // 实例 label → 位姿已 bake
-          if (!shp || shp.IsNull()) return
-          parts.push({ name: `零件${i + 1}`, color: colorOf(lab), mesh: meshOf(cast(shp)) })
-        } catch (e) { console.warn('[importStepAssembly] part', i + 1, 'skipped:', e) }
-      })
+          if (!shp || shp.IsNull()) throw new Error('Empty STEP leaf')
+          // A Fusion multi-body design may be one XCAF leaf containing a
+          // compound of solids, rather than an assembly of product labels.
+          // Split by B-rep solids, never by disconnected triangles (a hollow
+          // solid or touching parts must retain their actual topology).
+          const solids = Array.from(iterTopo(shp, 'solid'))
+          if (solids.length > 1) {
+            for (let k = 0; k < solids.length; k++) {
+              const solid = cast(solids[k])
+              parts.push({ name: `零件${i + 1}·实体${k + 1}`, color: colorOf(lab), mesh: meshOf(solid), step: await solid.blobSTEP().text() })
+            }
+          } else {
+            const shape = cast(shp)
+            parts.push({ name: `零件${i + 1}`, color: colorOf(lab), mesh: meshOf(shape), step: await shape.blobSTEP().text() })
+          }
+        } catch (e) { throw new Error(`STEP part ${i + 1} could not be imported: ${String(e)}`) }
+      }
       _stepDbg += ` parts=${parts.length}`
       return parts.length ? parts : null
     } catch (e) {
@@ -5944,6 +6093,26 @@ const api = {
 
   // Measure the face nearest a 3D point (CAD coords): its surface area (summed from the face's
   // triangulation) + surface type. Picks the face whose tessellation vertices are closest to the click.
+  async measureBodyAt(p: [number, number, number]): Promise<{volume:number}|null> {
+    await ready
+    if (!current) return null
+    const solids = Array.from(iterTopo(current.wrapped, 'solid')).map(shape => cast(shape))
+    try {
+      let best: typeof current = null, distance = Infinity
+      for (const solid of solids) {
+        const mesh = solid.mesh(), v = mesh.vertices, t = mesh.triangles
+        for (let i=0;i<t.length;i+=3) {
+          const a=t[i]*3,b=t[i+1]*3,c=t[i+2]*3
+          const d=ptTriDist2(...p,v[a],v[a+1],v[a+2],v[b],v[b+1],v[b+2],v[c],v[c+1],v[c+2])
+          if(d<distance){distance=d;best=solid}
+        }
+      }
+      if(!best) return null
+      const volume=measureVolume(best)
+      return Number.isFinite(volume)&&volume>0?{volume}:null
+    } finally { for(const solid of solids) solid.delete() }
+  },
+
   async measureFaceAt(p: [number, number, number]): Promise<{ area: number; kind: string; center: [number, number, number]; radius: number | null } | null> {
     await ready
     if (!current) return null
@@ -6011,6 +6180,25 @@ const api = {
   // later feature rebuild resolves that triple through _ffSelectPts instead of trusting a stale
   // display-mesh face index.  Do not return a partial capture: ordering is part of the feature
   // contract, so an incomplete result must make the UI reject the selection.
+  async captureSketchFaceBinding(sourceId: string, near: [number,number,number], normal: [number,number,number]): Promise<SketchFaceBinding | null> {
+    await ready
+    if (!current || !sourceId) return null
+    try {
+      current.mesh({ tolerance: 0.1, angularTolerance: 0.5 })
+      const refs = _ffCapture(current,[near])
+      if (refs.v1.length!==1) return null
+      const len = Math.hypot(...normal), n = normal.map(x=>x/len)
+      const bbox = _fpBboxVerts(current)
+      const faces = current.faces.map((face: any)=>({face,desc:sketchPlanarDescriptor(face)})).filter(({face,desc:d}: any)=>d &&
+        _ffFaceFp(face,bbox)===refs.v1[0] && d.normal.every((x: number,i: number)=>Math.abs(x-n[i])<1e-7) && Math.abs(near.reduce((a,x,i)=>a+x*n[i],0)-d.offset)<1e-5)
+      if (faces.length!==1) return null
+      const desc = faces[0].desc
+      const binding: SketchFaceBinding = { sourceId, near, center: desc.center, outline: desc.outline, normal: desc.normal, offset: desc.offset, area: desc.area, edgeLengths: desc.edgeLengths, faceFp: refs.v1, faceFpV2: refs.v2, faceFpTopo: refs.topo }
+      resolveSketchFace(current,binding)
+      return binding
+    } catch { return null }
+  },
+
       async captureFaceRefs(nears: [number, number, number][]): Promise<{ v1: string[]; v2: string[]; topo: string[] } | null> {
     await ready
     if (!current || !nears.length) return null

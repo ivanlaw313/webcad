@@ -39,12 +39,12 @@ test('every visible SOLID Create, Modify and Assemble leaf command is executable
 test('visible SOLID commands retain the modal/pick safety gate and command identity', () => {
   assert.match(ribbonUi, /data-cmd=\{t\.id\}/)
   assert.match(ribbonUi, /disabled=\{off\}/)
-  // Store is the one common dispatcher used by ribbon, command palette and
-  // marking menu.  A new command must therefore pass through this teardown
-  // point before it can replace an unconfirmed numeric dialog.
+  // Shared gate protects unconfirmed drafts across every command entry point.
+  // Real state preservation and cancellation are exercised by contextual-command-workflow.
   assert.match(store, /runCommand: async \(id, label\) =>/)
-  assert.match(store, /if \(get\(\)\.featDlg && !id\.startsWith\('sk_'\)\)/)
-  assert.match(store, /cancelFeatDlg\(\)/)
+  assert.match(store, /commandDisabledReason\(get\(\), id\)/)
+  assert.match(ribbonUi, /commandDisabledReason\(/)
+
 })
 
 test('the direct-edit SOLID workflows have keyboard commit/cancel and global Undo/Redo', () => {

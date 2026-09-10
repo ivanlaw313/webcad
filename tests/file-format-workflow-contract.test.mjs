@@ -6,7 +6,7 @@ const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
 test('File menu exposes all supported CAD exchange formats from one browser workflow', () => {
-  const start = ribbon.indexOf('{fileMenu && (')
+  const start = ribbon.indexOf('{fileMenu && createPortal(')
   assert.ok(start >= 0, 'File menu is present')
   // The next top-bar controls begin well after the menu; keep this assertion
   // local so matching an identical command in a ribbon panel cannot pass it.

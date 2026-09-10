@@ -16,7 +16,7 @@ const { expandHoleFeature } = await loadModule()
 
 test('simple through and To Next holes expand to one existing cut extrude', () => {
   const through = expandHoleFeature({ id: 'H1', kind: 'simple', center: [3, 4], top: 20, diameter: 6, extent: 'through-all' })
-  assert.deepEqual(through, [{ id: 'H1:drill', type: 'extrude', profile: { kind: 'circle', c: [3, 4], r: 3 }, height: 30, operation: 'cut', baseZ: 0 }])
+  assert.deepEqual(through, [{ id: 'H1:drill', type: 'extrude', profile: { kind: 'circle', c: [3, 4], r: 3 }, height: 30, operation: 'cut', exactDistance: true, baseZ: 0 }])
 
   const next = expandHoleFeature({ id: 'H2', kind: 'simple', center: [0, 0], top: 20, diameter: 4, extent: 'to-next', nextFaceZ: 8 })
   assert.equal(next.length, 1)

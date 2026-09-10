@@ -1,0 +1,5 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import {ellipseTangentCandidates,ellipseContactPoint,tangentExtension} from '../src/components/ellipseTangentVisual.ts'
+test('horizontal ellipse tangent candidates and out-of-segment extension',()=>{const e={cx:20,cy:30,rx:10,ry:5,rot:0},c=ellipseTangentCandidates(e,[35,34],[45,34]);assert.deepEqual(c.map(x=>x.distance),[1,9]);const p=ellipseContactPoint(e,90);assert.deepEqual(p,[20,35]);assert.deepEqual(tangentExtension(p,[35,35],[45,35]),[p,[35,35]]);assert.equal(tangentExtension(p,[15,35],[25,35]),null);assert.equal(tangentExtension(p,[35,34],[45,34]),null)})
+test('rotated ellipse candidates have line-parallel derivative',()=>{const e={cx:4,cy:7,rx:3,ry:12,rot:125},a=[-2,3],b=[8,9];for(const c of ellipseTangentCandidates(e,a,b)){const t=c.angleDeg*Math.PI/180,r=e.rot*Math.PI/180,d=[-e.rx*Math.sin(t)*Math.cos(r)-e.ry*Math.cos(t)*Math.sin(r),-e.rx*Math.sin(t)*Math.sin(r)+e.ry*Math.cos(t)*Math.cos(r)];assert.ok(Math.abs(d[0]*6-d[1]*10)<1e-10)}})

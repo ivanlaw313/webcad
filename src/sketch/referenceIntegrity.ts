@@ -26,8 +26,13 @@ export function sketchReferenceErrors(cons: SkCon[], params: Parameter[]): strin
 
 export function documentReferenceErrors(data: unknown): string[] {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return []
-  const doc = data as { params?: Parameter[]; sketchSources?: Record<string,{cons?: SkCon[]}>; components?: {src?: unknown}[]; componentDefs?: {src?: unknown;bodies?:{src?:unknown}[]}[] }
+  const doc = data as { params?: Parameter[]; sketchDraft?: {skCons?: SkCon[]}; sketchSources?: Record<string,{cons?: SkCon[]}>; components?: {src?: unknown}[]; componentDefs?: {src?: unknown;bodies?:{src?:unknown}[]}[] }
   const errors = Object.entries(doc.sketchSources ?? {}).flatMap(([id, src]) => sketchReferenceErrors(src.cons ?? [], doc.params ?? []).map(e => `${id}: ${e}`))
+  if (Array.isArray(doc.sketchDraft?.skCons)) {
+    const cons=doc.sketchDraft.skCons
+    if(cons.every(c=>c && typeof c==='object' && (c.kind!=='dim' || ((!c.expr || typeof c.expr==='string') && (!c.refs || Object.values(c.refs).every(v=>typeof v==='string')))))) errors.push(...sketchReferenceErrors(cons,doc.params??[]).map(e=>`未完成草圖: ${e}`))
+    else errors.push('未完成草圖約束格式不正確')
+  }
   for (const c of doc.components ?? []) if (c.src) errors.push(...documentReferenceErrors({params:doc.params,...c.src}))
   for (const d of doc.componentDefs ?? []) {
     if (d.src) errors.push(...documentReferenceErrors({params:doc.params,...d.src}))

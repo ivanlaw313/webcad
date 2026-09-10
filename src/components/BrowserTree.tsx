@@ -1,3 +1,4 @@
+import { activeModelCommand } from '../cad/commandAvailability'
 import { useState, useRef, useEffect, type ReactNode } from 'react'
 import { ToolIcon } from '../icons'
 import { useApp, MATERIALS, compWorldMatrix, datumVisKey, type AppState } from '../store'
@@ -127,7 +128,7 @@ function PlaneLeaf({ plane, label }: { plane: 'XY' | 'XZ' | 'YZ'; label: string 
 // GM-W6 F2：草图行 — 单击选中（独立草图，拉伸/旋转直接用）；双击重开（消费中）或改名（Alt+双击 / 孤儿）；孤儿草图（消费特征已删）显示（未使用）+「重开」「🗑」掣。
 function SketchRow({ k }: { k: string }) {
   const lang = useApp((s) => s.lang)
-  const skLock = useApp((s) => s.mode === 'sketch')
+  const skLock = useApp((s) => s.mode === 'sketch' || s.formMode)
   const src = useApp((s) => s.sketchSources[k])
   const features = useApp((s) => s.features)
   const selSketch = useApp((s) => s.selSketch)
@@ -208,7 +209,7 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
 // T788（S66）：组行 — 📁 名（双击改名）、checkbox 勾全组、👁 整组隐藏、⧉ 复制组（模块复用）、⇣ 移动、解组、删组。
 function GroupRow({ g, depth, collapsed, onToggle }: { g: { id: string; name: string }; depth: number; collapsed: boolean; onToggle: () => void }) {
   const lang = useApp((s) => s.lang)
-  const skLock = useApp((s) => s.mode === 'sketch')   // GM-W2 2.2：草图态灰化删除掣
+  const skLock = useApp((s) => s.mode === 'sketch' || s.formMode)   // GM-W2 2.2：草图态灰化删除掣
   const comps = useApp((s) => s.components)
   const checkedComps = useApp((s) => s.checkedComps)
   const [editing, setEditing] = useState(false)
@@ -242,9 +243,11 @@ function GroupRow({ g, depth, collapsed, onToggle }: { g: { id: string; name: st
 }
 
 // Component row: eye toggles visibility, double-click the name to rename.
-function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boolean; color?: string; material?: string; mesh: { vertices: number[] } }; depth?: number }) {
+const EMPTY_COMPONENT_BODIES: never[] = []
+
+function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boolean; color?: string; material?: string; src?: { features: unknown[] }; formSource?: unknown; mesh: { vertices: number[] } }; depth?: number }) {
   const lang = useApp((s) => s.lang)
-  const skLock = useApp((s) => s.mode === 'sketch')   // GM-W2 2.2：草图态灰化删除掣
+  const skLock = useApp((s) => s.mode === 'sketch' || s.formMode)   // GM-W2 2.2：草图态灰化删除掣
   const sel = useApp((s) => s.selectedComponent)
   const selectComponent = useApp((s) => s.selectComponent)
   const toggleVis = useApp((s) => s.toggleComponentVisible)
@@ -261,11 +264,13 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
   const del = useApp((s) => s.deleteComponent)
   const checked = useApp((s) => s.checkedComps.includes(c.id))
   const toggleCheck = useApp((s) => s.toggleCheckComp)
+  const commandActive = useApp(activeModelCommand)
+  const componentEditing = useApp(s => s.editingComponent)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(c.name)
   const bodies = useApp((s) => {
     const live = s.components.find((x) => x.id === c.id)
-    return live?.defId ? (s.componentDefs.find((d) => d.id === live.defId)?.bodies ?? []) : []
+    return live?.defId ? (s.componentDefs.find((d) => d.id === live.defId)?.bodies ?? EMPTY_COMPONENT_BODIES) : EMPTY_COMPONENT_BODIES
   })
   const toggleBodyVisible = useApp((s) => s.toggleComponentBodyVisible)
   const selectedBody = useApp((s) => s.selectedComponentBody)
@@ -282,9 +287,14 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
           onBlur={() => { rename(c.id, name || c.name); setEditing(false) }}
           onKeyDown={(e) => { if (e.key === 'Enter') { rename(c.id, name || c.name); setEditing(false) } }} />
       ) : (
-        <span style={{ flex: 1, cursor: 'pointer' }} title={tStatus(`「${c.name}」 ${compDimsStr(c.mesh)}（双击参数化件=进入编辑；Alt+双击=改名；点选=属性）`, lang)} onClick={() => selectComponent(c.id === sel ? null : c.id)} onDoubleClick={(e) => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.src?.features?.length && !e.altKey) { selectComponent(c.id); void useApp.getState().editComponent(c.id) } else { setName(c.name); setEditing(true) } }}>{c.name}</span>
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} title={tStatus(`「${c.name}」 ${compDimsStr(c.mesh)}（双击参数化件=进入编辑；Alt+双击=改名；点选=属性）`, lang)} onClick={() => selectComponent(c.id === sel ? null : c.id)} onDoubleClick={(e) => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.formSource && !e.altKey) { useApp.getState().editFormComponent(c.id) } else if (cc?.src?.features?.length && !e.altKey) { selectComponent(c.id); void useApp.getState().editComponent(c.id) } else { setName(c.name); setEditing(true) } }}>{c.name}</span>
       )}
       {shareCount > 1 && <span title={tStatus(`${shareCount} 个实例共享同一定义 — 编辑任一，全部跟新（「独立复制」可脱离）`, lang)} style={{ fontSize: 10, fontWeight: 600, color: '#1572c4', background: 'rgba(21,114,196,.12)', borderRadius: 3, padding: '0 4px', marginRight: 2, flexShrink: 0 }}>×{shareCount}</span>}
+      <button className="component-options" aria-label={`组件选项：${c.name}`} aria-expanded={c.id === sel && !componentEditing && !commandActive && !skLock} onClick={() => selectComponent(c.id === sel ? null : c.id)}>⋯</button>
+    </div>
+    {c.id === sel && !componentEditing && !commandActive && !skLock && <div className="component-controls" role="group" aria-label={`组件选项：${c.name}`}>
+      {!!c.formSource && <button onClick={() => useApp.getState().editFormComponent(c.id)}>✎ 编辑 Form 控制笼</button>}
+      {!!c.src?.features.length && <button onClick={() => void useApp.getState().editComponent(c.id)}>✎ 编辑特征／草图</button>}
       <select className="tw-mat" title={tStatus('材质（设密度→影响质量/BOM，并改颜色）', lang)} value={c.material || ''} onClick={(e) => e.stopPropagation()} onChange={(e) => { if (e.target.value) setMaterial(c.id, e.target.value) }} style={{ fontSize: 10, maxWidth: 52, border: '1px solid #d0d6dc', borderRadius: 3 }}>
         <option value="">{tStatus('材质…', lang)}</option>
         {Object.keys(MATERIALS).filter((k) => MATERIALS[k].density).map((k) => <option key={k} value={k}>{k}</option>)}
@@ -298,7 +308,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
       <span className="tw-act" title={tStatus('镜像组件：左右对称（跨 YZ 面）', lang)} onClick={(e) => { e.stopPropagation(); mirror(c.id, 'lr') }}>⇋</span>
       <span className="tw-act" title={tStatus('镜像组件：前后对称（跨 XY 面）', lang)} onClick={(e) => { e.stopPropagation(); mirror(c.id, 'fb') }}>⇅</span>
       <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草图模式中锁定 — 完成草图后可删除' : '删除组件', lang)} onClick={async (e) => { e.stopPropagation(); if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`删除组件「${c.name}」？`, lang))) del(c.id) }}>🗑</span>
-    </div>
+    </div>}
     {bodies.length > 1 && bodies.map((body) => (
       <div key={body.id} className={'tree-row' + (selectedBody?.componentId === c.id && selectedBody.bodyId === body.id ? ' sel' : '')} style={{ paddingLeft: 40 + depth * 14, minHeight: 22, opacity: body.hidden ? 0.5 : 1 }} title={`实体：${body.name}（单击选取此实体；显示状态会同步到其所有实例）`} onClick={() => selectBody(c.id, body.id)}>
         <span className="tw-toggle" />
@@ -354,7 +364,7 @@ function GroupedCompList({ components }: { components: { id: string; name: strin
 
 function CompBatchBar() {
   const lang = useApp((s) => s.lang)
-  const skLock = useApp((s) => s.mode === 'sketch')   // GM-W2 2.2：草图态灰化批量删除
+  const skLock = useApp((s) => s.mode === 'sketch' || s.formMode)   // GM-W2 2.2：草图态灰化批量删除
   const n = useApp((s) => s.checkedComps.length)
   const checkedIds = useApp((s) => s.checkedComps)
   const allComps = useApp((s) => s.components)
@@ -405,7 +415,7 @@ function CompBatchBar() {
 
 export default function BrowserTree() {
   const lang = useApp((s) => s.lang)
-  const skLock = useApp((s) => s.mode === 'sketch')   // GM-W2 2.2：草图态灰化基准删除（草图可能正建喺个参考面上）
+  const skLock = useApp((s) => s.mode === 'sketch' || s.formMode)   // GM-W2 2.2：草图态灰化基准删除（草图可能正建喺个参考面上）
   const features = useApp((s) => s.features)
   const bodyMesh = useApp((s) => s.bodyMesh)
   const sketchSources = useApp((s) => s.sketchSources)   // GM-W6 F2：草图行渲染移入 SketchRow（每行自订名/孤儿重开+删除）
@@ -425,12 +435,31 @@ export default function BrowserTree() {
   const massUnit = useApp((s) => s.massUnit)   // GM-X2 #13：单位配对预设（长度+质量）
   const setUnitDlgOpen = useApp((s) => s.setUnitDlgOpen)
   const setView = useApp((s) => s.setView)
+  const savedViews = useApp(s => s.viewBookmarks)
   const requestFit = useApp((s) => s.requestFit)
+
+  // Entering a phone-sized layout frees the canvas, while the restore handle stays reachable.
+  // Returning to a wider layout restores the user's previous tree preference.
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    let widePreference = useApp.getState().browserCollapsed
+    let narrow = false
+    const adapt = () => {
+      if (mq.matches && !narrow) {
+        widePreference = useApp.getState().browserCollapsed
+        useApp.setState({ browserCollapsed: true })
+      } else if (!mq.matches && narrow) useApp.setState({ browserCollapsed: widePreference })
+      narrow = mq.matches
+      useApp.getState().requestFit()
+    }
+    adapt(); mq.addEventListener('change', adapt)
+    return () => mq.removeEventListener('change', adapt)
+  }, [])
 
   // Collapsed: slim strip with ▸▸ to restore (Fusion's BROWSER panel collapse).
   if (browserCollapsed) {
     return (
-      <div className="browser" style={{ width: 26, cursor: 'pointer' }} title={tStatus('展开浏览器', lang)} onClick={() => toggleBrowser()}>
+      <div className="browser" role="button" aria-label="展开浏览器" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') toggleBrowser() }} style={{ width: 26, cursor: 'pointer' }} title={tStatus('展开浏览器', lang)} onClick={() => toggleBrowser()}>
         <div className="browser-head" style={{ justifyContent: 'center', padding: 0 }}>▸▸</div>
       </div>
     )
@@ -455,6 +484,7 @@ export default function BrowserTree() {
           <Leaf icon="default" label={`单位: ${unit === 'inch' ? 'in' : unit} / ${massUnit}`} onClick={() => setUnitDlgOpen(true)} />
         </Section>
         <Section label="命名视图" defaultOpen={false}>
+          {savedViews.map((v, i) => <Leaf key={i} icon="home" label={v.name} onClick={() => useApp.getState().applyViewBookmark(i)} />)}
           <Leaf icon="home" label="主视图" onClick={() => { setView('iso'); requestFit() }} />
           <Leaf icon="plane" label="前视图" onClick={() => setView('front')} />
           <Leaf icon="plane" label="后视图" onClick={() => setView('back')} />

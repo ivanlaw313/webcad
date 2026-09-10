@@ -9,10 +9,11 @@
 
 import { closestPolylinePair } from './edgeDistance.ts'
 
-export type MeasurePickKind = 'point' | 'vertex' | 'edge' | 'face'
+export type MeasurePickKind = 'point' | 'vertex' | 'edge' | 'face' | 'body'
 
 export interface MeasurePick {
   kind: MeasurePickKind
+  volume?: number
   // point / vertex
   p?: [number, number, number]
   // edge（来自 measureEdgeAt）
@@ -30,15 +31,15 @@ export interface MeasurePick {
   normal?: [number, number, number]
 }
 
-export type MeasureResultType = 'point' | 'length' | 'area' | 'angle' | 'distance' | 'empty' | 'unsupported'
+export type MeasureResultType = 'point' | 'length' | 'area' | 'volume' | 'angle' | 'distance' | 'empty' | 'unsupported'
 
-export interface MeasurePart { label: string; kind: MeasurePickKind; value?: number; kindUnit?: 'len' | 'area' | 'angle' }
+export interface MeasurePart { label: string; kind: MeasurePickKind; value?: number; kindUnit?: 'len' | 'area' | 'vol' | 'angle' }
 
 export interface MeasureResult {
   type: MeasureResultType
   label: string                     // 语义标签：面积 / 夹角 / 长度 / 距离 / 坐标 …
   value: number | null              // 主标量：mm | mm² | deg（type 决定单位）
-  valueUnit: 'len' | 'area' | 'angle' | 'none'
+  valueUnit: 'len' | 'area' | 'vol' | 'angle' | 'none'
   delta?: [number, number, number]  // 2 点/点-式距离嘅 ΔXYZ
   perimeter?: number                // 面周长
   radius?: number                   // 圆边/柱面半径
@@ -68,6 +69,7 @@ function pointLineDist(p: [number, number, number], mid: [number, number, number
 
 // 单个实体嘅自身读数 part。
 function intrinsicPart(pk: MeasurePick): MeasurePart {
+  if (pk.kind === 'body') return { label: '体积', kind: 'body', value: pk.volume, kindUnit: 'vol' }
   if (pk.kind === 'face') return { label: '面积', kind: 'face', value: pk.area, kindUnit: 'area' }
   if (pk.kind === 'edge') {
     if (pk.radius != null) return { label: pk.closed ? '孔径Ø' : '弧长', kind: 'edge', value: pk.closed ? pk.radius * 2 : pk.length, kindUnit: 'len' }
@@ -83,6 +85,7 @@ export function combineMeasure(picks: MeasurePick[]): MeasureResult {
 
   if (picks.length === 1) {
     const a = picks[0]
+    if (a.kind === 'body') return {type:'volume',label:'体积',value:a.volume??null,valueUnit:'vol',parts}
     if (a.kind === 'face') return { type: 'area', label: '面积', value: a.area ?? null, valueUnit: 'area', perimeter: a.perimeter, radius: a.radius, parts }
     if (a.kind === 'edge') {
       if (a.radius != null && a.closed) return { type: 'length', label: '孔径Ø', value: a.radius * 2, valueUnit: 'len', radius: a.radius, parts }

@@ -1,6 +1,7 @@
+import { drawingScale, drawingLinearOffset, dxfTextValue } from '../io/drawingLayout'
 import { useApp } from '../store'
 import { tStatus } from '../i18n'
-import { useState, useEffect, type MouseEvent as ReactMouseEvent } from 'react'
+import { useState, useEffect, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import { jpegToPdf, dataUrlToBytes } from '../io/pdf'
 // T784：标注类型搬入共享模块（store 持久化同款形状）— 别名保持本文件原有名字
 import { type DrawingAnno, type DTol as Tol, type DMDim as MDim, type DRDim as RDim, type DADim as ADim, type DNote as Note, type DNoteKind as NoteKind, type DDatum as Datum, type DFCF as FCF, type DDetail as Detail } from '../io/drawingAnno'
@@ -271,7 +272,7 @@ export default function DrawingPanel() {
     const dx = d.x2 - d.x1, dy = d.y2 - d.y1, L = Math.hypot(dx, dy)
     if (!(L > 1e-6)) return null
     const ux = dx / L, uy = dy / L, nx = -uy, ny = ux // unit along + unit normal (rotate +90°)
-    const off = fs * 2.0, ext = fs * 0.5, gap = fs * 0.3, ah = fs * 0.7
+    const off = d.offset ?? fs * 2.0, ext = fs * 0.5, gap = fs * 0.3, ah = fs * 0.7
     const q1x = d.x1 + nx * off, q1y = d.y1 + ny * off, q2x = d.x2 + nx * off, q2y = d.y2 + ny * off
     const lines: number[][] = [
       [d.x1 + nx * gap, d.y1 + ny * gap, d.x1 + nx * (off + ext), d.y1 + ny * (off + ext)], // extension line 1
@@ -293,7 +294,7 @@ export default function DrawingPanel() {
   // A fixed 45°-up-right direction (screen y-down) keeps callouts off the horizontal/vertical geometry.
   const rdimGeom = (rd: RDim, fs: number) => {
     if (!(rd.r > 1e-6)) return null
-    const dx = 0.7071, dy = -0.7071, ah = fs * 0.7, lines: number[][] = []
+    const dx = Math.cos(rd.angle ?? -Math.PI/4), dy = Math.sin(rd.angle ?? -Math.PI/4), ah = fs * 0.7, lines: number[][] = []
     const arrow = (px: number, py: number, ddx: number, ddy: number) => { const qx = -ddy, qy = ddx; lines.push([px, py, px - ddx * ah + qx * ah * 0.35, py - ddy * ah + qy * ah * 0.35], [px, py, px - ddx * ah - qx * ah * 0.35, py - ddy * ah - qy * ah * 0.35]) }
     if (rd.kind === 'd') {
       const e1x = rd.cx - dx * rd.r, e1y = rd.cy - dy * rd.r, e2x = rd.cx + dx * rd.r, e2y = rd.cy + dy * rd.r
@@ -519,6 +520,23 @@ export default function DrawingPanel() {
       texts: [{ x: x0 + a, y: y + fs * 1.05, t: 'A', size: fs }, { x: x1 - a, y: y + fs * 1.05, t: 'A', size: fs }],
     }
   }
+  const dragAnnotation = (e:ReactPointerEvent<SVGTextElement>,view:string,index:number,kind:'linear'|'radial') => {
+    if(e.button!==0)return
+    e.preventDefault();e.stopPropagation()
+    const target=e.currentTarget,svg=target.ownerSVGElement,matrix=svg?.getScreenCTM()?.inverse()
+    if(!svg||!matrix)return
+    target.setPointerCapture(e.pointerId)
+    const before=useApp.getState().drawingAnno
+    const move=(event:PointerEvent)=>{
+      const p=new DOMPoint(event.clientX,event.clientY).matrixTransform(matrix)
+      if(kind==='linear')setManualDims(all=>({...all,[view]:all[view].map((d,i)=>i===index?{...d,offset:drawingLinearOffset(d,p)}:d)}))
+      else setManualRDims(all=>({...all,[view]:all[view].map((d,i)=>i===index?{...d,angle:Math.atan2(p.y-d.cy,p.x-d.cx)}:d)}))
+    }
+    const cleanup=()=>{target.removeEventListener('pointermove',move);target.removeEventListener('pointerup',up);target.removeEventListener('pointercancel',cancel);document.removeEventListener('keydown',key);if(target.hasPointerCapture(e.pointerId))target.releasePointerCapture(e.pointerId)}
+    const up=()=>cleanup(),cancel=()=>{cleanup();useApp.getState().setDrawingAnno(before)}
+    const key=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.stopImmediatePropagation();event.preventDefault();cancel()}}
+    target.addEventListener('pointermove',move);target.addEventListener('pointerup',up);target.addEventListener('pointercancel',cancel);document.addEventListener('keydown',key)
+  }
   const svgFor = (v: typeof views[number]) => {
     const d = computeDims(v)
     const mfs = viewFs(v)
@@ -534,7 +552,7 @@ export default function DrawingPanel() {
       return { fv, midX: vx0 + vw2 / 2 }
     })() : null
     return (
-      <svg viewBox={d ? d.vbExp : v.vb} preserveAspectRatio="xMidYMid meet" onClick={(e) => onSvgClick(v, e)} style={{ width: '100%', height: 200, background: '#fff', cursor: (dimMode || radMode || angMode || datumMode || fcfMode || noteMode || detailMode || ordMode) ? 'crosshair' : 'default' }}>
+      <svg viewBox={d ? d.vbExp : v.vb} preserveAspectRatio="xMidYMid meet" onClick={(e) => onSvgClick(v, e)} style={{ width: `${Number((d ? d.vbExp : v.vb).split(/\s+/)[2])*drawingScale(scale)}mm`, height: `${Number((d ? d.vbExp : v.vb).split(/\s+/)[3])*drawingScale(scale)}mm`, maxWidth:'none', background: '#fff', cursor: (dimMode || radMode || angMode || datumMode || fcfMode || noteMode || detailMode || ordMode) ? 'crosshair' : 'default' }}>
         {v.hatch && v.hatch.length > 0 && (
           <defs>
             <pattern id={'hp_' + v.name} patternUnits="userSpaceOnUse" width={hsp} height={hsp} patternTransform="rotate(45)">
@@ -581,15 +599,15 @@ export default function DrawingPanel() {
         {showCallouts && centerMarks(v).map((l, i) => <line key={'cm' + i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="#8a5a00" strokeWidth={0.7} vectorEffect="non-scaling-stroke" />)}
         {showCallouts && circleLabels(v).map((c, i) => <text key={'cd' + i} x={c.x} y={c.y} fontSize={c.size} fill="#8a5a00" textAnchor="start">{c.text}</text>)}
         {(manualDims[v.name] || []).map((dd, i) => { const g = dimGeom(dd, mfs); if (!g) return null; return (
-          <g key={'md' + i}>
+          <g key={'md' + i} onClick={e=>e.stopPropagation()}>
             {g.lines.map((l, j) => <line key={j} x1={l[0]} y1={l[1]} x2={l[2]} y2={l[3]} stroke="#c2185b" strokeWidth={1} vectorEffect="non-scaling-stroke" />)}
-            <text x={g.text.x} y={g.text.y} fontSize={g.text.size} fill="#c2185b" textAnchor="middle" transform={`rotate(${g.text.rot.toFixed(1)} ${g.text.x.toFixed(2)} ${g.text.y.toFixed(2)})`}>{g.text.t}</text>
+            <text onPointerDown={e=>dragAnnotation(e,v.name,i,'linear')} style={{cursor:'move',touchAction:'none'}} x={g.text.x} y={g.text.y} fontSize={g.text.size} fill="#c2185b" textAnchor="middle" transform={`rotate(${g.text.rot.toFixed(1)} ${g.text.x.toFixed(2)} ${g.text.y.toFixed(2)})`}>{g.text.t}</text>
           </g>) })}
         {dimMode && pendPt && pendPt.view === v.name && <circle cx={pendPt.x} cy={pendPt.y} r={mfs * 0.5} fill="none" stroke="#c2185b" strokeWidth={1.2} vectorEffect="non-scaling-stroke" />}
         {(manualRDims[v.name] || []).map((rd, i) => { const g = rdimGeom(rd, mfs); if (!g) return null; return (
-          <g key={'mr' + i}>
+          <g key={'mr' + i} onClick={e=>e.stopPropagation()}>
             {g.lines.map((l, j) => <line key={j} x1={l[0]} y1={l[1]} x2={l[2]} y2={l[3]} stroke="#8a5a00" strokeWidth={1} vectorEffect="non-scaling-stroke" />)}
-            <text x={g.text.x} y={g.text.y} fontSize={g.text.size} fill="#8a5a00" textAnchor={g.anchor}>{g.text.t}</text>
+            <text onPointerDown={e=>dragAnnotation(e,v.name,i,'radial')} style={{cursor:'move',touchAction:'none'}} x={g.text.x} y={g.text.y} fontSize={g.text.size} fill="#8a5a00" textAnchor={g.anchor}>{g.text.t}</text>
           </g>) })}
         {(manualADims[v.name] || []).map((ad, i) => { const g = angGeom(ad, mfs); return (
           <g key={'ma' + i}>
@@ -812,20 +830,23 @@ export default function DrawingPanel() {
       const SW = sheet === 'A3' ? 420 : 297, SH = sheet === 'A3' ? 297 : 210, fx = 10, fy = 10, fw = SW - 20, fh = SH - 20
       const tbw = 130, tbh = 24, tbx = fx + fw - tbw, tby = fy + fh - tbh
       const availW = fw - 4, availH = fh - tbh - 6
-      const k = Math.min(availW / contentW, availH / contentH)
+      const k = drawingScale(scale)
+
       const ox = fx + 2 + (availW - contentW * k) / 2, oy = fy + 2 + (availH - contentH * k) / 2
       const frame = `<rect x="0" y="0" width="${SW}" height="${SH}" fill="#fff" stroke="#999" stroke-width="0.2"/>`
         + `<rect x="${fx}" y="${fy}" width="${fw}" height="${fh}" fill="none" stroke="#1c1c1c" stroke-width="0.7"/>`
-      const size = pxScale ? ` width="${Math.round(SW * pxScale)}" height="${Math.round(SH * pxScale)}"` : ''
+      const size = pxScale ? ` width="${Math.round(SW * pxScale)}" height="${Math.round(SH * pxScale)}"` : ` width="${SW}mm" height="${SH}mm"`
       const svg = `<svg xmlns="http://www.w3.org/2000/svg"${size} viewBox="0 0 ${SW} ${SH}">${frame}<g transform="translate(${ox.toFixed(2)},${oy.toFixed(2)}) scale(${k.toFixed(4)})">${content}</g>${gbTitleBlock(tbx, tby, tbw, tbh)}</svg>`
-      return { svg, W: SW, H: SH }
+      return { svg, W: SW, H: SH, overflow: contentW*k>availW || contentH*k>availH }
     }
-    const size = pxScale ? ` width="${Math.round(contentW * pxScale)}" height="${Math.round(contentH * pxScale)}"` : ''
+    const k = drawingScale(scale)
+    const size = pxScale ? ` width="${Math.round(contentW*k * pxScale)}" height="${Math.round(contentH*k * pxScale)}"` : ` width="${contentW*k}mm" height="${contentH*k}mm"`
     const svg = `<svg xmlns="http://www.w3.org/2000/svg"${size} viewBox="0 0 ${contentW.toFixed(1)} ${contentH.toFixed(1)}"><rect x="0" y="0" width="${contentW.toFixed(1)}" height="${contentH.toFixed(1)}" fill="#fff"/>${content}</svg>`
-    return { svg, W: contentW, H: contentH }
+    return { svg, W: contentW*k, H: contentH*k, overflow:false }
   }
 
   const exportSVG = () => {
+    if(buildSvgString(0).overflow){window.alert('所選比例超出圖紙，請減小比例或選較大圖幅；未匯出裁切圖紙');return}
     const { svg } = buildSvgString(0)
     const blob = new Blob([svg], { type: 'image/svg+xml' })
     const url = URL.createObjectURL(blob)
@@ -835,6 +856,7 @@ export default function DrawingPanel() {
   // Rasterise the drawing to a PNG (2× for crisp text) — for pasting into docs / chat / email where SVG
   // isn't supported. Pure browser: SVG → <img> → <canvas> → PNG blob, no dependency.
   const exportPNG = () => {
+    if(buildSvgString(0).overflow){window.alert('所選比例超出圖紙，請減小比例或選較大圖幅；未匯出裁切圖紙');return}
     const pxScale = gbFrame ? (sheet === 'A3' ? 3 : 4) : 2 // GB 图框时按图幅定倍率（A4 297mm×4 / A3 420mm×3 ≈ 1200px 宽，打印清晰）
     const { svg, W, H } = buildSvgString(pxScale)
     const pxW = Math.round(W * pxScale), pxH = Math.round(H * pxScale)
@@ -853,6 +875,7 @@ export default function DrawingPanel() {
   // 宽，A4 打印先唔糊）→ JPEG(0.92) → 自写极简 PDF（src/io/pdf.ts，DCTDecode 原样嵌入，零依赖）。位图路线
   // 係有意为之：矢量 PDF 入面嘅中文文字需要 CID 字体子集嵌入（重型工程），tooltip 已诚实标明。
   const exportPDF = () => {
+    if(buildSvgString(0).overflow){window.alert('所選比例超出圖紙，請減小比例或選較大圖幅；未匯出裁切圖紙');return}
     const probe = buildSvgString(0)
     const pxScale = Math.max(2.5, Math.min(8, 1400 / Math.max(1, probe.W)))
     const { svg, W, H } = buildSvgString(pxScale)
@@ -863,7 +886,7 @@ export default function DrawingPanel() {
       const ctx = cv.getContext('2d'); if (!ctx) return
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, pxW, pxH)
       ctx.drawImage(img, 0, 0, pxW, pxH)
-      const pdf = jpegToPdf(dataUrlToBytes(cv.toDataURL('image/jpeg', 0.92)), pxW, pxH)
+      const pdf = jpegToPdf(dataUrlToBytes(cv.toDataURL('image/jpeg', 0.92)), pxW, pxH, {pageW:W*72/25.4,pageH:H*72/25.4,margin:0})
       const blob = new Blob([pdf as unknown as BlobPart], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a'); a.href = url; a.download = `${(projectName || 'webcad').replace(/[^\w一-龥-]+/g, '_')}-工程图.pdf`; a.click(); URL.revokeObjectURL(url)
@@ -890,7 +913,7 @@ export default function DrawingPanel() {
       return out
     }
     let x = 0; const lines: { x1: number; y1: number; x2: number; y2: number; layer: string }[] = []
-    const texts: { x: number; y: number; h: number; t: string }[] = []
+    const texts: { x: number; y: number; h: number; t: string }[] = [{x:0,y:10,h:3,t:projectName},{x:0,y:6,h:2,t:`材料 ${materialTxt} · 單位 mm · DXF 1:1`}]
     for (const v of views) {
       const [mnx, mny, w] = v.vb.split(/\s+/).map(Number)
       const off = x
@@ -951,7 +974,7 @@ export default function DrawingPanel() {
       for (const b of colB) lines.push({ x1: b, y1: top, x2: b, y2: botY, layer: 'TABLE' })
     }
     const lineEnt = lines.map((l) => `0\nLINE\n8\n${l.layer}\n10\n${l.x1.toFixed(3)}\n20\n${l.y1.toFixed(3)}\n30\n0\n11\n${l.x2.toFixed(3)}\n21\n${l.y2.toFixed(3)}\n31\n0`).join('\n')
-    const txtEnt = texts.map((t) => `0\nTEXT\n8\nDIM\n10\n${t.x.toFixed(3)}\n20\n${t.y.toFixed(3)}\n30\n0\n40\n${t.h.toFixed(2)}\n1\n${t.t}`).join('\n')
+    const txtEnt = texts.map((t) => `0\nTEXT\n8\nDIM\n10\n${t.x.toFixed(3)}\n20\n${t.y.toFixed(3)}\n30\n0\n40\n${t.h.toFixed(2)}\n1\n${dxfTextValue(t.t)}`).join('\n')
     const ent = txtEnt ? lineEnt + '\n' + txtEnt : lineEnt
     // $INSUNITS=4 → millimetres, so the DXF imports at correct scale in CAD/CAM (not guessed as inches).
     const dxf = `0\nSECTION\n2\nHEADER\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n${ent}\n0\nENDSEC\n0\nEOF\n`
@@ -987,7 +1010,7 @@ export default function DrawingPanel() {
               return (
                 <div key={id} className="dw-view">
                   <div className="dw-vtitle" style={{ color: '#2e7d32' }}>🔍 {tStatus('局部放大', lang)} {ROMAN[g] ?? g + 1}（{tStatus(LABEL[vn] ?? vn, lang)} · {tStatus('图纸', lang)} 2:1）</div>
-                  <svg viewBox={`${(dd.cx - dd.r).toFixed(2)} ${(dd.cy - dd.r).toFixed(2)} ${(2 * dd.r).toFixed(2)} ${(2 * dd.r).toFixed(2)}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: 200, background: '#fff' }}>
+                  <svg viewBox={`${(dd.cx - dd.r).toFixed(2)} ${(dd.cy - dd.r).toFixed(2)} ${(2 * dd.r).toFixed(2)} ${(2 * dd.r).toFixed(2)}`} preserveAspectRatio="xMidYMid meet" style={{ width: `${dd.r*4}mm`, height: `${dd.r*4}mm`, maxWidth:'none', background: '#fff' }}>
                     {sv.hatch && sv.hatch.length > 0 && (
                       <defs>
                         <pattern id={'hpd_' + id} patternUnits="userSpaceOnUse" width={hsp} height={hsp} patternTransform="rotate(45)">
@@ -1009,9 +1032,10 @@ export default function DrawingPanel() {
           })()}
         </div>
         {gbFrame && (() => {
-          const { svg } = buildSvgString(0) // GB 图框所见即所得预览（导出 SVG/PNG/PDF 即此版面）
+          const { svg, overflow } = buildSvgString(0) // GB 图框所见即所得预览（导出 SVG/PNG/PDF 即此版面）
           return (
             <div style={{ marginTop: 10 }}>
+              {overflow && <div role="alert" style={{color:'#b42318'}}>所選比例超出圖紙，請減小比例或選較大圖幅。SVG／PNG／PDF 匯出暫停，避免裁切。</div>}
               <div style={{ fontSize: 12, color: '#5a6b78', marginBottom: 4 }}>🖼 {tStatus('GB 图框预览 —', lang)} {sheet} {tStatus('横向', lang)} {sheet === 'A3' ? '420×297' : '297×210'} mm · {tStatus('10mm 边框 + 右下标题栏（导出 SVG / PNG / PDF 同此版面）', lang)}</div>
               <img src={'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)} alt={tStatus('GB 图框预览', lang)} style={{ width: '100%', background: '#fff', border: '1px solid #ccc', borderRadius: 4 }} />
             </div>
@@ -1021,7 +1045,7 @@ export default function DrawingPanel() {
           <span><b>{tStatus('名称', lang)}</b> {projectName || tStatus('webcad 零件', lang)}</span>
           <span><b>{tStatus('总尺寸', lang)}</b> {oL ?? '?'}×{oW ?? '?'}×{oH ?? '?'} mm</span>
           <span><b>{tStatus('材料', lang)}</b> <input value={materialTxt} onChange={(e) => setMaterialTxt(e.target.value)} placeholder={tStatus('如 6061铝', lang)} style={{ fontSize: 12, width: 64, padding: '0 3px' }} title={tStatus('材料（自由文字，写入标题栏 + 导出）', lang)} /></span>
-          <span><b>{tStatus('比例', lang)}</b> <select value={scale} onChange={(e) => setScale(e.target.value)} style={{ fontSize: 12, padding: '0 2px' }} title={tStatus('图纸声明比例（导出 SVG 仍为真尺寸矢量；此为标注/打印用）', lang)}>{['1:1', '1:2', '1:5', '1:10', '2:1', '5:1', '10:1'].map((s) => <option key={s} value={s}>{s}</option>)}</select></span>
+          <span><b>{tStatus('比例', lang)}</b> <select value={scale} onChange={(e) => setScale(e.target.value)} style={{ fontSize: 12, padding: '0 2px' }} title={tStatus('實際紙面比例；模型尺寸標註保持原值', lang)}>{['1:1', '1:2', '1:5', '1:10', '2:1', '5:1', '10:1'].map((s) => <option key={s} value={s}>{s}</option>)}</select></span>
           <span><b>{tStatus('单位', lang)}</b> mm</span>
           <span title={tStatus('图幅（T791）：GB 图框纸张大小 — A4 横向 297×210 / A3 横向 420×297（导出 SVG/PNG/PDF 同步）', lang)}><b>{tStatus('图幅', lang)}</b> <select value={sheet} onChange={(e) => setSheet(e.target.value as 'A4' | 'A3')} style={{ fontSize: 12 }}><option value="A4">{tStatus('A4 横', lang)}</option><option value="A3">{tStatus('A3 横', lang)}</option></select></span>
           <span title={tStatus('第三角（美/日）：俯视喺前视上方、右视喺右方；第一角（GB/ISO）：俯视喺前视下方、右视喺左方。切换会重排视图位置 + 更新标题栏文字与截锥符号', lang)}>
@@ -1102,7 +1126,8 @@ export default function DrawingPanel() {
             </div>
           )
         })()}
-        <div className="dw-foot">
+        <div className="dw-foot" style={{flexWrap:'wrap',justifyContent:'flex-start',gap:8}}>
+          <style>{`.dw-foot > * { flex-shrink:0; max-width:100%; } .dw-foot button { white-space:nowrap; } .dw-view {min-width:0;overflow:auto;} @media(max-width:700px){.dw-views{grid-template-columns:repeat(3,minmax(120px,1fr));overflow:auto;}}`}</style>
           <span className="dw-legend">{tStatus('— 可见轮廓　┄ 隐藏轮廓', lang)}</span>
           <label style={{ fontSize: 12, marginLeft: 4, cursor: 'pointer' }} title={tStatus('显示/隐藏 虚线隐藏轮廓（屏幕 + 导出 SVG 同步）', lang)}><input type="checkbox" checked={showHidden} onChange={(e) => setShowHidden(e.target.checked)} /> {tStatus('隐藏线', lang)}</label>
           <label style={{ fontSize: 12, marginLeft: 2, cursor: 'pointer' }} title={tStatus('显示/隐藏 自动孔径Ø标注 + 中心标记（屏幕 + 导出同步）', lang)}><input type="checkbox" checked={showCallouts} onChange={(e) => setShowCallouts(e.target.checked)} /> {tStatus('Ø标注', lang)}</label>

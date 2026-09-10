@@ -114,6 +114,7 @@ export function useDraggable(key: string, anchor: Anchor) {
       })
     })
     observer.observe(el)
+    if (el.offsetParent) observer.observe(el.offsetParent)
     return () => observer.disconnect()
   }, [pos])
 

@@ -37,6 +37,17 @@ test('shaded hidden edges are depth-occluded instead of redrawing all edges', ()
 test('wire modes that distinguish visible or hidden edges retain an invisible depth prepass', () => {
   // A transparent wire body cannot write colour, but the visible-only and
   // hidden-line variants must still populate depth before their B-rep lines.
-  assert.match(viewport, /colorWrite=\{wire \? false : undefined\}/)
-  assert.match(viewport, /depthWrite=\{wire \? edgeDisplay !== 'off'/)
+  const block = viewport.slice(viewport.indexOf('colorWrite={!pickOnly'), viewport.indexOf('side={xray', viewport.indexOf('colorWrite={!pickOnly')))
+  const color = block.match(/colorWrite=\{([^}]+)\}/)?.[1]
+  const depth = block.match(/depthWrite=\{([^}]+)\}/)?.[1]
+  assert.ok(color && depth, 'body material exposes colour/depth controls')
+  const evaluate = (expression, pickOnly, wire, edgeDisplay) => Function('pickOnly','wire','edgeDisplay','xray','skSee','feaGhost','compOpacity','frozen','material', 'return ('+expression+')')(pickOnly,wire,edgeDisplay,false,false,false,1,false,{opacity:1})
+  for (const edgeDisplay of ['off','visible','hidden']) {
+    assert.equal(evaluate(color,false,true,edgeDisplay),false)
+    assert.equal(evaluate(depth,false,true,edgeDisplay),edgeDisplay !== 'off')
+    assert.equal(evaluate(color,true,false,edgeDisplay),false,'pick surface cannot obscure preview')
+    assert.equal(evaluate(depth,true,false,edgeDisplay),false,'pick surface cannot occlude preview edges')
+  }
+  assert.equal(evaluate(color,false,false,'visible'),true)
+  assert.equal(evaluate(depth,false,false,'visible'),true)
 })

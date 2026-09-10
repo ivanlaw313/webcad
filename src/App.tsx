@@ -1,3 +1,4 @@
+import { protectEscape } from './cad/escapeKey'
 import { useEffect, lazy, Suspense, useState } from 'react'
 import Ribbon from './components/Ribbon'
 import BrowserTree from './components/BrowserTree'
@@ -22,7 +23,6 @@ import IntroCard from './components/IntroCard'
 import ErrorBoundary from './components/ErrorBoundary'
 import PromptDialog from './components/PromptDialog'
 import InsertDialog from './components/InsertDialog'   // GM-X3 #7/#8/#11：矢量（SVG/DXF）+ 网格（STL/OBJ）插入对话框
-import NarrowHint from './components/NarrowHint'
 import TeachPointer from './components/TeachPointer'   // P6 v1.1：AI 教学高亮命令时的弹跳箭头图像指引
 import Tour from './components/Tour'   // GM-W6 E：手把手教学（step-by-step tutorial）步骤卡
 import DebugHud from './components/DebugHud'
@@ -64,6 +64,7 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!startupReady) return
+      if (e.key === 'Escape' && e.repeat) return
       const t = e.target as HTMLElement | null
       if (e.isComposing || e.keyCode === 229) return
       // Keep normal text entry local to the focused field, but never swallow the
@@ -88,13 +89,16 @@ export default function App() {
       }
       if (e.altKey) return
       const s = useApp.getState()
+      if (s.uiDialog) return
+      if (e.key === 'Escape' && s.cmdPaletteOpen) { s.setCmdPalette(false); return }
+      if (e.key === 'Escape' && s.helpOpen) { s.toggleHelp(); return }
       // Constraint-sketch overlay: ESC cancels in-progress draw → clears selection → closes (Fusion-style step-back).
       if (s.csketchOpen && e.key === 'Escape') {
         e.preventDefault()
         const cs = useCSketch.getState()
         if (cs.draft.length > 0) useCSketch.setState({ draft: [], preview: null, status: '已取消当前绘制（再按 Esc 清选择 / 退出）' })
         else if (cs.selection.length > 0) cs.clearSelection()
-        else s.closeCSketch()
+        else useCSketch.getState().setTool('select')
         return
       }
       // Constraint-sketch tool shortcuts (match the freehand sketch + Fusion): L line / R rect / C circle /
@@ -277,7 +281,7 @@ export default function App() {
         case 'n': if (s.mode === 'sketch') { s.skLookAt(); e.preventDefault() } break   // GM-FP1 #9：N = 正对草图平面（Look At，键盘路径）
         case 'home': s.requestFit(s.selectedComponent || null); e.preventDefault(); break  // S112：适应窗口 / 框到选中组件（Fusion Home）
         case 'enter': if (s.formBoxDraft?.stage === 'ready') { e.preventDefault(); void s.commitFormBoxDraft() } break
-        case 'escape': if (s.formBoxDraft) { e.preventDefault(); s.cancelFormCreate() } else if (s.mode === 'sketch' && (s.dimBuf[0] || s.dimBuf[1])) s.sketchTypeKey('Escape'); else if (s.mode === 'sketch' || s.mode === 'pickplane') { if (!s.escSketch()) void s.tryExitSketch() } else if (s.helpOpen) s.toggleHelp(); else s.selectFeature(null); break  // T792：ESC 退草图前 confirm/save（防意外丢失）；escSketch 先消化子动作（取消绘制/拾取/退返选择工具）
+        case 'escape': if (s.formMode) { e.preventDefault(); if (s.formEditStart) s.cancelFormEdit(); else if (s.formCreateKind) s.cancelFormCreate(); else { s.selFormVert(null); s.selFormFace(null) } } else if (s.formBoxDraft) { e.preventDefault(); s.cancelFormCreate() } else if (s.mode === 'sketch' && (s.dimBuf[0] || s.dimBuf[1])) s.sketchTypeKey('Escape'); else if (s.mode === 'sketch') { if (!s.escSketch()) useApp.setState({ status: '已取消选择 — 草图保留，完成请按「完成草图」' }) } else if (s.mode === 'pickplane') s.exitSketchMode(); else { s.selectFeature(null); s.selectComponent(null); s.clearInspect(); useApp.setState({ hoverFace: null, status: '已取消选择 — 模型及视角保留' }) } break  // T792：ESC 退草图前 confirm/save（防意外丢失）；escSketch 先消化子动作（取消绘制/拾取/退返选择工具）
         case 'delete':
           // GM-FP3 #35：选中约束（点徽章）→ Delete 移除该约束；否则删几何。T796b：调尺寸中 Delete 唔删几何。
           if (s.mode === 'sketch') { if (s.skSelCon) { s.removeSkCon(s.skSelCon); s.selectSkCon(null) } else if (!s.sizing) s.skDeleteSel() }
@@ -286,8 +290,9 @@ export default function App() {
           break
       }
     }
+    window.addEventListener('keydown', protectEscape, true)
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => { window.removeEventListener('keydown', protectEscape, true); window.removeEventListener('keydown', onKey) }
   }, [startupReady])
 
   return (
@@ -313,7 +318,6 @@ export default function App() {
       {csketchOpen && <ErrorBoundary name="约束草图" compact><Suspense fallback={null}><CSketch /></Suspense></ErrorBoundary>}
       <PromptDialog />
       <InsertDialog />
-      <NarrowHint />
       {aiOpen && <Suspense fallback={null}><AiCopilotLazy /></Suspense>}
       <TeachPointer />
       <Tour />

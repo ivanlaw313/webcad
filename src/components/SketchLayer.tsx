@@ -1,11 +1,22 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from 'react'
+import { parseDimensionEditInput } from '../sketch/dimensionEditInput'
+import { fixesWholeShape, sketchGeometryVisible } from './sketchFixVisual'
+import { sketchConstraintColor } from './sketchConstraintColor'
+import { sketchPlaneRaycast } from '../sketch/sketchPlaneRaycast'
+import { ellipseContactPoint, ellipseTangentCandidates, tangentExtension } from './ellipseTangentVisual'
+import { ellipseArcContainsAngle, ellipseArcSweep } from '../sketch/ellipseArcGeometry'
+import { startGeometryPointerSession } from '../sketch/geometryPointerSession'
+import { revolvePointToCad, revolveFrame, type RevolveFrameSource } from '../cad/revolvePreviewFrame'
+import { fitCameraDistance } from '../cad/fitCameraDistance'
+import { activeModelCommand } from '../cad/commandAvailability'
+import { placeDimensionLabel } from './dimensionLabelLayout'
+import { useLayoutEffect, useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
-import { DoubleSide, Vector3, BufferGeometry, Float32BufferAttribute, ShapeUtils, Vector2, Matrix4, Quaternion, TextureLoader, SRGBColorSpace, CatmullRomCurve3, TubeGeometry, type Texture } from 'three'
+import { DoubleSide, Raycaster, Plane as ThreePlane, Vector3, BufferGeometry, Float32BufferAttribute, ShapeUtils, Vector2, Matrix4, Quaternion, TextureLoader, SRGBColorSpace, CatmullRomCurve3, TubeGeometry, type Texture } from 'three'
 import { useApp, setSnapScale, arc3, circumcircle, evalExpr, endTangent, type Pt, type SketchShape } from '../store'
 import { tStatus } from '../i18n'
 import { parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：单位感知尺寸输入（分数英寸）
-import { refMid, refPts, measureDim, dimGfx, radDiaDisplay, radDiaStore, type FShape, type SkCon, type SkRef } from '../sketch/freesolve'
+import { ellipseLineTangentPair, initialEllipseContact, refMid, refPts, measureDim, dimGfx, radDiaDisplay, type FShape, type SkCon, type SkRef } from '../sketch/freesolve'
 import { tessellateSeg } from '../sketch/sketchOps'
 import { chainSegments } from '../sketch/chainsegs'   // GM-W7 7.5：投影参考段串成 polyline → 连续虚线（唔再逐段塌成点）
 import { endpointTangentHandles } from '../sketch/splineEdit'   // #174-8：样条首尾切向手柄
@@ -18,6 +29,27 @@ import type { MeshData, Plane } from '../worker/cad.worker'
 
 type V3 = [number, number, number]
 type Lift = (p: Pt) => V3
+
+const hasPatternCandidate = (s: ReturnType<typeof useApp.getState>) =>
+  s.mode === 'sketch' && s.sketchTool === 'array' && !!s.skPatternSession &&
+  !s.skPatternPreview.pending && !s.skPatternPreview.error && !!s.skPatternPreview.document && !!s.skPatternPreview.shapes
+
+function patternOutline(sh: SketchShape, lift: Lift): V3[] {
+  if (sh.type === 'rect') return rectPts(sh.a, sh.b, lift)
+  if (sh.type === 'circle') return circlePts(sh.c, sh.r, lift)
+  let pts: Pt[]
+  if (sh.ell || sh.earc) {
+    const e = sh.ell ?? sh.earc!
+    const a0 = sh.earc?.a0 ?? 0, sweep = sh.earc ? ellipseArcSweep(sh.earc) : 360
+    const count = Math.max(24, Math.ceil(Math.abs(sweep) / 3))
+    pts = Array.from({length:count+1}, (_,i) => ellipseContactPoint(e, a0 + sweep*i/count))
+  } else if (sh.arc) pts = arc3(sh.arc.a, sh.arc.b, sh.arc.m)
+  else if (sh.verts?.length && sh.bulges) {
+    pts = [sh.verts[0]]
+    for (let i=0;i<(sh.open?sh.verts.length-1:sh.verts.length);i++) pts.push(...tessellateSeg(sh.verts[i],sh.verts[(i+1)%sh.verts.length],sh.bulges[i]??0))
+  } else pts = sh.open || !sh.pts.length ? sh.pts : [...sh.pts,sh.pts[0]]
+  return pts.map(lift)
+}
 
 // Per sketch-plane: capture-surface orientation, world-hit → sketch 2D [s,t],
 // [s,t] → three-world (for drawing), and the sketch-mode camera. XY = horizontal
@@ -228,6 +260,7 @@ export function CameraRig() {
   const controls = useThree((s) => s.controls) as unknown as
     | { target: { set: (x: number, y: number, z: number) => void; x: number; y: number; z: number }; update: () => void; enabled?: boolean }
     | null
+  const orientedControls = useRef<unknown>(null)
   // QA 钩：暴露 camera/controls 畀 headless 验证相机取向（同 claudecraft window.cc 惯例；只读引用,无副作用）。
   useEffect(() => { (window as unknown as { __three?: unknown }).__three = { camera, controls } }, [camera, controls])
   // GM-FP4 #1：用户任何输入（pointerdown / wheel）即中断相机 tween（Fusion：一郁就交返控制畀你）。
@@ -266,7 +299,9 @@ export function CameraRig() {
     //   （旧 key 可能残留令 isReorient=false → 相机唔郁 → 卡喺入草图前嘅斜视角）。
     const justEnteredSketch = mode === 'sketch' && !_prevSketchMode
     _prevSketchMode = mode === 'sketch'
-    const isReorient = justEnteredSketch || orientKey !== _lastOrientKey
+    const controlsChanged = orientedControls.current !== controls
+    orientedControls.current = controls
+    const isReorient = controlsChanged || justEnteredSketch || orientKey !== _lastOrientKey
     _lastOrientKey = orientKey
     // 只有【撳正对掣】(lookAtNonce 变) 先做平滑动画；入草图/换面/换基准 = 即时正对（唔起 tween）。
     const lookAtChanged = lookAtNonce !== _lastLookNonce
@@ -319,7 +354,7 @@ export function CameraRig() {
     }
     let fitSpan: number | null = null   // GM-W7 7.2：今次取景采用嘅内容跨度（下面正交 zoom 用）
     // GM-W6 C2：focus-first（唔再畀 arb 支覆盖 skGeoFocus）——有对焦面永远优先框佢。
-    if (mode === 'sketch' && focus) {
+    if (mode === 'sketch' && focus && !arb) {
       // Auto zoom/pan onto the picked face / body footprint (Fusion frames the sketch target).
       const tgt = SK[plane].lift(focus.c, baseZ)
       const up = SK[plane].lift(focus.c, baseZ + 1)
@@ -330,14 +365,17 @@ export function CameraRig() {
       controls.target.set(tgt[0], tgt[1], tgt[2])
     } else if (mode === 'sketch' && arb) {
       // Face the tilted plane straight-on (Fusion: view normal to sketch plane).
-      const o = arb.o, n = arb.n
-      const ot: [number, number, number] = [o[0], o[2], -o[1]]          // CAD origin → three
+      const n = arb.n
+      const span = inPlaneSpan()
+      const ot = arbFrame(arb).lift(focus?.c ?? sketchCenter ?? [0, 0])
       const nt: [number, number, number] = [n[0], n[2], -n[1]]          // CAD normal → three
       const L = Math.hypot(nt[0], nt[1], nt[2]) || 1
-      fitSpan = inPlaneSpan() ?? bodyDiag()   // GM-W7 7.2：斜面 — 有轮廓框轮廓，否则实体 bbox
+      fitSpan = Math.max(focus?.size ?? 0, span ?? bodyDiag() ?? 0) || null
       const d = distFrom(fitSpan, 340)   // GM-W6 C2：斜面用实体 bbox 定距（原硬编 340）
       // GM-W6 C2：加沿面切向 0.01 微偏（似 XY 支 L32）—— 免相机正对法向 look-at 塌 degenerate（roll 未定义）
       const tx = arb.xd[0], ty = arb.xd[2], tz = -arb.xd[1]
+      const normal = new Vector3(...nt).normalize()
+      camera.up.copy(normal.clone().cross(new Vector3(tx, ty, tz)).normalize())
       camera.position.set(ot[0] + (nt[0] / L) * d + tx * 0.01, ot[1] + (nt[1] / L) * d + ty * 0.01, ot[2] + (nt[2] / L) * d + tz * 0.01)
       controls.target.set(ot[0], ot[1], ot[2])
     } else if (mode === 'sketch') {
@@ -397,10 +435,21 @@ export function CameraRig() {
 
 // Invisible plane (oriented to the active sketch plane) that captures clicks while sketching.
 export function SketchSurface() {
+  const scalePointer = useRef<(() => void) | null>(null)
+  const scaleStart = useRef<Pt | null>(null)
+  const geometryPointer = useRef<(() => void) | null>(null)
+  const geometrySnapshot = useRef<unknown>(null)
+  const geometryCanvas = useThree((s) => s.gl.domElement)
   const mode = useApp((s) => s.mode)
   const baseZ = useApp((s) => s.sketchBaseZ)
   const plane = useApp((s) => s.sketchPlane)
   const arb = useApp((s) => s.sketchArb)
+  const raycast = useMemo(() => {
+    const lift=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}).lift:(p:Pt)=>SK[plane].lift(p,baseZ)
+    const p=lift([0,0]),o=arb?p:SK[plane].pos(baseZ)
+    const shift=(q:V3):V3=>[q[0]-p[0]+o[0],q[1]-p[1]+o[1],q[2]-p[2]+o[2]]
+    return sketchPlaneRaycast(o,shift(lift([1,0])),shift(lift([0,1])))
+  },[arb,plane,baseZ])
   const click = useApp((s) => s.onSketchClick)
   const move = useApp((s) => s.onSketchMove)
   const camera = useThree((s) => s.camera)   // GM-FP1 #13：端点命中容差换算（屏幕 px → 世界 mm）
@@ -434,18 +483,75 @@ export function SketchSurface() {
   const endpointTol = () => { const c = camera as unknown as { isOrthographicCamera?: boolean; zoom?: number }; return c?.isOrthographicCamera ? Math.min(20, Math.max(1, 14 / (c.zoom || 1))) : 6 }
   // 保險：mid-drag 按 ESC 退草圖 → 本組件卸載，凍結咗嘅 OrbitControls 冇人解 → 相機鎖死（skDrag 同款泄漏一齊堵）
   useEffect(() => () => { if (controls) controls.enabled = true; useApp.getState().skTrimSweepEnd() }, [controls])   // GM-FP3 #38：卸載時清拖扫修剪 flag
+  const draggingGeometry = useApp((s) => !!s.skDrag)
+  useEffect(() => { if (!draggingGeometry && controls) controls.enabled = true }, [draggingGeometry, controls])
+  useEffect(() => {
+    const stop = () => { const cleanup = geometryPointer.current; geometryPointer.current = null; geometrySnapshot.current = null; cleanup?.(); if (controls) controls.enabled = true }
+    const unsubscribe = useApp.subscribe((s) => { if (geometryPointer.current && (!s.skDrag || s.skDrag.undoSnap !== geometrySnapshot.current)) stop() })
+    return () => { unsubscribe(); if (geometryPointer.current) useApp.getState().skDragCancel(); stop() }
+  }, [controls])
+  useEffect(() => {
+    const stop=()=>{const close=scalePointer.current;scalePointer.current=null;scaleStart.current=null;close?.();if(controls)controls.enabled=true}
+    const unsub=useApp.subscribe(s=>{if(scalePointer.current&&(!s.skScale||s.skScale.stage!=='dragging'||s.skScale.handleStart!==scaleStart.current))stop()})
+    return()=>{unsub();if(scalePointer.current){stop();useApp.getState().stepBackSkScale()}}
+  },[controls])
+  const captureScale=(pointerId:number)=>{
+    scaleStart.current=useApp.getState().skScale?.handleStart??null
+    const frame=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}):null
+    const lift=frame?.lift??((p:Pt)=>SK[plane].lift(p,baseZ)),toST=frame?.toST??SK[plane].toST
+    const surface=new ThreePlane().setFromCoplanarPoints(new Vector3(...lift([0,0])),new Vector3(...lift([1,0])),new Vector3(...lift([0,1])))
+    if(!frame)surface.setFromNormalAndCoplanarPoint(surface.normal,new Vector3(...SK[plane].pos(baseZ)))
+    const ray=new Raycaster(),hit=new Vector3()
+    scalePointer.current=startGeometryPointerSession({canvas:geometryCanvas,pointerId,
+      project:(x,y)=>{const r=geometryCanvas.getBoundingClientRect();if(!r.width||!r.height||x<r.left||x>r.right||y<r.top||y>r.bottom)return null;ray.setFromCamera(new Vector2((x-r.left)/r.width*2-1,1-(y-r.top)/r.height*2),camera);return ray.ray.intersectPlane(surface,hit)?toST(hit):null},
+      move:p=>{void useApp.getState().updateSkScaleHandle(p)},
+      end:p=>{void useApp.getState().updateSkScaleHandle(p);useApp.getState().finishSkScaleHandle()},
+      cancel:()=>useApp.getState().stepBackSkScale(),onClose:()=>{if(controls)controls.enabled=true},
+    })
+  }
+  const captureGeometry = (pointerId: number) => {
+    geometrySnapshot.current = useApp.getState().skDrag?.undoSnap
+    const frame = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
+    const lift = frame?.lift ?? ((p: Pt) => SK[plane].lift(p, baseZ))
+    const toST = frame?.toST ?? SK[plane].toST
+    const surface = new ThreePlane().setFromCoplanarPoints(new Vector3(...lift([0,0])), new Vector3(...lift([1,0])), new Vector3(...lift([0,1])))
+    if (!frame) surface.setFromNormalAndCoplanarPoint(surface.normal, new Vector3(...SK[plane].pos(baseZ)))
+    const ray = new Raycaster(), hit = new Vector3()
+    geometryPointer.current = startGeometryPointerSession({
+      canvas: geometryCanvas, pointerId,
+      project: (x, y) => {
+        const r = geometryCanvas.getBoundingClientRect()
+        if (!r.width || !r.height || x < r.left || x > r.right || y < r.top || y > r.bottom) return null
+        ray.setFromCamera(new Vector2((x-r.left)/r.width*2-1, 1-(y-r.top)/r.height*2), camera)
+        return ray.ray.intersectPlane(surface, hit) ? toST(hit) : null
+      },
+      move: p => { useApp.getState().onSketchMove(p); void useApp.getState().skDragMove(p) },
+      end: p => { void useApp.getState().skDragEnd(p) },
+      cancel: () => useApp.getState().skDragCancel(),
+      onClose: () => { if (controls) controls.enabled = true },
+    })
+    if (!useApp.getState().skDrag) { geometryPointer.current?.(); geometryPointer.current = null }
+  }
   if (mode !== 'sketch') return null
   // Select-tool point dragging (Fusion drag-solve): pointerdown on a point arms the drag and freezes
   // OrbitControls (stopPropagation doesn't reach canvas-level listeners — ExtrudeArrow lesson); a
   // sub-threshold release falls back to a normal click inside skDragEnd.
-  const down = (st: Pt, e: { stopPropagation: () => void; button?: number; clientX?: number; clientY?: number; pointerType?: string; shiftKey?: boolean }) => {
+  const down = (st: Pt, e: { stopPropagation: () => void; button?: number; clientX?: number; clientY?: number; pointerId?: number; pointerType?: string; shiftKey?: boolean }) => {
     e.stopPropagation()
+    if (geometryPointer.current || scalePointer.current) return
     // 第二個 pointer（觸屏第二隻手指 / 拖緊時按右鍵）→ 取消 drag-draw 並解凍相機（俾 pinch 縮放有得行），唔落點
     if (dragDraw.current) { dragDraw.current = null; if (controls) controls.enabled = true; return }
     // GM-W6 A2：净【左键】先落点（对齐 Fusion）——旧版 click(st) 冇 button 判断，中/右键都会画嘢。
     // 早 return 唔阻 OrbitControls（佢听 canvas 原生事件）→ 中键=平移、右键=平移/菜单，画到一半照调视角。
     if ((e.button ?? 0) !== 0) return
     const app = useApp.getState()
+    if(app.sketchTool==='scale'&&app.skScale){
+      const sc=app.skScale
+      if(sc.stage==='base'){app.setSkScaleBase(st,true);return}
+      const arm=gizmoArm(),h:Pt=[sc.cx+arm*sc.factor,sc.cy]
+      if(Math.hypot(st[0]-h[0],st[1]-h[1])<arm*.25){app.startSkScaleHandle(st);if(useApp.getState().skScale?.stage==='dragging'){if(controls)controls.enabled=false;if(e.pointerId!==undefined)captureScale(e.pointerId)}}
+      return
+    }
     // GM-FP3 #39 Move gizmo：拖 X/Y/旋转 手柄（命中先冻结相机；空点 gizmo 外唔做嘢）。
     if (app.sketchTool === 'move' && app.skMove) {
       const h = hitMoveHandle(st, app.skMove, gizmoArm())
@@ -486,7 +592,7 @@ export function SketchSurface() {
       if (isDbl && app.skHitTestAt(st)) { _selDbl.current = null; app.skChainSelectAt(st); return }
       // #174-8：双击近样条控制多边形段（非命中曲线本身）→ 插一个拟合点（Fusion Insert Fit Point）。
       if (isDbl && app.insertSplineFitPoint(st)) { _selDbl.current = null; return }
-      if (app.skDragStart(st)) { if (controls) controls.enabled = false; return }
+      if (app.skDragStart(st)) { if (controls) controls.enabled = false; if (e.pointerId !== undefined) captureGeometry(e.pointerId); return }
       // GM-FP3 #44 框选：净 navTool='select' + 空白（无命中）先开框选（延到 pointerup 定 window/crossing）；
       //   命中几何（含被 #41 拒动嘅完全约束件）→ 即选中；navTool=pan/orbit/zoom → 交返 OrbitControls 平移/环绕。
       const nav = app.navTool
@@ -509,6 +615,7 @@ export function SketchSurface() {
     }
   }
   const moveH = (st: Pt, e?: { clientX?: number }) => {
+    if (geometryPointer.current || scalePointer.current) return
     const app0 = useApp.getState()
     // GM-FP3 #39/#38/#44：gizmo 手柄拖 / 修剪拖扫 / 框选 —— 各自吞掉 move，唔行原有 hover/绘制 preview。
     if (moveGizmo.current) { app0.skMoveHandleMove(st); return }
@@ -521,6 +628,7 @@ export function SketchSurface() {
     if (app.skDrag) app.skDragMove(st)
   }
   const up = (st: Pt, e?: { clientX?: number; clientY?: number; shiftKey?: boolean }, commit = true) => {
+    if (geometryPointer.current || scalePointer.current) return
     const app = useApp.getState()
     // GM-FP3 #39 Move gizmo 手柄放手
     if (moveGizmo.current) { moveGizmo.current = false; app.skMoveHandleUp(); if (controls) controls.enabled = true; return }
@@ -547,7 +655,7 @@ export function SketchSurface() {
       useApp.setState({ polyArcMode: false })
       return
     }
-    if (app.skDrag) { app.skDragEnd(st); if (controls) controls.enabled = true }
+    if (app.skDrag) { if (commit) void app.skDragEnd(st); else app.skDragCancel(); if (controls) controls.enabled = true }
     const dd = dragDraw.current
     if (dd) {
       dragDraw.current = null
@@ -561,7 +669,7 @@ export function SketchSurface() {
     // Arbitrary face plane: orient the capture surface to the face basis; map hits via the same basis.
     const fr = arbFrame(arb as { o: V3; xd: V3; n: V3 })
     return (
-      <mesh quaternion={fr.quat} position={fr.pos}
+      <mesh key="arbitrary-sketch-surface" raycast={raycast} quaternion={fr.quat} position={fr.pos}
         onPointerDown={(e) => down(fr.toST(e.point), e)}
         onPointerMove={(e) => { moveH(fr.toST(e.point), e) }}
         onPointerUp={(e) => up(fr.toST(e.point), e)}
@@ -574,7 +682,7 @@ export function SketchSurface() {
   }
   const cfg = SK[plane]
   return (
-    <mesh
+    <mesh key={plane} raycast={raycast}
       rotation={cfg.rot}
       position={cfg.pos(baseZ)}
       onPointerDown={(e) => down(cfg.toST(e.point), e)}
@@ -591,11 +699,14 @@ export function SketchSurface() {
 
 // Renders the committed profile and the rubber-band preview at the current sketch height.
 export function SketchDraw() {
+  const patternCandidate = useApp(s=>hasPatternCandidate(s)||!!s.skDimPreview.shapes)
   const camera = useThree((s) => s.camera)      // 吸附环屏幕空间半径（正交 zoom / 透视距离换算）
   const vpH = useThree((s) => s.size.height)
   const mode = useApp((s) => s.mode)
   const shape = useApp((s) => s.sketchShape)
   const tool = useApp((s) => s.sketchTool)
+  const ellipseCreation = useApp((s) => s.ellipseCreation)
+  const ellipseArcDirection = useApp((s) => s.ellipseArcDirection)
   const start = useApp((s) => s.sketchStart)
   const preview = useApp((s) => s.sketchPreview)
   const polyPts = useApp((s) => s.polyPts)
@@ -648,21 +759,18 @@ export function SketchDraw() {
   const skCons = useApp((s) => s.skCons)
   const nCons = skCons.length
   const skView = useApp((s) => s.skView)   // Fusion SKETCH PALETTE 显示开关
-  const skFreeShapes = useApp((s) => s.skFreeShapes)   // S103[7]：欠定诊断 — 仍可自由移动嘅 shape 下标
   // GM-FP2 #26：固定/接地几何 = 绿色第三态（≠ 蓝欠定 / 黑完全定义）。fix 约束成员标记 → 绿。
-  const fixedShapes = useMemo(() => { const set = new Set<number>(); for (const c of skCons) if (c.kind === 'con' && c.type === 'fix' && c.a && 'shape' in c.a) set.add((c.a as { shape: number }).shape); return set }, [skCons])
-  const fullDefined = skDof === 0 && !skConflict && nCons > 0
-  const geoColor = fullDefined ? '#16191d' : '#1572c4'
-  // S103[7]：逐实体取色 — 已解（有约束、无冲突）时按 DOF 探针：欠定 shape 蓝(#1572c4)、完全约束 黑(#16191d)；
-  // 未解/冇约束/冲突 → 回落原全图 geoColor（保持原行为）。GM-FP2 #26：fix 成员 → 绿(#2f9e44) 优先。
-  const lineColor = (idx: number) =>
-    fixedShapes.has(idx) ? '#2f9e44'
-      : (skDof == null || nCons === 0 || skConflict) ? geoColor : (skFreeShapes.has(idx) ? '#1572c4' : '#16191d')
+  const fixGeometry=[...profiles,...(shape?[shape]:[])]
+  const fixedShapes = new Set<number>()
+  for(const c of skCons)if(c.kind==='con'&&c.type==='fix'&&'shape'in c.a&&fixGeometry[c.a.shape]&&fixesWholeShape(fixGeometry[c.a.shape],c.a))fixedShapes.add(c.a.shape)
+  // Partial free probes cannot establish that an omitted entity is fixed.
+  // Until verified per-entity fixed metadata exists, positive/unknown DOF stays blue.
+  const lineColor = (idx:number) => sketchConstraintColor(fixedShapes.has(idx),skDof,skConflict,nCons)
   // Fusion-style fixed geometry needs a semantic cue as well as the green stroke.
   // A small padlock at the geometry centre remains understandable for colour-blind
   // users and makes it clear why a drag is rejected.
   const fixedGlyph = (sh: NonNullable<typeof shape>, key: string, idx: number): ReactNode => {
-    if (!fixedShapes.has(idx)) return null
+    if (!fixedShapes.has(idx)||!sketchGeometryVisible(sh,skView)) return null
     const c: Pt = sh.type === 'rect'
       ? [(sh.a[0] + sh.b[0]) / 2, (sh.a[1] + sh.b[1]) / 2]
       : sh.type === 'circle' ? sh.c
@@ -683,6 +791,7 @@ export function SketchDraw() {
   }
   // Sketch POINT (r=0 construction circle): an × marker. Construction shapes: dashed AMBER (Fusion 琥珀虚线, GM-FP2 #21).
   const drawShape = (sh: NonNullable<typeof shape>, key: string, idx: number) => {
+    if(!sketchGeometryVisible(sh,skView))return null
     if (sh.type === 'circle' && sh.point) {
       if (!skView.points) return null   // GM-FP4 #4：Points 可见性开关（Fusion palette Points）
       const c = sh.c
@@ -714,6 +823,19 @@ export function SketchDraw() {
     return <Line key={key} points={shapeToPts(sh)} color={lineColor(idx)} lineWidth={2.5} />
   }
   const els: ReactNode[] = profiles.map((sh, i) => drawShape(sh, 'cp' + i, i))
+  for(const c of skCons)if(c.kind==='con'&&c.type==='fix'&&'shape'in c.a&&!fixedShapes.has(c.a.shape)){
+    const sh=fixGeometry[c.a.shape]
+    if(!sh||!sketchGeometryVisible(sh,skView))continue
+    const points=refPts(fixGeometry,c.a)
+    if(c.a.kind==='edge'&&points.length>=2){
+      const bulge=sh.type==='poly'?sh.bulges?.[c.a.idx]??0:0
+      const path=bulge?tessellateSeg(points[0],points[1],bulge):points
+      els.push(<Line key={'fix-ref-'+c.id} points={path.map(lift)} color="#2f9e44" lineWidth={3} userData={{semantic:'fixed-edge'}} />)
+    }else if(points[0]){
+      const p=points[0],r=1.2
+      els.push(<Line key={'fix-ref-'+c.id} points={[[p[0]-r,p[1]-r],[p[0]+r,p[1]+r],[p[0],p[1]],[p[0]-r,p[1]+r],[p[0]+r,p[1]-r]].map(q=>lift(q as Pt))} color="#2f9e44" lineWidth={3} userData={{semantic:'fixed-point'}} />)
+    }
+  }
   profiles.forEach((sh, i) => { const glyph = fixedGlyph(sh, 'cp' + i, i); if (glyph) els.push(glyph) })
   if (fillGeom && skView.fill) els.unshift(<mesh key="fill" geometry={fillGeom} renderOrder={-1}><meshBasicMaterial color="#5b8fd9" transparent opacity={0.3} side={DoubleSide} depthWrite={false} /></mesh>)
   // Point-snap marker (Fusion-style): a small ring where the cursor snaps to an existing point.
@@ -794,10 +916,19 @@ export function SketchDraw() {
         els.push(<Line key="live" points={pp} color="#1572c4" lineWidth={1.5} dashed dashSize={4} gapSize={3} />)
       }
       else if (tool === 'ellipse') {
-        const rx = Math.abs(preview[0] - start[0]) || 1, ry = Math.abs(preview[1] - start[1]) || 1
-        const pp: V3[] = []
-        for (let i = 0; i <= 48; i++) { const a = (i * 2 * Math.PI) / 48; pp.push(lift([start[0] + rx * Math.cos(a), start[1] + ry * Math.sin(a)])) }
-        els.push(<Line key="live" points={pp} color="#1572c4" lineWidth={1.5} dashed dashSize={4} gapSize={3} />)
+        if (ellipseCreation === 'three-point' && !polyPts.length) {
+          els.push(<Line key="ellipse-major-preview" points={[lift(start),lift(preview)]} color="#1572c4" lineWidth={1.5} dashed dashSize={4} gapSize={3} />)
+        } else {
+          const endpoint = polyPts[0]
+          const rx = ellipseCreation === 'three-point' && endpoint ? Math.hypot(endpoint[0]-start[0],endpoint[1]-start[1]) : Math.abs(preview[0]-start[0]) || 1
+          const rotation = ellipseCreation === 'three-point' && endpoint ? Math.atan2(endpoint[1]-start[1],endpoint[0]-start[0]) : 0
+          const cr = Math.cos(rotation), sr = Math.sin(rotation)
+          const ry = ellipseCreation === 'three-point' ? Math.abs(-(preview[0]-start[0])*sr+(preview[1]-start[1])*cr) : Math.abs(preview[1]-start[1]) || 1
+          const pp: V3[] = []
+          for (let i=0;i<=48;i++) { const a=i*Math.PI/24,x=rx*Math.cos(a),y=ry*Math.sin(a); pp.push(lift([start[0]+x*cr-y*sr,start[1]+x*sr+y*cr])) }
+          els.push(<Line key="live" points={pp} color="#1572c4" lineWidth={1.5} dashed dashSize={4} gapSize={3} />)
+          if (ellipseCreation === 'three-point' && endpoint) els.push(<Line key="ellipse-semiaxes-preview" points={[lift(endpoint),lift(start),lift([start[0]-ry*sr,start[1]+ry*cr])]} color="#8a98a8" lineWidth={1} dashed dashSize={2} gapSize={2} />)
+        }
       }
       else if (tool === 'earc') {
         // S101[3] 椭圆弧 live ghost — 分阶段引导，公式同 store.skClickAt('earc') 完全一致：
@@ -843,7 +974,7 @@ export function SketchDraw() {
             } else {
               // Stage 4：起角固定，扫到 preview 角（CCW）→ 画真椭圆弧弓形 + 弦。
               const a0 = angOf(polyPts[3]), a1 = angOf(preview)
-              let dA = a1 - a0; while (dA <= 0) dA += 2 * Math.PI; while (dA > 2 * Math.PI) dA -= 2 * Math.PI
+              const dA = ellipseArcSweep({cx:C[0],cy:C[1],rx,ry,rot:rot*180/Math.PI,a0:a0*180/Math.PI,a1:a1*180/Math.PI,sweep:ellipseArcDirection==='ccw'})*Math.PI/180
               const SEG = 32, pp: V3[] = []
               for (let i = 0; i <= SEG; i++) pp.push(lift(ept(a0 + dA * i / SEG)))
               els.push(<Line key="live" points={pp} color="#1572c4" lineWidth={1.5} dashed dashSize={4} gapSize={3} />)
@@ -956,7 +1087,7 @@ export function SketchDraw() {
   }
   // 拖动时推断（select 工具拖点/边 → skDragInfer 由 store 每帧算）
   if (mode === 'sketch' && dragInfer) dragInfer.forEach((g, i) => els.push(inferGlyph(g.p, g.kind, 'draginf' + i)))
-  return els.length ? <>{els}</> : null
+  return !patternCandidate && els.length ? <>{els}</> : null
 }
 
 // Live ghost of the extrusion while the extrude dialog is open (Fusion-style preview).
@@ -1118,14 +1249,13 @@ export function ExtrudePreview() {
 
 // GM-W7 7.6：旋转（Revolve）半透明实体预览 —— 内核 revolve 系把 profile 嘅 2D [s,t] 直接摆喺 CAD XY 面(z=0)
 // 再绕【世界轴】(默认 Y,或 X/Z/自定义方向 + 轴点) 转 angle°（profileToSketch 默认 plane='XY' → 独立于草图面）。
-// 故预测无需草图面/arb：取 profile 环 → 摆 CAD (s,t,0) → Rodrigues 绕 CAD 轴转 → c2t 换 three → 扫 N 步成回转面。
 // 部分角加两端盖（三角化截面）→ 睇落系实心；整圈(360)系闭管无需盖。颜色语义同拉伸。
 // GM-W8 A4.1：把已存 revolve 特征嘅 profile（shapeToProfile 后坐标）转返 2D 环 —— 编辑现有 revolve 时预览用。
 function profileLoop2D(prof: { kind?: string; a?: Pt; b?: Pt; c?: Pt; r?: number; rx?: number; ry?: number; rot?: number; pts?: Pt[] } | null | undefined): Pt[] {
   if (!prof) return []
   if (prof.kind === 'rect' && prof.a && prof.b) { const [a0, a1] = prof.a, [b0, b1] = prof.b; return [[a0, a1], [b0, a1], [b0, b1], [a0, b1]] }
   if (prof.kind === 'circle' && prof.c && prof.r != null) { const o: Pt[] = []; for (let i = 0; i < 48; i++) { const a = (i / 48) * Math.PI * 2; o.push([prof.c[0] + prof.r * Math.cos(a), prof.c[1] + prof.r * Math.sin(a)]) } return o }
-  if (prof.kind === 'ellipse' && prof.c && prof.rx != null && prof.ry != null) { const cr = Math.cos(prof.rot || 0), sr = Math.sin(prof.rot || 0), o: Pt[] = []; for (let i = 0; i < 64; i++) { const t = (i / 64) * Math.PI * 2, ex = prof.rx * Math.cos(t), ey = prof.ry * Math.sin(t); o.push([prof.c[0] + ex * cr - ey * sr, prof.c[1] + ex * sr + ey * cr]) } return o }
+  if (prof.kind === 'ellipse' && prof.c && prof.rx != null && prof.ry != null) { const angle = (prof.rot || 0) * Math.PI / 180, cr = Math.cos(angle), sr = Math.sin(angle), o: Pt[] = []; for (let i = 0; i < 64; i++) { const t = (i / 64) * Math.PI * 2, ex = prof.rx * Math.cos(t), ey = prof.ry * Math.sin(t); o.push([prof.c[0] + ex * cr - ey * sr, prof.c[1] + ex * sr + ey * cr]) } return o }
   return prof.pts ?? []
 }
 
@@ -1139,14 +1269,14 @@ function shrinkLoopToward(loop: Pt[], wall: number): Pt[] | null {
 }
 
 // GM-W8 A4：把一条 2D 环绕【CAD 轴】(axO 过点、d 单位方向) 扫 ang° → 回转面（+部分角两端盖），append 入 positions/indices。
-function latheLoop(loop: Pt[], axO: V3, d: V3, ang: number, sym: boolean, positions: number[], indices: number[]) {
+function latheLoop(loop: Pt[], axO: V3, d: V3, ang: number, sym: boolean, positions: number[], indices: number[], toCad: (point: Pt) => V3) {
   const M = loop.length; if (M < 3) return
   const N = 24, total = (ang * Math.PI) / 180, start = sym ? -total / 2 : 0
   const rings: number[] = []
   for (let k = 0; k <= N; k++) {
     const th = start + total * (k / N), cos = Math.cos(th), sin = Math.sin(th)
     rings.push(positions.length / 3)
-    for (const [s, t] of loop) { const r = c2tW(rotAxis([s, t, 0], axO, d, cos, sin)); positions.push(r[0], r[1], r[2]) }
+    for (const point of loop) { const r = c2tW(rotAxis(toCad(point), axO, d, cos, sin)); positions.push(r[0], r[1], r[2]) }
   }
   for (let k = 0; k < N; k++) for (let j = 0; j < M; j++) {
     const j2 = (j + 1) % M, a = rings[k] + j, b = rings[k] + j2, c = rings[k + 1] + j2, e = rings[k + 1] + j
@@ -1163,13 +1293,13 @@ function latheLoop(loop: Pt[], axO: V3, d: V3, ang: number, sym: boolean, positi
 // GM-3DV1 S16：由 revolve featDlg 参数解出旋转轴（CAD 空间：轴上一点 axO + 单位方向 d）。
 // 抽自 RevolvePreview 轴解析（逐字节同逻辑）→ RevolveAngleHandle 同 preview 共用，令手柄必贴住预览弧。
 type _CAxLike = { dir: 'X' | 'Y' | 'Z'; dirV?: V3; at: V3 }
-function resolveRevolveAxis(p: Record<string, number | string>, caxes: _CAxLike[]): { axO: V3; d: V3 } | null {
+function resolveRevolveAxis(p: Record<string, number | string>, caxes: _CAxLike[], defaultOrigin: V3): { axO: V3; d: V3 } | null {
   const axStr = String(p.axis ?? 'Y')
   const ovV: V3 = [+p.dx || 0, +p.dy || 0, +p.dz || 0], ovO: V3 = [+p.ox || 0, +p.oy || 0, +p.oz || 0]
   const dirDefault = ovV[0] === 0 && ovV[1] === 1 && ovV[2] === 0
   const orgDefault = ovO[0] === 0 && ovO[1] === 0 && ovO[2] === 0
   const LV: Record<string, V3> = { X: [1, 0, 0], Y: [0, 1, 0], Z: [0, 0, 1] }
-  let axV: V3 = LV.Y, axO: V3 = [0, 0, 0]
+  let axV: V3 = LV.Y, axO: V3 = p.axisReference === 'world' || axStr === 'Z' ? [0,0,0] : defaultOrigin
   if (!dirDefault || !orgDefault) {
     axV = ovV; axO = ovO
     if (dirDefault) { if (axStr === 'X' || axStr === 'Z') axV = LV[axStr]; else if (axStr.startsWith('A')) { const ca = caxes[Number(axStr.slice(1))]; if (ca) axV = ca.dirV ?? LV[ca.dir] } }
@@ -1199,6 +1329,12 @@ function revolveOuterLoop(featDlg: { payload?: unknown; editId?: string }, featu
   return l.length >= 3 ? l : null
 }
 
+function revolvePreviewContext(dlg: {payload?: unknown; editId?: string}, features: {id:string}[]) {
+  const bundle=(dlg.payload as {bundle?: RevolveFrameSource} | undefined)?.bundle
+  const source:RevolveFrameSource=bundle ?? (features.find(f=>f.id===dlg.editId) as RevolveFrameSource | undefined) ?? {}
+  return { origin:revolveFrame(source).o, toCad:(p:Pt)=>revolvePointToCad(p,source,!!bundle) }
+}
+
 export function RevolvePreview() {
   const featDlg = useApp((s) => s.featDlg)
   const caxes = useApp((s) => s.caxes)
@@ -1218,11 +1354,12 @@ export function RevolvePreview() {
     let ang = Math.abs(+p.angle || 360); if (!(ang > 0)) ang = 360; ang = Math.min(360, ang)
     const sym = !!p.sym && ang > 0 && ang < 360
     // 轴方向/轴点（CAD）：共用 resolveRevolveAxis（同 RevolveAngleHandle）。
-    const axis = resolveRevolveAxis(p, caxes as unknown as _CAxLike[])
+    const frame = revolvePreviewContext(featDlg, features)
+    const axis = resolveRevolveAxis(p, caxes as unknown as _CAxLike[], frame.origin)
     if (!axis) return null
     const { axO, d } = axis
     const positions: number[] = [], indices: number[] = []
-    for (const loop of loops2D) latheLoop(loop, axO, d, ang, sym, positions, indices)
+    for (const loop of loops2D) latheLoop(loop, axO, d, ang, sym, positions, indices, frame.toCad)
     if (!indices.length) return null
     const geom = new BufferGeometry()
     geom.setAttribute('position', new Float32BufferAttribute(positions, 3))
@@ -1314,19 +1451,20 @@ export function RevolveAngleHandle() {
   const data = useMemo(() => {
     if (!featDlg || featDlg.kind !== 'revolve') return null
     const p = featDlg.params as Record<string, number | string>
-    const axis = resolveRevolveAxis(p, caxes as unknown as _CAxLike[]); if (!axis) return null
+    const frame = revolvePreviewContext(featDlg, features)
+    const axis = resolveRevolveAxis(p, caxes as unknown as _CAxLike[], frame.origin); if (!axis) return null
     const outer = revolveOuterLoop(featDlg as { payload?: unknown; editId?: string }, features as { id: string; type?: string; profile?: unknown }[]); if (!outer) return null
     const { axO, d } = axis
     let ang = Math.abs(+p.angle || 360); if (!(ang > 0)) ang = 360; ang = Math.min(360, ang)
     const total = (ang * Math.PI) / 180, sym = !!p.sym && ang > 0 && ang < 360
     const lead = (sym ? -total / 2 : 0) + total   // 前缘角（同 latheLoop k=N）
     // 抓手 2D 点 = 距轴线最远嘅外环顶点（半径最大，手柄最稳、最易拃）
-    const perp = (q: Pt): number => { const rx = q[0] - axO[0], ry = q[1] - axO[1], rz = 0 - axO[2]; const dot = rx * d[0] + ry * d[1] + rz * d[2]; return Math.hypot(rx - d[0] * dot, ry - d[1] * dot, rz - d[2] * dot) }
+    const perp = (q: Pt): number => { const cad = frame.toCad(q); const rx = cad[0] - axO[0], ry = cad[1] - axO[1], rz = cad[2] - axO[2]; const dot = rx * d[0] + ry * d[1] + rz * d[2]; return Math.hypot(rx - d[0] * dot, ry - d[1] * dot, rz - d[2] * dot) }
     let pg: Pt = outer[0], best = -1
     for (const q of outer) { const r = perp(q); if (r > best) { best = r; pg = q } }
     if (best < 0.5) return null   // 半径太细 → 手柄贴住轴，无意义
     const cs = Math.cos(lead), sn = Math.sin(lead)
-    const gCad = rotAxis([pg[0], pg[1], 0], axO, d, cs, sn)
+    const gCad = rotAxis(frame.toCad(pg), axO, d, cs, sn)
     // 切向（CAD）= d × (g − axO)（θ 增大方向）
     const rvx = gCad[0] - axO[0], rvy = gCad[1] - axO[1], rvz = gCad[2] - axO[2]
     let tx = d[1] * rvz - d[2] * rvy, ty = d[2] * rvx - d[0] * rvz, tz = d[0] * rvy - d[1] * rvx
@@ -1660,6 +1798,7 @@ export function CommittedSketches() {
 
 // Selection highlight for the in-sketch select/dimension tools: orange markers over picked geometry.
 export function SkSelDraw() {
+  const patternCandidate = useApp(s=>hasPatternCandidate(s)||!!s.skDimPreview.shapes)
   const mode = useApp((s) => s.mode)
   const sel = useApp((s) => s.skSel)
   const pend = useApp((s) => s.skPendingPt)
@@ -1683,9 +1822,16 @@ export function SkSelDraw() {
     if (want) cv.style.cursor = 'pointer'
     else if (cv.style.cursor === 'pointer') cv.style.cursor = ''
   }, [mode, tool, skHover])
-  if (mode !== 'sketch') return null
+  if (mode !== 'sketch' || patternCandidate) return null
   const refs: SkRef[] = [...sel, ...(pend ? [pend] : [])]
   const shapes = [...profiles, ...(shape ? [shape] : [])] as FShape[]
+  const ellipticHighlight = (r: SkRef): Pt[] | null => {
+    if (!('shape' in r)) return null
+    const sh = shapes[r.shape]
+    if ((r.kind === 'ellipse' || r.kind === 'ellipse-arc') && sh?.type === 'poly' && sh.pts.length) return r.kind === 'ellipse' ? [...sh.pts,sh.pts[0]] : sh.pts
+    if (r.kind === 'ellipse-axis') return refPts(shapes,r)
+    return null
+  }
   // T746 批2（GAP6）：斜面重开都有尺寸线/顶点标记/原点⊕ — arb lift + 沿法向抬 0.1mm 防 z-fight
   const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
   const nOff: V3 = fr && arb ? [(arb as { n: V3 }).n[0] * 0.1, (arb as { n: V3 }).n[2] * 0.1, -(arb as { n: V3 }).n[1] * 0.1] : [0, 0, 0]
@@ -1711,6 +1857,17 @@ export function SkSelDraw() {
           </group>)
         return
       }
+      if (sh.type === 'poly' && (sh.ell || sh.earc)) {
+        const semantic = ([0,1,2] as const).map(idx => refPts(shapes, { kind: 'ellipse-point', shape: i, idx })[0])
+        const [center,major,minor] = semantic
+        if (center && major && minor) {
+          for (const endpoint of [major,minor]) els.push(<Line key={`ellipse-axis-${i}-${endpoint===major?'major':'minor'}`} points={[liftP(center),liftP(endpoint)]} color="#8a98a8" lineWidth={1.2} dashed dashSize={2} gapSize={1.5} />)
+          semantic.forEach((point,idx) => els.push(<mesh key={`ellipse-handle-${i}-${idx}`} position={liftP(point)}><sphereGeometry args={[1.2,12,12]} /><meshBasicMaterial color="#1572c4" depthTest={false} /></mesh>))
+          els.push(<group key={`ellipse-center-${i}`}><Line points={[liftP([center[0]-2,center[1]]),liftP([center[0]+2,center[1]])]} color="#1572c4" lineWidth={1.5}/><Line points={[liftP([center[0],center[1]-2]),liftP([center[0],center[1]+2])]} color="#1572c4" lineWidth={1.5}/></group>)
+        }
+        if (sh.earc) for(const idx of [0,1] as const) { const endpoint=refPts(shapes,{kind:'ellipse-arc-end',shape:i,idx})[0]; if(endpoint) els.push(<mesh key={`ellipse-arc-end-${i}-${idx}`} position={liftP(endpoint)}><sphereGeometry args={[1.5,12,12]}/><meshBasicMaterial color="#d47b17" depthTest={false}/></mesh>) }
+        return
+      }
       // S103[8]：样条显示【控制点】手柄（可拣/可拖/可约束），唔好显示 48 密铺点；旧档无 ctrl → 退回空（死图元，向后兼容）
       const vs: Pt[] = sh.type === 'rect' ? [sh.a, [sh.b[0], sh.a[1]], sh.b, [sh.a[0], sh.b[1]]] : (sh.verts ?? (sh.conic ? [sh.pts[0], sh.pts[sh.pts.length - 1]] : sh.smooth ? (sh.ctrl ?? []) : sh.pts))   // S177：圆锥曲线无 ctrl → 显两端点做可拣手柄
       if (vs.length > 60) return  // 密铺旧档守卫
@@ -1719,6 +1876,17 @@ export function SkSelDraw() {
           <sphereGeometry args={[1.0, 10, 10]} />
           <meshBasicMaterial color="#1572c4" depthTest={false} />
         </mesh>))
+      if (sh.type === 'poly' && sh.verts && sh.bulges) {
+        sh.bulges.slice(0, sh.verts.length - (sh.open ? 1 : 0)).forEach((bu,j) => {
+          if (Math.abs(bu) < 1e-12) return
+          const [c] = refPts(shapes, { kind: 'center', shape: i, idx: j })
+          if (!c) return
+          els.push(<group key={`arc-center-${i}-${j}`}>
+            <Line points={[liftP([c[0]-1,c[1]]),liftP([c[0]+1,c[1]])]} color="#1572c4" lineWidth={1.2} />
+            <Line points={[liftP([c[0],c[1]-1]),liftP([c[0],c[1]+1])]} color="#1572c4" lineWidth={1.2} />
+          </group>)
+        })
+      }
       // S103[8]：样条控制多边形虚线（控制点顺连，参考几何样式）— 睇到控制网
       if (sh.type === 'poly' && sh.smooth && sh.ctrl && sh.ctrl.length >= 2) { const ctrl = sh.ctrl; const segN = sh.open ? ctrl.length - 1 : ctrl.length; for (let j = 0; j < segN; j++) { const a = ctrl[j], b = ctrl[(j + 1) % ctrl.length]; els.push(<Line key={`cpoly${i}_${j}`} points={[liftP(a), liftP(b)]} color="#8a98a8" lineWidth={1} dashed dashSize={2} gapSize={1.5} />) } }   // S161：开放样条控制网唔好画埋 ctrl[n-1]->ctrl[0] 嗰条封口虚线
       // #174-8：开放样条【首尾切向手柄】—— 端点沿曲线离开方向画一条青色手柄线 + 末端小球（视觉指示端点切向；双击控制段之间可插拟合点）
@@ -1784,7 +1952,9 @@ export function SkSelDraw() {
   // 只 select/dimension 工具显；已选中嘅唔重复画。防御性 guard shape/refGeo 存在。
   if ((tool === 'select' || tool === 'dimension') && skHover && !refs.some((r) => JSON.stringify(r) === JSON.stringify(skHover))) {
     const r = skHover, HC = '#e8a25e', HW = 2.8
-    if (r.kind === 'origin') els.push(<Line key="hov" points={circlePts([0, 0], 3.4, liftP)} color={HC} lineWidth={HW} />)
+    const ellipticPath = ellipticHighlight(r)
+    if (ellipticPath) els.push(<Line key="hov" points={ellipticPath.map(liftP)} color={HC} lineWidth={HW} />)
+    else if (r.kind === 'origin') els.push(<Line key="hov" points={circlePts([0, 0], 3.4, liftP)} color={HC} lineWidth={HW} />)
     else if (r.kind === 'refpt' && refGeo && refGeo.pts[r.idx]) els.push(<Line key="hov" points={circlePts(refGeo.pts[r.idx], 3.4, liftP)} color={HC} lineWidth={HW} />)
     else if (r.kind === 'refedge' && refGeo && refGeo.segs[r.idx]) { const [a, b] = refGeo.segs[r.idx]; els.push(<Line key="hov" points={[liftP(a), liftP(b)]} color={HC} lineWidth={HW} />) }
     else if (r.kind === 'circle') { const sh = shapes[r.shape]; if (sh && sh.type === 'circle') els.push(<Line key="hov" points={circlePts(sh.c, sh.r, liftP)} color={HC} lineWidth={HW} />) }
@@ -1793,13 +1963,15 @@ export function SkSelDraw() {
       const bu = sh && sh.type === 'poly' && sh.verts && sh.bulges ? (sh.bulges[r.idx] || 0) : 0
       if (a && b && Math.abs(bu) > 1e-12) els.push(<Line key="hov" points={[liftP(a), ...tessellateSeg(a, b, bu).map(liftP)]} color={HC} lineWidth={HW} />)
       else if (a && b) els.push(<Line key="hov" points={[liftP(a), liftP(b)]} color={HC} lineWidth={HW} />)
-    } else if (r.kind === 'pt') { const [p] = refPts(shapes, r); if (p) els.push(<Line key="hov" points={circlePts(p, 3.2, liftP)} color={HC} lineWidth={HW} />) }
+    } else if (r.kind === 'pt' || r.kind === 'center' || r.kind === 'ellipse-point' || r.kind === 'ellipse-arc-end') { const [p] = refPts(shapes, r); if (p) els.push(<Line key="hov" points={circlePts(p, 3.2, liftP)} color={HC} lineWidth={HW} />) }
   }
   refs.forEach((r, i) => {
     if (r.kind === 'origin' || r.kind === 'refpt' || r.kind === 'refedge') return  // highlighted above
     const sh = shapes[r.shape]
     if (!sh) return
-    if (r.kind === 'circle' && sh.type === 'circle') {
+    const ellipticPath = ellipticHighlight(r)
+    if (ellipticPath) { els.push(<Line key={'ss'+i} points={ellipticPath.map(liftP)} color="#ff8a2a" lineWidth={3.4} />) }
+    else if (r.kind === 'circle' && sh.type === 'circle') {
       els.push(<Line key={'ss' + i} points={circlePts(sh.c, sh.r, liftP)} color="#ff8a2a" lineWidth={3.4} />)
     } else if (r.kind === 'edge') {
       const [a, b] = refPts(shapes, r)
@@ -1818,6 +1990,14 @@ export function SkSelDraw() {
         els.push(<Line key={'ssr' + i} points={circlePts(p, 3.6, liftP)} color="#ff8a2a" lineWidth={2.6} />) }
     }
   })
+  const tangentPair = (a: SkRef, b: SkRef) => {
+    const pair=ellipseLineTangentPair(shapes,a,b);if(!pair)return null
+    const sh=shapes[pair.ellipse.shape],line=refPts(shapes,pair.line)
+    const ellipse=sh?.type==='poly'?(sh.ell??sh.earc):null
+    return ellipse&&line.length===2?{ellipse,arc:sh.type==='poly'?sh.earc:undefined,a:line[0],b:line[1],initialAngle:initialEllipseContact(shapes,pair)?.angleDeg??null}:null
+  }
+  if(sel.length===2){const pair=tangentPair(sel[0],sel[1]);if(pair){const candidates=ellipseTangentCandidates(pair.ellipse,pair.a,pair.b).filter(c=>!pair.arc||ellipseArcContainsAngle(pair.arc,c.angleDeg)),nearest=candidates.reduce((n,c,i)=>Math.abs(Math.sin((c.angleDeg-(pair.initialAngle??0))*Math.PI/360))<Math.abs(Math.sin(((candidates[n]?.angleDeg??0)-(pair.initialAngle??0))*Math.PI/360))?i:n,0);candidates.forEach((c,i)=>els.push(<Line key={`tan-preview-${i}`} points={circlePts(c.point,i===nearest?2.8:2.2,liftP)} color={i===nearest?'#f08a24':'#22a7bd'} lineWidth={2.4}/>));if(!candidates.length&&pair.initialAngle!==null){const point=ellipseContactPoint(pair.ellipse,pair.initialAngle),t=pair.initialAngle*Math.PI/180,r=pair.ellipse.rot*Math.PI/180,dx=-pair.ellipse.rx*Math.sin(t)*Math.cos(r)-pair.ellipse.ry*Math.cos(t)*Math.sin(r),dy=-pair.ellipse.rx*Math.sin(t)*Math.sin(r)+pair.ellipse.ry*Math.cos(t)*Math.cos(r),n=Math.hypot(dx,dy);els.push(<Line key="tan-fallback-contact" points={circlePts(point,2.8,liftP)} color="#f08a24" lineWidth={2.4}/>);if(n>1e-9)els.push(<Line key="tan-fallback-direction" points={[liftP([point[0]-8*dx/n,point[1]-8*dy/n]),liftP([point[0]+8*dx/n,point[1]+8*dy/n])]} color="#f08a24" lineWidth={1.8} dashed dashSize={2} gapSize={1.5}/>)}}}
+  if(skAnnot)for(const c of skCons){const meta=(c as SkCon & {ellipseContact?:{version:1;angleDeg:number}}).ellipseContact;if(c.type!=='tangent'||!meta||!c.b)continue;const pair=tangentPair(c.a,c.b);if(!pair)continue;const point=ellipseContactPoint(pair.ellipse,meta.angleDeg),extension=tangentExtension(point,pair.a,pair.b);els.push(<Line key={`tan-contact-${c.id}`} points={circlePts(point,2.6,liftP)} color="#20a3ad" lineWidth={2.2}/>);if(extension)els.push(<Line key={`tan-extension-${c.id}`} points={extension.map(liftP)} color="#20a3ad" lineWidth={1.8} dashed dashSize={2.2} gapSize={1.5}/>)}
   // GM-FP3 #35：选中约束 → 紫色高亮其关联几何（a/b/c partner），令用户见到「呢个约束 govern 边啲嘢」。
   if (skSelCon) {
     const c = skCons.find((x) => x.id === skSelCon)
@@ -1829,12 +2009,14 @@ export function SkSelDraw() {
       if (r.kind === 'refedge' && refGeo && refGeo.segs[r.idx]) { const [a, b] = refGeo.segs[r.idx]; els.push(<Line key={`pc${r.idx}re`} points={[liftP(a), liftP(b)]} color={PC} lineWidth={3.4} />); continue }
       const sh = shapes[(r as { shape?: number }).shape ?? -1]
       if (!sh) continue
-      if (r.kind === 'circle' && sh.type === 'circle') els.push(<Line key={`pc${(r as { shape: number }).shape}c`} points={circlePts(sh.c, sh.r, liftP)} color={PC} lineWidth={3.4} />)
+      const ellipticPath = ellipticHighlight(r)
+      if (ellipticPath) els.push(<Line key={`pc${JSON.stringify(r)}`} points={ellipticPath.map(liftP)} color={PC} lineWidth={3.4} />)
+      else if (r.kind === 'circle' && sh.type === 'circle') els.push(<Line key={`pc${(r as { shape: number }).shape}c`} points={circlePts(sh.c, sh.r, liftP)} color={PC} lineWidth={3.4} />)
       else if (r.kind === 'edge') {
         const [a, b] = refPts(shapes, r); const bu = sh.type === 'poly' && sh.verts && sh.bulges ? (sh.bulges[r.idx] || 0) : 0
         if (a && b && Math.abs(bu) > 1e-12) els.push(<Line key={`pc${r.shape}_${r.idx}e`} points={[liftP(a), ...tessellateSeg(a, b, bu).map(liftP)]} color={PC} lineWidth={4} />)
         else if (a && b) els.push(<Line key={`pc${r.shape}_${r.idx}e`} points={[liftP(a), liftP(b)]} color={PC} lineWidth={4} />)
-      } else if (r.kind === 'pt') { const [q] = refPts(shapes, r); if (q) els.push(<Line key={`pc${(r as { shape: number }).shape}_${(r as { idx: number }).idx}p`} points={circlePts(q, 3.8, liftP)} color={PC} lineWidth={3} />) }
+      } else if (r.kind === 'pt' || r.kind === 'center' || r.kind === 'ellipse-point' || r.kind === 'ellipse-arc-end') { const [q] = refPts(shapes, r); if (q) els.push(<Line key={`pc${(r as { shape: number }).shape}_${(r as { idx: number }).idx}p`} points={circlePts(q, 3.8, liftP)} color={PC} lineWidth={3} />) }
     }
   }
   return <group renderOrder={40}>{els}</group>
@@ -1894,6 +2076,13 @@ export function MarqueeDraw() {
 }
 
 // GM-FP3 #39：Move gizmo —— X（红）/Y（绿）箭头 + 旋转 knob（蓝）绕形心，加变换后绿虚线 ghost。
+export function DimensionEditPreview(){
+ const candidate=useApp(s=>s.skDimPreview),mode=useApp(s=>s.mode),plane=useApp(s=>s.sketchPlane),baseZ=useApp(s=>s.sketchBaseZ),arb=useApp(s=>s.sketchArb),view=useApp(s=>s.skView)
+ if(mode!=='sketch'||!candidate.shapes||candidate.pending||candidate.error)return null
+ const frame=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}):null,lift:Lift=frame?frame.lift:p=>SK[plane].lift(p,baseZ+.24)
+ return <group name="dimension-edit-preview" renderOrder={44}>{candidate.shapes.map((sh,i)=>{if(!sketchGeometryVisible(sh,view))return null;const pts=patternOutline(sh,lift);return pts.length>1?<Line key={i} points={pts} color="#1aa06b" lineWidth={2} dashed dashSize={2.5} gapSize={1.5}/>:null})}</group>
+}
+
 export function MoveGizmoDraw() {
   const mode = useApp((s) => s.mode)
   const mv = useApp((s) => s.skMove)
@@ -1903,6 +2092,8 @@ export function MoveGizmoDraw() {
   const profiles = useApp((s) => s.sketchProfiles)
   const shape = useApp((s) => s.sketchShape)
   const camera = useThree((s) => s.camera)
+  const moveState=useApp(s=>s),preview=moveState.skMovePreview
+  useLayoutEffect(()=>{void useApp.getState().previewSkMove()},[mode,mv,profiles,shape,plane,baseZ,arb,moveState.skCons,moveState.params,moveState.skPatternData,moveState.features,moveState.paramBindings,moveState.skEditTarget,moveState.sketchUndo,moveState.sketchRedo,moveState.skSel,moveState.skRefGeo,moveState.sketchTool,moveState.skDimLabelOff,moveState.sketchSources])
   if (mode !== 'sketch' || !mv) return null
   const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
   const lift: Lift = fr ? fr.lift : (p) => SK[plane].lift(p, baseZ + 0.24)
@@ -1915,12 +2106,13 @@ export function MoveGizmoDraw() {
   const els: ReactNode[] = []
   // 变换后 ghost（绿虚线）
   const tset = new Set(mv.targets)
-  shapes.forEach((sh, i) => {
-    if (!tset.has(i)) return
+  ;(mv.inputError?[]:mv.copy?shapes:preview.shapes??[]).forEach((sh, i) => {
+    if (mv.copy?!tset.has(i):JSON.stringify(sh)===JSON.stringify(shapes[i])) return
+    const drawTransform=mv.copy?xf:(p:Pt)=>p
     const outline: Pt[] | null = sh.type === 'rect' ? [sh.a, [sh.b[0], sh.a[1]], sh.b, [sh.a[0], sh.b[1]]] : sh.type === 'circle' ? null : (sh.pts && sh.pts.length ? sh.pts : null)
-    if (sh.type === 'circle') { els.push(<Line key={`mg${i}`} points={circlePts(xf(sh.c), sh.r, lift)} color="#1aa06b" lineWidth={1.6} dashed dashSize={2.5} gapSize={2} />); return }
+    if (sh.type === 'circle') { els.push(<Line key={`mg${i}`} points={circlePts(drawTransform(sh.c), sh.r, lift)} color="#1aa06b" lineWidth={1.6} dashed dashSize={2.5} gapSize={2} />); return }
     if (!outline) return
-    const tp = outline.map(xf)
+    const tp = outline.map(drawTransform)
     els.push(<Line key={`mg${i}`} points={[...tp.map(lift), ...(sh.type === 'poly' && sh.open ? [] : [lift(tp[0])])]} color="#1aa06b" lineWidth={1.6} dashed dashSize={2.5} gapSize={2} />)
   })
   // 旋转 knob 弧（蓝虚线，pivot 半径 arm*0.85 由 0→90°）
@@ -1939,50 +2131,47 @@ export function MoveGizmoDraw() {
   return <group renderOrder={45}>{els}</group>
 }
 
+export function ScaleGizmoDraw(){
+  const sc=useApp(s=>s.skScale),mode=useApp(s=>s.mode),plane=useApp(s=>s.sketchPlane),baseZ=useApp(s=>s.sketchBaseZ),arb=useApp(s=>s.sketchArb),camera=useThree(s=>s.camera)
+  const profiles=useApp(s=>s.sketchProfiles),shape=useApp(s=>s.sketchShape)
+  if(mode!=='sketch'||!sc)return null
+  const frame=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}):null,lift:Lift=frame?frame.lift:p=>SK[plane].lift(p,baseZ+.24)
+  const c=camera as unknown as {isOrthographicCamera?:boolean;zoom?:number},arm=c.isOrthographicCamera?Math.min(200,Math.max(6,46/(c.zoom||1))):30
+  const center:Pt=[sc.cx,sc.cy],handle:Pt=[sc.cx+arm*sc.factor,sc.cy],col=sc.error?'#c9362a':'#1aa06b',out:ReactNode[]=[]
+  const originals=[...profiles,...(shape?[shape]:[])]
+  for(const [i,sh] of (sc.preview??[]).entries()){if(JSON.stringify(sh)===JSON.stringify(originals[i]))continue;const p=sh.type==='circle'?circlePts(sh.c,sh.r,lift):sh.type==='rect'?[sh.a,[sh.b[0],sh.a[1]] as Pt,sh.b,[sh.a[0],sh.b[1]] as Pt,sh.a].map(lift):[...sh.pts,...(sh.open?[]:[sh.pts[0]])].map(lift);if(p.length>1)out.push(<Line key={i} points={p} color={col} lineWidth={1.8} dashed dashSize={2} gapSize={1.5} />)}
+  return <group renderOrder={46}>
+    {out}<Line points={[lift(center),lift(handle)]} color="#2b7de9" lineWidth={2} />
+    <mesh position={lift(center)}><sphereGeometry args={[arm*.075,12,12]}/><meshBasicMaterial color="#ffb020" depthTest={false}/></mesh>
+    {sc.stage!=='base'&&<mesh position={lift(handle)}><sphereGeometry args={[arm*.12,12,12]}/><meshBasicMaterial color="#2b7de9" depthTest={false}/></mesh>}
+  </group>
+}
+
 // T791 D2：阵列工具实时预览 — sketchTool==='array' 时按 arrayCfg 画绿色虚线 ghost 副本（原件唔重画）。
 export function ArrayPreview() {
-  const mode = useApp((s) => s.mode)
-  const tool = useApp((s) => s.sketchTool)
-  const cfg = useApp((s) => s.arrayCfg)
-  const shape = useApp((s) => s.sketchShape)
-  const profiles = useApp((s) => s.sketchProfiles)
-  const plane = useApp((s) => s.sketchPlane)
-  const baseZ = useApp((s) => s.sketchBaseZ)
-  const arb = useApp((s) => s.sketchArb)
-  const sel = useApp((s) => s.skSel)
-  if (mode !== 'sketch' || tool !== 'array') return null
-  // 预览要同 apply 一致：有拣 → 预览拣中嗰几个；冇拣 → 预览全部（之前只单轮廓 → 多轮廓时完全无预览）。
-  const shapes = [...profiles, ...(shape ? [shape] : [])] as SketchShape[]
-  if (!shapes.length) return null
-  const selIdx = new Set(sel.map((r) => (r as { shape?: number }).shape).filter((i): i is number => typeof i === 'number' && i >= 0 && i < shapes.length))
-  const bases = selIdx.size ? [...selIdx].map((i) => shapes[i]) : shapes
-  const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
-  const lift: Lift = fr ? fr.lift : (p) => SK[plane].lift(p, baseZ + 0.1)
-  const basePts = (sh: SketchShape): Pt[] | null => sh.type === 'rect'
-    ? [[Math.min(sh.a[0], sh.b[0]), Math.min(sh.a[1], sh.b[1])], [Math.max(sh.a[0], sh.b[0]), Math.min(sh.a[1], sh.b[1])], [Math.max(sh.a[0], sh.b[0]), Math.max(sh.a[1], sh.b[1])], [Math.min(sh.a[0], sh.b[0]), Math.max(sh.a[1], sh.b[1])]]
-    : (sh.type === 'poly' && sh.pts && sh.pts.length ? sh.pts : null)
-  const els: ReactNode[] = []
-  const ghost = (base: SketchShape, key: string, tf: (p: Pt) => Pt) => {
-    if (base.type === 'circle') { els.push(<Line key={key} points={circlePts(tf(base.c), base.r, lift)} color="#1aa06b" lineWidth={1.4} dashed dashSize={2.5} gapSize={2} />); return }
-    const pts = basePts(base); if (!pts) return
-    const tp = pts.map(tf); els.push(<Line key={key} points={[...tp.map(lift), lift(tp[0])]} color="#1aa06b" lineWidth={1.4} dashed dashSize={2.5} gapSize={2} />)
+  const mode=useApp(s=>s.mode),tool=useApp(s=>s.sketchTool),cfg=useApp(s=>s.arrayCfg)
+  const shape=useApp(s=>s.sketchShape),profiles=useApp(s=>s.sketchProfiles),cons=useApp(s=>s.skCons),params=useApp(s=>s.params)
+  const plane=useApp(s=>s.sketchPlane),baseZ=useApp(s=>s.sketchBaseZ),arb=useApp(s=>s.sketchArb),sel=useApp(s=>s.skSel)
+  const move=useApp(s=>s.skMove),edit=useApp(s=>s.skEditTarget),undo=useApp(s=>s.sketchUndo),redo=useApp(s=>s.sketchRedo),ref=useApp(s=>s.skRefGeo),offsets=useApp(s=>s.skDimLabelOff),sources=useApp(s=>s.sketchSources)
+  const preview=useApp(s=>s.arrayPreview)
+  const session=useApp(s=>s.skPatternSession),pattern=useApp(s=>s.skPatternPreview),patternData=useApp(s=>s.skPatternData)
+  const features=useApp(s=>s.features),bindings=useApp(s=>s.paramBindings)
+  useLayoutEffect(()=>{void useApp.getState().previewArray()},[mode,tool,cfg,shape,profiles,cons,params,plane,baseZ,arb,sel,move,edit,undo,redo,ref,offsets,sources,session,patternData,features,bindings])
+  const candidate=session?pattern:preview
+  if(mode!=='sketch'||tool!=='array'||candidate.pending||candidate.error||!candidate.shapes||(session&&!pattern.document))return null
+  const fr=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}):null
+  const lift:Lift=fr?fr.lift:p=>SK[plane].lift(p,baseZ+.1)
+  const els:ReactNode[]=[]
+  for(const [i,sh] of candidate.shapes.entries()){
+    if(sh.type==='circle'&&sh.point){
+      const [x,y]=sh.c
+      els.push(<group key={`array${i}`}><Line points={[lift([x-1.8,y-1.8]),lift([x+1.8,y+1.8])]} color="#1aa06b" lineWidth={2}/><Line points={[lift([x-1.8,y+1.8]),lift([x+1.8,y-1.8])]} color="#1aa06b" lineWidth={2}/></group>)
+      continue
+    }
+    const pts=patternOutline(sh,lift)
+    if(pts&&pts.length>1)els.push(<Line key={`array${i}`} points={pts} color="#1aa06b" lineWidth={1.4} dashed dashSize={2.5} gapSize={2} />)
   }
-  if (cfg.kind === 'rect') {
-    const nx = Math.max(1, Math.round(cfg.nx)), ny = Math.max(1, Math.round(cfg.ny))
-    if (nx * ny * bases.length > 1000) return null   // 同 apply 上限一致，避免预览同结果数量唔夹
-    // GM-FP4 #53：extent（总跨）→ 每格 = 总距 /(n−1)，同 applyArray 一致
-    const stepX = cfg.distType === 'extent' && nx > 1 ? cfg.dx / (nx - 1) : cfg.dx
-    const stepY = cfg.distType === 'extent' && ny > 1 ? cfg.dy / (ny - 1) : cfg.dy
-    bases.forEach((base, b) => { for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) { if (i === 0 && j === 0) continue; ghost(base, `ar${b}_${i}_${j}`, (p) => [p[0] + i * stepX, p[1] + j * stepY]) } })
-  } else {
-    const n = Math.max(2, Math.min(400, Math.round(cfg.count)))
-    if (n * bases.length > 1000) return null
-    const totalAng = cfg.angleType === 'full' ? 360 : cfg.angle   // GM-FP4 #53
-    const full = Math.abs(totalAng) >= 359.9
-    const step = full ? 360 / n : totalAng / (n - 1)
-    bases.forEach((base, b) => { for (let i = 1; i < n; i++) { const th = (step * i * Math.PI) / 180, c = Math.cos(th), s2 = Math.sin(th); ghost(base, `ac${b}_${i}`, (p) => [cfg.cx + (p[0] - cfg.cx) * c - (p[1] - cfg.cy) * s2, cfg.cy + (p[0] - cfg.cx) * s2 + (p[1] - cfg.cy) * c]) } })
-  }
-  return <group renderOrder={41}>{els}</group>
+  return <group name="sketch-array-preview" renderOrder={41}>{els}</group>
 }
 
 // T792：offset / 倒圆角 / 倒角 悬停预览渲染 — 把 store 算好嘅 toolPreview ghost shapes 画成绿虚线（点之前即见结果，正/反/双向/半径）。
@@ -2175,7 +2364,7 @@ export function LoftPreview() {
 // camera each frame and writes screen-px transforms imperatively onto plain DOM nodes that
 // SketchDimLayer (a normal react-dom component in the viewport HUD) renders. No reconciler mixing.
 type DimEdit = { target: number | 'shape'; dim: 'w' | 'h' | 'd' | 'r' | 'ext' | 'con'; value: number; conId?: string; deg?: boolean; radDia?: { type: 'rad' | 'dia'; flip: boolean } }  // 'ext' = extrude distance · 'con' = constraint dim (planegcs)；deg = 角度尺寸（度数，唔做单位换算）；radDia（GM-FP2 #29）= R↔Ø 翻转态：显示值经 radDiaStore 逆变换折返 stored 自然 value
-type DimLabel = { key: string; anchor: [number, number, number]; text: string; edit?: DimEdit; remove?: string; driven?: boolean; name?: string; pxOff?: [number, number] }  // remove = constraint id (badge click deletes it); driven = 从动尺寸（灰显括号）; name = 尺寸稳定名 d1/d2（hover 显示，expr 可引用，S195）; pxOff = GM-W6 C3/C4 投影后固定屏幕像素偏移（C3 标签移离几何、C4 同锚徽章横向分列）
+type DimLabel = { referenceExtent?: 'X' | 'Y'; frameAngleDeg?: number; key: string; anchor: [number, number, number]; text: string; expression?: string; edit?: DimEdit; remove?: string; driven?: boolean; name?: string; pxOff?: [number, number] }  // remove = constraint id (badge click deletes it); driven = 从动尺寸（灰显括号）; name = 尺寸稳定名 d1/d2（hover 显示，expr 可引用，S195）; pxOff = GM-W6 C3/C4 投影后固定屏幕像素偏移（C3 标签移离几何、C4 同锚徽章横向分列）
 const DIM_REG: { labels: DimLabel[]; els: Map<string, HTMLElement> } = { labels: [], els: new Map() }
 const dimFmt = (v: number) => v.toFixed(v % 1 ? 1 : 0)
 // T794：长度标签按显示单位换算（mm 用紧凑 dimFmt；inch/cm 用 toLenInput）。角度/纯数照旧。
@@ -2204,15 +2393,18 @@ function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], sh
       const cc = circumcircle(sh.arc.a, sh.arc.b, sh.arc.m)
       if (cc) out.push({ key: k + 'r', anchor: lift(sh.arc.m), pxOff: [14, -16], text: 'R' + dimFmtU(cc.r, unit), edit: { target, dim: 'r', value: cc.r } })
     } else if (sh.pts.length) {
+      const index=target==='shape'?profiles.length:target
+      if(constraints.some(c=>c.kind==='dim'&&!c.driven&&(c.type==='hdist'||c.type==='vdist')&&c.frameAngleDeg!==undefined&&[c.a,c.b].some(r=>r&&'shape'in r&&r.shape===index)))return
+      const framedExtent=constraints.some(c=>c.kind==='con'&&(c.type==='h'||c.type==='v')&&c.frameAngleDeg!==undefined&&Math.abs(c.frameAngleDeg%180)>1e-8&&c.a.kind==='edge'&&c.a.shape===index)&&constraints.some(c=>c.kind==='dim'&&!c.driven&&['len','hdist','vdist'].includes(c.type)&&[c.a,c.b].some(r=>r&&'shape'in r&&r.shape===index))
       const xs = sh.pts.map((p) => p[0]), ys = sh.pts.map((p) => p[1])
       const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys)
       // A bounding-box width/height cannot be a driving dimension for a true
       // arc/ellipse/spline: non-uniform scaling would silently destroy its
       // defining curve parameters.  Keep it visible as a Fusion-style
       // reference reading; use the proper radius/constraint tools to drive it.
-      const referenceOnly = !!(sh.arc || sh.earc || sh.smooth || sh.conic)
-      out.push({ key: k + 'w', anchor: lift([(x0 + x1) / 2, y0]), pxOff: [0, 18], text: referenceOnly ? `(${dimFmtU(x1 - x0, unit)})` : dimFmtU(x1 - x0, unit), ...(referenceOnly ? { driven: true } : { edit: { target, dim: 'w' as const, value: x1 - x0 } }) })
-      out.push({ key: k + 'h', anchor: lift([x0, (y0 + y1) / 2]), pxOff: [-22, 0], text: referenceOnly ? `(${dimFmtU(y1 - y0, unit)})` : dimFmtU(y1 - y0, unit), ...(referenceOnly ? { driven: true } : { edit: { target, dim: 'h' as const, value: y1 - y0 } }) })
+      const referenceOnly = framedExtent || !!(sh.arc || sh.ell || sh.earc || sh.smooth || sh.conic)
+      out.push({ key: k + 'w', anchor: lift([(x0 + x1) / 2, y0]), pxOff: [0, 18], ...(framedExtent?{referenceExtent:'X' as const}:{}), text: referenceOnly ? `${framedExtent?'ΔX ':''}(${dimFmtU(x1 - x0, unit)})` : dimFmtU(x1 - x0, unit), ...(referenceOnly ? { driven: true } : { edit: { target, dim: 'w' as const, value: x1 - x0 } }) })
+      out.push({ key: k + 'h', anchor: lift([x0, (y0 + y1) / 2]), pxOff: [-22, 0], ...(framedExtent?{referenceExtent:'Y' as const}:{}), text: referenceOnly ? `${framedExtent?'ΔY ':''}(${dimFmtU(y1 - y0, unit)})` : dimFmtU(y1 - y0, unit), ...(referenceOnly ? { driven: true } : { edit: { target, dim: 'h' as const, value: y1 - y0 } }) })
     }
   }
   profiles.forEach((sh, i) => add(sh, 'p' + i, i))
@@ -2222,6 +2414,31 @@ function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], sh
 
 // Inside <Canvas>: project each label anchor to screen pixels every frame; no DOM created here.
 export function SketchDimProjector() {
+  const profiles = useApp(s => s.sketchProfiles)
+  const shape = useApp(s => s.sketchShape)
+  const plane = useApp(s => s.sketchPlane)
+  const baseZ = useApp(s => s.sketchBaseZ)
+  const arb = useApp(s => s.sketchArb)
+  const geometryAnchors = useMemo(() => {
+    const lift = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }).lift : (p: Pt) => SK[plane].lift(p, baseZ)
+    const points: Pt[] = [[0,0]]
+    for (const sh of [...profiles, ...(shape ? [shape] : [])]) {
+      if (sh.type === 'circle') { points.push(sh.c); if (!sh.point) for (const a of [0, Math.PI/2, Math.PI, Math.PI*1.5]) points.push([sh.c[0]+sh.r*Math.cos(a),sh.c[1]+sh.r*Math.sin(a)]); continue }
+      if (sh.type === 'poly' && (sh.ell || sh.earc)) {
+        const all = [...profiles,...(shape?[shape]:[])], index = all.indexOf(sh)
+        const semantic = ([0,1,2] as const).map(idx => refPts(all, { kind: 'ellipse-point', shape: index, idx })[0]).filter((p): p is Pt => !!p)
+        points.push(...semantic)
+        if (sh.earc) for(const idx of [0,1] as const) { const endpoint=refPts(all,{kind:'ellipse-arc-end',shape:index,idx})[0]; if(endpoint) points.push(endpoint) }
+        if (semantic.length===3) for (const endpoint of semantic.slice(1)) points.push([(semantic[0][0]+endpoint[0])/2,(semantic[0][1]+endpoint[1])/2])
+        continue
+      }
+      if (sh.type === 'poly' && sh.arc) { points.push(sh.arc.a,sh.arc.b,sh.arc.m); continue }
+      const ps: Pt[] = sh.type === 'rect' ? [sh.a,[sh.b[0],sh.a[1]],sh.b,[sh.a[0],sh.b[1]]] : sh.ctrl ?? sh.verts ?? sh.pts
+      points.push(...ps)
+      for (let j=0;j<(sh.type === 'poly' && sh.open ? ps.length-1 : ps.length);j++) { const a=ps[j],b=ps[(j+1)%ps.length]; if (a && b) points.push([(a[0]+b[0])/2,(a[1]+b[1])/2]) }
+    }
+    return points.map(lift)
+  }, [profiles, shape, plane, baseZ, arb])
   const mode = useApp((s) => s.mode)
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
@@ -2239,21 +2456,21 @@ export function SketchDimProjector() {
     // GM-W6 C3/C4：投影后先加【固定屏幕像素偏移】pxOff（C3 移离几何、C4 同锚徽章横向分列），
     // 再【贪心去重叠】——后来者若压住前者矩形，逐 14px 向下推（最多 4 级）。矩形宽按 11px 字体 ~7px/字估。
     const placed: { x: number; y: number; w: number; h: number }[] = []
+    const obstacles = geometryAnchors.flatMap(p => {
+      v.set(...p).project(camera)
+      return v.z >= -1 && v.z <= 1 ? [{ x:(v.x*.5+.5)*size.width,y:(-v.y*.5+.5)*size.height,w:14,h:14 }] : []
+    })
     for (const l of DIM_REG.labels) {
       const el = DIM_REG.els.get(l.key)
       if (!el) continue
       v.set(l.anchor[0], l.anchor[1], l.anchor[2]).project(camera)
       const behind = v.z > 1 || v.z < -1
-      const x = (v.x * 0.5 + 0.5) * size.width + (l.pxOff ? l.pxOff[0] : 0)
+      let x = (v.x * 0.5 + 0.5) * size.width + (l.pxOff ? l.pxOff[0] : 0)
       let y = (-v.y * 0.5 + 0.5) * size.height + (l.pxOff ? l.pxOff[1] : 0)
       if (!behind) {
-        const w = l.text.length * 7 + 10, h = 15   // 估计标签矩形（含左右内边距）
-        for (let step = 0; step < 4; step++) {
-          const hit = placed.some((r) => Math.abs(r.x - x) * 2 < r.w + w && Math.abs(r.y - y) * 2 < r.h + h)
-          if (!hit) break
-          y += 14
-        }
-        placed.push({ x, y, w, h })
+        const box = placeDimensionLabel({ x, y, w: el.offsetWidth, h: el.offsetHeight }, placed, size.width, size.height, obstacles)
+        x = box.x; y = box.y
+        placed.push(box)
       }
       el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%)`
       el.style.opacity = behind ? '0' : '1'
@@ -2265,6 +2482,8 @@ export function SketchDimProjector() {
 // In the HUD (plain react-dom, outside <Canvas>): render one div per dimension label.
 // Recomputes only when the geometry changes; positions are driven imperatively by the projector.
 export function SketchDimLayer() {
+  const patternCandidate = useApp(hasPatternCandidate)
+  const modelingCommandActive = useApp(activeModelCommand)
   const lang = useApp((s) => s.lang)
   const mode = useApp((s) => s.mode)
   const profiles = useApp((s) => s.sketchProfiles)
@@ -2281,18 +2500,25 @@ export function SketchDimLayer() {
   const skConsVis = useApp((s) => s.skView.cons)   // GM-FP4 #5：约束徽章独立显示开关（Fusion Dimensions/Constraints 分开 gate）
   const skDimLabelOff = useApp((s) => s.skDimLabelOff)   // GM-FP4 #31：尺寸标签拖动重定位偏移（按 conId）
   const unit = useApp((s) => s.unit)   // T794：单位感知尺寸（显示 + 输入解析）
+  const dimPreview=useApp(s=>s.skDimPreview)
+  const [editing, setEditing] = useState<string | null>(null)
+  const editingLabel=useRef<DimLabel|null>(null)
   const labels = useMemo(() => {
     if (mode !== 'sketch') return []
+    const candidate=dimPreview.shapes&&dimPreview.cons&&!dimPreview.pending&&!dimPreview.error?dimPreview:null
+    const drawnProfiles=candidate?candidate.shapes!.slice(0,profiles.length):profiles
+    const drawnShape=candidate?(shape?candidate.shapes![profiles.length]??null:null):shape
+    const drawnCons=candidate?candidate.cons!:skCons
     // T746 批2（GAP6 修复）：斜面重开都有尺寸标签/约束徽章 — 用 arbFrame.lift 替平面 lift
     const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
     const lift: (p: Pt) => [number, number, number] = fr ? fr.lift : (p) => SK[plane].lift(p, baseZ)
-    const out = skAnnot ? buildDimLabels(plane, baseZ, profiles, shape, unit, skCons, fr ? fr.lift : undefined) : []
+    const out = skAnnot ? buildDimLabels(plane, baseZ, drawnProfiles, drawnShape, unit, drawnCons, fr ? fr.lift : undefined) : []
     // Constraint dims (D tool) → editable blue labels; constraint glyphs (∥/⊥/＝/…) → tiny badges (click = remove).
     const CON_GLYPH: Record<string, string> = { h: '━', v: '┃', coincident: '◉', parallel: '∥', perp: '⊥', equal: '＝', tangent: '⌒', fix: '⚓', midpoint: '⊹', concentric: '◎', collinear: '≣', symmetric: '⇆' }
-    const shapesArr = [...profiles, ...(shape ? [shape] : [])] as FShape[]
+    const shapesArr = [...drawnProfiles, ...(drawnShape ? [drawnShape] : [])] as FShape[]
     const badgeGroup = new Map<string, number>()   // GM-W6 C4：同锚徽章分组计数 → 组内逐个横向分列
     // GM-FP4 #5：尺寸(dim)由 annot gate、约束徽章(con)由 cons gate —— 两者独立（Fusion Dimensions/Constraints 分开）。
-    if (skAnnot || skConsVis) for (const c of skCons) {
+    if (skAnnot || skConsVis) for (const c of drawnCons) {
       if (c.kind === 'dim') {
         if (!skAnnot) continue
         // 标签锚点同尺寸线同源（dimGfx）→ 标签正好坐喺尺寸线上（T731）；冇 gfx 时退回旧中点逻辑
@@ -2308,9 +2534,10 @@ export function SketchDimLayer() {
         const shownVal = rd ? rd.value : val
         const body = (rd ? rd.prefix : c.type === 'arclen' ? '⌒' : '') + (isAngle ? dimFmt(val) : dimFmtU(shownVal, unit)) + (isAngle ? '°' : '')
         // ƒx 参数绑定尺寸（T746 批3）：显示「ƒx名=值」；点开输入数字=解绑、输入参数名=改绑
-        const txt = c.expr ? `ƒ(${c.expr})=${body}` : c.param ? `ƒx${c.param}=${body}` : c.driven ? `(${body})` : body
+        const expression = c.expr || c.param
+        const txt = expression ? `ƒx ${body}` : c.driven ? `(${body})` : body
         const dOff = skDimLabelOff[c.id]   // GM-FP4 #31：拖动重定位偏移（屏幕像素）
-        out.push({ key: c.id, anchor, text: txt, driven: c.driven, name: c.name, ...(dOff ? { pxOff: dOff } : {}), edit: { target: 'shape', dim: 'con', value: Math.round(shownVal * 100) / 100, conId: c.id, deg: isAngle, ...(rd ? { radDia: { type: c.type as 'rad' | 'dia', flip: !!c.radDiaFlip } } : {}) } })
+        out.push({ key: c.id, frameAngleDeg: (c as SkCon & {frameAngleDeg?:number}).frameAngleDeg, anchor, text: txt, expression, driven: c.driven, name: c.name, ...(dOff ? { pxOff: dOff } : {}), edit: { target: 'shape', dim: 'con', value: Math.round(shownVal * 100) / 100, conId: c.id, deg: isAngle, ...(rd ? { radDia: { type: c.type as 'rad' | 'dia', flip: !!c.radDiaFlip } } : {}) } })
       } else {
         if (!skConsVis) continue
         const m = refMid(shapesArr, c.a)
@@ -2320,7 +2547,8 @@ export function SketchDimLayer() {
         const gk = `${Math.round(m[0] * 4)},${Math.round(m[1] * 4)}`
         const gi = badgeGroup.get(gk) ?? 0
         badgeGroup.set(gk, gi + 1)
-        out.push({ key: c.id, anchor: lift([m[0], m[1]]), text: CON_GLYPH[c.type] ?? '·', remove: c.id, pxOff: [18 * gi, 0] })
+        const frame=(c as SkCon & {frameAngleDeg?:number}).frameAngleDeg,local=frame!==undefined&&Math.abs(frame%180)>1e-8
+        out.push({ key: c.id, frameAngleDeg:frame, anchor: lift([m[0], m[1]]), text: local&&(c.type==='h'||c.type==='v')?(c.type==='h'?'H′':'V′'):CON_GLYPH[c.type] ?? '·', remove: c.id, pxOff: c.a.kind === 'center' || c.a.kind === 'pt' || c.a.kind === 'origin' || c.a.kind === 'refpt' ? [18 * (gi + 1), -18] : [18 * gi, 0] })
       }
     }
     // Extrude-manipulator tip textbox (Fusion ghost+arrow+inline-distance triad): label at the arrow
@@ -2333,13 +2561,42 @@ export function SketchDimLayer() {
         out.push({ key: 'exh', anchor: [a.x, a.y, a.z], text: dimFmtU(Math.abs(exH) || 1, unit) + (unit === 'inch' ? 'in' : unit), edit: { target: 'shape', dim: 'ext', value: Math.abs(exH) || 1 } })
       }
     }
-    return out
-  }, [mode, plane, baseZ, profiles, shape, arb, exOpen, exH, exFlip, exExtent, skCons, unit, skAnnot, skConsVis, skDimLabelOff])
+    const positioned=out.map(label=>editing===label.key&&editingLabel.current?.key===label.key?editingLabel.current:label)
+    return modelingCommandActive ? positioned.filter((label) => label.edit?.dim === 'ext') : positioned
+  }, [mode, plane, baseZ, profiles, shape, arb, exOpen, exH, exFlip, exExtent, skCons, unit, skAnnot, skConsVis, skDimLabelOff, modelingCommandActive,dimPreview,editing])
   const setDim = useApp((s) => s.setSketchDimValue)
   const skConflictIds = useApp((s) => s.skConflictIds)   // S194：冲突约束逐个红标
   const skSelCon = useApp((s) => s.skSelCon)   // GM-FP3 #35：当前选中约束（点徽章=选中，Delete 删）
-  const [editing, setEditing] = useState<string | null>(null)
   const [val, setVal] = useState('')
+  const [inputError,setInputError]=useState<string|null>(null)
+  const dimEditorEpoch=useRef(0)
+  const dimEditorScope=useRef<{key:string;mode:string;tool:string}|null>(null)
+  const dimInputRequest=useRef(0)
+  const invalidDimDraft=useRef(false)
+  const cancelDimension=()=>{++dimEditorEpoch.current;dimEditorScope.current=null;++dimInputRequest.current;useApp.getState().cancelSkDimEdit();setEditing(null);setInputError(null);invalidDimDraft.current=false}
+  const previewDimension=async(e:DimEdit,text:string)=>{
+    if(!e.conId)return false
+    const request=++dimInputRequest.current,state=useApp.getState(),con=state.skCons.find(c=>c.id===e.conId&&c.kind==='dim')
+    if(!con||con.kind!=='dim'){setInputError('尺寸已改变，请重新打开');return false}
+    const result=parseDimensionEditInput({con,raw:text,unit:state.unit,radDia:e.radDia,params:state.params,cons:state.skCons,evaluate:evalExpr})
+    if(!result.ok){state.cancelSkDimEdit();invalidDimDraft.current=true;setInputError(result.error);return false}
+    if(invalidDimDraft.current){state.beginSkDimEdit(e.conId);invalidDimDraft.current=false}
+    if(useApp.getState().skDimPreview.id!==e.conId){setInputError('草图已改变，请重新打开尺寸');return false}
+    setInputError(null)
+    await useApp.getState().previewSkDimEdit(result.patch)
+    return request===dimInputRequest.current&&useApp.getState().skDimPreview.id===e.conId&&!useApp.getState().skDimPreview.pending&&!useApp.getState().skDimPreview.error&&!!useApp.getState().skDimPreview.shapes
+  }
+  const initialValue = useRef('')
+  const beginEdit = (label: DimLabel) => {
+    if (!label.edit) return
+    ++dimEditorEpoch.current;++dimInputRequest.current;useApp.getState().cancelSkDimEdit()
+    dimEditorScope.current={key:label.key,mode:useApp.getState().mode,tool:useApp.getState().sketchTool}
+    const next = label.expression ?? (label.edit.deg ? String(label.edit.value) : toLenInput(label.edit.value, unit))
+    initialValue.current = next
+    editingLabel.current={...label,anchor:[...label.anchor],...(label.pxOff?{pxOff:[...label.pxOff]}:{})}
+    setVal(next); setEditing(label.key);setInputError(null);invalidDimDraft.current=false
+    if(label.edit?.dim==='con'&&label.edit.conId){useApp.getState().beginSkDimEdit(label.edit.conId);void previewDimension(label.edit,next)}
+  }
   // GM-FP2 #29：尺寸标签右键上下文菜单（Fusion marking-menu 简版）— 切 R↔Ø（弧/圆）· 转从动/驱动 · 删除。
   const [dimMenu, setDimMenu] = useState<{ conId: string; x: number; y: number; driven: boolean; radDia?: { type: 'rad' | 'dia'; flip: boolean } } | null>(null)
   // GM-FP4 #31：尺寸标签拖动重定位 —— pointerdown 记起点+当前偏移；移动 >3px = 拖（live 更新偏移，leader 跟随）；未拖=当 click 改值。
@@ -2361,29 +2618,67 @@ export function SketchDimLayer() {
   // click 前守卫：啱啱拖完 → 唔好误开编辑框（消费一次 moved 标志）。
   const consumedDrag = () => { if (labelDragRef.current?.moved) { labelDragRef.current = null; return true } labelDragRef.current = null; return false }
   // GM-W6 F3：标尺寸工具啱放低一个尺寸 → store 出 skDimEditReq(conId)，呢度即刻开返对应标签嘅输入框（同点标签一样嘅编辑流），用户即打数值。ESC/留空 = 保留量度值。
+  // A dimension may be created on pointerdown. Opening an autofocus input
+  // immediately lets the following native mousedown blur and close it again.
+  // Wait for that actual pointer release; keyboard requests open immediately.
+  const dimPointerHeld = useRef(false)
+  useEffect(() => {
+    const down = () => { dimPointerHeld.current = true }
+    const up = () => { dimPointerHeld.current = false }
+    document.addEventListener('pointerdown', down, true)
+    document.addEventListener('pointerup', up, true)
+    document.addEventListener('pointercancel', up, true)
+    return () => { document.removeEventListener('pointerdown', down, true); document.removeEventListener('pointerup', up, true); document.removeEventListener('pointercancel', up, true) }
+  }, [])
   const skDimEditReq = useApp((s) => s.skDimEditReq)
+  const dimensionRequestTool = useApp((s) => s.sketchTool)
+  useEffect(()=>()=>{++dimEditorEpoch.current;++dimInputRequest.current;dimEditorScope.current=null;useApp.getState().cancelSkDimEdit()},[])
+  useLayoutEffect(()=>{
+    const scope=dimEditorScope.current
+    if(scope&&(scope.mode!==mode||scope.tool!==dimensionRequestTool||!labels.some(l=>l.key===scope.key)||patternCandidate))cancelDimension()
+  },[mode,dimensionRequestTool,labels,patternCandidate])
+  const dimensionRequestScope = useRef<{id:string;tool:string}|null>(null)
   useEffect(() => {
     if (!skDimEditReq) return
-    const l = labels.find((x) => x.edit?.conId === skDimEditReq)
-    if (l && l.edit) { setVal(l.edit.deg ? String(l.edit.value) : toLenInput(l.edit.value, unit)); setEditing(l.key) }
-    useApp.getState().setSkDimEditReq(null)   // 消费即清（就算暂时揾唔到 label 都清，避免卡住）
-  }, [skDimEditReq, labels, unit])
+    if (dimensionRequestScope.current?.id !== skDimEditReq) dimensionRequestScope.current = {id:skDimEditReq,tool:dimensionRequestTool}
+    let cancelled = false
+    const open = () => {
+      if (cancelled || useApp.getState().skDimEditReq !== skDimEditReq) return
+      const current = useApp.getState()
+      if(current.mode !== 'sketch' || current.sketchTool !== dimensionRequestScope.current?.tool) { current.setSkDimEditReq(null); return }
+      const l = labels.find((x) => x.edit?.conId === skDimEditReq)
+      if (l && l.edit) beginEdit(l)
+      useApp.getState().setSkDimEditReq(null)
+    }
+    const release = () => { queueMicrotask(open) }
+    const cancel = () => { if (useApp.getState().skDimEditReq === skDimEditReq) useApp.getState().setSkDimEditReq(null) }
+    const escape = (event: KeyboardEvent) => { if(event.key === 'Escape') cancel() }
+    document.addEventListener('keydown', escape, true)
+    if (dimPointerHeld.current) {
+      document.addEventListener('pointerup', release, { once: true })
+      document.addEventListener('pointercancel', cancel, { once: true })
+    } else open()
+    return () => { cancelled = true; document.removeEventListener('pointerup', release); document.removeEventListener('pointercancel', cancel); document.removeEventListener('keydown', escape, true) }
+  }, [skDimEditReq, labels, unit, mode, dimensionRequestTool])
   DIM_REG.labels = labels
-  if (mode !== 'sketch' || labels.length === 0) { DIM_REG.els.clear(); if (editing) setEditing(null); return null }
+  if (mode !== 'sketch' || patternCandidate || labels.length === 0) { DIM_REG.els.clear(); if (editing) setEditing(null); return null }
   const reg = (key: string) => (el: HTMLElement | null) => { if (el) DIM_REG.els.set(key, el); else DIM_REG.els.delete(key) }
-  const commit = (e: DimEdit) => {
+  const commit = async (e: DimEdit) => {
+    if(e.dim==='con'&&e.conId){
+      const editorEpoch=dimEditorEpoch.current
+      if(val===initialValue.current){cancelDimension();return}
+      if(!await previewDimension(e,val)||editorEpoch!==dimEditorEpoch.current)return
+      const inputRequest=dimInputRequest.current
+      await useApp.getState().confirmSkDimEdit()
+      if(editorEpoch===dimEditorEpoch.current&&inputRequest===dimInputRequest.current&&!useApp.getState().skDimPreview.id){dimEditorScope.current=null;setEditing(null);setInputError(null)}
+      return
+    }
+    if (val === initialValue.current) { setEditing(null); return }
     // ƒx 绑定（T746 批3）：约束尺寸输入「参数名」或「=参数名」→ 绑定用户参数（改参数即全树联动）
     const raw = val.trim()
     const body = raw.replace(/^=/, '').trim()
     const isPureLen = /^[\d.\s/]+(?:mm|cm|in|")?$/i.test(body)   // 数字/分数/带单位 = 唔系公式
     // S97：尺寸标签输入 — 纯数值/分数/带单位 → 照旧数值；纯参数名 → 绑参数；含运算符/函数嘅公式 → 绑表达式
-    if (e.dim === 'con' && e.conId) {
-      if (!isPureLen && /[A-Za-z_一-龥]/.test(body)) {
-        const justName = body.match(/^([A-Za-z_一-龥][\w一-龥]*)$/)
-        if (justName) { useApp.getState().bindSkDimParam(e.conId, justName[1]); setEditing(null); return }
-        useApp.getState().bindSkDimExpr(e.conId, body); setEditing(null); return
-      }
-    }
     // S194（Fusion 同款）：任何尺寸框食【纯算术表达式】— 10*2+5 → 25、(30-4)/2 → 13（无参数名一次性求值）。
     // 纯数字/分数（1/2、1 1/2）行先照旧 parseLen（保分数英寸语义）；有字母行咗上面 param/expr 路径。
     const arith = (!isPureLen && /^[\d.\s+\-*/()^%]+$/.test(body) && /[+\-*/^%(]/.test(body.slice(1)))
@@ -2397,26 +2692,30 @@ export function SketchDimLayer() {
     if (v != null && isFinite(v) && v > 0) {
       if (e.dim === 'ext') { const cur = useApp.getState().extrudeHeight; useApp.getState().setExtrudeHeight((cur < 0 ? -1 : 1) * v) }
       // GM-FP2 #29：R↔Ø 翻转态下用户打嘅系【显示值】→ radDiaStore 折返 stored 自然 value 先入 editSkDim
-      else if (e.dim === 'con') { if (e.conId) useApp.getState().editSkDim(e.conId, e.radDia ? radDiaStore(e.radDia.type, v, e.radDia.flip) : v) }
-      else setDim(e.target, e.dim, v)
+      else if(e.dim!=='con')setDim(e.target, e.dim, v)
     }
     setEditing(null)
   }
-  const LBL = { position: 'absolute' as const, left: 0, top: 0, transform: 'translate(-200px,-200px)', background: '#1572c4', color: '#fff', fontSize: 11, lineHeight: '15px', padding: '0 5px', borderRadius: 3, fontWeight: 600, whiteSpace: 'nowrap' as const, boxShadow: '0 1px 3px rgba(0,0,0,.3)' }
+  const LBL = { position: 'absolute' as const, maxWidth: 'calc(100% - 8px)', boxSizing: 'border-box' as const, left: 0, top: 0, transform: 'translate(-200px,-200px)', background: '#1572c4', color: '#fff', fontSize: 11, lineHeight: '15px', padding: '0 5px', borderRadius: 3, fontWeight: 600, whiteSpace: 'nowrap' as const, boxShadow: '0 1px 3px rgba(0,0,0,.3)' }
   return (
     <div className="sketch-dim-layer" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 6 }}>
       {labels.map((l) => editing === l.key && l.edit
         ? (
           // GM-FP4 #32：编辑框旁 ⋮ 显示尺寸参数名（d1/d2…）— 提示佢系命名参数，可喺其它尺寸公式引用（如 d1*2）。
-          <div key={l.key} ref={reg(l.key)} style={{ ...LBL, background: '#fff', color: '#0d4f8c', border: '1px solid #0d4f8c', padding: '1px 3px', display: 'inline-flex', alignItems: 'center', gap: 2, pointerEvents: 'auto' }}>
+          <div key={l.key} ref={reg(l.key)} style={{ ...LBL, background: '#fff', color: '#0d4f8c', border: '1px solid #0d4f8c', padding: '1px 3px', display: 'inline-flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', gap: 2, pointerEvents: 'auto' }}>
             <input
               autoFocus value={val} aria-label={tStatus('尺寸数值', lang)}
               onFocus={(e) => e.currentTarget.select()}
-              onChange={(e) => setVal(e.target.value)}
-              onBlur={() => commit(l.edit!)}
-              onKeyDown={(e) => { if (e.key === 'Enter') commit(l.edit!); else if (e.key === 'Escape') setEditing(null); e.stopPropagation() }}
-              style={{ width: 46, padding: 0, textAlign: 'center', border: 'none', outline: 'none', background: 'transparent', color: '#0d4f8c', fontWeight: 600, fontSize: 11 }}
+              onChange={(e) => {setVal(e.target.value);if(l.edit?.dim==='con')void previewDimension(l.edit,e.target.value)}}
+              onBlur={() => {if(l.edit?.dim!=='con')void commit(l.edit!)}}
+              onKeyDown={(e) => { e.stopPropagation(); if (e.nativeEvent.isComposing || e.keyCode === 229) return; if (e.key === 'Enter') commit(l.edit!); else if (e.key === 'Escape') {e.preventDefault();cancelDimension()} }}
+              style={{ width: l.expression ? 168 : 64, minWidth: 40, maxWidth: '100%', padding: 0, textAlign: 'center', border: 'none', outline: 'none', background: 'transparent', color: '#0d4f8c', fontWeight: 600, fontSize: 11 }}
             />
+            {l.edit.dim==='con'&&<>
+              <button aria-label="Confirm dimension" disabled={!!inputError||dimPreview.pending||!!dimPreview.error||!dimPreview.shapes} onMouseDown={e=>e.preventDefault()} onClick={()=>void commit(l.edit!)}>✓</button>
+              <button aria-label="Cancel dimension" onMouseDown={e=>e.preventDefault()} onClick={cancelDimension}>✕</button>
+              {(inputError||dimPreview.error||dimPreview.pending)&&<span role={inputError||dimPreview.error?'alert':'status'} style={{maxWidth:220,minWidth:0,overflowWrap:'anywhere',whiteSpace:'normal',fontSize:11,color:'#b42318'}}>{inputError||dimPreview.error||(lang==='en'?'Checking preview…':'正在校验预览…')}</span>}
+            </>}
             {l.edit.dim === 'con' && l.name && (
               <span
                 title={tStatus(`参数名 ${l.name} · Dimension Value —— 可喺其它尺寸公式引用（如 ${l.name}*2）`, lang)}
@@ -2427,8 +2726,8 @@ export function SketchDimLayer() {
           </div>
         ) : (
           <div
-            key={l.key} data-dim={l.text} ref={reg(l.key)}
-            title={(l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? tStatus('⚠ 冲突约束 — 点击移除以解开过约束', lang) : l.edit && l.edit.dim === 'con' ? ((l.name ? `${l.name} = ${l.text} · ` : '') + (l.driven ? tStatus('从动尺寸（量度值）— 点击改值即转驱动 · 右键菜单（转驱动/R↔Ø/删除） · ✕删除', lang) : tStatus('点击修改尺寸 · 输入公式可引用其他尺寸（如 d1*2） · 右键菜单（转从动/R↔Ø/删除） · ✕删除', lang))) : l.edit ? tStatus('点击修改尺寸', lang) : l.remove ? tStatus('约束（点击选中 → Delete 移除）', lang) : undefined}
+            key={l.key} data-reference-extent={l.referenceExtent} data-dim={l.text} data-dimension-id={l.edit?.conId} data-constraint-id={l.remove} data-frame-angle={l.frameAngleDeg} data-auto-dimension-shape={l.edit&&l.edit.dim!=='con'?String(l.edit.target):undefined} ref={reg(l.key)}
+            title={[l.referenceExtent?(lang==='en'?`Sketch ${l.referenceExtent} extent (reference); edit the actual local dimensions`:`草图 ${l.referenceExtent} 范围（参考）；请编辑实际局部尺寸`):'',l.frameAngleDeg===undefined?'':(lang==='en'?`Local sketch frame ${dimFmt(l.frameAngleDeg)}°`:`局部草图方向 ${dimFmt(l.frameAngleDeg)}°`), (l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? tStatus('⚠ 冲突约束 — 点击移除以解开过约束', lang) : l.edit && l.edit.dim === 'con' ? ((l.name ? `${l.name} = ` : '') + (l.expression ? `${l.expression} → ${l.text} · ` : `${l.text} · `) + (l.driven ? tStatus('从动尺寸（量度值）— 点击改值即转驱动 · 右键菜单（转驱动/R↔Ø/删除） · ✕删除', lang) : tStatus('点击修改尺寸 · 输入公式可引用其他尺寸（如 d1*2） · 右键菜单（转从动/R↔Ø/删除） · ✕删除', lang))) : l.edit ? tStatus('点击修改尺寸', lang) : l.remove ? tStatus('约束（点击选中 → Delete 移除）', lang) : undefined].filter(Boolean).join(' · ')||undefined}
             onPointerDown={l.edit?.dim === 'con' && l.edit.conId ? (e) => onLabelDown(e, l.edit!.conId!) : undefined}
             onClick={
               // 用户实战 feedback：冲突（红色）尺寸 tooltip 一直话「点击移除」但旧行为系开编辑框 → 令用户「揀唔到又删唔到」。
@@ -2436,11 +2735,11 @@ export function SketchDimLayer() {
               // GM-FP3 #35：约束徽章 click = 选中该约束（高亮 partner + Delete 删），唔再一撳即删；冲突（红）徽章仍 click=移除（兑现承诺）。
               // GM-FP4 #31：啱啱拖完标签（重定位）→ 唔好误开编辑框（consumedDrag 守卫）。
               l.edit?.conId && skConflictIds.includes(l.edit.conId) ? () => { if (consumedDrag()) return; useApp.getState().removeSkCon(l.edit!.conId!) }
-                : l.edit ? () => { if (consumedDrag()) return; setVal(l.edit!.deg ? String(l.edit!.value) : toLenInput(l.edit!.value, unit)); setEditing(l.key) }
+                : l.edit ? () => { if (consumedDrag()) return; beginEdit(l) }
                   : l.remove ? () => { if (skConflictIds.includes(l.remove!)) useApp.getState().removeSkCon(l.remove!); else useApp.getState().selectSkCon(l.remove!) } : undefined
             }
             onContextMenu={l.edit?.dim === 'con' && l.edit.conId ? (e) => { e.preventDefault(); e.stopPropagation(); setDimMenu({ conId: l.edit!.conId!, x: e.clientX, y: e.clientY, driven: !!l.driven, radDia: l.edit!.radDia }) } : undefined}
-            style={{ ...LBL, ...(l.remove ? { background: '#5a8fb8', fontSize: 10, lineHeight: '13px', padding: '0 4px' } : {}), ...(l.driven ? { background: '#8a97a2' } : {}), ...(l.remove && skSelCon === l.remove ? { background: '#8e44ad', boxShadow: '0 0 0 2px rgba(142,68,173,.4)' } : {}), ...((l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? { background: '#c9362a', boxShadow: '0 0 0 2px rgba(201,54,42,.35)' } : {}), pointerEvents: l.edit || l.remove ? 'auto' : 'none', cursor: l.edit?.dim === 'con' ? 'move' : l.edit || l.remove ? 'pointer' : 'default' }}
+            style={{ ...LBL, ...(l.remove ? { background: '#5a8fb8', fontSize: 10, lineHeight: '13px', padding: '0 4px' } : {}), ...(l.driven ? { background: '#8a97a2' } : {}), ...(l.remove && skSelCon === l.remove ? { background: '#8e44ad', boxShadow: '0 0 0 2px rgba(142,68,173,.4)' } : {}), ...((l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? { background: '#c9362a', boxShadow: '0 0 0 2px rgba(201,54,42,.35)' } : {}), pointerEvents: l.edit || l.remove || l.referenceExtent ? 'auto' : 'none', cursor: l.edit?.dim === 'con' ? 'move' : l.edit || l.remove ? 'pointer' : 'default' }}
           >
             {l.text}
             {/* 尺寸约束专属 ✕ 仔：一撳即删（stopPropagation 免误开编辑框）。徽章本身 click=移除,唔使 ✕。 */}
@@ -2494,6 +2793,11 @@ export function FitView() {
   const bodyMesh = useApp((s) => s.bodyMesh)
   const components = useApp((s) => s.components)
   useEffect(() => {
+    const frameSphere = (cx: number, cy: number, cz: number, r: number) => {
+      const pc = camera as unknown as { isPerspectiveCamera?: boolean; fov: number; aspect: number; zoom: number }
+      const distance = pc.isPerspectiveCamera ? fitCameraDistance(r, pc.fov, pc.aspect, pc.zoom) : r * 4.6
+      camera.position.copy(new Vector3(0.7, 0.7, 0.9).normalize().multiplyScalar(distance).add(new Vector3(cx, cy, cz)))
+    }
     if (fitNonce === 0 || !controls || useApp.getState().mode === 'sketch') return
     // P2 Inspect：显式 bbox 请求（requestFitBBox）→ 直接框佢，唔行组件扫描
     if (fitBBox) {
@@ -2503,8 +2807,7 @@ export function FitView() {
       if (mnB.every(Number.isFinite) && mxB.every(Number.isFinite)) {
         const cx = (mnB[0] + mxB[0]) / 2, cy = (mnB[1] + mxB[1]) / 2, cz = (mnB[2] + mxB[2]) / 2
         const r = Math.max(0.5 * Math.hypot(mxB[0] - mnB[0], mxB[1] - mnB[1], mxB[2] - mnB[2]), 3)
-        const d = r * 3.4
-        camera.position.set(cx + d * 0.7, cy + d * 0.7, cz + d * 0.9)
+        frameSphere(cx, cy, cz, r)
         const oc = camera as unknown as { isOrthographicCamera?: boolean; left: number; right: number; top: number; bottom: number; zoom: number; updateProjectionMatrix: () => void }
         if (oc.isOrthographicCamera) { const fr = Math.min(oc.right - oc.left, oc.top - oc.bottom) / 2; if (fr > 0) { oc.zoom = fr / (r * 1.15); oc.updateProjectionMatrix() } }
         controls.target.set(cx, cy, cz)
@@ -2544,8 +2847,7 @@ export function FitView() {
     // bounding-sphere radius (half the diagonal) so the diagonal never gets cropped, + margin
     const dx = maxX - minX, dy = maxY - minY, dz = maxZ - minZ
     const r = Math.max(0.5 * Math.hypot(dx, dy, dz), 8)
-    const d = r * 3.4 // camera offset ≈ 4.5·r → bounding sphere fits with ~10% margin (fov 28°)
-    camera.position.set(cx + d * 0.7, cy + d * 0.7, cz + d * 0.9)
+    frameSphere(cx, cy, cz, r)
     // S193：正交相机靠 zoom 取景（唔系靠距离）。drei OrthographicCamera 默认 frustum = 画布像素 → zoom = 半最小边/(r·裕度)。
     const oc = camera as unknown as { isOrthographicCamera?: boolean; left: number; right: number; top: number; bottom: number; zoom: number; updateProjectionMatrix: () => void }
     if (oc.isOrthographicCamera) { const fr = Math.min(oc.right - oc.left, oc.top - oc.bottom) / 2; if (fr > 0 && r > 0) { oc.zoom = fr / (r * 1.15); oc.updateProjectionMatrix() } }

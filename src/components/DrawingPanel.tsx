@@ -134,6 +134,16 @@ export default function DrawingPanel() {
   // T784：重新生成【唔再清空标注】— 标注锚定纸面坐标（视图原点/比例稳定）所以重生成后照样有效；
   // 几何大改时标注可能错位 → 用「🧹清空」手动重来。呢度净 reset 模式/半完成状态，防止悬空 pending。
   useEffect(() => { setAnnoHist([]); setPendPt(null); setPendSeg(null); setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }, [views])
+  // BUG-UI-004: Esc cancels pending pick, then exits the active annotation mode (matches Accept).
+  useEffect(() => {
+    const active = dimMode || !!radMode || angMode || datumMode || fcfMode || noteMode || detailMode || ordMode
+    if (!active) return
+    return registerEscapeLayer(() => {
+      if (pendPt) { setPendPt(null); return }
+      if (pendSeg) { setPendSeg(null); return }
+      setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false)
+    }, 900)
+  }, [dimMode, radMode, angMode, datumMode, fcfMode, noteMode, detailMode, ordMode, pendPt, pendSeg])
   // 🧹 一键清空全部手动标注（store action — 重生成后错位/想重标时用）
   const clearAllAnno = () => { useApp.getState().setDrawingAnno({ manualDims: {}, manualRDims: {}, manualADims: {}, manualDatums: {}, manualFCF: {}, manualNotes: {}, details: {}, ordinates: {} }); setAnnoHist([]) }
   if (!open || !views) return null
@@ -481,12 +491,22 @@ export default function DrawingPanel() {
       setPendSeg(null)
       return
     }
+    // B2 linear: snap to nearest hole centre OR segment endpoint within tolerance; else raw click.
     let px = u.x, py = u.y, best = Infinity
     for (const c of parseCircles(v)) { const dd = Math.hypot(c.cx - u.x, c.cy - u.y); if (dd < best) { best = dd; px = c.cx; py = c.cy } }
+    for (const s of segmentsOf(v)) {
+      for (const [sx, sy] of [[s[0], s[1]], [s[2], s[3]]] as [number, number][]) {
+        const dd = Math.hypot(sx - u.x, sy - u.y); if (dd < best) { best = dd; px = sx; py = sy }
+      }
+    }
     const [, , w, h] = v.vb.split(/\s+/).map(Number)
     if (!(best < Math.max(w - 12, h - 12) * 0.06)) { px = u.x; py = u.y } // outside snap tolerance → raw point
-    if (!pendPt || pendPt.view !== v.name) setPendPt({ view: v.name, x: px, y: py })
-    else { setManualDims((m) => ({ ...m, [v.name]: [...(m[v.name] || []), { x1: pendPt.x, y1: pendPt.y, x2: px, y2: py, tol: tolOn ? { u: tolU, l: tolL } : undefined }] })); setAnnoHist((h) => [...h, { kind: 'dim', view: v.name }]); setPendPt(null) }
+    if (!pendPt || pendPt.view !== v.name) { setPendPt({ view: v.name, x: px, y: py }); return }
+    // Distinct second point required — zero-length dims are invisible (dimGeom returns null).
+    if (!(Math.hypot(px - pendPt.x, py - pendPt.y) > 1e-6)) return
+    setManualDims((m) => ({ ...m, [v.name]: [...(m[v.name] || []), { x1: pendPt.x, y1: pendPt.y, x2: px, y2: py, tol: tolOn ? { u: tolU, l: tolL } : undefined }] }))
+    setAnnoHist((h) => [...h, { kind: 'dim', view: v.name }])
+    setPendPt(null)
   }
 
   // Usability: undo the most-recently-added manual annotation (LIFO), one at a time. Within a (kind, view)
@@ -570,6 +590,9 @@ export default function DrawingPanel() {
     })() : null
     return (
       <svg viewBox={d ? d.vbExp : v.vb} preserveAspectRatio="xMidYMid meet" onClick={(e) => onSvgClick(v, e)} style={{ width: `${paperViewSizeMm(d ? d.vbExp : v.vb, scale).width}mm`, height: `${paperViewSizeMm(d ? d.vbExp : v.vb, scale).height}mm`, maxWidth: 'none', flexShrink: 0, background: '#fff', cursor: (dimMode || radMode || angMode || datumMode || fcfMode || noteMode || detailMode || ordMode) ? 'crosshair' : 'default' }}>
+        {/* BUG-UI-004: CSS background is not SVG paint — empty areas miss clicks under visiblePainted.
+            A full-viewBox transparent rect makes every pick land on the svg (onClick → onSvgClick). */}
+        {(() => { const vb = (d ? d.vbExp : v.vb).split(/\s+/).map(Number); return <rect x={vb[0]} y={vb[1]} width={vb[2]} height={vb[3]} fill="transparent" pointerEvents="all" data-testid="dw-hit-rect" /> })()}
         {v.hatch && v.hatch.length > 0 && (
           <defs>
             <pattern id={'hp_' + v.name} patternUnits="userSpaceOnUse" width={hsp} height={hsp} patternTransform="rotate(45)">
@@ -1161,10 +1184,10 @@ export default function DrawingPanel() {
           <label style={{ fontSize: 12, marginLeft: 2, cursor: 'pointer' }} title={tStatus('显示/隐藏 自动孔径Ø标注 + 中心标记（屏幕 + 导出同步）', lang)}><input type="checkbox" checked={showCallouts} onChange={(e) => setShowCallouts(e.target.checked)} /> {tStatus('Ø标注', lang)}</label>
           <label style={{ fontSize: 12, marginLeft: 2, cursor: 'pointer' }} title={tStatus('GB 式 A4 横向图框：10mm 边框 + 右下标题栏（名称/材料/比例/单位/日期/制图 + 投影符号）— 开启后下方显示预览，导出 SVG/PNG/PDF 同步', lang)}><input type="checkbox" checked={gbFrame} onChange={(e) => setGbFrame(e.target.checked)} /> {tStatus('GB 图框', lang)}</label>
           <span style={{ fontSize: 11, color: '#888', marginLeft: 4 }}>📐 {tStatus('标注：', lang)}</span>
-          <button className="cs-btn" style={dimMode ? { background: '#c2185b', color: '#fff' } : undefined} onClick={() => { setDimMode((m) => !m); setRadMode(null); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false) }} title={tStatus('进入标注模式后，喺任一视图点两点 → 标出两点间线性尺寸（自动吸附最近孔心）', lang)}>{dimMode ? tStatus('✓ 线性标注中（点两点）', lang) : tStatus('＋线性标注', lang)}</button>
-          <button className="cs-btn" style={radMode === 'r' ? { background: '#8a5a00', color: '#fff' } : undefined} onClick={() => { setRadMode((m) => (m === 'r' ? null : 'r')); setDimMode(false); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false) }} title={tStatus('进入后点一个圆 → 标半径 R（自动吸附侦测到的圆）', lang)}>{radMode === 'r' ? tStatus('✓ 半径标注中（点圆）', lang) : tStatus('＋半径 R', lang)}</button>
-          <button className="cs-btn" style={radMode === 'd' ? { background: '#8a5a00', color: '#fff' } : undefined} onClick={() => { setRadMode((m) => (m === 'd' ? null : 'd')); setDimMode(false); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false) }} title={tStatus('进入后点一个圆 → 标直径 Ø（自动吸附侦测到的圆）', lang)}>{radMode === 'd' ? tStatus('✓ 直径标注中（点圆）', lang) : tStatus('＋直径 Ø', lang)}</button>
-          <button className="cs-btn" style={angMode ? { background: '#6a1b9a', color: '#fff' } : undefined} onClick={() => { setAngMode((m) => !m); setDimMode(false); setRadMode(null); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false) }} title={tStatus('进入后点两条直线边 → 标出两边夹角（平行线无法标）', lang)}>{angMode ? tStatus('✓ 角度标注中（点两边）', lang) : tStatus('＋角度标注', lang)}</button>
+          <button className="cs-btn" style={dimMode ? { background: '#c2185b', color: '#fff' } : undefined} onClick={() => { setDimMode((m) => !m); setRadMode(null); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('进入标注模式后，喺任一视图点两点 → 标出两点间线性尺寸（自动吸附孔心/端点；Esc 取消）', lang)}>{dimMode ? tStatus('✓ 线性标注中（点两点）', lang) : tStatus('＋线性标注', lang)}</button>
+          <button className="cs-btn" style={radMode === 'r' ? { background: '#8a5a00', color: '#fff' } : undefined} onClick={() => { setRadMode((m) => (m === 'r' ? null : 'r')); setDimMode(false); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('进入后点一个圆 → 标半径 R（自动吸附侦测到的圆）', lang)}>{radMode === 'r' ? tStatus('✓ 半径标注中（点圆）', lang) : tStatus('＋半径 R', lang)}</button>
+          <button className="cs-btn" style={radMode === 'd' ? { background: '#8a5a00', color: '#fff' } : undefined} onClick={() => { setRadMode((m) => (m === 'd' ? null : 'd')); setDimMode(false); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('进入后点一个圆 → 标直径 Ø（自动吸附侦测到的圆）', lang)}>{radMode === 'd' ? tStatus('✓ 直径标注中（点圆）', lang) : tStatus('＋直径 Ø', lang)}</button>
+          <button className="cs-btn" style={angMode ? { background: '#6a1b9a', color: '#fff' } : undefined} onClick={() => { setAngMode((m) => !m); setDimMode(false); setRadMode(null); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('进入后点两条直线边 → 标出两边夹角（平行线无法标）', lang)}>{angMode ? tStatus('✓ 角度标注中（点两边）', lang) : tStatus('＋角度标注', lang)}</button>
           <span className="dw-tool-group">
             <button className="cs-btn" style={tolOn ? { background: '#00695c', color: '#fff' } : undefined} onClick={() => setTolOn((o) => !o)} title={tStatus('开启后，新放置嘅线性/半径/直径尺寸会附上公差（上/下偏差）', lang)}>{tolOn ? tStatus('✓ 公差', lang) : tStatus('公差 ±', lang)}</button>
             {tolOn && <>

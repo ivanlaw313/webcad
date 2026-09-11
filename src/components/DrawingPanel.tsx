@@ -3,6 +3,7 @@ import { useApp } from '../store'
 import { tStatus } from '../i18n'
 import { useState, useEffect, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import { jpegToPdf, dataUrlToBytes } from '../io/pdf'
+import { durableDownload, type DownloadResult } from '../io/download'
 // T784：标注类型搬入共享模块（store 持久化同款形状）— 别名保持本文件原有名字
 import { type DrawingAnno, type DTol as Tol, type DMDim as MDim, type DRDim as RDim, type DADim as ADim, type DNote as Note, type DNoteKind as NoteKind, type DDatum as Datum, type DFCF as FCF, type DDetail as Detail } from '../io/drawingAnno'
 
@@ -845,12 +846,25 @@ export default function DrawingPanel() {
     return { svg, W: contentW*k, H: contentH*k, overflow:false }
   }
 
+
+  // BUG-UI-008: drawing SVG/PNG/PDF/DXF must use durable File System Access (or hardened
+  // in-document <a download>) — same class of fix as Save/Export P0 / BUG-UI-002.
+  const drawingBaseName = () => `${(projectName || 'webcad').replace(/[^\w一-龥-]+/g, '_')}-工程图`
+  const finishDrawingExport = async (bytes: ArrayBuffer | Uint8Array, name: string, type: string, label: string) => {
+    const result: DownloadResult = await durableDownload(bytes, name, type)
+    if (!result.ok) {
+      if (result.reason === 'aborted') useApp.setState({ status: `已取消导出${label}（现有图纸未动）` })
+      else useApp.setState({ status: `导出失败：无法写入文件${result.message ? ' — ' + result.message : ''}（现有图纸未动）` })
+      return
+    }
+    const where = result.method === 'file-picker' ? ' · 已写入所选位置' : ''
+    useApp.setState({ status: `已导出工程图 ${label}${where}` })
+  }
+
   const exportSVG = () => {
     if(buildSvgString(0).overflow){window.alert('所選比例超出圖紙，請減小比例或選較大圖幅；未匯出裁切圖紙');return}
     const { svg } = buildSvgString(0)
-    const blob = new Blob([svg], { type: 'image/svg+xml' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = `${(projectName || 'webcad').replace(/[^\w一-龥-]+/g, '_')}-工程图.svg`; a.click(); URL.revokeObjectURL(url)
+    void finishDrawingExport(new TextEncoder().encode(svg), `${drawingBaseName()}.svg`, 'image/svg+xml', 'SVG')
   }
 
   // Rasterise the drawing to a PNG (2× for crisp text) — for pasting into docs / chat / email where SVG
@@ -866,7 +880,7 @@ export default function DrawingPanel() {
       const ctx = cv.getContext('2d'); if (!ctx) return
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, pxW, pxH)
       ctx.drawImage(img, 0, 0, pxW, pxH)
-      cv.toBlob((blob) => { if (!blob) return; const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${(projectName || 'webcad').replace(/[^\w一-龥-]+/g, '_')}-工程图.png`; a.click(); URL.revokeObjectURL(url) }, 'image/png')
+      cv.toBlob((blob) => { if (!blob) return; void blob.arrayBuffer().then((buf) => finishDrawingExport(new Uint8Array(buf), `${drawingBaseName()}.png`, 'image/png', 'PNG')) }, 'image/png')
     }
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
   }
@@ -887,9 +901,7 @@ export default function DrawingPanel() {
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, pxW, pxH)
       ctx.drawImage(img, 0, 0, pxW, pxH)
       const pdf = jpegToPdf(dataUrlToBytes(cv.toDataURL('image/jpeg', 0.92)), pxW, pxH, {pageW:W*72/25.4,pageH:H*72/25.4,margin:0})
-      const blob = new Blob([pdf as unknown as BlobPart], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a'); a.href = url; a.download = `${(projectName || 'webcad').replace(/[^\w一-龥-]+/g, '_')}-工程图.pdf`; a.click(); URL.revokeObjectURL(url)
+      void finishDrawingExport(pdf, `${drawingBaseName()}.pdf`, 'application/pdf', 'PDF')
     }
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
   }
@@ -978,8 +990,7 @@ export default function DrawingPanel() {
     const ent = txtEnt ? lineEnt + '\n' + txtEnt : lineEnt
     // $INSUNITS=4 → millimetres, so the DXF imports at correct scale in CAD/CAM (not guessed as inches).
     const dxf = `0\nSECTION\n2\nHEADER\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n${ent}\n0\nENDSEC\n0\nEOF\n`
-    const blob = new Blob([dxf], { type: 'application/dxf' }); const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = 'webcad-drawing.dxf'; a.click(); URL.revokeObjectURL(url)
+    void finishDrawingExport(new TextEncoder().encode(dxf), `${drawingBaseName()}.dxf`, 'application/dxf', 'DXF')
   }
 
   return (

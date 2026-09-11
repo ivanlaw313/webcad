@@ -6225,8 +6225,14 @@ export default function Viewport() {
             const moveComponentCount = checkedComps.length || (selectedComponent ? 1 : 0)
             const modes: [string, string, string][] = [['free', '自由', '六自由度：dx/dy/dz + 绕件中心 X/Y/Z'], ['translate', '平移', '只平移 dx/dy/dz'], ['rotate', '旋转', '单轴 + 角度（绕件中心）'], ['ptp', '点对点', '把 P1 搬到 P2（两点坐标）'], ['ptpos', '点对位', '把 P1 搬到目的坐标 P2']]
             return (<>
-              <label title={tStatus('对象类型（Fusion Move Object）：当前完整支持活动实体和已选组件；面与草图须用专属工具。', lang)}>{tStatus('对象', lang)} <select value={objectType} onChange={(e) => setFeatParam('objectType', e.target.value)} style={{ height: 26 }}><option value="bodies">{tStatus('活动实体', lang)}</option><option value="components">{tStatus('组件', lang)}</option><option value="faces" disabled>{tStatus('面（用移动面）', lang)}</option><option value="sketch" disabled>{tStatus('草图（草图环境）', lang)}</option></select></label>
-              {objectType === 'bodies' ? <SelectionChip label={tStatus('对象', lang)} count={1} hint={tStatus('活动实体会在确定后移动；在浏览器选择其他实体可先切换活动实体。', lang)} /> : <SelectionChip label={tStatus('组件', lang)} count={moveComponentCount} hint={moveComponentCount ? tStatus('已选组件；可在浏览树勾选多个组件，按 × 清除后重新选择。', lang) : tStatus('先在浏览树或画布选择一个或多个组件。', lang)} onClear={() => useApp.setState({ checkedComps: [], selectedComponent: null })} />}
+              <label title={tStatus('对象类型（Fusion Move Object）：当前完整支持活动实体和已选组件；面与草图须用专属工具。', lang)}>{tStatus('对象', lang)} <select value={objectType} onChange={(e) => setFeatParam('objectType', e.target.value)} style={{ height: 26 }}><option value="bodies">{tStatus('实体', lang)}</option><option value="components">{tStatus('组件', lang)}</option><option value="faces" disabled>{tStatus('面（用移动面）', lang)}</option><option value="sketch" disabled>{tStatus('草图（草图环境）', lang)}</option></select></label>
+              {objectType === 'bodies' ? (<>
+                <label title={tStatus('SO10：分割后可选择泊车半体移动，避免只移活动低侧叠入另一半导致合并体积丢失', lang)}>{tStatus('实体', lang)} <select value={String(featDlg.params.bodyTarget ?? 'active')} onChange={(e) => setFeatParam('bodyTarget', e.target.value)} style={{ height: 26 }}>
+                  <option value="active">{tStatus('活动实体', lang)}</option>
+                  {(bodyMesh?.parked ?? []).map((b, i) => <option key={i} value={'parked' + i}>{b.name || (tStatus('泊车实体', lang) + (i + 1))}</option>)}
+                </select></label>
+                <SelectionChip label={tStatus('对象', lang)} count={1} hint={tStatus('可选活动实体或泊车实体（分割另一半）；确定后移动所选实体。', lang)} />
+              </>) : <SelectionChip label={tStatus('组件', lang)} count={moveComponentCount} hint={moveComponentCount ? tStatus('已选组件；可在浏览树勾选多个组件，按 × 清除后重新选择。', lang) : tStatus('先在浏览树或画布选择一个或多个组件。', lang)} onClear={() => useApp.setState({ checkedComps: [], selectedComponent: null })} />}
               <div style={{ display: 'flex', gap: 3, width: '100%' }}>
                 {modes.map(([v, lbl, tip]) => <button key={v} className={'sb-tool' + (mt === v ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={tStatus(tip, lang)} onClick={() => setFeatParam('moveType', v)}>{tStatus(lbl, lang)}</button>)}
               </div>
@@ -6326,8 +6332,15 @@ export default function Viewport() {
               {hasPlane
                 ? <div style={{ fontSize: 11, color: '#16a36b' }}>{tStatus('✂ 已拾切割平面（法向', lang)} [{String(featDlg.params.planeNormal)}]）<button className="sb-tool" onClick={() => { setFeatParam('planeOrigin', ''); setFeatParam('planeNormal', '') }}>{tStatus('改用轴向平面', lang)}</button></div>
                 : (<>
-                  <label title={tStatus('切割轴：沿此轴的一个平面把实体切两半（要任意面请用「平面切」拾面）', lang)}>{tStatus('轴', lang)} <select value={String(featDlg.params.axis)} onChange={(e) => setFeatParam('axis', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
-                  <label title={tStatus('切割位置（CAD 坐标，沿上面选定轴）— 开对话框默认实体 Z 中点', lang)}>{tStatus('位置', lang)} <input type="number" step={1} value={featDlg.params.offset} onChange={(e) => setFeatParam('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>
+                  <label title={tStatus('切割轴：沿此轴的一个平面把实体切两半（要任意面请用「平面切」拾面）', lang)}>{tStatus('轴', lang)} <select value={String(featDlg.params.axis)} onChange={(e) => {
+                    const axis = e.target.value; setFeatParam('axis', axis)
+                    const m = useApp.getState().bodyMesh; if (!m?.vertices?.length) return
+                    const axIdx = axis === 'X' ? 0 : axis === 'Y' ? 1 : 2
+                    const vv = m.vertices; let lo = 1e9, hi = -1e9
+                    for (let i = axIdx; i < vv.length; i += 3) { if (vv[i] < lo) lo = vv[i]; if (vv[i] > hi) hi = vv[i] }
+                    setFeatParam('offset', Math.round((lo + hi) / 2 * 10) / 10)
+                  }} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
+                  <label title={tStatus('切割位置（CAD 世界坐标，沿选定轴）。长方体默认角落原点时 x=15 把 40 宽切成 15+25 → 体积 3000+5000', lang)}>{tStatus('位置', lang)} <input type="number" step={1} value={featDlg.params.offset} onChange={(e) => setFeatParam('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>
                   <button className="cs-btn" title={tStatus('把切割位置居中到实体包围盒中点（当前轴）', lang)} onClick={() => {
                     const m = useApp.getState().bodyMesh; if (!m?.vertices?.length) return
                     const axIdx = featDlg.params.axis === 'X' ? 0 : featDlg.params.axis === 'Y' ? 1 : 2
@@ -6336,7 +6349,7 @@ export default function Viewport() {
                     setFeatParam('offset', Math.round((lo + hi) / 2 * 10) / 10)
                   }}>{tStatus('居中', lang)}</button>
                 </>)}
-              <label title={tStatus('保留哪一侧做活动实体继续编辑；另一侧灰显泊车（可隐藏/导出/实体布尔）', lang)}>{tStatus('保留侧', lang)} <select value={String(featDlg.params.keep ?? 'lo')} onChange={(e) => setFeatParam('keep', e.target.value)} style={{ height: 26 }}><option value="lo">{tStatus(hasPlane ? '法向负侧' : '低侧', lang)}</option><option value="hi">{tStatus(hasPlane ? '法向正侧' : '高侧', lang)}</option></select></label>
+              <label title={tStatus('保留哪一侧做活动实体继续编辑；另一侧灰显泊车（可隐藏/导出/实体布尔）。默认高侧：沿轴正方向移动活动体可与泊车半体分离，合并后总体积不变', lang)}>{tStatus('保留侧', lang)} <select value={String(featDlg.params.keep ?? 'hi')} onChange={(e) => setFeatParam('keep', e.target.value)} style={{ height: 26 }}><option value="lo">{tStatus(hasPlane ? '法向负侧' : '低侧', lang)}</option><option value="hi">{tStatus(hasPlane ? '法向正侧' : '高侧', lang)}</option></select></label>
             </>)
           })()}
           {/* P2 Edit Feature：编辑专属块 — 双击时间线重开，值已反填；选择集/轮廓透传保留 */}

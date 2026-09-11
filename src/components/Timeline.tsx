@@ -13,9 +13,12 @@ const EDIT_DLG_KINDS = new Set<string>(['extrude', 'revolve', 'sweep', 'loft', '
 // 异步重建，令打字被打断 / 自动化改唔到值）。同 featDlg 输入一致行为。外部值变（参数绑定/撤销）会重新同步。
 function NumField({ value, disabled, step = 0.5, min, onCommit }: { value: number; disabled?: boolean; step?: number; min?: number; onCommit: (n: number) => void }) {
   const [buf, setBuf] = useState(String(value))
+  const skipCommit = useRef(false)
   useEffect(() => { setBuf(String(value)) }, [value])
   const commit = () => {
+    if (skipCommit.current) { skipCommit.current = false; setBuf(String(value)); return }
     const n = Number(buf)
+    // BUG-UI-003: when min is set (length dims), reject n < min including negatives / zero.
     if (Number.isFinite(n) && (min == null || n >= min)) { if (n !== value) onCommit(n) }
     else setBuf(String(value))   // 无效输入 → 还原
   }
@@ -24,7 +27,11 @@ function NumField({ value, disabled, step = 0.5, min, onCommit }: { value: numbe
       type="number" step={step} min={min} disabled={disabled} value={buf}
       onChange={(e) => setBuf(e.target.value)}
       onBlur={commit}
-      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur() } }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur() }
+        // BUG-UI-002: Esc reverts the draft and skips the blur commit so closing the editor does not apply.
+        if (e.key === 'Escape') { e.preventDefault(); skipCommit.current = true; setBuf(String(value)); (e.currentTarget as HTMLInputElement).blur() }
+      }}
     />
   )
 }
@@ -101,6 +108,13 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
   othread: { icon: 'thread', label: '面外螺纹', param: '螺距', field: 'pitch', unit: 'mm', fields: [{ key: 'd', label: '直径Ø', unit: 'mm' }, { key: 'pitch', label: '螺距', unit: 'mm' }, { key: 'height', label: '高度', unit: 'mm' }, { key: 'z0', label: '起点Z', unit: 'mm' }] },  // T775
 }
 
+// BUG-UI-003: length-like timeline fields must stay strictly positive (prim a/b/c, Ø, wall…).
+// Signed fields (extrude height/down, transform dx, draft angle, offsets) stay unconstrained here.
+const POSITIVE_LENGTH_KEYS = new Set([
+  'a', 'b', 'c', 'diameter', 'radius', 'thickness', 'distance', 'pitch', 'module', 'width', 'bore',
+  'wireR', 'size', 'thick', 'wall', 'ext', 'discH', 'faceW', 'baseH', 'length', 'depth', 'd', 'r', 'r2',
+])
+
 export default function Timeline() {
   const lang = useApp((s) => s.lang)
   const hasComponentHistory = useApp(s => s.components.some(c => c.src?.features.length))
@@ -155,6 +169,8 @@ export default function Timeline() {
 
   const sel = features.find((f) => f.id === selected)
   const meta = sel ? (META[sel.type] || null) : null   // 未知类型 → null（下游已处理 null = 唔显示参数编辑器），唔 crash
+  // BUG-UI-002: Esc closes the timeline feature dimension editor (topmost), before selection-clear cascade.
+  useEscapeLayer(!!sel && !!meta && !commandEditing, () => selectFeature(null), 180)
 
   // Drag-scrub: pointer down on the 4px marker → window listeners (element identity changes as the
   // marker moves between chips, so capture on the element itself would drop mid-drag). gotoStep is a
@@ -295,7 +311,7 @@ export default function Timeline() {
       </div>}
 
       {sel && meta && !commandEditing && (
-        <div className="feat-editor" ref={featureEditorDrag.ref} style={featureEditorDrag.style}>
+        <div className="feat-editor" role="dialog" aria-label={tStatus("特征尺寸编辑", lang)} ref={featureEditorDrag.ref} style={featureEditorDrag.style}>
           <span className="fe-title" title="拖移特征编辑面板" onPointerDown={featureEditorDrag.onPointerDown} style={{ cursor: 'grab', touchAction: 'none' }}>⠿ <ToolIcon name={meta.icon} size={14} /> {tStatus(`编辑「${meta.label}」`, lang)}</span>
           <button type="button" aria-label="还原特征编辑面板位置" onClick={featureEditorDrag.reset}>↺</button>
           {featureErrors[sel.id] && <div className="fe-errbar">🔴 {tStatus('此特征重建失败：', lang)}{featureErrors[sel.id]}<button className="fe-errsup" onClick={() => void toggleSuppress(sel.id)}>{tStatus('抑制此特征', lang)}</button></div>}
@@ -322,7 +338,7 @@ export default function Timeline() {
                     // #31/#97：数量字段（count/countX/Y/Z、featpattern cols/rows）= 整数 step；环形/路径阵列 count 下限 2（<2 喺 worker 会变 identity 无副本），其余数量场下限 1；commit 时 Math.round 令显示==存储==worker 用值
                     <NumField
                       step={isCount ? 1 : 0.5}
-                      min={fd.key === 'count' ? 2 : isCount ? 1 : undefined}
+                      min={fd.key === 'count' ? 2 : isCount ? 1 : POSITIVE_LENGTH_KEYS.has(fd.key) ? 1e-6 : undefined}
                       disabled={!!bound}
                       value={(sel as unknown as Record<string, number>)[fd.key] ?? (fd.defKey ? (sel as unknown as Record<string, number>)[fd.defKey] : undefined) ?? 0}
                       onCommit={(n) => editFeature(sel.id, { [fd.key]: isCount ? Math.max(fd.key === 'count' ? 2 : 1, Math.round(n)) : n })}

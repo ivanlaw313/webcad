@@ -3282,7 +3282,8 @@ function LenInput({ mm, onMm, unit, w = 56, min, title }: { mm: number; onMm: (v
       type="text" inputMode="decimal" value={txt} title={title} aria-label={title || '数值输入'}
       onFocus={() => setFoc(true)}
       onBlur={() => { setFoc(false); setTxt(toLenInput(mm, unit)) }}
-      onChange={(e) => { setTxt(e.target.value); const v = parseLen(e.target.value, unit); if (v != null && (min == null || v >= min)) onMm(v) }}
+      // BUG-SO18F-001: notify parent even when below min (Ø-1) so preview/confirm can reject+clear instead of keeping a stale legal value.
+      onChange={(e) => { setTxt(e.target.value); const v = parseLen(e.target.value, unit); if (v != null) onMm(v) }}
       style={{ width: w }}
     />
   )
@@ -5895,11 +5896,12 @@ export default function Viewport() {
           title={holeEditId ? '編輯孔' : '孔'}
           width={320}
           okTip={holePos || holeEditId ? '建立孔（Enter）' : '請先選擇面或草圖點'}
-          okDisabled={!holePos && !holeEditId}
+          okDisabled={(!holePos && !holeEditId) || !(holeD > 0)}
           onOk={() => void commitHole()}
           onCancel={() => cancelHole()}
-          summary={holeType === 'counterbore' ? `沉头孔（${holeThrough ? '通' : '盲'}+沉台 Ø${(holeCbD ?? holeSpec.cbD).toFixed(1)}）` : holeType === 'countersink' ? `埋头孔（${holeThrough ? '通' : '盲'}+${holeCsAngle}°锥 Ø${(holeCsD ?? holeSpec.csD).toFixed(1)}）` : holeType === 'nuttrap' ? '螺母陷阱（过孔+六角槽嵌螺母）' : holeType === 'tapped' ? (holeTapModeled ? `建模螺纹（真螺旋牙，${holeThrough ? '通孔' : '盲孔'}）` : `攻牙底孔（钻 d−螺距，攻 M 螺纹用，${holeThrough ? '通孔' : '盲孔'}）`) : holeThrough ? `通孔 Ø${holeD}` : `盲孔 Ø${holeD}${holeDepth > 0 ? ` 深${holeDepth}` : '（深≈1.5×Ø）'}`}
+          summary={!(holeD > 0) ? '孔径必须大于 0' : holeType === 'counterbore' ? `沉头孔（${holeThrough ? '通' : '盲'}+沉台 Ø${(holeCbD ?? holeSpec.cbD).toFixed(1)}）` : holeType === 'countersink' ? `埋头孔（${holeThrough ? '通' : '盲'}+${holeCsAngle}°锥 Ø${(holeCsD ?? holeSpec.csD).toFixed(1)}）` : holeType === 'nuttrap' ? '螺母陷阱（过孔+六角槽嵌螺母）' : holeType === 'tapped' ? (holeTapModeled ? `建模螺纹（真螺旋牙，${holeThrough ? '通孔' : '盲孔'}）` : `攻牙底孔（钻 d−螺距，攻 M 螺纹用，${holeThrough ? '通孔' : '盲孔'}）`) : holeThrough ? `通孔 Ø${holeD}` : `盲孔 Ø${holeD}${holeDepth > 0 ? ` 深${holeDepth}` : '（深≈1.5×Ø）'}`}
         >
+          {!(holeD > 0) && <div role="alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>孔径 Ø 必须大于 0（已清除非法预览）</div>}
           <div style={{ color: '#6b7680', fontWeight: 600 }}>Placement</div>
           <SelectionChip label="面／草圖點" count={holePos ? 1 : 0} hint={holePos ? '已選位置；可再點面改位置' : '請在實體面上點選孔位置'} onClear={() => useApp.getState().clearHolePick()} />
           <button className="cs-btn" title="按草图点批量打孔：先在草图以「點」工具放置 N 個點，再一次建立 N 個孔。" onClick={() => void useApp.getState().addHolesAtSketchPoints()}>⊙ 從草圖點批量建立</button>

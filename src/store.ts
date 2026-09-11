@@ -14116,7 +14116,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   setHoleSlotLen: (n) => set({ holeSlotLen: Math.max(1, n || 20) }),
   setHoleSlotAng: (n) => set({ holeSlotAng: Number.isFinite(n) ? n : 0 }),
   holeD: 16,
-  setHoleD: (n) => set({ holeD: Math.max(1, n || 16) }),
+  // BUG-SO18F-001: do not coerce Ø≤0 → 1/16; keep illegal draft so preview can clear and confirm can reject.
+  setHoleD: (n) => set({ holeD: Number.isFinite(n) ? n : 16 }),
   holeDepth: 0,
   setHoleDepth: (n) => set({ holeDepth: n > 0 ? n : 0 }),
   // Drill a hole at CAD (cx,cy). Default (0,0) = body centre (legacy). The Hole command (below) passes the picked point.
@@ -18238,6 +18239,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     const expressionOwner = get().features.find(f => f.id === id)
     if ('height' in patch && !('distanceExpression' in patch) && expressionOwner?.type === 'extrude' && expressionOwner.distanceExpression) { set({ status: '距离由表达式驱动；请双击特征编辑表达式' }); return }
     if (expressionOwner?.type === 'shell' && 'thickness' in patch && !(Number(patch.thickness) > 0)) { set({ status: '请输入大于 0 的壁厚' }); return }
+    // BUG-UI-003: reject non-positive length dims on timeline edit (prim a/b/c, hole Ø, fillet R…).
+    // Signed dims (extrude height, transform, draft angle, offsets) are intentionally unconstrained.
+    const positiveKeys = ['a', 'b', 'c', 'diameter', 'radius', 'thickness', 'distance', 'pitch', 'module', 'width', 'bore', 'wireR', 'size', 'thick', 'wall', 'ext', 'length', 'depth', 'd', 'r', 'r2'] as const
+    for (const k of positiveKeys) {
+      if (k in patch && !(Number(patch[k]) > 0)) { set({ status: '尺寸必须大于 0，未更改模型' }); return }
+    }
     const features = get().features.map((f) => {
       if (f.id !== id) return f
       // P2：到面拉伸手改「高度」= 脱开目标面引用（Fusion 同款：打距离即离开 to-face 驱动，否则下次重建会覆盖你嘅值）

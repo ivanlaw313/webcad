@@ -500,7 +500,7 @@ export default function Ribbon() {
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: 6 }} title="界面语言 / UI language（T800：ribbon + 导航；状态消息 v1 仍中文）">
               {<button className="ribbon-tab" title={ribbonCollapsed ? '展开工具行' : '收起工具行（净留标签，腾画面）'} onClick={() => setRibbonCollapsed((c) => !c)} style={{ fontSize: 12, opacity: 0.7 }}>{ribbonCollapsed ? '▾' : '▴'}</button>}
               <button className="ribbon-tab" aria-pressed={!compactTools} title={lang === 'en' ? 'Show or hide tool names' : '显示／隐藏工具名称'} onClick={() => setCompactTools(v => !v)}>{compactTools ? 'Aa' : '▦'}</button>
-              {inSketch && <button className="ribbon-tab context-finish" disabled={!!commandActive || sketchDragging} onClick={() => finishSketch()}>{lang === 'en' ? '✓ Finish Sketch' : '✓ 完成草图'}</button>}
+              {inSketch && <button className="ribbon-tab context-finish" disabled={!!commandActive || sketchDragging} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{lang === 'en' ? '✓ Finish Sketch' : '✓ 完成草图'}</button>}
               <button className="ribbon-tab" style={{ fontWeight: lang === 'zh' ? 700 : 400, opacity: lang === 'zh' ? 1 : 0.5 }} onClick={() => useApp.getState().setLang('zh')}>中</button>
               <button className="ribbon-tab" style={{ fontWeight: lang === 'en' ? 700 : 400, opacity: lang === 'en' ? 1 : 0.5 }} onClick={() => useApp.getState().setLang('en')}>EN</button>
             </div>
@@ -523,7 +523,7 @@ export default function Ribbon() {
               )
             })}
             {inSketch && (
-              <button data-cmd="finishsketch" disabled={!!commandActive || sketchDragging} className="finish-sketch" title={lang === 'en' ? 'Finish the sketch and return to the modeling environment (Fusion: FINISH SKETCH)' : '完成草图，返回实体环境（Fusion: FINISH SKETCH）'} onClick={() => finishSketch()}>{/* GM-W6 E：教学指针锚点 */}
+              <button data-cmd="finishsketch" disabled={!!commandActive || sketchDragging} className="finish-sketch" title={lang === 'en' ? 'Finish the sketch and return to the modeling environment (Fusion: FINISH SKETCH)' : '完成草图，返回实体环境（Fusion: FINISH SKETCH）'} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{/* GM-W6 E：教学指针锚点 */}
                 <span className="finish-check">✓</span>
                 <span>{lang === 'en' ? 'Finish Sketch' : '完成草图'}</span>
               </button>

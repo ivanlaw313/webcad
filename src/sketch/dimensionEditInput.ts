@@ -16,11 +16,11 @@ export function parseDimensionEditInput({con,raw,unit,radDia,params,cons,evaluat
   if(parsed.value===undefined)return fail('尺寸无法计算；请检查数值、单位及语法')
   const value=radDia?.flip?parsed.value*(radDia.type==='rad'?.5:2):parsed.value
   if(!valid(value))return fail('尺寸必须为有限正数；水平／垂直距离可为零')
-  return {ok:true,patch:{value,param:undefined,paramId:undefined,expr:undefined,refs:undefined}}
+  return {ok:true,patch:{value,param:undefined,paramId:undefined,expr:undefined,refs:undefined,driven:undefined}}
  }
  const scale=radDia?.flip?(radDia.type==='rad'?0.5:2):1
  const direct=params.find(p=>p.name===body)
- if(direct){const value=direct.value*scale;if(!valid(value))return fail('参数尺寸数值无效');return {ok:true,patch:{value,param:direct.name,paramId:parameterId(direct),expr:undefined,refs:undefined}}}
+ if(direct){const value=direct.value*scale;if(!valid(value))return fail('参数尺寸数值无效');return {ok:true,patch:{value,param:direct.name,paramId:parameterId(direct),expr:undefined,refs:undefined,driven:undefined}}}
  const refs=parameterExpressionRefs(body,symbols,con.refs),vars=new Map(symbols.filter(p=>p.id!=='dimension:'+con.id).map(p=>[p.name,p.value]))
  for(const [token,id]of Object.entries(refs))vars.set(token,symbols.find(p=>parameterId(p)===id)?.value??NaN)
  try{assertParameterAcyclic(cons.flatMap(c=>c.kind==='dim'&&c.name?[{id:'dimension:'+c.id,name:c.name,value:c.value,expr:c.id===con.id?body:c.expr,refs:c.id===con.id?refs:c.refs}]:[]))}catch{return fail('尺寸循环引用，已拒绝')}
@@ -28,5 +28,5 @@ export function parseDimensionEditInput({con,raw,unit,radDia,params,cons,evaluat
  if(rawValue===null)return fail('公式无法计算或结果无效')
  const value=rawValue*scale
  if(!valid(value))return fail('公式无法计算或结果无效')
- return {ok:true,patch:{value,expr:body,refs,param:undefined,paramId:undefined}}
+ return {ok:true,patch:{value,expr:body,refs,param:undefined,paramId:undefined,driven:undefined}}
 }

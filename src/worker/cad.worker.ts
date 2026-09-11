@@ -71,7 +71,7 @@ export type Feature =
   | { id: string; type: 'featpattern'; cols: number; dx: number; rows: number; dy: number; subs: { profile: SketchProfile; height: number; operation: BoolOp; baseZ?: number; through?: boolean; plane?: Plane; twist?: number; symmetric?: boolean; draft?: number; down?: boolean; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[] }
   // 拉伸组（多轮廓一次拉伸 → 一个时间轴节点）：subs = 各轮廓+各自参数，共享一个 height（改 height 即全部一齐变）。store expandFeats() 送 worker 前展开成 N 个 extrude（worker 零改动）。
   | { id: string; type: 'extgroup'; sketchFaceBinding?: SketchFaceBinding; height: number; sketchId?: string; subs: { profile: SketchProfile; operation: BoolOp; baseZ?: number; twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[] }
-  | { id: string; type: 'prim'; shape: 'box' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie'; a: number; b: number; c: number; op?: BoolOp; sides?: number; outerTrue?: boolean /* GM-W8 β1-#29：torus 专用 — 有此 flag 时 a=真外半径（中线半径=a−管半径）；缺=旧语义 a=中线半径 */ }
+  | { id: string; type: 'prim'; shape: 'box' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie'; a: number; b: number; c: number; op?: BoolOp; sides?: number; outerTrue?: boolean /* GM-W8 β1-#29：torus 专用 — 有此 flag 时 a=真外半径（中线半径=a−管半径）；缺=旧语义 a=中线半径 */; cornerOrigin?: boolean /* SO10：box 专用 — true 时平移到角落原点 [0,a]×[0,b]×[0,c]（对标「40×20×10 在 x=15 切成 3000+5000」）；缺=旧 makeBaseBox XY 居中逐字节 */ }
   // Automated Modeling Connector v1 core: an analytic connector between two
   // face-derived seed points. UI may only create this after two planar-face
   // picks; the feature itself stays deterministic and replayable.
@@ -101,7 +101,7 @@ export type Feature =
   // 環形阵列（T757 — 抄足 Fusion）：对象=整个实体（无 targets）或指定特征（targets=特征 id，snapshot-delta 重切/重融）；
   // 任意轴（origin+dir，CAD 坐标）；mode: full=均分 360（副本唔叠原件）/ angle=端点含 / sym=对称（±k·step，偶数偏 + 侧）
   | { id: string; type: 'circPattern'; targets?: string[]; origin: [number, number, number]; dir: [number, number, number]; count: number; totalAngle: number; mode: 'full' | 'angle' | 'sym'; suppress?: boolean[] /* GM-3DV1 S3：逐实例抑制 — 索引 0=seed(0°)、1..count-1=依 cpAngles 顺序嘅副本；suppress[i]=true 跳过（缺省 ⇒ 全出，旧档逐字节） */; compute?: 'optimized' | 'identical' | 'adjust'; objectType?: 'bodies' | 'faces' | 'features' | 'components'; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
-  | { id: string; type: 'transform'; origin?: [number, number, number]; dx: number; dy: number; dz: number; rz: number; rx?: number; ry?: number; copy?: boolean }   // copy（GM-3DV3 M1 Create Copy）：留原件、fuse 一个变换后副本（Fusion Move/Copy 嘅复制半边）；缺省=就地变换（旧档逐字节）
+  | { id: string; type: 'transform'; origin?: [number, number, number]; dx: number; dy: number; dz: number; rz: number; rx?: number; ry?: number; copy?: boolean; parked?: number }   // copy（GM-3DV3 M1 Create Copy）：留原件、fuse 一个变换后副本（Fusion Move/Copy 嘅复制半边）；缺省=就地变换（旧档逐字节）；parked≥0（SO10）=变换泊车实体[parked]而非活动体（缺=活动体逐字节）
   | { id: string; type: 'pushpull'; near: [number, number, number]; nears?: [number, number, number][]; dist: number; dir?: [number, number, number]; offsetType?: 'modify' | 'new' | 'auto'; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // faceFp（S128/S125 扩展）= 拾取面持久面指纹（缺省退回 near-point）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行）；dir（S192）= 任意方向移面向量（缺省=沿面法向，即旧按拉）；offsetType（GM-3DV3 M5 Offset Type）= Fusion Press Pull 面偏移嘅 Offset Type 元数据（modify/new/auto）— worker 不读几何（webcad 恒加节点=New 语义）
   | { id: string; type: 'rib'; path: [number, number][]; thickness: number; height: number; baseZ?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; op?: BoolOp; draft?: number /* S191：拔模角°——筋身向远端逐渐收窄（注塑/冲压脱模），逐段 base→top 锥化 loft */; thDir?: 'sym' | 'one' /* GM-3DV1 S1：厚度方向 — sym=中心线两側各半（旧行为，缺省）/ one=全部厚度落中心线单侧(+法向) */; extent?: 'next' | 'distance' /* GM-3DV1 S1：范围 — next=有实体时落到实体底并融合（旧行为，缺省）/ distance=永远向上 height（就算有实体） */; flip?: boolean /* GM-3DV1 S1：翻转筋挤出方向（up↔down） */; extend?: boolean /* GM-3DV1 S1（Web Extend Curves）：把开放折线端点沿末段方向外延（有实体时钳到实体 XY 包围盒边，令筋网到墙；无实体 = 固定外延），令交叉/近墙筋网自动闭合 */ }
   | { id: string; type: 'text'; text: string; size: number; height: number; op: BoolOp; plane?: Plane; baseZ?: number; x?: number; y?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }  // S162 Emboss：arbPlane = 落喺拾中嘅面上（沿法向 raise/engrave），无 = 旧 XY 文字
@@ -2086,7 +2086,7 @@ function buildShape(features: Feature[], noCache = false): any {
       const snap = cpSnap[tid]
       if (!snap || !snap.after) throw new Error(`${label}：目标特征不存在或已被抑制，原模型保留`)
       const tf = features.find((x) => x.id === tid) as { operation?: string; op?: string } | undefined
-      const wasCut = !!tf && (tf.operation === 'cut' || tf.op === 'cut')
+      const wasCut = !!tf && (tf.operation === 'cut' || tf.op === 'cut' || (tf as { type?: string }).type === 'hole')
       try {
         if (wasCut && snap.before) {
           const removed = snap.cutTool ? snap.cutTool.clone() : snap.before.clone().cut(snap.after.clone())
@@ -2115,11 +2115,22 @@ function buildShape(features: Feature[], noCache = false): any {
       start--
       while (start > 0 && features[start].type === 'sketch') start--
     }
-    // T757/T781：续算点之后有「带目标嘅阵列/镜像」→ 目标快照要重放先有，回退到最早目标特征（牺牲缓存换正确性）
-    for (let ci = start; ci < features.length; ci++) {
-      const cf = features[ci] as { type: string; targets?: string[] }
-      if (TARGETED.has(cf.type) && cf.targets?.length) {
-        for (const tid of cf.targets) { const ti = features.findIndex((x) => x.id === tid); if (ti >= 0 && ti < start) start = ti }
+    // T757/T781：续算点之后有「带目标嘅阵列/镜像」→ 目标快照要重放先有，回退到最早目标特征（牺牲缓存换正确性）。
+    // 传递闭包：镜像若目标系「阵列特征」本身，阵列又依赖更早嘅孔/凸台目标 — 只退到阵列会令 cpSnap 缺上游，
+    // 阵列报「目标特征唔存在/被抑制」并跳过（SO12 / BUG-SO12-001 lineage）。循环直到 start 不再前移。
+    {
+      let moved = true
+      while (moved) {
+        moved = false
+        for (let ci = start; ci < features.length; ci++) {
+          const cf = features[ci] as { type: string; targets?: string[] }
+          if (TARGETED.has(cf.type) && cf.targets?.length) {
+            for (const tid of cf.targets) {
+              const ti = features.findIndex((x) => x.id === tid)
+              if (ti >= 0 && ti < start) { start = ti; moved = true }
+            }
+          }
+        }
       }
     }
     if (start > 0) {
@@ -2434,9 +2445,46 @@ function buildShape(features: Feature[], noCache = false): any {
         else buildWarnings.push(`⚠ 旋转薄壁 ${f.wall}mm 失败，已退回实体（试减薄壁厚或让截面贴轴）`)
       }
       // Operation (Fusion): new/join → fuse, cut → lathe a groove/recess, intersect → common volume.
+      // SO04: partial-angle revolve uses the right-hand sense about the axis (XY about +Y → −Z).
+      // A body on the opposite half-space yields empty intersect / no-op cut. Retry once after a
+      // 180° spin about the axis (same wedge as reversing the axis) so the tool overlaps the body.
+      // Still empty → throw; S107 rolls back and keeps the previous solid.
       if (!shape) shape = solid
-      else if (f.op === 'cut') { _recordBool(_i, 'cut', solid); shape = shape.cut(solid) }   // GM-γ2b：车削布尔亦录工具体供 S2
-      else if (f.op === 'intersect') { _recordBool(_i, 'intersect', solid); shape = shape.intersect(solid) }
+      else if (f.op === 'cut' || f.op === 'intersect') {
+        const _volOf = (sh: any): number => {
+          try {
+            if (!sh?.wrapped || sh.wrapped.IsNull?.()) return 0
+            const g = new _oc.GProp_GProps_1(); _oc.BRepGProp.VolumeProperties_1(sh.wrapped, g, false, false, false)
+            return Math.abs(g.Mass())
+          } catch { return 0 }
+        }
+        const prevV = _volOf(shape)
+        const _tryBool = (tool: any): any => {
+          try {
+            const out = f.op === 'cut' ? shape.clone().cut(tool.clone()) : shape.clone().intersect(tool.clone())
+            if (!out?.wrapped || out.wrapped.IsNull?.()) return null
+            const v = _volOf(out)
+            if (!(v > 1e-6)) return null
+            if (f.op === 'cut' && Math.abs(v - prevV) < 1e-4) return null   // silent miss — tool never entered material
+            return out
+          } catch { return null }
+        }
+        let tool = solid
+        let out = _tryBool(tool)
+        if (!out && ang > 0 && ang < 360 && !f.symmetric) {
+          try {
+            const org = (f.axisOrigin || [0, 0, 0]) as [number, number, number]
+            const flipped = solid.clone().rotate(180, org, rax)
+            const retried = _tryBool(flipped)
+            if (retried) { out = retried; tool = flipped }
+          } catch { /* keep out null */ }
+        }
+        if (!out) throw new Error(f.op === 'intersect'
+          ? '旋转相交区域为空 — 旋转体与现有实体没有重叠（已保留原模型）'
+          : '旋转切割未改实体 — 车削体未切入材料（已保留原模型）')
+        _recordBool(_i, f.op === 'cut' ? 'cut' : 'intersect', tool)   // GM-γ2b：车削布尔亦录工具体供 S2
+        shape = out
+      }
       else if (f.op === 'newbody') parkedBodies.push({ name: `实体${parkedBodies.length + 1}`, shape: solid })   // P2 New Body
       else { _recordBool(_i, 'fuse', solid); shape = shape.fuse(solid) }
     } else if (f.type === 'stepbody') {
@@ -2609,7 +2657,7 @@ function buildShape(features: Feature[], noCache = false): any {
         buildWarnings.push('抽殼：相鄰內壁偏移相交，已按原壁厚重建直柱型腔')
       }
       if (shelled) shape = shelled
-      else if (!(f.thickness > 0)) buildWarnings.push(`抽壳：壁厚必须 > 0（值 ${f.thickness} 非法，可能来自参数驱动绕过 UI 下限）— 已跳过抽壳，保留实体`)   // 零壁厚 OCCT 全 retry 抛错 → 改诚实跳过而非泛型「shell failed」
+      else if (!(f.thickness > 0)) throw new Error(`抽壳：壁厚必须 > 0（值 ${f.thickness} 非法）`)   // t≤0 must fail (rollback) — never silently skip / keep illegal shell in history
       else throw new Error('抽殼無法按指定壁厚及方向完成，已保留原模型；請調整壁厚或開口面')
       { const _cap = _lastResolvedFaceFp as string[] | null; if (_cap && _cap.length) { _resolvedFaceFp[f.id] = _cap; _lastResolvedFaceFp = null } }
       { const _capV2 = _lastResolvedFaceFpV2 as string[] | null; if (_capV2 && _capV2.length) { _resolvedFaceFpV2[f.id] = _capV2; _lastResolvedFaceFpV2 = null } { const _capTopo = _lastResolvedFaceFpTopo as string[] | null; if (_capTopo && _capTopo.length) { _resolvedFaceFpTopo[f.id] = _capTopo; _lastResolvedFaceFpTopo = null } } }   // S136：v2 平行写回
@@ -2799,7 +2847,7 @@ function buildShape(features: Feature[], noCache = false): any {
       }
     } else if (f.type === 'prim') {
       let solid: any
-      if (f.shape === 'box') solid = makeBaseBox(f.a, f.b, f.c) // makeBaseBox is XY-centered & sits on ground (z∈[0,c]) already
+      if (f.shape === 'box') { solid = makeBaseBox(f.a, f.b, f.c); if (f.cornerOrigin) solid = solid.translate(f.a / 2, f.b / 2, 0) } // makeBaseBox is XY-centered & sits on ground (z∈[0,c]); cornerOrigin → [0,a]×[0,b]×[0,c]
       else if (f.shape === 'sphere') { const r = Math.max(0.1, f.a); solid = makeSphere(r).translate(0, 0, r) }   // bt3: 守 r≤0 退化球
       else if (f.shape === 'cone') {
         // Cone / frustum: revolve a (radius, height) profile about the Z axis. a=bottom radius, b=top radius, c=height.
@@ -4738,9 +4786,10 @@ function buildShape(features: Feature[], noCache = false): any {
         for (let i = 1; i < n; i++) acc = acc.fuse(base.clone().rotate(step * i, ctr, ax))
         shape = acc
       }
-    } else if (f.type === 'transform' && shape) {
+    } else if (f.type === 'transform' && (shape || (typeof f.parked === 'number' && f.parked >= 0 && parkedBodies[f.parked]))) {
       const rx = f.rx ?? 0, ry = f.ry ?? 0, rz = f.rz ?? 0
       // GM-3DV3 M1 Create Copy：变换一个 clone、留原件（Fusion「复制」半边）。原地变换（缺省）= 直接改 shape（旧档逐字节）。
+      // SO10：parked≥0 → 变换泊车实体（分割后可移「另一半」再合并，避免只郁活动低侧 +X 叠入高侧丢体积）。
       const applyXf = (sh: any): any => {
         let s2 = sh
         if (rx || ry || rz) {
@@ -4753,11 +4802,21 @@ function buildShape(features: Feature[], noCache = false): any {
         if (f.dx || f.dy || f.dz) s2 = s2.translate(f.dx, f.dy, f.dz)
         return s2
       }
-      if (f.copy) {
-        // Create Copy 必须保留原实体并加一个独立实体，绝不能融合成单一固体。
-        parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(shape.clone()) })
-      } else {
-        shape = applyXf(shape)
+      const parkIdx = typeof f.parked === 'number' && f.parked >= 0 ? f.parked : -1
+      if (parkIdx >= 0 && parkedBodies[parkIdx]) {
+        if (f.copy) {
+          parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(parkedBodies[parkIdx].shape.clone()) })
+        } else {
+          const pb = parkedBodies[parkIdx]
+          parkedBodies[parkIdx] = { name: pb.name, ...(pb.kind ? { kind: pb.kind } : {}), shape: applyXf(pb.shape) }
+        }
+      } else if (shape) {
+        if (f.copy) {
+          // Create Copy 必须保留原实体并加一个独立实体，绝不能融合成单一固体。
+          parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(shape.clone()) })
+        } else {
+          shape = applyXf(shape)
+        }
       }
     } else if (f.type === 'pushpull' && shape) {
       // Press/Pull: offset the face nearest the stored pick point along its normal by `dist`
@@ -5034,7 +5093,7 @@ function buildShape(features: Feature[], noCache = false): any {
             const snap = cpSnap[tid]
             if (!snap || !snap.after) { buildWarnings.push('环形阵列：目标特征唔存在/被抑制 — 已跳过该目标'); continue }
             const tf = features.find((x) => x.id === tid) as { operation?: string; op?: string } | undefined
-            const wasCut = !!tf && (tf.operation === 'cut' || tf.op === 'cut')
+            const wasCut = !!tf && (tf.operation === 'cut' || tf.op === 'cut' || (tf as { type?: string }).type === 'hole')
             try {
               if (wasCut && snap.before) {
                 const removed = snap.cutTool ? snap.cutTool.clone() : snap.before.clone().cut(snap.after.clone())
@@ -5098,9 +5157,9 @@ function buildShape(features: Feature[], noCache = false): any {
         }
       } catch (e) { buildWarnings.push('分割失败：' + ((e as any)?.message || e)) }
     }
-    // 审计修复：移除型特征（cut 拉伸 / bodyboolean / 分割）把实体完全切空（vol≈0 但 IsNull=false，唔抛错）
-    // → 空体静默往后传、后续特征连锁失效、几何静默丢失。喺此验体积：切空 → 回滚 _shapeBefore + 标 failed（同 S107 口径）。
-    if (shape && ((f.type === 'extrude' && (f as any).operation === 'cut') || f.type === 'bodyboolean' || f.type === 'split') && _shapeBefore && (_shapeBefore as any).wrapped && !(_shapeBefore as any).wrapped.IsNull()) {
+    // 审计修复：移除型特征（cut/intersect 拉伸·旋转 / bodyboolean / 分割）把实体完全切空（vol≈0 但 IsNull=false，唔抛错）
+    // → 空体静默往后传、后续特征连锁失效、几何静默丢失。喺此验体积：切空 → 回滚 _shapeBefore + 标 failed（同 S107 口径）。SO04 含 revolve intersect。
+    if (shape && ((f.type === 'extrude' && ((f as any).operation === 'cut' || (f as any).operation === 'intersect')) || (f.type === 'revolve' && ((f as any).op === 'cut' || (f as any).op === 'intersect')) || f.type === 'bodyboolean' || f.type === 'split') && _shapeBefore && (_shapeBefore as any).wrapped && !(_shapeBefore as any).wrapped.IsNull()) {
       let _vNow = NaN
       try { const g = new _oc.GProp_GProps_1(); _oc.BRepGProp.VolumeProperties_1((shape as any).wrapped, g, false, false, false); _vNow = Math.abs(g.Mass()) } catch { /* */ }
       if (Number.isFinite(_vNow) && _vNow < 1e-6) {
@@ -6095,22 +6154,36 @@ const api = {
   // triangulation) + surface type. Picks the face whose tessellation vertices are closest to the click.
   async measureBodyAt(p: [number, number, number]): Promise<{volume:number}|null> {
     await ready
-    if (!current) return null
-    const solids = Array.from(iterTopo(current.wrapped, 'solid')).map(shape => cast(shape))
+    // SO10 / body measure：活动体（可含 fuse 后多 solid compound）+ 泊车体均可量体积。
+    // 点中活动体任一 solid → 回报整个 current 的体积（浏览器「活动实体」一条）；点中泊车体 → 该泊车体体积。
+    type Cand = { kind: 'active' | 'parked'; shape: any; owned: boolean }
+    const cands: Cand[] = []
+    const owned: any[] = []
     try {
-      let best: typeof current = null, distance = Infinity
-      for (const solid of solids) {
-        const mesh = solid.mesh(), v = mesh.vertices, t = mesh.triangles
-        for (let i=0;i<t.length;i+=3) {
-          const a=t[i]*3,b=t[i+1]*3,c=t[i+2]*3
-          const d=ptTriDist2(...p,v[a],v[a+1],v[a+2],v[b],v[b+1],v[b+2],v[c],v[c+1],v[c+2])
-          if(d<distance){distance=d;best=solid}
+      if (current) {
+        for (const s of Array.from(iterTopo(current.wrapped, 'solid'))) {
+          const solid = cast(s); owned.push(solid); cands.push({ kind: 'active', shape: solid, owned: true })
         }
       }
-      if(!best) return null
-      const volume=measureVolume(best)
-      return Number.isFinite(volume)&&volume>0?{volume}:null
-    } finally { for(const solid of solids) solid.delete() }
+      for (const pb of parkedBodies) {
+        if (!pb?.shape?.wrapped || pb.shape.wrapped.IsNull?.()) continue
+        cands.push({ kind: 'parked', shape: pb.shape, owned: false })
+      }
+      let best: Cand | null = null, distance = Infinity
+      for (const cand of cands) {
+        let mesh: any
+        try { mesh = cand.shape.mesh() } catch { continue }
+        const v = mesh.vertices, t = mesh.triangles
+        for (let i = 0; i < t.length; i += 3) {
+          const a = t[i] * 3, b = t[i + 1] * 3, c = t[i + 2] * 3
+          const d = ptTriDist2(p[0], p[1], p[2], v[a], v[a + 1], v[a + 2], v[b], v[b + 1], v[b + 2], v[c], v[c + 1], v[c + 2])
+          if (d < distance) { distance = d; best = cand }
+        }
+      }
+      if (!best) return null
+      const volume = best.kind === 'active' && current ? measureVolume(current) : measureVolume(best.shape)
+      return Number.isFinite(volume) && volume > 0 ? { volume } : null
+    } finally { for (const solid of owned) try { solid.delete() } catch { /* */ } }
   },
 
   async measureFaceAt(p: [number, number, number]): Promise<{ area: number; kind: string; center: [number, number, number]; radius: number | null } | null> {

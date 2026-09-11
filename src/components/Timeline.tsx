@@ -341,7 +341,7 @@ export default function Timeline() {
                 step={0.5}
                 disabled={!!paramBindings[`${sel.id}:${meta.field}`]}
                 value={(sel as unknown as Record<string, number>)[meta.field]}
-                onCommit={(n) => editFeature(sel.id, { [meta.field]: n || 0.1 })}
+                onCommit={(n) => editFeature(sel.id, { [meta.field]: n })}
               />
               {meta.unit}
               {pSelect(meta.field)}

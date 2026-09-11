@@ -203,3 +203,118 @@ test('BUG-SO16-001 source: worker + preview share revolveLathePlane / remap', ()
   assert.match(workerSrc, /BUG-SO16-001/)
   assert.match(preview, /revolvePreviewContext\(featDlg, features, d\)/)
 })
+
+test('BUG-SO17-001 source: worker honors Z and clips axis-crossing profiles', () => {
+  const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
+  const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
+  assert.match(workerSrc, /f\.axis === 'Z' \? \[0, 0, 1\]/)
+  assert.match(workerSrc, /BUG-SO17-001/)
+  assert.match(workerSrc, /latheClipCoord/)
+  assert.match(storeSrc, /axStr === 'Z' \? 'Z'/)
+})
+
+/**
+ * Exact QA SO04 B / BUG-SO17-001 (v1.7 after PR#26 still FAIL):
+ *  1. XY rectangle 190×90 mm; extrude 12 mm (base plate from origin)
+ *  2. XZ rectangle 85×40 mm overlapping the plate
+ *  3. Revolve about Z, (0,0,0), 360°, operation Intersect
+ * Preview showed a disk through the plate; Confirm must commit with non-empty volume.
+ *
+ * Captured runtime errors before this fix:
+ *  - OCCT 9231448 / 10057368 when the 85×40 profile straddles Z (MakeRevol throw)
+ *    → generic 重建失败 toast via mesh.failed
+ *  - "旋转相交区域为空" when plane defaulted to XY and SO16 remapped XY·Z, flipping V into −Z
+ */
+const qaPlate = {
+  id: 'plate',
+  type: 'extrude',
+  profile: { kind: 'rect', a: [0, 0], b: [190, -90] },
+  height: 12,
+  operation: 'new',
+  plane: 'XY',
+}
+
+test('BUG-SO17-001 QA: XY 190×90×12 ∩ XZ 85×40 about Z 360° Intersect commits with volume', async () => {
+  // Overlapping Front-XZ silhouette of the origin plate: X 0..85, Z 0..40 (edge on +Z axis is legal).
+  const r = await rebuildVolume([
+    qaPlate,
+    {
+      id: 'revZ',
+      type: 'revolve',
+      profile: { kind: 'rect', a: [0, 0], b: [85, 40] },
+      angle: 360,
+      axis: 'Y',
+      axisV: [0, 0, 1],
+      axisOrigin: [0, 0, 0],
+      op: 'intersect',
+      plane: 'XZ',
+      baseZ: 0,
+    },
+  ])
+  assert.deepEqual(r.failed, [], `failed: ${JSON.stringify(r.failed)}`)
+  assert.equal(r.valid, true)
+  assert.ok((r.mesh.triangles?.length ?? 0) > 0, 'empty mesh')
+  assert.ok(r.volume > 1e3, `expected non-empty intersect volume, got ${r.volume}`)
+})
+
+test('BUG-SO17-001 QA: 85×40 overlapping profile that straddles Z still commits (OCCT cross-axis)', async () => {
+  // 85 wide, overlapping the plate about X=0 — the drawing that made preview a disk and
+  // confirm throw 9231448/10057368 (profile crosses the revolve axis).
+  const r = await rebuildVolume([
+    qaPlate,
+    {
+      id: 'revZ',
+      type: 'revolve',
+      profile: { kind: 'rect', a: [-20, 0], b: [65, 40] },
+      angle: 360,
+      axis: 'Z',
+      axisV: [0, 0, 1],
+      axisOrigin: [0, 0, 0],
+      op: 'intersect',
+      plane: 'XZ',
+      baseZ: 0,
+    },
+  ])
+  assert.deepEqual(r.failed, [], `failed: ${JSON.stringify(r.failed)}`)
+  assert.equal(r.valid, true)
+  assert.ok(r.volume > 1e3, `expected non-empty intersect volume, got ${r.volume}`)
+})
+
+test('BUG-SO17-001: axis string Z without axisV does not Y-remap an XZ profile', async () => {
+  const r = await rebuildVolume([
+    qaPlate,
+    {
+      id: 'revZ',
+      type: 'revolve',
+      profile: { kind: 'rect', a: [10, 0], b: [95, 40] },
+      angle: 360,
+      axis: 'Z',
+      op: 'intersect',
+      plane: 'XZ',
+      baseZ: 0,
+    },
+  ])
+  assert.deepEqual(r.failed, [], `failed: ${JSON.stringify(r.failed)}`)
+  assert.ok(r.volume > 1e3, `vol ${r.volume}`)
+  assert.ok(!(r.warnings ?? []).some((w) => /车削平面 XY/.test(w)), `must not remap XZ·Z to XY, got ${JSON.stringify(r.warnings)}`)
+})
+
+test('BUG-SO17-001: missing plane + axisV Z still intersects (V-flip remap retry)', async () => {
+  // UI dropped plane → XY default; SO16 remaps XY·Z to XZ and flips V into −Z, missing the
+  // plate at Z=0..12. Preview (bundle plane XZ) still drew a +Z disk. Retry the mirrored half.
+  const r = await rebuildVolume([
+    qaPlate,
+    {
+      id: 'revZ',
+      type: 'revolve',
+      profile: { kind: 'rect', a: [10, 0], b: [95, 40] },
+      angle: 360,
+      axis: 'Y',
+      axisV: [0, 0, 1],
+      axisOrigin: [0, 0, 0],
+      op: 'intersect',
+    },
+  ])
+  assert.deepEqual(r.failed, [], `failed: ${JSON.stringify(r.failed)}`)
+  assert.ok(r.volume > 1e3, `vol ${r.volume}`)
+})

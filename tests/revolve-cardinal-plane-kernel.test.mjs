@@ -52,9 +52,9 @@ test('timeline Revolve persists its cardinal plane instead of flattening to XY',
   // that carries axial extent (preview + confirm). Still not a silent flatten-to-XY of all revolves.
   assert.match(worker, /const authoredPlane = \(f\.plane \?\? 'XY'\)/)
   assert.match(worker, /revolveLathePlane\(authoredPlane, rax\)/)
-  assert.match(worker, /profileToSketch\(prof, remapped \? 0 : \(f\.baseZ \?\? 0\), lathePlane\)/)
+  assert.match(worker, /profileToSketch\(pv, remapped \? 0 : \(f\.baseZ \?\? 0\), lathePlane\)/)
   assert.match(worker, /arbPlane\?: \{ o: \[number, number, number\]; xd: \[number, number, number\]; n: \[number, number, number\] \}/)
-  assert.match(worker, /profileOnPlane\(f\.profile, new RPlane\(f\.arbPlane\.o as any, f\.arbPlane\.xd as any, f\.arbPlane\.n as any\)\)/)
+  assert.match(worker, /profileOnPlane\(pv, new RPlane\(f\.arbPlane\.o as any, f\.arbPlane\.xd as any, f\.arbPlane\.n as any\)\)/)
   assert.match(store, /skBundle \? \{ plane: skBundle\.plane, baseZ: skBundle\.baseZ \} : \{\}/)
   assert.match(store, /skBundle\?\.arb \? \{ arbPlane: skBundle\.arb \} : \{\}/)
   assert.match(store, /st0\.sketchArb \? \{ arb: JSON\.parse\(JSON\.stringify\(st0\.sketchArb\)\) as ArbBasis \} : \{\}/)

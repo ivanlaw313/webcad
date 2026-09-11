@@ -1332,10 +1332,11 @@ function revolveOuterLoop(featDlg: { payload?: unknown; editId?: string }, featu
   return l.length >= 3 ? l : null
 }
 
-function revolvePreviewContext(dlg: {payload?: unknown; editId?: string}, features: {id:string}[]) {
+function revolvePreviewContext(dlg: {payload?: unknown; editId?: string}, features: {id:string}[], axisDir?: [number, number, number]) {
   const bundle=(dlg.payload as {bundle?: RevolveFrameSource} | undefined)?.bundle
   const source:RevolveFrameSource=bundle ?? (features.find(f=>f.id===dlg.editId) as RevolveFrameSource | undefined) ?? {}
-  return { origin:revolveFrame(source).o, toCad:(p:Pt)=>revolvePointToCad(p,source,!!bundle) }
+  // BUG-SO16-001: pass axis so XZ·Y (etc.) remaps to a lathe plane with axial extent — preview must match confirm.
+  return { origin:revolveFrame(source, axisDir).o, toCad:(p:Pt)=>revolvePointToCad(p,source,!!bundle, axisDir) }
 }
 
 export function RevolvePreview() {
@@ -1357,10 +1358,13 @@ export function RevolvePreview() {
     let ang = Math.abs(+p.angle || 360); if (!(ang > 0)) ang = 360; ang = Math.min(360, ang)
     const sym = !!p.sym && ang > 0 && ang < 360
     // 轴方向/轴点（CAD）：共用 resolveRevolveAxis（同 RevolveAngleHandle）。
-    const frame = revolvePreviewContext(featDlg, features)
-    const axis = resolveRevolveAxis(p, caxes as unknown as _CAxLike[], frame.origin)
+    // Resolve axis against authored origin first, then rebuild the lathe frame with that axis
+    // so XZ·Y remaps before toCad (BUG-SO16-001 preview/confirm parity).
+    const authored = revolvePreviewContext(featDlg, features)
+    const axis = resolveRevolveAxis(p, caxes as unknown as _CAxLike[], authored.origin)
     if (!axis) return null
     const { axO, d } = axis
+    const frame = revolvePreviewContext(featDlg, features, d)
     const positions: number[] = [], indices: number[] = []
     const flipSense = (op === 'cut' || op === 'intersect') && !sym && ang < 359.9
     for (const loop of loops2D) latheLoop(loop, axO, d, ang, sym, positions, indices, frame.toCad, flipSense)
@@ -1455,10 +1459,11 @@ export function RevolveAngleHandle() {
   const data = useMemo(() => {
     if (!featDlg || featDlg.kind !== 'revolve') return null
     const p = featDlg.params as Record<string, number | string>
-    const frame = revolvePreviewContext(featDlg, features)
-    const axis = resolveRevolveAxis(p, caxes as unknown as _CAxLike[], frame.origin); if (!axis) return null
-    const outer = revolveOuterLoop(featDlg as { payload?: unknown; editId?: string }, features as { id: string; type?: string; profile?: unknown }[]); if (!outer) return null
+    const authored = revolvePreviewContext(featDlg, features)
+    const axis = resolveRevolveAxis(p, caxes as unknown as _CAxLike[], authored.origin); if (!axis) return null
     const { axO, d } = axis
+    const frame = revolvePreviewContext(featDlg, features, d)
+    const outer = revolveOuterLoop(featDlg as { payload?: unknown; editId?: string }, features as { id: string; type?: string; profile?: unknown }[]); if (!outer) return null
     let ang = Math.abs(+p.angle || 360); if (!(ang > 0)) ang = 360; ang = Math.min(360, ang)
     const total = (ang * Math.PI) / 180, sym = !!p.sym && ang > 0 && ang < 360
     const op = String(p.op || 'new')

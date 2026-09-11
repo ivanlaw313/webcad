@@ -166,3 +166,40 @@ test('base plate + offset revolve intersect 360° volume matches common acceptan
   assert.equal(r.valid, true)
   assert.ok(Math.abs(r.volume - FULL_INTERSECT) < 1e-3, `vol ${r.volume}`)
 })
+
+test('BUG-SO16-001: plate + XZ-front profile ∩ Y-axis remaps to lathe plane (confirm matches preview volume)', async () => {
+  // Front (XZ) V→Z; about Y → planar sheet without remap. Preview remaps XZ→XY so the ghost
+  // has axial (Y) thickness and overlaps the plate; confirm must do the same.
+  const r = await rebuildVolume([
+    plate,
+    { id: 'revXZ', type: 'revolve', profile, angle: 360, axis: 'Y', op: 'intersect', plane: 'XZ' },
+  ])
+  assert.deepEqual(r.failed, [], `failed: ${JSON.stringify(r.failed)}`)
+  assert.equal(r.valid, true)
+  assert.ok((r.mesh.triangles?.length ?? 0) > 0)
+  assert.ok(Math.abs(r.volume - FULL_INTERSECT) < 1e-2, `vol ${r.volume}, expected ~${FULL_INTERSECT}`)
+  assert.ok(r.warnings.some((w) => /车削平面|重解释/.test(w)), `expected remap warning, got ${JSON.stringify(r.warnings)}`)
+})
+
+test('BUG-SO16-001: plate + XZ ∩ Y 180° partial-angle still matches preview −ang sense', async () => {
+  const r = await rebuildVolume([
+    plate,
+    { id: 'revXZ', type: 'revolve', profile, angle: 180, axis: 'Y', op: 'intersect', plane: 'XZ' },
+  ])
+  assert.deepEqual(r.failed, [], `failed: ${JSON.stringify(r.failed)}`)
+  assert.equal(r.valid, true)
+  assert.ok(Math.abs(r.volume - FULL_INTERSECT) < 1e-1, `vol ${r.volume}`)
+})
+
+test('BUG-SO16-001 source: worker + preview share revolveLathePlane / remap', () => {
+  const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
+  const frame = readFileSync(new URL('../src/cad/revolvePreviewFrame.ts', import.meta.url), 'utf8')
+  const preview = readFileSync(new URL('../src/components/SketchLayer.tsx', import.meta.url), 'utf8')
+  assert.match(frame, /export function revolveLathePlane/)
+  assert.match(frame, /export function revolveRemapProfile/)
+  assert.match(frame, /p === 'XZ' \? 'XY'/)
+  assert.match(workerSrc, /revolveLathePlane\(authoredPlane, rax\)/)
+  assert.match(workerSrc, /revolveRemapProfile\(f\.profile/)
+  assert.match(workerSrc, /BUG-SO16-001/)
+  assert.match(preview, /revolvePreviewContext\(featDlg, features, d\)/)
+})

@@ -48,7 +48,11 @@ test('timeline Revolve persists its cardinal plane instead of flattening to XY',
   const worker = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
   const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
   assert.match(worker, /type: 'revolve';[\s\S]*?plane\?: Plane; baseZ\?: number/)
-  assert.match(worker, /profileToSketch\(f\.profile, f\.baseZ \?\? 0, f\.plane \?\? 'XY'\)/)
+  // Persist authored plane; BUG-SO16-001 may remap XZ·Y / YZ·X / XY·Z onto a lathe plane
+  // that carries axial extent (preview + confirm). Still not a silent flatten-to-XY of all revolves.
+  assert.match(worker, /const authoredPlane = \(f\.plane \?\? 'XY'\)/)
+  assert.match(worker, /revolveLathePlane\(authoredPlane, rax\)/)
+  assert.match(worker, /profileToSketch\(prof, remapped \? 0 : \(f\.baseZ \?\? 0\), lathePlane\)/)
   assert.match(worker, /arbPlane\?: \{ o: \[number, number, number\]; xd: \[number, number, number\]; n: \[number, number, number\] \}/)
   assert.match(worker, /profileOnPlane\(f\.profile, new RPlane\(f\.arbPlane\.o as any, f\.arbPlane\.xd as any, f\.arbPlane\.n as any\)\)/)
   assert.match(store, /skBundle \? \{ plane: skBundle\.plane, baseZ: skBundle\.baseZ \} : \{\}/)

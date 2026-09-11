@@ -3838,6 +3838,27 @@ function openPathPts(verts: Pt[], bulges: number[]): Pt[] {
 function openVertsPoly(verts: Pt[], bulges: number[]): SketchShape {
   return { type: 'poly', pts: openPathPts(verts, bulges), verts, bulges, open: true }
 }
+// SO05 / BUG-SO12-005：扫掠路径判定 — 显式 open，或【两点线段】（含误点回起点形成嘅退化 digon）。
+// 两点 poly 几何上永远系开放路径（唔能围面）；唔好只认 open:true，否则已存直线被拒。
+function sweepPathPointCount(sh: SketchShape): number {
+  if (sh.type !== 'poly') return 0
+  if (sh.verts && sh.verts.length >= 2) return sh.verts.length
+  return sh.pts?.length ?? 0
+}
+function asSweepPathShape(sh: SketchShape | null | undefined): SketchShape | null {
+  if (!sh || sh.type !== 'poly' || sh.construction || sh.centerline) return null
+  const n = sweepPathPointCount(sh)
+  if (n < 2) return null
+  if (sh.open) return sh
+  // 两点线段（含无 open 旗标嘅退化闭合 digon）→ 当开放路径；≥3 无 open = 真闭合轮廓，拒绝
+  if (n !== 2) return null
+  if (sh.smooth || sh.arc || sh.ell || sh.earc || sh.conic) return null
+  const verts = (sh.verts ?? sh.pts).map((p) => [p[0], p[1]] as Pt)
+  const bulges = sh.bulges ? sh.bulges.slice(0, 1) : [0]
+  while (bulges.length < 1) bulges.push(0)
+  return openVertsPoly(verts, bulges)
+}
+
 // T760：shape → TrimPath（修剪/延伸用统一路径表示）；样条/椭圆/草图点诚实拒绝
 // 草图偏移 helper：把一个 SketchShape 平行偏移 d（正=外扩/负=内缩），支持 圆/矩形/折线。失败返 null（自交/塌陷/不支持）。
 function offsetSketchShape(sh: SketchShape, d: number): SketchShape | null {
@@ -7012,16 +7033,24 @@ export const useApp = create<AppState>((rawSet, get) => {
   sweepDia: 12,
   openSweepDlg: () => set((s) => {
     let draft:Partial<AppState>={}
-    let hasPath=!!(s.sketchShape?.type==='poly'&&s.sketchShape.open&&s.sketchShape.pts.length>=2)||s.polyPts.length>=2
+    const livePath=asSweepPathShape(s.sketchShape)
+    let hasPath=!!livePath||s.polyPts.length>=2
+    if(livePath&&livePath!==s.sketchShape)draft={sketchShape:livePath}
     if(!hasPath&&s.mode==='model'){
-      const candidates=Object.entries(s.sketchSources).filter(([id,source])=>s.features.some(f=>f.type==='sketch'&&f.sketchId===id)&&source.shapes.length===1&&source.shapes[0].type==='poly'&&source.shapes[0].open&&!source.shapes[0].construction&&source.shapes[0].pts.length>=2)
-      const selected=candidates.find(([id])=>id===s.selSketch),pick=selected??(candidates.length===1?candidates[0]:undefined)
+      // SO05 / BUG-SO12-005：独立草图里揾可扫掠路径（显式 open 或两点线段）；唔要求整张草图只有 1 个轮廓
+      const candidates: {id:string;source:AppState['sketchSources'][string];path:SketchShape}[]=[]
+      for(const [id,source] of Object.entries(s.sketchSources)){
+        if(!s.features.some(f=>f.type==='sketch'&&f.sketchId===id))continue
+        const path=source.shapes.map(asSweepPathShape).find((p):p is SketchShape=>!!p)
+        if(path)candidates.push({id,source,path})
+      }
+      const selected=candidates.find(c=>c.id===s.selSketch),pick=selected??(candidates.length===1?candidates[0]:undefined)
       if(!pick&&candidates.length>1)return {status:'有多條已儲存路徑；請先在瀏覽器選取要掃掠的路徑草圖'}
       if(pick){
-        const [,source]=pick
+        const {source,path}=pick
         if(source.arb||source.plane!=='XY'||Math.abs(source.baseZ)>1e-8)return {status:'已選路徑不在 XY 原點平面；目前儲存路徑掃掠需先選 XY@0 路徑'}
         if(source.patternData)return {status:'關聯陣列路徑須先分離關聯，再選作掃掠路徑'}
-        draft={sketchShape:structuredClone(source.shapes[0]),sketchProfiles:[],skCons:structuredClone(source.cons),skPatternData:null,sketchPlane:source.plane,sketchBaseZ:source.baseZ,sketchArb:null,polyPts:[]}
+        draft={sketchShape:structuredClone(path),sketchProfiles:[],skCons:structuredClone(source.cons),skPatternData:null,sketchPlane:source.plane,sketchBaseZ:source.baseZ,sketchArb:null,polyPts:[]}
         hasPath=true
       }
     }
@@ -9349,6 +9378,12 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (pts.length >= 2) {
         const f = pts[0]
         if (Math.hypot(pt[0] - f[0], pt[1] - f[1]) < 4) {
+          // SO05：两点折线点回起点唔好做成退化闭合 digon（无面积又无 open 旗标 → 扫掠拒收）。当开放路径收笔。
+          if (pts.length < 3 && !isSpline) {
+            const bulges = s.polyBulges.slice(0, Math.max(0, pts.length - 1))
+            while (bulges.length < pts.length - 1) bulges.push(0)
+            return { sketchShape: openVertsPoly(pts.map((p) => [p[0], p[1]] as Pt), bulges), polyPts: [], polyBulges: [], polyArcMode: false, status: `已完成开放折线（${pts.length - 1} 段）— 可做扫掠路径 / 「完成草图」` }
+          }
           const smooth = isSpline && pts.length >= 3
           // T777：相切弧 — 任一段有 bulge → 走 vertsPoly（真圆弧边）；闭合段如果 arcMode 开住就照切线算
           const bulges = s.polyBulges.slice(0, Math.max(0, pts.length - 1))
@@ -17896,8 +17931,11 @@ export const useApp = create<AppState>((rawSet, get) => {
   clearSweepGuide: () => set({ sweepGuide: null, status: '已清除扫掠导轨' }),
   addSweep: async () => {
     // No "create from nothing": sweep requires a user-drawn path (use commitSweepPath).
-    const sh = get().sketchShape
-    if ((sh && sh.type === 'poly') || get().polyPts.length >= 2) return void get().commitSweepPath()
+    const sh = asSweepPathShape(get().sketchShape)
+    if (sh || get().polyPts.length >= 2) {
+      if (sh && sh !== get().sketchShape) set({ sketchShape: sh })
+      return void get().commitSweepPath()
+    }
     set({ status: '扫掠需要一条路径：用「折线/样条」画开放路径（≥2 点）再扫掠' })
   },
   // Sweep a round tube along the user's drawn (open) polyline/spline path on the ground.
@@ -17985,8 +18023,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     // A spline path → smooth swept tube. Use the spline's CONTROL points + smoothPath so the kernel fits a
     // flowing B-spline spine (not the dense tessellation, which would over-constrain the spline fit).
-    const isSpline = !!(sk && sk.type === 'poly' && sk.smooth)
-    const src = sk && sk.type === 'poly' ? (isSpline && sk.ctrl ? sk.ctrl : sk.pts) : s.polyPts
+    const pathShape = asSweepPathShape(sk) ?? (sk && sk.type === 'poly' && sk.open ? sk : null)
+    const isSpline = !!(pathShape && pathShape.type === 'poly' && pathShape.smooth)
+    const src = pathShape && pathShape.type === 'poly' ? (isSpline && pathShape.ctrl ? pathShape.ctrl : (pathShape.verts ?? pathShape.pts)) : s.polyPts
     if (!src || src.length < 2) { set({ status: '先用「折线」画一条路径（≥2 点，可不闭合），再点「沿路径扫掠」' }); return }
     const path = src.map((p) => stToProfile(p, 'XY'))
     const op: BoolOp = (s.sketchOp === 'cut' || s.sketchOp === 'intersect' || s.sketchOp === 'newbody') && hasSolid(s.features) ? s.sketchOp : 'new'   // P2：sweep 补 ∩相交 + New Body
@@ -18004,7 +18043,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const guideSt = s.sweepGuide && s.sweepGuide.length >= 2 ? (JSON.parse(JSON.stringify(s.sweepGuide)) as Pt[]) : undefined
     const skBundle = {
       patternData: clonePatternData(s.skPatternData) ?? undefined,
-      shapes: JSON.parse(JSON.stringify([...s.sketchProfiles, ...(sk ? [sk] : [])])) as SketchShape[],
+      shapes: JSON.parse(JSON.stringify([...s.sketchProfiles, ...((pathShape ?? sk) ? [pathShape ?? sk!] : [])])) as SketchShape[],
       cons: JSON.parse(JSON.stringify(s.skCons)) as SkCon[],
       sweepPath: JSON.parse(JSON.stringify(src)) as Pt[],
       baseZ: s.sketchBaseZ || 0,

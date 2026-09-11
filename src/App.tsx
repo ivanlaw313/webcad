@@ -96,6 +96,8 @@ export default function App() {
         else if (ck === 'f' && e.shiftKey) { e.preventDefault(); try { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen() } catch { /* 不支持 */ } }
         return
       }
+      // BUG-BD-1804：Alt+O = 插入 STL（绕过可能挂起的原生菜单路径）
+      if (e.altKey && e.key.toLowerCase() === 'o') { e.preventDefault(); useApp.getState().openStlDialog(); return }
       if (e.altKey) return
       const s = useApp.getState()
       if (s.uiDialog) return
@@ -230,6 +232,7 @@ export default function App() {
       // 按优先级逐个兜底；无开启嘅面板时跌落去下面 switch 的 escape（清选择 / 退草图）。
       if (e.key === 'Escape') {
         if (s.propsDialog) { e.preventDefault(); s.closePropertiesDialog(); return }                    // UI02：物理属性浮层是独立 Esc 层
+        if (s.bomDialog) { e.preventDefault(); s.closeBomDialog(); return }
         if (s.skTextDlg) { e.preventDefault(); s.cancelSkTextDlg(); return }                             // GM-FP4 #52：草图文字对话框
         if (s.vpDlg) { e.preventDefault(); s.setVpDlg(null); return }                                   // 工程计算 / 爆炸视图
         if (s.feaMode > 0 || s.feaBusy || s.feaResult) { e.preventDefault(); s.clearFea(); return }      // FEA 受力云图面板

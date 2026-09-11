@@ -99,7 +99,7 @@ const SOLID: Panel[] = [
       { id: 'params', label: '更改参数', icon: 'param', sep: true, tip: 'Fusion Change Parameters：打开用户参数及表达式面板。' },
       { id: 'computeall', label: '全部计算', icon: 'param', shortcut: 'Ctrl+B', tip: 'Fusion Compute All：由时间轴起点重新计算全部特征。' },
       { id: 'computeunresolved', label: '计算未解析', icon: 'param', tip: 'Fusion Compute Unresolved：只计算与未解析外部组件有关的特征。' },
-      { id: 'convert', label: '转换', icon: 'component', sep: true, tip: 'Fusion Convert：在 BRep、T-Spline 与四边形网格之间转换所选对象。' },
+      { id: 'convert', label: '转换', icon: 'component', sep: true, tip: 'Convert / MeshFit：网格组件 → 可编辑 B-rep（自动识别圆柱/棱柱；否则 faceted）。BRep↔T-Spline 仍在实现。亦可搜「meshfit」。' },
       { id: 'bom', label: 'BOM 表', icon: 'drawing', quick: true, sep: true, tip: 'Fusion Bill of Materials：打开此设计的材料清单；WebCAD 可按组件名称、数量、物理材质及质量导出 CSV。' },
     ],
   },
@@ -245,7 +245,7 @@ const LAB: Panel[] = [
   {
     name: '制造 CAM',
     tools: [
-      { id: 'finish3d', label: '3D加工', icon: 'cam', quick: true, tip: '3D 加工刀路：对活动实体生成数控铣刀路 —— 精加工（球头刀逐行扫,防过切）/ 粗加工（平头刀逐层挖槽清料、留余量）。对话框可切策略、可预览刀路。曲面/有机件最显效；属趋势级,非商用 CAM 精度（唔做刀杆碰撞检查）。' },
+      { id: 'finish3d', label: '3D加工', icon: 'cam', quick: true, tip: '3D 加工刀路（需活动实体 / MeshFit 后的 B-rep）：精加工球头平行 / 粗加工逐层挖槽。仅趋势级预览与 G-code 导出——非完整制造工作区、无刀库/夹具/真机。纯网格组件请先转 B-rep。' },
     ],
   },
   {
@@ -389,9 +389,13 @@ const MESH: Panel[] = [
     { id: 'cylinder', label: '圆柱', icon: 'cylinder', quick: true },
     { id: 'sphere', label: '球', icon: 'sphere', quick: true },
   ] },
+  { name: 'MODIFY', tools: [
+    { id: 'meshfit', label: 'MeshFit / 转 B-rep', icon: 'component', quick: true, tip: 'MeshFit：把所选（或唯一／最近导入）网格组件缝合为可编辑 B-rep 实体（平面/圆柱可参数化；其余 faceted）。完成后可圆角/抽壳/布尔/导出 STEP。有机扫描件可能仅 faceted。' },
+    { id: 'convert', label: '转换', icon: 'component', tip: 'Fusion Convert：网格→B-rep（同 MeshFit）。BRep↔T-Spline 仍在实现。' },
+  ] },
   g('CONFIGURE'), g('CONSTRUCT'), g('INSPECT'),
   { name: 'INSERT', tools: [
-    { id: 'insertmesh', label: '插入STL网格', icon: 'importmesh', quick: true },
+    { id: 'insertmesh', label: '插入STL网格', icon: 'importmesh', quick: true, tip: '插入 STL 网格（Alt+O 快捷）。导入后可用 MeshFit / 转 B-rep。' },
     { id: 'insert3mf', label: '插入3MF网格', icon: 'importmesh', quick: true, tip: 'MakerWorld / Printables 下载嘅 3MF 直接导入做组件——多零件保留摆位同颜色，单位自动转 mm。' },
     { id: 'insertobj', label: '插入OBJ网格', icon: 'importmesh', quick: true, tip: 'Wavefront OBJ 网格导入（Blender / 扫描 / 网上模型常用）作参考组件。' },
   ] },
@@ -481,8 +485,13 @@ export const FORM_PANELS: Panel[] = [
   ] },
   { name: 'MODIFY', tools: [
     { id: 'formedit', label: 'Edit Form', icon: 'move', quick: true },
+    { id: 'formsubdiv', label: 'Subdivide', icon: 'param', quick: true, tip: 'Subdivide：提高控制笼细分级（1–3）。预览即时圆滑；FINISH FORM 时烘焙。' },
     { id: 'formloop', label: 'Insert Edge', icon: 'offset', quick: true },
-    { id: 'formcrease', label: 'Crease', icon: 'chamfer' },
+    { id: 'formcrease', label: 'Crease', icon: 'chamfer', tip: 'Crease：折硬所选 cage 面四边（细分时棱角企硬）。再执行可取消。' },
+    { id: 'formbridge', label: 'Bridge', icon: 'loft', tip: 'Bridge（FORM T-spline 桥接）：尚未支援 — 请用 SOLID/SURFACE「桥接面」对实体棱。' },
+    { id: 'formweld', label: 'Weld', icon: 'combine', tip: 'Weld（FORM 顶点焊接）：尚未支援。' },
+    { id: 'formfillhole', label: 'Fill Hole', icon: 'loft', tip: 'Fill Hole（FORM 补洞）：尚未支援。' },
+    { id: 'formerasefill', label: 'Erase & Fill', icon: 'delface', tip: 'Erase & Fill：尚未支援。' },
   ] },
   { name: 'SYMMETRY', tools: [
     { id: 'formsymmetry', label: 'Symmetry', icon: 'mirror', quick: true },

@@ -76,6 +76,7 @@ import { nearestCtrlSegment, insertFitPoint, deleteFitPoint } from './sketch/spl
 import { sampleConic, conicShoulderCurvature } from './cad/conic2d'   // S177：有理二次圆锥曲线（Fusion Conic，3 点 + rho）；S193：肩点曲率半径
 import { projectFillRaster, turbo, encodeGif, buildImagePdf, machineTonnage } from './io/moldExport'   // 模流导出：GIF 充填动画 + PDF 报告（纯函数，Node 测过）
 import { GATE_TYPES, type GateType } from './analysis/gateTypes'   // 浇口类型谱（轻模块，唔拖求解器入主 bundle）
+import { feaPhysicsOptChanged, hasLiveSimResults, invalidateSimResultsPatch } from './simulation/resultValidity'
 import { saveSnapshot, listSnapshots, loadSnapshot } from './io/versionStore'
 import { profilesToGcode, gcodeStats, type Profile2D } from './io/laserGcode'
 import { shapesToDxfEntities } from './io/dxfExport'
@@ -2742,7 +2743,10 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   feaDeform: { show: boolean; anim: boolean; scale: number; real: boolean; mag: number }   // S168：变形形态 — show=显示 / anim=动画 / scale=微调倍率 / real=实尺1:1（amp=scale，真实 mm，柱弯 24mm 就显示 24mm）/ mag=放大模式固定增益（real=false 时 amp=mag×scale；mag 撳「放大」时锁定、唔随 dispMax 变 → 换力比例永远准）
   feaProbeOn: boolean                 // S170：结果探针模式 — 开时云图体素可拣（点一个体素读其精确场值）；默认关（避免大体素网 raycast 开销）
   feaProbe: number | null             // S170：被探针拣中嘅体素 index（读 vm/disp/sf/s1/s3/sed + 位置），null=未拣
+  feaStale: boolean                   // SIM：约束/几何改后旧结果已失效（彩图已清，面板标「失效」）
   toggleFea: () => void
+  clearFeaFixed: () => void           // SIM：移除固定端 → 旧结果标失效
+  clearFeaLoad: () => void            // SIM：移除受力面 → 旧结果标失效
   feaPickAt: (threePt: [number, number, number], faceNormal: [number, number, number], faceTris?: number[]) => void  // S133：可选 faceTris（faceGroupTris 输出 = CAD 系 flat xyz，同 bodyMesh.vertices 同 frame；原样存）
   startFeaPinPick: () => void                                                                          // S116：拾销孔模式
   applyFeaPinPick: (det: { p: [number, number, number]; axis: [number, number, number]; r: number } | null) => void  // S116：圆柱面 → 销约束
@@ -19978,7 +19982,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       measureMode:false,measureEdgeMode:false,measureFaceMode:false,measureAngleMode:false,measureUniMode:false,
       measurePts:[],measureDist:null,measureEdgeInfo:null,measureFaceInfo:null,measureAngleInfo:null,
       measureUniPicks:[],measureUniResult:null,lastMeasure:null})
-    set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
+    set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
     set({ ...hydrateSketchDraft(null), ...hydrateFormDraft(null) })
     // record=false so "New" is a clean fresh start — undo must NOT resurrect the old document (Fusion-style new doc).
     await get().applyFeatures([], '新建 — 已清空（空白文档）', false)
@@ -20611,6 +20615,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   feaProbe: null,
   feaBusy: false,
   feaResult: null,
+  feaStale: false,
   toggleFea: () => set((s) => {
     if (s.feaBusy) return { status: 'FEA 计算紧 — 等佢完成' }
     // S171 audit（LOW）：退出要清晒拾取模式 — feaBearingPick 嘅 Viewport click 路由【冇】gate feaMode，残留会喺退出后点圆柱面静静起轴承载荷。一并清 feaPin/feaPinPick 对称。
@@ -20632,23 +20637,40 @@ export const useApp = create<AppState>((rawSet, get) => {
     //   故此处唔再做坐标转换，原样收落（同 buildFeaSolveInput 嘅 mesh.vertices 同 frame，节点先对得上）。
     //   缺省（imported mesh 无 faceGroup → faceTris undefined）→ 留空 → 求解器回退无限平面 band。
     const cadTris: number[] | undefined = (faceTris && faceTris.length >= 9) ? faceTris : undefined
-    if (s.feaMode === 1) return { feaFixed: { point: cadP, normal: cadN, faceTris: cadTris }, feaMode: 2 as const, status: '受力云图 ②：点【受力面】（力作用嘅面）' }
-    return { feaLoad: { point: cadP, normal: cadN, faceTris: cadTris }, status: '已选受力面 — 设力/方向/材料/分辨率 → 按「运行」（重点受力面可改选）' }
+    const stale = hasLiveSimResults(s) ? invalidateSimResultsPatch(s.feaMode === 1 ? '固定面已改' : '受力面已改') : null
+    if (s.feaMode === 1) return { ...(stale ?? {}), feaFixed: { point: cadP, normal: cadN, faceTris: cadTris }, feaMode: 2 as const, status: stale ? stale.status : '受力云图 ②：点【受力面】（力作用嘅面）' }
+    return { ...(stale ?? {}), feaLoad: { point: cadP, normal: cadN, faceTris: cadTris }, status: stale ? stale.status : '已选受力面 — 设力/方向/材料/分辨率 → 按「运行」（重点受力面可改选）' }
   }),
   // S116：拾销/圆柱约束孔。复用 detectFace（同 cpatAxisPick 一样喺活动实体 CAD 系，唔乘 matrixWorld）。
   // 点圆柱面（孔内壁/圆轴侧面）→ {p=轴点, axis=轴向, r=半径} → PinConstraint。径向 DOF 锁、轴向+切向自由。
   startFeaPinPick: () => set({ feaPinPick: true, cpatAxisPick: false, holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, status: '🎯 点一个【圆柱孔面】（孔内壁/圆轴侧面）→ 销/圆柱约束：径向锁、轴向+切向自由（销轴/螺栓支承）' }),
-  applyFeaPinPick: (det) => set(() => {
+  applyFeaPinPick: (det) => set((s) => {
     if (!det) return { feaPinPick: false, status: '要点【圆柱面】先有销轴 — 平面冇轴/半径（揾孔内壁/圆轴/圆凸台侧面点）' }
-    return { feaPinPick: false, feaPin: { axisPoint: det.p, axisDir: det.axis, radius: det.r }, status: `已拾销约束孔 Ø${(det.r * 2).toFixed(1)}（轴向自由、径向锁）— 运行 FEA 即生效` }
+    const stale = hasLiveSimResults(s) ? invalidateSimResultsPatch('销约束已改') : null
+    return { ...(stale ?? {}), feaPinPick: false, feaPin: { axisPoint: det.p, axisDir: det.axis, radius: det.r }, status: stale ? stale.status : `已拾销约束孔 Ø${(det.r * 2).toFixed(1)}（轴向自由、径向锁）— 运行 FEA 即生效` }
   }),
   // S171：拾轴承载荷孔（同 pin 一样 detectFace 圆柱面 → 轴点/轴向/半径）；载荷大小/方向用 feaForceN + feaDir。
   startFeaBearingPick: () => set({ feaBearingPick: true, feaPinPick: false, cpatAxisPick: false, holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, status: '🎯 点一个【圆柱孔面】（孔内壁/圆轴侧面）→ 轴承载荷：合力沿载荷方向余弦分布喺孔受推半边（用「力」大小+方向；销/螺栓推孔）' }),
-  applyFeaBearingPick: (det) => set(() => {
+  applyFeaBearingPick: (det) => set((s) => {
     if (!det) return { feaBearingPick: false, status: '要点【圆柱面】先有孔 — 平面冇轴/半径（揾孔内壁/圆轴/圆凸台侧面点）' }
-    return { feaBearingPick: false, feaBearing: { axisPoint: det.p, axisDir: det.axis, radius: det.r }, feaLoadMode: 'bearing' as const, feaLoad: null, status: `已拾轴承载荷孔 Ø${(det.r * 2).toFixed(1)}（合力沿载荷方向余弦分布喺受推半边）— 设「力」大小/方向后运行 FEA` }
+    const stale = hasLiveSimResults(s) ? invalidateSimResultsPatch('轴承载荷已改') : null
+    return { ...(stale ?? {}), feaBearingPick: false, feaBearing: { axisPoint: det.p, axisDir: det.axis, radius: det.r }, feaLoadMode: 'bearing' as const, feaLoad: null, status: stale ? stale.status : `已拾轴承载荷孔 Ø${(det.r * 2).toFixed(1)}（合力沿载荷方向余弦分布喺受推半边）— 设「力」大小/方向后运行 FEA` }
   }),
-  setFeaOpt: (p) => set(p),
+  setFeaOpt: (p) => set((s) => {
+    // BUG-BD-010：Fixed→Roller 等物理/BC 选项改动后，旧彩图唔可以当新结果。显示场/探针/变形控件唔使失效。
+    if (feaPhysicsOptChanged(s, p) && hasLiveSimResults(s)) {
+      return { ...p, ...invalidateSimResultsPatch('約束／工況已改') }
+    }
+    return p
+  }),
+  clearFeaFixed: () => set((s) => ({
+    feaFixed: null, feaFixed2: null, feaMode: 1 as const,
+    ...(hasLiveSimResults(s) ? invalidateSimResultsPatch('已移除固定端') : {}),
+  })),
+  clearFeaLoad: () => set((s) => ({
+    feaLoad: null, feaMode: (s.feaFixed ? 2 : 1) as 0 | 1 | 2,
+    ...(hasLiveSimResults(s) ? invalidateSimResultsPatch('已移除受力面') : {}),
+  })),
   // ★ 智能悬臂自动设定（用户：唔好叫人点错,帮佢做 smart）：由活动实体包围盒,自动夹【最长轴一端】、受力【另一端】，
   //   受力方向取【垂直最长轴】(横杆→向下；竖杆→侧推) 做标准弯曲测试。一撳即设好①②，免用户揾细端面/撳错侧弧面致约束退化。
   autoFeaCantilever: () => {
@@ -20666,11 +20688,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     const fixedPt: [number, number, number] = ax === 0 ? [lo, cy, cz] : ax === 1 ? [cx, lo, cz] : [cx, cy, lo]
     const loadPt: [number, number, number] = ax === 0 ? [hi, cy, cz] : ax === 1 ? [cx, hi, cz] : [cx, cy, hi]
     const dirCustom: [number, number, number] = ax === 2 ? [1, 0, 0] : [0, 0, -1]   // 垂直最长轴：横杆向下、竖杆侧推
+    const stale = hasLiveSimResults(get()) ? invalidateSimResultsPatch('已改悬臂约束') : null
     set({
+      ...(stale ?? {}),
       feaFixed: { point: fixedPt, normal: nrm }, feaLoad: { point: loadPt, normal: nrm },
       feaFixed2: null, feaBeam3pt: false,
       feaLoadMode: 'force', feaDir: ax === 2 ? 'custom' : 'down', feaCustomDir: dirCustom,
-      status: `FEA 已自动设定 ✅（悬臂）：夹住一端、受力另一端（沿最长轴 ${['X', 'Y', 'Z'][ax]}，长 ${(hi - lo).toFixed(0)}mm）→ 设个合理嘅力 → 撳 run受力`,
+      status: stale ? stale.status : `FEA 已自动设定 ✅（悬臂）：夹住一端、受力另一端（沿最长轴 ${['X', 'Y', 'Z'][ax]}，长 ${(hi - lo).toFixed(0)}mm）→ 设个合理嘅力 → 撳 run受力`,
     })
   },
   // ★ 简支梁 / 3 点弯自动设定（用户想睇「中间断」）：两端做支撑（roller，只锁竖直）、中间施力 → 弯矩最大喺中间。
@@ -20692,12 +20716,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     //   支撑啱啱喺自由端角 → 端角应力奇异（线接触 + 端角双重集中），内缩后端角≈0，跨中弯曲/挠度成为主角。
     const inset = (hi - lo) * 0.12
     const loS = lo + inset, hiS = hi - inset
+    const stale = hasLiveSimResults(get()) ? invalidateSimResultsPatch('已改简支梁约束') : null
     set({
+      ...(stale ?? {}),
       feaFixed: { point: ptAt(loS), normal: nrm }, feaFixed2: { point: ptAt(hiS), normal: nrm },   // 两端支撑（内缩）
       feaLoad: { point: ptAt((lo + hi) / 2), normal: nrm },                                        // 中间施力
       feaBeam3pt: true, feaLoadMode: 'force', feaDir: ax === 2 ? 'custom' : 'down', feaCustomDir: dirCustom,
       feaField: 'disp',   // ★ 默认用【位移】着色：梁中间凹最多 = 中间最红，最直觉、无支撑接触奇异；想睇应力随时切「应力」
-      status: `FEA 已自动设定 ✅（简支梁 / 3 点弯）：两端托住、中间施力（跨度 ${(hiS - loS).toFixed(0)}mm）→ 设个合理嘅力 → 撳 run受力。挠度同弯曲应力最大会喺【中间】（默认睇位移；切「应力」睇 von Mises）。`,
+      status: stale ? stale.status : `FEA 已自动设定 ✅（简支梁 / 3 点弯）：两端托住、中间施力（跨度 ${(hiS - loS).toFixed(0)}mm）→ 设个合理嘅力 → 撳 run受力。挠度同弯曲应力最大会喺【中间】（默认睇位移；切「应力」睇 von Mises）。`,
     })
   },
   runFeaSolve: async () => {
@@ -20770,7 +20796,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         ? (tooTiny ? `实尺 1:1（变形仅 ${f2(r.dispMax)}mm·肉眼难见，撳「🔍放大睇清楚」放大睇形状，仍按真实比例）` : '实尺 1:1 变形动画')
         : `放大 ×${(autoDeform.mag * autoDeform.scale).toFixed(0)} 示意（按真实比例：力大变形大）`
       set({
-        feaBusy: false, feaMode: 0, feaProbe: null, feaDeform: autoDeform,
+        feaBusy: false, feaMode: 0, feaProbe: null, feaStale: false, feaDeform: autoDeform,
         feaResult: { h: r.h, nVox: r.nVox, centers: r.centers, vm: r.vm, vmMax: r.vmMax, vmMaxAt: r.vmMaxAt, vmMaxE: r.vmMaxE, dispMax: r.dispMax, disp: r.disp, dispVec: r.dispVec, converged: r.converged, residual: r.residual, warnings: r.warnings, sy: mech.sy, se: mech.se, su: mech.su, matName: s.feaMat, vmSmooth, vmSmoothMax, smoothSpan, reaction: r.reaction, reactionMag: r.reactionMag, s1: r.s1, s3: r.s3, shear: r.shear, s1Max: r.s1Max, s3Min: r.s3Min, shearMax: r.shearMax, sed: r.sed, sedMax: r.sedMax },
         status: `受力云图（${s.feaMat}·${loadNote || F.toFixed(0) + 'N'}·${r.nVox}体素）：最大 von Mises ≈ ${f2(r.vmMax)} MPa（红⚠位=最可能断）· 位移 ≈ ${f2(r.dispMax)}mm${deformNote ? `（${deformNote}）` : ''} · 屈服 ${mech.sy} → SF≈${sf === Infinity ? '∞' : f2(sf)} ${verdict}${r.converged ? '' : ` · ⚠未完全收敛(残差${r.residual.toExponential(1)})`}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 体素趋势着色（线弹性），睇边度红，数值非商用 FEA 级`,
       })
@@ -20778,7 +20804,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ feaBusy: false, status: `受力云图异常：${err instanceof Error ? err.message : String(err)}` })
     }
   },
-  clearFea: () => set({ feaMode: 0, feaFixed: null, feaFixed2: null, feaBeam3pt: false, feaLoad: null, feaResult: null, feaConvResult: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, status: '已清除受力云图' }),
+  clearFea: () => set({ feaMode: 0, feaFixed: null, feaFixed2: null, feaBeam3pt: false, feaLoad: null, feaResult: null, feaStale: false, feaConvResult: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, status: '已清除受力云图' }),
 
   // ── S101[6]：网格收敛研究（mesh convergence study）──────────────────────
   // 同模型同载荷跑 3 档递增体素分辨率，记 (nDof,vmMax,dispMax) → 看 vmMax 是否趋稳 + Richardson 外推。
@@ -21133,7 +21159,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const f2 = (x: number) => x >= 100 ? x.toFixed(0) : x >= 1 ? x.toFixed(1) : x.toFixed(3)
       const verdict = sf >= 2 ? '✅ 安全(SF≥2)' : sf >= 1 ? '⚠ 偏险(1≤SF<2)' : '❌ 可能屈服(SF<1)'
       set({
-        thermalStressBusy: false, feaMode: 0, feaField: 'vm', feaProbe: null,
+        thermalStressBusy: false, feaMode: 0, feaField: 'vm', feaProbe: null, feaStale: false,
         feaResult: { h: r.h, nVox: r.nVox, centers: r.centers, vm: r.vm, vmMax: r.vmMax, vmMaxAt: r.vmMaxAt, vmMaxE: r.vmMaxE, dispMax: r.dispMax, disp: r.disp, dispVec: r.dispVec, converged: r.converged, residual: r.residual, warnings: r.warnings, sy: mech.sy, se: mech.se, su: mech.su, matName: s.feaMat },
         status: `热应力FEM（${s.feaMat}·α=${mech.cte}µ/°C·热${s.thermalThot}/冷${s.thermalTcold}/参考${s.thermalTref}°C·${r.nVox}体素）：约束热膨胀 von Mises 最大 ≈ ${f2(r.vmMax)} MPa（红⚠=最危）· 热位移 ≈ ${f2(r.dispMax)}mm · 屈服 ${mech.sy} → SF≈${sf === Infinity ? '∞' : f2(sf)} ${verdict}${r.converged ? '' : ` · ⚠未完全收敛(残差${r.residual.toExponential(1)})`}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 双端夹持+温差，σ=D(Bu−αΔT) 线弹性体素趋势级，非商用 FEA`,
       })
@@ -21840,6 +21866,13 @@ useApp.subscribe((s, prev) => {
   if (!s.windPose && !s.windPoseCompare) return
   // 几何变咗 = 之前记录嘅位姿对比全部唔再可比（迎风面积/体积都唔同咗件事）
   useApp.setState({ windPose: null, windPoseDragging: false, windPoseCompare: null })
+})
+
+// SIM / BUG-BD-011：几何一变，旧受力/模态/模流/风洞彩图唔可以当新结果 — 清 overlay + 标失效。
+useApp.subscribe((s, prev) => {
+  if (s.bodyMesh === prev.bodyMesh) return
+  if (!hasLiveSimResults(s)) return
+  useApp.setState(invalidateSimResultsPatch('幾何已改'))
 })
 
 // Sanitised project name for export filenames (keeps word chars / CJK / hyphen), fallback 'webcad'.

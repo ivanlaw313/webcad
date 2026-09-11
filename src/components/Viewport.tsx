@@ -4971,13 +4971,13 @@ export default function Viewport() {
           title="抽壳"
           width={236}
           okLabel={tStatus('确定', lang)}
-          okDisabled={!shellPicks.length || !(shellThickness > 0) || shellPreviewBusy || shellPreviewFail}
+          okDisabled={!shellPicks.length || !(shellThickness > 0) || shellPreviewBusy}
           okTip="抽壳（Enter）"
           onOk={() => void commitShell()}
           onCancel={() => cancelShell()}
           summary={<>{shellType === 'closed' ? '封闭实体' : `开 ${shellPicks.length} 面`} · 壁厚 {shellThickness}</>}
         >
-          <div role="status" aria-live="polite" data-testid="shell-preview-status">{shellPreviewBusy ? '正在计算预览…' : shellPreviewFail ? '预览失败：已保留原模型，请调整壁厚、方向或开口面' : shellPreviewMesh ? '实时预览；确定后才保存操作' : '选择开口面并输入壁厚，即时预览结果'}</div>
+          <div role="status" aria-live="polite" data-testid="shell-preview-status">{shellPreviewBusy ? '正在计算预览…' : shellPreviewFail ? '预览失败（已保留原模型）— 可改壁厚/方向/开口面，或仍按「确定」尝试提交' : shellPreviewMesh ? '实时预览；确定后才保存操作' : '选择开口面并输入壁厚，即时预览结果'}</div>
           <SelectionChip label={shellType === 'closed' ? '实体' : '面'} count={shellPicks.length} hint={shellType === 'closed' ? '点选要建立封闭空腔的实体' : '点选要移除的面（再点取消）'} onClear={() => useApp.getState().clearShellPicks()} />
           {shellType === 'open' && <label style={{ justifyContent: 'flex-start', gap: 6 }} title="Fusion Tangent Chain：沿共享边自动加入 G1 相切连续面">
             <input type="checkbox" checked={shellTangentChain} onChange={() => toggleShellTangentChain()} /> 切线链

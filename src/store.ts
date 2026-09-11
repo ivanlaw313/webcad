@@ -6081,7 +6081,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   toggleShellTangentChain: () => set((s) => ({ shellTangentChain: !s.shellTangentChain })),
   shellDir: 'inside',   // GM-3DV3 M2：缺省向内（外形保留，旧行为逐字节）
   setShellDir: (d) => set({ shellDir: d }),
-  toggleShell: () => set((s) => ({ shellMode: !s.shellMode, shellPicks: [], shellThickness: 0, shellType: 'open', shellTangentChain: true, shellDir: 'inside', holeMode: false, featDlg: null, decalPick: null, pushPullMode: false, edgeRoundPick: null, faceFilletMode: false, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.shellMode ? '抽壳：点选要移除的面（可多个）→ 输入壁厚 → 按「确定」' : '已退出抽壳' })),
+  toggleShell: () => set((s) => ({ shellMode: !s.shellMode, shellPicks: [], shellThickness: s.shellMode ? 0 : 2, shellType: 'open', shellTangentChain: true, shellDir: 'inside', holeMode: false, featDlg: null, decalPick: null, pushPullMode: false, edgeRoundPick: null, faceFilletMode: false, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.shellMode ? '抽壳：点选要移除的面（可多个）→ 输入壁厚 → 按「确定」' : '已退出抽壳' })),
   shellPickAt: (p) => set((s) => {
     if (!hasSolid(s.features)) return { status: '抽壳需要先有实体' }
     const hit = s.shellPicks.findIndex((q) => Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]) < 2.5)

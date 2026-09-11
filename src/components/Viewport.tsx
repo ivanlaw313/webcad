@@ -4972,7 +4972,7 @@ export default function Viewport() {
           </label>
           <label>
             <span style={{ color: '#6b7680' }}>壁厚</span>
-            <span><input type="number" min={0} step={0.5} value={shellThickness} onChange={(e) => setShellThickness(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+            <span><input type="number" min={0.01} step={0.5} value={shellThickness} onChange={(e) => setShellThickness(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
           </label>
           <label title={tStatus('壁厚方向（Fusion Direction）：向内=外形保留 · 向外=尺寸外扩 · 两侧=壁跨原边界（逐面不同厚度请事后用「偏移面」）', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('方向', lang)}</span>
@@ -6084,7 +6084,8 @@ export default function Viewport() {
           ((featDlg.kind === 'pattern' || featDlg.kind === 'circpattern') && (String(featDlg.params.objectType ?? 'bodies') === 'features' ? !cpSelFeat : String(featDlg.params.objectType ?? 'bodies') === 'components' ? !cpSelCompCount : String(featDlg.params.objectType ?? 'bodies') === 'faces' ? !facePatternPicks.length : !+featDlg.params.objectPicked)) ||
           (featDlg.kind === 'geoPattern' && !featDlg.editId && !cpSelFeat) ||
           (featDlg.kind === 'move' && String(featDlg.params.objectType ?? 'bodies') === 'components' && !selectedComponent && checkedComps.length === 0) ||
-          (featDlg.kind === 'automatedmodel' && (((featDlg.payload as { picks?: unknown[] } | undefined)?.picks?.length ?? 0) !== 2 || !(+featDlg.params.radius > 0)))
+          (featDlg.kind === 'automatedmodel' && (((featDlg.payload as { picks?: unknown[] } | undefined)?.picks?.length ?? 0) !== 2 || !(+featDlg.params.radius > 0))) ||
+          (featDlg.kind === 'shell-edit' && !(+featDlg.params.thickness > 0))
         } onOk={() => void commitFeatDlg()} onCancel={() => cancelFeatDlg()}>
           {featDlg.kind === 'extrude-edit' && <div role="status">{!currentEditPreview ? '正在计算上游预览…' : currentEditPreview.failed ? '预览失败，请检查距离及轮廓' : '上游预览；确定后重建下游特征'}</div>}
           {featDlg.editId && <div style={{ fontSize: 11, color: '#8a97a2', marginBottom: 4 }}>{tStatus('编辑模式：改参数 → 确定重建；棱/面选择集及轮廓保留原值', lang)}</div>}

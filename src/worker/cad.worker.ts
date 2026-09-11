@@ -2609,7 +2609,7 @@ function buildShape(features: Feature[], noCache = false): any {
         buildWarnings.push('抽殼：相鄰內壁偏移相交，已按原壁厚重建直柱型腔')
       }
       if (shelled) shape = shelled
-      else if (!(f.thickness > 0)) buildWarnings.push(`抽壳：壁厚必须 > 0（值 ${f.thickness} 非法，可能来自参数驱动绕过 UI 下限）— 已跳过抽壳，保留实体`)   // 零壁厚 OCCT 全 retry 抛错 → 改诚实跳过而非泛型「shell failed」
+      else if (!(f.thickness > 0)) throw new Error(`抽壳：壁厚必须 > 0（值 ${f.thickness} 非法）`)   // t≤0 must fail (rollback) — never silently skip / keep illegal shell in history
       else throw new Error('抽殼無法按指定壁厚及方向完成，已保留原模型；請調整壁厚或開口面')
       { const _cap = _lastResolvedFaceFp as string[] | null; if (_cap && _cap.length) { _resolvedFaceFp[f.id] = _cap; _lastResolvedFaceFp = null } }
       { const _capV2 = _lastResolvedFaceFpV2 as string[] | null; if (_capV2 && _capV2.length) { _resolvedFaceFpV2[f.id] = _capV2; _lastResolvedFaceFpV2 = null } { const _capTopo = _lastResolvedFaceFpTopo as string[] | null; if (_capTopo && _capTopo.length) { _resolvedFaceFpTopo[f.id] = _capTopo; _lastResolvedFaceFpTopo = null } } }   // S136：v2 平行写回

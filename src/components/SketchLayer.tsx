@@ -25,6 +25,7 @@ import { sampleBSpline } from '../cad/bspline2d'   // S127：B 样条画线时 l
 import { sampleConic } from '../cad/conic2d'   // S177：圆锥曲线 live 预览
 import { canvasQuad, canvasUV, type CanvasItem } from '../cad/insertModel'   // GM-X3 #2/#3：多张 Canvas 四角/UV（非等比+旋转+翻转）
 import { solveMove } from '../cad/moveSolve'
+import { useEscapeLayer } from './useEscapeLayer'
 import type { MeshData, Plane } from '../worker/cad.worker'
 
 type V3 = [number, number, number]
@@ -2574,6 +2575,8 @@ export function SketchDimLayer() {
   const dimInputRequest=useRef(0)
   const invalidDimDraft=useRef(false)
   const cancelDimension=()=>{++dimEditorEpoch.current;dimEditorScope.current=null;++dimInputRequest.current;useApp.getState().cancelSkDimEdit();setEditing(null);setInputError(null);invalidDimDraft.current=false}
+  // UI02: Esc cancels only the open dimension editor (topmost layer), never the sketch/doc.
+  useEscapeLayer(!!editing, cancelDimension, 500)
   const previewDimension=async(e:DimEdit,text:string)=>{
     if(!e.conId)return false
     const request=++dimInputRequest.current,state=useApp.getState(),con=state.skCons.find(c=>c.id===e.conId&&c.kind==='dim')

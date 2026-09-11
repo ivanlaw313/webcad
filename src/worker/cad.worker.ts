@@ -2450,6 +2450,7 @@ function buildShape(features: Feature[], noCache = false): any {
       // rotate(180) retry mapped the wedge to +Z on the −X side — preview OK, confirm miss on +X-only
       // plates (QA black-box). Retry with rotate(−ang) first (same wedge as preview), then default.
       // Still empty → throw; applyFeatures / S107 keep the previous solid.
+      // BUG-SO15-001: no prior solid → Cut/Intersect cannot boolean; treat as New (first feature creates body).
       if (!shape) shape = solid
       else if (f.op === 'cut' || f.op === 'intersect') {
         const _volOf = (sh: any): number => {
@@ -5387,6 +5388,9 @@ const api = {
         // T756 / GM-W5 5.1：净独立草图 + 参考面（全部特征都系 'sketch' / 'datum'，无实体输出）— 正常嘅零实体文档，唔系失败。
         // （首个参考面加喺空零件、或纯草图+datum 文档 → shape 为 null 但唔系错，要返有效空 mesh 令 applyFeatures 提交特征。）
         if (features.length && features.every((f) => f.type === 'sketch' || f.type === 'datum')) return { vertices: [], triangles: [], normals: [], warnings: buildWarnings.length ? buildWarnings.slice() : undefined, failed: failedFeatures.length ? failedFeatures.slice() : undefined }
+        // SO04: feature failed with no surviving solid (e.g. revolve profile crosses axis) — return failed[]
+        // so applyFeatures can surface the real message instead of a null-mesh "操作失败 — 旋转相交区域为空" toast.
+        if (failedFeatures.length) return { vertices: [], triangles: [], normals: [], warnings: buildWarnings.length ? buildWarnings.slice() : undefined, failed: failedFeatures.slice() }
         return null
       }
       current = shape

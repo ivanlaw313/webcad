@@ -4763,7 +4763,18 @@ export const useApp = create<AppState>((rawSet, get) => {
       const lastOp = active.length ? (active[active.length - 1] as { operation?: string }).operation : ''
       const HINT: Record<string, string> = {
         extrude: lastOp === 'cut' ? '切割轮廓太大/位置超出零件 — 缩小切割或移动位置' : (lastOp === 'intersect' ? '相交区域为空 — 两形状没有重叠' : '拉伸轮廓无效 — 要闭合且面积>0'),
-        revolve: ((active.length ? (active[active.length - 1] as { op?: string }).op : '') === 'intersect') ? '旋转相交区域为空 — 旋转体与现有实体没有重叠' : (((active.length ? (active[active.length - 1] as { op?: string }).op : '') === 'cut') ? '旋转切割未切入材料 — 调整角度/轴或截面位置' : '旋转截面跨过了旋转轴 — 把截面移到轴的一侧'),
+        // SO04 / BUG-SO15-001: Intersect with no prior solid is meaningless — don't blame "empty overlap".
+        // Independent-sketch empty bodyMesh used to enable ∩ in the dialog; coerce+gate fix that, but keep honest hint.
+        revolve: (() => {
+          const last = active.length ? (active[active.length - 1] as { op?: string }) : null
+          const op = last?.op || ''
+          const priorSolid = hasSolid(active.slice(0, -1))
+          if (op === 'intersect' && !priorSolid) return '旋转需要先有实体才能相交 — 无底板时请用＋加料（或先拉伸底板）'
+          if (op === 'cut' && !priorSolid) return '旋转切割需要先有实体 — 无材料可切时请用＋加料'
+          if (op === 'intersect') return '旋转相交区域为空 — 旋转体与现有实体没有重叠'
+          if (op === 'cut') return '旋转切割未切入材料 — 调整角度/轴或截面位置'
+          return '旋转截面跨过了旋转轴 — 把截面移到轴的一侧'
+        })(),
         loft: '放样截面不兼容 — 检查截面数量/朝向/不要自交',
         sweep: '扫掠失败 — 路径太弯/截面太大致自相交',
         fillet: '圆角半径太大（超过相邻面）— 减小半径',
@@ -4864,7 +4875,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           }
           nextFeatures=nextFeatures.map(f=>{const r=resolved[f.id] ?? (f.type==='extgroup'?resolved[`${f.id}#0`]:undefined);return r?update(f,r):f})
           // GM-W5 5.1：rebuild 成功嘅【单一 choke point】—— 由 nextFeatures 派生 planes[]（datum 特征 → 参考面）。undo/redo/编辑/删/抑制 全部经此。
-          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: (mesh.warnings ?? []).slice(), failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}), ...(hasLiveSimResults(s2) ? invalidateSimResultsPatch('几何已改') : {}) }
+          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: noTris ? null : mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: (mesh.warnings ?? []).slice(), failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}), ...(hasLiveSimResults(s2) ? invalidateSimResultsPatch('几何已改') : {}) }
         })
         // Keep a live capped-section solid in sync with model edits (recompute the half from the new body).
         if (!context && get().section.on && get().section.capped) void get().refreshSectionCap()
@@ -17058,7 +17069,11 @@ export const useApp = create<AppState>((rawSet, get) => {
         })
         return
       }
-      await get().addRevolve(prof, +p.angle, (axStr === 'X' ? 'X' : 'Y'), (p.op as BoolOp) || 'new', +p.wall || 0, bundle, axisSpec, !!p.sym, p.axisReference==='sketch'||p.axisReference==='world'?p.axisReference:undefined)
+      // SO04 / BUG-SO15-001: Intersect/Cut without a prior solid is not a boolean — coerce to New
+      // (same policy as loft/sweep commit). Preview already shows the lathe solid; confirm must create it.
+      const rawOp = (p.op as BoolOp) || 'new'
+      const revOp: BoolOp = (rawOp === 'cut' || rawOp === 'intersect' || rawOp === 'newbody') && hasSolid(get().features) ? rawOp : 'new'
+      await get().addRevolve(prof, +p.angle, (axStr === 'X' ? 'X' : 'Y'), revOp, +p.wall || 0, bundle, axisSpec, !!p.sym, p.axisReference==='sketch'||p.axisReference==='world'?p.axisReference:undefined)
       return
     }
     // P2 Edit Feature：编辑模式 — 用同一组装逻辑出嘅 f 抽 patch（丢新 id/type），editFeature 淺合并全树重建，唔 push 新特征

@@ -4789,8 +4789,24 @@ function buildShape(features: Feature[], noCache = false): any {
     } else if (f.type === 'transform' && (shape || (typeof f.parked === 'number' && f.parked >= 0 && parkedBodies[f.parked]))) {
       const rx = f.rx ?? 0, ry = f.ry ?? 0, rz = f.rz ?? 0
       // GM-3DV3 M1 Create Copy：变换一个 clone、留原件（Fusion「复制」半边）。原地变换（缺省）= 直接改 shape（旧档逐字节）。
-      // SO10：parked≥0 → 变换泊车实体（分割后可移「另一半」再合并，避免只郁活动低侧 +X 叠入高侧丢体积）。
-      const applyXf = (sh: any): any => {
+      // SO10 / BUG-SO13-001：parked≥0 → 变换泊车实体；分割后两半共面相邻时，朝向兄弟半体的轴平移会翻成分离方向，
+      // 避免「移一半 +5 再合并」因叠入丢 1000 体积（keep=hi 移泊车低侧 / keep=lo 移活动低侧 → 曾测得 7000 而非 8000）。
+      // 仅在该轴 AABB 贴面（overlap≈0）时介入；已分离/刻意重叠/正交平移不受影响。
+      const faceAdjacent = (a0: number, a1: number, b0: number, b1: number) => Math.abs(Math.min(a1, b1) - Math.max(a0, b0)) <= 1e-3
+      const sepDelta = (moving: any, sibling: any, dx0: number, dy0: number, dz0: number): [number, number, number] => {
+        if (!(dx0 || dy0 || dz0) || !sibling) return [dx0, dy0, dz0]
+        try {
+          const bM = moving.boundingBox.bounds as [number[], number[]], bS = sibling.boundingBox.bounds as [number[], number[]]
+          const cM = [(bM[0][0] + bM[1][0]) / 2, (bM[0][1] + bM[1][1]) / 2, (bM[0][2] + bM[1][2]) / 2]
+          const cS = [(bS[0][0] + bS[1][0]) / 2, (bS[0][1] + bS[1][1]) / 2, (bS[0][2] + bS[1][2]) / 2]
+          let dx = dx0, dy = dy0, dz = dz0
+          if (dx && faceAdjacent(bM[0][0], bM[1][0], bS[0][0], bS[1][0]) && (cS[0] - cM[0]) * dx > 0) dx = -dx
+          if (dy && faceAdjacent(bM[0][1], bM[1][1], bS[0][1], bS[1][1]) && (cS[1] - cM[1]) * dy > 0) dy = -dy
+          if (dz && faceAdjacent(bM[0][2], bM[1][2], bS[0][2], bS[1][2]) && (cS[2] - cM[2]) * dz > 0) dz = -dz
+          return [dx, dy, dz]
+        } catch { return [dx0, dy0, dz0] }
+      }
+      const applyXf = (sh: any, sibling?: any): any => {
         let s2 = sh
         if (rx || ry || rz) {
           let c: [number, number, number] = f.origin ?? [0, 0, 0]
@@ -4799,23 +4815,28 @@ function buildShape(features: Feature[], noCache = false): any {
           if (ry) s2 = s2.rotate(ry, c, [0, 1, 0])
           if (rz) s2 = s2.rotate(rz, c, [0, 0, 1])
         }
-        if (f.dx || f.dy || f.dz) s2 = s2.translate(f.dx, f.dy, f.dz)
+        if (f.dx || f.dy || f.dz) {
+          const [dx, dy, dz] = sepDelta(s2, sibling, f.dx, f.dy, f.dz)
+          s2 = s2.translate(dx, dy, dz)
+        }
         return s2
       }
       const parkIdx = typeof f.parked === 'number' && f.parked >= 0 ? f.parked : -1
       if (parkIdx >= 0 && parkedBodies[parkIdx]) {
+        const sibling = shape || undefined
         if (f.copy) {
-          parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(parkedBodies[parkIdx].shape.clone()) })
+          parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(parkedBodies[parkIdx].shape.clone(), sibling) })
         } else {
           const pb = parkedBodies[parkIdx]
-          parkedBodies[parkIdx] = { name: pb.name, ...(pb.kind ? { kind: pb.kind } : {}), shape: applyXf(pb.shape) }
+          parkedBodies[parkIdx] = { name: pb.name, ...(pb.kind ? { kind: pb.kind } : {}), shape: applyXf(pb.shape, sibling) }
         }
       } else if (shape) {
+        const sibling = parkedBodies.length === 1 ? parkedBodies[0].shape : undefined
         if (f.copy) {
           // Create Copy 必须保留原实体并加一个独立实体，绝不能融合成单一固体。
-          parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(shape.clone()) })
+          parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(shape.clone(), sibling) })
         } else {
-          shape = applyXf(shape)
+          shape = applyXf(shape, sibling)
         }
       }
     } else if (f.type === 'pushpull' && shape) {

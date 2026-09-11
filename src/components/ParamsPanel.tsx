@@ -74,6 +74,7 @@ export default function ParamsPanel() {
   const setParam = useApp((s) => s.setParam)
   const setParamExpr = useApp((s) => s.setParamExpr)
   const removeParam = useApp((s) => s.removeParam)
+  const renameParam = useApp((s) => s.renameParam)
   const exportCsv = useApp((s) => s.exportParamsCsv)
   const batchExportDesignTable = useApp((s) => s.batchExportDesignTable)
   const toggle = useApp((s) => s.toggleParamsPanel)
@@ -100,7 +101,10 @@ export default function ParamsPanel() {
       {params.length > 0 && <div className="pp-head"><span>名称</span><span>数值</span><span>表达式</span><span>引用</span></div>}
       {params.map((p) => (
         <div key={p.name} className="pp-row">
-          <span className="pp-name">{p.name}</span>
+          <input className="pp-name" aria-label={`参数 ${p.name} 名称`} defaultValue={p.name} disabled={busy}
+            onBlur={e => { const next = e.target.value.trim(); if (next && next !== p.name) renameParam(p.name, next); else e.target.value = p.name }}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); (e.target as HTMLInputElement).blur() } if (e.key === 'Escape') { e.stopPropagation(); (e.target as HTMLInputElement).value = p.name; (e.target as HTMLInputElement).blur() } }}
+            title="改名保留参数身份；公式引用跟 ID" style={{ width: 72 }} />
           <ParameterValue name={p.name} value={p.value} disabled={busy || !!p.expr} onCommit={n => void setParam(p.name,n)} />
           <ParameterExpression name={p.name} expression={p.expr ?? ''} disabled={busy} onCommit={expr => setParamExpr(p.name, expr)} />
           <span className="pp-used" title={`直接／间接引用：${usedBy(p).join("；") || "无"}`}>×{usedBy(p).length}</span>

@@ -2445,10 +2445,11 @@ function buildShape(features: Feature[], noCache = false): any {
         else buildWarnings.push(`⚠ 旋转薄壁 ${f.wall}mm 失败，已退回实体（试减薄壁厚或让截面贴轴）`)
       }
       // Operation (Fusion): new/join → fuse, cut → lathe a groove/recess, intersect → common volume.
-      // SO04: partial-angle revolve uses the right-hand sense about the axis (XY about +Y → −Z).
-      // A body on the opposite half-space yields empty intersect / no-op cut. Retry once after a
-      // 180° spin about the axis (same wedge as reversing the axis) so the tool overlaps the body.
-      // Still empty → throw; S107 rolls back and keeps the previous solid.
+      // SO04: partial-angle revolve defaults to the right-hand sense (XY about +Y → −Z). Cut/intersect
+      // preview (SketchLayer flipSense) instead sweeps −ang‥0 into +Z at the profile's +X. PR#7's
+      // rotate(180) retry mapped the wedge to +Z on the −X side — preview OK, confirm miss on +X-only
+      // plates (QA black-box). Retry with rotate(−ang) first (same wedge as preview), then default.
+      // Still empty → throw; applyFeatures / S107 keep the previous solid.
       if (!shape) shape = solid
       else if (f.op === 'cut' || f.op === 'intersect') {
         const _volOf = (sh: any): number => {
@@ -2469,15 +2470,18 @@ function buildShape(features: Feature[], noCache = false): any {
             return out
           } catch { return null }
         }
-        let tool = solid
-        let out = _tryBool(tool)
-        if (!out && ang > 0 && ang < 360 && !f.symmetric) {
-          try {
-            const org = (f.axisOrigin || [0, 0, 0]) as [number, number, number]
-            const flipped = solid.clone().rotate(180, org, rax)
-            const retried = _tryBool(flipped)
-            if (retried) { out = retried; tool = flipped }
-          } catch { /* keep out null */ }
+        const org = (f.axisOrigin || [0, 0, 0]) as [number, number, number]
+        const candidates: any[] = []
+        // Prefer preview-matching sense (−ang‥0) so confirm matches the ghost the user accepted.
+        if (ang > 0 && ang < 360 && !f.symmetric) {
+          try { candidates.push(solid.clone().rotate(-ang, org, rax)) } catch { /* fall through */ }
+        }
+        candidates.push(solid)
+        let tool: any = null
+        let out: any = null
+        for (const cand of candidates) {
+          const hit = _tryBool(cand)
+          if (hit) { out = hit; tool = cand; break }
         }
         if (!out) throw new Error(f.op === 'intersect'
           ? '旋转相交区域为空 — 旋转体与现有实体没有重叠（已保留原模型）'

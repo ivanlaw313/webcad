@@ -4,7 +4,8 @@
  * overlapping preview wedge; on failure keep the previous solid.
  *
  * Partial angles default to the −Z half-space (right-hand about +Y from XY).
- * A plate on z≥0 therefore misses intersect/cut unless the worker flips sense.
+ * Cut/intersect preview sweeps −ang‥0 into +Z at the profile (+X). Confirm must
+ * use the same sense (rotate(−ang)), not rotate(180) which lands on −X.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -27,9 +28,18 @@ const plate = {
   height: 10,
   operation: 'new',
 }
+/** QA-like plate: only +X / +Z — PR#7 rotate(180) miss; preview −ang hits. */
+const platePosX = {
+  id: 'plate',
+  type: 'extrude',
+  profile: { kind: 'rect', a: [0, -20], b: [40, 20] },
+  height: 10,
+  operation: 'new',
+}
 const profile = { kind: 'rect', a: [8, -10], b: [28, 10] }
 const FULL_INTERSECT = 8946.508663785393
 const HALF_INTERSECT = FULL_INTERSECT / 2
+const POSX_INTERSECT = FULL_INTERSECT / 2  // +X plate ∩ full revolve ≈ half torus slice in +X
 
 async function rebuildVolume(features) {
   const mesh = await worker.rebuild(features)
@@ -70,6 +80,18 @@ test('revolve intersect 180°/90°: flip into plate, valid B-rep, volume matches
   }
 })
 
+test('revolve intersect 90° on +X-only plate matches preview −ang sense (not rotate 180/−X)', async () => {
+  const r = await rebuildVolume([
+    platePosX,
+    { id: 'revI', type: 'revolve', profile, angle: 90, axis: 'Y', op: 'intersect' },
+  ])
+  assert.deepEqual(r.failed, [], `failed: ${JSON.stringify(r.failed)}`)
+  assert.equal(r.valid, true)
+  // +X plate ∩ +Z half lives entirely in the first 90° from +X toward +Z (x≥0),
+  // so 90° preview-sense volume equals the full +X ∩ revolve common volume.
+  assert.ok(Math.abs(r.volume - POSX_INTERSECT) < 1e-1, `vol ${r.volume}, expected ~${POSX_INTERSECT}`)
+})
+
 test('revolve cut 180° removes the +Z wedge (not a silent no-op)', async () => {
   const r = await rebuildVolume([
     plate,
@@ -100,11 +122,12 @@ test('empty revolve intersect keeps previous solid (failed + volume unchanged)',
   assert.ok(Math.abs(after - 24000) < 1e-3)
 })
 
-test('worker revolve boolean path flips partial cut/intersect and rolls back empty', () => {
+test('worker revolve boolean path prefers preview −ang sense and rolls back empty', () => {
   const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
   const preview = readFileSync(new URL('../src/components/SketchLayer.tsx', import.meta.url), 'utf8')
   assert.match(workerSrc, /SO04: partial-angle revolve/)
-  assert.match(workerSrc, /rotate\(180, org, rax\)/)
+  assert.match(workerSrc, /rotate\(-ang, org, rax\)/)
+  assert.doesNotMatch(workerSrc, /rotate\(180, org, rax\)/)
   assert.match(workerSrc, /旋转相交区域为空/)
   assert.match(workerSrc, /f\.type === 'revolve' && \(\(f as any\)\.op === 'cut' \|\| \(f as any\)\.op === 'intersect'\)/)
   assert.match(preview, /flipSense \? -total : 0/)

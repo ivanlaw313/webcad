@@ -6023,7 +6023,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   shellMode: false,
   shellPicks: [],
   shellThickness: 0,
-  setShellThickness: (n) => set({ shellThickness: Number.isFinite(n) ? Math.max(0, n) : 0 }),
+  setShellThickness: (n) => set({ shellThickness: Number.isFinite(n) ? n : 0 }),
   shellType: 'open',
   setShellType: (t) => set({ shellType: t, shellPicks: [], status: t === 'closed' ? '封闭实体抽壳：点选实体后输入壁厚' : '移除面抽壳：点选一个或多个开口面' }),
   shellTangentChain: true,
@@ -16445,8 +16445,11 @@ export const useApp = create<AppState>((rawSet, get) => {
         patch = { distance: Math.max(0.05, +p.distance || 1), cmode: String(p.cmode || 'equal'), dist2: +p.dist2 || 0, angle: +p.angle || 45, flip: !!+(p.flip || 0), chain: !!+(p.chain || 0) }
       } else {
         // GM-3DV3 M2：shell-edit 带 direction（inside→undefined 清 key 保逐字节）
+        // Illegal t≤0 must REJECT on confirm — never coerce 0→1 / negative→0.1 (SO02 / handoff P1).
+        const th = +p.thickness
+        if (!(th > 0)) { set({ status: '请输入大于 0 的壁厚' }); return }
         const sdir = String(p.direction || 'inside')
-        patch = { thickness: Math.max(0.1, +p.thickness || 1), direction: sdir === 'inside' ? undefined : sdir }
+        patch = { thickness: th, direction: sdir === 'inside' ? undefined : sdir }
       }
       set({ featDlg: null })
       await get().editFeature(d.editId, patch)
@@ -18063,6 +18066,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   editFeature: async (id, patch) => {
     const expressionOwner = get().features.find(f => f.id === id)
     if ('height' in patch && !('distanceExpression' in patch) && expressionOwner?.type === 'extrude' && expressionOwner.distanceExpression) { set({ status: '距离由表达式驱动；请双击特征编辑表达式' }); return }
+    if (expressionOwner?.type === 'shell' && 'thickness' in patch && !(Number(patch.thickness) > 0)) { set({ status: '请输入大于 0 的壁厚' }); return }
     const features = get().features.map((f) => {
       if (f.id !== id) return f
       // P2：到面拉伸手改「高度」= 脱开目标面引用（Fusion 同款：打距离即离开 to-face 驱动，否则下次重建会覆盖你嘅值）

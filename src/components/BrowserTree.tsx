@@ -164,7 +164,8 @@ function SketchRow({ k }: { k: string }) {
   )
 }
 
-// GM-W6 F2：特征行 — 单击选中；双击改名（存 feature.name；Timeline tooltip 亦显示自订名）。
+// GM-W6 F2 / BOT-A01-DIM-LINK：特征行 — 单击选中；双击开编辑（对齐时间轴）；Alt+双击改名。
+const FEAT_EDIT_DLG = new Set<string>(['extrude', 'revolve', 'sweep', 'loft', 'fillet', 'chamfer', 'shell', 'mirror', 'pattern', 'geoPattern', 'circPattern', 'pathpattern', 'coil', 'rib', 'scale', 'transform', 'draft', 'othread', 'ithread', 'hole'])
 function FeatRow({ f }: { f: AppState['features'][number] }) {
   const lang = useApp((s) => s.lang)
   const selected = useApp((s) => s.selectedFeature)
@@ -175,6 +176,12 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
   const commit = () => { useApp.getState().renameFeature(f.id, name); setEditing(false) }
+  const openFeatureEdit = () => {
+    selectFeature(f.id)
+    if (FEAT_EDIT_DLG.has(f.type)) { useApp.getState().openFeatDlgForEdit(f.id); return }
+    const hasSketch = ((f.type === 'extrude' || f.type === 'revolve' || f.type === 'sweep' || f.type === 'sketch' || f.type === 'extgroup') && !!(f as { sketchId?: string }).sketchId) || (f.type === 'loft' && !!(f as { sketchIds?: string[] }).sketchIds?.length)
+    if (hasSketch) { void useApp.getState().editSketchOf(f.id); return }
+  }
   // GM-X4 #10：从时间轴 chip「在浏览器中查找」→ 滚动定位 + 闪烁高亮（browserFocusNonce bump 触发）。
   const focusNonce = useApp((s) => s.browserFocusNonce)
   const focusId = useApp((s) => s.browserFocusId)
@@ -199,7 +206,7 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
           onBlur={commit}
           onKeyDown={(e) => { if (e.key === 'Enter') commit(); else if (e.key === 'Escape') setEditing(false); e.stopPropagation() }} />
       ) : (
-        <span style={{ flex: 1, cursor: 'pointer' }} title={tStatus('单击选中 · 双击改名', lang)} onClick={() => selectFeature(f.id === selected ? null : f.id)} onDoubleClick={() => { setName(custom || ''); setEditing(true) }}>{custom || tStatus(meta.label, lang)}</span>
+        <span style={{ flex: 1, cursor: 'pointer' }} title={tStatus('单击选中 · 双击编辑特征／草图 · Alt+双击改名', lang)} onClick={() => selectFeature(f.id === selected ? null : f.id)} onDoubleClick={(e) => { if (e.altKey) { setName(custom || ''); setEditing(true) } else openFeatureEdit() }}>{custom || tStatus(meta.label, lang)}</span>
       )}
       {err && <span className="tw-err" title={tStatus('重建失败：', lang) + err}>🔴</span>}
     </div>

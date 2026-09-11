@@ -2530,6 +2530,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   openConfigsCsvDialog: () => void
   setParamExpr: (name: string, expr: string) => Promise<void>
   removeParam: (name: string) => Promise<void>
+  renameParam: (from: string, to: string) => void  // keep parameter id; update sketch dim param/expr/refs tokens
   bindParam: (featureId: string, field: string, name: string) => Promise<void>
   batchExportDesignTable: (paramName: string, values: number[]) => Promise<void>
   exportStl: () => Promise<void>
@@ -8708,7 +8709,8 @@ export const useApp = create<AppState>((rawSet, get) => {
                 if (get().mode === 'sketch') set({ status: '已取消 —— 尺寸还原旧值（草图保持原状）' })
                 return
               }
-              set((s2) => ({ skCons: s2.skCons.filter((c) => c.id !== last.id) }))
+              // placeDim pushed an undo snapshot before resolveSk; drop it so cancel leaves no residual history/constraints (BUG-018).
+              set((s2) => ({ skCons: s2.skCons.filter((c) => c.id !== last.id), sketchUndo: s2.sketchUndo.slice(0, -1), sketchRedo: [] }))
               await get().resolveSk()
               if (get().mode === 'sketch') set({ status: '已取消 —— 未加呢个尺寸（草图保持原状）' })
               return
@@ -18306,6 +18308,42 @@ export const useApp = create<AppState>((rawSet, get) => {
     // shadowed in expressions and the param would never resolve. (e/tau are param-overridable, so allowed.)
     if (isExprFunc(nm) || nm === 'pi' || nm === 'PI') return { status: `参数名「${nm}」係保留嘅函数／常量名——请改个名（如 ${nm}1）` }
     return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], params: [...s.params, { id: crypto.randomUUID(), name: nm, value: value || 0, unit: 'mm' }], status: `已加参数 ${nm} = ${value || 0}` }   // bt4: 加参数可撤销(仅成功分支;新参数未绑定唔改几何,inline 快照即可)
+  }),
+  renameParam: (from, to) => set((s) => {
+    if (s.busy) return { status: '请等待当前重建完成，再修改参数' }
+    const src = (from || '').trim(), nm = (to || '').trim()
+    const target = s.params.find((p) => p.name === src)
+    if (!target) return { status: `参数「${src}」不存在` }
+    if (!nm || nm === src) return {}
+    if (s.params.some((p) => p.name === nm)) return { status: `参数「${nm}」已存在` }
+    if (!/^[A-Za-z_一-龥][\w一-龥]*$/.test(nm)) return { status: `参数名「${nm}」无效——要用字母／中文／下划线开头，且唔含空格或运算符` }
+    if (isExprFunc(nm) || nm === 'pi' || nm === 'PI') return { status: `参数名「${nm}」係保留嘅函数／常量名——请改个名（如 ${nm}1）` }
+    const id = parameterId(target)
+    const renameToken = (expr?: string) => {
+      if (!expr) return expr
+      return expr.replace(/[A-Za-z_一-龥][\w一-龥]*/g, (token) => token === src ? nm : token)
+    }
+    const renameDim = (c: SkCon): SkCon => {
+      if (c.kind !== 'dim') return c
+      let next = c
+      if (c.param === src || c.paramId === id) next = { ...next, param: nm, paramId: id }
+      if (c.refs && (src in c.refs || Object.values(c.refs).includes(id))) {
+        const refs: Record<string, string> = {}
+        for (const [token, refId] of Object.entries(c.refs)) refs[refId === id || token === src ? nm : token] = refId
+        next = { ...next, refs, ...(c.expr ? { expr: renameToken(c.expr) } : {}) }
+      } else if (c.expr && c.expr.match(/[A-Za-z_一-龥][\w一-龥]*/g)?.includes(src)) {
+        next = { ...next, expr: renameToken(c.expr) }
+      }
+      return next
+    }
+    const sketchSources = Object.fromEntries(Object.entries(s.sketchSources).map(([sid, src0]) => [sid, src0 ? { ...src0, cons: (src0.cons ?? []).map(renameDim) } : src0]))
+    const paramBindings = Object.fromEntries(Object.entries(s.paramBindings).map(([k, v]) => [k, v === src ? nm : v]))
+    return {
+      undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
+      params: s.params.map((p) => p === target || parameterId(p) === id ? { ...p, name: nm } : p),
+      skCons: s.skCons.map(renameDim), sketchSources, paramBindings,
+      status: `已将参数 ${src} 改名为 ${nm}（身份保留）`,
+    }
   }),
   setParam: async (name, value) => {
     if (get().busy) { set({ status: '请等待当前重建完成，再修改参数' }); return }

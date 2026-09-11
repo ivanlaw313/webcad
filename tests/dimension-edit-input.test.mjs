@@ -16,6 +16,12 @@ test('radius/diameter display conversion applies to numeric input',()=>{
  assert.equal(parse('10',{radDia:{type:'rad',flip:true}}).patch.value,5)
  assert.equal(parse('10',{radDia:{type:'dia',flip:true}}).patch.value,20)
 })
+test('radius/diameter display conversion applies to parameter and formula input',()=>{
+ const params=[{id:'width',name:'W',value:10}]
+ assert.equal(parse('W',{radDia:{type:'dia',flip:true},params}).patch.value,20)
+ assert.equal(parse('W*2',{radDia:{type:'dia',flip:true},params}).patch.value,40)
+ assert.equal(parse('W',{radDia:{type:'rad',flip:true},params}).patch.value,5)
+})
 test('invalid drafts rejected; only horizontal/vertical distance accepts zero',()=>{
  for(const raw of ['', '-', '1e', '12garbage','1/0','0','-2'])assert.equal(parse(raw).ok,false,raw)
  for(const type of ['hdist','vdist'])assert.equal(parse('0',{con:{...con,type}}).patch.value,0)

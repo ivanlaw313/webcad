@@ -2674,7 +2674,11 @@ export function SketchDimLayer() {
       if(!await previewDimension(e,val)||editorEpoch!==dimEditorEpoch.current)return
       const inputRequest=dimInputRequest.current
       await useApp.getState().confirmSkDimEdit()
-      if(editorEpoch===dimEditorEpoch.current&&inputRequest===dimInputRequest.current&&!useApp.getState().skDimPreview.id){dimEditorScope.current=null;setEditing(null);setInputError(null)}
+      // applyDimCandidate writes skCons/sketchUndo which bumps dimEditEpoch via the store
+      // middleware — do not require epoch match or the editor stays stale and later confirms
+      // look like a silent formula revert (BUG-017 / stale editor BUG-008).
+      const preview=useApp.getState().skDimPreview
+      if(inputRequest===dimInputRequest.current&&!preview.id&&!preview.pending){dimEditorScope.current=null;setEditing(null);setInputError(null);invalidDimDraft.current=false}
       return
     }
     if (val === initialValue.current) { setEditing(null); return }

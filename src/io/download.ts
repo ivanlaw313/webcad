@@ -1,4 +1,4 @@
-// Durable download helper (BUG-UI-002 / Save-Export P0).
+// Durable download helper (BUG-UI-002 Save/Export P0; BUG-UI-008 drawing SVG/PDF/DXF).
 // Prefer the File System Access API so Save/Export write to a user-chosen path
 // instead of an ephemeral Chromium managed download that QA sees as "Removed".
 // Fall back to an in-document <a download> blob link when the picker is

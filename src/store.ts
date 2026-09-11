@@ -2653,6 +2653,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   exportAllPartsZip: () => void
   componentClearance: (id: string) => void
   exportBOM: (density?: number) => void
+  bomDialog: { rows: string[][]; summary: string } | null
+  closeBomDialog: () => void
   exportFeaCsv: () => void                                 // S173：导出当前 FEA 结果（摘要 + 逐体素场）做 UTF-8 CSV
   exportParamsCsv: () => void
   exportGLB: () => Promise<void>
@@ -10763,8 +10765,22 @@ export const useApp = create<AppState>((rawSet, get) => {
   finish3dOpts: { toolD: 3, stepover: 0.8, feedXY: 600, feedZ: 150, rpm: 10000, safeZ: 5, strategy: 'finish', stepdown: 1, allowance: 0.5 },
   openFinish3dDlg: () => {
     const s = get()
-    if (!s.bodyMesh || !s.bodyMesh.vertices.length) { set({ status: '3D 精加工：先要有一个活动实体（曲面/有机件最显效），再出球头精加工刀路' }); return }
-    set({ finish3dDlg: true, status: '🪚 3D 平行精加工：设球头刀Ø/行距/进给 → 出 GRBL 刀路（z-map 落刀防过切；安全高须 > 顶面）' })
+    if (!s.bodyMesh || !s.bodyMesh.vertices.length) {
+      const meshOnly = s.components.some((c) => !c.hidden && c.mesh?.triangles?.length)
+      set({
+        status: meshOnly
+          ? '3D 加工：目前只有网格组件、没有活动实体。请先 MeshFit/转 B-rep（或拉伸实体）后再开刀路。属趋势级预览，非完整制造工作区/真机。'
+          : '3D 加工：先要有活动实体（Solid 或 Mesh→B-rep）。属趋势级刀路预览与 G-code 导出，非商用 CAM / 无刀库夹具真机。',
+      })
+      return
+    }
+    const solid = hasSolid(s.features)
+    set({
+      finish3dDlg: true,
+      status: solid
+        ? '🪚 3D 刀路：设策略/刀Ø/行距 → 预览或导出 G-code（趋势级，非商用制造工作区）'
+        : '🪚 3D 刀路（网格缝合实体）：趋势级预览 — 非完整制造工作区；建议核对刀路后再用。',
+    })
   },
   closeFinish3dDlg: () => set({ finish3dDlg: false }),
   setFinish3dOpts: (o) => set((s) => ({ finish3dOpts: { ...s.finish3dOpts, ...o } })),
@@ -12904,8 +12920,20 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'formextrude': case 'formrevolve': case 'formsweep': case 'formloft':
         set({ status: `${label}：FORM T-spline 曲线/截面求解仍在实现中；不会改用 SOLID 命令冒充。` }); return
       case 'formedit': set({ status: get().formCage ? 'Edit Form：点控制点或面，再用画布 gizmo 移动／旋转／缩放。' : 'Edit Form：请先在 CREATE 建立一个 Form 基元。' }); return
+      case 'formsubdiv': {
+        const fc = get().formCage
+        if (!fc) { set({ status: 'Subdivide：请先建立一个 Form 基元。' }); return }
+        const next = fc.levels >= 3 ? 1 : fc.levels + 1
+        get().setFormLevels(next)
+        set({ status: `Subdivide：细分级 ${next}/3（预览即时更新；FINISH FORM 烘焙）` })
+        return
+      }
       case 'formloop': if (get().formCage?.selFace != null) return void get().formInsertLoop(0); set({ status: 'Insert Edge：先点选一个控制笼面。' }); return
       case 'formcrease': if (get().formCage?.selFace != null) return get().formCrease(); set({ status: 'Crease：先点选一个控制笼面。' }); return
+      case 'formbridge': set({ status: 'Bridge（FORM）：T-spline 桥接尚未支援 — 实体棱请用 SURFACE「桥接面」。' }); return
+      case 'formweld': set({ status: 'Weld（FORM）：顶点焊接尚未支援。' }); return
+      case 'formfillhole': set({ status: 'Fill Hole（FORM）：补洞尚未支援。' }); return
+      case 'formerasefill': set({ status: 'Erase & Fill（FORM）：尚未支援。' }); return
       case 'formsymmetry': return get().cycleFormSym()
       case 'formmirror': if (get().formCage) return void get().formMirror(0); set({ status: 'Mirror：请先建立一个 Form 基元。' }); return
       case 'formrepair': set({ status: 'Repair Body：目前控制笼会在 FINISH FORM 时做拓扑检查；完整 Fusion 修复清单仍在实现中。' }); return
@@ -13476,10 +13504,26 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'computeunresolved':
         set({ status: '计算未解析：只在设计含未解析外部组件时可用；当前设计没有未解析外部组件' }); return
+      case 'meshfit':
       case 'convert': {
-        const sc = get().selectedComponent
-        if (sc) return void get().convertMeshComponent(sc)
-        set({ status: '转换：先在浏览器选择一个网格组件；WebCAD 当前可转换网格→B-rep，BRep↔T-Spline 仍在实现' }); return
+        // BUG-BD-1801：明确 Mesh→BRep 入口。优先所选；否则唯一可见网格；否则最近导入件。
+        const s0 = get()
+        let id = s0.selectedComponent
+        const meshOk = (cid: string | null | undefined) => {
+          if (!cid) return false
+          const c = s0.components.find((x) => x.id === cid)
+          return !!(c && !c.hidden && c.mesh?.triangles?.length)
+        }
+        if (!meshOk(id)) {
+          const visible = s0.components.filter((c) => !c.hidden && c.mesh?.triangles?.length)
+          id = visible.length === 1 ? visible[0].id : (visible.length ? visible[visible.length - 1].id : null)
+        }
+        if (!id) {
+          set({ status: 'MeshFit / 转 B-rep：先插入 STL/OBJ 网格（MESH → 插入，或 Alt+O），再转换。纯草图实体请直接建模。' })
+          return
+        }
+        if (s0.selectedComponent !== id) get().selectComponent(id)
+        return void get().convertMeshComponent(id)
       }
       case 'bom': return get().exportBOM()
       case 'centerofmass': return get().toggleCom()
@@ -17364,13 +17408,28 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   openStlDialog: () => {
-    const inp = document.createElement('input')
-    inp.type = 'file'; inp.accept = '.stl'
-    inp.onchange = async () => {
-      const f = inp.files?.[0]; if (!f) return
-      get().openMeshInsert('stl', f.name.replace(/\.[^.]+$/, ''), { buf: await f.arrayBuffer() })   // GM-X3 #11：开插入对话框（单位/flip/摆位）
+    // BUG-BD-1804：优先 File System Access picker（自动化/部分环境 <input> 会挂）；失败回落 input。
+    const openFile = async (f: File) => {
+      get().openMeshInsert('stl', f.name.replace(/\.[^.]+$/, ''), { buf: await f.arrayBuffer() })
     }
-    inp.click()
+    void (async () => {
+      type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
+      const picker = (window as OpenPickerWindow).showOpenFilePicker
+      if (typeof picker === 'function') {
+        try {
+          const [handle] = await picker.call(window, { multiple: false, types: [{ description: 'STL mesh', accept: { 'model/stl': ['.stl'], 'application/sla': ['.stl'] } }] })
+          await openFile(await handle.getFile())
+          return
+        } catch (err) {
+          const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
+          if (name === 'AbortError') { set({ status: '已取消 STL 插入' }); return }
+        }
+      }
+      const inp = document.createElement('input')
+      inp.type = 'file'; inp.accept = '.stl'
+      inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; await openFile(f) }
+      inp.click()
+    })()
   },
 
   openDxfDialog: () => {
@@ -19319,8 +19378,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     const csv = '﻿' + rows.map((r) => r.map((f) => (/[",\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f)).join(',')).join('\r\n')
     triggerDownload(new TextEncoder().encode(csv), `${projName(get().projectName)}-BOM.csv`, 'text/csv')
     const anyMat = comps.some((c) => c.material && MATERIALS[c.material]?.density)
-    set({ status: `已导出 BOM 材料清单（${groups.size} 种零件 · 共 ${totQty} 件 · 总质量 ${totMass >= 1000 ? (totMass / 1000).toFixed(2) + ' kg' : totMass.toFixed(0) + ' g'}${anyMat ? '，按各组件材质密度' : ` @${density}g/cm³`} · 实心料长 ${totFil.toFixed(1)}m@1.75${badParts ? ` · ⚠${badParts} 种非水密` : ' · 全部水密'}）` })
+    const summary = `BOM（${groups.size} 种零件 · 共 ${totQty} 件 · 总质量 ${totMass >= 1000 ? (totMass / 1000).toFixed(2) + ' kg' : totMass.toFixed(0) + ' g'}${anyMat ? '，按各组件材质密度' : ` @${density}g/cm³`} · 实心料长 ${totFil.toFixed(1)}m@1.75${badParts ? ` · ⚠${badParts} 种非水密` : ' · 全部水密'}）`
+    // BUG-BD-1805：同时弹出可见表格（下载可能被自动化拦截，表格可核验）
+    set({ bomDialog: { rows, summary }, status: `已导出 ` + summary + ' — 已打开 BOM 表' })
   },
+  bomDialog: null,
+  closeBomDialog: () => set({ bomDialog: null }),
   // S173：导出当前 FEA 结果做 CSV（摘要：材料/σy/vmMax/位移/SF/反力/收敛 + 逐体素 x,y,z,vm,平滑vm,位移,σ1,σ3,τmax,应变能）。
   // 只读，唔改任何状态；纯 buildFeaCsv（可单测）。无结果 → 诚实提示。
   exportFeaCsv: () => {
@@ -19795,7 +19858,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const placedAt = meshInsertPosition(mesh.vertices, get().originX, opt?.place)
     const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('导入' + (comps.length + 1)), mesh, placedAt, { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence
     const comp = occ
-    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, busy: false, status: `已导入「${comp.name}」（${mesh.triangles.length / 3} 三角面）${opt?.unit && opt.unit !== 'mm' ? ` · 单位 ${opt.unit}→mm` : ''}${opt?.flipUp ? ' · 已翻正 Y↔Z' : ''}${wtWarn(mesh) || '　·　水密 ✓ 可打印'}` }))
+    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, busy: false, selectedComponent: nid, status: `已导入「${comp.name}」（${mesh.triangles.length / 3} 三角面）${opt?.unit && opt.unit !== 'mm' ? ` · 单位 ${opt.unit}→mm` : ''}${opt?.flipUp ? ' · 已翻正 Y↔Z' : ''}${wtWarn(mesh) || '　·　水密 ✓ 可打印'} · 可用 MeshFit/转 B-rep` }))
     get().requestFit()
   },
   importObj: async (text, name, opt) => {
@@ -19815,14 +19878,31 @@ export const useApp = create<AppState>((rawSet, get) => {
     const placedAt = meshInsertPosition(mesh.vertices, get().originX, opt?.place)
     const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('导入' + (comps.length + 1)), mesh, placedAt, { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence
     const comp = occ
-    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, status: `已导入 OBJ「${comp.name}」（${mesh.triangles.length / 3} 三角面）${opt?.unit && opt.unit !== 'mm' ? ` · 单位 ${opt.unit}→mm` : ''}${opt?.flipUp ? ' · 已翻正 Y↔Z' : ''}${wtWarn(mesh) || '　·　水密 ✓ 可打印'}` }))
+    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, selectedComponent: nid, status: `已导入 OBJ「${comp.name}」（${mesh.triangles.length / 3} 三角面）${opt?.unit && opt.unit !== 'mm' ? ` · 单位 ${opt.unit}→mm` : ''}${opt?.flipUp ? ' · 已翻正 Y↔Z' : ''}${wtWarn(mesh) || '　·　水密 ✓ 可打印'} · 可用 MeshFit/转 B-rep` }))
     get().requestFit()
   },
   openObjDialog: () => {
-    const inp = document.createElement('input')
-    inp.type = 'file'; inp.accept = '.obj'
-    inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; get().openMeshInsert('obj', f.name.replace(/\.[^.]+$/, ''), { text: await f.text() }) }   // GM-X3 #11：开插入对话框（单位/flip/摆位）
-    inp.click()
+    const openFile = async (f: File) => {
+      get().openMeshInsert('obj', f.name.replace(/\.[^.]+$/, ''), { text: await f.text() })
+    }
+    void (async () => {
+      type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
+      const picker = (window as OpenPickerWindow).showOpenFilePicker
+      if (typeof picker === 'function') {
+        try {
+          const [handle] = await picker.call(window, { multiple: false, types: [{ description: 'OBJ mesh', accept: { 'text/plain': ['.obj'], 'model/obj': ['.obj'] } }] })
+          await openFile(await handle.getFile())
+          return
+        } catch (err) {
+          const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
+          if (name === 'AbortError') { set({ status: '已取消 OBJ 插入' }); return }
+        }
+      }
+      const inp = document.createElement('input')
+      inp.type = 'file'; inp.accept = '.obj'
+      inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; await openFile(f) }
+      inp.click()
+    })()
   },
   // GM-X3 #11：Mesh 插入对话框
   insertMesh: null,

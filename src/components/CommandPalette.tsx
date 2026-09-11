@@ -1,7 +1,7 @@
 import { commandContextKey, commandDisabledReason } from '../cad/commandAvailability'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useApp, SAMPLE_LABELS, type SampleKind } from '../store'
-import { WORKSPACES, SKETCH_PANELS, type Tool } from '../ribbon'
+import { WORKSPACES, SKETCH_PANELS, FORM_PANELS, type Tool } from '../ribbon'
 
 // A searchable command. Ribbon tools dispatch through runCommand(id); templates and
 // global file/edit/view actions carry their own `run` closure instead.
@@ -19,6 +19,16 @@ const SYN: Record<string, string> = {
   importdxf: '导入dxf dxf 激光切割 laser 2D轮廓 平面图 cad图 import dxf 切割图',
   importsvg: '导入svg svg logo 标志 图标 矢量 矢量图 vector icon 标牌 铭牌 import svg',
   insertmesh: '导入stl stl 导入网格 import mesh 模型 网格',
+  meshfit: 'meshfit mesh fit 转brep 转 b-rep convert mesh 网格拟合 参数化 缝合',
+  convert: 'meshfit convert 转换 转brep 网格转实体',
+  formsubdiv: 'subdivide 细分 form subdivide',
+  formcrease: 'crease 折痕 form crease',
+  formbridge: 'bridge form bridge 桥接',
+  formweld: 'weld form weld 焊接',
+  formfillhole: 'fill hole form 补洞',
+  formerasefill: 'erase fill form',
+  finish3d: 'cam 3d加工 刀路 manufacture toolpath gcode',
+  bom: 'bom 材料清单 bill of materials 零件表',
   prism: '棱柱 六角 多边形柱 hex',
   cone: '圆锥 圆台 锥 漏斗 喷嘴 锥销 灯罩 funnel taper',
   wedge: '楔形 楔 斜坡 坡道 门挡 三角块 三角支撑 ramp wedge',
@@ -125,6 +135,13 @@ function buildCommands(): Cmd[] {
     for (const t of panel.tools) {
       if (byId.has(t.id)) continue   // 唔覆盖已存在（例如 sectionprops 同名）
       byId.set(t.id, { ...t, from: `SKETCH · ${panel.name}` })
+    }
+  }
+  // FORM contextual tools (Subdivide/Crease/...) — searchable like meshfit discovery.
+  for (const panel of FORM_PANELS) {
+    for (const t of panel.tools) {
+      if (byId.has(t.id)) continue
+      byId.set(t.id, { ...t, from: `FORM · ${panel.name}` })
     }
   }
   // 'select' is not a real command worth surfacing in search

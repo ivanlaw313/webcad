@@ -3698,6 +3698,7 @@ export default function Viewport() {
   const measureSnapMarkers = useApp((s) => s.measureSnapMarkers)  // #174-6
   const propsDialog = useApp((s) => s.propsDialog)               // GM-X1 #10
   const propsDialogData = useApp((s) => s.propsDialogData)
+  const bomDialog = useApp((s) => s.bomDialog)                   // BUG-BD-1805
   const joints = useApp((s) => s.joints)
   const jointOrigins = useApp((s) => s.jointOrigins)   // GM-3DV4 A1：可复用关节原点标记
   const explodeLeaders = useApp((s) => s.explodeLeaders)   // GM-3DV4 A12：爆炸引线开关
@@ -3903,6 +3904,7 @@ export default function Viewport() {
   useEscapeLayer(!!ctxMenu, () => setCtxMenu(null), 250)
   useEscapeLayer(!!navPop, () => setNavPop(null), 120)
   useEscapeLayer(!!propsDialog, () => useApp.getState().closePropertiesDialog(), 210)  // UI02: Properties is its own Esc layer
+  useEscapeLayer(!!bomDialog, () => useApp.getState().closeBomDialog(), 211)
   // 按住 Alt → 临时停几何捕捉（画图时精准落点，Fusion 同款）；放开/失焦即恢复。
   useEffect(() => {
     const dn = (e: KeyboardEvent) => { if (e.key === 'Alt') setGeoSnapAlt(true) }
@@ -6067,6 +6069,7 @@ export default function Viewport() {
       )}
       {finish3dDlg && (
         <CommandDialog icon="section" title={finish3dOpts.strategy === 'rough' ? 'CNC 3D 粗加工（平端逐层挖槽）' : 'CNC 3D 平行精加工（球头）'} onOk={() => { void useApp.getState().runFinish3d('download') }} onCancel={() => useApp.getState().closeFinish3dDlg()}>
+          <div style={{ fontSize: 11, color: '#8a5a00', marginBottom: 6, gridColumn: '1 / -1' }}>⚠ 趋势级刀路预览 / G-code 导出 — 非完整制造工作区（无刀库、夹具、碰撞仿真、真机）。需要活动实体；纯网格请先 MeshFit。</div>
           <label title="精加工 = 球头 raster 落刀贴面；粗加工 = 平端逐层清料留余量。Fusion 工作流：先粗后精。">策略 <select value={finish3dOpts.strategy} onChange={(e) => useApp.getState().setFinish3dOpts({ strategy: e.target.value as 'finish' | 'rough' })} style={{ height: 26 }}><option value="finish">精加工（球头平行）</option><option value="rough">粗加工（逐层挖槽）</option></select></label>
           <div style={{ fontSize: 11, color: '#6b7680', maxWidth: 240 }}>{finish3dOpts.strategy === 'rough' ? '平端刀逐层（每层切深）清除毛坯里高过零件嘅料，留余量畀精加工。' : '球头 raster 落刀贴面（z-map 防过切）。曲面/有机件最显效。'}安全高 = 顶面 + 下面值。</div>
           {finish3dOpts.strategy === 'rough' && <label title="轴向每层切深 mm（粗加工分层）">每层 <input type="number" step={0.5} min={0.2} value={finish3dOpts.stepdown} onChange={(e) => useApp.getState().setFinish3dOpts({ stepdown: Number(e.target.value) })} style={{ width: 50 }} /></label>}
@@ -7971,6 +7974,33 @@ export default function Viewport() {
           </div>
         </div>
       )}
+      {bomDialog && (
+        <div role="dialog" aria-label="BOM" className="cmd-palette" style={{ position: 'fixed', left: '50%', top: 'min(120px, 14vh)', transform: 'translateX(-50%)', width: 'min(720px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: 220, maxHeight: 'calc(78vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column', background: '#fff', border: '1px solid #b6c0c9', borderRadius: 10, boxShadow: '0 12px 40px rgba(0,0,0,.28)', padding: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <b style={{ fontSize: 14 }}>📋 {tStatus('BOM 材料清单', lang)}</b>
+            <button className="tb-btn" title={tStatus('关闭', lang)} onClick={() => useApp.getState().closeBomDialog()}>✕</button>
+          </div>
+          <div style={{ fontSize: 12, color: '#5a6b78', marginBottom: 8 }}>{bomDialog.summary}</div>
+          <div style={{ overflow: 'auto', flex: 1 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr>{bomDialog.rows[0]?.map((h, i) => <th key={i} style={{ textAlign: 'left', borderBottom: '1px solid #cfd8df', padding: '4px 6px', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: '#f4f7fa' }}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {bomDialog.rows.slice(1).map((r, ri) => (
+                  <tr key={ri} style={{ background: ri % 2 ? '#fafbfc' : '#fff' }}>
+                    {r.map((c, ci) => <td key={ci} style={{ borderBottom: '1px solid #e8eef2', padding: '3px 6px', whiteSpace: 'nowrap' }}>{c}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+            <button className="tb-btn" onClick={() => useApp.getState().exportBOM()}>📥 {tStatus('再导出 CSV', lang)}</button>
+            <button className="tb-btn" onClick={() => useApp.getState().closeBomDialog()}>{tStatus('关闭', lang)}</button>
+          </div>
+        </div>
+      )}
       {/* S118：拔模分析面板 — 脱模方向切换 + 图例 + 统计（开后显示） */}
       {draftResult && (
         <div className="info-card" style={{ position: 'fixed', top: 150, right: 20, width: 234, padding: '12px 14px', zIndex: 200, fontSize: 12 }}>{/* GM-G4b：拔模分析浮卡 → .info-card 共用 token */}
@@ -8383,6 +8413,7 @@ function FormPanel() {
       <span style={{ color: '#5a6b78' }}>{tStatus('点控制点拖箭嘴捏形 / 点面拉伸（', lang)}{cage.verts.length} {tStatus('点）', lang)}</span>
       {cage.sel != null && <fieldset style={{ minWidth: 0, width: '100%', display: 'flex', flexWrap: 'wrap', gap: 6 }}><legend>{lang === 'en' ? 'Control point · mm' : '控制点坐标 · mm'}</legend>{(['X','Y','Z'] as const).map((axis,k) => <label key={axis}>{axis} <input aria-label={'Form point '+axis} key={cage.sel+'|'+cage.verts[cage.sel!][k]} type="number" defaultValue={cage.verts[cage.sel!][k]} style={{ width: 64 }} onBlur={e => { const n=Number(e.currentTarget.value), c=useApp.getState().formCage; if (e.currentTarget.value.trim() && Number.isFinite(n) && c?.sel != null) { const p=[...c.verts[c.sel]] as [number,number,number];p[k]=n;useApp.getState().setFormVert(c.sel,p) } }} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){e.currentTarget.value=String(cage.verts[cage.sel!][k]);e.currentTarget.blur()}}}/></label>)}</fieldset>}
       <label title={tStatus('细分级数：越高越圆滑（三角数 ×4/级）', lang)}>{tStatus('级数', lang)} <select value={cage.levels} onChange={(e) => useApp.getState().setFormLevels(Number(e.target.value))} style={{ height: 22 }}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
+      <button className="cs-btn" title={tStatus('Subdivide：循环提高细分级 1→2→3→1', lang)} onClick={() => useApp.getState().runCommand('formsubdiv', 'Subdivide')}>{tStatus('Subdivide', lang)}</button>
       <button className={'cs-btn' + (formSym !== null ? ' on' : '')} title={tStatus('对称编辑（S193）：开后拖一边控制点，对面镜像点自动同步（X/Y 轴镜像，对称平面 0）—— Fusion T-spline Symmetry。再撳切换 关→X→Y', lang)} style={formSym !== null ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().cycleFormSym()}>{tStatus('对称', lang)}{formSym === 0 ? ':X' : formSym === 1 ? ':Y' : ''}</button>
       {(cage.msel ?? []).length >= 2 && <FormTransformFields />}
       {(cage.msel ?? []).length >= 2 && (() => {

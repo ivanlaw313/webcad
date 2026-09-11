@@ -1,4 +1,5 @@
-import { drawingScale, drawingLinearOffset, dxfTextValue } from '../io/drawingLayout'
+import { drawingScale, paperViewSizeMm, drawingLinearOffset, cloneDrawingAnno, dxfTextValue } from '../io/drawingLayout'
+import { registerEscapeLayer } from '../cad/escapeKey'
 import { useApp } from '../store'
 import { tStatus } from '../i18n'
 import { useState, useEffect, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react'
@@ -520,22 +521,37 @@ export default function DrawingPanel() {
       texts: [{ x: x0 + a, y: y + fs * 1.05, t: 'A', size: fs }, { x: x1 - a, y: y + fs * 1.05, t: 'A', size: fs }],
     }
   }
-  const dragAnnotation = (e:ReactPointerEvent<SVGTextElement>,view:string,index:number,kind:'linear'|'radial') => {
-    if(e.button!==0)return
-    e.preventDefault();e.stopPropagation()
-    const target=e.currentTarget,svg=target.ownerSVGElement,matrix=svg?.getScreenCTM()?.inverse()
-    if(!svg||!matrix)return
+  const dragAnnotation = (e: ReactPointerEvent<SVGTextElement>, view: string, index: number, kind: 'linear' | 'radial') => {
+    if (e.button !== 0) return
+    e.preventDefault(); e.stopPropagation()
+    const target = e.currentTarget, svg = target.ownerSVGElement, matrix = svg?.getScreenCTM()?.inverse()
+    if (!svg || !matrix) return
     target.setPointerCapture(e.pointerId)
-    const before=useApp.getState().drawingAnno
-    const move=(event:PointerEvent)=>{
-      const p=new DOMPoint(event.clientX,event.clientY).matrixTransform(matrix)
-      if(kind==='linear')setManualDims(all=>({...all,[view]:all[view].map((d,i)=>i===index?{...d,offset:drawingLinearOffset(d,p)}:d)}))
-      else setManualRDims(all=>({...all,[view]:all[view].map((d,i)=>i===index?{...d,angle:Math.atan2(p.y-d.cy,p.x-d.cx)}:d)}))
+    // Snapshot before any move so Esc / pointercancel can restore; deep-clone so nested dim arrays stay frozen.
+    const before = cloneDrawingAnno(useApp.getState().drawingAnno)
+    let done = false
+    const finish = (restore: boolean) => {
+      if (done) return
+      done = true
+      unregEsc()
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancelPtr)
+      if (target.hasPointerCapture(e.pointerId)) target.releasePointerCapture(e.pointerId)
+      if (restore) useApp.getState().setDrawingAnno(before)
     }
-    const cleanup=()=>{target.removeEventListener('pointermove',move);target.removeEventListener('pointerup',up);target.removeEventListener('pointercancel',cancel);document.removeEventListener('keydown',key);if(target.hasPointerCapture(e.pointerId))target.releasePointerCapture(e.pointerId)}
-    const up=()=>cleanup(),cancel=()=>{cleanup();useApp.getState().setDrawingAnno(before)}
-    const key=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.stopImmediatePropagation();event.preventDefault();cancel()}}
-    target.addEventListener('pointermove',move);target.addEventListener('pointerup',up);target.addEventListener('pointercancel',cancel);document.addEventListener('keydown',key)
+    const move = (event: PointerEvent) => {
+      const p = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix)
+      if (kind === 'linear') setManualDims((all) => ({ ...all, [view]: (all[view] || []).map((d, i) => i === index ? { ...d, offset: drawingLinearOffset(d, p) } : d) }))
+      else setManualRDims((all) => ({ ...all, [view]: (all[view] || []).map((d, i) => i === index ? { ...d, angle: Math.atan2(p.y - d.cy, p.x - d.cx) } : d) }))
+    }
+    const up = () => finish(false)
+    const cancelPtr = () => finish(true)
+    // Capture-phase Esc layer (above App) — restores snapshot; pointerup after Esc is ignored via `done`.
+    const unregEsc = registerEscapeLayer(() => finish(true), 1000)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancelPtr)
   }
   const svgFor = (v: typeof views[number]) => {
     const d = computeDims(v)
@@ -552,7 +568,7 @@ export default function DrawingPanel() {
       return { fv, midX: vx0 + vw2 / 2 }
     })() : null
     return (
-      <svg viewBox={d ? d.vbExp : v.vb} preserveAspectRatio="xMidYMid meet" onClick={(e) => onSvgClick(v, e)} style={{ width: `${Number((d ? d.vbExp : v.vb).split(/\s+/)[2])*drawingScale(scale)}mm`, height: `${Number((d ? d.vbExp : v.vb).split(/\s+/)[3])*drawingScale(scale)}mm`, maxWidth:'none', background: '#fff', cursor: (dimMode || radMode || angMode || datumMode || fcfMode || noteMode || detailMode || ordMode) ? 'crosshair' : 'default' }}>
+      <svg viewBox={d ? d.vbExp : v.vb} preserveAspectRatio="xMidYMid meet" onClick={(e) => onSvgClick(v, e)} style={{ width: `${paperViewSizeMm(d ? d.vbExp : v.vb, scale).width}mm`, height: `${paperViewSizeMm(d ? d.vbExp : v.vb, scale).height}mm`, maxWidth: 'none', flexShrink: 0, background: '#fff', cursor: (dimMode || radMode || angMode || datumMode || fcfMode || noteMode || detailMode || ordMode) ? 'crosshair' : 'default' }}>
         {v.hatch && v.hatch.length > 0 && (
           <defs>
             <pattern id={'hp_' + v.name} patternUnits="userSpaceOnUse" width={hsp} height={hsp} patternTransform="rotate(45)">

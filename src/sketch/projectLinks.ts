@@ -69,6 +69,12 @@ function refreshLegacyProjectLinks(shapes: SketchShape[], refGeo: RefGeo | null,
     return old.type === 'poly' && !!old.open === !c.closed && old.pts.length === c.pts.length
   })
   if (!sameTopology) return hold('topology')
+  // Same vertex count alone is not identity: a fillet can leave another edge with
+  // identical topology. Only refresh when the move is continuous for every chain.
+  if (!linked.every((idx, i) => {
+    const old = shapes[idx]
+    return old.type === 'poly' && continuousMove(old.pts, chains[i].pts, !!old.open)
+  })) return hold('ambiguous-source')
   const next = [...shapes]
   linked.forEach((idx, i) => { next[idx] = { ...clearIssue(shapes[idx]), ...linkedShape(chains[i]) } })
   return { shapes: next, refreshed: linked.length, held: 0 }
@@ -98,6 +104,16 @@ function alignPoints(old: Pt[], replacement: Pt[], open: boolean): Pt[] | null {
   alternatives.sort((a,b)=>a.cost-b.cost)
   if(alternatives.length>1&&Math.abs(alternatives[1].cost-alternatives[0].cost)<=1e-9*Math.max(1,alternatives[0].cost))return null
   return clonePoints(alternatives[0].points)
+}
+/** True when replacement is a continuous move of the same curve, not a jump to another edge. */
+function continuousMove(old: Pt[], next: Pt[], open: boolean): boolean {
+  const aligned = alignPoints(old, next, open)
+  if (!aligned) return false
+  const cost = aligned.reduce((sum, p, i) => sum + (p[0] - old[i][0]) ** 2 + (p[1] - old[i][1]) ** 2, 0) / aligned.length
+  const xs = [...old, ...next].map(p => p[0]), ys = [...old, ...next].map(p => p[1])
+  const scale = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 1)
+  // RMS displacement beyond half the characteristic size is treated as a different edge.
+  return cost <= (0.5 * scale) ** 2
 }
 export function prepareProjectRelink(shape: SketchShape, candidate: ProjectRelinkCandidate): {ok:true;shape:SketchShape}|{ok:false;reason:ProjectLinkHoldReason} {
   if(shape.type!=='poly'||modified(shape as LinkedPoly))return {ok:false,reason:'modified-geometry'}
@@ -139,9 +155,9 @@ export function refreshSafeProjectLinks(shapes: SketchShape[], refGeo: RefGeo | 
     if(exact.length===1&&exact[0].compatible){const {projectLinkIssue:_issue,...rest}=shape;next[index]=rest;refreshed++;return}
     if(exact.length>1){hold('ambiguous-source');return}
     if(cons.some(c=>[c.a,c.b,c.c].some(r=>r?.kind!=='origin'&&r?.shape===index))){hold('constraints');return}
-    if(candidates.length!==1){hold('ambiguous-source');return}
-    const mapped=prepareProjectRelink(shape,candidates[0]);if(!mapped.ok){hold(mapped.reason);return}
-    next[index]=mapped.shape;refreshed++
+    // Exact source snapshot missed (dim/fillet/topology). Never silently adopt another
+    // edge — even the sole remaining candidate — so the UI can show per-item reconnect.
+    hold('ambiguous-source')
   })
   return {shapes:next,refreshed,held,...(reason?{reason}:{})}
 }

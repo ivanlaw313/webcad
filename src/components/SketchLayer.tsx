@@ -25,6 +25,7 @@ import { sampleBSpline } from '../cad/bspline2d'   // S127：B 样条画线时 l
 import { sampleConic } from '../cad/conic2d'   // S177：圆锥曲线 live 预览
 import { canvasQuad, canvasUV, type CanvasItem } from '../cad/insertModel'   // GM-X3 #2/#3：多张 Canvas 四角/UV（非等比+旋转+翻转）
 import { solveMove } from '../cad/moveSolve'
+import { useEscapeLayer } from './useEscapeLayer'
 import type { MeshData, Plane } from '../worker/cad.worker'
 
 type V3 = [number, number, number]
@@ -1269,9 +1270,11 @@ function shrinkLoopToward(loop: Pt[], wall: number): Pt[] | null {
 }
 
 // GM-W8 A4：把一条 2D 环绕【CAD 轴】(axO 过点、d 单位方向) 扫 ang° → 回转面（+部分角两端盖），append 入 positions/indices。
-function latheLoop(loop: Pt[], axO: V3, d: V3, ang: number, sym: boolean, positions: number[], indices: number[], toCad: (point: Pt) => V3) {
+function latheLoop(loop: Pt[], axO: V3, d: V3, ang: number, sym: boolean, positions: number[], indices: number[], toCad: (point: Pt) => V3, flipSense = false) {
   const M = loop.length; if (M < 3) return
-  const N = 24, total = (ang * Math.PI) / 180, start = sym ? -total / 2 : 0
+  // SO04: cut/intersect previews sweep the opposite half-space (into +Z for XY/+Y) so the ghost
+  // overlaps a typical plate — matching the worker's flip-on-miss boolean sense.
+  const N = 24, total = (ang * Math.PI) / 180, start = sym ? -total / 2 : (flipSense ? -total : 0)
   const rings: number[] = []
   for (let k = 0; k <= N; k++) {
     const th = start + total * (k / N), cos = Math.cos(th), sin = Math.sin(th)
@@ -1359,7 +1362,8 @@ export function RevolvePreview() {
     if (!axis) return null
     const { axO, d } = axis
     const positions: number[] = [], indices: number[] = []
-    for (const loop of loops2D) latheLoop(loop, axO, d, ang, sym, positions, indices, frame.toCad)
+    const flipSense = (op === 'cut' || op === 'intersect') && !sym && ang < 359.9
+    for (const loop of loops2D) latheLoop(loop, axO, d, ang, sym, positions, indices, frame.toCad, flipSense)
     if (!indices.length) return null
     const geom = new BufferGeometry()
     geom.setAttribute('position', new Float32BufferAttribute(positions, 3))
@@ -1457,7 +1461,9 @@ export function RevolveAngleHandle() {
     const { axO, d } = axis
     let ang = Math.abs(+p.angle || 360); if (!(ang > 0)) ang = 360; ang = Math.min(360, ang)
     const total = (ang * Math.PI) / 180, sym = !!p.sym && ang > 0 && ang < 360
-    const lead = (sym ? -total / 2 : 0) + total   // 前缘角（同 latheLoop k=N）
+    const op = String(p.op || 'new')
+    const flipSense = (op === 'cut' || op === 'intersect') && !sym && ang < 359.9
+    const lead = (sym ? -total / 2 : (flipSense ? -total : 0)) + total   // 前缘角（同 latheLoop k=N）
     // 抓手 2D 点 = 距轴线最远嘅外环顶点（半径最大，手柄最稳、最易拃）
     const perp = (q: Pt): number => { const cad = frame.toCad(q); const rx = cad[0] - axO[0], ry = cad[1] - axO[1], rz = cad[2] - axO[2]; const dot = rx * d[0] + ry * d[1] + rz * d[2]; return Math.hypot(rx - d[0] * dot, ry - d[1] * dot, rz - d[2] * dot) }
     let pg: Pt = outer[0], best = -1
@@ -1471,7 +1477,6 @@ export function RevolveAngleHandle() {
     const tl = Math.hypot(tx, ty, tz); if (tl < 1e-6) return null
     tx /= tl; ty /= tl; tz /= tl
     const tipT = c2tW(gCad), dirT = c2tW([tx, ty, tz])
-    const op = String(p.op || 'new')
     return {
       tip: new Vector3(tipT[0], tipT[1], tipT[2]),
       dir: new Vector3(dirT[0], dirT[1], dirT[2]).normalize(),
@@ -2574,6 +2579,8 @@ export function SketchDimLayer() {
   const dimInputRequest=useRef(0)
   const invalidDimDraft=useRef(false)
   const cancelDimension=()=>{++dimEditorEpoch.current;dimEditorScope.current=null;++dimInputRequest.current;useApp.getState().cancelSkDimEdit();setEditing(null);setInputError(null);invalidDimDraft.current=false}
+  // UI02: Esc cancels only the open dimension editor (topmost layer), never the sketch/doc.
+  useEscapeLayer(!!editing, cancelDimension, 500)
   const previewDimension=async(e:DimEdit,text:string)=>{
     if(!e.conId)return false
     const request=++dimInputRequest.current,state=useApp.getState(),con=state.skCons.find(c=>c.id===e.conId&&c.kind==='dim')
@@ -2670,7 +2677,11 @@ export function SketchDimLayer() {
       if(!await previewDimension(e,val)||editorEpoch!==dimEditorEpoch.current)return
       const inputRequest=dimInputRequest.current
       await useApp.getState().confirmSkDimEdit()
-      if(editorEpoch===dimEditorEpoch.current&&inputRequest===dimInputRequest.current&&!useApp.getState().skDimPreview.id){dimEditorScope.current=null;setEditing(null);setInputError(null)}
+      // applyDimCandidate writes skCons/sketchUndo which bumps dimEditEpoch via the store
+      // middleware — do not require epoch match or the editor stays stale and later confirms
+      // look like a silent formula revert (BUG-017 / stale editor BUG-008).
+      const preview=useApp.getState().skDimPreview
+      if(inputRequest===dimInputRequest.current&&!preview.id&&!preview.pending){dimEditorScope.current=null;setEditing(null);setInputError(null);invalidDimDraft.current=false}
       return
     }
     if (val === initialValue.current) { setEditing(null); return }

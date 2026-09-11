@@ -626,16 +626,57 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .pp-used { color: #9aa6af; font-size: 11px; }
 .pp-del { cursor: pointer; }
 .fe-param { margin-left: 4px; font-size: 11px; border: 1px solid var(--border-soft); border-radius: 4px; color: #2a7aa8; background: #f3f8fb; cursor: pointer; }
-.drawing-overlay { position: fixed; inset: 0; background: rgba(20,28,36,.45); z-index: 100; display: flex; align-items: center; justify-content: center; }
-.drawing-modal { background: #f6f7f9; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,.3); width: min(92vw, 1000px); max-height: 88vh; overflow: auto; padding: 14px 18px; }
-.dw-head { font-weight: 600; color: var(--accent); font-size: 15px; display: flex; justify-content: space-between; margin-bottom: 12px; }
-.dw-x { cursor: pointer; color: #999; }
-.dw-views { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.dw-view { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 6px; }
+/* UI001/DR004: keep drawing chrome reachable at 390–800 CSS px and browser zoom.
+   body{overflow:hidden} + centered overlay previously clipped the modal; wide
+   nowrap tool groups horizontally cropped the annotation bar; overlay onClick
+   swallowed clicks that landed outside the modal box. */
+.drawing-overlay {
+  position: fixed; inset: 0; background: rgba(20,28,36,.45); z-index: 100;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 8px; box-sizing: border-box; overflow: auto; overscroll-behavior: contain;
+}
+.drawing-modal {
+  background: #f6f7f9; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,.3);
+  width: min(92vw, 1000px); max-width: calc(100vw - 16px);
+  max-height: min(88vh, calc(100dvh - 16px));
+  overflow: hidden; padding: 14px 18px; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 0; min-height: 0; margin: auto;
+}
+.dw-body { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.dw-head {
+  font-weight: 600; color: var(--accent); font-size: 15px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+  justify-content: space-between; margin-bottom: 12px;
+}
+.dw-x { cursor: pointer; color: #999; flex-shrink: 0; margin-left: auto; }
+.dw-views {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+  min-width: 0;
+}
+.dw-view { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 6px; min-width: 0; overflow: auto; }
 .dw-vtitle { text-align: center; font-size: 12px; color: #5a6b78; margin-bottom: 4px; }
 .dw-dim { text-align: center; font-size: 11px; color: #2a7aa8; margin-top: 3px; font-family: monospace; }
-.dw-foot { display: flex; align-items: center; gap: 10px; justify-content: flex-end; margin-top: 12px; }
+.dw-foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  justify-content: flex-start; margin-top: 10px; padding-top: 8px;
+  flex: 0 0 auto; max-width: 100%; min-width: 0;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  border-top: 1px solid #d5dde3; background: #f6f7f9; scrollbar-width: thin;
+}
+.dw-foot > * { flex: 0 1 auto; max-width: 100%; min-width: 0; }
+.dw-foot button { white-space: nowrap; }
+.dw-tool-group {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  max-width: 100%; min-width: 0;
+}
 .dw-legend { margin-right: auto; color: #8a929a; font-size: 12px; }
+@media (max-width: 700px) {
+  .dw-views { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .drawing-modal { padding: 10px 12px; width: calc(100vw - 16px); }
+}
+@media (max-width: 420px) {
+  .dw-views { grid-template-columns: minmax(0, 1fr); }
+}
 .help-modal { background: #fff; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,.3); width: min(92vw, 880px); max-height: 88vh; overflow: auto; padding: 16px 20px; }
 .intro-card-body { overflow-wrap: anywhere; }
 @media (max-height: 760px) {
@@ -748,9 +789,26 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .cmd-palette-head { gap: 7px; }
 .cmd-palette { overflow: hidden; }
 .cmd-palette-summary { overflow-wrap: anywhere; max-height: 3.5em; overflow: auto; }
-@media (max-height: 500px) {
-  .cmd-palette { top: 100px; max-height: calc(100vh - 116px) !important; }
+/* UI001: Chrome 125–200% zoom shrinks the CSS viewport; keep Confirm/Cancel + numerics reachable. */
+@media (max-height: 640px) {
+  .cmd-palette {
+    top: 8px !important; right: 8px;
+    max-height: calc(100vh - 16px) !important;
+    max-width: calc(100vw - 16px);
+  }
   .cmd-palette-head, .cmd-palette-foot { padding-top: 6px; padding-bottom: 6px; }
+  .cmd-palette-body { padding-top: 6px; padding-bottom: 6px; }
+}
+@media (max-width: 800px) {
+  .cmd-palette {
+    right: 8px;
+    max-width: calc(100vw - 16px);
+  }
+  .vp-navbar {
+    left: 8px; right: 8px; transform: none; width: auto;
+    max-width: calc(100% - 16px); bottom: 48px;
+  }
+  .vp-badge, .vp-props { max-width: calc(100% - 24px); }
 }
 .operation-help { margin: 0; color: var(--text-dim); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .command-advanced { border-top: 1px solid var(--border-soft); padding-top: 6px; }

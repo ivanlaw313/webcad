@@ -47,7 +47,8 @@ test('every project-recovery route frames the restored model so it is not mistak
 test('a corrupt small autosave falls through to IndexedDB recovery instead of abandoning the document', () => {
   const autosave = action('restoreAutosave', 'newComponent')
   assert.match(autosave, /try \{\s+const parsed: unknown = JSON\.parse\(raw\)/)
-  assert.match(autosave, /localStorage\.removeItem\('webcad-autosave'\)/)
+  assert.match(autosave, /clearTabAutosave\(\)/)
+  assert.match(autosave, /isAutosaveForThisTab\(snapshot/)
   assert.match(autosave, /const snapshot = await loadSnapshot\(auto\.id\)/)
-  assert.match(autosave, /snapshot && typeof snapshot === 'object'/)
+  assert.match(autosave, /!snapshot \|\| typeof snapshot !== 'object'/)
 })

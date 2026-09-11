@@ -103,7 +103,7 @@ import { Matrix4, Vector3, Euler } from 'three'
 import { meshesToBinarySTL, meshToAsciiSTL } from './io/stl'
 import { meshesToGLB } from './io/gltf'
 import { makeZip } from './io/zip'
-import { durableDownload } from './io/download'
+import { durableDownload, durableDownloadFrom } from './io/download'
 import { meshManifold } from './geom/meshCheck'
 import { chatCompletion, PROVIDER_DEFAULTS, type AiConfig, type AiMsg, type AiProvider } from './ai/providers'
 import { TOOL_DEFS, AI_SYSTEM_PROMPT } from './ai/tools'
@@ -19368,22 +19368,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 字段一多就甩漏（实锤：save 写咗 mates 但 open 冇还原 → .json 往返丢配合）。
     const errors = [...documentReferenceErrors(s), ...documentPatternErrors(s), ...patternDataErrors(s.skPatternData,[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])],s.skCons), ...(s.mode === 'sketch' ? sketchReferenceErrors(s.skCons,s.params) : [])]
     if(errors.length) {set({status:`保存失败：尺寸引用失效 — ${errors.join('；')}（现有模型未动）`});return}
-    let data: string
-    try {
-      data = JSON.stringify({ ...buildProjectPayload(s) }, null, 2)   // GM-X4 ⑤：app/version 由 buildProjectPayload 提供（首二键，字节一致）— 去除被覆盖嘅重复字面量
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      set({ status: `保存失败：${msg}（现有模型未动）` })
-      return
-    }
-    // BUG-UI-002：prefer File System Access write so Save lands a durable user file (not an ephemeral Chromium download shelf entry).
-    const result = await durableDownload(new TextEncoder().encode(data), `${projName(s.projectName)}.json`, 'application/json')
+    // BUG-UI-002：open the save picker *before* JSON.stringify so the user gesture stays fresh;
+    // if picker is unavailable/cancelled/blocked, hardened anchor still lands a lasting download.
+    const result = await durableDownloadFrom(`${projName(s.projectName)}.json`, 'application/json', () => {
+      const data = JSON.stringify({ ...buildProjectPayload(s) }, null, 2)   // GM-X4 ⑤：app/version 由 buildProjectPayload 提供（首二键，字节一致）— 去除被覆盖嘅重复字面量
+      return new TextEncoder().encode(data)
+    })
     if (!result.ok) {
       if (result.reason === 'aborted') set({ status: '已取消保存（现有模型未动）' })
       else set({ status: `保存失败：无法写入文件${result.message ? ' — ' + result.message : ''}（现有模型未动）` })
       return
     }
-    const where = result.method === 'file-picker' ? ' · 已写入所选位置' : ''
+    const where = result.method === 'file-picker' ? ' · 已写入所选位置' : (result.method === 'anchor' ? ' · 已下载到浏览器下载目录' : '')
     set({ status: `已保存项目（${s.components.length} 组件 · ${s.joints.length} 关节 · ${s.features.length} 活动特征 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 组件特征）${where}` })
   },
 

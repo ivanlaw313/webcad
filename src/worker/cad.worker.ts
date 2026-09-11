@@ -2434,9 +2434,46 @@ function buildShape(features: Feature[], noCache = false): any {
         else buildWarnings.push(`⚠ 旋转薄壁 ${f.wall}mm 失败，已退回实体（试减薄壁厚或让截面贴轴）`)
       }
       // Operation (Fusion): new/join → fuse, cut → lathe a groove/recess, intersect → common volume.
+      // SO04: partial-angle revolve uses the right-hand sense about the axis (XY about +Y → −Z).
+      // A body on the opposite half-space yields empty intersect / no-op cut. Retry once after a
+      // 180° spin about the axis (same wedge as reversing the axis) so the tool overlaps the body.
+      // Still empty → throw; S107 rolls back and keeps the previous solid.
       if (!shape) shape = solid
-      else if (f.op === 'cut') { _recordBool(_i, 'cut', solid); shape = shape.cut(solid) }   // GM-γ2b：车削布尔亦录工具体供 S2
-      else if (f.op === 'intersect') { _recordBool(_i, 'intersect', solid); shape = shape.intersect(solid) }
+      else if (f.op === 'cut' || f.op === 'intersect') {
+        const _volOf = (sh: any): number => {
+          try {
+            if (!sh?.wrapped || sh.wrapped.IsNull?.()) return 0
+            const g = new _oc.GProp_GProps_1(); _oc.BRepGProp.VolumeProperties_1(sh.wrapped, g, false, false, false)
+            return Math.abs(g.Mass())
+          } catch { return 0 }
+        }
+        const prevV = _volOf(shape)
+        const _tryBool = (tool: any): any => {
+          try {
+            const out = f.op === 'cut' ? shape.clone().cut(tool.clone()) : shape.clone().intersect(tool.clone())
+            if (!out?.wrapped || out.wrapped.IsNull?.()) return null
+            const v = _volOf(out)
+            if (!(v > 1e-6)) return null
+            if (f.op === 'cut' && Math.abs(v - prevV) < 1e-4) return null   // silent miss — tool never entered material
+            return out
+          } catch { return null }
+        }
+        let tool = solid
+        let out = _tryBool(tool)
+        if (!out && ang > 0 && ang < 360 && !f.symmetric) {
+          try {
+            const org = (f.axisOrigin || [0, 0, 0]) as [number, number, number]
+            const flipped = solid.clone().rotate(180, org, rax)
+            const retried = _tryBool(flipped)
+            if (retried) { out = retried; tool = flipped }
+          } catch { /* keep out null */ }
+        }
+        if (!out) throw new Error(f.op === 'intersect'
+          ? '旋转相交区域为空 — 旋转体与现有实体没有重叠（已保留原模型）'
+          : '旋转切割未改实体 — 车削体未切入材料（已保留原模型）')
+        _recordBool(_i, f.op === 'cut' ? 'cut' : 'intersect', tool)   // GM-γ2b：车削布尔亦录工具体供 S2
+        shape = out
+      }
       else if (f.op === 'newbody') parkedBodies.push({ name: `实体${parkedBodies.length + 1}`, shape: solid })   // P2 New Body
       else { _recordBool(_i, 'fuse', solid); shape = shape.fuse(solid) }
     } else if (f.type === 'stepbody') {
@@ -5098,9 +5135,9 @@ function buildShape(features: Feature[], noCache = false): any {
         }
       } catch (e) { buildWarnings.push('分割失败：' + ((e as any)?.message || e)) }
     }
-    // 审计修复：移除型特征（cut 拉伸 / bodyboolean / 分割）把实体完全切空（vol≈0 但 IsNull=false，唔抛错）
-    // → 空体静默往后传、后续特征连锁失效、几何静默丢失。喺此验体积：切空 → 回滚 _shapeBefore + 标 failed（同 S107 口径）。
-    if (shape && ((f.type === 'extrude' && (f as any).operation === 'cut') || f.type === 'bodyboolean' || f.type === 'split') && _shapeBefore && (_shapeBefore as any).wrapped && !(_shapeBefore as any).wrapped.IsNull()) {
+    // 审计修复：移除型特征（cut/intersect 拉伸·旋转 / bodyboolean / 分割）把实体完全切空（vol≈0 但 IsNull=false，唔抛错）
+    // → 空体静默往后传、后续特征连锁失效、几何静默丢失。喺此验体积：切空 → 回滚 _shapeBefore + 标 failed（同 S107 口径）。SO04 含 revolve intersect。
+    if (shape && ((f.type === 'extrude' && ((f as any).operation === 'cut' || (f as any).operation === 'intersect')) || (f.type === 'revolve' && ((f as any).op === 'cut' || (f as any).op === 'intersect')) || f.type === 'bodyboolean' || f.type === 'split') && _shapeBefore && (_shapeBefore as any).wrapped && !(_shapeBefore as any).wrapped.IsNull()) {
       let _vNow = NaN
       try { const g = new _oc.GProp_GProps_1(); _oc.BRepGProp.VolumeProperties_1((shape as any).wrapped, g, false, false, false); _vNow = Math.abs(g.Mass()) } catch { /* */ }
       if (Number.isFinite(_vNow) && _vNow < 1e-6) {

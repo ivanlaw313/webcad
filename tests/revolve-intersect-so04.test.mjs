@@ -1,0 +1,112 @@
+/**
+ * SO04 / handoff P1: Revolve Intersect rebuild.
+ * Acceptance: after two-body intersect, B-rep valid and volume matches the
+ * overlapping preview wedge; on failure keep the previous solid.
+ *
+ * Partial angles default to the −Z half-space (right-hand about +Y from XY).
+ * A plate on z≥0 therefore misses intersect/cut unless the worker flips sense.
+ */
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { register, createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
+
+globalThis.require = createRequire(import.meta.url)
+globalThis.__dirname = fileURLToPath(new URL('.', import.meta.url))
+register('./native-car-loader.mjs', import.meta.url)
+await import('../src/worker/cad.worker.ts')
+const worker = globalThis.__wheelWorker
+await worker.ready()
+const { importSTEP, measureVolume, getOC } = await import('replicad')
+
+const plate = {
+  id: 'plate',
+  type: 'extrude',
+  profile: { kind: 'rect', a: [-30, -20], b: [30, 20] },
+  height: 10,
+  operation: 'new',
+}
+const profile = { kind: 'rect', a: [8, -10], b: [28, 10] }
+const FULL_INTERSECT = 8946.508663785393
+const HALF_INTERSECT = FULL_INTERSECT / 2
+
+async function rebuildVolume(features) {
+  const mesh = await worker.rebuild(features)
+  let volume = null
+  let valid = null
+  try {
+    const shape = await importSTEP(new Blob([await worker.exportSTEP()]))
+    volume = measureVolume(shape)
+    const check = new (getOC().BRepCheck_Analyzer)(shape.wrapped, true, false)
+    try { valid = check.IsValid_2() } finally { check.delete() }
+  } catch (e) {
+    volume = null
+    valid = false
+  }
+  return { mesh, volume, valid, failed: mesh.failed ?? [], warnings: mesh.warnings ?? [] }
+}
+
+test('revolve intersect 360°: valid B-rep with expected common volume', async () => {
+  const r = await rebuildVolume([
+    plate,
+    { id: 'revI', type: 'revolve', profile, angle: 360, axis: 'Y', op: 'intersect' },
+  ])
+  assert.deepEqual(r.failed, [])
+  assert.equal(r.valid, true)
+  assert.ok(Math.abs(r.volume - FULL_INTERSECT) < 1e-3, `vol ${r.volume}`)
+})
+
+test('revolve intersect 180°/90°: flip into plate, valid B-rep, volume matches +Z wedge', async () => {
+  for (const [angle, expected] of [[180, FULL_INTERSECT], [90, HALF_INTERSECT]]) {
+    const r = await rebuildVolume([
+      plate,
+      { id: 'revI', type: 'revolve', profile, angle, axis: 'Y', op: 'intersect' },
+    ])
+    assert.deepEqual(r.failed, [], `angle ${angle} failed: ${JSON.stringify(r.failed)}`)
+    assert.ok((r.mesh.triangles?.length ?? 0) > 0, `angle ${angle} empty mesh`)
+    assert.equal(r.valid, true, `angle ${angle} invalid B-rep`)
+    assert.ok(Math.abs(r.volume - expected) < 1e-2, `angle ${angle} vol ${r.volume}, expected ${expected}`)
+  }
+})
+
+test('revolve cut 180° removes the +Z wedge (not a silent no-op)', async () => {
+  const r = await rebuildVolume([
+    plate,
+    { id: 'revC', type: 'revolve', profile, angle: 180, axis: 'Y', op: 'cut' },
+  ])
+  assert.deepEqual(r.failed, [])
+  assert.equal(r.valid, true)
+  assert.ok(Math.abs(r.volume - (24000 - FULL_INTERSECT)) < 1e-2, `cut vol ${r.volume}`)
+})
+
+test('empty revolve intersect keeps previous solid (failed + volume unchanged)', async () => {
+  await worker.rebuild([plate])
+  const before = measureVolume(await importSTEP(new Blob([await worker.exportSTEP()])))
+  const r = await rebuildVolume([
+    plate,
+    {
+      id: 'revE',
+      type: 'revolve',
+      profile: { kind: 'rect', a: [100, -5], b: [110, 5] },
+      angle: 360,
+      axis: 'Y',
+      op: 'intersect',
+    },
+  ])
+  assert.ok(r.failed.some((f) => f.id === 'revE'), `expected failed revE, got ${JSON.stringify(r.failed)}`)
+  const after = measureVolume(await importSTEP(new Blob([await worker.exportSTEP()])))
+  assert.ok(Math.abs(after - before) < 1e-3, `must keep plate volume ${before}, got ${after}`)
+  assert.ok(Math.abs(after - 24000) < 1e-3)
+})
+
+test('worker revolve boolean path flips partial cut/intersect and rolls back empty', () => {
+  const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
+  const preview = readFileSync(new URL('../src/components/SketchLayer.tsx', import.meta.url), 'utf8')
+  assert.match(workerSrc, /SO04: partial-angle revolve/)
+  assert.match(workerSrc, /rotate\(180, org, rax\)/)
+  assert.match(workerSrc, /旋转相交区域为空/)
+  assert.match(workerSrc, /f\.type === 'revolve' && \(\(f as any\)\.op === 'cut' \|\| \(f as any\)\.op === 'intersect'\)/)
+  assert.match(preview, /flipSense \? -total : 0/)
+  assert.match(preview, /op === 'cut' \|\| op === 'intersect'/)
+})

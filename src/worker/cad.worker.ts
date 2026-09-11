@@ -71,7 +71,7 @@ export type Feature =
   | { id: string; type: 'featpattern'; cols: number; dx: number; rows: number; dy: number; subs: { profile: SketchProfile; height: number; operation: BoolOp; baseZ?: number; through?: boolean; plane?: Plane; twist?: number; symmetric?: boolean; draft?: number; down?: boolean; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[] }
   // 拉伸组（多轮廓一次拉伸 → 一个时间轴节点）：subs = 各轮廓+各自参数，共享一个 height（改 height 即全部一齐变）。store expandFeats() 送 worker 前展开成 N 个 extrude（worker 零改动）。
   | { id: string; type: 'extgroup'; sketchFaceBinding?: SketchFaceBinding; height: number; sketchId?: string; subs: { profile: SketchProfile; operation: BoolOp; baseZ?: number; twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[] }
-  | { id: string; type: 'prim'; shape: 'box' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie'; a: number; b: number; c: number; op?: BoolOp; sides?: number; outerTrue?: boolean /* GM-W8 β1-#29：torus 专用 — 有此 flag 时 a=真外半径（中线半径=a−管半径）；缺=旧语义 a=中线半径 */ }
+  | { id: string; type: 'prim'; shape: 'box' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie'; a: number; b: number; c: number; op?: BoolOp; sides?: number; outerTrue?: boolean /* GM-W8 β1-#29：torus 专用 — 有此 flag 时 a=真外半径（中线半径=a−管半径）；缺=旧语义 a=中线半径 */; cornerOrigin?: boolean /* SO10：box 专用 — true 时平移到角落原点 [0,a]×[0,b]×[0,c]（对标「40×20×10 在 x=15 切成 3000+5000」）；缺=旧 makeBaseBox XY 居中逐字节 */ }
   // Automated Modeling Connector v1 core: an analytic connector between two
   // face-derived seed points. UI may only create this after two planar-face
   // picks; the feature itself stays deterministic and replayable.
@@ -101,7 +101,7 @@ export type Feature =
   // 環形阵列（T757 — 抄足 Fusion）：对象=整个实体（无 targets）或指定特征（targets=特征 id，snapshot-delta 重切/重融）；
   // 任意轴（origin+dir，CAD 坐标）；mode: full=均分 360（副本唔叠原件）/ angle=端点含 / sym=对称（±k·step，偶数偏 + 侧）
   | { id: string; type: 'circPattern'; targets?: string[]; origin: [number, number, number]; dir: [number, number, number]; count: number; totalAngle: number; mode: 'full' | 'angle' | 'sym'; suppress?: boolean[] /* GM-3DV1 S3：逐实例抑制 — 索引 0=seed(0°)、1..count-1=依 cpAngles 顺序嘅副本；suppress[i]=true 跳过（缺省 ⇒ 全出，旧档逐字节） */; compute?: 'optimized' | 'identical' | 'adjust'; objectType?: 'bodies' | 'faces' | 'features' | 'components'; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
-  | { id: string; type: 'transform'; origin?: [number, number, number]; dx: number; dy: number; dz: number; rz: number; rx?: number; ry?: number; copy?: boolean }   // copy（GM-3DV3 M1 Create Copy）：留原件、fuse 一个变换后副本（Fusion Move/Copy 嘅复制半边）；缺省=就地变换（旧档逐字节）
+  | { id: string; type: 'transform'; origin?: [number, number, number]; dx: number; dy: number; dz: number; rz: number; rx?: number; ry?: number; copy?: boolean; parked?: number }   // copy（GM-3DV3 M1 Create Copy）：留原件、fuse 一个变换后副本（Fusion Move/Copy 嘅复制半边）；缺省=就地变换（旧档逐字节）；parked≥0（SO10）=变换泊车实体[parked]而非活动体（缺=活动体逐字节）
   | { id: string; type: 'pushpull'; near: [number, number, number]; nears?: [number, number, number][]; dist: number; dir?: [number, number, number]; offsetType?: 'modify' | 'new' | 'auto'; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // faceFp（S128/S125 扩展）= 拾取面持久面指纹（缺省退回 near-point）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行）；dir（S192）= 任意方向移面向量（缺省=沿面法向，即旧按拉）；offsetType（GM-3DV3 M5 Offset Type）= Fusion Press Pull 面偏移嘅 Offset Type 元数据（modify/new/auto）— worker 不读几何（webcad 恒加节点=New 语义）
   | { id: string; type: 'rib'; path: [number, number][]; thickness: number; height: number; baseZ?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; op?: BoolOp; draft?: number /* S191：拔模角°——筋身向远端逐渐收窄（注塑/冲压脱模），逐段 base→top 锥化 loft */; thDir?: 'sym' | 'one' /* GM-3DV1 S1：厚度方向 — sym=中心线两側各半（旧行为，缺省）/ one=全部厚度落中心线单侧(+法向) */; extent?: 'next' | 'distance' /* GM-3DV1 S1：范围 — next=有实体时落到实体底并融合（旧行为，缺省）/ distance=永远向上 height（就算有实体） */; flip?: boolean /* GM-3DV1 S1：翻转筋挤出方向（up↔down） */; extend?: boolean /* GM-3DV1 S1（Web Extend Curves）：把开放折线端点沿末段方向外延（有实体时钳到实体 XY 包围盒边，令筋网到墙；无实体 = 固定外延），令交叉/近墙筋网自动闭合 */ }
   | { id: string; type: 'text'; text: string; size: number; height: number; op: BoolOp; plane?: Plane; baseZ?: number; x?: number; y?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }  // S162 Emboss：arbPlane = 落喺拾中嘅面上（沿法向 raise/engrave），无 = 旧 XY 文字
@@ -2799,7 +2799,7 @@ function buildShape(features: Feature[], noCache = false): any {
       }
     } else if (f.type === 'prim') {
       let solid: any
-      if (f.shape === 'box') solid = makeBaseBox(f.a, f.b, f.c) // makeBaseBox is XY-centered & sits on ground (z∈[0,c]) already
+      if (f.shape === 'box') { solid = makeBaseBox(f.a, f.b, f.c); if (f.cornerOrigin) solid = solid.translate(f.a / 2, f.b / 2, 0) } // makeBaseBox is XY-centered & sits on ground (z∈[0,c]); cornerOrigin → [0,a]×[0,b]×[0,c]
       else if (f.shape === 'sphere') { const r = Math.max(0.1, f.a); solid = makeSphere(r).translate(0, 0, r) }   // bt3: 守 r≤0 退化球
       else if (f.shape === 'cone') {
         // Cone / frustum: revolve a (radius, height) profile about the Z axis. a=bottom radius, b=top radius, c=height.
@@ -4738,9 +4738,10 @@ function buildShape(features: Feature[], noCache = false): any {
         for (let i = 1; i < n; i++) acc = acc.fuse(base.clone().rotate(step * i, ctr, ax))
         shape = acc
       }
-    } else if (f.type === 'transform' && shape) {
+    } else if (f.type === 'transform' && (shape || (typeof f.parked === 'number' && f.parked >= 0 && parkedBodies[f.parked]))) {
       const rx = f.rx ?? 0, ry = f.ry ?? 0, rz = f.rz ?? 0
       // GM-3DV3 M1 Create Copy：变换一个 clone、留原件（Fusion「复制」半边）。原地变换（缺省）= 直接改 shape（旧档逐字节）。
+      // SO10：parked≥0 → 变换泊车实体（分割后可移「另一半」再合并，避免只郁活动低侧 +X 叠入高侧丢体积）。
       const applyXf = (sh: any): any => {
         let s2 = sh
         if (rx || ry || rz) {
@@ -4753,11 +4754,21 @@ function buildShape(features: Feature[], noCache = false): any {
         if (f.dx || f.dy || f.dz) s2 = s2.translate(f.dx, f.dy, f.dz)
         return s2
       }
-      if (f.copy) {
-        // Create Copy 必须保留原实体并加一个独立实体，绝不能融合成单一固体。
-        parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(shape.clone()) })
-      } else {
-        shape = applyXf(shape)
+      const parkIdx = typeof f.parked === 'number' && f.parked >= 0 ? f.parked : -1
+      if (parkIdx >= 0 && parkedBodies[parkIdx]) {
+        if (f.copy) {
+          parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(parkedBodies[parkIdx].shape.clone()) })
+        } else {
+          const pb = parkedBodies[parkIdx]
+          parkedBodies[parkIdx] = { name: pb.name, ...(pb.kind ? { kind: pb.kind } : {}), shape: applyXf(pb.shape) }
+        }
+      } else if (shape) {
+        if (f.copy) {
+          // Create Copy 必须保留原实体并加一个独立实体，绝不能融合成单一固体。
+          parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(shape.clone()) })
+        } else {
+          shape = applyXf(shape)
+        }
       }
     } else if (f.type === 'pushpull' && shape) {
       // Press/Pull: offset the face nearest the stored pick point along its normal by `dist`
@@ -6095,22 +6106,36 @@ const api = {
   // triangulation) + surface type. Picks the face whose tessellation vertices are closest to the click.
   async measureBodyAt(p: [number, number, number]): Promise<{volume:number}|null> {
     await ready
-    if (!current) return null
-    const solids = Array.from(iterTopo(current.wrapped, 'solid')).map(shape => cast(shape))
+    // SO10 / body measure：活动体（可含 fuse 后多 solid compound）+ 泊车体均可量体积。
+    // 点中活动体任一 solid → 回报整个 current 的体积（浏览器「活动实体」一条）；点中泊车体 → 该泊车体体积。
+    type Cand = { kind: 'active' | 'parked'; shape: any; owned: boolean }
+    const cands: Cand[] = []
+    const owned: any[] = []
     try {
-      let best: typeof current = null, distance = Infinity
-      for (const solid of solids) {
-        const mesh = solid.mesh(), v = mesh.vertices, t = mesh.triangles
-        for (let i=0;i<t.length;i+=3) {
-          const a=t[i]*3,b=t[i+1]*3,c=t[i+2]*3
-          const d=ptTriDist2(...p,v[a],v[a+1],v[a+2],v[b],v[b+1],v[b+2],v[c],v[c+1],v[c+2])
-          if(d<distance){distance=d;best=solid}
+      if (current) {
+        for (const s of Array.from(iterTopo(current.wrapped, 'solid'))) {
+          const solid = cast(s); owned.push(solid); cands.push({ kind: 'active', shape: solid, owned: true })
         }
       }
-      if(!best) return null
-      const volume=measureVolume(best)
-      return Number.isFinite(volume)&&volume>0?{volume}:null
-    } finally { for(const solid of solids) solid.delete() }
+      for (const pb of parkedBodies) {
+        if (!pb?.shape?.wrapped || pb.shape.wrapped.IsNull?.()) continue
+        cands.push({ kind: 'parked', shape: pb.shape, owned: false })
+      }
+      let best: Cand | null = null, distance = Infinity
+      for (const cand of cands) {
+        let mesh: any
+        try { mesh = cand.shape.mesh() } catch { continue }
+        const v = mesh.vertices, t = mesh.triangles
+        for (let i = 0; i < t.length; i += 3) {
+          const a = t[i] * 3, b = t[i + 1] * 3, c = t[i + 2] * 3
+          const d = ptTriDist2(p[0], p[1], p[2], v[a], v[a + 1], v[a + 2], v[b], v[b + 1], v[b + 2], v[c], v[c + 1], v[c + 2])
+          if (d < distance) { distance = d; best = cand }
+        }
+      }
+      if (!best) return null
+      const volume = best.kind === 'active' && current ? measureVolume(current) : measureVolume(best.shape)
+      return Number.isFinite(volume) && volume > 0 ? { volume } : null
+    } finally { for (const solid of owned) try { solid.delete() } catch { /* */ } }
   },
 
   async measureFaceAt(p: [number, number, number]): Promise<{ area: number; kind: string; center: [number, number, number]; radius: number | null } | null> {

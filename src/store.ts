@@ -12678,7 +12678,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const fk = (x: number) => (x >= 1000 ? (x / 1000).toFixed(1) + 'kN' : x.toFixed(0) + 'N')
         return `✓ 屈曲分析（${br.matName}·${br.nVox}体素·施加 ${fk(br.forceN)}）：屈曲载荷因子 λ₁≈${br.lambda1.toFixed(2)} → 临界载荷 Pcr≈${fk(br.Pcr)}（λ₁≥2 较安全；体素趋势级 ≈±5%）`
       }
-      case 'create_box': return mk({ id: fid(), type: 'prim', shape: 'box', a: num('length', 10), b: num('width', 10), c: num('height', 10), op: opOf() }, `${verb()}长方体 ${num('length', 10)}×${num('width', 10)}×${num('height', 10)}mm`)
+      case 'create_box': return mk({ id: fid(), type: 'prim', shape: 'box', a: num('length', 10), b: num('width', 10), c: num('height', 10), op: opOf(), cornerOrigin: true }, `${verb()}长方体 ${num('length', 10)}×${num('width', 10)}×${num('height', 10)}mm`)
       case 'create_cylinder': return mk({ id: fid(), type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: num('diameter', 10) / 2 }, height: num('height', 10), operation: opOf() }, `${verb()}圆柱 Ø${num('diameter', 10)}×${num('height', 10)}mm`)
       case 'create_sphere': return mk({ id: fid(), type: 'prim', shape: 'sphere', a: num('diameter', 20) / 2, b: 0, c: 0, op: opOf() }, `${verb()}球 Ø${num('diameter', 20)}mm`)
       case 'create_cone': return mk({ id: fid(), type: 'prim', shape: 'cone', a: num('bottom_diameter', 20) / 2, b: num('top_diameter', 0) / 2, c: num('height', 20), op: opOf() }, `${verb()}圆锥 底Ø${num('bottom_diameter', 20)} 顶Ø${num('top_diameter', 0)}×${num('height', 20)}mm`)
@@ -14401,9 +14401,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       mirror: { plane: 'YZ', offset: 0 },
       // Fusion Move/Copy opens neutral: a selected body is not displaced or rotated until the user
       // enters a value or drags the triad.  This keeps preview, fields and the transform feature aligned.
-      move: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0, moveType: 'free', objectType: 'bodies', createCopy: 0, raxis: 'Z', angle: 0, p1x: 0, p1y: 0, p1z: 0, p2x: 0, p2y: 0, p2z: 0 },   // GM-3DV3 M1：五模式(free/translate/rotate/ptp/ptpos)＋对象类型＋Create Copy＋点对点/点对位坐标槽
+      move: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0, moveType: 'free', objectType: 'bodies', bodyTarget: 'active', createCopy: 0, raxis: 'Z', angle: 0, p1x: 0, p1y: 0, p1z: 0, p2x: 0, p2y: 0, p2z: 0 },   // GM-3DV3 M1；bodyTarget=active|parkedN（SO10 可移泊车半体）
       scale: { factor: 1.5, target: 0, sx: 0, sy: 0, sz: 0, px: 0, py: 0, pz: 0 },   // P2：px/py/pz = 缩放基准点（Fusion Point），开对话框时预填实体中心
-      splitbody: { axis: 'Z', offset: 0, keep: 'lo' },   // P2：Split Body 对话框（取代撳掣即切）
+      splitbody: { axis: 'Z', offset: 0, keep: 'hi' },   // P2：Split Body；SO10 keep=hi → 高侧为活动体，+轴移动可分离再合并恢复总体积
       offsetsolid: { distance: 2 },
       draft: { angle: 10 },
       automatedmodel: { radius: 6 },
@@ -14654,6 +14654,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         kind = 'move'
         params = {
           moveType: 'free', objectType: 'bodies', createCopy: 0,
+          bodyTarget: typeof f.parked === 'number' && f.parked >= 0 ? `parked${f.parked}` : 'active',
           dx: f.dx, dy: f.dy, dz: f.dz,
           rx: f.rx ?? 0, ry: f.ry ?? 0, rz: f.rz ?? 0,
           raxis: 'Z', angle: 0,
@@ -16816,15 +16817,21 @@ export const useApp = create<AppState>((rawSet, get) => {
       // Fusion writes two timeline entries for Create Copy.  They are one atomic history commit,
       // so a single Undo removes both the CopyPasteBodies marker and its Move operation.
       if (copy) {
+        const bt0 = String(p.bodyTarget || 'active')
+        const parkedTarget0 = bt0.startsWith('parked') ? Number(bt0.slice(6)) : NaN
+        const parked0 = Number.isInteger(parkedTarget0) && parkedTarget0 >= 0 ? parkedTarget0 : undefined
         const copyMarker: Feature = { id: fid(), type: 'copybody', name: 'CopyPasteBodies1' }
-        const moveCopy: Feature = { id: fid(), type: 'transform', dx: sol.dx, dy: sol.dy, dz: sol.dz, rz: sol.rz, rx: sol.rx, ry: sol.ry, copy: true }
+        const moveCopy: Feature = { id: fid(), type: 'transform', dx: sol.dx, dy: sol.dy, dz: sol.dz, rz: sol.rz, rx: sol.rx, ry: sol.ry, copy: true, ...(parked0 != null ? { parked: parked0 } : {}) }
         set({ featDlg: null })
-        await get().applyFeatures([...get().features, copyMarker, moveCopy], `已复制并移动实体（${tLbl}：dx${sol.dx} dy${sol.dy} dz${sol.dz}　绕X${sol.rx}° Y${sol.ry}° Z${sol.rz}°）`, true)
+        await get().applyFeatures([...get().features, copyMarker, moveCopy], `已复制并移动${parked0 != null ? `泊车实体#${parked0 + 1}` : '实体'}（${tLbl}：dx${sol.dx} dy${sol.dy} dz${sol.dz}　绕X${sol.rx}° Y${sol.ry}° Z${sol.rz}°）`, true)
         return
       }
-      // bodies（缺省）：就地 transform 特征。
-      f = { id: fid(), type: 'transform', dx: sol.dx, dy: sol.dy, dz: sol.dz, rz: sol.rz, rx: sol.rx, ry: sol.ry }
-      msg = `已${copy ? '复制并' : ''}移动实体（${tLbl}：dx${sol.dx} dy${sol.dy} dz${sol.dz}　绕X${sol.rx}° Y${sol.ry}° Z${sol.rz}°）`
+      // bodies（缺省）：就地 transform 特征。SO10：bodyTarget=parkedN → 变换泊车实体 N（分割另一半可独立平移后再合并）。
+      const bt = String(p.bodyTarget || 'active')
+      const parkedTarget = bt.startsWith('parked') ? Number(bt.slice(6)) : NaN
+      const parked = Number.isInteger(parkedTarget) && parkedTarget >= 0 ? parkedTarget : undefined
+      f = { id: fid(), type: 'transform', dx: sol.dx, dy: sol.dy, dz: sol.dz, rz: sol.rz, rx: sol.rx, ry: sol.ry, ...(parked != null ? { parked } : {}) }
+      msg = `已${copy ? '复制并' : ''}移动${parked != null ? `泊车实体#${parked + 1}` : '实体'}（${tLbl}：dx${sol.dx} dy${sol.dy} dz${sol.dz}　绕X${sol.rx}° Y${sol.ry}° Z${sol.rz}°）`
     } else if (d.kind === 'scale') {
       // Reject ≤0 / NaN instead of silently clamping to 0.01 (which made a typo'd "0" shrink the part to nothing).
       let fac = +p.factor
@@ -16876,7 +16883,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // Built as box-prim(new) + a vertical-edge fillet, so the corner radius stays parametric (editable in the timeline).
       const L = +p.l, W = +p.w, H = +p.h, r = Math.max(0.1, Math.min(+p.r, Math.min(L, W) / 2 - 0.1))
       set({ featDlg: null })
-      const box: Feature = { id: fid(), type: 'prim', shape: 'box', a: L, b: W, c: H, op: 'new' }
+      const box: Feature = { id: fid(), type: 'prim', shape: 'box', a: L, b: W, c: H, op: 'new', cornerOrigin: true }
       const fil: Feature = { id: fid(), type: 'fillet', radius: r, edges: 'vertical' }
       await get().applyFeatures([...get().features, box, fil], `已创建圆角长方体 ${L}×${W}×${H}，竖边圆角 R${r}`)
       return
@@ -16934,7 +16941,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // Reject non-positive / NaN primary dimensions up front — clearer than a mirrored "-5" box or a cryptic
       // kernel-empty error. Covers coil/thread pitch & coil wire too (else a 0/neg helix silently clamps).
       if (['l', 'w', 'h', 'd', 'pitch', 'wire'].some((k) => p[k] !== undefined && !(Number.isFinite(+p[k]) && +p[k] > 0))) { set({ status: '尺寸要大于 0（请填正数）' }); return }
-      if (d.kind === 'box') { f = { id: fid(), type: 'prim', shape: 'box', a: +p.l, b: +p.w, c: +p.h, op }; msg = `已${verb}长方体 ${p.l}×${p.w}×${p.h}` }
+      if (d.kind === 'box') { f = { id: fid(), type: 'prim', shape: 'box', a: +p.l, b: +p.w, c: +p.h, op, cornerOrigin: true }; msg = `已${verb}长方体 ${p.l}×${p.w}×${p.h}` }
       else if (d.kind === 'sphere') { f = { id: fid(), type: 'prim', shape: 'sphere', a: (+p.d) / 2, b: 0, c: 0, op }; msg = `已${verb}球 Ø${p.d}` }
       else if (d.kind === 'torus') { const arc = Math.max(0, Math.min(360, +p.arc || 360)); if (!(+p.d > 2 * +p.td)) { set({ status: `圆环：管径要细过外径一半（管Ø<${(+p.d / 2).toFixed(1)}），否则中孔闭合/管自交退化 — 请调大外径或调细管径` }); return } f = { id: fid(), type: 'prim', shape: 'torus', a: (+p.d) / 2, b: (+p.td) / 2, c: arc < 360 ? arc : 0, op, outerTrue: true }; msg = `已${verb}${arc > 0 && arc < 360 ? `部分圆环 ${arc}°` : '圆环'} 外Ø${p.d} 管Ø${p.td}` }   // GM-W8 β1-#29：a=真外半径 + outerTrue,worker 换算中线半径(tr=a−tb),令外Ø输入=真外Ø。GM-L2 #65：outerTrue 语义下中线半径=d/2−td/2、管半径=td/2，无自交要求 d/2−td/2>td/2 ⇒ d>2·td（旧 d>td 阈值太松，td<d≤2td 会自交）
       else if (d.kind === 'cone') { const sd = Math.round(+p.sides) || 0; f = { id: fid(), type: 'prim', shape: 'cone', a: (+p.d) / 2, b: Math.max(0, +p.dt) / 2, c: +p.h, op, ...(sd >= 3 ? { sides: sd } : {}) }; const poly = sd >= 3; msg = `已${verb}${poly ? (((+p.dt) > 0 ? sd + '棱台' : sd + '棱锥')) : (((+p.dt) > 0 ? '圆台' : '圆锥'))} 底Ø${p.d}${(+p.dt) > 0 ? ' 顶Ø' + p.dt : ''}×${p.h}` }
@@ -17131,7 +17138,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // applyFeatures 正常维护，可撤销、可改切割位置参数化重切 —— 取代旧 splitBody 嘅破坏性烘焙。
   addSplit: async (axis, offset) => {
     if (!hasSolid(get().features)) { set({ status: '分割需要先有一个活动实体' }); return }
-    const f: Feature = { id: fid(), type: 'split', axis, offset, keep: 'lo', nameA: '分割A', nameB: '分割B' }
+    const f: Feature = { id: fid(), type: 'split', axis, offset, keep: 'hi', nameA: '分割A', nameB: '分割B' }
     await get().applyFeatures([...get().features, f], `已沿 ${axis} 轴分割（参数化 — 时间轴可改切割位置/删特征；另一半灰显，可隐藏/导出）`)
   },
   // S184：任意平面切（Fusion Split Body by 任意面）—— 拾一个平面（实体面/构造面）→ 沿该面切两半（参数化，保历史）。

@@ -1,7 +1,10 @@
 /**
- * SO04 / handoff P1: Revolve Intersect rebuild.
- * Acceptance: after two-body intersect, B-rep valid and volume matches the
- * overlapping preview wedge; on failure keep the previous solid.
+ * SO04 / BUG-SO15-001: Revolve Intersect rebuild.
+ * Acceptance:
+ *  - base plate + profile revolve intersect → valid B-rep, volume matches preview wedge
+ *  - on true empty intersect → keep previous solid
+ *  - Intersect without a prior solid is not a boolean (QA File>New→rect→∩): confirm
+ *    coerces to New / first feature creates solid; UI gates ∩ on real triangles
  *
  * Partial angles default to the −Z half-space (right-hand about +Y from XY).
  * Cut/intersect preview sweeps −ang‥0 into +Z at the profile (+X). Confirm must
@@ -125,11 +128,41 @@ test('empty revolve intersect keeps previous solid (failed + volume unchanged)',
 test('worker revolve boolean path prefers preview −ang sense and rolls back empty', () => {
   const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
   const preview = readFileSync(new URL('../src/components/SketchLayer.tsx', import.meta.url), 'utf8')
+  const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
+  const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
   assert.match(workerSrc, /SO04: partial-angle revolve/)
   assert.match(workerSrc, /rotate\(-ang, org, rax\)/)
   assert.doesNotMatch(workerSrc, /rotate\(180, org, rax\)/)
   assert.match(workerSrc, /旋转相交区域为空/)
+  assert.match(workerSrc, /BUG-SO15-001: no prior solid/)
   assert.match(workerSrc, /f\.type === 'revolve' && \(\(f as any\)\.op === 'cut' \|\| \(f as any\)\.op === 'intersect'\)/)
   assert.match(preview, /flipSense \? -total : 0/)
   assert.match(preview, /op === 'cut' \|\| op === 'intersect'/)
+  // Confirm coerces cut/intersect → new when timeline has no solid (loft/sweep policy).
+  assert.match(storeSrc, /BUG-SO15-001: Intersect\/Cut without a prior solid/)
+  assert.match(storeSrc, /revOp: BoolOp = \(rawOp === 'cut' \|\| rawOp === 'intersect' \|\| rawOp === 'newbody'\) && hasSolid/)
+  // UI: ∩ gated on real triangles — empty independent-sketch bodyMesh must NOT enable Intersect.
+  assert.match(viewport, /disabled=\{!bodyMesh\?\.triangles\?\.length\}/)
+  assert.match(storeSrc, /无底板时请用＋加料/)
+})
+
+test('revolve intersect alone (no prior solid) creates body like New — offset profile', async () => {
+  // QA black-box File>New → rect → Revolve∩: worker treats !shape as New.
+  const r = await rebuildVolume([
+    { id: 'revI', type: 'revolve', profile, angle: 360, axis: 'Y', op: 'intersect' },
+  ])
+  assert.deepEqual(r.failed, [])
+  assert.equal(r.valid, true)
+  assert.ok((r.mesh.triangles?.length ?? 0) > 0, 'first-feature intersect must create a solid')
+  assert.ok(r.volume > 1e3, `expected solid volume, got ${r.volume}`)
+})
+
+test('base plate + offset revolve intersect 360° volume matches common acceptance path', async () => {
+  const r = await rebuildVolume([
+    plate,
+    { id: 'revI', type: 'revolve', profile, angle: 360, axis: 'Y', op: 'intersect' },
+  ])
+  assert.deepEqual(r.failed, [])
+  assert.equal(r.valid, true)
+  assert.ok(Math.abs(r.volume - FULL_INTERSECT) < 1e-3, `vol ${r.volume}`)
 })

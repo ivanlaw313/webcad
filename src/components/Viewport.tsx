@@ -6487,7 +6487,7 @@ export default function Viewport() {
               <label title={tStatus('两侧对称：部分角旋转时把角度均分跨越截面平面两侧（Fusion symmetric revolve）', lang)}><input type="checkbox" checked={!!featDlg.params.sym} onChange={(e) => setFeatParam('sym', e.target.checked ? 1 : 0)} /> {tStatus('两侧对称', lang)}</label>
             )}
             {/* P2：Operation 排最尾（Fusion 肌肉记忆：轴→参数→最后定布尔） */}
-            <label>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'new'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh} title={bodyMesh ? tStatus('加料/切割(车槽)/相交', lang) : tStatus('没有实体，只能加料', lang)}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割(车槽)', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新实体', lang)}</option></select></label>
+            <label>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'new'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('加料/切割(车槽)/相交', lang) : tStatus('没有实体，只能加料', lang)}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割(车槽)', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新实体', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'box' && (<>
             <label>{tStatus('长', lang)} <LenInput mm={Number(featDlg.params.l)} onMm={(v) => setFeatParam('l', v)} unit={unit} w={52} min={0.1} /></label>
@@ -7146,8 +7146,8 @@ export default function Viewport() {
               onChange={e => e.target.value === 'component' ? useApp.setState({ sketchAsComponent: true, sketchOp: 'new' }) : setSketchOp(e.target.value as typeof sketchOp)}>
               <option value="new">{bodyMesh ? (lang === 'en' ? 'Join' : '合并 / Join') : (lang === 'en' ? 'New Body' : '新实体 / New Body')}</option>
               {sketchOp === 'join' && <option value="join">{lang === 'en' ? 'Join' : '合并 / Join'}</option>}
-              <option value="cut" disabled={!bodyMesh}>{lang === 'en' ? 'Cut' : '切除 / Cut'}</option>
-              <option value="intersect" disabled={!bodyMesh}>{lang === 'en' ? 'Intersect' : '相交 / Intersect'}</option>
+              <option value="cut" disabled={!bodyMesh?.triangles?.length}>{lang === 'en' ? 'Cut' : '切除 / Cut'}</option>
+              <option value="intersect" disabled={!bodyMesh?.triangles?.length}>{lang === 'en' ? 'Intersect' : '相交 / Intersect'}</option>
               {bodyMesh && <option value="newbody">{lang === 'en' ? 'New Body' : '新实体 / New Body'}</option>}
               {bodyMesh && <option value="component">{lang === 'en' ? 'New Component' : '新组件 / New Component'}</option>}
             </select>
@@ -7233,9 +7233,9 @@ export default function Viewport() {
           <div style={{ color: '#6b7680' }}>{tStatus('操作', lang)}</div>
           <div style={{ display: 'flex', gap: 4 }}>
             <button className={'sb-tool' + (sketchOp === 'new' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSketchOp('new')}>{tStatus('＋加料', lang)}</button>
-            <button className={'sb-tool' + (sketchOp === 'cut' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh} title={bodyMesh ? tStatus('沿路径切出圆槽', lang) : tStatus('没有实体可切', lang)} onClick={() => setSketchOp('cut')}>{tStatus('－切割', lang)}</button>
-            <button className={'sb-tool' + (sketchOp === 'intersect' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh} title={bodyMesh ? tStatus('保留扫掠体同实体嘅公共部分', lang) : tStatus('没有实体可相交', lang)} onClick={() => setSketchOp('intersect')}>{tStatus('∩相交', lang)}</button>
-            <button className={'sb-tool' + (sketchOp === 'newbody' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh} onClick={() => setSketchOp('newbody')} title={tStatus('新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）', lang)}>{tStatus('⬡新实体', lang)}</button>
+            <button className={'sb-tool' + (sketchOp === 'cut' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('沿路径切出圆槽', lang) : tStatus('没有实体可切', lang)} onClick={() => setSketchOp('cut')}>{tStatus('－切割', lang)}</button>
+            <button className={'sb-tool' + (sketchOp === 'intersect' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('保留扫掠体同实体嘅公共部分', lang) : tStatus('没有实体可相交', lang)} onClick={() => setSketchOp('intersect')}>{tStatus('∩相交', lang)}</button>
+            <button className={'sb-tool' + (sketchOp === 'newbody' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} onClick={() => setSketchOp('newbody')} title={tStatus('新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）', lang)}>{tStatus('⬡新实体', lang)}</button>
           </div>
         </CommandDialog>
       )}
@@ -7285,9 +7285,9 @@ export default function Viewport() {
           <div style={{ color: '#6b7680' }}>{tStatus('操作', lang)}</div>
           <div style={{ display: 'flex', gap: 4 }}>
             <button className={'sb-tool' + (sketchOp === 'new' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSketchOp('new')}>{tStatus('＋加料', lang)}</button>
-            <button className={'sb-tool' + (sketchOp === 'cut' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh} title={bodyMesh ? tStatus('从实体切除放样体', lang) : tStatus('没有实体可切', lang)} onClick={() => setSketchOp('cut')}>{tStatus('－切割', lang)}</button>
-            <button className={'sb-tool' + (sketchOp === 'intersect' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh} onClick={() => setSketchOp('intersect')}>{tStatus('∩相交', lang)}</button>
-            <button className={'sb-tool' + (sketchOp === 'newbody' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh} onClick={() => setSketchOp('newbody')} title={tStatus('新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）', lang)}>{tStatus('⬡新实体', lang)}</button>
+            <button className={'sb-tool' + (sketchOp === 'cut' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('从实体切除放样体', lang) : tStatus('没有实体可切', lang)} onClick={() => setSketchOp('cut')}>{tStatus('－切割', lang)}</button>
+            <button className={'sb-tool' + (sketchOp === 'intersect' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} onClick={() => setSketchOp('intersect')}>{tStatus('∩相交', lang)}</button>
+            <button className={'sb-tool' + (sketchOp === 'newbody' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} onClick={() => setSketchOp('newbody')} title={tStatus('新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）', lang)}>{tStatus('⬡新实体', lang)}</button>
           </div>
         </CommandDialog>
       )}

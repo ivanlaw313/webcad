@@ -78,7 +78,9 @@ export default function App() {
       // cancels only that field. SOLID/command dialogs keep global Esc via
       // role=dialog / .cmd-palette (and their own Escape layers).
       if (editingText && e.key === 'Escape') {
-        const inDialog = !!(t.closest?.('[role="dialog"], .cmd-palette'))
+        // BUG-UI-002: timeline feature-dimension editor (.feat-editor) is a dialog-class overlay —
+        // Esc must close it (selectFeature null), not get swallowed as a free-text local cancel.
+        const inDialog = !!(t.closest?.('[role="dialog"], .cmd-palette, .feat-editor'))
         if (!inDialog) return
       }
       if (e.ctrlKey || e.metaKey) {

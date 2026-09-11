@@ -23,7 +23,7 @@ test('UI02: focused non-dialog text Escape must not cascade into sketch/model Es
   // must cancel locally — never walk into escSketch / selection clear / doc switch.
   assert.match(app, /editingText && !e\.ctrlKey && !e\.metaKey && e\.key !== 'Enter' && e\.key !== 'Escape'/)
   assert.match(app, /editingText && e\.key === 'Escape'/)
-  assert.match(app, /closest\?\.\(['"]\[role="dialog"\],\s*\.cmd-palette/)
+  assert.match(app, /closest\?\.\(['"]\[role="dialog"\],\s*\.cmd-palette,\s*\.feat-editor/)
 })
 
 test('UI02: dimension editor registers a dedicated Escape layer (topmost only)', () => {
@@ -113,4 +113,14 @@ test('UI02: reset implementation clears move/dim/array ghosts and measure state'
   assert.match(body, /arrayPreview/)
   assert.match(body, /measureMode:\s*false/)
   assert.match(body, /toolPreview:\s*null/)
+})
+
+
+test('UI02 / BUG-UI-002: timeline feature editor is Esc-dismissible dialog overlay', () => {
+  const timeline = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
+  assert.match(timeline, /className="feat-editor"/)
+  assert.match(timeline, /role="dialog"/)
+  assert.match(timeline, /useEscapeLayer\(!!sel && !!meta && !commandEditing/)
+  assert.match(timeline, /Escape.*skipCommit|skipCommit.*Escape/s)
+  assert.match(timeline, /POSITIVE_LENGTH_KEYS/)
 })

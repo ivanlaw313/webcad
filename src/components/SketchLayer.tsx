@@ -1513,12 +1513,13 @@ export function HolePreview() {
   const holeCbD = useApp((s) => s.holeCbD)
   const holeCbDepth = useApp((s) => s.holeCbDepth)
   const cfg = useMemo(() => {
-    if (!holeMode || !holePos) return null
+    // BUG-SO18F-001: illegal Ø≤0 must not keep a stale preview from the prior legal diameter.
+    if (!holeMode || !holePos || !(holeD > 0)) return null
     // 钻入方向（three）：斜面法向 holeDir(CAD)→three 取负（钻入体内）；否则默认沿 −CAD z（顶面朝下）。
     let drill: V3 = [0, -1, 0]
     if (holeDir) { const nT: V3 = [holeDir[0], holeDir[2], -holeDir[1]]; const l = Math.hypot(nT[0], nT[1], nT[2]) || 1; drill = [-nT[0] / l, -nT[1] / l, -nT[2] / l] }
     const q = new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), new Vector3(drill[0], drill[1], drill[2]))
-    const r = Math.max(1, holeD / 2)
+    const r = holeD / 2
     const len = holeThrough ? 400 : Math.max(2, holeDepth > 0 ? holeDepth : holeD * 1.5)
     const cbR = Math.max(r + 0.5, holeCbD != null ? holeCbD / 2 : holeD * 0.9)   // 无自定义值 → 比例 ≈1.8·D（screwSpec 缺省口径）
     const cbDep = Math.max(0.5, holeCbDepth != null ? holeCbDepth : holeD * 0.9)

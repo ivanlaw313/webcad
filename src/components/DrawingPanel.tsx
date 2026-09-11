@@ -1,8 +1,10 @@
-import { drawingScale, drawingLinearOffset, dxfTextValue } from '../io/drawingLayout'
+import { drawingScale, paperViewSizeMm, drawingLinearOffset, cloneDrawingAnno, dxfTextValue } from '../io/drawingLayout'
+import { registerEscapeLayer } from '../cad/escapeKey'
 import { useApp } from '../store'
 import { tStatus } from '../i18n'
 import { useState, useEffect, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import { jpegToPdf, dataUrlToBytes } from '../io/pdf'
+import { durableDownload, type DownloadResult } from '../io/download'
 // T784：标注类型搬入共享模块（store 持久化同款形状）— 别名保持本文件原有名字
 import { type DrawingAnno, type DTol as Tol, type DMDim as MDim, type DRDim as RDim, type DADim as ADim, type DNote as Note, type DNoteKind as NoteKind, type DDatum as Datum, type DFCF as FCF, type DDetail as Detail } from '../io/drawingAnno'
 
@@ -520,22 +522,37 @@ export default function DrawingPanel() {
       texts: [{ x: x0 + a, y: y + fs * 1.05, t: 'A', size: fs }, { x: x1 - a, y: y + fs * 1.05, t: 'A', size: fs }],
     }
   }
-  const dragAnnotation = (e:ReactPointerEvent<SVGTextElement>,view:string,index:number,kind:'linear'|'radial') => {
-    if(e.button!==0)return
-    e.preventDefault();e.stopPropagation()
-    const target=e.currentTarget,svg=target.ownerSVGElement,matrix=svg?.getScreenCTM()?.inverse()
-    if(!svg||!matrix)return
+  const dragAnnotation = (e: ReactPointerEvent<SVGTextElement>, view: string, index: number, kind: 'linear' | 'radial') => {
+    if (e.button !== 0) return
+    e.preventDefault(); e.stopPropagation()
+    const target = e.currentTarget, svg = target.ownerSVGElement, matrix = svg?.getScreenCTM()?.inverse()
+    if (!svg || !matrix) return
     target.setPointerCapture(e.pointerId)
-    const before=useApp.getState().drawingAnno
-    const move=(event:PointerEvent)=>{
-      const p=new DOMPoint(event.clientX,event.clientY).matrixTransform(matrix)
-      if(kind==='linear')setManualDims(all=>({...all,[view]:all[view].map((d,i)=>i===index?{...d,offset:drawingLinearOffset(d,p)}:d)}))
-      else setManualRDims(all=>({...all,[view]:all[view].map((d,i)=>i===index?{...d,angle:Math.atan2(p.y-d.cy,p.x-d.cx)}:d)}))
+    // Snapshot before any move so Esc / pointercancel can restore; deep-clone so nested dim arrays stay frozen.
+    const before = cloneDrawingAnno(useApp.getState().drawingAnno)
+    let done = false
+    const finish = (restore: boolean) => {
+      if (done) return
+      done = true
+      unregEsc()
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancelPtr)
+      if (target.hasPointerCapture(e.pointerId)) target.releasePointerCapture(e.pointerId)
+      if (restore) useApp.getState().setDrawingAnno(before)
     }
-    const cleanup=()=>{target.removeEventListener('pointermove',move);target.removeEventListener('pointerup',up);target.removeEventListener('pointercancel',cancel);document.removeEventListener('keydown',key);if(target.hasPointerCapture(e.pointerId))target.releasePointerCapture(e.pointerId)}
-    const up=()=>cleanup(),cancel=()=>{cleanup();useApp.getState().setDrawingAnno(before)}
-    const key=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.stopImmediatePropagation();event.preventDefault();cancel()}}
-    target.addEventListener('pointermove',move);target.addEventListener('pointerup',up);target.addEventListener('pointercancel',cancel);document.addEventListener('keydown',key)
+    const move = (event: PointerEvent) => {
+      const p = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix)
+      if (kind === 'linear') setManualDims((all) => ({ ...all, [view]: (all[view] || []).map((d, i) => i === index ? { ...d, offset: drawingLinearOffset(d, p) } : d) }))
+      else setManualRDims((all) => ({ ...all, [view]: (all[view] || []).map((d, i) => i === index ? { ...d, angle: Math.atan2(p.y - d.cy, p.x - d.cx) } : d) }))
+    }
+    const up = () => finish(false)
+    const cancelPtr = () => finish(true)
+    // Capture-phase Esc layer (above App) — restores snapshot; pointerup after Esc is ignored via `done`.
+    const unregEsc = registerEscapeLayer(() => finish(true), 1000)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancelPtr)
   }
   const svgFor = (v: typeof views[number]) => {
     const d = computeDims(v)
@@ -552,7 +569,7 @@ export default function DrawingPanel() {
       return { fv, midX: vx0 + vw2 / 2 }
     })() : null
     return (
-      <svg viewBox={d ? d.vbExp : v.vb} preserveAspectRatio="xMidYMid meet" onClick={(e) => onSvgClick(v, e)} style={{ width: `${Number((d ? d.vbExp : v.vb).split(/\s+/)[2])*drawingScale(scale)}mm`, height: `${Number((d ? d.vbExp : v.vb).split(/\s+/)[3])*drawingScale(scale)}mm`, maxWidth:'none', background: '#fff', cursor: (dimMode || radMode || angMode || datumMode || fcfMode || noteMode || detailMode || ordMode) ? 'crosshair' : 'default' }}>
+      <svg viewBox={d ? d.vbExp : v.vb} preserveAspectRatio="xMidYMid meet" onClick={(e) => onSvgClick(v, e)} style={{ width: `${paperViewSizeMm(d ? d.vbExp : v.vb, scale).width}mm`, height: `${paperViewSizeMm(d ? d.vbExp : v.vb, scale).height}mm`, maxWidth: 'none', flexShrink: 0, background: '#fff', cursor: (dimMode || radMode || angMode || datumMode || fcfMode || noteMode || detailMode || ordMode) ? 'crosshair' : 'default' }}>
         {v.hatch && v.hatch.length > 0 && (
           <defs>
             <pattern id={'hp_' + v.name} patternUnits="userSpaceOnUse" width={hsp} height={hsp} patternTransform="rotate(45)">
@@ -845,12 +862,25 @@ export default function DrawingPanel() {
     return { svg, W: contentW*k, H: contentH*k, overflow:false }
   }
 
+
+  // BUG-UI-008: drawing SVG/PNG/PDF/DXF must use durable File System Access (or hardened
+  // in-document <a download>) — same class of fix as Save/Export P0 / BUG-UI-002.
+  const drawingBaseName = () => `${(projectName || 'webcad').replace(/[^\w一-龥-]+/g, '_')}-工程图`
+  const finishDrawingExport = async (bytes: ArrayBuffer | Uint8Array, name: string, type: string, label: string) => {
+    const result: DownloadResult = await durableDownload(bytes, name, type)
+    if (!result.ok) {
+      if (result.reason === 'aborted') useApp.setState({ status: `已取消导出${label}（现有图纸未动）` })
+      else useApp.setState({ status: `导出失败：无法写入文件${result.message ? ' — ' + result.message : ''}（现有图纸未动）` })
+      return
+    }
+    const where = result.method === 'file-picker' ? ' · 已写入所选位置' : ''
+    useApp.setState({ status: `已导出工程图 ${label}${where}` })
+  }
+
   const exportSVG = () => {
     if(buildSvgString(0).overflow){window.alert('所選比例超出圖紙，請減小比例或選較大圖幅；未匯出裁切圖紙');return}
     const { svg } = buildSvgString(0)
-    const blob = new Blob([svg], { type: 'image/svg+xml' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = `${(projectName || 'webcad').replace(/[^\w一-龥-]+/g, '_')}-工程图.svg`; a.click(); URL.revokeObjectURL(url)
+    void finishDrawingExport(new TextEncoder().encode(svg), `${drawingBaseName()}.svg`, 'image/svg+xml', 'SVG')
   }
 
   // Rasterise the drawing to a PNG (2× for crisp text) — for pasting into docs / chat / email where SVG
@@ -866,7 +896,7 @@ export default function DrawingPanel() {
       const ctx = cv.getContext('2d'); if (!ctx) return
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, pxW, pxH)
       ctx.drawImage(img, 0, 0, pxW, pxH)
-      cv.toBlob((blob) => { if (!blob) return; const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${(projectName || 'webcad').replace(/[^\w一-龥-]+/g, '_')}-工程图.png`; a.click(); URL.revokeObjectURL(url) }, 'image/png')
+      cv.toBlob((blob) => { if (!blob) return; void blob.arrayBuffer().then((buf) => finishDrawingExport(new Uint8Array(buf), `${drawingBaseName()}.png`, 'image/png', 'PNG')) }, 'image/png')
     }
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
   }
@@ -887,9 +917,7 @@ export default function DrawingPanel() {
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, pxW, pxH)
       ctx.drawImage(img, 0, 0, pxW, pxH)
       const pdf = jpegToPdf(dataUrlToBytes(cv.toDataURL('image/jpeg', 0.92)), pxW, pxH, {pageW:W*72/25.4,pageH:H*72/25.4,margin:0})
-      const blob = new Blob([pdf as unknown as BlobPart], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a'); a.href = url; a.download = `${(projectName || 'webcad').replace(/[^\w一-龥-]+/g, '_')}-工程图.pdf`; a.click(); URL.revokeObjectURL(url)
+      void finishDrawingExport(pdf, `${drawingBaseName()}.pdf`, 'application/pdf', 'PDF')
     }
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
   }
@@ -978,13 +1006,13 @@ export default function DrawingPanel() {
     const ent = txtEnt ? lineEnt + '\n' + txtEnt : lineEnt
     // $INSUNITS=4 → millimetres, so the DXF imports at correct scale in CAD/CAM (not guessed as inches).
     const dxf = `0\nSECTION\n2\nHEADER\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n${ent}\n0\nENDSEC\n0\nEOF\n`
-    const blob = new Blob([dxf], { type: 'application/dxf' }); const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = 'webcad-drawing.dxf'; a.click(); URL.revokeObjectURL(url)
+    void finishDrawingExport(new TextEncoder().encode(dxf), `${drawingBaseName()}.dxf`, 'application/dxf', 'DXF')
   }
 
   return (
-    <div className="drawing-overlay" onClick={close}>
-      <div className="drawing-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="drawing-overlay" onClick={(e) => { if (e.target === e.currentTarget) close() }}>
+      <div className="drawing-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="dw-body">
         <div className="dw-head">📐 {drawingKind === 'assembly' ? tStatus('装配工程图 — 三视图 + 气泡 BOM', lang) : tStatus('工程图 — 三视图 + 立体图', lang)}{drawingKind === 'assembly' && <span style={{ marginLeft: 10, color: '#8a5a00', fontSize: 11, fontWeight: 'normal' }} title={tStatus('装配视图由组件网格投影（轮廓+特征边）：无隐藏线消除、圆为折线 — 诚实近似', lang)}>{tStatus('mesh 投影', lang)}</span>}{dimMode && <span style={{ marginLeft: 12, color: '#c2185b', fontSize: 12, fontWeight: 'normal' }}>📏 {pendPt ? tStatus('再点第二点完成标注', lang) : tStatus('点第一点（自动吸附最近孔心）', lang)}</span>}{radMode && <span style={{ marginLeft: 12, color: '#8a5a00', fontSize: 12, fontWeight: 'normal' }}>◯ {tStatus('点一个圆 → 标', lang)}{radMode === 'r' ? tStatus('半径 R', lang) : tStatus('直径 Ø', lang)}</span>}{angMode && <span style={{ marginLeft: 12, color: '#6a1b9a', fontSize: 12, fontWeight: 'normal' }}>∠ {pendSeg ? tStatus('再点第二条边完成角度', lang) : tStatus('点第一条边（两边夹角）', lang)}</span>}{datumMode && <span style={{ marginLeft: 12, color: '#00838f', fontSize: 12, fontWeight: 'normal' }}>▣ {tStatus('点一处 → 放基准标记（自动 A/B/C…）', lang)}</span>}{fcfMode && <span style={{ marginLeft: 12, color: '#00838f', fontSize: 12, fontWeight: 'normal' }}>▥ {tStatus('点一处 → 放形位公差框（', lang)}{fcfSym} {fcfTol}{fcfDatum.trim() ? ' ' + fcfDatum.trim() : ''}）</span>}<span className="dw-x" onClick={close}>✕</span></div>
         <div className="dw-views">
           {views.map((v) => {
@@ -1126,8 +1154,8 @@ export default function DrawingPanel() {
             </div>
           )
         })()}
-        <div className="dw-foot" style={{flexWrap:'wrap',justifyContent:'flex-start',gap:8}}>
-          <style>{`.dw-foot > * { flex-shrink:0; max-width:100%; } .dw-foot button { white-space:nowrap; } .dw-view {min-width:0;overflow:auto;} @media(max-width:700px){.dw-views{grid-template-columns:repeat(3,minmax(120px,1fr));overflow:auto;}}`}</style>
+        </div>
+        <div className="dw-foot">
           <span className="dw-legend">{tStatus('— 可见轮廓　┄ 隐藏轮廓', lang)}</span>
           <label style={{ fontSize: 12, marginLeft: 4, cursor: 'pointer' }} title={tStatus('显示/隐藏 虚线隐藏轮廓（屏幕 + 导出 SVG 同步）', lang)}><input type="checkbox" checked={showHidden} onChange={(e) => setShowHidden(e.target.checked)} /> {tStatus('隐藏线', lang)}</label>
           <label style={{ fontSize: 12, marginLeft: 2, cursor: 'pointer' }} title={tStatus('显示/隐藏 自动孔径Ø标注 + 中心标记（屏幕 + 导出同步）', lang)}><input type="checkbox" checked={showCallouts} onChange={(e) => setShowCallouts(e.target.checked)} /> {tStatus('Ø标注', lang)}</label>
@@ -1137,7 +1165,7 @@ export default function DrawingPanel() {
           <button className="cs-btn" style={radMode === 'r' ? { background: '#8a5a00', color: '#fff' } : undefined} onClick={() => { setRadMode((m) => (m === 'r' ? null : 'r')); setDimMode(false); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false) }} title={tStatus('进入后点一个圆 → 标半径 R（自动吸附侦测到的圆）', lang)}>{radMode === 'r' ? tStatus('✓ 半径标注中（点圆）', lang) : tStatus('＋半径 R', lang)}</button>
           <button className="cs-btn" style={radMode === 'd' ? { background: '#8a5a00', color: '#fff' } : undefined} onClick={() => { setRadMode((m) => (m === 'd' ? null : 'd')); setDimMode(false); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false) }} title={tStatus('进入后点一个圆 → 标直径 Ø（自动吸附侦测到的圆）', lang)}>{radMode === 'd' ? tStatus('✓ 直径标注中（点圆）', lang) : tStatus('＋直径 Ø', lang)}</button>
           <button className="cs-btn" style={angMode ? { background: '#6a1b9a', color: '#fff' } : undefined} onClick={() => { setAngMode((m) => !m); setDimMode(false); setRadMode(null); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false) }} title={tStatus('进入后点两条直线边 → 标出两边夹角（平行线无法标）', lang)}>{angMode ? tStatus('✓ 角度标注中（点两边）', lang) : tStatus('＋角度标注', lang)}</button>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 6 }}>
+          <span className="dw-tool-group">
             <button className="cs-btn" style={tolOn ? { background: '#00695c', color: '#fff' } : undefined} onClick={() => setTolOn((o) => !o)} title={tStatus('开启后，新放置嘅线性/半径/直径尺寸会附上公差（上/下偏差）', lang)}>{tolOn ? tStatus('✓ 公差', lang) : tStatus('公差 ±', lang)}</button>
             {tolOn && <>
               <input type="number" step="0.01" value={tolU} onChange={(e) => setTolU(+e.target.value || 0)} style={{ width: 56 }} title={tStatus('上偏差 (mm)', lang)} />
@@ -1146,7 +1174,7 @@ export default function DrawingPanel() {
               <span style={{ fontSize: 11, color: '#00695c' }}>{tolStr({ u: tolU, l: tolL }).trim() || '0'}</span>
             </>}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 6 }}>
+          <span className="dw-tool-group">
             <button className="cs-btn" style={autoTolOn ? { background: '#1565c0', color: '#fff' } : undefined} onClick={() => setAutoTolOn((o) => !o)} title={tStatus('一般公差：给自动标注嘅总宽/总高 + Ø 孔径附上对称公差 ±（ISO 2768 风格，免逐个手标）', lang)}>{autoTolOn ? tStatus('✓ 一般公差', lang) : tStatus('一般公差 ±', lang)}</button>
             {autoTolOn && <>
               <input type="number" step="0.05" min="0" value={autoTol} onChange={(e) => setAutoTol(Math.max(0, +e.target.value || 0))} style={{ width: 56 }} title={tStatus('自动尺寸对称公差 ±(mm)', lang)} />
@@ -1154,7 +1182,7 @@ export default function DrawingPanel() {
             </>}
           </span>
           <button className="cs-btn" style={datumMode ? { background: '#00838f', color: '#fff' } : undefined} onClick={() => { setDatumMode((m) => !m); setFcfMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setPendPt(null); setPendSeg(null); setNoteMode(false) }} title={tStatus('进入后点一处 → 放基准标记（方框字母，自动 A/B/C…）', lang)}>{datumMode ? tStatus('✓ 基准中（点放置）', lang) : tStatus('＋基准', lang)}</button>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <span className="dw-tool-group">
             <button className="cs-btn" style={fcfMode ? { background: '#00838f', color: '#fff' } : undefined} onClick={() => { setFcfMode((m) => !m); setDatumMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setPendPt(null); setPendSeg(null); setNoteMode(false) }} title={tStatus('进入后点一处 → 放形位公差框（特性符号 | 公差 | 基准）', lang)}>{fcfMode ? tStatus('✓ 形位公差中（点放置）', lang) : tStatus('＋形位公差', lang)}</button>
             {fcfMode && <>
               <select value={fcfSym} onChange={(e) => setFcfSym(e.target.value)} title={tStatus('特性符号', lang)}>{GDT_SYMS.map((g) => <option key={g.sym} value={g.sym}>{g.sym} {tStatus(g.name, lang)}</option>)}</select>
@@ -1162,7 +1190,7 @@ export default function DrawingPanel() {
               <input value={fcfDatum} onChange={(e) => setFcfDatum(e.target.value)} placeholder={tStatus('基准', lang)} style={{ width: 44 }} title={tStatus('基准参照（选填，如 A）', lang)} />
             </>}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <span className="dw-tool-group">
             <button className="cs-btn" style={noteMode ? { background: '#5d4037', color: '#fff' } : undefined} onClick={() => { setNoteMode((m) => !m); setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setPendPt(null); setPendSeg(null) }} title={tStatus('进入后点几何 → 放注释（螺纹 M / 倒角 C / 粗糙度 Ra / 自由文字）', lang)}>{noteMode ? tStatus('✓ 注释中（点放置）', lang) : tStatus('📝 注释', lang)}</button>
             {noteMode && <>
               <select value={noteType} onChange={(e) => { const t = e.target.value as NoteKind; setNoteType(t); setNoteVal(t === 'thread' ? '6' : t === 'chamfer' ? '2' : t === 'surf' ? '3.2' : '') }} title={tStatus('注释类型', lang)}>
@@ -1174,7 +1202,7 @@ export default function DrawingPanel() {
           <button className="cs-btn" style={detailMode ? { background: '#2e7d32', color: '#fff' } : undefined} onClick={() => { setDetailMode((m) => !m); setOrdMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setNoteMode(false); setPendPt(null); setPendSeg(null) }} title={tStatus('局部放大（T749）：进入后点视图任一处 → 该圆形区域出一个 2:1 放大视图（图纸导出同步；DXF 唔支持，诚实跳过）', lang)}>{detailMode ? tStatus('✓ 局部放大中（点区域）', lang) : tStatus('🔍 局部放大', lang)}</button>
           <button className="cs-btn" style={ordMode ? { background: '#2e7d32', color: '#fff' } : undefined} onClick={() => { setOrdMode((m) => !m); setDetailMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setNoteMode(false); setPendPt(null); setPendSeg(null) }} title={tStatus('坐标式标注（T791 — 多孔板神器）：首点 = 原点 ⊕，之后逐点出 (X, Y) 坐标标注（自动吸附圆心；Y 向上为正 = 钻床/CNC 惯例）。随存档保留', lang)}>{ordMode ? tStatus('✓ 坐标标注中（首点=原点）', lang) : tStatus('⊕ 坐标标注', lang)}</button>
           {drawingKind !== 'assembly' && views.some((x) => x.name === 'section') && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }} title={tStatus('A—A 剖切：位置百分比 + 剖切轴（Y=沿深度睇前视；X=沿阔度睇侧视）— 改完撳 ↻ 重新生成', lang)}>
+            <span className="dw-tool-group" title={tStatus('A—A 剖切：位置百分比 + 剖切轴（Y=沿深度睇前视；X=沿阔度睇侧视）— 改完撳 ↻ 重新生成', lang)}>
               <span style={{ fontSize: 11, color: '#2e7d32' }}>✂A—A</span>
               <select value={sectionAxis} onChange={(e) => setSectionAxis(e.target.value as 'Y' | 'X')} style={{ fontSize: 11 }} title={tStatus('剖切轴（T791）', lang)}><option value="Y">{tStatus('Y 深度', lang)}</option><option value="X">{tStatus('X 阔度', lang)}</option></select>
               <input type="number" aria-label={tStatus('剖切位置百分比', lang)} min={5} max={95} step={5} value={Math.round(sectionFrac * 100)} onChange={(e) => setSectionFrac((+e.target.value || 50) / 100)} style={{ width: 46 }} />%

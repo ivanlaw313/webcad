@@ -3896,6 +3896,7 @@ export default function Viewport() {
   const rcDown = useRef<{ x: number; y: number } | null>(null)
   useEscapeLayer(!!ctxMenu, () => setCtxMenu(null), 250)
   useEscapeLayer(!!navPop, () => setNavPop(null), 120)
+  useEscapeLayer(!!propsDialog, () => useApp.getState().closePropertiesDialog(), 210)  // UI02: Properties is its own Esc layer
   // 按住 Alt → 临时停几何捕捉（画图时精准落点，Fusion 同款）；放开/失焦即恢复。
   useEffect(() => {
     const dn = (e: KeyboardEvent) => { if (e.key === 'Alt') setGeoSnapAlt(true) }
@@ -4973,7 +4974,7 @@ export default function Viewport() {
           </label>
           <label>
             <span style={{ color: '#6b7680' }}>壁厚</span>
-            <span><input type="number" min={0} step={0.5} value={shellThickness} onChange={(e) => setShellThickness(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+            <span><input type="number" min={0.01} step={0.5} value={shellThickness} onChange={(e) => setShellThickness(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
           </label>
           <label title={tStatus('壁厚方向（Fusion Direction）：向内=外形保留 · 向外=尺寸外扩 · 两侧=壁跨原边界（逐面不同厚度请事后用「偏移面」）', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('方向', lang)}</span>
@@ -6090,7 +6091,8 @@ export default function Viewport() {
           ((featDlg.kind === 'pattern' || featDlg.kind === 'circpattern') && (String(featDlg.params.objectType ?? 'bodies') === 'features' ? !cpSelFeat : String(featDlg.params.objectType ?? 'bodies') === 'components' ? !cpSelCompCount : String(featDlg.params.objectType ?? 'bodies') === 'faces' ? !facePatternPicks.length : !+featDlg.params.objectPicked)) ||
           (featDlg.kind === 'geoPattern' && !featDlg.editId && !cpSelFeat) ||
           (featDlg.kind === 'move' && String(featDlg.params.objectType ?? 'bodies') === 'components' && !selectedComponent && checkedComps.length === 0) ||
-          (featDlg.kind === 'automatedmodel' && (((featDlg.payload as { picks?: unknown[] } | undefined)?.picks?.length ?? 0) !== 2 || !(+featDlg.params.radius > 0)))
+          (featDlg.kind === 'automatedmodel' && (((featDlg.payload as { picks?: unknown[] } | undefined)?.picks?.length ?? 0) !== 2 || !(+featDlg.params.radius > 0))) ||
+          (featDlg.kind === 'shell-edit' && !(+featDlg.params.thickness > 0))
         } onOk={() => void commitFeatDlg()} onCancel={() => cancelFeatDlg()}>
           {featDlg.kind === 'extrude-edit' && <div role="status">{!currentEditPreview ? '正在计算上游预览…' : currentEditPreview.failed ? '预览失败，请检查距离及轮廓' : '上游预览；确定后重建下游特征'}</div>}
           {featDlg.editId && <div style={{ fontSize: 11, color: '#8a97a2', marginBottom: 4 }}>{tStatus('编辑模式：改参数 → 确定重建；棱/面选择集及轮廓保留原值', lang)}</div>}
@@ -6231,8 +6233,14 @@ export default function Viewport() {
             const moveComponentCount = checkedComps.length || (selectedComponent ? 1 : 0)
             const modes: [string, string, string][] = [['free', '自由', '六自由度：dx/dy/dz + 绕件中心 X/Y/Z'], ['translate', '平移', '只平移 dx/dy/dz'], ['rotate', '旋转', '单轴 + 角度（绕件中心）'], ['ptp', '点对点', '把 P1 搬到 P2（两点坐标）'], ['ptpos', '点对位', '把 P1 搬到目的坐标 P2']]
             return (<>
-              <label title={tStatus('对象类型（Fusion Move Object）：当前完整支持活动实体和已选组件；面与草图须用专属工具。', lang)}>{tStatus('对象', lang)} <select value={objectType} onChange={(e) => setFeatParam('objectType', e.target.value)} style={{ height: 26 }}><option value="bodies">{tStatus('活动实体', lang)}</option><option value="components">{tStatus('组件', lang)}</option><option value="faces" disabled>{tStatus('面（用移动面）', lang)}</option><option value="sketch" disabled>{tStatus('草图（草图环境）', lang)}</option></select></label>
-              {objectType === 'bodies' ? <SelectionChip label={tStatus('对象', lang)} count={1} hint={tStatus('活动实体会在确定后移动；在浏览器选择其他实体可先切换活动实体。', lang)} /> : <SelectionChip label={tStatus('组件', lang)} count={moveComponentCount} hint={moveComponentCount ? tStatus('已选组件；可在浏览树勾选多个组件，按 × 清除后重新选择。', lang) : tStatus('先在浏览树或画布选择一个或多个组件。', lang)} onClear={() => useApp.setState({ checkedComps: [], selectedComponent: null })} />}
+              <label title={tStatus('对象类型（Fusion Move Object）：当前完整支持活动实体和已选组件；面与草图须用专属工具。', lang)}>{tStatus('对象', lang)} <select value={objectType} onChange={(e) => setFeatParam('objectType', e.target.value)} style={{ height: 26 }}><option value="bodies">{tStatus('实体', lang)}</option><option value="components">{tStatus('组件', lang)}</option><option value="faces" disabled>{tStatus('面（用移动面）', lang)}</option><option value="sketch" disabled>{tStatus('草图（草图环境）', lang)}</option></select></label>
+              {objectType === 'bodies' ? (<>
+                <label title={tStatus('SO10：分割后可选择泊车半体移动，避免只移活动低侧叠入另一半导致合并体积丢失', lang)}>{tStatus('实体', lang)} <select value={String(featDlg.params.bodyTarget ?? 'active')} onChange={(e) => setFeatParam('bodyTarget', e.target.value)} style={{ height: 26 }}>
+                  <option value="active">{tStatus('活动实体', lang)}</option>
+                  {(bodyMesh?.parked ?? []).map((b, i) => <option key={i} value={'parked' + i}>{b.name || (tStatus('泊车实体', lang) + (i + 1))}</option>)}
+                </select></label>
+                <SelectionChip label={tStatus('对象', lang)} count={1} hint={tStatus('可选活动实体或泊车实体（分割另一半）；确定后移动所选实体。', lang)} />
+              </>) : <SelectionChip label={tStatus('组件', lang)} count={moveComponentCount} hint={moveComponentCount ? tStatus('已选组件；可在浏览树勾选多个组件，按 × 清除后重新选择。', lang) : tStatus('先在浏览树或画布选择一个或多个组件。', lang)} onClear={() => useApp.setState({ checkedComps: [], selectedComponent: null })} />}
               <div style={{ display: 'flex', gap: 3, width: '100%' }}>
                 {modes.map(([v, lbl, tip]) => <button key={v} className={'sb-tool' + (mt === v ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={tStatus(tip, lang)} onClick={() => setFeatParam('moveType', v)}>{tStatus(lbl, lang)}</button>)}
               </div>
@@ -6332,8 +6340,15 @@ export default function Viewport() {
               {hasPlane
                 ? <div style={{ fontSize: 11, color: '#16a36b' }}>{tStatus('✂ 已拾切割平面（法向', lang)} [{String(featDlg.params.planeNormal)}]）<button className="sb-tool" onClick={() => { setFeatParam('planeOrigin', ''); setFeatParam('planeNormal', '') }}>{tStatus('改用轴向平面', lang)}</button></div>
                 : (<>
-                  <label title={tStatus('切割轴：沿此轴的一个平面把实体切两半（要任意面请用「平面切」拾面）', lang)}>{tStatus('轴', lang)} <select value={String(featDlg.params.axis)} onChange={(e) => setFeatParam('axis', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
-                  <label title={tStatus('切割位置（CAD 坐标，沿上面选定轴）— 开对话框默认实体 Z 中点', lang)}>{tStatus('位置', lang)} <input type="number" step={1} value={featDlg.params.offset} onChange={(e) => setFeatParam('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>
+                  <label title={tStatus('切割轴：沿此轴的一个平面把实体切两半（要任意面请用「平面切」拾面）', lang)}>{tStatus('轴', lang)} <select value={String(featDlg.params.axis)} onChange={(e) => {
+                    const axis = e.target.value; setFeatParam('axis', axis)
+                    const m = useApp.getState().bodyMesh; if (!m?.vertices?.length) return
+                    const axIdx = axis === 'X' ? 0 : axis === 'Y' ? 1 : 2
+                    const vv = m.vertices; let lo = 1e9, hi = -1e9
+                    for (let i = axIdx; i < vv.length; i += 3) { if (vv[i] < lo) lo = vv[i]; if (vv[i] > hi) hi = vv[i] }
+                    setFeatParam('offset', Math.round((lo + hi) / 2 * 10) / 10)
+                  }} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
+                  <label title={tStatus('切割位置（CAD 世界坐标，沿选定轴）。长方体默认角落原点时 x=15 把 40 宽切成 15+25 → 体积 3000+5000', lang)}>{tStatus('位置', lang)} <input type="number" step={1} value={featDlg.params.offset} onChange={(e) => setFeatParam('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>
                   <button className="cs-btn" title={tStatus('把切割位置居中到实体包围盒中点（当前轴）', lang)} onClick={() => {
                     const m = useApp.getState().bodyMesh; if (!m?.vertices?.length) return
                     const axIdx = featDlg.params.axis === 'X' ? 0 : featDlg.params.axis === 'Y' ? 1 : 2
@@ -6342,7 +6357,7 @@ export default function Viewport() {
                     setFeatParam('offset', Math.round((lo + hi) / 2 * 10) / 10)
                   }}>{tStatus('居中', lang)}</button>
                 </>)}
-              <label title={tStatus('保留哪一侧做活动实体继续编辑；另一侧灰显泊车（可隐藏/导出/实体布尔）', lang)}>{tStatus('保留侧', lang)} <select value={String(featDlg.params.keep ?? 'lo')} onChange={(e) => setFeatParam('keep', e.target.value)} style={{ height: 26 }}><option value="lo">{tStatus(hasPlane ? '法向负侧' : '低侧', lang)}</option><option value="hi">{tStatus(hasPlane ? '法向正侧' : '高侧', lang)}</option></select></label>
+              <label title={tStatus('保留哪一侧做活动实体继续编辑；另一侧灰显泊车（可隐藏/导出/实体布尔）。默认高侧：沿轴正方向移动活动体可与泊车半体分离，合并后总体积不变', lang)}>{tStatus('保留侧', lang)} <select value={String(featDlg.params.keep ?? 'hi')} onChange={(e) => setFeatParam('keep', e.target.value)} style={{ height: 26 }}><option value="lo">{tStatus(hasPlane ? '法向负侧' : '低侧', lang)}</option><option value="hi">{tStatus(hasPlane ? '法向正侧' : '高侧', lang)}</option></select></label>
             </>)
           })()}
           {/* P2 Edit Feature：编辑专属块 — 双击时间线重开，值已反填；选择集/轮廓透传保留 */}
@@ -6358,6 +6373,9 @@ export default function Viewport() {
                 <option value="distance">{tStatus('距离', lang)}</option><option value="symmetric">{tStatus('对称', lang)}</option><option value="through">{tStatus('贯通', lang)}</option>{hasTF && <option value="toface">{tStatus('到面（保留原引用）', lang)}</option>}{hasNext && <option value="next">{tStatus('到下一面（已烘焙距离）', lang)}</option>}</select></label>
               {featDlg.params.extent !== 'through' && featDlg.params.extent !== 'toface' && <label>{featDlg.params.extent === 'symmetric' ? featDlg.params.symMeasure === 'half' ? '每侧距离' : '总距离' : tStatus('距离', lang)} <ExpressionInput bindingRefs={featDlg.expressionContext?.refs} scale={Number(featDlg.params.heightExprScale ?? 1)} text={String(featDlg.params.heightExpr ?? featDlg.params.height)} onText={text => setFeatParam('heightExpr', text)} /></label>}
               {featDlg.params.extent === 'symmetric' && <label>量度 <select aria-label="对称量度" value={String(featDlg.params.symMeasure ?? 'whole')} onChange={e => setFeatParam('symMeasure', e.target.value)}><option value="whole">全长（总距离）</option><option value="half">半长（每侧距离）</option></select></label>}
+              {(featDlg.params.extent === 'distance' || featDlg.params.extent === 'next') && (
+                <button type="button" className={'sb-tool' + (+(featDlg.params.heightExprFlip || 0) ? ' active' : '')} style={{ width: '100%' }} title={tStatus('把拉伸/切割方向反转（同喺「距离」打负数效果一样）', lang)} onClick={() => setFeatParam('heightExprFlip', +(featDlg.params.heightExprFlip || 0) ? 0 : 1)}>{tStatus('⇅ 反向方向', lang)}{+(featDlg.params.heightExprFlip || 0) ? tStatus('（已反）', lang) : ''}</button>
+              )}
               <label>{tStatus('拔模角', lang)} <input type="number" step={1} min={-45} max={45} value={featDlg.params.draft} onChange={(e) => setFeatParam('draft', Number(e.target.value))} style={{ width: 50 }} />°</label>
               <label>{tStatus('扭转', lang)} <input type="number" step={5} value={featDlg.params.twist} onChange={(e) => setFeatParam('twist', Number(e.target.value))} style={{ width: 50 }} />°</label>
               {skId && <button className="tb-btn" title={tStatus('重开草图编辑轮廓（改完全树重建）', lang)} onClick={() => { const id = featDlg.editId!; cancelFeatDlg(); useApp.getState().editSketchOf(id) }}>✎ {tStatus('编辑草图', lang)}</button>}
@@ -6900,8 +6918,8 @@ export default function Viewport() {
           )}
           {!inSkToolMode && (<>
           <span className="sb-spacer" />
-          {extrudeDlgOpen && <><label>{tStatus('高度', lang)} <input type="number" min={1} value={extrudeHeight} onFocus={(e) => e.currentTarget.select()}
-            onChange={(e) => setExtrudeHeight(Number(e.target.value) || 1)} /> mm</label>
+          {extrudeDlgOpen && <><label>{tStatus('高度', lang)} <input type="number" step={0.1} value={extrudeHeight} onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => { const n = Number(e.target.value); setExtrudeHeight(Number.isFinite(n) ? n : 0) }} /> mm</label>
           <label className="sb-hint" title={tStatus('对称：以草图面为中心，向两侧各拉伸一半', lang)}><input type="checkbox" checked={sketchSymmetric} onChange={(e) => setSketchSymmetric(e.target.checked)} /> {tStatus('对称', lang)}</label>
           <label className="sb-hint" title={tStatus('扭转角：拉伸时绕高度方向旋转（度）', lang)}>{tStatus('扭转', lang)} <input type="number" value={sketchTwist} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setSketchTwist(Number(e.target.value))} style={{ width: 46 }} /> °</label></>}
           {sketchShape && (

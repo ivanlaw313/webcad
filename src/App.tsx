@@ -74,6 +74,13 @@ export default function App() {
       const editingText = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
       if (editingText && (e.ctrlKey || e.metaKey) && ['z', 'y'].includes(e.key.toLowerCase())) return
       if (editingText && !e.ctrlKey && !e.metaKey && e.key !== 'Enter' && e.key !== 'Escape') return
+      // UI02: Escape in a free text/number field (dimension edit, document name, …)
+      // cancels only that field. SOLID/command dialogs keep global Esc via
+      // role=dialog / .cmd-palette (and their own Escape layers).
+      if (editingText && e.key === 'Escape') {
+        const inDialog = !!(t.closest?.('[role="dialog"], .cmd-palette'))
+        if (!inDialog) return
+      }
       if (e.ctrlKey || e.metaKey) {
         const ck = e.key.toLowerCase()
         if (ck === 'z' && !e.shiftKey) { e.preventDefault(); if (useApp.getState().csketchOpen) useCSketch.getState().undo(); else void useApp.getState().undo() }
@@ -220,6 +227,7 @@ export default function App() {
       // 测试报告观察 A：统一 Esc 关闭其余浮动面板 / 取消拾取模式（之前 FEA / 工程计算 等唔响应 Esc）。
       // 按优先级逐个兜底；无开启嘅面板时跌落去下面 switch 的 escape（清选择 / 退草图）。
       if (e.key === 'Escape') {
+        if (s.propsDialog) { e.preventDefault(); s.closePropertiesDialog(); return }                    // UI02：物理属性浮层是独立 Esc 层
         if (s.skTextDlg) { e.preventDefault(); s.cancelSkTextDlg(); return }                             // GM-FP4 #52：草图文字对话框
         if (s.vpDlg) { e.preventDefault(); s.setVpDlg(null); return }                                   // 工程计算 / 爆炸视图
         if (s.feaMode > 0 || s.feaBusy || s.feaResult) { e.preventDefault(); s.clearFea(); return }      // FEA 受力云图面板

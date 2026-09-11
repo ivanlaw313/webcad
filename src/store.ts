@@ -3472,7 +3472,8 @@ export function arc3(p0: Pt, p1: Pt, pm: Pt, seg = 24): Pt[] {
 function synchronizeSketchPlacement(sources: AppState['sketchSources'], features: Feature[]): AppState['sketchSources'] {
   return Object.fromEntries(Object.entries(sources).map(([id, src]) => {
     const f = features.find(f => f.type === 'extrude' && f.sketchId === id)
-    return [id, f?.type === 'extrude' ? { ...src, baseZ: f.baseZ ?? 0, height: f.height, ...(f.arbPlane ? {arb: structuredClone(f.arbPlane)} : {}) } : src]
+    // SO03: keep sketchSources.down in lockstep with the live extrude (edit/param rebinds).
+    return [id, f?.type === 'extrude' ? { ...src, baseZ: f.baseZ ?? 0, height: f.height, down: f.down || undefined, ...(f.arbPlane ? {arb: structuredClone(f.arbPlane)} : {}) } : src]
   }))
 }
 
@@ -18151,7 +18152,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (typeof merged.distanceExpression === 'string') merged.distanceExpression = JSON.parse(merged.distanceExpression)
       return merged as unknown as Feature
     })
-    await get().applyFeatures(followExtrudeTopEdges(get().features, features, id), '已更新参数并重建')
+    const ok = await get().applyFeatures(followExtrudeTopEdges(get().features, features, id), '已更新参数并重建')
+    // SO03: after a successful extrude-edit, sync sketchSources.down/height so sketch regen
+    // and feature patterns replay the same reverse/negative direction.
+    if (ok) {
+      const edited = get().features.find((f) => f.id === id)
+      if (edited?.type === 'extrude' && edited.sketchId && 'down' in patch) {
+        const skId = edited.sketchId
+        const src = get().sketchSources[skId]
+        if (src) set({ sketchSources: { ...get().sketchSources, [skId]: { ...src, down: edited.down || undefined, height: edited.height } } })
+      }
+    }
   },
 
   removeFeature: async (id) => {

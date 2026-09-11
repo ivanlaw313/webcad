@@ -6366,6 +6366,9 @@ export default function Viewport() {
                 <option value="distance">{tStatus('距离', lang)}</option><option value="symmetric">{tStatus('对称', lang)}</option><option value="through">{tStatus('贯通', lang)}</option>{hasTF && <option value="toface">{tStatus('到面（保留原引用）', lang)}</option>}{hasNext && <option value="next">{tStatus('到下一面（已烘焙距离）', lang)}</option>}</select></label>
               {featDlg.params.extent !== 'through' && featDlg.params.extent !== 'toface' && <label>{featDlg.params.extent === 'symmetric' ? featDlg.params.symMeasure === 'half' ? '每侧距离' : '总距离' : tStatus('距离', lang)} <ExpressionInput bindingRefs={featDlg.expressionContext?.refs} scale={Number(featDlg.params.heightExprScale ?? 1)} text={String(featDlg.params.heightExpr ?? featDlg.params.height)} onText={text => setFeatParam('heightExpr', text)} /></label>}
               {featDlg.params.extent === 'symmetric' && <label>量度 <select aria-label="对称量度" value={String(featDlg.params.symMeasure ?? 'whole')} onChange={e => setFeatParam('symMeasure', e.target.value)}><option value="whole">全长（总距离）</option><option value="half">半长（每侧距离）</option></select></label>}
+              {(featDlg.params.extent === 'distance' || featDlg.params.extent === 'next') && (
+                <button type="button" className={'sb-tool' + (+(featDlg.params.heightExprFlip || 0) ? ' active' : '')} style={{ width: '100%' }} title={tStatus('把拉伸/切割方向反转（同喺「距离」打负数效果一样）', lang)} onClick={() => setFeatParam('heightExprFlip', +(featDlg.params.heightExprFlip || 0) ? 0 : 1)}>{tStatus('⇅ 反向方向', lang)}{+(featDlg.params.heightExprFlip || 0) ? tStatus('（已反）', lang) : ''}</button>
+              )}
               <label>{tStatus('拔模角', lang)} <input type="number" step={1} min={-45} max={45} value={featDlg.params.draft} onChange={(e) => setFeatParam('draft', Number(e.target.value))} style={{ width: 50 }} />°</label>
               <label>{tStatus('扭转', lang)} <input type="number" step={5} value={featDlg.params.twist} onChange={(e) => setFeatParam('twist', Number(e.target.value))} style={{ width: 50 }} />°</label>
               {skId && <button className="tb-btn" title={tStatus('重开草图编辑轮廓（改完全树重建）', lang)} onClick={() => { const id = featDlg.editId!; cancelFeatDlg(); useApp.getState().editSketchOf(id) }}>✎ {tStatus('编辑草图', lang)}</button>}
@@ -6908,8 +6911,8 @@ export default function Viewport() {
           )}
           {!inSkToolMode && (<>
           <span className="sb-spacer" />
-          {extrudeDlgOpen && <><label>{tStatus('高度', lang)} <input type="number" min={1} value={extrudeHeight} onFocus={(e) => e.currentTarget.select()}
-            onChange={(e) => setExtrudeHeight(Number(e.target.value) || 1)} /> mm</label>
+          {extrudeDlgOpen && <><label>{tStatus('高度', lang)} <input type="number" step={0.1} value={extrudeHeight} onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => { const n = Number(e.target.value); setExtrudeHeight(Number.isFinite(n) ? n : 0) }} /> mm</label>
           <label className="sb-hint" title={tStatus('对称：以草图面为中心，向两侧各拉伸一半', lang)}><input type="checkbox" checked={sketchSymmetric} onChange={(e) => setSketchSymmetric(e.target.checked)} /> {tStatus('对称', lang)}</label>
           <label className="sb-hint" title={tStatus('扭转角：拉伸时绕高度方向旋转（度）', lang)}>{tStatus('扭转', lang)} <input type="number" value={sketchTwist} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setSketchTwist(Number(e.target.value))} style={{ width: 46 }} /> °</label></>}
           {sketchShape && (

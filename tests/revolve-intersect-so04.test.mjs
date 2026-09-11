@@ -210,7 +210,10 @@ test('BUG-SO17-001 source: worker honors Z and clips axis-crossing profiles', ()
   assert.match(workerSrc, /f\.axis === 'Z' \? \[0, 0, 1\]/)
   assert.match(workerSrc, /BUG-SO17-001/)
   assert.match(workerSrc, /latheClipCoord/)
-  assert.match(storeSrc, /axStr === 'Z' \? 'Z'/)
+  // BUG-SO111-001: letter comes from revolvePersistedAxis(axisV) so Z button / synced dropdown
+  // cannot leave a stale axis:'Y' while axisV is world Z.
+  assert.match(storeSrc, /revolvePersistedAxis/)
+  assert.match(storeSrc, /BUG-SO111-001/)
 })
 
 /**
@@ -317,4 +320,17 @@ test('BUG-SO17-001: missing plane + axisV Z still intersects (V-flip remap retry
   ])
   assert.deepEqual(r.failed, [], `failed: ${JSON.stringify(r.failed)}`)
   assert.ok(r.volume > 1e3, `vol ${r.volume}`)
+})
+
+
+test('BUG-SO111-001 source: confirm persists cardinal letter from axisV (not stale Y)', () => {
+  const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
+  const tlSrc = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
+  assert.match(storeSrc, /revolvePersistedAxis/)
+  assert.match(storeSrc, /BUG-SO111-001/)
+  assert.match(storeSrc, /keep axis letter and dx\/dy\/dz in lockstep/)
+  // Timeline feature editor must offer Z (QA reopen showed only X/Y → forced Y display)
+  assert.match(tlSrc, /value: 'Z', label: 'Z 轴'/)
+  const revMeta = tlSrc.split("revolve: {")[1].split('fillet:')[0]
+  assert.match(revMeta, /value: 'Z'/)
 })

@@ -34,6 +34,7 @@ import { create } from 'zustand'
 import { sourceReferenceGeometry } from './sketch/sourceReferenceGeometry'
 import { cad, onKernelRestart } from './cad/cadService'
 import { cardinalSketchFrame, localPointToCad } from './cad/sketchPlaneFrame'
+import { REVOLVE_AXIS_VEC, revolveCardinalAxis, revolvePersistedAxis } from './cad/revolvePreviewFrame'
 import { expandHoleFeature } from './cad/holeFeature'
 import { followExtrudeTopEdges } from './cad/extrudeEdgeFollow'
 import { mapKernelFailuresToTimeline } from './cad/featureFailureMap'
@@ -14664,7 +14665,20 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (mesh && !mesh.failed?.length) { _previewFeatures.set(mesh, active); set({ editPreviewMesh: mesh }) }
     return mesh
   },
-  setFeatParam: (key, value) => set((s) => (s.featDlg ? { featDlg: { ...s.featDlg, params: { ...s.featDlg.params, [key]: value } } } : {})),
+  setFeatParam: (key, value) => set((s) => {
+    if (!s.featDlg) return {}
+    let params: Record<string, number | string> = { ...s.featDlg.params, [key]: value }
+    // BUG-SO111-001: keep axis letter and dx/dy/dz in lockstep. Dropdown-Z used to leave
+    // dy:1; 轴向 Z button left axis:'Y' → confirm stored axis:'Y'+axisV Z → editor showed Y.
+    if (s.featDlg.kind === 'revolve' && key === 'axis') {
+      const ax = String(value).toUpperCase()
+      if (ax === 'X' || ax === 'Y' || ax === 'Z') {
+        const v = REVOLVE_AXIS_VEC[ax]
+        params = { ...params, dx: v[0], dy: v[1], dz: v[2] }
+      }
+    }
+    return { featDlg: { ...s.featDlg, params } }
+  }),
   automatedModelPickFace: (face) => set((s) => {
     const d = s.featDlg
     if (!d || d.kind !== 'automatedmodel') return {}
@@ -14711,10 +14725,13 @@ export const useApp = create<AppState>((rawSet, get) => {
         break
       case 'revolve':
         // ⚠ axisV 反填 dx/dy/dz + axisOrigin 反填 ox/oy/oz — 唔反填会俾 commit 嘅 dirDefault 判定当「未触碰」→ 丢自定义轴（死掣根因）
+        // BUG-SO111-001: prefer cardinal axisV over a stale axis letter (Z button left axis:'Y').
         kind = 'revolve'
-        params = { ...(f.axisReference ? { axisReference: f.axisReference } : {}), angle: f.angle, axis: f.axis ?? 'Y', op: f.op ?? 'new', wall: f.wall ?? 0, sym: f.symmetric ? 1 : 0,
+        { const axLetter = revolvePersistedAxis(f.axis, f.axisV)
+          const axV = f.axisV ?? REVOLVE_AXIS_VEC[axLetter]
+          params = { ...(f.axisReference ? { axisReference: f.axisReference } : {}), angle: f.angle, axis: axLetter, op: f.op ?? 'new', wall: f.wall ?? 0, sym: f.symmetric ? 1 : 0,
           ox: f.axisOrigin?.[0] ?? 0, oy: f.axisOrigin?.[1] ?? 0, oz: f.axisOrigin?.[2] ?? 0,
-          dx: f.axisV?.[0] ?? 0, dy: f.axisV?.[1] ?? 1, dz: f.axisV?.[2] ?? 0 }
+          dx: axV[0], dy: axV[1], dz: axV[2] } }
         break
       case 'fillet':
         kind = 'fillet-edit'
@@ -17145,7 +17162,11 @@ export const useApp = create<AppState>((rawSet, get) => {
           // axStr === 'Y' → 维持默认 [0,1,0]
         }
         if (Math.hypot(axV[0], axV[1], axV[2]) < 1e-9) { set({ status: '旋转：自定义轴方向为零向量 — 改方向(dx/dy/dz)再确定' }); return }
-        axisSpec = { axisV: axV, axisOrigin: ovO, name: '自定义轴' }
+        // BUG-SO111-001: cardinal override (Z button / synced dropdown) keeps a world-axis name
+        // when through the origin; letter persistence uses revolvePersistedAxis below.
+        const card = revolveCardinalAxis(axV)
+        const atOrigin = Math.hypot(ovO[0], ovO[1], ovO[2]) < 1e-9
+        axisSpec = { axisV: axV, axisOrigin: ovO, name: card && atOrigin ? `${card} 轴` : (card ? `${card} 轴` : '自定义轴') }
       }
       else if (axStr === 'Z') axisSpec = { axisV: [0, 0, 1], axisOrigin: [0, 0, 0], name: 'Z 轴' }
       else if (axStr.startsWith('A')) {
@@ -17154,16 +17175,19 @@ export const useApp = create<AppState>((rawSet, get) => {
         const LV: Record<string, [number, number, number]> = { X: [1, 0, 0], Y: [0, 1, 0], Z: [0, 0, 1] }
         axisSpec = { axisV: ca.dirV ?? LV[ca.dir], axisOrigin: ca.at, name: `构造轴${Number(axStr.slice(1)) + 1}` }
       }
+      // BUG-SO111-001 / BUG-SO17-001: persist the cardinal letter from axisV when aligned
+      // (Z button left axis:'Y' while dz=1 → editor must reopen as Z, not Y/default).
+      const persistedAxis = revolvePersistedAxis(axStr === 'X' || axStr === 'Z' || axStr === 'Y' ? axStr : 'Y', axisSpec?.axisV)
       // P2 Edit Feature：编辑 revolve — 无 payload/profile（透传原值），axisSpec 用同一计算（axisV 反填已绕开 dirDefault 死掣）
       if (d.editId) {
         await get().editFeature(d.editId, {
           angle: Math.max(1, Math.min(360, +p.angle || 360)),
-          axis: axStr === 'X' ? 'X' : axStr === 'Z' ? 'Z' : 'Y',
+          axis: persistedAxis,
           op: String(p.op || 'new'),
           wall: +p.wall || 0,
           symmetric: !!p.sym,
           ...(p.axisReference==='sketch'||p.axisReference==='world'?{axisReference:p.axisReference}:{}),
-          ...(axisSpec ? { axisV: axisSpec.axisV, axisOrigin: axisSpec.axisOrigin } : {}),   // 冇 axisSpec（世界 X/Y 默认）→ 原 axisV 透传（v1：一旦自定义轴保持自定义）
+          ...(axisSpec ? { axisV: axisSpec.axisV, axisOrigin: axisSpec.axisOrigin } : (persistedAxis === 'Y' ? { axisV: undefined, axisOrigin: undefined } : { axisV: REVOLVE_AXIS_VEC[persistedAxis], axisOrigin: [0, 0, 0] })),
         })
         return
       }
@@ -17171,9 +17195,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       // (same policy as loft/sweep commit). Preview already shows the lathe solid; confirm must create it.
       const rawOp = (p.op as BoolOp) || 'new'
       const revOp: BoolOp = (rawOp === 'cut' || rawOp === 'intersect' || rawOp === 'newbody') && hasSolid(get().features) ? rawOp : 'new'
-      // BUG-SO17-001: persist world Z on the feature (not coerce to Y). Worker honors axis==='Z'
-      // even if axisV is dropped; axisV is still sent for T781 arbitrary-axis replay.
-      await get().addRevolve(prof, +p.angle, (axStr === 'X' ? 'X' : axStr === 'Z' ? 'Z' : 'Y'), revOp, +p.wall || 0, bundle, axisSpec, !!p.sym, p.axisReference==='sketch'||p.axisReference==='world'?p.axisReference:undefined)
+      // Always send axisV for Z (and X) so worker/timeline survive even if letter is dropped.
+      const commitSpec = axisSpec ?? (persistedAxis === 'Z' || persistedAxis === 'X'
+        ? { axisV: REVOLVE_AXIS_VEC[persistedAxis], axisOrigin: [0, 0, 0] as [number, number, number], name: `${persistedAxis} 轴` }
+        : undefined)
+      await get().addRevolve(prof, +p.angle, persistedAxis, revOp, +p.wall || 0, bundle, commitSpec, !!p.sym, p.axisReference==='sketch'||p.axisReference==='world'?p.axisReference:undefined)
       return
     }
     // P2 Edit Feature：编辑模式 — 用同一组装逻辑出嘅 f 抽 patch（丢新 id/type），editFeature 淺合并全树重建，唔 push 新特征
@@ -18313,6 +18339,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       const clean: Record<string, unknown> = {}
       const dels: string[] = []
       for (const [k, v] of Object.entries(patch)) { if (v === undefined) dels.push(k); else clean[k] = v }
+      // BUG-SO111-001: Timeline「绕轴」X/Y/Z must rewrite axisV — else worker keeps stale axisV
+      // (Z) while the letter shows Y/X and geometry ignores the dropdown.
+      if ((f.type === 'revolve' || f.type === 'surfrevolve') && typeof clean.axis === 'string' && !('axisV' in clean)) {
+        const ax = String(clean.axis).toUpperCase()
+        if (ax === 'X' || ax === 'Y' || ax === 'Z') {
+          clean.axis = ax
+          clean.axisV = REVOLVE_AXIS_VEC[ax]
+          if (!('axisOrigin' in clean) && !(f as { axisOrigin?: unknown }).axisOrigin) clean.axisOrigin = [0, 0, 0]
+        }
+      }
       const merged = { ...f, ...clean, ...(detach ? { toFace: undefined } : {}) } as Record<string, unknown>
       for (const k of dels) if (!(detach && k === 'toFace')) delete merged[k]
       if (typeof merged.distanceExpression === 'string') merged.distanceExpression = JSON.parse(merged.distanceExpression)

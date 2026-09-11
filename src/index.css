@@ -332,6 +332,27 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
   background: radial-gradient(120% 130% at 50% 0%, #e9eef2 0%, #d4dde4 45%, #eef2f5 100%);
 }
 .viewport canvas { display: block; }
+
+/* Fusion-style multi-camera viewport layout (BUG-UI-001) */
+.vp-multiview {
+  position: absolute; inset: 0; z-index: 0;
+  display: grid; gap: 1px; background: #8a9aab;
+  min-width: 0; min-height: 0;
+}
+.vp-multiview-split { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+.vp-multiview-quad { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.vp-pane {
+  position: relative; min-width: 0; min-height: 0; overflow: hidden;
+  background: radial-gradient(120% 130% at 50% 0%, #e9eef2 0%, #d4dde4 45%, #eef2f5 100%);
+}
+.vp-pane canvas { display: block; width: 100% !important; height: 100% !important; }
+.vp-pane-label {
+  position: absolute; top: 6px; left: 8px; z-index: 2;
+  padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600;
+  color: #3a4a58; background: rgba(255,255,255,.82); border: 1px solid rgba(120,140,160,.35);
+  pointer-events: none; user-select: none;
+}
+
 .vp-toolbar {
   position: absolute; left: 12px; top: 10px; display: flex; align-items: center; gap: 3px;
   padding: 3px 6px; background: rgba(255,255,255,.85); border: 1px solid var(--border-soft);

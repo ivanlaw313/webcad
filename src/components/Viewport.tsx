@@ -1,6 +1,7 @@
 import { LiveSketchReadout } from './LiveSketchReadout'
 import { revolvePointToCad, type RevolveFrameSource } from '../cad/revolvePreviewFrame'
 import { FloatingViewMenu } from './FloatingViewMenu'
+import MultiViewPanes from './MultiViewPanes'
 import { useEscapeLayer } from './useEscapeLayer'
 import { sketchFacePlane } from '../geom/sketchFacePlane'
 import { FormTransformFields } from './FormTransformFields'
@@ -3803,8 +3804,8 @@ export default function Viewport() {
   // and timeline on a normal laptop viewport.  Keep the compact, draggable handle as the default instead.
   const [propsHudCollapsed, setPropsHudCollapsed] = useState(true)
   const [statusHudCollapsed, setStatusHudCollapsed] = useState(false)
-  // Fusion viewport-layout selector.  The actual multi-camera render surface is wired separately;
-  // keep the chosen layout in this component so navigation controls can share the active mode.
+  // Fusion viewport-layout selector.  split/quad mount MultiViewPanes (live multi-camera grid);
+  // single keeps the full interactive Canvas below.
   const [viewLayout, setViewLayout] = useState<'single' | 'split' | 'quad'>('single')
   const [cubeMenu, setCubeMenu] = useState(false)         // #3 ViewCube 右键菜单
   const viewBookmarks = useApp((s) => s.viewBookmarks)   // 相机书签（视图书签 / Named Views）— navbar 📑 popup 用
@@ -4210,7 +4211,8 @@ export default function Viewport() {
       className={`viewport vp-layout-${viewLayout}`}
       onPointerDownCapture={(e) => {
         // GM-W5 5.3：select 工具 + 左键 + 目标系 canvas 先接管（HTML 覆盖层照常运作）
-        if (navTool !== 'select' || mode === 'sketch' || e.button !== 0 || !(e.target instanceof HTMLCanvasElement)) return
+        // Multi-view secondary canvases are orbit-only — skip marquee/lasso outside single layout.
+        if (viewLayout !== 'single' || navTool !== 'select' || mode === 'sketch' || e.button !== 0 || !(e.target instanceof HTMLCanvasElement)) return
         e.stopPropagation()
         const rc = (e.currentTarget as HTMLElement).getBoundingClientRect()
         const sx = e.clientX - rc.left, sy = e.clientY - rc.top
@@ -4250,6 +4252,8 @@ export default function Viewport() {
         if (moved < 6) setCtxMenu({ x: e.clientX, y: e.clientY })  // right-click (not right-drag-pan) → our menu
       }}
     >
+      {viewLayout !== 'single' && <MultiViewPanes layout={viewLayout} />}
+      {viewLayout === 'single' && (
       <Canvas
         style={{ position: 'absolute', inset: 0, touchAction: 'none' }}
         gl={(glp: unknown) => {
@@ -4604,6 +4608,7 @@ export default function Viewport() {
           <GizmoViewcube faces={['+X', '−X', '+Z', '−Z', '−Y', '+Y']} color="#e3e9ef" textColor="#33404d" strokeColor="#8c99a6" hoverColor="#cdeafb" />
         </GizmoHelper>
       </Canvas>
+      )}
 
       <SketchDimLayer />
 
@@ -7827,7 +7832,7 @@ export default function Viewport() {
         <button className="tb-btn" title={tStatus('应用偏好：主题 / 默认单位 / 自动正视草图 / 缩放方向 / 动画过渡…', lang)} onClick={() => setPrefsOpen(true)}>⚙</button>
         {/* Fusion Viewport Layout: kept beside display/grid controls, matching the lower navigation bar. */}
         <div style={{ position: 'relative' }}>
-          <button className={'tb-btn' + (navPop === 'layout' ? ' tb-on' : '')} title={tStatus('视口版面：单视图／二视图／四视图（Fusion Viewport Layout）', lang)} onClick={() => setNavPop(navPop === 'layout' ? null : 'layout')}><ToolIcon name="grid" size={17} /><span style={{ fontSize: 9 }}>▾</span></button>
+          <button className={'tb-btn' + (navPop === 'layout' ? ' tb-on' : '')} title={tStatus('视口版面：单视图／二视图（前·右）／四视图（上·前·右·等角）— 多相机实时视口', lang)} onClick={() => setNavPop(navPop === 'layout' ? null : 'layout')}><ToolIcon name="grid" size={17} /><span style={{ fontSize: 9 }}>▾</span></button>
           {navPop === 'layout' && <div className="panel-menu" style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 6, zIndex: 120, minWidth: 180 }}>
             {([['single', '单一视图'], ['split', '二视图（前／右）'], ['quad', '四视图（上／前／右／等角）']] as const).map(([key, label]) => <div key={key} className="panel-menu-item" onClick={() => { setViewLayout(key); setNavPop(null) }}>{viewLayout === key ? '● ' : '○ '}{tStatus(label, lang)}</div>)}
           </div>}

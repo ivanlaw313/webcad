@@ -4754,7 +4754,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         pushHistory()
         // No active body — but an assembly-only doc (components, 0 features) is NOT empty: show the caller's
         // message, not "已清空", or loading/restoring an assembly falsely flashes "cleared" and alarms the user.
-        set({ features: bound, bodyMesh: null, bodyTopZ: 0, timelinePos: bound.length, busy: false, status: (bound.length || get().components.length) ? okMsg : '已清空', failedFeatureIds: [], featureErrors: {}, planes: planesFromFeatures(bound, sup) })   // GM-W5 5.1：空树亦派生 planes（全抑制/空档 → []）
+        set({ features: bound, bodyMesh: null, bodyTopZ: 0, timelinePos: bound.length, busy: false, status: (bound.length || get().components.length) ? okMsg : '已清空', failedFeatureIds: [], featureErrors: {}, planes: planesFromFeatures(bound, sup), ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('几何已改') : {}) })   // GM-W5 5.1：空树亦派生 planes（全抑制/空档 → []）
         return true
       }
       // Operation-specific hint (used by both the empty-mesh and kernel-threw paths) — far more actionable
@@ -4864,7 +4864,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           }
           nextFeatures=nextFeatures.map(f=>{const r=resolved[f.id] ?? (f.type==='extgroup'?resolved[`${f.id}#0`]:undefined);return r?update(f,r):f})
           // GM-W5 5.1：rebuild 成功嘅【单一 choke point】—— 由 nextFeatures 派生 planes[]（datum 特征 → 参考面）。undo/redo/编辑/删/抑制 全部经此。
-          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: (mesh.warnings ?? []).slice(), failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}) }
+          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: (mesh.warnings ?? []).slice(), failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}), ...(hasLiveSimResults(s2) ? invalidateSimResultsPatch('几何已改') : {}) }
         })
         // Keep a live capped-section solid in sync with model edits (recompute the half from the new body).
         if (!context && get().section.on && get().section.capped) void get().refreshSectionCap()
@@ -13186,7 +13186,21 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'sectionprops': return get().sectionResult ? get().clearSectionProps() : get().computeSectionProps()   // S119：草图截面属性
       case 'autoorient': return void get().autoOrient()
       case 'wallcheck': return get().wallThin?.on ? get().clearWall() : get().analyzeWall()
-      case 'fea': return get().feaResult ? get().clearFea() : get().toggleFea()
+      case 'fea': {
+        // BUG-BD-1301/1302：有结果或已失效时再点「受力云图」应打开面板查看/改约束重跑，
+        // 唔好 clearFea 把彩图同失效标一齐抹掉（QA 会当成「无彩图 / 无失效」）。
+        const s = get()
+        if (s.feaResult || s.feaStale) {
+          const mode = (s.feaFixed ? 2 : 1) as 0 | 1 | 2
+          return set({
+            feaMode: mode,
+            status: s.feaStale
+              ? (s.status.includes('失效') ? s.status : '⚠ 仿真结果已失效 — 请重新运行')
+              : '受力结果查看 — 可改约束 / 几何后重跑，或按面板取消清除',
+          })
+        }
+        return get().toggleFea()
+      }
       case 'moldflow': return get().moldResult ? get().clearMold() : get().toggleMold()
       case 'windtunnel': return get().windResult ? get().clearWind() : get().toggleWind()
       case 'physicslab': return set({ physicsLabOpen: true, status: '已打开 Physics Lab：互动级刚体模拟（非工程认证）' })
@@ -19658,6 +19672,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       selectedFeature: null, sketchShape: null, mode: 'model',
       originX: get().originX + 130,
       status: `已固化「${comp.name}」；下一个组件将在其右侧 (+130mm) 处绘制`,
+      ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('几何已改（已固化为组件）') : {}),
     })
     // The worker still owns the live OCCT shape at this point. Capture its B-rep
     // edges now, before the component becomes a mesh-only occurrence.
@@ -20618,7 +20633,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.feaMode) return { feaMode: 0 as const, feaFixed: null, feaLoad: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, status: '已退出受力云图' }
     if (!s.bodyMesh || !s.bodyMesh.vertices.length) return { status: '受力云图：需要先有活动实体' }
     return {
-      feaMode: 1 as const, feaFixed: null, feaLoad: null, feaResult: null, feaProbe: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force' as const,
+      feaMode: 1 as const, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaProbe: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force' as const,
       shellMode: false, holeMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false,
       measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, featDlg: null,
       status: '受力云图 ①：点实体嘅【固定面】（被夹住/锁实/上螺丝嗰个面）',
@@ -20653,9 +20668,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     return { ...(stale ?? {}), feaBearingPick: false, feaBearing: { axisPoint: det.p, axisDir: det.axis, radius: det.r }, feaLoadMode: 'bearing' as const, feaLoad: null, status: stale ? stale.status : `已拾轴承载荷孔 Ø${(det.r * 2).toFixed(1)}（合力沿载荷方向余弦分布喺受推半边）— 设「力」大小/方向后运行 FEA` }
   }),
   setFeaOpt: (p) => set((s) => {
-    // BUG-BD-010：Fixed→Roller 等物理/BC 选项改动后，旧彩图唔可以当新结果。显示场/探针/变形控件唔使失效。
+    // BUG-BD-010 / BUG-BD-1302：Fixed→Roller 等物理/BC 选项改动后，旧彩图唔可以当新结果。显示场/探针/变形控件唔使失效。
     if (feaPhysicsOptChanged(s, p) && hasLiveSimResults(s)) {
-      return { ...p, ...invalidateSimResultsPatch('約束／工況已改') }
+      const mode = (s.feaFixed ? 2 : 1) as 0 | 1 | 2
+      return { ...p, ...invalidateSimResultsPatch('约束／工况已改'), feaMode: s.feaMode || mode }
     }
     return p
   }),
@@ -21864,11 +21880,20 @@ useApp.subscribe((s, prev) => {
   useApp.setState({ windPose: null, windPoseDragging: false, windPoseCompare: null })
 })
 
-// SIM / BUG-BD-011：几何一变，旧受力/模态/模流/风洞彩图唔可以当新结果 — 清 overlay + 标失效。
+// SIM / BUG-BD-011 / BUG-BD-1303：几何一变，旧受力/模态/模流/风洞彩图唔可以当新结果 — 清 overlay + 标失效。
+// applyFeatures 已原子写入 invalidate；呢度兜底其他 bodyMesh 赋值路径，并覆盖组件网格几何改动（缩放/重网格等）。
 useApp.subscribe((s, prev) => {
-  if (s.bodyMesh === prev.bodyMesh) return
+  if (s.bodyMesh === prev.bodyMesh) {
+    // Component mesh geometry (not mere pose): any occurrence mesh reference change.
+    const prevById = new Map(prev.components.map((c) => [c.id, c.mesh]))
+    const meshChanged = s.components.some((c) => prevById.get(c.id) !== c.mesh)
+      || s.components.length !== prev.components.length
+    if (!meshChanged) return
+  }
   if (!hasLiveSimResults(s)) return
-  useApp.setState(invalidateSimResultsPatch('幾何已改'))
+  // Skip if already marked stale with overlays cleared in the same tick (applyFeatures atomic path).
+  if (s.feaStale && !s.feaResult && !s.modalResult && !s.moldResult && !s.windResult) return
+  useApp.setState(invalidateSimResultsPatch('几何已改'))
 })
 
 // Sanitised project name for export filenames (keeps word chars / CJK / hyphen), fallback 'webcad'.

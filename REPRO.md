@@ -1,3 +1,29 @@
+# SIM stale UI (BUG-BD-1301 / 1302 / 1303) — v1.3 follow-up
+
+## Case
+Production v1.3 still FAIL on SIM invalidate after PR#14 (`feaStale` shipped): no visible colormap after cantilever estimate/run; Fixed→Roller / geom edit show no explicit 失效.
+
+## Root cause
+1. Ribbon `fea` **cleared** live `feaResult` on re-click (`feaResult ? clearFea() : toggleFea()`), so the colormap vanished and later BC/geometry edits had nothing to invalidate → no 失效 banner.
+2. 失效 copy lived only inside the FEA `CommandDialog`; Esc/Cancel wiped `feaStale`, and QA screenshots with the panel closed saw no marker.
+3. Solid body stayed at ghost opacity 0.18 over voxels — colormap easy to miss (BUG-BD-1301).
+4. Geometry invalidate relied only on a `bodyMesh` subscribe; `applyFeatures` could leave status as rebuild OK without an in-patch 失效; component mesh edits were ignored.
+
+## Fix
+- Ribbon reopens panel when result/stale; Cancel on stale-only keeps `feaStale` for a viewport strip + panel `data-testid` banners.
+- Hide body mesh while FEA overlays paint; strengthen voxel material depth.
+- Atomic `invalidateSimResultsPatch` inside `applyFeatures` / `newComponent`; component mesh subscribe; `setFeaOpt` keeps `feaMode` armed.
+
+## Tests
+```bash
+node --experimental-strip-types --import ./tests/register-resolver.mjs --test \
+  tests/sim-result-validity.test.mjs tests/sim-stale-invalidation.test.mjs
+npm run test:commercial-core
+npm run build
+```
+
+---
+
 # SIM stale invalidation (BUG-BD-010 / BUG-BD-011)
 
 ## Case

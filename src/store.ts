@@ -2158,7 +2158,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   applyFeatures: (features: Feature[], okMsg: string, record?: boolean, failMsg?: string, prevDoc?: AppState['undoStack'][number], strict?: boolean) => Promise<boolean>
   extrudeSketch: () => Promise<void>
   addExtrude: (profile: SketchProfile, height: number, operation: BoolOp, baseZ?: number, opts?: { twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; toFace?: { near: [number, number, number]; offset?: number }; extent?: 'next' }) => Promise<void>
-  addRevolve: (profile: SketchProfile, angle?: number, axis?: 'X' | 'Y', op?: BoolOp, wall?: number, skBundle?: RevolveSketchBundle, axisSpec?: { axisV: [number, number, number]; axisOrigin: [number, number, number]; name?: string }, symmetric?: boolean, axisReference?: 'sketch'|'world') => Promise<void>  // T781：任意轴（构造轴/Z/偏离原点）；S191：symmetric 两側对称
+  addRevolve: (profile: SketchProfile, angle?: number, axis?: 'X' | 'Y' | 'Z', op?: BoolOp, wall?: number, skBundle?: RevolveSketchBundle, axisSpec?: { axisV: [number, number, number]; axisOrigin: [number, number, number]; name?: string }, symmetric?: boolean, axisReference?: 'sketch'|'world') => Promise<void>  // T781：任意轴（构造轴/Z/偏离原点）；S191：symmetric 两側对称
   addHole: (cx?: number, cy?: number, faceZ?: number | null, dir?: [number, number, number] | null, origin3d?: [number, number, number] | null, group?: { centers: [number, number][]; pattern?: { kind: 'bolt-circle'; origin: [number, number]; count: number; pcd: number } }) => Promise<void>   // P4#6：dir/origin3d = 斜面圆孔沿拾取面法向钻（CAD 坐标）；group = 同一 Hole 命令的多孔父节点
   addText: () => Promise<void>
   holeType: 'simple' | 'counterbore' | 'countersink' | 'nuttrap' | 'tapped'
@@ -4799,7 +4799,13 @@ export const useApp = create<AppState>((rawSet, get) => {
           const previousBound = applyParamBindings(prev, previousDocument.params ?? get().params, previousDocument.paramBindings ?? get().paramBindings)
           const previousSuppressed = previousDocument.suppressedIds ?? get().suppressedIds
           await cad.rebuild(expandFeats(previousBound.filter(f => !previousSuppressed.includes(f.id))))
-          set({ ...(prevDoc ? previousDocument : {}), busy: false, status: '⚠ 重建失败 — 已保留上一个有效模型，请修正参数后重试', failedFeatureIds: failure.ids, featureErrors: failure.errors })
+          {
+            const detail = Object.values(failure.errors)[0]
+            const toast = typeof detail === 'string' && /旋转相交|旋转切割|旋转截面/.test(detail)
+              ? '⚠ ' + detail
+              : '⚠ 重建失败 — 已保留上一个有效模型，请修正参数后重试'
+            set({ ...(prevDoc ? previousDocument : {}), busy: false, status: toast, failedFeatureIds: failure.ids, featureErrors: failure.errors })
+          }
           return false
         }
         // A cardinal sketch still uses the document origin/reference registry.
@@ -17107,7 +17113,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (d.editId) {
         await get().editFeature(d.editId, {
           angle: Math.max(1, Math.min(360, +p.angle || 360)),
-          axis: axStr === 'X' ? 'X' : 'Y',
+          axis: axStr === 'X' ? 'X' : axStr === 'Z' ? 'Z' : 'Y',
           op: String(p.op || 'new'),
           wall: +p.wall || 0,
           symmetric: !!p.sym,
@@ -17120,7 +17126,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       // (same policy as loft/sweep commit). Preview already shows the lathe solid; confirm must create it.
       const rawOp = (p.op as BoolOp) || 'new'
       const revOp: BoolOp = (rawOp === 'cut' || rawOp === 'intersect' || rawOp === 'newbody') && hasSolid(get().features) ? rawOp : 'new'
-      await get().addRevolve(prof, +p.angle, (axStr === 'X' ? 'X' : 'Y'), revOp, +p.wall || 0, bundle, axisSpec, !!p.sym, p.axisReference==='sketch'||p.axisReference==='world'?p.axisReference:undefined)
+      // BUG-SO17-001: persist world Z on the feature (not coerce to Y). Worker honors axis==='Z'
+      // even if axisV is dropped; axisV is still sent for T781 arbitrary-axis replay.
+      await get().addRevolve(prof, +p.angle, (axStr === 'X' ? 'X' : axStr === 'Z' ? 'Z' : 'Y'), revOp, +p.wall || 0, bundle, axisSpec, !!p.sym, p.axisReference==='sketch'||p.axisReference==='world'?p.axisReference:undefined)
       return
     }
     // P2 Edit Feature：编辑模式 — 用同一组装逻辑出嘅 f 抽 patch（丢新 id/type），editFeature 淺合并全树重建，唔 push 新特征

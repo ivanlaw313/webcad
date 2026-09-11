@@ -23,6 +23,7 @@ test('revolveLathePlane remaps planar cardinal combos (BUG-SO16-001)',()=>{
  assert.equal(revolveLathePlane('XY',[0,0,1]),'XZ')
  assert.equal(revolveLathePlane('XY',[0,1,0]),'XY')
  assert.equal(revolveLathePlane('XZ',[1,0,0]),'XZ')
+ assert.equal(revolveLathePlane('XZ',[0,0,1]),'XZ')
 })
 test('XZ about Y: raw sketch and saved feature land on the same remapped CAD point',()=>{
  const src={plane:'XZ',baseZ:0}
@@ -30,4 +31,10 @@ test('XZ about Y: raw sketch and saved feature land on the same remapped CAD poi
  assert.deepEqual(revolvePointToCad([8,-10],src,true,axis),[8,10,0])
  assert.deepEqual(revolvePointToCad([8,-10],src,false,axis),[8,10,0])
  assert.deepEqual(revolveRemapProfileUv([8,-10],'XZ','XY'),[8,10])
+})
+test('XZ about Z: preview keeps authored plane (no SO16 remap)',()=>{
+ const src={plane:'XZ',baseZ:0}
+ const axis=[0,0,1]
+ assert.deepEqual(revolvePointToCad([10,40],src,true,axis),[10,0,40])
+ assert.deepEqual(revolvePointToCad([10,40],src,false,axis),[10,0,40])
 })

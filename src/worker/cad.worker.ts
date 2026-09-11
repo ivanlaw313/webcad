@@ -54,7 +54,7 @@ export type Feature =
   // never needs a parallel Hole implementation.
   | { id: string; type: 'hole'; kind: 'simple' | 'counterbore' | 'countersink' | 'tapped'; center: [number, number]; centers?: [number, number][]; pattern?: { kind: 'bolt-circle'; origin: [number, number]; count: number; pcd: number }; top: number; diameter: number; nominalDiameter?: number; clearance?: number; through?: boolean; depth?: number; extent?: 'distance' | 'through-all' | 'to-next' | 'to-object'; nextFaceZ?: number | null; toFace?: { near: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[]; offset?: number }; chamfer?: number; drillPoint?: { angle: number }; counterbore?: { diameter: number; depth: number }; countersink?: { diameter: number; angle: number }; tap?: { drillDiameter: number; nominalDiameter: number; pitch: number; fine?: boolean } }
   | { id: string; type: 'extrude'; sketchFaceBinding?: SketchFaceBinding; exactDistance?: boolean; distanceExpression?: DimensionExpression & { measure: 'whole' | 'half'; flip?: boolean }; profile: SketchProfile; height: number; operation: BoolOp; baseZ?: number; twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; toFace?: { near: [number, number, number]; n?: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[]; offset?: number }; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; extent?: 'next' /* GM-W5 5.2：到下一面标记 — worker 不读几何（height 创建时已烘焙成实停距，净系 META 显示/编辑对话框认得 */; sketchId?: string /* 草图源 id（store.sketchSources）— 重开草图编辑用，worker 不读 */ }
-  | { id: string; type: 'revolve'; sketchFaceBinding?: SketchFaceBinding; axisReference?: 'sketch' | 'world'; profile: SketchProfile; angle: number; axis?: 'X' | 'Y'; axisV?: [number, number, number]; axisOrigin?: [number, number, number] /* T781：任意轴（构造轴/偏离原点），优先于 axis */; plane?: Plane; baseZ?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } /* Arbitrary datum/planar-face sketch frame. */; op?: BoolOp; wall?: number; symmetric?: boolean /* S191：两侧/对称 — 部分角(0<ang<360)绕轴均分跨越截面平面（Fusion symmetric revolve）*/; sketchId?: string /* T746：旋转特征都可重开草图编辑 — worker 不读 */ }
+  | { id: string; type: 'revolve'; sketchFaceBinding?: SketchFaceBinding; axisReference?: 'sketch' | 'world'; profile: SketchProfile; angle: number; axis?: 'X' | 'Y' | 'Z'; axisV?: [number, number, number]; axisOrigin?: [number, number, number] /* T781：任意轴（构造轴/Z/偏离原点），优先于 axis */; plane?: Plane; baseZ?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } /* Arbitrary datum/planar-face sketch frame. */; op?: BoolOp; wall?: number; symmetric?: boolean /* S191：两侧/对称 — 部分角(0<ang<360)绕轴均分跨越截面平面（Fusion symmetric revolve）*/; sketchId?: string /* T746：旋转特征都可重开草图编辑 — worker 不读 */ }
   | { id: string; type: 'fillet'; radius: number; edges?: EdgeSel; near?: [number, number, number]; nears?: [number, number, number][]; radius2?: number; radii?: number[]; chain?: boolean; edgeFp?: string[]; edgeFpV2?: string[]; mode?: 'chord'; chord?: number; setbackRatio?: number; continuity?: 'G1' | 'G2'; continuities?: ('G1' | 'G2')[]; asymmetric?: { offset2: number; flip?: boolean }; rule?: { mode: 'all' | 'between'; faces1: [number, number, number][]; faces2?: [number, number, number][] }; fullRound?: { side1: [number, number, number][]; center: [number, number, number][]; side2: [number, number, number][] } }  // R1 修改圆角：普通多组 + Asymmetric + Rule Fillet + Full Round。Full Round 无半径输入，由三组面推导完整相切圆柱 blend。
   | { id: string; type: 'chamfer'; distance: number; edges?: EdgeSel; near?: [number, number, number]; nears?: [number, number, number][]; dist2?: number; angle?: number; cmode?: 'equal' | 'two' | 'angle'; refFaceNear?: [number, number, number]; flip?: boolean; chain?: boolean; distances?: number[]; edgeFp?: string[]; edgeFpV2?: string[] }  // refFaceNear = Distance and Angle 用户真正点中参考面的内点（重算时从边的两个相邻面中解析）；edgeFp（S122）= 持久边指纹（同上）；edgeFpV2（S134）= 旋转不变指纹（同上）；distances（GM-3DV3 M7）= 逐边距离（equal 模式，与 nears 平行）
   // R1 面圆角 face-fillet（clean-room 窄版）：拾【两张唔相邻嘅面】+ 半径 → 平面/柱面对解析切点 → G1 blend 带（MakeFilling/BridgeG1）。
@@ -501,6 +501,80 @@ function profileVertCount(p: SketchProfile): number {
 
 function profileToSketch(p: SketchProfile, z = 0, plane: Plane = 'XY') {
   return profileToDrawing(p).sketchOnPlane(plane, z)
+}
+
+type P2uv = [number, number]
+function mapProfileUv(profile: any, fn: (p: P2uv) => P2uv): any {
+  const out: any = { ...profile }
+  if (out.a) out.a = fn(out.a)
+  if (out.b) out.b = fn(out.b)
+  if (out.c) out.c = fn(out.c)
+  if (Array.isArray(out.pts)) out.pts = out.pts.map(fn)
+  if (Array.isArray(out.verts)) out.verts = out.verts.map(fn)
+  if (out.arc) out.arc = { a: fn(out.arc.a), b: fn(out.arc.b), m: fn(out.arc.m) }
+  if (out.earc) {
+    const q = fn([out.earc.cx, out.earc.cy])
+    out.earc = { ...out.earc, cx: q[0], cy: q[1] }
+  }
+  if (Array.isArray(out.cubics)) out.cubics = out.cubics.map((seg: P2uv[]) => seg.map(fn))
+  if (out.holes) out.holes = out.holes.map((h: any) => mapProfileUv(h, fn))
+  if (out.islands) out.islands = out.islands.map((h: any) => mapProfileUv(h, fn))
+  return out
+}
+
+/** Cardinal lathe: which sketch UV is radial (clip this at 0 when the profile crosses the axis). */
+function latheClipCoord(plane: Plane, rax: [number, number, number]): 'U' | 'V' | null {
+  const ax = Math.abs(rax[0]), ay = Math.abs(rax[1]), az = Math.abs(rax[2])
+  if (plane === 'XZ') {
+    if (az >= ax && az >= ay) return 'U'   // about Z: axis is V, radial is U (X)
+    if (ax >= ay && ax >= az) return 'V'   // about X: axis is U, radial is V (Z)
+    return null
+  }
+  if (plane === 'YZ') {
+    if (az >= ax && az >= ay) return 'U'
+    if (ay >= ax && ay >= az) return 'V'
+    return null
+  }
+  if (ay >= ax && ay >= az) return 'U'     // XY about Y
+  if (ax >= ay && ax >= az) return 'V'     // XY about X
+  return null
+}
+
+function clipProfileHalf(profile: any, axis: 'U' | 'V', sign: 1 | -1): any | null {
+  const coord = (p: P2uv) => (axis === 'U' ? p[0] : p[1])
+  const setC = (p: P2uv, c: number): P2uv => (axis === 'U' ? [c, p[1]] : [p[0], c])
+  if (profile.kind === 'rect' && profile.a && profile.b) {
+    const c0 = coord(profile.a), c1 = coord(profile.b)
+    const lo = Math.min(c0, c1), hi = Math.max(c0, c1)
+    if (sign > 0) {
+      if (hi <= 1e-9) return null
+      const nlo = Math.max(lo, 0)
+      if (hi - nlo < 1e-6) return null
+      return { ...profile, a: setC(profile.a, c0 <= c1 ? nlo : hi), b: setC(profile.b, c0 <= c1 ? hi : nlo) }
+    }
+    if (lo >= -1e-9) return null
+    const nhi = Math.min(hi, 0)
+    if (nhi - lo < 1e-6) return null
+    return { ...profile, a: setC(profile.a, c0 <= c1 ? lo : nhi), b: setC(profile.b, c0 <= c1 ? nhi : lo) }
+  }
+  const pts: P2uv[] | undefined = profile.pts
+  if (!pts || pts.length < 3) return null
+  const inside = (p: P2uv) => sign * coord(p) >= -1e-9
+  const clip: P2uv[] = []
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length]
+    const ain = inside(a), bin = inside(b)
+    const ca = coord(a), cb = coord(b)
+    const interp = (): P2uv => {
+      const t = Math.abs(cb - ca) < 1e-12 ? 0 : (0 - ca) / (cb - ca)
+      return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
+    }
+    if (ain && bin) clip.push(b)
+    else if (ain && !bin) clip.push(interp())
+    else if (!ain && bin) { clip.push(interp()); clip.push(b) }
+  }
+  if (clip.length < 3) return null
+  return { ...profile, pts: clip, ...(profile.verts ? { verts: clip } : {}) }
 }
 
 // Draw a 2D profile and place it on an arbitrary replicad Plane object (for sketch-on-any-face).
@@ -2398,10 +2472,12 @@ function buildShape(features: Feature[], noCache = false): any {
         else { _recordBool(_i, 'fuse', solid); shape = fuseRobust(shape, solid, n) }  // 共面 fuse 兜底（实战 T744：内底凸台经典失败位）
       }
     } else if (f.type === 'revolve') {
-      // Revolve around the chosen world axis (Y default, or X), or T781: an arbitrary axis（axisV 方向 +
+      // Revolve around the chosen world axis (Y default, or X/Z), or T781: an arbitrary axis（axisV 方向 +
       // axisOrigin 轴上一点 — 构造轴/草图线/偏离原点车削）。profile must sit on one side of the axis.
       const ang = f.angle ?? 360
-      let rax: [number, number, number] = f.axis === 'X' ? [1, 0, 0] : [0, 1, 0]
+      // BUG-SO17-001: persist/honor world Z. Dropdown-Z used to store axis:'Y' and, without axisV,
+      // defaulted rax to Y → SO16 remapped XZ→XY (planar sheet / V-flip) while preview lathed about Z.
+      let rax: [number, number, number] = f.axis === 'X' ? [1, 0, 0] : f.axis === 'Z' ? [0, 0, 1] : [0, 1, 0]
       if (f.axisV) {
         const al = Math.hypot(f.axisV[0], f.axisV[1], f.axisV[2])
         if (al < 1e-9) { buildWarnings.push('旋转：轴方向为零向量 — 已用世界 Y 轴') }
@@ -2417,22 +2493,62 @@ function buildShape(features: Feature[], noCache = false): any {
       const remapped = !f.arbPlane && lathePlane !== authoredPlane
       if (remapped) buildWarnings.push(`旋转：${authoredPlane} 截面绕轴无轴向厚度 — 已按车削平面 ${lathePlane} 重解释（与预览一致）`)
       const prof = remapped ? revolveRemapProfile(f.profile as any, authoredPlane, lathePlane) : f.profile
-      const sk = f.arbPlane
-        ? profileOnPlane(f.profile, new RPlane(f.arbPlane.o as any, f.arbPlane.xd as any, f.arbPlane.n as any))
-        : f.sketchFaceBinding && lathePlane === 'XZ'
-          ? profileToSketch(prof, -(f.baseZ ?? 0), 'XZ')
-          : profileToSketch(prof, remapped ? 0 : (f.baseZ ?? 0), lathePlane)
       const rcfg: Record<string, unknown> = {}
       if (ang > 0 && ang < 360) rcfg.angle = ang
       else if (!(ang > 0)) buildWarnings.push('旋转：角度必须 > 0（值 ' + ang + '° 非法,可能参数驱动绕过 UI 下限）— 已用整圈 360°')   // 0/负角 → revolve 出退化几何;退回整圈
       if (f.axisOrigin) rcfg.origin = f.axisOrigin
-      let solid: any = Object.keys(rcfg).length ? (sk as any).revolve(rax, rcfg) : sk.revolve(rax)
-      // S191 两侧/对称：单向旋转体绕轴回转 −ang/2，令角度范围对称跨越截面平面（Fusion symmetric revolve）。
-      // 仅对部分角(0<ang<360)有意义；整圈对称＝原样。轴点用 axisOrigin（偏心车削也对）。
-      if (f.symmetric && ang > 0 && ang < 360) {
-        const org = (f.axisOrigin || [0, 0, 0]) as [number, number, number]
-        try { solid = solid.rotate(-ang / 2, org, rax) } catch (e) { buildWarnings.push('对称旋转回转失败（' + ((e as Error)?.message || e) + '）— 已用单向') }
+      const _volOf = (sh: any): number => {
+        try {
+          if (!sh?.wrapped || sh.wrapped.IsNull?.()) return 0
+          const g = new _oc.GProp_GProps_1(); _oc.BRepGProp.VolumeProperties_1(sh.wrapped, g, false, false, false)
+          return Math.abs(g.Mass())
+        } catch { return 0 }
       }
+      const sketchOf = (pv: any) => f.arbPlane
+        ? profileOnPlane(pv, new RPlane(f.arbPlane.o as any, f.arbPlane.xd as any, f.arbPlane.n as any))
+        : f.sketchFaceBinding && lathePlane === 'XZ'
+          ? profileToSketch(pv, -(f.baseZ ?? 0), 'XZ')
+          : profileToSketch(pv, remapped ? 0 : (f.baseZ ?? 0), lathePlane)
+      const revolveOf = (pv: any): { solid: any, err?: string } => {
+        try {
+          const sk = sketchOf(pv)
+          let s: any = Object.keys(rcfg).length ? (sk as any).revolve(rax, rcfg) : sk.revolve(rax)
+          if (f.symmetric && ang > 0 && ang < 360) {
+            const org = (f.axisOrigin || [0, 0, 0]) as [number, number, number]
+            try { s = s.rotate(-ang / 2, org, rax) } catch (e) { buildWarnings.push('对称旋转回转失败（' + ((e as Error)?.message || e) + '）— 已用单向') }
+          }
+          if (!(_volOf(s) > 1e-6)) return { solid: null, err: 'zero-volume' }
+          return { solid: s }
+        } catch (e) {
+          return { solid: null, err: String((e as Error)?.message || e) }
+        }
+      }
+      let made = revolveOf(prof)
+      let revolveErr = made.err
+      if (!made.solid) {
+        // BUG-SO17-001: OCCT MakeRevol throws (10057368 / 9231448) when the profile crosses the
+        // axis — preview lathe still draws a disk through a base plate. Clip to each half-plane.
+        const clipAx = f.arbPlane ? null : latheClipCoord(lathePlane, rax)
+        const retries: any[] = []
+        if (clipAx) {
+          const pos = clipProfileHalf(prof, clipAx, 1)
+          const neg = clipProfileHalf(prof, clipAx, -1)
+          if (pos) retries.push(pos)
+          if (neg) retries.push(neg)
+        }
+        if (remapped) retries.push(mapProfileUv(prof, ([u, v]) => [u, -v] as [number, number]))
+        for (const pv of retries) {
+          made = revolveOf(pv)
+          if (made.solid) { buildWarnings.push('旋转：截面跨轴 — 已按预览侧半平面重建（BUG-SO17-001）'); revolveErr = undefined; break }
+          if (made.err) revolveErr = made.err
+        }
+      }
+      if (!made.solid) {
+        throw new Error(/^\d+$/.test(revolveErr || '')
+          ? '旋转截面跨过了旋转轴 — 把截面移到轴的一侧'
+          : (revolveErr && revolveErr !== 'zero-volume' ? revolveErr : '旋转失败 — 截面相对轴退化（已保留原模型）'))
+      }
+      let solid: any = made.solid
       // wall>0 → hollow the revolved solid into a thin curved shell (灯罩/漏斗/碗壳/导流罩). Open the face on
       // the rotation-axis "top" (Y-revolve → XZ plane at maxY; X-revolve → YZ at maxX), like the shell feature.
       // Retry thinner + fall back to the solid (honest note) if OCCT can't shell this shape.
@@ -2460,13 +2576,6 @@ function buildShape(features: Feature[], noCache = false): any {
       // BUG-SO15-001: no prior solid → Cut/Intersect cannot boolean; treat as New (first feature creates body).
       if (!shape) shape = solid
       else if (f.op === 'cut' || f.op === 'intersect') {
-        const _volOf = (sh: any): number => {
-          try {
-            if (!sh?.wrapped || sh.wrapped.IsNull?.()) return 0
-            const g = new _oc.GProp_GProps_1(); _oc.BRepGProp.VolumeProperties_1(sh.wrapped, g, false, false, false)
-            return Math.abs(g.Mass())
-          } catch { return 0 }
-        }
         const prevV = _volOf(shape)
         const _tryBool = (tool: any): any => {
           try {
@@ -2490,6 +2599,34 @@ function buildShape(features: Feature[], noCache = false): any {
         for (const cand of candidates) {
           const hit = _tryBool(cand)
           if (hit) { out = hit; tool = cand; break }
+        }
+        // BUG-SO17-001: tool solid exists but ∩ plate is empty — preview disk still cut through
+        // the plate. Typical causes: SO16 XY·Z remap flipped V into −Z; profile straddled the axis
+        // so the default MakeRevol sheet missed. Retry V-mirror + clipped halves.
+        if (!out) {
+          const extraProfs: any[] = []
+          if (remapped) extraProfs.push(mapProfileUv(prof, ([u, v]) => [u, -v] as [number, number]))
+          const clipAx = f.arbPlane ? null : latheClipCoord(lathePlane, rax)
+          if (clipAx) {
+            const pos = clipProfileHalf(prof, clipAx, 1)
+            const neg = clipProfileHalf(prof, clipAx, -1)
+            if (pos) extraProfs.push(pos)
+            if (neg) extraProfs.push(neg)
+          }
+          for (const pv of extraProfs) {
+            const m = revolveOf(pv)
+            if (!m.solid) continue
+            const extras: any[] = []
+            if (ang > 0 && ang < 360 && !f.symmetric) {
+              try { extras.push(m.solid.clone().rotate(-ang, org, rax)) } catch { /* */ }
+            }
+            extras.push(m.solid)
+            for (const cand of extras) {
+              const hit = _tryBool(cand)
+              if (hit) { out = hit; tool = cand; buildWarnings.push('旋转：已用与预览同侧的轴向镜像/半平面完成相交（BUG-SO17-001）'); break }
+            }
+            if (out) break
+          }
         }
         if (!out) throw new Error(f.op === 'intersect'
           ? '旋转相交区域为空 — 旋转体与现有实体没有重叠（已保留原模型）'

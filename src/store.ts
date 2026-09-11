@@ -19959,9 +19959,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     // Clear all doc state synchronously FIRST so reset is atomic — otherwise state set by the
     // caller right after reset() (e.g. starting a new sketch) would be clobbered when this set
     // ran after the await below.
+    cancelSkDimEdit()   // UI02: drop any live dimension ghost before wiping the document
     set({inspectMode:false,inspectInfo:null,propsDialog:null,propsDialogData:null,hoverFace:null,
       editPreviewMesh:null,roundPreviewMesh:null,shellPreviewMesh:null,roundPreviewBusy:false,shellPreviewBusy:false,roundPreviewFail:false,shellPreviewFail:false,
-      edgeRoundPicks:[],edgeRoundPickLines:[],edgeRoundRadii:[],edgeRoundGroupIds:[]})
+      edgeRoundPicks:[],edgeRoundPickLines:[],edgeRoundRadii:[],edgeRoundGroupIds:[],
+      // UI02: New must clear preview / inspect / ghost / selection in one shot
+      toolPreview:null,sketchPreview:null,skMovePreview:{shapes:null,pending:false,error:null},
+      skDimPreview:{id:null,shapes:null,cons:null,patternData:null,pending:false,error:null},
+      arrayPreview:{shapes:null,pending:false,error:null},arrayPending:false,
+      measureMode:false,measureEdgeMode:false,measureFaceMode:false,measureAngleMode:false,measureUniMode:false,
+      measurePts:[],measureDist:null,measureEdgeInfo:null,measureFaceInfo:null,measureAngleInfo:null,
+      measureUniPicks:[],measureUniResult:null,lastMeasure:null})
     set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
     set({ ...hydrateSketchDraft(null), ...hydrateFormDraft(null) })
     // record=false so "New" is a clean fresh start — undo must NOT resurrect the old document (Fusion-style new doc).

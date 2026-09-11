@@ -3895,6 +3895,7 @@ export default function Viewport() {
   const rcDown = useRef<{ x: number; y: number } | null>(null)
   useEscapeLayer(!!ctxMenu, () => setCtxMenu(null), 250)
   useEscapeLayer(!!navPop, () => setNavPop(null), 120)
+  useEscapeLayer(!!propsDialog, () => useApp.getState().closePropertiesDialog(), 210)  // UI02: Properties is its own Esc layer
   // 按住 Alt → 临时停几何捕捉（画图时精准落点，Fusion 同款）；放开/失焦即恢复。
   useEffect(() => {
     const dn = (e: KeyboardEvent) => { if (e.key === 'Alt') setGeoSnapAlt(true) }

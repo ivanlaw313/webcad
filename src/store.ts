@@ -101,6 +101,7 @@ import { Matrix4, Vector3, Euler } from 'three'
 import { meshesToBinarySTL, meshToAsciiSTL } from './io/stl'
 import { meshesToGLB } from './io/gltf'
 import { makeZip } from './io/zip'
+import { durableDownload } from './io/download'
 import { meshManifold } from './geom/meshCheck'
 import { chatCompletion, PROVIDER_DEFAULTS, type AiConfig, type AiMsg, type AiProvider } from './ai/providers'
 import { TOOL_DEFS, AI_SYSTEM_PROMPT } from './ai/tools'
@@ -2678,7 +2679,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   // 激光切割 G-code（GRBL，kerf 补偿）
   exportLaserGcode: (opts?: { feed?: number; power?: number; passes?: number; kerf?: number }) => void
   addInternalThread: (d: number, pitch: number, height: number, cx: number, cy: number, z0?: number, modeled?: boolean, lefthand?: boolean, cls?: string, standard?: string) => Promise<void>  // 内螺纹孔；modeled=true 真螺旋牙（compound），默认 cosmetic 外观标注（B-rep 乾净）；lefthand=左旋牙；cls/standard（GM-3DV1 S11）=配合等级/标准库元数据
-  saveProject: () => void
+  saveProject: () => Promise<void>
   openProject: () => void
   applyProjectData: (data: Record<string, unknown>, statusVerb?: string) => Promise<void>   // T797：共用还原（文件/分享链接）
   shareLink: () => Promise<void>                          // T797：项目压缩入 URL → 复制（serverless 分享）
@@ -19280,32 +19281,78 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   closeDrawing: () => set({ drawingOpen: false }),
 
-  saveProject: () => {
+  saveProject: async () => {
     const s = get()
     // v2: persist the FULL document. T746：复用 buildProjectPayload（单一真相）— 以前手砌一份并行 payload，
     // 字段一多就甩漏（实锤：save 写咗 mates 但 open 冇还原 → .json 往返丢配合）。
     const errors = [...documentReferenceErrors(s), ...documentPatternErrors(s), ...patternDataErrors(s.skPatternData,[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])],s.skCons), ...(s.mode === 'sketch' ? sketchReferenceErrors(s.skCons,s.params) : [])]
-    if(errors.length) {set({status:`保存失败：尺寸引用失效 — ${errors.join('；')}`});return}
-    const data = JSON.stringify({ ...buildProjectPayload(s) }, null, 2)   // GM-X4 ⑤：app/version 由 buildProjectPayload 提供（首二键，字节一致）— 去除被覆盖嘅重复字面量
-    triggerDownload(new TextEncoder().encode(data), `${projName(s.projectName)}.json`, 'application/json')
-    set({ status: `已保存项目（${s.components.length} 组件 · ${s.joints.length} 关节 · ${s.features.length} 活动特征 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 组件特征）` })
+    if(errors.length) {set({status:`保存失败：尺寸引用失效 — ${errors.join('；')}（现有模型未动）`});return}
+    let data: string
+    try {
+      data = JSON.stringify({ ...buildProjectPayload(s) }, null, 2)   // GM-X4 ⑤：app/version 由 buildProjectPayload 提供（首二键，字节一致）— 去除被覆盖嘅重复字面量
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      set({ status: `保存失败：${msg}（现有模型未动）` })
+      return
+    }
+    // BUG-UI-002：prefer File System Access write so Save lands a durable user file (not an ephemeral Chromium download shelf entry).
+    const result = await durableDownload(new TextEncoder().encode(data), `${projName(s.projectName)}.json`, 'application/json')
+    if (!result.ok) {
+      if (result.reason === 'aborted') set({ status: '已取消保存（现有模型未动）' })
+      else set({ status: `保存失败：无法写入文件${result.message ? ' — ' + result.message : ''}（现有模型未动）` })
+      return
+    }
+    const where = result.method === 'file-picker' ? ' · 已写入所选位置' : ''
+    set({ status: `已保存项目（${s.components.length} 组件 · ${s.joints.length} 关节 · ${s.features.length} 活动特征 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 组件特征）${where}` })
   },
 
   openProject: () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.json,application/json'
-    input.onchange = async () => {
-      const file = input.files?.[0]
-      if (!file) return
+    const openFromText = async (text: string) => {
       try {
-        const data = JSON.parse(await file.text())
+        const data = JSON.parse(text)
         await get().applyProjectData(data)
       } catch {
-        set({ status: '打开失败：文件格式不正确' })
+        // looksLikeWebcadDoc / applyProjectData already refuse bad docs without clearing;
+        // JSON.parse failure must also leave the current document untouched.
+        set({ status: '打开失败：文件格式不正确（现有模型未动）' })
       }
     }
-    input.click()
+    const pickViaInput = () => {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = '.json,application/json'
+      input.onchange = async () => {
+        const file = input.files?.[0]
+        if (!file) return
+        await openFromText(await file.text())
+      }
+      input.click()
+    }
+    void (async () => {
+      type OpenPickerWindow = Window & {
+        showOpenFilePicker?: (options?: {
+          multiple?: boolean
+          types?: { description?: string; accept: Record<string, string[]> }[]
+        }) => Promise<FileSystemFileHandle[]>
+      }
+      const picker = (window as OpenPickerWindow).showOpenFilePicker
+      if (typeof picker === 'function') {
+        try {
+          const [handle] = await picker.call(window, {
+            multiple: false,
+            types: [{ description: 'WebCAD JSON', accept: { 'application/json': ['.json'] } }],
+          })
+          const file = await handle.getFile()
+          await openFromText(await file.text())
+          return
+        } catch (err) {
+          const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
+          if (name === 'AbortError') { set({ status: '已取消打开（现有模型未动）' }); return }
+          // Unsupported / permission → fall back to <input type=file>.
+        }
+      }
+      pickViaInput()
+    })()
   },
   // T797：共用还原 — 文件 open 同分享链接都行呢条（单一真相，避免两份 schema 漂移）。
   applyProjectData: async (data, statusVerb = '已打开项目') => {
@@ -21767,15 +21814,10 @@ function wtWarnParts(meshes: ({ vertices: number[]; triangles: number[] } | null
   }
   return bad ? `　⚠ ${bad}/${total} 个零件网格非水密 —— 切片器可能出错，建议检查` : ''
 }
-function triggerDownload(buf: ArrayBuffer | Uint8Array, name: string, type: string) {
-  const blob = new Blob([buf as BlobPart], { type })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = name
-  a.click()
-  // GM-W8 β1-#40：延迟释放 ObjectURL — 同步 revoke 会喺大导出（STL/STEP/zip）落盘前撤销数据源 → 截断/0-byte 文件。
-  setTimeout(() => URL.revokeObjectURL(url), 30_000)
+// BUG-UI-002 / Save-Export P0：all Save/Export paths share durableDownload
+// (File System Access when available, else in-document <a download>).
+function triggerDownload(buf: ArrayBuffer | Uint8Array, name: string, type: string): void {
+  void durableDownload(buf, name, type)
 }
 
 // Dev-only hook so the app can be driven/inspected from the console during testing.

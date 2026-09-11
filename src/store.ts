@@ -4757,7 +4757,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const lastOp = active.length ? (active[active.length - 1] as { operation?: string }).operation : ''
       const HINT: Record<string, string> = {
         extrude: lastOp === 'cut' ? '切割轮廓太大/位置超出零件 — 缩小切割或移动位置' : (lastOp === 'intersect' ? '相交区域为空 — 两形状没有重叠' : '拉伸轮廓无效 — 要闭合且面积>0'),
-        revolve: '旋转截面跨过了旋转轴 — 把截面移到轴的一侧',
+        revolve: ((active.length ? (active[active.length - 1] as { op?: string }).op : '') === 'intersect') ? '旋转相交区域为空 — 旋转体与现有实体没有重叠' : (((active.length ? (active[active.length - 1] as { op?: string }).op : '') === 'cut') ? '旋转切割未切入材料 — 调整角度/轴或截面位置' : '旋转截面跨过了旋转轴 — 把截面移到轴的一侧'),
         loft: '放样截面不兼容 — 检查截面数量/朝向/不要自交',
         sweep: '扫掠失败 — 路径太弯/截面太大致自相交',
         fillet: '圆角半径太大（超过相邻面）— 减小半径',

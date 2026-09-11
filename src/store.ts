@@ -2226,6 +2226,9 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   cycleEditPolesFace: () => Promise<void>                 // S133+（多面）：循环到下一张面（重读该面网 + 重置 deltas）
   moveEditPole: (poleIndex: number, worldDelta: [number, number, number]) => Promise<void>  // 累加该极点世界偏移入 deltas → editPolesCommit 重建变形
   startNewBody: () => Promise<void>                                       // 多实体：泊车当前实体开新（T728）
+  selectedParkedIndex: number | null                                      // SO10 / BUG-SO15-002：画布/浏览器树选中的泊车半体索引
+  selectParkedBody: (idx: number | null) => void                          // 选择/取消选择泊车实体（高亮 + 状态栏）
+  measureParkedBody: (idx: number) => Promise<void>                       // 统一测量体过滤：量泊车半体体积（树点选 / 无画布命中时）
   commitBodyBoolean: (bop: 'fuse' | 'cut' | 'common', target: number) => Promise<void>  // 活动实体 ⊗ 泊车实体（B-rep）
   openStlDialog: () => void
   showProps: boolean
@@ -13956,6 +13959,50 @@ export const useApp = create<AppState>((rawSet, get) => {
   // ── 多实体（T728）────────────────────────────────────────────────────────
   // 新实体：泊车当前活动实体（灰显），之后嘅特征全部属于新实体。Fusion bodies 工作流核心：
   // 「砌好盒 → 新实体 → 原位砌盖 → 实体布尔切除留间隙」全程 B-rep、全程参数化、全程喺时间轴。
+  // SO10 / BUG-SO15-002：泊车半体可选（画布/浏览器树）+ 可量体积
+  selectedParkedIndex: null as number | null,
+  selectParkedBody: (idx) => set((s) => {
+    if (idx == null) {
+      const dlg = s.featDlg?.kind === 'move' ? { ...s.featDlg, params: { ...s.featDlg.params, bodyTarget: 'active' } } : s.featDlg
+      return { selectedParkedIndex: null, ...(dlg !== s.featDlg ? { featDlg: dlg } : {}) }
+    }
+    const n = s.bodyMesh?.parked?.length ?? 0
+    if (!Number.isInteger(idx) || idx < 0 || idx >= n) return { selectedParkedIndex: null }
+    const name = s.bodyMesh!.parked![idx].name || `泊车实体${idx + 1}`
+    const dlg = s.featDlg?.kind === 'move' ? { ...s.featDlg, params: { ...s.featDlg.params, bodyTarget: `parked${idx}` } } : s.featDlg
+    return { selectedParkedIndex: idx, status: `已选择「${name}」（泊车 · 可测量 / 可作合并工具 / Move 目标）`, ...(dlg !== s.featDlg ? { featDlg: dlg } : {}) }
+  }),
+  measureParkedBody: async (idx) => {
+    const s = get()
+    if (!s.measureUniMode) { set({ status: '请先打开统一测量，并开启「体」过滤' }); return }
+    const flt = s.measureSelFilter
+    if (!(flt.body && !flt.face && !flt.edge)) {
+      // 非纯体过滤时仍允许树点选量体积（用户明确点了泊车体）
+    }
+    const pb = s.bodyMesh?.parked?.[idx]
+    if (!pb?.vertices?.length || !pb.triangles?.length) { set({ status: '泊车实体无效，无法测量' }); return }
+    get().selectParkedBody(idx)
+    // Prefer B-rep measureBodyAt at mesh centroid (same path as viewport body filter).
+    let sx = 0, sy = 0, sz = 0, n = pb.vertices.length / 3
+    for (let i = 0; i < pb.vertices.length; i += 3) { sx += pb.vertices[i]; sy += pb.vertices[i + 1]; sz += pb.vertices[i + 2] }
+    const cp: [number, number, number] = [sx / n, sy / n, sz / n]
+    let volume: number | null = null
+    if (hasSolid(s.features)) {
+      try {
+        const result = await cad.measureBodyAt(cp)
+        const latest = get()
+        if (latest.features !== s.features || latest.measureUniMode !== s.measureUniMode) return
+        if (result) volume = result.volume
+      } catch { /* fall through to mesh */ }
+    }
+    if (volume == null || !(volume > 0)) {
+      const mp = computeMassProps(pb.vertices, pb.triangles)
+      volume = mp.volume > 0 ? mp.volume : null
+    }
+    if (volume != null && volume > 0) get().addMeasureUniPick({ kind: 'body', volume })
+    else set({ status: '未能量度选中泊车实体，请点选有效实体' })
+  },
+
   startNewBody: async () => {
     if (!hasSolid(get().features)) { set({ status: '新实体：先起一个实体（拉伸/原语），先有嘢可以泊车' }); return }
     const n = (get().bodyMesh?.parked?.length ?? 0) + 1
@@ -17330,7 +17377,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     const frame: PropsFrame = s.propsDialog?.frame || 'com'
     let mesh: { vertices: ArrayLike<number>; triangles: ArrayLike<number> } | null = null
     let name = '活动实体', material: string | undefined, density = s.bodyDensity
-    if (bodyId) {
+    if (typeof bodyId === 'string' && bodyId.startsWith('parked:')) {
+      const idx = Number(bodyId.slice(7))
+      const pb = s.bodyMesh?.parked?.[idx]
+      if (!pb?.triangles?.length) { set({ status: '属性：该泊车实体无几何' }); return }
+      mesh = pb
+      name = pb.name || `泊车实体${idx + 1}`
+      material = s.physMatName
+      density = s.bodyDensity
+      get().selectParkedBody(idx)
+    } else if (bodyId) {
       const c = s.components.find((x) => x.id === bodyId)
       if (!c || !c.mesh.triangles.length) { set({ status: '属性：该组件无实体几何' }); return }
       const bodies = visibleDefinitionBodies(c, s.componentDefs).map((b) => b.mesh)
@@ -19992,7 +20048,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       arrayPreview:{shapes:null,pending:false,error:null},arrayPending:false,
       measureMode:false,measureEdgeMode:false,measureFaceMode:false,measureAngleMode:false,measureUniMode:false,
       measurePts:[],measureDist:null,measureEdgeInfo:null,measureFaceInfo:null,measureAngleInfo:null,
-      measureUniPicks:[],measureUniResult:null,lastMeasure:null})
+      measureUniPicks:[],measureUniResult:null,lastMeasure:null,selectedParkedIndex:null})
     set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
     set({ ...hydrateSketchDraft(null), ...hydrateFormDraft(null) })
     // record=false so "New" is a clean fresh start — undo must NOT resurrect the old document (Fusion-style new doc).

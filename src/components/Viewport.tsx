@@ -367,9 +367,10 @@ function PlaceholderBody() {
   )
 }
 
-// 泊车实体（多实体 T728）：灰显、半透明、唔接受拾取（活动实体先可以圆角/草图/量度）。
-// S133：编辑曲面控制点模式下变可拾（pickable）—— 点佢 → pickParkedForPoles(index) 读控制网显极点球。
-function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: { mesh: { vertices: number[]; triangles: number[]; normals: number[]; kind?: 'body'; faceGroups?: { start: number; count: number; faceId: number }[] }; index: number; pickable?: boolean; picked?: boolean; onPick?: (i: number, face: number) => void }) {
+// 泊车实体（多实体 T728）：灰显；默认唔接受拾取（圆角/草图仍作用喺活动实体）。
+// S133：编辑曲面控制点 / 加厚曲面模式下变可拾。
+// SO10 / BUG-SO15-002：统一测量（体过滤）+ 普通体选择时亦可拾——分割泊车半体可量体积 / 树与画布可选。
+function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: { mesh: { vertices: number[]; triangles: number[]; normals: number[]; kind?: 'body'; faceGroups?: { start: number; count: number; faceId: number }[] }; index: number; pickable?: boolean; picked?: boolean; onPick?: (i: number, face: number, threePt: [number, number, number], faceNormalWorld?: [number, number, number]) => void }) {
   const geom = useMemo(() => {
     const g = new BufferGeometry()
     g.setAttribute('position', new Float32BufferAttribute(mesh.vertices, 3))
@@ -383,7 +384,7 @@ function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: {
       <mesh
         geometry={geom}
         raycast={pickable ? MESH_RAYCAST : NULL_RAYCAST}
-        onClick={pickable ? (e) => { e.stopPropagation(); let face = 0; if (e.faceIndex != null && mesh.faceGroups?.length) { const tri3 = e.faceIndex * 3; const gi = mesh.faceGroups.findIndex((g) => tri3 >= g.start && tri3 < g.start + g.count); if (gi >= 0) face = gi } onPick?.(index, face) } : undefined}
+        onClick={pickable ? (e) => { e.stopPropagation(); let face = 0; if (e.faceIndex != null && mesh.faceGroups?.length) { const tri3 = e.faceIndex * 3; const gi = mesh.faceGroups.findIndex((g) => tri3 >= g.start && tri3 < g.start + g.count); if (gi >= 0) face = gi } const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null; onPick?.(index, face, [e.point.x, e.point.y, e.point.z], wn ? [wn.x, wn.y, wn.z] : undefined) } : undefined}
       >
         <meshStandardMaterial color={picked ? '#7bb8e8' : mesh.kind === 'body' ? '#aeb9c4' : '#9aa6b0'} transparent={mesh.kind !== 'body'} opacity={mesh.kind === 'body' ? 1 : 0.55} roughness={0.8} metalness={0.05} />
         <Edges threshold={24} color={picked ? '#3a78b5' : mesh.kind === 'body' ? '#59636d' : '#6b7680'} />
@@ -760,7 +761,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         // 量角：法向统一转【三维世界系】(transformDirection matrixWorld) — 令活动实体 + 各摆位/旋转网格件混拣都得正确夹角（旋转保夹角，body-only 数值不变）。
         if (measureAngleMode && (!frozen || compId) && e.face) { e.stopPropagation(); const wn = e.face.normal.clone().transformDirection(e.object.matrixWorld); measureAngleAt([wn.x, wn.y, wn.z]); return }
         // GM-X1 #1/#2：统一测量 —— 点任意实体 → worker 量面/边 → 组合派生读数。Alt/⌘ = 优先量边。活动实体 B-rep 路径。
-        if (measureUniMode && !frozen) { e.stopPropagation(); const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null; const isEdge = e.nativeEvent && (e.nativeEvent as MouseEvent).altKey; void useApp.getState().pickMeasureUniAt([e.point.x, e.point.y, e.point.z], wn ? [wn.x, wn.y, wn.z] : undefined, !!isEdge); return }
+        if (measureUniMode && !frozen) { e.stopPropagation(); useApp.getState().selectParkedBody(null); const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null; const isEdge = e.nativeEvent && (e.nativeEvent as MouseEvent).altKey; void useApp.getState().pickMeasureUniAt([e.point.x, e.point.y, e.point.z], wn ? [wn.x, wn.y, wn.z] : undefined, !!isEdge); return }
         if (embossPick && !frozen && e.face) { e.stopPropagation(); void useApp.getState().applyEmbossPick([e.point.x, e.point.y, e.point.z], [e.face.normal.x, e.face.normal.y, e.face.normal.z]); return }   // S162 Emboss 拾面
         if (ucsPick && !frozen && e.face) { e.stopPropagation(); void useApp.getState().makeUCS([e.point.x, e.point.y, e.point.z], [e.face.normal.x, e.face.normal.y, e.face.normal.z]); return }   // #174-1 UCS 拾面帧
         if (formBoxDraft?.stage === 'plane' && !frozen && e.faceIndex != null) {
@@ -3338,6 +3339,7 @@ export default function Viewport() {
   const editPolesMode = useApp((s) => s.editPolesMode)        // S133：曲面极点编辑模式（parked 变可拾 + PoleNet）
   const editPolesTarget = useApp((s) => s.editPolesTarget)    // S133：当前编辑曲面索引（高亮拣中体）
   const quiltPickMode = useApp((s) => s.quiltPickMode)        // S201：整张曲面加厚的画布直选模式
+  const selectedParkedIndex = useApp((s) => s.selectedParkedIndex)  // SO10：画布/树选中的泊车半体
   const components = useApp((s) => s.components)
   const componentDefs = useApp((s) => s.componentDefs)
   const selectedComponent = useApp((s) => s.selectedComponent)
@@ -4300,11 +4302,13 @@ export default function Viewport() {
             {((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh)) && <KernelBody mesh={bodyMesh} pickOnly clip={clip} />}
           </>
           : (mode === 'model' && !formMode && components.length === 0 && !(bodyMesh?.parked?.length) ? <PlaceholderBody /> : null)}
-        {/* 多实体（T728）：泊车实体灰显（唔可交互 — 圆角/草图/量度作用喺活动实体；要操作佢请用「实体布尔」合并返）。
-            S133：编辑曲面控制点模式下变可拾（点选目标曲面）。 */}
-        {bodyMesh?.parked?.map((b, i) => <ParkedBody key={'pk' + i} mesh={b} index={i} pickable={editPolesMode || quiltPickMode} picked={(editPolesMode && editPolesTarget === i) || quiltPickMode} onPick={(idx, face) => {
+        {/* 多实体（T728）：泊车实体灰显。圆角/草图仍作用喺活动实体；SO10：测量体过滤 + 普通体选择时可拾泊车半体。
+            S133：编辑曲面控制点 / 加厚曲面模式下变可拾。 */}
+        {bodyMesh?.parked?.map((b, i) => <ParkedBody key={'pk' + i} mesh={b} index={i} pickable={editPolesMode || quiltPickMode || measureUniMode || (mode === 'model' && !formMode && selPicksBody(selFilter))} picked={(editPolesMode && editPolesTarget === i) || quiltPickMode || (selectedParkedIndex === i)} onPick={(idx, face, threePt, faceN) => {
+          if (measureUniMode) { useApp.getState().selectParkedBody(idx); void useApp.getState().pickMeasureUniAt(threePt, faceN, false); return }
           if (quiltPickMode) void useApp.getState().thickenParkedAt(idx)
-          else void useApp.getState().pickParkedForPoles(idx, face)
+          else if (editPolesMode) void useApp.getState().pickParkedForPoles(idx, face)
+          else useApp.getState().selectParkedBody(idx)
         }} />)}
         {/* S133：NURBS 曲面极点编辑器 — 拣中曲面后显示控制点球 + 拖极点变形（clone FormCage 嘅 axis-swap） */}
         {editPolesMode && <PoleNet />}

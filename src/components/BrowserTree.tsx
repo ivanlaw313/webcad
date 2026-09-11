@@ -418,6 +418,7 @@ export default function BrowserTree() {
   const skLock = useApp((s) => s.mode === 'sketch' || s.formMode)   // GM-W2 2.2：草图态灰化基准删除（草图可能正建喺个参考面上）
   const features = useApp((s) => s.features)
   const bodyMesh = useApp((s) => s.bodyMesh)
+  const selectedParkedIndex = useApp((s) => s.selectedParkedIndex)  // SO10：泊车半体树选中高亮
   const sketchSources = useApp((s) => s.sketchSources)   // GM-W6 F2：草图行渲染移入 SketchRow（每行自订名/孤儿重开+删除）
   const components = useApp((s) => s.components)
   const jointOrigins = useApp((s) => s.jointOrigins)   // GM-3DV4 A1：可复用关节原点
@@ -610,8 +611,14 @@ export default function BrowserTree() {
           </Section>
         )}
         <Section label={`实体${bodyMesh?.parked?.length ? ` (${(bodyMesh.triangles.length ? 1 : 0) + bodyMesh.parked.length})` : ''}`}>
-          {bodyMesh && bodyMesh.triangles.length > 0 ? <Leaf icon="box" label={`${components.length > 0 ? '当前组件' : '活动实体'} ●`} onClick={() => void useApp.getState().openPropertiesDialog(null)} /> : null}
-          {bodyMesh?.parked?.map((b, i) => <Leaf key={'pb' + i} icon="box" label={(b as any).kind === 'body' ? b.name : `${b.name}（泊车 · 灰显）`} />)}
+          {bodyMesh && bodyMesh.triangles.length > 0 ? <Leaf icon="box" label={`${components.length > 0 ? '当前组件' : '活动实体'} ●`} sel={selectedParkedIndex == null} onClick={() => { useApp.getState().selectParkedBody(null); void useApp.getState().openPropertiesDialog(null) }} /> : null}
+          {bodyMesh?.parked?.map((b, i) => <Leaf key={'pb' + i} icon="box" label={(b as any).kind === 'body' ? b.name : `${b.name}（泊车 · 灰显）`} sel={selectedParkedIndex === i} onClick={() => {
+            const st = useApp.getState()
+            st.selectParkedBody(i)
+            // SO10 / BUG-SO15-002：统一测量 + 体过滤时树点选即量泊车半体体积；否则开属性。
+            if (st.measureUniMode && st.measureSelFilter.body) void st.measureParkedBody(i)
+            else void st.openPropertiesDialog(`parked:${i}`)
+          }} />)}
           {!bodyMesh ? <Leaf icon="default" label="（空）" /> : null}
         </Section>
         {/* i18n: 实体 当前组件 活动实体 泊车 · 灰显 （空） 草图 特征 尚无特征 — wrapped via Leaf/Section internal tStatus */}

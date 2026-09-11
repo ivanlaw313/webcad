@@ -2086,7 +2086,7 @@ function buildShape(features: Feature[], noCache = false): any {
       const snap = cpSnap[tid]
       if (!snap || !snap.after) throw new Error(`${label}：目标特征不存在或已被抑制，原模型保留`)
       const tf = features.find((x) => x.id === tid) as { operation?: string; op?: string } | undefined
-      const wasCut = !!tf && (tf.operation === 'cut' || tf.op === 'cut')
+      const wasCut = !!tf && (tf.operation === 'cut' || tf.op === 'cut' || (tf as { type?: string }).type === 'hole')
       try {
         if (wasCut && snap.before) {
           const removed = snap.cutTool ? snap.cutTool.clone() : snap.before.clone().cut(snap.after.clone())
@@ -2115,11 +2115,22 @@ function buildShape(features: Feature[], noCache = false): any {
       start--
       while (start > 0 && features[start].type === 'sketch') start--
     }
-    // T757/T781：续算点之后有「带目标嘅阵列/镜像」→ 目标快照要重放先有，回退到最早目标特征（牺牲缓存换正确性）
-    for (let ci = start; ci < features.length; ci++) {
-      const cf = features[ci] as { type: string; targets?: string[] }
-      if (TARGETED.has(cf.type) && cf.targets?.length) {
-        for (const tid of cf.targets) { const ti = features.findIndex((x) => x.id === tid); if (ti >= 0 && ti < start) start = ti }
+    // T757/T781：续算点之后有「带目标嘅阵列/镜像」→ 目标快照要重放先有，回退到最早目标特征（牺牲缓存换正确性）。
+    // 传递闭包：镜像若目标系「阵列特征」本身，阵列又依赖更早嘅孔/凸台目标 — 只退到阵列会令 cpSnap 缺上游，
+    // 阵列报「目标特征唔存在/被抑制」并跳过（SO12 / BUG-SO12-001 lineage）。循环直到 start 不再前移。
+    {
+      let moved = true
+      while (moved) {
+        moved = false
+        for (let ci = start; ci < features.length; ci++) {
+          const cf = features[ci] as { type: string; targets?: string[] }
+          if (TARGETED.has(cf.type) && cf.targets?.length) {
+            for (const tid of cf.targets) {
+              const ti = features.findIndex((x) => x.id === tid)
+              if (ti >= 0 && ti < start) { start = ti; moved = true }
+            }
+          }
+        }
       }
     }
     if (start > 0) {
@@ -5045,7 +5056,7 @@ function buildShape(features: Feature[], noCache = false): any {
             const snap = cpSnap[tid]
             if (!snap || !snap.after) { buildWarnings.push('环形阵列：目标特征唔存在/被抑制 — 已跳过该目标'); continue }
             const tf = features.find((x) => x.id === tid) as { operation?: string; op?: string } | undefined
-            const wasCut = !!tf && (tf.operation === 'cut' || tf.op === 'cut')
+            const wasCut = !!tf && (tf.operation === 'cut' || tf.op === 'cut' || (tf as { type?: string }).type === 'hole')
             try {
               if (wasCut && snap.before) {
                 const removed = snap.cutTool ? snap.cutTool.clone() : snap.before.clone().cut(snap.after.clone())

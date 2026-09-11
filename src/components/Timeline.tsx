@@ -42,7 +42,7 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
   hole: { icon: 'hole', label: '孔', param: '直徑', field: 'diameter', unit: 'mm', fields: [{ key: 'diameter', label: '直徑', unit: 'mm' }, { key: 'depth', label: '深度', unit: 'mm' }] },
   offsetsolid: { icon: 'scale', label: '整体偏移', param: '距离', field: 'distance', unit: 'mm', fields: [{ key: 'distance', label: '距离', unit: 'mm' }] },
   extrude: { icon: 'extrude', label: '拉伸', param: '高度', field: 'height', unit: 'mm', fields: [{ key: 'height', label: '高度', unit: 'mm' }, { key: 'twist', label: '扭转', unit: '°' }, { key: 'operation', label: '操作', unit: '', opts: [{ value: 'new', label: '加料' }, { value: 'cut', label: '切割' }] }, { key: 'plane', label: '草图面', unit: '', opts: [{ value: 'XY', label: '上 XY' }, { value: 'XZ', label: '前 XZ' }, { value: 'YZ', label: '右 YZ' }] }] },
-  revolve: { icon: 'revolve', label: '旋转', param: '角度', field: 'angle', unit: '°', fields: [{ key: 'angle', label: '角度', unit: '°' }, { key: 'axis', label: '绕轴', unit: '', opts: [{ value: 'Y', label: 'Y 轴（默认）' }, { value: 'X', label: 'X 轴' }] }, { key: 'op', label: '操作', unit: '', opts: [{ value: 'new', label: '加料' }, { value: 'cut', label: '切割(车槽)' }, { value: 'intersect', label: '相交' }] }] },
+  revolve: { icon: 'revolve', label: '旋转', param: '角度', field: 'angle', unit: '°', fields: [{ key: 'angle', label: '角度', unit: '°' }, { key: 'axis', label: '绕轴', unit: '', opts: [{ value: 'Y', label: 'Y 轴（默认）' }, { value: 'X', label: 'X 轴' }, { value: 'Z', label: 'Z 轴' }] }, { key: 'op', label: '操作', unit: '', opts: [{ value: 'new', label: '加料' }, { value: 'cut', label: '切割(车槽)' }, { value: 'intersect', label: '相交' }] }] },
   fillet: { icon: 'fillet', label: '圆角', param: '半径', field: 'radius', unit: 'mm' },
   facefillet: { icon: 'fillet', label: '面圆角', param: '半径', field: 'radius', unit: 'mm', fields: [{ key: 'radius', label: '半径', unit: 'mm' }] },
   chamfer: { icon: 'chamfer', label: '倒角', param: '距离', field: 'distance', unit: 'mm' },
@@ -59,7 +59,7 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
   surfunstitch: { icon: 'shell', label: '取消缝合', param: '', field: '', unit: '', fields: [] },
   surfextrude: { icon: 'extrude', label: '曲面拉伸', param: '高度', field: 'height', unit: 'mm', fields: [{ key: 'height', label: '高度', unit: 'mm' }] },
   surfsweep: { icon: 'sweep', label: '曲面扫掠', param: '', field: '', unit: '', fields: [] },
-  surfrevolve: { icon: 'revolve', label: '曲面旋转', param: '角度', field: 'angle', unit: '°', fields: [{ key: 'angle', label: '角度', unit: '°' }, { key: 'axis', label: '绕轴', unit: '', opts: [{ value: 'Y', label: 'Y 轴（默认）' }, { value: 'X', label: 'X 轴' }] }] },
+  surfrevolve: { icon: 'revolve', label: '曲面旋转', param: '角度', field: 'angle', unit: '°', fields: [{ key: 'angle', label: '角度', unit: '°' }, { key: 'axis', label: '绕轴', unit: '', opts: [{ value: 'Y', label: 'Y 轴（默认）' }, { value: 'X', label: 'X 轴' }, { value: 'Z', label: 'Z 轴' }] }] },
   ruled: { icon: 'loft', label: '规则曲面', param: '', field: '', unit: '', fields: [] },
   surftrim: { icon: 'shell', label: '平面裁剪', param: '', field: '', unit: '', fields: [] },
   surfsurftrim: { icon: 'shell', label: '曲面裁剪', param: '', field: '', unit: '', fields: [] },  // S155 曲面-曲面裁剪
@@ -329,7 +329,24 @@ export default function Timeline() {
                   {tStatus(fd.label, lang)}
                   {fd.opts ? (
                     <select
-                      value={String((sel as unknown as Record<string, unknown>)[fd.key] ?? fd.opts[0].value)}
+                      value={String((
+                        fd.key === 'axis' && (sel.type === 'revolve' || sel.type === 'surfrevolve')
+                          ? (() => {
+                              const r = sel as unknown as { axis?: string; axisV?: [number, number, number] }
+                              const v = r.axisV
+                              if (v) {
+                                const al = Math.hypot(v[0], v[1], v[2])
+                                if (al > 1e-9) {
+                                  const x = Math.abs(v[0]) / al, y = Math.abs(v[1]) / al, z = Math.abs(v[2]) / al
+                                  if (z >= 0.999 && z >= x && z >= y) return 'Z'
+                                  if (x >= 0.999 && x >= y && x >= z) return 'X'
+                                  if (y >= 0.999 && y >= x && y >= z) return 'Y'
+                                }
+                              }
+                              return r.axis ?? fd.opts[0].value
+                            })()
+                          : ((sel as unknown as Record<string, unknown>)[fd.key] ?? fd.opts[0].value)
+                      ))}
                       onChange={(e) => editFeature(sel.id, { [fd.key]: e.target.value })}
                     >
                       {fd.opts.map((o) => <option key={o.value} value={o.value}>{tStatus(o.label, lang)}</option>)}

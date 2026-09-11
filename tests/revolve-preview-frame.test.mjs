@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {revolvePointToCad,revolveFrame,revolveLathePlane,revolveRemapProfileUv} from '../src/cad/revolvePreviewFrame.ts'
+import {revolvePointToCad,revolveFrame,revolveLathePlane,revolveRemapProfileUv,revolveCardinalAxis,revolvePersistedAxis,REVOLVE_AXIS_VEC} from '../src/cad/revolvePreviewFrame.ts'
 for(const [plane,raw,profile,expected] of [
  ['XY',[4,2],[4,-2],[4,-2,10]],['XZ',[4,2],[4,2],[4,10,2]],['YZ',[4,2],[-4,2],[10,-4,2]],
 ])test(`${plane} face preview and saved feature place the same contour in CAD`,()=>{
@@ -37,4 +37,19 @@ test('XZ about Z: preview keeps authored plane (no SO16 remap)',()=>{
  const axis=[0,0,1]
  assert.deepEqual(revolvePointToCad([10,40],src,true,axis),[10,0,40])
  assert.deepEqual(revolvePointToCad([10,40],src,false,axis),[10,0,40])
+})
+
+
+test('BUG-SO111-001: revolveCardinalAxis / revolvePersistedAxis keep world Z', () => {
+  assert.equal(revolveCardinalAxis([0, 0, 1]), 'Z')
+  assert.equal(revolveCardinalAxis([0, 0, -2]), 'Z')
+  assert.equal(revolveCardinalAxis([1, 0, 0]), 'X')
+  assert.equal(revolveCardinalAxis([0, 1, 0]), 'Y')
+  assert.equal(revolveCardinalAxis([1, 1, 0]), null)
+  // Stale letter Y + axisV Z (旧 Z 按钮路径) → editor must show Z
+  assert.equal(revolvePersistedAxis('Y', [0, 0, 1]), 'Z')
+  assert.equal(revolvePersistedAxis('Y', REVOLVE_AXIS_VEC.Z), 'Z')
+  assert.equal(revolvePersistedAxis('Z', undefined), 'Z')
+  assert.equal(revolvePersistedAxis('Y', undefined), 'Y')
+  assert.equal(revolvePersistedAxis(undefined, [0, 0, 1]), 'Z')
 })

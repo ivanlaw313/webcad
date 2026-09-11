@@ -2,6 +2,41 @@ import { cardinalSketchFrame, localPointToCad, type CardinalPlane, type PlaneFra
 type P2 = [number, number]
 export type RevolveFrameSource = { plane?: CardinalPlane; baseZ?: number; arb?: PlaneFrame; arbPlane?: PlaneFrame; faceBinding?: unknown; sketchFaceBinding?: unknown }
 
+
+/** World-axis unit vectors for revolve dropdown / direction buttons. */
+export const REVOLVE_AXIS_VEC: Record<'X' | 'Y' | 'Z', [number, number, number]> = {
+  X: [1, 0, 0],
+  Y: [0, 1, 0],
+  Z: [0, 0, 1],
+}
+
+/**
+ * BUG-SO111-001: map a direction to a world cardinal letter when it is axis-aligned.
+ * Used so confirm/edit persist axis:'Z' (not stale 'Y') when axisV is world Z —
+ * Timeline META and the feature editor read the letter, not only axisV.
+ */
+export function revolveCardinalAxis(v: [number, number, number] | undefined | null): 'X' | 'Y' | 'Z' | null {
+  if (!v) return null
+  const al = Math.hypot(v[0], v[1], v[2])
+  if (!(al > 1e-9)) return null
+  const x = Math.abs(v[0]) / al, y = Math.abs(v[1]) / al, z = Math.abs(v[2]) / al
+  if (x >= 0.999 && x >= y && x >= z) return 'X'
+  if (y >= 0.999 && y >= x && y >= z) return 'Y'
+  if (z >= 0.999 && z >= x && z >= y) return 'Z'
+  return null
+}
+
+/** Prefer axisV when it is cardinal; else fall back to the stored letter (default Y). */
+export function revolvePersistedAxis(
+  axis: string | undefined | null,
+  axisV?: [number, number, number] | null,
+): 'X' | 'Y' | 'Z' {
+  const fromV = revolveCardinalAxis(axisV ?? null)
+  if (fromV) return fromV
+  const a = String(axis || 'Y').toUpperCase()
+  return a === 'X' || a === 'Z' ? a : 'Y'
+}
+
 /**
  * BUG-SO16-001: a lathe profile must have extent *along* the axis.
  * Cardinal XZ places sketch V → world Z; revolving that about Y keeps every

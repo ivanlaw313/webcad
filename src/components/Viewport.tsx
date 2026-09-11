@@ -3465,6 +3465,7 @@ export default function Viewport() {
   const feaRes = useApp((s) => s.feaRes)
   const feaMat = useApp((s) => s.feaMat)
   const feaResult = useApp((s) => s.feaResult)
+  const feaStale = useApp((s) => s.feaStale)
   const feaField = useApp((s) => s.feaField)   // S96：应力/位移云图切换
   const fatigueCase = useApp((s) => s.feaFatigueCase)   // S183：疲劳工况
   const feaDeform = useApp((s) => s.feaDeform)   // S168：变形形态显示/动画/放大
@@ -5031,7 +5032,7 @@ export default function Viewport() {
         </CommandDialog>
       )}
 
-      {(feaMode > 0 || feaBusy || feaResult || modalBusy || modalResult || bucklingBusy || bucklingResult || topoptBusy || topoptResult || thermalBusy || thermalResult || thermalStressBusy || feaConvBusy || feaConvResult) && (
+      {(feaMode > 0 || feaBusy || feaResult || feaStale || modalBusy || modalResult || bucklingBusy || bucklingResult || topoptBusy || topoptResult || thermalBusy || thermalResult || thermalStressBusy || feaConvBusy || feaConvResult) && (
         <CommandDialog
           icon="interference"
           title="FEA：受力/模态/屈曲/生成式/热（体素趋势）"
@@ -5047,7 +5048,7 @@ export default function Viewport() {
             <button onClick={() => useApp.getState().autoFeaCantilever()} title="自动【悬臂】：夹一端 + 受力另一端(沿最长轴) — 免手动揾端面/撳错侧面。应力最大喺固定端根部。" style={{ flex: 1, padding: '5px 6px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid #2f6fb0', borderRadius: 4, background: '#1e3a5f', color: '#dbe8f5' }}>🔧 悬臂（夹一端·推另一端）</button>
             <button onClick={() => useApp.getState().autoFeaSimplySupported()} title="自动【简支梁 / 3 点弯】：两端托住 + 中间施力 — 应力最大会喺【中间】(同悬臂相反)。两端 roller 支撑，唔会夹持应力集中。" style={{ flex: 1, padding: '5px 6px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid #2f7a4e', borderRadius: 4, background: '#1e3a2a', color: '#d6f0e0' }}>🔧 简支梁（两端托·中间压）</button>
           </div>
-          <SelectionChip label={feaBeam3pt ? '① 支撑 A' : '① 固定面'} count={feaFixed ? 1 : 0} hint={feaBeam3pt ? '简支梁左支撑（蓝标）' : '点被夹住/锁实嘅面（蓝标）'} onClear={() => useApp.setState({ feaFixed: null, feaMode: 1 })} />
+          <SelectionChip label={feaBeam3pt ? '① 支撑 A' : '① 固定面'} count={feaFixed ? 1 : 0} hint={feaBeam3pt ? '简支梁左支撑（蓝标）' : '点被夹住/锁实嘅面（蓝标）'} onClear={() => useApp.getState().clearFeaFixed()} />
           {feaBeam3pt && <SelectionChip label="① 支撑 B" count={feaFixed2 ? 1 : 0} hint="简支梁右支撑（蓝标）" onClear={() => useApp.setState({ feaFixed2: null })} />}
           <label>
             <span style={{ color: '#6b7680' }}>约束</span>
@@ -5077,7 +5078,7 @@ export default function Viewport() {
             <span style={{ color: feaPin ? '#7fbf7f' : '#6b7680' }}>{feaPin ? `Ø${(feaPin.radius * 2).toFixed(1)}` : '未设'}</span>
             {feaPin && <span onClick={() => useApp.setState({ feaPin: null })} style={{ cursor: 'pointer', color: '#cc6666' }} title="清除销约束">✕</span>}
           </label>
-          <SelectionChip label="② 受力面" count={feaLoad ? 1 : 0} hint="点力作用嘅面（橙标）" onClear={() => useApp.setState({ feaLoad: null, feaMode: feaFixed ? 2 : 1 })} />
+          <SelectionChip label="② 受力面" count={feaLoad ? 1 : 0} hint="点力作用嘅面（橙标）" onClear={() => useApp.getState().clearFeaLoad()} />
           <label>
             <span style={{ color: '#6b7680' }}>载荷</span>
             <select value={feaLoadMode} onChange={(e) => setFeaOpt({ feaLoadMode: e.target.value as 'force' | 'pressure' | 'bearing' })} title="集中力 = 总力 N 摊分受力面；压力 = MPa × 受力面面积 → 沿法向均布；轴承 = 合力 N 余弦分布喺拾中圆柱孔嘅受推半边（销/螺栓推孔，比均布点载更准孔边峰值）">
@@ -5152,6 +5153,11 @@ export default function Viewport() {
             </select>
           </label>
           {lowPower && <div style={{ fontSize: 10.5, color: '#2f9e44', margin: '2px 0 4px' }}>📱 已为你设备（手机/弱机）调低预设，本机计算唔卡；可手动拣细啲（会慢）</div>}
+          {feaStale && (
+            <div role="status" style={{ marginTop: 8, padding: '6px 8px', borderRadius: 4, background: '#3a2a12', border: '1px solid #c77d00', color: '#ffd08a', fontSize: 12, fontWeight: 600 }}>
+              ⚠ 結果已失效 — 約束或幾何已改，請重新運行（舊彩圖已清除）
+            </div>
+          )}
           {feaResult && (
             <div style={{ fontSize: 11, lineHeight: 1.5 }}>
               <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>

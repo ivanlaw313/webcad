@@ -14453,8 +14453,23 @@ export const useApp = create<AppState>((rawSet, get) => {
       cptgrid: '构造点阵列：矩形（行×列+间距，居中）/ 极坐标（个数+半径）一次过落一组构造点 → 确定。配合「⊙批量孔」= 两步钻螺栓孔阵',
       caxis: '构造轴：选方向 X/Y/Z + 经过点 → 确定（作旋转/阵列/对齐参考）',
     }
+    // SO12 / BUG-SO12-001：时间轴已选孔/特征时，阵列·镜像对话框要预选「所选特征」；
+    // 否则默认「整个实体」+ objectPicked=0 → 身份错（active body）或要用户再点一次「选择」。
+    const params = { ...defaults[kind] }
+    const selFeat = !!(s.selectedFeatures.length || s.selectedFeature)
+    if (kind === 'mirror' && selFeat) {
+      params.target = 'feature'
+    }
+    if ((kind === 'pattern' || kind === 'circpattern') && selFeat) {
+      params.objectType = 'features'
+      params.target = 'feature'
+      params.objectPicked = 1
+    } else if ((kind === 'pattern' || kind === 'circpattern') && hasSolid(s.features)) {
+      // 无特征选择时自动确认活动实体，避免「先选活动体」漏点导致确定被拒 / 身份错乱
+      params.objectPicked = 1
+    }
     return {
-      featDlg: { kind, params: { ...defaults[kind] } },
+      featDlg: { kind, params },
       // mutually exclusive with the pick-modes
       holeMode: false, holePos: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false, revAxisPtPick: false,
       status: tip[kind],
@@ -16309,7 +16324,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       const pay = d.payload as { path?: [number, number][]; path3?: [number, number, number][] } | undefined
       const path = pay?.path ?? []
       if (path.length < 2) { set({ status: '路径阵列：冇有效路径' }); return }
-      const count = Math.max(2, Math.min(100, Math.round(+p.count || 2)))
+      const count = Math.round(+p.count)
+      if (!Number.isFinite(count) || count < 2) { set({ status: '路径阵列：数量至少为 2（非法值已拒绝，原模型不变）' }); return }
+      if (count > 100) { set({ status: '路径阵列：数量上限 100' }); return }
       const orient = p.orient === 'path' ? 'path' as const : 'identical' as const
       const wantsFeature = p.target === 'feature'
       const selected = (get().selectedFeatures.length ? get().selectedFeatures : [get().selectedFeature]).filter((id): id is string => typeof id === 'string')
@@ -16480,7 +16497,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       const facePicks = get().facePatternPicks
       if (p.objectType === 'faces' && !d.editId && !facePicks.length) { set({ status: '矩形 Face Pattern：請按「🎯選面」並在畫布選至少一個面' }); return }
       if (p.objectType !== 'features' && p.objectType !== 'components' && p.objectType !== 'faces' && !+p.objectPicked) { set({ status: '矩形阵列：先在 Objects 按「选择」确认活动实体' }); return }
-      const cX = Math.max(1, Math.round(+p.countX)), cY = Math.max(1, Math.round(+p.countY)), cZ = Math.max(1, Math.round(+(p.countZ || 1)))
+      const cX = Math.round(+p.countX), cY = Math.round(+p.countY), cZ = Math.round(+(p.countZ ?? 1))
+      // SO12：非法数量原子拒绝（唔 clamp 成 1/2 后照提交）— 0/负/NaN 或总副本 <2 都拒，对话框保持开、历史唔变
+      if (![cX, cY, cZ].every((n) => Number.isFinite(n) && n >= 1)) { set({ status: '矩形阵列：X/Y/Z 数量须为正整数（≥1）' }); return }
+      if (cX * cY * cZ < 2) { set({ status: '矩形阵列：总副本数至少为 2（例如 2×1×1）；1×1×1 等于冇阵列' }); return }
       if (cX * cY * cZ > 400) { set({ status: `阵列总数 ${cX}×${cY}×${cZ} 太多（上限 400）— 每个副本要做一次布尔，会很慢/卡。请减少数量` }); return }
       // Face Pattern is a B-rep surface-copy feature. Components are handled below as occurrences.
       // T781：特征级矩形阵列 — 同環形阵列一样食时间轴所选特征（孔阵/凸台阵唔郁实体其余部分）
@@ -16489,7 +16509,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // not global XY.  The worker already accepts dir1/dir2; retain these derived directions here
       // unless the user explicitly chose construction axes in the dialog.
       let sketchLocalDirs: { dir1: [number, number, number]; dir2: [number, number, number] } | undefined
-      if (p.target === 'feature' && !d.editId) {   // Edit Feature：编辑模式 targets 透传原值（undefined 过滤），唔使时间轴选中
+      if ((p.target === 'feature' || p.objectType === 'features') && !d.editId) {   // Edit Feature：编辑模式 targets 透传原值（undefined 过滤），唔使时间轴选中
         // P2 audit：多选（Ctrl+点 chip 累积 selectedFeatures）— 一次阵列/镜像多个特征；旧单选照兼容
         const selFs = get().selectedFeatures.length ? get().selectedFeatures : (get().selectedFeature ? [get().selectedFeature as string] : [])
         if (!selFs.length) { set({ status: '矩形阵列（所选特征）：先喺时间轴单击选中要阵列嘅特征，再撳确定（Ctrl+点可多选）' }); return }
@@ -16635,7 +16655,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       f = { id: fid(), type: 'sheetmetal', thickness: T, radius: R, kfactor: K, width: +p.width, segs, angles, flat }
       msg = `已建钣金件 ${preset} 型（厚${T} 折弯R${R}）— 展开料长 ${DL.toFixed(1)}mm × 宽${+p.width}${flat ? '（展开图）' : ''}`
     } else if (d.kind === 'cpattern') {
-      const cnt = Math.max(2, Math.round(+p.count))
+      const cnt = Math.round(+p.count)
+      if (!Number.isFinite(cnt) || cnt < 2) { set({ status: '环形阵列：数量至少为 2（非法值已拒绝，原模型不变）' }); return }
       if (cnt > 400) { set({ status: `环形阵列数量 ${cnt} 太多（上限 400）— 每个副本要做一次布尔，会很慢/卡。请减少` }); return }
       f = { id: fid(), type: 'cpattern', count: cnt, angle: +p.angle, axis: p.axis as 'X' | 'Y' | 'Z', cx: +(p.cx || 0), cy: +(p.cy || 0), cz: +(p.cz || 0) }
       const offCtr = (+(p.cx || 0) || +(p.cy || 0) || +(p.cz || 0))
@@ -16645,13 +16666,15 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (p.objectType === 'faces' && !d.editId && !circFacePicks.length) { set({ status: '環形 Face Pattern：請按「🎯選面」並在畫布選至少一個面' }); return }
       if (p.objectType !== 'features' && p.objectType !== 'components' && p.objectType !== 'faces' && !+p.objectPicked) { set({ status: '环形阵列：先在 Objects 按「选择」确认活动实体' }); return }
       // T757：Fusion 級環形阵列 — 对象（实体/所选特征）+ 任意轴 + full/angle/sym
-      const cnt = Math.max(2, Math.round(+p.count))
+      const cnt = Math.round(+p.count)
+      // SO12：非法数量原子拒绝（唔再 Math.max 静默夹成 2）
+      if (!Number.isFinite(cnt) || cnt < 2) { set({ status: '环形阵列：数量至少为 2（非法值已拒绝，原模型不变）' }); return }
       if (cnt > 400) { set({ status: `环形阵列数量 ${cnt} 太多（上限 400）— 每个副本要做一次布尔，会很慢/卡。请减少` }); return }
       // Face Pattern is handled by the worker as B-rep surface copies; components use occurrences below.
       const dir: [number, number, number] = [+(p.dx || 0), +(p.dy || 0), +(p.dz || 0)]
       if (Math.hypot(dir[0], dir[1], dir[2]) < 1e-9) { set({ status: '环形阵列：轴方向唔可以系零向量 — 拣 X/Y/Z 或填方向分量' }); return }
       let targets: string[] | undefined
-      if (p.target === 'feature' && !d.editId) {   // Edit Feature：编辑模式 targets 透传原值（undefined 过滤），唔使时间轴选中
+      if ((p.target === 'feature' || p.objectType === 'features') && !d.editId) {   // Edit Feature：编辑模式 targets 透传原值（undefined 过滤），唔使时间轴选中
         // P2 audit：多选（Ctrl+点 chip 累积 selectedFeatures）— 一次阵列/镜像多个特征；旧单选照兼容
         const selFs = get().selectedFeatures.length ? get().selectedFeatures : (get().selectedFeature ? [get().selectedFeature as string] : [])
         if (!selFs.length) { set({ status: '环形阵列（所选特征）：先喺时间轴单击选中要阵列嘅特征，再撳确定（Ctrl+点可多选）' }); return }

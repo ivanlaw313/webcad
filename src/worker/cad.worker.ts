@@ -24,6 +24,7 @@ import { chordToRadius, betaFromNormals, buildSetbackLaw, edgesShareVertex, bbox
 import { fullRoundFilletFromFaces } from '../cad/fullRound'
 import { asymmetricFilletNearPoints } from '../cad/asymmetricFillet'
 import { hasUnsafeLoftShellAdjacency } from '../cad/loftShellSafety'
+import { revolveLathePlane, revolveRemapProfile } from '../cad/revolvePreviewFrame'
 
 export type MeshData = { resolvedSketchFaces?: Record<string, ResolvedSketchFace>; vertices: number[]; triangles: number[]; normals: number[]; faceGroups?: { start: number; count: number; faceId: number }[]; warnings?: string[]; failed?: { id: string; type: string; msg: string }[]; parked?: { name: string; vertices: number[]; triangles: number[]; normals: number[]; faceGroups?: { start: number; count: number; faceId: number }[] }[]; resolvedEdgeFp?: Record<string, string[]>; resolvedEdgeFpV2?: Record<string, string[]>; resolvedFaceFp?: Record<string, string[]>; resolvedFaceFpV2?: Record<string, string[]>; resolvedFaceFpTopo?: Record<string, string[]> }  // resolvedEdgeFp（S122）= 本次首次解析嘅 fillet/chamfer 边指纹；resolvedEdgeFpV2（S134）= 平行嘅旋转不变指纹；resolvedFaceFp（S125）= shell 抽壳面指纹；resolvedFaceFpV2（S136）= 平行嘅旋转不变面指纹；store 写回 feature.edgeFp/edgeFpV2/faceFp/faceFpV2 做持久命名  // failed（S107）= 逐特征隔离：重建时 throw 嘅坏特征 {id,type,错因}，其余照常建（build past，唔 revert 整树）。parked = 多实体（T728）：活动实体以外嘅 bodies（灰显渲染）; faceGroups（S99）= 逐 B-rep 面三角 run（start/count 系 triangles 下标，faceId=hashCode）→ 共面分割子面可分开拣/着色
 export type EdgeSel = 'all' | 'top' | 'bottom' | 'vertical'
@@ -2400,21 +2401,27 @@ function buildShape(features: Feature[], noCache = false): any {
       // Revolve around the chosen world axis (Y default, or X), or T781: an arbitrary axis（axisV 方向 +
       // axisOrigin 轴上一点 — 构造轴/草图线/偏离原点车削）。profile must sit on one side of the axis.
       const ang = f.angle ?? 360
-      // Keep a Revolve profile in the sketch frame it was authored on.  Flattening XZ/YZ
-      // or arbitrary planar-face profiles to XY produces a plausible but wrong solid.
-      // Named XZ offsets run along -Y; bound baseZ records the actual CAD Y coordinate.
-      // Keep unbound legacy files on their historical offset convention.
-      const sk = f.arbPlane
-        ? profileOnPlane(f.profile, new RPlane(f.arbPlane.o as any, f.arbPlane.xd as any, f.arbPlane.n as any))
-        : f.sketchFaceBinding && f.plane === 'XZ'
-          ? profileToSketch(f.profile, -(f.baseZ ?? 0), 'XZ')
-          : profileToSketch(f.profile, f.baseZ ?? 0, f.plane ?? 'XY')
       let rax: [number, number, number] = f.axis === 'X' ? [1, 0, 0] : [0, 1, 0]
       if (f.axisV) {
         const al = Math.hypot(f.axisV[0], f.axisV[1], f.axisV[2])
         if (al < 1e-9) { buildWarnings.push('旋转：轴方向为零向量 — 已用世界 Y 轴') }
         else rax = [f.axisV[0] / al, f.axisV[1] / al, f.axisV[2] / al]
       }
+      // Keep a Revolve profile in the sketch frame it was authored on — except BUG-SO16-001:
+      // cardinal XZ·Y / YZ·X / XY·Z place the profile with zero extent along the axis, so OCCT
+      // yields a planar zero-volume sheet. Preview still draws a ring that looks like it hits a
+      // base plate; confirm intersect is empty → rebuild-failed. Remap to a lathe plane that
+      // carries the axis (Fusion front-lathe: sketch vertical = world up along the axis).
+      const authoredPlane = (f.plane ?? 'XY') as 'XY' | 'XZ' | 'YZ'
+      const lathePlane = f.arbPlane ? authoredPlane : revolveLathePlane(authoredPlane, rax)
+      const remapped = !f.arbPlane && lathePlane !== authoredPlane
+      if (remapped) buildWarnings.push(`旋转：${authoredPlane} 截面绕轴无轴向厚度 — 已按车削平面 ${lathePlane} 重解释（与预览一致）`)
+      const prof = remapped ? revolveRemapProfile(f.profile as any, authoredPlane, lathePlane) : f.profile
+      const sk = f.arbPlane
+        ? profileOnPlane(f.profile, new RPlane(f.arbPlane.o as any, f.arbPlane.xd as any, f.arbPlane.n as any))
+        : f.sketchFaceBinding && lathePlane === 'XZ'
+          ? profileToSketch(prof, -(f.baseZ ?? 0), 'XZ')
+          : profileToSketch(prof, remapped ? 0 : (f.baseZ ?? 0), lathePlane)
       const rcfg: Record<string, unknown> = {}
       if (ang > 0 && ang < 360) rcfg.angle = ang
       else if (!(ang > 0)) buildWarnings.push('旋转：角度必须 > 0（值 ' + ang + '° 非法,可能参数驱动绕过 UI 下限）— 已用整圈 360°')   // 0/负角 → revolve 出退化几何;退回整圈

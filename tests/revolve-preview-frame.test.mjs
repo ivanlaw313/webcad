@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {revolvePointToCad,revolveFrame} from '../src/cad/revolvePreviewFrame.ts'
+import {revolvePointToCad,revolveFrame,revolveLathePlane,revolveRemapProfileUv} from '../src/cad/revolvePreviewFrame.ts'
 for(const [plane,raw,profile,expected] of [
  ['XY',[4,2],[4,-2],[4,-2,10]],['XZ',[4,2],[4,2],[4,10,2]],['YZ',[4,2],[-4,2],[10,-4,2]],
 ])test(`${plane} face preview and saved feature place the same contour in CAD`,()=>{
@@ -16,3 +16,18 @@ test('oblique face sketch line axis uses the authored basis and offset',()=>{
 })
 
 test('legacy XZ saved revolve preview retains named-plane offset convention',()=>{assert.deepEqual(revolvePointToCad([4,2],{plane:'XZ',baseZ:10},false),[4,-10,2])})
+
+test('revolveLathePlane remaps planar cardinal combos (BUG-SO16-001)',()=>{
+ assert.equal(revolveLathePlane('XZ',[0,1,0]),'XY')
+ assert.equal(revolveLathePlane('YZ',[1,0,0]),'XY')
+ assert.equal(revolveLathePlane('XY',[0,0,1]),'XZ')
+ assert.equal(revolveLathePlane('XY',[0,1,0]),'XY')
+ assert.equal(revolveLathePlane('XZ',[1,0,0]),'XZ')
+})
+test('XZ about Y: raw sketch and saved feature land on the same remapped CAD point',()=>{
+ const src={plane:'XZ',baseZ:0}
+ const axis=[0,1,0]
+ assert.deepEqual(revolvePointToCad([8,-10],src,true,axis),[8,10,0])
+ assert.deepEqual(revolvePointToCad([8,-10],src,false,axis),[8,10,0])
+ assert.deepEqual(revolveRemapProfileUv([8,-10],'XZ','XY'),[8,10])
+})

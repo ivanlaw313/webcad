@@ -1272,8 +1272,8 @@ function shrinkLoopToward(loop: Pt[], wall: number): Pt[] | null {
 // GM-W8 A4：把一条 2D 环绕【CAD 轴】(axO 过点、d 单位方向) 扫 ang° → 回转面（+部分角两端盖），append 入 positions/indices。
 function latheLoop(loop: Pt[], axO: V3, d: V3, ang: number, sym: boolean, positions: number[], indices: number[], toCad: (point: Pt) => V3, flipSense = false) {
   const M = loop.length; if (M < 3) return
-  // SO04: cut/intersect previews sweep the opposite half-space (into +Z for XY/+Y) so the ghost
-  // overlaps a typical plate — matching the worker's flip-on-miss boolean sense.
+  // SO04: cut/intersect previews sweep −ang‥0 (into +Z for XY/+Y) so the ghost overlaps a
+  // typical plate — matching the worker confirm path (rotate(−ang) before default sense).
   const N = 24, total = (ang * Math.PI) / 180, start = sym ? -total / 2 : (flipSense ? -total : 0)
   const rings: number[] = []
   for (let k = 0; k <= N; k++) {

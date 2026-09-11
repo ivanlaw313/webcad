@@ -85,6 +85,7 @@ import { segmentPlanarRegions, planarRegionSummary, measureMeshEdgeChain, measur
 import { sliceMesh, classifyLoops } from './geom/slicePreview'   // T782：网格截面→草图；S186：classifyLoops 嵌套深度奇偶分类（多体/嵌套岛截面属性）
 import { EMPTY_ANNO, hydrateAnno, type DrawingAnno } from './io/drawingAnno'   // T784：工程图标注持久化
 import { documentPersistenceEnabled } from './runtime/uiTestIsolation'
+import { canClaimUntaggedIdbAutosave, clearTabAutosave, isAutosaveForThisTab, markUntaggedIdbAutosaveClaimed, readTabAutosaveRaw, withTabSessionId, writeTabAutosaveRaw } from './runtime/tabDocumentSession'
 import { mapPointToFlat, type SmSpec } from './cad/smUnfold'   // T785：钣金展开图带孔
 import { remapFaceColors } from './cad/faceFingerprint'   // S114：逐面色跨重建持久化（几何指纹 remap，取代清空）
 import { analyzeDraft, type DraftReport } from './cad/draftAnalysis'   // S118：拔模分析（Inspect › Draft）
@@ -19545,7 +19546,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   restoreAutosave: async () => {
     if (!documentPersistenceEnabled()) return
     try {
-      const raw = localStorage.getItem('webcad-autosave')
+      const raw = readTabAutosaveRaw()
       // The persisted document is intentionally loose here: the loader below owns
       // per-field migration/defaulting for old project versions.
       let data: any = null
@@ -19554,17 +19555,24 @@ export const useApp = create<AppState>((rawSet, get) => {
           const parsed: unknown = JSON.parse(raw)
           data = parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null
         } catch {
-          // A torn/stale localStorage write must not block recovery from the larger IDB backup.
-          try { localStorage.removeItem('webcad-autosave') } catch { /* ignore */ }
+          // A torn/stale tab autosave write must not block recovery from the larger IDB backup.
+          try { clearTabAutosave() } catch { /* ignore */ }
         }
       }
       if (!data) {
-        // big projects overflow localStorage (silently skipped) — fall back to the newest IDB auto snapshot
+        // big projects overflow the small tab slot (silently skipped) — fall back to this tab's IDB auto snapshot only
+        // (BUG-UI-006 / UI05: never hydrate another browser tab's auto snapshot).
         const metas = await listSnapshots()
-        const auto = metas.find((m) => m.kind === 'auto')
-        if (auto) {
+        let allowUntagged = canClaimUntaggedIdbAutosave()
+        for (const auto of metas.filter((m) => m.kind === 'auto')) {
           const snapshot = await loadSnapshot(auto.id)
-          data = snapshot && typeof snapshot === 'object' ? snapshot as Record<string, unknown> : null
+          if (!snapshot || typeof snapshot !== 'object') continue
+          if (!isAutosaveForThisTab(snapshot, { allowUntagged })) continue
+          // Claim at most one legacy untagged auto into this tab; later tabs must not steal it again
+          // via the shared IDB list (tagged writes after this fix carry _tabSessionId).
+          if (!(snapshot as Record<string, unknown>)._tabSessionId) markUntaggedIdbAutosaveClaimed()
+          data = snapshot as Record<string, unknown>
+          break
         }
       }
       if (!data) return
@@ -19955,7 +19963,7 @@ export const useApp = create<AppState>((rawSet, get) => {
 
   reset: async () => {
     _loadingSample = ''   // T804：清范本载入标记（下次 loadSample 会重设）
-    if (documentPersistenceEnabled()) try { localStorage.removeItem('webcad-autosave') } catch { /* ignore */ } // so reload starts blank (true "New")
+    if (documentPersistenceEnabled()) try { clearTabAutosave() } catch { /* ignore */ } // so THIS tab reload starts blank (true "New"); sibling tabs keep their own autosave (BUG-UI-006)
     // Clear all doc state synchronously FIRST so reset is atomic — otherwise state set by the
     // caller right after reset() (e.g. starting a new sketch) would be clobbered when this set
     // ran after the await below.
@@ -22243,10 +22251,11 @@ if (typeof window !== 'undefined') {
     // Invalid references must not replace or delete the last valid autosave.
     if (documentReferenceErrors(s).length || (s.mode === 'sketch' && sketchReferenceErrors(s.skCons, s.params).length)) return
     saveTimer = setTimeout(() => {
-      try { localStorage.setItem('webcad-autosave', JSON.stringify(buildProjectPayload(s))) } catch { try { localStorage.removeItem('webcad-autosave') } catch { /* ignore */ } }   // R2：配额溢出 → 清除 stale localStorage，令 restoreAutosave 的 if(!data) 正确 fallthrough 到更新嘅 IDB 快照（否则读到旧 stale 存档静默丢工作）
+      // BUG-UI-006 / UI05: persist into this browser tab's session slot — never the shared legacy key.
+      try { writeTabAutosaveRaw(JSON.stringify(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>))) } catch { try { clearTabAutosave() } catch { /* ignore */ } }   // R2：配额溢出 → 清除 stale tab slot，令 restoreAutosave 的 if(!data) 正确 fallthrough 到更新嘅 IDB 快照（否则读到旧 stale 存档静默丢工作）
     }, 800)
     idbTimer = setTimeout(() => {
-      if (s.features.length || s.components.length || s.mode === 'sketch' || s.sketchShape || s.sketchProfiles.length || s.formCage) void saveSnapshot(buildProjectPayload(s), '自动保存', 'auto')
+      if (s.features.length || s.components.length || s.mode === 'sketch' || s.sketchShape || s.sketchProfiles.length || s.formCage) void saveSnapshot(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>), '自动保存', 'auto')
     }, 5000)
   })
   // GM-W7 7.3：入/出草图自动切【正投影】（CAD 正投影防透视变形，Fusion 行为）。

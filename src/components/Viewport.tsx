@@ -99,6 +99,7 @@ import { orientedBBox } from '../cad/obb'                // S121：定向最小�
 import { HDRI_PRESETS, type HdriPresetId } from '../render/hdriPresets'
 import { GradientEquirectTexture } from 'three-gpu-pathtracer'   // 工作模式背景预设：程序化渐变 equirect（同 HdriEnvironment GradientFallback 一致）
 import { tStatus } from '../i18n'
+import { feaStaleBannerText, invalidateSimResultsPatch, hasLiveSimResults } from '../simulation/resultValidity'
 import { parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：单位感知长度输入（分数英寸）
 import type { MeshData } from '../worker/cad.worker'
 import { computeFK, solve4Bar, solveSliderCrank, solveSixBar } from '../assembly/kinematics'
@@ -587,7 +588,8 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
   //   原因：模流时原本嗰个【高面数网格】被幽灵化成半透明（depthWrite=false）→ 关晒深度剔除 → 海量 overdraw
   //   （每像素叠画成个深度嘅三角，强 GPU 都卡）；半透明壳又遮住入面体素令充填颜色变化睇唔清。
   //   彩色【实色】体素 overlay 已代表咗个件 → 模流可视化时索性【收埋原网格】：转动即顺 + 充填前沿一睇即明。
-  const moldHideMesh = useApp((s) => !!s.moldResult || !!s.windResult) && (!frozen || moldTarget)
+  // BUG-BD-1301：受力云图同样收埋原网格（仅幽灵 0.18 时灰壳仍盖住体素彩图，QA/肉眼都当「无彩图」）。
+  const moldHideMesh = useApp((s) => !!s.moldResult || !!s.windResult || !!s.feaResult || !!s.modalResult || !!s.bucklingResult || !!s.topoptResult || !!s.thermalResult) && (!frozen || moldTarget)
   // ★穿模修★：上面为咗 perf 收埋咗原网格 → 风洞时【成个零件冇入过深度缓冲】，流线/箭头/烟一律画喺件上面，
   //   用户睇落就係「风穿过个模型」（实测流线几何上 0/4625 顶点入过固体 —— 纯粹係深度问题，唔係流场错）。
   //   唯一喺轮廓内写深度嘅 Cp 体素壳边长系 h*0.96（每格 4% 罅）+ 中心缩喺真表面内 ~0.5–1 格 → 罅位同内缩带漏光。
@@ -1336,12 +1338,12 @@ function FeaOverlay() {
     <group rotation={[-Math.PI / 2, 0, 0]}>
       {/* key 迫使 n 变时重建 instancedMesh（实例数构造时锁死）。S170：探针开 → 默认 instanced raycast + onClick 拣体素读值；关 → raycast 禁用（零开销，回归旧行为）。
           S170 audit（MED）：拣体素用 three 默认 instanced raycast（O(nVox)/每次 hover-over-model）。体素 >PROBE_CAP（4万）时禁用 picking（保 hover 流畅；硬上限 8 万）— 降分辨率再探针。 */}
-      <instancedMesh key={n + ':' + res.vmMax.toFixed(4)} ref={ref} args={[undefined, undefined, n]} frustumCulled={false}
+      <instancedMesh key={n + ':' + res.vmMax.toFixed(4)} ref={ref} args={[undefined, undefined, n]} frustumCulled={false} renderOrder={20}
         {...((probeOn && n <= 40000)
           ? { onClick: (e: { stopPropagation: () => void; instanceId?: number }) => { e.stopPropagation(); if (typeof e.instanceId === 'number') useApp.setState({ feaProbe: e.instanceId }) } }
           : { raycast: () => null })}>
         <boxGeometry args={[s, s, s]} />
-        <meshBasicMaterial transparent opacity={0.85} toneMapped={false} />
+        <meshBasicMaterial transparent opacity={0.92} toneMapped={false} depthTest={false} depthWrite={false} />
       </instancedMesh>
       <mesh ref={hotRef} position={res.vmMaxAt} renderOrder={999} raycast={() => null}>
         <sphereGeometry args={[Math.max(2, res.h * 0.8), 16, 16]} />
@@ -5042,7 +5044,16 @@ export default function Viewport() {
           okDisabled={feaBusy || modalBusy || bucklingBusy || topoptBusy || thermalBusy || thermalStressBusy || !feaFixed || !feaLoad}
           okTip="求解 von Mises 趋势云图（Enter）"
           onOk={() => void runFeaSolve()}
-          onCancel={() => { useApp.getState().clearFea(); useApp.getState().clearModal(); useApp.getState().clearBuckling(); useApp.getState().clearTopopt(); useApp.getState().clearThermal() }}
+          onCancel={() => {
+            const st = useApp.getState()
+            // 失效态关面板：保留 feaStale，等视口条同状态栏继续标「失效」（BUG-BD-1302）。
+            if (st.feaStale && !st.feaResult) {
+              useApp.setState({ feaMode: 0 })
+              useApp.getState().clearModal(); useApp.getState().clearBuckling(); useApp.getState().clearTopopt(); useApp.getState().clearThermal()
+              return
+            }
+            useApp.getState().clearFea(); useApp.getState().clearModal(); useApp.getState().clearBuckling(); useApp.getState().clearTopopt(); useApp.getState().clearThermal()
+          }}
           summary={<>{feaMat} · 静力/模态/屈曲/生成式/热（趋势，非商用 FEA）</>}
         >
           <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
@@ -5050,7 +5061,10 @@ export default function Viewport() {
             <button onClick={() => useApp.getState().autoFeaSimplySupported()} title="自动【简支梁 / 3 点弯】：两端托住 + 中间施力 — 应力最大会喺【中间】(同悬臂相反)。两端 roller 支撑，唔会夹持应力集中。" style={{ flex: 1, padding: '5px 6px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid #2f7a4e', borderRadius: 4, background: '#1e3a2a', color: '#d6f0e0' }}>🔧 简支梁（两端托·中间压）</button>
           </div>
           <SelectionChip label={feaBeam3pt ? '① 支撑 A' : '① 固定面'} count={feaFixed ? 1 : 0} hint={feaBeam3pt ? '简支梁左支撑（蓝标）' : '点被夹住/锁实嘅面（蓝标）'} onClear={() => useApp.getState().clearFeaFixed()} />
-          {feaBeam3pt && <SelectionChip label="① 支撑 B" count={feaFixed2 ? 1 : 0} hint="简支梁右支撑（蓝标）" onClear={() => useApp.setState({ feaFixed2: null })} />}
+          {feaBeam3pt && <SelectionChip label="① 支撑 B" count={feaFixed2 ? 1 : 0} hint="简支梁右支撑（蓝标）" onClear={() => {
+              const st = useApp.getState()
+              useApp.setState({ feaFixed2: null, ...(hasLiveSimResults(st) ? invalidateSimResultsPatch('已移除支撑 B') : {}) })
+            }} />}
           <label>
             <span style={{ color: '#6b7680' }}>约束</span>
             <select value={feaFixMode} onChange={(e) => setFeaOpt({ feaFixMode: e.target.value as 'fixed' | 'roller' | 'sym' })} title="固定=全锁(夹死/上螺丝)；滚子=只锁法向、准面内滑(支座/导轨，更软、挠度更大)；对称=对称面(轴对齐时数学同滚子)">
@@ -5155,8 +5169,8 @@ export default function Viewport() {
           </label>
           {lowPower && <div style={{ fontSize: 10.5, color: '#2f9e44', margin: '2px 0 4px' }}>📱 已为你设备（手机/弱机）调低预设，本机计算唔卡；可手动拣细啲（会慢）</div>}
           {feaStale && (
-            <div role="status" style={{ marginTop: 8, padding: '6px 8px', borderRadius: 4, background: '#3a2a12', border: '1px solid #c77d00', color: '#ffd08a', fontSize: 12, fontWeight: 600 }}>
-              ⚠ 結果已失效 — 約束或幾何已改，請重新運行（舊彩圖已清除）
+            <div role="status" data-testid="fea-stale-banner" style={{ marginTop: 8, padding: '6px 8px', borderRadius: 4, background: '#3a2a12', border: '1px solid #c77d00', color: '#ffd08a', fontSize: 12, fontWeight: 600 }}>
+              {feaStaleBannerText()}
             </div>
           )}
           {feaResult && (
@@ -8199,6 +8213,22 @@ export default function Viewport() {
             ))}
           </div>
           <div style={{ fontSize: 11, marginTop: 8, opacity: 0.65 }}>{tStatus('悬停任何工具睇说明　·　需要帮助撳右上 ?　·　按 / 搜索命令', lang)}</div>
+        </div>
+      )}
+      {feaStale && (
+        <div
+          role="status"
+          data-testid="fea-stale-viewport-banner"
+          className="fea-stale-viewport-banner"
+          style={{
+            position: 'absolute', left: '50%', top: 56, transform: 'translateX(-50%)', zIndex: 90,
+            maxWidth: 'min(92vw, 520px)', padding: '8px 14px', borderRadius: 6,
+            background: '#3a2a12', border: '1px solid #c77d00', color: '#ffd08a',
+            fontSize: 13, fontWeight: 700, textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,.25)',
+            pointerEvents: 'none',
+          }}
+        >
+          {feaStaleBannerText()}
         </div>
       )}
       <div ref={statusDrag.ref} className={'vp-badge' + (statusDrag.isDragged ? ' vp-hud-dragged' : '') + (statusHudCollapsed ? ' vp-hud-collapsed' : '')} style={statusDrag.style}><span className="vp-hud-handle" onPointerDown={statusDrag.onPointerDown} title={tStatus('拖動狀態提示', lang)}>⋮⋮</span><button className="vp-hud-collapse" type="button" title={statusHudCollapsed ? tStatus('展開狀態提示', lang) : tStatus('收合狀態提示', lang)} onClick={() => setStatusHudCollapsed((v) => !v)}>{statusHudCollapsed ? '⌃' : '–'}</button>{statusDrag.isDragged && <button className="vp-hud-reset" type="button" title={tStatus('還原狀態提示預設位置', lang)} onClick={statusDrag.reset}>↺</button>}<span className="vp-status-message" title={tStatus(status, lang)}>{tStatus(status, lang)}</span></div>

@@ -111,5 +111,52 @@ test('SIM: successful solve clears feaStale so a new colormap is current', async
 test('SIM: FEA panel source shows 失效 banner when feaStale', () => {
   const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
   assert.match(vp, /feaStale/)
-  assert.match(vp, /結果已失效|结果已失效/)
+  assert.match(vp, /结果已失效|結果已失效|feaStaleBannerText/)
+  assert.match(vp, /fea-stale-banner|fea-stale-viewport-banner/)
+})
+
+test('SIM: ribbon fea with live result reopens panel instead of clearFea', () => {
+  const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
+  // Guard: must not wipe feaResult merely by re-clicking 受力云图 when a result exists.
+  assert.match(store, /feaResult \|\| s\.feaStale/)
+  assert.match(store, /受力结果查看|feaStale/)
+  const idx = store.indexOf("case 'fea'")
+  assert.ok(idx > 0)
+  const slice = store.slice(idx, idx + 700)
+  assert.doesNotMatch(slice, /feaResult \? get\(\)\.clearFea\(\)/)
+})
+
+test('SIM: applyFeatures success path atomically invalidates live results', () => {
+  const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
+  assert.match(store, /hasLiveSimResults\(s2\) \? invalidateSimResultsPatch\('几何已改'\)/)
+})
+
+test('SIM: component mesh change marks results 失效', () => {
+  plantResult()
+  assert.ok(g().feaResult)
+  const comps = [{
+    id: 'C1',
+    name: '组件1',
+    mesh: { vertices: [0, 0, 0, 50, 0, 0, 50, 10, 0, 0, 10, 0], triangles: [0, 1, 2, 0, 2, 3], normals: [] },
+    pos: [0, 0, 0],
+  }]
+  useApp.setState({ components: comps })
+  // First set may only add components; change mesh reference next
+  useApp.setState({
+    components: [{
+      ...comps[0],
+      mesh: { vertices: [0, 0, 0, 60, 0, 0, 60, 10, 0, 0, 10, 0], triangles: [0, 1, 2, 0, 2, 3], normals: [] },
+    }],
+  })
+  assert.equal(g().feaResult, null)
+  assert.equal(g().feaStale, true)
+  assert.match(g().status, /失效/)
+})
+
+test('SIM: Fixed→Roller keeps FEA panel armed (feaMode) for visible 失效 banner', () => {
+  plantResult()
+  useApp.setState({ feaMode: 0 }) // post-solve state
+  g().setFeaOpt({ feaFixMode: 'roller' })
+  assert.equal(g().feaStale, true)
+  assert.ok(g().feaMode > 0, 'panel must stay armed so FEA dialog shows 失效')
 })

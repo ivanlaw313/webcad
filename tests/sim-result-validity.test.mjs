@@ -10,6 +10,7 @@ const {
   feaPhysicsOptChanged,
   hasLiveSimResults,
   invalidateSimResultsPatch,
+  feaStaleBannerText,
 } = await import('../src/simulation/resultValidity.ts')
 
 test('physics opt change detects Fixed→Roller but ignores display field', () => {
@@ -18,10 +19,15 @@ test('physics opt change detects Fixed→Roller but ignores display field', () =
 })
 
 test('invalidate patch clears overlays and marks 失效', () => {
-  const p = invalidateSimResultsPatch('約束／工況已改')
+  const p = invalidateSimResultsPatch('约束／工况已改')
   assert.equal(p.feaResult, null)
   assert.equal(p.feaStale, true)
   assert.match(p.status, /失效/)
   assert.equal(hasLiveSimResults({ feaResult: { x: 1 } }), true)
   assert.equal(hasLiveSimResults({ feaResult: null, moldResult: null }), false)
+})
+
+test('feaStaleBannerText includes 失效', () => {
+  assert.match(feaStaleBannerText(), /失效/)
+  assert.match(feaStaleBannerText(), /结果已失效/)
 })

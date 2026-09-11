@@ -1,6 +1,7 @@
 // BUG-UI-002 / Save-Export P0: Save must prefer a durable File System Access
 // write (or a hardened in-document anchor download), report cancel/failure
-// without claiming success, and Open must refuse bad JSON without wiping.
+// without claiming success only when both paths fail, and Open must refuse bad
+// JSON without wiping. v1.3 harden: picker cancel / webdriver → named File anchor.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -33,20 +34,28 @@ function impl(name, next) {
 test('Save/Export share the durable download helper (File System Access + hardened anchor)', () => {
   assert.match(downloadSrc, /showSaveFilePicker/)
   assert.match(downloadSrc, /document\.body\.appendChild\(a\)/)
+  assert.match(downloadSrc, /setAttribute\('download'/)
+  assert.match(downloadSrc, /new File\(/)
+  assert.match(downloadSrc, /ANCHOR_REVOKE_MS/)
+  assert.match(downloadSrc, /navigator\.webdriver/)
   assert.match(downloadSrc, /AbortError/)
   assert.match(storeSrc, /from '\.\/io\/download'/)
   assert.match(storeSrc, /durableDownload/)
+  assert.match(storeSrc, /durableDownloadFrom/)
   assert.match(storeSrc, /function triggerDownload[\s\S]*void durableDownload/)
 })
 
-test('saveProject awaits durableDownload and never claims success on abort/failure', () => {
+test('saveProject uses durableDownloadFrom (picker before JSON) and never claims success on failure', () => {
   const body = impl('saveProject', 'openProject')
   assert.match(body, /saveProject: async/)
-  assert.match(body, /await durableDownload\(/)
+  assert.match(body, /await durableDownloadFrom\(/)
+  assert.match(body, /JSON\.stringify/)
   assert.match(body, /已取消保存（现有模型未动）/)
   assert.match(body, /保存失败：无法写入文件/)
   assert.match(body, /现有模型未动/)
+  assert.match(body, /已下载到浏览器下载目录/)
   assert.doesNotMatch(body, /triggerDownload\(new TextEncoder/)
+  assert.doesNotMatch(body, /await durableDownload\(/)
 })
 
 test('openProject prefers showOpenFilePicker and keeps the document on cancel/bad JSON', () => {
@@ -57,8 +66,8 @@ test('openProject prefers showOpenFilePicker and keeps the document on cancel/ba
   assert.match(body, /applyProjectData/)
 })
 
-test('durableDownload writes via file picker and falls back to anchor', async () => {
-  const { durableDownload } = await import('../src/io/download.ts')
+test('durableDownload writes via file picker; cancel/unavailable fall back to named File anchor', async () => {
+  const { durableDownload, durableDownloadFrom, anchorDownload } = await import('../src/io/download.ts')
 
   const writes = []
   const handle = {
@@ -68,10 +77,20 @@ test('durableDownload writes via file picker and falls back to anchor', async ()
     }),
   }
   globalThis.window = globalThis
+  Object.defineProperty(globalThis, 'navigator', { value: { webdriver: false }, configurable: true })
   globalThis.window.showSaveFilePicker = async () => handle
   globalThis.document = {
     createElement() { throw new Error('anchor must not run when picker succeeds') },
     body: { appendChild() {} },
+  }
+  globalThis.File = class File extends Blob {
+    constructor(parts, name, opts) {
+      super(parts, opts)
+      this.name = name
+    }
+  }
+  globalThis.MouseEvent = class MouseEvent {
+    constructor(type, init) { this.type = type; Object.assign(this, init || {}) }
   }
 
   const bytes = new TextEncoder().encode('{"app":"webcad"}')
@@ -82,24 +101,100 @@ test('durableDownload writes via file picker and falls back to anchor', async ()
   const buf = written instanceof Blob ? new Uint8Array(await written.arrayBuffer()) : writes[0]
   assert.equal(new TextDecoder().decode(buf), '{"app":"webcad"}')
 
+  // Picker cancel → hardened anchor (not a hard abort), so Save still lands a download.
   globalThis.window.showSaveFilePicker = async () => { const e = new Error('cancel'); e.name = 'AbortError'; throw e }
-  const aborted = await durableDownload(bytes, 'demo.json', 'application/json')
-  assert.deepEqual(aborted, { ok: false, reason: 'aborted' })
-
-  delete globalThis.window.showSaveFilePicker
   const clicks = []
+  const attrs = {}
   const el = {
     style: {},
-    click() { clicks.push(this.download) },
-    remove() {},
+    download: '',
+    type: '',
+    rel: '',
+    href: '',
+    setAttribute(k, v) { attrs[k] = v; if (k === 'download') this.download = v },
+    dispatchEvent(ev) { clicks.push({ via: 'dispatch', download: this.download, type: ev?.type }); return true },
+    click() { clicks.push({ via: 'click', download: this.download }) },
+    remove() { this.removed = true },
   }
-  globalThis.URL = { createObjectURL: () => 'blob:test', revokeObjectURL() {} }
-  globalThis.Blob = class { constructor() {} }
+  let revoked = 0
+  const blobs = []
+  globalThis.URL = {
+    createObjectURL: (b) => { blobs.push(b); return 'blob:test-named' },
+    revokeObjectURL() { revoked++ },
+  }
+  globalThis.Blob = class {
+    constructor(parts, opts) { this.parts = parts; this.type = opts?.type }
+  }
+  globalThis.File = class File extends globalThis.Blob {
+    constructor(parts, name, opts) {
+      super(parts, opts)
+      this.name = name
+    }
+  }
+  globalThis.document = {
+    createElement: () => el,
+    body: { appendChild(node) { assert.equal(node, el); this.attached = node } },
+  }
+  const anchor = await durableDownload(bytes, 'demo.json', 'application/json')
+  assert.deepEqual(anchor, { ok: true, method: 'anchor' })
+  assert.equal(attrs.download, 'demo.json')
+  assert.equal(el.download, 'demo.json')
+  assert.ok(clicks.length >= 1)
+  assert.equal(clicks[0].download, 'demo.json')
+  assert.equal(blobs[0].name, 'demo.json')
+  // Anchor stays in the document until delayed cleanup (not removed synchronously).
+  assert.notEqual(el.removed, true)
+
+  // webdriver → skip picker, go straight to named anchor.
+  clicks.length = 0
+  blobs.length = 0
+  Object.defineProperty(globalThis, 'navigator', { value: { webdriver: true }, configurable: true })
+  globalThis.window.showSaveFilePicker = async () => { throw new Error('picker must not run under webdriver') }
+  const auto = await durableDownload(bytes, 'auto.json', 'application/json')
+  assert.deepEqual(auto, { ok: true, method: 'anchor' })
+  assert.equal(el.download, 'auto.json')
+  assert.equal(blobs[0].name, 'auto.json')
+
+  // durableDownloadFrom: picker before produce; produce runs after handle acquired.
+  Object.defineProperty(globalThis, 'navigator', { value: { webdriver: false }, configurable: true })
+  let produced = 0
+  let pickerCalls = 0
+  globalThis.window.showSaveFilePicker = async () => {
+    assert.equal(produced, 0, 'produce must not run before picker')
+    pickerCalls++
+    return handle
+  }
+  globalThis.document = {
+    createElement() { throw new Error('anchor must not run when from-picker succeeds') },
+    body: { appendChild() {} },
+  }
+  writes.length = 0
+  const fromOk = await durableDownloadFrom('from.json', 'application/json', () => {
+    produced++
+    return new TextEncoder().encode('{"from":true}')
+  })
+  assert.deepEqual(fromOk, { ok: true, method: 'file-picker' })
+  assert.equal(pickerCalls, 1)
+  assert.equal(produced, 1)
+
+  // durableDownloadFrom cancel → produce + anchor.
+  globalThis.window.showSaveFilePicker = async () => { const e = new Error('cancel'); e.name = 'AbortError'; throw e }
   globalThis.document = {
     createElement: () => el,
     body: { appendChild(node) { assert.equal(node, el) } },
   }
-  const anchor = await durableDownload(bytes, 'demo.json', 'application/json')
-  assert.deepEqual(anchor, { ok: true, method: 'anchor' })
-  assert.deepEqual(clicks, ['demo.json'])
+  produced = 0
+  const fromAnchor = await durableDownloadFrom('from-cancel.json', 'application/json', () => {
+    produced++
+    return new TextEncoder().encode('{"from":"cancel"}')
+  })
+  assert.deepEqual(fromAnchor, { ok: true, method: 'anchor' })
+  assert.equal(produced, 1)
+  assert.equal(el.download, 'from-cancel.json')
+
+  // Direct anchorDownload helper keeps filename.
+  const direct = anchorDownload(bytes, 'direct.json', 'application/json')
+  assert.deepEqual(direct, { ok: true, method: 'anchor' })
+  assert.equal(el.download, 'direct.json')
+  assert.equal(revoked, 0) // revoke is delayed
 })

@@ -10,6 +10,8 @@ const downloadSrc = readFileSync(new URL('../src/io/download.ts', import.meta.ur
 test('durable download helper prefers showSaveFilePicker with in-document anchor fallback', () => {
   assert.match(downloadSrc, /showSaveFilePicker/)
   assert.match(downloadSrc, /document\.body\.appendChild\(a\)/)
+  assert.match(downloadSrc, /setAttribute\('download'/)
+  assert.match(downloadSrc, /new File\(/)
   assert.match(downloadSrc, /AbortError/)
   assert.match(downloadSrc, /export async function durableDownload/)
 })
@@ -26,7 +28,7 @@ test('DrawingPanel SVG/PNG/PDF/DXF exports call durableDownload via finishDrawin
   assert.doesNotMatch(panelSrc, /a\.download\s*=\s*'webcad-drawing\.dxf'/)
 })
 
-test('durableDownload writes via file picker and falls back to anchor', async () => {
+test('durableDownload writes via file picker; cancel falls back to named File anchor', async () => {
   const { durableDownload } = await import('../src/io/download.ts')
 
   const writes = []
@@ -37,10 +39,20 @@ test('durableDownload writes via file picker and falls back to anchor', async ()
     }),
   }
   globalThis.window = globalThis
+  Object.defineProperty(globalThis, 'navigator', { value: { webdriver: false }, configurable: true })
   globalThis.window.showSaveFilePicker = async () => handle
   globalThis.document = {
     createElement() { throw new Error('anchor must not run when picker succeeds') },
     body: { appendChild() {} },
+  }
+  globalThis.File = class File extends Blob {
+    constructor(parts, name, opts) {
+      super(parts, opts)
+      this.name = name
+    }
+  }
+  globalThis.MouseEvent = class MouseEvent {
+    constructor(type, init) { this.type = type; Object.assign(this, init || {}) }
   }
 
   const bytes = new TextEncoder().encode('<svg/>')
@@ -52,18 +64,32 @@ test('durableDownload writes via file picker and falls back to anchor', async ()
   assert.equal(new TextDecoder().decode(buf), '<svg/>')
 
   globalThis.window.showSaveFilePicker = async () => { const e = new Error('cancel'); e.name = 'AbortError'; throw e }
-  const aborted = await durableDownload(bytes, 'demo-drawing.svg', 'image/svg+xml')
-  assert.deepEqual(aborted, { ok: false, reason: 'aborted' })
-
-  delete globalThis.window.showSaveFilePicker
   const clicks = []
   const el = {
     style: {},
+    download: '',
+    type: '',
+    rel: '',
+    href: '',
+    setAttribute(k, v) { if (k === 'download') this.download = v },
+    dispatchEvent(ev) { clicks.push(this.download); return true },
     click() { clicks.push(this.download) },
     remove() {},
   }
-  globalThis.URL = { createObjectURL: () => 'blob:test', revokeObjectURL() {} }
-  globalThis.Blob = class { constructor() {} }
+  const blobs = []
+  globalThis.URL = {
+    createObjectURL: (b) => { blobs.push(b); return 'blob:test' },
+    revokeObjectURL() {},
+  }
+  globalThis.Blob = class {
+    constructor(parts, opts) { this.parts = parts; this.type = opts?.type }
+  }
+  globalThis.File = class File extends globalThis.Blob {
+    constructor(parts, name, opts) {
+      super(parts, opts)
+      this.name = name
+    }
+  }
   globalThis.document = {
     createElement: () => el,
     body: { appendChild(node) { assert.equal(node, el) } },
@@ -71,4 +97,5 @@ test('durableDownload writes via file picker and falls back to anchor', async ()
   const anchor = await durableDownload(bytes, 'demo-drawing.svg', 'image/svg+xml')
   assert.deepEqual(anchor, { ok: true, method: 'anchor' })
   assert.deepEqual(clicks, ['demo-drawing.svg'])
+  assert.equal(blobs[0].name, 'demo-drawing.svg')
 })

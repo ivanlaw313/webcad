@@ -3273,7 +3273,7 @@ function PoleNet() {
 
 // T794：单位感知长度输入框 — 当前单位显示（inch 模式可打分数 "1/4"/"1 1/2"、后缀 mm/in/"），内部存 mm。
 // 文本框（非 number — 要容分数斜线）；失焦重格式化对齐显示。解析唔到就保持旧值（唔写）。
-function LenInput({ mm, onMm, unit, w = 56, min, title }: { mm: number; onMm: (v: number) => void; unit: LenUnit; w?: number; min?: number; title?: string }) {
+function LenInput({ mm, onMm, unit, w = 56, title }: { mm: number; onMm: (v: number) => void; unit: LenUnit; w?: number; min?: number; title?: string }) {
   const [txt, setTxt] = useState(() => toLenInput(mm, unit))
   const [foc, setFoc] = useState(false)
   useEffect(() => { if (!foc) setTxt(toLenInput(mm, unit)) }, [mm, unit, foc])

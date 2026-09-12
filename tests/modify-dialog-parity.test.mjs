@@ -48,7 +48,7 @@ test('Press Pull Enter commits and Escape cancels before generic keyboard handli
 test('Shell requires an explicit face and a positive thickness', () => {
   assert.match(store, /shellThickness:\s*0,/)
   assert.match(store, /if \(!pts\.length\) \{ set\(\{ status: shellType === 'closed' \? '请先选择要抽壳的实体' : '请先选择要移除的面'/)
-  assert.match(store, /if \(!\(th > 0\)\) \{ set\(\{ status: '请输入大于 0 的壁厚'/)
+  assert.match(store, /if \(!\(th > 0\)\) \{ set\(\{ status: illegalRejectStatus\(ILLEGAL_THICKNESS_DETAIL\)/)
   assert.match(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\) \|\| shellPreviewBusy\}/)
   assert.match(store, /shellThickness: s\.shellMode \? 0 : 2/)
   for (const shellType of ['open', 'closed']) {

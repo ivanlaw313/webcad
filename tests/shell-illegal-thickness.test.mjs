@@ -106,7 +106,7 @@ test('shell-edit confirm rejects t≤0 without coercing to 0.1/1', async () => {
 test('store source no longer coerces illegal shell thickness on edit confirm', () => {
   const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
   assert.doesNotMatch(store, /shell-edit[\s\S]{0,400}Math\.max\(0\.1,\s*\+p\.thickness/)
-  assert.match(store, /if \(!\(th > 0\)\) \{ set\(\{ status: '请输入大于 0 的壁厚' \}\); return \}/)
+  assert.match(store, /if \(!\(th > 0\)\) \{ set\(\{ status: illegalRejectStatus\(ILLEGAL_THICKNESS_DETAIL\) \}\); return \}/)
   const start = store.indexOf("setShellThickness: (n) =>")
   assert.match(store.slice(start, start + 120), /Number\.isFinite\(n\) \? n : 0/)
 })

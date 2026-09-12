@@ -115,6 +115,7 @@ import { SketchToolPanel } from './SketchToolPanel'
 import { useDraggable } from './useDraggable'            // GM-W6 A4：草图工具条可拖移（同 AI ✦ / 🩺诊断 钮共用 hook）
 import MarkingMenu, { type MMItem } from './MarkingMenu'
 import { CommandDialog, SelectionChip } from './CommandDialog'
+import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL } from '../ui/illegalInput'
 import { MATERIAL_MECH } from '../analysis/beamStress'
 
 // Curvature fields can be expensive on dense meshes and are only relevant to
@@ -4986,6 +4987,7 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>抽壳类型</span>
             <span><select value={shellType} onChange={(e) => setShellType(e.target.value as 'open' | 'closed')} style={{ height: 26 }} aria-label="抽壳类型"><option value="open">移除面</option><option value="closed">封闭实体</option></select></span>
           </label>
+          {!(shellThickness > 0) && <div role="alert" data-testid="shell-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div>}
           <label>
             <span style={{ color: '#6b7680' }}>壁厚</span>
             <span><input type="number" min={0.01} step={0.5} value={shellThickness} onChange={(e) => setShellThickness(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
@@ -6120,8 +6122,12 @@ export default function Viewport() {
           (featDlg.kind === 'geoPattern' && !featDlg.editId && !cpSelFeat) ||
           (featDlg.kind === 'move' && String(featDlg.params.objectType ?? 'bodies') === 'components' && !selectedComponent && checkedComps.length === 0) ||
           (featDlg.kind === 'automatedmodel' && (((featDlg.payload as { picks?: unknown[] } | undefined)?.picks?.length ?? 0) !== 2 || !(+featDlg.params.radius > 0))) ||
-          (featDlg.kind === 'shell-edit' && !(+featDlg.params.thickness > 0))
+          (featDlg.kind === 'shell-edit' && !(+featDlg.params.thickness > 0)) ||
+          ((featDlg.kind === 'box' || featDlg.kind === 'wedge') && [featDlg.params.l, featDlg.params.w, featDlg.params.h].some((v) => !(+v > 0))) ||
+          ((featDlg.kind === 'cylinder' || featDlg.kind === 'sphere') && [featDlg.params.d, featDlg.kind === 'sphere' ? 1 : featDlg.params.h].some((v) => !(+v > 0)))
         } onOk={() => void commitFeatDlg()} onCancel={() => cancelFeatDlg()}>
+          {featDlg.kind === 'shell-edit' && !(+featDlg.params.thickness > 0) && <div role="alert" data-testid="shell-edit-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div>}
+          {(featDlg.kind === 'box' || featDlg.kind === 'wedge') && [featDlg.params.l, featDlg.params.w, featDlg.params.h].some((v) => !(+v > 0)) && <div role="alert" data-testid="prim-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_LENGTH_DETAIL)}</div>}
           {featDlg.kind === 'extrude-edit' && <div role="status">{!currentEditPreview ? '正在计算上游预览…' : currentEditPreview.failed ? '预览失败，请检查距离及轮廓' : '上游预览；确定后重建下游特征'}</div>}
           {featDlg.editId && <div style={{ fontSize: 11, color: '#8a97a2', marginBottom: 4 }}>{tStatus('编辑模式：改参数 → 确定重建；棱/面选择集及轮廓保留原值', lang)}</div>}
           {featDlg.kind === 'automatedmodel' && (() => {

@@ -27,9 +27,9 @@ test('A: illegalRejectStatus always embeds 尺寸已拒绝 marker', () => {
 })
 
 test('A: hole/shell/timeline length rejects use illegalRejectStatus', () => {
-  assert.match(storeSrc, /illegalRejectStatus\('孔径Ø必须大于 0'\)/)
-  assert.match(storeSrc, /illegalRejectStatus\('壁厚必须大于 0'\)/)
-  assert.match(storeSrc, /illegalRejectStatus\('尺寸必须大于 0，未更改模型'\)/)
+  assert.match(storeSrc, /illegalRejectStatus\((?:ILLEGAL_HOLE_DETAIL|'孔径Ø必须大于 0')\)/)
+  assert.match(storeSrc, /illegalRejectStatus\((?:ILLEGAL_THICKNESS_DETAIL|'壁厚必须大于 0')\)/)
+  assert.match(storeSrc, /illegalRejectStatus\((?:ILLEGAL_LENGTH_DETAIL|'尺寸必须大于 0，未更改模型')\)/)
   assert.match(viewport, /尺寸已拒绝：孔径Ø必须大于 0/)
 })
 
@@ -68,8 +68,8 @@ test('C: circle typed input is diameter Ø with driving dia constraint', () => {
   assert.match(viewport, /精确直径Ø/)
 })
 
-test('APP_VERSION stays at 1.14 for this fix PR', () => {
-  assert.match(version, /APP_VERSION = '1\.14'/)
+test('APP_VERSION stays at 1.15 after release bump', () => {
+  assert.match(version, /APP_VERSION = '1\.15'/)
 })
 
 // Runtime

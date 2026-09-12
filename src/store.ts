@@ -28,7 +28,7 @@ import { activeModelCommand, commandDisabledReason } from './cad/commandAvailabi
 import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad/viewBookmark'
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
-import { illegalRejectStatus } from './ui/illegalInput'
+import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
 import { lengthScale } from './io/units'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
 import { create } from 'zustand'
@@ -6089,7 +6089,11 @@ export const useApp = create<AppState>((rawSet, get) => {
   shellMode: false,
   shellPicks: [],
   shellThickness: 0,
-  setShellThickness: (n) => set({ shellThickness: Number.isFinite(n) ? n : 0 }),
+  setShellThickness: (n) => {
+    const v = Number.isFinite(n) ? n : 0
+    // BUG-UI-001: announce t≤0 immediately (Confirm is disabled, so commitShell never fires).
+    set({ shellThickness: v, ...(isNonPositiveDim(v) ? { status: illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL) } : {}) })
+  },
   shellType: 'open',
   setShellType: (t) => set({ shellType: t, shellPicks: [], status: t === 'closed' ? '封闭实体抽壳：点选实体后输入壁厚' : '移除面抽壳：点选一个或多个开口面' }),
   shellTangentChain: true,
@@ -6108,7 +6112,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const pts = get().shellPicks, th = get().shellThickness
     const shellType = get().shellType
     if (!pts.length) { set({ status: shellType === 'closed' ? '请先选择要抽壳的实体' : '请先选择要移除的面' }); return }
-    if (!(th > 0)) { set({ status: illegalRejectStatus('壁厚必须大于 0') }); return }
+    if (!(th > 0)) { set({ status: illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL) }); return }
     const dir = get().shellDir
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])  // three → CAD
     // GM-3DV3 M2：direction 只在非缺省(outside/both)时写字段 → inside 逐字节旧档兼容
@@ -11340,7 +11344,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const source = picked?.mesh ?? c?.mesh
     if (!c || !source?.vertices.length || !source.triangles.length) { set({ status: '抽壳：此件无网格' }); return }
     const t = Math.abs(thickness)
-    if (!(t > 0)) { set({ status: illegalRejectStatus('壁厚必须大于 0') }); return }
+    if (!(t > 0)) { set({ status: illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL) }); return }
     const wt = meshManifold(source.vertices as number[], source.triangles as number[])
     if (!wt.closed) { set({ status: `抽壳需要【水密闭合】网格（「${c.name}${picked ? ' / ' + picked.name : ''}」有 ${wt.boundary} 条开放边）— 先「🩹修复网格」补洞再抽壳` }); return }
     set({ status: `正在抽壳「${c.name}${picked ? ' / ' + picked.name : ''}」（壁厚 ${t}mm）…` })
@@ -14524,7 +14528,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   commitHole: async () => {
     // Guard the diameter up front (hole mode stays open to fix) — a 0/neg Ø was a silent no-op before.
-    if (!(Number.isFinite(get().holeD) && get().holeD > 0)) { set({ status: illegalRejectStatus('孔径Ø必须大于 0') }); return }
+    if (!(Number.isFinite(get().holeD) && get().holeD > 0)) { set({ status: illegalRejectStatus(ILLEGAL_HOLE_DETAIL) }); return }
     // Fusion requires a placement before a new Hole can be confirmed.  Editing an
     // existing timeline feature keeps its stored centre, so it remains editable.
     if (!get().holePos && !get().holeEditId) { set({ status: '孔：請先在實體面上選擇孔的位置，或使用草圖點批量建立' }); return }
@@ -14748,6 +14752,11 @@ export const useApp = create<AppState>((rawSet, get) => {
   setFeatParam: (key, value) => set((s) => {
     if (!s.featDlg) return {}
     let params: Record<string, number | string> = { ...s.featDlg.params, [key]: value }
+    // BUG-UI-001: live-type ≤0 on length/thickness keys (Confirm may be disabled).
+    const positiveFeatKeys = new Set(['a', 'b', 'c', 'l', 'w', 'h', 'd', 'diameter', 'radius', 'thickness', 'distance', 'pitch', 'module', 'width', 'bore', 'wireR', 'size', 'thick', 'ext', 'length', 'depth', 'r', 'r2', 'td'])
+    const liveReject = typeof value === 'number' && positiveFeatKeys.has(key) && isNonPositiveDim(value)
+      ? { status: illegalRejectStatus(key === 'thickness' ? ILLEGAL_THICKNESS_DETAIL : ILLEGAL_LENGTH_DETAIL) }
+      : {}
     // BUG-SO111-001: keep axis letter and dx/dy/dz in lockstep. Dropdown-Z used to leave
     // dy:1; 轴向 Z button left axis:'Y' → confirm stored axis:'Y'+axisV Z → editor showed Y.
     if (s.featDlg.kind === 'revolve' && key === 'axis') {
@@ -14757,7 +14766,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         params = { ...params, dx: v[0], dy: v[1], dz: v[2] }
       }
     }
-    return { featDlg: { ...s.featDlg, params } }
+    return { featDlg: { ...s.featDlg, params }, ...liveReject }
   }),
   automatedModelPickFace: (face) => set((s) => {
     const d = s.featDlg
@@ -16729,7 +16738,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         // GM-3DV3 M2：shell-edit 带 direction（inside→undefined 清 key 保逐字节）
         // Illegal t≤0 must REJECT on confirm — never coerce 0→1 / negative→0.1 (SO02 / handoff P1).
         const th = +p.thickness
-        if (!(th > 0)) { set({ status: '请输入大于 0 的壁厚' }); return }
+        if (!(th > 0)) { set({ status: illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL) }); return }
         const sdir = String(p.direction || 'inside')
         patch = { thickness: th, direction: sdir === 'inside' ? undefined : sdir }
       }
@@ -17195,7 +17204,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const verb = op === 'cut' ? '切割' : '创建'
       // Reject non-positive / NaN primary dimensions up front — clearer than a mirrored "-5" box or a cryptic
       // kernel-empty error. Covers coil/thread pitch & coil wire too (else a 0/neg helix silently clamps).
-      if (['l', 'w', 'h', 'd', 'pitch', 'wire'].some((k) => p[k] !== undefined && !(Number.isFinite(+p[k]) && +p[k] > 0))) { set({ status: '尺寸要大于 0（请填正数）' }); return }
+      if (['l', 'w', 'h', 'd', 'pitch', 'wire'].some((k) => p[k] !== undefined && !(Number.isFinite(+p[k]) && +p[k] > 0))) { set({ status: illegalRejectStatus(ILLEGAL_LENGTH_DETAIL) }); return }
       if (d.kind === 'box') { f = { id: fid(), type: 'prim', shape: 'box', a: +p.l, b: +p.w, c: +p.h, op, cornerOrigin: true }; msg = `已${verb}长方体 ${p.l}×${p.w}×${p.h}` }
       else if (d.kind === 'sphere') { f = { id: fid(), type: 'prim', shape: 'sphere', a: (+p.d) / 2, b: 0, c: 0, op }; msg = `已${verb}球 Ø${p.d}` }
       else if (d.kind === 'torus') { const arc = Math.max(0, Math.min(360, +p.arc || 360)); if (!(+p.d > 2 * +p.td)) { set({ status: `圆环：管径要细过外径一半（管Ø<${(+p.d / 2).toFixed(1)}），否则中孔闭合/管自交退化 — 请调大外径或调细管径` }); return } f = { id: fid(), type: 'prim', shape: 'torus', a: (+p.d) / 2, b: (+p.td) / 2, c: arc < 360 ? arc : 0, op, outerTrue: true }; msg = `已${verb}${arc > 0 && arc < 360 ? `部分圆环 ${arc}°` : '圆环'} 外Ø${p.d} 管Ø${p.td}` }   // GM-W8 β1-#29：a=真外半径 + outerTrue,worker 换算中线半径(tr=a−tb),令外Ø输入=真外Ø。GM-L2 #65：outerTrue 语义下中线半径=d/2−td/2、管半径=td/2，无自交要求 d/2−td/2>td/2 ⇒ d>2·td（旧 d>td 阈值太松，td<d≤2td 会自交）
@@ -18403,12 +18412,12 @@ export const useApp = create<AppState>((rawSet, get) => {
   editFeature: async (id, patch) => {
     const expressionOwner = get().features.find(f => f.id === id)
     if ('height' in patch && !('distanceExpression' in patch) && expressionOwner?.type === 'extrude' && expressionOwner.distanceExpression) { set({ status: '距离由表达式驱动；请双击特征编辑表达式' }); return }
-    if (expressionOwner?.type === 'shell' && 'thickness' in patch && !(Number(patch.thickness) > 0)) { set({ status: illegalRejectStatus('壁厚必须大于 0') }); return }
+    if (expressionOwner?.type === 'shell' && 'thickness' in patch && !(Number(patch.thickness) > 0)) { set({ status: illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL) }); return }
     // BUG-UI-003: reject non-positive length dims on timeline edit (prim a/b/c, hole Ø, fillet R…).
     // Signed dims (extrude height, transform, draft angle, offsets) are intentionally unconstrained.
     const positiveKeys = ['a', 'b', 'c', 'diameter', 'radius', 'thickness', 'distance', 'pitch', 'module', 'width', 'bore', 'wireR', 'size', 'thick', 'wall', 'ext', 'length', 'depth', 'd', 'r', 'r2'] as const
     for (const k of positiveKeys) {
-      if (k in patch && !(Number(patch[k]) > 0)) { set({ status: illegalRejectStatus('尺寸必须大于 0，未更改模型') }); return }
+      if (k in patch && !(Number(patch[k]) > 0)) { set({ status: illegalRejectStatus(ILLEGAL_LENGTH_DETAIL) }); return }
     }
     const features = get().features.map((f) => {
       if (f.id !== id) return f

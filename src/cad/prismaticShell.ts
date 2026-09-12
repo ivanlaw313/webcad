@@ -56,3 +56,49 @@ export function prismaticInwardShell(source: any, faceIndex: number, thickness: 
   if (!validShellSolid(result) || measureVolume(result) >= volume || Math.abs(measureVolume(result.cut(source))) > tolerance) throw new Error('Invalid prismatic shell')
   return result
 }
+
+// Fallback when OCCT MakeThickSolid fails on nearly-prismatic solids (e.g. through-hole
+// with a filleted rim). Build an inward offset cavity from the opening face wires and
+// cut it from the source without requiring source ≡ extruded opening (fillets/chamfers
+// break that equality while the cavity cut remains geometrically useful).
+export function cavityInwardShell(source: any, faceIndex: number, thickness: number): any {
+  if (!(thickness > 0) || !validShellSolid(source)) throw new Error('Invalid shell source')
+  const face = source.faces[faceIndex]
+  if (!face || face.geomType !== 'PLANE') throw new Error('Shell fallback requires a planar opening')
+  const origin = face.center, normal = face.normalAt()
+  const projection = (v: any) => (origin.x-v.x)*normal.x + (origin.y-v.y)*normal.y + (origin.z-v.z)*normal.z
+  const depths = source.faces.filter((f: any) => f.geomType === 'PLANE').map((f: any) => {
+    const n = f.normalAt()
+    return Math.abs(Math.abs(n.x*normal.x+n.y*normal.y+n.z*normal.z)-1)<1e-7 ? projection(f.center) : 0
+  })
+  const depth = Math.max(...depths)
+  if (!Number.isFinite(depth) || depth <= thickness) throw new Error('Shell thickness reaches opposite face')
+  const outer = face.clone().outerWire(), holes = face.clone().innerWires()
+  const extrude = (wire: any, length: number) => new Sketch(wire, {defaultOrigin: origin, defaultDirection: normal}).extrude(-length)
+  const volume = measureVolume(source), tolerance = Math.max(1e-7, volume*1e-9)
+  const length = depth-thickness
+  const offsetSolid = (wire: any, expand: boolean) => {
+    const original = extrude(wire.clone(), length), originalVolume = measureVolume(original)
+    const options: any[] = []
+    for (const sign of [-1, 1]) {
+      try {
+        const candidate = extrude(wire.clone().offset2D(sign*thickness), length)
+        if (!validShellSolid(candidate)) continue
+        const v = measureVolume(candidate)
+        if (expand ? v > originalVolume : v < originalVolume) {
+          const outside = expand ? original.cut(candidate) : candidate.cut(original)
+          if (Math.abs(measureVolume(outside)) <= tolerance) options.push(candidate)
+        }
+      } catch { /* try the other orientation */ }
+    }
+    if (options.length !== 1) throw new Error('Cannot resolve exact shell wire offset')
+    return options[0]
+  }
+  let cavity: any = offsetSolid(outer, false)
+  for (const hole of holes) cavity = cavity.cut(offsetSolid(hole, true))
+  if (!validShellSolid(cavity)) throw new Error('Invalid offset cavity')
+  const result = source.cut(cavity)
+  if (!validShellSolid(result) || measureVolume(result) >= volume || Math.abs(measureVolume(result.cut(source))) > tolerance) throw new Error('Invalid cavity shell')
+  return result
+}
+

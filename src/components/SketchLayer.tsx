@@ -1854,7 +1854,8 @@ export function SkSelDraw() {
     const g = dimGfx(shapes, c)
     if (!g) return
     const col = c.driven ? '#8a97a2' : '#0d6fc2'
-    g.lines.forEach(([a, b], j) => els.push(<Line key={`dg${k}_${j}`} points={[liftP(a), liftP(b)]} color={col} lineWidth={1.3} />))
+    const lw = c.driven ? 1.05 : 1.85
+    g.lines.forEach(([a, b], j) => els.push(<Line key={`dg${k}_${j}`} points={[liftP(a), liftP(b)]} color={col} lineWidth={lw} />))
   })
   // ── 顶点/圆心标记（T731）：select/dimension 工具下显示可拣点（圆心⊕系用户最常揾唔到嘅）──
   if (tool === 'select' || tool === 'dimension') {
@@ -2772,7 +2773,7 @@ export function SketchDimLayer() {
           </div>
         ) : (
           <div
-            key={l.key} data-reference-extent={l.referenceExtent} data-dim={l.text} data-dimension-id={l.edit?.conId} data-constraint-id={l.remove} data-frame-angle={l.frameAngleDeg} data-auto-dimension-shape={l.edit&&l.edit.dim!=='con'?String(l.edit.target):undefined} ref={reg(l.key)}
+            key={l.key} data-reference-extent={l.referenceExtent} data-dim={l.text} data-dimension-id={l.edit?.conId} data-constraint-id={l.remove} data-frame-angle={l.frameAngleDeg} data-auto-dimension-shape={l.edit&&l.edit.dim!=='con'?String(l.edit.target):undefined} data-dim-role={l.driven || l.referenceExtent ? 'driven' : l.edit?.dim === 'con' ? 'driving' : l.edit ? 'soft' : undefined} data-dim-driving={l.edit?.dim === 'con' && !l.driven ? 'true' : undefined} className={l.driven || l.referenceExtent ? 'sk-dim-driven' : l.edit?.dim === 'con' ? 'sk-dim-driving' : l.edit ? 'sk-dim-soft' : undefined} ref={reg(l.key)}
             title={[l.referenceExtent?(lang==='en'?`Sketch ${l.referenceExtent} extent (reference); edit the actual local dimensions`:`草图 ${l.referenceExtent} 范围（参考）；请编辑实际局部尺寸`):'',l.frameAngleDeg===undefined?'':(lang==='en'?`Local sketch frame ${dimFmt(l.frameAngleDeg)}°`:`局部草图方向 ${dimFmt(l.frameAngleDeg)}°`), (l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? tStatus('⚠ 冲突约束 — 点击移除以解开过约束', lang) : l.edit && l.edit.dim === 'con' ? ((l.name ? `${l.name} = ` : '') + (l.expression ? `${l.expression} → ${l.text} · ` : `${l.text} · `) + (l.driven ? tStatus('从动尺寸（量度值）— 点击改值即转驱动 · 右键菜单（转驱动/R↔Ø/删除） · ✕删除', lang) : tStatus('点击修改尺寸 · 输入公式可引用其他尺寸（如 d1*2） · 右键菜单（转从动/R↔Ø/删除） · ✕删除', lang))) : l.edit ? tStatus('点击修改尺寸', lang) : l.remove ? tStatus('约束（点击选中 → Delete 移除）', lang) : undefined].filter(Boolean).join(' · ')||undefined}
             onPointerDown={l.edit?.dim === 'con' && l.edit.conId ? (e) => onLabelDown(e, l.edit!.conId!) : undefined}
             onClick={
@@ -2787,6 +2788,8 @@ export function SketchDimLayer() {
             onContextMenu={l.edit?.dim === 'con' && l.edit.conId ? (e) => { e.preventDefault(); e.stopPropagation(); setDimMenu({ conId: l.edit!.conId!, x: e.clientX, y: e.clientY, driven: !!l.driven, radDia: l.edit!.radDia }) } : undefined}
             style={{ ...LBL, ...(l.remove ? { background: '#5a8fb8', fontSize: 10, lineHeight: '13px', padding: '0 4px' } : {}), ...(l.driven ? { background: '#8a97a2' } : {}), ...(l.remove && skSelCon === l.remove ? { background: '#8e44ad', boxShadow: '0 0 0 2px rgba(142,68,173,.4)' } : {}), ...((l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? { background: '#c9362a', boxShadow: '0 0 0 2px rgba(201,54,42,.35)' } : {}), pointerEvents: l.edit || l.remove || l.referenceExtent ? 'auto' : 'none', cursor: l.edit?.dim === 'con' ? 'move' : l.edit || l.remove ? 'pointer' : 'default' }}
           >
+            {l.edit?.dim === 'con' && !l.driven ? <span className="sk-dim-driving-mark" title="驱动尺寸" aria-label="驱动尺寸">◆</span> : null}
+            {l.edit && l.edit.dim !== 'con' && !l.driven ? <span className="sk-dim-soft-mark" title="软尺寸／参考读数" aria-label="软尺寸">·</span> : null}
             {l.text}
             {/* 尺寸约束专属 ✕ 仔：一撳即删（stopPropagation 免误开编辑框）。徽章本身 click=移除,唔使 ✕。 */}
             {l.edit?.dim === 'con' && l.edit.conId && (

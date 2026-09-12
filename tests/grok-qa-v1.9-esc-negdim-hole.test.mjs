@@ -34,7 +34,7 @@ test('BUG-SO18F-001: hole Ø≤0 not coerced; preview/confirm gated', () => {
   assert.doesNotMatch(storeSrc, /setHoleD:\s*\(n\) => set\(\{ holeD: Math\.max\(1/)
   assert.match(sketch, /!\(holeD > 0\)\) return null/)
   assert.match(viewport, /okDisabled=\{\(!holePos && !holeEditId\) \|\| !\(holeD > 0\)\}/)
-  assert.match(viewport, /孔径 Ø 必须大于 0/)
+  assert.match(viewport, /尺寸已拒绝：孔径Ø必须大于 0|孔径 Ø 必须大于 0/)
   // LenInput notifies parent even when below min so illegal Ø reaches store
   const lenAt = viewport.indexOf('function LenInput')
   const len = viewport.slice(lenAt, lenAt + 900)

@@ -28,6 +28,7 @@ import { activeModelCommand, commandDisabledReason } from './cad/commandAvailabi
 import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad/viewBookmark'
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
+import { illegalRejectStatus } from './ui/illegalInput'
 import { lengthScale } from './io/units'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
 import { create } from 'zustand'
@@ -691,7 +692,8 @@ function sketchDimText(tool: string, start: Pt | null, poly: Pt[], pt: Pt, ellip
     const dx = Math.abs(pt[0] - start[0]), dy = Math.abs(pt[1] - start[1]), L = Math.hypot(pt[0] - start[0], pt[1] - start[1])
     if (tool === 'rectangle' || tool === 'rrect') return `▭ ${dx.toFixed(1)} × ${dy.toFixed(1)} mm`
     if (tool === 'crect') return `▭ ${(dx * 2).toFixed(1)} × ${(dy * 2).toFixed(1)} mm`   // 中心矩形：显示全宽×全高（关于中心对称）
-    if (tool === 'circle' || tool === 'polygon') return `◯ R ${L.toFixed(1)} mm`
+    if (tool === 'circle') return `◯ Ø ${(L * 2).toFixed(1)} mm`
+    if (tool === 'polygon') return `◯ R ${L.toFixed(1)} mm`
     if (tool === 'circle2p') return `◯ Ø ${L.toFixed(1)} mm`   // GM-FP1 #15：两点圆 — start→cursor = 直径
     if(tool==='ellipse'&&ellipseCreation==='three-point'){if(!poly.length)return `半轴 rx ${L.toFixed(1)} mm`;const U=poly[0],vx=U[0]-start[0],vy=U[1]-start[1],rx=Math.hypot(vx,vy),ry=Math.abs((pt[0]-start[0])*(-vy/rx)+(pt[1]-start[1])*(vx/rx));return `半轴 rx ${rx.toFixed(1)} · ry ${ry.toFixed(1)} mm`}
     if (tool === 'ellipse') return `⬯ ${(dx * 2).toFixed(1)} × ${(dy * 2).toFixed(1)} mm`
@@ -724,7 +726,8 @@ function typedReadout(tool: string, buf: string[], field: number): string {
   const f = (i: number) => (i === field ? `[${buf[i] || '_'}]` : (buf[i] || '_')) + (buf[i] ? '🔒' : '')
   if (tool === 'rectangle' || tool === 'crect' || tool === 'rrect') return `▭ 宽 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 换宽/高·Enter 确定)`
   if (tool === 'ellipse') return `⬯ 宽 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 换宽/高·Enter 确定)`
-  if (tool === 'circle' || tool === 'circle2p' || tool === 'polygon') return `◯ ${tool === 'circle2p' ? 'Ø' : 'R'} ${f(0)} mm　(打字输入·Enter 确定)`
+  if (tool === 'circle' || tool === 'circle2p') return `◯ Ø ${f(0)} mm　(打字输入直径·Enter 确定)`
+  if (tool === 'polygon') return `◯ R ${f(0)} mm　(打字输入·Enter 确定)`
   if (tool === 'polyline') return `↘ 长 ${f(0)} mm · 角 ${f(1)}°　(Tab 换 长/角·两值全锁 Enter=收笔·角相对上段)`   // GM-FP1 #10：折线打字新增角度格
   return `↘ ${f(0)} mm　(仅定段长，方向跟光标·Enter 确定)`   // 样条/B样条：单值段长，方向永远跟随光标（无角度格）
 }
@@ -6105,7 +6108,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const pts = get().shellPicks, th = get().shellThickness
     const shellType = get().shellType
     if (!pts.length) { set({ status: shellType === 'closed' ? '请先选择要抽壳的实体' : '请先选择要移除的面' }); return }
-    if (!(th > 0)) { set({ status: '请输入大于 0 的壁厚' }); return }
+    if (!(th > 0)) { set({ status: illegalRejectStatus('壁厚必须大于 0') }); return }
     const dir = get().shellDir
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])  // three → CAD
     // GM-3DV3 M2：direction 只在非缺省(outside/both)时写字段 → inside 逐字节旧档兼容
@@ -9232,11 +9235,11 @@ export const useApp = create<AppState>((rawSet, get) => {
         return { sketchShape: { type: 'rect', a, b: pt }, sketchStart: null, status: `中心矩形已画好 ${(Math.abs(2 * (pt[0] - c[0]))).toFixed(0)}×${(Math.abs(2 * (pt[1] - c[1]))).toFixed(0)} — 点「拉伸」` }
       }
       if (s.sketchTool === 'circle') {
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '移动并点击确定半径' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '移动并点击定半径，或打数字输入精确直径Ø' }
         const r = Math.hypot(pt[0] - s.sketchStart[0], pt[1] - s.sketchStart[1])
         // 实战 T744 截到：半径点击畀格点/吸附拉返圆心 → r≈0 退化圆 → 拉伸时成批失败。诚实挡住 + 教打字。
-        if (r < 0.5) return { status: '圆太细（半径点击畀吸附拉返圆心附近）— 拉开啲，或者打数字输入精确半径（如 3.5 ⏎）' }
-        return { sketchShape: { type: 'circle', c: s.sketchStart, r }, sketchStart: null, status: `圆已画好 (R${r.toFixed(1)}) — 点「拉伸」` }
+        if (r < 0.5) return { status: '圆太细（半径点击畀吸附拉返圆心附近）— 拉开啲，或者打数字输入精确直径Ø（如 4 ⏎）' }
+        return { sketchShape: { type: 'circle', c: s.sketchStart, r }, sketchStart: null, status: `圆已画好 (Ø${(2 * r).toFixed(1)}) — 点「拉伸」或打数字定精确Ø` }
       }
       if (s.sketchTool === 'circle2p') {
         // GM-FP1 #15：两点圆（直径两端）— 点1 = 直径一端，点2 = 另一端；圆心 = 中点，半径 = 距离/2。
@@ -9711,7 +9714,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         // GM-W8 A3：三点弧/三点圆/椭圆弧/圆锥曲线 系 polyPts 分阶段（click 会同时置 polyPts+sketchStart）→ 打字起点要一致，否则下一击会覆盖
         if (tool === 'arc' || tool === 'circle3' || tool === 'earc' || tool === 'conic') return { ...(tool==='earc'?{sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[]}:{}), polyPts: [p], sketchStart: p, sketchPreview: p, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `起点 (${p[0]}, ${p[1]}) — 继续画（鼠标/打字下一阶段）` }
         if(tool==='ellipse'&&s.ellipseCreation==='three-point')return {sketchStart:p,polyPts:[],sketchPreview:p,dimBuf:['',''],dimField:0,sketchDim:null,sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],status:'已定椭圆中心；选择轴方向'}
-        return { sketchStart: p, sketchPreview: p, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `${tool === 'circle' ? '圆心' : '起点'} (${p[0]}, ${p[1]}) — 打字输入${tool === 'circle' || tool === 'polygon' ? '半径' : '尺寸'} 或 鼠标拉出` }
+        return { sketchStart: p, sketchPreview: p, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `${tool === 'circle' ? '圆心' : '起点'} (${p[0]}, ${p[1]}) — 打字输入${tool === 'circle' ? '直径Ø' : tool === 'polygon' ? '半径' : '尺寸'} 或 鼠标拉出` }
       }
       return {}
     }
@@ -9748,13 +9751,30 @@ export const useApp = create<AppState>((rawSet, get) => {
       rectangleCommitted=true
       return { ...bank, sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],skCons:[...s.skCons,...added], sketchShape: shape, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `矩形 ${W} × ${H} mm — 驱动尺寸及关系已保存` }
     }
-    if (start && (tool === 'circle' || tool === 'polygon')) {
+    if (start && tool === 'circle') {
+      // SO02: center-circle typed value is diameter Ø (exact), not freehand radius scale.
+      if (buf[0] !== '' && (!Number.isFinite(Number(buf[0])) || Number(buf[0]) <= 0)) {
+        return { status: illegalRejectStatus('直径必须为有限正数') }
+      }
+      const typed = buf[0] !== ''
+      const D = num(buf[0], 2 * (Math.hypot(prev[0] - start[0], prev[1] - start[1]) || 10))
+      const R = D / 2
+      const shape: SketchShape = { type: 'circle', c: start, r: R }
+      const profiles = bank.sketchProfiles ?? s.sketchProfiles
+      const added: SkCon[] = []
+      if (typed) {
+        const name = `d${maxDimSeq(s.sketchSources, s.skCons, s.params) + 1}`
+        added.push({ id: skConId(), name, kind: 'dim', type: 'dia', a: { kind: 'circle', shape: profiles.length }, value: D })
+      }
+      return { ...bank, sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: [...s.skCons, ...added], sketchShape: shape, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `圆 Ø${D} mm${typed ? ' — 驱动直径已保存' : ''} — 点「拉伸」` }
+    }
+    if (start && tool === 'polygon') {
       const R = num(buf[0], Math.hypot(prev[0] - start[0], prev[1] - start[1]) || 20)
-      let shape: SketchShape
-      if (tool === 'circle') shape = { type: 'circle', c: start, r: R }
-      // 打字多边形要同鼠标路径（4576-4577）一致：内切模式下打嘅数 = 内切圆半径(对边距/2)，外接半径 = R/cos(π/N)，且转 π/N 令一条边正对光标方向（之前 typed 分支漏咗呢两样 → 套螺母/扳手对边距全错、朝向差 30°）
-      else { const N = s.sketchSides, pr = s.polyInscribed ? R / Math.cos(Math.PI / N) : R, a0 = Math.atan2(prev[1] - start[1], prev[0] - start[0]) + (s.polyInscribed ? Math.PI / N : 0); const poly: Pt[] = []; for (let i = 0; i < N; i++) { const a = a0 + (i * 2 * Math.PI) / N; poly.push([start[0] + pr * Math.cos(a), start[1] + pr * Math.sin(a)]) } shape = { type: 'poly', pts: poly } }
-      const polyDesc = tool === 'polygon' ? (s.polyInscribed ? `多边形 对边距 ${(2 * R).toFixed(1)}` : `多边形 外接Ø ${(2 * R).toFixed(1)}`) : `圆 R${R}`
+      // 打字多边形要同鼠标路径一致：内切模式下打嘅数 = 内切圆半径(对边距/2)，外接半径 = R/cos(π/N)
+      const N = s.sketchSides, pr = s.polyInscribed ? R / Math.cos(Math.PI / N) : R, a0 = Math.atan2(prev[1] - start[1], prev[0] - start[0]) + (s.polyInscribed ? Math.PI / N : 0)
+      const poly: Pt[] = []; for (let i = 0; i < N; i++) { const a = a0 + (i * 2 * Math.PI) / N; poly.push([start[0] + pr * Math.cos(a), start[1] + pr * Math.sin(a)]) }
+      const shape: SketchShape = { type: 'poly', pts: poly }
+      const polyDesc = s.polyInscribed ? `多边形 对边距 ${(2 * R).toFixed(1)}` : `多边形 外接Ø ${(2 * R).toFixed(1)}`
       return { ...bank, sketchShape: shape, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `${polyDesc} mm — 点「拉伸」` }
     }
     // #9：crect/slot/rrect/ellipse 打字定尺寸（之前显示打字提示但 Enter 静默无效 = 空壳）— 照搬各自鼠标公式
@@ -11320,7 +11340,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const source = picked?.mesh ?? c?.mesh
     if (!c || !source?.vertices.length || !source.triangles.length) { set({ status: '抽壳：此件无网格' }); return }
     const t = Math.abs(thickness)
-    if (!(t > 0)) { set({ status: '抽壳：壁厚要 > 0' }); return }
+    if (!(t > 0)) { set({ status: illegalRejectStatus('壁厚必须大于 0') }); return }
     const wt = meshManifold(source.vertices as number[], source.triangles as number[])
     if (!wt.closed) { set({ status: `抽壳需要【水密闭合】网格（「${c.name}${picked ? ' / ' + picked.name : ''}」有 ${wt.boundary} 条开放边）— 先「🩹修复网格」补洞再抽壳` }); return }
     set({ status: `正在抽壳「${c.name}${picked ? ' / ' + picked.name : ''}」（壁厚 ${t}mm）…` })
@@ -14504,7 +14524,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   commitHole: async () => {
     // Guard the diameter up front (hole mode stays open to fix) — a 0/neg Ø was a silent no-op before.
-    if (!(Number.isFinite(get().holeD) && get().holeD > 0)) { set({ status: '孔径要大于 0（请填正数）' }); return }
+    if (!(Number.isFinite(get().holeD) && get().holeD > 0)) { set({ status: illegalRejectStatus('孔径Ø必须大于 0') }); return }
     // Fusion requires a placement before a new Hole can be confirmed.  Editing an
     // existing timeline feature keeps its stored centre, so it remains editable.
     if (!get().holePos && !get().holeEditId) { set({ status: '孔：請先在實體面上選擇孔的位置，或使用草圖點批量建立' }); return }
@@ -18383,12 +18403,12 @@ export const useApp = create<AppState>((rawSet, get) => {
   editFeature: async (id, patch) => {
     const expressionOwner = get().features.find(f => f.id === id)
     if ('height' in patch && !('distanceExpression' in patch) && expressionOwner?.type === 'extrude' && expressionOwner.distanceExpression) { set({ status: '距离由表达式驱动；请双击特征编辑表达式' }); return }
-    if (expressionOwner?.type === 'shell' && 'thickness' in patch && !(Number(patch.thickness) > 0)) { set({ status: '请输入大于 0 的壁厚' }); return }
+    if (expressionOwner?.type === 'shell' && 'thickness' in patch && !(Number(patch.thickness) > 0)) { set({ status: illegalRejectStatus('壁厚必须大于 0') }); return }
     // BUG-UI-003: reject non-positive length dims on timeline edit (prim a/b/c, hole Ø, fillet R…).
     // Signed dims (extrude height, transform, draft angle, offsets) are intentionally unconstrained.
     const positiveKeys = ['a', 'b', 'c', 'diameter', 'radius', 'thickness', 'distance', 'pitch', 'module', 'width', 'bore', 'wireR', 'size', 'thick', 'wall', 'ext', 'length', 'depth', 'd', 'r', 'r2'] as const
     for (const k of positiveKeys) {
-      if (k in patch && !(Number(patch[k]) > 0)) { set({ status: '尺寸必须大于 0，未更改模型' }); return }
+      if (k in patch && !(Number(patch[k]) > 0)) { set({ status: illegalRejectStatus('尺寸必须大于 0，未更改模型') }); return }
     }
     const features = get().features.map((f) => {
       if (f.id !== id) return f

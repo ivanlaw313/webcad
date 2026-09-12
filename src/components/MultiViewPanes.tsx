@@ -116,11 +116,16 @@ function PaneScene() {
   )
 }
 
-function OnePane({ view, label, lang }: { view: MultiViewPreset; label: string; lang: Lang }) {
+function OnePane({ view, label, lang, empty }: { view: MultiViewPreset; label: string; lang: Lang; empty: boolean }) {
   const ortho = view !== 'iso'
   return (
     <div className="vp-pane" data-testid={`vp-pane-${view}`} data-view={view}>
-      <div className="vp-pane-label">{tStatus(label, lang)}</div>
+      <div className="vp-pane-label">{tStatus(label, lang)} · {tStatus('预览／环视', lang)}</div>
+      {empty && (
+        <div className="vp-pane-empty" data-testid={`vp-pane-empty-${view}`} role="status">
+          {tStatus('此窗格暂无实体 — 请在「单一视图」建模后再切回二／四视图预览', lang)}
+        </div>
+      )}
       <Canvas
         style={{ position: 'absolute', inset: 0, touchAction: 'none' }}
         gl={{ antialias: true, alpha: true }}
@@ -137,17 +142,25 @@ function OnePane({ view, label, lang }: { view: MultiViewPreset; label: string; 
   )
 }
 
-/** Live multi-camera grid: split = front|right, quad = top|front|right|iso. */
+/** Live multi-camera grid: split = front|right, quad = top|front|right|iso.
+ *  Honesty: panes are preview/orbit only — full sketch/feature tooling stays on single layout. */
 export default function MultiViewPanes({ layout }: { layout: 'split' | 'quad' }) {
   const lang = useApp((s) => s.lang)
+  const bodyMesh = useApp((s) => s.bodyMesh)
+  const components = useApp((s) => s.components)
   const panes = layout === 'split' ? SPLIT_PANES : QUAD_PANES
+  const empty = !(bodyMesh && bodyMesh.triangles.length > 0) && !components.some((c) => !c.hidden && c.mesh?.triangles?.length)
   return (
     <div
       className={`vp-multiview vp-multiview-${layout}`}
       data-testid="vp-multiview"
       data-layout={layout}
+      data-multiview-preview="true"
     >
-      {panes.map((p) => <OnePane key={p.view + layout} view={p.view} label={p.label} lang={lang} />)}
+      <div className="vp-multiview-banner" data-testid="vp-multiview-honesty" role="status">
+        {tStatus(layout === 'split' ? '二视图 · 预览／环视（完整工具请切回「单一视图」）' : '四视图 · 预览／环视（完整工具请切回「单一视图」）', lang)}
+      </div>
+      {panes.map((p) => <OnePane key={p.view + layout} view={p.view} label={p.label} lang={lang} empty={empty} />)}
     </div>
   )
 }

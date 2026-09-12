@@ -51,6 +51,13 @@ test('BUG-UI-004: linear dim picks use full-viewBox hit rect + reject zero-lengt
   assert.match(drawing, /for \(const s of segmentsOf\(v\)\)/)
 })
 
-test('APP_VERSION stays at 1.9 for this QA fix branch', () => {
-  assert.match(version, /APP_VERSION = '1\.9'/)
+test('BUG-UI-001 honesty: preview/orbit banner + empty-state wiring', () => {
+  assert.match(multi, /data-testid="vp-multiview-honesty"/)
+  assert.match(multi, /预览／环视/)
+  assert.match(multi, /vp-pane-empty/)
+  assert.match(css, /\.vp-multiview-banner/)
+})
+
+test('APP_VERSION stays at 1.14 on current train (release bump separate)', () => {
+  assert.match(version, /APP_VERSION = '1\.14'/)
 })

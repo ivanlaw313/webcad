@@ -2413,9 +2413,26 @@ function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], sh
       // arc/ellipse/spline: non-uniform scaling would silently destroy its
       // defining curve parameters.  Keep it visible as a Fusion-style
       // reference reading; use the proper radius/constraint tools to drive it.
+      // BOT-A01 (v1.14): when a driving len/hdist/vdist already owns an axis, do not
+      // emit an editable soft bbox dim on that axis — dual labels (soft 120 + con 255)
+      // made QA edit the soft path, which scaled geometry but left skCons stale so
+      // reopen resolveSk restored 255.
+      const shapesArr = [...profiles, ...(shape ? [shape] : [])] as FShape[]
+      const coversAxis = (axis: 'w' | 'h') => constraints.some((c) => {
+        if (c.kind !== 'dim' || c.driven) return false
+        if (c.type === 'hdist') return axis === 'w' && [c.a, c.b].some((r) => r && 'shape' in r && r.shape === index)
+        if (c.type === 'vdist') return axis === 'h' && [c.a, c.b].some((r) => r && 'shape' in r && r.shape === index)
+        if (c.type === 'len' && c.a.kind === 'edge' && c.a.shape === index) {
+          const pts = refPts(shapesArr, c.a)
+          if (pts.length < 2) return false
+          const dx = Math.abs(pts[1][0] - pts[0][0]), dy = Math.abs(pts[1][1] - pts[0][1])
+          return axis === 'w' ? dx >= dy : dy >= dx
+        }
+        return false
+      })
       const referenceOnly = framedExtent || !!(sh.arc || sh.ell || sh.earc || sh.smooth || sh.conic)
-      out.push({ key: k + 'w', anchor: lift([(x0 + x1) / 2, y0]), pxOff: [0, 18], ...(framedExtent?{referenceExtent:'X' as const}:{}), text: referenceOnly ? `${framedExtent?'ΔX ':''}(${dimFmtU(x1 - x0, unit)})` : dimFmtU(x1 - x0, unit), ...(referenceOnly ? { driven: true } : { edit: { target, dim: 'w' as const, value: x1 - x0 } }) })
-      out.push({ key: k + 'h', anchor: lift([x0, (y0 + y1) / 2]), pxOff: [-22, 0], ...(framedExtent?{referenceExtent:'Y' as const}:{}), text: referenceOnly ? `${framedExtent?'ΔY ':''}(${dimFmtU(y1 - y0, unit)})` : dimFmtU(y1 - y0, unit), ...(referenceOnly ? { driven: true } : { edit: { target, dim: 'h' as const, value: y1 - y0 } }) })
+      if (!coversAxis('w')) out.push({ key: k + 'w', anchor: lift([(x0 + x1) / 2, y0]), pxOff: [0, 18], ...(framedExtent?{referenceExtent:'X' as const}:{}), text: referenceOnly ? `${framedExtent?'ΔX ':''}(${dimFmtU(x1 - x0, unit)})` : dimFmtU(x1 - x0, unit), ...(referenceOnly ? { driven: true } : { edit: { target, dim: 'w' as const, value: x1 - x0 } }) })
+      if (!coversAxis('h')) out.push({ key: k + 'h', anchor: lift([x0, (y0 + y1) / 2]), pxOff: [-22, 0], ...(framedExtent?{referenceExtent:'Y' as const}:{}), text: referenceOnly ? `${framedExtent?'ΔY ':''}(${dimFmtU(y1 - y0, unit)})` : dimFmtU(y1 - y0, unit), ...(referenceOnly ? { driven: true } : { edit: { target, dim: 'h' as const, value: y1 - y0 } }) })
     }
   }
   profiles.forEach((sh, i) => add(sh, 'p' + i, i))
@@ -2718,6 +2735,10 @@ export function SketchDimLayer() {
       if (e.dim === 'ext') { const cur = useApp.getState().extrudeHeight; useApp.getState().setExtrudeHeight((cur < 0 ? -1 : 1) * v) }
       // GM-FP2 #29：R↔Ø 翻转态下用户打嘅系【显示值】→ radDiaStore 折返 stored 自然 value 先入 editSkDim
       else if(e.dim!=='con')setDim(e.target, e.dim, v)
+    } else if (draft.trim() !== '' && draft !== initialValue.current) {
+      // BOT-A02: soft/bbox label rejects (≤0) must surface the same status toast as constraint dims
+      useApp.setState({ status: '尺寸已拒绝：尺寸必须为有限正数' })
+      setInputError('尺寸必须为有限正数')
     }
     setEditing(null)
   }

@@ -1,7 +1,7 @@
 /**
  * v1.16 BUG-UI-001: Shell t≤0 and feature-timeline / prim length dims ≤0
  * must call illegalRejectStatus / setStatus containing 「尺寸已拒绝」
- * (same helper as hole Ø + sketch). APP_VERSION stays 1.15.
+ * (same helper as hole Ø + sketch). APP_VERSION was 1.15 at merge; later releases bump it.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -39,8 +39,8 @@ test('BUG-UI-001: Shell + prim dialogs show the same reject marker as hole', () 
   assert.match(viewport, /illegalRejectStatus\(ILLEGAL_LENGTH_DETAIL\)/)
 })
 
-test('APP_VERSION stays at 1.15 for this fix PR', () => {
-  assert.match(version, /APP_VERSION = '1\.15'/)
+test('APP_VERSION is a product release string (bumped after v1.16)', () => {
+  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
 })
 
 test('helper still embeds 尺寸已拒绝', () => {

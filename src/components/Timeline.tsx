@@ -3,7 +3,7 @@ import { Fragment, useEffect, useRef, useState, type CSSProperties, type Pointer
 import { ToolIcon } from '../icons'
 import { useApp } from '../store'
 import { tStatus } from '../i18n'
-import { illegalRejectStatus, ILLEGAL_LENGTH_DETAIL, ILLEGAL_THICKNESS_DETAIL } from '../ui/illegalInput'
+import { illegalRejectStatus, isIllegalRejectStatus, ILLEGAL_LENGTH_DETAIL, ILLEGAL_THICKNESS_DETAIL } from '../ui/illegalInput'
 import { useDraggable } from './useDraggable'
 import { computeScrubIndex, chipSwatchColor } from '../cad/selectionModel'   // GM-X4 #9：色板 + hideInactive 稳健回卷索引
 
@@ -28,7 +28,9 @@ function NumField({ value, disabled, step = 0.5, min, onCommit, rejectDetail }: 
   }
   return (
     <input
-      type="number" step={step} min={min} disabled={disabled} value={buf}
+      // No HTML min: browsers with min>0 silently block typing "-1" before commit, so reject never runs.
+      // Logical min stays in commit() above. Esc still skips commit via skipCommit.
+      type="number" step={step} disabled={disabled} value={buf}
       onChange={(e) => setBuf(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => {
@@ -163,6 +165,7 @@ export default function Timeline() {
   }
   const params = useApp((s) => s.params)
   const paramBindings = useApp((s) => s.paramBindings)
+  const status = useApp((s) => s.status)
   const bindParam = useApp((s) => s.bindParam)
   const pSelect = (key: string) => params.length === 0 ? null : (
     <select className="fe-param" title={tStatus('绑定到用户参数（ƒx）', lang)} value={paramBindings[`${sel!.id}:${key}`] || ''} onChange={(e) => void bindParam(sel!.id, key, e.target.value)}>
@@ -321,6 +324,9 @@ export default function Timeline() {
           {featureErrors[sel.id] && <div className="fe-errbar">🔴 {tStatus('此特征重建失败：', lang)}{featureErrors[sel.id]}<button className="fe-errsup" onClick={() => void toggleSuppress(sel.id)}>{tStatus('抑制此特征', lang)}</button></div>}
           {sel.type === 'surfloft' && (sel as unknown as { sheet?: boolean }).sheet && (
             <div className="fe-note">{tStatus('零厚放样曲面（无壁厚）— 真曲面件，可用「加厚」/「缝合」转实体', lang)}</div>
+          )}
+          {isIllegalRejectStatus(status) && (
+            <div role="alert" data-testid="timeline-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{status}</div>
           )}
           {meta.fields ? (
             // S181：零厚放样曲面（sheet）冇壁厚可调 → 隐藏 wall 字段

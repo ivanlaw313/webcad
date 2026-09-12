@@ -3,6 +3,7 @@ import { Fragment, useEffect, useRef, useState, type CSSProperties, type Pointer
 import { ToolIcon } from '../icons'
 import { useApp } from '../store'
 import { tStatus } from '../i18n'
+import { illegalRejectStatus, ILLEGAL_LENGTH_DETAIL, ILLEGAL_THICKNESS_DETAIL } from '../ui/illegalInput'
 import { useDraggable } from './useDraggable'
 import { computeScrubIndex, chipSwatchColor } from '../cad/selectionModel'   // GM-X4 #9：色板 + hideInactive 稳健回卷索引
 
@@ -11,16 +12,19 @@ const EDIT_DLG_KINDS = new Set<string>(['extrude', 'revolve', 'sweep', 'loft', '
 
 // 测试报告观察 C：时间轴特征尺寸输入 — 改为本地缓冲 + 失焦/Enter 先提交（之前每个 keystroke 即触发
 // 异步重建，令打字被打断 / 自动化改唔到值）。同 featDlg 输入一致行为。外部值变（参数绑定/撤销）会重新同步。
-function NumField({ value, disabled, step = 0.5, min, onCommit }: { value: number; disabled?: boolean; step?: number; min?: number; onCommit: (n: number) => void }) {
+function NumField({ value, disabled, step = 0.5, min, onCommit, rejectDetail }: { value: number; disabled?: boolean; step?: number; min?: number; onCommit: (n: number) => void; rejectDetail?: string }) {
   const [buf, setBuf] = useState(String(value))
   const skipCommit = useRef(false)
   useEffect(() => { setBuf(String(value)) }, [value])
   const commit = () => {
     if (skipCommit.current) { skipCommit.current = false; setBuf(String(value)); return }
     const n = Number(buf)
-    // BUG-UI-003: when min is set (length dims), reject n < min including negatives / zero.
+    // BUG-UI-003 / BUG-UI-001: reject n < min (≤0 length) and announce 尺寸已拒绝 — silent revert hid the reason.
     if (Number.isFinite(n) && (min == null || n >= min)) { if (n !== value) onCommit(n) }
-    else setBuf(String(value))   // 无效输入 → 还原
+    else {
+      setBuf(String(value))
+      if (min != null) useApp.setState({ status: illegalRejectStatus(rejectDetail || ILLEGAL_LENGTH_DETAIL) })
+    }
   }
   return (
     <input
@@ -356,6 +360,7 @@ export default function Timeline() {
                     <NumField
                       step={isCount ? 1 : 0.5}
                       min={fd.key === 'count' ? 2 : isCount ? 1 : POSITIVE_LENGTH_KEYS.has(fd.key) ? 1e-6 : undefined}
+                      rejectDetail={fd.key === 'thickness' ? ILLEGAL_THICKNESS_DETAIL : POSITIVE_LENGTH_KEYS.has(fd.key) ? ILLEGAL_LENGTH_DETAIL : undefined}
                       disabled={!!bound}
                       value={(sel as unknown as Record<string, number>)[fd.key] ?? (fd.defKey ? (sel as unknown as Record<string, number>)[fd.defKey] : undefined) ?? 0}
                       onCommit={(n) => editFeature(sel.id, { [fd.key]: isCount ? Math.max(fd.key === 'count' ? 2 : 1, Math.round(n)) : n })}
@@ -372,6 +377,7 @@ export default function Timeline() {
               <NumField
                 min={0.1}
                 step={0.5}
+                rejectDetail={meta.field === 'thickness' ? ILLEGAL_THICKNESS_DETAIL : ILLEGAL_LENGTH_DETAIL}
                 disabled={!!paramBindings[`${sel.id}:${meta.field}`]}
                 value={(sel as unknown as Record<string, number>)[meta.field]}
                 onCommit={(n) => editFeature(sel.id, { [meta.field]: n })}

@@ -25,7 +25,7 @@ test('BUG-UI-002: Esc in feature-editor fields reaches dialog cancel path', () =
 test('BUG-UI-003: positive length keys reject ≤0 in NumField + editFeature', () => {
   assert.match(timeline, /POSITIVE_LENGTH_KEYS/)
   assert.match(timeline, /POSITIVE_LENGTH_KEYS\.has\(fd\.key\)\s*\?\s*1e-6/)
-  assert.match(storeSrc, /尺寸必须大于 0，未更改模型/)
+  assert.match(storeSrc, /尺寸必须大于 0，未更改模型|ILLEGAL_LENGTH_DETAIL/)
   assert.match(storeSrc, /'a', 'b', 'c', 'diameter'/)
 })
 

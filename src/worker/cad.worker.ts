@@ -1,4 +1,4 @@
-import { prismaticInwardShell, validShellSolid } from '../cad/prismaticShell'
+import { prismaticInwardShell, cavityInwardShell, validShellSolid } from '../cad/prismaticShell'
 import { ellipseArcPoint, ellipseArcSweep, type EllipseArcGeometry } from '../sketch/ellipseArcGeometry'
 import type { CubicBezierSegment } from '../sketch/splineBezier'
 import { shiftBoundSketchFeature, type SketchFaceBinding, type ResolvedSketchFace } from '../cad/sketchFaceBinding'
@@ -1899,16 +1899,36 @@ function _shellTangentClosure(shape: any, seed: number[], angleTolDeg = 1): numb
 // negative=outward. An empty face list returns the offset solid used to build a closed hollow body.
 function _shellExactFaces(shape: any, signedThickness: number, faceIndices: number[]): any {
   if (!_oc) throw new Error('kernel unavailable')
-  const r = GCWithScope()
-  const faces = shape.faces as any[]
-  const remove = r(new (_oc as any).TopTools_ListOfShape_1())
-  for (const i of faceIndices) if (faces[i]?.wrapped) remove.Append_1(faces[i].wrapped)
-  const progress = r(new (_oc as any).Message_ProgressRange_1())
-  const builder = r(new (_oc as any).BRepOffsetAPI_MakeThickSolid())
-  builder.MakeThickSolidByJoin(shape.wrapped, remove, -signedThickness, 1e-3, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, false, false, (_oc as any).GeomAbs_JoinType.GeomAbs_Arc, false, progress)
-  const raw = builder.Shape()
-  if (!raw || raw.IsNull()) throw new Error('shell returned null')
-  return cast(_orientSolidOutward(raw))
+  // CX02: Arc join often fails or yields an invalid solid after a through-hole rim fillet;
+  // Intersection recovers bottom/side openings. Prefer the first valid B-rep.
+  const joins = [(_oc as any).GeomAbs_JoinType.GeomAbs_Arc, (_oc as any).GeomAbs_JoinType.GeomAbs_Intersection]
+  let lastErr: unknown = null
+  const accept = (raw: any): any | null => {
+    if (!raw || raw.IsNull()) return null
+    let result = cast(_orientSolidOutward(raw))
+    if (validShellSolid(result)) return result
+    // Intersection shells can pass BRepCheck with a negative replicad volume; flip and re-check.
+    try {
+      const flipped = cast(_orientSolidOutward(result.wrapped.Reversed()))
+      if (validShellSolid(flipped)) return flipped
+    } catch { /* keep lastErr */ }
+    return null
+  }
+  for (const join of joins) {
+    try {
+      const r = GCWithScope()
+      const faces = shape.faces as any[]
+      const remove = r(new (_oc as any).TopTools_ListOfShape_1())
+      for (const i of faceIndices) if (faces[i]?.wrapped) remove.Append_1(faces[i].wrapped)
+      const progress = r(new (_oc as any).Message_ProgressRange_1())
+      const builder = r(new (_oc as any).BRepOffsetAPI_MakeThickSolid())
+      builder.MakeThickSolidByJoin(shape.wrapped, remove, -signedThickness, 1e-3, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, false, false, join, false, progress)
+      const ok = accept(builder.Shape())
+      if (ok) return ok
+      lastErr = new Error('shell produced invalid solid')
+    } catch (e) { lastErr = e }
+  }
+  throw (lastErr instanceof Error ? lastErr : new Error('shell returned null'))
 }
 
 // Replay the whole feature list into a single B-rep solid.
@@ -2784,12 +2804,48 @@ function buildShape(features: Feature[], noCache = false): any {
           }
           let chainReported = false
           const openAttempt = (base: any, t: number, signed = _sign) => {
-            if ((f.tangentChain || _dir === 'both') && ns?.length) {
+            // Resolve picked faces to indices whenever possible so Arc→Intersection retry applies
+            // (replicad shape.shell() has no join-type fallback and fails CX02 after rim fillet).
+            if (ns?.length) {
               const seeds = _shellFaceIndicesNear(base, ns)
-              const chain = f.tangentChain ? _shellTangentClosure(base, seeds) : seeds
-              if (!chain.length) throw new Error('shell face resolution failed')
-              if (!chainReported && chain.length > seeds.length) { buildWarnings.push(`抽壳切线链：由 ${seeds.length} 个所选面扩展到 ${chain.length} 个 G1 连续面`); chainReported = true }
-              return _shellExactFaces(base, signed * t, chain)
+              if (!seeds.length) throw new Error('shell face resolution failed')
+              const chain = (f.tangentChain || _dir === 'both')
+                ? (f.tangentChain ? _shellTangentClosure(base, seeds) : seeds)
+                : seeds
+              // Prefer the exact selection first. Tangent-chain through a hole-rim fillet
+              // otherwise opens the cylinder too and yields a wrong hollow (CX02).
+              const attempts: number[][] = []
+              if (chain.length > seeds.length) attempts.push(seeds)
+              attempts.push(chain.length ? chain : seeds)
+              let lastErr: unknown = null
+              for (const faces of attempts) {
+                try {
+                  const result = _shellExactFaces(base, signed * t, faces)
+                  if (!chainReported && faces !== seeds && chain.length > seeds.length) {
+                    buildWarnings.push(`抽壳切线链：由 ${seeds.length} 个所选面扩展到 ${chain.length} 个 G1 连续面`)
+                    chainReported = true
+                  }
+                  return result
+                } catch (e) { lastErr = e }
+                // Seeds-only OCCT miss: try cavity cut before expanding the G1 chain (top+fillet case).
+                if (faces === seeds && seeds.length === 1 && signed > 0 && _dir === 'inside') {
+                  try {
+                    const cav = cavityInwardShell(base, seeds[0], t)
+                    if (validShellSolid(cav)) {
+                      buildWarnings.push('抽殼：OCCT 抽壳失败，已按开口面偏移型腔重建（含倒圆孔缘）')
+                      return cav
+                    }
+                  } catch (e) { lastErr = e }
+                  try {
+                    const pr = prismaticInwardShell(base, seeds[0], t)
+                    if (validShellSolid(pr)) {
+                      buildWarnings.push('抽殼：相鄰內壁偏移相交，已按原壁厚重建直柱型腔')
+                      return pr
+                    }
+                  } catch (e) { lastErr = e }
+                }
+              }
+              throw (lastErr instanceof Error ? lastErr : new Error('shell face resolution failed'))
             }
             return base.shell(signed * t, finder)
           }
@@ -2799,13 +2855,43 @@ function buildShape(features: Feature[], noCache = false): any {
 
         }
       }
-      if (shelled && !validShellSolid(shelled)) {
+      if (!shelled || !validShellSolid(shelled)) {
         const openings = ns?.length ? _shellFaceIndicesNear(shape, ns) : shape.faces.map((face: any, i: number) => ({face,i})).filter(({face}: any) => face.geomType === 'PLANE' && Math.abs(face.center.z-_shellTopZ)<1e-7).map(({i}: any) => i)
-        if (_dir !== 'inside' || f.closed || openings.length !== 1) throw new Error('抽殼產生無效實體，已保留原模型；請調整開口或壁厚')
-        shelled = prismaticInwardShell(shape, openings[0], f.thickness)
-        buildWarnings.push('抽殼：相鄰內壁偏移相交，已按原壁厚重建直柱型腔')
+        if (_dir === 'inside' && !f.closed && openings.length === 1) {
+          let recovered: any = null
+          try {
+            recovered = prismaticInwardShell(shape, openings[0], f.thickness)
+            buildWarnings.push('抽殼：相鄰內壁偏移相交，已按原壁厚重建直柱型腔')
+          } catch {
+            try {
+              recovered = cavityInwardShell(shape, openings[0], f.thickness)
+              buildWarnings.push('抽殼：OCCT 抽壳失败，已按开口面偏移型腔重建（含倒圆孔缘）')
+            } catch { recovered = null }
+          }
+          if (recovered && validShellSolid(recovered)) shelled = recovered
+          else if (shelled && !validShellSolid(shelled)) throw new Error('抽殼產生無效實體，已保留原模型；請調整開口或壁厚')
+        } else if (shelled && !validShellSolid(shelled)) {
+          throw new Error('抽殼產生無效實體，已保留原模型；請調整開口或壁厚')
+        }
       }
-      if (shelled) shape = shelled
+      if (shelled) {
+        // Ensure positive orientation so STEP round-trip / measureVolume stay > 0 (CX02 Intersection).
+        if (!validShellSolid(shelled)) {
+          try {
+            const flipped = cast(_orientSolidOutward(shelled.wrapped.Reversed()))
+            if (validShellSolid(flipped)) shelled = flipped
+          } catch { /* keep */ }
+        } else {
+          try {
+            const mv = measureVolume(shelled)
+            if (mv < 0) {
+              const flipped = cast(_orientSolidOutward(shelled.wrapped.Reversed()))
+              if (validShellSolid(flipped)) shelled = flipped
+            }
+          } catch { /* keep */ }
+        }
+        shape = shelled
+      }
       else if (!(f.thickness > 0)) throw new Error(`抽壳：壁厚必须 > 0（值 ${f.thickness} 非法）`)   // t≤0 must fail (rollback) — never silently skip / keep illegal shell in history
       else throw new Error('抽殼無法按指定壁厚及方向完成，已保留原模型；請調整壁厚或開口面')
       { const _cap = _lastResolvedFaceFp as string[] | null; if (_cap && _cap.length) { _resolvedFaceFp[f.id] = _cap; _lastResolvedFaceFp = null } }

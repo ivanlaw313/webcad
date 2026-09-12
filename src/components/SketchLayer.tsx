@@ -2579,6 +2579,8 @@ export function SketchDimLayer() {
   const skConflictIds = useApp((s) => s.skConflictIds)   // S194：冲突约束逐个红标
   const skSelCon = useApp((s) => s.skSelCon)   // GM-FP3 #35：当前选中约束（点徽章=选中，Delete 删）
   const [val, setVal] = useState('')
+  const valRef = useRef(val)
+  valRef.current = val
   const [inputError,setInputError]=useState<string|null>(null)
   const dimEditorEpoch=useRef(0)
   const dimEditorScope=useRef<{key:string;mode:string;tool:string}|null>(null)
@@ -2592,7 +2594,7 @@ export function SketchDimLayer() {
     const request=++dimInputRequest.current,state=useApp.getState(),con=state.skCons.find(c=>c.id===e.conId&&c.kind==='dim')
     if(!con||con.kind!=='dim'){setInputError('尺寸已改变，请重新打开');return false}
     const result=parseDimensionEditInput({con,raw:text,unit:state.unit,radDia:e.radDia,params:state.params,cons:state.skCons,evaluate:evalExpr})
-    if(!result.ok){state.cancelSkDimEdit();invalidDimDraft.current=true;setInputError(result.error);return false}
+    if(!result.ok){state.cancelSkDimEdit();invalidDimDraft.current=true;setInputError(result.error);useApp.setState({status:`尺寸已拒绝：${result.error}`});return false}
     if(invalidDimDraft.current){state.beginSkDimEdit(e.conId);invalidDimDraft.current=false}
     if(useApp.getState().skDimPreview.id!==e.conId){setInputError('草图已改变，请重新打开尺寸');return false}
     setInputError(null)
@@ -2676,23 +2678,29 @@ export function SketchDimLayer() {
   DIM_REG.labels = labels
   if (mode !== 'sketch' || patternCandidate || labels.length === 0) { DIM_REG.els.clear(); if (editing) setEditing(null); return null }
   const reg = (key: string) => (el: HTMLElement | null) => { if (el) DIM_REG.els.set(key, el); else DIM_REG.els.delete(key) }
-  const commit = async (e: DimEdit) => {
+  const commit = async (e: DimEdit, fromBlur = false) => {
     if(e.dim==='con'&&e.conId){
       const editorEpoch=dimEditorEpoch.current
-      if(val===initialValue.current){cancelDimension();return}
-      if(!await previewDimension(e,val)||editorEpoch!==dimEditorEpoch.current)return
+      const draft = valRef.current
+      // BOT-A01: blur/Enter/✓ all commit the live draft (Fusion-style). Skipping blur left 120→100
+      // unapplied so Finish Sketch rebuilt the feature from the old constraint value.
+      if(draft===initialValue.current){cancelDimension();return}
+      if(!await previewDimension(e,draft)||editorEpoch!==dimEditorEpoch.current){
+        if(fromBlur) cancelDimension()
+        return
+      }
       const inputRequest=dimInputRequest.current
       await useApp.getState().confirmSkDimEdit()
-      // applyDimCandidate writes skCons/sketchUndo which bumps dimEditEpoch via the store
-      // middleware — do not require epoch match or the editor stays stale and later confirms
-      // look like a silent formula revert (BUG-017 / stale editor BUG-008).
+      // applyDimCandidate writes skCons/undo and bumps dimEditEpoch via the store middleware —
+      // close when the preview session ends regardless of epoch (BUG-017 / BUG-008).
       const preview=useApp.getState().skDimPreview
       if(inputRequest===dimInputRequest.current&&!preview.id&&!preview.pending){dimEditorScope.current=null;setEditing(null);setInputError(null);invalidDimDraft.current=false}
       return
     }
-    if (val === initialValue.current) { setEditing(null); return }
+    const draft = valRef.current
+    if (draft === initialValue.current) { setEditing(null); return }
     // ƒx 绑定（T746 批3）：约束尺寸输入「参数名」或「=参数名」→ 绑定用户参数（改参数即全树联动）
-    const raw = val.trim()
+    const raw = draft.trim()
     const body = raw.replace(/^=/, '').trim()
     const isPureLen = /^[\d.\s/]+(?:mm|cm|in|")?$/i.test(body)   // 数字/分数/带单位 = 唔系公式
     // S97：尺寸标签输入 — 纯数值/分数/带单位 → 照旧数值；纯参数名 → 绑参数；含运算符/函数嘅公式 → 绑表达式
@@ -2703,8 +2711,8 @@ export function SketchDimLayer() {
     // T794：长度用 parseLen（当前单位 + 分数英寸 "1/4"/"1 1/2" + 后缀 mm/in/"）；角度照旧 parseFloat（度）
     const u = useApp.getState().unit
     const v = e.deg
-      ? (arith != null && isFinite(arith) ? arith : parseFloat(val))
-      : parseLen(arith != null && isFinite(arith) ? String(arith) : val, u)
+      ? (arith != null && isFinite(arith) ? arith : parseFloat(draft))
+      : parseLen(arith != null && isFinite(arith) ? String(arith) : draft, u)
     // 'ext' keeps the current height's SIGN (negative = reverse direction) — the label shows |h|.
     if (v != null && isFinite(v) && v > 0) {
       if (e.dim === 'ext') { const cur = useApp.getState().extrudeHeight; useApp.getState().setExtrudeHeight((cur < 0 ? -1 : 1) * v) }
@@ -2724,8 +2732,8 @@ export function SketchDimLayer() {
               autoFocus value={val} aria-label={tStatus('尺寸数值', lang)}
               onFocus={(e) => e.currentTarget.select()}
               onChange={(e) => {setVal(e.target.value);if(l.edit?.dim==='con')void previewDimension(l.edit,e.target.value)}}
-              onBlur={() => {if(l.edit?.dim!=='con')void commit(l.edit!)}}
-              onKeyDown={(e) => { e.stopPropagation(); if (e.nativeEvent.isComposing || e.keyCode === 229) return; if (e.key === 'Enter') commit(l.edit!); else if (e.key === 'Escape') {e.preventDefault();cancelDimension()} }}
+              onBlur={() => {void commit(l.edit!, true)}}
+              onKeyDown={(e) => { e.stopPropagation(); if (e.nativeEvent.isComposing || e.keyCode === 229) return; if (e.key === 'Enter') void commit(l.edit!); else if (e.key === 'Escape') {e.preventDefault();cancelDimension()} }}
               style={{ width: l.expression ? 168 : 64, minWidth: 40, maxWidth: '100%', padding: 0, textAlign: 'center', border: 'none', outline: 'none', background: 'transparent', color: '#0d4f8c', fontWeight: 600, fontSize: 11 }}
             />
             {l.edit.dim==='con'&&<>

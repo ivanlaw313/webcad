@@ -1691,6 +1691,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   beginSkDimEdit: (id:string) => void
   previewSkDimEdit: (patch:Partial<Extract<SkCon,{kind:'dim'}>>) => Promise<void>
   confirmSkDimEdit: () => Promise<void>
+  flushSkDimEdit: () => Promise<void>  // BOT-A01: apply live dim candidate before Finish Sketch / feature rebuild
   cancelSkDimEdit: () => void
   commitSkDim: (id: string, patch: Partial<Extract<SkCon, { kind: 'dim' }>>, message: string) => Promise<void>
   editSkDim: (id: string, value: number) => Promise<void>
@@ -4609,6 +4610,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     if(!session.candidate){cancelSkDimEdit();return}
     if(!session.candidate.ok){set({status:`尺寸修改失败：${session.candidate.reason}`});return}
     applyDimCandidate(session.before,session.candidate,'已更新尺寸')
+  }
+  // Persist an in-progress label edit before Finish Sketch / applySketchEdit so 120→100
+  // cannot be discarded when the HUD blurs into the finish control (BOT-A01-DIM-PERSIST).
+  const flushSkDimEdit=async()=>{
+    const session=dimSession
+    if(!session)return
+    if(dimPreviewWork)await dimPreviewWork
+    if(!dimSessionCurrent(session)){if(dimSession===session)cancelSkDimEdit();return}
+    if(session.candidate?.ok){applyDimCandidate(session.before,session.candidate,'已更新尺寸');return}
+    cancelSkDimEdit()
   }
   const commitDimensionEdit=async(id:string,patch:DimPatch,message:string)=>{
     const before=get(),revision=patternRevision(before),request=++_patternDimEditSeq,epoch=dimEditEpoch
@@ -8096,6 +8107,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   beginSkDimEdit,
   previewSkDimEdit,
   confirmSkDimEdit,
+  flushSkDimEdit,
   cancelSkDimEdit,
   commitSkDim:commitDimensionEdit,
   editSkDim: async (id, value) => {
@@ -8802,14 +8814,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       status: `草图基准面：${plane === 'XY' ? '上 / XY 水平面' : plane === 'XZ' ? '前 / XZ 竖直面（拉伸沿 Y 出料）' : '右 / YZ 竖直面（拉伸沿 X 出料）'} — 选 矩形/圆/折线 画轮廓` })),
 
   finishSketch: () => {
-    if (get().skDrag) { set({ status: '请先放开鼠标完成拖动，或按 Esc 取消' }); return }
-    const tgt = get().skEditTarget
-    if (tgt) { void get().applySketchEdit(tgt); return }  // 重开编辑中 → 完成 = 重生成特征组并重建
-    const s = get()
-    if (s.loftSections.length) { get().exitSketchMode(); return }  // 放样截面收集中 — 唔好打断银行流程
-    // T756：Fusion「完成草图」— 有轮廓就存成【独立草图特征】（无实体输出，入时间轴，紫色线，可重开/做放样截面）
-    if (s.sketchShape || s.sketchProfiles.length) { void get().commitStandaloneSketch(); return }
-    get().exitSketchMode()
+    void (async () => {
+      await flushSkDimEdit()
+      if (get().skDrag) { set({ status: '请先放开鼠标完成拖动，或按 Esc 取消' }); return }
+      const tgt = get().skEditTarget
+      if (tgt) { await get().applySketchEdit(tgt); return }  // 重开编辑中 → 完成 = 重生成特征组并重建
+      const s = get()
+      if (s.loftSections.length) { get().exitSketchMode(); return }  // 放样截面收集中 — 唔好打断银行流程
+      // T756：Fusion「完成草图」— 有轮廓就存成【独立草图特征】（无实体输出，入时间轴，紫色线，可重开/做放样截面）
+      if (s.sketchShape || s.sketchProfiles.length) { await get().commitStandaloneSketch(); return }
+      get().exitSketchMode()
+    })()
   },
   // T773（S53）：重合推断 v2 — 啱啱落咗个形 → 扫端点贴近（1e-4 精确）既有顶点/圆心/原点 → 自动 ◉ 重合约束。
   // 零误判政策：只对真系吸附到嘅点生效；冲突自动回滚（按本批 id 过滤 — async 竞态安全）。
@@ -8980,6 +8995,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // T756：完成草图 → 独立草图特征（Fusion parity）。先退草图模式再 applyFeatures（成功先写 sketchSources，
   // 失败回滚返编辑模式 — 同 extrudeSketch/applySketchEdit 嘅 write-after-success 纪律一致）。
   commitStandaloneSketch: async () => {
+    await flushSkDimEdit()
     const s = get()
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
     if (!shapes.length) { get().exitSketchMode(); return }
@@ -9071,6 +9087,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 重开编辑完成：用编辑后嘅轮廓喺原 timeline 位置重生成成组特征（嵌套孔逻辑按新几何重算），全树重建。
   // T746 批3：重生成逻辑抽出 regenGroupFeatures（同 ƒx 参数→草图联动共用，杜绝两份逻辑漂移）。
   applySketchEdit: async (skId) => {
+    await flushSkDimEdit()
     _skEditRollback = false   // GM-W6 F1：完成编辑走全量 applyFeatures 重建 → 自动返时间轴最尾，唔使兜底还原
     const s = get()
     const src = s.sketchSources[skId]

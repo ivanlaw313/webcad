@@ -4608,7 +4608,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if(dimPreviewWork)await dimPreviewWork
     if(!dimSessionCurrent(session)){if(dimSession===session)cancelSkDimEdit();return}
     if(!session.candidate){cancelSkDimEdit();return}
-    if(!session.candidate.ok){set({status:`尺寸修改失败：${session.candidate.reason}`});return}
+    if(!session.candidate.ok){set({status:`尺寸已拒绝：${session.candidate.reason}`});return}
     applyDimCandidate(session.before,session.candidate,'已更新尺寸')
   }
   // Persist an in-progress label edit before Finish Sketch / applySketchEdit so 120→100
@@ -4629,11 +4629,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       if(dimPreviewWork)await dimPreviewWork
       if(!current())return
       if(session.candidate?.ok){applyDimCandidate(before,session.candidate,message);return}
-      if(session.candidate){set({status:`尺寸修改失败：${session.candidate.reason}`});return}
+      if(session.candidate){set({status:`尺寸已拒绝：${session.candidate.reason}`});return}
     }
     const result=await prepareSkDimEdit(before,id,structuredClone(patch))
     if(!current())return
-    if(!result.ok){set({status:`尺寸修改失败：${result.reason}`});return}
+    if(!result.ok){set({status:`尺寸已拒绝：${result.reason}`});return}
     applyDimCandidate(before,result,message)
   }
   type OffsetPrepared={ok:true;document:PatternDocument;params:Parameter[];addedIds:string[];dof:number}|{ok:false;reason:string}
@@ -8113,7 +8113,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   editSkDim: async (id, value) => {
     const target = get().skCons.find(c => c.id === id && c.kind === 'dim')
     const zeroProjection = target?.kind === 'dim' && (target.type === 'hdist' || target.type === 'vdist') && value === 0
-    if (!Number.isFinite(value) || value < 0 || value === 0 && !zeroProjection) { set({status:'尺寸必须为有限正数（水平／垂直投影可为零），未更改草图'}); return }
+    if (!Number.isFinite(value) || value < 0 || value === 0 && !zeroProjection) { set({status:'尺寸已拒绝：尺寸必须为有限正数（水平／垂直投影可为零），未更改草图'}); return }
     await get().commitSkDim(id,{value,driven:undefined,param:undefined,paramId:undefined,refs:undefined,expr:undefined},`尺寸已改为 ${value}`)
   },
   // ── 参数化组件 edit-in-place（T734）──────────────────────────────────────
@@ -9544,14 +9544,36 @@ export const useApp = create<AppState>((rawSet, get) => {
   // Exact-dimension typing while sketching (Fusion-style): digits/'.' build the value, Tab switches the
   // rectangle's W/H field, Enter commits the shape at the typed size, Backspace edits, Esc clears.
   // Edit a drawn shape's dimension (clicking its on-canvas label): resize the rect side / circle Ø
-  // in place, preserving the original draw direction (sign). Poly bbox labels are display-only.
+  // in place, preserving the original draw direction (sign). Soft poly bbox edits must update any
+  // driving constraint on that axis (BOT-A01) — otherwise Finish saves scaled shapes with stale
+  // skCons and reopen resolveSk restores the old value (255 vs 100).
   setSketchDimValue: (target, dim, value) => {
     const index=target==='shape'?get().sketchProfiles.length:target
-    const bound=get().skCons.find(c=>c.kind==='dim'&&!c.driven&&c.type==='len'&&c.a.kind==='edge'&&c.a.shape===index&&c.a.idx%2===(dim==='w'?0:1))
-    if ((target==='shape'?get().sketchShape:get().sketchProfiles[target])?.type==='rect'&&(dim==='w'||dim==='h')&&bound) { get().editSkDim(bound.id,value); return }
-
+    const liveShapes=[...get().sketchProfiles,...(get().sketchShape?[get().sketchShape]:[])] as import('./sketch/freesolve').FShape[]
+    const sh0=liveShapes[index]
+    const axisBound=()=>{
+      if(!(dim==='w'||dim==='h')||!sh0)return undefined
+      return get().skCons.find(c=>{
+        if(c.kind!=='dim'||c.driven)return false
+        if(c.type==='hdist')return dim==='w'&&[c.a,c.b].some(r=>!!r&&'shape'in r&&r.shape===index)
+        if(c.type==='vdist')return dim==='h'&&[c.a,c.b].some(r=>!!r&&'shape'in r&&r.shape===index)
+        if(c.type==='len'&&c.a.kind==='edge'&&c.a.shape===index){
+          if(sh0.type==='rect')return c.a.idx%2===(dim==='w'?0:1)
+          const pts=skRefPts(liveShapes,c.a)
+          if(pts.length<2)return false
+          const dx=Math.abs(pts[1][0]-pts[0][0]),dy=Math.abs(pts[1][1]-pts[0][1])
+          return dim==='w'?dx>=dy:dy>=dx
+        }
+        return false
+      })
+    }
+    if (!isFinite(value) || value <= 0) {
+      set({ status: '尺寸已拒绝：尺寸必须为有限正数' })
+      return
+    }
+    const bound=axisBound()
+    if((dim==='w'||dim==='h')&&bound){void get().editSkDim(bound.id,value);return}
     set((s) => {
-    if (!isFinite(value) || value <= 0) return {}
     let editError: string | null = null
     const edit = (sh: SketchShape): SketchShape => {
       if (sh.type === 'rect') {
@@ -9635,11 +9657,32 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       return sh
     }
-    if (target === 'shape') return s.sketchShape ? { sketchShape: edit(s.sketchShape), status: editError ?? `已改尺寸 → ${value} mm` } : {}
+    const syncCons = (shapes: SketchShape[], cons: SkCon[]): SkCon[] => {
+      // BOT-A01: after a soft bbox scale, rewrite driving dim values from measured geometry so
+      // Finish/applySketchEdit persists the edited length (not the pre-scale constraint).
+      if (!cons.some((c) => c.kind === 'dim' && !c.driven && [c.a, c.b].some((r) => r && 'shape' in r && r.shape === index))) return cons
+      const fshapes = shapes as import('./sketch/freesolve').FShape[]
+      return cons.map((c) => {
+        if (c.kind !== 'dim' || c.driven) return c
+        if (![c.a, c.b].some((r) => r && 'shape' in r && r.shape === index)) return c
+        if (!['len', 'hdist', 'vdist', 'dia', 'rad', 'arclen'].includes(c.type)) return c
+        const m = skMeasureDim(fshapes, c)
+        if (m == null || !Number.isFinite(m)) return c
+        if (!(c.type === 'hdist' || c.type === 'vdist' ? m >= 0 : m > 0)) return c
+        return m === c.value ? c : { ...c, value: m }
+      })
+    }
+    if (target === 'shape') {
+      if (!s.sketchShape) return {}
+      const sketchShape = edit(s.sketchShape)
+      const shapes = [...s.sketchProfiles, sketchShape]
+      return { sketchShape, skCons: syncCons(shapes, s.skCons), status: editError ?? `已改尺寸 → ${value} mm` }
+    }
     if (target < 0 || target >= s.sketchProfiles.length) return {}
     const profs = s.sketchProfiles.slice()
     profs[target] = edit(profs[target])
-    return { sketchProfiles: profs, status: editError ?? `已改尺寸 → ${value} mm` }
+    const shapes = [...profs, ...(s.sketchShape ? [s.sketchShape] : [])]
+    return { sketchProfiles: profs, skCons: syncCons(shapes, s.skCons), status: editError ?? `已改尺寸 → ${value} mm` }
     })
     if (get().skCons.length > 0) void get().resolveSk()  // keep constraints/dims honoured after a direct label edit
   },

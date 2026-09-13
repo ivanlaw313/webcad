@@ -13,8 +13,11 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const worker = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 const prism = readFileSync(new URL('../src/cad/prismaticShell.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.18', () => {
-  assert.match(version, /APP_VERSION = '1\.18'/)
+test('APP_VERSION is >= 1.18 (CX02 shipped; current may be newer)', () => {
+  const m = version.match(/APP_VERSION = '(\d+)\.(\d+)'/)
+  assert.ok(m, 'APP_VERSION missing')
+  const major = Number(m[1]), minor = Number(m[2])
+  assert.ok(major > 1 || (major === 1 && minor >= 18), `expected >= 1.18, got ${m[1]}.${m[2]}`)
 })
 
 test('CX02 fix: Arc→Intersection retry + cavityInwardShell fallback wired', () => {

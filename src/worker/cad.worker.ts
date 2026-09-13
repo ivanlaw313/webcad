@@ -947,13 +947,33 @@ function facePatternCopies(shape: any, nears: [number, number, number][], faceFp
 
 // Fillet/chamfer the single edge nearest a 3D point (CAD coords) — for click-to-pick edge rounding.
 // Finds the closest edge by sampling each edge, then selects it via its midpoint (which lies on it).
+
+// BX02 / v1.19: when a pick sits on a cylindrical cut-rim at the seam longitude, OCCT's
+// seam LINE and the true CIRCLE rim both have dmin=0. Prefer closed/circular edges over
+// open LINE seams so fillet/chamfer resolves the solid edge (seam fillet always fails).
+function _edgePickRank(e: any): number {
+  try {
+    if (e?.isClosed) return 0
+    const g = String(e?.geomType ?? '')
+    if (/circle/i.test(g)) return 0
+    if (/line/i.test(g)) return 2
+    return 1
+  } catch { return 1 }
+}
+function _nearEdgeBetter(dmin: number, rank: number, bestD: number, bestRank: number): boolean {
+  if (dmin < bestD - 1e-24) return true
+  if (dmin > bestD + 1e-24) return false
+  return rank < bestRank
+}
+
 function roundNearPoint(shape: any, kind: 'fillet' | 'chamfer', size: number, p: [number, number, number], edgeFp?: string[], edgeFpV2?: string[]): any {
   const edges = shape.edges as any[]
-  let bestMid: any = null, bestD = Infinity
+  let bestMid: any = null, bestD = Infinity, bestRank = 99
   for (const e of edges) {
     let dmin = Infinity
     for (const t of [0, 0.25, 0.5, 0.75, 1]) { const q = e.pointAt(t); const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2; if (d < dmin) dmin = d }
-    if (dmin < bestD) { bestD = dmin; bestMid = e.pointAt(0.5) }
+    const rank = _edgePickRank(e)
+    if (_nearEdgeBetter(dmin, rank, bestD, bestRank)) { bestD = dmin; bestRank = rank; bestMid = e.pointAt(0.5) }
   }
   if (!bestMid) throw new Error('no edge near point')
   let M: [number, number, number] = [bestMid.x, bestMid.y, bestMid.z]
@@ -1570,11 +1590,12 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
   const mids: [number, number, number][] = []
   let maxNearD2 = 0   // S143：每个近点距最近棱嘅最大平方距 — fp miss 退回近点时判选择漂移（对称体旋转）
   for (const p of pts) {
-    let bestMid: any = null, bestD = Infinity
+    let bestMid: any = null, bestD = Infinity, bestRank = 99
     for (const e of edges) {
       let dmin = Infinity
       for (const t of [0, 0.25, 0.5, 0.75, 1]) { const q = e.pointAt(t); const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2; if (d < dmin) dmin = d }
-      if (dmin < bestD) { bestD = dmin; bestMid = e.pointAt(0.5) }
+      const rank = _edgePickRank(e)
+      if (_nearEdgeBetter(dmin, rank, bestD, bestRank)) { bestD = dmin; bestRank = rank; bestMid = e.pointAt(0.5) }
     }
     if (bestMid) { mids.push([bestMid.x, bestMid.y, bestMid.z]); if (bestD > maxNearD2) maxNearD2 = bestD }
   }
@@ -1895,13 +1916,37 @@ function _shellTangentClosure(shape: any, seed: number[], angleTolDeg = 1): numb
   return [...keep]
 }
 
+// P2 (v1.19): ShapeFix_Shape (+ light UnifySameDomain) — same idiom as STEP import / mesh→solid.
+// Dirty boolean composites otherwise poison MakeThickSolid; heal is best-effort and never throws.
+function _healSolid(shape: any): any {
+  if (!shape?.wrapped || !_oc) return shape
+  let out = shape
+  // Mirror STEP import (ShapeFix_Shape_2 only). UnifySameDomain can merge faces that
+  // MakeThickSolid / face-resolve still need; keep it off the default heal path.
+  try {
+    const fixer = new (_oc as any).ShapeFix_Shape_2(out.wrapped)
+    const prog = new (_oc as any).Message_ProgressRange_1()
+    if (fixer.Perform(prog)) {
+      const fixed = cast(fixer.Shape())
+      if (fixed?.wrapped && !fixed.wrapped.IsNull()) out = fixed
+    }
+    try { prog.delete() } catch { /* */ }
+    try { fixer.delete() } catch { /* */ }
+  } catch { /* heal fail → keep input */ }
+  return out
+}
+
 // Exact-face shell/offset primitive. signedThickness follows replicad shell(): positive=inward,
 // negative=outward. An empty face list returns the offset solid used to build a closed hollow body.
 function _shellExactFaces(shape: any, signedThickness: number, faceIndices: number[]): any {
   if (!_oc) throw new Error('kernel unavailable')
-  // CX02: Arc join often fails or yields an invalid solid after a through-hole rim fillet;
-  // Intersection recovers bottom/side openings. Prefer the first valid B-rep.
-  const joins = [(_oc as any).GeomAbs_JoinType.GeomAbs_Arc, (_oc as any).GeomAbs_JoinType.GeomAbs_Intersection]
+  // P2: heal once before join/tol ladder — done by caller (shell start / bodyboolean) so
+  // faceIndices stay valid; do not re-_healSolid here (ShapeFix can reorder faces).
+  // CX02 + P2: Arc → Intersection → Tangent (if bound); each with a short tol ladder.
+  const JT = (_oc as any).GeomAbs_JoinType
+  const joins = [JT.GeomAbs_Arc, JT.GeomAbs_Intersection]
+  if (JT?.GeomAbs_Tangent != null) joins.push(JT.GeomAbs_Tangent)
+  const tols = [1e-3, 1e-2, 5e-4]
   let lastErr: unknown = null
   const accept = (raw: any): any | null => {
     if (!raw || raw.IsNull()) return null
@@ -1915,18 +1960,20 @@ function _shellExactFaces(shape: any, signedThickness: number, faceIndices: numb
     return null
   }
   for (const join of joins) {
-    try {
-      const r = GCWithScope()
-      const faces = shape.faces as any[]
-      const remove = r(new (_oc as any).TopTools_ListOfShape_1())
-      for (const i of faceIndices) if (faces[i]?.wrapped) remove.Append_1(faces[i].wrapped)
-      const progress = r(new (_oc as any).Message_ProgressRange_1())
-      const builder = r(new (_oc as any).BRepOffsetAPI_MakeThickSolid())
-      builder.MakeThickSolidByJoin(shape.wrapped, remove, -signedThickness, 1e-3, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, false, false, join, false, progress)
-      const ok = accept(builder.Shape())
-      if (ok) return ok
-      lastErr = new Error('shell produced invalid solid')
-    } catch (e) { lastErr = e }
+    for (const tol of tols) {
+      try {
+        const r = GCWithScope()
+        const faces = shape.faces as any[]
+        const remove = r(new (_oc as any).TopTools_ListOfShape_1())
+        for (const i of faceIndices) if (faces[i]?.wrapped) remove.Append_1(faces[i].wrapped)
+        const progress = r(new (_oc as any).Message_ProgressRange_1())
+        const builder = r(new (_oc as any).BRepOffsetAPI_MakeThickSolid())
+        builder.MakeThickSolidByJoin(shape.wrapped, remove, -signedThickness, tol, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, false, false, join, false, progress)
+        const ok = accept(builder.Shape())
+        if (ok) return ok
+        lastErr = new Error('shell produced invalid solid')
+      } catch (e) { lastErr = e }
+    }
   }
   throw (lastErr instanceof Error ? lastErr : new Error('shell returned null'))
 }
@@ -2676,6 +2723,7 @@ function buildShape(features: Feature[], noCache = false): any {
           const bKind = f.bop === 'cut' ? 'cut' : f.bop === 'common' ? 'intersect' : 'fuse'
           _recordBool(_i, bKind, t.shape)
           shape = f.bop === 'cut' ? shape.clone().cut(t.shape.clone()) : f.bop === 'common' ? shape.clone().intersect(t.shape.clone()) : shape.clone().fuse(t.shape.clone())
+          shape = _healSolid(shape)   // P2: clean micro-edges / split faces before fillet/shell
           if (!f.keep) parkedBodies.splice(f.target, 1)   // S185 Keep Tools：keep 时工具体保留做泊车体（可复用）；缺省=消耗（旧档逐字节回放）
         } catch (e) { throw new Error(`实体布尔失败：${(e as Error)?.message || e}`) }
       }
@@ -2750,6 +2798,8 @@ function buildShape(features: Feature[], noCache = false): any {
         // Keep the predecessor solid intact rather than freezing the CAD UI.
         buildWarnings.push('⚠ 抽壳：紧接变截面／导轨／连续性放样的通用 Shell 可能令核心长时间无响应，已安全跳过。请在「放样」对话框直接设定薄壁，或改为不变截面放样后再抽壳。')
       } else {
+      // P2: heal once at shell start so face resolve + MakeThickSolid see cleaned topology.
+      shape = _healSolid(shape)
       // Fusion-style: open the user-picked face(s) (nears). Fallback to the top face if none picked.
       // S125 持久面命名：faceFp 存在 → 用指纹喺当前面集揾返同一几何面嘅代表点（全中→跟；任何 miss/撞→保留 ns0 = 今日行为）；
       // 否则首次捕获面指纹供 store 写回。无 faceFp 时 ns=ns0 → 下面 finder/shell 完全不变（字节一致）。
@@ -2814,6 +2864,9 @@ function buildShape(features: Feature[], noCache = false): any {
                 : seeds
               // Prefer the exact selection first. Tangent-chain through a hole-rim fillet
               // otherwise opens the cylinder too and yields a wrong hollow (CX02).
+              // P2: widened OCCT on seeds first (caller heal + join/tol ladder in _shellExactFaces);
+              // Seeds-only OCCT miss → cavity/prismatic before expanding the G1 chain (CX02 top+fillet).
+              // Prefer OCCT before cavity: never call cavity before the widened seeds ladder.
               const attempts: number[][] = []
               if (chain.length > seeds.length) attempts.push(seeds)
               attempts.push(chain.length ? chain : seeds)
@@ -6241,11 +6294,12 @@ const api = {
     if (!current) return null
     try {
       const edges = (current as any).edges as any[]
-      let best: any = null, bestD = Infinity
+      let best: any = null, bestD = Infinity, bestRank = 99
       for (const e of edges) {
         let dmin = Infinity
         for (const t of [0, 0.25, 0.5, 0.75, 1]) { const q = e.pointAt(t); const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2; if (d < dmin) dmin = d }
-        if (dmin < bestD) { bestD = dmin; best = e }
+        const rank = _edgePickRank(e)
+        if (_nearEdgeBetter(dmin, rank, bestD, bestRank)) { bestD = dmin; bestRank = rank; best = e }
       }
       if (!best) return null
       const kind = String(best.geomType)

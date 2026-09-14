@@ -2048,11 +2048,12 @@ function _copyHealSolid(shape: any): any | null {
   return null
 }
 
-/** Soft cavity/prismatic status — geometry OK; avoid alarming 「失败」 when secondary strategy succeeds (v1.22). */
+/** Soft cavity/prismatic status — geometry OK; avoid alarming 「失败」 when secondary strategy succeeds (v1.22).
+ * v1.24: full bilingual phrases (no short-fragment EN mangling like 完成→done / 重建→rebuild). */
 function _shellCavityStatus(kind: 'cavity' | 'prismatic'): string {
   return kind === 'prismatic'
-    ? '抽殼完成（备用重建：直柱型腔）'
-    : '抽殼完成（备用重建：开口面偏移型腔）'
+    ? '抽壳完成（备用：直柱型腔）'
+    : '抽壳完成（备用：开口面偏移型腔）'
 }
 
 /** Light sew of solid faces — alternate base when MakeThickSolid fails on dirty cut+fillet (BX02). */
@@ -3123,7 +3124,17 @@ function buildShape(features: Feature[], noCache = false): any {
               for (const faces of altOpenings) {
                 const got = tryBases(faces)
                 if (got) {
-                  buildWarnings.push('抽壳：原开口面 OCCT 未收敛，已自动改用其他平面开口完成')
+                  buildWarnings.push('抽壳：原开口 OCCT 未收敛，已改用其他平面开口')
+                  return got
+                }
+              }
+              // 2.5) v1.24: coplanar same-Z planar seeds via tryBases BEFORE cavity (not G1 chain — CX02-safe).
+              for (const faces of attempts) {
+                if (faces === seeds) continue
+                if (chain.length > seeds.length && faces.length === chain.length && faces.every((v, j) => v === chain[j])) continue // defer G1 chain
+                const got = tryBases(faces)
+                if (got) {
+                  buildWarnings.push('抽壳：已用共面开口集合完成')
                   return got
                 }
               }
@@ -3144,7 +3155,7 @@ function buildShape(features: Feature[], noCache = false): any {
                   }
                 } catch (e) { lastErr = e }
               }
-              // 4) Remaining attempt sets (chain / planarSameZ) — after cavity.
+              // 4) Remaining G1 chain (and any leftover) — after cavity. planarSameZ already tried in 2.5.
               for (const faces of attempts) {
                 if (faces === seeds) continue
                 const got = tryBases(faces)

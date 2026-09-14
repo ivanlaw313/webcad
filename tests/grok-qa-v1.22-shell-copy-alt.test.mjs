@@ -19,11 +19,11 @@ test('P1 shell wiring: copy-heal + alt openings + soft cavity status', () => {
   assert.match(workerSrc, /function _copyHealSolid/)
   assert.match(workerSrc, /BRepBuilderAPI_Copy/)
   assert.match(workerSrc, /function _shellCavityStatus/)
-  assert.match(workerSrc, /抽殼完成（备用重建/)
+  assert.match(workerSrc, /抽壳完成（备用：/)
   assert.doesNotMatch(workerSrc, /OCCT 抽壳失败/)
   assert.match(workerSrc, /altOpenings/)
   assert.match(workerSrc, /alternate planar lids \(NOT G1 chain\) before cavity/)
-  assert.match(workerSrc, /自动改用其他平面开口完成/)
+  assert.match(workerSrc, /已改用其他平面开口/)
 })
 
 globalThis.require = createRequire(import.meta.url)
@@ -33,7 +33,7 @@ await import('../src/worker/cad.worker.ts')
 const w = globalThis.__wheelWorker
 await w.ready()
 
-const cavityRe = /开口面偏移型腔|备用重建/
+const cavityRe = /开口面偏移型腔|备用：/
 const failAlarmRe = /OCCT 抽壳失败|抽壳失败/
 
 const boxCut = { id: 'box', type: 'extrude', profile: { kind: 'rect', a: [-25, -20], b: [25, 20] }, height: 25, operation: 'new' }

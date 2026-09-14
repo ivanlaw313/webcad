@@ -11,12 +11,12 @@ const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const worker = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.23', () => {
-  assert.match(version, /APP_VERSION = '1\.23'/)
+test('APP_VERSION is 1.23+ (superseded by later ship)', () => {
+  assert.match(version, /APP_VERSION = '1\.(2[3-9]|[3-9]\d)'/)
 })
 
 test('partSolidRequiredStatus helper guides mesh / component-boolean dead-end', () => {
-  assert.match(store, /function partSolidRequiredStatus/)
+  assert.match(store, /function partSolidRequiredPatch/)
   assert.match(store, /MeshFit\/转 B-rep/)
   assert.match(store, /实体布尔/)
   assert.match(store, /✎编辑/)
@@ -25,18 +25,18 @@ test('partSolidRequiredStatus helper guides mesh / component-boolean dead-end', 
 })
 
 test('Fillet / Chamfer / Shell / FaceFillet use guided status (not bare 先要有实体)', () => {
-  assert.match(store, /partSolidRequiredStatus\('圆角'/)
-  assert.match(store, /partSolidRequiredStatus\('倒角'/)
-  assert.match(store, /partSolidRequiredStatus\('抽壳'/)
-  assert.match(store, /partSolidRequiredStatus\('面圆角'/)
+  assert.match(store, /partSolidRequiredPatch\('圆角'/)
+  assert.match(store, /partSolidRequiredPatch\('倒角'/)
+  assert.match(store, /partSolidRequiredPatch\('抽壳'/)
+  assert.match(store, /partSolidRequiredPatch\('面圆角'/)
   // Ribbon entry cases must not keep the dead-end bare toast.
   const filletCase = store.match(/case 'fillet':[\s\S]{0,280}?return/)
   assert.ok(filletCase, 'fillet case')
-  assert.match(filletCase[0], /partSolidRequiredStatus/)
+  assert.match(filletCase[0], /partSolidRequiredPatch/)
   assert.doesNotMatch(filletCase[0], /圆角：先要有实体/)
   const shellCase = store.match(/case 'shell':[\s\S]{0,280}?return/)
   assert.ok(shellCase, 'shell case')
-  assert.match(shellCase[0], /partSolidRequiredStatus/)
+  assert.match(shellCase[0], /partSolidRequiredPatch/)
   assert.doesNotMatch(shellCase[0], /抽壳：先要有实体/)
 })
 
@@ -46,10 +46,11 @@ test('componentBoolean offers bake into part solid after success', () => {
   assert.ok(start >= 0 && end > start)
   const block = store.slice(start, end)
   assert.match(block, /烘焙为零件实体/)
-  assert.match(block, /convertMeshComponent\(aId\)/)
-  assert.match(block, /editComponent\(aId\)/)
-  assert.match(block, /已烘焙入零件时间轴，可圆角\/抽壳/)
-  assert.match(block, /MeshFit\/转 B-rep/)
+  // v1.24: primary statusAction button (no blocking confirm); bake runs via runStatusAction
+  assert.match(block, /bakeMeshToPart|convertMeshComponent/)
+  assert.match(store, /runStatusAction/)
+  assert.match(store, /已烘焙入零件时间轴，可圆角\/抽壳/)
+  assert.match(block, /MeshFit\/转 B-rep|实体布尔/)
 })
 
 test('i18n covers v1.23 guidance phrases', () => {

@@ -228,6 +228,7 @@ export default function App() {
       if (s.jointOriginPickMode && e.key === 'Escape') { e.preventDefault(); s.cancelJointOriginPick(); return }
       if (s.screwFitMode && e.key === 'Escape') { e.preventDefault(); useApp.setState({ screwFitMode: false, status: '已取消按孔配螺丝' }); return }
       if (s.jointHolePick && e.key === 'Escape') { e.preventDefault(); useApp.setState({ jointHolePick: null, status: '已取消拾孔定轴' }); return }
+      if (s.compBoolPending && e.key === 'Escape') { e.preventDefault(); s.cancelComponentBoolean(); return }
       // 测试报告观察 A：统一 Esc 关闭其余浮动面板 / 取消拾取模式（之前 FEA / 工程计算 等唔响应 Esc）。
       // 按优先级逐个兜底；无开启嘅面板时跌落去下面 switch 的 escape（清选择 / 退草图）。
       if (e.key === 'Escape') {

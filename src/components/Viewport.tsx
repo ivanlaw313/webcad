@@ -3725,6 +3725,8 @@ export default function Viewport() {
   const setView = useApp((s) => s.setView)
   const busy = useApp((s) => s.busy)
   const status = useApp((s) => s.status)
+  const statusAction = useApp((s) => s.statusAction)
+  const runStatusAction = useApp((s) => s.runStatusAction)
   const lang = useApp((s) => s.lang)   // T807：状态栏 en 渲染时翻译
   const mode = useApp((s) => s.mode)
   const navTool = useApp((s) => s.navTool)
@@ -8284,7 +8286,7 @@ export default function Viewport() {
           {feaStaleBannerText()}
         </div>
       )}
-      <div ref={statusDrag.ref} className={'vp-badge' + (statusDrag.isDragged ? ' vp-hud-dragged' : '') + (statusHudCollapsed ? ' vp-hud-collapsed' : '')} style={statusDrag.style}><span className="vp-hud-handle" onPointerDown={statusDrag.onPointerDown} title={tStatus('拖動狀態提示', lang)}>⋮⋮</span><button className="vp-hud-collapse" type="button" title={statusHudCollapsed ? tStatus('展開狀態提示', lang) : tStatus('收合狀態提示', lang)} onClick={() => setStatusHudCollapsed((v) => !v)}>{statusHudCollapsed ? '⌃' : '–'}</button>{statusDrag.isDragged && <button className="vp-hud-reset" type="button" title={tStatus('還原狀態提示預設位置', lang)} onClick={statusDrag.reset}>↺</button>}<span className="vp-status-message" title={tStatus(status, lang)}>{tStatus(status, lang)}</span></div>
+      <div ref={statusDrag.ref} className={'vp-badge' + (statusDrag.isDragged ? ' vp-hud-dragged' : '') + (statusHudCollapsed ? ' vp-hud-collapsed' : '')} style={statusDrag.style}><span className="vp-hud-handle" onPointerDown={statusDrag.onPointerDown} title={tStatus('拖動狀態提示', lang)}>⋮⋮</span><button className="vp-hud-collapse" type="button" title={statusHudCollapsed ? tStatus('展開狀態提示', lang) : tStatus('收合狀態提示', lang)} onClick={() => setStatusHudCollapsed((v) => !v)}>{statusHudCollapsed ? '⌃' : '–'}</button>{statusDrag.isDragged && <button className="vp-hud-reset" type="button" title={tStatus('還原狀態提示預設位置', lang)} onClick={statusDrag.reset}>↺</button>}<span className="vp-status-message" title={tStatus(status, lang)}>{tStatus(status, lang)}</span>{statusAction && !statusHudCollapsed && <button type="button" className="vp-status-action" data-testid="status-action" data-action-id={statusAction.id} title={tStatus(statusAction.label, lang)} onClick={() => { void runStatusAction() }} style={{ marginLeft: 8, flexShrink: 0, padding: '2px 10px', borderRadius: 6, border: '1px solid #3b82f6', background: '#2563eb', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{tStatus(statusAction.label, lang)}</button>}</div>
       <InterfClearChip />
       <FormPanel />
       <QuiltPickPanel />

@@ -2142,6 +2142,10 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   // T805（报告 R3）：统一应用内对话框 — 取代 native prompt/alert/confirm。
   // 真实浏览器一致 UI + 校验，并且喺自动化/沙箱（Chrome 抑制原生弹窗）下唔会静默失效。
   uiDialog: { kind: 'prompt' | 'confirm' | 'alert'; title: string; msg: string; def: string } | null
+  /** v1.24: primary one-click action shown next to status (bake / MeshFit). */
+  statusAction: { id: 'bakeMeshToPart' | 'meshfit'; label: string; componentId?: string } | null
+  runStatusAction: () => Promise<void>
+  clearStatusAction: () => void
   appPrompt: (msg: string, def?: string, title?: string) => Promise<string | null>
   appConfirm: (msg: string, title?: string) => Promise<boolean>
   appAlert: (msg: string, title?: string) => Promise<void>
@@ -3231,27 +3235,35 @@ function dropCreaseEdgesOnce(creases: [number, number][], rmKeys: string[]): [nu
 const COMP_PALETTE = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#42d4d4', '#f032e6', '#bf9000', '#469990', '#9a6324']
 const SOLID_TYPES = ['extrude', 'extgroup', 'revolve', 'prim', 'loft', 'sweep', 'coil', 'rib', 'thread', 'sheetmetal', 'pathpattern', 'gear', 'rack', 'pulley', 'worm', 'crowngear', 'meshbody', 'surfloft', 'surfpatch', 'boundarypatch', 'surfbridge']
 const hasSolid = (fs: Feature[]) => fs.some((f) => SOLID_TYPES.includes(f.type))
-/** v1.23: Fillet/Shell need part-timeline solid — guide out of component-boolean mesh dead-end. */
-function partSolidRequiredStatus(
+/** v1.23/v1.24: Fillet/Shell need part-timeline solid — guide + optional one-click MeshFit. */
+type StatusAction = { id: 'bakeMeshToPart' | 'meshfit'; label: string; componentId?: string }
+function partSolidRequiredPatch(
   cmd: string,
   s: {
     components: { id: string; name: string; mesh: MeshData; defId?: string; src?: { features: Feature[] } }[]
     componentDefs: { id: string; src?: { features: Feature[] }; bodies: { id: string; src?: { features: Feature[] } }[] }[]
     selectedComponent: string | null
   },
-): string {
+): { status: string; statusAction: StatusAction | null } {
   const comps = s.components.filter((c) => c.mesh?.vertices?.length)
-  if (!comps.length) return `${cmd}：先要有零件实体（拉伸 / 旋转 / 导入 B-rep）`
+  if (!comps.length) return { status: `${cmd}：先要有零件实体（拉伸 / 旋转 / 导入 B-rep）`, statusAction: null }
   const sel = s.selectedComponent ? comps.find((c) => c.id === s.selectedComponent) : undefined
   const focus = sel ?? comps[comps.length - 1]!
   const def = focus.defId ? s.componentDefs.find((d) => d.id === focus.defId) : undefined
   const body0 = def?.bodies?.[0]
   const hasSrc = !!(focus.src?.features?.length || body0?.src?.features?.length || def?.src?.features?.length)
   const name = focus.name || '组件'
+  const meshfitAction: StatusAction = { id: 'meshfit', label: 'MeshFit / 转 B-rep', componentId: focus.id }
   if (hasSrc) {
-    return `${cmd}：当前是装配/网格件「${name}」，不是零件时间轴实体 — 可「✎编辑」回时间轴，或选件 → MeshFit/转 B-rep；零件内多体请用「实体布尔」`
+    return {
+      status: `${cmd}：当前是装配/网格件「${name}」，不是零件时间轴实体 — 可「✎编辑」回时间轴，或选件 → MeshFit/转 B-rep；零件内多体请用「实体布尔」 · 点右侧「MeshFit / 转 B-rep」烘焙后再试`,
+      statusAction: meshfitAction,
+    }
   }
-  return `${cmd}：当前是组件布尔/网格件「${name}」，不是零件实体 — 选此件 → MeshFit/转 B-rep 烘焙入零件后再圆角/抽壳；零件内多体请用「实体布尔」`
+  return {
+    status: `${cmd}：当前是组件布尔/网格件「${name}」，不是零件实体 — 选此件 → MeshFit/转 B-rep 烘焙入零件后再圆角/抽壳；零件内多体请用「实体布尔」 · 点右侧「MeshFit / 转 B-rep」烘焙后再试`,
+    statusAction: meshfitAction,
+  }
 }
 // GM-3DV1 S10：孔「到下一面」(Fusion Hole Extent=To Next) 纯几何 —— 由孔心 (cx,cy) CAD、入口面高 top 向 −z 打，
 // 揾正下方【最近嘅面 z（< top）】= 下一块面。bodyMesh.vertices/triangles 系 CAD 坐标（同 MoveScaleGhost 消费惯例）。
@@ -6124,7 +6136,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setShellDir: (d) => set({ shellDir: d }),
   toggleShell: () => set((s) => ({ shellMode: !s.shellMode, shellPicks: [], shellThickness: s.shellMode ? 0 : 2, shellType: 'open', shellTangentChain: true, shellDir: 'inside', holeMode: false, featDlg: null, decalPick: null, pushPullMode: false, edgeRoundPick: null, faceFilletMode: false, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.shellMode ? '抽壳：点选要移除的面（可多个）→ 输入壁厚 → 按「确定」' : '已退出抽壳' })),
   shellPickAt: (p) => set((s) => {
-    if (!hasSolid(s.features)) return { status: partSolidRequiredStatus('抽壳', s) }
+    if (!hasSolid(s.features)) return partSolidRequiredPatch('抽壳', s)
     const hit = s.shellPicks.findIndex((q) => Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]) < 2.5)
     const picks = s.shellType === 'closed' ? (hit >= 0 ? [] : [p]) : (hit >= 0 ? s.shellPicks.filter((_, i) => i !== hit) : [...s.shellPicks, p])
     return { shellPicks: picks, status: hit >= 0 ? `已取消${s.shellType === 'closed' ? '实体' : '该面'}（剩 ${picks.length} 个）` : s.shellType === 'closed' ? '已选实体 — 输入壁厚后按「确定」' : `已选 ${picks.length} 个开口面 — 继续点选，或输入壁厚后按「确定」`
@@ -6153,7 +6165,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   faceFilletRadius: 4,
   setFaceFilletRadius: (n) => set({ faceFilletRadius: Math.max(0.1, n || 4) }),
   toggleFaceFillet: () => set((s) => ({ faceFilletMode: !s.faceFilletMode, faceFilletPicks: [], shellMode: false, holeMode: false, featDlg: null, decalPick: null, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.faceFilletMode ? '面圆角：点选两张相邻面；系统会先验证共同 B-rep 边，再建立真实圆角。' : '已退出面圆角' })),
-  faceFilletPickAt: (p) => set((s) => { if (!hasSolid(s.features)) return { status: partSolidRequiredStatus('面圆角', s) }; if (s.faceFilletPicks.length >= 2) return { faceFilletPicks: [p], status: '已重选第 1 张面 — 再点第 2 张面' }; const picks = [...s.faceFilletPicks, p]; return { faceFilletPicks: picks, status: picks.length < 2 ? '已选第 1 张面 — 再点第 2 张面' : '已选 2 张面 — 设半径后按「确定」' } }),
+  faceFilletPickAt: (p) => set((s) => { if (!hasSolid(s.features)) return partSolidRequiredPatch('面圆角', s); if (s.faceFilletPicks.length >= 2) return { faceFilletPicks: [p], status: '已重选第 1 张面 — 再点第 2 张面' }; const picks = [...s.faceFilletPicks, p]; return { faceFilletPicks: picks, status: picks.length < 2 ? '已选第 1 张面 — 再点第 2 张面' : '已选 2 张面 — 设半径后按「确定」' } }),
   commitFaceFillet: async () => {
     const pts = get().faceFilletPicks, r = get().faceFilletRadius
     if (pts.length !== 2) { set({ status: '面圆角需要恰好 2 张面' }); return }
@@ -11726,23 +11738,12 @@ export const useApp = create<AppState>((rawSet, get) => {
           status: `已${opLbl}「${A.name} / ${aBody.name}」${opSym}「${B.name} / ${bBody.name}」→ 体积 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}${toolNote}${keepTool ? '（工具 Body 保留）' : '（只消耗工具 Body）'}${removedJointCount ? `；工具件移除，连带移除 ${removedJointCount} 个关节` : '；来源位置与关节保留'}（可撤销 Ctrl+Z）`,
         }
       })
-      // v1.23: mesh boolean ≠ part solid — offer bake so Fillet/Shell are not a dead end.
-      const bakeOk = await get().appConfirm(
-        `组件布尔结果是网格件，圆角/抽壳需要零件时间轴实体。\n要将「${A.name}」转 B-rep 并载入活动零件（可立即圆角/抽壳）吗？\n（否 = 保留网格件；之后可 MeshFit/转 B-rep 或 ✎编辑；零件内多体请用「实体布尔」）`,
-        '烘焙为零件实体',
-      )
-      if (bakeOk) {
-        await get().convertMeshComponent(aId)
-        if (!hasSolid(get().features)) {
-          const still = get().components.find((c) => c.id === aId)
-          if (still) await get().editComponent(aId)
-        }
-        if (hasSolid(get().features)) {
-          set({ status: `${get().status} · 已烘焙入零件时间轴，可圆角/抽壳` })
-        }
-      } else {
-        set({ status: `${get().status} · 提示：圆角/抽壳请先 MeshFit/转 B-rep（或零件内用「实体布尔」）` })
-      }
+      // v1.24: mesh boolean ≠ part solid — primary status/button bake (no blocking confirm).
+      set({
+        status: `${get().status} · 组件布尔结果是网格件，圆角/抽壳需要零件时间轴实体 — 点右侧按钮烘焙入零件后即可圆角/抽壳（或 MeshFit/转 B-rep；零件内多体用「实体布尔」）`,
+        statusAction: { id: 'bakeMeshToPart', label: '烘焙为零件实体', componentId: aId },
+        selectedComponent: aId,
+      })
     } catch (e) { set({ status: `组件布尔失败：${(e as Error)?.message || e}` }) }
   },
   // T766（S44）：网格组件平面切割（Fusion Mesh > Plane Cut 带填充）— manifold 布尔减半空间巨盒，
@@ -12715,6 +12716,29 @@ export const useApp = create<AppState>((rawSet, get) => {
   timelinePos: 0,
   busy: false,
   status: '就绪',
+  statusAction: null,
+  clearStatusAction: () => set({ statusAction: null }),
+  runStatusAction: async () => {
+    const a = get().statusAction
+    if (!a) return
+    set({ statusAction: null })
+    if (a.id === 'bakeMeshToPart') {
+      const id = a.componentId || get().selectedComponent
+      if (!id) { set({ status: '烘焙：请先选中网格组件' }); return }
+      await get().convertMeshComponent(id)
+      if (!hasSolid(get().features)) {
+        const still = get().components.find((c) => c.id === id)
+        if (still) await get().editComponent(id)
+      }
+      if (hasSolid(get().features)) set({ status: `${get().status} · 已烘焙入零件时间轴，可圆角/抽壳`, statusAction: null })
+      return
+    }
+    if (a.id === 'meshfit') {
+      const id = a.componentId
+      if (id) set({ selectedComponent: id })
+      get().runCommand('meshfit', 'MeshFit / 转 B-rep')
+    }
+  },
 
   // T805（报告 R3）：统一应用内对话框 — Promise 化，取代 native prompt/alert/confirm。
   uiDialog: null,
@@ -13235,20 +13259,20 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
       case 'fillet':  // Fusion-style: enter the fillet command (select edges → set radius → 确定), not auto-all
-        if (!hasSolid(get().features)) { set({ status: partSolidRequiredStatus('圆角', get()) }); return }
+        if (!hasSolid(get().features)) { set(partSolidRequiredPatch('圆角', get())); return }
         if (get().edgeRoundPick !== 'fillet') get().toggleEdgeRoundPick('fillet'); return
       case 'chamfer':
-        if (!hasSolid(get().features)) { set({ status: partSolidRequiredStatus('倒角', get()) }); return }
+        if (!hasSolid(get().features)) { set(partSolidRequiredPatch('倒角', get())); return }
         if (get().edgeRoundPick !== 'chamfer') get().toggleEdgeRoundPick('chamfer'); return
       case 'filletall':   // T810：一键全棱圆角（免拣边）
         return void get().appPrompt(tStatus('全棱倒圆角 — 半径 mm（对实体所有棱；过大会失败，调细再试）', get().lang), '2').then((v) => { if (v != null) { const r = Number(v.trim()); if (r > 0) void get().filletAllEdges(r) } })
       case 'chamferall':
         return void get().appPrompt(tStatus('全棱倒角 — 距离 mm（对实体所有棱）', get().lang), '1').then((v) => { if (v != null) { const d = Number(v.trim()); if (d > 0) void get().chamferAllEdges(d) } })
       case 'shell':  // Fusion-style: enter shell command (pick face(s) to open → thickness → 确定)
-        if (!hasSolid(get().features)) { set({ status: partSolidRequiredStatus('抽壳', get()) }); return }
+        if (!hasSolid(get().features)) { set(partSolidRequiredPatch('抽壳', get())); return }
         if (!get().shellMode) get().toggleShell(); return
       case 'facefillet':  // R1 面圆角：拾两张面 → 半径 → 确定（窄版：平面-平面 / 平面-圆柱 解析）
-        if (!hasSolid(get().features)) { set({ status: partSolidRequiredStatus('面圆角', get()) }); return }
+        if (!hasSolid(get().features)) { set(partSolidRequiredPatch('面圆角', get())); return }
         if (!get().faceFilletMode) get().toggleFaceFillet(); return
       case 'scale': return get().openFeatDlg('scale')
       case 'offsetsolid': return hasSolid(get().features) ? get().openFeatDlg('offsetsolid') : set({ status: '整体偏移需要先有实体' })
@@ -18145,7 +18169,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // T810：一键全棱圆角 / 倒角（无需逐条拣边）。OCCT 对全棱倒角，半径相对几何过大会失败 → applyFeatures
   // 诚实保旧形 + 提示调细。时间轴可改半径联动重建。AI Copilot 亦可调（佢做唔到拣边，但全棱呢个得）。
   filletAllEdges: async (radius) => {
-    if (!hasSolid(get().features)) { set({ status: partSolidRequiredStatus('圆角', get()) }); return false }
+    if (!hasSolid(get().features)) { set(partSolidRequiredPatch('圆角', get())); return false }
     const r = radius > 0 ? radius : 2
     const triBefore = get().bodyMesh ? get().bodyMesh!.triangles.length : 0
     const f: Feature = { id: fid(), type: 'fillet', radius: r, edges: 'all' }
@@ -18155,7 +18179,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return ok
   },
   chamferAllEdges: async (dist) => {
-    if (!hasSolid(get().features)) { set({ status: partSolidRequiredStatus('倒角', get()) }); return false }
+    if (!hasSolid(get().features)) { set(partSolidRequiredPatch('倒角', get())); return false }
     const d = dist > 0 ? dist : 1
     const triBefore = get().bodyMesh ? get().bodyMesh!.triangles.length : 0
     const f: Feature = { id: fid(), type: 'chamfer', distance: d, edges: 'all' }

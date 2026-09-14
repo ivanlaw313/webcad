@@ -2531,6 +2531,7 @@ export function SketchDimLayer() {
   const skDimLabelOff = useApp((s) => s.skDimLabelOff)   // GM-FP4 #31：尺寸标签拖动重定位偏移（按 conId）
   const unit = useApp((s) => s.unit)   // T794：单位感知尺寸（显示 + 输入解析）
   const dimPreview=useApp(s=>s.skDimPreview)
+  const dxfLabels = useApp((s) => (s.skEditTarget && s.sketchSources[s.skEditTarget]?.labels) || null)
   const [editing, setEditing] = useState<string | null>(null)
   const editingLabel=useRef<DimLabel|null>(null)
   const labels = useMemo(() => {
@@ -2591,9 +2592,16 @@ export function SketchDimLayer() {
         out.push({ key: 'exh', anchor: [a.x, a.y, a.z], text: dimFmtU(Math.abs(exH) || 1, unit) + (unit === 'inch' ? 'in' : unit), edit: { target: 'shape', dim: 'ext', value: Math.abs(exH) || 1 } })
       }
     }
+    // v1.21：DXF TEXT/MTEXT 导入标注（重开草图可见；construction 下划线已在 shapes 内）
+    if (skAnnot && dxfLabels && dxfLabels.length) {
+      for (let i = 0; i < dxfLabels.length; i++) {
+        const L = dxfLabels[i]
+        out.push({ key: `dxfTxt${i}`, anchor: lift(L.at), text: L.text, driven: true, pxOff: [8, -14] })
+      }
+    }
     const positioned=out.map(label=>editing===label.key&&editingLabel.current?.key===label.key?editingLabel.current:label)
     return modelingCommandActive ? positioned.filter((label) => label.edit?.dim === 'ext') : positioned
-  }, [mode, plane, baseZ, profiles, shape, arb, exOpen, exH, exFlip, exExtent, skCons, unit, skAnnot, skConsVis, skDimLabelOff, modelingCommandActive,dimPreview,editing])
+  }, [mode, plane, baseZ, profiles, shape, arb, exOpen, exH, exFlip, exExtent, skCons, unit, skAnnot, skConsVis, skDimLabelOff, modelingCommandActive,dimPreview,editing, dxfLabels])
   const setDim = useApp((s) => s.setSketchDimValue)
   const skConflictIds = useApp((s) => s.skConflictIds)   // S194：冲突约束逐个红标
   const skSelCon = useApp((s) => s.skSelCon)   // GM-FP3 #35：当前选中约束（点徽章=选中，Delete 删）

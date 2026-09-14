@@ -123,7 +123,7 @@ import { DEFAULT_SEL_FILTER, migrateSelFilter, withSelType, withAllTypes, withNo
 
 export type Pt = [number, number] // three.js ground coords [x, z]
 // GM-X3 #6/#7/#8：矢量（SVG/DXF）导入选项 —— asSketch=入可编辑草图源（默认 true）；plane/baseZ/zAngle/scale/include（逐层）。
-export type ImportVecOpt = { asSketch?: boolean; plane?: Plane; baseZ?: number; zAngle?: number; scale?: number; include?: string[] | null }
+export type ImportVecOpt = { asSketch?: boolean; plane?: Plane; baseZ?: number; zAngle?: number; scale?: number; include?: string[] | null; labels?: { at: Pt; text: string; height: number; rot?: number; layer?: string }[]; labelShapes?: SketchShape[] }
 // GM-X3 #11：Mesh 插入选项 —— 单位换算 + flip-up（Y↔Z）+ 落地摆位。
 export type MeshInsertOpt = { unit?: string; flipUp?: boolean; place?: 'none' | 'center' | 'ground' }
 // construction = 构造几何（Fusion X）：虚线显示、可约束可吸附，但唔参与拉伸/导出。
@@ -1657,7 +1657,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   skConflictIds: string[]        // S194：planegcs 报嘅冲突约束 id 清单 — 徽章逐个红标俾用户拣删边个（Fusion 式，唔使估）
   // ── 草图重开编辑（Fusion 式：双击 timeline 草图特征 → 重开 → 改完全树重建）──
   // 拉伸时把草图源（shapes + 约束 + 面）存入 sketchSources，特征打 sketchId；重开还原晒约束。
-  sketchSources: Record<string, { patternData?: SketchPatternData; faceBinding?: SketchFaceBinding; regionSelection?: string[]; shapes: SketchShape[]; cons: SkCon[]; plane: Plane; baseZ: number; op: BoolOp; height: number; twist?: number; draft?: number; symmetric?: boolean; through?: boolean; down?: boolean; visible?: boolean; name?: string; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; sweepPath?: Pt[]; sweepClimb?: number; sweepGuide?: Pt[]; datumRef?: { idx: number; base: Plane; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } } }>  // GM-W6 F2：name = 草图自订名（浏览树双击改名；缺省用 sk#→草图# 标签，旧档无此字段照旧）。arb = 斜面草图基（T726）；visible = browser tree 眼仔；sweepPath/sweepClimb/sweepGuide = 扫掠路径/爬升/导轨源（T748/T755）；datumRef（#11）= 关联 datum 源面签名，datum 移动时 baseZ 自动重烘焙
+  sketchSources: Record<string, { patternData?: SketchPatternData; faceBinding?: SketchFaceBinding; regionSelection?: string[]; shapes: SketchShape[]; cons: SkCon[]; plane: Plane; baseZ: number; op: BoolOp; height: number; twist?: number; draft?: number; symmetric?: boolean; through?: boolean; down?: boolean; visible?: boolean; name?: string; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; sweepPath?: Pt[]; sweepClimb?: number; sweepGuide?: Pt[]; datumRef?: { idx: number; base: Plane; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }; labels?: { at: Pt; text: string; height: number; rot?: number; layer?: string }[] }>  // GM-W6 F2：name = 草图自订名（浏览树双击改名；缺省用 sk#→草图# 标签，旧档无此字段照旧）。arb = 斜面草图基（T726）；visible = browser tree 眼仔；sweepPath/sweepClimb/sweepGuide = 扫掠路径/爬升/导轨源（T748/T755）；datumRef（#11）= 关联 datum 源面签名，datum 移动时 baseZ 自动重烘焙
   skEditTarget: string | null    // 正在重开编辑嘅草图 id（finishSketch 时按佢重生成特征组）
   editSketchOf: (featureId: string, sectionSkId?: string) => void  // sectionSkId（T753）：loft 直接开指定截面（browser tree 双击）
   toggleSketchVis: (skId: string) => void          // T746 批2：browser tree 眼仔 — committed 草图喺模型模式显示/隐藏
@@ -17555,9 +17555,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       const text = await f.text()
       // GM-X3 #8：先解析取层，弹对话框（平面/单位/Z角/缩放/逐层/入草图源）
       const { parseDxfToProfiles } = await import('./io/dxfImport')
-      const { profiles, layers, note } = parseDxfToProfiles(text)
-      if (!profiles.length) { set({ status: 'DXF 导入失败：' + note }); return }
-      get().openInsertVec('dxf', text, layers)
+      const { profiles, texts, layers, note } = parseDxfToProfiles(text)
+      if (!profiles.length && !(texts && texts.length)) { set({ status: 'DXF 导入失败：' + note }); return }
+      get().openInsertVec('dxf', text, layers.length ? layers : ['0'])
     }
     inp.click()
   },
@@ -20142,10 +20142,18 @@ export const useApp = create<AppState>((rawSet, get) => {
   // Import a 2D DXF profile and extrude it to a solid (laser-cut / online profiles → 3D printable part).
   // Non-destructive: any existing body is first frozen into a component, then the DXF part becomes the active body.
   importDxf: async (text, height, opt) => {
-    const { parseDxfToProfiles, classifyProfiles } = await import('./io/dxfImport')
-    const { profiles, note, skipped } = parseDxfToProfiles(text)
-    if (!profiles.length) { set({ status: 'DXF 导入失败：' + note }); return }
-    await get().importProfiles2D(classifyProfiles(profiles), `已导入 DXF：${note}`, skipped, height, opt)
+    const { parseDxfToProfiles, classifyProfiles, profilesRecenterOffset, shiftTexts } = await import('./io/dxfImport')
+    const { profiles, texts, note, skipped } = parseDxfToProfiles(text)
+    if (!profiles.length && !(texts && texts.length)) { set({ status: 'DXF 导入失败：' + note }); return }
+    const [ox, oy] = profiles.length ? profilesRecenterOffset(profiles) : (() => {
+      if (!texts.length) return [0, 0] as [number, number]
+      let mnx = 1e9, mny = 1e9, mxx = -1e9, mxy = -1e9
+      for (const t of texts) { const [x, y] = t.at; if (x < mnx) mnx = x; if (y < mny) mny = y; if (x > mxx) mxx = x; if (y > mxy) mxy = y }
+      return [(mnx + mxx) / 2, (mny + mxy) / 2] as [number, number]
+    })()
+    const shiftedTexts = shiftTexts(texts || [], ox, oy)
+    const items = profiles.length ? classifyProfiles(profiles) : []
+    await get().importProfiles2D(items, `已导入 DXF：${note}`, skipped, height, { ...opt, labels: shiftedTexts })
   },
   // Build a recentred, outer/hole-classified set of 2D profiles into a body. Shared by DXF + SVG import.
   // GM-X3 #6/#8：opt.asSketch（默认 true）→ 走【草图源管线】：生成带 sketchId 的 extrude 组 + 归档 sketchSources[skId]，
@@ -20154,21 +20162,41 @@ export const useApp = create<AppState>((rawSet, get) => {
   importProfiles2D: async (items, label, skipped, height = 5, opt) => {
     let use = items
     if (opt?.include && opt.include.length) use = filterByLayers(items as ImpItem[], new Set(opt.include)) as typeof items
-    if (!use.length) { set({ status: label + '：无可用轮廓' + (opt?.include?.length ? '（所选层为空）' : '') }); return }
+    const scale = opt?.scale ?? 1, zAngle = opt?.zAngle ?? 0
+    let labels = (opt?.labels || []).slice()
+    if (labels.length && (scale !== 1 || zAngle !== 0)) {
+      const { xform2D } = await import('./cad/insertModel')
+      labels = labels.map((t) => ({ ...t, at: xform2D(t.at, scale, zAngle), height: Math.max(0.1, t.height * scale), rot: (t.rot || 0) + (zAngle * 180 / Math.PI) }))
+    }
+    const { textsToConstructionShapes } = await import('./io/dxfImport')
+    const labelShapes = (labels.length ? textsToConstructionShapes(labels) : (opt?.labelShapes || []).slice()) as SketchShape[]
+    const labelNote = labels.length ? `；保留 ${labels.length} 个文字标注（重开草图可见）` : ''
+    if (!use.length && !labels.length) { set({ status: label + '：无可用轮廓' + (opt?.include?.length ? '（所选层为空）' : '') }); return }
     const h = Number.isFinite(height) && height > 0 ? (height as number) : 5
     const plane = (opt?.plane ?? 'XY') as Plane
     const baseZ = opt?.baseZ ?? 0
     const asSketch = opt?.asSketch !== false   // 默认入草图源（可编辑曲线）
     if (hasSolid(get().features) || get().bodyMesh) get().newComponent()
+    // TEXT-only DXF: archive a sketch source with construction markers + labels (no extrude).
+    if (!use.length && labels.length) {
+      const skId = 'sk' + ++_skidN
+      const shapes = JSON.parse(JSON.stringify(labelShapes)) as SketchShape[]
+      set((st) => ({
+        sketchSources: { ...st.sketchSources, [skId]: { shapes, cons: [], plane, baseZ, op: 'new' as BoolOp, height: h, labels: JSON.parse(JSON.stringify(labels)) } },
+        status: `${label}${labelNote}${skipped && skipped.length ? `；跳过未支持实体 ${skipped.join('/')}` : ''}`,
+      }))
+      get().requestFit()
+      return
+    }
     if (asSketch) {
       const src = buildImportSketchSource(use as ImpItem[], { plane: plane as string, baseZ, op: 'new', height: h, scale: opt?.scale ?? 1, zAngle: opt?.zAngle ?? 0 })
-      const shapes = src.shapes as unknown as SketchShape[]
+      const shapes = [...(src.shapes as unknown as SketchShape[]), ...labelShapes]
       const skId = 'sk' + ++_skidN
       const feats = extrudeFeatsFromShapes(shapes, { plane, baseZ, op: 'new', height: h }, skId)
       if (feats.length) {
-        const ok = await get().applyFeatures(feats, `${label}，拉伸 ${h}mm（双击时间轴可重开改曲线/加尺寸）${skipped && skipped.length ? `；跳过未支持实体 ${skipped.join('/')}` : ''}`)
+        const ok = await get().applyFeatures(feats, `${label}，拉伸 ${h}mm（双击时间轴可重开改曲线/加尺寸）${labelNote}${skipped && skipped.length ? `；跳过未支持实体 ${skipped.join('/')}` : ''}`)
         if (ok) {
-          set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: JSON.parse(JSON.stringify(shapes)) as SketchShape[], cons: [], plane, baseZ, op: 'new' as BoolOp, height: h } } }))
+          set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: JSON.parse(JSON.stringify(shapes)) as SketchShape[], cons: [], plane, baseZ, op: 'new' as BoolOp, height: h, ...(labels.length ? { labels: JSON.parse(JSON.stringify(labels)) } : {}) } } }))
           get().requestFit()
           return
         }
@@ -20176,7 +20204,12 @@ export const useApp = create<AppState>((rawSet, get) => {
       // 兜底：草图源路径失败 → 落回旧固定轮廓（诚实降级，唔阻塞导入）
     }
     const feats: Feature[] = (use as ImpItem[]).map((it) => ({ id: fid(), type: 'extrude', profile: (opt?.scale && opt.scale !== 1) || (opt?.zAngle && opt.zAngle !== 0) ? scaleRotProfile(it.profile as SketchProfile, opt?.scale ?? 1, opt?.zAngle ?? 0) : it.profile as SketchProfile, height: h, operation: it.operation, baseZ, ...(plane !== 'XY' ? { plane } : {}) }))
-    await get().applyFeatures(feats, `${label}，拉伸 ${h}mm（时间轴可改高度）${skipped && skipped.length ? `；跳过未支持实体 ${skipped.join('/')}` : ''}`)
+    await get().applyFeatures(feats, `${label}，拉伸 ${h}mm（时间轴可改高度）${labelNote}${skipped && skipped.length ? `；跳过未支持实体 ${skipped.join('/')}` : ''}`)
+    // Even without asSketch, park labels on a dedicated sketch source so they are not silently dropped.
+    if (labels.length) {
+      const skId = 'sk' + ++_skidN
+      set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: JSON.parse(JSON.stringify(labelShapes)) as SketchShape[], cons: [], plane, baseZ, op: 'new' as BoolOp, height: h, labels: JSON.parse(JSON.stringify(labels)), name: 'DXF文字标注' } } }))
+    }
     get().requestFit()
   },
   importSvg: async (text, height, opt) => {

@@ -326,11 +326,11 @@ export default function Ribbon() {
   const setCmdPalette = useApp((s) => s.setCmdPalette)
   const projectName = useApp((s) => s.projectName)
   const setProjectName = useApp((s) => s.setProjectName)
-  const importStl = useApp((s) => s.importStl)
   const importStep = useApp((s) => s.importStep)
   const openObjDialog = useApp((s) => s.openObjDialog)
   const openDxfDialog = useApp((s) => s.openDxfDialog)
   const openSvgDialog = useApp((s) => s.openSvgDialog)
+  const openStlDialog = useApp((s) => s.openStlDialog)
   const pickFile = (accept: string, cb: (buf: ArrayBuffer, base: string) => void) => {
     const inp = document.createElement('input')
     inp.type = 'file'; inp.accept = accept
@@ -340,7 +340,9 @@ export default function Ribbon() {
     }
     inp.click()
   }
-  const onImportStl = () => pickFile('.stl', (buf, base) => void importStl(buf, base))
+  // BUG-BD-2001: File menu STL must use openStlDialog (File System Access + <input> fallback),
+  // not bare pickFile — matches insertmesh ribbon path (BUG-BD-1804).
+  const onImportStl = () => { setFileMenu(false); openStlDialog() }
   const onImportStep = () => pickFile('.step,.stp', (buf, base) => void importStep(buf, base))
   const import3MF = useApp((s) => s.import3MF)
   const onImport3MF = () => pickFile('.3mf', (buf, base) => void import3MF(buf, base))

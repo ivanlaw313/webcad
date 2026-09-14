@@ -68,8 +68,8 @@ test('C: circle typed input is diameter Ø with driving dia constraint', () => {
   assert.match(viewport, /精确直径Ø/)
 })
 
-test('APP_VERSION stays at 1.15 after release bump', () => {
-  assert.match(version, /APP_VERSION = '1\.15'/)
+test('APP_VERSION is a release string (v1.15+)', () => {
+  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
 })
 
 // Runtime

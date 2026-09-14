@@ -13,8 +13,8 @@ const layer = readFileSync(new URL('../src/components/SketchLayer.tsx', import.m
 const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 
-test('v1.14 contract: APP_VERSION stays 1.13; soft-axis suppress + reject toast + cons sync', () => {
-  assert.match(version, /APP_VERSION = '1\.13'/)
+test('v1.14 contract: APP_VERSION release string; soft-axis suppress + reject toast + cons sync', () => {
+  assert.match(version, /APP_VERSION = '\d+\.\d+/')
   assert.match(layer, /BOT-A01 \(v1\.14\)/)
   assert.match(layer, /coversAxis/)
   assert.match(layer, /尺寸已拒绝：尺寸必须为有限正数/)

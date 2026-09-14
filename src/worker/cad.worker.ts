@@ -1926,9 +1926,10 @@ function _shellTangentClosure(shape: any, seed: number[], angleTolDeg = 1): numb
   return [...keep]
 }
 
-// P2/P1 (v1.19→1.20): ShapeFix_Shape (+ optional ShapeFix_Solid) — same idiom as STEP import.
+// P2/P1 (v1.19→1.21): ShapeFix_Shape (+ ShapeFix_Solid) — same idiom as STEP import.
 // Dirty boolean+fillet composites otherwise poison MakeThickSolid; heal is best-effort and never throws.
-// Still avoid UnifySameDomain here: merging same-domain faces can drop opening-face identity for shell.
+// v1.21: optional safe UnifySameDomain — keep only when solid stays valid (opening identity preserved
+// enough for planar seed resolve). Sewing is tried as a last heal step on still-dirty solids.
 function _healSolid(shape: any): any {
   if (!shape?.wrapped || !_oc) return shape
   let out = shape
@@ -1964,7 +1965,55 @@ function _healSolid(shape: any): any {
       try { solidFix.delete() } catch { /* */ }
     }
   } catch { /* optional */ }
+  // P1 (v1.21): safe UnifySameDomain — merge coplanar strips only when result stays a valid solid.
+  // Reject if face count collapses to < 40% (likely lost opening lids) or solid becomes invalid.
+  try {
+    const U = (_oc as any).ShapeUpgrade_UnifySameDomain_2
+    if (U && out?.wrapped) {
+      const beforeFaces = (() => { try { return (out.faces as any[]).length } catch { return 0 } })()
+      const u = new U(out.wrapped, true, true, false)
+      try { u.SetLinearTolerance(1e-5); u.SetAngularTolerance(0.01) } catch { /* */ }
+      u.Build()
+      const us = u.Shape()
+      if (us && !us.IsNull()) {
+        const cand = cast(us)
+        if (cand?.wrapped && !cand.wrapped.IsNull() && validShellSolid(cand)) {
+          const afterFaces = (() => { try { return (cand.faces as any[]).length } catch { return 0 } })()
+          if (!beforeFaces || afterFaces >= Math.max(4, Math.floor(beforeFaces * 0.4))) out = cand
+        }
+      }
+      try { u.delete() } catch { /* */ }
+    }
+  } catch { /* unify optional — keep pre-unify */ }
   return out
+}
+
+/** Light sew of solid faces — alternate base when MakeThickSolid fails on dirty cut+fillet (BX02). */
+function _sewSolidFaces(shape: any): any | null {
+  if (!shape?.wrapped || !_oc?.BRepBuilderAPI_Sewing) return null
+  try {
+    const sew = new (_oc as any).BRepBuilderAPI_Sewing(1e-4, true, true, true, false)
+    const faces = shape.faces as any[]
+    let n = 0
+    for (const f of faces) {
+      try { if (f?.wrapped && !f.wrapped.IsNull()) { sew.Add(f.wrapped); n++ } } catch { /* skip */ }
+    }
+    if (n < 4) return null
+    const prog = new (_oc as any).Message_ProgressRange_1()
+    sew.Perform(prog)
+    try { prog.delete() } catch { /* */ }
+    const sewed = sew.SewedShape()
+    if (!sewed || sewed.IsNull()) return null
+    let out: any = sewed
+    try {
+      const shell = (_oc as any).TopoDS.Shell_1(sewed)
+      const solid = new (_oc as any).ShapeFix_Solid_1().SolidFromShell(shell)
+      if (solid && !solid.IsNull()) out = solid
+    } catch { /* keep sewed */ }
+    const cand = cast(out)
+    if (cand?.wrapped && !cand.wrapped.IsNull() && validShellSolid(cand)) return cand
+  } catch { /* sew fail */ }
+  return null
 }
 
 // Exact-face shell/offset primitive. signedThickness follows replicad shell(): positive=inward,
@@ -1978,7 +2027,8 @@ function _shellExactFaces(shape: any, signedThickness: number, faceIndices: numb
   const joins = [JT.GeomAbs_Arc, JT.GeomAbs_Intersection]
   if (JT?.GeomAbs_Tangent != null) joins.push(JT.GeomAbs_Tangent)
   // P1 (v1.20): add 2e-2 for dirty cut+fillet shells; keep prior ladder order otherwise.
-  const tols = [1e-3, 1e-2, 2e-2, 5e-4]
+  // P1 (v1.21): keep prior ladder; add 5e-2 last for dirty cut+fillet MakeThickSolid.
+  const tols = [1e-3, 1e-2, 2e-2, 5e-4, 5e-2]
   let lastErr: unknown = null
   const accept = (raw: any): any | null => {
     if (!raw || raw.IsNull()) return null
@@ -2896,23 +2946,49 @@ function buildShape(features: Feature[], noCache = false): any {
                 : seeds
               // Prefer the exact selection first. Tangent-chain through a hole-rim fillet
               // otherwise opens the cylinder too and yields a wrong hollow (CX02).
-              // P2: widened OCCT on seeds first (caller heal + join/tol ladder in _shellExactFaces);
-              // Seeds-only OCCT miss → cavity/prismatic before expanding the G1 chain (CX02 top+fillet).
+              // P2/P1: widened OCCT on seeds first (caller heal + join/tol ladder in _shellExactFaces);
+              // Seeds-only OCCT miss → alternate planar seeds / sewn base → cavity/prismatic.
               // Prefer OCCT before cavity: never call cavity before the widened seeds ladder.
               const attempts: number[][] = []
               if (chain.length > seeds.length) attempts.push(seeds)
               attempts.push(chain.length ? chain : seeds)
-              let lastErr: unknown = null
-              for (const faces of attempts) {
-                try {
-                  const result = _shellExactFaces(base, signed * t, faces)
-                  if (!chainReported && faces !== seeds && chain.length > seeds.length) {
-                    buildWarnings.push(`抽壳切线链：由 ${seeds.length} 个所选面扩展到 ${chain.length} 个 G1 连续面`)
-                    chainReported = true
+              // v1.21: also try coplanar planar faces near the same Z as the primary seed (fillet strip miss).
+              try {
+                const facesAll = base.faces as any[]
+                const seed0 = seeds[0]
+                const f0 = facesAll[seed0]
+                if (f0?.geomType === 'PLANE') {
+                  const z0 = f0.center.z
+                  const planarSameZ: number[] = []
+                  for (let i = 0; i < facesAll.length; i++) {
+                    try {
+                      if (facesAll[i].geomType === 'PLANE' && Math.abs(facesAll[i].center.z - z0) < 1e-4) planarSameZ.push(i)
+                    } catch { /* */ }
                   }
-                  return result
-                } catch (e) { lastErr = e }
-                // Seeds-only OCCT miss: try cavity cut before expanding the G1 chain (top+fillet case).
+                  if (planarSameZ.length && !attempts.some((a) => a.length === planarSameZ.length && a.every((v, j) => v === planarSameZ[j]))) {
+                    attempts.push(planarSameZ)
+                  }
+                }
+              } catch { /* alternate seeds best-effort */ }
+              let lastErr: unknown = null
+              const tryOcct = (shapeBase: any, faces: number[]) => _shellExactFaces(shapeBase, signed * t, faces)
+              const bases: any[] = [base]
+              // One sew retry base (v1.21) — before cavity, after seeds OCCT miss.
+              let sewn: any = null
+              try { sewn = _sewSolidFaces(base) } catch { sewn = null }
+              if (sewn) bases.push(sewn)
+              for (const faces of attempts) {
+                for (const b of bases) {
+                  try {
+                    const result = tryOcct(b, faces)
+                    if (!chainReported && faces !== seeds && chain.length > seeds.length && b === base) {
+                      buildWarnings.push(`抽壳切线链：由 ${seeds.length} 个所选面扩展到 ${chain.length} 个 G1 连续面`)
+                      chainReported = true
+                    }
+                    return result
+                  } catch (e) { lastErr = e }
+                }
+                // Seeds-only OCCT miss (incl. sewn): try cavity before expanding the G1 chain.
                 if (faces === seeds && seeds.length === 1 && signed > 0 && _dir === 'inside') {
                   try {
                     const cav = cavityInwardShell(base, seeds[0], t)

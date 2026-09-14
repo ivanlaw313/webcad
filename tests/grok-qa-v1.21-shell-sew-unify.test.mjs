@@ -1,6 +1,6 @@
 /**
- * v1.20 P1: shell after cut+fillet — deeper heal + planar-preferring opening seeds
- * + wider MakeThickSolid tol ladder. Control cut-without-fillet stays OCCT-clean.
+ * v1.21 P1: shell after cut+fillet — safe UnifySameDomain + sew alternate base +
+ * coplanar planar seed sets + wider tol. Control cut-without-fillet stays OCCT-clean.
  * Cut+fillet soft-prefers no cavity warning (hard: rebuild succeeds).
  */
 import test from 'node:test'
@@ -11,18 +11,26 @@ import { readFileSync } from 'node:fs'
 
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
+const ribbonSrc = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.2x', () => {
-  assert.match(version, /APP_VERSION = '1\.2\d'/)
+test('APP_VERSION is 1.21', () => {
+  assert.match(version, /APP_VERSION = '1\.21'/)
 })
 
-test('P1 fix wired: heal precision + ShapeFix_Solid + planar seed + 2e-2 tol', () => {
+test('P1 shell wiring: safe Unify + sew + alternate planar seeds + 5e-2 tol', () => {
   assert.match(workerSrc, /function _healSolid/)
-  assert.match(workerSrc, /SetPrecision/)
-  assert.match(workerSrc, /ShapeFix_Solid/)
-  assert.match(workerSrc, /Prefer a PLANAR candidate/)
-  assert.match(workerSrc, /2e-2/)
+  assert.match(workerSrc, /safe UnifySameDomain/)
+  assert.match(workerSrc, /ShapeUpgrade_UnifySameDomain_2/)
+  assert.match(workerSrc, /function _sewSolidFaces/)
+  assert.match(workerSrc, /BRepBuilderAPI_Sewing/)
+  assert.match(workerSrc, /planarSameZ/)
+  assert.match(workerSrc, /5e-2/)
   assert.match(workerSrc, /never call cavity before the widened seeds ladder/)
+})
+
+test('BUG-BD-2001: File menu STL uses openStlDialog', () => {
+  assert.match(ribbonSrc, /onImportStl = \(\) => \{ setFileMenu\(false\); openStlDialog\(\) \}/)
+  assert.match(ribbonSrc, /BUG-BD-2001/)
 })
 
 globalThis.require = createRequire(import.meta.url)
@@ -47,8 +55,7 @@ test('P1 control: cut, no fillet, shell bottom → OCCT (no cavity)', async () =
   assert.ok(!warnings.some((x) => cavityRe.test(x)), `control must stay OCCT; warnings=${JSON.stringify(warnings)}`)
 })
 
-test('P1 BX02-like: cut + rim fillet + shell top prefers OCCT', async () => {
-  // Top-face opening (BX02 QA path): near at top of box after cut+fillet.
+test('P1 BX02-like: cut + rim fillet + shell top prefers OCCT (soft)', async () => {
   const fillet = { id: 'f', type: 'fillet', radius: 1, nears: [[20, 10, 0]], chain: false }
   const shell = { id: 'shell', type: 'shell', thickness: 1.5, nears: [[0, 0, 25]], tangentChain: false, direction: 'inside' }
   const m = await w.rebuild([boxCut, cylCut, bbCut, fillet, shell])

@@ -6335,8 +6335,8 @@ export default function Viewport() {
             <div style={{ fontSize: 11, color: '#6b7680' }}>{tStatus('路径由刚才草图提供；取消会还原草图。', lang)}</div>
           </>)}
           {featDlg.kind === 'combine' && (<>
-            <label title={tStatus('合并=两体并集 · 切除=目标减工具 · 相交=公共体（真 B-rep）', lang)}>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'cut'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}><option value="fuse">{tStatus('＋合并', lang)}</option><option value="cut">{tStatus('－切除(目标−工具)', lang)}</option><option value="common">{tStatus('∩相交', lang)}</option></select></label>
-            <div style={{ fontSize: 11, color: '#6b7680', margin: '2px 0' }}>{tStatus('目标 = 活动实体；勾选要参与运算嘅工具体（泊车实体）：', lang)}</div>
+            <label title={tStatus('合并=两体并集 · 切除=目标减工具 · 相交=公共体（真 B-rep）。若切除结果为空且对调后有体积，会自动对调（「新实体」后第二体作活动目标时常见）', lang)}>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'cut'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}><option value="fuse">{tStatus('＋合并', lang)}</option><option value="cut">{tStatus('－切除(目标−工具)', lang)}</option><option value="common">{tStatus('∩相交', lang)}</option></select></label>
+            <div style={{ fontSize: 11, color: '#6b7680', margin: '2px 0' }}>{tStatus('目标 = 活动实体；勾选工具体（泊车）。挖孔：保持大块为活动体，用工具体（⬡新实体/新实体泊车）切除。', lang)}</div>
             {!(bodyMesh?.parked?.length) && (
               <div role="status" data-testid="combine-need-newbody" style={{ fontSize: 11, color: '#b42318', margin: '4px 0' }}>
                 {tStatus('没有工具体：请先用「新实体」泊车当前体，再建造第二个实体，然后返回合并/布尔。', lang)}
@@ -6520,10 +6520,12 @@ export default function Viewport() {
             <label>{tStatus('长', lang)} <LenInput mm={Number(featDlg.params.l)} onMm={(v) => setFeatParam('l', v)} unit={unit} w={52} min={0.1} /></label>
             <label>{tStatus('宽', lang)} <LenInput mm={Number(featDlg.params.w)} onMm={(v) => setFeatParam('w', v)} unit={unit} w={52} min={0.1} /></label>
             <label>{tStatus('高', lang)} <LenInput mm={Number(featDlg.params.h)} onMm={(v) => setFeatParam('h', v)} unit={unit} w={52} min={0.1} /></label>
+            <label title={tStatus('＋加料=并入活动体；⬡新实体=独立泊车（活动体保持为目标，适合后续合并/切割挖孔）；－切割=从活动体切除', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut" disabled={!bodyMesh?.triangles?.length}>{tStatus('－切割', lang)}</option><option value="newbody" disabled={!bodyMesh?.triangles?.length}>{tStatus('⬡新实体', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'cylinder' && (<>
             <label>Ø <LenInput mm={Number(featDlg.params.d)} onMm={(v) => setFeatParam('d', v)} unit={unit} w={56} min={0.1} /></label>
             <label>{tStatus('高', lang)} <LenInput mm={Number(featDlg.params.h)} onMm={(v) => setFeatParam('h', v)} unit={unit} w={56} min={0.1} /></label>
+            <label title={tStatus('BX02：先长方体，再圆柱选「⬡新实体」→ 圆柱泊车、盒子保持活动目标 → 合并/切割切除挖孔', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut" disabled={!bodyMesh?.triangles?.length}>{tStatus('－切割', lang)}</option><option value="newbody" disabled={!bodyMesh?.triangles?.length}>{tStatus('⬡新实体', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'sphere' && (
             <label>Ø <LenInput mm={Number(featDlg.params.d)} onMm={(v) => setFeatParam('d', v)} unit={unit} w={60} min={0.1} /></label>

@@ -14302,7 +14302,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       featDlg: { kind: 'combine', params },
       holeMode: false, holePos: null, holeFaceZ: null, holeDir: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false,
-      status: '合并：选 操作（默认 Join 合并）+ 勾选要参与嘅工具体 → 确定（活动实体 = 目标，结果 B-rep 可继续圆角/抽壳/导 STEP）',
+      status: '合并：选 操作（默认 Join）+ 勾选工具体 → 确定。目标=活动实体；切除若目标被工具完全包含会自动对调（「新实体」后常见）。要明确保目标为活动体：拉伸/圆柱用「⬡新实体」泊车工具。',
     }
   }),
   // Boundary Fill v1：严谨限定为「两封闭实体」的三格 B-rep cell 分割；不会把普通 Common 假称 Boundary Fill。
@@ -14752,8 +14752,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       offsetsolid: { distance: 2 },
       draft: { angle: 10 },
       automatedmodel: { radius: 6 },
-      box: { l: 80, w: 60, h: 40 },
-      cylinder: { d: 60, h: 50 },
+      box: { l: 80, w: 60, h: 40, op: 'new' },
+      cylinder: { d: 60, h: 50, op: 'new' },
       sphere: { d: 60 },
       torus: { d: 80, td: 24, arc: 360 },
       cone: { d: 60, dt: 0, h: 60, sides: 0 },
@@ -17327,9 +17327,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       await get().applyFeatures([...get().features, { id: fid(), type: 'loft', op: op2, sections: [{ profile: { kind: 'poly', pts: poly(R) }, z: 0 }, { profile: { kind: 'poly', pts: poly(0.1) }, z: H }] }], `已${op2 === 'cut' ? '切割' : '创建'}${n}棱锥 底外接Ø${p.d}×高${H}`)
       return
     } else if (d.kind === 'box' || d.kind === 'sphere' || d.kind === 'torus' || d.kind === 'cone' || d.kind === 'wedge' || d.kind === 'dome' || d.kind === 'halfcyl' || d.kind === 'pie' || d.kind === 'cylinder' || d.kind === 'prism' || d.kind === 'coil' || d.kind === 'thread') {
-      // Primitives: respect 切割模式 (cut from the existing body) vs new body.
-      const op: BoolOp = get().cutMode && hasSolid(get().features) ? 'cut' : 'new'
-      const verb = op === 'cut' ? '切割' : '创建'
+      // Primitives: dialog op (v1.27 box/cylinder expose ⬡新实体) > cutMode > new.
+      // BX02: box active + cylinder op=newbody parks the tool while keeping the box as Combine target.
+      const rawOp = String(p.op ?? '')
+      const op: BoolOp = (rawOp === 'cut' || rawOp === 'intersect' || rawOp === 'newbody') && hasSolid(get().features)
+        ? rawOp as BoolOp
+        : (get().cutMode && hasSolid(get().features) ? 'cut' : 'new')
+      const verb = op === 'cut' ? '切割' : op === 'newbody' ? '新实体' : op === 'intersect' ? '相交' : '创建'
       // Reject non-positive / NaN primary dimensions up front — clearer than a mirrored "-5" box or a cryptic
       // kernel-empty error. Covers coil/thread pitch & coil wire too (else a 0/neg helix silently clamps).
       if (['l', 'w', 'h', 'd', 'pitch', 'wire'].some((k) => p[k] !== undefined && !(Number.isFinite(+p[k]) && +p[k] > 0))) { set({ status: illegalRejectStatus(ILLEGAL_LENGTH_DETAIL) }); return }

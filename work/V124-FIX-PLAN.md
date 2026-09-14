@@ -41,8 +41,8 @@
 
 ## Acceptance
 
-- [ ] Soft Shell warnings have clean EN via full-phrase i18n (no `抽殼done`)
-- [ ] planarSameZ OCCT attempted before cavity; prior copy-heal/alt lids preserved
-- [ ] Post-boolean: status + primary bake button (no required modal)
-- [ ] Fillet/Shell dead-end can show MeshFit statusAction when mesh present
-- [ ] APP_VERSION 1.24; deploy recorded
+- [x] Soft Shell warnings have clean EN via full-phrase i18n (no `抽殼done`)
+- [x] planarSameZ OCCT attempted before cavity; prior copy-heal/alt lids preserved
+- [x] Post-boolean: status + primary bake button (no required modal)
+- [x] Fillet/Shell dead-end can show MeshFit statusAction when mesh present
+- [x] APP_VERSION 1.24; deploy recorded

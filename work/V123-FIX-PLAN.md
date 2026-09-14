@@ -38,7 +38,7 @@ After **assembly / component Boolean** (mesh-level), Fillet / Shell toast `先�
 
 ## Acceptance
 
-- [ ] Fillet/Shell without part solid + with mesh comps → guided status (not bare `先要有实体`)
-- [ ] After component boolean success → optional bake confirm wiring present
-- [ ] APP_VERSION 1.23; prior shell copy-heal / alt openings tests still green
-- [ ] Deployed; DEPLOY-RESULT recorded
+- [x] Fillet/Shell without part solid + with mesh comps → guided status (not bare `先要有实体`)
+- [x] After component boolean success → optional bake confirm wiring present
+- [x] APP_VERSION 1.23; prior shell copy-heal / alt openings tests still green
+- [x] Deployed; DEPLOY-RESULT recorded

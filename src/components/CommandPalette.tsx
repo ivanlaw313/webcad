@@ -75,6 +75,8 @@ const SYN: Record<string, string> = {
   text: '文字 字 刻字 雕字 标签 label engrave',
   joint: '关节 连接 装配 转动 滑动 铰链',
   combine: '布尔 合并 切割 并集 差集 交集 boolean union',
+  compboolean: '组件布尔 零件布尔 component boolean 网格布尔 布尔零件 🧩布尔',
+  bodyboolean: '实体布尔 多体布尔 body boolean',
   draft: '拔模 脱模 斜度',
   move: '移动 平移 搬 复制 transform',
   scale: '缩放 放大 缩小 比例',

@@ -303,6 +303,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
     {c.id === sel && !componentEditing && !commandActive && !skLock && <div className="component-controls" role="group" aria-label={`组件选项：${c.name}`}>
       {!!c.formSource && <button onClick={() => useApp.getState().editFormComponent(c.id)}>✎ 编辑 Form 控制笼</button>}
       {!!c.src?.features.length && <button onClick={() => void useApp.getState().editComponent(c.id)}>✎ 编辑特征／草图</button>}
+      <button type="button" data-testid="browser-compboolean" title={tStatus('组件布尔：以此件为目标，再点另一个零件作工具件（合并/切除/相交）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().startComponentBoolean(c.id) }}>🧩 组件布尔</button>
       <select className="tw-mat" title={tStatus('材质（设密度→影响质量/BOM，并改颜色）', lang)} value={c.material || ''} onClick={(e) => e.stopPropagation()} onChange={(e) => { if (e.target.value) setMaterial(c.id, e.target.value) }} style={{ fontSize: 10, maxWidth: 52, border: '1px solid #d0d6dc', borderRadius: 3 }}>
         <option value="">{tStatus('材质…', lang)}</option>
         {Object.keys(MATERIALS).filter((k) => MATERIALS[k].density).map((k) => <option key={k} value={k}>{k}</option>)}

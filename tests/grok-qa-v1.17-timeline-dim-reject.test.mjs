@@ -35,8 +35,8 @@ test('v1.17: NumField keeps logical min commit reject without HTML min attr', ()
   assert.match(timeline, /rejectDetail=\{fd\.key === 'thickness' \? ILLEGAL_THICKNESS_DETAIL/)
 })
 
-test('v1.17: APP_VERSION is 1.17', () => {
-  assert.match(version, /APP_VERSION = '1\.17'/)
+test('v1.17: APP_VERSION is a release string', () => {
+  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
 })
 
 test('helper: illegalRejectStatus still embeds marker for prim length', () => {

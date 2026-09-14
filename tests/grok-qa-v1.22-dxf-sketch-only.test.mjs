@@ -11,8 +11,8 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const dlgSrc = readFileSync(new URL('../src/components/InsertDialog.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.22', () => {
-  assert.match(version, /APP_VERSION = '1\.22'/)
+test('APP_VERSION is 1.22+ (superseded by later ship)', () => {
+  assert.match(version, /APP_VERSION = '1\.(2[2-9]|[3-9]\d)'/)
 })
 
 test('preferDxfSketchOnly heuristic', () => {

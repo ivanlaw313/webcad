@@ -11,8 +11,8 @@ import { readFileSync } from 'node:fs'
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.22', () => {
-  assert.match(version, /APP_VERSION = '1\.22'/)
+test('APP_VERSION is 1.22+ (superseded by later ship)', () => {
+  assert.match(version, /APP_VERSION = '1\.(2[2-9]|[3-9]\d)'/)
 })
 
 test('P1 shell wiring: copy-heal + alt openings + soft cavity status', () => {

@@ -3105,8 +3105,12 @@ function buildShape(features: Feature[], noCache = false): any {
                 } catch { return faces }
               }
               const tryBases = (faces: number[]): any | null => {
+                // v1.23: keep alternate-planar-open path solid — reject invalid MakeThickSolid hits.
                 for (const b of bases) {
-                  try { return tryOcct(b, remapFaces(b, faces)) } catch (e) { lastErr = e }
+                  try {
+                    const r = tryOcct(b, remapFaces(b, faces))
+                    if (r && validShellSolid(r)) return r
+                  } catch (e) { lastErr = e }
                 }
                 return null
               }

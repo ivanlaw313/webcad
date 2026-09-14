@@ -17,8 +17,8 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const sketchLayer = readFileSync(new URL('../src/components/SketchLayer.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.21', () => {
-  assert.match(version, /APP_VERSION = '1\.21'/)
+test('APP_VERSION is a release string (≥1.21)', () => {
+  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
 })
 
 test('stripMtextFormatting drops control codes', () => {

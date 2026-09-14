@@ -40,9 +40,12 @@ function InsertVecDialog() {
               </select>
             </div>
           )}
-          <div style={row}><span>拉伸高度（mm）</span><input type="number" step={1} min={0.1} style={num} value={v.height} onChange={(e) => set({ height: Number(e.target.value) || 5 })} /></div>
+          <div style={row}><span>拉伸高度（mm）</span><input type="number" step={1} min={0.1} style={num} value={v.height} disabled={v.sketchOnly} title={v.sketchOnly ? '仅草图模式不拉伸' : undefined} onChange={(e) => set({ height: Number(e.target.value) || 5 })} /></div>
           <label style={{ ...row, justifyContent: 'flex-start', gap: 8 }} title="入草图源 → 双击时间轴节点可重开改曲线 / 加尺寸约束（Fusion 可编辑草图）">
-            <input type="checkbox" checked={v.asSketch} onChange={(e) => set({ asSketch: e.target.checked })} /><span>入可编辑草图曲线（可重开改）</span>
+            <input type="checkbox" checked={v.asSketch} disabled={v.sketchOnly} onChange={(e) => set({ asSketch: e.target.checked })} /><span>入可编辑草图曲线（可重开改）</span>
+          </label>
+          <label style={{ ...row, justifyContent: 'flex-start', gap: 8 }} data-testid="dxf-sketch-only" title="大图 / 原理图推荐：轮廓入草图 + 文字入标注，不批量拉伸（避免内存溢出）。之后可重开草图再按需拉伸。">
+            <input type="checkbox" checked={v.sketchOnly} onChange={(e) => set({ sketchOnly: e.target.checked, asSketch: e.target.checked ? true : v.asSketch })} /><span>仅导入为草图（不拉伸）{(v.profileCount && v.profileCount > 48) || (v.textCount && v.textCount > 16) ? ' · 大图已默认勾选' : ''}</span>
           </label>
           {v.layers.length > 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

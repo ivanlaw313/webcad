@@ -2142,6 +2142,27 @@ function fuseRobust(base: any, solid: any, n: [number, number, number] = [0, 0, 
   }
 }
 
+// v1.27 BX02: solid volume for empty-cut detection (same GProp idiom as post-feature zero-vol guard).
+function _solidVolume(shape: any): number {
+  if (!shape?.wrapped || !_oc) return 0
+  try {
+    const g = new _oc.GProp_GProps_1()
+    _oc.BRepGProp.VolumeProperties_1(shape.wrapped, g, false, false, false)
+    return Math.abs(g.Mass())
+  } catch { return 0 }
+}
+
+// v1.27: bodyboolean / boolean cut with coplanar-face retry (mirror fuseRobust micro-nudge).
+function _cutRobust(target: any, tool: any): any {
+  try { return target.clone().cut(tool.clone()) }
+  catch {
+    const nudged = tool.clone().translate(0, 0, -0.02)
+    const r = target.clone().cut(nudged)
+    buildWarnings.push('切除兜底：共面致布尔失败 — 已沿 Z 微沉工具体 0.02mm 重试成功（打印无感）')
+    return r
+  }
+}
+
 // T757：環形阵列复本角度（度）。full=total/n 均分（最后副本 ≠ 原件）；angle=total/(n−1) 端点含
 // （同 2D 草图环形阵列 T476/Fusion 惯例一致）；sym=种子 0，±k·(total/(n−1))，n 偶数时 + 侧多一个（文档化偏差）。
 export function cpAngles(n: number, total: number, mode: 'full' | 'angle' | 'sym'): number[] {
@@ -2869,11 +2890,42 @@ function buildShape(features: Feature[], noCache = false): any {
       else if (!t) throw new Error(`实体布尔：工具实体 #${f.target + 1} 不存在或已被前一步消耗；请重新选择工具体`)
       else {
         try {
+          // v1.27 BX02: heal operands before boolean; robust cut; auto-swap when target−tool
+          // empties but tool−target has volume (classic after「新实体」: first body parked as tool,
+          // second active as target → contained cut zeros → LIVE rebuild toast).
+          const targetSh = _healSolid(shape)
+          const toolSh = _healSolid(t.shape)
           // GM-γ2b：实体布尔（活动体 ⊗ 泊车体）录工具体供 S2 追踪。common → intersect（同款 BRepAlgoAPI_Common）。
           const bKind = f.bop === 'cut' ? 'cut' : f.bop === 'common' ? 'intersect' : 'fuse'
-          _recordBool(_i, bKind, t.shape)
-          shape = f.bop === 'cut' ? shape.clone().cut(t.shape.clone()) : f.bop === 'common' ? shape.clone().intersect(t.shape.clone()) : shape.clone().fuse(t.shape.clone())
-          shape = _healSolid(shape)   // P2: clean micro-edges / split faces before fillet/shell
+          if (f.bop === 'cut') {
+            let result: any = null
+            let swapped = false
+            try { result = _cutRobust(targetSh, toolSh) } catch { result = null }
+            let vol = _solidVolume(result)
+            if (!(vol > 1e-6)) {
+              try {
+                const rev = _cutRobust(toolSh, targetSh)
+                const volR = _solidVolume(rev)
+                if (volR > 1e-6) {
+                  result = rev
+                  swapped = true
+                  vol = volR
+                  buildWarnings.push('实体布尔切除：目标−工具结果为空，已自动对调为工具−目标（常见于「新实体」后第二体作活动目标且被泊车体完全包含）')
+                }
+              } catch { /* reverse also failed */ }
+            }
+            if (!result || !(vol > 1e-6)) {
+              throw new Error('实体布尔切除结果为空（无有效差集）— 确认两体重叠，或用拉伸「⬡新实体」把工具体泊车并保持目标为活动体')
+            }
+            _recordBool(_i, bKind, swapped ? targetSh : toolSh)
+            shape = _healSolid(result)
+          } else if (f.bop === 'common') {
+            _recordBool(_i, bKind, toolSh)
+            shape = _healSolid(targetSh.clone().intersect(toolSh.clone()))
+          } else {
+            _recordBool(_i, bKind, toolSh)
+            shape = _healSolid(fuseRobust(targetSh, toolSh))
+          }
           if (!f.keep) parkedBodies.splice(f.target, 1)   // S185 Keep Tools：keep 时工具体保留做泊车体（可复用）；缺省=消耗（旧档逐字节回放）
         } catch (e) { throw new Error(`实体布尔失败：${(e as Error)?.message || e}`) }
       }

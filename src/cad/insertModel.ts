@@ -247,6 +247,11 @@ export function collectLayers(items: ImpItem[]): string[] {
   return [...s].sort()
 }
 // 构建【一张】草图源（多轮廓合并入同一 sketchId，重开时经 even-odd 嵌套重算孔）。
+/** v1.22: large DXF / schematic → default「仅导入为草图」to avoid mass-extrude OOM. */
+export function preferDxfSketchOnly(profileCount: number, textCount: number): boolean {
+  return (profileCount || 0) > 48 || (textCount || 0) > 16
+}
+
 export function buildImportSketchSource(items: ImpItem[], opt: { plane?: string; baseZ?: number; op?: string; height?: number; scale?: number; zAngle?: number }): { shapes: SketchShapeLike[]; cons: []; plane: string; baseZ: number; op: string; height: number } {
   const scale = opt.scale ?? 1, zAngle = opt.zAngle ?? 0
   const shapes = items.map((it) => impToSketchShape((scale !== 1 || zAngle !== 0) ? transformImpProfile(it.profile, scale, zAngle) : it.profile))

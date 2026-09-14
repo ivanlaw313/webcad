@@ -1988,6 +1988,73 @@ function _healSolid(shape: any): any {
   return out
 }
 
+// P1 (v1.22): deep-copy then aggressive ShapeFix — dirty cut+fillet composites sometimes
+// need an independent TopoDS before MakeThickSolid (in-place heal alone is not enough).
+function _copyHealSolid(shape: any): any | null {
+  if (!shape?.wrapped || !_oc) return null
+  let copied: any = null
+  try {
+    const Copy = (_oc as any).BRepBuilderAPI_Copy || (_oc as any).BRepBuilderAPI_Copy_1
+    if (Copy) {
+      const c = new Copy(shape.wrapped)
+      try { if (typeof c.Perform === 'function') c.Perform() } catch { /* some builds copy in ctor */ }
+      const sh = typeof c.Shape === 'function' ? c.Shape() : null
+      if (sh && !sh.IsNull()) copied = cast(sh)
+      try { c.delete() } catch { /* */ }
+    }
+  } catch { copied = null }
+  if (!copied) {
+    try {
+      if (typeof shape.clone === 'function') {
+        const cl = shape.clone()
+        if (cl?.wrapped && !cl.wrapped.IsNull()) copied = cl
+      }
+    } catch { copied = null }
+  }
+  if (!copied?.wrapped) return null
+  // Aggressive heal pass (looser max tol) on the independent copy only.
+  try {
+    const fixer = new (_oc as any).ShapeFix_Shape_2(copied.wrapped)
+    try {
+      if (typeof fixer.SetPrecision === 'function') fixer.SetPrecision(1e-5)
+      if (typeof fixer.SetMaxTolerance === 'function') fixer.SetMaxTolerance(1e-2)
+      if (typeof fixer.SetMinTolerance === 'function') fixer.SetMinTolerance(1e-7)
+    } catch { /* optional */ }
+    const prog = new (_oc as any).Message_ProgressRange_1()
+    if (fixer.Perform(prog)) {
+      const fixed = cast(fixer.Shape())
+      if (fixed?.wrapped && !fixed.wrapped.IsNull()) copied = fixed
+    }
+    try { prog.delete() } catch { /* */ }
+    try { fixer.delete() } catch { /* */ }
+  } catch { /* keep copy */ }
+  try {
+    const SFS = (_oc as any).ShapeFix_Solid
+    if (SFS && copied?.wrapped) {
+      const solidFix = new SFS(copied.wrapped)
+      const prog2 = new (_oc as any).Message_ProgressRange_1()
+      if (typeof solidFix.Perform === 'function' && solidFix.Perform(prog2)) {
+        const sh = typeof solidFix.Solid === 'function' ? solidFix.Solid() : (typeof solidFix.Shape === 'function' ? solidFix.Shape() : null)
+        if (sh && !sh.IsNull()) {
+          const fixed = cast(sh)
+          if (fixed?.wrapped && !fixed.wrapped.IsNull()) copied = fixed
+        }
+      }
+      try { prog2.delete() } catch { /* */ }
+      try { solidFix.delete() } catch { /* */ }
+    }
+  } catch { /* optional */ }
+  if (copied && validShellSolid(copied)) return copied
+  return null
+}
+
+/** Soft cavity/prismatic status — geometry OK; avoid alarming 「失败」 when secondary strategy succeeds (v1.22). */
+function _shellCavityStatus(kind: 'cavity' | 'prismatic'): string {
+  return kind === 'prismatic'
+    ? '抽殼完成（备用重建：直柱型腔）'
+    : '抽殼完成（备用重建：开口面偏移型腔）'
+}
+
 /** Light sew of solid faces — alternate base when MakeThickSolid fails on dirty cut+fillet (BX02). */
 function _sewSolidFaces(shape: any): any | null {
   if (!shape?.wrapped || !_oc?.BRepBuilderAPI_Sewing) return null
@@ -2977,33 +3044,112 @@ function buildShape(features: Feature[], noCache = false): any {
               let sewn: any = null
               try { sewn = _sewSolidFaces(base) } catch { sewn = null }
               if (sewn) bases.push(sewn)
-              for (const faces of attempts) {
-                for (const b of bases) {
+              // P1 (v1.22): copy+aggressive heal alternate base before cavity.
+              let copyHealed: any = null
+              try { copyHealed = _copyHealSolid(base) } catch { copyHealed = null }
+              if (copyHealed) bases.push(copyHealed)
+              // Collect alternate planar opening sets (auto lid swap) for after primary attempts.
+              const altOpenings: number[][] = []
+              try {
+                const facesAll = base.faces as any[]
+                const seedSet = new Set(seeds)
+                const planar: { i: number; area: number; z: number }[] = []
+                for (let i = 0; i < facesAll.length; i++) {
                   try {
-                    const result = tryOcct(b, faces)
-                    if (!chainReported && faces !== seeds && chain.length > seeds.length && b === base) {
-                      buildWarnings.push(`抽壳切线链：由 ${seeds.length} 个所选面扩展到 ${chain.length} 个 G1 连续面`)
-                      chainReported = true
+                    if (facesAll[i].geomType !== 'PLANE') continue
+                    if (seedSet.has(i)) continue
+                    let area = 0
+                    try { area = Math.abs(Number(facesAll[i].area) || 0) } catch { area = 0 }
+                    if (!(area > 0)) {
+                      try {
+                        const bb = facesAll[i].boundingBox?.bounds
+                        if (bb) area = Math.abs((bb[1][0] - bb[0][0]) * (bb[1][1] - bb[0][1]))
+                      } catch { /* */ }
                     }
-                    return result
-                  } catch (e) { lastErr = e }
+                    planar.push({ i, area: area || 0, z: facesAll[i].center.z })
+                  } catch { /* */ }
                 }
-                // Seeds-only OCCT miss (incl. sewn): try cavity before expanding the G1 chain.
-                if (faces === seeds && seeds.length === 1 && signed > 0 && _dir === 'inside') {
-                  try {
-                    const cav = cavityInwardShell(base, seeds[0], t)
-                    if (validShellSolid(cav)) {
-                      buildWarnings.push('抽殼：OCCT 抽壳失败，已按开口面偏移型腔重建（含倒圆孔缘）')
-                      return cav
+                planar.sort((a, b) => b.area - a.area)
+                // Largest other planar lids first (typical opposite opening).
+                for (const p of planar.slice(0, 4)) {
+                  const one = [p.i]
+                  if (!attempts.some((a) => a.length === 1 && a[0] === p.i) && !altOpenings.some((a) => a[0] === p.i)) altOpenings.push(one)
+                }
+                // Opposite-Z planar cluster vs seed0 when available.
+                if (seeds.length && facesAll[seeds[0]]?.geomType === 'PLANE') {
+                  const z0 = facesAll[seeds[0]].center.z
+                  let zOpp = z0, bestOpp = 0
+                  for (const p of planar) {
+                    const dz = Math.abs(p.z - z0)
+                    if (dz > bestOpp) { bestOpp = dz; zOpp = p.z }
+                  }
+                  if (bestOpp > 1e-3) {
+                    const cluster = planar.filter((p) => Math.abs(p.z - zOpp) < 1e-4).map((p) => p.i)
+                    if (cluster.length && !attempts.some((a) => a.length === cluster.length && a.every((v, j) => v === cluster[j]))) {
+                      altOpenings.push(cluster)
                     }
-                  } catch (e) { lastErr = e }
-                  try {
-                    const pr = prismaticInwardShell(base, seeds[0], t)
-                    if (validShellSolid(pr)) {
-                      buildWarnings.push('抽殼：相鄰內壁偏移相交，已按原壁厚重建直柱型腔')
-                      return pr
-                    }
-                  } catch (e) { lastErr = e }
+                  }
+                }
+              } catch { /* alternate openings best-effort */ }
+              // Remap face indices when trying sew/copy-heal bases (face order may differ).
+              const remapFaces = (shapeBase: any, faces: number[]): number[] => {
+                if (shapeBase === base) return faces
+                try {
+                  const srcFaces = base.faces as any[]
+                  const nears = faces.map((fi) => {
+                    const c = srcFaces[fi].center
+                    return [c.x, c.y, c.z] as [number, number, number]
+                  })
+                  const remapped = _shellFaceIndicesNear(shapeBase, nears)
+                  return remapped.length ? remapped : faces
+                } catch { return faces }
+              }
+              const tryBases = (faces: number[]): any | null => {
+                for (const b of bases) {
+                  try { return tryOcct(b, remapFaces(b, faces)) } catch (e) { lastErr = e }
+                }
+                return null
+              }
+              // 1) Seeds OCCT on heal/sew/copy bases — prefer exact selection (CX02).
+              {
+                const got = tryBases(seeds)
+                if (got) return got
+              }
+              // 2) v1.22: alternate planar lids (NOT G1 chain) before cavity — more OCCT on BX02-like.
+              for (const faces of altOpenings) {
+                const got = tryBases(faces)
+                if (got) {
+                  buildWarnings.push('抽壳：原开口面 OCCT 未收敛，已自动改用其他平面开口完成')
+                  return got
+                }
+              }
+              // 3) Seeds-only miss → cavity/prismatic BEFORE G1 chain (CX02: chain swallows filleted hole).
+              if (seeds.length === 1 && signed > 0 && _dir === 'inside') {
+                try {
+                  const cav = cavityInwardShell(base, seeds[0], t)
+                  if (validShellSolid(cav)) {
+                    buildWarnings.push(_shellCavityStatus('cavity'))
+                    return cav
+                  }
+                } catch (e) { lastErr = e }
+                try {
+                  const pr = prismaticInwardShell(base, seeds[0], t)
+                  if (validShellSolid(pr)) {
+                    buildWarnings.push(_shellCavityStatus('prismatic'))
+                    return pr
+                  }
+                } catch (e) { lastErr = e }
+              }
+              // 4) Remaining attempt sets (chain / planarSameZ) — after cavity.
+              for (const faces of attempts) {
+                if (faces === seeds) continue
+                const got = tryBases(faces)
+                if (got) {
+                  if (!chainReported && chain.length > seeds.length && faces.length === chain.length && faces.every((v, j) => v === chain[j])) {
+                    buildWarnings.push(`抽壳切线链：由 ${seeds.length} 个所选面扩展到 ${chain.length} 个 G1 连续面`)
+                    chainReported = true
+                  }
+                  return got
                 }
               }
               throw (lastErr instanceof Error ? lastErr : new Error('shell face resolution failed'))
@@ -3022,11 +3168,11 @@ function buildShape(features: Feature[], noCache = false): any {
           let recovered: any = null
           try {
             recovered = prismaticInwardShell(shape, openings[0], f.thickness)
-            buildWarnings.push('抽殼：相鄰內壁偏移相交，已按原壁厚重建直柱型腔')
+            buildWarnings.push(_shellCavityStatus('prismatic'))
           } catch {
             try {
               recovered = cavityInwardShell(shape, openings[0], f.thickness)
-              buildWarnings.push('抽殼：OCCT 抽壳失败，已按开口面偏移型腔重建（含倒圆孔缘）')
+              buildWarnings.push(_shellCavityStatus('cavity'))
             } catch { recovered = null }
           }
           if (recovered && validShellSolid(recovered)) shelled = recovered

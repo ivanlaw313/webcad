@@ -13,8 +13,8 @@ const browser = readFileSync(new URL('../src/components/BrowserTree.tsx', import
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.25', () => {
-  assert.match(version, /APP_VERSION = '1\.25'/)
+test('APP_VERSION is 1.25+ (superseded by later ship)', () => {
+  assert.match(version, /APP_VERSION = '1\.(2[5-9]|[3-9]\d)'/)
 })
 
 test('pickComponentBooleanTool + cancelComponentBoolean exist', () => {

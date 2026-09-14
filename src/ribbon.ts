@@ -172,6 +172,7 @@ const SOLID: Panel[] = [
     name: 'ASSEMBLE',
     tools: [
       { id: 'newcomp', label: '新建组件', icon: 'component', quick: true, tip: '新建组件：在装配中加一个独立零件（可单独移动/隐藏/上色，做关节）。' },
+      { id: 'compboolean', label: '组件布尔', icon: 'combine', quick: true, tip: '组件布尔（网格级）：先在浏览器选一个组件作目标（未选时若刚好只有一个有几何组件则用它），再点另一个零件作工具件 → 合并/切除/相交。零件时间轴多体请用「合并/切割」或实验室「实体布尔」。' },
       { id: 'joint', label: '关节', icon: 'joint', shortcut: 'J', quick: true },
       { id: 'asbuiltjoint', label: '按现状关节', icon: 'joint', quick: true, tip: 'Fusion As-Built Joint：浏览器勾选刚好两个组件，保持目前位置直接建立关节，不会先移动或吸附组件。默认建立转动关节；可在关节面板修改类型、轴及限位。' },
       { id: 'jointorigin', label: '关节原点', icon: 'joint', sep: true, tip: 'GM-3DV4 A1（Fusion Joint Origin）：点一个 snap 点（实体面心 / 圆柱孔心 / 顶点）→ 落一个【可复用命名帧】，存喺浏览器「关节原点」组。之后建关节时可喺下拉引用之，取代默认「组件中心」锚点 — 精准装配用。' },
@@ -302,6 +303,7 @@ const LAB: Panel[] = [
       { id: 'splitplane', label: '任意平面切', icon: 'split', tip: 'WebCAD 扩展：拾取任意平面参数化分割实体。' },
       { id: 'splitsketch', label: '草图轮廓分割', icon: 'split', tip: 'WebCAD 扩展：用封闭草图轮廓贯穿分割实体。' },
       { id: 'bodyboolean', label: '实体布尔', icon: 'combine', tip: 'WebCAD 扩展：活动实体与泊车实体进行并集、切除或相交。' },
+      { id: 'compboolean', label: '组件布尔', icon: 'combine', tip: 'WebCAD 扩展：两组件网格级布尔（manifold）。先选目标组件再点工具件；零件内多体用上方「实体布尔」/ SOLID「合并/切割」。' },
     ],
   },
   {
@@ -391,6 +393,7 @@ const MESH: Panel[] = [
   ] },
   { name: 'MODIFY', tools: [
     { id: 'meshfit', label: 'MeshFit / 转 B-rep', icon: 'component', quick: true, tip: 'MeshFit：把所选（或唯一／最近导入）网格组件缝合为可编辑 B-rep 实体（平面/圆柱可参数化；其余 faceted）。完成后可圆角/抽壳/布尔/导出 STEP。有机扫描件可能仅 faceted。' },
+    { id: 'compboolean', label: '组件布尔', icon: 'combine', quick: true, tip: '组件布尔（网格级）：先选目标组件（或唯一有几何组件），再点工具件 → 合并/切除/相交。亦可在 SOLID → ASSEMBLE 找到同名工具。' },
     { id: 'convert', label: '转换', icon: 'component', tip: 'Fusion Convert：网格→B-rep（同 MeshFit）。BRep↔T-Spline 仍在实现。' },
   ] },
   g('CONFIGURE'), g('CONSTRUCT'), g('INSPECT'),

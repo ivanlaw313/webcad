@@ -538,7 +538,7 @@ const DEVICE_LOW = deviceTier() === 'low'
 // 模式-owner 命令（fea/moldflow/measure/shell/hole…）唔喺清单 → 自己嘅 toggle 照旧处理开/关。
 const _DISARM_ON = new Set(['sketch', 'facesketch', 'extrude', 'revolve', 'sweep', 'loft', 'coil', 'pipe', 'rib', 'text',
   'box', 'cylinder', 'sphere', 'torus', 'cone', 'wedge', 'dome', 'halfcyl', 'pie', 'tube', 'rtube', 'profile', 'pyramid', 'rbox', 'prism',
-  'newbody', 'newcomp', 'mirror', 'pattern', 'circpattern', 'pathpattern', 'combine', 'scale', 'offsetsolid', 'move', 'splitbody',
+  'newbody', 'newcomp', 'mirror', 'pattern', 'circpattern', 'pathpattern', 'combine', 'compboolean', 'scale', 'offsetsolid', 'move', 'splitbody',
   'gear', 'worm', 'crowngear', 'gearbox', 'rack', 'pulley', 'params', 'thread', 'othread', 'ithread',
   'importdxf', 'importsvg', 'insertmesh', 'insert3mf', 'offsetplane', 'cpoint', 'cptgrid', 'caxis', 'drawing', 'joint', 'datumgeom'])
 
@@ -13697,6 +13697,26 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'computeunresolved':
         set({ status: '计算未解析：只在设计含未解析外部组件时可用；当前设计没有未解析外部组件' }); return
+      case 'compboolean': {
+        // v1.26：ribbon / ASSEMBLE·MESH·实验室「组件布尔」— 原先只在视口选中栏 🧩布尔，Solid QA 找不到。
+        // 若已选组件 → startComponentBoolean；否则若刚好一个有几何组件 → 用之；否则提示先在浏览器选。
+        const s0 = get()
+        let id = s0.selectedComponent
+        const meshOk = (cid: string | null | undefined) => {
+          if (!cid) return false
+          const c = s0.components.find((x) => x.id === cid)
+          return !!(c && !c.hidden && c.mesh?.vertices?.length)
+        }
+        if (!meshOk(id)) {
+          const visible = s0.components.filter((c) => !c.hidden && c.mesh?.vertices?.length)
+          id = visible.length === 1 ? visible[0].id : null
+        }
+        if (!id) {
+          set({ status: '组件布尔：请先在浏览器选择一个组件（目标件），再点此工具；然后点另一个零件作工具件。零件内多体用「合并/切割」或「实体布尔」。' })
+          return
+        }
+        return void get().startComponentBoolean(id)
+      }
       case 'meshfit':
       case 'convert': {
         // BUG-BD-1801：明确 Mesh→BRep 入口。优先所选；否则唯一可见网格；否则最近导入件。

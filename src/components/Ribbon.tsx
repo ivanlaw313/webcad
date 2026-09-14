@@ -506,35 +506,39 @@ export default function Ribbon() {
             </div>
           </div>
 
-          {!ribbonCollapsed && <div className="ribbon-panels">
-            {(inSketch ? SKETCH_PANELS : inForm ? FORM_PANELS : ws.panels).map((p) => {
-              // Fusion strip: only the marked quick tools render inline; everything stays in the ▾ dropdown.
-              const quicks = p.tools.some((t) => t.quick) ? p.tools.filter((t) => t.quick) : p.tools.slice(0, 5)
-              return (
-                <div className="panel" key={p.name}>
-                  <div style={{ display: 'flex', flex: 1 }}>
-                    <div className="panel-tools">
-                      {quicks.map((t) => <ToolButton key={t.id} t={t} onRun={t.id === 'insertfastener' ? () => setShowFastenerDialog(true) : undefined} />)}
+          {!ribbonCollapsed && (
+            <div className="ribbon-panels-row" style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
+              <div className="ribbon-panels" style={{ flex: '1 1 auto', minWidth: 0 }}>
+                {(inSketch ? SKETCH_PANELS : inForm ? FORM_PANELS : ws.panels).map((p) => {
+                  // Fusion strip: only the marked quick tools render inline; everything stays in the ▾ dropdown.
+                  const quicks = p.tools.some((t) => t.quick) ? p.tools.filter((t) => t.quick) : p.tools.slice(0, 5)
+                  return (
+                    <div className="panel" key={p.name}>
+                      <div style={{ display: 'flex', flex: 1 }}>
+                        <div className="panel-tools">
+                          {quicks.map((t) => <ToolButton key={t.id} t={t} onRun={t.id === 'insertfastener' ? () => setShowFastenerDialog(true) : undefined} />)}
+                        </div>
+                        <div className="panel-divider" />
+                      </div>
+                      <PanelFlyout name={p.name} tools={p.tools} onCommand={(t) => { if (t.id !== 'insertfastener') return false; setShowFastenerDialog(true); return true }} />
                     </div>
-                    <div className="panel-divider" />
-                  </div>
-                  <PanelFlyout name={p.name} tools={p.tools} onCommand={(t) => { if (t.id !== 'insertfastener') return false; setShowFastenerDialog(true); return true }} />
-                </div>
-              )
-            })}
-            {inSketch && (
-              <button data-cmd="finishsketch" disabled={!!commandActive || sketchDragging} className="finish-sketch" title={lang === 'en' ? 'Finish the sketch and return to the modeling environment (Fusion: FINISH SKETCH)' : '完成草图，返回实体环境（Fusion: FINISH SKETCH）'} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{/* GM-W6 E：教学指针锚点 */}
-                <span className="finish-check">✓</span>
-                <span>{lang === 'en' ? 'Finish Sketch' : '完成草图'}</span>
-              </button>
-            )}
-            {inForm && (
-              <button data-cmd="finishform" className="finish-sketch" title="Finish Form and return to SOLID" onClick={() => void finishForm()}>
-                <span className="finish-check">✓</span>
-                <span>Finish Form</span>
-              </button>
-            )}
-          </div>}
+                  )
+                })}
+              </div>
+              {inSketch && (
+                <button data-cmd="finishsketch" data-testid="finish-sketch-pin" disabled={!!commandActive || sketchDragging} className="finish-sketch finish-pinned" title={lang === 'en' ? 'Finish the sketch and return to the modeling environment (Fusion: FINISH SKETCH)' : '完成草图，返回实体环境（Fusion: FINISH SKETCH）'} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{/* GM-W6 E：教学指针锚点 */}
+                  <span className="finish-check">✓</span>
+                  <span>{lang === 'en' ? 'Finish Sketch' : '完成草图'}</span>
+                </button>
+              )}
+              {inForm && (
+                <button data-cmd="finishform" data-testid="finish-form-pin" className="finish-sketch finish-pinned" title="Finish Form and return to SOLID" onClick={() => void finishForm()}>
+                  <span className="finish-check">✓</span>
+                  <span>Finish Form</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <NarrowHint />

@@ -14,8 +14,8 @@ const worker = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.u
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.24', () => {
-  assert.match(version, /APP_VERSION = '1\.24'/)
+test('APP_VERSION is 1.24+ (superseded by later ship)', () => {
+  assert.match(version, /APP_VERSION = '1\.(2[4-9]|[3-9]\d)'/)
 })
 
 test('shell soft status uses full bilingual phrases (no 抽殼done mangling)', () => {

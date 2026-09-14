@@ -1958,6 +1958,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   // 来源 occurrence 的 local definition，故不会烘焙/断开该 occurrence 的装配位置或 joints。
   compBoolPending: { from: string; fromBodyId?: string; op: 'union' | 'subtract' | 'intersect'; clearance: number } | null
   startComponentBoolean: (id: string) => void
+  pickComponentBooleanTool: (toolId: string, toolBodyId?: string) => void
+  cancelComponentBoolean: () => void
   componentBoolean: (aId: string, bId: string, op: 'union' | 'subtract' | 'intersect', clearance: number, aBodyId?: string, bBodyId?: string) => Promise<void>
   planeCutComponent: (id: string, axis: 'X' | 'Y' | 'Z', offset: number, keep: '+' | '-') => Promise<void>  // T766（S44）：网格组件平面切割（manifold 布尔 — 切面自动补实）
   convertMeshComponent: (id: string, forceFit?: 'faceted' | 'param') => Promise<void>  // T767（S46）：网格组件 → B-rep 实体（缝合，入时间轴可圆角/抽壳/导出 STEP）。B5：forceFit 逃生门（默认自动=有圆柱→param，无→faceted）
@@ -10063,14 +10065,29 @@ export const useApp = create<AppState>((rawSet, get) => {
   selectComponent: (id) => {
     // A pending two-click pick (measure / mate / boolean) completes when a DIFFERENT component is selected.
     const bp = get().compBoolPending
-    if (bp && id && id !== bp.from) { void get().componentBoolean(bp.from, id, bp.op, bp.clearance, bp.fromBodyId); set({ compBoolPending: null }); return }
+    // v1.25: never silently drop compBoolPending on null / re-click source — finish only via other component.
+    if (bp) {
+      if (id && id !== bp.from) { get().pickComponentBooleanTool(id); return }
+      const fromName = get().components.find((x) => x.id === bp.from)?.name ?? bp.from
+      set({ selectedComponent: bp.from, status: `组件布尔待选工具件：请点【另一个零件】完成（浏览树名称 / 视口 / 勾选复选框 / 上方列表）— 不要点「${fromName}」本身。Esc 或「取消」退出` })
+      return
+    }
     const mfrom = get().compMateFrom
     if (mfrom && id && id !== mfrom) { get().mateStack(mfrom, id); set({ compMateFrom: null }); return }
     const from = get().compMeasureFrom
     if (from && id && id !== from) { get().measureTwoComponents(from, id); set({ compMeasureFrom: null }); return }
     set({ selectedComponent: id, selectedComponentBody: id && get().selectedComponentBody?.componentId === id ? get().selectedComponentBody : null, compMeasureFrom: null, compMateFrom: null, compBoolPending: null, compMeasureSeg: null })
   },
-  selectComponentBody: (componentId, bodyId) => set(() => ({ selectedComponent: componentId, selectedComponentBody: bodyId ? { componentId, bodyId } : null, compMeasureFrom: null, compMateFrom: null, compBoolPending: null, compMeasureSeg: null })),
+  selectComponentBody: (componentId, bodyId) => {
+    const bp = get().compBoolPending
+    // v1.25: body click on ANOTHER component finishes boolean (was wiping pending without running).
+    if (bp && componentId && componentId !== bp.from) { get().pickComponentBooleanTool(componentId, bodyId || undefined); return }
+    if (bp && componentId === bp.from) {
+      set({ selectedComponent: componentId, selectedComponentBody: bodyId ? { componentId, bodyId } : null })
+      return
+    }
+    set({ selectedComponent: componentId, selectedComponentBody: bodyId ? { componentId, bodyId } : null, compMeasureFrom: null, compMateFrom: null, compBoolPending: null, compMeasureSeg: null })
+  },
   compMeasureFrom: null,
   measureFromComponent: (id) => {
     const c = get().components.find((x) => x.id === id)
@@ -10445,7 +10462,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     })
   },
   checkedComps: [],
-  toggleCheckComp: (id) => set((s) => ({ checkedComps: s.checkedComps.includes(id) ? s.checkedComps.filter((x) => x !== id) : [...s.checkedComps, id] })),
+  toggleCheckComp: (id) => {
+    const bp = get().compBoolPending
+    // v1.25: Browser checkbox on another component = pick tool (testers often勾选 instead of clicking the name).
+    if (bp && id && id !== bp.from) { get().pickComponentBooleanTool(id); return }
+    set((s) => ({ checkedComps: s.checkedComps.includes(id) ? s.checkedComps.filter((x) => x !== id) : [...s.checkedComps, id] }))
+  },
   clearCheckedComps: () => set({ checkedComps: [] }),
   batchSetHiddenChecked: (hidden) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (s.checkedComps.includes(c.id) ? { ...c, hidden } : c)), status: `批量${hidden ? '隐藏' : '显示'} ${s.checkedComps.length} 个组件` })),   // bt4: 批量可见性可撤销
   // Batch-assign a material (from MATERIALS, or '' to clear) to all checked components — sets density (→ mass/BOM)
@@ -11633,7 +11655,29 @@ export const useApp = create<AppState>((rawSet, get) => {
     const op = opN === 1 ? 'union' as const : opN === 2 ? 'subtract' as const : 'intersect' as const
     const clearance = op === 'subtract' && Number.isFinite(p[1]) && p[1]! > 0 ? p[1]! : 0
     const opLbl = op === 'union' ? '合并' : op === 'subtract' ? '切除' : '相交'
-    set({ compBoolPending: { from: id, fromBodyId: picked?.id, op, clearance }, status: `${opLbl}：而家点击第二个零件（${op === 'subtract' ? '工具件——用佢切「' + c.name + '」' : '同「' + c.name + '」运算'}）${clearance ? `，间隙 ${clearance}mm` : ''}` })
+    const toolHint = op === 'subtract' ? `工具件会切「${c.name}」` : `与「${c.name}」运算`
+    // v1.25: document ALL completable pick paths (Browser / viewport / checkbox / list).
+    set({
+      compBoolPending: { from: id, fromBodyId: picked?.id, op, clearance },
+      selectedComponent: id,
+      status: `${opLbl}：请选择【第二个零件＝工具件】完成（${toolHint}${clearance ? `，间隙 ${clearance}mm` : ''}）— ①浏览树点另一个零件名 ②视口点另一个零件 ③勾选另一零件复选框 ④点上方列表按钮。Esc/取消 退出`,
+    })
+  },
+  // v1.25: canonical finish path for pending component boolean (Browser / viewport / checkbox / list).
+  pickComponentBooleanTool: (toolId, toolBodyId) => {
+    const bp = get().compBoolPending
+    if (!bp) { set({ status: '组件布尔：没有待选的工具件（请先点 🧩布尔）' }); return }
+    if (!toolId || toolId === bp.from) {
+      const fromName = get().components.find((x) => x.id === bp.from)?.name ?? bp.from
+      set({ status: `组件布尔：请点【另一个零件】作工具件，不要点「${fromName}」本身` })
+      return
+    }
+    set({ compBoolPending: null })
+    void get().componentBoolean(bp.from, toolId, bp.op, bp.clearance, bp.fromBodyId, toolBodyId)
+  },
+  cancelComponentBoolean: () => {
+    if (!get().compBoolPending) return
+    set({ compBoolPending: null, status: '已取消组件布尔（未修改模型）' })
   },
   // Mesh-level Boolean on exactly one Body from each occurrence.  Geometry is temporarily
   // expressed in world CAD coordinates for manifold-3d, then transformed back to A's local
@@ -11738,8 +11782,9 @@ export const useApp = create<AppState>((rawSet, get) => {
           status: `已${opLbl}「${A.name} / ${aBody.name}」${opSym}「${B.name} / ${bBody.name}」→ 体积 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}${toolNote}${keepTool ? '（工具 Body 保留）' : '（只消耗工具 Body）'}${removedJointCount ? `；工具件移除，连带移除 ${removedJointCount} 个关节` : '；来源位置与关节保留'}（可撤销 Ctrl+Z）`,
         }
       })
-      // v1.24: mesh boolean ≠ part solid — primary status/button bake (no blocking confirm).
+      // v1.24/v1.25: mesh boolean ≠ part solid — ALWAYS show primary bake statusAction after success.
       set({
+        compBoolPending: null,
         status: `${get().status} · 组件布尔结果是网格件，圆角/抽壳需要零件时间轴实体 — 点右侧按钮烘焙入零件后即可圆角/抽壳（或 MeshFit/转 B-rep；零件内多体用「实体布尔」）`,
         statusAction: { id: 'bakeMeshToPart', label: '烘焙为零件实体', componentId: aId },
         selectedComponent: aId,

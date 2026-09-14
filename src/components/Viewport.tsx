@@ -4272,7 +4272,7 @@ export default function Viewport() {
           return r
         }}
         camera={{ position: [240, 190, 270], fov: 28, near: 0.5, far: 100000 }}
-        onPointerMissed={(e) => { if (e.button === 0 && useApp.getState().selectedComponent) selectComponent(null) }}
+        onPointerMissed={(e) => { if (e.button === 0 && useApp.getState().selectedComponent && !useApp.getState().compBoolPending) selectComponent(null) }}
       >
         {/* S193：正交相机（makeDefault 覆写默认透视）— 开时由 OrbitControls 驱动；FitView/ViewRig 用 camera.zoom 取景。
             near 负值令物体喺相机后面都唔裁切（正交无远近）。关时此元件卸载 → 回退 Canvas 默认透视相机。 */}
@@ -4301,7 +4301,7 @@ export default function Viewport() {
           const def = c.defId ? componentDefs.find((d) => d.id === c.defId) : undefined
           const bodies = def?.bodies?.length ? def.bodies : [{ id: c.id + '_B1', name: c.name, mesh: c.mesh }]
           const pivot = meshCenter3(c.mesh)
-          return <Fragment key={c.id}>{bodies.filter((b) => !b.hidden).map((b) => <KernelBody key={b.id} mesh={b.mesh} frozen compId={c.id} pos={c.pos} explodeOffset={o} rot={c.rot} rotationCenter={pivot} selected={c.id === selectedComponent} motion={motion} clip={clip} compColor={b.color || c.color} compOpacity={compOpacity} pickable={pickable || c.id === moldTargetCompId} moldTarget={c.id === moldTargetCompId} onSelect={() => selectComponent(c.id === selectedComponent ? null : c.id)} onFocus={() => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.src?.features?.length) { void useApp.getState().editComponent(c.id) } else { selectComponent(c.id); requestFit(c.id) } }} onFaceMatePick={(face) => { const st = useApp.getState(); if (st.jointHolePick) st.applyJointHolePick(c.id, face); else if (st.screwFitMode) void st.fitScrewToHole(c.id, face); else if (st.jointPickMode) st.pickFaceForJoint(c.id, face); else st.pickFaceForMate(c.id, face) }} onPointMatePick={(point) => useApp.getState().pickPointForMate(c.id, point)} />)}</Fragment>
+          return <Fragment key={c.id}>{bodies.filter((b) => !b.hidden).map((b) => <KernelBody key={b.id} mesh={b.mesh} frozen compId={c.id} pos={c.pos} explodeOffset={o} rot={c.rot} rotationCenter={pivot} selected={c.id === selectedComponent} motion={motion} clip={clip} compColor={b.color || c.color} compOpacity={compOpacity} pickable={pickable || c.id === moldTargetCompId} moldTarget={c.id === moldTargetCompId} onSelect={() => { const st = useApp.getState(); if (st.compBoolPending) { st.selectComponent(c.id); return } selectComponent(c.id === selectedComponent ? null : c.id) }} onFocus={() => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.src?.features?.length) { void useApp.getState().editComponent(c.id) } else { selectComponent(c.id); requestFit(c.id) } }} onFaceMatePick={(face) => { const st = useApp.getState(); if (st.jointHolePick) st.applyJointHolePick(c.id, face); else if (st.screwFitMode) void st.fitScrewToHole(c.id, face); else if (st.jointPickMode) st.pickFaceForJoint(c.id, face); else st.pickFaceForMate(c.id, face) }} onPointMatePick={(point) => useApp.getState().pickPointForMate(c.id, point)} />)}</Fragment>
         })}
         {bodyMesh && bodyMesh.triangles.length > 0
           ? <>
@@ -8290,8 +8290,40 @@ export default function Viewport() {
       <InterfClearChip />
       <FormPanel />
       <QuiltPickPanel />
+      <CompBoolPickPanel />
       <EditPolesPanel />
       <GcodeBackplot />
+    </div>
+  )
+}
+
+// v1.25：组件布尔待选工具件 — 明确列表按钮（Browser / 视口 / 勾选 亦可），避免卡在「点第二个零件」。
+function CompBoolPickPanel() {
+  const pending = useApp((s) => s.compBoolPending)
+  const components = useApp((s) => s.components)
+  const lang = useApp((s) => s.lang)
+  if (!pending) return null
+  const from = components.find((c) => c.id === pending.from)
+  const tools = components.filter((c) => c.id !== pending.from && c.mesh?.vertices?.length && !c.hidden)
+  const opLbl = pending.op === 'union' ? '合并' : pending.op === 'subtract' ? '切除' : '相交'
+  return (
+    <div data-testid="comp-bool-pick-panel" style={{ position: 'absolute', top: 64, left: '50%', transform: 'translateX(-50%)', background: '#fff', border: '1px solid #2563eb', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, boxShadow: '0 2px 10px rgba(0,0,0,.14)', zIndex: 60, maxWidth: 'min(92vw, 420px)' }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <b style={{ color: '#1d4ed8' }}>{tStatus(`🧩 ${opLbl}：选择工具件`, lang)}</b>
+        <span style={{ color: '#526574' }}>{tStatus(`来源「${from?.name ?? pending.from}」— 点下方按钮，或浏览树/视口点另一个零件，或勾选其复选框`, lang)}</span>
+        <button type="button" className="cs-btn" data-testid="comp-bool-cancel" onClick={() => useApp.getState().cancelComponentBoolean()}>{tStatus('取消', lang)}</button>
+      </div>
+      {tools.length === 0 ? (
+        <span style={{ color: '#b45309' }}>{tStatus('没有其他可见有几何的零件可作工具件', lang)}</span>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {tools.map((c) => (
+            <button key={c.id} type="button" className="cs-btn" data-testid={`comp-bool-tool-${c.id}`} title={tStatus(`以「${c.name}」为工具件完成${opLbl}`, lang)} onClick={() => useApp.getState().pickComponentBooleanTool(c.id)} style={{ borderColor: '#2563eb', color: '#1d4ed8', fontWeight: 600 }}>
+              {c.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

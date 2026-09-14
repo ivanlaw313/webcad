@@ -256,6 +256,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
   const lang = useApp((s) => s.lang)
   const skLock = useApp((s) => s.mode === 'sketch' || s.formMode)   // GM-W2 2.2：草图态灰化删除掣
   const sel = useApp((s) => s.selectedComponent)
+  const compBoolPending = useApp((s) => s.compBoolPending)
   const selectComponent = useApp((s) => s.selectComponent)
   const toggleVis = useApp((s) => s.toggleComponentVisible)
   const isolate = useApp((s) => s.isolateComponent)
@@ -284,8 +285,8 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
   const selectBody = useApp((s) => s.selectComponentBody)
   return (
     <>
-    <div className={'tree-row' + (c.id === sel ? ' sel' : '')} style={{ paddingLeft: 18 + depth * 14 }}>
-      <input type="checkbox" checked={checked} title={tStatus('勾选以做批量操作（隐藏/显示/删除）', lang)} onClick={(e) => e.stopPropagation()} onChange={() => toggleCheck(c.id)} style={{ marginRight: 2, cursor: 'pointer' }} />
+    <div className={'tree-row' + (c.id === sel ? ' sel' : '') + (compBoolPending && c.id !== compBoolPending.from ? ' comp-bool-pickable' : '')} style={{ paddingLeft: 18 + depth * 14, ...(compBoolPending && c.id !== compBoolPending.from ? { outline: '1px dashed #2563eb', background: 'rgba(37,99,235,.06)' } : {}) }} title={compBoolPending && c.id !== compBoolPending.from ? tStatus('组件布尔：点此零件（或勾选）作为工具件完成运算', lang) : undefined}>
+      <input type="checkbox" checked={checked} title={tStatus(compBoolPending && c.id !== compBoolPending.from ? '勾选此零件＝选为组件布尔工具件并立即完成' : '勾选以做批量操作（隐藏/显示/删除）', lang)} onClick={(e) => e.stopPropagation()} onChange={() => toggleCheck(c.id)} style={{ marginRight: 2, cursor: 'pointer' }} />
       <span className="tw-eye" title={tStatus('显示/隐藏', lang)} onClick={(e) => { e.stopPropagation(); toggleVis(c.id) }}>{c.hidden ? '🚫' : '👁'}</span>
       <span className="tw-ico"><ToolIcon name="component" size={13} /></span>
       {editing ? (
@@ -294,10 +295,10 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
           onBlur={() => { rename(c.id, name || c.name); setEditing(false) }}
           onKeyDown={(e) => { if (e.key === 'Enter') { rename(c.id, name || c.name); setEditing(false) } }} />
       ) : (
-        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} title={tStatus(`「${c.name}」 ${compDimsStr(c.mesh)}（双击参数化件=进入编辑；Alt+双击=改名；点选=属性）`, lang)} onClick={() => selectComponent(c.id === sel ? null : c.id)} onDoubleClick={(e) => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.formSource && !e.altKey) { useApp.getState().editFormComponent(c.id) } else if (cc?.src?.features?.length && !e.altKey) { selectComponent(c.id); void useApp.getState().editComponent(c.id) } else { setName(c.name); setEditing(true) } }}>{c.name}</span>
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} title={tStatus(`「${c.name}」 ${compDimsStr(c.mesh)}（双击参数化件=进入编辑；Alt+双击=改名；点选=属性）`, lang)} onClick={() => { if (compBoolPending) selectComponent(c.id); else selectComponent(c.id === sel ? null : c.id) }} onDoubleClick={(e) => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.formSource && !e.altKey) { useApp.getState().editFormComponent(c.id) } else if (cc?.src?.features?.length && !e.altKey) { selectComponent(c.id); void useApp.getState().editComponent(c.id) } else { setName(c.name); setEditing(true) } }}>{c.name}</span>
       )}
       {shareCount > 1 && <span title={tStatus(`${shareCount} 个实例共享同一定义 — 编辑任一，全部跟新（「独立复制」可脱离）`, lang)} style={{ fontSize: 10, fontWeight: 600, color: '#1572c4', background: 'rgba(21,114,196,.12)', borderRadius: 3, padding: '0 4px', marginRight: 2, flexShrink: 0 }}>×{shareCount}</span>}
-      <button className="component-options" aria-label={`组件选项：${c.name}`} aria-expanded={c.id === sel && !componentEditing && !commandActive && !skLock} onClick={() => selectComponent(c.id === sel ? null : c.id)}>⋯</button>
+      <button className="component-options" aria-label={`组件选项：${c.name}`} aria-expanded={c.id === sel && !componentEditing && !commandActive && !skLock} onClick={() => { if (compBoolPending) selectComponent(c.id); else selectComponent(c.id === sel ? null : c.id) }}>⋯</button>
     </div>
     {c.id === sel && !componentEditing && !commandActive && !skLock && <div className="component-controls" role="group" aria-label={`组件选项：${c.name}`}>
       {!!c.formSource && <button onClick={() => useApp.getState().editFormComponent(c.id)}>✎ 编辑 Form 控制笼</button>}

@@ -179,6 +179,13 @@ const STATUS_PHRASES: Record<string, string> = {
   '选此件 → MeshFit/转 B-rep 烘焙入零件后再圆角/抽壳': 'select it → MeshFit / Convert to B-rep into the part, then Fillet/Shell',
   '零件内多体请用「实体布尔」': 'for multi-body inside a part use Body Boolean',
   '烘焙为零件实体': 'Bake into part solid',
+  // v1.25 component-boolean tool pick
+  '🧩 切除：选择工具件': '🧩 Cut: pick tool component',
+  '🧩 合并：选择工具件': '🧩 Join: pick tool component',
+  '🧩 相交：选择工具件': '🧩 Intersect: pick tool component',
+  '没有其他可见有几何的零件可作工具件': 'No other visible solid component available as tool',
+  '已取消组件布尔（未修改模型）': 'Component Boolean cancelled (model unchanged)',
+
   '组件布尔结果是网格件，圆角/抽壳需要零件时间轴实体': 'Component Boolean leaves a mesh; Fillet/Shell need a part-timeline solid',
   '已烘焙入零件时间轴，可圆角/抽壳': 'baked into the part timeline — Fillet/Shell ready',
   '提示：圆角/抽壳请先 MeshFit/转 B-rep（或零件内用「实体布尔」）': 'tip: Fillet/Shell need MeshFit/Convert to B-rep first (or Body Boolean inside a part)',

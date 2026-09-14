@@ -26,6 +26,7 @@ import { sampleConic } from '../cad/conic2d'   // S177：圆锥曲线 live 预�
 import { canvasQuad, canvasUV, type CanvasItem } from '../cad/insertModel'   // GM-X3 #2/#3：多张 Canvas 四角/UV（非等比+旋转+翻转）
 import { solveMove } from '../cad/moveSolve'
 import { useEscapeLayer } from './useEscapeLayer'
+import { illegalRejectStatus } from '../ui/illegalInput'
 import type { MeshData, Plane } from '../worker/cad.worker'
 
 type V3 = [number, number, number]
@@ -2612,7 +2613,7 @@ export function SketchDimLayer() {
     const request=++dimInputRequest.current,state=useApp.getState(),con=state.skCons.find(c=>c.id===e.conId&&c.kind==='dim')
     if(!con||con.kind!=='dim'){setInputError('尺寸已改变，请重新打开');return false}
     const result=parseDimensionEditInput({con,raw:text,unit:state.unit,radDia:e.radDia,params:state.params,cons:state.skCons,evaluate:evalExpr})
-    if(!result.ok){state.cancelSkDimEdit();invalidDimDraft.current=true;setInputError(result.error);useApp.setState({status:`尺寸已拒绝：${result.error}`});return false}
+    if(!result.ok){state.cancelSkDimEdit();invalidDimDraft.current=true;setInputError(illegalRejectStatus(result.error));useApp.setState({status:illegalRejectStatus(result.error)});return false}
     if(invalidDimDraft.current){state.beginSkDimEdit(e.conId);invalidDimDraft.current=false}
     if(useApp.getState().skDimPreview.id!==e.conId){setInputError('草图已改变，请重新打开尺寸');return false}
     setInputError(null)
@@ -2738,8 +2739,8 @@ export function SketchDimLayer() {
       else if(e.dim!=='con')setDim(e.target, e.dim, v)
     } else if (draft.trim() !== '' && draft !== initialValue.current) {
       // BOT-A02: soft/bbox label rejects (≤0) must surface the same status toast as constraint dims
-      useApp.setState({ status: '尺寸已拒绝：尺寸必须为有限正数' })
-      setInputError('尺寸必须为有限正数')
+      useApp.setState({ status: illegalRejectStatus('尺寸必须为有限正数') })
+      setInputError(illegalRejectStatus('尺寸必须为有限正数'))
     }
     setEditing(null)
   }

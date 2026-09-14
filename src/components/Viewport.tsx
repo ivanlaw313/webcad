@@ -6335,6 +6335,11 @@ export default function Viewport() {
           {featDlg.kind === 'combine' && (<>
             <label title={tStatus('合并=两体并集 · 切除=目标减工具 · 相交=公共体（真 B-rep）', lang)}>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'cut'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}><option value="fuse">{tStatus('＋合并', lang)}</option><option value="cut">{tStatus('－切除(目标−工具)', lang)}</option><option value="common">{tStatus('∩相交', lang)}</option></select></label>
             <div style={{ fontSize: 11, color: '#6b7680', margin: '2px 0' }}>{tStatus('目标 = 活动实体；勾选要参与运算嘅工具体（泊车实体）：', lang)}</div>
+            {!(bodyMesh?.parked?.length) && (
+              <div role="status" data-testid="combine-need-newbody" style={{ fontSize: 11, color: '#b42318', margin: '4px 0' }}>
+                {tStatus('没有工具体：请先用「新实体」泊车当前体，再建造第二个实体，然后返回合并/布尔。', lang)}
+              </div>
+            )}
             {(bodyMesh?.parked ?? []).map((b, i) => (
               <label key={i} style={{ justifyContent: 'flex-start', gap: 6 }}>
                 <input type="checkbox" checked={+(featDlg.params['tool' + i] ?? 0) > 0} onChange={(e) => setFeatParam('tool' + i, e.target.checked ? 1 : 0)} />
@@ -8415,7 +8420,17 @@ function FormPanel() {
     )
   }
   return (
-    <FormPalette title="Edit Form">
+    <FormPalette
+      title="Edit Form"
+      footer={(
+        <>
+          <button className="cs-btn" disabled={!undoN && !formDragging} onClick={() => useApp.getState().formUndoPop()}>↶ {lang === 'en' ? 'Undo' : '复原'}</button>
+          <button className="cs-btn" disabled={!redoN || formDragging} onClick={() => useApp.getState().formRedoPop()}>↷ {lang === 'en' ? 'Redo' : '重做'}</button>
+          <button className="cs-btn" data-testid="finish-form-panel" disabled={formDragging} onClick={() => void useApp.getState().finishForm()}>✓ Finish Form</button>
+          <button className="cs-btn" onClick={() => useApp.getState().cancelForm()}>Cancel Form</button>
+        </>
+      )}
+    >
       <b style={{ color: '#1572c4' }}>{tStatus('🫧 Form 细分建模', lang)}</b>
       <span style={{ color: '#5a6b78' }}>{tStatus('点控制点拖箭嘴捏形 / 点面拉伸（', lang)}{cage.verts.length} {tStatus('点）', lang)}</span>
       {cage.sel != null && <fieldset style={{ minWidth: 0, width: '100%', display: 'flex', flexWrap: 'wrap', gap: 6 }}><legend>{lang === 'en' ? 'Control point · mm' : '控制点坐标 · mm'}</legend>{(['X','Y','Z'] as const).map((axis,k) => <label key={axis}>{axis} <input aria-label={'Form point '+axis} key={cage.sel+'|'+cage.verts[cage.sel!][k]} type="number" defaultValue={cage.verts[cage.sel!][k]} style={{ width: 64 }} onBlur={e => { const n=Number(e.currentTarget.value), c=useApp.getState().formCage; if (e.currentTarget.value.trim() && Number.isFinite(n) && c?.sel != null) { const p=[...c.verts[c.sel]] as [number,number,number];p[k]=n;useApp.getState().setFormVert(c.sel,p) } }} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){e.currentTarget.value=String(cage.verts[cage.sel!][k]);e.currentTarget.blur()}}}/></label>)}</fieldset>}
@@ -8461,12 +8476,6 @@ function FormPanel() {
         <button className="cs-btn" title={tStatus('沿 Y 最小边界面镜像', lang)} onClick={() => void useApp.getState().formMirror(1)}>Y</button>
         <button className="cs-btn" title={tStatus('沿 Z 最小边界面镜像', lang)} onClick={() => void useApp.getState().formMirror(2)}>Z</button>
       </span>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        <button className="cs-btn" disabled={!undoN && !formDragging} onClick={() => useApp.getState().formUndoPop()}>↶ {lang === 'en' ? 'Undo' : '复原'}</button>
-        <button className="cs-btn" disabled={!redoN || formDragging} onClick={() => useApp.getState().formRedoPop()}>↷ {lang === 'en' ? 'Redo' : '重做'}</button>
-        <button className="cs-btn" disabled={formDragging} onClick={() => void useApp.getState().finishForm()}>✓ Finish Form</button>
-        <button className="cs-btn" onClick={() => useApp.getState().cancelForm()}>Cancel Form</button>
-      </div>
     </FormPalette>
   )
 }

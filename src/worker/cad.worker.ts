@@ -1807,7 +1807,7 @@ function _shellFaceIndicesNear(shape: any, near: [number, number, number][]): nu
   const faces = shape.faces as any[]
   const out: number[] = []
   for (const p of near) {
-    let best = -1, bestD = Infinity
+    let best = -1, bestD = Infinity, bestPlanar = -1, bestPlanarD = Infinity
     for (let fi = 0; fi < faces.length; fi++) {
       const tri = faces[fi].triangulation ? faces[fi].triangulation() : null
       if (!tri?.vertices?.length || !tri?.trianglesIndexes?.length) continue
@@ -1819,8 +1819,18 @@ function _shellFaceIndicesNear(shape: any, near: [number, number, number][]): nu
         if (d < dmin) dmin = d
       }
       if (dmin < bestD) { bestD = dmin; best = fi }
+      // P1 (v1.20): after rim fillet, pick points near the opening often land on TORUS/fillet
+      // faces that share the rim. Prefer a PLANAR candidate within a small distance tie-band
+      // so MakeThickSolid removes the real lid instead of a fillet strip (BX02).
+      const isPlane = (() => { try { return faces[fi].geomType === 'PLANE' } catch { return false } })()
+      if (isPlane && dmin < bestPlanarD) { bestPlanarD = dmin; bestPlanar = fi }
     }
-    if (best >= 0 && !out.includes(best)) out.push(best)
+    let pick = best
+    if (bestPlanar >= 0 && Number.isFinite(bestD)) {
+      const band = Math.max(1e-6, bestD * 25 + 1e-4)   // relative + absolute tie band (mm²)
+      if (bestPlanarD <= bestD + band) pick = bestPlanar
+    }
+    if (pick >= 0 && !out.includes(pick)) out.push(pick)
   }
   return out
 }
@@ -1916,15 +1926,19 @@ function _shellTangentClosure(shape: any, seed: number[], angleTolDeg = 1): numb
   return [...keep]
 }
 
-// P2 (v1.19): ShapeFix_Shape (+ light UnifySameDomain) — same idiom as STEP import / mesh→solid.
-// Dirty boolean composites otherwise poison MakeThickSolid; heal is best-effort and never throws.
+// P2/P1 (v1.19→1.20): ShapeFix_Shape (+ optional ShapeFix_Solid) — same idiom as STEP import.
+// Dirty boolean+fillet composites otherwise poison MakeThickSolid; heal is best-effort and never throws.
+// Still avoid UnifySameDomain here: merging same-domain faces can drop opening-face identity for shell.
 function _healSolid(shape: any): any {
   if (!shape?.wrapped || !_oc) return shape
   let out = shape
-  // Mirror STEP import (ShapeFix_Shape_2 only). UnifySameDomain can merge faces that
-  // MakeThickSolid / face-resolve still need; keep it off the default heal path.
   try {
     const fixer = new (_oc as any).ShapeFix_Shape_2(out.wrapped)
+    try {
+      // Tighter precision helps cut+fillet micro-edges before MakeThickSolid (BX02).
+      if (typeof fixer.SetPrecision === 'function') fixer.SetPrecision(1e-6)
+      if (typeof fixer.SetMaxTolerance === 'function') fixer.SetMaxTolerance(1e-3)
+    } catch { /* optional API */ }
     const prog = new (_oc as any).Message_ProgressRange_1()
     if (fixer.Perform(prog)) {
       const fixed = cast(fixer.Shape())
@@ -1933,6 +1947,23 @@ function _healSolid(shape: any): any {
     try { prog.delete() } catch { /* */ }
     try { fixer.delete() } catch { /* */ }
   } catch { /* heal fail → keep input */ }
+  // P1 (v1.20): ShapeFix_Solid can re-orient / close after boolean+fillet without merging faces.
+  try {
+    const SFS = (_oc as any).ShapeFix_Solid
+    if (SFS && out?.wrapped) {
+      const solidFix = new SFS(out.wrapped)
+      const prog2 = new (_oc as any).Message_ProgressRange_1()
+      if (typeof solidFix.Perform === 'function' && solidFix.Perform(prog2)) {
+        const sh = typeof solidFix.Solid === 'function' ? solidFix.Solid() : (typeof solidFix.Shape === 'function' ? solidFix.Shape() : null)
+        if (sh && !sh.IsNull()) {
+          const fixed = cast(sh)
+          if (fixed?.wrapped && !fixed.wrapped.IsNull()) out = fixed
+        }
+      }
+      try { prog2.delete() } catch { /* */ }
+      try { solidFix.delete() } catch { /* */ }
+    }
+  } catch { /* optional */ }
   return out
 }
 
@@ -1946,7 +1977,8 @@ function _shellExactFaces(shape: any, signedThickness: number, faceIndices: numb
   const JT = (_oc as any).GeomAbs_JoinType
   const joins = [JT.GeomAbs_Arc, JT.GeomAbs_Intersection]
   if (JT?.GeomAbs_Tangent != null) joins.push(JT.GeomAbs_Tangent)
-  const tols = [1e-3, 1e-2, 5e-4]
+  // P1 (v1.20): add 2e-2 for dirty cut+fillet shells; keep prior ladder order otherwise.
+  const tols = [1e-3, 1e-2, 2e-2, 5e-4]
   let lastErr: unknown = null
   const accept = (raw: any): any | null => {
     if (!raw || raw.IsNull()) return null
@@ -2798,7 +2830,7 @@ function buildShape(features: Feature[], noCache = false): any {
         // Keep the predecessor solid intact rather than freezing the CAD UI.
         buildWarnings.push('⚠ 抽壳：紧接变截面／导轨／连续性放样的通用 Shell 可能令核心长时间无响应，已安全跳过。请在「放样」对话框直接设定薄壁，或改为不变截面放样后再抽壳。')
       } else {
-      // P2: heal once at shell start so face resolve + MakeThickSolid see cleaned topology.
+      // P2/P1: heal once at shell start so face resolve + MakeThickSolid see cleaned topology.
       shape = _healSolid(shape)
       // Fusion-style: open the user-picked face(s) (nears). Fallback to the top face if none picked.
       // S125 持久面命名：faceFp 存在 → 用指纹喺当前面集揾返同一几何面嘅代表点（全中→跟；任何 miss/撞→保留 ns0 = 今日行为）；

@@ -13,8 +13,8 @@ import { readFileSync } from 'node:fs'
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.19', () => {
-  assert.match(version, /APP_VERSION = '1\.19'/)
+test('APP_VERSION is a release string', () => {
+  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
 })
 
 test('BX02 fix: seam-aware near-edge rank wired', () => {

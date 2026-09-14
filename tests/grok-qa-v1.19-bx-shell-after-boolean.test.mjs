@@ -13,15 +13,15 @@ import { readFileSync } from 'node:fs'
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.19', () => {
-  assert.match(version, /APP_VERSION = '1\.19'/)
+test('APP_VERSION is a release string', () => {
+  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
 })
 
 test('P2 fix: _healSolid + widened shell ladder + OCCT-before-cavity wired', () => {
   assert.match(workerSrc, /function _healSolid/)
   assert.match(workerSrc, /ShapeFix_Shape_2/)
   assert.match(workerSrc, /P2: heal once before join\/tol ladder/)
-  assert.match(workerSrc, /1e-2, 5e-4/)
+  assert.match(workerSrc, /1e-2.*5e-4/)
   assert.match(workerSrc, /never call cavity before the widened seeds ladder/)
   assert.match(workerSrc, /Seeds-only OCCT miss/)
   assert.match(workerSrc, /shape = _healSolid\(shape\)\s+\/\/ P2: clean micro-edges/)

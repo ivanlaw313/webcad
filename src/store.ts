@@ -7544,7 +7544,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (get().skCons.some((c) => c.kind === 'dim' && c.name === paramName && c.id !== conId)) { get().bindSkDimExpr(conId, paramName); return }
       set({ status: `参数「${paramName}」唔存在 — 先喺顶栏「ƒx 参数」面板加返（或输入尺寸名 d1 / 公式 d1*2）` }); return
     }
-    if (!Number.isFinite(p.value) || p.value <= 0) { set({status:'参数尺寸必须为有限正数，未更改草图'}); return }
+    if (!Number.isFinite(p.value) || p.value <= 0) { set({status:illegalRejectStatus('参数尺寸必须为有限正数，未更改草图')}); return }
     void get().commitSkDim(conId, {param:paramName,paramId:parameterId(p),refs:undefined,expr:undefined,value:p.value,driven:undefined}, `尺寸已绑定 ƒx ${paramName} = ${p.value}`)
   },
   // S97 公式尺寸：尺寸值 = 表达式（引用参数/常量/函数，如 d1*2+5）。先验证可算（失败报错不改），成功写 value + 解绑纯参数。
@@ -7573,7 +7573,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       while (stk.length) { const u = stk.pop()!; if (u === selfName) { cyc = true; break } if (seen.has(u)) continue; seen.add(u); for (const v2 of (depMap.get(u) || [])) stk.push(v2) }
       if (cyc) { set({ status: `⚠ 尺寸循环引用：「${selfName} = ${expr}」直接或间接引用返自己 — 已拒绝` }); return }
     }
-    if (!Number.isFinite(v) || v <= 0) { set({status:'公式尺寸必须为有限正数，未更改草图'}); return }
+    if (!Number.isFinite(v) || v <= 0) { set({status:illegalRejectStatus('公式尺寸必须为有限正数，未更改草图')}); return }
     void get().commitSkDim(conId, {expr,refs,param:undefined,paramId:undefined,value:v,driven:undefined}, `尺寸已绑定公式 ƒ(${expr}) = ${+v.toFixed(3)}`)
   },
   skClickAt: (p) => {
@@ -14165,7 +14165,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 行返现有 bodyboolean B-rep 路径（每个工具一条 bodyboolean 特征，时间轴可改/可删）。取代旧 cut-mode toggle。
   openCombineDlg: () => set((s) => {
     const parked = s.bodyMesh?.parked ?? []
-    if (!parked.length) return { status: '合并：仲未有泊车实体（工具体）— 先用「新实体」整多过一个实体' }
+    if (!parked.length) return { status: '合并：没有工具体（泊车实体）— 两个实体必须分开：先建第一个 → 「新实体」泊车 → 再建第二个 → 再合并/布尔。若两个盒子已在同一活动体，请用「新实体」拆分路径重做。' }
     if (!s.bodyMesh || !s.bodyMesh.triangles.length) return { status: '合并：冇活动实体（目标体）— 先建一个新实体' }
     // P2 audit：对齐 Fusion Combine 默认 — Operation=Join、工具体初始不勾（旧默认 Cut+全勾 → 开对话框直接撳确定会意外切走所有泊车体）
     const params: Record<string, number | string> = { op: 'fuse' }

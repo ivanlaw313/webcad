@@ -1344,8 +1344,6 @@ const STATUS_PHRASES_X: Record<string, string> = {
   // all-edge Fillet·Chamfer success toasts — preserve proper Chinese under EN tStatus.
   // Overrides whole-string EN translations + shields shorts (已/拉伸/实体/旋转/放样/扫掠/…).
   '已拉伸出实体 — 真实 OCCT B-rep': '已拉伸出实体 — 真实 OCCT B-rep',
-  '已切割（布尔减）— 真实 OCCT B-rep': '已切割（布尔减）— 真实 OCCT B-rep',
-  '已在顶面叠加拉伸特征': '已在顶面叠加拉伸特征',
   '已切除 ': '已切除 ',
   '已拉伸 ': '已拉伸 ',
   '个轮廓': '个轮廓',

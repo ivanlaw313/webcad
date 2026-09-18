@@ -1306,14 +1306,61 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "内螺纹孔：设 公称Ø/螺距/深度/中心 X,Y（孔底z 可选）→ 确定攻牙。或用「面加螺纹」直接点孔内壁自动填（结果系复合体：之后唔好倒角/STEP，STL 正常）": "Internal-thread hole: set nominal Ø / pitch / depth / center X,Y (hole-bottom z optional) → OK to tap. Or use 「Add Thread to Face」 and click the hole wall to auto-fill (result is a compound: don't Chamfer / STEP afterward, STL is fine)",
   "偏移曲面 — 距离 mm（正=外偏 / 负=内偏，沿面法向）\\n两侧：距离前后加 ± 或 both（如 ±5 / 5 both）= 一次出 +d 同 −d 两张平行面": "Offset Surface — distance mm (positive = outward / negative = inward, along the face normal)\\nBoth sides: add ± or both to the distance (e.g. ±5 / 5 both) = produces both +d and −d parallel faces at once",
   "圆角长方体 / 外壳盒：设长/宽/高/圆角R → 确定。长方体四条竖边倒圆角，做电子外壳 / 项目盒 / 圆角支架常用（建新体，长方体+竖边圆角两步，时间轴可改 R）。": "Rounded box / enclosure: set length / width / height / fillet R → OK. Fillets the box's four vertical edges, common for electronics enclosures / project boxes / rounded brackets (new body: box + vertical-edge fillet in two steps, R editable in the timeline).",
-  "🫧 Form 开放曲面片已建（真开放 grid — 车身板/外壳/有机曲面）。点蓝点拖捏，边界自动跟 B-spline、4 角钉死 → 平滑开放曲面。✔ 烘焙成曲面网格（非水密，正常 — 开放面就系曲面）": "🫧 Form open surface patch created (true open grid — body panels/shells/organic surfaces). Drag blue points to sculpt; boundaries follow B-spline, 4 corners pinned → smooth open surface. ✔ Baked to surface mesh (non-watertight is normal — an open patch is a surface)",}
-// 长→短排序（长词先替，避免被自身子串截断）。模块载入时算一次。合并基表 + 补充表（spread 去重，补充表覆盖）。
+  "🫧 Form 开放曲面片已建（真开放 grid — 车身板/外壳/有机曲面）。点蓝点拖捏，边界自动跟 B-spline、4 角钉死 → 平滑开放曲面。✔ 烘焙成曲面网格（非水密，正常 — 开放面就系曲面）": "🫧 Form open surface patch created (true open grid — body panels/shells/organic surfaces). Drag blue points to sculpt; boundaries follow B-spline, 4 corners pinned → smooth open surface. ✔ Baked to surface mesh (non-watertight is normal — an open patch is a surface)",
+
+  // v1.37: Shell / Fillet / Chamfer success toasts — preserve proper Chinese under EN tStatus.
+  // Short tokens (已→Done:, 抽壳→shell, 壁厚→Wall, 所选→selected, 圆角→fillet, 倒角→chamfer,
+  // 时间轴→timeline) otherwise produce hybrid UX like:
+  //   "Done: shell Wall 2 (向内, 开 1 个selected 面, 切线链)"
+  // Long→short sort lets these beat the destructive shorts. Identity EN keeps product Chinese.
+  '已抽壳 壁厚': '已抽壳 壁厚',
+  '个所选面': '个所选面',
+  '切线链开': '切线链开',
+  '封闭实体': '封闭实体',
+  '向内': '向内',
+  '向外': '向外',
+  '两侧': '两侧',
+  '已对 ': '已对 ',
+  '条棱 倒圆角': '条棱 倒圆角',
+  '条棱 倒角': '条棱 倒角',
+  '条棱 不对称圆角': '条棱 不对称圆角',
+  '条棱 多半径圆角': '条棱 多半径圆角',
+  '条棱 变半径圆角': '条棱 变半径圆角',
+  '条棱 全圆角': '条棱 全圆角',
+  ' 倒圆角': ' 倒圆角',
+  ' 倒角': ' 倒角',
+  ' 不对称圆角': ' 不对称圆角',
+  ' 多半径圆角': ' 多半径圆角',
+  ' 变半径圆角': ' 变半径圆角',
+  ' 全圆角': ' 全圆角',
+  '已建立面圆角': '已建立面圆角',
+  '已建立全圆角': '已建立全圆角',
+  '时间轴可改': '时间轴可改',
+  '两张相邻面共同边': '两张相邻面共同边',
+  '三组面': '三组面',
+}
+// 长→短排序（长词先替）。模块载入时算一次。合并基表 + 补充表（spread 去重，补充表覆盖）。
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)
 
-// 渲染时翻译状态串：zh 原样；en 逐短语 literal 替换（未收录片段保留中文，唔会崩）。
+// 渲染时翻译状态串：zh 原样；en 左到右最长匹配替换（未收录片段保留中文，唔会崩）。
+// v1.37: 必须 LTR longest-match —— 旧版全局 split/join 会在长词 identity 之后仍用短词二次切开
+// （已抽壳 壁厚 → 仍被 抽壳/壁厚/已 拆成 "Done: shell Wall …"）。
 export function tStatus(s: string, lang: Lang): string {
   if (lang !== 'en' || !s) return s
-  let out = s
-  for (const [zh, en] of _STATUS_SORTED) { if (out.indexOf(zh) !== -1) out = out.split(zh).join(en) }
+  let out = ''
+  let i = 0
+  while (i < s.length) {
+    let hit: [string, string] | null = null
+    for (const pair of _STATUS_SORTED) {
+      if (s.startsWith(pair[0], i)) { hit = pair; break }
+    }
+    if (hit) {
+      out += hit[1]
+      i += hit[0].length
+    } else {
+      out += s[i]
+      i += 1
+    }
+  }
   return out
 }

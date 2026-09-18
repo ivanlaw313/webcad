@@ -29,6 +29,7 @@ import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
+import { shellSuccessStatus } from './ui/featureStatus'
 import { lengthScale } from './io/units'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
 import { create } from 'zustand'
@@ -6176,7 +6177,6 @@ export const useApp = create<AppState>((rawSet, get) => {
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])  // three → CAD
     // GM-3DV3 M2：direction 只在非缺省(outside/both)时写字段 → inside 逐字节旧档兼容
     const f = buildShellFeature(get(), fid())!
-    const dirLbl = dir === 'outside' ? '向外' : dir === 'both' ? '两侧' : '向内'
     const hasRound = get().features.some((x) => x.type === 'fillet' || x.type === 'chamfer')
     const failMsg = hasRound ? '抽壳失败——已倒圆角/倒角的实体抽壳不稳定，建议先抽壳后倒角' : '抽壳失败（壁厚过大或所选面不合适）'
     // v1.33: Confirm 前提前作废预览 + 静默抢占 worker，避免 rebuild 卡喺 hung previewRound 后面
@@ -6185,7 +6185,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     _shellPvTimer = null
     set({ shellPreviewBusy: false })
     try { cancelPreviews() } catch { /* node / 无 kernel */ }
-    const ok = await get().applyFeatures([...get().features, f], `已抽壳 壁厚 ${th}（${dirLbl}，${shellType === 'closed' ? '封闭实体' : `开 ${nears.length} 个所选面${get().shellTangentChain ? '，切线链开' : ''}`}）`, true, failMsg)
+    // v1.37: Chinese success toast via shellSuccessStatus (+ i18n long-phrase guards)
+    const okMsg = shellSuccessStatus({ thickness: th, dir, shellType, openCount: nears.length, tangentChain: get().shellTangentChain })
+    const ok = await get().applyFeatures([...get().features, f], okMsg, true, failMsg)
     if (ok) set({ shellMode: false, shellPicks: [], shellPreviewMesh: null, shellPreviewFail: false, shellPreviewBusy: false })
   },
   cancelShell: () => {

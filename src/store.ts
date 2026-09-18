@@ -2601,6 +2601,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   setFormCreateKind: (kind: AppState['formCreateKind']) => void
   formBoxDraft: FormBoxDraft | null
   chooseFormBoxPlane: (plane: FormBoxPlane, offset?: number) => void
+  placeFormBoxOnOriginPlane: (plane: FormBoxPlane) => void
   setFormBoxPointer: (p: [number, number]) => void
   placeFormBoxPoint: (p: [number, number], clientY: number) => void
   setFormBoxHeightFromPointer: (clientY: number) => void
@@ -15490,6 +15491,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     formBoxDraft: { ...s.formBoxDraft, plane, planeOffset: offset, stage: 'center', center: null, cursor: [0, 0] },
     status: 'FORM Box：指定中心点。',
   })),
+  /** BUG-BD-4401: dialog / origin-plane quick place — plane + default center → ready (OK commits). */
+  placeFormBoxOnOriginPlane: (plane: FormBoxPlane) => set((s) => !s.formBoxDraft ? {} : ({
+    formBoxDraft: {
+      ...s.formBoxDraft,
+      plane,
+      planeOffset: 0,
+      center: [0, 0],
+      cursor: [0, 0],
+      stage: 'ready',
+    },
+    status: 'FORM Box：已选原点平面 ' + plane + '（默认中心）；按 OK 建立，或继续在视口调整。',
+  })),
   setFormBoxPointer: (p) => set((s) => {
     const d = s.formBoxDraft
     if (!d || (d.stage !== 'center' && d.stage !== 'size')) return {}
@@ -15517,8 +15530,12 @@ export const useApp = create<AppState>((rawSet, get) => {
   })),
   patchFormBoxDraft: (patch) => set((s) => !s.formBoxDraft ? {} : ({ formBoxDraft: { ...s.formBoxDraft, ...patch } })),
   commitFormBoxDraft: async () => {
-    const draft = get().formBoxDraft
-    if (!draft || draft.stage !== 'ready') return
+    const raw = get().formBoxDraft
+    // BUG-BD-4401: allow OK after plane is known — fill default center if interactive place incomplete.
+    if (!raw || !raw.plane) return
+    const draft = raw.stage === 'ready' && raw.center
+      ? raw
+      : { ...raw, center: raw.center ?? ([0, 0] as [number, number]), stage: 'ready' as const }
     try {
       const cage = makePlacedBoxCage(draft)
       set({
@@ -15767,10 +15784,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   orientFormCage: (plane) => set(s => !s.formCage || plane === 'XY' ? {} : { formCage: { ...s.formCage, verts: s.formCage.verts.map(([x,y,z]) => plane === 'XZ' ? [x,-z,y] : [z,y,-x]) } }),
   setFormLevels: (n) => set((s) => (s.formCage && Number.isFinite(n) ? formChange(s, { ...s.formCage, levels: Math.min(3, Math.max(1, Math.round(n))) }) : {})),
   finishForm: async () => {
+    const s0 = get()
+    // BUG-BD-4401: Finish Form must not soft-lock while Create Form→Box waits on plane pick —
+    // cancel the in-flight create, then exit if no cage (same as Cancel → Finish).
+    if (s0.formCreateKind) {
+      get().cancelFormCreate()
+    }
     const s = get(), cage = s.formCage
     if (s.formEditId && !s.components.some(c => c.id === s.formEditId)) { set({ status: '原 Form 组件已不存在；控制笼已保留，请保存项目。' }); return }
-    if (s.busy || s.formEditStart || s.formCreateKind) { set({ status: '请先完成或取消当前 Form 操作' }); return }
-    if (!cage) { set({ formMode: false, formCreateKind: null, formBoxDraft: null }); return }
+    if (s.busy || s.formEditStart) { set({ status: '请先完成或取消当前 Form 操作' }); return }
+    if (!cage) { set({ formMode: false, formCreateKind: null, formBoxDraft: null, status: '已退出 FORM' }); return }
     try {
       const { ccSubdivide, quadsToTris } = await import('./cad/subdiv')
       if (!get().formMode || get().formCage !== cage) return

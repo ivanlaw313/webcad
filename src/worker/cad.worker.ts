@@ -2315,19 +2315,53 @@ function _shellOcctAfterOpeningFilletTrim(
   } catch { return null }
 }
 
+// v1.36: MakeThickSolid join budgets — uncapped ladders (2017+ joins / +250MB on BX02) discard Chrome tabs.
+// Preview uses a tighter cap; commit keeps enough room for primary+nudge on dirty fuse solids.
+const SHELL_JOIN_CAP_COMMIT = 40
+const SHELL_JOIN_CAP_PREVIEW = 28
+const SHELL_JOIN_FEATURE_CAP_COMMIT = 120
+const SHELL_JOIN_FEATURE_CAP_PREVIEW = 72
+let _shellJoinMode: 'commit' | 'preview' = 'commit'
+let _shellJoinCallUsed = 0
+let _shellJoinFeatureUsed = 0
+function _shellBeginMemMode(mode: 'commit' | 'preview') {
+  _shellJoinMode = mode
+  _shellJoinFeatureUsed = 0
+  ;(globalThis as any).__webcadShellStats = { mode, joins: 0, exactCalls: 0, budgetHits: 0 }
+}
+function _shellCallCap() { return _shellJoinMode === 'preview' ? SHELL_JOIN_CAP_PREVIEW : SHELL_JOIN_CAP_COMMIT }
+function _shellFeatureCap() { return _shellJoinMode === 'preview' ? SHELL_JOIN_FEATURE_CAP_PREVIEW : SHELL_JOIN_FEATURE_CAP_COMMIT }
+function _shellNoteJoin() {
+  _shellJoinCallUsed++
+  _shellJoinFeatureUsed++
+  const st = (globalThis as any).__webcadShellStats
+  if (st) st.joins = (st.joins || 0) + 1
+  if (_shellJoinCallUsed > _shellCallCap() || _shellJoinFeatureUsed > _shellFeatureCap()) {
+    if (st) st.budgetHits = (st.budgetHits || 0) + 1
+    throw new Error('shell join budget exceeded')
+  }
+}
+function _shellDisposeShape(s: any) {
+  try { s?.delete?.() } catch { /* wasm GC fallback */ }
+  try { s?.wrapped?.delete?.() } catch { /* */ }
+}
+
 // Exact-face shell/offset primitive. signedThickness follows replicad shell(): positive=inward,
 // negative=outward. An empty face list returns the offset solid used to build a closed hollow body.
 function _shellExactFaces(shape: any, signedThickness: number, faceIndices: number[]): any {
   if (!_oc) throw new Error('kernel unavailable')
+  _shellJoinCallUsed = 0
+  const st0 = (globalThis as any).__webcadShellStats
+  if (st0) st0.exactCalls = (st0.exactCalls || 0) + 1
   // P2: heal once before join/tol ladder — done by caller (shell start / bodyboolean) so
   // faceIndices stay valid; do not re-_healSolid here (ShapeFix can reorder faces).
   // CX02 + P2: Arc → Intersection → Tangent (if bound); each with a short tol ladder.
   const JT = (_oc as any).GeomAbs_JoinType
   const joins = [JT.GeomAbs_Arc, JT.GeomAbs_Intersection]
   if (JT?.GeomAbs_Tangent != null) joins.push(JT.GeomAbs_Tangent)
-  // P1 (v1.20): add 2e-2 for dirty cut+fillet shells; keep prior ladder order otherwise.
-  // P1 (v1.21): keep prior ladder; add 5e-2 last for dirty cut+fillet MakeThickSolid.
-  const tols = [1e-3, 1e-2, 2e-2, 5e-4, 5e-2]
+  // v1.36: compact primary tols (was 5 incl. 5e-4/5e-2). Keep Intersection flag combos (v1.28).
+  const tols = [1e-3, 1e-2, 2e-2]
+  const tolsExtended = [5e-4, 5e-2]  // only when rimHasTor / second pass under remaining budget
   // v1.28: also try Intersection/RemoveIntEdges flag combos. Default (false,false,false) first
   // preserves prior CX02/BX02 behaviour; Intersection=true helps when wall thickness ≥ local
   // fillet radius (classic MakeThickSolid self-intersection on cut+fillet BX02).
@@ -2344,11 +2378,14 @@ function _shellExactFaces(shape: any, signedThickness: number, faceIndices: numb
     // Intersection shells can pass BRepCheck with a negative replicad volume; flip and re-check.
     try {
       const flipped = cast(_orientSolidOutward(result.wrapped.Reversed()))
-      if (validShellSolid(flipped)) return flipped
+      if (validShellSolid(flipped)) { _shellDisposeShape(result); return flipped }
+      _shellDisposeShape(flipped)
     } catch { /* keep lastErr */ }
+    _shellDisposeShape(result)
     return null
   }
   const tryJoin = (thickness: number, flags: { intersection: boolean; selfInter: boolean; removeInt: boolean }, join: any, tol: number): any | null => {
+    _shellNoteJoin()
     const r = GCWithScope()
     const faces = shape.faces as any[]
     const remove = r(new (_oc as any).TopTools_ListOfShape_1())
@@ -2358,47 +2395,63 @@ function _shellExactFaces(shape: any, signedThickness: number, faceIndices: numb
     builder.MakeThickSolidByJoin(shape.wrapped, remove, -thickness, tol, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, flags.intersection, flags.selfInter, join, flags.removeInt, progress)
     return accept(builder.Shape())
   }
-  for (const flags of flagCombos) {
-    for (const join of joins) {
-      for (const tol of tols) {
-        try {
-          const ok = tryJoin(signedThickness, flags, join, tol)
-          if (ok) return ok
-          lastErr = new Error('shell produced invalid solid')
-        } catch (e) { lastErr = e }
+  // Primary compact ladder (≤ 3 flags × ≤3 joins × 3 tols). Cap aborts early under memory pressure.
+  try {
+    for (const flags of flagCombos) {
+      for (const join of joins) {
+        for (const tol of tols) {
+          try {
+            const ok = tryJoin(signedThickness, flags, join, tol)
+            if (ok) return ok
+            lastErr = new Error('shell produced invalid solid')
+          } catch (e) {
+            lastErr = e
+            if (String((e as Error)?.message || e).includes('shell join budget exceeded')) throw e
+          }
+        }
       }
     }
+  } catch (e) {
+    if (String((e as Error)?.message || e).includes('shell join budget exceeded')) throw (lastErr instanceof Error ? lastErr : e)
+    throw e
   }
   // v1.29: fuse+outer-fillet singularity when |thickness| equals local fillet radius —
   // MakeThickSolid self-intersects exactly at t===R (t=1.99 and t=2.01 succeed; t=2.0 cavities).
-  // Intersection flags (v1.28) fix cut+fillet t≥R but not this exact-equality case.
-  // SelfInter flags do not help. A tiny thickness nudge (±1e-4..1e-2) breaks the singularity
-  // while keeping wall thickness effectively unchanged; tried only after exact thickness fails.
-  // Cavity/prismatic remain the caller's last resort.
-  const nudgeEps = [1e-4, -1e-4, 1e-3, -1e-3, 1e-2, -1e-2]
+  // v1.36: fewer nudges (was 6×3×3×3=162) — keep ±1e-4/1e-3 and Intersection-first flags.
+  const nudgeEps = [1e-4, -1e-4, 1e-3, -1e-3]
   const nudgeFlags = [
     { intersection: true, selfInter: false, removeInt: false },
     { intersection: true, selfInter: false, removeInt: true },
     { intersection: false, selfInter: false, removeInt: false },
   ]
-  const nudgeTols = [1e-3, 1e-2, 2e-2]
-  for (const eps of nudgeEps) {
-    const nudged = signedThickness + (signedThickness >= 0 ? eps : -eps)
-    if (!(Math.abs(nudged) > 1e-9)) continue
-    for (const flags of nudgeFlags) {
-      for (const join of joins) {
-        for (const tol of nudgeTols) {
-          try {
-            const ok = tryJoin(nudged, flags, join, tol)
-            if (ok) return ok
-            lastErr = new Error('shell produced invalid solid')
-          } catch (e) { lastErr = e }
+  const nudgeTols = [1e-3, 1e-2]
+  const nudgeJoins = joins.slice(0, 2) // Arc + Intersection only
+  try {
+    for (const eps of nudgeEps) {
+      const nudged = signedThickness + (signedThickness >= 0 ? eps : -eps)
+      if (!(Math.abs(nudged) > 1e-9)) continue
+      for (const flags of nudgeFlags) {
+        for (const join of nudgeJoins) {
+          for (const tol of nudgeTols) {
+            try {
+              const ok = tryJoin(nudged, flags, join, tol)
+              if (ok) return ok
+              lastErr = new Error('shell produced invalid solid')
+            } catch (e) {
+              lastErr = e
+              if (String((e as Error)?.message || e).includes('shell join budget exceeded')) throw e
+            }
+          }
         }
       }
     }
+  } catch (e) {
+    if (String((e as Error)?.message || e).includes('shell join budget exceeded')) throw (lastErr instanceof Error ? lastErr : e)
+    throw e
   }
-    // v1.31: fuse topology — extra Intersection/selfInter/tolerance + wider nudges when
+  // v1.31: fuse topology — extra Intersection/selfInter/tolerance + wider nudges when
   // removed faces include a TORUS rim (cyl-top / outer fillet). Still before caller cavity.
+  // v1.36: compact fuse ladder (was 6×4×3×5=360).
   let rimHasTor = false
   try {
     const fs = shape.faces as any[]
@@ -2408,28 +2461,55 @@ function _shellExactFaces(shape: any, signedThickness: number, faceIndices: numb
     }
   } catch { rimHasTor = false }
   if (rimHasTor) {
-    const fuseEps = [2e-2, -2e-2, 5e-2, -5e-2, 1e-4, -1e-4]
+    // Extended tols once under remaining budget
+    try {
+      for (const flags of flagCombos.slice(0, 2)) {
+        for (const join of nudgeJoins) {
+          for (const tol of tolsExtended) {
+            try {
+              const ok = tryJoin(signedThickness, flags, join, tol)
+              if (ok) return ok
+              lastErr = new Error('shell produced invalid solid')
+            } catch (e) {
+              lastErr = e
+              if (String((e as Error)?.message || e).includes('shell join budget exceeded')) throw e
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (String((e as Error)?.message || e).includes('shell join budget exceeded')) throw (lastErr instanceof Error ? lastErr : e)
+      throw e
+    }
+    const fuseEps = [2e-2, -2e-2, 5e-2, -5e-2]
     const fuseFlags = [
       { intersection: true, selfInter: true, removeInt: false },
       { intersection: true, selfInter: true, removeInt: true },
       { intersection: true, selfInter: false, removeInt: true },
-      { intersection: false, selfInter: true, removeInt: false },
     ]
-    const fuseTols = [1e-3, 1e-2, 2e-2, 5e-2, 1e-1]
-    for (const eps of fuseEps) {
-      const nudged = signedThickness + (signedThickness >= 0 ? eps : -eps)
-      if (!(Math.abs(nudged) > 1e-9)) continue
-      for (const flags of fuseFlags) {
-        for (const join of joins) {
-          for (const tol of fuseTols) {
-            try {
-              const ok = tryJoin(nudged, flags, join, tol)
-              if (ok) return ok
-              lastErr = new Error('shell produced invalid solid')
-            } catch (e) { lastErr = e }
+    const fuseTols = [1e-3, 1e-2, 5e-2]
+    try {
+      for (const eps of fuseEps) {
+        const nudged = signedThickness + (signedThickness >= 0 ? eps : -eps)
+        if (!(Math.abs(nudged) > 1e-9)) continue
+        for (const flags of fuseFlags) {
+          for (const join of nudgeJoins) {
+            for (const tol of fuseTols) {
+              try {
+                const ok = tryJoin(nudged, flags, join, tol)
+                if (ok) return ok
+                lastErr = new Error('shell produced invalid solid')
+              } catch (e) {
+                lastErr = e
+                if (String((e as Error)?.message || e).includes('shell join budget exceeded')) throw e
+              }
+            }
           }
         }
       }
+    } catch (e) {
+      if (String((e as Error)?.message || e).includes('shell join budget exceeded')) throw (lastErr instanceof Error ? lastErr : e)
+      throw e
     }
   }
   throw (lastErr instanceof Error ? lastErr : new Error('shell returned null'))
@@ -3399,19 +3479,31 @@ function buildShape(features: Feature[], noCache = false): any {
               } catch { /* alternate seeds best-effort */ }
               let lastErr: unknown = null
               const tryOcct = (shapeBase: any, faces: number[]) => _shellExactFaces(shapeBase, signed * t, faces)
-              const bases: any[] = [base]
-              // v1.31: fuse pre-heal (tight sew+heal) first alternate — before generic sew.
+              // v1.36: primary base first; build alternate sew/fusePre/copyHeal lazily only after base miss
+              // (BX02 burned ~4× full ladders on alternate bases before fillet-trim succeeded).
+              const basesPrimary: any[] = [base]
               let fusePre: any = null
-              try { fusePre = _shellFusePreheal(base) } catch { fusePre = null }
-              if (fusePre) bases.push(fusePre)
-              // One sew retry base (v1.21) — before cavity, after seeds OCCT miss.
               let sewn: any = null
-              try { sewn = _sewSolidFaces(base) } catch { sewn = null }
-              if (sewn) bases.push(sewn)
-              // P1 (v1.22): copy+aggressive heal alternate base before cavity.
               let copyHealed: any = null
-              try { copyHealed = _copyHealSolid(base) } catch { copyHealed = null }
-              if (copyHealed) bases.push(copyHealed)
+              let altBasesBuilt = false
+              const ensureAltBases = (): any[] => {
+                if (altBasesBuilt) {
+                  const out = [base]
+                  if (fusePre) out.push(fusePre)
+                  if (sewn) out.push(sewn)
+                  if (copyHealed) out.push(copyHealed)
+                  return out
+                }
+                altBasesBuilt = true
+                try { fusePre = _shellFusePreheal(base) } catch { fusePre = null }
+                try { sewn = _sewSolidFaces(base) } catch { sewn = null }
+                try { copyHealed = _copyHealSolid(base) } catch { copyHealed = null }
+                const out = [base]
+                if (fusePre) out.push(fusePre)
+                if (sewn) out.push(sewn)
+                if (copyHealed) out.push(copyHealed)
+                return out
+              }
               // Collect alternate planar opening sets (auto lid swap) for after primary attempts.
               const altOpenings: number[][] = []
               try {
@@ -3468,9 +3560,11 @@ function buildShape(features: Feature[], noCache = false): any {
                   return remapped.length ? remapped : faces
                 } catch { return faces }
               }
-              const tryBases = (faces: number[]): any | null => {
+              const tryBases = (faces: number[], useAlts = false): any | null => {
                 // v1.23: keep alternate-planar-open path solid — reject invalid MakeThickSolid hits.
-                for (const b of bases) {
+                // v1.36: default primary base only; useAlts builds sew/fusePre/copyHeal lazily.
+                const list = useAlts ? ensureAltBases() : basesPrimary
+                for (const b of list) {
                   try {
                     const r = tryOcct(b, remapFaces(b, faces))
                     if (r && validShellSolid(r)) return r
@@ -3478,16 +3572,23 @@ function buildShape(features: Feature[], noCache = false): any {
                 }
                 return null
               }
-              // 1) Seeds OCCT on heal/sew/copy bases — prefer exact selection (CX02).
+              // 1) Seeds OCCT on primary base — prefer exact selection (CX02).
               {
-                const got = tryBases(seeds)
+                const got = tryBases(seeds, false)
+                if (got) return got
+              }
+              // 1.2) v1.36: fillet-trim EARLY (BX02 win path) — before TORUS/boss deep ladders.
+              // v1.30: trim opening-rim fillet then OCCT (moved earlier in v1.36 for memory).
+              // Prior order burned 2000+ MakeThickSolid joins on seeds+TORUS before trim succeeded in 1 join.
+              {
+                const got = _shellOcctAfterOpeningFilletTrim(base, seeds, ns as [number, number, number][], signed * t, t)
                 if (got) return got
               }
               // 1.5) v1.30: seeds + adjacent TORUS rim (fuse cyl-top fillet) — still user opening.
               {
                 const torusExtra = _shellAdjacentTorusRim(base, seeds)
                 if (torusExtra.length) {
-                  const got = tryBases([...seeds, ...torusExtra])
+                  const got = tryBases([...seeds, ...torusExtra], false)
                   if (got) return got
                 }
               }
@@ -3496,16 +3597,13 @@ function buildShape(features: Feature[], noCache = false): any {
                 const bossExtra = _shellAdjacentBossRim(base, seeds)
                 const torusOnly = _shellAdjacentTorusRim(base, seeds)
                 if (bossExtra.length > torusOnly.length) {
-                  const got = tryBases([...seeds, ...bossExtra])
+                  const got = tryBases([...seeds, ...bossExtra], false)
                   if (got) return got
                 }
               }
-              // 1.6) v1.30: trim opening-rim fillet then OCCT on remapped seed (BX02 top-rim+top-open).
-              // v1.31: also try trim on fuse-preheal / sew bases (outer rim, not only hole).
+              // 1.6) v1.30/v1.36: trim on alternate sew/fuse bases if primary trim missed.
               {
-                const got = _shellOcctAfterOpeningFilletTrim(base, seeds, ns as [number, number, number][], signed * t, t)
-                if (got) return got
-                for (const b of bases) {
+                for (const b of ensureAltBases()) {
                   if (b === base) continue
                   try {
                     const remapped = remapFaces(b, seeds)
@@ -3515,11 +3613,27 @@ function buildShape(features: Feature[], noCache = false): any {
                   } catch { /* continue */ }
                 }
               }
+              // 1.7) v1.36: escalate seeds / torus / boss on alternate bases after trim miss.
+              {
+                const got = tryBases(seeds, true)
+                if (got) return got
+                const torusExtra = _shellAdjacentTorusRim(base, seeds)
+                if (torusExtra.length) {
+                  const gotT = tryBases([...seeds, ...torusExtra], true)
+                  if (gotT) return gotT
+                }
+                const bossExtra = _shellAdjacentBossRim(base, seeds)
+                const torusOnly = _shellAdjacentTorusRim(base, seeds)
+                if (bossExtra.length > torusOnly.length) {
+                  const gotB = tryBases([...seeds, ...bossExtra], true)
+                  if (gotB) return gotB
+                }
+              }
               // 2) v1.24: coplanar same-Z planar seeds via tryBases BEFORE cavity (not G1 chain — CX02-safe).
               for (const faces of attempts) {
                 if (faces === seeds) continue
                 if (chain.length > seeds.length && faces.length === chain.length && faces.every((v, j) => v === chain[j])) continue // defer G1 chain
-                const got = tryBases(faces)
+                const got = tryBases(faces, false) || tryBases(faces, true)
                 if (got) {
                   buildWarnings.push('抽壳：已用共面开口集合完成')
                   return got
@@ -3544,7 +3658,7 @@ function buildShape(features: Feature[], noCache = false): any {
               }
               // 3.5) v1.30: alternate planar lids AFTER cavity — last OCCT resort (wrong face; soft warn).
               for (const faces of altOpenings) {
-                const got = tryBases(faces)
+                const got = tryBases(faces, false) || tryBases(faces, true)
                 if (got) {
                   buildWarnings.push('抽壳：原开口 OCCT 未收敛，已改用其他平面开口')
                   return got
@@ -3553,7 +3667,7 @@ function buildShape(features: Feature[], noCache = false): any {
               // 4) Remaining G1 chain (and any leftover) — after cavity. planarSameZ already tried in 2.
               for (const faces of attempts) {
                 if (faces === seeds) continue
-                const got = tryBases(faces)
+                const got = tryBases(faces, false) || tryBases(faces, true)
                 if (got) {
                   if (!chainReported && chain.length > seeds.length && faces.length === chain.length && faces.every((v, j) => v === chain[j])) {
                     buildWarnings.push(`抽壳切线链：由 ${seeds.length} 个所选面扩展到 ${chain.length} 个 G1 连续面`)
@@ -6217,21 +6331,27 @@ function resamplePath(path: [number, number][], count: number): [number, number]
   return out
 }
 
-function meshOf(shape: any): MeshData {
+function meshOf(shape: any, opts?: { preview?: boolean }): MeshData {
   // angularTolerance 0.2 rad (~11.5°, ~31 facets/circle) — smoother curved faces/holes/fillets.
   // T804（报告 P2）：线性容差【自适应包围盒】— 固定 0.04mm 喺大型弯管/扫掠件会爆三角（实测 elbow
   // 344k！）。改 tolerance = clamp(对角线 ×0.05%, 0.04, 0.4)：细件维持 0.04 嘅幼细,大件按比例放粗,
   // 视觉差唔到但三角数受控（弯管由 ~34 万降到 ~万级）。导出仍可用 fine 精度另细分。
-  let tol = 0.04, angTol = 0.2
+  // v1.36: previewRound uses coarser mesh to cut transfer + main-thread peak during Shell typing.
+  const preview = !!opts?.preview
+  let tol = preview ? 0.12 : 0.04, angTol = preview ? 0.4 : 0.2
   try {
     const b = shape.boundingBox.bounds as [number[], number[]]
     const diag = Math.hypot(b[1][0] - b[0][0], b[1][1] - b[0][1], b[1][2] - b[0][2])
     if (Number.isFinite(diag) && diag > 0) {
-      tol = Math.min(0.6, Math.max(0.04, diag * 0.0012))
+      tol = preview
+        ? Math.min(1.0, Math.max(0.12, diag * 0.003))
+        : Math.min(0.6, Math.max(0.04, diag * 0.0012))
       // T805（报告问题 6）：线性 + 角度容差都自适应 — 大型曲面/管件（弯管 diag~126）嘅圆周分面数 + 沿弧长
       // 环数系三角爆炸主因。固定 0.2rad(~31 面/圈)+0.04mm 喺大件过密。按 diag 放粗：角度到 ~0.6rad(~10 面/圈)、
       // 线性到 diag×0.12%；细件（diag<57）维持 0.2/0.04 幼细。elbow 实测 344k→视图级幾萬；导出用 fine 另细分。
-      angTol = Math.min(0.45, Math.max(0.2, diag * 0.005))   // cap 0.45rad ≈ 14 面/圈（公认「够圆」下限，唔会见棱）
+      angTol = preview
+        ? Math.min(0.7, Math.max(0.4, diag * 0.008))
+        : Math.min(0.45, Math.max(0.2, diag * 0.005))   // cap 0.45rad ≈ 14 面/圈（公认「够圆」下限，唔会见棱）
     }
   } catch { /* 攞唔到 bbox → 用默认 0.04 / 0.2 */ }
   const m = shape.mesh({ tolerance: tol, angularTolerance: angTol })
@@ -6312,17 +6432,24 @@ const api = {
   async previewRound(features: Feature[]): Promise<MeshData | null> {
     await ready
     try {
+      _shellBeginMemMode('preview')
       await prepareStepBodies(features)
       const shape = buildShape(features)
       if (!shape) return null
-      return { ...meshOf(shape), warnings: buildWarnings.length ? buildWarnings.slice() : undefined, failed: failedFeatures.length ? failedFeatures.slice() : undefined }
+      return { ...meshOf(shape, { preview: true }), warnings: buildWarnings.length ? buildWarnings.slice() : undefined, failed: failedFeatures.length ? failedFeatures.slice() : undefined }
     } catch (e) { console.error('[cad.worker] previewRound failed:', e); return null }
+    finally {
+      // Keep __webcadShellStats from this preview for diagnostics; only restore commit caps.
+      _shellJoinMode = 'commit'
+      _shellJoinFeatureUsed = 0
+    }
   },
 
   // Replay the parametric feature tree and return the resulting mesh (+ parked multibody meshes).
   async rebuild(features: Feature[]): Promise<MeshData | null> {
     await ready
     try {
+      _shellBeginMemMode('commit')
       await prepareStepBodies(features)  // stepbody 异步预解析（同步 buildShape 前）
       const shape = buildShape(features)
       const parked = parkedBodies.length

@@ -6108,6 +6108,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     ++_shellPvSeq
     if (_shellPvTimer) clearTimeout(_shellPvTimer)
     _shellPvTimer = null
+    // v1.36: preempt in-flight previewRound so thickness edits do not stack 2000+ MakeThickSolid joins
+    // (BX02 probe: 3 stacked previews → ~5k joins / ~1.2GB RSS → Chrome tab discard).
+    try { cancelPreviews() } catch { /* node / 无 kernel */ }
     const s = get()
     const ready = s.shellMode && s.mode === 'model' && !!buildShellFeature(s, '~pv-shell') && hasSolid(s.features)
     set({ shellPreviewMesh: null, shellPreviewFail: false, shellPreviewBusy: ready })

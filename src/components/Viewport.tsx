@@ -2744,9 +2744,10 @@ function FormBoxTool() {
   if (!draft) return null
   if (draft.stage === 'plane') return (
     <>
-      <DatumPlane rot={[-Math.PI / 2, 0, 0]} color="#f0a020" size={80} onPick={() => useApp.getState().chooseFormBoxPlane('XY')} />
-      <DatumPlane rot={[0, 0, 0]} color="#f0a020" size={80} onPick={() => useApp.getState().chooseFormBoxPlane('XZ')} />
-      <DatumPlane rot={[0, Math.PI / 2, 0]} color="#f0a020" size={80} onPick={() => useApp.getState().chooseFormBoxPlane('YZ')} />
+      {/* BUG-BD-4401: larger RGB origin planes (parity with sketch picker) so BOT/user can hit them after MESH fit */}
+      <DatumPlane rot={[-Math.PI / 2, 0, 0]} color="#d6694e" size={160} onPick={() => useApp.getState().chooseFormBoxPlane('XY')} />
+      <DatumPlane rot={[0, 0, 0]} color="#4e9e5e" size={160} onPick={() => useApp.getState().chooseFormBoxPlane('XZ')} />
+      <DatumPlane rot={[0, Math.PI / 2, 0]} color="#4e7fd6" size={160} onPick={() => useApp.getState().chooseFormBoxPlane('YZ')} />
     </>
   )
   if (!draft.plane) return null
@@ -2778,6 +2779,14 @@ function FormBoxCameraRig() {
   const { camera } = useThree()
   const controls = useThree((s) => s.controls) as unknown as { target: Vector3; update: () => void } | undefined
   useEffect(() => {
+    // BUG-BD-4401: while waiting for a plane, pull camera back to origin so XY/XZ/YZ quads are hittable after MESH fit-zoom.
+    if (draft?.stage === 'plane' && controls) {
+      controls.target.set(0, 0, 0)
+      camera.position.set(110, 90, 110)
+      camera.up.set(0, 1, 0)
+      camera.lookAt(0, 0, 0); camera.updateProjectionMatrix(); controls.update()
+      return
+    }
     if (!draft?.plane || !controls) return
     const centerCad = formPlanePointForPreview(draft.plane, draft.center ?? [0, 0], draft.planeOffset + (draft.stage === 'height' || draft.stage === 'ready' ? draft.height / 2 : 0))
     const p = new Vector3(...cadPointToThree(centerCad))
@@ -3331,6 +3340,8 @@ function MarqueeCamBridge() {
 
 export default function Viewport() {
   const formMode = useApp(s => s.formMode)
+  const formBoxDraft = useApp(s => s.formBoxDraft)  // BUG-BD-4401: re-render so origin planes become pickable in Form Box plane stage
+  void formBoxDraft
   const modelingCommandActive = useApp(activeModelCommand)
   useEffect(() => {
     window.addEventListener('webcad:export-view-png', exportViewPNG)
@@ -4528,7 +4539,8 @@ export default function Viewport() {
         {objectVis.planes && planes.map((pl, i) => {   /* GM-X2 #8：原点/构造面主开关 */
           if (datumHidden.includes(datumVisKey('pl', pl))) return null   // S 浏览器树眼掣隐藏
           const o = pl.offset
-          const pickable = mode === 'pickplane'
+          const formBoxPlanePick = useApp.getState().formBoxDraft?.stage === 'plane'
+          const pickable = mode === 'pickplane' || !!formBoxPlanePick  // BUG-BD-4401
           // T763 角度面：用预算好嘅 arb 基（CAD）→ three 基（CAD(x,y,z)→three(x,z,−y)）做 quaternion
           if (pl.arb) {
             const a = pl.arb
@@ -4543,7 +4555,7 @@ export default function Viewport() {
           const pos: [number, number, number] = pl.base === 'XY' ? [0, o, 0] : pl.base === 'XZ' ? [0, 0, -o] : [o, 0, 0]
           const rot: [number, number, number] = pl.base === 'XY' ? [-Math.PI / 2, 0, 0] : pl.base === 'YZ' ? [0, Math.PI / 2, 0] : [0, 0, 0]
           // GM-W7 7.1：同上，PickPlaneQuad 提供 hover 高亮
-          return <PickPlaneQuad key={'pl' + i} pos={pos} rotation={rot} baseColor="#3b82d6" pickable={pickable} onPick={() => sketchOnDatumPlane(pl.base, o)} />
+          return <PickPlaneQuad key={'pl' + i} pos={pos} rotation={rot} baseColor="#3b82d6" pickable={pickable} onPick={() => { const st = useApp.getState(); if (st.formBoxDraft?.stage === 'plane' && (pl.base === 'XY' || pl.base === 'XZ' || pl.base === 'YZ')) st.chooseFormBoxPlane(pl.base, o); else sketchOnDatumPlane(pl.base, o) }} />
         })}
 
         {/* construction points (datums) */}
@@ -8415,12 +8427,22 @@ function FormPanel() {
       const patch = (p: Partial<FormBoxDraft>) => useApp.getState().patchFormBoxDraft(p)
       const row: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 8 }
       const field: CSSProperties = { width: 86, height: 23, boxSizing: 'border-box' }
-      const stageHint = boxDraft.stage === 'plane' ? 'Select a plane or planar face' : boxDraft.stage === 'center' ? 'Specify center point' : boxDraft.stage === 'size' ? 'Specify size of rectangle' : boxDraft.stage === 'height' ? 'Specify height' : 'Ready'
+      const stageHint = boxDraft.stage === 'plane' ? 'Select XY/XZ/YZ below, or click an origin/planar face' : boxDraft.stage === 'center' ? 'Specify center point' : boxDraft.stage === 'size' ? 'Specify size of rectangle' : boxDraft.stage === 'height' ? 'Specify height' : 'Ready'
       return (
         <FormPalette title="Create Form">
           <div style={{ fontWeight: 700, color: '#4c5a64', borderBottom: '1px solid #d8dee3', paddingBottom: 6, marginBottom: 8 }}>−　BOX</div>
           <label style={row}>Rectangle
             <select value="center" disabled style={field}><option value="center">Center</option></select>
+          </label>
+          <label style={row}>Plane
+            <span style={{ display: 'flex', gap: 4 }}>
+              {(['XY', 'XZ', 'YZ'] as const).map((pl) => (
+                <button key={pl} type="button" className="cs-btn" data-testid={`form-box-plane-${pl}`}
+                  title={`Place Form Box on origin ${pl}`}
+                  style={{ minWidth: 36, height: 23, padding: '0 6px', fontWeight: boxDraft.plane === pl ? 700 : 400, outline: boxDraft.plane === pl ? '2px solid #1572c4' : undefined }}
+                  onClick={() => useApp.getState().placeFormBoxOnOriginPlane(pl)}>{pl}</button>
+              ))}
+            </span>
           </label>
           {expanded && <>
             <label style={row}>Length <span><input aria-label="Form Box Length" type="number" min={0.1} step={0.1} value={Number(boxDraft.length.toFixed(3))} onChange={(e) => patch({ length: Math.max(0.1, Number(e.target.value) || 0.1) })} style={field} /> mm</span></label>
@@ -8438,7 +8460,7 @@ function FormPanel() {
           </label>}
           <div style={{ fontSize: 11, color: '#687782', minHeight: 18, marginTop: 5 }}>{stageHint}</div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, borderTop: '1px solid #d8dee3', paddingTop: 8, marginTop: 8 }}>
-            <button className="cs-btn" disabled={boxDraft.stage !== 'ready'} onClick={() => void useApp.getState().commitFormBoxDraft()}>OK</button>
+            <button className="cs-btn" disabled={!boxDraft.plane} data-testid="form-box-ok" onClick={() => void useApp.getState().commitFormBoxDraft()}>OK</button>
             <button className="cs-btn" onClick={() => useApp.getState().cancelFormCreate()}>Cancel</button>
           </div>
         </FormPalette>

@@ -31,6 +31,7 @@ import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
 import { shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus } from './ui/featureStatus'
 import { lengthScale } from './io/units'
+import { meshDropKind } from './io/meshDrop'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
 import { create } from 'zustand'
 import { sourceReferenceGeometry } from './sketch/sourceReferenceGeometry'
@@ -2245,6 +2246,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   measureParkedBody: (idx: number) => Promise<void>                       // 统一测量体过滤：量泊车半体体积（树点选 / 无画布命中时）
   commitBodyBoolean: (bop: 'fuse' | 'cut' | 'common', target: number) => Promise<void>  // 活动实体 ⊗ 泊车实体（B-rep）
   openStlDialog: () => void
+  /** v1.41: drag-drop mesh onto viewport/app — routes to openMeshInsert / import3MF */
+  acceptMeshDropFile: (file: File) => Promise<void>
   showProps: boolean
   toggleProps: () => void
   showCom: boolean
@@ -17758,6 +17761,35 @@ export const useApp = create<AppState>((rawSet, get) => {
       window.addEventListener('focus', onFocus)
       inp.click()
     })()
+  },
+
+
+  // v1.41: MESH drag-drop — reuse openMeshInsert / import3MF (same as openStlDialog success path).
+  acceptMeshDropFile: async (file) => {
+    const kind = meshDropKind(file.name)
+    if (!kind) {
+      set({ busy: false, status: '不支持的网格拖放（请用 .stl / .obj / .3mf）' })
+      return
+    }
+    const base = file.name.replace(/\.[^.]+$/, '')
+    set({ busy: true, status: `正在读取 ${kind.toUpperCase()}「${file.name}」…` })
+    try {
+      if (kind === 'stl') {
+        const buf = await file.arrayBuffer()
+        set({ busy: false })
+        get().openMeshInsert('stl', base, { buf })
+      } else if (kind === 'obj') {
+        const text = await file.text()
+        set({ busy: false })
+        get().openMeshInsert('obj', base, { text })
+      } else {
+        const buf = await file.arrayBuffer()
+        set({ busy: false })
+        await get().import3MF(buf, base)
+      }
+    } catch {
+      set({ busy: false, status: `${kind.toUpperCase()} 读取失败` })
+    }
   },
 
   openDxfDialog: () => {

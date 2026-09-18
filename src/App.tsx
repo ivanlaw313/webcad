@@ -29,6 +29,7 @@ import DebugHud from './components/DebugHud'
 import LoadingBar from './components/LoadingBar'   // 全局加载进度条（import/export/重建大档案时显示）
 import { ScrubNumberDrag } from './components/CommandDialog'   // 命令对话框数字栏左右拖改值（Fusion 式）
 import { useApp } from './store'
+import { firstMeshDropFile, isFilesDrag } from './io/meshDrop'
 import { VISUAL_STYLE_KEYMAP } from './cad/viewModel'   // GM-X2 #1：Ctrl+4..9 视觉样式
 import { isUiTestIsolation } from './runtime/uiTestIsolation'
 import { useCSketch } from './sketch/csketch'
@@ -310,7 +311,24 @@ export default function App() {
   }, [startupReady])
 
   return (
-    <div className="app" data-ui-test={isUiTestIsolation() ? 'true' : 'false'}>
+    <div
+      className="app"
+      data-ui-test={isUiTestIsolation() ? 'true' : 'false'}
+      data-mesh-drop="app"
+      onDragOver={(e) => {
+        // v1.41: allow OS file drop onto app shell (STL/OBJ/3MF filtered on drop)
+        if (!isFilesDrag(e.dataTransfer)) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'copy'
+      }}
+      onDrop={(e) => {
+        const file = firstMeshDropFile(e.dataTransfer?.files)
+        if (!file) return
+        e.preventDefault()
+        e.stopPropagation()
+        void useApp.getState().acceptMeshDropFile(file)
+      }}
+    >
       {!startupReady && <div className="startup-restore-gate" role="status" aria-live="polite">正在安全回復上次設計…</div>}
       <ErrorBoundary name="工具栏 Ribbon" compact><Ribbon /></ErrorBoundary>
       <div className="main" style={browserCollapsed ? { gridTemplateColumns: '26px 1fr' } : undefined}>

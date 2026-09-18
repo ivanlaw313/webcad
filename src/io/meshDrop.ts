@@ -23,6 +23,10 @@ export const MESH_DROP_EMPTY_STATUS =
 /** Brief status while a file-like drag is over the viewport overlay. */
 export const MESH_DROP_ARMED_STATUS = '松开以导入网格（.stl / .obj / .3mf）'
 
+/** v1.44: status when user switches to MESH tab — surfaces drag-drop as primary import path. */
+export const MESH_TAB_DROP_HINT =
+  '可将 .stl / .obj / .3mf 拖到视口导入（或用「插入STL」/ File→导入）'
+
 export function meshDropKind(filename: string): MeshDropKind | null {
   const m = /\.([^.]+)$/.exec(String(filename || '').trim().toLowerCase())
   if (!m) return null

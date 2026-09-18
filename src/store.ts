@@ -31,7 +31,7 @@ import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
 import { shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus } from './ui/featureStatus'
 import { lengthScale } from './io/units'
-import { meshDropKind } from './io/meshDrop'
+import { meshDropKind, MESH_TAB_DROP_HINT } from './io/meshDrop'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
 import { create } from 'zustand'
 import { sourceReferenceGeometry } from './sketch/sourceReferenceGeometry'
@@ -5320,7 +5320,14 @@ export const useApp = create<AppState>((rawSet, get) => {
   return ({
   skMutationError: null,
   activeTab: 'SOLID',
-  setActiveTab: (t) => set({ activeTab: t }),
+  setActiveTab: (t) => {
+    // v1.44: MESH tab surfaces drag-drop as primary import path (parity with BOT-D policy).
+    if (t === 'MESH' && !get().busy && !get().insertMesh) {
+      set({ activeTab: t, status: MESH_TAB_DROP_HINT })
+    } else {
+      set({ activeTab: t })
+    }
+  },
   teachHi: null,
   teachCommand: (query) => {
     const hit = searchRibbonCommand(query)
@@ -17724,10 +17731,17 @@ export const useApp = create<AppState>((rawSet, get) => {
   openStlDialog: () => {
     // BUG-BD-1804 / BUG-BD-3901：File→导入 STL 与 insertmesh 共用。优先 File System Access；
     // 失败回落 <input>。取消时清 status/busy，避免卡住「忙」或陈旧提示（自动化 flake 同类）。
+    // v1.44: success path status parity with acceptMeshDropFile（正在读取 STL「…」…）。
     const clearCancel = () => set({ busy: false, status: '已取消选择 STL' })
     const openFile = async (f: File) => {
-      set({ busy: false })
-      get().openMeshInsert('stl', f.name.replace(/\.[^.]+$/, ''), { buf: await f.arrayBuffer() })
+      set({ busy: true, status: `正在读取 STL「${f.name}」…` })
+      try {
+        const buf = await f.arrayBuffer()
+        set({ busy: false })
+        get().openMeshInsert('stl', f.name.replace(/\.[^.]+$/, ''), { buf })
+      } catch {
+        set({ busy: false, status: 'STL 读取失败' })
+      }
     }
     void (async () => {
       set({ busy: false, status: '选择 STL 文件…' })
@@ -20281,10 +20295,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     get().requestFit()
   },
   openObjDialog: () => {
+    // v1.44: chooser success status parity with acceptMeshDropFile.
     const openFile = async (f: File) => {
-      get().openMeshInsert('obj', f.name.replace(/\.[^.]+$/, ''), { text: await f.text() })
+      set({ busy: true, status: `正在读取 OBJ「${f.name}」…` })
+      try {
+        const text = await f.text()
+        set({ busy: false })
+        get().openMeshInsert('obj', f.name.replace(/\.[^.]+$/, ''), { text })
+      } catch {
+        set({ busy: false, status: 'OBJ 读取失败' })
+      }
     }
     void (async () => {
+      set({ busy: false, status: '选择 OBJ 文件…' })
       type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
       const picker = (window as OpenPickerWindow).showOpenFilePicker
       if (typeof picker === 'function') {
@@ -20294,12 +20317,23 @@ export const useApp = create<AppState>((rawSet, get) => {
           return
         } catch (err) {
           const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
-          if (name === 'AbortError') { set({ status: '已取消 OBJ 插入' }); return }
+          if (name === 'AbortError') { set({ busy: false, status: '已取消 OBJ 插入' }); return }
         }
       }
       const inp = document.createElement('input')
       inp.type = 'file'; inp.accept = '.obj'
-      inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; await openFile(f) }
+      let settled = false
+      const finish = async (f: File | undefined) => {
+        if (settled) return
+        settled = true
+        window.removeEventListener('focus', onFocus)
+        if (!f) { set({ busy: false, status: '已取消 OBJ 插入' }); return }
+        await openFile(f)
+      }
+      const onFocus = () => { window.setTimeout(() => { void finish(inp.files?.[0] ?? undefined) }, 300) }
+      inp.onchange = () => { void finish(inp.files?.[0] ?? undefined) }
+      inp.addEventListener('cancel', () => { void finish(undefined) })
+      window.addEventListener('focus', onFocus)
       inp.click()
     })()
   },
@@ -20337,10 +20371,47 @@ export const useApp = create<AppState>((rawSet, get) => {
     get().requestFit()
   },
   open3MFDialog: () => {
-    const inp = document.createElement('input')
-    inp.type = 'file'; inp.accept = '.3mf'
-    inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; await get().import3MF(await f.arrayBuffer(), f.name.replace(/\.[^.]+$/, '')) }
-    inp.click()
+    // v1.44: chooser success status parity with acceptMeshDropFile.
+    const openFile = async (f: File) => {
+      set({ busy: true, status: `正在读取 3MF「${f.name}」…` })
+      try {
+        const buf = await f.arrayBuffer()
+        set({ busy: false })
+        await get().import3MF(buf, f.name.replace(/\.[^.]+$/, ''))
+      } catch {
+        set({ busy: false, status: '3MF 读取失败' })
+      }
+    }
+    void (async () => {
+      set({ busy: false, status: '选择 3MF 文件…' })
+      type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
+      const picker = (window as OpenPickerWindow).showOpenFilePicker
+      if (typeof picker === 'function') {
+        try {
+          const [handle] = await picker.call(window, { multiple: false, types: [{ description: '3MF mesh', accept: { 'model/3mf': ['.3mf'], 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml': ['.3mf'] } }] })
+          await openFile(await handle.getFile())
+          return
+        } catch (err) {
+          const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
+          if (name === 'AbortError') { set({ busy: false, status: '已取消 3MF 插入' }); return }
+        }
+      }
+      const inp = document.createElement('input')
+      inp.type = 'file'; inp.accept = '.3mf'
+      let settled = false
+      const finish = async (f: File | undefined) => {
+        if (settled) return
+        settled = true
+        window.removeEventListener('focus', onFocus)
+        if (!f) { set({ busy: false, status: '已取消 3MF 插入' }); return }
+        await openFile(f)
+      }
+      const onFocus = () => { window.setTimeout(() => { void finish(inp.files?.[0] ?? undefined) }, 300) }
+      inp.onchange = () => { void finish(inp.files?.[0] ?? undefined) }
+      inp.addEventListener('cancel', () => { void finish(undefined) })
+      window.addEventListener('focus', onFocus)
+      inp.click()
+    })()
   },
   // Insert Component is deliberately separate from Derive / STEP B-rep import:
   // it creates one or more independent assembly occurrences, preserving a STEP

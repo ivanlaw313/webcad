@@ -398,7 +398,7 @@ const MESH: Panel[] = [
   ] },
   g('CONFIGURE'), g('CONSTRUCT'), g('INSPECT'),
   { name: 'INSERT', tools: [
-    { id: 'insertmesh', label: '插入STL网格', icon: 'importmesh', quick: true, tip: '插入 STL 网格（Alt+O 快捷）。导入后可用 MeshFit / 转 B-rep。' },
+    { id: 'insertmesh', label: '插入STL网格', icon: 'importmesh', quick: true, tip: '插入 STL 网格（Alt+O / File→导入）。也可将 .stl/.obj/.3mf 拖到视口导入（推荐）。导入后可用 MeshFit / 转 B-rep。' },
     { id: 'insert3mf', label: '插入3MF网格', icon: 'importmesh', quick: true, tip: 'MakerWorld / Printables 下载嘅 3MF 直接导入做组件——多零件保留摆位同颜色，单位自动转 mm。' },
     { id: 'insertobj', label: '插入OBJ网格', icon: 'importmesh', quick: true, tip: 'Wavefront OBJ 网格导入（Blender / 扫描 / 网上模型常用）作参考组件。' },
   ] },

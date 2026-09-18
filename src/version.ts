@@ -1,2 +1,2 @@
-// Product release version; independent of project JSON schema version.
-export const APP_VERSION = '1.43'
+/** Single source of truth for the UI version badge (Ribbon). */
+export const APP_VERSION = '1.44'

@@ -2097,6 +2097,14 @@ function _shellExactFaces(shape: any, signedThickness: number, faceIndices: numb
   // P1 (v1.20): add 2e-2 for dirty cut+fillet shells; keep prior ladder order otherwise.
   // P1 (v1.21): keep prior ladder; add 5e-2 last for dirty cut+fillet MakeThickSolid.
   const tols = [1e-3, 1e-2, 2e-2, 5e-4, 5e-2]
+  // v1.28: also try Intersection/RemoveIntEdges flag combos. Default (false,false,false) first
+  // preserves prior CX02/BX02 behaviour; Intersection=true helps when wall thickness ≥ local
+  // fillet radius (classic MakeThickSolid self-intersection on cut+fillet BX02).
+  const flagCombos = [
+    { intersection: false, selfInter: false, removeInt: false },
+    { intersection: true, selfInter: false, removeInt: false },
+    { intersection: true, selfInter: false, removeInt: true },
+  ]
   let lastErr: unknown = null
   const accept = (raw: any): any | null => {
     if (!raw || raw.IsNull()) return null
@@ -2109,20 +2117,22 @@ function _shellExactFaces(shape: any, signedThickness: number, faceIndices: numb
     } catch { /* keep lastErr */ }
     return null
   }
-  for (const join of joins) {
-    for (const tol of tols) {
-      try {
-        const r = GCWithScope()
-        const faces = shape.faces as any[]
-        const remove = r(new (_oc as any).TopTools_ListOfShape_1())
-        for (const i of faceIndices) if (faces[i]?.wrapped) remove.Append_1(faces[i].wrapped)
-        const progress = r(new (_oc as any).Message_ProgressRange_1())
-        const builder = r(new (_oc as any).BRepOffsetAPI_MakeThickSolid())
-        builder.MakeThickSolidByJoin(shape.wrapped, remove, -signedThickness, tol, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, false, false, join, false, progress)
-        const ok = accept(builder.Shape())
-        if (ok) return ok
-        lastErr = new Error('shell produced invalid solid')
-      } catch (e) { lastErr = e }
+  for (const flags of flagCombos) {
+    for (const join of joins) {
+      for (const tol of tols) {
+        try {
+          const r = GCWithScope()
+          const faces = shape.faces as any[]
+          const remove = r(new (_oc as any).TopTools_ListOfShape_1())
+          for (const i of faceIndices) if (faces[i]?.wrapped) remove.Append_1(faces[i].wrapped)
+          const progress = r(new (_oc as any).Message_ProgressRange_1())
+          const builder = r(new (_oc as any).BRepOffsetAPI_MakeThickSolid())
+          builder.MakeThickSolidByJoin(shape.wrapped, remove, -signedThickness, tol, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, flags.intersection, flags.selfInter, join, flags.removeInt, progress)
+          const ok = accept(builder.Shape())
+          if (ok) return ok
+          lastErr = new Error('shell produced invalid solid')
+        } catch (e) { lastErr = e }
+      }
     }
   }
   throw (lastErr instanceof Error ? lastErr : new Error('shell returned null'))

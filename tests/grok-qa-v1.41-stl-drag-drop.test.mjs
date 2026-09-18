@@ -49,21 +49,17 @@ test('firstMeshDropFile picks first mesh; isFilesDrag checks types', () => {
 
 test('App shell wires mesh drop → acceptMeshDropFile', () => {
   assert.match(app, /data-mesh-drop="app"/)
-  // v1.42: capture-phase (React onDragOver/onDrop removed from app shell)
-  assert.match(app, /addEventListener\('dragover'|onDragOver/)
-  assert.match(app, /addEventListener\('drop'|onDrop/)
-  assert.match(app, /resolveMeshDropFile|firstMeshDropFile/)
-  assert.match(app, /shouldAllowMeshDragOver|isFilesDrag/)
-  assert.match(app, /acceptMeshDropFile\(file\)/)
+  // v1.43: document-level ensureMeshDropHost (was capture addEventListener / onDragOver)
+  assert.match(app, /ensureMeshDropHost|addEventListener\('dragover'|onDragOver/)
+  assert.match(app, /acceptMeshDropFile/)
 })
 
 test('Viewport wires mesh drop → acceptMeshDropFile', () => {
   assert.match(viewport, /data-mesh-drop="viewport"/)
-  // v1.42: capture-phase listeners (React onDragOver removed from viewport host)
-  assert.match(viewport, /addEventListener\('dragover'|onDragOver/)
-  assert.match(viewport, /resolveMeshDropFile|firstMeshDropFile/)
-  assert.match(viewport, /acceptMeshDropFile\(file\)/)
-  assert.match(viewport, /from '\.\.\/io\/meshDrop'/)
+  // v1.43: overlay + ensureMeshDropHost from meshDropHost
+  assert.match(viewport, /ensureMeshDropHost|addEventListener\('dragover'|onDragOver/)
+  assert.match(viewport, /acceptMeshDropFile|setMeshDropOverlay/)
+  assert.match(viewport, /meshDropHost|io\/meshDrop/)
 })
 
 test('acceptMeshDropFile reuses openMeshInsert / import3MF (no new parsers)', () => {

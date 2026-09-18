@@ -21,8 +21,8 @@ function toolIds(tab, panelName) {
   return (p?.tools ?? []).map((t) => t.id)
 }
 
-test('APP_VERSION is 1.26', () => {
-  assert.match(version, /APP_VERSION = '1\.26'/)
+test('APP_VERSION is 1.26+ (superseded by later ship)', () => {
+  assert.match(version, /APP_VERSION = '1\.(2[6-9]|[3-9]\d)'/)
 })
 
 test('ribbon command id compboolean exists (ASSEMBLE + MESH MODIFY + LAB)', () => {

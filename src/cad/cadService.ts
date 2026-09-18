@@ -12,13 +12,29 @@ export const KERNEL_RESTART_MSG = '内核已重启（上次操作令几何内核
 const DEFAULT_TIMEOUT = 60_000
 const LONG_TIMEOUT = 120_000
 // 重活允许 120s：rebuild（全量重放特征树，首次仲包埋 wasm 加载）/ importStep（STEP 解析）/
-// splitBuild（内部 rebuild 两次）/ ready（慢网络下 wasm 下载+编译）
-const LONG_METHODS = new Set(['rebuild', 'importStep', 'splitBuild', 'ready', 'exportAssemblySTEP', 'importStepAssembly', 'projectAssemblyViews'])  // T759/T762/T769：N 组件 B-rep 重放/XCAF/HLR，60s 唔够
+// splitBuild（内部 rebuild 两次）/ ready（慢网络下 wasm 下载+编译）/
+// previewRound（shell/fillet 预览 = 同 rebuild 同款 buildShape；v1.28–v1.31 shell ladder 喺 wasm 可慢）
+const LONG_METHODS = new Set([
+  'rebuild', 'importStep', 'splitBuild', 'ready',
+  'exportAssemblySTEP', 'importStepAssembly', 'projectAssemblyViews',
+  'previewRound',
+])
 
 // 一个 rejection 似唔似 wasm 内核崩溃（Emscripten "Aborted(...)" / "unreachable executed" / 内存爆）
+// v1.32: 收紧匹配 — 单字 "abort"/"memory" 太易误伤业务错误（例如 AbortController / "out of memory hint"），
+// 只认 Emscripten 经典崩溃文案，避免 catchable 业务 throw 触发无谓 worker 重启 toast。
 export function looksLikeKernelCrash(reason: unknown): boolean {
   const m = String((reason as { message?: unknown } | null)?.message ?? reason ?? '').toLowerCase()
-  return m.includes('abort') || m.includes('unreachable') || m.includes('memory')
+  if (!m) return false
+  // 自愈文案本身唔好再当崩溃（防连环）
+  if (m.includes('内核已重启') || m.includes('kernel restart')) return false
+  return (
+    /\baborted\s*\(/.test(m) ||
+    m.includes('unreachable executed') ||
+    m.includes('out of memory') ||
+    m.includes('memory access out of bounds') ||
+    (m.includes('runtimeerror') && (m.includes('abort') || m.includes('memory')))
+  )
 }
 
 // 最小 worker 抽象 —— 真实现 = Worker + Comlink wrap；node 测试注入 mock
@@ -52,11 +68,17 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
   let restarting = false                          // 重启进行中（防重入）
   let recovering: Promise<void> | null = null     // 重放快照中 —— 新调用要等佢完先发出
   let lastGoodFeatures: Feature[] | null = null   // 最后一次成功 rebuild 嘅特征树（深拷贝）
+  let restartCount = 0                            // 测试/诊断：累计重启次数
   const pending = new Set<Pending>()
   const restartCbs: ((msg: string) => void)[] = []
   const notify = (msg: string) => { for (const cb of restartCbs.slice()) { try { cb(msg) } catch { /* UI 回调唔好炸代理 */ } } }
   const sc = (globalThis as { structuredClone?: <T>(v: T) => T }).structuredClone
   const deepCopy = <T,>(v: T): T => (sc ? sc(v) : JSON.parse(JSON.stringify(v)))
+
+  // v1.32: 单飞队列 —— 同一时间只跑一个内核调用。Timeout 只从【真正拿到执行权】起计，
+  // 唔再从「入队时刻」起计。否则 shell/fillet 连续 previewRound 会叠计时：后一个喺队列里
+  // 等前一个时已烧晒 60s → 伪超时 → terminate + 「内核已重启」toast（BX01/BX02 @v1.31 实证）。
+  let gate: Promise<void> = Promise.resolve()
 
   function spawn() {
     generation++
@@ -70,6 +92,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
   function restart(why: string) {
     if (restarting) return
     restarting = true
+    restartCount++
     // 1) 杀死旧 worker，开新一个
     try { raw.terminate() } catch { /* 已死 */ }
     // 2) 在飞调用全部拒绝（结果已不可信）
@@ -98,38 +121,48 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
   const cache = new Map<string, (...args: unknown[]) => Promise<unknown>>()
   function instrument(method: string) {
     return async (...args: unknown[]) => {
-      if (recovering) await recovering   // 等重放完成，内核状态先同 UI 对齐（保证 replay 先于后续调用）
-      const timeoutMs = LONG_METHODS.has(method) ? longT : defT
-      return await new Promise<unknown>((resolve, reject) => {
-        const entry: Pending = {
-          reject,
-          timer: setTimeout(() => { if (pending.has(entry)) restart(`${method} 超时（${Math.round(timeoutMs / 1000)}s 无响应）`) }, timeoutMs),
-        }
-        pending.add(entry)
-        const settle = () => { clearTimeout(entry.timer); pending.delete(entry) }
-        Promise.resolve()
-          // 发出前已被重启拒绝 → 唔好打搅新内核（resolve undefined，下面 pending 检查会弃掉）
-          .then(() => (pending.has(entry) ? raw.api[method](...args) : undefined))
-          .then(
-            (res) => {
-              if (!pending.has(entry)) return       // 已被重启拒绝 → 弃掉迟到结果
-              settle()
-              if (method === 'rebuild') {
-                // 快照：rebuild 成功出到 mesh（或合法嘅空特征树 → null）就深拷贝特征做恢复用。
-                // 非空特征树而结果 null = worker 内部 build 失败 —— 唔好用佢覆盖上一个好状态。
-                const feats = args[0] as Feature[] | undefined
-                if (res !== null || !feats || feats.length === 0) lastGoodFeatures = deepCopy(feats ?? [])
-              }
-              resolve(res)
-            },
-            (e) => {
-              if (!pending.has(entry)) return       // 已被重启拒绝
-              settle()
-              if (looksLikeKernelCrash(e)) { restart(`${method} 抛出疑似内核崩溃错误`); reject(new Error(KERNEL_RESTART_MSG)) }
-              else reject(e as Error)               // 普通业务错误原样透传
-            },
-          )
-      })
+      // 排队：等前一个调用结束（或被重启拒绝）先拿执行权，然后先等 recovering，再开 timeout。
+      let release!: () => void
+      const myTurn = new Promise<void>((r) => { release = r })
+      const prev = gate
+      gate = myTurn
+      try {
+        await prev.catch(() => {})   // 前任失败/拒绝唔好卡住整条队列
+        if (recovering) await recovering
+        const timeoutMs = LONG_METHODS.has(method) ? longT : defT
+        return await new Promise<unknown>((resolve, reject) => {
+          const entry: Pending = {
+            reject,
+            timer: setTimeout(() => { if (pending.has(entry)) restart(`${method} 超时（${Math.round(timeoutMs / 1000)}s 无响应）`) }, timeoutMs),
+          }
+          pending.add(entry)
+          const settle = () => { clearTimeout(entry.timer); pending.delete(entry) }
+          Promise.resolve()
+            // 发出前已被重启拒绝 → 唔好打搅新内核（resolve undefined，下面 pending 检查会弃掉）
+            .then(() => (pending.has(entry) ? raw.api[method](...args) : undefined))
+            .then(
+              (res) => {
+                if (!pending.has(entry)) return       // 已被重启拒绝 → 弃掉迟到结果
+                settle()
+                if (method === 'rebuild') {
+                  // 快照：rebuild 成功出到 mesh（或合法嘅空特征树 → null）就深拷贝特征做恢复用。
+                  // 非空特征树而结果 null = worker 内部 build 失败 —— 唔好用佢覆盖上一个好状态。
+                  const feats = args[0] as Feature[] | undefined
+                  if (res !== null || !feats || feats.length === 0) lastGoodFeatures = deepCopy(feats ?? [])
+                }
+                resolve(res)
+              },
+              (e) => {
+                if (!pending.has(entry)) return       // 已被重启拒绝
+                settle()
+                if (looksLikeKernelCrash(e)) { restart(`${method} 抛出疑似内核崩溃错误`); reject(new Error(KERNEL_RESTART_MSG)) }
+                else reject(e as Error)               // 普通业务错误原样透传
+              },
+            )
+        })
+      } finally {
+        release()
+      }
     }
   }
 
@@ -149,7 +182,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
   }
 
   // 测试钩子（生产代码唔好依赖）
-  const getState = () => ({ generation, recovering: !!recovering, hasSnapshot: !!lastGoodFeatures })
+  const getState = () => ({ generation, recovering: !!recovering, hasSnapshot: !!lastGoodFeatures, restartCount })
 
   return { proxy, onKernelRestart, getState }
 }
@@ -173,7 +206,7 @@ const kernel = typeof Worker !== 'undefined' ? createKernelProxy(realSpawn) : nu
 export const cad = (kernel ? kernel.proxy : ({} as unknown)) as Remote<CadAPI>
 
 // DEV：暴露内核句柄到 window 供控制台验证（window.cad.rebuild / getControlNet）。生产关闭 → 无副作用。
-if (import.meta.env.DEV && typeof window !== 'undefined') (window as { cad?: unknown }).cad = cad
+if (typeof window !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }).env?.DEV) (window as { cad?: unknown }).cad = cad
 
 // UI 订阅内核重启状态（integration：store 可以 onKernelRestart((msg) => set({ status: msg }))）
 export function onKernelRestart(cb: (msg: string) => void): () => void {

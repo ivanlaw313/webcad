@@ -4974,7 +4974,7 @@ export default function Viewport() {
           title="抽壳"
           width={236}
           okLabel={tStatus('确定', lang)}
-          okDisabled={!shellPicks.length || !(shellThickness > 0) || shellPreviewBusy}
+          okDisabled={!shellPicks.length || !(shellThickness > 0)}
           okTip="抽壳（Enter）"
           onOk={() => void commitShell()}
           onCancel={() => cancelShell()}

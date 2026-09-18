@@ -16,8 +16,9 @@ const timeline = readFileSync(new URL('../src/components/Timeline.tsx', import.m
 
 test('BOT-A10: shell enters with default thickness 2; Confirm not gated on previewFail', () => {
   assert.match(store, /shellThickness: s\.shellMode \? 0 : 2/)
-  assert.match(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\) \|\| shellPreviewBusy\}/)
-  assert.doesNotMatch(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\) \|\| shellPreviewBusy \|\| shellPreviewFail\}/)
+  assert.match(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\)\}/)
+  assert.doesNotMatch(viewport, /shellPreviewBusy\}/)
+  assert.doesNotMatch(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\) \|\| shellPreviewBusy/)
   assert.match(viewport, /仍按「确定」尝试提交/)
 })
 
@@ -62,8 +63,8 @@ test('BOT-A10 runtime: simple solid face + default thickness previews and Confir
   for (let i = 0; i < 80 && g().shellPreviewBusy; i++) await new Promise((r) => setTimeout(r, 50))
   assert.equal(g().shellPreviewFail, false, g().status)
   assert.ok(g().shellPreviewMesh?.triangles?.length, 'preview mesh present')
-  // Confirm gate: picks + thickness>0 + !busy
-  assert.ok(g().shellPicks.length && g().shellThickness > 0 && !g().shellPreviewBusy)
+  // Confirm gate (v1.33): picks + thickness>0 — busy no longer disables Confirm
+  assert.ok(g().shellPicks.length && g().shellThickness > 0)
   g().setShellThickness(5)
   await new Promise((r) => setTimeout(r, 250))
   for (let i = 0; i < 80 && g().shellPreviewBusy; i++) await new Promise((r) => setTimeout(r, 50))

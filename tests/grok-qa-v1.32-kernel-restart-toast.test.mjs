@@ -19,7 +19,7 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const serviceSrc = readFileSync(new URL('../src/cad/cadService.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.32+', () => {
-  assert.match(version, /APP_VERSION = '1\.32'|APP_VERSION = '1\.[4-9]\d'/)
+  assert.match(version, /APP_VERSION = '1\.3[2-9]'|APP_VERSION = '1\.[4-9]\d'/)
 })
 
 test('v1.32 wiring: previewRound is LONG + single-flight gate present', () => {

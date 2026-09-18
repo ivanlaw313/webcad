@@ -11,8 +11,8 @@ function harness(){
  const subscription=source.slice(start,source.indexOf('\n})',start)+3);
  let state,listener;const pending=[],timers=new Map();let tid=0;
  const set=p=>{const prev=state;state={...state,...(typeof p==='function'?p(state):p)};listener?.(state,prev)};
- const context=vm.createContext({get:()=>state,set,_previewFeatures:new WeakMap(),hasSolid:()=>true,fid:()=> 'committed-shell',applyParamBindings:f=>f,expandFeats:f=>f,
- cad:{previewRound:features=>new Promise((resolve,reject)=>pending.push({features,resolve,reject}))},
+ const context=vm.createContext({get:()=>state,set,_previewFeatures:new WeakMap(),hasSolid:()=>true,fid:()=> 'committed-shell',applyParamBindings:f=>f,expandFeats:f=>f,isNonPositiveDim:v=>!(Number(v)>0),illegalRejectStatus:m=>m,ILLEGAL_THICKNESS_DETAIL:"thickness",
+ cad:{previewRound:features=>new Promise((resolve,reject)=>pending.push({features,resolve,reject}))},cancelPreviews:()=>{},isPreviewCancelled:()=>false,
  setTimeout:f=>{timers.set(++tid,f);return tid},clearTimeout:i=>timers.delete(i),useApp:{subscribe:f=>listener=f}});
  const api=vm.runInContext(stripTypeScriptTypes(`${builder};\n({${actions}})`),context);
  state={...api,mode:'model',shellMode:true,shellPicks:[[10,20,-10]],shellThickness:2,features:[{id:'body',type:'prim'}],params:[],paramBindings:[],suppressedIds:[],bodyMesh:{tag:'original'},undo:['original']};

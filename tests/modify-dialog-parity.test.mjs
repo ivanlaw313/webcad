@@ -49,7 +49,7 @@ test('Shell requires an explicit face and a positive thickness', () => {
   assert.match(store, /shellThickness:\s*0,/)
   assert.match(store, /if \(!pts\.length\) \{ set\(\{ status: shellType === 'closed' \? '请先选择要抽壳的实体' : '请先选择要移除的面'/)
   assert.match(store, /if \(!\(th > 0\)\) \{ set\(\{ status: illegalRejectStatus\(ILLEGAL_THICKNESS_DETAIL\)/)
-  assert.match(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\) \|\| shellPreviewBusy\}/)
+  assert.match(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\)\}/)
   assert.match(store, /shellThickness: s\.shellMode \? 0 : 2/)
   for (const shellType of ['open', 'closed']) {
     assert.equal(buildShellFeature({ ...shellInput, shellType, shellPicks: [] }, 'shell'), null)

@@ -118,7 +118,7 @@ import { upsertAnalysis, toggleAnalysisVisible, removeAnalysis, type AnalysisNod
 // GM-X2（视图显示设定/VIEW 波次）：6 视觉样式枚举 / 相机三态 / 网格配置 / 图形预设 / 应用偏好 / 单位配对预设。
 import { visualStyleToRender, renderToVisualStyle, edgeStateToMode, edgeModeToState, graphicsPresetEffects, mergePrefs, DEFAULT_PREFS, PREFS_KEY, cameraProjToOrtho, type VisualStyle, type GraphicsPreset, type Prefs, type CameraProj } from './cad/viewModel'
 import { detectPreset, presetById, fmtLenU, fmtMassU, areaVolBaseUnit, type LenU, type MassU, type UnitPreset } from './cad/unitPresets'
-import { makeCanvas, patchCanvas, sanitizeCanvases, archivedCanvases, canvasToLegacyImg, nextCanvasId, decalExtras, patchDecalFields, buildImportSketchSource, preferDxfSketchOnly, forceDxfSketchOnly, rejectDxfImport, DXF_MAX_TEXT_MARKERS, filterByLayers, transformMesh, meshUnitScaleMm, meshInsertPosition, type CanvasItem, type ImpItem, type MeshUnit } from './cad/insertModel'   // GM-X3 插入：多张 Canvas / 逐张字段 / Decal 字段 / SVG·DXF→草图源 / Mesh 单位·flip·摆位（纯逻辑，Node 測過）
+import { makeCanvas, patchCanvas, sanitizeCanvases, archivedCanvases, canvasToLegacyImg, nextCanvasId, decalExtras, patchDecalFields, buildImportSketchSource, preferDxfSketchOnly, forceDxfSketchOnly, rejectDxfImport, DXF_MAX_TEXT_MARKERS, DXF_SCHEMATIC_TEXT_MARKERS, filterByLayers, transformMesh, meshUnitScaleMm, meshInsertPosition, type CanvasItem, type ImpItem, type MeshUnit } from './cad/insertModel'   // GM-X3 插入：多张 Canvas / 逐张字段 / Decal 字段 / SVG·DXF→草图源 / Mesh 单位·flip·摆位（纯逻辑，Node 測過）
 import { DEFAULT_SEL_FILTER, migrateSelFilter, withSelType, withAllTypes, withNoTypes, withPriority, withSelThrough, matchByName, matchBySize, invertSet, SEL_TYPES, type SelFilter, type SelType, type SelPriority, type SizeOp } from './cad/selectionModel'   // GM-X4 选择：selFilter 逐类型过滤 + 优先级 + 穿透 + By-Name/Size + Invert（纯逻辑，Node 测过）
 
 export type Pt = [number, number] // three.js ground coords [x, z]
@@ -20370,7 +20370,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       labels = labels.map((t) => ({ ...t, at: xform2D(t.at, scale, zAngle), height: Math.max(0.1, t.height * scale), rot: (t.rot || 0) + (zAngle * 180 / Math.PI) }))
     }
     const { textsToConstructionShapes, DXF_MAX_TEXT_MARKERS: MARK_CAP } = await import('./io/dxfImport')
-    const markerCap = MARK_CAP ?? DXF_MAX_TEXT_MARKERS
+    const { dxfTextMarkerBudget } = await import('./cad/sketchDisplayBatch')
+    // v1.35: yield so Chrome can GC before the big scene commit (AL1 OOM was sync mesh burst).
+    const yieldFrame = () => new Promise<void>((r) => {
+      if (typeof requestAnimationFrame !== 'undefined') requestAnimationFrame(() => r())
+      else setTimeout(r, 0)
+    })
+    await yieldFrame()
+    // v1.35: schematic soft/force → fewer TEXT construction markers (labels still all retained).
+    const schematic = preferDxfSketchOnly(use.length, labels.length) || forceDxfSketchOnly(use.length, labels.length)
+    const forcedSO = forceDxfSketchOnly(use.length, labels.length)
+    const markerCap = dxfTextMarkerBudget(schematic, forcedSO, MARK_CAP ?? DXF_MAX_TEXT_MARKERS, DXF_SCHEMATIC_TEXT_MARKERS)
     const labelShapes = (labels.length ? textsToConstructionShapes(labels, { maxMarkers: markerCap }) : (opt?.labelShapes || []).slice()) as SketchShape[]
     const markerNote = labels.length > markerCap ? `；构造标记 ${markerCap}/${labels.length}（标注全保留，防几何爆炸）` : ''
     const labelNote = labels.length ? `；保留 ${labels.length} 个文字标注（重开草图可见）${markerNote}` : ''
@@ -20381,6 +20391,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const asSketch = opt?.asSketch !== false   // 默认入草图源（可编辑曲线）
     const sketchOnly = !!opt?.sketchOnly       // v1.22：仅草图不拉伸（大图/原理图防 OOM）
     if (hasSolid(get().features) || get().bodyMesh) get().newComponent()
+    await yieldFrame()
     // TEXT-only DXF: archive a sketch source with construction markers + labels (no extrude).
     if (!use.length && labels.length) {
       const skId = 'sk' + ++_skidN
@@ -20400,20 +20411,24 @@ export const useApp = create<AppState>((rawSet, get) => {
       get().requestFit()
       return
     }
-    // v1.22 sketchOnly: one standalone sketch feature + sketchSource (profiles + labels) — zero extrudes.
+    // v1.22/v1.35 sketchOnly: one standalone sketch feature + sketchSource — zero extrudes; yield before scene commit.
     if (sketchOnly) {
       const src = buildImportSketchSource(use as ImpItem[], { plane: plane as string, baseZ, op: 'new', height: h, scale: opt?.scale ?? 1, zAngle: opt?.zAngle ?? 0 })
       const shapes = [...(src.shapes as unknown as SketchShape[]), ...labelShapes]
       const skId = 'sk' + ++_skidN
       const f: Feature = { id: fid(), type: 'sketch', sketchId: skId }
-      const ok = await get().applyFeatures([f], `${label}：仅导入为草图（${use.length} 轮廓${labels.length ? ` + ${labels.length} 标注` : ''}，未拉伸 — 可重开后按需拉伸）${skipped && skipped.length ? `；跳过未支持实体 ${skipped.join('/')}` : ''}`)
+      const shapesCopy = (typeof structuredClone === 'function' ? structuredClone(shapes) : JSON.parse(JSON.stringify(shapes))) as SketchShape[]
+      const labelsCopy = labels.length ? (typeof structuredClone === 'function' ? structuredClone(labels) : JSON.parse(JSON.stringify(labels))) : undefined
+      await yieldFrame()
+      const ok = await get().applyFeatures([f], `${label}：仅导入为草图（${use.length} 轮廓${labels.length ? ` + ${labels.length} 标注` : ''}，未拉伸 — 可重开后按需拉伸）${skipped && skipped.length ? `；跳过未支持实体 ${skipped.join('/')}` : ''}${markerNote}`)
+      await yieldFrame()
       if (ok) {
-        set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: JSON.parse(JSON.stringify(shapes)) as SketchShape[], cons: [], plane, baseZ, op: 'new' as BoolOp, height: 0, visible: true, ...(labels.length ? { labels: JSON.parse(JSON.stringify(labels)) } : {}), name: 'DXF草图' } } }))
+        set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: shapesCopy, cons: [], plane, baseZ, op: 'new' as BoolOp, height: 0, visible: true, ...(labelsCopy ? { labels: labelsCopy } : {}), name: 'DXF草图' } } }))
         get().requestFit()
         return
       }
       // apply failed → still park source so geometry is not lost
-      set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: JSON.parse(JSON.stringify(shapes)) as SketchShape[], cons: [], plane, baseZ, op: 'new' as BoolOp, height: 0, ...(labels.length ? { labels: JSON.parse(JSON.stringify(labels)) } : {}), name: 'DXF草图' } }, status: `${label}：草图源已保留（特征写入失败）` }))
+      set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: shapesCopy, cons: [], plane, baseZ, op: 'new' as BoolOp, height: 0, ...(labelsCopy ? { labels: labelsCopy } : {}), name: 'DXF草图' } }, status: `${label}：草图源已保留（特征写入失败）` }))
       get().requestFit()
       return
     }

@@ -27,8 +27,8 @@ const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8
 const dlgSrc = readFileSync(new URL('../src/components/InsertDialog.tsx', import.meta.url), 'utf8')
 const dxfSrc = readFileSync(new URL('../src/io/dxfImport.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.34', () => {
-  assert.match(version, /APP_VERSION = '1\.34'/)
+test('APP_VERSION is 1.34+', () => {
+  assert.match(version, /APP_VERSION = '1\.(3[4-9]|[4-9]\d)'/)
 })
 
 test('spatial-hash chain present (not O(n²) full scan)', () => {
@@ -111,8 +111,13 @@ test('parse cancel via signal', () => {
 })
 
 test('AL1 sample: sketchOnly prefer ON; marker budget', () => {
-  const al1 = '/workspace/AL1-800A-配电箱.dxf'
-  if (!existsSync(al1)) return // skip if sample missing on runner
+  const candidates = [
+    '/workspace/AL1-800A-schematic.dxf',
+    '/workspace/AL1-800A-配电箱.dxf',
+    new URL('../examples/fixtures/AL1-800A-schematic.dxf', import.meta.url).pathname,
+  ]
+  const al1 = candidates.find((p) => existsSync(p))
+  if (!al1) return // skip if sample missing on runner
   const text = readFileSync(al1, 'utf8')
   const r = parseDxfToProfiles(text)
   assert.ok(r.profiles.length > 48, `profiles=${r.profiles.length}`)

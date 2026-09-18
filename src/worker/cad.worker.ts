@@ -2117,21 +2117,52 @@ function _shellExactFaces(shape: any, signedThickness: number, faceIndices: numb
     } catch { /* keep lastErr */ }
     return null
   }
+  const tryJoin = (thickness: number, flags: { intersection: boolean; selfInter: boolean; removeInt: boolean }, join: any, tol: number): any | null => {
+    const r = GCWithScope()
+    const faces = shape.faces as any[]
+    const remove = r(new (_oc as any).TopTools_ListOfShape_1())
+    for (const i of faceIndices) if (faces[i]?.wrapped) remove.Append_1(faces[i].wrapped)
+    const progress = r(new (_oc as any).Message_ProgressRange_1())
+    const builder = r(new (_oc as any).BRepOffsetAPI_MakeThickSolid())
+    builder.MakeThickSolidByJoin(shape.wrapped, remove, -thickness, tol, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, flags.intersection, flags.selfInter, join, flags.removeInt, progress)
+    return accept(builder.Shape())
+  }
   for (const flags of flagCombos) {
     for (const join of joins) {
       for (const tol of tols) {
         try {
-          const r = GCWithScope()
-          const faces = shape.faces as any[]
-          const remove = r(new (_oc as any).TopTools_ListOfShape_1())
-          for (const i of faceIndices) if (faces[i]?.wrapped) remove.Append_1(faces[i].wrapped)
-          const progress = r(new (_oc as any).Message_ProgressRange_1())
-          const builder = r(new (_oc as any).BRepOffsetAPI_MakeThickSolid())
-          builder.MakeThickSolidByJoin(shape.wrapped, remove, -signedThickness, tol, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, flags.intersection, flags.selfInter, join, flags.removeInt, progress)
-          const ok = accept(builder.Shape())
+          const ok = tryJoin(signedThickness, flags, join, tol)
           if (ok) return ok
           lastErr = new Error('shell produced invalid solid')
         } catch (e) { lastErr = e }
+      }
+    }
+  }
+  // v1.29: fuse+outer-fillet singularity when |thickness| equals local fillet radius —
+  // MakeThickSolid self-intersects exactly at t===R (t=1.99 and t=2.01 succeed; t=2.0 cavities).
+  // Intersection flags (v1.28) fix cut+fillet t≥R but not this exact-equality case.
+  // SelfInter flags do not help. A tiny thickness nudge (±1e-4..1e-2) breaks the singularity
+  // while keeping wall thickness effectively unchanged; tried only after exact thickness fails.
+  // Cavity/prismatic remain the caller's last resort.
+  const nudgeEps = [1e-4, -1e-4, 1e-3, -1e-3, 1e-2, -1e-2]
+  const nudgeFlags = [
+    { intersection: true, selfInter: false, removeInt: false },
+    { intersection: true, selfInter: false, removeInt: true },
+    { intersection: false, selfInter: false, removeInt: false },
+  ]
+  const nudgeTols = [1e-3, 1e-2, 2e-2]
+  for (const eps of nudgeEps) {
+    const nudged = signedThickness + (signedThickness >= 0 ? eps : -eps)
+    if (!(Math.abs(nudged) > 1e-9)) continue
+    for (const flags of nudgeFlags) {
+      for (const join of joins) {
+        for (const tol of nudgeTols) {
+          try {
+            const ok = tryJoin(nudged, flags, join, tol)
+            if (ok) return ok
+            lastErr = new Error('shell produced invalid solid')
+          } catch (e) { lastErr = e }
+        }
       }
     }
   }

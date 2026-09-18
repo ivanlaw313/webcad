@@ -2084,6 +2084,133 @@ function _sewSolidFaces(shape: any): any | null {
   return null
 }
 
+
+/** v1.30: edge-key for rim-face adjacency (opening ↔ fillet strip). */
+function _shellEdgeKey(e: any): string | null {
+  try {
+    const a = e.pointAt(0), b = e.pointAt(1), c = e.pointAt(0.5)
+    const q = (v: number) => Math.round(v * 1e4)
+    const ends = [`${q(a.x)},${q(a.y)},${q(a.z)}`, `${q(b.x)},${q(b.y)},${q(b.z)}`].sort()
+    return `${ends[0]}|${ends[1]}|${q(c.x)},${q(c.y)},${q(c.z)}`
+  } catch { return null }
+}
+
+/** v1.30: TORUS/TORE faces that share an edge with the seed opening (fuse cyl-top fillet). */
+function _shellAdjacentTorusRim(shape: any, seeds: number[]): number[] {
+  try {
+    const faces = shape.faces as any[]
+    const seedSet = new Set(seeds)
+    const seedEdges = new Set<string>()
+    for (const si of seeds) {
+      for (const e of (faces[si]?.edges ?? [])) {
+        const k = _shellEdgeKey(e)
+        if (k) seedEdges.add(k)
+      }
+    }
+    const extra: number[] = []
+    for (let i = 0; i < faces.length; i++) {
+      if (seedSet.has(i)) continue
+      let gt = ''
+      try { gt = String(faces[i].geomType || '').toUpperCase() } catch { continue }
+      // TORUS / French TORE only — do NOT pull in hole CYLINDRE (wrong hollow / CX02).
+      if (!(gt.includes('TOR'))) continue
+      let share = false
+      for (const e of (faces[i]?.edges ?? [])) {
+        const k = _shellEdgeKey(e)
+        if (k && seedEdges.has(k)) { share = true; break }
+      }
+      if (share) extra.push(i)
+    }
+    return extra
+  } catch { return [] }
+}
+
+/** v1.30: estimate opening-rim fillet depth from TOR/CYL faces near the seed plane Z. */
+function _shellOpeningFilletDepth(shape: any, seedIdx: number): number {
+  try {
+    const faces = shape.faces as any[]
+    const seed = faces[seedIdx]
+    if (!seed || seed.geomType !== 'PLANE') return 0
+    const z0 = seed.center.z
+    let R = 0
+    for (let i = 0; i < faces.length; i++) {
+      if (i === seedIdx) continue
+      try {
+        const gt = String(faces[i].geomType || '').toUpperCase()
+        if (!(gt.includes('TOR') || gt.includes('CYL'))) continue
+        if (Math.abs(faces[i].center.z - z0) >= 3) continue
+        const bb = faces[i].boundingBox?.bounds
+        const span = bb ? Math.abs(bb[1][2] - bb[0][2]) : 0
+        R = Math.max(R, span > 1e-6 ? span : Math.abs(z0 - faces[i].center.z) * 2)
+      } catch { /* */ }
+    }
+    return R
+  } catch { return 0 }
+}
+
+/**
+ * v1.30: when MakeThickSolid throws on a planar opening that still carries a rim fillet,
+ * trim a slab through the fillet depth so the opening becomes a sharp planar lid, then
+ * shell. Optionally fuse a hollow outer frame to restore wall height lost by the trim.
+ * Returns null on failure (caller continues ladder).
+ */
+function _shellOcctAfterOpeningFilletTrim(
+  shape: any,
+  seeds: number[],
+  ns: [number, number, number][],
+  signedThickness: number,
+  thicknessAbs: number,
+): any | null {
+  if (seeds.length !== 1 || !(thicknessAbs > 0)) return null
+  try {
+    const faces = shape.faces as any[]
+    const seed = faces[seeds[0]]
+    if (!seed || seed.geomType !== 'PLANE') return null
+    const R = _shellOpeningFilletDepth(shape, seeds[0])
+    // Only when a real rim fillet is present; skip tiny noise / huge bogus spans.
+    if (!(R > 0.05) || R > Math.max(thicknessAbs * 8, 8)) return null
+    const zOpen = seed.center.z
+    let n: any
+    try { n = seed.normalAt() } catch { return null }
+    // Axis-aligned openings only (BX02 top/bottom). Skew faces keep prior ladder.
+    if (Math.abs(n.z) < 0.7) return null
+    const bb = shape.boundingBox.bounds as [number[], number[]]
+    const pad = 5
+    const cutZ = n.z > 0 ? (zOpen - R - 1e-3) : (zOpen + R + 1e-3)
+    const slab = n.z > 0
+      ? makeBox([bb[0][0] - pad, bb[0][1] - pad, cutZ], [bb[1][0] + pad, bb[1][1] + pad, bb[1][2] + pad])
+      : makeBox([bb[0][0] - pad, bb[0][1] - pad, bb[0][2] - pad], [bb[1][0] + pad, bb[1][1] + pad, cutZ])
+    const short = _healSolid(shape.clone().cut(slab))
+    if (!short || !validShellSolid(short)) return null
+    const probeNears = ns.map((p) => (
+      n.z > 0 ? [p[0], p[1], cutZ] as [number, number, number]
+              : [p[0], p[1], cutZ] as [number, number, number]
+    ))
+    let rem = _shellFaceIndicesNear(short, probeNears)
+    if (!rem.length) rem = _shellFaceIndicesNear(short, [[0, 0, cutZ]])
+    if (!rem.length) return null
+    let shelled: any = null
+    try { shelled = _shellExactFaces(short, signedThickness, rem) } catch { shelled = null }
+    if (!shelled || !validShellSolid(shelled)) return null
+    // Restore outer wall height lost by the trim (open top/bottom stays open).
+    try {
+      const t = Math.abs(signedThickness)
+      const zLo = n.z > 0 ? cutZ : zOpen
+      const zHi = n.z > 0 ? zOpen : cutZ
+      if (!(zHi > zLo + 1e-6)) return shelled
+      const outer = makeBox([bb[0][0], bb[0][1], zLo], [bb[1][0], bb[1][1], zHi])
+      const inner = makeBox(
+        [bb[0][0] + t, bb[0][1] + t, zLo - 0.02],
+        [bb[1][0] - t, bb[1][1] - t, zHi + 0.02],
+      )
+      const frame = outer.cut(inner)
+      const restored = shelled.fuse(frame)
+      if (restored && validShellSolid(restored)) return restored
+    } catch { /* keep trimmed shell */ }
+    return shelled
+  } catch { return null }
+}
+
 // Exact-face shell/offset primitive. signedThickness follows replicad shell(): positive=inward,
 // negative=outward. An empty face list returns the offset solid used to build a closed hollow body.
 function _shellExactFaces(shape: any, signedThickness: number, faceIndices: number[]): any {
@@ -3213,15 +3340,20 @@ function buildShape(features: Feature[], noCache = false): any {
                 const got = tryBases(seeds)
                 if (got) return got
               }
-              // 2) v1.22: alternate planar lids (NOT G1 chain) before cavity — more OCCT on BX02-like.
-              for (const faces of altOpenings) {
-                const got = tryBases(faces)
-                if (got) {
-                  buildWarnings.push('抽壳：原开口 OCCT 未收敛，已改用其他平面开口')
-                  return got
+              // 1.5) v1.30: seeds + adjacent TORUS rim (fuse cyl-top fillet) — still user opening.
+              {
+                const torusExtra = _shellAdjacentTorusRim(base, seeds)
+                if (torusExtra.length) {
+                  const got = tryBases([...seeds, ...torusExtra])
+                  if (got) return got
                 }
               }
-              // 2.5) v1.24: coplanar same-Z planar seeds via tryBases BEFORE cavity (not G1 chain — CX02-safe).
+              // 1.6) v1.30: trim opening-rim fillet then OCCT on remapped seed (BX02 top-rim+top-open).
+              {
+                const got = _shellOcctAfterOpeningFilletTrim(base, seeds, ns as [number, number, number][], signed * t, t)
+                if (got) return got
+              }
+              // 2) v1.24: coplanar same-Z planar seeds via tryBases BEFORE cavity (not G1 chain — CX02-safe).
               for (const faces of attempts) {
                 if (faces === seeds) continue
                 if (chain.length > seeds.length && faces.length === chain.length && faces.every((v, j) => v === chain[j])) continue // defer G1 chain
@@ -3231,7 +3363,7 @@ function buildShape(features: Feature[], noCache = false): any {
                   return got
                 }
               }
-              // 3) Seeds-only miss → cavity/prismatic BEFORE G1 chain (CX02: chain swallows filleted hole).
+              // 3) Seeds-only miss → cavity/prismatic BEFORE alt lids / G1 (prefer original opening face).
               if (seeds.length === 1 && signed > 0 && _dir === 'inside') {
                 try {
                   const cav = cavityInwardShell(base, seeds[0], t)
@@ -3248,7 +3380,15 @@ function buildShape(features: Feature[], noCache = false): any {
                   }
                 } catch (e) { lastErr = e }
               }
-              // 4) Remaining G1 chain (and any leftover) — after cavity. planarSameZ already tried in 2.5.
+              // 3.5) v1.30: alternate planar lids AFTER cavity — last OCCT resort (wrong face; soft warn).
+              for (const faces of altOpenings) {
+                const got = tryBases(faces)
+                if (got) {
+                  buildWarnings.push('抽壳：原开口 OCCT 未收敛，已改用其他平面开口')
+                  return got
+                }
+              }
+              // 4) Remaining G1 chain (and any leftover) — after cavity. planarSameZ already tried in 2.
               for (const faces of attempts) {
                 if (faces === seeds) continue
                 const got = tryBases(faces)

@@ -24,6 +24,7 @@ import { detectRegions, type RShape } from '../sketch/regions'   // 平面排布
 import { sampleBSpline } from '../cad/bspline2d'   // S127：B 样条画线时 live 预览
 import { sampleConic } from '../cad/conic2d'   // S177：圆锥曲线 live 预览
 import { canvasQuad, canvasUV, type CanvasItem } from '../cad/insertModel'   // GM-X3 #2/#3：多张 Canvas 四角/UV（非等比+旋转+翻转）
+import { batchSketchPositions, SKETCH_BATCH_THRESHOLD, SKETCH_FILL_SKIP_THRESHOLD, DXF_LABEL_DISPLAY_CAP, type BatchShape } from '../cad/sketchDisplayBatch'
 import { solveMove } from '../cad/moveSolve'
 import { useEscapeLayer } from './useEscapeLayer'
 import { illegalRejectStatus } from '../ui/illegalInput'
@@ -739,6 +740,8 @@ export function SketchDraw() {
       if (mode !== 'sketch') return null   // GM-W6 C5：移走 `|| arb` 守卫 — 斜面草图原本冇轮廓填充（睇唔到可拉伸区）
       // 平面排布：所有非构造图元（含开放折线）→ 相交切段 → 封闭区域。相交曲线围成嘅面会填充（Fusion 式）。
       const all = [...profiles, ...(shape ? [shape] : [])].filter((sh) => !sh.construction)
+      // v1.35: skip region fill on schematic-scale sketches (cost + memory; outlines remain).
+      if (all.length >= SKETCH_FILL_SKIP_THRESHOLD) return null
       const reg = detectRegions(all as unknown as RShape[])
       // 有检测到面 → 用面（even-odd 平铺即整区填充）；否则回落旧「逐闭合图形」路（安全网）
       const loops = reg.faces.length ? reg.faces : all.filter((sh) => !(sh.type === 'poly' && sh.open)).map(shapeLoop2D)
@@ -824,7 +827,19 @@ export function SketchDraw() {
     if (sh.construction) return skView.constr ? <Line key={key} points={shapeToPts(sh)} color="#d9a23a" lineWidth={1.6} dashed dashSize={3.2} gapSize={2.4} /> : null
     return <Line key={key} points={shapeToPts(sh)} color={lineColor(idx)} lineWidth={2.5} />
   }
-  const els: ReactNode[] = profiles.map((sh, i) => drawShape(sh, 'cp' + i, i))
+  const totalShapes = profiles.length + (shape ? 1 : 0)
+  const useBatch = totalShapes >= SKETCH_BATCH_THRESHOLD
+  const els: ReactNode[] = []
+  if (useBatch) {
+    const batched = batchSketchPositions([...profiles, ...(shape ? [shape] : [])] as BatchShape[], lift)
+    els.push(<BatchedSketchLines key="sk-batch-solid" positions={batched.solid} color={sketchConstraintColor(false, skDof, skConflict, nCons)} />)
+    els.push(<BatchedSketchLines key="sk-batch-constr" positions={batched.constr} color="#d9a23a" opacity={0.95} />)
+  } else {
+    for (let i = 0; i < profiles.length; i++) {
+      const node = drawShape(profiles[i], 'cp' + i, i)
+      if (node) els.push(node)
+    }
+  }
   for(const c of skCons)if(c.kind==='con'&&c.type==='fix'&&'shape'in c.a&&!fixedShapes.has(c.a.shape)){
     const sh=fixGeometry[c.a.shape]
     if(!sh||!sketchGeometryVisible(sh,skView))continue
@@ -838,7 +853,7 @@ export function SketchDraw() {
       els.push(<Line key={'fix-ref-'+c.id} points={[[p[0]-r,p[1]-r],[p[0]+r,p[1]+r],[p[0],p[1]],[p[0]-r,p[1]+r],[p[0]+r,p[1]-r]].map(q=>lift(q as Pt))} color="#2f9e44" lineWidth={3} userData={{semantic:'fixed-point'}} />)
     }
   }
-  profiles.forEach((sh, i) => { const glyph = fixedGlyph(sh, 'cp' + i, i); if (glyph) els.push(glyph) })
+  if (!useBatch) profiles.forEach((sh, i) => { const glyph = fixedGlyph(sh, 'cp' + i, i); if (glyph) els.push(glyph) })
   if (fillGeom && skView.fill) els.unshift(<mesh key="fill" geometry={fillGeom} renderOrder={-1}><meshBasicMaterial color="#5b8fd9" transparent opacity={0.3} side={DoubleSide} depthWrite={false} /></mesh>)
   // Point-snap marker (Fusion-style): a small ring where the cursor snaps to an existing point.
   // 用户实战 feedback：旧版写死世界半径 3mm — 放大画面时变成巨环，遮住尺寸标签/落点。改屏幕空间恒定 ~9px：
@@ -869,7 +884,7 @@ export function SketchDraw() {
   // T755 扫掠导轨（银行后橙虚线显示 — 提醒用户下一条折线系路径）
   if (sweepGuide && sweepGuide.length >= 2 && mode === 'sketch') els.push(<Line key="swguide" points={sweepGuide.map(lift)} color="#ff8c00" lineWidth={1.6} dashed dashSize={4} gapSize={2.5} />)
   if (loftRail && loftRail.length >= 2 && mode === 'sketch') els.push(<Line key="loftrail" points={loftRail.map(lift)} color="#ff8c00" lineWidth={1.6} dashed dashSize={4} gapSize={2.5} />)
-  if (shape) {
+  if (shape && !useBatch) {
     els.push(drawShape(shape, 'cur', profiles.length))
   } else if (mode === 'sketch') {
     // GM-FP1 #13：折线相切弧 submode（A 键 / 端点拖弧手势）— 末段画成沿上段相切引出嘅真圆弧预览（bulge = tan(φ/2)）。
@@ -1772,6 +1787,22 @@ export function CanvasImageLayer() {
 
 // T746 批2（GAP7）：committed 草图喺模型模式可见 — Fusion 式「草图完成后唔使消失」。
 // 渲染 sketchSources 里 visible=true 嘅 entry（browser tree 眼仔开关），紫色细线 / 构造虚线。
+// v1.35: large sources (≥ SKETCH_BATCH_THRESHOLD) merge into ≤2 LineSegments to avoid Chrome OOM.
+function BatchedSketchLines({ positions, color, opacity = 1 }: { positions: Float32Array; color: string; opacity?: number }) {
+  const geo = useMemo(() => {
+    const g = new BufferGeometry()
+    g.setAttribute('position', new Float32BufferAttribute(positions, 3))
+    return g
+  }, [positions])
+  useEffect(() => () => { geo.dispose() }, [geo])
+  if (!positions.length) return null
+  return (
+    <lineSegments geometry={geo} frustumCulled={false}>
+      <lineBasicMaterial color={color} transparent={opacity < 1} opacity={opacity} depthWrite={false} />
+    </lineSegments>
+  )
+}
+
 export function CommittedSketches() {
   const srcs = useApp((s) => s.sketchSources)
   const mode = useApp((s) => s.mode)
@@ -1785,6 +1816,15 @@ export function CommittedSketches() {
       const hot = k === selSketch
       const fr = src.arb ? arbFrame(src.arb as { o: V3; xd: V3; n: V3 }) : null
       const lift: Lift = fr ? fr.lift : (p) => SK[src.plane].lift(p, src.baseZ + 0.05)
+      const shapes = src.shapes as BatchShape[]
+      // Large schematic: one solid + one construction LineSegments (not N drei Lines).
+      if (shapes.length >= SKETCH_BATCH_THRESHOLD) {
+        const batched = batchSketchPositions(shapes, lift)
+        out.push(<BatchedSketchLines key={`${k}_solid`} positions={batched.solid} color={hot ? '#1572c4' : '#7a4dab'} />)
+        out.push(<BatchedSketchLines key={`${k}_constr`} positions={batched.constr} color="#d9a23a" opacity={0.95} />)
+        if (src.sweepPath && src.sweepPath.length >= 2) out.push(<Line key={`${k}_path`} points={src.sweepPath.map(lift)} color="#7a4dab" lineWidth={1.3} dashed dashSize={4} gapSize={2.5} />)
+        continue
+      }
       src.shapes.forEach((sh, i) => {
         if (sh.type === 'circle' && sh.point) {
           const c = sh.c
@@ -2592,11 +2632,16 @@ export function SketchDimLayer() {
         out.push({ key: 'exh', anchor: [a.x, a.y, a.z], text: dimFmtU(Math.abs(exH) || 1, unit) + (unit === 'inch' ? 'in' : unit), edit: { target: 'shape', dim: 'ext', value: Math.abs(exH) || 1 } })
       }
     }
-    // v1.21：DXF TEXT/MTEXT 导入标注（重开草图可见；construction 下划线已在 shapes 内）
+    // v1.21/v1.35：DXF TEXT/MTEXT 导入标注（重开草图可见；model 保留全部；HUD 显示封顶防 DOM OOM）
     if (skAnnot && dxfLabels && dxfLabels.length) {
-      for (let i = 0; i < dxfLabels.length; i++) {
+      const nShow = Math.min(dxfLabels.length, DXF_LABEL_DISPLAY_CAP)
+      for (let i = 0; i < nShow; i++) {
         const L = dxfLabels[i]
         out.push({ key: `dxfTxt${i}`, anchor: lift(L.at), text: L.text, driven: true, pxOff: [8, -14] })
+      }
+      if (dxfLabels.length > nShow) {
+        const L0 = dxfLabels[0]
+        out.push({ key: 'dxfTxtMore', anchor: lift(L0.at), text: `…+${dxfLabels.length - nShow} 标注`, driven: true, pxOff: [8, 6] })
       }
     }
     const positioned=out.map(label=>editing===label.key&&editingLabel.current?.key===label.key?editingLabel.current:label)

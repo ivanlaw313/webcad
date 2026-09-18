@@ -257,6 +257,8 @@ export const DXF_FORCE_BYTES = 2 * 1024 * 1024
 export const DXF_REJECT_BYTES = 8 * 1024 * 1024
 export const DXF_REJECT_ENTITIES = 100_000
 export const DXF_MAX_TEXT_MARKERS = 128     // construction underline/point budget (labels kept)
+/** v1.35: under soft/force sketchOnly, keep fewer TEXT markers (HUD/labels still retain all). */
+export const DXF_SCHEMATIC_TEXT_MARKERS = 16
 
 export function preferDxfSketchOnly(profileCount: number, textCount: number, bytes = 0): boolean {
   return (profileCount || 0) > DXF_SOFT_PROFILE || (textCount || 0) > DXF_SOFT_TEXT || (bytes || 0) > DXF_SOFT_BYTES

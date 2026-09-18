@@ -25,8 +25,8 @@
 6. Bump `APP_VERSION` → `1.30`; PR → merge → SSH deploy stamp `v1.30-...`.
 
 ## Acceptance
-- [ ] BX02-like cut→top-rim fillet→shell top: OCCT on original side, no `已改用其他平面开口` / `未收敛` soft toast when clean
-- [ ] Fuse-like outer/cyl-top fillet→shell top: same
-- [ ] v1.28 / v1.29 contracts still PASS
-- [ ] Cavity path retained
-- [ ] APP_VERSION 1.30 live + nginx root verified
+- [x] BX02-like cut→top-rim fillet→shell top: OCCT on original side, no `已改用其他平面开口` / `未收敛` soft toast when clean
+- [x] Fuse-like outer/cyl-top fillet→shell top: same
+- [x] v1.28 / v1.29 contracts still PASS
+- [x] Cavity path retained
+- [x] APP_VERSION 1.30 live + nginx root verified

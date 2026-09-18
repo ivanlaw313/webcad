@@ -178,7 +178,7 @@ const STATUS_PHRASES: Record<string, string> = {
   '选件 → MeshFit/转 B-rep': 'select the part → MeshFit / Convert to B-rep',
   '选此件 → MeshFit/转 B-rep 烘焙入零件后再圆角/抽壳': 'select it → MeshFit / Convert to B-rep into the part, then Fillet/Shell',
   '零件内多体请用「实体布尔」': 'for multi-body inside a part use Body Boolean',
-  '烘焙为零件实体': 'Bake into part solid',
+  '烘焙为零件实体': 'Bake into part solid',  // overridden in STATUS_PHRASES_X (v1.40)
 
   // v1.25 component-boolean tool pick
   '🧩 切除：选择工具件': '🧩 Cut: pick tool component',
@@ -188,7 +188,7 @@ const STATUS_PHRASES: Record<string, string> = {
   '已取消组件布尔（未修改模型）': 'Component Boolean cancelled (model unchanged)',
 
   '组件布尔结果是网格件，圆角/抽壳需要零件时间轴实体': 'Component Boolean leaves a mesh; Fillet/Shell need a part-timeline solid',
-  '已烘焙入零件时间轴，可圆角/抽壳': 'baked into the part timeline — Fillet/Shell ready',
+  '已烘焙入零件时间轴，可圆角/抽壳': 'baked into the part timeline — Fillet/Shell ready',  // overridden in STATUS_PHRASES_X (v1.40)
   '提示：圆角/抽壳请先 MeshFit/转 B-rep（或零件内用「实体布尔」）': 'tip: Fillet/Shell need MeshFit/Convert to B-rep first (or Body Boolean inside a part)',
   // v1.24 shell soft status — full phrases (must outrank short 完成/重建/开口 fragments)
   '抽壳完成（备用：直柱型腔）': 'Shell done (fallback: prismatic cavity)',
@@ -1374,6 +1374,16 @@ const STATUS_PHRASES_X: Record<string, string> = {
   '已对所有棱倒圆角': '已对所有棱倒圆角',
   '已对所有棱倒角': '已对所有棱倒角',
   // v1.39 mate-after-edit / compbool bake — keep Chinese intact under EN tStatus
+  // v1.40: component-boolean success toast + bake chip — block Done:/Bake-into-part EN mangling
+  '烘焙为零件实体': '烘焙为零件实体',
+  '已烘焙入零件时间轴，可圆角/抽壳': '已烘焙入零件时间轴，可圆角/抽壳',
+  '已切除「': '已切除「',
+  '已合并「': '已合并「',
+  '已相交「': '已相交「',
+  '已取消 STL 插入': '已取消 STL 插入',
+  '已取消选择 STL': '已取消选择 STL',
+  '选择 STL 文件…': '选择 STL 文件…',
+
   '组件布尔＝网格结果（非零件时间轴）— 点右侧按钮烘焙入零件后即可圆角/抽壳；零件内多体用「实体布尔」（B-rep），勿与组件布尔（网格）混淆': '组件布尔＝网格结果（非零件时间轴）— 点右侧按钮烘焙入零件后即可圆角/抽壳；零件内多体用「实体布尔」（B-rep），勿与组件布尔（网格）混淆',
   '已重算': '已重算',
   '个涉及此件的配合（编辑后几何变咗，从动件跟随）': '个涉及此件的配合（编辑后几何变咗，从动件跟随）',

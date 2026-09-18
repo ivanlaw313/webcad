@@ -34,6 +34,7 @@ import { dimensionExpression, parameterId, parameterExpressionRefs, assertParame
 import { create } from 'zustand'
 import { sourceReferenceGeometry } from './sketch/sourceReferenceGeometry'
 import { cad, onKernelRestart, cancelPreviews, isPreviewCancelled } from './cad/cadService'
+import { withFileUiSafety, yieldToBrowser } from './io/fileUiSafety'
 import { cardinalSketchFrame, localPointToCad } from './cad/sketchPlaneFrame'
 import { REVOLVE_AXIS_VEC, revolveCardinalAxis, revolvePersistedAxis } from './cad/revolvePreviewFrame'
 import { expandHoleFeature } from './cad/holeFeature'
@@ -17687,10 +17688,11 @@ export const useApp = create<AppState>((rawSet, get) => {
 
   openStlDialog: () => {
     // BUG-BD-1804：优先 File System Access picker（自动化/部分环境 <input> 会挂）；失败回落 input。
+    // BUG-BD-3201：yield + ease GPU before picker (ASSY → File Aw Snap).
     const openFile = async (f: File) => {
       get().openMeshInsert('stl', f.name.replace(/\.[^.]+$/, ''), { buf: await f.arrayBuffer() })
     }
-    void (async () => {
+    void withFileUiSafety(async () => {
       type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
       const picker = (window as OpenPickerWindow).showOpenFilePicker
       if (typeof picker === 'function') {
@@ -17707,7 +17709,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       inp.type = 'file'; inp.accept = '.stl'
       inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; await openFile(f) }
       inp.click()
-    })()
+    }, 'open-stl')
   },
 
   openDxfDialog: () => {
@@ -20913,7 +20915,12 @@ export const useApp = create<AppState>((rawSet, get) => {
       get().addJoint({ type: 'revolute', parent: 'GND', child: 'C1', anchor: get().componentCenter('C1'), axis: [0, 1, 0], angle: 0, slide: 0 })
       get().addJoint({ type: 'revolute', parent: 'GND', child: 'C2', anchor: get().componentCenter('C2'), axis: [0, 1, 0], angle: 0, slide: 0 })
       get().addMotionLink('J1', 'J2', -z1 / z2)
-      get().requestFit(); return
+      get().requestFit()
+      // BUG-BD-3201: disposable gear rebuilds leave OCCT clones in the worker;
+      // free them and yield so File menu/picker after ASSY is less likely to Aw Snap.
+      try { await (cad as { clearRebuildCache?: () => Promise<void> }).clearRebuildCache?.() } catch { /* ignore */ }
+      await yieldToBrowser(2)
+      return
     }
     if (kind === 'flange') {
       // Flange / pulley blank: disc + coaxial hub (join) + center bore. Disc & bore radii are parametric.

@@ -10,6 +10,7 @@ import { activeModelCommand } from '../cad/commandAvailability'
 import { ExpressionInput } from './ExpressionInput'
 import { useMemo, useState, useRef, useEffect, Fragment, lazy, Suspense, type ReactNode, type CSSProperties } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
+import { UI_OVERLAY_EVENT, isDenseDisplayMesh, type UiOverlayDetail } from '../io/fileUiSafety'
 import { PMREMGenerator } from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'   // T783：HDRI 渲染（three 内置，离线可用，MIT）
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'   // S193：环境光遮蔽（GTAO，three 内置，无新 dep）
@@ -395,8 +396,35 @@ function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: {
   )
 }
 
+
+/** BUG-BD-3201: while File menu/picker is open, drop DPR and free render lists to ease GPU pressure. */
+function GpuOverlayEase() {
+  const gl = useThree((s) => s.gl)
+  useEffect(() => {
+    const on = (ev: Event) => {
+      const detail = (ev as CustomEvent<UiOverlayDetail>).detail
+      const busy = !!detail?.busy
+      try {
+        if (busy) {
+          gl.setPixelRatio(1)
+          // @ts-expect-error renderLists exists on WebGLRenderer
+          gl.renderLists?.dispose?.()
+        } else {
+          const cap = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1
+          gl.setPixelRatio(cap)
+        }
+      } catch { /* ignore */ }
+    }
+    window.addEventListener(UI_OVERLAY_EVENT, on)
+    return () => window.removeEventListener(UI_OVERLAY_EVENT, on)
+  }, [gl])
+  return null
+}
+
 function BrepEdgeOverlay({ mesh, color, fallbackThreshold = 25, hidden = false, clip = [], through = false }: { mesh: Pick<MeshData, 'vertices' | 'triangles' | 'faceGroups'>; color: string; fallbackThreshold?: number; hidden?: boolean; clip?: Plane[]; through?: boolean }) {
-  const positions = useMemo(() => brepEdgePositions(mesh), [mesh])
+  // BUG-BD-3201: involute gears (many faceGroups) make full seam extract + line VBOs a VRAM/CPU spike;
+  // fall back to cheap Edges threshold so File menu/picker after ASSY is safer.
+  const positions = useMemo(() => (isDenseDisplayMesh(mesh) ? null : brepEdgePositions(mesh)), [mesh])
   const geometry = useMemo(() => {
     if (!positions?.length) return null
     const g = new BufferGeometry()
@@ -4277,7 +4305,7 @@ export default function Viewport() {
         {/* S193：正交相机（makeDefault 覆写默认透视）— 开时由 OrbitControls 驱动；FitView/ViewRig 用 camera.zoom 取景。
             near 负值令物体喺相机后面都唔裁切（正交无远近）。关时此元件卸载 → 回退 Canvas 默认透视相机。 */}
         {cameraOrtho && <OrthographicCamera makeDefault position={[240, 190, 270]} near={-100000} far={200000} zoom={4} />}
-        <MarqueeCamBridge />{/* GM-W5 5.3：交当前相机俾框选投影 */}
+        <GpuOverlayEase /><MarqueeCamBridge />{/* GM-W5 5.3：交当前相机俾框选投影 */}
         {/* Multi-light studio setup for nice metal highlights (no env map → keeps capture/perf solid). */}
         <ambientLight intensity={0.8} />
         <hemisphereLight args={['#ffffff', '#9aa4ad', 0.55]} />

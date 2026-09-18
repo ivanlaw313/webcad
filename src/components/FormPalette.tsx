@@ -36,7 +36,7 @@ export function FormPalette({ title, children, footer }: { title: string; childr
         <>
           <div
             style={{
-              display: title === 'Create Form' ? 'block' : 'flex',
+              display: (title === 'Create Form' || title === '创建造型') ? 'block' : 'flex',
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: 8,

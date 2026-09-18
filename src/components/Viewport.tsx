@@ -8427,18 +8427,19 @@ function FormPanel() {
       const patch = (p: Partial<FormBoxDraft>) => useApp.getState().patchFormBoxDraft(p)
       const row: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 8 }
       const field: CSSProperties = { width: 86, height: 23, boxSizing: 'border-box' }
-      const stageHint = boxDraft.stage === 'plane' ? 'Select XY/XZ/YZ below, or click an origin/planar face' : boxDraft.stage === 'center' ? 'Specify center point' : boxDraft.stage === 'size' ? 'Specify size of rectangle' : boxDraft.stage === 'height' ? 'Specify height' : 'Ready'
+      const zh = lang !== 'en'
+      const stageHint = boxDraft.stage === 'plane' ? (zh ? '点下方 XY/XZ/YZ，或点原点/平面' : 'Select XY/XZ/YZ below, or click an origin/planar face') : boxDraft.stage === 'center' ? (zh ? '指定中心点' : 'Specify center point') : boxDraft.stage === 'size' ? (zh ? '指定矩形大小' : 'Specify size of rectangle') : boxDraft.stage === 'height' ? (zh ? '指定高度' : 'Specify height') : (zh ? '就绪' : 'Ready')
       return (
-        <FormPalette title="Create Form">
+        <FormPalette title={zh ? '创建造型' : 'Create Form'}>
           <div style={{ fontWeight: 700, color: '#4c5a64', borderBottom: '1px solid #d8dee3', paddingBottom: 6, marginBottom: 8 }}>−　BOX</div>
           <label style={row}>Rectangle
             <select value="center" disabled style={field}><option value="center">Center</option></select>
           </label>
-          <label style={row}>Plane
+          <label style={row}>{zh ? '平面' : 'Plane'}
             <span style={{ display: 'flex', gap: 4 }}>
               {(['XY', 'XZ', 'YZ'] as const).map((pl) => (
                 <button key={pl} type="button" className="cs-btn" data-testid={`form-box-plane-${pl}`}
-                  title={`Place Form Box on origin ${pl}`}
+                  title={zh ? `将 Form 盒放在原点 ${pl} 面` : `Place Form Box on origin ${pl}`}
                   style={{ minWidth: 36, height: 23, padding: '0 6px', fontWeight: boxDraft.plane === pl ? 700 : 400, outline: boxDraft.plane === pl ? '2px solid #1572c4' : undefined }}
                   onClick={() => useApp.getState().placeFormBoxOnOriginPlane(pl)}>{pl}</button>
               ))}
@@ -8460,8 +8461,8 @@ function FormPanel() {
           </label>}
           <div style={{ fontSize: 11, color: '#687782', minHeight: 18, marginTop: 5 }}>{stageHint}</div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, borderTop: '1px solid #d8dee3', paddingTop: 8, marginTop: 8 }}>
-            <button className="cs-btn" disabled={!boxDraft.plane} data-testid="form-box-ok" onClick={() => void useApp.getState().commitFormBoxDraft()}>OK</button>
-            <button className="cs-btn" onClick={() => useApp.getState().cancelFormCreate()}>Cancel</button>
+            <button className="cs-btn" disabled={!boxDraft.plane} data-testid="form-box-ok" onClick={() => void useApp.getState().commitFormBoxDraft()}>{zh ? '确定' : 'OK'}</button>
+            <button className="cs-btn" onClick={() => useApp.getState().cancelFormCreate()}>{zh ? '取消' : 'Cancel'}</button>
           </div>
         </FormPalette>
       )
@@ -8488,11 +8489,26 @@ function FormPanel() {
       if (createKind !== 'box' && createKind !== 'pipe') useApp.getState().orientFormCage(formPlane as 'XY' | 'XZ' | 'YZ')
     }
     const title = createKind === 'quadball' ? 'QUADBALL' : createKind.toUpperCase()
+    const zh = lang !== 'en'
+    const planeLabel = zh ? '平面' : 'Plane'
+    const okLabel = zh ? '确定' : 'OK'
+    const cancelLabel = zh ? '取消' : 'Cancel'
+    const planeHint = zh ? '点 XY / XZ / YZ 选基准面，再点确定' : 'Click XY/XZ/YZ for origin plane, then OK'
+    const createTitle = zh ? '创建造型' : 'Create Form'
     return (
-      <FormPalette title="Create Form">
+      <FormPalette title={createTitle}>
         <div style={{ fontWeight: 700, color: '#4c5a64', borderBottom: '1px solid #d8dee3', paddingBottom: 6, marginBottom: 8 }}>−　{title}</div>
-        {createKind !== 'pipe' && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>Plane
-          <select aria-label="Form plane" value={formPlane} onChange={(e) => setFormPlane(e.target.value)} style={{ width: 105 }}><option>XY</option><option>XZ</option><option>YZ</option></select>
+        {createKind !== 'pipe' && <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>{planeLabel}
+          <span style={{ display: 'flex', gap: 4 }}>
+            {(['XY', 'XZ', 'YZ'] as const).map((pl) => (
+              <button key={pl} type="button" className="cs-btn" data-testid={`form-${createKind}-plane-${pl}`}
+                title={zh ? `将 Form 放在原点 ${pl} 面` : `Place Form on origin ${pl}`}
+                aria-label={`Form plane ${pl}`}
+                aria-pressed={formPlane === pl}
+                style={{ minWidth: 36, height: 23, padding: '0 6px', fontWeight: formPlane === pl ? 700 : 400, outline: formPlane === pl ? '2px solid #1572c4' : undefined }}
+                onClick={() => setFormPlane(pl)}>{pl}</button>
+            ))}
+          </span>
         </label>}
         {createKind === 'box' && <>
           <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>Rectangle <select style={{ width: 105 }} defaultValue="Center"><option>Center</option><option>Two Point</option></select></label>
@@ -8512,9 +8528,10 @@ function FormPanel() {
           {['box', 'cylinder'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>Height <input type="number" min={1} value={formH} onChange={(e) => setFormH(Number(e.target.value))} style={{ width: 72 }} /></label>}
           <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>Faces <span><input type="number" min={1} value={formSegA} onChange={(e) => setFormSegA(Number(e.target.value))} style={{ width: 45 }} /> × <input type="number" min={1} value={formSegB} onChange={(e) => setFormSegB(Number(e.target.value))} style={{ width: 45 }} /></span></label>
         </>}
+        {createKind !== 'pipe' && <div style={{ fontSize: 11, color: '#687782', minHeight: 18, marginTop: 5 }} data-testid="form-create-plane-hint">{planeHint} · {formPlane}</div>}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, borderTop: '1px solid #d8dee3', paddingTop: 8, marginTop: 8 }}>
-          <button className="cs-btn" onClick={() => void makePrimitive()}>OK</button>
-          <button className="cs-btn" onClick={() => useApp.getState().cancelFormCreate()}>Cancel</button>
+          <button className="cs-btn" data-testid={`form-${createKind}-ok`} onClick={() => void makePrimitive()}>{okLabel}</button>
+          <button className="cs-btn" onClick={() => useApp.getState().cancelFormCreate()}>{cancelLabel}</button>
         </div>
       </FormPalette>
     )

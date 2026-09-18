@@ -6233,6 +6233,18 @@ function meshOf(shape: any): MeshData {
       // 线性到 diag×0.12%；细件（diag<57）维持 0.2/0.04 幼细。elbow 实测 344k→视图级幾萬；导出用 fine 另细分。
       angTol = Math.min(0.45, Math.max(0.2, diag * 0.005))   // cap 0.45rad ≈ 14 面/圈（公认「够圆」下限，唔会见棱）
     }
+    // BUG-BD-3201: involute gears etc. have many tiny B-rep faces; default tessellation + edge
+    // overlays after ASSY left Chrome near VRAM cliff before File menu. Coarsen when face-heavy.
+    let nFaces = 0
+    try {
+      const faces = shape?.faces
+      nFaces = typeof faces?.length === 'number' ? faces.length
+        : (typeof faces === 'function' ? (faces.call(shape)?.length ?? 0) : 0)
+    } catch { nFaces = 0 }
+    if (nFaces > 80) {
+      tol = Math.max(tol, 0.12)
+      angTol = Math.max(angTol, 0.35)
+    }
   } catch { /* 攞唔到 bbox → 用默认 0.04 / 0.2 */ }
   const m = shape.mesh({ tolerance: tol, angularTolerance: angTol })
   return { vertices: m.vertices, triangles: m.triangles, normals: m.normals, faceGroups: m.faceGroups }   // S99：逐面 run，令分割子面可分开拣
@@ -6292,6 +6304,15 @@ const api = {
   async ready(): Promise<boolean> {
     await ready
     return true
+  },
+
+  // BUG-BD-3201: drop incremental rebuild clones + current solid after disposable sample rebuilds
+  // (e.g. Gear Pair ASSY) so OCCT/WASM heap is not still holding two gear solids when File opens.
+  async clearRebuildCache(): Promise<void> {
+    await ready
+    try { rcClear() } catch { /* ignore */ }
+    try { current = null } catch { /* ignore */ }
+    try { parkedBodies.length = 0 } catch { /* ignore */ }
   },
 
   // S189：草图文字 → 草图几何（poly 轮廓）。Fusion 草图文字落喺草图里 → 可镜像/阵列/做拉伸/旋转/扫掠轮廓。

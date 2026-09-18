@@ -1,4 +1,5 @@
 import { APP_VERSION } from '../version'
+import { withFileUiSafety } from '../io/fileUiSafety'
 import { useEscapeLayer } from './useEscapeLayer'
 import NarrowHint from './NarrowHint'
 import { createPortal } from 'react-dom'
@@ -362,7 +363,12 @@ export default function Ribbon() {
         <button className="tb-btn" title="适应窗口 / 主视图" onClick={() => requestFit()}><ToolIcon name="home" size={18} /></button>
         <div className="tb-sep" />
         <div style={{ position: 'relative' }}>
-          <button ref={fileButton} aria-haspopup="menu" aria-expanded={fileMenu} className="tb-btn tb-text" title="文件：新建 / 打开 / 保存 / 导入 / 导出 / 工程图" onClick={() => setFileMenu((o) => !o)}>
+          <button ref={fileButton} aria-haspopup="menu" aria-expanded={fileMenu} className="tb-btn tb-text" title="文件：新建 / 打开 / 保存 / 导入 / 导出 / 工程图" onClick={() => {
+              if (fileMenu) { setFileMenu(false); return }
+              // BUG-BD-3201: after heavy ASSY (Gear Pair) opening File synchronously
+              // races WebGL present + compositor → Chrome Aw Snap (Error 9). Yield + ease GPU first.
+              void withFileUiSafety(() => { setFileMenu(true) }, 'file-menu')
+            }}>
             <ToolIcon name="menu" size={16} /> {lang === 'en' ? 'File' : '文件'} ▾
           </button>
           {fileMenu && createPortal(

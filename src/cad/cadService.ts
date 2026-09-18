@@ -9,6 +9,14 @@ import type { CadAPI, Feature } from '../worker/cad.worker'
 // 在飞调用被内核重启打断时收到嘅错误文案（store 直接展示俾用户）
 export const KERNEL_RESTART_MSG = '内核已重启（上次操作令几何内核崩溃）— 模型已恢复到上一个成功状态，请简化嗰步操作再试'
 
+// v1.33: 预览被提交/取消抢占时嘅 benign 错误（唔触发「内核已重启」toast，唔加 restartCount）
+export const PREVIEW_CANCELLED_MSG = 'preview cancelled'
+
+export function isPreviewCancelled(reason: unknown): boolean {
+  const m = String((reason as { message?: unknown } | null)?.message ?? reason ?? '')
+  return m === PREVIEW_CANCELLED_MSG || m.includes('preview cancelled')
+}
+
 const DEFAULT_TIMEOUT = 60_000
 const LONG_TIMEOUT = 120_000
 // 重活允许 120s：rebuild（全量重放特征树，首次仲包埋 wasm 加载）/ importStep（STEP 解析）/
@@ -20,6 +28,13 @@ const LONG_METHODS = new Set([
   'previewRound',
 ])
 
+// v1.33: 提交类方法可静默抢占 previewRound（释放单飞槽 + worker），避免 Confirm/commit 卡喺预览后面
+const PRIORITY_METHODS = new Set([
+  'rebuild', 'splitBuild', 'importStep', 'importStepAssembly',
+  'exportAssemblySTEP', 'projectAssemblyViews',
+])
+const PREVIEW_METHODS = new Set(['previewRound'])
+
 // 一个 rejection 似唔似 wasm 内核崩溃（Emscripten "Aborted(...)" / "unreachable executed" / 内存爆）
 // v1.32: 收紧匹配 — 单字 "abort"/"memory" 太易误伤业务错误（例如 AbortController / "out of memory hint"），
 // 只认 Emscripten 经典崩溃文案，避免 catchable 业务 throw 触发无谓 worker 重启 toast。
@@ -28,6 +43,7 @@ export function looksLikeKernelCrash(reason: unknown): boolean {
   if (!m) return false
   // 自愈文案本身唔好再当崩溃（防连环）
   if (m.includes('内核已重启') || m.includes('kernel restart')) return false
+  if (m.includes('preview cancelled')) return false
   return (
     /\baborted\s*\(/.test(m) ||
     m.includes('unreachable executed') ||
@@ -57,18 +73,20 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 }
 
 // watchdog 核心（可测试：spawnRaw 注入 mock worker，超时缩短）。
-// 返回 { proxy, onKernelRestart, getState }；proxy 上任意方法名都委托去当前 worker 嘅同名方法。
+// 返回 { proxy, onKernelRestart, getState, cancelPreviews }；proxy 上任意方法名都委托去当前 worker 嘅同名方法。
 export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = {}) {
   const defT = opts.defaultTimeout ?? DEFAULT_TIMEOUT
   const longT = opts.longTimeout ?? LONG_TIMEOUT
 
-  type Pending = { reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
+  type Pending = { reject: (e: Error) => void; timer: ReturnType<typeof setTimeout>; method: string }
   let raw: RawKernel
   let generation = 0                              // 第几代 worker（每次 spawn +1）
   let restarting = false                          // 重启进行中（防重入）
   let recovering: Promise<void> | null = null     // 重放快照中 —— 新调用要等佢完先发出
   let lastGoodFeatures: Feature[] | null = null   // 最后一次成功 rebuild 嘅特征树（深拷贝）
-  let restartCount = 0                            // 测试/诊断：累计重启次数
+  let restartCount = 0                            // 测试/诊断：累计重启次数（只计真实崩溃/超时自愈）
+  let exclusiveMethod: string | null = null       // 当前独占槽上嘅方法名
+  let previewEpoch = 0                            // v1.33: 取消排队中嘅 previewRound
   const pending = new Set<Pending>()
   const restartCbs: ((msg: string) => void)[] = []
   const notify = (msg: string) => { for (const cb of restartCbs.slice()) { try { cb(msg) } catch { /* UI 回调唔好炸代理 */ } } }
@@ -89,12 +107,53 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
   }
   spawn()
 
+  function rejectPreviewPending() {
+    const err = new Error(PREVIEW_CANCELLED_MSG)
+    for (const p of [...pending]) {
+      if (!PREVIEW_METHODS.has(p.method)) continue
+      clearTimeout(p.timer)
+      pending.delete(p)
+      try { p.reject(err) } catch { /* 已 settle */ }
+    }
+  }
+
+  // v1.33: 静默抢占预览 — terminate + 重放快照，但不发「内核已重启」toast、唔加 restartCount。
+  // 用嚟：用户 Confirm/Esc 时唔好俾 hung previewRound 卡住 rebuild；worker 必须杀掉先放得脱 OCCT。
+  function silentRecoverAfterPreviewPreempt() {
+    if (restarting) return
+    restarting = true
+    try { raw.terminate() } catch { /* 已死 */ }
+    exclusiveMethod = null
+    spawn()
+    recovering = (async () => {
+      const snap = lastGoodFeatures
+      if (!snap) return
+      try {
+        await withTimeout(raw.api.rebuild(deepCopy(snap)), longT)
+      } catch {
+        lastGoodFeatures = null
+        try { raw.terminate() } catch { /* 已死 */ }
+        spawn()
+      }
+    })().finally(() => { recovering = null; restarting = false })
+  }
+
+  function cancelPreviews() {
+    previewEpoch++
+    const hadExclusivePreview = exclusiveMethod !== null && PREVIEW_METHODS.has(exclusiveMethod)
+    const hadPendingPreview = [...pending].some((p) => PREVIEW_METHODS.has(p.method))
+    rejectPreviewPending()
+    if (hadExclusivePreview || hadPendingPreview) silentRecoverAfterPreviewPreempt()
+  }
+
   function restart(why: string) {
     if (restarting) return
     restarting = true
     restartCount++
+    previewEpoch++   // 顺手作废排队 preview
     // 1) 杀死旧 worker，开新一个
     try { raw.terminate() } catch { /* 已死 */ }
+    exclusiveMethod = null
     // 2) 在飞调用全部拒绝（结果已不可信）
     const err = new Error(KERNEL_RESTART_MSG)
     for (const p of pending) { clearTimeout(p.timer); try { p.reject(err) } catch { /* 已 settle */ } }
@@ -126,40 +185,55 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
       const myTurn = new Promise<void>((r) => { release = r })
       const prev = gate
       gate = myTurn
+      const myPreviewEpoch = previewEpoch
       try {
+        // v1.33: 提交类方法入队时，若独占槽系 preview → 静默抢占，令 Confirm/commit 唔使等 120s
+        if (PRIORITY_METHODS.has(method) && exclusiveMethod !== null && PREVIEW_METHODS.has(exclusiveMethod)) {
+          cancelPreviews()
+        }
         await prev.catch(() => {})   // 前任失败/拒绝唔好卡住整条队列
         if (recovering) await recovering
+        // 排队期间被 cancelPreviews 抬 epoch → 直接 benign 拒绝，唔占用独占槽
+        if (PREVIEW_METHODS.has(method) && myPreviewEpoch !== previewEpoch) {
+          throw new Error(PREVIEW_CANCELLED_MSG)
+        }
         const timeoutMs = LONG_METHODS.has(method) ? longT : defT
-        return await new Promise<unknown>((resolve, reject) => {
-          const entry: Pending = {
-            reject,
-            timer: setTimeout(() => { if (pending.has(entry)) restart(`${method} 超时（${Math.round(timeoutMs / 1000)}s 无响应）`) }, timeoutMs),
-          }
-          pending.add(entry)
-          const settle = () => { clearTimeout(entry.timer); pending.delete(entry) }
-          Promise.resolve()
-            // 发出前已被重启拒绝 → 唔好打搅新内核（resolve undefined，下面 pending 检查会弃掉）
-            .then(() => (pending.has(entry) ? raw.api[method](...args) : undefined))
-            .then(
-              (res) => {
-                if (!pending.has(entry)) return       // 已被重启拒绝 → 弃掉迟到结果
-                settle()
-                if (method === 'rebuild') {
-                  // 快照：rebuild 成功出到 mesh（或合法嘅空特征树 → null）就深拷贝特征做恢复用。
-                  // 非空特征树而结果 null = worker 内部 build 失败 —— 唔好用佢覆盖上一个好状态。
-                  const feats = args[0] as Feature[] | undefined
-                  if (res !== null || !feats || feats.length === 0) lastGoodFeatures = deepCopy(feats ?? [])
-                }
-                resolve(res)
-              },
-              (e) => {
-                if (!pending.has(entry)) return       // 已被重启拒绝
-                settle()
-                if (looksLikeKernelCrash(e)) { restart(`${method} 抛出疑似内核崩溃错误`); reject(new Error(KERNEL_RESTART_MSG)) }
-                else reject(e as Error)               // 普通业务错误原样透传
-              },
-            )
-        })
+        exclusiveMethod = method
+        try {
+          return await new Promise<unknown>((resolve, reject) => {
+            const entry: Pending = {
+              reject,
+              method,
+              timer: setTimeout(() => { if (pending.has(entry)) restart(`${method} 超时（${Math.round(timeoutMs / 1000)}s 无响应）`) }, timeoutMs),
+            }
+            pending.add(entry)
+            const settle = () => { clearTimeout(entry.timer); pending.delete(entry) }
+            Promise.resolve()
+              // 发出前已被重启/抢占拒绝 → 唔好打搅新内核
+              .then(() => (pending.has(entry) ? raw.api[method](...args) : undefined))
+              .then(
+                (res) => {
+                  if (!pending.has(entry)) return       // 已被重启/抢占拒绝 → 弃掉迟到结果
+                  settle()
+                  if (method === 'rebuild') {
+                    // 快照：rebuild 成功出到 mesh（或合法嘅空特征树 → null）就深拷贝特征做恢复用。
+                    // 非空特征树而结果 null = worker 内部 build 失败 —— 唔好用佢覆盖上一个好状态。
+                    const feats = args[0] as Feature[] | undefined
+                    if (res !== null || !feats || feats.length === 0) lastGoodFeatures = deepCopy(feats ?? [])
+                  }
+                  resolve(res)
+                },
+                (e) => {
+                  if (!pending.has(entry)) return       // 已被重启/抢占拒绝
+                  settle()
+                  if (looksLikeKernelCrash(e)) { restart(`${method} 抛出疑似内核崩溃错误`); reject(new Error(KERNEL_RESTART_MSG)) }
+                  else reject(e as Error)               // 普通业务错误原样透传
+                },
+              )
+          })
+        } finally {
+          if (exclusiveMethod === method) exclusiveMethod = null
+        }
       } finally {
         release()
       }
@@ -182,9 +256,16 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
   }
 
   // 测试钩子（生产代码唔好依赖）
-  const getState = () => ({ generation, recovering: !!recovering, hasSnapshot: !!lastGoodFeatures, restartCount })
+  const getState = () => ({
+    generation,
+    recovering: !!recovering,
+    hasSnapshot: !!lastGoodFeatures,
+    restartCount,
+    exclusiveMethod,
+    previewEpoch,
+  })
 
-  return { proxy, onKernelRestart, getState }
+  return { proxy, onKernelRestart, getState, cancelPreviews }
 }
 
 // ---- 真·worker 实例（浏览器） ----
@@ -211,4 +292,9 @@ if (typeof window !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }
 // UI 订阅内核重启状态（integration：store 可以 onKernelRestart((msg) => set({ status: msg }))）
 export function onKernelRestart(cb: (msg: string) => void): () => void {
   return kernel ? kernel.onKernelRestart(cb) : () => {}
+}
+
+// v1.33: Shell/Fillet Esc 或 Confirm 前提前取消预览，释放单飞槽
+export function cancelPreviews(): void {
+  kernel?.cancelPreviews()
 }

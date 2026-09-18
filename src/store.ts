@@ -33,7 +33,7 @@ import { lengthScale } from './io/units'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
 import { create } from 'zustand'
 import { sourceReferenceGeometry } from './sketch/sourceReferenceGeometry'
-import { cad, onKernelRestart } from './cad/cadService'
+import { cad, onKernelRestart, cancelPreviews, isPreviewCancelled } from './cad/cadService'
 import { cardinalSketchFrame, localPointToCad } from './cad/sketchPlaneFrame'
 import { REVOLVE_AXIS_VEC, revolveCardinalAxis, revolvePersistedAxis } from './cad/revolvePreviewFrame'
 import { expandHoleFeature } from './cad/holeFeature'
@@ -6031,12 +6031,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     const f = buildRoundFeature(get(), fid())!
     const cLabel = kind === 'chamfer' ? (cm === 'two' ? ` 倒角 C${sz}×${d2}` : cm === 'angle' ? ` 倒角 C${sz}∠${ang}°` : ` 倒角 C${sz}`) : get().filletType === 'full' ? ' 全圆角' : get().filletMode === 'asymmetric' ? ` 不对称圆角 ${sz}/${r2}` : (perEdge ? ` 多半径圆角（${rArr.map((r) => 'R' + (+r.toFixed(1))).join('/')}）` : varFillet ? ` 变半径圆角 R${sz}→R${r2}` : ` 倒圆角 R${sz}`)
     const ok = await get().applyFeatures([...get().features, f], get().filletType === 'full' ? `已建立全圆角（三组面，时间轴可改）` : `已对 ${pts.length} 条棱${cLabel}（时间轴可改）`, true, get().filletType === 'full' ? '全圆角失败（面组必须相邻，当前内核要求直线平行边界）' : get().filletMode === 'asymmetric' ? '不对称圆角失败（目前要求凸直线边及两个互相垂直平面）' : '该组棱操作失败（尺寸过大或几何受限）')
-    if (ok) set({ edgeRoundPick: null, edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [], filletRuleFaceSets: [], filletRuleFaceIds: [], filletFullFaceSets: [], filletFullFaceIds: [], chamferRefFace: null, roundPreviewMesh: null, roundPreviewFail: false })
+    if (ok) {
+      ++_roundPvSeq
+      if (_roundPvTimer) clearTimeout(_roundPvTimer)
+      _roundPvTimer = null
+      try { cancelPreviews() } catch { /* node / 无 kernel */ }
+      set({ edgeRoundPick: null, edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [], filletRuleFaceSets: [], filletRuleFaceIds: [], filletFullFaceSets: [], filletFullFaceIds: [], chamferRefFace: null, roundPreviewMesh: null, roundPreviewFail: false, roundPreviewBusy: false })
+    }
   },
   cancelEdgeRound: () => {
     ++_roundPvSeq
     if (_roundPvTimer) clearTimeout(_roundPvTimer)
     _roundPvTimer = null
+    try { cancelPreviews() } catch { /* node / 无 kernel */ }
     set({ edgeRoundPick: null, edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [], filletRuleFaceSets: [], filletRuleFaceIds: [], filletFullFaceSets: [], filletFullFaceIds: [], chamferRefFace: null, roundPreviewMesh: null, roundPreviewFail: false, roundPreviewBusy: false, status: '已取消' })
   },
   clearEdgeRoundPicks: () => {
@@ -6106,20 +6113,22 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   runShellPreview: async () => {
     const s = get(), f = buildShellFeature(s, '~pv-shell')
-    if (!s.shellMode || s.mode !== 'model' || !f || !hasSolid(s.features)) return
+    if (!s.shellMode || s.mode !== 'model' || !f || !hasSolid(s.features)) { set({ shellPreviewBusy: false }); return }
     const seq = ++_shellPvSeq
     set({ shellPreviewMesh: null, shellPreviewBusy: true, shellPreviewFail: false })
     const bound = applyParamBindings([...s.features, f], s.params, s.paramBindings)
     const active = expandFeats(bound.filter(x => !s.suppressedIds.includes(x.id)))
     try {
       const mesh = await cad.previewRound(active)
-      if (seq !== _shellPvSeq || !get().shellMode) return
+      if (seq !== _shellPvSeq || !get().shellMode) { if (seq === _shellPvSeq) set({ shellPreviewBusy: false }); return }
       if (!mesh || !mesh.triangles.length || mesh.failed?.length) throw new Error('shell preview failed')
       _previewFeatures.set(mesh, active)
       set({ shellPreviewMesh: mesh, shellPreviewBusy: false, shellPreviewFail: false })
-    } catch {
-      if (seq !== _shellPvSeq || !get().shellMode) return
-      set({ shellPreviewMesh: null, shellPreviewBusy: false, shellPreviewFail: true })
+    } catch (e) {
+      if (seq !== _shellPvSeq || !get().shellMode) { if (seq === _shellPvSeq) set({ shellPreviewBusy: false }); return }
+      // 抢占/取消 → 当软失败（保留原模型，Confirm 仍可用）
+      const cancelled = typeof isPreviewCancelled === 'function' && isPreviewCancelled(e)
+      set({ shellPreviewMesh: null, shellPreviewBusy: false, shellPreviewFail: true, ...(cancelled ? { status: '预览已取消 — 可改参数重试或直接按「确定」提交' } : {}) })
     }
   },
   shellMode: false,
@@ -6136,7 +6145,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   toggleShellTangentChain: () => set((s) => ({ shellTangentChain: !s.shellTangentChain })),
   shellDir: 'inside',   // GM-3DV3 M2：缺省向内（外形保留，旧行为逐字节）
   setShellDir: (d) => set({ shellDir: d }),
-  toggleShell: () => set((s) => ({ shellMode: !s.shellMode, shellPicks: [], shellThickness: s.shellMode ? 0 : 2, shellType: 'open', shellTangentChain: true, shellDir: 'inside', holeMode: false, featDlg: null, decalPick: null, pushPullMode: false, edgeRoundPick: null, faceFilletMode: false, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.shellMode ? '抽壳：点选要移除的面（可多个）→ 输入壁厚 → 按「确定」' : '已退出抽壳' })),
+  toggleShell: () => {
+    const was = get().shellMode
+    if (was) {
+      ++_shellPvSeq
+      if (_shellPvTimer) clearTimeout(_shellPvTimer)
+      _shellPvTimer = null
+      try { cancelPreviews() } catch { /* node / 无 kernel */ }
+    }
+    set((s) => ({ shellMode: !s.shellMode, shellPicks: [], shellThickness: s.shellMode ? 0 : 2, shellType: 'open', shellTangentChain: true, shellDir: 'inside', holeMode: false, featDlg: null, decalPick: null, pushPullMode: false, edgeRoundPick: null, faceFilletMode: false, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.shellMode ? '抽壳：点选要移除的面（可多个）→ 输入壁厚 → 按「确定」' : '已退出抽壳', ...(was ? { shellPreviewMesh: null, shellPreviewBusy: false, shellPreviewFail: false } : {}) }))
+  },
   shellPickAt: (p) => set((s) => {
     if (!hasSolid(s.features)) return partSolidRequiredPatch('抽壳', s)
     const hit = s.shellPicks.findIndex((q) => Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]) < 2.5)
@@ -6156,10 +6174,23 @@ export const useApp = create<AppState>((rawSet, get) => {
     const dirLbl = dir === 'outside' ? '向外' : dir === 'both' ? '两侧' : '向内'
     const hasRound = get().features.some((x) => x.type === 'fillet' || x.type === 'chamfer')
     const failMsg = hasRound ? '抽壳失败——已倒圆角/倒角的实体抽壳不稳定，建议先抽壳后倒角' : '抽壳失败（壁厚过大或所选面不合适）'
+    // v1.33: Confirm 前提前作废预览 + 静默抢占 worker，避免 rebuild 卡喺 hung previewRound 后面
+    ++_shellPvSeq
+    if (_shellPvTimer) clearTimeout(_shellPvTimer)
+    _shellPvTimer = null
+    set({ shellPreviewBusy: false })
+    try { cancelPreviews() } catch { /* node / 无 kernel */ }
     const ok = await get().applyFeatures([...get().features, f], `已抽壳 壁厚 ${th}（${dirLbl}，${shellType === 'closed' ? '封闭实体' : `开 ${nears.length} 个所选面${get().shellTangentChain ? '，切线链开' : ''}`}）`, true, failMsg)
-    if (ok) set({ shellMode: false, shellPicks: [] })
+    if (ok) set({ shellMode: false, shellPicks: [], shellPreviewMesh: null, shellPreviewFail: false, shellPreviewBusy: false })
   },
-  cancelShell: () => set({ shellPicks: [], shellMode: false, status: '已取消抽壳' }),
+  cancelShell: () => {
+    // v1.33: Esc 必须清 busy + 取消内核预览，否则单飞槽被旧 previewRound 占住 → 再开 Shell 又 stall
+    ++_shellPvSeq
+    if (_shellPvTimer) clearTimeout(_shellPvTimer)
+    _shellPvTimer = null
+    try { cancelPreviews() } catch { /* node / 无 kernel */ }
+    set({ shellPicks: [], shellMode: false, shellPreviewMesh: null, shellPreviewBusy: false, shellPreviewFail: false, status: '已取消抽壳' })
+  },
   clearShellPicks: () => set({ shellPicks: [], status: '已清空所选面 — 请重新点选' }),
   // R1 面圆角 face-fillet：镜 shell 拾面流程（proven guarded），拾【两张】唔相邻面 → 设半径 → 确定。
   faceFilletMode: false,

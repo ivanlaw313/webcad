@@ -75,7 +75,7 @@ import { cutFaceGeom } from '../geom/sectionCap'   // S186：剖面盖切面三�
 import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按需预览（避免普通建模首屏载入齿轮搜索）
 import { ToolIcon } from '../icons'
 import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, DATUM_CMD_METHODS, DATUM_CMD_ACC } from '../store'
-import { resolveMeshDropFile, shouldAllowMeshDragOver } from '../io/meshDrop'
+import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
 import { cadPointToThree, formBoxRectCadCorners, makePlacedBoxCage, type FormBoxDraft, type FormBoxPlane } from '../cad/formBox'
 import { PaintedFacesView } from './PaintedFacesView'   // S102[3]：逐面外观覆盖层
@@ -3906,31 +3906,18 @@ export default function Viewport() {
   const polyArcMode = useApp((s) => s.polyArcMode)   // GM-W6 B6：折线相切弧 submode 掣
   const rcDown = useRef<{ x: number; y: number } | null>(null)
   const viewportDropRef = useRef<HTMLDivElement>(null)
+  const meshDropOverlayRef = useRef<HTMLDivElement>(null)
 
-  // v1.42 BUG-BD-4101: capture-phase dragover/drop on viewport host so WebGL <canvas>
-  // (absolute inset:0) cannot swallow OS/automation file drops before React bubble handlers.
+  // v1.43 BUG-BD-4101: document-level host + overlay above WebGL <canvas> while drag is armed.
   useEffect(() => {
-    const el = viewportDropRef.current
-    if (!el) return
-    const onDragOver = (e: DragEvent) => {
-      if (!shouldAllowMeshDragOver(e.dataTransfer)) return
-      e.preventDefault()
-      try { if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy' } catch { /* ignore */ }
-    }
-    const onDrop = (e: DragEvent) => {
-      const file = resolveMeshDropFile(e.dataTransfer?.files)
-      if (!file) return
-      e.preventDefault()
-      e.stopPropagation()
-      void useApp.getState().acceptMeshDropFile(file)
-    }
-    el.addEventListener('dragenter', onDragOver, true)
-    el.addEventListener('dragover', onDragOver, true)
-    el.addEventListener('drop', onDrop, true)
+    const cleanupHost = ensureMeshDropHost({
+      accept: (file) => { void useApp.getState().acceptMeshDropFile(file) },
+      setStatus: (status) => { useApp.setState({ status }) },
+    })
+    setMeshDropOverlay(meshDropOverlayRef.current)
     return () => {
-      el.removeEventListener('dragenter', onDragOver, true)
-      el.removeEventListener('dragover', onDragOver, true)
-      el.removeEventListener('drop', onDrop, true)
+      setMeshDropOverlay(null)
+      cleanupHost()
     }
   }, [])
 
@@ -4247,6 +4234,7 @@ export default function Viewport() {
       className={`viewport vp-layout-${viewLayout}`}
       data-mesh-drop="viewport"
       data-mesh-drop-capture="1"
+      data-mesh-drop-overlay-host="1"
       onPointerDownCapture={(e) => {
         // GM-W5 5.3：select 工具 + 左键 + 目标系 canvas 先接管（HTML 覆盖层照常运作）
         // Multi-view secondary canvases are orbit-only — skip marquee/lasso outside single layout.
@@ -4291,6 +4279,27 @@ export default function Viewport() {
       }}
     >
       {viewLayout !== 'single' && <MultiViewPanes layout={viewLayout} />}
+      {/* v1.43 BUG-BD-4101: invisible drop target above canvas; pointer-events armed by meshDropHost */}
+      <div
+        ref={meshDropOverlayRef}
+        data-mesh-drop-overlay="1"
+        data-mesh-drop-armed="0"
+        aria-hidden="true"
+        style={{
+          position: 'absolute', inset: 0, zIndex: 40,
+          pointerEvents: 'none', opacity: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(21,114,196,0.10)',
+          border: '2px dashed rgba(21,114,196,0.55)',
+          boxSizing: 'border-box',
+          transition: 'opacity 0.12s ease-out',
+          color: '#0d4f8c', fontWeight: 700, fontSize: 15,
+          textShadow: '0 1px 0 rgba(255,255,255,.7)',
+          userSelect: 'none',
+        }}
+      >
+        松开以导入网格（.stl / .obj / .3mf）
+      </div>
       {viewLayout === 'single' && (
       <Canvas
         style={{ position: 'absolute', inset: 0, touchAction: 'none' }}

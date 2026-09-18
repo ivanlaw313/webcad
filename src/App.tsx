@@ -29,7 +29,7 @@ import DebugHud from './components/DebugHud'
 import LoadingBar from './components/LoadingBar'   // 全局加载进度条（import/export/重建大档案时显示）
 import { ScrubNumberDrag } from './components/CommandDialog'   // 命令对话框数字栏左右拖改值（Fusion 式）
 import { useApp } from './store'
-import { resolveMeshDropFile, shouldAllowMeshDragOver } from './io/meshDrop'
+import { ensureMeshDropHost } from './io/meshDropHost'
 import { VISUAL_STYLE_KEYMAP } from './cad/viewModel'   // GM-X2 #1：Ctrl+4..9 视觉样式
 import { isUiTestIsolation } from './runtime/uiTestIsolation'
 import { useCSketch } from './sketch/csketch'
@@ -39,30 +39,12 @@ export default function App() {
   const [startupReady, setStartupReady] = useState(false)
   const appDropRef = useRef<HTMLDivElement>(null)
 
-  // v1.42: capture-phase so WebGL canvas / overlays cannot block OS file drop
+  // v1.43 BUG-BD-4101: document-level mesh drop host (capture) — canvas cannot swallow drops
   useEffect(() => {
-    const el = appDropRef.current
-    if (!el) return
-    const onDragOver = (e: DragEvent) => {
-      if (!shouldAllowMeshDragOver(e.dataTransfer)) return
-      e.preventDefault()
-      try { if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy' } catch { /* ignore */ }
-    }
-    const onDrop = (e: DragEvent) => {
-      const file = resolveMeshDropFile(e.dataTransfer?.files)
-      if (!file) return
-      e.preventDefault()
-      e.stopPropagation()
-      void useApp.getState().acceptMeshDropFile(file)
-    }
-    el.addEventListener('dragenter', onDragOver, true)
-    el.addEventListener('dragover', onDragOver, true)
-    el.addEventListener('drop', onDrop, true)
-    return () => {
-      el.removeEventListener('dragenter', onDragOver, true)
-      el.removeEventListener('dragover', onDragOver, true)
-      el.removeEventListener('drop', onDrop, true)
-    }
+    return ensureMeshDropHost({
+      accept: (file) => { void useApp.getState().acceptMeshDropFile(file) },
+      setStatus: (status) => { useApp.setState({ status }) },
+    })
   }, [])
   const csketchOpen = useApp((s) => s.csketchOpen)
   const browserCollapsed = useApp((s) => s.browserCollapsed)
@@ -344,6 +326,7 @@ export default function App() {
       data-ui-test={isUiTestIsolation() ? 'true' : 'false'}
       data-mesh-drop="app"
       data-mesh-drop-capture="1"
+      data-mesh-drop-doc="1"
     >
       {!startupReady && <div className="startup-restore-gate" role="status" aria-live="polite">正在安全回復上次設計…</div>}
       <ErrorBoundary name="工具栏 Ribbon" compact><Ribbon /></ErrorBoundary>

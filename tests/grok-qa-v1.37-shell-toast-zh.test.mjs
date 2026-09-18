@@ -21,7 +21,7 @@ test('APP_VERSION is 1.37+', () => {
 })
 
 test('commitShell uses shellSuccessStatus helper', () => {
-  assert.match(storeSrc, /import \{ shellSuccessStatus \} from '\.\/ui\/featureStatus'/)
+  assert.match(storeSrc, /import \{[^}]*shellSuccessStatus[^}]*\} from '\.\/ui\/featureStatus'/)
   assert.match(storeSrc, /shellSuccessStatus\(\{[\s\S]*?thickness:\s*th[\s\S]*?tangentChain:/)
 })
 

@@ -37,7 +37,7 @@ function tStatus(s, phrases) {
 }
 
 test('APP_VERSION is 1.40+', () => {
-  assert.match(version, /APP_VERSION = '1\.40'|APP_VERSION = '1\.[5-9]\d'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '1\.4[0-9]'|APP_VERSION = '1\.[5-9]\d'|APP_VERSION = '[2-9]\./)
 })
 
 test('i18n X keeps bake chip + 已切除/合并/相交 Chinese under EN (no Done:/Bake into)', () => {

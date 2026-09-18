@@ -75,6 +75,7 @@ import { cutFaceGeom } from '../geom/sectionCap'   // S186：剖面盖切面三�
 import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按需预览（避免普通建模首屏载入齿轮搜索）
 import { ToolIcon } from '../icons'
 import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, DATUM_CMD_METHODS, DATUM_CMD_ACC } from '../store'
+import { firstMeshDropFile, isFilesDrag } from '../io/meshDrop'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
 import { cadPointToThree, formBoxRectCadCorners, makePlacedBoxCage, type FormBoxDraft, type FormBoxPlane } from '../cad/formBox'
 import { PaintedFacesView } from './PaintedFacesView'   // S102[3]：逐面外观覆盖层
@@ -4214,6 +4215,20 @@ export default function Viewport() {
   return (
     <div
       className={`viewport vp-layout-${viewLayout}`}
+      data-mesh-drop="viewport"
+      onDragOver={(e) => {
+        // v1.41: STL/OBJ/3MF drag-drop onto viewport (BOT-D bypass flaky native chooser)
+        if (!isFilesDrag(e.dataTransfer)) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'copy'
+      }}
+      onDrop={(e) => {
+        const file = firstMeshDropFile(e.dataTransfer?.files)
+        if (!file) return
+        e.preventDefault()
+        e.stopPropagation()
+        void useApp.getState().acceptMeshDropFile(file)
+      }}
       onPointerDownCapture={(e) => {
         // GM-W5 5.3：select 工具 + 左键 + 目标系 canvas 先接管（HTML 覆盖层照常运作）
         // Multi-view secondary canvases are orbit-only — skip marquee/lasso outside single layout.

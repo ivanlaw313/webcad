@@ -29,7 +29,7 @@ import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
-import { shellSuccessStatus } from './ui/featureStatus'
+import { shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus } from './ui/featureStatus'
 import { lengthScale } from './io/units'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
 import { create } from 'zustand'
@@ -14196,7 +14196,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         return { profile: p, operation, baseZ: effBaseZ, plane: plane === 'XY' ? undefined : plane, through: through ? true : undefined, inward: useInward ? true : undefined, inwardDepth: useInward ? height : undefined, faceOutSign: useInward ? get().faceOutSign : undefined, down: down || undefined, twist: twist || undefined, symmetric: symmetric || undefined, draft: draft || undefined }   // #19：对称/扭转/拔模透传
       })
       const cuts = ordered.filter(({ d }) => (d % 2 === 0) !== (op === 'new')).length  // 'cut' ⟺ even-XOR-new
-      const msg = op === 'cut' ? `已切除 ${cuts} 个轮廓（组节点 ×${subs.length}）— 真实 OCCT B-rep` : `已拉伸 ${profiles.length} 个轮廓（含 ${cuts} 个孔，组节点）— 真实 OCCT B-rep`
+      const msg = op === 'cut' ? multiProfileExtrudeStatus({ op: 'cut', count: cuts, groupNodes: subs.length }) : multiProfileExtrudeStatus({ op: 'new', count: profiles.length, holes: cuts, groupNodes: 1 })
       // B：多轮廓一次拉伸 = 一个【拉伸组】节点（时间轴一个 icon，可改高度/删整组），唔再放 N 个 extrude 出嚟刷屏。
       const grp: Feature = { id: fid(), type: 'extgroup', height, subs } as Feature
       await get().applyFeatures([...get().features, grp], msg)
@@ -14264,7 +14264,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   addExtrude: async (profile, height, operation, baseZ = 0, opts) => {
     const f: Feature = { id: fid(), type: 'extrude', profile, height, operation, baseZ, twist: opts?.twist || undefined, symmetric: opts?.symmetric || undefined, plane: opts?.plane && opts.plane !== 'XY' ? opts.plane : undefined, through: opts?.through || undefined, inward: opts?.inward || undefined, inwardDepth: opts?.inwardDepth, faceOutSign: opts?.faceOutSign, draft: opts?.draft || undefined, down: opts?.down || undefined, toFace: opts?.toFace, extent: opts?.extent }   // GM-W5 5.2：extent:'next' META 标记（worker 不读，height 已烘焙）
     const extra = (f.symmetric ? '（对称）' : f.twist ? `（扭转 ${f.twist}°）` : '') + (f.draft ? `（拔模 ${f.draft}°）` : '') + (f.through ? '（贯通）' : '')
-    const okMsg = (operation === 'cut' ? '已切割（布尔减）— 真实 OCCT B-rep' : (baseZ > 0 ? '已在顶面叠加拉伸特征' : '已拉伸出实体 — 真实 OCCT B-rep')) + extra   // GM-L2 #59：整个三元包返括号，令 extra（对称/扭转/拔模/贯通）也拼上 cut 分支 — 以前运算符优先级令 cut 永远丢咗备注
+    const okMsg = extrudeSuccessStatus({ op: operation === 'cut' ? 'cut' : baseZ > 0 ? 'stack' : 'new', extra })   // GM-L2 #59：整个三元包返括号，令 extra（对称/扭转/拔模/贯通）也拼上 cut 分支 — 以前运算符优先级令 cut 永远丢咗备注
     await get().applyFeatures([...get().features, f], okMsg)
   },
 
@@ -14319,13 +14319,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!hasSolid(get().features)) { set({ status: '新实体：先起一个实体（拉伸/原语），先有嘢可以泊车' }); return }
     const n = (get().bodyMesh?.parked?.length ?? 0) + 1
     await get().applyFeatures([...get().features, { id: fid(), type: 'newbody', name: `实体${n}` }],
-      `已开新实体 —「实体${n}」已泊车（灰显）。而家建嘅嘢全部属于新实体；完成后撳「实体布尔」合并/切除/相交`)
+      newBodySuccessStatus(n))
   },
   // 实体布尔：活动实体 ⊗ 泊车实体（真 B-rep — 结果仲可以继续圆角/抽壳/导 STEP；对比组件布尔嘅网格级）
   commitBodyBoolean: async (bop, target) => {
-    const lbl = bop === 'cut' ? '切除' : bop === 'common' ? '相交' : '合并'
     await get().applyFeatures([...get().features, { id: fid(), type: 'bodyboolean', bop, target }],
-      `已实体布尔：活动实体 ${bop === 'cut' ? '−' : bop === 'common' ? '∩' : '+'} 泊车实体（${lbl}，B-rep 级 — 时间轴可改/可删）`)
+      booleanSuccessStatus({ kind: 'body', op: bop === 'cut' ? 'cut' : bop === 'common' ? 'common' : 'join' }))
   },
   // S128：真 Combine 对话框 — 活动实体(目标) ⊗ 泊车实体(工具) — 选 操作 + 一个/多个工具体 → 确定。
   // 行返现有 bodyboolean B-rep 路径（每个工具一条 bodyboolean 特征，时间轴可改/可删）。取代旧 cut-mode toggle。
@@ -16729,12 +16728,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       // 收集勾选嘅工具索引；按【降序】排，咁 worker splice(target) 唔会令未处理嘅索引偏移。
       const tools = parked.map((_, i) => i).filter((i) => +(p['tool' + i] ?? 0) > 0).sort((a, b) => b - a)
       if (!tools.length) { set({ status: '合并：至少勾选一个工具体' }); return }
-      const lbl = bop === 'cut' ? '切除' : bop === 'common' ? '相交' : '合并'
-      const sym = bop === 'cut' ? '−' : bop === 'common' ? '∩' : '+'
       const keep = +(p.keepTools ?? 0) > 0   // S185 Keep Tools：保留工具体（可复用 / 留独立体）
       const feats: Feature[] = tools.map((t) => ({ id: fid(), type: 'bodyboolean', bop, target: t, keep: keep || undefined }))
       set({ featDlg: null })
-      await get().applyFeatures([...get().features, ...feats], `已合并：活动实体 ${sym} ${tools.length} 个工具体（${lbl}${keep ? '·保留工具体' : ''}，B-rep 级 — 时间轴可改/可删）`)
+      await get().applyFeatures([...get().features, ...feats], booleanSuccessStatus({ kind: 'combine', op: bop === 'cut' ? 'cut' : bop === 'common' ? 'common' : 'join', toolCount: tools.length, keepTools: keep }))
       return
     }
     if (d.kind === 'boundaryfill') {
@@ -20577,7 +20574,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // outer region follows `op`; a nested (odd-depth) loop flips to the opposite → hole for a 'new', island for a 'cut'.
     const feats: Feature[] = ordered.map(({ p, d }) => ({ id: fid(), type: 'extrude', profile: p, height, operation: (((d % 2 === 0) === (op === 'new')) ? 'new' : 'cut') as BoolOp, baseZ: 0 }))
     const cuts = ordered.filter(({ d }) => (d % 2 === 0) !== (op === 'new')).length
-    const msg = op === 'cut' ? `已切除 ${cuts} 个轮廓 — 真实 OCCT B-rep` : `已拉伸 ${sps.length} 个轮廓（含 ${cuts} 个孔）— 真实 OCCT B-rep`
+    const msg = op === 'cut' ? multiProfileExtrudeStatus({ op: 'cut', count: cuts }) : multiProfileExtrudeStatus({ op: 'new', count: sps.length, holes: cuts })
     const ok = await get().applyFeatures([...get().features, ...feats], msg)
     if (ok) archiveAdded(before)
   },

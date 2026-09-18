@@ -17719,11 +17719,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   openStlDialog: () => {
-    // BUG-BD-1804：优先 File System Access picker（自动化/部分环境 <input> 会挂）；失败回落 input。
+    // BUG-BD-1804 / BUG-BD-3901：File→导入 STL 与 insertmesh 共用。优先 File System Access；
+    // 失败回落 <input>。取消时清 status/busy，避免卡住「忙」或陈旧提示（自动化 flake 同类）。
+    const clearCancel = () => set({ busy: false, status: '已取消选择 STL' })
     const openFile = async (f: File) => {
+      set({ busy: false })
       get().openMeshInsert('stl', f.name.replace(/\.[^.]+$/, ''), { buf: await f.arrayBuffer() })
     }
     void (async () => {
+      set({ busy: false, status: '选择 STL 文件…' })
       type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
       const picker = (window as OpenPickerWindow).showOpenFilePicker
       if (typeof picker === 'function') {
@@ -17733,12 +17737,25 @@ export const useApp = create<AppState>((rawSet, get) => {
           return
         } catch (err) {
           const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
-          if (name === 'AbortError') { set({ status: '已取消 STL 插入' }); return }
+          if (name === 'AbortError') { clearCancel(); return }
+          // Non-abort failure (e.g. insecure context) → fall through to <input>.
         }
       }
       const inp = document.createElement('input')
-      inp.type = 'file'; inp.accept = '.stl'
-      inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; await openFile(f) }
+      inp.type = 'file'; inp.accept = '.stl,model/stl,application/sla'
+      let settled = false
+      const finish = async (f: File | undefined) => {
+        if (settled) return
+        settled = true
+        window.removeEventListener('focus', onFocus)
+        if (!f) { clearCancel(); return }
+        await openFile(f)
+      }
+      const onFocus = () => { window.setTimeout(() => { void finish(inp.files?.[0] ?? undefined) }, 300) }
+      inp.onchange = () => { void finish(inp.files?.[0] ?? undefined) }
+      // Chromium <input type=file> cancel event — clears busy/status without needing command palette.
+      inp.addEventListener('cancel', () => { void finish(undefined) })
+      window.addEventListener('focus', onFocus)
       inp.click()
     })()
   },

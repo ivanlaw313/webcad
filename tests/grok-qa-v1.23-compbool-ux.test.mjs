@@ -55,7 +55,7 @@ test('componentBoolean offers bake into part solid after success', () => {
 
 test('i18n covers v1.23 guidance phrases', () => {
   assert.match(i18n, /v1\.23 component-boolean dead-end guidance/)
-  assert.match(i18n, /Bake into part solid/)
+  assert.match(i18n, /'烘焙为零件实体': '烘焙为零件实体'/) // v1.40: keep Chinese under EN
   assert.match(i18n, /MeshFit \/ Convert to B-rep/)
 })
 

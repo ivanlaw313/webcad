@@ -18,7 +18,7 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.31+', () => {
-  assert.match(version, /APP_VERSION = '1\.31'|APP_VERSION = '1\.[4-9]\d'/)
+  assert.match(version, /APP_VERSION = '1\.3[1-9]'|APP_VERSION = '1\.[4-9]\d'/)
 })
 
 test('v1.31 wiring: fuse preheal + boss rim + fuse nudges + deferred alt lids', () => {

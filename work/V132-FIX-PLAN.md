@@ -26,7 +26,7 @@ Not primary: MakeThickSolid wasm hard-abort still possible on exotic topologies,
 6. Bump `APP_VERSION` → `1.32`. Keep v1.28–v1.31 shell CLEAN contracts green.
 
 ## Acceptance
-- [ ] Stacked previewRound under exclusive timeout → `restartCount === 0` (HARD test)
-- [ ] True hang still restarts + recover toast
-- [ ] v1.28 / v1.29 / v1.30 / v1.31 shell suites PASS
-- [ ] LIVE 1.32; solid retest BX01+BX02 — ideally **zero** restart toast on preview/commit; rare hard-abort restart still acceptable
+- [x] Stacked previewRound under exclusive timeout → `restartCount === 0` (HARD test)
+- [x] True hang still restarts + recover toast
+- [x] v1.28 / v1.29 / v1.30 / v1.31 shell suites PASS
+- [x] LIVE 1.32; solid retest BX01+BX02 — ideally **zero** restart toast on preview/commit; rare hard-abort restart still acceptable

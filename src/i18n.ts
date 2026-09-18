@@ -179,6 +179,7 @@ const STATUS_PHRASES: Record<string, string> = {
   '选此件 → MeshFit/转 B-rep 烘焙入零件后再圆角/抽壳': 'select it → MeshFit / Convert to B-rep into the part, then Fillet/Shell',
   '零件内多体请用「实体布尔」': 'for multi-body inside a part use Body Boolean',
   '烘焙为零件实体': 'Bake into part solid',
+
   // v1.25 component-boolean tool pick
   '🧩 切除：选择工具件': '🧩 Cut: pick tool component',
   '🧩 合并：选择工具件': '🧩 Join: pick tool component',
@@ -1372,6 +1373,17 @@ const STATUS_PHRASES_X: Record<string, string> = {
   '独立实体薄板': '独立实体薄板',
   '已对所有棱倒圆角': '已对所有棱倒圆角',
   '已对所有棱倒角': '已对所有棱倒角',
+  // v1.39 mate-after-edit / compbool bake — keep Chinese intact under EN tStatus
+  '组件布尔＝网格结果（非零件时间轴）— 点右侧按钮烘焙入零件后即可圆角/抽壳；零件内多体用「实体布尔」（B-rep），勿与组件布尔（网格）混淆': '组件布尔＝网格结果（非零件时间轴）— 点右侧按钮烘焙入零件后即可圆角/抽壳；零件内多体用「实体布尔」（B-rep），勿与组件布尔（网格）混淆',
+  '已重算': '已重算',
+  '个涉及此件的配合（编辑后几何变咗，从动件跟随）': '个涉及此件的配合（编辑后几何变咗，从动件跟随）',
+  '个涉及来源件的配合': '个涉及来源件的配合',
+  '连带清除': '连带清除',
+  '个配合）': '个配合）',
+  '当前是组件布尔/网格件': '当前是组件布尔/网格件',
+  '点右侧「烘焙为零件实体」入零件时间轴后再圆角/抽壳': '点右侧「烘焙为零件实体」入零件时间轴后再圆角/抽壳',
+  '勿与零件内「实体布尔」混淆（实体布尔=活动⊗泊车 B-rep；组件布尔=网格件之间）': '勿与零件内「实体布尔」混淆（实体布尔=活动⊗泊车 B-rep；组件布尔=网格件之间）',
+
   '时间轴可改半径': '时间轴可改半径',
   '时间轴可改距离': '时间轴可改距离',
   '点路径扫掠成实体': '点路径扫掠成实体',

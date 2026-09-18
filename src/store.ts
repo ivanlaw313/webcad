@@ -3259,15 +3259,17 @@ function partSolidRequiredPatch(
   const hasSrc = !!(focus.src?.features?.length || body0?.src?.features?.length || def?.src?.features?.length)
   const name = focus.name || '组件'
   const meshfitAction: StatusAction = { id: 'meshfit', label: 'MeshFit / 转 B-rep', componentId: focus.id }
+  // v1.39: pure mesh (组件布尔结果 / 导入 STL) → primary bake chip (same as post-boolean), not MeshFit.
+  const bakeAction: StatusAction = { id: 'bakeMeshToPart', label: '烘焙为零件实体', componentId: focus.id }
   if (hasSrc) {
     return {
-      status: `${cmd}：当前是装配/网格件「${name}」，不是零件时间轴实体 — 可「✎编辑」回时间轴，或选件 → MeshFit/转 B-rep；零件内多体请用「实体布尔」 · 点右侧「MeshFit / 转 B-rep」烘焙后再试`,
+      status: `${cmd}：当前是装配/网格件「${name}」，不是零件时间轴实体 — 可「✎编辑」回时间轴，或选件 → MeshFit/转 B-rep；零件内多体请用「实体布尔」（B-rep 时间轴），组件之间请用「组件布尔」（网格） · 点右侧「MeshFit / 转 B-rep」烘焙后再试`,
       statusAction: meshfitAction,
     }
   }
   return {
-    status: `${cmd}：当前是组件布尔/网格件「${name}」，不是零件实体 — 选此件 → MeshFit/转 B-rep 烘焙入零件后再圆角/抽壳；零件内多体请用「实体布尔」 · 点右侧「MeshFit / 转 B-rep」烘焙后再试`,
-    statusAction: meshfitAction,
+    status: `${cmd}：当前是组件布尔/网格件「${name}」，不是零件实体 — 点右侧「烘焙为零件实体」入零件时间轴后再圆角/抽壳；勿与零件内「实体布尔」混淆（实体布尔=活动⊗泊车 B-rep；组件布尔=网格件之间）`,
+    statusAction: bakeAction,
   }
 }
 // GM-3DV1 S10：孔「到下一面」(Fusion Hole Extent=To Next) 纯几何 —— 由孔心 (cx,cy) CAD、入口面高 top 向 −z 打，
@@ -8288,6 +8290,15 @@ export const useApp = create<AppState>((rawSet, get) => {
           : d),
       }))
     }).catch(() => { /* keep the old sidecar only when extraction fails */ })
+    // v1.39: mate-after-edit — meshCenter3 / local faces ride on new mesh; rebuild followers
+    // (cancelComponentEdit already resolveMates; setComponentPos/Rot do when driver moves).
+    const matesTouch = get().mates.filter((m) => m.aComp === id || m.bComp === id)
+    if (matesTouch.length) {
+      const prevStatus = get().status
+      if (get().grounded) get().solveMates()
+      else get().resolveMates()
+      set({ status: `${prevStatus} · 已重算 ${matesTouch.length} 个涉及此件的配合（编辑后几何变咗，从动件跟随）` })
+    }
   },
   cancelComponentEdit: async () => {
     const s = get()
@@ -11785,6 +11796,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         let joints = s2.joints
         let motionLinks = s2.motionLinks
         let grounded = s2.grounded
+        let mates = s2.mates
         // Union/intersect consume only the selected B body.  If B has siblings, fork B
         // for this occurrence and retain all of them; otherwise remove B and only its joints.
         if (!keepTool) {
@@ -11802,11 +11814,14 @@ export const useApp = create<AppState>((rawSet, get) => {
             components = components.filter((c) => c.id !== bId)
             joints = s2.joints.filter((j) => !removed.has(j.id))
             motionLinks = s2.motionLinks.filter((l) => !removed.has(l.driver) && !removed.has(l.driven))
+            // v1.39: also drop face-mates that referenced the consumed tool occurrence.
+            mates = s2.mates.filter((m) => m.aComp !== bId && m.bComp !== bId)
             grounded = s2.grounded === bId ? null : s2.grounded
           }
         }
         components = reconcileComponents(components, defs)
         const removedJointCount = s2.joints.length - joints.length
+        const removedMateCount = s2.mates.length - mates.length
         return {
           undoStack: [...s2.undoStack, docSnap(s2)].slice(-60),
           redoStack: [],
@@ -11814,19 +11829,29 @@ export const useApp = create<AppState>((rawSet, get) => {
           components,
           joints,
           motionLinks,
+          mates,
           grounded,
           selectedComponent: aId,
           selectedComponentBody: { componentId: aId, bodyId: aBody.id },
-          status: `已${opLbl}「${A.name} / ${aBody.name}」${opSym}「${B.name} / ${bBody.name}」→ 体积 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}${toolNote}${keepTool ? '（工具 Body 保留）' : '（只消耗工具 Body）'}${removedJointCount ? `；工具件移除，连带移除 ${removedJointCount} 个关节` : '；来源位置与关节保留'}（可撤销 Ctrl+Z）`,
+          status: `已${opLbl}「${A.name} / ${aBody.name}」${opSym}「${B.name} / ${bBody.name}」→ 体积 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}${toolNote}${keepTool ? '（工具 Body 保留）' : '（只消耗工具 Body）'}${removedJointCount ? `；工具件移除，连带移除 ${removedJointCount} 个关节` : '；来源位置与关节保留'}${removedMateCount ? `、${removedMateCount} 个配合` : ''}（可撤销 Ctrl+Z）`,
         }
       })
       // v1.24/v1.25: mesh boolean ≠ part solid — ALWAYS show primary bake statusAction after success.
+      // v1.39: clarify 组件布尔(网格) vs 实体布尔(零件 B-rep); rebuild mates that still touch A.
       set({
         compBoolPending: null,
-        status: `${get().status} · 组件布尔结果是网格件，圆角/抽壳需要零件时间轴实体 — 点右侧按钮烘焙入零件后即可圆角/抽壳（或 MeshFit/转 B-rep；零件内多体用「实体布尔」）`,
+        status: `${get().status} · 组件布尔＝网格结果（非零件时间轴）— 点右侧按钮烘焙入零件后即可圆角/抽壳；零件内多体用「实体布尔」（B-rep），勿与组件布尔（网格）混淆`,
         statusAction: { id: 'bakeMeshToPart', label: '烘焙为零件实体', componentId: aId },
         selectedComponent: aId,
       })
+      const matesA = get().mates.filter((m) => m.aComp === aId || m.bComp === aId)
+      if (matesA.length) {
+        const prevStatus = get().status
+        if (get().grounded) get().solveMates()
+        else get().resolveMates()
+        // Preserve bake guidance + statusAction (resolveMates only overwrites status string).
+        set({ status: `${prevStatus} · 已重算 ${matesA.length} 个涉及来源件的配合` })
+      }
     } catch (e) { set({ status: `组件布尔失败：${(e as Error)?.message || e}` }) }
   },
   // T766（S44）：网格组件平面切割（Fusion Mesh > Plane Cut 带填充）— manifold 布尔减半空间巨盒，
@@ -12107,14 +12132,18 @@ export const useApp = create<AppState>((rawSet, get) => {
   deleteComponent: (id) => set((s) => {
     const c = s.components.find((x) => x.id === id)
     const removedJoints = new Set(s.joints.filter((j) => j.parent === id || j.child === id).map((j) => j.id))
+    // v1.39: drop dangling face-mates that referenced the deleted occurrence (same orphan debt as joints).
+    const mates = s.mates.filter((m) => m.aComp !== id && m.bComp !== id)
+    const removedMateCount = s.mates.length - mates.length
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], // make delete undoable (no data loss)
       components: s.components.filter((x) => x.id !== id),
       joints: s.joints.filter((j) => j.parent !== id && j.child !== id),
       motionLinks: s.motionLinks.filter((l) => !removedJoints.has(l.driver) && !removedJoints.has(l.driven)), // drop links to removed joints (no orphans)
+      mates,
       grounded: s.grounded === id ? null : s.grounded,
       selectedComponent: s.selectedComponent === id ? null : s.selectedComponent,
-      status: c ? `已删除组件「${c.name}」（可撤销 Ctrl+Z）` : s.status,
+      status: c ? `已删除组件「${c.name}」${removedMateCount ? `（连带清除 ${removedMateCount} 个配合）` : ''}（可撤销 Ctrl+Z）` : s.status,
     }
   }),
   joints: [],

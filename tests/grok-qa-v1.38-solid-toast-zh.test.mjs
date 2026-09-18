@@ -52,9 +52,9 @@ test('store uses solid success builders', () => {
 
 test('i18n v1.38 guards present (identity Chinese)', () => {
   assert.match(i18nSrc, /v1\.38/)
-  assert.match(i18nSrc, /'已切割（布尔减）— 真实 OCCT B-rep': '已切割（布尔减）— 真实 OCCT B-rep'/)
+  assert.match(i18nSrc, /['\"]已切割（布尔减）— 真实 OCCT B-rep['\"]: ['\"]已切割（布尔减）— 真实 OCCT B-rep['\"]/)
   assert.match(i18nSrc, /'已拉伸出实体 — 真实 OCCT B-rep': '已拉伸出实体 — 真实 OCCT B-rep'/)
-  assert.match(i18nSrc, /'已在顶面叠加拉伸特征': '已在顶面叠加拉伸特征'/)
+  assert.match(i18nSrc, /['\"]已在顶面叠加拉伸特征['\"]: ['\"]已在顶面叠加拉伸特征['\"]/)
   assert.match(i18nSrc, /'已实体布尔：活动实体': '已实体布尔：活动实体'/)
   assert.match(i18nSrc, /'已合并：活动实体': '已合并：活动实体'/)
   assert.match(i18nSrc, /'已对所有棱倒圆角': '已对所有棱倒圆角'/)

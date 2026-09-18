@@ -14323,7 +14323,6 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // 实体布尔：活动实体 ⊗ 泊车实体（真 B-rep — 结果仲可以继续圆角/抽壳/导 STEP；对比组件布尔嘅网格级）
   commitBodyBoolean: async (bop, target) => {
-    const lbl = bop === 'cut' ? '切除' : bop === 'common' ? '相交' : '合并'
     await get().applyFeatures([...get().features, { id: fid(), type: 'bodyboolean', bop, target }],
       booleanSuccessStatus({ kind: 'body', op: bop === 'cut' ? 'cut' : bop === 'common' ? 'common' : 'join' }))
   },
@@ -16729,8 +16728,6 @@ export const useApp = create<AppState>((rawSet, get) => {
       // 收集勾选嘅工具索引；按【降序】排，咁 worker splice(target) 唔会令未处理嘅索引偏移。
       const tools = parked.map((_, i) => i).filter((i) => +(p['tool' + i] ?? 0) > 0).sort((a, b) => b - a)
       if (!tools.length) { set({ status: '合并：至少勾选一个工具体' }); return }
-      const lbl = bop === 'cut' ? '切除' : bop === 'common' ? '相交' : '合并'
-      const sym = bop === 'cut' ? '−' : bop === 'common' ? '∩' : '+'
       const keep = +(p.keepTools ?? 0) > 0   // S185 Keep Tools：保留工具体（可复用 / 留独立体）
       const feats: Feature[] = tools.map((t) => ({ id: fid(), type: 'bodyboolean', bop, target: t, keep: keep || undefined }))
       set({ featDlg: null })

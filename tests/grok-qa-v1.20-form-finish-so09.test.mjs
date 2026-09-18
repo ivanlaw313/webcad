@@ -14,7 +14,7 @@ const ribbonTs = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.2x', () => {
-  assert.match(version, /APP_VERSION = '1\.2\d'/)
+  assert.match(version, /APP_VERSION = '1\.(2\d|[3-9]\d)'/)
 })
 
 test('BUG-BD-1901: FormPalette footer stays pinned outside scroll body', () => {

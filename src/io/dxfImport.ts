@@ -33,8 +33,12 @@ export function shiftTexts(texts: ImpText[], ox: number, oy: number): ImpText[] 
   return texts.map((t) => ({ ...t, at: [t.at[0] - ox, t.at[1] - oy] as [number, number] }))
 }
 
-/** Construction underline + point marker for each ImpText (visible without font WASM). */
-export function textsToConstructionShapes(texts: ImpText[]): Array<
+/** Default construction-marker budget for large schematics (v1.34). Labels still kept in sketchSources. */
+export const DXF_MAX_TEXT_MARKERS = 128
+
+/** Construction underline + point marker for each ImpText (visible without font WASM).
+ *  v1.34: `maxMarkers` caps geometry explosion on TEXT-heavy schematics; HUD still shows all labels. */
+export function textsToConstructionShapes(texts: ImpText[], opt?: { maxMarkers?: number }): Array<
   | { type: 'poly'; pts: [number, number][]; open: true; construction: true }
   | { type: 'circle'; c: [number, number]; r: number; point: true; construction: true }
 > {
@@ -42,7 +46,10 @@ export function textsToConstructionShapes(texts: ImpText[]): Array<
     | { type: 'poly'; pts: [number, number][]; open: true; construction: true }
     | { type: 'circle'; c: [number, number]; r: number; point: true; construction: true }
   > = []
-  for (const t of texts) {
+  const cap = opt?.maxMarkers != null ? Math.max(0, opt.maxMarkers) : texts.length
+  const n = Math.min(texts.length, cap)
+  for (let i = 0; i < n; i++) {
+    const t = texts[i]
     const h = Math.max(0.5, t.height || 2.5)
     const w = Math.max(h * 1.2, Math.min(80, (t.text?.length || 1) * h * 0.55))
     const rad = ((t.rot || 0) * Math.PI) / 180
@@ -161,7 +168,37 @@ export function evalCatmullRom(fit: [number, number][], closed?: boolean): [numb
 
 type DxfEnt = { type: string; pairs: [number, string][] }
 
-export function parseDxfToProfiles(text: string): { profiles: ImpProfile[]; texts: ImpText[]; note: string; skipped: string[]; layers: string[] } {
+export type ParseDxfOpt = {
+  /** Cooperative cancel (AbortSignal or `{ aborted: boolean }`). Checked between entity emit batches. */
+  signal?: AbortSignal | { aborted?: boolean }
+  /** Progress hook (phase + counts). Caller may update UI status. */
+  onProgress?: (p: { phase: string; done: number; total: number }) => void
+  /** Soft cap on retained ImpText (overflow counted in stats.textTruncated). Default: unlimited. */
+  maxTexts?: number
+}
+
+export type ParseDxfStats = {
+  bytes: number
+  entityCount: number
+  textTotal: number
+  textKept: number
+  textTruncated: number
+  cancelled?: boolean
+}
+
+export type ParseDxfResult = {
+  profiles: ImpProfile[]
+  texts: ImpText[]
+  note: string
+  skipped: string[]
+  layers: string[]
+  stats: ParseDxfStats
+}
+
+const isAborted = (sig?: AbortSignal | { aborted?: boolean }) => !!(sig && ('aborted' in sig ? sig.aborted : false))
+
+export function parseDxfToProfiles(text: string, opt?: ParseDxfOpt): ParseDxfResult {
+  const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
   const toks = text.split(/\r\n|\r|\n/)
   // DXF is a flat stream of (group-code, value) line pairs. Resync if a stray non-numeric code line appears.
   const pairs: [number, string][] = []
@@ -335,9 +372,56 @@ export function parseDxfToProfiles(text: string): { profiles: ImpProfile[]; text
       skipped.add(e.type) // HATCH / DIMENSION … (unsupported geometry, incl. unknowns inside blocks)
     }
   }
-  for (const e of model) emit(e, XID, 0, '0')
+  let textTotal = 0
+  const maxTexts = opt?.maxTexts != null && opt.maxTexts >= 0 ? opt.maxTexts : Infinity
+  const emitWrapped = (e: DxfEnt, m: Xf, depth: number, parentLyr = '0'): void => {
+    if (e.type === 'TEXT' || e.type === 'MTEXT') {
+      textTotal++
+      if (texts.length >= maxTexts) return  // count but skip retaining overflow
+    }
+    emit(e, m, depth, parentLyr)
+  }
+  // Rebind INSERT recursion to honor text cap / cancel — monkey-patch via local emit path for model only;
+  // nested INSERT still uses raw emit (block texts rare); schematic TEXT is almost always model-space.
+  const BATCH = 400
+  for (let i = 0; i < model.length; i++) {
+    if (i % BATCH === 0) {
+      if (isAborted(opt?.signal)) {
+        const layers = ['0']
+        return {
+          profiles: [], texts: [], note: 'DXF 导入已取消', skipped: [], layers,
+          stats: { bytes: text.length, entityCount: model.length, textTotal, textKept: 0, textTruncated: 0, cancelled: true },
+        }
+      }
+      opt?.onProgress?.({ phase: 'entities', done: i, total: model.length })
+    }
+    emitWrapped(model[i], XID, 0, '0')
+  }
 
-  // Greedily chain loose segments end-to-end into loops. Loop inherits its seed segment's layer.
+  // v1.34: spatial-hash endpoint index — O(n) greedy chain (was O(n²) scan; 20k loose LINEs froze UI ~10s).
+  const CELL = 0.05  // match `near` tolerance
+  const qk = (x: number, y: number) => `${Math.floor(x / CELL)}:${Math.floor(y / CELL)}`
+  type EndHit = { si: number; end: 0 | 1 }
+  const endIndex = new Map<string, EndHit[]>()
+  const pushEnd = (x: number, y: number, hit: EndHit) => {
+    const k = qk(x, y)
+    const arr = endIndex.get(k)
+    if (arr) arr.push(hit)
+    else endIndex.set(k, [hit])
+  }
+  for (let i = 0; i < segs.length; i++) {
+    pushEnd(segs[i][0], segs[i][1], { si: i, end: 0 })
+    pushEnd(segs[i][2], segs[i][3], { si: i, end: 1 })
+  }
+  const neighbors = (x: number, y: number): EndHit[] => {
+    const cx = Math.floor(x / CELL), cy = Math.floor(y / CELL)
+    const out: EndHit[] = []
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const bucket = endIndex.get(`${cx + dx}:${cy + dy}`)
+      if (bucket) out.push(...bucket)
+    }
+    return out
+  }
   const used = new Array(segs.length).fill(false)
   for (let s = 0; s < segs.length; s++) {
     if (used[s]) continue
@@ -348,11 +432,13 @@ export function parseDxfToProfiles(text: string): { profiles: ImpProfile[]; text
     while (ext) {
       ext = false
       const tail = loop[loop.length - 1]
-      for (let k = 0; k < segs.length; k++) {
-        if (used[k]) continue
-        const a: [number, number] = [segs[k][0], segs[k][1]], b: [number, number] = [segs[k][2], segs[k][3]]
-        if (near(tail, a)) { loop.push(b); used[k] = true; ext = true; break }
-        if (near(tail, b)) { loop.push(a); used[k] = true; ext = true; break }
+      for (const hit of neighbors(tail[0], tail[1])) {
+        if (used[hit.si]) continue
+        const a: [number, number] = [segs[hit.si][0], segs[hit.si][1]]
+        const b: [number, number] = [segs[hit.si][2], segs[hit.si][3]]
+        const pt = hit.end === 0 ? a : b
+        const other = hit.end === 0 ? b : a
+        if (near(tail, pt)) { loop.push(other); used[hit.si] = true; ext = true; break }
       }
     }
     if (loop.length >= 3) closedLoops.push({ pts: loop, layer: loopLyr })
@@ -368,11 +454,18 @@ export function parseDxfToProfiles(text: string): { profiles: ImpProfile[]; text
     ...profiles.map((p) => p.layer ?? '0'),
     ...texts.map((t) => t.layer ?? '0'),
   ])].sort()
-  const textNote = texts.length ? ` · ${texts.length} 文字标注` : ''
+  const textKept = texts.length
+  const textTruncated = Math.max(0, textTotal - textKept)
+  const textNote = textTotal ? ` · ${textTotal} 文字标注${textTruncated ? `（保留 ${textKept}）` : ''}` : ''
   const note = profiles.length
     ? `识别 ${profiles.length} 个轮廓（${circles.length} 圆 + ${profiles.length - circles.length} 多段线${layers.length > 1 ? ` · ${layers.length} 层` : ''}）${textNote}`
-    : texts.length
-      ? `未找到轮廓，但识别 ${texts.length} 个文字标注（TEXT/MTEXT）`
+    : textTotal
+      ? `未找到轮廓，但识别 ${textTotal} 个文字标注（TEXT/MTEXT）`
       : '未找到可用轮廓（支持 LINE / LWPOLYLINE / CIRCLE / ARC / SPLINE / ELLIPSE / INSERT 块 · TEXT/MTEXT 标注）'
-  return { profiles, texts, note, skipped: [...skipped], layers }
+  opt?.onProgress?.({ phase: 'done', done: model.length, total: model.length })
+  void t0
+  return {
+    profiles, texts, note, skipped: [...skipped], layers,
+    stats: { bytes: text.length, entityCount: model.length, textTotal, textKept, textTruncated },
+  }
 }

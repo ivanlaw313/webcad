@@ -118,7 +118,7 @@ import { upsertAnalysis, toggleAnalysisVisible, removeAnalysis, type AnalysisNod
 // GM-X2（视图显示设定/VIEW 波次）：6 视觉样式枚举 / 相机三态 / 网格配置 / 图形预设 / 应用偏好 / 单位配对预设。
 import { visualStyleToRender, renderToVisualStyle, edgeStateToMode, edgeModeToState, graphicsPresetEffects, mergePrefs, DEFAULT_PREFS, PREFS_KEY, cameraProjToOrtho, type VisualStyle, type GraphicsPreset, type Prefs, type CameraProj } from './cad/viewModel'
 import { detectPreset, presetById, fmtLenU, fmtMassU, areaVolBaseUnit, type LenU, type MassU, type UnitPreset } from './cad/unitPresets'
-import { makeCanvas, patchCanvas, sanitizeCanvases, archivedCanvases, canvasToLegacyImg, nextCanvasId, decalExtras, patchDecalFields, buildImportSketchSource, preferDxfSketchOnly, filterByLayers, transformMesh, meshUnitScaleMm, meshInsertPosition, type CanvasItem, type ImpItem, type MeshUnit } from './cad/insertModel'   // GM-X3 插入：多张 Canvas / 逐张字段 / Decal 字段 / SVG·DXF→草图源 / Mesh 单位·flip·摆位（纯逻辑，Node 測過）
+import { makeCanvas, patchCanvas, sanitizeCanvases, archivedCanvases, canvasToLegacyImg, nextCanvasId, decalExtras, patchDecalFields, buildImportSketchSource, preferDxfSketchOnly, forceDxfSketchOnly, rejectDxfImport, DXF_MAX_TEXT_MARKERS, filterByLayers, transformMesh, meshUnitScaleMm, meshInsertPosition, type CanvasItem, type ImpItem, type MeshUnit } from './cad/insertModel'   // GM-X3 插入：多张 Canvas / 逐张字段 / Decal 字段 / SVG·DXF→草图源 / Mesh 单位·flip·摆位（纯逻辑，Node 測過）
 import { DEFAULT_SEL_FILTER, migrateSelFilter, withSelType, withAllTypes, withNoTypes, withPriority, withSelThrough, matchByName, matchBySize, invertSet, SEL_TYPES, type SelFilter, type SelType, type SelPriority, type SizeOp } from './cad/selectionModel'   // GM-X4 选择：selFilter 逐类型过滤 + 优先级 + 穿透 + By-Name/Size + Invert（纯逻辑，Node 测过）
 
 export type Pt = [number, number] // three.js ground coords [x, z]
@@ -1765,15 +1765,17 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   openStepComponentDialog: () => void // Fusion Insert Component：STEP/STP → independent assembly occurrence(s), never a fake cloud link
   openStepBrepDialog: (asDerived?: boolean) => void  // STEP → B-rep stepbody 特征（入时间轴，可继续切/圆角/导出；asDerived=Fusion Derive 的非关联快照）
   importStep: (buf: ArrayBuffer, name: string) => Promise<void>
-  importDxf: (text: string, height?: number, opt?: ImportVecOpt) => Promise<void>
+  importDxf: (text: string, height?: number, opt?: ImportVecOpt, parseCache?: { profiles: unknown[]; texts: unknown[]; note: string; skipped: string[]; layers: string[]; stats?: unknown }) => Promise<void>
   openDxfDialog: () => void
   // GM-X3 #6/#7/#8：opt 可选「入草图源」+ 平面/Z角/缩放/逐层。asSketch=true（默认）→ 生成带 sketchId 的 extrude，可双击时间轴重开改曲线。
   importProfiles2D: (items: { profile: { kind: 'circle'; c: [number, number]; r: number } | { kind: 'poly'; pts: [number, number][] }; operation: 'new' | 'cut'; layer?: string }[], label: string, skipped?: string[], height?: number, opt?: ImportVecOpt) => Promise<void>
   importSvg: (text: string, height?: number, opt?: ImportVecOpt) => Promise<void>
   openSvgDialog: () => void
   // GM-X3 #7/#8：矢量导入对话框（SVG/DXF）—— 平面 / Z角 / 缩放 / (DXF)单位 / 逐层包含 / 入草图源。
-  insertVec: null | { kind: 'svg' | 'dxf'; text: string; layers: string[]; include: string[]; plane: Plane; baseZ: number; zAngle: number; scale: number; unit: MeshUnit; height: number; asSketch: boolean; sketchOnly: boolean; profileCount?: number; textCount?: number }
-  openInsertVec: (kind: 'svg' | 'dxf', text: string, layers: string[], hint?: { profileCount?: number; textCount?: number; sketchOnly?: boolean }) => void
+  insertVec: null | { kind: 'svg' | 'dxf'; text: string; layers: string[]; include: string[]; plane: Plane; baseZ: number; zAngle: number; scale: number; unit: MeshUnit; height: number; asSketch: boolean; sketchOnly: boolean; forceSketchOnly?: boolean; profileCount?: number; textCount?: number; bytes?: number; parseCache?: { profiles: unknown[]; texts: unknown[]; note: string; skipped: string[]; layers: string[]; stats?: unknown }; importEpoch?: number }
+  openInsertVec: (kind: 'svg' | 'dxf', text: string, layers: string[], hint?: { profileCount?: number; textCount?: number; sketchOnly?: boolean; forceSketchOnly?: boolean; bytes?: number; parseCache?: { profiles: unknown[]; texts: unknown[]; note: string; skipped: string[]; layers: string[]; stats?: unknown } }) => void
+  /** v1.34: bump to cancel in-flight DXF parse/import */
+  dxfImportEpoch: number
   setInsertVec: (p: Partial<NonNullable<AppState['insertVec']>>) => void
   toggleInsertVecLayer: (layer: string) => void
   confirmInsertVec: () => Promise<void>
@@ -17715,12 +17717,41 @@ export const useApp = create<AppState>((rawSet, get) => {
     inp.type = 'file'; inp.accept = '.dxf'
     inp.onchange = async () => {
       const f = inp.files?.[0]; if (!f) return
-      const text = await f.text()
-      // GM-X3 #8：先解析取层，弹对话框（平面/单位/Z角/缩放/逐层/入草图源）
-      const { parseDxfToProfiles } = await import('./io/dxfImport')
-      const { profiles, texts, layers, note } = parseDxfToProfiles(text)
-      if (!profiles.length && !(texts && texts.length)) { set({ status: 'DXF 导入失败：' + note }); return }
-      get().openInsertVec('dxf', text, layers.length ? layers : ['0'], { profileCount: profiles.length, textCount: (texts && texts.length) || 0 })
+      const bytes = f.size || 0
+      const reject = rejectDxfImport(bytes)
+      if (reject) { set({ status: reject }); return }
+      const epoch = (get().dxfImportEpoch || 0) + 1
+      set({ busy: true, dxfImportEpoch: epoch, status: `DXF 解析中…（${(bytes / 1024).toFixed(0)} KB）` })
+      try {
+        const text = await f.text()
+        if (get().dxfImportEpoch !== epoch) { set({ busy: false, status: 'DXF 导入已取消' }); return }
+        // GM-X3 #8 + v1.34：解析一次并缓存，确认插入不再二次 parse（避双倍主线程卡顿）
+        const { parseDxfToProfiles } = await import('./io/dxfImport')
+        const parsed = parseDxfToProfiles(text, {
+          signal: { get aborted() { return get().dxfImportEpoch !== epoch } },
+          onProgress: (p) => {
+            if (get().dxfImportEpoch !== epoch) return
+            if (p.phase === 'entities' && p.total > 0 && p.done % 2000 < 400) {
+              set({ status: `DXF 解析中… ${Math.min(99, Math.round((100 * p.done) / p.total))}%` })
+            }
+          },
+        })
+        if (get().dxfImportEpoch !== epoch || parsed.stats?.cancelled) { set({ busy: false, status: 'DXF 导入已取消' }); return }
+        const entReject = rejectDxfImport(bytes, parsed.stats?.entityCount || 0)
+        if (entReject) { set({ busy: false, status: entReject }); return }
+        const { profiles, texts, layers, note, skipped, stats } = parsed
+        if (!profiles.length && !(texts && texts.length)) { set({ busy: false, status: 'DXF 导入失败：' + note }); return }
+        set({ busy: false })
+        get().openInsertVec('dxf', text, layers.length ? layers : ['0'], {
+          profileCount: profiles.length,
+          textCount: (texts && texts.length) || 0,
+          bytes,
+          forceSketchOnly: forceDxfSketchOnly(profiles.length, (texts && texts.length) || 0, bytes),
+          parseCache: { profiles, texts, note, skipped, layers, stats },
+        })
+      } catch (e) {
+        set({ busy: false, status: 'DXF 解析失败：' + ((e as Error)?.message || e) })
+      }
     }
     inp.click()
   },
@@ -20304,9 +20335,13 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // Import a 2D DXF profile and extrude it to a solid (laser-cut / online profiles → 3D printable part).
   // Non-destructive: any existing body is first frozen into a component, then the DXF part becomes the active body.
-  importDxf: async (text, height, opt) => {
+  importDxf: async (text, height, opt, parseCache) => {
     const { parseDxfToProfiles, classifyProfiles, profilesRecenterOffset, shiftTexts } = await import('./io/dxfImport')
-    const { profiles, texts, note, skipped } = parseDxfToProfiles(text)
+    // v1.34: reuse dialog parse cache when present (avoid second full main-thread parse).
+    const parsed = parseCache && Array.isArray(parseCache.profiles)
+      ? parseCache as { profiles: import('./io/dxfImport').ImpProfile[]; texts: import('./io/dxfImport').ImpText[]; note: string; skipped: string[]; layers: string[] }
+      : parseDxfToProfiles(text)
+    const { profiles, texts, note, skipped } = parsed
     if (!profiles.length && !(texts && texts.length)) { set({ status: 'DXF 导入失败：' + note }); return }
     const [ox, oy] = profiles.length ? profilesRecenterOffset(profiles) : (() => {
       if (!texts.length) return [0, 0] as [number, number]
@@ -20316,7 +20351,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     })()
     const shiftedTexts = shiftTexts(texts || [], ox, oy)
     const items = profiles.length ? classifyProfiles(profiles) : []
-    await get().importProfiles2D(items, `已导入 DXF：${note}`, skipped, height, { ...opt, labels: shiftedTexts })
+    // Force sketchOnly for huge schematic even if caller forgot (belt+suspenders).
+    const forced = forceDxfSketchOnly(profiles.length, (texts && texts.length) || 0, text.length)
+    const nextOpt = { ...opt, sketchOnly: !!(opt?.sketchOnly || forced), labels: shiftedTexts }
+    await get().importProfiles2D(items, `已导入 DXF：${note}`, skipped, height, nextOpt)
   },
   // Build a recentred, outer/hole-classified set of 2D profiles into a body. Shared by DXF + SVG import.
   // GM-X3 #6/#8：opt.asSketch（默认 true）→ 走【草图源管线】：生成带 sketchId 的 extrude 组 + 归档 sketchSources[skId]，
@@ -20331,9 +20369,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       const { xform2D } = await import('./cad/insertModel')
       labels = labels.map((t) => ({ ...t, at: xform2D(t.at, scale, zAngle), height: Math.max(0.1, t.height * scale), rot: (t.rot || 0) + (zAngle * 180 / Math.PI) }))
     }
-    const { textsToConstructionShapes } = await import('./io/dxfImport')
-    const labelShapes = (labels.length ? textsToConstructionShapes(labels) : (opt?.labelShapes || []).slice()) as SketchShape[]
-    const labelNote = labels.length ? `；保留 ${labels.length} 个文字标注（重开草图可见）` : ''
+    const { textsToConstructionShapes, DXF_MAX_TEXT_MARKERS: MARK_CAP } = await import('./io/dxfImport')
+    const markerCap = MARK_CAP ?? DXF_MAX_TEXT_MARKERS
+    const labelShapes = (labels.length ? textsToConstructionShapes(labels, { maxMarkers: markerCap }) : (opt?.labelShapes || []).slice()) as SketchShape[]
+    const markerNote = labels.length > markerCap ? `；构造标记 ${markerCap}/${labels.length}（标注全保留，防几何爆炸）` : ''
+    const labelNote = labels.length ? `；保留 ${labels.length} 个文字标注（重开草图可见）${markerNote}` : ''
     if (!use.length && !labels.length) { set({ status: label + '：无可用轮廓' + (opt?.include?.length ? '（所选层为空）' : '') }); return }
     const h = Number.isFinite(height) && height > 0 ? (height as number) : 5
     const plane = (opt?.plane ?? 'XY') as Plane
@@ -20416,24 +20456,41 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // GM-X3 #7/#8：矢量导入对话框 —— 平面 / Z角 / 缩放 / (DXF)单位 / 逐层包含 / 入草图源。
   insertVec: null,
+  dxfImportEpoch: 0,
   openInsertVec: (kind, text, layers, hint) => {
-    const pc = hint?.profileCount ?? 0, tc = hint?.textCount ?? 0
-    // v1.22: large schematic heuristic — many profiles or labels → default sketch-only (no mass extrude / OOM).
-    const autoSketchOnly = hint?.sketchOnly === true || preferDxfSketchOnly(pc, tc)
+    const pc = hint?.profileCount ?? 0, tc = hint?.textCount ?? 0, bytes = hint?.bytes ?? (typeof text === 'string' ? text.length : 0)
+    // v1.22/v1.34: large schematic heuristic — many profiles/labels/bytes → default sketch-only (no mass extrude / OOM).
+    const forced = hint?.forceSketchOnly === true || (kind === 'dxf' && forceDxfSketchOnly(pc, tc, bytes))
+    const autoSketchOnly = forced || hint?.sketchOnly === true || (kind === 'dxf' && preferDxfSketchOnly(pc, tc, bytes))
     set({
-      insertVec: { kind, text, layers, include: layers.slice(), plane: 'XY', baseZ: 0, zAngle: 0, scale: 1, unit: 'mm', height: 5, asSketch: true, sketchOnly: autoSketchOnly, profileCount: pc || undefined, textCount: tc || undefined },
+      insertVec: {
+        kind, text, layers, include: layers.slice(), plane: 'XY', baseZ: 0, zAngle: 0, scale: 1, unit: 'mm', height: 5,
+        asSketch: true, sketchOnly: autoSketchOnly, forceSketchOnly: forced || undefined,
+        profileCount: pc || undefined, textCount: tc || undefined, bytes: bytes || undefined,
+        parseCache: hint?.parseCache,
+      },
       status: kind === 'dxf'
-        ? (autoSketchOnly ? `DXF 导入：检测到 ${pc || '?'} 轮廓 / ${tc || 0} 文字 — 默认仅草图（不拉伸，防内存溢出）` : 'DXF 导入：选平面/单位/层，可入可编辑草图曲线；大图请勾「仅导入为草图」')
+        ? (forced
+          ? `DXF 导入：${pc || '?'} 轮廓 / ${tc || 0} 文字 — 已强制仅草图（防内存溢出，不可取消勾选）`
+          : autoSketchOnly
+            ? `DXF 导入：检测到 ${pc || '?'} 轮廓 / ${tc || 0} 文字 — 默认仅草图（不拉伸，防内存溢出）`
+            : 'DXF 导入：选平面/单位/层，可入可编辑草图曲线；大图请勾「仅导入为草图」')
         : 'SVG 导入：选平面/缩放，可入可编辑草图曲线',
     })
   },
-  setInsertVec: (p) => set((s) => (s.insertVec ? { insertVec: { ...s.insertVec, ...p } } : {})),
+  setInsertVec: (p) => set((s) => {
+    if (!s.insertVec) return {}
+    const next = { ...s.insertVec, ...p }
+    // v1.34: forceSketchOnly locks the checkbox ON
+    if (s.insertVec.forceSketchOnly) { next.sketchOnly = true; next.asSketch = true }
+    return { insertVec: next }
+  }),
   toggleInsertVecLayer: (layer) => set((s) => {
     if (!s.insertVec) return {}
     const inc = s.insertVec.include.includes(layer) ? s.insertVec.include.filter((l) => l !== layer) : [...s.insertVec.include, layer]
     return { insertVec: { ...s.insertVec, include: inc } }
   }),
-  cancelInsertVec: () => set({ insertVec: null, status: '已取消矢量导入' }),
+  cancelInsertVec: () => set((s) => ({ insertVec: null, dxfImportEpoch: (s.dxfImportEpoch || 0) + 1, busy: false, status: '已取消矢量导入' })),
   confirmInsertVec: async () => {
     const v = get().insertVec
     if (!v) return
@@ -20442,12 +20499,18 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ insertVec: null, status: (v.kind === 'dxf' ? 'DXF' : 'SVG') + ' 导入：未勾选任何图层 → 已取消（勾选需要的层；全选=全部导入）' })
       return
     }
-    set({ insertVec: null })
-    // 单位（DXF）：把长度按单位缩放到 mm（叠加用户 scale）。SVG 无单位 → 恒 mm。
-    const unitScale = v.kind === 'dxf' ? meshUnitScaleMm(v.unit) : 1
-    const opt: ImportVecOpt = { asSketch: v.asSketch, sketchOnly: !!v.sketchOnly, plane: v.plane, baseZ: v.baseZ, zAngle: v.zAngle, scale: (v.scale || 1) * unitScale, include: v.include.length && v.include.length < v.layers.length ? v.include : null }
-    if (v.kind === 'dxf') await get().importDxf(v.text, v.height, opt)
-    else await get().importSvg(v.text, v.height, opt)
+    const cache = v.parseCache
+    const sketchOnly = !!(v.forceSketchOnly || v.sketchOnly)
+    set({ insertVec: null, busy: true, status: sketchOnly ? 'DXF 导入：写入草图…' : 'DXF/SVG 导入中…' })
+    try {
+      // 单位（DXF）：把长度按单位缩放到 mm（叠加用户 scale）。SVG 无单位 → 恒 mm。
+      const unitScale = v.kind === 'dxf' ? meshUnitScaleMm(v.unit) : 1
+      const opt: ImportVecOpt = { asSketch: v.asSketch, sketchOnly, plane: v.plane, baseZ: v.baseZ, zAngle: v.zAngle, scale: (v.scale || 1) * unitScale, include: v.include.length && v.include.length < v.layers.length ? v.include : null }
+      if (v.kind === 'dxf') await get().importDxf(v.text, v.height, opt, cache || undefined)
+      else await get().importSvg(v.text, v.height, opt)
+    } finally {
+      set({ busy: false })
+    }
   },
 
   openCSketch: () => set({ csketchOpen: true, status: '约束草图：画线/圆 → 加约束(平行/垂直/相等/重合)+尺寸 → 完全定义(黑色) → 完成轮廓拉伸。要精确参数化时用；想快速画用「创建草图」。' }),

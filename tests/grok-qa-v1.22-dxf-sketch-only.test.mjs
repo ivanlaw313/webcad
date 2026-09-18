@@ -19,7 +19,10 @@ test('preferDxfSketchOnly heuristic', () => {
   assert.equal(preferDxfSketchOnly(10, 5), false)
   assert.equal(preferDxfSketchOnly(49, 0), true)
   assert.equal(preferDxfSketchOnly(10, 17), true)
-  assert.equal(preferDxfSketchOnly(48, 16), false)
+  // v1.34 tightened soft thresholds (32/12); 48/16 now prefers sketchOnly
+  assert.equal(preferDxfSketchOnly(48, 16), true)
+  assert.equal(preferDxfSketchOnly(32, 12), false)
+  assert.equal(preferDxfSketchOnly(33, 0), true)
 })
 
 function manyProfilesDxf(nProfiles = 60, nTexts = 20) {

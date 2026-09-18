@@ -13,7 +13,7 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.2x', () => {
-  assert.match(version, /APP_VERSION = '1\.2\d'/)
+  assert.match(version, /APP_VERSION = '1\.(2\d|[3-9]\d)'/)
 })
 
 test('P1 fix wired: heal precision + ShapeFix_Solid + planar seed + 2e-2 tol', () => {

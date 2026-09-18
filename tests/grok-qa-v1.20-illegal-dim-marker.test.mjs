@@ -12,8 +12,8 @@ const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8
 const dimInput = readFileSync(new URL('../src/sketch/dimensionEditInput.ts', import.meta.url), 'utf8')
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.2x', () => {
-  assert.match(version, /APP_VERSION = '1\.2\d'/)
+test('APP_VERSION is 1.2x+ (superseded by later ship)', () => {
+  assert.match(version, /APP_VERSION = '1\.(2\d|[3-9]\d)'/)
 })
 
 test('SketchLayer inputError uses illegalRejectStatus for ≤0 dims', () => {

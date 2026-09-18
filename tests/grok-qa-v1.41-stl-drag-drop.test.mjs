@@ -18,7 +18,7 @@ const i18nSrc = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const meshDropSrc = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.41+', () => {
-  assert.match(version, /APP_VERSION = '1\.41'|APP_VERSION = '1\.[5-9]\d'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '1\.(4[1-9]|[5-9]\d)'|APP_VERSION = '[2-9]\./)
 })
 
 test('meshDropKind filters .stl/.obj/.3mf only', () => {
@@ -49,17 +49,19 @@ test('firstMeshDropFile picks first mesh; isFilesDrag checks types', () => {
 
 test('App shell wires mesh drop → acceptMeshDropFile', () => {
   assert.match(app, /data-mesh-drop="app"/)
-  assert.match(app, /onDragOver/)
-  assert.match(app, /onDrop/)
-  assert.match(app, /firstMeshDropFile/)
-  assert.match(app, /isFilesDrag/)
+  // v1.42: capture-phase (React onDragOver/onDrop removed from app shell)
+  assert.match(app, /addEventListener\('dragover'|onDragOver/)
+  assert.match(app, /addEventListener\('drop'|onDrop/)
+  assert.match(app, /resolveMeshDropFile|firstMeshDropFile/)
+  assert.match(app, /shouldAllowMeshDragOver|isFilesDrag/)
   assert.match(app, /acceptMeshDropFile\(file\)/)
 })
 
 test('Viewport wires mesh drop → acceptMeshDropFile', () => {
   assert.match(viewport, /data-mesh-drop="viewport"/)
-  assert.match(viewport, /onDragOver/)
-  assert.match(viewport, /firstMeshDropFile/)
+  // v1.42: capture-phase listeners (React onDragOver removed from viewport host)
+  assert.match(viewport, /addEventListener\('dragover'|onDragOver/)
+  assert.match(viewport, /resolveMeshDropFile|firstMeshDropFile/)
   assert.match(viewport, /acceptMeshDropFile\(file\)/)
   assert.match(viewport, /from '\.\.\/io\/meshDrop'/)
 })

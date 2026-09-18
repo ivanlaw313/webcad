@@ -1,5 +1,5 @@
 import { protectEscape } from './cad/escapeKey'
-import { useEffect, lazy, Suspense, useState } from 'react'
+import { useEffect, lazy, Suspense, useState, useRef } from 'react'
 import Ribbon from './components/Ribbon'
 import BrowserTree from './components/BrowserTree'
 import Viewport from './components/Viewport'
@@ -29,7 +29,7 @@ import DebugHud from './components/DebugHud'
 import LoadingBar from './components/LoadingBar'   // 全局加载进度条（import/export/重建大档案时显示）
 import { ScrubNumberDrag } from './components/CommandDialog'   // 命令对话框数字栏左右拖改值（Fusion 式）
 import { useApp } from './store'
-import { firstMeshDropFile, isFilesDrag } from './io/meshDrop'
+import { resolveMeshDropFile, shouldAllowMeshDragOver } from './io/meshDrop'
 import { VISUAL_STYLE_KEYMAP } from './cad/viewModel'   // GM-X2 #1：Ctrl+4..9 视觉样式
 import { isUiTestIsolation } from './runtime/uiTestIsolation'
 import { useCSketch } from './sketch/csketch'
@@ -37,6 +37,33 @@ import './sketch/solver'
 
 export default function App() {
   const [startupReady, setStartupReady] = useState(false)
+  const appDropRef = useRef<HTMLDivElement>(null)
+
+  // v1.42: capture-phase so WebGL canvas / overlays cannot block OS file drop
+  useEffect(() => {
+    const el = appDropRef.current
+    if (!el) return
+    const onDragOver = (e: DragEvent) => {
+      if (!shouldAllowMeshDragOver(e.dataTransfer)) return
+      e.preventDefault()
+      try { if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy' } catch { /* ignore */ }
+    }
+    const onDrop = (e: DragEvent) => {
+      const file = resolveMeshDropFile(e.dataTransfer?.files)
+      if (!file) return
+      e.preventDefault()
+      e.stopPropagation()
+      void useApp.getState().acceptMeshDropFile(file)
+    }
+    el.addEventListener('dragenter', onDragOver, true)
+    el.addEventListener('dragover', onDragOver, true)
+    el.addEventListener('drop', onDrop, true)
+    return () => {
+      el.removeEventListener('dragenter', onDragOver, true)
+      el.removeEventListener('dragover', onDragOver, true)
+      el.removeEventListener('drop', onDrop, true)
+    }
+  }, [])
   const csketchOpen = useApp((s) => s.csketchOpen)
   const browserCollapsed = useApp((s) => s.browserCollapsed)
   const sliceOpen = useApp((s) => s.sliceOpen)
@@ -312,22 +339,11 @@ export default function App() {
 
   return (
     <div
+      ref={appDropRef}
       className="app"
       data-ui-test={isUiTestIsolation() ? 'true' : 'false'}
       data-mesh-drop="app"
-      onDragOver={(e) => {
-        // v1.41: allow OS file drop onto app shell (STL/OBJ/3MF filtered on drop)
-        if (!isFilesDrag(e.dataTransfer)) return
-        e.preventDefault()
-        e.dataTransfer.dropEffect = 'copy'
-      }}
-      onDrop={(e) => {
-        const file = firstMeshDropFile(e.dataTransfer?.files)
-        if (!file) return
-        e.preventDefault()
-        e.stopPropagation()
-        void useApp.getState().acceptMeshDropFile(file)
-      }}
+      data-mesh-drop-capture="1"
     >
       {!startupReady && <div className="startup-restore-gate" role="status" aria-live="polite">正在安全回復上次設計…</div>}
       <ErrorBoundary name="工具栏 Ribbon" compact><Ribbon /></ErrorBoundary>

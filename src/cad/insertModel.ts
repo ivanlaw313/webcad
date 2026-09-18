@@ -247,9 +247,30 @@ export function collectLayers(items: ImpItem[]): string[] {
   return [...s].sort()
 }
 // 构建【一张】草图源（多轮廓合并入同一 sketchId，重开时经 even-odd 嵌套重算孔）。
-/** v1.22: large DXF / schematic → default「仅导入为草图」to avoid mass-extrude OOM. */
-export function preferDxfSketchOnly(profileCount: number, textCount: number): boolean {
-  return (profileCount || 0) > 48 || (textCount || 0) > 16
+/** v1.22/v1.34: large DXF / schematic → default「仅导入为草图」to avoid mass-extrude OOM. */
+export const DXF_SOFT_PROFILE = 32          // was 48 (v1.22) — schematics trip earlier
+export const DXF_SOFT_TEXT = 12             // was 16
+export const DXF_SOFT_BYTES = 512 * 1024    // 0.5MB → soft prefer sketchOnly
+export const DXF_FORCE_PROFILE = 200        // checkbox locked ON
+export const DXF_FORCE_TEXT = 80
+export const DXF_FORCE_BYTES = 2 * 1024 * 1024
+export const DXF_REJECT_BYTES = 8 * 1024 * 1024
+export const DXF_REJECT_ENTITIES = 100_000
+export const DXF_MAX_TEXT_MARKERS = 128     // construction underline/point budget (labels kept)
+
+export function preferDxfSketchOnly(profileCount: number, textCount: number, bytes = 0): boolean {
+  return (profileCount || 0) > DXF_SOFT_PROFILE || (textCount || 0) > DXF_SOFT_TEXT || (bytes || 0) > DXF_SOFT_BYTES
+}
+
+/** Hard lock sketchOnly — unchecking would recreate AL1-class mass-extrude OOM. */
+export function forceDxfSketchOnly(profileCount: number, textCount: number, bytes = 0): boolean {
+  return (profileCount || 0) > DXF_FORCE_PROFILE || (textCount || 0) > DXF_FORCE_TEXT || (bytes || 0) > DXF_FORCE_BYTES
+}
+
+export function rejectDxfImport(bytes: number, entityCount = 0): string | null {
+  if ((bytes || 0) > DXF_REJECT_BYTES) return `DXF 过大（${(bytes / (1024 * 1024)).toFixed(1)} MB > 8 MB）— 请拆分图层或简化后导入`
+  if ((entityCount || 0) > DXF_REJECT_ENTITIES) return `DXF 实体过多（${entityCount} > ${DXF_REJECT_ENTITIES}）— 已拒绝以防内存溢出`
+  return null
 }
 
 export function buildImportSketchSource(items: ImpItem[], opt: { plane?: string; baseZ?: number; op?: string; height?: number; scale?: number; zAngle?: number }): { shapes: SketchShapeLike[]; cons: []; plane: string; baseZ: number; op: string; height: number } {

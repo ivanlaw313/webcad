@@ -2125,6 +2125,109 @@ function _shellAdjacentTorusRim(shape: any, seeds: number[]): number[] {
   } catch { return [] }
 }
 
+/**
+ * v1.31: fuse boss-top rim — TORUS extras plus a SHORT CYLINDER wall ring that shares
+ * edges with those TORUS faces (or seeds) and sits near the opening Z.
+ * Full-height hole CYLINDRE is excluded (Z-span / distance gates) so CX02 stays safe.
+ */
+function _shellAdjacentBossRim(shape: any, seeds: number[]): number[] {
+  try {
+    const faces = shape.faces as any[]
+    const torus = _shellAdjacentTorusRim(shape, seeds)
+    const seedSet = new Set(seeds)
+    const rimSet = new Set<number>([...seeds, ...torus])
+    const rimEdges = new Set<string>()
+    for (const si of rimSet) {
+      for (const e of (faces[si]?.edges ?? [])) {
+        const k = _shellEdgeKey(e)
+        if (k) rimEdges.add(k)
+      }
+    }
+    let zOpen = 0
+    try {
+      if (seeds.length && faces[seeds[0]]?.geomType === 'PLANE') zOpen = faces[seeds[0]].center.z
+      else zOpen = faces[seeds[0]]?.center?.z ?? 0
+    } catch { zOpen = 0 }
+    const extra = [...torus]
+    const have = new Set(extra)
+    for (let i = 0; i < faces.length; i++) {
+      if (seedSet.has(i) || have.has(i)) continue
+      let gt = ''
+      try { gt = String(faces[i].geomType || '').toUpperCase() } catch { continue }
+      if (!(gt.includes('CYL'))) continue
+      // Short rim band only — reject tall hole/boss barrels (CX02 / wrong hollow).
+      let zSpan = 0, zC = 0
+      try {
+        const bb = faces[i].boundingBox?.bounds
+        if (bb) zSpan = Math.abs(bb[1][2] - bb[0][2])
+        zC = faces[i].center.z
+      } catch { continue }
+      if (zSpan > 4.5) continue
+      if (Math.abs(zC - zOpen) > 3.5) continue
+      let share = false
+      for (const e of (faces[i]?.edges ?? [])) {
+        const k = _shellEdgeKey(e)
+        if (k && rimEdges.has(k)) { share = true; break }
+      }
+      if (share) { extra.push(i); have.add(i) }
+    }
+    return extra
+  } catch { return [] }
+}
+
+/** v1.31: stronger sew+heal base for fused dirty solids before MakeThickSolid. */
+function _shellFusePreheal(shape: any): any | null {
+  if (!shape?.wrapped || !_oc) return null
+  try {
+    // Detect fuse-ish dirty topology: planar lid + TORUS rim nearby.
+    const faces = shape.faces as any[]
+    let hasTor = false, hasPlane = false
+    for (const f of faces) {
+      try {
+        const gt = String(f.geomType || '').toUpperCase()
+        if (gt.includes('TOR')) hasTor = true
+        if (gt === 'PLANE') hasPlane = true
+      } catch { /* */ }
+    }
+    if (!(hasTor && hasPlane)) return null
+    let cur: any = shape
+    try {
+      const healed = _healSolid(cur)
+      if (healed?.wrapped) cur = healed
+    } catch { /* */ }
+    // Tighter sew than the generic 1e-4 alternate base.
+    try {
+      if (!_oc.BRepBuilderAPI_Sewing) return validShellSolid(cur) ? cur : null
+      const sew = new (_oc as any).BRepBuilderAPI_Sewing(5e-5, true, true, true, false)
+      let n = 0
+      for (const f of (cur.faces as any[])) {
+        try { if (f?.wrapped && !f.wrapped.IsNull()) { sew.Add(f.wrapped); n++ } } catch { /* */ }
+      }
+      if (n < 4) return validShellSolid(cur) ? cur : null
+      const prog = new (_oc as any).Message_ProgressRange_1()
+      sew.Perform(prog)
+      try { prog.delete() } catch { /* */ }
+      const sewed = sew.SewedShape()
+      if (!sewed || sewed.IsNull()) return validShellSolid(cur) ? cur : null
+      let out: any = sewed
+      try {
+        const shell = (_oc as any).TopoDS.Shell_1(sewed)
+        const solid = new (_oc as any).ShapeFix_Solid_1().SolidFromShell(shell)
+        if (solid && !solid.IsNull()) out = solid
+      } catch { /* keep sewed */ }
+      const cand = cast(out)
+      if (cand?.wrapped && !cand.wrapped.IsNull() && validShellSolid(cand)) {
+        try {
+          const h2 = _healSolid(cand)
+          if (h2 && validShellSolid(h2)) return h2
+        } catch { /* */ }
+        return cand
+      }
+    } catch { /* */ }
+    return validShellSolid(cur) && cur !== shape ? cur : null
+  } catch { return null }
+}
+
 /** v1.30: estimate opening-rim fillet depth from TOR/CYL faces near the seed plane Z. */
 function _shellOpeningFilletDepth(shape: any, seedIdx: number): number {
   try {
@@ -2168,7 +2271,8 @@ function _shellOcctAfterOpeningFilletTrim(
     if (!seed || seed.geomType !== 'PLANE') return null
     const R = _shellOpeningFilletDepth(shape, seeds[0])
     // Only when a real rim fillet is present; skip tiny noise / huge bogus spans.
-    if (!(R > 0.05) || R > Math.max(thicknessAbs * 8, 8)) return null
+    // v1.31: outer (fuse boss) rims can read slightly larger Z-span than hole rims — allow *10/10.
+    if (!(R > 0.05) || R > Math.max(thicknessAbs * 10, 10)) return null
     const zOpen = seed.center.z
     let n: any
     try { n = seed.normalAt() } catch { return null }
@@ -2289,6 +2393,41 @@ function _shellExactFaces(shape: any, signedThickness: number, faceIndices: numb
             if (ok) return ok
             lastErr = new Error('shell produced invalid solid')
           } catch (e) { lastErr = e }
+        }
+      }
+    }
+  }
+    // v1.31: fuse topology — extra Intersection/selfInter/tolerance + wider nudges when
+  // removed faces include a TORUS rim (cyl-top / outer fillet). Still before caller cavity.
+  let rimHasTor = false
+  try {
+    const fs = shape.faces as any[]
+    for (const i of faceIndices) {
+      const gt = String(fs[i]?.geomType || '').toUpperCase()
+      if (gt.includes('TOR')) { rimHasTor = true; break }
+    }
+  } catch { rimHasTor = false }
+  if (rimHasTor) {
+    const fuseEps = [2e-2, -2e-2, 5e-2, -5e-2, 1e-4, -1e-4]
+    const fuseFlags = [
+      { intersection: true, selfInter: true, removeInt: false },
+      { intersection: true, selfInter: true, removeInt: true },
+      { intersection: true, selfInter: false, removeInt: true },
+      { intersection: false, selfInter: true, removeInt: false },
+    ]
+    const fuseTols = [1e-3, 1e-2, 2e-2, 5e-2, 1e-1]
+    for (const eps of fuseEps) {
+      const nudged = signedThickness + (signedThickness >= 0 ? eps : -eps)
+      if (!(Math.abs(nudged) > 1e-9)) continue
+      for (const flags of fuseFlags) {
+        for (const join of joins) {
+          for (const tol of fuseTols) {
+            try {
+              const ok = tryJoin(nudged, flags, join, tol)
+              if (ok) return ok
+              lastErr = new Error('shell produced invalid solid')
+            } catch (e) { lastErr = e }
+          }
         }
       }
     }
@@ -3261,6 +3400,10 @@ function buildShape(features: Feature[], noCache = false): any {
               let lastErr: unknown = null
               const tryOcct = (shapeBase: any, faces: number[]) => _shellExactFaces(shapeBase, signed * t, faces)
               const bases: any[] = [base]
+              // v1.31: fuse pre-heal (tight sew+heal) first alternate — before generic sew.
+              let fusePre: any = null
+              try { fusePre = _shellFusePreheal(base) } catch { fusePre = null }
+              if (fusePre) bases.push(fusePre)
               // One sew retry base (v1.21) — before cavity, after seeds OCCT miss.
               let sewn: any = null
               try { sewn = _sewSolidFaces(base) } catch { sewn = null }
@@ -3348,10 +3491,29 @@ function buildShape(features: Feature[], noCache = false): any {
                   if (got) return got
                 }
               }
+              // 1.55) v1.31: seeds + TORUS + short CYLINDER wall ring (fuse boss-top outer fillet).
+              {
+                const bossExtra = _shellAdjacentBossRim(base, seeds)
+                const torusOnly = _shellAdjacentTorusRim(base, seeds)
+                if (bossExtra.length > torusOnly.length) {
+                  const got = tryBases([...seeds, ...bossExtra])
+                  if (got) return got
+                }
+              }
               // 1.6) v1.30: trim opening-rim fillet then OCCT on remapped seed (BX02 top-rim+top-open).
+              // v1.31: also try trim on fuse-preheal / sew bases (outer rim, not only hole).
               {
                 const got = _shellOcctAfterOpeningFilletTrim(base, seeds, ns as [number, number, number][], signed * t, t)
                 if (got) return got
+                for (const b of bases) {
+                  if (b === base) continue
+                  try {
+                    const remapped = remapFaces(b, seeds)
+                    if (!remapped.length) continue
+                    const gotB = _shellOcctAfterOpeningFilletTrim(b, remapped, ns as [number, number, number][], signed * t, t)
+                    if (gotB) return gotB
+                  } catch { /* continue */ }
+                }
               }
               // 2) v1.24: coplanar same-Z planar seeds via tryBases BEFORE cavity (not G1 chain — CX02-safe).
               for (const faces of attempts) {

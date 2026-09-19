@@ -55,7 +55,7 @@ export const EN_LABEL: Record<string, string> = {
   '画布': 'Canvas', '贴花': 'Decal',
   '插入STL网格': 'Insert STL', '插入OBJ网格': 'Insert OBJ', '插入3MF网格': 'Insert 3MF',
   // ASSEMBLE
-  '关节': 'Joint', '新建组件': 'New Component', '工程图': 'Drawing', '爆炸视图': 'Explode',
+  '关节': 'Joint', '新建组件': 'New Component', '工程图': 'Drawing', '工程圖': 'Drawing', '爆炸视图': 'Explode',
   '按现状关节': 'As-Built Joint', '刚性组': 'Rigid Group', '运动连接': 'Motion Link',
   '启用接触集': 'Enable Contact Sets', '新建接触集': 'New Contact Set',
   '运动研究': 'Motion Study', '驱动关节': 'Drive Joints',
@@ -218,7 +218,7 @@ export function tLabel(label: string, lang: Lang): string {
 const ZH_GROUP: Record<string, string> = {
   CREATE: '创建', MODIFY: '修改', CONSTRAINTS: '约束', FINISH: '完成', INSPECT: '檢查',
   CONSTRUCT: '构造', ASSEMBLE: '裝配', SELECT: '选择', EXPORT: '导出', CONFIGURE: '配置',
-  INSERT: '插入', PARAMETERS: '参数', DRAWING: '工程图', MAKE: '制造',
+  INSERT: '插入', PARAMETERS: '参数', DRAWING: '工程圖', MAKE: '制造',
   SYMMETRY: '對稱', UTILITIES: '工具',
 }
 const ZH_TAB: Record<string, string> = {

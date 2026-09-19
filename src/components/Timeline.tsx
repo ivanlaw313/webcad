@@ -248,7 +248,7 @@ export default function Timeline() {
                 <div className="panel-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }} onClick={() => useApp.getState().toggleTimelineHideInactive()} title={tStatus('隱藏已抑制的特徵 chip（回卷 scrub 仍穩健）', lang)}>
                   <input type="checkbox" readOnly checked={hideInactive} />{tStatus('隱藏抑制特徵', lang)}
                 </div>
-                <div className="panel-menu-item" style={{ opacity: 0.4, cursor: 'not-allowed', fontSize: 11 }} title={tStatus('转直接建模（弃历史）需内核直接編輯管线 — 架构级后置', lang)}>{tStatus('转直接建模（后置）', lang)}</div>
+                <div className="panel-menu-item" style={{ opacity: 0.4, cursor: 'not-allowed', fontSize: 11 }} title={tStatus('轉直接建模（棄歷史）需內核直接編輯管線 — 架構級後置', lang)}>{tStatus('轉直接建模（後置）', lang)}</div>
               </div>
             </>
           )}
@@ -257,7 +257,7 @@ export default function Timeline() {
 
       {!collapsed && <div className="tl-track" ref={trackRef}>
         {features.length === 0 ? (
-          <span className="tl-hint">{tStatus(hasComponentHistory ? '組件内有原生特徵 — 雙擊左側組件，或展開 ⋯ 選擇「編輯特徵／草圖」' : '參數化時間軸 — 建模後特徵出現在這裏，點擊任意節點可改參數并自動重建', lang)}</span>
+          <span className="tl-hint">{tStatus(hasComponentHistory ? '組件内有原生特徵 — 雙擊左側組件，或展開 ⋯ 選擇「編輯特徵／草圖」' : '參數化時間軸 — 建模後特徵出現在這裏，點擊任意節點可改參數並自動重建', lang)}</span>
         ) : (
           <>
             {features.map((f, i) => {

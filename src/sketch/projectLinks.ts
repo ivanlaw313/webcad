@@ -6,9 +6,9 @@ type Ref = { kind?: string; shape?: number }
 type Constraint = { a?: Ref; b?: Ref; c?: Ref }
 export type ProjectLinkHoldReason = 'missing-source' | 'constraints' | 'topology' | 'ambiguous-source' | 'modified-geometry'
 export const projectLinkIssueText: Record<ProjectLinkHoldReason, string> = {
-  'missing-source': '投影来源不可用', constraints: '来源改变，现有约束需要重新核对',
-  topology: '来源轮廓结构已改变', 'ambiguous-source': '多条来源无法可靠配对',
-  'modified-geometry': '关联曲线已被修改',
+  'missing-source': '投影來源不可用', constraints: '來源改變，現有約束需要重新核對',
+  topology: '來源輪廓結構已改變', 'ambiguous-source': '多條來源無法可靠配對',
+  'modified-geometry': '關聯曲線已被修改',
 }
 
 // Kernel edge enumeration can change without changing geometry. Match unchanged

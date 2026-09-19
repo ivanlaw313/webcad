@@ -20,5 +20,5 @@ export function FloatingViewMenu({ children, styleName }: { children: ReactNode;
     window.addEventListener('scroll', fit, true)
     return () => { observer.disconnect(); window.removeEventListener('resize', fit); window.removeEventListener('scroll', fit, true) }
   }, [])
-  return createPortal(<div ref={menu} role="menu" aria-label="显示方式" data-testid="visual-style-picker" data-visual-style={styleName} className="panel-menu" style={{ position: 'fixed', ...position, zIndex: 260, width: 240, maxWidth: 'calc(100vw - 16px)', overflowY: 'auto', boxSizing: 'border-box' }}>{children}</div>, document.body)
+  return createPortal(<div ref={menu} role="menu" aria-label="顯示方式" data-testid="visual-style-picker" data-visual-style={styleName} className="panel-menu" style={{ position: 'fixed', ...position, zIndex: 260, width: 240, maxWidth: 'calc(100vw - 16px)', overflowY: 'auto', boxSizing: 'border-box' }}>{children}</div>, document.body)
 }

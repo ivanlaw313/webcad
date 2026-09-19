@@ -104,7 +104,7 @@ function Leaf({ icon, label, depth = 1, onClick, sel = false, err }: { icon: str
       <span className="tw-toggle" />
       <span className="tw-ico"><ToolIcon name={icon} size={13} /></span>
       <span>{tStatus(label, lang)}</span>
-      {err && <span className="tw-err" title={tStatus('重建失败：', lang) + err}>🔴</span>}
+      {err && <span className="tw-err" title={tStatus('重建失敗：', lang) + err}>🔴</span>}
     </div>
   )
 }
@@ -207,7 +207,7 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
       ) : (
         <span style={{ flex: 1, cursor: 'pointer' }} title={tStatus('單擊選中 · 雙擊編輯特徵／草圖 · Alt+雙擊改名', lang)} onClick={() => selectFeature(f.id === selected ? null : f.id)} onDoubleClick={(e) => { if (e.altKey) { setName(custom || ''); setEditing(true) } else openFeatureEdit() }}>{custom || tStatus(meta.label, lang)}</span>
       )}
-      {err && <span className="tw-err" title={tStatus('重建失败：', lang) + err}>🔴</span>}
+      {err && <span className="tw-err" title={tStatus('重建失敗：', lang) + err}>🔴</span>}
     </div>
   )
 }
@@ -236,11 +236,11 @@ function GroupRow({ g, depth, collapsed, onToggle }: { g: { id: string; name: st
           onBlur={() => { app().renameGroup(g.id, name || g.name); setEditing(false) }}
           onKeyDown={(e) => { if (e.key === 'Enter') { app().renameGroup(g.id, name || g.name); setEditing(false) } }} />
       ) : (
-        <span style={{ flex: 1, cursor: 'pointer', fontWeight: 600 }} title={tStatus(`子装配组「${g.name}」（${deepIds.length} 件，雙擊改名）— 组系组织结构，关节仍系零件级`, lang)} onDoubleClick={() => { setName(g.name); setEditing(true) }}>{g.name}<span style={{ fontWeight: 400, color: '#8a97a2' }}>（{deepIds.length}）</span></span>
+        <span style={{ flex: 1, cursor: 'pointer', fontWeight: 600 }} title={tStatus(`子裝配組「${g.name}」（${deepIds.length} 件，雙擊改名）— 組係組織結構，關節仍係零件級`, lang)} onDoubleClick={() => { setName(g.name); setEditing(true) }}>{g.name}<span style={{ fontWeight: 400, color: '#8a97a2' }}>（{deepIds.length}）</span></span>
       )}
-      <span className="tw-act" title={tStatus('複製成组（模块复用 T788）：深複製全部成員 + 组内关节（轮组插四次就系咁）', lang)} onClick={(e) => { e.stopPropagation(); app().duplicateGroup(g.id) }}>⧉</span>
-      <span className="tw-act" title={tStatus('整组移动：输入 Δx,Δy,Δz（视图坐标 mm，组内关节锚点跟住搬）', lang)} onClick={async (e) => { e.stopPropagation(); const v = await useApp.getState().appPrompt(tStatus('整组移动 Δx,Δy,Δz（mm，三维视图坐标）', lang), '20,0,0'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 1 || p.some((x) => !Number.isFinite(x))) { await useApp.getState().appAlert(tStatus('请输入数字', lang)); return } app().moveGroupBy(g.id, p[0] || 0, p[1] || 0, p[2] || 0) }}>⇣</span>
-      <span className="tw-act" title={tStatus('整组旋转（S123 子装配 frame）：输入 轴,角度（X/Y/Z, 度），整个子装配绕世界质心刚性旋转。自包含刚性组准确；组内有关节会提示。', lang)} onClick={async (e) => { e.stopPropagation(); const v = await useApp.getState().appPrompt(tStatus('整组旋转 轴,角度（轴=X/Y/Z，度，例 Z,90）', lang), 'Z,90'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); const deg = Number(p[1]); if (!['X', 'Y', 'Z'].includes(ax) || !Number.isFinite(deg)) { await useApp.getState().appAlert(tStatus('请输入：轴(X/Y/Z),角度。例 Z,90', lang)); return } app().rotateGroup(g.id, ax as 'X' | 'Y' | 'Z', deg) }}>↻</span>
+      <span className="tw-act" title={tStatus('複製成組（模組複用 T788）：深複製全部成員 + 組內關節（輪組插四次就係咁）', lang)} onClick={(e) => { e.stopPropagation(); app().duplicateGroup(g.id) }}>⧉</span>
+      <span className="tw-act" title={tStatus('整組移動：輸入 Δx,Δy,Δz（視圖座標 mm，組內關節錨點跟住搬）', lang)} onClick={async (e) => { e.stopPropagation(); const v = await useApp.getState().appPrompt(tStatus('整組移動 Δx,Δy,Δz（mm，三維視圖座標）', lang), '20,0,0'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 1 || p.some((x) => !Number.isFinite(x))) { await useApp.getState().appAlert(tStatus('請輸入數字', lang)); return } app().moveGroupBy(g.id, p[0] || 0, p[1] || 0, p[2] || 0) }}>⇣</span>
+      <span className="tw-act" title={tStatus('整組旋轉（S123 子裝配 frame）：輸入 軸,角度（X/Y/Z, 度），整個子裝配繞世界質心剛性旋轉。自包含剛性組準確；組內有關節會提示。', lang)} onClick={async (e) => { e.stopPropagation(); const v = await useApp.getState().appPrompt(tStatus('整組旋轉 軸,角度（軸=X/Y/Z，度，例 Z,90）', lang), 'Z,90'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); const deg = Number(p[1]); if (!['X', 'Y', 'Z'].includes(ax) || !Number.isFinite(deg)) { await useApp.getState().appAlert(tStatus('請輸入：軸(X/Y/Z),角度。例 Z,90', lang)); return } app().rotateGroup(g.id, ax as 'X' | 'Y' | 'Z', deg) }}>↻</span>
       <span className="tw-act" title={tStatus('解組：组拆走、成員升到上一層（組件唔删）', lang)} onClick={(e) => { e.stopPropagation(); app().dissolveGroup(g.id) }}>⛓</span>
       <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖后可刪除' : '刪除组 + 全部成員（組件可撤銷）', lang)} onClick={async (e) => { e.stopPropagation(); if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`刪除组「${g.name}」同埋入面 ${deepIds.length} 件成員？`, lang))) app().deleteGroupDeep(g.id) }}>🗑</span>
       {memberIds.length === 0 && deepIds.length === 0 && <span style={{ fontSize: 10, color: '#a76' }}>{tStatus('（空组）', lang)}</span>}
@@ -309,7 +309,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
       </select>
       <input className="tw-swatch" type="color" title={tStatus('組件顏色', lang)} value={c.color || '#aab2ba'} onClick={(e) => e.stopPropagation()} onChange={(e) => setColor(c.id, e.target.value)} />
       {!c.hidden && <span className="tw-act" title={tStatus('聚焦：鏡頭框到此組件', lang)} onClick={(e) => { e.stopPropagation(); requestFit(c.id) }}>🎯</span>}
-      <span className="tw-act" title={tStatus('物理属性（面积/质量/体积/质心/惯性，精度可调，可複製）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().openPropertiesDialog(c.id) }}>⚖</span>
+      <span className="tw-act" title={tStatus('物理屬性（面積/質量/體積/質心/慣性，精度可調，可複製）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().openPropertiesDialog(c.id) }}>⚖</span>
       <span className="tw-act" title={tStatus('孤立顯示（隱藏其余）', lang)} onClick={(e) => { e.stopPropagation(); isolate(c.id) }}>◎</span>
       <span className="tw-act" title={tStatus('複製組件（共享定義 — 編輯任一實例全部更新）', lang)} onClick={(e) => { e.stopPropagation(); duplicate(c.id) }}>⧉</span>
       <span className="tw-act" title={tStatus('獨立複製 / Paste-New（新定義 — 改任一唔影響对方）', lang)} onClick={(e) => { e.stopPropagation(); independentize(c.id) }}>⧉+</span>
@@ -397,7 +397,7 @@ function CompBatchBar() {
       <span className="tw-act" title={tStatus('把勾選的組件匯出为 STL 打包 zip（只导你拣嘅，方便分批 3D 列印）', lang)} onClick={() => batchZip()}>📦{tStatus('匯出zip', lang)}</span>
       <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖后可刪除' : '批量刪除勾選的組件（可撤銷）', lang)} onClick={async () => { if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`刪除勾選的 ${n} 个組件？（可 Ctrl+Z 撤銷）`, lang))) batchDel() }}>🗑{tStatus('刪除', lang)}</span>
       <span className="tw-act" title={tStatus('清除勾選', lang)} onClick={() => clear()}>✕{tStatus('清除勾選', lang)}</span>
-      <span className="tw-act" title={tStatus('📁 建组（T788 子装配）：勾選嘅組件組成一個组 — 整组隱藏/移动/複製/BOM 分層；勾選同組成員再建组 = 嵌套子組', lang)} onClick={() => useApp.getState().createGroupFromChecked()}>📁{tStatus('建组', lang)}</span>
+      <span className="tw-act" title={tStatus('📁 建組（T788 子裝配）：勾選嘅組件組成一個組 — 整組隱藏/移動/複製/BOM 分層；勾選同組成員再建組 = 嵌套子組', lang)} onClick={() => useApp.getState().createGroupFromChecked()}>📁{tStatus('建組', lang)}</span>
       {n >= 2 && <span className="tw-act" title={tStatus('剛性組（T779 Fusion Rigid Group）：勾選嘅組件鎖做一組 — 第一件做頭，郁佢全組跟（rigid 關節實現，可喺關節面板拆）', lang)} onClick={() => useApp.getState().rigidGroupChecked()}>🔗{tStatus('剛性組', lang)}</span>}
       {n === 2 && <select className="tw-act" defaultValue="" title={tStatus('按現狀關節（T779 Fusion As-Built Joint）：兩件喺而家位置直接加關節 — 揀類型即加，唔 snap 唔郁位（要改軸用拾孔定軸）', lang)} onChange={(e) => { const t = e.target.value; if (t) useApp.getState().asBuiltJointChecked(t) }}>
         <option value="">⚙{tStatus('按現狀關節…', lang)}</option>

@@ -6944,7 +6944,7 @@ export default function Viewport() {
             <button className={'sb-tool' + (projPickMode ? ' active' : '')} title={tStatus('逐条投影（Fusion Project 逐条拣）：开咗后㩒近一条【橙色实体投影边】→ 只投嗰条；可连㩒多条；再撳退出', lang)} onClick={() => useApp.getState().toggleProjPick()}>{tStatus('⮈逐条投影', lang)}</button>
           </>)}
           {[...sketchProfiles, ...(sketchShape ? [sketchShape] : [])].some((sh) => sh.type === 'poly' && sh.projectLink === 'all') && <button className="sb-tool" title={tStatus('断开投影连结（Fusion Break Link）：保留紫色投影曲线，但停止以后随实体更新；之后可独立修改。', lang)} onClick={() => useApp.getState().breakProjectLinks()}>{tStatus('⛓断开连结', lang)}</button>}
-          <button className={'sb-tool' + (sketchTool === 'dimension' ? ' active' : '')} title={tStatus('尺寸工具（D）：点 边=长度 · 圆=Ø · 弧=R · 点→点→放置=距离 · 点→边=垂直距离', lang)} onClick={() => setSketchTool('dimension')}>{tStatus('⟷ 尺寸', lang)}</button>
+          <button className={'sb-tool' + (sketchTool === 'dimension' ? ' active' : '')} title={tStatus('尺寸工具（D）：点 边=长度 · 圆=Ø · 弧=R · 点→点→放置=距离 · 点→边=垂直距离', lang)} onClick={() => setSketchTool('dimension')}>{'⟷ ' + msg('sk.dimension', lang)}</button>
           {skCons.length > 0 && (
             <span className="sb-hint" style={{ color: skConflict ? '#d6694e' : skDof === 0 ? '#1aa06b' : '#1572c4', fontWeight: 600 }} title={tStatus('约束求解状态：DOF = 剩余自由度（0 = 完全定义，绿色）。冲突时红色徽章 = 互相冲突嘅约束，点击其一移除即解；或按「↶撤约束」。', lang)}>
               {skConflict ? tStatus(skConflictIds.length ? `⚠ 约束冲突 ×${skConflictIds.length}（红徽章点击移除）` : '⚠ 约束冲突', lang) : skDof === 0 && skCons.length > 0 ? tStatus(`✓ 完全定义 · DOF 0 · 约束 ${skCons.length}`, lang) : tStatus(`约束 ${skCons.length} · DOF ${skDof ?? '—'}`, lang)}

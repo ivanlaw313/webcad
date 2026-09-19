@@ -151,8 +151,12 @@ export function SketchToolPanel() {
     args.forEach((a, i) => { s = s.replace(`{${i}}`, String(a)) })
     return s
   }
-  const titleKey = `sk.toolTitle.${tool}`
-  const title = (msg(titleKey, lang) !== titleKey ? msg(titleKey, lang) : null) || TOOL_TITLE[tool] || msg('sk.toolTitle.default', lang)
+  const titleKey = tool === 'dimension' ? 'sk.toolTitle.dimension' : `sk.toolTitle.${tool}`
+  // v1.80: never fall back to EN "Dimension" — catalog first, then TOOL_TITLE zh source, then default
+  const title = (msg(titleKey, lang) !== titleKey ? msg(titleKey, lang) : null)
+    || (tool === 'dimension' ? msg('sk.dimension', lang) : null)
+    || TOOL_TITLE[tool]
+    || msg('sk.toolTitle.default', lang)
 
   let body: ReactNode
   switch (tool) {

@@ -206,6 +206,7 @@ export const LABEL_TO_KEY: Record<string, string> = {
   '導出裝配STL': 'tool.exportasmstl',
   '导出装配STL': 'tool.exportasmstl',
   '尺寸': 'tool.sk_dim',
+  '尺寸工具': 'sk.toolTitle.dimension',
   '工程圖': 'tool.drawing',
   '工程图': 'tool.drawing',
   '工程計算': 'tool.calc',

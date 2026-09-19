@@ -1,6 +1,7 @@
 // First-pass Japanese for EN_LABEL keys. Honest draft: unmapped → English CAD term.
 // zh-source label → ja
 export const JA_LABEL: Record<string, string> = {
+  '尺寸工具': '寸法',
   "3D列印": "3Dプリント",
   "3D加工": "3D加工",
   "B样条": "Bスプライン",

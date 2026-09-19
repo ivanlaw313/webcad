@@ -2049,11 +2049,14 @@ export function tStatus(s: string, lang: LangInput): string {
   if (L === 'zh-HK') return s
   if (L === 'zh-CN') return traditionalToSimplified(s)
 
-  // v1.79: Finish Sketch / sketch tool titles — avoid doneSketch / dimension工具 shred
+  // v1.79/v1.80: Finish Sketch / sketch tool titles — avoid doneSketch / Dimension shred
   if (s === '完成草圖' || s === '完成草图') return msg('ui.finishSketch', L)
   if (s === '✓ 完成草圖' || s === '✓ 完成草图') return '✓ ' + msg('ui.finishSketch', L)
   if (s === '尺寸工具') return msg('sk.toolTitle.dimension', L)
   if (s === '選擇工具' || s === '选择工具') return msg('sk.toolTitle.select', L)
+  // v1.80: bare 尺寸 must not EN-shred to "Dimension" on JA (SketchToolPanel / Viewport)
+  if (s === '尺寸') return msg('sk.dimension', L)
+  if (s === '⟷ 尺寸') return '⟷ ' + msg('sk.dimension', L)
 
   // v1.74: catalog-backed illegal markers (avoid short-phrase shredding / give JA real copy)
   const DIM_MARKERS: [string, string][] = [
@@ -2160,6 +2163,11 @@ export function tStatus(s: string, lang: LangInput): string {
     // Fall through to EN replacement for coverage; leftover CJK stays (honest).
   }
   if (L !== 'en' && L !== 'ja') return s
+  // v1.80: JA — swap 尺寸* to catalog BEFORE EN table turns 尺寸→Dimension
+  if (L === 'ja') {
+    if (s.includes('尺寸工具')) s = s.split('尺寸工具').join(msg('sk.toolTitle.dimension', L))
+    if (s.includes('尺寸')) s = s.split('尺寸').join(msg('sk.dimension', L))
+  }
   let out = ''
   let i = 0
   while (i < s.length) {

@@ -82,6 +82,7 @@ export const EN_LABEL: Record<string, string> = {
   '导入DXF': 'Import DXF', '导入SVG': 'Import SVG',
   '画布': 'Canvas', '贴花': 'Decal',
   '插入STL网格': 'Insert STL', '插入OBJ网格': 'Insert OBJ', '插入3MF网格': 'Insert 3MF',
+  '插入STL網格': 'Insert STL', '插入OBJ網格': 'Insert OBJ', '插入3MF網格': 'Insert 3MF',
   // ASSEMBLE
   '关节': 'Joint', '新建组件': 'New Component', '工程图': 'Drawing', '工程圖': 'Drawing',
   '前視圖': 'Front View', '俯視圖': 'Top View', '右視圖': 'Right View',
@@ -2596,6 +2597,52 @@ Object.assign(STATUS_PHRASES_X, {
   '持久邊名經上游變換以拓撲順序追蹤解析（真拓撲命名 S1）': 'Persistent edge name resolved via upstream transform topological-order tracking (true topological naming S1)',
   '持久面名經上游布爾／圓角以 OCCT 歷史追蹤解析（真拓撲命名 S2-面）': 'Persistent face name resolved via upstream boolean/fillet OCCT history tracking (true topological naming S2-face)',
   '持久邊名經上游布爾／圓角以 OCCT 歷史追蹤解析（真拓撲命名 S2）': 'Persistent edge name resolved via upstream boolean/fillet OCCT history tracking (true topological naming S2)',
+})
+
+Object.assign(STATUS_PHRASES_X, {
+  // v1.97 BD-9701 residual SC→TC (prefs / press-pull / shell / sketch text / MESH pin)
+  // Long phrases first in spirit; short UI chrome use proper EN (not identity) — v1.37 hybrid UX.
+  '應用偏好': 'Preferences',
+  '關閉': 'Close',
+  '主題': 'Theme',
+  '自動 = 跟隨系統深淺色': 'Auto = follow system light/dark',
+  '自動': 'Auto',
+  '淺色': 'Light',
+  '深色': 'Dark',
+  '新文件預設單位': 'New Document Default Units',
+  '對標 Fusion Default Units': 'Matches Fusion Default Units',
+  '預設建模朝向 Z-up': 'Default modeling orientation Z-up',
+  'webcad 恒 Z-up（此項為一致性資訊）': 'webcad is always Z-up (consistency info)',
+  '進入草圖自動正視（正交）': 'Auto look-at sketch (ortho)',
+  '入草圖自動切正投影': 'Entering sketch auto-switches to ortho',
+  '視圖過渡動畫': 'View transition animation',
+  'Look-At 340ms 緩動（關=瞬切）': 'Look-At 340ms ease (off = instant)',
+  '滾輪縮放方向': 'Scroll zoom direction',
+  '反轉 = 上滾拉近': 'Invert = scroll up zooms in',
+  '預設（下滾拉近）': 'Default (scroll down zooms in)',
+  '反轉（上滾拉近）': 'Invert (scroll up zooms in)',
+  '恢復預設': 'Reset Defaults',
+  '選擇': 'Select',
+  '選擇實體面；選邊會轉入圓角，選草圖輪廓會轉入拉伸': 'Pick a body face; edge → Fillet, sketch profile → Extrude',
+  'Fusion Offset Type：自動、修改現有特徵或建立新偏移': 'Fusion Offset Type: Auto, Modify Existing Feature, or New Offset',
+  '修改現有特徵': 'Modify Existing Feature',
+  '偏移類型': 'Offset Type',
+  '應用（Enter）': 'Apply (Enter)',
+  '距離': 'Distance',
+  'T 草圖文字': 'T Sketch Text',
+  '✓ 確定': '✓ OK',
+  '對齊': 'Align',
+  '字體 / 粗斜 / 沿路徑：現用單一 CAD 字體（內核限）— 生成後為真草圖輪廓，可鏡像 / 陣列 / 拉伸 / 旋轉。': 'Font / bold-italic / along path: single CAD font for now (kernel limit) — result is true sketch profiles, mirror / pattern / extrude / revolve OK.',
+  // legacy SC kept for older toasts / EN shred safety
+  '关闭': 'Close',
+  '应用偏好': 'Preferences',
+  '自动': 'Auto',
+  '浅色': 'Light',
+  '恢复默认': 'Reset Defaults',
+  '选择': 'Select',
+  '修改现有特征': 'Modify Existing Feature',
+  'T 草图文字': 'T Sketch Text',
+  '✓ 确定': '✓ OK',
 })
 
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)

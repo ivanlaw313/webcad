@@ -13,9 +13,9 @@ const sw = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8')
 const sk = readFileSync(new URL('../src/components/SketchToolPanel.tsx', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.96; SW webcad-v1.96', () => {
-  assert.match(version, /APP_VERSION = '1\.96'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.96/)
+test('APP_VERSION 1.97; SW webcad-v1.97', () => {
+  assert.match(version, /APP_VERSION = '1\.97'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.97/)
 })
 
 test('catalog parity', () => {

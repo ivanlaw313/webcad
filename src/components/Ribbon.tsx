@@ -31,7 +31,7 @@ function FastenerPicker() {
       {kind !== 'hexnut' && kind !== 'washer' && (
         <label title={kind === 'dowel' ? '销长 mm' : '杆长 mm（头下）'} style={{ fontSize: 12 }}>{msg('ui.len', lang)}<input type="number" step={2} min={3} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ width: 46 }} /></label>
       )}
-      <button className="tb-btn tb-text" title="插入标准件到装配（ISO 尺寸真实体；简化＝光杆无螺牙，外形标准。可用「配合」对齐）" onClick={() => void insertFastener(kind, size, len)}>
+      <button className="tb-btn tb-text" title="插入標準件到裝配（ISO 尺寸真實體；簡化＝光杆無螺牙，外形標準。可用「配合」對齊）" onClick={() => void insertFastener(kind, size, len)}>
         <ToolIcon name="component" size={15} /> {msg('ui.insertFastener', lang)}
       </button>
     </>
@@ -414,7 +414,7 @@ export default function Ribbon() {
                 <button type="button" role="menuitem" className="panel-menu-item" title="导出当前 3D 视图为 PNG 截图（贴文档/邮件）" onClick={() => useApp.getState().runCommand('viewpng', '视图截图')}><ToolIcon name="save" size={16} />{msg('file.exportViewPng', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void generateDrawing()}><ToolIcon name="drawing" size={16} />{msg('file.drawing', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" title="裝配三視圖 + 氣泡編號 + BOM 表（組件網格投影：輪廓+特徵邊）" onClick={() => void useApp.getState().generateAsmDrawing()}><ToolIcon name="drawing" size={16} />{msg('file.asmDrawing', lang)}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('清空全部？当前模型（特征 + 组件）会清除——未保存的话请先「保存」。')) void reset() }}><ToolIcon name="trash" size={16} />{msg('file.clear', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('清空全部？當前模型（特徵 + 組件）會清除——未儲存嘅話請先「儲存」。')) void reset() }}><ToolIcon name="trash" size={16} />{msg('file.clear', lang)}</button>
               </div>
             </>, document.body
           )}
@@ -453,10 +453,10 @@ export default function Ribbon() {
             ))
           })()}
         </select>
-        <button className="tb-btn tb-text" title="载入选中的起始模板（载入后改 ƒx 参数即整模型联动）—— 新手可先玩这个" onClick={async () => {
+        <button className="tb-btn tb-text" title="載入選中的起始模板（載入後改 ƒx 參數即整模型聯動）—— 新手可先玩這個" onClick={async () => {
           // GM-W2 2.1 防数据丢失：有现存工作（特征/组件）先弹确认，避免 载入 静静清空未保存嘅项目
           if (useApp.getState().features.length > 0 || useApp.getState().components.length > 0) {
-            const ok = await useApp.getState().appConfirm('载入模板会清空当前项目（包括未保存嘅工作）— 确定载入？')
+            const ok = await useApp.getState().appConfirm('載入模板會清空當前項目（包括未儲存嘅工作）— 確定載入？')
             if (!ok) return
           }
           void loadSample(sampleKind)
@@ -466,7 +466,10 @@ export default function Ribbon() {
         <FastenerPicker />
         <select className="tb-mat" title="材質預設" defaultValue="" onChange={(e) => { if (e.target.value) setMaterialPreset(e.target.value) }}>
           <option value="">{msg('ui.materialEllipsis', lang)}</option>
-          {Object.keys(MATERIALS).map((m) => <option key={m} value={m}>{m}</option>)}
+          {Object.keys(MATERIALS).map((m) => {
+            const MAT_TC: Record<string, string> = { 钢: '鋼', 铝: '鋁', 黄铜: '黃銅', 喷漆: '噴漆', 不锈钢: '不鏽鋼', 尼龙PA: '尼龍PA', 树脂: '樹脂' }
+            return <option key={m} value={m}>{MAT_TC[m] || m}</option>
+          })}
         </select>
         </>)}
         <MaterialSwatchPicker />{/* 材质球视觉拣料（Flux 生成 studio render 球）*/}

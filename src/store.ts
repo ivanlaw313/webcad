@@ -145,8 +145,8 @@ export type DatumCmdPick =
 // GM-3DV2 R1：每个 Type 嘅 Method 下拉选项（对标 Fusion CONSTRUCT 菜单，clean-room 只对齐行为）。
 export const DATUM_CMD_METHODS: Record<DatumCmdType, { id: string; label: string }[]> = {
   plane: [
-    { id: 'offset', label: '偏移 / 成角 / 中间面' }, { id: 'offsetFace', label: '偏移面（拾面+距离）' }, { id: 'atAngleEdge', label: '成角（过边）' },
-    { id: 'tangent', label: '相切面（圆柱面）' }, { id: 'midplane', label: '两面中面' }, { id: 'perp', label: '垂直面（面+参考边+距离）' },
+    { id: 'offset', label: '偏移 / 成角 / 中間面' }, { id: 'offsetFace', label: '偏移面（拾面+距離）' }, { id: 'atAngleEdge', label: '成角（過邊）' },
+    { id: 'tangent', label: '相切面（圓柱面）' }, { id: 'midplane', label: '兩面中面' }, { id: 'perp', label: '垂直面（面+參考邊+距離）' },
     { id: 'twoEdges', label: '過兩邊' }, { id: 'threePoints', label: '過三點（構造點）' }, { id: 'parPlanePt', label: '過點平行面' }, { id: 'alongPath', label: '路徑平面（沿邊）' },
   ],
   axis: [
@@ -15391,7 +15391,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const f: Feature = { id: fid(), type: 'ruled', sections: secs, op: hasSolid(s.features) ? 'join' : undefined }
     await get().applyFeatures([...get().features, f], `已生成规则曲面（${secs.length} 截面 · 纯零厚直纹面，要实体再「加厚」/「缝合」）`)
   },
-  // T805（S74）曲面 Patch：顺序拾闭合边界 3D 点 → 填充曲面 + 加厚薄板（C++ PatchWrapper.FillThicken）。
+  // T805（S74）曲面 Patch：順序拾閉合邊界 3D 点 → 填充曲面 + 加厚薄板（C++ PatchWrapper.FillThicken）。
   patchMode: false,
   patchPts: [],
   togglePatch: () => set((s) => ({
@@ -16312,8 +16312,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'point:centerCyl': return void get().startDatumPick('circcenter')
     }
     const acc = DATUM_CMD_ACC[key]
-    const accHint = acc ? `🎯 顺序拾 ${acc.map((x) => (x === 'p' ? '一个构造点' : x === 'e' ? '一条边' : x === 'c' ? '一个圆柱面' : '一个平面')).join(' + ')}` : ''
-    set({ status: `構造幾何 · ${_datumMethodLabel(type, method)}${accHint ? ' — ' + accHint : ''}` })
+    const accHint = acc ? `🎯 順序拾 ${acc.map((x) => (x === 'p' ? '一個構造點' : x === 'e' ? '一條邊' : x === 'c' ? '一個圓柱面' : '一個平面')).join(' + ')}` : ''
+    set({ status: `${type === 'axis' ? '構造軸' : type === 'point' ? '構造點' : '構造幾何'} · ${_datumMethodLabel(type, method)}${accHint ? ' — ' + accHint : ''}` })
   },
   setDatumCmdParam: (k, v) => set((s) => (s.datumCmd ? { datumCmd: { ...s.datumCmd, params: { ...s.datumCmd.params, [k]: v } } } : {})),
   closeDatumCmd: () => {
@@ -16341,8 +16341,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       return
     }
-    if (key === 'point:xyz') { set((s) => ({ datumCmd: null, cpoints: [...s.cpoints, [+p.x, +p.y, +p.z]], status: `已建构造点 (${+p.x},${+p.y},${+p.z})` })); return }
-    if (key === 'axis:dirPoint') { set((s) => ({ datumCmd: null, caxes: [...s.caxes, { dir: (String(p.dir || 'X') as 'X' | 'Y' | 'Z'), at: [+p.x, +p.y, +p.z] }], status: `已建构造轴 ${p.dir} @(${+p.x},${+p.y},${+p.z})` })); return }
+    if (key === 'point:xyz') { set((s) => ({ datumCmd: null, cpoints: [...s.cpoints, [+p.x, +p.y, +p.z]], status: `已建構造點 (${+p.x},${+p.y},${+p.z})` })); return }
+    if (key === 'axis:dirPoint') { set((s) => ({ datumCmd: null, caxes: [...s.caxes, { dir: (String(p.dir || 'X') as 'X' | 'Y' | 'Z'), at: [+p.x, +p.y, +p.z] }], status: `已建構造軸 ${p.dir} @(${+p.x},${+p.y},${+p.z})` })); return }
   },
   datumCmdClickAt: async (det, threeWorld, source) => {
     const dc = get().datumCmd; if (!dc) return
@@ -16386,9 +16386,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         pick = { kind: 'face', p: det.p, n: det.n }
       }
       picks = [...dc.picks, pick]
-      if (picks.length < slots.length) { set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `構造幾何 · ${_datumMethodLabel(dc.type, dc.method)}：已揀 ${picks.length}/${slots.length} — 繼續揀下一個` }); return }
+      if (picks.length < slots.length) { set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `${dc.type === 'axis' ? '構造軸' : dc.type === 'point' ? '構造點' : '構造幾何'} · ${_datumMethodLabel(dc.type, dc.method)}：已揀 ${picks.length}/${slots.length} — 繼續揀下一個` }); return }
       // Fusion keeps a completed selection set live until the user explicitly confirms it.
-      set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `構造幾何 · ${_datumMethodLabel(dc.type, dc.method)}：已揀 ${picks.length}/${slots.length} — 已準備，按「確定」建立` })
+      set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `${dc.type === 'axis' ? '構造軸' : dc.type === 'point' ? '構造點' : '構造幾何'} · ${_datumMethodLabel(dc.type, dc.method)}：已揀 ${picks.length}/${slots.length} — 已準備，按「確定」建立` })
       return
     }
     // 确定后才计算 + 创建；完成后清 picks，保留同一命令方便继续建立。
@@ -16783,7 +16783,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set((s) => ({ featDlg: null, cpoints: [...s.cpoints, ...pts], status: `已建 ${pts.length} 个构造点（${String(p.mode) === 'polar' ? '极坐标' : '矩形'}阵列）` }))
       return
     }
-    if (d.kind === 'cpoint') { set((s) => ({ featDlg: null, cpoints: [...s.cpoints, [+p.x, +p.y, +p.z]], status: `已建构造点 (${+p.x},${+p.y},${+p.z})` })); return }
+    if (d.kind === 'cpoint') { set((s) => ({ featDlg: null, cpoints: [...s.cpoints, [+p.x, +p.y, +p.z]], status: `已建構造點 (${+p.x},${+p.y},${+p.z})` })); return }
     // T770：齿轮箱向导 — 产物系 components（齿轮组+关节+运动连接），唔入时间轴，早退分支
     if (d.kind === 'gearbox') {
       const ratio = +p.ratio
@@ -18451,7 +18451,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   addTransform: async () => {
     if (!hasSolid(get().features)) { set({ status: '移动需要先创建实体' }); return }
     const f: Feature = { id: fid(), type: 'transform', dx: 20, dy: 0, dz: 0, rz: 0, rx: 0, ry: 0 }
-    await get().applyFeatures([...get().features, f], '已移动实体（时间轴可改 dx/dy/dz + 绕X/Y/Z 角，绕件中心旋转）')
+    await get().applyFeatures([...get().features, f], '已移動實體（時間軸可改 dx/dy/dz + 繞X/Y/Z 角，繞件中心旋轉）')
   },
 
   addLoft: async () => {

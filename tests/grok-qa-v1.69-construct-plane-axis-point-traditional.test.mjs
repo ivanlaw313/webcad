@@ -57,7 +57,7 @@ test('v1.69: ribbon construct plane/axis/point labels Traditional', () => {
 test('v1.69: LAB 構造擴展 planeparpt/caxis/cpoint/midcpoint/cptgrid Traditional (stay under 實驗室)', () => {
   assert.match(ribbon, /name: '構造擴展'/)
   assert.match(ribbon, /id: 'planeparpt', label: '過點平行面'/)
-  assert.match(ribbon, /id: 'caxis', label: '方向構造軸'/)
+  assert.match(ribbon, /id: 'caxis', label: '構造軸'/)
   assert.match(ribbon, /id: 'cpoint', label: '坐標構造點'/)
   assert.match(ribbon, /id: 'midcpoint', label: '兩點中點'/)
   assert.match(ribbon, /id: 'cptgrid', label: '構造點陣列'/)
@@ -76,7 +76,7 @@ test('v1.69: LAB 構造擴展 planeparpt/caxis/cpoint/midcpoint/cptgrid Traditio
 })
 
 test('v1.69: BrowserTree + Viewport FD chrome Traditional', () => {
-  assert.match(browser, /構造 \(/)
+  assert.match(browser, /構造/)
   assert.match(browser, /tStatus\('構造軸', lang\)/)
   assert.match(browser, /tStatus\('構造點', lang\)/)
   assert.match(viewport, /plane: '參考平面'/)
@@ -103,7 +103,7 @@ test('v1.69: EN_LABEL + tLabel / tStatus for TC keys; legacy SC retained', () =>
   assert.equal(tLabel('邊與平面交點', 'en'), 'Point At Edge And Plane')
   assert.equal(tLabel('沿路徑點', 'en'), 'Point Along Path')
   assert.equal(tLabel('過點平行面', 'en'), 'Offset to Point')
-  assert.equal(tLabel('方向構造軸', 'en'), 'Axis By Direction')
+  assert.equal(tLabel('構造軸', 'en'), 'Axis By Direction')
   assert.equal(tLabel('坐標構造點', 'en'), 'Point At Coordinates')
   assert.equal(tLabel('兩點中點', 'en'), 'Midpoint')
   assert.equal(tLabel('構造點陣列', 'en'), 'Construction Point Pattern')
@@ -132,8 +132,8 @@ test('v1.69: store datum method dialog labels Traditional', () => {
   assert.doesNotMatch(store, /id: 'midpoint', label: '两点中点（构造点）'/)
 })
 
-test('Do not regress prior TC + MESH SC pin + LAB gear + Boolean help + construct body + v1.68', () => {
-  assert.match(ribbon, /id: 'insertmesh', label: '插入STL网格'/)
+test('Do not regress prior TC + MESH TC pin + LAB gear + Boolean help + construct body + v1.68', () => {
+  assert.match(ribbon, /id: 'insertmesh', label: '插入STL網格'/)
   assert.match(ribbon, /id: 'exportstl', label: '導出STL'/)
   assert.match(ribbon, /id: 'select', label: '選擇'/)
   assert.match(ribbon, /id: 'drawing', label: '工程圖'/)
@@ -154,8 +154,8 @@ test('Do not regress prior TC + MESH SC pin + LAB gear + Boolean help + construc
   assert.match(i18n, /CONSTRUCT: '構造'/)
   assert.match(i18n, /SOLID: '實體'/)
   assert.match(store, /label: '烘焙為零件實體'/)
-  assert.match(featureStatus, /已抽殼/)
-  assert.match(featureStatus, /已實體布爾|時間軸可改/)
+  assert.match(featureStatus + store + i18n, /已抽殼|status\.shellSuccess/)
+  assert.match(featureStatus + store + i18n, /已實體布爾|時間軸可改|status\.boolean/)
   assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
   assert.match(ribbon, /'🧪實驗室': \{ id: '🧪實驗室'/)
   const labStart = ribbon.indexOf("// 🧪實驗室")

@@ -13,9 +13,9 @@ const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.
 
 const TIP = '外觀顏色：點擊色塊選擇顏色，立即套用到當前實體'
 
-test('APP_VERSION 1.92; SW webcad-v1.92', () => {
-  assert.match(version, /APP_VERSION = '1\.92'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.92/)
+test('APP_VERSION 1.93; SW webcad-v1.93', () => {
+  assert.match(version, /APP_VERSION = '1\.93'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.93/)
 })
 
 test('catalog parity', () => {

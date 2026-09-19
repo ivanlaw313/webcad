@@ -1,5 +1,5 @@
 /**
- * v1.92: BD-9201 Viewport sketch chrome / mini-toolbar / plane helper / display-toggle SC→TC
+ * v1.93: BD-9201 Viewport sketch chrome / mini-toolbar / plane helper / display-toggle SC→TC
  * Continues v1.91 SketchToolPanel TC; locks 正對／幾何捕捉／基準Z／捕捉關 etc.
  */
 import test from 'node:test'
@@ -14,9 +14,9 @@ const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.ur
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.92; SW webcad-v1.92', () => {
-  assert.match(version, /APP_VERSION = '1\.92'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.92/)
+test('APP_VERSION 1.93; SW webcad-v1.93', () => {
+  assert.match(version, /APP_VERSION = '1\.93'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.93/)
 })
 
 test('catalog parity', () => {
@@ -102,5 +102,5 @@ test('BD-9201 tStatus zh-HK / zh-CN / en samples', () => {
   }
   assert.equal(traditionalToSimplified('基準Z'), '基准Z')
   assert.equal(traditionalToSimplified('捕捉關'), '捕捉关')
-  assert.ok(i18n.includes('BD-9201') || i18n.includes('v1.92'))
+  assert.ok(i18n.includes('BD-9201') || i18n.includes('v1.93'))
 })

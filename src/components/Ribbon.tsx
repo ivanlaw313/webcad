@@ -423,7 +423,7 @@ export default function Ribbon() {
         <button className="tb-btn" title={msg('cmd.actUndo', lang) + ' (Ctrl+Z)'} onClick={() => void undo()}><ToolIcon name="undo" size={18} /></button>
         <button className="tb-btn" title={msg('cmd.actRedo', lang) + ' (Ctrl+Y)'} onClick={() => void redo()}><ToolIcon name="redo" size={18} /></button>
         <div className="tb-spacer" />
-        <div className="doc-tab" title="文档名（用于保存档名 / 工程图标题栏）— 点击改名">
+        <div className="doc-tab" title="文件名（用於保存檔名／工程圖標題欄）— 點擊改名">
           <span className="doc-cube" />
           <input className="doc-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder={msg('file.untitled', lang)} />
         </div>

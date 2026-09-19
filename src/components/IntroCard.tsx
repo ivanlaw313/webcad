@@ -22,7 +22,7 @@ export default function IntroCard() {
         <div className="intro-card-body" style={{ padding: '14px 18px', fontSize: 14, color: '#222', lineHeight: 1.75 }}>
           <div style={step}><div style={num}>1</div><div><b>载入一个模板</b><br />顶栏「<b>示例</b>」下拉拣一个（底板 / 齿轮 / 法兰 / 螺栓法兰…）→ 撳「<b>载入</b>」，即刻出 3D 模型。<span style={{ color: '#777' }}>（最快上手，唔使由零画。）</span></div></div>
           <div style={step}><div style={num}>2</div><div><b>改尺寸（参数化）</b><br />撳「<b>ƒx 参数</b>」改命名变量，或喺底部时间轴点一个特征改参数 → 整个模型自动重建联动。</div></div>
-          <div style={step}><div style={num}>3</div><div><b>出图 / 导出</b><br />撳「<b>工程圖</b>」出三视图 + 尺寸/孔表标注；或导出 <b>STL / STEP / glTF</b> 攞去 3D 打印或分享。</div></div>
+          <div style={step}><div style={num}>3</div><div><b>出图 / 导出</b><br />撳「<b>工程圖</b>」出三視圖 + 尺寸/孔表标注；或导出 <b>STL / STEP / glTF</b> 攞去 3D 打印或分享。</div></div>
           <div style={{ ...step, color: '#555' }}><div style={{ ...num, background: '#5a7' }}>✎</div><div><b>想自己画？</b><br />流程只需四步：撳「<b>建立草圖</b>」→ 喺 3D 拣一个面（高亮 <b style={{ color: '#d6694e' }}>红 XY</b>/<b style={{ color: '#4e9e5e' }}>绿 XZ</b>/<b style={{ color: '#4e7fd6' }}>蓝 YZ</b> 或实体平面）→ 画 矩形/圆/多边形（打数字 = 精确尺寸）→「完成草圖」→「<b>拉伸</b>」出实体。想加尺寸 / 约束？主草图已内建：撳草圖欄「<b>尺寸</b>」(D) 点条边打数值即驱动几何（Esc 取消 / Ctrl+Z 撤销）。<br /><span style={{ color: '#2e7d32' }}>👉 第一次用？撳下面「<b>🎓 手把手教学</b>」，我一步步带你整出第一个零件。</span></div></div>
           <div style={{ marginTop: 12, padding: '8px 10px', background: '#f3f6fb', borderRadius: 6, color: '#555', fontSize: 13 }}>
             💡 唔识用边个工具？撳键盘 <kbd>/</kbd> 或顶栏 🔍 <b>搜索命令</b>（打「齿轮」「倒角」「导出」即搵到）。撳 <kbd>F1</kbd> 睇完整帮助。

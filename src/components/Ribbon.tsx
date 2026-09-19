@@ -400,8 +400,8 @@ export default function Ribbon() {
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportGLB()}><ToolIcon name="save" size={16} />{en ? 'Export glTF/GLB' : '导出 glTF/GLB'}</button>
                 <div className="panel-menu-divider" />
                 <button type="button" role="menuitem" className="panel-menu-item" title="导出当前 3D 视图为 PNG 截图（贴文档/邮件）" onClick={() => useApp.getState().runCommand('viewpng', '视图截图')}><ToolIcon name="save" size={16} />{en ? 'Export View PNG' : '导出视图 PNG'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void generateDrawing()}><ToolIcon name="drawing" size={16} />{en ? 'Drawing (3 Views)' : '工程圖（三视图）'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="装配三视图 + 气泡编号 + BOM 表（组件网格投影：轮廓+特征边）" onClick={() => void useApp.getState().generateAsmDrawing()}><ToolIcon name="drawing" size={16} />{en ? 'Assembly Drawing + BOM' : '裝配工程圖 + BOM'}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void generateDrawing()}><ToolIcon name="drawing" size={16} />{en ? 'Drawing (3 Views)' : '工程圖（三視圖）'}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="裝配三視圖 + 氣泡編號 + BOM 表（組件網格投影：輪廓+特徵邊）" onClick={() => void useApp.getState().generateAsmDrawing()}><ToolIcon name="drawing" size={16} />{en ? 'Assembly Drawing + BOM' : '裝配工程圖 + BOM'}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('清空全部？当前模型（特征 + 组件）会清除——未保存的话请先「保存」。')) void reset() }}><ToolIcon name="trash" size={16} />{en ? 'Clear All' : '清空全部'}</button>
               </div>
             </>, document.body

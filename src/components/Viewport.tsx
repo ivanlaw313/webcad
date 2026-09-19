@@ -4856,7 +4856,7 @@ export default function Viewport() {
           okTip="应用（Enter）"
           onOk={() => void commitEdgeRound()}
           onCancel={() => cancelEdgeRound()}
-          summary={edgeRoundPick === 'fillet' ? <>{filletType === 'rule' ? `規則圓角 R${edgeRoundSize}` : filletType === 'full' ? '全圓角' : filletMode === 'asymmetric' ? `不對稱圓角 ${edgeRoundSize}/${filletR2}` : `圓角 R${edgeRoundSize}`} · {edgeRoundPicks.length || 0} {filletType === 'rule' ? '面／特徵' : filletType === 'full' ? '面' : '條棱'}</> : null}
+          summary={edgeRoundPick === 'fillet' ? <>{filletType === 'rule' ? `規則圓角 R${edgeRoundSize}` : filletType === 'full' ? '全圓角' : filletMode === 'asymmetric' ? `不對稱圓角 ${edgeRoundSize}/${filletR2}` : `圓角 R${edgeRoundSize}`} · {edgeRoundPicks.length || 0} {filletType === 'rule' ? '面／特徵' : filletType === 'full' ? '面' : '條稜'}</> : null}
         >
           {edgeRoundPick === 'fillet' && <label>
             <span style={{ color: '#6b7680' }}>類型</span>
@@ -4911,28 +4911,28 @@ export default function Viewport() {
               <span style={{ color: '#6b7680' }}>Corner Type</span>
               <span><select value="chamfer" style={{ height: 26 }} aria-label="Chamfer Corner Type"><option value="chamfer">Chamfer</option><option disabled>Miter</option><option disabled>Blend</option></select></span>
             </label>
-          </> : <SelectionChip label="邊／面／特徵" count={edgeRoundPicks.length} hint="逐條點選要處理的棱（成條高亮；再點同一條=取消）" onClear={() => useApp.getState().clearEdgeRoundPicks()} />}
+          </> : <SelectionChip label="邊／面／特徵" count={edgeRoundPicks.length} hint="逐條點選要處理的稜（成條高亮；再點同一條=取消）" onClear={() => useApp.getState().clearEdgeRoundPicks()} />}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode !== 'chord' && (
-            <div style={{ border: '1px solid #c8d0d8', borderRadius: 3, padding: 4 }} title="Fusion Radius Group：每组有自己嘅选边槽、半径同连续性；点击一行后，新拣嘅边会加入该组。">
+            <div style={{ border: '1px solid #c8d0d8', borderRadius: 3, padding: 4 }} title="Fusion Radius Group：每組有自己嘅選邊槽、半徑同連續性；點擊一行後，新揀嘅邊會加入該組。">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 132, overflowY: 'auto' }}>
                 {filletRadiusGroups.map((g, gi) => {
                   const n = edgeRoundGroupIds.filter((x) => x === gi).length
                   const active = gi === filletActiveGroup
                   return <div key={`frg-${gi}`} onClick={() => useApp.getState().selectFilletRadiusGroup(gi)} style={{ display: 'grid', gridTemplateColumns: '54px 62px 1fr', gap: 4, alignItems: 'center', padding: '3px 4px', borderRadius: 3, cursor: 'pointer', background: active ? '#dceeff' : 'transparent', outline: active ? '1px solid #4b91d1' : '1px solid transparent' }}>
                     <span style={{ fontSize: 11, color: active ? '#145f9b' : '#596772' }}>{n} 邊</span>
-                    <span><input type="number" aria-label={filletMode === 'asymmetric' ? `半径组 ${gi + 1} 偏移 1 mm` : `半径组 ${gi + 1} 半径 mm`} min={0} step={0.5} value={g.radius} onClick={(e) => e.stopPropagation()} onFocus={() => useApp.getState().selectFilletRadiusGroup(gi)} onChange={(e) => useApp.getState().setFilletGroupRadius(gi, Number(e.target.value))} style={{ width: 48 }} /> mm</span>
-                    <select aria-label={`半径组 ${gi + 1} 连续性`} value={filletMode === 'asymmetric' ? 'G1' : g.continuity} disabled={filletMode === 'asymmetric'} title={filletMode === 'asymmetric' ? 'Fusion 360 不對稱圓角固定使用 G1 連續性' : undefined} onClick={(e) => e.stopPropagation()} onFocus={() => useApp.getState().selectFilletRadiusGroup(gi)} onChange={(e) => useApp.getState().setFilletGroupContinuity(gi, e.target.value as 'G1' | 'G2')} style={{ height: 24, minWidth: 92 }}><option value="G1">相切 G1</option><option value="G2">曲率 G2</option></select>
+                    <span><input type="number" aria-label={filletMode === 'asymmetric' ? `半徑組 ${gi + 1} 偏移 1 mm` : `半徑組 ${gi + 1} 半徑 mm`} min={0} step={0.5} value={g.radius} onClick={(e) => e.stopPropagation()} onFocus={() => useApp.getState().selectFilletRadiusGroup(gi)} onChange={(e) => useApp.getState().setFilletGroupRadius(gi, Number(e.target.value))} style={{ width: 48 }} /> mm</span>
+                    <select aria-label={`半徑組 ${gi + 1} 連續性`} value={filletMode === 'asymmetric' ? 'G1' : g.continuity} disabled={filletMode === 'asymmetric'} title={filletMode === 'asymmetric' ? 'Fusion 360 不對稱圓角固定使用 G1 連續性' : undefined} onClick={(e) => e.stopPropagation()} onFocus={() => useApp.getState().selectFilletRadiusGroup(gi)} onChange={(e) => useApp.getState().setFilletGroupContinuity(gi, e.target.value as 'G1' | 'G2')} style={{ height: 24, minWidth: 92 }}><option value="G1">相切 G1</option><option value="G2">曲率 G2</option></select>
                   </div>
                 })}
               </div>
-              <div style={{ display: 'flex', gap: 4, marginTop: 4 }}><button type="button" aria-label="新增半径组" onClick={() => useApp.getState().addFilletRadiusGroup()} style={{ minWidth: 28 }}>＋</button><button type="button" aria-label="删除半径组" disabled={filletRadiusGroups.length <= 1} onClick={() => useApp.getState().removeFilletRadiusGroup()} style={{ minWidth: 28 }}>×</button><span style={{ fontSize: 10, color: '#6b7680', alignSelf: 'center' }}>选中第 {filletActiveGroup + 1} 组</span></div>
+              <div style={{ display: 'flex', gap: 4, marginTop: 4 }}><button type="button" aria-label="新增半徑組" onClick={() => useApp.getState().addFilletRadiusGroup()} style={{ minWidth: 28 }}>＋</button><button type="button" aria-label="刪除半徑組" disabled={filletRadiusGroups.length <= 1} onClick={() => useApp.getState().removeFilletRadiusGroup()} style={{ minWidth: 28 }}>×</button><span style={{ fontSize: 10, color: '#6b7680', alignSelf: 'center' }}>選中第 {filletActiveGroup + 1} 組</span></div>
             </div>
           )}
           {roundPreviewFail && (edgeRoundPick === 'chamfer'
             ? <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}><div>1 error(s)</div><div>The fillet/chamfer could not be created at the requested size.</div><div style={{ fontWeight: 400 }}>Try adjusting the size, deselecting some of the edges (try disabling Tangent Chain), or using multiple separate operations.</div></div>
-            : <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>⚠ {filletType === 'full' ? '三组面必须相邻，而且当前要求两条边界为平行直线' : filletMode === 'asymmetric' ? '目前只支持凸直线边与互相垂直的两个平面；几何保持不变' : '圓角半徑太大（超過相鄰面）— 減小數值先撳得確定'}</div>)}
+            : <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>⚠ {filletType === 'full' ? '三組面必須相鄰，而且當前要求兩條邊界為平行直線' : filletMode === 'asymmetric' ? '目前只支持凸直線邊與互相垂直的兩個平面；幾何保持不變' : '圓角半徑太大（超過相鄰面）— 減小數值先撳得確定'}</div>)}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && <label className="sb-hint" title="切线链（Fusion tangent chain）：点一条棱，自动连埋同佢相切连续嘅成条边链（例如圆角矩形顶圈 = 4 直边 + 4 弧一次过倒）">
-            <input type="checkbox" checked={edgeRoundChain && filletMode !== 'asymmetric'} disabled={edgeRoundPick === 'fillet' && filletMode === 'asymmetric'} onChange={() => useApp.getState().toggleEdgeRoundChain()} /> 切線鏈（自動連相切棱）
+            <input type="checkbox" checked={edgeRoundChain && filletMode !== 'asymmetric'} disabled={edgeRoundPick === 'fillet' && filletMode === 'asymmetric'} onChange={() => useApp.getState().toggleEdgeRoundChain()} /> 切線鏈（自動連相切稜）
           </label>}
           {/* R1 弦高圆角模式切换（仅 fillet）：半径 / 弦高（半径由每条棱局部二面角换算 r=c/(2cos(β/2))） */}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && <label title="Fusion Radius Type">
@@ -4946,14 +4946,14 @@ export default function Viewport() {
             </label>
           ) : edgeRoundPick === 'fillet' && filletType === 'rule' ? (
             <label>
-              <span style={{ color: '#6b7680' }}>半径</span>
+              <span style={{ color: '#6b7680' }}>半徑</span>
               <span><input type="number" aria-label="圓角半徑 mm" min={0.5} step={0.5} value={edgeRoundSize} onChange={(e) => setEdgeRoundSize(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
             </label>
           ) : null}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode === 'radius' && filletR2 > 0 && (
             <label title="變半徑圓角：末端半径 ≠ 起始半径 → 沿每条棱线性渐变（0=等半径）">
-              <span style={{ color: '#6b7680' }}>末端半径 (变径)</span>
-              <span><input type="number" aria-label="末端半径（变径）mm" min={0} step={0.5} value={filletR2} onChange={(e) => setFilletR2(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+              <span style={{ color: '#6b7680' }}>末端半徑 (變徑)</span>
+              <span><input type="number" aria-label="末端半徑（變徑）mm" min={0} step={0.5} value={filletR2} onChange={(e) => setFilletR2(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
             </label>
           )}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode === 'asymmetric' && <>
@@ -4962,19 +4962,19 @@ export default function Viewport() {
               <span><input type="number" aria-label="不對稱圓角偏移 2 mm" min={0.1} step={0.5} value={filletR2} onChange={(e) => setFilletR2(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
             </label>
             <label className="sb-hint" title="交换偏移 1 与偏移 2 所属的相邻面">
-              <input type="checkbox" checked={filletAsymFlip} onChange={(e) => setFilletAsymFlip(e.target.checked)} /> 翻转偏移方向
+              <input type="checkbox" checked={filletAsymFlip} onChange={(e) => setFilletAsymFlip(e.target.checked)} /> 翻轉偏移方向
             </label>
-            <div className="sb-hint">不对称圆角固定为相切 G1，并使用收进转角。</div>
+            <div className="sb-hint">不對稱圓角固定為相切 G1，並使用收進轉角。</div>
           </>}
           {/* S174 逐边半径 / GM-3DV3 M7 逐边距离：≥2 条棱时，逐条改半径/距离（Fusion 多半径圆角 / 逐边倒角 —— 一个特征内 A 棱 R2、B 棱 R8）。默认 = 上面全局值，改边即按边落不同值。倒角仅 equal 模式（两距离/角度各棱统一）。 */}
           {(edgeRoundPick === 'chamfer' && chamferMode === 'equal') && edgeRoundPicks.length >= 2 && (
             <div style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 4 }} title="逐边尺寸：每条拣中棱各自圆角半径/倒角距离。默认跟上面全局值；改某条即该棱用唔同值。">
-              <div style={{ color: '#6b7680', fontSize: 11, marginBottom: 2 }}>逐边距离（逐边倒角）</div>
+              <div style={{ color: '#6b7680', fontSize: 11, marginBottom: 2 }}>逐邊距離（逐邊倒角）</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 120, overflowY: 'auto' }}>
                 {edgeRoundPicks.map((_, i) => (
                   <div key={'err' + i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                    <span style={{ width: 38, color: '#8a97a2' }}>棱 {i + 1}</span>
-                    <input type="number" aria-label={`棱 ${i + 1} 距离 mm`} min={0.1} step={0.5} value={+(edgeRoundRadii[i] ?? edgeRoundSize).toFixed(2)} onChange={(e) => useApp.getState().setEdgeRoundRadiusAt(i, Number(e.target.value))} style={{ width: 60 }} /> mm
+                    <span style={{ width: 38, color: '#8a97a2' }}>稜 {i + 1}</span>
+                    <input type="number" aria-label={`稜 ${i + 1} 距離 mm`} min={0.1} step={0.5} value={+(edgeRoundRadii[i] ?? edgeRoundSize).toFixed(2)} onChange={(e) => useApp.getState().setEdgeRoundRadiusAt(i, Number(e.target.value))} style={{ width: 60 }} /> mm
                   </div>
                 ))}
               </div>
@@ -5078,7 +5078,7 @@ export default function Viewport() {
         >
           <SelectionChip label="两张面" count={faceFilletPicks.length} hint="① 点选两张相邻面；确认前会验证共同 B-rep 边" onClear={() => useApp.getState().clearFaceFilletPicks()} />
           <label>
-            <span style={{ color: '#6b7680' }}>半径</span>
+            <span style={{ color: '#6b7680' }}>半徑</span>
             <span><input type="number" aria-label="面圓角半徑 mm" min={0.1} step={0.5} value={faceFilletRadius} onChange={(e) => setFaceFilletRadius(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
           </label>
           <div style={{ fontSize: 11, color: '#8a97a2', lineHeight: 1.4 }}>窄版：平面-平面 / 平面-圆柱(轴⟂) 解析切点；一般曲面对滚球需改核（cad2）后置。</div>

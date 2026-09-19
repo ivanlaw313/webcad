@@ -2182,6 +2182,33 @@ Object.assign(STATUS_PHRASES_X, {
 })
 
 
+
+Object.assign(STATUS_PHRASES_X, {
+  // v1.90 BD-8902 SketchToolPanel select/autoconstrain TC
+  '撳空白 = 清選擇': 'Click empty = Clear selection',
+  '開=撳真空白即清選擇（Fusion 默認）；關=撳空唔清（防誤清，ESC 先清）': 'On=click empty clears selection (Fusion default); Off=empty click keeps selection (Esc to clear)',
+  '自動約束推斷': 'Auto-constrain inference',
+  '畫圖時自動加 水平/豎直/重合/平行/相切… 約束（Fusion AutoConstrain）': 'While drawing, auto-add H/V/coincident/parallel/tangent… constraints (Fusion AutoConstrain)',
+  '✨ 一鍵自動約束': '✨ One-click AutoConstrain',
+  '對選中集（無選擇=全部幾何）一次推斷多約束': 'Infer many constraints on selection (none selected = all geometry)',
+  '⚟ 畫成構造幾何（下一筆）': '⚟ Draw as construction geometry (next stroke)',
+  '構造線型預切換（Fusion Linetype）：開住時之後畫嘅形即時成構造幾何（琥珀虛線，唔參與拉伸）': 'Construction linetype pre-switch (Fusion Linetype): when on, next shapes are construction (amber dashed, not extruded)',
+  '點 點/邊/圓 揀選（可多選）· 空白左拖=框選（左→右全包/右→左相觸）· 雙擊邊=鏈選 → 撳約束/尺寸掣。或先撳約束掣（無選擇）= tool-first。': 'Click points/edges/circles to select (multi) · empty L-drag=box · double-click edge=chain → constrain/dim. Or arm constraint first (no selection)=tool-first.',
+})
+
+Object.assign(STATUS_PHRASES_X, {
+  // v1.90 BD-8901 fillet radius-group SC leftovers TC
+  '半徑組': 'Radius Group',
+  '已啟用': 'activated',
+  '之後點選嘅邊會加入呢組': 'edges picked after this will join this group',
+  '請點選邊並輸入半徑': 'pick edges and enter radius',
+  '已刪除半徑組': 'Removed radius group',
+  '末端半徑': 'End radius',
+  '變徑': 'variable',
+  '條稜': 'edges',
+  '稜': 'Edge',
+})
+
 Object.assign(STATUS_PHRASES_X, {
   // v1.89 BD-8801 fillet dialog leftovers TC
   '類型': 'Type',

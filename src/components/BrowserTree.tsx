@@ -24,7 +24,7 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   chamfer: { icon: 'chamfer', label: '倒角' },
   shell: { icon: 'shell', label: '抽殼' },
   pattern: { icon: 'pattern', label: '陣列' },
-  prim: { icon: 'box', label: '原语' },
+  prim: { icon: 'box', label: '原語' },
   thread: { icon: 'default', label: '螺紋桿' },
   ithread: { icon: 'hole', label: '內螺紋孔' },
   cylpatch: { icon: 'default', label: '曲面貼花' },
@@ -37,31 +37,31 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   loft: { icon: 'loft', label: '放樣' },
   surfloft: { icon: 'loft', label: '曲面放樣' },
   surfpatch: { icon: 'loft', label: '曲面 Patch' },
-  boundarypatch: { icon: 'loft', label: '边界补面' },
-  surfsew: { icon: 'shell', label: '缝合 Stitch' },
-  surfunstitch: { icon: 'shell', label: '取消缝合' },
+  boundarypatch: { icon: 'loft', label: '邊界補面' },
+  surfsew: { icon: 'shell', label: '縫合 Stitch' },
+  surfunstitch: { icon: 'shell', label: '取消縫合' },
   surfextrude: { icon: 'extrude', label: '曲面拉伸' },
   surfsweep: { icon: 'sweep', label: '曲面掃掠' },
   surfrevolve: { icon: 'revolve', label: '曲面旋轉' },
-  ruled: { icon: 'loft', label: '规则曲面' },
+  ruled: { icon: 'loft', label: '規則曲面' },
   surftrim: { icon: 'shell', label: '平面裁剪' },
   surfsurftrim: { icon: 'shell', label: '曲面裁剪' },  // S155 曲面-曲面裁剪
-  untrim: { icon: 'shell', label: '去裁/还原' },
+  untrim: { icon: 'shell', label: '去裁/還原' },
   mergefaces: { icon: 'shell', label: '合併面' },  // S 合并同域邻面 Unify-Same-Domain
-  editpoles: { icon: 'loft', label: '编辑曲面控制点' },  // S133 NURBS 极点编辑
+  editpoles: { icon: 'loft', label: '編輯曲面控制點' },  // S133 NURBS 极点编辑
   sweep: { icon: 'sweep', label: '掃掠' },
   coil: { icon: 'default', label: '螺旋' },
   scale: { icon: 'scale', label: '縮放' },
   draft: { icon: 'draft', label: '拔模' },
   cpattern: { icon: 'pattern', label: '環形陣列' },
-  copybody: { icon: 'newbody', label: '复制实体' },
-  transform: { icon: 'move', label: '移动' },
+  copybody: { icon: 'newbody', label: '複製實體' },
+  transform: { icon: 'move', label: '移動' },
   pushpull: { icon: 'presspull', label: '按拉' },
   delface: { icon: 'presspull', label: '刪面' },
   thickenface: { icon: 'shell', label: '加厚面' },
   offsetsurf: { icon: 'loft', label: '偏移曲面' },
-  reversesurf: { icon: 'shell', label: '翻转曲面' },  // S157 翻转曲面定向
-  thickenquilt: { icon: 'shell', label: '加厚整张曲面' },  // S182 加厚 quilt → 实体
+  reversesurf: { icon: 'shell', label: '翻轉曲面' },  // S157 翻转曲面定向
+  thickenquilt: { icon: 'shell', label: '加厚整張曲面' },  // S182 加厚 quilt → 实体
   extendface: { icon: 'extrude', label: '曲面延伸' },
   splitface: { icon: 'default', label: '分割面' },
   replaceface: { icon: 'default', label: '替換面' },
@@ -71,14 +71,14 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   newbody: { icon: 'box', label: '新實體' },
   bodyboolean: { icon: 'combine', label: '實體布爾' },
   split: { icon: 'default', label: '分割' },  // S128：参数化分割（保历史）
-  stepbody: { icon: 'insert', label: 'STEP实体' },
-  sketch: { icon: 'sketch', label: '草图' },  // T756：独立草图
+  stepbody: { icon: 'insert', label: 'STEP實體' },
+  sketch: { icon: 'sketch', label: '草圖' },  // T756：独立草图
   circPattern: { icon: 'pattern', label: '環形陣列' },  // T757
-  meshbody: { icon: 'insert', label: '网格实体' },  // T767
+  meshbody: { icon: 'insert', label: '網格實體' },  // T767
   worm: { icon: 'default', label: '蝸桿' },          // T770
   crowngear: { icon: 'default', label: '冠齒輪' },   // T770
   othread: { icon: 'default', label: '面外螺紋' },   // T775
-  extgroup: { icon: 'extrude', label: '拉伸组' },    // 多轮廓拉伸打包节点（用 as Feature cast，唔喺 union）
+  extgroup: { icon: 'extrude', label: '拉伸組' },    // 多轮廓拉伸打包节点（用 as Feature cast，唔喺 union）
   featpattern: { icon: 'pattern', label: '陣列' },   // 可编辑阵列组节点（T#148）
 }
 
@@ -518,13 +518,13 @@ export default function BrowserTree() {
               <div key={'cpl' + i} className="tree-row" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().sketchOnDatumPlane(pl.base, pl.offset)} title={tStatus(`在参考平面 ${pl.base}@${pl.offset} 上新建草图`, lang)}>
                 <span className="tw-toggle" />
                 <span className="tw-ico"><ToolIcon name="plane" size={13} /></span>
-                <span style={{ flex: 1 }}>{tStatus('参考面', lang)} {pl.base}@{pl.offset}{pl.src && !pl.stale && <span title={tStatus('关联基准：随源面自动更新', lang)} style={{ marginLeft: 3, fontSize: 10 }}>🔗</span>}{pl.stale && <span title={tStatus('源面已改动/消失，无法自动更新此基准 — 改回或删除重建', lang)} style={{ marginLeft: 3, color: '#c98a00' }}>⚠</span>}</span>
-                <span className="tw-act" title={tStatus('显示 / 隐藏此参考面', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleDatumVis(datumVisKey('pl', pl)) }}>{datumHidden.includes(datumVisKey('pl', pl)) ? '🙈' : '👁'}</span>
+                <span style={{ flex: 1 }}>{tStatus('參考面', lang)} {pl.base}@{pl.offset}{pl.src && !pl.stale && <span title={tStatus('关联基准：随源面自动更新', lang)} style={{ marginLeft: 3, fontSize: 10 }}>🔗</span>}{pl.stale && <span title={tStatus('源面已改动/消失，无法自动更新此基准 — 改回或删除重建', lang)} style={{ marginLeft: 3, color: '#c98a00' }}>⚠</span>}</span>
+                <span className="tw-act" title={tStatus('顯示 / 隱藏此參考面', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleDatumVis(datumVisKey('pl', pl)) }}>{datumHidden.includes(datumVisKey('pl', pl)) ? '🙈' : '👁'}</span>
                 {/* GM-W1 1.5：编辑 offset（角度面另可改 angle）。诚实：只郁呢块 datum 本身 — 已经喺佢上面拉伸/开咗嘅草图唔会跟住重算（timeline 关联系后续功能）。datum-pick 固定 arb 面（有 arb 无 aaxis）唔畀改 offset（无实义）。*/}
                 {(pl.aaxis != null || !pl.arb) && (
                   <span className="tw-act" title={tStatus(`编辑偏移${pl.aaxis != null ? '/角度' : ''} — 改动只影响之后新画嘅草图（唔会重算已拉伸嘅特征）`, lang)} onClick={(e) => { e.stopPropagation(); void (async () => {
                     const ap = useApp.getState()
-                    const ov = await ap.appPrompt(tStatus('新偏移 mm（沿基面法向平移此参考面）', lang), String(pl.offset), tStatus('编辑参考面', lang))
+                    const ov = await ap.appPrompt(tStatus('新偏移 mm（沿基面法向平移此參考面）', lang), String(pl.offset), tStatus('編輯參考面', lang))
                     if (ov == null) return
                     const offset = Number(ov.trim())
                     if (!Number.isFinite(offset)) { useApp.setState({ status: tStatus('偏移要系数字 — 已取消', lang) }); return }

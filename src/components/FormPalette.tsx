@@ -31,7 +31,7 @@ export function FormPalette({ title, children, footer }: { title: string; childr
       <header style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 6, flexShrink: 0, borderBottom: '1px solid #ccdbe5' }}>
         <span onPointerDown={drag.onPointerDown} style={{ flex: 1, cursor: 'move', touchAction: 'none', fontWeight: 600 }}>{title}</span>
         <button onClick={drag.reset} title="重设 Form 面板位置">↺</button>
-        <button aria-label="收起或展开 Form 面板" aria-expanded={!collapsed} onClick={() => setCollapsed((c) => !c)}>{collapsed ? '▸' : '▾'}</button>
+        <button aria-label="收起或展开造型面板" aria-expanded={!collapsed} onClick={() => setCollapsed((c) => !c)}>{collapsed ? '▸' : '▾'}</button>
       </header>
       {!collapsed && (
         <>

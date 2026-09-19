@@ -110,9 +110,16 @@ export const EN_LABEL: Record<string, string> = {
   '合并面': 'Merge Faces', '曲面延伸': 'Extend Surface',
   'Form 圆柱': 'Form Cylinder', 'Form 平面': 'Form Plane', 'Form 球': 'Form Sphere',
   'Form 环面': 'Form Torus', 'Form 曲面片': 'Form Patch', '编辑曲面控制点': 'Edit Surface Poles',
+  // FORM contextual ribbon (zh source → en via tLabel)
+  '创建造型': 'Create Form', '四边形球体': 'Quadball', '面': 'Face',
+  '编辑造型': 'Edit Form', '细分': 'Subdivide', '插入边': 'Insert Edge',
+  '折痕': 'Crease', '桥接': 'Bridge', '焊接': 'Weld', '填补孔': 'Fill Hole',
+  '擦除并填充': 'Erase & Fill', '造型对称': 'Symmetry', '修复实体': 'Repair Body',
+  '插入网格': 'Insert Mesh', '平面': 'Plane',
   // SHEET METAL
   '薄板/法兰(拉伸)': 'Flange (Extrude)',
 }
+
 
 // 翻译 ribbon 标签：en 模式查表（缺则原中文）；zh 模式原样。
 export function tLabel(label: string, lang: Lang): string {
@@ -125,10 +132,11 @@ const ZH_GROUP: Record<string, string> = {
   CREATE: '创建', MODIFY: '修改', CONSTRAINTS: '约束', FINISH: '完成', INSPECT: '检查',
   CONSTRUCT: '构造', ASSEMBLE: '装配', SELECT: '选择', EXPORT: '导出', CONFIGURE: '配置',
   INSERT: '插入', PARAMETERS: '参数', DRAWING: '工程图', MAKE: '制造',
+  SYMMETRY: '对称', UTILITIES: '工具',
 }
 const ZH_TAB: Record<string, string> = {
   SOLID: '实体', SURFACE: '曲面', MESH: '网格', 'SHEET METAL': '钣金', PLASTIC: '塑料',
-  MANAGE: '管理', UTILITIES: '工具',
+  MANAGE: '管理', UTILITIES: '工具', FORM: '造型',
 }
 // 组标题：zh 模式显示中文，en 模式显示原英文键。
 export function tGroup(name: string, lang: Lang): string {

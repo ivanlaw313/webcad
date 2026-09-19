@@ -2139,6 +2139,15 @@ Object.assign(STATUS_PHRASES_X, {
 
 
 Object.assign(STATUS_PHRASES_X, {
+  // v1.87 locale: physics props TC
+  '表面積': 'surface area',
+  '面積': 'area',
+  '材質': 'material',
+  '包圍盒': 'bounding box',
+  '主慣矩': 'principal moments',
+  '慣性 @原點(世界)': 'Inertia @ origin (world)',
+  '慣性 @質心(COM)': 'Inertia @ COM',
+  '質心 COM': 'Centroid (COM)',
   // v1.87 BD-8601 Ribbon appearance color tooltip TC
   '外觀顏色：點擊色塊選擇顏色，立即套用到當前實體': 'Appearance color: click swatch to pick a color; applies to the current body immediately',
   '外觀顏色': 'Appearance color',

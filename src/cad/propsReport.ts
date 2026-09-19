@@ -47,20 +47,20 @@ export function buildPropsReport(mp: MassProps, opts: PropsReportOpts): { rows: 
   const { frame, density, material, unit, prec, secondary, bbox, accuracy, name } = opts
   const massTonne = mp.mass ?? (density * 1e-9 * mp.volume)   // 无 mass 字段时按密度补算
   const rows: PropsRow[] = []
-  rows.push({ label: '面积', value: fmtAreaP(mp.area, unit, prec, secondary) })
+  rows.push({ label: '面積', value: fmtAreaP(mp.area, unit, prec, secondary) })
   rows.push({ label: '密度', value: `${density.toFixed(3)} g/cm³` })
-  rows.push({ label: '质量', value: fmtMass(massTonne) })
-  rows.push({ label: '体积', value: fmtVolP(mp.volume, unit, prec, secondary) })
-  if (material) rows.push({ label: '材质', value: material })
+  rows.push({ label: '質量', value: fmtMass(massTonne) })
+  rows.push({ label: '體積', value: fmtVolP(mp.volume, unit, prec, secondary) })
+  if (material) rows.push({ label: '材質', value: material })
   if (bbox) {
     const d: [number, number, number] = [bbox.max[0] - bbox.min[0], bbox.max[1] - bbox.min[1], bbox.max[2] - bbox.min[2]]
-    rows.push({ label: '包围盒', value: `${d.map((x) => fmtLenP(x, unit, prec, secondary)).join(' × ')}` })
+    rows.push({ label: '包圍盒', value: `${d.map((x) => fmtLenP(x, unit, prec, secondary)).join(' × ')}` })
   }
-  rows.push({ label: '质心 COM', value: fmtCoord(mp.centroid, unit, prec, secondary) })
-  rows.push({ label: '主惯矩 I₁/I₂/I₃', value: mp.principalMoments.map((I) => `${toGcm2(I).toFixed(2)}`).join(' / ') + ' g·cm²' })
+  rows.push({ label: '質心 COM', value: fmtCoord(mp.centroid, unit, prec, secondary) })
+  rows.push({ label: '主慣矩 I₁/I₂/I₃', value: mp.principalMoments.map((I) => `${toGcm2(I).toFixed(2)}`).join(' / ') + ' g·cm²' })
   // 坐标 世界⇄COM 切换：选定 frame 嘅惯性张量。
   const I = frame === 'world' ? mp.inertiaOrigin : mp.inertia
-  rows.push({ label: frame === 'world' ? '惯性 @原点(世界)' : '惯性 @质心(COM)', value: '' })
+  rows.push({ label: frame === 'world' ? '慣性 @原點(世界)' : '慣性 @質心(COM)', value: '' })
   rows.push(...tensorRows(I, unit))
 
   // 剪贴板文本 dump（照 copyInterfReport 风格）。

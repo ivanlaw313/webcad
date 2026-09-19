@@ -69,7 +69,7 @@ function pointLineDist(p: [number, number, number], mid: [number, number, number
 
 // 单个实体嘅自身读数 part。
 function intrinsicPart(pk: MeasurePick): MeasurePart {
-  if (pk.kind === 'body') return { label: '体积', kind: 'body', value: pk.volume, kindUnit: 'vol' }
+  if (pk.kind === 'body') return { label: '體積', kind: 'body', value: pk.volume, kindUnit: 'vol' }
   if (pk.kind === 'face') return { label: '面积', kind: 'face', value: pk.area, kindUnit: 'area' }
   if (pk.kind === 'edge') {
     if (pk.radius != null) return { label: pk.closed ? '孔径Ø' : '弧长', kind: 'edge', value: pk.closed ? pk.radius * 2 : pk.length, kindUnit: 'len' }
@@ -85,7 +85,7 @@ export function combineMeasure(picks: MeasurePick[]): MeasureResult {
 
   if (picks.length === 1) {
     const a = picks[0]
-    if (a.kind === 'body') return {type:'volume',label:'体积',value:a.volume??null,valueUnit:'vol',parts}
+    if (a.kind === 'body') return {type:'volume',label:'體積',value:a.volume??null,valueUnit:'vol',parts}
     if (a.kind === 'face') return { type: 'area', label: '面积', value: a.area ?? null, valueUnit: 'area', perimeter: a.perimeter, radius: a.radius, parts }
     if (a.kind === 'edge') {
       if (a.radius != null && a.closed) return { type: 'length', label: '孔径Ø', value: a.radius * 2, valueUnit: 'len', radius: a.radius, parts }

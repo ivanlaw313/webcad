@@ -147,15 +147,15 @@ export const DATUM_CMD_METHODS: Record<DatumCmdType, { id: string; label: string
   plane: [
     { id: 'offset', label: '偏移 / 成角 / 中间面' }, { id: 'offsetFace', label: '偏移面（拾面+距离）' }, { id: 'atAngleEdge', label: '成角（过边）' },
     { id: 'tangent', label: '相切面（圆柱面）' }, { id: 'midplane', label: '两面中面' }, { id: 'perp', label: '垂直面（面+参考边+距离）' },
-    { id: 'twoEdges', label: '过两边' }, { id: 'threePoints', label: '过三点（构造点）' }, { id: 'parPlanePt', label: '过点平行面' }, { id: 'alongPath', label: '路径平面（沿边）' },
+    { id: 'twoEdges', label: '過兩邊' }, { id: 'threePoints', label: '過三點（構造點）' }, { id: 'parPlanePt', label: '過點平行面' }, { id: 'alongPath', label: '路徑平面（沿邊）' },
   ],
   axis: [
-    { id: 'dirPoint', label: '方向 X/Y/Z + 过点' }, { id: 'cyl', label: '过圆柱/锥面' }, { id: 'perpFace', label: '⊥面（过点击点）' },
-    { id: 'twoPlanes', label: '过两面（交线）' }, { id: 'twoPoints', label: '过两点（构造点）' }, { id: 'edge', label: '沿边' },
+    { id: 'dirPoint', label: '方向 X/Y/Z + 過點' }, { id: 'cyl', label: '過圓柱/錐面' }, { id: 'perpFace', label: '⊥面（過點擊點）' },
+    { id: 'twoPlanes', label: '過兩面（交線）' }, { id: 'twoPoints', label: '過兩點（構造點）' }, { id: 'edge', label: '沿邊' },
   ],
   point: [
-    { id: 'xyz', label: '坐标 X/Y/Z' }, { id: 'vertex', label: '顶点（拾边最近端点）' }, { id: 'twoEdges', label: '两边交点' }, { id: 'threePlanes', label: '三面交点' },
-    { id: 'centerEdge', label: '圆边取心' }, { id: 'centerCyl', label: '圆柱面取心' }, { id: 'edgePlane', label: '边穿面' }, { id: 'alongPath', label: '沿路径' }, { id: 'midEdge', label: '边中点' }, { id: 'midpoint', label: '两点中点（构造点）' },
+    { id: 'xyz', label: '坐標 X/Y/Z' }, { id: 'vertex', label: '頂點（拾邊最近端點）' }, { id: 'twoEdges', label: '兩邊交點' }, { id: 'threePlanes', label: '三面交點' },
+    { id: 'centerEdge', label: '圓邊取心' }, { id: 'centerCyl', label: '圓柱面取心' }, { id: 'edgePlane', label: '邊穿面' }, { id: 'alongPath', label: '沿路徑' }, { id: 'midEdge', label: '邊中點' }, { id: 'midpoint', label: '兩點中點（構造點）' },
   ],
 }
 // GM-3DV2 R1：累积拾取法 method → 拾取槽序列（p=构造点 f=平面 c=圆柱面 e=边）；非累积法唔喺表内（走字段/按钮/遗留拾取）。

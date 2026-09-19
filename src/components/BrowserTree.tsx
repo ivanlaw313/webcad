@@ -513,7 +513,7 @@ export default function BrowserTree() {
           <Leaf icon="axis" label="Z 轴" />
         </Section>
         {(planes.length + cpoints.length + caxes.length) > 0 && (
-          <Section label={`构造 (${planes.length + cpoints.length + caxes.length})`}>
+          <Section label={`構造 (${planes.length + cpoints.length + caxes.length})`}>
             {planes.map((pl, i) => (
               <div key={'cpl' + i} className="tree-row" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().sketchOnDatumPlane(pl.base, pl.offset)} title={tStatus(`在参考平面 ${pl.base}@${pl.offset} 上新建草图`, lang)}>
                 <span className="tw-toggle" />
@@ -547,7 +547,7 @@ export default function BrowserTree() {
               <div key={'cax' + i} className="tree-row" style={{ paddingLeft: 18 }} title={tStatus(`构造轴 ${ax.dir} @(${ax.at.join(',')})`, lang)}>
                 <span className="tw-toggle" />
                 <span className="tw-ico"><ToolIcon name="axis" size={13} /></span>
-                <span style={{ flex: 1 }}>{tStatus('构造轴', lang)} {ax.dir}@({ax.at.join(',')})</span>
+                <span style={{ flex: 1 }}>{tStatus('構造軸', lang)} {ax.dir}@({ax.at.join(',')})</span>
                 <span className="tw-act" title={tStatus('显示 / 隐藏此构造轴', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleDatumVis(datumVisKey('ax', ax)) }}>{datumHidden.includes(datumVisKey('ax', ax)) ? '🙈' : '👁'}</span>
                 <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草图模式中锁定 — 完成草图后可删除' : '删除构造轴', lang)} onClick={(e) => { e.stopPropagation(); if (skDelGuard()) return; useApp.getState().removeCAxis(i) }}>🗑</span>
               </div>
@@ -556,7 +556,7 @@ export default function BrowserTree() {
               <div key={'cpt' + i} className="tree-row" style={{ paddingLeft: 18 }} title={tStatus(`构造点 (${p.join(',')})`, lang)}>
                 <span className="tw-toggle" />
                 <span className="tw-ico"><ToolIcon name="default" size={13} /></span>
-                <span style={{ flex: 1 }}>{tStatus('构造点', lang)} ({p.join(',')})</span>
+                <span style={{ flex: 1 }}>{tStatus('構造點', lang)} ({p.join(',')})</span>
                 <span className="tw-act" title={tStatus('显示 / 隐藏此构造点', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleDatumVis(datumVisKey('pt', p)) }}>{datumHidden.includes(datumVisKey('pt', p)) ? '🙈' : '👁'}</span>
                 <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草图模式中锁定 — 完成草图后可删除' : '删除构造点', lang)} onClick={(e) => { e.stopPropagation(); if (skDelGuard()) return; useApp.getState().removeCPoint(i) }}>🗑</span>
               </div>

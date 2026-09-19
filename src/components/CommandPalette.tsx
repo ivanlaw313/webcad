@@ -2,6 +2,7 @@ import { commandContextKey, commandDisabledReason } from '../cad/commandAvailabi
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useApp, SAMPLE_LABELS, type SampleKind } from '../store'
 import { WORKSPACES, SKETCH_PANELS, FORM_PANELS, type Tool } from '../ribbon'
+import { msg, tLabel, CATALOGS, normalizeLang, type Lang } from '../i18n'
 
 // A searchable command. Ribbon tools dispatch through runCommand(id); templates and
 // global file/edit/view actions carry their own `run` closure instead.
@@ -121,6 +122,21 @@ const SYN: Record<string, string> = {
   calc: '工程計算 工程计算 速算 calculator 齒輪嚙合',
 }
 
+
+/** Catalog tip for a command id when present; else ribbon/source tip. */
+function resolveTip(id: string, lang: Lang, fallback?: string): string | undefined {
+  const key = `tip.${id}`
+  const L = normalizeLang(lang)
+  return CATALOGS[L][key] ?? CATALOGS['zh-HK'][key] ?? fallback
+}
+
+/** Catalog alias keywords for a command id when present; else hardcoded SYN. */
+function resolveAlias(id: string, lang: Lang): string | undefined {
+  const key = `alias.${id}`
+  const L = normalizeLang(lang)
+  return CATALOGS[L][key] ?? CATALOGS['zh-HK'][key] ?? SYN[id]
+}
+
 // Flattened, de-duplicated command list built once from every workspace ribbon.
 // Keeps the richest entry (the one that carries a `tip`, usually from the SOLID tab)
 // and records the first "WORKSPACE · PANEL" it appears in as a subtle source tag.
@@ -145,7 +161,7 @@ function buildCommands(): Cmd[] {
           // upgrade to the richer (tipped) variant but keep the original source tag
           byId.set(t.id, { ...existing, ...t, from: existing.from })
         }
-        addTool(t, `${wsName} 繚 ${panel.name}`)
+        addTool(t, `${wsName} · ${panel.name}`)
       }
     }
   }
@@ -193,6 +209,7 @@ export default function CommandPalette() {
   const setOpen = useApp((s) => s.setCmdPalette)
   const run = useApp((s) => s.runCommand)
   const inSketch = useApp((s) => s.mode === 'sketch')   // GM-FP4 #50：草图内 → 草图命令排前 + placeholder 提示
+  const lang = useApp((s) => s.lang)
   const contextKey = useApp(commandContextKey)
   const [showUnavailable, setShowUnavailable] = useState(false)
   const [q, setQ] = useState('')
@@ -204,17 +221,24 @@ export default function CommandPalette() {
   const results = useMemo(() => {
     const s = q.trim().toLowerCase()
     const available = showUnavailable ? all : all.filter(c => !commandDisabledReason(useApp.getState(), c.id))
-    const base = !s ? available : available.filter((c) =>
-      c.label.toLowerCase().includes(s) ||
-      c.id.toLowerCase().includes(s) ||
-      (c.tip ? c.tip.toLowerCase().includes(s) : false) ||
-      (SYN[c.id] ? SYN[c.id].toLowerCase().includes(s) : false) ||
-      c.from.toLowerCase().includes(s))
+    const base = !s ? available : available.filter((c) => {
+      const label = tLabel(c.label, lang).toLowerCase()
+      const tip = (resolveTip(c.id, lang, c.tip) || '').toLowerCase()
+      const alias = (resolveAlias(c.id, lang) || '').toLowerCase()
+      const syn = (SYN[c.id] || '').toLowerCase()
+      return label.includes(s) ||
+        c.label.toLowerCase().includes(s) ||
+        c.id.toLowerCase().includes(s) ||
+        tip.includes(s) ||
+        alias.includes(s) ||
+        syn.includes(s) ||
+        c.from.toLowerCase().includes(s)
+    })
     // GM-FP4 #50：草图模式 → 草图工具（sk_*）稳定排到最前（Fusion「Sketch Shortcuts」优先草图命令）。
     if (!inSketch) return base
     const isSk = (id: string) => id.startsWith('sk_')
     return [...base].sort((a, b) => (isSk(a.id) === isSk(b.id) ? 0 : isSk(a.id) ? -1 : 1))
-  }, [q, all, inSketch, contextKey, showUnavailable])
+  }, [q, all, inSketch, contextKey, showUnavailable, lang])
 
   // Reset query + selection each time the palette opens; focus the input.
   useEffect(() => {
@@ -255,33 +279,37 @@ export default function CommandPalette() {
             value={q}
             onChange={(e) => { setQ(e.target.value); setSel(0) }}
             onKeyDown={onKey}
-            aria-label="搜索命令"
-            placeholder={inSketch ? '搜索草图命令…（例如 直线 / 圆 / 尺寸 / 修剪 / 偏移）' : '搜索命令…（例如 齿轮 / 拉伸 / 倒角 / 导出）'}
+            aria-label={msg('cmd.ariaSearch', lang)}
+            placeholder={inSketch ? msg('cmd.searchPlaceholderSketch', lang) : msg('cmd.searchPlaceholder', lang)}
             style={{ flex: 1, border: 'none', outline: 'none', fontSize: 15, background: 'transparent' }}
           />
-          <span style={{ fontSize: 11, color: '#9aa6b0' }}>↑↓ 选择 · Enter 执行 · Esc 关闭</span>
+          <span style={{ fontSize: 11, color: '#9aa6b0' }}>{msg('cmd.hint', lang)}</span>
         </div>
-        <label style={{ padding: '6px 14px', fontSize: 12, color: '#556575' }}><input type="checkbox" checked={showUnavailable} onChange={e => { setShowUnavailable(e.target.checked); setSel(0) }} /> 显示当前不可用命令</label>
+        <label style={{ padding: '6px 14px', fontSize: 12, color: '#556575' }}><input type="checkbox" checked={showUnavailable} onChange={e => { setShowUnavailable(e.target.checked); setSel(0) }} /> {msg('cmd.showUnavailable', lang)}</label>
         <div ref={listRef} style={{ overflowY: 'auto' }}>
           {results.length === 0 && (
-            <div style={{ padding: '18px 16px', color: '#8a96a0', fontSize: 13 }}>{showUnavailable ? `没有与「${q}」匹配的命令。请换一个名称或关键词。` : `当前环境没有与「${q}」匹配的可用命令。可勾选「显示当前不可用命令」查看，或先完成／取消当前操作。`}</div>
+            <div style={{ padding: '18px 16px', color: '#8a96a0', fontSize: 13 }}>{(showUnavailable ? msg('cmd.emptyAll', lang) : msg('cmd.empty', lang)).replace('{0}', q)}</div>
           )}
-          {results.map((c, i) => (
+          {results.map((c, i) => {
+            const tip = resolveTip(c.id, lang, c.tip)
+            const label = tLabel(c.label, lang)
+            return (
             <div
               key={c.id}
               data-i={i}
               role="option" aria-disabled={!!commandDisabledReason(useApp.getState(), c.id)}
-              title={commandDisabledReason(useApp.getState(), c.id) ?? c.tip}
+              title={commandDisabledReason(useApp.getState(), c.id) ?? tip}
               onMouseEnter={() => setSel(i)}
               onClick={() => choose(c)}
               style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '8px 14px', opacity: commandDisabledReason(useApp.getState(), c.id) ? .48 : 1, cursor: commandDisabledReason(useApp.getState(), c.id) ? 'not-allowed' : 'pointer', background: i === sel ? '#eaf3fb' : 'transparent', borderLeft: i === sel ? '3px solid #2a7aa8' : '3px solid transparent' }}
             >
-              <span style={{ fontWeight: 600, fontSize: 14, color: '#1d2329', whiteSpace: 'nowrap' }}>{c.label}</span>
+              <span style={{ fontWeight: 600, fontSize: 14, color: '#1d2329', whiteSpace: 'nowrap' }}>{label}</span>
               {c.shortcut && <kbd style={{ fontSize: 10, color: '#6b7884', border: '1px solid #cfd8df', borderRadius: 4, padding: '0 4px' }}>{c.shortcut}</kbd>}
-              {c.tip && <span style={{ fontSize: 12, color: '#7a8893', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.tip}</span>}
+              {tip && <span style={{ fontSize: 12, color: '#7a8893', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tip}</span>}
               <span style={{ marginLeft: 'auto', fontSize: 10, color: '#aab4bd', whiteSpace: 'nowrap' }}>{c.from}</span>
             </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

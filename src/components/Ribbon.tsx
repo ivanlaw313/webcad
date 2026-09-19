@@ -362,7 +362,7 @@ export default function Ribbon() {
         <button className="tb-btn" title="适应窗口 / 主视图" onClick={() => requestFit()}><ToolIcon name="home" size={18} /></button>
         <div className="tb-sep" />
         <div style={{ position: 'relative' }}>
-          <button ref={fileButton} aria-haspopup="menu" aria-expanded={fileMenu} className="tb-btn tb-text" title="文件：新建 / 打开 / 保存 / 导入 / 导出 / 工程图" onClick={() => setFileMenu((o) => !o)}>
+          <button ref={fileButton} aria-haspopup="menu" aria-expanded={fileMenu} className="tb-btn tb-text" title={msg('file.title', lang)} onClick={() => setFileMenu((o) => !o)}>
             <ToolIcon name="menu" size={16} /> {msg('ui.file', lang)} ▾
           </button>
           {fileMenu && createPortal(
@@ -380,29 +380,29 @@ export default function Ribbon() {
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => openProject()}><ToolIcon name="insert" size={16} />{msg('file.open', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => saveProject()}><ToolIcon name="save" size={16} />{msg('file.save', lang)}<span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>Ctrl+S</span></button>
                 <button type="button" role="menuitem" className="panel-menu-item" title="分享链接（T797）：整个项目压缩入一条 URL（gzip+base64,零服务器零隐私）→ 复制到剪贴板。发畀人/收藏即可重开。大模型超 1.9MB 改用「保存」传档" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{msg('file.share', lang)}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => useApp.getState().setHistoryOpen(true)}><ToolIcon name="undo" size={16} />{en ? 'Version History…' : '版本历史…'}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => useApp.getState().setHistoryOpen(true)}><ToolIcon name="undo" size={16} />{msg('file.history', lang)}</button>
                 <div className="panel-menu-divider" />
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStl}><ToolIcon name="insert" size={16} />{en ? 'Import STL…' : '导入 STL…'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStep}><ToolIcon name="insert" size={16} />{en ? 'Import STEP…' : '导入 STEP…'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="保留 B-rep 入时间轴：导入后可继续 切割/圆角/抽壳/再导出 STEP（≤8MB；大文件用上面网格路线）" onClick={() => useApp.getState().openStepBrepDialog()}><ToolIcon name="insert" size={16} />{en ? 'Import STEP as Solid (B-rep)…' : '导入 STEP 为实体 (B-rep)…'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={onImport3MF}><ToolIcon name="insert" size={16} />{en ? 'Import 3MF…' : '导入 3MF…'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={openObjDialog}><ToolIcon name="insert" size={16} />{en ? 'Import OBJ…' : '导入 OBJ…'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={openDxfDialog}><ToolIcon name="importdxf" size={16} />{en ? 'Import DXF…' : '导入 DXF…'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={openSvgDialog}><ToolIcon name="importsvg" size={16} />{en ? 'Import SVG…' : '导入 SVG…'}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStl}><ToolIcon name="insert" size={16} />{msg('file.importStl', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStep}><ToolIcon name="insert" size={16} />{msg('file.importStep', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="保留 B-rep 入时间轴：导入后可继续 切割/圆角/抽壳/再导出 STEP（≤8MB；大文件用上面网格路线）" onClick={() => useApp.getState().openStepBrepDialog()}><ToolIcon name="insert" size={16} />{msg('file.importStepBrep', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={onImport3MF}><ToolIcon name="insert" size={16} />{msg('file.import3mf', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={openObjDialog}><ToolIcon name="insert" size={16} />{msg('file.importObj', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={openDxfDialog}><ToolIcon name="importdxf" size={16} />{msg('file.importDxf', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={openSvgDialog}><ToolIcon name="importsvg" size={16} />{msg('file.importSvg', lang)}</button>
                 <div className="panel-menu-divider" />
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportStl()}><ToolIcon name="save" size={16} />{en ? 'Export STL' : '導出 STL'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportStep()}><ToolIcon name="save" size={16} />{en ? 'Export STEP' : '導出 STEP'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={exportThreeMF}><ToolIcon name="save" size={16} />{en ? 'Export 3MF' : '導出 3MF'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={exportObj}><ToolIcon name="save" size={16} />{en ? 'Export OBJ' : '導出 OBJ'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" title={en ? 'Exports the current sketch profile as 2D DXF.' : '導出當前草圖輪廓為 2D DXF。'} onClick={exportSketchDxf}><ToolIcon name="importdxf" size={16} />{en ? 'Export Sketch DXF' : '導出草圖 DXF'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => exportAssemblyStl()}><ToolIcon name="save" size={16} />{en ? 'Export Assembly STL' : '導出裝配 STL'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="真布尔合并单壳（manifold union）：把装配各件熔成一个水密壳再导出——慢，但打印更稳（冇内壁/重叠壳）。要各件水密；失败会诚实回退三角汤" onClick={() => exportAssemblyStl(true)}><ToolIcon name="save" size={16} />{en ? 'Export Assembly STL · Boolean Union (slow)' : '導出裝配 STL · 真布尔合并单壳（慢）'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportGLB()}><ToolIcon name="save" size={16} />{en ? 'Export glTF/GLB' : '導出 glTF/GLB'}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportStl()}><ToolIcon name="save" size={16} />{msg('file.exportStl', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportStep()}><ToolIcon name="save" size={16} />{msg('file.exportStep', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={exportThreeMF}><ToolIcon name="save" size={16} />{msg('file.export3mf', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={exportObj}><ToolIcon name="save" size={16} />{msg('file.exportObj', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title={msg('file.exportSketchDxf', lang)} onClick={exportSketchDxf}><ToolIcon name="importdxf" size={16} />{msg('file.exportSketchDxf', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => exportAssemblyStl()}><ToolIcon name="save" size={16} />{msg('file.exportAsmStl', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="真布尔合并单壳（manifold union）：把装配各件熔成一个水密壳再导出——慢，但打印更稳（冇内壁/重叠壳）。要各件水密；失败会诚实回退三角汤" onClick={() => exportAssemblyStl(true)}><ToolIcon name="save" size={16} />{msg('file.exportAsmStlUnion', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportGLB()}><ToolIcon name="save" size={16} />{msg('file.exportGlb', lang)}</button>
                 <div className="panel-menu-divider" />
-                <button type="button" role="menuitem" className="panel-menu-item" title="导出当前 3D 视图为 PNG 截图（贴文档/邮件）" onClick={() => useApp.getState().runCommand('viewpng', '视图截图')}><ToolIcon name="save" size={16} />{en ? 'Export View PNG' : '導出視圖 PNG'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void generateDrawing()}><ToolIcon name="drawing" size={16} />{en ? 'Drawing (3 Views)' : '工程圖（三視圖）'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="裝配三視圖 + 氣泡編號 + BOM 表（組件網格投影：輪廓+特徵邊）" onClick={() => void useApp.getState().generateAsmDrawing()}><ToolIcon name="drawing" size={16} />{en ? 'Assembly Drawing + BOM' : '裝配工程圖 + BOM'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('清空全部？当前模型（特征 + 组件）会清除——未保存的话请先「保存」。')) void reset() }}><ToolIcon name="trash" size={16} />{en ? 'Clear All' : '清空全部'}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="导出当前 3D 视图为 PNG 截图（贴文档/邮件）" onClick={() => useApp.getState().runCommand('viewpng', '视图截图')}><ToolIcon name="save" size={16} />{msg('file.exportViewPng', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void generateDrawing()}><ToolIcon name="drawing" size={16} />{msg('file.drawing', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="裝配三視圖 + 氣泡編號 + BOM 表（組件網格投影：輪廓+特徵邊）" onClick={() => void useApp.getState().generateAsmDrawing()}><ToolIcon name="drawing" size={16} />{msg('file.asmDrawing', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('清空全部？当前模型（特征 + 组件）会清除——未保存的话请先「保存」。')) void reset() }}><ToolIcon name="trash" size={16} />{msg('file.clear', lang)}</button>
               </div>
             </>, document.body
           )}
@@ -413,7 +413,7 @@ export default function Ribbon() {
         <div className="tb-spacer" />
         <div className="doc-tab" title="文档名（用于保存档名 / 工程图标题栏）— 点击改名">
           <span className="doc-cube" />
-          <input className="doc-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder={en ? 'Untitled' : '未命名'} />
+          <input className="doc-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder={msg('file.untitled', lang)} />
         </div>
         <div className="tb-spacer" />
         {/* GM-W2 2.1 对标 Fusion：草图模式下收起非情境嘅「模板/材料/螺丝/材质/纹理/颜色」库，只保留文件·保存·撤销·文档名·搜索·帮助·语言 */}

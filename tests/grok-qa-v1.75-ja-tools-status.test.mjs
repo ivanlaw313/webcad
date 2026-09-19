@@ -24,9 +24,9 @@ test('APP_VERSION is 1.75+', () => {
   assert.match(version, /APP_VERSION = '1\.(7[5-9]|[8-9]\d)'|APP_VERSION = '[2-9]\./)
 })
 
-test('v1.75: SW CACHE webcad-v1.75; network-first; release comment', () => {
-  assert.match(sw, /const CACHE = 'webcad-v1\.75'/)
-  assert.match(sw, /webcad-v1\.75/)
+test('v1.75: SW CACHE webcad-v1.75+; network-first; release comment', () => {
+  assert.match(sw, /const CACHE = 'webcad-v1\.(7[5-9]|[8-9]\d)'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.74'/)
 })
 
 test('catalog parity across 4 locales', () => {

@@ -57,7 +57,7 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   copybody: { icon: 'newbody', label: '复制实体' },
   transform: { icon: 'move', label: '移动' },
   pushpull: { icon: 'presspull', label: '按拉' },
-  delface: { icon: 'presspull', label: '删面' },
+  delface: { icon: 'presspull', label: '刪面' },
   thickenface: { icon: 'shell', label: '加厚面' },
   offsetsurf: { icon: 'loft', label: '偏移曲面' },
   reversesurf: { icon: 'shell', label: '翻转曲面' },  // S157 翻转曲面定向

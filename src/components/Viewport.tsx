@@ -4766,7 +4766,7 @@ export default function Viewport() {
           }
           overflow = [
             ...(bodyMesh ? [
-              { key: 'delface', label: '⌦ 删面', fn: () => runCommand('delface', '删面') } as MMItem,
+              { key: 'delface', label: '⌦ 刪面', fn: () => runCommand('delface', '刪面') } as MMItem,
             ] : [
               { key: 'measure', label: '📏 測量', fn: () => runCommand('measure', '測量') } as MMItem,
             ]),

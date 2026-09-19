@@ -340,7 +340,7 @@ export default function App() {
       <ErrorBoundary name="参数面板" compact><ParamsPanel /></ErrorBoundary>
       {drawingOpen && <ErrorBoundary name="工程图" compact><Suspense fallback={null}><DrawingPanel /></Suspense></ErrorBoundary>}
       {physicsLabOpen && <ErrorBoundary name="环境模拟实验室" compact><Suspense fallback={null}><PhysicsLab /></Suspense></ErrorBoundary>}
-      {sliceOpen && sliceMesh && <ErrorBoundary name="切层预览" compact><Suspense fallback={null}><SlicePanel mesh={sliceMesh} onClose={() => useApp.getState().setSliceOpen(false)} /></Suspense></ErrorBoundary>}
+      {sliceOpen && sliceMesh && <ErrorBoundary name="切層預覽" compact><Suspense fallback={null}><SlicePanel mesh={sliceMesh} onClose={() => useApp.getState().setSliceOpen(false)} /></Suspense></ErrorBoundary>}
       {historyOpen && <Suspense fallback={null}><HistoryPanel onClose={() => useApp.getState().setHistoryOpen(false)} onSaveNamed={(label) => useApp.getState().saveVersion(label)} onRestore={(data) => void useApp.getState().applySnapshot(data)} /></Suspense>}
       {helpOpen && <Suspense fallback={null}><HelpPanelLazy /></Suspense>}
       <ErrorBoundary name="属性检查器" compact><InspectorPanel /></ErrorBoundary>

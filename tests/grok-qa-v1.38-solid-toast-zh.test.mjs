@@ -56,6 +56,8 @@ test('i18n v1.38 guards present (identity Chinese)', () => {
   assert.match(i18nSrc, /'已拉伸出实体 — 真实 OCCT B-rep': '已拉伸出实体 — 真实 OCCT B-rep'/)
   assert.match(i18nSrc, /['\"]已在顶面叠加拉伸特征['\"]: ['\"]已在顶面叠加拉伸特征['\"]/)
   assert.match(i18nSrc, /'已实体布尔：活动实体': '已实体布尔：活动实体'/)
+  assert.match(i18nSrc, /'已實體布爾：活動實體': '已實體布爾：活動實體'/)
+  assert.match(i18nSrc, /'已合併：活動實體': '已合併：活動實體'/)
   assert.match(i18nSrc, /'已合并：活动实体': '已合并：活动实体'/)
   assert.match(i18nSrc, /'已对所有棱倒圆角': '已对所有棱倒圆角'/)
   assert.match(i18nSrc, /'已对所有棱倒角': '已对所有棱倒角'/)
@@ -99,9 +101,9 @@ test('boolean/fuse/new-body → Chinese, no Done:/boolean/Merged', () => {
     noHybrid(en)
     assert.match(en, /已/)
   }
-  assert.match(tStatus(body, 'en'), /已实体布尔/)
-  assert.match(tStatus(fuse, 'en'), /已合并：活动实体/)
-  assert.match(tStatus(nb, 'en'), /已开新实体/)
+  assert.match(tStatus(body, 'en'), /已實體布爾|已实体布尔/)
+  assert.match(tStatus(fuse, 'en'), /已合併：活動實體|已合并：活动实体/)
+  assert.match(tStatus(nb, 'en'), /已開新實體|已开新实体/)
 })
 
 test('revolve/loft/sweep/draft/thicken/all-edge fillet·chamfer guards', () => {

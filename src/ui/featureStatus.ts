@@ -69,17 +69,17 @@ export function booleanSuccessStatus(opts: {
   toolCount?: number
   keepTools?: boolean
 }): string {
-  const lbl = opts.op === 'cut' ? '切除' : opts.op === 'common' ? '相交' : '合并'
+  const lbl = opts.op === 'cut' ? '切除' : opts.op === 'common' ? '相交' : '合併'
   const sym = opts.op === 'cut' ? '−' : opts.op === 'common' ? '∩' : '+'
   if (opts.kind === 'combine') {
     const n = opts.toolCount ?? 1
-    const keep = opts.keepTools ? '·保留工具体' : ''
-    return `已合并：活动实体 ${sym} ${n} 个工具体（${lbl}${keep}，B-rep 级 — 时间轴可改/可删）`
+    const keep = opts.keepTools ? '·保留工具體' : ''
+    return `已合併：活動實體 ${sym} ${n} 個工具體（${lbl}${keep}，B-rep 級 — 時間軸可改/可刪）`
   }
-  return `已实体布尔：活动实体 ${sym} 泊车实体（${lbl}，B-rep 级 — 时间轴可改/可删）`
+  return `已實體布爾：活動實體 ${sym} 泊車實體（${lbl}，B-rep 級 — 時間軸可改/可刪）`
 }
 
 /** New body (park active) success. */
 export function newBodySuccessStatus(n: number): string {
-  return `已开新实体 —「实体${n}」已泊车（灰显）。而家建嘅嘢全部属于新实体；完成后撳「实体布尔」合并/切除/相交`
+  return `已開新實體 —「實體${n}」已泊車（灰顯）。而家建嘅嘢全部屬於新實體；完成後撳「實體布爾」合併/切除/相交`
 }

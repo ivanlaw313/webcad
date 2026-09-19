@@ -13861,6 +13861,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'select': set({ status: '选择模式：点击实体或组件' }); return
       case 'params': return get().toggleParamsPanel()
       case 'drawing': return void get().generateDrawing()
+      case 'asmdrawing': return void get().generateAsmDrawing()
       case 'fourbar': return get().makeFourBar()
       case 'slidercrank': return get().makeSliderCrank()
       case 'sixbar': return get().makeSixBar()
@@ -19883,9 +19884,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   generateAsmDrawing: async () => {
     const s = get()
     const comps = s.components.filter((c) => !c.hidden && c.mesh.vertices.length)
-    if (!comps.length) { set({ status: '装配工程图：冇可见组件（先「新建组件」砌一个装配，或用单体工程图）' }); return }
+    if (!comps.length) { set({ status: '裝配工程圖：冇可見組件（先「新建組件」砌一個裝配，或用單體工程圖）' }); return }
     const tris = comps.reduce((t, c) => t + c.mesh.triangles.length / 3, 0)
-    set({ status: `正在生成装配工程图…（${comps.length} 件 · ${Math.round(tris / 1000)}k 三角）` })
+    set({ status: `正在生成裝配工程圖…（${comps.length} 件 · ${Math.round(tris / 1000)}k 三角）` })
     await new Promise((r) => setTimeout(r, 30))  // 让 status 先上屏（投影喺主线程）
     const { projectMeshEdges, segsToSvgPath } = await import('./io/meshProject')
     const fk = computeFK(s.components.map((c) => c.id), s.joints)
@@ -19926,7 +19927,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       views.push({ name: vn, vb, visible: path ? [path] : [], hidden: [] })
       balloons[vn] = bl
     }
-    if (!views.length) { set({ status: '装配工程图生成失败（组件投影为空）' }); return }
+    if (!views.length) { set({ status: '裝配工程圖生成失敗（組件投影為空）' }); return }
     const bom = groups.map((g, i) => ({ n: i + 1, name: g.name, qty: g.qty, mat: g.mat, grams: Math.round(g.grams * 10) / 10 }))
     // T769（S48）：全部组件有 src（B-rep 可重建）→ worker 真 HLR 投影替换视图路径 —
     // 隐藏线虚线 + 真圆（孔照圆出）。气泡锚点照用 mesh 投影 bbox（同一几何同一坐标系，y 翻转约定一致）。
@@ -19956,8 +19957,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     set({ drawingViews: views, drawingKind: 'assembly', drawingBalloons: balloons, drawingBom: bom, drawingOpen: true,
       status: hlr
-        ? `已生成装配工程图（${comps.length} 件 · ${bom.length} 种零件 · 气泡对应 BOM 序号）— B-rep HLR 投影：真隐藏线 + 真圆`
-        : `已生成装配工程图（${comps.length} 件 · ${bom.length} 种零件 · 气泡对应 BOM 序号）— mesh 投影：无隐藏线/圆为折线（净网格件存在时嘅诚实近似）` })
+        ? `已生成裝配工程圖（${comps.length} 件 · ${bom.length} 種零件 · 氣泡對應 BOM 序號）— B-rep HLR 投影：真隱藏線 + 真圓`
+        : `已生成裝配工程圖（${comps.length} 件 · ${bom.length} 種零件 · 氣泡對應 BOM 序號）— mesh 投影：無隱藏線/圓為折線（淨網格件存在時嘅誠實近似）` })
   },
   closeDrawing: () => set({ drawingOpen: false }),
 

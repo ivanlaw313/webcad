@@ -20,7 +20,7 @@ test('APP_VERSION is 1.46+', () => {
 test('v1.46: non-box Form create uses XY/XZ/YZ plane buttons (not select)', () => {
   assert.match(viewport, /data-testid=\{`form-\$\{createKind\}-plane-\$\{pl\}`\}/)
   assert.match(viewport, /form-create-plane-hint/)
-  assert.match(viewport, /点 XY \/ XZ \/ YZ 选基准面/)
+  assert.match(viewport, /點 XY \/ XZ \/ YZ 選基準面/)
   // Old Plane <select aria-label="Form plane"> must be gone
   assert.doesNotMatch(viewport, /aria-label="Form plane"/)
   assert.match(viewport, /orientFormCage\(formPlane/)
@@ -28,10 +28,10 @@ test('v1.46: non-box Form create uses XY/XZ/YZ plane buttons (not select)', () =
 
 test('v1.46: Chinese Plane / OK / Cancel on Create Form', () => {
   assert.match(viewport, /zh \? '平面' : 'Plane'/)
-  assert.match(viewport, /zh \? '确定' : 'OK'/)
+  assert.match(viewport, /zh \? '確定' : 'OK'/)
   assert.match(viewport, /zh \? '取消' : 'Cancel'/)
-  assert.match(viewport, /zh \? '创建造型' : 'Create Form'/)
-  assert.match(formPalette, /创建造型/)
+  assert.match(viewport, /zh \? '建立造型' : 'Create Form'/)
+  assert.match(formPalette, /建立造型/)
 })
 
 test('v1.45 Box plane buttons + finishForm soft-lock fix retained', () => {

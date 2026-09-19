@@ -4816,7 +4816,7 @@ export default function Viewport() {
           icon="presspull"
           title={pushPullPicks.length ? tStatus('偏移面', lang) : tStatus('按拉', lang)}
           width={244}
-          okLabel={tStatus('确定', lang)}
+          okLabel={tStatus('確定', lang)}
           okDisabled={!pushPullPicks.length || Math.abs(pushPullDist) < 1e-9}
           okTip={tStatus('应用（Enter）', lang)}
           onOk={() => void useApp.getState().commitPushPull()}
@@ -5028,7 +5028,7 @@ export default function Viewport() {
           icon="shell"
           title="抽壳"
           width={236}
-          okLabel={tStatus('确定', lang)}
+          okLabel={tStatus('確定', lang)}
           okDisabled={!shellPicks.length || !(shellThickness > 0)}
           okTip="抽壳（Enter）"
           onOk={() => void commitShell()}
@@ -6229,7 +6229,7 @@ export default function Viewport() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
               <span>{tStatus('对象', lang)}</span>
               {String(featDlg.params.objectType ?? 'bodies') === 'features'
-                ? <span style={{ color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已選特徵', lang)}` : tStatus('在时间轴选择特征', lang)}</span>
+                ? <span style={{ color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已選特徵', lang)}` : tStatus('在時間軸選擇特徵', lang)}</span>
                 : String(featDlg.params.objectType ?? 'bodies') === 'faces'
                   ? <><button className={'cs-btn pick-slot' + (facePatternPick ? ' active' : '')} onClick={() => useApp.getState().startFacePatternPick()}>🎯{tStatus('選面', lang)}</button><span style={{ color: facePatternPicks.length ? '#2c7' : '#c60' }}>{facePatternPicks.length ? `✓ ${tStatus('已選面', lang)} ×${facePatternPicks.length}` : tStatus('在畫布點選面', lang)}</span>{facePatternPicks.length > 0 && <button className="cs-btn" onClick={() => useApp.getState().clearFacePatternPicks()}>{tStatus('清除', lang)}</button>}</>
                 : <button className="cs-btn" onClick={() => setFeatParam('objectPicked', 1)}>{+featDlg.params.objectPicked ? `✓ ${tStatus('活动实体', lang)}` : tStatus('选择', lang)}</button>}
@@ -6277,7 +6277,7 @@ export default function Viewport() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
               <span>{tStatus('对象', lang)}</span>
               {String(featDlg.params.objectType ?? 'bodies') === 'features'
-                ? <span style={{ color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已選特徵', lang)}` : tStatus('在时间轴选择特征', lang)}</span>
+                ? <span style={{ color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已選特徵', lang)}` : tStatus('在時間軸選擇特徵', lang)}</span>
                 : String(featDlg.params.objectType ?? 'bodies') === 'faces'
                   ? <><button className={'cs-btn pick-slot' + (facePatternPick ? ' active' : '')} onClick={() => useApp.getState().startFacePatternPick()}>🎯{tStatus('選面', lang)}</button><span style={{ color: facePatternPicks.length ? '#2c7' : '#c60' }}>{facePatternPicks.length ? `✓ ${tStatus('已選面', lang)} ×${facePatternPicks.length}` : tStatus('在畫布點選面', lang)}</span>{facePatternPicks.length > 0 && <button className="cs-btn" onClick={() => useApp.getState().clearFacePatternPicks()}>{tStatus('清除', lang)}</button>}</>
                 : <button className="cs-btn" onClick={() => setFeatParam('objectPicked', 1)}>{+featDlg.params.objectPicked ? `✓ ${tStatus('活动实体', lang)}` : tStatus('选择', lang)}</button>}
@@ -6341,9 +6341,9 @@ export default function Viewport() {
                 <label>dz <input type="number" step={5} value={featDlg.params.dz} onChange={(e) => setFeatParam('dz', Number(e.target.value))} style={{ width: 52 }} /></label>
               </>)}
               {mt === 'free' && (<>
-                <label title={tStatus('绕件中心 X 轴旋转', lang)}>{tStatus('绕X°', lang)} <input type="number" step={15} value={featDlg.params.rx ?? 0} onChange={(e) => setFeatParam('rx', Number(e.target.value))} style={{ width: 50 }} /></label>
-                <label title={tStatus('绕件中心 Y 轴旋转', lang)}>{tStatus('绕Y°', lang)} <input type="number" step={15} value={featDlg.params.ry ?? 0} onChange={(e) => setFeatParam('ry', Number(e.target.value))} style={{ width: 50 }} /></label>
-                <label title={tStatus('绕件中心 Z 轴旋转', lang)}>{tStatus('绕Z°', lang)} <input type="number" step={15} value={featDlg.params.rz} onChange={(e) => setFeatParam('rz', Number(e.target.value))} style={{ width: 50 }} /></label>
+                <label title={tStatus('绕件中心 X 轴旋转', lang)}>{tStatus('繞X°', lang)} <input type="number" step={15} value={featDlg.params.rx ?? 0} onChange={(e) => setFeatParam('rx', Number(e.target.value))} style={{ width: 50 }} /></label>
+                <label title={tStatus('绕件中心 Y 轴旋转', lang)}>{tStatus('繞Y°', lang)} <input type="number" step={15} value={featDlg.params.ry ?? 0} onChange={(e) => setFeatParam('ry', Number(e.target.value))} style={{ width: 50 }} /></label>
+                <label title={tStatus('绕件中心 Z 轴旋转', lang)}>{tStatus('繞Z°', lang)} <input type="number" step={15} value={featDlg.params.rz} onChange={(e) => setFeatParam('rz', Number(e.target.value))} style={{ width: 50 }} /></label>
               </>)}
               {mt === 'rotate' && (<>
                 <label title={tStatus('旋转轴（绕件中心）', lang)}>{tStatus('轴', lang)} <select value={String(featDlg.params.raxis ?? 'Z')} onChange={(e) => setFeatParam('raxis', e.target.value)} style={{ height: 26 }}><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option></select></label>
@@ -6573,7 +6573,7 @@ export default function Viewport() {
           </>)}
           {featDlg.kind === 'box' && (<>
             <label>{tStatus('長', lang)} <LenInput mm={Number(featDlg.params.l)} onMm={(v) => setFeatParam('l', v)} unit={unit} w={52} min={0.1} /></label>
-            <label>{tStatus('宽', lang)} <LenInput mm={Number(featDlg.params.w)} onMm={(v) => setFeatParam('w', v)} unit={unit} w={52} min={0.1} /></label>
+            <label>{tStatus('寬', lang)} <LenInput mm={Number(featDlg.params.w)} onMm={(v) => setFeatParam('w', v)} unit={unit} w={52} min={0.1} /></label>
             <label>{tStatus('高', lang)} <LenInput mm={Number(featDlg.params.h)} onMm={(v) => setFeatParam('h', v)} unit={unit} w={52} min={0.1} /></label>
             <label title={tStatus('＋加料=并入活动体；⬡新实体=独立泊车（活动体保持为目标，适合后续合并/切割挖孔）；－切割=从活动体切除', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut" disabled={!bodyMesh?.triangles?.length}>{tStatus('－切割', lang)}</option><option value="newbody" disabled={!bodyMesh?.triangles?.length}>{tStatus('⬡新實體', lang)}</option></select></label>
           </>)}
@@ -6598,7 +6598,7 @@ export default function Viewport() {
           </>)}
           {featDlg.kind === 'wedge' && (<>
             <label>{tStatus('長', lang)} <input type="number" step={5} min={1} value={featDlg.params.l} onChange={(e) => setFeatParam('l', Number(e.target.value))} style={{ width: 50 }} /></label>
-            <label>{tStatus('宽', lang)} <input type="number" step={5} min={1} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 50 }} /></label>
+            <label>{tStatus('寬', lang)} <input type="number" step={5} min={1} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 50 }} /></label>
             <label title={tStatus('高的一端在长度方向的一侧，斜面削到 0', lang)}>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 50 }} /></label>
           </>)}
           {featDlg.kind === 'dome' && (<>
@@ -6620,21 +6620,21 @@ export default function Viewport() {
             <label>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
           </>)}
           {featDlg.kind === 'rtube' && (<>
-            <label title={tStatus('截面宽度 X', lang)}>{tStatus('宽', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 48 }} /></label>
+            <label title={tStatus('截面寬度 X', lang)}>{tStatus('寬', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 48 }} /></label>
             <label title={tStatus('截面深度 Y', lang)}>{tStatus('深', lang)} <input type="number" step={5} min={2} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 48 }} /></label>
             <label title={tStatus('壁厚', lang)}>{tStatus('壁厚', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.wall} onChange={(e) => setFeatParam('wall', Number(e.target.value))} style={{ width: 46 }} /></label>
             <label title={tStatus('長度（沿 Z 高）', lang)}>{tStatus('長', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
           </>)}
           {featDlg.kind === 'profile' && (<>
             <label>{tStatus('截面', lang)} <select value={featDlg.params.ptype} onChange={(e) => setFeatParam('ptype', e.target.value)} style={{ height: 26 }}><option value="L">{profileSectionName('L', lang)}</option><option value="U">{profileSectionName('U', lang)}</option><option value="T">{profileSectionName('T', lang)}</option></select></label>
-            <label title={tStatus('截面宽度 X', lang)}>{tStatus('宽', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 46 }} /></label>
+            <label title={tStatus('截面寬度 X', lang)}>{tStatus('寬', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 46 }} /></label>
             <label title={tStatus('截面高度 Y', lang)}>{tStatus('高', lang)} <input type="number" step={5} min={2} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 46 }} /></label>
             <label title={tStatus('壁厚/料厚', lang)}>{tStatus('厚', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.t} onChange={(e) => setFeatParam('t', Number(e.target.value))} style={{ width: 44 }} /></label>
             <label title={tStatus('長度（沿 Z）', lang)}>{tStatus('長', lang)} <input type="number" step={10} min={1} value={featDlg.params.len} onChange={(e) => setFeatParam('len', Number(e.target.value))} style={{ width: 50 }} /></label>
           </>)}
           {featDlg.kind === 'rbox' && (<>
             <label>{tStatus('長', lang)} <input type="number" step={5} min={2} value={featDlg.params.l} onChange={(e) => setFeatParam('l', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label>{tStatus('宽', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 48 }} /></label>
+            <label>{tStatus('寬', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 48 }} /></label>
             <label>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
             <label title={tStatus('四条竖边的圆角半径（会自动限制在 min(长,宽)/2 以内）', lang)}>{tStatus('圆角R', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.r} onChange={(e) => setFeatParam('r', Number(e.target.value))} style={{ width: 46 }} /></label>
           </>)}
@@ -6739,7 +6739,7 @@ export default function Viewport() {
             <label>{tStatus('厚度', lang)} <input type="number" step={0.5} min={0.2} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 44 }} /></label>
             <label>{tStatus('折弯R', lang)} <input type="number" step={0.5} min={0.1} value={featDlg.params.radius} onChange={(e) => setFeatParam('radius', Number(e.target.value))} style={{ width: 44 }} /></label>
             <label title={tStatus('K 因子：中性轴位置(0~0.5)，钢件常用 0.38~0.44，决定展开料长', lang)}>K <input type="number" step={0.05} min={0} max={0.5} value={featDlg.params.kfactor} onChange={(e) => setFeatParam('kfactor', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label>{tStatus('宽', lang)} <input type="number" step={5} min={1} value={featDlg.params.width} onChange={(e) => setFeatParam('width', Number(e.target.value))} style={{ width: 46 }} /></label>
+            <label>{tStatus('寬', lang)} <input type="number" step={5} min={1} value={featDlg.params.width} onChange={(e) => setFeatParam('width', Number(e.target.value))} style={{ width: 46 }} /></label>
             <label>{tStatus('段长A', lang)} <input type="number" step={5} min={1} value={featDlg.params.legA} onChange={(e) => setFeatParam('legA', Number(e.target.value))} style={{ width: 46 }} /></label>
             <label>{tStatus('段长B', lang)} <input type="number" step={5} min={1} value={featDlg.params.legB} onChange={(e) => setFeatParam('legB', Number(e.target.value))} style={{ width: 46 }} /></label>
             <label title={tStatus('展开 = 激光下料用的平料(含 K 因子折弯余量)', lang)}>{tStatus('状态', lang)} <select value={featDlg.params.flat} onChange={(e) => setFeatParam('flat', Number(e.target.value))} style={{ height: 26 }}><option value={0}>{tStatus('折叠', lang)}</option><option value={1}>{tStatus('展开图', lang)}</option></select></label>
@@ -6894,7 +6894,7 @@ export default function Viewport() {
       {editingComp && (
         <div style={{ position: 'fixed', top: 96, left: '50%', transform: 'translateX(-50%)', zIndex: 220, background: '#fff8ec', border: '1px solid #d9a64e', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,.18)', padding: '6px 12px', display: 'flex', gap: 10, alignItems: 'center', fontSize: 13 }}>
           <b>{tStatus('✎ 编辑组件「', lang)}{components.find((c) => c.id === editingComp)?.name ?? editingComp}{tStatus('」中', lang)}</b>
-          <span style={{ color: '#8a7a55', fontSize: 12 }}>{tStatus('时间轴改参数 / 双击重开草图 / 加特征', lang)}</span>
+          <span style={{ color: '#8a7a55', fontSize: 12 }}>{tStatus('時間軸改參數 / 雙擊重開草圖 / 加特徵', lang)}</span>
           <button className="sb-finish" disabled={mode === 'sketch' || busy} title={mode === 'sketch' ? '请先完成草图，再完成组件编辑' : undefined} onClick={() => useApp.getState().finishComponentEdit()}>{tStatus('✓ 完成编辑', lang)}</button>
           <button className="sb-tool" onClick={() => void useApp.getState().cancelComponentEdit()}>{tStatus('✕ 取消', lang)}</button>
         </div>
@@ -6911,15 +6911,15 @@ export default function Viewport() {
           intentionally separate from the draggable sketch bar, so collapsing or
           moving that bar never hides the B-rep display choices. */}
       {mode === 'sketch' && (
-        <div className="sketch-display-dock" role="group" aria-label={tStatus('显示方式', lang)}>
+        <div className="sketch-display-dock" role="group" aria-label={tStatus('顯示方式', lang)}>
           <button
             ref={skMoreRef}
             data-testid="sketch-visual-style-trigger"
             className={'tb-btn vp-display-menu' + (skMorePop ? ' tb-on' : '')}
-            aria-label={tStatus('显示方式', lang)}
+            aria-label={tStatus('顯示方式', lang)}
             title={tStatus(`显示方式：${VISUAL_STYLE_LABELS[visualStyle]}。可即时切换实体、隐藏线、线框或穿透。`, lang)}
             onClick={toggleSkMore}
-          >▰ <span>{tStatus('显示', lang)}</span> ▾</button>
+          >▰ <span>{tStatus('顯示', lang)}</span> ▾</button>
         </div>
       )}
 
@@ -7081,7 +7081,7 @@ export default function Viewport() {
               ))}
               {/* GM-W6 A3：显示模式切换 —— 草图模式唔渲染 vp-navbar（🖥▾ 冇得撳），喺呢度补返 着色/线框/显示边线，镜 navPop==='display' 嗰组一模一样嘅调用 */}
               <div className="panel-menu-divider" />
-              <div className="panel-menu-item" style={{ cursor: 'default', fontSize: 11, opacity: 0.55, padding: '2px 10px' }}>{tStatus('显示', lang)}</div>
+              <div className="panel-menu-item" style={{ cursor: 'default', fontSize: 11, opacity: 0.55, padding: '2px 10px' }}>{tStatus('顯示', lang)}</div>
               <div className="panel-menu-item" onClick={() => { if (wireframe) toggleWireframe(); setSkMorePop(false) }}>{!wireframe ? '✓ ' : ''}{tStatus('着色', lang)}</div>
               <div className="panel-menu-item" onClick={() => { if (!wireframe) toggleWireframe(); setSkMorePop(false) }}>{wireframe ? '✓ ' : ''}{tStatus('线框', lang)}</div>
               <div className="panel-menu-item" onClick={() => { setEdgeDisplay(edgeDisplay === 'off' ? 'on' : 'off'); setSkMorePop(false) }}>{edgeDisplay !== 'off' ? '✓ ' : ''}{tStatus('显示边线', lang)}</div>
@@ -7493,7 +7493,7 @@ export default function Viewport() {
       {selComp && !editingComp && !modelingCommandActive && mode !== 'sketch' && (
         <div className="sketch-bar">
           <button className="sb-tool" title={compBarMin ? tStatus('展开零件工具栏', lang) : tStatus('折叠零件工具栏（净留名称同完成，唔挡视图）', lang)} onClick={toggleCompBar} style={{ fontWeight: 700, minWidth: 22 }}>{compBarMin ? '▸' : '▾'}</button>
-          <span className="sb-title">{tStatus('移动/旋转', lang)} {selComp.name}</span>
+          <span className="sb-title">{tStatus('移動/旋轉', lang)} {selComp.name}</span>
           {!compBarMin && (<>
           <label>X <input type="number" step={5} value={selComp.pos[0]} onChange={(e) => setComponentPos(selComp.id, [Number(e.target.value) || 0, selComp.pos[1], selComp.pos[2]])} /></label>
           <label>Y <input type="number" step={5} value={selComp.pos[1]} onChange={(e) => setComponentPos(selComp.id, [selComp.pos[0], Number(e.target.value) || 0, selComp.pos[2]])} /></label>
@@ -7501,16 +7501,16 @@ export default function Viewport() {
           <span className="sb-spacer" />
           {(() => { const r = selComp.rot || [0, 0, 0]; const setR = (i: number, v: number) => { const n: [number, number, number] = [r[0], r[1], r[2]]; n[i] = v; setComponentRot(selComp.id, n) }; return (
             <>
-              <label title={tStatus('绕 X 轴旋转（度）', lang)}>{tStatus('绕X°', lang)} <input type="number" step={15} value={r[0]} onChange={(e) => setR(0, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
-              <label title={tStatus('绕 Y 轴（竖直）旋转（度）— 转动零件朝向最常用', lang)}>{tStatus('绕Y°', lang)} <input type="number" step={15} value={r[1]} onChange={(e) => setR(1, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
-              <label title={tStatus('绕 Z 轴旋转（度）', lang)}>{tStatus('绕Z°', lang)} <input type="number" step={15} value={r[2]} onChange={(e) => setR(2, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
-              <button className="sb-tool" title={tStatus('清零旋转', lang)} onClick={() => setComponentRot(selComp.id, [0, 0, 0])}>{tStatus('↺归零', lang)}</button>
+              <label title={tStatus('繞 X 軸旋轉（度）', lang)}>{tStatus('繞X°', lang)} <input type="number" step={15} value={r[0]} onChange={(e) => setR(0, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
+              <label title={tStatus('繞 Y 軸（豎直）旋轉（度）— 转动零件朝向最常用', lang)}>{tStatus('繞Y°', lang)} <input type="number" step={15} value={r[1]} onChange={(e) => setR(1, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
+              <label title={tStatus('繞 Z 軸旋轉（度）', lang)}>{tStatus('繞Z°', lang)} <input type="number" step={15} value={r[2]} onChange={(e) => setR(2, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
+              <button className="sb-tool" title={tStatus('清零旋转', lang)} onClick={() => setComponentRot(selComp.id, [0, 0, 0])}>{tStatus('↺歸零', lang)}</button>
             </>
           ) })()}
           <button className="sb-tool" title={tStatus('聚焦：镜头框到此组件（装配中快速放大单个零件）', lang)} onClick={() => requestFit(selComp.id)}>{tStatus('🎯聚焦', lang)}</button>
           <label className="sb-tool" title={tStatus('此零件透明度（睇穿佢睇内部，免开全局透视）', lang)} style={{ gap: 3 }}>{tStatus('透明', lang)}<input type="range" min={10} max={100} value={Math.round(((selComp as { opacity?: number }).opacity ?? 1) * 100)} onChange={(e) => useApp.getState().setComponentOpacity(selComp.id, Number(e.target.value) / 100)} style={{ width: 60 }} /></label>
           <span className="sb-spacer" />
-          {(() => { const cp = computeProps(selComp.mesh); if (!cp) return null; if (cp.vol < 1) return <span style={{ fontSize: 12, color: '#8a97a2' }} title="此组件是固定参考（机构 FK 根），没有实体几何，不计入质量/BOM">（固定参考件 · 无实体几何）</span>; const cd = (selComp.material && MATERIALS[selComp.material]?.density) || density; const gm = (cp.vol / 1000) * cd; return <><span style={{ fontSize: 12, color: '#5a6b78' }} title="此组件的单件属性">{selComp.material ? `[${selComp.material}] ` : ''}体积 {fmtVol(cp.vol, unit)} · 质量 {gm >= 1000 ? (gm / 1000).toFixed(2) + ' kg' : gm.toFixed(1) + ' g'} · {uLen(cp.dx)}×{uLen(cp.dy)}×{uLen(cp.dz)} {uSuf}</span><span style={{ fontSize: 11, color: '#8a97a2' }} title="此零件绕质心 X/Y/Z 轴的转动惯量（按其材质密度，g·cm²）— 机构动力学 / 平衡 / 飞轮用"> · 惯量 {cp.inertia.map((j) => (j * cd / 1e5).toFixed(1)).join('/')}</span><span title={cp.watertight.closed ? '此零件网格封闭水密 — 可直接 3D 打印' : `此零件网格非水密：${cp.watertight.boundary} 条开放边${cp.watertight.nonManifold ? ' · ' + cp.watertight.nonManifold + ' 条非流形边' : ''} — 切片器可能出错，建议检查（导入件尤其要留意）`} style={{ fontSize: 11, fontWeight: 600, color: cp.watertight.closed ? '#2e9e5b' : '#d98324' }}> · {cp.watertight.closed ? '水密✓' : `水密✗(${cp.watertight.boundary}开放${cp.watertight.nonManifold ? '/' + cp.watertight.nonManifold + '非流形' : ''})`}</span><CompBedFit w={cp.dx} d={cp.dy} h={cp.dz} /><button className="sb-tool" title="量此零件到最近邻件嘅间隙（clearance，顶点采样）" onClick={async () => useApp.getState().componentClearance(selComp.id)}>📏间隙</button><button className="sb-tool" title="量到另一个零件：点此再点第二个零件 → 报中心距 + ΔXYZ + 最近间隙" onClick={async () => useApp.getState().measureFromComponent(selComp.id)}>📐量到…</button><MateControls compId={selComp.id} /><BeamControls compId={selComp.id} /><button className="sb-tool" title="导出此零件为 STL（单件、自然朝向，可直接拖入切片软件 3D 打印）" onClick={async () => useApp.getState().exportComponentStl(selComp.id)}>📥STL</button><button className="sb-tool" title="线性 / 网格阵列：把此零件复制成一排或一格。一排→数量,X间距[,Z间距]；网格→列数,X间距,行数,Z间距（螺栓行 / 栏杆 / 托盘 / 钉阵）" onClick={async () => { const v = await useApp.getState().appPrompt('阵列（按填几个数自动判断）：\n一排 → 数量,X间距mm[,Z间距mm]（例 4,50 或 4,50,10 斜排）\n网格 → 列数,X间距mm,行数,Z间距mm（例 4,50,3,40）', '4,50,0'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.some((x) => !Number.isFinite(x))) { await useApp.getState().appAlert('请只输入数字（用逗号分隔）'); return } const app = useApp.getState(); if (p.length >= 4) { const cols = p[0], dx = p[1], rows = p[2], dz = p[3]; if (cols < 1 || rows < 1 || cols * rows < 2) { await useApp.getState().appAlert('网格：列数×行数 至少 2 件'); return } app.gridArrayComponent(selComp.id, cols, dx, rows, dz) } else { const n = p[0], dx = p[1] || 0, dz = p[2] || 0; if (n < 2) { await useApp.getState().appAlert('数量至少为 2'); return } app.arrayComponent(selComp.id, n, dx, dz) } }}>▦阵列</button><button className="sb-tool" title="环形阵列：绕竖直轴把此零件排成一圈（螺栓圈 / 轮辐 / 风扇叶）。先把零件移离中心，再点此输入 数量[,总角度=360][,中心X=0][,中心Z=0]" onClick={async () => { const v = await useApp.getState().appPrompt('环形阵列：数量[,总角度°=360][,中心X=0][,中心Z=0]\n（例如 6 = 绕原点等分一圈 6 件；4,180,0,0 = 半圈 4 件。零件需先移离中心轴才有半径）', '6'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); const n = p[0], ang = p.length > 1 ? p[1] : 360, cx = p[2] || 0, cz = p[3] || 0; if (!Number.isFinite(n) || n < 2) { await useApp.getState().appAlert('数量至少为 2'); return } if (!Number.isFinite(ang) || !Number.isFinite(cx) || !Number.isFinite(cz)) { await useApp.getState().appAlert('角度同中心要係数字'); return } useApp.getState().circArrayComponent(selComp.id, n, ang, cx, cz) }}>⊛环形</button><button className="sb-tool" title="落地：把此零件下移到刚好贴住地面（最低点到 Z=0），方便摆放" onClick={async () => useApp.getState().dropComponentToFloor(selComp.id)}>⬇落地</button><button className="sb-tool" title="归中：把此零件的包围盒在地面方向（XZ）居中到原点，高度不变" onClick={async () => useApp.getState().centerComponentXZ(selComp.id)}>⊙归中</button><button className="sb-tool" title="缩放此零件（绕自身中心，整体放大/缩小，适合调整导入件大小）。点击输入比例，如 2 = 放大一倍、0.5 = 缩一半" onClick={async () => { const v = await useApp.getState().appPrompt('缩放比例（绕自身中心；如 2=放大一倍，0.5=缩一半，25.4=英寸→mm）', '2'); if (v == null) return; const f = Number(v.trim()); if (!Number.isFinite(f) || f <= 0) { await useApp.getState().appAlert('请输入正数比例'); return } useApp.getState().scaleComponent(selComp.id, f) }}>⤢缩放</button><button className="sb-tool" title="非等比缩放：X / Y / Z 独立拉伸此零件（绕自身中心）。下载嘅 STL 改尺寸日常用——例如把 20mm 立方拉成 20×20×30。输入 sx,sy,sz（如 1,1,1.5 净拉高 Z 一半）" onClick={async () => { const v = await useApp.getState().appPrompt('非等比缩放 X,Y,Z（绕自身中心；如 1,1,1.5 = 净 Z 拉高半；2,1,1 = 净 X 拉阔一倍）', '1,1,1.5'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length !== 3 || p.some((x) => !Number.isFinite(x) || x <= 0)) { await useApp.getState().appAlert('请输入三个正数：sx,sy,sz'); return } useApp.getState().scaleComponentXYZ(selComp.id, p[0], p[1], p[2]) }}>⇲非等比</button><button className="sb-tool" title="修复网格：焊接重合顶点 + 删退化/重复三角 + 统一三角朝向（修黑面/内外反）+ 重算法线，把「未焊接/翻面」型问题件修好（导入 STL 常见）。注：唔会补真实几何孔洞" onClick={async () => useApp.getState().repairComponentMesh(selComp.id)}>🩹修复网格</button><button className="sb-tool" title={`简化网格（减面）：当前 ${Math.round(selComp.mesh.triangles.length / 3)} 三角。输入聚类格 mm（越大减得越多、越平滑），适合减轻导入嘅重网格/扫描件`} onClick={async () => { const v = await useApp.getState().appPrompt('网格简化（顶点聚类减面）：输入聚类格 mm\n（如 0.5 轻、1 中、2 大幅；越大三角越少、细节越平滑）', '1'); if (v == null) return; const cell = Number(v.trim()); if (!Number.isFinite(cell) || cell <= 0) { await useApp.getState().appAlert('请输入正数（mm）'); return } useApp.getState().simplifyComponentMesh(selComp.id, cell) }}>📉简化</button><button className="sb-tool" title={`各向同性重网格 Remesh（Botsch-Kobbelt：均匀边长 + 原面重投影保形）：当前 ${Math.round(selComp.mesh.triangles.length / 3)} 三角。输入目标边长 mm — 把不规则/扫描/STL 重做成边长均匀近等边网格（FEA/转 B-rep 前置）`} onClick={async () => { const v = await useApp.getState().appPrompt('各向同性重网格：目标边长 mm\n（细=三角多更平滑均匀，粗=三角少；如 2 细 / 3 中 / 5 粗）', '3'); if (v == null) return; const L = Number(v.trim()); if (!Number.isFinite(L) || L <= 0) { await useApp.getState().appAlert('请输入正数（mm）'); return } void useApp.getState().remeshComponentMesh(selComp.id, L) }}>▦重网格</button><button className="sb-tool" title="网格分离 Separate：按连通性把多壳网格（如一个 STL 含几件、扫描多块）拆成独立组件，逐件可摆放/布尔/打印。单一连通件唔会拆。" onClick={() => useApp.getState().separateMeshComponent(selComp.id)}>🔪分离</button><button className="sb-tool" title="识别平面区：region-grow 把网格三角按共面聚成平面区，报显著平面区数 + 平面覆盖率（Mesh→B-rep 参数化推断前置）。覆盖率高=机加工/棱柱件（多可转精确平面），低=自由曲面/扫描件。" onClick={() => useApp.getState().recognizeMeshPlanes(selComp.id)}>◳识别平面</button><button className="sb-tool" title="归位摆正：把此零件 XZ 居中到原点 + 落地到 Z=0（导入件一键摆好）" onClick={async () => useApp.getState().seatComponent(selComp.id)}>⊹归位</button><button className="sb-tool" title="組件布爾：此件同另一個零件 合併/切除/相交（manifold 網格布爾）。切除可留間隙——把零件 B 擺入零件 A 再「A 切除 B + 0.2 間隙」即得完美插槽/模腔。點此選操作，再點第二個零件完成" onClick={async () => useApp.getState().startComponentBoolean(selComp.id)}>🧩布尔</button>{!!(selComp as { src?: unknown }).src && <button className="sb-tool" title="重開參數化編輯（edit-in-place）：把此組件嘅特徵樹重新載入時間軸 — 改尺寸/重開草圖/加特徵，完成後寫返組件（位置/關節保持）。固化時自動保存來源；導入件冇此掣" onClick={async () => void useApp.getState().editComponent(selComp.id)}>✎编辑</button>}</> })()}
+          {(() => { const cp = computeProps(selComp.mesh); if (!cp) return null; if (cp.vol < 1) return <span style={{ fontSize: 12, color: '#8a97a2' }} title="此组件是固定参考（机构 FK 根），没有实体几何，不计入质量/BOM">（固定参考件 · 无实体几何）</span>; const cd = (selComp.material && MATERIALS[selComp.material]?.density) || density; const gm = (cp.vol / 1000) * cd; return <><span style={{ fontSize: 12, color: '#5a6b78' }} title="此组件的单件属性">{selComp.material ? `[${selComp.material}] ` : ''}{tStatus('體積', lang)} {fmtVol(cp.vol, unit)} · {tStatus('質量', lang)} {gm >= 1000 ? (gm / 1000).toFixed(2) + ' kg' : gm.toFixed(1) + ' g'} · {uLen(cp.dx)}×{uLen(cp.dy)}×{uLen(cp.dz)} {uSuf}</span><span style={{ fontSize: 11, color: '#8a97a2' }} title="此零件绕质心 X/Y/Z 轴的转动惯量（按其材质密度，g·cm²）— 机构动力学 / 平衡 / 飞轮用"> · {tStatus('慣量', lang)} {cp.inertia.map((j) => (j * cd / 1e5).toFixed(1)).join('/')}</span><span title={cp.watertight.closed ? '此零件网格封闭水密 — 可直接 3D 打印' : `此零件网格非水密：${cp.watertight.boundary} 条开放边${cp.watertight.nonManifold ? ' · ' + cp.watertight.nonManifold + ' 条非流形边' : ''} — 切片器可能出错，建议检查（导入件尤其要留意）`} style={{ fontSize: 11, fontWeight: 600, color: cp.watertight.closed ? '#2e9e5b' : '#d98324' }}> · {cp.watertight.closed ? '水密✓' : `水密✗(${cp.watertight.boundary}开放${cp.watertight.nonManifold ? '/' + cp.watertight.nonManifold + '非流形' : ''})`}</span><CompBedFit w={cp.dx} d={cp.dy} h={cp.dz} /><button className="sb-tool" title="量此零件到最近邻件嘅间隙（clearance，顶点采样）" onClick={async () => useApp.getState().componentClearance(selComp.id)}>📏间隙</button><button className="sb-tool" title="量到另一个零件：点此再点第二个零件 → 报中心距 + ΔXYZ + 最近间隙" onClick={async () => useApp.getState().measureFromComponent(selComp.id)}>📐量到…</button><MateControls compId={selComp.id} /><BeamControls compId={selComp.id} /><button className="sb-tool" title="导出此零件为 STL（单件、自然朝向，可直接拖入切片软件 3D 打印）" onClick={async () => useApp.getState().exportComponentStl(selComp.id)}>📥STL</button><button className="sb-tool" title="线性 / 网格阵列：把此零件复制成一排或一格。一排→数量,X间距[,Z间距]；网格→列数,X间距,行数,Z间距（螺栓行 / 栏杆 / 托盘 / 钉阵）" onClick={async () => { const v = await useApp.getState().appPrompt('阵列（按填几个数自动判断）：\n一排 → 数量,X间距mm[,Z间距mm]（例 4,50 或 4,50,10 斜排）\n网格 → 列数,X间距mm,行数,Z间距mm（例 4,50,3,40）', '4,50,0'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.some((x) => !Number.isFinite(x))) { await useApp.getState().appAlert('请只输入数字（用逗号分隔）'); return } const app = useApp.getState(); if (p.length >= 4) { const cols = p[0], dx = p[1], rows = p[2], dz = p[3]; if (cols < 1 || rows < 1 || cols * rows < 2) { await useApp.getState().appAlert('网格：列数×行数 至少 2 件'); return } app.gridArrayComponent(selComp.id, cols, dx, rows, dz) } else { const n = p[0], dx = p[1] || 0, dz = p[2] || 0; if (n < 2) { await useApp.getState().appAlert('数量至少为 2'); return } app.arrayComponent(selComp.id, n, dx, dz) } }}>▦阵列</button><button className="sb-tool" title="环形阵列：绕竖直轴把此零件排成一圈（螺栓圈 / 轮辐 / 风扇叶）。先把零件移离中心，再点此输入 数量[,总角度=360][,中心X=0][,中心Z=0]" onClick={async () => { const v = await useApp.getState().appPrompt('环形阵列：数量[,总角度°=360][,中心X=0][,中心Z=0]\n（例如 6 = 绕原点等分一圈 6 件；4,180,0,0 = 半圈 4 件。零件需先移离中心轴才有半径）', '6'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); const n = p[0], ang = p.length > 1 ? p[1] : 360, cx = p[2] || 0, cz = p[3] || 0; if (!Number.isFinite(n) || n < 2) { await useApp.getState().appAlert('数量至少为 2'); return } if (!Number.isFinite(ang) || !Number.isFinite(cx) || !Number.isFinite(cz)) { await useApp.getState().appAlert('角度同中心要係数字'); return } useApp.getState().circArrayComponent(selComp.id, n, ang, cx, cz) }}>⊛环形</button><button className="sb-tool" title="落地：把此零件下移到刚好贴住地面（最低点到 Z=0），方便摆放" onClick={async () => useApp.getState().dropComponentToFloor(selComp.id)}>⬇落地</button><button className="sb-tool" title="归中：把此零件的包围盒在地面方向（XZ）居中到原点，高度不变" onClick={async () => useApp.getState().centerComponentXZ(selComp.id)}>⊙归中</button><button className="sb-tool" title="缩放此零件（绕自身中心，整体放大/缩小，适合调整导入件大小）。点击输入比例，如 2 = 放大一倍、0.5 = 缩一半" onClick={async () => { const v = await useApp.getState().appPrompt('缩放比例（绕自身中心；如 2=放大一倍，0.5=缩一半，25.4=英寸→mm）', '2'); if (v == null) return; const f = Number(v.trim()); if (!Number.isFinite(f) || f <= 0) { await useApp.getState().appAlert('请输入正数比例'); return } useApp.getState().scaleComponent(selComp.id, f) }}>⤢缩放</button><button className="sb-tool" title="非等比缩放：X / Y / Z 独立拉伸此零件（绕自身中心）。下载嘅 STL 改尺寸日常用——例如把 20mm 立方拉成 20×20×30。输入 sx,sy,sz（如 1,1,1.5 净拉高 Z 一半）" onClick={async () => { const v = await useApp.getState().appPrompt('非等比缩放 X,Y,Z（绕自身中心；如 1,1,1.5 = 净 Z 拉高半；2,1,1 = 净 X 拉阔一倍）', '1,1,1.5'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length !== 3 || p.some((x) => !Number.isFinite(x) || x <= 0)) { await useApp.getState().appAlert('请输入三个正数：sx,sy,sz'); return } useApp.getState().scaleComponentXYZ(selComp.id, p[0], p[1], p[2]) }}>⇲非等比</button><button className="sb-tool" title="修复网格：焊接重合顶点 + 删退化/重复三角 + 统一三角朝向（修黑面/内外反）+ 重算法线，把「未焊接/翻面」型问题件修好（导入 STL 常见）。注：唔会补真实几何孔洞" onClick={async () => useApp.getState().repairComponentMesh(selComp.id)}>🩹修复网格</button><button className="sb-tool" title={`简化网格（减面）：当前 ${Math.round(selComp.mesh.triangles.length / 3)} 三角。输入聚类格 mm（越大减得越多、越平滑），适合减轻导入嘅重网格/扫描件`} onClick={async () => { const v = await useApp.getState().appPrompt('网格简化（顶点聚类减面）：输入聚类格 mm\n（如 0.5 轻、1 中、2 大幅；越大三角越少、细节越平滑）', '1'); if (v == null) return; const cell = Number(v.trim()); if (!Number.isFinite(cell) || cell <= 0) { await useApp.getState().appAlert('请输入正数（mm）'); return } useApp.getState().simplifyComponentMesh(selComp.id, cell) }}>📉简化</button><button className="sb-tool" title={`各向同性重网格 Remesh（Botsch-Kobbelt：均匀边长 + 原面重投影保形）：当前 ${Math.round(selComp.mesh.triangles.length / 3)} 三角。输入目标边长 mm — 把不规则/扫描/STL 重做成边长均匀近等边网格（FEA/转 B-rep 前置）`} onClick={async () => { const v = await useApp.getState().appPrompt('各向同性重网格：目标边长 mm\n（细=三角多更平滑均匀，粗=三角少；如 2 细 / 3 中 / 5 粗）', '3'); if (v == null) return; const L = Number(v.trim()); if (!Number.isFinite(L) || L <= 0) { await useApp.getState().appAlert('请输入正数（mm）'); return } void useApp.getState().remeshComponentMesh(selComp.id, L) }}>▦重网格</button><button className="sb-tool" title="网格分离 Separate：按连通性把多壳网格（如一个 STL 含几件、扫描多块）拆成独立组件，逐件可摆放/布尔/打印。单一连通件唔会拆。" onClick={() => useApp.getState().separateMeshComponent(selComp.id)}>🔪分离</button><button className="sb-tool" title="识别平面区：region-grow 把网格三角按共面聚成平面区，报显著平面区数 + 平面覆盖率（Mesh→B-rep 参数化推断前置）。覆盖率高=机加工/棱柱件（多可转精确平面），低=自由曲面/扫描件。" onClick={() => useApp.getState().recognizeMeshPlanes(selComp.id)}>◳识别平面</button><button className="sb-tool" title="归位摆正：把此零件 XZ 居中到原点 + 落地到 Z=0（导入件一键摆好）" onClick={async () => useApp.getState().seatComponent(selComp.id)}>⊹归位</button><button className="sb-tool" title="組件布爾：此件同另一個零件 合併/切除/相交（manifold 網格布爾）。切除可留間隙——把零件 B 擺入零件 A 再「A 切除 B + 0.2 間隙」即得完美插槽/模腔。點此選操作，再點第二個零件完成" onClick={async () => useApp.getState().startComponentBoolean(selComp.id)}>🧩布尔</button>{!!(selComp as { src?: unknown }).src && <button className="sb-tool" title="重開參數化編輯（edit-in-place）：把此組件嘅特徵樹重新載入時間軸 — 改尺寸/重開草圖/加特徵，完成後寫返組件（位置/關節保持）。固化時自動保存來源；導入件冇此掣" onClick={async () => void useApp.getState().editComponent(selComp.id)}>✎编辑</button>}</> })()}
           </>)}
           <button className="sb-finish" onClick={() => selectComponent(null)}>{tStatus('完成', lang)}</button>
         </div>
@@ -7770,7 +7770,7 @@ export default function Viewport() {
         {/* GM-W2 2.2 对标 Fusion：草图模式下收起「渲染/外观/贴图/出图/选择过滤」集群 — 画紧 2D 平面图用唔着，减少非程序员用家眼前 option 数 */}
         {mode !== 'sketch' && (<>
         <button className={'tb-btn' + (navAdvanced ? ' tb-on' : '')} aria-expanded={navAdvanced} onClick={() => setNavAdvanced(v => !v)}>外观／出图</button>
-        {navAdvanced && <div className="vp-nav-advanced" role="group" aria-label="外观与出图">
+        {navAdvanced && <div className="vp-nav-advanced" role="group" aria-label="外觀與出圖">
         <button className={'tb-btn' + (renderModeOn ? ' tb-on' : '')} title={tStatus('🌅 渲染模式（T783）：HDRI 环境反射 + 软阴影 + ACES 曝光 — 发布截图/展示用（金属玻璃质感真实）。再撳返回工作模式', lang)} onClick={() => useApp.getState().toggleRenderMode()}>🌅</button>
         <button className={'tb-btn' + (ssao ? ' tb-on' : '')} title={tStatus('🌑 环境光遮蔽 GTAO（S193）：缝隙 / 接触 / 内角 / 凹陷处加暗（接触阴影），立体感同真实感大升 — 发布截图 / 装配审视用。正交模式下唔生效。再撳关。', lang)} style={ssao && !cameraOrtho ? { background: '#3a3050', color: '#fff' } : undefined} disabled={cameraOrtho} onClick={() => useApp.getState().toggleSsao()}>🌑</button>
         {!cameraOrtho && <span title={tStatus('视野角 FOV（S193）：细 = 接近正交、透视失真小（产品出图）；大 = 广角夸张透视（戏剧感 / 局促空间）。默认 28°。', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
@@ -8189,7 +8189,7 @@ export default function Viewport() {
           <span style={{ fontSize: 12, color: moveFacePicks.length ? '#16a36b' : '#8a97a2' }}>{moveFacePicks.length} {tStatus('面', lang)}</span>
           {moveFaceKind === 'tilt' && moveFacePicks.length > 1 && <span style={{ fontSize: 11, color: '#c47f17' }} title={tStatus('倾斜每面方向有歧义 — 只留一个面，或改用「偏移」', lang)}>{tStatus('⚠ 倾斜只支持单面', lang)}</span>}
           {moveFacePicks.length > 0 && <button className="tb-btn" title={tStatus('清空所选面', lang)} onClick={() => useApp.getState().clearMoveFacePick()}>✕</button>}
-          <button data-testid="move-face-commit" className="tb-btn" style={{ background: moveFacePicks.length ? '#1572c4' : undefined, color: moveFacePicks.length ? '#fff' : undefined }} disabled={!moveFacePicks.length} title={tStatus('应用移动面（Enter）', lang)} onClick={() => void useApp.getState().commitMoveFace()}>{tStatus('确定', lang)}</button>
+          <button data-testid="move-face-commit" className="tb-btn" style={{ background: moveFacePicks.length ? '#1572c4' : undefined, color: moveFacePicks.length ? '#fff' : undefined }} disabled={!moveFacePicks.length} title={tStatus('应用移动面（Enter）', lang)} onClick={() => void useApp.getState().commitMoveFace()}>{tStatus('確定', lang)}</button>
         </div>
       )}
       {/* GM-3DV3 M9：分割面命令条 — 切割平面方向（自动/X/Y/Z）+ Split Type（内核只做平面 imprint，Surface/Closest 记录意图） */}
@@ -8215,7 +8215,7 @@ export default function Viewport() {
           🗑 {tStatus('删面：逐个点选要删嘅面（去特征+治愈）', lang)}
           <span style={{ fontSize: 12, color: delFacePicks2.length ? '#16a36b' : '#8a97a2' }}>{delFacePicks2.length} {tStatus('面', lang)}</span>
           {delFacePicks2.length > 0 && <button className="tb-btn" title={tStatus('清空所选面', lang)} onClick={() => useApp.getState().clearDelFacePicks()}>✕</button>}
-          <button className="tb-btn" style={{ background: delFacePicks2.length ? '#1572c4' : undefined, color: delFacePicks2.length ? '#fff' : undefined }} disabled={!delFacePicks2.length} title={tStatus('删除所选面', lang)} onClick={() => void useApp.getState().commitDelFace()}>{tStatus('确定', lang)}</button>
+          <button className="tb-btn" style={{ background: delFacePicks2.length ? '#1572c4' : undefined, color: delFacePicks2.length ? '#fff' : undefined }} disabled={!delFacePicks2.length} title={tStatus('删除所选面', lang)} onClick={() => void useApp.getState().commitDelFace()}>{tStatus('確定', lang)}</button>
         </div>
       )}
       {props && showProps && (

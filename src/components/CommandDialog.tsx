@@ -52,7 +52,7 @@ export function ScrubNumberDrag() {
 // Fusion 式右侧命令 palette 共用外壳（.cmd-palette）：头 = 图标 + 标题 + ✕（按住可拖动），
 // 体 = 字段行（label 自动左右分布），脚 = 蓝色「确定」+「取消」，可选灰色 summary 行。
 // featDlg 同 6 个旧面板（拉伸/选边圆角/抽壳/孔/扫掠/放样）统一用呢个壳。
-export function CommandDialog({ icon = 'default', title, okLabel = '确定', okDisabled = false, okTip, onOk, onCancel, width = 256, docked = false, summary, children }: {
+export function CommandDialog({ icon = 'default', title, okLabel = '確定', okDisabled = false, okTip, onOk, onCancel, width = 256, docked = false, summary, children }: {
   icon?: string
   title: string
   okLabel?: string
@@ -146,7 +146,7 @@ export function CommandDialog({ icon = 'default', title, okLabel = '确定', okD
       <div className="cmd-palette-body" hidden={collapsed}>{children}</div>
       {!collapsed && summary != null && <div className="cmd-palette-summary">{summary}</div>}
       <div className="cmd-palette-foot">
-        <button className="cmd-ok" data-testid="command-confirm" disabled={okDisabled} title={okTip ? tStatus(okTip, lang) : tStatus('确定（Enter）', lang)} onClick={onOk}>{tStatus(okLabel, lang)}</button>
+        <button className="cmd-ok" data-testid="command-confirm" disabled={okDisabled} title={okTip ? tStatus(okTip, lang) : tStatus('確定（Enter）', lang)} onClick={onOk}>{tStatus(okLabel, lang)}</button>
         <button className="cmd-cancel" data-testid="command-cancel" title={tStatus('取消（Esc）', lang)} onClick={onCancel}>{tStatus('取消', lang)}</button>
       </div>
     </div>

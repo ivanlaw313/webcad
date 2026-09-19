@@ -479,6 +479,10 @@ export function tTab(tab: string, lang: LangInput): string {
 const STATUS_PHRASES: Record<string, string> = {
   '長': 'Length',
   '长': 'Length',
+  '寬': 'Width',
+  '宽': 'Width',
+  '厚': 'Thk',
+  '高': 'H',
   // v1.74 illegal / dim-reject markers (must outrank short '尺寸'/'已' fragments)
   '尺寸已拒絕：孔徑Ø必須大於 0（已清除非法預覽）': 'Dimension rejected: hole Ø must be > 0 (illegal preview cleared)',
   '尺寸已拒绝：孔径Ø必须大于 0（已清除非法预览）': 'Dimension rejected: hole Ø must be > 0 (illegal preview cleared)',
@@ -2059,6 +2063,36 @@ Object.assign(STATUS_PHRASES_X, {
   '繞Z': 'About Z',
   '保留為活動體': 'Keep as Active Body',
   'XZ（前後）': 'XZ (Front/Back)',
+})
+
+
+Object.assign(STATUS_PHRASES_X, {
+  // v1.84 BD-8201/8302 TC chrome (zh-HK source; EN via tStatus)
+  '確定': 'OK',
+  '確定（Enter）': 'OK (Enter)',
+  '移動/旋轉': 'Move / Rotate',
+  '繞X°': 'Rot X°',
+  '繞Y°': 'Rot Y°',
+  '繞Z°': 'Rot Z°',
+  '↺歸零': '↺ Reset',
+  '體積': 'volume',
+  '質量': 'mass',
+  '慣量': 'inertia',
+  '顯示': 'Display',
+  '顯示方式': 'Display mode',
+  '網格參數化': 'Mesh parameterization',
+  '重建為': 'rebuilt as',
+  '覆蓋': 'coverage',
+  '可精確圓角': 'precise fillet ready',
+  '導出 STEP': 'export STEP',
+  '截面寬度 X': 'section width X',
+  '繞 X 軸旋轉（度）': 'rotate about X (°)',
+  '繞 Y 軸（豎直）旋轉（度）— 轉動零件朝向最常用': 'rotate about Y / up (°)',
+  '繞 Z 軸旋轉（度）': 'rotate about Z (°)',
+  '在時間軸選擇特徵': 'select a feature in the timeline',
+  '時間軸改參數 / 雙擊重開草圖 / 加特徵': 'edit timeline params / double-click sketch / add feature',
+  '轉直接建模（後置）': 'Convert to direct modeling (later)',
+  '外觀與出圖': 'Appearance & Export',
 })
 
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)

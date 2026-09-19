@@ -6128,14 +6128,14 @@ function buildShape(features: Feature[], noCache = false): any {
           try {
             const pr = meshToBrepParametric(f.v, f.t, f.fit)
             if (pr && pr.shape) { solid = pr.shape
-              const what = f.fit === 'prismatic' ? `真参数化盒实体${pr.cylCount ? `＋${pr.cylCount} 个圆柱孔` : ''}` : '真圆柱实体'   // #2b：v2 prismatic = 盒−圆柱布尔；v1 param = 纯圆柱
-              buildWarnings.push(`网格参数化：重建为${what}（覆盖 ${Math.round(pr.coverage * 100)}%）— 可精确圆角/量 Ø/导出 STEP`) }
+              const what = f.fit === 'prismatic' ? `真參數化盒實體${pr.cylCount ? `＋${pr.cylCount} 個圓柱孔` : ''}` : '真圓柱實體'   // #2b：v2 prismatic = 盒−圆柱布尔；v1 param = 纯圆柱
+              buildWarnings.push(`網格參數化：重建為${what}（覆蓋 ${Math.round(pr.coverage * 100)}%）— 可精確圓角/量 Ø/導出 STEP`) }
           } catch { /* 参数化异常 → 静默退 faceted */ }
         }
         if (!solid) solid = meshToSolidShape(f.v, f.t)   // faceted 退路（param 失败 / 非纯圆柱 / mode 未设 → 逐字节旧路）
         if (solid) merge(solid, f.op)
-        else buildWarnings.push('网格转换失败 — 三角全部退化/缝合空')
-      } catch (e) { buildWarnings.push('网格转换失败：' + ((e as any)?.message || e)) }
+        else buildWarnings.push('網格轉換失敗 — 三角全部退化/縫合空')
+      } catch (e) { buildWarnings.push('網格轉換失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'circPattern' && shape) {
       // T757 環形阵列：任意轴（origin+dir）+ full/angle/sym 三模式。
       // 有 targets → snapshot-delta：目标系切除特征就重切 removed 区域（fuse 成件会填返啲孔），

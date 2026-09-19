@@ -405,14 +405,14 @@ const MESH: Panel[] = [
   g('ASSEMBLE'),
   { name: 'SELECT', tools: [{ id: 'select', label: '選擇', icon: 'select', quick: true, tip: '選擇工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' }] },
   { name: 'EXPORT', tools: [
-    { id: 'exportstl', label: '导出STL', icon: 'exportfile', quick: true },
-    { id: 'exportasmstl', label: '导出装配STL', icon: 'exportfile' },
-    { id: 'exportasmobj', label: '导出装配OBJ', icon: 'exportfile', tip: '把整个装配（含各零件位姿）导出为单一 OBJ，供 Blender / 渲染器 / 游戏引擎用。' },
-    { id: 'exportasm3mf', label: '导出装配3MF', icon: 'exportfile', tip: '装配 → 多对象 3MF：各零件独立对象，直接送切片软件分件摆位打印（比合并 STL 更好）。' },
-    { id: 'exportasmstep', label: '导出装配STEP', icon: 'exportfile', tip: '装配 → 彩色 STEP：零件名 + 颜色 + 位姿全保留,Fusion/FreeCAD/SolidWorks 直接打开。纯网格导入件会跳过（冇精确实体来源）。' },
-    { id: 'exportglb', label: '导出glTF/GLB', icon: 'exportfile' },
-    { id: 'exportobj', label: '导出OBJ', icon: 'exportfile', tip: 'Wavefront OBJ 网格（通用 3D 交换格式，Blender / 游戏引擎 / 渲染器常用）。' },
-    { id: 'export3mf', label: '导出3MF', icon: 'exportfile', tip: '3MF 现代 3D 打印格式（保留 mm 单位，Bambu Studio / PrusaSlicer / Cura 都支持，比 STL 更准）。' },
+    { id: 'exportstl', label: '導出STL', icon: 'exportfile', quick: true },
+    { id: 'exportasmstl', label: '導出裝配STL', icon: 'exportfile' },
+    { id: 'exportasmobj', label: '導出裝配OBJ', icon: 'exportfile', tip: '把整个装配（含各零件位姿）导出为单一 OBJ，供 Blender / 渲染器 / 游戏引擎用。' },
+    { id: 'exportasm3mf', label: '導出裝配3MF', icon: 'exportfile', tip: '装配 → 多对象 3MF：各零件独立对象，直接送切片软件分件摆位打印（比合并 STL 更好）。' },
+    { id: 'exportasmstep', label: '導出裝配STEP', icon: 'exportfile', tip: '装配 → 彩色 STEP：零件名 + 颜色 + 位姿全保留,Fusion/FreeCAD/SolidWorks 直接打开。纯网格导入件会跳过（冇精确实体来源）。' },
+    { id: 'exportglb', label: '導出glTF/GLB', icon: 'exportfile' },
+    { id: 'exportobj', label: '導出OBJ', icon: 'exportfile', tip: 'Wavefront OBJ 网格（通用 3D 交换格式，Blender / 游戏引擎 / 渲染器常用）。' },
+    { id: 'export3mf', label: '導出3MF', icon: 'exportfile', tip: '3MF 现代 3D 打印格式（保留 mm 单位，Bambu Studio / PrusaSlicer / Cura 都支持，比 STL 更准）。' },
   ] },
 ]
 const SHEET: Panel[] = [
@@ -460,9 +460,9 @@ const MANAGE: Panel[] = [
 // Fusion UTILITIES：MAKE · NEST · ADD-INS · UTILITY · INSPECT · SELECT。MAKE（3D 打印/送出）↔ 我哋嘅导出组。
 const UTILITIES: Panel[] = [
   { name: 'MAKE', tools: [
-    { id: 'exportstl', label: '导出STL', icon: 'exportfile', quick: true },
-    { id: 'exportstep', label: '导出STEP', icon: 'exportfile', quick: true },
-    { id: 'exportglb', label: '导出glTF', icon: 'exportfile' },
+    { id: 'exportstl', label: '導出STL', icon: 'exportfile', quick: true },
+    { id: 'exportstep', label: '導出STEP', icon: 'exportfile', quick: true },
+    { id: 'exportglb', label: '導出glTF', icon: 'exportfile' },
   ] },
   g('INSPECT'),
   { name: 'SELECT', tools: [{ id: 'select', label: '選擇', icon: 'select', quick: true, tip: '選擇工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' }] },

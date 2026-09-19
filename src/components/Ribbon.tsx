@@ -419,9 +419,9 @@ export default function Ribbon() {
             </>, document.body
           )}
         </div>
-        <button className="tb-btn" title="保存项目 (JSON)" onClick={() => saveProject()}><ToolIcon name="save" size={18} /></button>
-        <button className="tb-btn" title="撤销 (Ctrl+Z)" onClick={() => void undo()}><ToolIcon name="undo" size={18} /></button>
-        <button className="tb-btn" title="重做 (Ctrl+Y)" onClick={() => void redo()}><ToolIcon name="redo" size={18} /></button>
+        <button className="tb-btn" title={msg('cmd.actSave', lang)} onClick={() => saveProject()}><ToolIcon name="save" size={18} /></button>
+        <button className="tb-btn" title={msg('cmd.actUndo', lang) + ' (Ctrl+Z)'} onClick={() => void undo()}><ToolIcon name="undo" size={18} /></button>
+        <button className="tb-btn" title={msg('cmd.actRedo', lang) + ' (Ctrl+Y)'} onClick={() => void redo()}><ToolIcon name="redo" size={18} /></button>
         <div className="tb-spacer" />
         <div className="doc-tab" title="文档名（用于保存档名 / 工程图标题栏）— 点击改名">
           <span className="doc-cube" />

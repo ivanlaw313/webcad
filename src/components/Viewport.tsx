@@ -4782,17 +4782,17 @@ export default function Viewport() {
               { key: 'focus', label: `🎯 聚焦「${sc.name}」`, fn: () => requestFit(sc.id) } as MMItem,
               { key: 'cstl', label: `📥 导出「${sc.name}」STL`, fn: () => useApp.getState().exportComponentStl(sc.id) } as MMItem,
               { key: 'cmirror', label: `⇄ 镜像「${sc.name}」`, fn: () => useApp.getState().mirrorComponent(sc.id) } as MMItem,
-              { key: 'cbrep', label: `⧉ 转 B-rep「${sc.name}」（自动：识别圆柱）`, fn: () => void useApp.getState().convertMeshComponent(sc.id) } as MMItem,
-              { key: 'cbrepf', label: `⧉ 转 B-rep「${sc.name}」（faceted 逐面）`, fn: () => void useApp.getState().convertMeshComponent(sc.id, 'faceted') } as MMItem,
+              { key: 'cbrep', label: `⧉ 轉 B-rep「${sc.name}」（自动：识别圆柱）`, fn: () => void useApp.getState().convertMeshComponent(sc.id) } as MMItem,
+              { key: 'cbrepf', label: `⧉ 轉 B-rep「${sc.name}」（faceted 逐面）`, fn: () => void useApp.getState().convertMeshComponent(sc.id, 'faceted') } as MMItem,
               { key: 'csection', label: `✂ 截面取轮廓「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('截面：轴,位置mm（世界坐标，跟随摆位/旋转）— 切一刀，闭合轮廓变可编辑草图（STL remix：取轮廓→改尺寸→重新拉伸）\n例：Z,10 = 水平切；X,0 / Y,5 亦可', 'Z,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (ax.length !== 1 || !'XYZ'.includes(ax)) { await useApp.getState().appAlert('轴要系 X / Y / Z（例 Z,10）'); return } const c = Number(p[1]); if (!Number.isFinite(c)) { await useApp.getState().appAlert('请输入数字位置，例 Z,10'); return } useApp.getState().meshSectionToSketch(sc.id, ax as 'X' | 'Y' | 'Z', c) } } as MMItem,
               { key: 'crepair', label: `🩹 补洞修复「${sc.name}」`, fn: () => void useApp.getState().repairActiveMesh(sc.id) } as MMItem,
-              { key: 'csimplify', label: `🔻 简化网格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('简化到原三角数嘅几多？（0.05–0.9，例 0.3 = 留 30%）\nQEM 误差度量减面（保特征保水密）', '0.3'); if (v == null) return; void useApp.getState().simplifyComponentMeshRatio(sc.id, Number(v) || 0.3) } } as MMItem,
-              { key: 'cremesh', label: `▦ 重网格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('各向同性重网格（Botsch-Kobbelt：均匀边长 + 原面重投影保形）\n目标边长 mm（细=三角多更平滑，粗=三角少）', '3'); if (v == null) return; void useApp.getState().remeshComponentMesh(sc.id, Number(v) || 3) } } as MMItem,
-              { key: 'csmooth', label: `〰 平滑网格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('Taubin λ|μ 平滑趟数（1–40，越多越顺）\nshrink-free 保体积、边界钉住、拓扑不变（去扫描噪声/阶梯）', '5'); if (v == null) return; useApp.getState().smoothComponentMesh(sc.id, Number(v) || 5) } } as MMItem,
-              { key: 'cmeasure', label: `📏 网格属性「${sc.name}」`, fn: () => useApp.getState().measureMeshComponent(sc.id) } as MMItem,
+              { key: 'csimplify', label: `🔻 簡化網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('简化到原三角数嘅几多？（0.05–0.9，例 0.3 = 留 30%）\nQEM 误差度量减面（保特征保水密）', '0.3'); if (v == null) return; void useApp.getState().simplifyComponentMeshRatio(sc.id, Number(v) || 0.3) } } as MMItem,
+              { key: 'cremesh', label: `▦ 重網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('各向同性重网格（Botsch-Kobbelt：均匀边长 + 原面重投影保形）\n目标边长 mm（细=三角多更平滑，粗=三角少）', '3'); if (v == null) return; void useApp.getState().remeshComponentMesh(sc.id, Number(v) || 3) } } as MMItem,
+              { key: 'csmooth', label: `〰 平滑網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('Taubin λ|μ 平滑趟数（1–40，越多越顺）\nshrink-free 保体积、边界钉住、拓扑不变（去扫描噪声/阶梯）', '5'); if (v == null) return; useApp.getState().smoothComponentMesh(sc.id, Number(v) || 5) } } as MMItem,
+              { key: 'cmeasure', label: `📏 網格屬性「${sc.name}」`, fn: () => useApp.getState().measureMeshComponent(sc.id) } as MMItem,
               { key: 'cplanecut', label: `✂ 平面切割「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('平面切割（T766 Mesh Plane Cut — 切面自动补实）：\n轴,位置mm,保留侧(+/-)\n例：Z,10,+ = 喺 z=10 水平切，保留上半', 'Z,10,+'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (!'XYZ'.includes(ax)) { await useApp.getState().appAlert('轴要系 X/Y/Z'); return } void useApp.getState().planeCutComponent(sc.id, ax as 'X' | 'Y' | 'Z', Number(p[1]) || 0, (p[2] || '+').includes('-') ? '-' : '+') } } as MMItem,
               { key: 'cshell', label: `🥚 抽壳「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('网格抽壳 / 加厚（Fusion Mesh Thicken）：沿法向内移壁厚 t，掏空成中空壳（要水密闭合网格）\n壁厚 mm', '2'); if (v == null) return; const t = Number(v.trim()); if (!Number.isFinite(t) || t <= 0) { await useApp.getState().appAlert('壁厚要系正数'); return } void useApp.getState().shellMeshComponent(sc.id, t) } } as MMItem,
-              { key: 'coffset', label: `⊕ 偏移网格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('网格 3D 均匀偏移（Fusion Mesh Offset）：沿全方向胀缩（minkowski 球膨胀/腐蚀，要水密闭合网格）\n偏移量 mm（正=外扩 / 负=内缩）', '1'); if (v == null) return; const d = Number(v.trim()); if (!Number.isFinite(d) || d === 0) { await useApp.getState().appAlert('偏移量要系非零数字（正外扩/负内缩）'); return } void useApp.getState().offsetMeshComponent(sc.id, d) } } as MMItem,
+              { key: 'coffset', label: `⊕ 偏移網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('网格 3D 均匀偏移（Fusion Mesh Offset）：沿全方向胀缩（minkowski 球膨胀/腐蚀，要水密闭合网格）\n偏移量 mm（正=外扩 / 负=内缩）', '1'); if (v == null) return; const d = Number(v.trim()); if (!Number.isFinite(d) || d === 0) { await useApp.getState().appAlert('偏移量要系非零数字（正外扩/负内缩）'); return } void useApp.getState().offsetMeshComponent(sc.id, d) } } as MMItem,
               { key: 'chull', label: `◇ 凸包「${sc.name}」`, fn: () => void useApp.getState().convexHullComponent(sc.id) } as MMItem,
             ] : []),
             ...(components.filter((c) => !c.hidden).length > 1 ? ['sep' as const,
@@ -7139,7 +7139,7 @@ export default function Viewport() {
               </>)}
             </div>
           )}
-          <button className="sb-tool" title={tStatus('撤销草图一步 (Ctrl+Z)', lang)} disabled={sketchUndoN === 0} onClick={() => void useApp.getState().undo()}>↶</button>
+          <button className="sb-tool" title={tStatus('復原草圖一步 (Ctrl+Z)', lang)} disabled={sketchUndoN === 0} onClick={() => void useApp.getState().undo()}>↶</button>
           <button className="sb-tool" title={tStatus('重做 (Ctrl+Y)', lang)} disabled={sketchRedoN === 0} onClick={() => void useApp.getState().redo()}>↷</button>
         </div>
       ))}
@@ -7689,11 +7689,11 @@ export default function Viewport() {
         <span className="vp-hud-handle" onPointerDown={navDrag.onPointerDown} title={tStatus('拖動導覽列', lang)}>⋮⋮</span>
         <button className="vp-hud-collapse" type="button" title={navHudCollapsed ? tStatus('展開導覽列', lang) : tStatus('收合導覽列', lang)} onClick={() => setNavHudCollapsed((v) => !v)}>{navHudCollapsed ? '⌃' : '–'}</button>
         {navDrag.isDragged && <button className="vp-hud-reset" type="button" title={tStatus('還原導覽列預設位置', lang)} onClick={navDrag.reset}>↺</button>}
-        <button className={'tb-btn' + (navTool === 'orbit' ? ' tb-on' : '')} title={tStatus('环绕：左键旋转视角', lang)} onClick={() => setNavTool('orbit')}><ToolIcon name="orbit" size={17} /></button>
-        <button className={'tb-btn' + (navTool === 'pan' ? ' tb-on' : '')} title={tStatus('平移：左键拖动平移视图', lang)} onClick={() => setNavTool('pan')}><ToolIcon name="pan" size={17} /></button>
-        <button className={'tb-btn' + (navTool === 'zoom' ? ' tb-on' : '')} title={tStatus('缩放：左键上下拖动缩放', lang)} onClick={() => setNavTool('zoom')}><ToolIcon name="zoom" size={17} /></button>
-        <button className={'tb-btn' + (navTool === 'select' ? ' tb-on' : '')} title={tStatus('框选：左键拖框多选组件 — 左→右=窗选（全包先中，蓝实线）；右→左=跨选（相触即中，绿虚线）；Shift=追加。中/右键仍可平移', lang)} onClick={() => setNavTool('select')}><ToolIcon name="select" size={17} /></button>
-        <button className="tb-btn" title={tStatus('适应窗口', lang)} onClick={() => requestFit()}><ToolIcon name="fit" size={17} /></button>
+        <button className={'tb-btn' + (navTool === 'orbit' ? ' tb-on' : '')} title={tStatus('環繞：左鍵旋轉視角', lang)} onClick={() => setNavTool('orbit')}><ToolIcon name="orbit" size={17} /></button>
+        <button className={'tb-btn' + (navTool === 'pan' ? ' tb-on' : '')} title={tStatus('平移：左鍵拖動平移視圖', lang)} onClick={() => setNavTool('pan')}><ToolIcon name="pan" size={17} /></button>
+        <button className={'tb-btn' + (navTool === 'zoom' ? ' tb-on' : '')} title={tStatus('縮放：左鍵上下拖動縮放', lang)} onClick={() => setNavTool('zoom')}><ToolIcon name="zoom" size={17} /></button>
+        <button className={'tb-btn' + (navTool === 'select' ? ' tb-on' : '')} title={tStatus('框選：左鍵拖框多選組件 — 左→右=窗選（全包先中，藍實線）；右→左=跨選（相觸即中，綠虛線）；Shift=追加。中/右鍵仍可平移', lang)} onClick={() => setNavTool('select')}><ToolIcon name="select" size={17} /></button>
+        <button className="tb-btn" title={tStatus('適應視窗', lang)} onClick={() => requestFit()}><ToolIcon name="fit" size={17} /></button>
         <div style={{ position: 'relative' }}>
           {/* B-rep faces must be recoverable in one click; the full picker beside
               it remains available for hidden-line and wireframe workflows. */}
@@ -8311,7 +8311,7 @@ export default function Viewport() {
         <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', color: '#7a8893', pointerEvents: 'none', maxWidth: 360, lineHeight: 1.55, userSelect: 'none' }}>
           {/* Flux 生成上手插画（工作台+画草图）— 令空文档画面唔咁干。缩细免阻视线（用户反馈大卡阻埞）。 */}
           <img src="/empty-canvas.png" alt="" width={104} height={104} draggable={false} style={{ display: 'block', margin: '0 auto -6px', opacity: 0.9, filter: 'drop-shadow(0 6px 16px rgba(43,108,240,.10))' }} />
-          <div style={{ fontSize: 18, marginBottom: 5, color: '#3a4654', fontWeight: 700 }}>{tStatus('开始建模', lang)}</div>
+          <div style={{ fontSize: 18, marginBottom: 5, color: '#3a4654', fontWeight: 700 }}>{tStatus('開始建模', lang)}</div>
           <div style={{ display: 'flex', gap: 7, justifyContent: 'center', flexWrap: 'wrap', marginTop: 10, pointerEvents: 'auto' }}>
             {([
               { label: '✏️ ' + msg('mm.drawSketch', lang), fn: () => useApp.getState().startSketch() },
@@ -8322,7 +8322,7 @@ export default function Viewport() {
               <button key={b.label} onClick={b.fn} style={{ padding: '5px 11px', fontSize: 12, borderRadius: 7, border: '1px solid #c4ccd4', background: '#fff', color: '#1d2329', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>{b.label}</button>
             ))}
           </div>
-          <div style={{ fontSize: 11, marginTop: 8, opacity: 0.65 }}>{tStatus('悬停任何工具睇说明　·　需要帮助撳右上 ?　·　按 / 搜索命令', lang)}</div>
+          <div style={{ fontSize: 11, marginTop: 8, opacity: 0.65 }}>{tStatus('懸停任何工具睇說明　·　需要幫助撳右上 ?　·　按 / 搜索命令', lang)}</div>
         </div>
       )}
       {feaStale && (

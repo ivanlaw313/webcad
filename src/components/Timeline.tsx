@@ -229,11 +229,11 @@ export default function Timeline() {
       <button className="tl-panel-toggle" type="button" title={collapsed ? '展開時間軸' : '收合時間軸'} onClick={() => setCollapsed((v) => !v)}>{collapsed ? '⌃' : '⌄'}</button>
       {panelDrag.isDragged && <button className="tl-panel-toggle" type="button" title="還原時間軸預設位置" onClick={panelDrag.reset}>↺</button>}
       {!collapsed && <div className="tl-controls">
-        <button className="tb-btn" title={tStatus('跳到开头（空白）', lang)} disabled={features.length === 0} onClick={() => void gotoStep(0)}><ToolIcon name="undo" size={16} /></button>
+        <button className="tb-btn" title={tStatus('跳到開頭（空白）', lang)} disabled={features.length === 0} onClick={() => void gotoStep(0)}><ToolIcon name="undo" size={16} /></button>
         <button className="tb-btn" title={tStatus('上一步（回退一個特徵）', lang)} disabled={timelinePos <= 0} onClick={() => void gotoStep(timelinePos - 1)}>◂</button>
         <button className="tb-btn" title={tStatus('从头播放重建过程', lang)} disabled={features.length === 0 || isPlaying} onClick={() => void play()}>▷</button>
         <button className="tb-btn" title={tStatus('下一步（前進一個特徵）', lang)} disabled={timelinePos >= features.length} onClick={() => void gotoStep(timelinePos + 1)}>▸</button>
-        <button className="tb-btn" title={tStatus('跳到结尾（最新）', lang)} disabled={features.length === 0} onClick={() => void gotoStep(features.length)}><ToolIcon name="redo" size={16} /></button>
+        <button className="tb-btn" title={tStatus('跳到結尾（最新）', lang)} disabled={features.length === 0} onClick={() => void gotoStep(features.length)}><ToolIcon name="redo" size={16} /></button>
         {features.length > 0 && <span className="tl-pos" style={{ fontSize: 11, color: timelinePos < features.length ? '#d6694e' : '#7a838c', marginLeft: 6, whiteSpace: 'nowrap' }}>{timelinePos}/{features.length}</span>}
         {/* GM-X4 #9：时间轴齿轮设定 */}
         <div style={{ position: 'relative', marginLeft: 4 }}>

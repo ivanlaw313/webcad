@@ -5440,7 +5440,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (r < 0.1) return { status: 'offset 太负，圆会消失 — 减小内缩量' }
       return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: { type: 'circle', c: base.c, r }, sketchProfiles: [], status: `已 offset 圆 Ø${(r * 2).toFixed(1)}` }
     }
-    return { status: '多边形/折线 offset 暂请用「约束草图」；矩形/圆可在自由草图直接 offset' }
+    return { status: '多邊形/折線 offset 暫請用「約束草圖」；矩形/圓可在自由草圖直接 offset' }
   }),
   sketchSides: 6,
   setSketchSides: (n) => set({ sketchSides: Math.min(120, Math.max(3, Math.round(n) || 3)) }),  // cap 120 (huge N freezes draw)
@@ -12952,7 +12952,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         return JSON.stringify({ featureCount: feats.length, featureTypes: feats.map((f) => f.type), componentCount: get().components.length, triangles: m ? m.triangles.length / 3 : 0, bbox: dims, parameters: get().params.map((p) => `${p.name}=${p.value}`) })
       }
       case 'reset_document': await get().reset(); return '✓ 已清空文档'
-      case 'fit_view': get().requestFit(); return '✓ 已适应窗口'
+      case 'fit_view': get().requestFit(); return '✓ 已適應視窗'
       case 'explain_command': {   // P6 教学：查真实 ribbon 位置 + 高亮个掣「指出畀用户睇」，返 grounded 位置畀 AI 组织「示范」步骤
         const q = String(a.query || a.command || '').trim()
         if (!q) return '✗ 需要 query（用户想做嘅操作，如「倒圆角」「抽壳」「拉伸」）'
@@ -13253,8 +13253,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       // T746 批4：旧「约束草图」编辑器退役 — 主草图已全面超越（约束/尺寸/ƒx 参数/弧/任意面/持久化/重开，
       // csketch 全部冇）。命令 id 保留做别名（肌肉记忆/帮助链接唔会 404），重定向到主草图。
       case 'csketch': {
-        if (get().mode === 'sketch') { set({ status: '已经喺草图模式 — 约束/尺寸工具就喺草图工具栏（旧「约束草图」已并入主草图）' }); return }
-        set({ status: '旧「约束草图」已并入主草图 — 约束/尺寸/ƒx 参数全部喺呢度（仲可以重开编辑）' })
+        if (get().mode === 'sketch') { set({ status: '已經喺草圖模式 — 約束/尺寸工具就喺草圖工具欄（舊「約束草圖」已併入主草圖）' }); return }
+        set({ status: '舊「約束草圖」已併入主草圖 — 約束/尺寸/ƒx 參數全部喺呢度（仲可以重開編輯）' })
         return get().startSketch()
       }
       case 'presspull':
@@ -15800,7 +15800,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       get().cancelFormCreate()
     }
     const s = get(), cage = s.formCage
-    if (s.formEditId && !s.components.some(c => c.id === s.formEditId)) { set({ status: '原 Form 组件已不存在；控制笼已保留，请保存项目。' }); return }
+    if (s.formEditId && !s.components.some(c => c.id === s.formEditId)) { set({ status: '原 Form 组件已不存在；控制笼已保留，請儲存專案。' }); return }
     if (s.busy || s.formEditStart) { set({ status: '请先完成或取消当前 Form 操作' }); return }
     if (!cage) { set({ formMode: false, formCreateKind: null, formBoxDraft: null, status: '已退出 FORM' }); return }
     try {
@@ -18836,7 +18836,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   browserCollapsed: false,
   toggleBrowser: () => set((s) => ({ browserCollapsed: !s.browserCollapsed })),
   navTool: 'orbit',
-  setNavTool: (t) => set({ navTool: t, status: t === 'orbit' ? '环绕：左键旋转视角（中/右键平移）' : t === 'pan' ? '平移：左键拖动平移视图' : t === 'select' ? '框选：左键拖框多选组件 — 左→右=窗选（全包先中）· 右→左=跨选（相触即中）· Shift=追加（中/右键仍可平移）' : '缩放：左键上下拖动缩放（滚轮亦可）' }),
+  setNavTool: (t) => set({ navTool: t, status: t === 'orbit' ? '環繞：左鍵旋轉視角（中/右鍵平移）' : t === 'pan' ? '平移：左鍵拖動平移視圖' : t === 'select' ? '框選：左鍵拖框多選組件 — 左→右=窗選（全包先中）· 右→左=跨選（相觸即中）· Shift=追加（中/右鍵仍可平移）' : '縮放：左鍵上下拖動縮放（滾輪亦可）' }),
   showGrid: true,
   toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
   groundShadow: false,
@@ -18885,7 +18885,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setObjectVis: (k, v) => set((s) => ({ objectVis: { ...s.objectVis, [k]: v }, status: `${({ sketches: '全部草图', planes: '全部原点/构造面', axes: '全部构造轴', joints: '全部关节' } as Record<string, string>)[k]}：${v ? '显示' : '隐藏'}` })),
   // #10 约束 orbit（防翻过极；webcad OrbitControls 本身唔 roll，此掣控极点钳制）
   orbitConstrained: true,
-  toggleOrbitConstrained: () => set((s) => ({ orbitConstrained: !s.orbitConstrained, status: !s.orbitConstrained ? '约束环绕：锁世界上向（防翻转过极）' : '自由环绕（可越过极点）' })),
+  toggleOrbitConstrained: () => set((s) => ({ orbitConstrained: !s.orbitConstrained, status: !s.orbitConstrained ? '約束環繞：鎖世界上向（防翻轉過極）' : '自由環繞（可越過極點）' })),
   // #12 应用偏好（localStorage 持久化）
   prefs: (() => { try { return mergePrefs(JSON.parse(localStorage.getItem(PREFS_KEY) || 'null')) } catch { return { ...DEFAULT_PREFS } } })(),
   prefsOpen: false,
@@ -19264,11 +19264,11 @@ export const useApp = create<AppState>((rawSet, get) => {
   // Export the user-parameter table as CSV (name, value, expression) — documents/shares a parametric design.
   exportParamsCsv: () => {
     const ps = get().params
-    if (!ps.length) { set({ status: '冇用户参数可导出（先喺 ƒx 参数表加参数）' }); return }
+    if (!ps.length) { set({ status: '冇用戶參數可導出（先喺 ƒx 參數表加參數）' }); return }
     const rows = [['参数名', '值', '表达式'], ...ps.map((p) => [p.name, String(+p.value.toFixed(6)), p.expr || ''])]
     const csv = '﻿' + rows.map((r) => r.map((f) => (/[",\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f)).join(',')).join('\r\n')
     triggerDownload(new TextEncoder().encode(csv), `${projName(get().projectName)}-参数.csv`, 'text/csv')
-    set({ status: `已导出 ${ps.length} 个用户参数 → CSV` })
+    set({ status: `已導出 ${ps.length} 個用戶參數 → CSV` })
   },
 
   exportSketchDxf: () => {
@@ -19992,7 +19992,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       return
     }
     const where = result.method === 'file-picker' ? ' · 已写入所选位置' : (result.method === 'anchor' ? ' · 已下载到浏览器下载目录' : '')
-    set({ status: `已保存项目（${s.components.length} 组件 · ${s.joints.length} 关节 · ${s.features.length} 活动特征 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 组件特征）${where}` })
+    set({ status: `已儲存專案（${s.components.length} 組件 · ${s.joints.length} 关节 · ${s.features.length} 活动特征 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 组件特征）${where}` })
   },
 
   openProject: () => {
@@ -20112,7 +20112,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // document immediately after File > Open or following a shared link.
     get().requestFit()
     const s = get()
-    set({ status: `${statusVerb}（${s.components.length} 组件 · ${s.joints.length} 关节 · ${s.features.length} 活动特征 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 组件特征）` })
+    set({ status: `${statusVerb}（${s.components.length} 組件 · ${s.joints.length} 关节 · ${s.features.length} 活动特征 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 组件特征）` })
   },
   // T797：分享链接 — buildProjectPayload → gzip → base64url → location.hash + 复制剪贴板。零后端零隐私（链接本身就系全部数据）。
   shareLink: async () => {
@@ -20129,7 +20129,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         b64 = 'r' + _bytesToB64url(bytes)  // 'r' = raw（旧浏览器无 CompressionStream）
       }
       const url = location.origin + location.pathname + '#p=' + b64
-      if (url.length > 1_900_000) { set({ status: '⚠ 模型太大,分享链接超长（>1.9MB）— 改用「保存项目」传 .json 档' }); return }
+      if (url.length > 1_900_000) { set({ status: '⚠ 模型太大,分享链接超长（>1.9MB）— 改用「儲存專案」传 .json 档' }); return }
       try { await navigator.clipboard.writeText(url) } catch { /* clipboard 可能要用户手势 — 至少落 hash */ }
       location.hash = 'p=' + b64
       set({ status: `🔗 分享链接已复制到剪贴板（${(url.length / 1024).toFixed(0)}KB · 全部数据喺链接内,零服务器）— 发畀人/收藏即可重开` })
@@ -20238,7 +20238,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       })
       bumpSkid(Object.keys(get().sketchSources))
       set({ undoStack: [], redoStack: [] })   // 审计修复：恢复自动保存后撤销栈要干净（与打开档案/还原版本一致）
-      await get().applyFeatures(feats, `已恢复上次自动保存（${comps.length} 组件 · ${feats.length} 特征）`, false)
+      await get().applyFeatures(feats, `已恢復上次自動儲存（${comps.length} 組件 · ${feats.length} 特徵）`, false)
       get().requestFit()   // 测试报告观察 H：还原后自动 fit-to-view（否则视窗空白,新用户误以为模型遗失）
     } catch { /* ignore corrupt autosave */ }
   },
@@ -20715,7 +20715,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
   },
 
-  openCSketch: () => set({ csketchOpen: true, status: '约束草图：画线/圆 → 加约束(平行/垂直/相等/重合)+尺寸 → 完全定义(黑色) → 完成轮廓拉伸。要精确参数化时用；想快速画用「创建草图」。' }),
+  openCSketch: () => set({ csketchOpen: true, status: '約束草圖：畫線/圓 → 加約束(平行/垂直/相等/重合)+尺寸 → 完全定義(黑色) → 完成輪廓拉伸。要精確參數化時用；想快速畫用「創建草圖」。' }),
   closeCSketch: () => set({ csketchOpen: false }),
   commitCProfile: async (profile, height) => {
     set({ csketchOpen: false })
@@ -21143,7 +21143,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           { id: 'C3', name: '摇杆', mesh: barMesh(C0, D), pos: [0, 0, 0], color: '#16a36b', material: '钢' },
         ],
         joints: [], motionLinks: [], componentDefs: [], jointOrigins: [], rigidGroups: [], contactPairs: [], explodeSteps: [], features: [], bodyMesh: null, bodyTopZ: 0, selectedFeature: null,
-        status: '已载入闭环四连杆（真组件 · 通用闭环求解器）— 「装配关节」面板拖 J1 角度，成个机构即时联动；到死点会诚实停低',
+        status: '已载入闭环四连杆（真組件 · 通用闭环求解器）— 「装配关节」面板拖 J1 角度，成个机构即时联动；到死点会诚实停低',
       })
       get().addJoint({ type: 'revolute', parent: 'GND', child: 'C1', anchor: anc(A), axis: [0, 1, 0], angle: 0, slide: 0 })
       get().addJoint({ type: 'revolute', parent: 'C1', child: 'C2', anchor: anc(B0), axis: [0, 1, 0], angle: 0, slide: 0 })
@@ -23097,7 +23097,7 @@ if (typeof window !== 'undefined') {
       try { writeTabAutosaveRaw(JSON.stringify(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>))) } catch { try { clearTabAutosave() } catch { /* ignore */ } }   // R2：配额溢出 → 清除 stale tab slot，令 restoreAutosave 的 if(!data) 正确 fallthrough 到更新嘅 IDB 快照（否则读到旧 stale 存档静默丢工作）
     }, 800)
     idbTimer = setTimeout(() => {
-      if (s.features.length || s.components.length || s.mode === 'sketch' || s.sketchShape || s.sketchProfiles.length || s.formCage) void saveSnapshot(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>), '自动保存', 'auto')
+      if (s.features.length || s.components.length || s.mode === 'sketch' || s.sketchShape || s.sketchProfiles.length || s.formCage) void saveSnapshot(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>), '自動儲存', 'auto')
     }, 5000)
   })
   // GM-W7 7.3：入/出草图自动切【正投影】（CAD 正投影防透视变形，Fusion 行为）。

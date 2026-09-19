@@ -2095,6 +2095,48 @@ Object.assign(STATUS_PHRASES_X, {
   '外觀與出圖': 'Appearance & Export',
 })
 
+
+Object.assign(STATUS_PHRASES_X, {
+  // v1.85 zh-HK nav/splash/params TC (source TC; EN via tStatus; zh-CN via tc2sc)
+  '環繞：左鍵旋轉視角': 'Orbit: left-drag to rotate',
+  '環繞：左鍵旋轉視角（中/右鍵平移）': 'Orbit: left-drag to rotate (middle/right-drag pan)',
+  '平移：左鍵拖動平移視圖': 'Pan: left-drag to pan',
+  '縮放：左鍵上下拖動縮放': 'Zoom: left-drag up/down to zoom',
+  '縮放：左鍵上下拖動縮放（滾輪亦可）': 'Zoom: left-drag up/down (or scroll wheel)',
+  '框選：左鍵拖框多選組件 — 左→右=窗選（全包先中，藍實線）；右→左=跨選（相觸即中，綠虛線）；Shift=追加。中/右鍵仍可平移': 'Box select: left-drag — L→R window (fully inside, solid blue); R→L cross (touch, dashed green); Shift=add. Mid/right still pan',
+  '框選：左鍵拖框多選組件 — 左→右=窗選（全包先中）· 右→左=跨選（相觸即中）· Shift=追加（中/右鍵仍可平移）': 'Box select: L→R window · R→L cross · Shift=add (mid/right still pan)',
+  '適應視窗': 'Fit to Window',
+  '開始建模': 'Start Modeling',
+  '用戶參數': 'User Parameters',
+  '約束草圖': 'Constrained Sketch',
+  '約束草圖：選工具繪製 → 加約束/尺寸 → 完全定義(黑) → 完成': 'Constrained Sketch: pick tool → add constraints/dims → fully defined (black) → finish',
+  '懸停任何工具睇說明　·　需要幫助撳右上 ?　·　按 / 搜索命令': 'Hover any tool for help　·　Help at top-right ?　·　Press / to search commands',
+})
+
+
+Object.assign(STATUS_PHRASES_X, {
+  // v1.85 more status TC
+  '✓ 已適應視窗': '✓ Fit to window',
+  '約束環繞：鎖世界上向（防翻轉過極）': 'Constrained orbit: lock world up (no pole flip)',
+  '自由環繞（可越過極點）': 'Free orbit (can cross poles)',
+  '冇用戶參數可導出（先喺 ƒx 參數表加參數）': 'No user parameters to export (add some in the ƒx table first)',
+  '約束草圖：畫線/圓 → 加約束(平行/垂直/相等/重合)+尺寸 → 完全定義(黑色) → 完成輪廓拉伸。要精確參數化時用；想快速畫用「創建草圖」。': 'Constrained Sketch: draw lines/circles → add constraints + dims → fully defined (black) → finish profile. For precise parametric work; quick sketch via Create Sketch.',
+  '多邊形/折線 offset 暫請用「約束草圖」；矩形/圓可在自由草圖直接 offset': 'Polygon/polyline offset: use Constrained Sketch for now; rectangle/circle can offset in freehand sketch',
+  '已經喺草圖模式 — 約束/尺寸工具就喺草圖工具欄（舊「約束草圖」已併入主草圖）': 'Already in sketch mode — constraints/dims are on the sketch toolbar (old Constrained Sketch merged in)',
+  '舊「約束草圖」已併入主草圖 — 約束/尺寸/ƒx 參數全部喺呢度（仲可以重開編輯）': 'Old Constrained Sketch merged into main sketch — constraints/dims/ƒx all here (re-edit supported)',
+})
+
+
+Object.assign(STATUS_PHRASES_X, {
+  // v1.85 BD-8301 timeline / undo chrome
+  '跳到開頭（空白）': 'Jump to start (empty)',
+  '跳到結尾（最新）': 'Jump to end (latest)',
+  '復原草圖一步 (Ctrl+Z)': 'Undo sketch step (Ctrl+Z)',
+  '重做 (Ctrl+Y)': 'Redo (Ctrl+Y)',
+  '已恢復上次自動儲存': 'Restored last autosave',
+  '已儲存專案': 'Project saved',
+})
+
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)
 
 // 渲染时翻译状态串：zh 原样；en 左到右最长匹配替换（未收录片段保留中文，唔会崩）。

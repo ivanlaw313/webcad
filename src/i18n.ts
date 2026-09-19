@@ -1077,6 +1077,12 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "装配工程图生成失败（组件投影为空）": "Assembly drawing failed (component projection empty)",
   // v1.58 DRAWING modal TC (BUG-BD-5601) — keep legacy SC keys above for store status
   "裝配工程圖 — 三視圖 + 氣泡 BOM": "Assembly Drawing — 3 Views + Balloon BOM",
+  "工程圖種類": "Drawing kind",
+  "零件工程圖（三視圖 + 立體圖）": "Part drawing (3 views + isometric)",
+  "裝配工程圖（三視圖 + 氣泡 BOM；需可見組件）": "Assembly drawing (3 views + balloon BOM; needs visible components)",
+  "裝配工程圖：冇可見組件（先「新建組件」砌一個裝配，或用單體工程圖）": "Assembly drawing: no visible components (build an assembly with New Component, or use a single-body drawing)",
+  "裝配工程圖生成失敗（組件投影為空）": "Assembly drawing failed (component projection empty)",
+
   "工程圖 — 三視圖 + 立體圖": "Drawing — 3 Views + Isometric",
   "前視圖": "Front View",
   "俯視圖": "Top View",

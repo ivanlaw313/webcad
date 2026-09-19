@@ -264,13 +264,13 @@ export function tLabel(label: string, lang: Lang): string {
 // GM-W6D：ribbon 组标题 + 工作区 tab 顯示翻译。数据键（WORKSPACES / p.name）永远保持英文；呢度净係
 // 顯示层：zh 模式套中文（Fusion 中文版风格），en 模式原样返英文键。缺失项 fallback 原文（唔会崩）。
 const ZH_GROUP: Record<string, string> = {
-  CREATE: '创建', MODIFY: '修改', CONSTRAINTS: '約束', FINISH: '完成', INSPECT: '檢查',
-  CONSTRUCT: '构造', ASSEMBLE: '裝配', SELECT: '选择', EXPORT: '导出', CONFIGURE: '配置',
-  INSERT: '插入', PARAMETERS: '参数', DRAWING: '工程圖', MAKE: '制造',
+  CREATE: '建立', MODIFY: '修改', CONSTRAINTS: '約束', FINISH: '完成', INSPECT: '檢查',
+  CONSTRUCT: '構造', ASSEMBLE: '裝配', SELECT: '選擇', EXPORT: '導出', CONFIGURE: '配置',
+  INSERT: '插入', PARAMETERS: '參數', DRAWING: '工程圖', MAKE: '製造',
   SYMMETRY: '對稱', UTILITIES: '工具',
 }
 const ZH_TAB: Record<string, string> = {
-  SOLID: '实体', SURFACE: '曲面', MESH: '网格', 'SHEET METAL': '钣金', PLASTIC: '塑料',
+  SOLID: '實體', SURFACE: '曲面', MESH: '網格', 'SHEET METAL': '鈑金', PLASTIC: '塑料',
   MANAGE: '管理', UTILITIES: '工具', FORM: '造型',
 }
 // 组标题：zh 模式显示中文，en 模式显示原英文键。

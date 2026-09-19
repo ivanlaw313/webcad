@@ -3267,7 +3267,7 @@ function partSolidRequiredPatch(
   const bakeAction: StatusAction = { id: 'bakeMeshToPart', label: '烘焙為零件實體', componentId: focus.id }
   if (hasSrc) {
     return {
-      status: `${cmd}：当前是装配/网格件「${name}」，不是零件时间轴实体 — 可「✎编辑」回时间轴，或选件 → MeshFit/转 B-rep；零件内多体请用「实体布尔」（B-rep 时间轴），组件之间请用「组件布尔」（网格） · 点右侧「MeshFit / 转 B-rep」烘焙后再试`,
+      status: `${cmd}：當前是裝配/網格件「${name}」，不是零件時間軸實體 — 可「✎編輯」回時間軸，或選件 → MeshFit/轉 B-rep；零件內多體請用「實體布爾」（B-rep 時間軸），組件之間請用「組件布爾」（網格） · 點右側「MeshFit / 轉 B-rep」烘焙後再試`,
       statusAction: meshfitAction,
     }
   }
@@ -11685,7 +11685,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (!hasActiveBody) { set({ status: '组件布尔需要至少两个有几何嘅零件（或有一个活动参数化实体可自动固化）' }); return }
       const ok = await get().appConfirm('参数化实体将固化成网格再布尔（时间轴特征唔再驱动佢）。继续？', '一步式 实体⊗网格 布尔')
       if (!ok) { set({ status: '已取消布尔（活动实体保留参数化）' }); return }
-      const vf = await get().appPrompt(tStatus(`🧩一步式布尔 —「${c.name}」同【活动实体（将自动固化）】运算：\n1 = 合并（两件熔成一件）\n2 = 切除（用固化实体喺「${c.name}」上切走重叠部分）\n   切除可加间隙做配对插槽：填 2,0.2 即工具件 XY 外扩 0.2mm\n3 = 相交（只留两件重叠嘅公共部分）`, get().lang), '1')
+      const vf = await get().appPrompt(tStatus(`🧩一步式布爾 —「${c.name}」同【活動實體（將自動固化）】運算：\n1 = 合併（兩件熔成一件）\n2 = 切除（用固化實體喺「${c.name}」上切走重疊部分）\n   切除可加間隙做配對插槽：填 2,0.2 即工具件 XY 外擴 0.2mm\n3 = 相交（只留兩件重疊嘅公共部分）`, get().lang), '1')
       if (vf == null) return
       const pf = vf.split(/[,，\s]+/).filter(Boolean).map(Number)
       const opNf = pf[0]
@@ -11707,7 +11707,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (aMeshAfter && aMeshAfter !== aMeshBefore) set({ undoStack: [...restoreStack, preFreezeSnap].slice(-60) })
       return
     }
-    const v = await get().appPrompt(tStatus(`🧩组件布尔 —「${c.name}」同另一个零件运算：\n1 = 合并（两件熔成一件）\n2 = 切除（用第二件喺此件上切走重叠部分）\n   切除可加间隙做配对插槽：填 2,0.2 即工具件 XY 外扩 0.2mm\n3 = 相交（只留两件重叠嘅公共部分）\n\n确定后【点击第二个零件】完成`, get().lang), '2,0.2')
+    const v = await get().appPrompt(tStatus(`🧩組件布爾 —「${c.name}」同另一個零件運算：\n1 = 合併（兩件熔成一件）\n2 = 切除（用第二件喺此件上切走重疊部分）\n   切除可加間隙做配對插槽：填 2,0.2 即工具件 XY 外擴 0.2mm\n3 = 相交（只留兩件重疊嘅公共部分）\n\n確定後【點擊第二個零件】完成`, get().lang), '2,0.2')
     if (v == null) return
     const p = v.split(/[,，\s]+/).filter(Boolean).map(Number)
     const opN = p[0]
@@ -11788,7 +11788,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (op === 'subtract' && clearance > 0) {
         const { compensateMesh } = await import('./io/meshComp')
         bM = compensateMesh(bM, { xyOffset: clearance })
-        toolNote = `（工具件 XY 外扩 ${clearance}mm 留间隙）`
+        toolNote = `（工具件 XY 外擴 ${clearance}mm 留間隙）`
       }
       const resWorld = await meshBoolean(aM, bM, op)
       const vol = meshVolume(resWorld)

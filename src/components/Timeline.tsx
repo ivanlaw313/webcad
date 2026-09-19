@@ -218,7 +218,7 @@ export default function Timeline() {
     dragCleanup.current = up
   }
   useEffect(() => () => dragCleanup.current?.(), [])
-  const marker = <span className="tl-marker" title={tStatus('历史标记 — 左右拖动回放/前進重建历史', lang)} onPointerDown={beginScrub} />
+  const marker = <span className="tl-marker" title={tStatus('歷史標記 — 左右拖動回放／前進重建歷史', lang)} onPointerDown={beginScrub} />
 
   return (
     <div ref={panelDrag.ref} className={'timeline' + (collapsed ? ' tl-collapsed' : '')} data-testid="timeline" data-feature-count={features.length} data-timeline-position={timelinePos} style={{ ...panelDrag.style, ...(inSketch ? { opacity: 0.4, pointerEvents: 'none', filter: 'grayscale(0.7)' } : {}) }} title={inSketch ? tStatus('草圖模式中 — 完成草圖后恢復時間軸操作', lang) : undefined}>

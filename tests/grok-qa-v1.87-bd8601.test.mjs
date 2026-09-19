@@ -32,6 +32,19 @@ test('BD-8601: Ribbon appearance color tooltip via tStatus; no SC 外观颜色',
   assert.equal(traditionalToSimplified('外觀顏色'), '外观颜色')
 })
 
+
+test('BD-8601b: Viewport/propsReport 體積; no SC 体积 in HUD/props labels', () => {
+  const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
+  const pr = readFileSync(new URL('../src/cad/propsReport.ts', import.meta.url), 'utf8')
+  assert.match(vp, /tStatus\('體積'/)
+  assert.equal(vp.includes("tStatus('体积'"), false)
+  assert.match(pr, /label: '體積'/)
+  assert.equal(pr.includes("label: '体积'"), false)
+  assert.equal(tStatus('體積', 'zh-HK'), '體積')
+  assert.equal(tStatus('體積', 'zh-CN'), '体积')
+  assert.equal(tStatus('體積', 'en'), 'volume')
+})
+
 test('Pins retained', () => {
   assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')

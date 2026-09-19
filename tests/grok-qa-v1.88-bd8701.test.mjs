@@ -1,5 +1,5 @@
 /**
- * v1.89 BD-8701: fillet/chamfer/face-fillet dialog TC + BD-8601b 體積 ship
+ * v1.90 BD-8701: fillet/chamfer/face-fillet dialog TC + BD-8601b 體積 ship
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -12,9 +12,9 @@ const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.ur
 const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 const pr = readFileSync(new URL('../src/cad/propsReport.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.89; SW webcad-v1.89', () => {
-  assert.match(version, /APP_VERSION = '1\.89'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.89/)
+test('APP_VERSION 1.90; SW webcad-v1.90', () => {
+  assert.match(version, /APP_VERSION = '1\.90'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.90/)
 })
 
 test('catalog parity', () => {

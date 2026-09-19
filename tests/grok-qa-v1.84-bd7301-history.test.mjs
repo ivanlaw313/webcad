@@ -15,9 +15,9 @@ const tree = readFileSync(new URL('../src/components/BrowserTree.tsx', import.me
 const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 const ribbonSrc = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.89; SW CACHE webcad-v1.89', () => {
-  assert.match(version, /APP_VERSION = '1\.89'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.89'/)
+test('APP_VERSION is 1.90; SW CACHE webcad-v1.90', () => {
+  assert.match(version, /APP_VERSION = '1\.90'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.90'/)
   assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.83'/)
 })
 

@@ -1,5 +1,5 @@
 /**
- * v1.89 BD-8801 / BD-8701 leftovers: fillet dialog SC→TC + 面圓角 type option + status TC
+ * v1.90 BD-8801 / BD-8701 leftovers: fillet dialog SC→TC + 面圓角 type option + status TC
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -12,9 +12,9 @@ const sw = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8')
 const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.89; SW webcad-v1.89', () => {
-  assert.match(version, /APP_VERSION = '1\.89'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.89/)
+test('APP_VERSION 1.90; SW webcad-v1.90', () => {
+  assert.match(version, /APP_VERSION = '1\.90'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.90/)
 })
 
 test('catalog parity', () => {

@@ -2389,7 +2389,6 @@ Object.assign(STATUS_PHRASES_X, {
   '延伸': 'Extend',
   '偏移': 'Offset',
   '倒斜角': 'Chamfer',
-  '選擇工具': 'Select tool',
 })
 
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)

@@ -4710,7 +4710,7 @@ export default function Viewport() {
             { key: 'line', glyph: '╱', label: '直线', fn: () => setSketchTool('polyline') },
             { key: 'rect', glyph: '▭', label: '矩形', fn: () => setSketchTool('rectangle') },
             { key: 'circle', glyph: '◯', label: '圆', fn: () => setSketchTool('circle') },
-            { key: 'finish', glyph: '✓', label: '完成草图', fn: () => finishSketch() },
+            { key: 'finish', glyph: '✓', label: '完成草圖', fn: () => finishSketch() },
             { key: 'extrude', glyph: '⬆', label: '拉伸…', disabled: !(sketchShape || sketchProfiles.length > 0), fn: () => openExtrudeDlg() },
             { key: 'undo', glyph: '↶', label: '撤销', fn: () => void useApp.getState().undo() },
             { key: 'esc', glyph: '✕', label: '取消绘制', fn: () => { useApp.getState().escSketch() } },
@@ -6936,7 +6936,7 @@ export default function Viewport() {
           <span className="sb-title" onPointerDown={skBarDrag.onPointerDown} onClick={() => skBarDrag.consumeClick()} title={tStatus('拖移工具条', lang)} style={{ cursor: 'grab', touchAction: 'none', userSelect: 'none' }}>{tStatus('草图', lang)}</span>
           <button className={'sb-tool' + (sketchTool === 'select' ? ' active' : '')} title={tStatus('选择工具：点 点/边/圆/参考几何（最多 3 个）→ 按约束按钮', lang)} onClick={() => setSketchTool('select')}>↖</button>
           {/* GM-FP1 #3：常驻「完成草图」绿掣（对标 Fusion FINISH SKETCH）— 唔使靠 ESC/右键 */}
-          <button className="sb-tool sb-finish" disabled={sketchDragging} style={{ fontWeight: 700 }} title={tStatus('完成草图（存成独立草图特征 · 退出草图环境）— 对标 Fusion 绿色 FINISH SKETCH', lang)} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>✓ {tStatus('完成草图', lang)}</button>
+          <button className="sb-tool sb-finish" disabled={sketchDragging} style={{ fontWeight: 700 }} title={tStatus('完成草圖（存成獨立草圖特徵 · 退出草圖環境）— 对标 Fusion 绿色 FINISH SKETCH', lang)} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>✓ {tStatus('完成草圖', lang)}</button>
           {/* GM-FP1 #9：Look At 正对掣 — orbit 打斜睇后一键返正对草图平面 */}
           <button className="sb-tool" title={tStatus('正对（Look At）：一键把相机转返正对草图平面法向（用 ViewCube/orbit 打斜睇后返正）', lang)} onClick={() => skLookAt()}>⊥ {tStatus('正对', lang)}</button>
           {skRefGeo && skRefGeo.segs && skRefGeo.segs.length > 0 && (<>

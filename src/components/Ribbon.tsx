@@ -185,7 +185,7 @@ function MenuRow({ t, off, onPick }: { t: Tool; off: boolean; onPick: (t: Tool) 
     <div
       data-cmd={t.id}
       className={'panel-menu-item' + (off ? ' off' : '')}
-      title={off ? '请先完成或取消（ESC）当前操作 / 完成草图' : (t.tip || t.label)}
+      title={off ? '请先完成或取消（ESC）当前操作 / 完成草圖' : (t.tip || t.label)}
       style={{ flexWrap: hasSub ? 'wrap' : undefined }}
       role="menuitem" aria-disabled={off} tabIndex={off ? -1 : 0} aria-expanded={hasSub ? subOpen : undefined}
       onKeyDown={e => { if (e.target !== e.currentTarget || off) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); if (hasSub) setSubOpen(!subOpen); else onPick(t) } if (e.key === 'Escape') setSubOpen(false) }}
@@ -394,7 +394,7 @@ export default function Ribbon() {
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportStep()}><ToolIcon name="save" size={16} />{en ? 'Export STEP' : '导出 STEP'}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={exportThreeMF}><ToolIcon name="save" size={16} />{en ? 'Export 3MF' : '导出 3MF'}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={exportObj}><ToolIcon name="save" size={16} />{en ? 'Export OBJ' : '导出 OBJ'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" title={en ? 'Exports the current sketch profile as 2D DXF.' : '导出当前草图轮廓为 2D DXF。'} onClick={exportSketchDxf}><ToolIcon name="importdxf" size={16} />{en ? 'Export Sketch DXF' : '导出草图 DXF'}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title={en ? 'Exports the current sketch profile as 2D DXF.' : '導出當前草圖輪廓為 2D DXF。'} onClick={exportSketchDxf}><ToolIcon name="importdxf" size={16} />{en ? 'Export Sketch DXF' : '導出草圖 DXF'}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => exportAssemblyStl()}><ToolIcon name="save" size={16} />{en ? 'Export Assembly STL' : '导出装配 STL'}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" title="真布尔合并单壳（manifold union）：把装配各件熔成一个水密壳再导出——慢，但打印更稳（冇内壁/重叠壳）。要各件水密；失败会诚实回退三角汤" onClick={() => exportAssemblyStl(true)}><ToolIcon name="save" size={16} />{en ? 'Export Assembly STL · Boolean Union (slow)' : '导出装配 STL · 真布尔合并单壳（慢）'}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportGLB()}><ToolIcon name="save" size={16} />{en ? 'Export glTF/GLB' : '导出 glTF/GLB'}</button>
@@ -497,12 +497,12 @@ export default function Ribbon() {
                 {tTab(tab, lang)}
               </div>
             ))}
-            {inSketch && <div className="ribbon-tab ctx active">{useApp.getState().lang === 'en' ? 'Sketch' : '草图'}</div>}
+            {inSketch && <div className="ribbon-tab ctx active">{useApp.getState().lang === 'en' ? 'Sketch' : '草圖'}</div>}
             {inForm && <div className="ribbon-tab ctx active" data-testid="form-workspace-tab">{lang === 'en' ? 'FORM' : '造型'}</div>}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: 6 }} title="界面语言 / UI language（T800：ribbon + 导航；状态消息 v1 仍中文）">
               {<button className="ribbon-tab" title={ribbonCollapsed ? '展开工具行' : '收起工具行（净留标签，腾画面）'} onClick={() => setRibbonCollapsed((c) => !c)} style={{ fontSize: 12, opacity: 0.7 }}>{ribbonCollapsed ? '▾' : '▴'}</button>}
               <button className="ribbon-tab" aria-pressed={!compactTools} title={lang === 'en' ? 'Show or hide tool names' : '显示／隐藏工具名称'} onClick={() => setCompactTools(v => !v)}>{compactTools ? 'Aa' : '▦'}</button>
-              {inSketch && <button className="ribbon-tab context-finish" disabled={!!commandActive || sketchDragging} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{lang === 'en' ? '✓ Finish Sketch' : '✓ 完成草图'}</button>}
+              {inSketch && <button className="ribbon-tab context-finish" disabled={!!commandActive || sketchDragging} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{lang === 'en' ? '✓ Finish Sketch' : '✓ 完成草圖'}</button>}
               <button className="ribbon-tab" style={{ fontWeight: lang === 'zh' ? 700 : 400, opacity: lang === 'zh' ? 1 : 0.5 }} onClick={() => useApp.getState().setLang('zh')}>中</button>
               <button className="ribbon-tab" style={{ fontWeight: lang === 'en' ? 700 : 400, opacity: lang === 'en' ? 1 : 0.5 }} onClick={() => useApp.getState().setLang('en')}>EN</button>
             </div>
@@ -528,9 +528,9 @@ export default function Ribbon() {
                 })}
               </div>
               {inSketch && (
-                <button data-cmd="finishsketch" data-testid="finish-sketch-pin" disabled={!!commandActive || sketchDragging} className="finish-sketch finish-pinned" title={lang === 'en' ? 'Finish the sketch and return to the modeling environment (Fusion: FINISH SKETCH)' : '完成草图，返回实体环境（Fusion: FINISH SKETCH）'} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{/* GM-W6 E：教学指针锚点 */}
+                <button data-cmd="finishsketch" data-testid="finish-sketch-pin" disabled={!!commandActive || sketchDragging} className="finish-sketch finish-pinned" title={lang === 'en' ? 'Finish the sketch and return to the modeling environment (Fusion: FINISH SKETCH)' : '完成草圖，返回實體環境（Fusion: FINISH SKETCH）'} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{/* GM-W6 E：教学指针锚点 */}
                   <span className="finish-check">✓</span>
-                  <span>{lang === 'en' ? 'Finish Sketch' : '完成草图'}</span>
+                  <span>{lang === 'en' ? 'Finish Sketch' : '完成草圖'}</span>
                 </button>
               )}
               {inForm && (

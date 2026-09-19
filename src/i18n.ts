@@ -204,7 +204,47 @@ export const EN_LABEL: Record<string, string> = {
   '面夾角': 'Face Angle',
   '完整物理屬性': 'Full Physical Properties',
 
+  // SKETCH ribbon Traditional (v1.57 BUG-BD-4801 continue)
+  '直線': 'Line',
+  '中點線': 'Midpoint Line',
+  '圓': 'Circle',
+  '兩點圓': '2-Pt Circle',
+  '三點圓': '3-Pt Circle',
+  '兩切點圓': '2-Tangent Circle',
+  '三切點圓': '3-Tangent Circle',
+  '圓弧': 'Arc',
+  '中心點弧': 'Center Arc',
+  '三點矩形': '3-Pt Rectangle',
+  '多邊形': 'Polygon',
+  '樣條': 'Spline',
+  'B樣條': 'B-Spline',
+  '圓弧槽': 'Arc Slot',
+  '圓角矩形': 'Rounded Rect',
+  '橢圓': 'Ellipse',
+  '橢圓弧': 'Elliptical Arc',
+  '圓錐曲線': 'Conic',
+  '點': 'Point',
+  '構造線': 'Construction Line',
+  // '鏡像' already in FORM TC block
+  '上下鏡像': 'Mirror Vertical',
+  '陣列': 'Pattern',
+  '投影幾何': 'Project',
+  '構造': 'Construction',
+  '掃掠導軌': 'Sweep Guide',
+  '閉合': 'Close',
+  '導出DXF': 'Export DXF',
+  '截面屬性': 'Section Properties',
+  '豎直': 'Vertical',
+  '共線': 'Collinear',
+  '對稱': 'Symmetric',
+  '中點': 'Midpoint',
+  '自動約束': 'AutoConstrain',
+  '撤約束': 'Remove Constraint',
+  // keep legacy SC pin (contracts v1.48+):
+  // '对称': 'Symmetric' already present above
+
 }
+
 
 
 
@@ -216,7 +256,7 @@ export function tLabel(label: string, lang: Lang): string {
 // GM-W6D：ribbon 组标题 + 工作区 tab 顯示翻译。数据键（WORKSPACES / p.name）永远保持英文；呢度净係
 // 顯示层：zh 模式套中文（Fusion 中文版风格），en 模式原样返英文键。缺失项 fallback 原文（唔会崩）。
 const ZH_GROUP: Record<string, string> = {
-  CREATE: '创建', MODIFY: '修改', CONSTRAINTS: '约束', FINISH: '完成', INSPECT: '檢查',
+  CREATE: '创建', MODIFY: '修改', CONSTRAINTS: '約束', FINISH: '完成', INSPECT: '檢查',
   CONSTRUCT: '构造', ASSEMBLE: '裝配', SELECT: '选择', EXPORT: '导出', CONFIGURE: '配置',
   INSERT: '插入', PARAMETERS: '参数', DRAWING: '工程圖', MAKE: '制造',
   SYMMETRY: '對稱', UTILITIES: '工具',

@@ -5032,25 +5032,25 @@ export default function Viewport() {
           okTip="抽壳（Enter）"
           onOk={() => void commitShell()}
           onCancel={() => cancelShell()}
-          summary={<>{shellType === 'closed' ? '封闭实体' : `开 ${shellPicks.length} 面`} · 壁厚 {shellThickness}</>}
+          summary={<>{shellType === 'closed' ? '封閉實體' : `開 ${shellPicks.length} 面`} · 壁厚 {shellThickness}</>}
         >
           <div role="status" aria-live="polite" data-testid="shell-preview-status">{shellPreviewBusy ? '正在计算预览…' : shellPreviewFail ? '预览失败（已保留原模型）— 可改壁厚/方向/开口面，或仍按「确定」尝试提交' : shellPreviewMesh ? '实时预览；确定后才保存操作' : '选择开口面并输入壁厚，即时预览结果'}</div>
           <SelectionChip label={shellType === 'closed' ? '实体' : '面'} count={shellPicks.length} hint={shellType === 'closed' ? '点选要建立封闭空腔的实体' : '点选要移除的面（再点取消）'} onClear={() => useApp.getState().clearShellPicks()} />
           {shellType === 'open' && <label style={{ justifyContent: 'flex-start', gap: 6 }} title="Fusion Tangent Chain：沿共享边自动加入 G1 相切连续面">
-            <input type="checkbox" checked={shellTangentChain} onChange={() => toggleShellTangentChain()} /> 切线链
+            <input type="checkbox" checked={shellTangentChain} onChange={() => toggleShellTangentChain()} /> 切線鏈
           </label>}
           <label>
             <span style={{ color: '#6b7680' }}>抽壳类型</span>
-            <span><select value={shellType} onChange={(e) => setShellType(e.target.value as 'open' | 'closed')} style={{ height: 26 }} aria-label="抽壳类型"><option value="open">移除面</option><option value="closed">封闭实体</option></select></span>
+            <span><select value={shellType} onChange={(e) => setShellType(e.target.value as 'open' | 'closed')} style={{ height: 26 }} aria-label="抽壳类型"><option value="open">移除面</option><option value="closed">封閉實體</option></select></span>
           </label>
           {!(shellThickness > 0) && <div role="alert" data-testid="shell-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div>}
           <label>
             <span style={{ color: '#6b7680' }}>壁厚</span>
             <span><input type="number" min={0.01} step={0.5} value={shellThickness} onChange={(e) => setShellThickness(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
           </label>
-          <label title={tStatus('壁厚方向（Fusion Direction）：向内=外形保留 · 向外=尺寸外扩 · 两侧=壁跨原边界（逐面不同厚度请事后用「偏移面」）', lang)}>
+          <label title={tStatus('壁厚方向（Fusion Direction）：向內=外形保留 · 向外=尺寸外擴 · 兩側=壁跨原邊界（逐面不同厚度請事後用「偏移面」）', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('方向', lang)}</span>
-            <span><select value={shellDir} onChange={(e) => setShellDir(e.target.value as 'inside' | 'outside' | 'both')} style={{ height: 26 }}><option value="inside">{tStatus('向内', lang)}</option><option value="outside">{tStatus('向外', lang)}</option><option value="both">{tStatus('两侧', lang)}</option></select></span>
+            <span><select value={shellDir} onChange={(e) => setShellDir(e.target.value as 'inside' | 'outside' | 'both')} style={{ height: 26 }}><option value="inside">{tStatus('向內', lang)}</option><option value="outside">{tStatus('向外', lang)}</option><option value="both">{tStatus('兩側', lang)}</option></select></span>
           </label>
         </CommandDialog>
       )}
@@ -6489,7 +6489,7 @@ export default function Viewport() {
               <label>{tStatus('半径', lang)} <input type="number" step={0.5} min={0.1} value={featDlg.params.radius} onChange={(e) => setFeatParam('radius', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
               <label title={tStatus('变半径圆角：起始用「半径」，末端用呢个值（0=均一半径）', lang)}>{tStatus('末端半径', lang)} <input type="number" step={0.5} min={0} value={featDlg.params.radius2} onChange={(e) => setFeatParam('radius2', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
             </>)}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.chain || 0)} onChange={(e) => setFeatParam('chain', e.target.checked ? 1 : 0)} />{tStatus('切线链', lang)}</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.chain || 0)} onChange={(e) => setFeatParam('chain', e.target.checked ? 1 : 0)} />{tStatus('切線鏈', lang)}</label>
           </>)}
           {featDlg.kind === 'chamfer-edit' && (<>
             <SelectionChip label={tStatus('棱', lang)} count={Math.max(1, +(featDlg.params.nearsN || 0))} hint="" />
@@ -6499,12 +6499,12 @@ export default function Viewport() {
             {featDlg.params.cmode === 'two' && <label>{tStatus('距离2', lang)} <input type="number" step={0.5} min={0.1} value={featDlg.params.dist2} onChange={(e) => setFeatParam('dist2', Number(e.target.value))} style={{ width: 56 }} /> mm</label>}
             {featDlg.params.cmode === 'angle' && <label>{tStatus('角度', lang)} <input type="number" step={5} min={5} max={85} value={featDlg.params.angle} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 50 }} />°</label>}
             {featDlg.params.cmode !== 'equal' && <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} />{tStatus('翻转', lang)}</label>}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.chain || 0)} onChange={(e) => setFeatParam('chain', e.target.checked ? 1 : 0)} />{tStatus('切线链', lang)}</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.chain || 0)} onChange={(e) => setFeatParam('chain', e.target.checked ? 1 : 0)} />{tStatus('切線鏈', lang)}</label>
           </>)}
           {featDlg.kind === 'shell-edit' && (<>
             <SelectionChip label={tStatus('开口面', lang)} count={+(featDlg.params.nearsN || 0)} hint={tStatus('0 = 默认开顶面', lang)} />
             <label>{tStatus('壁厚', lang)} <input type="number" step={0.2} min={0.2} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
-            <label title={tStatus('壁厚方向：向内=外形保留 · 向外=尺寸外扩 · 两侧=壁跨原边界', lang)}>{tStatus('方向', lang)} <select value={String(featDlg.params.direction ?? 'inside')} onChange={(e) => setFeatParam('direction', e.target.value)} style={{ height: 26 }}><option value="inside">{tStatus('向内', lang)}</option><option value="outside">{tStatus('向外', lang)}</option><option value="both">{tStatus('两侧', lang)}</option></select></label>
+            <label title={tStatus('壁厚方向：向內=外形保留 · 向外=尺寸外擴 · 兩側=壁跨原邊界', lang)}>{tStatus('方向', lang)} <select value={String(featDlg.params.direction ?? 'inside')} onChange={(e) => setFeatParam('direction', e.target.value)} style={{ height: 26 }}><option value="inside">{tStatus('向內', lang)}</option><option value="outside">{tStatus('向外', lang)}</option><option value="both">{tStatus('兩側', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'offsetsolid' && (<>
             <label title={tStatus('整体偏移所有面：正=外扩(加厚铸件壁/补偿)，负=内缩。凸边按圆角接合', lang)}>{tStatus('偏移距离', lang)} <input type="number" step={0.5} value={featDlg.params.distance} onChange={(e) => setFeatParam('distance', Number(e.target.value))} style={{ width: 56 }} /> mm</label>

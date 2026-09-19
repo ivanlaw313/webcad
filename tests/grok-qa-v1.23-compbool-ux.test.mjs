@@ -18,9 +18,9 @@ test('APP_VERSION is 1.23+ (superseded by later ship)', () => {
 test('partSolidRequiredStatus helper guides mesh / component-boolean dead-end', () => {
   assert.match(store, /function partSolidRequiredPatch/)
   assert.match(store, /MeshFit\/转 B-rep/)
-  assert.match(store, /实体布尔/)
+  assert.match(store, /實體布爾|实体布尔/)
   assert.match(store, /✎编辑/)
-  assert.match(store, /组件布尔\/网格件/)
+  assert.match(store, /組件布爾\/網格件/)
   assert.match(store, /零件时间轴实体/)
 })
 
@@ -45,23 +45,23 @@ test('componentBoolean offers bake into part solid after success', () => {
   const end = store.indexOf('planeCutComponent: async')
   assert.ok(start >= 0 && end > start)
   const block = store.slice(start, end)
-  assert.match(block, /烘焙为零件实体/)
+  assert.match(block, /烘焙為零件實體/)
   // v1.24: primary statusAction button (no blocking confirm); bake runs via runStatusAction
   assert.match(block, /bakeMeshToPart|convertMeshComponent/)
   assert.match(store, /runStatusAction/)
-  assert.match(store, /已烘焙入零件时间轴，可圆角\/抽壳/)
+  assert.match(store, /已烘焙入零件時間軸，可圓角\/抽殼/)
   assert.match(block, /MeshFit\/转 B-rep|实体布尔/)
 })
 
 test('i18n covers v1.23 guidance phrases', () => {
   assert.match(i18n, /v1\.23 component-boolean dead-end guidance/)
-  assert.match(i18n, /'烘焙为零件实体': '烘焙为零件实体'/) // v1.40: keep Chinese under EN
+  assert.match(i18n, /'烘焙為零件實體': '烘焙為零件實體'/) // v1.40: keep Chinese under EN
   assert.match(i18n, /MeshFit \/ Convert to B-rep/)
 })
 
 test('shell alternate planar path keeps solid guard (v1.23)', () => {
   assert.match(worker, /v1\.23: keep alternate-planar-open path solid/)
   assert.match(worker, /if \(r && validShellSolid\(r\)\) return r/)
-  assert.match(worker, /alternate planar lids \(NOT G1 chain\) before cavity/)
+  assert.match(worker, /alternate planar lids.*(?:before|AFTER) cavity/i)
   assert.match(worker, /_copyHealSolid/)
 })

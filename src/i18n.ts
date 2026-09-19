@@ -329,7 +329,8 @@ const STATUS_PHRASES: Record<string, string> = {
   '选件 → MeshFit/转 B-rep': 'select the part → MeshFit / Convert to B-rep',
   '选此件 → MeshFit/转 B-rep 烘焙入零件后再圆角/抽壳': 'select it → MeshFit / Convert to B-rep into the part, then Fillet/Shell',
   '零件内多体请用「实体布尔」': 'for multi-body inside a part use Body Boolean',
-  '烘焙为零件实体': 'Bake into part solid',  // overridden in STATUS_PHRASES_X (v1.40)
+  '烘焙为零件实体': 'Bake into part solid',  // overridden in STATUS_PHRASES_X (v1.40); legacy SC
+  '烘焙為零件實體': 'Bake into part solid',  // v1.63 TC — overridden in STATUS_PHRASES_X
 
   // v1.25 component-boolean tool pick
   '🧩 切除：选择工具件': '🧩 Cut: pick tool component',
@@ -339,7 +340,8 @@ const STATUS_PHRASES: Record<string, string> = {
   '已取消组件布尔（未修改模型）': 'Component Boolean cancelled (model unchanged)',
 
   '组件布尔结果是网格件，圆角/抽壳需要零件时间轴实体': 'Component Boolean leaves a mesh; Fillet/Shell need a part-timeline solid',
-  '已烘焙入零件时间轴，可圆角/抽壳': 'baked into the part timeline — Fillet/Shell ready',  // overridden in STATUS_PHRASES_X (v1.40)
+  '已烘焙入零件时间轴，可圆角/抽壳': 'baked into the part timeline — Fillet/Shell ready',  // overridden in STATUS_PHRASES_X (v1.40); legacy SC
+  '已烘焙入零件時間軸，可圓角/抽殼': 'baked into the part timeline — Fillet/Shell ready',  // v1.63 TC
   '提示：圆角/抽壳请先 MeshFit/转 B-rep（或零件内用「实体布尔」）': 'tip: Fillet/Shell need MeshFit/Convert to B-rep first (or Body Boolean inside a part)',
   // v1.24 shell soft status — full phrases (must outrank short 完成/重建/开口 fragments)
   '抽壳完成（备用：直柱型腔）': 'Shell done (fallback: prismatic cavity)',
@@ -1495,13 +1497,22 @@ const STATUS_PHRASES_X: Record<string, string> = {
   // 时间轴→timeline) otherwise produce hybrid UX like:
   //   "Done: shell Wall 2 (向内, 开 1 个selected 面, 切线链)"
   // Long→short sort lets these beat the destructive shorts. Identity EN keeps product Chinese.
-  '已抽壳 壁厚': '已抽壳 壁厚',
+  // v1.63: TC identities for shellSuccessStatus (Solid QA); legacy SC retained.
+  '已抽殼 壁厚': '已抽殼 壁厚',
+  '個所選面': '個所選面',
+  '切線鏈開': '切線鏈開',
+  '封閉實體': '封閉實體',
+  '向內': '向內',
+  '兩側': '兩側',
+  '切線鏈': '切線鏈',
+  '已抽壳 壁厚': '已抽壳 壁厚',  // legacy SC
   '个所选面': '个所选面',
   '切线链开': '切线链开',
   '封闭实体': '封闭实体',
   '向内': '向内',
   '向外': '向外',
   '两侧': '两侧',
+  '切线链': '切线链',
   '已对 ': '已对 ',
   '条棱 倒圆角': '条棱 倒圆角',
   '条棱 倒角': '条棱 倒角',
@@ -1556,7 +1567,13 @@ const STATUS_PHRASES_X: Record<string, string> = {
   '已对所有棱倒角': '已对所有棱倒角',
   // v1.39 mate-after-edit / compbool bake — keep Chinese intact under EN tStatus
   // v1.40: component-boolean success toast + bake chip — block Done:/Bake-into-part EN mangling
-  '烘焙为零件实体': '烘焙为零件实体',
+  // v1.63: TC bake chip + success toast (Solid QA); legacy SC retained
+  '烘焙為零件實體': '烘焙為零件實體',
+  '已烘焙入零件時間軸，可圓角/抽殼': '已烘焙入零件時間軸，可圓角/抽殼',
+  '點右側「烘焙為零件實體」入零件時間軸後再圓角/抽殼': '點右側「烘焙為零件實體」入零件時間軸後再圓角/抽殼',
+  '組件布爾＝網格結果（非零件時間軸）— 點右側按鈕烘焙入零件後即可圓角/抽殼；零件內多體用「實體布爾」（B-rep），勿與組件布爾（網格）混淆': '組件布爾＝網格結果（非零件時間軸）— 點右側按鈕烘焙入零件後即可圓角/抽殼；零件內多體用「實體布爾」（B-rep），勿與組件布爾（網格）混淆',
+  '當前是組件布爾/網格件': '當前是組件布爾/網格件',
+  '烘焙为零件实体': '烘焙为零件实体',  // legacy SC
   '已烘焙入零件时间轴，可圆角/抽壳': '已烘焙入零件时间轴，可圆角/抽壳',
   '已切除「': '已切除「',
   '已合并「': '已合并「',
@@ -1611,6 +1628,10 @@ const STATUS_PHRASES_X: Record<string, string> = {
   '保留工具体': '保留工具体',
   '完成后': '完成后',
   '侧面，中性面': '侧面，中性面',
+
+  // v1.63: Shell dialog direction titles TC
+  '壁厚方向（Fusion Direction）：向內=外形保留 · 向外=尺寸外擴 · 兩側=壁跨原邊界（逐面不同厚度請事後用「偏移面」）': '壁厚方向（Fusion Direction）：向內=外形保留 · 向外=尺寸外擴 · 兩側=壁跨原邊界（逐面不同厚度請事後用「偏移面」）',
+  '壁厚方向：向內=外形保留 · 向外=尺寸外擴 · 兩側=壁跨原邊界': '壁厚方向：向內=外形保留 · 向外=尺寸外擴 · 兩側=壁跨原邊界',
 }
 
 // 长→短排序（长词先替）。模块载入时算一次。合并基表 + 补充表（spread 去重，补充表覆盖）。

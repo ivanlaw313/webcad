@@ -130,9 +130,9 @@ test('v1.37 shell CLEAN still Chinese under EN (no regress)', () => {
     openCount: 1,
     tangentChain: true,
   })
-  assert.match(raw, /已抽壳 壁厚 2/)
+  assert.match(raw, /已抽殼 壁厚 2/)
   assert.doesNotMatch(raw, /备用|型腔|其他开口|未收敛/)
   const en = tStatus(raw, 'en')
-  assert.match(en, /已抽壳 壁厚 2/)
+  assert.match(en, /已抽殼 壁厚 2/)
   assert.doesNotMatch(en, /Done:|shell Wall|selected/)
 })

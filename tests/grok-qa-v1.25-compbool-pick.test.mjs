@@ -54,7 +54,7 @@ test('successful componentBoolean always sets bake statusAction', () => {
   const block = store.slice(start, end)
   assert.match(block, /ALWAYS show primary bake statusAction after success/)
   assert.match(block, /bakeMeshToPart/)
-  assert.match(block, /烘焙为零件实体/)
+  assert.match(block, /烘焙為零件實體/)
   assert.doesNotMatch(block, /appConfirm/)
 })
 

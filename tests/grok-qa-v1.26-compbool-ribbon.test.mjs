@@ -61,7 +61,7 @@ test('CompBoolPickPanel + bake chip preserved', () => {
   assert.match(viewport, /function CompBoolPickPanel/)
   assert.match(viewport, /data-testid="comp-bool-pick-panel"/)
   assert.match(store, /bakeMeshToPart/)
-  assert.match(store, /烘焙为零件实体/)
+  assert.match(store, /烘焙為零件實體/)
 })
 
 test('BrowserTree ⋯ menu exposes 組件布爾', () => {

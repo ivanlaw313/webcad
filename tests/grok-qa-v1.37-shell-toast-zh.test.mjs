@@ -32,9 +32,12 @@ test('tStatus is LTR longest-match (not global split/join)', () => {
 })
 
 test('i18n guards: shell success Chinese identities present', () => {
-  assert.match(i18nSrc, /'已抽壳 壁厚': '已抽壳 壁厚'/)
-  assert.match(i18nSrc, /'个所选面': '个所选面'/)
-  assert.match(i18nSrc, /'切线链开': '切线链开'/)
+  assert.match(i18nSrc, /'已抽殼 壁厚': '已抽殼 壁厚'/)
+  assert.match(i18nSrc, /'已抽壳 壁厚': '已抽壳 壁厚'/ )  // legacy SC
+  assert.match(i18nSrc, /'個所選面': '個所選面'/)
+  assert.match(i18nSrc, /'个所选面': '个所选面'/ )
+  assert.match(i18nSrc, /'切線鏈開': '切線鏈開'/)
+  assert.match(i18nSrc, /'切线链开': '切线链开'/ )
 })
 
 test('shellSuccessStatus builds Chinese CLEAN pattern', () => {
@@ -45,8 +48,8 @@ test('shellSuccessStatus builds Chinese CLEAN pattern', () => {
     openCount: 1,
     tangentChain: true,
   })
-  assert.equal(open, '已抽壳 壁厚 2（向内，开 1 个所选面，切线链开）')
-  assert.match(open, /已抽壳 壁厚 2/)
+  assert.equal(open, '已抽殼 壁厚 2（向內，開 1 個所選面，切線鏈開）')
+  assert.match(open, /已抽殼 壁厚 2/)
   assert.doesNotMatch(open, /备用|型腔|其他开口|未收敛|Done:|shell Wall|selected/)
 
   const closed = shellSuccessStatus({
@@ -56,7 +59,7 @@ test('shellSuccessStatus builds Chinese CLEAN pattern', () => {
     openCount: 0,
     tangentChain: false,
   })
-  assert.equal(closed, '已抽壳 壁厚 1.5（两侧，封闭实体）')
+  assert.equal(closed, '已抽殼 壁厚 1.5（兩側，封閉實體）')
 })
 
 test('EN tStatus keeps Chinese shell success (no Done:/shell Wall/selected)', () => {
@@ -70,10 +73,10 @@ test('EN tStatus keeps Chinese shell success (no Done:/shell Wall/selected)', ()
   assert.equal(tStatus(raw, 'zh'), raw)
 
   const en = tStatus(raw, 'en')
-  assert.match(en, /已抽壳 壁厚 2/)
-  assert.match(en, /向内/)
-  assert.match(en, /所选面/)
-  assert.match(en, /切线链开/)
+  assert.match(en, /已抽殼 壁厚 2/)
+  assert.match(en, /向內/)
+  assert.match(en, /所選面/)
+  assert.match(en, /切線鏈開/)
   assert.doesNotMatch(en, /Done:/)
   assert.doesNotMatch(en, /shell Wall/)
   assert.doesNotMatch(en, /selected/)

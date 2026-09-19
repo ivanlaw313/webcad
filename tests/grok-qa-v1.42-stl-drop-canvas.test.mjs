@@ -91,7 +91,9 @@ test('acceptMeshDropFile still reuses openMeshInsert / import3MF', () => {
 test('i18n keeps mesh-drop Chinese + prior guards', () => {
   assert.match(i18nSrc, /'不支持的网格拖放（请用 \.stl \/ \.obj \/ \.3mf）': '不支持的网格拖放（请用 \.stl \/ \.obj \/ \.3mf）'/)
   assert.match(i18nSrc, /'正在读取 STL「': '正在读取 STL「'/)
-  assert.match(i18nSrc, /'已抽壳 壁厚': '已抽壳 壁厚'/)
-  assert.match(i18nSrc, /'烘焙为零件实体': '烘焙为零件实体'/)
+  assert.match(i18nSrc, /'已抽殼 壁厚': '已抽殼 壁厚'/)
+  assert.match(i18nSrc, /'已抽壳 壁厚': '已抽壳 壁厚'/ )
+  assert.match(i18nSrc, /'烘焙為零件實體': '烘焙為零件實體'/)
+  assert.match(i18nSrc, /'烘焙为零件实体': '烘焙为零件实体'/ )
   assert.match(i18nSrc, /'已切除「': '已切除「'/)
 })

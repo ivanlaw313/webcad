@@ -233,6 +233,12 @@ export const EN_LABEL: Record<string, string> = {
   '投影幾何': 'Project',
   '構造': 'Construction',
   '掃掠導軌': 'Sweep Guide',
+  // SOLID CREATE residual Traditional (v1.59)
+  '矩形陣列': 'Rect Pattern',
+  '環形陣列': 'Circular Pattern',
+  '幾何陣列': 'Geometric Pattern',
+  '路徑陣列': 'Path Pattern',
+  '掃掠(拾邊)': 'Sweep (Pick Edge)',
   '閉合': 'Close',
   '導出DXF': 'Export DXF',
   '截面屬性': 'Section Properties',

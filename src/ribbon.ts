@@ -187,7 +187,7 @@ const SOLID: Panel[] = [
   {
     name: 'SELECT',
     tools: [
-      { id: 'select', label: '选择', icon: 'select', quick: true, tip: '选择工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' },
+      { id: 'select', label: '選擇', icon: 'select', quick: true, tip: '選擇工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' },
     ],
   },
 ]
@@ -403,7 +403,7 @@ const MESH: Panel[] = [
     { id: 'insertobj', label: '插入OBJ网格', icon: 'importmesh', quick: true, tip: 'Wavefront OBJ 网格导入（Blender / 扫描 / 网上模型常用）作参考组件。' },
   ] },
   g('ASSEMBLE'),
-  { name: 'SELECT', tools: [{ id: 'select', label: '选择', icon: 'select', quick: true, tip: '选择工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' }] },
+  { name: 'SELECT', tools: [{ id: 'select', label: '選擇', icon: 'select', quick: true, tip: '選擇工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' }] },
   { name: 'EXPORT', tools: [
     { id: 'exportstl', label: '导出STL', icon: 'exportfile', quick: true },
     { id: 'exportasmstl', label: '导出装配STL', icon: 'exportfile' },
@@ -465,7 +465,7 @@ const UTILITIES: Panel[] = [
     { id: 'exportglb', label: '导出glTF', icon: 'exportfile' },
   ] },
   g('INSPECT'),
-  { name: 'SELECT', tools: [{ id: 'select', label: '选择', icon: 'select', quick: true, tip: '选择工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' }] },
+  { name: 'SELECT', tools: [{ id: 'select', label: '選擇', icon: 'select', quick: true, tip: '選擇工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' }] },
 ]
 
 // Contextual SKETCH tab (Fusion: entering a sketch appends an active "SKETCH" tab with sketch tools +
@@ -578,7 +578,7 @@ export const SKETCH_PANELS: Panel[] = [
     // Fusion's sketch CONSTRAINTS group: select geometry → apply a relationship; D = dimension.
     name: 'CONSTRAINTS',
     tools: [
-      { id: 'sk_select', label: '選擇', icon: 'select', glyph: '↖', quick: true, tip: '选择工具：点 点/边/圆（最多 2 个）,再撳下面约束掣套用关系；撳 Del 键删除所选。' },
+      { id: 'sk_select', label: '選擇', icon: 'select', glyph: '↖', quick: true, tip: '選擇工具：点 点/边/圆（最多 2 个）,再撳下面约束掣套用关系；撳 Del 键删除所选。' },
       { id: 'sk_dim', label: '尺寸', icon: 'measure', glyph: '⟷', shortcut: 'D', quick: true, tip: '尺寸（D）：点一条边 → 再点【放置位置】定方向（垂直偏置=对齐真长 · 左右放=竖直投影 · 上下放=水平投影）· 圆=直径Ø · 两个点=距离 · 点两条边（平行=间距 / 相交=夹角）。蓝色标签可撳改数值（约束求解）；右键尺寸标签 = R↔Ø 切换 / 转从动 / 删除。过约束会弹框问【转从动 / 取消】。' },
       { id: 'sk_c_h', label: '水平', icon: 'default', glyph: '━', sep: true, quick: true, tip: '水平：选 1 条边（或 2 个点）→ 变水平。' },
       { id: 'sk_c_v', label: '豎直', icon: 'default', glyph: '┃', quick: true, tip: '竖直：选 1 条边（或 2 个点）→ 变竖直。' },

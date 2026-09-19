@@ -1,17 +1,39 @@
-// T800（S79）：i18n 中→英 — ribbon 工具/对话框/导航高可见面。中文 label → 英文查表（render 时套用,
-// 唔改 ribbon 数据,低风险）。诚实范围：v1 净 ribbon 工具标签 + nav + 文件菜单；状态消息/对话框细字逐步接。
-// 默认语言由 navigator.language 推（en* → en,否则 zh）。可喺 ribbon 右上 中/EN 切换,localStorage 记住。
+// T800 + v1.74：4-locale message catalogs (zh-HK / zh-CN / en / ja).
+// Stable keys live under src/i18n/locales/*; legacy EN_LABEL / STATUS_PHRASES kept for fallback.
+// Legacy Lang `'zh'` normalizes to `'zh-HK'`. Ribbon switcher persists via localStorage `webcad-lang`.
 
-export type Lang = 'zh' | 'en'
+export type { Lang, LangInput } from './i18n/types'
+export { normalizeLang, isZhFamily, LOCALES, LOCALE_STORAGE_KEY } from './i18n/types'
+export { msg, catalogKeyCount, allCatalogKeys, CATALOGS } from './i18n/catalog'
+import type { Lang, LangInput } from './i18n/types'
+import { normalizeLang, LOCALE_STORAGE_KEY } from './i18n/types'
+import { msg } from './i18n/catalog'
+import { LABEL_TO_KEY } from './i18n/labelToKey'
+import { TAB_TO_KEY, GROUP_TO_KEY } from './i18n/tabGroupKeys'
+import { traditionalToSimplified } from './i18n/tc2sc'
 
 export function detectLang(): Lang {
   try {
-    const saved = localStorage.getItem('webcad-lang')
-    if (saved === 'en' || saved === 'zh') return saved
+    const saved = localStorage.getItem(LOCALE_STORAGE_KEY)
+    if (saved) return normalizeLang(saved)
   } catch { /* ignore */ }
-  try { if (typeof navigator !== 'undefined' && /^en/i.test(navigator.language || '')) return 'en' } catch { /* ignore */ }
-  return 'zh'
+  try {
+    if (typeof navigator !== 'undefined') {
+      const nav = navigator.language || ''
+      if (/^en/i.test(nav)) return 'en'
+      if (/^ja/i.test(nav)) return 'ja'
+      if (/^zh[-_]?(CN|Hans)/i.test(nav)) return 'zh-CN'
+      if (/^zh/i.test(nav)) return 'zh-HK'
+    }
+  } catch { /* ignore */ }
+  return 'zh-HK'
 }
+
+/** Stable-key translator (alias of msg). */
+export function t(key: string, lang?: LangInput): string {
+  return msg(key, lang ?? detectLang())
+}
+
 
 // ribbon 工具标签 zh → en（Fusion 标准术语优先）。缺失项 fallback 中文（唔会崩）。
 export const EN_LABEL: Record<string, string> = {
@@ -385,13 +407,7 @@ export const EN_LABEL: Record<string, string> = {
 
 
 
-// 翻译 ribbon 标签：en 模式查表（缺则原中文）；zh 模式原样。
-export function tLabel(label: string, lang: Lang): string {
-  return lang === 'en' ? (EN_LABEL[label] ?? label) : label
-}
-
-// GM-W6D：ribbon 组标题 + 工作区 tab 顯示翻译。数据键（WORKSPACES / p.name）永远保持英文；呢度净係
-// 顯示层：zh 模式套中文（Fusion 中文版风格），en 模式原样返英文键。缺失项 fallback 原文（唔会崩）。
+// Legacy ZH maps retained for reference / tests that peek at TC group/tab chrome.
 const ZH_GROUP: Record<string, string> = {
   CREATE: '建立', MODIFY: '修改', CONSTRAINTS: '約束', FINISH: '完成', INSPECT: '檢查',
   CONSTRUCT: '構造', ASSEMBLE: '裝配', SELECT: '選擇', EXPORT: '導出', CONFIGURE: '配置',
@@ -402,13 +418,38 @@ const ZH_TAB: Record<string, string> = {
   SOLID: '實體', SURFACE: '曲面', MESH: '網格', 'SHEET METAL': '鈑金', PLASTIC: '塑料',
   MANAGE: '管理', UTILITIES: '工具', FORM: '造型',
 }
-// 组标题：zh 模式显示中文，en 模式显示原英文键。
-export function tGroup(name: string, lang: Lang): string {
-  return lang === 'zh' ? (ZH_GROUP[name] ?? name) : name
+
+/** Translate a ribbon tool label (source string) via catalog key when known. */
+export function tLabel(label: string, lang: LangInput): string {
+  const L = normalizeLang(lang)
+  const key = LABEL_TO_KEY[label]
+  if (key) return msg(key, L)
+  if (L === 'en') return EN_LABEL[label] ?? label
+  if (L === 'zh-CN') return traditionalToSimplified(label)
+  if (L === 'ja') return EN_LABEL[label] ?? label  // unmigrated → EN CAD term fallback
+  return label  // zh-HK: source (TC) as-is
 }
-// 工作区 tab：zh 模式显示中文，en 模式显示原英文键（🧪實驗室 两模式均原样）。
-export function tTab(tab: string, lang: Lang): string {
-  return lang === 'zh' ? (ZH_TAB[tab] ?? tab) : tab
+
+/** Translate a ribbon group name (data key or Chinese panel name). */
+export function tGroup(name: string, lang: LangInput): string {
+  const L = normalizeLang(lang)
+  const key = GROUP_TO_KEY[name]
+  if (key) return msg(key, L)
+  if (L === 'zh-HK') return ZH_GROUP[name] ?? name
+  if (L === 'zh-CN') return traditionalToSimplified(ZH_GROUP[name] ?? name)
+  if (L === 'en') return name
+  // ja: unmapped groups keep English data-key (honest fallback)
+  return name
+}
+
+/** Translate a workspace tab id. */
+export function tTab(tab: string, lang: LangInput): string {
+  const L = normalizeLang(lang)
+  const key = TAB_TO_KEY[tab]
+  if (key) return msg(key, L)
+  if (L === 'zh-HK') return ZH_TAB[tab] ?? tab
+  if (L === 'zh-CN') return traditionalToSimplified(ZH_TAB[tab] ?? tab)
+  return tab
 }
 
 // T807（测试报告观察 G）：状态栏讯息 zh→en 渲染时翻译。753 条状态串多为含 ${} 插值嘅模板，冇 message-key
@@ -416,6 +457,18 @@ export function tTab(tab: string, lang: Lang): string {
 // 避免被子串截断），数字/单位/未收录词原样保留。zh 模式完全唔改（零风险）；en 模式输出可读英文，未收录片段
 // fallback 中文（唔会崩、唔会乱）。覆盖 app 状态词汇高频项；新词只需喺呢度加一行。
 const STATUS_PHRASES: Record<string, string> = {
+  // v1.74 illegal / dim-reject markers (must outrank short '尺寸'/'已' fragments)
+  '尺寸已拒絕：孔徑Ø必須大於 0（已清除非法預覽）': 'Dimension rejected: hole Ø must be > 0 (illegal preview cleared)',
+  '尺寸已拒绝：孔径Ø必须大于 0（已清除非法预览）': 'Dimension rejected: hole Ø must be > 0 (illegal preview cleared)',
+  '尺寸已拒絕：壁厚必須大於 0': 'Dimension rejected: wall thickness must be > 0',
+  '尺寸已拒绝：壁厚必须大于 0': 'Dimension rejected: wall thickness must be > 0',
+  '尺寸已拒絕：尺寸必須大於 0，未更改模型': 'Dimension rejected: size must be > 0; model unchanged',
+  '尺寸已拒绝：尺寸必须大于 0，未更改模型': 'Dimension rejected: size must be > 0; model unchanged',
+  '尺寸已拒絕：非法輸入': 'Dimension rejected: illegal input',
+  '尺寸已拒绝：非法输入': 'Dimension rejected: illegal input',
+  '尺寸已拒絕': 'Dimension rejected',
+  '尺寸已拒绝': 'Dimension rejected',
+
   // —— 整句 / 长短语（最长优先）——
   '画轮廓后拉伸沿该面法向出料': 'draw a profile then extrude along the face normal',
   '先画一个封闭草图轮廓': 'draw a closed sketch profile first',
@@ -1917,13 +1970,105 @@ Object.assign(STATUS_PHRASES_X, {
   '草圖': 'Sketch',
 })
 
+
+// v1.74 Timeline field-param + Select chrome
+Object.assign(STATUS_PHRASES_X, {
+  '選擇': 'Select',
+  '距離': 'Distance',
+  '半徑': 'Radius',
+  '數量': 'Count',
+  'X 數量': 'X Count',
+  'X數量': 'X Count',
+  'Y數量': 'Y Count',
+  'Z數量': 'Z Count',
+  'X間距': 'X Spacing',
+  'Y間距': 'Y Spacing',
+  'Z間距': 'Z Spacing',
+  '模數': 'Module',
+  '齒數': 'Teeth',
+  '頭數': 'Starts',
+  '長度': 'Length',
+  '寬度': 'Width',
+  '外徑': 'Outer Diameter',
+  '直徑Ø': 'Diameter Ø',
+  '公稱Ø': 'Nominal Ø',
+  '頂半徑': 'Top Radius',
+  '絲徑': 'Wire Diameter',
+  '折彎半徑': 'Bend Radius',
+  '角寬': 'Arc Width',
+  '軸向中心': 'Axial Center',
+  '軸向高': 'Axial Height',
+  '總角度': 'Total Angle',
+  '對稱面': 'Mirror Plane',
+  '草圖面': 'Sketch Plane',
+  '繞軸': 'About Axis',
+  '扭轉': 'Twist',
+  '傾斜': 'Tilt',
+  '傾斜角': 'Tilt Angle',
+  '字號': 'Font Size',
+  '狀態': 'State',
+  '摺疊': 'Folded',
+  '展開': 'Unfolded',
+  '盤厚': 'Disc Thickness',
+  '齒寬': 'Face Width',
+  '基準X': 'Base X',
+  '基準Y': 'Base Y',
+  '基準Z': 'Base Z',
+  '起點Z': 'Start Z',
+  '目標#': 'Target #',
+  '目標實體#': 'Target Body #',
+  '合併': 'Unite',
+  '切割軸': 'Cut Axis',
+  '低側': 'Low Side',
+  '高側': 'High Side',
+  '對稱': 'Symmetric',
+  '銼平面': 'Face Mill Flat',
+  '橋接面': 'Bridge',
+  '切割(車槽)': 'Cut (Groove)',
+  'Y 軸（預設）': 'Y Axis (Default)',
+  'X 軸': 'X Axis',
+  'Y 軸': 'Y Axis',
+  'Z 軸': 'Z Axis',
+  'Z 軸(水平面內)': 'Z Axis (in horizontal plane)',
+  '繞X': 'About X',
+  '繞Y': 'About Y',
+  '繞Z': 'About Z',
+  '保留為活動體': 'Keep as Active Body',
+  'XZ（前後）': 'XZ (Front/Back)',
+})
+
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)
 
 // 渲染时翻译状态串：zh 原样；en 左到右最长匹配替换（未收录片段保留中文，唔会崩）。
 // v1.37: 必须 LTR longest-match —— 旧版全局 split/join 会在长词 identity 之后仍用短词二次切开
 // （已抽壳 壁厚 → 仍被 抽壳/壁厚/已 拆成 "Done: shell Wall …"）。
-export function tStatus(s: string, lang: Lang): string {
-  if (lang !== 'en' || !s) return s
+export function tStatus(s: string, lang: LangInput): string {
+  if (!s) return s
+  const L = normalizeLang(lang)
+  if (L === 'zh-HK') return s
+  if (L === 'zh-CN') return traditionalToSimplified(s)
+
+  // v1.74: catalog-backed illegal markers (avoid short-phrase shredding / give JA real copy)
+  const DIM_MARKERS: [string, string][] = [
+    ['尺寸已拒絕：孔徑Ø必須大於 0（已清除非法預覽）', 'status.dimRejectedHole'],
+    ['尺寸已拒绝：孔径Ø必须大于 0（已清除非法预览）', 'status.dimRejectedHole'],
+    ['尺寸已拒絕：壁厚必須大於 0', 'status.dimRejectedThickness'],
+    ['尺寸已拒绝：壁厚必须大于 0', 'status.dimRejectedThickness'],
+    ['尺寸已拒絕：尺寸必須大於 0，未更改模型', 'status.dimRejectedLength'],
+    ['尺寸已拒绝：尺寸必须大于 0，未更改模型', 'status.dimRejectedLength'],
+    ['尺寸已拒絕：非法輸入', 'status.dimRejectedIllegal'],
+    ['尺寸已拒绝：非法输入', 'status.dimRejectedIllegal'],
+    ['尺寸已拒絕', 'status.dimRejected'],
+    ['尺寸已拒绝', 'status.dimRejected'],
+  ]
+  for (const [src, key] of DIM_MARKERS) {
+    if (s.includes(src)) return s.split(src).join(msg(key, L))
+  }
+  if (L !== 'en') {
+    // ja (and future): reuse EN phrase table when possible, else keep source
+    // Fall through to EN replacement for coverage; leftover CJK stays (honest).
+  }
+  if (L !== 'en' && L !== 'ja') return s
   let out = ''
   let i = 0
   while (i < s.length) {

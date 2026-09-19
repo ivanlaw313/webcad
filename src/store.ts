@@ -43,7 +43,7 @@ import { followExtrudeTopEdges } from './cad/extrudeEdgeFollow'
 import { mapKernelFailuresToTimeline } from './cad/featureFailureMap'
 import { formBoxSizeFromPoints, makePlacedBoxCage, newFormBoxDraft, type FormBoxDraft, type FormBoxPlane } from './cad/formBox'
 import { makeFormPipeCage, setSymmetricFormVert } from './cad/subdiv'   // S193：Form 镜像对称编辑（纯函数，Node 测过）
-import { detectLang, tStatus } from './i18n'   // T800：i18n 语言侦测
+import { detectLang, tStatus, msg, normalizeLang, type Lang } from './i18n'   // T800 + v1.74 locales
 import { searchRibbonCommand } from './ribbon'   // P6 AI 教学：把用户问句模糊匹配到真实 ribbon 命令位置
 import type { MeshData, Feature, SketchProfile, BoolOp, EdgeSel, DrawView, Plane } from './worker/cad.worker'
 import { computeFK, _fourbar, solve4Bar, fourBarVelocity, fourBarVelocityProfile, solveSliderCrank, sliderCrankReachability, solveLinkage, solveSixBar, sweepToContact, simulateMotion, JOINT_LABEL, resolveJointOrigin, type Joint, type JointType, type JointOrigin, type JointOriginMode } from './assembly/kinematics'
@@ -1388,8 +1388,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   // GM-X4 #17：套索选择模式（navTool='select' 时拖多边形而非矩形）。
   lassoMode: boolean
   toggleLassoMode: () => void
-  lang: 'zh' | 'en'                                        // T800：界面语言（ribbon/nav 高可见面）
-  setLang: (l: 'zh' | 'en') => void
+  lang: Lang                                                 // v1.74：zh-HK | zh-CN | en | ja
+  setLang: (l: Lang | 'zh') => void
   // Reference / construction planes: offset from a base datum (XY/XZ/YZ) by a distance. Sketchable.
   planes: { base: Plane; offset: number; angle?: number; aaxis?: 'x' | 'y'; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; src?: { kind: 'faceOffset' | 'tanPlane'; near: [number, number, number]; seedDir: [number, number, number]; offset?: number; tanRadial?: [number, number, number]; tanAlong?: number }; stale?: boolean }[]  // angle/aaxis/arb（T763）：角度面；src（datum 关联化 v1）：出处 provenance — rebuild 后 rederiveDatums 沿 seedDir 射线重解源面跟住郁；stale=源面搵唔返（诚实黄标，几何唔郁）
   addPlane: (base?: Plane, offset?: number) => void
@@ -6341,7 +6341,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   delFaceMode: false,
   toggleDelFace: () => set((s) => ({ delFaceMode: !s.delFaceMode, delFacePicks: [], moveFaceMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.delFaceMode ? '🗑面 删面（直接编辑）：点实体一个面 → 去特征 + 治愈（清理导入件嘅倒角/孔/凸台）。删唔到嘅诚实保原样' : '已退出删面' })),
   lang: detectLang(),
-  setLang: (l) => { try { localStorage.setItem('webcad-lang', l) } catch { /* ignore */ } set({ lang: l, status: l === 'en' ? 'Language: English (ribbon / nav). Status messages still 中文 in v1.' : '界面语言：中文' }) },
+  setLang: (l) => {
+    const lang = normalizeLang(l)
+    try { localStorage.setItem('webcad-lang', lang) } catch { /* ignore */ }
+    const statusKey = lang === 'zh-HK' ? 'status.lang.zhHK'
+      : lang === 'zh-CN' ? 'status.lang.zhCN'
+      : lang === 'en' ? 'status.lang.en'
+      : 'status.lang.ja'
+    set({ lang, status: msg(statusKey, lang) })
+  },
   // GM-X4 #13/#14/#15：selFilter 逐类型过滤 + 优先级 + 穿透。默认态 = 全类型可拣 = 旧 'all' 逐字节行为。
   selFilter: DEFAULT_SEL_FILTER,
   setSelFilter: (f) => set({ selFilter: migrateSelFilter(f) }),   // 兼容旧 3 枚举字符串 / 新对象

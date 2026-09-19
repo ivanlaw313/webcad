@@ -188,6 +188,22 @@ export const EN_LABEL: Record<string, string> = {
   'Form 環面': 'Form Torus',
   '編輯曲面控制點': 'Edit Surface Poles',
 
+  // INSPECT / ANALYZE ribbon Traditional (v1.55 BUG-BD-4801 continue)
+  // '測量' already in FORM TC block above
+  '干涉檢查': 'Interference',
+  '斑馬紋分析': 'Zebra Analysis',
+  '曲率圖分析': 'Curvature Map Analysis',
+  '可達性分析': 'Accessibility Analysis',
+  '最小半徑分析': 'Minimum Radius Analysis',
+  '質心': 'Center of Mass',
+  '物理屬性': 'Properties',
+  '顯示網格面組': 'Display Mesh Face Groups',
+  '兩點距離': 'Two-Point Distance',
+  '邊長／孔徑': 'Edge Length / Hole Diameter',
+  '面積': 'Area',
+  '面夾角': 'Face Angle',
+  '完整物理屬性': 'Full Physical Properties',
+
 }
 
 
@@ -200,7 +216,7 @@ export function tLabel(label: string, lang: Lang): string {
 // GM-W6D：ribbon 组标题 + 工作区 tab 顯示翻译。数据键（WORKSPACES / p.name）永远保持英文；呢度净係
 // 顯示层：zh 模式套中文（Fusion 中文版风格），en 模式原样返英文键。缺失项 fallback 原文（唔会崩）。
 const ZH_GROUP: Record<string, string> = {
-  CREATE: '创建', MODIFY: '修改', CONSTRAINTS: '约束', FINISH: '完成', INSPECT: '检查',
+  CREATE: '创建', MODIFY: '修改', CONSTRAINTS: '约束', FINISH: '完成', INSPECT: '檢查',
   CONSTRUCT: '构造', ASSEMBLE: '裝配', SELECT: '选择', EXPORT: '导出', CONFIGURE: '配置',
   INSERT: '插入', PARAMETERS: '参数', DRAWING: '工程图', MAKE: '制造',
   SYMMETRY: '對稱', UTILITIES: '工具',

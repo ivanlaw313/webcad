@@ -452,7 +452,7 @@ const PLASTIC: Panel[] = [
 ]
 const MANAGE: Panel[] = [
   { name: 'PARAMETERS', tools: [{ id: 'params', label: '参数', icon: 'param', quick: true }] },
-  { name: 'DRAWING', tools: [{ id: 'drawing', label: '工程图', icon: 'drawing', quick: true }] },
+  { name: 'DRAWING', tools: [{ id: 'drawing', label: '工程圖', icon: 'drawing', quick: true }] },
 ]
 // Fusion UTILITIES：MAKE · NEST · ADD-INS · UTILITY · INSPECT · SELECT。MAKE（3D 打印/送出）↔ 我哋嘅导出组。
 const UTILITIES: Panel[] = [

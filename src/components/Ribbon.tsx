@@ -498,7 +498,7 @@ export default function Ribbon() {
               </div>
             ))}
             {inSketch && <div className="ribbon-tab ctx active">{useApp.getState().lang === 'en' ? 'Sketch' : '草图'}</div>}
-            {inForm && <div className="ribbon-tab ctx active">FORM</div>}
+            {inForm && <div className="ribbon-tab ctx active" data-testid="form-workspace-tab">{lang === 'en' ? 'FORM' : '造型'}</div>}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: 6 }} title="界面语言 / UI language（T800：ribbon + 导航；状态消息 v1 仍中文）">
               {<button className="ribbon-tab" title={ribbonCollapsed ? '展开工具行' : '收起工具行（净留标签，腾画面）'} onClick={() => setRibbonCollapsed((c) => !c)} style={{ fontSize: 12, opacity: 0.7 }}>{ribbonCollapsed ? '▾' : '▴'}</button>}
               <button className="ribbon-tab" aria-pressed={!compactTools} title={lang === 'en' ? 'Show or hide tool names' : '显示／隐藏工具名称'} onClick={() => setCompactTools(v => !v)}>{compactTools ? 'Aa' : '▦'}</button>

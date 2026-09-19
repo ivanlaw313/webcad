@@ -10254,8 +10254,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 唔再係 componentCenter + 硬编码轴嘅估算。贴合 + 建关节共用【单一撤销快照】原子处理（似 Wave-4 4.2）。
   jointPickMode: false,
   jointPick: null,
-  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, status: '关节拾取：先点【父件（接地边）】一个面（圆柱孔/轴 或 平面），再点【子件（要郁件）】对应面 → 子件贴合 + 喺该几何建真关节（圆柱=旋转/滑动/圆柱/刚性 · 平面=刚性/平面）' }),
-  cancelJointPick: () => set({ jointPickMode: false, jointPick: null, status: '已退出关节拾取' }),
+  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, status: '關節拾取：先點【父件（接地邊）】一個面（圓柱孔/軸 或 平面），再點【子件（要郁件）】對應面 → 子件貼合 + 喺該幾何建真關節（圓柱=旋轉/滑動/圓柱/剛性 · 平面=剛性/平面）' }),
+  cancelJointPick: () => set({ jointPickMode: false, jointPick: null, status: '已退出關節拾取' }),
   pickFaceForJoint: (compId, face) => {
     const s = get()
     // 第一拣：记低父件（接地边）
@@ -10270,7 +10270,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (A.face.kind !== face.kind) { set({ status: `两个面类型唔夹：父件係${A.face.kind === 'cyl' ? '圆柱' : '平面'}，今次係${face.kind === 'cyl' ? '圆柱' : '平面'}。圆柱配圆柱、平面配平面` }); return }
     const Acomp = s.components.find((c) => c.id === A.compId)
     const B = s.components.find((c) => c.id === compId)   // 子（郁）
-    if (!Acomp || !B) { set({ jointPickMode: false, jointPick: null, status: '关节拾取失败：搵唔到组件' }); return }
+    if (!Acomp || !B) { set({ jointPickMode: false, jointPick: null, status: '關節拾取失敗：搵唔到組件' }); return }
     // ── 贴合：完全复用 solveFaceMateDelta + worldToPose（同拣面配合数学一致），子件 B 贴到父件 A ──
     const delta = solveFaceMateDelta(A.face, face)   // A=基准（唔郁）, face=B（郁）
     const Mb = compWorldMatrix(B)
@@ -10288,7 +10288,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const n = new Vector3(A.face.n[0], A.face.n[1], A.face.n[2]); if (n.lengthSq() < 1e-12) n.set(0, 1, 0); n.normalize()
       anchor = [post.p[0], post.p[1], post.p[2]]; axis = [n.x, n.y, n.z]
       allowTypes = ['rigid', 'planar']; defType = 'rigid'   // 滑动沿法向会分离两面（无意义）、沿面内轴方向歧义 → 只提供 kinematics 支持嘅 planar（面内 U/V 平移 + 绕法向转）
-    } else { set({ jointPickMode: false, jointPick: null, status: '关节拾取失败：面类型组合唔支持' }); return }
+    } else { set({ jointPickMode: false, jointPick: null, status: '關節拾取失敗：面類型組合唔支持' }); return }
     // ── 先贴合（俾用户睇到 snap，似 Fusion）—— 但【唔即刻推撤销栈】，留返同建关节一齐做单快照（原子）──
     const preUndo = s.undoStack, preSnap = docSnap(s)   // 贴合前撤销栈 + 全文档快照（最终净推一个 → undo 一步同时还原 snap+joint）
     set({
@@ -13835,7 +13835,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'jointpick': {   // GM-W5 5.4：交互式关节 J-picker（拣面建真关节 — 锚/轴取自几何）
         const comps = get().components
-        if (comps.length < 2) { set({ status: '关节拾取需要≥2个组件——先「新建组件」固化多个实体' }); return }
+        if (comps.length < 2) { set({ status: '關節拾取需要≥2個組件——先「新建組件」固化多個實體' }); return }
         get().startJointPick(); return
       }
       case 'asbuiltjoint': {
@@ -13851,9 +13851,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         get().addContactPair(ids[0], ids[1]); get().clearCheckedComps(); return
       }
       case 'motionlink': {
-        if (get().joints.filter((j) => j.type === 'revolute' || j.type === 'cylindrical').length < 2) { set({ status: '运动连接需要最少 2 个转动／圆柱关节' }); return }
+        if (get().joints.filter((j) => j.type === 'revolute' || j.type === 'cylindrical').length < 2) { set({ status: '運動連接需要最少 2 個轉動／圓柱關節' }); return }
         window.dispatchEvent(new CustomEvent('webcad:assembly-focus', { detail: { section: 'motionlink' } }))
-        set({ status: '运动连接：在关节面板选择主动／从动关节及传动比，再按「+ 连接」' }); return
+        set({ status: '運動連接：在關節面板選擇主動／從動關節及傳動比，再按「+ 連接」' }); return
       }
       case 'motionstudy': {
         const j = get().joints.find((x) => x.type === 'revolute' || x.type === 'slider')
@@ -16313,14 +16313,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     const acc = DATUM_CMD_ACC[key]
     const accHint = acc ? `🎯 顺序拾 ${acc.map((x) => (x === 'p' ? '一个构造点' : x === 'e' ? '一条边' : x === 'c' ? '一个圆柱面' : '一个平面')).join(' + ')}` : ''
-    set({ status: `构造几何 · ${_datumMethodLabel(type, method)}${accHint ? ' — ' + accHint : ''}` })
+    set({ status: `構造幾何 · ${_datumMethodLabel(type, method)}${accHint ? ' — ' + accHint : ''}` })
   },
   setDatumCmdParam: (k, v) => set((s) => (s.datumCmd ? { datumCmd: { ...s.datumCmd, params: { ...s.datumCmd.params, [k]: v } } } : {})),
   closeDatumCmd: () => {
     // Pointer-out is not guaranteed when a highlighted construct point unmounts with the dialog.
     // Clear the canvas cursor explicitly so a completed/cancelled command never looks armed.
     if (typeof document !== 'undefined') document.body.style.cursor = ''
-    set({ datumCmd: null, datumPick: null, edgePtPick: null, cpatAxisPick: false, status: '已退出构造几何' })
+    set({ datumCmd: null, datumPick: null, edgePtPick: null, cpatAxisPick: false, status: '已退出構造幾何' })
   },
   commitDatumCmdField: () => {
     const dc = get().datumCmd; if (!dc) return
@@ -16363,32 +16363,32 @@ export const useApp = create<AppState>((rawSet, get) => {
         } else if (source === 'modelVertex') {
           const cadP: [number, number, number] = [threeWorld[0], -threeWorld[2], threeWorld[1]]
           const edge = await cad.edgePolylineAt(cadP)
-          if (!edge?.pts || edge.pts.length < 2) { set({ status: '构造几何：请点选蓝色构造点或实体的一个【顶点】' }); return }
+          if (!edge?.pts || edge.pts.length < 2) { set({ status: '構造幾何：請點選藍色構造點或實體的一個【頂點】' }); return }
           const a = edge.pts[0], b = edge.pts[edge.pts.length - 1]
           const da = Math.hypot(a[0] - cadP[0], a[1] - cadP[1], a[2] - cadP[2])
           const db = Math.hypot(b[0] - cadP[0], b[1] - cadP[1], b[2] - cadP[2])
-          if (Math.min(da, db) > 1.5) { set({ status: '构造几何：此方法要点【构造点】或实体边的【顶点】（唔接受面上任意位置）' }); return }
+          if (Math.min(da, db) > 1.5) { set({ status: '構造幾何：此方法要點【構造點】或實體邊的【頂點】（唔接受面上任意位置）' }); return }
           if (!get().datumCmd) return
           pick = { kind: 'point', p: da <= db ? a : b }
-        } else { set({ status: '构造几何：请点选蓝色构造点或实体的一个【顶点】' }); return }
+        } else { set({ status: '構造幾何：請點選藍色構造點或實體的一個【頂點】' }); return }
       } else if (want === 'e') {
         const cadP: [number, number, number] = [threeWorld[0], -threeWorld[2], threeWorld[1]]   // three 世界 → CAD（同 roundEdgeAt/edgePointAt）
         const r = await cad.edgePolylineAt(cadP)
-        if (!r?.pts || r.pts.length < 2) { set({ status: '构造几何：呢度揾唔到边 — 请点住实体嘅一条边再试' }); return }
+        if (!r?.pts || r.pts.length < 2) { set({ status: '構造幾何：呢度揾唔到邊 — 請點住實體嘅一條邊再試' }); return }
         if (!get().datumCmd) return   // 解析期间已关闭
         const a = r.pts[0], b = r.pts[r.pts.length - 1]
         pick = { kind: 'edge', p1: a, dir: [b[0] - a[0], b[1] - a[1], b[2] - a[2]], pts: r.pts }
       } else if (want === 'c') {
-        if (!det || det.kind !== 'cyl' || !det.axis) { set({ status: '构造几何：呢个方法要点【圆柱/锥面】（孔壁/圆轴/凸台侧）' }); return }
+        if (!det || det.kind !== 'cyl' || !det.axis) { set({ status: '構造幾何：呢個方法要點【圓柱/錐面】（孔壁/圓軸/凸台側）' }); return }
         pick = { kind: 'cyl', p: det.p, axis: det.axis, r: det.r ?? 0 }
       } else {
-        if (!det || det.kind !== 'planar' || !det.n) { set({ status: '构造几何：呢个方法要点【平面】' }); return }
+        if (!det || det.kind !== 'planar' || !det.n) { set({ status: '構造幾何：呢個方法要點【平面】' }); return }
         pick = { kind: 'face', p: det.p, n: det.n }
       }
       picks = [...dc.picks, pick]
-      if (picks.length < slots.length) { set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `构造几何 · ${_datumMethodLabel(dc.type, dc.method)}：已拣 ${picks.length}/${slots.length} — 继续拣下一个` }); return }
+      if (picks.length < slots.length) { set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `構造幾何 · ${_datumMethodLabel(dc.type, dc.method)}：已揀 ${picks.length}/${slots.length} — 繼續揀下一個` }); return }
       // Fusion keeps a completed selection set live until the user explicitly confirms it.
-      set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `构造几何 · ${_datumMethodLabel(dc.type, dc.method)}：已拣 ${picks.length}/${slots.length} — 已准备，按「确定」建立` })
+      set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `構造幾何 · ${_datumMethodLabel(dc.type, dc.method)}：已揀 ${picks.length}/${slots.length} — 已準備，按「確定」建立` })
       return
     }
     // 确定后才计算 + 创建；完成后清 picks，保留同一命令方便继续建立。
@@ -17288,8 +17288,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       const sol = solveMove(p as Parameters<typeof solveMove>[0])
       const objectType = String(p.objectType || 'bodies')
       const copy = +(p.createCopy || 0) > 0
-      if (!isNonZeroMove(sol)) { set({ status: '移动：请设一个非零嘅平移/旋转/点对点位移' }); return }
-      const mtLbl: Record<string, string> = { free: '自由', translate: '平移', rotate: '旋转', ptp: '点对点', ptpos: '点对位' }
+      if (!isNonZeroMove(sol)) { set({ status: '移動：請設一個非零嘅平移/旋轉/點對點位移' }); return }
+      const mtLbl: Record<string, string> = { free: '自由', translate: '平移', rotate: '旋轉', ptp: '點對點', ptpos: '點對位' }
       const tLbl = mtLbl[String(p.moveType || 'free')] || '自由'
       if (objectType === 'components') {
         // Fusion Move/Copy accepts a component selection set.  Prefer browser checkboxes, then

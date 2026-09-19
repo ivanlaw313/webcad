@@ -22,10 +22,10 @@ function FastenerPicker() {
   const [len, setLen] = useState(16)
   return (
     <>
-      <select className="tb-mat" title="标准件类型（ISO 标准尺寸）" value={kind} onChange={(e) => setKind(e.target.value as FastenerKind)}>
+      <select className="tb-mat" title="標準件類型（ISO 標準尺寸）" value={kind} onChange={(e) => setKind(e.target.value as FastenerKind)}>
         {(Object.keys(FASTENER_KIND_LABEL) as FastenerKind[]).map((k) => <option key={k} value={k}>{FASTENER_KIND_LABEL[k]}</option>)}
       </select>
-      <select className="tb-mat" title="公制规格" value={size} onChange={(e) => setSize(e.target.value as FastenerSize)}>
+      <select className="tb-mat" title="公制規格" value={size} onChange={(e) => setSize(e.target.value as FastenerSize)}>
         {FASTENER_SIZES.map((sz) => <option key={sz} value={sz}>{sz}</option>)}
       </select>
       {kind !== 'hexnut' && kind !== 'washer' && (
@@ -432,7 +432,7 @@ export default function Ribbon() {
         {!inSketch && !inForm && (<>
         <button className="tb-btn tb-text" title="模板 / 材料 / 螺丝 库（收埋令顶栏干净似 Fusion；撳开拣）" onClick={() => setShowLib((v) => !v)}>📦 {showLib ? '▴' : '▾'}</button>
         {showLib && (<>
-        <select className="tb-mat" title="选择起始模板" value={sampleKind} onChange={(e) => setSampleKind(e.target.value as SampleKind)}>
+        <select className="tb-mat" title="選擇起始模板" value={sampleKind} onChange={(e) => setSampleKind(e.target.value as SampleKind)}>
           {(() => {
             // Grouped template menu (was a flat 30+ list). Any kind not listed falls into 「其他」 so nothing is lost.
             const cats: [string, SampleKind[]][] = [
@@ -464,13 +464,13 @@ export default function Ribbon() {
           <ToolIcon name="component" size={15} /> {msg('ui.load', lang)}
         </button>
         <FastenerPicker />
-        <select className="tb-mat" title="材质预设" defaultValue="" onChange={(e) => { if (e.target.value) setMaterialPreset(e.target.value) }}>
+        <select className="tb-mat" title="材質預設" defaultValue="" onChange={(e) => { if (e.target.value) setMaterialPreset(e.target.value) }}>
           <option value="">{msg('ui.materialEllipsis', lang)}</option>
           {Object.keys(MATERIALS).map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
         </>)}
         <MaterialSwatchPicker />{/* 材质球视觉拣料（Flux 生成 studio render 球）*/}
-        <select className="tb-mat" title="纹理" value={material.tex || ''} onChange={(e) => setBodyTexture(e.target.value)}>
+        <select className="tb-mat" title="紋理" value={material.tex || ''} onChange={(e) => setBodyTexture(e.target.value)}>
           {Object.entries(TEXTURE_KEYS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
         </select>
         {/* Keep a visible label beside the native colour well.  A bare 28px input

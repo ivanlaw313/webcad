@@ -6,7 +6,7 @@ function mk(draw: (ctx: CanvasRenderingContext2D, n: number) => void, srgb = tru
   const t = new CanvasTexture(c); t.wrapS = t.wrapT = RepeatWrapping
   t.colorSpace = srgb ? SRGBColorSpace : LinearSRGBColorSpace; t.anisotropy = 4; return t
 }
-export const TEXTURE_KEYS = { '': '无', wood: '木纹', brushed: '拉丝', matte: '磨砂' } as const
+export const TEXTURE_KEYS = { '': '無', wood: '木紋', brushed: '拉絲', matte: '磨砂' } as const
 export function getProcTexture(key: string): Texture | null {
   if (!key) return null
   if (cache.has(key)) return cache.get(key)!

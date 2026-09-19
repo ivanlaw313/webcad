@@ -29,7 +29,7 @@ function FastenerPicker() {
         {FASTENER_SIZES.map((sz) => <option key={sz} value={sz}>{sz}</option>)}
       </select>
       {kind !== 'hexnut' && kind !== 'washer' && (
-        <label title={kind === 'dowel' ? '销长 mm' : '杆长 mm（头下）'} style={{ fontSize: 12 }}>{lang === 'en' ? 'Len' : '长'}<input type="number" step={2} min={3} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ width: 46 }} /></label>
+        <label title={kind === 'dowel' ? '销长 mm' : '杆长 mm（头下）'} style={{ fontSize: 12 }}>{msg('ui.len', lang)}<input type="number" step={2} min={3} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ width: 46 }} /></label>
       )}
       <button className="tb-btn tb-text" title="插入标准件到装配（ISO 尺寸真实体；简化＝光杆无螺牙，外形标准。可用「配合」对齐）" onClick={() => void insertFastener(kind, size, len)}>
         <ToolIcon name="component" size={15} /> {msg('ui.insertFastener', lang)}
@@ -46,19 +46,18 @@ function FastenerDialog({ onClose }: { onClose: () => void }) {
   const [size, setSize] = useState<FastenerSize>('M5')
   const [len, setLen] = useState(16)
   const needsLength = kind !== 'hexnut' && kind !== 'washer'
-  const label = (zh: string, en: string) => lang === 'en' ? en : zh
   useEscapeLayer(true, onClose, 400)
   const submit = async () => { await insertFastener(kind, size, needsLength ? Math.max(3, len || 16) : 16); onClose() }
-  return <div role="dialog" aria-modal="true" aria-label={label('插入緊固件', 'Insert Fastener')} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(20,28,38,.28)', display: 'grid', placeItems: 'center' }} onMouseDown={onClose}>
+  return <div role="dialog" aria-modal="true" aria-label={msg('fastener.title', lang)} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(20,28,38,.28)', display: 'grid', placeItems: 'center' }} onMouseDown={onClose}>
     <section style={{ width: 392, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 10, boxShadow: '0 16px 48px rgba(0,0,0,.28)', padding: 18, color: '#263746' }} onMouseDown={(e) => e.stopPropagation()}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}><ToolIcon name="component" size={22} /><strong style={{ fontSize: 17 }}>{label('插入緊固件', 'Insert Fastener')}</strong><button type="button" aria-label={label('关闭', 'Close')} onClick={onClose} style={{ marginLeft: 'auto', border: 0, background: 'transparent', fontSize: 22, cursor: 'pointer', color: '#637484' }}>×</button></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}><ToolIcon name="component" size={22} /><strong style={{ fontSize: 17 }}>{msg('fastener.title', lang)}</strong><button type="button" aria-label={msg('dlg.close', lang)} onClick={onClose} style={{ marginLeft: 'auto', border: 0, background: 'transparent', fontSize: 22, cursor: 'pointer', color: '#637484' }}>×</button></div>
       <div style={{ display: 'grid', gap: 11, fontSize: 13 }}>
-        <label>{label('类型', 'Type')}<select aria-label={label('紧固件类型', 'Fastener type')} value={kind} onChange={(e) => setKind(e.target.value as FastenerKind)} style={{ display: 'block', width: '100%', marginTop: 4 }}>{(Object.keys(FASTENER_KIND_LABEL) as FastenerKind[]).map((k) => <option key={k} value={k}>{FASTENER_KIND_LABEL[k]}</option>)}</select></label>
-        <label>{label('规格', 'Size')}<select aria-label={label('紧固件规格', 'Fastener size')} value={size} onChange={(e) => setSize(e.target.value as FastenerSize)} style={{ display: 'block', width: '100%', marginTop: 4 }}>{FASTENER_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
-        {needsLength && <label>{label('长度（mm）', 'Length (mm)')}<input aria-label={label('紧固件长度', 'Fastener length')} type="number" min={3} step={1} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 4 }} /></label>}
-        <p style={{ margin: '1px 0 0', color: '#637484', lineHeight: 1.45 }}>{label('ISO 尺寸实体会作为独立组件插入；螺纹以简化光杆表示，并非 Autodesk 云端供应商库。', 'An ISO-dimension solid is inserted as an independent component. Threads are simplified shanks; this is not an Autodesk cloud supplier library.')}</p>
+        <label>{msg('fastener.type', lang)}<select aria-label={msg('fastener.typeAria', lang)} value={kind} onChange={(e) => setKind(e.target.value as FastenerKind)} style={{ display: 'block', width: '100%', marginTop: 4 }}>{(Object.keys(FASTENER_KIND_LABEL) as FastenerKind[]).map((k) => <option key={k} value={k}>{FASTENER_KIND_LABEL[k]}</option>)}</select></label>
+        <label>{msg('fastener.size', lang)}<select aria-label={msg('fastener.sizeAria', lang)} value={size} onChange={(e) => setSize(e.target.value as FastenerSize)} style={{ display: 'block', width: '100%', marginTop: 4 }}>{FASTENER_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
+        {needsLength && <label>{msg('fastener.length', lang)}<input aria-label={msg('fastener.lengthAria', lang)} type="number" min={3} step={1} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 4 }} /></label>}
+        <p style={{ margin: '1px 0 0', color: '#637484', lineHeight: 1.45 }}>{msg('fastener.note', lang)}</p>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 17 }}><button type="button" onClick={onClose}>{label('取消', 'Cancel')}</button><button type="button" onClick={() => void submit()} style={{ background: '#078acb', border: 0, borderRadius: 5, padding: '7px 15px', color: '#fff', fontWeight: 700 }}>{label('插入', 'Insert')}</button></div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 17 }}><button type="button" onClick={onClose}>{msg('dlg.cancel', lang)}</button><button type="button" onClick={() => void submit()} style={{ background: '#078acb', border: 0, borderRadius: 5, padding: '7px 15px', color: '#fff', fontWeight: 700 }}>{msg('insert.confirm', lang)}</button></div>
     </section>
   </div>
 }
@@ -433,9 +432,9 @@ export default function Ribbon() {
             const seen = new Set<string>(cats.flatMap((c) => c[1]))
             const other = (Object.keys(SAMPLE_LABELS) as SampleKind[]).filter((k) => !seen.has(k))
             const groups = other.length ? [...cats, ['其他', other] as [string, SampleKind[]]] : cats
-            const OPTG_EN: Record<string, string> = { '基础件': 'Basic Parts', '机械传动': 'Transmission', '紧固/标准件': 'Fasteners / Standard', 'maker/电子': 'Maker / Electronics', '曲面/管件': 'Surface / Tubing', '其他': 'Other' }
+            const OPTG_KEY: Record<string, string> = { '基础件': 'ui.sample.basic', '机械传动': 'ui.sample.mech', '紧固/标准件': 'ui.sample.fastener', 'maker/电子': 'ui.sample.maker', '曲面/管件': 'ui.sample.surf', '其他': 'ui.sample.other' }
             return groups.map(([label, kinds]) => (
-              <optgroup key={label} label={en ? (OPTG_EN[label] ?? label) : label}>
+              <optgroup key={label} label={OPTG_KEY[label] ? msg(OPTG_KEY[label], lang) : label}>
                 {kinds.filter((k) => SAMPLE_LABELS[k]).map((k) => <option key={k} value={k}>{SAMPLE_LABELS[k]}</option>)}
               </optgroup>
             ))
@@ -449,11 +448,11 @@ export default function Ribbon() {
           }
           void loadSample(sampleKind)
         }}>
-          <ToolIcon name="component" size={15} /> {en ? 'Load' : '载入'}
+          <ToolIcon name="component" size={15} /> {msg('ui.load', lang)}
         </button>
         <FastenerPicker />
         <select className="tb-mat" title="材质预设" defaultValue="" onChange={(e) => { if (e.target.value) setMaterialPreset(e.target.value) }}>
-          <option value="">{en ? 'Material…' : '材质…'}</option>
+          <option value="">{msg('ui.materialEllipsis', lang)}</option>
           {Object.keys(MATERIALS).map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
         </>)}
@@ -466,8 +465,8 @@ export default function Ribbon() {
             miss on the light CAD chrome.  onInput gives immediate feedback while
             dragging in browsers that delay change until the picker closes. */}
         <label className="tb-color-control" title="外观颜色：点击色块选择颜色，立即套用到当前实体">
-          <span>{en ? 'Color' : '颜色'}</span>
-          <input className="tb-color" type="color" aria-label={en ? 'Body colour' : '实体颜色'} value={bodyColor}
+          <span>{msg('ui.color', lang)}</span>
+          <input className="tb-color" type="color" aria-label={msg('ui.bodyColor', lang)} value={bodyColor}
             onInput={(e) => setBodyColor(e.currentTarget.value)}
             onChange={(e) => setBodyColor(e.target.value)} />
         </label>
@@ -548,13 +547,13 @@ export default function Ribbon() {
                 })}
               </div>
               {inSketch && (
-                <button data-cmd="finishsketch" data-testid="finish-sketch-pin" disabled={!!commandActive || sketchDragging} className="finish-sketch finish-pinned" title={lang === 'en' ? 'Finish the sketch and return to the modeling environment (Fusion: FINISH SKETCH)' : '完成草圖，返回實體環境（Fusion: FINISH SKETCH）'} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{/* GM-W6 E：教学指针锚点 */}
+                <button data-cmd="finishsketch" data-testid="finish-sketch-pin" disabled={!!commandActive || sketchDragging} className="finish-sketch finish-pinned" title={msg('ui.finishSketchTip', lang)} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{/* GM-W6 E：教学指针锚点 */}
                   <span className="finish-check">✓</span>
                   <span>{msg('ui.finishSketch', lang)}</span>
                 </button>
               )}
               {inForm && (
-                <button data-cmd="finishform" data-testid="finish-form-pin" className="finish-sketch finish-pinned" title={lang === 'en' ? 'Finish Form and return to SOLID' : '完成造型，返回實體環境'} onClick={() => void finishForm()}>
+                <button data-cmd="finishform" data-testid="finish-form-pin" className="finish-sketch finish-pinned" title={msg('ui.finishFormTip', lang)} onClick={() => void finishForm()}>
                   <span className="finish-check">✓</span>
                   <span>{msg('ui.finishForm', lang)}</span>
                 </button>

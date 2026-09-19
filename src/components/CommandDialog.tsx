@@ -2,7 +2,7 @@ import { useEscapeLayer } from './useEscapeLayer'
 import { useRef, useState, useEffect, type ReactNode } from 'react'
 import { ToolIcon } from '../icons'
 import { useApp } from '../store'
-import { tStatus } from '../i18n'
+import { tStatus, msg } from '../i18n'
 
 // 可拖拽数字栏（Fusion/Blender 式）：喺命令对话框（.cmd-palette-body）任何数字输入上【左右拖】= 改值，
 // 唔使打字；对话框本来实时预览 → 拖即见模型变化。拖动 <4px 当普通点击（照样可 focus 打字）。
@@ -139,8 +139,8 @@ export function CommandDialog({ icon = 'default', title, okLabel = '确定', okD
       >
         <ToolIcon name={icon} size={16} />
         <span style={{ fontWeight: 700, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{tStatus(title, lang)}</span>
-        {!docked && <button type="button" className="cmd-palette-x" aria-label={lang === 'en' ? 'Reset command panel position' : '恢复命令面板位置'} onClick={() => setOff({ dx: 0, dy: 0 })}>↺</button>}
-        <button type="button" className="cmd-palette-x" aria-label={collapsed ? (lang === 'en' ? 'Expand command options' : '展开命令选项') : (lang === 'en' ? 'Collapse command options' : '收起命令选项')} aria-expanded={!collapsed} onClick={() => setCollapsed(v => !v)}>{collapsed ? '▸' : '▾'}</button>
+        {!docked && <button type="button" className="cmd-palette-x" aria-label={msg('dlg.resetPanelPos', lang)} onClick={() => setOff({ dx: 0, dy: 0 })}>↺</button>}
+        <button type="button" className="cmd-palette-x" aria-label={collapsed ? msg('dlg.expandOpts', lang) : msg('dlg.collapseOpts', lang)} aria-expanded={!collapsed} onClick={() => setCollapsed(v => !v)}>{collapsed ? '▸' : '▾'}</button>
         <button type="button" className="cmd-palette-x" aria-label={tStatus('取消（Esc）', lang)} title={tStatus('取消（Esc）', lang)} onClick={onCancel}>✕</button>
       </div>
       <div className="cmd-palette-body" hidden={collapsed}>{children}</div>

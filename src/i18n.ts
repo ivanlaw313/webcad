@@ -2066,6 +2066,24 @@ export function tStatus(s: string, lang: LangInput): string {
   for (const [src, key] of DIM_MARKERS) {
     if (s.includes(src)) return s.split(src).join(msg(key, L))
   }
+  // v1.77: Box / Cylinder prim toasts — catalog before EN short-token shred (已→Done:, 长方体→Box)
+  {
+    const boxM = s.match(/^已(创建|切割|新实体|新實體|相交)(长方体|長方體)\s+([\d.]+)×([\d.]+)×([\d.]+)/)
+    if (boxM) {
+      const op = boxM[1]
+      const key =
+        op === '切割' ? 'status.boxCut'
+        : (op === '新实体' || op === '新實體') ? 'status.boxNewBody'
+        : op === '相交' ? 'status.boxIntersect'
+        : 'status.boxCreated'
+      return msg(key, L).replace('{0}', boxM[3]).replace('{1}', boxM[4]).replace('{2}', boxM[5])
+    }
+    const cylM = s.match(/^已(创建|切割)(圆柱|圓柱)\s+Ø([\d.]+)×([\d.]+)/)
+    if (cylM) {
+      const key = cylM[1] === '切割' ? 'status.cylCut' : 'status.cylCreated'
+      return msg(key, L).replace('{0}', cylM[3]).replace('{1}', cylM[4])
+    }
+  }
   if (L !== 'en') {
     // ja (and future): reuse EN phrase table when possible, else keep source
     // Fall through to EN replacement for coverage; leftover CJK stays (honest).

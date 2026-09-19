@@ -222,7 +222,7 @@ function PanelFlyout({ name, tools, onCommand }: { name: string; tools: Tool[]; 
   const placement = useFloatingMenu(open, anchorRef, menuRef)
   const dispName = tGroup(name, lang)   // GM-W6D：zh 显示中文组名，en 保持英文
   return (
-    <div ref={anchorRef} role="button" tabIndex={0} aria-expanded={open} onKeyDown={e => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(v => !v) } if (e.key === 'Escape') setOpen(false) }} className="panel-label" data-ribbon-group={name} style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setOpen((o) => !o)} title={lang === 'en' ? `Show all ${dispName} commands` : `展开 ${dispName} 全部命令`}>
+    <div ref={anchorRef} role="button" tabIndex={0} aria-expanded={open} onKeyDown={e => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(v => !v) } if (e.key === 'Escape') setOpen(false) }} className="panel-label" data-ribbon-group={name} style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setOpen((o) => !o)} title={msg('ui.ribbonExpandGroup', lang).replace('{0}', dispName)}>
       {dispName} ▾
       {open && createPortal(
         <>
@@ -374,7 +374,7 @@ export default function Ribbon() {
                 const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : (index + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
                 items[next]?.focus()
               }} className="panel-menu file-menu" style={{ position: 'fixed', top: filePosition.top, left: filePosition.left, zIndex: 150, width: 'min(320px, calc(100vw - 16px))', maxHeight: `calc(100dvh - ${filePosition.top + 8}px)`, overflowY: 'auto' }} onClick={() => setFileMenu(false)}>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('新建空白文档？当前模型会清空（未保存的话先「保存」）。')) void reset() }}><ToolIcon name="newdoc" size={16} />{msg('file.new', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm(msg('file.newConfirm', lang))) void reset() }}><ToolIcon name="newdoc" size={16} />{msg('file.new', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => openProject()}><ToolIcon name="insert" size={16} />{msg('file.open', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => saveProject()}><ToolIcon name="save" size={16} />{msg('file.save', lang)}<span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>Ctrl+S</span></button>
                 <button type="button" role="menuitem" className="panel-menu-item" title="分享链接（T797）：整个项目压缩入一条 URL（gzip+base64,零服务器零隐私）→ 复制到剪贴板。发畀人/收藏即可重开。大模型超 1.9MB 改用「保存」传档" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{msg('file.share', lang)}</button>

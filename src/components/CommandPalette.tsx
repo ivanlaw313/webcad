@@ -194,7 +194,7 @@ function buildCommands(): Cmd[] {
   const extras: Cmd[] = [
     { id: 'act:save', label: '保存项目 (JSON)', from: '文件', run: () => g().saveProject() },
     { id: 'act:open', label: '打开项目 (JSON)', from: '文件', run: () => g().openProject() },
-    { id: 'act:new', label: '新建空白文档', from: '文件', tip: '清空全部并重置', run: async () => { if (await g().appConfirm('新建空白文档？当前模型会清空（未保存的话先「保存」）。')) void g().reset() } },
+    { id: 'act:new', label: msg('file.new', g().lang), from: msg('file.menu', g().lang), tip: msg('file.newConfirm', g().lang), run: async () => { if (await g().appConfirm(msg('file.newConfirm', g().lang))) void g().reset() } },
     { id: 'act:undo', label: '撤销', from: '编辑', shortcut: 'Ctrl+Z', run: () => void g().undo() },
     { id: 'act:redo', label: '重做', from: '编辑', shortcut: 'Ctrl+Y', run: () => void g().redo() },
     { id: 'act:fit', label: '适应窗口 / 主视图', from: '视图', run: () => g().requestFit() },

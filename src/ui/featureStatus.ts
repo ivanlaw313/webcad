@@ -165,3 +165,92 @@ export function torusSuccessStatus(opts: {
   return fmt(msg(key, L(lang)), opts.od, opts.td)
 }
 
+/** Wedge prim success. */
+export function wedgeSuccessStatus(opts: {
+  op: PrimOp
+  l: number | string
+  w: number | string
+  h: number | string
+}, lang?: LangInput): string {
+  const key = opts.op === 'cut' ? 'status.wedgeCut' : 'status.wedgeCreated'
+  return fmt(msg(key, L(lang)), opts.l, opts.w, opts.h)
+}
+
+/** Dome / hemisphere / spherical-cap prim success. */
+export function domeSuccessStatus(opts: {
+  op: PrimOp
+  d: number | string
+  cap?: number | string
+}, lang?: LangInput): string {
+  const cap = Number(opts.cap ?? 0)
+  const R = Number(opts.d) / 2
+  if (Number.isFinite(cap) && cap > 0 && Number.isFinite(R) && cap < R) {
+    return fmt(msg('status.domeCapCreated', L(lang)), opts.d, cap)
+  }
+  const key = opts.op === 'cut' ? 'status.domeCut' : 'status.domeCreated'
+  return fmt(msg(key, L(lang)), opts.d)
+}
+
+/** Half-cylinder / D-shape prim success. */
+export function halfcylSuccessStatus(opts: {
+  op: PrimOp
+  d: number | string
+  h: number | string
+}, lang?: LangInput): string {
+  const key = opts.op === 'cut' ? 'status.halfcylCut' : 'status.halfcylCreated'
+  return fmt(msg(key, L(lang)), opts.d, opts.h)
+}
+
+/** Pie / sector cylinder prim success. */
+export function pieSuccessStatus(opts: {
+  op: PrimOp
+  d: number | string
+  ang: number | string
+  h: number | string
+}, lang?: LangInput): string {
+  const key = opts.op === 'cut' ? 'status.pieCut' : 'status.pieCreated'
+  return fmt(msg(key, L(lang)), opts.d, opts.ang, opts.h)
+}
+
+/** n-gon prism (extrude poly) success. */
+export function prismSuccessStatus(opts: {
+  op: PrimOp
+  sides: number | string
+  d: number | string
+  h: number | string
+}, lang?: LangInput): string {
+  const key = opts.op === 'cut' ? 'status.prismCut' : 'status.prismCreated'
+  return fmt(msg(key, L(lang)), opts.sides, opts.d, opts.h)
+}
+
+/** Hollow round tube success. */
+export function tubeSuccessStatus(opts: {
+  od: number | string
+  wall: number | string
+  id: number | string
+  h: number | string
+}, lang?: LangInput): string {
+  return fmt(msg('status.tubeCreated', L(lang)), opts.od, opts.wall, opts.id, opts.h)
+}
+
+/** Rectangular hollow tube success. */
+export function rtubeSuccessStatus(opts: {
+  w: number | string
+  d: number | string
+  wall: number | string
+  iw: number | string
+  id: number | string
+  h: number | string
+}, lang?: LangInput): string {
+  return fmt(msg('status.rtubeCreated', L(lang)), opts.w, opts.d, opts.wall, opts.iw, opts.id, opts.h)
+}
+
+/** Coil / spring success. */
+export function coilSuccessStatus(opts: {
+  taper?: boolean
+  d?: number | string
+  d2?: number | string
+}, lang?: LangInput): string {
+  if (opts.taper) return fmt(msg('status.coilTaperCreated', L(lang)), opts.d ?? 0, opts.d2 ?? 0)
+  return msg('status.coilCreated', L(lang))
+}

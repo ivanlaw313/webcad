@@ -26,7 +26,7 @@ function loadGeom(): PanelGeom {
 }
 
 const TOOL_TITLE: Record<string, string> = {
-  select: '选择工具', dimension: '尺寸工具', rectangle: '矩形', crect: '中心矩形', rect3: '三点矩形',
+  select: '選擇工具', dimension: '尺寸工具', rectangle: '矩形', crect: '中心矩形', rect3: '三点矩形',
   circle: '圆', circle2p: '两点圆', circle3: '三点圆', circle2t: '两切点圆', circle3t: '三切点圆',
   polyline: '折线', mline: '中点线', polygon: '多边形', slot: '槽', arcslot: '弧槽', rrect: '圆角矩形',
   arc: '三点圆弧', arcc: '中心圆弧', earc: '椭圆弧', conic: '圆锥曲线', ellipse: '椭圆', spline: '样条', bspline: 'B 样条',
@@ -151,7 +151,8 @@ export function SketchToolPanel() {
     args.forEach((a, i) => { s = s.replace(`{${i}}`, String(a)) })
     return s
   }
-  const title = TOOL_TITLE[tool] || '草图工具'
+  const titleKey = `sk.toolTitle.${tool}`
+  const title = (msg(titleKey, lang) !== titleKey ? msg(titleKey, lang) : null) || TOOL_TITLE[tool] || msg('sk.toolTitle.default', lang)
 
   let body: ReactNode
   switch (tool) {
@@ -409,7 +410,7 @@ export function SketchToolPanel() {
         onPointerDown={onHeaderDown}
         style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: 6, padding: '5px 8px', cursor: 'move', touchAction: 'none', background: 'linear-gradient(#eef5fc,#e3eefa)', borderBottom: geom.collapsed ? 'none' : '1px solid #d3e1ef', borderRadius: '9px 9px 0 0' }}
       >
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#1c5a96', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={T('工具选项 · 拖动标题移动，拖右下角缩放')}>⚙ {T(title)}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#1c5a96', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={T('工具选项 · 拖动标题移动，拖右下角缩放')}>⚙ {title}</span>
         <button className="sb-tool" style={{ padding: '0 4px', minWidth: 0 }} title={T('恢复工具面板位置和大小')} onClick={() => setGeom({ ...DEFAULT_GEOM, collapsed: geom.collapsed })}>↺</button>
         <button className="sb-tool" aria-expanded={!geom.collapsed} style={{ padding: '0 6px', minWidth: 0, lineHeight: '18px' }} title={T('收起 / 展开')} onClick={() => setGeom((gg) => ({ ...gg, collapsed: !gg.collapsed }))}>{geom.collapsed ? '▸' : '▾'}</button>
       </div>

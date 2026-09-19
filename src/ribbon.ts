@@ -39,6 +39,7 @@ const SOLID: Panel[] = [
       { id: 'cylinder', label: '圓柱', icon: 'cylinder', tip: '圓柱：設直徑×高直接建圓柱。' },
       { id: 'sphere', label: '球', icon: 'sphere', tip: '球：設直徑建球。' },
       { id: 'torus', label: '圓環', icon: 'torus', tip: '圓環：設外徑+管徑，弧<360° 出 C 形環/卡簧。' },
+      { id: 'cone', label: '圓錐', icon: 'cylinder', quick: true, tip: '圓錐/圓台：設底Ø/頂Ø(0=尖錐)/高，邊數≥3 變 N 棱錐/棱台。' },
       { id: 'coil', label: '螺旋', icon: 'coil', tip: '螺旋/弹簧：設節距/高/底半徑/線徑/頂半徑（頂≠底=锥形弹簧）。' },
       { id: 'pipe', label: '管道', icon: 'pipeicon', tip: '管道：沿路徑掃出空心管（外徑+壁厚）。先畫路徑折線。' },
       {

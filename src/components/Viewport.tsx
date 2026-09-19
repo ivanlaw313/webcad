@@ -7236,9 +7236,7 @@ export default function Viewport() {
               {bodyMesh && <option value="component">{msg('vp.opNewComponent', lang)}</option>}
             </select>
           </label>
-          <p className="operation-help">{lang === 'en'
-            ? (sketchAsComp ? 'Create an independent component with its own history.' : sketchOp === 'cut' ? 'Remove the extruded region from the active body.' : sketchOp === 'intersect' ? 'Keep only the volume shared with the active body.' : sketchOp === 'newbody' ? 'Keep the extrusion as a separate body.' : bodyMesh ? 'Add the extrusion to the active body. Disjoint regions may remain separate solids.' : 'Create the first solid from the selected profile.')
-            : (sketchAsComp ? '建立独立组件及其特征历史。' : sketchOp === 'cut' ? '从活动实体减去拉伸区域。' : sketchOp === 'intersect' ? '只保留与活动实体重叠的体积。' : sketchOp === 'newbody' ? '保留为独立实体，不合入活动实体。' : bodyMesh ? '加入活动实体；不相接的区域可能保留为分离实体。' : '用所选封闭轮廓建立第一个实体。')}</p>
+          <p className="operation-help">{sketchAsComp ? msg('vp.opHelp.component', lang) : sketchOp === 'cut' ? msg('vp.opHelp.cut', lang) : sketchOp === 'intersect' ? msg('vp.opHelp.intersect', lang) : sketchOp === 'newbody' ? msg('vp.opHelp.newbody', lang) : bodyMesh ? msg('vp.opHelp.join', lang) : msg('vp.opHelp.first', lang)}</p>
         </CommandDialog>
       )}
 

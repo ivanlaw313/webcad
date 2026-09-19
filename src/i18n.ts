@@ -203,7 +203,7 @@ export const EN_LABEL: Record<string, string> = {
   '三点圆': '3-Pt Circle', '两切点圆': '2-Tangent Circle', '三切点圆': '3-Tangent Circle',
   '圆弧': 'Arc', '中心点弧': 'Center Arc', '多边形': 'Polygon', '槽': 'Slot', '圆弧槽': 'Arc Slot',
   '圆角矩形': 'Rounded Rect', '椭圆': 'Ellipse', '样条': 'Spline', '点': 'Point',
-  '尺寸': 'Dimension', '修剪': 'Trim', '延伸': 'Extend', '偏移': 'Offset', '上下镜像': 'Mirror',
+  '尺寸工具': 'Dimension', '尺寸': 'Dimension', '修剪': 'Trim', '延伸': 'Extend', '偏移': 'Offset', '上下镜像': 'Mirror',
   '剪走轮廓': 'Trim Region', '合并轮廓': 'Union Region',
   // CONSTRAINTS
   '水平': 'Horizontal', '竖直': 'Vertical', '重合': 'Coincident', '平行': 'Parallel', '垂直': 'Perpendicular',
@@ -548,10 +548,10 @@ const STATUS_PHRASES: Record<string, string> = {
   '重新点选': 'reselect', '重新选': 'reselect', '继续点选': 'keep selecting',
   '已导出装配': 'Exported assembly ', '导出失败': 'export failed', '导入失败': 'import failed',
   // —— 名词 ——
-  '拉伸': 'extrude', '折线': 'polyline', '矩形': 'rectangle', '样条': 'spline', '尺寸': 'dimension',
+  '拉伸': 'extrude', '折线': 'polyline', '矩形': 'rectangle', '样条': 'spline', '尺寸': 'Dimension',
   '圆弧': 'arc', '修剪': 'trim', '延伸': 'extend', '放样': 'loft', '扫掠': 'sweep', '旋转': 'revolve',
   '圆角': 'fillet', '倒角': 'chamfer', '抽壳': 'shell', '镜像': 'mirror', '阵列': 'pattern',
-  '约束': 'constraint', '特征': 'feature', '草图': 'sketch', '实体': 'body', '组件': 'component',
+  '约束': 'constraint', '特征': 'feature', '特徵': 'feature', '草图': 'sketch', '草圖': 'sketch', '实体': 'body', '實體': 'Body', '组件': 'component', '組件': 'Component', '浏览器': 'Browser', '瀏覽器': 'Browser',
   '关节': 'joint', '配合': 'mate', '基准': 'datum', '截面': 'section', '轮廓': 'profile',
   '参数': 'parameter', '模流': 'mold flow', '激光': 'laser', '转速': 'RPM', '扭矩': 'torque',
   '功率': 'power', '半径': 'radius', '直径': 'diameter', '角度': 'angle', '距离': 'distance',
@@ -566,7 +566,7 @@ const STATUS_PHRASES: Record<string, string> = {
   '已': 'Done: ', '失败': 'failed', '需要': 'requires ', '请先': 'first ', '太多': 'too many',
   '太负': 'too negative', '太大': 'too large', '会很慢': '(will be slow)', '可撤销': '(undoable)',
   '可还原': '(undoable)', '只支持': 'only supports ', '再点': 'click again', '再按': 'press again',
-  '再撳确定': 'then confirm', '再导出': 'then export', '完成': 'done', '删除': 'delete',
+  '再撳确定': 'then confirm', '再导出': 'then export', '完成草圖': 'Finish Sketch', '完成草图': 'Finish Sketch', '✓ 完成草圖': '✓ Finish Sketch', '✓ 完成草图': '✓ Finish Sketch', '删除': 'delete',
   '撤销': 'undo', '取消': 'cancel', '当前': 'current ', '朝上': 'up', '请': 'Please ',
   // —— 连接词 / 结构短语（扩充覆盖，令输出尽量全英；仍长→短，单字连接词留中文 fallback 唔乱码）——
   '点「创建草图」开始': 'click "Create Sketch" to start', '逐条点选': 'click one by one',
@@ -616,7 +616,6 @@ const STATUS_PHRASES: Record<string, string> = {
   '∩相交': '∩ Intersect', '目标 = 活动实体；勾选要参与运算嘅工具体（泊车实体）：': 'Target = active body; check tool bodies (parked) to combine:',
 
   // v1.67 Boolean help TC → EN
-  '實體': 'Body',
   '保留工具體（Keep Tools）': 'Keep Tools',
   '沒有工具體：請先用「新實體」泊車當前體，再建造第二個實體，然後返回合併/布爾。': 'No tool bodies: park the current body with New Body, build a second body, then return to Combine/Boolean.',
   '目標 = 活動實體；勾選工具體（泊車）。挖孔：保持大塊為活動體，用工具體（⬡新實體/新實體泊車）切除。': 'Target = active body; check tool bodies (parked). To cut a hole: keep the large body active; cut with a tool body (⬡ New Body / parked New Body).',
@@ -2050,6 +2049,12 @@ export function tStatus(s: string, lang: LangInput): string {
   if (L === 'zh-HK') return s
   if (L === 'zh-CN') return traditionalToSimplified(s)
 
+  // v1.79: Finish Sketch / sketch tool titles — avoid doneSketch / dimension工具 shred
+  if (s === '完成草圖' || s === '完成草图') return msg('ui.finishSketch', L)
+  if (s === '✓ 完成草圖' || s === '✓ 完成草图') return '✓ ' + msg('ui.finishSketch', L)
+  if (s === '尺寸工具') return msg('sk.toolTitle.dimension', L)
+  if (s === '選擇工具' || s === '选择工具') return msg('sk.toolTitle.select', L)
+
   // v1.74: catalog-backed illegal markers (avoid short-phrase shredding / give JA real copy)
   const DIM_MARKERS: [string, string][] = [
     ['尺寸已拒絕：孔徑Ø必須大於 0（已清除非法預覽）', 'status.dimRejectedHole'],
@@ -2084,7 +2089,7 @@ export function tStatus(s: string, lang: LangInput): string {
       return msg(key, L).replace('{0}', cylM[3]).replace('{1}', cylM[4])
     }
   }
-  // v1.78: Sphere / Cone / Torus prim toasts — catalog before EN short-token shred
+  // v1.78: Sphere / Cone / Torus · v1.79: wedge/dome/halfcyl/pie/prism/tube/coil — catalog before shred
   {
     const sphereM = s.match(/^已(创建|切割)球\s+Ø([\d.]+)/)
     if (sphereM) {
@@ -2100,6 +2105,54 @@ export function tStatus(s: string, lang: LangInput): string {
     if (torusM) {
       const key = torusM[1] === '切割' ? 'status.torusCut' : 'status.torusCreated'
       return msg(key, L).replace('{0}', torusM[3]).replace('{1}', torusM[4])
+    }
+    // v1.79: remaining CREATE prims — avoid Done: shred on JA/EN
+    const wedgeM = s.match(/^已(创建|切割|創建)(楔形)\s+([\d.]+)×([\d.]+)×([\d.]+)/)
+    if (wedgeM) {
+      const key = wedgeM[1] === '切割' ? 'status.wedgeCut' : 'status.wedgeCreated'
+      return msg(key, L).replace('{0}', wedgeM[3]).replace('{1}', wedgeM[4]).replace('{2}', wedgeM[5])
+    }
+    const domeCapM = s.match(/^已(创建|切割|創建)球冠\s+Ø([\d.]+)\s+冠高([\d.]+)/)
+    if (domeCapM) {
+      return msg('status.domeCapCreated', L).replace('{0}', domeCapM[2]).replace('{1}', domeCapM[3])
+    }
+    const domeM = s.match(/^已(创建|切割|創建)(圆顶\/半球|圓頂\/半球)\s+Ø([\d.]+)/)
+    if (domeM) {
+      const key = domeM[1] === '切割' ? 'status.domeCut' : 'status.domeCreated'
+      return msg(key, L).replace('{0}', domeM[3])
+    }
+    const halfM = s.match(/^已(创建|切割|創建)(半圆柱\/D 形|半圓柱\/D 形)\s+Ø([\d.]+)×([\d.]+)/)
+    if (halfM) {
+      const key = halfM[1] === '切割' ? 'status.halfcylCut' : 'status.halfcylCreated'
+      return msg(key, L).replace('{0}', halfM[3]).replace('{1}', halfM[4])
+    }
+    const pieM = s.match(/^已(创建|切割|創建)扇形柱\s+Ø([\d.]+)\s+([\d.]+)°×([\d.]+)/)
+    if (pieM) {
+      const key = pieM[1] === '切割' ? 'status.pieCut' : 'status.pieCreated'
+      return msg(key, L).replace('{0}', pieM[2]).replace('{1}', pieM[3]).replace('{2}', pieM[4])
+    }
+    const prismM = s.match(/^已(创建|切割|創建)(\d+)边形棱柱\s+外接Ø([\d.]+)×([\d.]+)/)
+    if (prismM) {
+      const key = prismM[1] === '切割' ? 'status.prismCut' : 'status.prismCreated'
+      return msg(key, L).replace('{0}', prismM[2]).replace('{1}', prismM[3]).replace('{2}', prismM[4])
+    }
+    const tubeM = s.match(/^已(创建|創建)(圆管|圓管)\s+外Ø([\d.]+)\s+壁厚([\d.]+)（内Ø([\d.]+)）高([\d.]+)/)
+      || s.match(/^已(创建|創建)(圆管|圓管)\s+外Ø([\d.]+)\s+壁厚([\d.]+)（內Ø([\d.]+)）高([\d.]+)/)
+    if (tubeM) {
+      return msg('status.tubeCreated', L).replace('{0}', tubeM[3]).replace('{1}', tubeM[4]).replace('{2}', tubeM[5]).replace('{3}', tubeM[6])
+    }
+    const rtubeM = s.match(/^已(创建|創建)(矩形管)\s+([\d.]+)×([\d.]+)\s+壁厚([\d.]+)（内\s+([\d.]+)×([\d.]+)）高([\d.]+)/)
+      || s.match(/^已(创建|創建)(矩形管)\s+([\d.]+)×([\d.]+)\s+壁厚([\d.]+)（內\s+([\d.]+)×([\d.]+)）高([\d.]+)/)
+    if (rtubeM) {
+      return msg('status.rtubeCreated', L).replace('{0}', rtubeM[3]).replace('{1}', rtubeM[4]).replace('{2}', rtubeM[5]).replace('{3}', rtubeM[6]).replace('{4}', rtubeM[7]).replace('{5}', rtubeM[8])
+    }
+    if (/^已(创建|創建)螺旋（弹簧）$/.test(s) || /^已(创建|創建)螺旋（彈簧）$/.test(s)) {
+      return msg('status.coilCreated', L)
+    }
+    const coilTM = s.match(/^已(创建|創建)(锥形弹簧|錐形彈簧)（底Ø([\d.]+)→顶Ø([\d.]+)）/)
+      || s.match(/^已(创建|創建)(锥形弹簧|錐形彈簧)（底Ø([\d.]+)→頂Ø([\d.]+)）/)
+    if (coilTM) {
+      return msg('status.coilTaperCreated', L).replace('{0}', coilTM[3]).replace('{1}', coilTM[4])
     }
   }
   if (L !== 'en') {

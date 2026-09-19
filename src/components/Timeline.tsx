@@ -19,7 +19,7 @@ function NumField({ value, disabled, step = 0.5, min, onCommit, rejectDetail }: 
   const commit = () => {
     if (skipCommit.current) { skipCommit.current = false; setBuf(String(value)); return }
     const n = Number(buf)
-    // BUG-UI-003 / BUG-UI-001: reject n < min (≤0 length) and announce 尺寸已拒绝 — silent revert hid the reason.
+    // BUG-UI-003 / BUG-UI-001: reject n < min (≤0 length) and announce 尺寸已拒絕 — silent revert hid the reason.
     if (Number.isFinite(n) && (min == null || n >= min)) { if (n !== value) onCommit(n) }
     else {
       setBuf(String(value))

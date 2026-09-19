@@ -15,7 +15,7 @@ const meshDrop = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url),
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.50+', () => {
-  assert.match(version, /APP_VERSION = '1\.50'|APP_VERSION = '1\.[6-9]\d'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '1\.(5[0-9]|[6-9]\d)'|APP_VERSION = '[2-9]\./)
 })
 
 test('v1.50: SOLID CREATE Traditional (建立草圖 / 長方體 / 圓柱 / 圓環)', () => {

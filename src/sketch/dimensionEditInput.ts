@@ -15,7 +15,7 @@ export function parseDimensionEditInput({con,raw,unit,radDia,params,cons,evaluat
   const parsed=numeric!==null?{value:numeric}:dimensionExpression(body,[],evaluate,angle?'deg':'mm',undefined,angle?1:lengthScale(unit))
   if(parsed.value===undefined)return fail('尺寸无法计算；请检查数值、单位及语法')
   const value=radDia?.flip?parsed.value*(radDia.type==='rad'?.5:2):parsed.value
-  if(!valid(value))return fail('尺寸必须为有限正数；水平／垂直距离可为零')
+  if(!valid(value))return fail('尺寸必須為有限正數；水平／垂直距離可為零')
   return {ok:true,patch:{value,param:undefined,paramId:undefined,expr:undefined,refs:undefined,driven:undefined}}
  }
  const scale=radDia?.flip?(radDia.type==='rad'?0.5:2):1

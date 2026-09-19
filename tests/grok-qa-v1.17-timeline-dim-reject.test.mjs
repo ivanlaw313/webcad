@@ -1,6 +1,6 @@
 /**
  * v1.17 BUG-UI-001 follow-up: Timeline feature editor must show a visible
- * 「尺寸已拒绝」 alert (timeline-illegal-alert) when status is illegal, and
+ * 「尺寸已拒絕」 alert (timeline-illegal-alert) when status is illegal, and
  * NumField must not use HTML min that blocks typing negatives before commit.
  */
 import test from 'node:test'
@@ -40,7 +40,7 @@ test('v1.17: APP_VERSION is a release string', () => {
 })
 
 test('helper: illegalRejectStatus still embeds marker for prim length', () => {
-  assert.equal(ILLEGAL_REJECT_MARKER, '尺寸已拒绝')
+  assert.equal(ILLEGAL_REJECT_MARKER, '尺寸已拒絕')
   assert.equal(isIllegalRejectStatus(illegalRejectStatus(ILLEGAL_LENGTH_DETAIL)), true)
-  assert.match(illegalRejectStatus(ILLEGAL_LENGTH_DETAIL), /尺寸已拒绝：尺寸必须大于 0/)
+  assert.match(illegalRejectStatus(ILLEGAL_LENGTH_DETAIL), /尺寸已拒絕：尺寸必須大於 0/)
 })

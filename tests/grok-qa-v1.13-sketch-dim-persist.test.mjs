@@ -25,7 +25,7 @@ test('BOT-A01 contract: blur commits con dims; Finish flushes session; valRef dr
 })
 
 test('BOT-A02 contract: illegal dim draft writes status toast', () => {
-  assert.match(layer, /尺寸已拒绝：\$\{result\.error\}/)
+  assert.match(layer, /setInputError\(illegalRejectStatus\(result\.error\)\)/)
   const con = { kind: 'dim', id: 'd', name: 'd1', type: 'len', value: 120, a: { kind: 'edge', shape: 0, idx: 0 } }
   const evaluate = () => null
   for (const raw of ['-1', '0', '']) {
@@ -102,5 +102,5 @@ test('BOT-A02 runtime: illegal patch leaves geometry and surfaces failure status
   assert.ok(g().skDimPreview.error)
   await g().confirmSkDimEdit()
   assert.equal(g().skCons.find((c) => c.id === width.id).value, 120)
-  assert.match(g().status, /尺寸修改失败|尺寸已拒绝|必须/)
+  assert.match(g().status, /尺寸修改失败|尺寸已拒絕|必須|必须/)
 })

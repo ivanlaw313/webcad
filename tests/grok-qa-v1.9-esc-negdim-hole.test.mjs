@@ -25,7 +25,7 @@ test('BUG-UI-002: Esc in feature-editor fields reaches dialog cancel path', () =
 test('BUG-UI-003: positive length keys reject ≤0 in NumField + editFeature', () => {
   assert.match(timeline, /POSITIVE_LENGTH_KEYS/)
   assert.match(timeline, /POSITIVE_LENGTH_KEYS\.has\(fd\.key\)\s*\?\s*1e-6/)
-  assert.match(storeSrc, /尺寸必须大于 0，未更改模型|ILLEGAL_LENGTH_DETAIL/)
+  assert.match(storeSrc, /尺寸必須大於 0，未更改模型|ILLEGAL_LENGTH_DETAIL/)
   assert.match(storeSrc, /'a', 'b', 'c', 'diameter'/)
 })
 
@@ -34,7 +34,7 @@ test('BUG-SO18F-001: hole Ø≤0 not coerced; preview/confirm gated', () => {
   assert.doesNotMatch(storeSrc, /setHoleD:\s*\(n\) => set\(\{ holeD: Math\.max\(1/)
   assert.match(sketch, /!\(holeD > 0\)\) return null/)
   assert.match(viewport, /okDisabled=\{\(!holePos && !holeEditId\) \|\| !\(holeD > 0\)\}/)
-  assert.match(viewport, /尺寸已拒绝：孔径Ø必须大于 0|孔径 Ø 必须大于 0/)
+  assert.match(viewport, /尺寸已拒絕：孔徑Ø必須大於 0|孔径 Ø 必须大于 0/)
   // LenInput notifies parent even when below min so illegal Ø reaches store
   const lenAt = viewport.indexOf('function LenInput')
   const len = viewport.slice(lenAt, lenAt + 900)

@@ -74,7 +74,7 @@ function buildCommands(): Cmd[] {
   const g0 = useApp.getState()
   const templates: Cmd[] = (Object.keys(SAMPLE_LABELS) as SampleKind[]).map((k) => ({
     id: `sample:${k}`,
-    label: `${msg('cmd.templatePrefix', g0.lang)}${SAMPLE_LABELS[k]}`,
+    label: `${msg('cmd.templatePrefix', g0.lang)}${msg('sample.' + k, g0.lang)}`,
     labelKey: undefined,
     from: msg('cmd.fromTemplate', g0.lang),
     fromKey: 'cmd.fromTemplate',

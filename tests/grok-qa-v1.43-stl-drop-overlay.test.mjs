@@ -73,7 +73,7 @@ test('filesFromDataTransfer prefers files; falls back to items.getAsFile', () =>
 
 test('empty-drop + armed status strings exported', () => {
   assert.match(MESH_DROP_EMPTY_STATUS, /未能读取拖放文件/)
-  assert.match(MESH_DROP_ARMED_STATUS, /松开以导入网格/)
+  assert.match(MESH_DROP_ARMED_STATUS, /放開以匯入網格|松开以导入网格/)
 })
 
 test('drop dedupe suppresses double accept within 800ms', () => {
@@ -121,7 +121,7 @@ test('i18n keeps mesh-drop Chinese + v1.43 empty/armed', () => {
   assert.match(i18nSrc, /'不支持的网格拖放（请用 \.stl \/ \.obj \/ \.3mf）': '不支持的网格拖放（请用 \.stl \/ \.obj \/ \.3mf）'/)
   assert.match(i18nSrc, /'正在读取 STL「': '正在读取 STL「'/)
   assert.match(i18nSrc, /未能读取拖放文件/)
-  assert.match(i18nSrc, /松开以导入网格/)
+  assert.match(i18nSrc, /放開以匯入網格|松开以导入网格/)
   assert.match(i18nSrc, /'已抽殼 壁厚': '已抽殼 壁厚'/)
   assert.match(i18nSrc, /'已抽壳 壁厚': '已抽壳 壁厚'/ )
   assert.match(i18nSrc, /'烘焙為零件實體': '烘焙為零件實體'/)

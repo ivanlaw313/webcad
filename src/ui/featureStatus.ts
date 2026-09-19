@@ -254,3 +254,41 @@ export function coilSuccessStatus(opts: {
   if (opts.taper) return fmt(msg('status.coilTaperCreated', L(lang)), opts.d ?? 0, opts.d2 ?? 0)
   return msg('status.coilCreated', L(lang))
 }
+
+
+/** Gear CREATE success (avoid JA shred of 齿轮). */
+export function gearSuccessStatus(opts: {
+  op: 'new' | 'cut'
+  module: number | string
+  teeth: number | string
+  pitch: number | string
+  tip: number | string
+  root: number | string
+  depth: number | string
+  thickness: number | string
+}, lang?: LangInput): string {
+  const key = opts.op === 'cut' ? 'status.gearCut' : 'status.gearCreated'
+  return fmt(msg(key, L(lang)), opts.module, opts.teeth, opts.pitch, opts.tip, opts.root, opts.depth, opts.thickness)
+}
+
+/** Worm CREATE success. */
+export function wormSuccessStatus(opts: {
+  module: number | string
+  starts: number | string
+  length: number | string
+}, lang?: LangInput): string {
+  return fmt(msg('status.wormCreated', L(lang)), opts.module, opts.starts, opts.length)
+}
+
+/** Profile (L/U/T) CREATE success. */
+export function profileSuccessStatus(opts: {
+  op: 'new' | 'cut'
+  name: string
+  w: number | string
+  h: number | string
+  t: number | string
+  L: number | string
+}, lang?: LangInput): string {
+  const key = opts.op === 'cut' ? 'status.profileCut' : 'status.profileCreated'
+  return fmt(msg(key, L(lang)), opts.name, opts.w, opts.h, opts.t, opts.L)
+}

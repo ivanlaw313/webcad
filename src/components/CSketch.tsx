@@ -5,7 +5,7 @@ import { useApp } from '../store'
 const SCALE = 2.6 // px per mm
 
 const TOOLS: { t: 'select' | 'line' | 'rect' | 'circle' | 'polygon' | 'trim' | 'extend' | 'break'; label: string; title?: string }[] = [
-  { t: 'select', label: '↖ 选择' },
+  { t: 'select', label: '↖ 選擇' },
   { t: 'line', label: '／ 直线' },
   { t: 'rect', label: '▭ 矩形' },
   { t: 'circle', label: '◯ 圆' },
@@ -152,12 +152,12 @@ export default function CSketch() {
         ))}
         <span className="cs-div" />
         <button className="cs-btn cs-cstr" title="把所选线设为/取消构造线（参考/中心线，虚线显示，不计入拉伸轮廓）" onClick={() => s.toggleConstruction()}>┄ 构造线</button>
-        <button className="cs-btn cs-cstr" title="镜像：先选要镜像嘅实体（线/圆），最后再选一条线做镜像轴 → 按此" onClick={() => s.mirrorSel()}>⇋ 镜像</button>
+        <button className="cs-btn cs-cstr" title="镜像：先选要镜像嘅实体（线/圆），最后再选一条线做镜像轴 → 按此" onClick={() => s.mirrorSel()}>⇋ 鏡像</button>
         <button className="cs-btn cs-cstr" title="倒角：先选一个角点（两条线嘅交点）→ 按此 → 输入斜角距离" onClick={async () => { const v = await useApp.getState().appPrompt('倒角距离 mm（沿两边各缩短此距离，加斜角线）', '5'); if (v != null) { const d = Number(v); if (d > 0) s.chamferCorner(d) } }}>⌐ 倒角</button>
-        <button className="cs-btn cs-cstr" title="矩形阵列：先选实体（线/圆）→ 按此 → 输入 列数,列距,行数,行距" onClick={async () => { const v = await useApp.getState().appPrompt('矩形阵列  列数,列距,行数,行距（例 3,20,2,15）', '3,20,1,0'); if (v) { const p = v.split(',').map(Number); s.patternRect(p[0] || 1, p[1] || 20, p[2] || 1, p[3] || 0) } }}>▦ 矩形阵列</button>
-        <button className="cs-btn cs-cstr" title="环形阵列：先选实体（线/圆），可加选一个点做中心（否则绕原点）→ 按此 → 输入 数量,总角度°" onClick={async () => { const v = await useApp.getState().appPrompt('环形阵列  数量,总角度°（例 6,360）', '6,360'); if (v) { const p = v.split(',').map(Number); s.patternCirc(p[0] || 6, p[1] ?? 360) } }}>✸ 环形阵列</button>
-        <button className="cs-btn cs-cstr" title="旋转：先选要转嘅实体（线/圆），可加选一个点做旋转中心（否则绕原点）→ 按此 → 输入角度°" onClick={async () => { const v = await useApp.getState().appPrompt('旋转角度°（正=逆时针；绕所选点，否则原点）', '90'); if (v != null) { const a = Number(v); if (Number.isFinite(a)) s.rotateSel(a) } }}>⟳ 旋转</button>
-        <button className="cs-btn cs-cstr" title="投影实体：把现有 3D 实体嘅外形矩形（参考线）+ 各竖直孔中心（参考点）投影入草图 → 可对佢哋打尺寸/约束新几何（相对 3D 物体定位）" onClick={() => s.projectBody()}>⧉ 投影实体</button>
+        <button className="cs-btn cs-cstr" title="矩形阵列：先选实体（线/圆）→ 按此 → 输入 列数,列距,行数,行距" onClick={async () => { const v = await useApp.getState().appPrompt('矩形阵列  列数,列距,行数,行距（例 3,20,2,15）', '3,20,1,0'); if (v) { const p = v.split(',').map(Number); s.patternRect(p[0] || 1, p[1] || 20, p[2] || 1, p[3] || 0) } }}>▦ 矩形陣列</button>
+        <button className="cs-btn cs-cstr" title="环形阵列：先选实体（线/圆），可加选一个点做中心（否则绕原点）→ 按此 → 输入 数量,总角度°" onClick={async () => { const v = await useApp.getState().appPrompt('环形阵列  数量,总角度°（例 6,360）', '6,360'); if (v) { const p = v.split(',').map(Number); s.patternCirc(p[0] || 6, p[1] ?? 360) } }}>✸ 環形陣列</button>
+        <button className="cs-btn cs-cstr" title="旋转：先选要转嘅实体（线/圆），可加选一个点做旋转中心（否则绕原点）→ 按此 → 输入角度°" onClick={async () => { const v = await useApp.getState().appPrompt('旋转角度°（正=逆时针；绕所选点，否则原点）', '90'); if (v != null) { const a = Number(v); if (Number.isFinite(a)) s.rotateSel(a) } }}>⟳ 旋轉</button>
+        <button className="cs-btn cs-cstr" title="投影实体：把现有 3D 实体嘅外形矩形（参考线）+ 各竖直孔中心（参考点）投影入草图 → 可对佢哋打尺寸/约束新几何（相对 3D 物体定位）" onClick={() => s.projectBody()}>⧉ 投影實體</button>
         <button className="cs-btn" title="删除所选" onClick={() => void s.deleteSelected()}>🗑</button>
         <button className="cs-btn" title="撤销 (Ctrl+Z)" disabled={!s.past.length} onClick={() => s.undo()}>↶</button>
         <button className="cs-btn" title="重做 (Ctrl+Y)" disabled={!s.future.length} onClick={() => s.redo()}>↷</button>

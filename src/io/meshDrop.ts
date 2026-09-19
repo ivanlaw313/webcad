@@ -21,7 +21,7 @@ export const MESH_DROP_EMPTY_STATUS =
   '未能读取拖放文件（请确认拖的是本地 .stl/.obj/.3mf，或改用 File→导入 STL）'
 
 /** Brief status while a file-like drag is over the viewport overlay. */
-export const MESH_DROP_ARMED_STATUS = '放開以匯入網格（.stl / .obj / .3mf）'
+export const MESH_DROP_ARMED_STATUS = '放開滑鼠以匯入網格（.stl / .obj / .3mf）'
 
 /** v1.44: status when user switches to MESH tab — surfaces drag-drop as primary import path. */
 export const MESH_TAB_DROP_HINT =

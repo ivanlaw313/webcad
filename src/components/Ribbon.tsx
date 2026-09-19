@@ -7,7 +7,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useApp, MATERIALS, SAMPLE_LABELS, type SampleKind } from '../store'
 import { ToolIcon } from '../icons'
 import { WORKSPACE_TABS, WORKSPACES, SKETCH_PANELS, FORM_PANELS, type Tool } from '../ribbon'
-import { tLabel, tGroup, tTab, msg, tStatus, normalizeLang, type Lang } from '../i18n'   // T800 + v1.74 4-locale
+import { tGroup, tTab, msg, tStatus, normalizeLang, ribbonCmdLabel, type Lang } from '../i18n'   // T800 + v1.83 cmd.*
 import { FASTENER_KIND_LABEL, FASTENER_SIZES, type FastenerKind, type FastenerSize } from '../cad/fasteners'
 import { TEXTURE_KEYS } from '../render/procTextures'
 import MaterialSwatchPicker from './MaterialSwatchPicker'   // 材质球视觉拣料
@@ -106,6 +106,11 @@ function resolveRibbonTip(id: string, lang: Lang, fallback?: string): string {
   return fallback ? tStatus(fallback, lang) : ''
 }
 
+/** Prefer cmd.<id> catalog (v1.83); variant labels via LABEL_TO_KEY inside ribbonCmdLabel. */
+function resolveRibbonCmd(id: string, lang: Lang, fallbackLabel: string): string {
+  return ribbonCmdLabel(id, lang, fallbackLabel)
+}
+
 const SK_CON_OF_ID: Record<string, string> = { sk_c_h: 'h', sk_c_v: 'v', sk_c_coin: 'coincident', sk_c_par: 'parallel', sk_c_perp: 'perp', sk_c_eq: 'equal', sk_c_tan: 'tangent', sk_c_fix: 'fix', sk_c_mid: 'midpoint', sk_c_conc: 'concentric', sk_c_coll: 'collinear', sk_c_sym: 'symmetric' }
 
 // Quick icon in the ribbon strip — Fusion style: icon only (~26px), label lives in the tooltip,
@@ -124,7 +129,7 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
   useEscapeLayer(quickOpen, () => { setQuickOpen(false); quickAnchor.current?.querySelector('button')?.focus() }, 241)
   const quickPlacement = useFloatingMenu(quickOpen, quickAnchor, quickMenu)
   const tipTxt = resolveRibbonTip(t.id, lang, t.tip)
-  const title = off ? `${tLabel(t.label, lang)} — ${tStatus(commandDisabledReason(useApp.getState(), t.id) || '', lang)}` : `${tLabel(t.label, lang)}${t.shortcut ? ` (${t.shortcut})` : ''}${tipTxt ? `\n${tipTxt}` : ''}`
+  const title = off ? `${resolveRibbonCmd(t.id, lang, t.label)} — ${tStatus(commandDisabledReason(useApp.getState(), t.id) || '', lang)}` : `${resolveRibbonCmd(t.id, lang, t.label)}${t.shortcut ? ` (${t.shortcut})` : ''}${tipTxt ? `\n${tipTxt}` : ''}`
   // A quick parent with children (阵列 ▸) runs its first child on direct click (Fusion: icon = default cmd).
   const cmd = t.children?.length ? t.children[0] : t
   // Sketch tools render a 2D text glyph (◯ ▭ ⊿ …) + their Chinese label below, so a non-coder can
@@ -135,14 +140,14 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
         data-cmd={t.id}
         className={'tool-btn sk' + (active ? ' active' : '')}
         title={title}
-        aria-label={tLabel(t.label, lang)}
+        aria-label={resolveRibbonCmd(t.id, lang, t.label)}
         aria-pressed={active || undefined}
         disabled={off}
         style={off ? { opacity: 0.32, cursor: 'not-allowed' } : undefined}
         onClick={() => { if (off) return; if (onRun) onRun(); else run(cmd.id, cmd.label) }}
       >
         <span className="sk-glyph">{t.glyph}</span>
-        <span className="sk-label">{tLabel(t.label, lang)}</span>
+        <span className="sk-label">{resolveRibbonCmd(t.id, lang, t.label)}</span>
       </button>
     )
   }
@@ -150,12 +155,12 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
     data-cmd={t.id}
     className={'tool-btn' + (active ? ' active' : '')}
     title={title}
-    aria-label={tLabel(t.label, lang)}
+    aria-label={resolveRibbonCmd(t.id, lang, t.label)}
     aria-pressed={active || undefined}
     disabled={off}
     style={off ? { opacity: 0.32, cursor: 'not-allowed' } : undefined}
     onClick={() => { if (off) return; if (onRun) onRun(); else run(cmd.id, cmd.label) }}
-  ><ToolIcon name={t.icon} size={26} /><span className="tool-caption">{tLabel(t.label, lang)}</span></button>
+  ><ToolIcon name={t.icon} size={26} /><span className="tool-caption">{resolveRibbonCmd(t.id, lang, t.label)}</span></button>
   if (!t.quickChildren?.length) return mainButton
   return <div ref={quickAnchor} className="quick-split-tool" style={{ position: 'relative', display: 'inline-flex', alignItems: 'stretch' }}>
     {mainButton}
@@ -163,7 +168,7 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
       type="button"
       className="tool-btn-caret"
       data-testid={`quick-tool-caret-${t.id}`}
-      aria-label={`${tLabel(t.label, lang)} ${msg('ui.menu', lang)}`}
+      aria-label={`${resolveRibbonCmd(t.id, lang, t.label)} ${msg('ui.menu', lang)}`}
       disabled={off}
       onClick={(e) => { e.stopPropagation(); if (!off) setQuickOpen((value) => !value) }}
       style={{ width: 13, padding: 0, border: 0, background: 'transparent', cursor: off ? 'not-allowed' : 'pointer', color: 'inherit' }}
@@ -175,10 +180,10 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
           key={child.id}
           data-cmd={child.id}
           className="panel-menu-item"
-          title={resolveRibbonTip(child.id, lang, child.tip) || tLabel(child.label, lang)}
+          title={resolveRibbonTip(child.id, lang, child.tip) || resolveRibbonCmd(child.id, lang, child.label)}
           role="menuitem" tabIndex={gate(child.id) ? -1 : 0} aria-disabled={gate(child.id)} onKeyDown={e => { if (!gate(child.id) && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setQuickOpen(false); run(child.id, child.label) } }}
           onClick={() => { if (gate(child.id)) return; setQuickOpen(false); run(child.id, child.label) }}
-        ><ToolIcon name={child.icon} size={16} />{tLabel(child.label, lang)}{child.shortcut && <span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>{child.shortcut}</span>}</div>)}
+        ><ToolIcon name={child.icon} size={16} />{resolveRibbonCmd(child.id, lang, child.label)}{child.shortcut && <span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>{child.shortcut}</span>}</div>)}
       </div>
     </>, document.body)}
   </div>
@@ -193,13 +198,13 @@ function MenuRow({ t, off, onPick }: { t: Tool; off: boolean; onPick: (t: Tool) 
     <div
       data-cmd={t.id}
       className={'panel-menu-item' + (off ? ' off' : '')}
-      title={off ? msg('ui.busyCancelSketch', lang) : (resolveRibbonTip(t.id, lang, t.tip) || tLabel(t.label, lang))}
+      title={off ? msg('ui.busyCancelSketch', lang) : (resolveRibbonTip(t.id, lang, t.tip) || resolveRibbonCmd(t.id, lang, t.label))}
       style={{ flexWrap: hasSub ? 'wrap' : undefined }}
       role="menuitem" aria-disabled={off} tabIndex={off ? -1 : 0} aria-expanded={hasSub ? subOpen : undefined}
       onKeyDown={e => { if (e.target !== e.currentTarget || off) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); if (hasSub) setSubOpen(!subOpen); else onPick(t) } if (e.key === 'Escape') setSubOpen(false) }}
       onClick={() => { if (off) return; if (hasSub) { setSubOpen(!subOpen); return }; onPick(t) }}
     >
-      {t.glyph ? <span style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{t.glyph}</span> : <ToolIcon name={t.icon} size={16} />}{tLabel(t.label, lang)}
+      {t.glyph ? <span style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{t.glyph}</span> : <ToolIcon name={t.icon} size={16} />}{resolveRibbonCmd(t.id, lang, t.label)}
       <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         {t.shortcut && <span className="panel-menu-kbd">{t.shortcut}</span>}
         {hasSub && <span style={{ fontSize: 10, color: '#888' }}>{subOpen ? '▾' : '▸'}</span>}
@@ -207,9 +212,9 @@ function MenuRow({ t, off, onPick }: { t: Tool; off: boolean; onPick: (t: Tool) 
       {hasSub && subOpen && (
         <div className="ribbon-submenu" role="menu" data-testid="ribbon-submenu" style={{ flexBasis: '100%', minWidth: 0, paddingLeft: 8, borderLeft: '2px solid #9bbcd5' }} onClick={e => e.stopPropagation()}>
           {t.children!.map((c) => (
-            <div key={c.id} role="menuitem" tabIndex={off ? -1 : 0} aria-disabled={off} onKeyDown={e => { if (!off && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); onPick(c) } }} data-cmd={c.id} className={'panel-menu-item' + (off ? ' off' : '')} title={resolveRibbonTip(c.id, lang, c.tip) || tLabel(c.label, lang)}
+            <div key={c.id} role="menuitem" tabIndex={off ? -1 : 0} aria-disabled={off} onKeyDown={e => { if (!off && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); onPick(c) } }} data-cmd={c.id} className={'panel-menu-item' + (off ? ' off' : '')} title={resolveRibbonTip(c.id, lang, c.tip) || resolveRibbonCmd(c.id, lang, c.label)}
               onClick={(e) => { e.stopPropagation(); if (off) return; onPick(c) }}>
-              <ToolIcon name={c.icon} size={16} />{tLabel(c.label, lang)}
+              <ToolIcon name={c.icon} size={16} />{resolveRibbonCmd(c.id, lang, c.label)}
               {c.shortcut && <span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>{c.shortcut}</span>}
             </div>
           ))}

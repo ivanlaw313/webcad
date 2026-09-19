@@ -39,8 +39,8 @@ test('SO09: openCombineDlg clarifies New Body dual-body path', () => {
   assert.match(viewport, /data-testid="combine-need-newbody"/)
 })
 
-test('CAM entry documented under 实验室/制造 CAM (intentionally not SOLID)', () => {
-  assert.match(ribbonTs, /name: '制造 CAM'/)
+test('CAM entry documented under 实验室/製造 CAM (intentionally not SOLID)', () => {
+  assert.match(ribbonTs, /name: '製造 CAM'|name: '制造 CAM'/)
   assert.match(ribbonTs, /id: 'finish3d'/)
   assert.match(ribbonTs, /label: '3D加工'/)
 })

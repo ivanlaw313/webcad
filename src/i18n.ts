@@ -45,7 +45,11 @@ export const EN_LABEL: Record<string, string> = {
   '参数': 'Parameters', '參數': 'Parameters', '工程计算': 'Calculators',
   // INSPECT
   '测量': 'Measure', '量边': 'Measure Edge', '量面': 'Measure Face', '量角': 'Measure Angle',
-  '干涉检查': 'Interference', '受力云图': 'Stress (FEA)', '受力雲圖': 'Stress (FEA)', '模流分析': 'Mold Flow', '壁厚检查': 'Wall Thickness',
+  '干涉检查': 'Interference', '受力云图': 'Stress (FEA)', '受力雲圖': 'Stress (FEA)',
+  'CREATE 扩充': 'CREATE Ext', 'CREATE 擴充': 'CREATE Ext',
+  '制造 CAM': 'Manufacture CAM', '製造 CAM': 'Manufacture CAM',
+  '装配辅助': 'Assembly Assist', '裝配輔助': 'Assembly Assist',
+  '直接编辑扩展': 'Direct Edit Ext', '直接編輯擴展': 'Direct Edit Ext', '模流分析': 'Mold Flow', '壁厚检查': 'Wall Thickness',
   '曲率梳分析': 'Curvature Comb Analysis', '斑马纹分析': 'Zebra Analysis',
   '曲率图分析': 'Curvature Map Analysis', '可达性分析': 'Accessibility Analysis',
   '最小半径分析': 'Minimum Radius Analysis', '质心': 'Center of Mass', '显示网格面组': 'Display Mesh Face Groups',
@@ -150,7 +154,7 @@ export const EN_LABEL: Record<string, string> = {
   '導入設計表': 'Import design table',
   '导入设计表': 'Import design table',
   // SELECT / VIEW
-  '选择': 'Select', '透视': 'Perspective', '排版': 'Arrange', '堆叠': 'Stack',
+  '选择': 'Select', '透视': 'Perspective', '排版': 'Arrange', '堆叠': 'Stack', '堆疊': 'Stack', '垂直堆叠': 'Vertical Stack', '垂直堆疊': 'Vertical Stack',
   // SKETCH tools
   '矩形': 'Rectangle', '中心矩形': 'Center Rectangle', '三点矩形': '3-Pt Rectangle', '圆': 'Circle',
   '三点圆': '3-Pt Circle', '两切点圆': '2-Tangent Circle', '三切点圆': '3-Tangent Circle',

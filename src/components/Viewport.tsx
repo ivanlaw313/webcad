@@ -4795,7 +4795,7 @@ export default function Viewport() {
               { key: 'chull', label: `◇ 凸包「${sc.name}」`, fn: () => void useApp.getState().convexHullComponent(sc.id) } as MMItem,
             ] : []),
             ...(components.filter((c) => !c.hidden).length > 1 ? ['sep' as const,
-              { key: 'stack', label: '⊟ 垂直堆叠', fn: () => useApp.getState().stackComponents() } as MMItem,
+              { key: 'stack', label: '⊟ 垂直堆疊', fn: () => useApp.getState().stackComponents() } as MMItem,
               { key: 'arrange', label: '⊞ 排版到床', fn: () => useApp.getState().arrangeForPrint() } as MMItem,
               { key: 'drop', label: '⬇ 全部落地', fn: () => useApp.getState().dropAllToFloor() } as MMItem,
             ] : []),

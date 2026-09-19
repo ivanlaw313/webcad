@@ -27,7 +27,7 @@ test('APP_VERSION is 1.73+', () => {
 })
 
 test('v1.73: SW CACHE bumped to webcad-v1.73; navigate network-first; release comment', () => {
-  assert.match(sw, /const CACHE = 'webcad-v1\.73'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.(7[3-9]|[8-9]\d)'/)
   assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.72'/)
   assert.doesNotMatch(sw, /const CACHE = 'webcad-v1'/)
   assert.match(sw, /RELEASE: CACHE 必须随每次发版改名|RELEASE: CACHE 必須隨每次發版改名/)

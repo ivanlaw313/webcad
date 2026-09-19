@@ -7,7 +7,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useApp, MATERIALS, SAMPLE_LABELS, type SampleKind } from '../store'
 import { ToolIcon } from '../icons'
 import { WORKSPACE_TABS, WORKSPACES, SKETCH_PANELS, FORM_PANELS, type Tool } from '../ribbon'
-import { tLabel, tGroup, tTab } from '../i18n'   // T800：i18n ribbon 标签翻译；GM-W6D：组标题 + tab 翻译
+import { tLabel, tGroup, tTab, msg, normalizeLang, type Lang } from '../i18n'   // T800 + v1.74 4-locale
 import { FASTENER_KIND_LABEL, FASTENER_SIZES, type FastenerKind, type FastenerSize } from '../cad/fasteners'
 import { TEXTURE_KEYS } from '../render/procTextures'
 import MaterialSwatchPicker from './MaterialSwatchPicker'   // 材质球视觉拣料
@@ -32,7 +32,7 @@ function FastenerPicker() {
         <label title={kind === 'dowel' ? '销长 mm' : '杆长 mm（头下）'} style={{ fontSize: 12 }}>{lang === 'en' ? 'Len' : '长'}<input type="number" step={2} min={3} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ width: 46 }} /></label>
       )}
       <button className="tb-btn tb-text" title="插入标准件到装配（ISO 尺寸真实体；简化＝光杆无螺牙，外形标准。可用「配合」对齐）" onClick={() => void insertFastener(kind, size, len)}>
-        <ToolIcon name="component" size={15} /> {lang === 'en' ? 'Insert Fastener' : '插入标准件'}
+        <ToolIcon name="component" size={15} /> {msg('ui.insertFastener', lang)}
       </button>
     </>
   )
@@ -155,7 +155,7 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
       type="button"
       className="tool-btn-caret"
       data-testid={`quick-tool-caret-${t.id}`}
-      aria-label={`${tLabel(t.label, lang)} ${lang === 'en' ? 'menu' : '下拉選單'}`}
+      aria-label={`${tLabel(t.label, lang)} ${msg('ui.menu', lang)}`}
       disabled={off}
       onClick={(e) => { e.stopPropagation(); if (!off) setQuickOpen((value) => !value) }}
       style={{ width: 13, padding: 0, border: 0, background: 'transparent', cursor: off ? 'not-allowed' : 'pointer', color: 'inherit' }}
@@ -247,14 +247,14 @@ function WorkspaceSelector() {
   const [open, setOpen] = useState(false)
   const lang = useApp((s) => s.lang)   // GM-W6D：EN 模式显示 Design
   return (
-    <div className="ws-big" onClick={() => setOpen((o) => !o)} title={lang === 'en' ? 'Workspace' : '工作区'}>
-      <span className="ws-big-label">{lang === 'en' ? 'Design' : '设计'}</span>
+    <div className="ws-big" onClick={() => setOpen((o) => !o)} title={msg('ui.workspace', lang)}>
+      <span className="ws-big-label">{msg('ui.design', lang)}</span>
       <span className="ws-big-caret">▾</span>
       {open && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 70 }} onClick={(e) => { e.stopPropagation(); setOpen(false) }} />
           <div className="panel-menu" style={{ position: 'absolute', top: '100%', left: 0, zIndex: 71, marginTop: 2 }}>
-            <div className="panel-menu-item" onClick={() => setOpen(false)}>✓ {lang === 'en' ? 'Design' : '设计'}</div>
+            <div className="panel-menu-item" onClick={() => setOpen(false)}>✓ {msg('ui.design', lang)}</div>
           </div>
         </>
       )}
@@ -363,7 +363,7 @@ export default function Ribbon() {
         <div className="tb-sep" />
         <div style={{ position: 'relative' }}>
           <button ref={fileButton} aria-haspopup="menu" aria-expanded={fileMenu} className="tb-btn tb-text" title="文件：新建 / 打开 / 保存 / 导入 / 导出 / 工程图" onClick={() => setFileMenu((o) => !o)}>
-            <ToolIcon name="menu" size={16} /> {lang === 'en' ? 'File' : '文件'} ▾
+            <ToolIcon name="menu" size={16} /> {msg('ui.file', lang)} ▾
           </button>
           {fileMenu && createPortal(
             <>
@@ -376,10 +376,10 @@ export default function Ribbon() {
                 const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : (index + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
                 items[next]?.focus()
               }} className="panel-menu file-menu" style={{ position: 'fixed', top: filePosition.top, left: filePosition.left, zIndex: 150, width: 'min(320px, calc(100vw - 16px))', maxHeight: `calc(100dvh - ${filePosition.top + 8}px)`, overflowY: 'auto' }} onClick={() => setFileMenu(false)}>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('新建空白文档？当前模型会清空（未保存的话先「保存」）。')) void reset() }}><ToolIcon name="newdoc" size={16} />{en ? 'New document' : '新建文件'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => openProject()}><ToolIcon name="insert" size={16} />{en ? 'Open…' : '開啟舊檔案…'}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => saveProject()}><ToolIcon name="save" size={16} />{en ? 'Save (download JSON)' : '儲存檔案（下載 JSON）'}<span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>Ctrl+S</span></button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="分享链接（T797）：整个项目压缩入一条 URL（gzip+base64,零服务器零隐私）→ 复制到剪贴板。发畀人/收藏即可重开。大模型超 1.9MB 改用「保存」传档" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{en ? '🔗 Share Link (copy URL)' : '🔗 分享链接（复制 URL）'}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('新建空白文档？当前模型会清空（未保存的话先「保存」）。')) void reset() }}><ToolIcon name="newdoc" size={16} />{msg('file.new', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => openProject()}><ToolIcon name="insert" size={16} />{msg('file.open', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => saveProject()}><ToolIcon name="save" size={16} />{msg('file.save', lang)}<span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>Ctrl+S</span></button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="分享链接（T797）：整个项目压缩入一条 URL（gzip+base64,零服务器零隐私）→ 复制到剪贴板。发畀人/收藏即可重开。大模型超 1.9MB 改用「保存」传档" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{msg('file.share', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => useApp.getState().setHistoryOpen(true)}><ToolIcon name="undo" size={16} />{en ? 'Version History…' : '版本历史…'}</button>
                 <div className="panel-menu-divider" />
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStl}><ToolIcon name="insert" size={16} />{en ? 'Import STL…' : '导入 STL…'}</button>
@@ -497,14 +497,34 @@ export default function Ribbon() {
                 {tTab(tab, lang)}
               </div>
             ))}
-            {inSketch && <div className="ribbon-tab ctx active">{useApp.getState().lang === 'en' ? 'Sketch' : '草圖'}</div>}
-            {inForm && <div className="ribbon-tab ctx active" data-testid="form-workspace-tab">{lang === 'en' ? 'FORM' : '造型'}</div>}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: 6 }} title="界面语言 / UI language（T800：ribbon + 导航；状态消息 v1 仍中文）">
+            {inSketch && <div className="ribbon-tab ctx active">{msg('tab.SKETCH', lang)}</div>}
+            {inForm && <div className="ribbon-tab ctx active" data-testid="form-workspace-tab">{msg('tab.FORM', lang)}</div>}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: 6 }} title={msg('ui.lang', lang)}>
               {<button className="ribbon-tab" title={ribbonCollapsed ? '展开工具行' : '收起工具行（净留标签，腾画面）'} onClick={() => setRibbonCollapsed((c) => !c)} style={{ fontSize: 12, opacity: 0.7 }}>{ribbonCollapsed ? '▾' : '▴'}</button>}
-              <button className="ribbon-tab" aria-pressed={!compactTools} title={lang === 'en' ? 'Show or hide tool names' : '显示／隐藏工具名称'} onClick={() => setCompactTools(v => !v)}>{compactTools ? 'Aa' : '▦'}</button>
-              {inSketch && <button className="ribbon-tab context-finish" disabled={!!commandActive || sketchDragging} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{lang === 'en' ? '✓ Finish Sketch' : '✓ 完成草圖'}</button>}
-              <button className="ribbon-tab" style={{ fontWeight: lang === 'zh' ? 700 : 400, opacity: lang === 'zh' ? 1 : 0.5 }} onClick={() => useApp.getState().setLang('zh')}>中</button>
-              <button className="ribbon-tab" style={{ fontWeight: lang === 'en' ? 700 : 400, opacity: lang === 'en' ? 1 : 0.5 }} onClick={() => useApp.getState().setLang('en')}>EN</button>
+              <button className="ribbon-tab" aria-pressed={!compactTools} title={msg('ui.showToolNames', lang)} onClick={() => setCompactTools(v => !v)}>{compactTools ? 'Aa' : '▦'}</button>
+              {inSketch && <button className="ribbon-tab context-finish" disabled={!!commandActive || sketchDragging} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{'✓ ' + msg('ui.finishSketch', lang)}</button>}
+              <span role="group" aria-label={msg('ui.lang', lang)} data-testid="lang-switcher" style={{ display: 'inline-flex', gap: 2 }}>
+                {([
+                  ['zh-HK', 'ui.lang.zhHK', '繁'],
+                  ['zh-CN', 'ui.lang.zhCN', '簡'],
+                  ['en', 'ui.lang.en', 'EN'],
+                  ['ja', 'ui.lang.ja', '日本語'],
+                ] as const).map(([code, tipKey, short]) => {
+                  const active = normalizeLang(lang) === code
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      className="ribbon-tab"
+                      data-testid={`lang-${code}`}
+                      aria-pressed={active}
+                      title={msg(tipKey, lang)}
+                      style={{ fontWeight: active ? 700 : 400, opacity: active ? 1 : 0.5, minWidth: 22, padding: '0 4px' }}
+                      onClick={() => useApp.getState().setLang(code as Lang)}
+                    >{short}</button>
+                  )
+                })}
+              </span>
             </div>
           </div>
 
@@ -530,13 +550,13 @@ export default function Ribbon() {
               {inSketch && (
                 <button data-cmd="finishsketch" data-testid="finish-sketch-pin" disabled={!!commandActive || sketchDragging} className="finish-sketch finish-pinned" title={lang === 'en' ? 'Finish the sketch and return to the modeling environment (Fusion: FINISH SKETCH)' : '完成草圖，返回實體環境（Fusion: FINISH SKETCH）'} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{/* GM-W6 E：教学指针锚点 */}
                   <span className="finish-check">✓</span>
-                  <span>{lang === 'en' ? 'Finish Sketch' : '完成草圖'}</span>
+                  <span>{msg('ui.finishSketch', lang)}</span>
                 </button>
               )}
               {inForm && (
                 <button data-cmd="finishform" data-testid="finish-form-pin" className="finish-sketch finish-pinned" title={lang === 'en' ? 'Finish Form and return to SOLID' : '完成造型，返回實體環境'} onClick={() => void finishForm()}>
                   <span className="finish-check">✓</span>
-                  <span>{lang === 'en' ? 'Finish Form' : '完成造型'}</span>
+                  <span>{msg('ui.finishForm', lang)}</span>
                 </button>
               )}
             </div>

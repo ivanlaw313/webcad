@@ -100,7 +100,7 @@ import { computeMassProps } from '../cad/massProps'      // S117：主惯性矩 
 import { orientedBBox } from '../cad/obb'                // S121：定向最小包围盒（料块/排版/省料）
 import { HDRI_PRESETS, type HdriPresetId } from '../render/hdriPresets'
 import { GradientEquirectTexture } from 'three-gpu-pathtracer'   // 工作模式背景预设：程序化渐变 equirect（同 HdriEnvironment GradientFallback 一致）
-import { tStatus } from '../i18n'
+import { tStatus, type LangInput } from '../i18n'
 import { feaStaleBannerText, invalidateSimResultsPatch, hasLiveSimResults } from '../simulation/resultValidity'
 import { parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：单位感知长度输入（分数英寸）
 import type { MeshData } from '../worker/cad.worker'
@@ -201,7 +201,7 @@ const SM_RULES: Record<string, { t: number; r: number; k: number }> = {
 
 // P2 audit / GM-3DV1 S11：螺纹规格下拉（othread/ithread 共用）— 按【标准库】拣规格自动填 公称Ø+螺距；手改数字即「自定义」。
 // std = THREAD_STDS key（iso / unc …）。UNC/UNF 用英制尺寸（mm）、螺距=25.4/tpi；几何仍 60° ISO 牙形（近似）。
-function ThreadSpecSelect({ d, pitch, std, onPick, lang }: { d: number; pitch: number; std: string; onPick: (d: number, p: number) => void; lang: 'zh' | 'en' }) {
+function ThreadSpecSelect({ d, pitch, std, onPick, lang }: { d: number; pitch: number; std: string; onPick: (d: number, p: number) => void; lang: LangInput }) {
   const T = THREAD_STDS[std] ?? THREAD_STDS.iso
   const fmt = (n: number) => T.inch ? (inchLabel[n] ?? `${n}mm`) : `M${n}`
   const hit = T.noms.find((n) => n === d && (T.coarse[n] === pitch || T.fine[n] === pitch))

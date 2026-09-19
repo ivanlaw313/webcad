@@ -26,13 +26,13 @@ export const EN_LABEL: Record<string, string> = {
   '加厚/按拉': 'Press Pull', '按拉': 'Press Pull', '删面': 'Delete Face', '圆角': 'Fillet', '倒圆角': 'Fillet',
   '倒角': 'Chamfer', '抽壳': 'Shell', '抽壳(成薄壁)': 'Shell', '拔模': 'Draft', '缩放': 'Scale',
   '整体缩放': 'Scale', '分割': 'Split', '分割实体': 'Split Body', '草图分割': 'Split by Sketch',
-  '合并/切割': 'Combine', '实体布尔': 'Boolean', '移动/复制': 'Move / Copy', '对齐': 'Align',
+  '合并/切割': 'Combine', '实体布尔': 'Boolean', '實體布爾': 'Boolean', '移动/复制': 'Move / Copy', '对齐': 'Align',
   '镜像': 'Mirror', '阵列': 'Pattern', '矩形阵列': 'Rect Pattern', '环形阵列': 'Circular Pattern',
   '路径阵列': 'Path Pattern', '孔': 'Hole', '孔/Boss': 'Hole / Boss', '面加螺纹': 'Thread', '内螺纹孔': 'Tapped Hole',
   '曲面贴花': 'Emboss', '钣金件': 'Sheet Metal', '折弯圆角': 'Bend Fillet', '导出展开DXF': 'Export Flat DXF',
   '腹板': 'Web', '加厚': 'Thicken',
   // CONSTRUCT
-  '构造': 'Construct', '偏移平面': 'Offset Plane', '构造点': 'Construction Point', '构造轴': 'Construction Axis',
+  '构造': 'Construct', '构造几何': 'Construction Geometry', '構造幾何': 'Construction Geometry', '统一构造几何': 'Unified Construction Geometry', '統一構造幾何': 'Unified Construction Geometry', '偏移平面': 'Offset Plane', '构造点': 'Construction Point', '构造轴': 'Construction Axis',
   '用户坐标系': 'User Coordinate System', '成角平面': 'Plane at Angle', '相切平面': 'Tangent Plane',
   '中间平面': 'Midplane', '垂直平面': 'Perpendicular Plane', '过两边平面': 'Plane Through Two Edges',
   '过三点平面': 'Plane Through Three Points', '沿路径平面': 'Plane Along Path',
@@ -42,7 +42,7 @@ export const EN_LABEL: Record<string, string> = {
   '圆／球／环面中心点': 'Point At Center Of Circle/Sphere/Torus', '边与平面交点': 'Point At Edge And Plane', '沿路径点': 'Point Along Path',
   '剖切分析': 'Section Analysis',
   // CONFIGURE / PARAM
-  '参数': 'Parameters', '工程计算': 'Calculators',
+  '参数': 'Parameters', '參數': 'Parameters', '工程计算': 'Calculators',
   // INSPECT
   '测量': 'Measure', '量边': 'Measure Edge', '量面': 'Measure Face', '量角': 'Measure Angle',
   '干涉检查': 'Interference', '受力云图': 'Stress (FEA)', '模流分析': 'Mold Flow', '壁厚检查': 'Wall Thickness',
@@ -80,7 +80,7 @@ export const EN_LABEL: Record<string, string> = {
   '水平': 'Horizontal', '竖直': 'Vertical', '重合': 'Coincident', '平行': 'Parallel', '垂直': 'Perpendicular',
   '相切': 'Tangent', '相等': 'Equal', '同心': 'Concentric', '共线': 'Collinear', '对称': 'Symmetric',
   '中点': 'Midpoint', '固定': 'Fix', '角度': 'Angle', '撤约束': 'Remove Constraint',
-  '新实体': 'New Body', '闭合': 'Close', '外观': 'Appearance',
+  '新实体': 'New Body', '新實體': 'New Body', '闭合': 'Close', '外观': 'Appearance',
   // FILE / EXPORT
   '导出STL': 'Export STL', '导出STEP': 'Export STEP', '导出3MF': 'Export 3MF', '导出OBJ': 'Export OBJ',
   '导出DXF': 'Export DXF', '导出glTF': 'Export glTF', '导出glTF/GLB': 'Export glTF/GLB', '导出STL(ASCII)': 'Export STL (ASCII)',
@@ -90,7 +90,7 @@ export const EN_LABEL: Record<string, string> = {
   '构造线': 'Construction Line', '打断': 'Break', '倒斜角': 'Chamfer', '投影几何': 'Project',
   '扫掠导轨': 'Sweep Guide', '截面属性': 'Section Properties',
   // MODIFY / CONSTRUCT / ASSEMBLE extras
-  '全棱圆角': 'Fillet All Edges', '全棱倒角': 'Chamfer All Edges', '整体偏移': 'Offset Body',
+  '全棱圆角': 'Fillet All Edges', '全棱倒角': 'Chamfer All Edges', '整体偏移': 'Offset Body', '整體偏移': 'Offset Body',
   '平面切': 'Split by Plane', '删除': 'Delete', '关节(拣面)': 'Joint (Pick Faces)',
   '偏移面': 'Offset Plane', '两面中面': 'Midplane', '三点平面': 'Plane Through 3 Points',
   '相切面': 'Tangent Plane', '过点平行面': 'Offset to Point', '路径平面': 'Plane Along Path',
@@ -761,7 +761,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   'ISO 262 规格表：拣 M 规格自动填公称Ø+螺距（粗牙默认；「细」=细牙）；手改数字即变自定义': 'ISO 262 table: pick an M size to auto-fill Ø + pitch (coarse default; fine marked); editing numbers switches to custom',
   '规格': 'Spec', '自定义': 'Custom', '细牙': 'fine', '建模螺纹': 'Modeled thread', '重建警告': 'Build warnings',
   // P2 五选项 New Body
-  '⬡ 新实体': '⬡ New Body', '⬡新实体': '⬡ New Body',
+  '⬡ 新实体': '⬡ New Body', '⬡新实体': '⬡ New Body', '⬡ 新實體': '⬡ New Body', '⬡新實體': '⬡ New Body',
   '新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）': 'New Body: keep this solid separate (parked, greyed in the browser tree; combine later with Boolean)',
   '没有实体时直接建做活动实体': 'With no body yet this simply becomes the active body',
   // ---- P4 i18n batch: 1275 status strings translated (workflow wrvtnybrg); tStatus render-layer, whole-string keys ----
@@ -1544,7 +1544,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   '真实 OCCT B-rep': '真实 OCCT B-rep',
   '已开新实体 —「实体': '已开新实体 —「实体',
   '」已泊车': '」已泊车',
-  '实体布尔': '实体布尔',
+  '实体布尔': '实体布尔', '實體布爾': '實體布爾',
   '已实体布尔：活动实体': '已实体布尔：活动实体',
   '已合并：活动实体': '已合并：活动实体',
   '个工具体': '个工具体',
@@ -1624,7 +1624,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   '合并/切除/相交': '合并/切除/相交',
   '独立实体薄板 — 要合并入主体用「实体布尔」': '独立实体薄板 — 要合并入主体用「实体布尔」',
   '成实体': '成实体',
-  '新实体': '新实体',
+  '新实体': '新实体', '新實體': '新實體',
   '保留工具体': '保留工具体',
   '完成后': '完成后',
   '侧面，中性面': '侧面，中性面',
@@ -1635,6 +1635,19 @@ const STATUS_PHRASES_X: Record<string, string> = {
 }
 
 // 长→短排序（长词先替）。模块载入时算一次。合并基表 + 补充表（spread 去重，补充表覆盖）。
+
+// v1.64 construct/body Traditional identity guards (ribbon/dialog chrome)
+Object.assign(STATUS_PHRASES_X, {
+  '參數': '參數',
+  '新實體': '新實體',
+  '實體布爾': '實體布爾',
+  '整體偏移': '整體偏移',
+  '構造幾何': '構造幾何',
+  '統一構造幾何': '統一構造幾何',
+  '⬡ 新實體': '⬡ 新實體',
+  '⬡新實體': '⬡新實體',
+})
+
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)
 
 // 渲染时翻译状态串：zh 原样；en 左到右最长匹配替换（未收录片段保留中文，唔会崩）。

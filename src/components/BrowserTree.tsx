@@ -17,7 +17,7 @@ const SK_LOCK_STYLE = { opacity: 0.35, cursor: 'not-allowed' } as const
 // 用 Record<string> 而非 Record<Feature['type']>：令 cast 加入嘅类型（extgroup/featpattern 等用 `as Feature` 绕过 union）
 // 都摆得入嚟显示靚 label；配合下面 lookup 嘅兜底，任何未知/新版特征类型都唔会 crash 成个浏览树。
 const FEAT: Record<string, { icon: string; label: string }> = {
-  offsetsolid: { icon: 'scale', label: '整体偏移' },
+  offsetsolid: { icon: 'scale', label: '整體偏移' },
   extrude: { icon: 'extrude', label: '拉伸' },
   revolve: { icon: 'revolve', label: '旋轉' },
   fillet: { icon: 'fillet', label: '圓角' },
@@ -68,8 +68,8 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   moveface: { icon: 'replaceface', label: '移动面' },  // GM-B2
   rib: { icon: 'default', label: '加強筋' },
   text: { icon: 'default', label: '文字' },
-  newbody: { icon: 'box', label: '新实体' },
-  bodyboolean: { icon: 'combine', label: '实体布尔' },
+  newbody: { icon: 'box', label: '新實體' },
+  bodyboolean: { icon: 'combine', label: '實體布爾' },
   split: { icon: 'default', label: '分割' },  // S128：参数化分割（保历史）
   stepbody: { icon: 'insert', label: 'STEP实体' },
   sketch: { icon: 'sketch', label: '草图' },  // T756：独立草图

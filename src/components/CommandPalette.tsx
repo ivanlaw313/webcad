@@ -76,7 +76,7 @@ const SYN: Record<string, string> = {
   joint: '關節 关节 連接 裝配 轉動 滑動 鉸鏈 joint',
   combine: '布尔 合并 切割 并集 差集 交集 boolean union',
   compboolean: '組件布爾 组件布尔 零件布爾 component boolean 網格布爾 布爾零件 🧩布爾 🧩布尔',
-  bodyboolean: '实体布尔 多体布尔 body boolean',
+  bodyboolean: '實體布爾 实体布尔 多体布尔 body boolean',
   draft: '拔模 脱模 斜度',
   move: '移动 平移 搬 复制 transform',
   scale: '缩放 放大 缩小 比例',
@@ -114,7 +114,7 @@ const SYN: Record<string, string> = {
   exportglb: '导出 gltf glb 模型分享',
   drawing: '工程图 工程圖 图纸 三视图 三視圖 出图 drawing',
   asmdrawing: '装配工程图 裝配工程圖 assembly drawing bom 氣泡',
-  params: '参数 变量 ƒx fx parameter',
+  params: '參數 参数 变量 ƒx fx parameter',
 }
 
 // Flattened, de-duplicated command list built once from every workspace ribbon.

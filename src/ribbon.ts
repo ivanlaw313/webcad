@@ -106,7 +106,7 @@ const SOLID: Panel[] = [
   {
     name: 'CONFIGURE',
     tools: [
-      { id: 'params', label: '参数', icon: 'param', quick: true, tip: '用户参数（ƒx 命名变量/表达式，绑定到尺寸，改一处全联动）。' },
+      { id: 'params', label: '參數', icon: 'param', quick: true, tip: '用户参数（ƒx 命名变量/表达式，绑定到尺寸，改一处全联动）。' },
     ],
   },
   {
@@ -114,7 +114,7 @@ const SOLID: Panel[] = [
     // Fusion live-capture 次序；每项预设同一个 Construction Geometry 对话框嘅 Type + Method。
     tools: [
       { id: 'ucs', label: '用户坐标系', icon: 'axis', quick: true, tip: 'Fusion User Coordinate System：点实体平面建立一套局部原点、三轴及三正交参考面。' },
-      { id: 'datumgeom', label: '构造几何', icon: 'plane', tip: '在一个面板中建立参考平面、构造轴或构造点；适用于圆柱、圆锥等没有可用平面侧面的实体。' },
+      { id: 'datumgeom', label: '構造幾何', icon: 'plane', tip: '在一个面板中建立参考平面、构造轴或构造点；适用于圆柱、圆锥等没有可用平面侧面的实体。' },
       { id: 'offsetplane', label: '偏移平面', icon: 'plane', quick: true, sep: true, tip: 'Fusion Offset Plane：先选原点 XY/XZ/YZ 基准面（或中间面），输入距离建立平行参考面；如需由实体平面开始，可在方法选择「偏移面（拾面+距离）」。' },
       { id: 'planeangedge', label: '成角平面', icon: 'plane', tip: 'Fusion Plane at Angle：拾取直边／轴并输入角度，建立包含该边的倾斜平面。' },
       { id: 'planetan', label: '相切平面', icon: 'plane', tip: 'Fusion Tangent Plane：拾取圆柱面及参考方向，在指定位置建立相切平面。' },
@@ -207,7 +207,7 @@ const LAB: Panel[] = [
       { id: 'text', label: '文字', icon: 'text', tip: 'WebCAD 扩充：快速建立文字几何。' },
       { id: 'othread', label: '面加螺纹', icon: 'thread', tip: 'WebCAD 扩充：在圆柱面建立真实外螺纹。' },
       { id: 'ithread', label: '内螺纹孔', icon: 'hole', tip: 'WebCAD 扩充：建立真实内螺纹孔。' },
-      { id: 'newbody', label: '新实体', icon: 'newbody', tip: 'WebCAD 扩充：泊车当前实体后开始另一实体。' },
+      { id: 'newbody', label: '新實體', icon: 'newbody', tip: 'WebCAD 扩充：泊车当前实体后开始另一实体。' },
     ],
   },
   {
@@ -298,11 +298,11 @@ const LAB: Panel[] = [
       { id: 'filletall', label: '全棱圆角', icon: 'fillet', tip: 'WebCAD 扩展：对实体全部边一次应用相同圆角。' },
       { id: 'chamferall', label: '全棱倒角', icon: 'chamfer', tip: 'WebCAD 扩展：对实体全部边一次应用相同倒角。' },
       { id: 'delface', label: '删面治愈', icon: 'presspull', tip: 'WebCAD 扩展：删除所选面并尝试延伸邻面治愈实体。' },
-      { id: 'offsetsolid', label: '整体偏移', icon: 'scale', tip: 'WebCAD 扩展：均匀外扩或内缩实体全部面。' },
+      { id: 'offsetsolid', label: '整體偏移', icon: 'scale', tip: 'WebCAD 扩展：均匀外扩或内缩实体全部面。' },
       { id: 'cylpatch', label: '圆柱曲面贴花', icon: 'cylpatch', tip: 'WebCAD 扩展：在圆柱面建立凸台、凹槽或平面。' },
       { id: 'splitplane', label: '任意平面切', icon: 'split', tip: 'WebCAD 扩展：拾取任意平面参数化分割实体。' },
       { id: 'splitsketch', label: '草图轮廓分割', icon: 'split', tip: 'WebCAD 扩展：用封闭草图轮廓贯穿分割实体。' },
-      { id: 'bodyboolean', label: '实体布尔', icon: 'combine', tip: 'WebCAD 扩展：活动实体与泊车实体进行并集、切除或相交。' },
+      { id: 'bodyboolean', label: '實體布爾', icon: 'combine', tip: 'WebCAD 扩展：活动实体与泊车实体进行并集、切除或相交。' },
       { id: 'compboolean', label: '組件布爾', icon: 'combine', tip: 'WebCAD 擴展：兩組件網格級布爾（manifold）。先選目標組件再點工具件；零件內多體用上方「實體布爾」/ SOLID「合併/切割」。' },
     ],
   },
@@ -323,7 +323,7 @@ const LAB: Panel[] = [
   {
     name: '构造扩展',
     tools: [
-      { id: 'datumgeom', label: '统一构造几何', icon: 'plane', quick: true, tip: 'WebCAD 扩展入口：在同一个面板切换平面／轴／点及全部方法。' },
+      { id: 'datumgeom', label: '統一構造幾何', icon: 'plane', quick: true, tip: 'WebCAD 扩展入口：在同一个面板切换平面／轴／点及全部方法。' },
       { id: 'planeparpt', label: '过点平行面', icon: 'plane', tip: '以最后一个构造点及所拾平面建立平行参考面。' },
       { id: 'caxis', label: '方向构造轴', icon: 'axis', tip: '以 X／Y／Z 方向及指定坐标建立构造轴。' },
       { id: 'cpoint', label: '坐标构造点', icon: 'cpoint', tip: '输入 X／Y／Z 坐标建立构造点。' },
@@ -451,7 +451,7 @@ const PLASTIC: Panel[] = [
   { name: 'SELECT', tools: [{ id: 'select', label: '選擇', icon: 'select', quick: true, tip: '選擇工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' }] },
 ]
 const MANAGE: Panel[] = [
-  { name: 'PARAMETERS', tools: [{ id: 'params', label: '参数', icon: 'param', quick: true }] },
+  { name: 'PARAMETERS', tools: [{ id: 'params', label: '參數', icon: 'param', quick: true }] },
   { name: 'DRAWING', tools: [
     { id: 'drawing', label: '工程圖', icon: 'drawing', quick: true },
     { id: 'asmdrawing', label: '裝配工程圖', icon: 'drawing', quick: true, tip: '裝配三視圖 + 氣泡編號 + BOM 表（組件網格投影：輪廓+特徵邊）。需先有可見組件。' },

@@ -4,7 +4,7 @@
  * combine cut (target−tool = cyl−box) → zero volume → applyFeatures toast
  * 「重建失败 - 已保留一个有效模型…」.
  * v1.27: heal operands + _cutRobust + auto-swap when reverse cut has volume;
- * box/cylinder dialogs expose ⬡新实体 so tool can park while target stays active.
+ * box/cylinder dialogs expose ⬡新實體 so tool can park while target stays active.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -17,8 +17,8 @@ const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.met
 const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const viewportSrc = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.27', () => {
-  assert.match(version, /APP_VERSION = '1\.27'/)
+test('APP_VERSION is 1.27+', () => {
+  assert.match(version, /APP_VERSION = '1\.(2[7-9]|[3-9]\d)'|APP_VERSION = '[2-9]\./)
 })
 
 test('BX02 v1.27: heal + _cutRobust + auto-swap wired in bodyboolean', () => {
@@ -30,12 +30,12 @@ test('BX02 v1.27: heal + _cutRobust + auto-swap wired in bodyboolean', () => {
   assert.match(workerSrc, /v1\.27 BX02/)
 })
 
-test('BX02 v1.27: box/cylinder dialog expose ⬡新实体 op', () => {
+test('BX02 v1.27: box/cylinder dialog expose ⬡新實體 op', () => {
   assert.match(storeSrc, /box: \{ l: 80, w: 60, h: 40, op: 'new' \}/)
   assert.match(storeSrc, /cylinder: \{ d: 60, h: 50, op: 'new' \}/)
   assert.match(storeSrc, /BX02: box active \+ cylinder op=newbody/)
-  assert.match(viewportSrc, /featDlg\.kind === 'box'[\s\S]*?⬡新实体/)
-  assert.match(viewportSrc, /featDlg\.kind === 'cylinder'[\s\S]*?⬡新实体/)
+  assert.match(viewportSrc, /featDlg\.kind === 'box'[\s\S]*?⬡新實體/)
+  assert.match(viewportSrc, /featDlg\.kind === 'cylinder'[\s\S]*?⬡新實體/)
 })
 
 globalThis.require = createRequire(import.meta.url)

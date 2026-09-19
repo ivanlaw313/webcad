@@ -726,12 +726,12 @@ function sketchDimText(tool: string, start: Pt | null, poly: Pt[], pt: Pt, ellip
 // GM-FP1 #11/#12：每个已打字（非空）字段旁挂 🔒 = 已锁定/驱动（视觉 token，非 Fusion 原图）；激活字段用 [方括号] 高亮；两值字段同屏齐显。
 function typedReadout(tool: string, buf: string[], field: number): string {
   const f = (i: number) => (i === field ? `[${buf[i] || '_'}]` : (buf[i] || '_')) + (buf[i] ? '🔒' : '')
-  if (tool === 'rectangle' || tool === 'crect' || tool === 'rrect') return `▭ 宽 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 换宽/高·Enter 确定)`
-  if (tool === 'ellipse') return `⬯ 宽 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 换宽/高·Enter 确定)`
-  if (tool === 'circle' || tool === 'circle2p') return `◯ Ø ${f(0)} mm　(打字输入直径·Enter 确定)`
-  if (tool === 'polygon') return `◯ R ${f(0)} mm　(打字输入·Enter 确定)`
-  if (tool === 'polyline') return `↘ 长 ${f(0)} mm · 角 ${f(1)}°　(Tab 换 长/角·两值全锁 Enter=收笔·角相对上段)`   // GM-FP1 #10：折线打字新增角度格
-  return `↘ ${f(0)} mm　(仅定段长，方向跟光标·Enter 确定)`   // 样条/B样条：单值段长，方向永远跟随光标（无角度格）
+  if (tool === 'rectangle' || tool === 'crect' || tool === 'rrect') return `▭ 宽 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 換寬/高·Enter 確定)`
+  if (tool === 'ellipse') return `⬯ 宽 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 換寬/高·Enter 確定)`
+  if (tool === 'circle' || tool === 'circle2p') return `◯ Ø ${f(0)} mm　(打字輸入直徑·Enter 確定)`
+  if (tool === 'polygon') return `◯ R ${f(0)} mm　(打字輸入·Enter 確定)`
+  if (tool === 'polyline') return `↘ 长 ${f(0)} mm · 角 ${f(1)}°　(Tab 換 長/角·兩值全鎖 Enter=收筆·角相對上段)`   // GM-FP1 #10：折线打字新增角度格
+  return `↘ ${f(0)} mm　(僅定段長，方向跟光標·Enter 確定)`   // 样条/B样条：单值段长，方向永远跟随光标（无角度格）
 }
 // GM-W8 A3：多阶段工具（rect3/arcc/arcslot/earc/conic）逐阶段打字尺寸嘅提示标签。
 // 返回 null = 该工具/阶段非打字尺寸（走 typedReadout 默认）；返回 SK_TYPED_UNSUP = 此阶段唔支持打字尺寸（诚实提示，keys 仍被吃）。
@@ -4173,10 +4173,10 @@ function sizingCornerDim(shapes: SketchShape[], sz: Sizing, value: number, fits:
     const nC = cp.verts.length, A = cp.verts[(sz.vi - 1 + nC) % nC], B = cp.verts[sz.vi], C = cp.verts[(sz.vi + 1) % nC]
     const shown = Math.min(value, Math.hypot(A[0] - B[0], A[1] - B[1]) * 0.45, Math.hypot(C[0] - B[0], C[1] - B[1]) * 0.45)
     if (shown < value - 1e-6) return `倒角 C${shown.toFixed(1)}（邻边太短，最多 C${shown.toFixed(1)}）`
-    return `倒角 C${value} mm（拖 / 打数字 / 点确定）`
+    return `倒角 C${value} mm（拖 / 打數字 / 點確定）`
   }
   if (!cham && !fits) return `圆角 R${value} mm（太大放唔落 — 收细）`
-  return `${cham ? '倒角 C' : '圆角 R'}${value} mm（拖 / 打数字 / 点确定）`
+  return `${cham ? '倒角 C' : '圓角 R'}${value} mm（拖 / 打數字 / 點確定）`
 }
 function shapeToTrimPath(sh: SketchShape): TrimPath | null {
   if (sh.type === 'rect') {
@@ -4505,16 +4505,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     try{
       const result=cache&&cache.creating===creating&&JSON.stringify(cache.config)===JSON.stringify(captured)&&initial.every((v,i)=>v===cache.revision[i])?cache.result:await prepareSketchPattern(before,captured,creating)
       if(!current())return
-      if(!result.ok){set({status:`阵列未修改：${result.reason}；原草图及历史保留`});return}
+      if(!result.ok){set({status:`陣列未修改：${result.reason}；原草圖及歷史保留`});return}
       const ids=new Set(result.document.cons.map(c=>c.id)),offsets=Object.fromEntries(Object.entries(before.skDimLabelOff).filter(([id])=>ids.has(id)))
       set({sketchUndo:[...before.sketchUndo,skSnap(before)].slice(-80),sketchRedo:[],
         sketchProfiles:result.document.shapes,sketchShape:null,skCons:result.document.cons,
         skPatternData:{entityIds:[...result.document.entityIds],patterns:structuredClone(result.document.patterns)},skDimLabelOff:offsets,
         skSel:[],skSelCon:null,skPendingPt:null,skPendingPair:null,skPendingEdge:null,skArmedCon:null,skHover:null,sketchTool:'select',
         skDof:result.dof,skConflict:false,skConflictIds:[],skFreeShapes:new Set(),
-        status:creating?'已建立关联阵列；来源驱动尺寸会同步实例':'已更新关联阵列；实例身份及可存活约束保留'})
+        status:creating?'已建立關聯陣列；來源驅動尺寸會同步實例':'已更新關聯陣列；實例身份及可存活約束保留'})
       cancelSketchPatternPreview()
-    }catch{if(current())set({status:'关联阵列计算失败，原草图及历史未更改'})}
+    }catch{if(current())set({status:'關聯陣列計算失敗，原草圖及歷史未更改'})}
   }
   const measurePatternDimension=(shapes:SketchShape[],con:Extract<SkCon,{kind:'dim'}>)=>{
     if(con.type!=='angle')return skMeasureDim(shapes,con)
@@ -5083,15 +5083,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   const commitMirror = async (s: AppState, shapes: SketchShape[], cons: SkCon[], picked: number[], axis: SkRef, prefix: string) => {
     const snapshot = mirrorSnapshot(s), request = ++mirrorRequest
     const candidate = buildMirrorRelations(shapes, cons, picked, axis, prefix)
-    if (!candidate.ok) { set({status: `镜像未更改草图：${candidate.reason}`}); return }
+    if (!candidate.ok) { set({status: `鏡像未更改草圖：${candidate.reason}`}); return }
     mirrorPending = true
     let result: Awaited<ReturnType<typeof solveMirrorCandidate>>
     try { result = await solveMirrorCandidate(shapes, {...candidate,cons:withParamVals(candidate.cons,s.params)}) }
     catch { result = {ok:false,reason:'镜像求解失败'} }
     if (request === mirrorRequest) mirrorPending = false
     if (request !== mirrorRequest || mirrorSnapshot(get()) !== snapshot) return
-    if (!result.ok) { set({status:`镜像未更改草图：${result.reason}`}); return }
-    set({sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],sketchProfiles:result.shapes,sketchShape:null,skCons:result.cons,skDof:result.dof,skConflict:false,skConflictIds:[],skFreeShapes:new Set(),skSel:[],mirrorPick:null,sketchTool:'select',status:`已镜像 ${candidate.copyIndices.length} 个轮廓并建立对称约束；修改原图或轴后同步更新`})
+    if (!result.ok) { set({status:`鏡像未更改草圖：${result.reason}`}); return }
+    set({sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],sketchProfiles:result.shapes,sketchShape:null,skCons:result.cons,skDof:result.dof,skConflict:false,skConflictIds:[],skFreeShapes:new Set(),skSel:[],mirrorPick:null,sketchTool:'select',status:`已鏡像 ${candidate.copyIndices.length} 個輪廓並建立對稱約束；修改原圖或軸後同步更新`})
   }
   let copyRequest = 0
   const copyRevision = (s: AppState) => [s.mode,s.sketchProfiles,s.sketchShape,s.skCons,s.params,s.skMove,s.skEditTarget,s.sketchUndo,s.sketchRedo,s.skSel,s.skRefGeo,s.sketchPlane,s.sketchArb,s.sketchBaseZ,s.sketchTool,s.skDimLabelOff,s.sketchSources,s.skPatternData,s.features,s.paramBindings]
@@ -5359,7 +5359,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if(s.projectRelink){get().cancelProjectRelink();return true}
     if(s.skPatternSession){get().cancelSketchPattern();return true}
     if (s.mode !== 'sketch') return false   // T792：pickplane 等非草图阶段 ESC 直接交畀 tryExitSketch
-    if (mirrorPending) { ++mirrorRequest; mirrorPending=false; set({mirrorPick:null,sketchTool:'select',status:'已取消镜像；草图保留'}); return true }
+    if (mirrorPending) { ++mirrorRequest; mirrorPending=false; set({mirrorPick:null,sketchTool:'select',status:'已取消鏡像；草圖保留'}); return true }
     if(s.skScale){get().stepBackSkScale();return true}
     if (s.skDrag) { get().skDragCancel(); return true }
     const drawing = !!s.sketchStart || (s.polyPts && s.polyPts.length > 0)
@@ -5386,15 +5386,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     // T796/T791：进行中嘅拖柄调尺寸 / 合并 / 镜像拾取 → 先取消（唔好一 ESC 就退出成个草图）
     if (s.sizing) { set({ sizing: null, toolPreview: null, status: '已取消调尺寸（完成请按「完成草图」）' }); return true }
     if (s.skMove) { _skMoveDrag = null; set({ skMove: null, sketchTool: 'select', status: '已取消移动（完成请按「完成草图」）' }); return true }   // GM-FP3 #39
-    if (s.skMarquee) { set({ skMarquee: null, status: '已取消框选（完成请按「完成草图」）' }); return true }   // GM-FP3 #44
-    if (s.skSelCon) { set({ skSelCon: null, status: '已取消约束选中（完成请按「完成草图」）' }); return true }   // GM-FP3 #35
+    if (s.skMarquee) { set({ skMarquee: null, status: '已取消框選（完成請按「完成草圖」）' }); return true }   // GM-FP3 #44
+    if (s.skSelCon) { set({ skSelCon: null, status: '已取消約束選中（完成請按「完成草圖」）' }); return true }   // GM-FP3 #35
     if (s.skArmedCon) { set({ skArmedCon: null, skSel: [], status: '已退出「施约束」武装态（完成请按「完成草图」）' }); return true }   // GM-FP2 #34
     if (s.skBoolPending) { set({ skBoolPending: null, skSel: [], status: '已取消合并/剪走（完成请按「完成草图」）' }); return true }
-    if (s.mirrorPick) { set({ mirrorPick: null, status: '已取消镜像（完成请按「完成草图」）' }); return true }
+    if (s.mirrorPick) { set({ mirrorPick: null, status: '已取消鏡像（完成請按「完成草圖」）' }); return true }
     // C2：Fusion 式两段 ESC — 任何工具（trim/extend/offset/cfillet/cchamfer/画图）下先退返「选择」工具，再按清选择；完成草图由明确按钮负责
-    if (s.sketchTool !== 'select') { set({ sketchTool: 'select', sketchStart: null, sketchPreview: null, polyPts: [], mirrorPick: null, skBoolPending: null, status: '已切回「选择」（完成请按「完成草图」）' }); return true }
+    if (s.sketchTool !== 'select') { set({ sketchTool: 'select', sketchStart: null, sketchPreview: null, polyPts: [], mirrorPick: null, skBoolPending: null, status: '已切回「選擇」（完成請按「完成草圖」）' }); return true }
     // SEL-1：撳空唔再清选取（fumble 唔会前功尽废）→ 改由 ESC 先清选取，再按清选择；完成草图由明确按钮负责（Fusion 式 step-back）
-    if (s.skSel.length || s.skPendingPt || s.skPendingPair || s.skPendingEdge) { set({ skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: '已清空选择（完成请按「完成草图」）' }); return true }
+    if (s.skSel.length || s.skPendingPt || s.skPendingPair || s.skPendingEdge) { set({ skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: '已清空選擇（完成請按「完成草圖」）' }); return true }
     return false
   },
   // Pattern instances append after unchanged originals so every existing reference
@@ -5579,7 +5579,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         set({ status: '偏移：呢个轮廓唔可偏移（试圆、椭圆、样条、直线或圆弧路径）' }); return
       }
       // T796-1：锁定即 seed 一个值 + 把 sketchPreview 设到点击处（触屏 tap-tap 无 hover 都见到拖柄、commit 锁定位置而非旧默认）
-      set({ sizing: { tool: 'offset', shapeIdx: bi, vi: -1, anchor: p, ref, raw: p }, sketchPreview: p, sketchOffsetD: s.sketchOffsetD || 5, dimBuf: ['', ''], status: '偏移：移动鼠标拖距离（外+/内−，1mm 步进）→ 点一下确定 · 打数字精确 · ESC 取消' })
+      set({ sizing: { tool: 'offset', shapeIdx: bi, vi: -1, anchor: p, ref, raw: p }, sketchPreview: p, sketchOffsetD: s.sketchOffsetD || 5, dimBuf: ['', ''], status: '偏移：移動鼠標拖距離（外+/內−，1mm 步進）→ 點一下確定 · 打數字精確 · ESC 取消' })
       get().refreshToolPreview()
       return
     }
@@ -5769,29 +5769,29 @@ export const useApp = create<AppState>((rawSet, get) => {
   mirrorPick: null,
   mirrorBeginLine: () => set((s) => {
     const mp = s.mirrorPick
-    if (!mp || !mp.shapes.length) return { status: '镜像：先点最少一个要镜像嘅轮廓' }
-    return { mirrorPick: { shapes: mp.shapes, stage: 'line', p1: null }, status: '镜像：而家点一条现有【直线边 / 构造线】做镜像轴' }
+    if (!mp || !mp.shapes.length) return { status: '鏡像：先點最少一個要鏡像嘅輪廓' }
+    return { mirrorPick: { shapes: mp.shapes, stage: 'line', p1: null }, status: '鏡像：而家點一條現有【直線邊 / 構造線】做鏡像軸' }
   }),
   skMirrorAt: async (p) => {
     const s = get()
     if (s.mode !== 'sketch') return
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
-    if (!shapes.length) { set({ status: '镜像：先画一个轮廓' }); return }
+    if (!shapes.length) { set({ status: '鏡像：先畫一個輪廓' }); return }
     const mp = s.mirrorPick || { shapes: [], stage: 'pick' as const, p1: null }
     if (mp.stage === 'pick') {
       const tol = pickTol()
       let bi = -1, best = Infinity
       for (let i = 0; i < shapes.length; i++) { const dd = distToShapeOutline(shapes[i], p); if (dd < best) { best = dd; bi = i } }
-      if (bi < 0 || best > tol * 1.5) { set({ status: '镜像：点要镜像嘅轮廓（点一个轮廓 = 拣晒佢成条相连嘅边/链选），再撳「✓ 拣轴线」' }); return }
+      if (bi < 0 || best > tol * 1.5) { set({ status: '鏡像：點要鏡像嘅輪廓（點一個輪廓 = 揀晒佢成條相連嘅邊/鏈選），再撳「✓ 揀軸線」' }); return }
       const sel = mp.shapes.includes(bi) ? mp.shapes.filter((x) => x !== bi) : [...mp.shapes, bi]
-      set({ mirrorPick: { shapes: sel, stage: 'pick', p1: null }, skSel: [], status: `镜像：已选 ${sel.length} 个轮廓 — 继续点拣，或撳「✓ 拣轴线」` })
+      set({ mirrorPick: { shapes: sel, stage: 'pick', p1: null }, skSel: [], status: `鏡像：已選 ${sel.length} 個輪廓 — 繼續點揀，或撳「✓ 揀軸線」` })
       return
     }
     // stage 'line'（Fusion 第二步）：点一条现有【直线边 / 构造线】做镜像轴 —— 反射所有选中轮廓
     const ax = nearestStraightEdge(shapes, p, pickTol() * 1.5)
-    if (!ax) { set({ status: '镜像：点一条【直线边】做镜像轴（草图边 或 构造线都得；或用底栏「左右/上下轴」一键）' }); return }
+    if (!ax) { set({ status: '鏡像：點一條【直線邊】做鏡像軸（草圖邊 或 構造線都得；或用底欄「左右/上下軸」一鍵）' }); return }
     const picked = mp.shapes.filter((i) => i >= 0 && i < shapes.length)
-    if (!picked.length) { set({ mirrorPick: null, sketchTool: 'select', status: '镜像：冇选中轮廓，已取消' }); return }
+    if (!picked.length) { set({ mirrorPick: null, sketchTool: 'select', status: '鏡像：冇選中輪廓，已取消' }); return }
     await commitMirror(s,shapes,s.skCons,picked,ax.ref,skConId())
   },
   // T794：完成一条【开放】折线（简单直线 / 折线，唔使回起点闭合）。≥2 点 → openVertsPoly 入 sketchProfiles。
@@ -5997,7 +5997,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           edgeRoundRadii: [...s.edgeRoundRadii, s.edgeRoundPick === 'fillet' ? (s.filletRadiusGroups[s.filletActiveGroup]?.radius ?? s.edgeRoundSize) : s.edgeRoundSize],
           edgeRoundGroupIds: [...s.edgeRoundGroupIds, s.edgeRoundPick === 'fillet' ? s.filletActiveGroup : 0],
           edgeRoundPickLines: [...s.edgeRoundPickLines, pts],
-          status: `已选 ${s.edgeRoundPicks.length + 1} 条棱（成条高亮；再点同一条=取消）— 或设半径后按「确定」（${kind === 'chamfer' ? '倒角' : '圆角'}）`,
+          status: `已選 ${s.edgeRoundPicks.length + 1} 條棱（成條高亮；再點同一條=取消）— 或設半徑後按「確定」（${kind === 'chamfer' ? '倒角' : '圓角'}）`,
         }
       })
       get().scheduleRoundPreview()   // P2 批7：拣棱即预览
@@ -6357,10 +6357,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const has = s.selFilter.types.includes(t)
     const nf = withSelType(s.selFilter, t, !has)
     const lbl = SEL_TYPES.find((x) => x.key === t)?.label ?? t
-    return { selFilter: nf, status: `选择过滤：${has ? '关闭' : '开启'}「${lbl}」（可拣 ${nf.types.length}/${SEL_TYPES.length} 类）` }
+    return { selFilter: nf, status: `選擇過濾：${has ? '關閉' : '開啟'}「${lbl}」（可揀 ${nf.types.length}/${SEL_TYPES.length} 類）` }
   }),
-  setSelPriority: (p) => set((s) => ({ selFilter: withPriority(s.selFilter, p), status: `选择优先级：${p === 'body' ? '实体' : p === 'face' ? '面' : '边'}优先` })),
-  selectAllSelTypes: () => set((s) => ({ selFilter: withAllTypes(s.selFilter), status: '选择过滤：全部类型可拣' })),
+  setSelPriority: (p) => set((s) => ({ selFilter: withPriority(s.selFilter, p), status: `選擇優先級：${p === 'body' ? '實體' : p === 'face' ? '面' : '邊'}優先` })),
+  selectAllSelTypes: () => set((s) => ({ selFilter: withAllTypes(s.selFilter), status: '選擇過濾：全部類型可揀' })),
   clearSelTypes: () => set((s) => ({ selFilter: withNoTypes(s.selFilter), status: '选择过滤：已清空（暂锁拣选）' })),
   toggleSelectThrough: () => set((s) => { const v = !s.selFilter.selectThrough; return { selFilter: withSelThrough(s.selFilter, v), status: v ? msg('ui.selectThroughOn', s.lang) : msg('ui.selectThroughOff', s.lang) } }),
   // GM-X4 #19：谓词选择（作用喺 checkedComps 组件选择集）。size 度量 = 局部包围盒体积 mm³。
@@ -14887,37 +14887,37 @@ export const useApp = create<AppState>((rawSet, get) => {
     const tip: Record<string, string> = {
       pattern: '矩形陣列：設 X/Y 數量與間距 → 確定', cpattern: '環形陣列：設軸／數量／角度 → 確定', mirror: '鏡像：設鏡像面／偏移 → 確定',
       circpattern: '環形陣列：對象（整個實體／時間軸所選特徵）+ 軸（原點＋方向）+ 數量 + 角度模式 → 確定',
-      move: '移动/复制：设 dx/dy/dz + 绕Z角 → 确定', scale: '缩放：设比例 → 确定', offsetsolid: '整体偏移：设距离（+外扩 / −内缩，均匀偏移所有面）→ 确定', draft: '拔模：设角度（侧面，中性面 XY）→ 确定',
-      splitbody: '分割实体：设 轴/位置/保留侧 → 确定（另一半灰显泊车，可隐藏/导出/布尔）；「平面切」拾面会预填呢个对话框',
-      automatedmodel: 'Automated Modeling（Connector v1）：在画布依次点选两张平面面，设连接半径 → 确定。结果会作为独立 New Body 保留；此 v1 不含避让体、曲面面或 Fusion 的生成式多方案。',
-      box: `长方体：设长/宽/高 → 确定${cutting ? '（切割模式：从实体切除）' : ''}`,
-      cylinder: `圆柱：设直径/高 → 确定${cutting ? '（切割模式）' : ''}`,
-      sphere: `球：设直径 → 确定${cutting ? '（切割模式）' : ''}`,
-      torus: `圆环：设外径/管径 → 确定${cutting ? '（切割模式）' : ''}`,
-      cone: `圆锥 / 圆台：设底Ø/顶Ø（顶Ø=0 即尖锥）/高 → 确定。漏斗 / 喷嘴 / 锥销 / 灯罩常用${cutting ? '（切割模式：切锥孔）' : ''}。`,
-      wedge: `楔形 / 斜坡：设长/宽/高 → 确定。一端高、另一端削平的三角块。斜坡 / 门挡 / 三角支撑常用${cutting ? '（切割模式：切斜角）' : ''}。`,
-      dome: `圆顶 / 半球：设直径Ø → 确定。半个球、平底贴地。按钮 / 旋钮 / 圆顶盖 / 透镜常用${cutting ? '（切割模式：挖半球凹坑）' : ''}。`,
-      halfcyl: `半圆柱 / D 形：设直径Ø/高 → 确定。圆柱切一半（平面朝 X 负向）。D 形轴 / D 孔 / 半圆条常用${cutting ? '（切割模式：切 D 形）' : ''}。`,
-      pie: `扇形柱 / 饼块：设直径Ø/角度°/高 → 确定。圆盘的一块扇形（凸轮 / 分度盘 / 部分圆盘）${cutting ? '（切割模式：切扇形槽）' : ''}。`,
-      tube: '圆管/衬套：设外径Ø/壁厚/高 → 确定。管/衬套/垫环/隔套常用（恒建新体，外圆拉伸+内圆切除，时间轴可改）。',
-      rbox: '圆角长方体 / 外壳盒：设长/宽/高/圆角R → 确定。长方体四条竖边倒圆角，做电子外壳 / 项目盒 / 圆角支架常用（建新体，长方体+竖边圆角两步，时间轴可改 R）。',
-      prism: `正多边形棱柱：设 边数/外接圆Ø/高 → 确定。六角柱/螺母坯/标准件常用${cutting ? '（切割模式：切多边形孔）' : ''}。`,
-      coil: `螺旋/弹簧：设直径/螺距/高/丝径 → 确定${cutting ? '（切割模式）' : ''}`,
-      thread: `螺纹杆：设直径 Ø/螺距/高 → 确定${cutting ? '（切割模式）' : ''}`,
-      cylpatch: '曲面贴花：在活动圆柱面上加凸台/切凹槽/锉平面 — 设角度位置/角宽/轴向中心/高/深度 → 确定',
-      sheetmetal: '钣金件：选截面(L/U/Z)+厚度/折弯半径/K因子/宽度+两段长 → 确定；可切换折叠/展开(展开=激光下料用，含K因子折弯余量)',
-      gear: '渐开线正齿轮：设 模数 m / 齿数 z / 厚度 / 中心孔Ø（螺旋角β>0=斜齿轮扭转近似）→ 确定。分度圆Ø = m×z，标准 20° 压力角。',
-      rack: '齿条（齿轮齿条机构）：设 模数 m（要同齿轮一致先啮合）/ 长度 / 底座高 / 厚度 → 确定。',
-      pulley: 'V 带轮（皮带传动）：设 外径 / 宽度 / 中心孔Ø → 确定。带 V 形槽。',
-      gearbox: '齿轮箱向导（T770）：目标速比 + 模数 + 级数 → 自动齿数组合、按精确中心距摆位、自动关节+运动连接 — 确定后 ▷运动 即转，微调用组件移动',
-      worm: '蜗杆：设 模数 / 头数 / 长度 → 确定。ZA 近似形（梯形廓螺旋）— 同蜗轮啮合比 = 头数:蜗轮齿数（纯运动学）',
-      crowngear: '冠齿轮（面齿轮近似形）：设 模数 / 齿数 / 盘厚 / 齿宽 / 孔Ø → 确定。垂直轴啮合示意。',
-      othread: '面加外螺纹：直径/高度/位置已由所拣圆柱面读入 — 设螺距 → 确定（结果系复合体：之后唔好倒角/STEP，STL 正常）',
-      ithread: '内螺纹孔：设 公称Ø/螺距/深度/中心 X,Y（孔底z 可选）→ 确定攻牙。或用「面加螺纹」直接点孔内壁自动填（结果系复合体：之后唔好倒角/STEP，STL 正常）',
-      plane: '参考平面：选基准面(XY/XZ/YZ)+偏移距离 → 确定（之后可在它上面画草图）',
-      cpoint: '构造点：输入坐标 X/Y/Z → 确定（作定位/测量/对齐基准）',
-      cptgrid: '构造点阵列：矩形（行×列+间距，居中）/ 极坐标（个数+半径）一次过落一组构造点 → 确定。配合「⊙批量孔」= 两步钻螺栓孔阵',
-      caxis: '构造轴：选方向 X/Y/Z + 经过点 → 确定（作旋转/阵列/对齐参考）',
+      move: '移動/複製：設 dx/dy/dz + 繞Z角 → 確定', scale: '縮放：設比例 → 確定', offsetsolid: '整體偏移：設距離（+外擴 / −內縮，均勻偏移所有面）→ 確定', draft: '拔模：設角度（側面，中性面 XY）→ 確定',
+      splitbody: '分割實體：設 軸/位置/保留側 → 確定（另一半灰顯泊車，可隱藏/導出/布爾）；「平面切」拾面會預填呢個對話框',
+      automatedmodel: 'Automated Modeling（Connector v1）：在畫布依次點選兩張平面面，設連接半徑 → 確定。結果會作為獨立 New Body 保留；此 v1 不含避讓體、曲面面或 Fusion 的生成式多方案。',
+      box: `長方體：設長/寬/高 → 確定${cutting ? '（切割模式：從實體切除）' : ''}`,
+      cylinder: `圓柱：設直徑/高 → 確定${cutting ? '（切割模式）' : ''}`,
+      sphere: `球：設直徑 → 確定${cutting ? '（切割模式）' : ''}`,
+      torus: `圓環：設外徑/管徑 → 確定${cutting ? '（切割模式）' : ''}`,
+      cone: `圓錐 / 圓台：設底Ø/頂Ø（頂Ø=0 即尖錐）/高 → 確定。漏斗 / 噴嘴 / 錐銷 / 燈罩常用${cutting ? '（切割模式：切錐孔）' : ''}。`,
+      wedge: `楔形 / 斜坡：設長/寬/高 → 確定。一端高、另一端削平的三角塊。斜坡 / 門挡 / 三角支撑常用${cutting ? '（切割模式：切斜角）' : ''}。`,
+      dome: `圓頂 / 半球：設直徑Ø → 確定。半個球、平底貼地。按钮 / 旋钮 / 圓頂蓋 / 透鏡常用${cutting ? '（切割模式：挖半球凹坑）' : ''}。`,
+      halfcyl: `半圓柱 / D 形：設直徑Ø/高 → 確定。圓柱切一半（平面朝 X 負向）。D 形軸 / D 孔 / 半圓條常用${cutting ? '（切割模式：切 D 形）' : ''}。`,
+      pie: `扇形柱 / 饼塊：設直徑Ø/角度°/高 → 確定。圓盤的一塊扇形（凸輪 / 分度盤 / 部分圓盤）${cutting ? '（切割模式：切扇形槽）' : ''}。`,
+      tube: '圓管/衬套：設外徑Ø/壁厚/高 → 確定。管/衬套/垫環/隔套常用（恒建新體，外圓拉伸+內圓切除，時間軸可改）。',
+      rbox: '圓角長方體 / 外殼盒：設長/寬/高/圓角R → 確定。長方體四條豎邊倒圓角，做電子外殼 / 項目盒 / 圓角支架常用（建新體，長方體+豎邊圓角兩步，時間軸可改 R）。',
+      prism: `正多邊形棱柱：設 邊數/外接圓Ø/高 → 確定。六角柱/螺母坯/標準件常用${cutting ? '（切割模式：切多邊形孔）' : ''}。`,
+      coil: `螺旋/弹簧：設直徑/螺距/高/絲徑 → 確定${cutting ? '（切割模式）' : ''}`,
+      thread: `螺紋桿：設直徑 Ø/螺距/高 → 確定${cutting ? '（切割模式）' : ''}`,
+      cylpatch: '曲面貼花：在活動圓柱面上加凸台/切凹槽/锉平面 — 設角度位置/角寬/軸向中心/高/深度 → 確定',
+      sheetmetal: '鈑金件：選截面(L/U/Z)+厚度/折彎半徑/K因子/寬度+兩段長 → 確定；可切換折疊/展開(展開=激光下料用，含K因子折彎餘量)',
+      gear: '漸開線正齒輪：設 模數 m / 齒數 z / 厚度 / 中心孔Ø（螺旋角β>0=斜齒輪扭轉近似）→ 確定。分度圓Ø = m×z，標準 20° 壓力角。',
+      rack: '齒條（齒輪齒條機構）：設 模數 m（要同齒輪一致先嚙合）/ 長度 / 底座高 / 厚度 → 確定。',
+      pulley: 'V 帶輪（皮帶傳動）：設 外徑 / 寬度 / 中心孔Ø → 確定。帶 V 形槽。',
+      gearbox: '齒輪箱向導（T770）：目標速比 + 模數 + 級數 → 自動齒數組合、按精確中心距擺位、自動關節+運動連接 — 確定後 ▷運動 即轉，微調用組件移動',
+      worm: '蝸桿：設 模數 / 頭數 / 長度 → 確定。ZA 近似形（梯形廓螺旋）— 同蝸輪嚙合比 = 頭數:蝸輪齒數（純運動學）',
+      crowngear: '冠齒輪（面齒輪近似形）：設 模數 / 齒數 / 盤厚 / 齒寬 / 孔Ø → 確定。垂直軸嚙合示意。',
+      othread: '面加外螺紋：直徑/高度/位置已由所揀圓柱面讀入 — 設螺距 → 確定（結果係複合體：之後唔好倒角/STEP，STL 正常）',
+      ithread: '內螺紋孔：設 公稱Ø/螺距/深度/中心 X,Y（孔底z 可選）→ 確定攻牙。或用「面加螺紋」直接點孔內壁自動填（結果係複合體：之後唔好倒角/STEP，STL 正常）',
+      plane: '參考平面：選基準面(XY/XZ/YZ)+偏移距離 → 確定（之後可在它上面畫草圖）',
+      cpoint: '構造點：輸入坐標 X/Y/Z → 確定（作定位/測量/對齊基準）',
+      cptgrid: '構造點陣列：矩形（行×列+間距，居中）/ 極坐標（個數+半徑）一次過落一組構造點 → 確定。配合「⊙批量孔」= 兩步鑽螺栓孔陣',
+      caxis: '構造軸：選方向 X/Y/Z + 經過點 → 確定（作旋轉/陣列/對齊參考）',
     }
     // SO12 / BUG-SO12-001：时间轴已选孔/特征时，阵列·镜像对话框要预选「所选特征」；
     // 否则默认「整个实体」+ objectPicked=0 → 身份错（active body）或要用户再点一次「选择」。

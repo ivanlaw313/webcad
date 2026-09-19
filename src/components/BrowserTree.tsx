@@ -26,8 +26,8 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   pattern: { icon: 'pattern', label: '陣列' },
   prim: { icon: 'box', label: '原语' },
   thread: { icon: 'default', label: '螺紋桿' },
-  ithread: { icon: 'hole', label: '内螺纹孔' },
-  cylpatch: { icon: 'default', label: '曲面贴花' },
+  ithread: { icon: 'hole', label: '內螺紋孔' },
+  cylpatch: { icon: 'default', label: '曲面貼花' },
   sheetmetal: { icon: 'default', label: '鈑金件' },
   pathpattern: { icon: 'pattern', label: '路徑陣列' },
   gear: { icon: 'default', label: '齒輪' },
@@ -65,7 +65,7 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   extendface: { icon: 'extrude', label: '曲面延伸' },
   splitface: { icon: 'default', label: '分割面' },
   replaceface: { icon: 'default', label: '替換面' },
-  moveface: { icon: 'replaceface', label: '移动面' },  // GM-B2
+  moveface: { icon: 'replaceface', label: '移動面' },  // GM-B2
   rib: { icon: 'default', label: '加強筋' },
   text: { icon: 'default', label: '文字' },
   newbody: { icon: 'box', label: '新實體' },
@@ -77,7 +77,7 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   meshbody: { icon: 'insert', label: '网格实体' },  // T767
   worm: { icon: 'default', label: '蝸桿' },          // T770
   crowngear: { icon: 'default', label: '冠齒輪' },   // T770
-  othread: { icon: 'default', label: '面外螺纹' },   // T775
+  othread: { icon: 'default', label: '面外螺紋' },   // T775
   extgroup: { icon: 'extrude', label: '拉伸组' },    // 多轮廓拉伸打包节点（用 as Feature cast，唔喺 union）
   featpattern: { icon: 'pattern', label: '陣列' },   // 可编辑阵列组节点（T#148）
 }

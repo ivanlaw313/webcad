@@ -20,9 +20,9 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   offsetsolid: { icon: 'scale', label: '整体偏移' },
   extrude: { icon: 'extrude', label: '拉伸' },
   revolve: { icon: 'revolve', label: '旋转' },
-  fillet: { icon: 'fillet', label: '圆角' },
+  fillet: { icon: 'fillet', label: '圓角' },
   chamfer: { icon: 'chamfer', label: '倒角' },
-  shell: { icon: 'shell', label: '抽壳' },
+  shell: { icon: 'shell', label: '抽殼' },
   pattern: { icon: 'pattern', label: '阵列' },
   prim: { icon: 'box', label: '原语' },
   thread: { icon: 'default', label: '螺纹杆' },
@@ -47,11 +47,11 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   surftrim: { icon: 'shell', label: '平面裁剪' },
   surfsurftrim: { icon: 'shell', label: '曲面裁剪' },  // S155 曲面-曲面裁剪
   untrim: { icon: 'shell', label: '去裁/还原' },
-  mergefaces: { icon: 'shell', label: '合并面' },  // S 合并同域邻面 Unify-Same-Domain
+  mergefaces: { icon: 'shell', label: '合併面' },  // S 合并同域邻面 Unify-Same-Domain
   editpoles: { icon: 'loft', label: '编辑曲面控制点' },  // S133 NURBS 极点编辑
   sweep: { icon: 'sweep', label: '扫掠' },
   coil: { icon: 'default', label: '螺旋' },
-  scale: { icon: 'scale', label: '缩放' },
+  scale: { icon: 'scale', label: '縮放' },
   draft: { icon: 'draft', label: '拔模' },
   cpattern: { icon: 'pattern', label: '环形阵列' },
   copybody: { icon: 'newbody', label: '复制实体' },
@@ -64,7 +64,7 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   thickenquilt: { icon: 'shell', label: '加厚整张曲面' },  // S182 加厚 quilt → 实体
   extendface: { icon: 'extrude', label: '曲面延伸' },
   splitface: { icon: 'default', label: '分割面' },
-  replaceface: { icon: 'default', label: '替换面' },
+  replaceface: { icon: 'default', label: '替換面' },
   moveface: { icon: 'replaceface', label: '移动面' },  // GM-B2
   rib: { icon: 'default', label: '加强筋' },
   text: { icon: 'default', label: '文字' },

@@ -218,7 +218,7 @@ function ThreadSpecSelect({ d, pitch, std, onPick, lang }: { d: number; pitch: n
 }
 
 // featDlg palette: per-kind Chinese title + icon (titles match ribbon.ts labels).
-const FD_TITLE: Record<string, string> = { gearbox: '齿轮箱向导', worm: '蜗杆', crowngear: '冠齿轮', automatedmodel: 'Automated Modeling · Connector v1', pattern: '矩形阵列', cpattern: '环形阵列', circpattern: '环形阵列', pathpattern: '路径阵列', mirror: '镜像', move: '移动/复制', scale: '缩放', draft: '拔模', revolve: '旋转', rib: '加强筋/腹板', pipe: '管道', box: '長方體', cylinder: '圓柱', sphere: '球', torus: '圓環', cone: '圆锥/圆台', wedge: '楔形', dome: '圆顶', halfcyl: '半圆柱', pie: '扇形柱', tube: '圆管/衬套', rtube: '方管', profile: '型材', rbox: '圆角盒', prism: '多边形棱柱', pyramid: '棱锥', coil: '螺旋', thread: '螺纹杆', cylpatch: '曲面贴花', sheetmetal: '钣金件', gear: '齿轮', rack: '齿条', pulley: 'V带轮', plane: '参考平面', cpoint: '构造点', caxis: '构造轴', combine: '合并/布尔', splitbody: '分割实体', 'extrude-edit': '拉伸', 'fillet-edit': '圆角', 'chamfer-edit': '倒角', 'shell-edit': '抽壳' }
+const FD_TITLE: Record<string, string> = { gearbox: '齿轮箱向导', worm: '蜗杆', crowngear: '冠齿轮', automatedmodel: 'Automated Modeling · Connector v1', pattern: '矩形阵列', cpattern: '环形阵列', circpattern: '环形阵列', pathpattern: '路径阵列', mirror: '镜像', move: '移動/複製', scale: '縮放', draft: '拔模', revolve: '旋转', rib: '加强筋/腹板', pipe: '管道', box: '長方體', cylinder: '圓柱', sphere: '球', torus: '圓環', cone: '圆锥/圆台', wedge: '楔形', dome: '圆顶', halfcyl: '半圆柱', pie: '扇形柱', tube: '圆管/衬套', rtube: '方管', profile: '型材', rbox: '圆角盒', prism: '多边形棱柱', pyramid: '棱锥', coil: '螺旋', thread: '螺纹杆', cylpatch: '曲面贴花', sheetmetal: '钣金件', gear: '齿轮', rack: '齿条', pulley: 'V带轮', plane: '参考平面', cpoint: '构造点', caxis: '构造轴', combine: '合併/布爾', splitbody: '分割實體', 'extrude-edit': '拉伸', 'fillet-edit': '圓角', 'chamfer-edit': '倒角', 'shell-edit': '抽殼' }
 const FD_ICON: Record<string, string> = { gearbox: 'default', worm: 'default', crowngear: 'default', automatedmodel: 'cylinder', pattern: 'pattern', cpattern: 'pattern', circpattern: 'pattern', pathpattern: 'pattern', mirror: 'mirror', move: 'move', scale: 'scale', draft: 'draft', revolve: 'revolve', rib: 'default', pipe: 'cylinder', box: 'box', cylinder: 'cylinder', sphere: 'sphere', torus: 'cylinder', cone: 'cylinder', wedge: 'box', dome: 'sphere', halfcyl: 'cylinder', pie: 'cylinder', tube: 'cylinder', rtube: 'box', profile: 'box', rbox: 'box', prism: 'box', pyramid: 'cylinder', plane: 'plane', cpoint: 'point', caxis: 'axis', combine: 'combine', splitbody: 'split', 'extrude-edit': 'extrude', 'fillet-edit': 'fillet', 'chamfer-edit': 'chamfer', 'shell-edit': 'shell' }
 
 // Compact per-part fit indicator (🖨️✓/↻/✗) using the shared bed choice — no dropdown, for the move-bar.
@@ -4684,10 +4684,10 @@ export default function Viewport() {
           // GM-FP3 #48（Fusion 三情境之二）：选中【实体/多选】→ 实体动作放扇区 + 溢出（尺寸标签右键=情境三，喺 SketchDimLayer）。
           sectors = [
             repeat,
-            { key: 'del', glyph: '🗑', label: '删除', fn: () => useApp.getState().skDeleteSel() },
+            { key: 'del', glyph: '🗑', label: '刪除', fn: () => useApp.getState().skDeleteSel() },
             { key: 'skdim', glyph: '⟷', label: '尺寸 (D)', fn: () => setSketchTool('dimension') },
             { key: 'construction', glyph: '⋯', label: '构造/实线 (X)', fn: () => useApp.getState().toggleConstruction() },
-            { key: 'move', glyph: '✥', label: '移动/复制', fn: () => useApp.getState().startSkMove() },
+            { key: 'move', glyph: '✥', label: '移動/複製', fn: () => useApp.getState().startSkMove() },
             { key: 'extrude', glyph: '⬆', label: '拉伸…', disabled: !(sketchShape || sketchProfiles.length > 0), fn: () => openExtrudeDlg() },
             { key: 'undo', glyph: '↶', label: '撤销', fn: () => void useApp.getState().undo() },
             { key: 'esc', glyph: '✕', label: '清选择', fn: () => { useApp.getState().escSketch() } },
@@ -4736,7 +4736,7 @@ export default function Viewport() {
           // GM-G4b：三上下文放射菜单（Fusion 式）—— 草图内(上面 if 分支) / 实体上(有活动实体) / 3D 空境(无实体)。
           // 全部 fn 与旧线性时代逐字相同（复用现有 runCommand/store 接线，纯排布升级）；每个 context 严格 8 扇区
           // （旧 model 数组有 9 项 — DIRS[8] 越界，第 9 粒「测量」render 即 crash 嘅潜伏 bug，呢度顺手修正：删面→溢出列表）。
-          const del: MMItem = { key: 'del', icon: 'trash', label: '删除', disabled: !selectedFeature && !selectedComponent, fn: () => { if (selectedFeature) { removeFeature(selectedFeature); selectFeature(null) } else if (selectedComponent) useApp.getState().deleteComponent(selectedComponent) } }
+          const del: MMItem = { key: 'del', icon: 'trash', label: '刪除', disabled: !selectedFeature && !selectedComponent, fn: () => { if (selectedFeature) { removeFeature(selectedFeature); selectFeature(null) } else if (selectedComponent) useApp.getState().deleteComponent(selectedComponent) } }
           const fit: MMItem = { key: 'fit', glyph: '⊕', label: '适应窗口', fn: () => requestFit() }
           const newSketch: MMItem = { key: 'sketch', icon: 'sketch', label: '建立草圖', fn: () => startSketch() }
           if (bodyMesh) {
@@ -4747,8 +4747,8 @@ export default function Viewport() {
               { key: 'presspull', icon: 'presspull', label: '按拉', fn: () => runCommand('presspull', '按拉') },
               { key: 'measure', icon: 'measure', label: '测量', fn: () => runCommand('measure', '测量') },
               del,
-              { key: 'move', icon: 'move', label: '移动/复制', fn: () => runCommand('move', '移动') },
-              { key: 'fillet', icon: 'fillet', label: '圆角', fn: () => runCommand('fillet', '圆角') },
+              { key: 'move', icon: 'move', label: '移動/複製', fn: () => runCommand('move', '移動') },
+              { key: 'fillet', icon: 'fillet', label: '圓角', fn: () => runCommand('fillet', '圓角') },
               fit,
             ]
           } else {
@@ -4773,7 +4773,7 @@ export default function Viewport() {
             ...(bodyMesh ? [
               { key: 'chamfer', label: '◣ 倒角', fn: () => runCommand('chamfer', '倒角') } as MMItem,
               { key: 'facefillet', label: '⌒ 面圆角', fn: () => runCommand('facefillet', '面圆角') } as MMItem,
-              { key: 'shell', label: '⬚ 抽壳', fn: () => runCommand('shell', '抽壳') } as MMItem,
+              { key: 'shell', label: '⬚ 抽殼', fn: () => runCommand('shell', '抽殼') } as MMItem,
               { key: 'expq', label: `📐 导出精度：${useApp.getState().exportQuality === 'fine' ? '细' : useApp.getState().exportQuality === 'coarse' ? '粗' : '中'}`, fn: () => { const q = useApp.getState().exportQuality; useApp.getState().setExportQuality(q === 'medium' ? 'fine' : q === 'fine' ? 'coarse' : 'medium') } } as MMItem,
               { key: 'bsection', label: '✂ 截面取轮廓', fn: async () => { const v = await useApp.getState().appPrompt('截面：轴,位置mm — 喺活动实体呢个位置切一刀，闭合轮廓变成可编辑草图\n例：Z,10 = 喺 z=10 水平切；X,0 / Y,5 亦可（世界坐标）', 'Z,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (ax.length !== 1 || !'XYZ'.includes(ax)) { await useApp.getState().appAlert('轴要系 X / Y / Z（例 Z,10）'); return } const c = Number(p[1]); if (!Number.isFinite(c)) { await useApp.getState().appAlert('请输入数字位置，例 Z,10'); return } useApp.getState().meshSectionToSketch(undefined, ax as 'X' | 'Y' | 'Z', c) } } as MMItem,
             ] : []),
@@ -4848,7 +4848,7 @@ export default function Viewport() {
       {edgeRoundPick && (
         <CommandDialog
           icon={edgeRoundPick === 'chamfer' ? 'chamfer' : 'fillet'}
-          title={edgeRoundPick === 'chamfer' ? '倒角' : '圆角'}
+          title={edgeRoundPick === 'chamfer' ? '倒角' : '圓角'}
           width={300}
           okLabel={edgeRoundPick === 'chamfer' ? 'OK' : `确定（${edgeRoundPicks.length}）`}
           okDisabled={!edgeRoundPicks.length || roundPreviewFail || (edgeRoundPick === 'fillet' && filletType === 'rule' && filletRuleMode === 'between' && !(filletRuleFaceSets.includes(1) && filletRuleFaceSets.includes(2))) || (edgeRoundPick === 'fillet' && filletType === 'full' && !([1, 2, 3] as const).every((slot) => filletFullFaceSets.includes(slot))) || (edgeRoundPick === 'fillet' && filletType !== 'full' && (filletMode === 'chord' ? !(filletChord > 0) : filletMode === 'asymmetric' ? !(filletR2 > 0) || edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)) : edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)))) || (edgeRoundPick === 'chamfer' && (!(edgeRoundSize > 0) || (chamferMode === 'two' && !(chamferSize2 > 0)) || (chamferMode === 'angle' && (!chamferRefFace || !(chamferAngle > 0 && chamferAngle < 90)))))}

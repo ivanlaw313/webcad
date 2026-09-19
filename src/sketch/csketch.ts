@@ -84,13 +84,13 @@ export const useCSketch = create<CS>((set, get) => ({
   tool: 'line', setTool: (t) => set({ tool: t, draft: [], selection: [], status: t === 'trim' ? '修剪：点线段 → 删到最近交点（无交点删整条）' : t === 'extend' ? '延伸：点线段靠近想延长嘅一端 → 延长到最近嘅线 / 圆' : t === 'break' ? '打断：点线段中间想分割嘅位置 → 一条变两段（两段都保留）' : t === 'select' ? '选择：点实体选取，拖动点可移动（受约束）' : `绘制 ${t === 'line' ? '直线' : t === 'rect' ? '矩形' : '圆'}：点击落点` }),
   selection: [], draft: [], preview: null, dragging: null,
   polySides: 6, setPolySides: (n) => set({ polySides: Math.min(120, Math.max(3, Math.round(n) || 3)) }),  // cap 120 — guard against huge input freezing the sketch
-  status: '约束草图：选 直线/矩形/圆 绘制；选择实体后加约束/标注', conflicts: [], dof: -1, dofDiag: null,
+  status: '約束草圖：選 直線/矩形/圓 繪製；選擇實體後加約束/標註', conflicts: [], dof: -1, dofDiag: null,
   past: [], future: [],
   // Snapshot geometry (deep-ish copy) before a mutating action, so Ctrl+Z can step back. Cap 60. New action clears redo.
   pushUndo: () => set((s) => ({ past: [...s.past, csSnap(s)].slice(-60), future: [] })),
   undo: () => {
     const s = get()
-    if (!s.past.length) { set({ status: '冇得再撤销（约束草图）' }); return }
+    if (!s.past.length) { set({ status: '冇得再撤銷（約束草圖）' }); return }
     const prev = s.past[s.past.length - 1]
     set({ ...csSnap(prev), past: s.past.slice(0, -1), future: [...s.future, csSnap(s)], selection: [], draft: [], preview: null, status: '已撤销（Ctrl+Y 重做）' })
     void get().solve()

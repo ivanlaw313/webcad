@@ -346,7 +346,7 @@ export default function App() {
       <ErrorBoundary name="属性检查器" compact><InspectorPanel /></ErrorBoundary>
       <IntroCard />
       {cmdPaletteOpen && <Suspense fallback={null}><CommandPaletteLazy /></Suspense>}
-      {csketchOpen && <ErrorBoundary name="约束草图" compact><Suspense fallback={null}><CSketch /></Suspense></ErrorBoundary>}
+      {csketchOpen && <ErrorBoundary name="約束草圖" compact><Suspense fallback={null}><CSketch /></Suspense></ErrorBoundary>}
       <PromptDialog />
       <InsertDialog />
       {aiOpen && <Suspense fallback={null}><AiCopilotLazy /></Suspense>}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../store'
+import { tStatus } from '../i18n'
 import { useDraggable } from './useDraggable'
 import { parameterUsage } from '../cad/parameterUsage'
 
@@ -62,6 +63,7 @@ function ParameterExpression({ name, expression, disabled, onCommit }: {
 // User-parameter table: named variables that feature dimensions can bind to.
 // Edit a value here → every bound feature dimension updates and the model rebuilds.
 export default function ParamsPanel() {
+  const lang = useApp((s) => s.lang)
   const busy = useApp(s => s.busy)
   const open = useApp((s) => s.paramsOpen)
   const params = useApp((s) => s.params)
@@ -95,7 +97,7 @@ export default function ParamsPanel() {
   const usedBy = parameterUsage(params, sources, bindings, features, mode === 'sketch' ? live : [])
   return (
     <div ref={panelDrag.ref} className={'params-panel' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} style={panelDrag.style}>
-      <div className="pp-title" onPointerDown={panelDrag.onPointerDown} style={{ cursor: 'grab', userSelect: 'none' }}><span className="vp-hud-handle" title="拖動參數面板">⋮⋮</span>用户参数 <span className="pp-x" title="收合面板" onClick={() => setCollapsed(true)}>▾</span><span className="pp-x" onClick={() => toggle()}>✕</span></div>
+      <div className="pp-title" onPointerDown={panelDrag.onPointerDown} style={{ cursor: 'grab', userSelect: 'none' }}><span className="vp-hud-handle" title="拖動參數面板">⋮⋮</span>{tStatus('用戶參數', lang)} <span className="pp-x" title="收合面板" onClick={() => setCollapsed(true)}>▾</span><span className="pp-x" onClick={() => toggle()}>✕</span></div>
       <div className="pp-hint">名称 · 数值 · 表达式（长度单位 mm）</div>
       {params.length === 0 && <div className="pp-empty">还没有参数。下面添加一个（如 d1 = 50）。</div>}
       {params.length > 0 && <div className="pp-head"><span>名称</span><span>数值</span><span>表达式</span><span>引用</span></div>}

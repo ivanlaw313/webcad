@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useCSketch, type Sel, type ConstraintKind } from '../sketch/csketch'
 import { useApp } from '../store'
+import { tStatus } from '../i18n'
 
 const SCALE = 2.6 // px per mm
 
@@ -39,6 +40,7 @@ const CBTN: { k: ConstraintKind; label: string; title: string }[] = [
 ]
 
 export default function CSketch() {
+  const lang = useApp((s) => s.lang)
   const s = useCSketch()
   const dimEditRef = useRef<string | null>(null)   // 尺寸编辑会话：聚焦后首次真正改值才压一次撤销快照（input onChange 每键触发，否则会灌爆撤销栈）
   const commitCProfiles = useApp((a) => a.commitCProfiles)
@@ -52,7 +54,7 @@ export default function CSketch() {
   // Start every constraint-sketch session blank — otherwise geometry from a previous (finished or
   // cancelled) session leaks in when the overlay re-opens (it's a transient draw→extrude editor, not a
   // persistent feature). The overlay is conditionally mounted, so this runs on each open.
-  useEffect(() => { useCSketch.getState().reset(); useCSketch.setState({ status: '约束草图：选工具绘制 → 加约束/尺寸 → 完全定义(黑) → 完成' }) }, [])
+  useEffect(() => { useCSketch.getState().reset(); useCSketch.setState({ status: '約束草圖：選工具繪製 → 加約束/尺寸 → 完全定義(黑) → 完成' }) }, [])
 
   useEffect(() => {
     const el = svgRef.current
@@ -139,7 +141,7 @@ export default function CSketch() {
   return (
     <div className="csketch">
       <div className="cs-toolbar">
-        <span className="cs-title">约束草图</span>
+        <span className="cs-title">{tStatus('約束草圖', lang)}</span>
         {TOOLS.map((t) => (
           <button key={t.t} title={t.title} className={'cs-btn' + (s.tool === t.t ? ' on' : '')} onClick={() => s.setTool(t.t)}>{t.label}</button>
         ))}
@@ -159,9 +161,9 @@ export default function CSketch() {
         <button className="cs-btn cs-cstr" title="旋转：先选要转嘅实体（线/圆），可加选一个点做旋转中心（否则绕原点）→ 按此 → 输入角度°" onClick={async () => { const v = await useApp.getState().appPrompt('旋转角度°（正=逆时针；绕所选点，否则原点）', '90'); if (v != null) { const a = Number(v); if (Number.isFinite(a)) s.rotateSel(a) } }}>⟳ 旋轉</button>
         <button className="cs-btn cs-cstr" title="投影实体：把现有 3D 实体嘅外形矩形（参考线）+ 各竖直孔中心（参考点）投影入草图 → 可对佢哋打尺寸/约束新几何（相对 3D 物体定位）" onClick={() => s.projectBody()}>⧉ 投影實體</button>
         <button className="cs-btn" title="删除所选" onClick={() => void s.deleteSelected()}>🗑</button>
-        <button className="cs-btn" title="撤销 (Ctrl+Z)" disabled={!s.past.length} onClick={() => s.undo()}>↶</button>
+        <button className="cs-btn" title="復原 (Ctrl+Z)" disabled={!s.past.length} onClick={() => s.undo()}>↶</button>
         <button className="cs-btn" title="重做 (Ctrl+Y)" disabled={!s.future.length} onClick={() => s.redo()}>↷</button>
-        <button className="cs-btn" title="清空草图，重新嚟过（可 Ctrl+Z 撤销）" onClick={() => s.clearAll()}>🧹 全清</button>
+        <button className="cs-btn" title="清空草图，重新嚟过（可 Ctrl+Z 復原）" onClick={() => s.clearAll()}>🧹 全清</button>
         <span className="cs-spacer" />
         <button className={'cs-btn' + (op === 'new' ? ' on' : '')} title="新建 / 加料实体" onClick={() => setOp('new')}>＋新建</button>
         <button className={'cs-btn' + (op === 'cut' ? ' on' : '')} title="从现有实体切除（要先有实体）" onClick={() => setOp('cut')}>－切割</button>
@@ -267,7 +269,7 @@ export default function CSketch() {
                 onChange={(e) => { if (dimEditRef.current !== c.id) { s.pushUndo(); dimEditRef.current = c.id } void s.editDimension(c.id, Number(e.target.value) || 0) }}
                 onBlur={() => { dimEditRef.current = null }} />
               {params.length > 0 && (
-                <select className="cs-dimparam" title="链接到用户参数（参数变→此尺寸自动跟着变）" value={s.dimRefs[c.id] || ''} onChange={(e) => void s.setDimRef(c.id, e.target.value)}>
+                <select className="cs-dimparam" title="鏈接到用戶參數（參數變→此尺寸自動跟着變）" value={s.dimRefs[c.id] || ''} onChange={(e) => void s.setDimRef(c.id, e.target.value)}>
                   <option value="">ƒx…</option>
                   {params.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
                 </select>

@@ -393,7 +393,7 @@ const MESH: Panel[] = [
     { id: 'sphere', label: '球', icon: 'sphere', quick: true },
   ] },
   { name: 'MODIFY', tools: [
-    { id: 'meshfit', label: 'MeshFit / 轉 B-rep', icon: 'component', quick: true, tip: 'MeshFit：把所選（或唯一／最近導入）網格組件縫合為可編輯 B-rep 實體（平面/圓柱可參數化；其余 faceted）。完成後可圓角/抽殼/布爾/導出 STEP。有機掃掠件可能僅 faceted。' },
+    { id: 'meshfit', label: '網格擬合 / 轉 B-rep', icon: 'component', quick: true, tip: 'MeshFit：把所選（或唯一／最近導入）網格組件縫合為可編輯 B-rep 實體（平面/圓柱可參數化；其余 faceted）。完成後可圓角/抽殼/布爾/導出 STEP。有機掃掠件可能僅 faceted。' },
     { id: 'compboolean', label: '組件布爾', icon: 'combine', quick: true, tip: '組件布爾（網格級）：先選目標組件（或唯一有幾何組件），再點工具件 → 合併/切除/相交。亦可在 SOLID → ASSEMBLE 找到同名工具。' },
     { id: 'convert', label: '轉換', icon: 'component', tip: 'Fusion Convert：網格→B-rep（同 MeshFit）。BRep↔T-Spline 仍在實現。' },
   ] },

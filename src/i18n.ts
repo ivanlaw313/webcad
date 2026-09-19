@@ -11,6 +11,8 @@ import { msg } from './i18n/catalog'
 import { LABEL_TO_KEY } from './i18n/labelToKey'
 import { TAB_TO_KEY, GROUP_TO_KEY } from './i18n/tabGroupKeys'
 import { traditionalToSimplified } from './i18n/tc2sc'
+import { JA_LABEL } from './i18n/jaLabels'
+import { ZH_CN_LABEL } from './i18n/zhCNLabels'
 
 export function detectLang(): Lang {
   try {
@@ -425,8 +427,8 @@ export function tLabel(label: string, lang: LangInput): string {
   const key = LABEL_TO_KEY[label]
   if (key) return msg(key, L)
   if (L === 'en') return EN_LABEL[label] ?? label
-  if (L === 'zh-CN') return traditionalToSimplified(label)
-  if (L === 'ja') return EN_LABEL[label] ?? label  // unmigrated → EN CAD term fallback
+  if (L === 'zh-CN') return ZH_CN_LABEL[label] ?? traditionalToSimplified(label)
+  if (L === 'ja') return JA_LABEL[label] ?? EN_LABEL[label] ?? label  // unmigrated → EN CAD term fallback
   return label  // zh-HK: source (TC) as-is
 }
 

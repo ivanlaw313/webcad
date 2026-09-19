@@ -19,41 +19,41 @@ const SK_LOCK_STYLE = { opacity: 0.35, cursor: 'not-allowed' } as const
 const FEAT: Record<string, { icon: string; label: string }> = {
   offsetsolid: { icon: 'scale', label: '整体偏移' },
   extrude: { icon: 'extrude', label: '拉伸' },
-  revolve: { icon: 'revolve', label: '旋转' },
+  revolve: { icon: 'revolve', label: '旋轉' },
   fillet: { icon: 'fillet', label: '圓角' },
   chamfer: { icon: 'chamfer', label: '倒角' },
   shell: { icon: 'shell', label: '抽殼' },
-  pattern: { icon: 'pattern', label: '阵列' },
+  pattern: { icon: 'pattern', label: '陣列' },
   prim: { icon: 'box', label: '原语' },
   thread: { icon: 'default', label: '螺纹杆' },
   ithread: { icon: 'hole', label: '内螺纹孔' },
   cylpatch: { icon: 'default', label: '曲面贴花' },
   sheetmetal: { icon: 'default', label: '钣金件' },
-  pathpattern: { icon: 'pattern', label: '路径阵列' },
+  pathpattern: { icon: 'pattern', label: '路徑陣列' },
   gear: { icon: 'default', label: '齿轮' },
   rack: { icon: 'default', label: '齿条' },
   pulley: { icon: 'default', label: 'V带轮' },
-  mirror: { icon: 'mirror', label: '镜像' },
-  loft: { icon: 'loft', label: '放样' },
-  surfloft: { icon: 'loft', label: '曲面放样' },
+  mirror: { icon: 'mirror', label: '鏡像' },
+  loft: { icon: 'loft', label: '放樣' },
+  surfloft: { icon: 'loft', label: '曲面放樣' },
   surfpatch: { icon: 'loft', label: '曲面 Patch' },
   boundarypatch: { icon: 'loft', label: '边界补面' },
   surfsew: { icon: 'shell', label: '缝合 Stitch' },
   surfunstitch: { icon: 'shell', label: '取消缝合' },
   surfextrude: { icon: 'extrude', label: '曲面拉伸' },
-  surfsweep: { icon: 'sweep', label: '曲面扫掠' },
-  surfrevolve: { icon: 'revolve', label: '曲面旋转' },
+  surfsweep: { icon: 'sweep', label: '曲面掃掠' },
+  surfrevolve: { icon: 'revolve', label: '曲面旋轉' },
   ruled: { icon: 'loft', label: '规则曲面' },
   surftrim: { icon: 'shell', label: '平面裁剪' },
   surfsurftrim: { icon: 'shell', label: '曲面裁剪' },  // S155 曲面-曲面裁剪
   untrim: { icon: 'shell', label: '去裁/还原' },
   mergefaces: { icon: 'shell', label: '合併面' },  // S 合并同域邻面 Unify-Same-Domain
   editpoles: { icon: 'loft', label: '编辑曲面控制点' },  // S133 NURBS 极点编辑
-  sweep: { icon: 'sweep', label: '扫掠' },
+  sweep: { icon: 'sweep', label: '掃掠' },
   coil: { icon: 'default', label: '螺旋' },
   scale: { icon: 'scale', label: '縮放' },
   draft: { icon: 'draft', label: '拔模' },
-  cpattern: { icon: 'pattern', label: '环形阵列' },
+  cpattern: { icon: 'pattern', label: '環形陣列' },
   copybody: { icon: 'newbody', label: '复制实体' },
   transform: { icon: 'move', label: '移动' },
   pushpull: { icon: 'presspull', label: '按拉' },
@@ -73,13 +73,13 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   split: { icon: 'default', label: '分割' },  // S128：参数化分割（保历史）
   stepbody: { icon: 'insert', label: 'STEP实体' },
   sketch: { icon: 'sketch', label: '草图' },  // T756：独立草图
-  circPattern: { icon: 'pattern', label: '环形阵列' },  // T757
+  circPattern: { icon: 'pattern', label: '環形陣列' },  // T757
   meshbody: { icon: 'insert', label: '网格实体' },  // T767
   worm: { icon: 'default', label: '蜗杆' },          // T770
   crowngear: { icon: 'default', label: '冠齿轮' },   // T770
   othread: { icon: 'default', label: '面外螺纹' },   // T775
   extgroup: { icon: 'extrude', label: '拉伸组' },    // 多轮廓拉伸打包节点（用 as Feature cast，唔喺 union）
-  featpattern: { icon: 'pattern', label: '阵列' },   // 可编辑阵列组节点（T#148）
+  featpattern: { icon: 'pattern', label: '陣列' },   // 可编辑阵列组节点（T#148）
 }
 
 function Section({ label, defaultOpen = true, children }: { label: string; defaultOpen?: boolean; children?: ReactNode }) {

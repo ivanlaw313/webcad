@@ -8,7 +8,7 @@ import { durableDownload, type DownloadResult } from '../io/download'
 // T784：标注类型搬入共享模块（store 持久化同款形状）— 别名保持本文件原有名字
 import { type DrawingAnno, type DTol as Tol, type DMDim as MDim, type DRDim as RDim, type DADim as ADim, type DNote as Note, type DNoteKind as NoteKind, type DDatum as Datum, type DFCF as FCF, type DDetail as Detail } from '../io/drawingAnno'
 
-const LABEL: Record<string, string> = { front: '前视图', top: '俯视图', right: '右视图', iso: '立体图 (参考)', section: '剖视图 A—A' }
+const LABEL: Record<string, string> = { front: '前視圖', top: '俯視圖', right: '右視圖', iso: '立體圖 (參考)', section: '剖視圖 A—A' }
 const ROMAN = ['I', 'II', 'III', 'IV', 'V']  // T749 局部放大视图编号
 // T749 detail view / B5 tolerance / B2-B4 manual dims / notes：类型定义已搬去 src/io/drawingAnno.ts（T784 持久化）。
 const fmtMm = (n: number) => n.toFixed(2).replace(/\.?0+$/, '') // 4.00→"4", 12.50→"12.5", 3.99→"3.99"
@@ -888,7 +888,7 @@ export default function DrawingPanel() {
 
   // BUG-UI-008: drawing SVG/PNG/PDF/DXF must use durable File System Access (or hardened
   // in-document <a download>) — same class of fix as Save/Export P0 / BUG-UI-002.
-  const drawingBaseName = () => `${(projectName || 'webcad').replace(/[^\w一-龥-]+/g, '_')}-工程图`
+  const drawingBaseName = () => `${(projectName || 'webcad').replace(/[^\w一-龥-]+/g, '_')}-工程圖`
   const finishDrawingExport = async (bytes: ArrayBuffer | Uint8Array, name: string, type: string, label: string) => {
     const result: DownloadResult = await durableDownload(bytes, name, type)
     if (!result.ok) {
@@ -897,7 +897,7 @@ export default function DrawingPanel() {
       return
     }
     const where = result.method === 'file-picker' ? ' · 已写入所选位置' : ''
-    useApp.setState({ status: `已导出工程图 ${label}${where}` })
+    useApp.setState({ status: `已導出工程圖 ${label}${where}` })
   }
 
   const exportSVG = () => {
@@ -1036,7 +1036,7 @@ export default function DrawingPanel() {
     <div className="drawing-overlay" onClick={(e) => { if (e.target === e.currentTarget) close() }}>
       <div className="drawing-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="dw-body">
-        <div className="dw-head">📐 {drawingKind === 'assembly' ? tStatus('装配工程图 — 三视图 + 气泡 BOM', lang) : tStatus('工程图 — 三视图 + 立体图', lang)}{drawingKind === 'assembly' && <span style={{ marginLeft: 10, color: '#8a5a00', fontSize: 11, fontWeight: 'normal' }} title={tStatus('装配视图由组件网格投影（轮廓+特征边）：无隐藏线消除、圆为折线 — 诚实近似', lang)}>{tStatus('mesh 投影', lang)}</span>}{dimMode && <span style={{ marginLeft: 12, color: '#c2185b', fontSize: 12, fontWeight: 'normal' }}>📏 {pendPt ? tStatus('再点第二点完成标注', lang) : tStatus('点第一点（自动吸附最近孔心）', lang)}</span>}{radMode && <span style={{ marginLeft: 12, color: '#8a5a00', fontSize: 12, fontWeight: 'normal' }}>◯ {tStatus('点一个圆 → 标', lang)}{radMode === 'r' ? tStatus('半径 R', lang) : tStatus('直径 Ø', lang)}</span>}{angMode && <span style={{ marginLeft: 12, color: '#6a1b9a', fontSize: 12, fontWeight: 'normal' }}>∠ {pendSeg ? tStatus('再点第二条边完成角度', lang) : tStatus('点第一条边（两边夹角）', lang)}</span>}{datumMode && <span style={{ marginLeft: 12, color: '#00838f', fontSize: 12, fontWeight: 'normal' }}>▣ {tStatus('点一处 → 放基准标记（自动 A/B/C…）', lang)}</span>}{fcfMode && <span style={{ marginLeft: 12, color: '#00838f', fontSize: 12, fontWeight: 'normal' }}>▥ {tStatus('点一处 → 放形位公差框（', lang)}{fcfSym} {fcfTol}{fcfDatum.trim() ? ' ' + fcfDatum.trim() : ''}）</span>}<span className="dw-x" onClick={close}>✕</span></div>
+        <div className="dw-head">📐 {drawingKind === 'assembly' ? tStatus('裝配工程圖 — 三視圖 + 氣泡 BOM', lang) : tStatus('工程圖 — 三視圖 + 立體圖', lang)}{drawingKind === 'assembly' && <span style={{ marginLeft: 10, color: '#8a5a00', fontSize: 11, fontWeight: 'normal' }} title={tStatus('装配视图由组件网格投影（轮廓+特征边）：无隐藏线消除、圆为折线 — 诚实近似', lang)}>{tStatus('mesh 投影', lang)}</span>}{dimMode && <span style={{ marginLeft: 12, color: '#c2185b', fontSize: 12, fontWeight: 'normal' }}>📏 {pendPt ? tStatus('再点第二点完成标注', lang) : tStatus('点第一点（自动吸附最近孔心）', lang)}</span>}{radMode && <span style={{ marginLeft: 12, color: '#8a5a00', fontSize: 12, fontWeight: 'normal' }}>◯ {tStatus('点一个圆 → 标', lang)}{radMode === 'r' ? tStatus('半径 R', lang) : tStatus('直径 Ø', lang)}</span>}{angMode && <span style={{ marginLeft: 12, color: '#6a1b9a', fontSize: 12, fontWeight: 'normal' }}>∠ {pendSeg ? tStatus('再点第二条边完成角度', lang) : tStatus('点第一条边（两边夹角）', lang)}</span>}{datumMode && <span style={{ marginLeft: 12, color: '#00838f', fontSize: 12, fontWeight: 'normal' }}>▣ {tStatus('点一处 → 放基准标记（自动 A/B/C…）', lang)}</span>}{fcfMode && <span style={{ marginLeft: 12, color: '#00838f', fontSize: 12, fontWeight: 'normal' }}>▥ {tStatus('点一处 → 放形位公差框（', lang)}{fcfSym} {fcfTol}{fcfDatum.trim() ? ' ' + fcfDatum.trim() : ''}）</span>}<span className="dw-x" onClick={close}>✕</span></div>
         <div className="dw-views">
           {views.map((v) => {
             const [, , w, h] = v.vb.split(/\s+/).map(Number)
@@ -1229,8 +1229,8 @@ export default function DrawingPanel() {
               <span style={{ fontSize: 11, color: '#2e7d32' }}>✂A—A</span>
               <select value={sectionAxis} onChange={(e) => setSectionAxis(e.target.value as 'Y' | 'X')} style={{ fontSize: 11 }} title={tStatus('剖切轴（T791）', lang)}><option value="Y">{tStatus('Y 深度', lang)}</option><option value="X">{tStatus('X 阔度', lang)}</option></select>
               <input type="number" aria-label={tStatus('剖切位置百分比', lang)} min={5} max={95} step={5} value={Math.round(sectionFrac * 100)} onChange={(e) => setSectionFrac((+e.target.value || 50) / 100)} style={{ width: 46 }} />%
-              <button className="cs-btn" onClick={() => void regen()} title={tStatus('按新剖切位置/轴重新生成剖视图', lang)}>↻</button>
-              <label style={{ fontSize: 11, color: '#2e7d32', display: 'inline-flex', alignItems: 'center', gap: 2 }} title={tStatus('半剖（T791）：剖视图格仔左半显示外形、右半显示剖切 — 对称件一图睇晒内外（机械图惯例；导出同步）', lang)}><input type="checkbox" checked={halfSec} onChange={(e) => setHalfSec(e.target.checked)} />{tStatus('半剖', lang)}</label>
+              <button className="cs-btn" onClick={() => void regen()} title={tStatus('按新剖切位置/軸重新生成剖視圖', lang)}>↻</button>
+              <label style={{ fontSize: 11, color: '#2e7d32', display: 'inline-flex', alignItems: 'center', gap: 2 }} title={tStatus('半剖（T791）：剖視圖格仔左半顯示外形、右半顯示剖切 — 對稱件一圖睇晒內外（機械圖慣例；導出同步）', lang)}><input type="checkbox" checked={halfSec} onChange={(e) => setHalfSec(e.target.checked)} />{tStatus('半剖', lang)}</label>
             </span>
           )}
           {annoHist.length > 0 && <button className="cs-btn" onClick={undoAnno} title={tStatus('撤销最后加嘅一个标注（逐个撤，唔会清晒）', lang)}>{tStatus('↶ 撤销标注', lang)}</button>}
@@ -1238,9 +1238,9 @@ export default function DrawingPanel() {
           {annoHist.length > 0 && <button className="cs-btn" onClick={() => { setManualDims({}); setManualRDims({}); setManualADims({}); setManualDatums({}); setManualFCF({}); setManualNotes({}); setDetails({}); setAnnoHist([]); setPendPt(null); setPendSeg(null) }}>{tStatus('清除标注', lang)}</button>}
           <span style={{ fontSize: 11, color: '#888', marginLeft: 8, borderLeft: '1px solid #ddd', paddingLeft: 8 }}>📤 {tStatus('导出：', lang)}</span>
           <button className="cs-btn" onClick={exportSVG}>{tStatus('导出 SVG', lang)}</button>
-          <button className="cs-btn" onClick={exportPNG} title={tStatus('导出工程图为 PNG 图片（高清位图，方便贴文档 / 聊天 / 邮件）', lang)}>{tStatus('导出 PNG', lang)}</button>
+          <button className="cs-btn" onClick={exportPNG} title={tStatus('導出工程圖為 PNG 圖片（高清位圖，方便貼文檔 / 聊天 / 郵件）', lang)}>{tStatus('导出 PNG', lang)}</button>
           <button className="cs-btn" onClick={exportPDF} title={tStatus('PDF（位图嵌入，A4 横向）', lang)}>{tStatus('导出 PDF', lang)}</button>
-          <button className="cs-btn" onClick={exportDXF} title={tStatus('导出三视图为 DXF（2D CAD/CAM 标准交换格式，可在 AutoCAD 等打开）', lang)}>{tStatus('导出 DXF', lang)}</button>
+          <button className="cs-btn" onClick={exportDXF} title={tStatus('導出三視圖為 DXF（2D CAD/CAM 標準交換格式，可在 AutoCAD 等打開）', lang)}>{tStatus('导出 DXF', lang)}</button>
           <button className="cs-btn" onClick={close}>{tStatus('关闭', lang)}</button>
         </div>
       </div>

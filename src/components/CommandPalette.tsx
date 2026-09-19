@@ -112,7 +112,7 @@ const SYN: Record<string, string> = {
   exportstl: '导出 stl 3d打印 print',
   exportstep: '导出 step stp',
   exportglb: '导出 gltf glb 模型分享',
-  drawing: '工程图 工程圖 图纸 三视图 出图 drawing',
+  drawing: '工程图 工程圖 图纸 三视图 三視圖 出图 drawing',
   params: '参数 变量 ƒx fx parameter',
 }
 

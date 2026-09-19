@@ -4,16 +4,18 @@ import { useApp } from '../store'   // 选中体属性卡（Fusion Inspector 风
 // 仅做展示，不定义任何 store 字段（由 store.ts 并行补充）。
 import { useState } from 'react'
 import { useDraggable } from './useDraggable'
+import { msg } from '../i18n'
 
 export default function InspectorPanel() {
   const info = useApp((s) => s.inspectInfo)
   const on = useApp((s) => s.inspectMode)
+  const lang = useApp((s) => s.lang)
   const [collapsed, setCollapsed] = useState(false)
   const panelDrag = useDraggable('webcad-inspector-panel', { right: 12, bottom: 220, zIndex: 96 })
   if (!on || !info) return null
 
   // 边报告曲线中点（非质心），面报告质心 —— 标签据 isEdge 区分；S180：最小曲率半径报【最弯处】顶点位（kind 感知）。
-  const centerLabel = info.kind === '最小曲率半径' ? '最弯处' : info.isEdge ? '中点' : '质心'
+  const centerLabel = info.kind === '最小曲率半径' ? msg('insp.bendSpot', lang) : info.isEdge ? msg('insp.midpoint', lang) : msg('insp.centroid', lang)
 
   if (collapsed) return (
     <button
@@ -22,7 +24,7 @@ export default function InspectorPanel() {
       style={panelDrag.style}
       onPointerDown={panelDrag.onPointerDown}
       onClick={() => { if (!panelDrag.consumeClick()) setCollapsed(false) }}
-      title="展開檢查結果；可拖動到不遮擋視圖的位置"
+      title={msg('insp.expandTip', lang)}
     >ⓘ Inspect</button>
   )
 
@@ -40,13 +42,13 @@ export default function InspectorPanel() {
         fontSize: 13,
       }}
     >
-      <div className="info-card-head" style={{ marginBottom: 6, cursor: 'grab' }} onPointerDown={panelDrag.onPointerDown} title="拖動面板；可收合，避免遮擋時間軸">
-        <span role="button" className="info-card-x" title="收合" onPointerDown={(e) => e.stopPropagation()} onClick={() => setCollapsed(true)}>−</span>
-        <span style={{ color: '#7fd1b9' }}>属性 / Properties</span>
+      <div className="info-card-head" style={{ marginBottom: 6, cursor: 'grab' }} onPointerDown={panelDrag.onPointerDown} title={msg('insp.dragTip', lang)}>
+        <span role="button" className="info-card-x" title={msg('insp.collapse', lang)} onPointerDown={(e) => e.stopPropagation()} onClick={() => setCollapsed(true)}>−</span>
+        <span style={{ color: '#7fd1b9' }}>{msg('insp.properties', lang)}</span>
         <span
           role="button"
           className="info-card-x"
-          title="关闭"
+          title={msg('insp.close', lang)}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => useApp.getState().clearInspect()}
         >

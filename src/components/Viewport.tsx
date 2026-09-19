@@ -100,7 +100,7 @@ import { computeMassProps } from '../cad/massProps'      // S117：主惯性矩 
 import { orientedBBox } from '../cad/obb'                // S121：定向最小包围盒（料块/排版/省料）
 import { HDRI_PRESETS, type HdriPresetId } from '../render/hdriPresets'
 import { GradientEquirectTexture } from 'three-gpu-pathtracer'   // 工作模式背景预设：程序化渐变 equirect（同 HdriEnvironment GradientFallback 一致）
-import { tStatus, type LangInput } from '../i18n'
+import { msg, tStatus, type LangInput } from '../i18n'
 import { feaStaleBannerText, invalidateSimResultsPatch, hasLiveSimResults } from '../simulation/resultValidity'
 import { parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：单位感知长度输入（分数英寸）
 import type { MeshData } from '../worker/cad.worker'
@@ -6872,9 +6872,9 @@ export default function Viewport() {
       {mode === 'pickplane' && (
         <div className="sketch-bar sketch-plane-picker" style={{ gap: 8, flexWrap: 'wrap' }}>
           <span className="sb-title">{tStatus('选择草图基准面', lang)}</span>
-          {(['XY', 'XZ', 'YZ'] as const).map(plane => <button key={plane} className="sb-tool" aria-label={`${plane} ${lang === 'en' ? 'sketch plane' : '草图平面'}`} onClick={() => useApp.getState().chooseSketchPlane(plane)}>{plane} · {lang === 'en' ? ({ XY: 'Top', XZ: 'Front', YZ: 'Right' })[plane] : ({ XY: '上', XZ: '前', YZ: '右' })[plane]}</button>)}
+          {(['XY', 'XZ', 'YZ'] as const).map(plane => <button key={plane} className="sb-tool" aria-label={`${plane} ${msg('vp.sketchPlane', lang)}`} onClick={() => useApp.getState().chooseSketchPlane(plane)}>{plane} · {msg(`vp.plane.${plane}`, lang)}</button>)}
           <button className="sb-tool" onClick={() => void useApp.getState().tryExitSketch()}>{tStatus('取消', lang)} (Esc)</button>
-          <span className="sb-hint">{lang === 'en' ? 'Or select a planar face in the canvas.' : '亦可直接点画布中的实体平面。'}</span>
+          <span className="sb-hint">{msg('vp.orPickFace', lang)}</span>
         </div>
       )}
 
@@ -7218,7 +7218,7 @@ export default function Viewport() {
             <span style={{ color: 'var(--text-dim)' }}>{tStatus('拔模角', lang)}</span>
             <span><input type="number" step={1} value={extrudeDraft} onChange={(e) => setExtrudeDraft(Number(e.target.value) || 0)} style={{ width: 66 }} /> °</span>
           </label>
-          <details className="command-advanced"><summary>{lang === 'en' ? 'Advanced · twist' : '高级 · 扭转'}</summary>
+          <details className="command-advanced"><summary>{msg('vp.advancedTwist', lang)}</summary>
           <label title={tStatus('扭转角：拉伸时绕高度方向旋转', lang)}>
             <span style={{ color: 'var(--text-dim)' }}>{tStatus('扭转', lang)}</span>
             <span><input type="number" step={5} value={sketchTwist} onChange={(e) => setSketchTwist(Number(e.target.value) || 0)} style={{ width: 66 }} /> °</span>
@@ -7228,12 +7228,12 @@ export default function Viewport() {
             <span>{tStatus('操作', lang)}</span>
             <select aria-label={tStatus('拉伸操作', lang)} value={sketchAsComp ? 'component' : sketchOp}
               onChange={e => e.target.value === 'component' ? useApp.setState({ sketchAsComponent: true, sketchOp: 'new' }) : setSketchOp(e.target.value as typeof sketchOp)}>
-              <option value="new">{bodyMesh ? (lang === 'en' ? 'Join' : '合并 / Join') : (lang === 'en' ? 'New Body' : '新實體 / New Body')}</option>
-              {sketchOp === 'join' && <option value="join">{lang === 'en' ? 'Join' : '合并 / Join'}</option>}
-              <option value="cut" disabled={!bodyMesh?.triangles?.length}>{lang === 'en' ? 'Cut' : '切除 / Cut'}</option>
-              <option value="intersect" disabled={!bodyMesh?.triangles?.length}>{lang === 'en' ? 'Intersect' : '相交 / Intersect'}</option>
-              {bodyMesh && <option value="newbody">{lang === 'en' ? 'New Body' : '新實體 / New Body'}</option>}
-              {bodyMesh && <option value="component">{lang === 'en' ? 'New Component' : '新组件 / New Component'}</option>}
+              <option value="new">{bodyMesh ? msg('vp.opJoin', lang) : msg('vp.opNewBody', lang)}</option>
+              {sketchOp === 'join' && <option value="join">{msg('vp.opJoin', lang)}</option>}
+              <option value="cut" disabled={!bodyMesh?.triangles?.length}>{msg('vp.opCut', lang)}</option>
+              <option value="intersect" disabled={!bodyMesh?.triangles?.length}>{msg('vp.opIntersect', lang)}</option>
+              {bodyMesh && <option value="newbody">{msg('vp.opNewBody', lang)}</option>}
+              {bodyMesh && <option value="component">{msg('vp.opNewComponent', lang)}</option>}
             </select>
           </label>
           <p className="operation-help">{lang === 'en'
@@ -7647,7 +7647,7 @@ export default function Viewport() {
       {interfPanelOpen && (
         <div className="cmd-palette" style={{ position: 'fixed', right: 12, top: 'min(208px, 18vh)', width: 'min(316px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: 70, maxHeight: 'calc(82vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <b style={{ fontSize: 12 }}>{interfReport ? (interfReport.hits.length ? `⚠ ${tStatus('干涉', lang)} ${interfReport.hits.length} ${lang === 'en' ? 'hit(s)' : '处'}` : `✓ ${tStatus('无干涉', lang)}`) : `🔍 ${tStatus('干涉检查', lang)}`}</b>
+            <b style={{ fontSize: 12 }}>{interfReport ? (interfReport.hits.length ? `⚠ ${tStatus('干涉', lang)} ${interfReport.hits.length} ${msg('vp.hits', lang)}` : `✓ ${tStatus('无干涉', lang)}`) : `🔍 ${tStatus('干涉检查', lang)}`}</b>
             <button className="tb-btn" onClick={() => useApp.getState().setInterfPanelOpen(false)}>✕</button>
           </div>
           {/* GM-X1 #6：拣集 + 含共面（拆自动跑）*/}
@@ -8547,15 +8547,15 @@ function FormPanel() {
     )
   }
   const editTitle = lang !== 'en' ? '編輯造型' : 'Edit Form'
-  const finishFormLbl = lang !== 'en' ? '完成造型' : 'Finish Form'
-  const cancelFormLbl = lang !== 'en' ? '取消造型' : 'Cancel Form'
+  const finishFormLbl = msg('vp.finishForm', lang)
+  const cancelFormLbl = msg('vp.cancelForm', lang)
   return (
     <FormPalette
       title={editTitle}
       footer={(
         <>
-          <button className="cs-btn" disabled={!undoN && !formDragging} onClick={() => useApp.getState().formUndoPop()}>↶ {lang === 'en' ? 'Undo' : '復原'}</button>
-          <button className="cs-btn" disabled={!redoN || formDragging} onClick={() => useApp.getState().formRedoPop()}>↷ {lang === 'en' ? 'Redo' : '重做'}</button>
+          <button className="cs-btn" disabled={!undoN && !formDragging} onClick={() => useApp.getState().formUndoPop()}>↶ {msg('vp.formUndo', lang)}</button>
+          <button className="cs-btn" disabled={!redoN || formDragging} onClick={() => useApp.getState().formRedoPop()}>↷ {msg('vp.formRedo', lang)}</button>
           <button className="cs-btn" data-testid="finish-form-panel" disabled={formDragging} onClick={() => void useApp.getState().finishForm()}>✓ {finishFormLbl}</button>
           <button className="cs-btn" data-testid="cancel-form-panel" onClick={() => useApp.getState().cancelForm()}>{cancelFormLbl}</button>
         </>
@@ -8563,7 +8563,7 @@ function FormPanel() {
     >
       <b style={{ color: '#1572c4' }}>{tStatus('🫧 Form 细分建模', lang)}</b>
       <span style={{ color: '#5a6b78' }}>{tStatus('点控制点拖箭嘴捏形 / 点面拉伸（', lang)}{cage.verts.length} {tStatus('点）', lang)}</span>
-      {cage.sel != null && <fieldset style={{ minWidth: 0, width: '100%', display: 'flex', flexWrap: 'wrap', gap: 6 }}><legend>{lang === 'en' ? 'Control point · mm' : '控制点坐标 · mm'}</legend>{(['X','Y','Z'] as const).map((axis,k) => <label key={axis}>{axis} <input aria-label={'Form point '+axis} key={cage.sel+'|'+cage.verts[cage.sel!][k]} type="number" defaultValue={cage.verts[cage.sel!][k]} style={{ width: 64 }} onBlur={e => { const n=Number(e.currentTarget.value), c=useApp.getState().formCage; if (e.currentTarget.value.trim() && Number.isFinite(n) && c?.sel != null) { const p=[...c.verts[c.sel]] as [number,number,number];p[k]=n;useApp.getState().setFormVert(c.sel,p) } }} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){e.currentTarget.value=String(cage.verts[cage.sel!][k]);e.currentTarget.blur()}}}/></label>)}</fieldset>}
+      {cage.sel != null && <fieldset style={{ minWidth: 0, width: '100%', display: 'flex', flexWrap: 'wrap', gap: 6 }}><legend>{msg('vp.ctrlPoint', lang)}</legend>{(['X','Y','Z'] as const).map((axis,k) => <label key={axis}>{axis} <input aria-label={'Form point '+axis} key={cage.sel+'|'+cage.verts[cage.sel!][k]} type="number" defaultValue={cage.verts[cage.sel!][k]} style={{ width: 64 }} onBlur={e => { const n=Number(e.currentTarget.value), c=useApp.getState().formCage; if (e.currentTarget.value.trim() && Number.isFinite(n) && c?.sel != null) { const p=[...c.verts[c.sel]] as [number,number,number];p[k]=n;useApp.getState().setFormVert(c.sel,p) } }} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){e.currentTarget.value=String(cage.verts[cage.sel!][k]);e.currentTarget.blur()}}}/></label>)}</fieldset>}
       <label title={tStatus('细分级数：越高越圆滑（三角数 ×4/级）', lang)}>{tStatus('级数', lang)} <select value={cage.levels} onChange={(e) => useApp.getState().setFormLevels(Number(e.target.value))} style={{ height: 22 }}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
       <button className="cs-btn" title={tStatus('Subdivide：循环提高细分级 1→2→3→1', lang)} onClick={() => useApp.getState().runCommand('formsubdiv', 'Subdivide')}>{tStatus('Subdivide', lang)}</button>
       <button className={'cs-btn' + (formSym !== null ? ' on' : '')} title={tStatus('对称编辑（S193）：开后拖一边控制点，对面镜像点自动同步（X/Y 轴镜像，对称平面 0）—— Fusion T-spline Symmetry。再撳切换 关→X→Y', lang)} style={formSym !== null ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().cycleFormSym()}>{tStatus('对称', lang)}{formSym === 0 ? ':X' : formSym === 1 ? ':Y' : ''}</button>

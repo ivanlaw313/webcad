@@ -1,14 +1,15 @@
 import { drawingScale, paperViewSizeMm, drawingLinearOffset, cloneDrawingAnno, dxfTextValue } from '../io/drawingLayout'
 import { registerEscapeLayer } from '../cad/escapeKey'
 import { useApp } from '../store'
-import { tStatus } from '../i18n'
+import { tStatus, msg } from '../i18n'
 import { useState, useEffect, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import { jpegToPdf, dataUrlToBytes } from '../io/pdf'
 import { durableDownload, type DownloadResult } from '../io/download'
 // T784：标注类型搬入共享模块（store 持久化同款形状）— 别名保持本文件原有名字
 import { type DrawingAnno, type DTol as Tol, type DMDim as MDim, type DRDim as RDim, type DADim as ADim, type DNote as Note, type DNoteKind as NoteKind, type DDatum as Datum, type DFCF as FCF, type DDetail as Detail } from '../io/drawingAnno'
 
-const LABEL: Record<string, string> = { front: '前視圖', top: '俯視圖', right: '右視圖', iso: '立體圖 (參考)', section: '剖視圖 A—A' }
+const LABEL_KEY: Record<string, string> = { front: 'draw.view.front', top: 'draw.view.top', right: 'draw.view.right', iso: 'draw.view.iso', section: 'draw.view.section' }
+const viewLabel = (name: string, lang: string) => msg(LABEL_KEY[name] ?? name, lang as any)
 const ROMAN = ['I', 'II', 'III', 'IV', 'V']  // T749 局部放大视图编号
 // T749 detail view / B5 tolerance / B2-B4 manual dims / notes：类型定义已搬去 src/io/drawingAnno.ts（T784 持久化）。
 const fmtMm = (n: number) => n.toFixed(2).replace(/\.?0+$/, '') // 4.00→"4", 12.50→"12.5", 3.99→"3.99"
@@ -171,7 +172,7 @@ export default function DrawingPanel() {
   const oH = fb ? +(fb[3] - 12).toFixed(1) : null  // Z extent
   const oW = tb ? +(tb[3] - 12).toFixed(1) : null  // Y extent (depth)
   const today = new Date().toLocaleDateString('zh-CN')
-  const projLabel = firstAngle ? '第一角投影' : '第三角投影'
+  const projLabel = firstAngle ? msg('draw.projFirst', lang) : msg('draw.projThird', lang)
   const cellOf = (name: string): { c: number; r: number } | undefined => VIEW_CELLS[firstAngle ? '1' : '3'][name]
 
   // Overall W×H dimension annotations per orthographic view (extension lines + dimension line + ticks + value),
@@ -706,9 +707,9 @@ export default function DrawingPanel() {
     const symW = tbx + tbw - xs[4]
     const strip = (t: string) => t.replace(/[<>&]/g, '')
     const rows = [
-      ['名称', strip(projectName || 'webcad 零件'), '材料', strip(materialTxt) || '—'],
-      ['比例', scale, '单位', 'mm'],
-      ['制图', strip(drawnBy) || '—', '日期', today],
+      [msg('draw.tbName', lang), strip(projectName || msg('draw.partDefault', lang)), msg('draw.tbMaterial', lang), strip(materialTxt) || '—'],
+      [msg('draw.tbScale', lang), scale, msg('draw.tbUnit', lang), 'mm'],
+      [msg('draw.tbDrawnBy', lang), strip(drawnBy) || '—', msg('draw.tbDate', lang), today],
     ]
     let s = `<rect x="${tbx}" y="${tby}" width="${tbw}" height="${tbh}" fill="#fff" stroke="#1c1c1c" stroke-width="0.5"/>`
     for (let i = 1; i < 3; i++) s += `<line x1="${tbx}" y1="${(tby + rh * i).toFixed(2)}" x2="${xs[4]}" y2="${(tby + rh * i).toFixed(2)}" stroke="#1c1c1c" stroke-width="0.25"/>`
@@ -768,7 +769,7 @@ export default function DrawingPanel() {
       const { v, dm, vb, ew, eh } = m
       const x0 = colX.get(m.cell.c)! + (colW.get(m.cell.c)! - ew) / 2
       const y0 = rowY.get(m.cell.r)! + (rowHm.get(m.cell.r)! - eh) / 2
-      vlabels += `<text x="${(x0 + ew / 2).toFixed(1)}" y="${(rowY.get(m.cell.r)! + rowHm.get(m.cell.r)! + lblBand * 0.68).toFixed(1)}" font-size="${lblSize.toFixed(1)}" fill="#1c1c1c" text-anchor="middle" font-weight="bold">${m.detail ? m.detail.label : (LABEL[v.name] ?? v.name)}</text>`
+      vlabels += `<text x="${(x0 + ew / 2).toFixed(1)}" y="${(rowY.get(m.cell.r)! + rowHm.get(m.cell.r)! + lblBand * 0.68).toFixed(1)}" font-size="${lblSize.toFixed(1)}" fill="#1c1c1c" text-anchor="middle" font-weight="bold">${m.detail ? m.detail.label : viewLabel(v.name, lang)}</text>`
       if (m.detail) {  // T749 局部放大格：clipPath 圆形裁剪 + 2:1（cell=4r / viewBox=2r）
         const dd = m.detail.dd
         return `<svg x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${ew}" height="${eh}" viewBox="${vb}">`
@@ -835,7 +836,7 @@ export default function DrawingPanel() {
         cols.map((c, ci) => `<text x="${(colB[ci] + 2).toFixed(1)}" y="${(ry + rowH * 0.72).toFixed(1)}" font-size="${fs.toFixed(1)}" fill="#1c1c1c"${bold ? ' font-weight="bold"' : ''}>${c}</text>`).join('')
       let yy = y0
       tableSvg += `<line x1="0" y1="${y0.toFixed(1)}" x2="${W0.toFixed(1)}" y2="${y0.toFixed(1)}" stroke="#1c1c1c" stroke-width="0.6"/>`
-      tableSvg += `<text x="2" y="${(yy + rowH * 0.72).toFixed(1)}" font-size="${fs.toFixed(1)}" fill="#1c1c1c" font-weight="bold">孔表 (${LABEL[ht.view] ?? ht.view}, 原点:零件中心) ${ht.summary.map((s) => `${s.tag}:${s.n}xØ${s.d}`).join('  ')}</text>`
+      tableSvg += `<text x="2" y="${(yy + rowH * 0.72).toFixed(1)}" font-size="${fs.toFixed(1)}" fill="#1c1c1c" font-weight="bold">${msg('draw.holeTable', lang).replace('{0}', viewLabel(ht.view, lang))} ${ht.summary.map((s) => `${s.tag}:${s.n}xØ${s.d}`).join('  ')}</text>`
       yy += rowH
       tableSvg += cellTxt(['标签', 'X', 'Y', '孔径'], yy, true); yy += rowH
       for (const r of ht.rows) { tableSvg += cellTxt([r.tag, r.x.toFixed(2), r.y.toFixed(2), 'Ø' + r.d], yy); yy += rowH }
@@ -851,7 +852,7 @@ export default function DrawingPanel() {
         cols.map((c, ci) => `<text x="${(colB[ci] + 2).toFixed(1)}" y="${(ry + rowH * 0.72).toFixed(1)}" font-size="${fs.toFixed(1)}" fill="#1c1c1c"${bold ? ' font-weight="bold"' : ''}>${c.replace(/[<>&]/g, '')}</text>`).join('')
       let yy = y0
       tableSvg += `<line x1="0" y1="${y0.toFixed(1)}" x2="${W0.toFixed(1)}" y2="${y0.toFixed(1)}" stroke="#1c1c1c" stroke-width="0.6"/>`
-      tableSvg += `<text x="2" y="${(yy + rowH * 0.72).toFixed(1)}" font-size="${fs.toFixed(1)}" fill="#1c1c1c" font-weight="bold">BOM 材料清单（气泡编号 = 序号）· 共 ${bom.reduce((t, r) => t + r.qty, 0)} 件</text>`
+      tableSvg += `<text x="2" y="${(yy + rowH * 0.72).toFixed(1)}" font-size="${fs.toFixed(1)}" fill="#1c1c1c" font-weight="bold">${msg('draw.bomTitle', lang).replace('{0}', String(bom.reduce((t, r) => t + r.qty, 0)))}</text>`
       yy += rowH
       tableSvg += cellTxt(['序号', '名称', '数量', '材质', '质量(g)'], yy, true); yy += rowH
       for (const r of bom) { tableSvg += cellTxt([String(r.n), r.name, String(r.qty), r.mat, r.grams.toFixed(1)], yy); yy += rowH }
@@ -861,7 +862,7 @@ export default function DrawingPanel() {
     }
     const block = gbFrame ? '' : `<rect x="0" y="0" width="${W0.toFixed(1)}" height="${(total + tableH).toFixed(1)}" fill="none" stroke="#1c1c1c" stroke-width="0.6"/>`
       + `<line x1="0" y1="${H0.toFixed(1)}" x2="${W0.toFixed(1)}" y2="${H0.toFixed(1)}" stroke="#1c1c1c" stroke-width="0.6"/>`
-      + `<text x="3" y="${(H0 + tbH * 0.42).toFixed(1)}" font-size="${(tbH * 0.3).toFixed(1)}" fill="#1c1c1c">${(projectName || 'webcad 零件').replace(/[<>&]/g, '')}　·　${oL ?? '?'}×${oW ?? '?'}×${oH ?? '?'} mm${materialTxt ? `　·　材料 ${materialTxt.replace(/[<>&]/g, '')}` : ''}</text>`
+      + `<text x="3" y="${(H0 + tbH * 0.42).toFixed(1)}" font-size="${(tbH * 0.3).toFixed(1)}" fill="#1c1c1c">${(projectName || msg('draw.partDefault', lang)).replace(/[<>&]/g, '')}　·　${oL ?? '?'}×${oW ?? '?'}×${oH ?? '?'} mm${materialTxt ? `　·　材料 ${materialTxt.replace(/[<>&]/g, '')}` : ''}</text>`
       + `<text x="3" y="${(H0 + tbH * 0.8).toFixed(1)}" font-size="${(tbH * 0.26).toFixed(1)}" fill="#555">比例 ${scale}　·　单位 mm　·　${projLabel}${genTol ? `　·　未注公差 ${genTol}` : ''}${massStr ? `　·　密度 ${density}g/cm³　·　估重 ${massStr}` : ''}${drawnBy ? `　·　绘图 ${drawnBy.replace(/[<>&]/g, '')}` : ''}　·　${today}</text>`
     const contentW = W0, contentH = total + tableH
     // T749：45° 剖面线 pattern（固定 2.5mm 间距 — 真图纸惯例）；嵌套 svg 内引用照样生效
@@ -894,16 +895,16 @@ export default function DrawingPanel() {
   const finishDrawingExport = async (bytes: ArrayBuffer | Uint8Array, name: string, type: string, label: string) => {
     const result: DownloadResult = await durableDownload(bytes, name, type)
     if (!result.ok) {
-      if (result.reason === 'aborted') useApp.setState({ status: `已取消导出${label}（现有图纸未动）` })
-      else useApp.setState({ status: `导出失败：无法写入文件${result.message ? ' — ' + result.message : ''}（现有图纸未动）` })
+      if (result.reason === 'aborted') useApp.setState({ status: msg('draw.exportCancel', lang).replace('{0}', label) })
+      else useApp.setState({ status: msg('draw.exportFail', lang).replace('{0}', result.message ? ' — ' + result.message : '') })
       return
     }
-    const where = result.method === 'file-picker' ? ' · 已写入所选位置' : ''
-    useApp.setState({ status: `已導出工程圖 ${label}${where}` })
+    const where = result.method === 'file-picker' ? msg('draw.exportWhere', lang) : ''
+    useApp.setState({ status: msg('draw.exportOk', lang).replace('{0}', label).replace('{1}', where) })
   }
 
   const exportSVG = () => {
-    if(buildSvgString(0).overflow){window.alert('所選比例超出圖紙，請減小比例或選較大圖幅；未匯出裁切圖紙');return}
+    if(buildSvgString(0).overflow){window.alert(msg('draw.overflow', lang));return}
     const { svg } = buildSvgString(0)
     void finishDrawingExport(new TextEncoder().encode(svg), `${drawingBaseName()}.svg`, 'image/svg+xml', 'SVG')
   }
@@ -911,7 +912,7 @@ export default function DrawingPanel() {
   // Rasterise the drawing to a PNG (2× for crisp text) — for pasting into docs / chat / email where SVG
   // isn't supported. Pure browser: SVG → <img> → <canvas> → PNG blob, no dependency.
   const exportPNG = () => {
-    if(buildSvgString(0).overflow){window.alert('所選比例超出圖紙，請減小比例或選較大圖幅；未匯出裁切圖紙');return}
+    if(buildSvgString(0).overflow){window.alert(msg('draw.overflow', lang));return}
     const pxScale = gbFrame ? (sheet === 'A3' ? 3 : 4) : 2 // GB 图框时按图幅定倍率（A4 297mm×4 / A3 420mm×3 ≈ 1200px 宽，打印清晰）
     const { svg, W, H } = buildSvgString(pxScale)
     const pxW = Math.round(W * pxScale), pxH = Math.round(H * pxScale)
@@ -930,7 +931,7 @@ export default function DrawingPanel() {
   // 宽，A4 打印先唔糊）→ JPEG(0.92) → 自写极简 PDF（src/io/pdf.ts，DCTDecode 原样嵌入，零依赖）。位图路线
   // 係有意为之：矢量 PDF 入面嘅中文文字需要 CID 字体子集嵌入（重型工程），tooltip 已诚实标明。
   const exportPDF = () => {
-    if(buildSvgString(0).overflow){window.alert('所選比例超出圖紙，請減小比例或選較大圖幅；未匯出裁切圖紙');return}
+    if(buildSvgString(0).overflow){window.alert(msg('draw.overflow', lang));return}
     const probe = buildSvgString(0)
     const pxScale = Math.max(2.5, Math.min(8, 1400 / Math.max(1, probe.W)))
     const { svg, W, H } = buildSvgString(pxScale)
@@ -1046,7 +1047,7 @@ export default function DrawingPanel() {
             const cell = cellOf(v.name) // 按投影制式排格仔（第三角：俯视喺前视上方；第一角：俯视落下、右视去左）
             return (
               <div key={v.name} className="dw-view" style={cell ? { gridColumn: cell.c, gridRow: cell.r } : undefined}>
-                <div className="dw-vtitle">{tStatus(LABEL[v.name] ?? v.name, lang)}</div>
+                <div className="dw-vtitle">{viewLabel(v.name, lang)}</div>
                 {svgFor(v)}
                 {v.name !== 'iso' && v.name !== 'section' && <div className="dw-dim">▭ {W.toFixed(1)} × {H.toFixed(1)} mm</div>}
               </div>
@@ -1062,7 +1063,7 @@ export default function DrawingPanel() {
               const hsp = Math.max(vw0 - 12, vh0 - 12) * 0.035
               return (
                 <div key={id} className="dw-view">
-                  <div className="dw-vtitle" style={{ color: '#2e7d32' }}>🔍 {tStatus('局部放大', lang)} {ROMAN[g] ?? g + 1}（{tStatus(LABEL[vn] ?? vn, lang)} · {tStatus('图纸', lang)} 2:1）</div>
+                  <div className="dw-vtitle" style={{ color: '#2e7d32' }}>🔍 {tStatus('局部放大', lang)} {ROMAN[g] ?? g + 1}（{viewLabel(vn, lang)} · {tStatus('图纸', lang)} 2:1）</div>
                   <svg viewBox={`${(dd.cx - dd.r).toFixed(2)} ${(dd.cy - dd.r).toFixed(2)} ${(2 * dd.r).toFixed(2)} ${(2 * dd.r).toFixed(2)}`} preserveAspectRatio="xMidYMid meet" style={{ width: `${dd.r*4}mm`, height: `${dd.r*4}mm`, maxWidth:'none', background: '#fff' }}>
                     {sv.hatch && sv.hatch.length > 0 && (
                       <defs>
@@ -1088,7 +1089,7 @@ export default function DrawingPanel() {
           const { svg, overflow } = buildSvgString(0) // GB 图框所见即所得预览（导出 SVG/PNG/PDF 即此版面）
           return (
             <div style={{ marginTop: 10 }}>
-              {overflow && <div role="alert" style={{color:'#b42318'}}>所選比例超出圖紙，請減小比例或選較大圖幅。SVG／PNG／PDF 匯出暫停，避免裁切。</div>}
+              {overflow && <div role="alert" style={{color:'#b42318'}}>{msg('draw.overflow', lang)}</div>}
               <div style={{ fontSize: 12, color: '#5a6b78', marginBottom: 4 }}>🖼 {tStatus('GB 图框预览 —', lang)} {sheet} {tStatus('横向', lang)} {sheet === 'A3' ? '420×297' : '297×210'} mm · {tStatus('10mm 边框 + 右下标题栏（导出 SVG / PNG / PDF 同此版面）', lang)}</div>
               <img src={'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)} alt={tStatus('GB 图框预览', lang)} style={{ width: '100%', background: '#fff', border: '1px solid #ccc', borderRadius: 4 }} />
             </div>
@@ -1150,7 +1151,7 @@ export default function DrawingPanel() {
           if (!ht) return null
           return (
             <div className="dw-holetable" style={{ padding: '4px 10px', borderTop: '1px solid #ccc', fontSize: 11, color: '#333', maxHeight: 150, overflow: 'auto' }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 3 }}>🕳 {tStatus('孔表 Hole Table', lang)}　<span style={{ fontWeight: 'normal', color: '#777' }}>（{tStatus(LABEL[ht.view] ?? ht.view, lang)}{tStatus('，原点：零件中心，X→右 Y→上 mm）', lang)}</span></div>
+              <div style={{ fontWeight: 'bold', marginBottom: 3 }}>🕳 {tStatus('孔表 Hole Table', lang)}　<span style={{ fontWeight: 'normal', color: '#777' }}>（{viewLabel(ht.view, lang)}{tStatus('，原点：零件中心，X→右 Y→上 mm）', lang)}</span></div>
               <table style={{ borderCollapse: 'collapse', width: '100%' }}>
                 <thead><tr style={{ background: '#f0f0f0' }}>
                   <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'left' }}>{tStatus('标签', lang)}</th>

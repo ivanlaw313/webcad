@@ -16,9 +16,12 @@ const palette = readFileSync(new URL('../src/components/CommandPalette.tsx', imp
 const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 const ribbonSrc = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.76; SW CACHE webcad-v1.76', () => {
-  assert.match(version, /APP_VERSION = '1\.76'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.76'/)
+test('APP_VERSION is 1.76+', () => {
+  assert.match(version, /APP_VERSION = '1\.(7[6-9]|[8-9]\d)'|APP_VERSION = '[2-9]\./)
+})
+
+test('v1.76: SW CACHE webcad-v1.76+; not stuck on 1.75', () => {
+  assert.match(sw, /const CACHE = 'webcad-v1\.(7[6-9]|[8-9]\d)'/)
   assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.75'/)
 })
 

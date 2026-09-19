@@ -5,10 +5,12 @@ import { useEscapeLayer } from './useEscapeLayer'
 // appPrompt/appConfirm/appAlert 系 Promise 化,撳确定/取消即 resolve。Enter 确定、Esc 取消。
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
+import { msg } from '../i18n'
 
 export default function PromptDialog() {
   const dlg = useApp((s) => s.uiDialog)
   const resolveDialog = useApp((s) => s.resolveDialog)
+  const lang = useApp((s) => s.lang)
   const [draft, setDraft] = useState({ dialog: dlg, value: dlg?.kind === 'prompt' ? dlg.def : '' })
   // Reset before committing a new dialog, never after it becomes editable.
   if (draft.dialog !== dlg) setDraft({ dialog: dlg, value: dlg?.kind === 'prompt' ? dlg.def : '' })
@@ -76,11 +78,11 @@ export default function PromptDialog() {
         <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           {dlg.kind !== 'alert' && (
             <button className="cmd-cancel" onClick={cancel}>
-              取消
+              {msg('dlg.cancel', lang)}
             </button>
           )}
           <button className="cmd-ok" onClick={ok} autoFocus={dlg.kind !== 'prompt'}>
-            {dlg.kind === 'confirm' ? '确定' : dlg.kind === 'alert' ? '知道了' : '确定'}
+            {dlg.kind === 'alert' ? msg('dlg.gotIt', lang) : msg('dlg.ok', lang)}
           </button>
         </div>
       </div>

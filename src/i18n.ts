@@ -138,10 +138,7 @@ export const EN_LABEL: Record<string, string> = {
   // INSERT canvas/decal + residual Traditional (v1.70b) — retain SC above
   '插入組件': 'Insert Component',
   '插入緊固件': 'Insert Fastener',
-  '插入3MF網格': 'Insert 3MF',
-  '插入OBJ網格': 'Insert OBJ',
-  '畫布': 'Canvas',
-  '貼花': 'Decal',
+  // 插入*網格 / 畫布 / 貼花 already mapped above (line ~85)
   // CREATE/MODIFY/PRINT residual Traditional (v1.70) — retain SC above
   '面上草圖': 'Sketch on Face',
   '面加螺紋': 'Thread',

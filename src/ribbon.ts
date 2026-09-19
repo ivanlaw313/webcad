@@ -30,7 +30,7 @@ const SOLID: Panel[] = [
       { id: 'revolve', label: '旋轉', icon: 'revolve', quick: true, tip: '旋转：草图轮廓绕一条轴旋转成回转体（轴/盘/车削件）。可加料/切割车槽/相交，薄壁>0 做灯罩/碗壳。' },
       { id: 'sweep', label: '掃掠', icon: 'sweep', quick: true, tip: '扫掠：一个截面沿你画嘅路径扫出实体（管/导轨）。先画折线/样条路径，壁厚>0 出空心管。' },
       { id: 'loft', label: '放樣', icon: 'loft', quick: true, tip: '放样：在两个或多个截面之间平滑过渡成实体。截面可来自 XY/XZ/YZ 或任意参考平面；按选择次序加入。' },
-      { id: 'rib', label: '加强筋', icon: 'rib', tip: '加强筋/腹板：沿草图中心线生成薄筋并落到实体底面融合（增强结构）。' },
+      { id: 'rib', label: '加強筋', icon: 'rib', tip: '加強筋/腹板：沿草图中心线生成薄筋并落到实体底面融合（增强结构）。' },
       { id: 'web', label: '腹板', icon: 'rib', tip: 'Fusion Web：选择一条或多条开放草图线建立薄腹板；Extend Curves 默认开启，会把线端延伸到邻近实体墙面。' },
       { id: 'emboss', label: 'Emboss', icon: 'emboss', quick: true, tip: 'Emboss（Fusion 凸字/刻字）：点实体一个【平面】→ 输入文字 → 沿该面法向凸起(正深度)/刻入(负深度)。标牌/编号/logo。' },
       { id: 'hole', label: '孔', icon: 'hole', shortcut: 'H', quick: true, sep: true, tip: '孔：在实体面上钻孔（通/盲 · 沉头 · 埋头 · 螺母槽 · 攻牙底孔），有 M3-M12 标准尺寸。' },
@@ -417,9 +417,9 @@ const MESH: Panel[] = [
 ]
 const SHEET: Panel[] = [
   { name: 'CREATE', tools: [
-    { id: 'sheetmetal', label: '钣金件', icon: 'sheetmetal', quick: true },
+    { id: 'sheetmetal', label: '鈑金件', icon: 'sheetmetal', quick: true },
     { id: 'sketch', label: '建立草圖', icon: 'sketch', quick: true },
-    { id: 'extrude', label: '薄板/法兰(拉伸)', icon: 'extrude', quick: true },
+    { id: 'extrude', label: '薄板/法蘭(拉伸)', icon: 'extrude', quick: true },
     { id: 'box', label: '長方體', icon: 'box' },
   ] },
   { name: 'MODIFY', tools: [
@@ -430,14 +430,14 @@ const SHEET: Panel[] = [
     { id: 'pattern', label: '陣列', icon: 'pattern' },
   ] },
   g('CONFIGURE'), g('CONSTRUCT'), g('INSPECT'), g('INSERT'), g('ASSEMBLE'),
-  { name: 'SELECT', tools: [{ id: 'select', label: '选择', icon: 'select', quick: true, tip: '选择工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' }] },
-  { name: 'EXPORT', tools: [{ id: 'exportflatdxf', label: '导出展开DXF', icon: 'exportfile', quick: true, tip: '把钣金件展开成平料 DXF（含 K 因子折弯余量 + BEND 折弯线图层），直接激光下料。' }, { id: 'exportstep', label: '导出STEP', icon: 'exportfile' }, { id: 'exportstl', label: '导出STL', icon: 'exportfile', tip: '导出二进制 STL（3D 打印通用）。' }, { id: 'exportstlascii', label: '导出STL(ASCII)', icon: 'exportfile', tip: 'ASCII 文本格式 STL（部分旧切片器/CAM/调试用，可读）。' }] },
+  { name: 'SELECT', tools: [{ id: 'select', label: '選擇', icon: 'select', quick: true, tip: '選擇工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' }] },
+  { name: 'EXPORT', tools: [{ id: 'exportflatdxf', label: '導出展開DXF', icon: 'exportfile', quick: true, tip: '把鈑金件展開成平料 DXF（含 K 因子折彎餘量 + BEND 折彎線图层），直接激光下料。' }, { id: 'exportstep', label: '導出STEP', icon: 'exportfile' }, { id: 'exportstl', label: '導出STL', icon: 'exportfile', tip: '導出二进制 STL（3D 打印通用）。' }, { id: 'exportstlascii', label: '導出STL(ASCII)', icon: 'exportfile', tip: 'ASCII 文本格式 STL（部分旧切片器/CAM/调试用，可读）。' }] },
 ]
 const PLASTIC: Panel[] = [
   { name: 'CREATE', tools: [
     { id: 'sketch', label: '建立草圖', icon: 'sketch', quick: true },
     { id: 'extrude', label: '拉伸', icon: 'extrude', quick: true },
-    { id: 'rib', label: '加强筋', icon: 'rib', quick: true },
+    { id: 'rib', label: '加強筋', icon: 'rib', quick: true },
     { id: 'box', label: '長方體', icon: 'box' },
     { id: 'hole', label: '孔/Boss', icon: 'hole' },
   ] },
@@ -448,7 +448,7 @@ const PLASTIC: Panel[] = [
     { id: 'chamfer', label: '倒角', icon: 'chamfer' },
   ] },
   g('CONFIGURE'), g('CONSTRUCT'), g('INSPECT'), g('INSERT'), g('ASSEMBLE'),
-  { name: 'SELECT', tools: [{ id: 'select', label: '选择', icon: 'select', quick: true, tip: '选择工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' }] },
+  { name: 'SELECT', tools: [{ id: 'select', label: '選擇', icon: 'select', quick: true, tip: '選擇工具：撳零件/面/边就拣中佢（撳空白处 = 唔拣）；撳 Del 键删除所选。' }] },
 ]
 const MANAGE: Panel[] = [
   { name: 'PARAMETERS', tools: [{ id: 'params', label: '参数', icon: 'param', quick: true }] },

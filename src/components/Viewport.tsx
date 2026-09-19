@@ -2884,7 +2884,7 @@ function useSceneGround(): { groundY: number; camMaxDist: number } {
     return { groundY: loY, camMaxDist: Math.max(ZOOM_MAXD, diag * 2.4) }
   }, [bodyMesh, components, componentDefs])
 }
-// GM-X2 #12：应用偏好模态（Preferences）—— 主题 / 默认单位 / Z-up 朝向 / 自动正视草图 / 动画过渡 / 缩放方向 / 恢复默认。
+// GM-X2 #12：應用偏好模態（Preferences）—— 主題 / 預設單位 / Z-up 朝向 / 自動正視草圖 / 動畫過渡 / 縮放方向 / 恢復預設。
 function PrefsModal() {
   const open = useApp((s) => s.prefsOpen)
   const prefs = useApp((s) => s.prefs)
@@ -2952,10 +2952,10 @@ function UnitDialog() {
     <div className="modal-backdrop" onClick={close}>
       <div className="cmd-palette" style={{ width: 340 }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <b style={{ fontSize: 14 }}>📐 {tStatus('文档单位', lang)}</b>
+          <b style={{ fontSize: 14 }}>📐 {tStatus('文檔單位', lang)}</b>
           <button className="tb-btn" title={tStatus('關閉', lang)} onClick={close}>✕</button>
         </div>
-        <div style={{ fontSize: 11, color: '#8a97a2', marginBottom: 6 }}>{tStatus('仅影响屏上读数（量测/属性）；模型与导出 STL/STEP/DXF 恒 mm。', lang)}</div>
+        <div style={{ fontSize: 11, color: '#8a97a2', marginBottom: 6 }}>{tStatus('僅影響屏上讀數（量測/屬性）；模型與匯出 STL/STEP/DXF 恒 mm。', lang)}</div>
         {UNIT_PRESETS.map((p) => (
           <div key={p.id} className="panel-menu-item" onClick={() => { useApp.getState().setUnitPreset(p.id); close() }}>{unitPreset === p.id ? '● ' : '○ '}{p.label}</div>
         ))}
@@ -6925,7 +6925,7 @@ export default function Viewport() {
             data-testid="sketch-visual-style-trigger"
             className={'tb-btn vp-display-menu' + (skMorePop ? ' tb-on' : '')}
             aria-label={tStatus('顯示方式', lang)}
-            title={tStatus(`显示方式：${VISUAL_STYLE_LABELS[visualStyle]}。可即时切换实体、隐藏线、线框或穿透。`, lang)}
+            title={tStatus(`顯示方式：${VISUAL_STYLE_LABELS[visualStyle]}。可即時切換實體、隱藏線、線框或穿透。`, lang)}
             onClick={toggleSkMore}
           >▰ <span>{tStatus('顯示', lang)}</span> ▾</button>
         </div>
@@ -7063,7 +7063,7 @@ export default function Viewport() {
           <button className="sb-tool" title={tStatus('更多草图工具：参考图描摹 / 网格捕捉步长 / CAM 导出（DXF·激光·CNC·车削）', lang)} onClick={toggleSkMore}>{tStatus('更多', lang)}▾</button>
           {skMorePop && (
             <div className="panel-menu" style={{ position: 'fixed', left: skMorePos.x, top: skMorePos.y, zIndex: 300, minWidth: 250, maxWidth: 340 }} onClick={(e) => e.stopPropagation()}>
-              <div className="panel-menu-head">{tStatus('B-rep 显示方式', lang)}</div>
+              <div className="panel-menu-head">{tStatus('B-rep 顯示方式', lang)}</div>
               {VISUAL_STYLES.map((vs, i) => (
                 <button
                   type="button"
@@ -7630,7 +7630,7 @@ export default function Viewport() {
         </div>
       )}
 
-      {/* GM-X2 #12/#13：应用偏好模态 + 文档单位对话框 */}
+      {/* GM-X2 #12/#13：應用偏好模態 + 文檔單位對話框 */}
       <PrefsModal />
       <UnitDialog />
 
@@ -7909,7 +7909,7 @@ export default function Viewport() {
           )}
         </div>
         {/* GM-X2 #12：应用偏好（Preferences） */}
-        <button className="tb-btn" title={tStatus('应用偏好：主题 / 默认单位 / 自动正视草图 / 缩放方向 / 动画过渡…', lang)} onClick={() => setPrefsOpen(true)}>⚙</button>
+        <button className="tb-btn" title={tStatus('應用偏好：主題 / 預設單位 / 自動正視草圖 / 縮放方向 / 動畫過渡…', lang)} onClick={() => setPrefsOpen(true)}>⚙</button>
         {/* Fusion Viewport Layout: kept beside display/grid controls, matching the lower navigation bar. */}
         <div style={{ position: 'relative' }}>
           <button className={'tb-btn' + (navPop === 'layout' ? ' tb-on' : '')} title={tStatus('视口版面：单视图／二视图（前·右）／四视图（上·前·右·等角）— 多相机实时视口', lang)} onClick={() => setNavPop(navPop === 'layout' ? null : 'layout')}><ToolIcon name="grid" size={17} /><span style={{ fontSize: 9 }}>▾</span></button>

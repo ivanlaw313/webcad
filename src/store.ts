@@ -5686,42 +5686,42 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s=get(),sh=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])][shapeIndex]
     if(s.mode!=='sketch'||sh?.type!=='poly'||sh.projectLink!=='all')return
     const candidates=getProjectRelinkCandidates(sh,s.skRefGeo)
-    set({projectRelink:{shapeIndex,candidates,selected:null,snapshot:projectRelinkSnapshot(s),error:candidates.length?undefined:'当前上游没有可用来源；请修复上游或断开此曲线连结'}})
+    set({projectRelink:{shapeIndex,candidates,selected:null,snapshot:projectRelinkSnapshot(s),error:candidates.length?undefined:'當前上游沒有可用來源；請修復上游或斷開此曲線連結'}})
   },
   cancelProjectRelink: () => set({projectRelink:null}),
   selectProjectRelinkCandidate: async (index) => {
     const s=get(),r=s.projectRelink;if(!r)return
     const fail=(error:string)=>{if(get().projectRelink===pending)set({projectRelink:{...pending,busy:false,error,preview:undefined}})}
     const pending={...r,selected:index,busy:true,error:undefined,preview:undefined};set({projectRelink:pending})
-    if(projectRelinkSnapshot(s)!==r.snapshot){fail('草图或上游已改变，请取消后重新选择来源');return}
+    if(projectRelinkSnapshot(s)!==r.snapshot){fail('草圖或上游已改變，請取消後重新選擇來源');return}
     const shapes=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])],candidate=r.candidates[index]
-    if(!candidate){fail('请选择有效来源');return}
+    if(!candidate){fail('請選擇有效來源');return}
     const prepared=prepareProjectRelink(shapes[r.shapeIndex],candidate)
-    if(!prepared.ok){fail(`无法重新连结：${projectLinkIssueText[prepared.reason]}`);return}
-    const chosen=prepared.shape;if(chosen.type!=='poly'){fail('来源不是可重新连结的折线');return}
+    if(!prepared.ok){fail(`無法重新連結：${projectLinkIssueText[prepared.reason]}`);return}
+    const chosen=prepared.shape;if(chosen.type!=='poly'){fail('來源不是可重新連結的折線');return}
     const original=shapes[r.shapeIndex]
     // Existing Fix records derive anchors from input geometry, so reject moving a
     // fixed linked curve explicitly instead of silently reinterpreting that anchor.
-    if(s.skCons.some(c=>c.kind==='con'&&c.type==='fix'&&'shape'in c.a&&c.a.shape===r.shapeIndex)&&JSON.stringify(original.type==='poly'?original.pts:[])!==JSON.stringify(chosen.pts)){fail('固定约束阻止来源改变，请先调整固定约束');return}
+    if(s.skCons.some(c=>c.kind==='con'&&c.type==='fix'&&'shape'in c.a&&c.a.shape===r.shapeIndex)&&JSON.stringify(original.type==='poly'?original.pts:[])!==JSON.stringify(chosen.pts)){fail('固定約束阻止來源改變，請先調整固定約束');return}
     const next=shapes.map((sh,i)=>i===r.shapeIndex?chosen:sh)
     const pins:SkCon[]=next.flatMap((sh,shape)=>sh.type==='poly'&&sh.projectLink==='all'?sh.pts.map((_,idx)=>({id:`_relink_pin_${shape}_${idx}`,kind:'con' as const,type:'fix' as const,a:{kind:'pt' as const,shape,idx}})):[])
     let solved:Awaited<ReturnType<typeof solveFree>>
-    try{solved=await solveFree(structuredClone(next) as FShape[],structuredClone([...withParamVals(s.skCons,s.params),...pins]))}catch{fail('来源求解失败，草图未更改');return}
+    try{solved=await solveFree(structuredClone(next) as FShape[],structuredClone([...withParamVals(s.skCons,s.params),...pins]))}catch{fail('來源求解失敗，草圖未更改');return}
     if(get().projectRelink!==pending)return
-    if(projectRelinkSnapshot(get())!==r.snapshot){fail('草图或上游已改变，请取消后重新选择来源');return}
-    if(!solved||solved.conflict){fail('现有尺寸或约束与所选来源冲突；草图未更改，请先调整约束');return}
+    if(projectRelinkSnapshot(get())!==r.snapshot){fail('草圖或上游已改變，請取消後重新選擇來源');return}
+    if(!solved||solved.conflict){fail('現有尺寸或約束與所選來源衝突；草圖未更改，請先調整約束');return}
     const finite=(value:unknown):boolean=>typeof value==='number'?Number.isFinite(value):Array.isArray(value)?value.every(finite):value!==null&&typeof value==='object'?Object.values(value).every(finite):true
-    if(!solved.shapes.every(finite)){fail('求解产生无效几何，草图未更改');return}
+    if(!solved.shapes.every(finite)){fail('求解產生無效幾何，草圖未更改');return}
     const out=solved.shapes[r.shapeIndex]
-    if(out.type!=='poly'||out.pts.length!==chosen.pts.length||out.pts.some((p,i)=>!p.every(Number.isFinite)||Math.hypot(p[0]-chosen.pts[i][0],p[1]-chosen.pts[i][1])>1e-6)){fail('约束求解未能保持所选来源位置，草图未更改');return}
+    if(out.type!=='poly'||out.pts.length!==chosen.pts.length||out.pts.some((p,i)=>!p.every(Number.isFinite)||Math.hypot(p[0]-chosen.pts[i][0],p[1]-chosen.pts[i][1])>1e-6)){fail('約束求解未能保持所選來源位置，草圖未更改');return}
     const preview=solved.shapes.map((sh,i)=>({...next[i],...sh})) as SketchShape[]
     set({projectRelink:{...pending,busy:false,preview,previewCons:applyRelationUpdates(s.skCons,solved),dof:solved.dof}})
   },
   confirmProjectRelink: async () => {
     const s=get(),r=s.projectRelink;if(!r||r.busy||!r.preview)return false
-    if(projectRelinkSnapshot(s)!==r.snapshot){set({projectRelink:{...r,error:'草图或上游已改变，请取消后重新选择来源',preview:undefined}});return false}
+    if(projectRelinkSnapshot(s)!==r.snapshot){set({projectRelink:{...r,error:'草圖或上游已改變，請取消後重新選擇來源',preview:undefined}});return false}
     const next=structuredClone(r.preview),hasActive=!!s.sketchShape
-    set({projectRelink:null,skCons:r.previewCons??s.skCons,sketchProfiles:hasActive?next.slice(0,-1):next,sketchShape:hasActive?next.at(-1)!:null,sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],skDof:r.dof??null,skConflict:false,skConflictIds:[],skFreeShapes:new Set(),status:'已重新连结所选投影曲线；尺寸及约束保留，其他几何已同步求解'})
+    set({projectRelink:null,skCons:r.previewCons??s.skCons,sketchProfiles:hasActive?next.slice(0,-1):next,sketchShape:hasActive?next.at(-1)!:null,sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],skDof:r.dof??null,skConflict:false,skConflictIds:[],skFreeShapes:new Set(),status:'已重新連結所選投影曲線；尺寸及約束保留，其他幾何已同步求解'})
     return true
   },
   breakProjectLink: (index) => {
@@ -5729,16 +5729,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     if(s.mode!=='sketch'||sh?.type!=='poly'||!sh.projectLink)return
     const {projectLink:_link,projectLinkIssue:_issue,projectLinkSource:_source,...rest}=sh
     all[index]=rest
-    set({projectRelink:null,sketchProfiles:s.sketchShape?all.slice(0,-1):all,sketchShape:s.sketchShape?all.at(-1)!:null,sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],status:'已断开此曲线投影连结；几何及约束保留'})
+    set({projectRelink:null,sketchProfiles:s.sketchShape?all.slice(0,-1):all,sketchShape:s.sketchShape?all.at(-1)!:null,sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],status:'已斷開此曲線投影連結；幾何及約束保留'})
   },
   breakProjectLinks: () => set((s) => {
-    if (s.mode !== 'sketch') return { status: '断开投影连结：先开/重开一个草图' }
+    if (s.mode !== 'sketch') return { status: '斷開投影連結：先開/重開一個草圖' }
     const clear = (sh: SketchShape): SketchShape => sh.type === 'poly' && sh.projectLink ? (() => { const { projectLink: _link, projectLinkIssue: _issue, projectLinkSource: _source, ...rest } = sh; return rest })() : sh
     const all = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])]
     const count = all.filter((sh) => sh.type === 'poly' && sh.projectLink === 'all').length
-    if (!count) return { status: '断开投影连结：当前草图冇关联全投影曲线' }
+    if (!count) return { status: '斷開投影連結：當前草圖冇關聯全投影曲線' }
     const next = all.map(clear)
-    return { projectRelink:null, sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: next.slice(0, -1), sketchShape: next[next.length - 1] || null, status: `已断开 ${count} 条投影连结 — 曲线保留为独立草图几何，可自由修改` }
+    return { projectRelink:null, sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: next.slice(0, -1), sketchShape: next[next.length - 1] || null, status: `已斷開 ${count} 條投影連結 — 曲線保留為獨立草圖幾何，可自由修改` }
   }),
   // ③ Fusion 式逐条投影：开 projPickMode → 草图内㩒近一条投影边（橙色）→ 只投嗰条环/链（唔系全投）。
   projPickMode: false,
@@ -7392,12 +7392,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     // matches and no constraint targets them.  A changed topology or a dimension
     // on the old curve must remain explicit instead of silently retargeting it.
     const projectRefresh = refreshSafeProjectLinks(shapesCopy, refG, src.cons)
-    const projectWarning = projectRefresh.held ? `${projectRefresh.held} 条关联投影保留旧几何：${{
-      'missing-source': '投影来源不可用，请检查上游模型或断开连结',
-      constraints: '曲线有关联尺寸或约束，需确认来源后再更新',
-      topology: '来源轮廓数量或结构已改变，需重新选择投影',
-      'ambiguous-source': '多条来源无法可靠配对，需重新选择投影',
-      'modified-geometry': '投影曲线已编辑，请断开连结后保留修改',
+    const projectWarning = projectRefresh.held ? `${projectRefresh.held} 條關聯投影保留舊幾何：${{
+      'missing-source': '投影來源不可用，請檢查上游模型或斷開連結',
+      constraints: '曲線有關聯尺寸或約束，需確認來源後再更新',
+      topology: '來源輪廓數量或結構已改變，需重新選擇投影',
+      'ambiguous-source': '多條來源無法可靠配對，需重新選擇投影',
+      'modified-geometry': '投影曲線已編輯，請斷開連結後保留修改',
     }[projectRefresh.reason ?? 'topology']}` : ''
     shapesCopy = projectRefresh.shapes
     setRefGeo(refG)   // 最终以剔重合后嘅 refG 为准

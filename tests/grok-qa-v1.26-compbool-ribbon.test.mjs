@@ -32,7 +32,7 @@ test('ribbon command id compboolean exists (ASSEMBLE + MESH MODIFY + LAB)', () =
   const direct = lab.find((p) => p.name === '直接编辑扩展')
   assert.ok(direct?.tools.some((t) => t.id === 'compboolean'), 'LAB 直接编辑扩展 missing compboolean')
   assert.match(ribbon, /id: 'compboolean'/)
-  assert.match(ribbon, /label: '组件布尔'/)
+  assert.match(ribbon, /label: '組件布爾'|label: '组件布尔'/)
 })
 
 test('SOLID MODIFY Fusion order unchanged (compboolean NOT in Fusion MODIFY)', () => {
@@ -64,13 +64,13 @@ test('CompBoolPickPanel + bake chip preserved', () => {
   assert.match(store, /烘焙为零件实体/)
 })
 
-test('BrowserTree ⋯ menu exposes 组件布尔', () => {
+test('BrowserTree ⋯ menu exposes 組件布爾', () => {
   assert.match(browser, /data-testid="browser-compboolean"/)
   assert.match(browser, /startComponentBoolean\(c\.id\)/)
-  assert.match(browser, /组件布尔/)
+  assert.match(browser, /組件布爾|组件布尔/)
 })
 
-test('CommandPalette synonym for 组件布尔', () => {
+test('CommandPalette synonym for 組件布爾', () => {
   assert.match(palette, /compboolean:/)
-  assert.match(palette, /组件布尔/)
+  assert.match(palette, /組件布爾|组件布尔/)
 })

@@ -1,5 +1,5 @@
 /**
- * v1.88 BD-8701: fillet/chamfer/face-fillet dialog TC + BD-8601b 體積 ship
+ * v1.89 BD-8701: fillet/chamfer/face-fillet dialog TC + BD-8601b 體積 ship
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -12,9 +12,9 @@ const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.ur
 const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 const pr = readFileSync(new URL('../src/cad/propsReport.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.88; SW webcad-v1.88', () => {
-  assert.match(version, /APP_VERSION = '1\.88'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.88/)
+test('APP_VERSION 1.89; SW webcad-v1.89', () => {
+  assert.match(version, /APP_VERSION = '1\.89'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.89/)
 })
 
 test('catalog parity', () => {
@@ -28,6 +28,7 @@ test('BD-8701: fillet dialog TC — 確定／圓角／規則圓角／面圓角',
   assert.match(vp, /option value="fillet">圓角</)
   assert.match(vp, /option value="rule">規則圓角</)
   assert.match(vp, /option value="full">全圓角</)
+  assert.match(vp, /option value="face">面圓角</)
   assert.equal(vp.includes('>规则圆角<'), false)
   assert.equal(vp.includes('>圆角</option>'), false)
   assert.match(vp, /title="面圓角"/)

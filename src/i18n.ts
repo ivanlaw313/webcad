@@ -2181,6 +2181,17 @@ Object.assign(STATUS_PHRASES_X, {
   '關閉': 'Close',
 })
 
+
+Object.assign(STATUS_PHRASES_X, {
+  // v1.89 BD-8801 fillet dialog leftovers TC
+  '類型': 'Type',
+  '邊／面／特徵': 'Edges/Faces/Features',
+  '圓角：逐條點選邊／面／特徵': 'Fillet: pick edges/faces/features one by one',
+  '面／特徵': 'Faces/Features',
+  '全部邊': 'All edges',
+  '面／特徵之間': 'Between faces/features',
+})
+
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)
 
 // 渲染时翻译状态串：zh 原样；en 左到右最长匹配替换（未收录片段保留中文，唔会崩）。

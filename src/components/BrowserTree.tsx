@@ -599,7 +599,7 @@ export default function BrowserTree() {
               <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().showAllComponents()} title={tStatus('显示所有隐藏的组件', lang)}>👁 {tStatus('显示全部', lang)}</div>
             )}
             {components.length > 1 && (
-              <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().exportAllPartsZip()} title={tStatus('把每个可见零件导出为单独 STL，打包成一个 zip（每件可单独 3D 打印）', lang)}>📦 {tStatus('导出全部零件 STL(zip)', lang)}</div>
+              <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().exportAllPartsZip()} title={tStatus('把每个可见零件导出为单独 STL，打包成一个 zip（每件可单独 3D 打印）', lang)}>📦 {tStatus('導出全部零件 STL(zip)', lang)}</div>
             )}
             <GroupedCompList components={components} />
             <CompBatchBar />

@@ -32,13 +32,25 @@ Highest-value leftover after v1.65: gear/mechanism UI under LAB still shows Simp
 | calc menu | 齿轮啮合参数 | **齒輪嚙合參數** |
 | Timeline / BrowserTree | same feature labels | TC aligned |
 
+## Also fold: BUG-BD-6501 (minor)
+BrowserTree / ParamsPanel export-all chrome still SC after v1.65 MESH 導出*:
+
+| surface | SC | TC |
+|---------|----|----|
+| BrowserTree ~L602 | 导出全部零件 STL(zip) | **導出全部零件 STL(zip)** |
+| ParamsPanel | 导出全部配置 | **導出全部配置** |
+| ParamsPanel nearby | 导入设计表 | **導入設計表** |
+
+i18n STATUS + EN_LABEL: TC keys + legacy SC retained.
+
 ## Fix
 1. `ribbon.ts` LAB 傳動設計／機構／工程計算 labels → TC
 2. `Viewport.tsx` FD_TITLE + mechanism dialog titles + calc 齒輪嚙合參數
 3. `Timeline.tsx` + `BrowserTree.tsx` feature chrome labels
 4. `i18n.ts` EN_LABEL TC keys (retain legacy SC); STATUS_PHRASES TC→EN; STATUS_PHRASES_X identity for dialog chrome
 5. `CommandPalette.tsx` keywords include 齒輪／齒條／蝸桿／… aliases
-6. APP_VERSION **1.66** + contract `grok-qa-v1.66-lab-gear-mechanism-traditional`
+6. BrowserTree / ParamsPanel BD-6501 導出全部*／導入設計表
+7. APP_VERSION **1.66** + contract `grok-qa-v1.66-lab-gear-mechanism-traditional`
 
 ## Do not
 - Move 新實體／實體布爾／整體偏移／齒輪* onto SOLID (stay under 實驗室)

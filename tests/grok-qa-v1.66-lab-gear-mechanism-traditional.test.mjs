@@ -19,6 +19,7 @@ const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const illegal = readFileSync(new URL('../src/ui/illegalInput.ts', import.meta.url), 'utf8')
 const drawing = readFileSync(new URL('../src/components/DrawingPanel.tsx', import.meta.url), 'utf8')
 const featureStatus = readFileSync(new URL('../src/ui/featureStatus.ts', import.meta.url), 'utf8')
+const paramsPanel = readFileSync(new URL('../src/components/ParamsPanel.tsx', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.66+', () => {
   assert.match(version, /APP_VERSION = '1\.(6[6-9]|[7-9]\d)'|APP_VERSION = '[2-9]\./)
@@ -102,6 +103,24 @@ test('v1.66: EN_LABEL + tLabel/tStatus for TC gear keys', () => {
   assert.equal(tStatus('蝸桿', 'en'), 'Worm')
   assert.match(i18n, /'齒輪': 'Gear'/)
   assert.match(i18n, /'四連桿機構': 'Four-Bar'/)
+})
+
+test('v1.66 BD-6501: BrowserTree / ParamsPanel export-all Traditional', () => {
+  assert.match(browser, /tStatus\('導出全部零件 STL\(zip\)', lang\)/)
+  assert.doesNotMatch(browser, /tStatus\('导出全部零件 STL\(zip\)', lang\)/)
+  assert.match(paramsPanel, /📦 導出全部配置/)
+  assert.doesNotMatch(paramsPanel, /📦 导出全部配置/)
+  assert.match(paramsPanel, /📥 導入設計表/)
+  assert.doesNotMatch(paramsPanel, /📥 导入设计表/)
+  assert.equal(tStatus('導出全部零件 STL(zip)', 'en'), 'Export all parts STL (zip)')
+  assert.equal(tStatus('导出全部零件 STL(zip)', 'en'), 'Export all parts STL (zip)')
+  assert.equal(tStatus('導出全部配置', 'en'), 'Export all configurations')
+  assert.equal(tStatus('导出全部配置', 'en'), 'Export all configurations')
+  assert.equal(tLabel('導出全部零件 STL(zip)', 'en'), 'Export all parts STL (zip)')
+  assert.equal(tLabel('導出全部配置', 'en'), 'Export all configurations')
+  // ribbon MESH 導出STL pin retained
+  assert.match(ribbon, /id: 'exportstl', label: '導出STL'/)
+  assert.match(ribbon, /id: 'insertmesh', label: '插入STL网格'/)
 })
 
 test('LAB tools stay under 實驗室; prior TC + MESH SC retained', () => {

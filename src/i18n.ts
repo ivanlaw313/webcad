@@ -73,6 +73,13 @@ export const EN_LABEL: Record<string, string> = {
   '四連桿機構': 'Four-Bar', '滑塊曲柄': 'Slider-Crank', '六桿機構': 'Six-Bar',
   '傳動設計': 'Drive Design', '機構': 'Mechanisms', '工程計算': 'Engineering Calc',
   '齒輪箱向導': 'Gearbox Wizard', '齒輪嚙合參數': 'Gear Mesh Params',
+  // BUG-BD-6501 export-all chrome
+  '導出全部零件 STL(zip)': 'Export all parts STL (zip)',
+  '导出全部零件 STL(zip)': 'Export all parts STL (zip)',
+  '導出全部配置': 'Export all configurations',
+  '导出全部配置': 'Export all configurations',
+  '導入設計表': 'Import design table',
+  '导入设计表': 'Import design table',
   // SELECT / VIEW
   '选择': 'Select', '透视': 'Perspective', '排版': 'Arrange', '堆叠': 'Stack',
   // SKETCH tools
@@ -1688,6 +1695,13 @@ Object.assign(STATUS_PHRASES_X, {
   '⬚ 四連桿機構（閉環）': '⬚ Four-Bar Linkage (closed loop)',
   '⊙ 滑塊曲柄機構（活塞）': '⊙ Slider-Crank (piston)',
   '⬡ 六桿機構（Stephenson-III）': '⬡ Six-Bar Linkage (Stephenson-III)',
+  // BUG-BD-6501: BrowserTree / ParamsPanel export-all chrome
+  '导出全部零件 STL(zip)': 'Export all parts STL (zip)',
+  '導出全部零件 STL(zip)': 'Export all parts STL (zip)',
+  '导出全部配置': 'Export all configurations',
+  '導出全部配置': 'Export all configurations',
+  '导入设计表': 'Import design table',
+  '導入設計表': 'Import design table',
 })
 
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)

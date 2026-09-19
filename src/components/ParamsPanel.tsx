@@ -139,9 +139,9 @@ export default function ParamsPanel() {
           ))}
           <input className="pp-name-in" placeholder="配置名 如 M5版" value={cfgName} onChange={(e) => setCfgName(e.target.value)} style={{ flex: 1, minWidth: 80 }} />
           <button className="cs-btn" title="把当前所有驱动参数（非表达式）存为一个命名配置" onClick={() => { saveConfig(cfgName); setCfgName('') }}>💾 存配置</button>
-          {configs.length > 0 && <button className="cs-btn" title="把每个配置各导出一个 STL，打包成 zip（一次过制造所有变体；完成后还原当前配置）" onClick={() => void useApp.getState().exportAllConfigs()}>📦 导出全部配置</button>}
+          {configs.length > 0 && <button className="cs-btn" title="把每個配置各導出一個 STL，打包成 zip（一次过制造所有变体；完成后还原当前配置）" onClick={() => void useApp.getState().exportAllConfigs()}>📦 導出全部配置</button>}
           <button className="cs-btn" title="设计表 CSV 导出：配置 × 驱动参数矩阵（无配置时出一行当前值模板）— Excel 排变体" onClick={() => useApp.getState().exportConfigsCsv()}>📤 设计表CSV</button>
-          <button className="cs-btn" title="设计表 CSV 导入：每行一个配置（列名 = ƒx 参数名）→ 批量新增/更新配置，再一键切换或「导出全部配置」出晒所有变体 STL" onClick={() => useApp.getState().openConfigsCsvDialog()}>📥 导入设计表</button>
+          <button className="cs-btn" title="设计表 CSV 导入：每行一个配置（列名 = ƒx 参数名）→ 批量新增/更新配置，再一键切换或「導出全部配置」出晒所有变体 STL" onClick={() => useApp.getState().openConfigsCsvDialog()}>📥 導入設計表</button>
         </div>
       )}
       {/* GM-3DV3 M15：Change Parameters 设计表格视图（行=配置 × 列=参数）— 对标 Fusion/SolidWorks 设计表。点行 = 应用该配置。 */}

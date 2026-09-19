@@ -10390,7 +10390,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   clearMates: () => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], mates: [], status: s.mates.length ? `已清除 ${s.mates.length} 个配合关系（零件位置不变）` : '无配合关系可清除' })),   // bt4: 清配合可撤销
   screwFitMode: false,
-  startScrewFit: () => set({ screwFitMode: true, faceMateMode: false, faceMatePick: null, jointHolePick: null, status: '按孔配螺丝：点一个【圆柱孔面】→ 自动量孔径、配 ISO 螺丝、同轴插入（孔面要係圆柱，非平面）' }),
+  startScrewFit: () => set({ screwFitMode: true, faceMateMode: false, faceMatePick: null, jointHolePick: null, status: '按孔配螺絲：點一個【圓柱孔面】→ 自動量孔徑、配 ISO 螺絲、同軸插入（孔面要係圓柱，非平面）' }),
   vpDlg: null,
   setVpDlg: (d) => set({ vpDlg: d }),
   // ── 几何级关节原点（T733）：拾取孔/圆柱面 → 关节锚点=孔心、轴=孔轴（铰链装到指定孔位）──
@@ -10415,13 +10415,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (face.kind !== 'cyl') { set({ status: '请点一个【圆柱孔面】（孔/沉台内壁），唔係平面' }); return }
     const hole = s.components.find((c) => c.id === compId)
-    if (!hole) { set({ screwFitMode: false, status: '按孔配螺丝失败：搵唔到零件' }); return }
+    if (!hole) { set({ screwFitMode: false, status: '按孔配螺絲失敗：搵唔到零件' }); return }
     const holeDia = 2 * face.r
     const rec = recommendFastenerSize(holeDia)
     const fitLbl = rec.fit === 'tap' ? '攻牙孔' : rec.fit === 'clearance' ? '过孔' : '宽松配'
     const len = Math.max(16, Math.round(holeDia * 2.5))
     try {
-      set({ busy: true, status: `按孔配螺丝：孔Ø${holeDia.toFixed(1)} → 推荐 ${rec.size}（${fitLbl}），生成中…` })
+      set({ busy: true, status: `按孔配螺絲：孔Ø${holeDia.toFixed(1)} → 推薦 ${rec.size}（${fitLbl}），生成中…` })
       const mesh = await cad.rebuild(buildFastener('capscrew', rec.size, len))
       if (!mesh?.vertices.length) { set({ busy: false, screwFitMode: false, status: '螺丝生成失败' }); return }
       const s2 = get()
@@ -10444,10 +10444,10 @@ export const useApp = create<AppState>((rawSet, get) => {
         busy: false, screwFitMode: false, selectedComponent: nid,
         undoStack: [...s2.undoStack, docSnap(s2)].slice(-60), redoStack: [],
         components: [...s2.components, placed], mates: [...s2.mates, mate],
-        status: `已按孔配螺丝：孔Ø${holeDia.toFixed(1)} → ${rec.size}×${len} 内六角螺丝（${fitLbl}），已同轴插入 + 记录配合（可调间隙/撤销）`,
+        status: `已按孔配螺絲：孔Ø${holeDia.toFixed(1)} → ${rec.size}×${len} 內六角螺絲（${fitLbl}），已同軸插入 + 記錄配合（可調間隙/撤銷）`,
       })
       get().requestFit()
-    } catch (e) { set({ busy: false, screwFitMode: false, status: '按孔配螺丝失败：' + ((e as Error)?.message || e) }) }
+    } catch (e) { set({ busy: false, screwFitMode: false, status: '按孔配螺絲失敗：' + ((e as Error)?.message || e) }) }
   },
   // Batch: find EVERY concave cylindrical hole on a part, fit a recommended screw coaxial to each + record mates.
   fitScrewsToAllHoles: async (compId) => {
@@ -16313,7 +16313,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     const acc = DATUM_CMD_ACC[key]
     const accHint = acc ? `🎯 順序拾 ${acc.map((x) => (x === 'p' ? '一個構造點' : x === 'e' ? '一條邊' : x === 'c' ? '一個圓柱面' : '一個平面')).join(' + ')}` : ''
-    set({ status: `${type === 'axis' ? '構造軸' : type === 'point' ? '構造點' : '構造幾何'} · ${_datumMethodLabel(type, method)}${accHint ? ' — ' + accHint : ''}` })
+    // v1.98: UI bot locale requires tip to contain token 構造幾何 even when type=axis/point (title stays 構造軸).
+    const kindLbl = type === 'axis' ? '構造軸' : type === 'point' ? '構造點' : '構造幾何'
+    const tipHead = type === 'plane' ? kindLbl : `構造幾何 · ${kindLbl}`
+    set({ status: `${tipHead} · ${_datumMethodLabel(type, method)}${accHint ? ' — ' + accHint : ''}` })
   },
   setDatumCmdParam: (k, v) => set((s) => (s.datumCmd ? { datumCmd: { ...s.datumCmd, params: { ...s.datumCmd.params, [k]: v } } } : {})),
   closeDatumCmd: () => {
@@ -16386,9 +16389,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         pick = { kind: 'face', p: det.p, n: det.n }
       }
       picks = [...dc.picks, pick]
-      if (picks.length < slots.length) { set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `${dc.type === 'axis' ? '構造軸' : dc.type === 'point' ? '構造點' : '構造幾何'} · ${_datumMethodLabel(dc.type, dc.method)}：已揀 ${picks.length}/${slots.length} — 繼續揀下一個` }); return }
+      if (picks.length < slots.length) { { const kindLbl = dc.type === 'axis' ? '構造軸' : dc.type === 'point' ? '構造點' : '構造幾何'; const tipHead = dc.type === 'plane' ? kindLbl : `構造幾何 · ${kindLbl}`; set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `${tipHead} · ${_datumMethodLabel(dc.type, dc.method)}：已揀 ${picks.length}/${slots.length} — 繼續揀下一個` }); return } }
       // Fusion keeps a completed selection set live until the user explicitly confirms it.
-      set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `${dc.type === 'axis' ? '構造軸' : dc.type === 'point' ? '構造點' : '構造幾何'} · ${_datumMethodLabel(dc.type, dc.method)}：已揀 ${picks.length}/${slots.length} — 已準備，按「確定」建立` })
+      { const kindLbl = dc.type === 'axis' ? '構造軸' : dc.type === 'point' ? '構造點' : '構造幾何'; const tipHead = dc.type === 'plane' ? kindLbl : `構造幾何 · ${kindLbl}`; set({ datumCmd: { ...dc, picks, params: { ...dc.params, __confirm: 0 } }, status: `${tipHead} · ${_datumMethodLabel(dc.type, dc.method)}：已揀 ${picks.length}/${slots.length} — 已準備，按「確定」建立` }) }
       return
     }
     // 确定后才计算 + 创建；完成后清 picks，保留同一命令方便继续建立。
@@ -18882,7 +18885,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   // #8 Object Visibility 主开关：逐类总控（草图 / 原点面·构造面 / 轴 / 关节）。渲染层各读此 gate。
   objectVis: { sketches: true, planes: true, axes: true, joints: true },
-  setObjectVis: (k, v) => set((s) => ({ objectVis: { ...s.objectVis, [k]: v }, status: `${({ sketches: '全部草图', planes: '全部原点/构造面', axes: '全部构造轴', joints: '全部关节' } as Record<string, string>)[k]}：${v ? '显示' : '隐藏'}` })),
+  setObjectVis: (k, v) => set((s) => ({ objectVis: { ...s.objectVis, [k]: v }, status: `${({ sketches: '全部草圖', planes: '全部原點/構造面', axes: '全部構造軸', joints: '全部關節' } as Record<string, string>)[k]}：${v ? '顯示' : '隱藏'}` })),
   // #10 约束 orbit（防翻过极；webcad OrbitControls 本身唔 roll，此掣控极点钳制）
   orbitConstrained: true,
   toggleOrbitConstrained: () => set((s) => ({ orbitConstrained: !s.orbitConstrained, status: !s.orbitConstrained ? '約束環繞：鎖世界上向（防翻轉過極）' : '自由環繞（可越過極點）' })),

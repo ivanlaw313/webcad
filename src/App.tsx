@@ -236,7 +236,7 @@ export default function App() {
       if (s.faceMateMode && e.key === 'Escape') { e.preventDefault(); s.cancelFaceMate(); return }
       if (s.jointPickMode && e.key === 'Escape') { e.preventDefault(); s.cancelJointPick(); return }
       if (s.jointOriginPickMode && e.key === 'Escape') { e.preventDefault(); s.cancelJointOriginPick(); return }
-      if (s.screwFitMode && e.key === 'Escape') { e.preventDefault(); useApp.setState({ screwFitMode: false, status: '已取消按孔配螺丝' }); return }
+      if (s.screwFitMode && e.key === 'Escape') { e.preventDefault(); useApp.setState({ screwFitMode: false, status: '已取消按孔配螺絲' }); return }
       if (s.jointHolePick && e.key === 'Escape') { e.preventDefault(); useApp.setState({ jointHolePick: null, status: '已取消拾孔定轴' }); return }
       if (s.compBoolPending && e.key === 'Escape') { e.preventDefault(); s.cancelComponentBoolean(); return }
       // 测试报告观察 A：统一 Esc 关闭其余浮动面板 / 取消拾取模式（之前 FEA / 工程计算 等唔响应 Esc）。

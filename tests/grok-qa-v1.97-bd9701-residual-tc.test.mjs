@@ -1,7 +1,7 @@
 /**
  * v1.97 BD-9701: residual SC→HK TC (MESH pin, Ribbon titles/confirms,
  * Viewport prefs / press-pull / shell / sketch-text).
- * APP 1.97 + SW webcad-v1.97.
+ * APP 1.98 + SW webcad-v1.98.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -14,9 +14,9 @@ const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.
 const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.97; SW webcad-v1.97', () => {
-  assert.match(version, /APP_VERSION = '1\.97'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.97/)
+test('APP_VERSION 1.98; SW webcad-v1.98', () => {
+  assert.match(version, /APP_VERSION = '1\.98'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.98/)
 })
 
 test('BD-9701 MESH pin 插入STL網格 (no SC 网格)', () => {
@@ -71,5 +71,5 @@ test('BD-9701 i18n TC→EN mappings present', () => {
   assert.match(i18n, /'恢復預設': 'Reset Defaults'/)
   assert.match(i18n, /'修改現有特徵': 'Modify Existing Feature'/)
   assert.match(i18n, /'T 草圖文字': 'T Sketch Text'/)
-  assert.match(i18n, /v1\.97 BD-9701/)
+  assert.match(i18n, /v1\.98 BD-9701/)
 })

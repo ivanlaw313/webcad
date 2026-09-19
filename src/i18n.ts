@@ -123,6 +123,14 @@ export const EN_LABEL: Record<string, string> = {
   '測量': 'Measure', '選擇': 'Select',
   // SHEET METAL
   '薄板/法兰(拉伸)': 'Flange (Extrude)',
+  // SHEET / PLASTIC Traditional (v1.62)
+  '鈑金件': 'Sheet Metal',
+  '薄板/法蘭(拉伸)': 'Flange (Extrude)',
+  '導出展開DXF': 'Export Flat DXF',
+  '加強筋': 'Rib',
+  '導出STEP': 'Export STEP',
+  '導出STL': 'Export STL',
+  '導出STL(ASCII)': 'Export STL (ASCII)',
   // MODIFY ribbon Traditional (v1.52 BUG-BD-4801 continue)
   '編輯面': 'Edit Face',
   '圓角': 'Fillet',

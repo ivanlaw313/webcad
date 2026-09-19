@@ -28,7 +28,7 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   thread: { icon: 'default', label: '螺纹杆' },
   ithread: { icon: 'hole', label: '内螺纹孔' },
   cylpatch: { icon: 'default', label: '曲面贴花' },
-  sheetmetal: { icon: 'default', label: '钣金件' },
+  sheetmetal: { icon: 'default', label: '鈑金件' },
   pathpattern: { icon: 'pattern', label: '路徑陣列' },
   gear: { icon: 'default', label: '齿轮' },
   rack: { icon: 'default', label: '齿条' },
@@ -66,7 +66,7 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   splitface: { icon: 'default', label: '分割面' },
   replaceface: { icon: 'default', label: '替換面' },
   moveface: { icon: 'replaceface', label: '移动面' },  // GM-B2
-  rib: { icon: 'default', label: '加强筋' },
+  rib: { icon: 'default', label: '加強筋' },
   text: { icon: 'default', label: '文字' },
   newbody: { icon: 'box', label: '新实体' },
   bodyboolean: { icon: 'combine', label: '实体布尔' },

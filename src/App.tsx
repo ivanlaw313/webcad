@@ -335,8 +335,8 @@ export default function App() {
         <ErrorBoundary name="3D 视口 Viewport"><Viewport /></ErrorBoundary>
       </div>
       <ErrorBoundary name="时间轴" compact><Timeline /></ErrorBoundary>
-      <ErrorBoundary name="装配关节" compact><JointsPanel /></ErrorBoundary>
-      <ErrorBoundary name="关节原点" compact><JointOriginPalette /></ErrorBoundary>
+      <ErrorBoundary name="裝配關節" compact><JointsPanel /></ErrorBoundary>
+      <ErrorBoundary name="關節原點" compact><JointOriginPalette /></ErrorBoundary>
       <ErrorBoundary name="参数面板" compact><ParamsPanel /></ErrorBoundary>
       {drawingOpen && <ErrorBoundary name="工程图" compact><Suspense fallback={null}><DrawingPanel /></Suspense></ErrorBoundary>}
       {physicsLabOpen && <ErrorBoundary name="环境模拟实验室" compact><Suspense fallback={null}><PhysicsLab /></Suspense></ErrorBoundary>}

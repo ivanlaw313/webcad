@@ -70,7 +70,7 @@ test('Viewport CompBoolPickPanel + no toggle-null while pending', () => {
 test('BrowserTree pending-aware click + checkbox title', () => {
   assert.match(browser, /compBoolPending/)
   assert.match(browser, /if \(compBoolPending\) selectComponent\(c\.id\)/)
-  assert.match(browser, /勾选此零件＝选为组件布尔工具件/)
+  assert.match(browser, /勾選此零件＝選為組件布爾工具件|勾选此零件＝选为组件布尔工具件/)
 })
 
 test('Esc cancels compBoolPending', () => {

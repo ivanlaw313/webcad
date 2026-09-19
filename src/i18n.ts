@@ -153,7 +153,23 @@ export const EN_LABEL: Record<string, string> = {
   '折彎圓角': 'Bend Fillet',
   '合併面': 'Merge Faces',
 
+  // ASSEMBLE ribbon Traditional (v1.53 BUG-BD-4801 continue)
+  '新建組件': 'New Component',
+  '組件布爾': 'Component Boolean',
+  '關節': 'Joint',
+  '按現狀關節': 'As-Built Joint',
+  '關節原點': 'Joint Origin',
+  '剛性組': 'Rigid Group',
+  '運動連接': 'Motion Link',
+  '啟用接觸集': 'Enable Contact Sets',
+  '新建接觸集': 'New Contact Set',
+  '運動研究': 'Motion Study',
+  '驅動關節': 'Drive Joints',
+  '關節(揀面)': 'Joint (Pick Faces)',
+  '按現狀關節…': 'As-Built Joint…',
+
 }
+
 
 
 // 翻译 ribbon 标签：en 模式查表（缺则原中文）；zh 模式原样。
@@ -165,7 +181,7 @@ export function tLabel(label: string, lang: Lang): string {
 // 顯示层：zh 模式套中文（Fusion 中文版风格），en 模式原样返英文键。缺失项 fallback 原文（唔会崩）。
 const ZH_GROUP: Record<string, string> = {
   CREATE: '创建', MODIFY: '修改', CONSTRAINTS: '约束', FINISH: '完成', INSPECT: '检查',
-  CONSTRUCT: '构造', ASSEMBLE: '装配', SELECT: '选择', EXPORT: '导出', CONFIGURE: '配置',
+  CONSTRUCT: '构造', ASSEMBLE: '裝配', SELECT: '选择', EXPORT: '导出', CONFIGURE: '配置',
   INSERT: '插入', PARAMETERS: '参数', DRAWING: '工程图', MAKE: '制造',
   SYMMETRY: '對稱', UTILITIES: '工具',
 }
@@ -547,6 +563,16 @@ const STATUS_PHRASES: Record<string, string> = {
 // —— battle-test 批2：补 store.ts 硬中文状态串（i18n EN 覆盖洞）。全部「整串 key」→ 最长优先 → 整串替换，零子串腐蚀。
 // 插值串（含 ${}）留后批（需拆稳定字面片段，易碎）。独立对象 + 下方 spread 合并 → 即使与基表撞 key 也唔会 TS1117（补充覆盖）。
 const STATUS_PHRASES_X: Record<string, string> = {
+  // ASSEMBLE chrome Traditional (v1.53) — EN via tStatus
+  '剛性組': 'Rigid Group',
+  '按現狀關節…': 'As-Built Joint…',
+  '組件布爾': 'Component Boolean',
+  '關節原點': 'Joint Origin',
+  '組件布爾：以此件為目標，再點另一個零件作工具件（合併/切除/相交）': 'Component Boolean: use this as target, then click another part as tool (join/cut/intersect)',
+  '組件布爾：點此零件（或勾選）作為工具件完成運算': 'Component Boolean: click this part (or check) as the tool body',
+  '勾選此零件＝選為組件布爾工具件並立即完成': 'Check this part = select as Component Boolean tool and finish now',
+  '剛性組（T779 Fusion Rigid Group）：勾選嘅組件鎖做一組 — 第一件做頭，郁佢全組跟（rigid 關節實現，可喺關節面板拆）': 'Rigid Group (T779 Fusion Rigid Group): lock checked components — first is leader; move it and the group follows (rigid joints; break in joint panel)',
+  '按現狀關節（T779 Fusion As-Built Joint）：兩件喺而家位置直接加關節 — 揀類型即加，唔 snap 唔郁位（要改軸用拾孔定軸）': 'As-Built Joint (T779): add joint at current pose for two checked parts — pick type; no snap/move (use hole-pick to set axis)',
   '已取消当前绘制（再按 ESC 退出草图）': 'Cancelled current draw (press ESC again to exit sketch)',
   '先画一个轮廓（一个），再阵列': 'Draw a profile first, then pattern',
   '阵列至少 2 个': 'Pattern needs at least 2 copies',

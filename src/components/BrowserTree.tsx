@@ -285,8 +285,8 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
   const selectBody = useApp((s) => s.selectComponentBody)
   return (
     <>
-    <div className={'tree-row' + (c.id === sel ? ' sel' : '') + (compBoolPending && c.id !== compBoolPending.from ? ' comp-bool-pickable' : '')} style={{ paddingLeft: 18 + depth * 14, ...(compBoolPending && c.id !== compBoolPending.from ? { outline: '1px dashed #2563eb', background: 'rgba(37,99,235,.06)' } : {}) }} title={compBoolPending && c.id !== compBoolPending.from ? tStatus('组件布尔：点此零件（或勾选）作为工具件完成运算', lang) : undefined}>
-      <input type="checkbox" checked={checked} title={tStatus(compBoolPending && c.id !== compBoolPending.from ? '勾选此零件＝选为组件布尔工具件并立即完成' : '勾选以做批量操作（隐藏/显示/删除）', lang)} onClick={(e) => e.stopPropagation()} onChange={() => toggleCheck(c.id)} style={{ marginRight: 2, cursor: 'pointer' }} />
+    <div className={'tree-row' + (c.id === sel ? ' sel' : '') + (compBoolPending && c.id !== compBoolPending.from ? ' comp-bool-pickable' : '')} style={{ paddingLeft: 18 + depth * 14, ...(compBoolPending && c.id !== compBoolPending.from ? { outline: '1px dashed #2563eb', background: 'rgba(37,99,235,.06)' } : {}) }} title={compBoolPending && c.id !== compBoolPending.from ? tStatus('組件布爾：點此零件（或勾選）作為工具件完成運算', lang) : undefined}>
+      <input type="checkbox" checked={checked} title={tStatus(compBoolPending && c.id !== compBoolPending.from ? '勾選此零件＝選為組件布爾工具件並立即完成' : '勾选以做批量操作（隐藏/显示/删除）', lang)} onClick={(e) => e.stopPropagation()} onChange={() => toggleCheck(c.id)} style={{ marginRight: 2, cursor: 'pointer' }} />
       <span className="tw-eye" title={tStatus('显示/隐藏', lang)} onClick={(e) => { e.stopPropagation(); toggleVis(c.id) }}>{c.hidden ? '🚫' : '👁'}</span>
       <span className="tw-ico"><ToolIcon name="component" size={13} /></span>
       {editing ? (
@@ -303,7 +303,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
     {c.id === sel && !componentEditing && !commandActive && !skLock && <div className="component-controls" role="group" aria-label={`组件选项：${c.name}`}>
       {!!c.formSource && <button onClick={() => useApp.getState().editFormComponent(c.id)}>✎ 编辑 Form 控制笼</button>}
       {!!c.src?.features.length && <button onClick={() => void useApp.getState().editComponent(c.id)}>✎ 编辑特征／草图</button>}
-      <button type="button" data-testid="browser-compboolean" title={tStatus('组件布尔：以此件为目标，再点另一个零件作工具件（合并/切除/相交）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().startComponentBoolean(c.id) }}>🧩 组件布尔</button>
+      <button type="button" data-testid="browser-compboolean" title={tStatus('組件布爾：以此件為目標，再點另一個零件作工具件（合併/切除/相交）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().startComponentBoolean(c.id) }}>🧩 組件布爾</button>
       <select className="tw-mat" title={tStatus('材质（设密度→影响质量/BOM，并改颜色）', lang)} value={c.material || ''} onClick={(e) => e.stopPropagation()} onChange={(e) => { if (e.target.value) setMaterial(c.id, e.target.value) }} style={{ fontSize: 10, maxWidth: 52, border: '1px solid #d0d6dc', borderRadius: 3 }}>
         <option value="">{tStatus('材质…', lang)}</option>
         {Object.keys(MATERIALS).filter((k) => MATERIALS[k].density).map((k) => <option key={k} value={k}>{k}</option>)}
@@ -399,9 +399,9 @@ function CompBatchBar() {
       <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草图模式中锁定 — 完成草图后可删除' : '批量删除勾选的组件（可撤销）', lang)} onClick={async () => { if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`删除勾选的 ${n} 个组件？（可 Ctrl+Z 撤销）`, lang))) batchDel() }}>🗑{tStatus('删除', lang)}</span>
       <span className="tw-act" title={tStatus('清除勾选', lang)} onClick={() => clear()}>✕{tStatus('清除勾选', lang)}</span>
       <span className="tw-act" title={tStatus('📁 建组（T788 子装配）：勾选嘅组件组成一个组 — 整组隐藏/移动/复制/BOM 分层；勾选同组成员再建组 = 嵌套子组', lang)} onClick={() => useApp.getState().createGroupFromChecked()}>📁{tStatus('建组', lang)}</span>
-      {n >= 2 && <span className="tw-act" title={tStatus('刚性组（T779 Fusion Rigid Group）：勾选嘅组件锁做一组 — 第一件做头，郁佢全组跟（rigid 关节实现，可喺关节面板拆）', lang)} onClick={() => useApp.getState().rigidGroupChecked()}>🔗{tStatus('刚性组', lang)}</span>}
-      {n === 2 && <select className="tw-act" defaultValue="" title={tStatus('按现状关节（T779 Fusion As-Built Joint）：两件喺而家位置直接加关节 — 拣类型即加，唔 snap 唔郁位（要改轴用拾孔定轴）', lang)} onChange={(e) => { const t = e.target.value; if (t) useApp.getState().asBuiltJointChecked(t) }}>
-        <option value="">⚙{tStatus('按现状关节…', lang)}</option>
+      {n >= 2 && <span className="tw-act" title={tStatus('剛性組（T779 Fusion Rigid Group）：勾選嘅組件鎖做一組 — 第一件做頭，郁佢全組跟（rigid 關節實現，可喺關節面板拆）', lang)} onClick={() => useApp.getState().rigidGroupChecked()}>🔗{tStatus('剛性組', lang)}</span>}
+      {n === 2 && <select className="tw-act" defaultValue="" title={tStatus('按現狀關節（T779 Fusion As-Built Joint）：兩件喺而家位置直接加關節 — 揀類型即加，唔 snap 唔郁位（要改軸用拾孔定軸）', lang)} onChange={(e) => { const t = e.target.value; if (t) useApp.getState().asBuiltJointChecked(t) }}>
+        <option value="">⚙{tStatus('按現狀關節…', lang)}</option>
         <option value="revolute">{tStatus('转动', lang)}</option>
         <option value="rigid">{tStatus('刚性', lang)}</option>
         <option value="slider">{tStatus('滑动', lang)}</option>
@@ -565,7 +565,7 @@ export default function BrowserTree() {
         )}
         {/* GM-3DV4 A1：Joint Origins 组（Fusion 专属「Joint Origins」文件夹） */}
         {jointOrigins.length > 0 && (
-          <Section label={`关节原点 (${jointOrigins.length})`}>
+          <Section label={`關節原點 (${jointOrigins.length})`}>
             {jointOrigins.map((jo) => (
               <div key={jo.id} className="tree-row" style={{ paddingLeft: 18 }} title={tStatus(`可复用关节原点「${jo.name}」@(${jo.point.map((x) => x.toFixed(1)).join(', ')}) — 建关节时喺关节面板下拉引用之（取代默认件心）`, lang)}>
                 <span className="tw-toggle" />
@@ -578,7 +578,7 @@ export default function BrowserTree() {
         )}
         {/* GM-3DV4 A8：Rigid Groups 组（Fusion Rigid Group — 一级、可抑制节点） */}
         {rigidGroups.length > 0 && (
-          <Section label={`刚性组 (${rigidGroups.length})`}>
+          <Section label={`剛性組 (${rigidGroups.length})`}>
             {rigidGroups.map((g) => (
               <div key={g.id} className="tree-row" style={{ paddingLeft: 18, opacity: g.suppressed ? 0.5 : 1 }} title={tStatus(`刚性组「${g.name}」：${g.members.length} 件焊为一体（第一件做头，郁佢全组跟）${g.suppressed ? ' — 已抑制' : ''}`, lang)}>
                 <span className="tw-toggle" />

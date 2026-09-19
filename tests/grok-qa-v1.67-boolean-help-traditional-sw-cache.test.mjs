@@ -25,8 +25,8 @@ test('APP_VERSION is 1.67+', () => {
   assert.match(version, /APP_VERSION = '1\.(6[7-9]|[7-9]\d)'|APP_VERSION = '[2-9]\./)
 })
 
-test('v1.67: SW CACHE bumped to webcad-v1.67; navigate network-first; release comment', () => {
-  assert.match(sw, /const CACHE = 'webcad-v1\.67'/)
+test('v1.67: SW CACHE bumped to webcad-v1.67+; navigate network-first; release comment', () => {
+  assert.match(sw, /const CACHE = 'webcad-v1\.(6[7-9]|[7-9]\d)'/)
   assert.doesNotMatch(sw, /const CACHE = 'webcad-v1'/)
   assert.match(sw, /RELEASE: CACHE 必须随每次发版改名|RELEASE: CACHE 必須隨每次發版改名/)
   assert.match(sw, /mode === 'navigate'/)

@@ -34,7 +34,7 @@ const SOLID: Panel[] = [
       { id: 'web', label: '腹板', icon: 'rib', tip: 'Fusion Web：选择一条或多条开放草图线建立薄腹板；Extend Curves 默认开启，会把线端延伸到邻近实体墙面。' },
       { id: 'emboss', label: 'Emboss', icon: 'emboss', quick: true, tip: 'Emboss（Fusion 凸字/刻字）：点实体一个【平面】→ 输入文字 → 沿该面法向凸起(正深度)/刻入(负深度)。标牌/编号/logo。' },
       { id: 'hole', label: '孔', icon: 'hole', shortcut: 'H', quick: true, sep: true, tip: '孔：在实体面上钻孔（通/盲 · 沉头 · 埋头 · 螺母槽 · 攻牙底孔），有 M3-M12 标准尺寸。' },
-      { id: 'thread', label: '螺纹杆', icon: 'thread', tip: '螺纹杆：真渐开螺旋牙（非贴图）。设大径Ø/螺距/高。' },
+      { id: 'thread', label: '螺紋桿', icon: 'thread', tip: '螺纹杆：真渐开螺旋牙（非贴图）。设大径Ø/螺距/高。' },
       { id: 'box', label: '長方體', icon: 'box', sep: true, tip: '長方體：直接設長×寬×高建一個盒（最常用起手）。' },
       { id: 'cylinder', label: '圓柱', icon: 'cylinder', tip: '圓柱：設直徑×高直接建圓柱。' },
       { id: 'sphere', label: '球', icon: 'sphere', tip: '球：设直径建球。' },
@@ -113,7 +113,7 @@ const SOLID: Panel[] = [
     name: 'CONSTRUCT',
     // Fusion live-capture 次序；每项预设同一个 Construction Geometry 对话框嘅 Type + Method。
     tools: [
-      { id: 'ucs', label: '用户坐标系', icon: 'axis', quick: true, tip: 'Fusion User Coordinate System：点实体平面建立一套局部原点、三轴及三正交参考面。' },
+      { id: 'ucs', label: '用戶坐標系', icon: 'axis', quick: true, tip: 'Fusion User Coordinate System：点实体平面建立一套局部原点、三轴及三正交参考面。' },
       { id: 'datumgeom', label: '構造幾何', icon: 'plane', tip: '在一个面板中建立参考平面、构造轴或构造点；适用于圆柱、圆锥等没有可用平面侧面的实体。' },
       { id: 'offsetplane', label: '偏移平面', icon: 'plane', quick: true, sep: true, tip: 'Fusion Offset Plane：先选原点 XY/XZ/YZ 基准面（或中间面），输入距离建立平行参考面；如需由实体平面开始，可在方法选择「偏移面（拾面+距离）」。' },
       { id: 'planeangedge', label: '成角平面', icon: 'plane', tip: 'Fusion Plane at Angle：拾取直边／轴并输入角度，建立包含该边的倾斜平面。' },
@@ -123,12 +123,12 @@ const SOLID: Panel[] = [
       { id: 'plane2edge', label: '过两边平面', icon: 'plane', tip: 'Fusion Plane Through Two Edges：顺序拾取两条边，建立同时包含两边的参考面。' },
       { id: 'plane3pt', label: '过三点平面', icon: 'plane', tip: 'Fusion Plane Through Three Points：用最后三个构造点建立参考面。' },
       { id: 'planepath', label: '沿路径平面', icon: 'plane', tip: 'Fusion Plane Along Path：拾取路径并以 0–1 距离定位，建立垂直于路径切向的平面。' },
-      { id: 'axiscyl', label: '圆柱／圆锥／环面轴', icon: 'axis', quick: true, sep: true, tip: 'Fusion Axis Through Cylinder/Cone/Torus：拾取旋转面建立其中心轴。' },
+      { id: 'axiscyl', label: '圓柱／圓錐／環面軸', icon: 'axis', quick: true, sep: true, tip: 'Fusion Axis Through Cylinder/Cone/Torus：拾取旋转面建立其中心轴。' },
       { id: 'axisperpface', label: '垂直面轴', icon: 'axis', tip: 'Fusion Axis Perpendicular To Face：拾取平面上的一点，建立沿面法向的构造轴。' },
       { id: 'axis2planes', label: '过两平面轴', icon: 'axis', tip: 'Fusion Axis Through Two Planes：拾取两个不平行平面，以交线建立构造轴。' },
       { id: 'axis2pt', label: '过两点轴', icon: 'axis', tip: 'Fusion Axis Through Two Points：用最后两个构造点建立任意方向轴。' },
       { id: 'axisedge', label: '沿边轴', icon: 'axis', tip: 'Fusion Axis Through Edge：拾取一条直边，以该边建立构造轴。' },
-      { id: 'pointvertex', label: '顶点构造点', icon: 'cpoint', quick: true, sep: true, tip: 'Fusion Point At Vertex：拾取一条边，在最近端点建立构造点。' },
+      { id: 'pointvertex', label: '頂點構造點', icon: 'cpoint', quick: true, sep: true, tip: 'Fusion Point At Vertex：拾取一条边，在最近端点建立构造点。' },
       { id: 'point2edges', label: '两边交点', icon: 'cpoint', tip: 'Fusion Point Through Two Edges：拾取两条边，在交点或最近逼近点建立构造点。' },
       { id: 'point3planes', label: '三平面交点', icon: 'cpoint', tip: 'Fusion Point Through Three Planes：拾取三个平面，在唯一公共交点建立构造点。' },
       { id: 'pointcenter', label: '圆／球／环面中心点', icon: 'cpoint', tip: 'Fusion Point At Center Of Circle/Sphere/Torus：拾取圆形边，在拟合中心建立构造点。' },
@@ -163,8 +163,8 @@ const SOLID: Panel[] = [
       { id: 'insertobj', label: '插入OBJ网格', icon: 'importmesh', quick: true, tip: 'Wavefront OBJ 网格导入（Blender、扫描或网上模型常用）作参考组件。' },
       { id: 'insertcanvas', label: '画布', icon: 'importmesh', sep: true, tip: 'Fusion Canvas：选择参考图片，放到当前草图平面作为描摹底图；加入后可调宽度、透明度、位置、旋转、翻转及两点标定比例。' },
       { id: 'insertdecal', label: '贴花', icon: 'importmesh', tip: 'Fusion Decal：选择 logo／标签图片，然后点击实体表面放置；可调尺寸、旋转、透明度及翻转，并随项目保存。' },
-      { id: 'importdxf', label: '导入DXF', icon: 'importdxf', quick: true, tip: '导入 2D DXF 轮廓并拉伸成 3D（激光切割图 / 网上轮廓 → 可打印实体）。支持 LINE/多段线/圆/圆弧，自动识别外形+孔，拉伸 5mm（时间轴可改）。' },
-      { id: 'importsvg', label: '导入SVG', icon: 'importsvg', quick: true, tip: '导入 SVG 矢量图形并拉伸成 3D（logo / 图标 / 网上矢量 → 可打印实体）。曲线自动展平，支持 path/圆/矩形/多边形，自动识别外形+孔，拉伸 5mm（时间轴可改）。' },
+      { id: 'importdxf', label: '導入DXF', icon: 'importdxf', quick: true, tip: '导入 2D DXF 轮廓并拉伸成 3D（激光切割图 / 网上轮廓 → 可打印实体）。支持 LINE/多段线/圆/圆弧，自动识别外形+孔，拉伸 5mm（时间轴可改）。' },
+      { id: 'importsvg', label: '導入SVG', icon: 'importsvg', quick: true, tip: '导入 SVG 矢量图形并拉伸成 3D（logo / 图标 / 网上矢量 → 可打印实体）。曲线自动展平，支持 path/圆/矩形/多边形，自动识别外形+孔，拉伸 5mm（时间轴可改）。' },
     ],
   },
   {
@@ -250,7 +250,7 @@ const LAB: Panel[] = [
     ],
   },
   {
-    name: '3D打印',
+    name: '3D列印',
     tools: [
       { id: 'overhang', label: '悬垂分析', icon: 'overhang', quick: true, tip: '3D 打印悬垂分析：标出需要支撑嘅朝下斜面（>45°），报支撑面积 % + 建议最省支撑打印朝向。' },
       { id: 'autoorient', label: '自动摆正', icon: 'overhang', tip: '一键把零件旋转到最省支撑嘅打印朝向（悬垂分析嘅建议方向），加一个可撤销嘅变换特征。' },
@@ -264,7 +264,7 @@ const LAB: Panel[] = [
   {
     name: '更多基元',
     tools: [
-      { id: 'cone', label: '圆锥', icon: 'cylinder', quick: true, tip: '圆锥/圆台：设底Ø/顶Ø(0=尖锥)/高，边数≥3 变 N 棱锥/棱台。' },
+      { id: 'cone', label: '圓錐', icon: 'cylinder', quick: true, tip: '圆锥/圆台：设底Ø/顶Ø(0=尖锥)/高，边数≥3 变 N 棱锥/棱台。' },
       { id: 'tube', label: '圆管', icon: 'cylinder', quick: true, tip: '圆管/衬套：设外径Ø/壁厚/高建空心管。' },
       { id: 'rbox', label: '圆角盒', icon: 'box', quick: true, tip: '圆角长方体/外壳盒：长方体四条竖边倒圆角。电子外壳常用。' },
       { id: 'wedge', label: '楔形', icon: 'box', tip: '楔形/斜坡：设长/宽/高建一端高、另一端削平的三角块。' },
@@ -280,9 +280,9 @@ const LAB: Panel[] = [
   {
     name: '装配辅助',
     tools: [
-      { id: 'explodeview', label: '爆炸视图', icon: 'component', quick: true, tip: '爆炸视图：沿装配中心向外展开组件（滑杆调爆炸度），睇装配关系。' },
+      { id: 'explodeview', label: '爆炸視圖', icon: 'component', quick: true, tip: '爆炸视图：沿装配中心向外展开组件（滑杆调爆炸度），睇装配关系。' },
       { id: 'xray', label: '透视', icon: 'appearance', tip: 'X-ray 透视：全部组件半透明，睇装配内部（轴承滚珠/行星轮）。' },
-      { id: 'scaleasm', label: '整体缩放', icon: 'move', tip: '整体缩放装配：按比例放大/缩小成个多件设计（含相对间距，绕装配中心）。' },
+      { id: 'scaleasm', label: '整體縮放', icon: 'move', tip: '整体缩放装配：按比例放大/缩小成个多件设计（含相对间距，绕装配中心）。' },
     ],
   },
   {

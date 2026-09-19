@@ -25,7 +25,7 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   shell: { icon: 'shell', label: '抽殼' },
   pattern: { icon: 'pattern', label: '陣列' },
   prim: { icon: 'box', label: '原语' },
-  thread: { icon: 'default', label: '螺纹杆' },
+  thread: { icon: 'default', label: '螺紋桿' },
   ithread: { icon: 'hole', label: '内螺纹孔' },
   cylpatch: { icon: 'default', label: '曲面贴花' },
   sheetmetal: { icon: 'default', label: '鈑金件' },

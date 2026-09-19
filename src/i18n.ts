@@ -73,6 +73,18 @@ export const EN_LABEL: Record<string, string> = {
   '四連桿機構': 'Four-Bar', '滑塊曲柄': 'Slider-Crank', '六桿機構': 'Six-Bar',
   '傳動設計': 'Drive Design', '機構': 'Mechanisms', '工程計算': 'Engineering Calc',
   '齒輪箱向導': 'Gearbox Wizard', '齒輪嚙合參數': 'Gear Mesh Params',
+  // Construct residual + import/view/primitive Traditional (v1.68) — retain SC above
+  '螺紋桿': 'Threaded Rod',
+  '用戶坐標系': 'User Coordinate System',
+  '圓柱／圓錐／環面軸': 'Axis Through Cylinder/Cone/Torus',
+  '頂點構造點': 'Point At Vertex',
+  '導入DXF': 'Import DXF',
+  '導入SVG': 'Import SVG',
+  '圓錐': 'Cone',
+  '圓錐/圓台': 'Cone / Frustum',
+  '爆炸視圖': 'Exploded View',
+  '整體縮放': 'Scale',
+  '3D列印': '3D Print',
   // BUG-BD-6501 export-all chrome
   '導出全部零件 STL(zip)': 'Export all parts STL (zip)',
   '导出全部零件 STL(zip)': 'Export all parts STL (zip)',
@@ -1736,6 +1748,21 @@ Object.assign(STATUS_PHRASES_X, {
   '導出全部配置': 'Export all configurations',
   '导入设计表': 'Import design table',
   '導入設計表': 'Import design table',
+})
+
+// v1.68 construct residual / import / view / primitive dialog chrome
+Object.assign(STATUS_PHRASES_X, {
+  '螺紋桿': 'Threaded Rod',
+  '用戶坐標系': 'User Coordinate System',
+  '圓柱／圓錐／環面軸': 'Axis Through Cylinder/Cone/Torus',
+  '頂點構造點': 'Point At Vertex',
+  '導入DXF': 'Import DXF',
+  '導入SVG': 'Import SVG',
+  '圓錐': 'Cone',
+  '圓錐/圓台': 'Cone / Frustum',
+  '爆炸視圖': 'Exploded View',
+  '整體縮放': 'Scale Assembly',
+  '3D列印': '3D Print',
 })
 
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)

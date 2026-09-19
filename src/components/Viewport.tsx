@@ -8432,8 +8432,8 @@ function FormPanel() {
       return (
         <FormPalette title={zh ? '创建造型' : 'Create Form'}>
           <div style={{ fontWeight: 700, color: '#4c5a64', borderBottom: '1px solid #d8dee3', paddingBottom: 6, marginBottom: 8 }}>−　BOX</div>
-          <label style={row}>Rectangle
-            <select value="center" disabled style={field}><option value="center">Center</option></select>
+          <label style={row}>{zh ? '矩形' : 'Rectangle'}
+            <select value="center" disabled style={field}><option value="center">{zh ? '中心' : 'Center'}</option></select>
           </label>
           <label style={row}>{zh ? '平面' : 'Plane'}
             <span style={{ display: 'flex', gap: 4 }}>
@@ -8446,18 +8446,18 @@ function FormPanel() {
             </span>
           </label>
           {expanded && <>
-            <label style={row}>Length <span><input aria-label="Form Box Length" type="number" min={0.1} step={0.1} value={Number(boxDraft.length.toFixed(3))} onChange={(e) => patch({ length: Math.max(0.1, Number(e.target.value) || 0.1) })} style={field} /> mm</span></label>
-            <label style={row}>Length Faces <input aria-label="Form Box Length Faces" type="number" min={1} step={1} value={boxDraft.lengthFaces} onChange={(e) => patch({ lengthFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
-            <label style={row}>Width <span><input aria-label="Form Box Width" type="number" min={0.1} step={0.1} value={Number(boxDraft.width.toFixed(3))} onChange={(e) => patch({ width: Math.max(0.1, Number(e.target.value) || 0.1) })} style={field} /> mm</span></label>
-            <label style={row}>Width Faces <input aria-label="Form Box Width Faces" type="number" min={1} step={1} value={boxDraft.widthFaces} onChange={(e) => patch({ widthFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
-            <label style={row}>Height <span><input aria-label="Form Box Height" type="number" min={0.1} step={0.1} value={Number(boxDraft.height.toFixed(3))} onChange={(e) => patch({ height: Math.max(0.1, Number(e.target.value) || 0.1) })} style={field} /> mm</span></label>
-            <label style={row}>Height Faces <input aria-label="Form Box Height Faces" type="number" min={1} step={1} value={boxDraft.heightFaces} onChange={(e) => patch({ heightFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
+            <label style={row}>{zh ? '长度' : 'Length'} <span><input aria-label="Form Box Length" type="number" min={0.1} step={0.1} value={Number(boxDraft.length.toFixed(3))} onChange={(e) => patch({ length: Math.max(0.1, Number(e.target.value) || 0.1) })} style={field} /> mm</span></label>
+            <label style={row}>{zh ? '长度面数' : 'Length Faces'} <input aria-label="Form Box Length Faces" type="number" min={1} step={1} value={boxDraft.lengthFaces} onChange={(e) => patch({ lengthFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
+            <label style={row}>{zh ? '宽度' : 'Width'} <span><input aria-label="Form Box Width" type="number" min={0.1} step={0.1} value={Number(boxDraft.width.toFixed(3))} onChange={(e) => patch({ width: Math.max(0.1, Number(e.target.value) || 0.1) })} style={field} /> mm</span></label>
+            <label style={row}>{zh ? '宽度面数' : 'Width Faces'} <input aria-label="Form Box Width Faces" type="number" min={1} step={1} value={boxDraft.widthFaces} onChange={(e) => patch({ widthFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
+            <label style={row}>{zh ? '高度' : 'Height'} <span><input aria-label="Form Box Height" type="number" min={0.1} step={0.1} value={Number(boxDraft.height.toFixed(3))} onChange={(e) => patch({ height: Math.max(0.1, Number(e.target.value) || 0.1) })} style={field} /> mm</span></label>
+            <label style={row}>{zh ? '高度面数' : 'Height Faces'} <input aria-label="Form Box Height Faces" type="number" min={1} step={1} value={boxDraft.heightFaces} onChange={(e) => patch({ heightFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
           </>}
-          <label style={row}>Direction
-            <select value={boxDraft.direction} onChange={(e) => patch({ direction: e.target.value as FormBoxDraft['direction'] })} style={field}><option value="one">One Side</option><option value="symmetric">Symmetric</option></select>
+          <label style={row}>{zh ? '方向' : 'Direction'}
+            <select value={boxDraft.direction} onChange={(e) => patch({ direction: e.target.value as FormBoxDraft['direction'] })} style={field}><option value="one">{zh ? '单侧' : 'One Side'}</option><option value="symmetric">{zh ? '对称' : 'Symmetric'}</option></select>
           </label>
-          {expanded && <label style={row}>Symmetry
-            <select value={boxDraft.symmetry} onChange={(e) => patch({ symmetry: e.target.value as FormBoxDraft['symmetry'] })} style={field}><option value="none">None</option></select>
+          {expanded && <label style={row}>{zh ? '对称' : 'Symmetry'}
+            <select value={boxDraft.symmetry} onChange={(e) => patch({ symmetry: e.target.value as FormBoxDraft['symmetry'] })} style={field}><option value="none">{zh ? '无' : 'None'}</option></select>
           </label>}
           <div style={{ fontSize: 11, color: '#687782', minHeight: 18, marginTop: 5 }}>{stageHint}</div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, borderTop: '1px solid #d8dee3', paddingTop: 8, marginTop: 8 }}>
@@ -8494,7 +8494,16 @@ function FormPanel() {
     const okLabel = zh ? '确定' : 'OK'
     const cancelLabel = zh ? '取消' : 'Cancel'
     const planeHint = zh ? '点 XY / XZ / YZ 选基准面，再点确定' : 'Click XY/XZ/YZ for origin plane, then OK'
+    const pipeHint = zh ? '输入路径点后点确定，建立开放管状控制笼' : 'Enter path points, then OK to create an open pipe cage'
     const createTitle = zh ? '创建造型' : 'Create Form'
+    const dimDiameter = zh ? '直径' : 'Diameter'
+    const dimLength = zh ? '长度' : 'Length'
+    const dimWidth = zh ? '宽度' : 'Width'
+    const dimHeight = zh ? '高度' : 'Height'
+    const dimFaces = zh ? '面数' : 'Faces'
+    const dimMajor = zh ? '大径 Ø' : 'Major Ø'
+    const dimTube = zh ? '管径 Ø' : 'Tube Ø'
+    const primaryDim = (createKind === 'sphere' || createKind === 'quadball' || createKind === 'cylinder') ? dimDiameter : createKind === 'torus' ? dimMajor : dimLength
     return (
       <FormPalette title={createTitle}>
         <div style={{ fontWeight: 700, color: '#4c5a64', borderBottom: '1px solid #d8dee3', paddingBottom: 6, marginBottom: 8 }}>−　{title}</div>
@@ -8511,22 +8520,23 @@ function FormPanel() {
           </span>
         </label>}
         {createKind === 'box' && <>
-          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>Rectangle <select style={{ width: 105 }} defaultValue="Center"><option>Center</option><option>Two Point</option></select></label>
-          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>Direction <select style={{ width: 105 }} defaultValue="One Side"><option>One Side</option><option>Symmetric</option></select></label>
+          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>{zh ? '矩形' : 'Rectangle'} <select style={{ width: 105 }} defaultValue="Center"><option>{zh ? '中心' : 'Center'}</option><option>{zh ? '两点' : 'Two Point'}</option></select></label>
+          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>{zh ? '方向' : 'Direction'} <select style={{ width: 105 }} defaultValue="One Side"><option>{zh ? '单侧' : 'One Side'}</option><option>{zh ? '对称' : 'Symmetric'}</option></select></label>
         </>}
         {createKind === 'pipe' ? <>
-          <div style={{ color: '#4c5a64', lineHeight: 1.4, marginBottom: 7 }}>创建开放端细分管状控制笼。建立后可拖控制点、拉面及插边。</div>
-          <label style={{ display: 'block', marginBottom: 6 }}>Path points (x,y,z; …)
+          <div style={{ color: '#4c5a64', lineHeight: 1.4, marginBottom: 7 }}>{zh ? '创建开放端细分管状控制笼。建立后可拖控制点、拉面及插边。' : 'Create an open-ended subdivided pipe cage. Drag CVs, extrude faces, and insert edges after OK.'}</div>
+          <label style={{ display: 'block', marginBottom: 6 }} data-testid="form-pipe-path-label">{zh ? '路径点 (x,y,z; …)' : 'Path points (x,y,z; …)'}
             <textarea aria-label="FORM Pipe path points" value={formPipePath} onChange={(e) => setFormPipePath(e.target.value)} rows={3} style={{ width: '100%', boxSizing: 'border-box', marginTop: 3, resize: 'vertical', fontSize: 11 }} />
           </label>
-          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>Profile <select aria-label="FORM Pipe profile" value="circle" disabled style={{ width: 105 }}><option value="circle">Circle</option></select></label>
-          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>Diameter <input aria-label="FORM Pipe diameter" type="number" min={0.1} value={formL} onChange={(e) => setFormL(Number(e.target.value))} style={{ width: 72 }} /></label>
-          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>Profile Faces <input aria-label="FORM Pipe profile faces" type="number" min={3} max={32} value={formSegA} onChange={(e) => setFormSegA(Number(e.target.value))} style={{ width: 72 }} /></label>
+          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }} data-testid="form-pipe-profile-label">{zh ? '轮廓' : 'Profile'} <select aria-label="FORM Pipe profile" value="circle" disabled style={{ width: 105 }}><option value="circle">{zh ? '圆' : 'Circle'}</option></select></label>
+          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }} data-testid="form-pipe-diameter-label">{zh ? '直径' : 'Diameter'} <input aria-label="FORM Pipe diameter" type="number" min={0.1} value={formL} onChange={(e) => setFormL(Number(e.target.value))} style={{ width: 72 }} /></label>
+          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }} data-testid="form-pipe-faces-label">{zh ? '轮廓面数' : 'Profile Faces'} <input aria-label="FORM Pipe profile faces" type="number" min={3} max={32} value={formSegA} onChange={(e) => setFormSegA(Number(e.target.value))} style={{ width: 72 }} /></label>
+          <div style={{ fontSize: 11, color: '#687782', minHeight: 18, marginTop: 5 }} data-testid="form-pipe-hint">{pipeHint}</div>
         </> : <>
-          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{createKind === 'sphere' || createKind === 'quadball' ? 'Diameter' : createKind === 'cylinder' ? 'Diameter' : createKind === 'torus' ? 'Major Ø' : 'Length'} <input type="number" min={1} value={formL} onChange={(e) => setFormL(Number(e.target.value))} style={{ width: 72 }} /></label>
-          {!['sphere', 'quadball', 'cylinder'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{createKind === 'torus' ? 'Tube Ø' : 'Width'} <input type="number" min={1} value={formW} onChange={(e) => setFormW(Number(e.target.value))} style={{ width: 72 }} /></label>}
-          {['box', 'cylinder'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>Height <input type="number" min={1} value={formH} onChange={(e) => setFormH(Number(e.target.value))} style={{ width: 72 }} /></label>}
-          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>Faces <span><input type="number" min={1} value={formSegA} onChange={(e) => setFormSegA(Number(e.target.value))} style={{ width: 45 }} /> × <input type="number" min={1} value={formSegB} onChange={(e) => setFormSegB(Number(e.target.value))} style={{ width: 45 }} /></span></label>
+          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{primaryDim} <input type="number" min={1} value={formL} onChange={(e) => setFormL(Number(e.target.value))} style={{ width: 72 }} /></label>
+          {!['sphere', 'quadball', 'cylinder'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{createKind === 'torus' ? dimTube : dimWidth} <input type="number" min={1} value={formW} onChange={(e) => setFormW(Number(e.target.value))} style={{ width: 72 }} /></label>}
+          {['box', 'cylinder'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{dimHeight} <input type="number" min={1} value={formH} onChange={(e) => setFormH(Number(e.target.value))} style={{ width: 72 }} /></label>}
+          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{dimFaces} <span><input type="number" min={1} value={formSegA} onChange={(e) => setFormSegA(Number(e.target.value))} style={{ width: 45 }} /> × <input type="number" min={1} value={formSegB} onChange={(e) => setFormSegB(Number(e.target.value))} style={{ width: 45 }} /></span></label>
         </>}
         {createKind !== 'pipe' && <div style={{ fontSize: 11, color: '#687782', minHeight: 18, marginTop: 5 }} data-testid="form-create-plane-hint">{planeHint} · {formPlane}</div>}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, borderTop: '1px solid #d8dee3', paddingTop: 8, marginTop: 8 }}>
@@ -8536,15 +8546,18 @@ function FormPanel() {
       </FormPalette>
     )
   }
+  const editTitle = lang !== 'en' ? '编辑造型' : 'Edit Form'
+  const finishFormLbl = lang !== 'en' ? '完成造型' : 'Finish Form'
+  const cancelFormLbl = lang !== 'en' ? '取消造型' : 'Cancel Form'
   return (
     <FormPalette
-      title="Edit Form"
+      title={editTitle}
       footer={(
         <>
           <button className="cs-btn" disabled={!undoN && !formDragging} onClick={() => useApp.getState().formUndoPop()}>↶ {lang === 'en' ? 'Undo' : '复原'}</button>
           <button className="cs-btn" disabled={!redoN || formDragging} onClick={() => useApp.getState().formRedoPop()}>↷ {lang === 'en' ? 'Redo' : '重做'}</button>
-          <button className="cs-btn" data-testid="finish-form-panel" disabled={formDragging} onClick={() => void useApp.getState().finishForm()}>✓ Finish Form</button>
-          <button className="cs-btn" onClick={() => useApp.getState().cancelForm()}>Cancel Form</button>
+          <button className="cs-btn" data-testid="finish-form-panel" disabled={formDragging} onClick={() => void useApp.getState().finishForm()}>✓ {finishFormLbl}</button>
+          <button className="cs-btn" data-testid="cancel-form-panel" onClick={() => useApp.getState().cancelForm()}>{cancelFormLbl}</button>
         </>
       )}
     >

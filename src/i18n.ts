@@ -567,7 +567,7 @@ const STATUS_PHRASES: Record<string, string> = {
   '太负': 'too negative', '太大': 'too large', '会很慢': '(will be slow)', '可撤销': '(undoable)',
   '可还原': '(undoable)', '只支持': 'only supports ', '再点': 'click again', '再按': 'press again',
   '再撳确定': 'then confirm', '再导出': 'then export', '完成草圖': 'Finish Sketch', '完成草图': 'Finish Sketch', '✓ 完成草圖': '✓ Finish Sketch', '✓ 完成草图': '✓ Finish Sketch', '删除': 'delete',
-  '撤销': 'undo', '取消': 'cancel', '当前': 'current ', '朝上': 'up', '请': 'Please ',
+  '撤销': 'Undo', '撤銷': 'Undo', '取消': 'cancel', '当前': 'current ', '朝上': 'up', '请': 'Please ',
   // —— 连接词 / 结构短语（扩充覆盖，令输出尽量全英；仍长→短，单字连接词留中文 fallback 唔乱码）——
   '点「创建草图」开始': 'click "Create Sketch" to start', '逐条点选': 'click one by one',
   '沿该面法向出料': 'extrude along the face normal', '沿该面法向': 'along the face normal',
@@ -597,7 +597,8 @@ const STATUS_PHRASES: Record<string, string> = {
   // —— S-Wire（EN 扩词）：Wire 阶段经 tStatus() 路由嘅 UI 短语（dialog/inspector/ribbon 标签）。
   // 全部 ≥2 字符（单字连接词刻意唔加，避免喺复合词内部乱替，见上方注释）。长→短排序由 _STATUS_SORTED 自动处理。
   '对象': 'Objects', '整个实体': 'Entire Body',
-  '✓ 已选特征': '✓ Feature selected', '← 先喺时间轴单击选中特征': '← Click a feature in the timeline first',
+  '✓ 已选特征': '✓ Feature selected', '← 先喺時間軸單擊選中特徵': '← Click a feature in the timeline first',
+  '← 先喺时间轴单击选中特征': '← Click a feature in the timeline first',
   'X数量': 'X Count', 'X间距': 'X Spacing', 'X总长': 'X Extent',
   'Y数量': 'Y Count', 'Y间距': 'Y Spacing', 'Y总长': 'Y Extent',
   'Z层数': 'Z Layers', 'Z间距': 'Z Spacing', 'Z总长': 'Z Extent',
@@ -907,7 +908,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   '呢个草图嘅消费特征已唔存在': "This sketch's consuming feature no longer exists",
   '切线链：开 — 点一条棱自动连埋成条相切边链（如圆角矩形成圈边）': 'Tangent chain: ON — click one edge to auto-connect a tangent edge chain (e.g. a rounded rectangle forms a loop)',
   '切线链：关 — 只处理点中嘅棱': 'Tangent chain: OFF — only the clicked edge is processed',
-  '曲面旋转需要先画一个【开放折线截面】，或浏览树单击拣一个已完成嘅开放草图': 'Surface revolve needs an open polyline profile drawn first, or click a finished open sketch in the browser tree',
+  '曲面旋轉需要先畫一個【開放折線截面】，或瀏覽樹單擊揀一個已完成嘅開放草圖': 'Surface revolve needs an open polyline profile drawn first, or click a finished open sketch in the browser tree',
   '曲面旋转：角度无效': 'Surface revolve: invalid angle',
   '曲面缝合 Stitch：先做曲面放样 / 补面 / 加厚 / 偏移曲面（要有曲面/壳体先缝得）': 'Surface stitch: create a surface loft / patch / thicken / offset surface first (need a surface/shell to stitch)',
   '平面裁剪：冇曲面/壳体可裁（先做曲面拉伸 / 补面 / 缝合）': 'Plane trim: no surface/shell to trim (create surface extrude / patch / stitch first)',
@@ -1553,7 +1554,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "孔：点实体的一个平面定位孔心 → 设 Ø/类型 → 按「确定」（不点则钻在中心）": "Hole: click a body's planar face to locate the hole center → set Ø/type → OK (drilled at center if you don't click)",
   "V 带轮（皮带传动）：设 外径 / 宽度 / 中心孔Ø → 确定。带 V 形槽。": "V-belt pulley (belt drive): set outer dia / width / bore Ø → OK. Includes V-grooves.",
   "曲面 Patch — 板厚 mm（0 = 净曲面薄片；>0 = 加厚成实体薄板）": "Surface Patch — thickness mm (0 = plain surface sheet; >0 = thickened into a solid plate)",
-  "镜像（所选特征）：先喺时间轴单击选中要镜像嘅特征，再撳确定（Ctrl+点可多选）": "Mirror (selected features): click the feature to mirror in the timeline first, then OK (Ctrl+click for multi-select)",
+  "鏡像（所選特徵）：先喺時間軸單擊選中要鏡像嘅特徵，再撳確定（Ctrl+點可多選）": "Mirror (selected features): click the feature to mirror in the timeline first, then OK (Ctrl+click for multi-select)",
   "路径阵列需要先有一个实体 —— 佢会沿你画嘅路径复制该实体（先建实体，再画路径）": "Path pattern needs a body first — it copies the body along the path you draw (build the body, then draw the path)",
   "路径阵列需要一条路径：用「折线 / 样条」画一条线（≥2 点），再点「路径阵列」": "Path pattern needs a path: draw a line with Polyline / Spline (≥2 points), then click Path Pattern",
   "截面=草图轮廓：先画一个闭合轮廓（矩形/圆/折线闭合），再选构造轴脊线，先至扫掠": "Section = sketch profile: draw a closed profile first (rectangle/circle/closed polyline), then pick a construction-axis spine, then sweep",
@@ -1571,8 +1572,8 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "镜像：点要镜像嘅轮廓（点一个轮廓 = 拣晒佢成条相连嘅边/链选），再撳「✓ 拣轴线」": "Mirror: click the profile to mirror (clicking one profile chain-selects all its connected edges), then click ✓ Pick Axis",
   "✂ 分割面：点一个面 → 喺拾取点用垂直平面把佢切成两半（之后可单独拣/着色/拔模）": "✂ Split face: pick a face → a perpendicular plane at the pick point splits it in two (each half then pickable/shadeable/draftable)",
   "✅ 已复制草图诊断 — 贴返畀 AI（最后一次撳=「未撳过」即係撳击根本冇到草图器）": "✅ Sketch diagnostics copied — paste back to the AI (a final \"never clicked\" means the click never reached the sketcher)",
-  "矩形阵列（所选特征）：先喺时间轴单击选中要阵列嘅特征，再撳确定（Ctrl+点可多选）": "Rectangular pattern (selected features): click the feature to pattern in the timeline first, then OK (Ctrl+click for multi-select)",
-  "环形阵列（所选特征）：先喺时间轴单击选中要阵列嘅特征，再撳确定（Ctrl+点可多选）": "Circular pattern (selected features): click the feature to pattern in the timeline first, then OK (Ctrl+click for multi-select)",
+  "矩形陣列（所選特徵）：先喺時間軸單擊選中要陣列嘅特徵，再撳確定（Ctrl+點可多選）": "Rectangular pattern (selected features): click the feature to pattern in the timeline first, then OK (Ctrl+click for multi-select)",
+  "環形陣列（所選特徵）：先喺時間軸單擊選中要陣列嘅特徵，再撳確定（Ctrl+點可多選）": "Circular pattern (selected features): click the feature to pattern in the timeline first, then OK (Ctrl+click for multi-select)",
   "已载入示例：螺栓法兰（盘 + 中心孔 + 螺栓孔环；改 盘半径R/螺栓数 → 联动）": "Loaded sample: bolted flange (disc + center hole + bolt-hole ring; edit disc radius R / bolt count → rebuilds live)",
   "镜像：点一条【直线边】做镜像轴（草图边 或 构造线都得；或用底栏「左右/上下轴」一键）": "Mirror: click a [straight edge] as the mirror axis (sketch edge or construction line; or use the bottom-bar H/V axis shortcut)",
   "➕加厚：点实体/曲面一个面 → 沿法向加厚成实体薄板（出独立件，要合并用「实体布尔」）": "➕ Thicken: pick a body/surface face → thickens along the normal into a solid plate (a separate body; use Boolean to join)",
@@ -1778,7 +1779,9 @@ const STATUS_PHRASES_X: Record<string, string> = {
   '3MF 读取失败': '3MF 读取失败',
 
   // v1.43: mesh drop overlay / empty-drop feedback (BUG-BD-4101)
-  '松开以导入网格（.stl / .obj / .3mf）': '松开以导入网格（.stl / .obj / .3mf）',
+  '放開以匯入網格（.stl / .obj / .3mf）': 'Release to import mesh (.stl / .obj / .3mf)',
+  '松开以导入网格（.stl / .obj / .3mf）': 'Release to import mesh (.stl / .obj / .3mf)',
+  '鬆開以匯入網格（.stl / .obj / .3mf）': 'Release to import mesh (.stl / .obj / .3mf)',
   '未能读取拖放文件（请确认拖的是本地 .stl/.obj/.3mf，或改用 File→导入 STL）': '未能读取拖放文件（请确认拖的是本地 .stl/.obj/.3mf，或改用 File→导入 STL）',
 
   // v1.44: MESH tab hint + File→导入 chooser status parity with drag-drop

@@ -100,7 +100,7 @@ import { computeMassProps } from '../cad/massProps'      // S117：主惯性矩 
 import { orientedBBox } from '../cad/obb'                // S121：定向最小包围盒（料块/排版/省料）
 import { HDRI_PRESETS, type HdriPresetId } from '../render/hdriPresets'
 import { GradientEquirectTexture } from 'three-gpu-pathtracer'   // 工作模式背景预设：程序化渐变 equirect（同 HdriEnvironment GradientFallback 一致）
-import { msg, tStatus, type LangInput } from '../i18n'
+import { msg, tStatus, tLabel, type LangInput } from '../i18n'
 import { feaStaleBannerText, invalidateSimResultsPatch, hasLiveSimResults } from '../simulation/resultValidity'
 import { parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：单位感知长度输入（分数英寸）
 import type { MeshData } from '../worker/cad.worker'
@@ -4309,7 +4309,7 @@ export default function Viewport() {
           userSelect: 'none',
         }}
       >
-        松开以导入网格（.stl / .obj / .3mf）
+        {msg('status.meshDropArmed', lang)}
       </div>
       {viewLayout === 'single' && (
       <Canvas
@@ -4685,51 +4685,51 @@ export default function Viewport() {
           sectors = [
             repeat,
             { key: 'del', glyph: '🗑', label: '刪除', fn: () => useApp.getState().skDeleteSel() },
-            { key: 'skdim', glyph: '⟷', label: '尺寸 (D)', fn: () => setSketchTool('dimension') },
-            { key: 'construction', glyph: '⋯', label: '构造/实线 (X)', fn: () => useApp.getState().toggleConstruction() },
+            { key: 'skdim', glyph: '⟷', label: msg('mm.dimD', lang), fn: () => setSketchTool('dimension') },
+            { key: 'construction', glyph: '⋯', label: msg('mm.construction', lang), fn: () => useApp.getState().toggleConstruction() },
             { key: 'move', glyph: '✥', label: '移動/複製', fn: () => useApp.getState().startSkMove() },
             { key: 'extrude', glyph: '⬆', label: '拉伸…', disabled: !(sketchShape || sketchProfiles.length > 0), fn: () => openExtrudeDlg() },
-            { key: 'undo', glyph: '↶', label: '撤销', fn: () => void useApp.getState().undo() },
-            { key: 'esc', glyph: '✕', label: '清选择', fn: () => { useApp.getState().escSketch() } },
+            { key: 'undo', glyph: '↶', label: '撤銷', fn: () => void useApp.getState().undo() },
+            { key: 'esc', glyph: '✕', label: msg('mm.clearSel', lang), fn: () => { useApp.getState().escSketch() } },
           ]
           overflow = [
-            { key: 'mirror', label: '◑ 镜像', fn: () => useApp.getState().runCommand('sk_mirrory', '镜像') },
+            { key: 'mirror', label: '◑ 鏡像', fn: () => useApp.getState().runCommand('sk_mirrory', '镜像') },
             { key: 'offset', label: '⇢ 偏移', fn: () => useApp.getState().runCommand('sk_offset', '偏移') },
-            { key: 'trim', label: '✂ 修剪 (T)', fn: () => setSketchTool('trim') },
-            { key: 'autocon', label: '✨ 自动约束', fn: () => void useApp.getState().autoConstrainSel() },
+            { key: 'trim', label: '✂ ' + msg('mm.trimT', lang), fn: () => setSketchTool('trim') },
+            { key: 'autocon', label: '✨ ' + msg('mm.autoCon', lang), fn: () => void useApp.getState().autoConstrainSel() },
             { key: 'fix', label: '⚓ 固定', fn: () => useApp.getState().addSkCon('fix') },
-            { key: 'skarr', label: '▦ 阵列轮廓…', fn: () => useApp.getState().runCommand('sketcharray', '阵列轮廓') },
+            { key: 'skarr', label: '▦ ' + msg('mm.skArr', lang), fn: () => useApp.getState().runCommand('sketcharray', '阵列轮廓') },
             'sep',
-            { key: 'tgfill', label: `${skView.fill ? '☑' : '☐'} 轮廓填充`, fn: () => setSkView({ fill: !skView.fill }) },
-            { key: 'tgannot', label: `${skView.annot ? '☑' : '☐'} 尺寸标注`, fn: () => setSkView({ annot: !skView.annot }) },
-            { key: 'tgcons', label: `${skView.cons ? '☑' : '☐'} 约束徽章`, fn: () => setSkView({ cons: !skView.cons }) },
+            { key: 'tgfill', label: `${skView.fill ? '☑' : '☐'} 輪廓填充`, fn: () => setSkView({ fill: !skView.fill }) },
+            { key: 'tgannot', label: `${skView.annot ? '☑' : '☐'} 尺寸標註`, fn: () => setSkView({ annot: !skView.annot }) },
+            { key: 'tgcons', label: `${skView.cons ? '☑' : '☐'} 約束徽章`, fn: () => setSkView({ cons: !skView.cons }) },
           ]
         } else if (mode === 'sketch') {
           sectors = [
             repeat,
-            { key: 'line', glyph: '╱', label: '直线', fn: () => setSketchTool('polyline') },
+            { key: 'line', glyph: '╱', label: '直線', fn: () => setSketchTool('polyline') },
             { key: 'rect', glyph: '▭', label: '矩形', fn: () => setSketchTool('rectangle') },
-            { key: 'circle', glyph: '◯', label: '圆', fn: () => setSketchTool('circle') },
+            { key: 'circle', glyph: '◯', label: '圓', fn: () => setSketchTool('circle') },
             { key: 'finish', glyph: '✓', label: '完成草圖', fn: () => finishSketch() },
             { key: 'extrude', glyph: '⬆', label: '拉伸…', disabled: !(sketchShape || sketchProfiles.length > 0), fn: () => openExtrudeDlg() },
-            { key: 'undo', glyph: '↶', label: '撤销', fn: () => void useApp.getState().undo() },
-            { key: 'esc', glyph: '✕', label: '取消绘制', fn: () => { useApp.getState().escSketch() } },
+            { key: 'undo', glyph: '↶', label: '撤銷', fn: () => void useApp.getState().undo() },
+            { key: 'esc', glyph: '✕', label: msg('mm.cancelDraw', lang), fn: () => { useApp.getState().escSketch() } },
           ]
           overflow = [
-            { key: 'skdim', label: '⟷ 尺寸 (D)', fn: () => setSketchTool('dimension') },
-            { key: 'sksel', label: '↖ 选择/约束', fn: () => setSketchTool('select') },
+            { key: 'skdim', label: '⟷ ' + msg('mm.dimD', lang), fn: () => setSketchTool('dimension') },
+            { key: 'sksel', label: '↖ ' + msg('mm.selCon', lang), fn: () => setSketchTool('select') },
             { key: 'crect', label: '⊞ 中心矩形', fn: () => setSketchTool('crect') },
-            { key: 'circle2p', label: '⊘ 两点圆', fn: () => setSketchTool('circle2p') },
-            { key: 'circle3', label: '◓ 三点圆', fn: () => setSketchTool('circle3') },
-            { key: 'polygon', label: '⬡ 多边形', fn: () => setSketchTool('polygon') },
-            ...(sketchShape || sketchProfiles.length > 0 ? [{ key: 'skarr', label: '▦ 阵列轮廓…', fn: () => useApp.getState().runCommand('sketcharray', '阵列轮廓') } as MMItem] : []),
+            { key: 'circle2p', label: '⊘ ' + msg('mm.circle2p', lang), fn: () => setSketchTool('circle2p') },
+            { key: 'circle3', label: '◓ 三點圓', fn: () => setSketchTool('circle3') },
+            { key: 'polygon', label: '⬡ 多邊形', fn: () => setSketchTool('polygon') },
+            ...(sketchShape || sketchProfiles.length > 0 ? [{ key: 'skarr', label: '▦ ' + msg('mm.skArr', lang), fn: () => useApp.getState().runCommand('sketcharray', '阵列轮廓') } as MMItem] : []),
             'sep',
-            { key: 'tgfill', label: `${skView.fill ? '☑' : '☐'} 轮廓填充`, fn: () => setSkView({ fill: !skView.fill }) },
-            { key: 'tgannot', label: `${skView.annot ? '☑' : '☐'} 尺寸标注`, fn: () => setSkView({ annot: !skView.annot }) },
-            { key: 'tgcons', label: `${skView.cons ? '☑' : '☐'} 约束徽章`, fn: () => setSkView({ cons: !skView.cons }) },
-            { key: 'tgpoints', label: `${skView.points ? '☑' : '☐'} 草图点`, fn: () => setSkView({ points: !skView.points }) },
+            { key: 'tgfill', label: `${skView.fill ? '☑' : '☐'} 輪廓填充`, fn: () => setSkView({ fill: !skView.fill }) },
+            { key: 'tgannot', label: `${skView.annot ? '☑' : '☐'} 尺寸標註`, fn: () => setSkView({ annot: !skView.annot }) },
+            { key: 'tgcons', label: `${skView.cons ? '☑' : '☐'} 約束徽章`, fn: () => setSkView({ cons: !skView.cons }) },
+            { key: 'tgpoints', label: `${skView.points ? '☑' : '☐'} 草圖點`, fn: () => setSkView({ points: !skView.points }) },
             { key: 'tgconstr', label: `${skView.constr ? '☑' : '☐'} 構造幾何`, fn: () => setSkView({ constr: !skView.constr }) },
-            { key: 'tggrid', label: `${skView.grid ? '☑' : '☐'} 网格`, fn: () => setSkView({ grid: !skView.grid }) },
+            { key: 'tggrid', label: `${skView.grid ? '☑' : '☐'} 網格`, fn: () => setSkView({ grid: !skView.grid }) },
           ]
         } else {
           const sc = selectedComponent ? components.find((c) => c.id === selectedComponent) : undefined
@@ -4737,7 +4737,7 @@ export default function Viewport() {
           // 全部 fn 与旧线性时代逐字相同（复用现有 runCommand/store 接线，纯排布升级）；每个 context 严格 8 扇区
           // （旧 model 数组有 9 项 — DIRS[8] 越界，第 9 粒「测量」render 即 crash 嘅潜伏 bug，呢度顺手修正：删面→溢出列表）。
           const del: MMItem = { key: 'del', icon: 'trash', label: '刪除', disabled: !selectedFeature && !selectedComponent, fn: () => { if (selectedFeature) { removeFeature(selectedFeature); selectFeature(null) } else if (selectedComponent) useApp.getState().deleteComponent(selectedComponent) } }
-          const fit: MMItem = { key: 'fit', glyph: '⊕', label: '适应窗口', fn: () => requestFit() }
+          const fit: MMItem = { key: 'fit', glyph: '⊕', label: msg('mm.fit', lang), fn: () => requestFit() }
           const newSketch: MMItem = { key: 'sketch', icon: 'sketch', label: '建立草圖', fn: () => startSketch() }
           if (bodyMesh) {
             // ── 实体上（有活动实体）：N 重复 · NE 草图 · E 按拉 · SE 测量 · S 删除 · SW 移动 · W 圆角 · NW 适应
@@ -4756,11 +4756,11 @@ export default function Viewport() {
             sectors = [
               repeat,
               newSketch,
-              { key: 'viso', glyph: '◈', label: '等轴测', fn: () => setView('iso') },
-              { key: 'vtop', glyph: '⬚', label: '上视图', fn: () => setView('top') },
+              { key: 'viso', glyph: '◈', label: msg('mm.iso', lang), fn: () => setView('iso') },
+              { key: 'vtop', glyph: '⬚', label: msg('mm.topView', lang), fn: () => setView('top') },
               fit,
-              { key: 'vfront', glyph: '⬚', label: '前视图', fn: () => setView('front') },
-              { key: 'vright', glyph: '⬚', label: '右视图', fn: () => setView('right') },
+              { key: 'vfront', glyph: '⬚', label: msg('mm.frontView', lang), fn: () => setView('front') },
+              { key: 'vright', glyph: '⬚', label: msg('mm.rightView', lang), fn: () => setView('right') },
               del,
             ]
           }
@@ -4772,10 +4772,10 @@ export default function Viewport() {
             ]),
             ...(bodyMesh ? [
               { key: 'chamfer', label: '◣ 倒角', fn: () => runCommand('chamfer', '倒角') } as MMItem,
-              { key: 'facefillet', label: '⌒ 面圆角', fn: () => runCommand('facefillet', '面圆角') } as MMItem,
+              { key: 'facefillet', label: '⌒ ' + msg('mm.faceFillet', lang), fn: () => runCommand('facefillet', '面圆角') } as MMItem,
               { key: 'shell', label: '⬚ 抽殼', fn: () => runCommand('shell', '抽殼') } as MMItem,
               { key: 'expq', label: `📐 导出精度：${useApp.getState().exportQuality === 'fine' ? '细' : useApp.getState().exportQuality === 'coarse' ? '粗' : '中'}`, fn: () => { const q = useApp.getState().exportQuality; useApp.getState().setExportQuality(q === 'medium' ? 'fine' : q === 'fine' ? 'coarse' : 'medium') } } as MMItem,
-              { key: 'bsection', label: '✂ 截面取轮廓', fn: async () => { const v = await useApp.getState().appPrompt('截面：轴,位置mm — 喺活动实体呢个位置切一刀，闭合轮廓变成可编辑草图\n例：Z,10 = 喺 z=10 水平切；X,0 / Y,5 亦可（世界坐标）', 'Z,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (ax.length !== 1 || !'XYZ'.includes(ax)) { await useApp.getState().appAlert('轴要系 X / Y / Z（例 Z,10）'); return } const c = Number(p[1]); if (!Number.isFinite(c)) { await useApp.getState().appAlert('请输入数字位置，例 Z,10'); return } useApp.getState().meshSectionToSketch(undefined, ax as 'X' | 'Y' | 'Z', c) } } as MMItem,
+              { key: 'bsection', label: '✂ ' + msg('mm.sectionSk', lang), fn: async () => { const v = await useApp.getState().appPrompt('截面：轴,位置mm — 喺活动实体呢个位置切一刀，闭合轮廓变成可编辑草图\n例：Z,10 = 喺 z=10 水平切；X,0 / Y,5 亦可（世界坐标）', 'Z,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (ax.length !== 1 || !'XYZ'.includes(ax)) { await useApp.getState().appAlert('轴要系 X / Y / Z（例 Z,10）'); return } const c = Number(p[1]); if (!Number.isFinite(c)) { await useApp.getState().appAlert('请输入数字位置，例 Z,10'); return } useApp.getState().meshSectionToSketch(undefined, ax as 'X' | 'Y' | 'Z', c) } } as MMItem,
             ] : []),
             ...(sc ? ['sep' as const,
               { key: 'focus', label: `🎯 聚焦「${sc.name}」`, fn: () => requestFit(sc.id) } as MMItem,
@@ -4796,17 +4796,17 @@ export default function Viewport() {
             ] : []),
             ...(components.filter((c) => !c.hidden).length > 1 ? ['sep' as const,
               { key: 'stack', label: '⊟ 垂直堆疊', fn: () => useApp.getState().stackComponents() } as MMItem,
-              { key: 'arrange', label: '⊞ 排版到床', fn: () => useApp.getState().arrangeForPrint() } as MMItem,
-              { key: 'drop', label: '⬇ 全部落地', fn: () => useApp.getState().dropAllToFloor() } as MMItem,
+              { key: 'arrange', label: '⊞ ' + msg('mm.arrangeBed', lang), fn: () => useApp.getState().arrangeForPrint() } as MMItem,
+              { key: 'drop', label: '⬇ ' + msg('mm.dropAll', lang), fn: () => useApp.getState().dropAllToFloor() } as MMItem,
             ] : []),
           ]
         }
         // GM-G4b：空境 context 视图掣已升做扇区 → 溢出列表唔再重复；草图/实体上照旧入溢出
         if (mode === 'sketch' || bodyMesh) overflow.push('sep',
-          { key: 'vfront', label: '⬚ 前视图', fn: () => setView('front') },
-          { key: 'vtop', label: '⬚ 上视图', fn: () => setView('top') },
-          { key: 'vright', label: '⬚ 右视图', fn: () => setView('right') },
-          { key: 'viso', label: '◈ 等轴测', fn: () => setView('iso') })
+          { key: 'vfront', label: '⬚ ' + msg('mm.frontView', lang), fn: () => setView('front') },
+          { key: 'vtop', label: '⬚ ' + msg('mm.topView', lang), fn: () => setView('top') },
+          { key: 'vright', label: '⬚ ' + msg('mm.rightView', lang), fn: () => setView('right') },
+          { key: 'viso', label: '◈ ' + msg('mm.iso', lang), fn: () => setView('iso') })
         return <MarkingMenu x={ctxMenu.x} y={ctxMenu.y} sectors={sectors} overflow={overflow} onClose={() => setCtxMenu(null)} />
       })()}
 
@@ -5969,7 +5969,7 @@ export default function Viewport() {
           {!(holeD > 0) && <div role="alert" data-testid="hole-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>尺寸已拒絕：孔徑Ø必須大於 0（已清除非法預覽）</div>}
           <div style={{ color: '#6b7680', fontWeight: 600 }}>Placement</div>
           <SelectionChip label="面／草圖點" count={holePos ? 1 : 0} hint={holePos ? '已選位置；可再點面改位置' : '請在實體面上點選孔位置'} onClear={() => useApp.getState().clearHolePick()} />
-          <button className="cs-btn" title="按草图点批量打孔：先在草图以「點」工具放置 N 個點，再一次建立 N 個孔。" onClick={() => void useApp.getState().addHolesAtSketchPoints()}>⊙ 從草圖點批量建立</button>
+          <button className="cs-btn" title="按草圖點批量打孔：先在草图以「點」工具放置 N 個點，再一次建立 N 個孔。" onClick={() => void useApp.getState().addHolesAtSketchPoints()}>⊙ 從草圖點批量建立</button>
           <div style={{ color: '#6b7680', fontWeight: 600, borderTop: '1px solid #d9e0e5', paddingTop: 8 }}>Shape Settings</div>
           <div style={{ color: '#6b7680' }}>孔型</div>
           <div style={{ display: 'flex', gap: 4 }}>
@@ -6235,7 +6235,7 @@ export default function Viewport() {
             </div>
             <label title={tStatus('面陣列會建立獨立 B-rep 曲面副本；之後可用 Stitch 或 Thicken 轉成後續幾何。', lang)}>{tStatus('对象类型', lang)} <select value={String(featDlg.params.objectType ?? 'bodies')} onChange={(e) => { const v = e.target.value; setFeatParam('objectType', v); setFeatParam('target', v === 'features' ? 'feature' : 'body') }} style={{ height: 26 }}><option value="bodies">{tStatus('整个实体', lang)}</option><option value="faces">{tStatus('面', lang)}</option><option value="features">{tStatus('所选特征', lang)}</option><option value="components">{tStatus('组件', lang)}</option></select></label>
             {String(featDlg.params.objectType ?? 'bodies') === 'components' && <span style={{ fontSize: 11, color: cpSelCompCount ? '#2c7' : '#c60' }}>{cpSelCompCount ? `✓ ${tStatus('已选组件', lang)} ×${cpSelCompCount}（${tStatus('共享定义的 occurrence 阵列', lang)}）` : tStatus('← 先喺装配树勾选 ☑ 或画布选中组件', lang)}</span>}
-            {featDlg.params.target === 'feature' && <span style={{ fontSize: 11, color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已选特征', lang)} ×${useApp.getState().selectedFeatures.length || 1}` : tStatus('← 先喺时间轴单击选中特征', lang)}</span>}
+            {featDlg.params.target === 'feature' && <span style={{ fontSize: 11, color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已选特征', lang)} ×${useApp.getState().selectedFeatures.length || 1}` : msg('ui.clickFeatureFirst', lang)}</span>}
             <label title={tStatus('距离类型（Fusion Distance Type）：间距 = 相邻副本距离；总长 = 首末副本总跨距（间距自动 = 总长÷(数量−1)）', lang)}>{tStatus('距离', lang)} <select value={String(featDlg.params.dtype ?? 'spacing')} onChange={(e) => setFeatParam('dtype', e.target.value)} style={{ height: 26 }}><option value="spacing">{tStatus('间距', lang)}</option><option value="extent">{tStatus('总长', lang)}</option></select></label>
             <label>{tStatus('X数量', lang)} <input type="number" min={1} step={1} value={featDlg.params.countX} onChange={(e) => setFeatParam('countX', Number(e.target.value))} style={{ width: 46 }} /></label>
             <label>{tStatus(featDlg.params.dtype === 'extent' ? 'X总长' : 'X间距', lang)} <input type="number" step={5} value={featDlg.params.dx} onChange={(e) => setFeatParam('dx', Number(e.target.value))} style={{ width: 56 }} /></label>
@@ -6283,7 +6283,7 @@ export default function Viewport() {
             </div>
             <label title={tStatus('面陣列會建立獨立 B-rep 曲面副本；之後可用 Stitch 或 Thicken 轉成後續幾何。', lang)}>{tStatus('对象类型', lang)} <select value={String(featDlg.params.objectType ?? 'bodies')} onChange={(e) => { const v = e.target.value; setFeatParam('objectType', v); setFeatParam('target', v === 'features' ? 'feature' : 'body') }} style={{ height: 26 }}><option value="bodies">{tStatus('整个实体', lang)}</option><option value="faces">{tStatus('面', lang)}</option><option value="features">{tStatus('所选特征', lang)}</option><option value="components">{tStatus('组件', lang)}</option></select></label>
             {String(featDlg.params.objectType ?? 'bodies') === 'components' && <span style={{ fontSize: 11, color: cpSelCompCount ? '#2c7' : '#c60' }}>{cpSelCompCount ? `✓ ${tStatus('已选组件', lang)} ×${cpSelCompCount}（${tStatus('共享定义的 occurrence 阵列', lang)}）` : tStatus('← 先喺装配树勾选 ☑ 或画布选中组件', lang)}</span>}
-            {featDlg.params.target === 'feature' && <span style={{ fontSize: 11, color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已选特征', lang)} ×${useApp.getState().selectedFeatures.length || 1}` : tStatus('← 先喺时间轴单击选中特征', lang)}</span>}
+            {featDlg.params.target === 'feature' && <span style={{ fontSize: 11, color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已选特征', lang)} ×${useApp.getState().selectedFeatures.length || 1}` : msg('ui.clickFeatureFirst', lang)}</span>}
             <label title={tStatus('轴方向预设（写入下面方向分量；要斜轴直接改分量）', lang)}>{tStatus('轴', lang)} <select value={String(featDlg.params.dx) === '1' ? 'X' : String(featDlg.params.dy) === '1' ? 'Y' : String(featDlg.params.dz) === '1' ? 'Z' : 'C'} onChange={(e) => { const v = e.target.value; if (v === 'X') { setFeatParam('dx', 1); setFeatParam('dy', 0); setFeatParam('dz', 0) } else if (v === 'Y') { setFeatParam('dx', 0); setFeatParam('dy', 1); setFeatParam('dz', 0) } else if (v === 'Z') { setFeatParam('dx', 0); setFeatParam('dy', 0); setFeatParam('dz', 1) } }} style={{ height: 26 }}><option value="Z">Z</option><option value="X">X</option><option value="Y">Y</option><option value="C">{tStatus('自定义', lang)}</option></select></label>
             <button className={'cs-btn pick-slot' + (cpatAxisPickA ? ' active' : '')} title={tStatus('拾轴：点活动实体嘅圆柱面（孔壁/圆轴/凸台侧面）— 轴点+方向自动填', lang)} onClick={() => useApp.getState().startCpatAxisPick()}>{tStatus('🎯拾轴', lang)}</button>
             {useApp.getState().caxes.length > 0 && (
@@ -6306,7 +6306,7 @@ export default function Viewport() {
             <button className={'cs-btn pick-slot' + (mirrorFacePickA ? ' active' : '')} title={tStatus('拾镜像面：点实体上任意【平面】（唔使先造构造面）', lang)} onClick={() => useApp.getState().startMirrorFacePick()}>{tStatus('🎯拾面', lang)}</button>
             {String(featDlg.params.plane) === 'PICK' && <span style={{ fontSize: 11, color: '#16a36b' }}>{tStatus('✓ 已拾镜像面', lang)}（[{String(featDlg.params.pickN)}]）</span>}
             <label title={tStatus('镜像对象：整个实体 = 成件镜像合并；所选特征 = 净镜像嗰个特征嘅增/切区域（对称孔/凸台）；组件 = 镜像装配树勾选/选中嘅组件，支持偏移、构造面及所拾平面。', lang)}>{tStatus('对象', lang)} <select value={featDlg.params.target ?? 'body'} onChange={(e) => setFeatParam('target', e.target.value)} style={{ height: 26 }}><option value="body">{tStatus('整个实体', lang)}</option><option value="feature">{tStatus('所选特征', lang)}</option><option value="components">{tStatus('组件', lang)}</option></select></label>
-            {featDlg.params.target === 'feature' && <span style={{ fontSize: 11, color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已选特征', lang)} ×${useApp.getState().selectedFeatures.length || 1}` : tStatus('← 先喺时间轴单击选中特征', lang)}</span>}
+            {featDlg.params.target === 'feature' && <span style={{ fontSize: 11, color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已选特征', lang)} ×${useApp.getState().selectedFeatures.length || 1}` : msg('ui.clickFeatureFirst', lang)}</span>}
             {featDlg.params.target === 'components' && (() => { const n = useApp.getState().checkedComps.length || (useApp.getState().selectedComponent ? 1 : 0); return <span style={{ fontSize: 11, color: n ? '#2c7' : '#c60' }}>{n ? `✓ ${tStatus('已选组件', lang)} ×${n}（${tStatus('支持偏移、构造面及所拾平面', lang)}）` : tStatus('← 先喺装配树勾选 ☑ 或选中组件', lang)}</span> })()}
             <label title={tStatus('镜像基准面：三个世界面（可加偏移）或任意构造面；组件镜像同样支持。', lang)}>{tStatus('镜像面', lang)} <select value={featDlg.params.plane} onChange={(e) => setFeatParam('plane', e.target.value)} style={{ height: 26 }}>{String(featDlg.params.plane) === 'PICK' && <option value="PICK">🎯 {tStatus('拾取面', lang)}</option>}<option>XY</option><option>XZ</option><option>YZ</option>{useApp.getState().planes.map((pl, i) => pl.arb ? <option key={'P' + i} value={'P' + i}>{tStatus('构造面', lang)}{i + 1}</option> : null)}</select></label>
             {!String(featDlg.params.plane).startsWith('P') && <label>{tStatus('偏移', lang)} <input type="number" step={5} value={featDlg.params.offset} onChange={(e) => setFeatParam('offset', Number(e.target.value))} style={{ width: 56 }} /></label>}
@@ -7599,7 +7599,7 @@ export default function Viewport() {
 
       {/* Fusion 式 ViewCube 旁「Home 小屋仔」（右上角立方左上角）：一键回正等轴测主视图 + 画面置中。对标影片右上角小屋。
           GM-X2 #3：右键小屋 = ViewCube 上下文菜单（回 Home / 投影三态 / 设为前视）—— drei ViewCube 无右键，喺此补返。 */}
-      <button title={tStatus('主视图 Home：左键回正等轴测 + 置中；右键 = 视图菜单（投影 / 设为前视）', lang)}
+      <button title={msg('vp.homeViewTip', lang)}
         style={{ position: 'absolute', top: 64, right: 116, width: 26, height: 26, zIndex: 20, background: 'rgba(255,255,255,.94)', border: '1px solid #c4ccd4', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.14)', color: '#3b6e8f', padding: 0 }}
         onClick={() => { setView('iso'); requestFit() }}
         onContextMenu={(e) => { e.preventDefault(); setCubeMenu((v) => !v) }}>
@@ -7849,7 +7849,7 @@ export default function Viewport() {
                     <input type="checkbox" checked={selFilter.types.includes(t.key)} onChange={() => useApp.getState().toggleSelType(t.key)} />{tStatus(t.label, lang)}
                   </label>
                 ))}
-                <div className="panel-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleSelectThrough() }} title={tStatus('穿透选择：单击时连被遮挡组件一齐拣入选择集（框选/套索本就穿透）', lang)}>
+                <div className="panel-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleSelectThrough() }} title={tStatus('穿透選擇：單擊時連被遮擋組件一齊揀入選擇集（框選/套索本就穿透）', lang)}>
                   <input type="checkbox" readOnly checked={selFilter.selectThrough} />{tStatus('穿透选择（拣遮挡）', lang)}
                 </div>
                 {compCountNav >= 1 && <>
@@ -8313,12 +8313,12 @@ export default function Viewport() {
           <div style={{ fontSize: 18, marginBottom: 5, color: '#3a4654', fontWeight: 700 }}>{tStatus('开始建模', lang)}</div>
           <div style={{ display: 'flex', gap: 7, justifyContent: 'center', flexWrap: 'wrap', marginTop: 10, pointerEvents: 'auto' }}>
             {([
-              { label: '✏️ 画草图', fn: () => useApp.getState().startSketch() },
-              { label: '📦 長方體', fn: () => useApp.getState().runCommand('box', '長方體') },
-              { label: '⚙️ 齿轮组示例', fn: () => void useApp.getState().loadSample('gearpair') },
-              { label: '🔍 搜索命令', fn: () => useApp.getState().setCmdPalette(true) },
+              { label: '✏️ ' + msg('mm.drawSketch', lang), fn: () => useApp.getState().startSketch() },
+              { label: '📦 ' + tLabel('長方體', lang), fn: () => useApp.getState().runCommand('box', '長方體') },
+              { label: '⚙️ ' + msg('mm.gearSample', lang), fn: () => void useApp.getState().loadSample('gearpair') },
+              { label: '🔍 ' + msg('mm.searchCmd', lang), fn: () => useApp.getState().setCmdPalette(true) },
             ] as { label: string; fn: () => void }[]).map((b) => (
-              <button key={b.label} onClick={b.fn} style={{ padding: '5px 11px', fontSize: 12, borderRadius: 7, border: '1px solid #c4ccd4', background: '#fff', color: '#1d2329', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>{tStatus(b.label, lang)}</button>
+              <button key={b.label} onClick={b.fn} style={{ padding: '5px 11px', fontSize: 12, borderRadius: 7, border: '1px solid #c4ccd4', background: '#fff', color: '#1d2329', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>{b.label}</button>
             ))}
           </div>
           <div style={{ fontSize: 11, marginTop: 8, opacity: 0.65 }}>{tStatus('悬停任何工具睇说明　·　需要帮助撳右上 ?　·　按 / 搜索命令', lang)}</div>

@@ -7,7 +7,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useApp, MATERIALS, SAMPLE_LABELS, type SampleKind } from '../store'
 import { ToolIcon } from '../icons'
 import { WORKSPACE_TABS, WORKSPACES, SKETCH_PANELS, FORM_PANELS, type Tool } from '../ribbon'
-import { tLabel, tGroup, tTab, msg, normalizeLang, type Lang } from '../i18n'   // T800 + v1.74 4-locale
+import { tLabel, tGroup, tTab, msg, tStatus, normalizeLang, type Lang } from '../i18n'   // T800 + v1.74 4-locale
 import { FASTENER_KIND_LABEL, FASTENER_SIZES, type FastenerKind, type FastenerSize } from '../cad/fasteners'
 import { TEXTURE_KEYS } from '../render/procTextures'
 import MaterialSwatchPicker from './MaterialSwatchPicker'   // 材质球视觉拣料
@@ -98,6 +98,14 @@ const SK_TOOL_OF_ID: Record<string, string> = {
   sk_arc: 'arc', sk_arcc: 'arcc', sk_select: 'select', sk_dim: 'dimension', sk_move: 'move', sk_trim: 'trim', sk_extend: 'extend', sk_break: 'break', sk_offset: 'offset', sk_point: 'point', sk_cline: 'cline', sk_rect3: 'rect3', sk_polygon: 'polygon', sk_spline: 'spline', sk_bspline: 'bspline', sk_slot: 'slot', sk_arcslot: 'arcslot', sk_rrect: 'rrect', sk_ellipse: 'ellipse', sk_earc: 'earc', sk_conic: 'conic',
 }
 
+/** Prefer tip.<id> catalog; else ribbon source tip (zh-CN via tStatus). */
+function resolveRibbonTip(id: string, lang: Lang, fallback?: string): string {
+  const key = `tip.${id}`
+  const cat = msg(key, lang)
+  if (cat !== key) return cat
+  return fallback ? tStatus(fallback, lang) : ''
+}
+
 const SK_CON_OF_ID: Record<string, string> = { sk_c_h: 'h', sk_c_v: 'v', sk_c_coin: 'coincident', sk_c_par: 'parallel', sk_c_perp: 'perp', sk_c_eq: 'equal', sk_c_tan: 'tangent', sk_c_fix: 'fix', sk_c_mid: 'midpoint', sk_c_conc: 'concentric', sk_c_coll: 'collinear', sk_c_sym: 'symmetric' }
 
 // Quick icon in the ribbon strip — Fusion style: icon only (~26px), label lives in the tooltip,
@@ -115,7 +123,8 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
   const quickAnchor = useRef<HTMLDivElement>(null), quickMenu = useRef<HTMLDivElement>(null)
   useEscapeLayer(quickOpen, () => { setQuickOpen(false); quickAnchor.current?.querySelector('button')?.focus() }, 241)
   const quickPlacement = useFloatingMenu(quickOpen, quickAnchor, quickMenu)
-  const title = off ? `${t.label} — ${commandDisabledReason(useApp.getState(), t.id)}` : `${t.label}${t.shortcut ? ` (${t.shortcut})` : ''}${t.tip ? `\n${t.tip}` : ''}`
+  const tipTxt = resolveRibbonTip(t.id, lang, t.tip)
+  const title = off ? `${tLabel(t.label, lang)} — ${tStatus(commandDisabledReason(useApp.getState(), t.id) || '', lang)}` : `${tLabel(t.label, lang)}${t.shortcut ? ` (${t.shortcut})` : ''}${tipTxt ? `\n${tipTxt}` : ''}`
   // A quick parent with children (阵列 ▸) runs its first child on direct click (Fusion: icon = default cmd).
   const cmd = t.children?.length ? t.children[0] : t
   // Sketch tools render a 2D text glyph (◯ ▭ ⊿ …) + their Chinese label below, so a non-coder can
@@ -166,7 +175,7 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
           key={child.id}
           data-cmd={child.id}
           className="panel-menu-item"
-          title={child.tip || child.label}
+          title={resolveRibbonTip(child.id, lang, child.tip) || tLabel(child.label, lang)}
           role="menuitem" tabIndex={gate(child.id) ? -1 : 0} aria-disabled={gate(child.id)} onKeyDown={e => { if (!gate(child.id) && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setQuickOpen(false); run(child.id, child.label) } }}
           onClick={() => { if (gate(child.id)) return; setQuickOpen(false); run(child.id, child.label) }}
         ><ToolIcon name={child.icon} size={16} />{tLabel(child.label, lang)}{child.shortcut && <span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>{child.shortcut}</span>}</div>)}
@@ -184,7 +193,7 @@ function MenuRow({ t, off, onPick }: { t: Tool; off: boolean; onPick: (t: Tool) 
     <div
       data-cmd={t.id}
       className={'panel-menu-item' + (off ? ' off' : '')}
-      title={off ? '请先完成或取消（ESC）当前操作 / 完成草圖' : (t.tip || t.label)}
+      title={off ? msg('ui.busyCancelSketch', lang) : (resolveRibbonTip(t.id, lang, t.tip) || tLabel(t.label, lang))}
       style={{ flexWrap: hasSub ? 'wrap' : undefined }}
       role="menuitem" aria-disabled={off} tabIndex={off ? -1 : 0} aria-expanded={hasSub ? subOpen : undefined}
       onKeyDown={e => { if (e.target !== e.currentTarget || off) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); if (hasSub) setSubOpen(!subOpen); else onPick(t) } if (e.key === 'Escape') setSubOpen(false) }}
@@ -198,7 +207,7 @@ function MenuRow({ t, off, onPick }: { t: Tool; off: boolean; onPick: (t: Tool) 
       {hasSub && subOpen && (
         <div className="ribbon-submenu" role="menu" data-testid="ribbon-submenu" style={{ flexBasis: '100%', minWidth: 0, paddingLeft: 8, borderLeft: '2px solid #9bbcd5' }} onClick={e => e.stopPropagation()}>
           {t.children!.map((c) => (
-            <div key={c.id} role="menuitem" tabIndex={off ? -1 : 0} aria-disabled={off} onKeyDown={e => { if (!off && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); onPick(c) } }} data-cmd={c.id} className={'panel-menu-item' + (off ? ' off' : '')} title={c.tip || c.label}
+            <div key={c.id} role="menuitem" tabIndex={off ? -1 : 0} aria-disabled={off} onKeyDown={e => { if (!off && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); onPick(c) } }} data-cmd={c.id} className={'panel-menu-item' + (off ? ' off' : '')} title={resolveRibbonTip(c.id, lang, c.tip) || tLabel(c.label, lang)}
               onClick={(e) => { e.stopPropagation(); if (off) return; onPick(c) }}>
               <ToolIcon name={c.icon} size={16} />{tLabel(c.label, lang)}
               {c.shortcut && <span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>{c.shortcut}</span>}
@@ -357,7 +366,7 @@ export default function Ribbon() {
       {/* top app bar — Fusion: file ▾ / save / undo / redo left, doc name centered, search/help right.
           Everything that used to crowd this bar lives in the 文件▾ menu or the ribbon groups. */}
       <div className="topbar">
-        <button className="tb-btn" title="适应窗口 / 主视图" onClick={() => requestFit()}><ToolIcon name="home" size={18} /></button>
+        <button className="tb-btn" title={msg('cmd.actFit', lang)} onClick={() => requestFit()}><ToolIcon name="home" size={18} /></button>
         <div className="tb-sep" />
         <div style={{ position: 'relative' }}>
           <button ref={fileButton} aria-haspopup="menu" aria-expanded={fileMenu} className="tb-btn tb-text" title={msg('file.title', lang)} onClick={() => setFileMenu((o) => !o)}>
@@ -434,7 +443,7 @@ export default function Ribbon() {
             const OPTG_KEY: Record<string, string> = { '基础件': 'ui.sample.basic', '机械传动': 'ui.sample.mech', '紧固/标准件': 'ui.sample.fastener', 'maker/电子': 'ui.sample.maker', '曲面/管件': 'ui.sample.surf', '其他': 'ui.sample.other' }
             return groups.map(([label, kinds]) => (
               <optgroup key={label} label={OPTG_KEY[label] ? msg(OPTG_KEY[label], lang) : label}>
-                {kinds.filter((k) => SAMPLE_LABELS[k]).map((k) => <option key={k} value={k}>{SAMPLE_LABELS[k]}</option>)}
+                {kinds.filter((k) => SAMPLE_LABELS[k]).map((k) => <option key={k} value={k}>{msg('sample.' + k, lang)}</option>)}
               </optgroup>
             ))
           })()}
@@ -488,7 +497,7 @@ export default function Ribbon() {
                 className={'ribbon-tab' + (!inSketch && !inForm && tab === activeTab ? ' active' : '')}
                 aria-disabled={!!commandActive || sketchDragging}
                 style={commandActive ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
-                title="单击切换 · 双击收起/展开工具行（腾画面空间，对标 Fusion）"
+                title={msg('ui.ribbonTabToggleTip', lang)}
                 onClick={() => { setActiveTab(tab); if (ribbonCollapsed) setRibbonCollapsed(false) }}
                 onDoubleClick={() => setRibbonCollapsed((c) => !c)}
               >
@@ -498,7 +507,7 @@ export default function Ribbon() {
             {inSketch && <div className="ribbon-tab ctx active">{msg('tab.SKETCH', lang)}</div>}
             {inForm && <div className="ribbon-tab ctx active" data-testid="form-workspace-tab">{msg('tab.FORM', lang)}</div>}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: 6 }} title={msg('ui.lang', lang)}>
-              {<button className="ribbon-tab" title={ribbonCollapsed ? '展开工具行' : '收起工具行（净留标签，腾画面）'} onClick={() => setRibbonCollapsed((c) => !c)} style={{ fontSize: 12, opacity: 0.7 }}>{ribbonCollapsed ? '▾' : '▴'}</button>}
+              {<button className="ribbon-tab" title={ribbonCollapsed ? msg('ui.expandRibbon', lang) : msg('ui.collapseRibbon', lang)} onClick={() => setRibbonCollapsed((c) => !c)} style={{ fontSize: 12, opacity: 0.7 }}>{ribbonCollapsed ? '▾' : '▴'}</button>}
               <button className="ribbon-tab" aria-pressed={!compactTools} title={msg('ui.showToolNames', lang)} onClick={() => setCompactTools(v => !v)}>{compactTools ? 'Aa' : '▦'}</button>
               {inSketch && <button className="ribbon-tab context-finish" disabled={!!commandActive || sketchDragging} onMouseDown={e => e.preventDefault()} onClick={() => finishSketch()}>{'✓ ' + msg('ui.finishSketch', lang)}</button>}
               <span role="group" aria-label={msg('ui.lang', lang)} data-testid="lang-switcher" style={{ display: 'inline-flex', gap: 2 }}>

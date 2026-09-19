@@ -29,7 +29,7 @@ import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
-import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus } from './ui/featureStatus'
+import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus, gearSuccessStatus, wormSuccessStatus, profileSuccessStatus } from './ui/featureStatus'
 import { lengthScale } from './io/units'
 import { meshDropKind, MESH_TAB_DROP_HINT } from './io/meshDrop'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
@@ -6362,7 +6362,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setSelPriority: (p) => set((s) => ({ selFilter: withPriority(s.selFilter, p), status: `选择优先级：${p === 'body' ? '实体' : p === 'face' ? '面' : '边'}优先` })),
   selectAllSelTypes: () => set((s) => ({ selFilter: withAllTypes(s.selFilter), status: '选择过滤：全部类型可拣' })),
   clearSelTypes: () => set((s) => ({ selFilter: withNoTypes(s.selFilter), status: '选择过滤：已清空（暂锁拣选）' })),
-  toggleSelectThrough: () => set((s) => { const v = !s.selFilter.selectThrough; return { selFilter: withSelThrough(s.selFilter, v), status: v ? '🔓 穿透选择：开（单击时连被遮挡组件一齐拣入选择集；框选/套索本就穿透）' : '穿透选择：关（单击仅拣最前组件）' } }),
+  toggleSelectThrough: () => set((s) => { const v = !s.selFilter.selectThrough; return { selFilter: withSelThrough(s.selFilter, v), status: v ? msg('ui.selectThroughOn', s.lang) : msg('ui.selectThroughOff', s.lang) } }),
   // GM-X4 #19：谓词选择（作用喺 checkedComps 组件选择集）。size 度量 = 局部包围盒体积 mm³。
   selectCompsByName: (query, additive) => set((s) => {
     const items = s.components.filter((c) => !c.hidden).map((c) => ({ id: c.id, name: c.name || '' }))
@@ -13301,7 +13301,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'extrude':  // Fusion: Extrude needs a profile/sketch. No profile → refuse (no "create from nothing").
         if (get().sketchShape || get().sketchProfiles.length) return get().openExtrudeDlg()  // open dialog → set op/extent/distance/draft → 确定
         if (await get().hydrateSketchForFeature()) return get().openExtrudeDlg()  // T756：食选中/最近嘅独立草图（Fusion 完成草图后直接拉伸）；GM-W6 F5：多张未拣中 → prompt 拣
-        set({ status: '拉伸需要先画一个草图轮廓 —— 「创建草图」画一个，或浏览树单击拣一个已完成嘅草图' }); return
+        set({ status: '拉伸需要先畫一個草圖輪廓 —— 「建立草圖」畫一個，或瀏覽樹單擊揀一個已完成嘅草圖' }); return
       case 'box': return get().openFeatDlg('box')
       case 'sphere': return get().openFeatDlg('sphere')
       case 'torus': return get().openFeatDlg('torus')
@@ -13365,7 +13365,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (!get().sketchShape) await get().hydrateSketchForFeature(true)  // T756：食选中/最近嘅独立草图；旋转收开放半剖（绕轴自动闭合）；GM-W6 F5：多张未拣中 → prompt 拣
         const st0 = get()
         const sh = st0.sketchShape
-        if (!sh) { set({ status: '旋转需要先画一个草图轮廓，或浏览树单击拣一个已完成嘅草图' }); return }
+        if (!sh) { set({ status: '旋轉需要先畫一個草圖輪廓，或瀏覽樹單擊揀一個已完成嘅草圖' }); return }
         // Revolve keeps the originating XY/XZ/YZ or arbitrary datum sketch frame.  The
         // worker reconstructs that frame during timeline replay, so do not add a
         // cardinal-plane rejection guard here.
@@ -13541,7 +13541,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'surfrevolve': {  // S曲面：开放截面绕轴旋成零厚旋转曲面壳（最小角度 prompt；轴 = 世界 Y/X）
         if (!get().sketchShape) await get().hydrateSketchForFeature(true)  // 食选中/最近嘅独立草图（镜 revolve）；曲面旋转本就系开放剖面；GM-W6 F5：多张未拣中 → prompt 拣
         const sh0 = get().sketchShape
-        if (!sh0) { set({ status: '曲面旋转需要先画一个【开放折线截面】，或浏览树单击拣一个已完成嘅开放草图' }); return }
+        if (!sh0) { set({ status: '曲面旋轉需要先畫一個【開放折線截面】，或瀏覽樹單擊揀一個已完成嘅開放草圖' }); return }
         const prof0 = shapeToProfile(sh0, get().sketchPlane)
         const v = await get().appPrompt(tStatus('曲面旋转（开放截面绕轴 → 零厚旋转曲面壳。要实体再用「加厚」/「缝合」）：\n旋转角度°,轴(Y/X)', get().lang), '360,Y')
         if (v == null) return
@@ -15524,7 +15524,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (d.stage === 'center') return { formBoxDraft: { ...d, center: p, cursor: p, stage: 'size' }, status: 'FORM Box：指定矩形大小。' }
     if (d.stage === 'size' && d.center) {
       const dims = formBoxSizeFromPoints(d.center, p)
-      return { formBoxDraft: { ...d, cursor: p, ...dims, stage: 'height', heightAnchorY: clientY }, status: 'FORM Box：拖动鼠标指定高度，再单击确认。' }
+      return { formBoxDraft: { ...d, cursor: p, ...dims, stage: 'height', heightAnchorY: clientY }, status: 'FORM Box：拖動滑鼠指定高度，再單擊確認。' }
     }
     return {}
   }),
@@ -17023,7 +17023,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if ((p.target === 'feature' || p.objectType === 'features') && !d.editId) {   // Edit Feature：编辑模式 targets 透传原值（undefined 过滤），唔使时间轴选中
         // P2 audit：多选（Ctrl+点 chip 累积 selectedFeatures）— 一次阵列/镜像多个特征；旧单选照兼容
         const selFs = get().selectedFeatures.length ? get().selectedFeatures : (get().selectedFeature ? [get().selectedFeature as string] : [])
-        if (!selFs.length) { set({ status: '矩形阵列（所选特征）：先喺时间轴单击选中要阵列嘅特征，再撳确定（Ctrl+点可多选）' }); return }
+        if (!selFs.length) { set({ status: '矩形陣列（所選特徵）：先喺時間軸單擊選中要陣列嘅特徵，再撳確定（Ctrl+點可多選）' }); return }
         const _live = selFs.filter((fid2) => get().features.some((x) => x.id === fid2))
         if (!_live.length) { set({ status: '所选特征已唔存在 — 重新选' }); return }
         { const _nb = _live.map((fid2) => get().features.find((x) => x.id === fid2) as { operation?: string; op?: string } | undefined).filter((tf) => tf && ((tf.operation ?? tf.op) === 'newbody'))
@@ -17106,10 +17106,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else if (d.kind === 'gear') {
       const op: BoolOp = get().cutMode && hasSolid(get().features) ? 'cut' : 'new'
       f = { id: fid(), type: 'gear', module: +p.module, teeth: Math.max(5, Math.round(+p.teeth)), thickness: +p.thickness, bore: +p.bore, helix: +(p.helix || 0) || undefined, op }
-      { const mm = +p.module, zz = Math.round(+p.teeth); msg = `已${op === 'cut' ? '切割' : '创建'}齿轮 m${mm}×${zz}齿（分度圆Ø${(mm * zz).toFixed(0)} · 齿顶圆Ø${(mm * (zz + 2)).toFixed(0)} · 齿根圆Ø${(mm * zz - 2.5 * mm).toFixed(1)} · 全齿高${(2.25 * mm).toFixed(1)} · 厚${+p.thickness}）` }
+      { const mm = +p.module, zz = Math.round(+p.teeth); msg = gearSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', module: mm, teeth: zz, pitch: (mm * zz).toFixed(0), tip: (mm * (zz + 2)).toFixed(0), root: (mm * zz - 2.5 * mm).toFixed(1), depth: (2.25 * mm).toFixed(1), thickness: +p.thickness }, get().lang) }
     } else if (d.kind === 'worm') {
       f = { id: fid(), type: 'worm', module: +p.module, starts: Math.max(1, Math.round(+(p.starts || 1))), length: +p.length, op: 'new' }
-      msg = `已创建蜗杆 m${+p.module} ${f.starts}头 × 长${+p.length}（ZA 近似形 · 仅蜗杆造型，未含蜗轮传动 — 啮合比 ${f.starts}:蜗轮齿数 只系纯运动学参考，需自行加配蜗轮）`   // GM-L2 #90：诚实标明只得蜗杆、无蜗轮几何/运动连接
+      msg = wormSuccessStatus({ module: +p.module, starts: f.starts, length: +p.length }, get().lang)   // GM-L2 #90 + v1.81 i18n
     } else if (d.kind === 'crowngear') {
       f = { id: fid(), type: 'crowngear', module: +p.module, teeth: Math.max(8, Math.round(+p.teeth)), discH: +p.discH, faceW: +p.faceW, bore: +p.bore, op: 'new' }
       msg = `已创建冠齿轮 m${+p.module}×${f.teeth}齿（面齿轮近似形 — 垂直轴啮合示意）`
@@ -17188,7 +17188,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if ((p.target === 'feature' || p.objectType === 'features') && !d.editId) {   // Edit Feature：编辑模式 targets 透传原值（undefined 过滤），唔使时间轴选中
         // P2 audit：多选（Ctrl+点 chip 累积 selectedFeatures）— 一次阵列/镜像多个特征；旧单选照兼容
         const selFs = get().selectedFeatures.length ? get().selectedFeatures : (get().selectedFeature ? [get().selectedFeature as string] : [])
-        if (!selFs.length) { set({ status: '环形阵列（所选特征）：先喺时间轴单击选中要阵列嘅特征，再撳确定（Ctrl+点可多选）' }); return }
+        if (!selFs.length) { set({ status: '環形陣列（所選特徵）：先喺時間軸單擊選中要陣列嘅特徵，再撳確定（Ctrl+點可多選）' }); return }
         const _live = selFs.filter((fid2) => get().features.some((x) => x.id === fid2))
         if (!_live.length) { set({ status: '所选特征已唔存在 — 重新选' }); return }
         { const _nb = _live.map((fid2) => get().features.find((x) => x.id === fid2) as { operation?: string; op?: string } | undefined).filter((tf) => tf && ((tf.operation ?? tf.op) === 'newbody'))
@@ -17259,7 +17259,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (p.target === 'feature' && !d.editId) {   // Edit Feature：编辑模式 targets 透传原值（undefined 过滤），唔使时间轴选中
         // P2 audit：多选（Ctrl+点 chip 累积 selectedFeatures）— 一次阵列/镜像多个特征；旧单选照兼容
         const selFs = get().selectedFeatures.length ? get().selectedFeatures : (get().selectedFeature ? [get().selectedFeature as string] : [])
-        if (!selFs.length) { set({ status: '镜像（所选特征）：先喺时间轴单击选中要镜像嘅特征，再撳确定（Ctrl+点可多选）' }); return }
+        if (!selFs.length) { set({ status: '鏡像（所選特徵）：先喺時間軸單擊選中要鏡像嘅特徵，再撳確定（Ctrl+點可多選）' }); return }
         const _live = selFs.filter((fid2) => get().features.some((x) => x.id === fid2))
         if (!_live.length) { set({ status: '所选特征已唔存在 — 重新选' }); return }
         { const _nb = _live.map((fid2) => get().features.find((x) => x.id === fid2) as { operation?: string; op?: string } | undefined).filter((tf) => tf && ((tf.operation ?? tf.op) === 'newbody'))
@@ -17421,7 +17421,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const op: BoolOp = get().cutMode && hasSolid(get().features) ? 'cut' : 'new'
       const nm = pt === 'U' ? 'U 槽钢' : pt === 'T' ? 'T 型材' : 'L 角铁'
       set({ featDlg: null })
-      await get().applyFeatures([...get().features, { id: fid(), type: 'extrude', profile: { kind: 'poly', pts: cpts }, height: L, operation: op }], `已${op === 'cut' ? '切割' : '创建'}${nm} ${W}×${H} 厚${t} 长${L}`)
+      await get().applyFeatures([...get().features, { id: fid(), type: 'extrude', profile: { kind: 'poly', pts: cpts }, height: L, operation: op }], profileSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', name: nm, w: W, h: H, t, L }, get().lang))
       return
     } else if (d.kind === 'pyramid') {
       // n-gon pyramid: loft from base polygon (z=0) to a near-point apex (z=H). Hoppers / funnels / roofs / finials.

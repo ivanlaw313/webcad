@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ToolIcon } from '../icons'
+import { useApp } from '../store'
+import { tLabel, msg } from '../i18n'
 
 export type MMItem = { key: string; label: string; icon?: string; glyph?: string; fn: () => void; disabled?: boolean }
 
@@ -22,6 +24,8 @@ export default function MarkingMenu({ x, y, sectors, overflow, onClose }: {
   overflow: (MMItem | 'sep')[]
   onClose: () => void
 }) {
+  const lang = useApp((s) => s.lang)
+  const lab = (raw: string) => tLabel(raw, lang)
   const R = 80, BTN = 58
   const cx = Math.min(Math.max(x, R + BTN / 2 + 8), window.innerWidth - R - BTN / 2 - 8)
   const cy = Math.min(Math.max(y, R + BTN / 2 + 40), window.innerHeight - R - BTN / 2 - 46)
@@ -86,19 +90,19 @@ export default function MarkingMenu({ x, y, sectors, overflow, onClose }: {
         <button
           key={it.key}
           className={'mm-btn' + (it.disabled ? ' off' : '') + (i === active ? ' hot' : '')}
-          title={it.disabled ? `${it.label}（当前不可用）` : it.label}
+          title={it.disabled ? `${lab(it.label)}${msg('mm.unavailable', lang)}` : lab(it.label)}
           style={{ left: cx + DIRS[i][0] * R, top: cy + DIRS[i][1] * R }}
           onClick={() => run(it)}
         >
           {it.icon ? <ToolIcon name={it.icon} size={18} /> : <span className="mm-glyph">{it.glyph ?? '·'}</span>}
-          <span className="mm-label">{it.label}</span>
+          <span className="mm-label">{lab(it.label)}</span>
         </button>
       ))}
       {ovItems > 0 && (
         <div style={{ position: 'fixed', left: listLeft, top: listTop, zIndex: 61, minWidth: 156, maxHeight: 320, overflowY: 'auto', background: '#fff', border: '1px solid #c4ccd4', borderRadius: 6, boxShadow: '0 6px 24px rgba(0,0,0,.18)', padding: 4, fontSize: 13, color: '#2a2f35', userSelect: 'none' }}>
           {linear.map((it, i) => it === 'sep'
             ? <div key={'s' + i} style={{ height: 1, background: '#e6e9ee', margin: '4px 6px' }} />
-            : <div key={it.key} onClick={() => run(it)} style={{ padding: '6px 12px', borderRadius: 4, cursor: it.disabled ? 'default' : 'pointer', whiteSpace: 'nowrap', opacity: it.disabled ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }} onMouseEnter={(e) => { if (!it.disabled) e.currentTarget.style.background = '#eaf2fb' }} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>{!fine && (it.icon ? <ToolIcon name={it.icon} size={14} /> : it.glyph ? <span style={{ width: 16, textAlign: 'center' }}>{it.glyph}</span> : null)}{it.label}</div>)}
+            : <div key={it.key} onClick={() => run(it)} style={{ padding: '6px 12px', borderRadius: 4, cursor: it.disabled ? 'default' : 'pointer', whiteSpace: 'nowrap', opacity: it.disabled ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }} onMouseEnter={(e) => { if (!it.disabled) e.currentTarget.style.background = '#eaf2fb' }} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>{!fine && (it.icon ? <ToolIcon name={it.icon} size={14} /> : it.glyph ? <span style={{ width: 16, textAlign: 'center' }}>{it.glyph}</span> : null)}{lab(it.label)}</div>)}
         </div>
       )}
     </>

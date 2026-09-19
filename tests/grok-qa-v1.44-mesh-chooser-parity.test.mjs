@@ -23,7 +23,7 @@ test('MESH_TAB_DROP_HINT exported and Chinese', () => {
   assert.match(MESH_TAB_DROP_HINT, /拖到视口导入/)
   assert.match(MESH_TAB_DROP_HINT, /\.stl/)
   assert.match(meshDropSrc, /v1\.44/)
-  assert.match(MESH_DROP_ARMED_STATUS, /松开以导入网格/)
+  assert.match(MESH_DROP_ARMED_STATUS, /放開以匯入網格|松开以导入网格/)
 })
 
 test('setActiveTab(MESH) sets MESH_TAB_DROP_HINT when idle', () => {
@@ -80,7 +80,7 @@ test('acceptMeshDropFile unchanged (still primary BOT-D path)', () => {
 })
 
 test('MESH INSERT tip mentions viewport drag-drop', () => {
-  assert.match(ribbonSrc, /拖到视口导入/)
+  assert.match(ribbonSrc, /拖到視口導入|拖到视口导入/)
   assert.match(ribbonSrc, /insertmesh.*插入STL网格/)
 })
 

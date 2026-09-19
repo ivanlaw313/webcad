@@ -44,7 +44,7 @@ root /var/www/webcad-releases/v1.61-20260919-114937;
 
 ## Verification
 - Public entry `index-RZL7dM7B-r2.js` ✓ md5 match ✓
-- Live contains `1.61`, `CREATE:`建立``, `CONSTRUCT:`構造``, `SELECT:`選擇``, `SOLID:`實體``, `MESH:`網格``, `"SHEET METAL":`鈑金`` ✓
+- Live contains `1.61`, CREATE:`建立`, CONSTRUCT:`構造`, SELECT:`選擇`, SOLID:`實體`, MESH:`網格`, "SHEET METAL":`鈑金` ✓
 - Live retains 裝配工程圖／建立草圖／直線／翻轉曲面／尺寸已拒絕／旋轉／掃掠／插入STL网格 ✓
 - SC chrome orthography gone: CREATE:`创建` / CONSTRUCT:`构造` / SELECT:`选择` / SOLID:`实体` / MESH:`网格` ✓
 - Contracts v1.56–v1.61 static **PASS**

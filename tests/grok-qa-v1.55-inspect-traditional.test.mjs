@@ -1,6 +1,7 @@
 /**
- * v1.55: INSPECT / ANALYZE ribbon Traditional Chinese (HK).
- * Continue BUG-BD-4801: 測量／干涉檢查／斑馬紋／質心／物理屬性 — not 测量／干涉检查／斑马纹／质心／物理属性.
+ * v1.55: BUG-BD-5401 SURFACE「翻轉曲面」on MODIFY + INSPECT/ANALYZE Traditional Chinese (HK).
+ * BUG-BD-5401: reversesurf must appear on SURFACE MODIFY ribbon/dropdown as 翻轉曲面 (not buried in CREATE-only).
+ * Also continue BUG-BD-4801: 測量／干涉檢查／斑馬紋／質心／物理屬性 — not Simplified.
  * Keep FORM/CREATE/MODIFY/ASSEMBLE/SURFACE/illegal TC, sketch 对称→Symmetric, MESH DnD / plane / Finish intact.
  */
 import test from 'node:test'
@@ -34,6 +35,30 @@ function analyzeExtBlock(src) {
 
 test('APP_VERSION is 1.55+', () => {
   assert.match(version, /APP_VERSION = '1\.(5[5-9]|[6-9]\d)'|APP_VERSION = '[2-9]\./)
+})
+
+
+function surfaceModifyBlock(src) {
+  const i = src.indexOf('const SURFACE')
+  assert.ok(i >= 0, 'SURFACE missing')
+  const j = src.indexOf('const MESH', i)
+  assert.ok(j > i, 'MESH after SURFACE missing')
+  const surf = src.slice(i, j)
+  const m = surf.indexOf("name: 'MODIFY'")
+  assert.ok(m >= 0, 'SURFACE MODIFY missing')
+  const end = surf.indexOf("name: 'SELECT'", m)
+  assert.ok(end > m, 'SELECT after SURFACE MODIFY missing')
+  return surf.slice(m, end)
+}
+
+test('v1.55 BUG-BD-5401: SURFACE MODIFY shows 翻轉曲面 (quick)', () => {
+  const block = surfaceModifyBlock(ribbon)
+  assert.match(block, /id: 'reversesurf', label: '翻轉曲面'/)
+  assert.match(block, /id: 'reversesurf', label: '翻轉曲面'[^\n]*quick:\s*true/)
+  assert.doesNotMatch(block, /id: 'reversesurf', label: '翻转曲面'/)
+  const surf = ribbon.slice(ribbon.indexOf('const SURFACE'), ribbon.indexOf('const MESH'))
+  const create = surf.slice(0, surf.indexOf("name: 'MODIFY'"))
+  assert.doesNotMatch(create, /id: 'reversesurf'/)
 })
 
 test('v1.55: SOLID INSPECT Traditional labels', () => {

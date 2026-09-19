@@ -42,7 +42,7 @@ try {
   await fileButton.click()
   const menu = page.locator('.panel-menu')
   await menu.waitFor({ state: 'visible' })
-  const exportText = format === 'stl' ? /Export STL|导出 STL/ : /Export OBJ|导出 OBJ/
+  const exportText = format === 'stl' ? /Export STL|导出 STL|導出 STL/ : /Export OBJ|导出 OBJ|導出 OBJ/
   const exportItem = menu.locator('.panel-menu-item').filter({ hasText: exportText })
   assert.equal(await exportItem.count(), 1, `File menu must expose one ${format.toUpperCase()} export`)
   const pending = page.waitForEvent('download')

@@ -54,7 +54,7 @@ const SYN: Record<string, string> = {
   pattern: '阵列 复制排列 array 网格 矩形阵列',
   cpattern: '环形阵列(旧) 圆形排列 旋转复制',
   circpattern: '环形阵列 圆形排列 螺栓圈 旋转复制 circular pattern 辐条 对称',
-  exportasmstep: '导出装配 step 彩色 颜色 assembly xcaf ap214',
+  exportasmstep: '导出装配 導出裝配 step 彩色 颜色 assembly xcaf ap214',
   gearbox: '齿轮箱 减速箱 速比 传动比 gearbox 自动啮合',
   moldflow: '模流 注塑 浇口 充填 焊接线 冷却 moldflow injection 塑胶',
   othread: '面加螺纹 外螺纹 选面螺纹 包牙 thread on face',

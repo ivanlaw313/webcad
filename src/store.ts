@@ -14885,8 +14885,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
     }
     const tip: Record<string, string> = {
-      pattern: '矩形阵列：设 X/Y 数量与间距 → 确定', cpattern: '环形阵列：设轴/数量/角度 → 确定', mirror: '镜像：设镜像面/偏移 → 确定',
-      circpattern: '环形阵列：对象（整个实体/时间轴所选特征）+ 轴（原点+方向）+ 数量 + 角度模式 → 确定',
+      pattern: '矩形陣列：設 X/Y 數量與間距 → 確定', cpattern: '環形陣列：設軸／數量／角度 → 確定', mirror: '鏡像：設鏡像面／偏移 → 確定',
+      circpattern: '環形陣列：對象（整個實體／時間軸所選特徵）+ 軸（原點＋方向）+ 數量 + 角度模式 → 確定',
       move: '移动/复制：设 dx/dy/dz + 绕Z角 → 确定', scale: '缩放：设比例 → 确定', offsetsolid: '整体偏移：设距离（+外扩 / −内缩，均匀偏移所有面）→ 确定', draft: '拔模：设角度（侧面，中性面 XY）→ 确定',
       splitbody: '分割实体：设 轴/位置/保留侧 → 确定（另一半灰显泊车，可隐藏/导出/布尔）；「平面切」拾面会预填呢个对话框',
       automatedmodel: 'Automated Modeling（Connector v1）：在画布依次点选两张平面面，设连接半径 → 确定。结果会作为独立 New Body 保留；此 v1 不含避让体、曲面面或 Fusion 的生成式多方案。',

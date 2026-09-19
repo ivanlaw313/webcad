@@ -819,7 +819,7 @@ function _ffSelectPts(shape: any, faceFp: string[], nears?: ([number, number, nu
       //   ⚠ _s1FaceCarryActive 闸：此 _ffSelectPts 若系畀 _s1CarryFacePts 内部回调（解析 prior）调用 → 唔再试 carry（防递归）。
       if (!_s1FaceCarryActive) {
         const s1 = _s1CarryFacePts(shape, faceFp, faceFpV2, nears ?? [])
-        if (s1 && s1.length === faceFp.length) { if (_s2CarriedFlag) _s2CarriedFlag = false; else buildWarnings.push('持久面名经上游变换以拓扑顺序追踪解析（真拓扑命名 S1-面）'); return s1 }
+        if (s1 && s1.length === faceFp.length) { if (_s2CarriedFlag) _s2CarriedFlag = false; else buildWarnings.push('持久面名經上游變換以拓撲順序追蹤解析（真拓撲命名 S1-面）'); return s1 }
       }
       // S143（面版，镜 roundNearPoints）：faceFp 存在但喺当前面集解析唔到（true miss）→ 全退回近点拣面（caller 用 stored nears）。
       // 若存低嘅 near 距最近面过远（上游变换/旋转令 body 移走 — 尤其【对称体旋转】，v2 折叠失效退回 v1、v1 bbox 归一化亦漂移），
@@ -982,7 +982,7 @@ function roundNearPoint(shape: any, kind: 'fillet' | 'chamfer', size: number, p:
   if (edgeFp && edgeFp.length) {
     const sel = _fpSelectMids(shape, edgeFp, [p], edgeFpV2)   // S131：near-biased 消歧（[p] = 拾边点）
     if (sel && sel.length) M = sel[0]
-    else { const s1 = _s1CarryMids(shape, edgeFp, edgeFpV2, [p]); if (s1 && s1.mids.length) { M = s1.mids[0]; if (_s2CarriedFlag) _s2CarriedFlag = false; else buildWarnings.push('持久边名经上游变换以拓扑顺序追踪解析（真拓扑命名 S1）') } }   // S1：漂移 → 沿上游变换以拓扑顺序追踪（或 S2 布尔血统）；任何闸唔过 → M 留近点 = 今日行为
+    else { const s1 = _s1CarryMids(shape, edgeFp, edgeFpV2, [p]); if (s1 && s1.mids.length) { M = s1.mids[0]; if (_s2CarriedFlag) _s2CarriedFlag = false; else buildWarnings.push('持久邊名經上游變換以拓撲順序追蹤解析（真拓撲命名 S1）') } }   // S1：漂移 → 沿上游变换以拓扑顺序追踪（或 S2 布尔血统）；任何闸唔过 → M 留近点 = 今日行为
   }
   else { const cap = _fpCapture(shape, [M]); _lastResolvedFp = cap.v1; _lastResolvedFpV2 = cap.v2 }
   for (const s of [size]) {
@@ -1296,8 +1296,8 @@ function _s2CarryMids(
       carried.push([q.x, q.y, q.z])
     }
     buildWarnings.push(ops.length > 1
-      ? `持久边名经上游 ${ops.length} 个特征（布尔/圆角）逐跳 OCCT 历史追踪解析（真拓扑命名 S2 多跳）`
-      : '持久边名经上游布尔/圆角以 OCCT 历史追踪解析（真拓扑命名 S2）')
+      ? `持久邊名經上游 ${ops.length} 個特徵（布爾／圓角）逐跳 OCCT 歷史追蹤解析（真拓撲命名 S2 多跳）`
+      : '持久邊名經上游布爾／圓角以 OCCT 歷史追蹤解析（真拓撲命名 S2）')
     _s2CarriedFlag = true   // 通知 caller：已出准确 S2 警告，唔好再叠 S1「变换追踪」那句
     _s2Memo.set(pickKey, carried)
     return { mids: carried, bornAt: k }
@@ -1356,8 +1356,8 @@ function _s2CarryFacePts(
       carried.push(q)
     }
     buildWarnings.push(ops.length > 1
-      ? `持久面名经上游 ${ops.length} 个特征（布尔/圆角）逐跳 OCCT 历史追踪解析（真拓扑命名 S2-面 多跳）`
-      : '持久面名经上游布尔/圆角以 OCCT 历史追踪解析（真拓扑命名 S2-面）')
+      ? `持久面名經上游 ${ops.length} 個特徵（布爾／圓角）逐跳 OCCT 歷史追蹤解析（真拓撲命名 S2-面 多跳）`
+      : '持久面名經上游布爾／圓角以 OCCT 歷史追蹤解析（真拓撲命名 S2-面）')
     _s2CarriedFlag = true   // 通知 caller：已出准确 S2-面 警告，唔好再叠 S1-面 那句
     _s2Memo.set(pickKey, carried)
     return carried
@@ -1366,13 +1366,13 @@ function _s2CarryFacePts(
 // S2 重跑成本上限诚实提示（只出一次/重建）
 function _s2NoteCap(): void {
   if (_s2NotedCap) return
-  buildWarnings.push(`真拓扑命名 S2：本次重建布尔/圆角重跑已达上限 ${S2_MAX_REEXEC} 次，余下选边退回近点（如结果唔啱请重新拾边）`)
+  buildWarnings.push(`真拓撲命名 S2：本次重建布爾／圓角重跑已達上限 ${S2_MAX_REEXEC} 次，餘下選邊退回近點（如結果唔啱請重新拾邊）`)
   _s2NotedCap = true
 }
 // GM-γ2b：S2 多跳链超长上限诚实提示（只出一次/重建）
 function _s2NoteChainCap(): void {
   if (_s2NotedChainCap) return
-  buildWarnings.push(`真拓扑命名 S2：上游连续布尔/圆角超 ${S2_MAX_CHAIN} 跳（追踪链过长），该选边退回近点（如结果唔啱请重新拾边）`)
+  buildWarnings.push(`真拓撲命名 S2：上游連續布爾／圓角超 ${S2_MAX_CHAIN} 跳（追蹤鏈過長），該選邊退回近點（如結果唔啱請重新拾邊）`)
   _s2NotedChainCap = true
 }
 
@@ -1625,7 +1625,7 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
       if (s1 && s1.mids.length === edgeFp.length) {
         mids.length = 0; mids.push(...s1.mids)
         if (_s2CarriedFlag) _s2CarriedFlag = false   // GM-γ2a：实际经 S2 布尔血统解析（已出准确警告）→ 唔叠 S1 那句
-        else buildWarnings.push('持久边名经上游变换以拓扑顺序追踪解析（真拓扑命名 S1）')
+        else buildWarnings.push('持久邊名經上游變換以拓撲順序追蹤解析（真拓撲命名 S1）')
       } else {
       // S143：edgeFp 存在但喺当前边集解析唔到（true miss）→ 已退回近点拣边（mids 系上面近点解析）。
       // 若存低嘅 near 距最近棱过远（上游变换/旋转令 body 移走 — 尤其【对称体旋转】，v2 折叠失效退回 v1、

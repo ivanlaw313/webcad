@@ -384,11 +384,11 @@ export function SketchToolPanel() {
         {dragging && <button className="sb-tool" onClick={() => g().skDragCancel()}>{m('sk.drag.cancel')}</button>}
         {armedCon
           ? <div style={{ fontSize: 12, fontWeight: 700, color: '#1c6fb8', lineHeight: 1.5 }}>{`${T('施约束武装中')}：${SK_CON_LABEL_ZH[armedCon] ?? armedCon}`}<div style={{ fontWeight: 400, color: '#5a6b78', fontSize: 11.5, marginTop: 2 }}>{T('拣要约束嘅对象（拣够即施加，保持武装）· ESC 退出')}</div></div>
-          : <Hint>{T('点 点/边/圆 拣选（可多选）· 空白左拖=框选（左→右全包/右→左相触）· 双击边=链选 → 撳约束/尺寸掣。或先撳约束掣（无选择）= tool-first。')}</Hint>}
+          : <Hint>{T('點 點/邊/圓 揀選（可多選）· 空白左拖=框選（左→右全包/右→左相觸）· 雙擊邊=鏈選 → 撳約束/尺寸掣。或先撳約束掣（無選擇）= tool-first。')}</Hint>}
         {/* GM-FP4 #47：撳真空白 = 清选择（Fusion 默认）/ 唔清（防误清，webcad 旧手感） */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('开=撳真空白即清选择（Fusion 默认）；关=撳空唔清（防误清，ESC 先清）')}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('開=撳真空白即清選擇（Fusion 默認）；關=撳空唔清（防誤清，ESC 先清）')}>
           <input type="checkbox" checked={selEmptyClear} onChange={(e) => g().setSelEmptyClear(e.target.checked)} />
-          <span>{T('撳空白 = 清选择')}</span>
+          <span>{T('撳空白 = 清選擇')}</span>
         </label>
       </>)
       break
@@ -424,15 +424,15 @@ export function SketchToolPanel() {
           {body}
           {/* GM-FP2 #33：AutoConstrain — 绘制时自动推断开关（默认开，Fusion palette 同款）+ 一键对选中/全部推断 */}
           <div style={{ borderTop: '1px solid #e3ebf3', marginTop: 2, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('画图时自动加 水平/竖直/重合/平行/相切… 约束（Fusion AutoConstrain）')}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('畫圖時自動加 水平/豎直/重合/平行/相切… 約束（Fusion AutoConstrain）')}>
               <input type="checkbox" checked={autoConstrain} onChange={(e) => g().setAutoConstrain(e.target.checked)} />
-              <span>{T('自动约束推断')}</span>
+              <span>{T('自動約束推斷')}</span>
             </label>
-            <button className="sb-tool" style={{ width: '100%' }} title={T('对选中集（无选择=全部几何）一次推断多约束')} onClick={() => g().autoConstrainSel()}>{T('✨ 一键自动约束')}</button>
+            <button className="sb-tool" style={{ width: '100%' }} title={T('對選中集（無選擇=全部幾何）一次推斷多約束')} onClick={() => g().autoConstrainSel()}>{T('✨ 一鍵自動約束')}</button>
             {/* GM-FP4 #22：Linetype 预开关 —— 开住时之后画嘅几何即时成构造（琥珀虚线，Fusion Linetype 预切换） */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: drawConstruction ? '#b9822a' : '#3a4750', cursor: 'pointer' }} title={T('构造线型预切换（Fusion Linetype）：开住时之后画嘅形即时成构造几何（琥珀虚线，唔参与拉伸）')}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: drawConstruction ? '#b9822a' : '#3a4750', cursor: 'pointer' }} title={T('構造線型預切換（Fusion Linetype）：開住時之後畫嘅形即時成構造幾何（琥珀虛線，唔參與拉伸）')}>
               <input type="checkbox" checked={drawConstruction} onChange={() => g().toggleDrawConstruction()} />
-              <span>{T('⚟ 画成构造几何（下一笔）')}</span>
+              <span>{T('⚟ 畫成構造幾何（下一筆）')}</span>
             </label>
           </div>
         </div>

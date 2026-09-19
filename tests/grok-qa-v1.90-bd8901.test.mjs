@@ -58,6 +58,16 @@ test('BD-8901: tStatus / tc2sc for radius-group phrase', () => {
   assert.equal(tStatus('稜', 'zh-HK'), '稜')
 })
 
+
+test('BD-8901 residual: 選中第 N 組 / no 选中第 / 稜 not 棱 in fillet labels', () => {
+  assert.match(vp, /選中第 \{filletActiveGroup \+ 1\} 組/)
+  assert.equal(vp.includes('选中第'), false)
+  assert.match(vp, /自動連相切稜/)
+  assert.equal(vp.includes('自動連相切棱'), false)
+  assert.match(vp, /要處理的稜/)
+  assert.equal(vp.includes('要處理的棱'), false)
+})
+
 test('Pins retained', () => {
   assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')

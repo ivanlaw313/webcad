@@ -4899,11 +4899,11 @@ export default function Viewport() {
               <span><select value={chamferMode} onChange={(e) => setChamferMode(e.target.value as 'equal' | 'two' | 'angle')} style={{ height: 26 }} aria-label="Chamfer Type"><option value="equal">Equal Distance</option><option value="two">Two Distance</option><option value="angle">Distance and Angle</option></select></span>
             </label>
             <SelectionChip label="Edges/Faces/Features" count={edgeRoundPicks.length + (chamferMode === 'angle' && chamferRefFace ? 1 : 0)} hint="Select" selectedText={chamferMode === 'angle' ? `${chamferRefFace ? 1 : 0} Face, ${edgeRoundPicks.length} Edge${edgeRoundPicks.length === 1 ? '' : 's'}` : undefined} onClear={() => useApp.getState().clearEdgeRoundPicks()} />
-            <label className="sb-hint" title="Fusion Tangent Chain：点一条棱，自动连同相切连续边链">
+            <label className="sb-hint" title="Fusion Tangent Chain：點一條稜，自動連同相切連續邊鏈">
               <span style={{ color: '#6b7680' }}>Tangent Chain</span>
               <input type="checkbox" aria-label="Tangent Chain" checked={edgeRoundChain} onChange={() => useApp.getState().toggleEdgeRoundChain()} />
             </label>
-            {chamferMode !== 'equal' && <label style={{ fontSize: 12, color: '#6b7680' }} title="交换两个相邻面的参考侧">
+            {chamferMode !== 'equal' && <label style={{ fontSize: 12, color: '#6b7680' }} title="交換兩個相鄰面的參考側">
               <span>Flip</span>
               <button type="button" aria-label="Flip" aria-pressed={chamferFlip} onClick={() => toggleChamferFlip()} style={{ minWidth: 34 }}>{chamferFlip ? '↔' : '⇄'}</button>
             </label>}
@@ -4931,7 +4931,7 @@ export default function Viewport() {
           {roundPreviewFail && (edgeRoundPick === 'chamfer'
             ? <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}><div>1 error(s)</div><div>The fillet/chamfer could not be created at the requested size.</div><div style={{ fontWeight: 400 }}>Try adjusting the size, deselecting some of the edges (try disabling Tangent Chain), or using multiple separate operations.</div></div>
             : <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>⚠ {filletType === 'full' ? '三組面必須相鄰，而且當前要求兩條邊界為平行直線' : filletMode === 'asymmetric' ? '目前只支持凸直線邊與互相垂直的兩個平面；幾何保持不變' : '圓角半徑太大（超過相鄰面）— 減小數值先撳得確定'}</div>)}
-          {edgeRoundPick === 'fillet' && filletType === 'fillet' && <label className="sb-hint" title="切线链（Fusion tangent chain）：点一条棱，自动连埋同佢相切连续嘅成条边链（例如圆角矩形顶圈 = 4 直边 + 4 弧一次过倒）">
+          {edgeRoundPick === 'fillet' && filletType === 'fillet' && <label className="sb-hint" title="切線鏈（Fusion tangent chain）：點一條稜，自動連埋同佢相切連續嘅成條邊鏈（例如圓角矩形頂圈 = 4 直邊 + 4 弧一次過倒）">
             <input type="checkbox" checked={edgeRoundChain && filletMode !== 'asymmetric'} disabled={edgeRoundPick === 'fillet' && filletMode === 'asymmetric'} onChange={() => useApp.getState().toggleEdgeRoundChain()} /> 切線鏈（自動連相切稜）
           </label>}
           {/* R1 弦高圆角模式切换（仅 fillet）：半径 / 弦高（半径由每条棱局部二面角换算 r=c/(2cos(β/2))） */}
@@ -4940,7 +4940,7 @@ export default function Viewport() {
             <span><select value={filletMode === 'chord' ? 'chord' : filletMode === 'asymmetric' ? 'asymmetric' : filletR2 > 0 ? 'variable' : 'constant'} onChange={(e) => { const v = e.target.value; if (v === 'chord') { setFilletMode('chord'); setFilletR2(0) } else if (v === 'asymmetric') { setFilletMode('asymmetric'); setFilletR2(edgeRoundSize || 1) } else { setFilletMode('radius'); setFilletR2(v === 'variable' ? (edgeRoundSize || 1) : 0) } }} style={{ height: 26 }} aria-label="圓角半徑類型"><option value="constant">常數</option><option value="chord">弦長</option><option value="variable">變量</option><option value="asymmetric">不對稱</option></select></span>
           </label>}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode === 'chord' ? (
-            <label title="弦高：两切点之间的弦长；半径由每条棱局部二面角自动换算（直边精确，变角曲边用中点近似）">
+            <label title="弦高：兩切點之間的弦長；半徑由每條稜局部二面角自動換算（直邊精確，變角曲邊用中點近似）">
               <span style={{ color: '#6b7680' }}>弦高</span>
               <span><input type="number" aria-label="弦高 mm" min={0.5} step={0.5} value={filletChord} onChange={(e) => setFilletChord(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
             </label>
@@ -4951,24 +4951,24 @@ export default function Viewport() {
             </label>
           ) : null}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode === 'radius' && filletR2 > 0 && (
-            <label title="變半徑圓角：末端半径 ≠ 起始半径 → 沿每条棱线性渐变（0=等半径）">
+            <label title="變半徑圓角：末端半徑 ≠ 起始半徑 → 沿每條稜線性漸變（0=等半徑）">
               <span style={{ color: '#6b7680' }}>末端半徑 (變徑)</span>
               <span><input type="number" aria-label="末端半徑（變徑）mm" min={0} step={0.5} value={filletR2} onChange={(e) => setFilletR2(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
             </label>
           )}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode === 'asymmetric' && <>
-            <label title="不對稱圓角：两个相邻面分别使用独立偏移；截面为真实四分之一椭圆。">
+            <label title="不對稱圓角：兩個相鄰面分別使用獨立偏移；截面為真實四分之一橢圓。">
               <span style={{ color: '#6b7680' }}>偏移 2</span>
               <span><input type="number" aria-label="不對稱圓角偏移 2 mm" min={0.1} step={0.5} value={filletR2} onChange={(e) => setFilletR2(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
             </label>
-            <label className="sb-hint" title="交换偏移 1 与偏移 2 所属的相邻面">
+            <label className="sb-hint" title="交換偏移 1 與偏移 2 所屬的相鄰面">
               <input type="checkbox" checked={filletAsymFlip} onChange={(e) => setFilletAsymFlip(e.target.checked)} /> 翻轉偏移方向
             </label>
             <div className="sb-hint">不對稱圓角固定為相切 G1，並使用收進轉角。</div>
           </>}
           {/* S174 逐边半径 / GM-3DV3 M7 逐边距离：≥2 条棱时，逐条改半径/距离（Fusion 多半径圆角 / 逐边倒角 —— 一个特征内 A 棱 R2、B 棱 R8）。默认 = 上面全局值，改边即按边落不同值。倒角仅 equal 模式（两距离/角度各棱统一）。 */}
           {(edgeRoundPick === 'chamfer' && chamferMode === 'equal') && edgeRoundPicks.length >= 2 && (
-            <div style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 4 }} title="逐边尺寸：每条拣中棱各自圆角半径/倒角距离。默认跟上面全局值；改某条即该棱用唔同值。">
+            <div style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 4 }} title="逐邊尺寸：每條揀中稜各自圓角半徑／倒角距離。默認跟上面全局值；改某條即該稜用唔同值。">
               <div style={{ color: '#6b7680', fontSize: 11, marginBottom: 2 }}>逐邊距離（逐邊倒角）</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 120, overflowY: 'auto' }}>
                 {edgeRoundPicks.map((_, i) => (
@@ -4980,7 +4980,7 @@ export default function Viewport() {
               </div>
             </div>
           )}
-          {edgeRoundPick === 'fillet' && filletType === 'fillet' && <label title={filletMode === 'asymmetric' ? 'Fusion 360 不對稱圓角固定使用收進轉角。' : 'Fusion Corner Type：滚球（默认）或收进；收进会在多棱交汇处建立 setback 过渡。'}>
+          {edgeRoundPick === 'fillet' && filletType === 'fillet' && <label title={filletMode === 'asymmetric' ? 'Fusion 360 不對稱圓角固定使用收進轉角。' : 'Fusion Corner Type：滾球（默認）或收進；收進會在多稜交匯處建立 setback 過渡。'}>
             <span style={{ color: '#6b7680' }}>轉角類型</span>
             <span><select value={filletMode === 'asymmetric' ? 'setback' : filletSetback > 0 ? 'setback' : 'rolling'} disabled={filletMode === 'asymmetric'} onChange={(e) => setFilletSetback(e.target.value === 'setback' ? 0.2 : 0)} style={{ height: 26 }}><option value="rolling">滾球</option><option value="setback">收進</option></select></span>
           </label>}

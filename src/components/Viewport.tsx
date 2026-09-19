@@ -4728,7 +4728,7 @@ export default function Viewport() {
             { key: 'tgannot', label: `${skView.annot ? '☑' : '☐'} 尺寸标注`, fn: () => setSkView({ annot: !skView.annot }) },
             { key: 'tgcons', label: `${skView.cons ? '☑' : '☐'} 约束徽章`, fn: () => setSkView({ cons: !skView.cons }) },
             { key: 'tgpoints', label: `${skView.points ? '☑' : '☐'} 草图点`, fn: () => setSkView({ points: !skView.points }) },
-            { key: 'tgconstr', label: `${skView.constr ? '☑' : '☐'} 构造几何`, fn: () => setSkView({ constr: !skView.constr }) },
+            { key: 'tgconstr', label: `${skView.constr ? '☑' : '☐'} 構造幾何`, fn: () => setSkView({ constr: !skView.constr }) },
             { key: 'tggrid', label: `${skView.grid ? '☑' : '☐'} 网格`, fn: () => setSkView({ grid: !skView.grid }) },
           ]
         } else {
@@ -6380,7 +6380,7 @@ export default function Viewport() {
             <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('空心（Fusion Hollow）：勾选 = 中空管（减壁厚成内孔）；不勾 = 实心棒', lang)}><input type="checkbox" checked={!!+(featDlg.params.hollow || 0)} onChange={(e) => setFeatParam('hollow', e.target.checked ? 1 : 0)} /> {tStatus('空心', lang)}</label>
             {!!+(featDlg.params.hollow || 0) && <label title={tStatus('壁厚（Section Thickness）', lang)}>{tStatus('壁厚', lang)} <input type="number" min={0.01} step={0.5} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 52 }} /> mm</label>}
             <label title={tStatus('距离（Fusion Distance）：沿路径覆盖比例 0–1（1=全长）', lang)}>{tStatus('距离', lang)} <input type="number" min={0.01} max={1} step={0.05} value={featDlg.params.dist} onChange={(e) => setFeatParam('dist', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label title={tStatus('操作：＋加料 / －切割 / ∩相交 / ⬡新实体', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新实体', lang)}</option></select></label>
+            <label title={tStatus('操作：＋加料 / －切割 / ∩相交 / ⬡新實體', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新實體', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'pathpattern' && (<>
             <label title={tStatus('副本总数（包括原始实体／特征）；沿路径按等弧长均匀摆放', lang)}>{tStatus('数量', lang)} <input type="number" min={2} max={100} step={1} value={featDlg.params.count} onChange={(e) => setFeatParam('count', Number(e.target.value))} style={{ width: 56 }} /></label>
@@ -6463,7 +6463,7 @@ export default function Viewport() {
             const skId = ef && ef.type === 'extrude' ? ef.sketchId : undefined
             return (<>
               <label>{tStatus('操作', lang)} <select value={String(featDlg.params.op)} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}>
-                <option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新实体', lang)}</option></select></label>
+                <option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新實體', lang)}</option></select></label>
               <label>{tStatus('范围', lang)} <select value={String(featDlg.params.extent)} onChange={(e) => setFeatParam('extent', e.target.value)} style={{ height: 26 }}>
                 <option value="distance">{tStatus('距离', lang)}</option><option value="symmetric">{tStatus('对称', lang)}</option><option value="through">{tStatus('贯通', lang)}</option>{hasTF && <option value="toface">{tStatus('到面（保留原引用）', lang)}</option>}{hasNext && <option value="next">{tStatus('到下一面（已烘焙距离）', lang)}</option>}</select></label>
               {featDlg.params.extent !== 'through' && featDlg.params.extent !== 'toface' && <label>{featDlg.params.extent === 'symmetric' ? featDlg.params.symMeasure === 'half' ? '每侧距离' : '总距离' : tStatus('距离', lang)} <ExpressionInput bindingRefs={featDlg.expressionContext?.refs} scale={Number(featDlg.params.heightExprScale ?? 1)} text={String(featDlg.params.heightExpr ?? featDlg.params.height)} onText={text => setFeatParam('heightExpr', text)} /></label>}
@@ -6568,18 +6568,18 @@ export default function Viewport() {
               <label title={tStatus('两侧对称：部分角旋转时把角度均分跨越截面平面两侧（Fusion symmetric revolve）', lang)}><input type="checkbox" checked={!!featDlg.params.sym} onChange={(e) => setFeatParam('sym', e.target.checked ? 1 : 0)} /> {tStatus('两侧对称', lang)}</label>
             )}
             {/* P2：Operation 排最尾（Fusion 肌肉记忆：轴→参数→最后定布尔） */}
-            <label>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'new'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('加料/切割(车槽)/相交', lang) : tStatus('没有实体，只能加料', lang)}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割(车槽)', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新实体', lang)}</option></select></label>
+            <label>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'new'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('加料/切割(车槽)/相交', lang) : tStatus('没有实体，只能加料', lang)}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割(车槽)', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新實體', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'box' && (<>
             <label>{tStatus('长', lang)} <LenInput mm={Number(featDlg.params.l)} onMm={(v) => setFeatParam('l', v)} unit={unit} w={52} min={0.1} /></label>
             <label>{tStatus('宽', lang)} <LenInput mm={Number(featDlg.params.w)} onMm={(v) => setFeatParam('w', v)} unit={unit} w={52} min={0.1} /></label>
             <label>{tStatus('高', lang)} <LenInput mm={Number(featDlg.params.h)} onMm={(v) => setFeatParam('h', v)} unit={unit} w={52} min={0.1} /></label>
-            <label title={tStatus('＋加料=并入活动体；⬡新实体=独立泊车（活动体保持为目标，适合后续合并/切割挖孔）；－切割=从活动体切除', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut" disabled={!bodyMesh?.triangles?.length}>{tStatus('－切割', lang)}</option><option value="newbody" disabled={!bodyMesh?.triangles?.length}>{tStatus('⬡新实体', lang)}</option></select></label>
+            <label title={tStatus('＋加料=并入活动体；⬡新实体=独立泊车（活动体保持为目标，适合后续合并/切割挖孔）；－切割=从活动体切除', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut" disabled={!bodyMesh?.triangles?.length}>{tStatus('－切割', lang)}</option><option value="newbody" disabled={!bodyMesh?.triangles?.length}>{tStatus('⬡新實體', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'cylinder' && (<>
             <label>Ø <LenInput mm={Number(featDlg.params.d)} onMm={(v) => setFeatParam('d', v)} unit={unit} w={56} min={0.1} /></label>
             <label>{tStatus('高', lang)} <LenInput mm={Number(featDlg.params.h)} onMm={(v) => setFeatParam('h', v)} unit={unit} w={56} min={0.1} /></label>
-            <label title={tStatus('BX02：先长方体，再圆柱选「⬡新实体」→ 圆柱泊车、盒子保持活动目标 → 合并/切割切除挖孔', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut" disabled={!bodyMesh?.triangles?.length}>{tStatus('－切割', lang)}</option><option value="newbody" disabled={!bodyMesh?.triangles?.length}>{tStatus('⬡新实体', lang)}</option></select></label>
+            <label title={tStatus('BX02：先长方体，再圆柱选「⬡新实体」→ 圆柱泊车、盒子保持活动目标 → 合并/切割切除挖孔', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut" disabled={!bodyMesh?.triangles?.length}>{tStatus('－切割', lang)}</option><option value="newbody" disabled={!bodyMesh?.triangles?.length}>{tStatus('⬡新實體', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'sphere' && (
             <label>Ø <LenInput mm={Number(featDlg.params.d)} onMm={(v) => setFeatParam('d', v)} unit={unit} w={60} min={0.1} /></label>
@@ -6817,7 +6817,7 @@ export default function Viewport() {
           : isField ? tStatus('填字段 → 确定', lang)
             : isButton ? tStatus('用已落嘅构造点', lang) : tStatus('喺画布拾取', lang)
         return (
-          <CommandDialog icon="plane" title="构造几何" width={288} summary={summary}
+          <CommandDialog icon="plane" title="構造幾何" width={288} summary={summary}
             okLabel={isField || acc ? '确定' : '关闭'}
             okDisabled={!!acc && !ready}
             onOk={() => {
@@ -7010,7 +7010,7 @@ export default function Viewport() {
               <button className={'sb-tool' + (sketchOp === 'new' ? ' active' : '')} title={tStatus('新建 / 拼合实体', lang)} onClick={() => setSketchOp('new')}>{tStatus('＋ 新建', lang)}</button>
               <button className={'sb-tool' + (sketchOp === 'cut' ? ' active' : '')} title={tStatus('从实体上切除', lang)} onClick={() => setSketchOp('cut')}>{tStatus('－ 切割', lang)}</button>
               <button className={'sb-tool' + (sketchOp === 'intersect' ? ' active' : '')} title={tStatus('相交：只保留 已有实体 与 拉伸区域 的公共部分（Fusion Combine 相交）', lang)} onClick={() => setSketchOp('intersect')}>{tStatus('∩ 相交', lang)}</button>
-              <button className={'sb-tool' + (sketchOp === 'newbody' ? ' active' : '')} title={tStatus('新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）', lang)} onClick={() => setSketchOp('newbody')}>{tStatus('⬡ 新实体', lang)}</button>
+              <button className={'sb-tool' + (sketchOp === 'newbody' ? ' active' : '')} title={tStatus('新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）', lang)} onClick={() => setSketchOp('newbody')}>{tStatus('⬡ 新實體', lang)}</button>
               {sketchFromFace && sketchOp === 'cut' && <label className="sb-hint" title={tStatus('面切割：贯通=切穿整个零件；按深度=用「高度」值挖盲槽/凹台（从所选面往里）', lang)}><input type="checkbox" checked={!faceCutThrough} onChange={(e) => setFaceCutThrough(!e.target.checked)} /> {tStatus('按深度挖', lang)}</label>}
             </>
           )}
@@ -7228,11 +7228,11 @@ export default function Viewport() {
             <span>{tStatus('操作', lang)}</span>
             <select aria-label={tStatus('拉伸操作', lang)} value={sketchAsComp ? 'component' : sketchOp}
               onChange={e => e.target.value === 'component' ? useApp.setState({ sketchAsComponent: true, sketchOp: 'new' }) : setSketchOp(e.target.value as typeof sketchOp)}>
-              <option value="new">{bodyMesh ? (lang === 'en' ? 'Join' : '合并 / Join') : (lang === 'en' ? 'New Body' : '新实体 / New Body')}</option>
+              <option value="new">{bodyMesh ? (lang === 'en' ? 'Join' : '合并 / Join') : (lang === 'en' ? 'New Body' : '新實體 / New Body')}</option>
               {sketchOp === 'join' && <option value="join">{lang === 'en' ? 'Join' : '合并 / Join'}</option>}
               <option value="cut" disabled={!bodyMesh?.triangles?.length}>{lang === 'en' ? 'Cut' : '切除 / Cut'}</option>
               <option value="intersect" disabled={!bodyMesh?.triangles?.length}>{lang === 'en' ? 'Intersect' : '相交 / Intersect'}</option>
-              {bodyMesh && <option value="newbody">{lang === 'en' ? 'New Body' : '新实体 / New Body'}</option>}
+              {bodyMesh && <option value="newbody">{lang === 'en' ? 'New Body' : '新實體 / New Body'}</option>}
               {bodyMesh && <option value="component">{lang === 'en' ? 'New Component' : '新组件 / New Component'}</option>}
             </select>
           </label>
@@ -7319,7 +7319,7 @@ export default function Viewport() {
             <button className={'sb-tool' + (sketchOp === 'new' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSketchOp('new')}>{tStatus('＋加料', lang)}</button>
             <button className={'sb-tool' + (sketchOp === 'cut' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('沿路径切出圆槽', lang) : tStatus('没有实体可切', lang)} onClick={() => setSketchOp('cut')}>{tStatus('－切割', lang)}</button>
             <button className={'sb-tool' + (sketchOp === 'intersect' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('保留扫掠体同实体嘅公共部分', lang) : tStatus('没有实体可相交', lang)} onClick={() => setSketchOp('intersect')}>{tStatus('∩相交', lang)}</button>
-            <button className={'sb-tool' + (sketchOp === 'newbody' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} onClick={() => setSketchOp('newbody')} title={tStatus('新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）', lang)}>{tStatus('⬡新实体', lang)}</button>
+            <button className={'sb-tool' + (sketchOp === 'newbody' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} onClick={() => setSketchOp('newbody')} title={tStatus('新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）', lang)}>{tStatus('⬡新實體', lang)}</button>
           </div>
         </CommandDialog>
       )}
@@ -7371,7 +7371,7 @@ export default function Viewport() {
             <button className={'sb-tool' + (sketchOp === 'new' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSketchOp('new')}>{tStatus('＋加料', lang)}</button>
             <button className={'sb-tool' + (sketchOp === 'cut' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('从实体切除放样体', lang) : tStatus('没有实体可切', lang)} onClick={() => setSketchOp('cut')}>{tStatus('－切割', lang)}</button>
             <button className={'sb-tool' + (sketchOp === 'intersect' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} onClick={() => setSketchOp('intersect')}>{tStatus('∩相交', lang)}</button>
-            <button className={'sb-tool' + (sketchOp === 'newbody' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} onClick={() => setSketchOp('newbody')} title={tStatus('新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）', lang)}>{tStatus('⬡新实体', lang)}</button>
+            <button className={'sb-tool' + (sketchOp === 'newbody' ? ' active' : '')} style={{ flex: 1 }} disabled={!bodyMesh?.triangles?.length} onClick={() => setSketchOp('newbody')} title={tStatus('新建独立实体：拉伸体唔并入现有实体，灰显泊车（浏览器树可见；之后可「合并」实体布尔）', lang)}>{tStatus('⬡新實體', lang)}</button>
           </div>
         </CommandDialog>
       )}

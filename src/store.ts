@@ -29,7 +29,7 @@ import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
-import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus, gearSuccessStatus, wormSuccessStatus, profileSuccessStatus } from './ui/featureStatus'
+import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus, gearSuccessStatus, wormSuccessStatus, profileSuccessStatus, profileSectionName } from './ui/featureStatus'
 import { lengthScale } from './io/units'
 import { meshDropKind, MESH_TAB_DROP_HINT } from './io/meshDrop'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
@@ -17419,7 +17419,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const cx2 = (Math.min(...xs) + Math.max(...xs)) / 2, cy2 = (Math.min(...ys) + Math.max(...ys)) / 2
       const cpts = pts.map((q) => [q[0] - cx2, q[1] - cy2] as [number, number])
       const op: BoolOp = get().cutMode && hasSolid(get().features) ? 'cut' : 'new'
-      const nm = pt === 'U' ? 'U 槽钢' : pt === 'T' ? 'T 型材' : 'L 角铁'
+      const nm = profileSectionName(pt, get().lang)
       set({ featDlg: null })
       await get().applyFeatures([...get().features, { id: fid(), type: 'extrude', profile: { kind: 'poly', pts: cpts }, height: L, operation: op }], profileSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', name: nm, w: W, h: H, t, L }, get().lang))
       return

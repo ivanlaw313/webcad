@@ -1,4 +1,5 @@
 import type { AppState } from '../store'
+import { msg, type LangInput } from '../i18n'
 
 type Context = Partial<Pick<AppState, 'mode' | 'skDrag' | 'formMode' | 'formCage' | 'formCreateKind' | 'busy' | 'featDlg' | 'holeMode' | 'shellMode' | 'pushPullMode' | 'edgeRoundPick' | 'faceFilletMode' | 'draftPickMode' | 'extrudeDlgOpen' | 'sweepDlgOpen' | 'loftDlgOpen' | 'moveFaceMode' | 'rotateFaceMode' | 'lang'>>
 
@@ -28,19 +29,19 @@ export function commandContextKey(s: Context): string {
 
 /** Shared by ribbon, command search and dispatch. Never discard a command draft. */
 export function commandDisabledReason(s: Context, id: string): string | null {
-  const en = s.lang === 'en'
+  const lang = (s.lang ?? 'zh-HK') as LangInput
   if (VIEW_COMMANDS.has(id)) return null
-  if (s.skDrag && id !== 'act:undo') return en ? 'Release to finish dragging, or press Esc to cancel.' : '请先放开鼠标完成拖动，或按 Esc 取消。'
-  if (s.busy) return en ? 'Wait for the current calculation.' : '正在计算，请稍候。'
-  if (activeModelCommand(s)) return en ? 'Confirm or cancel the current command first.' : '请先确定或取消当前命令；输入内容会保留。'
-  if (s.mode === 'pickplane') return en ? 'Choose a sketch plane, or press Esc to cancel.' : '请先选择草图平面，或按 Esc 取消。'
+  if (s.skDrag && id !== 'act:undo') return msg('ui.disabled.skDrag', lang)
+  if (s.busy) return msg('ui.disabled.busy', lang)
+  if (activeModelCommand(s)) return msg('ui.disabled.activeCmd', lang)
+  if (s.mode === 'pickplane') return msg('ui.disabled.pickPlane', lang)
   if (s.mode === 'sketch') {
     if (id.startsWith('sk_') || SKETCH_OK_CMDS.has(id)) return null
-    return en ? 'Finish the sketch before using this command.' : '请先完成草图，再使用此命令。'
+    return msg('ui.disabled.finishSketch', lang)
   }
-  if (id.startsWith('sk_')) return en ? 'Open a sketch to use this tool.' : '请先进入草图，再使用此工具。'
-  if (s.formMode && new Set(['formsketch', 'formextrude', 'formrevolve', 'formsweep', 'formloft', 'formrepair', 'forminsert', 'formbridge', 'formweld', 'formfillhole', 'formerasefill']).has(id)) return en ? 'This Form command is not supported yet.' : '此 Form 命令尚未支援。'
-  if (s.formMode && s.formCage && new Set(['formbox','formplane','formcyl','formcylinder','formsphere','formtorus','formquadball','formface','formpatch','formpipe']).has(id)) return en ? 'Finish or cancel this Form before creating another.' : '请先完成或取消当前 Form，再创建另一件。'
-  if (s.formMode && !id.startsWith('form') && !['measureuni', 'select', 'offsetplane', 'createform', 'act:undo', 'act:redo', 'act:save'].includes(id)) return en ? 'Finish Form before changing environments.' : '请先完成 Form，再切换环境。'
+  if (id.startsWith('sk_')) return msg('ui.disabled.openSketch', lang)
+  if (s.formMode && new Set(['formsketch', 'formextrude', 'formrevolve', 'formsweep', 'formloft', 'formrepair', 'forminsert', 'formbridge', 'formweld', 'formfillhole', 'formerasefill']).has(id)) return msg('ui.disabled.formUnsupported', lang)
+  if (s.formMode && s.formCage && new Set(['formbox','formplane','formcyl','formcylinder','formsphere','formtorus','formquadball','formface','formpatch','formpipe']).has(id)) return msg('ui.disabled.formBusy', lang)
+  if (s.formMode && !id.startsWith('form') && !['measureuni', 'select', 'offsetplane', 'createform', 'act:undo', 'act:redo', 'act:save'].includes(id)) return msg('ui.disabled.finishForm', lang)
   return null
 }

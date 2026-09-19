@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { useDraggable } from './useDraggable'
 
-/** Form create/edit floating panel. Optional footer stays pinned (BUG-BD-1901 Finish Form). */
+/** Form create/edit floating panel. Optional footer stays pinned (BUG-BD-1901 Finish Form).
+ *  Titles: Create Form / 创建造型 · Edit Form / 编辑造型 (v1.47 Chinese). */
 export function FormPalette({ title, children, footer }: { title: string; children: ReactNode; footer?: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const drag = useDraggable('webcad-form-palette-v1', { top: 8, right: 8 })

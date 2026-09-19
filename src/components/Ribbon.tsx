@@ -534,9 +534,9 @@ export default function Ribbon() {
                 </button>
               )}
               {inForm && (
-                <button data-cmd="finishform" data-testid="finish-form-pin" className="finish-sketch finish-pinned" title="Finish Form and return to SOLID" onClick={() => void finishForm()}>
+                <button data-cmd="finishform" data-testid="finish-form-pin" className="finish-sketch finish-pinned" title={lang === 'en' ? 'Finish Form and return to SOLID' : '完成造型，返回实体环境'} onClick={() => void finishForm()}>
                   <span className="finish-check">✓</span>
-                  <span>Finish Form</span>
+                  <span>{lang === 'en' ? 'Finish Form' : '完成造型'}</span>
                 </button>
               )}
             </div>

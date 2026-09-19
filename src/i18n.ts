@@ -1248,7 +1248,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "批量配螺丝：先选一个有孔嘅零件": "Batch fasteners: first select a part with holes",
   "（任意轴薄壁不支持，已出实心）": "(Thin-wall on arbitrary axis unsupported — made solid)",
   "（孔内壁 — 同心扩孔/沉头）": "(Hole inner wall — concentric bore / counterbore)",
-  "镜像：设镜像面/偏移 → 确定": "Mirror: set mirror plane / offset → OK",
+  "鏡像：設鏡像面／偏移 → 確定": "Mirror: set mirror plane / offset → OK",
   "要点【圆柱面】— 平面冇得包牙": "Pick a cylindrical face — can't thread a flat face",
   "构造点批量孔：先要有实体先钻得": "Construction-point holes: a body is required to drill",
   "已清空 — 重新点选 2 条棱": "Cleared — reselect 2 edges",
@@ -1320,7 +1320,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "相切弧：点远啲（弦长 ≥0.5mm）": "Tangent arc: click farther (chord length ≥ 0.5mm)",
   "垂直堆叠需要 ≥2 个可见有实体组件": "Vertical stack needs ≥2 visible components with bodies",
   "加强筋没碰到实体 — 调整位置/厚度": "Rib doesn't touch the body — adjust position / thickness",
-  "环形阵列：设轴/数量/角度 → 确定": "Circular pattern: set axis / count / angle → OK",
+  "環形陣列：設軸／數量／角度 → 確定": "Circular pattern: set axis / count / angle → OK",
   "桥接面需要恰好 2 条棱（一边一条）": "Bridge face needs exactly 2 edges (one per side)",
   "两个面唔平行 — 中面要两个平行平面": "Faces aren't parallel — midplane needs two parallel planes",
   "⚠ 该方向唔会屈曲（受拉/方向相反）": "⚠ No buckling in this direction (tension / reversed direction)",
@@ -1361,7 +1361,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "偏移：所选轮廓已改动/删除 — 重新点轮廓": "Offset: selected profile changed / deleted — reselect the profile",
   "画线：先点最少 2 个点，再「✓ 完成线」": "Line: place at least 2 points, then ✓ Finish Line",
   "删面失败（面唔系可去嘅特征 / 治愈失败）": "Delete Face failed (face isn't a removable feature / heal failed)",
-  "矩形阵列：设 X/Y 数量与间距 → 确定": "Rectangular pattern: set X/Y count and spacing → OK",
+  "矩形陣列：設 X/Y 數量與間距 → 確定": "Rectangular pattern: set X/Y count and spacing → OK",
   "拔模：设角度（侧面，中性面 XY）→ 确定": "Draft: set angle (side face, neutral plane XY) → OK",
   "边界补面需要 ≥2 条边界棱（请逐条点选）": "Boundary fill needs ≥2 boundary edges (select one at a time)",
   "Form 群组变换：旋转模式（绕选集中心）": "Form group transform: Rotate mode (about selection center)",
@@ -1617,7 +1617,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "已载入 90° 弯管（平滑扫掠空心管件 外Ø28 壁厚4；时间轴改半径，或重画路径换走向）": "Loaded 90° elbow (smooth-swept hollow pipe, outer Ø28, wall 4; edit radius in the timeline, or redraw the path to change routing)",
   "投影几何：当前草图面冇可投影嘅实体边/截交（喺有实体嘅面、或穿过实体嘅平面开草图先有投影边）": "Project geometry: the current sketch plane has no body edges/intersections to project (sketch on a face of a body, or a plane cutting through one, to get projectable edges)",
   "🫧 Form 平面/薄片已建 — 点蓝点拖出有机曲面（薄盒，上下面网格可独立捏）。✔ 烘焙": "🫧 Form plane/sheet created — drag the blue points to sculpt an organic surface (thin box, top and bottom meshes editable independently). ✔ Bake",
-  "环形阵列：对象（整个实体/时间轴所选特征）+ 轴（原点+方向）+ 数量 + 角度模式 → 确定": "Circular pattern: object (whole body / selected timeline features) + axis (origin + direction) + count + angle mode → OK",
+  "環形陣列：對象（整個實體／時間軸所選特徵）+ 軸（原點＋方向）+ 數量 + 角度模式 → 確定": "Circular pattern: object (whole body / selected timeline features) + axis (origin + direction) + count + angle mode → OK",
   "已载入示例：钣金 L 支架（时间轴改「状态」→展开 睇下料料长；改 ƒx 板厚/折弯R 联动）": "Loaded sample: sheet-metal L bracket (switch State to Unfold in the timeline to see the flat length; edit ƒx thickness/bend R to rebuild)",
   "折弯展开：请输入 料厚,内R,角度,K[,边1,边2]（如 2,1,90,0.4,30,30）": "Bend unfold: enter thickness, inner R, angle, K[, leg1, leg2] (e.g. 2,1,90,0.4,30,30)",
   "偏移：移动鼠标拖距离（外+/内−，1mm 步进）→ 点一下确定 · 打数字精确 · ESC 取消": "Offset: move the mouse to drag the distance (outward + / inward −, 1mm steps) → click to confirm · type a number for precision · ESC cancels",
@@ -2570,6 +2570,19 @@ Object.assign(STATUS_PHRASES_X, {
   '← 先喺裝配樹勾選 ☑ 或畫布選中組件': '← Check ☑ in the assembly tree or select components on canvas first',
   '← 先喺裝配樹勾選 ☑ 或選中組件': '← Check ☑ in the assembly tree or select components first',
   '完成草圖': 'Finish Sketch',
+})
+
+
+Object.assign(STATUS_PHRASES_X, {
+  // v1.94 BD-9301 status leftovers + Solid S1-face toast TC
+  '矩形陣列：設 X/Y 數量與間距 → 確定': 'Rectangular pattern: set X/Y count and spacing → OK',
+  '環形陣列：設軸／數量／角度 → 確定': 'Circular pattern: set axis / count / angle → OK',
+  '鏡像：設鏡像面／偏移 → 確定': 'Mirror: set mirror plane / offset → OK',
+  '環形陣列：對象（整個實體／時間軸所選特徵）+ 軸（原點＋方向）+ 數量 + 角度模式 → 確定': 'Circular pattern: object (entire body / timeline selected features) + axis (origin+direction) + count + angle mode → OK',
+  '持久面名經上游變換以拓撲順序追蹤解析（真拓撲命名 S1-面）': 'Persistent face name resolved via upstream transform topological-order tracking (true topological naming S1-face)',
+  '持久邊名經上游變換以拓撲順序追蹤解析（真拓撲命名 S1）': 'Persistent edge name resolved via upstream transform topological-order tracking (true topological naming S1)',
+  '持久面名經上游布爾／圓角以 OCCT 歷史追蹤解析（真拓撲命名 S2-面）': 'Persistent face name resolved via upstream boolean/fillet OCCT history tracking (true topological naming S2-face)',
+  '持久邊名經上游布爾／圓角以 OCCT 歷史追蹤解析（真拓撲命名 S2）': 'Persistent edge name resolved via upstream boolean/fillet OCCT history tracking (true topological naming S2)',
 })
 
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)

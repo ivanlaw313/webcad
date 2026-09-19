@@ -1,6 +1,6 @@
 /**
  * v1.14 BOT-A01/A02 follow-up: soft bbox dims must not fight driving constraints;
- * edited length must persist across Finish → reopen; illegal ≤0 shows 尺寸已拒绝.
+ * edited length must persist across Finish → reopen; illegal ≤0 shows 尺寸已拒絕.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -14,13 +14,13 @@ const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 
 test('v1.14 contract: APP_VERSION release string; soft-axis suppress + reject toast + cons sync', () => {
-  assert.match(version, /APP_VERSION = '\d+\.\d+/')
+  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
   assert.match(layer, /BOT-A01 \(v1\.14\)/)
   assert.match(layer, /coversAxis/)
-  assert.match(layer, /尺寸已拒绝：尺寸必须为有限正数/)
+  assert.match(layer, /illegalRejectStatus\('尺寸必須為有限正數'\)/)
   assert.match(storeSrc, /axisBound/)
   assert.match(storeSrc, /syncCons/)
-  assert.match(storeSrc, /尺寸已拒绝：尺寸必须为有限正数/)
+  assert.match(storeSrc, /尺寸已拒絕：尺寸必須為有限正數/)
 })
 
 test('BOT-A02 parse: ≤0 rejected', () => {
@@ -100,15 +100,15 @@ test('BOT-A01 runtime: constraint dim 255→100 persists through applySketchEdit
   assert.ok(Math.abs(g().skCons.find((c) => c.id === width.id || c.name === 'd1').value - 100) < 1e-2)
 })
 
-test('BOT-A02 runtime: soft ≤0 sets 尺寸已拒绝 status without changing geometry', async () => {
+test('BOT-A02 runtime: soft ≤0 sets 尺寸已拒絕 status without changing geometry', async () => {
   const { shapes, cons } = polyWithLen(255, 25)
   useApp.setState({ ...useApp.getInitialState(), mode: 'sketch', sketchProfiles: shapes, skCons: cons, status: 'ready' }, true)
   const before = JSON.stringify(g().sketchProfiles)
   g().setSketchDimValue(0, 'w', -1)
-  assert.match(g().status, /尺寸已拒绝/)
+  assert.match(g().status, /尺寸已拒絕/)
   assert.equal(JSON.stringify(g().sketchProfiles), before)
   g().setSketchDimValue(0, 'w', 0)
-  assert.match(g().status, /尺寸已拒绝/)
+  assert.match(g().status, /尺寸已拒絕/)
   assert.equal(JSON.stringify(g().sketchProfiles), before)
   assert.equal(g().skCons.find((c) => c.id === 'dim-len').value, 255)
 })

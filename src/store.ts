@@ -4656,7 +4656,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if(dimPreviewWork)await dimPreviewWork
     if(!dimSessionCurrent(session)){if(dimSession===session)cancelSkDimEdit();return}
     if(!session.candidate){cancelSkDimEdit();return}
-    if(!session.candidate.ok){set({status:`尺寸已拒绝：${session.candidate.reason}`});return}
+    if(!session.candidate.ok){set({status:`尺寸已拒絕：${session.candidate.reason}`});return}
     applyDimCandidate(session.before,session.candidate,'已更新尺寸')
   }
   // Persist an in-progress label edit before Finish Sketch / applySketchEdit so 120→100
@@ -4677,11 +4677,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       if(dimPreviewWork)await dimPreviewWork
       if(!current())return
       if(session.candidate?.ok){applyDimCandidate(before,session.candidate,message);return}
-      if(session.candidate){set({status:`尺寸已拒绝：${session.candidate.reason}`});return}
+      if(session.candidate){set({status:`尺寸已拒絕：${session.candidate.reason}`});return}
     }
     const result=await prepareSkDimEdit(before,id,structuredClone(patch))
     if(!current())return
-    if(!result.ok){set({status:`尺寸已拒绝：${result.reason}`});return}
+    if(!result.ok){set({status:`尺寸已拒絕：${result.reason}`});return}
     applyDimCandidate(before,result,message)
   }
   type OffsetPrepared={ok:true;document:PatternDocument;params:Parameter[];addedIds:string[];dof:number}|{ok:false;reason:string}
@@ -7631,7 +7631,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (get().skCons.some((c) => c.kind === 'dim' && c.name === paramName && c.id !== conId)) { get().bindSkDimExpr(conId, paramName); return }
       set({ status: `参数「${paramName}」唔存在 — 先喺顶栏「ƒx 参数」面板加返（或输入尺寸名 d1 / 公式 d1*2）` }); return
     }
-    if (!Number.isFinite(p.value) || p.value <= 0) { set({status:illegalRejectStatus('参数尺寸必须为有限正数，未更改草图')}); return }
+    if (!Number.isFinite(p.value) || p.value <= 0) { set({status:illegalRejectStatus('參數尺寸必須為有限正數，未更改草圖')}); return }
     void get().commitSkDim(conId, {param:paramName,paramId:parameterId(p),refs:undefined,expr:undefined,value:p.value,driven:undefined}, `尺寸已绑定 ƒx ${paramName} = ${p.value}`)
   },
   // S97 公式尺寸：尺寸值 = 表达式（引用参数/常量/函数，如 d1*2+5）。先验证可算（失败报错不改），成功写 value + 解绑纯参数。
@@ -7660,7 +7660,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       while (stk.length) { const u = stk.pop()!; if (u === selfName) { cyc = true; break } if (seen.has(u)) continue; seen.add(u); for (const v2 of (depMap.get(u) || [])) stk.push(v2) }
       if (cyc) { set({ status: `⚠ 尺寸循环引用：「${selfName} = ${expr}」直接或间接引用返自己 — 已拒绝` }); return }
     }
-    if (!Number.isFinite(v) || v <= 0) { set({status:illegalRejectStatus('公式尺寸必须为有限正数，未更改草图')}); return }
+    if (!Number.isFinite(v) || v <= 0) { set({status:illegalRejectStatus('公式尺寸必須為有限正數，未更改草圖')}); return }
     void get().commitSkDim(conId, {expr,refs,param:undefined,paramId:undefined,value:v,driven:undefined}, `尺寸已绑定公式 ƒ(${expr}) = ${+v.toFixed(3)}`)
   },
   skClickAt: (p) => {
@@ -8207,7 +8207,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   editSkDim: async (id, value) => {
     const target = get().skCons.find(c => c.id === id && c.kind === 'dim')
     const zeroProjection = target?.kind === 'dim' && (target.type === 'hdist' || target.type === 'vdist') && value === 0
-    if (!Number.isFinite(value) || value < 0 || value === 0 && !zeroProjection) { set({status:'尺寸已拒绝：尺寸必须为有限正数（水平／垂直投影可为零），未更改草图'}); return }
+    if (!Number.isFinite(value) || value < 0 || value === 0 && !zeroProjection) { set({status:'尺寸已拒絕：尺寸必須為有限正數（水平／垂直投影可為零），未更改草圖'}); return }
     await get().commitSkDim(id,{value,driven:undefined,param:undefined,paramId:undefined,refs:undefined,expr:undefined},`尺寸已改为 ${value}`)
   },
   // ── 参数化组件 edit-in-place（T734）──────────────────────────────────────
@@ -9671,7 +9671,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       })
     }
     if (!isFinite(value) || value <= 0) {
-      set({ status: '尺寸已拒绝：尺寸必须为有限正数' })
+      set({ status: '尺寸已拒絕：尺寸必須為有限正數' })
       return
     }
     const bound=axisBound()
@@ -9854,7 +9854,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (start && tool === 'circle') {
       // SO02: center-circle typed value is diameter Ø (exact), not freehand radius scale.
       if (buf[0] !== '' && (!Number.isFinite(Number(buf[0])) || Number(buf[0]) <= 0)) {
-        return { status: illegalRejectStatus('直径必须为有限正数') }
+        return { status: illegalRejectStatus('直徑必須為有限正數') }
       }
       const typed = buf[0] !== ''
       const D = num(buf[0], 2 * (Math.hypot(prev[0] - start[0], prev[1] - start[1]) || 10))

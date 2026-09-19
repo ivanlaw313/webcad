@@ -1,6 +1,6 @@
 /**
  * v1.15 ABCD UX (A+B+C; D = QA by other bots):
- * A — unified illegal-input status (尺寸已拒绝) + driving vs soft/driven dim visuals
+ * A — unified illegal-input status (尺寸已拒絕) + driving vs soft/driven dim visuals
  * B — multi-view honesty banner + empty-state copy
  * C — sketch circle precise Ø numeric (SO02)
  * APP_VERSION stays 1.14 on this fix PR.
@@ -19,18 +19,18 @@ const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.m
 const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8')
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 
-test('A: illegalRejectStatus always embeds 尺寸已拒绝 marker', () => {
-  assert.equal(ILLEGAL_REJECT_MARKER, '尺寸已拒绝')
-  assert.match(illegalRejectStatus('壁厚必须大于 0'), /尺寸已拒绝：壁厚必须大于 0/)
-  assert.match(illegalRejectStatus('尺寸已拒绝：已有'), /^尺寸已拒绝：已有$/)
-  assert.equal(isIllegalRejectStatus(illegalRejectStatus('孔径Ø必须大于 0')), true)
+test('A: illegalRejectStatus always embeds 尺寸已拒絕 marker', () => {
+  assert.equal(ILLEGAL_REJECT_MARKER, '尺寸已拒絕')
+  assert.match(illegalRejectStatus('壁厚必須大於 0'), /尺寸已拒絕：壁厚必須大於 0/)
+  assert.match(illegalRejectStatus('尺寸已拒絕：已有'), /^尺寸已拒絕：已有$/)
+  assert.equal(isIllegalRejectStatus(illegalRejectStatus('孔徑Ø必須大於 0')), true)
 })
 
 test('A: hole/shell/timeline length rejects use illegalRejectStatus', () => {
-  assert.match(storeSrc, /illegalRejectStatus\((?:ILLEGAL_HOLE_DETAIL|'孔径Ø必须大于 0')\)/)
-  assert.match(storeSrc, /illegalRejectStatus\((?:ILLEGAL_THICKNESS_DETAIL|'壁厚必须大于 0')\)/)
-  assert.match(storeSrc, /illegalRejectStatus\((?:ILLEGAL_LENGTH_DETAIL|'尺寸必须大于 0，未更改模型')\)/)
-  assert.match(viewport, /尺寸已拒绝：孔径Ø必须大于 0/)
+  assert.match(storeSrc, /illegalRejectStatus\((?:ILLEGAL_HOLE_DETAIL|'孔徑Ø必須大於 0')\)/)
+  assert.match(storeSrc, /illegalRejectStatus\((?:ILLEGAL_THICKNESS_DETAIL|'壁厚必須大於 0')\)/)
+  assert.match(storeSrc, /illegalRejectStatus\((?:ILLEGAL_LENGTH_DETAIL|'尺寸必須大於 0，未更改模型')\)/)
+  assert.match(viewport, /尺寸已拒絕：孔徑Ø必須大於 0/)
 })
 
 test('A: driving dims visually distinct from soft/driven', () => {
@@ -82,7 +82,7 @@ await w.ready()
 const { useApp } = await import('../src/store.ts')
 const g = () => useApp.getState()
 
-test('A runtime: shell/hole/prim illegal values share 尺寸已拒绝', async () => {
+test('A runtime: shell/hole/prim illegal values share 尺寸已拒絕', async () => {
   useApp.setState({ ...useApp.getInitialState() }, true)
   const box = { id: 'box', type: 'prim', shape: 'box', a: 20, b: 20, c: 20, op: 'new' }
   assert.equal(await g().applyFeatures([box], 'box'), true, g().status)
@@ -91,17 +91,17 @@ test('A runtime: shell/hole/prim illegal values share 尺寸已拒绝', async ()
   g().shellPickAt([10, 20, -10])
   g().setShellThickness(0)
   await g().commitShell()
-  assert.match(g().status, /尺寸已拒绝/)
+  assert.match(g().status, /尺寸已拒絕/)
   assert.match(g().status, /壁厚/)
 
   useApp.setState({ holeMode: true, holePos: [0, 10, 0], holeFaceZ: 20, holeD: -1, holeThrough: true, holeType: 'simple' })
   await g().commitHole()
-  assert.match(g().status, /尺寸已拒绝/)
+  assert.match(g().status, /尺寸已拒絕/)
   assert.match(g().status, /孔径|Ø/)
 
   const before = structuredClone(g().features)
   await g().editFeature('box', { a: -2 })
-  assert.match(g().status, /尺寸已拒绝/)
+  assert.match(g().status, /尺寸已拒絕/)
   assert.deepEqual(g().features, before)
 })
 
@@ -120,12 +120,12 @@ test('C runtime: typed circle Ø4 commits exact diameter + driving dia dim', asy
   assert.match(g().status, /Ø4|驱动直径/)
 })
 
-test('C runtime: illegal typed Ø≤0 rejected with 尺寸已拒绝', async () => {
+test('C runtime: illegal typed Ø≤0 rejected with 尺寸已拒絕', async () => {
   useApp.setState({ ...useApp.getInitialState(), mode: 'sketch', sketchPlane: 'XY', sketchTool: 'circle' }, true)
   g().sketchTypeKey('0'); g().sketchTypeKey('Tab'); g().sketchTypeKey('0'); g().sketchTypeKey('Enter')
   // Type 0 — must reject
   g().sketchTypeKey('0'); g().sketchTypeKey('Enter')
-  assert.match(g().status, /尺寸已拒绝/)
+  assert.match(g().status, /尺寸已拒絕/)
   assert.equal(g().sketchShape, null)
   assert.ok(g().sketchStart, 'stay in draw after reject')
 })

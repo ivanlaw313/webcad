@@ -1,5 +1,5 @@
 /**
- * v1.20 P2: sketch Dimension ≤0 must surface 「尺寸已拒绝」 in the visible alert
+ * v1.20 P2: sketch Dimension ≤0 must surface 「尺寸已拒絕」 in the visible alert
  * (inputError), not only status — UI bot @1.19 saw detail-only copy.
  */
 import test from 'node:test'
@@ -19,19 +19,19 @@ test('APP_VERSION is 1.2x+ (superseded by later ship)', () => {
 test('SketchLayer inputError uses illegalRejectStatus for ≤0 dims', () => {
   assert.match(layer, /from '\.\.\/ui\/illegalInput'/)
   assert.match(layer, /setInputError\(illegalRejectStatus\(result\.error\)\)/)
-  assert.match(layer, /setInputError\(illegalRejectStatus\('尺寸必须为有限正数'\)\)/)
+  assert.match(layer, /setInputError\(illegalRejectStatus\('尺寸必須為有限正數'\)\)/)
   assert.match(layer, /status:illegalRejectStatus\(result\.error\)/)
 })
 
-test('store param/formula dim rejects embed 尺寸已拒绝', () => {
-  assert.match(storeSrc, /illegalRejectStatus\('参数尺寸必须为有限正数，未更改草图'\)/)
-  assert.match(storeSrc, /illegalRejectStatus\('公式尺寸必须为有限正数，未更改草图'\)/)
+test('store param/formula dim rejects embed 尺寸已拒絕', () => {
+  assert.match(storeSrc, /illegalRejectStatus\('參數尺寸必須為有限正數，未更改草圖'\)/)
+  assert.match(storeSrc, /illegalRejectStatus\('公式尺寸必須為有限正數，未更改草圖'\)/)
 })
 
 test('dimensionEditInput detail + illegalRejectStatus → exact marker', () => {
-  assert.match(dimInput, /尺寸必须为有限正数；水平／垂直距离可为零/)
-  const wrapped = illegalRejectStatus('尺寸必须为有限正数；水平／垂直距离可为零')
-  assert.equal(ILLEGAL_REJECT_MARKER, '尺寸已拒绝')
-  assert.match(wrapped, /^尺寸已拒绝：/)
-  assert.match(wrapped, /尺寸必须为有限正数/)
+  assert.match(dimInput, /尺寸必須為有限正數；水平／垂直距離可為零/)
+  const wrapped = illegalRejectStatus('尺寸必須為有限正數；水平／垂直距離可為零')
+  assert.equal(ILLEGAL_REJECT_MARKER, '尺寸已拒絕')
+  assert.match(wrapped, /^尺寸已拒絕：/)
+  assert.match(wrapped, /尺寸必須為有限正數/)
 })

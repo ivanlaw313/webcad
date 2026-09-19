@@ -1,6 +1,6 @@
 /**
  * v1.16 BUG-UI-001: Shell t≤0 and feature-timeline / prim length dims ≤0
- * must call illegalRejectStatus / setStatus containing 「尺寸已拒绝」
+ * must call illegalRejectStatus / setStatus containing 「尺寸已拒絕」
  * (same helper as hole Ø + sketch). APP_VERSION was 1.15 at merge; later releases bump it.
  */
 import test from 'node:test'
@@ -24,7 +24,7 @@ test('BUG-UI-001: setShellThickness / setFeatParam / commitFeatDlg use illegal h
   assert.match(storeSrc, /if \(!\(th > 0\)\) \{ set\(\{ status: illegalRejectStatus\(ILLEGAL_THICKNESS_DETAIL\) \}\); return \}/)
 })
 
-test('BUG-UI-001: Timeline NumField reject announces 尺寸已拒绝', () => {
+test('BUG-UI-001: Timeline NumField reject announces 尺寸已拒絕', () => {
   assert.match(timeline, /illegalRejectStatus\(rejectDetail \|\| ILLEGAL_LENGTH_DETAIL\)/)
   assert.match(timeline, /rejectDetail=\{fd\.key === 'thickness' \? ILLEGAL_THICKNESS_DETAIL/)
   assert.match(timeline, /from '\.\.\/ui\/illegalInput'/)
@@ -43,10 +43,10 @@ test('APP_VERSION is a product release string (bumped after v1.16)', () => {
   assert.match(version, /APP_VERSION = '\d+\.\d+'/)
 })
 
-test('helper still embeds 尺寸已拒绝', () => {
-  assert.equal(ILLEGAL_REJECT_MARKER, '尺寸已拒绝')
-  assert.match(illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL), /尺寸已拒绝：壁厚必须大于 0/)
-  assert.match(illegalRejectStatus(ILLEGAL_LENGTH_DETAIL), /尺寸已拒绝：尺寸必须大于 0/)
+test('helper still embeds 尺寸已拒絕', () => {
+  assert.equal(ILLEGAL_REJECT_MARKER, '尺寸已拒絕')
+  assert.match(illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL), /尺寸已拒絕：壁厚必須大於 0/)
+  assert.match(illegalRejectStatus(ILLEGAL_LENGTH_DETAIL), /尺寸已拒絕：尺寸必須大於 0/)
 })
 
 globalThis.require = createRequire(import.meta.url)
@@ -58,7 +58,7 @@ await w.ready()
 const { useApp } = await import('../src/store.ts')
 const g = () => useApp.getState()
 
-test('BUG-UI-001 runtime: setShellThickness(≤0) sets 尺寸已拒绝 without commit', async () => {
+test('BUG-UI-001 runtime: setShellThickness(≤0) sets 尺寸已拒絕 without commit', async () => {
   useApp.setState({ ...useApp.getInitialState() }, true)
   const box = { id: 'box', type: 'prim', shape: 'box', a: 20, b: 20, c: 20, op: 'new' }
   assert.equal(await g().applyFeatures([box], 'box'), true, g().status)
@@ -66,36 +66,36 @@ test('BUG-UI-001 runtime: setShellThickness(≤0) sets 尺寸已拒绝 without c
   assert.equal(g().shellThickness, 2)
   g().setShellThickness(0)
   assert.equal(g().shellThickness, 0)
-  assert.match(g().status, /尺寸已拒绝/)
+  assert.match(g().status, /尺寸已拒絕/)
   assert.match(g().status, /壁厚/)
   g().setShellThickness(-1)
   assert.equal(g().shellThickness, -1)
-  assert.match(g().status, /尺寸已拒绝/)
+  assert.match(g().status, /尺寸已拒絕/)
   const feats = structuredClone(g().features)
   await g().commitShell()
-  assert.match(g().status, /尺寸已拒绝|请先选择/)
+  assert.match(g().status, /尺寸已拒絕|请先选择/)
   assert.deepEqual(g().features, feats)
 })
 
-test('BUG-UI-001 runtime: timeline editFeature a=-1 still 尺寸已拒绝 + unchanged', async () => {
+test('BUG-UI-001 runtime: timeline editFeature a=-1 still 尺寸已拒絕 + unchanged', async () => {
   useApp.setState({ ...useApp.getInitialState() }, true)
   const box = { id: 'box', type: 'prim', shape: 'box', a: 80, b: 60, c: 40, op: 'new' }
   assert.equal(await g().applyFeatures([box], 'box'), true, g().status)
   const before = structuredClone(g().features)
   await g().editFeature('box', { a: -1 })
-  assert.match(g().status, /尺寸已拒绝/)
+  assert.match(g().status, /尺寸已拒絕/)
   assert.deepEqual(g().features, before)
 })
 
-test('BUG-UI-001 runtime: setFeatParam live-type ≤0 announces 尺寸已拒绝', async () => {
+test('BUG-UI-001 runtime: setFeatParam live-type ≤0 announces 尺寸已拒絕', async () => {
   useApp.setState({ ...useApp.getInitialState() }, true)
   useApp.setState({ featDlg: { kind: 'shell-edit', editId: 'sh', params: { thickness: 2 } } })
   g().setFeatParam('thickness', 0)
   assert.equal(g().featDlg?.params.thickness, 0)
-  assert.match(g().status, /尺寸已拒绝/)
+  assert.match(g().status, /尺寸已拒絕/)
   assert.match(g().status, /壁厚/)
   useApp.setState({ featDlg: { kind: 'box', params: { l: 20, w: 20, h: 20 } } })
   g().setFeatParam('l', -1)
   assert.equal(g().featDlg?.params.l, -1)
-  assert.match(g().status, /尺寸已拒绝/)
+  assert.match(g().status, /尺寸已拒絕/)
 })

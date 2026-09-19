@@ -2792,8 +2792,8 @@ export function SketchDimLayer() {
       else if(e.dim!=='con')setDim(e.target, e.dim, v)
     } else if (draft.trim() !== '' && draft !== initialValue.current) {
       // BOT-A02: soft/bbox label rejects (≤0) must surface the same status toast as constraint dims
-      useApp.setState({ status: illegalRejectStatus('尺寸必须为有限正数') })
-      setInputError(illegalRejectStatus('尺寸必须为有限正数'))
+      useApp.setState({ status: illegalRejectStatus('尺寸必須為有限正數') })
+      setInputError(illegalRejectStatus('尺寸必須為有限正數'))
     }
     setEditing(null)
   }

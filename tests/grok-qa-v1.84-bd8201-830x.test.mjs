@@ -17,9 +17,9 @@ const hist = readFileSync(new URL('../src/components/HistoryPanel.tsx', import.m
 const worker = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 const cmd = readFileSync(new URL('../src/components/CommandDialog.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.90; SW webcad-v1.90', () => {
-  assert.match(version, /APP_VERSION = '1\.90'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.90'/)
+test('APP_VERSION 1.91; SW webcad-v1.91', () => {
+  assert.match(version, /APP_VERSION = '1\.91'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.91'/)
 })
 
 test('catalog parity ≥1314', () => {

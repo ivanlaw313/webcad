@@ -477,7 +477,7 @@ export default function Ribbon() {
             looked like a non-interactive decoration and was especially easy to
             miss on the light CAD chrome.  onInput gives immediate feedback while
             dragging in browsers that delay change until the picker closes. */}
-        <label className="tb-color-control" title="外观颜色：点击色块选择颜色，立即套用到当前实体">
+        <label className="tb-color-control" title={tStatus('外觀顏色：點擊色塊選擇顏色，立即套用到當前實體', lang)}>
           <span>{msg('ui.color', lang)}</span>
           <input className="tb-color" type="color" aria-label={msg('ui.bodyColor', lang)} value={bodyColor}
             onInput={(e) => setBodyColor(e.currentTarget.value)}

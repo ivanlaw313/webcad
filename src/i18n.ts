@@ -2139,6 +2139,9 @@ Object.assign(STATUS_PHRASES_X, {
 
 
 Object.assign(STATUS_PHRASES_X, {
+  // v1.87 BD-8601 Ribbon appearance color tooltip TC
+  '外觀顏色：點擊色塊選擇顏色，立即套用到當前實體': 'Appearance color: click swatch to pick a color; applies to the current body immediately',
+  '外觀顏色': 'Appearance color',
   // v1.86 BD-8501/8502 Viewport mesh summary + appearance chrome TC
   '外觀／出圖': 'Appearance / Drawing',
   '料費~': 'Material cost ~',

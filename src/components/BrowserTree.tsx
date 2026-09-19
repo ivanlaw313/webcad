@@ -294,7 +294,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
           onBlur={() => { rename(c.id, name || c.name); setEditing(false) }}
           onKeyDown={(e) => { if (e.key === 'Enter') { rename(c.id, name || c.name); setEditing(false) } }} />
       ) : (
-        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} title={tStatus(`「${c.name}」 ${compDimsStr(c.mesh)}（雙擊参数化件=进入編輯；Alt+雙擊=改名；點選=属性）`, lang)} onClick={() => { if (compBoolPending) selectComponent(c.id); else selectComponent(c.id === sel ? null : c.id) }} onDoubleClick={(e) => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.formSource && !e.altKey) { useApp.getState().editFormComponent(c.id) } else if (cc?.src?.features?.length && !e.altKey) { selectComponent(c.id); void useApp.getState().editComponent(c.id) } else { setName(c.name); setEditing(true) } }}>{c.name}</span>
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} title={tStatus(`「${c.name}」 ${compDimsStr(c.mesh)}（雙擊參數化件=進入編輯；Alt+雙擊=改名；點選=屬性）`, lang)} onClick={() => { if (compBoolPending) selectComponent(c.id); else selectComponent(c.id === sel ? null : c.id) }} onDoubleClick={(e) => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.formSource && !e.altKey) { useApp.getState().editFormComponent(c.id) } else if (cc?.src?.features?.length && !e.altKey) { selectComponent(c.id); void useApp.getState().editComponent(c.id) } else { setName(c.name); setEditing(true) } }}>{c.name}</span>
       )}
       {shareCount > 1 && <span title={tStatus(`${shareCount} 个實例共享同一定義 — 編輯任一，全部更新（「獨立複製」可脱离）`, lang)} style={{ fontSize: 10, fontWeight: 600, color: '#1572c4', background: 'rgba(21,114,196,.12)', borderRadius: 3, padding: '0 4px', marginRight: 2, flexShrink: 0 }}>×{shareCount}</span>}
       <button className="component-options" aria-label={`組件選項：${c.name}`} aria-expanded={c.id === sel && !componentEditing && !commandActive && !skLock} onClick={() => { if (compBoolPending) selectComponent(c.id); else selectComponent(c.id === sel ? null : c.id) }}>⋯</button>
@@ -598,7 +598,7 @@ export default function BrowserTree() {
               <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().showAllComponents()} title={tStatus('顯示所有隱藏的組件', lang)}>👁 {tStatus('顯示全部', lang)}</div>
             )}
             {components.length > 1 && (
-              <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().exportAllPartsZip()} title={tStatus('把每个可见零件匯出为单独 STL，打包成一個 zip（每件可单独 3D 列印）', lang)}>📦 {tStatus('導出全部零件 STL(zip)', lang)}</div>
+              <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().exportAllPartsZip()} title={tStatus('把每個可見零件匯出為單獨 STL，打包成一個 zip（每件可單獨 3D 列印）', lang)}>📦 {tStatus('導出全部零件 STL(zip)', lang)}</div>
             )}
             <GroupedCompList components={components} />
             <CompBatchBar />

@@ -586,7 +586,7 @@ const STATUS_PHRASES: Record<string, string> = {
   // —— 结果 / 动词 / 连接词 ——
   '已载入': 'Loaded ', '已导出': 'Exported ', '已导入': 'Imported ', '已生成': 'Generated ',
   '已建': 'Created ', '已合并': 'Merged ', '已删除': 'Deleted ', '已删': 'Deleted ', '已补面': 'Patched ',
-  '已清空': 'Cleared', '已取消': 'Cancelled', '已退出': 'Exited ', '已选': 'Selected ', '已把': 'Done — ',
+  '已清空': 'Cleared', '已取消': 'Cancelled', '已退出': 'Exited ', '已選': 'Selected ', '已把': 'Done — ',
   '已': 'Done: ', '失败': 'failed', '需要': 'requires ', '请先': 'first ', '太多': 'too many',
   '太负': 'too negative', '太大': 'too large', '会很慢': '(will be slow)', '可撤销': '(undoable)',
   '可还原': '(undoable)', '只支持': 'only supports ', '再点': 'click again', '再按': 'press again',
@@ -620,7 +620,7 @@ const STATUS_PHRASES: Record<string, string> = {
   // 顶点→顶click）。残留单字中文连接词可接受（语义已由上面多字短语带出），好过整烂复合词。
   // —— S-Wire（EN 扩词）：Wire 阶段经 tStatus() 路由嘅 UI 短语（dialog/inspector/ribbon 标签）。
   // 全部 ≥2 字符（单字连接词刻意唔加，避免喺复合词内部乱替，见上方注释）。长→短排序由 _STATUS_SORTED 自动处理。
-  '对象': 'Objects', '整个实体': 'Entire Body',
+  '對象': 'Objects', '整个实体': 'Entire Body',
   '✓ 已选特征': '✓ Feature selected', '← 先喺時間軸單擊選中特徵': '← Click a feature in the timeline first',
   '← 先喺时间轴单击选中特征': '← Click a feature in the timeline first',
   'X数量': 'X Count', 'X间距': 'X Spacing', 'X总长': 'X Extent',

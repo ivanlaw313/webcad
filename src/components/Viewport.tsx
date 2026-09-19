@@ -6330,16 +6330,16 @@ export default function Viewport() {
             const mt = String(featDlg.params.moveType ?? 'free')
             const objectType = String(featDlg.params.objectType ?? 'bodies')
             const moveComponentCount = checkedComps.length || (selectedComponent ? 1 : 0)
-            const modes: [string, string, string][] = [['free', '自由', '六自由度：dx/dy/dz + 绕件中心 X/Y/Z'], ['translate', '平移', '只平移 dx/dy/dz'], ['rotate', '旋转', '单轴 + 角度（绕件中心）'], ['ptp', '点对点', '把 P1 搬到 P2（两点坐标）'], ['ptpos', '点对位', '把 P1 搬到目的坐标 P2']]
+            const modes: [string, string, string][] = [['free', '自由', '六自由度：dx/dy/dz + 繞件中心 X/Y/Z'], ['translate', '平移', '只平移 dx/dy/dz'], ['rotate', '旋轉', '單軸 + 角度（繞件中心）'], ['ptp', '點對點', '把 P1 搬到 P2（兩點坐標）'], ['ptpos', '點對位', '把 P1 搬到目的坐標 P2']]
             return (<>
-              <label title={tStatus('对象类型（Fusion Move Object）：当前完整支持活动实体和已选组件；面与草图须用专属工具。', lang)}>{tStatus('对象', lang)} <select value={objectType} onChange={(e) => setFeatParam('objectType', e.target.value)} style={{ height: 26 }}><option value="bodies">{tStatus('实体', lang)}</option><option value="components">{tStatus('组件', lang)}</option><option value="faces" disabled>{tStatus('面（用移动面）', lang)}</option><option value="sketch" disabled>{tStatus('草图（草图环境）', lang)}</option></select></label>
+              <label title={tStatus('對象類型（Fusion Move Object）：當前完整支持活動實體和已選組件；面與草圖須用專屬工具。', lang)}>{tStatus('對象', lang)} <select value={objectType} onChange={(e) => setFeatParam('objectType', e.target.value)} style={{ height: 26 }}><option value="bodies">{tStatus('實體', lang)}</option><option value="components">{tStatus('組件', lang)}</option><option value="faces" disabled>{tStatus('面（用移動面）', lang)}</option><option value="sketch" disabled>{tStatus('草圖（草圖環境）', lang)}</option></select></label>
               {objectType === 'bodies' ? (<>
                 <label title={tStatus('SO10：分割后可选择泊车半体移动，避免只移活动低侧叠入另一半导致合并体积丢失', lang)}>{tStatus('实体', lang)} <select value={String(featDlg.params.bodyTarget ?? 'active')} onChange={(e) => setFeatParam('bodyTarget', e.target.value)} style={{ height: 26 }}>
-                  <option value="active">{tStatus('活动实体', lang)}</option>
+                  <option value="active">{tStatus('活動實體', lang)}</option>
                   {(bodyMesh?.parked ?? []).map((b, i) => <option key={i} value={'parked' + i}>{b.name || (tStatus('泊车实体', lang) + (i + 1))}</option>)}
                 </select></label>
-                <SelectionChip label={tStatus('对象', lang)} count={1} hint={tStatus('可选活动实体或泊车实体（分割另一半）；确定后移动所选实体。', lang)} />
-              </>) : <SelectionChip label={tStatus('组件', lang)} count={moveComponentCount} hint={moveComponentCount ? tStatus('已选组件；可在浏览树勾选多个组件，按 × 清除后重新选择。', lang) : tStatus('先在浏览树或画布选择一个或多个组件。', lang)} onClear={() => useApp.setState({ checkedComps: [], selectedComponent: null })} />}
+                <SelectionChip label={tStatus('對象', lang)} count={1} hint={tStatus('可選活動實體或泊車實體（分割另一半）；確定後移動所選實體。', lang)} />
+              </>) : <SelectionChip label={tStatus('組件', lang)} count={moveComponentCount} hint={moveComponentCount ? tStatus('已選組件；可在瀏覽樹勾選多個組件，按 × 清除後重新選擇。', lang) : tStatus('先在浏览树或画布选择一个或多个组件。', lang)} onClear={() => useApp.setState({ checkedComps: [], selectedComponent: null })} />}
               <div style={{ display: 'flex', gap: 3, width: '100%' }}>
                 {modes.map(([v, lbl, tip]) => <button key={v} className={'sb-tool' + (mt === v ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={tStatus(tip, lang)} onClick={() => setFeatParam('moveType', v)}>{tStatus(lbl, lang)}</button>)}
               </div>
@@ -6354,7 +6354,7 @@ export default function Viewport() {
                 <label title={tStatus('绕件中心 Z 轴旋转', lang)}>{tStatus('繞Z°', lang)} <input type="number" step={15} value={featDlg.params.rz} onChange={(e) => setFeatParam('rz', Number(e.target.value))} style={{ width: 50 }} /></label>
               </>)}
               {mt === 'rotate' && (<>
-                <label title={tStatus('旋转轴（绕件中心）', lang)}>{tStatus('轴', lang)} <select value={String(featDlg.params.raxis ?? 'Z')} onChange={(e) => setFeatParam('raxis', e.target.value)} style={{ height: 26 }}><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option></select></label>
+                <label title={tStatus('旋转轴（绕件中心）', lang)}>{tStatus('軸', lang)} <select value={String(featDlg.params.raxis ?? 'Z')} onChange={(e) => setFeatParam('raxis', e.target.value)} style={{ height: 26 }}><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option></select></label>
                 <label title={tStatus('旋转角°', lang)}>{tStatus('角度', lang)} <input type="number" step={15} value={featDlg.params.angle ?? 0} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 56 }} />°</label>
               </>)}
               {(mt === 'ptp' || mt === 'ptpos') && (<>
@@ -6366,7 +6366,7 @@ export default function Viewport() {
                 <label>P2y <input type="number" step={1} value={featDlg.params.p2y ?? 0} onChange={(e) => setFeatParam('p2y', Number(e.target.value))} style={{ width: 48 }} /></label>
                 <label>P2z <input type="number" step={1} value={featDlg.params.p2z ?? 0} onChange={(e) => setFeatParam('p2z', Number(e.target.value))} style={{ width: 48 }} /></label>
               </>)}
-              <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('Create Copy：留低原件、移动一个副本（Fusion Move/Copy 嘅复制半边）', lang)}><input type="checkbox" checked={!!+(featDlg.params.createCopy || 0)} onChange={(e) => setFeatParam('createCopy', e.target.checked ? 1 : 0)} /> {tStatus('创建副本', lang)}</label>
+              <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('Create Copy：留低原件、移动一个副本（Fusion Move/Copy 嘅复制半边）', lang)}><input type="checkbox" checked={!!+(featDlg.params.createCopy || 0)} onChange={(e) => setFeatParam('createCopy', e.target.checked ? 1 : 0)} /> {tStatus('建立副本', lang)}</label>
             </>)
           })()}
           {/* GM-3DV1 S1：Rib/Web 建立对话框 — 厚度/方向/范围/翻转/拔模（Web 多 Extend Curves） */}
@@ -6444,7 +6444,7 @@ export default function Viewport() {
               {hasPlane
                 ? <div style={{ fontSize: 11, color: '#16a36b' }}>{tStatus('✂ 已拾切割平面（法向', lang)} [{String(featDlg.params.planeNormal)}]）<button className="sb-tool" onClick={() => { setFeatParam('planeOrigin', ''); setFeatParam('planeNormal', '') }}>{tStatus('改用轴向平面', lang)}</button></div>
                 : (<>
-                  <label title={tStatus('切割轴：沿此轴的一个平面把实体切两半（要任意面请用「平面切」拾面）', lang)}>{tStatus('轴', lang)} <select value={String(featDlg.params.axis)} onChange={(e) => {
+                  <label title={tStatus('切割轴：沿此轴的一个平面把实体切两半（要任意面请用「平面切」拾面）', lang)}>{tStatus('軸', lang)} <select value={String(featDlg.params.axis)} onChange={(e) => {
                     const axis = e.target.value; setFeatParam('axis', axis)
                     const m = useApp.getState().bodyMesh; if (!m?.vertices?.length) return
                     const axIdx = axis === 'X' ? 0 : axis === 'Y' ? 1 : 2
@@ -6826,7 +6826,7 @@ export default function Viewport() {
           : isField ? tStatus('填字段 → 确定', lang)
             : isButton ? tStatus('用已落嘅构造点', lang) : tStatus('喺画布拾取', lang)
         return (
-          <CommandDialog icon="plane" title="構造幾何" width={288} summary={summary}
+          <CommandDialog icon="plane" title={dc.type === 'axis' ? '構造軸' : dc.type === 'point' ? '構造點' : '構造幾何'} width={288} summary={summary}
             okLabel={isField || acc ? '確定' : '關閉'}
             okDisabled={!!acc && !ready}
             onOk={() => {
@@ -6843,7 +6843,7 @@ export default function Viewport() {
             onCancel={() => useApp.getState().closeDatumCmd()}>
             <div style={{ display: 'flex', gap: 4, width: '100%' }}>
               {(['plane', 'axis', 'point'] as const).map((t) => (
-                <button key={t} className="cs-btn" style={{ flex: 1, ...(dc.type === t ? { background: '#1572c4', color: '#fff', borderColor: '#1572c4' } : {}) }} onClick={() => useApp.getState().setDatumCmdType(t)}>{tStatus(t === 'plane' ? '平面' : t === 'axis' ? '轴' : '点', lang)}</button>
+                <button key={t} className="cs-btn" style={{ flex: 1, ...(dc.type === t ? { background: '#1572c4', color: '#fff', borderColor: '#1572c4' } : {}) }} onClick={() => useApp.getState().setDatumCmdType(t)}>{tStatus(t === 'plane' ? '平面' : t === 'axis' ? '軸' : '點', lang)}</button>
               ))}
             </div>
             <label>{tStatus('方法', lang)} <select value={dc.method} onChange={(e) => useApp.getState().setDatumCmdMethod(e.target.value)} style={{ height: 26, maxWidth: 190 }}>{DATUM_CMD_METHODS[dc.type].map((m) => <option key={m.id} value={m.id}>{tStatus(m.label, lang)}</option>)}</select></label>

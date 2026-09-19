@@ -153,7 +153,7 @@ export function CommandDialog({ icon = 'default', title, okLabel = '確定', okD
   )
 }
 
-// Fusion 选择 chip 行：已选 → 蓝 pill「已选 N ×」（✕ 清空重选）；未选 → 灰虚线提示 pill。
+// Fusion 选择 chip 行：已選 → 蓝 pill「已選 N ×」（✕ 清空重选）；未选 → 灰虚线提示 pill。
 export function SelectionChip({ label, count, hint, onClear, selectedText }: { label: string; count: number; hint: string; onClear?: () => void; selectedText?: string }) {
   const lang = useApp((s) => s.lang)
   return (
@@ -161,7 +161,7 @@ export function SelectionChip({ label, count, hint, onClear, selectedText }: { l
       <span style={{ color: '#6b7680' }}>{tStatus(label, lang)}</span>
       {count > 0 ? (
         <span className="sel-chip" title={onClear ? tStatus('✕ = 清空所选重新点选', lang) : undefined}>
-          {selectedText ?? <>{tStatus('已选', lang)} {count}</>}
+          {selectedText ?? <>{tStatus('已選', lang)} {count}</>}
           {onClear && <span className="sel-chip-x" onClick={onClear}>✕</span>}
         </span>
       ) : (

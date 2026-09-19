@@ -29,8 +29,8 @@ test('ribbon command id compboolean exists (ASSEMBLE + MESH MODIFY + LAB)', () =
   assert.ok(toolIds('SOLID', 'ASSEMBLE').includes('compboolean'), 'SOLID ASSEMBLE missing compboolean')
   assert.ok(toolIds('MESH', 'MODIFY').includes('compboolean'), 'MESH MODIFY missing compboolean')
   const lab = WORKSPACES['🧪實驗室']?.panels ?? []
-  const direct = lab.find((p) => p.name === '直接编辑扩展')
-  assert.ok(direct?.tools.some((t) => t.id === 'compboolean'), 'LAB 直接编辑扩展 missing compboolean')
+  const direct = lab.find((p) => p.name === '直接編輯擴展' || p.name === '直接编辑扩展')
+  assert.ok(direct?.tools.some((t) => t.id === 'compboolean'), 'LAB 直接編輯擴展 missing compboolean')
   assert.match(ribbon, /id: 'compboolean'/)
   assert.match(ribbon, /label: '組件布爾'|label: '组件布尔'/)
 })

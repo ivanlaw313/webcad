@@ -1,8 +1,8 @@
 /**
- * v1.71: LAB FEA / slice / pyramid / delface (+ same-panel) → Traditional Chinese (HK).
- * SW CACHE → webcad-v1.71. Prefer labels — not Help encyclopedias.
- * Boolean leftovers already in v1.70 — do not redo. Retain MESH SC pin + prior TC.
- * LAB tools stay under 實驗室.
+ * v1.72: LAB panel group names + stack label → Traditional Chinese (HK).
+ * SW CACHE → webcad-v1.72. Prefer labels — not Help encyclopedias.
+ * Tool labels under these panels already TC in v1.70/v1.71 — this slice is panel chrome.
+ * Retain MESH SC pin + prior TC. LAB tools stay under 實驗室.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -24,58 +24,53 @@ const drawing = readFileSync(new URL('../src/components/DrawingPanel.tsx', impor
 const featureStatus = readFileSync(new URL('../src/ui/featureStatus.ts', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.71+', () => {
-  assert.match(version, /APP_VERSION = '1\.(7[1-9]|[8-9]\d)'|APP_VERSION = '[2-9]\./)
+test('APP_VERSION is 1.72+', () => {
+  assert.match(version, /APP_VERSION = '1\.(7[2-9]|[8-9]\d)'|APP_VERSION = '[2-9]\./)
 })
 
-test('v1.71: SW CACHE bumped to webcad-v1.71+; navigate network-first; release comment', () => {
-  assert.match(sw, /const CACHE = 'webcad-v1\.(7[1-9]|[8-9]\d)'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.70'/)
+test('v1.72: SW CACHE bumped to webcad-v1.72; navigate network-first; release comment', () => {
+  assert.match(sw, /const CACHE = 'webcad-v1\.72'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.71'/)
   assert.doesNotMatch(sw, /const CACHE = 'webcad-v1'/)
   assert.match(sw, /RELEASE: CACHE 必须随每次发版改名|RELEASE: CACHE 必須隨每次發版改名/)
   assert.match(sw, /mode === 'navigate'/)
   assert.match(sw, /network-first|永远攞最新|永遠攞最新/)
 })
 
-test('v1.71: LAB ribbon FEA/slice/pyramid/delface (+ same-panel) Traditional', () => {
-  assert.match(ribbon, /id: 'fea', label: '受力雲圖'/)
-  assert.match(ribbon, /id: 'windtunnel', label: '風洞水洞'/)
-  assert.match(ribbon, /id: 'overhang', label: '懸垂分析'/)
-  assert.match(ribbon, /id: 'slicepreview', label: '切層預覽'/)
-  assert.match(ribbon, /id: 'pyramid', label: '棱錐'/)
-  assert.match(ribbon, /id: 'delface', label: '刪面治癒'/)
-  assert.doesNotMatch(ribbon, /id: 'fea', label: '受力云图'/)
-  assert.doesNotMatch(ribbon, /id: 'slicepreview', label: '切层预览'/)
-  assert.doesNotMatch(ribbon, /id: 'pyramid', label: '棱锥'/)
-  assert.doesNotMatch(ribbon, /id: 'delface', label: '删面治愈'/)
-  assert.doesNotMatch(ribbon, /id: 'overhang', label: '悬垂分析'/)
-  assert.doesNotMatch(ribbon, /id: 'windtunnel', label: '风洞水洞'/)
+test('v1.72: LAB panel names + stack label Traditional', () => {
+  assert.match(ribbon, /name: 'CREATE 擴充'/)
+  assert.match(ribbon, /name: '製造 CAM'/)
+  assert.match(ribbon, /name: '裝配輔助'/)
+  assert.match(ribbon, /name: '直接編輯擴展'/)
+  assert.match(ribbon, /id: 'stack', label: '堆疊'/)
+  assert.doesNotMatch(ribbon, /name: 'CREATE 扩充'/)
+  assert.doesNotMatch(ribbon, /name: '制造 CAM'/)
+  assert.doesNotMatch(ribbon, /name: '装配辅助'/)
+  assert.doesNotMatch(ribbon, /name: '直接编辑扩展'/)
+  assert.doesNotMatch(ribbon, /id: 'stack', label: '堆叠'/)
 })
 
-test('v1.71: SlicePanel / App / tree / timeline / mark menu companions Traditional', () => {
-  assert.match(slice, /🔪 切層預覽/)
-  assert.doesNotMatch(slice, /🔪 切层预览/)
-  assert.match(app, /name="切層預覽"/)
-  assert.match(browser, /delface: \{ icon: 'presspull', label: '刪面' \}/)
-  assert.match(timeline, /delface: \{ icon: 'delface', label: '刪面'/)
-  assert.match(viewport, /label: '⌦ 刪面'/)
-  assert.match(viewport, /pyramid: '棱錐'/)
-  assert.doesNotMatch(viewport, /label: '⌦ 删面'/)
+test('v1.72: Viewport assemble-menu companion Traditional', () => {
+  assert.match(viewport, /label: '⊟ 垂直堆疊'/)
+  assert.doesNotMatch(viewport, /label: '⊟ 垂直堆叠'/)
 })
 
-test('v1.71: EN_LABEL + tLabel for TC keys; legacy SC retained', () => {
-  assert.equal(tLabel('受力雲圖', 'en'), 'Stress (FEA)')
-  assert.equal(tLabel('切層預覽', 'en'), 'Slice Preview')
-  assert.equal(tLabel('棱錐', 'en'), 'Pyramid')
-  assert.equal(tLabel('刪面', 'en'), 'Delete Face')
-  assert.equal(tLabel('刪面治癒', 'en'), 'Delete Face Heal')
-  assert.equal(tLabel('懸垂分析', 'en'), 'Overhang')
-  assert.equal(tLabel('風洞水洞', 'en'), 'Wind/Water Tunnel')
-  assert.equal(tLabel('受力云图', 'en'), 'Stress (FEA)')
-  assert.equal(tLabel('切层预览', 'en'), 'Slice Preview')
-  assert.equal(tLabel('棱锥', 'en'), 'Pyramid')
-  assert.match(i18n, /'受力雲圖': 'Stress \(FEA\)'/)
-  assert.match(i18n, /'切層預覽': 'Slice Preview'/)
+test('v1.72: EN_LABEL + tLabel for TC keys; legacy SC retained', () => {
+  assert.equal(tLabel('CREATE 擴充', 'en'), 'CREATE Ext')
+  assert.equal(tLabel('製造 CAM', 'en'), 'Manufacture CAM')
+  assert.equal(tLabel('裝配輔助', 'en'), 'Assembly Assist')
+  assert.equal(tLabel('直接編輯擴展', 'en'), 'Direct Edit Ext')
+  assert.equal(tLabel('堆疊', 'en'), 'Stack')
+  assert.equal(tLabel('垂直堆疊', 'en'), 'Vertical Stack')
+  assert.equal(tLabel('CREATE 扩充', 'en'), 'CREATE Ext')
+  assert.equal(tLabel('制造 CAM', 'en'), 'Manufacture CAM')
+  assert.equal(tLabel('装配辅助', 'en'), 'Assembly Assist')
+  assert.equal(tLabel('直接编辑扩展', 'en'), 'Direct Edit Ext')
+  assert.equal(tLabel('堆叠', 'en'), 'Stack')
+  assert.match(i18n, /'CREATE 擴充': 'CREATE Ext'/)
+  assert.match(i18n, /'製造 CAM': 'Manufacture CAM'/)
+  assert.match(i18n, /'直接編輯擴展': 'Direct Edit Ext'/)
+  assert.match(i18n, /'堆疊': 'Stack'/)
 })
 
 test('Do not regress prior TC + MESH SC pin + Boolean leftovers + LAB under 實驗室', () => {
@@ -110,6 +105,11 @@ test('Do not regress prior TC + MESH SC pin + Boolean leftovers + LAB under 實�
   const labStart = ribbon.indexOf("// 🧪實驗室")
   const labEnd = ribbon.indexOf("'🧪實驗室': { id: '🧪實驗室'")
   const labBlock = ribbon.slice(labStart, labEnd)
+  assert.match(labBlock, /name: 'CREATE 擴充'/)
+  assert.match(labBlock, /name: '製造 CAM'/)
+  assert.match(labBlock, /name: '裝配輔助'/)
+  assert.match(labBlock, /name: '直接編輯擴展'/)
+  assert.match(labBlock, /id: 'stack', label: '堆疊'/)
   assert.match(labBlock, /id: 'fea', label: '受力雲圖'/)
   assert.match(labBlock, /id: 'slicepreview', label: '切層預覽'/)
   assert.match(labBlock, /id: 'pyramid', label: '棱錐'/)

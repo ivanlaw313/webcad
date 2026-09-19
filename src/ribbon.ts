@@ -200,7 +200,7 @@ const g = (name: string): Panel => SOLID.find((p) => p.name === name)!
 // P0 用户确认方案：全部收入呢度，主 ribbon 100% 跟 Fusion；功能一件不失，要用嚟呢度撳。
 const LAB: Panel[] = [
   {
-    name: 'CREATE 扩充',
+    name: 'CREATE 擴充',
     tools: [
       { id: 'facesketch', label: '面上草圖', icon: 'sketch', quick: true, tip: 'WebCAD 扩充：直接拾取实体平面进入草图。' },
       { id: 'sweepedge', label: '掃掠(拾邊)', icon: 'sweep', tip: 'WebCAD 扩充：直接拾取实体边链作为扫掠路径。' },
@@ -244,7 +244,7 @@ const LAB: Panel[] = [
     ],
   },
   {
-    name: '制造 CAM',
+    name: '製造 CAM',
     tools: [
       { id: 'finish3d', label: '3D加工', icon: 'cam', quick: true, tip: '3D 加工刀路（需活动实体 / MeshFit 后的 B-rep）：精加工球头平行 / 粗加工逐层挖槽。仅趋势级预览与 G-code 导出——非完整制造工作区、无刀库/夹具/真机。纯网格组件请先转 B-rep。' },
     ],
@@ -256,7 +256,7 @@ const LAB: Panel[] = [
       { id: 'autoorient', label: '自動擺正', icon: 'overhang', tip: '一键把零件旋转到最省支撑嘅打印朝向（悬垂分析嘅建议方向），加一个可撤销嘅变换特征。' },
       { id: 'wallcheck', label: '壁厚檢查', icon: 'wallcheck', tip: '3D 打印壁厚检查：射线量度局部壁厚，标出 < 0.8mm 嘅薄壁（橙色高亮）+ 报最薄值。采样近似。' },
       { id: 'slicepreview', label: '切層預覽', icon: 'section', tip: '3D 打印切层预览：逐层试切实体，标出悬空孤岛（悬垂分析睇唔到嘅浮空区，需支撑）+ 首层接触面积 + 最薄层 + 唔水密轮廓。' },
-      { id: 'stack', label: '堆叠', icon: 'component', sep: true, tip: '垂直堆叠：所有可见组件自底向上叠放（每件坐喺下件顶面）— 层叠件/托盘。' },
+      { id: 'stack', label: '堆疊', icon: 'component', sep: true, tip: '垂直堆叠：所有可见组件自底向上叠放（每件坐喺下件顶面）— 层叠件/托盘。' },
       { id: 'arrangebed', label: '排版', icon: 'component', tip: '排版到打印床：所有可见件平铺地面、互不重叠、全部落地 — 多件 3D 打印备料。' },
       { id: 'dropall', label: '全落地', icon: 'component', tip: '全部落地：每个可见件各自下移到 Z=0（XZ 不变）— 散件归地。' },
     ],
@@ -278,7 +278,7 @@ const LAB: Panel[] = [
     ],
   },
   {
-    name: '装配辅助',
+    name: '裝配輔助',
     tools: [
       { id: 'explodeview', label: '爆炸視圖', icon: 'component', quick: true, tip: '爆炸视图：沿装配中心向外展开组件（滑杆调爆炸度），睇装配关系。' },
       { id: 'xray', label: '透視', icon: 'appearance', tip: 'X-ray 透视：全部组件半透明，睇装配内部（轴承滚珠/行星轮）。' },
@@ -292,7 +292,7 @@ const LAB: Panel[] = [
     ],
   },
   {
-    name: '直接编辑扩展',
+    name: '直接編輯擴展',
     tools: [
       { id: 'moveface', label: '移動面', icon: 'replaceface', quick: true, tip: 'WebCAD 扩展：偏移或倾斜平面面，内核重解相邻面。' },
       { id: 'filletall', label: '全棱圓角', icon: 'fillet', tip: 'WebCAD 扩展：对实体全部边一次应用相同圆角。' },

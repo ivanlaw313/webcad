@@ -6453,7 +6453,7 @@ export default function Viewport() {
                     setFeatParam('offset', Math.round((lo + hi) / 2 * 10) / 10)
                   }}>{tStatus('居中', lang)}</button>
                 </>)}
-              <label title={tStatus('保留哪一侧做活动实体继续编辑；另一侧灰显泊车（可隐藏/导出/实体布尔）。默认高侧：沿轴正方向移动活动体可与泊车半体分离，合并后总体积不变', lang)}>{tStatus('保留侧', lang)} <select value={String(featDlg.params.keep ?? 'hi')} onChange={(e) => setFeatParam('keep', e.target.value)} style={{ height: 26 }}><option value="lo">{tStatus(hasPlane ? '法向负侧' : '低侧', lang)}</option><option value="hi">{tStatus(hasPlane ? '法向正侧' : '高侧', lang)}</option></select></label>
+              <label title={tStatus('保留哪一側做活動實體繼續編輯；另一側灰顯泊車（可隱藏/導出/實體布爾）。默認高側：沿軸正方向移動活動體可與泊車半體分離，合併後總體積不變', lang)}>{tStatus('保留侧', lang)} <select value={String(featDlg.params.keep ?? 'hi')} onChange={(e) => setFeatParam('keep', e.target.value)} style={{ height: 26 }}><option value="lo">{tStatus(hasPlane ? '法向负侧' : '低侧', lang)}</option><option value="hi">{tStatus(hasPlane ? '法向正侧' : '高侧', lang)}</option></select></label>
             </>)
           })()}
           {/* P2 Edit Feature：编辑专属块 — 双击时间线重开，值已反填；选择集/轮廓透传保留 */}
@@ -7769,7 +7769,7 @@ export default function Viewport() {
         <button className={'tb-btn' + (cameraOrtho ? ' tb-on' : '')} title={tStatus('📐 正交 / 透视相机（S193）：正交 = 无透视失真，平行边保持平行 — 工程审视 / 对齐 / 截图量度 / 等轴测出图。再撳返回透视。', lang)} style={cameraOrtho ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().toggleCameraOrtho()}>📐</button>
         {/* GM-W2 2.2 对标 Fusion：草图模式下收起「渲染/外观/贴图/出图/选择过滤」集群 — 画紧 2D 平面图用唔着，减少非程序员用家眼前 option 数 */}
         {mode !== 'sketch' && (<>
-        <button className={'tb-btn' + (navAdvanced ? ' tb-on' : '')} aria-expanded={navAdvanced} onClick={() => setNavAdvanced(v => !v)}>外观／出图</button>
+        <button className={'tb-btn' + (navAdvanced ? ' tb-on' : '')} aria-expanded={navAdvanced} onClick={() => setNavAdvanced(v => !v)}>{tStatus('外觀／出圖', lang)}</button>
         {navAdvanced && <div className="vp-nav-advanced" role="group" aria-label="外觀與出圖">
         <button className={'tb-btn' + (renderModeOn ? ' tb-on' : '')} title={tStatus('🌅 渲染模式（T783）：HDRI 环境反射 + 软阴影 + ACES 曝光 — 发布截图/展示用（金属玻璃质感真实）。再撳返回工作模式', lang)} onClick={() => useApp.getState().toggleRenderMode()}>🌅</button>
         <button className={'tb-btn' + (ssao ? ' tb-on' : '')} title={tStatus('🌑 环境光遮蔽 GTAO（S193）：缝隙 / 接触 / 内角 / 凹陷处加暗（接触阴影），立体感同真实感大升 — 发布截图 / 装配审视用。正交模式下唔生效。再撳关。', lang)} style={ssao && !cameraOrtho ? { background: '#3a3050', color: '#fff' } : undefined} disabled={cameraOrtho} onClick={() => useApp.getState().toggleSsao()}>🌑</button>
@@ -8226,7 +8226,7 @@ export default function Viewport() {
           📐 {uLen(props.dx)}×{uLen(props.dy)}×{uLen(props.dz)} {uSuf}<span title={tStatus('包围盒空间对角线长（√(dx²+dy²+dz²)）— 装箱/快递/能否斜放入打印床用', lang)} style={{ color: '#8a97a2' }}> {tStatus('(对角', lang)} {uLen(Math.hypot(props.dx, props.dy, props.dz))})</span>　·　{tStatus('体积', lang)} {fmtVol(props.vol, unit)}　·　{tStatus('表面积', lang)} {fmtArea(props.area, unit)}　·　{tStatus('质心', lang)} ({props.com.map((c) => uLen(c)).join(', ')}) {uSuf}
           　·　{tStatus('质量', lang)} {(() => { const g = (props.vol / 1000) * density; return g >= 1000 ? (g / 1000).toFixed(2) + ' kg' : g.toFixed(1) + ' g' })()}
           <span title={tStatus('3D 打印 1.75mm 线材的料长估算 —— 实心(100%填充)的上限；实际按填充率/壁厚通常少好多。', lang)} style={{ color: '#8a97a2' }}>　·　{tStatus('实心料~', lang)}{(props.vol / 2405.3).toFixed(1)} m</span>
-          <span title={tStatus('FDM 打印粗估（实心100%上限）：时间≈体积÷10cm³/h（0.4mm嘴·0.2层高典型挤出率）；料费≈实心质量×¥0.12/g（PLA约¥120/kg）。实际按填充率通常少好多。', lang)} style={{ color: '#8a97a2' }}>　·　{tStatus('打印~', lang)}{(() => { const h = (props.vol / 1000) / 10; return h >= 1 ? h.toFixed(1) + 'h' : Math.round(h * 60) + 'min' })()} · {tStatus('料费~', lang)}¥{((props.vol / 1000) * density * 0.12).toFixed(1)}</span>
+          <span title={tStatus('FDM 打印粗估（實心100%上限）：時間≈體積÷10cm³/h（0.4mm嘴·0.2层高典型挤出率）；料費≈實心質量×¥0.12/g（PLA约¥120/kg）。实际按填充率通常少好多。', lang)} style={{ color: '#8a97a2' }}>　·　{tStatus('打印~', lang)}{(() => { const h = (props.vol / 1000) / 10; return h >= 1 ? h.toFixed(1) + 'h' : Math.round(h * 60) + 'min' })()} · {tStatus('料費~', lang)}¥{((props.vol / 1000) * density * 0.12).toFixed(1)}</span>
           <span title={tStatus('绕质心 X/Y/Z 轴的转动惯量（按当前密度，g·cm²）—— 机构动力学 / 转动平衡 / 飞轮用', lang)} style={{ color: '#8a97a2' }}>　·　{tStatus('惯性矩', lang)} {props.inertia.map((j) => (j * density / 1e5).toFixed(1)).join(' / ')} g·cm²</span>
           {massP && massP.mass != null && massP.mass > 0 && (
             <span title={tStatus('S117 主惯性矩 I₁≤I₂≤I₃（绕质心【主轴】= 惯性张量特征值，与坐标系无关；非对称件主轴≠XYZ轴）+ 回转半径 k=√(I/m)。对标 Fusion 物理属性。', lang)} style={{ color: '#8a97a2' }}>　·　{tStatus('主惯矩', lang)} {massP.principalMoments.map((I) => (I * 1e4).toFixed(1)).join('/')} g·cm² · {tStatus('回转半径', lang)} {massP.principalMoments.map((I) => Math.sqrt(I / massP.mass!).toFixed(1)).join('/')} mm</span>
@@ -8294,14 +8294,14 @@ export default function Viewport() {
               if (x < lo[0]) lo[0] = x; if (y < lo[1]) lo[1] = y; if (z < lo[2]) lo[2] = z; if (x > hi[0]) hi[0] = x; if (y > hi[1]) hi[1] = y; if (z > hi[2]) hi[2] = z
             }
           }
-          const com = wsum > 0 ? `　·　质心 (${uLen(cmx / wsum)}, ${uLen(cmy / wsum)}, ${uLen(cmz / wsum)} ${uSuf})` : ''
+          const com = wsum > 0 ? `　·　質心 (${uLen(cmx / wsum)}, ${uLen(cmy / wsum)}, ${uLen(cmz / wsum)} ${uSuf})` : ''
           // three-world extents → display as CAD-style W(x)×D(z)×H(y) for continuity with single-part readouts.
           const W = hi[0] - lo[0], D = hi[2] - lo[2], H = hi[1] - lo[1]
           return (<>
-            {tStatus(`🧩 装配 ${vis.length} 件　·　总体积 ${fmtVol(vol, unit)}　·　总面积 ${fmtArea(area, unit)}　·　总尺寸 ${uLen(W)}×${uLen(D)}×${uLen(H)} ${uSuf}　·　总质量${anyMat ? '(各材质)' : '(' + density + ')'} ${gm >= 1000 ? (gm / 1000).toFixed(2) + ' kg' : gm.toFixed(1) + ' g'}${com}　·　实心打印~${(() => { const h = (vol / 1000) / 10; return h >= 1 ? h.toFixed(1) + 'h' : Math.round(h * 60) + 'min' })()} · 料费~¥${((vol / 1000) * density * 0.12).toFixed(1)}`, lang)}
+            {tStatus(`🧩 裝配 ${vis.length} 件　·　總體積 ${fmtVol(vol, unit)}　·　總面積 ${fmtArea(area, unit)}　·　總尺寸 ${uLen(W)}×${uLen(D)}×${uLen(H)} ${uSuf}　·　總質量${anyMat ? '(各材質)' : '(' + density + ')'} ${gm >= 1000 ? (gm / 1000).toFixed(2) + ' kg' : gm.toFixed(1) + ' g'}${com}　·　實心打印~${(() => { const h = (vol / 1000) / 10; return h >= 1 ? h.toFixed(1) + 'h' : Math.round(h * 60) + 'min' })()} · 料費~¥${((vol / 1000) * density * 0.12).toFixed(1)}`, lang)}
             <button title={tStatus('导出材料清单 BOM（各零件 数量/体积/质量 → CSV，用当前密度）', lang)} onClick={() => exportBOM(density)} style={{ marginLeft: 8, padding: '2px 8px', fontSize: 12, borderRadius: 5, border: '1px solid #c4ccd4', background: '#fff', cursor: 'pointer' }}>{tStatus('📋 导出BOM', lang)}</button>
             <button title={tStatus('排版到打印床：把所有可见零件铺平到 Z=0、按当前打印床宽度排成网格（多零件批量打印的准备步骤，可撤销）', lang)} onClick={() => useApp.getState().arrangeOnBed()} style={{ marginLeft: 6, padding: '2px 8px', fontSize: 12, borderRadius: 5, border: '1px solid #c4ccd4', background: '#fff', cursor: 'pointer' }}>{tStatus('🖨️ 排版', lang)}</button>
-            <button title={tStatus('显示/隐藏 装配重心(质心) 3D 标记（体积加权）', lang)} onClick={() => toggleCom()} style={{ marginLeft: 6, padding: '2px 8px', fontSize: 12, borderRadius: 5, border: '1px solid ' + (showCom ? '#ff3b6b' : '#c4ccd4'), background: showCom ? '#ffe8ee' : '#fff', cursor: 'pointer' }}>{tStatus('⊕ 重心', lang)}</button>
+            <button title={tStatus('显示/隐藏 裝配重心(質心) 3D 标记（体积加权）', lang)} onClick={() => toggleCom()} style={{ marginLeft: 6, padding: '2px 8px', fontSize: 12, borderRadius: 5, border: '1px solid ' + (showCom ? '#ff3b6b' : '#c4ccd4'), background: showCom ? '#ffe8ee' : '#fff', cursor: 'pointer' }}>{tStatus('⊕ 重心', lang)}</button>
             <BedFitBadge w={W} d={D} h={H} />
           </>)
         })()}

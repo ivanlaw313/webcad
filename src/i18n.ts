@@ -2137,6 +2137,23 @@ Object.assign(STATUS_PHRASES_X, {
   '已儲存專案': 'Project saved',
 })
 
+
+Object.assign(STATUS_PHRASES_X, {
+  // v1.86 BD-8501/8502 Viewport mesh summary + appearance chrome TC
+  '外觀／出圖': 'Appearance / Drawing',
+  '料費~': 'Material cost ~',
+  '料費': 'material cost',
+  '總體積': 'Total volume',
+  '總面積': 'Total area',
+  '總尺寸': 'Overall size',
+  '總質量': 'Total mass',
+  '實心打印~': 'Solid print ~',
+  '實心打印': 'Solid print',
+  '各材質': 'per material',
+  '質心': 'centroid',
+  '裝配': 'Assembly',
+})
+
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)
 
 // 渲染时翻译状态串：zh 原样；en 左到右最长匹配替换（未收录片段保留中文，唔会崩）。

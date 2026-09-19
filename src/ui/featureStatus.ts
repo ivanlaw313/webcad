@@ -280,6 +280,16 @@ export function wormSuccessStatus(opts: {
   return fmt(msg('status.wormCreated', L(lang)), opts.module, opts.starts, opts.length)
 }
 
+
+/** Localized L/U/T section name for profile CREATE toast (avoid SC 槽钢/角铁). */
+export function profileSectionName(ptype: string, lang?: LangInput): string {
+  const key =
+    ptype === 'U' ? 'profile.name.U'
+    : ptype === 'T' ? 'profile.name.T'
+    : 'profile.name.L'
+  return msg(key, L(lang))
+}
+
 /** Profile (L/U/T) CREATE success. */
 export function profileSuccessStatus(opts: {
   op: 'new' | 'cut'

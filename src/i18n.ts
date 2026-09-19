@@ -45,7 +45,7 @@ export const EN_LABEL: Record<string, string> = {
   '参数': 'Parameters', '參數': 'Parameters', '工程计算': 'Calculators',
   // INSPECT
   '测量': 'Measure', '量边': 'Measure Edge', '量面': 'Measure Face', '量角': 'Measure Angle',
-  '干涉检查': 'Interference', '受力云图': 'Stress (FEA)', '受力雲圖': 'Stress (FEA)', '模流分析': 'Mold Flow', '风洞水洞': 'Wind/Water Tunnel', '風洞水洞': 'Wind/Water Tunnel', '壁厚检查': 'Wall Thickness',
+  '干涉检查': 'Interference', '受力云图': 'Stress (FEA)', '受力雲圖': 'Stress (FEA)', '模流分析': 'Mold Flow', '壁厚检查': 'Wall Thickness',
   '曲率梳分析': 'Curvature Comb Analysis', '斑马纹分析': 'Zebra Analysis',
   '曲率图分析': 'Curvature Map Analysis', '可达性分析': 'Accessibility Analysis',
   '最小半径分析': 'Minimum Radius Analysis', '质心': 'Center of Mass', '显示网格面组': 'Display Mesh Face Groups',

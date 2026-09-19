@@ -29,7 +29,7 @@ import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
-import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus } from './ui/featureStatus'
+import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus } from './ui/featureStatus'
 import { lengthScale } from './io/units'
 import { meshDropKind, MESH_TAB_DROP_HINT } from './io/meshDrop'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
@@ -17393,7 +17393,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ featDlg: null })
       const outer: Feature = { id: fid(), type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: ro }, height: +p.h, operation: 'new' }
       const inner: Feature = { id: fid(), type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: ri }, height: +p.h, operation: 'cut' }
-      await get().applyFeatures([...get().features, outer, inner], `已创建圆管 外Ø${p.d} 壁厚${wall}（内Ø${(ri * 2).toFixed(1)}）高${p.h}`)
+      await get().applyFeatures([...get().features, outer, inner], tubeSuccessStatus({ od: p.d, wall, id: (ri * 2).toFixed(1), h: p.h }, get().lang))
       return
     } else if (d.kind === 'rtube') {
       // Rectangular hollow tube / box section (RHS) = outer rect (new) with an inner rect cut. Frames / enclosures.
@@ -17404,7 +17404,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ featDlg: null })
       const outer: Feature = { id: fid(), type: 'extrude', profile: { kind: 'rect', a: [-W / 2, -D / 2], b: [W / 2, D / 2] }, height: H, operation: 'new' }
       const inner: Feature = { id: fid(), type: 'extrude', profile: { kind: 'rect', a: [-iw / 2, -id / 2], b: [iw / 2, id / 2] }, height: H, operation: 'cut' }
-      await get().applyFeatures([...get().features, outer, inner], `已创建矩形管 ${W}×${D} 壁厚${wall}（内 ${iw}×${id}）高${H}`)
+      await get().applyFeatures([...get().features, outer, inner], rtubeSuccessStatus({ w: W, d: D, wall, iw, id, h: H }, get().lang))
       return
     } else if (d.kind === 'profile') {
       // structural profile extrusion: L-angle / U-channel. Section in XY (centred), extruded `len` along Z.
@@ -17447,18 +17447,18 @@ export const useApp = create<AppState>((rawSet, get) => {
       else if (d.kind === 'sphere') { f = { id: fid(), type: 'prim', shape: 'sphere', a: (+p.d) / 2, b: 0, c: 0, op }; msg = sphereSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d }, get().lang) }
       else if (d.kind === 'torus') { const arc = Math.max(0, Math.min(360, +p.arc || 360)); if (!(+p.d > 2 * +p.td)) { set({ status: `圆环：管径要细过外径一半（管Ø<${(+p.d / 2).toFixed(1)}），否则中孔闭合/管自交退化 — 请调大外径或调细管径` }); return } f = { id: fid(), type: 'prim', shape: 'torus', a: (+p.d) / 2, b: (+p.td) / 2, c: arc < 360 ? arc : 0, op, outerTrue: true }; msg = (arc > 0 && arc < 360) ? `已${verb}部分圆环 ${arc}° 外Ø${p.d} 管Ø${p.td}` : torusSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', od: p.d, td: p.td }, get().lang) }   // GM-W8 β1-#29：a=真外半径 + outerTrue,worker 换算中线半径(tr=a−tb),令外Ø输入=真外Ø。GM-L2 #65：outerTrue 语义下中线半径=d/2−td/2、管半径=td/2，无自交要求 d/2−td/2>td/2 ⇒ d>2·td（旧 d>td 阈值太松，td<d≤2td 会自交）
       else if (d.kind === 'cone') { const sd = Math.round(+p.sides) || 0; f = { id: fid(), type: 'prim', shape: 'cone', a: (+p.d) / 2, b: Math.max(0, +p.dt) / 2, c: +p.h, op, ...(sd >= 3 ? { sides: sd } : {}) }; const poly = sd >= 3; msg = poly ? `已${verb}${((+p.dt) > 0 ? sd + '棱台' : sd + '棱锥')} 底Ø${p.d}${(+p.dt) > 0 ? ' 顶Ø' + p.dt : ''}×${p.h}` : coneSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, dt: Math.max(0, +p.dt), h: p.h }, get().lang) }
-      else if (d.kind === 'wedge') { f = { id: fid(), type: 'prim', shape: 'wedge', a: +p.l, b: +p.w, c: +p.h, op }; msg = `已${verb}楔形 ${p.l}×${p.w}×${p.h}` }
-      else if (d.kind === 'dome') { const cap = Math.max(0, +p.cap || 0), R = (+p.d) / 2; f = { id: fid(), type: 'prim', shape: 'dome', a: R, b: 0, c: cap, op }; msg = `已${verb}${cap > 0 && cap < R ? `球冠 Ø${p.d} 冠高${cap}` : `圆顶/半球 Ø${p.d}`}` }
-      else if (d.kind === 'halfcyl') { f = { id: fid(), type: 'prim', shape: 'halfcyl', a: (+p.d) / 2, b: 0, c: +p.h, op }; msg = `已${verb}半圆柱/D 形 Ø${p.d}×${p.h}` }
-      else if (d.kind === 'pie') { f = { id: fid(), type: 'prim', shape: 'pie', a: (+p.d) / 2, b: Math.max(1, Math.min(360, +p.ang)), c: +p.h, op }; msg = `已${verb}扇形柱 Ø${p.d} ${p.ang}°×${p.h}` }
+      else if (d.kind === 'wedge') { f = { id: fid(), type: 'prim', shape: 'wedge', a: +p.l, b: +p.w, c: +p.h, op }; msg = wedgeSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', l: p.l, w: p.w, h: p.h }, get().lang) }
+      else if (d.kind === 'dome') { const cap = Math.max(0, +p.cap || 0), R = (+p.d) / 2; f = { id: fid(), type: 'prim', shape: 'dome', a: R, b: 0, c: cap, op }; msg = domeSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, cap }, get().lang) }
+      else if (d.kind === 'halfcyl') { f = { id: fid(), type: 'prim', shape: 'halfcyl', a: (+p.d) / 2, b: 0, c: +p.h, op }; msg = halfcylSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, h: p.h }, get().lang) }
+      else if (d.kind === 'pie') { f = { id: fid(), type: 'prim', shape: 'pie', a: (+p.d) / 2, b: Math.max(1, Math.min(360, +p.ang)), c: +p.h, op }; msg = pieSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, ang: p.ang, h: p.h }, get().lang) }
       else if (d.kind === 'cylinder') { f = { id: fid(), type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: (+p.d) / 2 }, height: +p.h, operation: op }; msg = cylSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, h: p.h }, get().lang) }
       else if (d.kind === 'prism') {
         const n = Math.max(3, Math.min(24, Math.round(+p.sides))), r = (+p.d) / 2
         const pts = Array.from({ length: n }, (_, i) => { const a = (2 * Math.PI * i) / n + Math.PI / 2; return [r * Math.cos(a), r * Math.sin(a)] as [number, number] })
         f = { id: fid(), type: 'extrude', profile: { kind: 'poly', pts }, height: +p.h, operation: op }
-        msg = `已${verb}${n}边形棱柱 外接Ø${p.d}×${p.h}`
+        msg = prismSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', sides: n, d: p.d, h: p.h }, get().lang)
       }
-      else if (d.kind === 'coil') { const rv = (+p.d) / 2, r2v = (+p.d2 || 0) / 2; f = { id: fid(), type: 'coil', pitch: +p.pitch, height: +p.h, radius: rv, wireR: (+p.wire) / 2, op, ...(r2v > 0 && Math.abs(r2v - rv) > 1e-6 ? { r2: r2v } : {}) }; msg = `已${verb}螺旋 Ø${p.d}${r2v > 0 && Math.abs(r2v - rv) > 1e-6 ? '→Ø' + p.d2 + '(锥形)' : ''} 螺距${p.pitch}` }
+      else if (d.kind === 'coil') { const rv = (+p.d) / 2, r2v = (+p.d2 || 0) / 2; f = { id: fid(), type: 'coil', pitch: +p.pitch, height: +p.h, radius: rv, wireR: (+p.wire) / 2, op, ...(r2v > 0 && Math.abs(r2v - rv) > 1e-6 ? { r2: r2v } : {}) }; msg = (r2v > 0 && Math.abs(r2v - rv) > 1e-6) ? coilSuccessStatus({ taper: true, d: p.d, d2: p.d2 }, get().lang) : coilSuccessStatus({}, get().lang) }
       else { f = { id: fid(), type: 'thread', d: +p.d, pitch: +p.pitch, height: +p.h, op }; msg = `已${verb}螺纹杆 Ø${p.d} 螺距${p.pitch} 高${p.h}` }
     } else {
       // revolve: the profile (+T746 sketch bundle) was captured into payload when the command opened
@@ -18718,7 +18718,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     let pitch = 12, height = 80, radius = 30, wireR = 5, r2 = 30
     if (v) { const a = v.split(/[,，\s]+/).map(Number); if (a[0] > 0) pitch = a[0]; if (a[1] > 0) height = a[1]; if (a[2] > 0) radius = a[2]; if (a[3] > 0) wireR = a[3]; if (a[4] > 0) r2 = a[4]; else r2 = radius }
     const f: Feature = { id: fid(), type: 'coil', pitch, height, radius, wireR, op, ...(Math.abs(r2 - radius) > 1e-6 ? { r2 } : {}) }
-    await get().applyFeatures([...get().features, f], Math.abs(r2 - radius) > 1e-6 ? `已创建锥形弹簧（底Ø${(radius * 2).toFixed(0)}→顶Ø${(r2 * 2).toFixed(0)}）` : '已创建螺旋（弹簧）')
+    await get().applyFeatures([...get().features, f], Math.abs(r2 - radius) > 1e-6 ? coilSuccessStatus({ taper: true, d: (radius * 2).toFixed(0), d2: (r2 * 2).toFixed(0) }, get().lang) : coilSuccessStatus({}, get().lang))
   },
 
   addScale: async () => {

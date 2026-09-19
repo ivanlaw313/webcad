@@ -14,7 +14,7 @@ import { useThree, useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import { DoubleSide, Raycaster, Plane as ThreePlane, Vector3, BufferGeometry, Float32BufferAttribute, ShapeUtils, Vector2, Matrix4, Quaternion, TextureLoader, SRGBColorSpace, CatmullRomCurve3, TubeGeometry, type Texture } from 'three'
 import { useApp, setSnapScale, arc3, circumcircle, evalExpr, endTangent, type Pt, type SketchShape } from '../store'
-import { tStatus } from '../i18n'
+import { tStatus, msg } from '../i18n'
 import { parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：单位感知尺寸输入（分数英寸）
 import { ellipseLineTangentPair, initialEllipseContact, refMid, refPts, measureDim, dimGfx, radDiaDisplay, type FShape, type SkCon, type SkRef } from '../sketch/freesolve'
 import { tessellateSeg } from '../sketch/sketchOps'
@@ -2815,7 +2815,7 @@ export function SketchDimLayer() {
             {l.edit.dim==='con'&&<>
               <button aria-label="Confirm dimension" disabled={!!inputError||dimPreview.pending||!!dimPreview.error||!dimPreview.shapes} onMouseDown={e=>e.preventDefault()} onClick={()=>void commit(l.edit!)}>✓</button>
               <button aria-label="Cancel dimension" onMouseDown={e=>e.preventDefault()} onClick={cancelDimension}>✕</button>
-              {(inputError||dimPreview.error||dimPreview.pending)&&<span role={inputError||dimPreview.error?'alert':'status'} style={{maxWidth:220,minWidth:0,overflowWrap:'anywhere',whiteSpace:'normal',fontSize:11,color:'#b42318'}}>{inputError||dimPreview.error||(lang==='en'?'Checking preview…':'正在校验预览…')}</span>}
+              {(inputError||dimPreview.error||dimPreview.pending)&&<span role={inputError||dimPreview.error?'alert':'status'} style={{maxWidth:220,minWidth:0,overflowWrap:'anywhere',whiteSpace:'normal',fontSize:11,color:'#b42318'}}>{inputError||dimPreview.error||msg('sk.dim.checkingPreview', lang)}</span>}
             </>}
             {l.edit.dim === 'con' && l.name && (
               <span
@@ -2828,7 +2828,7 @@ export function SketchDimLayer() {
         ) : (
           <div
             key={l.key} data-reference-extent={l.referenceExtent} data-dim={l.text} data-dimension-id={l.edit?.conId} data-constraint-id={l.remove} data-frame-angle={l.frameAngleDeg} data-auto-dimension-shape={l.edit&&l.edit.dim!=='con'?String(l.edit.target):undefined} data-dim-role={l.driven || l.referenceExtent ? 'driven' : l.edit?.dim === 'con' ? 'driving' : l.edit ? 'soft' : undefined} data-dim-driving={l.edit?.dim === 'con' && !l.driven ? 'true' : undefined} className={l.driven || l.referenceExtent ? 'sk-dim-driven' : l.edit?.dim === 'con' ? 'sk-dim-driving' : l.edit ? 'sk-dim-soft' : undefined} ref={reg(l.key)}
-            title={[l.referenceExtent?(lang==='en'?`Sketch ${l.referenceExtent} extent (reference); edit the actual local dimensions`:`草图 ${l.referenceExtent} 范围（参考）；请编辑实际局部尺寸`):'',l.frameAngleDeg===undefined?'':(lang==='en'?`Local sketch frame ${dimFmt(l.frameAngleDeg)}°`:`局部草图方向 ${dimFmt(l.frameAngleDeg)}°`), (l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? tStatus('⚠ 冲突约束 — 点击移除以解开过约束', lang) : l.edit && l.edit.dim === 'con' ? ((l.name ? `${l.name} = ` : '') + (l.expression ? `${l.expression} → ${l.text} · ` : `${l.text} · `) + (l.driven ? tStatus('从动尺寸（量度值）— 点击改值即转驱动 · 右键菜单（转驱动/R↔Ø/删除） · ✕删除', lang) : tStatus('点击修改尺寸 · 输入公式可引用其他尺寸（如 d1*2） · 右键菜单（转从动/R↔Ø/删除） · ✕删除', lang))) : l.edit ? tStatus('点击修改尺寸', lang) : l.remove ? tStatus('约束（点击选中 → Delete 移除）', lang) : undefined].filter(Boolean).join(' · ')||undefined}
+            title={[l.referenceExtent?msg('sk.dim.refExtent', lang).replace('{0}', String(l.referenceExtent)):'',l.frameAngleDeg===undefined?'':msg('sk.dim.frameAngle', lang).replace('{0}', dimFmt(l.frameAngleDeg)), (l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? tStatus('⚠ 冲突约束 — 点击移除以解开过约束', lang) : l.edit && l.edit.dim === 'con' ? ((l.name ? `${l.name} = ` : '') + (l.expression ? `${l.expression} → ${l.text} · ` : `${l.text} · `) + (l.driven ? tStatus('从动尺寸（量度值）— 点击改值即转驱动 · 右键菜单（转驱动/R↔Ø/删除） · ✕删除', lang) : tStatus('点击修改尺寸 · 输入公式可引用其他尺寸（如 d1*2） · 右键菜单（转从动/R↔Ø/删除） · ✕删除', lang))) : l.edit ? tStatus('点击修改尺寸', lang) : l.remove ? tStatus('约束（点击选中 → Delete 移除）', lang) : undefined].filter(Boolean).join(' · ')||undefined}
             onPointerDown={l.edit?.dim === 'con' && l.edit.conId ? (e) => onLabelDown(e, l.edit!.conId!) : undefined}
             onClick={
               // 用户实战 feedback：冲突（红色）尺寸 tooltip 一直话「点击移除」但旧行为系开编辑框 → 令用户「揀唔到又删唔到」。

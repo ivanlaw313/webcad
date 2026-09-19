@@ -10,7 +10,7 @@ import { computeScrubIndex, chipSwatchColor } from '../cad/selectionModel'   // 
 // P2 Edit Feature：双击呢啲 kind 重开原创建对话框（其余 sketch 类照旧开草图编辑器 / fallback 内联条）
 const EDIT_DLG_KINDS = new Set<string>(['extrude', 'revolve', 'sweep', 'loft', 'fillet', 'chamfer', 'shell', 'mirror', 'pattern', 'geoPattern', 'circPattern', 'pathpattern', 'coil', 'rib', 'scale', 'transform', 'draft', 'othread', 'ithread', 'hole'])
 
-// 测试报告观察 C：时间轴特征尺寸输入 — 改为本地缓冲 + 失焦/Enter 先提交（之前每个 keystroke 即触发
+// 测试报告观察 C：时间轴特徵尺寸输入 — 改为本地缓冲 + 失焦/Enter 先提交（之前每个 keystroke 即触发
 // 异步重建，令打字被打断 / 自动化改唔到值）。同 featDlg 输入一致行为。外部值变（参数绑定/撤销）会重新同步。
 function NumField({ value, disabled, step = 0.5, min, onCommit, rejectDetail }: { value: number; disabled?: boolean; step?: number; min?: number; onCommit: (n: number) => void; rejectDetail?: string }) {
   const [buf, setBuf] = useState(String(value))
@@ -79,7 +79,7 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
   cylpatch: { icon: 'cylpatch', label: '曲面貼花', param: '深度', field: 'depth', unit: 'mm', fields: [{ key: 'ang', label: '角度位置', unit: '°' }, { key: 'arc', label: '角寬', unit: '°' }, { key: 'zc', label: '軸向中心', unit: 'mm' }, { key: 'h', label: '軸向高', unit: 'mm' }, { key: 'depth', label: '深度', unit: 'mm' }, { key: 'mode', label: '模式', unit: '', opts: [{ value: 'boss', label: '凸台' }, { value: 'pocket', label: '凹槽' }, { value: 'flat', label: '銼平面' }] }] },
   sheetmetal: { icon: 'sheetmetal', label: '鈑金件', param: '厚度', field: 'thickness', unit: 'mm', fields: [{ key: 'thickness', label: '厚度', unit: 'mm' }, { key: 'radius', label: '折彎半徑', unit: 'mm' }, { key: 'kfactor', label: 'K因子', unit: '' }, { key: 'width', label: '寬度', unit: 'mm' }, { key: 'flat', label: '狀態', unit: '', opts: [{ value: '0', label: '摺疊' }, { value: '1', label: '展開' }] }] },
   pathpattern: { icon: 'pathpattern', label: '路徑陣列', param: '數量', field: 'count', unit: '', fields: [{ key: 'count', label: '數量', unit: '' }] },
-  featpattern: { icon: 'pattern', label: '陣列（組）', param: 'X 數量', field: 'cols', unit: '', fields: [{ key: 'cols', label: 'X數量', unit: '' }, { key: 'rows', label: 'Y數量', unit: '' }, { key: 'dx', label: 'X間距', unit: 'mm' }, { key: 'dy', label: 'Y間距', unit: 'mm' }] },  // 特征级组阵列：一个节点含 N 个副本，改行列数即重建
+  featpattern: { icon: 'pattern', label: '陣列（組）', param: 'X 數量', field: 'cols', unit: '', fields: [{ key: 'cols', label: 'X數量', unit: '' }, { key: 'rows', label: 'Y數量', unit: '' }, { key: 'dx', label: 'X間距', unit: 'mm' }, { key: 'dy', label: 'Y間距', unit: 'mm' }] },  // 特徵级组阵列：一个节点含 N 个副本，改行列数即重建
   extgroup: { icon: 'extrude', label: '拉伸組', param: '高度', field: 'height', unit: 'mm', fields: [{ key: 'height', label: '高度', unit: 'mm' }] },  // 多轮廓一次拉伸：一个节点含 N 个轮廓，改高度即全部一齐变（subs 各自保留 操作/贯通）
   gear: { icon: 'gear', label: '齒輪', param: '模數', field: 'module', unit: 'mm', fields: [{ key: 'module', label: '模數', unit: 'mm' }, { key: 'teeth', label: '齒數', unit: '' }, { key: 'thickness', label: '厚度', unit: 'mm' }, { key: 'bore', label: '中心孔Ø', unit: 'mm' }, { key: 'helix', label: '螺旋角β', unit: '°' }] },
   worm: { icon: 'worm', label: '蝸桿', param: '模數', field: 'module', unit: 'mm', fields: [{ key: 'module', label: '模數', unit: 'mm' }, { key: 'starts', label: '頭數', unit: '' }, { key: 'length', label: '長度', unit: 'mm' }] },  // T770
@@ -107,7 +107,7 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
   stepbody: { icon: 'insert', label: 'STEP實體', param: '', field: '', unit: '', fields: [{ key: 'op', label: '操作', unit: '', opts: [{ value: 'new', label: '加料' }, { value: 'cut', label: '切割' }] }] },
   bodyboolean: { icon: 'bodyboolean', label: '實體布爾', param: '目標#', field: 'target', unit: '', fields: [{ key: 'bop', label: '操作', unit: '', opts: [{ value: 'fuse', label: '合併' }, { value: 'cut', label: '切除' }, { value: 'common', label: '相交' }] }, { key: 'target', label: '目標實體#', unit: '' }] },
   split: { icon: 'default', label: '分割', param: '位置', field: 'offset', unit: 'mm', fields: [{ key: 'offset', label: '切割位置', unit: 'mm' }, { key: 'axis', label: '切割軸', unit: '', opts: [{ value: 'X', label: 'X' }, { value: 'Y', label: 'Y' }, { value: 'Z', label: 'Z' }] }, { key: 'keep', label: '保留為活動體', unit: '', opts: [{ value: 'lo', label: '低側' }, { value: 'hi', label: '高側' }] }] },  // S128：参数化分割（保历史）
-  sketch: { icon: 'sketch', label: '草圖', param: '', field: '', unit: '' },  // T756：独立草图（无实体输出 — 双击重开编辑）
+  sketch: { icon: 'sketch', label: '草圖', param: '', field: '', unit: '' },  // T756：独立草图（无實體输出 — 双击重开编辑）
   datum: { icon: 'mirror', label: '參考面', param: '偏移', field: 'offset', unit: 'mm', fields: [{ key: 'offset', label: '偏移', unit: 'mm' }, { key: 'angle', label: '角度', unit: '°' }] },  // GM-W5 5.1：参考面/datum = 零几何时间轴节点（改 offset/angle → editFeature → 派生面移位）；angle 只对角度面有实义（其余无害）
   circPattern: { icon: 'cpattern', label: '環形陣列', param: '數量', field: 'count', unit: '', fields: [{ key: 'count', label: '數量', unit: '' }, { key: 'totalAngle', label: '總角度', unit: '°' }, { key: 'mode', label: '模式', unit: '', opts: [{ value: 'full', label: '完整 360°' }, { value: 'angle', label: '指定角度' }, { value: 'sym', label: '對稱' }] }] },  // T757
   meshbody: { icon: 'insert', label: '網格實體', param: '', field: '', unit: '' },  // T767：网格→B-rep
@@ -124,7 +124,7 @@ const POSITIVE_LENGTH_KEYS = new Set([
 export default function Timeline() {
   const lang = useApp((s) => s.lang)
   const hasComponentHistory = useApp(s => s.components.some(c => c.src?.features.length))
-  const inSketch = useApp((s) => s.mode === 'sketch')   // GM-W2 2.2：草图态整条时间轴灰化锁定（回放/改参会喺开住嘅草图下面重建特征树 → 状态错乱）
+  const inSketch = useApp((s) => s.mode === 'sketch')   // GM-W2 2.2：草图态整条时间轴灰化锁定（回放/改参会喺开住嘅草图下面重建特徵树 → 状态错乱）
   const features = useApp((s) => s.features)
   const selected = useApp((s) => s.selectedFeature)
   const selectFeature = useApp((s) => s.selectFeature)
@@ -132,7 +132,7 @@ export default function Timeline() {
   const removeFeature = useApp((s) => s.removeFeature)
   const suppressedIds = useApp((s) => s.suppressedIds)
   const multiSel = useApp((s) => s.selectedFeatures)   // P2 audit：Ctrl+点多选高亮
-  const failedFeatureIds = useApp((s) => s.failedFeatureIds)  // S107 逐特征隔离：坏特征标红
+  const failedFeatureIds = useApp((s) => s.failedFeatureIds)  // S107 逐特徵隔离：坏特徵标红
   const featureErrors = useApp((s) => s.featureErrors)
   const toggleSuppress = useApp((s) => s.toggleSuppress)
   const moveFeature = useApp((s) => s.moveFeature)
@@ -141,12 +141,12 @@ export default function Timeline() {
   const editId = useApp((s) => s.featDlg?.kind === 'extrude-edit' ? s.featDlg.editId : undefined)
   const editIndex = editId ? features.findIndex(f => f.id === editId) : -1
   const gotoStep = useApp((s) => s.gotoStep)
-  // GM-X4 #9/#10：齿轮设定（隐藏抑制 / 色板）+ 在浏览器中查找 + owning component 色板来源。
+  // GM-X4 #9/#10：齿轮设定（隐藏抑制 / 色板）+ 在瀏覽器中查找 + owning component 色板来源。
   const hideInactive = useApp((s) => s.timelineHideInactive)
   const colorSwatch = useApp((s) => s.timelineColorSwatch)
   const editingComponent = useApp((s) => s.editingComponent)
   const components = useApp((s) => s.components)
-  const ownerColor = editingComponent ? (components.find((c) => c.id === editingComponent)?.color ?? null) : null   // 编辑组件情境 → 全特征属该组件 → 用其色；否则按特征类型 hash
+  const ownerColor = editingComponent ? (components.find((c) => c.id === editingComponent)?.color ?? null) : null   // 编辑組件情境 → 全特徵属该組件 → 用其色；否则按特徵类型 hash
   // GM-X4 #6：chip 右键上下文菜单 + 齿轮弹层（本地 UI 态）。
   const [chipMenu, setChipMenu] = useState<{ x: number; y: number; id: string; i: number } | null>(null)
   const [gearOpen, setGearOpen] = useState(false)
@@ -168,7 +168,7 @@ export default function Timeline() {
   const status = useApp((s) => s.status)
   const bindParam = useApp((s) => s.bindParam)
   const pSelect = (key: string) => params.length === 0 ? null : (
-    <select className="fe-param" title={tStatus('绑定到用户参数（ƒx）', lang)} value={paramBindings[`${sel!.id}:${key}`] || ''} onChange={(e) => void bindParam(sel!.id, key, e.target.value)}>
+    <select className="fe-param" title={tStatus('绑定到用户參數（ƒx）', lang)} value={paramBindings[`${sel!.id}:${key}`] || ''} onChange={(e) => void bindParam(sel!.id, key, e.target.value)}>
       <option value="">ƒx</option>
       {params.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
     </select>
@@ -218,10 +218,10 @@ export default function Timeline() {
     dragCleanup.current = up
   }
   useEffect(() => () => dragCleanup.current?.(), [])
-  const marker = <span className="tl-marker" title={tStatus('历史标记 — 左右拖动回放/前进重建历史', lang)} onPointerDown={beginScrub} />
+  const marker = <span className="tl-marker" title={tStatus('历史标记 — 左右拖动回放/前進重建历史', lang)} onPointerDown={beginScrub} />
 
   return (
-    <div ref={panelDrag.ref} className={'timeline' + (collapsed ? ' tl-collapsed' : '')} data-testid="timeline" data-feature-count={features.length} data-timeline-position={timelinePos} style={{ ...panelDrag.style, ...(inSketch ? { opacity: 0.4, pointerEvents: 'none', filter: 'grayscale(0.7)' } : {}) }} title={inSketch ? tStatus('草图模式中 — 完成草图后恢复时间轴操作', lang) : undefined}>
+    <div ref={panelDrag.ref} className={'timeline' + (collapsed ? ' tl-collapsed' : '')} data-testid="timeline" data-feature-count={features.length} data-timeline-position={timelinePos} style={{ ...panelDrag.style, ...(inSketch ? { opacity: 0.4, pointerEvents: 'none', filter: 'grayscale(0.7)' } : {}) }} title={inSketch ? tStatus('草圖模式中 — 完成草圖后恢復時間軸操作', lang) : undefined}>
       <div className={'tl-panel-head' + (collapsed ? ' tl-panel-head-collapsed' : '')} onPointerDown={panelDrag.onPointerDown} title="拖曳移動時間軸">
         <span aria-hidden="true">⠿</span><span>時間軸</span>
         {features.length > 0 && <span className="tl-panel-count">{timelinePos}/{features.length}</span>}
@@ -230,25 +230,25 @@ export default function Timeline() {
       {panelDrag.isDragged && <button className="tl-panel-toggle" type="button" title="還原時間軸預設位置" onClick={panelDrag.reset}>↺</button>}
       {!collapsed && <div className="tl-controls">
         <button className="tb-btn" title={tStatus('跳到开头（空白）', lang)} disabled={features.length === 0} onClick={() => void gotoStep(0)}><ToolIcon name="undo" size={16} /></button>
-        <button className="tb-btn" title={tStatus('上一步（回退一个特征）', lang)} disabled={timelinePos <= 0} onClick={() => void gotoStep(timelinePos - 1)}>◂</button>
+        <button className="tb-btn" title={tStatus('上一步（回退一個特徵）', lang)} disabled={timelinePos <= 0} onClick={() => void gotoStep(timelinePos - 1)}>◂</button>
         <button className="tb-btn" title={tStatus('从头播放重建过程', lang)} disabled={features.length === 0 || isPlaying} onClick={() => void play()}>▷</button>
-        <button className="tb-btn" title={tStatus('下一步（前进一个特征）', lang)} disabled={timelinePos >= features.length} onClick={() => void gotoStep(timelinePos + 1)}>▸</button>
+        <button className="tb-btn" title={tStatus('下一步（前進一個特徵）', lang)} disabled={timelinePos >= features.length} onClick={() => void gotoStep(timelinePos + 1)}>▸</button>
         <button className="tb-btn" title={tStatus('跳到结尾（最新）', lang)} disabled={features.length === 0} onClick={() => void gotoStep(features.length)}><ToolIcon name="redo" size={16} /></button>
         {features.length > 0 && <span className="tl-pos" style={{ fontSize: 11, color: timelinePos < features.length ? '#d6694e' : '#7a838c', marginLeft: 6, whiteSpace: 'nowrap' }}>{timelinePos}/{features.length}</span>}
         {/* GM-X4 #9：时间轴齿轮设定 */}
         <div style={{ position: 'relative', marginLeft: 4 }}>
-          <button className={'tb-btn' + (gearOpen || hideInactive || colorSwatch ? ' tb-on' : '')} title={tStatus('时间轴设定：组件色板 / 隐藏抑制特征', lang)} onClick={() => setGearOpen((v) => !v)}>⚙</button>
+          <button className={'tb-btn' + (gearOpen || hideInactive || colorSwatch ? ' tb-on' : '')} title={tStatus('時間軸設定：組件色板 / 隱藏抑制特徵', lang)} onClick={() => setGearOpen((v) => !v)}>⚙</button>
           {gearOpen && (
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 118 }} onClick={() => setGearOpen(false)} />
               <div className="panel-menu" style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 6, zIndex: 120, minWidth: 190 }}>
-                <div className="panel-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }} onClick={() => useApp.getState().toggleTimelineColorSwatch()} title={tStatus('按 owning component 色染 chip（编辑组件情境用该组件色，否则按特征类型稳定配色）', lang)}>
-                  <input type="checkbox" readOnly checked={colorSwatch} />{tStatus('组件色板', lang)}
+                <div className="panel-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }} onClick={() => useApp.getState().toggleTimelineColorSwatch()} title={tStatus('按 owning component 色染 chip（編輯組件情境用該組件色，否則按特徵類型穩定配色）', lang)}>
+                  <input type="checkbox" readOnly checked={colorSwatch} />{tStatus('組件色板', lang)}
                 </div>
-                <div className="panel-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }} onClick={() => useApp.getState().toggleTimelineHideInactive()} title={tStatus('隐藏已抑制的特征 chip（回卷 scrub 仍稳健）', lang)}>
-                  <input type="checkbox" readOnly checked={hideInactive} />{tStatus('隐藏抑制特征', lang)}
+                <div className="panel-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }} onClick={() => useApp.getState().toggleTimelineHideInactive()} title={tStatus('隱藏已抑制的特徵 chip（回卷 scrub 仍穩健）', lang)}>
+                  <input type="checkbox" readOnly checked={hideInactive} />{tStatus('隱藏抑制特徵', lang)}
                 </div>
-                <div className="panel-menu-item" style={{ opacity: 0.4, cursor: 'not-allowed', fontSize: 11 }} title={tStatus('转直接建模（弃历史）需内核直接编辑管线 — 架构级后置', lang)}>{tStatus('转直接建模（后置）', lang)}</div>
+                <div className="panel-menu-item" style={{ opacity: 0.4, cursor: 'not-allowed', fontSize: 11 }} title={tStatus('转直接建模（弃历史）需内核直接編輯管线 — 架构级后置', lang)}>{tStatus('转直接建模（后置）', lang)}</div>
               </div>
             </>
           )}
@@ -257,11 +257,11 @@ export default function Timeline() {
 
       {!collapsed && <div className="tl-track" ref={trackRef}>
         {features.length === 0 ? (
-          <span className="tl-hint">{tStatus(hasComponentHistory ? '组件内有原生特征 — 双击左侧组件，或展开 ⋯ 选择「编辑特征／草图」' : '参数化时间轴 — 建模后特征出现在这里，点击任意节点可改参数并自动重建', lang)}</span>
+          <span className="tl-hint">{tStatus(hasComponentHistory ? '組件内有原生特徵 — 雙擊左側組件，或展開 ⋯ 選擇「編輯特徵／草圖」' : '參數化時間軸 — 建模後特徵出現在這裏，點擊任意節點可改參數并自動重建', lang)}</span>
         ) : (
           <>
             {features.map((f, i) => {
-              const m = META[f.type] || { icon: 'default', label: f.type, param: '', field: '', unit: '' }   // 兜底：未知/新版特征类型唔会令时间轴 crash
+              const m = META[f.type] || { icon: 'default', label: f.type, param: '', field: '', unit: '' }   // 兜底：未知/新版特徵类型唔会令时间轴 crash
               const r = f as unknown as Record<string, unknown>
               const isCut = r.operation === 'cut' || r.op === 'cut'  // extrude uses `operation`, the rest use `op`
               const label = (f as unknown as { name?: string }).name || (f.type === 'extrude' && f.operation === 'cut' ? '切割' : m.label)   // GM-W6 F2：有自订名（浏览树双击改）就显示自订名
@@ -293,7 +293,7 @@ export default function Timeline() {
                     className={'tl-chip' + (f.id === selected || multiSel.includes(f.id) ? ' sel' : '') + (suppressedIds.includes(f.id) ? ' suppressed' : '') + (isCut ? ' cut' : '') + (failedFeatureIds.includes(f.id) ? ' err' : '')}
                     style={chipStyle}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); selectFeature(f.id); setChipMenu({ x: e.clientX, y: e.clientY, id: f.id, i }) }}
-                    title={tStatus(`【${m.label}】${nameTag}${threadTag}${paramSummary ? ' · ' + paramSummary : ''}${isCut && f.type !== 'extrude' ? '（切割）' : ''}${rolled ? ' · 已回退到此步之前 — 点击重建到这' : suppressedIds.includes(f.id) ? ' · 已抑制（点击编辑/恢复）' : ' · 点击：选中编辑（参数条喺下方；回卷用拖时间线 marker）'}${editDlg ? ' · 双击：编辑特征（重开对话框）' : hasSketch ? ' · 双击：重开草图编辑（改轮廓/约束 → 全树重建）' : ''}${featureErrors[f.id] ? ' · 🔴 重建失败：' + featureErrors[f.id] + '（请检查参数后重试；以状态栏的保留／重建结果为准）' : ''}`, lang)}
+                    title={tStatus(`【${m.label}】${nameTag}${threadTag}${paramSummary ? ' · ' + paramSummary : ''}${isCut && f.type !== 'extrude' ? '（切割）' : ''}${rolled ? ' · 已回退到此步之前 — 點擊重建到這' : suppressedIds.includes(f.id) ? ' · 已抑制（點擊編輯/恢復）' : ' · 點擊：選中編輯（參數条喺下方；回卷用拖時間線 marker）'}${editDlg ? ' · 雙擊：編輯特徵（重開對話框）' : hasSketch ? ' · 雙擊：重開草圖編輯（改輪廓/約束 → 全樹重建）' : ''}${featureErrors[f.id] ? ' · 🔴 重建失敗：' + featureErrors[f.id] + '（請檢查參數后重試；以狀態欄的保留／重建结果为准）' : ''}`, lang)}
                     onClick={(e) => {   // detail>1 = 双击第二下（俾 onDoubleClick）。单击=只选中高亮；Ctrl/⌘+点=多选（阵列/镜像多目标）；rolled chip 点击重建到该步
                       if (e.detail > 1) return
                       if (e.ctrlKey || e.metaKey) { useApp.getState().toggleFeatureSel(f.id); return }
@@ -318,12 +318,12 @@ export default function Timeline() {
       </div>}
 
       {sel && meta && !commandEditing && (
-        <div className="feat-editor" role="dialog" aria-label={tStatus("特征尺寸编辑", lang)} ref={featureEditorDrag.ref} style={featureEditorDrag.style}>
-          <span className="fe-title" title="拖移特征编辑面板" onPointerDown={featureEditorDrag.onPointerDown} style={{ cursor: 'grab', touchAction: 'none' }}>⠿ <ToolIcon name={meta.icon} size={14} /> {tStatus(`编辑「${meta.label}」`, lang)}</span>
-          <button type="button" aria-label="还原特征编辑面板位置" onClick={featureEditorDrag.reset}>↺</button>
-          {featureErrors[sel.id] && <div className="fe-errbar">🔴 {tStatus('此特征重建失败：', lang)}{featureErrors[sel.id]}<button className="fe-errsup" onClick={() => void toggleSuppress(sel.id)}>{tStatus('抑制此特征', lang)}</button></div>}
+        <div className="feat-editor" role="dialog" aria-label={tStatus("特徵尺寸編輯", lang)} ref={featureEditorDrag.ref} style={featureEditorDrag.style}>
+          <span className="fe-title" title="拖移特徵編輯面板" onPointerDown={featureEditorDrag.onPointerDown} style={{ cursor: 'grab', touchAction: 'none' }}>⠿ <ToolIcon name={meta.icon} size={14} /> {tStatus(`編輯「${meta.label}」`, lang)}</span>
+          <button type="button" aria-label="還原特徵編輯面板位置" onClick={featureEditorDrag.reset}>↺</button>
+          {featureErrors[sel.id] && <div className="fe-errbar">🔴 {tStatus('此特徵重建失敗：', lang)}{featureErrors[sel.id]}<button className="fe-errsup" onClick={() => void toggleSuppress(sel.id)}>{tStatus('抑制此特徵', lang)}</button></div>}
           {sel.type === 'surfloft' && (sel as unknown as { sheet?: boolean }).sheet && (
-            <div className="fe-note">{tStatus('零厚放样曲面（无壁厚）— 真曲面件，可用「加厚」/「缝合」转实体', lang)}</div>
+            <div className="fe-note">{tStatus('零厚放樣曲面（無壁厚）— 真曲面件，可用「加厚」/「縫合」轉實體', lang)}</div>
           )}
           {isIllegalRejectStatus(status) && (
             <div role="alert" data-testid="timeline-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{status}</div>
@@ -392,13 +392,13 @@ export default function Timeline() {
               {pSelect(meta.field)}
             </label>
           ) : null}
-          {(((sel.type === 'extrude' || sel.type === 'revolve' || sel.type === 'sweep' || sel.type === 'sketch' || sel.type === 'extgroup') && sel.sketchId) || (sel.type === 'loft' && !!sel.sketchIds?.length)) && <button className="fe-del" style={{ color: '#1572c4', borderColor: '#9cd2ee' }} title={tStatus('重开呢个特征嘅草图（改轮廓/约束/路径/截面 → 完成后全树重建）', lang)} onClick={() => useApp.getState().editSketchOf(sel.id)}>✎ {tStatus('编辑草图', lang)}</button>}
-          {sel.type === 'sheetmetal' && <button className="fe-del" style={{ color: '#1572c4', borderColor: '#9cd2ee' }} title={tStatus('＋翻边（T768 Flange）：喺钣金末端追加一段折弯（正角=同向，负角=反折）— 展开 DXF 自动包含新段嘅 K 因子余量', lang)} onClick={async () => { const v = await useApp.getState().appPrompt(tStatus('追加翻边：段长mm,折弯角°（例 20,90 = 加 20mm 段折 90°；15,-90 = 反折）', lang), '20,90'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.some((x) => !Number.isFinite(x)) || !(p[0] > 0)) { await useApp.getState().appAlert(tStatus('格式：段长,角度（段长要 > 0）', lang)); return } void editFeature(sel.id, { segs: [...sel.segs, p[0]], angles: [...sel.angles, p[1] ?? 90] }) }}>⌐ {tStatus('＋翻边', lang)}</button>}
-          {sel.type === 'extrude' && sel.sketchId && <button className="fe-del" style={{ color: '#1572c4', borderColor: '#9cd2ee' }} title={tStatus('特征级阵列：把呢个凸台/孔组复制成网格，每个副本独立含孔（成体阵列做唔到）。输入 列数,X间距[,行数,Y间距]', lang)} onClick={async () => { const v = await useApp.getState().appPrompt(tStatus('特征级阵列：列数,X间距mm[,行数,Y间距mm]\n（例 4,30 = 一排 4 个隔 30；3,30,2,25 = 3×2 网格）', lang), '3,30'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.some((x) => !Number.isFinite(x))) { await useApp.getState().appAlert(tStatus('请只输入数字', lang)); return } const cols = p[0], dx = p[1] || 0, rows = p[2] || 1, dy = p[3] || 0; void useApp.getState().featurePatternSketch(sel.id, cols, dx, rows, dy) }}>▦ {tStatus('阵列特征', lang)}</button>}
+          {(((sel.type === 'extrude' || sel.type === 'revolve' || sel.type === 'sweep' || sel.type === 'sketch' || sel.type === 'extgroup') && sel.sketchId) || (sel.type === 'loft' && !!sel.sketchIds?.length)) && <button className="fe-del" style={{ color: '#1572c4', borderColor: '#9cd2ee' }} title={tStatus('重開呢个特徵嘅草圖（改輪廓/約束/路径/截面 → 完成后全樹重建）', lang)} onClick={() => useApp.getState().editSketchOf(sel.id)}>✎ {tStatus('編輯草圖', lang)}</button>}
+          {sel.type === 'sheetmetal' && <button className="fe-del" style={{ color: '#1572c4', borderColor: '#9cd2ee' }} title={tStatus('＋翻边（T768 Flange）：喺钣金末端追加一段折弯（正角=同向，负角=反折）— 展開 DXF 自動包含新段嘅 K 因子余量', lang)} onClick={async () => { const v = await useApp.getState().appPrompt(tStatus('追加翻边：段长mm,折弯角°（例 20,90 = 加 20mm 段折 90°；15,-90 = 反折）', lang), '20,90'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.some((x) => !Number.isFinite(x)) || !(p[0] > 0)) { await useApp.getState().appAlert(tStatus('格式：段长,角度（段长要 > 0）', lang)); return } void editFeature(sel.id, { segs: [...sel.segs, p[0]], angles: [...sel.angles, p[1] ?? 90] }) }}>⌐ {tStatus('＋翻边', lang)}</button>}
+          {sel.type === 'extrude' && sel.sketchId && <button className="fe-del" style={{ color: '#1572c4', borderColor: '#9cd2ee' }} title={tStatus('特徵级陣列：把呢个凸台/孔组复制成網格，每个副本獨立含孔（成體陣列做唔到）。輸入 列數,X間距[,行數,Y間距]', lang)} onClick={async () => { const v = await useApp.getState().appPrompt(tStatus('特徵级陣列：列數,X間距mm[,行數,Y間距mm]\n（例 4,30 = 一排 4 个隔 30；3,30,2,25 = 3×2 網格）', lang), '3,30'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.some((x) => !Number.isFinite(x))) { await useApp.getState().appAlert(tStatus('請只輸入數字', lang)); return } const cols = p[0], dx = p[1] || 0, rows = p[2] || 1, dy = p[3] || 0; void useApp.getState().featurePatternSketch(sel.id, cols, dx, rows, dy) }}>▦ {tStatus('陣列特徵', lang)}</button>}
           <button className="fe-del" title={tStatus('上移（更早重建）', lang)} onClick={() => void moveFeature(sel.id, -1)}>◀</button>
           <button className="fe-del" title={tStatus('下移（更晚重建）', lang)} onClick={() => void moveFeature(sel.id, 1)}>▶</button>
-          <button className="fe-del" onClick={() => void toggleSuppress(sel.id)}>{suppressedIds.includes(sel.id) ? tStatus('恢复', lang) : tStatus('抑制', lang)}</button>
-          <button className="fe-del" onClick={() => { removeFeature(sel.id); selectFeature(null) }}>{tStatus('删除', lang)}</button>
+          <button className="fe-del" onClick={() => void toggleSuppress(sel.id)}>{suppressedIds.includes(sel.id) ? tStatus('恢復', lang) : tStatus('抑制', lang)}</button>
+          <button className="fe-del" onClick={() => { removeFeature(sel.id); selectFeature(null) }}>{tStatus('刪除', lang)}</button>
           <button className="fe-close" onClick={() => selectFeature(null)}>{tStatus('关闭', lang)}</button>
         </div>
       )}
@@ -412,14 +412,14 @@ export default function Timeline() {
         const isSup = suppressedIds.includes(cf.id)
         const close = () => setChipMenu(null)
         const items: { label: string; glyph: string; fn: () => void; disabled?: boolean; danger?: boolean }[] = [
-          { label: tStatus('编辑', lang), glyph: '✎', fn: () => { if (cEditDlg) useApp.getState().openFeatDlgForEdit(cf.id); else if (cHasSketch) useApp.getState().editSketchOf(cf.id); else selectFeature(cf.id) } },
+          { label: tStatus('編輯', lang), glyph: '✎', fn: () => { if (cEditDlg) useApp.getState().openFeatDlgForEdit(cf.id); else if (cHasSketch) useApp.getState().editSketchOf(cf.id); else selectFeature(cf.id) } },
           { label: tStatus('在此回卷', lang), glyph: '⟲', fn: () => void gotoStep(chipMenu.i) },
-          { label: isSup ? tStatus('恢复', lang) : tStatus('抑制', lang), glyph: isSup ? '◉' : '⊘', fn: () => void toggleSuppress(cf.id) },
-          { label: tStatus('改名', lang) + '…', glyph: 'Aa', fn: () => { void (async () => { const v = await useApp.getState().appPrompt(tStatus('特征改名（留空 = 清除自订名）', lang), (cf as { name?: string }).name || ''); if (v != null) useApp.getState().renameFeature(cf.id, v) })() } },
+          { label: isSup ? tStatus('恢復', lang) : tStatus('抑制', lang), glyph: isSup ? '◉' : '⊘', fn: () => void toggleSuppress(cf.id) },
+          { label: tStatus('改名', lang) + '…', glyph: 'Aa', fn: () => { void (async () => { const v = await useApp.getState().appPrompt(tStatus('特徵改名（留空 = 清除自订名）', lang), (cf as { name?: string }).name || ''); if (v != null) useApp.getState().renameFeature(cf.id, v) })() } },
           { label: tStatus('上移', lang), glyph: '◀', fn: () => void moveFeature(cf.id, -1), disabled: chipMenu.i <= 0 },
           { label: tStatus('下移', lang), glyph: '▶', fn: () => void moveFeature(cf.id, 1), disabled: chipMenu.i >= features.length - 1 },
-          { label: tStatus('在浏览器中查找', lang), glyph: '🔍', fn: () => useApp.getState().focusFeatureInBrowser(cf.id) },
-          { label: tStatus('删除', lang), glyph: '🗑', fn: () => { removeFeature(cf.id); selectFeature(null) }, danger: true },
+          { label: tStatus('在瀏覽器中查找', lang), glyph: '🔍', fn: () => useApp.getState().focusFeatureInBrowser(cf.id) },
+          { label: tStatus('刪除', lang), glyph: '🗑', fn: () => { removeFeature(cf.id); selectFeature(null) }, danger: true },
         ]
         const mx = Math.min(chipMenu.x, window.innerWidth - 180)
         const my = Math.max(8, Math.min(chipMenu.y, window.innerHeight - (items.length * 30 + 12)))

@@ -140,6 +140,25 @@ export const EN_LABEL: Record<string, string> = {
   '投影到圆柱面': 'Project to Cylinder',
   '移动面': 'Move Face',
   '面外螺纹': 'External Thread on Face',
+  // Timeline/BrowserTree FEAT Traditional (v1.73) — retain legacy SC
+  '原語': 'Primitive',
+  '原语': 'Primitive',
+  '複製實體': 'Copy Body',
+  '复制实体': 'Copy Body',
+  '移動': 'Move',
+  '移动': 'Move',
+  'STEP實體': 'STEP Body',
+  'STEP实体': 'STEP Body',
+  '網格實體': 'Mesh Body',
+  '网格实体': 'Mesh Body',
+  '參考面': 'Reference Plane',
+  '参考面': 'Reference Plane',
+  '草圖': 'Sketch',
+  '拉伸組': 'Extrude Group',
+  '拉伸组': 'Extrude Group',
+  '陣列（組）': 'Pattern (Group)',
+  '阵列（组）': 'Pattern (Group)',
+
   '— 選構造點 —': '— Pick construction point —',
   '— 選構造軸 —': '— Pick construction axis —',
 
@@ -1876,6 +1895,26 @@ Object.assign(STATUS_PHRASES_X, {
   '組件布爾：工具體編號無效': '組件布爾：工具體編號無效',
   '組件布爾：工具體無實體幾何': '組件布爾：工具體無實體幾何',
   '請選擇工具體編號': '請選擇工具體編號',
+})
+
+
+// v1.73 Timeline/BrowserTree FEAT + datum chrome
+Object.assign(STATUS_PHRASES_X, {
+  '參考面': 'Reference Plane',
+  '参考面': 'Reference Plane',
+  '編輯參考面': 'Edit Reference Plane',
+  '编辑参考面': 'Edit Reference Plane',
+  '顯示 / 隱藏此參考面': 'Show / hide this reference plane',
+  '显示 / 隐藏此参考面': 'Show / hide this reference plane',
+  '新偏移 mm（沿基面法向平移此參考面）': 'New offset mm (translate this reference plane along base normal)',
+  '新偏移 mm（沿基面法向平移此参考面）': 'New offset mm (translate this reference plane along base normal)',
+  '原語': 'Primitive',
+  '複製實體': 'Copy Body',
+  '網格實體': 'Mesh Body',
+  'STEP實體': 'STEP Body',
+  '拉伸組': 'Extrude Group',
+  '陣列（組）': 'Pattern (Group)',
+  '草圖': 'Sketch',
 })
 
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)

@@ -9,7 +9,7 @@
 
 ## Ship contents
 - Locales: **zh-HK** · **zh-CN** · **en** · **ja** under `src/i18n/locales/`
-- Stable keys (`tool.*` / `tab.*` / `group.*` / `ui.*` / `status.lang.*`) — **361 keys / locale**
+- Stable keys (`tool.*` / `tab.*` / `group.*` / `ui.*` / `status.lang.*`) — **382 keys / locale**
 - `normalizeLang`: legacy `'zh'` → `'zh-HK'`; persist `localStorage['webcad-lang']`
 - Ribbon switcher **繁｜簡｜EN｜日本語** (`data-testid="lang-switcher"`)
 - `tLabel` / `tGroup` / `tTab` / `tStatus` / `msg()` wired through catalogs
@@ -27,10 +27,10 @@
 ## Key count / fallback
 | Locale | Keys | Notes |
 |--------|------|-------|
-| zh-HK | 361 | Seed from current TC ribbon / chrome |
-| zh-CN | 361 | OpenCC-style TC→SC + ZH_CN_LABEL map |
-| en | 361 | From EN_LABEL / English data keys |
-| ja | 361 | CAD terminology draft; **~199 tool.* still EN fallback** (honest) |
+| zh-HK | 382 | Seed from current TC ribbon / chrome |
+| zh-CN | 382 | OpenCC-style TC→SC + ZH_CN_LABEL map |
+| en | 382 | From EN_LABEL / English data keys |
+| ja | 382 | CAD terminology draft; **199 / 306 tool.* still EN fallback** (honest) |
 
 Still fallback (not catalogued yet): HelpPanel novels, most status toasts (EN phrase table / zh-CN char map), dialog tip text, CommandPalette aliases.
 
@@ -39,7 +39,7 @@ Still fallback (not catalogued yet): HelpPanel novels, most status toasts (EN ph
 |---------|-------|-------|
 | Lang type | `zh` \| `en` | **zh-HK \| zh-CN \| en \| ja** |
 | Switcher | 中 / EN | **繁 / 簡 / EN / 日本語** |
-| Message catalogs | none (EN_LABEL only) | **4 locale files, 361 keys each** |
+| Message catalogs | none (EN_LABEL only) | **4 locale files, 382 keys each** |
 | Timeline params | 距离／半径／数量／模数… | **距離／半徑／數量／模數…** |
 | SW CACHE | `webcad-v1.73` | **`webcad-v1.74`** |
 | APP | 1.73 | **1.74** |

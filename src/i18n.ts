@@ -1510,7 +1510,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "冇可倒圆角嘅轮廓（要折线/多边形；样条/弓形/半径太大唔适用）": "No fillet-able profile (need polyline/polygon; splines, arcs, or too-large radius don't apply)",
   "环形阵列失败 — 检查轴位置/方向、数量，或目标特征是否仍存在": "Circular pattern failed — check axis position/direction, count, or whether the target feature still exists",
   "合并：仲未有泊车实体（工具体）— 先用「新实体」整多过一个实体": "Join: no parked body (tool body) yet — use New Body to create more than one body first",
-  "整体偏移：设距离（+外扩 / −内缩，均匀偏移所有面）→ 确定": "Global offset: set distance (+ outward / − inward, offsets all faces uniformly) → OK",
+  "整體偏移：設距離（+外擴 / −內縮，均勻偏移所有面）→ 確定": "Global offset: set distance (+ outward / − inward, offsets all faces uniformly) → OK",
   "构造点批量孔：冇构造点 — 用「构造点」工具落点先（每点一孔）": "Batch holes from construction points: none yet — place points with the Construction Point tool first (one hole per point)",
   "⌒ 相切弧模式：下一段由上段方向相切引出（再按 A 返回直线）": "⌒ Tangent Arc mode: next segment continues tangent to the previous direction (press A again for lines)",
   "属性检查器：model 模式点面/棱即看属性（Alt+点=棱）": "Inspector: in model mode click a face/edge to see properties (Alt+click = edge)",
@@ -2574,6 +2574,19 @@ Object.assign(STATUS_PHRASES_X, {
 
 
 Object.assign(STATUS_PHRASES_X, {
+  // v1.95 residual tip/dialog SC→TC (store tip Record + Viewport status)
+  '移動/複製：設 dx/dy/dz + 繞Z角 → 確定': 'Move/Copy: set dx/dy/dz + Z rotation → OK',
+  '縮放：設比例 → 確定': 'Scale: set factor → OK',
+  '整體偏移：設距離（+外擴 / −內縮，均勻偏移所有面）→ 確定': 'Global offset: set distance (+ outward / − inward, offsets all faces uniformly) → OK',
+  '拔模：設角度（側面，中性面 XY）→ 確定': 'Draft: set angle (side faces, neutral plane XY) → OK',
+  '分割實體：設 軸/位置/保留側 → 確定（另一半灰顯泊車，可隱藏/導出/布爾）；「平面切」拾面會預填呢個對話框': 'Split body: set axis/position/keep side → OK (other half parked gray, hide/export/boolean); “Plane cut” face pick prefills this dialog',
+  '長方體：設長/寬/高 → 確定': 'Box: set length/width/height → OK',
+  '圓柱：設直徑/高 → 確定': 'Cylinder: set diameter/height → OK',
+  '構造軸：選方向 X/Y/Z + 經過點 → 確定（作旋轉/陣列/對齊參考）': 'Construction axis: pick direction X/Y/Z + through point → OK (rotate/pattern/align reference)',
+  '構造點：輸入坐標 X/Y/Z → 確定（作定位/測量/對齊基準）': 'Construction point: enter X/Y/Z → OK (locate/measure/align datum)',
+  '齒輪箱向導（T770）：目標速比 + 模數 + 級數 → 自動齒數組合、按精確中心距擺位、自動關節+運動連接 — 確定後 ▷運動 即轉，微調用組件移動': 'Gearbox wizard (T770): target ratio + module + stages → auto tooth counts, place by exact center distance, auto joints+motion — after OK ▶ motion runs; fine-tune with component move',
+  '鈑金件：選截面(L/U/Z)+厚度/折彎半徑/K因子/寬度+兩段長 → 確定；可切換折疊/展開(展開=激光下料用，含K因子折彎餘量)': 'Sheet metal: pick profile (L/U/Z)+thickness/bend R/K-factor/width+two lengths → OK; toggle folded/flat (flat=laser nest, includes K-factor bend allowance)',
+  'Automated Modeling（Connector v1）：在畫布依次點選兩張平面面，設連接半徑 → 確定。結果會作為獨立 New Body 保留；此 v1 不含避讓體、曲面面或 Fusion 的生成式多方案。': 'Automated Modeling (Connector v1): pick two planar faces on canvas, set connector radius → OK. Result kept as independent New Body; v1 has no avoid bodies, curved faces, or Fusion generative alternatives.',
   // v1.94 BD-9301 status leftovers + Solid S1-face toast TC
   '矩形陣列：設 X/Y 數量與間距 → 確定': 'Rectangular pattern: set X/Y count and spacing → OK',
   '環形陣列：設軸／數量／角度 → 確定': 'Circular pattern: set axis / count / angle → OK',

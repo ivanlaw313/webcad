@@ -168,6 +168,26 @@ export const EN_LABEL: Record<string, string> = {
   '關節(揀面)': 'Joint (Pick Faces)',
   '按現狀關節…': 'As-Built Joint…',
 
+  // SURFACE ribbon Traditional (v1.54 BUG-BD-4801 continue)
+  '曲面放樣': 'Surface Loft',
+  '規則曲面': 'Ruled Surface',
+  '曲面掃掠': 'Surface Sweep',
+  '曲面旋轉': 'Surface Revolve',
+  '補面 Patch': 'Patch',
+  '橋接面': 'Bridge',
+  '邊界補面': 'Boundary Patch',
+  '加厚整張曲面': 'Thicken Quilt',
+  '翻轉曲面': 'Reverse Normal',
+  '旋轉面': 'Rotate Face',
+  '縫合 Stitch': 'Stitch',
+  '取消縫合': 'Unstitch',
+  '去裁/還原': 'Untrim',
+  '相交曲線': 'Intersection Curve',
+  '清相交曲線': 'Clear Intersection Curves',
+  'Form 圓柱': 'Form Cylinder',
+  'Form 環面': 'Form Torus',
+  '編輯曲面控制點': 'Edit Surface Poles',
+
 }
 
 

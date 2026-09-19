@@ -5900,7 +5900,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     sketchPlane: p, sketchBaseZ: 0,
     sketchShape: null, sketchProfiles: [], sketchStart: null, sketchPreview: null, polyPts: [],
     ...skGeoFocus(s.bodyMesh, p, 0, s.cpoints),
-    status: p === 'XY' ? '草图面：上 / XY（水平面）' : p === 'XZ' ? '草图面：前 / XZ（竖直面）— 画好后拉伸沿 Y 出料' : '草图面：右 / YZ（竖直面）— 画好后拉伸沿 X 出料',
+    status: p === 'XY' ? '草圖面：上 / XY（水平面）' : p === 'XZ' ? '草圖面：前 / XZ（豎直面）— 畫好後拉伸沿 Y 出料' : '草圖面：右 / YZ（豎直面）— 畫好後拉伸沿 X 出料',
   })),
   faceSketchPick: false, embossPick: false,
   sketchFromFace: false, pendingSketchFaceBinding: null,
@@ -6762,7 +6762,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         sketchStart: null, sketchPreview: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchUndo: [], sketchRedo: [],
         faceSketchPick: false, embossPick: false, sketchFromFace: true, sketchOp: 'new', skBoolPending: null,
         ...skGeoFocusArb(s.bodyMesh, { o, xd, n: nn }),
-        status: '已在斜面上建草图（任意朝向）— 实体截交边/角已投影成可标注参考几何；画轮廓后拉伸沿该面法向出料',
+        status: '已在斜面上建草圖（任意朝向）— 實體截交邊/角已投影成可標註參考幾何；畫輪廓後拉伸沿該面法向出料',
       }
     }
     let plane: Plane, off: number
@@ -7040,7 +7040,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       sketchStart: null, sketchPreview: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchUndo: [], sketchRedo: [],
       faceSketchPick: false, embossPick: false, sketchFromFace: true, sketchOp: 'new',
       ...skGeoFocusArb(get().bodyMesh, arb),
-      status: '已在角度面上建草图 — 实体截交边/角已投影成可标注参考几何；画轮廓后拉伸沿该面法向出料',
+      status: '已在角度面上建草圖 — 實體截交邊/角已投影成可標註參考幾何；畫輪廓後拉伸沿該面法向出料',
     }
   }),
   // GM-W5 5.1：删参考面 = 删对应 datum 特征（经 removeFeature：applyFeatures + suppress 清理 + 孤儿草图源剪除），planes[] 由派生。
@@ -7065,7 +7065,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     sketchFromFace: false, pendingSketchFaceBinding: null, faceOutSign: 1,
     sketchStart: null, sketchPreview: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchUndo: [], sketchRedo: [],
     ...skGeoFocus(s.bodyMesh, base, offset, s.cpoints),
-    status: `已在参考平面 ${base}@${offset} 上新建草图 — 选 矩形/圆/折线 画轮廓`,
+    status: `已在參考平面 ${base}@${offset} 上新建草圖 — 選 矩形/圓/折線 畫輪廓`,
     }
   }),
   extrudeHeight: 40,
@@ -8915,14 +8915,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       extrudeDlgOpen: false, extrudeExtent: 'distance', extrudeDraft: 0, extrudeDraft2: 0, symMeasure: 'whole', extrudeFlip: false, sketchSymmetric: false, sweepDlgOpen: false, loftDlgOpen: false,
       sketchStart: null, sketchPreview: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchFromFace: false, pendingSketchFaceBinding: null, sketchArb: null, loftSections: [], loftSecSrcs: [],
       skCons: [], skPatternData: null, skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null, skArmedCon: null, skDof: null, skConflict: false, skEditTarget: null, skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null, projPickMode: false,
-      status: '选择草图基准面：点 红XY/绿XZ/蓝YZ 原点面，或实体的平坦面，或橙色参考平面（先用 CONSTRUCT「偏移平面」建）—— Esc 取消' }))
+      status: '選擇草圖基準面：點 紅XY/綠XZ/藍YZ 原點面，或實體的平坦面，或橙色參考平面（先用 CONSTRUCT「偏移平面」建）—— Esc 取消' }))
   },
   chooseSketchPlane: (plane) =>
     set((s) => ({ mode: 'sketch', sketchPlane: plane, sketchArb: null, sketchBaseZ: 0, sketchTool: 'select', navTool: 'orbit', sketchFromFace: false, pendingSketchFaceBinding: null,
       sketchStart: null, sketchPreview: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchUndo: [], sketchRedo: [],
       skCons: [], skPatternData: null, skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null, skArmedCon: null, skDof: null, skConflict: false, skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null,
       ...skGeoFocus(s.bodyMesh, plane, 0, s.cpoints),
-      status: `草图基准面：${plane === 'XY' ? '上 / XY 水平面' : plane === 'XZ' ? '前 / XZ 竖直面（拉伸沿 Y 出料）' : '右 / YZ 竖直面（拉伸沿 X 出料）'} — 选 矩形/圆/折线 画轮廓` })),
+      status: `草圖基準面：${plane === 'XY' ? '上 / XY 水平面' : plane === 'XZ' ? '前 / XZ 豎直面（拉伸沿 Y 出料）' : '右 / YZ 豎直面（拉伸沿 X 出料）'} — 選 矩形/圓/折線 畫輪廓` })),
 
   finishSketch: () => {
     void (async () => {

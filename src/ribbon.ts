@@ -211,27 +211,27 @@ const LAB: Panel[] = [
     ],
   },
   {
-    name: '传动设计',
+    name: '傳動設計',
     tools: [
       {
-        id: 'gear', label: '齿轮', icon: 'gear', quick: true, tip: '渐开线正齿轮（β>0=斜齿扭转近似）：设模数/齿数/厚度/孔Ø。分度圆Ø = m×z，20° 压力角。',
+        id: 'gear', label: '齒輪', icon: 'gear', quick: true, tip: '渐开线正齿轮（β>0=斜齿扭转近似）：设模数/齿数/厚度/孔Ø。分度圆Ø = m×z，20° 压力角。',
         children: [
-          { id: 'gear', label: '正齿轮/斜齿轮', icon: 'gear', tip: '渐开线齿轮：β=0 直齿，β>0 斜齿（扭转近似）。' },
-          { id: 'worm', label: '蜗杆', icon: 'worm', tip: '蜗杆（ZA 近似形）：模数/头数/长度 — 同蜗轮比 = 头数:齿数（纯运动学）。' },
-          { id: 'crowngear', label: '冠齿轮', icon: 'crowngear', tip: '冠齿轮（面齿轮近似形）：垂直轴啮合示意。' },
+          { id: 'gear', label: '正齒輪/斜齒輪', icon: 'gear', tip: '渐开线齿轮：β=0 直齿，β>0 斜齿（扭转近似）。' },
+          { id: 'worm', label: '蝸桿', icon: 'worm', tip: '蜗杆（ZA 近似形）：模数/头数/长度 — 同蜗轮比 = 头数:齿数（纯运动学）。' },
+          { id: 'crowngear', label: '冠齒輪', icon: 'crowngear', tip: '冠齿轮（面齿轮近似形）：垂直轴啮合示意。' },
         ],
       },
-      { id: 'gearbox', label: '齿轮箱', icon: 'pattern', quick: true, tip: '齿轮箱向导：输入目标速比 → 自动配好齿数组合 + 精确中心距摆位 + 关节 + 运动连接 —— 确定即可撳 ▷ 睇佢转。' },
-      { id: 'rack', label: '齿条', icon: 'rack', tip: '齿条（齿轮齿条机构）：模数同齿轮一致即可啮合。' },
-      { id: 'pulley', label: 'V带轮', icon: 'pulley', tip: 'V 带轮（皮带传动）：设外径/宽度/中心孔，带 V 形槽。' },
+      { id: 'gearbox', label: '齒輪箱', icon: 'pattern', quick: true, tip: '齿轮箱向导：输入目标速比 → 自动配好齿数组合 + 精确中心距摆位 + 关节 + 运动连接 —— 确定即可撳 ▷ 睇佢转。' },
+      { id: 'rack', label: '齒條', icon: 'rack', tip: '齿条（齿轮齿条机构）：模数同齿轮一致即可啮合。' },
+      { id: 'pulley', label: 'V帶輪', icon: 'pulley', tip: 'V 带轮（皮带传动）：设外径/宽度/中心孔，带 V 形槽。' },
     ],
   },
   {
-    name: '机构',
+    name: '機構',
     tools: [
-      { id: 'fourbar', label: '四连杆机构', icon: 'joint', quick: true, tip: '平面四连杆闭环机构：拖曲柄角→连杆/摇杆约束求解联动（杆长刚性）。' },
-      { id: 'slidercrank', label: '滑块曲柄', icon: 'joint', tip: '滑块曲柄机构（活塞）：曲柄转→活塞往复直线（行程=2×曲柄半径），如引擎活塞。' },
-      { id: 'sixbar', label: '六杆机构', icon: 'joint', tip: '六杆机构：曲柄转 → 输出点行出一条复杂嘅耦合曲线。可撳「📈轨迹」描出佢行经嘅路径。' },
+      { id: 'fourbar', label: '四連桿機構', icon: 'joint', quick: true, tip: '平面四连杆闭环机构：拖曲柄角→连杆/摇杆约束求解联动（杆长刚性）。' },
+      { id: 'slidercrank', label: '滑塊曲柄', icon: 'joint', tip: '滑块曲柄机构（活塞）：曲柄转→活塞往复直线（行程=2×曲柄半径），如引擎活塞。' },
+      { id: 'sixbar', label: '六桿機構', icon: 'joint', tip: '六杆机构：曲柄转 → 输出点行出一条复杂嘅耦合曲线。可撳「📈轨迹」描出佢行经嘅路径。' },
     ],
   },
   {
@@ -288,7 +288,7 @@ const LAB: Panel[] = [
   {
     name: '工具',
     tools: [
-      { id: 'calc', label: '工程计算', icon: 'calc', quick: true, tip: '工程计算器：螺纹/配合/齿轮/皮带/弹簧/轴承/折弯 等 14 个机械设计速算。' },
+      { id: 'calc', label: '工程計算', icon: 'calc', quick: true, tip: '工程计算器：螺纹/配合/齿轮/皮带/弹簧/轴承/折弯 等 14 个机械设计速算。' },
     ],
   },
   {

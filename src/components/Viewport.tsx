@@ -218,7 +218,7 @@ function ThreadSpecSelect({ d, pitch, std, onPick, lang }: { d: number; pitch: n
 }
 
 // featDlg palette: per-kind Chinese title + icon (titles match ribbon.ts labels).
-const FD_TITLE: Record<string, string> = { gearbox: '齿轮箱向导', worm: '蜗杆', crowngear: '冠齿轮', automatedmodel: 'Automated Modeling · Connector v1', pattern: '矩形陣列', cpattern: '環形陣列', circpattern: '環形陣列', pathpattern: '路徑陣列', mirror: '鏡像', move: '移動/複製', scale: '縮放', draft: '拔模', revolve: '旋轉', rib: '加強筋/腹板', pipe: '管道', box: '長方體', cylinder: '圓柱', sphere: '球', torus: '圓環', cone: '圆锥/圆台', wedge: '楔形', dome: '圆顶', halfcyl: '半圆柱', pie: '扇形柱', tube: '圆管/衬套', rtube: '方管', profile: '型材', rbox: '圆角盒', prism: '多边形棱柱', pyramid: '棱锥', coil: '螺旋', thread: '螺纹杆', cylpatch: '曲面贴花', sheetmetal: '鈑金件', gear: '齿轮', rack: '齿条', pulley: 'V带轮', plane: '参考平面', cpoint: '构造点', caxis: '构造轴', combine: '合併/布爾', splitbody: '分割實體', 'extrude-edit': '拉伸', 'fillet-edit': '圓角', 'chamfer-edit': '倒角', 'shell-edit': '抽殼' }
+const FD_TITLE: Record<string, string> = { gearbox: '齒輪箱向導', worm: '蝸桿', crowngear: '冠齒輪', automatedmodel: 'Automated Modeling · Connector v1', pattern: '矩形陣列', cpattern: '環形陣列', circpattern: '環形陣列', pathpattern: '路徑陣列', mirror: '鏡像', move: '移動/複製', scale: '縮放', draft: '拔模', revolve: '旋轉', rib: '加強筋/腹板', pipe: '管道', box: '長方體', cylinder: '圓柱', sphere: '球', torus: '圓環', cone: '圆锥/圆台', wedge: '楔形', dome: '圆顶', halfcyl: '半圆柱', pie: '扇形柱', tube: '圆管/衬套', rtube: '方管', profile: '型材', rbox: '圆角盒', prism: '多边形棱柱', pyramid: '棱锥', coil: '螺旋', thread: '螺纹杆', cylpatch: '曲面贴花', sheetmetal: '鈑金件', gear: '齒輪', rack: '齒條', pulley: 'V帶輪', plane: '参考平面', cpoint: '构造点', caxis: '构造轴', combine: '合併/布爾', splitbody: '分割實體', 'extrude-edit': '拉伸', 'fillet-edit': '圓角', 'chamfer-edit': '倒角', 'shell-edit': '抽殼' }
 const FD_ICON: Record<string, string> = { gearbox: 'default', worm: 'default', crowngear: 'default', automatedmodel: 'cylinder', pattern: 'pattern', cpattern: 'pattern', circpattern: 'pattern', pathpattern: 'pattern', mirror: 'mirror', move: 'move', scale: 'scale', draft: 'draft', revolve: 'revolve', rib: 'default', pipe: 'cylinder', box: 'box', cylinder: 'cylinder', sphere: 'sphere', torus: 'cylinder', cone: 'cylinder', wedge: 'box', dome: 'sphere', halfcyl: 'cylinder', pie: 'cylinder', tube: 'cylinder', rtube: 'box', profile: 'box', rbox: 'box', prism: 'box', pyramid: 'cylinder', plane: 'plane', cpoint: 'point', caxis: 'axis', combine: 'combine', splitbody: 'split', 'extrude-edit': 'extrude', 'fillet-edit': 'fillet', 'chamfer-edit': 'chamfer', 'shell-edit': 'shell' }
 
 // Compact per-part fit indicator (🖨️✓/↻/✗) using the shared bed choice — no dropdown, for the move-bar.
@@ -7409,7 +7409,7 @@ export default function Viewport() {
         return (
           <div className="cmd-palette" style={{ width: 240 }}>{/* GM-G4b：四连杆机构 — 统一命令 palette 外壳 */}
             <div className="cmd-palette-head">
-              <span style={{ fontWeight: 700 }}>{tStatus('⬚ 四连杆机构（闭环）', lang)}</span>
+              <span style={{ fontWeight: 700 }}>{tStatus('⬚ 四連桿機構（閉環）', lang)}</span>
               <span className="cmd-palette-x" title={tStatus('关闭', lang)} onClick={() => closeFourBar()}>✕</span>
             </div>
             <div className="cmd-palette-body">
@@ -7443,7 +7443,7 @@ export default function Viewport() {
         return (
           <div className="cmd-palette" style={{ width: 240 }}>{/* GM-G4b：滑块曲柄机构 — 统一命令 palette 外壳 */}
             <div className="cmd-palette-head">
-              <span style={{ fontWeight: 700 }}>{tStatus('⊙ 滑块曲柄机构（活塞）', lang)}</span>
+              <span style={{ fontWeight: 700 }}>{tStatus('⊙ 滑塊曲柄機構（活塞）', lang)}</span>
               <span className="cmd-palette-x" title={tStatus('关闭', lang)} onClick={() => closeSliderCrank()}>✕</span>
             </div>
             <div className="cmd-palette-body">
@@ -7473,7 +7473,7 @@ export default function Viewport() {
       {sixBar && (
         <div className="cmd-palette" style={{ width: 252 }}>{/* GM-G4b：六杆机构 — 统一命令 palette 外壳 */}
           <div className="cmd-palette-head">
-            <span style={{ fontWeight: 700 }}>{tStatus('⬡ 六杆机构（Stephenson-III）', lang)}</span>
+            <span style={{ fontWeight: 700 }}>{tStatus('⬡ 六桿機構（Stephenson-III）', lang)}</span>
             <span className="cmd-palette-x" title={tStatus('关闭', lang)} onClick={() => closeSixBar()}>✕</span>
           </div>
           <div className="cmd-palette-body">
@@ -7559,7 +7559,7 @@ export default function Viewport() {
       {vpDlg === 'calc' && (
         <CommandDialog icon="default" title={tStatus('工程计算', lang)} width={250} okLabel={tStatus('关闭', lang)} onOk={() => setVpDlg(null)} onCancel={() => setVpDlg(null)} summary={tStatus('机械设计速算（14 个）', lang)}>
           {([['紧固 / 配合', [['threadSpecLookup', '螺纹规格速查'], ['isoFitCalc', 'ISO 公差配合'], ['pressFitCalc', '过盈配合（压装）'], ['oRingGrooveCalc', 'O 形圈密封槽'], ['boltClampCalc', '螺栓夹紧力']]],
-            ['传动 / 动力', [['gearMeshCalc', '齿轮啮合参数'], ['beltLengthCalc', '皮带长度（双轮）'], ['powerTorqueCalc', '功率·扭矩·转速'], ['springRateCalc', '压缩弹簧刚度'], ['bearingLifeCalc', '轴承寿命 L10'], ['leadScrewCalc', '丝杆 速度·推力']]],
+            ['传动 / 动力', [['gearMeshCalc', '齒輪嚙合參數'], ['beltLengthCalc', '皮带长度（双轮）'], ['powerTorqueCalc', '功率·扭矩·转速'], ['springRateCalc', '压缩弹簧刚度'], ['bearingLifeCalc', '轴承寿命 L10'], ['leadScrewCalc', '丝杆 速度·推力']]],
             ['加工 / 钣金', [['drillSpeedCalc', '钻铣转速 RPM'], ['bendAllowanceCalc', '钣金折弯展开'], ['thermalStressCalc', '约束热应力']]]] as [string, [string, string][]][]).map(([grp, items]) => (
             <div key={grp}>
               <div style={{ color: '#6b7680', fontSize: 11, margin: '4px 0 2px' }}>{tStatus(grp, lang)}</div>

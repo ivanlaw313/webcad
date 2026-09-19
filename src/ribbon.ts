@@ -351,7 +351,6 @@ const SURFACE: Panel[] = [
     { id: 'thicken', label: '加厚 Thicken', icon: 'shell', quick: true, tip: '加厚：点实体/曲面一个面 → 沿法向加厚成实体薄板（曲面件转成可打印实体 / 加厚单一面）。出独立件,想合并用「实体布尔」。方向：板厚输负值、或前缀「-」= 翻转、朝另一边加厚。' },
     { id: 'thickenquilt', label: '加厚整張曲面', icon: 'shell', quick: true, tip: '加厚整張曲面：拣一张【完整泊车曲面/縫合面】（放樣/掃掠/旋轉/縫合/補面出嘅）→ 成张一次过加厚成实体（唔似「加厚」净加单一拾取面）。曲面变实体最常用嘅一步。板厚输负值 = 朝另一边。' },
     { id: 'offsetsurf', label: '偏移曲面', icon: 'loft', tip: '偏移曲面：点一个面 → 偏出一张平行嘅新曲面（正 = 外偏 / 负 = 内偏）。两侧：距离用 ±（如 ±5）= 一次出内外两张平行面（关于原面对称）。出独立开放曲面件。' },
-    { id: 'reversesurf', label: '翻轉曲面', icon: 'shell', tip: '翻轉曲面：拣一张泊车曲面 → 掉转佢嘅正反面（法向反向）。当「加厚」/「縫合」加错咗边时用嚟修正方向。纯翻向,唔重建几何。' },
     { id: 'splitface', label: '分割面', icon: 'splitface', tip: '分割面：点一个面 → 喺点击处用一个垂直平面把佢切成两半（体积不变,两块子面可各自单独拣/着色/拔模）。' },
     { id: 'replaceface', label: '替換面', icon: 'replaceface', tip: '替换面（平面顶替）：点一个面 → 输入推入距离 → 把该面沿法向推去一个新位置,邻面自动延伸接返顺。诚实局限：只做平面顶替（唔支持任意曲面替换）。' },
     { id: 'rotateface', label: '旋轉面', icon: 'replaceface', tip: '旋轉面：点一个【平面】→ 输入铰轴(X/Y/Z) + 角度 → 该面绕住经过点击点嘅铰线倾斜,邻面自动癒合成梯形（实体保留）。改导入件/斜面角度用。仅限平面。' },
@@ -378,6 +377,7 @@ const SURFACE: Panel[] = [
     { id: 'pipe', label: '管道', icon: 'pipeicon' },
   ] },
   { name: 'MODIFY', tools: [
+    { id: 'reversesurf', label: '翻轉曲面', icon: 'shell', quick: true, tip: '翻轉曲面：拣一张泊车曲面 → 掉转佢嘅正反面（法向反向）。当「加厚」/「縫合」加错咗边时用嚟修正方向。纯翻向,唔重建几何。' },
     { id: 'presspull', label: '加厚/按拉', icon: 'presspull', quick: true },
     { id: 'splitbody', label: '分割', icon: 'split', quick: true },
     { id: 'combine', label: '合併/切割', icon: 'combine', quick: true },

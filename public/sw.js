@@ -4,8 +4,8 @@
 //   · /assets/*（Vite 内容哈希，不可变）+ .wasm/.ttf：cache-first —— 命中即离线可用，免重复下载几 MB wasm。
 //   · 其他同源 GET：network-first + 缓存兜底。
 // 版本：CACHE 名带版本号；activate 时清旧缓存。部署新版后首次在线访问会自动换新（导航 network-first 保证）。
-// RELEASE: CACHE 必须随每次发版改名（例 webcad-v1.77），否则 activate 唔会删旧缓存 → 硬刷新仍见旧 badge（Solid @1.66 GATE）。
-const CACHE = 'webcad-v1.77'
+// RELEASE: CACHE 必须随每次发版改名（例 webcad-v1.78），否则 activate 唔会删旧缓存 → 硬刷新仍见旧 badge（Solid @1.66 GATE）。
+const CACHE = 'webcad-v1.78'
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/'])).then(() => self.skipWaiting()))

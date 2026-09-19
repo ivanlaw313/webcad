@@ -287,7 +287,6 @@ export default function Ribbon() {
   const [showLib, setShowLib] = useState(false)                   // 顶栏「模板/材料/螺丝」收埋入 📦 弹出，令顶栏干净似 Fusion
   const [showFastenerDialog, setShowFastenerDialog] = useState(false)
   const lang = useApp((s) => s.lang)   // T800：i18n 语言切换
-  const en = lang === 'en'   // GM-W8 C3：EN 模式短标签翻译
   const finishSketch = useApp((s) => s.finishSketch)
   const finishForm = useApp((s) => s.finishForm)
   const exportStl = useApp((s) => s.exportStl)

@@ -134,3 +134,34 @@ export function cylSuccessStatus(opts: {
   const key = opts.op === 'cut' ? 'status.cylCut' : 'status.cylCreated'
   return fmt(msg(key, L(lang)), opts.d, opts.h)
 }
+
+/** Sphere prim success — catalog avoids JA Done:/Sphere shredding. */
+export function sphereSuccessStatus(opts: {
+  op: PrimOp
+  d: number | string
+}, lang?: LangInput): string {
+  const key = opts.op === 'cut' ? 'status.sphereCut' : 'status.sphereCreated'
+  return fmt(msg(key, L(lang)), opts.d)
+}
+
+/** Cone / frustum prim success. */
+export function coneSuccessStatus(opts: {
+  op: PrimOp
+  d: number | string
+  dt: number | string
+  h: number | string
+}, lang?: LangInput): string {
+  const key = opts.op === 'cut' ? 'status.coneCut' : 'status.coneCreated'
+  return fmt(msg(key, L(lang)), opts.d, opts.dt, opts.h)
+}
+
+/** Torus prim success. */
+export function torusSuccessStatus(opts: {
+  op: PrimOp
+  od: number | string
+  td: number | string
+}, lang?: LangInput): string {
+  const key = opts.op === 'cut' ? 'status.torusCut' : 'status.torusCreated'
+  return fmt(msg(key, L(lang)), opts.od, opts.td)
+}
+

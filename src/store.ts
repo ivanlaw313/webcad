@@ -29,7 +29,7 @@ import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
-import { boxSuccessStatus, cylSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus } from './ui/featureStatus'
+import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus } from './ui/featureStatus'
 import { lengthScale } from './io/units'
 import { meshDropKind, MESH_TAB_DROP_HINT } from './io/meshDrop'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
@@ -13004,9 +13004,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'create_box': { const L=num('length',10),W=num('width',10),H=num('height',10); const o=opOf(); return mk({ id: fid(), type: 'prim', shape: 'box', a: L, b: W, c: H, op: o, cornerOrigin: true }, boxSuccessStatus({ op: o === 'cut' ? 'cut' : o === 'newbody' ? 'newbody' : o === 'intersect' ? 'intersect' : 'new', l: L, w: W, h: H }, get().lang)) }
       case 'create_cylinder': { const D=num('diameter',10),H=num('height',10); const o=opOf(); return mk({ id: fid(), type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: D / 2 }, height: H, operation: o }, cylSuccessStatus({ op: o === 'cut' ? 'cut' : 'new', d: D, h: H }, get().lang)) }
-      case 'create_sphere': return mk({ id: fid(), type: 'prim', shape: 'sphere', a: num('diameter', 20) / 2, b: 0, c: 0, op: opOf() }, `${verb()}球 Ø${num('diameter', 20)}mm`)
-      case 'create_cone': return mk({ id: fid(), type: 'prim', shape: 'cone', a: num('bottom_diameter', 20) / 2, b: num('top_diameter', 0) / 2, c: num('height', 20), op: opOf() }, `${verb()}圆锥 底Ø${num('bottom_diameter', 20)} 顶Ø${num('top_diameter', 0)}×${num('height', 20)}mm`)
-      case 'create_torus': { const od = num('outer_diameter', 30), tdia = num('tube_diameter', 8); if (!(od > 2 * tdia)) return '✗ 圆环：管径要细过外径一半（否则管自交/退化）'; return mk({ id: fid(), type: 'prim', shape: 'torus', a: od / 2, b: tdia / 2, c: 0, op: opOf(), outerTrue: true }, `${verb()}圆环 外Ø${od} 管Ø${tdia}mm`) }   // GM-W8 β1-#29：a=真外半径 + outerTrue（外Ø输入=真外Ø）。GM-L2 #65：outerTrue 语义无自交要求 od>2·tdia（同对话框守卫一致）
+      case 'create_sphere': { const D=num('diameter', 20); const o=opOf(); return mk({ id: fid(), type: 'prim', shape: 'sphere', a: D / 2, b: 0, c: 0, op: o }, sphereSuccessStatus({ op: o === 'cut' ? 'cut' : 'new', d: D }, get().lang)) }
+      case 'create_cone': { const D=num('bottom_diameter', 20), DT=num('top_diameter', 0), H=num('height', 20); const o=opOf(); return mk({ id: fid(), type: 'prim', shape: 'cone', a: D / 2, b: DT / 2, c: H, op: o }, coneSuccessStatus({ op: o === 'cut' ? 'cut' : 'new', d: D, dt: DT, h: H }, get().lang)) }
+      case 'create_torus': { const od = num('outer_diameter', 30), tdia = num('tube_diameter', 8); if (!(od > 2 * tdia)) return '✗ 圆环：管径要细过外径一半（否则管自交/退化）'; const o=opOf(); return mk({ id: fid(), type: 'prim', shape: 'torus', a: od / 2, b: tdia / 2, c: 0, op: o, outerTrue: true }, torusSuccessStatus({ op: o === 'cut' ? 'cut' : 'new', od, td: tdia }, get().lang)) }   // GM-W8 β1-#29：a=真外半径 + outerTrue（外Ø输入=真外Ø）。GM-L2 #65：outerTrue 语义无自交要求 od>2·tdia（同对话框守卫一致）
       case 'create_wedge': return mk({ id: fid(), type: 'prim', shape: 'wedge', a: num('length', 20), b: num('width', 20), c: num('height', 10), op: opOf() }, `${verb()}楔形/斜坡 ${num('length', 20)}×${num('width', 20)}×${num('height', 10)}mm`)   // P6：a=长X b=宽Y c=高Z（直角三角截面拉伸）
       case 'create_dome': { const d = num('diameter', 20), ch = Number(a.cap_height); return mk({ id: fid(), type: 'prim', shape: 'dome', a: d / 2, b: 0, c: (Number.isFinite(ch) && ch > 0 ? ch : 0), op: opOf() }, `${verb()}圆顶 Ø${d}${(Number.isFinite(ch) && ch > 0) ? ' 冠高' + ch : '（半球）'}mm`) }   // P6：a=半径 c=冠高（0=半球）
       case 'create_half_cylinder': return mk({ id: fid(), type: 'prim', shape: 'halfcyl', a: num('diameter', 20) / 2, b: 0, c: num('height', 20), op: opOf() }, `${verb()}半圆柱/D形 Ø${num('diameter', 20)}×${num('height', 20)}mm`)   // P6：a=半径 c=高（切走 x<0 半边）
@@ -17444,9 +17444,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       // kernel-empty error. Covers coil/thread pitch & coil wire too (else a 0/neg helix silently clamps).
       if (['l', 'w', 'h', 'd', 'pitch', 'wire'].some((k) => p[k] !== undefined && !(Number.isFinite(+p[k]) && +p[k] > 0))) { set({ status: illegalRejectStatus(ILLEGAL_LENGTH_DETAIL) }); return }
       if (d.kind === 'box') { f = { id: fid(), type: 'prim', shape: 'box', a: +p.l, b: +p.w, c: +p.h, op, cornerOrigin: true }; msg = boxSuccessStatus({ op: op === 'cut' ? 'cut' : op === 'newbody' ? 'newbody' : op === 'intersect' ? 'intersect' : 'new', l: p.l, w: p.w, h: p.h }, get().lang) }
-      else if (d.kind === 'sphere') { f = { id: fid(), type: 'prim', shape: 'sphere', a: (+p.d) / 2, b: 0, c: 0, op }; msg = `已${verb}球 Ø${p.d}` }
-      else if (d.kind === 'torus') { const arc = Math.max(0, Math.min(360, +p.arc || 360)); if (!(+p.d > 2 * +p.td)) { set({ status: `圆环：管径要细过外径一半（管Ø<${(+p.d / 2).toFixed(1)}），否则中孔闭合/管自交退化 — 请调大外径或调细管径` }); return } f = { id: fid(), type: 'prim', shape: 'torus', a: (+p.d) / 2, b: (+p.td) / 2, c: arc < 360 ? arc : 0, op, outerTrue: true }; msg = `已${verb}${arc > 0 && arc < 360 ? `部分圆环 ${arc}°` : '圆环'} 外Ø${p.d} 管Ø${p.td}` }   // GM-W8 β1-#29：a=真外半径 + outerTrue,worker 换算中线半径(tr=a−tb),令外Ø输入=真外Ø。GM-L2 #65：outerTrue 语义下中线半径=d/2−td/2、管半径=td/2，无自交要求 d/2−td/2>td/2 ⇒ d>2·td（旧 d>td 阈值太松，td<d≤2td 会自交）
-      else if (d.kind === 'cone') { const sd = Math.round(+p.sides) || 0; f = { id: fid(), type: 'prim', shape: 'cone', a: (+p.d) / 2, b: Math.max(0, +p.dt) / 2, c: +p.h, op, ...(sd >= 3 ? { sides: sd } : {}) }; const poly = sd >= 3; msg = `已${verb}${poly ? (((+p.dt) > 0 ? sd + '棱台' : sd + '棱锥')) : (((+p.dt) > 0 ? '圆台' : '圆锥'))} 底Ø${p.d}${(+p.dt) > 0 ? ' 顶Ø' + p.dt : ''}×${p.h}` }
+      else if (d.kind === 'sphere') { f = { id: fid(), type: 'prim', shape: 'sphere', a: (+p.d) / 2, b: 0, c: 0, op }; msg = sphereSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d }, get().lang) }
+      else if (d.kind === 'torus') { const arc = Math.max(0, Math.min(360, +p.arc || 360)); if (!(+p.d > 2 * +p.td)) { set({ status: `圆环：管径要细过外径一半（管Ø<${(+p.d / 2).toFixed(1)}），否则中孔闭合/管自交退化 — 请调大外径或调细管径` }); return } f = { id: fid(), type: 'prim', shape: 'torus', a: (+p.d) / 2, b: (+p.td) / 2, c: arc < 360 ? arc : 0, op, outerTrue: true }; msg = (arc > 0 && arc < 360) ? `已${verb}部分圆环 ${arc}° 外Ø${p.d} 管Ø${p.td}` : torusSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', od: p.d, td: p.td }, get().lang) }   // GM-W8 β1-#29：a=真外半径 + outerTrue,worker 换算中线半径(tr=a−tb),令外Ø输入=真外Ø。GM-L2 #65：outerTrue 语义下中线半径=d/2−td/2、管半径=td/2，无自交要求 d/2−td/2>td/2 ⇒ d>2·td（旧 d>td 阈值太松，td<d≤2td 会自交）
+      else if (d.kind === 'cone') { const sd = Math.round(+p.sides) || 0; f = { id: fid(), type: 'prim', shape: 'cone', a: (+p.d) / 2, b: Math.max(0, +p.dt) / 2, c: +p.h, op, ...(sd >= 3 ? { sides: sd } : {}) }; const poly = sd >= 3; msg = poly ? `已${verb}${((+p.dt) > 0 ? sd + '棱台' : sd + '棱锥')} 底Ø${p.d}${(+p.dt) > 0 ? ' 顶Ø' + p.dt : ''}×${p.h}` : coneSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, dt: Math.max(0, +p.dt), h: p.h }, get().lang) }
       else if (d.kind === 'wedge') { f = { id: fid(), type: 'prim', shape: 'wedge', a: +p.l, b: +p.w, c: +p.h, op }; msg = `已${verb}楔形 ${p.l}×${p.w}×${p.h}` }
       else if (d.kind === 'dome') { const cap = Math.max(0, +p.cap || 0), R = (+p.d) / 2; f = { id: fid(), type: 'prim', shape: 'dome', a: R, b: 0, c: cap, op }; msg = `已${verb}${cap > 0 && cap < R ? `球冠 Ø${p.d} 冠高${cap}` : `圆顶/半球 Ø${p.d}`}` }
       else if (d.kind === 'halfcyl') { f = { id: fid(), type: 'prim', shape: 'halfcyl', a: (+p.d) / 2, b: 0, c: +p.h, op }; msg = `已${verb}半圆柱/D 形 Ø${p.d}×${p.h}` }
@@ -18415,7 +18415,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     const params = shape === 'box' ? { a: 80, b: 60, c: 40 } : shape === 'sphere' ? { a: 30, b: 0, c: 0 } : { a: 40, b: 12, c: 0 }
     const op: BoolOp = get().cutMode && hasSolid(get().features) ? 'cut' : 'new'
     const f: Feature = { id: fid(), type: 'prim', shape, ...params, op }
-    await get().applyFeatures([...get().features, f], (op === 'cut' ? '已切割' : '已创建') + (shape === 'box' ? '长方体' : shape === 'sphere' ? '球' : '圆环'))
+    await get().applyFeatures([...get().features, f], shape === 'box'
+      ? boxSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', l: params.a, w: params.b, h: params.c }, get().lang)
+      : shape === 'sphere'
+        ? sphereSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: params.a * 2 }, get().lang)
+        : torusSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', od: params.a * 2, td: params.b * 2 }, get().lang))
   },
 
   addMirror: async () => {

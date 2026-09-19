@@ -1,6 +1,6 @@
 /**
- * v1.62: SHEET METAL / PLASTIC ribbon Traditional Chinese (HK).
- * 鈑金件／薄板/法蘭／導出展開DXF／加強筋／選擇 — not Simplified.
+ * v1.62: SHEET METAL / PLASTIC ribbon Traditional Chinese (HK)
+ * + BUG-BD-6101: all ribbon select labels 選擇 (not 选择).
  * Keep DRAWING/SKETCH/illegal/MESH SC pins / ZH_GROUP/ZH_TAB / 裝配工程圖.
  */
 import test from 'node:test'
@@ -91,6 +91,16 @@ test('v1.62: companion Timeline / BrowserTree / FD_TITLE / EN_LABEL', () => {
   assert.match(i18n, /'钣金件': 'Sheet Metal'/)
   assert.match(i18n, /'加强筋': 'Rib'/)
   assert.match(i18n, /'薄板\/法兰\(拉伸\)': 'Flange \(Extrude\)'/)
+})
+
+test('v1.62 BUG-BD-6101: no ribbon select label Simplified 选择', () => {
+  assert.doesNotMatch(ribbon, /id: 'select', label: '选择'/)
+  assert.match(ribbon, /id: 'select', label: '選擇'/)
+  // SOLID / MESH / UTILITIES / SHEET / PLASTIC all TC
+  const count = (ribbon.match(/id: 'select', label: '選擇'/g) || []).length
+  assert.ok(count >= 5, `expected ≥5 select labels TC, got ${count}`)
+  assert.match(ribbon, /id: 'sk_select', label: '選擇'/)
+  assert.match(ribbon, /id: 'sk_select'.*tip: '選擇工具/)
 })
 
 test('no regress: DRAWING / SKETCH / illegal / MESH SC / ZH chrome / 裝配工程圖', () => {

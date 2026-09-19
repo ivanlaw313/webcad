@@ -110,12 +110,15 @@ export const EN_LABEL: Record<string, string> = {
   '合并面': 'Merge Faces', '曲面延伸': 'Extend Surface',
   'Form 圆柱': 'Form Cylinder', 'Form 平面': 'Form Plane', 'Form 球': 'Form Sphere',
   'Form 环面': 'Form Torus', 'Form 曲面片': 'Form Patch', '编辑曲面控制点': 'Edit Surface Poles',
-  // FORM contextual ribbon (zh source → en via tLabel)
-  '创建造型': 'Create Form', '四边形球体': 'Quadball', '面': 'Face',
-  '编辑造型': 'Edit Form', '细分': 'Subdivide', '插入边': 'Insert Edge',
-  '折痕': 'Crease', '桥接': 'Bridge', '焊接': 'Weld', '填补孔': 'Fill Hole',
-  '擦除并填充': 'Erase & Fill', '造型对称': 'Symmetry', '修复实体': 'Repair Body',
-  '插入网格': 'Insert Mesh', '平面': 'Plane',
+  // FORM contextual ribbon (zh-Hant source → en via tLabel; BUG-BD-4801)
+  '建立造型': 'Create Form', '四邊形球體': 'Quadball', '面': 'Face',
+  '編輯造型': 'Edit Form', '細分': 'Subdivide', '插入邊': 'Insert Edge',
+  '折痕': 'Crease', '橋接': 'Bridge', '焊接': 'Weld', '填補孔': 'Fill Hole',
+  '擦除並填充': 'Erase & Fill', '造型對稱': 'Symmetry', '修復實體': 'Repair Body',
+  '插入網格': 'Insert Mesh', '平面': 'Plane',
+  '建立草圖': 'Create Sketch', '長方體': 'Box', '圓柱': 'Cylinder', '圓環': 'Torus',
+  '旋轉': 'Revolve', '掃掠': 'Sweep', '放樣': 'Loft', '鏡像': 'Mirror',
+  '測量': 'Measure', '選擇': 'Select',
   // SHEET METAL
   '薄板/法兰(拉伸)': 'Flange (Extrude)',
 }
@@ -132,7 +135,7 @@ const ZH_GROUP: Record<string, string> = {
   CREATE: '创建', MODIFY: '修改', CONSTRAINTS: '约束', FINISH: '完成', INSPECT: '检查',
   CONSTRUCT: '构造', ASSEMBLE: '装配', SELECT: '选择', EXPORT: '导出', CONFIGURE: '配置',
   INSERT: '插入', PARAMETERS: '参数', DRAWING: '工程图', MAKE: '制造',
-  SYMMETRY: '对称', UTILITIES: '工具',
+  SYMMETRY: '對稱', UTILITIES: '工具',
 }
 const ZH_TAB: Record<string, string> = {
   SOLID: '实体', SURFACE: '曲面', MESH: '网格', 'SHEET METAL': '钣金', PLASTIC: '塑料',

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useDraggable } from './useDraggable'
 
 /** Form create/edit floating panel. Optional footer stays pinned (BUG-BD-1901 Finish Form).
- *  Titles: Create Form / 创建造型 · Edit Form / 编辑造型 (v1.47 Chinese). */
+ *  Titles: Create Form / 建立造型 · Edit Form / 編輯造型 (v1.49 zh-Hant). */
 export function FormPalette({ title, children, footer }: { title: string; children: ReactNode; footer?: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const drag = useDraggable('webcad-form-palette-v1', { top: 8, right: 8 })
@@ -31,13 +31,13 @@ export function FormPalette({ title, children, footer }: { title: string; childr
       <header style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 6, flexShrink: 0, borderBottom: '1px solid #ccdbe5' }}>
         <span onPointerDown={drag.onPointerDown} style={{ flex: 1, cursor: 'move', touchAction: 'none', fontWeight: 600 }}>{title}</span>
         <button onClick={drag.reset} title="重设 Form 面板位置">↺</button>
-        <button aria-label="收起或展开造型面板" aria-expanded={!collapsed} onClick={() => setCollapsed((c) => !c)}>{collapsed ? '▸' : '▾'}</button>
+        <button aria-label="收起或展開造型面板" aria-expanded={!collapsed} onClick={() => setCollapsed((c) => !c)}>{collapsed ? '▸' : '▾'}</button>
       </header>
       {!collapsed && (
         <>
           <div
             style={{
-              display: (title === 'Create Form' || title === '创建造型') ? 'block' : 'flex',
+              display: (title === 'Create Form' || title === '建立造型') ? 'block' : 'flex',
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: 8,

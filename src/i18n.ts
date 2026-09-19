@@ -85,6 +85,33 @@ export const EN_LABEL: Record<string, string> = {
   '爆炸視圖': 'Exploded View',
   '整體縮放': 'Scale',
   '3D列印': '3D Print',
+
+  // Construct plane/axis/point residual Traditional (v1.69) — retain SC above
+  '中間平面': 'Midplane',
+  '過兩邊平面': 'Plane Through Two Edges',
+  '過三點平面': 'Plane Through Three Points',
+  '沿路徑平面': 'Plane Along Path',
+  '垂直面軸': 'Axis Perpendicular To Face',
+  '過兩平面軸': 'Axis Through Two Planes',
+  '過兩點軸': 'Axis Through Two Points',
+  '沿邊軸': 'Axis Through Edge',
+  '兩邊交點': 'Point Through Two Edges',
+  '三平面交點': 'Point Through Three Planes',
+  '圓／球／環面中心點': 'Point At Center Of Circle/Sphere/Torus',
+  '邊與平面交點': 'Point At Edge And Plane',
+  '沿路徑點': 'Point Along Path',
+  '過點平行面': 'Offset to Point',
+  '方向構造軸': 'Axis By Direction',
+  '坐標構造點': 'Point At Coordinates',
+  '兩點中點': 'Midpoint',
+  '構造點陣列': 'Construction Point Pattern',
+  '構造擴展': 'Construct Extensions',
+  '— 選構造點 —': '— Pick construction point —',
+  '— 選構造軸 —': '— Pick construction axis —',
+
+  '參考平面': 'Reference Plane',
+  '構造點': 'Construction Point',
+  '構造軸': 'Construction Axis',
   // BUG-BD-6501 export-all chrome
   '導出全部零件 STL(zip)': 'Export all parts STL (zip)',
   '导出全部零件 STL(zip)': 'Export all parts STL (zip)',
@@ -1763,6 +1790,37 @@ Object.assign(STATUS_PHRASES_X, {
   '爆炸視圖': 'Exploded View',
   '整體縮放': 'Scale Assembly',
   '3D列印': '3D Print',
+})
+
+// v1.69 construct plane/axis/point dialog chrome
+
+Object.assign(STATUS_PHRASES_X, {
+  '中間平面': 'Midplane',
+  '過兩邊平面': 'Plane Through Two Edges',
+  '過三點平面': 'Plane Through Three Points',
+  '沿路徑平面': 'Plane Along Path',
+  '垂直面軸': 'Axis Perpendicular To Face',
+  '過兩平面軸': 'Axis Through Two Planes',
+  '過兩點軸': 'Axis Through Two Points',
+  '沿邊軸': 'Axis Through Edge',
+  '兩邊交點': 'Point Through Two Edges',
+  '三平面交點': 'Point Through Three Planes',
+  '圓／球／環面中心點': 'Point At Center Of Circle/Sphere/Torus',
+  '邊與平面交點': 'Point At Edge And Plane',
+  '沿路徑點': 'Point Along Path',
+  '過點平行面': 'Offset to Point',
+  '方向構造軸': 'Axis By Direction',
+  '坐標構造點': 'Point At Coordinates',
+  '兩點中點': 'Midpoint',
+  '構造點陣列': 'Construction Point Pattern',
+  '參考平面': 'Reference Plane',
+  '構造點': 'Construction Point',
+  '構造軸': 'Construction Axis',
+  '構造': 'Construct',
+  '構造擴展': 'Construct Extensions',
+  '— 選構造點 —': '— Pick construction point —',
+  '— 選構造軸 —': '— Pick construction axis —',
+  '中心點': 'Center Point',
 })
 
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)

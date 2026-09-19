@@ -237,9 +237,9 @@ const LAB: Panel[] = [
   {
     name: '仿真',
     tools: [
-      { id: 'fea', label: '受力云图', icon: 'stress', quick: true, tip: '受力分析（趋势级）：点固定面 → 点受力面 → 设力 → 出应力云图,红色 = 最受力 = 最容易断嘅位。属趋势着色,非商用分析精度。' },
+      { id: 'fea', label: '受力雲圖', icon: 'stress', quick: true, tip: '受力分析（趋势级）：点固定面 → 点受力面 → 设力 → 出应力云图,红色 = 最受力 = 最容易断嘅位。属趋势着色,非商用分析精度。' },
       { id: 'moldflow', label: '模流分析', icon: 'moldflow', quick: true, tip: '注塑模流趋势：点浇口位（可多个）→ 选塑料 → 出充填时间/压力/冷却/变形趋势云图 + 焊接线 + 充填动画。可开「压力求解器」出真实压力值。' },
-      { id: 'windtunnel', label: '风洞水洞', icon: 'wind', quick: true, tip: '风洞 / 水洞趋势模拟：把零件放入虚拟风道/水道解流场 → 风阻系数 Cd + 阻力 + 表面压力/流场。可调风速 · 流体(空气/水) · 吹向。属趋势级,相对比较可信,非商用验证级。' },
+      { id: 'windtunnel', label: '風洞水洞', icon: 'wind', quick: true, tip: '风洞 / 水洞趋势模拟：把零件放入虚拟风道/水道解流场 → 风阻系数 Cd + 阻力 + 表面压力/流场。可调风速 · 流体(空气/水) · 吹向。属趋势级,相对比较可信,非商用验证级。' },
       { id: 'physicslab', label: '環境實驗室', icon: 'joint', quick: true, tip: 'Physics Lab：將 CAD 零件放入剛體實驗室，即時模擬重力、碰撞、摩擦、反彈和統一風。互動級模擬，非工程認證。' },
     ],
   },
@@ -252,10 +252,10 @@ const LAB: Panel[] = [
   {
     name: '3D列印',
     tools: [
-      { id: 'overhang', label: '悬垂分析', icon: 'overhang', quick: true, tip: '3D 打印悬垂分析：标出需要支撑嘅朝下斜面（>45°），报支撑面积 % + 建议最省支撑打印朝向。' },
+      { id: 'overhang', label: '懸垂分析', icon: 'overhang', quick: true, tip: '3D 打印悬垂分析：标出需要支撑嘅朝下斜面（>45°），报支撑面积 % + 建议最省支撑打印朝向。' },
       { id: 'autoorient', label: '自動擺正', icon: 'overhang', tip: '一键把零件旋转到最省支撑嘅打印朝向（悬垂分析嘅建议方向），加一个可撤销嘅变换特征。' },
       { id: 'wallcheck', label: '壁厚檢查', icon: 'wallcheck', tip: '3D 打印壁厚检查：射线量度局部壁厚，标出 < 0.8mm 嘅薄壁（橙色高亮）+ 报最薄值。采样近似。' },
-      { id: 'slicepreview', label: '切层预览', icon: 'section', tip: '3D 打印切层预览：逐层试切实体，标出悬空孤岛（悬垂分析睇唔到嘅浮空区，需支撑）+ 首层接触面积 + 最薄层 + 唔水密轮廓。' },
+      { id: 'slicepreview', label: '切層預覽', icon: 'section', tip: '3D 打印切层预览：逐层试切实体，标出悬空孤岛（悬垂分析睇唔到嘅浮空区，需支撑）+ 首层接触面积 + 最薄层 + 唔水密轮廓。' },
       { id: 'stack', label: '堆叠', icon: 'component', sep: true, tip: '垂直堆叠：所有可见组件自底向上叠放（每件坐喺下件顶面）— 层叠件/托盘。' },
       { id: 'arrangebed', label: '排版', icon: 'component', tip: '排版到打印床：所有可见件平铺地面、互不重叠、全部落地 — 多件 3D 打印备料。' },
       { id: 'dropall', label: '全落地', icon: 'component', tip: '全部落地：每个可见件各自下移到 Z=0（XZ 不变）— 散件归地。' },
@@ -273,7 +273,7 @@ const LAB: Panel[] = [
       { id: 'pie', label: '扇形柱', icon: 'cylinder', tip: '扇形柱/饼块：圆盘的一块扇形（设直径/角度/高）。' },
       { id: 'rtube', label: '方管', icon: 'box', tip: '矩形空心管/方通(RHS)：设截面宽×深/壁厚/长。框架/横梁常用。' },
       { id: 'profile', label: '型材', icon: 'box', tip: '结构型材：L 角铁 / U 槽钢 / T 型材（设截面宽×高/壁厚/长）。' },
-      { id: 'pyramid', label: '棱锥', icon: 'cylinder', tip: '多边形棱锥：设边数/底外接Ø/高，底多边形收到顶尖。' },
+      { id: 'pyramid', label: '棱錐', icon: 'cylinder', tip: '多边形棱锥：设边数/底外接Ø/高，底多边形收到顶尖。' },
       { id: 'prism', label: '棱柱', icon: 'box', tip: '正多边形棱柱：设边数/外接圆Ø/高建六角柱等。' },
     ],
   },
@@ -297,7 +297,7 @@ const LAB: Panel[] = [
       { id: 'moveface', label: '移動面', icon: 'replaceface', quick: true, tip: 'WebCAD 扩展：偏移或倾斜平面面，内核重解相邻面。' },
       { id: 'filletall', label: '全棱圓角', icon: 'fillet', tip: 'WebCAD 扩展：对实体全部边一次应用相同圆角。' },
       { id: 'chamferall', label: '全棱倒角', icon: 'chamfer', tip: 'WebCAD 扩展：对实体全部边一次应用相同倒角。' },
-      { id: 'delface', label: '删面治愈', icon: 'presspull', tip: 'WebCAD 扩展：删除所选面并尝试延伸邻面治愈实体。' },
+      { id: 'delface', label: '刪面治癒', icon: 'presspull', tip: 'WebCAD 扩展：删除所选面并尝试延伸邻面治愈实体。' },
       { id: 'offsetsolid', label: '整體偏移', icon: 'scale', tip: 'WebCAD 扩展：均匀外扩或内缩实体全部面。' },
       { id: 'cylpatch', label: '圓柱曲面貼花', icon: 'cylpatch', tip: 'WebCAD 扩展：在圆柱面建立凸台、凹槽或平面。' },
       { id: 'splitplane', label: '任意平面切', icon: 'split', tip: 'WebCAD 扩展：拾取任意平面参数化分割实体。' },

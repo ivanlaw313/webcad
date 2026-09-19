@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { analyzeSlices, sliceMesh, classifyLoops, layerIslands, netArea, pointInLoop, type MeshLike, type Pt2 } from '../geom/slicePreview'
 
-// 切层预览面板 —— 打印前逐层检查：悬空孤岛（红）/ 首层接触面积 / 最薄层 / 未闭合轮廓。
+// 切層預覽面板 —— 打印前逐层检查：悬空孤岛（红）/ 首层接触面积 / 最薄层 / 未闭合轮廓。
 // 完全受控组件：mesh 由外部传入（整合方传 bodyMesh），唔 import store；
 // 复用 DrawingPanel 嘅 modal 样式（.drawing-overlay / .drawing-modal / .dw-head / .dw-foot / .cs-btn），冇新 CSS。
 const fmtA = (n: number) => (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2))
@@ -39,7 +39,7 @@ export default function SlicePanel({ mesh, onClose }: { mesh: MeshLike; onClose:
     return (
       <div className="drawing-overlay" onClick={onClose}>
         <div className="drawing-modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(92vw, 420px)' }}>
-          <div className="dw-head">🔪 切层预览<span className="dw-x" onClick={onClose}>✕</span></div>
+          <div className="dw-head">🔪 切層預覽<span className="dw-x" onClick={onClose}>✕</span></div>
           <div style={{ fontSize: 13, color: '#5a6b78', padding: '8px 0 4px' }}>无可切几何 —— 实体网格为空或冇高度。</div>
           <div className="dw-foot"><button className="cs-btn" onClick={onClose}>关闭</button></div>
         </div>
@@ -64,7 +64,7 @@ export default function SlicePanel({ mesh, onClose }: { mesh: MeshLike; onClose:
   return (
     <div className="drawing-overlay" onClick={onClose}>
       <div className="drawing-modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(92vw, 760px)' }}>
-        <div className="dw-head">🔪 切层预览 — 打印前逐层检查<span className="dw-x" onClick={onClose}>✕</span></div>
+        <div className="dw-head">🔪 切層預覽 — 打印前逐层检查<span className="dw-x" onClick={onClose}>✕</span></div>
 
         {/* 警告汇总 */}
         <div style={{ fontSize: 13, marginBottom: 8, lineHeight: 1.7 }}>

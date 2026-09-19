@@ -92,7 +92,7 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
   copybody: { icon: 'newbody', label: '复制实体', param: '', field: '', unit: '', fields: [] },
   transform: { icon: 'move', label: '移动', param: 'X', field: 'dx', unit: 'mm', fields: [{ key: 'dx', label: 'X', unit: 'mm' }, { key: 'dy', label: 'Y', unit: 'mm' }, { key: 'dz', label: 'Z', unit: 'mm' }, { key: 'rx', label: '绕X', unit: '°' }, { key: 'ry', label: '绕Y', unit: '°' }, { key: 'rz', label: '绕Z', unit: '°' }] },
   pushpull: { icon: 'presspull', label: '按拉', param: '距离', field: 'dist', unit: 'mm' },
-  delface: { icon: 'delface', label: '删面', param: '', field: '', unit: '', fields: [] },
+  delface: { icon: 'delface', label: '刪面', param: '', field: '', unit: '', fields: [] },
   thickenface: { icon: 'thicken', label: '加厚面', param: '板厚', field: 'thick', unit: 'mm', fields: [{ key: 'thick', label: '板厚', unit: 'mm' }] },
   offsetsurf: { icon: 'offsetsurf', label: '偏移曲面', param: '距离', field: 'dist', unit: 'mm', fields: [{ key: 'dist', label: '距离', unit: 'mm' }] },
   reversesurf: { icon: 'shell', label: '翻转曲面', param: '', field: '', unit: '', fields: [] },  // S157 翻转曲面定向

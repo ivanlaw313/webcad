@@ -21,9 +21,9 @@ export const EN_LABEL: Record<string, string> = {
   '曲面放样': 'Surface Loft', 'Form 盒': 'Form Box', '文字': 'Text', '加强筋': 'Rib',
   '长方体': 'Box', '圆柱': 'Cylinder', '球': 'Sphere', '圆锥': 'Cone', '圆环': 'Torus',
   '楔形': 'Wedge', '圆顶': 'Dome', '半圆柱': 'Half Cylinder', '扇形柱': 'Pie', '圆管': 'Tube',
-  '方管': 'Rect Tube', '型材': 'Profile', '圆角盒': 'Rounded Box', '棱柱': 'Prism', '棱锥': 'Pyramid',
+  '方管': 'Rect Tube', '型材': 'Profile', '圆角盒': 'Rounded Box', '棱柱': 'Prism', '棱锥': 'Pyramid', '棱錐': 'Pyramid',
   // MODIFY
-  '加厚/按拉': 'Press Pull', '按拉': 'Press Pull', '删面': 'Delete Face', '圆角': 'Fillet', '倒圆角': 'Fillet',
+  '加厚/按拉': 'Press Pull', '按拉': 'Press Pull', '删面': 'Delete Face', '刪面': 'Delete Face', '刪面治癒': 'Delete Face Heal', '删面治愈': 'Delete Face Heal', '圆角': 'Fillet', '倒圆角': 'Fillet',
   '倒角': 'Chamfer', '抽壳': 'Shell', '抽壳(成薄壁)': 'Shell', '拔模': 'Draft', '缩放': 'Scale',
   '整体缩放': 'Scale', '分割': 'Split', '分割实体': 'Split Body', '草图分割': 'Split by Sketch',
   '合并/切割': 'Combine', '实体布尔': 'Boolean', '實體布爾': 'Boolean', '移动/复制': 'Move / Copy', '对齐': 'Align',
@@ -45,11 +45,11 @@ export const EN_LABEL: Record<string, string> = {
   '参数': 'Parameters', '參數': 'Parameters', '工程计算': 'Calculators',
   // INSPECT
   '测量': 'Measure', '量边': 'Measure Edge', '量面': 'Measure Face', '量角': 'Measure Angle',
-  '干涉检查': 'Interference', '受力云图': 'Stress (FEA)', '模流分析': 'Mold Flow', '壁厚检查': 'Wall Thickness',
+  '干涉检查': 'Interference', '受力云图': 'Stress (FEA)', '受力雲圖': 'Stress (FEA)', '模流分析': 'Mold Flow', '风洞水洞': 'Wind/Water Tunnel', '風洞水洞': 'Wind/Water Tunnel', '壁厚检查': 'Wall Thickness',
   '曲率梳分析': 'Curvature Comb Analysis', '斑马纹分析': 'Zebra Analysis',
   '曲率图分析': 'Curvature Map Analysis', '可达性分析': 'Accessibility Analysis',
   '最小半径分析': 'Minimum Radius Analysis', '质心': 'Center of Mass', '显示网格面组': 'Display Mesh Face Groups',
-  '悬垂分析': 'Overhang', '自动摆正': 'Auto Orient', '切层预览': 'Slice Preview', '全落地': 'Drop to Floor',
+  '悬垂分析': 'Overhang', '懸垂分析': 'Overhang', '自动摆正': 'Auto Orient', '切层预览': 'Slice Preview', '切層預覽': 'Slice Preview', '全落地': 'Drop to Floor',
   // INSERT
   '导入DXF': 'Import DXF', '导入SVG': 'Import SVG',
   '画布': 'Canvas', '贴花': 'Decal',
@@ -183,7 +183,7 @@ export const EN_LABEL: Record<string, string> = {
   '曲率梳': 'Curvature Comb', '最小曲率半径': 'Min Radius', '拔模分析': 'Draft Analysis',
   '斜度分析': 'Slope Analysis',
   // LAB (實驗室)
-  '风洞水洞': 'Wind/Water Tunnel', '3D加工': '3D Machining',
+  '风洞水洞': 'Wind/Water Tunnel', '風洞水洞': 'Wind/Water Tunnel', '3D加工': '3D Machining',
   // SURFACE workspace
   '曲面拉伸': 'Surface Extrude', '规则曲面': 'Ruled Surface', '曲面扫掠': 'Surface Sweep',
   '曲面旋转': 'Surface Revolve', '补面 Patch': 'Patch', '桥接面': 'Bridge', '边界补面': 'Boundary Patch',
@@ -595,7 +595,7 @@ const STATUS_PHRASES: Record<string, string> = {
   '扇形柱': 'Pie', '圆管/衬套': 'Tube / Bushing',
   '方管': 'Rect Tube', '型材': 'Profile',
   '圆角盒': 'Rounded Box', '多边形棱柱': 'Polygon Prism',
-  '棱锥': 'Pyramid', '螺旋': 'Coil',
+  '棱锥': 'Pyramid', '棱錐': 'Pyramid', '螺旋': 'Coil',
   '螺纹杆': 'Threaded Rod', '曲面贴花': 'Emboss',
   '钣金件': 'Sheet Metal', '齿条': 'Rack',
   'V带轮': 'V-Pulley', '参考平面': 'Reference Plane',

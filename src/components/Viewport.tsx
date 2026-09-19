@@ -218,7 +218,7 @@ function ThreadSpecSelect({ d, pitch, std, onPick, lang }: { d: number; pitch: n
 }
 
 // featDlg palette: per-kind Chinese title + icon (titles match ribbon.ts labels).
-const FD_TITLE: Record<string, string> = { gearbox: '齿轮箱向导', worm: '蜗杆', crowngear: '冠齿轮', automatedmodel: 'Automated Modeling · Connector v1', pattern: '矩形阵列', cpattern: '环形阵列', circpattern: '环形阵列', pathpattern: '路径阵列', mirror: '镜像', move: '移动/复制', scale: '缩放', draft: '拔模', revolve: '旋转', rib: '加强筋/腹板', pipe: '管道', box: '长方体', cylinder: '圆柱', sphere: '球', torus: '圆环', cone: '圆锥/圆台', wedge: '楔形', dome: '圆顶', halfcyl: '半圆柱', pie: '扇形柱', tube: '圆管/衬套', rtube: '方管', profile: '型材', rbox: '圆角盒', prism: '多边形棱柱', pyramid: '棱锥', coil: '螺旋', thread: '螺纹杆', cylpatch: '曲面贴花', sheetmetal: '钣金件', gear: '齿轮', rack: '齿条', pulley: 'V带轮', plane: '参考平面', cpoint: '构造点', caxis: '构造轴', combine: '合并/布尔', splitbody: '分割实体', 'extrude-edit': '拉伸', 'fillet-edit': '圆角', 'chamfer-edit': '倒角', 'shell-edit': '抽壳' }
+const FD_TITLE: Record<string, string> = { gearbox: '齿轮箱向导', worm: '蜗杆', crowngear: '冠齿轮', automatedmodel: 'Automated Modeling · Connector v1', pattern: '矩形阵列', cpattern: '环形阵列', circpattern: '环形阵列', pathpattern: '路径阵列', mirror: '镜像', move: '移动/复制', scale: '缩放', draft: '拔模', revolve: '旋转', rib: '加强筋/腹板', pipe: '管道', box: '長方體', cylinder: '圓柱', sphere: '球', torus: '圓環', cone: '圆锥/圆台', wedge: '楔形', dome: '圆顶', halfcyl: '半圆柱', pie: '扇形柱', tube: '圆管/衬套', rtube: '方管', profile: '型材', rbox: '圆角盒', prism: '多边形棱柱', pyramid: '棱锥', coil: '螺旋', thread: '螺纹杆', cylpatch: '曲面贴花', sheetmetal: '钣金件', gear: '齿轮', rack: '齿条', pulley: 'V带轮', plane: '参考平面', cpoint: '构造点', caxis: '构造轴', combine: '合并/布尔', splitbody: '分割实体', 'extrude-edit': '拉伸', 'fillet-edit': '圆角', 'chamfer-edit': '倒角', 'shell-edit': '抽壳' }
 const FD_ICON: Record<string, string> = { gearbox: 'default', worm: 'default', crowngear: 'default', automatedmodel: 'cylinder', pattern: 'pattern', cpattern: 'pattern', circpattern: 'pattern', pathpattern: 'pattern', mirror: 'mirror', move: 'move', scale: 'scale', draft: 'draft', revolve: 'revolve', rib: 'default', pipe: 'cylinder', box: 'box', cylinder: 'cylinder', sphere: 'sphere', torus: 'cylinder', cone: 'cylinder', wedge: 'box', dome: 'sphere', halfcyl: 'cylinder', pie: 'cylinder', tube: 'cylinder', rtube: 'box', profile: 'box', rbox: 'box', prism: 'box', pyramid: 'cylinder', plane: 'plane', cpoint: 'point', caxis: 'axis', combine: 'combine', splitbody: 'split', 'extrude-edit': 'extrude', 'fillet-edit': 'fillet', 'chamfer-edit': 'chamfer', 'shell-edit': 'shell' }
 
 // Compact per-part fit indicator (🖨️✓/↻/✗) using the shared bed choice — no dropdown, for the move-bar.
@@ -4738,7 +4738,7 @@ export default function Viewport() {
           // （旧 model 数组有 9 项 — DIRS[8] 越界，第 9 粒「测量」render 即 crash 嘅潜伏 bug，呢度顺手修正：删面→溢出列表）。
           const del: MMItem = { key: 'del', icon: 'trash', label: '删除', disabled: !selectedFeature && !selectedComponent, fn: () => { if (selectedFeature) { removeFeature(selectedFeature); selectFeature(null) } else if (selectedComponent) useApp.getState().deleteComponent(selectedComponent) } }
           const fit: MMItem = { key: 'fit', glyph: '⊕', label: '适应窗口', fn: () => requestFit() }
-          const newSketch: MMItem = { key: 'sketch', icon: 'sketch', label: '创建草图', fn: () => startSketch() }
+          const newSketch: MMItem = { key: 'sketch', icon: 'sketch', label: '建立草圖', fn: () => startSketch() }
           if (bodyMesh) {
             // ── 实体上（有活动实体）：N 重复 · NE 草图 · E 按拉 · SE 测量 · S 删除 · SW 移动 · W 圆角 · NW 适应
             sectors = [
@@ -8316,7 +8316,7 @@ export default function Viewport() {
           <div style={{ display: 'flex', gap: 7, justifyContent: 'center', flexWrap: 'wrap', marginTop: 10, pointerEvents: 'auto' }}>
             {([
               { label: '✏️ 画草图', fn: () => useApp.getState().startSketch() },
-              { label: '📦 长方体', fn: () => useApp.getState().runCommand('box', '长方体') },
+              { label: '📦 長方體', fn: () => useApp.getState().runCommand('box', '長方體') },
               { label: '⚙️ 齿轮组示例', fn: () => void useApp.getState().loadSample('gearpair') },
               { label: '🔍 搜索命令', fn: () => useApp.getState().setCmdPalette(true) },
             ] as { label: string; fn: () => void }[]).map((b) => (

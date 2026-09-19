@@ -22,7 +22,7 @@ const SOLID: Panel[] = [
   {
     name: 'CREATE',
     tools: [
-      { id: 'sketch', label: '创建草图', icon: 'sketch', shortcut: 'Shift+S', quick: true, tip: '自由草图：快速画矩形/圆/折线等，鼠标点击即画（新手首选）。㩒咗之后揀基准面 —— 红XY/绿XZ/蓝YZ 原点面，或直接㩒实体嘅任何一个平坦面。（S=命令搜索，同 Fusion 一样）' },
+      { id: 'sketch', label: '建立草圖', icon: 'sketch', shortcut: 'Shift+S', quick: true, tip: '自由草圖：快速畫矩形/圓/折線等，滑鼠點擊即畫（新手首選）。㩒咗之后揀基準面 —— 紅XY/綠XZ/藍YZ 原點面，或直接㩒實體嘅任何一個平坦面。（S=命令搜索，同 Fusion 一样）' },
       { id: 'createform', label: '建立造型', icon: 'box', quick: true, tip: '切換到 Fusion 式 FORM 細分建模環境；完成後用「完成造型」返回實體。' },
       { id: 'derive', label: 'Derive', icon: 'component', tip: '从另一个设计派生组件、实体、草图或参数。' },
       { id: 'automatedmodel', label: 'Automated Modeling', icon: 'component', tip: 'Connector v1：依次点两张平面面，建立独立连接器实体。当前不含避让体、曲面面或 Fusion 的生成式多方案。' },
@@ -35,10 +35,10 @@ const SOLID: Panel[] = [
       { id: 'emboss', label: 'Emboss', icon: 'emboss', quick: true, tip: 'Emboss（Fusion 凸字/刻字）：点实体一个【平面】→ 输入文字 → 沿该面法向凸起(正深度)/刻入(负深度)。标牌/编号/logo。' },
       { id: 'hole', label: '孔', icon: 'hole', shortcut: 'H', quick: true, sep: true, tip: '孔：在实体面上钻孔（通/盲 · 沉头 · 埋头 · 螺母槽 · 攻牙底孔），有 M3-M12 标准尺寸。' },
       { id: 'thread', label: '螺纹杆', icon: 'thread', tip: '螺纹杆：真渐开螺旋牙（非贴图）。设大径Ø/螺距/高。' },
-      { id: 'box', label: '长方体', icon: 'box', sep: true, tip: '长方体：直接设长×宽×高建一个盒（最常用起手）。' },
-      { id: 'cylinder', label: '圆柱', icon: 'cylinder', tip: '圆柱：设直径×高直接建圆柱。' },
+      { id: 'box', label: '長方體', icon: 'box', sep: true, tip: '長方體：直接設長×寬×高建一個盒（最常用起手）。' },
+      { id: 'cylinder', label: '圓柱', icon: 'cylinder', tip: '圓柱：設直徑×高直接建圓柱。' },
       { id: 'sphere', label: '球', icon: 'sphere', tip: '球：设直径建球。' },
-      { id: 'torus', label: '圆环', icon: 'torus', tip: '圆环：设外径+管径，弧<360° 出 C 形环/卡簧。' },
+      { id: 'torus', label: '圓環', icon: 'torus', tip: '圓環：設外徑+管徑，弧<360° 出 C 形環/卡簧。' },
       { id: 'coil', label: '螺旋', icon: 'coil', tip: '螺旋/弹簧：设节距/高/底半径/线径/顶半径（顶≠底=锥形弹簧）。' },
       { id: 'pipe', label: '管道', icon: 'pipeicon', tip: '管道：沿路径扫出空心管（外径+壁厚）。先画路径折线。' },
       {
@@ -339,7 +339,7 @@ const LAB: Panel[] = [
 // dedicated surface/sheet-metal modeller — these reuse SOLID ops (documented honestly in DEVLOG).
 const SURFACE: Panel[] = [
   { name: 'CREATE', tools: [
-    { id: 'sketch', label: '创建草图', icon: 'sketch', quick: true },
+    { id: 'sketch', label: '建立草圖', icon: 'sketch', quick: true },
     { id: 'surfloft', label: '曲面放样', icon: 'loft', quick: true },   // T792：SURFACE tab 第一个真曲面命令（开放截面 → 薄壳）
     { id: 'surfextrude', label: '曲面拉伸', icon: 'extrude', quick: true, tip: '曲面拉伸：把当前草图截面沿法向拉成一张【零厚曲面】—— 开放折线 → 曲面片；闭合轮廓 → 无盖嘅管壳（圆 → 圆柱面）。出独立曲面体（想变实体再用「加厚」/「缝合」）。' },
     { id: 'ruled', label: '规则曲面', icon: 'loft', quick: true, tip: '规则曲面：喺 ≥2 张【不同高度嘅开放折线草图】之间,用直线连起对应点、扫出一张零厚曲面。先画开放折线 → 完成草图 → 换高度再画 → 撳此。出独立曲面体（想变实体再「加厚」/「缝合」）。注：呢种片冇壁厚（想要壁厚用「曲面放样」）。' },
@@ -387,8 +387,8 @@ const SURFACE: Panel[] = [
 ]
 const MESH: Panel[] = [
   { name: 'CREATE', tools: [
-    { id: 'box', label: '长方体', icon: 'box', quick: true },
-    { id: 'cylinder', label: '圆柱', icon: 'cylinder', quick: true },
+    { id: 'box', label: '長方體', icon: 'box', quick: true },
+    { id: 'cylinder', label: '圓柱', icon: 'cylinder', quick: true },
     { id: 'sphere', label: '球', icon: 'sphere', quick: true },
   ] },
   { name: 'MODIFY', tools: [
@@ -418,9 +418,9 @@ const MESH: Panel[] = [
 const SHEET: Panel[] = [
   { name: 'CREATE', tools: [
     { id: 'sheetmetal', label: '钣金件', icon: 'sheetmetal', quick: true },
-    { id: 'sketch', label: '创建草图', icon: 'sketch', quick: true },
+    { id: 'sketch', label: '建立草圖', icon: 'sketch', quick: true },
     { id: 'extrude', label: '薄板/法兰(拉伸)', icon: 'extrude', quick: true },
-    { id: 'box', label: '长方体', icon: 'box' },
+    { id: 'box', label: '長方體', icon: 'box' },
   ] },
   { name: 'MODIFY', tools: [
     { id: 'shell', label: '抽壳(成薄壁)', icon: 'shell', quick: true },
@@ -435,10 +435,10 @@ const SHEET: Panel[] = [
 ]
 const PLASTIC: Panel[] = [
   { name: 'CREATE', tools: [
-    { id: 'sketch', label: '创建草图', icon: 'sketch', quick: true },
+    { id: 'sketch', label: '建立草圖', icon: 'sketch', quick: true },
     { id: 'extrude', label: '拉伸', icon: 'extrude', quick: true },
     { id: 'rib', label: '加强筋', icon: 'rib', quick: true },
-    { id: 'box', label: '长方体', icon: 'box' },
+    { id: 'box', label: '長方體', icon: 'box' },
     { id: 'hole', label: '孔/Boss', icon: 'hole' },
   ] },
   { name: 'MODIFY', tools: [

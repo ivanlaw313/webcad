@@ -45,12 +45,12 @@ export default function MaterialSwatchPicker() {
   })
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
-      <button className="tb-btn" title="材质 / 外观 — 物理材质(密度→质量) 与 外观(颜色/PBR) 分两 tab" onClick={() => setOpen((v) => !v)}
+      <button className="tb-btn" title="材質 / 外觀 — 物理材質(密度→質量) 與 外觀(顏色/PBR) 分兩 tab" onClick={() => setOpen((v) => !v)}
         style={{ padding: '2px 6px', fontSize: 13 }}>🎨</button>
       {open && (
         <div role="menu" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 30000, background: '#fff', border: '1px solid #cfd6dd', borderRadius: 8, boxShadow: '0 8px 28px rgba(0,0,0,.22)', padding: 8, width: 296, maxHeight: '72vh', overflowY: 'auto' }}>
           <div style={{ display: 'flex', gap: 0, marginBottom: 8, borderBottom: '1px solid #e3e8ee' }}>
-            <button style={tabBtn('appearance')} onClick={() => setTab('appearance')}>🎨 外观</button>
+            <button style={tabBtn('appearance')} onClick={() => setTab('appearance')}>🎨 外觀</button>
             <button style={tabBtn('physical')} onClick={() => setTab('physical')}>⚖ 物理材质</button>
           </div>
           {tab === 'appearance' && (
@@ -58,7 +58,7 @@ export default function MaterialSwatchPicker() {
               {keys.map((k) => {
                 const eng = KEY2IMG[k]
                 return (
-                  <button key={k} title={`外观：${k}`} onClick={() => { setMaterialPreset(k); setOpen(false) }}
+                  <button key={k} title={`外觀：${k}`} onClick={() => { setMaterialPreset(k); setOpen(false) }}
                     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, border: '1px solid transparent', borderRadius: 6, padding: 2, background: 'none', cursor: 'pointer' }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2b6cf0'; e.currentTarget.style.background = '#eef3fc' }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'none' }}>
@@ -73,7 +73,7 @@ export default function MaterialSwatchPicker() {
           )}
           {tab === 'physical' && (
             <div>
-              <div style={{ fontSize: 10, color: '#8a95a0', marginBottom: 6 }}>只设【密度】→ 质量 / FEA / BOM（外观颜色不变）。当前：{physMatName || '（未指定，用默认密度）'}</div>
+              <div style={{ fontSize: 10, color: '#8a95a0', marginBottom: 6 }}>只設【密度】→ 質量 / FEA / BOM（外觀顏色不變）。當前：{physMatName || '（未指定，用默認密度）'}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {physKeys.map((k) => (
                   <button key={k} title={`物理材质：${k}（密度 ${MATERIALS[k].density} g/cm³）`} onClick={() => { setPhysicalMaterial(k); setOpen(false) }}

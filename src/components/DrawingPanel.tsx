@@ -1097,7 +1097,7 @@ export default function DrawingPanel() {
         })()}
         <div className="dw-titleblock" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', padding: '6px 10px', borderTop: '1px solid #ccc', fontSize: 12, color: '#333' }}>
           <span><b>{tStatus('名称', lang)}</b> {projectName || tStatus('webcad 零件', lang)}</span>
-          <span><b>{tStatus('总尺寸', lang)}</b> {oL ?? '?'}×{oW ?? '?'}×{oH ?? '?'} mm</span>
+          <span><b>{tStatus('總尺寸', lang)}</b> {oL ?? '?'}×{oW ?? '?'}×{oH ?? '?'} mm</span>
           <span><b>{tStatus('材料', lang)}</b> <input value={materialTxt} onChange={(e) => setMaterialTxt(e.target.value)} placeholder={tStatus('如 6061铝', lang)} style={{ fontSize: 12, width: 64, padding: '0 3px' }} title={tStatus('材料（自由文字，写入标题栏 + 导出）', lang)} /></span>
           <span><b>{tStatus('比例', lang)}</b> <select value={scale} onChange={(e) => setScale(e.target.value)} style={{ fontSize: 12, padding: '0 2px' }} title={tStatus('實際紙面比例；模型尺寸標註保持原值', lang)}>{['1:1', '1:2', '1:5', '1:10', '2:1', '5:1', '10:1'].map((s) => <option key={s} value={s}>{s}</option>)}</select></span>
           <span><b>{tStatus('单位', lang)}</b> mm</span>

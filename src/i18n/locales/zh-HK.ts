@@ -593,7 +593,7 @@ const messages: Record<string, string> = {
   "hist.delete": "刪除",
   "hist.deleteTip": "刪除此版本",
   "hist.empty": "暫無歷史版本。改動模型後會自動記錄快照（保留最近 10 個）；點上面「💾 儲存目前版本」可長期保留（最多 30 個）。",
-  "hist.footer": "保留最近 10 個自動 + 30 個命名 快照，存在瀏覽器 IndexedDB（清瀏覽器數據會一併清除）。重要項目請同時用「檔案 ▾ → 儲存」下載 .json 備份。",
+  "hist.footer": "保留最近 10 個自動 + 30 個命名 快照，存在瀏覽器 IndexedDB（清除瀏覽器數據會一併清除）。重要項目請同時用「檔案 ▾ → 儲存」下載 .json 備份。",
   "hist.idbUnavailable": "⚠️ 此瀏覽器無法使用 IndexedDB（可能是私隱/無痕模式）——版本歷史不可用。「檔案 ▾ → 儲存」下載 .json 不受影響，請用它備份。",
   "hist.nameAria": "版本名稱",
   "hist.namePlaceholder": "版本名稱（例：加完散熱孔）— 留空自動用時間命名",

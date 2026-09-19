@@ -2084,6 +2084,24 @@ export function tStatus(s: string, lang: LangInput): string {
       return msg(key, L).replace('{0}', cylM[3]).replace('{1}', cylM[4])
     }
   }
+  // v1.78: Sphere / Cone / Torus prim toasts — catalog before EN short-token shred
+  {
+    const sphereM = s.match(/^已(创建|切割)球\s+Ø([\d.]+)/)
+    if (sphereM) {
+      const key = sphereM[1] === '切割' ? 'status.sphereCut' : 'status.sphereCreated'
+      return msg(key, L).replace('{0}', sphereM[2])
+    }
+    const coneM = s.match(/^已(创建|切割)(圆锥|圓錐|圆台|圓台)\s+底Ø([\d.]+)(?:\s+顶Ø([\d.]+))?×([\d.]+)/)
+    if (coneM) {
+      const key = coneM[1] === '切割' ? 'status.coneCut' : 'status.coneCreated'
+      return msg(key, L).replace('{0}', coneM[3]).replace('{1}', coneM[4] ?? '0').replace('{2}', coneM[5])
+    }
+    const torusM = s.match(/^已(创建|切割)(圆环|圓環)\s+外Ø([\d.]+)\s+管Ø([\d.]+)/)
+    if (torusM) {
+      const key = torusM[1] === '切割' ? 'status.torusCut' : 'status.torusCreated'
+      return msg(key, L).replace('{0}', torusM[3]).replace('{1}', torusM[4])
+    }
+  }
   if (L !== 'en') {
     // ja (and future): reuse EN phrase table when possible, else keep source
     // Fall through to EN replacement for coverage; leftover CJK stays (honest).

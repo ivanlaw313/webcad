@@ -4,7 +4,7 @@ import { ellipseArcContainsAngle } from '../sketch/ellipseArcGeometry'
 import { ellipseLineTangentPair, initialEllipseContact, refPts } from '../sketch/freesolve'
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, type ReactNode, type PointerEvent as RPointerEvent } from 'react'
 import { useApp } from '../store'
-import { tStatus } from '../i18n'
+import { tStatus, msg } from '../i18n'
 import ProjectionLinkStatus from './ProjectionLinkStatus'
 
 // T791：草图「工具选项」浮动面板 —— 只显示【当前工具】需要嘅设定，其它（CNC/激光/DXF/拉伸…）唔会喺度阻你。
@@ -146,25 +146,30 @@ export function SketchToolPanel() {
   if (mode !== 'sketch') return null
   const g = () => useApp.getState()
   const T = (s: string) => tStatus(s, lang)
+  const m = (key: string, ...args: Array<string | number>) => {
+    let s = msg(key, lang)
+    args.forEach((a, i) => { s = s.replace(`{${i}}`, String(a)) })
+    return s
+  }
   const title = TOOL_TITLE[tool] || '草图工具'
 
   let body: ReactNode
   switch (tool) {
     case 'earc':
       body = <>
-        <Row label={lang === 'en' ? 'Direction' : '弧方向'}><select aria-label={lang === 'en' ? 'Elliptical arc direction' : '椭圆弧方向'} value={ellipseArcDirection} onChange={(e) => g().setEllipseArcDirection(e.target.value as 'ccw'|'cw')}>
-          <option value="ccw">{lang === 'en' ? 'Counterclockwise' : '逆时针'}</option><option value="cw">{lang === 'en' ? 'Clockwise' : '顺时针'}</option>
+        <Row label={m('sk.earc.dir')}><select aria-label={m('sk.earc.dirAria')} value={ellipseArcDirection} onChange={(e) => g().setEllipseArcDirection(e.target.value as 'ccw'|'cw')}>
+          <option value="ccw">{m('sk.earc.ccw')}</option><option value="cw">{m('sk.earc.cw')}</option>
         </select></Row>
-        <div style={{ fontSize: 12, lineHeight: 1.5 }}>{lang === 'en' ? 'Drag the orange arc endpoints to adjust the sweep. Drag the center or blue axis handles; press D and click a dotted semiaxis to set its length.' : '拖橙色弧端点调整弧段；拖圆心或蓝色轴手柄调整椭圆。按 D 点虚线半轴可输入长度。'}</div>
+        <div style={{ fontSize: 12, lineHeight: 1.5 }}>{m('sk.earc.hint')}</div>
       </>
       break
     case 'ellipse':
       body = (<>
-        <Row label={lang === 'en' ? 'Method' : '绘制方式'}><select aria-label={lang === 'en' ? 'Ellipse creation method' : '椭圆绘制方式'} value={ellipseCreation} onChange={(e) => g().setEllipseCreation(e.target.value as 'axis-aligned' | 'three-point')} style={{ minWidth: 0, maxWidth: '100%', flex: 1 }}>
-          <option value="axis-aligned">{lang === 'en' ? 'Axis aligned (2 points)' : '正交椭圆（两点）'}</option>
-          <option value="three-point">{lang === 'en' ? 'Center + two axes (3 points)' : '中心 + 两个轴（三点）'}</option>
+        <Row label={m('sk.ellipse.method')}><select aria-label={m('sk.ellipse.methodAria')} value={ellipseCreation} onChange={(e) => g().setEllipseCreation(e.target.value as 'axis-aligned' | 'three-point')} style={{ minWidth: 0, maxWidth: '100%', flex: 1 }}>
+          <option value="axis-aligned">{m('sk.ellipse.axisAligned')}</option>
+          <option value="three-point">{m('sk.ellipse.threePoint')}</option>
         </select></Row>
-        <div style={{ fontSize: 12, lineHeight: 1.5 }}>{ellipseCreation === 'three-point' ? (lang === 'en' ? 'Center → major-axis endpoint → minor-axis distance. Esc returns one step.' : '中心 → 主轴端点 → 副轴距离。Esc 返回上一步。') : (lang === 'en' ? 'Center → bounding-box corner. Type width / height for exact sizes.' : '中心 → 包围框角点。输入宽 / 高可精确绘制。')}</div>
+        <div style={{ fontSize: 12, lineHeight: 1.5 }}>{ellipseCreation === 'three-point' ? m('sk.ellipse.hint3') : m('sk.ellipse.hint2')}</div>
       </>)
       break
     case 'offset':
@@ -268,16 +273,16 @@ export function SketchToolPanel() {
       const set = (patch: Partial<typeof a>) => g().setArrayCfg(patch)
       body = (<>
         <div style={{display:'flex',flexDirection:'column',gap:5}}>
-          <button className={'sb-tool'+(!associative?' active':'')} data-array-independent onClick={()=>{if(patternSession){g().cancelSketchPattern();g().setSketchTool('array')}}}>{lang==='en'?'Independent copies':'独立副本阵列'}</button>
-          {!existingPattern&&<button className={'sb-tool'+(patternSession?.mode==='create'?' active':'')} data-pattern-create disabled={!selectedCount||pending} onClick={()=>g().beginSketchPattern('create')}>{lang==='en'?'Create associative pattern':'建立关联阵列'}</button>}
-          {existingPattern&&<div style={{display:'flex',gap:5}}><button className={'sb-tool'+(patternSession?.mode==='reconfigure'?' active':'')} data-pattern-edit style={{flex:1}} disabled={pending} onClick={()=>g().beginSketchPattern('reconfigure')}>{lang==='en'?'Edit linked pattern':'编辑关联阵列'}</button><button className="sb-tool" data-pattern-detach style={{flex:1}} disabled={pending} title={lang==='en'?'Keep geometry and remove the pattern relationship':'保留几何，解除阵列关联'} onClick={()=>g().detachSketchPattern()}>{lang==='en'?'Detach':'解除关联'}</button></div>}
+          <button className={'sb-tool'+(!associative?' active':'')} data-array-independent onClick={()=>{if(patternSession){g().cancelSketchPattern();g().setSketchTool('array')}}}>{m('sk.array.independent')}</button>
+          {!existingPattern&&<button className={'sb-tool'+(patternSession?.mode==='create'?' active':'')} data-pattern-create disabled={!selectedCount||pending} onClick={()=>g().beginSketchPattern('create')}>{m('sk.array.createAssoc')}</button>}
+          {existingPattern&&<div style={{display:'flex',gap:5}}><button className={'sb-tool'+(patternSession?.mode==='reconfigure'?' active':'')} data-pattern-edit style={{flex:1}} disabled={pending} onClick={()=>g().beginSketchPattern('reconfigure')}>{m('sk.array.editLinked')}</button><button className="sb-tool" data-pattern-detach style={{flex:1}} disabled={pending} title={m('sk.array.detachTitle')} onClick={()=>g().detachSketchPattern()}>{m('sk.array.detach')}</button></div>}
         </div>
-        <div data-pattern-source-info style={{fontSize:11.5,lineHeight:1.5,color:'#1c6fb8'}}>{associative?(lang==='en'?`${sourceCount??selectedCount} source shapes; linked copies follow source edits.`:`${sourceCount??selectedCount} 个来源轮廓；修改来源时，关联副本会同步更新。`):(lang==='en'?`${selectedCount||shapeCount} shapes will be copied independently. Select sources before creating a linked pattern.`:`将独立复制 ${selectedCount||shapeCount} 个轮廓。建立关联阵列前，请先选取来源。`)}{associative&&patternPreview.document&&(lang==='en'?` Preview: ${patternPreview.document.shapes.length} total shapes.`:` 预览共 ${patternPreview.document.shapes.length} 个轮廓。`)}</div>
+        <div data-pattern-source-info style={{fontSize:11.5,lineHeight:1.5,color:'#1c6fb8'}}>{associative?m('sk.array.srcLinked', sourceCount??selectedCount):m('sk.array.srcIndep', selectedCount||shapeCount)}{associative&&patternPreview.document&&m('sk.array.previewTotal', patternPreview.document.shapes.length)}</div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button className={'sb-tool' + (a.kind === 'rect' ? ' active' : '')} style={{ flex: 1 }} disabled={patternSession?.mode==='reconfigure'&&existingPattern?.config.kind!=='rectangular'} onClick={() => set({ kind: 'rect' })}>{T('▦ 矩形')}</button>
           <button className={'sb-tool' + (a.kind === 'circ' ? ' active' : '')} style={{ flex: 1 }} disabled={patternSession?.mode==='reconfigure'&&existingPattern?.config.kind!=='circular'} onClick={() => set({ kind: 'circ' })}>{T('✳ 环形')}</button>
         </div>
-        {patternSession?.mode==='reconfigure'&&<div style={{fontSize:11.5}}>{lang==='en'?'Changing pattern type requires a new pattern.':'更改阵列类型需要建立新的阵列。'}</div>}
+        {patternSession?.mode==='reconfigure'&&<div style={{fontSize:11.5}}>{m('sk.array.changeType')}</div>}
         {a.kind === 'rect' ? (<>
           {/* GM-FP4 #53：Distance Type（Fusion Rectangular Pattern）—— 间距 Spacing（每格）/ 总跨 Extent（首末总距） */}
           <div style={{ display: 'flex', gap: 4 }}>
@@ -299,13 +304,13 @@ export function SketchToolPanel() {
           <Row label={T('中心 X')}><ScaleValueInput label="Array center X" value={a.cx} onValue={n=>set({cx:n})} width={80} /></Row>
           <Row label={T('中心 Y')}><ScaleValueInput label="Array center Y" value={a.cy} onValue={n=>set({cy:n})} width={80} /></Row>
         </>)}
-        <button className="sb-tool sb-finish" title={T('按上面参数阵列当前轮廓')} data-array-apply disabled={pending||!ready||(!associative&&!validation.ok)} onClick={()=>void g().applyArray()}>{associative?(patternSession?.mode==='create'?(lang==='en'?'Apply linked pattern':'应用关联阵列'):(lang==='en'?'Apply pattern changes':'应用阵列修改')):T('应用阵列')}</button>
+        <button className="sb-tool sb-finish" title={T('按上面参数阵列当前轮廓')} data-array-apply disabled={pending||!ready||(!associative&&!validation.ok)} onClick={()=>void g().applyArray()}>{associative?(patternSession?.mode==='create'?m('sk.array.applyLinked'):m('sk.array.applyChanges')):T('应用阵列')}</button>
         {!associative&&!validation.ok&&<div role="alert" data-array-error style={{color:'#b42318',fontSize:11.5}}>{validation.reason}</div>}
         {previewError&&<div role="alert" data-array-error style={{color:'#b42318',fontSize:11.5}}>{previewError}</div>}
-        {pending&&<div role="status">{lang==='en'?'Validating preview…':'正在校验预览…'}</div>}
-        {associative&&patternPreview.omitted.length>0&&<div role="status" data-pattern-omitted style={{fontSize:11.5,color:'#8b5b0b'}}>{lang==='en'?`${patternPreview.omitted.length} external relationships remain on the sources and will not be copied.`:`${patternPreview.omitted.length} 个外部关系保留在来源，不会复制到副本。`}</div>}
-        {associative&&<button className="sb-tool" data-pattern-cancel onClick={()=>g().cancelSketchPattern()}>{lang==='en'?'Cancel pattern changes':'取消阵列操作'}</button>}
-        {!associative&&<div data-array-copy-help style={{fontSize:11.5,lineHeight:1.5,color:'#1c6fb8'}}>{lang==='en'?'Independent copies retain internal dimensions and relationships. Later source edits do not move these copies. Use Create associative pattern for linked updates.':'独立副本保留内部尺寸与关系；后续修改原件不会带动这些副本。如需同步更新，请选择建立关联阵列。'}</div>}
+        {pending&&<div role="status">{m('sk.array.validating')}</div>}
+        {associative&&patternPreview.omitted.length>0&&<div role="status" data-pattern-omitted style={{fontSize:11.5,color:'#8b5b0b'}}>{m('sk.array.omitted', patternPreview.omitted.length)}</div>}
+        {associative&&<button className="sb-tool" data-pattern-cancel onClick={()=>g().cancelSketchPattern()}>{m('sk.array.cancelChanges')}</button>}
+        {!associative&&<div data-array-copy-help style={{fontSize:11.5,lineHeight:1.5,color:'#1c6fb8'}}>{m('sk.array.indepHelp')}</div>}
       </>)
       break
     }
@@ -336,15 +341,15 @@ export function SketchToolPanel() {
       break
     case 'scale':
       body = skScale ? (<>
-        <div data-scale-help style={{fontSize:11.5,lineHeight:1.5,color:'#1c6fb8'}}>{lang==='en'?'Pick a base point, enter a factor or drag the blue handle. The dashed shape is a preview; Apply commits it. Existing dimensions and Fix constraints remain active.':'可选择基点、输入比例或拖蓝色手柄；虚线只作预览，按应用才修改草图。已有尺寸及固定约束继续生效。'}</div>
-        <label style={{display:'flex',gap:6,alignItems:'center'}}>{lang==='en'?'Factor':'比例'}<ScaleValueInput label="Scale factor" value={skScale.factor} onValue={n=>void g().setSkScaleFactor(n)} /></label>
+        <div data-scale-help style={{fontSize:11.5,lineHeight:1.5,color:'#1c6fb8'}}>{m('sk.scale.help')}</div>
+        <label style={{display:'flex',gap:6,alignItems:'center'}}>{m('sk.scale.factor')}<ScaleValueInput label="Scale factor" value={skScale.factor} onValue={n=>void g().setSkScaleFactor(n)} /></label>
         <div style={{display:'flex',gap:6}}>{(['X','Y'] as const).map((axis,i)=><label key={axis}>{axis}<ScaleValueInput label={`Scale base ${axis}`} value={i?skScale.cy:skScale.cx} onValue={n=>g().setSkScaleBase(i?[skScale.cx,n]:[n,skScale.cy])} width={80} /></label>)}</div>
-        <button className="sb-tool" data-scale-pick-base onClick={()=>g().pickSkScaleBase()}>{skScale.stage==='base'?(lang==='en'?'Click the base point in the canvas…':'请在画布点击基点…'):(lang==='en'?'Pick base point':'选择基点')}</button>
-        {skScale.pending&&<div role="status">{lang==='en'?'Checking preview…':'正在校验预览…'}</div>}
+        <button className="sb-tool" data-scale-pick-base onClick={()=>g().pickSkScaleBase()}>{skScale.stage==='base'?m('sk.scale.clickBase'):m('sk.scale.pickBase')}</button>
+        {skScale.pending&&<div role="status">{m('sk.scale.checking')}</div>}
         {skScale.error&&<div role="alert" style={{color:'#b42318',fontSize:11.5}}>{skScale.error}</div>}
-        <div style={{display:'flex',gap:6}}><button className="sb-tool sb-finish" data-scale-apply disabled={skScale.pending||!!skScale.error||skScale.stage==='base'||skScale.stage==='dragging'} onClick={()=>void g().confirmSkScale()}>{lang==='en'?'Apply':'应用'}</button><button className="sb-tool" data-scale-cancel onClick={()=>g().cancelSkScale()}>{lang==='en'?'Cancel':'取消'}</button></div>
-        <button className="sb-tool" data-scale-input onClick={()=>g().skScalePrompt()}>{lang==='en'?'Legacy numeric input…':'打字精确输入…'}</button>
-      </>) : (<button className="sb-tool" onClick={()=>g().startSkScale()}>{lang==='en'?'Start Scale':'开始缩放'}</button>)
+        <div style={{display:'flex',gap:6}}><button className="sb-tool sb-finish" data-scale-apply disabled={skScale.pending||!!skScale.error||skScale.stage==='base'||skScale.stage==='dragging'} onClick={()=>void g().confirmSkScale()}>{m('sk.scale.apply')}</button><button className="sb-tool" data-scale-cancel onClick={()=>g().cancelSkScale()}>{m('sk.scale.cancel')}</button></div>
+        <button className="sb-tool" data-scale-input onClick={()=>g().skScalePrompt()}>{m('sk.scale.legacy')}</button>
+      </>) : (<button className="sb-tool" onClick={()=>g().startSkScale()}>{m('sk.scale.start')}</button>)
       break
     case 'move':
       body = skMove ? (<>
@@ -352,11 +357,11 @@ export function SketchToolPanel() {
           <input type="checkbox" checked={!!skMove.copy} onChange={(e) => g().setSkMoveCopy(e.target.checked)} />
           <span>{T('Create Copy 复制')}</span>
         </label>
-        {!skMove.copy && <div data-move-constraint-help style={{ fontSize: 11.5, color: '#1c6fb8', lineHeight: 1.5 }}>{lang === 'en' ? 'Move preserves existing dimensions, directions and Fix constraints. A conflicting move leaves the sketch unchanged.' : '移动会遵守已有尺寸、方向及固定约束；冲突时保留原有草图。'}</div>}
-        {!!skMove.copy && <div data-copy-constraint-help style={{ fontSize: 11.5, color: '#1c6fb8', lineHeight: 1.5 }}>{lang === 'en' ? 'Copy includes dimensions and relationships entirely within the selection, with independent IDs. Relationships to unselected geometry or the origin are not copied.' : '复制会保留选中对象内部的尺寸与关系，并建立独立编号；连到未选对象或原点的关系不会复制。'}</div>}
-        {!skMove.copy&&movePreview.pending&&<div role="status">{lang==='en'?'Checking move preview…':'正在校验移动预览…'}</div>}
+        {!skMove.copy && <div data-move-constraint-help style={{ fontSize: 11.5, color: '#1c6fb8', lineHeight: 1.5 }}>{m('sk.move.help')}</div>}
+        {!!skMove.copy && <div data-copy-constraint-help style={{ fontSize: 11.5, color: '#1c6fb8', lineHeight: 1.5 }}>{m('sk.copy.help')}</div>}
+        {!skMove.copy&&movePreview.pending&&<div role="status">{m('sk.move.checking')}</div>}
         {movePreview.error&&<div role="alert" style={{color:'#b42318'}}>{movePreview.error}</div>}
-        <div style={{display:'flex',flexDirection:'column',gap:6}}>{(['dx','dy','ang'] as const).map(field=><Row key={field} label={field==='ang'?(lang==='en'?'Angle °':'角度 °'):`${field} mm`}><input aria-label={field==='ang'?'Move angle':'Move '+field} inputMode="decimal" value={skMove.inputDraft?.[field]??String(skMove[field])} onChange={e=>g().setSkMoveValue(field,e.target.value)} style={{width:90}} /></Row>)}</div>
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>{(['dx','dy','ang'] as const).map(field=><Row key={field} label={field==='ang'?m('sk.move.angle'):`${field} mm`}><input aria-label={field==='ang'?'Move angle':'Move '+field} inputMode="decimal" value={skMove.inputDraft?.[field]??String(skMove[field])} onChange={e=>g().setSkMoveValue(field,e.target.value)} style={{width:90}} /></Row>)}</div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button className="sb-tool sb-finish" style={{ flex: 1 }} title={T('应用（Enter）')} disabled={!!skMove.inputError||!skMove.copy&&(movePreview.pending||!!movePreview.error||!movePreview.shapes)} onClick={() => g().commitSkMove()}>{T('✓ 应用')}</button>
           <button className="sb-tool" style={{ flex: 1 }} title={T('取消（Esc）')} onClick={() => g().cancelSkMove()}>{T('取消')}</button>
@@ -368,12 +373,10 @@ export function SketchToolPanel() {
     case 'select':
       body = (<>
         <div role="status" data-sketch-drag-help style={{ fontSize: 12, lineHeight: 1.5, overflowWrap: 'anywhere', color: conflict ? '#a32d27' : '#3a4750' }}>
-          {lang === 'en'
-            ? (finishingDrag ? 'Confirming the release position…' : dragging ? 'Release to confirm · Esc to restore' : conflict ? 'Conflicting constraints: inspect the red markers.' : dof === 0 ? 'Fully constrained: edit a dimension to change the geometry.' : 'Drag a point to move it, an edge to move both ends, or a circle rim to resize it. Dimensions and constraints stay in force.')
-            : (finishingDrag ? '正在确认放手位置…' : dragging ? '放开确认 · Esc 还原' : conflict ? '约束有冲突：请检查红色标记。' : dof === 0 ? '几何已完全约束：点击尺寸修改形状。' : '拖点改位置、拖边移动两端、拖圆周改大小。已有尺寸与约束会保持。')}
+          {finishingDrag ? m('sk.drag.confirming') : dragging ? m('sk.drag.release') : conflict ? m('sk.drag.conflict') : dof === 0 ? m('sk.drag.fully') : m('sk.drag.idle')}
         </div>
-        {(armedCon === 'tangent' || ellipseLineSelected) && <div style={{ fontSize: 11.5, color: '#1c6fb8', lineHeight: 1.5 }}>{ellipseTangentNeedsRotation ? (lang === 'en' ? 'The current line direction has no contact within this arc. Tangent will try to adjust the geometry toward the orange dashed direction while preserving constraints.' : '当前直线方向没有弧内切点。套用相切会尝试按橙色虚线调整几何方向，并保留既有约束。') : noEllipseTangentCandidate ? (lang === 'en' ? 'No tangent candidate on this directed arc for the current line direction. Change the geometry or select an arc endpoint for endpoint tangency.' : '当前直线方向在此有向弧内没有相切候选。请调整几何，或选择弧端点使用端点相切。') : lang === 'en' ? 'Whole ellipse + straight edge: orange contact is the proposed branch; click Tangent to confirm. Whole arc contacts stay within the directed sweep; selecting an endpoint uses endpoint tangency.' : '整椭圆＋直线：橙色接触候选为默认分支，按相切确认。整段椭圆弧只取有向范围内候选；选端点则使用端点相切。'}</div>}
-        {dragging && <button className="sb-tool" onClick={() => g().skDragCancel()}>{lang === 'en' ? 'Cancel drag (Esc)' : '取消拖动（Esc）'}</button>}
+        {(armedCon === 'tangent' || ellipseLineSelected) && <div style={{ fontSize: 11.5, color: '#1c6fb8', lineHeight: 1.5 }}>{ellipseTangentNeedsRotation ? m('sk.tan.needsRot') : noEllipseTangentCandidate ? m('sk.tan.noCand') : m('sk.tan.whole')}</div>}
+        {dragging && <button className="sb-tool" onClick={() => g().skDragCancel()}>{m('sk.drag.cancel')}</button>}
         {armedCon
           ? <div style={{ fontSize: 12, fontWeight: 700, color: '#1c6fb8', lineHeight: 1.5 }}>{`${T('施约束武装中')}：${SK_CON_LABEL_ZH[armedCon] ?? armedCon}`}<div style={{ fontWeight: 400, color: '#5a6b78', fontSize: 11.5, marginTop: 2 }}>{T('拣要约束嘅对象（拣够即施加，保持武装）· ESC 退出')}</div></div>
           : <Hint>{T('点 点/边/圆 拣选（可多选）· 空白左拖=框选（左→右全包/右→左相触）· 双击边=链选 → 撳约束/尺寸掣。或先撳约束掣（无选择）= tool-first。')}</Hint>}

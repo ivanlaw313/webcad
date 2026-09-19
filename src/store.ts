@@ -11751,17 +11751,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     const aBodies = aDef?.bodies?.length ? aDef.bodies : (A ? [{ id: aId + '_B1', name: A.name, mesh: A.mesh }] : [])
     const bBodies = bDef?.bodies?.length ? bDef.bodies : (B ? [{ id: bId + '_B1', name: B.name, mesh: B.mesh }] : [])
     const aBody = aBodies.find((b) => b.id === (aBodyId ?? aBodies[0]?.id))
-    if (!A || !B || !aBody?.mesh.vertices.length) { set({ status: '组件布尔：来源 Body 无实体几何' }); return }
+    if (!A || !B || !aBody?.mesh.vertices.length) { set({ status: '組件布爾：來源體無實體幾何' }); return }
     let pickedBId = bBodyId
     if (!pickedBId && bBodies.length > 1) {
-      const answer = await get().appPrompt(`「${B.name}」有 ${bBodies.length} 个 Body；请选择工具 Body 编号：\n${bBodies.map((b, i) => `${i + 1} = ${b.name}`).join('\n')}`, '1')
+      const answer = await get().appPrompt(`「${B.name}」有 ${bBodies.length} 個 Body；請選擇工具體編號：\n${bBodies.map((b, i) => `${i + 1} = ${b.name}`).join('\n')}`, '1')
       if (answer == null) { set({ status: '已取消组件布尔' }); return }
       const n = Number(answer.trim())
-      if (!Number.isInteger(n) || n < 1 || n > bBodies.length) { set({ status: '组件布尔：工具 Body 编号无效' }); return }
+      if (!Number.isInteger(n) || n < 1 || n > bBodies.length) { set({ status: '組件布爾：工具體編號無效' }); return }
       pickedBId = bBodies[n - 1].id
     }
     const bBody = bBodies.find((b) => b.id === (pickedBId ?? bBodies[0]?.id))
-    if (!bBody?.mesh.vertices.length) { set({ status: '组件布尔：工具 Body 无实体几何' }); return }
+    if (!bBody?.mesh.vertices.length) { set({ status: '組件布爾：工具體無實體幾何' }); return }
     const opLbl = op === 'union' ? '合并' : op === 'subtract' ? '切除' : '相交'
     const opSym = op === 'union' ? ' + ' : op === 'subtract' ? ' − ' : ' ∩ '
     set({ status: `正在${opLbl}：「${A.name}」${opSym}「${B.name}」…` })
@@ -11844,14 +11844,14 @@ export const useApp = create<AppState>((rawSet, get) => {
           grounded,
           selectedComponent: aId,
           selectedComponentBody: { componentId: aId, bodyId: aBody.id },
-          status: `已${opLbl}「${A.name} / ${aBody.name}」${opSym}「${B.name} / ${bBody.name}」→ 体积 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}${toolNote}${keepTool ? '（工具 Body 保留）' : '（只消耗工具 Body）'}${removedJointCount ? `；工具件移除，连带移除 ${removedJointCount} 个关节` : '；来源位置与关节保留'}${removedMateCount ? `、${removedMateCount} 个配合` : ''}（可撤销 Ctrl+Z）`,
+          status: `已${opLbl}「${A.name} / ${aBody.name}」${opSym}「${B.name} / ${bBody.name}」→ 体积 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}${toolNote}${keepTool ? '（工具體保留）' : '（只消耗工具體）'}${removedJointCount ? `；工具件移除，连带移除 ${removedJointCount} 个关节` : '；來源位置與關節保留'}${removedMateCount ? `、${removedMateCount} 个配合` : ''}（可撤销 Ctrl+Z）`,
         }
       })
       // v1.24/v1.25: mesh boolean ≠ part solid — ALWAYS show primary bake statusAction after success.
       // v1.39: clarify 组件布尔(网格) vs 实体布尔(零件 B-rep); rebuild mates that still touch A.
       set({
         compBoolPending: null,
-        status: `${get().status} · 組件布爾＝網格結果（非零件時間軸）— 點右側按鈕烘焙入零件後即可圓角/抽殼；零件內多體用「實體布爾」（B-rep），勿與組件布爾（網格）混淆`,
+        status: `${get().status} · 組件布爾＝網格布爾（非零件時間軸）— 點右側按鈕烘焙入零件後即可圓角/抽殼；零件內多體用「實體布爾」（B-rep），勿與組件布爾（網格）混淆`,
         statusAction: { id: 'bakeMeshToPart', label: '烘焙為零件實體', componentId: aId },
         selectedComponent: aId,
       })
@@ -11861,7 +11861,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (get().grounded) get().solveMates()
         else get().resolveMates()
         // Preserve bake guidance + statusAction (resolveMates only overwrites status string).
-        set({ status: `${prevStatus} · 已重算 ${matesA.length} 个涉及来源件的配合` })
+        set({ status: `${prevStatus} · 已重算 ${matesA.length} 個涉及來源件的配合` })
       }
     } catch (e) { set({ status: `组件布尔失败：${(e as Error)?.message || e}` }) }
   },

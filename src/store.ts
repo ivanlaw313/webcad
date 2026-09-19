@@ -3264,7 +3264,7 @@ function partSolidRequiredPatch(
   const name = focus.name || '组件'
   const meshfitAction: StatusAction = { id: 'meshfit', label: 'MeshFit / 转 B-rep', componentId: focus.id }
   // v1.39: pure mesh (组件布尔结果 / 导入 STL) → primary bake chip (same as post-boolean), not MeshFit.
-  const bakeAction: StatusAction = { id: 'bakeMeshToPart', label: '烘焙为零件实体', componentId: focus.id }
+  const bakeAction: StatusAction = { id: 'bakeMeshToPart', label: '烘焙為零件實體', componentId: focus.id }
   if (hasSrc) {
     return {
       status: `${cmd}：当前是装配/网格件「${name}」，不是零件时间轴实体 — 可「✎编辑」回时间轴，或选件 → MeshFit/转 B-rep；零件内多体请用「实体布尔」（B-rep 时间轴），组件之间请用「组件布尔」（网格） · 点右侧「MeshFit / 转 B-rep」烘焙后再试`,
@@ -3272,7 +3272,7 @@ function partSolidRequiredPatch(
     }
   }
   return {
-    status: `${cmd}：当前是组件布尔/网格件「${name}」，不是零件实体 — 点右侧「烘焙为零件实体」入零件时间轴后再圆角/抽壳；勿与零件内「实体布尔」混淆（实体布尔=活动⊗泊车 B-rep；组件布尔=网格件之间）`,
+    status: `${cmd}：當前是組件布爾/網格件「${name}」，不是零件實體 — 點右側「烘焙為零件實體」入零件時間軸後再圓角/抽殼；勿與零件內「實體布爾」混淆（實體布爾=活動⊗泊車 B-rep；組件布爾=網格件之間）`,
     statusAction: bakeAction,
   }
 }
@@ -11851,8 +11851,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       // v1.39: clarify 组件布尔(网格) vs 实体布尔(零件 B-rep); rebuild mates that still touch A.
       set({
         compBoolPending: null,
-        status: `${get().status} · 组件布尔＝网格结果（非零件时间轴）— 点右侧按钮烘焙入零件后即可圆角/抽壳；零件内多体用「实体布尔」（B-rep），勿与组件布尔（网格）混淆`,
-        statusAction: { id: 'bakeMeshToPart', label: '烘焙为零件实体', componentId: aId },
+        status: `${get().status} · 組件布爾＝網格結果（非零件時間軸）— 點右側按鈕烘焙入零件後即可圓角/抽殼；零件內多體用「實體布爾」（B-rep），勿與組件布爾（網格）混淆`,
+        statusAction: { id: 'bakeMeshToPart', label: '烘焙為零件實體', componentId: aId },
         selectedComponent: aId,
       })
       const matesA = get().mates.filter((m) => m.aComp === aId || m.bComp === aId)
@@ -12853,7 +12853,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const still = get().components.find((c) => c.id === id)
         if (still) await get().editComponent(id)
       }
-      if (hasSolid(get().features)) set({ status: `${get().status} · 已烘焙入零件时间轴，可圆角/抽壳`, statusAction: null })
+      if (hasSolid(get().features)) set({ status: `${get().status} · 已烘焙入零件時間軸，可圓角/抽殼`, statusAction: null })
       return
     }
     if (a.id === 'meshfit') {

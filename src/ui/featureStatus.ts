@@ -21,12 +21,13 @@ export function shellSuccessStatus(opts: {
   openCount: number
   tangentChain: boolean
 }): string {
-  const dirLbl = opts.dir === 'outside' ? '向外' : opts.dir === 'both' ? '两侧' : '向内'
+  // v1.63: HK Traditional — Solid QA toast fragments (向內／開／個／所選／切線／抽殼)
+  const dirLbl = opts.dir === 'outside' ? '向外' : opts.dir === 'both' ? '兩側' : '向內'
   const body =
     opts.shellType === 'closed'
-      ? '封闭实体'
-      : `开 ${opts.openCount} 个所选面${opts.tangentChain ? '，切线链开' : ''}`
-  return `已抽壳 壁厚 ${opts.thickness}（${dirLbl}，${body}）`
+      ? '封閉實體'
+      : `開 ${opts.openCount} 個所選面${opts.tangentChain ? '，切線鏈開' : ''}`
+  return `已抽殼 壁厚 ${opts.thickness}（${dirLbl}，${body}）`
 }
 
 /** Extrude / Cut success (single-body path). */

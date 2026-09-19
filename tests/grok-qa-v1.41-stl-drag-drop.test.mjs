@@ -83,7 +83,9 @@ test('i18n X keeps mesh-drop Chinese under EN (no Done:)', () => {
   assert.match(i18nSrc, /'正在读取 STL「': '正在读取 STL「'/)
   assert.match(i18nSrc, /'STL 读取失败': 'STL 读取失败'/)
   // prior Chinese guards must remain
-  assert.match(i18nSrc, /'已抽壳 壁厚': '已抽壳 壁厚'/)
-  assert.match(i18nSrc, /'烘焙为零件实体': '烘焙为零件实体'/)
+  assert.match(i18nSrc, /'已抽殼 壁厚': '已抽殼 壁厚'/)
+  assert.match(i18nSrc, /'已抽壳 壁厚': '已抽壳 壁厚'/ )
+  assert.match(i18nSrc, /'烘焙為零件實體': '烘焙為零件實體'/)
+  assert.match(i18nSrc, /'烘焙为零件实体': '烘焙为零件实体'/ )
   assert.match(i18nSrc, /'已切除「': '已切除「'/)
 })

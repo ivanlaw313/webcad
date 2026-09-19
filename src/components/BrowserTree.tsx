@@ -30,9 +30,9 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   cylpatch: { icon: 'default', label: '曲面贴花' },
   sheetmetal: { icon: 'default', label: '鈑金件' },
   pathpattern: { icon: 'pattern', label: '路徑陣列' },
-  gear: { icon: 'default', label: '齿轮' },
-  rack: { icon: 'default', label: '齿条' },
-  pulley: { icon: 'default', label: 'V带轮' },
+  gear: { icon: 'default', label: '齒輪' },
+  rack: { icon: 'default', label: '齒條' },
+  pulley: { icon: 'default', label: 'V帶輪' },
   mirror: { icon: 'mirror', label: '鏡像' },
   loft: { icon: 'loft', label: '放樣' },
   surfloft: { icon: 'loft', label: '曲面放樣' },
@@ -75,8 +75,8 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   sketch: { icon: 'sketch', label: '草图' },  // T756：独立草图
   circPattern: { icon: 'pattern', label: '環形陣列' },  // T757
   meshbody: { icon: 'insert', label: '网格实体' },  // T767
-  worm: { icon: 'default', label: '蜗杆' },          // T770
-  crowngear: { icon: 'default', label: '冠齿轮' },   // T770
+  worm: { icon: 'default', label: '蝸桿' },          // T770
+  crowngear: { icon: 'default', label: '冠齒輪' },   // T770
   othread: { icon: 'default', label: '面外螺纹' },   // T775
   extgroup: { icon: 'extrude', label: '拉伸组' },    // 多轮廓拉伸打包节点（用 as Feature cast，唔喺 union）
   featpattern: { icon: 'pattern', label: '陣列' },   // 可编辑阵列组节点（T#148）
@@ -599,7 +599,7 @@ export default function BrowserTree() {
               <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().showAllComponents()} title={tStatus('显示所有隐藏的组件', lang)}>👁 {tStatus('显示全部', lang)}</div>
             )}
             {components.length > 1 && (
-              <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().exportAllPartsZip()} title={tStatus('把每个可见零件导出为单独 STL，打包成一个 zip（每件可单独 3D 打印）', lang)}>📦 {tStatus('导出全部零件 STL(zip)', lang)}</div>
+              <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().exportAllPartsZip()} title={tStatus('把每个可见零件导出为单独 STL，打包成一个 zip（每件可单独 3D 打印）', lang)}>📦 {tStatus('導出全部零件 STL(zip)', lang)}</div>
             )}
             <GroupedCompList components={components} />
             <CompBatchBar />

@@ -67,6 +67,19 @@ export const EN_LABEL: Record<string, string> = {
   // GEARS
   '齿轮': 'Gear', '正齿轮/斜齿轮': 'Spur / Helical Gear', '齿条': 'Rack', 'V带轮': 'V-Pulley',
   '齿轮箱': 'Gearbox', '蜗杆': 'Worm', '冠齿轮': 'Crown Gear',
+  // GEARS / mechanisms Traditional (v1.66) — retain SC above
+  '齒輪': 'Gear', '正齒輪/斜齒輪': 'Spur / Helical Gear', '齒條': 'Rack', 'V帶輪': 'V-Pulley',
+  '齒輪箱': 'Gearbox', '蝸桿': 'Worm', '冠齒輪': 'Crown Gear',
+  '四連桿機構': 'Four-Bar', '滑塊曲柄': 'Slider-Crank', '六桿機構': 'Six-Bar',
+  '傳動設計': 'Drive Design', '機構': 'Mechanisms', '工程計算': 'Engineering Calc',
+  '齒輪箱向導': 'Gearbox Wizard', '齒輪嚙合參數': 'Gear Mesh Params',
+  // BUG-BD-6501 export-all chrome
+  '導出全部零件 STL(zip)': 'Export all parts STL (zip)',
+  '导出全部零件 STL(zip)': 'Export all parts STL (zip)',
+  '導出全部配置': 'Export all configurations',
+  '导出全部配置': 'Export all configurations',
+  '導入設計表': 'Import design table',
+  '导入设计表': 'Import design table',
   // SELECT / VIEW
   '选择': 'Select', '透视': 'Perspective', '排版': 'Arrange', '堆叠': 'Stack',
   // SKETCH tools
@@ -493,7 +506,7 @@ const STATUS_PHRASES: Record<string, string> = {
   '⊙ 批量孔': '⊙ Batch Holes', '模式': 'Mode',
   '极坐标': 'Polar', '个数': 'Count',
   '经过': 'Through', '🎯拾圆柱面': '🎯 Pick Cylinder',
-  '两点轴': '2-Point Axis', '齿轮箱向导': 'Gearbox Wizard',
+  '两点轴': '2-Point Axis', '齿轮箱向导': 'Gearbox Wizard', '齒輪箱向導': 'Gearbox Wizard',
   '蜗杆': 'Worm', '冠齿轮': 'Crown Gear',
   '矩形阵列': 'Rectangular Pattern', '环形阵列': 'Circular Pattern',
   '移动/复制': 'Move / Copy', '拔模': 'Draft',
@@ -573,18 +586,18 @@ const STATUS_PHRASES: Record<string, string> = {
   '画轮廓 →「＋放样截面」逐个加': 'Draw a profile → add via "+ Loft Section"', '导轨': 'Rail',
   '从实体切除放样体': 'cut the loft body from the part', '曲面选项': 'Surface Options',
   '直纹边界曲面': 'Ruled boundary surface', '薄壁': 'Wall',
-  'mm（0=实体）': 'mm (0 = solid)', '⬚ 四连杆机构（闭环）': '⬚ Four-Bar Linkage (closed loop)',
+  'mm（0=实体）': 'mm (0 = solid)', '⬚ 四连杆机构（闭环）': '⬚ Four-Bar Linkage (closed loop)', '⬚ 四連桿機構（閉環）': '⬚ Four-Bar Linkage (closed loop)',
   '✓ 约束求解 — 杆长刚性保持': '✓ Constraint solved — link lengths rigid', '⚠ 当前角度超出可达范围（曲柄转不到这）': '⚠ Angle out of reach (crank can\'t reach here)',
   '曲柄': 'Crank', '连杆': 'Coupler',
   '摇杆': 'Rocker', '机架': 'Ground',
   '切换另一支装配解': 'Switch to the other assembly solution', '翻转装配': 'Flip Assembly',
   '清轨迹': 'Clear Trace', '📈轨迹': '📈 Trace',
   '清包络': 'Clear Envelope', '▢包络': '▢ Envelope',
-  '关闭': 'Close', '⊙ 滑块曲柄机构（活塞）': '⊙ Slider-Crank (piston)',
+  '关闭': 'Close', '⊙ 滑块曲柄机构（活塞）': '⊙ Slider-Crank (piston)', '⊙ 滑塊曲柄機構（活塞）': '⊙ Slider-Crank (piston)',
   '✓ 闭环求解 — 连杆长刚性保持': '✓ Closed-loop solved — rod length rigid', '⚠ 连杆太短，够唔到滑轨': '⚠ Rod too short to reach the slide',
   '曲柄半径': 'Crank Radius', '偏置': 'Offset',
   '行程': 'Stroke', '活塞': 'Piston',
-  '⬡ 六杆机构（Stephenson-III）': '⬡ Six-Bar Linkage (Stephenson-III)', '✓ 通用连杆求解器 solveLinkage 联立闭环解算（非解析公式）— 紫色为输出点 E': '✓ Solved by general solveLinkage closed-loop (not analytic) — purple is output point E',
+  '⬡ 六杆机构（Stephenson-III）': '⬡ Six-Bar Linkage (Stephenson-III)', '⬡ 六桿機構（Stephenson-III）': '⬡ Six-Bar Linkage (Stephenson-III)', '✓ 通用连杆求解器 solveLinkage 联立闭环解算（非解析公式）— 紫色为输出点 E': '✓ Solved by general solveLinkage closed-loop (not analytic) — purple is output point E',
   '移动/旋转': 'Move / Rotate', '清零旋转': 'Reset rotation',
   '↺归零': '↺ Reset', '🎯聚焦': '🎯 Focus',
   '剖切分析': 'Section Analysis', '关闭剖视': 'Close section',
@@ -594,7 +607,7 @@ const STATUS_PHRASES: Record<string, string> = {
   '加工 / 钣金': 'Machining / Sheet Metal', '螺纹规格速查': 'Thread Spec Lookup',
   'ISO 公差配合': 'ISO Tolerance Fit', '过盈配合（压装）': 'Press Fit',
   'O 形圈密封槽': 'O-Ring Groove', '螺栓夹紧力': 'Bolt Clamp Force',
-  '齿轮啮合参数': 'Gear Mesh Params', '皮带长度（双轮）': 'Belt Length (2-pulley)',
+  '齿轮啮合参数': 'Gear Mesh Params', '齒輪嚙合參數': 'Gear Mesh Params', '皮带长度（双轮）': 'Belt Length (2-pulley)',
   '功率·扭矩·转速': 'Power · Torque · RPM', '压缩弹簧刚度': 'Compression Spring Rate',
   '轴承寿命 L10': 'Bearing Life L10', '丝杆 速度·推力': 'Lead Screw Speed · Thrust',
   '钻铣转速 RPM': 'Drill/Mill RPM', '钣金折弯展开': 'Bend Allowance',
@@ -1662,6 +1675,33 @@ Object.assign(STATUS_PHRASES_X, {
   '統一構造幾何': '統一構造幾何',
   '⬡ 新實體': '⬡ 新實體',
   '⬡新實體': '⬡新實體',
+})
+
+// v1.66 LAB gear/mechanism dialog chrome — EN via tStatus (FD_TITLE + mechanism titles)
+Object.assign(STATUS_PHRASES_X, {
+  '齒輪': 'Gear',
+  '正齒輪/斜齒輪': 'Spur / Helical Gear',
+  '齒條': 'Rack',
+  'V帶輪': 'V-Pulley',
+  '齒輪箱': 'Gearbox',
+  '蝸桿': 'Worm',
+  '冠齒輪': 'Crown Gear',
+  '齒輪箱向導': 'Gearbox Wizard',
+  '四連桿機構': 'Four-Bar',
+  '滑塊曲柄': 'Slider-Crank',
+  '六桿機構': 'Six-Bar',
+  '工程計算': 'Engineering Calc',
+  '齒輪嚙合參數': 'Gear Mesh Params',
+  '⬚ 四連桿機構（閉環）': '⬚ Four-Bar Linkage (closed loop)',
+  '⊙ 滑塊曲柄機構（活塞）': '⊙ Slider-Crank (piston)',
+  '⬡ 六桿機構（Stephenson-III）': '⬡ Six-Bar Linkage (Stephenson-III)',
+  // BUG-BD-6501: BrowserTree / ParamsPanel export-all chrome
+  '导出全部零件 STL(zip)': 'Export all parts STL (zip)',
+  '導出全部零件 STL(zip)': 'Export all parts STL (zip)',
+  '导出全部配置': 'Export all configurations',
+  '導出全部配置': 'Export all configurations',
+  '导入设计表': 'Import design table',
+  '導入設計表': 'Import design table',
 })
 
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)

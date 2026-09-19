@@ -2818,7 +2818,7 @@ function SkTextDialog() {
   const inSketch = mode === 'sketch'
   return (
     <div style={{ position: 'fixed', top: 110, right: 18, zIndex: 240, width: 260, background: '#fff', border: '1px solid #b6c0c9', borderRadius: 9, boxShadow: '0 12px 40px rgba(0,0,0,.28)', padding: 12, display: 'flex', flexDirection: 'column', gap: 9, fontSize: 13 }}>
-      <div style={{ fontWeight: 700, color: '#1c5a96' }}>{T('T 草图文字')}</div>
+      <div style={{ fontWeight: 700, color: '#1c5a96' }}>{T('T 草圖文字')}</div>
       <label style={{ display: 'flex', flexDirection: 'column', gap: 3, color: '#3a4750' }}>{T('文字 Type')}
         <input autoFocus value={dlg.text} onChange={(e) => g().setSkTextDlg({ text: e.target.value })}
           onKeyDown={(e) => { if (e.key === 'Enter') void g().commitSkTextDlg(); else if (e.key === 'Escape') g().cancelSkTextDlg(); e.stopPropagation() }}
@@ -2833,14 +2833,14 @@ function SkTextDialog() {
         </label>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ minWidth: 58, color: '#3a4750' }}>{T('对齐')}</span>
+        <span style={{ minWidth: 58, color: '#3a4750' }}>{T('對齊')}</span>
         {(['left', 'center', 'right'] as const).map((a) => (
           <button key={a} className={'sb-tool' + (dlg.align === a ? ' active' : '')} style={{ flex: 1, fontSize: 12 }} onClick={() => g().setSkTextDlg({ align: a })}>{a === 'left' ? '⯇' : a === 'center' ? '≡' : '⯈'}</button>
         ))}
       </div>
-      <div style={{ fontSize: 11, color: '#8a96a0', lineHeight: 1.4 }}>{T('字体 / 粗斜 / 沿路径：现用单一 CAD 字体（内核限）— 生成后为真草图轮廓，可镜像 / 阵列 / 拉伸 / 旋转。')}</div>
+      <div style={{ fontSize: 11, color: '#8a96a0', lineHeight: 1.4 }}>{T('字體 / 粗斜 / 沿路徑：現用單一 CAD 字體（內核限）— 生成後為真草圖輪廓，可鏡像 / 陣列 / 拉伸 / 旋轉。')}</div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button className="sb-tool sb-finish" style={{ flex: 1 }} onClick={() => void g().commitSkTextDlg()}>{T('✓ 确定')}</button>
+        <button className="sb-tool sb-finish" style={{ flex: 1 }} onClick={() => void g().commitSkTextDlg()}>{T('✓ 確定')}</button>
         <button className="sb-tool" style={{ flex: 1 }} onClick={() => g().cancelSkTextDlg()}>{T('取消')}</button>
       </div>
     </div>
@@ -2901,35 +2901,35 @@ function PrefsModal() {
     <div className="modal-backdrop" onClick={close}>
       <div className="cmd-palette" style={{ width: 360, maxHeight: '80vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <b style={{ fontSize: 14 }}>⚙ {tStatus('应用偏好', lang)}</b>
-          <button className="tb-btn" title={tStatus('关闭', lang)} onClick={close}>✕</button>
+          <b style={{ fontSize: 14 }}>⚙ {tStatus('應用偏好', lang)}</b>
+          <button className="tb-btn" title={tStatus('關閉', lang)} onClick={close}>✕</button>
         </div>
-        <Row label="主题" hint={tStatus('自动 = 跟随系统深浅色', lang)}>
+        <Row label="主題" hint={tStatus('自動 = 跟隨系統深淺色', lang)}>
           <select value={prefs.theme} onChange={(e) => setP('theme', e.target.value as typeof prefs.theme)} style={{ fontSize: 12 }}>
-            <option value="auto">{tStatus('自动', lang)}</option><option value="light">{tStatus('浅色', lang)}</option><option value="dark">{tStatus('深色', lang)}</option>
+            <option value="auto">{tStatus('自動', lang)}</option><option value="light">{tStatus('淺色', lang)}</option><option value="dark">{tStatus('深色', lang)}</option>
           </select>
         </Row>
-        <Row label="新文档默认单位" hint={tStatus('对标 Fusion Default Units', lang)}>
+        <Row label="新文件預設單位" hint={tStatus('對標 Fusion Default Units', lang)}>
           <select value={prefs.defaultUnit} onChange={(e) => setP('defaultUnit', e.target.value as typeof prefs.defaultUnit)} style={{ fontSize: 12 }}>
             <option value="mm">mm</option><option value="cm">cm</option><option value="inch">in</option>
           </select>
         </Row>
-        <Row label="默认建模朝向 Z-up" hint={tStatus('webcad 恒 Z-up（此项为一致性信息）', lang)}>
+        <Row label="預設建模朝向 Z-up" hint={tStatus('webcad 恒 Z-up（此項為一致性資訊）', lang)}>
           <input type="checkbox" checked={prefs.zUp} onChange={(e) => setP('zUp', e.target.checked)} />
         </Row>
-        <Row label="进入草图自动正视（正交）" hint={tStatus('入草图自动切正投影', lang)}>
+        <Row label="進入草圖自動正視（正交）" hint={tStatus('入草圖自動切正投影', lang)}>
           <input type="checkbox" checked={prefs.autoOrthoSketch} onChange={(e) => setP('autoOrthoSketch', e.target.checked)} />
         </Row>
-        <Row label="视图过渡动画" hint={tStatus('Look-At 340ms 缓动（关=瞬切）', lang)}>
+        <Row label="視圖過渡動畫" hint={tStatus('Look-At 340ms 緩動（關=瞬切）', lang)}>
           <input type="checkbox" checked={prefs.animateTransitions} onChange={(e) => setP('animateTransitions', e.target.checked)} />
         </Row>
-        <Row label="滚轮缩放方向" hint={tStatus('反转 = 上滚拉近', lang)}>
+        <Row label="滾輪縮放方向" hint={tStatus('反轉 = 上滾拉近', lang)}>
           <select value={prefs.zoomDir} onChange={(e) => setP('zoomDir', Number(e.target.value) === -1 ? -1 : 1)} style={{ fontSize: 12 }}>
-            <option value={1}>{tStatus('默认（下滚拉近）', lang)}</option><option value={-1}>{tStatus('反转（上滚拉近）', lang)}</option>
+            <option value={1}>{tStatus('預設（下滾拉近）', lang)}</option><option value={-1}>{tStatus('反轉（上滾拉近）', lang)}</option>
           </select>
         </Row>
         <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between' }}>
-          <button className="tb-btn" onClick={() => useApp.getState().resetPrefs()}>{tStatus('恢复默认', lang)}</button>
+          <button className="tb-btn" onClick={() => useApp.getState().resetPrefs()}>{tStatus('恢復預設', lang)}</button>
           <button className="tb-btn" style={{ background: '#1572c4', color: '#fff' }} onClick={close}>{tStatus('完成', lang)}</button>
         </div>
       </div>
@@ -2953,7 +2953,7 @@ function UnitDialog() {
       <div className="cmd-palette" style={{ width: 340 }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <b style={{ fontSize: 14 }}>📐 {tStatus('文档单位', lang)}</b>
-          <button className="tb-btn" title={tStatus('关闭', lang)} onClick={close}>✕</button>
+          <button className="tb-btn" title={tStatus('關閉', lang)} onClick={close}>✕</button>
         </div>
         <div style={{ fontSize: 11, color: '#8a97a2', marginBottom: 6 }}>{tStatus('仅影响屏上读数（量测/属性）；模型与导出 STL/STEP/DXF 恒 mm。', lang)}</div>
         {UNIT_PRESETS.map((p) => (
@@ -4818,28 +4818,28 @@ export default function Viewport() {
           width={244}
           okLabel={tStatus('確定', lang)}
           okDisabled={!pushPullPicks.length || Math.abs(pushPullDist) < 1e-9}
-          okTip={tStatus('应用（Enter）', lang)}
+          okTip={tStatus('應用（Enter）', lang)}
           onOk={() => void useApp.getState().commitPushPull()}
           onCancel={() => useApp.getState().togglePushPull()}
           summary={<>{pushPullPicks.length ? tStatus('偏移面', lang) : tStatus('按拉', lang)}{pushPullPicks.length ? ` · ${pushPullPicks.length} ${tStatus('面', lang)} · ${pushPullDist} mm` : ''}</>}
         >
           <SelectionChip
-            label={pushPullPicks.length ? tStatus('面', lang) : tStatus('选择', lang)}
+            label={pushPullPicks.length ? tStatus('面', lang) : tStatus('選擇', lang)}
             count={pushPullPicks.length}
-            hint={tStatus('选择实体面；选边会转入圆角，选草图轮廓会转入拉伸', lang)}
+            hint={tStatus('選擇實體面；選邊會轉入圓角，選草圖輪廓會轉入拉伸', lang)}
             onClear={() => useApp.getState().clearPushPullPicks()}
           />
           {pushPullPicks.length > 0 && <>
-            <label title={tStatus('Fusion Offset Type：自动、修改现有特征或建立新偏移', lang)}>
-              <span style={{ color: '#6b7680' }}>{tStatus('偏移类型', lang)}</span>
+            <label title={tStatus('Fusion Offset Type：自動、修改現有特徵或建立新偏移', lang)}>
+              <span style={{ color: '#6b7680' }}>{tStatus('偏移類型', lang)}</span>
               <span><select value={offsetType} onChange={(e) => setOffsetType(e.target.value as 'modify' | 'new' | 'auto')} style={{ height: 26 }}>
-                <option value="modify">{tStatus('修改现有特征', lang)}</option>
+                <option value="modify">{tStatus('修改現有特徵', lang)}</option>
                 <option value="new">{tStatus('新偏移', lang)}</option>
-                <option value="auto">{tStatus('自动', lang)}</option>
+                <option value="auto">{tStatus('自動', lang)}</option>
               </select></span>
             </label>
             <label>
-              <span style={{ color: '#6b7680' }}>{tStatus('距离', lang)}</span>
+              <span style={{ color: '#6b7680' }}>{tStatus('距離', lang)}</span>
               <span><input data-testid="press-pull-distance" type="number" aria-label="按拉距离 mm" step={0.5} value={pushPullDist} onChange={(e) => setPushPullDist(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
             </label>
           </>}
@@ -5043,14 +5043,14 @@ export default function Viewport() {
           onCancel={() => cancelShell()}
           summary={<>{shellType === 'closed' ? '封閉實體' : `開 ${shellPicks.length} 面`} · 壁厚 {shellThickness}</>}
         >
-          <div role="status" aria-live="polite" data-testid="shell-preview-status">{shellPreviewBusy ? '正在计算预览…' : shellPreviewFail ? '预览失败（已保留原模型）— 可改壁厚/方向/开口面，或仍按「确定」尝试提交' : shellPreviewMesh ? '实时预览；确定后才保存操作' : '选择开口面并输入壁厚，即时预览结果'}</div>
-          <SelectionChip label={shellType === 'closed' ? '实体' : '面'} count={shellPicks.length} hint={shellType === 'closed' ? '点选要建立封闭空腔的实体' : '点选要移除的面（再点取消）'} onClear={() => useApp.getState().clearShellPicks()} />
+          <div role="status" aria-live="polite" data-testid="shell-preview-status">{shellPreviewBusy ? '正在計算預覽…' : shellPreviewFail ? '預覽失敗（已保留原模型）— 可改壁厚/方向/開口面，或仍按「確定」嘗試提交' : shellPreviewMesh ? '即時預覽；確定後才儲存操作' : '選擇開口面並輸入壁厚，即時預覽結果'}</div>
+          <SelectionChip label={shellType === 'closed' ? '實體' : '面'} count={shellPicks.length} hint={shellType === 'closed' ? '點選要建立封閉空腔的實體' : '點選要移除的面（再點取消）'} onClear={() => useApp.getState().clearShellPicks()} />
           {shellType === 'open' && <label style={{ justifyContent: 'flex-start', gap: 6 }} title="Fusion Tangent Chain：沿共享边自动加入 G1 相切连续面">
             <input type="checkbox" checked={shellTangentChain} onChange={() => toggleShellTangentChain()} /> 切線鏈
           </label>}
           <label>
-            <span style={{ color: '#6b7680' }}>抽壳类型</span>
-            <span><select value={shellType} onChange={(e) => setShellType(e.target.value as 'open' | 'closed')} style={{ height: 26 }} aria-label="抽壳类型"><option value="open">移除面</option><option value="closed">封閉實體</option></select></span>
+            <span style={{ color: '#6b7680' }}>抽殼類型</span>
+            <span><select value={shellType} onChange={(e) => setShellType(e.target.value as 'open' | 'closed')} style={{ height: 26 }} aria-label="抽殼類型"><option value="open">移除面</option><option value="closed">封閉實體</option></select></span>
           </label>
           {!(shellThickness > 0) && <div role="alert" data-testid="shell-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div>}
           <label>
@@ -6334,12 +6334,12 @@ export default function Viewport() {
             return (<>
               <label title={tStatus('對象類型（Fusion Move Object）：當前完整支持活動實體和已選組件；面與草圖須用專屬工具。', lang)}>{tStatus('對象', lang)} <select value={objectType} onChange={(e) => setFeatParam('objectType', e.target.value)} style={{ height: 26 }}><option value="bodies">{tStatus('實體', lang)}</option><option value="components">{tStatus('組件', lang)}</option><option value="faces" disabled>{tStatus('面（用移動面）', lang)}</option><option value="sketch" disabled>{tStatus('草圖（草圖環境）', lang)}</option></select></label>
               {objectType === 'bodies' ? (<>
-                <label title={tStatus('SO10：分割后可选择泊车半体移动，避免只移活动低侧叠入另一半导致合并体积丢失', lang)}>{tStatus('实体', lang)} <select value={String(featDlg.params.bodyTarget ?? 'active')} onChange={(e) => setFeatParam('bodyTarget', e.target.value)} style={{ height: 26 }}>
+                <label title={tStatus('SO10：分割後可選擇泊車半體移動，避免只移活動低側疊入另一半導致合併體積丟失', lang)}>{tStatus('實體', lang)} <select value={String(featDlg.params.bodyTarget ?? 'active')} onChange={(e) => setFeatParam('bodyTarget', e.target.value)} style={{ height: 26 }}>
                   <option value="active">{tStatus('活動實體', lang)}</option>
-                  {(bodyMesh?.parked ?? []).map((b, i) => <option key={i} value={'parked' + i}>{b.name || (tStatus('泊车实体', lang) + (i + 1))}</option>)}
+                  {(bodyMesh?.parked ?? []).map((b, i) => <option key={i} value={'parked' + i}>{b.name || (tStatus('泊車實體', lang) + (i + 1))}</option>)}
                 </select></label>
                 <SelectionChip label={tStatus('對象', lang)} count={1} hint={tStatus('可選活動實體或泊車實體（分割另一半）；確定後移動所選實體。', lang)} />
-              </>) : <SelectionChip label={tStatus('組件', lang)} count={moveComponentCount} hint={moveComponentCount ? tStatus('已選組件；可在瀏覽樹勾選多個組件，按 × 清除後重新選擇。', lang) : tStatus('先在浏览树或画布选择一个或多个组件。', lang)} onClear={() => useApp.setState({ checkedComps: [], selectedComponent: null })} />}
+              </>) : <SelectionChip label={tStatus('組件', lang)} count={moveComponentCount} hint={moveComponentCount ? tStatus('已選組件；可在瀏覽樹勾選多個組件，按 × 清除後重新選擇。', lang) : tStatus('先在瀏覽樹或畫布選擇一個或多個組件。', lang)} onClear={() => useApp.setState({ checkedComps: [], selectedComponent: null })} />}
               <div style={{ display: 'flex', gap: 3, width: '100%' }}>
                 {modes.map(([v, lbl, tip]) => <button key={v} className={'sb-tool' + (mt === v ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={tStatus(tip, lang)} onClick={() => setFeatParam('moveType', v)}>{tStatus(lbl, lang)}</button>)}
               </div>
@@ -6349,13 +6349,13 @@ export default function Viewport() {
                 <label>dz <input type="number" step={5} value={featDlg.params.dz} onChange={(e) => setFeatParam('dz', Number(e.target.value))} style={{ width: 52 }} /></label>
               </>)}
               {mt === 'free' && (<>
-                <label title={tStatus('绕件中心 X 轴旋转', lang)}>{tStatus('繞X°', lang)} <input type="number" step={15} value={featDlg.params.rx ?? 0} onChange={(e) => setFeatParam('rx', Number(e.target.value))} style={{ width: 50 }} /></label>
-                <label title={tStatus('绕件中心 Y 轴旋转', lang)}>{tStatus('繞Y°', lang)} <input type="number" step={15} value={featDlg.params.ry ?? 0} onChange={(e) => setFeatParam('ry', Number(e.target.value))} style={{ width: 50 }} /></label>
-                <label title={tStatus('绕件中心 Z 轴旋转', lang)}>{tStatus('繞Z°', lang)} <input type="number" step={15} value={featDlg.params.rz} onChange={(e) => setFeatParam('rz', Number(e.target.value))} style={{ width: 50 }} /></label>
+                <label title={tStatus('繞件中心 X 軸旋轉', lang)}>{tStatus('繞X°', lang)} <input type="number" step={15} value={featDlg.params.rx ?? 0} onChange={(e) => setFeatParam('rx', Number(e.target.value))} style={{ width: 50 }} /></label>
+                <label title={tStatus('繞件中心 Y 軸旋轉', lang)}>{tStatus('繞Y°', lang)} <input type="number" step={15} value={featDlg.params.ry ?? 0} onChange={(e) => setFeatParam('ry', Number(e.target.value))} style={{ width: 50 }} /></label>
+                <label title={tStatus('繞件中心 Z 軸旋轉', lang)}>{tStatus('繞Z°', lang)} <input type="number" step={15} value={featDlg.params.rz} onChange={(e) => setFeatParam('rz', Number(e.target.value))} style={{ width: 50 }} /></label>
               </>)}
               {mt === 'rotate' && (<>
-                <label title={tStatus('旋转轴（绕件中心）', lang)}>{tStatus('軸', lang)} <select value={String(featDlg.params.raxis ?? 'Z')} onChange={(e) => setFeatParam('raxis', e.target.value)} style={{ height: 26 }}><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option></select></label>
-                <label title={tStatus('旋转角°', lang)}>{tStatus('角度', lang)} <input type="number" step={15} value={featDlg.params.angle ?? 0} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 56 }} />°</label>
+                <label title={tStatus('旋轉軸（繞件中心）', lang)}>{tStatus('軸', lang)} <select value={String(featDlg.params.raxis ?? 'Z')} onChange={(e) => setFeatParam('raxis', e.target.value)} style={{ height: 26 }}><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option></select></label>
+                <label title={tStatus('旋轉角°', lang)}>{tStatus('角度', lang)} <input type="number" step={15} value={featDlg.params.angle ?? 0} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 56 }} />°</label>
               </>)}
               {(mt === 'ptp' || mt === 'ptpos') && (<>
                 <div style={{ fontSize: 11, color: '#6b7680', width: '100%' }}>{tStatus(mt === 'ptp' ? 'P1=起点、P2=目标点（世界坐标）→ 平移 P2−P1' : 'P1=点、P2=目的坐标（世界坐标）→ 把 P1 搬到 P2', lang)}</div>
@@ -6366,7 +6366,7 @@ export default function Viewport() {
                 <label>P2y <input type="number" step={1} value={featDlg.params.p2y ?? 0} onChange={(e) => setFeatParam('p2y', Number(e.target.value))} style={{ width: 48 }} /></label>
                 <label>P2z <input type="number" step={1} value={featDlg.params.p2z ?? 0} onChange={(e) => setFeatParam('p2z', Number(e.target.value))} style={{ width: 48 }} /></label>
               </>)}
-              <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('Create Copy：留低原件、移动一个副本（Fusion Move/Copy 嘅复制半边）', lang)}><input type="checkbox" checked={!!+(featDlg.params.createCopy || 0)} onChange={(e) => setFeatParam('createCopy', e.target.checked ? 1 : 0)} /> {tStatus('建立副本', lang)}</label>
+              <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('Create Copy：留低原件、移動一個副本（Fusion Move/Copy 嘅複製半邊）', lang)}><input type="checkbox" checked={!!+(featDlg.params.createCopy || 0)} onChange={(e) => setFeatParam('createCopy', e.target.checked ? 1 : 0)} /> {tStatus('建立副本', lang)}</label>
             </>)
           })()}
           {/* GM-3DV1 S1：Rib/Web 建立对话框 — 厚度/方向/范围/翻转/拔模（Web 多 Extend Curves） */}
@@ -6375,7 +6375,7 @@ export default function Viewport() {
             return (<>
               <label title={tStatus('筋壁厚度（沿中心线两侧或单侧铺开）', lang)}>{tStatus('厚度', lang)} <input type="number" min={0.1} step={0.5} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
               <label title={tStatus('厚度方向（Fusion Thickness Direction）：对称=中心线两侧各半 / 单侧=全部厚度落中心线一侧', lang)}>{tStatus('厚度方向', lang)} <select value={String(featDlg.params.thDir ?? 'sym')} onChange={(e) => setFeatParam('thDir', e.target.value)} style={{ height: 26 }}><option value="sym">{tStatus('對稱', lang)}</option><option value="one">{tStatus('单侧', lang)}</option></select></label>
-              <label title={tStatus('范围（Fusion Extent）：到实体=向下落到实体底面并融合（需实体在下）/ 距离=向上按固定高度', lang)}>{tStatus('范围', lang)} <select value={String(featDlg.params.extent ?? 'next')} onChange={(e) => setFeatParam('extent', e.target.value)} style={{ height: 26 }}><option value="next">{tStatus('到实体', lang)}</option><option value="distance">{tStatus('距离', lang)}</option></select></label>
+              <label title={tStatus('范围（Fusion Extent）：到实体=向下落到实体底面并融合（需实体在下）/ 距离=向上按固定高度', lang)}>{tStatus('范围', lang)} <select value={String(featDlg.params.extent ?? 'next')} onChange={(e) => setFeatParam('extent', e.target.value)} style={{ height: 26 }}><option value="next">{tStatus('到实体', lang)}</option><option value="distance">{tStatus('距離', lang)}</option></select></label>
               {featDlg.params.extent === 'distance' && <label>{tStatus('高度', lang)} <input type="number" min={0.1} step={1} value={featDlg.params.height} onChange={(e) => setFeatParam('height', Number(e.target.value))} style={{ width: 56 }} /> mm</label>}
               <label title={tStatus('拔模角°：筋身向远端逐渐收窄（注塑/冲压脱模）', lang)}>{tStatus('拔模角', lang)} <input type="number" step={1} min={-85} max={85} value={featDlg.params.draft} onChange={(e) => setFeatParam('draft', Number(e.target.value))} style={{ width: 50 }} />°</label>
               <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('翻转筋挤出方向（up↔down）', lang)}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} /> {tStatus('翻转方向', lang)}</label>
@@ -6388,7 +6388,7 @@ export default function Viewport() {
             <label title={tStatus('截面尺寸（外径Ø / 方形边宽）', lang)}>{tStatus('截面尺寸', lang)} <input type="number" min={0.1} step={1} value={featDlg.params.size} onChange={(e) => setFeatParam('size', Number(e.target.value))} style={{ width: 56 }} /> {featDlg.params.section === 'square' ? '□' : 'Ø'} mm</label>
             <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('空心（Fusion Hollow）：勾选 = 中空管（减壁厚成内孔）；不勾 = 实心棒', lang)}><input type="checkbox" checked={!!+(featDlg.params.hollow || 0)} onChange={(e) => setFeatParam('hollow', e.target.checked ? 1 : 0)} /> {tStatus('空心', lang)}</label>
             {!!+(featDlg.params.hollow || 0) && <label title={tStatus('壁厚（Section Thickness）', lang)}>{tStatus('壁厚', lang)} <input type="number" min={0.01} step={0.5} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 52 }} /> mm</label>}
-            <label title={tStatus('距离（Fusion Distance）：沿路径覆盖比例 0–1（1=全长）', lang)}>{tStatus('距离', lang)} <input type="number" min={0.01} max={1} step={0.05} value={featDlg.params.dist} onChange={(e) => setFeatParam('dist', Number(e.target.value))} style={{ width: 52 }} /></label>
+            <label title={tStatus('距离（Fusion Distance）：沿路径覆盖比例 0–1（1=全长）', lang)}>{tStatus('距離', lang)} <input type="number" min={0.01} max={1} step={0.05} value={featDlg.params.dist} onChange={(e) => setFeatParam('dist', Number(e.target.value))} style={{ width: 52 }} /></label>
             <label title={tStatus('操作：＋加料 / －切割 / ∩相交 / ⬡新實體', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新實體', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'pathpattern' && (<>
@@ -6419,7 +6419,7 @@ export default function Viewport() {
           </>)}
           {featDlg.kind === 'boundaryfill' && (<>
             <div style={{ fontSize: 11, color: '#6b7680', margin: '2px 0' }}>{tStatus('当前版本：两个封闭实体的真实 B-rep cell 分割。多工具、曲面／平面工具及任意多 cell 选择尚未提供。', lang)}</div>
-            <label>{tStatus('工具实体', lang)} <select value={String(featDlg.params.target ?? 0)} onChange={(e) => setFeatParam('target', Number(e.target.value))} style={{ height: 26 }}>{(bodyMesh?.parked ?? []).map((b, i) => <option key={i} value={i}>{b.name || (tStatus('实体', lang) + (i + 1))}</option>)}</select></label>
+            <label>{tStatus('工具實體', lang)} <select value={String(featDlg.params.target ?? 0)} onChange={(e) => setFeatParam('target', Number(e.target.value))} style={{ height: 26 }}>{(bodyMesh?.parked ?? []).map((b, i) => <option key={i} value={i}>{b.name || (tStatus('實體', lang) + (i + 1))}</option>)}</select></label>
             <label title={tStatus('把两实体空间切成三个不重叠体积；所选 cell 成为活动实体，其余有效 cell 保留为灰显独立实体。', lang)}>{tStatus('保留 cell', lang)} <select value={String(featDlg.params.cell ?? 'overlap')} onChange={(e) => setFeatParam('cell', e.target.value)} style={{ height: 26 }}><option value="target">{tStatus('目标独有（目标 − 工具）', lang)}</option><option value="overlap">{tStatus('交集（目标 ∩ 工具）', lang)}</option><option value="tool">{tStatus('工具独有（工具 − 目标）', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'scale' && (<>
@@ -6474,8 +6474,8 @@ export default function Viewport() {
               <label>{tStatus('操作', lang)} <select value={String(featDlg.params.op)} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}>
                 <option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新實體', lang)}</option></select></label>
               <label>{tStatus('范围', lang)} <select value={String(featDlg.params.extent)} onChange={(e) => setFeatParam('extent', e.target.value)} style={{ height: 26 }}>
-                <option value="distance">{tStatus('距离', lang)}</option><option value="symmetric">{tStatus('對稱', lang)}</option><option value="through">{tStatus('贯通', lang)}</option>{hasTF && <option value="toface">{tStatus('到面（保留原引用）', lang)}</option>}{hasNext && <option value="next">{tStatus('到下一面（已烘焙距离）', lang)}</option>}</select></label>
-              {featDlg.params.extent !== 'through' && featDlg.params.extent !== 'toface' && <label>{featDlg.params.extent === 'symmetric' ? featDlg.params.symMeasure === 'half' ? '每侧距离' : '总距离' : tStatus('距离', lang)} <ExpressionInput bindingRefs={featDlg.expressionContext?.refs} scale={Number(featDlg.params.heightExprScale ?? 1)} text={String(featDlg.params.heightExpr ?? featDlg.params.height)} onText={text => setFeatParam('heightExpr', text)} /></label>}
+                <option value="distance">{tStatus('距離', lang)}</option><option value="symmetric">{tStatus('對稱', lang)}</option><option value="through">{tStatus('贯通', lang)}</option>{hasTF && <option value="toface">{tStatus('到面（保留原引用）', lang)}</option>}{hasNext && <option value="next">{tStatus('到下一面（已烘焙距离）', lang)}</option>}</select></label>
+              {featDlg.params.extent !== 'through' && featDlg.params.extent !== 'toface' && <label>{featDlg.params.extent === 'symmetric' ? featDlg.params.symMeasure === 'half' ? '每侧距离' : '总距离' : tStatus('距離', lang)} <ExpressionInput bindingRefs={featDlg.expressionContext?.refs} scale={Number(featDlg.params.heightExprScale ?? 1)} text={String(featDlg.params.heightExpr ?? featDlg.params.height)} onText={text => setFeatParam('heightExpr', text)} /></label>}
               {featDlg.params.extent === 'symmetric' && <label>量度 <select aria-label="对称量度" value={String(featDlg.params.symMeasure ?? 'whole')} onChange={e => setFeatParam('symMeasure', e.target.value)}><option value="whole">全长（总距离）</option><option value="half">半长（每侧距离）</option></select></label>}
               {(featDlg.params.extent === 'distance' || featDlg.params.extent === 'next') && (
                 <button type="button" className={'sb-tool' + (+(featDlg.params.heightExprFlip || 0) ? ' active' : '')} style={{ width: '100%' }} title={tStatus('把拉伸/切割方向反转（同喺「距离」打负数效果一样）', lang)} onClick={() => setFeatParam('heightExprFlip', +(featDlg.params.heightExprFlip || 0) ? 0 : 1)}>{tStatus('⇅ 反向方向', lang)}{+(featDlg.params.heightExprFlip || 0) ? tStatus('（已反）', lang) : ''}</button>
@@ -6504,7 +6504,7 @@ export default function Viewport() {
             <SelectionChip label={tStatus('棱', lang)} count={Math.max(1, +(featDlg.params.nearsN || 0))} hint="" />
             <label>{tStatus('类型', lang)} <select value={String(featDlg.params.cmode)} onChange={(e) => setFeatParam('cmode', e.target.value)} style={{ height: 26 }}>
               <option value="equal">{tStatus('等距', lang)}</option><option value="two">{tStatus('两距离', lang)}</option><option value="angle">{tStatus('距离+角度', lang)}</option></select></label>
-            <label>{tStatus('距离', lang)} <input type="number" step={0.5} min={0.1} value={featDlg.params.distance} onChange={(e) => setFeatParam('distance', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
+            <label>{tStatus('距離', lang)} <input type="number" step={0.5} min={0.1} value={featDlg.params.distance} onChange={(e) => setFeatParam('distance', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
             {featDlg.params.cmode === 'two' && <label>{tStatus('距离2', lang)} <input type="number" step={0.5} min={0.1} value={featDlg.params.dist2} onChange={(e) => setFeatParam('dist2', Number(e.target.value))} style={{ width: 56 }} /> mm</label>}
             {featDlg.params.cmode === 'angle' && <label>{tStatus('角度', lang)} <input type="number" step={5} min={5} max={85} value={featDlg.params.angle} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 50 }} />°</label>}
             {featDlg.params.cmode !== 'equal' && <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} />{tStatus('翻转', lang)}</label>}
@@ -6674,7 +6674,7 @@ export default function Viewport() {
           {featDlg.kind === 'gearbox' && (<>
             <label title={tStatus('减速比（输出慢 = 比 >1）。要增速对调输入输出。', lang)}>{tStatus('目标速比', lang)} <input type="number" step={0.5} min={1} value={featDlg.params.ratio} onChange={(e) => setFeatParam('ratio', Number(e.target.value))} style={{ width: 56 }} /></label>
             <label>{tStatus('模数m', lang)} <input type="number" step={0.5} min={0.5} value={featDlg.params.m} onChange={(e) => setFeatParam('m', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label title={tStatus('0 = 自动按比例决定级数（>6 自动拆级，上限 4 级）', lang)}>{tStatus('级数', lang)} <select value={featDlg.params.stages} onChange={(e) => setFeatParam('stages', Number(e.target.value))} style={{ height: 26 }}><option value={0}>{tStatus('自动', lang)}</option><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
+            <label title={tStatus('0 = 自动按比例决定级数（>6 自动拆级，上限 4 级）', lang)}>{tStatus('级数', lang)} <select value={featDlg.params.stages} onChange={(e) => setFeatParam('stages', Number(e.target.value))} style={{ height: 26 }}><option value={0}>{tStatus('自動', lang)}</option><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
             <label>{tStatus('厚度', lang)} <input type="number" step={1} min={2} value={featDlg.params.th} onChange={(e) => setFeatParam('th', Number(e.target.value))} style={{ width: 44 }} /></label>
             <label>{tStatus('孔Ø', lang)} <input type="number" step={1} min={0} value={featDlg.params.bore} onChange={(e) => setFeatParam('bore', Number(e.target.value))} style={{ width: 42 }} /></label>
             <label title={tStatus('斜齿螺旋角（0=直齿）— 自动啮合对反向', lang)}>β° <input type="number" step={5} min={0} max={35} value={featDlg.params.helix ?? 0} onChange={(e) => setFeatParam('helix', Number(e.target.value))} style={{ width: 42 }} /></label>
@@ -6753,9 +6753,9 @@ export default function Viewport() {
             <label title={tStatus('展开 = 激光下料用的平料(含 K 因子折弯余量)', lang)}>{tStatus('状态', lang)} <select value={featDlg.params.flat} onChange={(e) => setFeatParam('flat', Number(e.target.value))} style={{ height: 26 }}><option value={0}>{tStatus('折叠', lang)}</option><option value={1}>{tStatus('展开图', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'plane' && (<>
-            <label>{tStatus('基准面', lang)} <select value={featDlg.params.base} onChange={(e) => setFeatParam('base', e.target.value)} style={{ height: 26 }}><option value="XY">{tStatus('XY(上)', lang)}</option><option value="XZ">{tStatus('XZ(前)', lang)}</option><option value="YZ">{tStatus('YZ(右)', lang)}</option><option value="midXY">{tStatus('XY 中间面', lang)}</option><option value="midXZ">{tStatus('XZ 中间面', lang)}</option><option value="midYZ">{tStatus('YZ 中间面', lang)}</option></select></label>
+            <label>{tStatus('基準面', lang)} <select value={featDlg.params.base} onChange={(e) => setFeatParam('base', e.target.value)} style={{ height: 26 }}><option value="XY">{tStatus('XY(上)', lang)}</option><option value="XZ">{tStatus('XZ(前)', lang)}</option><option value="YZ">{tStatus('YZ(右)', lang)}</option><option value="midXY">{tStatus('XY 中間面', lang)}</option><option value="midXZ">{tStatus('XZ 中間面', lang)}</option><option value="midYZ">{tStatus('YZ 中間面', lang)}</option></select></label>
             {!String(featDlg.params.base).startsWith('mid') && <label>{tStatus('偏移', lang)} <input type="number" step={5} value={featDlg.params.offset} onChange={(e) => setFeatParam('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>}
-            {String(featDlg.params.base).startsWith('mid') && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('自动取实体中部', lang)}</span>}
+            {String(featDlg.params.base).startsWith('mid') && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('自動取實體中部', lang)}</span>}
             {!String(featDlg.params.base).startsWith('mid') && <label title={tStatus('角度面（Fusion Plane at Angle）：基面绕自身局部 x/y 轴旋转 — 0 = 普通偏移平面', lang)}>{tStatus('∠角度', lang)} <input type="number" step={5} min={-89} max={89} value={featDlg.params.angle ?? 0} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 48 }} />°</label>}
             {!String(featDlg.params.base).startsWith('mid') && Number(featDlg.params.angle) !== 0 && <label>{tStatus('绕', lang)} <select value={featDlg.params.aaxis ?? 'x'} onChange={(e) => setFeatParam('aaxis', e.target.value)} style={{ height: 26 }}><option value="x">{tStatus('面内 x 轴', lang)}</option><option value="y">{tStatus('面内 y 轴', lang)}</option></select></label>}
             <div style={{ display: 'flex', gap: 4, width: '100%' }}>
@@ -6798,15 +6798,15 @@ export default function Viewport() {
           </>)}
           {featDlg.kind === 'caxis' && (<>
             <label>{tStatus('方向', lang)} <select value={featDlg.params.dir} onChange={(e) => setFeatParam('dir', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
-            <label>{tStatus('经过', lang)} <input type="number" step={5} value={featDlg.params.x} onChange={(e) => setFeatParam('x', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={featDlg.params.y} onChange={(e) => setFeatParam('y', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={featDlg.params.z} onChange={(e) => setFeatParam('z', Number(e.target.value))} style={{ width: 44 }} /></label>
+            <label>{tStatus('經過', lang)} <input type="number" step={5} value={featDlg.params.x} onChange={(e) => setFeatParam('x', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={featDlg.params.y} onChange={(e) => setFeatParam('y', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={featDlg.params.z} onChange={(e) => setFeatParam('z', Number(e.target.value))} style={{ width: 44 }} /></label>
             {useApp.getState().cpoints.length > 0 && (
-              <label title={tStatus('用已建构造点做轴经过点：选中后自动填经过点 x/y/z（构造点驱动轴原点）', lang)}>{tStatus('構造點', lang)} <select value="" onChange={(e) => { const i = Number(e.target.value); if (!Number.isInteger(i)) return; const cp = useApp.getState().cpoints[i]; if (!cp) return; setFeatParam('x', cp[0]); setFeatParam('y', cp[1]); setFeatParam('z', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{useApp.getState().cpoints.map((cp, i) => <option key={'CP' + i} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>
+              <label title={tStatus('用已建構造點做軸經過點：選中後自動填經過點 x/y/z（構造點驅動軸原點）', lang)}>{tStatus('構造點', lang)} <select value="" onChange={(e) => { const i = Number(e.target.value); if (!Number.isInteger(i)) return; const cp = useApp.getState().cpoints[i]; if (!cp) return; setFeatParam('x', cp[0]); setFeatParam('y', cp[1]); setFeatParam('z', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{useApp.getState().cpoints.map((cp, i) => <option key={'CP' + i} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>
             )}
-            <button className="cs-btn" title={tStatus('Axis Through Cylinder（Fusion 同款）：点圆柱面（孔/轴/凸台）→ 方向+经过点自动填', lang)} onClick={() => useApp.getState().startCpatAxisPick()}>{tStatus('🎯拾圆柱面', lang)}</button>
-            <button className="cs-btn" title={tStatus('两点轴（T778）：用最后 2 个构造点连一条任意方向轴', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().addAxis2Points() }}>{tStatus('两点轴', lang)}</button>
-            <button className="cs-btn" title={tStatus('⊥面轴（S159，Fusion Axis Normal to Face）：点任一平面 → 沿面法向、过点击点生成构造轴（做孔向/扫掠轴/环形阵列轴）', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().startDatumPick('normalaxis') }}>{tStatus('⊥面轴', lang)}</button>
-            <button className="cs-btn" title={tStatus('两面轴（S167，Fusion Axis Through Two Planes）：点两个【唔平行】平面 → 沿其交线生成构造轴（折线/对称中线/两壁相交线）', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().startDatumPick('planeaxis') }}>{tStatus('两面轴', lang)}</button>
-            <button className="cs-btn" title={tStatus('沿边轴（S178，Fusion Axis Through Edge）：点一条直边 → 沿该边方向生成构造轴（旋转轴/环形阵列轴）', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); void useApp.getState().startEdgePointPick('edgeaxis') }}>{tStatus('沿边轴', lang)}</button>
+            <button className="cs-btn" title={tStatus('Axis Through Cylinder（Fusion 同款）：點圓柱面（孔/軸/凸台）→ 方向+經過點自動填', lang)} onClick={() => useApp.getState().startCpatAxisPick()}>{tStatus('🎯拾圓柱面', lang)}</button>
+            <button className="cs-btn" title={tStatus('两点轴（T778）：用最后 2 个构造点连一条任意方向轴', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().addAxis2Points() }}>{tStatus('兩點軸', lang)}</button>
+            <button className="cs-btn" title={tStatus('⊥面轴（S159，Fusion Axis Normal to Face）：点任一平面 → 沿面法向、过点击点生成构造轴（做孔向/扫掠轴/环形阵列轴）', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().startDatumPick('normalaxis') }}>{tStatus('⊥面軸', lang)}</button>
+            <button className="cs-btn" title={tStatus('两面轴（S167，Fusion Axis Through Two Planes）：点两个【唔平行】平面 → 沿其交线生成构造轴（折线/对称中线/两壁相交线）', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().startDatumPick('planeaxis') }}>{tStatus('兩面軸', lang)}</button>
+            <button className="cs-btn" title={tStatus('沿边轴（S178，Fusion Axis Through Edge）：点一条直边 → 沿该边方向生成构造轴（旋转轴/环形阵列轴）', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); void useApp.getState().startEdgePointPick('edgeaxis') }}>{tStatus('沿邊軸', lang)}</button>
           </>)}
         </CommandDialog>
       )}
@@ -6852,9 +6852,9 @@ export default function Viewport() {
               <div className="sb-hint" style={{ width: '100%', fontSize: 11, lineHeight: 1.4 }}>
                 {tStatus('圓柱／圓錐側面不能當偏移基準；先在下面選原點 XY／XZ／YZ（或中間面），再輸入偏移距離。', lang)}
               </div>
-              <label>{tStatus('基准面', lang)} <select value={String(P.base ?? 'XY')} onChange={(e) => dp('base', e.target.value)} style={{ height: 26 }}><option value="XY">{tStatus('XY(上)', lang)}</option><option value="XZ">{tStatus('XZ(前)', lang)}</option><option value="YZ">{tStatus('YZ(右)', lang)}</option><option value="midXY">{tStatus('XY 中间面', lang)}</option><option value="midXZ">{tStatus('XZ 中间面', lang)}</option><option value="midYZ">{tStatus('YZ 中间面', lang)}</option></select></label>
+              <label>{tStatus('基準面', lang)} <select value={String(P.base ?? 'XY')} onChange={(e) => dp('base', e.target.value)} style={{ height: 26 }}><option value="XY">{tStatus('XY(上)', lang)}</option><option value="XZ">{tStatus('XZ(前)', lang)}</option><option value="YZ">{tStatus('YZ(右)', lang)}</option><option value="midXY">{tStatus('XY 中間面', lang)}</option><option value="midXZ">{tStatus('XZ 中間面', lang)}</option><option value="midYZ">{tStatus('YZ 中間面', lang)}</option></select></label>
               {!String(P.base).startsWith('mid') && <label>{tStatus('偏移', lang)} <input type="number" step={5} value={Number(P.offset ?? 0)} onChange={(e) => dp('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>}
-              {String(P.base).startsWith('mid') && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('自动取实体中部', lang)}</span>}
+              {String(P.base).startsWith('mid') && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('自動取實體中部', lang)}</span>}
               {!String(P.base).startsWith('mid') && <label title={tStatus('角度面（Plane at Angle）：绕面内 x/y 轴旋转 — 0 = 普通偏移', lang)}>{tStatus('∠角度', lang)} <input type="number" step={5} min={-89} max={89} value={Number(P.angle ?? 0)} onChange={(e) => dp('angle', Number(e.target.value))} style={{ width: 48 }} />°</label>}
               {!String(P.base).startsWith('mid') && Number(P.angle) !== 0 && <label>{tStatus('绕', lang)} <select value={String(P.aaxis ?? 'x')} onChange={(e) => dp('aaxis', e.target.value)} style={{ height: 26 }}><option value="x">{tStatus('面内 x 轴', lang)}</option><option value="y">{tStatus('面内 y 轴', lang)}</option></select></label>}
             </>)}
@@ -6865,13 +6865,13 @@ export default function Viewport() {
             </>)}
             {key === 'axis:dirPoint' && (<>
               <label>{tStatus('方向', lang)} <select value={String(P.dir ?? 'X')} onChange={(e) => dp('dir', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
-              <label>{tStatus('经过', lang)} <input type="number" step={5} value={Number(P.x ?? 0)} onChange={(e) => dp('x', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={Number(P.y ?? 0)} onChange={(e) => dp('y', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={Number(P.z ?? 0)} onChange={(e) => dp('z', Number(e.target.value))} style={{ width: 44 }} /></label>
+              <label>{tStatus('經過', lang)} <input type="number" step={5} value={Number(P.x ?? 0)} onChange={(e) => dp('x', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={Number(P.y ?? 0)} onChange={(e) => dp('y', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={Number(P.z ?? 0)} onChange={(e) => dp('z', Number(e.target.value))} style={{ width: 44 }} /></label>
               {cpoints.length > 0 && <label title={tStatus('使用已建立的构造点作为构造轴经过点；选择后会填入 XYZ 坐标。', lang)}>{tStatus('構造點', lang)} <select data-testid="datum-axis-point" value="" onChange={(e) => { const i = Number(e.target.value); const cp = cpoints[i]; if (!Number.isInteger(i) || !cp) return; dp('x', cp[0]); dp('y', cp[1]); dp('z', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{cpoints.map((cp, i) => <option key={`datumAxisPoint${i}`} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>}
             </>)}
             {/* 垂直面（累积法 + 距离字段） */}
             {key === 'plane:perp' && <label title={tStatus('沿垂直面法向偏移距离', lang)}>{tStatus('偏移', lang)} <input type="number" step={5} value={Number(P.dist ?? 0)} onChange={(e) => dp('dist', Number(e.target.value))} style={{ width: 56 }} /> mm</label>}
             {/* 累积拾取进度 */}
-            {acc && <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', fontSize: 11, color: ready ? '#2f9e44' : '#1572c4' }}><span style={{ flex: 1 }}>{tStatus('已拾', lang)} {dc.picks.length}/{acc.length}（{acc.map((x) => tStatus(x === 'p' ? '构造点' : x === 'e' ? '边' : x === 'c' ? '圆柱面' : '平面', lang)).join(' + ')}）</span>{dc.picks.length > 0 && <button className="sb-tool" type="button" onClick={() => useApp.setState({ datumCmd: { ...dc, picks: [], params: { ...dc.params, __confirm: 0 } } })}>{tStatus('清除选择', lang)}</button>}</div>}
+            {acc && <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', fontSize: 11, color: ready ? '#2f9e44' : '#1572c4' }}><span style={{ flex: 1 }}>{tStatus('已拾', lang)} {dc.picks.length}/{acc.length}（{acc.map((x) => tStatus(x === 'p' ? '構造點' : x === 'e' ? '邊' : x === 'c' ? '圓柱面' : '平面', lang)).join(' + ')}）</span>{dc.picks.length > 0 && <button className="sb-tool" type="button" onClick={() => useApp.setState({ datumCmd: { ...dc, picks: [], params: { ...dc.params, __confirm: 0 } } })}>{tStatus('清除選擇', lang)}</button>}</div>}
             {/* 遗留拾取法提示 */}
             {!isField && !isButton && !acc && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('喺画布按提示拾取（状态栏有指引）', lang)}</span>}
           </CommandDialog>
@@ -7190,7 +7190,7 @@ export default function Viewport() {
           )}
           {extrudeExtent !== 'through' && extrudeExtent !== 'toface' && extrudeExtent !== 'next' && (
             <label>
-              <span style={{ color: 'var(--text-dim)' }}>{extrudeExtent === 'symmetric' ? (symMeasure === 'half' ? '每侧距离' : '总距离') : extrudeExtent === 'twosides' ? tStatus('侧1距离', lang) : tStatus('距离', lang)}</span>
+              <span style={{ color: 'var(--text-dim)' }}>{extrudeExtent === 'symmetric' ? (symMeasure === 'half' ? '每侧距离' : '总距离') : extrudeExtent === 'twosides' ? tStatus('侧1距离', lang) : tStatus('距離', lang)}</span>
               <span><ExpressionInput text={extrudeExpression ?? toLenInput(extrudeHeight, unit)} onText={text => useApp.getState().setExtrudeExpression(text)} /></span>
             </label>
           )}
@@ -7387,7 +7387,7 @@ export default function Viewport() {
         <div className="cmd-palette" style={{ width: 230 }}>{/* GM-G4b：外观材质库 — 统一命令 palette 外壳（.cmd-palette head/body），取代 ad-hoc 内联卡片 */}
           <div className="cmd-palette-head">
             <span style={{ fontWeight: 700 }}>📚 {tStatus('外观材质库', lang)}</span>
-            <span className="cmd-palette-x" title={tStatus('关闭', lang)} onClick={() => useApp.getState().setMatLibOpen(false)}>✕</span>
+            <span className="cmd-palette-x" title={tStatus('關閉', lang)} onClick={() => useApp.getState().setMatLibOpen(false)}>✕</span>
           </div>
           <div className="cmd-palette-body">
           <button
@@ -7417,7 +7417,7 @@ export default function Viewport() {
           <div className="cmd-palette" style={{ width: 240 }}>{/* GM-G4b：四连杆机构 — 统一命令 palette 外壳 */}
             <div className="cmd-palette-head">
               <span style={{ fontWeight: 700 }}>{tStatus('⬚ 四連桿機構（閉環）', lang)}</span>
-              <span className="cmd-palette-x" title={tStatus('关闭', lang)} onClick={() => closeFourBar()}>✕</span>
+              <span className="cmd-palette-x" title={tStatus('關閉', lang)} onClick={() => closeFourBar()}>✕</span>
             </div>
             <div className="cmd-palette-body">
             <div style={{ fontSize: 11, color: sol.ok ? '#1aa06b' : '#d6694e', marginBottom: 8 }}>{sol.ok ? tStatus('✓ 约束求解 — 杆长刚性保持', lang) : tStatus('⚠ 当前角度超出可达范围（曲柄转不到这）', lang)}</div>
@@ -7436,7 +7436,7 @@ export default function Viewport() {
               <button className="sb-finish" style={{ flex: 1 }} title={tStatus('描出连杆中点扫曲柄一圈嘅运动轨迹（耦合曲线）', lang)} onClick={() => (motionTracePts.length ? useApp.getState().clearTrace() : useApp.getState().traceMotion())}>{motionTracePts.length ? tStatus('清轨迹', lang) : tStatus('📈轨迹', lang)}</button>
               <button className="sb-finish" style={{ flex: 1 }} title={tStatus('运动包络：机构扫一圈占用嘅矩形范围（紫色虚线框，设计外壳/避让用）', lang)} onClick={envBtn}>{motionEnvelope ? tStatus('清包络', lang) : tStatus('▢包络', lang)}</button>
               <button className="sb-finish" style={{ flex: 1 }} title={tStatus('机构分析（S193）：报当前曲柄角嘅速度比 ω摇杆/ω曲柄、传动角、机械利益 + 全程最差传动角（<40°机构发卡警告）— Fusion Motion Study 级指标', lang)} onClick={() => useApp.getState().runLinkageAnalysis()}>{tStatus('🔧分析', lang)}</button>
-              <button className="sb-finish" style={{ flex: 1 }} onClick={() => closeFourBar()}>{tStatus('关闭', lang)}</button>
+              <button className="sb-finish" style={{ flex: 1 }} onClick={() => closeFourBar()}>{tStatus('關閉', lang)}</button>
             </div>
             </div>
           </div>
@@ -7451,7 +7451,7 @@ export default function Viewport() {
           <div className="cmd-palette" style={{ width: 240 }}>{/* GM-G4b：滑块曲柄机构 — 统一命令 palette 外壳 */}
             <div className="cmd-palette-head">
               <span style={{ fontWeight: 700 }}>{tStatus('⊙ 滑塊曲柄機構（活塞）', lang)}</span>
-              <span className="cmd-palette-x" title={tStatus('关闭', lang)} onClick={() => closeSliderCrank()}>✕</span>
+              <span className="cmd-palette-x" title={tStatus('關閉', lang)} onClick={() => closeSliderCrank()}>✕</span>
             </div>
             <div className="cmd-palette-body">
             <div style={{ fontSize: 11, color: sol.ok ? '#1aa06b' : '#d6694e', marginBottom: 8 }}>{sol.ok ? tStatus('✓ 闭环求解 — 连杆长刚性保持', lang) : tStatus('⚠ 连杆太短，够唔到滑轨', lang)}</div>
@@ -7470,7 +7470,7 @@ export default function Viewport() {
             <div style={{ display: 'flex', gap: 6 }}>
               <button className="sb-finish" style={{ flex: 1 }} title={tStatus('描出活塞扫曲柄一圈嘅运动轨迹（往复行程线）', lang)} onClick={() => (motionTracePts.length ? useApp.getState().clearTrace() : useApp.getState().traceMotion())}>{motionTracePts.length ? tStatus('清轨迹', lang) : tStatus('📈轨迹', lang)}</button>
               <button className="sb-finish" style={{ flex: 1 }} title={tStatus('运动包络：机构扫一圈占用嘅矩形范围（紫色虚线框，设计外壳/避让用）', lang)} onClick={envBtn}>{motionEnvelope ? tStatus('清包络', lang) : tStatus('▢包络', lang)}</button>
-              <button className="sb-finish" style={{ flex: 1 }} onClick={() => closeSliderCrank()}>{tStatus('关闭', lang)}</button>
+              <button className="sb-finish" style={{ flex: 1 }} onClick={() => closeSliderCrank()}>{tStatus('關閉', lang)}</button>
             </div>
             </div>
           </div>
@@ -7481,7 +7481,7 @@ export default function Viewport() {
         <div className="cmd-palette" style={{ width: 252 }}>{/* GM-G4b：六杆机构 — 统一命令 palette 外壳 */}
           <div className="cmd-palette-head">
             <span style={{ fontWeight: 700 }}>{tStatus('⬡ 六桿機構（Stephenson-III）', lang)}</span>
-            <span className="cmd-palette-x" title={tStatus('关闭', lang)} onClick={() => closeSixBar()}>✕</span>
+            <span className="cmd-palette-x" title={tStatus('關閉', lang)} onClick={() => closeSixBar()}>✕</span>
           </div>
           <div className="cmd-palette-body">
           <div style={{ fontSize: 11, color: '#1aa06b', marginBottom: 8 }}>{tStatus('✓ 通用连杆求解器 solveLinkage 联立闭环解算（非解析公式）— 紫色为输出点 E', lang)}</div>
@@ -7492,7 +7492,7 @@ export default function Viewport() {
           <div style={{ display: 'flex', gap: 6 }}>
             <button className="sb-finish" style={{ flex: 1 }} title={tStatus('描出输出点 E 扫曲柄一圈嘅运动轨迹（compound 耦合曲线）', lang)} onClick={() => (motionTracePts.length ? useApp.getState().clearTrace() : useApp.getState().traceMotion())}>{motionTracePts.length ? tStatus('清轨迹', lang) : tStatus('📈轨迹', lang)}</button>
             <button className="sb-finish" style={{ flex: 1 }} title={tStatus('运动包络：机构扫一圈占用嘅矩形范围（紫色虚线框，设计外壳/避让用）', lang)} onClick={envBtn}>{motionEnvelope ? tStatus('清包络', lang) : tStatus('▢包络', lang)}</button>
-            <button className="sb-finish" style={{ flex: 1 }} onClick={() => closeSixBar()}>{tStatus('关闭', lang)}</button>
+            <button className="sb-finish" style={{ flex: 1 }} onClick={() => closeSixBar()}>{tStatus('關閉', lang)}</button>
           </div>
           </div>
         </div>
@@ -7528,7 +7528,7 @@ export default function Viewport() {
           单位→浏览器树 · 面草图→创建草图拣面 · 选边圆角/倒角→MODIFY 对话框 · 量边/面/角+计算器→INSPECT ·
           按拉距离→模式横幅 · 剖视控制→下方对话框 · 爆炸/透视/堆叠/排版/落地→ASSEMBLE */}
       {section.on && (
-        <CommandDialog icon="section" title={tStatus('剖切分析', lang)} width={240} okLabel={tStatus('关闭', lang)} okTip={tStatus('关闭剖视', lang)} onOk={() => setSection({ on: false })} onCancel={() => setSection({ on: false })}
+        <CommandDialog icon="section" title={tStatus('剖切分析', lang)} width={240} okLabel={tStatus('關閉', lang)} okTip={tStatus('关闭剖视', lang)} onOk={() => setSection({ on: false })} onCancel={() => setSection({ on: false })}
           summary={tStatus(`剖切 ${section.plane?.label || `${section.axis}轴`} @ ${section.offset}${section.capped ? ' · 实心' : ''}`, lang)}>
           <div style={{ display: 'flex', gap: 4 }}>
             {(['X', 'Y', 'Z'] as const).map((ax) => <button key={ax} className={'sb-tool' + (!section.plane && section.axis === ax ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSection({ axis: ax, plane: undefined, offset: 0 })}>{ax}</button>)}
@@ -7564,7 +7564,7 @@ export default function Viewport() {
         </CommandDialog>
       )}
       {vpDlg === 'calc' && (
-        <CommandDialog icon="default" title={tStatus('工程计算', lang)} width={250} okLabel={tStatus('关闭', lang)} onOk={() => setVpDlg(null)} onCancel={() => setVpDlg(null)} summary={tStatus('机械设计速算（14 个）', lang)}>
+        <CommandDialog icon="default" title={tStatus('工程计算', lang)} width={250} okLabel={tStatus('關閉', lang)} onOk={() => setVpDlg(null)} onCancel={() => setVpDlg(null)} summary={tStatus('机械设计速算（14 个）', lang)}>
           {([['紧固 / 配合', [['threadSpecLookup', '螺纹规格速查'], ['isoFitCalc', 'ISO 公差配合'], ['pressFitCalc', '过盈配合（压装）'], ['oRingGrooveCalc', 'O 形圈密封槽'], ['boltClampCalc', '螺栓夹紧力']]],
             ['传动 / 动力', [['gearMeshCalc', '齒輪嚙合參數'], ['beltLengthCalc', '皮带长度（双轮）'], ['powerTorqueCalc', '功率·扭矩·转速'], ['springRateCalc', '压缩弹簧刚度'], ['bearingLifeCalc', '轴承寿命 L10'], ['leadScrewCalc', '丝杆 速度·推力']]],
             ['加工 / 钣金', [['drillSpeedCalc', '钻铣转速 RPM'], ['bendAllowanceCalc', '钣金折弯展开'], ['thermalStressCalc', '约束热应力']]]] as [string, [string, string][]][]).map(([grp, items]) => (
@@ -7578,7 +7578,7 @@ export default function Viewport() {
         </CommandDialog>
       )}
       {vpDlg === 'explode' && (
-        <CommandDialog icon="component" title={tStatus('爆炸視圖', lang)} width={240} okLabel={tStatus('关闭', lang)} onOk={() => setVpDlg(null)} onCancel={() => setVpDlg(null)} summary={tStatus(`爆炸 ${Math.round(explode * 100)}%${xray ? ' · 透视' : ''}`, lang)}>
+        <CommandDialog icon="component" title={tStatus('爆炸視圖', lang)} width={240} okLabel={tStatus('關閉', lang)} onOk={() => setVpDlg(null)} onCancel={() => setVpDlg(null)} summary={tStatus(`爆炸 ${Math.round(explode * 100)}%${xray ? ' · 透视' : ''}`, lang)}>
           <label title={tStatus('沿装配中心向外展开组件', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('爆炸度', lang)} {Math.round(explode * 100)}%</span>
             <input type="range" min={0} max={200} value={Math.round(explode * 100)} onChange={(e) => setExplode(Number(e.target.value) / 100)} style={{ width: 130 }} />
@@ -7791,9 +7791,9 @@ export default function Viewport() {
           ⬤<input type="range" min={0} max={1} step={0.02} value={material.metalness} onChange={(e) => useApp.getState().setMatProp('metalness', Number(e.target.value))} title={tStatus('金属度', lang) + ' ' + material.metalness.toFixed(2)} style={{ width: 50 }} />
           ◗<input type="range" min={0} max={1} step={0.02} value={material.roughness} onChange={(e) => useApp.getState().setMatProp('roughness', Number(e.target.value))} title={tStatus('粗糙度', lang) + ' ' + material.roughness.toFixed(2)} style={{ width: 50 }} />
         </span>
-        <span title={tStatus('图片贴图（S192）：载入 PNG/JPG 当贴图套上活动实体（三平面投影 — 无 UV 缝，唔使展 UV）。logo/木纹照片/布料/标签都得。调「纹理尺度」改重复密度', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
+        <span title={tStatus('图片贴图（S192）：载入 PNG/JPG 当贴图套上活动实体（三平面投影 — 无 UV 缝，唔使展 UV）。logo/木紋照片/布料/標籤都得。調「紋理尺度」改重複密度', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
           <label className="tb-btn" style={{ cursor: 'pointer' }} title={tStatus('载入图片贴图', lang)}>🖼贴图<input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => useApp.getState().setBodyImageTexture(String(rd.result)); rd.readAsDataURL(f); e.currentTarget.value = '' }} /></label>
-          <label className="tb-btn" style={{ cursor: 'pointer' }} title={tStatus('载入法线贴图（凹凸细节：拉丝/皮纹/编织 — 三平面投影，同纹理尺度共用重复密度）', lang)}>🧿法线<input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => useApp.getState().setBodyNormalMap(String(rd.result)); rd.readAsDataURL(f); e.currentTarget.value = '' }} /></label>
+          <label className="tb-btn" style={{ cursor: 'pointer' }} title={tStatus('載入法線貼圖（凹凸細節：拉絲/皮紋/編織 — 三平面投影，同紋理尺度共用重複密度）', lang)}>🧿法线<input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => useApp.getState().setBodyNormalMap(String(rd.result)); rd.readAsDataURL(f); e.currentTarget.value = '' }} /></label>
           {useApp.getState().material.normalUrl && <button className="tb-btn" title={tStatus('清除法线贴图', lang)} onClick={() => useApp.getState().setBodyNormalMap(null)}>✕N</button>}
           <label className="tb-btn" style={{ cursor: 'pointer', background: decalArmed ? '#1572c4' : undefined, color: decalArmed ? '#fff' : undefined }} title={tStatus('贴花 Decal：载入 logo/标签图片 → 点击实体面放置（对标 Fusion Appearance Decal；随项目存档）', lang)}>🏷貼花<input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => useApp.getState().startDecalPick(String(rd.result)); rd.readAsDataURL(f); e.currentTarget.value = '' }} /></label>
           {decalArmed && <button className="tb-btn" title={tStatus('取消贴花放置', lang)} onClick={() => useApp.getState().cancelDecalPick()}>✕</button>}
@@ -7810,7 +7810,7 @@ export default function Viewport() {
             <button className="tb-btn" title={tStatus('删除最后一个贴花', lang)} onClick={() => useApp.getState().removeDecal(lastDecal.id)}>✕{useApp.getState().decals.length}</button>
           </>}
           {material.imageUrl && <>
-            <input type="range" min={2} max={120} step={1} value={Math.round(material.texScale || 30)} onChange={(e) => useApp.getState().setBodyTexture(material.tex || '', Number(e.target.value))} title={tStatus('纹理尺度（mm 重复）', lang)} style={{ width: 46 }} />
+            <input type="range" min={2} max={120} step={1} value={Math.round(material.texScale || 30)} onChange={(e) => useApp.getState().setBodyTexture(material.tex || '', Number(e.target.value))} title={tStatus('紋理尺度（mm 重複）', lang)} style={{ width: 46 }} />
             <button className="tb-btn" title={tStatus('清除图片贴图', lang)} onClick={() => useApp.getState().setBodyImageTexture(null)}>✕</button>
           </>}
         </span>
@@ -7898,12 +7898,12 @@ export default function Viewport() {
         </div>
         {/* GM-X2 #8：Object Visibility 主开关（全部草图 / 原点/构造面 / 轴 / 关节） */}
         <div style={{ position: 'relative' }}>
-          <button className={'tb-btn' + (navPop === 'objvis' ? ' tb-on' : '')} title={tStatus('对象可见性：全部草图 / 原点面 / 构造轴 / 关节 主开关', lang)} onClick={() => setNavPop(navPop === 'objvis' ? null : 'objvis')}>👁▾</button>
+          <button className={'tb-btn' + (navPop === 'objvis' ? ' tb-on' : '')} title={tStatus('對象可見性：全部草圖 / 原點面 / 構造軸 / 關節 主開關', lang)} onClick={() => setNavPop(navPop === 'objvis' ? null : 'objvis')}>👁▾</button>
           {navPop === 'objvis' && (
             <div className="panel-menu" style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 6, zIndex: 120, minWidth: 170 }}>
-              <div className="panel-menu-head">{tStatus('对象可见性', lang)}</div>
+              <div className="panel-menu-head">{tStatus('對象可見性', lang)}</div>
               {(['sketches', 'planes', 'axes', 'joints'] as const).map((k) => (
-                <div key={k} className="panel-menu-item" onClick={() => setObjectVis(k, !objectVis[k])}>{objectVis[k] ? '👁 ' : '🙈 '}{tStatus(k === 'sketches' ? '全部草图' : k === 'planes' ? '原点/构造面' : k === 'axes' ? '构造轴' : '关节', lang)}</div>
+                <div key={k} className="panel-menu-item" onClick={() => setObjectVis(k, !objectVis[k])}>{objectVis[k] ? '👁 ' : '🙈 '}{tStatus(k === 'sketches' ? '全部草圖' : k === 'planes' ? '原點/構造面' : k === 'axes' ? '構造軸' : '關節', lang)}</div>
               ))}
             </div>
           )}
@@ -8024,7 +8024,7 @@ export default function Viewport() {
         <div className="cmd-palette" style={{ position: 'fixed', right: 12, top: 'min(150px, 18vh)', width: 'min(320px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: 210, maxHeight: 'calc(82vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <b style={{ fontSize: 13 }}>⚖ {tStatus('物理属性', lang)}</b>
-            <button className="tb-btn" title={tStatus('关闭', lang)} onClick={() => useApp.getState().closePropertiesDialog()}>✕</button>
+            <button className="tb-btn" title={tStatus('關閉', lang)} onClick={() => useApp.getState().closePropertiesDialog()}>✕</button>
           </div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 6, fontSize: 11 }}>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={tStatus('精度：网格细分档（低/中/高 → 影响质量/惯性收敛）', lang)}>{tStatus('精度', lang)}
@@ -8055,7 +8055,7 @@ export default function Viewport() {
         <div role="dialog" aria-label="BOM" className="cmd-palette" style={{ position: 'fixed', left: '50%', top: 'min(120px, 14vh)', transform: 'translateX(-50%)', width: 'min(720px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: 220, maxHeight: 'calc(78vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column', background: '#fff', border: '1px solid #b6c0c9', borderRadius: 10, boxShadow: '0 12px 40px rgba(0,0,0,.28)', padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <b style={{ fontSize: 14 }}>📋 {tStatus('BOM 材料清单', lang)}</b>
-            <button className="tb-btn" title={tStatus('关闭', lang)} onClick={() => useApp.getState().closeBomDialog()}>✕</button>
+            <button className="tb-btn" title={tStatus('關閉', lang)} onClick={() => useApp.getState().closeBomDialog()}>✕</button>
           </div>
           <div style={{ fontSize: 12, color: '#5a6b78', marginBottom: 8 }}>{bomDialog.summary}</div>
           <div style={{ overflow: 'auto', flex: 1 }}>
@@ -8074,7 +8074,7 @@ export default function Viewport() {
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
             <button className="tb-btn" onClick={() => useApp.getState().exportBOM()}>📥 {tStatus('再导出 CSV', lang)}</button>
-            <button className="tb-btn" onClick={() => useApp.getState().closeBomDialog()}>{tStatus('关闭', lang)}</button>
+            <button className="tb-btn" onClick={() => useApp.getState().closeBomDialog()}>{tStatus('關閉', lang)}</button>
           </div>
         </div>
       )}
@@ -8169,7 +8169,7 @@ export default function Viewport() {
         <div className="info-card" style={{ position: 'fixed', top: 150, right: 20, width: 250, padding: '12px 14px', zIndex: 200, fontSize: 12 }}>{/* GM-G4b：截面属性浮卡 → .info-card 共用 token */}
           <div className="info-card-head">
             <span style={{ color: '#7fd1b9' }}>{tStatus('Σ 截面属性', lang)}</span>
-            <span className="info-card-x" onClick={() => useApp.getState().clearSectionProps()} title={tStatus('关闭', lang)}>✕</span>
+            <span className="info-card-x" onClick={() => useApp.getState().clearSectionProps()} title={tStatus('關閉', lang)}>✕</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px 8px', lineHeight: 1.5 }}>
             <span style={{ color: '#9fb2bf' }}>{tStatus('面积', lang)}</span><b>{fmtArea(sectionResult.area, unit)}</b>
@@ -8193,7 +8193,7 @@ export default function Viewport() {
             ? <><input data-testid="move-face-distance" className="tb-num" type="number" step={1} value={moveFaceDist} onChange={(e) => setMoveFaceDist(Number(e.target.value))} style={{ width: 56 }} title={tStatus('距离 mm（负=朝内内核重解邻面/圆角 / 正=朝外加料）', lang)} /> mm</>
             : <><input className="tb-num" type="number" step={1} value={moveFaceAngle} onChange={(e) => setMoveFaceAngle(Number(e.target.value))} style={{ width: 56 }} title={tStatus('倾斜角°（钳 ±60°，绕面心最长内轴）', lang)} /> °</>}
           {/* GM-3DV3 M8：Offset Type（Fusion Offset Face）— webcad 恒加时间轴节点(New 语义)，modify/auto 记录意图 */}
-          {moveFaceKind === 'offset' && <select value={offsetType} onChange={(e) => setOffsetType(e.target.value as 'modify' | 'new' | 'auto')} style={{ fontSize: 11 }} title={tStatus('Offset Type：自动 / 新特征 / 改现有特征（webcad 恒加时间轴节点，改现有=元数据记录）', lang)}><option value="auto">{tStatus('自动', lang)}</option><option value="new">{tStatus('新特征', lang)}</option><option value="modify">{tStatus('改现有', lang)}</option></select>}
+          {moveFaceKind === 'offset' && <select value={offsetType} onChange={(e) => setOffsetType(e.target.value as 'modify' | 'new' | 'auto')} style={{ fontSize: 11 }} title={tStatus('Offset Type：自动 / 新特征 / 改现有特征（webcad 恒加时间轴节点，改现有=元数据记录）', lang)}><option value="auto">{tStatus('自動', lang)}</option><option value="new">{tStatus('新特征', lang)}</option><option value="modify">{tStatus('改现有', lang)}</option></select>}
           <span style={{ fontSize: 12, color: moveFacePicks.length ? '#16a36b' : '#8a97a2' }}>{moveFacePicks.length} {tStatus('面', lang)}</span>
           {moveFaceKind === 'tilt' && moveFacePicks.length > 1 && <span style={{ fontSize: 11, color: '#c47f17' }} title={tStatus('倾斜每面方向有歧义 — 只留一个面，或改用「偏移」', lang)}>{tStatus('⚠ 倾斜只支持单面', lang)}</span>}
           {moveFacePicks.length > 0 && <button className="tb-btn" title={tStatus('清空所选面', lang)} onClick={() => useApp.getState().clearMoveFacePick()}>✕</button>}
@@ -8207,7 +8207,7 @@ export default function Viewport() {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 400, fontSize: 12 }} title={tStatus('切割平面方向：自动=同面最垂直嘅世界轴 / X·Y·Z=指定轴向（Along Vector）', lang)}>
             {tStatus('方向', lang)}
             <select value={splitFaceAxis} onChange={(e) => useApp.getState().setSplitFaceAxis(e.target.value as 'auto' | 'X' | 'Y' | 'Z')} style={{ fontSize: 12 }}>
-              <option value="auto">{tStatus('自动', lang)}</option><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option>
+              <option value="auto">{tStatus('自動', lang)}</option><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option>
             </select>
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 400, fontSize: 12 }} title={tStatus('Split Type：沿向量=平面沿法向投影（内核真做）；曲面/最近点=投影模式（内核窄能力，记录意图）', lang)}>

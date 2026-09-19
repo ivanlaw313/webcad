@@ -159,7 +159,7 @@ const SOLID: Panel[] = [
     tools: [
       { id: 'insertcomponent', label: '插入組件', icon: 'component', quick: true, tip: 'Fusion Insert Component：從 STEP/STP 選取零件或裝配，作為獨立組件插入當前設計；保留多零件的相對位置。當前不建立 Fusion 云端/F3D 的關聯鏈接。' },
       { id: 'insertfastener', label: '插入緊固件', icon: 'component', quick: true, tip: 'Fusion Insert Fastener 工作流：選內建 ISO 紧固件類型、M 規格與長度後插入獨立裝配組件。幾何尺寸真實；螺紋以簡化光杆表示，不伪稱 Autodesk 云端供應商庫。' },
-      { id: 'insertmesh', label: '插入STL网格', icon: 'importmesh', quick: true },
+      { id: 'insertmesh', label: '插入STL網格', icon: 'importmesh', quick: true },
       { id: 'insert3mf', label: '插入3MF網格', icon: 'importmesh', quick: true, tip: 'MakerWorld / Printables 下載嘅 3MF 直接導入做組件——多零件保留擺位同顏色，單位自動轉 mm。' },
       { id: 'insertobj', label: '插入OBJ網格', icon: 'importmesh', quick: true, tip: 'Wavefront OBJ 網格導入（Blender、掃掠或網上模型常用）作參考組件。' },
       { id: 'insertcanvas', label: '畫布', icon: 'importmesh', sep: true, tip: 'Fusion Canvas：選擇參考圖片，放到當前草圖平面作為描摹底圖；加入後可調宽度、透明度、位置、旋轉、翻轉及兩點標定比例。' },
@@ -326,7 +326,7 @@ const LAB: Panel[] = [
     tools: [
       { id: 'datumgeom', label: '統一構造幾何', icon: 'plane', quick: true, tip: 'WebCAD 擴展入口：在同一個面板切換平面／軸／點及全部方法。' },
       { id: 'planeparpt', label: '過點平行面', icon: 'plane', tip: '以最後一個構造點及所拾平面建立平行參考面。' },
-      { id: 'caxis', label: '方向構造軸', icon: 'axis', tip: '以 X／Y／Z 方向及指定坐標建立構造軸。' },
+      { id: 'caxis', label: '構造軸', icon: 'axis', tip: '以 X／Y／Z 方向及指定坐標建立構造軸。' },
       { id: 'cpoint', label: '坐標構造點', icon: 'cpoint', tip: '輸入 X／Y／Z 坐標建立構造點。' },
       { id: 'midcpoint', label: '兩點中點', icon: 'cpoint', tip: '在最後兩個構造點正中建立新構造點。' },
       { id: 'cptgrid', label: '構造點陣列', icon: 'cpoint', tip: '一次建立矩形或極坐標構造點陣列。' },
@@ -399,7 +399,7 @@ const MESH: Panel[] = [
   ] },
   g('CONFIGURE'), g('CONSTRUCT'), g('INSPECT'),
   { name: 'INSERT', tools: [
-    { id: 'insertmesh', label: '插入STL网格', icon: 'importmesh', quick: true, tip: '插入 STL 網格（Alt+O / File→導入）。也可將 .stl/.obj/.3mf 拖到視口導入（推薦）。導入後可用 MeshFit / 轉 B-rep。' },
+    { id: 'insertmesh', label: '插入STL網格', icon: 'importmesh', quick: true, tip: '插入 STL 網格（Alt+O / File→導入）。也可將 .stl/.obj/.3mf 拖到視口導入（推薦）。導入後可用 MeshFit / 轉 B-rep。' },
     { id: 'insert3mf', label: '插入3MF網格', icon: 'importmesh', quick: true, tip: 'MakerWorld / Printables 下載嘅 3MF 直接導入做組件——多零件保留擺位同顏色，單位自動轉 mm。' },
     { id: 'insertobj', label: '插入OBJ網格', icon: 'importmesh', quick: true, tip: 'Wavefront OBJ 網格導入（Blender / 掃掠 / 網上模型常用）作參考組件。' },
   ] },

@@ -1,7 +1,7 @@
 /**
- * v1.96 BD-9601 + locale-v195: ribbon/store/Viewport SC→TC residuals
+ * v1.97 BD-9601 + locale-v195: ribbon/store/Viewport SC→TC residuals
  * (template/fastener/material/texture; joint/motion; move dialog; datum axis).
- * APP 1.96 + SW webcad-v1.96. MESH pin 插入STL网格 stays.
+ * APP 1.97 + SW webcad-v1.97. MESH pin now 插入STL網格 (TC).
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -16,9 +16,9 @@ const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.ur
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const tree = readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.96; SW webcad-v1.96', () => {
-  assert.match(version, /APP_VERSION = '1\.96'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.96/)
+test('APP_VERSION 1.97; SW webcad-v1.97', () => {
+  assert.match(version, /APP_VERSION = '1\.97'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.97/)
 })
 
 test('BD-9601 ribbon titles TC', () => {
@@ -63,13 +63,15 @@ test('locale-v195 move dialog residuals TC', () => {
 test('locale-v195 construction axis dialog TC', () => {
   assert.match(vp, /t === 'axis' \? '軸' : '點'/)
   assert.match(vp, /dc\.type === 'axis' \? '構造軸'/)
-  assert.match(store, /構造幾何 · \$\{_datumMethodLabel/)
+  assert.match(store, /type === 'axis' \? '構造軸' : type === 'point' \? '構造點' : '構造幾何'/)
+  assert.match(store, /_datumMethodLabel/)
   assert.match(store, /label: '方向 X\/Y\/Z \+ 過點'/)
-  assert.doesNotMatch(store, /构造几何 · \$\{_datumMethodLabel/)
+  assert.doesNotMatch(store, /构造几何 ·/)
   assert.doesNotMatch(vp, /t === 'axis' \? '轴'/)
 })
 
-test('MESH pin 插入STL网格 stays (prior policy)', () => {
+test('MESH pin now TC 插入STL網格 (lifted in v1.97 BD-9701)', () => {
   const ribbonSrc = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
-  assert.match(ribbonSrc, /插入STL网格/)
+  assert.match(ribbonSrc, /插入STL網格/)
+  assert.doesNotMatch(ribbonSrc, /插入STL网格/)
 })

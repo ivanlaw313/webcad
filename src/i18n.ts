@@ -2166,6 +2166,21 @@ Object.assign(STATUS_PHRASES_X, {
   '裝配': 'Assembly',
 })
 
+
+Object.assign(STATUS_PHRASES_X, {
+  // v1.88 BD-8701 fillet/chamfer/face-fillet dialog TC
+  '確定拔模': 'OK Draft',
+  '面圓角': 'Face Fillet',
+  '面圓角（Enter）': 'Face Fillet (Enter)',
+  '規則圓角': 'Rule Fillet',
+  '全圓角': 'Full Round Fillet',
+  '不對稱圓角': 'Asymmetric Fillet',
+  '圓角類型': 'Fillet type',
+  '規則類型': 'Rule type',
+  '圓角半徑': 'Fillet radius',
+  '關閉': 'Close',
+})
+
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)
 
 // 渲染时翻译状态串：zh 原样；en 左到右最长匹配替换（未收录片段保留中文，唔会崩）。

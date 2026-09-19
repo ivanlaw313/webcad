@@ -288,9 +288,9 @@ export default function App() {
         // Fusion: S = shortcuts/command search box; Shift+S = 创建草图 (sketch keeps its ribbon button too).
         case 's': if (e.shiftKey) s.startSketch(); else s.setCmdPalette(true); e.preventDefault(); break
         case 'e': s.runCommand('extrude', '拉伸'); break
-        case 'f': s.runCommand('fillet', '圆角'); break
+        case 'f': s.runCommand('fillet', '圓角'); break
         case 'c': if (s.mode === 'sketch') s.setSketchTool('circle'); else if (s.mode === 'model') s.runCommand('chamfer', '倒角'); break // Fusion: C=Circle(草图)/Chamfer(实体)
-        case 'm': if (s.mode === 'sketch') s.runCommand('sk_move', '移动/复制'); else if (s.mode === 'model') s.runCommand('move', '移动'); break // GM-FP4 #51：M=Move（草图=移动gizmo / 模型=移动）
+        case 'm': if (s.mode === 'sketch') s.runCommand('sk_move', '移動/複製'); else if (s.mode === 'model') s.runCommand('move', '移動'); break // GM-FP4 #51：M=Move（草图=移动gizmo / 模型=移动）
         case 'o': if (s.mode === 'sketch') s.runCommand('sk_offset', '偏移'); break // GM-FP4 #51：O=Offset（草图）
         case 'v': if (s.mode === 'sketch') s.toggleSkSeeThru(); else if (s.mode === 'model' && s.selectedComponent) s.toggleComponentVisible(s.selectedComponent); break // GM-FP4 #51：V=Show/Hide（草图=透视模型 / 模型=隐藏选中组件）
         case 'h': if (s.mode === 'model') s.runCommand('hole', '孔'); break

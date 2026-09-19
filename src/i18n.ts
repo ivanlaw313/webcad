@@ -121,6 +121,38 @@ export const EN_LABEL: Record<string, string> = {
   '測量': 'Measure', '選擇': 'Select',
   // SHEET METAL
   '薄板/法兰(拉伸)': 'Flange (Extrude)',
+  // MODIFY ribbon Traditional (v1.52 BUG-BD-4801 continue)
+  '編輯面': 'Edit Face',
+  '圓角': 'Fillet',
+  '抽殼': 'Shell',
+  '抽殼(成薄壁)': 'Shell',
+  '縮放': 'Scale',
+  '合併/切割': 'Combine',
+  '合併/布爾': 'Combine',
+  '替換面': 'Replace Face',
+  '分割實體': 'Split Body',
+  '輪廓分割': 'Silhouette Split',
+  '移動/複製': 'Move / Copy',
+  '對齊': 'Align',
+  '刪除': 'Delete',
+  '簡化': 'Simplify',
+  '刪除特徵': 'Remove Features',
+  '刪除面': 'Remove Faces',
+  '使用基本體替換': 'Replace with Primitives',
+  '體積晶格': 'Volumetric Lattice',
+  '體積紋理': 'Volumetric Texture',
+  '修改體積晶格': 'Modify Volumetric Lattice',
+  '物理材質': 'Physical Material',
+  '外觀': 'Appearance',
+  '管理材質': 'Manage Materials',
+  '更改參數': 'Change Parameters',
+  '全部計算': 'Compute All',
+  '計算未解析': 'Compute Unresolved',
+  '轉換': 'Convert',
+  '面圓角': 'Face Fillet',
+  '折彎圓角': 'Bend Fillet',
+  '合併面': 'Merge Faces',
+
 }
 
 

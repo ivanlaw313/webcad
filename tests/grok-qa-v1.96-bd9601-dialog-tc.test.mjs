@@ -1,7 +1,7 @@
 /**
  * v1.97 BD-9601 + locale-v195: ribbon/store/Viewport SC→TC residuals
  * (template/fastener/material/texture; joint/motion; move dialog; datum axis).
- * APP 1.97 + SW webcad-v1.97. MESH pin now 插入STL網格 (TC).
+ * APP 1.98 + SW webcad-v1.98. MESH pin now 插入STL網格 (TC).
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -16,9 +16,9 @@ const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.ur
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const tree = readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.97; SW webcad-v1.97', () => {
-  assert.match(version, /APP_VERSION = '1\.97'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.97/)
+test('APP_VERSION 1.98; SW webcad-v1.98', () => {
+  assert.match(version, /APP_VERSION = '1\.98'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.98/)
 })
 
 test('BD-9601 ribbon titles TC', () => {

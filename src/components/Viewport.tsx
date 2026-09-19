@@ -253,24 +253,24 @@ function MateControls({ compId }: { compId: string }) {
         <option value="distance">配合·距離</option>
       </select>
       <select className="sb-tool" value={mateAxis} title="配合軸（垂直此軸的兩軸會居中對齊）" onChange={(e) => setMateConfig({ mateAxis: Number(e.target.value) as any })}>
-        <option value={0}>X轴</option><option value={1}>Y轴(竖直)</option><option value={2}>Z轴</option>
+        <option value={0}>X軸</option><option value={1}>Y軸(豎直)</option><option value={2}>Z軸</option>
       </select>
       <select className="sb-tool" value={mateSide} title="貼合在目標的哪一側（+ / −）" onChange={(e) => setMateConfig({ mateSide: Number(e.target.value) as any })}>
         <option value={1}>+侧</option><option value={-1}>−侧</option>
       </select>
       {mateType === 'distance' && (
-        <label title="兩面之間的間隙（mm）；負數 = 插入對方（蓋唇入盒、插頭入座）" style={{ fontSize: 12 }}>间隙<input type="number" step={1} value={mateDistance} onChange={(e) => setMateConfig({ mateDistance: Number(e.target.value) || 0 })} style={{ width: 48 }} /></label>
+        <label title="兩面之間的間隙（mm）；負數 = 插入對方（蓋唇入盒、插頭入座）" style={{ fontSize: 12 }}>間隙<input type="number" step={1} value={mateDistance} onChange={(e) => setMateConfig({ mateDistance: Number(e.target.value) || 0 })} style={{ width: 48 }} /></label>
       )}
       <button className="sb-tool" title="配合：點此再點目標零件 → 按上面設定把此件對齊到目標（包圍盒級，免揀面，可撤銷）。窄版：對齊整件包圍盒，非逐面約束" onClick={() => mateFromComponent(compId)}>⤵配合</button>
-      <button className="sb-tool" title="揀面配合（精準）：先點【基準件】一個面（平面 或 圓柱孔/軸），再點【要郁件】對應面 → 平面貼平 / 圓柱同軸。下面可設翻轉 + 間隙" onClick={() => useApp.getState().startFaceMate()}>▣拣面配合</button>
-      <button className="sb-tool" title="按孔配螺絲：點一個圓柱孔面 → 自動量孔徑、配 ISO 標準螺絲尺寸（過孔/攻牙）、同軸插入 + 記錄配合。一鍵上螺絲" onClick={() => useApp.getState().startScrewFit()}>🔩按孔配螺丝</button>
-      <button className="sb-tool" title="全孔配螺絲：自動偵測此零件上所有圓柱孔，逐個配 ISO 螺絲同軸插入 + 記錄配合（螺栓圈 / 孔陣列一鍵上齊）" onClick={() => void useApp.getState().fitScrewsToAllHoles(compId)}>🔩全孔配螺丝</button>
-      <label className="sb-tool" title="翻转：平面→同向（唔系对触），圆柱→轴反向（零件掉头）" style={{ fontSize: 12 }}><input type="checkbox" checked={faceMateFlip} onChange={(e) => useApp.getState().setFaceMateOpt({ faceMateFlip: e.target.checked })} /> 翻转</label>
-      <label title="間隙：平面沿法線分開 / 圓柱沿軸向偏移（mm）" style={{ fontSize: 12 }}>间隙<input type="number" step={1} value={faceMateGap} onChange={(e) => useApp.getState().setFaceMateOpt({ faceMateGap: Number(e.target.value) || 0 })} style={{ width: 48 }} /></label>
+      <button className="sb-tool" title="揀面配合（精準）：先點【基準件】一個面（平面 或 圓柱孔/軸），再點【要郁件】對應面 → 平面貼平 / 圓柱同軸。下面可設翻轉 + 間隙" onClick={() => useApp.getState().startFaceMate()}>▣揀面配合</button>
+      <button className="sb-tool" title="按孔配螺絲：點一個圓柱孔面 → 自動量孔徑、配 ISO 標準螺絲尺寸（過孔/攻牙）、同軸插入 + 記錄配合。一鍵上螺絲" onClick={() => useApp.getState().startScrewFit()}>🔩按孔配螺絲</button>
+      <button className="sb-tool" title="全孔配螺絲：自動偵測此零件上所有圓柱孔，逐個配 ISO 螺絲同軸插入 + 記錄配合（螺栓圈 / 孔陣列一鍵上齊）" onClick={() => void useApp.getState().fitScrewsToAllHoles(compId)}>🔩全孔配螺絲</button>
+      <label className="sb-tool" title="翻轉：平面→同向（唔係對觸），圓柱→軸反向（零件掉頭）" style={{ fontSize: 12 }}><input type="checkbox" checked={faceMateFlip} onChange={(e) => useApp.getState().setFaceMateOpt({ faceMateFlip: e.target.checked })} /> 翻轉</label>
+      <label title="間隙：平面沿法線分開 / 圓柱沿軸向偏移（mm）" style={{ fontSize: 12 }}>間隙<input type="number" step={1} value={faceMateGap} onChange={(e) => useApp.getState().setFaceMateOpt({ faceMateGap: Number(e.target.value) || 0 })} style={{ width: 48 }} /></label>
       {mateCount > 0 && <>
         <span className="sb-hint" title="已記錄嘅配合關係數（郁基準件時從動件自動跟隨）">配合×{mateCount}</span>
         <button className="sb-tool" title="重算配合：按已記錄關係，令從動件跟隨基準件重新對齊（拖動後手動校正）" onClick={() => useApp.getState().resolveMates()}>↻重算配合</button>
-        <button className="sb-tool" title="清除全部配合关系（零件留喺原位，只係之后郁基准件唔再自动跟随）" onClick={() => useApp.getState().clearMates()}>✕清配合</button>
+        <button className="sb-tool" title="清除全部配合關係（零件留喺原位，只係之後郁基準件唔再自動跟隨）" onClick={() => useApp.getState().clearMates()}>✕清配合</button>
       </>}
     </>
   )
@@ -291,17 +291,17 @@ function BeamControls({ compId }: { compId: string | null }) {
   return (
     <>
       <button className="sb-tool" type="button" title="收合梁分析參數，騰出畫布空間" onClick={() => setOpen(false)}>🔩 梁分析⌃</button>
-      <select className="sb-tool" value={shape} title="截面形状：矩形 / 实心圆(I=πd⁴/64) / 空心管(铝管框架)" onChange={(e) => setShape(e.target.value as 'rect' | 'round' | 'tube')}>
-        <option value="rect">矩形截面</option><option value="round">圆截面</option><option value="tube">管截面</option>
+      <select className="sb-tool" value={shape} title="截面形狀：矩形 / 實心圓(I=πd⁴/64) / 空心管(鋁管框架)" onChange={(e) => setShape(e.target.value as 'rect' | 'round' | 'tube')}>
+        <option value="rect">矩形截面</option><option value="round">圓截面</option><option value="tube">管截面</option>
       </select>
       {shape === 'tube' && <label title="管壁厚 mm" style={{ fontSize: 12 }}>壁厚<input type="number" step={0.5} min={0.2} value={wallT} onChange={(e) => setWallT(Math.max(0.2, Number(e.target.value) || 0.2))} style={{ width: 44 }} /></label>}
-      <label title="施加的点载荷（牛顿 N）" style={{ fontSize: 12 }}>力N<input type="number" step={10} min={0} value={force} onChange={(e) => setForce(Math.max(0, Number(e.target.value) || 0))} style={{ width: 52 }} /></label>
-      <select className="sb-tool" value={support} title="支撑方式" onChange={(e) => setSupport(e.target.value as any)}>
-        <option value="cantilever">悬臂</option><option value="simply">简支</option>
+      <label title="施加的點載荷（牛頓 N）" style={{ fontSize: 12 }}>力N<input type="number" step={10} min={0} value={force} onChange={(e) => setForce(Math.max(0, Number(e.target.value) || 0))} style={{ width: 52 }} /></label>
+      <select className="sb-tool" value={support} title="支撐方式" onChange={(e) => setSupport(e.target.value as any)}>
+        <option value="cantilever">懸臂</option><option value="simply">簡支</option>
       </select>
       <label title="扭矩（N·mm）—— 設 >0 則額外算扭轉剪應力（軸/傳動件）" style={{ fontSize: 12 }}>扭矩<input type="number" step={100} min={0} value={torque} onChange={(e) => setTorque(Math.max(0, Number(e.target.value) || 0))} style={{ width: 56 }} /></label>
       <button className="sb-tool" title="受力估算（梁理論·示意，非完整3D有限元）：用零件包圍盒當梁，算最大彎曲應力 σ、撓度 δ、安全係數 SF（對照材質屈服）；屈曲臨界載荷；扭矩>0 加扭轉剪應力 τ + 扭轉角。適合 beam-like 件（支架/臂/軸）" onClick={() => analyzeBeam(force, support, compId, torque, shape, wallT)}>🔩受力估算</button>
-      <button className="sb-tool" title="導出完整工程分析報告 .txt（彎曲/撓度/安全係數/屈曲/扭轉/固有頻率/熱脹/許用載荷）" onClick={() => useApp.getState().downloadBeamReport()}>📄报告</button>
+      <button className="sb-tool" title="導出完整工程分析報告 .txt（彎曲/撓度/安全係數/屈曲/扭轉/固有頻率/熱脹/許用載荷）" onClick={() => useApp.getState().downloadBeamReport()}>📄報告</button>
     </>
   )
 }
@@ -342,7 +342,7 @@ function BedFitBadge({ w, d, h }: { w: number; d: number; h: number }) {
 // and we can read it any time with canvas.toDataURL — no onCreated/same-tick dance, no lifecycle race.
 export function exportViewPNG() {
   const canvas = document.querySelector('canvas') as HTMLCanvasElement | null
-  if (!canvas) { useApp.setState({ status: '3D 视图未就绪，无法截图' }); return }
+  if (!canvas) { useApp.setState({ status: '3D 視圖未就緒，無法截圖' }); return }
   try {
     // Honesty guard (no 空壳): never download a blank image. Copy the WebGL canvas into a 2D canvas and
     // sample it; if the drawing buffer wasn't retained (no real pixels), refuse + tell the user instead of
@@ -352,7 +352,7 @@ export function exportViewPNG() {
     cx.drawImage(canvas, 0, 0)
     const s = cx.getImageData(0, 0, Math.min(160, c2.width), Math.min(160, c2.height)).data
     let nonBlank = 0; for (let i = 3; i < s.length; i += 4) if (s[i] > 8) nonBlank++
-    if (nonBlank < 8) { useApp.setState({ status: '截图未能保留画面（浏览器绘图缓冲为空）——请改用系统截图工具' }); return }
+    if (nonBlank < 8) { useApp.setState({ status: '截圖未能保留畫面（瀏覽器繪圖緩衝為空）——請改用系統截圖工具' }); return }
     const url = c2.toDataURL('image/png')
     const name = projName(useApp.getState().projectName)   // GM-L2 #86：同 STL/zip 单一净化口径，空名唔会塌成 '.png'
     const a = document.createElement('a'); a.href = url; a.download = `${name}.png`
@@ -879,7 +879,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
             nearEdge = !!nearSharpEdge(mesh, e.faceIndex, [e.point.x, -e.point.z, e.point.y], Math.max(0.3, 6 * wpp))
           }
           const wantEdge = inspectWantEdge(sf.priority, alt, nearEdge)
-          if (!selAllowsType(sf, wantEdge ? 'edge' : 'face')) { useApp.setState({ status: `選擇過濾已關閉「${wantEdge ? '边' : '面'}」類型 — 喺 🎯 面板勾選` }); return }
+          if (!selAllowsType(sf, wantEdge ? 'edge' : 'face')) { useApp.setState({ status: `選擇過濾已關閉「${wantEdge ? '邊' : '面'}」類型 — 喺 🎯 面板勾選` }); return }
           void useApp.getState().inspectAt([e.point.x, e.point.y, e.point.z], wantEdge); return
         }
         // Plain click on a component (frozen mesh) with no active pick/command mode → select it (Fusion-style direct 3D selection).
@@ -6757,7 +6757,7 @@ export default function Viewport() {
             {!String(featDlg.params.base).startsWith('mid') && <label>{tStatus('偏移', lang)} <input type="number" step={5} value={featDlg.params.offset} onChange={(e) => setFeatParam('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>}
             {String(featDlg.params.base).startsWith('mid') && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('自動取實體中部', lang)}</span>}
             {!String(featDlg.params.base).startsWith('mid') && <label title={tStatus('角度面（Fusion Plane at Angle）：基面绕自身局部 x/y 轴旋转 — 0 = 普通偏移平面', lang)}>{tStatus('∠角度', lang)} <input type="number" step={5} min={-89} max={89} value={featDlg.params.angle ?? 0} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 48 }} />°</label>}
-            {!String(featDlg.params.base).startsWith('mid') && Number(featDlg.params.angle) !== 0 && <label>{tStatus('绕', lang)} <select value={featDlg.params.aaxis ?? 'x'} onChange={(e) => setFeatParam('aaxis', e.target.value)} style={{ height: 26 }}><option value="x">{tStatus('面内 x 轴', lang)}</option><option value="y">{tStatus('面内 y 轴', lang)}</option></select></label>}
+            {!String(featDlg.params.base).startsWith('mid') && Number(featDlg.params.angle) !== 0 && <label>{tStatus('繞', lang)} <select value={featDlg.params.aaxis ?? 'x'} onChange={(e) => setFeatParam('aaxis', e.target.value)} style={{ height: 26 }}><option value="x">{tStatus('面內 x 軸', lang)}</option><option value="y">{tStatus('面內 y 軸', lang)}</option></select></label>}
             <div style={{ display: 'flex', gap: 4, width: '100%' }}>
               <button className="cs-btn" style={{ flex: 1 }} title={tStatus('三点平面（T778）：用最后 3 个构造点定一个面', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().addPlane3Points() }}>{tStatus('三点面', lang)}</button>
               <button className="cs-btn" style={{ flex: 1 }} title={tStatus('相切面（T778）：点圆柱面（孔/轴/凸台）→ 喺点击侧生成切面', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().startDatumPick('tanplane') }}>{tStatus('相切面', lang)}</button>
@@ -6824,7 +6824,7 @@ export default function Viewport() {
         const summary = acc
           ? tStatus(ready ? `已拾取 ${dc.picks.length}/${acc.length} · 按确定建立` : `拾取 ${dc.picks.length}/${acc.length}`, lang)
           : isField ? tStatus('填字段 → 确定', lang)
-            : isButton ? tStatus('用已落嘅构造点', lang) : tStatus('喺画布拾取', lang)
+            : isButton ? tStatus('用已落嘅構造點', lang) : tStatus('喺畫布拾取', lang)
         return (
           <CommandDialog icon="plane" title={dc.type === 'axis' ? '構造軸' : dc.type === 'point' ? '構造點' : '構造幾何'} width={288} summary={summary}
             okLabel={isField || acc ? '確定' : '關閉'}
@@ -6855,8 +6855,8 @@ export default function Viewport() {
               <label>{tStatus('基準面', lang)} <select value={String(P.base ?? 'XY')} onChange={(e) => dp('base', e.target.value)} style={{ height: 26 }}><option value="XY">{tStatus('XY(上)', lang)}</option><option value="XZ">{tStatus('XZ(前)', lang)}</option><option value="YZ">{tStatus('YZ(右)', lang)}</option><option value="midXY">{tStatus('XY 中間面', lang)}</option><option value="midXZ">{tStatus('XZ 中間面', lang)}</option><option value="midYZ">{tStatus('YZ 中間面', lang)}</option></select></label>
               {!String(P.base).startsWith('mid') && <label>{tStatus('偏移', lang)} <input type="number" step={5} value={Number(P.offset ?? 0)} onChange={(e) => dp('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>}
               {String(P.base).startsWith('mid') && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('自動取實體中部', lang)}</span>}
-              {!String(P.base).startsWith('mid') && <label title={tStatus('角度面（Plane at Angle）：绕面内 x/y 轴旋转 — 0 = 普通偏移', lang)}>{tStatus('∠角度', lang)} <input type="number" step={5} min={-89} max={89} value={Number(P.angle ?? 0)} onChange={(e) => dp('angle', Number(e.target.value))} style={{ width: 48 }} />°</label>}
-              {!String(P.base).startsWith('mid') && Number(P.angle) !== 0 && <label>{tStatus('绕', lang)} <select value={String(P.aaxis ?? 'x')} onChange={(e) => dp('aaxis', e.target.value)} style={{ height: 26 }}><option value="x">{tStatus('面内 x 轴', lang)}</option><option value="y">{tStatus('面内 y 轴', lang)}</option></select></label>}
+              {!String(P.base).startsWith('mid') && <label title={tStatus('角度面（Plane at Angle）：繞面內 x/y 軸旋轉 — 0 = 普通偏移', lang)}>{tStatus('∠角度', lang)} <input type="number" step={5} min={-89} max={89} value={Number(P.angle ?? 0)} onChange={(e) => dp('angle', Number(e.target.value))} style={{ width: 48 }} />°</label>}
+              {!String(P.base).startsWith('mid') && Number(P.angle) !== 0 && <label>{tStatus('繞', lang)} <select value={String(P.aaxis ?? 'x')} onChange={(e) => dp('aaxis', e.target.value)} style={{ height: 26 }}><option value="x">{tStatus('面內 x 軸', lang)}</option><option value="y">{tStatus('面內 y 軸', lang)}</option></select></label>}
             </>)}
             {key === 'point:xyz' && (<>
               <label>X <input type="number" step={5} value={Number(P.x ?? 0)} onChange={(e) => dp('x', Number(e.target.value))} style={{ width: 52 }} /></label>
@@ -6866,21 +6866,21 @@ export default function Viewport() {
             {key === 'axis:dirPoint' && (<>
               <label>{tStatus('方向', lang)} <select value={String(P.dir ?? 'X')} onChange={(e) => dp('dir', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
               <label>{tStatus('經過', lang)} <input type="number" step={5} value={Number(P.x ?? 0)} onChange={(e) => dp('x', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={Number(P.y ?? 0)} onChange={(e) => dp('y', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={Number(P.z ?? 0)} onChange={(e) => dp('z', Number(e.target.value))} style={{ width: 44 }} /></label>
-              {cpoints.length > 0 && <label title={tStatus('使用已建立的构造点作为构造轴经过点；选择后会填入 XYZ 坐标。', lang)}>{tStatus('構造點', lang)} <select data-testid="datum-axis-point" value="" onChange={(e) => { const i = Number(e.target.value); const cp = cpoints[i]; if (!Number.isInteger(i) || !cp) return; dp('x', cp[0]); dp('y', cp[1]); dp('z', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{cpoints.map((cp, i) => <option key={`datumAxisPoint${i}`} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>}
+              {cpoints.length > 0 && <label title={tStatus('使用已建立的構造點作為構造軸經過點；選擇後會填入 XYZ 坐標。', lang)}>{tStatus('構造點', lang)} <select data-testid="datum-axis-point" value="" onChange={(e) => { const i = Number(e.target.value); const cp = cpoints[i]; if (!Number.isInteger(i) || !cp) return; dp('x', cp[0]); dp('y', cp[1]); dp('z', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{cpoints.map((cp, i) => <option key={`datumAxisPoint${i}`} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>}
             </>)}
             {/* 垂直面（累积法 + 距离字段） */}
             {key === 'plane:perp' && <label title={tStatus('沿垂直面法向偏移距离', lang)}>{tStatus('偏移', lang)} <input type="number" step={5} value={Number(P.dist ?? 0)} onChange={(e) => dp('dist', Number(e.target.value))} style={{ width: 56 }} /> mm</label>}
             {/* 累积拾取进度 */}
             {acc && <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', fontSize: 11, color: ready ? '#2f9e44' : '#1572c4' }}><span style={{ flex: 1 }}>{tStatus('已拾', lang)} {dc.picks.length}/{acc.length}（{acc.map((x) => tStatus(x === 'p' ? '構造點' : x === 'e' ? '邊' : x === 'c' ? '圓柱面' : '平面', lang)).join(' + ')}）</span>{dc.picks.length > 0 && <button className="sb-tool" type="button" onClick={() => useApp.setState({ datumCmd: { ...dc, picks: [], params: { ...dc.params, __confirm: 0 } } })}>{tStatus('清除選擇', lang)}</button>}</div>}
             {/* 遗留拾取法提示 */}
-            {!isField && !isButton && !acc && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('喺画布按提示拾取（状态栏有指引）', lang)}</span>}
+            {!isField && !isButton && !acc && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('喺畫布按提示拾取（狀態欄有指引）', lang)}</span>}
           </CommandDialog>
         )
       })()}
 
       {mode === 'pickplane' && (
         <div className="sketch-bar sketch-plane-picker" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <span className="sb-title">{tStatus('选择草图基准面', lang)}</span>
+          <span className="sb-title">{tStatus('選擇草圖基準面', lang)}</span>
           {(['XY', 'XZ', 'YZ'] as const).map(plane => <button key={plane} className="sb-tool" aria-label={`${plane} ${msg('vp.sketchPlane', lang)}`} onClick={() => useApp.getState().chooseSketchPlane(plane)}>{plane} · {msg(`vp.plane.${plane}`, lang)}</button>)}
           <button className="sb-tool" onClick={() => void useApp.getState().tryExitSketch()}>{tStatus('取消', lang)} (Esc)</button>
           <span className="sb-hint">{msg('vp.orPickFace', lang)}</span>

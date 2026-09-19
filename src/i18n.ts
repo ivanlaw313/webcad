@@ -432,6 +432,24 @@ export function tLabel(label: string, lang: LangInput): string {
   return label  // zh-HK: source (TC) as-is
 }
 
+
+/** Ribbon button caption by command id (v1.83 cmd.* catalog). Variant labels via LABEL_TO_KEY. */
+export function ribbonCmdLabel(id: string, lang: LangInput, fallbackLabel?: string): string {
+  const L = normalizeLang(lang)
+  if (fallbackLabel) {
+    const mapped = LABEL_TO_KEY[fallbackLabel]
+    if (mapped) return msg(mapped, L)
+  }
+  const key = `cmd.${id}`
+  const cat = msg(key, L)
+  if (cat !== key) return cat
+  const toolKey = `tool.${id}`
+  const tool = msg(toolKey, L)
+  if (tool !== toolKey) return tool
+  return fallbackLabel ? tLabel(fallbackLabel, L) : id
+}
+
+
 /** Translate a ribbon group name (data key or Chinese panel name). */
 export function tGroup(name: string, lang: LangInput): string {
   const L = normalizeLang(lang)
@@ -459,6 +477,8 @@ export function tTab(tab: string, lang: LangInput): string {
 // 避免被子串截断），数字/单位/未收录词原样保留。zh 模式完全唔改（零风险）；en 模式输出可读英文，未收录片段
 // fallback 中文（唔会崩、唔会乱）。覆盖 app 状态词汇高频项；新词只需喺呢度加一行。
 const STATUS_PHRASES: Record<string, string> = {
+  '長': 'Length',
+  '长': 'Length',
   // v1.74 illegal / dim-reject markers (must outrank short '尺寸'/'已' fragments)
   '尺寸已拒絕：孔徑Ø必須大於 0（已清除非法預覽）': 'Dimension rejected: hole Ø must be > 0 (illegal preview cleared)',
   '尺寸已拒绝：孔径Ø必须大于 0（已清除非法预览）': 'Dimension rejected: hole Ø must be > 0 (illegal preview cleared)',

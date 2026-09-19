@@ -101,6 +101,7 @@ import { orientedBBox } from '../cad/obb'                // S121：定向最小�
 import { HDRI_PRESETS, type HdriPresetId } from '../render/hdriPresets'
 import { GradientEquirectTexture } from 'three-gpu-pathtracer'   // 工作模式背景预设：程序化渐变 equirect（同 HdriEnvironment GradientFallback 一致）
 import { msg, tStatus, tLabel, type LangInput } from '../i18n'
+import { profileSectionName } from '../ui/featureStatus'
 import { feaStaleBannerText, invalidateSimResultsPatch, hasLiveSimResults } from '../simulation/resultValidity'
 import { parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：单位感知长度输入（分数英寸）
 import type { MeshData } from '../worker/cad.worker'
@@ -6571,7 +6572,7 @@ export default function Viewport() {
             <label>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'new'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('加料/切割(车槽)/相交', lang) : tStatus('没有实体，只能加料', lang)}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割(车槽)', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新實體', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'box' && (<>
-            <label>{tStatus('长', lang)} <LenInput mm={Number(featDlg.params.l)} onMm={(v) => setFeatParam('l', v)} unit={unit} w={52} min={0.1} /></label>
+            <label>{tStatus('長', lang)} <LenInput mm={Number(featDlg.params.l)} onMm={(v) => setFeatParam('l', v)} unit={unit} w={52} min={0.1} /></label>
             <label>{tStatus('宽', lang)} <LenInput mm={Number(featDlg.params.w)} onMm={(v) => setFeatParam('w', v)} unit={unit} w={52} min={0.1} /></label>
             <label>{tStatus('高', lang)} <LenInput mm={Number(featDlg.params.h)} onMm={(v) => setFeatParam('h', v)} unit={unit} w={52} min={0.1} /></label>
             <label title={tStatus('＋加料=并入活动体；⬡新实体=独立泊车（活动体保持为目标，适合后续合并/切割挖孔）；－切割=从活动体切除', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut" disabled={!bodyMesh?.triangles?.length}>{tStatus('－切割', lang)}</option><option value="newbody" disabled={!bodyMesh?.triangles?.length}>{tStatus('⬡新實體', lang)}</option></select></label>
@@ -6596,7 +6597,7 @@ export default function Viewport() {
             <label title={tStatus('底面边数：0=圆锥/圆台；≥3=N 棱锥/棱台（金字塔/尖塔/方锥）', lang)}>{tStatus('边数', lang)} <input type="number" step={1} min={0} max={24} value={featDlg.params.sides ?? 0} onChange={(e) => setFeatParam('sides', Number(e.target.value))} style={{ width: 44 }} /></label>
           </>)}
           {featDlg.kind === 'wedge' && (<>
-            <label>{tStatus('长', lang)} <input type="number" step={5} min={1} value={featDlg.params.l} onChange={(e) => setFeatParam('l', Number(e.target.value))} style={{ width: 50 }} /></label>
+            <label>{tStatus('長', lang)} <input type="number" step={5} min={1} value={featDlg.params.l} onChange={(e) => setFeatParam('l', Number(e.target.value))} style={{ width: 50 }} /></label>
             <label>{tStatus('宽', lang)} <input type="number" step={5} min={1} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 50 }} /></label>
             <label title={tStatus('高的一端在长度方向的一侧，斜面削到 0', lang)}>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 50 }} /></label>
           </>)}
@@ -6622,17 +6623,17 @@ export default function Viewport() {
             <label title={tStatus('截面宽度 X', lang)}>{tStatus('宽', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 48 }} /></label>
             <label title={tStatus('截面深度 Y', lang)}>{tStatus('深', lang)} <input type="number" step={5} min={2} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 48 }} /></label>
             <label title={tStatus('壁厚', lang)}>{tStatus('壁厚', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.wall} onChange={(e) => setFeatParam('wall', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label title={tStatus('长度（沿 Z 高）', lang)}>{tStatus('长', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
+            <label title={tStatus('長度（沿 Z 高）', lang)}>{tStatus('長', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
           </>)}
           {featDlg.kind === 'profile' && (<>
-            <label>{tStatus('截面', lang)} <select value={featDlg.params.ptype} onChange={(e) => setFeatParam('ptype', e.target.value)} style={{ height: 26 }}><option value="L">{tStatus('L 角铁', lang)}</option><option value="U">{tStatus('U 槽钢', lang)}</option><option value="T">{tStatus('T 型材', lang)}</option></select></label>
+            <label>{tStatus('截面', lang)} <select value={featDlg.params.ptype} onChange={(e) => setFeatParam('ptype', e.target.value)} style={{ height: 26 }}><option value="L">{profileSectionName('L', lang)}</option><option value="U">{profileSectionName('U', lang)}</option><option value="T">{profileSectionName('T', lang)}</option></select></label>
             <label title={tStatus('截面宽度 X', lang)}>{tStatus('宽', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 46 }} /></label>
             <label title={tStatus('截面高度 Y', lang)}>{tStatus('高', lang)} <input type="number" step={5} min={2} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 46 }} /></label>
             <label title={tStatus('壁厚/料厚', lang)}>{tStatus('厚', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.t} onChange={(e) => setFeatParam('t', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label title={tStatus('长度（沿 Z）', lang)}>{tStatus('长', lang)} <input type="number" step={10} min={1} value={featDlg.params.len} onChange={(e) => setFeatParam('len', Number(e.target.value))} style={{ width: 50 }} /></label>
+            <label title={tStatus('長度（沿 Z）', lang)}>{tStatus('長', lang)} <input type="number" step={10} min={1} value={featDlg.params.len} onChange={(e) => setFeatParam('len', Number(e.target.value))} style={{ width: 50 }} /></label>
           </>)}
           {featDlg.kind === 'rbox' && (<>
-            <label>{tStatus('长', lang)} <input type="number" step={5} min={2} value={featDlg.params.l} onChange={(e) => setFeatParam('l', Number(e.target.value))} style={{ width: 48 }} /></label>
+            <label>{tStatus('長', lang)} <input type="number" step={5} min={2} value={featDlg.params.l} onChange={(e) => setFeatParam('l', Number(e.target.value))} style={{ width: 48 }} /></label>
             <label>{tStatus('宽', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 48 }} /></label>
             <label>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
             <label title={tStatus('四条竖边的圆角半径（会自动限制在 min(长,宽)/2 以内）', lang)}>{tStatus('圆角R', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.r} onChange={(e) => setFeatParam('r', Number(e.target.value))} style={{ width: 46 }} /></label>
@@ -6734,7 +6735,7 @@ export default function Viewport() {
           </>)}
           {featDlg.kind === 'sheetmetal' && (<>
             <label title={tStatus('钣金规则（T768 Fusion Sheet Metal Rules）：按材料一键填 厚度/折弯R/K 因子', lang)}>{tStatus('规则', lang)} <select defaultValue="" onChange={(e) => { const r = SM_RULES[e.target.value]; if (r) { setFeatParam('thickness', r.t); setFeatParam('radius', r.r); setFeatParam('kfactor', r.k) } }} style={{ height: 26 }}><option value="">{tStatus('自定义', lang)}</option>{Object.keys(SM_RULES).map((k) => <option key={k} value={k}>{k}</option>)}</select></label>
-            <label>{tStatus('截面', lang)} <select value={featDlg.params.preset} onChange={(e) => setFeatParam('preset', e.target.value)} style={{ height: 26 }}><option value="L">{tStatus('L 角铁', lang)}</option><option value="U">{tStatus('U 槽', lang)}</option><option value="Z">{tStatus('Z 件', lang)}</option></select></label>
+            <label>{tStatus('截面', lang)} <select value={featDlg.params.preset} onChange={(e) => setFeatParam('preset', e.target.value)} style={{ height: 26 }}><option value="L">{profileSectionName('L', lang)}</option><option value="U">{msg('profile.name.U', lang)}</option><option value="Z">{tStatus('Z 件', lang)}</option></select></label>
             <label>{tStatus('厚度', lang)} <input type="number" step={0.5} min={0.2} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 44 }} /></label>
             <label>{tStatus('折弯R', lang)} <input type="number" step={0.5} min={0.1} value={featDlg.params.radius} onChange={(e) => setFeatParam('radius', Number(e.target.value))} style={{ width: 44 }} /></label>
             <label title={tStatus('K 因子：中性轴位置(0~0.5)，钢件常用 0.38~0.44，决定展开料长', lang)}>K <input type="number" step={0.05} min={0} max={0.5} value={featDlg.params.kfactor} onChange={(e) => setFeatParam('kfactor', Number(e.target.value))} style={{ width: 44 }} /></label>

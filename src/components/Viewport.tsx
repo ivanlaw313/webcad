@@ -4745,7 +4745,7 @@ export default function Viewport() {
               repeat,
               newSketch,
               { key: 'presspull', icon: 'presspull', label: '按拉', fn: () => runCommand('presspull', '按拉') },
-              { key: 'measure', icon: 'measure', label: '测量', fn: () => runCommand('measure', '测量') },
+              { key: 'measure', icon: 'measure', label: '測量', fn: () => runCommand('measure', '測量') },
               del,
               { key: 'move', icon: 'move', label: '移動/複製', fn: () => runCommand('move', '移動') },
               { key: 'fillet', icon: 'fillet', label: '圓角', fn: () => runCommand('fillet', '圓角') },
@@ -4768,7 +4768,7 @@ export default function Viewport() {
             ...(bodyMesh ? [
               { key: 'delface', label: '⌦ 删面', fn: () => runCommand('delface', '删面') } as MMItem,
             ] : [
-              { key: 'measure', label: '📏 测量', fn: () => runCommand('measure', '测量') } as MMItem,
+              { key: 'measure', label: '📏 測量', fn: () => runCommand('measure', '測量') } as MMItem,
             ]),
             ...(bodyMesh ? [
               { key: 'chamfer', label: '◣ 倒角', fn: () => runCommand('chamfer', '倒角') } as MMItem,

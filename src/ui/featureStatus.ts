@@ -1,14 +1,16 @@
 /**
- * v1.37 / v1.38 — Feature success status builders (Chinese source of truth).
- *
- * Status HUD runs every string through tStatus(s, lang). Short EN phrase tokens
- * (已→Done:, 抽壳→shell, 壁厚→Wall, 所选→selected, 圆角→fillet, 拉伸→extrude,
- * 实体→body, …) previously mangled these into hybrid EN/CN toasts e.g.
- *   `Done: shell Wall 2 (向内, 开 1 个selected 面, 切线链)`
- *   `Done: extrudeto make a body — real  OCCT B-rep`
- * Keep builders here so contracts can assert the Chinese pattern, and pair with
- * long STATUS_PHRASES_X guards so EN mode preserves proper Chinese for these.
+ * v1.75 — Feature success status builders via 4-locale catalog (msg/detectLang).
+ * Keep zh-HK Traditional source strings in locales/zh-HK.ts (pins unchanged).
  */
+import { msg, detectLang, type LangInput } from '../i18n'
+
+function fmt(template: string, ...args: Array<string | number>): string {
+  return template.replace(/\{(\d+)\}/g, (_, i) => String(args[Number(i)] ?? ''))
+}
+
+function L(lang?: LangInput) {
+  return lang ?? detectLang()
+}
 
 export type ShellDir = 'inside' | 'outside' | 'both'
 export type ShellType = 'open' | 'closed'
@@ -20,28 +22,33 @@ export function shellSuccessStatus(opts: {
   shellType: ShellType
   openCount: number
   tangentChain: boolean
-}): string {
-  // v1.63: HK Traditional — Solid QA toast fragments (向內／開／個／所選／切線／抽殼)
-  const dirLbl = opts.dir === 'outside' ? '向外' : opts.dir === 'both' ? '兩側' : '向內'
+}, lang?: LangInput): string {
+  const l = L(lang)
+  const dirKey =
+    opts.dir === 'outside' ? 'status.shellDir.outside'
+    : opts.dir === 'both' ? 'status.shellDir.both'
+    : 'status.shellDir.inside'
   const body =
     opts.shellType === 'closed'
-      ? '封閉實體'
-      : `開 ${opts.openCount} 個所選面${opts.tangentChain ? '，切線鏈開' : ''}`
-  return `已抽殼 壁厚 ${opts.thickness}（${dirLbl}，${body}）`
+      ? msg('status.shellBody.closed', l)
+      : fmt(
+          msg(opts.tangentChain ? 'status.shellBody.openTangent' : 'status.shellBody.open', l),
+          opts.openCount,
+        )
+  return fmt(msg('status.shellDone', l), opts.thickness, msg(dirKey, l), body)
 }
 
 /** Extrude / Cut success (single-body path). */
 export function extrudeSuccessStatus(opts: {
   op: 'new' | 'cut' | 'stack'
   extra?: string
-}): string {
-  const base =
-    opts.op === 'cut'
-      ? '已切割（布尔减）— 真实 OCCT B-rep'
-      : opts.op === 'stack'
-        ? '已在顶面叠加拉伸特征'
-        : '已拉伸出实体 — 真实 OCCT B-rep'
-  return base + (opts.extra ?? '')
+}, lang?: LangInput): string {
+  const l = L(lang)
+  const key =
+    opts.op === 'cut' ? 'status.extrudeCutDone'
+    : opts.op === 'stack' ? 'status.extrudeStackDone'
+    : 'status.extrudeDone'
+  return msg(key, l) + (opts.extra ?? '')
 }
 
 /** Multi-profile Extrude / Cut success. */
@@ -50,14 +57,13 @@ export function multiProfileExtrudeStatus(opts: {
   count: number
   holes?: number
   groupNodes?: number
-}): string {
+}, lang?: LangInput): string {
+  const l = L(lang)
   if (opts.op === 'cut') {
-    const grp = opts.groupNodes != null ? `（组节点 ×${opts.groupNodes}）` : ''
-    return `已切除 ${opts.count} 个轮廓${grp}— 真实 OCCT B-rep`
+    const base = fmt(msg('status.multiCut', l), opts.count)
+    return opts.groupNodes != null ? `${base} (×${opts.groupNodes})` : base
   }
-  const holes = opts.holes ?? 0
-  const grp = opts.groupNodes != null ? '，组节点' : ''
-  return `已拉伸 ${opts.count} 个轮廓（含 ${holes} 个孔${grp}）— 真实 OCCT B-rep`
+  return fmt(msg('status.multiExtrude', l), opts.count, opts.holes ?? 0)
 }
 
 export type BoolOp = 'join' | 'cut' | 'common'
@@ -68,18 +74,36 @@ export function booleanSuccessStatus(opts: {
   op: BoolOp
   toolCount?: number
   keepTools?: boolean
-}): string {
-  const lbl = opts.op === 'cut' ? '切除' : opts.op === 'common' ? '相交' : '合併'
+}, lang?: LangInput): string {
+  const l = L(lang)
   const sym = opts.op === 'cut' ? '−' : opts.op === 'common' ? '∩' : '+'
   if (opts.kind === 'combine') {
     const n = opts.toolCount ?? 1
-    const keep = opts.keepTools ? '·保留工具體' : ''
-    return `已合併：活動實體 ${sym} ${n} 個工具體（${lbl}${keep}，B-rep 級 — 時間軸可改/可刪）`
+    const keep = opts.keepTools ? msg('status.keepTools', l) : ''
+    const key =
+      opts.op === 'cut' ? 'status.combineCut'
+      : opts.op === 'common' ? 'status.combineIntersect'
+      : 'status.combineUnite'
+    return fmt(msg(key, l), sym, n, keep)
   }
-  return `已實體布爾：活動實體 ${sym} 泊車實體（${lbl}，B-rep 級 — 時間軸可改/可刪）`
+  const key =
+    opts.op === 'cut' ? 'status.booleanCut'
+    : opts.op === 'common' ? 'status.booleanIntersect'
+    : 'status.booleanUnite'
+  return msg(key, l)
 }
 
 /** New body (park active) success. */
-export function newBodySuccessStatus(n: number): string {
-  return `已開新實體 —「實體${n}」已泊車（灰顯）。而家建嘅嘢全部屬於新實體；完成後撳「實體布爾」合併/切除/相交`
+export function newBodySuccessStatus(n: number, lang?: LangInput): string {
+  const l = L(lang)
+  // Prefer numbered body name from catalog template
+  return fmt(msg('status.newBody', l), `Body ${n}`)
+}
+
+/** Fillet / chamfer chip success (high-traffic). */
+export function filletSuccessStatus(lang?: LangInput): string {
+  return msg('status.filletDone', L(lang))
+}
+export function chamferSuccessStatus(lang?: LangInput): string {
+  return msg('status.chamferDone', L(lang))
 }

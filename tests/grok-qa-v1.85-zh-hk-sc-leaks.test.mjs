@@ -20,9 +20,9 @@ const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.
 const ribbonSrc = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 const tl = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.88; SW webcad-v1.88', () => {
-  assert.match(version, /APP_VERSION = '1\.88'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.88/)
+test('APP_VERSION 1.89; SW webcad-v1.89', () => {
+  assert.match(version, /APP_VERSION = '1\.89'/)
+  assert.match(sw, /const CACHE = 'webcad-v1\.89/)
 })
 
 test('catalog parity', () => {

@@ -106,6 +106,13 @@ export const EN_LABEL: Record<string, string> = {
   '兩點中點': 'Midpoint',
   '構造點陣列': 'Construction Point Pattern',
   '構造擴展': 'Construct Extensions',
+  // INSERT canvas/decal + residual Traditional (v1.70b) — retain SC above
+  '插入組件': 'Insert Component',
+  '插入緊固件': 'Insert Fastener',
+  '插入3MF網格': 'Insert 3MF',
+  '插入OBJ網格': 'Insert OBJ',
+  '畫布': 'Canvas',
+  '貼花': 'Decal',
   // CREATE/MODIFY/PRINT residual Traditional (v1.70) — retain SC above
   '面上草圖': 'Sketch on Face',
   '面加螺紋': 'Thread',
@@ -1672,6 +1679,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   '烘焙為零件實體': '烘焙為零件實體',
   '已烘焙入零件時間軸，可圓角/抽殼': '已烘焙入零件時間軸，可圓角/抽殼',
   '點右側「烘焙為零件實體」入零件時間軸後再圓角/抽殼': '點右側「烘焙為零件實體」入零件時間軸後再圓角/抽殼',
+  '組件布爾＝網格布爾（非零件時間軸）— 點右側按鈕烘焙入零件後即可圓角/抽殼；零件內多體用「實體布爾」（B-rep），勿與組件布爾（網格）混淆': '組件布爾＝網格布爾（非零件時間軸）— 點右側按鈕烘焙入零件後即可圓角/抽殼；零件內多體用「實體布爾」（B-rep），勿與組件布爾（網格）混淆',
   '組件布爾＝網格結果（非零件時間軸）— 點右側按鈕烘焙入零件後即可圓角/抽殼；零件內多體用「實體布爾」（B-rep），勿與組件布爾（網格）混淆': '組件布爾＝網格結果（非零件時間軸）— 點右側按鈕烘焙入零件後即可圓角/抽殼；零件內多體用「實體布爾」（B-rep），勿與組件布爾（網格）混淆',
   '當前是組件布爾/網格件': '當前是組件布爾/網格件',
   '烘焙为零件实体': '烘焙为零件实体',  // legacy SC
@@ -1844,6 +1852,26 @@ Object.assign(STATUS_PHRASES_X, {
   '— 選構造點 —': '— Pick construction point —',
   '— 選構造軸 —': '— Pick construction axis —',
   '中心點': 'Center Point',
+})
+
+
+// v1.70 INSERT + Boolean help leftover chrome
+Object.assign(STATUS_PHRASES_X, {
+  '插入組件': 'Insert Component',
+  '插入緊固件': 'Insert Fastener',
+  '畫布': 'Canvas',
+  '貼花': 'Decal',
+  '來源': 'Source',
+  '來源體': 'Source Body',
+  '工具體': 'Tool Body',
+  '來源位置與關節保留': 'source pose and joints kept',
+  '只消耗工具體': 'tool body consumed only',
+  '工具體保留': 'tool body kept',
+  '組件布爾＝網格布爾（非零件時間軸）— 點右側按鈕烘焙入零件後即可圓角/抽殼；零件內多體用「實體布爾」（B-rep），勿與組件布爾（網格）混淆': '組件布爾＝網格布爾（非零件時間軸）— 點右側按鈕烘焙入零件後即可圓角/抽殼；零件內多體用「實體布爾」（B-rep），勿與組件布爾（網格）混淆',
+  '組件布爾：來源體無實體幾何': '組件布爾：來源體無實體幾何',
+  '組件布爾：工具體編號無效': '組件布爾：工具體編號無效',
+  '組件布爾：工具體無實體幾何': '組件布爾：工具體無實體幾何',
+  '請選擇工具體編號': '請選擇工具體編號',
 })
 
 const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)

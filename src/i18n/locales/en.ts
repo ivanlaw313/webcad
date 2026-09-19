@@ -1,4 +1,4 @@
-// WebCAD message catalog — en (v1.77 i18n leftovers: Ribbon/dialogs/Drawing/Inspect/Viewport)
+// WebCAD message catalog — en (v1.77 i18n leftovers + JP box toast)
 // Stable keys. Missing → fall back zh-HK → key.
 
 const messages: Record<string, string> = {
@@ -191,11 +191,17 @@ const messages: Record<string, string> = {
   "status.booleanCut": "Body boolean: active − parked (cut, B-rep — editable/deletable on timeline)",
   "status.booleanIntersect": "Body boolean: active ∩ parked (intersect, B-rep — editable/deletable on timeline)",
   "status.booleanUnite": "Body boolean: active ∪ parked (unite, B-rep — editable/deletable on timeline)",
+  "status.boxCreated": "Created box {0}×{1}×{2}",
+  "status.boxCut": "Cut box {0}×{1}×{2}",
+  "status.boxIntersect": "Intersect · box {0}×{1}×{2}",
+  "status.boxNewBody": "New body · box {0}×{1}×{2}",
   "status.chamferDone": "Chamfer applied",
   "status.combineCut": "Combined: active {0} {1} tool bodies (cut{2}, B-rep — editable/deletable on timeline)",
   "status.combineIntersect": "Combined: active {0} {1} tool bodies (intersect{2}, B-rep — editable/deletable on timeline)",
   "status.combineUnite": "Combined: active {0} {1} tool bodies (unite{2}, B-rep — editable/deletable on timeline)",
   "status.cutDone": "Cut (boolean subtract) — real OCCT B-rep",
+  "status.cylCreated": "Created cylinder Ø{0}×{1}",
+  "status.cylCut": "Cut cylinder Ø{0}×{1}",
   "status.dimRejected": "Dimension rejected",
   "status.dimRejectedHole": "Dimension rejected: hole Ø must be > 0 (illegal preview cleared)",
   "status.dimRejectedIllegal": "Dimension rejected: illegal input",
@@ -212,7 +218,7 @@ const messages: Record<string, string> = {
   "status.lang.zhHK": "Language: Traditional Chinese (HK)",
   "status.multiCut": "Cut {0} profiles — real OCCT B-rep",
   "status.multiExtrude": "Extruded {0} profiles ({1} holes) — real OCCT B-rep",
-  "status.newBody": "New body opened — \\\\\\\\\\\\\\\"{0}\\\\\\\\\\\\\\\" parked (dimmed). New work belongs to the new body; then use Body Boolean to unite/cut/intersect",
+  "status.newBody": "New body opened — \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"{0}\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" parked (dimmed). New work belongs to the new body; then use Body Boolean to unite/cut/intersect",
   "status.shellBody.closed": "closed body",
   "status.shellBody.open": "open {0} selected faces",
   "status.shellBody.openTangent": "open {0} selected faces, tangent chain on",

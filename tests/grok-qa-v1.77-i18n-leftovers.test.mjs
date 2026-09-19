@@ -7,7 +7,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
-  msg, catalogKeyCount, allCatalogKeys, LOCALES, CATALOGS, tLabel,
+  msg, catalogKeyCount, allCatalogKeys, LOCALES, CATALOGS, tLabel, tStatus,
 } from '../src/i18n.ts'
 
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
@@ -33,7 +33,7 @@ test('APP_VERSION is 1.77; SW CACHE webcad-v1.77', () => {
 test('v1.77: catalog parity ≥580 keys; new draw/insp/dlg/hint/vp/ui keys', () => {
   const counts = LOCALES.map((L) => catalogKeyCount(L))
   assert.equal(new Set(counts).size, 1, `unequal: ${counts}`)
-  assert.ok(counts[0] >= 580, `expected ≥580 keys, got ${counts[0]}`)
+  assert.ok(counts[0] >= 590, `expected ≥590 keys, got ${counts[0]}`)
   const keys = allCatalogKeys()
   for (const k of [
     'draw.view.front', 'draw.overflow', 'insp.properties', 'hint.title',
@@ -93,4 +93,18 @@ test('Pins + BOT-D 7302 false-positive: tree/timeline TC labels present', () => 
   assert.match(tree, /label: '合併面'/)
   assert.match(timeline, /label: '複製實體'/)
   assert.match(timeline, /label: '合併面'/)
+})
+
+test('v1.77: JP Box toast — no Done:/Box shred; catalog status.boxCreated', () => {
+  assert.equal(msg('status.boxCreated', 'ja'), 'ボックスを作成しました {0}×{1}×{2}')
+  assert.doesNotMatch(msg('status.boxCreated', 'ja'), /Done:|\bBox\b/)
+  assert.match(msg('status.boxCreated', 'en'), /Created box/)
+  const ja = tStatus('已创建长方体 80×60×40', 'ja')
+  assert.match(ja, /ボックス/)
+  assert.doesNotMatch(ja, /Done:/)
+  assert.doesNotMatch(ja, /\bBox\b/)
+  assert.equal(ja, 'ボックスを作成しました 80×60×40')
+  const en = tStatus('已创建长方体 80×60×40', 'en')
+  assert.equal(en, 'Created box 80×60×40')
+  assert.match(readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8'), /boxSuccessStatus\(/)
 })

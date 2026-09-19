@@ -107,3 +107,30 @@ export function filletSuccessStatus(lang?: LangInput): string {
 export function chamferSuccessStatus(lang?: LangInput): string {
   return msg('status.chamferDone', L(lang))
 }
+
+export type PrimOp = 'new' | 'cut' | 'newbody' | 'intersect'
+
+/** Box prim success — catalog avoids JA Done:/Box shredding via tStatus EN table. */
+export function boxSuccessStatus(opts: {
+  op: PrimOp
+  l: number | string
+  w: number | string
+  h: number | string
+}, lang?: LangInput): string {
+  const key =
+    opts.op === 'cut' ? 'status.boxCut'
+    : opts.op === 'newbody' ? 'status.boxNewBody'
+    : opts.op === 'intersect' ? 'status.boxIntersect'
+    : 'status.boxCreated'
+  return fmt(msg(key, L(lang)), opts.l, opts.w, opts.h)
+}
+
+/** Cylinder prim / extrude-circle success. */
+export function cylSuccessStatus(opts: {
+  op: PrimOp
+  d: number | string
+  h: number | string
+}, lang?: LangInput): string {
+  const key = opts.op === 'cut' ? 'status.cylCut' : 'status.cylCreated'
+  return fmt(msg(key, L(lang)), opts.d, opts.h)
+}

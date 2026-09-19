@@ -1,4 +1,4 @@
-// WebCAD message catalog — zh-HK (v1.77 i18n leftovers: Ribbon/dialogs/Drawing/Inspect/Viewport)
+// WebCAD message catalog — zh-HK (v1.77 i18n leftovers + JP box toast)
 // Stable keys. Missing → fall back zh-HK → key.
 
 const messages: Record<string, string> = {
@@ -191,11 +191,17 @@ const messages: Record<string, string> = {
   "status.booleanCut": "已實體布爾：活動實體 − 泊車實體（切除，B-rep 級 — 時間軸可改/可刪）",
   "status.booleanIntersect": "已實體布爾：活動實體 ∩ 泊車實體（相交，B-rep 級 — 時間軸可改/可刪）",
   "status.booleanUnite": "已實體布爾：活動實體 + 泊車實體（合併，B-rep 級 — 時間軸可改/可刪）",
+  "status.boxCreated": "已創建長方體 {0}×{1}×{2}",
+  "status.boxCut": "已切割長方體 {0}×{1}×{2}",
+  "status.boxIntersect": "已相交長方體 {0}×{1}×{2}",
+  "status.boxNewBody": "已新實體長方體 {0}×{1}×{2}",
   "status.chamferDone": "已倒角",
   "status.combineCut": "已合併：活動實體 {0} {1} 個工具體（切除{2}，B-rep 級 — 時間軸可改/可刪）",
   "status.combineIntersect": "已合併：活動實體 {0} {1} 個工具體（相交{2}，B-rep 級 — 時間軸可改/可刪）",
   "status.combineUnite": "已合併：活動實體 {0} {1} 個工具體（合併{2}，B-rep 級 — 時間軸可改/可刪）",
   "status.cutDone": "已切割（布爾減）— 真實 OCCT B-rep",
+  "status.cylCreated": "已創建圓柱 Ø{0}×{1}",
+  "status.cylCut": "已切割圓柱 Ø{0}×{1}",
   "status.dimRejected": "尺寸已拒絕",
   "status.dimRejectedHole": "尺寸已拒絕：孔徑Ø必須大於 0（已清除非法預覽）",
   "status.dimRejectedIllegal": "尺寸已拒絕：非法輸入",

@@ -1,4 +1,4 @@
-// WebCAD message catalog — ja (v1.77 i18n leftovers: Ribbon/dialogs/Drawing/Inspect/Viewport)
+// WebCAD message catalog — ja (v1.77 i18n leftovers + JP box toast)
 // Stable keys. Missing → fall back zh-HK → key.
 
 const messages: Record<string, string> = {
@@ -191,11 +191,17 @@ const messages: Record<string, string> = {
   "status.booleanCut": "ボディブール：アクティブ − 待機（切除，B-rep — タイムラインで編集/削除可）",
   "status.booleanIntersect": "ボディブール：アクティブ ∩ 待機（交差，B-rep — タイムラインで編集/削除可）",
   "status.booleanUnite": "ボディブール：アクティブ ∪ 待機（結合，B-rep — タイムラインで編集/削除可）",
+  "status.boxCreated": "ボックスを作成しました {0}×{1}×{2}",
+  "status.boxCut": "ボックスで切り取りました {0}×{1}×{2}",
+  "status.boxIntersect": "交差：ボックス {0}×{1}×{2}",
+  "status.boxNewBody": "新しいボディ：ボックス {0}×{1}×{2}",
   "status.chamferDone": "面取り完了",
   "status.combineCut": "結合：アクティブ {0} ツールボディ {1}（切除{2}，B-rep — タイムラインで編集/削除可）",
   "status.combineIntersect": "結合：アクティブ {0} ツールボディ {1}（交差{2}，B-rep — タイムラインで編集/削除可）",
   "status.combineUnite": "結合：アクティブ {0} ツールボディ {1}（結合{2}，B-rep — タイムラインで編集/削除可）",
   "status.cutDone": "切断（ブール差）完了 — 実OCCT B-rep",
+  "status.cylCreated": "円柱を作成しました Ø{0}×{1}",
+  "status.cylCut": "円柱で切り取りました Ø{0}×{1}",
   "status.dimRejected": "寸法を拒否しました",
   "status.dimRejectedHole": "寸法を拒否しました：穴径Øは 0 より大きく（不正プレビューをクリア）",
   "status.dimRejectedIllegal": "寸法を拒否しました：不正な入力",

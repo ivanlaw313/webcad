@@ -104,6 +104,8 @@ export default function App() {
         else if (VISUAL_STYLE_KEYMAP[e.key]) { e.preventDefault(); useApp.getState().setVisualStyle(VISUAL_STYLE_KEYMAP[e.key]) }
         // GM-X2 #16：Ctrl+Shift+F = 全屏切换（对标 Fusion Enter Full Screen）。
         else if (ck === 'f' && e.shiftKey) { e.preventDefault(); try { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen() } catch { /* 不支持 */ } }
+        // AI Copilot。Ctrl+Shift+A 未用於其他命令（Ctrl+Shift+F = 全屏、Ctrl+Shift+Z = 重做）。
+        else if (ck === 'a' && e.shiftKey) { e.preventDefault(); useApp.getState().runCommand('aicopilot', 'AI 助手') }
         return
       }
       // BUG-BD-1804：Alt+O = 插入 STL（绕过可能挂起的原生菜单路径）

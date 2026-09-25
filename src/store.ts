@@ -2905,6 +2905,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   runThermalStressSolve: () => Promise<void>
   clearThermal: () => void
   exportSimReport: () => void   // S90：统一导出已运行嘅仿真结果（静力/模态/屈曲/热/生成式）为 .txt 报告
+  simFocus: null | 'topopt' | 'thermal'
+  openSimPanel: (focus: 'topopt' | 'thermal') => void
 }
 
 // Lower metalness ("satin" look) so surfaces stay bright under the studio lights
@@ -13513,6 +13515,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'sectionprops': return get().sectionResult ? get().clearSectionProps() : get().computeSectionProps()   // S119：草图截面属性
       case 'autoorient': return void get().autoOrient()
       case 'wallcheck': return get().wallThin?.on ? get().clearWall() : get().analyzeWall()
+      case 'aicopilot': return get().toggleAiPanel()
+      case 'topopt': return get().openSimPanel('topopt')
+      case 'thermal': return get().openSimPanel('thermal')
       case 'fea': {
         // BUG-BD-1301/1302：有结果或已失效时再点「受力云图」应打开面板查看/改约束重跑，
         // 唔好 clearFea 把彩图同失效标一齐抹掉（QA 会当成「无彩图 / 无失效」）。
@@ -13521,6 +13526,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           const mode = (s.feaFixed ? 2 : 1) as 0 | 1 | 2
           return set({
             feaMode: mode,
+            simFocus: null,
             status: s.feaStale
               ? (s.status.includes('失效') ? s.status : '⚠ 仿真結果已失效 — 請重新運行')
               : '受力结果查看 — 可改约束 / 几何后重跑，或按面板取消清除',
@@ -21421,13 +21427,44 @@ export const useApp = create<AppState>((rawSet, get) => {
   toggleFea: () => set((s) => {
     if (s.feaBusy) return { status: 'FEA 計算緊 — 等佢完成' }
     // S171 audit（LOW）：退出要清晒拾取模式 — feaBearingPick 嘅 Viewport click 路由【冇】gate feaMode，残留会喺退出后点圆柱面静静起轴承载荷。一并清 feaPin/feaPinPick 对称。
-    if (s.feaMode) return { feaMode: 0 as const, feaFixed: null, feaLoad: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, status: '已退出受力雲圖' }
+    if (s.feaMode) return { feaMode: 0 as const, feaFixed: null, feaLoad: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, simFocus: null, status: '已退出受力雲圖' }
     if (!s.bodyMesh || !s.bodyMesh.vertices.length) return { status: '受力雲圖：需要先有活動實體' }
     return {
-      feaMode: 1 as const, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaProbe: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force' as const,
+      feaMode: 1 as const, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaProbe: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force' as const, simFocus: null,
       shellMode: false, holeMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false,
       measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, featDlg: null,
       status: '受力雲圖 ①：點實體嘅【固定面】（被夾住/鎖實/上螺絲嗰個面）',
+    }
+  }),
+  simFocus: null,
+  openSimPanel: (focus) => set((s) => {
+    const need = focus === 'topopt' ? '生成式设计：需要先有活动实体' : '热分析：需要先有活动实体'
+    const hint = focus === 'topopt'
+      ? '生成式设计：点①固定面（保留区）+ ②受力面 + 设力，再在面板按「生成式设计（拓扑优化）」'
+      : '热分析：点①固定面=热面、②受力面=冷面，再设温度，按面板「热分析（稳态导热）」'
+    if (s.feaBusy || s.topoptBusy || s.thermalBusy || s.thermalStressBusy || s.modalBusy || s.bucklingBusy) {
+      return { simFocus: focus, status: hint }
+    }
+    const hasBody = !!(s.bodyMesh && s.bodyMesh.vertices.length)
+    const viewing = s.feaMode > 0 || !!s.feaResult || !!s.feaStale || !!s.modalResult || !!s.bucklingResult || !!s.topoptResult || !!s.thermalResult
+    if (!hasBody && !viewing) return { status: need }
+    const mode: 0 | 1 | 2 = s.feaFixed ? 2 : 1
+    if (!viewing) {
+      return {
+        simFocus: focus,
+        feaMode: 1 as const, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaProbe: null,
+        feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force' as const,
+        shellMode: false, holeMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false,
+        measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, featDlg: null,
+        status: hint,
+      }
+    }
+    return {
+      simFocus: focus,
+      feaMode: (s.feaMode > 0 ? s.feaMode : mode) as 0 | 1 | 2,
+      shellMode: false, holeMode: false, pushPullMode: false, edgeRoundPick: null,
+      measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, featDlg: null,
+      status: hint,
     }
   }),
   feaPickAt: (p, n, faceTris) => set((s) => {
@@ -21607,7 +21644,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ feaBusy: false, status: `受力雲圖異常：${err instanceof Error ? err.message : String(err)}` })
     }
   },
-  clearFea: () => set({ feaMode: 0, feaFixed: null, feaFixed2: null, feaBeam3pt: false, feaLoad: null, feaResult: null, feaStale: false, feaConvResult: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, status: '已清除受力雲圖' }),
+  clearFea: () => set({ feaMode: 0, feaFixed: null, feaFixed2: null, feaBeam3pt: false, feaLoad: null, feaResult: null, feaStale: false, feaConvResult: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, simFocus: null, status: '已清除受力雲圖' }),
 
   // ── S101[6]：网格收敛研究（mesh convergence study）──────────────────────
   // 同模型同载荷跑 3 档递增体素分辨率，记 (nDof,vmMax,dispMax) → 看 vmMax 是否趋稳 + Richardson 外推。

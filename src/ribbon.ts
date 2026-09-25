@@ -242,6 +242,8 @@ const LAB: Panel[] = [
       { id: 'moldflow', label: '模流分析', icon: 'moldflow', quick: true, tip: '注塑模流趋势：點浇口位（可多個）→ 選塑料 → 出充填時間/壓力/冷却/變形趋势云圖 + 焊接線 + 充填動畫。可開「壓力求解器」出真實壓力值。' },
       { id: 'windtunnel', label: '風洞水洞', icon: 'wind', quick: true, tip: '風洞 / 水洞趋势模擬：把零件放入虛擬風道/水道解流場 → 風阻系數 Cd + 阻力 + 表面壓力/流場。可調風速 · 流體(空氣/水) · 吹向。屬趋势級,相對比較可信,非商用驗證級。' },
       { id: 'physicslab', label: '環境實驗室', icon: 'joint', quick: true, tip: 'Physics Lab：將 CAD 零件放入剛體實驗室，即時模擬重力、碰撞、摩擦、反彈和統一風。互動級模擬，非工程認證。' },
+      { id: 'topopt', label: '生成式設計', icon: 'topopt', quick: true, tip: '拓撲優化（SIMP）：在設計域內按保留體積分配材料，得出較省料又較硬的承力結構。趨勢級，非商用認證。先點固定面與受力面。' },
+      { id: 'thermal', label: '熱分析', icon: 'thermal', quick: true, tip: '穩態熱分析（導熱）：①固定面＝熱面、②受力面＝冷面，求溫度場與總熱流。趨勢級，非商用認證。' },
     ],
   },
   {
@@ -466,6 +468,9 @@ const UTILITIES: Panel[] = [
     { id: 'exportglb', label: '導出glTF', icon: 'exportfile' },
   ] },
   g('INSPECT'),
+  { name: '助手', tools: [
+    { id: 'aicopilot', label: 'AI 助手', icon: 'ai', shortcut: 'Ctrl+Shift+A', quick: true, tip: '用自然語言操作同協助使用本程式（OpenAI / Grok / Gemini / 本地模型）。快捷鍵 Ctrl+Shift+A。' },
+  ] },
   { name: 'SELECT', tools: [{ id: 'select', label: '選擇', icon: 'select', quick: true, tip: '選擇工具：撳零件/面/邊就拣中佢（撳空白處 = 唔拣）；撳 Del 鍵刪除所選。' }] },
 ]
 

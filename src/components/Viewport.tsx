@@ -3536,6 +3536,11 @@ export default function Viewport() {
   const thermalStressBusy = useApp((s) => s.thermalStressBusy)  // S105：热-结构耦合
   const thermalTref = useApp((s) => s.thermalTref)
   const runThermalStressSolve = useApp((s) => s.runThermalStressSolve)
+  const simFocus = useApp((s) => s.simFocus)
+  useEffect(() => {
+    if (simFocus !== 'topopt' && simFocus !== 'thermal') return
+    document.getElementById(simFocus === 'topopt' ? 'sim-sec-topopt' : 'sim-sec-thermal')?.scrollIntoView({ block: 'nearest' })
+  }, [simFocus, feaMode, topoptBusy, thermalBusy, topoptResult, thermalResult])
   const moldModeP = useApp((s) => s.moldMode)        // T771：模流面板
   const moldGates = useApp((s) => s.moldGates)
   const moldMat = useApp((s) => s.moldMat)
@@ -5462,7 +5467,7 @@ export default function Viewport() {
             </button>
           </div>
           {/* S83：生成式设计 / 拓扑优化 — 固定面=保留区，受力面+力=工况 */}
-          <div style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 6 }}>
+          <div id="sim-sec-topopt" style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <span style={{ fontSize: 11, color: '#6b7680' }}>保留體積</span>
               <input type="range" min={10} max={70} step={5} value={Math.round(topoptVolfrac * 100)} disabled={topoptBusy} onChange={(e) => useApp.getState().setTopoptVolfrac(Number(e.target.value) / 100)} style={{ flex: 1 }} />
@@ -5495,7 +5500,7 @@ export default function Viewport() {
             })()}
           </div>
           {/* S84：热分析（稳态导热）— ① 面=热面、② 面=冷面，材料导热系数 */}
-          <div style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 6 }}>
+          <div id="sim-sec-thermal" style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: 11, color: '#6b7680' }}>
               <span>熱①</span><input type="number" step={5} value={thermalThot} disabled={thermalBusy} onChange={(e) => useApp.getState().setThermalTemps({ Thot: Number(e.target.value) })} style={{ width: 48 }} />
               <span>冷②</span><input type="number" step={5} value={thermalTcold} disabled={thermalBusy} onChange={(e) => useApp.getState().setThermalTemps({ Tcold: Number(e.target.value) })} style={{ width: 48 }} /><span>°C</span>

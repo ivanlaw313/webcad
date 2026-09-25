@@ -276,6 +276,32 @@ If you also closed the black console, CFD itself stops. After you start `start-s
 
 ---
 
+## h) Ask the AI assistant to do it
+
+Sections a–g are all buttons you press yourself. **With no AI key, the lab still works**: templates, the rule parser for one sentence, and the auto-design button do not need a key. Without a key you only lose the AI Assistant chat.
+
+1. On the **top bar, at the right** (next to search 🔍 and help ?), click **AI Assistant**, or press **Ctrl+Shift+A**.
+2. The panel title is **✦ AI Copilot**. If no key is set, the settings block opens by itself. The **⚙** button in the title bar opens it too. The tooltip is **Settings (Provider / API Key / Model)**.
+3. Pick a **Provider** (OpenAI, Grok, Gemini, or a local model). Paste your own key in **API Key**. The note says the key stays in this browser and talks to the provider directly. It is not sent through a WebCAD server.
+4. Type what you want in the box below and press Enter. For example:
+
+   幫我設計一個 1.2 米翼展嘅滑翔機翼，用 CFD 驗證兩輪
+
+   (Design me a glider wing with a 1.2 m span, and verify it with CFD for two rounds.)
+
+It calls these four tools itself. You do not type the names:
+
+- **aero_open_lab**. Opens the Aero Design Lab and sets the design space from your sentence (propeller / fan, wing, or streamlined shell).
+- **aero_start_auto_design**. Starts auto-design, the same loop as the button in section g. The example above opens the lab, sets the span to about 1.2 m, aims at L/D, and runs. “兩輪” (two rounds) sets Rounds to 2. It replies at once that it has started. CFD runs in the background, minutes per job. It does not wait for every job before answering.
+- **aero_auto_design_status**. Ask “how far along” or “what is the best”. It reports the round, estimate versus CFD, the correction factor, and whether the best design is CFD-verified.
+- **aero_stop_auto_design**. Say stop. Queued and running CFD jobs are cancelled. Finished results stay.
+
+Before you say “verify with CFD”, `start-service.bat` must be open and the browser must allow local network access. Otherwise it tells you plainly that the loop is estimator-only and the result is not verified. A propeller or fan does not use rotor CFD unless you say so. If you say to use rotor CFD anyway, it will, and it will warn you that rotor CFD is not validated.
+
+Send a message with no key and the reply is: **⚠ Enter your API Key in Settings (gear icon) first.** Go back to the lab and press the buttons yourself. That does not need a key.
+
+---
+
 ## Known limits (plain)
 
 - **Propeller and fan CFD is not validated.** The local run is a steady rotor approximation. It has not been checked against measured propeller data. The panel marks it **NOT validated**. Use it only as a rough “which one makes more thrust” hint, not as real thrust, power, or efficiency.

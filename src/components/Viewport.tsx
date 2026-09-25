@@ -5589,19 +5589,19 @@ export default function Viewport() {
       {(windModeP > 0 || windBusy || windResult) && (
         <CommandDialog
           icon="moldflow"
-          title="风洞 / 水洞（LBM 体素趋势）"
+          title="風洞 / 水洞（LBM 體素趨勢）"
           width={290}
-          okLabel={windBusy ? '计算中…' : windResult ? '重新运行' : '运行'}
+          okLabel={windBusy ? '計算中…' : windResult ? '重新運行' : '運行'}
           okDisabled={windBusy}
-          okTip="把零件放入虚拟流道解流场 → 风阻系数 Cd + 阻力 + 流场（Enter）"
+          okTip="把零件放入虛擬流道解流場 → 風阻係數 Cd + 阻力 + 流場（Enter）"
           onOk={() => void runWindSolve()}
           onCancel={() => useApp.getState().requestClearWind()}
-          summary={<>{windFluid === 'water' ? '水' : '空气'} · {windSpeed} m/s · 趋势级 LBM（非商用 CFD）</>}
+          summary={<>{windFluid === 'water' ? '水' : '空氣'} · {windSpeed} m/s · 趨勢級 LBM（非商用 CFD）</>}
         >
           {windBusy && (
             <div style={{ marginBottom: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9aa3ad', marginBottom: 3 }}>
-                <span>⏳ {windProgNote || '计算中'}（流场迭代 · CPU 重）</span>
+                <span>⏳ {windProgNote || '計算中'}（流場迭代 · CPU 重）</span>
                 <span>{Math.round(windProg * 100)}%</span>
               </div>
               <div style={{ height: 6, borderRadius: 3, background: '#2a2e35', overflow: 'hidden' }}>
@@ -5610,92 +5610,92 @@ export default function Viewport() {
             </div>
           )}
           <label>
-            <span style={{ color: '#6b7680' }}>流体</span>
+            <span style={{ color: '#6b7680' }}>流體</span>
             <select value={windFluid} onChange={(e) => setWindOpt({ windFluid: e.target.value as 'air' | 'water' })}>
-              <option value="air">空气（风阻）</option>
+              <option value="air">空氣（風阻）</option>
               <option value="water">水（水阻）</option>
             </select>
           </label>
-          <label title="来流速度 m/s。10≈36 km/h、20≈72 km/h、30≈108 km/h">
+          <label title="來流速度 m/s。10≈36 km/h、20≈72 km/h、30≈108 km/h">
             <span style={{ color: '#6b7680' }}>速度 {windSpeed} m/s（≈{(windSpeed * 3.6).toFixed(0)} km/h）</span>
             <input type="range" min={1} max={60} step={1} value={windSpeed} onChange={(e) => setWindOpt({ windSpeed: Number(e.target.value) })} style={{ width: 128, verticalAlign: 'middle' }} />
           </label>
-          <label title="来流方向（沿包围盒主轴吹）。自动 = 最长轴（鼻尖迎风）">
+          <label title="來流方向（沿包圍盒主軸吹）。自動 = 最長軸（鼻尖迎風）">
             <span style={{ color: '#6b7680' }}>吹向</span>
             <select value={windAxis === null ? 'auto' : String(windAxis)} onChange={(e) => setWindOpt({ windAxis: e.target.value === 'auto' ? null : (Number(e.target.value) as 0 | 1 | 2) })}>
-              <option value="auto">自动（最长轴）</option>
-              <option value="0">X 轴</option>
-              <option value="1">Y 轴</option>
-              <option value="2">Z 轴</option>
+              <option value="auto">自動（最長軸）</option>
+              <option value="0">X 軸</option>
+              <option value="1">Y 軸</option>
+              <option value="2">Z 軸</option>
             </select>
-            <button type="button" onClick={() => setWindOpt({ windSign: windSign < 0 ? 1 : -1 })} title="反转来流方向" style={{ marginLeft: 4 }}>{windSign < 0 ? '−向' : '+向'}</button>
+            <button type="button" onClick={() => setWindOpt({ windSign: windSign < 0 ? 1 : -1 })} title="反轉來流方向" style={{ marginLeft: 4 }}>{windSign < 0 ? '−向' : '+向'}</button>
           </label>
-          <label title="精细度（体素分辨率）：越高越准但越慢。24≈快趋势 / 36≈细 / 48≈最细（大件慎用）">
-            <span style={{ color: '#6b7680' }}>精细度 {windRes}{windRes <= 24 ? '（快）' : windRes <= 36 ? '（细）' : '（最细·慢）'}</span>
+          <label title="精細度（體素分辨率）：越高越準但越慢。24≈快趨勢 / 36≈細 / 48≈最細（大件慎用）">
+            <span style={{ color: '#6b7680' }}>精細度 {windRes}{windRes <= 24 ? '（快）' : windRes <= 36 ? '（細）' : '（最細·慢）'}</span>
             <input type="range" min={12} max={48} step={2} value={windRes} onChange={(e) => setWindOpt({ windRes: Number(e.target.value) })} style={{ width: 128, verticalAlign: 'middle' }} />
           </label>
-          {lowPower && <div style={{ fontSize: 10.5, color: '#2f9e44', margin: '-2px 0 6px' }}>📱 已为你设备（手机/弱机）自动调低预设，本机计算唔卡；可手动拉高（会慢）</div>}
+          {lowPower && <div style={{ fontSize: 10.5, color: '#2f9e44', margin: '-2px 0 6px' }}>📱 已為你設備（手機/弱機）自動調低預設，本機計算唔卡；可手動拉高（會慢）</div>}
           <div style={{ display: 'flex', gap: 10, margin: '2px 0 6px', fontSize: 11, flexWrap: 'wrap', alignItems: 'center' }}>
-            <label title="表面着色：Cp 压力系数（红=迎风高压 / 蓝=背风吸力）或 表面流速"><span style={{ color: '#6b7680' }}>着色 </span>
+            <label title="表面着色：Cp 壓力係數（紅=迎風高壓 / 藍=背風吸力）或 表面流速"><span style={{ color: '#6b7680' }}>着色 </span>
               <select value={windField} onChange={(e) => setWindOpt({ windField: e.target.value as 'cp' | 'speed' })} style={{ fontSize: 11 }}>
-                <option value="cp">压力 Cp</option><option value="speed">表面流速</option>
+                <option value="cp">壓力 Cp</option><option value="speed">表面流速</option>
               </select>
             </label>
-            <label style={{ color: windShowFlow ? '#2f9e44' : '#6b7680' }}><input type="checkbox" checked={windShowFlow} onChange={(e) => setWindOpt({ windShowFlow: e.target.checked })} /> 流场</label>
+            <label style={{ color: windShowFlow ? '#2f9e44' : '#6b7680' }}><input type="checkbox" checked={windShowFlow} onChange={(e) => setWindOpt({ windShowFlow: e.target.checked })} /> 流場</label>
             {/* S4：求解引擎。★ 预设一定係 CPU ★ —— GPU 求解器实测球体 Cd 高 2.0–2.2×（三个分辨率都一致 =
              *   常数系统增益，根因未查）。所以 GPU 只卖【可拖 + 相对比较】，绝对 Cd 由 CPU 出。 */}
-            <label title="CPU＝压力积分＋经验摩擦，worker 跑完凍結，绝对 Cd 用呢个；GPU＝逐帧 LBM，可以拖住零件即时睇流场变化，但绝对 Cd 有未修嘅 2.0–2.2× 系统偏差，只可以睇【相对】比较">
+            <label title="CPU＝壓力積分＋經驗摩擦，worker 跑完凍結，絕對 Cd 用呢個；GPU＝逐幀 LBM，可以拖住零件即時睇流場變化，但絕對 Cd 有未修嘅 2.0–2.2× 系統偏差，只可以睇【相對】比較">
               <span style={{ color: '#6b7680' }}>引擎 </span>
               <select value={windEngineP} onChange={(e) => setWindOpt({ windEngine: e.target.value as 'cpu' | 'gpu' })} style={{ fontSize: 11 }}>
-                <option value="cpu">CPU（准·可比旧数）</option>
-                <option value="gpu">GPU 可拖（实验）</option>
+                <option value="cpu">CPU（準·可比舊數）</option>
+                <option value="gpu">GPU 可拖（實驗）</option>
               </select>
             </label>
             {windEngineP === 'gpu' && (
-              <label style={{ color: windLiveP ? '#2f9e44' : '#6b7680' }} title="收敛之后继续逐帧行（会同 CAD 视窗争帧预算）。关咗＝收敛就凍結，慳电。">
-                <input type="checkbox" checked={windLiveP} onChange={(e) => setWindOpt({ windLive: e.target.checked })} /> 即时
+              <label style={{ color: windLiveP ? '#2f9e44' : '#6b7680' }} title="收斂之後繼續逐幀行（會同 CAD 視窗爭幀預算）。關咗＝收斂就凍結，慳電。">
+                <input type="checkbox" checked={windLiveP} onChange={(e) => setWindOpt({ windLive: e.target.checked })} /> 即時
               </label>
             )}
             {/* S2：流场样式 —— 烟流（GPU tracer，默认）/ 流线（GM-W3 3.1）/ 箭头。烟流唔支援会自动退返流线 + 状态栏讲原因 */}
-            <label title="流场样式：烟流＝GPU 追踪几十万粒 tracer 喺解出嘅流场入面流动（真风洞烟流质感）；流线＝真 RK2 流线 + 动画点；箭头＝速度向量"><span style={{ color: '#6b7680' }}>样式 </span>
+            <label title="流場樣式：煙流＝GPU 追蹤幾十萬粒 tracer 喺解出嘅流場入面流動（真風洞煙流質感）；流線＝真 RK2 流線 + 動畫點；箭頭＝速度向量"><span style={{ color: '#6b7680' }}>樣式 </span>
               <select value={windViz} disabled={!windShowFlow} onChange={(e) => setWindOpt({ windViz: e.target.value as 'rake' | 'smoke' | 'stream' | 'arrow' })} style={{ fontSize: 11 }}>
-                <option value="rake">烟耙条带</option><option value="smoke">烟流雾粒</option><option value="stream">流线</option><option value="arrow">箭头</option>
+                <option value="rake">煙耙條帶</option><option value="smoke">煙流霧粒</option><option value="stream">流線</option><option value="arrow">箭頭</option>
               </select>
             </label>
             {windViz === 'rake' && (<>
-              <label title="条带密度（每条缎带嘅光度）"><span style={{ color: '#6b7680' }}>密度 </span>
+              <label title="條帶密度（每條緞帶嘅光度）"><span style={{ color: '#6b7680' }}>密度 </span>
                 <input type="range" min={0.10} max={1.00} step={0.02} value={windRibbonAlpha} disabled={!windShowFlow} onChange={(e) => setWindOpt({ windRibbonAlpha: Number(e.target.value) })} style={{ width: 60, verticalAlign: 'middle' }} />
               </label>
-              <label title="条带阔度倍率（基准由零件体素大细自动推导，唔係绝对 mm）"><span style={{ color: '#6b7680' }}>阔度 </span>
+              <label title="條帶闊度倍率（基準由零件體素大細自動推導，唔係絕對 mm）"><span style={{ color: '#6b7680' }}>闊度 </span>
                 <input type="range" min={0.3} max={3} step={0.1} value={windRibbonWidth} disabled={!windShowFlow} onChange={(e) => setWindOpt({ windRibbonWidth: Number(e.target.value) })} style={{ width: 60, verticalAlign: 'middle' }} />
               </label>
-              <label title="软边：Beer-Lambert 管状消光 — 细=通透，大=实心"><span style={{ color: '#6b7680' }}>软边 </span>
+              <label title="軟邊：Beer-Lambert 管狀消光 — 細=通透，大=實心"><span style={{ color: '#6b7680' }}>軟邊 </span>
                 <input type="range" min={0.4} max={4} step={0.1} value={windRibbonSigma} disabled={!windShowFlow} onChange={(e) => setWindOpt({ windRibbonSigma: Number(e.target.value) })} style={{ width: 60, verticalAlign: 'middle' }} />
               </label>
-              <label title="向下游扩散：模拟烟带愈行愈散"><span style={{ color: '#6b7680' }}>扩散 </span>
+              <label title="向下游擴散：模擬煙帶愈行愈散"><span style={{ color: '#6b7680' }}>擴散 </span>
                 <input type="range" min={0} max={3} step={0.1} value={windRibbonSpread} disabled={!windShowFlow} onChange={(e) => setWindOpt({ windRibbonSpread: Number(e.target.value) })} style={{ width: 60, verticalAlign: 'middle' }} />
               </label>
-              <label title="动画快慢 — 纯视觉，唔影响 Cd / 阻力 / 任何物理结果"><span style={{ color: '#6b7680' }}>流速 </span>
+              <label title="動畫快慢 — 純視覺，唔影響 Cd / 阻力 / 任何物理結果"><span style={{ color: '#6b7680' }}>流速 </span>
                 <input type="range" min={0.25} max={4} step={0.25} value={windSmokeSpeed} disabled={!windShowFlow} onChange={(e) => setWindOpt({ windSmokeSpeed: Number(e.target.value) })} style={{ width: 60, verticalAlign: 'middle' }} />
               </label>
             </>)}
             {windViz === 'smoke' && (<>
-              <label title="烟流上色：速度（turbo 色标，快=红慢=蓝）/ 白烟（中性，最似真烟）/ 年龄"><span style={{ color: '#6b7680' }}>上色 </span>
+              <label title="煙流上色：速度（turbo 色標，快=紅慢=藍）/ 白煙（中性，最似真煙）/ 年齡"><span style={{ color: '#6b7680' }}>上色 </span>
                 <select value={windSmokeColor} disabled={!windShowFlow} onChange={(e) => setWindOpt({ windSmokeColor: e.target.value as 'white' | 'speed' | 'age' })} style={{ fontSize: 11 }}>
-                  <option value="speed">速度</option><option value="white">白烟</option><option value="age">年龄</option>
+                  <option value="speed">速度</option><option value="white">白煙</option><option value="age">年齡</option>
                 </select>
               </label>
-              <label title="烟流密度（每条 streak 嘅光度；太高会糊，太低会淡）"><span style={{ color: '#6b7680' }}>密度 </span>
+              <label title="煙流密度（每條 streak 嘅光度；太高會糊，太低會淡）"><span style={{ color: '#6b7680' }}>密度 </span>
                 <input type="range" min={0.02} max={0.30} step={0.01} value={windSmokeAlpha} disabled={!windShowFlow} onChange={(e) => setWindOpt({ windSmokeAlpha: Number(e.target.value) })} style={{ width: 64, verticalAlign: 'middle' }} />
               </label>
-              <label title="动画快慢 — 纯视觉，唔影响 Cd / 阻力 / 任何物理结果"><span style={{ color: '#6b7680' }}>流速 </span>
+              <label title="動畫快慢 — 純視覺，唔影響 Cd / 阻力 / 任何物理結果"><span style={{ color: '#6b7680' }}>流速 </span>
                 <input type="range" min={0.25} max={4} step={0.25} value={windSmokeSpeed} disabled={!windShowFlow} onChange={(e) => setWindOpt({ windSmokeSpeed: Number(e.target.value) })} style={{ width: 64, verticalAlign: 'middle' }} />
               </label>
-              <label title="拖尾长度：0＝短点（似粒子）1＝完整一步嘅尾（似烟）"><span style={{ color: '#6b7680' }}>拖尾 </span>
+              <label title="拖尾長度：0＝短點（似粒子）1＝完整一步嘅尾（似煙）"><span style={{ color: '#6b7680' }}>拖尾 </span>
                 <input type="range" min={0} max={1} step={0.05} value={windStreakScale} disabled={!windShowFlow} onChange={(e) => setWindOpt({ windStreakScale: Number(e.target.value) })} style={{ width: 64, verticalAlign: 'middle' }} />
               </label>
             </>)}
-            <label style={{ color: windXray ? '#2f9e44' : '#6b7680' }} title="零件半透明：睇内部 / 流线穿过"><input type="checkbox" checked={windXray} onChange={(e) => setWindOpt({ windXray: e.target.checked })} /> 透明</label>
+            <label style={{ color: windXray ? '#2f9e44' : '#6b7680' }} title="零件半透明：睇內部 / 流線穿過"><input type="checkbox" checked={windXray} onChange={(e) => setWindOpt({ windXray: e.target.checked })} /> 透明</label>
           </div>
           {windResult && (() => {
             // GM-W3 3.2/3.3：headline 用 Maskell 修正 Cd（旧结果无 cdCorr → 退回 cd）+ 振荡 ± + 堵塞率 + 钳制提示
@@ -5703,18 +5703,18 @@ export default function Viewport() {
             const osc = windResult.cdOsc ?? 0
             return (
             <div style={{ margin: '2px 0 0', padding: '6px 8px', borderRadius: 4, background: '#1a1d22', fontSize: 11.5, lineHeight: 1.5 }}>
-              <div style={{ fontWeight: 700, color: '#cfd6dd' }}>风阻系数 Cd ≈ <span style={{ color: '#4f9dff' }}>{cdHead.toFixed(3)}{osc > 1e-4 ? ` ± ${osc.toFixed(3)}` : ''}</span></div>
+              <div style={{ fontWeight: 700, color: '#cfd6dd' }}>風阻係數 Cd ≈ <span style={{ color: '#4f9dff' }}>{cdHead.toFixed(3)}{osc > 1e-4 ? ` ± ${osc.toFixed(3)}` : ''}</span></div>
               {windResult.blockage !== undefined && (
                 <div style={{ color: '#9aa3ad' }}>原始 Cd {windResult.cd.toFixed(3)} · 堵塞率 {(windResult.blockage * 100).toFixed(0)}%（Maskell 修正）{windResult.dragNRaw !== undefined ? ` · 原始阻力 ${windResult.dragNRaw >= 1 ? windResult.dragNRaw.toFixed(2) + ' N' : (windResult.dragNRaw * 1000).toFixed(2) + ' mN'}` : ''}</div>
               )}
               <div>阻力 ≈ <b style={{ color: '#ffd166' }}>{windResult.dragN >= 1 ? windResult.dragN.toFixed(2) + ' N' : (windResult.dragN * 1000).toFixed(2) + ' mN'}</b>（{windResult.fluidName} · {windResult.speed} m/s）</div>
-              <div style={{ color: '#9aa3ad' }}>Re ≈ {windResult.re.toExponential(1)} · 迎风面积 {windResult.frontalAreaMM2 >= 100 ? windResult.frontalAreaMM2.toFixed(0) : windResult.frontalAreaMM2.toFixed(1)} mm²</div>
-              <div style={{ color: '#9aa3ad' }}>表面 Cp：{windResult.cpMin.toFixed(2)} ~ {windResult.cpMax.toFixed(2)}（红高压·蓝吸力）{windResult.converged ? '' : ' · ⚠未完全收敛'}</div>
-              {windResult.reClamped && <div style={{ color: '#e0a800' }}>⚠ Re 已钳至稳定带（量级/相对比较可信，绝对值偏趋势）</div>}
-              {windResult.bumped && <div style={{ color: '#2f9e44' }}>🧩 薄件自动加密：分辨率 → {windResult.res}（最薄方向够体素，Cd 较可信）</div>}
+              <div style={{ color: '#9aa3ad' }}>Re ≈ {windResult.re.toExponential(1)} · 迎風面積 {windResult.frontalAreaMM2 >= 100 ? windResult.frontalAreaMM2.toFixed(0) : windResult.frontalAreaMM2.toFixed(1)} mm²</div>
+              <div style={{ color: '#9aa3ad' }}>表面 Cp：{windResult.cpMin.toFixed(2)} ~ {windResult.cpMax.toFixed(2)}（紅高壓·藍吸力）{windResult.converged ? '' : ' · ⚠未完全收斂'}</div>
+              {windResult.reClamped && <div style={{ color: '#e0a800' }}>⚠ Re 已鉗至穩定帶（量級/相對比較可信，絕對值偏趨勢）</div>}
+              {windResult.bumped && <div style={{ color: '#2f9e44' }}>🧩 薄件自動加密：分辨率 → {windResult.res}（最薄方向夠體素，Cd 較可信）</div>}
               <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button type="button" onClick={() => useApp.getState().downloadWindReport()}>📄 下载报告</button>
-                <button type="button" data-testid="wind-clear-result" onClick={() => useApp.getState().clearWind()}>🗑 清除结果</button>
+                <button type="button" onClick={() => useApp.getState().downloadWindReport()}>📄 下載報告</button>
+                <button type="button" data-testid="wind-clear-result" onClick={() => useApp.getState().clearWind()}>🗑 清除結果</button>
                 <button
                   type="button"
                   data-testid="physics-send-wind-to-lab"
@@ -5723,7 +5723,7 @@ export default function Viewport() {
                   🧪 送入環境實驗室
                 </button>
               </div>
-              <div style={{ marginTop: 4, color: '#6b7680', fontSize: 10.5 }}>趋势级 LBM（非商用 CFD）：相对比较（钝体 vs 流线 / 不同朝向）最可信；绝对 Cd 偏趋势值。</div>
+              <div style={{ marginTop: 4, color: '#6b7680', fontSize: 10.5 }}>趨勢級 LBM（非商用 CFD）：相對比較（鈍體 vs 流線 / 不同朝向）最可信；絕對 Cd 偏趨勢值。</div>
             </div>
             )
           })()}

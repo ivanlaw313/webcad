@@ -155,32 +155,32 @@ test('rigidPose/正交性：旋转 + 平移 + 镜射 收，缩放 / 切变 / 透
     const r = rigidCheck(mir)
     assert.equal(r.rigid, true, '镜射保距，SDF 度量仍然合法')
     assert.ok(r.det < 0, 'det 要係负数先报得出「零件已经係镜像」')
-    assert.match(r.reason, /镜射/)
+    assert.match(r.reason, /鏡射/)
   })
 
   await t.test('★ 缩放一定要掟 ★', () => {
     for (const s of [1.5, 0.5, 1.01, 0.999]) {
       const m = new Matrix4().makeScale(s, s, s)
       assert.equal(isRigid(m), false, '均匀缩放 ' + s)
-      assert.throws(() => assertRigid(m), /缩放/, '均匀缩放 ' + s + ' 冇掟')
+      assert.throws(() => assertRigid(m), /縮放/, '均匀缩放 ' + s + ' 冇掟')
     }
     // 非均匀缩放（最阴湿嗰种：睇落好似只係「拉长咗少少」）
     const m = new Matrix4().makeScale(1, 1, 1.02)
-    assert.throws(() => assertRigid(m), /缩放/)
+    assert.throws(() => assertRigid(m), /縮放/)
     // 旋转 × 缩放（3×3 唔係对角，唔可以靠「查对角线」嚟捉）
     const rs = axisRot(1, 1, 1, 41).clone().multiply(new Matrix4().makeScale(1.2, 1.2, 1.2))
-    assert.throws(() => assertRigid(rs), /缩放/)
+    assert.throws(() => assertRigid(rs), /縮放/)
   })
 
   await t.test('★ 切变一定要掟 ★', () => {
     const sh = new Matrix4().set(1, 0.3, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
     assert.equal(isRigid(sh), false)
-    assert.throws(() => assertRigid(sh), /切变|缩放/)
+    assert.throws(() => assertRigid(sh), /切變|縮放/)
     // 列长全部啱啱好 1，但列之间唔垂直 —— 只查列长嘅实现会漏咗佢
     const a = new Vector3(1, 0, 0), b = new Vector3(Math.cos(0.2), Math.sin(0.2), 0), c = new Vector3(0, 0, 1)
     const sh2 = new Matrix4().set(a.x, b.x, c.x, 0, a.y, b.y, c.y, 0, a.z, b.z, c.z, 0, 0, 0, 0, 1)
     assert.equal(isRigid(sh2), false, '列长全 1 但唔垂直，一样係切变')
-    assert.throws(() => assertRigid(sh2), /切变/)
+    assert.throws(() => assertRigid(sh2), /切變/)
   })
 
   await t.test('透视底行 / NaN 都要掟', () => {
@@ -269,7 +269,7 @@ test('rigidPose/safePoseBox + clampPose：任何朝向都唔行埋墙', async (t
 
   await t.test('域装唔落外接球 → feasible = false，唔准扮成功', () => {
     // 尺寸对唔上一定要掟（呢个係最易 copy-paste 错嘅嘢）
-    assert.throws(() => safePoseBox({ DX: 12, DY: 12, DZ: 12 }, phi, 2), /唔等于域/)
+    assert.throws(() => safePoseBox({ DX: 12, DY: 12, DZ: 12 }, phi, 2), /唔等於域/)
     // 20³ 嘅域塞一件 15×15×15 嘅零件：外接球直径 ≈ 26 > 20，点摆都贴墙
     const S = 20
     const data = new Float32Array(S * S * S).fill(1)

@@ -30,7 +30,7 @@ const HELP_BLOCKS: HelpBlock[] = [
   { h: 'help.h4', p: 'help.p4' },
   { h: 'help.h5', p: 'help.p5', showMe: 'exportstl' },
   { h: 'help.h6', p: 'help.p6' },
-  { h: 'help.hAero', p: 'help.pAero', extra: 'help.pAeroHow', more: ['help.pAeroLimit', 'help.pAeroFaq'], showMe: 'aerolab' },
+  { h: 'help.hAero', p: 'help.pAero', extra: 'help.pAeroHow', more: ['help.pAeroAuto', 'help.pAeroAi', 'help.pAeroLimit', 'help.pAeroFaq'], showMe: 'aerolab' },
   { h: 'help.h7', p: 'help.p7' },
   { h: 'help.hAbout', p: 'help.pAbout' },
 ]

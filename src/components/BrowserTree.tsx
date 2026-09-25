@@ -404,7 +404,7 @@ function CompBatchBar() {
         <option value="revolute">{tStatus('转动', lang)}</option>
         <option value="rigid">{tStatus('刚性', lang)}</option>
         <option value="slider">{tStatus('滑动', lang)}</option>
-        <option value="cylindrical">{tStatus('圆柱', lang)}</option>
+        <option value="cylindrical">{tStatus('圓柱', lang)}</option>
         <option value="ball">{tStatus('球', lang)}</option>
       </select>}
       {n === 2 && (() => {
@@ -517,7 +517,7 @@ export default function BrowserTree() {
               <div key={'cpl' + i} className="tree-row" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().sketchOnDatumPlane(pl.base, pl.offset)} title={tStatus(`在参考平面 ${pl.base}@${pl.offset} 上新建草圖`, lang)}>
                 <span className="tw-toggle" />
                 <span className="tw-ico"><ToolIcon name="plane" size={13} /></span>
-                <span style={{ flex: 1 }}>{tStatus('參考面', lang)} {pl.base}@{pl.offset}{pl.src && !pl.stale && <span title={tStatus('关联基准：随源面自動更新', lang)} style={{ marginLeft: 3, fontSize: 10 }}>🔗</span>}{pl.stale && <span title={tStatus('源面已改動/消失，无法自動更新此基准 — 改回或刪除重建', lang)} style={{ marginLeft: 3, color: '#c98a00' }}>⚠</span>}</span>
+                <span style={{ flex: 1 }}>{tStatus('參考面', lang)} {pl.base}@{pl.offset}{pl.src && !pl.stale && <span title={tStatus('關聯基準：隨源面自動更新', lang)} style={{ marginLeft: 3, fontSize: 10 }}>🔗</span>}{pl.stale && <span title={tStatus('源面已改動/消失，無法自動更新此基準 — 改回或刪除重建', lang)} style={{ marginLeft: 3, color: '#c98a00' }}>⚠</span>}</span>
                 <span className="tw-act" title={tStatus('顯示 / 隱藏此參考面', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleDatumVis(datumVisKey('pl', pl)) }}>{datumHidden.includes(datumVisKey('pl', pl)) ? '🙈' : '👁'}</span>
                 {/* GM-W1 1.5：编辑 offset（角度面另可改 angle）。诚实：只郁呢块 datum 本身 — 已经喺佢上面拉伸/开咗嘅草图唔会跟住重算（timeline 关联系后续功能）。datum-pick 固定 arb 面（有 arb 无 aaxis）唔畀改 offset（无实义）。*/}
                 {(pl.aaxis != null || !pl.arb) && (

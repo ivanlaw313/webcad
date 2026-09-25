@@ -396,7 +396,7 @@ export default function Ribbon() {
                 <div className="panel-menu-divider" />
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStl}><ToolIcon name="insert" size={16} />{msg('file.importStl', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStep}><ToolIcon name="insert" size={16} />{msg('file.importStep', lang)}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="保留 B-rep 入时间轴：导入后可继续 切割/圆角/抽壳/再导出 STEP（≤8MB；大文件用上面网格路线）" onClick={() => useApp.getState().openStepBrepDialog()}><ToolIcon name="insert" size={16} />{msg('file.importStepBrep', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="保留 B-rep 入時間軸：導入後可繼續 切割/圓角/抽殼/再導出 STEP（≤8MB；大文件用上面網格路線）" onClick={() => useApp.getState().openStepBrepDialog()}><ToolIcon name="insert" size={16} />{msg('file.importStepBrep', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={onImport3MF}><ToolIcon name="insert" size={16} />{msg('file.import3mf', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={openObjDialog}><ToolIcon name="insert" size={16} />{msg('file.importObj', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={openDxfDialog}><ToolIcon name="importdxf" size={16} />{msg('file.importDxf', lang)}</button>
@@ -408,7 +408,7 @@ export default function Ribbon() {
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={exportObj}><ToolIcon name="save" size={16} />{msg('file.exportObj', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" title={msg('file.exportSketchDxf', lang)} onClick={exportSketchDxf}><ToolIcon name="importdxf" size={16} />{msg('file.exportSketchDxf', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => exportAssemblyStl()}><ToolIcon name="save" size={16} />{msg('file.exportAsmStl', lang)}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="真布尔合并单壳（manifold union）：把装配各件熔成一个水密壳再导出——慢，但打印更稳（冇内壁/重叠壳）。要各件水密；失败会诚实回退三角汤" onClick={() => exportAssemblyStl(true)}><ToolIcon name="save" size={16} />{msg('file.exportAsmStlUnion', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="真布爾合併單殼（manifold union）：把裝配各件熔成一個水密殼再導出——慢，但打印更穩（冇內壁/重疊殼）。要各件水密；失敗會誠實回退三角湯" onClick={() => exportAssemblyStl(true)}><ToolIcon name="save" size={16} />{msg('file.exportAsmStlUnion', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportGLB()}><ToolIcon name="save" size={16} />{msg('file.exportGlb', lang)}</button>
                 <div className="panel-menu-divider" />
                 <button type="button" role="menuitem" className="panel-menu-item" title="导出当前 3D 视图为 PNG 截图（贴文档/邮件）" onClick={() => useApp.getState().runCommand('viewpng', '视图截图')}><ToolIcon name="save" size={16} />{msg('file.exportViewPng', lang)}</button>

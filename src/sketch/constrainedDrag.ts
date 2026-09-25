@@ -46,8 +46,8 @@ export const sketchesNumericallyEqual=(a:unknown,b:unknown):boolean=>typeof a===
 /** Pointer intent only: explicit anchored constraints define a feasible target.
  * Numerical dimension commands must call the strict solver directly. */
 export async function solveConstrainedPointDrag(shapes:FShape[],cons:SkCon[],ref:SkRef,intended:FPt):Promise<ConstrainedDragResult>{
- if(!intended.every(Number.isFinite)||!refValid(shapes,ref)||!['pt','center'].includes(ref.kind))return{ok:false,reason:'拖动点不可用'}
- if(cons.some(c=>[c.a,c.b,'c'in c?c.c:undefined].some(r=>r?.kind==='edge'&&!validConstraintEdge(shapes,r))))return{ok:false,reason:'约束引用的线段已不存在，请先修复草图关系'}
+ if(!intended.every(Number.isFinite)||!refValid(shapes,ref)||!['pt','center'].includes(ref.kind))return{ok:false,reason:'拖動點不可用'}
+ if(cons.some(c=>[c.a,c.b,'c'in c?c.c:undefined].some(r=>r?.kind==='edge'&&!validConstraintEdge(shapes,r))))return{ok:false,reason:'約束引用的線段已不存在，請先修復草圖關係'}
  const last=point(shapes,ref),loci:Locus[]=resolvePointProjectionAnchors(shapes,cons)(ref).map(p=>({kind:'line',...p})),anchors=resolveConstraintAnchors(shapes,cons),anchored=anchors.point(ref)
  if(anchored.x!==undefined&&anchored.y!==undefined)loci.push({kind:'point',p:[anchored.x,anchored.y]})
  else if(fixed(shapes,cons,ref))loci.push({kind:'point',p:last})
@@ -80,7 +80,7 @@ export async function solveConstrainedPointDrag(shapes:FShape[],cons:SkCon[],ref
   }
  }
  let target:FPt=[...intended]
- if(loci.length){const candidates=loci.map(l=>nearest(intended,l,last));let discrete=false;for(let i=0;i<loci.length;i++)for(let j=i+1;j<loci.length;j++){const hits=intersections(loci[i],loci[j]);if(hits.length)discrete=true;candidates.push(...hits)}const valid=candidates.filter(p=>p.every(Number.isFinite)&&loci.every(l=>on(p,l)));if(!valid.length)return{ok:false,reason:'约束目标没有共同可行位置'};const choice=discrete?last:intended;valid.sort((a,b)=>Math.hypot(a[0]-choice[0],a[1]-choice[1])-Math.hypot(b[0]-choice[0],b[1]-choice[1])||Math.hypot(a[0]-last[0],a[1]-last[1])-Math.hypot(b[0]-last[0],b[1]-last[1]));target=valid[0]}
+ if(loci.length){const candidates=loci.map(l=>nearest(intended,l,last));let discrete=false;for(let i=0;i<loci.length;i++)for(let j=i+1;j<loci.length;j++){const hits=intersections(loci[i],loci[j]);if(hits.length)discrete=true;candidates.push(...hits)}const valid=candidates.filter(p=>p.every(Number.isFinite)&&loci.every(l=>on(p,l)));if(!valid.length)return{ok:false,reason:'約束目標沒有共同可行位置'};const choice=discrete?last:intended;valid.sort((a,b)=>Math.hypot(a[0]-choice[0],a[1]-choice[1])-Math.hypot(b[0]-choice[0],b[1]-choice[1])||Math.hypot(a[0]-last[0],a[1]-last[1])-Math.hypot(b[0]-last[0],b[1]-last[1]));target=valid[0]}
  let result:FreeSolveResult|null
  const seeded=structuredClone(shapes)
  if(loci.length&&ref.kind==='pt'&&!loci.some(l=>l.kind==='point')){
@@ -96,9 +96,9 @@ export async function solveConstrainedPointDrag(shapes:FShape[],cons:SkCon[],ref
   }
   else if(sh.type==='poly'&&!sh.verts&&!sh.arc&&!sh.smooth)sh.pts[ref.idx]=[...target]
  }
- try{result=await solveFree(seeded,structuredClone(cons),{ref,to:target})}catch{return{ok:false,reason:'拖动约束求解失败'}}
+ try{result=await solveFree(seeded,structuredClone(cons),{ref,to:target})}catch{return{ok:false,reason:'拖動約束求解失敗'}}
  const finite=(v:unknown):boolean=>typeof v==='number'?Number.isFinite(v):Array.isArray(v)?v.every(finite):v!==null&&typeof v==='object'?Object.values(v).every(finite):true
- if(!result||result.conflict||!result.shapes.every(finite)||!point(result.shapes,ref)||!near(point(result.shapes,ref),target))return{ok:false,reason:'其他尺寸或关系阻止此拖动'}
+ if(!result||result.conflict||!result.shapes.every(finite)||!point(result.shapes,ref)||!near(point(result.shapes,ref),target))return{ok:false,reason:'其他尺寸或關係阻止此拖動'}
  // Numerical solver roundoff must not create a history entry for a locked
  // drag. Still solve first: a changed driving dimension may move other geometry.
 

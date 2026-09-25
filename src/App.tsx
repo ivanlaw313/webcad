@@ -117,7 +117,7 @@ export default function App() {
       if (s.csketchOpen && e.key === 'Escape') {
         e.preventDefault()
         const cs = useCSketch.getState()
-        if (cs.draft.length > 0) useCSketch.setState({ draft: [], preview: null, status: '已取消当前绘制（再按 Esc 清选择 / 退出）' })
+        if (cs.draft.length > 0) useCSketch.setState({ draft: [], preview: null, status: '已取消當前繪製（再按 Esc 清選擇 / 退出）' })
         else if (cs.selection.length > 0) cs.clearSelection()
         else useCSketch.getState().setTool('select')
         return

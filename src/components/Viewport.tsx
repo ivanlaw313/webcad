@@ -7090,9 +7090,9 @@ export default function Viewport() {
               {/* GM-W6 A3：显示模式切换 —— 草图模式唔渲染 vp-navbar（🖥▾ 冇得撳），喺呢度补返 着色/线框/显示边线，镜 navPop==='display' 嗰组一模一样嘅调用 */}
               <div className="panel-menu-divider" />
               <div className="panel-menu-item" style={{ cursor: 'default', fontSize: 11, opacity: 0.55, padding: '2px 10px' }}>{tStatus('顯示', lang)}</div>
-              <div className="panel-menu-item" onClick={() => { if (wireframe) toggleWireframe(); setSkMorePop(false) }}>{!wireframe ? '✓ ' : ''}{tStatus('着色', lang)}</div>
-              <div className="panel-menu-item" onClick={() => { if (!wireframe) toggleWireframe(); setSkMorePop(false) }}>{wireframe ? '✓ ' : ''}{tStatus('线框', lang)}</div>
-              <div className="panel-menu-item" onClick={() => { setEdgeDisplay(edgeDisplay === 'off' ? 'on' : 'off'); setSkMorePop(false) }}>{edgeDisplay !== 'off' ? '✓ ' : ''}{tStatus('显示边线', lang)}</div>
+              <div className="panel-menu-item" onClick={() => { if (wireframe) toggleWireframe(); setSkMorePop(false) }}>{!wireframe ? '✓ ' : ''}{tStatus('著色', lang)}</div>
+              <div className="panel-menu-item" onClick={() => { if (!wireframe) toggleWireframe(); setSkMorePop(false) }}>{wireframe ? '✓ ' : ''}{tStatus('線框', lang)}</div>
+              <div className="panel-menu-item" onClick={() => { setEdgeDisplay(edgeDisplay === 'off' ? 'on' : 'off'); setSkMorePop(false) }}>{edgeDisplay !== 'off' ? '✓ ' : ''}{tStatus('顯示邊線', lang)}</div>
               {/* 参考图描摹（📷图 + 图宽/透明/中心/标定/✕图）— 只喺非拾取工具模式显示，同原底栏一致 */}
               {!inSkToolMode && (<>
                 <div className="panel-menu-divider" />
@@ -7715,7 +7715,7 @@ export default function Viewport() {
           {navPop === 'display' && (
             <FloatingViewMenu styleName={visualStyle}>
               {/* GM-X2 #1：6 视觉样式枚举（Ctrl+4..9） */}
-              <div className="panel-menu-head">{tStatus('B-rep 视觉样式', lang)}</div>
+              <div className="panel-menu-head">{tStatus('B-rep 視覺樣式', lang)}</div>
               {VISUAL_STYLES.map((vs, i) => (
                 <button type="button" key={vs} data-testid={`visual-style-${vs}`} className="panel-menu-item" title={`Ctrl+${i + 4}`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setVisualStyle(vs); setNavPop(null) }}>{visualStyle === vs ? '✓ ' : '　'}{tStatus(VISUAL_STYLE_LABELS[vs], lang)}<span style={{ marginLeft: 'auto', opacity: 0.45, fontSize: 10 }}>Ctrl+{i + 4}</span></button>
               ))}

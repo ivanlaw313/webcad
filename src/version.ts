@@ -1,2 +1,1 @@
-/** Single source of truth for the UI version badge (Ribbon). */
-export const APP_VERSION = '1.99'
+export const APP_VERSION = '2.00'

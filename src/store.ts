@@ -18861,7 +18861,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       visualStyle: v, wireframe: r.wireframe, edgeDisplay: es.edgeDisplay, hiddenEdges: es.hiddenEdges,
       ...(r.wireframe ? { inspectShade: 'off' as const, draftResult: null, slopeResult: null, accessResult: null } : {}),
-      status: `视觉样式：${({ shaded: '着色', shadedHidden: '着色+隐藏边', shadedVisible: '着色+可见边', wire: '线框', wireHidden: '线框+隐藏边', wireVisible: '线框+可见边' } as Record<string, string>)[v]}`,
+      status: `視覺樣式：${({ shaded: '著色', shadedHidden: '著色+隱藏邊', shadedVisible: '著色+可見邊', wire: '線框', wireHidden: '線框+隱藏邊', wireVisible: '線框+可見邊' } as Record<string, string>)[v]}`,
     }
   }),
   cycleVisualStyle: (dir) => { const order: VisualStyle[] = ['shaded', 'shadedHidden', 'shadedVisible', 'wire', 'wireHidden', 'wireVisible']; const i = order.indexOf(get().visualStyle); get().setVisualStyle(order[(i + (dir > 0 ? 1 : order.length - 1)) % order.length]) },

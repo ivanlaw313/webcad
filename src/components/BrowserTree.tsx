@@ -490,7 +490,7 @@ export default function BrowserTree() {
       <div style={{ paddingLeft: 8 }}>
         <Section label={msg('tree.docSettings', lang)} defaultOpen={false}>
           {/* GM-X2 #13：单位对话框（配对预设 长度+质量 + 自定义）。模型/导出恒 mm。 */}
-          <Leaf icon="default" label={`單位: ${unit === 'inch' ? 'in' : unit} / ${massUnit}`} onClick={() => setUnitDlgOpen(true)} />
+          <Leaf icon="default" label={`文檔單位: ${unit === 'inch' ? 'in' : unit} / ${massUnit}`} onClick={() => setUnitDlgOpen(true)} />
         </Section>
         <Section label={msg('tree.namedViews', lang)} defaultOpen={false}>
           {savedViews.map((v, i) => <Leaf key={i} icon="home" label={v.name} onClick={() => useApp.getState().applyViewBookmark(i)} />)}

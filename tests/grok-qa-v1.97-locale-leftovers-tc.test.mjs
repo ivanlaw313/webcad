@@ -1,7 +1,7 @@
 /**
  * v1.97: locale-v196 FAIL leftovers + BOT-D BD-9601/9602/9603 residuals.
  * Move/Copy tips TC; datum axis tip 構造軸／順序拾／圓柱面; ribbon 構造軸.
- * MESH pin 插入STL網格 (TC). APP 1.99 + SW webcad-v1.99.
+ * MESH pin 插入STL網格 (TC). APP 2.00 + SW webcad-v2.00.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -16,9 +16,9 @@ const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.
 const tex = readFileSync(new URL('../src/render/procTextures.ts', import.meta.url), 'utf8')
 const tree = readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.99; SW webcad-v1.99', () => {
-  assert.match(version, /APP_VERSION = '1\.99'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.99/)
+test('APP_VERSION 2.00; SW webcad-v2.00', () => {
+  assert.match(version, /APP_VERSION = '2\.00'/)
+  assert.match(sw, /const CACHE = 'webcad-v2\.00/)
 })
 
 test('BD-9603 move/copy tips + labels TC', () => {

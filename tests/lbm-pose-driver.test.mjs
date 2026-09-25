@@ -130,7 +130,7 @@ test('刚体检查：缩放 / 镜像唔係刚体（送落 LBM 会整烂几何）
   assert.equal(posesEqual(translate(1e-6, 0, 0), IDENTITY_POSE, { trans: 1e-4 }), true)
   assert.equal(posesEqual(translate(1e-2, 0, 0), IDENTITY_POSE, { trans: 1e-4 }), false)
   assert.notEqual(poseKey(rotY(10)), poseKey(rotY(11)))
-  assert.equal(poseLabel(IDENTITY_POSE), '基准姿态')
+  assert.equal(poseLabel(IDENTITY_POSE), '基準姿態')
   assert.match(poseLabel(rotY(32)), /32\.0°/)
 })
 
@@ -300,7 +300,7 @@ test('★ settling / dragging 期间问数字，攞到嘅係「未可信」而�
   assert.equal(drag.state, 'dragging')
   assert.equal(drag.progress, 0, '拖紧根本未开始计，progress 唔可以扮有进度')
   assert.equal('cd' in drag, false)
-  assert.match(drag.reason, /拖拽/)
+  assert.match(drag.reason, /拖曳/)
 
   // ── 放手之后 relax 期：要讲得出仲要几多 substep ──
   pc.tick(2500, a.step)
@@ -357,7 +357,7 @@ test('★ 跨朝向：Cd 升咗 20% 但阻力实情细咗 40%（分母唔同件�
   assert.equal(row.significant, true)
 
   const line = pc.compareLine()
-  assert.match(line, /阻力细咗/)
+  assert.match(line, /阻力細咗/)
   assert.match(line, /40\.0%/)
   assert.equal(/Cd\s*[=≈]/.test(line), false, '★ 结论嗰行唔可以卖一个绝对 Cd 数字')
   assert.ok(b.step > a.step)
@@ -441,11 +441,11 @@ test('★ 诚实文案同实测常数冇畀人静静鸡改走', () => {
   assert.deepEqual([...GPU_CD_GAIN_DLB_TESTED], [20, 28, 37], '「唔飘」係基于呢三个解析度')
   assert.equal(GPU_CD_ABSOLUTE_TRUSTWORTHY, false, '★ GPU 绝对 Cd 唔可信 —— 呢个唔係设定，係实测结论')
 
-  for (const claim of ['2.0–2.2', 'dLb 20/28/37', '常数系统增益', '比值', 'CPU 引擎']) {
+  for (const claim of ['2.0–2.2', 'dLb 20/28/37', '常數系統增益', '比值', 'CPU 引擎']) {
     assert.ok(POSE_COMPARE_NOTE.includes(claim), `诚实文案唔见咗「${claim}」`)
   }
   assert.ok(POSE_COMPARE_NOTE.length > 120, '文案畀人删剩一句 = 冇讲清楚')
-  for (const claim of ['迎风面积', 'Cd×A', 'dragRatio']) {
+  for (const claim of ['迎風面積', 'Cd×A', 'dragRatio']) {
     assert.ok(POSE_AREA_NOTE.includes(claim), `面积文案唔见咗「${claim}」`)
   }
   assert.ok(POSE_UNSETTLED_NOTE.includes('唔好信'))
@@ -550,7 +550,7 @@ test('finalize()：settle 唔到嘅位姿都要留低一行，标住「未收敛
   assert.equal(pc.state, 'settled')
   assert.ok(e.cdOsc > 0.05, '等幅振荡嘅 cdOsc 应该真係量到嘢')
   assert.equal(pc.compare().rows[1].converged, false)
-  assert.match(pc.compareLine(), /未收敛/)
+  assert.match(pc.compareLine(), /未收斂/)
   // idempotent：再 call 唔可以多一行
   assert.equal(pc.finalize(pc.deadlineStep).id, e.id)
   assert.equal(pc.entries.length, 2)

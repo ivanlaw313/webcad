@@ -3,7 +3,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useApp } from '../store'
 import type { Feature } from '../worker/cad.worker'
-import { closeAeroLab } from '../aero/aeroUiStore'
+import { closeAeroLab, useAeroUi } from '../aero/aeroUiStore'
 import { at, metricLabel, varLabel } from '../aero/aeroI18n'
 import { templateOf } from '../aero/templates'
 import type { AeroKind, DesignSpec } from '../aero/designSpace'
@@ -12,6 +12,7 @@ import { runAero, cancelAero, buildAeroCad, disposeAeroWorkers } from '../aero/a
 import { specFromBrief } from '../aero/brief'
 import { designMesh, meshToStl } from '../aero/geometry'
 import AeroCfdPanel from './AeroCfdPanel'
+import AeroAutoLoop from './AeroAutoLoop'
 import { runAccurateWind, type AccurateWind } from '../aero/windBridge'
 import { ParetoChart, ConvergenceChart } from './AeroLabCharts'
 
@@ -72,6 +73,15 @@ export default function AeroLab() {
 
   useEffect(() => () => disposeAeroWorkers(), [])
 
+  // design space pushed from outside (AI Copilot aero_open_lab / aero_start_auto_design)
+  const specReq = useAeroUi((s) => s.specReq)
+  useEffect(() => { useAeroUi.setState({ labSpec: spec }) }, [spec])   // lets the Copilot read the current design space
+  useEffect(() => {
+    if (!specReq) return
+    runId.current++; cancelAero(); setRunning(false)
+    setSpec(specReq.spec); setBrief(specReq.brief); setBriefNote(''); resetRun()
+  }, [specReq?.nonce])   // eslint-disable-line react-hooks/exhaustive-deps
+
   const aiCfg = useApp((s) => s.aiConfig)
   const hasKey = !!aiCfg && (aiCfg.provider === 'local' || !!aiCfg.apiKey)
 
@@ -114,15 +124,15 @@ export default function AeroLab() {
   const cur: Candidate | undefined = cands[sel]
   const previewMesh = useMemo(() => (showPreview && cur ? designMesh(spec, cur.x) : null), [showPreview, cur, spec])
 
-  const insert = async (c: Candidate, thenWind: boolean) => {
+  const insert = async (c: Pick<Candidate, 'id' | 'x'>, thenWind: boolean, sp: DesignSpec = spec) => {
     setBusy(t('building')); setMsg('')
     try {
-      const { step } = await buildAeroCad(spec, c.x)
+      const { step } = await buildAeroCad(sp, c.x)
       const app = useApp.getState()
       const feats: Feature[] = [...app.features]
-      if (app.bodyMesh) feats.push({ id: aeroFid(), type: 'newbody', name: `${spec.title} #${c.id}` } as Feature)
+      if (app.bodyMesh) feats.push({ id: aeroFid(), type: 'newbody', name: `${sp.title} #${c.id}` } as Feature)
       feats.push({ id: aeroFid(), type: 'stepbody', step, op: 'new' } as Feature)
-      const ok = await app.applyFeatures(feats, `🌀 ${spec.title} #${c.id} — ${t('inserted')}`, true, `${t('failed')}: STEP`)
+      const ok = await app.applyFeatures(feats, `🌀 ${sp.title} #${c.id} — ${t('inserted')}`, true, `${t('failed')}: STEP`)
       if (ok) {
         app.requestFit()
         setMsg(t('inserted'))
@@ -314,6 +324,9 @@ export default function AeroLab() {
         </div>}
         <AeroCfdPanel spec={spec} cands={cands} lang={lang} />
       </div>}
+
+      {/* ⑤ closed-loop auto design (optimiser ↔ OpenFOAM) */}
+      <AeroAutoLoop spec={spec} lang={lang} onInsert={(sp, x, id) => void insert({ id, x }, false, sp)} />
 
       {(busy || msg) && <div style={{ marginTop: 8, fontSize: 11, color: busy ? 'var(--accent)' : 'var(--text-dim)' }}>{busy || msg}</div>}
     </div>

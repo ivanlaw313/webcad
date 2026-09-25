@@ -23,6 +23,7 @@ export interface LoopConfig {
   seed: number
   useRotorCfd: boolean    // prop/fan: rotor CFD is unvalidated → off by default
   pollMs?: number
+  url?: string            // CFD service URL (browser wiring)
 }
 export const DEFAULT_LOOP_CONFIG: LoopConfig = { rounds: 3, topN: 2, maxJobs: 6, maxMinutes: 120, epsilon: 0.01, mesh: 'coarse', preset: 'auto', budget: 1200, seed: 42, useRotorCfd: false }
 

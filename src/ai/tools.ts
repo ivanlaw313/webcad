@@ -38,6 +38,20 @@ export const TOOL_DEFS: ToolDef[] = [
   { name: 'export_model', description: '导出当前模型为档案（触发下载）。', parameters: { type: 'object', properties: { format: { type: 'string', enum: ['stl', 'step'], description: '格式' } }, required: ['format'] } },
   { name: 'modal_analysis', description: '运行模态分析（体素 FEM 约束模态固有频率，趋势级）。需要用户先喺 FEA 面板点一个【固定面】—— 若已点则直接求解返最低各阶频率(Hz)，否则回传指引叫用户先点固定面（唔好假装做咗）。', parameters: { type: 'object', properties: {} } },
   { name: 'buckling_analysis', description: '运行线性屈曲分析（体素 FEM，趋势级），返最低屈曲载荷因子 λ₁ 与临界载荷 Pcr。需要用户先喺 FEA 面板点【固定面】+【受力面】并设力（同受力云图一样）—— 若齐备则直接求解，否则回传指引（唔好假装做咗）。', parameters: { type: 'object', properties: {} } },
+  { name: 'aero_open_lab', description: '打開【氣動設計實驗室】並按需求設定設計空間（螺旋槳/風扇、機翼、流線外殼）。brief = 一句設計需求（例如「120mm 靜音風扇 2500rpm 最高效率」「水底推進器外殼最低水阻」），或者直接用 kind 揀內置範本。返回設計空間（變數範圍/目標/約束）。', parameters: { type: 'object', properties: { brief: { type: 'string', description: '一句自然語言設計需求（可選；有就優先）' }, kind: { type: 'string', enum: ['prop', 'wing', 'shell'], description: '冇 brief 時用嘅內置範本：prop=螺旋槳/風扇，wing=機翼，shell=流線外殼' } } } },
+  { name: 'aero_start_auto_design', description: '開始【自動設計模式】（AI 閉環）：每輪用（已修正嘅）工程估算優化 → 揀頭 N 個唔同設計送本機 OpenFOAM CFD → 用 CFD 結果訓練修正模型 → 再優化，直到輪數/CFD 額度/時間用完或者改善少過 ε。CFD 服務離線時自動改為只用估算（會講明未驗證）。螺旋槳/風扇嘅轉子 CFD 未驗證，預設唔用，除非 use_rotor_cfd=true。呢個工具即刻返回（循環喺背景跑，每個 CFD 工作要幾分鐘）— 之後用 aero_auto_design_status 查進度。', parameters: { type: 'object', properties: {
+    brief: { type: 'string', description: '一句設計需求（可選；冇就用 kind 或實驗室目前嘅設計空間）' },
+    kind: { type: 'string', enum: ['prop', 'wing', 'shell'], description: '冇 brief 時用嘅內置範本' },
+    rounds: { type: 'number', description: '最多幾輪（1–10，預設 3）' },
+    top_n: { type: 'number', description: '每輪送幾多個候選去 CFD（1–8，預設 2）' },
+    max_cfd_jobs: { type: 'number', description: 'CFD 工作總上限（預設 6）' },
+    max_minutes: { type: 'number', description: '時間上限（分鐘，預設 120）' },
+    epsilon: { type: 'number', description: '最佳已驗證目標嘅相對改善少過呢個值就停（預設 0.01）' },
+    mesh: { type: 'string', enum: ['coarse', 'medium', 'fine'], description: 'CFD 網格（預設 coarse，最快）' },
+    use_rotor_cfd: { type: 'boolean', description: '螺旋槳/風扇都照用轉子 CFD（未驗證，只供定性參考；預設 false）' },
+  } } },
+  { name: 'aero_auto_design_status', description: '查詢自動設計循環嘅進度同結果：狀態、第幾輪、每輪最佳估算 vs CFD 數值、修正系數、目前最佳設計（參數、估算值、CFD 值、係咪已經 CFD 驗證）。', parameters: { type: 'object', properties: {} } },
+  { name: 'aero_stop_auto_design', description: '停止運行緊嘅自動設計循環（會取消排隊/計算緊嘅 CFD 工作；已完成嘅結果保留）。', parameters: { type: 'object', properties: {} } },
 ]
 
 export const AI_SYSTEM_PROMPT = [
@@ -47,5 +61,6 @@ export const AI_SYSTEM_PROMPT = [
   '规矩：单位一律 mm；坐标 Z 向上。建模前可先调 get_model_info 了解现状。多个步骤逐个工具调用（例如：先 create_box 再 create_cylinder operation=cut 做带孔件）。',
   '倒角/圆角：【全棱】可用 fillet_all_edges / chamfer_all_edges 工具直接做；但【指定某几条棱】需要用户喺 3D 视图点选 —— 呢种用文字指导。',
   '你做唔到嘅（需要喺 3D 视图点选边/面）：选定棱倒角圆角、抽壳开指定面、打孔到指定面、装配配合 —— 用文字一步步指导用户自己做，唔好假装调用咗。',
+  '氣動設計：用戶要你設計螺旋槳/風扇/機翼/產品外殼並「自己測試搵最好」→ 調 aero_start_auto_design（可帶 brief）；之後用 aero_auto_design_status 報告進度同最佳結果，講清楚邊啲數字係 CFD 驗證、邊啲只係估算、轉子 CFD 未驗證。',
   '回答精简，用返用户嘅语言（中文就中文）。完成操作后简短确认做咗乜。',
 ].join('\n')

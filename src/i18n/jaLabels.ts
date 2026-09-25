@@ -587,3 +587,9 @@ Object.assign(JA_LABEL, {
 Object.assign(JA_LABEL, {
   '匯出全部零件 STL(zip)': '全パーツSTL書き出し(zip)',
 })
+
+// grok-tc2 zh-HK whole-string keys (legacy SC / 導出 keys above stay).
+Object.assign(JA_LABEL, {
+  '兩面中面': '中間平面',
+  '路徑平面': 'パス沿い平面',
+})

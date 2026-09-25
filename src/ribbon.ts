@@ -362,7 +362,7 @@ const SURFACE: Panel[] = [
     { id: 'surfunstitch', label: '取消縫合', icon: 'shell', tip: '取消縫合：把縫好嘅殼拆返做逐張獨立面（縫合嘅相反操作）,方便單獨編輯/刪除某一張面。' },
     { id: 'surftrim', label: '平面裁剪', icon: 'shell', tip: '平面裁剪：用一個平面把曲面殼裁走一邊、留返另一半。①軸對齊：輸 XY/XZ/YZ, 偏移, 保留邊；②任意平面：輸 原點x,y,z, 法向x,y,z[,保留邊]（如 0,0,10,1,0,1,+ = 斜平面裁）。單張散面要先「縫合」成殼。' },
     { id: 'surfsurftrim', label: '曲面裁剪', icon: 'shell', tip: '曲面裁剪：用【另一張曲面】或【活動實體】做裁刀,沿交線把目標曲面切成幾片 → 喺目標上點你要【保留】嗰一邊/區域。先有兩張相交曲面（或一張曲面穿過實體）→ 撳此 → 選目標 + 裁刀 → 喺目標上點保留邊。' },
-    { id: 'untrim', label: '去裁/還原', icon: 'shell', tip: '去裁 / 還原：點一個泊車曲面 → 丟棄佢嘅裁剪邊界、還原返底層曲面嘅完整原始范圍（補返被裁走嘅整片,再重新裁）。裁剪嘅相反操作。' },
+    { id: 'untrim', label: '去裁/還原', icon: 'shell', tip: '去裁 / 還原：點一個泊車曲面 → 丟棄佢嘅裁剪邊界、還原返底層曲面嘅完整原始範圍（補返被裁走嘅整片,再重新裁）。裁剪嘅相反操作。' },
     { id: 'intersectcurve', label: '相交曲線', icon: 'shell', tip: '相交曲線：把所有體（活動實體 + 泊車曲面/殼）兩兩求交,沿交線抽出 3D 參考曲線（青色實線,隨項目存檔）。想量兩曲面點接 / 起截面草圖 / 接面參考時用。冇相交就唔變；再撳「清相交曲線」清除。' },
     { id: 'clearintersect', label: '清相交曲線', icon: 'shell', tip: '清除全部相交曲線。' },
     { id: 'mergefaces', label: '合併面', icon: 'shell', tip: '合併面 Merge / Unify Same-Domain：點一個泊車曲面/殼 → 把同域（共面 / 共柱）相鄰碎面合併成一張面（裁剪 / 縫合 / 匯入後清噪、易拾、STEP 更小）。體積不變，純拓撲合並。曲面分割的逆向清理。' },
@@ -594,7 +594,7 @@ export const SKETCH_PANELS: Panel[] = [
       { id: 'sk_c_par', label: '平行', icon: 'default', glyph: '∥', quick: true, tip: '平行：選 2 條邊。' },
       { id: 'sk_c_perp', label: '垂直', icon: 'default', glyph: '⊥', quick: true, tip: '垂直：選 2 條邊 → 成 90°。' },
       { id: 'sk_c_eq', label: '相等', icon: 'default', glyph: '＝', quick: true, tip: '相等：選 2 條邊（等長）或 2 個圓（等徑）。' },
-      { id: 'sk_c_tan', label: '相切', icon: 'default', glyph: '⌒', quick: true, tip: '相切：整橢圓＋直線先預覽接觸候選，再按此確認；接觸在線段外時顯示虛線延長。整段橢圓弧只取有向范圍內接觸候選；選橙色端點＋直線則使用端點相切。圓／圓弧沿用現有相切方式。' },
+      { id: 'sk_c_tan', label: '相切', icon: 'default', glyph: '⌒', quick: true, tip: '相切：整橢圓＋直線先預覽接觸候選，再按此確認；接觸在線段外時顯示虛線延長。整段橢圓弧只取有向範圍內接觸候選；選橙色端點＋直線則使用端點相切。圓／圓弧沿用現有相切方式。' },
       { id: 'sk_c_fix', label: '固定', icon: 'default', glyph: '⚓', quick: true, tip: '固定：選 1 個點 / 1 條邊 / 1 個圓·弧 → 整體釘死唔郁（邊=兩端點、圓=圓心+半徑）。' },
       { id: 'sk_c_mid', label: '中點', icon: 'default', glyph: '⊹', tip: '中點：選 1 個點 + 1 條邊/弧 → 點鎖到邊中點（弧=真弧中點，非弦中點）。' },
       { id: 'sk_c_conc', label: '同心', icon: 'default', glyph: '◎', tip: '同心：選 2 個圓 → 圓心重合。' },
@@ -608,7 +608,7 @@ export const SKETCH_PANELS: Panel[] = [
   {
     name: 'FINISH',
     tools: [
-      { id: 'sk_extrude', label: '拉伸', icon: 'extrude', glyph: '⬆', shortcut: 'E', quick: true, tip: '打開拉伸面板（操作 / 范圍 / 距離 / 拔模角）。' },
+      { id: 'sk_extrude', label: '拉伸', icon: 'extrude', glyph: '⬆', shortcut: 'E', quick: true, tip: '打開拉伸面板（操作 / 範圍 / 距離 / 拔模角）。' },
       { id: 'sectionprops', label: '截面屬性', icon: 'default', glyph: 'Σ', tip: '截面屬性（Fusion Section Properties）：對草圖封閉輪廓算 面積 / 形心 / 截面慣矩 Ixx·Iyy·Ixy / 主軸 / 周長（梁彎曲/強度輸入）。最大輪廓=外形，內含=孔（自動扣除），分離輪廓忽略。再撳關。' },
     ],
   },

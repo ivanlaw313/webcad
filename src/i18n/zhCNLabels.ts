@@ -581,3 +581,9 @@ Object.assign(ZH_CN_LABEL, {
 Object.assign(ZH_CN_LABEL, {
   '匯出全部零件 STL(zip)': '导出全部零件 STL(zip)',
 })
+
+// grok-tc2 zh-HK whole-string keys (legacy SC / 導出 keys above stay).
+Object.assign(ZH_CN_LABEL, {
+  '兩面中面': '两面中面',
+  '路徑平面': '路径平面',
+})

@@ -106,7 +106,7 @@ export default function AeroCfdPanel({ spec, cands, lang }: { spec: DesignSpec; 
   const checking = useCfdJobs((s) => s.checking)
   const [url, setUrl] = useState(getCfdUrl())
   const [n, setN] = useState(1)
-  const [mesh, setMesh] = useState<CfdMesh>('coarse')
+  const [mesh, setMesh] = useState<CfdMesh>('medium')
   const [preset, setPreset] = useState<CfdPresetChoice>('auto')
   const [rerank, setRerank] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -171,6 +171,7 @@ export default function AeroCfdPanel({ spec, cands, lang }: { spec: DesignSpec; 
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
         <span>N</span><input type="number" min={1} max={8} value={n} onChange={(e) => setN(Math.max(1, Math.min(8, Math.round(Number(e.target.value)) || 1)))} style={{ ...inp, width: 36 }} />
         <label>{t('cfdMesh')} <select data-cfd-mesh value={mesh} onChange={(e) => setMesh(e.target.value as CfdMesh)} style={inp}><option value="coarse">coarse</option><option value="medium">medium</option><option value="fine">fine</option></select></label>
+        {mesh === 'coarse' && <span data-cfd-coarse-warn style={{ fontSize: 11, color: '#e0a800' }}>⚠ {t('cfdCoarseWarn')}</span>}
         {kind !== 'prop' && <label>{t('cfdPreset')} <select data-cfd-preset value={preset} onChange={(e) => setPreset(e.target.value as CfdPresetChoice)} style={{ ...inp, maxWidth: 170 }}>
           <option value="auto">{t('cfdPresetAuto')}</option><option value="bluff-lowRe">{t('cfdPresetBluff')}</option><option value="fast-rans">{t('cfdPresetRans')}</option>
         </select></label>}

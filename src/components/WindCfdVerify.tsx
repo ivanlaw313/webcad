@@ -28,7 +28,7 @@ export default function WindCfdVerify() {
     try {
       const h = await checkHealth()
       if (!h.ok) { setMsg(t(h.blocked ? 'cfdBlocked' : 'cfdOffline')); return }
-      const { spec, axis } = windSpec({ vertices: tgt.vertices, speed: s.windSpeed, fluid: s.windFluid, axis: s.windAxis, sign: s.windSign, mesh: 'coarse', preset: 'auto' })
+      const { spec, axis } = windSpec({ vertices: tgt.vertices, speed: s.windSpeed, fluid: s.windFluid, axis: s.windAxis, sign: s.windSign, mesh: 'medium', preset: 'auto' })
       const stl = meshToStl({ vertices: tgt.vertices, triangles: tgt.triangles }, 'wind')
       const r = s.windResult
       await submitCfdJob({

@@ -15,8 +15,8 @@ They are not three equally accurate calculators. Lower in the list means closer 
 | | ① Engineering estimate | ② Browser wind tunnel | ③ Local OpenFOAM |
 | --- | --- | --- | --- |
 | Where | Aero Design Lab, **▶ Run optimisation** | **Accurate (LBM)** on a result row, or **Run** in the wind/water tunnel | **OpenFOAM CFD verification** under the lab results, or **Verify this shape with OpenFOAM** on the tunnel panel |
-| How accurate | For **ranking and shortlisting**, not CFD. On a streamlined shell the estimate and a fine-mesh CFD run are close (about **4%**). A large gap versus coarse CFD is the coarse mesh being wrong, not the estimate. Still correct it with layer ③. Auto-design mode learns that gap (see g). | **Trend-level**. With the same settings, which shape has less drag is trustworthy. Do not treat the absolute drag coefficient Cd as a lab report. | The most accurate of the three. A sphere checks out at Cd **0.490** against a reference of about **0.47** (a few percent). A spinning propeller or fan is **partly validated** (static thrust −12% and power −3% are on target; forward-flight thrust is 22–36% low, trend correct). See the limits. |
-| How long | The panel shows **milliseconds**. 1200 evaluations usually finish within a few seconds. 300 is faster; 8000 is still seconds. | CPU: resolution around 24 is tens of seconds; 48 can be minutes (large parts slower). GPU: drag the part and watch the flow live, but Cd reads **about 2× high**. | Default mesh is **medium**. Coarse is only a smoke test (it shows a yellow warning). The checked sphere setup is about 10 minutes. Fine can run past an hour (94 minutes on a 555×84 mm shell). **One job at a time**; the rest queue. |
+| How accurate | For **ranking and shortlisting**, not CFD. On the same 555×73 mm streamlined shell in water at 2 m/s, the engineering estimate is Cd 0.115, about **10%** from the finest-mesh CFD (0.1048). Coarse and medium are only about 4–5% from that finest mesh (see e). Still correct it with layer ③. Auto-design mode learns that gap (see g). | **Trend-level**. With the same settings, which shape has less drag is trustworthy. Do not treat the absolute drag coefficient Cd as a lab report. | The most accurate of the three. A sphere checks out at Cd **0.490** against a reference of about **0.47** (a few percent). A spinning propeller or fan is **partly validated** (static thrust −12% and power −3% are on target; forward-flight thrust is 22–36% low, trend correct). See the limits. |
+| How long | The panel shows **milliseconds**. 1200 evaluations usually finish within a few seconds. 300 is faster; 8000 is still seconds. | CPU: resolution around 24 is tens of seconds; 48 can be minutes (large parts slower). GPU: drag the part and watch the flow live, but Cd reads **about 2× high**. | CFD verification and auto-design default to mesh **coarse** (about 1–5 minutes, error about 5%). On the shell: coarse 1.4 minutes, medium 7.7 minutes, finest mesh 71 minutes. The checked sphere setup is about 10 minutes. **One job at a time**; the rest queue. |
 | When | Sweep many sizes, drop the obvious losers, keep a shortlist. | Which outline is cleaner, which direction has less drag, or you want to see smoke. | The last one or two candidates, or a shape you modelled yourself, when you need a serious Cd or drag force. |
 
 Rule of thumb: the estimate picks the shortlist, the tunnel compares shapes, OpenFOAM is the one you keep.
@@ -136,18 +136,18 @@ Then:
 1. After optimisation, scroll to **🧮 OpenFOAM CFD verification**.
 2. Click **Check service**. Wait until you see a green **CFD service online**. The address defaults to this PC, `127.0.0.1` port `8765`. Leave it unless you moved the service.
 3. **N** is how many to send. It sends the first N **feasible** rows from the top of the table, **not** whichever row you clicked. For a quick check set N to **1** (usually the best row at the top). Maximum 8.
-4. **Mesh** defaults to **medium**, for both CFD verification and auto-design. Leave medium for a serious comparison. Use **fine** for the last confirmation. Pick **coarse** only to watch the workflow once. That choice shows a yellow warning:
+4. **Mesh** defaults to **coarse**, for both CFD verification and auto-design. It is fast: about 1–5 minutes, error about 5%. Use **medium** or **fine** for a final check. Next to the mesh picker there is now a gray line of explanation. It is no longer a yellow warning.
 
-   > Coarse meshes strongly over-predict drag on slender/streamlined shapes (measured up to 2–3×) — use for smoke tests only; use medium or finer for real comparisons
+   What was wrong: when the model was thinner than the background mesh, the mesher could not see the surface, so coarse-mesh drag used to read far too high. That is fixed (automatic pre-refinement).
 
-   On one 555×84 mm streamlined shell: coarse Cd≈0.29, the old medium 0.173, fine (2.33 million cells, 94 minutes) 0.111, engineering estimate 0.115. The CFD service now sizes the mesh for slender bodies by the equivalent frontal diameter, so today’s medium lands closer to fine. 0.173 is the medium from before that change. Do not expect that number if you pick medium now.
-5. Wings and shells have **Solver preset**. Leave **Auto (Re<3e5 → laminar transient)**. Slower bluff bodies use the setup that was checked on a sphere; higher Reynolds number uses steady SST. Propellers do not show this list; they use a rotor setup instead.
+   After the fix, the same 555×73 mm streamlined shell in water at 2 m/s: coarse, 210 thousand cells, 1.4 minutes, Cd **0.1096**; medium, 590 thousand cells, 7.7 minutes, **0.1090**; finest mesh, 2.69 million cells, 71 minutes, **0.1048**. Coarse and medium differ from the finest mesh by about 4–5%. The engineering estimate is 0.115 (about 10% off). A 6:1 ellipsoid was checked too (about 2–4% off).
+5. Wings and shells have **Solver preset**. Leave **Auto (Re<3e5 → laminar transient)**. Slower bluff bodies use the setup that was checked on a sphere; higher Reynolds number uses steady SST. On a slender body (length ÷ equivalent diameter > 3), steady SST automatically uses the streamlined-rans setup. Propellers do not show this list; they use a rotor setup instead.
 6. Click **🧮 Send to CFD verification**.
 7. Under **CFD jobs** the state goes queued → running → done. You get a progress bar, elapsed time, and a live Cd while it runs. Only one job runs; the others wait. **Cancel** if you do not want to wait.
 8. When it finishes, the table has three columns:
    - **Engineering estimate** — the lab number.
    - **OpenFOAM** — this run.
-   - **Ratio CFD/est.** — OpenFOAM divided by the estimate. ×1.40 means this CFD result is 1.4 times the estimate. Do not memorise “always 30% low”. On a streamlined shell the estimate and fine-mesh CFD differ by about 4% (0.115 versus 0.111). A large gap versus coarse CFD means the coarse mesh over-predicted drag, not that the estimate is wrong. Still calibrate with CFD. Auto-design mode learns those multipliers (see g).
+   - **Ratio CFD/est.** — OpenFOAM divided by the estimate. ×1.40 means this CFD result is 1.4 times the estimate. Do not memorise “always 30% low”. On a streamlined shell the estimate and the finest-mesh CFD differ by about 10% (0.115 versus 0.1048). Coarse and medium differ from that finest mesh by about 4–5%. Still calibrate with CFD. Auto-design mode learns those multipliers (see g).
 9. **Calibration factor (CFD ÷ estimate, per template)** stores that multiplier (averaged if you finish more than one job on the same template). It stays empty until a job finishes.
 10. Tick **Re-rank with CFD / calibrated values**. A candidate that already has CFD uses the CFD number. The others use estimate × factor. Lower is better for drag; higher is better for efficiency.
 
@@ -170,7 +170,7 @@ This path does not go through the design lab. Any solid you sketched, or a lab b
    - **精細度** (resolution): start in the middle. Further right is slower.
    - **引擎** (engine): leave **CPU（準·可比舊數）** (CPU, the number you can compare). GPU is only for dragging the part. Its Cd is not trustworthy; see the limits.
 4. Click **運行** (Run) and wait for the bar. Then read **風阻係數 Cd** (drag coefficient) and **阻力** (drag force). The small print says this is trend-level: relative comparisons are the trustworthy part; absolute Cd is only a trend.
-5. At the bottom of the same panel, click **🧮 Verify this shape with OpenFOAM** (in Chinese UI: **用 OpenFOAM 驗證呢個形狀**). `start-service.bat` must be open. If it is not, the panel says the service is offline or the browser blocked local network access. This button sends the **medium** mesh. There is no coarse option on this panel.
+5. At the bottom of the same panel, click **🧮 Verify this shape with OpenFOAM** (in Chinese UI: **用 OpenFOAM 驗證呢個形狀**). `start-service.bat` must be open. If it is not, the panel says the service is offline or the browser blocked local network access. This panel has no mesh picker. The lab’s CFD verification and auto-design are where you choose a mesh, and those default to **coarse** (see e). This button still sends **medium**.
 6. The LBM Cd is printed beside the button. When the job finishes, the OpenFOAM Cd is shown against that LBM number. They will not match. That is expected; see Common questions.
 
 Keep the OpenFOAM number. Do not compare a GPU-engine Cd with OpenFOAM as if both were absolute.
@@ -192,13 +192,13 @@ You cannot edit these while a loop is running. The defaults are a reasonable fir
 | **Rounds** | 3 | How many times to optimise, then CFD, then learn. About 1 to 20. Leave 3 the first time. |
 | **CFD per round** | 2 | How many **different** designs this round sends to OpenFOAM. Use 1 if you want it faster. About 1 to 8. |
 | **CFD job budget** | 6 | Total CFD jobs for the whole loop. When it is used up the loop stops, even if rounds remain. 3 rounds × 2 jobs = 6, so the default spends the budget exactly. |
-| **Time limit (min)** | 120 | Stop when the clock runs out. The default mesh is medium: one job is minutes to tens of minutes, and fine can pass an hour (94 minutes on the shell example). Six jobs can take an hour or two, or hit this cap. |
+| **Time limit (min)** | 120 | Stop when the clock runs out. The default mesh is coarse: one job is about 1–5 minutes (1.4 minutes on the shell). Medium is about 8 minutes, and the finest mesh can pass an hour (71 minutes). Six coarse jobs usually stay inside this cap; fine may not. |
 | **Stop if improvement < ε** | 0.01 | Stop when the best so far is not at least 1% (0.01) better than the previous round. Smaller searches harder; larger stops sooner. |
 
 On the same row:
 
-- **Mesh** defaults to **medium**. Switch to coarse only to watch the workflow; you get the same yellow warning as in CFD verification (slender/streamlined drag can read 2–3× high; smoke tests only). Leave medium for a real comparison. Use fine for the last check. The service now refines slender bodies by equivalent frontal diameter, so medium is closer to fine than the old medium (Cd 0.173).
-- Wings and shells have **Solver preset**. Leave **Auto (Re<3e5 → laminar transient)**. Propellers do not show this list.
+- **Mesh** defaults to **coarse** (about 1–5 minutes, error about 5%). Use medium or fine for a final check. Next to the picker is a gray line of explanation, not a yellow warning. The old failure (a model thinner than the background mesh, so the mesher missed the surface and coarse drag read far too high) is fixed: the service pre-refines automatically. See e.
+- Wings and shells have **Solver preset**. Leave **Auto (Re<3e5 → laminar transient)**. On a slender body (length ÷ equivalent diameter > 3), steady SST automatically uses streamlined-rans. Propellers do not show this list.
 - Leave **Evaluations** at **1200**. That is how many estimates each auto-design round runs. The Evaluations control in step ③ applies only when you press **▶ Run optimisation** yourself. It is not copied here.
 
 Then click **▶ Start auto-design**. The line beside it reads round 0/3, CFD jobs 0/6, and elapsed time, plus the step it is on: checking the CFD service, optimising, submitting CFD jobs, waiting for CFD, updating the correction model.
@@ -211,7 +211,7 @@ The stop line names the reason. Usual ones: **all rounds done**, **CFD job budge
 
 1. **Optimise.** Search the design space with the engineering estimate. From round 2 on, that estimate is **corrected**. It is no longer the raw formula.
 2. **Pick the top N.** N is **CFD per round**. It does not send N near-copies. It spreads the picks, and it skips shapes already verified by CFD.
-3. **CFD.** Local OpenFOAM. The service runs one job at a time; the rest queue. Default medium is usually minutes to tens of minutes. Fine can pass an hour (94 minutes on the 555×84 mm shell).
+3. **CFD.** Local OpenFOAM. The service runs one job at a time; the rest queue. Default coarse is about 1–5 minutes (1.4 minutes on the shell). Medium is about 8 minutes. The finest mesh can pass an hour (2.69 million cells and 71 minutes on the 555×73 mm shell).
 4. **The correction model learns.** After CFD finishes it learns from CFD ÷ estimate (the panel intro calls this a Gaussian process). In plain words: for a shape like this, what multiplier makes the estimate land near the CFD number.
 5. **Optimise again.** Back to step 1, until the rounds, the CFD budget, or the time limit is used up, or the improvement is below ε.
 
@@ -310,11 +310,12 @@ Send a message with no key and the reply is: **⚠ Enter your API Key in Setting
 
 - **Propeller and fan CFD is partly validated.** Against the UIUC measurement of an APC 10×4.7: static thrust −12% and power −3% (on target); forward flight at advance ratio J 0.3–0.5 is 22–36% low on thrust (misses the target; the trend is right). The job label is **partly validated (static thrust −12% / forward flight 20–35% low)**. The auto-design checkbox is **Use rotor CFD anyway (partly validated: static OK, forward flight low)**. Rotor CFD is still off unless you tick it. A stationary fan (inflow 0) can use the CFD as a reference. With forward speed the thrust number reads low; use the ranking.
 - **Browser-tunnel absolute Cd is biased.** It is a lattice trend solver. Compare two shapes at the same speed, fluid, and engine. Do not write that Cd into a report as a tunnel measurement.
-- **Still calibrate the engineering estimate with CFD.** It is not a fixed “30% low”. On a streamlined shell the estimate and fine-mesh CFD are close (about 4%): the same 555×84 mm shell is estimate Cd 0.115 and fine (2.33 million cells, 94 minutes) 0.111. The gap versus coarse CFD is large (coarse Cd≈0.29; the old medium, before the frontal-diameter refinement, was 0.173) because the coarse mesh is wrong, not the estimate. Multiply the estimate by the **calibration factor** (CFD ÷ estimate) from layer ③ before you trust a ranking. Auto-design mode learns that multiplier from CFD results (see g). Until you have run CFD, the estimate is only a filter.
+- **Still calibrate the engineering estimate with CFD.** It is not a fixed “30% low”. On a streamlined shell the estimate is about 10% from the finest mesh: the same 555×73 mm shell in water at 2 m/s is estimate Cd 0.115 and finest mesh (2.69 million cells, 71 minutes) 0.1048; coarse is 0.1096 and medium is 0.1090, about 4–5% from the finest mesh. A 6:1 ellipsoid was checked too (about 2–4% off). Multiply the estimate by the **calibration factor** (CFD ÷ estimate) from layer ③ before you trust a ranking. Auto-design mode learns that multiplier from CFD results (see g). Until you have run CFD, the estimate is only a filter.
+- **The model assumes fully turbulent flow.** Real flow can transition naturally and the drag can be another 30–50% lower. Only zero-angle bodies of revolution were checked.
 - **GPU tunnel Cd is about 2× high.** On a sphere it measured 2.0–2.2 times the reference, at several resolutions, so it is not “the mesh was coarse”. The engine therefore defaults to CPU. GPU is for “which direction is less drag, in percent” and for dragging the part around. Absolute Cd and drag come from CPU or from OpenFOAM.
 - Neither the estimate nor the browser tunnel is a certified solver. OpenFOAM’s sphere check is a few percent. Wing drag can still read high; read the job warnings (not converged, mesh warnings).
 - The shell you insert is a solid outer shape. Wall thickness is not a hollow wall.
-- The service runs one job at a time. Fine is slow (2.33 million cells and 94 minutes on the 555×84 mm shell). Do not send eight fine-mesh jobs on the first try.
+- The service runs one job at a time. Default coarse is about 1–5 minutes. The finest mesh is slow (2.69 million cells and 71 minutes on the 555×73 mm shell). Do not send eight fine-mesh jobs on the first try.
 
 ---
 
@@ -334,14 +335,14 @@ Click the lock or settings icon **to the left of the address bar** → **Site se
 
 - An estimate should be seconds. 8000 evaluations with several objectives can take a bit longer; past a minute, click **■ Stop** and try 1200.
 - A CPU tunnel at the finest resolution can take minutes on a large part. Use a middle resolution for a trend.
-- OpenFOAM on the default medium mesh is minutes to tens of minutes, fine is longer (94 minutes on the shell example), and jobs queue. First time: N = 1, leave mesh on medium. Switch to coarse only to watch the workflow (yellow warning; drag can read 2–3× high). If the bar and the elapsed time are moving, it is working. **Cancel** if you do not want to wait.
+- OpenFOAM on the default coarse mesh is about 1–5 minutes (1.4 minutes on the shell), and jobs queue. Medium is about 8 minutes. The finest mesh can pass an hour (71 minutes). First time: N = 1, leave the mesh on coarse. If the bar and the elapsed time are moving, it is working. **Cancel** if you do not want to wait.
 
 ### Why the result does not match the estimate
 
 The three layers are three different methods. The numbers are not supposed to match.
 
-- The estimate is fast. On a streamlined shell it is about 4% from fine-mesh CFD. A large gap versus coarse CFD is the coarse mesh over-predicting drag, not a bad estimate. It is not a fixed 30% low. Still calibrate with CFD. Auto-design learns the gap (see g).
+- The estimate is fast. On a streamlined shell it is about 10% from the finest-mesh CFD (0.115 versus 0.1048). After the fix, coarse and medium are about 4–5% from that finest mesh. It is not a fixed 30% low. Still calibrate with CFD. Auto-design learns the gap (see g). The model assumes fully turbulent flow; if the real boundary layer transitions naturally, drag can be another 30–50% lower.
 - The tunnel is a trend. Absolute Cd is off, and the GPU path is about twice as high.
-- OpenFOAM is the one that lands near the reference (sphere 0.490 versus 0.47). On a slender shell use medium or fine. Coarse can lift Cd by about 2–3×.
+- OpenFOAM is the one that lands near the reference (sphere 0.490 versus 0.47). On a slender shell, leave the mesh on coarse. Use medium or fine for a final check.
 
 Read **Ratio CFD/est.** For a wing or a shell, use that factor to calibrate and re-rank. A stationary fan can use rotor CFD as a reference. With forward speed, propeller thrust from CFD reads low; use the ranking. If the job says **not converged**, discount the CFD number too.

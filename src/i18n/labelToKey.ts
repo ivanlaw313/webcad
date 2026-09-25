@@ -528,3 +528,22 @@ export const LABEL_TO_KEY: Record<string, string> = {
   '薄板/法蘭(拉伸)': 'cmd.sheetExtrude',
   '齒輪': 'cmd.gear',
 }
+
+// grok-tc2 zh-HK whole-string keys (legacy SC / 導出 keys above stay).
+Object.assign(LABEL_TO_KEY, {
+  '匯入DXF': 'tool.importdxf',
+  '匯入SVG': 'tool.importsvg',
+  '匯出STL': 'tool.exportstl',
+  '匯出裝配STL': 'tool.exportasmstl',
+  '匯出裝配OBJ': 'tool.exportasmobj',
+  '匯出裝配3MF': 'tool.exportasm3mf',
+  '匯出裝配STEP': 'tool.exportasmstep',
+  '匯出glTF/GLB': 'cmd.exportglb',
+  '匯出OBJ': 'tool.exportobj',
+  '匯出3MF': 'tool.export3mf',
+  '匯出展開DXF': 'tool.exportflatdxf',
+  '匯出STEP': 'tool.exportstep',
+  '匯出STL(ASCII)': 'tool.exportstlascii',
+  '匯出glTF': 'tool.exportglb',
+  '匯出DXF': 'tool.sk_dxf',
+})

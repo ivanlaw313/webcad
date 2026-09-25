@@ -563,3 +563,33 @@ export const JA_LABEL: Record<string, string> = {
   "放開以匯入網格（.stl / .obj / .3mf）": "離してメッシュを取り込み（.stl / .obj / .3mf）",
   "松开以导入网格（.stl / .obj / .3mf）": "離してメッシュを取り込み（.stl / .obj / .3mf）",
 }
+
+// grok-tc2 zh-HK whole-string keys (legacy SC / 導出 keys above stay).
+Object.assign(JA_LABEL, {
+  '匯入DXF': 'DXF 読み込み',
+  '匯入SVG': 'SVG 読み込み',
+  '匯出STL': 'STL書き出し',
+  '匯出裝配STL': 'アセンブリSTL書き出し',
+  '匯出裝配OBJ': 'アセンブリOBJ書き出し',
+  '匯出裝配3MF': 'アセンブリ3MF書き出し',
+  '匯出裝配STEP': 'アセンブリSTEP書き出し',
+  '匯出glTF/GLB': 'glTF/GLB書き出し',
+  '匯出OBJ': 'OBJ書き出し',
+  '匯出3MF': '3MF書き出し',
+  '匯出展開DXF': '展開 DXF 書き出し',
+  '匯出STEP': 'STEP書き出し',
+  '匯出STL(ASCII)': 'Export STL (ASCII)',
+  '匯出glTF': 'glTF書き出し',
+  '匯出DXF': 'DXF書き出し',
+})
+
+// grok-tc2 zh-HK whole-string keys (legacy SC / 導出 keys above stay).
+Object.assign(JA_LABEL, {
+  '匯出全部零件 STL(zip)': '全パーツSTL書き出し(zip)',
+})
+
+// grok-tc2 zh-HK whole-string keys (legacy SC / 導出 keys above stay).
+Object.assign(JA_LABEL, {
+  '兩面中面': '中間平面',
+  '路徑平面': 'パス沿い平面',
+})

@@ -81,7 +81,7 @@ export default function Tour() {
       <div style={{ fontSize: 12.5, color: '#3a4650', lineHeight: 1.5, marginBottom: 10 }}>{st.body}</div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button className="cs-btn" onClick={skipAll}>跳過教學</button>
-        {st.optional && !isLast && <button className="cs-btn" onClick={() => advance()}>跳过呢步 →</button>}
+        {st.optional && !isLast && <button className="cs-btn" onClick={() => advance()}>跳過呢步 →</button>}
         {isLast ? (
           <button className="cs-btn" style={primaryBtn} onClick={finish}>🎉 完成</button>
         ) : uiDone ? (

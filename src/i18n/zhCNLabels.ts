@@ -557,3 +557,33 @@ export const ZH_CN_LABEL: Record<string, string> = {
   "齿轮": "齿轮",
   "齿轮箱": "齿轮箱",
 }
+
+// grok-tc2 zh-HK whole-string keys (legacy SC / 導出 keys above stay).
+Object.assign(ZH_CN_LABEL, {
+  '匯入DXF': '导入DXF',
+  '匯入SVG': '导入SVG',
+  '匯出STL': '导出STL',
+  '匯出裝配STL': '导出装配STL',
+  '匯出裝配OBJ': '导出装配OBJ',
+  '匯出裝配3MF': '导出装配3MF',
+  '匯出裝配STEP': '导出装配STEP',
+  '匯出glTF/GLB': '导出glTF/GLB',
+  '匯出OBJ': '导出OBJ',
+  '匯出3MF': '导出3MF',
+  '匯出展開DXF': '导出展开DXF',
+  '匯出STEP': '导出STEP',
+  '匯出STL(ASCII)': '导出STL(ASCII)',
+  '匯出glTF': '导出glTF',
+  '匯出DXF': '导出DXF',
+})
+
+// grok-tc2 zh-HK whole-string keys (legacy SC / 導出 keys above stay).
+Object.assign(ZH_CN_LABEL, {
+  '匯出全部零件 STL(zip)': '导出全部零件 STL(zip)',
+})
+
+// grok-tc2 zh-HK whole-string keys (legacy SC / 導出 keys above stay).
+Object.assign(ZH_CN_LABEL, {
+  '兩面中面': '两面中面',
+  '路徑平面': '路径平面',
+})

@@ -134,12 +134,12 @@ export default function AeroAutoLoop({ spec, lang, onInsert }: { spec: DesignSpe
       {busy && <div style={{ color: 'var(--accent)', fontSize: 11 }}>{busy}</div>}
 
       {st && <>
-        <div data-auto-mode-banner={st.mode} style={{ marginTop: 6, padding: '4px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600, ...(st.mode === 'cfd' ? { background: 'rgba(47,158,68,.08)', border: '1px solid rgba(47,158,68,.4)' } : { background: 'rgba(224,168,0,.1)', border: '1px solid rgba(224,168,0,.45)' }) }}>
+        {st.phase !== 'start' && <div data-auto-mode-banner={st.mode} style={{ marginTop: 6, padding: '4px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600, ...(st.mode === 'cfd' ? { background: 'rgba(47,158,68,.08)', border: '1px solid rgba(47,158,68,.4)' } : { background: 'rgba(224,168,0,.1)', border: '1px solid rgba(224,168,0,.45)' }) }}>
           {st.mode === 'cfd' ? `● ${t('autoModeCfd')}` : `⚠ ${t('autoModeEst')}${st.modeReason ? ` — ${t(`autoReason_${st.modeReason}`)}` : ''}`}
           {st.mode === 'cfd' && st.rotor && <div style={{ color: '#e0a800' }}>⚠ {t('cfdUnvalidated')} — {t('cfdRotorNote')}</div>}
           {st.modeReason === 'blocked' && <div style={{ fontWeight: 400 }}>{t('cfdBlocked')}</div>}
           {st.modeReason === 'offline' && <div style={{ fontWeight: 400 }}>{t('cfdOffline')}</div>}
-        </div>
+        </div>}
         {st.stop && <div data-auto-stopped={st.stop} style={{ marginTop: 3, fontSize: 11, color: st.status === 'done' ? 'var(--text)' : '#e03131' }}>■ {t(`autoStop_${st.stop}`)}{st.error ? ` — ${st.error}` : ''}</div>}
 
         {st.rounds.length > 0 && <div style={{ marginTop: 6 }}>
@@ -173,7 +173,7 @@ export default function AeroAutoLoop({ spec, lang, onInsert }: { spec: DesignSpe
               <tr><td style={td}>{objName}</td><td style={td}>{fmtN(b.objRaw)}</td><td style={td}>{fmtN(b.objEst)}</td><td style={{ ...td, fontWeight: 700 }} data-auto-best-cfd>{fmtN(b.objCfd)}</td></tr>
               {b.cfd?.Cd !== undefined && <tr><td style={td}>Cd</td><td style={td}>{fmtN(b.raw.CD)}</td><td style={td}>{fmtN(b.corrected.CD)}</td><td style={td}>{fmtN(b.cfd.Cd)}{b.cfd.CdStd ? ` ±${fmtN(b.cfd.CdStd)}` : ''}</td></tr>}
               {b.cfd?.Cl !== undefined && Number.isFinite(b.cfd.Cl) && sp.kind === 'wing' && <tr><td style={td}>Cl</td><td style={td}>{fmtN(b.raw.CL)}</td><td style={td}>{fmtN(b.corrected.CL)}</td><td style={td}>{fmtN(b.cfd.Cl)}</td></tr>}
-              {b.cfd?.dragN !== undefined && sp.kind !== 'prop' && <tr><td style={td}>{metricLabel(lang, 'drag')}</td><td style={td}>{fmtN(b.raw.drag)}</td><td style={td}>{fmtN(b.corrected.drag)}</td><td style={td}>{fmtN(b.cfd.dragN)}</td></tr>}
+              {b.cfd?.dragN !== undefined && sp.kind !== 'prop' && obj.key !== 'drag' && <tr><td style={td}>{metricLabel(lang, 'drag')}</td><td style={td}>{fmtN(b.raw.drag)}</td><td style={td}>{fmtN(b.corrected.drag)}</td><td style={td}>{fmtN(b.cfd.dragN)}</td></tr>}
               {b.cfd?.kind === 'rotor' && <>
                 <tr><td style={td}>T N</td><td style={td}>{fmtN(b.raw.thrust)}</td><td style={td}>{fmtN(b.corrected.thrust)}</td><td style={td}>{fmtN(b.cfd.thrustN)}</td></tr>
                 <tr><td style={td}>P W</td><td style={td}>{fmtN(b.raw.power)}</td><td style={td}>{fmtN(b.corrected.power)}</td><td style={td}>{fmtN(b.cfd.powerW)}</td></tr>

@@ -13,6 +13,7 @@ import { specFromBrief } from '../aero/brief'
 import { designMesh, meshToStl } from '../aero/geometry'
 import AeroCfdPanel from './AeroCfdPanel'
 import AeroAutoLoop from './AeroAutoLoop'
+import { useAutoLoop } from '../aero/autoLoopStore'
 import { runAccurateWind, type AccurateWind } from '../aero/windBridge'
 import { ParetoChart, ConvergenceChart } from './AeroLabCharts'
 
@@ -54,7 +55,8 @@ const td: CSSProperties = { padding: '2px 4px', fontSize: 12, whiteSpace: 'nowra
 export default function AeroLab() {
   const lang = useApp((s) => s.lang)
   const t = (k: string) => at(lang, k)
-  const [spec, setSpec] = useState<DesignSpec>(() => templateOf('prop'))
+  // after a reload with a persisted auto-design loop, show that loop's design space
+  const [spec, setSpec] = useState<DesignSpec>(() => useAutoLoop.getState().state?.spec ?? templateOf('prop'))
   const [brief, setBrief] = useState('')
   const [briefNote, setBriefNote] = useState('')
   const [thinking, setThinking] = useState(false)

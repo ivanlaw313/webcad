@@ -130,6 +130,7 @@ async function pollOnce(): Promise<{ changed: boolean; failed: boolean }> {
       patch(j.id, p)
       const cur = useCfdJobs.getState().jobs.find((x) => x.id === j.id)
       if (cur?.result) foldCalibration(cur)
+      if (cur && !isActive(cur)) void checkHealth(j.url)   // refresh the queue badge once a job ends
     } catch { failed = true }
   }
   return { changed, failed }

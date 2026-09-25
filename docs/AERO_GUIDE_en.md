@@ -15,7 +15,7 @@ They are not three equally accurate calculators. Lower in the list means closer 
 | | ① Engineering estimate | ② Browser wind tunnel | ③ Local OpenFOAM |
 | --- | --- | --- | --- |
 | Where | Aero Design Lab, **▶ Run optimisation** | **Accurate (LBM)** on a result row, or **Run** in the wind/water tunnel | **OpenFOAM CFD verification** under the lab results, or **Verify this shape with OpenFOAM** on the tunnel panel |
-| How accurate | For **ranking**. Drag and efficiency usually read **about 30% low**. Correct them with the layer-③ factor. This is not CFD. | **Trend-level**. With the same settings, which shape has less drag is trustworthy. Do not treat the absolute drag coefficient Cd as a lab report. | The most accurate of the three. A sphere checks out at Cd **0.490** against a reference of about **0.47** (a few percent). A spinning propeller or fan is **not validated**. |
+| How accurate | For **ranking and shortlisting**, not CFD. Versus OpenFOAM it can be off by **one to three times**, depending on the shape and the mesh, so correct it with layer ③. Auto-design mode learns that gap (see g). | **Trend-level**. With the same settings, which shape has less drag is trustworthy. Do not treat the absolute drag coefficient Cd as a lab report. | The most accurate of the three. A sphere checks out at Cd **0.490** against a reference of about **0.47** (a few percent). A spinning propeller or fan is **not validated**. |
 | How long | The panel shows **milliseconds**. 1200 evaluations usually finish within a few seconds. 300 is faster; 8000 is still seconds. | CPU: resolution around 24 is tens of seconds; 48 can be minutes (large parts slower). GPU: drag the part and watch the flow live, but Cd reads **about 2× high**. | Coarse mesh: minutes, up to about ten (the checked sphere setup is about 10 minutes). Fine mesh or a difficult shape can be tens of minutes. **One job at a time**; the rest queue. |
 | When | Sweep many sizes, drop the obvious losers, keep a shortlist. | Which outline is cleaner, which direction has less drag, or you want to see smoke. | The last one or two candidates, or a shape you modelled yourself, when you need a serious Cd or drag force. |
 
@@ -143,7 +143,7 @@ Then:
 8. When it finishes, the table has three columns:
    - **Engineering estimate** — the lab number.
    - **OpenFOAM** — this run.
-   - **Ratio CFD/est.** — OpenFOAM divided by the estimate. ×1.40 means the estimate was about 70% of the CFD value, **about 30% low**.
+   - **Ratio CFD/est.** — OpenFOAM divided by the estimate. ×1.40 means this CFD result is 1.4 times the estimate. Do not memorise “always 30% low”: depending on the shape and the mesh, the gap can be one to three times. Auto-design mode learns those multipliers (see g).
 9. **Calibration factor (CFD ÷ estimate, per template)** stores that multiplier (averaged if you finish more than one job on the same template). It stays empty until a job finishes.
 10. Tick **Re-rank with CFD / calibrated values**. A candidate that already has CFD uses the CFD number. The others use estimate × factor. Lower is better for drag; higher is better for efficiency.
 
@@ -306,7 +306,7 @@ Send a message with no key and the reply is: **⚠ Enter your API Key in Setting
 
 - **Propeller and fan CFD is not validated.** The local run is a steady rotor approximation. It has not been checked against measured propeller data. The panel marks it **NOT validated**. Use it only as a rough “which one makes more thrust” hint, not as real thrust, power, or efficiency.
 - **Browser-tunnel absolute Cd is biased.** It is a lattice trend solver. Compare two shapes at the same speed, fluid, and engine. Do not write that Cd into a report as a tunnel measurement.
-- **The engineering estimate runs about 30% low and needs a correction.** Drag and efficiency in the lab are fast formulas. Multiply the estimate by the **calibration factor** (CFD ÷ estimate) from layer ③ before you trust a ranking. Until you have run CFD, the estimate is only a filter.
+- **The engineering estimate and CFD can differ by one to three times, and the estimate needs a correction.** It is not a fixed “30% low”. How far depends on the shape and the mesh. Multiply the estimate by the **calibration factor** (CFD ÷ estimate) from layer ③ before you trust a ranking. Auto-design mode learns that multiplier from CFD results (see g). Until you have run CFD, the estimate is only a filter.
 - **GPU tunnel Cd is about 2× high.** On a sphere it measured 2.0–2.2 times the reference, at several resolutions, so it is not “the mesh was coarse”. The engine therefore defaults to CPU. GPU is for “which direction is less drag, in percent” and for dragging the part around. Absolute Cd and drag come from CPU or from OpenFOAM.
 - Neither the estimate nor the browser tunnel is a certified solver. OpenFOAM’s sphere check is a few percent. Wing drag can still read high; read the job warnings (not converged, mesh warnings).
 - The shell you insert is a solid outer shape. Wall thickness is not a hollow wall.
@@ -336,7 +336,7 @@ Click the lock or settings icon **to the left of the address bar** → **Site se
 
 The three layers are three different methods. The numbers are not supposed to match.
 
-- The estimate is fast and usually **about 30% low**.
+- The estimate is fast, and versus CFD it can be off by **one to three times**, depending on the shape and the mesh. It is not a fixed 30% low. Auto-design learns the gap (see g).
 - The tunnel is a trend. Absolute Cd is off, and the GPU path is about twice as high.
 - OpenFOAM is the one that lands near the reference (sphere 0.490 versus 0.47).
 

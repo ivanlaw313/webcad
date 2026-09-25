@@ -7,36 +7,36 @@ const SCALE = 2.6 // px per mm
 
 const TOOLS: { t: 'select' | 'line' | 'rect' | 'circle' | 'polygon' | 'trim' | 'extend' | 'break'; label: string; title?: string }[] = [
   { t: 'select', label: '↖ 選擇' },
-  { t: 'line', label: '／ 直线' },
+  { t: 'line', label: '／ 直線' },
   { t: 'rect', label: '▭ 矩形' },
-  { t: 'circle', label: '◯ 圆' },
-  { t: 'polygon', label: '⬡ 多边形', title: '正多边形：点中心 → 点一个顶点（定半径+朝向）。边数喺右边设' },
-  { t: 'trim', label: '✂ 修剪', title: '修剪：点线段 → 删到最近交点' },
-  { t: 'extend', label: '⊢ 延伸', title: '延伸：点线段靠近想延长嘅一端 → 延长到最近嘅线 / 圆' },
-  { t: 'break', label: '⊟ 打断', title: '打断：点线段中间 → 一分为二（两段都保留，用嚟局部约束 / 修剪）' },
+  { t: 'circle', label: '◯ 圓' },
+  { t: 'polygon', label: '⬡ 多邊形', title: '正多邊形：點中心 → 點一個頂點（定半徑+朝向）。邊數喺右邊設' },
+  { t: 'trim', label: '✂ 修剪', title: '修剪：點線段 → 刪到最近交點' },
+  { t: 'extend', label: '⊢ 延伸', title: '延伸：點線段靠近想延長嘅一端 → 延長到最近嘅線 / 圓' },
+  { t: 'break', label: '⊟ 打斷', title: '打斷：點線段中間 → 一分為二（兩段都保留，用嚟局部約束 / 修剪）' },
 ]
 
 const CBTN: { k: ConstraintKind; label: string; title: string }[] = [
-  { k: 'coincident', label: '重合', title: '两点重合' },
-  { k: 'horizontal', label: '水平', title: '一条线 或 两点 → 水平' },
-  { k: 'vertical', label: '竖直', title: '一条线 或 两点 → 竖直' },
-  { k: 'parallel', label: '平行', title: '两条线平行' },
-  { k: 'perpendicular', label: '垂直', title: '两条线垂直' },
-  { k: 'equal', label: '相等', title: '两线等长 / 两圆等半径' },
-  { k: 'point_on_line', label: '点在线上', title: '点 + 线' },
-  { k: 'tangent', label: '相切', title: '线+圆 或 两圆 → 相切' },
-  { k: 'concentric', label: '同心', title: '两圆同心（圆心重合）' },
-  { k: 'symmetric', label: '对称', title: '两点关于一条线对称（选 2 点 + 1 线）' },
-  { k: 'midpoint', label: '中点', title: '点锁到线的中点（选 1 点 + 1 线）' },
-  { k: 'pldist', label: '⊥距', title: '点到线垂直距离尺寸（选 1 点 + 1 线，可绑参数/双击改）' },
+  { k: 'coincident', label: '重合', title: '兩點重合' },
+  { k: 'horizontal', label: '水平', title: '一條線 或 兩點 → 水平' },
+  { k: 'vertical', label: '豎直', title: '一條線 或 兩點 → 豎直' },
+  { k: 'parallel', label: '平行', title: '兩條線平行' },
+  { k: 'perpendicular', label: '垂直', title: '兩條線垂直' },
+  { k: 'equal', label: '相等', title: '兩線等長 / 兩圓等半徑' },
+  { k: 'point_on_line', label: '點在線上', title: '點 + 線' },
+  { k: 'tangent', label: '相切', title: '線+圓 或 兩圓 → 相切' },
+  { k: 'concentric', label: '同心', title: '兩圓同心（圓心重合）' },
+  { k: 'symmetric', label: '對稱', title: '兩點關於一條線對稱（選 2 點 + 1 線）' },
+  { k: 'midpoint', label: '中點', title: '點鎖到線的中點（選 1 點 + 1 線）' },
+  { k: 'pldist', label: '⊥距', title: '點到線垂直距離尺寸（選 1 點 + 1 線，可綁參數/雙擊改）' },
   { k: 'coordx', label: 'X坐标', title: '锁定点的 X 坐标（选 1 点，可双击改/绑参）' },
   { k: 'coordy', label: 'Y坐标', title: '锁定点的 Y 坐标（选 1 点，可双击改/绑参）' },
   { k: 'cdist', label: '孔距', title: '两圆中心距尺寸（选 2 圆，可双击改/绑参）' },
   { k: 'collinear', label: '共线', title: '两条线共线（在同一直线上，选 2 线）' },
-  { k: 'fix', label: '固定', title: '固定/取消固定 点' },
-  { k: 'distance', label: '⟺尺寸', title: '距离尺寸（两点或一条线）' },
-  { k: 'radius', label: '⌀半径', title: '圆半径尺寸' },
-  { k: 'angle', label: '∠角度', title: '两线夹角尺寸' },
+  { k: 'fix', label: '固定', title: '固定/取消固定 點' },
+  { k: 'distance', label: '⟺尺寸', title: '距離尺寸（兩點或一條線）' },
+  { k: 'radius', label: '⌀半徑', title: '圓半徑尺寸' },
+  { k: 'angle', label: '∠角度', title: '兩線夾角尺寸' },
 ]
 
 export default function CSketch() {
@@ -124,8 +124,8 @@ export default function CSketch() {
     if (!profs.length) {
       // Targeted guidance (non-coders' #1 frustration: drew lines but can't extrude → why?).
       const hint = s.lines.length > 0
-        ? `已画 ${s.lines.length} 条线但未形成闭合轮廓 —— 终点要接返起点（拉到起点附近会自动吸附闭合）；或用「修剪/打断」整理后再闭合`
-        : '空草图 —— 先画 直线 / 矩形 / 圆 / 多边形 组成闭合轮廓再「完成」'
+        ? `已畫 ${s.lines.length} 條線但未形成閉合輪廓 —— 終點要接返起點（拉到起點附近會自動吸附閉合）；或用「修剪/打斷」整理後再閉合`
+        : '空草圖 —— 先畫 直線 / 矩形 / 圓 / 多邊形 組成閉合輪廓再「完成」'
       useCSketch.setState({ status: hint }); return
     }
     await commitCProfiles(profs, height, op)
@@ -146,30 +146,30 @@ export default function CSketch() {
           <button key={t.t} title={t.title} className={'cs-btn' + (s.tool === t.t ? ' on' : '')} onClick={() => s.setTool(t.t)}>{t.label}</button>
         ))}
         {s.tool === 'polygon' && (
-          <label className="cs-h" title="正多边形边数（3–120）">边数 <input type="number" min={3} max={120} value={s.polySides} onChange={(e) => s.setPolySides(Number(e.target.value))} style={{ width: 44 }} /></label>
+          <label className="cs-h" title="正多邊形邊數（3–120）">邊數 <input type="number" min={3} max={120} value={s.polySides} onChange={(e) => s.setPolySides(Number(e.target.value))} style={{ width: 44 }} /></label>
         )}
         <span className="cs-div" />
         {CBTN.map((b) => (
           <button key={b.k} className="cs-btn cs-cstr" title={b.title} onClick={() => s.apply(b.k)}>{b.label}</button>
         ))}
         <span className="cs-div" />
-        <button className="cs-btn cs-cstr" title="把所选线设为/取消构造线（参考/中心线，虚线显示，不计入拉伸轮廓）" onClick={() => s.toggleConstruction()}>┄ 构造线</button>
-        <button className="cs-btn cs-cstr" title="镜像：先选要镜像嘅实体（线/圆），最后再选一条线做镜像轴 → 按此" onClick={() => s.mirrorSel()}>⇋ 鏡像</button>
-        <button className="cs-btn cs-cstr" title="倒角：先选一个角点（两条线嘅交点）→ 按此 → 输入斜角距离" onClick={async () => { const v = await useApp.getState().appPrompt('倒角距离 mm（沿两边各缩短此距离，加斜角线）', '5'); if (v != null) { const d = Number(v); if (d > 0) s.chamferCorner(d) } }}>⌐ 倒角</button>
-        <button className="cs-btn cs-cstr" title="矩形阵列：先选实体（线/圆）→ 按此 → 输入 列数,列距,行数,行距" onClick={async () => { const v = await useApp.getState().appPrompt('矩形阵列  列数,列距,行数,行距（例 3,20,2,15）', '3,20,1,0'); if (v) { const p = v.split(',').map(Number); s.patternRect(p[0] || 1, p[1] || 20, p[2] || 1, p[3] || 0) } }}>▦ 矩形陣列</button>
-        <button className="cs-btn cs-cstr" title="环形阵列：先选实体（线/圆），可加选一个点做中心（否则绕原点）→ 按此 → 输入 数量,总角度°" onClick={async () => { const v = await useApp.getState().appPrompt('环形阵列  数量,总角度°（例 6,360）', '6,360'); if (v) { const p = v.split(',').map(Number); s.patternCirc(p[0] || 6, p[1] ?? 360) } }}>✸ 環形陣列</button>
-        <button className="cs-btn cs-cstr" title="旋转：先选要转嘅实体（线/圆），可加选一个点做旋转中心（否则绕原点）→ 按此 → 输入角度°" onClick={async () => { const v = await useApp.getState().appPrompt('旋转角度°（正=逆时针；绕所选点，否则原点）', '90'); if (v != null) { const a = Number(v); if (Number.isFinite(a)) s.rotateSel(a) } }}>⟳ 旋轉</button>
-        <button className="cs-btn cs-cstr" title="投影实体：把现有 3D 实体嘅外形矩形（参考线）+ 各竖直孔中心（参考点）投影入草图 → 可对佢哋打尺寸/约束新几何（相对 3D 物体定位）" onClick={() => s.projectBody()}>⧉ 投影實體</button>
-        <button className="cs-btn" title="删除所选" onClick={() => void s.deleteSelected()}>🗑</button>
+        <button className="cs-btn cs-cstr" title="把所選線設為/取消構造線（參考/中心線，虛線顯示，不計入拉伸輪廓）" onClick={() => s.toggleConstruction()}>┄ 構造線</button>
+        <button className="cs-btn cs-cstr" title="鏡像：先選要鏡像嘅實體（線/圓），最後再選一條線做鏡像軸 → 按此" onClick={() => s.mirrorSel()}>⇋ 鏡像</button>
+        <button className="cs-btn cs-cstr" title="倒角：先選一個角點（兩條線嘅交點）→ 按此 → 輸入斜角距離" onClick={async () => { const v = await useApp.getState().appPrompt('倒角距離 mm（沿兩邊各縮短此距離，加斜角線）', '5'); if (v != null) { const d = Number(v); if (d > 0) s.chamferCorner(d) } }}>⌐ 倒角</button>
+        <button className="cs-btn cs-cstr" title="矩形陣列：先選實體（線/圓）→ 按此 → 輸入 列數,列距,行數,行距" onClick={async () => { const v = await useApp.getState().appPrompt('矩形陣列  列數,列距,行數,行距（例 3,20,2,15）', '3,20,1,0'); if (v) { const p = v.split(',').map(Number); s.patternRect(p[0] || 1, p[1] || 20, p[2] || 1, p[3] || 0) } }}>▦ 矩形陣列</button>
+        <button className="cs-btn cs-cstr" title="環形陣列：先選實體（線/圓），可加選一個點做中心（否則繞原點）→ 按此 → 輸入 數量,總角度°" onClick={async () => { const v = await useApp.getState().appPrompt('環形陣列  數量,總角度°（例 6,360）', '6,360'); if (v) { const p = v.split(',').map(Number); s.patternCirc(p[0] || 6, p[1] ?? 360) } }}>✸ 環形陣列</button>
+        <button className="cs-btn cs-cstr" title="旋轉：先選要轉嘅實體（線/圓），可加選一個點做旋轉中心（否則繞原點）→ 按此 → 輸入角度°" onClick={async () => { const v = await useApp.getState().appPrompt('旋轉角度°（正=逆時針；繞所選點，否則原點）', '90'); if (v != null) { const a = Number(v); if (Number.isFinite(a)) s.rotateSel(a) } }}>⟳ 旋轉</button>
+        <button className="cs-btn cs-cstr" title="投影實體：把現有 3D 實體嘅外形矩形（參考線）+ 各豎直孔中心（參考點）投影入草圖 → 可對佢哋打尺寸/約束新幾何（相對 3D 物體定位）" onClick={() => s.projectBody()}>⧉ 投影實體</button>
+        <button className="cs-btn" title="刪除所選" onClick={() => void s.deleteSelected()}>🗑</button>
         <button className="cs-btn" title="復原 (Ctrl+Z)" disabled={!s.past.length} onClick={() => s.undo()}>↶</button>
         <button className="cs-btn" title="重做 (Ctrl+Y)" disabled={!s.future.length} onClick={() => s.redo()}>↷</button>
-        <button className="cs-btn" title="清空草图，重新嚟过（可 Ctrl+Z 復原）" onClick={() => s.clearAll()}>🧹 全清</button>
+        <button className="cs-btn" title="清空草圖，重新嚟過（可 Ctrl+Z 復原）" onClick={() => s.clearAll()}>🧹 全清</button>
         <span className="cs-spacer" />
-        <button className={'cs-btn' + (op === 'new' ? ' on' : '')} title="新建 / 加料实体" onClick={() => setOp('new')}>＋新建</button>
-        <button className={'cs-btn' + (op === 'cut' ? ' on' : '')} title="从现有实体切除（要先有实体）" onClick={() => setOp('cut')}>－切割</button>
-        <button className={'cs-btn' + (op === 'intersect' ? ' on' : '')} title="只保留与现有实体的公共部分" onClick={() => setOp('intersect')}>∩相交</button>
+        <button className={'cs-btn' + (op === 'new' ? ' on' : '')} title="新建 / 加料實體" onClick={() => setOp('new')}>＋新建</button>
+        <button className={'cs-btn' + (op === 'cut' ? ' on' : '')} title="從現有實體切除（要先有實體）" onClick={() => setOp('cut')}>－切割</button>
+        <button className={'cs-btn' + (op === 'intersect' ? ' on' : '')} title="只保留與現有實體的公共部分" onClick={() => setOp('intersect')}>∩相交</button>
         <label className="cs-h">高度 <input type="number" min={1} value={height} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setHeight(Number(e.target.value) || 1)} /> mm</label>
-        <button className="cs-btn cs-finish" onClick={() => void finish()}>{op === 'cut' ? '完成并切割' : op === 'intersect' ? '完成并相交' : '完成并拉伸'}</button>
+        <button className="cs-btn cs-finish" onClick={() => void finish()}>{op === 'cut' ? '完成並切割' : op === 'intersect' ? '完成並相交' : '完成並拉伸'}</button>
         <button className="cs-btn" onClick={() => closeCSketch()}>取消</button>
       </div>
 
@@ -259,11 +259,11 @@ export default function CSketch() {
 
       {dims.length > 0 && (
         <div className="cs-dims">
-          <div className="cs-dims-title">尺寸（改数值即重建）</div>
+          <div className="cs-dims-title">尺寸（改數值即重建）</div>
           {dims.map((c) => (
             <div key={c.id} className="cs-dim">
-              <span>{c.type === 'circle_radius' ? '半径' : c.type === 'l2l_angle_ll' ? '角度' : '距离'}</span>
-              <input type="number" disabled={!!s.dimRefs[c.id]} title={s.dimRefs[c.id] ? `由参数 ${s.dimRefs[c.id]} 驱动` : '直接数值'}
+              <span>{c.type === 'circle_radius' ? '半徑' : c.type === 'l2l_angle_ll' ? '角度' : '距離'}</span>
+              <input type="number" disabled={!!s.dimRefs[c.id]} title={s.dimRefs[c.id] ? `由參數 ${s.dimRefs[c.id]} 驅動` : '直接數值'}
                 value={c.type === 'circle_radius' ? Number(c.radius).toFixed(1) : c.type === 'l2l_angle_ll' ? (Number(c.angle) * 180 / Math.PI).toFixed(1) : Number((c as { distance: number }).distance).toFixed(1)}
                 onFocus={(e) => { e.currentTarget.select(); dimEditRef.current = null }}
                 onChange={(e) => { if (dimEditRef.current !== c.id) { s.pushUndo(); dimEditRef.current = c.id } void s.editDimension(c.id, Number(e.target.value) || 0) }}
@@ -274,7 +274,7 @@ export default function CSketch() {
                   {params.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
                 </select>
               )}
-              <button className="cs-x" title="删除约束" onClick={() => void s.removeConstraint(c.id)}>✕</button>
+              <button className="cs-x" title="刪除約束" onClick={() => void s.removeConstraint(c.id)}>✕</button>
             </div>
           ))}
         </div>

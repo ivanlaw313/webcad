@@ -16,9 +16,9 @@ const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const bt = readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 2.02; SW webcad-v2.02', () => {
-  assert.match(version, /APP_VERSION = '2\.02'/)
-  assert.match(sw, /const CACHE = 'webcad-v2\.02/)
+test('APP_VERSION 2.03; SW webcad-v2.03', () => {
+  assert.match(version, /APP_VERSION = '2\.03'/)
+  assert.match(sw, /const CACHE = 'webcad-v2\.03'/)
 })
 
 test('VISUAL_STYLE_LABELS all TC; no SC label values', () => {

@@ -1,6 +1,6 @@
 /**
  * v2.02 BD-2201: measure / material / mat-lib status tips SC→港繁.
- * APP 2.02 + SW webcad-v2.02.
+ * APP 2.03 + SW webcad-v2.03.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -14,9 +14,9 @@ const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.ur
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 2.02; SW webcad-v2.02', () => {
-  assert.match(version, /APP_VERSION = '2\.02'/)
-  assert.match(sw, /const CACHE = 'webcad-v2\.02'/)
+test('APP_VERSION 2.03; SW webcad-v2.03', () => {
+  assert.match(version, /APP_VERSION = '2\.03'/)
+  assert.match(sw, /const CACHE = 'webcad-v2\.03'/)
 })
 
 test('store measure / material tips are 港繁', () => {

@@ -2828,7 +2828,7 @@ export function SketchDimLayer() {
         ) : (
           <div
             key={l.key} data-reference-extent={l.referenceExtent} data-dim={l.text} data-dimension-id={l.edit?.conId} data-constraint-id={l.remove} data-frame-angle={l.frameAngleDeg} data-auto-dimension-shape={l.edit&&l.edit.dim!=='con'?String(l.edit.target):undefined} data-dim-role={l.driven || l.referenceExtent ? 'driven' : l.edit?.dim === 'con' ? 'driving' : l.edit ? 'soft' : undefined} data-dim-driving={l.edit?.dim === 'con' && !l.driven ? 'true' : undefined} className={l.driven || l.referenceExtent ? 'sk-dim-driven' : l.edit?.dim === 'con' ? 'sk-dim-driving' : l.edit ? 'sk-dim-soft' : undefined} ref={reg(l.key)}
-            title={[l.referenceExtent?msg('sk.dim.refExtent', lang).replace('{0}', String(l.referenceExtent)):'',l.frameAngleDeg===undefined?'':msg('sk.dim.frameAngle', lang).replace('{0}', dimFmt(l.frameAngleDeg)), (l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? tStatus('⚠ 冲突约束 — 点击移除以解开过约束', lang) : l.edit && l.edit.dim === 'con' ? ((l.name ? `${l.name} = ` : '') + (l.expression ? `${l.expression} → ${l.text} · ` : `${l.text} · `) + (l.driven ? tStatus('从动尺寸（量度值）— 点击改值即转驱动 · 右键菜单（转驱动/R↔Ø/删除） · ✕删除', lang) : tStatus('点击修改尺寸 · 输入公式可引用其他尺寸（如 d1*2） · 右键菜单（转从动/R↔Ø/删除） · ✕删除', lang))) : l.edit ? tStatus('点击修改尺寸', lang) : l.remove ? tStatus('约束（点击选中 → Delete 移除）', lang) : undefined].filter(Boolean).join(' · ')||undefined}
+            title={[l.referenceExtent?msg('sk.dim.refExtent', lang).replace('{0}', String(l.referenceExtent)):'',l.frameAngleDeg===undefined?'':msg('sk.dim.frameAngle', lang).replace('{0}', dimFmt(l.frameAngleDeg)), (l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? tStatus('⚠ 衝突約束 — 點擊移除以解開過約束', lang) : l.edit && l.edit.dim === 'con' ? ((l.name ? `${l.name} = ` : '') + (l.expression ? `${l.expression} → ${l.text} · ` : `${l.text} · `) + (l.driven ? tStatus('從動尺寸（量度值）— 點擊改值即轉驅動 · 右鍵菜單（轉驅動/R↔Ø/刪除） · ✕刪除', lang) : tStatus('點擊修改尺寸 · 輸入公式可引用其他尺寸（如 d1*2） · 右鍵菜單（轉從動/R↔Ø/刪除） · ✕刪除', lang))) : l.edit ? tStatus('點擊修改尺寸', lang) : l.remove ? tStatus('約束（點擊選中 → Delete 移除）', lang) : undefined].filter(Boolean).join(' · ')||undefined}
             onPointerDown={l.edit?.dim === 'con' && l.edit.conId ? (e) => onLabelDown(e, l.edit!.conId!) : undefined}
             onClick={
               // 用户实战 feedback：冲突（红色）尺寸 tooltip 一直话「点击移除」但旧行为系开编辑框 → 令用户「揀唔到又删唔到」。
@@ -2842,7 +2842,7 @@ export function SketchDimLayer() {
             onContextMenu={l.edit?.dim === 'con' && l.edit.conId ? (e) => { e.preventDefault(); e.stopPropagation(); setDimMenu({ conId: l.edit!.conId!, x: e.clientX, y: e.clientY, driven: !!l.driven, radDia: l.edit!.radDia }) } : undefined}
             style={{ ...LBL, ...(l.remove ? { background: '#5a8fb8', fontSize: 10, lineHeight: '13px', padding: '0 4px' } : {}), ...(l.driven ? { background: '#8a97a2' } : {}), ...(l.remove && skSelCon === l.remove ? { background: '#8e44ad', boxShadow: '0 0 0 2px rgba(142,68,173,.4)' } : {}), ...((l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? { background: '#c9362a', boxShadow: '0 0 0 2px rgba(201,54,42,.35)' } : {}), pointerEvents: l.edit || l.remove || l.referenceExtent ? 'auto' : 'none', cursor: l.edit?.dim === 'con' ? 'move' : l.edit || l.remove ? 'pointer' : 'default' }}
           >
-            {l.edit?.dim === 'con' && !l.driven ? <span className="sk-dim-driving-mark" title="驱动尺寸" aria-label="驱动尺寸">◆</span> : null}
+            {l.edit?.dim === 'con' && !l.driven ? <span className="sk-dim-driving-mark" title="驅動尺寸" aria-label="驅動尺寸">◆</span> : null}
             {l.edit && l.edit.dim !== 'con' && !l.driven ? <span className="sk-dim-soft-mark" title="软尺寸／参考读数" aria-label="软尺寸">·</span> : null}
             {l.text}
             {/* 尺寸约束专属 ✕ 仔：一撳即删（stopPropagation 免误开编辑框）。徽章本身 click=移除,唔使 ✕。 */}
@@ -2870,7 +2870,7 @@ export function SketchDimLayer() {
               </button>
             )}
             <button className="dim-menu-item" style={DIM_MENU_ITEM} onClick={() => { useApp.getState().toggleSkDimDriven(dimMenu.conId); setDimMenu(null) }}>
-              {dimMenu.driven ? tStatus('转为驱动尺寸', lang) : tStatus('转为从动（参考）尺寸', lang)}
+              {dimMenu.driven ? tStatus('轉為驅動尺寸', lang) : tStatus('轉為從動（參考）尺寸', lang)}
             </button>
             <button className="dim-menu-item" style={{ ...DIM_MENU_ITEM, color: '#c9362a' }} onClick={() => { useApp.getState().removeSkCon(dimMenu.conId); setDimMenu(null) }}>
               {tStatus('删除尺寸', lang)}

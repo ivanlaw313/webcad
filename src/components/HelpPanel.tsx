@@ -16,7 +16,7 @@ function ShowMe({ q }: { q: string }) {
   )
 }
 
-type HelpBlock = { h: string; p: string; showMe?: string; extra?: string }
+type HelpBlock = { h: string; p: string; showMe?: string; extra?: string; more?: readonly string[] }
 
 const HELP_BLOCKS: HelpBlock[] = [
   { h: 'help.h0', p: 'help.p0' },
@@ -30,6 +30,7 @@ const HELP_BLOCKS: HelpBlock[] = [
   { h: 'help.h4', p: 'help.p4' },
   { h: 'help.h5', p: 'help.p5', showMe: 'exportstl' },
   { h: 'help.h6', p: 'help.p6' },
+  { h: 'help.hAero', p: 'help.pAero', extra: 'help.pAeroHow', more: ['help.pAeroLimit', 'help.pAeroFaq'], showMe: 'aerolab' },
   { h: 'help.h7', p: 'help.p7' },
   { h: 'help.hAbout', p: 'help.pAbout' },
 ]
@@ -82,6 +83,7 @@ export default function HelpPanel() {
       <h4>{msg(b.h, lang)}{b.showMe ? <ShowMe q={b.showMe} /> : null}</h4>
       <p>{msg(b.p, lang)}</p>
       {b.extra ? <p>{msg(b.extra, lang)}</p> : null}
+      {b.more?.map((k) => <p key={k}>{msg(k, lang)}</p>)}
     </Fragment>
   )
 

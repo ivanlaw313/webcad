@@ -93,6 +93,7 @@ function buildCommands(): Cmd[] {
     { id: 'act:fit', label: msg('cmd.actFit', g().lang), labelKey: 'cmd.actFit', from: msg('cmd.fromView', g().lang), fromKey: 'cmd.fromView', run: () => g().requestFit() },
     { id: 'act:params', label: msg('cmd.actParams', g().lang), labelKey: 'cmd.actParams', from: msg('cmd.fromManage', g().lang), fromKey: 'cmd.fromManage', run: () => g().toggleParamsPanel() },
     { id: 'act:help', label: msg('cmd.actHelp', g().lang), labelKey: 'cmd.actHelp', from: msg('cmd.fromHelp', g().lang), fromKey: 'cmd.fromHelp', shortcut: 'F1', run: () => g().toggleHelp() },
+    { id: 'aeroguide', label: msg('cmd.aeroguide', g().lang), labelKey: 'cmd.aeroguide', from: msg('cmd.fromHelp', g().lang), fromKey: 'cmd.fromHelp', run: () => { const s = g(); if (!s.helpOpen) s.toggleHelp() } },
   ]
   return [...ribbon, ...templates, ...extras]
 }

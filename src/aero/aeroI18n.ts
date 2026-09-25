@@ -61,6 +61,7 @@ const S: Record<string, L4> = {
   frameX: ['來流 +X', 'flow +X', '来流 +X', '流れ +X'],
   cfdTitle: ['OpenFOAM CFD 驗證', 'OpenFOAM CFD verification', 'OpenFOAM CFD 验证', 'OpenFOAM CFD 検証'],
   cfdSend: ['送去 CFD 驗證', 'Send to CFD verification', '发送去 CFD 验证', 'CFD 検証へ送信'],
+  cfdBlocked: ['瀏覽器擋咗本機網絡存取 — 撳網址列左邊嘅 🔒/設定圖示 → 網站設定 → 「本機網絡存取」改做「允許」，再重新整理頁面', 'The browser is blocking local network access — click the 🔒/settings icon left of the address bar → Site settings → set "Local network access" to Allow, then reload', '浏览器挡住了本机网络访问 — 点地址栏左边的 🔒/设置图标 → 网站设置 → 「本地网络访问」改为「允许」，再刷新页面', 'ブラウザがローカルネットワークへのアクセスをブロックしています — アドレスバー左の 🔒/設定アイコン → サイトの設定 →「ローカル ネットワーク アクセス」を許可にして再読み込み'],
   cfdOffline: ['本機 CFD 服務未開 — 喺電腦執行 C:\\ClaudeCode\\aero-cfd-service\\start-service.bat', 'Local CFD service is not running — run C:\\ClaudeCode\\aero-cfd-service\\start-service.bat on this PC', '本机 CFD 服务未开 — 在电脑执行 C:\\ClaudeCode\\aero-cfd-service\\start-service.bat', 'ローカル CFD サービス未起動 — PC で C:\\ClaudeCode\\aero-cfd-service\\start-service.bat を実行'],
   cfdOnline: ['CFD 服務在線', 'CFD service online', 'CFD 服务在线', 'CFD サービス接続中'],
   cfdCheck: ['檢查服務', 'Check service', '检查服务', '接続確認'],

@@ -27,7 +27,7 @@ export default function WindCfdVerify() {
     setBusy(true); setMsg('')
     try {
       const h = await checkHealth()
-      if (!h.ok) { setMsg(t('cfdOffline')); return }
+      if (!h.ok) { setMsg(t(h.blocked ? 'cfdBlocked' : 'cfdOffline')); return }
       const { spec, axis } = windSpec({ vertices: tgt.vertices, speed: s.windSpeed, fluid: s.windFluid, axis: s.windAxis, sign: s.windSign, mesh: 'coarse', preset: 'auto' })
       const stl = meshToStl({ vertices: tgt.vertices, triangles: tgt.triangles }, 'wind')
       const r = s.windResult
@@ -45,7 +45,7 @@ export default function WindCfdVerify() {
     <div data-wind-cfd style={{ marginTop: 6, padding: '6px 8px', borderRadius: 4, background: '#1a1d22', fontSize: 11, color: '#cfd6dd', ['--border' as string]: '#2a2e35', ['--text-dim' as string]: '#9aa3ad', ['--panel' as string]: '#22262c', ['--text' as string]: '#cfd6dd' }}>
       <button type="button" data-testid="wind-cfd-verify" disabled={busy || (!!job && isActive(job))} onClick={() => void go()}>🧮 {t('cfdWindBtn')}</button>
       {windResult && <span style={{ marginLeft: 6, color: '#9aa3ad' }}>{t('cfdLbm')} Cd {(windResult.cdCorr ?? windResult.cd).toFixed(3)}</span>}
-      {(msg || (health && !health.ok && !job)) && <div style={{ marginTop: 3, color: '#e0a800' }}>{msg || t('cfdOffline')}</div>}
+      {(msg || (health && !health.ok && !job)) && <div style={{ marginTop: 3, color: '#e0a800' }}>{msg || t(health?.blocked ? 'cfdBlocked' : 'cfdOffline')}</div>}
       {job && <CfdJobRow j={job} lang={lang} estLabel={t('cfdLbm')} />}
     </div>
   )

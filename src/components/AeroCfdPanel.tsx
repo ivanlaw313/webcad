@@ -121,7 +121,7 @@ export default function AeroCfdPanel({ spec, cands, lang }: { spec: DesignSpec; 
     if (!top.length || busy) return
     setBusy(true); setMsg(''); setCfdUrl(url)
     const h = await checkHealth(url)
-    if (!h.ok) { setBusy(false); setMsg(t('cfdOffline')); return }
+    if (!h.ok) { setBusy(false); setMsg(t(h.blocked ? 'cfdBlocked' : 'cfdOffline')); return }
     try {
       const { caseJson } = buildCfdCase(spec, top, true)
       const ids: string[] = []
@@ -165,7 +165,7 @@ export default function AeroCfdPanel({ spec, cands, lang }: { spec: DesignSpec; 
         </span>
       </div>
       {health && !health.ok && <div data-cfd-offline style={{ marginTop: 3, padding: '4px 6px', borderRadius: 4, background: 'rgba(224,49,49,.08)', border: '1px solid rgba(224,49,49,.35)', fontSize: 11 }}>
-        ⚠ {t('cfdOffline')}
+        ⚠ {t(health.blocked ? 'cfdBlocked' : 'cfdOffline')}
         <button type="button" style={{ ...btn, marginLeft: 6 }} onClick={() => { const top = cands.filter((c) => c.feasible).slice(0, Math.max(1, n)); if (top.length) downloadZip(cfdCaseZip(spec, top), `aero-${spec.kind}-cfd-case.zip`) }}>⬇ {t('cfdZip')}</button>
       </div>}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>

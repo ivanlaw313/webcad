@@ -171,7 +171,17 @@ export function ratio(cfd: number | undefined, est: number | undefined): number 
 
 // ── HTTP ──
 export const CFD_START_HINT = 'C:\\ClaudeCode\\aero-cfd-service\\start-service.bat'
-export interface CfdHealth { ok: boolean; openfoam?: string; cpus?: number; running: string[]; queued: string[]; error?: string }
+export interface CfdHealth { ok: boolean; openfoam?: string; cpus?: number; running: string[]; queued: string[]; error?: string; /** Chrome Local Network Access permission denied for this site (service may be running fine) */ blocked?: boolean }
+
+/** Chrome ≥ 142 gates public-site → 127.0.0.1 requests behind the "Local network access" permission. 'denied' means the user (or an embedded browser) refused it. */
+async function localNetworkDenied(): Promise<boolean> {
+  const perms = (globalThis as { navigator?: Navigator }).navigator?.permissions
+  if (!perms) return false
+  for (const name of ['local-network-access', 'loopback-network']) {
+    try { if ((await perms.query({ name } as unknown as PermissionDescriptor)).state === 'denied') return true } catch { /* unknown permission name in this browser */ }
+  }
+  return false
+}
 export type JobState = 'queued' | 'running' | 'done' | 'failed' | 'cancelled' | 'interrupted' | 'lost'
 export interface JobStatus { state: JobState; stage: string; progress: number; queuePosition?: number; liveCd?: number; liveCl?: number; error?: string; warning?: string; startedAt?: string; finishedAt?: string }
 
@@ -190,7 +200,8 @@ export async function cfdHealth(url: string, ms = 4000): Promise<CfdHealth> {
     const j = await r.json()
     return { ok: !!j.ok, openfoam: j.openfoam?.version ?? undefined, cpus: j.openfoam?.cpus ?? undefined, running: j.queue?.running ?? [], queued: j.queue?.queued ?? [], error: j.ok ? undefined : 'OpenFOAM unavailable' }
   } catch (e) {
-    return { ok: false, running: [], queued: [], error: (e as Error)?.name === 'AbortError' ? 'timeout' : String((e as Error)?.message || e) }
+    const blocked = await localNetworkDenied()
+    return { ok: false, running: [], queued: [], blocked, error: (e as Error)?.name === 'AbortError' ? 'timeout' : String((e as Error)?.message || e) }
   }
 }
 

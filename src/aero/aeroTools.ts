@@ -70,7 +70,7 @@ export async function runAeroTool(name: string, args: Record<string, unknown> | 
       const st = await deps.startLoop(spec, cfg)
       const mode = st.mode === 'cfd'
         ? `CFD 閉環模式（本機 OpenFOAM，每輪 ${st.config.topN} 個候選，總上限 ${st.config.maxJobs} 個 CFD 工作；每個工作通常要幾分鐘至十幾分鐘）${st.rotor ? '。⚠ 轉子 CFD 未經驗證，數字只供定性參考' : ''}`
-        : `只用工程估算（${st.modeReason === 'rotorOff' ? '螺旋槳／風扇嘅轉子 CFD 未驗證，預設唔用；要照用請設 use_rotor_cfd=true' : st.modeReason === 'blocked' ? '瀏覽器擋咗本機網絡存取' : '本機 CFD 服務連唔到'}）— 結果未經 CFD 驗證`
+        : `只用工程估算（${st.modeReason === 'rotorOff' ? '螺旋槳／風扇嘅轉子 CFD 只係部分驗證（前飛推力偏低 20–35%），預設唔用；要照用請設 use_rotor_cfd=true' : st.modeReason === 'blocked' ? '瀏覽器擋咗本機網絡存取' : '本機 CFD 服務連唔到'}）— 結果未經 CFD 驗證`
       return `✓ 已開始自動設計：${note}；${st.config.rounds} 輪；${mode}。之後用 aero_auto_design_status 查進度同最佳結果。\n${JSON.stringify(r4(loopSummary(st)))}`
     }
     case 'aero_auto_design_status': {
@@ -80,7 +80,7 @@ export async function runAeroTool(name: string, args: Record<string, unknown> | 
       const head = st.status === 'running'
         ? `⏳ 運行緊：第 ${st.rounds.length}/${st.config.rounds} 輪，階段 ${st.phase}，已用 ${st.jobsUsed}/${st.config.maxJobs} 個 CFD 工作`
         : `■ 已結束（${st.stop}）${st.best ? (st.best.verified ? '，最佳設計已經 CFD 驗證' : '，最佳設計未經 CFD 驗證（只係估算）') : ''}`
-      return `${head}${st.rotor && st.mode === 'cfd' ? '（⚠ 轉子 CFD 未驗證）' : ''}\n${JSON.stringify(r4(s))}`
+      return `${head}${st.rotor && st.mode === 'cfd' ? '（⚠ 轉子 CFD 部分驗證：前飛推力偏低 20–35%）' : ''}\n${JSON.stringify(r4(s))}`
     }
     case 'aero_stop_auto_design': {
       const st = deps.getLoop()

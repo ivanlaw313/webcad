@@ -112,7 +112,7 @@ export default function AeroAutoLoop({ spec, lang, onInsert }: { spec: DesignSpe
         <label>{t('autoMaxMin')} {numIn('maxMinutes', 5)}</label>
         <label>{t('autoEps')} {numIn('epsilon', 0.005)}</label>
         <label>{t('cfdMesh')} <select data-auto-mesh value={cfg.mesh} disabled={running} onChange={(e) => setC({ mesh: e.target.value as CfdMesh })} style={{ ...inp, width: 'auto' }}><option value="coarse">coarse</option><option value="medium">medium</option><option value="fine">fine</option></select></label>
-        {cfg.mesh === 'coarse' && <span data-auto-coarse-warn style={{ fontSize: 11, color: '#e0a800' }}>⚠ {t('cfdCoarseWarn')}</span>}
+        <span data-auto-mesh-note style={{ fontSize: 11, color: '#8a939d' }}>{t('cfdCoarseWarn')}</span>
         {!rotor && <label>{t('cfdPreset')} <select value={cfg.preset} disabled={running} onChange={(e) => setC({ preset: e.target.value as CfdPresetChoice })} style={{ ...inp, width: 'auto', maxWidth: 150 }}>
           <option value="auto">{t('cfdPresetAuto')}</option><option value="bluff-lowRe">{t('cfdPresetBluff')}</option><option value="fast-rans">{t('cfdPresetRans')}</option>
         </select></label>}

@@ -21,11 +21,11 @@ export interface LoopConfig {
   preset: CfdPresetChoice
   budget: number          // optimiser evaluations per round
   seed: number
-  useRotorCfd: boolean    // prop/fan: rotor CFD is unvalidated → off by default
+  useRotorCfd: boolean    // prop/fan: rotor CFD only partly validated (forward flight CT 20–35% low) → off by default
   pollMs?: number
   url?: string            // CFD service URL (browser wiring)
 }
-export const DEFAULT_LOOP_CONFIG: LoopConfig = { rounds: 3, topN: 2, maxJobs: 6, maxMinutes: 120, epsilon: 0.01, mesh: 'medium', preset: 'auto', budget: 1200, seed: 42, useRotorCfd: false }
+export const DEFAULT_LOOP_CONFIG: LoopConfig = { rounds: 3, topN: 2, maxJobs: 6, maxMinutes: 120, epsilon: 0.01, mesh: 'coarse', preset: 'auto', budget: 1200, seed: 42, useRotorCfd: false }
 
 export type LoopStatus = 'running' | 'done' | 'cancelled' | 'failed'
 export type LoopPhase = 'start' | 'optimize' | 'submit' | 'wait' | 'roundEnd' | 'end'

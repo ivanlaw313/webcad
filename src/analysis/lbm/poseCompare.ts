@@ -201,10 +201,10 @@ export function poseLabel(m: Pose16): string {
   const parts: string[] = []
   if (r.deg >= 0.05) {
     const a = r.axis.map((v) => (Math.abs(v) < 5e-3 ? 0 : Number(v.toFixed(2))))
-    parts.push(`绕 (${a[0]},${a[1]},${a[2]}) ${r.deg.toFixed(1)}°`)
+    parts.push(`繞 (${a[0]},${a[1]},${a[2]}) ${r.deg.toFixed(1)}°`)
   }
   if (t >= 1e-3) parts.push(`移 ${t.toFixed(2)}`)
-  return parts.length ? parts.join(' · ') : '基准姿态'
+  return parts.length ? parts.join(' · ') : '基準姿態'
 }
 
 /* ═════════════════════════════════════════════ 诚实文案（★ 面板要原文显示 ★） */
@@ -229,26 +229,26 @@ export const GPU_CD_ABSOLUTE_TRUSTWORTHY = false
  * 唔係「阻力係几多牛顿」。绝对值要问 CPU 引擎。
  */
 export const POSE_COMPARE_NOTE =
-  '⚠ GPU 求解器嘅【绝对】Cd 唔准：真机实测球体 Cd 係 Clift-Gauvin 基准嘅 2.0–2.2 倍，'
-  + '而且喺三个解析度（dLb 20/28/37）同两个 Re 之下都唔飘 —— 即係一个常数系统增益'
-  + '（根因未查，最可疑係动量交换每条 link 计咗两次），唔係网格唔够。'
-  + '所以呢度【只报比值同 Δ%】：常数增益喺 A/B 比值入面会消掉，'
-  + '「边个朝向阻力细几多 %」而家就成立；要绝对 Cd 数值请用 CPU 引擎。'
+  '⚠ GPU 求解器嘅【絕對】Cd 唔準：真機實測球體 Cd 係 Clift-Gauvin 基準嘅 2.0–2.2 倍，'
+  + '而且喺三個解析度（dLb 20/28/37）同兩個 Re 之下都唔飄 —— 即係一個常數系統增益'
+  + '（根因未查，最可疑係動量交換每條 link 計咗兩次），唔係網格唔夠。'
+  + '所以呢度【只報比值同 Δ%】：常數增益喺 A/B 比值入面會消掉，'
+  + '「邊個朝向阻力細幾多 %」而家就成立；要絕對 Cd 數值請用 CPU 引擎。'
 
 /** 点解跨朝向要睇 Cd×A 而唔係 Cd —— 呢句同上面嗰句一样重要，UI 两句都要有。 */
 export const POSE_AREA_NOTE =
-  '⚠ 朝向一转，迎风面积 A 就跟住转，所以两个朝向嘅 Cd 比值【唔係】阻力比值（分母唔同件事）。'
-  + '真正嘅阻力係 F = Cd·½ρU²·A，而 ½ρU² 喺同一次风洞入面係常数 —— '
-  + '所以跨朝向嘅比较一定要睇【阻力面积 Cd×A】（下面嘅 dragRatio / dragDeltaPct）。'
+  '⚠ 朝向一轉，迎風面積 A 就跟住轉，所以兩個朝向嘅 Cd 比值【唔係】阻力比值（分母唔同件事）。'
+  + '真正嘅阻力係 F = Cd·½ρU²·A，而 ½ρU² 喺同一次風洞入面係常數 —— '
+  + '所以跨朝向嘅比較一定要睇【阻力面積 Cd×A】（下面嘅 dragRatio / dragDeltaPct）。'
 
 /** 过渡态（dragging / settling）嘅统一讲法 —— 唔准喺呢啲状态畀任何数字出去。 */
 export const POSE_UNSETTLED_NOTE =
-  '流场仲追紧新姿态 —— 而家嘅数字係过渡值，唔好信。等佢 settle 咗先有得比。'
+  '流場仲追緊新姿態 —— 而家嘅數字係過渡值，唔好信。等佢 settle 咗先有得比。'
 
 export const POSE_STATE_LABEL: Record<PoseState, string> = {
-  idle: '未追踪位姿',
-  dragging: '拖拽中（唔收样本）',
-  settling: '流场重建中（未可信）',
+  idle: '未追蹤位姿',
+  dragging: '拖曳中（唔收樣本）',
+  settling: '流場重建中（未可信）',
   settled: '已 settle',
 }
 
@@ -725,7 +725,7 @@ export class PoseCompare {
     if (!this._enabled) {
       return {
         trusted: false, state: 'idle',
-        reason: this._disabledReason || '位姿追踪已停用',
+        reason: this._disabledReason || '位姿追蹤已停用',
         progress: 0, samples: this.tracker.samples, note: POSE_UNSETTLED_NOTE,
       }
     }
@@ -734,17 +734,17 @@ export class PoseCompare {
       if (entry) return { trusted: true, state: 'settled', entry, table: this.compare(), note: POSE_COMPARE_NOTE }
       // 理论上到唔到呢度（settled 一定有 entry）；到咗就老实报未可信，唔好靠估
       return {
-        trusted: false, state: 'settling', reason: '已 settle 但搵唔返记录',
+        trusted: false, state: 'settling', reason: '已 settle 但搵唔返記錄',
         progress: 1, samples: this.tracker.samples, note: POSE_UNSETTLED_NOTE,
       }
     }
     const reason = this._state === 'dragging'
-      ? '拖拽中：位姿仲喺度郁，一个样本都冇收'
+      ? '拖曳中：位姿仲喺度郁，一個樣本都冇收'
       : this._state === 'settling'
         ? (stepCount < this._relaxUntil
-          ? `流场过渡期（仲要 ${Math.max(0, Math.round(this._relaxUntil - stepCount))} substep 先开始收样本）`
-          : `流场重建中：已收 ${this.tracker.samples} 个样本，未够 / 未收敛`)
-        : '未追踪位姿'
+          ? `流場過渡期（仲要 ${Math.max(0, Math.round(this._relaxUntil - stepCount))} substep 先開始收樣本）`
+          : `流場重建中：已收 ${this.tracker.samples} 個樣本，未夠 / 未收斂`)
+        : '未追蹤位姿'
     return {
       trusted: false,
       state: this._state as 'idle' | 'dragging' | 'settling',
@@ -812,11 +812,11 @@ export class PoseCompare {
     const sign = cur.dragDeltaPct <= 0 ? '−' : '+'
     const mag = Math.abs(cur.dragDeltaPct).toFixed(1)
     const verdict = cur.significant
-      ? (cur.dragDeltaPct < 0 ? '阻力细咗' : '阻力大咗')
-      : '同参考分唔到（差异细过涡脱落噪声）'
-    const tail = cur.significant ? `${sign}${mag}%` : `${sign}${mag}% vs 噪声底 ±${cur.noisePct.toFixed(1)}%`
-    return `位姿 #${cur.id}（${cur.label}）vs 参考 #${t.referenceId}：${verdict} ${tail}`
-      + (cur.converged ? '' : '（★ 未收敛，呢个数唔好用 ★）')
+      ? (cur.dragDeltaPct < 0 ? '阻力細咗' : '阻力大咗')
+      : '同參考分唔到（差異細過渦脫落噪聲）'
+    const tail = cur.significant ? `${sign}${mag}%` : `${sign}${mag}% vs 噪聲底 ±${cur.noisePct.toFixed(1)}%`
+    return `位姿 #${cur.id}（${cur.label}）vs 參考 #${t.referenceId}：${verdict} ${tail}`
+      + (cur.converged ? '' : '（★ 未收斂，呢個數唔好用 ★）')
   }
 }
 

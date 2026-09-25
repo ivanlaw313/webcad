@@ -11,7 +11,7 @@ let rejectPending: ((e: Error) => void) | null = null
 
 /** wind-fix：取消时 reject 嘅错误（store 靠 name 分辨「用户取消」同真错误）。 */
 export class WindCancelledError extends Error {
-  constructor() { super('风洞计算已取消'); this.name = 'WindCancelledError' }
+  constructor() { super('風洞計算已取消'); this.name = 'WindCancelledError' }
 }
 
 /** 喺独立 worker 入面跑风洞/水洞趋势模拟；inp.onProgress 经 comlink proxy 回传主线程。 */

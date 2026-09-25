@@ -5117,11 +5117,11 @@ export default function Viewport() {
       {(feaMode > 0 || feaBusy || feaResult || feaStale || modalBusy || modalResult || bucklingBusy || bucklingResult || topoptBusy || topoptResult || thermalBusy || thermalResult || thermalStressBusy || feaConvBusy || feaConvResult) && (
         <CommandDialog
           icon="interference"
-          title="FEA：受力/模态/屈曲/生成式/热（体素趋势）"
+          title="FEA：受力/模態/屈曲/生成式/熱（體素趨勢）"
           width={272}
-          okLabel={feaBusy ? '计算中…' : feaResult ? '重新运行' : '运行受力'}
+          okLabel={feaBusy ? '計算中…' : feaResult ? '重新運行' : '運行受力'}
           okDisabled={feaBusy || modalBusy || bucklingBusy || topoptBusy || thermalBusy || thermalStressBusy || !feaFixed || !feaLoad}
-          okTip="求解 von Mises 趋势云图（Enter）"
+          okTip="求解 von Mises 趨勢雲圖（Enter）"
           onOk={() => void runFeaSolve()}
           onCancel={() => {
             const st = useApp.getState()
@@ -5133,64 +5133,64 @@ export default function Viewport() {
             }
             useApp.getState().clearFea(); useApp.getState().clearModal(); useApp.getState().clearBuckling(); useApp.getState().clearTopopt(); useApp.getState().clearThermal()
           }}
-          summary={<>{feaMat} · 静力/模态/屈曲/生成式/热（趋势，非商用 FEA）</>}
+          summary={<>{feaMat} · 靜力/模態/屈曲/生成式/熱（趨勢，非商用 FEA）</>}
         >
           <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
-            <button onClick={() => useApp.getState().autoFeaCantilever()} title="自动【悬臂】：夹一端 + 受力另一端(沿最长轴) — 免手动揾端面/撳错侧面。应力最大喺固定端根部。" style={{ flex: 1, padding: '5px 6px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid #2f6fb0', borderRadius: 4, background: '#1e3a5f', color: '#dbe8f5' }}>🔧 悬臂（夹一端·推另一端）</button>
-            <button onClick={() => useApp.getState().autoFeaSimplySupported()} title="自动【简支梁 / 3 点弯】：两端托住 + 中间施力 — 应力最大会喺【中间】(同悬臂相反)。两端 roller 支撑，唔会夹持应力集中。" style={{ flex: 1, padding: '5px 6px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid #2f7a4e', borderRadius: 4, background: '#1e3a2a', color: '#d6f0e0' }}>🔧 简支梁（两端托·中间压）</button>
+            <button onClick={() => useApp.getState().autoFeaCantilever()} title="自動【懸臂】：夾一端 + 受力另一端(沿最長軸) — 免手動揾端面/撳錯側面。應力最大喺固定端根部。" style={{ flex: 1, padding: '5px 6px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid #2f6fb0', borderRadius: 4, background: '#1e3a5f', color: '#dbe8f5' }}>🔧 懸臂（夾一端·推另一端）</button>
+            <button onClick={() => useApp.getState().autoFeaSimplySupported()} title="自動【簡支梁 / 3 點彎】：兩端托住 + 中間施力 — 應力最大會喺【中間】(同懸臂相反)。兩端 roller 支撐，唔會夾持應力集中。" style={{ flex: 1, padding: '5px 6px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid #2f7a4e', borderRadius: 4, background: '#1e3a2a', color: '#d6f0e0' }}>🔧 簡支梁（兩端托·中間壓）</button>
           </div>
-          <SelectionChip label={feaBeam3pt ? '① 支撑 A' : '① 固定面'} count={feaFixed ? 1 : 0} hint={feaBeam3pt ? '简支梁左支撑（蓝标）' : '点被夹住/锁实嘅面（蓝标）'} onClear={() => useApp.getState().clearFeaFixed()} />
-          {feaBeam3pt && <SelectionChip label="① 支撑 B" count={feaFixed2 ? 1 : 0} hint="简支梁右支撑（蓝标）" onClear={() => {
+          <SelectionChip label={feaBeam3pt ? '① 支撐 A' : '① 固定面'} count={feaFixed ? 1 : 0} hint={feaBeam3pt ? '簡支梁左支撐（藍標）' : '點被夾住/鎖實嘅面（藍標）'} onClear={() => useApp.getState().clearFeaFixed()} />
+          {feaBeam3pt && <SelectionChip label="① 支撐 B" count={feaFixed2 ? 1 : 0} hint="簡支梁右支撐（藍標）" onClear={() => {
               const st = useApp.getState()
-              useApp.setState({ feaFixed2: null, ...(hasLiveSimResults(st) ? invalidateSimResultsPatch('已移除支撑 B') : {}) })
+              useApp.setState({ feaFixed2: null, ...(hasLiveSimResults(st) ? invalidateSimResultsPatch('已移除支撐 B') : {}) })
             }} />}
           <label>
-            <span style={{ color: '#6b7680' }}>约束</span>
-            <select value={feaFixMode} onChange={(e) => setFeaOpt({ feaFixMode: e.target.value as 'fixed' | 'roller' | 'sym' })} title="固定=全锁(夹死/上螺丝)；滚子=只锁法向、准面内滑(支座/导轨，更软、挠度更大)；对称=对称面(轴对齐时数学同滚子)">
-              <option value="fixed">固定（全锁）</option>
-              <option value="roller">滚子（只锁法向）</option>
-              <option value="sym">对称面</option>
+            <span style={{ color: '#6b7680' }}>約束</span>
+            <select value={feaFixMode} onChange={(e) => setFeaOpt({ feaFixMode: e.target.value as 'fixed' | 'roller' | 'sym' })} title="固定=全鎖(夾死/上螺絲)；滾子=只鎖法向、準面內滑(支座/導軌，更軟、撓度更大)；對稱=對稱面(軸對齊時數學同滾子)">
+              <option value="fixed">固定（全鎖）</option>
+              <option value="roller">滾子（只鎖法向）</option>
+              <option value="sym">對稱面</option>
             </select>
           </label>
-          <label title="S111 自重体载：把材料 ρ·a 作为分布体力叠加到外载之上。默认 1g 向下 = 纯自重；下面可改方向+倍数做侧向/多 g（加速度/惯性/冲击载荷，Fusion Linear Acceleration）。需有效材料密度。" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-            <input type="checkbox" checked={feaGravity} onChange={(e) => useApp.setState({ feaGravity: e.target.checked })} /><span style={{ color: '#6b7680' }}>重力/惯性自重</span>
+          <label title="S111 自重體載：把材料 ρ·a 作為分布體力疊加到外載之上。預設 1g 向下 = 純自重；下面可改方向+倍數做側向/多 g（加速度/慣性/衝擊載荷，Fusion Linear Acceleration）。需有效材料密度。" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <input type="checkbox" checked={feaGravity} onChange={(e) => useApp.setState({ feaGravity: e.target.checked })} /><span style={{ color: '#6b7680' }}>重力/慣性自重</span>
           </label>
           {/* S175：加速度向量（g 单位）— 方向+倍数。[0,0,-1]=1g 向下=纯自重；可侧向/多 g 模拟惯性/加速度/冲击载荷。 */}
           {feaGravity && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11 }} title="加速度向量（g 单位，1g=9810mm/s²）：gx,gy,gz。例 [0,0,-1]=自重；[2,0,0]=沿 +X 2g 横向惯性；[0,0,-5]=5g 向下冲击。">
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11 }} title="加速度向量（g 單位，1g=9810mm/s²）：gx,gy,gz。例 [0,0,-1]=自重；[2,0,0]=沿 +X 2g 橫向慣性；[0,0,-5]=5g 向下衝擊。">
               <span style={{ color: '#6b7680' }}>a(g)</span>
               {([0, 1, 2] as const).map((k) => (
                 <input key={k} type="number" step={0.5} aria-label={`加速度 ${'XYZ'[k]} (g)`} value={feaAccel[k]} onChange={(e) => { const v = feaAccel.slice() as [number, number, number]; v[k] = Number(e.target.value) || 0; useApp.setState({ feaAccel: v }) }} style={{ width: 42 }} />
               ))}
-              <button type="button" title="重置为 1g 向下（纯自重）" onClick={() => useApp.setState({ feaAccel: [0, 0, -1] })} style={{ padding: '1px 5px', fontSize: 10, borderRadius: 3, cursor: 'pointer', border: '1px solid #3a3e44', background: '#23272d', color: '#8a97a2' }}>↧1g</button>
+              <button type="button" title="重置為 1g 向下（純自重）" onClick={() => useApp.setState({ feaAccel: [0, 0, -1] })} style={{ padding: '1px 5px', fontSize: 10, borderRadius: 3, cursor: 'pointer', border: '1px solid #3a3e44', background: '#23272d', color: '#8a97a2' }}>↧1g</button>
               <span style={{ color: '#6b7680' }}>{`|a|=${Math.hypot(feaAccel[0], feaAccel[1], feaAccel[2]).toFixed(2)}g`}</span>
             </div>
           )}
           {/* S116：销/圆柱约束 — 点圆柱孔内壁 → 径向锁、轴向+切向自由（销轴/螺栓支承） */}
-          <label title="S116 销/圆柱约束：点圆柱孔内壁 → 径向 DOF 锁、轴向+切向自由（模拟销轴/螺栓支承）。可同固定面/对称约束并用。" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <button type="button" onClick={() => useApp.getState().startFeaPinPick()} style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: feaPinPick ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaPinPick ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>🎯 销孔</button>
-            <span style={{ color: feaPin ? '#7fbf7f' : '#6b7680' }}>{feaPin ? `Ø${(feaPin.radius * 2).toFixed(1)}` : '未设'}</span>
-            {feaPin && <span onClick={() => useApp.setState({ feaPin: null })} style={{ cursor: 'pointer', color: '#cc6666' }} title="清除销约束">✕</span>}
+          <label title="S116 銷/圓柱約束：點圓柱孔內壁 → 徑向 DOF 鎖、軸向+切向自由（模擬銷軸/螺栓支承）。可同固定面/對稱約束並用。" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <button type="button" onClick={() => useApp.getState().startFeaPinPick()} style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: feaPinPick ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaPinPick ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>🎯 銷孔</button>
+            <span style={{ color: feaPin ? '#7fbf7f' : '#6b7680' }}>{feaPin ? `Ø${(feaPin.radius * 2).toFixed(1)}` : '未設'}</span>
+            {feaPin && <span onClick={() => useApp.setState({ feaPin: null })} style={{ cursor: 'pointer', color: '#cc6666' }} title="清除銷約束">✕</span>}
           </label>
-          <SelectionChip label="② 受力面" count={feaLoad ? 1 : 0} hint="点力作用嘅面（橙标）" onClear={() => useApp.getState().clearFeaLoad()} />
+          <SelectionChip label="② 受力面" count={feaLoad ? 1 : 0} hint="點力作用嘅面（橙標）" onClear={() => useApp.getState().clearFeaLoad()} />
           <label>
-            <span style={{ color: '#6b7680' }}>载荷</span>
-            <select value={feaLoadMode} onChange={(e) => setFeaOpt({ feaLoadMode: e.target.value as 'force' | 'pressure' | 'bearing' })} title="集中力 = 总力 N 摊分受力面；压力 = MPa × 受力面面积 → 沿法向均布；轴承 = 合力 N 余弦分布喺拾中圆柱孔嘅受推半边（销/螺栓推孔，比均布点载更准孔边峰值）">
+            <span style={{ color: '#6b7680' }}>載荷</span>
+            <select value={feaLoadMode} onChange={(e) => setFeaOpt({ feaLoadMode: e.target.value as 'force' | 'pressure' | 'bearing' })} title="集中力 = 總力 N 攤分受力面；壓力 = MPa × 受力面面積 → 沿法向均布；軸承 = 合力 N 餘弦分布喺拾中圓柱孔嘅受推半邊（銷/螺栓推孔，比均布點載更準孔邊峰值）">
               <option value="force">集中力 (N)</option>
-              <option value="pressure">压力 (MPa)</option>
-              <option value="bearing">轴承载荷 (N)</option>
+              <option value="pressure">壓力 (MPa)</option>
+              <option value="bearing">軸承載荷 (N)</option>
             </select>
           </label>
           {feaLoadMode === 'bearing' && (
-            <label title="轴承载荷孔：点一个圆柱孔面 → 合力（下面「力」+「方向」）余弦分布喺孔受推半边。无需②受力面。" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <button type="button" onClick={() => useApp.getState().startFeaBearingPick()} style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: feaBearingPick ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaBearingPick ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>🎯 轴承孔</button>
+            <label title="軸承載荷孔：點一個圓柱孔面 → 合力（下面「力」+「方向」）餘弦分布喺孔受推半邊。無需②受力面。" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <button type="button" onClick={() => useApp.getState().startFeaBearingPick()} style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: feaBearingPick ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaBearingPick ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>🎯 軸承孔</button>
               <span style={{ color: feaBearing ? '#7fbf7f' : '#c77d00' }}>{feaBearing ? `Ø${(feaBearing.radius * 2).toFixed(1)}` : '未拾'}</span>
-              {feaBearing && <span onClick={() => useApp.setState({ feaBearing: null })} style={{ cursor: 'pointer', color: '#cc6666' }} title="清除轴承载荷孔">✕</span>}
+              {feaBearing && <span onClick={() => useApp.setState({ feaBearing: null })} style={{ cursor: 'pointer', color: '#cc6666' }} title="清除軸承載荷孔">✕</span>}
             </label>
           )}
           {feaLoadMode === 'pressure' ? (
             <label>
-              <span style={{ color: '#6b7680' }}>压力</span>
+              <span style={{ color: '#6b7680' }}>壓力</span>
               <span><input type="number" min={0.001} step={0.5} value={feaPressure} onChange={(e) => setFeaOpt({ feaPressure: Math.abs(Number(e.target.value)) || 1 })} style={{ width: 66 }} /> MPa（沿受力面法向均布）</span>
             </label>
           ) : (
@@ -5203,8 +5203,8 @@ export default function Viewport() {
           <label>
             <span style={{ color: '#6b7680' }}>方向</span>
             <select value={feaDir} onChange={(e) => setFeaOpt({ feaDir: e.target.value as 'down' | 'normal' | 'custom' })}>
-              <option value="down">竖直向下（重力向）</option>
-              <option value="normal">{feaLoadMode === 'bearing' ? '（轴承不适用 → 退向下）' : '压向受力面'}</option>
+              <option value="down">豎直向下（重力向）</option>
+              <option value="normal">{feaLoadMode === 'bearing' ? '（軸承不適用 → 退向下）' : '壓向受力面'}</option>
               <option value="custom">自定向量</option>
             </select>
           </label>
@@ -5223,8 +5223,8 @@ export default function Viewport() {
             const d = feaDir === 'custom' ? feaCustomDir : ([0, 0, -1] as [number, number, number])
             const ang = Math.round(Math.atan2(d[0], -d[2]) * 180 / Math.PI) || 0
             return (
-              <label title="快速微调受力角度：0=竖直向下，±90=水平推。橙箭头实时跟住转。要任意 3D 方向用上面「自定向量」。">
-                <span style={{ color: '#6b7680' }}>倾角</span>
+              <label title="快速微調受力角度：0=豎直向下，±90=水平推。橙箭頭實時跟住轉。要任意 3D 方向用上面「自定向量」。">
+                <span style={{ color: '#6b7680' }}>傾角</span>
                 <input type="range" min={-90} max={90} step={5} value={ang}
                   onChange={(e) => { const t = Number(e.target.value) * Math.PI / 180; setFeaOpt({ feaDir: 'custom', feaCustomDir: [Number(Math.sin(t).toFixed(4)), 0, Number((-Math.cos(t)).toFixed(4))] }) }}
                   style={{ width: 84, verticalAlign: 'middle' }} />
@@ -5243,10 +5243,10 @@ export default function Viewport() {
             <select value={feaRes} onChange={(e) => setFeaOpt({ feaRes: Number(e.target.value) })}>
               <option value={20}>粗（快）</option>
               <option value={28}>中</option>
-              <option value={40}>细（慢，几十秒）</option>
+              <option value={40}>細（慢，幾十秒）</option>
             </select>
           </label>
-          {lowPower && <div style={{ fontSize: 10.5, color: '#2f9e44', margin: '2px 0 4px' }}>📱 已为你设备（手机/弱机）调低预设，本机计算唔卡；可手动拣细啲（会慢）</div>}
+          {lowPower && <div style={{ fontSize: 10.5, color: '#2f9e44', margin: '2px 0 4px' }}>📱 已為你設備（手機/弱機）調低預設，本機計算唔卡；可手動揀細啲（會慢）</div>}
           {feaStale && (
             <div role="status" data-testid="fea-stale-banner" style={{ marginTop: 8, padding: '6px 8px', borderRadius: 4, background: '#3a2a12', border: '1px solid #c77d00', color: '#ffd08a', fontSize: 12, fontWeight: 600 }}>
               {feaStaleBannerText()}
@@ -5256,18 +5256,18 @@ export default function Viewport() {
             <div style={{ fontSize: 11, lineHeight: 1.5 }}>
               <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
                 {(['vm', 'disp', 'vmSmooth', 'sf', 'fos', 's1', 's3', 'shear', 'sed'] as const).filter((k) => (k === 's1' || k === 's3' || k === 'shear') ? !!feaResult.s1 : k === 'sed' ? !!feaResult.sed : true).map((k) => (
-                  <button key={k} type="button" onClick={() => useApp.getState().setFeaOpt({ feaField: k })} title={k === 'vm' ? 'von Mises 应力云图（边度最受力·原始体素）' : k === 'disp' ? '位移云图（边度变形最大）' : k === 'vmSmooth' ? '平滑应力云图（节点平均·去体素阶梯；诚实：非真 SPR）' : k === 'sf' ? '安全系数云图（红=SF 低=最危险；封顶 SF≥5）' : k === 'fos' ? '疲劳安全系数（modified-Goodman；红=低=最易疲劳断；需选工况 R）' : k === 's1' ? 'σ1 最大主应力（拉为正·脆性材料/裂纹起点；红=最拉）' : k === 's3' ? 'σ3 最小主应力（压为负；红=最压）' : k === 'shear' ? 'τmax 最大剪应力 (σ1−σ3)/2（Tresca·延性屈服/剪切破坏）' : '应变能密度 u=½σ:ε（能量集中位 = 受力关键区/减重保留区·拓扑优化直觉）'}
+                  <button key={k} type="button" onClick={() => useApp.getState().setFeaOpt({ feaField: k })} title={k === 'vm' ? 'von Mises 應力雲圖（邊度最受力·原始體素）' : k === 'disp' ? '位移雲圖（邊度變形最大）' : k === 'vmSmooth' ? '平滑應力雲圖（節點平均·去體素階梯；誠實：非真 SPR）' : k === 'sf' ? '安全係數雲圖（紅=SF 低=最危險；封頂 SF≥5）' : k === 'fos' ? '疲勞安全係數（modified-Goodman；紅=低=最易疲勞斷；需選工況 R）' : k === 's1' ? 'σ1 最大主應力（拉為正·脆性材料/裂紋起點；紅=最拉）' : k === 's3' ? 'σ3 最小主應力（壓為負；紅=最壓）' : k === 'shear' ? 'τmax 最大剪應力 (σ1−σ3)/2（Tresca·延性屈服/剪切破壞）' : '應變能密度 u=½σ:ε（能量集中位 = 受力關鍵區/減重保留區·拓撲優化直覺）'}
                     style={{ flex: 1, padding: '2px 4px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: feaField === k ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaField === k ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>
-                    {k === 'vm' ? '应力' : k === 'disp' ? '位移' : k === 'vmSmooth' ? '平滑' : k === 'sf' ? '安全' : k === 'fos' ? '疲劳' : k === 's1' ? 'σ1' : k === 's3' ? 'σ3' : k === 'shear' ? 'τ' : '能'}</button>
+                    {k === 'vm' ? '應力' : k === 'disp' ? '位移' : k === 'vmSmooth' ? '平滑' : k === 'sf' ? '安全' : k === 'fos' ? '疲勞' : k === 's1' ? 'σ1' : k === 's3' ? 'σ3' : k === 'shear' ? 'τ' : '能'}</button>
                 ))}
               </div>
               {/* S183：疲劳工况选择（仅疲劳场）— 静态单次解无载荷循环，必须明示工况 R，否则误导。默认脉动 R=0（保守）。 */}
               {feaField === 'fos' && (
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 4 }}>
-                  <span style={{ color: '#6b7680', fontSize: 10 }}>工况</span>
-                  {([['rev', 'R=−1 全反向'], ['puls', 'R=0 脉动'], ['static', '静态等效']] as const).map(([v, lab]) => (
+                  <span style={{ color: '#6b7680', fontSize: 10 }}>工況</span>
+                  {([['rev', 'R=−1 全反向'], ['puls', 'R=0 脈動'], ['static', '靜態等效']] as const).map(([v, lab]) => (
                     <button key={v} type="button" onClick={() => useApp.getState().setFeaOpt({ feaFatigueCase: v })}
-                      title={v === 'rev' ? '全反向 R=−1：σa=σvm, σm=0（旋转弯曲/振动）' : v === 'puls' ? '脉动 R=0：σa=σm=σvm/2（保守默认·开关载荷）' : '静态等效：σm≈(σ1+σ3)/2 均值, σa=σvm'}
+                      title={v === 'rev' ? '全反向 R=−1：σa=σvm, σm=0（旋轉彎曲/振動）' : v === 'puls' ? '脈動 R=0：σa=σm=σvm/2（保守預設·開關載荷）' : '靜態等效：σm≈(σ1+σ3)/2 均值, σa=σvm'}
                       style={{ flex: 1, padding: '2px 3px', fontSize: 10, borderRadius: 3, cursor: 'pointer', border: fatigueCase === v ? '1px solid #4a9eff' : '1px solid #3a3e44', background: fatigueCase === v ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>{lab}</button>
                   ))}
                 </div>
@@ -5276,22 +5276,22 @@ export default function Viewport() {
               {feaResult.dispVec && (
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 4 }}>
                   <button type="button" onClick={() => useApp.getState().setFeaOpt({ feaDeform: { ...feaDeform, show: !feaDeform.show } })}
-                    title="显示变形形态（沿真实位移向量放大示意；真实位移幅值见下方 mm）"
-                    style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: feaDeform.show ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaDeform.show ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>变形</button>
+                    title="顯示變形形態（沿真實位移向量放大示意；真實位移幅值見下方 mm）"
+                    style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: feaDeform.show ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaDeform.show ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>變形</button>
                   <button type="button" disabled={!feaDeform.show} onClick={() => useApp.getState().setFeaOpt({ feaDeform: { ...feaDeform, anim: !feaDeform.anim } })}
-                    title="变形动画摆动（由原位 → 满幅变形 → 返原位 循环）"
-                    style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: feaDeform.show ? 'pointer' : 'default', opacity: feaDeform.show ? 1 : 0.4, border: feaDeform.anim ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaDeform.anim ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>动画</button>
+                    title="變形動畫擺動（由原位 → 滿幅變形 → 返原位 循環）"
+                    style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: feaDeform.show ? 'pointer' : 'default', opacity: feaDeform.show ? 1 : 0.4, border: feaDeform.anim ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaDeform.anim ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>動畫</button>
                   {feaDeform.real
-                    ? <button type="button" disabled={!feaDeform.show} title="而家系【实尺 1:1】：model 上睇到嘅就系真实计算位移（5N/500N 会唔同）。变形太细睇唔到？撳呢度放大睇形状（放大后仍按真实比例，换力大细照样唔同）"
+                    ? <button type="button" disabled={!feaDeform.show} title="而家係【實尺 1:1】：model 上睇到嘅就係真實計算位移（5N/500N 會唔同）。變形太細睇唔到？撳呢度放大睇形狀（放大後仍按真實比例，換力大細照樣唔同）"
                         onClick={() => { const r = feaResult; if (!r) return; let a = Infinity, b = Infinity, c = Infinity, d = -Infinity, e = -Infinity, f = -Infinity; for (let i = 0; i < r.nVox; i++) { const x = r.centers[i * 3], y = r.centers[i * 3 + 1], z = r.centers[i * 3 + 2]; if (x < a) a = x; if (y < b) b = y; if (z < c) c = z; if (x > d) d = x; if (y > e) e = y; if (z > f) f = z } const ext = Math.max(d - a, e - b, f - c, r.h); const mag = r.dispMax > 1e-12 ? 0.14 * ext / r.dispMax : 1; useApp.getState().setFeaOpt({ feaDeform: { ...feaDeform, real: false, mag, scale: 1 } }) }}
                         style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: feaDeform.show ? 'pointer' : 'default', opacity: feaDeform.show ? 1 : 0.4, border: '1px solid #16a36b', background: '#16341f', color: '#7ee0a8', fontWeight: 600 }}>🔍放大睇清楚</button>
-                    : <button type="button" disabled={!feaDeform.show} title="而家系【放大示意】：放大咗睇形状，但仍按真实比例（力大变形大、5N/500N 会唔同）。撳呢度返实尺 1:1（真实 mm）"
+                    : <button type="button" disabled={!feaDeform.show} title="而家係【放大示意】：放大咗睇形狀，但仍按真實比例（力大變形大、5N/500N 會唔同）。撳呢度返實尺 1:1（真實 mm）"
                         onClick={() => useApp.getState().setFeaOpt({ feaDeform: { ...feaDeform, real: true, scale: 1 } })}
-                        style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: feaDeform.show ? 'pointer' : 'default', opacity: feaDeform.show ? 1 : 0.4, border: '1px solid #c77d00', background: '#3a2e10', color: '#e0b050', fontWeight: 600 }}>↺实尺1:1</button>}
+                        style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: feaDeform.show ? 'pointer' : 'default', opacity: feaDeform.show ? 1 : 0.4, border: '1px solid #c77d00', background: '#3a2e10', color: '#e0b050', fontWeight: 600 }}>↺實尺1:1</button>}
                   <span style={{ color: '#6b7680', fontSize: 10, minWidth: 30 }}>×{feaDeform.scale.toFixed(1)}</span>
                   <input type="range" min={feaDeform.real ? 0.5 : 0.2} max={5} step={0.1} value={feaDeform.scale} disabled={!feaDeform.show}
                     onChange={(e) => useApp.getState().setFeaOpt({ feaDeform: { ...feaDeform, scale: parseFloat(e.target.value) } })}
-                    title={feaDeform.real ? '真实变形倍率（1.0 = 实尺 1:1；调大 = 适度夸张睇清楚，仍按真实比例）' : '微调倍率（叠喺放大增益上；放大后仍按真实比例，换力大细照样唔同）'}
+                    title={feaDeform.real ? '真實變形倍率（1.0 = 實尺 1:1；調大 = 適度夸張睇清楚，仍按真實比例）' : '微調倍率（疊喺放大增益上；放大後仍按真實比例，換力大細照樣唔同）'}
                     style={{ flex: 1, opacity: feaDeform.show ? 1 : 0.4 }} />
                 </div>
               )}
@@ -5299,9 +5299,9 @@ export default function Viewport() {
               <div style={{ height: 10, borderRadius: 3, background: (feaField === 'sf' || feaField === 'fos') ? 'linear-gradient(90deg,#7a0403,#fb7e21,#a4fc3c,#28bceb,#30123b)' : 'linear-gradient(90deg,#30123b,#28bceb,#a4fc3c,#fb7e21,#7a0403)' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b7680' }}>
                 {feaField === 'sf'
-                  ? (<><span>0 (危)</span><span>安全系数 SF=σy/σ</span><span>SF≥5 (安)</span></>)
+                  ? (<><span>0 (危)</span><span>安全係數 SF=σy/σ</span><span>SF≥5 (安)</span></>)
                   : feaField === 'fos'
-                  ? (<><span>0 (危)</span><span>疲劳安全系数 n (Goodman)</span><span>n≥5 (安)</span></>)
+                  ? (<><span>0 (危)</span><span>疲勞安全係數 n (Goodman)</span><span>n≥5 (安)</span></>)
                   : (() => {
                       const mxVal = feaField === 'disp' ? feaResult.dispMax
                         : feaField === 'vmSmooth' ? (feaResult.vmSmoothMax ?? feaResult.vmMax)
@@ -5311,13 +5311,13 @@ export default function Viewport() {
                         : feaField === 'sed' ? (feaResult.sedMax ?? 0)
                         : feaResult.vmMax
                       const label = feaField === 'disp' ? '位移 (mm)' : feaField === 'vmSmooth' ? 'von Mises 平滑 (MPa)'
-                        : feaField === 's1' ? 'σ1 最大主应力·拉 (MPa)' : feaField === 's3' ? 'σ3 最小主应力·压幅值 (MPa)'
-                        : feaField === 'shear' ? 'τmax 最大剪应力 (MPa)' : feaField === 'sed' ? '应变能密度 u (mJ/mm³)' : 'von Mises (MPa)'
+                        : feaField === 's1' ? 'σ1 最大主應力·拉 (MPa)' : feaField === 's3' ? 'σ3 最小主應力·壓幅值 (MPa)'
+                        : feaField === 'shear' ? 'τmax 最大剪應力 (MPa)' : feaField === 'sed' ? '應變能密度 u (mJ/mm³)' : 'von Mises (MPa)'
                       const maxStr = feaField === 'sed' ? mxVal.toExponential(2) : feaField === 'disp' ? (mxVal >= 1 ? mxVal.toFixed(2) : mxVal.toFixed(3)) : (mxVal >= 100 ? mxVal.toFixed(0) : mxVal.toFixed(1))
                       return (<><span>0</span><span>{label}</span><span>{maxStr}</span></>)
                     })()}
               </div>
-              {feaField === 'sf' && <div style={{ color: '#6b7680', marginTop: 2 }}>全场最低安全系数 SF ≈ {(feaResult.sy / Math.max(feaResult.vmMax, 1e-9)).toFixed(2)}（红球位）· 体素趋势级</div>}
+              {feaField === 'sf' && <div style={{ color: '#6b7680', marginTop: 2 }}>全場最低安全係數 SF ≈ {(feaResult.sy / Math.max(feaResult.vmMax, 1e-9)).toFixed(2)}（紅球位）· 體素趨勢級</div>}
               {feaField === 'fos' && (() => {
                 const se = feaResult.se || feaResult.sy || 1, su = feaResult.su || (feaResult.sy ? feaResult.sy * 1.6 : 1)
                 // S183 audit(MED)：扫整场算真·最低 n（同 overlay 逐体素公式一致）—— 唔可净用 vmMax 推（static 工况 σm=(σ1+σ3)/2 唔喺 vmMax 体素取极小），否则 headline 同色图/探针唔夹。
@@ -5333,25 +5333,25 @@ export default function Viewport() {
                   const nF = denom > 1e-12 ? 1 / denom : 5
                   if (nF < nMin) nMin = nF
                 }
-                const caseLab = fatigueCase === 'rev' ? 'R=−1 全反向' : fatigueCase === 'static' ? '静态等效' : 'R=0 脉动'
-                return <div style={{ color: '#6b7680', marginTop: 2 }}>最低疲劳安全系数 n ≈ {Math.min(5, nMin).toFixed(2)}（{caseLab}·se={se}/su={su}MPa）· 单次静力解推算载荷循环（非真疲劳寿命）· 体素趋势级</div>
+                const caseLab = fatigueCase === 'rev' ? 'R=−1 全反向' : fatigueCase === 'static' ? '靜態等效' : 'R=0 脈動'
+                return <div style={{ color: '#6b7680', marginTop: 2 }}>最低疲勞安全係數 n ≈ {Math.min(5, nMin).toFixed(2)}（{caseLab}·se={se}/su={su}MPa）· 單次靜力解推算載荷循環（非真疲勞壽命）· 體素趨勢級</div>
               })()}
               {(feaField === 's1' || feaField === 's3' || feaField === 'shear') && feaResult.s1Max != null && (
-                <div style={{ color: '#6b7680', marginTop: 2 }}>σ1max ≈ {feaResult.s1Max.toFixed(1)}（拉+）· σ3min ≈ {(feaResult.s3Min ?? 0).toFixed(1)}（压−）· τmax ≈ {(feaResult.shearMax ?? 0).toFixed(1)} MPa · 主应力·体素趋势级</div>
+                <div style={{ color: '#6b7680', marginTop: 2 }}>σ1max ≈ {feaResult.s1Max.toFixed(1)}（拉+）· σ3min ≈ {(feaResult.s3Min ?? 0).toFixed(1)}（壓−）· τmax ≈ {(feaResult.shearMax ?? 0).toFixed(1)} MPa · 主應力·體素趨勢級</div>
               )}
               <div style={{ color: '#6b7680' }}>
-                最大位移 {feaResult.dispMax >= 1 ? feaResult.dispMax.toFixed(2) : feaResult.dispMax.toFixed(3)}mm · {feaResult.nVox} 体素{feaResult.converged ? '' : ' · ⚠未完全收敛'}
+                最大位移 {feaResult.dispMax >= 1 ? feaResult.dispMax.toFixed(2) : feaResult.dispMax.toFixed(3)}mm · {feaResult.nVox} 體素{feaResult.converged ? '' : ' · ⚠未完全收斂'}
                 {feaDeform.show && feaResult.dispVec && (feaDeform.real
-                  ? <span style={{ color: '#16a36b' }}> · 变形 = 实尺 1:1{feaDeform.scale !== 1 ? `（×${feaDeform.scale.toFixed(1)}）` : ''}：model 上睇到嘅就系真实计算位移（力大变形大）</span>
-                  : <span style={{ color: '#c77d00' }}> · 变形 = 放大 ×{(feaDeform.mag * feaDeform.scale).toFixed(0)}（按真实比例：力大变形大、5N/500N 唔同；撳「实尺1:1」睇真实 mm）</span>)}
+                  ? <span style={{ color: '#16a36b' }}> · 變形 = 實尺 1:1{feaDeform.scale !== 1 ? `（×${feaDeform.scale.toFixed(1)}）` : ''}：model 上睇到嘅就係真實計算位移（力大變形大）</span>
+                  : <span style={{ color: '#c77d00' }}> · 變形 = 放大 ×{(feaDeform.mag * feaDeform.scale).toFixed(0)}（按真實比例：力大變形大、5N/500N 唔同；撳「實尺1:1」睇真實 mm）</span>)}
               </div>
               {/* S170：结果探针 — 开后点 3D 云图任一体素，读其精确场值（Fusion Probe） */}
               <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 2 }}>
                 <button type="button" onClick={() => { const on = !feaProbeOn; useApp.getState().setFeaOpt({ feaProbeOn: on, feaProbe: on ? feaProbe : null }) }}
-                  title="结果探针：开后喺 3D 云图点任一体素，读其精确场值（von Mises / 位移 / SF / 主应力 / 应变能 + 位置）。关时云图唔拦截点击。"
-                  style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: feaProbeOn ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaProbeOn ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>📍 探针{feaProbeOn ? '（开·点体素读值）' : ''}</button>
-                {feaProbe != null && <button type="button" onClick={() => useApp.getState().setFeaOpt({ feaProbe: null })} title="清除探针读数" style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: '1px solid #3a3e44', background: '#23272d', color: '#9aa6af' }}>清</button>}
-                {feaProbeOn && feaResult.nVox > 40000 && <span style={{ color: '#c77d00', fontSize: 10 }}>体素 {feaResult.nVox} &gt; 4万，探针已禁用（降分辨率再用）</span>}
+                  title="結果探針：開後喺 3D 雲圖點任一體素，讀其精確場值（von Mises / 位移 / SF / 主應力 / 應變能 + 位置）。關時雲圖唔拦截點擊。"
+                  style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: feaProbeOn ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaProbeOn ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>📍 探針{feaProbeOn ? '（開·點體素讀值）' : ''}</button>
+                {feaProbe != null && <button type="button" onClick={() => useApp.getState().setFeaOpt({ feaProbe: null })} title="清除探針讀數" style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: '1px solid #3a3e44', background: '#23272d', color: '#9aa6af' }}>清</button>}
+                {feaProbeOn && feaResult.nVox > 40000 && <span style={{ color: '#c77d00', fontSize: 10 }}>體素 {feaResult.nVox} &gt; 4萬，探針已禁用（降分辨率再用）</span>}
               </div>
               {feaProbe != null && feaProbe < feaResult.nVox && (() => {
                 const i = feaProbe, c = feaResult.centers
@@ -5359,7 +5359,7 @@ export default function Viewport() {
                 const vm = feaResult.vm[i], disp = feaResult.disp[i], sf = feaResult.sy / Math.max(vm, 1e-9)
                 return (
                   <div style={{ color: '#cdd6df', marginTop: 2, background: '#1a2330', borderRadius: 3, padding: '3px 5px', lineHeight: 1.55 }}>
-                    体素 #{i} @ ({pos})<br />
+                    體素 #{i} @ ({pos})<br />
                     vm = {vm >= 100 ? vm.toFixed(0) : vm.toFixed(2)} MPa · 位移 = {disp >= 1 ? disp.toFixed(3) : disp.toFixed(4)} mm · SF ≈ {sf === Infinity ? '∞' : sf.toFixed(2)}
                     {feaField === 'fos' && (() => {
                       const se = feaResult.se || feaResult.sy || 1, su = feaResult.su || (feaResult.sy ? feaResult.sy * 1.6 : 1)
@@ -5367,7 +5367,7 @@ export default function Viewport() {
                       const sm = fatigueCase === 'rev' ? 0 : fatigueCase === 'static' ? (feaResult.s1 ? (feaResult.s1[i] + (feaResult.s3 as Float32Array)[i]) / 2 : 0) : vm / 2
                       const denom = sa / se + Math.max(0, sm) / su
                       const nF = denom > 1e-12 ? 1 / denom : 5
-                      return <> · 疲劳 n ≈ {Math.min(5, nF).toFixed(2)}</>
+                      return <> · 疲勞 n ≈ {Math.min(5, nF).toFixed(2)}</>
                     })()}
                     {feaResult.s1 && <><br />σ1 = {feaResult.s1[i].toFixed(2)} · σ3 = {(feaResult.s3 as Float32Array)[i].toFixed(2)} · τ = {(feaResult.shear as Float32Array)[i].toFixed(2)} MPa</>}
                     {feaResult.sed && <> · u = {feaResult.sed[i].toExponential(2)} mJ/mm³</>}
@@ -5375,13 +5375,13 @@ export default function Viewport() {
                 )
               })()}
               {feaResult.reactionMag != null && (
-                <div style={{ color: '#6b7680' }} title="支座反力 = 固定面 (K·u − 该面外载) + 销/圆柱约束反力之和。固定支承下 −∑R 应 ≈ 外加载荷总和（可作平衡校验，偏差多因体素离散/未收敛）。滚子/对称约束只锁法向 → ∑R 只含法向分量，非总载荷。">
-                  支座反力{feaFixMode !== 'fixed' ? '（仅法向）' : ''} ∑R ≈ {feaResult.reactionMag >= 1 ? feaResult.reactionMag.toFixed(1) : feaResult.reactionMag.toFixed(3)} N
+                <div style={{ color: '#6b7680' }} title="支座反力 = 固定面 (K·u − 該面外載) + 銷/圓柱約束反力之和。固定支承下 −∑R 應 ≈ 外加載荷總和（可作平衡校驗，偏差多因體素離散/未收斂）。滾子/對稱約束只鎖法向 → ∑R 只含法向分量，非總載荷。">
+                  支座反力{feaFixMode !== 'fixed' ? '（僅法向）' : ''} ∑R ≈ {feaResult.reactionMag >= 1 ? feaResult.reactionMag.toFixed(1) : feaResult.reactionMag.toFixed(3)} N
                   {feaResult.reaction && <span> （Rx {feaResult.reaction[0].toFixed(1)} · Ry {feaResult.reaction[1].toFixed(1)} · Rz {feaResult.reaction[2].toFixed(1)}）</span>}
                 </div>
               )}
               <div style={{ color: feaResult.sy / Math.max(feaResult.vmMax, 1e-9) >= 2 ? '#16a36b' : feaResult.sy / Math.max(feaResult.vmMax, 1e-9) >= 1 ? '#c77d00' : '#d0342c', fontWeight: 600 }}>
-                安全系数 ≈ {(feaResult.sy / Math.max(feaResult.vmMax, 1e-9)).toFixed(1)}（{feaResult.matName} 屈服 {feaResult.sy}MPa）— {feaField === 'disp' ? '红球 = 挠度最大位（弯得最劲；切「应力」睇最可能断位）' : '红球⚠ = 最可能断嘅位'}
+                安全係數 ≈ {(feaResult.sy / Math.max(feaResult.vmMax, 1e-9)).toFixed(1)}（{feaResult.matName} 屈服 {feaResult.sy}MPa）— {feaField === 'disp' ? '紅球 = 撓度最大位（彎得最劲；切「應力」睇最可能斷位）' : '紅球⚠ = 最可能斷嘅位'}
               </div>
             </div>
           )}
@@ -5390,16 +5390,16 @@ export default function Viewport() {
             <button
               type="button"
               disabled={modalBusy || feaBusy || !feaFixed}
-              title={feaFixed ? '用固定面做约束模态，求最低 6 阶固有频率（Hz）' : '先点①固定面'}
+              title={feaFixed ? '用固定面做約束模態，求最低 6 階固有頻率（Hz）' : '先點①固定面'}
               onClick={() => void runModalSolve()}
               style={{ width: '100%', padding: '5px 8px', fontSize: 12, cursor: (modalBusy || !feaFixed) ? 'default' : 'pointer', opacity: (modalBusy || !feaFixed) ? 0.5 : 1 }}
             >
-              {modalBusy ? '模态计算中…' : '🎵 模态分析（固有频率）'}
+              {modalBusy ? '模態計算中…' : '🎵 模態分析（固有頻率）'}
             </button>
             {modalResult && (
               <div style={{ fontSize: 11, lineHeight: 1.5, marginTop: 5 }}>
                 <div style={{ color: '#6b7680', marginBottom: 3 }}>
-                  约束模态 · {modalResult.matName} · {modalResult.nVox} 体素 — 点选阶睇振型动画：
+                  約束模態 · {modalResult.matName} · {modalResult.nVox} 體素 — 點選階睇振型動畫：
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {modalResult.freqs.map((f, i) => (
@@ -5407,7 +5407,7 @@ export default function Viewport() {
                       key={i}
                       type="button"
                       onClick={() => useApp.getState().setModalShow(i)}
-                      title={modalResult.converged[i] ? '' : '该阶未完全收敛（近似值）'}
+                      title={modalResult.converged[i] ? '' : '該階未完全收斂（近似值）'}
                       style={{
                         padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer',
                         border: i === modalShow ? '1px solid #4a9eff' : '1px solid #3a3e44',
@@ -5419,7 +5419,7 @@ export default function Viewport() {
                   ))}
                 </div>
                 <div style={{ color: '#6b7680', marginTop: 4 }}>
-                  频率为体素趋势级（实测悬臂梁误差 ≈±2%，非商用 FEA）· 振幅系视觉放大示意，唔系真实位移
+                  頻率為體素趨勢級（實測懸臂梁誤差 ≈±2%，非商用 FEA）· 振幅系視覺放大示意，唔係真實位移
                 </div>
               </div>
             )}
@@ -5429,24 +5429,24 @@ export default function Viewport() {
             <button
               type="button"
               disabled={bucklingBusy || feaBusy || modalBusy || !feaFixed || !feaLoad}
-              title={(feaFixed && feaLoad) ? '用固定面+受力面+力做线性屈曲，求最低屈曲载荷因子 λ₁ 与临界载荷 Pcr' : '先点①固定面 + ②受力面'}
+              title={(feaFixed && feaLoad) ? '用固定面+受力面+力做線性屈曲，求最低屈曲載荷因子 λ₁ 與临界載荷 Pcr' : '先點①固定面 + ②受力面'}
               onClick={() => void runBucklingSolve()}
               style={{ width: '100%', padding: '5px 8px', fontSize: 12, cursor: (bucklingBusy || !feaFixed || !feaLoad) ? 'default' : 'pointer', opacity: (bucklingBusy || !feaFixed || !feaLoad) ? 0.5 : 1 }}
             >
-              {bucklingBusy ? '屈曲计算中…' : '📐 屈曲分析（临界载荷）'}
+              {bucklingBusy ? '屈曲計算中…' : '📐 屈曲分析（临界載荷）'}
             </button>
             {bucklingResult && (
               <div style={{ fontSize: 11, lineHeight: 1.5, marginTop: 5 }}>
                 <div style={{ color: bucklingResult.lambda1 <= 0 ? '#c77d00' : bucklingResult.lambda1 >= 2 ? '#16a36b' : bucklingResult.lambda1 >= 1 ? '#c77d00' : '#d0342c', fontWeight: 600 }}>
-                  屈曲载荷因子 λ₁ ≈ {bucklingResult.lambda1 <= 0 ? '—（该方向唔屈曲）' : bucklingResult.lambda1.toFixed(2)}
+                  屈曲載荷因子 λ₁ ≈ {bucklingResult.lambda1 <= 0 ? '—（該方向唔屈曲）' : bucklingResult.lambda1.toFixed(2)}
                 </div>
                 {bucklingResult.lambda1 > 0 && (
                   <div style={{ color: '#6b7680' }}>
-                    临界载荷 Pcr ≈ {bucklingResult.Pcr >= 1000 ? (bucklingResult.Pcr / 1000).toFixed(1) + 'kN' : bucklingResult.Pcr.toFixed(0) + 'N'}（施加 {bucklingResult.forceN >= 1000 ? (bucklingResult.forceN / 1000).toFixed(1) + 'kN' : bucklingResult.forceN.toFixed(0) + 'N'}）· {bucklingResult.nVox} 体素{bucklingResult.converged ? '' : ' · ⚠未完全收敛'}
+                    临界載荷 Pcr ≈ {bucklingResult.Pcr >= 1000 ? (bucklingResult.Pcr / 1000).toFixed(1) + 'kN' : bucklingResult.Pcr.toFixed(0) + 'N'}（施加 {bucklingResult.forceN >= 1000 ? (bucklingResult.forceN / 1000).toFixed(1) + 'kN' : bucklingResult.forceN.toFixed(0) + 'N'}）· {bucklingResult.nVox} 體素{bucklingResult.converged ? '' : ' · ⚠未完全收斂'}
                   </div>
                 )}
                 <div style={{ color: '#6b7680', marginTop: 2 }}>
-                  动画 = 第一屈曲振型（放大示意）· 体素趋势级（实测 Euler 柱误差 ≈±2%，非商用 FEA）
+                  動畫 = 第一屈曲振型（放大示意）· 體素趨勢級（實測 Euler 柱誤差 ≈±2%，非商用 FEA）
                 </div>
               </div>
             )}
@@ -5454,42 +5454,42 @@ export default function Viewport() {
             <button
               type="button"
               disabled={bucklingBusy || feaBusy || modalBusy || !feaFixed || !feaLoad}
-              title={(feaFixed && feaLoad) ? '预应力模态：先静力加预载（拉/压）→ 切线刚度 (K+Kg) 算固有频率。受拉↑刚化升频、受压↓软化降频、近屈曲→0。复用模态振型动画。' : '先点①固定面 + ②预载面 + 设力'}
+              title={(feaFixed && feaLoad) ? '預應力模態：先靜力加預載（拉/壓）→ 切線剛度 (K+Kg) 算固有頻率。受拉↑剛化升頻、受壓↓軟化降頻、近屈曲→0。復用模態振型動畫。' : '先點①固定面 + ②預載面 + 設力'}
               onClick={() => void runPrestressedModalSolve()}
               style={{ width: '100%', padding: '5px 8px', fontSize: 12, marginTop: 6, cursor: (modalBusy || !feaFixed || !feaLoad) ? 'default' : 'pointer', opacity: (modalBusy || !feaFixed || !feaLoad) ? 0.5 : 1 }}
             >
-              {modalBusy ? '模态计算中…' : '🎚️ 预应力模态（应力刚化）'}
+              {modalBusy ? '模態計算中…' : '🎚️ 預應力模態（應力剛化）'}
             </button>
           </div>
           {/* S83：生成式设计 / 拓扑优化 — 固定面=保留区，受力面+力=工况 */}
           <div style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <span style={{ fontSize: 11, color: '#6b7680' }}>保留体积</span>
+              <span style={{ fontSize: 11, color: '#6b7680' }}>保留體積</span>
               <input type="range" min={10} max={70} step={5} value={Math.round(topoptVolfrac * 100)} disabled={topoptBusy} onChange={(e) => useApp.getState().setTopoptVolfrac(Number(e.target.value) / 100)} style={{ flex: 1 }} />
               <span style={{ fontSize: 11, color: '#aab', width: 30 }}>{Math.round(topoptVolfrac * 100)}%</span>
             </div>
             <button
               type="button"
               disabled={topoptBusy || feaBusy || modalBusy || bucklingBusy || !feaFixed || !feaLoad}
-              title={(feaFixed && feaLoad) ? '生成式设计：喺设计域内最小柔度分配材料（保留固定/受力区），长出最省料又最硬嘅承力结构' : '先点①固定面 + ②受力面 + 设力'}
+              title={(feaFixed && feaLoad) ? '生成式設計：喺設計域內最小柔度分配材料（保留固定/受力區），長出最省料又最硬嘅承力結構' : '先點①固定面 + ②受力面 + 設力'}
               onClick={() => void runTopoptSolve()}
               style={{ width: '100%', padding: '5px 8px', fontSize: 12, cursor: (topoptBusy || !feaFixed || !feaLoad) ? 'default' : 'pointer', opacity: (topoptBusy || !feaFixed || !feaLoad) ? 0.5 : 1 }}
             >
-              {topoptBusy ? '生成中…（多次求解，需时）' : '🧬 生成式设计（拓扑优化）'}
+              {topoptBusy ? '生成中…（多次求解，需時）' : '🧬 生成式設計（拓撲優化）'}
             </button>
             {topoptResult && (() => {
               const ch = topoptResult.complianceHistory
               const gain = (ch.length && ch[ch.length - 1] > 1e-9) ? ch[0] / ch[ch.length - 1] : 1
               return (
                 <div style={{ fontSize: 11, lineHeight: 1.5, marginTop: 5 }}>
-                  <div style={{ color: '#16a36b', fontWeight: 600 }}>刚度 ↑{gain.toFixed(1)}×（同体积下）</div>
+                  <div style={{ color: '#16a36b', fontWeight: 600 }}>剛度 ↑{gain.toFixed(1)}×（同體積下）</div>
                   <div style={{ color: '#6b7680' }}>
-                    柔度 {ch[0].toFixed(0)} → {ch[ch.length - 1].toFixed(0)} · 实际体积 {(topoptResult.finalVol * 100).toFixed(0)}% · {topoptResult.nVox} 体素
+                    柔度 {ch[0].toFixed(0)} → {ch[ch.length - 1].toFixed(0)} · 實際體積 {(topoptResult.finalVol * 100).toFixed(0)}% · {topoptResult.nVox} 體素
                   </div>
                   <div style={{ color: '#6b7680', marginTop: 2 }}>
-                    红=承力料路（保留）· 蓝/透明=可去料 · 体素趋势级（最小柔度），非商用 FEA
+                    紅=承力料路（保留）· 藍/透明=可去料 · 體素趨勢級（最小柔度），非商用 FEA
                   </div>
-                  <button className="cs-btn" style={{ marginTop: 4 }} title="把保留材料导出 STL（体素边界面；对角细节处可能非流形，多数切片器可处理）— 可 3D 打印 / 重导入再光顺" onClick={() => useApp.getState().exportGenerativeStl()}>⤓ 导出生成式 STL</button>
+                  <button className="cs-btn" style={{ marginTop: 4 }} title="把保留材料匯出 STL（體素邊界面；對角細節處可能非流形，多數切片器可處理）— 可 3D 打印 / 重匯入再光順" onClick={() => useApp.getState().exportGenerativeStl()}>⤓ 匯出生成式 STL</button>
                 </div>
               )
             })()}
@@ -5497,57 +5497,57 @@ export default function Viewport() {
           {/* S84：热分析（稳态导热）— ① 面=热面、② 面=冷面，材料导热系数 */}
           <div style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: 11, color: '#6b7680' }}>
-              <span>热①</span><input type="number" step={5} value={thermalThot} disabled={thermalBusy} onChange={(e) => useApp.getState().setThermalTemps({ Thot: Number(e.target.value) })} style={{ width: 48 }} />
+              <span>熱①</span><input type="number" step={5} value={thermalThot} disabled={thermalBusy} onChange={(e) => useApp.getState().setThermalTemps({ Thot: Number(e.target.value) })} style={{ width: 48 }} />
               <span>冷②</span><input type="number" step={5} value={thermalTcold} disabled={thermalBusy} onChange={(e) => useApp.getState().setThermalTemps({ Tcold: Number(e.target.value) })} style={{ width: 48 }} /><span>°C</span>
             </div>
             <button
               type="button"
               disabled={thermalBusy || feaBusy || modalBusy || bucklingBusy || topoptBusy || !feaFixed || !feaLoad}
-              title={(feaFixed && feaLoad) ? '稳态导热：① 固定面 = 热面、② 受力面 = 冷面，按材料导热系数求温度场 + 总热流 Q' : '先点①固定面(=热面) + ②受力面(=冷面)'}
+              title={(feaFixed && feaLoad) ? '穩態導熱：① 固定面 = 熱面、② 受力面 = 冷面，按材料導熱係數求溫度場 + 總熱流 Q' : '先點①固定面(=熱面) + ②受力面(=冷面)'}
               onClick={() => void runThermalSolve()}
               style={{ width: '100%', padding: '5px 8px', fontSize: 12, cursor: (thermalBusy || !feaFixed || !feaLoad) ? 'default' : 'pointer', opacity: (thermalBusy || !feaFixed || !feaLoad) ? 0.5 : 1 }}
             >
-              {thermalBusy ? '热分析计算中…' : '🌡 热分析（稳态导热）'}
+              {thermalBusy ? '熱分析計算中…' : '🌡 熱分析（穩態導熱）'}
             </button>
             {thermalResult && (
               <div style={{ fontSize: 11, lineHeight: 1.5, marginTop: 5 }}>
                 <div style={{ height: 10, borderRadius: 3, background: 'linear-gradient(90deg,#30123b,#28bceb,#a4fc3c,#fb7e21,#7a0403)' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b7680' }}>
-                  <span>{thermalResult.tMin.toFixed(0)}°C</span><span>温度（{thermalResult.matName} k={thermalResult.k}）</span><span>{thermalResult.tMax.toFixed(0)}°C</span>
+                  <span>{thermalResult.tMin.toFixed(0)}°C</span><span>溫度（{thermalResult.matName} k={thermalResult.k}）</span><span>{thermalResult.tMax.toFixed(0)}°C</span>
                 </div>
                 <div style={{ color: '#6b7680' }}>
-                  总热流 Q ≈ {thermalResult.heatFlowW >= 1000 ? (thermalResult.heatFlowW / 1000).toFixed(2) + 'kW' : thermalResult.heatFlowW.toFixed(1) + 'W'} · {thermalResult.nVox} 体素{thermalResult.converged ? '' : ' · ⚠未完全收敛'}
+                  總熱流 Q ≈ {thermalResult.heatFlowW >= 1000 ? (thermalResult.heatFlowW / 1000).toFixed(2) + 'kW' : thermalResult.heatFlowW.toFixed(1) + 'W'} · {thermalResult.nVox} 體素{thermalResult.converged ? '' : ' · ⚠未完全收斂'}
                 </div>
-                <div style={{ color: '#6b7680', marginTop: 2 }}>稳态导热趋势级（温度场精确，截面体素化致 Q ±~10%），非商用 FEA</div>
+                <div style={{ color: '#6b7680', marginTop: 2 }}>穩態導熱趨勢級（溫度場精確，截面體素化致 Q ±~10%），非商用 FEA</div>
               </div>
             )}
           </div>
           {/* S105：热-结构耦合（约束热膨胀应力）— ①②两面都做夹持 + 分别热/冷定温 → 约束热膨胀 von Mises 场（复用受力云图） */}
           <div style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: 11, color: '#6b7680' }}>
-              <span>参考温</span><input type="number" step={5} value={thermalTref} disabled={thermalStressBusy} onChange={(e) => useApp.setState({ thermalTref: Number(e.target.value) })} style={{ width: 48 }} /><span>°C（无应力态）</span>
+              <span>參考溫</span><input type="number" step={5} value={thermalTref} disabled={thermalStressBusy} onChange={(e) => useApp.setState({ thermalTref: Number(e.target.value) })} style={{ width: 48 }} /><span>°C（無應力態）</span>
             </div>
             <button
               type="button"
               disabled={thermalStressBusy || thermalBusy || feaBusy || modalBusy || bucklingBusy || topoptBusy || !feaFixed || !feaLoad}
-              title={(feaFixed && feaLoad) ? '约束热膨胀应力：①②两面都全 DOF 夹持，同时分别做热/冷定温面（热①用热温、冷②用冷温），温差→热应变 ε₀=αΔT→σ=D(Bu−ε₀)。双端夹住嘅杆受热→憋住唔俾胀→真 von Mises 应力场' : '先点①固定面(=夹持+热面) + ②受力面(=夹持+冷面)'}
+              title={(feaFixed && feaLoad) ? '約束熱膨脹應力：①②兩面都全 DOF 夾持，同時分別做熱/冷定溫面（熱①用熱溫、冷②用冷溫），溫差→熱應變 ε₀=αΔT→σ=D(Bu−ε₀)。雙端夾住嘅桿受熱→憋住唔俾胀→真 von Mises 應力場' : '先點①固定面(=夾持+熱面) + ②受力面(=夾持+冷面)'}
               onClick={() => void runThermalStressSolve()}
               style={{ width: '100%', padding: '5px 8px', fontSize: 12, cursor: (thermalStressBusy || !feaFixed || !feaLoad) ? 'default' : 'pointer', opacity: (thermalStressBusy || !feaFixed || !feaLoad) ? 0.5 : 1 }}
             >
-              {thermalStressBusy ? '热应力FEM计算中…' : '🔥 热应力 FEM（约束热膨胀）'}
+              {thermalStressBusy ? '熱應力FEM計算中…' : '🔥 熱應力 FEM（約束熱膨脹）'}
             </button>
-            <div style={{ color: '#6b7680', fontSize: 10, marginTop: 3 }}>双端夹持 + 温差（热①/冷②/参考温），σ=D(Bu−αΔT) 线弹性体素趋势，结果显示于上方受力云图</div>
+            <div style={{ color: '#6b7680', fontSize: 10, marginTop: 3 }}>雙端夾持 + 溫差（熱①/冷②/參考溫），σ=D(Bu−αΔT) 線弹性體素趨勢，結果顯示於上方受力雲圖</div>
           </div>
           {/* S101[6]：网格收敛研究 — 同模型同载荷跑 3 档体素分辨率(20/28/40)，看 vmMax 趋稳 + Richardson 外推 */}
           <div style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 6 }}>
             {/* S171 audit（HIGH）：轴承模式载荷系 feaBearing（feaLoad 已清）→ 门控按模式判载荷就绪，否则收敛研究喺轴承模式永远 disabled */}
             <button type="button"
               disabled={feaConvBusy || feaBusy || modalBusy || bucklingBusy || topoptBusy || thermalBusy || !feaFixed || (feaLoadMode === 'bearing' ? !feaBearing : !feaLoad)}
-              title={(feaFixed && (feaLoadMode === 'bearing' ? feaBearing : feaLoad)) ? '同模型同载荷跑 3 档体素分辨率(20/28/40)，看 vmMax 是否趋稳 + 外推收敛值（网格无关性）' : (feaLoadMode === 'bearing' ? '先点①固定面 + 🎯拾轴承孔' : '先点①固定面 + ②受力面')}
+              title={(feaFixed && (feaLoadMode === 'bearing' ? feaBearing : feaLoad)) ? '同模型同載荷跑 3 檔體素分辨率(20/28/40)，看 vmMax 是否趨穩 + 外推收斂值（網格無關性）' : (feaLoadMode === 'bearing' ? '先點①固定面 + 🎯拾軸承孔' : '先點①固定面 + ②受力面')}
               onClick={() => void runFeaConvergence()}
               className="cs-btn"
               style={{ width: '100%', opacity: (feaConvBusy || !feaFixed || (feaLoadMode === 'bearing' ? !feaBearing : !feaLoad)) ? 0.5 : 1 }}>
-              {feaConvBusy ? '收敛研究中…（跑 3 档，需时）' : '📈 收敛研究（网格无关性）'}
+              {feaConvBusy ? '收斂研究中…（跑 3 檔，需時）' : '📈 收斂研究（網格無關性）'}
             </button>
             {feaConvResult && (() => {
               const rows = feaConvResult.rows
@@ -5562,19 +5562,19 @@ export default function Viewport() {
                   <polyline points={xs.map((x, i) => `${x.toFixed(0)},${ys[i].toFixed(0)}`).join(' ')} fill="none" stroke="#4a9eff" strokeWidth={1.5} />
                   {xs.map((x, i) => <circle key={i} cx={x} cy={ys[i]} r={2.5} fill={rows[i].converged ? '#4a9eff' : '#c77d00'} />)}
                 </svg>
-                <div style={{ color: '#6b7680' }}>{rows.map((r) => `${r.res}档 ${r.nDof}DOF→${r.vmMax.toFixed(1)}MPa${r.converged ? '' : '*'}`).join(' · ')}</div>
+                <div style={{ color: '#6b7680' }}>{rows.map((r) => `${r.res}檔 ${r.nDof}DOF→${r.vmMax.toFixed(1)}MPa${r.converged ? '' : '*'}`).join(' · ')}</div>
                 <div style={{ color: feaConvResult.settled ? '#16a36b' : '#c77d00', fontWeight: 600 }}>
-                  相邻末档差 {(feaConvResult.relLast * 100).toFixed(1)}% · 外推 vmMax ≈ {feaConvResult.vmInf.toFixed(1)} MPa · {feaConvResult.settled ? '✅ 网格已收敛' : '⚠ 未收敛，建议加密'}
+                  相鄰末檔差 {(feaConvResult.relLast * 100).toFixed(1)}% · 外推 vmMax ≈ {feaConvResult.vmInf.toFixed(1)} MPa · {feaConvResult.settled ? '✅ 網格已收斂' : '⚠ 未收斂，建議加密'}
                 </div>
-                <div style={{ color: '#6b7680', marginTop: 2 }}>绿虚线=外推值 · 橙点=该档未完全收敛 · 体素趋势级（非商用 FEA）</div>
+                <div style={{ color: '#6b7680', marginTop: 2 }}>綠虛線=外推值 · 橙點=該檔未完全收斂 · 體素趨勢級（非商用 FEA）</div>
               </div>)
             })()}
           </div>
           {(feaResult || modalResult || bucklingResult || topoptResult || thermalResult) && (
-            <button className="cs-btn" style={{ marginTop: 6, width: '100%' }} title="把已运行嘅 静力/模态/屈曲/热/生成式 结果汇总导出 .txt 报告（对标 Fusion Simulation 研究报告）" onClick={() => useApp.getState().exportSimReport()}>📄 导出仿真报告（.txt）</button>
+            <button className="cs-btn" style={{ marginTop: 6, width: '100%' }} title="把已運行嘅 靜力/模態/屈曲/熱/生成式 結果汇總匯出 .txt 報告（對標 Fusion Simulation 研究報告）" onClick={() => useApp.getState().exportSimReport()}>📄 匯出仿真報告（.txt）</button>
           )}
           {feaResult && (
-            <button className="cs-btn" style={{ marginTop: 4, width: '100%' }} title="导出当前应力结果做 CSV：摘要（材料/σy/vmMax/位移/SF/反力/收敛）+ 逐体素 x,y,z,vonMises,平滑vm,位移,σ1,σ3,τmax,应变能（spreadsheet 复核 / 跑对跑对比）" onClick={() => useApp.getState().exportFeaCsv()}>📊 导出 FEA 结果 CSV（逐体素）</button>
+            <button className="cs-btn" style={{ marginTop: 4, width: '100%' }} title="匯出當前應力結果做 CSV：摘要（材料/σy/vmMax/位移/SF/反力/收斂）+ 逐體素 x,y,z,vonMises,平滑vm,位移,σ1,σ3,τmax,應變能（spreadsheet 復核 / 跑對跑對比）" onClick={() => useApp.getState().exportFeaCsv()}>📊 匯出 FEA 結果 CSV（逐體素）</button>
           )}
         </CommandDialog>
       )}
@@ -5726,19 +5726,19 @@ export default function Viewport() {
       {(moldModeP > 0 || moldBusy || moldResult) && (
         <CommandDialog
           icon="interference"
-          title="模流分析（Hele-Shaw 体素趋势）"
+          title="模流分析（Hele-Shaw 體素趨勢）"
           width={282}
-          okLabel={moldBusy ? '计算中…' : moldResult ? '重新运行' : '运行'}
+          okLabel={moldBusy ? '計算中…' : moldResult ? '重新運行' : '運行'}
           okDisabled={moldBusy}
-          okTip="运行充填/冷却/压力/变形趋势（Enter）— 未点浇口会自动放喺顶部中心"
+          okTip="運行充填/冷卻/壓力/變形趨勢（Enter）— 未點澆口會自動放喺頂部中心"
           onOk={() => void runMoldSolve()}
           onCancel={() => useApp.getState().clearMold()}
-          summary={<>{moldMat} · {moldGates.length} 个浇口 · 趋势着色（非商用模流精度）</>}
+          summary={<>{moldMat} · {moldGates.length} 個澆口 · 趨勢着色（非商用模流精度）</>}
         >
           {moldBusy && (
             <div style={{ marginBottom: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9aa3ad', marginBottom: 3 }}>
-                <span>⏳ {moldProgNote || '计算中'}{moldSolver ? '（求解器 · CPU 重，请稍候）' : ''}</span>
+                <span>⏳ {moldProgNote || '計算中'}{moldSolver ? '（求解器 · CPU 重，請稍候）' : ''}</span>
                 <span>{Math.round(moldProg * 100)}%</span>
               </div>
               <div style={{ height: 6, borderRadius: 3, background: '#2a2e35', overflow: 'hidden' }}>
@@ -5746,23 +5746,23 @@ export default function Viewport() {
               </div>
             </div>
           )}
-          <SelectionChip label="🎯 浇口" count={moldGates.length} hint="点零件上嘅入料位（可多个 — 出焊接线）；唔点都得，运行时自动放顶部中心" onClear={() => useApp.setState({ moldGates: [], moldMode: 1 })} />
+          <SelectionChip label="🎯 澆口" count={moldGates.length} hint="點零件上嘅入料位（可多個 — 出焊接線）；唔點都得，運行時自動放頂部中心" onClear={() => useApp.setState({ moldGates: [], moldMode: 1 })} />
           {moldGates.length > 0 && (
             <div style={{ margin: '0 0 6px', padding: '4px 6px', borderRadius: 4, background: '#1a1d22', fontSize: 11 }}>
               {moldGates.map((g, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-                  <span style={{ color: '#6b7680', width: 38 }}>浇口{i + 1}</span>
+                  <span style={{ color: '#6b7680', width: 38 }}>澆口{i + 1}</span>
                   <select value={g.type || 'edge'} title={GATE_TYPES[(g.type || 'edge') as GateType]?.note} onChange={(e) => setMoldGate(i, { type: e.target.value as GateType })} style={{ flex: 1, fontSize: 11 }}>
                     {(Object.keys(GATE_TYPES) as GateType[]).map((k) => <option key={k} value={k}>{GATE_TYPES[k].name}</option>)}
                   </select>
                   {!moldRunnerBalance && (
-                    <input type="number" min={0.1} max={10} step={0.1} value={g.flowWeight ?? 1} title="流量权重（手动流道尺寸；越大分到越多熔体）" onChange={(e) => setMoldGate(i, { flowWeight: Math.max(0.1, Number(e.target.value) || 1) })} style={{ width: 42, fontSize: 11 }} />
+                    <input type="number" min={0.1} max={10} step={0.1} value={g.flowWeight ?? 1} title="流量權重（手動流道尺寸；越大分到越多熔體）" onChange={(e) => setMoldGate(i, { flowWeight: Math.max(0.1, Number(e.target.value) || 1) })} style={{ width: 42, fontSize: 11 }} />
                   )}
                 </div>
               ))}
               {moldGates.length > 1 && (
-                <label title="自动流道平衡：按各浇口几何责任域体积分配流量 → 各区同步填满（减焊接线/困气/翘曲）。开咗就唔使手动调权重。" style={{ display: 'block', color: moldRunnerBalance ? '#2f9e44' : '#6b7680' }}>
-                  <input type="checkbox" checked={moldRunnerBalance} onChange={(e) => setMoldOpt({ moldRunnerBalance: e.target.checked })} /> ⚖ 自动流道平衡（多浇口同步填满）
+                <label title="自動流道平衡：按各澆口幾何責任域體積分配流量 → 各區同步填滿（減焊接線/困氣/翹曲）。開咗就唔使手動調權重。" style={{ display: 'block', color: moldRunnerBalance ? '#2f9e44' : '#6b7680' }}>
+                  <input type="checkbox" checked={moldRunnerBalance} onChange={(e) => setMoldOpt({ moldRunnerBalance: e.target.checked })} /> ⚖ 自動流道平衡（多澆口同步填滿）
                 </label>
               )}
             </div>
@@ -5773,25 +5773,25 @@ export default function Viewport() {
               {['ABS', 'PP', 'PC', 'PA6', 'POM', 'PMMA', 'TPU'].map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </label>
-          <label title="精细度（体素分辨率）：越高越细越准（薄壁/细节/孔），但越慢。肯等就拉右边。20≈粗 / 40≈细 / 64≈超细 / 128+≈极致 / 256=最尽（大件慎用，睇预计耗时）。运行前睇下面预计耗时。">
-            <span style={{ color: '#6b7680' }}>精细度 {moldRes}{moldRes <= 24 ? '（粗·快）' : moldRes <= 44 ? '（细）' : moldRes <= 72 ? '（超细）' : moldRes <= 160 ? '（极致·慢）' : '（最尽·好慢）'}</span>
+          <label title="精細度（體素分辨率）：越高越細越準（薄壁/細節/孔），但越慢。肯等就拉右邊。20≈粗 / 40≈細 / 64≈超細 / 128+≈極致 / 256=最盡（大件慎用，睇預計耗時）。運行前睇下面預計耗時。">
+            <span style={{ color: '#6b7680' }}>精細度 {moldRes}{moldRes <= 24 ? '（粗·快）' : moldRes <= 44 ? '（細）' : moldRes <= 72 ? '（超細）' : moldRes <= 160 ? '（極致·慢）' : '（最盡·好慢）'}</span>
             <input type="range" min={20} max={lowPower ? 96 : 256} step={4} value={moldRes} onChange={(e) => setMoldOpt({ moldRes: Number(e.target.value) })} style={{ width: 130, verticalAlign: 'middle' }} />
           </label>
-          {lowPower && <div style={{ fontSize: 10.5, color: '#2f9e44', margin: '-2px 0 6px' }}>📱 已为你设备（手机/弱机）自动调低预设 + 封顶精细度，本机计算唔卡</div>}
+          {lowPower && <div style={{ fontSize: 10.5, color: '#2f9e44', margin: '-2px 0 6px' }}>📱 已為你設備（手機/弱機）自動調低預設 + 封頂精細度，本機計算唔卡</div>}
           {moldEst && (
             <div style={{ fontSize: 11, lineHeight: 1.45, color: moldEst.sec > 120 ? '#e08000' : '#6b7680', margin: '-2px 0 6px' }}>
-              📊 预计 ≈{moldEst.nVox.toLocaleString()} 体素 · {moldSolver ? '压力求解器' : '趋势'} 约 <b>{moldEst.sec < 1 ? '<1 秒' : moldEst.sec < 90 ? Math.round(moldEst.sec) + ' 秒' : (moldEst.sec / 60).toFixed(1) + ' 分钟'}</b>
-              {moldEst.bumped ? `（薄壁自动加密到 ${moldEst.effRes}）` : ''}
-              {moldEst.sec > 120 ? ' ⚠ 较慢，确认再运行' : ''}
+              📊 預計 ≈{moldEst.nVox.toLocaleString()} 體素 · {moldSolver ? '壓力求解器' : '趨勢'} 約 <b>{moldEst.sec < 1 ? '<1 秒' : moldEst.sec < 90 ? Math.round(moldEst.sec) + ' 秒' : (moldEst.sec / 60).toFixed(1) + ' 分鐘'}</b>
+              {moldEst.bumped ? `（薄壁自動加密到 ${moldEst.effRes}）` : ''}
+              {moldEst.sec > 120 ? ' ⚠ 較慢，確認再運行' : ''}
             </div>
           )}
-          <label title="求解器：真 2.5D Hele-Shaw 压力解（耦合流动前沿 + Cross 剪切变稀黏度 + 移动边界 FVM）→ 出真 MPa 注射压力/锁模力、真 race-tracking + 焊接线/困气位置。比趋势 Dijkstra 慢（秒级），但物理真实。诚实：工程级，非商用验证级（材料系数为文献家族典型值）。" style={{ display: 'block' }}>
-            <input type="checkbox" checked={moldSolver} onChange={(e) => setMoldOpt({ moldSolver: e.target.checked })} /> <span style={{ color: moldSolver ? '#2f9e44' : '#6b7680' }}>🧪 压力求解器（真 2.5D · 出真 MPa）</span>
+          <label title="求解器：真 2.5D Hele-Shaw 壓力解（耦合流動前沿 + Cross 剪切變稀黏度 + 移動邊界 FVM）→ 出真 MPa 註射壓力/鎖模力、真 race-tracking + 焊接線/困氣位置。比趨勢 Dijkstra 慢（秒級），但物理真實。誠實：工程級，非商用驗證級（材料係數為文献家族典型值）。" style={{ display: 'block' }}>
+            <input type="checkbox" checked={moldSolver} onChange={(e) => setMoldOpt({ moldSolver: e.target.checked })} /> <span style={{ color: moldSolver ? '#2f9e44' : '#6b7680' }}>🧪 壓力求解器（真 2.5D · 出真 MPa）</span>
           </label>
           {moldSolver && (
             <>
               <label title="热耦合（Stage-2）：解能量方程（对流迎风 + 黏性耗散 η·γ̇² + 壁面导热汇）+ Cross-WLF η(γ̇,T) 温变黏度 → 长薄流程冷却令黏度升、压力需求升；前沿熔温跌穿无流动温度 → 短射风险预测。工程级（WLF/热物性系数为文献家族典型值，非牌号实测）。关 = 等温 Stage-1（逐位一致）。" style={{ display: 'block' }}>
-                <input type="checkbox" checked={moldThermal} onChange={(e) => setMoldOpt({ moldThermal: e.target.checked })} /> <span style={{ color: moldThermal ? '#2f9e44' : '#6b7680' }}>🌡 热耦合（Stage-2 温度场 · 短射预测）</span>
+                <input type="checkbox" checked={moldThermal} onChange={(e) => setMoldOpt({ moldThermal: e.target.checked })} /> <span style={{ color: moldThermal ? '#2f9e44' : '#6b7680' }}>🌡 熱耦合（Stage-2 溫度場 · 短射預測）</span>
               </label>
               {moldThermal && (() => {
                 const def = MOLD_MAT_TEMP[moldMat] || { melt: 230, mold: 60 }
@@ -5801,11 +5801,11 @@ export default function Viewport() {
                 }
                 return (
                   <div style={{ display: 'flex', gap: 10, margin: '1px 0 4px', paddingLeft: 18, fontSize: 11, color: '#6b7680' }}>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={`熔体入口温度（留空 = 材料 ${moldMat} 缺省 ${def.melt}°C）`}>
-                      熔体°C
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={`熔體入口溫度（留空 = 材料 ${moldMat} 缺省 ${def.melt}°C）`}>
+                      熔體°C
                       <input type="number" min={120} max={400} step={5} value={moldTMelt ?? ''} placeholder={String(def.melt)} onChange={onT('moldTMelt')} style={{ width: 52, fontSize: 11 }} />
                     </label>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={`模壁温度（留空 = 材料 ${moldMat} 缺省 ${def.mold}°C）`}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={`模壁溫度（留空 = 材料 ${moldMat} 缺省 ${def.mold}°C）`}>
                       模具°C
                       <input type="number" min={20} max={200} step={5} value={moldTMold ?? ''} placeholder={String(def.mold)} onChange={onT('moldTMold')} style={{ width: 52, fontSize: 11 }} />
                     </label>
@@ -5813,23 +5813,23 @@ export default function Viewport() {
                 )
               })()}
               {/* GM-P3UI：Stage-3 保压 / PVT 收缩控件 —— 直接喺 🌡热耦合 之下，同款视觉 */}
-              <label title="保压（Stage-3）：充填后行保压 + Tait 双域 PVT 体积收缩预测 → 出【缩水率】云图。保压压力升 → seal 压升 → 收缩降；远浇口 seal 压低 → 收缩高（经典缩水型态）。趋势级（文献典型系数非牌号实测，忽略取向/结晶/翘曲）。仅压力求解器模式有效。" style={{ display: 'block' }}>
-                <input type="checkbox" checked={moldPacking} onChange={(e) => setMoldOpt({ moldPacking: e.target.checked })} /> <span style={{ color: moldPacking ? '#2f9e44' : '#6b7680' }}>⏱ 保压（Stage-3 保压 / PVT 缩水预测）</span>
+              <label title="保壓（Stage-3）：充填後行保壓 + Tait 雙域 PVT 體積收縮預測 → 出【縮水率】雲圖。保壓壓力升 → seal 壓升 → 收縮降；遠澆口 seal 壓低 → 收縮高（經典縮水型態）。趨勢級（文献典型係數非牌號實測，忽略取向/結晶/翹曲）。僅壓力求解器模式有效。" style={{ display: 'block' }}>
+                <input type="checkbox" checked={moldPacking} onChange={(e) => setMoldOpt({ moldPacking: e.target.checked })} /> <span style={{ color: moldPacking ? '#2f9e44' : '#6b7680' }}>⏱ 保壓（Stage-3 保壓 / PVT 縮水預測）</span>
               </label>
               {moldPacking && (
                 <>
                   <div style={{ display: 'flex', gap: 10, margin: '1px 0 4px', paddingLeft: 18, fontSize: 11, color: '#6b7680' }}>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title="保压压力（浇口保持压力 MPa；典型 20–60）。越高越压实 → 收缩越低。传求解器前会 ×1e6 换成 Pa。">
-                      压力 MPa
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title="保壓壓力（澆口保持壓力 MPa；典型 20–60）。越高越壓實 → 收縮越低。傳求解器前會 ×1e6 換成 Pa。">
+                      壓力 MPa
                       <input type="number" min={0} max={200} step={5} value={moldPackPressure} onChange={(e) => setMoldOpt({ moldPackPressure: Math.max(0, Number(e.target.value) || 0) })} style={{ width: 52, fontSize: 11 }} />
                     </label>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title="保压时间（s；典型 2–10）。越长越多 CV 喺高压下冻结锁压 → 收缩越均勻。">
-                      时间 s
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title="保壓時間（s；典型 2–10）。越長越多 CV 喺高壓下凍結鎖壓 → 收縮越均勻。">
+                      時間 s
                       <input type="number" min={0} max={60} step={0.5} value={moldPackTime} onChange={(e) => setMoldOpt({ moldPackTime: Math.max(0, Number(e.target.value) || 0) })} style={{ width: 52, fontSize: 11 }} />
                     </label>
                   </div>
                   <div style={{ fontSize: 10.5, color: '#6b7680', paddingLeft: 18, margin: '-2px 0 4px', lineHeight: 1.4 }}>
-                    唔使开热耦合都用得：热耦合关 → 保压期由【均勻熔温】起算靠壁面导热冻结；开 → 用真末温度场（更贴近）。
+                    唔使開熱耦合都用得：熱耦合關 → 保壓期由【均勻熔溫】起算靠壁面導熱凍結；開 → 用真末溫度場（更貼近）。
                   </div>
                 </>
               )}
@@ -5845,50 +5845,50 @@ export default function Viewport() {
                   color: moldResult.moldable === 'solid' ? '#ff8088' : '#e8a020',
                 }}>
                   {moldResult.moldable === 'solid'
-                    ? <>⚠ <b>零件偏厚/实心</b>（中位壁厚 {moldResult.wallMedian.toFixed(1)}mm · 最厚 {moldResult.wallMax.toFixed(1)}mm）。注塑只适合<b>薄壁件</b>（1–4mm）—— 实心厚件实际会缩水、内部空洞、冷却超长，唔适合直接注塑。下面冷却/周期系厚段<b>上限</b>估算。<br/>建议：先用「<b>抽壳</b>」整空到 2–4mm 壁厚再分析。</>
-                    : <>⚠ <b>局部厚段</b>（最厚 {moldResult.wallMax.toFixed(1)}mm &gt; 薄壁建議 6mm）。厚位（凸台/筋根/芯部）冷却慢 + 易缩痕，周期由最厚位主导。可挖空厚位或减薄。</>}
+                    ? <>⚠ <b>零件偏厚/實心</b>（中位壁厚 {moldResult.wallMedian.toFixed(1)}mm · 最厚 {moldResult.wallMax.toFixed(1)}mm）。註塑只適合<b>薄壁件</b>（1–4mm）—— 實心厚件實際會縮水、內部空洞、冷卻超長，唔適合直接註塑。下面冷卻/周期系厚段<b>上限</b>估算。<br/>建議：先用「<b>抽殼</b>」整空到 2–4mm 壁厚再分析。</>
+                    : <>⚠ <b>局部厚段</b>（最厚 {moldResult.wallMax.toFixed(1)}mm &gt; 薄壁建議 6mm）。厚位（凸台/筋根/芯部）冷卻慢 + 易縮痕，周期由最厚位主導。可挖空厚位或減薄。</>}
                 </div>
               )}
               {/* GM-W8 β3：Stage-2 短射风险徽章（前沿熔温跌穿无流动温度而仍充填嘅体素占比） */}
               {moldResult.shortShotRisk && (
                 <div style={{ margin: '0 0 8px', padding: '6px 8px', borderRadius: 4, fontSize: 11, lineHeight: 1.45, background: 'rgba(220,53,69,0.14)', border: '1px solid #dc3545', color: '#ff8088' }}>
-                  ⚠ <b>短射风险</b>：{((moldResult.frozenFraction ?? 0) * 100).toFixed(1)}% 体素冻结（前沿熔温低于无流动温度）—— 长薄流程冷却过快。建议升熔温/模温、增大浇口、缩短流程或加浇口。
+                  ⚠ <b>短射風險</b>：{((moldResult.frozenFraction ?? 0) * 100).toFixed(1)}% 體素凍結（前沿熔溫低於無流動溫度）—— 長薄流程冷卻過快。建議升熔溫/模溫、增大澆口、縮短流程或加澆口。
                 </div>
               )}
               <label>
-                <span style={{ color: '#6b7680' }}>云图</span>
+                <span style={{ color: '#6b7680' }}>雲圖</span>
                 <select value={moldField} onChange={(e) => setMoldOpt({ moldField: e.target.value as 'fill' | 'pressure' | 'cooling' | 'warp' | 'sink' | 'shrink' })}>
-                  <option value="fill">充填时间</option>
-                  <option value="pressure">压力趋势（相对）</option>
-                  <option value="cooling">冷却时间</option>
-                  <option value="warp">变形趋势（相对）</option>
-                  <option value="sink">缩痕风险（厚壁）</option>
+                  <option value="fill">充填時間</option>
+                  <option value="pressure">壓力趨勢（相對）</option>
+                  <option value="cooling">冷卻時間</option>
+                  <option value="warp">變形趨勢（相對）</option>
+                  <option value="sink">縮痕風險（厚壁）</option>
                   {/* GM-P3UI：缩水率云图 —— 仅 Stage-3 保压有 packing 结果先列出 */}
-                  {moldResult.packing && <option value="shrink">缩水率（Stage-3 保压）</option>}
+                  {moldResult.packing && <option value="shrink">縮水率（Stage-3 保壓）</option>}
                 </select>
               </label>
               {/* GM-W8 β3：显示模式切换（仅热耦合有温度场）—— 充填时间[moldField 场] ↔ 熔体温度场 */}
               {moldResult.thermalUsed && (
                 <div style={{ margin: '2px 0', fontSize: 11 }}>
-                  <span style={{ color: '#6b7680', marginRight: 6 }}>显示</span>
+                  <span style={{ color: '#6b7680', marginRight: 6 }}>顯示</span>
                   <span style={{ display: 'inline-flex', borderRadius: 4, overflow: 'hidden', border: '1px solid #3a3e44', verticalAlign: 'middle' }}>
-                    <button type="button" onClick={() => setMoldOpt({ moldTempView: false })} title="显示所选云图场（充填时间/压力/冷却/变形/缩痕）" style={{ padding: '1px 8px', cursor: 'pointer', border: 'none', background: !moldTempView ? '#1e3a5f' : '#23272d', color: '#d8dde2', fontWeight: 600 }}>充填时间</button>
-                    <button type="button" onClick={() => setMoldOpt({ moldTempView: true })} title="显示 end-of-fill 熔体温度场：蓝=低温（接近冻结）→ 红=高温。睇边度冷得快 → 短射/焊接线弱。" style={{ padding: '1px 8px', cursor: 'pointer', border: 'none', background: moldTempView ? '#7a2020' : '#23272d', color: '#d8dde2', fontWeight: 600 }}>🌡 熔体温度</button>
+                    <button type="button" onClick={() => setMoldOpt({ moldTempView: false })} title="顯示所選雲圖場（充填時間/壓力/冷卻/變形/縮痕）" style={{ padding: '1px 8px', cursor: 'pointer', border: 'none', background: !moldTempView ? '#1e3a5f' : '#23272d', color: '#d8dde2', fontWeight: 600 }}>充填時間</button>
+                    <button type="button" onClick={() => setMoldOpt({ moldTempView: true })} title="顯示 end-of-fill 熔體溫度場：藍=低溫（接近凍結）→ 紅=高溫。睇邊度冷得快 → 短射/焊接線弱。" style={{ padding: '1px 8px', cursor: 'pointer', border: 'none', background: moldTempView ? '#7a2020' : '#23272d', color: '#d8dde2', fontWeight: 600 }}>🌡 熔體溫度</button>
                   </span>
                 </div>
               )}
-              <label title="充填动画：▶ 自动播放熔体前沿由浇口推进到末端（循环）；或拖滑杆手动 scrub（灰=胶水未到）">
+              <label title="充填動畫：▶ 自動播放熔體前沿由澆口推進到末端（循環）；或拖滑桿手動 scrub（灰=胶水未到）">
                 <button type="button" onClick={() => { const p = !moldPlaying; setMoldPlaying(p); if (p) setMoldOpt({ moldField: 'fill', moldT: 0.02 }) }}
-                  title={moldPlaying ? '暂停充填动画' : '▶ 播放充填动画（熔体前沿推进，循环）'}
+                  title={moldPlaying ? '暫停充填動畫' : '▶ 播放充填動畫（熔體前沿推進，循環）'}
                   style={{ marginRight: 6, padding: '1px 7px', borderRadius: 3, cursor: 'pointer', border: '1px solid ' + (moldPlaying ? '#4a9eff' : '#3a3e44'), background: moldPlaying ? '#1e3a5f' : '#23272d', color: '#d8dde2', fontWeight: 600 }}>{moldPlaying ? '⏸' : '▶'}</button>
                 <span style={{ color: '#6b7680' }}>充填 {Math.round(moldT * 100)}%</span>
                 <input type="range" min={0.02} max={1} step={0.02} value={moldT} onChange={(e) => { setMoldPlaying(false); setMoldOpt({ moldT: Number(e.target.value) }) }} style={{ width: 96, verticalAlign: 'middle' }} />
               </label>
-              <label title="流向线 flow line：沿熔体充填方向画箭头（蓝=近浇口/早 → 红=远端/迟），睇胶水点样流。浮喺云图之上即见。" style={{ display: 'block' }}>
-                <input type="checkbox" checked={moldFlowLines} onChange={(e) => setMoldOpt({ moldFlowLines: e.target.checked })} /> <span style={{ color: '#6b7680' }}>流向线 ➜（flow line）</span>
+              <label title="流向線 flow line：沿熔體充填方向畫箭頭（藍=近澆口/早 → 紅=遠端/遲），睇胶水點樣流。浮喺雲圖之上即見。" style={{ display: 'block' }}>
+                <input type="checkbox" checked={moldFlowLines} onChange={(e) => setMoldOpt({ moldFlowLines: e.target.checked })} /> <span style={{ color: '#6b7680' }}>流向線 ➜（flow line）</span>
               </label>
-              <label title="透明体素云：透视睇零件【内部】嘅充填流动。关=实色（转动最快）；开=半透明（睇得入但体素好多嘅大件会慢啲 — 可降「精细度」补偿）。" style={{ display: 'block' }}>
-                <input type="checkbox" checked={moldXray} onChange={(e) => setMoldOpt({ moldXray: e.target.checked })} /> <span style={{ color: '#6b7680' }}>透明（睇内部流动）· 关=实色更快</span>
+              <label title="透明體素雲：透視睇零件【內部】嘅充填流動。關=實色（轉動最快）；開=半透明（睇得入但體素好多嘅大件會慢啲 — 可降「精細度」補償）。" style={{ display: 'block' }}>
+                <input type="checkbox" checked={moldXray} onChange={(e) => setMoldOpt({ moldXray: e.target.checked })} /> <span style={{ color: '#6b7680' }}>透明（睇內部流動）· 關=實色更快</span>
               </label>
               <div style={{ fontSize: 11, lineHeight: 1.5 }}>
                 {moldTempView && moldResult.thermalUsed ? (
@@ -5896,7 +5896,7 @@ export default function Viewport() {
                   <>
                     <div style={{ height: 10, borderRadius: 3, background: 'linear-gradient(90deg,rgb(0,26,255),rgb(128,26,128),rgb(255,26,0))' }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b7680' }}>
-                      <span>{(moldResult.tMin ?? 0).toFixed(0)}°C</span><span>熔体温度</span><span>{(moldResult.tMax ?? 0).toFixed(0)}°C</span>
+                      <span>{(moldResult.tMin ?? 0).toFixed(0)}°C</span><span>熔體溫度</span><span>{(moldResult.tMax ?? 0).toFixed(0)}°C</span>
                     </div>
                   </>
                 ) : moldField === 'shrink' && moldResult.packing ? (
@@ -5904,35 +5904,35 @@ export default function Viewport() {
                   <>
                     <div style={{ height: 10, borderRadius: 3, background: 'linear-gradient(90deg,rgb(0,26,255),rgb(128,26,128),rgb(255,26,0))' }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b7680' }}>
-                      <span>{(moldResult.packing.shrinkMax * moldResult.packing.shrinkUniformity).toFixed(2)}%</span><span>缩水率</span><span>{moldResult.packing.shrinkMax.toFixed(2)}%</span>
+                      <span>{(moldResult.packing.shrinkMax * moldResult.packing.shrinkUniformity).toFixed(2)}%</span><span>縮水率</span><span>{moldResult.packing.shrinkMax.toFixed(2)}%</span>
                     </div>
                   </>
                 ) : (
                   <>
                     <div style={{ height: 10, borderRadius: 3, background: 'linear-gradient(90deg,#30123b,#28bceb,#a4fc3c,#fb7e21,#7a0403)' }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b7680' }}>
-                      <span>低</span><span>{moldField === 'fill' ? '充填时间' : moldField === 'pressure' ? '压力趋势' : moldField === 'cooling' ? '冷却时间' : moldField === 'sink' ? '缩痕风险' : '变形趋势'}</span><span>高</span>
+                      <span>低</span><span>{moldField === 'fill' ? '充填時間' : moldField === 'pressure' ? '壓力趨勢' : moldField === 'cooling' ? '冷卻時間' : moldField === 'sink' ? '縮痕風險' : '變形趨勢'}</span><span>高</span>
                     </div>
                   </>
                 )}
                 <div style={{ color: '#6b7680' }}>
                   {/* #87 GM-L2：显示【实际】用嘅体素分辨率（薄壁自动加密后真值 resActual），唔再净印用户请求值 —— 体素数对得返。 */}
-                  注射≈{fmtSec(moldResult.tFill)} · 冷却≈{fmtSec(moldResult.tCool)} · 周期≈{fmtSec(moldResult.cycle)} · {moldResult.nVox} 体素（分辨率 {moldResult.resActual}{moldResult.resActual > moldRes ? `，自动加密自 ${moldRes}` : ''}）
+                  註射≈{fmtSec(moldResult.tFill)} · 冷卻≈{fmtSec(moldResult.tCool)} · 周期≈{fmtSec(moldResult.cycle)} · {moldResult.nVox} 體素（分辨率 {moldResult.resActual}{moldResult.resActual > moldRes ? `，自動加密自 ${moldRes}` : ''}）
                 </div>
                 <div style={{ color: '#6b7680' }}>
                   壁厚：中位 {moldResult.wallMedian.toFixed(1)}mm · 最厚 {moldResult.wallMax.toFixed(1)}mm
                 </div>
                 {moldResult.solverUsed && (
-                  <div style={{ color: '#2f9e44' }}>🧪 求解器：峰值压力 ≈{moldResult.pPeakMPa.toFixed(1)} MPa · 锁模力 ≈{moldResult.clampForceKN.toFixed(0)} kN（同阶估算）</div>
+                  <div style={{ color: '#2f9e44' }}>🧪 求解器：峰值壓力 ≈{moldResult.pPeakMPa.toFixed(1)} MPa · 鎖模力 ≈{moldResult.clampForceKN.toFixed(0)} kN（同階估算）</div>
                 )}
                 {moldResult.thermalUsed && (
                   // GM-W8 β3：Stage-2 热耦合诚实注记（完整假设已附入 warnings/报告；此为面板精简一行）
-                  <div style={{ color: '#e08a20' }}>🌡 热耦合 Stage-2：熔温 {(moldResult.tMin ?? 0).toFixed(0)}–{(moldResult.tMax ?? 0).toFixed(0)}°C · 能量方程 + Cross-WLF η(γ̇,T)（工程级，文献典型系数非牌号实测）</div>
+                  <div style={{ color: '#e08a20' }}>🌡 熱耦合 Stage-2：熔溫 {(moldResult.tMin ?? 0).toFixed(0)}–{(moldResult.tMax ?? 0).toFixed(0)}°C · 能量方程 + Cross-WLF η(γ̇,T)（工程級，文献典型係數非牌號實測）</div>
                 )}
                 {moldResult.packing && (
                   // GM-P3UI：Stage-3 保压 / PVT 收缩摘要 —— 平均/最大/均勻度 徽章 + packTraceNote 诚实小注（切「缩水率」云图睇分布）
                   <div style={{ color: '#3aa8c0' }}>
-                    ⏱ 保压 Stage-3：平均缩水 {moldResult.packing.shrinkAvg.toFixed(2)}% · 最大 {moldResult.packing.shrinkMax.toFixed(2)}% · 均勻度 {(moldResult.packing.shrinkUniformity * 100).toFixed(0)}%
+                    ⏱ 保壓 Stage-3：平均縮水 {moldResult.packing.shrinkAvg.toFixed(2)}% · 最大 {moldResult.packing.shrinkMax.toFixed(2)}% · 均勻度 {(moldResult.packing.shrinkUniformity * 100).toFixed(0)}%
                     <div style={{ color: '#6b7680', fontSize: 10.5, lineHeight: 1.4, marginTop: 1 }}>{moldResult.packing.packTraceNote}</div>
                   </div>
                 )}
@@ -5940,23 +5940,23 @@ export default function Viewport() {
                   <div style={{ margin: '3px 0', padding: '4px 6px', borderRadius: 4, background: '#1a1d22' }}>
                     {moldResult.gateStats.length > 1 && (
                       <div style={{ color: moldResult.balanced ? '#2f9e44' : '#9aa3ad', marginBottom: 2 }}>
-                        ⚖ 流道{moldResult.balanced ? '平衡（开）' : '（均分/手动）'} · 充填不平衡度 {(moldResult.fillImbalance * 100).toFixed(0)}%{moldResult.fillImbalance > 0.15 && !moldResult.balanced ? '（可开平衡改善）' : ''}
+                        ⚖ 流道{moldResult.balanced ? '平衡（開）' : '（均分/手動）'} · 充填不平衡度 {(moldResult.fillImbalance * 100).toFixed(0)}%{moldResult.fillImbalance > 0.15 && !moldResult.balanced ? '（可開平衡改善）' : ''}
                       </div>
                     )}
                     {moldResult.gateStats.map((g, i) => (
                       <div key={i} style={{ color: '#8a93a0' }}>
-                        浇口{i + 1}：{GATE_TYPES[g.type]?.name || g.type} · 流量 {(g.flowFrac * 100).toFixed(0)}%{moldResult.solverUsed ? ` · 注射 ${g.pInjMPa.toFixed(1)} MPa（浇口降 ${g.gateDpMPa.toFixed(1)}）· 末 ${g.fillEnd.toFixed(2)}s` : ` · 责任域 ${g.domainVox} 体素`}
+                        澆口{i + 1}：{GATE_TYPES[g.type]?.name || g.type} · 流量 {(g.flowFrac * 100).toFixed(0)}%{moldResult.solverUsed ? ` · 註射 ${g.pInjMPa.toFixed(1)} MPa（澆口降 ${g.gateDpMPa.toFixed(1)}）· 末 ${g.fillEnd.toFixed(2)}s` : ` · 責任域 ${g.domainVox} 體素`}
                       </div>
                     ))}
                   </div>
                 )}
-                <div style={{ color: '#a428c9' }}>紫红 = 焊接线（两股前沿汇合 — 留意外观/强度）</div>
-                <div style={{ color: '#e08000' }}>橙 = 困气/最后充填点（前沿终止 — 建议加排气槽防烧焦/短射）</div>
-                {moldField === 'fill' && moldResult.unreached && (() => { let u = 0; const arr = moldResult.unreached; for (let i = 0; i < arr.length; i++) if (arr[i]) u++; return u > 0 ? <div style={{ color: '#8b95a1', fontWeight: 600 }}>灰 = 前沿完全到唔到（{u} 体素 · 孤岛/窄缝断连）— 该区唔会被填。提高「精细度」，或检查薄连接是否真正接合（红色只係填得迟，唔同灰色）</div> : null })()}
+                <div style={{ color: '#a428c9' }}>紫紅 = 焊接線（兩股前沿汇合 — 留意外觀/強度）</div>
+                <div style={{ color: '#e08000' }}>橙 = 困氣/最後充填點（前沿終止 — 建議加排氣槽防燒焦/短射）</div>
+                {moldField === 'fill' && moldResult.unreached && (() => { let u = 0; const arr = moldResult.unreached; for (let i = 0; i < arr.length; i++) if (arr[i]) u++; return u > 0 ? <div style={{ color: '#8b95a1', fontWeight: 600 }}>灰 = 前沿完全到唔到（{u} 體素 · 孤島/窄縫斷連）— 該區唔會被填。提高「精細度」，或檢查薄連接是否真正接合（紅色只係填得遲，唔同灰色）</div> : null })()}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-                  <button className="cs-btn" title="导出俯视充填流动动画（fill-time 进程图）做 GIF — 前沿白、焊接线紫红、困气橙、浇口青" onClick={() => useApp.getState().exportMoldGif()}>🎞 充填动画 GIF</button>
-                  <button className="cs-btn" title="导出 PDF 报告：充填热图 + 注射压力/时间/冷却/周期 + 建议机台吨位/锁模力 + 焊接线/困气/缩痕 + 诚实声明" onClick={() => useApp.getState().exportMoldPdf()}>📄 PDF 报告</button>
-                  <button className="cs-btn" title="导出纯文字趋势报告 .txt" onClick={() => useApp.getState().downloadMoldReport()}>📄 .txt</button>
+                  <button className="cs-btn" title="匯出俯視充填流動動畫（fill-time 進程圖）做 GIF — 前沿白、焊接線紫紅、困氣橙、澆口青" onClick={() => useApp.getState().exportMoldGif()}>🎞 充填動畫 GIF</button>
+                  <button className="cs-btn" title="匯出 PDF 報告：充填熱圖 + 註射壓力/時間/冷卻/周期 + 建議機台吨位/鎖模力 + 焊接線/困氣/縮痕 + 誠實聲明" onClick={() => useApp.getState().exportMoldPdf()}>📄 PDF 報告</button>
+                  <button className="cs-btn" title="匯出純文字趨勢報告 .txt" onClick={() => useApp.getState().downloadMoldReport()}>📄 .txt</button>
                 </div>
               </div>
             </>
@@ -6096,23 +6096,23 @@ export default function Viewport() {
       )}
 
       {latheDlg && (
-        <CommandDialog icon="default" title="CNC 车削刀路（2 轴）" onOk={() => { void useApp.getState().exportLatheGcode(); useApp.getState().closeLatheDlg() }} onCancel={() => useApp.getState().closeLatheDlg()}>
-          <label title="操作：外圆车削 = 毛坯分层径向进刀车到轮廓 + 末刀精车；端面 = 车平右端面；切槽 = 指定 Z 径向切槽">操作 <select value={latheOpts.op} onChange={(e) => useApp.getState().setLatheOpts({ op: e.target.value as 'turn' | 'face' | 'groove' })} style={{ height: 26 }}><option value="turn">外圆车削</option><option value="face">端面</option><option value="groove">切槽</option></select></label>
-          <label title="毛坯圆棒直径 mm（X 全程按直径出）">毛坯Ø <input type="number" step={1} min={1} value={latheOpts.stockD} onChange={(e) => useApp.getState().setLatheOpts({ stockD: Number(e.target.value) })} style={{ width: 52 }} /></label>
-          <label title="每刀径向切深 mm（半径方向）">切深 <input type="number" step={0.2} min={0.1} value={latheOpts.doc} onChange={(e) => useApp.getState().setLatheOpts({ doc: Number(e.target.value) })} style={{ width: 46 }} /></label>
-          <label title="切削进给 mm/min">进给 <input type="number" step={10} min={5} value={latheOpts.feed} onChange={(e) => useApp.getState().setLatheOpts({ feed: Number(e.target.value) })} style={{ width: 50 }} /></label>
-          <label title="主轴转速 S（M3）">转速 <input type="number" step={100} min={100} value={latheOpts.rpm} onChange={(e) => useApp.getState().setLatheOpts({ rpm: Number(e.target.value) })} style={{ width: 54 }} /></label>
-          <label title="安全退刀直径 mm（要 > 毛坯Ø）">安全Ø <input type="number" step={1} value={latheOpts.safeX} onChange={(e) => useApp.getState().setLatheOpts({ safeX: Number(e.target.value) })} style={{ width: 46 }} /></label>
-          {latheOpts.op === 'turn' && <label title="精车留量 mm（最后一刀光车到尺寸）">精留 <input type="number" step={0.1} min={0} value={latheOpts.finishStep} onChange={(e) => useApp.getState().setLatheOpts({ finishStep: Number(e.target.value) })} style={{ width: 42 }} /></label>}
-          {latheOpts.op === 'groove' && <><label title="槽中心 Z mm（右端面为 0,向左负）">槽Z <input type="number" step={1} value={latheOpts.grooveZ} onChange={(e) => useApp.getState().setLatheOpts({ grooveZ: Number(e.target.value) })} style={{ width: 46 }} /></label><label title="槽宽 mm">槽宽 <input type="number" step={0.5} min={0.5} value={latheOpts.grooveW} onChange={(e) => useApp.getState().setLatheOpts({ grooveW: Number(e.target.value) })} style={{ width: 42 }} /></label><label title="槽深 mm（径向）">槽深 <input type="number" step={0.5} min={0.5} value={latheOpts.grooveDepth} onChange={(e) => useApp.getState().setLatheOpts({ grooveDepth: Number(e.target.value) })} style={{ width: 42 }} /></label></>}
-          <span style={{ fontSize: 11, color: '#8a97a2' }}>💡 折线半轮廓：X 向右=轴向、Y 向上=半径</span>
+        <CommandDialog icon="default" title="CNC 車削刀路（2 軸）" onOk={() => { void useApp.getState().exportLatheGcode(); useApp.getState().closeLatheDlg() }} onCancel={() => useApp.getState().closeLatheDlg()}>
+          <label title="操作：外圓車削 = 毛坯分層徑向進刀車到輪廓 + 末刀精車；端面 = 車平右端面；切槽 = 指定 Z 徑向切槽">操作 <select value={latheOpts.op} onChange={(e) => useApp.getState().setLatheOpts({ op: e.target.value as 'turn' | 'face' | 'groove' })} style={{ height: 26 }}><option value="turn">外圓車削</option><option value="face">端面</option><option value="groove">切槽</option></select></label>
+          <label title="毛坯圓棒直徑 mm（X 全程按直徑出）">毛坯Ø <input type="number" step={1} min={1} value={latheOpts.stockD} onChange={(e) => useApp.getState().setLatheOpts({ stockD: Number(e.target.value) })} style={{ width: 52 }} /></label>
+          <label title="每刀徑向切深 mm（半徑方向）">切深 <input type="number" step={0.2} min={0.1} value={latheOpts.doc} onChange={(e) => useApp.getState().setLatheOpts({ doc: Number(e.target.value) })} style={{ width: 46 }} /></label>
+          <label title="切削進給 mm/min">進給 <input type="number" step={10} min={5} value={latheOpts.feed} onChange={(e) => useApp.getState().setLatheOpts({ feed: Number(e.target.value) })} style={{ width: 50 }} /></label>
+          <label title="主軸轉速 S（M3）">轉速 <input type="number" step={100} min={100} value={latheOpts.rpm} onChange={(e) => useApp.getState().setLatheOpts({ rpm: Number(e.target.value) })} style={{ width: 54 }} /></label>
+          <label title="安全退刀直徑 mm（要 > 毛坯Ø）">安全Ø <input type="number" step={1} value={latheOpts.safeX} onChange={(e) => useApp.getState().setLatheOpts({ safeX: Number(e.target.value) })} style={{ width: 46 }} /></label>
+          {latheOpts.op === 'turn' && <label title="精車留量 mm（最後一刀光車到尺寸）">精留 <input type="number" step={0.1} min={0} value={latheOpts.finishStep} onChange={(e) => useApp.getState().setLatheOpts({ finishStep: Number(e.target.value) })} style={{ width: 42 }} /></label>}
+          {latheOpts.op === 'groove' && <><label title="槽中心 Z mm（右端面為 0,向左負）">槽Z <input type="number" step={1} value={latheOpts.grooveZ} onChange={(e) => useApp.getState().setLatheOpts({ grooveZ: Number(e.target.value) })} style={{ width: 46 }} /></label><label title="槽寬 mm">槽寬 <input type="number" step={0.5} min={0.5} value={latheOpts.grooveW} onChange={(e) => useApp.getState().setLatheOpts({ grooveW: Number(e.target.value) })} style={{ width: 42 }} /></label><label title="槽深 mm（徑向）">槽深 <input type="number" step={0.5} min={0.5} value={latheOpts.grooveDepth} onChange={(e) => useApp.getState().setLatheOpts({ grooveDepth: Number(e.target.value) })} style={{ width: 42 }} /></label></>}
+          <span style={{ fontSize: 11, color: '#8a97a2' }}>💡 折線半輪廓：X 向右=軸向、Y 向上=半徑</span>
         </CommandDialog>
       )}
       {millDlg && (
-        <CommandDialog icon="default" title="CNC 铣削刀路（2.5D）" onOk={() => { void useApp.getState().exportMillGcode(); useApp.getState().closeMillDlg() }} onCancel={() => useApp.getState().closeMillDlg()}>
-          <label title="操作：轮廓切穿 = 沿轮廓外/孔内刀补切到底；挖槽 = 同心环清空轮廓内部；面铣 = raster 清顶面（S94）；钻孔 = 啄钻 ≤刀径嘅圆">操作 <select value={millOpts.op} onChange={(e) => useApp.getState().setMillOpts({ op: e.target.value as 'contour' | 'pocket' | 'drill' | 'face' })} style={{ height: 26 }}><option value="contour">轮廓切穿</option><option value="pocket">挖槽</option><option value="face">面铣</option><option value="drill">钻孔</option></select></label>
-          {millOpts.op === 'drill' && <label title="后处理方言：GRBL = 手动展开啄钻（3018/Shapeoko）；标准 canned = G81/G83 循环（Fanuc/Haas 等工业机，GRBL 唔识）">后处理 <select value={millOpts.post || 'grbl'} onChange={(e) => useApp.getState().setMillOpts({ post: e.target.value as 'grbl' | 'canned' })} style={{ height: 26 }}><option value="grbl">GRBL 展开</option><option value="canned">标准 G81/G83</option></select></label>}
-          <label title="材料预设（3018/Shapeoko 级起步参考值 — 务必废料试切！）">预设 <select defaultValue="" onChange={(e) => {
+        <CommandDialog icon="default" title="CNC 銑削刀路（2.5D）" onOk={() => { void useApp.getState().exportMillGcode(); useApp.getState().closeMillDlg() }} onCancel={() => useApp.getState().closeMillDlg()}>
+          <label title="操作：輪廓切穿 = 沿輪廓外/孔內刀補切到底；挖槽 = 同心環清空輪廓內部；面銑 = raster 清頂面（S94）；鑽孔 = 啄鑽 ≤刀徑嘅圓">操作 <select value={millOpts.op} onChange={(e) => useApp.getState().setMillOpts({ op: e.target.value as 'contour' | 'pocket' | 'drill' | 'face' })} style={{ height: 26 }}><option value="contour">輪廓切穿</option><option value="pocket">挖槽</option><option value="face">面銑</option><option value="drill">鑽孔</option></select></label>
+          {millOpts.op === 'drill' && <label title="後處理方言：GRBL = 手動展開啄鑽（3018/Shapeoko）；標準 canned = G81/G83 循環（Fanuc/Haas 等工業機，GRBL 唔識）">後處理 <select value={millOpts.post || 'grbl'} onChange={(e) => useApp.getState().setMillOpts({ post: e.target.value as 'grbl' | 'canned' })} style={{ height: 26 }}><option value="grbl">GRBL 展開</option><option value="canned">標準 G81/G83</option></select></label>}
+          <label title="材料預設（3018/Shapeoko 級起步參考值 — 務必廢料試切！）">預設 <select defaultValue="" onChange={(e) => {
             const P: Record<string, Partial<typeof millOpts>> = {
               ply: { feedXY: 600, feedZ: 200, rpm: 9000, stepdown: 2 },      // 椴木/软木
               hw: { feedXY: 400, feedZ: 120, rpm: 9000, stepdown: 1.2 },    // 硬木
@@ -6121,27 +6121,27 @@ export default function Viewport() {
               pom: { feedXY: 500, feedZ: 150, rpm: 8500, stepdown: 1.5 },   // POM/塑料
             }
             if (P[e.target.value]) useApp.getState().setMillOpts(P[e.target.value])
-          }} style={{ height: 26 }}><option value="">自定义</option><option value="ply">椴木/软木</option><option value="hw">硬木</option><option value="acr">亚克力</option><option value="alu">铝 6061</option><option value="pom">POM 塑料</option></select></label>
-          <label title="刀径 mm（默认 3.175 = 1/8 吋直柄铣刀）— 刀补按呢个算">刀Ø <input type="number" step={0.5} min={0.5} value={millOpts.toolD} onChange={(e) => useApp.getState().setMillOpts({ toolD: Number(e.target.value) })} style={{ width: 50 }} /></label>
-          <label title="总切深 mm（切穿板就设 = 板厚 + 0.2）">总深 <input type="number" step={0.5} min={0.2} value={millOpts.depth} onChange={(e) => useApp.getState().setMillOpts({ depth: Number(e.target.value) })} style={{ width: 48 }} /></label>
-          <label title="每层切深 mm（业余机经验 ≤ 刀径一半；铝要 0.2-0.4）">每层 <input type="number" step={0.2} min={0.1} value={millOpts.stepdown} onChange={(e) => useApp.getState().setMillOpts({ stepdown: Number(e.target.value) })} style={{ width: 48 }} /></label>
-          <label title="XY 切削进给 mm/min">进给 <input type="number" step={50} min={10} value={millOpts.feedXY} onChange={(e) => useApp.getState().setMillOpts({ feedXY: Number(e.target.value) })} style={{ width: 54 }} /></label>
-          <label title="Z 下刀进给 mm/min（直插 — 一般 = XY 嘅 1/3）">下刀 <input type="number" step={20} min={10} value={millOpts.feedZ} onChange={(e) => useApp.getState().setMillOpts({ feedZ: Number(e.target.value) })} style={{ width: 50 }} /></label>
-          <label title="主轴转速 S 字（M3）">转速 <input type="number" step={500} min={1000} value={millOpts.rpm} onChange={(e) => useApp.getState().setMillOpts({ rpm: Number(e.target.value) })} style={{ width: 56 }} /></label>
-          <label title="安全高度 mm（快移层）">安Z <input type="number" step={1} min={1} value={millOpts.safeZ} onChange={(e) => useApp.getState().setMillOpts({ safeZ: Number(e.target.value) })} style={{ width: 40 }} /></label>
-          {(millOpts.op === 'pocket' || millOpts.op === 'face') && <label title="相邻行/环距 mm（一般 = 刀径 40-50%）">行距 <input type="number" step={0.2} min={0.5} value={millOpts.stepover} onChange={(e) => useApp.getState().setMillOpts({ stepover: Number(e.target.value) })} style={{ width: 48 }} /></label>}
-          {millOpts.op === 'contour' && <label title="留料桥数（切穿时防止工件飞出 — 0 = 唔留；桥高 1mm 长 6mm，完工手锯断）">料桥 <input type="number" step={1} min={0} max={8} value={millOpts.tabs} onChange={(e) => useApp.getState().setMillOpts({ tabs: Number(e.target.value) })} style={{ width: 40 }} /></label>}
-          <button className="cs-btn" title="👁 出 G-code 前先睇刀路（顶视图 — 快移虚线、切削按深度着色）" onClick={() => void useApp.getState().previewGcode('mill')}>👁 预览刀路</button>
+          }} style={{ height: 26 }}><option value="">自定義</option><option value="ply">椴木/軟木</option><option value="hw">硬木</option><option value="acr">亚克力</option><option value="alu">鋁 6061</option><option value="pom">POM 塑料</option></select></label>
+          <label title="刀徑 mm（預設 3.175 = 1/8 吋直柄銑刀）— 刀補按呢個算">刀Ø <input type="number" step={0.5} min={0.5} value={millOpts.toolD} onChange={(e) => useApp.getState().setMillOpts({ toolD: Number(e.target.value) })} style={{ width: 50 }} /></label>
+          <label title="總切深 mm（切穿板就設 = 板厚 + 0.2）">總深 <input type="number" step={0.5} min={0.2} value={millOpts.depth} onChange={(e) => useApp.getState().setMillOpts({ depth: Number(e.target.value) })} style={{ width: 48 }} /></label>
+          <label title="每層切深 mm（業餘機經驗 ≤ 刀徑一半；鋁要 0.2-0.4）">每層 <input type="number" step={0.2} min={0.1} value={millOpts.stepdown} onChange={(e) => useApp.getState().setMillOpts({ stepdown: Number(e.target.value) })} style={{ width: 48 }} /></label>
+          <label title="XY 切削進給 mm/min">進給 <input type="number" step={50} min={10} value={millOpts.feedXY} onChange={(e) => useApp.getState().setMillOpts({ feedXY: Number(e.target.value) })} style={{ width: 54 }} /></label>
+          <label title="Z 下刀進給 mm/min（直插 — 一般 = XY 嘅 1/3）">下刀 <input type="number" step={20} min={10} value={millOpts.feedZ} onChange={(e) => useApp.getState().setMillOpts({ feedZ: Number(e.target.value) })} style={{ width: 50 }} /></label>
+          <label title="主軸轉速 S 字（M3）">轉速 <input type="number" step={500} min={1000} value={millOpts.rpm} onChange={(e) => useApp.getState().setMillOpts({ rpm: Number(e.target.value) })} style={{ width: 56 }} /></label>
+          <label title="安全高度 mm（快移層）">安Z <input type="number" step={1} min={1} value={millOpts.safeZ} onChange={(e) => useApp.getState().setMillOpts({ safeZ: Number(e.target.value) })} style={{ width: 40 }} /></label>
+          {(millOpts.op === 'pocket' || millOpts.op === 'face') && <label title="相鄰行/環距 mm（一般 = 刀徑 40-50%）">行距 <input type="number" step={0.2} min={0.5} value={millOpts.stepover} onChange={(e) => useApp.getState().setMillOpts({ stepover: Number(e.target.value) })} style={{ width: 48 }} /></label>}
+          {millOpts.op === 'contour' && <label title="留料橋數（切穿時防止工件飛出 — 0 = 唔留；橋高 1mm 長 6mm，完工手鋸斷）">料橋 <input type="number" step={1} min={0} max={8} value={millOpts.tabs} onChange={(e) => useApp.getState().setMillOpts({ tabs: Number(e.target.value) })} style={{ width: 40 }} /></label>}
+          <button className="cs-btn" title="👁 出 G-code 前先睇刀路（頂視圖 — 快移虛線、切削按深度着色）" onClick={() => void useApp.getState().previewGcode('mill')}>👁 預覽刀路</button>
         </CommandDialog>
       )}
       {finish3dDlg && (
-        <CommandDialog icon="section" title={finish3dOpts.strategy === 'rough' ? 'CNC 3D 粗加工（平端逐层挖槽）' : 'CNC 3D 平行精加工（球头）'} onOk={() => { void useApp.getState().runFinish3d('download') }} onCancel={() => useApp.getState().closeFinish3dDlg()}>
-          <div style={{ fontSize: 11, color: '#8a5a00', marginBottom: 6, gridColumn: '1 / -1' }}>⚠ 趋势级刀路预览 / G-code 导出 — 非完整制造工作区（无刀库、夹具、碰撞仿真、真机）。需要活动实体；纯网格请先 MeshFit。</div>
-          <label title="精加工 = 球头 raster 落刀贴面；粗加工 = 平端逐层清料留余量。Fusion 工作流：先粗后精。">策略 <select value={finish3dOpts.strategy} onChange={(e) => useApp.getState().setFinish3dOpts({ strategy: e.target.value as 'finish' | 'rough' })} style={{ height: 26 }}><option value="finish">精加工（球头平行）</option><option value="rough">粗加工（逐层挖槽）</option></select></label>
-          <div style={{ fontSize: 11, color: '#6b7680', maxWidth: 240 }}>{finish3dOpts.strategy === 'rough' ? '平端刀逐层（每层切深）清除毛坯里高过零件嘅料，留余量畀精加工。' : '球头 raster 落刀贴面（z-map 防过切）。曲面/有机件最显效。'}安全高 = 顶面 + 下面值。</div>
-          {finish3dOpts.strategy === 'rough' && <label title="轴向每层切深 mm（粗加工分层）">每层 <input type="number" step={0.5} min={0.2} value={finish3dOpts.stepdown} onChange={(e) => useApp.getState().setFinish3dOpts({ stepdown: Number(e.target.value) })} style={{ width: 50 }} /></label>}
-          {finish3dOpts.strategy === 'rough' && <label title="留畀精加工嘅余量 mm（粗加工唔切到呢个距离内）">余量 <input type="number" step={0.1} min={0} value={finish3dOpts.allowance} onChange={(e) => useApp.getState().setFinish3dOpts({ allowance: Number(e.target.value) })} style={{ width: 50 }} /></label>}
-          <label title="材料/光洁度预设（GRBL 业余机起步参考 — 务必废料试切）">预设 <select defaultValue="" onChange={(e) => {
+        <CommandDialog icon="section" title={finish3dOpts.strategy === 'rough' ? 'CNC 3D 粗加工（平端逐層挖槽）' : 'CNC 3D 平行精加工（球頭）'} onOk={() => { void useApp.getState().runFinish3d('download') }} onCancel={() => useApp.getState().closeFinish3dDlg()}>
+          <div style={{ fontSize: 11, color: '#8a5a00', marginBottom: 6, gridColumn: '1 / -1' }}>⚠ 趨勢級刀路預覽 / G-code 匯出 — 非完整製造工作區（無刀庫、夾具、碰撞仿真、真機）。需要活動實體；純網格請先 MeshFit。</div>
+          <label title="精加工 = 球頭 raster 落刀貼面；粗加工 = 平端逐層清料留餘量。Fusion 工作流：先粗後精。">策略 <select value={finish3dOpts.strategy} onChange={(e) => useApp.getState().setFinish3dOpts({ strategy: e.target.value as 'finish' | 'rough' })} style={{ height: 26 }}><option value="finish">精加工（球頭平行）</option><option value="rough">粗加工（逐層挖槽）</option></select></label>
+          <div style={{ fontSize: 11, color: '#6b7680', maxWidth: 240 }}>{finish3dOpts.strategy === 'rough' ? '平端刀逐層（每層切深）清除毛坯裏高過零件嘅料，留餘量畀精加工。' : '球頭 raster 落刀貼面（z-map 防過切）。曲面/有機件最顯效。'}安全高 = 頂面 + 下面值。</div>
+          {finish3dOpts.strategy === 'rough' && <label title="軸向每層切深 mm（粗加工分層）">每層 <input type="number" step={0.5} min={0.2} value={finish3dOpts.stepdown} onChange={(e) => useApp.getState().setFinish3dOpts({ stepdown: Number(e.target.value) })} style={{ width: 50 }} /></label>}
+          {finish3dOpts.strategy === 'rough' && <label title="留畀精加工嘅餘量 mm（粗加工唔切到呢個距離內）">餘量 <input type="number" step={0.1} min={0} value={finish3dOpts.allowance} onChange={(e) => useApp.getState().setFinish3dOpts({ allowance: Number(e.target.value) })} style={{ width: 50 }} /></label>}
+          <label title="材料/光潔度預設（GRBL 業餘機起步參考 — 務必廢料試切）">預設 <select defaultValue="" onChange={(e) => {
             const P: Record<string, Partial<typeof finish3dOpts>> = {
               fine: { stepover: 0.4, feedXY: 800, rpm: 12000 },   // 精（光洁，慢）
               med: { stepover: 0.8, feedXY: 600, rpm: 10000 },    // 中
@@ -6149,14 +6149,14 @@ export default function Viewport() {
               wood: { stepover: 0.6, feedXY: 1000, rpm: 12000 },  // 木雕
             }
             if (P[e.target.value]) useApp.getState().setFinish3dOpts(P[e.target.value])
-          }} style={{ height: 26 }}><option value="">自定义</option><option value="fine">精修(光洁)</option><option value="med">中</option><option value="rough">粗(快)</option><option value="wood">木雕</option></select></label>
-          <label title="刀具【直径】mm（精=球头 / 粗=平端）— 半径决定 footprint 同行距">刀Ø <input type="number" step={0.5} min={0.5} value={finish3dOpts.toolD} onChange={(e) => useApp.getState().setFinish3dOpts({ toolD: Number(e.target.value) })} style={{ width: 50 }} /></label>
-          <label title="行距 mm（Y 方向相邻 raster 线距）— 越细越光但越慢，典型 0.1~0.4× 刀径">行距 <input type="number" step={0.1} min={0.05} value={finish3dOpts.stepover} onChange={(e) => useApp.getState().setFinish3dOpts({ stepover: Number(e.target.value) })} style={{ width: 50 }} /></label>
-          <label title="XY 切削进给 mm/min">进给 <input type="number" step={50} min={10} value={finish3dOpts.feedXY} onChange={(e) => useApp.getState().setFinish3dOpts({ feedXY: Number(e.target.value) })} style={{ width: 54 }} /></label>
-          <label title="Z 下刀进给 mm/min（进料/抬刀间下扎）">下刀 <input type="number" step={20} min={10} value={finish3dOpts.feedZ} onChange={(e) => useApp.getState().setFinish3dOpts({ feedZ: Number(e.target.value) })} style={{ width: 50 }} /></label>
-          <label title="主轴转速 S 字（M3）">转速 <input type="number" step={500} min={1000} value={finish3dOpts.rpm} onChange={(e) => useApp.getState().setFinish3dOpts({ rpm: Number(e.target.value) })} style={{ width: 56 }} /></label>
-          <label title="安全余量高 mm（加到顶面之上做快移层）">安Z <input type="number" step={1} min={1} value={finish3dOpts.safeZ} onChange={(e) => useApp.getState().setFinish3dOpts({ safeZ: Number(e.target.value) })} style={{ width: 40 }} /></label>
-          <button className="cs-btn" title="👁 出 G-code 前先睇刀路（顶视图 — 快移虚线、切削按深度着色）" onClick={() => void useApp.getState().runFinish3d('preview')}>👁 预览刀路</button>
+          }} style={{ height: 26 }}><option value="">自定義</option><option value="fine">精修(光潔)</option><option value="med">中</option><option value="rough">粗(快)</option><option value="wood">木雕</option></select></label>
+          <label title="刀具【直徑】mm（精=球頭 / 粗=平端）— 半徑決定 footprint 同行距">刀Ø <input type="number" step={0.5} min={0.5} value={finish3dOpts.toolD} onChange={(e) => useApp.getState().setFinish3dOpts({ toolD: Number(e.target.value) })} style={{ width: 50 }} /></label>
+          <label title="行距 mm（Y 方向相鄰 raster 線距）— 越細越光但越慢，典型 0.1~0.4× 刀徑">行距 <input type="number" step={0.1} min={0.05} value={finish3dOpts.stepover} onChange={(e) => useApp.getState().setFinish3dOpts({ stepover: Number(e.target.value) })} style={{ width: 50 }} /></label>
+          <label title="XY 切削進給 mm/min">進給 <input type="number" step={50} min={10} value={finish3dOpts.feedXY} onChange={(e) => useApp.getState().setFinish3dOpts({ feedXY: Number(e.target.value) })} style={{ width: 54 }} /></label>
+          <label title="Z 下刀進給 mm/min（進料/抬刀間下扎）">下刀 <input type="number" step={20} min={10} value={finish3dOpts.feedZ} onChange={(e) => useApp.getState().setFinish3dOpts({ feedZ: Number(e.target.value) })} style={{ width: 50 }} /></label>
+          <label title="主軸轉速 S 字（M3）">轉速 <input type="number" step={500} min={1000} value={finish3dOpts.rpm} onChange={(e) => useApp.getState().setFinish3dOpts({ rpm: Number(e.target.value) })} style={{ width: 56 }} /></label>
+          <label title="安全餘量高 mm（加到頂面之上做快移層）">安Z <input type="number" step={1} min={1} value={finish3dOpts.safeZ} onChange={(e) => useApp.getState().setFinish3dOpts({ safeZ: Number(e.target.value) })} style={{ width: 40 }} /></label>
+          <button className="cs-btn" title="👁 出 G-code 前先睇刀路（頂視圖 — 快移虛線、切削按深度着色）" onClick={() => void useApp.getState().runFinish3d('preview')}>👁 預覽刀路</button>
         </CommandDialog>
       )}
 
@@ -8054,7 +8054,7 @@ export default function Viewport() {
       {bomDialog && (
         <div role="dialog" aria-label="BOM" className="cmd-palette" style={{ position: 'fixed', left: '50%', top: 'min(120px, 14vh)', transform: 'translateX(-50%)', width: 'min(720px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: 220, maxHeight: 'calc(78vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column', background: '#fff', border: '1px solid #b6c0c9', borderRadius: 10, boxShadow: '0 12px 40px rgba(0,0,0,.28)', padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <b style={{ fontSize: 14 }}>📋 {tStatus('BOM 材料清单', lang)}</b>
+            <b style={{ fontSize: 14 }}>📋 {tStatus('BOM 材料清單', lang)}</b>
             <button className="tb-btn" title={tStatus('關閉', lang)} onClick={() => useApp.getState().closeBomDialog()}>✕</button>
           </div>
           <div style={{ fontSize: 12, color: '#5a6b78', marginBottom: 8 }}>{bomDialog.summary}</div>
@@ -8073,7 +8073,7 @@ export default function Viewport() {
             </table>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
-            <button className="tb-btn" onClick={() => useApp.getState().exportBOM()}>📥 {tStatus('再导出 CSV', lang)}</button>
+            <button className="tb-btn" onClick={() => useApp.getState().exportBOM()}>📥 {tStatus('再匯出 CSV', lang)}</button>
             <button className="tb-btn" onClick={() => useApp.getState().closeBomDialog()}>{tStatus('關閉', lang)}</button>
           </div>
         </div>
@@ -8307,7 +8307,7 @@ export default function Viewport() {
           const W = hi[0] - lo[0], D = hi[2] - lo[2], H = hi[1] - lo[1]
           return (<>
             {tStatus(`🧩 裝配 ${vis.length} 件　·　總體積 ${fmtVol(vol, unit)}　·　總面積 ${fmtArea(area, unit)}　·　總尺寸 ${uLen(W)}×${uLen(D)}×${uLen(H)} ${uSuf}　·　總質量${anyMat ? '(各材質)' : '(' + density + ')'} ${gm >= 1000 ? (gm / 1000).toFixed(2) + ' kg' : gm.toFixed(1) + ' g'}${com}　·　實心打印~${(() => { const h = (vol / 1000) / 10; return h >= 1 ? h.toFixed(1) + 'h' : Math.round(h * 60) + 'min' })()} · 料費~¥${((vol / 1000) * density * 0.12).toFixed(1)}`, lang)}
-            <button title={tStatus('导出材料清单 BOM（各零件 数量/体积/质量 → CSV，用当前密度）', lang)} onClick={() => exportBOM(density)} style={{ marginLeft: 8, padding: '2px 8px', fontSize: 12, borderRadius: 5, border: '1px solid #c4ccd4', background: '#fff', cursor: 'pointer' }}>{tStatus('📋 导出BOM', lang)}</button>
+            <button title={tStatus('匯出材料清單 BOM（各零件 數量/體積/質量 → CSV，用當前密度）', lang)} onClick={() => exportBOM(density)} style={{ marginLeft: 8, padding: '2px 8px', fontSize: 12, borderRadius: 5, border: '1px solid #c4ccd4', background: '#fff', cursor: 'pointer' }}>{tStatus('📋 匯出BOM', lang)}</button>
             <button title={tStatus('排版到打印床：把所有可见零件铺平到 Z=0、按当前打印床宽度排成网格（多零件批量打印的准备步骤，可撤销）', lang)} onClick={() => useApp.getState().arrangeOnBed()} style={{ marginLeft: 6, padding: '2px 8px', fontSize: 12, borderRadius: 5, border: '1px solid #c4ccd4', background: '#fff', cursor: 'pointer' }}>{tStatus('🖨️ 排版', lang)}</button>
             <button title={tStatus('显示/隐藏 裝配重心(質心) 3D 标记（体积加权）', lang)} onClick={() => toggleCom()} style={{ marginLeft: 6, padding: '2px 8px', fontSize: 12, borderRadius: 5, border: '1px solid ' + (showCom ? '#ff3b6b' : '#c4ccd4'), background: showCom ? '#ffe8ee' : '#fff', cursor: 'pointer' }}>{tStatus('⊕ 重心', lang)}</button>
             <BedFitBadge w={W} d={D} h={H} />

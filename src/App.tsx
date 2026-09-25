@@ -231,13 +231,13 @@ export default function App() {
       // normal viewport click.
       if (s.boundaryPatchPick && e.key === 'Escape') { e.preventDefault(); s.cancelBoundaryPatch(); return }
       if (s.surfBridgePick && e.key === 'Escape') { e.preventDefault(); s.cancelSurfBridge(); return }
-      if (s.quiltPickMode && e.key === 'Escape') { e.preventDefault(); useApp.setState({ quiltPickMode: false, status: '已取消加厚整张曲面' }); return }
+      if (s.quiltPickMode && e.key === 'Escape') { e.preventDefault(); useApp.setState({ quiltPickMode: false, status: '已取消加厚整張曲面' }); return }
       if (s.editPolesMode && e.key === 'Escape') { e.preventDefault(); s.toggleEditPoles(); return }
       if (s.faceMateMode && e.key === 'Escape') { e.preventDefault(); s.cancelFaceMate(); return }
       if (s.jointPickMode && e.key === 'Escape') { e.preventDefault(); s.cancelJointPick(); return }
       if (s.jointOriginPickMode && e.key === 'Escape') { e.preventDefault(); s.cancelJointOriginPick(); return }
       if (s.screwFitMode && e.key === 'Escape') { e.preventDefault(); useApp.setState({ screwFitMode: false, status: '已取消按孔配螺絲' }); return }
-      if (s.jointHolePick && e.key === 'Escape') { e.preventDefault(); useApp.setState({ jointHolePick: null, status: '已取消拾孔定轴' }); return }
+      if (s.jointHolePick && e.key === 'Escape') { e.preventDefault(); useApp.setState({ jointHolePick: null, status: '已取消拾孔定軸' }); return }
       if (s.compBoolPending && e.key === 'Escape') { e.preventDefault(); s.cancelComponentBoolean(); return }
       // 测试报告观察 A：统一 Esc 关闭其余浮动面板 / 取消拾取模式（之前 FEA / 工程计算 等唔响应 Esc）。
       // 按优先级逐个兜底；无开启嘅面板时跌落去下面 switch 的 escape（清选择 / 退草图）。
@@ -262,9 +262,9 @@ export default function App() {
         if (s.faceSketchPick) { e.preventDefault(); s.toggleFaceSketchPick(); return }                   // 选面建草图
         if (s.embossPick) { e.preventDefault(); s.toggleEmboss(); return }                                // S162 Emboss 拾面
         if (s.datumCmd) { e.preventDefault(); s.closeDatumCmd(); return }   // GM-3DV2 R1：ESC 退出统一构造几何命令（连带清其 arm 嘅拾取）
-        if (s.datumPick) { e.preventDefault(); useApp.setState({ datumPick: null, status: '已取消基准面拾取' }); return }   // S158：ESC 取消相切面/两面中面/偏移面 拾取（旧 datum pick 无 ESC 退出路径）
+        if (s.datumPick) { e.preventDefault(); useApp.setState({ datumPick: null, status: '已取消基準面拾取' }); return }   // S158：ESC 取消相切面/两面中面/偏移面 拾取（旧 datum pick 无 ESC 退出路径）
         if (s.decalPick) { e.preventDefault(); s.cancelDecalPick(); return }                             // P2 Render review：ESC 取消贴花放置（同其他 pick 模式一致）
-        if (s.edgePtPick) { e.preventDefault(); useApp.setState({ edgePtPick: null, status: s.edgePtPick.mode === 'pathplane' ? '已取消路径平面拾取' : s.edgePtPick.mode === 'angleplane' ? '已取消角度平面拾取' : s.edgePtPick.mode === 'edgeaxis' ? '已取消沿边轴拾取' : '已取消边上构造点拾取' }); return }   // S164/S166/S169/S178：ESC 取消边上构造点/路径平面/角度平面/沿边轴拾取
+        if (s.edgePtPick) { e.preventDefault(); useApp.setState({ edgePtPick: null, status: s.edgePtPick.mode === 'pathplane' ? '已取消路徑平面拾取' : s.edgePtPick.mode === 'angleplane' ? '已取消角度平面拾取' : s.edgePtPick.mode === 'edgeaxis' ? '已取消沿邊軸拾取' : '已取消邊上構造點拾取' }); return }   // S164/S166/S169/S178：ESC 取消边上构造点/路径平面/角度平面/沿边轴拾取
         if (s.measureMode || s.measureEdgeMode || s.measureFaceMode || s.measureAngleMode || s.measureUniMode) {             // 测量（含统一测量）
           e.preventDefault(); useApp.setState({ measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, measureUniMode: false, status: '已退出測量' }); return
         }
@@ -296,7 +296,7 @@ export default function App() {
         case 'h': if (s.mode === 'model') s.runCommand('hole', '孔'); break
         case 'i': if (s.mode === 'model') s.toggleInspect(); break  // S103[4]：选择属性检查器开关
         case 'd': if (s.mode === 'sketch') s.setSketchTool('dimension'); else if (s.mode === 'model') void s.generateDrawing(); break // Fusion: D = sketch dimension（草图）/ 工程图（模型）
-        case 'p': if (s.mode === 'sketch') s.runCommand('sk_project', '投影几何'); else s.toggleParamsPanel(); break // GM-FP4 #51：P=Project（草图）/ 参数面板（模型）
+        case 'p': if (s.mode === 'sketch') s.runCommand('sk_project', '投影幾何'); else s.toggleParamsPanel(); break // GM-FP4 #51：P=Project（草图）/ 参数面板（模型）
         case 'l': if (s.mode === 'sketch') s.setSketchTool('polyline'); break  // Fusion: L=Line
         case 'r': if (s.mode === 'sketch') s.setSketchTool('rectangle'); break // Fusion: R=Rectangle
         case 'a': if (s.mode === 'sketch') { if (s.sketchTool === 'polyline' && s.polyPts.length >= 2) s.togglePolyArc(); else s.setSketchTool('arc') } break  // Fusion: A=Arc；折线中=相切弧 submode（T777）
@@ -305,7 +305,7 @@ export default function App() {
         case 'n': if (s.mode === 'sketch') { s.skLookAt(); e.preventDefault() } break   // GM-FP1 #9：N = 正对草图平面（Look At，键盘路径）
         case 'home': s.requestFit(s.selectedComponent || null); e.preventDefault(); break  // S112：适应窗口 / 框到选中组件（Fusion Home）
         case 'enter': if (s.formBoxDraft?.stage === 'ready') { e.preventDefault(); void s.commitFormBoxDraft() } break
-        case 'escape': if (s.formMode) { e.preventDefault(); if (s.formEditStart) s.cancelFormEdit(); else if (s.formCreateKind) s.cancelFormCreate(); else { s.selFormVert(null); s.selFormFace(null) } } else if (s.formBoxDraft) { e.preventDefault(); s.cancelFormCreate() } else if (s.mode === 'sketch' && (s.dimBuf[0] || s.dimBuf[1])) s.sketchTypeKey('Escape'); else if (s.mode === 'sketch') { if (!s.escSketch()) useApp.setState({ status: '已取消选择 — 草图保留，完成请按「完成草图」' }) } else if (s.mode === 'pickplane') s.exitSketchMode(); else { s.selectFeature(null); s.selectComponent(null); s.clearInspect(); useApp.setState({ hoverFace: null, status: '已取消选择 — 模型及视角保留' }) } break  // T792：ESC 退草图前 confirm/save（防意外丢失）；escSketch 先消化子动作（取消绘制/拾取/退返选择工具）
+        case 'escape': if (s.formMode) { e.preventDefault(); if (s.formEditStart) s.cancelFormEdit(); else if (s.formCreateKind) s.cancelFormCreate(); else { s.selFormVert(null); s.selFormFace(null) } } else if (s.formBoxDraft) { e.preventDefault(); s.cancelFormCreate() } else if (s.mode === 'sketch' && (s.dimBuf[0] || s.dimBuf[1])) s.sketchTypeKey('Escape'); else if (s.mode === 'sketch') { if (!s.escSketch()) useApp.setState({ status: '已取消選擇 — 草圖保留，完成請按「完成草圖」' }) } else if (s.mode === 'pickplane') s.exitSketchMode(); else { s.selectFeature(null); s.selectComponent(null); s.clearInspect(); useApp.setState({ hoverFace: null, status: '已取消選擇 — 模型及視角保留' }) } break  // T792：ESC 退草图前 confirm/save（防意外丢失）；escSketch 先消化子动作（取消绘制/拾取/退返选择工具）
         case 'delete':
           // GM-FP3 #35：选中约束（点徽章）→ Delete 移除该约束；否则删几何。T796b：调尺寸中 Delete 唔删几何。
           if (s.mode === 'sketch') { if (s.skSelCon) { s.removeSkCon(s.skSelCon); s.selectSkCon(null) } else if (!s.sizing) s.skDeleteSel() }
@@ -329,21 +329,21 @@ export default function App() {
       data-mesh-drop-doc="1"
     >
       {!startupReady && <div className="startup-restore-gate" role="status" aria-live="polite">正在安全回復上次設計…</div>}
-      <ErrorBoundary name="工具栏 Ribbon" compact><Ribbon /></ErrorBoundary>
+      <ErrorBoundary name="工具欄 Ribbon" compact><Ribbon /></ErrorBoundary>
       <div className="main" style={browserCollapsed ? { gridTemplateColumns: '26px 1fr' } : undefined}>
-        <ErrorBoundary name="浏览树" compact><BrowserTree /></ErrorBoundary>
-        <ErrorBoundary name="3D 视口 Viewport"><Viewport /></ErrorBoundary>
+        <ErrorBoundary name="瀏覽樹" compact><BrowserTree /></ErrorBoundary>
+        <ErrorBoundary name="3D 視口 Viewport"><Viewport /></ErrorBoundary>
       </div>
-      <ErrorBoundary name="时间轴" compact><Timeline /></ErrorBoundary>
+      <ErrorBoundary name="時間軸" compact><Timeline /></ErrorBoundary>
       <ErrorBoundary name="裝配關節" compact><JointsPanel /></ErrorBoundary>
       <ErrorBoundary name="關節原點" compact><JointOriginPalette /></ErrorBoundary>
-      <ErrorBoundary name="参数面板" compact><ParamsPanel /></ErrorBoundary>
-      {drawingOpen && <ErrorBoundary name="工程图" compact><Suspense fallback={null}><DrawingPanel /></Suspense></ErrorBoundary>}
-      {physicsLabOpen && <ErrorBoundary name="环境模拟实验室" compact><Suspense fallback={null}><PhysicsLab /></Suspense></ErrorBoundary>}
+      <ErrorBoundary name="參數面板" compact><ParamsPanel /></ErrorBoundary>
+      {drawingOpen && <ErrorBoundary name="工程圖" compact><Suspense fallback={null}><DrawingPanel /></Suspense></ErrorBoundary>}
+      {physicsLabOpen && <ErrorBoundary name="環境模擬實驗室" compact><Suspense fallback={null}><PhysicsLab /></Suspense></ErrorBoundary>}
       {sliceOpen && sliceMesh && <ErrorBoundary name="切層預覽" compact><Suspense fallback={null}><SlicePanel mesh={sliceMesh} onClose={() => useApp.getState().setSliceOpen(false)} /></Suspense></ErrorBoundary>}
       {historyOpen && <Suspense fallback={null}><HistoryPanel onClose={() => useApp.getState().setHistoryOpen(false)} onSaveNamed={(label) => useApp.getState().saveVersion(label)} onRestore={(data) => void useApp.getState().applySnapshot(data)} /></Suspense>}
       {helpOpen && <Suspense fallback={null}><HelpPanelLazy /></Suspense>}
-      <ErrorBoundary name="属性检查器" compact><InspectorPanel /></ErrorBoundary>
+      <ErrorBoundary name="屬性檢查器" compact><InspectorPanel /></ErrorBoundary>
       <IntroCard />
       {cmdPaletteOpen && <Suspense fallback={null}><CommandPaletteLazy /></Suspense>}
       {csketchOpen && <ErrorBoundary name="約束草圖" compact><Suspense fallback={null}><CSketch /></Suspense></ErrorBoundary>}

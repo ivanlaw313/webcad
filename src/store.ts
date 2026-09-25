@@ -3255,7 +3255,7 @@ function partSolidRequiredPatch(
   },
 ): { status: string; statusAction: StatusAction | null } {
   const comps = s.components.filter((c) => c.mesh?.vertices?.length)
-  if (!comps.length) return { status: `${cmd}：先要有零件实体（拉伸 / 旋转 / 导入 B-rep）`, statusAction: null }
+  if (!comps.length) return { status: `${cmd}：先要有零件實體（拉伸 / 旋轉 / 匯入 B-rep）`, statusAction: null }
   const sel = s.selectedComponent ? comps.find((c) => c.id === s.selectedComponent) : undefined
   const focus = sel ?? comps[comps.length - 1]!
   const def = focus.defId ? s.componentDefs.find((d) => d.id === focus.defId) : undefined
@@ -3725,7 +3725,7 @@ function _autoAimCutFlip(): void {
   const wantSign = Number.isFinite(tP) && (!Number.isFinite(tN) || tP <= tN) ? 1 : -1
   const RSn: Record<Plane, number> = { XY: 1, XZ: -1, YZ: 1 }   // 同 extrudeSketch To-Next 分支一致
   const flip = RSn[plane] !== wantSign
-  if (s.extrudeFlip !== flip) useApp.setState({ extrudeFlip: flip, status: '切割方向已自动指向实体（红色预览 = 会切走嘅部分；㩒 ⇅ 可反转）' })
+  if (s.extrudeFlip !== flip) useApp.setState({ extrudeFlip: flip, status: '切割方向已自動指向實體（紅色預覽 = 會切走嘅部分；㩒 ⇅ 可反轉）' })
 }
 // GM-W5 5.2：到下一面（Fusion To Next）几何核 —— Möller–Trumbore 射线×三角，返回沿 dir 由 (ox,oy,oz) 出发、
 // 超过 eps 嘅【最小正命中距离 t】（撞唔到 → Infinity）。bodyMesh 顶点系 CAD 坐标（同 Viewport raycast 面法向一致）。
@@ -4448,7 +4448,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const geometryWrite = 'skCons' in patch || 'sketchProfiles' in patch || 'sketchShape' in patch
     if (editing && geometryWrite) {
       const errors = sketchReferenceErrors(patch.skCons ?? state.skCons, patch.params ?? state.params)
-      if (errors.length) return { skMutationError: `修改已拒绝：尺寸引用失效 — ${errors.join('；')}`, status: `修改已拒绝：尺寸引用失效 — ${errors.join('；')}` }
+      if (errors.length) return { skMutationError: `修改已拒絕：尺寸引用失效 — ${errors.join('；')}`, status: `修改已拒絕：尺寸引用失效 — ${errors.join('；')}` }
       return { ...patch, skMutationError: null }
     }
     if (geometryWrite) return { ...patch, skMutationError: null }
@@ -4819,7 +4819,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         pushHistory()
         // No active body — but an assembly-only doc (components, 0 features) is NOT empty: show the caller's
         // message, not "已清空", or loading/restoring an assembly falsely flashes "cleared" and alarms the user.
-        set({ features: bound, bodyMesh: null, bodyTopZ: 0, timelinePos: bound.length, busy: false, status: (bound.length || get().components.length) ? okMsg : '已清空', failedFeatureIds: [], featureErrors: {}, planes: planesFromFeatures(bound, sup), ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('几何已改') : {}) })   // GM-W5 5.1：空树亦派生 planes（全抑制/空档 → []）
+        set({ features: bound, bodyMesh: null, bodyTopZ: 0, timelinePos: bound.length, busy: false, status: (bound.length || get().components.length) ? okMsg : '已清空', failedFeatureIds: [], featureErrors: {}, planes: planesFromFeatures(bound, sup), ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('幾何已改') : {}) })   // GM-W5 5.1：空树亦派生 planes（全抑制/空档 → []）
         return true
       }
       // Operation-specific hint (used by both the empty-mesh and kernel-threw paths) — far more actionable
@@ -4946,7 +4946,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           }
           nextFeatures=nextFeatures.map(f=>{const r=resolved[f.id] ?? (f.type==='extgroup'?resolved[`${f.id}#0`]:undefined);return r?update(f,r):f})
           // GM-W5 5.1：rebuild 成功嘅【单一 choke point】—— 由 nextFeatures 派生 planes[]（datum 特征 → 参考面）。undo/redo/编辑/删/抑制 全部经此。
-          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: noTris ? null : mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: (mesh.warnings ?? []).slice(), failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}), ...(hasLiveSimResults(s2) ? invalidateSimResultsPatch('几何已改') : {}) }
+          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: noTris ? null : mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: (mesh.warnings ?? []).slice(), failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}), ...(hasLiveSimResults(s2) ? invalidateSimResultsPatch('幾何已改') : {}) }
         })
         // Keep a live capped-section solid in sync with model edits (recompute the half from the new body).
         if (!context && get().section.on && get().section.capped) void get().refreshSectionCap()
@@ -4976,7 +4976,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         // can be edited or suppressed without guessing; the prior valid mesh stays.
         const suspect = [...bound].reverse().find((f) => !sup.includes(f.id))
         const reason = '内核未能完成重建（疑似此特征；可改参数或抑制后重试）'
-        set({ busy: false, status: failMsg || ('⚠ 操作失败 — ' + (hint || '内核返回空') + '（已保持上一个有效状态）'), failedFeatureIds: suspect ? [suspect.id] : [], featureErrors: suspect ? { [suspect.id]: reason } : {} })
+        set({ busy: false, status: failMsg || ('⚠ 操作失敗 — ' + (hint || '內核返回空') + '（已保持上一個有效狀態）'), failedFeatureIds: suspect ? [suspect.id] : [], featureErrors: suspect ? { [suspect.id]: reason } : {} })
         return false
       }
     } catch (e) {
@@ -4987,7 +4987,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       } catch (restoreError) { console.error('Could not restore kernel export state',restoreError) }
       const suspect = [...features].reverse().find((f) => !get().suppressedIds.includes(f.id))
       const reason = `内核异常（疑似此特征；可改参数或抑制后重试）：${String(e)}`
-      set({ ...(prevDoc ? previousDocument : {}), busy: false, status: '操作失败：' + String(e), failedFeatureIds: suspect ? [suspect.id] : [], featureErrors: suspect ? { [suspect.id]: reason } : {} })
+      set({ ...(prevDoc ? previousDocument : {}), busy: false, status: '操作失敗：' + String(e), failedFeatureIds: suspect ? [suspect.id] : [], featureErrors: suspect ? { [suspect.id]: reason } : {} })
       return false
     }
     }
@@ -5076,7 +5076,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({sketchUndo:[...before.sketchUndo,{...skSnap(before),skParameterRestore:captureSketchParameters(before.params,[...ids]),...(consumer?{skConsumerRestore:sketchConsumerSnapshot(before)}:{}),...(frame?{skFrameRestore:sketchFrameSnapshot(before)}:{})}].slice(-80),sketchRedo:[],params,...consumer,...frame,busy:false,
         sketchProfiles:candidate.shapes.slice(0,before.sketchProfiles.length),sketchShape:before.sketchShape?candidate.shapes[before.sketchProfiles.length]:null,skCons:candidate.cons,skPatternData:candidate.patternData,
         skDof:candidate.dof,skConflict:false,skConflictIds:[],skFreeShapes:new Set(),status:`參數 ${name} 已更新；目前草圖及相依陣列已同步`})
-    }catch(error){if(current())set({status:`參數更新失败：${error instanceof Error?error.message:String(error)}；原草圖及歷史保留`})}
+    }catch(error){if(current())set({status:`參數更新失敗：${error instanceof Error?error.message:String(error)}；原草圖及歷史保留`})}
   }
   let mirrorRequest = 0, mirrorPending = false
   const mirrorSnapshot = (s: AppState) => JSON.stringify([s.mode,s.sketchProfiles,s.sketchShape,s.skCons,s.params,s.skEditTarget,s.sketchTool,s.mirrorPick,s.sketchUndo,s.sketchRedo,s.skSel,s.skRefGeo,s.sketchPlane,s.sketchBaseZ,s.sketchArb])
@@ -5254,7 +5254,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   const runTrimAt=async(p:Pt,context?:PatternTrimContext):Promise<void>=>{
     const s = get()
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
-    if (!shapes.length) { set({ status: '修剪：先画嘢先有得剪' }); return }
+    if (!shapes.length) { set({ status: '修剪：先畫嘢先有得剪' }); return }
     const tol = pickTol()
     for (const tt of [tol / 3, tol]) {   // 两轮：细容差先（重叠几何攞最近嗰条），唔中先放宽
       for (let i = 0; i < shapes.length; i++) {
@@ -5303,7 +5303,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
     }
-    set({ toolPreview: null, status: '修剪：要点中一条边（点近啲）— 有相交剪到相交点，冇相交成条删' })
+    set({ toolPreview: null, status: '修剪：要點中一條邊（點近啲）— 有相交剪到相交點，冇相交成條刪' })
   }
   const queuePatternTrim=(p:Pt):Promise<void>=>{
     const context={epoch:_patternTrimRevision,sweep:_skTrimSweep?_patternTrimSweepId:0},point:Pt=[...p]
@@ -5364,12 +5364,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.skDrag) { get().skDragCancel(); return true }
     const drawing = !!s.sketchStart || (s.polyPts && s.polyPts.length > 0)
     if (drawing) {
-      if((s.sketchTool==='earc'||s.sketchTool==='ellipse'&&s.ellipseCreation==='three-point')&&s.sketchUndo.length){const previous=s.sketchUndo.at(-1)!;set({...previous,sketchUndo:s.sketchUndo.slice(0,-1),sketchRedo:[],sketchPreview:null,dimBuf:['',''],dimField:0,sketchDim:null,status:previous.sketchStart?'已退回上一绘制步骤':'已取消曲线；原草图保留'});return true}
+      if((s.sketchTool==='earc'||s.sketchTool==='ellipse'&&s.ellipseCreation==='three-point')&&s.sketchUndo.length){const previous=s.sketchUndo.at(-1)!;set({...previous,sketchUndo:s.sketchUndo.slice(0,-1),sketchRedo:[],sketchPreview:null,dimBuf:['',''],dimField:0,sketchDim:null,status:previous.sketchStart?'已退回上一繪製步驟':'已取消曲線；原草圖保留'});return true}
       // S194（Fusion 式收笔）：ESC 结束线链时【已放低嘅段保留】做正式几何（Fusion：ESC 收笔唔丢嘢）。
       // ≥2 点先成段 → finishOpenPolyline 提交；单点/rect-circle 未落第二点 = 冇几何，先真取消。
       if (s.polyPts && s.polyPts.length >= 2 && !s.sketchStart) {
         get().finishOpenPolyline()
-        set({ sketchPreview: null, sketchDim: '', status: '已收笔 — 保留已画段（完成请按「完成草图」）' })
+        set({ sketchPreview: null, sketchDim: '', status: '已收筆 — 保留已畫段（完成請按「完成草圖」）' })
         return true
       }
       // GM-W6 B3：多段工具（圆弧/椭圆弧/圆弧槽/三点矩形/三点圆/圆锥曲线 — sketchStart+polyPts 并存）
@@ -5377,19 +5377,19 @@ export const useApp = create<AppState>((rawSet, get) => {
       //（椭圆弧点咗 4 阶段想反悔最后一点都要由头嚟过）。
       if (s.sketchStart && s.polyPts && s.polyPts.length > 0) {
         const np = s.polyPts.slice(0, -1)
-        set({ polyPts: np, sketchPreview: null, sketchDim: '', status: `已退一步（剩 ${np.length + 1} 个已放点 — ESC 再退 / 继续点落去）` })
+        set({ polyPts: np, sketchPreview: null, sketchDim: '', status: `已退一步（剩 ${np.length + 1} 個已放點 — ESC 再退 / 繼續點落去）` })
         return true
       }
-      set({ sketchStart: null, sketchPreview: null, polyPts: [], sketchDim: '', status: '已取消当前绘制（完成请按「完成草图」）' })
+      set({ sketchStart: null, sketchPreview: null, polyPts: [], sketchDim: '', status: '已取消當前繪製（完成請按「完成草圖」）' })
       return true
     }
     // T796/T791：进行中嘅拖柄调尺寸 / 合并 / 镜像拾取 → 先取消（唔好一 ESC 就退出成个草图）
-    if (s.sizing) { set({ sizing: null, toolPreview: null, status: '已取消调尺寸（完成请按「完成草图」）' }); return true }
-    if (s.skMove) { _skMoveDrag = null; set({ skMove: null, sketchTool: 'select', status: '已取消移动（完成请按「完成草图」）' }); return true }   // GM-FP3 #39
+    if (s.sizing) { set({ sizing: null, toolPreview: null, status: '已取消調尺寸（完成請按「完成草圖」）' }); return true }
+    if (s.skMove) { _skMoveDrag = null; set({ skMove: null, sketchTool: 'select', status: '已取消移動（完成請按「完成草圖」）' }); return true }   // GM-FP3 #39
     if (s.skMarquee) { set({ skMarquee: null, status: '已取消框選（完成請按「完成草圖」）' }); return true }   // GM-FP3 #44
     if (s.skSelCon) { set({ skSelCon: null, status: '已取消約束選中（完成請按「完成草圖」）' }); return true }   // GM-FP3 #35
-    if (s.skArmedCon) { set({ skArmedCon: null, skSel: [], status: '已退出「施约束」武装态（完成请按「完成草图」）' }); return true }   // GM-FP2 #34
-    if (s.skBoolPending) { set({ skBoolPending: null, skSel: [], status: '已取消合并/剪走（完成请按「完成草图」）' }); return true }
+    if (s.skArmedCon) { set({ skArmedCon: null, skSel: [], status: '已退出「施約束」武裝態（完成請按「完成草圖」）' }); return true }   // GM-FP2 #34
+    if (s.skBoolPending) { set({ skBoolPending: null, skSel: [], status: '已取消合併/剪走（完成請按「完成草圖」）' }); return true }
     if (s.mirrorPick) { set({ mirrorPick: null, status: '已取消鏡像（完成請按「完成草圖」）' }); return true }
     // C2：Fusion 式两段 ESC — 任何工具（trim/extend/offset/cfillet/cchamfer/画图）下先退返「选择」工具，再按清选择；完成草图由明确按钮负责
     if (s.sketchTool !== 'select') { set({ sketchTool: 'select', sketchStart: null, sketchPreview: null, polyPts: [], mirrorPick: null, skBoolPending: null, status: '已切回「選擇」（完成請按「完成草圖」）' }); return true }
@@ -5428,24 +5428,24 @@ export const useApp = create<AppState>((rawSet, get) => {
   sketchOffsetShape: (d) => set((s) => {
     if(s.skPatternData)return {status:'關聯草圖偏移請使用偏移工具選擇來源圓，以保留距離參數與副本'}
     const base = s.sketchShape || (s.sketchProfiles.length === 1 ? s.sketchProfiles[0] : null)
-    if (!base) return { status: '先画一个矩形或圆，再 offset' }
+    if (!base) return { status: '先畫一個矩形或圓，再 offset' }
     if (base.type === 'rect') {
       const x0 = Math.min(base.a[0], base.b[0]) - d, x1 = Math.max(base.a[0], base.b[0]) + d
       const y0 = Math.min(base.a[1], base.b[1]) - d, y1 = Math.max(base.a[1], base.b[1]) + d
-      if (x1 - x0 < 0.2 || y1 - y0 < 0.2) return { status: 'offset 太负，矩形会消失 — 减小内缩量' }
-      return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: { type: 'rect', a: [x0, y0], b: [x1, y1] }, sketchProfiles: [], status: `已 offset 矩形 ${d > 0 ? '外扩' : '内缩'} ${Math.abs(d)}` }
+      if (x1 - x0 < 0.2 || y1 - y0 < 0.2) return { status: 'offset 太負，矩形會消失 — 減小內縮量' }
+      return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: { type: 'rect', a: [x0, y0], b: [x1, y1] }, sketchProfiles: [], status: `已 offset 矩形 ${d > 0 ? '外擴' : '內縮'} ${Math.abs(d)}` }
     }
     if (base.type === 'circle') {
       const r = base.r + d
-      if (r < 0.1) return { status: 'offset 太负，圆会消失 — 减小内缩量' }
-      return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: { type: 'circle', c: base.c, r }, sketchProfiles: [], status: `已 offset 圆 Ø${(r * 2).toFixed(1)}` }
+      if (r < 0.1) return { status: 'offset 太負，圓會消失 — 減小內縮量' }
+      return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: { type: 'circle', c: base.c, r }, sketchProfiles: [], status: `已 offset 圓 Ø${(r * 2).toFixed(1)}` }
     }
     return { status: '多邊形/折線 offset 暫請用「約束草圖」；矩形/圓可在自由草圖直接 offset' }
   }),
   sketchSides: 6,
   setSketchSides: (n) => set({ sketchSides: Math.min(120, Math.max(3, Math.round(n) || 3)) }),  // cap 120 (huge N freezes draw)
   polyInscribed: false,
-  togglePolyInscribed: () => set((s) => ({ polyInscribed: !s.polyInscribed, status: !s.polyInscribed ? '多边形：内切圆模式（半径=对边距/2，套六角螺母/扳手）' : '多边形：外接圆模式（半径=过角点）' })),
+  togglePolyInscribed: () => set((s) => ({ polyInscribed: !s.polyInscribed, status: !s.polyInscribed ? '多邊形：內切圓模式（半徑=對邊距/2，套六角螺母/扳手）' : '多邊形：外接圓模式（半徑=過角點）' })),
   sketchSlotW: 20,
   setSketchSlotW: (n) => set({ sketchSlotW: Math.max(1, n || 20) }),
   sketchCornerR: 8,
@@ -5456,7 +5456,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // extrudes to real cylindrical corner faces). Corners that can't take r (arc-adjacent / collinear / r too
   // big for the edge) are skipped and counted honestly.
   filletSketchCorners: (r) => set((s) => {
-    if (r <= 0) return { status: '半径要 > 0' }
+    if (r <= 0) return { status: '半徑要 > 0' }
     // 单轮廓倒圆助手；返回 null = 唔适用（样条/弓形/无可倒角）
     const filletShape = (sh: SketchShape): { shape: SketchShape; done: number } | null => {
       if (sh.type !== 'poly' || sh.pts.length < 3 || sh.smooth || sh.arc) return null
@@ -5469,20 +5469,20 @@ export const useApp = create<AppState>((rawSet, get) => {
     const undo = { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [] }
     if (s.sketchShape) {
       const res = filletShape(s.sketchShape)
-      if (!res) return { status: '请先画一个折线/多边形轮廓再倒圆角（样条/弓形/半径太大唔适用）' }
-      return { ...undo, sketchShape: res.shape, status: `已对 ${res.done} 个角倒 R${r} 真圆弧` }
+      if (!res) return { status: '請先畫一個折線/多邊形輪廓再倒圓角（樣條/弓形/半徑太大唔適用）' }
+      return { ...undo, sketchShape: res.shape, status: `已對 ${res.done} 個角倒 R${r} 真圓弧` }
     }
     // #16：无活动轮廓（offset/阵列/trim 后常态）→ 倒【全部 poly 轮廓】，唔好再弹「请先画一个轮廓」
     let total = 0, hit = 0
     const np = s.sketchProfiles.map((sh) => { const res = filletShape(sh); if (res) { total += res.done; hit++; return res.shape } return sh })
-    if (!hit) return { status: '冇可倒圆角嘅轮廓（要折线/多边形；样条/弓形/半径太大唔适用）' }
-    return { ...undo, sketchProfiles: np, status: `已对 ${hit} 个轮廓共 ${total} 个角倒 R${r} 真圆弧` }
+    if (!hit) return { status: '冇可倒圓角嘅輪廓（要折線/多邊形；樣條/弓形/半徑太大唔適用）' }
+    return { ...undo, sketchProfiles: np, status: `已對 ${hit} 個輪廓共 ${total} 個角倒 R${r} 真圓弧` }
   }),
   // Chamfer (straight bevel) every corner of the current closed poly sketch by setback d
   // (replace each corner vertex with two points set back along the two adjacent edges,
   // clamped to 45% of each edge; near-straight/degenerate corners are skipped).
   chamferSketchCorners: (d) => set((s) => {
-    if (d <= 0) return { status: '倒角距离要 > 0' }
+    if (d <= 0) return { status: '倒角距離要 > 0' }
     // 单轮廓倒角助手；返回 null = 唔适用
     const chamferShape = (sh: SketchShape): { shape: SketchShape; cut: number; minT: number } | null => {
       if (sh.type !== 'poly' || sh.pts.length < 3 || sh.smooth || sh.arc) return null
@@ -5513,15 +5513,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     const undo = { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [] }
     if (s.sketchShape) {
       const res = chamferShape(s.sketchShape)
-      if (!res) return { status: '请先画一个折线/多边形轮廓再倒角（样条/弓形唔适用）' }
+      if (!res) return { status: '請先畫一個折線/多邊形輪廓再倒角（樣條/弓形唔適用）' }
       // GM-L2 #56：邻边过短被夹 → 状态诚实报实际最小 t，唔好谎报用户输入嘅 d（对齐单角版 skCornerAt 嘅收窄提示）
-      return { ...undo, sketchShape: res.shape, status: res.minT < d - 1e-6 ? `已对草图 ${res.cut} 个角倒角（要求 C${d}，部分角因邻边短收窄至 C${res.minT.toFixed(2)}）` : `已对草图 ${res.cut} 个角倒 C${d} 倒角` }
+      return { ...undo, sketchShape: res.shape, status: res.minT < d - 1e-6 ? `已對草圖 ${res.cut} 個角倒角（要求 C${d}，部分角因鄰邊短收窄至 C${res.minT.toFixed(2)}）` : `已對草圖 ${res.cut} 個角倒 C${d} 倒角` }
     }
     // #16：无活动轮廓 → 倒【全部 poly 轮廓】
     let total = 0, hit = 0, minT = Infinity
     const np = s.sketchProfiles.map((sh) => { const res = chamferShape(sh); if (res) { total += res.cut; hit++; if (res.minT < minT) minT = res.minT; return res.shape } return sh })
-    if (!hit) return { status: '冇可倒角嘅轮廓（要折线/多边形直线角）' }
-    return { ...undo, sketchProfiles: np, status: minT < d - 1e-6 ? `已对 ${hit} 个轮廓共 ${total} 个角倒角（要求 C${d}，部分角因邻边短收窄至 C${minT.toFixed(2)}）` : `已对 ${hit} 个轮廓共 ${total} 个角倒 C${d} 倒角` }
+    if (!hit) return { status: '冇可倒角嘅輪廓（要折線/多邊形直線角）' }
+    return { ...undo, sketchProfiles: np, status: minT < d - 1e-6 ? `已對 ${hit} 個輪廓共 ${total} 個角倒角（要求 C${d}，部分角因鄰邊短收窄至 C${minT.toFixed(2)}）` : `已對 ${hit} 個輪廓共 ${total} 個角倒 C${d} 倒角` }
   }),
   sketchOffsetD: 5,
   setSketchOffsetD: (n) => { set((s) => ({ sketchOffsetD: n || 0, ...(s.sizing ? { sizing: { ...s.sizing, typed: true, raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改距离即更新预览；T796-3：调尺寸中打数字→标记 typed，唔被鼠标轻微移动覆盖
@@ -5565,18 +5565,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (s.mode !== 'sketch') return
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
-    if (!shapes.length) { set({ status: '偏移：先画一个轮廓（圆/矩形/折线）' }); return }
+    if (!shapes.length) { set({ status: '偏移：先畫一個輪廓（圓/矩形/折線）' }); return }
     // T796：第一击 = 锁定目标（唔即 commit），跟住移动鼠标拖距离；第二击 = 确定。
     if (!s.sizing) {
       const tol = pickTol()
       let bi = -1, best = Infinity
       for (let i = 0; i < shapes.length; i++) { const dd = distToShapeOutline(shapes[i], p); if (dd < best) { best = dd; bi = i } }
-      if (bi < 0 || best > tol * 1.5) { set({ status: '偏移：要点中一条轮廓线（点近啲）' }); return }
+      if (bi < 0 || best > tol * 1.5) { set({ status: '偏移：要點中一條輪廓線（點近啲）' }); return }
       const ref = shapes[bi]
       if(s.skPatternData&&(ref.type!=='circle'||ref.point||!s.skPatternData.patterns[0]?.sourceEntityIds.includes(s.skPatternData.entityIds[bi]))){set({status:'關聯偏移目前只支援陣列來源圓；副本及其他輪廓未修改'});return}
       // T796-2：锁定前先验可偏移 —— 唔好锁咗、拖完先喺第二击先弹「唔支持」。开放/样条/椭圆 路径偏移未支持。
       if (!offsetSketchShape(ref, 1) && !offsetSketchShape(ref, -1)) {
-        set({ status: '偏移：呢个轮廓唔可偏移（试圆、椭圆、样条、直线或圆弧路径）' }); return
+        set({ status: '偏移：呢個輪廓唔可偏移（試圓、橢圓、樣條、直線或圓弧路徑）' }); return
       }
       // T796-1：锁定即 seed 一个值 + 把 sketchPreview 设到点击处（触屏 tap-tap 无 hover 都见到拖柄、commit 锁定位置而非旧默认）
       set({ sizing: { tool: 'offset', shapeIdx: bi, vi: -1, anchor: p, ref, raw: p }, sketchPreview: p, sketchOffsetD: s.sketchOffsetD || 5, dimBuf: ['', ''], status: '偏移：移動鼠標拖距離（外+/內−，1mm 步進）→ 點一下確定 · 打數字精確 · ESC 取消' })
@@ -5587,21 +5587,21 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 第二击 → 用锁定目标 commit。SIZING-1：用身份(ref)解析，唔信 shapeIdx（中途删/改轮廓后位置会错位）。
     const d = s.sketchOffsetD
     const src = shapes.includes(s.sizing.ref) ? s.sizing.ref : null
-    if (!src) { set({ sizing: null, toolPreview: null, status: '偏移：所选轮廓已改动/删除 — 重新点轮廓' }); return }
-    if (!d) { set({ sizing: null, toolPreview: null, status: '偏移：距离为 0，已取消' }); return }
+    if (!src) { set({ sizing: null, toolPreview: null, status: '偏移：所選輪廓已改動/刪除 — 重新點輪廓' }); return }
+    if (!d) { set({ sizing: null, toolPreview: null, status: '偏移：距離為 0，已取消' }); return }
     const isCon = !!src.construction
     const dirs = s.sketchOffsetBoth ? [d, -d] : [d]
     const made: SketchShape[] = []
     let outOk = false, inOk = false
     for (const dd of dirs) { const r = offsetSketchShape(src, dd); if (r) { made.push(isCon ? { ...r, construction: true } : r); if (dd > 0) outOk = true; else inOk = true } }
     if (!made.length) {
-      set({ sizing: null, toolPreview: null, status: `偏移失败（距离 ${Math.abs(d)} 令轮廓自交/塌陷，试细啲）` }); return
+      set({ sizing: null, toolPreview: null, status: `偏移失敗（距離 ${Math.abs(d)} 令輪廓自交/塌陷，試細啲）` }); return
     }
     const sideTxt = s.sketchOffsetBoth ? (outOk && inOk ? '（双向）' : outOk ? '（仅外侧，内侧塌陷）' : '（仅内侧，外侧塌陷）') : d > 0 ? '（外）' : '（内）'
     set({
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
       sketchProfiles: [...shapes, ...made], sketchShape: null, skSel: [], sizing: null, toolPreview: null,
-      status: `已偏移 ${Math.abs(d)}mm${sideTxt} — 现 ${shapes.length + made.length} 个轮廓，继续点其它轮廓或换工具`,
+      status: `已偏移 ${Math.abs(d)}mm${sideTxt} — 現 ${shapes.length + made.length} 個輪廓，繼續點其它輪廓或換工具`,
     })
   },
   // T790：Fusion 式单角倒圆角/倒角 — 点近一个直角顶点 → 只倒嗰个角（半径取底栏 圆角R）。工具 cfillet=真圆弧、cchamfer=直斜角。
@@ -5611,31 +5611,31 @@ export const useApp = create<AppState>((rawSet, get) => {
     const isCh = s.sketchTool === 'cchamfer'
     const lbl = isCh ? '倒角' : '圆角'
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
-    if (!shapes.length) { set({ status: `${lbl}：先画一个矩形/折线轮廓` }); return }
+    if (!shapes.length) { set({ status: `${lbl}：先畫一個矩形/折線輪廓` }); return }
     // T796：第一击 = 锁定角点（唔即倒），跟住移动鼠标拖半径；第二击 = 确定。
     if (!s.sizing) {
       const paths = shapes.map(shapeCornerPath)
       const tol = pickTol()
       let bi = -1, vi = -1, best = Infinity
       for (let i = 0; i < shapes.length; i++) { const cp = paths[i]; if (!cp) continue; for (let k = 0; k < cp.verts.length; k++) { const dd = Math.hypot(p[0] - cp.verts[k][0], p[1] - cp.verts[k][1]); if (dd < best) { best = dd; bi = i; vi = k } } }
-      if (bi < 0 || best > tol * 1.5) { set({ status: `${lbl}：要点近一个直角顶点（圆冇角；点近啲）` }); return }
+      if (bi < 0 || best > tol * 1.5) { set({ status: `${lbl}：要點近一個直角頂點（圓冇角；點近啲）` }); return }
       const cp = paths[bi]!, nC = cp.verts.length, prevI = (vi - 1 + nC) % nC
-      if (Math.abs(cp.bulges[vi] || 0) > 1e-9 || Math.abs(cp.bulges[prevI] || 0) > 1e-9) { set({ status: `${lbl}：呢个角已经系圆弧角，唔使再倒；想倒请点其它直角顶点` }); return }
+      if (Math.abs(cp.bulges[vi] || 0) > 1e-9 || Math.abs(cp.bulges[prevI] || 0) > 1e-9) { set({ status: `${lbl}：呢個角已經系圓弧角，唔使再倒；想倒請點其它直角頂點` }); return }
       // T796-1：锁定即把 sketchPreview 设到点击处 + seed 半径（触屏 tap-tap 见到拖柄、commit 锁定角而非旧默认）
-      set({ sizing: { tool: s.sketchTool as 'cfillet' | 'cchamfer', shapeIdx: bi, vi, anchor: cp.verts[vi], ref: shapes[bi], raw: p }, sketchPreview: p, sketchCornerR: s.sketchCornerR || 8, dimBuf: ['', ''], status: `${lbl}：移动鼠标拖${isCh ? '回缩 C' : '半径 R'}（1mm 步进）→ 点一下确定 · 打数字精确 · ESC 取消` })
+      set({ sizing: { tool: s.sketchTool as 'cfillet' | 'cchamfer', shapeIdx: bi, vi, anchor: cp.verts[vi], ref: shapes[bi], raw: p }, sketchPreview: p, sketchCornerR: s.sketchCornerR || 8, dimBuf: ['', ''], status: `${lbl}：移動鼠標拖${isCh ? '回縮 C' : '半徑 R'}（1mm 步進）→ 點一下確定 · 打數字精確 · ESC 取消` })
       get().refreshToolPreview()
       return
     }
     // 第二击 → 用锁定角点 commit。SIZING-1：用身份(ref)重新解析 index，唔信 shapeIdx（中途删/改后会错位）。
     const vi = s.sizing.vi, r = s.sketchCornerR
-    if (!(r > 0)) { set({ sizing: null, toolPreview: null, status: `${lbl}：半径为 0，已取消` }); return }
+    if (!(r > 0)) { set({ sizing: null, toolPreview: null, status: `${lbl}：半徑為 0，已取消` }); return }
     const bi = shapes.indexOf(s.sizing.ref)
     const sh = bi >= 0 ? shapes[bi] : null, cp = sh ? shapeCornerPath(sh) : null
-    if (!sh || !cp || vi < 0 || vi >= cp.verts.length) { set({ sizing: null, toolPreview: null, status: `${lbl}：所选角已改动/删除 — 重新点角` }); return }
+    if (!sh || !cp || vi < 0 || vi >= cp.verts.length) { set({ sizing: null, toolPreview: null, status: `${lbl}：所選角已改動/刪除 — 重新點角` }); return }
     const nC = cp.verts.length, prevI = (vi - 1 + nC) % nC
     let res: { verts: Pt[]; bulges: number[] }
     try { res = isCh ? chamferAtIdx(cp.verts, cp.bulges, vi, r) : filletAt(cp.verts, cp.bulges, vi, r) }
-    catch (e) { set({ sizing: null, toolPreview: null, status: `${lbl}失败：${(e as Error)?.message || e}（试细啲嘅 R）` }); return }
+    catch (e) { set({ sizing: null, toolPreview: null, status: `${lbl}失敗：${(e as Error)?.message || e}（試細啲嘅 R）` }); return }
     const isCon = !!sh.construction
     const nv = vertsPoly(res.verts, res.bulges)
     const newShape: SketchShape = isCon ? { ...nv, construction: true } : nv
@@ -5656,21 +5656,21 @@ export const useApp = create<AppState>((rawSet, get) => {
     if(s.mode!=='sketch')return
     const shapes=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])]
     const picked=s.sketchShape?[s.sketchProfiles.length]:shapes.map((_,i)=>i).filter(i=>!shapes[i].construction)
-    if(!picked.length){set({status:'先画一个轮廓再镜像'});return}
+    if(!picked.length){set({status:'先畫一個輪廓再鏡像'});return}
     const prefix=skConId(), prepared=appendMirrorAxis(shapes,axis,prefix)
     await commitMirror(s,prepared.shapes,[...s.skCons,...prepared.cons],picked,prepared.axis,prefix)
   },
   // S176：投影几何入草图（Fusion Project / Include）— 把投影参考几何（skRefGeo.segs = 实体边界/截交喺草图面嘅 2D 投影）
   // 连成 polyline/闭环、做【真草图曲线】加入轮廓（可拉伸/标注/修改），唔再只系参考。闭环→闭合 poly（可拉伸），开放链→开放 poly。
   projectRefToSketch: () => set((s) => {
-    if (s.mode !== 'sketch') return { status: '投影几何：先开/重开一个草图' }
+    if (s.mode !== 'sketch') return { status: '投影幾何：先開/重開一個草圖' }
     const rg = s.skRefGeo
-    if (!rg || !rg.segs || !rg.segs.length) return { status: '投影几何：当前草图面冇可投影嘅实体边/截交（喺有实体嘅面、或穿过实体嘅平面开草图先有投影边）' }
+    if (!rg || !rg.segs || !rg.segs.length) return { status: '投影幾何：當前草圖面冇可投影嘅實體邊/截交（喺有實體嘅面、或穿過實體嘅平面開草圖先有投影邊）' }
     const chains = chainSegments(rg.segs.map((sg) => [[sg[0][0], sg[0][1]], [sg[1][0], sg[1][1]]]) as [Pt, Pt][])
     const shapes: SketchShape[] = chains.filter((c) => c.pts.length >= 2).map((c) => (c.closed && c.pts.length >= 3
       ? { type: 'poly', pts: c.pts.map((p) => [p[0], p[1]] as Pt), projected: true, projectLink: 'all' }
       : { type: 'poly', pts: c.pts.map((p) => [p[0], p[1]] as Pt), open: true, projected: true, projectLink: 'all' }))
-    if (!shapes.length) return { status: '投影几何：未能把投影线段连成轮廓' }
+    if (!shapes.length) return { status: '投影幾何：未能把投影線段連成輪廓' }
     const closedN = shapes.filter((sh) => !(sh as { open?: boolean }).open).length
     const prior = s.sketchShape ? [...s.sketchProfiles, s.sketchShape] : [...s.sketchProfiles]
     const all = [...prior, ...shapes]
@@ -5678,7 +5678,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
       sketchProfiles: all.slice(0, -1), sketchShape: all[all.length - 1],
       skRefGeo: null,   // S176 audit (LOW)：投影后清掉参考几何 → 幂等（再撳唔会再叠一份重复轮廓 + 唔再渲染已投影嘅参考线）
-      status: `已投影 ${shapes.length} 条参考几何入草图（${closedN} 闭合可拉伸 · ${shapes.length - closedN} 开放）— 可标注/拉伸/修改，唔再只系参考线`,
+      status: `已投影 ${shapes.length} 條參考幾何入草圖（${closedN} 閉合可拉伸 · ${shapes.length - closedN} 開放）— 可標註/拉伸/修改，唔再只系參考線`,
     }
   }),
   projectRelink: null,
@@ -5743,27 +5743,27 @@ export const useApp = create<AppState>((rawSet, get) => {
   // ③ Fusion 式逐条投影：开 projPickMode → 草图内㩒近一条投影边（橙色）→ 只投嗰条环/链（唔系全投）。
   projPickMode: false,
   toggleProjPick: () => set((s) => {
-    if (s.mode !== 'sketch') return { status: '逐条投影：先开一个草图' }
+    if (s.mode !== 'sketch') return { status: '逐條投影：先開一個草圖' }
     const on = !s.projPickMode
-    return { projPickMode: on, sketchTool: 'select', status: on ? '逐条投影：㩒近一条【实体投影边】（橙色）→ 只投嗰条；再撳掣退出' : '已退出逐条投影' }
+    return { projPickMode: on, sketchTool: 'select', status: on ? '逐條投影：㩒近一條【實體投影邊】（橙色）→ 只投嗰條；再撳掣退出' : '已退出逐條投影' }
   }),
   projectLoopAt: (pt) => set((s) => {
     if (s.mode !== 'sketch') return {}
     const rg = s.skRefGeo
-    if (!rg || !rg.segs || !rg.segs.length) return { status: '逐条投影：当前面冇可投影嘅实体边/截交' }
+    if (!rg || !rg.segs || !rg.segs.length) return { status: '逐條投影：當前面冇可投影嘅實體邊/截交' }
     const loops = chainSegments(rg.segs.map((sg) => [[sg[0][0], sg[0][1]], [sg[1][0], sg[1][1]]]) as [Pt, Pt][])
-    if (!loops.length) return { status: '逐条投影：未能连成投影环' }
+    if (!loops.length) return { status: '逐條投影：未能連成投影環' }
     // 点到线段距离 → 揾最近嗰条环
     const segD = (p: Pt, a: Pt, b: Pt) => { const dx = b[0] - a[0], dy = b[1] - a[1]; const L2 = dx * dx + dy * dy || 1e-9; let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2; t = Math.max(0, Math.min(1, t)); return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy)) }
     let best = -1, bestD = Infinity
     loops.forEach((lp, i) => { const n = lp.pts.length, lim = lp.closed ? n : n - 1; for (let k = 0; k < lim; k++) { const d = segD(pt, lp.pts[k], lp.pts[(k + 1) % n]); if (d < bestD) { bestD = d; best = i } } })
-    if (best < 0 || bestD > 8) return { status: '逐条投影：㩒近一条投影边（橙色，8mm 内）' }
+    if (best < 0 || bestD > 8) return { status: '逐條投影：㩒近一條投影邊（橙色，8mm 內）' }
     const lp = loops[best]
     const sh: SketchShape = lp.closed && lp.pts.length >= 3
       ? { type: 'poly', pts: lp.pts.map((p) => [p[0], p[1]] as Pt), projected: true }   // GM-3DV2 R3
       : { type: 'poly', pts: lp.pts.map((p) => [p[0], p[1]] as Pt), open: true, projected: true }
     const prior = s.sketchShape ? [...s.sketchProfiles, s.sketchShape] : [...s.sketchProfiles]
-    return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: [...prior, sh], sketchShape: null, status: `已投影 1 条边（${lp.closed ? '闭环·可拉伸' : '开放'}）— 继续㩒投其他，或撳掣退出逐条投影` }
+    return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: [...prior, sh], sketchShape: null, status: `已投影 1 條邊（${lp.closed ? '閉環·可拉伸' : '開放'}）— 繼續㩒投其他，或撳掣退出逐條投影` }
   }),
   // T790：Fusion 式镜像 — 先点轮廓拣（可多个），撳「画镜像线」入 line 阶段，点两点定任意角度镜像线 → 反射所有选中轮廓（保留原件）。
   mirrorPick: null,
@@ -5799,7 +5799,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s=get()
     if(s.mode!=='sketch')return
     const pts = s.polyPts
-    if (!pts || pts.length < 2) {set({status:'画线：先点最少 2 个点，再「✓ 完成线」'});return}
+    if (!pts || pts.length < 2) {set({status:'畫線：先點最少 2 個點，再「✓ 完成線」'});return}
     // S161：样条/B样条工具 → 完成做【开放平滑曲线】（唔再降级做直边折线），用户可画单一条流畅开放曲线
     const isBSpline = s.sketchTool === 'bspline'
     const smooth = (s.sketchTool === 'spline' || isBSpline) && pts.length >= 3
@@ -5822,25 +5822,25 @@ export const useApp = create<AppState>((rawSet, get) => {
       try{
         const result=await solveFree(structuredClone(candidate),withParamVals(cons,s.params))
         if(!current())return
-        if(!result||result.conflict||!sketchesNumericallyEqual(result.shapes.slice(0,originals.length),originals)){set({status:'端点关系与现有草图冲突；绘制和原模型保留'});return}
+        if(!result||result.conflict||!sketchesNumericallyEqual(result.shapes.slice(0,originals.length),originals)){set({status:'端點關係與現有草圖衝突；繪製和原模型保留'});return}
         completed=[...originals,result.shapes[originals.length] as SketchShape];cons=applyRelationUpdates(cons,result);dof=result.dof
-      }catch{if(current())set({status:'端点关系求解失败；绘制和原模型保留'});return}
+      }catch{if(current())set({status:'端點關係求解失敗；繪製和原模型保留'});return}
     }
-    set({sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],sketchProfiles:completed,sketchShape:null,skCons:cons,skDof:dof,polyPts:[],polyBulges:[],polyArcMode:false,sketchStart:null,sketchPreview:null,sketchSnap:null,snapSrc:null,status:smooth?`已完成开放${isBSpline?'B样条':'样条'}曲线（${pts.length} 控制点）`:`已完成开放折线（${pts.length-1} 段）${auto.length?` · 已保留 ${auto.length} 个端点重合关系`:''}`})
+    set({sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],sketchProfiles:completed,sketchShape:null,skCons:cons,skDof:dof,polyPts:[],polyBulges:[],polyArcMode:false,sketchStart:null,sketchPreview:null,sketchSnap:null,snapSrc:null,status:smooth?`已完成開放${isBSpline?'B樣條':'樣條'}曲線（${pts.length} 控制點）`:`已完成開放折線（${pts.length-1} 段）${auto.length?` · 已保留 ${auto.length} 個端點重合關係`:''}`})
   },
 
   clineOrient: 'v',
   setClineOrient: (o) => set({ clineOrient: o }),
   clineCenterline: false,   // GM-FP4 #23
-  setClineCenterline: (on) => set({ clineCenterline: on, status: on ? '┋ 中心线模式：落嘅构造线带【中心线】语义（旋转轴/对称参照）' : '构造参考线（普通）' }),
+  setClineCenterline: (on) => set({ clineCenterline: on, status: on ? '┋ 中心線模式：落嘅構造線帶【中心線】語義（旋轉軸/對稱參照）' : '構造參考線（普通）' }),
   drawConstruction: false,   // GM-FP4 #22
-  toggleDrawConstruction: () => set((s) => ({ drawConstruction: !s.drawConstruction, status: !s.drawConstruction ? '⚟ 下一笔画成【构造几何】（琥珀虚线，唔参与拉伸）— 再撳关返实线' : '恢复画实线几何' })),
+  toggleDrawConstruction: () => set((s) => ({ drawConstruction: !s.drawConstruction, status: !s.drawConstruction ? '⚟ 下一筆畫成【構造幾何】（琥珀虛線，唔參與拉伸）— 再撳關返實線' : '恢復畫實線幾何' })),
   polyEdgeMode: false,   // GM-FP4 #17
-  setPolyEdgeMode: (on) => set({ polyEdgeMode: on, status: on ? '⬡ 多边形【边】模式：点一条边嘅两端（定边长+朝向），多边形沿该边生长' : '多边形（中心+半径）' }),
+  setPolyEdgeMode: (on) => set({ polyEdgeMode: on, status: on ? '⬡ 多邊形【邊】模式：點一條邊嘅兩端（定邊長+朝向），多邊形沿該邊生長' : '多邊形（中心+半徑）' }),
   slotMode: 'cc',   // GM-FP4 #18
-  setSlotMode: (m) => set({ slotMode: m, status: m === 'cc' ? '槽：心心（点两个弧心，距离=槽长）' : m === 'overall' ? '槽：总长（点两端最外缘，tip-to-tip=总长）' : '槽：中心点（先点槽中心 → 再点一个弧心，关于中心对称）' }),
+  setSlotMode: (m) => set({ slotMode: m, status: m === 'cc' ? '槽：心心（點兩個弧心，距離=槽長）' : m === 'overall' ? '槽：總長（點兩端最外緣，tip-to-tip=總長）' : '槽：中心點（先點槽中心 → 再點一個弧心，關於中心對稱）' }),
   selEmptyClear: false,   // GM-FP4 #47（默认关，保持 webcad「撳空唔清」旧手感）
-  setSelEmptyClear: (on) => set({ selEmptyClear: on, status: on ? '撳真空白 = 清选择（Fusion 式）' : '撳空白唔清选择（防误清；ESC 先清）' }),
+  setSelEmptyClear: (on) => set({ selEmptyClear: on, status: on ? '撳真空白 = 清選擇（Fusion 式）' : '撳空白唔清選擇（防誤清；ESC 先清）' }),
   skDimLabelOff: {},   // GM-FP4 #31
   setSkDimLabelOff: (conId, off) => set((s) => ({ skDimLabelOff: { ...s.skDimLabelOff, [conId]: off } })),
   // T794：构造参考线 —— 点位置即落一条 水平 或 竖直 嘅长虚线（construction），可做对中参考 / 镜像轴。
@@ -5851,27 +5851,27 @@ export const useApp = create<AppState>((rawSet, get) => {
     const line: SketchShape = s.clineOrient === 'h'
       ? { type: 'poly', pts: [[p[0] - SPAN, p[1]], [p[0] + SPAN, p[1]]], open: true, construction: true, ...cl }
       : { type: 'poly', pts: [[p[0], p[1] - SPAN], [p[0], p[1] + SPAN]], open: true, construction: true, ...cl }
-    return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: [...s.sketchProfiles, line], status: `已加${s.clineOrient === 'h' ? '水平' : '竖直'}${s.clineCenterline ? '中心线' : '构造参考线'}（过 ${p[0].toFixed(0)},${p[1].toFixed(0)}）— 可做对中参考 / 镜像轴 / 旋转轴` }
+    return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: [...s.sketchProfiles, line], status: `已加${s.clineOrient === 'h' ? '水平' : '豎直'}${s.clineCenterline ? '中心線' : '構造參考線'}（過 ${p[0].toFixed(0)},${p[1].toFixed(0)}）— 可做對中參考 / 鏡像軸 / 旋轉軸` }
   }),
   // 平行偏移当前轮廓（d>0 外扩 / d<0 内缩）。支持 圆/矩形/折线（含真圆弧路径）。保留原件，偏移线做新轮廓（Fusion 行为）。
   // 注：sk_offset 命令而家进 offset 工具模式（点轮廓偏移）；呢个 action 留作程序化/无拣中时嘅 fallback。
   offsetSketch: (d) => set((s) => {
     const sh = s.sketchShape
-    if (!sh) return { status: '请先画一个轮廓（圆/矩形/折线）再偏移' }
-    if (!d) return { status: '偏移距离唔可以系 0' }
+    if (!sh) return { status: '請先畫一個輪廓（圓/矩形/折線）再偏移' }
+    if (!d) return { status: '偏移距離唔可以系 0' }
     const isCon = !!sh.construction
     const dirs = s.sketchOffsetBoth ? [d, -d] : [d]
     const made: SketchShape[] = []
     let outOk = false, inOk = false
     for (const dd of dirs) { const r = offsetSketchShape(sh, dd); if (r) { made.push(isCon ? { ...r, construction: true } : r); if (dd > 0) outOk = true; else inOk = true } }
     if (!made.length) {
-      return { status: `偏移失败（距离 ${Math.abs(d)} 令轮廓自交/塌陷）` }
+      return { status: `偏移失敗（距離 ${Math.abs(d)} 令輪廓自交/塌陷）` }
     }
     const sideTxt = s.sketchOffsetBoth ? (outOk && inOk ? '（双向）' : outOk ? '（仅外侧，内侧塌陷）' : '（仅内侧，外侧塌陷）') : d > 0 ? '（外）' : '（内）'
     return {
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
       sketchProfiles: [...s.sketchProfiles, sh, ...made], sketchShape: null,
-      status: `已偏移 ${Math.abs(d)}mm${sideTxt} — 现 ${s.sketchProfiles.length + 1 + made.length} 个轮廓`,
+      status: `已偏移 ${Math.abs(d)}mm${sideTxt} — 現 ${s.sketchProfiles.length + 1 + made.length} 個輪廓`,
     }
   }),
   sketchOp: 'new',
@@ -5884,7 +5884,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   skView: { fill: true, annot: true, constr: true, grid: true, points: true, cons: true },   // GM-FP4 #4/#5：points/cons 默认开（Fusion 默认）
   setSkView: (p) => set((s) => ({ skView: { ...s.skView, ...p } })),
   skSeeThru: true,   // GM-W6 A1：默认开（Fusion 用户最常投诉嘅遮挡问题）——草图栏 👓 可关
-  toggleSkSeeThru: () => set((s) => ({ skSeeThru: !s.skSeeThru, status: !s.skSeeThru ? '👓 透视开：草图时实体半透明（睇到入面画紧乜）' : '👓 透视关：实体恢复实色' })),
+  toggleSkSeeThru: () => set((s) => ({ skSeeThru: !s.skSeeThru, status: !s.skSeeThru ? '👓 透視開：草圖時實體半透明（睇到入面畫緊乜）' : '👓 透視關：實體恢復實色' })),
   sketchDim: null,
   dimBuf: ['', ''],
   dimField: 0,
@@ -5977,14 +5977,14 @@ export const useApp = create<AppState>((rawSet, get) => {
   setChamferAngle: (n) => { set({ chamferAngle: Number.isFinite(n) ? Math.min(90, Math.max(0, n)) : 45 }); get().scheduleRoundPreview() },
   setChamferReferenceFace: (p, faceId) => set((s) => {
     if (s.edgeRoundPick !== 'chamfer' || s.chamferMode !== 'angle' || s.chamferRefFace) return {}
-    return { chamferRefFace: { p, faceId }, roundPreviewMesh: null, roundPreviewFail: false, status: 'Distance and Angle：已选 1 Face，请选参考面边界的 Edge' }
+    return { chamferRefFace: { p, faceId }, roundPreviewMesh: null, roundPreviewFail: false, status: 'Distance and Angle：已選 1 Face，請選參考面邊界的 Edge' }
   }),
   toggleChamferFlip: () => { set((s) => ({ chamferFlip: !s.chamferFlip })); get().scheduleRoundPreview() },
   // Fusion-style: enter fillet/chamfer COMMAND mode (select edges, then 确定). Toggling clears the selection.
   toggleEdgeRoundPick: (kind) => set((s) => ({ edgeRoundPick: s.edgeRoundPick === kind ? null : kind, edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [], edgeRoundSize: 0, filletR2: 0, filletMode: 'radius', filletAsymFlip: false, filletContinuity: 'G1', filletRadiusGroups: [{ radius: 0, continuity: 'G1' }], filletActiveGroup: 0, filletType: 'fillet', filletRuleMode: 'all', filletRuleFaceSets: [], filletRuleFaceIds: [], filletRuleSlot: 1, filletFullFaceSets: [], filletFullFaceIds: [], filletFullSlot: 1, chamferMode: 'equal', chamferSize2: 0, chamferAngle: 45, chamferFlip: false, chamferRefFace: null, roundPreviewMesh: null, roundPreviewFail: false, faceFilletMode: false, faceSketchPick: false, embossPick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: s.edgeRoundPick === kind ? '已退出' : `${kind === 'chamfer' ? '倒角' : '圓角'}：逐條點選邊／面／特徵` })),
   // Add the picked edge to the selection (apply later on 确定) — Fusion-style multi-edge selection.
   roundEdgeAt: (p) => {
-    if (!hasSolid(get().features)) { set({ status: '选边需要先有实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '選邊需要先有實體' }); return }
     // review修：先解析最近 B-rep 边，再决定 加选/取消 — deselect 只喺【解析出同一条边】先触发
     //（旧 2.5mm 邻近判定会误伤密集件：想加第二条 2mm 外嘅平行棱变咗取消第一条）。采样 deterministic → 首/中/尾三点对比即同边。
     const cadP: [number, number, number] = [p[0], -p[2], p[1]]
@@ -6019,7 +6019,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           edgeRoundGroupIds: s2.edgeRoundGroupIds.filter((_, i) => i !== hit),
           edgeRoundPickLines: s2.edgeRoundPickLines.filter((_, i) => i !== hit),
           ...(s2.edgeRoundPicks.length === 1 ? { chamferRefFace: null } : {}),
-          status: `已取消该棱（剩 ${s2.edgeRoundPicks.length - 1} 条）`,
+          status: `已取消該棱（剩 ${s2.edgeRoundPicks.length - 1} 條）`,
         }))
         get().scheduleRoundPreview()
         return
@@ -6029,13 +6029,13 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   commitEdgeRound: async () => {
     const pts = get().edgeRoundPicks, kind = get().edgeRoundPick || 'fillet', sz = get().edgeRoundSize
-    if (!pts.length) { set({ status: `请先点选要${kind === 'chamfer' ? '倒角' : '倒圆角'}的棱` }); return }
-    if (kind === 'fillet' && get().filletType === 'rule' && get().filletRuleMode === 'between' && !(get().filletRuleFaceSets.includes(1) && get().filletRuleFaceSets.includes(2))) { set({ status: '两组之间规则：第 1 组同第 2 组都要至少选择一个面/特征' }); return }
+    if (!pts.length) { set({ status: `請先點選要${kind === 'chamfer' ? '倒角' : '倒圓角'}的棱` }); return }
+    if (kind === 'fillet' && get().filletType === 'rule' && get().filletRuleMode === 'between' && !(get().filletRuleFaceSets.includes(1) && get().filletRuleFaceSets.includes(2))) { set({ status: '兩組之間規則：第 1 組同第 2 組都要至少選擇一個面/特徵' }); return }
     if (kind === 'fillet' && get().filletType === 'full' && !([1, 2, 3] as const).every((slot) => get().filletFullFaceSets.includes(slot))) { set({ status: '全圓角：側面組 1、中心面、側面組 2 都要至少選擇一個面' }); return }
-    if (kind === 'chamfer' && get().chamferMode === 'angle' && !get().chamferRefFace) { set({ status: 'Distance and Angle：请在参考面的边界上选择 1 Face + 1 Edge' }); return }
-    if (kind === 'chamfer' && get().chamferMode === 'two' && !(get().chamferSize2 > 0)) { set({ status: 'Two Distance：Distance 2 必须大于 0' }); return }
-    if (kind === 'chamfer' && get().chamferMode === 'angle' && !(get().chamferAngle > 0 && get().chamferAngle < 90)) { set({ status: 'Distance and Angle：角度必须大于 0°并小于 90°' }); return }
-    if (!(kind === 'fillet' && get().filletType === 'full' ? true : kind === 'fillet' && get().filletMode === 'chord' ? get().filletChord > 0 : kind === 'fillet' && get().filletMode === 'asymmetric' ? get().filletR2 > 0 && get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : kind === 'fillet' ? get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : sz > 0)) { set({ status: `请输入大于 0 的${kind === 'chamfer' ? '倒角距离' : get().filletMode === 'chord' ? '弦长' : get().filletMode === 'asymmetric' ? '两个偏移距离' : '圆角半径'}` }); return }
+    if (kind === 'chamfer' && get().chamferMode === 'angle' && !get().chamferRefFace) { set({ status: 'Distance and Angle：請在參考面的邊界上選擇 1 Face + 1 Edge' }); return }
+    if (kind === 'chamfer' && get().chamferMode === 'two' && !(get().chamferSize2 > 0)) { set({ status: 'Two Distance：Distance 2 必須大於 0' }); return }
+    if (kind === 'chamfer' && get().chamferMode === 'angle' && !(get().chamferAngle > 0 && get().chamferAngle < 90)) { set({ status: 'Distance and Angle：角度必須大於 0°並小於 90°' }); return }
+    if (!(kind === 'fillet' && get().filletType === 'full' ? true : kind === 'fillet' && get().filletMode === 'chord' ? get().filletChord > 0 : kind === 'fillet' && get().filletMode === 'asymmetric' ? get().filletR2 > 0 && get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : kind === 'fillet' ? get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : sz > 0)) { set({ status: `請輸入大於 0 的${kind === 'chamfer' ? '倒角距離' : get().filletMode === 'chord' ? '弦長' : get().filletMode === 'asymmetric' ? '兩個偏移距離' : '圓角半徑'}` }); return }
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])  // three-world → CAD (x,−z,y)
     const cm = get().chamferMode, d2 = get().chamferSize2, ang = get().chamferAngle
     const r2 = get().filletR2
@@ -6066,7 +6066,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     ++_roundPvSeq
     if (_roundPvTimer) clearTimeout(_roundPvTimer)
     _roundPvTimer = null
-    set({ edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [], filletRuleFaceSets: [], filletRuleFaceIds: [], filletFullFaceSets: [], filletFullFaceIds: [], chamferRefFace: null, roundPreviewMesh: null, roundPreviewFail: false, roundPreviewBusy: false, status: '已清空所选 — 重新点选' })
+    set({ edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [], filletRuleFaceSets: [], filletRuleFaceIds: [], filletFullFaceSets: [], filletFullFaceIds: [], chamferRefFace: null, roundPreviewMesh: null, roundPreviewFail: false, roundPreviewBusy: false, status: '已清空所選 — 重新點選' })
   },
   // P2 批7：实时预览 — debounce 120ms 后临时 append 特征重建（T730 缓存 → 只算新特征）。
   // bodyMesh 全程唔郁（预览住喺 roundPreviewMesh，KernelBody 读 preview ?? bodyMesh）→ 取消/ESC 即还原零成本。
@@ -6102,7 +6102,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       mesh = await cad.previewRound(active)
     } catch {
       if (seq !== _roundPvSeq || !get().edgeRoundPick || get().features !== s.features || get().params !== s.params || get().paramBindings !== s.paramBindings || get().suppressedIds !== s.suppressedIds) return
-      set({ roundPreviewMesh: null, roundPreviewFail: true, roundPreviewBusy: false, status: '⚠ 预览失败 — 已保留原模型，请调整参数重试或按 Esc 取消' })
+      set({ roundPreviewMesh: null, roundPreviewFail: true, roundPreviewBusy: false, status: '⚠ 預覽失敗 — 已保留原模型，請調整參數重試或按 Esc 取消' })
       return
     }
     if (seq !== _roundPvSeq || !get().edgeRoundPick || get().features !== s.features || get().params !== s.params || get().paramBindings !== s.paramBindings || get().suppressedIds !== s.suppressedIds) { if (seq === _roundPvSeq) set({ roundPreviewBusy: false }); return }
@@ -6112,7 +6112,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const warn = mesh!.warnings && mesh!.warnings.length ? `⚠ ${mesh!.warnings.join('；')}` : ''
       _previewFeatures.set(mesh!, active)
       set({ roundPreviewMesh: mesh, roundPreviewFail: false, roundPreviewBusy: false, ...(warn ? { status: warn } : {}) })
-    } else set({ roundPreviewMesh: null, roundPreviewFail: true, roundPreviewBusy: false, status: s.edgeRoundPick === 'fillet' && s.filletType === 'full' ? '⚠ 全圆角预览失败：检查三组面是否相邻，而且两条边界是否直线兼互相平行' : s.edgeRoundPick === 'fillet' && s.filletMode === 'asymmetric' ? '⚠ 不对称圆角预览失败：目前要求凸直线边及两个互相垂直平面' : `⚠ ${s.edgeRoundPick === 'chamfer' ? '倒角距离' : '圆角半径'}太大（超过相邻面）— 减小数值先撳确定` })
+    } else set({ roundPreviewMesh: null, roundPreviewFail: true, roundPreviewBusy: false, status: s.edgeRoundPick === 'fillet' && s.filletType === 'full' ? '⚠ 全圓角預覽失敗：檢查三組面是否相鄰，而且兩條邊界是否直線兼互相平行' : s.edgeRoundPick === 'fillet' && s.filletMode === 'asymmetric' ? '⚠ 不對稱圓角預覽失敗：目前要求凸直線邊及兩個互相垂直平面' : `⚠ ${s.edgeRoundPick === 'chamfer' ? '倒角距離' : '圓角半徑'}太大（超過相鄰面）— 減小數值先撳確定` })
   },
   // Fusion-style shell command: pick the face(s) to open → set wall thickness → 确定.
   shellPreviewMesh: null,
@@ -6147,7 +6147,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (seq !== _shellPvSeq || !get().shellMode) { if (seq === _shellPvSeq) set({ shellPreviewBusy: false }); return }
       // 抢占/取消 → 当软失败（保留原模型，Confirm 仍可用）
       const cancelled = typeof isPreviewCancelled === 'function' && isPreviewCancelled(e)
-      set({ shellPreviewMesh: null, shellPreviewBusy: false, shellPreviewFail: true, ...(cancelled ? { status: '预览已取消 — 可改参数重试或直接按「确定」提交' } : {}) })
+      set({ shellPreviewMesh: null, shellPreviewBusy: false, shellPreviewFail: true, ...(cancelled ? { status: '預覽已取消 — 可改參數重試或直接按「確定」提交' } : {}) })
     }
   },
   shellMode: false,
@@ -6159,7 +6159,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ shellThickness: v, ...(isNonPositiveDim(v) ? { status: illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL) } : {}) })
   },
   shellType: 'open',
-  setShellType: (t) => set({ shellType: t, shellPicks: [], status: t === 'closed' ? '封闭实体抽壳：点选实体后输入壁厚' : '移除面抽壳：点选一个或多个开口面' }),
+  setShellType: (t) => set({ shellType: t, shellPicks: [], status: t === 'closed' ? '封閉實體抽殼：點選實體後輸入壁厚' : '移除面抽殼：點選一個或多個開口面' }),
   shellTangentChain: true,
   toggleShellTangentChain: () => set((s) => ({ shellTangentChain: !s.shellTangentChain })),
   shellDir: 'inside',   // GM-3DV3 M2：缺省向内（外形保留，旧行为逐字节）
@@ -6172,19 +6172,19 @@ export const useApp = create<AppState>((rawSet, get) => {
       _shellPvTimer = null
       try { cancelPreviews() } catch { /* node / 无 kernel */ }
     }
-    set((s) => ({ shellMode: !s.shellMode, shellPicks: [], shellThickness: s.shellMode ? 0 : 2, shellType: 'open', shellTangentChain: true, shellDir: 'inside', holeMode: false, featDlg: null, decalPick: null, pushPullMode: false, edgeRoundPick: null, faceFilletMode: false, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.shellMode ? '抽壳：点选要移除的面（可多个）→ 输入壁厚 → 按「确定」' : '已退出抽壳', ...(was ? { shellPreviewMesh: null, shellPreviewBusy: false, shellPreviewFail: false } : {}) }))
+    set((s) => ({ shellMode: !s.shellMode, shellPicks: [], shellThickness: s.shellMode ? 0 : 2, shellType: 'open', shellTangentChain: true, shellDir: 'inside', holeMode: false, featDlg: null, decalPick: null, pushPullMode: false, edgeRoundPick: null, faceFilletMode: false, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.shellMode ? '抽殼：點選要移除的面（可多個）→ 輸入壁厚 → 按「確定」' : '已退出抽殼', ...(was ? { shellPreviewMesh: null, shellPreviewBusy: false, shellPreviewFail: false } : {}) }))
   },
   shellPickAt: (p) => set((s) => {
     if (!hasSolid(s.features)) return partSolidRequiredPatch('抽壳', s)
     const hit = s.shellPicks.findIndex((q) => Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]) < 2.5)
     const picks = s.shellType === 'closed' ? (hit >= 0 ? [] : [p]) : (hit >= 0 ? s.shellPicks.filter((_, i) => i !== hit) : [...s.shellPicks, p])
-    return { shellPicks: picks, status: hit >= 0 ? `已取消${s.shellType === 'closed' ? '实体' : '该面'}（剩 ${picks.length} 个）` : s.shellType === 'closed' ? '已选实体 — 输入壁厚后按「确定」' : `已选 ${picks.length} 个开口面 — 继续点选，或输入壁厚后按「确定」`
+    return { shellPicks: picks, status: hit >= 0 ? `已取消${s.shellType === 'closed' ? '實體' : '該面'}（剩 ${picks.length} 個）` : s.shellType === 'closed' ? '已選實體 — 輸入壁厚後按「確定」' : `已選 ${picks.length} 個開口面 — 繼續點選，或輸入壁厚後按「確定」`
     }
   }),
   commitShell: async () => {
     const pts = get().shellPicks, th = get().shellThickness
     const shellType = get().shellType
-    if (!pts.length) { set({ status: shellType === 'closed' ? '请先选择要抽壳的实体' : '请先选择要移除的面' }); return }
+    if (!pts.length) { set({ status: shellType === 'closed' ? '請先選擇要抽殼的實體' : '請先選擇要移除的面' }); return }
     if (!(th > 0)) { set({ status: illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL) }); return }
     const dir = get().shellDir
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])  // three → CAD
@@ -6209,19 +6209,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (_shellPvTimer) clearTimeout(_shellPvTimer)
     _shellPvTimer = null
     try { cancelPreviews() } catch { /* node / 无 kernel */ }
-    set({ shellPicks: [], shellMode: false, shellPreviewMesh: null, shellPreviewBusy: false, shellPreviewFail: false, status: '已取消抽壳' })
+    set({ shellPicks: [], shellMode: false, shellPreviewMesh: null, shellPreviewBusy: false, shellPreviewFail: false, status: '已取消抽殼' })
   },
-  clearShellPicks: () => set({ shellPicks: [], status: '已清空所选面 — 请重新点选' }),
+  clearShellPicks: () => set({ shellPicks: [], status: '已清空所選面 — 請重新點選' }),
   // R1 面圆角 face-fillet：镜 shell 拾面流程（proven guarded），拾【两张】唔相邻面 → 设半径 → 确定。
   faceFilletMode: false,
   faceFilletPicks: [],
   faceFilletRadius: 4,
   setFaceFilletRadius: (n) => set({ faceFilletRadius: Math.max(0.1, n || 4) }),
   toggleFaceFillet: () => set((s) => ({ faceFilletMode: !s.faceFilletMode, faceFilletPicks: [], shellMode: false, holeMode: false, featDlg: null, decalPick: null, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.faceFilletMode ? '面圓角：點選兩張相鄰面；系統會先驗證共同 B-rep 邊，再建立真實圓角。' : '已退出面圓角' })),
-  faceFilletPickAt: (p) => set((s) => { if (!hasSolid(s.features)) return partSolidRequiredPatch('面圆角', s); if (s.faceFilletPicks.length >= 2) return { faceFilletPicks: [p], status: '已重选第 1 张面 — 再点第 2 张面' }; const picks = [...s.faceFilletPicks, p]; return { faceFilletPicks: picks, status: picks.length < 2 ? '已选第 1 张面 — 再点第 2 张面' : '已选 2 张面 — 设半径后按「确定」' } }),
+  faceFilletPickAt: (p) => set((s) => { if (!hasSolid(s.features)) return partSolidRequiredPatch('面圓角', s); if (s.faceFilletPicks.length >= 2) return { faceFilletPicks: [p], status: '已重選第 1 張面 — 再點第 2 張面' }; const picks = [...s.faceFilletPicks, p]; return { faceFilletPicks: picks, status: picks.length < 2 ? '已選第 1 張面 — 再點第 2 張面' : '已選 2 張面 — 設半徑後按「確定」' } }),
   commitFaceFillet: async () => {
     const pts = get().faceFilletPicks, r = get().faceFilletRadius
-    if (pts.length !== 2) { set({ status: '面圆角需要恰好 2 张面' }); return }
+    if (pts.length !== 2) { set({ status: '面圓角需要恰好 2 張面' }); return }
     const shared = await cad.sharedFaceEdgeAt(pts[0], pts[1])
     if (!shared) { set({ status: '面圓角：兩張面沒有共同 B-rep 邊（或同一面）— 未建立特徵；請點兩張相鄰面。' }); return }
     const refs = await cad.captureFaceRefs(pts)
@@ -6230,8 +6230,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     const ok = await get().applyFeatures([...get().features, f], `已建立面圆角 R${r}（两张相邻面共同边）`)
     if (ok) set({ faceFilletMode: false, faceFilletPicks: [] })
   },
-  cancelFaceFillet: () => set({ faceFilletPicks: [], faceFilletMode: false, status: '已取消面圆角' }),
-  clearFaceFilletPicks: () => set({ faceFilletPicks: [], status: '已清空所选面 — 重新点选两张面' }),
+  cancelFaceFillet: () => set({ faceFilletPicks: [], faceFilletMode: false, status: '已取消面圓角' }),
+  clearFaceFilletPicks: () => set({ faceFilletPicks: [], status: '已清空所選面 — 重新點選兩張面' }),
   // Press/Pull (Fusion Q): click a planar face → offset it along its normal by pushPullDist
   // (+ pulls material out, − pushes in). Stored as a near-point feature, re-found each rebuild.
   pushPullMode: false,
@@ -6243,11 +6243,11 @@ export const useApp = create<AppState>((rawSet, get) => {
   setPushPullDirVec: (i, v) => set((s) => { const nv = [...s.pushPullDirVec] as [number, number, number]; nv[i] = Number.isFinite(v) ? v : 0; return { pushPullDirVec: nv } }),
   // 审计修复：togglePushPull 漏清直接编辑家族（delFace/thicken/offsetSurf/extendSurf/splitFace/replaceFace/surfTrim）→
   // 若 replaceFace 等已开住再撳「按拉」，两 mode 同 true，Viewport 点击优先序 pushPull 排第一 → 劫持。补齐互斥。
-  togglePushPull: () => set((s) => ({ pushPullMode: !s.pushPullMode, pushPullPicks: [], pushPullDist: 0, pushPullDir: 'normal', offsetType: 'auto', moveFaceMode: false, shellMode: false, faceFilletMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, delFaceMode: false, thickenMode: false, offsetSurfMode: false, extendSurfMode: false, splitFaceMode: false, replaceFaceMode: false, surfTrimMode: false, status: !s.pushPullMode ? '按拉：请选择面、边或草图轮廓' : '已退出按拉' })),
+  togglePushPull: () => set((s) => ({ pushPullMode: !s.pushPullMode, pushPullPicks: [], pushPullDist: 0, pushPullDir: 'normal', offsetType: 'auto', moveFaceMode: false, shellMode: false, faceFilletMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, delFaceMode: false, thickenMode: false, offsetSurfMode: false, extendSurfMode: false, splitFaceMode: false, replaceFaceMode: false, surfTrimMode: false, status: !s.pushPullMode ? '按拉：請選擇面、邊或草圖輪廓' : '已退出按拉' })),
   // P2 批9：Fusion 流程 — 点面【累积】选择（可多面），设距离/方向后撳「确定」先落特征
   pushPullPicks: [],
   pushPullAt: (p, nn) => set((s) => {
-    if (!hasSolid(s.features)) return { status: '按拉需要先有实体' }
+    if (!hasSolid(s.features)) return { status: '按拉需要先有實體' }
     const cp = [p[0], -p[2], p[1]] as [number, number, number]                    // three→CAD 点（e.point 系 world）
     // review HIGH 修：raycast e.face.normal 系 mesh LOCAL 空间 = 活动体几何本身就系 CAD 坐标（-90°X 旋转喺外层 group）
     // → 已经系 CAD 法向直接用（同 startSketchOnFace cadNormal 同一惯例）；再套 three→CAD = 双重旋转错 90°
@@ -6260,14 +6260,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       return Math.abs(dot) > 0.999 && planeDistance < 0.2
     })
     const picks = hit >= 0 ? s.pushPullPicks.filter((_, i) => i !== hit) : [...s.pushPullPicks, { p: cp, n }]
-    return { pushPullPicks: picks, status: hit >= 0 ? `已取消该面（剩 ${picks.length} 个）` : `已选 ${picks.length} 个面 — 拖动箭头或输入距离 → 「确定」` }
+    return { pushPullPicks: picks, status: hit >= 0 ? `已取消該面（剩 ${picks.length} 個）` : `已選 ${picks.length} 個面 — 拖動箭頭或輸入距離 → 「確定」` }
   }),
-  clearPushPullPicks: () => set({ pushPullPicks: [], status: '已清空所选面 — 重新点选' }),
+  clearPushPullPicks: () => set({ pushPullPicks: [], status: '已清空所選面 — 重新點選' }),
   commitPushPull: async () => {
     const picks = get().pushPullPicks
-    if (!picks.length) { set({ status: '请先点选要按拉嘅面（可多个）' }); return }
+    if (!picks.length) { set({ status: '請先點選要按拉嘅面（可多個）' }); return }
     const dist = get().pushPullDist
-    if (Math.abs(dist) < 1e-9) { set({ status: '请输入非零偏移距离' }); return }
+    if (Math.abs(dist) < 1e-9) { set({ status: '請輸入非零偏移距離' }); return }
     const dd = get().pushPullDir
     const DIRV: Record<string, [number, number, number]> = { X: [1, 0, 0], Y: [0, 1, 0], Z: [0, 0, 1] }
     const cv = get().pushPullDirVec
@@ -6295,9 +6295,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   setOffsetType: (t) => set({ offsetType: t }),
   moveFaceAngle: 15,
   setMoveFaceAngle: (n) => set({ moveFaceAngle: Number.isFinite(n) ? Math.max(-60, Math.min(60, n)) : 0 }),
-  toggleMoveFace: () => set((s) => ({ moveFaceMode: !s.moveFaceMode, moveFacePick: null, moveFacePicks: [], pushPullMode: false, delFaceMode: false, thickenMode: false, offsetSurfMode: false, extendSurfMode: false, splitFaceMode: false, replaceFaceMode: false, rotateFaceMode: false, surfTrimMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.moveFaceMode ? '↕ 移动面：点实体一个或多个【平面】面（撳返同一面=剔除）→ 设距离(±mm) 或切「倾斜」设角度 → 「确定」。朝内=内核重解邻面/圆角，朝外=加料。仅平面' : '已退出移动面' })),
+  toggleMoveFace: () => set((s) => ({ moveFaceMode: !s.moveFaceMode, moveFacePick: null, moveFacePicks: [], pushPullMode: false, delFaceMode: false, thickenMode: false, offsetSurfMode: false, extendSurfMode: false, splitFaceMode: false, replaceFaceMode: false, rotateFaceMode: false, surfTrimMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.moveFaceMode ? '↕ 移動面：點實體一個或多個【平面】面（撳返同一面=剔除）→ 設距離(±mm) 或切「傾斜」設角度 → 「確定」。朝內=內核重解鄰面/圓角，朝外=加料。僅平面' : '已退出移動面' })),
   moveFaceAt: (p, nn) => set((s) => {
-    if (!hasSolid(s.features)) return { status: '移动面需要先有实体' }
+    if (!hasSolid(s.features)) return { status: '移動面需要先有實體' }
     const cp = [p[0], -p[2], p[1]] as [number, number, number]                    // three→CAD 点（同 pushPullAt）
     const nl = Math.hypot(nn[0], nn[1], nn[2]) || 1
     const n = [nn[0] / nl, nn[1] / nl, nn[2] / nl] as [number, number, number]    // e.face.normal 已系 CAD 法向（同 pushPullAt 惯例）— ghost 预览用
@@ -6312,18 +6312,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     const last = picks.length ? picks[picks.length - 1] : null   // moveFacePick 便捷镜 = 最后一个（SketchLayer ghost 读 !!moveFacePick）
     const cur = s.moveFaceKind === 'tilt' ? `倾斜 ${s.moveFaceAngle}°` : `偏移 ${s.moveFaceDist}mm`
     const tiltWarn = picks.length > 1 && s.moveFaceKind === 'tilt' ? '；⚠ 倾斜只支持单面' : ''
-    return { moveFacePicks: picks, moveFacePick: last, status: picks.length ? `已选 ${picks.length} 个面 — 设距离/角度 → 「确定」（当前：${cur}${tiltWarn}）` : '已清空所选面 — 重新点选' }
+    return { moveFacePicks: picks, moveFacePick: last, status: picks.length ? `已選 ${picks.length} 個面 — 設距離/角度 → 「確定」（當前：${cur}${tiltWarn}）` : '已清空所選面 — 重新點選' }
   }),
-  clearMoveFacePick: () => set({ moveFacePick: null, moveFacePicks: [], status: '已清空所选面 — 重新点选' }),
+  clearMoveFacePick: () => set({ moveFacePick: null, moveFacePicks: [], status: '已清空所選面 — 重新點選' }),
   commitMoveFace: async () => {
     const picks = get().moveFacePicks
-    if (!picks.length) { set({ status: '请先点选要移动嘅面（可多个）' }); return }
+    if (!picks.length) { set({ status: '請先點選要移動嘅面（可多個）' }); return }
     const kind = get().moveFaceKind
     const dist = get().moveFaceDist
     const angle = Math.max(-60, Math.min(60, get().moveFaceAngle))
     const pts = picks.map((x) => x.p)   // worker 只食点（near/nears 逐字节格式）— 法向纯 client
     // GM-L2：倾斜多面方向有歧义 — 唔落死特征，诚实叫用户逐面倾斜或改偏移（worker 亦有 reject-multi-tilt 防线）
-    if (kind === 'tilt' && pts.length > 1) { set({ status: `⚠ 倾斜暂唔支持多面（已选 ${pts.length} 面）— 请只留一个面（撳其余面剔除）逐面倾斜，或改用「偏移」多面串链` }); return }
+    if (kind === 'tilt' && pts.length > 1) { set({ status: `⚠ 傾斜暫唔支持多面（已選 ${pts.length} 面）— 請只留一個面（撳其餘面剔除）逐面傾斜，或改用「偏移」多面串鏈` }); return }
     // offset 缺省唔写 mode（feature 最精简）；tilt 写 mode+angle。单面 = 净 near（旧档逐字节）；多面 = near[0] + nears 全表（镜 pushpull）。dist 恒带（feature 类型必填；tilt 时 worker 忽略）。
     // GM-3DV3 M8：Offset Face 嘅 Offset Type 元数据（仅 offset 模式带；auto=缺省唔写 → 逐字节旧档）
     const ot = get().offsetType
@@ -6339,7 +6339,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // T795（S74）直接编辑删面：点实体一个面 → 去特征 + 治愈（删走倒角/孔/凸台清理导入件）。
   delFaceMode: false,
-  toggleDelFace: () => set((s) => ({ delFaceMode: !s.delFaceMode, delFacePicks: [], moveFaceMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.delFaceMode ? '🗑面 删面（直接编辑）：点实体一个面 → 去特征 + 治愈（清理导入件嘅倒角/孔/凸台）。删唔到嘅诚实保原样' : '已退出删面' })),
+  toggleDelFace: () => set((s) => ({ delFaceMode: !s.delFaceMode, delFacePicks: [], moveFaceMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.delFaceMode ? '🗑面 刪面（直接編輯）：點實體一個面 → 去特徵 + 治癒（清理匯入件嘅倒角/孔/凸台）。刪唔到嘅誠實保原樣' : '已退出刪面' })),
   lang: detectLang(),
   setLang: (l) => {
     const lang = normalizeLang(l)
@@ -6361,46 +6361,46 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   setSelPriority: (p) => set((s) => ({ selFilter: withPriority(s.selFilter, p), status: `選擇優先級：${p === 'body' ? '實體' : p === 'face' ? '面' : '邊'}優先` })),
   selectAllSelTypes: () => set((s) => ({ selFilter: withAllTypes(s.selFilter), status: '選擇過濾：全部類型可揀' })),
-  clearSelTypes: () => set((s) => ({ selFilter: withNoTypes(s.selFilter), status: '选择过滤：已清空（暂锁拣选）' })),
+  clearSelTypes: () => set((s) => ({ selFilter: withNoTypes(s.selFilter), status: '選擇過濾：已清空（暫鎖揀選）' })),
   toggleSelectThrough: () => set((s) => { const v = !s.selFilter.selectThrough; return { selFilter: withSelThrough(s.selFilter, v), status: v ? msg('ui.selectThroughOn', s.lang) : msg('ui.selectThroughOff', s.lang) } }),
   // GM-X4 #19：谓词选择（作用喺 checkedComps 组件选择集）。size 度量 = 局部包围盒体积 mm³。
   selectCompsByName: (query, additive) => set((s) => {
     const items = s.components.filter((c) => !c.hidden).map((c) => ({ id: c.id, name: c.name || '' }))
     const hits = matchByName(items, query)
     const next = additive ? [...new Set([...s.checkedComps, ...hits])] : hits
-    return { checkedComps: next, status: hits.length ? `按名选中 ${hits.length} 个组件（“${query}”）` : `无组件名匹配“${query}”` }
+    return { checkedComps: next, status: hits.length ? `按名選中 ${hits.length} 個組件（“${query}”）` : `無組件名匹配“${query}”` }
   }),
   selectCompsBySize: (op, threshold, additive) => set((s) => {
     const bbVol = (c: typeof s.components[number]) => { const v = c.mesh?.vertices; if (!v || !v.length) return 0; let ax = 1e18, ay = 1e18, az = 1e18, bx = -1e18, by = -1e18, bz = -1e18; for (let i = 0; i < v.length; i += 3) { if (v[i] < ax) ax = v[i]; if (v[i] > bx) bx = v[i]; if (v[i + 1] < ay) ay = v[i + 1]; if (v[i + 1] > by) by = v[i + 1]; if (v[i + 2] < az) az = v[i + 2]; if (v[i + 2] > bz) bz = v[i + 2] } return Math.max(0, bx - ax) * Math.max(0, by - ay) * Math.max(0, bz - az) }
     const items = s.components.filter((c) => !c.hidden).map((c) => ({ id: c.id, size: bbVol(c) }))
     const hits = matchBySize(items, op, threshold)
     const next = additive ? [...new Set([...s.checkedComps, ...hits])] : hits
-    return { checkedComps: next, status: hits.length ? `按尺寸选中 ${hits.length} 个组件（包围盒体积 ${op} ${threshold}mm³）` : `无组件包围盒体积 ${op} ${threshold}mm³` }
+    return { checkedComps: next, status: hits.length ? `按尺寸選中 ${hits.length} 個組件（包圍盒體積 ${op} ${threshold}mm³）` : `無組件包圍盒體積 ${op} ${threshold}mm³` }
   }),
-  invertCompSelection: () => set((s) => { const all = s.components.filter((c) => !c.hidden).map((c) => c.id); const next = invertSet(all, s.checkedComps); return { checkedComps: next, status: `反选：${next.length} 个组件` } }),
-  selectAllComps: () => set((s) => { const all = s.components.filter((c) => !c.hidden).map((c) => c.id); return { checkedComps: all, status: `全选 ${all.length} 个组件` } }),
+  invertCompSelection: () => set((s) => { const all = s.components.filter((c) => !c.hidden).map((c) => c.id); const next = invertSet(all, s.checkedComps); return { checkedComps: next, status: `反選：${next.length} 個組件` } }),
+  selectAllComps: () => set((s) => { const all = s.components.filter((c) => !c.hidden).map((c) => c.id); return { checkedComps: all, status: `全選 ${all.length} 個組件` } }),
   lassoMode: false,
-  toggleLassoMode: () => set((s) => ({ lassoMode: !s.lassoMode, navTool: !s.lassoMode ? 'select' : s.navTool, status: !s.lassoMode ? '套索选择：拖一个自由多边形框住组件（Shift 追加，右→左相触即中）' : '套索选择：关（回矩形框选）' })),
+  toggleLassoMode: () => set((s) => ({ lassoMode: !s.lassoMode, navTool: !s.lassoMode ? 'select' : s.navTool, status: !s.lassoMode ? '套索選擇：拖一個自由多邊形框住組件（Shift 追加，右→左相觸即中）' : '套索選擇：關（回矩形框選）' })),
   // P2 批9：删面多选 — 点面累积，「确定」一次过去特征（每面独立守卫，删唔到嘅面诚实警告）
   delFacePicks: [],
   delFaceAt: (p) => set((s) => {
-    if (!hasSolid(s.features)) return { status: '删面需要先有实体' }
+    if (!hasSolid(s.features)) return { status: '刪面需要先有實體' }
     const picks = [...s.delFacePicks, [p[0], -p[2], p[1]] as [number, number, number]]
-    return { delFacePicks: picks, status: `已选 ${picks.length} 个面 — 继续点选，或按「确定」删面` }
+    return { delFacePicks: picks, status: `已選 ${picks.length} 個面 — 繼續點選，或按「確定」刪面` }
   }),
-  clearDelFacePicks: () => set({ delFacePicks: [], status: '已清空所选面 — 重新点选' }),
+  clearDelFacePicks: () => set({ delFacePicks: [], status: '已清空所選面 — 重新點選' }),
   commitDelFace: async () => {
     const picks = get().delFacePicks
-    if (!picks.length) { set({ status: '请先点选要删嘅面（可多个）' }); return }
+    if (!picks.length) { set({ status: '請先點選要刪嘅面（可多個）' }); return }
     const f: Feature = { id: fid(), type: 'delface', near: picks[0], ...(picks.length > 1 ? { nears: picks.slice() } : {}) }
     const ok = await get().applyFeatures([...get().features, f], `已删 ${picks.length} 个面（去特征 + 治愈 — 时间轴可撤）`, true, '删面失败（面唔系可去嘅特征 / 治愈失败）')
     if (ok) set({ delFaceMode: false, delFacePicks: [] })
   },
   // T811（S曲面）：加厚拾取面成实体薄板（曲面件 → 可打印实体 / 加厚单一面）。出独立件（parkedBodies）。
   thickenMode: false,
-  toggleThicken: () => set((s) => ({ thickenMode: !s.thickenMode, moveFaceMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.thickenMode ? '➕加厚：点实体/曲面一个面 → 沿法向加厚成实体薄板（出独立件，要合并用「实体布尔」）' : '已退出加厚' })),
+  toggleThicken: () => set((s) => ({ thickenMode: !s.thickenMode, moveFaceMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.thickenMode ? '➕加厚：點實體/曲面一個面 → 沿法向加厚成實體薄板（出獨立件，要合併用「實體布爾」）' : '已退出加厚' })),
   thickenFaceAt: async (p) => {
-    if (!hasSolid(get().features)) { set({ status: '加厚需要先有实体/曲面' }); return }
+    if (!hasSolid(get().features)) { set({ status: '加厚需要先有實體/曲面' }); return }
     const cad: [number, number, number] = [p[0], -p[2], p[1]]
     const v = await get().appPrompt(tStatus('加厚 — 板厚 mm（沿面法向加厚成实体薄板；负值 / 前缀「-」= 翻面，朝另一侧加厚）', get().lang), '2')
     if (v == null) { set({ thickenMode: false }); return }
@@ -6422,11 +6422,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false,
     measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false,
     thickenMode: false, offsetSurfMode: false, extendSurfMode: false, splitFaceMode: false, replaceFaceMode: false, surfTrimMode: false,
-    status: '➕ 加厚整张曲面：直接点选一张灰色泊车曲面（蓝色高亮）→ 输入板厚；Esc 取消',
+    status: '➕ 加厚整張曲面：直接點選一張灰色泊車曲面（藍色高亮）→ 輸入板厚；Esc 取消',
   }),
   thickenParkedAt: async (target) => {
     const pkt = get().bodyMesh?.parked
-    if (!get().quiltPickMode || !pkt?.[target]) { set({ quiltPickMode: false, status: '加厚曲面：目标曲面已不存在，请重新选择' }); return }
+    if (!get().quiltPickMode || !pkt?.[target]) { set({ quiltPickMode: false, status: '加厚曲面：目標曲面已不存在，請重新選擇' }); return }
     const tv = await get().appPrompt(tStatus(`加厚曲面「${pkt[target].name}」— 板厚 mm（正/负 = 两侧）`, get().lang), '2')
     if (tv == null) { set({ quiltPickMode: false, status: '已取消加厚曲面' }); return }
     const raw = Number(tv.trim())
@@ -6437,9 +6437,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // T812（S曲面）：偏移拾取面成平行新曲面（开放壳，独立件）。dist 正/负 = 外/内偏。
   offsetSurfMode: false,
-  toggleOffsetSurf: () => set((s) => ({ offsetSurfMode: !s.offsetSurfMode, moveFaceMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.offsetSurfMode ? '↗偏移曲面：点一个面 → 偏移成平行新曲面（输入距离，正=外偏 / 负=内偏）' : '已退出偏移曲面' })),
+  toggleOffsetSurf: () => set((s) => ({ offsetSurfMode: !s.offsetSurfMode, moveFaceMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.offsetSurfMode ? '↗偏移曲面：點一個面 → 偏移成平行新曲面（輸入距離，正=外偏 / 負=內偏）' : '已退出偏移曲面' })),
   offsetSurfFaceAt: async (p) => {
-    if (!hasSolid(get().features)) { set({ status: '偏移曲面需要先有实体/曲面' }); return }
+    if (!hasSolid(get().features)) { set({ status: '偏移曲面需要先有實體/曲面' }); return }
     const cad: [number, number, number] = [p[0], -p[2], p[1]]
     const v = await get().appPrompt(tStatus('偏移曲面 — 距离 mm（正=外偏 / 负=内偏，沿面法向）\n两侧：距离前后加 ± 或 both（如 ±5 / 5 both）= 一次出 +d 同 −d 两张平行面', get().lang), '5')
     if (v == null) { set({ offsetSurfMode: false }); return }
@@ -6447,7 +6447,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // S157 两侧偏移：±d / both / b 标记 = 一次推两个 offsetsurf 特征（+d 同 −d），纯特征编排，零内核改动。
     const both = /[±]/.test(raw) || /\bboth\b|\bb\b/i.test(raw)
     const dist = Number(raw.replace(/[±]|both|b/gi, '').trim())
-    if (!Number.isFinite(dist) || dist === 0) { set({ status: '偏移距离要系非零数字', offsetSurfMode: false }); return }
+    if (!Number.isFinite(dist) || dist === 0) { set({ status: '偏移距離要系非零數字', offsetSurfMode: false }); return }
     if (both) {
       const d = Math.abs(dist)
       const f1: Feature = { id: fid(), type: 'offsetsurf', near: cad, dist: d }
@@ -6463,14 +6463,14 @@ export const useApp = create<AppState>((rawSet, get) => {
   // S103 曲面延伸 Extend Surface：点一个曲面/面 → 沿自然几何外延 L mm（平面变大/圆柱半面变长/B样条外推）。出独立曲面件。
   // 诚实局限：圆柱侧面 OCCT 沿缝拆两半面，只延伸最近嗰一张（非整管加长）。可作用喺 parked 曲面件（主用例）或活动实体面。
   extendSurfMode: false,
-  toggleExtendSurf: () => set((s) => ({ extendSurfMode: !s.extendSurfMode, moveFaceMode: false, offsetSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, splitFaceMode: false, replaceFaceMode: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.extendSurfMode ? '↔ 曲面延伸：点一个曲面/面 → 沿自然几何外延（输入长度 mm）' : '已退出曲面延伸' })),
+  toggleExtendSurf: () => set((s) => ({ extendSurfMode: !s.extendSurfMode, moveFaceMode: false, offsetSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, splitFaceMode: false, replaceFaceMode: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.extendSurfMode ? '↔ 曲面延伸：點一個曲面/面 → 沿自然幾何外延（輸入長度 mm）' : '已退出曲面延伸' })),
   extendSurfFaceAt: async (p) => {
-    if (!hasSolid(get().features) && !get().bodyMesh?.parked?.length) { set({ status: '曲面延伸需要先有曲面/实体' }); return }
+    if (!hasSolid(get().features) && !get().bodyMesh?.parked?.length) { set({ status: '曲面延伸需要先有曲面/實體' }); return }
     const cad: [number, number, number] = [p[0], -p[2], p[1]]
     const v = await get().appPrompt(tStatus('曲面延伸 — 长度 mm（沿面自然几何外延）', get().lang), '5')
     if (v == null) { set({ extendSurfMode: false }); return }
     const ext = Number(v.trim())
-    if (!Number.isFinite(ext) || ext <= 0) { set({ status: '延伸长度要系正数', extendSurfMode: false }); return }
+    if (!Number.isFinite(ext) || ext <= 0) { set({ status: '延伸長度要系正數', extendSurfMode: false }); return }
     const f: Feature = { id: fid(), type: 'extendface', near: cad, ext }
     const ok = await get().applyFeatures([...get().features, f], `已延伸该面 ${ext}mm（独立曲面件）`, true, '曲面延伸失败（该面唔适合延伸 / 长度过大）')
     if (ok) set({ extendSurfMode: false })
@@ -6483,9 +6483,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   setSplitFaceAxis: (a) => set({ splitFaceAxis: a }),
   splitFaceType: 'vector',
   setSplitFaceType: (t) => set({ splitFaceType: t }),
-  toggleSplitFace: () => set((s) => ({ splitFaceMode: !s.splitFaceMode, moveFaceMode: false, replaceFaceMode: false, offsetSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.splitFaceMode ? '✂ 分割面：点一个面 → 用切割平面把佢切成两半（方向可选 自动/X/Y/Z；之后可单独拣/着色/拔模）' : '已退出分割面' })),
+  toggleSplitFace: () => set((s) => ({ splitFaceMode: !s.splitFaceMode, moveFaceMode: false, replaceFaceMode: false, offsetSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.splitFaceMode ? '✂ 分割面：點一個面 → 用切割平面把佢切成兩半（方向可選 自動/X/Y/Z；之後可單獨揀/着色/拔模）' : '已退出分割面' })),
   splitFaceAt: async (p, n) => {
-    if (!hasSolid(get().features)) { set({ status: '分割面需要先有实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '分割面需要先有實體' }); return }
     const cad: [number, number, number] = [p[0], -p[2], p[1]]
     const L = Math.hypot(n[0], n[1], n[2]) || 1
     const fn: [number, number, number] = [n[0] / L, n[1] / L, n[2] / L]
@@ -6495,7 +6495,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (ax !== 'auto' && axes[ax]) {
       planeN = axes[ax]
       // 守卫：指定轴若同面法向近平行（平面唔切过该面）→ 诚实退回 auto
-      if (Math.abs(planeN[0] * fn[0] + planeN[1] * fn[1] + planeN[2] * fn[2]) > 0.95) { set({ status: `⚠ ${ax} 轴同该面近平行、切唔到 — 已改用「自动」方向` }); planeN = [0, 0, 0] }
+      if (Math.abs(planeN[0] * fn[0] + planeN[1] * fn[1] + planeN[2] * fn[2]) > 0.95) { set({ status: `⚠ ${ax} 軸同該面近平行、切唔到 — 已改用「自動」方向` }); planeN = [0, 0, 0] }
     } else planeN = [0, 0, 0]
     if (planeN[0] === 0 && planeN[1] === 0 && planeN[2] === 0) {
       // auto：切割平面法向 = 同面法向最垂直嘅世界轴（令平面切过该面而唔系平行）
@@ -6511,16 +6511,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   // S99 替换面（平面顶替）：点一个面 → 输入推入距离 d → 用该面平移 d 后嘅平面把实体截断、保留远侧（邻面延伸）。
   // 诚实局限：只系平面顶替（把面推入/削平），非任意曲面替换。
   replaceFaceMode: false,
-  toggleReplaceFace: () => set((s) => ({ replaceFaceMode: !s.replaceFaceMode, moveFaceMode: false, splitFaceMode: false, offsetSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.replaceFaceMode ? '⤵ 替换面（平面顶替）：点一个面 → 输入推入距离 → 把该面沿法向削入到新平面（邻面自动延伸）。仅平面' : '已退出替换面' })),
+  toggleReplaceFace: () => set((s) => ({ replaceFaceMode: !s.replaceFaceMode, moveFaceMode: false, splitFaceMode: false, offsetSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.replaceFaceMode ? '⤵ 替換面（平面頂替）：點一個面 → 輸入推入距離 → 把該面沿法向削入到新平面（鄰面自動延伸）。僅平面' : '已退出替換面' })),
   replaceFaceAt: async (p, n) => {
-    if (!hasSolid(get().features)) { set({ status: '替换面需要先有实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '替換面需要先有實體' }); return }
     const cad: [number, number, number] = [p[0], -p[2], p[1]]
     const L = Math.hypot(n[0], n[1], n[2]) || 1
     let fn: [number, number, number] = [n[0] / L, n[1] / L, n[2] / L]
     const v = await get().appPrompt(tStatus('替换面（平面顶替）— 沿面法向【削入】距离 mm（把呢张面推入实体，邻面自动延伸）', get().lang), '5')
     if (v == null) { set({ replaceFaceMode: false }); return }
     const d = Math.abs(Number(v.trim()))
-    if (!Number.isFinite(d) || d < 1e-6) { set({ status: '推入距离要系正数', replaceFaceMode: false }); return }
+    if (!Number.isFinite(d) || d < 1e-6) { set({ status: '推入距離要系正數', replaceFaceMode: false }); return }
     // #12（诚实增强，非真 Move-Face-rotate）：可选倾斜角 —— 把顶替平面绕【最垂直嘅世界轴】倾 θ°（留空/0 = 平行推入 = 旧行为，byte-compat）。
     //   做斜切 / 拔模式角切。真「面绕铰边旋转（body 其余保留）」需内核 RotateFaceNear（见 [[webcad-kernel-rebuild-docker]]），呢个系保留拾取侧嘅截平面。
     let tiltMsg = ''
@@ -6544,9 +6544,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   // #12 Move Face 旋转：拾一张【平面】→ 输入铰轴(X/Y/Z)+角度 → 该面绕【过拾取点嘅铰线】tilt θ°，邻面自动癒合成梯形（真 Fusion Move-Face-rotate）。
   //   零内核：重用现有拔模 DraftAngle —— 拔模【本质就系面绕中性∩面线旋转 + body 治愈】。neutral 法向 = 铰轴 × 面法向（令 neutral∩面 = 过拾取点嘅铰线）。
   rotateFaceMode: false,
-  toggleRotateFace: () => set((s) => ({ rotateFaceMode: !s.rotateFaceMode, moveFaceMode: false, replaceFaceMode: false, splitFaceMode: false, offsetSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.rotateFaceMode ? '⟲ 旋转面（Move Face rotate）：点一个平面 → 输入铰轴+角度 → 该面绕铰线倾斜，邻面自动癒合。仅平面' : '已退出旋转面' })),
+  toggleRotateFace: () => set((s) => ({ rotateFaceMode: !s.rotateFaceMode, moveFaceMode: false, replaceFaceMode: false, splitFaceMode: false, offsetSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.rotateFaceMode ? '⟲ 旋轉面（Move Face rotate）：點一個平面 → 輸入鉸軸+角度 → 該面繞鉸線傾斜，鄰面自動癒合。僅平面' : '已退出旋轉面' })),
   rotateFaceAt: async (p, n) => {
-    if (!hasSolid(get().features)) { set({ status: '旋转面需要先有实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '旋轉面需要先有實體' }); return }
     const cad: [number, number, number] = [p[0], -p[2], p[1]]
     // ⚠ 面法向 n 系 three-world（e.face.normal）；draft 中性面法向要 CAD 坐标 → 同点一样转换 [x,-z,y]（three→CAD）。
     const cn: [number, number, number] = [n[0], -n[2], n[1]]
@@ -6555,17 +6555,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     const axStr = await get().appPrompt(tStatus('绕边 X/Y/Z 轴旋转呢张面（铰轴方向 — 面绕过拾取点嘅该轴线倾斜，body 自动癒合）', get().lang), 'X')
     if (axStr == null) { set({ rotateFaceMode: false }); return }
     const ax = axStr.trim().toUpperCase()
-    if (ax !== 'X' && ax !== 'Y' && ax !== 'Z') { set({ status: '请输入 X / Y / Z', rotateFaceMode: false }); return }
+    if (ax !== 'X' && ax !== 'Y' && ax !== 'Z') { set({ status: '請輸入 X / Y / Z', rotateFaceMode: false }); return }
     const hinge: [number, number, number] = ax === 'X' ? [1, 0, 0] : ax === 'Y' ? [0, 1, 0] : [0, 0, 1]
     // 中性面法向 = 铰轴 × 面法向 → 中性面过拾取点、含铰轴方向 → neutral∩面 = 过拾取点嘅铰线（DraftAngle 绕佢转）
     const nn: [number, number, number] = [hinge[1] * fn[2] - hinge[2] * fn[1], hinge[2] * fn[0] - hinge[0] * fn[2], hinge[0] * fn[1] - hinge[1] * fn[0]]
     const nl = Math.hypot(nn[0], nn[1], nn[2])
-    if (nl < 1e-6) { set({ status: `铰轴 ${ax} 同面法向平行、定唔到铰线 — 换个轴`, rotateFaceMode: false }); return }
+    if (nl < 1e-6) { set({ status: `鉸軸 ${ax} 同面法向平行、定唔到鉸線 — 換個軸`, rotateFaceMode: false }); return }
     const un: [number, number, number] = [nn[0] / nl, nn[1] / nl, nn[2] / nl]
     const av = await get().appPrompt(tStatus('旋转角度°（正/负；面绕铰线 tilt，范围 (-89,89)）', get().lang), '15')
     if (av == null) { set({ rotateFaceMode: false }); return }
     const deg = Number(av.trim())
-    if (!Number.isFinite(deg) || Math.abs(deg) < 0.01 || Math.abs(deg) >= 89) { set({ status: '角度要系 (0.01, 89) 度之间', rotateFaceMode: false }); return }
+    if (!Number.isFinite(deg) || Math.abs(deg) < 0.01 || Math.abs(deg) >= 89) { set({ status: '角度要系 (0.01, 89) 度之間', rotateFaceMode: false }); return }
     const f: Feature = { id: fid(), type: 'draft', angle: deg, neutralOrigin: cad, neutralNormal: un, sideNears: [cad] }
     const ok = await get().applyFeatures([...get().features, f], `已旋转该面 ${deg}° 绕${ax}轴（邻面自动癒合）`, true, '旋转面失败（角度过陡 / 边已被圆角食咗 / 面识别失败）')
     if (ok) set({ rotateFaceMode: false })
@@ -6577,7 +6577,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   toggleSurfSurfTrim: async () => {
     if (get().surfTrimMode) { set({ surfTrimMode: false, surfTrimSel: null, status: '已退出曲面裁剪' }); return }
     const pkt = get().bodyMesh?.parked
-    if (!pkt || !pkt.length) { set({ status: '曲面裁剪：冇曲面/壳体可裁（先做曲面拉伸 / 规则曲面 / 缝合）' }); return }
+    if (!pkt || !pkt.length) { set({ status: '曲面裁剪：冇曲面/殼體可裁（先做曲面拉伸 / 規則曲面 / 縫合）' }); return }
     const solid = hasSolid(get().features)
     // 选【目标】曲面（要裁嗰张）
     let target = 0
@@ -6585,11 +6585,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       const tv = await get().appPrompt(tStatus(`曲面裁剪 — 选【目标】曲面（要裁嗰张，1~${pkt.length}）：${pkt.map((b, i) => `${i + 1}=${b.name}`).join(' · ')}`, get().lang), '1')
       if (tv == null) return
       target = Math.round(parseFloat(tv) || 1) - 1
-      if (target < 0 || target >= pkt.length) { set({ status: `曲面裁剪：目标要喺 1~${pkt.length}` }); return }
+      if (target < 0 || target >= pkt.length) { set({ status: `曲面裁剪：目標要喺 1~${pkt.length}` }); return }
     }
     // 选【裁刀】：其余 parked 曲面（索引）或活动实体（S）
     const toolOpts = pkt.map((b, i) => i === target ? null : `${i + 1}=${b.name}`).filter(Boolean) as string[]
-    if (!toolOpts.length && !solid) { set({ status: '曲面裁剪：揾唔到裁刀（需另一张曲面，或一个活动实体）' }); return }
+    if (!toolOpts.length && !solid) { set({ status: '曲面裁剪：揾唔到裁刀（需另一張曲面，或一個活動實體）' }); return }
     const firstOther = pkt.findIndex((_, i) => i !== target)
     const def = toolOpts.length ? String(firstOther + 1) : 'S'
     const opts = [...toolOpts, solid ? 'S=活动实体' : ''].filter(Boolean).join(' · ')
@@ -6597,9 +6597,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (cv == null) return
     const s = cv.trim().toUpperCase()
     let tool = -1
-    if (s === 'S') { if (!solid) { set({ status: '曲面裁剪：冇活动实体可做裁刀' }); return } tool = -1 }
-    else { const ti = Math.round(parseFloat(s) || 0) - 1; if (!Number.isFinite(ti) || ti < 0 || ti >= pkt.length || ti === target) { set({ status: '曲面裁剪：裁刀索引无效（唔可同目标同一张）' }); return } tool = ti }
-    set({ surfTrimMode: true, surfTrimSel: { target, tool }, replaceFaceMode: false, splitFaceMode: false, offsetSurfMode: false, extendSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: '✂ 曲面裁剪：喺【目标曲面】上点你要【保留】嗰一边/区域（裁刀沿交线切开，留你点中嗰片）' })
+    if (s === 'S') { if (!solid) { set({ status: '曲面裁剪：冇活動實體可做裁刀' }); return } tool = -1 }
+    else { const ti = Math.round(parseFloat(s) || 0) - 1; if (!Number.isFinite(ti) || ti < 0 || ti >= pkt.length || ti === target) { set({ status: '曲面裁剪：裁刀索引無效（唔可同目標同一張）' }); return } tool = ti }
+    set({ surfTrimMode: true, surfTrimSel: { target, tool }, replaceFaceMode: false, splitFaceMode: false, offsetSurfMode: false, extendSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: '✂ 曲面裁剪：喺【目標曲面】上點你要【保留】嗰一邊/區域（裁刀沿交線切開，留你點中嗰片）' })
   },
   surfSurfTrimAt: async (p) => {
     const sel = get().surfTrimSel
@@ -6623,7 +6623,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   toggleDraftPick: () => set((s) => ({
     draftPickMode: s.draftPickMode ? 0 : 1, draftNeutral: null, draftSides: [],
     splitFaceMode: false, replaceFaceMode: false, offsetSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, faceFilletMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false,
-    status: s.draftPickMode ? '已退出拔模' : '拔模①：点【中性面】(脱模时不动的参考面，通常顶/底面)',
+    status: s.draftPickMode ? '已退出拔模' : '拔模①：點【中性面】(脫模時不動的參考面，通常頂/底面)',
   })),
   draftFaceAt: async (p, n) => {
     const cad: [number, number, number] = [p[0], -p[2], p[1]]   // three→CAD
@@ -6631,14 +6631,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     const cn: [number, number, number] = [n[0] / L, -n[2] / L, n[1] / L]   // 法向同样 three→CAD
     const st = get()
     if (st.draftPickMode === 1) {
-      set({ draftNeutral: { o: cad, n: cn }, draftPickMode: 2, status: '拔模②：点要加斜度的【侧面】(可多点选)，再按命令栏「确定拔模」' })
+      set({ draftNeutral: { o: cad, n: cn }, draftPickMode: 2, status: '拔模②：點要加斜度的【側面】(可多點選)，再按命令欄「確定拔模」' })
     } else if (st.draftPickMode === 2) {
-      set({ draftSides: [...st.draftSides, cad], status: `已选 ${st.draftSides.length + 1} 个侧面 — 继续点选或「确定拔模」` })
+      set({ draftSides: [...st.draftSides, cad], status: `已選 ${st.draftSides.length + 1} 個側面 — 繼續點選或「確定拔模」` })
     }
   },
   finishDraftPick: async () => {
     const st = get()
-    if (!st.draftNeutral) { set({ status: '请先点中性面', draftPickMode: 0 }); return }
+    if (!st.draftNeutral) { set({ status: '請先點中性面', draftPickMode: 0 }); return }
     // P2（v8-S）：角度/双面/翻转全部由对话框字段嚟（Fusion Draft 同款），唔再弹文本 prompt
     const angle = (Number(st.draftAngle) || 10) * (st.draftFlip ? -1 : 1)
     const twoSided = st.draftTwoSided
@@ -6654,7 +6654,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (neg.length) feats.push({ id: fid(), type: 'draft', angle: -angle, neutralOrigin: o, neutralNormal: n, sideNears: neg })
       lab = `双面拔模 ±${angle}°（上侧 ${pos.length} · 下侧 ${neg.length} 面，分模线两侧各自脱模）`
     } else {
-      if (twoSided) set({ status: '双面拔模需先拣两侧的面 — 已按单面处理' })
+      if (twoSided) set({ status: '雙面拔模需先揀兩側的面 — 已按單面處理' })
       feats.push({ id: fid(), type: 'draft', angle, neutralOrigin: o, neutralNormal: n, sideNears: st.draftSides })
       lab = `已拔模 ${angle}°（拾中性面 + ${st.draftSides.length || '全'}侧面）`
     }
@@ -6669,9 +6669,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     const f: Feature = { id: fid(), type: 'text', text: t || 'TEXT', size: 12, height: 6, op: 'new', baseZ: 0 }
     await get().applyFeatures([...get().features, f], `已加文字「${t || 'TEXT'}」凸字（时间轴可改 字号/高度/基准Z/加料·切割）`, true, '文字几何生成失败')
   },
-  toggleFaceSketchPick: () => set((s) => ({ faceSketchPick: !s.faceSketchPick, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, pushPullMode: false, shellMode: false, faceFilletMode: false, holeMode: false, featDlg: null, status: !s.faceSketchPick ? '点击实体的一个面 → 自动在该面上新建草图（支持平面/轴向面）' : '已取消选面' })),
+  toggleFaceSketchPick: () => set((s) => ({ faceSketchPick: !s.faceSketchPick, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, pushPullMode: false, shellMode: false, faceFilletMode: false, holeMode: false, featDlg: null, status: !s.faceSketchPick ? '點擊實體的一個面 → 自動在該面上新建草圖（支持平面/軸向面）' : '已取消選面' })),
   // S162 Emboss（Fusion 凸字/凹字）：拾一个平面 → 输入文字 → 沿面法向 凸起(raise)/刻入(engrave)。复用 arb 面坐标系 + 文字特征。（embossPick 初值喺 faceSketchPick 旁边一并初始化）
-  toggleEmboss: () => set((s) => ({ embossPick: !s.embossPick, faceSketchPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, pushPullMode: false, shellMode: false, holeMode: false, delFaceMode: false, thickenMode: false, featDlg: null, status: !s.embossPick ? '✏ Emboss：点实体一个【平面】→ 输入文字 → 沿面法向凸起/刻入（如标牌/编号/logo）' : '已取消 Emboss' })),
+  toggleEmboss: () => set((s) => ({ embossPick: !s.embossPick, faceSketchPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, pushPullMode: false, shellMode: false, holeMode: false, delFaceMode: false, thickenMode: false, featDlg: null, status: !s.embossPick ? '✏ Emboss：點實體一個【平面】→ 輸入文字 → 沿面法向凸起/刻入（如標牌/編號/logo）' : '已取消 Emboss' })),
   applyEmbossPick: async (p, n) => {
     if (!get().embossPick) return
     const L = Math.hypot(n[0], n[1], n[2]) || 1
@@ -6688,7 +6688,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const dv = await get().appPrompt('深度 mm（正 = 凸起 raise；负 = 刻入 engrave）：', '2', 'Emboss 深度')
     if (dv == null) { set({ status: '已取消 Emboss' }); return }
     const depth = parseFloat(dv)
-    if (!Number.isFinite(depth) || Math.abs(depth) < 1e-6) { set({ status: 'Emboss：深度无效' }); return }
+    if (!Number.isFinite(depth) || Math.abs(depth) < 1e-6) { set({ status: 'Emboss：深度無效' }); return }
     const sz = await get().appPrompt('字高 mm：', '8', 'Emboss 字高')
     if (sz == null) { set({ status: '已取消 Emboss' }); return }
     const size = Math.max(1, parseFloat(sz) || 8)
@@ -6697,7 +6697,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // #174-1：UCS 用户坐标系。拾一个平面帧（点实体平面）→ buildUCS 生成正交基 → 一次落 3 参考面 + 3 构造轴 + 1 构造点。
   ucsPick: false,
-  toggleUCSPick: () => set((s) => ({ ucsPick: !s.ucsPick, faceSketchPick: false, embossPick: false, toFacePick: false, status: !s.ucsPick ? 'UCS：点实体上一个平面 → 喺该面原点+法向建一套局部坐标系（3 面 3 轴 1 点）' : '已取消 UCS' })),
+  toggleUCSPick: () => set((s) => ({ ucsPick: !s.ucsPick, faceSketchPick: false, embossPick: false, toFacePick: false, status: !s.ucsPick ? 'UCS：點實體上一個平面 → 喺該面原點+法向建一套局部座標系（3 面 3 軸 1 點）' : '已取消 UCS' })),
   makeUCS: async (p, n) => {
     if (!get().ucsPick) return
     set({ ucsPick: false })
@@ -6716,7 +6716,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         { dir: 'Z', at: u.axes[2].at, dirV: u.axes[2].dirV },
       ],
       cpoints: [...s.cpoints, u.point],
-      status: `已建 UCS（原点 ${u.point.map((x) => +x.toFixed(1)).join(',')}）：3 正交参考面 + 3 构造轴 + 1 原点`,
+      status: `已建 UCS（原點 ${u.point.map((x) => +x.toFixed(1)).join(',')}）：3 正交參考面 + 3 構造軸 + 1 原點`,
     }))
   },
   // Click a model face → snap its normal to the nearest axis, derive plane + offset, start a sketch there.
@@ -6724,15 +6724,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   // three (tx,ty,tz) ⇄ CAD (tx,−tz,ty); plane offset = hit coordinate along the chosen CAD normal.
   startSketchOnFace: async (p, n) => {
     const before = get(), sequence = ++_faceSketchPickSequence
-    if (before.busy) { set({status:"请等模型重建完成后再选择草图面"}); return }
+    if (before.busy) { set({status:"請等模型重建完成後再選擇草圖面"}); return }
     const source = [...before.features].reverse().find(f=>!before.suppressedIds.includes(f.id) && f.type!=='sketch' && f.type!=='datum')
-    if (!source) { set({ status: '面上草图需要有效的原生来源实体' }); return }
+    if (!source) { set({ status: '面上草圖需要有效的原生來源實體' }); return }
     const binding = await cad.captureSketchFaceBinding(source.id,[p[0],-p[2],p[1]],n)
     if (sequence!==_faceSketchPickSequence || get().features!==before.features || get().mode!==before.mode || get().faceSketchPick!==before.faceSketchPick) return
-    if (!binding) { set({status:'无法唯一识别来源平面；请选未分割的平面面或建立参考平面'}); return }
+    if (!binding) { set({status:'無法唯一識別來源平面；請選未分割的平面面或建立參考平面'}); return }
     set((s) => {
     const normalLength = Math.hypot(...n)
-    if (!p.every(Number.isFinite) || !n.every(Number.isFinite) || normalLength < 1e-12) return { status: '所选面的坐标或法向无效；请重新选择平面面。' }
+    if (!p.every(Number.isFinite) || !n.every(Number.isFinite) || normalLength < 1e-12) return { status: '所選面的座標或法向無效；請重新選擇平面面。' }
     n = n.map(v => v / normalLength) as [number, number, number]
     _pendingDatumRef = null
     _hydraSk = null
@@ -6778,7 +6778,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       sketchStart: null, sketchPreview: null, sketchShape: null, sketchProfiles: [], polyPts: [],
       faceSketchPick: false, embossPick: false, sketchFromFace: true, sketchOp: 'new', skBoolPending: null,
       ...skGeoFocus(s.bodyMesh, plane, off, s.cpoints),  // 投影参考几何 + 自动对焦所选面（Fusion-style）
-      status: `已在所选面上建草图（${plane} 面 偏移 ${off}）— 面嘅边/角已投影成可标注参考几何（虚线）`,
+      status: `已在所選面上建草圖（${plane} 面 偏移 ${off}）— 面嘅邊/角已投影成可標註參考幾何（虛線）`,
     }
     })
   },
@@ -6790,9 +6790,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   sketchOnMeshFaceAt: (compId, faceIndex, threePt) => {
     const s = get()
     const comp = s.components.find((c) => c.id === compId)
-    if (!comp || !comp.mesh.triangles.length) { set({ status: '网格面草图：揾唔到组件几何' }); return }
+    if (!comp || !comp.mesh.triangles.length) { set({ status: '網格面草圖：揾唔到組件幾何' }); return }
     const r = measureMeshFaceRegion(comp.mesh.vertices, comp.mesh.triangles, faceIndex)
-    if (!r.planar || r.area <= 0) { set({ status: '点中嘅系曲面/孤立三角 — 网格面草图需要平面区（点更平坦嘅位置，或先 🩹修复/简化 网格）' }); return }
+    if (!r.planar || r.area <= 0) { set({ status: '點中嘅系曲面/孤立三角 — 網格面草圖需要平面區（點更平坦嘅位置，或先 🩹修復/簡化 網格）' }); return }
     // 局部法向 → CAD 世界系（旋转部分；normalize 吸收均匀缩放）
     const fk = computeFK(s.components.map((x) => x.id), s.joints)
     const E = new Matrix4().makeRotationX(Math.PI / 2).multiply(compWorldMatrix(comp, fk.get(comp.id))).elements
@@ -6812,7 +6812,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       mode: 'sketch', sketchPlane: 'XY', sketchArb: { o, xd, n: nn }, sketchBaseZ: 0, sketchTool: 'select', navTool: 'orbit', faceOutSign: 1,
       sketchStart: null, sketchPreview: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchUndo: [], sketchRedo: [],
       faceSketchPick: false, embossPick: false, sketchFromFace: false, pendingSketchFaceBinding: null, sketchOp: 'new', skRefGeo: null, sketchFocus: null, skBoolPending: null,
-      status: `已在网格件「${comp.name}」平面区上建草图（${r.triCount} 三角拟合）— 画轮廓→拉伸出新料，再用「组件布尔」同网格件合并/切割`,
+      status: `已在網格件「${comp.name}」平面區上建草圖（${r.triCount} 三角擬合）— 畫輪廓→拉伸出新料，再用「組件布爾」同網格件合併/切割`,
     })
   },
   planes: [],
@@ -6945,20 +6945,20 @@ export const useApp = create<AppState>((rawSet, get) => {
   drillCaxis: null,
   removeCPoint: (i) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], cpoints: s.cpoints.filter((_, k) => k !== i) })),   // GM-W1 1.5：删构造点入撤销栈
   removeCAxis: (i) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], caxes: s.caxes.filter((_, k) => k !== i) })),   // GM-W1 1.5：删构造轴入撤销栈
-  clearCCurves: () => set({ ccurves: [], status: '已清除相交曲线' }),
+  clearCCurves: () => set({ ccurves: [], status: '已清除相交曲線' }),
   // #174-9：Project-to-Surface（窄版）—— 把活动草图嘅曲线（可展映射 θ=x/R）卷到圆柱面，存 3D 参考曲线（青色 ccurve）。
   //   诚实边界：只对【可展圆柱面】成立（弧长守恒卷绕）；任意自由曲面投影需内核 BRepProj_Projection（真豁免）。
   //   轴 = 草图局部 Y 方向、半径 R 由用户输入；草图面喺 u=0 处与圆柱相切（沿法向 −N 卷入）。输出参考曲线，唔影响布尔/实体。
   projectSketchToCylinder: async () => {
     const s = get()
-    if (s.mode !== 'sketch') { set({ status: '投影到圆柱面：请先入草图并画一条曲线（开放折线/样条）' }); return }
+    if (s.mode !== 'sketch') { set({ status: '投影到圓柱面：請先入草圖並畫一條曲線（開放折線/樣條）' }); return }
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
     const src = shapes.find((sh) => sh.type === 'poly' && !sh.construction && Array.isArray(sh.pts) && sh.pts.length >= 2) as { pts: [number, number][] } | undefined
-    if (!src) { set({ status: '投影到圆柱面：搵唔到可投影嘅曲线（画条开放折线 / 样条先）' }); return }
+    if (!src) { set({ status: '投影到圓柱面：搵唔到可投影嘅曲線（畫條開放折線 / 樣條先）' }); return }
     const rv = await get().appPrompt('圆柱半径 R mm（草图曲线沿弧长 θ=x/R 卷上圆柱，轴=草图 Y）：', '20', '投影到圆柱面')
-    if (rv == null) { set({ status: '已取消投影到圆柱面' }); return }
+    if (rv == null) { set({ status: '已取消投影到圓柱面' }); return }
     const R = parseFloat(rv)
-    if (!Number.isFinite(R) || R <= 1e-3) { set({ status: '投影到圆柱面：半径要系正数' }); return }
+    if (!Number.isFinite(R) || R <= 1e-3) { set({ status: '投影到圓柱面：半徑要系正數' }); return }
     const { wrapPointToCylinder } = await import('./cad/surfaceWrap')
     // 草图 CAD 帧 {O, Xd, Yd, N}
     let O: [number, number, number], Xd: [number, number, number], Yd: [number, number, number], N: [number, number, number]
@@ -6981,19 +6981,19 @@ export const useApp = create<AppState>((rawSet, get) => {
         O[2] + lx * Xd[2] + ly * Yd[2] + depth * N[2],
       ]
     })
-    set((st) => ({ ccurves: [...st.ccurves, poly], status: `已投影草图曲线到圆柱面 R${R}（${poly.length} 点，θ=x/R 可展卷绕 → 青色 3D 参考曲线）` }))
+    set((st) => ({ ccurves: [...st.ccurves, poly], status: `已投影草圖曲線到圓柱面 R${R}（${poly.length} 點，θ=x/R 可展卷繞 → 青色 3D 參考曲線）` }))
   },
   // S168：相交曲线（Fusion Surface > Intersection Curve）—— 所有体两两求交，worker 抽交线 edges 采样成 polylines。
   // 诚实：worker 返 null（内核出错）→ 报错唔静默清；无相交 → 保留旧曲线 + 报 warning（唔覆盖成空）。
   computeIntersectionCurves: async () => {
-    set({ status: '相交曲线：所有体两两求交…' })
+    set({ status: '相交曲線：所有體兩兩求交…' })
     try {
       const res = await cad.intersectionCurves()
-      if (!res) { set({ status: '相交曲线失败（内核出错）— 保持唔变' }); return }
-      if (!res.curves.length) { set({ status: `相交曲线：${res.warning || '未发现相交'}（${res.bodies} 个体 · ${res.pairs} 对）— 曲线保持唔变` }); return }
-      set({ ccurves: res.curves as [number, number, number][][], status: `已生成 ${res.curves.length} 条相交曲线（${res.bodies} 个体两两求交 · ${res.edges} 条交线边${res.warning ? ' · ' + res.warning : ''}）` })
+      if (!res) { set({ status: '相交曲線失敗（內核出錯）— 保持唔變' }); return }
+      if (!res.curves.length) { set({ status: `相交曲線：${res.warning || '未發現相交'}（${res.bodies} 個體 · ${res.pairs} 對）— 曲線保持唔變` }); return }
+      set({ ccurves: res.curves as [number, number, number][][], status: `已生成 ${res.curves.length} 條相交曲線（${res.bodies} 個體兩兩求交 · ${res.edges} 條交線邊${res.warning ? ' · ' + res.warning : ''}）` })
     } catch (e) {
-      set({ status: '相交曲线失败：' + ((e as Error)?.message || String(e)) })
+      set({ status: '相交曲線失敗：' + ((e as Error)?.message || String(e)) })
     }
   },
   // GM-W5 5.1：参考面而家 = 真时间轴特征 —— addPlane 建一个 datum 特征（经 applyFeatures：入撤销快照 + worker 零几何回放 + status），planes[] 由派生。
@@ -7055,7 +7055,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 走 face-cut 分支（默认贯通丢距离/方向；inward 用假法向切去反侧）→ 用户「参考面画方形切圆柱」静默失败。
   // 而家走诚实 plain 分支（baseZ + down + RES_SIGN 全部正确处理 boss/盲切）；要切穿用 范围=贯通。
   sketchOnDatumPlane: (base, offset) => set((s) => {
-    if (!Number.isFinite(offset)) return { status: '参考平面偏移必须是有效数字' }
+    if (!Number.isFinite(offset)) return { status: '參考平面偏移必須是有效數字' }
     // #11：呢个基准平面若系【关联 datum】（有 src、源面移动会跟），记低其源面签名 → commit 时写入 sketchSource.datumRef，
     //   之后源面移动 → datum 重解 → baseZ 自动重烘焙。非关联平面（无 src）→ null → byte-compat（草图唔跟）。
     const pdi = s.planes.findIndex((p) => p.base === base && Math.abs((p.offset ?? 0) - offset) < 1e-6)
@@ -7072,7 +7072,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   extrudeExpression: null,
   extrudeExpressionError: null,
   extrudeSelectionCleared: false,
-  clearExtrudeSelection: () => set({ extrudeSelectionCleared: true, extrudeRegionSel: get().extrudeRegionSel.map(() => false), status: '已清空轮廓；请在画布重新选择' }),
+  clearExtrudeSelection: () => set({ extrudeSelectionCleared: true, extrudeRegionSel: get().extrudeRegionSel.map(() => false), status: '已清空輪廓；請在畫布重新選擇' }),
   setExtrudeExpression: (text) => {
     const s = get(), result = dimensionExpression(text, s.params, evalExpr, 'mm', undefined, lengthScale(s.unit))
     set({ extrudeExpression: text, extrudeExpressionError: result.error ?? null, extrudeHeight: result.value ?? 0 })
@@ -7081,7 +7081,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setExtrudeHeight: (h) => {
     const s = get()
     if (s.extrudeDlgOpen && s.extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(s.extrudeExpression.trim())) {
-      set({ status: '此距离由公式驱动；请编辑表达式或上游参数，拖动不会替换引用' }); return
+      set({ status: '此距離由公式驅動；請編輯表達式或上游參數，拖動不會替換引用' }); return
     }
     set({ extrudeHeight: Number.isFinite(h) ? h : 0, extrudeExpression: null, extrudeExpressionError: null })
   },
@@ -7095,7 +7095,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setSymMeasure: (m) => set({ symMeasure: m === 'half' ? 'half' : 'whole' }),
   extrudeExtent: 'distance',
   openExtrudeDlg: () => { set((s) => {
-    if (!(s.sketchShape || s.sketchProfiles.length)) return { status: '请先在草图里画一个封闭轮廓，再「拉伸」' }
+    if (!(s.sketchShape || s.sketchProfiles.length)) return { status: '請先在草圖裏畫一個封閉輪廓，再「拉伸」' }
     // Default the operation to ＋新建 when there's no body yet (can't cut nothing).
     const op: BoolOp = !hasSolid(s.features) ? 'new' : s.sketchOp
     // P2v2（用户实战 feedback #2）：Fusion Profile 点选 — 草图有 >1 个 profile 区域（相交切分 / 独立 / 嵌套环+碟）
@@ -7118,7 +7118,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       measureFaceMode: false, measureAngleMode: false, delFaceMode: false, thickenMode: false, offsetSurfMode: false,
       extendSurfMode: false, splitFaceMode: false, replaceFaceMode: false, surfTrimMode: false,
       extrudeRegionFaces: regionFaces, extrudeRegionSel: regionFaces ? regionFaces.map(() => regionFaces!.length === 1) : [],
-      status: regionFaces ? `拉伸：草图有 ${regionFaces.length} 个 profile 区域 — 点画布拣要拉伸嘅（点中变蓝，可拣多个），设距离 → 确定${[...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])].some(sh => !sh.construction && sh.type === 'poly' && (sh.smooth || sh.conic || sh.ell || sh.earc)) ? '；样条／椭圆切分区域将使用采样近似，原始草图保留' : ''}`
+      status: regionFaces ? `拉伸：草圖有 ${regionFaces.length} 個 profile 區域 — 點畫布揀要拉伸嘅（點中變藍，可揀多個），設距離 → 確定${[...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])].some(sh => !sh.construction && sh.type === 'poly' && (sh.smooth || sh.conic || sh.ell || sh.earc)) ? '；樣條／橢圓切分區域將使用採樣近似，原始草圖保留' : ''}`
         : regOverflow ? '拉伸：图元太多（简化后仍超预算）— 区域点选停用，将拉伸全部轮廓'
           : '拉伸：设 操作 / 范围 / 距离 / 拔模角 → 确定（或取消）',
     }
@@ -7132,15 +7132,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!s.extrudeRegionFaces || i < 0 || i >= s.extrudeRegionSel.length) return {}
     const sel = s.extrudeRegionSel.slice(); sel[i] = !sel[i]
     const n = sel.filter(Boolean).length
-    return { extrudeRegionSel: sel, extrudeSelectionCleared: false, status: `区域拉伸已选 ${n}/${sel.length}${n === 0 ? '（至少拣一个先拉伸得）' : ''}` }
+    return { extrudeRegionSel: sel, extrudeSelectionCleared: false, status: `區域拉伸已選 ${n}/${sel.length}${n === 0 ? '（至少揀一個先拉伸得）' : ''}` }
   }),
-  cancelExtrudeDlg: () => set({ extrudeDlgOpen: false, extrudeRegionFaces: null, extrudeRegionSel: [], extrudeStart: 0, sketchAsComponent: false, status: '已取消拉伸（草图保留）' }),
+  cancelExtrudeDlg: () => set({ extrudeDlgOpen: false, extrudeRegionFaces: null, extrudeRegionSel: [], extrudeStart: 0, sketchAsComponent: false, status: '已取消拉伸（草圖保留）' }),
   setExtrudeDraft: (n) => set({ extrudeDraft: Number.isFinite(n) ? n : 0 }),
   extrudeStart: 0,   // #3（Fusion Start:Offset）：拉伸起点沿草图面【+法向】偏移（+=向法向正方向、−=反）；0=由草图面起（旧档逐字节）
   setExtrudeStart: (n) => set({ extrudeStart: Number.isFinite(n) ? n : 0 }),
   extrudeSide2: 10,  // #4 Two Sides — 第二侧（反法向）距离
   setExtrudeSide2: (n) => set({ extrudeSide2: Number.isFinite(n) && Math.abs(n) > 1e-6 ? Math.abs(n) : 10 }),
-  setExtrudeExtent: (e) => set({ extrudeExtent: e, faceCutThrough: e === 'through', sketchSymmetric: e === 'symmetric', toFacePick: e === 'toface', ...(e === 'toface' ? { status: '到面拉伸：点【平面目标面】；平行目标面会保持关联重建' } : e === 'next' ? { status: '到下一面：拉伸/切割会停喺前方遇到嘅第一块实体面（方向用 ⇅ 反向；前方冇面会诚实报错）' } : {}) }),
+  setExtrudeExtent: (e) => set({ extrudeExtent: e, faceCutThrough: e === 'through', sketchSymmetric: e === 'symmetric', toFacePick: e === 'toface', ...(e === 'toface' ? { status: '到面拉伸：點【平面目標面】；平行目標面會保持關聯重建' } : e === 'next' ? { status: '到下一面：拉伸/切割會停喺前方遇到嘅第一塊實體面（方向用 ⇅ 反向；前方冇面會誠實報錯）' } : {}) }),
   // T775（S55-①）：到面拉伸 — 拣目标面 → 净系计 height/down，行返现有 distance 路径（零 worker 改动）
   toFacePick: false,
   extrudeToFaceOff: null,
@@ -7149,7 +7149,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   extrudeToFaceOffset: 0,
   setExtrudeToFaceOffset: (n) => set({ extrudeToFaceOffset: Number.isFinite(n) ? n : 0 }),
   applyToFacePick: (det) => set((s) => {
-    if (!det || det.kind !== 'planar' || !det.n) return { status: '目标面要系【平面】— 圆柱/弧面唔得' }
+    if (!det || det.kind !== 'planar' || !det.n) return { status: '目標面要系【平面】— 圓柱/弧面唔得' }
     // #174-5：放宽平行限制 —— 任意【平面】目标面都可拾（复用 targetDepthAlongSketchNormal）。
     //   平行面（法向沿草图法向）→ 拉伸到整面（真 To-Object 平盖）。
     //   非平行面 → 诚实窄版：拉到【拾取点】喺草图法向轴上嘅深度做平盖（非真斜切盖，斜切需内核）。
@@ -7198,10 +7198,10 @@ export const useApp = create<AppState>((rawSet, get) => {
         hasPath=true
       }
     }
-    if(!hasPath&&!s.caxes.length)return {status:'扫掠需要一条开放路径：画路径或在浏览器选取已储存的路径草图，再点扫掠'}
-    return {...draft,sweepDlgOpen:true,sketchOp:!hasSolid(s.features)?'new':s.sketchOp,sweepAxis:hasPath?'':s.sweepAxis,status:'扫掠：设 管径 / 操作（可选构造轴脊线）→ 确定（或取消）'}
+    if(!hasPath&&!s.caxes.length)return {status:'掃掠需要一條開放路徑：畫路徑或在瀏覽器選取已儲存的路徑草圖，再點掃掠'}
+    return {...draft,sweepDlgOpen:true,sketchOp:!hasSolid(s.features)?'new':s.sketchOp,sweepAxis:hasPath?'':s.sweepAxis,status:'掃掠：設 管徑 / 操作（可選構造軸脊線）→ 確定（或取消）'}
   }),
-  cancelSweepDlg: () => set({ sweepDlgOpen: false, sweepEditId: null, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], status: '已取消扫掠（路径保留）' }),
+  cancelSweepDlg: () => set({ sweepDlgOpen: false, sweepEditId: null, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], status: '已取消掃掠（路徑保留）' }),
   setSweepDia: (n) => set({ sweepDia: n > 0 ? n : 12 }),
   sweepWall: 0,
   setSweepWall: (n) => set({ sweepWall: Math.max(0, n || 0) }),
@@ -7225,19 +7225,19 @@ export const useApp = create<AppState>((rawSet, get) => {
   sweepEdgePicks: [],
   sweepEdgeLines: [],
   startSweepEdgeChain: () => set((s) => {
-    if (!hasSolid(s.features)) return { status: '沿实体边链扫掠：先要有一个实体（喺其棱边接力做路径）' }
+    if (!hasSolid(s.features)) return { status: '沿實體邊鏈掃掠：先要有一個實體（喺其棱邊接力做路徑）' }
     return {
       sweepDlgOpen: true, sweepEdgePick: true, sweepEdgePicks: [], sweepEdgeLines: [], sweepAxis: '',
       sketchOp: !hasSolid(s.features) ? 'new' : s.sketchOp,
       // 与其它拾取模式互斥
       holeMode: false, holePos: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false, revAxisPtPick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false,
-      status: '🎯 逐条点选相连嘅实体棱边接力做扫掠路径（成条高亮；再点同一条=取消）→ 设截面/朝向 → 确定',
+      status: '🎯 逐條點選相連嘅實體棱邊接力做掃掠路徑（成條高亮；再點同一條=取消）→ 設截面/朝向 → 確定',
     }
   }),
-  toggleSweepEdgePick: () => set((s) => ({ sweepEdgePick: !s.sweepEdgePick, status: !s.sweepEdgePick ? '🎯 逐条点选相连实体棱边接力做路径（再点同一条=取消）' : '已停拾边（已拾嘅边保留）' })),
-  clearSweepEdges: () => set({ sweepEdgePicks: [], sweepEdgeLines: [], status: '已清空扫掠边链 — 重新逐条点选' }),
+  toggleSweepEdgePick: () => set((s) => ({ sweepEdgePick: !s.sweepEdgePick, status: !s.sweepEdgePick ? '🎯 逐條點選相連實體棱邊接力做路徑（再點同一條=取消）' : '已停拾邊（已拾嘅邊保留）' })),
+  clearSweepEdges: () => set({ sweepEdgePicks: [], sweepEdgeLines: [], status: '已清空掃掠邊鏈 — 重新逐條點選' }),
   sweepAddEdgeAt: (threePt) => {
-    if (!hasSolid(get().features)) { set({ status: '选边需要先有实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '選邊需要先有實體' }); return }
     const cadP: [number, number, number] = [threePt[0], -threePt[2], threePt[1]]   // three→CAD（镜 roundEdgeAt）
     void cad.edgePolylineAt(cadP).then((r) => {
       const pts = r?.pts?.length ? r.pts as [number, number, number][] : null
@@ -7249,16 +7249,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       const hit = pts ? s.sweepEdgeLines.findIndex(sameEdge) : -1
       if (hit >= 0) {   // 再点同一条 = 取消
-        set((s2) => ({ sweepEdgePicks: s2.sweepEdgePicks.filter((_, i) => i !== hit), sweepEdgeLines: s2.sweepEdgeLines.filter((_, i) => i !== hit), status: `已取消该棱（剩 ${s2.sweepEdgeLines.length - 1} 条边链）` }))
+        set((s2) => ({ sweepEdgePicks: s2.sweepEdgePicks.filter((_, i) => i !== hit), sweepEdgeLines: s2.sweepEdgeLines.filter((_, i) => i !== hit), status: `已取消該棱（剩 ${s2.sweepEdgeLines.length - 1} 條邊鏈）` }))
         return
       }
-      if (!pts) { set({ status: '揾唔到棱边 — 对准实体棱边再点（唔好点面中间）' }); return }
-      set((s2) => ({ sweepEdgePicks: [...s2.sweepEdgePicks, threePt], sweepEdgeLines: [...s2.sweepEdgeLines, pts], status: `已拾 ${s2.sweepEdgeLines.length + 1} 条边做扫掠路径（点相连嘅下一条继续接力）→ 设截面/朝向 → 确定` }))
+      if (!pts) { set({ status: '揾唔到棱邊 — 對準實體棱邊再點（唔好點面中間）' }); return }
+      set((s2) => ({ sweepEdgePicks: [...s2.sweepEdgePicks, threePt], sweepEdgeLines: [...s2.sweepEdgeLines, pts], status: `已拾 ${s2.sweepEdgeLines.length + 1} 條邊做掃掠路徑（點相連嘅下一條繼續接力）→ 設截面/朝向 → 確定` }))
     })
   },
   // P2 修：默认开（Fusion Tangent Chain 默认 ON）；用户偏好 localStorage 持久（'0'=关）。
   edgeRoundChain: (() => { try { return localStorage.getItem('webcad-chain') !== '0' } catch { return true } })(),
-  toggleEdgeRoundChain: () => set((s) => { const next = !s.edgeRoundChain; try { localStorage.setItem('webcad-chain', next ? '1' : '0') } catch { /* ignore */ } return { edgeRoundChain: next, status: next ? '切线链：开 — 点一条棱自动连埋成条相切边链（如圆角矩形成圈边）' : '切线链：关 — 只处理点中嘅棱' } }),
+  toggleEdgeRoundChain: () => set((s) => { const next = !s.edgeRoundChain; try { localStorage.setItem('webcad-chain', next ? '1' : '0') } catch { /* ignore */ } return { edgeRoundChain: next, status: next ? '切線鏈：開 — 點一條棱自動連埋成條相切邊鏈（如圓角矩形成圈邊）' : '切線鏈：關 — 只處理點中嘅棱' } }),
   sketchTwist: 0,
   setSketchTwist: (n) => set({ sketchTwist: n || 0 }),
   snapSize: 5,
@@ -7280,7 +7280,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const generated=new Set(s.skPatternData?.patterns.flatMap(p=>p.instances.flatMap(i=>i.entityIds))??[])
       const selected=s.skSel.flatMap(ref=>'shape'in ref?[ref.shape]:[])
       if(!selected.length||selected.some(index=>!Number.isInteger(index)||index<0||index>=count||generated.has(s.skPatternData?.entityIds[index]??''))){
-        set({status:'请先明确选择有效的来源轮廓；阵列实例不能作为新来源'})
+        set({status:'請先明確選擇有效的來源輪廓；陣列實例不能作為新來源'})
         return
       }
     }
@@ -7290,9 +7290,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       const c=s.skPatternData!.patterns[0].config
       cfg=c.kind==='rectangular'?{...cfg,kind:'rect',nx:c.nx,dx:c.dx,ny:c.ny,dy:c.dy,distType:'spacing'}:{...cfg,kind:'circ',count:c.count,angle:c.angle,cx:c.cx,cy:c.cy,angleType:Math.abs(c.angle)===360?'full':'angle'}
     }
-    set({skPatternSession:{mode},arrayCfg:cfg,sketchTool:'array',arrayPreview:{shapes:null,pending:false,error:null},status:mode==='create'?'请选择来源轮廓，调整参数后确认关联阵列':'正在编辑关联阵列；来源集合保持不变'})
+    set({skPatternSession:{mode},arrayCfg:cfg,sketchTool:'array',arrayPreview:{shapes:null,pending:false,error:null},status:mode==='create'?'請選擇來源輪廓，調整參數後確認關聯陣列':'正在編輯關聯陣列；來源集合保持不變'})
   },
-  cancelSketchPattern:()=>{cancelSketchPatternPreview();set({skPatternSession:null,sketchTool:'select',status:'已取消关联阵列操作；草图保留'})},
+  cancelSketchPattern:()=>{cancelSketchPatternPreview();set({skPatternSession:null,sketchTool:'select',status:'已取消關聯陣列操作；草圖保留'})},
   skPatternPreview: {document:null,shapes:null,pending:false,error:null,omitted:[]},
   previewSketchPattern,
   cancelSketchPatternPreview,
@@ -7302,7 +7302,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const before=get()
     ++_patternDimEditSeq
     if(before.mode!=='sketch'||!before.skPatternData)return
-    set({sketchUndo:[...before.sketchUndo,skSnap(before)].slice(-80),sketchRedo:[],skPatternData:null,skPatternSession:null,sketchTool:'select',status:'已解除阵列关联；现有几何及尺寸／约束保留'})
+    set({sketchUndo:[...before.sketchUndo,skSnap(before)].slice(-80),sketchRedo:[],skPatternData:null,skPatternSession:null,sketchTool:'select',status:'已解除陣列關聯；現有幾何及尺寸／約束保留'})
   },
   skCons: [], skPatternData: null,
   skSel: [],
@@ -7317,7 +7317,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   skPendingEdge: null,   // GM-FP2 #27/#28
   skArmedCon: null,      // GM-FP2 #34
   autoConstrain: true,   // GM-FP2 #33：绘制自动推断默认开（Fusion 同款默认）
-  setAutoConstrain: (on) => set({ autoConstrain: on, status: on ? '✎ 自动约束推断：开（画图时自动加 水平/竖直/重合/平行… — Fusion AutoConstrain）' : '自动约束推断：关（画图唔再自动加约束，可手动施加）' }),
+  setAutoConstrain: (on) => set({ autoConstrain: on, status: on ? '✎ 自動約束推斷：開（畫圖時自動加 水平/豎直/重合/平行… — Fusion AutoConstrain）' : '自動約束推斷：關（畫圖唔再自動加約束，可手動施加）' }),
   skRefGeo: null,
   sketchFocus: null,
   skDof: null,
@@ -7345,7 +7345,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
     }
     const src = skId ? s.sketchSources[skId] : undefined
-    if (!skId || !src) { set({ status: '呢个特征冇可重开嘅草图（旧项目特征 / 原语冇草图源）' }); return }
+    if (!skId || !src) { set({ status: '呢個特徵冇可重開嘅草圖（舊項目特徵 / 原語冇草圖源）' }); return }
     // GM-W6 F1：重开草图【时间轴回卷】（Fusion Edit Sketch 语义）——下面嘅实体参考几何要用
     // 【呢个特征之前】嘅实体状态，唔系最终成品体（旧版用最终体 → 早期草图可以约束/吸附到
     // 下游特征嘅边角 = 时序倒挂）。借 5.1 前缀回放：gotoStep(featIdx) 令 bodyMesh+planes 齐回到
@@ -7408,20 +7408,20 @@ export const useApp = create<AppState>((rawSet, get) => {
       sketchShape: null, sketchProfiles: shapesCopy, skPatternData: clonePatternData(src.patternData),
       skCons: ensureDimNames(JSON.parse(JSON.stringify(src.cons)) as SkCon[], s), skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null, skArmedCon: null, skDof: null, skConflict: false, skConflictIds: [],  // 深拷贝（T746）：live 同 src 唔共享 SkRef 对象；S195 dim-name：旧档无名尺寸 lazy 补 d#（完成草图写返 src 先持久）
       skEditTarget: skId, skRefGeo: refG, sketchFocus: focus, sizing: null, toolPreview: null, skBoolPending: null,   // SIZING-2：重开草图清残留 sizing；P4：清残留 boolean-op wip（旧 union/subtract 未完成 → 重开草图会残留失效 first 索引）
-      status: `重开草图编辑中（${shapesCopy.length} 个轮廓 · ${src.cons.length} 个约束${src.sweepPath ? ` · 扫掠路径 ${src.sweepPath.length} 点（重画折线=换路径）` : ''}${src.arb ? ' · 斜面' : ''}${projectRefresh.refreshed ? ` · 已更新 ${projectRefresh.refreshed} 条关联投影` : projectWarning ? ` · ${projectWarning}` : ''}）— 改完撳「✓完成草图」自动重建模型`,
+      status: `重開草圖編輯中（${shapesCopy.length} 個輪廓 · ${src.cons.length} 個約束${src.sweepPath ? ` · 掃掠路徑 ${src.sweepPath.length} 點（重畫折線=換路徑）` : ''}${src.arb ? ' · 斜面' : ''}${projectRefresh.refreshed ? ` · 已更新 ${projectRefresh.refreshed} 條關聯投影` : projectWarning ? ` · ${projectWarning}` : ''}）— 改完撳「✓完成草圖」自動重建模型`,
     })
     if (src.cons.length && !src.patternData) await get().resolveSk()
     if (src.cons.length && projectWarning && get().mode === 'sketch' && get().skEditTarget === skId) set({ status: `${get().status} · ${projectWarning}` })
   },
   toggleSketchVis: (skId) => set((s) => {
     const src = s.sketchSources[skId]
-    if (!src) return { status: '草图源已唔存在' }
+    if (!src) return { status: '草圖源已唔存在' }
     const vis = !src.visible
-    return { sketchSources: { ...s.sketchSources, [skId]: { ...src, visible: vis || undefined } }, status: vis ? '草图已显示（紫色线 — 眼仔可关）' : '草图已隐藏' }
+    return { sketchSources: { ...s.sketchSources, [skId]: { ...src, visible: vis || undefined } }, status: vis ? '草圖已顯示（紫色線 — 眼仔可關）' : '草圖已隱藏' }
   }),
   editSketchBySrc: (skId) => {
     const f = get().features.find((x) => (x as { sketchId?: string }).sketchId === skId || ((x as { sketchIds?: string[] }).sketchIds?.includes(skId) ?? false))
-    if (!f) { set({ status: '呢个草图嘅消费特征已唔存在' }); return }
+    if (!f) { set({ status: '呢個草圖嘅消費特徵已唔存在' }); return }
     get().editSketchOf(f.id, skId)   // T753：loft 截面直开（唔使 prompt）
   },
   // GM-W6 F2：浏览树双击草图行改名（存喺 sketchSources[skId].name — optional，旧档缺 = 用默认 sk#→草图# 标签）。改名系纯 metadata，undo 安全（docSnap 含 sketchSources）。
@@ -7429,17 +7429,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     const src = s.sketchSources[skId]
     if (!src) return {}
     const nm = name.trim()
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], sketchSources: { ...s.sketchSources, [skId]: { ...src, name: nm || undefined } }, status: nm ? `草图已改名「${nm}」` : '已清除草图自订名' }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], sketchSources: { ...s.sketchSources, [skId]: { ...src, name: nm || undefined } }, status: nm ? `草圖已改名「${nm}」` : '已清除草圖自訂名' }
   }),
   // GM-W6 F2：孤儿草图（消费特征已删 → 浏览树「重开」掣）。补一个独立草图特征令佢重新可用（Fusion 独立草图同款零几何节点），再走标准 editSketchBySrc 路径（几何/约束原样载入）。
   reopenOrphanSketch: async (skId) => {
     const src = get().sketchSources[skId]
-    if (!src) { set({ status: '草图源已唔存在' }); return }
+    if (!src) { set({ status: '草圖源已唔存在' }); return }
     const referenced = get().features.some((f) => (f as { sketchId?: string }).sketchId === skId || ((f as { sketchIds?: string[] }).sketchIds?.includes(skId) ?? false))
     if (!referenced) {
       const f: Feature = { id: fid(), type: 'sketch', sketchId: skId }
       const ok = await get().applyFeatures([...get().features, f], '未使用草图已还原做独立草图 — 重开编辑中')
-      if (!ok) { set({ status: '⚠ 还原未使用草图失败' }); return }
+      if (!ok) { set({ status: '⚠ 還原未使用草圖失敗' }); return }
     }
     get().editSketchBySrc(skId)
   },
@@ -7447,9 +7447,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   deleteSketchSrc: (skId) => set((s) => {
     if (!s.sketchSources[skId]) return {}
     const referenced = s.features.some((f) => (f as { sketchId?: string }).sketchId === skId || ((f as { sketchIds?: string[] }).sketchIds?.includes(skId) ?? false))
-    if (referenced) return { status: '此草图仍被特征使用 — 请从时间轴删除对应特征' }
+    if (referenced) return { status: '此草圖仍被特徵使用 — 請從時間軸刪除對應特徵' }
     const ss = { ...s.sketchSources }; delete ss[skId]
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], sketchSources: ss, selSketch: s.selSketch === skId ? null : s.selSketch, status: '已删除未使用草图（可撤销）' }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], sketchSources: ss, selSketch: s.selSketch === skId ? null : s.selSketch, status: '已刪除未使用草圖（可撤銷）' }
   }),
   // GM-W6 F3：SketchDimLayer 消费后清返（set null）。
   skDimEditReq: null,
@@ -7471,7 +7471,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     for (const r of s.skSel) if ('shape' in r) { const i = (r as { shape: number }).shape; if (!idxs.includes(i)) idxs.push(i) }
     if (idxs.length !== 2) {
       // T791 D3：一击式 Fusion 流程 — 入「点两个轮廓」拾取模式（skClickAt 会逐个收，第二个即运算）；保留「先选两个再㩒掣」嘅快捷路径
-      set({ sketchTool: 'select', skSel: [], sizing: null, toolPreview: null, skBoolPending: { op, first: -1 }, status: `${lbl}：点第一个轮廓${op === 'subtract' ? '（保留件）' : ''} → 再点第二个` })
+      set({ sketchTool: 'select', skSel: [], sizing: null, toolPreview: null, skBoolPending: { op, first: -1 }, status: `${lbl}：點第一個輪廓${op === 'subtract' ? '（保留件）' : ''} → 再點第二個` })
       return
     }
     const toPath = (sh: SketchShape): { verts: Pt[]; bulges: number[] } | null => {
@@ -7482,11 +7482,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     const [iA, iB] = idxs   // skSel 点击顺序：A = 先点（subtract 保留件）
     const A = toPath(shapes[iA]), B = toPath(shapes[iB])
-    if (!A || !B) { set({ status: `${lbl}：样条/椭圆/草图点唔支持布尔 — 揀 矩形/圆/折线/弧轮廓` }); return }
+    if (!A || !B) { set({ status: `${lbl}：樣條/橢圓/草圖點唔支持布爾 — 揀 矩形/圓/折線/弧輪廓` }); return }
     // T751：多环布尔 — 剪穿（B⊂A）出 [外环, 孔环]、横切裂体出多块、相交多区出多环；
     // 每环一个 verts-poly shape，拉伸时 even-odd 嵌套自动判孔（同多轮廓草图同一机制）。
     const loops0 = boolPathAll(A, B, op)
-    if (!loops0 || !loops0.length) { set({ status: op === 'union' ? '合并失败：两个轮廓冇重叠（或只触一点）' : op === 'subtract' ? '剪走失败：两个轮廓冇重叠/结果退化' : '相交失败：两个轮廓冇重叠' }); return }
+    if (!loops0 || !loops0.length) { set({ status: op === 'union' ? '合併失敗：兩個輪廓冇重疊（或只觸一點）' : op === 'subtract' ? '剪走失敗：兩個輪廓冇重疊/結果退化' : '相交失敗：兩個輪廓冇重疊' }); return }
     const loops = loops0.map((lp) => mergeCollinear(lp.verts, lp.bulges))   // T750：合并共线相邻段（量边/标尺寸先啱长度）
     const isCon = !!shapes[iA].construction
     const mergedShapes: SketchShape[] = loops.map((lp) => ({ ...vertsPoly(lp.verts, lp.bulges), ...(isCon ? { construction: true } : {}) }))
@@ -7505,7 +7505,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
       sketchProfiles: [...shapes.filter((_, i) => !del.has(i)), ...mergedShapes], sketchShape: null,
       skSel: [], skCons: ncons,
-      status: `已${lbl}轮廓 — ${mergedShapes.length > 1 ? `${mergedShapes.length} 个轮廓（挖穿=外框+孔环 / 横切=碎块；拉伸时按包含关系自动判孔）` : `${loops[0].verts.length} 段`}${ncons.length < s.skCons.length ? ` · ${s.skCons.length - ncons.length} 个相关约束已移除` : ''}（Ctrl+Z 可还原）`,
+      status: `已${lbl}輪廓 — ${mergedShapes.length > 1 ? `${mergedShapes.length} 個輪廓（挖穿=外框+孔環 / 橫切=碎塊；拉伸時按包含關係自動判孔）` : `${loops[0].verts.length} 段`}${ncons.length < s.skCons.length ? ` · ${s.skCons.length - ncons.length} 個相關約束已移除` : ''}（Ctrl+Z 可還原）`,
     })
     void get().resolveSk()
   },
@@ -7518,7 +7518,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if(s.mode!=='sketch')return
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
-    if (!shapes.length) { set({ status: '打断：先画嘢先有得断' }); return }
+    if (!shapes.length) { set({ status: '打斷：先畫嘢先有得斷' }); return }
     const tol = pickTol()
     for (const tt of [tol / 3, tol]) {   // 两轮：细容差先（重叠几何攞最近条），唔中放宽
       for (let i = 0; i < shapes.length; i++) {
@@ -7563,13 +7563,13 @@ export const useApp = create<AppState>((rawSet, get) => {
         set({
           sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
           sketchProfiles: [...shapes.filter((_, j) => j !== i), ...parts], sketchShape: null, skSel: [], skCons: ncons, toolPreview: null,
-          status: `已打断（一分为二，${parts.length} 段${parts.some((q) => q.type === 'poly' && q.open) ? '，开放路径可与其它线围成拉伸区域' : ''}）${dropped ? ` · ${dropped} 个相关约束已移除` : ''}（Ctrl+Z 可还原）`,
+          status: `已打斷（一分為二，${parts.length} 段${parts.some((q) => q.type === 'poly' && q.open) ? '，開放路徑可與其它線圍成拉伸區域' : ''}）${dropped ? ` · ${dropped} 個相關約束已移除` : ''}（Ctrl+Z 可還原）`,
         })
         void get().resolveSk()
         return
       }
     }
-    set({ status: '打断：要点中一条曲线（点近啲）— 端点处唔分得开' })
+    set({ status: '打斷：要點中一條曲線（點近啲）— 端點處唔分得開' })
   },
   // T760：延伸 — 点开放路径嘅端段（近自由端嗰半），沿直线方向/原圆延长到最近相交
   skExtendAt: async (p) => {
@@ -7577,7 +7577,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (s.mode !== 'sketch') return
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
-    if (!shapes.length) { set({ status: '延伸：先画嘢' }); return }
+    if (!shapes.length) { set({ status: '延伸：先畫嘢' }); return }
     const tol = pickTol()
     for (const tt of [tol / 3, tol]) {
       for (let i = 0; i < shapes.length; i++) {
@@ -7613,7 +7613,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         }
         _degenDimNotes.clear()
         const cons = withParamVals(s.skCons,s.params)
-        if (_degenDimNotes.size) { set({status:'尺寸公式无效，草图未更改'}); return }
+        if (_degenDimNotes.size) { set({status:'尺寸公式無效，草圖未更改'}); return }
         const solved = await solveExtension(arr as FShape[],cons,{shape:i,end,point:r.verts[end==='start'?0:last]},1e-5,undefined,shapes)
         const current = get()
         if (request!==_skExtendRevision || current.mode!=='sketch' || current.sketchProfiles!==s.sketchProfiles ||
@@ -7625,19 +7625,19 @@ export const useApp = create<AppState>((rawSet, get) => {
           sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],
           sketchProfiles:solved.result.shapes as SketchShape[],sketchShape:null,skCons:applyRelationUpdates(cons,solved.result),
           skDof:solved.result.dof,skConflict:false,skConflictIds:[],skFreeShapes:new Set(),
-          skSel:[],toolPreview:null,status:'已延伸到最近相交几何（Ctrl+Z 可还原）',
+          skSel:[],toolPreview:null,status:'已延伸到最近相交幾何（Ctrl+Z 可還原）',
         })
         return
       }
     }
-    set({ toolPreview: null, status: '延伸：点【开放路径】嘅端段（靠自由端嗰半）— 沿原方向/原圆延长到最近相交；闭合轮廓冇得延伸' })
+    set({ toolPreview: null, status: '延伸：點【開放路徑】嘅端段（靠自由端嗰半）— 沿原方向/原圓延長到最近相交；閉合輪廓冇得延伸' })
   },
   bindSkDimParam: (conId, paramName) => {
     const p = get().params.find((x) => x.name === paramName)
     if (!p) {
       // S195 dim-name：唔系参数但系【同草图另一个尺寸名】→ 当公式绑定（d2=d1 跟随；SketchLayer 裸名输入行呢条路）
       if (get().skCons.some((c) => c.kind === 'dim' && c.name === paramName && c.id !== conId)) { get().bindSkDimExpr(conId, paramName); return }
-      set({ status: `参数「${paramName}」唔存在 — 先喺顶栏「ƒx 参数」面板加返（或输入尺寸名 d1 / 公式 d1*2）` }); return
+      set({ status: `參數「${paramName}」唔存在 — 先喺頂欄「ƒx 參數」面板加返（或輸入尺寸名 d1 / 公式 d1*2）` }); return
     }
     if (!Number.isFinite(p.value) || p.value <= 0) { set({status:illegalRejectStatus('參數尺寸必須為有限正數，未更改草圖')}); return }
     void get().commitSkDim(conId, {param:paramName,paramId:parameterId(p),refs:undefined,expr:undefined,value:p.value,driven:undefined}, `尺寸已绑定 ƒx ${paramName} = ${p.value}`)
@@ -7654,9 +7654,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     const symbols=[...s0.params,...s0.skCons.flatMap(c=>c.kind==='dim'&&c.name&&!s0.params.some(p=>p.name===c.name)?[{id:`dimension:${c.id}`,name:c.name,value:c.value}]:[])]
     const refs=parameterExpressionRefs(expr,symbols,self?.kind==='dim'?self.refs:undefined)
     for(const [token,id] of Object.entries(refs)) vars.set(token,symbols.find(p=>parameterId(p)===id)?.value ?? NaN)
-    try { assertParameterAcyclic(s0.skCons.flatMap(c=>c.kind==='dim'&&c.name?[{id:`dimension:${c.id}`,name:c.name,value:c.value,expr:c.id===conId?expr:c.expr,refs:c.id===conId?refs:c.refs}]:[])) } catch { set({status:'尺寸循环引用，已拒绝'}); return }
+    try { assertParameterAcyclic(s0.skCons.flatMap(c=>c.kind==='dim'&&c.name?[{id:`dimension:${c.id}`,name:c.name,value:c.value,expr:c.id===conId?expr:c.expr,refs:c.id===conId?refs:c.refs}]:[])) } catch { set({status:'尺寸循環引用，已拒絕'}); return }
     const v = evalExpr(expr, vars)
-    if (v == null) { set({ status: `⚠ 公式无法计算：「${expr}」— 检查参数名/尺寸名(d1)/括号/语法（+ - * / ^ %、pi、sqrt/sin/max 等）` }); return }
+    if (v == null) { set({ status: `⚠ 公式無法計算：「${expr}」— 檢查參數名/尺寸名(d1)/括號/語法（+ - * / ^ %、pi、sqrt/sin/max 等）` }); return }
     // S195 循环引用检测（抄 setParamExpr 依赖图法）：经新 expr 直接/间接引用返自己 → 拒
     if (selfName) {
       const dNames = new Set<string>(); for (const c of s0.skCons) if (c.kind === 'dim' && c.name) dNames.add(c.name)
@@ -7666,7 +7666,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       for (const c of s0.skCons) if (c.kind === 'dim' && c.name) depMap.set(c.name, c.id === conId ? refsOf(expr) : refsOf(c.expr))
       const seen = new Set<string>(); const stk = [...refsOf(expr)]; let cyc = false
       while (stk.length) { const u = stk.pop()!; if (u === selfName) { cyc = true; break } if (seen.has(u)) continue; seen.add(u); for (const v2 of (depMap.get(u) || [])) stk.push(v2) }
-      if (cyc) { set({ status: `⚠ 尺寸循环引用：「${selfName} = ${expr}」直接或间接引用返自己 — 已拒绝` }); return }
+      if (cyc) { set({ status: `⚠ 尺寸循環引用：「${selfName} = ${expr}」直接或間接引用返自己 — 已拒絕` }); return }
     }
     if (!Number.isFinite(v) || v <= 0) { set({status:illegalRejectStatus('公式尺寸必須為有限正數，未更改草圖')}); return }
     void get().commitSkDim(conId, {expr,refs,param:undefined,paramId:undefined,value:v,driven:undefined}, `尺寸已绑定公式 ƒ(${expr}) = ${+v.toFixed(3)}`)
@@ -7676,7 +7676,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
     // 放宽：未画草图都可以拣【实体参考几何】（边/角/孔心）—— 例如要约束/标尺寸到实体边。
     const _rg = getRefGeo()
-    if (!shapes.length && !(_rg && (_rg.pts.length || _rg.segs.length))) { set({ status: '先画一个图形（矩形/圆/折线），或贴住实体面开草图（就可拣实体边/角），再选择/标尺寸' }); return }
+    if (!shapes.length && !(_rg && (_rg.pts.length || _rg.segs.length))) { set({ status: '先畫一個圖形（矩形/圓/折線），或貼住實體面開草圖（就可揀實體邊/角），再選擇/標尺寸' }); return }
     // T791 D3：合并/剪走「点两个轮廓」一击式拾取（Fusion 流程）— 喺一切尺寸/选择逻辑之前拦截
     if (s.skBoolPending) {
       const bp = s.skBoolPending
@@ -7684,14 +7684,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       const tolb = pickTol()
       let bi = -1, best = Infinity
       for (let i = 0; i < shapes.length; i++) { const dd = distToShapeOutline(shapes[i] as SketchShape, p); if (dd < best) { best = dd; bi = i } }
-      if (bi < 0 || best > tolb * 1.5) { set({ status: `${lbl}：点近一个轮廓线（点近啲）` }); return }
+      if (bi < 0 || best > tolb * 1.5) { set({ status: `${lbl}：點近一個輪廓線（點近啲）` }); return }
       if (bp.first < 0) {
         const hl: SkRef = (shapes[bi] as SketchShape).type === 'circle' ? { kind: 'circle', shape: bi } as SkRef : { kind: 'edge', shape: bi, idx: 0 } as SkRef
-        set({ skBoolPending: { ...bp, first: bi }, skSel: [hl], status: `${lbl}：已选第一个轮廓 → 再点第二个（重叠嗰个）` })
+        set({ skBoolPending: { ...bp, first: bi }, skSel: [hl], status: `${lbl}：已選第一個輪廓 → 再點第二個（重疊嗰個）` })
         return
       }
-      if (bi === bp.first) { set({ status: `${lbl}：唔好点返同一个 — 点第二个重叠轮廓` }); return }
-      if (bp.first >= shapes.length || !shapes[bp.first]) { set({ skBoolPending: null, skSel: [], status: `${lbl}：之前嘅选择已失效（几何有改动）— 请重新点两个轮廓` }); return }  // BOOL-3：undo 缩短数组后防越界 throw
+      if (bi === bp.first) { set({ status: `${lbl}：唔好點返同一個 — 點第二個重疊輪廓` }); return }
+      if (bp.first >= shapes.length || !shapes[bp.first]) { set({ skBoolPending: null, skSel: [], status: `${lbl}：之前嘅選擇已失效（幾何有改動）— 請重新點兩個輪廓` }); return }  // BOOL-3：undo 缩短数组后防越界 throw
       const refA: SkRef = (shapes[bp.first] as SketchShape).type === 'circle' ? { kind: 'circle', shape: bp.first } as SkRef : { kind: 'edge', shape: bp.first, idx: 0 } as SkRef
       const refB: SkRef = (shapes[bi] as SketchShape).type === 'circle' ? { kind: 'circle', shape: bi } as SkRef : { kind: 'edge', shape: bi, idx: 0 } as SkRef
       set({ skSel: [refA, refB], skBoolPending: null })   // A=保留件（先点），skBoolShapes 依 skSel 顺序运算
@@ -7728,7 +7728,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const outY = p[1] < miny - 1 || p[1] > maxy + 1
         const kind2: 'hdist' | 'vdist' | 'dist' = outX && !outY ? 'vdist' : outY && !outX ? 'hdist' : 'dist'
         const value = kind2 === 'hdist' ? Math.abs(pb[0] - pa[0]) : kind2 === 'vdist' ? Math.abs(pb[1] - pa[1]) : Math.hypot(pb[0] - pa[0], pb[1] - pa[1])
-        placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: kind2, a, b, value: r1(value) || 1 }, { skPendingPair: null, status: `已标${kind2 === 'hdist' ? '水平距离' : kind2 === 'vdist' ? '竖直距离' : '直线距离'} ${r1(value)}（可直接输入数值）` })
+        placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: kind2, a, b, value: r1(value) || 1 }, { skPendingPair: null, status: `已標${kind2 === 'hdist' ? '水平距離' : kind2 === 'vdist' ? '豎直距離' : '直線距離'} ${r1(value)}（可直接輸入數值）` })
         return
       }
       // GM-FP2 #27/#28：拣咗一条直边，等第二击 —— 放置位置定 Aligned(真长)/H/V 投影；或点另一条边 → 平行=间距 / 非平行=角度；或点一个点 → 点到边垂距。
@@ -7756,7 +7756,7 @@ export const useApp = create<AppState>((rawSet, get) => {
               void get().placeSketchSpacing(e1,hit,{skPendingEdge:null});return
             }
             const ang = ((Math.atan2(d2y, d2x) - Math.atan2(d1y, d1x)) * 180 / Math.PI + 360) % 360
-            placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'angle', a: e1, b: hit, value: Math.round(ang) || 90 }, { skPendingEdge: null, status: `已标夹角 ${Math.round(ang)}°（可直接输入数值）` })
+            placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'angle', a: e1, b: hit, value: Math.round(ang) || 90 }, { skPendingEdge: null, status: `已標夾角 ${Math.round(ang)}°（可直接輸入數值）` })
             return
           }
         }
@@ -7764,7 +7764,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (hit && (hit.kind === 'pt' || hit.kind === 'center' || hit.kind === 'ellipse-point' || hit.kind === 'ellipse-arc-end' || hit.kind === 'origin' || hit.kind === 'refpt')) {
           const [P] = skRefPts(shapes, hit)
           const d = Math.abs((B1[0] - A1[0]) * (P[1] - A1[1]) - (B1[1] - A1[1]) * (P[0] - A1[0])) / (Math.hypot(B1[0] - A1[0], B1[1] - A1[1]) || 1)
-          placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'p2l', a: hit, b: e1, value: r1(d) || 1 }, { skPendingEdge: null, status: `已标点到边距离 ${r1(d)}（可直接输入数值）` })
+          placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'p2l', a: hit, b: e1, value: r1(d) || 1 }, { skPendingEdge: null, status: `已標點到邊距離 ${r1(d)}（可直接輸入數值）` })
           return
         }
         // ── 否则 = 放置位置定投影方向（垂直偏置=真长 Aligned len · 左右放=竖直投影 vdist · 上下放=水平投影 hdist）
@@ -7772,17 +7772,17 @@ export const useApp = create<AppState>((rawSet, get) => {
         const outX = p[0] < minx - 1 || p[0] > maxx + 1, outY = p[1] < miny - 1 || p[1] > maxy + 1
         if (outX && !outY) {
           const [pa, pb] = edgeEndRefs(e1); const dv = Math.abs(B1[1] - A1[1])
-          placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'vdist', a: pa, b: pb, value: r1(dv) || 1 }, { skPendingEdge: null, status: `已标竖直投影 ${r1(dv)}（可直接输入数值）` })
+          placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'vdist', a: pa, b: pb, value: r1(dv) || 1 }, { skPendingEdge: null, status: `已標豎直投影 ${r1(dv)}（可直接輸入數值）` })
         } else if (outY && !outX) {
           const [pa, pb] = edgeEndRefs(e1); const dh = Math.abs(B1[0] - A1[0])
-          placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'hdist', a: pa, b: pb, value: r1(dh) || 1 }, { skPendingEdge: null, status: `已标水平投影 ${r1(dh)}（可直接输入数值）` })
+          placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'hdist', a: pa, b: pb, value: r1(dh) || 1 }, { skPendingEdge: null, status: `已標水平投影 ${r1(dh)}（可直接輸入數值）` })
         } else {
           const al = Math.hypot(B1[0] - A1[0], B1[1] - A1[1])
-          placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'len', a: e1, value: r1(al) || 1 }, { skPendingEdge: null, status: `已标对齐长度(真长) ${r1(al)}（可直接输入数值）` })
+          placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'len', a: e1, value: r1(al) || 1 }, { skPendingEdge: null, status: `已標對齊長度(真長) ${r1(al)}（可直接輸入數值）` })
         }
         return
       }
-      if (!hit) { set({ skPendingPt: null, status: '尺寸：点 边=长度 · 圆=Ø · 点→点→放置=距离（横放=竖直/上下放=水平/斜=直线）· 点→边=垂直距离 · ⊕原点都可以拣' }); return }
+      if (!hit) { set({ skPendingPt: null, status: '尺寸：點 邊=長度 · 圓=Ø · 點→點→放置=距離（橫放=豎直/上下放=水平/斜=直線）· 點→邊=垂直距離 · ⊕原點都可以揀' }); return }
       const pend = s.skPendingPt
       if (pend) {
         // second click after a point: pt→pt → placement stage (or immediate dist when axis-aligned), pt→edge = perpendicular distance
@@ -7794,7 +7794,7 @@ export const useApp = create<AppState>((rawSet, get) => {
             placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'dist', a: pend, b: hit, value: r1(Math.hypot(pb[0] - pa[0], pb[1] - pa[1])) || 1 })
             return
           }
-          set({ skPendingPair: { a: pend, b: hit }, skPendingPt: null, status: '再点一下放置尺寸：点两侧=竖直距离 · 点上/下方=水平距离 · 点中间/斜角=直线距离' })
+          set({ skPendingPair: { a: pend, b: hit }, skPendingPt: null, status: '再點一下放置尺寸：點兩側=豎直距離 · 點上/下方=水平距離 · 點中間/斜角=直線距離' })
           return
         }
         if (hit.kind === 'edge' || hit.kind === 'refedge') {
@@ -7804,16 +7804,16 @@ export const useApp = create<AppState>((rawSet, get) => {
           placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'p2l', a: pend, b: hit, value: r1(d) || 1 })
           return
         }
-        set({ skPendingPt: null, status: '已取消（第 2 个目标要系 点 或 边）' })
+        set({ skPendingPt: null, status: '已取消（第 2 個目標要系 點 或 邊）' })
         return
       }
       if(hit.kind === 'ellipse-axis') {
         const [a,b]=skRefPts(shapes,hit), value=Math.hypot(b[0]-a[0],b[1]-a[1])
-        placeDim({id:skConId(),name:nextDimName(s),kind:'dim',type:'len',a:hit,value}, {skPendingPt:null,status:`已标椭圆半轴 ${value.toFixed(2)} mm；输入半轴长度`})
+        placeDim({id:skConId(),name:nextDimName(s),kind:'dim',type:'len',a:hit,value}, {skPendingPt:null,status:`已標橢圓半軸 ${value.toFixed(2)} mm；輸入半軸長度`})
         return
       }
-      if(hit.kind === 'ellipse' || hit.kind === 'ellipse-arc'){set({status:'椭圆尺寸：点中心到轴端点之间的虚线，标注半轴长度'});return}
-      if (hit.kind === 'refedge') { set({ status: '参考边系固定边，唔可以单独标长度 — 先点你嘅图形上一个点，再点呢条参考边，标「点到边距离」' }); return }
+      if(hit.kind === 'ellipse' || hit.kind === 'ellipse-arc'){set({status:'橢圓尺寸：點中心到軸端點之間的虛線，標註半軸長度'});return}
+      if (hit.kind === 'refedge') { set({ status: '參考邊系固定邊，唔可以單獨標長度 — 先點你嘅圖形上一個點，再點呢條參考邊，標「點到邊距離」' }); return }
       if (hit.kind === 'edge') {
         // arc SEGMENT (slot cap / rrect corner / fillet arc) → R radius dim (Fusion convention); straight → length
         const esh = shapes[hit.shape] as SketchShape
@@ -7829,7 +7829,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           return
         }
         // GM-FP2 #27：直边 → 进入放置阶段（唔即刻落 len）— 第二击位置定 Aligned(真长)/H/V 投影，或点另一条边=间距/夹角
-        set({ skPendingEdge: hit, skPendingPt: null, status: '再点放置尺寸：垂直偏置=对齐长度(真长) · 边【左右】放=竖直投影 · 边【上下】放=水平投影 · 或点另一条边=平行间距/夹角 · 点一个点=点到边距离' })
+        set({ skPendingEdge: hit, skPendingPt: null, status: '再點放置尺寸：垂直偏置=對齊長度(真長) · 邊【左右】放=豎直投影 · 邊【上下】放=水平投影 · 或點另一條邊=平行間距/夾角 · 點一個點=點到邊距離' })
         return
       }
       if (hit.kind === 'circle') {
@@ -7849,7 +7849,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         }
         return
       }
-      set({ skPendingPt: hit, status: '已选第 1 个点 — 再点 点=两点距离 / 边=点到边垂直距离' })
+      set({ skPendingPt: hit, status: '已選第 1 個點 — 再點 點=兩點距離 / 邊=點到邊垂直距離' })
       return
     }
     // select tool: build a max-3 selection (3rd = symmetric's axis). 非程序员易用化（SEL-1）：
@@ -7859,8 +7859,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 撳空唔再清走已有选择（只 ESC 清）→ fumble 唔会前功尽废（之前撳偏少少就成个选取归零，多选第 2 点几乎做唔到）
     // GM-FP4 #47：selEmptyClear 开 → 撳真空白即清选择（Fusion 默认）；默认关保持 webcad 防误清手感。
     if (!hit) {
-      if (selNow.length && !s.selEmptyClear) { dbgLog(`skClickAt MISS（保留 ${selNow.length} 选取）`); set({ status: `撳唔中几何（已保留 ${selNow.length} 个选取）— 放大啲对准 点/边 再撳，或 ESC 清空` }); return }
-      dbgLog(`skClickAt MISS（${selNow.length && s.selEmptyClear ? '撳空清选择' : '无选取'}）`); set({ skSel: [], skSelCon: null, status: selNow.length && s.selEmptyClear ? '已清空选择（撳空=清）' : '选择：点 点/边/圆 → 按上方约束按钮' }); return
+      if (selNow.length && !s.selEmptyClear) { dbgLog(`skClickAt MISS（保留 ${selNow.length} 選取）`); set({ status: `撳唔中幾何（已保留 ${selNow.length} 個選取）— 放大啲對準 點/邊 再撳，或 ESC 清空` }); return }
+      dbgLog(`skClickAt MISS（${selNow.length && s.selEmptyClear ? '撳空清選擇' : '無選取'}）`); set({ skSel: [], skSelCon: null, status: selNow.length && s.selEmptyClear ? '已清空選擇（撳空=清）' : '選擇：點 點/邊/圓 → 按上方約束按鈕' }); return
     }
     const sel = [...selNow]
     const i = sel.findIndex((x) => eq(x, hit))
@@ -7874,10 +7874,10 @@ export const useApp = create<AppState>((rawSet, get) => {
         get().addSkCon(s.skArmedCon)   // 施加 + 清 skSel + 求解；skArmedCon 保持武装（addSkCon 唔清）
         return
       }
-      set({ status: sel.length ? `施约束「${SK_CON_ZH[s.skArmedCon]}」：已拣 ${sel.map(word).join(' + ')} — ${SK_CON_REQ[s.skArmedCon]}（拣够即施加，保持武装 · ESC 退）` : `施约束「${SK_CON_ZH[s.skArmedCon]}」：${SK_CON_REQ[s.skArmedCon]}（ESC 退出）` })
+      set({ status: sel.length ? `施約束「${SK_CON_ZH[s.skArmedCon]}」：已揀 ${sel.map(word).join(' + ')} — ${SK_CON_REQ[s.skArmedCon]}（揀夠即施加，保持武裝 · ESC 退）` : `施約束「${SK_CON_ZH[s.skArmedCon]}」：${SK_CON_REQ[s.skArmedCon]}（ESC 退出）` })
       return
     }
-    set({ skSel: sel, skSelCon: null, status: sel.length ? `已选 ${sel.map(word).join(' + ')}（共 ${sel.length}）— 按约束按钮应用 / Delete 删除 / Move 移动（对称 = 2 点 + 1 边轴）` : '已清空选择' })
+    set({ skSel: sel, skSelCon: null, status: sel.length ? `已選 ${sel.map(word).join(' + ')}（共 ${sel.length}）— 按約束按鈕應用 / Delete 刪除 / Move 移動（對稱 = 2 點 + 1 邊軸）` : '已清空選擇' })
   },
   // GM-FP3 #35：点约束徽章 = 选中该约束（高亮 partner + 状态栏报名），Delete 先删（唔再一点即删）。
   selectSkCon: (id) => {
@@ -7886,14 +7886,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     const c = s.skCons.find((x) => x.id === id)
     if (!c) { set({ skSelCon: null }); return }
     const nm = c.kind === 'dim' ? `尺寸 ${c.name ?? ''}（${c.type}）` : `约束「${SK_CON_ZH[c.type] ?? c.type}」`
-    set({ skSelCon: id, skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: `已选中${nm} — 按 Delete 移除（其关联几何已高亮）` })
+    set({ skSelCon: id, skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: `已選中${nm} — 按 Delete 移除（其關聯幾何已高亮）` })
   },
   addSkCon: async (t) => {
     const s = get()
     const conShapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
     // GM-FP2 #34 tool-first：撳约束掣但（未有合适选择 / 唔喺 select 工具）→ 进入「拣对象」武装态（Fusion），保持 select-first 兼容
     if (!conApplicable(t, s.skSel, conShapes)) {
-      set({ sketchTool: 'select', skArmedCon: t, sizing: null, toolPreview: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: `施约束「${SK_CON_ZH[t]}」：拣要约束嘅对象 — ${SK_CON_REQ[t]}（拣够即施加、保持武装；ESC 退出）` })
+      set({ sketchTool: 'select', skArmedCon: t, sizing: null, toolPreview: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: `施約束「${SK_CON_ZH[t]}」：揀要約束嘅對象 — ${SK_CON_REQ[t]}（揀夠即施加、保持武裝；ESC 退出）` })
       return
     }
     if(s.skPatternData){
@@ -7906,7 +7906,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const isArcSeg = (r?: SkRef) => { if (r?.kind !== 'edge') return false; const sh = conShapes[r.shape] as SketchShape; return sh?.type === 'poly' && !!sh.verts && !!sh.bulges && Math.abs(sh.bulges[r.idx] || 0) > 1e-12 }
       const isStraight = (r?: SkRef) => (r?.kind === 'edge' || r?.kind === 'refedge') && !isArcSeg(r)
       const [a, b] = s.skSel
-      if ((isArcSeg(a) && isStraight(b)) || (isStraight(a) && isArcSeg(b))) { set({ status: '相等：弧段同直边唔可以等长（弧嘅「相等」系等半径）— 揀 两段弧 或 两条直边' }); return }
+      if ((isArcSeg(a) && isStraight(b)) || (isStraight(a) && isArcSeg(b))) { set({ status: '相等：弧段同直邊唔可以等長（弧嘅「相等」系等半徑）— 揀 兩段弧 或 兩條直邊' }); return }
     }
     const tangentPair = t === 'tangent' ? ellipseArcTangentPair(conShapes, s.skSel[0], s.skSel[1]) : null
     const ellipsePair = t === 'tangent' ? ellipseLineTangentPair(conShapes, s.skSel[0], s.skSel[1]) : null
@@ -7959,7 +7959,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.mode !== 'sketch') return
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
     const edges = s.skSel.filter((r) => r.kind === 'edge' || r.kind === 'refedge')
-    if (!edges.length) { set({ sketchTool: 'select', skArmedCon: 'h', status: '水平/竖直（合一）：拣一条或多条边 — 按边嘅方向自动判定水平定竖直施加' }); return }
+    if (!edges.length) { set({ sketchTool: 'select', skArmedCon: 'h', status: '水平/豎直（合一）：揀一條或多條邊 — 按邊嘅方向自動判定水平定豎直施加' }); return }
     const add: SkCon[] = []
     for (const r of edges) {
       const ep = skRefPts(shapes, r as SkRef)
@@ -7969,10 +7969,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (s.skCons.some((c) => c.kind === 'con' && (c.type === 'h' || c.type === 'v') && c.a && JSON.stringify(c.a) === JSON.stringify(r))) continue
       add.push({ id: skConId(), kind: 'con', type: t, a: r as SkRef } as SkCon)
     }
-    if (!add.length) { set({ status: '水平/竖直：选中边已有 H/V 约束（或非直边）' }); return }
+    if (!add.length) { set({ status: '水平/豎直：選中邊已有 H/V 約束（或非直邊）' }); return }
     if(s.skPatternData){await commitPatternConstraints({add});return}
     const nH = add.filter((c) => c.type === 'h').length, nV = add.length - nH
-    set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: [...s.skCons, ...add], skSel: [], status: `已按方向施加 ${nH} 水平 + ${nV} 竖直约束（H/V 合一）` })
+    set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: [...s.skCons, ...add], skSel: [], status: `已按方向施加 ${nH} 水平 + ${nV} 豎直約束（H/V 合一）` })
     void get().resolveSk()
   },
   // GM-FP4 #42：草图缩放（Fusion Sketch Scale）—— 选中轮廓（无选择=全部）顶点绕基点（形心）乘系数 k。
@@ -8070,7 +8070,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   skTextDlg: null,
   openSkTextDlg: () => set({ skTextDlg: { text: 'WEBCAD', size: 12, height: 4, align: 'left' } }),
   setSkTextDlg: (patch) => set((s) => (s.skTextDlg ? { skTextDlg: { ...s.skTextDlg, ...patch } } : {})),
-  cancelSkTextDlg: () => set({ skTextDlg: null, status: '已取消草图文字' }),
+  cancelSkTextDlg: () => set({ skTextDlg: null, status: '已取消草圖文字' }),
   commitSkTextDlg: async () => {
     const dlg = get().skTextDlg
     if (!dlg) return
@@ -8079,14 +8079,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s2.mode === 'sketch') {
       try {
         const contours = await cad.textSketchContours(txt, size) as number[][][]
-        if (!contours || !contours.length) { set({ status: '草图文字：字形生成为空（字体未就绪？再试一次）' }); return }
+        if (!contours || !contours.length) { set({ status: '草圖文字：字形生成為空（字體未就绪？再試一次）' }); return }
         // 对齐（left/center/right）：算所有字形 x-bbox → 平移令基准对齐（left=原点、center=中线、right=右缘归零）。
         let mnx = Infinity, mxx = -Infinity
         for (const c of contours) for (const p of c) { if (p[0] < mnx) mnx = p[0]; if (p[0] > mxx) mxx = p[0] }
         const dxAlign = dlg.align === 'center' ? -(mnx + mxx) / 2 : dlg.align === 'right' ? -mxx : 0
         const shapes = contours.map((pts) => ({ type: 'poly' as const, pts: pts.map((p) => [p[0] + dxAlign, p[1]] as [number, number]) }))
-        set((s3) => ({ skTextDlg: null, sketchUndo: [...s3.sketchUndo, skSnap(s3)].slice(-80), sketchRedo: [], sketchProfiles: [...s3.sketchProfiles, ...shapes], sketchShape: null, skSel: [], sketchTool: 'select', status: `已加草图文字「${txt}」（${contours.length} 个字形轮廓 · 对齐 ${dlg.align} — 可镜像/阵列/拉伸/旋转/扫掠）` }))
-      } catch (e) { set({ status: `草图文字失败：${(e as Error)?.message || e}` }) }
+        set((s3) => ({ skTextDlg: null, sketchUndo: [...s3.sketchUndo, skSnap(s3)].slice(-80), sketchRedo: [], sketchProfiles: [...s3.sketchProfiles, ...shapes], sketchShape: null, skSel: [], sketchTool: 'select', status: `已加草圖文字「${txt}」（${contours.length} 個字形輪廓 · 對齊 ${dlg.align} — 可鏡像/陣列/拉伸/旋轉/掃掠）` }))
+      } catch (e) { set({ status: `草圖文字失敗：${(e as Error)?.message || e}` }) }
       return
     }
     const op2: BoolOp = s2.cutMode && hasSolid(s2.features) ? 'cut' : 'new'
@@ -8108,13 +8108,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       `最后一次撳 ${_skLastClick}`,
       `状态栏 ${s.status}`,
     ].join('\n')
-    const done = () => set({ status: '✅ 已复制草图诊断 — 贴返畀 AI（最后一次撳=「未撳过」即係撳击根本冇到草图器）' })
+    const done = () => set({ status: '✅ 已複製草圖診斷 — 貼返畀 AI（最後一次撳=「未撳過」即係撳擊根本冇到草圖器）' })
     try { navigator.clipboard?.writeText(txt).then(done, () => set({ status: txt.slice(0, 120) })) } catch { set({ status: txt.slice(0, 120) }) }
   },
   debugMode: false,
   setDebugMode: (on) => {
     if (on) { dbgClear(); dbgLog('=== 诊断录制开始 ===') }
-    set({ debugMode: on, status: on ? '🩺 诊断录制：开 — 重现你嘅操作（撳掣/画图/拣嘢），完咗撳「📋 复制问题报告」贴返畀 AI' : '诊断录制：已关' })
+    set({ debugMode: on, status: on ? '🩺 診斷錄制：開 — 重現你嘅操作（撳掣/畫圖/揀嘢），完咗撳「📋 複製問題報告」貼返畀 AI' : '診斷錄制：已關' })
   },
   copyDebugReport: () => {
     const s = get(); const rg = getRefGeo()
@@ -8129,8 +8129,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       `── 操作记录（${_dbg.length} 条）──`,
     ]
     const txt = head.concat(_dbg.length ? _dbg : ['(冇记录 — 请先开「诊断录制」再操作)']).join('\n')
-    const done = () => set({ status: `✅ 已复制问题报告（${_dbg.length} 条记录）— 贴返畀 AI` })
-    try { navigator.clipboard?.writeText(txt).then(done, () => set({ status: '复制失败 — 请手动选状态栏文字' })) } catch { set({ status: '复制失败' }) }
+    const done = () => set({ status: `✅ 已複製問題報告（${_dbg.length} 條記錄）— 貼返畀 AI` })
+    try { navigator.clipboard?.writeText(txt).then(done, () => set({ status: '複製失敗 — 請手動選狀態欄文字' })) } catch { set({ status: '複製失敗' }) }
   },
   placeSketchSpacing:async(first,second,extra)=>{
     const before=get()
@@ -8182,7 +8182,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // ∠角度：用选择工具拣 2 条边 → 角度尺寸（度，可点改）
     const s = get()
     const [a, b] = s.skSel
-    if (!(a?.kind === 'edge' && b?.kind === 'edge')) { set({ sketchTool: 'select', sizing: null, toolPreview: null, status: '∠角度：先用选择工具点 2 条边' }); return }
+    if (!(a?.kind === 'edge' && b?.kind === 'edge')) { set({ sketchTool: 'select', sizing: null, toolPreview: null, status: '∠角度：先用選擇工具點 2 條邊' }); return }
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
     const [A1, A2] = skRefPts(shapes, a), [B1, B2] = skRefPts(shapes, b)
     if(s.skPatternData&&(!A1||!A2||!B1||!B2)){set({status:'角度需要兩條有效直邊；原草圖保留'});return}
@@ -8200,9 +8200,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     if(get().skPatternData){await commitPatternConstraints({removeIds:[id]});return}
     const target = get().skCons.find(c => c.id === id)
     if (target?.kind === 'dim' && get().skCons.some(c => c.kind === 'dim' && c.id !== id && Object.values(c.refs ?? {}).includes(`dimension:${id}`))) {
-      set({ status: '此尺寸仍被其他尺寸公式引用，请先解除引用' }); return
+      set({ status: '此尺寸仍被其他尺寸公式引用，請先解除引用' }); return
     }
-    set((s) => ({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: s.skCons.filter((c) => c.id !== id), status: '已移除该约束/尺寸' }))
+    set((s) => ({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: s.skCons.filter((c) => c.id !== id), status: '已移除該約束/尺寸' }))
     void get().resolveSk()
   },
   skDimPreview:{id:null,shapes:null,cons:null,patternData:null,pending:false,error:null},
@@ -8228,11 +8228,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!c) return
     const def0 = c.defId ? s.componentDefs.find((d) => d.id === c!.defId) : undefined
     const selectedBodyId = s.selectedComponentBody?.componentId === id ? s.selectedComponentBody.bodyId : null
-    if ((def0?.bodies.length ?? 0) > 1 && !selectedBodyId) { set({ status: `「${c.name}」有多个实体：请先喺浏览器点选要编辑嘅实体` }); return }
+    if ((def0?.bodies.length ?? 0) > 1 && !selectedBodyId) { set({ status: `「${c.name}」有多個實體：請先喺瀏覽器點選要編輯嘅實體` }); return }
     const selectedDefBody = def0?.bodies.find((b) => b.id === (selectedBodyId ?? def0.bodies[0]?.id))
     const editSrc = selectedDefBody?.src ?? (selectedDefBody?.id === def0?.bodies[0]?.id ? c.src : undefined)
-    if (!editSrc || !editSrc.features.length) { set({ status: `「${c.name}」嘅所选实体冇参数化来源（导入件/分割件系净网格）— 净网格可用 缩放/镜像/简化 等网格工具` }); return }
-    if (s.editingComponent) { set({ status: '已经喺编辑紧另一个组件 — 先「完成」或「取消」' }); return }
+    if (!editSrc || !editSrc.features.length) { set({ status: `「${c.name}」嘅所選實體冇參數化來源（匯入件/分割件系淨網格）— 淨網格可用 縮放/鏡像/簡化 等網格工具` }); return }
+    if (s.editingComponent) { set({ status: '已經喺編輯緊另一個組件 — 先「完成」或「取消」' }); return }
     // T734 edit-in-context slice: instead of aborting when a scratch body is live, auto-FREEZE it into a new
     // component (newComponent = canonical freeze idiom) then enter edit. newComponent early-returns when bodyMesh
     // is null (features-only/empty-tree case) — the post-freeze assertion catches that and falls back to abort.
@@ -8243,7 +8243,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       preFreeze = { ...docSnap(get()), originX: get().originX }
       get().newComponent()
       const ss = get()
-      if (ss.features.length || (ss.bodyMesh && ss.bodyMesh.triangles.length)) { set({ status: '当前活动实体无法固化（空树/生成失败）— 先处理活动实体再编辑其他组件' }); return }
+      if (ss.features.length || (ss.bodyMesh && ss.bodyMesh.triangles.length)) { set({ status: '當前活動實體無法固化（空樹/生成失敗）— 先處理活動實體再編輯其他組件' }); return }
     }
     // RE-READ post-freeze state: newComponent mutated components/features/bodyMesh/originX/undoStack, so the
     // s/c captured above (at editComponent entry) are now stale — the clone/snapshot tail must run on fresh state.
@@ -8267,13 +8267,13 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   finishComponentEdit: () => {
     const s = get()
-    if (s.mode === 'sketch' || s.busy) { set({ status: '请先完成草图及重建，再完成组件编辑' }); return }
+    if (s.mode === 'sketch' || s.busy) { set({ status: '請先完成草圖及重建，再完成組件編輯' }); return }
     const id = s.editingComponent
     if (!id) return
     const c = s.components.find((x) => x.id === id)
     const b = s.bodyMesh
-    if (!c) { set({ editingComponent: null, editingComponentBody: null, editPreFreezeSnap: null, status: '组件已唔存在 — 编辑已取消' }); return }
-    if (!b || !b.triangles.length) { set({ status: '完成编辑：当前树冇实体（生成失败/被删空）— 修返先，或者「取消编辑」还原' }); return }
+    if (!c) { set({ editingComponent: null, editingComponentBody: null, editPreFreezeSnap: null, status: '組件已唔存在 — 編輯已取消' }); return }
+    if (!b || !b.triangles.length) { set({ status: '完成編輯：當前樹冇實體（生成失敗/被刪空）— 修返先，或者「取消編輯」還原' }); return }
     const srcSnap = { features: JSON.parse(JSON.stringify(s.features)) as Feature[], sketchSources: JSON.parse(JSON.stringify(liveSketchSources(s))) as AppState['sketchSources'] }
     set((s2) => {
       // R2 P2 edit-one-update-all：写回【共享定义】(def.rev++) → reconcile → 该 def 全部 occurrence 嘅 mesh 同步换新。
@@ -8287,7 +8287,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           undoStack: [...s2.undoStack, docSnap(s2)].slice(-60), redoStack: [],
           componentDefs: defs2, components: reconcileComponents(comps1, defs2),
           features: [], bodyMesh: null, bodyTopZ: 0, editingComponent: null, editingComponentBody: null, editPreFreezeSnap: null, sketchSources: {}, skPatternData: null, selectedFeature: null, selectedComponent: id,
-          status: n > 1 ? `✓ 已写返定义「${def.name}」— ${n} 个共享实例一齐更新（改一个零件→全部跟新；位置/关节保持）` : `✓ 已写返组件「${def.name}」（位置/关节保持；src 已更新可再编辑）`,
+          status: n > 1 ? `✓ 已寫返定義「${def.name}」— ${n} 個共享實例一齊更新（改一個零件→全部跟新；位置/關節保持）` : `✓ 已寫返組件「${def.name}」（位置/關節保持；src 已更新可再編輯）`,
         }
       }
       // 兜底：无 defId（旧栈/匿名单例）→ 旧单实例写回
@@ -8295,7 +8295,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         undoStack: [...s2.undoStack, docSnap(s2)].slice(-60), redoStack: [],
         components: s2.components.map((x) => (x.id === id ? { ...x, mesh: b, hidden: false, src: srcSnap, ...DETACH_DEF } : x)),   // R2：无 def 兜底 → 顺手清任何悬空 defId（防镜像不变量破例）
         features: [], bodyMesh: null, bodyTopZ: 0, editingComponent: null, editingComponentBody: null, editPreFreezeSnap: null, sketchSources: {}, skPatternData: null, selectedFeature: null, selectedComponent: id,  // S143：完成 = 自动固化件合法保留，清快照防泄漏到后续取消
-        status: `✓ 已写返组件「${c.name}」（位置/关节保持；src 已更新可再编辑）`,
+        status: `✓ 已寫返組件「${c.name}」（位置/關節保持；src 已更新可再編輯）`,
       }
     })
     // Editing rebuilds the live OCCT body. Refresh the definition sidecar only if
@@ -8316,7 +8316,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const prevStatus = get().status
       if (get().grounded) get().solveMates()
       else get().resolveMates()
-      set({ status: `${prevStatus} · 已重算 ${matesTouch.length} 个涉及此件的配合（编辑后几何变咗，从动件跟随）` })
+      set({ status: `${prevStatus} · 已重算 ${matesTouch.length} 個涉及此件的配合（編輯後幾何變咗，從動件跟隨）` })
     }
   },
   cancelComponentEdit: async () => {
@@ -8337,7 +8337,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         originX: pre.originX, selectedFeature: null, selectedComponent: null,
         // S143：还原进入前两次推入留下的 undo 痕迹 —— 砍掉栈尾两条（editComponent + newComponent 各推一条），令撤销栈回到进入前。
         undoStack: s2.undoStack.slice(0, -2), redoStack: [],
-        status: `已取消编辑「${c?.name ?? id}」— 已还原编辑前状态（自动固化已撤销）`,
+        status: `已取消編輯「${c?.name ?? id}」— 已還原編輯前狀態（自動固化已撤銷）`,
       }))
       await get().applyFeatures(pre.features, '', false)  // 重放进入前特征树 → scratch bodyMesh 复活
       if ((pre.mates ?? get().mates).length) get().resolveMates()  // 还原配合后重算 follower 位姿（空 mates 安全早返）
@@ -8346,7 +8346,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     set((s2) => ({
       editingComponent: null, editingComponentBody: null, sketchSources: {}, skPatternData: null,
       components: s2.components.map((x) => (x.id === id ? { ...x, hidden: false } : x)),
-      status: `已取消编辑「${c?.name ?? id}」— 组件保持原样`,
+      status: `已取消編輯「${c?.name ?? id}」— 組件保持原樣`,
     }))
     await get().applyFeatures([], '', false)  // 清空活动树（mesh 由组件保留）
   },
@@ -8369,7 +8369,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if(s.skPatternData&&typeof si==='number'&&s.skPatternData.patterns.some(pattern=>pattern.instances.some(instance=>instance.entityIds.includes(s.skPatternData!.entityIds[si])))){set({status:'陣列實例由來源控制；請拖動來源，或先解除陣列關聯'});return false}
     const solvedFC = s.skDof != null && !s.skConflict
     if (solvedFC && typeof si === 'number' && s.skDof === 0) {
-      set({ status: '呢个几何已完全约束（固定 / 尺寸锁死）— 拖唔郁，只可选中' })
+      set({ status: '呢個幾何已完全約束（固定 / 尺寸鎖死）— 拖唔郁，只可選中' })
       return false
     }
     // 点（顶点/圆心）直接拖
@@ -8418,8 +8418,8 @@ export const useApp = create<AppState>((rawSet, get) => {
         : (open ? catmullRomOpen(newCtrl) : catmullRomClosed(newCtrl))
       const nsh: SketchShape = { ...sh, ctrl: newCtrl, pts }
       const activeIdx = s.sketchProfiles.length
-      if (isActive && i === activeIdx) { set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: nsh, status: `已插拟合点（样条现 ${newCtrl.length} 点）` }) }
-      else { const np = [...s.sketchProfiles]; np[i] = nsh; set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: np, status: `已插拟合点（样条现 ${newCtrl.length} 点）` }) }
+      if (isActive && i === activeIdx) { set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: nsh, status: `已插擬合點（樣條現 ${newCtrl.length} 點）` }) }
+      else { const np = [...s.sketchProfiles]; np[i] = nsh; set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: np, status: `已插擬合點（樣條現 ${newCtrl.length} 點）` }) }
       return true
     }
     return false
@@ -8428,16 +8428,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     const isActive = !!s.sketchShape
     const activeIdx = s.sketchProfiles.length
     const sh = (shapeIdx === activeIdx && isActive ? s.sketchShape : s.sketchProfiles[shapeIdx]) as SketchShape | undefined
-    if (!sh || sh.type !== 'poly' || !sh.smooth || !sh.ctrl || sh.ctrl.length <= 2) return { status: '删拟合点：样条至少保留 2 个拟合点' }
+    if (!sh || sh.type !== 'poly' || !sh.smooth || !sh.ctrl || sh.ctrl.length <= 2) return { status: '刪擬合點：樣條至少保留 2 個擬合點' }
     const open = !!sh.open
     const newCtrl = deleteFitPoint(sh.ctrl as [number, number][], ptIdx) as Pt[]
-    if (newCtrl.length === sh.ctrl.length) return { status: '删拟合点：索引无效' }
+    if (newCtrl.length === sh.ctrl.length) return { status: '刪擬合點：索引無效' }
     const isB = !!sh.bspline
     const pts = isB ? sampleBSpline(newCtrl, { closed: !open, samples: 64 }) : (open ? catmullRomOpen(newCtrl) : catmullRomClosed(newCtrl))
     const nsh: SketchShape = { ...sh, ctrl: newCtrl, pts }
-    if (shapeIdx === activeIdx && isActive) return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: nsh, status: `已删拟合点（样条现 ${newCtrl.length} 点）` }
+    if (shapeIdx === activeIdx && isActive) return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: nsh, status: `已刪擬合點（樣條現 ${newCtrl.length} 點）` }
     const np = [...s.sketchProfiles]; np[shapeIdx] = nsh
-    return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: np, status: `已删拟合点（样条现 ${newCtrl.length} 点）` }
+    return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: np, status: `已刪擬合點（樣條現 ${newCtrl.length} 點）` }
   }),
   skDragMove: async (p, final = false) => {
     const s = get(), d = s.skDrag
@@ -8518,10 +8518,10 @@ export const useApp = create<AppState>((rawSet, get) => {
         skDof: final ? (cons.length ? res.dof : null) : cur.skDof,
         skFreeShapes: new Set(), skConflict: false, skConflictIds: [],
         skDragInfer: final || d.radius ? null : computeDragInfer(res.shapes, d.ref),
-        status: locked ? '半径由尺寸控制 — 点击尺寸修改，拖动不会解除约束'
+        status: locked ? '半徑由尺寸控制 — 點擊尺寸修改，拖動不會解除約束'
           : projected ? (final ? '已沿约束允许的轨迹调整（尺寸保持）— Ctrl+Z 可还原' : '沿约束允许的轨迹拖动 — 放开确认 · Esc 取消') : final ? '已拖动几何（约束保持）— Ctrl+Z 可还原' : '正在拖动几何 — 放开确认 · Esc 取消' })
     } catch {
-      if (current()) set({ skDrag: { ...get().skDrag!, outcome: 'failed' }, status: '拖动计算失败 — 已保留上一次有效位置' })
+      if (current()) set({ skDrag: { ...get().skDrag!, outcome: 'failed' }, status: '拖動計算失敗 — 已保留上一次有效位置' })
     }
   },
   skDragEnd: async (p) => {
@@ -8530,7 +8530,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!d.moved && Math.hypot(p[0] - d.start[0], p[1] - d.start[1]) < 0.8) {
       set({ skDrag: null, skDragInfer: null }); get().skClickAt(d.start); return
     }
-    set({ skDrag: { ...d, moved: true, finishing: true }, status: '正在确认拖动位置…' })
+    set({ skDrag: { ...d, moved: true, finishing: true }, status: '正在確認拖動位置…' })
     // Always solve the pointer-up coordinate, even when the last move was
     // throttled. Old previews cannot commit after this final request.
     await get().skDragMove(p, true)
@@ -8539,13 +8539,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     const changed = JSON.stringify([cur.sketchProfiles, cur.sketchShape]) !== JSON.stringify([d.undoSnap.sketchProfiles, d.undoSnap.sketchShape])
     set({ skDrag: null, skDragInfer: null,
       ...(changed ? { sketchUndo: [...cur.sketchUndo, d.undoSnap].slice(-80), sketchRedo: [] } : {}),
-      ...(!changed && cur.skDrag.outcome === 'moved' ? { status: '几何位置未改变' } : {}) })
+      ...(!changed && cur.skDrag.outcome === 'moved' ? { status: '幾何位置未改變' } : {}) })
   },
   skDragCancel: () => {
     const d = get().skDrag
     if (!d) return
     ++_dragSolveVersion
-    set({ ...d.undoSnap, skDrag: null, skDragInfer: null, skDof: null, skFreeShapes: new Set(), status: '已取消拖动 — 几何已还原，仍在草图中' })
+    set({ ...d.undoSnap, skDrag: null, skDragInfer: null, skDof: null, skFreeShapes: new Set(), status: '已取消拖動 — 幾何已還原，仍在草圖中' })
   },
   // GM-FP3 #44：判断某草图点有冇命中几何（SketchLayer 用嚟分「左拖空白=框选」定「点中几何=选择」）。
   skHitTestAt: (p) => {
@@ -8565,7 +8565,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!hit) return
     if (hit.kind !== 'edge' && hit.kind !== 'circle') { get().skClickAt(p); return }
     const chain = skChainSelect(shapes, hit)
-    set({ skSel: chain, skSelCon: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: `已链选 ${chain.length} 条相连边（整条轮廓）— Delete 删除 / 移动` })
+    set({ skSel: chain, skSelCon: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: `已鏈選 ${chain.length} 條相連邊（整條輪廓）— Delete 刪除 / 移動` })
   },
   // GM-FP3 #44 草图框选：window（左→右全包·橙）/ crossing（右→左相触·黄）。
   skMarqueeSet: (a, b, crossing) => { if (get().mode === 'sketch') set({ skMarquee: { a, b, crossing } }) },
@@ -8592,13 +8592,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     const tset = new Set<number>()
     for (const r of s.skSel) if ('shape' in r) { const i = (r as { shape: number }).shape; if (i >= 0 && i < shapes.length) tset.add(i) }
     if (!tset.size && s.sketchShape) tset.add(shapes.length - 1)
-    if (!tset.size) { set({ status: '移动/复制：先用选择工具拣一个或多个轮廓（或画一个），再撳 Move' }); return }
+    if (!tset.size) { set({ status: '移動/複製：先用選擇工具揀一個或多個輪廓（或畫一個），再撳 Move' }); return }
     const targets = [...tset]
     let sx = 0, sy = 0, n = 0
     for (const i of targets) { const sh = shapes[i]; const pts = sh.type === 'rect' ? [sh.a, sh.b] : sh.type === 'circle' ? [sh.c] : (sh.pts || []); for (const q of pts) { sx += q[0]; sy += q[1]; n++ } }
     const cx = n ? sx / n : 0, cy = n ? sy / n : 0
     _skMoveDrag = null
-    set({ sketchTool: 'move', skMove: { cx, cy, dx: 0, dy: 0, ang: 0, copy: false, targets, drag: null }, skSel: [], skSelCon: null, status: '移动 gizmo：拖 →X / ↑Y 箭头平移 · 拖旋转弧转（绕形心）· 剔 Create Copy = 复制 · Enter 确定 · Esc 取消' })
+    set({ sketchTool: 'move', skMove: { cx, cy, dx: 0, dy: 0, ang: 0, copy: false, targets, drag: null }, skSel: [], skSelCon: null, status: '移動 gizmo：拖 →X / ↑Y 箭頭平移 · 拖旋轉弧轉（繞形心）· 剔 Create Copy = 複製 · Enter 確定 · Esc 取消' })
   },
   setSkMoveValue:(field,raw)=>{
     const mv=get().skMove
@@ -8629,13 +8629,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
   },
   skMoveHandleUp: () => { _skMoveDrag = null; set((s) => (s.skMove ? { skMove: { ...s.skMove, drag: null } } : {})) },
-  cancelSkMove: () => { _skMoveDrag = null; ++movePreviewRequest; set({ skMove: null, skMovePreview:{shapes:null,pending:false,error:null}, sketchTool: 'select', status: '已取消移动' }) },
+  cancelSkMove: () => { _skMoveDrag = null; ++movePreviewRequest; set({ skMove: null, skMovePreview:{shapes:null,pending:false,error:null}, sketchTool: 'select', status: '已取消移動' }) },
   commitSkMove: async () => {
     const s = get()
     const mv = s.skMove
     if (!mv) return
     if(mv.inputError){set({status:mv.inputError});return}
-    if (!mv.dx && !mv.dy && !mv.ang && !mv.copy) { _skMoveDrag = null; set({ skMove: null, sketchTool: 'select', status: '移动：冇位移（已退出）' }); return }
+    if (!mv.dx && !mv.dy && !mv.ang && !mv.copy) { _skMoveDrag = null; set({ skMove: null, sketchTool: 'select', status: '移動：冇位移（已退出）' }); return }
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
     const transform={dx:mv.dx,dy:mv.dy,angleDeg:mv.ang,cx:mv.cx,cy:mv.cy}
     if(mv.copy)await commitCopy(s,shapes,mv.targets,[transform])
@@ -8646,14 +8646,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     const mv = s.skMove
     const targets = mv ? mv.targets : (s.sketchShape ? [s.sketchProfiles.length] : [])
-    if (!targets.length) { set({ status: '移动/复制：先拣一个轮廓' }); return }
+    if (!targets.length) { set({ status: '移動/複製：先揀一個輪廓' }); return }
     const snapshot=(q:AppState)=>JSON.stringify([q.mode,q.sketchProfiles,q.sketchShape,q.skCons,q.skMove,q.params,q.skEditTarget,q.sketchUndo,q.sketchRedo,q.skRefGeo,q.sketchPlane,q.sketchArb,q.sketchBaseZ,q.sketchTool,q.skDimLabelOff])
     const original=snapshot(s)
     const v = await get().appPrompt(tStatus('移动/复制 — dx, dy [, 旋转°绕形心] [, 副本数(0=净移动)]', get().lang), '20, 0, 0, 0')
     if (v == null) return
-    if(get().mode!=='sketch'||snapshot(get())!==original){set({status:'草图或选择已改变，请重新打开移动/复制'});return}
+    if(get().mode!=='sketch'||snapshot(get())!==original){set({status:'草圖或選擇已改變，請重新打開移動/複製'});return}
     const nums = v.split(/[,，\s]+/).filter(Boolean).map(Number)
-    if (nums.length<2||nums.length>4||nums.some((x) => !Number.isFinite(x))||(nums[3]!==undefined&&(nums[3]<0||nums[3]>1000))) { set({ status: '请输入数字：dx, dy[, 角度][, 副本数]' }); return }
+    if (nums.length<2||nums.length>4||nums.some((x) => !Number.isFinite(x))||(nums[3]!==undefined&&(nums[3]<0||nums[3]>1000))) { set({ status: '請輸入數字：dx, dy[, 角度][, 副本數]' }); return }
     const [dx, dy] = nums, deg = nums[2] || 0, copies = Math.max(0, Math.round(nums[3] || 0))
     const s2 = get()
     const shapes = [...s2.sketchProfiles, ...(s2.sketchShape ? [s2.sketchShape] : [])] as SketchShape[]
@@ -8671,7 +8671,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   skDeleteSel: async () => {
     const s = get()
     if (s.mode !== 'sketch') return
-    if (!s.skSel.length) { set({ status: '删除：先用选择工具点中 点（删顶点）/ 边或圆（删成个轮廓），再按 Delete' }); return }
+    if (!s.skSel.length) { set({ status: '刪除：先用選擇工具點中 點（刪頂點）/ 邊或圓（刪成個輪廓），再按 Delete' }); return }
     const nProf = s.sketchProfiles.length
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
     const r0 = s.skSel[0]
@@ -8701,7 +8701,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const sh = shapes[r0.shape]
       if (sh && sh.type === 'poly' && !sh.arc && !sh.smooth) {
         const verts = (sh.verts ?? sh.pts).map((p) => [p[0], p[1]] as Pt)
-        if (verts.length <= 3) { set({ status: '轮廓至少要 3 个顶点 — 要删成个轮廓请点中一条边再按 Delete' }); return }
+        if (verts.length <= 3) { set({ status: '輪廓至少要 3 個頂點 — 要刪成個輪廓請點中一條邊再按 Delete' }); return }
         const bulges = sh.bulges ? [...sh.bulges] : new Array(verts.length).fill(0)
         const i = r0.idx
         verts.splice(i, 1); bulges.splice(i, 1)
@@ -8716,7 +8716,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           sketchProfiles: s.sketchProfiles.map((x, j) => (j === dropIdx ? upd : x)),
           sketchShape: dropIdx === nProf ? upd : s.sketchShape,
           skSel: [], skCons: ncons,
-          status: `已删除顶点（剩 ${nn} 个）${ncons.length < s.skCons.length ? ' · 该轮廓上嘅约束已一并移除' : ''}`,
+          status: `已刪除頂點（剩 ${nn} 個）${ncons.length < s.skCons.length ? ' · 該輪廓上嘅約束已一並移除' : ''}`,
         })
         void get().resolveSk()
         return
@@ -8725,7 +8725,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // —— 轮廓删除：选中嘅 shape 全部移除 + 约束索引重映射 ——
     const del = new Set<number>()
     for (const r of s.skSel) if ('shape' in r) del.add((r as { shape: number }).shape)
-    if (!del.size) { set({ status: '删除：原点/参考几何系固定嘅，唔可以删' }); return }
+    if (!del.size) { set({ status: '刪除：原點/參考幾何系固定嘅，唔可以刪' }); return }
     const map = new Map<number, number>()
     let k = 0
     shapes.forEach((_, i) => { if (!del.has(i)) map.set(i, k++) })
@@ -8744,7 +8744,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       sketchProfiles: activeSurvived ? kept.slice(0, -1) : kept,
       sketchShape: activeSurvived ? kept[kept.length - 1] : null,
       skSel: [], skCons: ncons,
-      status: `已删除 ${del.size} 个轮廓${ncons.length < s.skCons.length ? `（${s.skCons.length - ncons.length} 个相关约束一并移除）` : ''}`,
+      status: `已刪除 ${del.size} 個輪廓${ncons.length < s.skCons.length ? `（${s.skCons.length - ncons.length} 個相關約束一並移除）` : ''}`,
     })
     void get().resolveSk()
   },
@@ -8773,16 +8773,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     for (const r of s.skSel) if ('shape' in r) idxs.add(r.shape)
     const nProf = s.sketchProfiles.length
     if (!idxs.size) {
-      if (!s.sketchShape) return { status: '构造切换：先用选择工具点中几何，或者画一个轮廓' }
+      if (!s.sketchShape) return { status: '構造切換：先用選擇工具點中幾何，或者畫一個輪廓' }
       const on = !s.sketchShape.construction
-      return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: { ...s.sketchShape, construction: on || undefined }, status: on ? '已转构造几何（虚线 — 只做参考，唔参与拉伸）' : '已转返实线几何' }
+      return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: { ...s.sketchShape, construction: on || undefined }, status: on ? '已轉構造幾何（虛線 — 只做參考，唔參與拉伸）' : '已轉返實線幾何' }
     }
     const flip = (sh: SketchShape): SketchShape => ({ ...sh, construction: !sh.construction || undefined })
     return {
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
       sketchProfiles: s.sketchProfiles.map((sh, i) => (idxs.has(i) ? flip(sh) : sh)),
       sketchShape: idxs.has(nProf) && s.sketchShape ? flip(s.sketchShape) : s.sketchShape,
-      skSel: [], status: `已切换 ${idxs.size} 个轮廓嘅 构造/实线（构造=虚线只做参考）`,
+      skSel: [], status: `已切換 ${idxs.size} 個輪廓嘅 構造/實線（構造=虛線只做參考）`,
     }
   }),
   // 从动 ⇄ 驱动尺寸切换（右键尺寸标签）。从动 = 只量度显示（括号），唔入 solver。
@@ -8803,20 +8803,20 @@ export const useApp = create<AppState>((rawSet, get) => {
   toggleSkDimRadDia: (id) => {
     const s = get()
     const c = s.skCons.find((x) => x.id === id)
-    if (!c || c.kind !== 'dim' || (c.type !== 'rad' && c.type !== 'dia')) { set({ status: 'R↔Ø：净系半径 R / 直径 Ø 尺寸可以切（右键弧/圆尺寸标签）' }); return }
+    if (!c || c.kind !== 'dim' || (c.type !== 'rad' && c.type !== 'dia')) { set({ status: 'R↔Ø：淨系半徑 R / 直徑 Ø 尺寸可以切（右鍵弧/圓尺寸標籤）' }); return }
     const flip = !c.radDiaFlip
-    set({ skCons: s.skCons.map((x) => (x.id === id && x.kind === 'dim' ? { ...x, radDiaFlip: flip || undefined } : x)), status: flip ? (c.type === 'rad' ? '已显示为直径 Ø（半径×2 — 内核仍存半径，旧档不受影响）' : '已显示为半径 R（直径÷2）') : (c.type === 'rad' ? '已显示为半径 R' : '已显示为直径 Ø') })
+    set({ skCons: s.skCons.map((x) => (x.id === id && x.kind === 'dim' ? { ...x, radDiaFlip: flip || undefined } : x)), status: flip ? (c.type === 'rad' ? '已顯示為直徑 Ø（半徑×2 — 內核仍存半徑，舊檔不受影響）' : '已顯示為半徑 R（直徑÷2）') : (c.type === 'rad' ? '已顯示為半徑 R' : '已顯示為直徑 Ø') })
   },
   undoSkCon: async () => {
     const s = get()
-    if (!s.skCons.length) { set({ status: '冇约束可撤' }); return }
+    if (!s.skCons.length) { set({ status: '冇約束可撤' }); return }
     const id=s.skCons[s.skCons.length-1].id
     if(s.skPatternData?.patterns.some(p=>p.instances.some(i=>i.generatedConstraintIds.includes(id)))){
       set({status:'此約束／尺寸由陣列來源管理；請修改來源，或先解除陣列關聯'})
       return
     }
     if(s.skPatternData){await commitPatternConstraints({removeIds:[id]});return}
-    set({ skCons: s.skCons.slice(0, -1), status: '已移除最后一个约束/尺寸' })
+    set({ skCons: s.skCons.slice(0, -1), status: '已移除最後一個約束/尺寸' })
     void get().resolveSk()
   },
   resolveSk: async (opts) => {
@@ -8857,20 +8857,20 @@ export const useApp = create<AppState>((rawSet, get) => {
                 const t = opts.target
                 set((s2) => ({ skCons: s2.skCons.map((c) => (c.id === t.id && c.kind === 'dim' ? { ...c, value: t.cancelValue!, driven: t.cancelDriven ? true : undefined } : c)) }))
                 await get().resolveSk()
-                if (get().mode === 'sketch') set({ status: '已取消 —— 尺寸还原旧值（草图保持原状）' })
+                if (get().mode === 'sketch') set({ status: '已取消 —— 尺寸還原舊值（草圖保持原狀）' })
                 return
               }
               // placeDim pushed an undo snapshot before resolveSk; drop it so cancel leaves no residual history/constraints (BUG-018).
               set((s2) => ({ skCons: s2.skCons.filter((c) => c.id !== last.id), sketchUndo: s2.sketchUndo.slice(0, -1), sketchRedo: [] }))
               await get().resolveSk()
-              if (get().mode === 'sketch') set({ status: '已取消 —— 未加呢个尺寸（草图保持原状）' })
+              if (get().mode === 'sketch') set({ status: '已取消 —— 未加呢個尺寸（草圖保持原狀）' })
               return
             }
           }
           // 确定（或自动 fallback）：降从动 → 重解（recurse 拎正确 DOF 上色 + 从动括号显示）
           set((s2) => ({ skCons: s2.skCons.map((c) => (c.id === last.id && c.kind === 'dim' ? { ...c, driven: true } : c)) }))
           await get().resolveSk()
-          if (get().mode === 'sketch') set({ status: opts?.promptOverconstrain ? '✓ 已转为【参考尺寸】（从动，括号显示 — 只量度唔驱动几何）' : '⚠ 呢个尺寸会令草图过约束 — 已自动转为【参考尺寸】（从动，括号显示）。要佢驱动就先删一个冲突约束再右键转返。' })
+          if (get().mode === 'sketch') set({ status: opts?.promptOverconstrain ? '✓ 已轉為【參考尺寸】（從動，括號顯示 — 只量度唔驅動幾何）' : '⚠ 呢個尺寸會令草圖過約束 — 已自動轉為【參考尺寸】（從動，括號顯示）。要佢驅動就先刪一個衝突約束再右鍵轉返。' })
           return
         }
       }
@@ -8927,7 +8927,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   finishSketch: () => {
     void (async () => {
       await flushSkDimEdit()
-      if (get().skDrag) { set({ status: '请先放开鼠标完成拖动，或按 Esc 取消' }); return }
+      if (get().skDrag) { set({ status: '請先放開鼠標完成拖動，或按 Esc 取消' }); return }
       const tgt = get().skEditTarget
       if (tgt) { await get().applySketchEdit(tgt); return }  // 重开编辑中 → 完成 = 重生成特征组并重建
       const s = get()
@@ -8947,10 +8947,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const auto = inferCoincident(shapes, shapes.length - 1, s.skCons)
     if (!auto.length) return
     const ids = new Set(auto.map((c) => c.id))
-    set((s2) => ({ skCons: [...s2.skCons, ...auto], status: `✓ 重合推断：自动加 ${auto.length} 个 ◉ 重合约束（点击徽章可移除；只对精确吸附点生效）` }))
+    set((s2) => ({ skCons: [...s2.skCons, ...auto], status: `✓ 重合推斷：自動加 ${auto.length} 個 ◉ 重合約束（點擊徽章可移除；只對精確吸附點生效）` }))
     await get().resolveSk()
     if (get().skConflict) {
-      set((s2) => ({ skCons: s2.skCons.filter((c) => !ids.has(c.id)), status: '⚠ 自动重合约束同现有约束冲突，已自动撤销' }))
+      set((s2) => ({ skCons: s2.skCons.filter((c) => !ids.has(c.id)), status: '⚠ 自動重合約束同現有約束衝突，已自動撤銷' }))
       await get().resolveSk()
     }
   },
@@ -9019,10 +9019,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const ids = new Set(batch.map((c) => c.id))
     const names: Partial<Record<SkConType, string>> = { parallel: '平行', perp: '垂直', tangent: '相切', equal: '等半径' }
     const summary = batch.map((c) => names[c.type as SkConType] ?? c.type).join('/')
-    set((s2) => ({ skCons: [...s2.skCons, ...batch], status: `✓ 画即约束：自动加 ${batch.length} 个（${summary}）— 点击徽章可移除` }))
+    set((s2) => ({ skCons: [...s2.skCons, ...batch], status: `✓ 畫即約束：自動加 ${batch.length} 個（${summary}）— 點擊徽章可移除` }))
     await get().resolveSk()
     if (get().skConflict) {
-      set((s2) => ({ skCons: s2.skCons.filter((c) => !ids.has(c.id)), status: '⚠ 自动约束同现有约束冲突，已自动撤销' }))
+      set((s2) => ({ skCons: s2.skCons.filter((c) => !ids.has(c.id)), status: '⚠ 自動約束同現有約束衝突，已自動撤銷' }))
       await get().resolveSk()
     }
   },
@@ -9033,7 +9033,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (s.mode !== 'sketch') return
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
-    if (shapes.length < 1) { set({ status: 'AutoConstrain：先画啲几何' }); return }
+    if (shapes.length < 1) { set({ status: 'AutoConstrain：先畫啲幾何' }); return }
     // 目标索引：选中集所指嘅 shape（去重）；无选择 = 全部
     const selIdx = new Set<number>()
     for (const r of s.skSel) if ('shape' in r) { const sp = (r as { shape: number }).shape; if (sp >= 0 && sp < shapes.length) selIdx.add(sp) }
@@ -9071,12 +9071,12 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (auto.length >= 12) break
       }
     }
-    if (!auto.length) { set({ status: `AutoConstrain：${selIdx.size ? '选中集' : '全部几何'}揾唔到可加嘅约束（已足够约束或无明显关系）` }); return }
+    if (!auto.length) { set({ status: `AutoConstrain：${selIdx.size ? '選中集' : '全部幾何'}揾唔到可加嘅約束（已足夠約束或無明顯關係）` }); return }
     const batch = auto.slice(0, 12)
     const ids = new Set(batch.map((c) => c.id))
-    set((s2) => ({ sketchUndo: [...s2.sketchUndo, skSnap(s2)].slice(-80), sketchRedo: [], skCons: [...s2.skCons, ...batch], skSel: [], status: `✓ AutoConstrain：自动加 ${batch.length} 个约束（重合/平行/垂直/相切/等半径）— 点击徽章可移除` }))
+    set((s2) => ({ sketchUndo: [...s2.sketchUndo, skSnap(s2)].slice(-80), sketchRedo: [], skCons: [...s2.skCons, ...batch], skSel: [], status: `✓ AutoConstrain：自動加 ${batch.length} 個約束（重合/平行/垂直/相切/等半徑）— 點擊徽章可移除` }))
     await get().resolveSk()
-    if (get().skConflict) { set((s2) => ({ skCons: s2.skCons.filter((c) => !ids.has(c.id)), status: '⚠ AutoConstrain 部分约束同现有冲突，已整批撤销' })); await get().resolveSk() }
+    if (get().skConflict) { set((s2) => ({ skCons: s2.skCons.filter((c) => !ids.has(c.id)), status: '⚠ AutoConstrain 部分約束同現有衝突，已整批撤銷' })); await get().resolveSk() }
   },
   // T756：旧 finishSketch 嘅退出行为 — 保留 live 轮廓唔 commit（ESC / 拉伸消费闸门用）
   exitSketchMode: () => {
@@ -9084,7 +9084,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     _pendingDatumRef = null   // #11：退出草图（含 ESC 取消）清待写 datumRef，防泄漏到下一个非关联草图
     // GM-W6 F1：重开编辑曾回卷时间轴而经呢度退出（冇触发重建）→ 兜底还原返最尾（fire-and-forget）
     if (_skEditRollback) { _skEditRollback = false; const n = get().features.length; if (get().timelinePos < n) void get().gotoStep(n) }
-    set((s) => ({ projectRelink:null, mode: 'model', navTool: 'orbit', sketchTool: 'select', sketchStart: null, polyPts: [], sketchUndo: [], sketchRedo: [], skSel: [], skPendingPt: null, skPendingPair: null, skRefGeo: null, sketchFocus: null, toolPreview: null, sizing: null, skBoolPending: null, mirrorPick: null, skEditTarget: null, status: (s.sketchShape || s.sketchProfiles.length) ? '草图完成 — 点「拉伸」生成实体' : '已退出草图' }))   // SIZING-1：清 sizing，防进行中调尺寸泄漏入 model 模式（拉伸/旋转消费草图时会经此退出）；P4#8：清 skEditTarget —— 重开草图后经「消费流程」(extrude/批量孔/草图分割) 退出会遗留孤儿 skEditTarget（applySketchEdit 走独立 exitEdit，唔经呢度，故安全）
+    set((s) => ({ projectRelink:null, mode: 'model', navTool: 'orbit', sketchTool: 'select', sketchStart: null, polyPts: [], sketchUndo: [], sketchRedo: [], skSel: [], skPendingPt: null, skPendingPair: null, skRefGeo: null, sketchFocus: null, toolPreview: null, sizing: null, skBoolPending: null, mirrorPick: null, skEditTarget: null, status: (s.sketchShape || s.sketchProfiles.length) ? '草圖完成 — 點「拉伸」生成實體' : '已退出草圖' }))   // SIZING-1：清 sizing，防进行中调尺寸泄漏入 model 模式（拉伸/旋转消费草图时会经此退出）；P4#8：清 skEditTarget —— 重开草图后经「消费流程」(extrude/批量孔/草图分割) 退出会遗留孤儿 skEditTarget（applySketchEdit 走独立 exitEdit，唔经呢度，故安全）
   },
   // T792：ESC 退出草图前先 confirm/save，避免意外 ESC（常用嚟 cancel 子动作）将成个草图丢失。
   // 有未保存轮廓 → 弹 confirm：确定 = 保存做独立草图（紫线，可拉伸/重开，零丢失）/ 取消 = 留喺草图继续。空草图 → 直接退。
@@ -9125,7 +9125,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: savedShapes, cons: savedCons, ...(savedPatternData ? {patternData: savedPatternData} : {}), plane: savedPlane, baseZ: savedZ, op: 'new' as BoolOp, height: 0, visible: true, arb: savedArb ?? undefined, ...(savedDatumRef ? { datumRef: savedDatumRef } : {}), ...(get().pendingSketchFaceBinding ? { faceBinding: get().pendingSketchFaceBinding! } : {}) } } }))
     } else {
       // 失败（极少 — 特征本身无几何）：草图唔可以丢，回返编辑模式
-      set({ mode: 'sketch', sketchPlane: savedPlane, sketchBaseZ: savedZ, sketchArb: savedArb, sketchShape: null, sketchProfiles: savedShapes, skCons: savedCons, skPatternData: clonePatternData(savedPatternData), status: '⚠ 完成草图失败 — 你嘅草图未丢，已留返喺编辑模式' })
+      set({ mode: 'sketch', sketchPlane: savedPlane, sketchBaseZ: savedZ, sketchArb: savedArb, sketchShape: null, sketchProfiles: savedShapes, skCons: savedCons, skPatternData: clonePatternData(savedPatternData), status: '⚠ 完成草圖失敗 — 你嘅草圖未丢，已留返喺編輯模式' })
     }
   },
   // T756：水合独立草图做 live 轮廓（优先浏览树选中，否则最近一个独立草图）。
@@ -9176,24 +9176,24 @@ export const useApp = create<AppState>((rawSet, get) => {
     return true
   },
   selSketch: null,
-  setSelSketch: (skId) => set((s) => ({ selSketch: skId, status: skId && s.sketchSources[skId] ? `已选中草图（${s.sketchSources[skId].shapes.length} 个轮廓，Z=${s.sketchSources[skId].baseZ}）— 「拉伸/旋转」直接用佢；双击重开编辑` : s.status })),
+  setSelSketch: (skId) => set((s) => ({ selSketch: skId, status: skId && s.sketchSources[skId] ? `已選中草圖（${s.sketchSources[skId].shapes.length} 個輪廓，Z=${s.sketchSources[skId].baseZ}）— 「拉伸/旋轉」直接用佢；雙擊重開編輯` : s.status })),
   // 独立草图 → 放样截面：保留 Origin 平面或任意基准面完整局部坐标框架，交由 worker 正确落位。
   addLoftSectionFromSketch: (skId) => {
     const s = get()
     const src = s.sketchSources[skId]
-    if (!src) { set({ status: '草图源已唔存在' }); return }
+    if (!src) { set({ status: '草圖源已唔存在' }); return }
     const solid = src.shapes.filter((sh) => !sh.construction && !(sh.type === 'poly' && sh.open))
-    if (!solid.length) { set({ status: '呢个草图冇闭合实线轮廓 — 构造线/开放路径唔做截面' }); return }
+    if (!solid.length) { set({ status: '呢個草圖冇閉合實線輪廓 — 構造線/開放路徑唔做截面' }); return }
     const z = Math.round(src.baseZ)
     const sameFrame = (sec: typeof s.loftSections[number]) => src.arb
       ? !!sec.arbPlane && JSON.stringify(sec.arbPlane) === JSON.stringify(src.arb)
       : !sec.arbPlane && (sec.plane || 'XY') === src.plane && Math.abs(sec.z - z) < 1e-9
-    if (s.loftSections.some(sameFrame)) { set({ status: '已有相同基准面位置嘅截面 — 请改偏移、角度或选择另一面' }); return }
+    if (s.loftSections.some(sameFrame)) { set({ status: '已有相同基準面位置嘅截面 — 請改偏移、角度或選擇另一面' }); return }
     const sh = JSON.parse(JSON.stringify(solid[solid.length - 1])) as SketchShape
     const sec = { profile: shapeToProfile(sh, src.plane), z, plane: src.plane, ...(src.arb ? { arbPlane: JSON.parse(JSON.stringify(src.arb)) } : {}) }
     const secSrc = { ...(src.datumRef?{datumRef:structuredClone(src.datumRef)}:{}), patternData: clonePatternData(src.patternData) ?? undefined, shapes: JSON.parse(JSON.stringify(src.shapes)) as SketchShape[], cons: JSON.parse(JSON.stringify(src.cons)) as SkCon[], z, plane: src.plane, ...(src.arb ? { arb: JSON.parse(JSON.stringify(src.arb)) } : {}) }
     const frameLabel = src.arb ? '斜参考面' : `${src.plane} @ ${z}`
-    set((st) => ({ loftSections: [...st.loftSections, sec], loftSecSrcs: [...st.loftSecSrcs, secSrc], status: `已加放样截面 ${st.loftSections.length + 1}（${frameLabel}，来自独立草图）${st.loftSections.length + 1 >= 2 ? ' — 可以「放样」喇' : ' — 再拣一个截面'}` }))
+    set((st) => ({ loftSections: [...st.loftSections, sec], loftSecSrcs: [...st.loftSecSrcs, secSrc], status: `已加放樣截面 ${st.loftSections.length + 1}（${frameLabel}，來自獨立草圖）${st.loftSections.length + 1 >= 2 ? ' — 可以「放樣」喇' : ' — 再揀一個截面'}` }))
   },
   // 重开编辑完成：用编辑后嘅轮廓喺原 timeline 位置重生成成组特征（嵌套孔逻辑按新几何重算），全树重建。
   // T746 批3：重生成逻辑抽出 regenGroupFeatures（同 ƒx 参数→草图联动共用，杜绝两份逻辑漂移）。
@@ -9205,16 +9205,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
     const exitEdit = { projectRelink:null, mode: 'model' as const, skEditTarget: null, sketchShape: null, skPatternData: null, sketchProfiles: [] as SketchShape[], sketchStart: null, polyPts: [], sketchUndo: [], sketchRedo: [], skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null, skArmedCon: null, skRefGeo: null, sketchFocus: null, skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null }
     setRefGeo(null)
-    if (!src) { set({ ...exitEdit, status: '草图源已唔存在 — 编辑未应用' }); return }
+    if (!src) { set({ ...exitEdit, status: '草圖源已唔存在 — 編輯未應用' }); return }
     // T748：sweep 草图可以净系路径（圆截面 — shapes 空），轮廓闸门对佢哋放宽
     const sweepish = (src.sweepPath?.length ?? 0) >= 2 || s.polyPts.length >= 2
-    if (!shapes.length && !sweepish) { set({ ...exitEdit, status: '草图冇剩低轮廓 — 编辑未应用（要删特征请用时间轴「删除」）' }); return }
+    if (!shapes.length && !sweepish) { set({ ...exitEdit, status: '草圖冇剩低輪廓 — 編輯未應用（要刪特徵請用時間軸「刪除」）' }); return }
     const consumer = s.features.find((f) => (f as { sketchId?: string }).sketchId === skId || ((f as { sketchIds?: string[] }).sketchIds?.includes(skId) ?? false))
-    if (!consumer) { set({ ...exitEdit, status: '原特征已被删除 — 编辑未应用' }); return }
+    if (!consumer) { set({ ...exitEdit, status: '原特徵已被刪除 — 編輯未應用' }); return }
     // T756：独立草图允许净构造几何（Fusion 容许纯参考草图）；实体消费特征先拦
-    if (shapes.length && !shapes.some((sh) => !sh.construction) && !sweepish && consumer.type !== 'sketch') { set({ ...exitEdit, status: '只剩构造几何 — 编辑未应用（构造线唔参与拉伸）' }); return }
+    if (shapes.length && !shapes.some((sh) => !sh.construction) && !sweepish && consumer.type !== 'sketch') { set({ ...exitEdit, status: '只剩構造幾何 — 編輯未應用（構造線唔參與拉伸）' }); return }
     const r = regenGroupFeatures(s.features, skId, src, shapes, { polyPts: s.polyPts })
-    if (!r) { set({ ...exitEdit, status: '草图组重生成失败 — 编辑未应用' }); return }
+    if (!r) { set({ ...exitEdit, status: '草圖組重生成失敗 — 編輯未應用' }); return }
     // sketchSources 喺重建【成功后】先写入（同步埋 live 参数）— 失败 = 完整回滚，草图源唔再同模型分叉。
     const consSnap = JSON.parse(JSON.stringify(s.skCons)) as SkCon[]
     const commitSrc = () => set((s2) => ({
@@ -9227,7 +9227,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       sketchShape: null, sketchProfiles: shapes.map((sh) => JSON.parse(JSON.stringify(sh)) as SketchShape),
       polyPts: JSON.parse(JSON.stringify(s.polyPts)) as Pt[],   // T748：sweep 路径都留返
       skCons: JSON.parse(JSON.stringify(consSnap)) as SkCon[], skPatternData: clonePatternData(s.skPatternData), skSel: [], skPendingPt: null, skPendingPair: null,
-      status: '⚠ 编辑后重建失败（下游特征可能同新轮廓唔兼容）— 你嘅草图改动未丢，已留返喺编辑模式：再改下先「✓完成」',
+      status: '⚠ 編輯後重建失敗（下游特徵可能同新輪廓唔兼容）— 你嘅草圖改動未丢，已留返喺編輯模式：再改下先「✓完成」',
     })
     set(exitEdit)
     const ok = await get().applyFeatures(r.next, `草图编辑已应用（${r.label}）— 模型已重建`, true)
@@ -9264,16 +9264,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     // T764：参考图两点标定 — 拦截喺画图机器之前
     if (get().canvasCal && get().mode === 'sketch') {
       const cal = [...get().canvasCal!, raw]
-      if (cal.length < 2) { set({ canvasCal: cal, status: '📐 再点第二个点（两点之间嘅实际距离你知嘅）' }); return }
+      if (cal.length < 2) { set({ canvasCal: cal, status: '📐 再點第二個點（兩點之間嘅實際距離你知嘅）' }); return }
       const d = Math.hypot(cal[1][0] - cal[0][0], cal[1][1] - cal[0][1])
       set({ canvasCal: null })
-      if (d < 1e-6) { set({ status: '两点太近 — 重新「📐标定」' }); return }
+      if (d < 1e-6) { set({ status: '兩點太近 — 重新「📐標定」' }); return }
       const v = await get().appPrompt(tStatus(`呢两点嘅【实际距离】系几多 mm？（图上而家量到 ${d.toFixed(1)}mm）`, get().lang), '50')
-      if (v == null) { set({ status: '已取消标定' }); return }
+      if (v == null) { set({ status: '已取消標定' }); return }
       const real = Number(v)
-      if (!Number.isFinite(real) || real <= 0) { set({ status: '要正数 mm — 重新「📐标定」' }); return }
+      if (!Number.isFinite(real) || real <= 0) { set({ status: '要正數 mm — 重新「📐標定」' }); return }
       const img = get().canvasImg
-      if (img) { get().updateCanvasImg({ w: img.w * (real / d) }); set({ status: `📐 已标定：图已缩放 ×${(real / d).toFixed(3)} — 而家图上距离 = 实际 mm，可以照住描` }) }   // GM-X3：改活动 canvas（经镜像同步 canvasImg）
+      if (img) { get().updateCanvasImg({ w: img.w * (real / d) }); set({ status: `📐 已標定：圖已縮放 ×${(real / d).toFixed(3)} — 而家圖上距離 = 實際 mm，可以照住描` }) }   // GM-X3：改活动 canvas（经镜像同步 canvasImg）
       return
     }
     const _preShape = get().sketchShape, _preStart = get().sketchStart   // T773：commit 侦测快照
@@ -9285,26 +9285,26 @@ export const useApp = create<AppState>((rawSet, get) => {
       const r: Record<string, unknown> = (() => {
       if (s.sketchTool === 'rect3') {
         // 三点矩形（Fusion 同款斜矩形）：点1→点2 定一条边，点3 定宽（投影到边法向）
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, polyPts: [], status: '三点矩形：点第二点（定一条边）' }
-        if (s.polyPts.length === 0) return { polyPts: [pt], sketchPreview: pt, status: '三点矩形：点第三点（定宽度）' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, polyPts: [], status: '三點矩形：點第二點（定一條邊）' }
+        if (s.polyPts.length === 0) return { polyPts: [pt], sketchPreview: pt, status: '三點矩形：點第三點（定寬度）' }
         const A = s.sketchStart, B = s.polyPts[0], C = pt
         const ex = B[0] - A[0], ey = B[1] - A[1], L = Math.hypot(ex, ey) || 1
         const nx = -ey / L, ny = ex / L
         const w = (C[0] - B[0]) * nx + (C[1] - B[1]) * ny  // 第三点投影到边法向 = 有符号宽
-        if (Math.abs(w) < 0.2) return { sketchStart: null, polyPts: [], status: '三点矩形：宽度太小 — 第三点要离开嗰条边' }
+        if (Math.abs(w) < 0.2) return { sketchStart: null, polyPts: [], status: '三點矩形：寬度太小 — 第三點要離開嗰條邊' }
         const D2: Pt = [B[0] + nx * w, B[1] + ny * w], E2: Pt = [A[0] + nx * w, A[1] + ny * w]
-        return { sketchShape: { type: 'poly', pts: [A, B, D2, E2] }, sketchStart: null, polyPts: [], status: `三点矩形已画好（${L.toFixed(0)}×${Math.abs(w).toFixed(0)}，斜矩形）— 点「拉伸」` }
+        return { sketchShape: { type: 'poly', pts: [A, B, D2, E2] }, sketchStart: null, polyPts: [], status: `三點矩形已畫好（${L.toFixed(0)}×${Math.abs(w).toFixed(0)}，斜矩形）— 點「拉伸」` }
       }
       if (s.sketchTool === 'arcc') {
         // 中心点圆弧（Fusion centre-point arc）：圆心 → 起点（定半径）→ 终点（定扫角，取短向）
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, polyPts: [], status: '中心点圆弧：点弧嘅起点（定半径）' }
-        if (s.polyPts.length === 0) return { polyPts: [pt], sketchPreview: pt, status: '中心点圆弧：点弧嘅终点（定弧长）' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, polyPts: [], status: '中心點圓弧：點弧嘅起點（定半徑）' }
+        if (s.polyPts.length === 0) return { polyPts: [pt], sketchPreview: pt, status: '中心點圓弧：點弧嘅終點（定弧長）' }
         const c = s.sketchStart, p1 = s.polyPts[0]
         const R = Math.hypot(p1[0] - c[0], p1[1] - c[1]) || 10
         const a0 = Math.atan2(p1[1] - c[1], p1[0] - c[0])
         let a1 = Math.atan2(pt[1] - c[1], pt[0] - c[0])
         let sweep = a1 - a0; while (sweep <= -Math.PI) sweep += 2 * Math.PI; while (sweep > Math.PI) sweep -= 2 * Math.PI
-        if (Math.abs(sweep) < 0.05) return { sketchStart: null, polyPts: [], status: '中心点圆弧：弧太短 — 终点拉开啲' }
+        if (Math.abs(sweep) < 0.05) return { sketchStart: null, polyPts: [], status: '中心點圓弧：弧太短 — 終點拉開啲' }
         const aEnd = a0 + sweep, aMid = a0 + sweep / 2
         const A: Pt = [c[0] + R * Math.cos(a0), c[1] + R * Math.sin(a0)]
         const B: Pt = [c[0] + R * Math.cos(aEnd), c[1] + R * Math.sin(aEnd)]
@@ -9313,7 +9313,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const seg = Math.max(8, Math.round(Math.abs(sweep) / 0.12))
         const pts: Pt[] = []
         for (let i = 0; i <= seg; i++) { const a = a0 + (sweep * i) / seg; pts.push([c[0] + R * Math.cos(a), c[1] + R * Math.sin(a)]) }
-        return { sketchShape: { type: 'poly', pts, arc: { a: A, b: B, m: M }, open: true }, sketchStart: null, polyPts: [], status: `中心点圆弧已画好（R${R.toFixed(1)} 弧${Math.abs(sweep * 180 / Math.PI).toFixed(0)}°，真圆弧 · 单一开放曲线）— 可标 R/相切 · 「闭合」可封口再拉伸` }
+        return { sketchShape: { type: 'poly', pts, arc: { a: A, b: B, m: M }, open: true }, sketchStart: null, polyPts: [], status: `中心點圓弧已畫好（R${R.toFixed(1)} 弧${Math.abs(sweep * 180 / Math.PI).toFixed(0)}°，真圓弧 · 單一開放曲線）— 可標 R/相切 · 「閉合」可封口再拉伸` }
       }
       if (s.sketchTool === 'point') {
         // 草图点（Fusion Point）：单击即落一个构造点（r=0 圆，只有可约束嘅圆心）— 钻孔定位/对称轴锚日常。
@@ -9321,55 +9321,55 @@ export const useApp = create<AppState>((rawSet, get) => {
         return { sketchProfiles: [...s.sketchProfiles, ptShape], status: `已落草圖點 (${pt[0].toFixed(1)}, ${pt[1].toFixed(1)}) — 可繼續點擊落點，或用 D 對佢標尺寸` }
       }
       if (s.sketchTool === 'rectangle') {
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '再点第二个角点完成矩形' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '再點第二個角點完成矩形' }
         const shape: SketchShape = { type: 'rect', a: s.sketchStart, b: pt }
-        if (Math.abs(pt[0]-s.sketchStart[0])<1e-6 || Math.abs(pt[1]-s.sketchStart[1])<1e-6) return { status: '矩形宽高必须大于零' }
+        if (Math.abs(pt[0]-s.sketchStart[0])<1e-6 || Math.abs(pt[1]-s.sketchStart[1])<1e-6) return { status: '矩形寬高必須大於零' }
         const seq=maxDimSeq(s.sketchSources,s.skCons,s.params)+1
         const added=rectangleConstraints([...s.sketchProfiles,shape] as FShape[],s.sketchProfiles.length,s.skCons,[`d${seq}`,`d${seq+1}`],[null,null],s.autoConstrain)
-        return { sketchShape: shape, skCons:[...s.skCons,...added], sketchStart: null, status: '矩形已画好 — 水平／垂直关系已保存' }
+        return { sketchShape: shape, skCons:[...s.skCons,...added], sketchStart: null, status: '矩形已畫好 — 水平／垂直關係已儲存' }
       }
       if (s.sketchTool === 'mline') {
         // GM-FP4 #16 中点线（Fusion Midpoint Line）：第一击 = 中点，第二击 = 一端 → 由中点向两端对称嘅直线段。
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '中点线：点一端（线由呢个中点向两端对称伸展）' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '中點線：點一端（線由呢個中點向兩端對稱伸展）' }
         const M = s.sketchStart, A = pt, B: Pt = [2 * M[0] - A[0], 2 * M[1] - A[1]]
-        if (Math.hypot(A[0] - M[0], A[1] - M[1]) < 0.3) return { status: '中点线：端点离中点太近 — 拉开啲' }
-        return { sketchShape: { type: 'poly', pts: [A, B], open: true }, sketchStart: null, status: `中点线已画好（全长 ${(2 * Math.hypot(A[0] - M[0], A[1] - M[1])).toFixed(0)}，关于中点 ${M[0].toFixed(0)},${M[1].toFixed(0)} 对称）— 可标尺寸/做参考` }
+        if (Math.hypot(A[0] - M[0], A[1] - M[1]) < 0.3) return { status: '中點線：端點離中點太近 — 拉開啲' }
+        return { sketchShape: { type: 'poly', pts: [A, B], open: true }, sketchStart: null, status: `中點線已畫好（全長 ${(2 * Math.hypot(A[0] - M[0], A[1] - M[1])).toFixed(0)}，關於中點 ${M[0].toFixed(0)},${M[1].toFixed(0)} 對稱）— 可標尺寸/做參考` }
       }
       if (s.sketchTool === 'crect') {
         // Center rectangle (Fusion): first click = CENTRE, second = a corner → rect symmetric about the centre.
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '中心矩形：再点一个角点（关于中心对称）' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '中心矩形：再點一個角點（關於中心對稱）' }
         const c = s.sketchStart
         const a: Pt = [2 * c[0] - pt[0], 2 * c[1] - pt[1]]
-        return { sketchShape: { type: 'rect', a, b: pt }, sketchStart: null, status: `中心矩形已画好 ${(Math.abs(2 * (pt[0] - c[0]))).toFixed(0)}×${(Math.abs(2 * (pt[1] - c[1]))).toFixed(0)} — 点「拉伸」` }
+        return { sketchShape: { type: 'rect', a, b: pt }, sketchStart: null, status: `中心矩形已畫好 ${(Math.abs(2 * (pt[0] - c[0]))).toFixed(0)}×${(Math.abs(2 * (pt[1] - c[1]))).toFixed(0)} — 點「拉伸」` }
       }
       if (s.sketchTool === 'circle') {
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '移动并点击定半径，或打数字输入精确直径Ø' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '移動並點擊定半徑，或打數字輸入精確直徑Ø' }
         const r = Math.hypot(pt[0] - s.sketchStart[0], pt[1] - s.sketchStart[1])
         // 实战 T744 截到：半径点击畀格点/吸附拉返圆心 → r≈0 退化圆 → 拉伸时成批失败。诚实挡住 + 教打字。
-        if (r < 0.5) return { status: '圆太细（半径点击畀吸附拉返圆心附近）— 拉开啲，或者打数字输入精确直径Ø（如 4 ⏎）' }
-        return { sketchShape: { type: 'circle', c: s.sketchStart, r }, sketchStart: null, status: `圆已画好 (Ø${(2 * r).toFixed(1)}) — 点「拉伸」或打数字定精确Ø` }
+        if (r < 0.5) return { status: '圓太細（半徑點擊畀吸附拉返圓心附近）— 拉開啲，或者打數字輸入精確直徑Ø（如 4 ⏎）' }
+        return { sketchShape: { type: 'circle', c: s.sketchStart, r }, sketchStart: null, status: `圓已畫好 (Ø${(2 * r).toFixed(1)}) — 點「拉伸」或打數字定精確Ø` }
       }
       if (s.sketchTool === 'circle2p') {
         // GM-FP1 #15：两点圆（直径两端）— 点1 = 直径一端，点2 = 另一端；圆心 = 中点，半径 = 距离/2。
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '两点圆：点直径嘅另一端（第二点定直径与方向）' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '兩點圓：點直徑嘅另一端（第二點定直徑與方向）' }
         const { c, r } = twoPointCircle(s.sketchStart, pt)
-        if (r < 0.5) return { status: '两点圆太细（两端太近，畀吸附拉埋）— 拉开啲，或者打数字输入精确直径（如 20 ⏎）' }
-        return { sketchShape: { type: 'circle', c, r }, sketchStart: null, status: `两点圆已画好 (Ø${(2 * r).toFixed(1)}) — 点「拉伸」` }
+        if (r < 0.5) return { status: '兩點圓太細（兩端太近，畀吸附拉埋）— 拉開啲，或者打數字輸入精確直徑（如 20 ⏎）' }
+        return { sketchShape: { type: 'circle', c, r }, sketchStart: null, status: `兩點圓已畫好 (Ø${(2 * r).toFixed(1)}) — 點「拉伸」` }
       }
       if (s.sketchTool === 'polygon' && s.polyEdgeMode) {
         // GM-FP4 #17 多边形【边】变体（Fusion Edge Polygon）：点一条边两端（定边长+朝向），正 N 边形沿该边生长（左转 CCW）。
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '多边形(边)：点该边嘅另一端（定边长+朝向）' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '多邊形(邊)：點該邊嘅另一端（定邊長+朝向）' }
         const P0 = s.sketchStart, P1 = pt
         const L = Math.hypot(P1[0] - P0[0], P1[1] - P0[1])
-        if (L < 0.3) return { status: '多边形(边)：两端太近 — 拉开啲' }
+        if (L < 0.3) return { status: '多邊形(邊)：兩端太近 — 拉開啲' }
         const N = s.sketchSides, ext = (2 * Math.PI) / N   // 外角 = 每步左转量（CCW）
         let dir = Math.atan2(P1[1] - P0[1], P1[0] - P0[0]), cur: Pt = [P0[0], P0[1]]
         const poly: Pt[] = []
         for (let i = 0; i < N; i++) { poly.push([cur[0], cur[1]]); cur = [cur[0] + L * Math.cos(dir), cur[1] + L * Math.sin(dir)]; dir += ext }
-        return { sketchShape: { type: 'poly', pts: poly }, sketchStart: null, status: `正${N}边形(边)已画好（边长 ${L.toFixed(1)}）— 点「拉伸」` }
+        return { sketchShape: { type: 'poly', pts: poly }, sketchStart: null, status: `正${N}邊形(邊)已畫好（邊長 ${L.toFixed(1)}）— 點「拉伸」` }
       }
       if (s.sketchTool === 'polygon') {
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: `移动并点击确定${s.polyInscribed ? '内切圆(对边距)' : '外接圆(过角点)'}半径` }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: `移動並點擊確定${s.polyInscribed ? '內切圓(對邊距)' : '外接圓(過角點)'}半徑` }
         const cx = s.sketchStart[0], cy = s.sketchStart[1]
         const N = s.sketchSides
         const clicked = Math.hypot(pt[0] - cx, pt[1] - cy) || 10
@@ -9378,20 +9378,20 @@ export const useApp = create<AppState>((rawSet, get) => {
         const a0 = Math.atan2(pt[1] - cy, pt[0] - cx) + (s.polyInscribed ? Math.PI / N : 0)  // rotate so a flat faces the cursor
         const poly: Pt[] = []
         for (let i = 0; i < N; i++) { const a = a0 + (i * 2 * Math.PI) / N; poly.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]) }
-        return { sketchShape: { type: 'poly', pts: poly }, sketchStart: null, status: `正${N}边形已画好（${s.polyInscribed ? '对边距 ' + (2 * clicked).toFixed(1) : '外接Ø ' + (2 * r).toFixed(1)}）— 点「拉伸」` }
+        return { sketchShape: { type: 'poly', pts: poly }, sketchStart: null, status: `正${N}邊形已畫好（${s.polyInscribed ? '對邊距 ' + (2 * clicked).toFixed(1) : '外接Ø ' + (2 * r).toFixed(1)}）— 點「拉伸」` }
       }
       if (s.sketchTool === 'arcslot') {
         // Arc slot: click1=arc centre, click2=one end (sets radius + start angle), click3=other end (sweep).
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, polyPts: [], status: '圆弧槽：点弧的一端（定半径+起点）' }
-        if (s.polyPts.length === 0) return { polyPts: [pt], sketchPreview: pt, status: '圆弧槽：点弧的另一端（定弧长）' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, polyPts: [], status: '圓弧槽：點弧的一端（定半徑+起點）' }
+        if (s.polyPts.length === 0) return { polyPts: [pt], sketchPreview: pt, status: '圓弧槽：點弧的另一端（定弧長）' }
         const c = s.sketchStart, p1 = s.polyPts[0], p2 = pt
         const R = Math.hypot(p1[0] - c[0], p1[1] - c[1]) || 10
         let a0 = Math.atan2(p1[1] - c[1], p1[0] - c[0]); let a1 = Math.atan2(p2[1] - c[1], p2[0] - c[0])
         let sweep = a1 - a0; while (sweep <= -Math.PI) sweep += 2 * Math.PI   // (旧版第二个 while 写成 `sweep += 0` → sweep∈(π,2π) 时死循环冻结浏览器，已删；CCW 归一交畀下行）
         if (sweep < 0) { sweep += 2 * Math.PI } // go CCW; allow up to full → sweep ∈ [0, 2π)
         // Guards: width ≥ radius would invert the inner arc (self-intersecting), tiny sweep is degenerate.
-        if ((s.sketchSlotW || 20) / 2 >= R) return { sketchStart: null, polyPts: [], sketchShape: null, status: `圆弧槽：槽宽(${s.sketchSlotW}) 不可 ≥ 直径(半径 R${R.toFixed(0)})，否则内弧翻转。请减小槽宽或加大半径` }
-        if (sweep < 0.05) return { sketchStart: null, polyPts: [], sketchShape: null, status: '圆弧槽：弧太短（两端几乎重合），请把第二端点拉开' }
+        if ((s.sketchSlotW || 20) / 2 >= R) return { sketchStart: null, polyPts: [], sketchShape: null, status: `圓弧槽：槽寬(${s.sketchSlotW}) 不可 ≥ 直徑(半徑 R${R.toFixed(0)})，否則內弧翻轉。請減小槽寬或加大半徑` }
+        if (sweep < 0.05) return { sketchStart: null, polyPts: [], sketchShape: null, status: '圓弧槽：弧太短（兩端幾乎重合），請把第二端點拉開' }
         if (sweep > 2 * Math.PI - 0.1) sweep = 2 * Math.PI - 0.1  // near-full sweep → chord≈0 degenerates the single-arc bulge; clamp (was tessellation-only before)
         const w = (s.sketchSlotW || 20) / 2, a1f = a0 + sweep
         const rad = (a: number): Pt => [Math.cos(a), Math.sin(a)], tan = (a: number): Pt => [-Math.sin(a), Math.cos(a)]
@@ -9404,21 +9404,21 @@ export const useApp = create<AppState>((rawSet, get) => {
         const E1: Pt = [c[0] + R * rd1[0], c[1] + R * rd1[1]], E0: Pt = [c[0] + R * rd0[0], c[1] + R * rd0[1]]
         const tipFar: Pt = [E1[0] + w * tg1[0], E1[1] + w * tg1[1]], tipNear: Pt = [E0[0] - w * tg0[0], E0[1] - w * tg0[1]]
         const shape = vertsPoly([V0, V1, V2, V3], [bulgeFromMid(V0, V1, mOuter), bulgeFromMid(V1, V2, tipFar), bulgeFromMid(V2, V3, mInner), bulgeFromMid(V3, V0, tipNear)])
-        return { sketchShape: shape, sketchStart: null, polyPts: [], status: `圆弧槽已画好（R${R.toFixed(0)} 弧${(sweep * 180 / Math.PI).toFixed(0)}° 宽${(2 * w).toFixed(0)}，真圆弧）— 点「拉伸」` }
+        return { sketchShape: shape, sketchStart: null, polyPts: [], status: `圓弧槽已畫好（R${R.toFixed(0)} 弧${(sweep * 180 / Math.PI).toFixed(0)}° 寬${(2 * w).toFixed(0)}，真圓弧）— 點「拉伸」` }
       }
       if (s.sketchTool === 'slot') {
         // GM-FP4 #18 槽变体：cc=心心（两弧心）· overall=总长（两端最外缘 tip-to-tip）· centerpt=中心点（先点中心 → 再点一弧心，对称）。
         const mode = s.slotMode, rr = (s.sketchSlotW || 20) / 2
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: mode === 'overall' ? '槽(总长)：点另一端最外缘（tip-to-tip = 总长）' : mode === 'centerpt' ? '槽(中心点)：点一个弧心（关于中心对称）' : '移动并点击确定槽的另一端中心' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: mode === 'overall' ? '槽(總長)：點另一端最外緣（tip-to-tip = 總長）' : mode === 'centerpt' ? '槽(中心點)：點一個弧心（關於中心對稱）' : '移動並點擊確定槽的另一端中心' }
         let c0: Pt, c1: Pt
         if (mode === 'centerpt') { const M = s.sketchStart; c1 = pt; c0 = [2 * M[0] - pt[0], 2 * M[1] - pt[1]] }
         else if (mode === 'overall') {
           const p0 = s.sketchStart, p1 = pt, tdx = p1[0] - p0[0], tdy = p1[1] - p0[1], T = Math.hypot(tdx, tdy)
-          if (T <= 2 * rr + 0.5) return { sketchStart: null, status: `槽(总长)：总长(${T.toFixed(0)}) 要 > 槽宽(${(2 * rr).toFixed(0)}) — 拉长啲或减槽宽` }
+          if (T <= 2 * rr + 0.5) return { sketchStart: null, status: `槽(總長)：總長(${T.toFixed(0)}) 要 > 槽寬(${(2 * rr).toFixed(0)}) — 拉長啲或減槽寬` }
           const uX = tdx / T, uY = tdy / T; c0 = [p0[0] + uX * rr, p0[1] + uY * rr]; c1 = [p1[0] - uX * rr, p1[1] - uY * rr]
         } else { c0 = s.sketchStart; c1 = pt }
         const dx = c1[0] - c0[0], dy = c1[1] - c0[1]
-        if (Math.hypot(dx, dy) < 0.5) return { status: '槽太短（两端中心几乎重合）— 拉开啲，或打数字定长' }   // GM-L2 #50：两端中心重合会造零长退化槽（两重叠半圆），对齐圆/三点矩形/圆弧槽嘅退化守卫
+        if (Math.hypot(dx, dy) < 0.5) return { status: '槽太短（兩端中心幾乎重合）— 拉開啲，或打數字定長' }   // GM-L2 #50：两端中心重合会造零长退化槽（两重叠半圆），对齐圆/三点矩形/圆弧槽嘅退化守卫
         const L = Math.hypot(dx, dy) || 1
         const ux = dx / L, uy = dy / L                       // axis unit
         const px = -uy, py = ux                              // perp-left unit
@@ -9429,15 +9429,15 @@ export const useApp = create<AppState>((rawSet, get) => {
         const V3: Pt = [c0[0] - px * r, c0[1] - py * r], V4: Pt = [c0[0] + px * r, c0[1] + py * r]
         const tipFar: Pt = [c1[0] + ux * r, c1[1] + uy * r], tipNear: Pt = [c0[0] - ux * r, c0[1] - uy * r]
         const shape = vertsPoly([V1, V2, V3, V4], [bulgeFromMid(V1, V2, tipFar), 0, bulgeFromMid(V3, V4, tipNear), 0])
-        return { sketchShape: shape, sketchStart: null, status: `槽已画好 (长${L.toFixed(0)} 宽${(r * 2).toFixed(0)}，真圆弧端) — 点「拉伸」` }
+        return { sketchShape: shape, sketchStart: null, status: `槽已畫好 (長${L.toFixed(0)} 寬${(r * 2).toFixed(0)}，真圓弧端) — 點「拉伸」` }
       }
       if (s.sketchTool === 'rrect') {
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '移动并点击确定对角（圆角矩形）' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '移動並點擊確定對角（圓角矩形）' }
         const x0 = Math.min(s.sketchStart[0], pt[0]), x1 = Math.max(s.sketchStart[0], pt[0])
         const y0 = Math.min(s.sketchStart[1], pt[1]), y1 = Math.max(s.sketchStart[1], pt[1])
         const w = x1 - x0, h = y1 - y0
         const r = Math.max(0, Math.min(s.sketchCornerR, Math.min(w, h) / 2))
-        if (r < 0.5) return { sketchShape: { type: 'poly', pts: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] }, sketchStart: null, status: `圆角矩形已画好 (${w.toFixed(0)}×${h.toFixed(0)} R0) — 点「拉伸」` }
+        if (r < 0.5) return { sketchShape: { type: 'poly', pts: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] }, sketchStart: null, status: `圓角矩形已畫好 (${w.toFixed(0)}×${h.toFixed(0)} R0) — 點「拉伸」` }
         // True-arc rrect: 8 tangent verts, each corner a real quarter-circle (bulge from corner mid-angle point).
         const corner = (cx: number, cy: number, aMid: number): Pt => [cx + r * Math.cos(aMid), cy + r * Math.sin(aMid)]
         const verts: Pt[] = [
@@ -9452,51 +9452,51 @@ export const useApp = create<AppState>((rawSet, get) => {
           bulgeFromMid(verts[4], verts[5], corner(x0 + r, y1 - r, (3 * Math.PI) / 4)), 0,
           bulgeFromMid(verts[6], verts[7], corner(x0 + r, y0 + r, (5 * Math.PI) / 4)), 0,
         ]
-        return { sketchShape: vertsPoly(verts, bulges), sketchStart: null, status: `圆角矩形已画好 (${w.toFixed(0)}×${h.toFixed(0)} R${r.toFixed(0)}，真圆弧角) — 点「拉伸」` }
+        return { sketchShape: vertsPoly(verts, bulges), sketchStart: null, status: `圓角矩形已畫好 (${w.toFixed(0)}×${h.toFixed(0)} R${r.toFixed(0)}，真圓弧角) — 點「拉伸」` }
       }
       if (s.sketchTool === 'ellipse') {
         if(s.ellipseCreation==='three-point'){
-          if(!s.sketchStart)return {sketchStart:pt,polyPts:[],sketchPreview:pt,status:'椭圆：点轴端点，或沿光标方向输入半轴长度'}
+          if(!s.sketchStart)return {sketchStart:pt,polyPts:[],sketchPreview:pt,status:'橢圓：點軸端點，或沿光標方向輸入半軸長度'}
           const C=s.sketchStart
-          if(!s.polyPts.length){if(Math.hypot(pt[0]-C[0],pt[1]-C[1])<1e-6)return {status:'半轴长度必须大于零'};return {polyPts:[pt],sketchPreview:pt,dimBuf:['',''],dimField:0,sketchDim:null,status:'椭圆：点另一半轴，或输入半轴长度'}}
+          if(!s.polyPts.length){if(Math.hypot(pt[0]-C[0],pt[1]-C[1])<1e-6)return {status:'半軸長度必須大於零'};return {polyPts:[pt],sketchPreview:pt,dimBuf:['',''],dimField:0,sketchDim:null,status:'橢圓：點另一半軸，或輸入半軸長度'}}
           const U=s.polyPts[0],dx=U[0]-C[0],dy=U[1]-C[1],rx=Math.hypot(dx,dy),ry=Math.abs((pt[0]-C[0])*(-dy/rx)+(pt[1]-C[1])*(dx/rx))
-          if(!Number.isFinite(ry)||ry<1e-6)return {status:'另一半轴必须大于零，请离开轴线再点'}
+          if(!Number.isFinite(ry)||ry<1e-6)return {status:'另一半軸必須大於零，請離開軸線再點'}
           const ell={cx:C[0],cy:C[1],rx,ry,rot:Math.atan2(dy,dx)*180/Math.PI}
-          return {sketchShape:{type:'poly',ell,pts:ellipseSample(ell,48)},sketchStart:null,polyPts:[],dimBuf:['',''],dimField:0,sketchDim:null,status:'已建立旋转椭圆；可拖控制点或用D标半轴尺寸'}
+          return {sketchShape:{type:'poly',ell,pts:ellipseSample(ell,48)},sketchStart:null,polyPts:[],dimBuf:['',''],dimField:0,sketchDim:null,status:'已建立旋轉橢圓；可拖控制點或用D標半軸尺寸'}
         }
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '移动并点击确定椭圆的半轴' }
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '移動並點擊確定橢圓的半軸' }
         const cx = s.sketchStart[0], cy = s.sketchStart[1]
         const rx = Math.abs(pt[0] - cx) || 10, ry = Math.abs(pt[1] - cy) || 10
         const SEG = 48
         const poly: Pt[] = []
         for (let i = 0; i < SEG; i++) { const a = (i * 2 * Math.PI) / SEG; poly.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]) }
         // S87：48 边 poly 仅供 2D 显示/布尔；ell 参数令内核画真椭圆单曲线边（光滑面，非 48 facet）
-        return { sketchShape: { type: 'poly', pts: poly, ell: { cx, cy, rx, ry, rot: 0 } }, sketchStart: null, status: `椭圆已画好 (${(rx * 2).toFixed(0)}×${(ry * 2).toFixed(0)}，真椭圆边) — 点「拉伸」` }
+        return { sketchShape: { type: 'poly', pts: poly, ell: { cx, cy, rx, ry, rot: 0 } }, sketchStart: null, status: `橢圓已畫好 (${(rx * 2).toFixed(0)}×${(ry * 2).toFixed(0)}，真橢圓邊) — 點「拉伸」` }
       }
       if (s.sketchTool === 'conic') {
         // S177 圆锥曲线（Fusion Conic）：① 起点 P0 → ② 终点 P2 → ③ 顶点 apex(两端切线交点)；底栏 ρ 调充满度。
         // 提交做【密采样 smooth open poly】（conic 标记 → shapeToProfile 送在线 pts 拟合真 B-rep 边），唔存 ctrl（apex 离线）。
         const buf = s.polyPts
-        if (buf.length === 0) return { polyPts: [pt], sketchStart: pt, sketchPreview: pt, status: '圆锥曲线：点终点' }
+        if (buf.length === 0) return { polyPts: [pt], sketchStart: pt, sketchPreview: pt, status: '圓錐曲線：點終點' }
         if (buf.length === 1) {
-          if (Math.hypot(pt[0] - buf[0][0], pt[1] - buf[0][1]) < 0.5) return { status: '圆锥曲线：终点离起点太近 — 重新点终点' }   // S177 audit：防退化自触碰
-          return { polyPts: [buf[0], pt], sketchPreview: pt, status: '点顶点（两端切线交点）；底栏 ρ 调充满度（<0.5 椭圆 / 0.5 抛物 / >0.5 双曲）' }
+          if (Math.hypot(pt[0] - buf[0][0], pt[1] - buf[0][1]) < 0.5) return { status: '圓錐曲線：終點離起點太近 — 重新點終點' }   // S177 audit：防退化自触碰
+          return { polyPts: [buf[0], pt], sketchPreview: pt, status: '點頂點（兩端切線交點）；底欄 ρ 調充滿度（<0.5 橢圓 / 0.5 拋物 / >0.5 雙曲）' }
         }
         const P0 = buf[0], P2 = buf[1], rho = s.sketchConicRho || 0.5
         const kind = rho < 0.5 ? '椭圆' : rho > 0.5 ? '双曲' : '抛物'
         const rC = conicShoulderCurvature(P0, P2, pt, rho)   // S193：肩点（最弯处）曲率半径
         const rcTxt = Number.isFinite(rC) ? ` · 肩点曲率半径 R≈${rC.toFixed(1)}` : ''
-        return { sketchShape: { type: 'poly', pts: sampleConic(P0, P2, pt, rho, 64), conic: true, smooth: true, open: true }, polyPts: [], sketchStart: null, status: `圆锥曲线已画好（ρ${rho.toFixed(2)} ${kind}线${rcTxt} · 真平滑 B-rep 边）— 「闭合」可封口再拉伸` }
+        return { sketchShape: { type: 'poly', pts: sampleConic(P0, P2, pt, rho, 64), conic: true, smooth: true, open: true }, polyPts: [], sketchStart: null, status: `圓錐曲線已畫好（ρ${rho.toFixed(2)} ${kind}線${rcTxt} · 真平滑 B-rep 邊）— 「閉合」可封口再拉伸` }
       }
       if (s.sketchTool === 'earc') {
         // S101[3] 椭圆弧：① 中心 → ② 长轴端(定 rx+旋转) → ③ 短轴半径 → ④ 起角 → ⑤ 终角(逆时针)。pts=纯弦弓形密铺，内核见 earc 画真椭圆弧边。
         const buf = s.polyPts
-        if (buf.length === 0) return { polyPts: [pt], sketchStart: pt, sketchPreview: pt, status: '椭圆弧：点长轴端点（定长半轴 rx 与旋转）' }
-        if (buf.length===1&&Math.hypot(pt[0]-buf[0][0],pt[1]-buf[0][1])<1e-6)return {status:'半轴必须大于零；原草图保留'}
-        if (buf.length === 1) return { polyPts: [buf[0], pt], sketchPreview: pt, status: '点定短半轴 ry（垂直长轴方向距离）' }
-        if(buf.length===2){const dx=buf[1][0]-buf[0][0],dy=buf[1][1]-buf[0][1],r=Math.hypot(dx,dy);if(Math.abs((pt[0]-buf[0][0])*(-dy/r)+(pt[1]-buf[0][1])*(dx/r))<1e-6)return {status:'另一半轴必须大于零；原草图保留'}}
-        if (buf.length === 2) return { polyPts: [...buf, pt], sketchPreview: pt, status: '点起始角' }
-        if (buf.length === 3) return { polyPts: [...buf, pt], sketchPreview: pt, status: s.ellipseArcDirection==='cw'?'点终止角（顺时针扫掠）':'点终止角（逆时针扫掠）' }
+        if (buf.length === 0) return { polyPts: [pt], sketchStart: pt, sketchPreview: pt, status: '橢圓弧：點長軸端點（定長半軸 rx 與旋轉）' }
+        if (buf.length===1&&Math.hypot(pt[0]-buf[0][0],pt[1]-buf[0][1])<1e-6)return {status:'半軸必須大於零；原草圖保留'}
+        if (buf.length === 1) return { polyPts: [buf[0], pt], sketchPreview: pt, status: '點定短半軸 ry（垂直長軸方向距離）' }
+        if(buf.length===2){const dx=buf[1][0]-buf[0][0],dy=buf[1][1]-buf[0][1],r=Math.hypot(dx,dy);if(Math.abs((pt[0]-buf[0][0])*(-dy/r)+(pt[1]-buf[0][1])*(dx/r))<1e-6)return {status:'另一半軸必須大於零；原草圖保留'}}
+        if (buf.length === 2) return { polyPts: [...buf, pt], sketchPreview: pt, status: '點起始角' }
+        if (buf.length === 3) return { polyPts: [...buf, pt], sketchPreview: pt, status: s.ellipseArcDirection==='cw'?'點終止角（順時針掃掠）':'點終止角（逆時針掃掠）' }
         const C = buf[0], Px = buf[1]
         const rx = Math.hypot(Px[0] - C[0], Px[1] - C[1]) || 10
         const rot = Math.atan2(Px[1] - C[1], Px[0] - C[0]) * 180 / Math.PI
@@ -9505,25 +9505,25 @@ export const useApp = create<AppState>((rawSet, get) => {
         const ry = Math.abs(proj(buf[2]).v) || 5
         const angOf = (P: Pt) => { const q = proj(P); return Math.atan2(q.v / ry, q.u / rx) * 180 / Math.PI }                        // 椭圆参数角
         const a0 = angOf(buf[3]), a1 = angOf(pt)
-        if(Math.abs(Math.sin((a1-a0)*Math.PI/360))<1e-9)return {status:'起终点不能重合；完整椭圆请用椭圆工具'}
+        if(Math.abs(Math.sin((a1-a0)*Math.PI/360))<1e-9)return {status:'起終點不能重合；完整橢圓請用橢圓工具'}
         const earc = ellipseArcWithSweep({cx:C[0],cy:C[1],rx,ry,rot},a0,ellipseArcSweep({cx:C[0],cy:C[1],rx,ry,rot,a0,a1,sweep:s.ellipseArcDirection==='ccw'}))
-        return { sketchShape: { type: 'poly', pts: ellipseArcSample(earc), earc, open: true }, sketchSnap:null, snapSrc:null, polyPts: [], sketchStart: null, status: `椭圆弧已画好（rx${rx.toFixed(0)} ry${ry.toFixed(0)} ${a0.toFixed(0)}°→${a1.toFixed(0)}°，真椭圆边 · 单一开放曲线）— 「闭合」可封口再拉伸` }
+        return { sketchShape: { type: 'poly', pts: ellipseArcSample(earc), earc, open: true }, sketchSnap:null, snapSrc:null, polyPts: [], sketchStart: null, status: `橢圓弧已畫好（rx${rx.toFixed(0)} ry${ry.toFixed(0)} ${a0.toFixed(0)}°→${a1.toFixed(0)}°，真橢圓邊 · 單一開放曲線）— 「閉合」可封口再拉伸` }
       }
       if (s.sketchTool === 'arc') {
         const buf = s.polyPts
-        if (buf.length === 0) return { polyPts: [pt], sketchStart: pt, sketchPreview: pt, status: '点第二点：弧的终点' }
-        if (buf.length === 1) return { polyPts: [buf[0], pt], sketchPreview: pt, status: '点第三点：弧上一点（决定弯曲方向）' }
+        if (buf.length === 0) return { polyPts: [pt], sketchStart: pt, sketchPreview: pt, status: '點第二點：弧的終點' }
+        if (buf.length === 1) return { polyPts: [buf[0], pt], sketchPreview: pt, status: '點第三點：弧上一點（決定彎曲方向）' }
         const poly = arc3(buf[0], buf[1], pt)
-        return { sketchShape: { type: 'poly', pts: poly, arc: { a: buf[0], b: buf[1], m: pt }, open: true }, polyPts: [], sketchStart: null, status: '三点圆弧（真圆弧 B-rep · 单一开放曲线）已画好 — 端点/圆心可加约束、点弧标 R · 「闭合」可封口再拉伸' }
+        return { sketchShape: { type: 'poly', pts: poly, arc: { a: buf[0], b: buf[1], m: pt }, open: true }, polyPts: [], sketchStart: null, status: '三點圓弧（真圓弧 B-rep · 單一開放曲線）已畫好 — 端點/圓心可加約束、點弧標 R · 「閉合」可封口再拉伸' }
       }
       if (s.sketchTool === 'circle3') {
         // Circle through 3 points (circumcircle). Collect 3 clicks, then build a circle shape.
         const buf = s.polyPts
-        if (buf.length === 0) return { polyPts: [pt], sketchStart: pt, sketchPreview: pt, status: '圆(三点)：点第二点' }
-        if (buf.length === 1) return { polyPts: [buf[0], pt], sketchPreview: pt, status: '圆(三点)：点第三点（决定圆）' }
+        if (buf.length === 0) return { polyPts: [pt], sketchStart: pt, sketchPreview: pt, status: '圓(三點)：點第二點' }
+        if (buf.length === 1) return { polyPts: [buf[0], pt], sketchPreview: pt, status: '圓(三點)：點第三點（決定圓）' }
         const cc = circumcircle(buf[0], buf[1], pt)
-        if (!cc) return { status: '三点共线，无法定圆 — 重选第三点' }
-        return { sketchShape: { type: 'circle', c: cc.c, r: cc.r }, polyPts: [], sketchStart: null, status: `圆(三点)已画好 R${cc.r.toFixed(1)} — 点「拉伸」` }
+        if (!cc) return { status: '三點共線，無法定圓 — 重選第三點' }
+        return { sketchShape: { type: 'circle', c: cc.c, r: cc.r }, polyPts: [], sketchStart: null, status: `圓(三點)已畫好 R${cc.r.toFixed(1)} — 點「拉伸」` }
       }
       // polyline / spline (spline smooths the points into a Catmull-Rom loop on close) / bspline（逼近型立方 B 样条，S127）
       const isBSpline = s.sketchTool === 'bspline'
@@ -9532,8 +9532,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       // GM-FP2 #19：独立相切弧 —— 首击（arcMode 已开 + buffer 空）→ 揾现有开放曲线端点做种子切线（G1 起手）
       if (s.polyArcMode && !isSpline && pts.length === 0) {
         const seed = findEndpointTangent([...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[], pt, pickTol())
-        if (seed) return { polyPts: [seed.p], sketchStart: seed.p, tanArcSeed: seed.t, sketchPreview: seed.p, status: '相切弧：由端点相切引出 — 点下一点定弧（可续接更多相切弧；A 切直线）' }
-        return { polyPts: [pt], sketchStart: pt, tanArcSeed: null, sketchPreview: pt, status: '相切弧：未贴到现有端点 — 由此点起手（点下一点即相切续弧）' }
+        if (seed) return { polyPts: [seed.p], sketchStart: seed.p, tanArcSeed: seed.t, sketchPreview: seed.p, status: '相切弧：由端點相切引出 — 點下一點定弧（可續接更多相切弧；A 切直線）' }
+        return { polyPts: [pt], sketchStart: pt, tanArcSeed: null, sketchPreview: pt, status: '相切弧：未貼到現有端點 — 由此點起手（點下一點即相切續弧）' }
       }
       if (pts.length >= 2) {
         const f = pts[0]
@@ -9542,7 +9542,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           if (pts.length < 3 && !isSpline) {
             const bulges = s.polyBulges.slice(0, Math.max(0, pts.length - 1))
             while (bulges.length < pts.length - 1) bulges.push(0)
-            return { sketchShape: openVertsPoly(pts.map((p) => [p[0], p[1]] as Pt), bulges), polyPts: [], polyBulges: [], polyArcMode: false, status: `已完成开放折线（${pts.length - 1} 段）— 可做扫掠路径 / 「完成草图」` }
+            return { sketchShape: openVertsPoly(pts.map((p) => [p[0], p[1]] as Pt), bulges), polyPts: [], polyBulges: [], polyArcMode: false, status: `已完成開放折線（${pts.length - 1} 段）— 可做掃掠路徑 / 「完成草圖」` }
           }
           const smooth = isSpline && pts.length >= 3
           // T777：相切弧 — 任一段有 bulge → 走 vertsPoly（真圆弧边）；闭合段如果 arcMode 开住就照切线算
@@ -9554,10 +9554,10 @@ export const useApp = create<AppState>((rawSet, get) => {
             if (t) { const v: Pt = [f[0] - pts[pts.length - 1][0], f[1] - pts[pts.length - 1][1]]; const phi = Math.atan2(t[0] * v[1] - t[1] * v[0], t[0] * v[0] + t[1] * v[1]); if (Math.abs(phi) < (170 * Math.PI) / 180 / 2) closingBulge = Math.tan(phi / 2) }
           }
           if (!isSpline && (closingBulge !== 0 || bulges.some((b) => Math.abs(b) > 1e-12))) {
-            return { sketchShape: vertsPoly(pts, [...bulges, closingBulge]), polyPts: [], polyBulges: [], polyArcMode: false, status: '折线已闭合（含真圆弧段）— 点「拉伸」' }
+            return { sketchShape: vertsPoly(pts, [...bulges, closingBulge]), polyPts: [], polyBulges: [], polyArcMode: false, status: '折線已閉合（含真圓弧段）— 點「拉伸」' }
           }
           const finalPts = smooth ? (isBSpline ? sampleBSpline(pts, { closed: true, samples: 64 }) : catmullRomClosed(pts)) : pts
-          return { sketchShape: { type: 'poly', pts: finalPts, ...(smooth ? { ctrl: pts, smooth: true, ...(isBSpline ? { bspline: true } : {}) } : {}) }, polyPts: [], polyBulges: [], status: `${isBSpline ? 'B样条' : isSpline ? '样条' : '折线'}已闭合 — 点「拉伸」（${smooth ? '真平滑曲面' : '直边'}）` }
+          return { sketchShape: { type: 'poly', pts: finalPts, ...(smooth ? { ctrl: pts, smooth: true, ...(isBSpline ? { bspline: true } : {}) } : {}) }, polyPts: [], polyBulges: [], status: `${isBSpline ? 'B樣條' : isSpline ? '樣條' : '折線'}已閉合 — 點「拉伸」（${smooth ? '真平滑曲面' : '直邊'}）` }
         }
       }
       // T777：相切弧 submode — 落点段 bulge 由上段切线方向解析（tan(φ/2)，φ = 切线→弦 转角）
@@ -9567,15 +9567,15 @@ export const useApp = create<AppState>((rawSet, get) => {
         const last = pts[pts.length - 1]
         const v: Pt = [pt[0] - last[0], pt[1] - last[1]]
         const chord = Math.hypot(v[0], v[1])
-        if (!t || chord < 0.5) return { status: '相切弧：点远啲（弦长 ≥0.5mm）' }
+        if (!t || chord < 0.5) return { status: '相切弧：點遠啲（弦長 ≥0.5mm）' }
         const phi = Math.atan2(t[0] * v[1] - t[1] * v[0], t[0] * v[0] + t[1] * v[1])
-        if (Math.abs(phi) > (170 * Math.PI) / 180 / 2) return { status: '相切弧太翻（>170°）— 收细角度或分两段' }
+        if (Math.abs(phi) > (170 * Math.PI) / 180 / 2) return { status: '相切弧太翻（>170°）— 收細角度或分兩段' }
         const bulge = Math.tan(phi / 2)
-        return { polyPts: [...pts, pt], polyBulges: [...s.polyBulges, bulge], sketchPreview: pt, tanArcSeed: null, status: `相切弧已加（R${Math.abs(bulgeRadius(last, pt, bulge)).toFixed(1)}）— 继续点（A 返回直线）` }
+        return { polyPts: [...pts, pt], polyBulges: [...s.polyBulges, bulge], sketchPreview: pt, tanArcSeed: null, status: `相切弧已加（R${Math.abs(bulgeRadius(last, pt, bulge)).toFixed(1)}）— 繼續點（A 返回直線）` }
       }
       // GM-W6 B4：同上一点去重（<0.3mm = 手震连击/触屏双 tap）→ 忽略，唔好产生零长段流入轮廓/求解器
-      if (pts.length > 0) { const lp = pts[pts.length - 1]; if (Math.hypot(pt[0] - lp[0], pt[1] - lp[1]) < 0.3) return { status: '同一位置 — 双击/Enter 可收笔，或点远啲继续画' } }
-      return { polyPts: [...pts, pt], polyBulges: pts.length >= 1 ? [...s.polyBulges, 0] : s.polyBulges, sketchPreview: pt, status: `${isSpline ? '样条' : '折线'}：已 ${pts.length + 1} 点，点回起点或按「闭合轮廓」结束${s.polyArcMode ? '（相切弧模式）' : ''}` }
+      if (pts.length > 0) { const lp = pts[pts.length - 1]; if (Math.hypot(pt[0] - lp[0], pt[1] - lp[1]) < 0.3) return { status: '同一位置 — 雙擊/Enter 可收筆，或點遠啲繼續畫' } }
+      return { polyPts: [...pts, pt], polyBulges: pts.length >= 1 ? [...s.polyBulges, 0] : s.polyBulges, sketchPreview: pt, status: `${isSpline ? '樣條' : '折線'}：已 ${pts.length + 1} 點，點回起點或按「閉合輪廓」結束${s.polyArcMode ? '（相切弧模式）' : ''}` }
       })()
       // GM-FP4 #22：draw-as-construction 预开关 —— 新落嘅 shape 即时带 construction:true（Fusion Linetype 预切换，同折线中途切换等价）。
       if (s.drawConstruction && r.sketchShape && typeof r.sketchShape === 'object' && r.sketchShape !== s.sketchShape) {
@@ -9608,7 +9608,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const sz = s.sizing
       const szShapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
       // SIZING-4：锁定目标已被删/改（ref 唔再喺数组）→ 收起拖柄并提示，唔好静静偏移到第二个轮廓
-      if (!szShapes.includes(sz.ref)) return { sizing: null, toolPreview: null, sketchPreview: raw, sketchSnap: null, snapSrc: null, sketchDim: null, status: '调尺寸：所选目标已改动/删除 — 重新点目标' }
+      if (!szShapes.includes(sz.ref)) return { sizing: null, toolPreview: null, sketchPreview: raw, sketchSnap: null, snapSrc: null, sketchDim: null, status: '調尺寸：所選目標已改動/刪除 — 重新點目標' }
       // T796-3：刚打过数字 → 喺 3mm 死区内维持打嘅值，唔畀鼠标轻微移动覆盖；明显拖开先恢复跟手
       const moved = !(sz.typed && sz.raw) || Math.hypot(raw[0] - sz.raw![0], raw[1] - sz.raw![1]) > 3
       if (sz.typed && !moved) return { sketchPreview: raw, sketchSnap: null, snapSrc: null }
@@ -9798,9 +9798,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (get().skCons.length > 0) void get().resolveSk()  // keep constraints/dims honoured after a direct label edit
   },
   ellipseArcDirection: 'ccw',
-  setEllipseArcDirection: (direction) => set({ellipseArcDirection:direction,sketchStart:null,polyPts:[],sketchPreview:null,dimBuf:['',''],dimField:0,sketchDim:null,status:direction==='ccw'?'椭圆弧：逆时针；点中心':'椭圆弧：顺时针；点中心'}),
+  setEllipseArcDirection: (direction) => set({ellipseArcDirection:direction,sketchStart:null,polyPts:[],sketchPreview:null,dimBuf:['',''],dimField:0,sketchDim:null,status:direction==='ccw'?'橢圓弧：逆時針；點中心':'橢圓弧：順時針；點中心'}),
   ellipseCreation: 'axis-aligned',
-  setEllipseCreation: (mode) => set({ellipseCreation:mode,sketchStart:null,polyPts:[],sketchPreview:null,dimBuf:['',''],dimField:0,sketchDim:null,status:mode==='three-point'?'椭圆：点中心 → 轴端点 → 另一半轴':'椭圆：点中心 → 包围框角点'}),
+  setEllipseCreation: (mode) => set({ellipseCreation:mode,sketchStart:null,polyPts:[],sketchPreview:null,dimBuf:['',''],dimField:0,sketchDim:null,status:mode==='three-point'?'橢圓：點中心 → 軸端點 → 另一半軸':'橢圓：點中心 → 包圍框角點'}),
   sketchTypeKey: (key) => { let _finishChain = false; let rectangleCommitted = false; set((s) => {
     if (s.mode !== 'sketch') return {}
     if (s.sizing) return {}   // T796b：调尺寸中由 sizeTypeKey 处理，唔好误入起点坐标输入（防幽灵 sketchStart）
@@ -9818,11 +9818,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (key === 'Enter') {
         const co = (x: string) => { const v = parseFloat(x); return isFinite(v) ? v : 0 }
         const p: Pt = [co(buf[0]), co(buf[1])]
-        if (tool === 'polyline' || tool === 'spline' || tool === 'bspline') return { polyPts: [p], sketchPreview: p, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `起点 (${p[0]}, ${p[1]}) — 继续画或打字下一点` }
+        if (tool === 'polyline' || tool === 'spline' || tool === 'bspline') return { polyPts: [p], sketchPreview: p, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `起點 (${p[0]}, ${p[1]}) — 繼續畫或打字下一點` }
         // GM-W8 A3：三点弧/三点圆/椭圆弧/圆锥曲线 系 polyPts 分阶段（click 会同时置 polyPts+sketchStart）→ 打字起点要一致，否则下一击会覆盖
-        if (tool === 'arc' || tool === 'circle3' || tool === 'earc' || tool === 'conic') return { ...(tool==='earc'?{sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[]}:{}), polyPts: [p], sketchStart: p, sketchPreview: p, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `起点 (${p[0]}, ${p[1]}) — 继续画（鼠标/打字下一阶段）` }
-        if(tool==='ellipse'&&s.ellipseCreation==='three-point')return {sketchStart:p,polyPts:[],sketchPreview:p,dimBuf:['',''],dimField:0,sketchDim:null,sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],status:'已定椭圆中心；选择轴方向'}
-        return { sketchStart: p, sketchPreview: p, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `${tool === 'circle' ? '圆心' : '起点'} (${p[0]}, ${p[1]}) — 打字输入${tool === 'circle' ? '直径Ø' : tool === 'polygon' ? '半径' : '尺寸'} 或 鼠标拉出` }
+        if (tool === 'arc' || tool === 'circle3' || tool === 'earc' || tool === 'conic') return { ...(tool==='earc'?{sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[]}:{}), polyPts: [p], sketchStart: p, sketchPreview: p, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `起點 (${p[0]}, ${p[1]}) — 繼續畫（鼠標/打字下一階段）` }
+        if(tool==='ellipse'&&s.ellipseCreation==='three-point')return {sketchStart:p,polyPts:[],sketchPreview:p,dimBuf:['',''],dimField:0,sketchDim:null,sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],status:'已定橢圓中心；選擇軸方向'}
+        return { sketchStart: p, sketchPreview: p, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `${tool === 'circle' ? '圓心' : '起點'} (${p[0]}, ${p[1]}) — 打字輸入${tool === 'circle' ? '直徑Ø' : tool === 'polygon' ? '半徑' : '尺寸'} 或 鼠標拉出` }
       }
       return {}
     }
@@ -9849,7 +9849,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const bank = s.sketchShape ? { sketchProfiles: [...s.sketchProfiles, s.sketchShape] } : {}
     if (start && tool === 'rectangle') {
       const dx = prev[0] - start[0], dy = prev[1] - start[1]
-      if (buf.some(v=>v!==''&&(!Number.isFinite(Number(v))||Number(v)<=0))) return {status:'矩形宽高必须是完整的正数'}
+      if (buf.some(v=>v!==''&&(!Number.isFinite(Number(v))||Number(v)<=0))) return {status:'矩形寬高必須是完整的正數'}
       const W = num(buf[0], Math.abs(dx) || 20), H = num(buf[1], Math.abs(dy) || W)
       const b: Pt = [start[0] + (dx < 0 ? -1 : 1) * W, start[1] + (dy < 0 ? -1 : 1) * H]
       const shape: SketchShape={type:'rect',a:start,b}
@@ -9857,7 +9857,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const seq=maxDimSeq(s.sketchSources,s.skCons,s.params)+1
       const added=rectangleConstraints([...profiles,shape] as FShape[],profiles.length,s.skCons,[`d${seq}`,`d${seq+1}`],[buf[0]?W:null,buf[1]?H:null],s.autoConstrain)
       rectangleCommitted=true
-      return { ...bank, sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],skCons:[...s.skCons,...added], sketchShape: shape, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `矩形 ${W} × ${H} mm — 驱动尺寸及关系已保存` }
+      return { ...bank, sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],skCons:[...s.skCons,...added], sketchShape: shape, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `矩形 ${W} × ${H} mm — 驅動尺寸及關係已儲存` }
     }
     if (start && tool === 'circle') {
       // SO02: center-circle typed value is diameter Ø (exact), not freehand radius scale.
@@ -9874,7 +9874,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const name = `d${maxDimSeq(s.sketchSources, s.skCons, s.params) + 1}`
         added.push({ id: skConId(), name, kind: 'dim', type: 'dia', a: { kind: 'circle', shape: profiles.length }, value: D })
       }
-      return { ...bank, sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: [...s.skCons, ...added], sketchShape: shape, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `圆 Ø${D} mm${typed ? ' — 驱动直径已保存' : ''} — 点「拉伸」` }
+      return { ...bank, sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: [...s.skCons, ...added], sketchShape: shape, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `圓 Ø${D} mm${typed ? ' — 驅動直徑已儲存' : ''} — 點「拉伸」` }
     }
     if (start && tool === 'polygon') {
       const R = num(buf[0], Math.hypot(prev[0] - start[0], prev[1] - start[1]) || 20)
@@ -9883,7 +9883,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const poly: Pt[] = []; for (let i = 0; i < N; i++) { const a = a0 + (i * 2 * Math.PI) / N; poly.push([start[0] + pr * Math.cos(a), start[1] + pr * Math.sin(a)]) }
       const shape: SketchShape = { type: 'poly', pts: poly }
       const polyDesc = s.polyInscribed ? `多边形 对边距 ${(2 * R).toFixed(1)}` : `多边形 外接Ø ${(2 * R).toFixed(1)}`
-      return { ...bank, sketchShape: shape, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `${polyDesc} mm — 点「拉伸」` }
+      return { ...bank, sketchShape: shape, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `${polyDesc} mm — 點「拉伸」` }
     }
     // #9：crect/slot/rrect/ellipse 打字定尺寸（之前显示打字提示但 Enter 静默无效 = 空壳）— 照搬各自鼠标公式
     const clr = { sketchPreview: null, sketchSnap: null, dimBuf: ['', ''] as [string, string], dimField: 0, sketchDim: null }
@@ -9892,27 +9892,27 @@ export const useApp = create<AppState>((rawSet, get) => {
       const D = num(buf[0], L0)
       const B: Pt = [start[0] + (dx / L0) * D, start[1] + (dy / L0) * D]
       const { c, r } = twoPointCircle(start, B)
-      return { ...bank, sketchShape: { type: 'circle', c, r }, sketchStart: null, ...clr, status: `两点圆 Ø${D} mm — 点「拉伸」` }
+      return { ...bank, sketchShape: { type: 'circle', c, r }, sketchStart: null, ...clr, status: `兩點圓 Ø${D} mm — 點「拉伸」` }
     }
     if (start && tool === 'crect') {  // 中心矩形：center=start，打 全宽×全高
       const dx = prev[0] - start[0], dy = prev[1] - start[1]
       const W = num(buf[0], Math.abs(2 * dx) || 20), H = num(buf[1], Math.abs(2 * dy) || W)
       const sx = dx < 0 ? -1 : 1, sy = dy < 0 ? -1 : 1
-      return { ...bank, sketchShape: { type: 'rect', a: [start[0] - sx * W / 2, start[1] - sy * H / 2], b: [start[0] + sx * W / 2, start[1] + sy * H / 2] }, sketchStart: null, ...clr, status: `中心矩形 ${W} × ${H} mm — 点「拉伸」` }
+      return { ...bank, sketchShape: { type: 'rect', a: [start[0] - sx * W / 2, start[1] - sy * H / 2], b: [start[0] + sx * W / 2, start[1] + sy * H / 2] }, sketchStart: null, ...clr, status: `中心矩形 ${W} × ${H} mm — 點「拉伸」` }
     }
     if(start && tool==='ellipse' && s.ellipseCreation==='three-point'){
-      if(buf[0]!==''&&(!Number.isFinite(Number(buf[0]))||Number(buf[0])<=0))return {status:'半轴长度必须是完整正数'}
-      if(!s.polyPts.length){const dx=prev[0]-start[0],dy=prev[1]-start[1],d=Math.hypot(dx,dy),r=buf[0]!==''?Number(buf[0]):d;if(d<1e-6||r<1e-6)return {status:'先移动光标选择半轴方向'};const U:Pt=[start[0]+dx*r/d,start[1]+dy*r/d];return {sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],polyPts:[U],...clr,sketchPreview:U,status:'已定第一半轴；输入另一半轴长度或点击'}}
+      if(buf[0]!==''&&(!Number.isFinite(Number(buf[0]))||Number(buf[0])<=0))return {status:'半軸長度必須是完整正數'}
+      if(!s.polyPts.length){const dx=prev[0]-start[0],dy=prev[1]-start[1],d=Math.hypot(dx,dy),r=buf[0]!==''?Number(buf[0]):d;if(d<1e-6||r<1e-6)return {status:'先移動光標選擇半軸方向'};const U:Pt=[start[0]+dx*r/d,start[1]+dy*r/d];return {sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],polyPts:[U],...clr,sketchPreview:U,status:'已定第一半軸；輸入另一半軸長度或點擊'}}
       const U=s.polyPts[0],dx=U[0]-start[0],dy=U[1]-start[1],rx=Math.hypot(dx,dy),ry=buf[0]!==''?Number(buf[0]):Math.abs((prev[0]-start[0])*(-dy/rx)+(prev[1]-start[1])*(dx/rx))
-      if(!Number.isFinite(ry)||ry<1e-6)return {status:'另一半轴必须大于零'}
+      if(!Number.isFinite(ry)||ry<1e-6)return {status:'另一半軸必須大於零'}
       const ell={cx:start[0],cy:start[1],rx,ry,rot:Math.atan2(dy,dx)*180/Math.PI}
-      return {...bank,sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],sketchShape:{type:'poly',ell,pts:ellipseSample(ell,48)},sketchStart:null,polyPts:[],...clr,status:'已按数值建立旋转椭圆；可用D标半轴尺寸'}
+      return {...bank,sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],sketchShape:{type:'poly',ell,pts:ellipseSample(ell,48)},sketchStart:null,polyPts:[],...clr,status:'已按數值建立旋轉橢圓；可用D標半軸尺寸'}
     }
     if (start && tool === 'ellipse') {  // 椭圆：center=start，打 全宽×全高（= 2rx × 2ry）
       const W = num(buf[0], Math.abs(prev[0] - start[0]) * 2 || 20), H = num(buf[1], Math.abs(prev[1] - start[1]) * 2 || W)
       const cx = start[0], cy = start[1], rx = W / 2, ry = H / 2, SEG = 48, poly: Pt[] = []
       for (let i = 0; i < SEG; i++) { const a = (i * 2 * Math.PI) / SEG; poly.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]) }
-      return { ...bank, sketchShape: { type: 'poly', pts: poly, ell: { cx, cy, rx, ry, rot: 0 } }, sketchStart: null, ...clr, status: `椭圆 ${W} × ${H} mm（真椭圆边）— 点「拉伸」` }
+      return { ...bank, sketchShape: { type: 'poly', pts: poly, ell: { cx, cy, rx, ry, rot: 0 } }, sketchStart: null, ...clr, status: `橢圓 ${W} × ${H} mm（真橢圓邊）— 點「拉伸」` }
     }
     if (start && tool === 'slot') {  // 槽：start=一端中心，打 长度（方向跟预览；槽宽用底栏 sketchSlotW）
       const dx = prev[0] - start[0], dy = prev[1] - start[1], L0 = Math.hypot(dx, dy)
@@ -9920,18 +9920,18 @@ export const useApp = create<AppState>((rawSet, get) => {
       const c0 = start, c1: Pt = [start[0] + ux * L, start[1] + uy * L], r = (s.sketchSlotW || 20) / 2, px = -uy, py = ux
       const V1: Pt = [c1[0] + px * r, c1[1] + py * r], V2: Pt = [c1[0] - px * r, c1[1] - py * r], V3: Pt = [c0[0] - px * r, c0[1] - py * r], V4: Pt = [c0[0] + px * r, c0[1] + py * r]
       const shape = vertsPoly([V1, V2, V3, V4], [bulgeFromMid(V1, V2, [c1[0] + ux * r, c1[1] + uy * r]), 0, bulgeFromMid(V3, V4, [c0[0] - ux * r, c0[1] - uy * r]), 0])
-      return { ...bank, sketchShape: shape, sketchStart: null, ...clr, status: `槽 长${L} 宽${(r * 2).toFixed(0)}（真圆弧端）— 点「拉伸」` }
+      return { ...bank, sketchShape: shape, sketchStart: null, ...clr, status: `槽 長${L} 寬${(r * 2).toFixed(0)}（真圓弧端）— 點「拉伸」` }
     }
     if (start && tool === 'rrect') {  // 圆角矩形：start=一角，打 宽×高（角半径用底栏 sketchCornerR）
       const dx = prev[0] - start[0], dy = prev[1] - start[1]
       const W = num(buf[0], Math.abs(dx) || 20), H = num(buf[1], Math.abs(dy) || W), sx = dx < 0 ? -1 : 1, sy = dy < 0 ? -1 : 1
       const x0 = Math.min(start[0], start[0] + sx * W), x1 = x0 + W, y0 = Math.min(start[1], start[1] + sy * H), y1 = y0 + H
       const r = Math.max(0, Math.min(s.sketchCornerR, Math.min(W, H) / 2))
-      if (r < 0.5) return { ...bank, sketchShape: { type: 'poly', pts: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] }, sketchStart: null, ...clr, status: `圆角矩形 ${W}×${H} R0 — 点「拉伸」` }
+      if (r < 0.5) return { ...bank, sketchShape: { type: 'poly', pts: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] }, sketchStart: null, ...clr, status: `圓角矩形 ${W}×${H} R0 — 點「拉伸」` }
       const corner = (cx: number, cy: number, aMid: number): Pt => [cx + r * Math.cos(aMid), cy + r * Math.sin(aMid)]
       const verts: Pt[] = [[x1 - r, y0], [x1, y0 + r], [x1, y1 - r], [x1 - r, y1], [x0 + r, y1], [x0, y1 - r], [x0, y0 + r], [x0 + r, y0]]
       const bulges = [bulgeFromMid(verts[0], verts[1], corner(x1 - r, y0 + r, -Math.PI / 4)), 0, bulgeFromMid(verts[2], verts[3], corner(x1 - r, y1 - r, Math.PI / 4)), 0, bulgeFromMid(verts[4], verts[5], corner(x0 + r, y1 - r, (3 * Math.PI) / 4)), 0, bulgeFromMid(verts[6], verts[7], corner(x0 + r, y0 + r, (5 * Math.PI) / 4)), 0]
-      return { ...bank, sketchShape: vertsPoly(verts, bulges), sketchStart: null, ...clr, status: `圆角矩形 ${W}×${H} R${r.toFixed(0)}（真圆弧角）— 点「拉伸」` }
+      return { ...bank, sketchShape: vertsPoly(verts, bulges), sketchStart: null, ...clr, status: `圓角矩形 ${W}×${H} R${r.toFixed(0)}（真圓弧角）— 點「拉伸」` }
     }
     if (s.polyPts.length > 0 && tool === 'polyline') {   // GM-FP1 #10/#14：折线打字 = 长(field0)+角(field1)；两值全锁 Enter = 落段并结束整条链（finishOpenPolyline）
       const n = s.polyPts.length, last = s.polyPts[n - 1]
@@ -9939,31 +9939,31 @@ export const useApp = create<AppState>((rawSet, get) => {
       const lenLocked = buf[0] !== '' && isFinite(parseFloat(buf[0]))
       const angLocked = buf[1] !== '' && isFinite(parseFloat(buf[1]))
       const np = polylineTypedEndpoint(last, prevDir, prev, buf[0], buf[1])
-      if (Math.hypot(np[0] - last[0], np[1] - last[1]) < 0.3) return { dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '段太短（长度≈0）— 输入更大长度' }
+      if (Math.hypot(np[0] - last[0], np[1] - last[1]) < 0.3) return { dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '段太短（長度≈0）— 輸入更大長度' }
       // #14（跟 _fusion_sketch_spec §2 Line + gaps #14 落地要点）：长+角都打字锁 → 落段并收笔结束整条链（工具保持 armed，可开新链）。纯点击/只锁一格 → 续链。
-      if (lenLocked && angLocked) { _finishChain = true; return { polyPts: [...s.polyPts, np], dimBuf: ['', ''], dimField: 0, sketchPreview: np, sketchDim: null, status: '已落全约束段（长+角）— 链结束，工具仍激活可开新链' } }
-      return { polyPts: [...s.polyPts, np], dimBuf: ['', ''], dimField: 0, sketchPreview: np, sketchDim: null, status: `已加点（${lenLocked ? '长' + parseFloat(buf[0]) + 'mm ' : ''}${angLocked ? '角' + parseFloat(buf[1]) + '° ' : ''}方向${angLocked ? '锁定' : '跟光标'}）— 继续画或回起点闭合` }
+      if (lenLocked && angLocked) { _finishChain = true; return { polyPts: [...s.polyPts, np], dimBuf: ['', ''], dimField: 0, sketchPreview: np, sketchDim: null, status: '已落全約束段（長+角）— 鏈結束，工具仍激活可開新鏈' } }
+      return { polyPts: [...s.polyPts, np], dimBuf: ['', ''], dimField: 0, sketchPreview: np, sketchDim: null, status: `已加點（${lenLocked ? '長' + parseFloat(buf[0]) + 'mm ' : ''}${angLocked ? '角' + parseFloat(buf[1]) + '° ' : ''}方向${angLocked ? '鎖定' : '跟光標'}）— 繼續畫或回起點閉合` }
     }
     if (s.polyPts.length > 0 && (tool === 'spline' || tool === 'bspline')) {   // 样条/B样条：单值段长，方向跟光标（无角度格）
       const last = s.polyPts[s.polyPts.length - 1]
       const dx = prev[0] - last[0], dy = prev[1] - last[1], L0 = Math.hypot(dx, dy) || 1
       const L = num(buf[0], L0)
       const np: Pt = [last[0] + (dx / L0) * L, last[1] + (dy / L0) * L]
-      return { polyPts: [...s.polyPts, np], dimBuf: ['', ''], dimField: 0, sketchPreview: np, sketchDim: null, status: `已加点（段长 ${L} mm）— 继续画或回起点闭合` }
+      return { polyPts: [...s.polyPts, np], dimBuf: ['', ''], dimField: 0, sketchPreview: np, sketchDim: null, status: `已加點（段長 ${L} mm）— 繼續畫或回起點閉合` }
     }
     // GM-W8 A3：多阶段工具打字尺寸（reuse 各 click handler 嘅几何公式；ADVANCE 阶段只落下一个点、COMMIT 阶段出 shape）
     if (tool === 'rect3') {
       if (s.sketchStart && s.polyPts.length === 0) {   // 边长 L → 落第二点（定边）
         const A = s.sketchStart, dx = prev[0] - A[0], dy = prev[1] - A[1], L0 = Math.hypot(dx, dy) || 1
         const L = num(buf[0], L0), B: Pt = [A[0] + dx / L0 * L, A[1] + dy / L0 * L]
-        return { polyPts: [B], sketchPreview: B, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '三点矩形：打字宽度或点第三点' }
+        return { polyPts: [B], sketchPreview: B, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '三點矩形：打字寬度或點第三點' }
       }
       if (s.sketchStart && s.polyPts.length === 1) {   // 宽度 W → COMMIT
         const A = s.sketchStart, B = s.polyPts[0], ex = B[0] - A[0], ey = B[1] - A[1], Le = Math.hypot(ex, ey) || 1
         const nx = -ey / Le, ny = ex / Le, wPrev = (prev[0] - B[0]) * nx + (prev[1] - B[1]) * ny, sgn = wPrev < 0 ? -1 : 1
         const W = num(buf[0], Math.abs(wPrev) || 20) * sgn
         const D2: Pt = [B[0] + nx * W, B[1] + ny * W], E2: Pt = [A[0] + nx * W, A[1] + ny * W]
-        return { ...bank, sketchShape: { type: 'poly', pts: [A, B, D2, E2] }, sketchStart: null, polyPts: [], ...clr, status: `三点矩形已画好（${Le.toFixed(0)}×${Math.abs(W).toFixed(0)}）— 点「拉伸」` }
+        return { ...bank, sketchShape: { type: 'poly', pts: [A, B, D2, E2] }, sketchStart: null, polyPts: [], ...clr, status: `三點矩形已畫好（${Le.toFixed(0)}×${Math.abs(W).toFixed(0)}）— 點「拉伸」` }
       }
       return unsup
     }
@@ -9972,18 +9972,18 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (c && s.polyPts.length === 0) {   // 半径 R → 落起点
         const dx = prev[0] - c[0], dy = prev[1] - c[1], L0 = Math.hypot(dx, dy) || 1
         const R = num(buf[0], L0), p1: Pt = [c[0] + dx / L0 * R, c[1] + dy / L0 * R]
-        return { polyPts: [p1], sketchPreview: p1, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '中心点圆弧：打字扫角°或点终点' }
+        return { polyPts: [p1], sketchPreview: p1, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '中心點圓弧：打字掃角°或點終點' }
       }
       if (c && s.polyPts.length === 1) {   // 扫角° → COMMIT（方向取短向由预览定符号）
         const p1 = s.polyPts[0], R = Math.hypot(p1[0] - c[0], p1[1] - c[1]) || 10, a0 = Math.atan2(p1[1] - c[1], p1[0] - c[0])
         let sPrev = Math.atan2(prev[1] - c[1], prev[0] - c[0]) - a0; while (sPrev <= -Math.PI) sPrev += 2 * Math.PI; while (sPrev > Math.PI) sPrev -= 2 * Math.PI
         const sweep = (sPrev < 0 ? -1 : 1) * Math.abs(parseAng(buf[0], Math.abs(sPrev) * 180 / Math.PI)) * Math.PI / 180
-        if (Math.abs(sweep) < 0.05) return { ...unsup, sketchDim: null, status: '中心点圆弧：扫角太细 — 打大啲' }
+        if (Math.abs(sweep) < 0.05) return { ...unsup, sketchDim: null, status: '中心點圓弧：掃角太細 — 打大啲' }
         const aEnd = a0 + sweep, aMid = a0 + sweep / 2
         const A: Pt = [c[0] + R * Math.cos(a0), c[1] + R * Math.sin(a0)], B: Pt = [c[0] + R * Math.cos(aEnd), c[1] + R * Math.sin(aEnd)], M: Pt = [c[0] + R * Math.cos(aMid), c[1] + R * Math.sin(aMid)]
         const seg = Math.max(8, Math.round(Math.abs(sweep) / 0.12)), pts: Pt[] = []
         for (let i = 0; i <= seg; i++) { const a = a0 + sweep * i / seg; pts.push([c[0] + R * Math.cos(a), c[1] + R * Math.sin(a)]) }
-        return { ...bank, sketchShape: { type: 'poly', pts, arc: { a: A, b: B, m: M }, open: true }, sketchStart: null, polyPts: [], ...clr, status: `中心点圆弧已画好（R${R.toFixed(1)} 弧${Math.abs(sweep * 180 / Math.PI).toFixed(0)}°）— 点「拉伸」` }
+        return { ...bank, sketchShape: { type: 'poly', pts, arc: { a: A, b: B, m: M }, open: true }, sketchStart: null, polyPts: [], ...clr, status: `中心點圓弧已畫好（R${R.toFixed(1)} 弧${Math.abs(sweep * 180 / Math.PI).toFixed(0)}°）— 點「拉伸」` }
       }
       return unsup
     }
@@ -9992,7 +9992,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (c && s.polyPts.length === 0) {   // 半径 R → 落一端
         const dx = prev[0] - c[0], dy = prev[1] - c[1], L0 = Math.hypot(dx, dy) || 1
         const R = num(buf[0], L0), p1: Pt = [c[0] + dx / L0 * R, c[1] + dy / L0 * R]
-        return { polyPts: [p1], sketchPreview: p1, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '圆弧槽：打字扫角°或点另一端' }
+        return { polyPts: [p1], sketchPreview: p1, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '圓弧槽：打字掃角°或點另一端' }
       }
       if (c && s.polyPts.length === 1) {   // 扫角° → COMMIT（槽宽用底栏 sketchSlotW）
         const p1 = s.polyPts[0], R = Math.hypot(p1[0] - c[0], p1[1] - c[1]) || 10, a0 = Math.atan2(p1[1] - c[1], p1[0] - c[0])
@@ -10000,8 +10000,8 @@ export const useApp = create<AppState>((rawSet, get) => {
         let sweep = (sPrev < 0 ? -1 : 1) * Math.abs(parseAng(buf[0], Math.abs(sPrev) * 180 / Math.PI)) * Math.PI / 180
         while (sweep <= -Math.PI) sweep += 2 * Math.PI; if (sweep < 0) sweep += 2 * Math.PI   // 同 click handler：归一到 [0,2π) CCW
         const w = (s.sketchSlotW || 20) / 2
-        if (w >= R) return { ...unsup, sketchDim: null, status: `圆弧槽：槽宽(${s.sketchSlotW}) 不可 ≥ 直径 — 减槽宽或加半径` }
-        if (sweep < 0.05) return { ...unsup, sketchDim: null, status: '圆弧槽：弧太短' }
+        if (w >= R) return { ...unsup, sketchDim: null, status: `圓弧槽：槽寬(${s.sketchSlotW}) 不可 ≥ 直徑 — 減槽寬或加半徑` }
+        if (sweep < 0.05) return { ...unsup, sketchDim: null, status: '圓弧槽：弧太短' }
         if (sweep > 2 * Math.PI - 0.1) sweep = 2 * Math.PI - 0.1
         const a1f = a0 + sweep, rad = (a: number): Pt => [Math.cos(a), Math.sin(a)], tan = (a: number): Pt => [-Math.sin(a), Math.cos(a)]
         const aMid = (a0 + a1f) / 2, rd1 = rad(a1f), tg1 = tan(a1f), rd0 = rad(a0), tg0 = tan(a0)
@@ -10011,31 +10011,31 @@ export const useApp = create<AppState>((rawSet, get) => {
         const E1: Pt = [c[0] + R * rd1[0], c[1] + R * rd1[1]], E0: Pt = [c[0] + R * rd0[0], c[1] + R * rd0[1]]
         const tipFar: Pt = [E1[0] + w * tg1[0], E1[1] + w * tg1[1]], tipNear: Pt = [E0[0] - w * tg0[0], E0[1] - w * tg0[1]]
         const shape = vertsPoly([V0, V1, V2, V3], [bulgeFromMid(V0, V1, mOuter), bulgeFromMid(V1, V2, tipFar), bulgeFromMid(V2, V3, mInner), bulgeFromMid(V3, V0, tipNear)])
-        return { ...bank, sketchShape: shape, sketchStart: null, polyPts: [], ...clr, status: `圆弧槽已画好（R${R.toFixed(0)} 弧${(sweep * 180 / Math.PI).toFixed(0)}° 宽${(2 * w).toFixed(0)}）— 点「拉伸」` }
+        return { ...bank, sketchShape: shape, sketchStart: null, polyPts: [], ...clr, status: `圓弧槽已畫好（R${R.toFixed(0)} 弧${(sweep * 180 / Math.PI).toFixed(0)}° 寬${(2 * w).toFixed(0)}）— 點「拉伸」` }
       }
       return unsup
     }
     if (tool === 'earc') {
       const P = s.polyPts
       const stageHistory={sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[]}
-      if(P.length<=2&&buf[0].trim()&&(!Number.isFinite(Number(buf[0]))||Number(buf[0])<=1e-6))return {status:'半轴必须是大于零的有效数值'}
+      if(P.length<=2&&buf[0].trim()&&(!Number.isFinite(Number(buf[0]))||Number(buf[0])<=1e-6))return {status:'半軸必須是大於零的有效數值'}
       if (P.length === 1) {   // 长半轴 rx → 落长轴端（旋转由预览方向定）
         const C = P[0], dx = prev[0] - C[0], dy = prev[1] - C[1], L0 = Math.hypot(dx, dy) || 1
         const rx = num(buf[0], L0), P2: Pt = [C[0] + dx / L0 * rx, C[1] + dy / L0 * rx]
-        return { ...stageHistory, polyPts: [C, P2], sketchPreview: P2, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '椭圆弧：打字短半轴 ry 或点第三点' }
+        return { ...stageHistory, polyPts: [C, P2], sketchPreview: P2, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '橢圓弧：打字短半軸 ry 或點第三點' }
       }
       if (P.length === 2) {   // 短半轴 ry → 落短轴点（侧由预览定）
         const C = P[0], Px = P[1], rot = Math.atan2(Px[1] - C[1], Px[0] - C[0]), ux = Math.cos(rot), uy = Math.sin(rot)
         const vPrev = (prev[0] - C[0]) * (-uy) + (prev[1] - C[1]) * ux, sgn = vPrev < 0 ? -1 : 1
         const ry = num(buf[0], Math.abs(vPrev) || 5), P3: Pt = [C[0] + sgn * ry * (-uy), C[1] + sgn * ry * ux]
-        return { ...stageHistory, polyPts: [C, Px, P3], sketchPreview: P3, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '椭圆弧：打字起始角° 或点起角' }
+        return { ...stageHistory, polyPts: [C, Px, P3], sketchPreview: P3, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '橢圓弧：打字起始角° 或點起角' }
       }
       if (P.length === 3) {   // 起始角°（相对长轴本地参数角）→ 落起角点
         const C = P[0], Px = P[1], rot = Math.atan2(Px[1] - C[1], Px[0] - C[0]), ux = Math.cos(rot), uy = Math.sin(rot)
         const rx = Math.hypot(Px[0] - C[0], Px[1] - C[1]) || 10, ry = Math.abs((P[2][0] - C[0]) * (-uy) + (P[2][1] - C[1]) * ux) || 5
         const a0 = parseAng(buf[0], 0) * Math.PI / 180
         const P4: Pt = [C[0] + rx * Math.cos(a0) * ux + ry * Math.sin(a0) * (-uy), C[1] + rx * Math.cos(a0) * uy + ry * Math.sin(a0) * ux]
-        return { ...stageHistory, polyPts: [C, Px, P[2], P4], sketchPreview: P4, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '椭圆弧：打字终止角° 或点终角' }
+        return { ...stageHistory, polyPts: [C, Px, P[2], P4], sketchPreview: P4, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '橢圓弧：打字終止角° 或點終角' }
       }
       if (P.length === 4) {   // 终止角° → COMMIT
         const C = P[0], Px = P[1], rot = Math.atan2(Px[1] - C[1], Px[0] - C[0]) * 180 / Math.PI
@@ -10044,19 +10044,19 @@ export const useApp = create<AppState>((rawSet, get) => {
         const rx = Math.hypot(Px[0] - C[0], Px[1] - C[1]) || 10, ry = Math.abs(proj(P[2]).v) || 5
         const angOf = (Q: Pt) => { const q = proj(Q); return Math.atan2(q.v / ry, q.u / rx) * 180 / Math.PI }
         const a0 = angOf(P[3]), a1 = parseAng(buf[0], a0 + (s.ellipseArcDirection==='cw'?-90:90))
-        if(Math.abs(Math.sin((a1-a0)*Math.PI/360))<1e-9)return {status:'起终点不能重合；完整椭圆请用椭圆工具'}
+        if(Math.abs(Math.sin((a1-a0)*Math.PI/360))<1e-9)return {status:'起終點不能重合；完整橢圓請用橢圓工具'}
         const earc = ellipseArcWithSweep({cx:C[0],cy:C[1],rx,ry,rot},a0,ellipseArcSweep({cx:C[0],cy:C[1],rx,ry,rot,a0,a1,sweep:s.ellipseArcDirection==='ccw'}))
-        return { ...bank, ...stageHistory, sketchShape: { type: 'poly', pts: ellipseArcSample(earc), earc, open: true }, snapSrc:null, sketchStart: null, polyPts: [], ...clr, status: `椭圆弧已画好（rx${rx.toFixed(0)} ry${ry.toFixed(0)} ${a0.toFixed(0)}°→${a1.toFixed(0)}°）— 「闭合」可封口再拉伸` }
+        return { ...bank, ...stageHistory, sketchShape: { type: 'poly', pts: ellipseArcSample(earc), earc, open: true }, snapSrc:null, sketchStart: null, polyPts: [], ...clr, status: `橢圓弧已畫好（rx${rx.toFixed(0)} ry${ry.toFixed(0)} ${a0.toFixed(0)}°→${a1.toFixed(0)}°）— 「閉合」可封口再拉伸` }
       }
       return unsup
     }
     if (tool === 'conic') {
       if (s.polyPts.length === 2) {   // ρ 充满度 → COMMIT（顶点用当前预览位置，0..1 夹帽）
         const P0 = s.polyPts[0], P2 = s.polyPts[1], apex = prev
-        if (Math.hypot(P2[0] - P0[0], P2[1] - P0[1]) < 0.5) return { ...unsup, sketchDim: null, status: '圆锥曲线：起终点太近' }
+        if (Math.hypot(P2[0] - P0[0], P2[1] - P0[1]) < 0.5) return { ...unsup, sketchDim: null, status: '圓錐曲線：起終點太近' }
         const v = parseFloat(buf[0]), rho = isFinite(v) ? Math.max(0.01, Math.min(0.99, v)) : (s.sketchConicRho || 0.5)
         const kind = rho < 0.5 ? '椭圆' : rho > 0.5 ? '双曲' : '抛物'
-        return { ...bank, sketchShape: { type: 'poly', pts: sampleConic(P0, P2, apex, rho, 64), conic: true, smooth: true, open: true }, sketchStart: null, polyPts: [], ...clr, status: `圆锥曲线已画好（ρ${rho.toFixed(2)} ${kind}线）— 「闭合」可封口再拉伸` }
+        return { ...bank, sketchShape: { type: 'poly', pts: sampleConic(P0, P2, apex, rho, 64), conic: true, smooth: true, open: true }, sketchStart: null, polyPts: [], ...clr, status: `圓錐曲線已畫好（ρ${rho.toFixed(2)} ${kind}線）— 「閉合」可封口再拉伸` }
       }
       return unsup
     }
@@ -10064,7 +10064,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const dx = prev[0] - start[0], dy = prev[1] - start[1], L0 = Math.hypot(dx, dy) || 1
       const Lf = num(buf[0], 2 * L0), ux = dx / L0, uy = dy / L0
       const A: Pt = [start[0] + ux * Lf / 2, start[1] + uy * Lf / 2], B: Pt = [start[0] - ux * Lf / 2, start[1] - uy * Lf / 2]
-      return { ...bank, sketchShape: { type: 'poly', pts: [A, B], open: true }, sketchStart: null, ...clr, status: `中点线 全长 ${Lf} mm（关于中点对称）— 可标尺寸/做参考` }
+      return { ...bank, sketchShape: { type: 'poly', pts: [A, B], open: true }, sketchStart: null, ...clr, status: `中點線 全長 ${Lf} mm（關於中點對稱）— 可標尺寸/做參考` }
     }
     if (tool === 'arc' || tool === 'circle3') return unsup   // 三点弧曲率/三点圆 单数字歧义/欠定 → 诚实提示（keys 已被吃，可接受）
     return {}
@@ -10085,7 +10085,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const okMsg = (c: SketchShape) => c.construction ? '已闭合开放构造轮廓（虚线·参考用，唔参与拉伸）— 按「构造」掣可转返实线' : '已闭合开放轮廓（实线，可拉伸）— 点「拉伸」'   // D4-3：构造线唔好误报「可拉伸」
         if (s.sketchShape) { const c = closeOpen(s.sketchShape); if (c) { activeClosed = true; return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: c, status: okMsg(c) } } }
         for (let i = s.sketchProfiles.length - 1; i >= 0; i--) { const c = closeOpen(s.sketchProfiles[i]); if (c) { const np = [...s.sketchProfiles]; np[i] = c; return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: np, status: okMsg(c) } } }
-        return { status: '至少需要 3 个点才能闭合（或先有一条开放折线可闭合）' }
+        return { status: '至少需要 3 個點才能閉合（或先有一條開放折線可閉合）' }
       }
       activeClosed = true   // live 链闭合 → 产生新 active sketchShape，trailing 推断应跑
       const isBSpline = s.sketchTool === 'bspline'   // S127
@@ -10094,7 +10094,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (!smooth && s.polyBulges.some((b) => Math.abs(b) > 1e-12)) {
         const bulges = s.polyBulges.slice(0, s.polyPts.length - 1)
         while (bulges.length < s.polyPts.length - 1) bulges.push(0)
-        return { sketchShape: vertsPoly(s.polyPts, [...bulges, 0]), polyPts: [], polyBulges: [], polyArcMode: false, status: '折线已闭合（含真圆弧段）— 点「拉伸」' }
+        return { sketchShape: vertsPoly(s.polyPts, [...bulges, 0]), polyPts: [], polyBulges: [], polyArcMode: false, status: '折線已閉合（含真圓弧段）— 點「拉伸」' }
       }
       const finalPts = smooth ? (isBSpline ? sampleBSpline(s.polyPts, { closed: true, samples: 64 }) : catmullRomClosed(s.polyPts)) : s.polyPts
       // T765（S43）：绘制时自动约束推断（Fusion 同款）— 画到水平/竖直嘅段（画线时方向锁已吸正）
@@ -10111,7 +10111,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           else if (dx < 0.01 && dy > 0.5) auto.push({ id: skConId(), kind: 'con', type: 'v', a: { kind: 'edge', shape: idx, idx: j } } as SkCon)
         }
       }
-      return { sketchShape: { type: 'poly', pts: finalPts, ...(smooth ? { ctrl: s.polyPts, smooth: true, ...(isBSpline ? { bspline: true } : {}) } : {}) }, polyPts: [], skCons: auto.length ? [...s.skCons, ...auto] : s.skCons, status: `${isBSpline ? 'B样条' : smooth ? '样条' : '折线'}已闭合${auto.length ? ` · 自动加咗 ${auto.length} 个水平/竖直约束（Fusion 式推断）` : ''} — 点「拉伸」（${smooth ? '真平滑曲面' : '直边'}）` }
+      return { sketchShape: { type: 'poly', pts: finalPts, ...(smooth ? { ctrl: s.polyPts, smooth: true, ...(isBSpline ? { bspline: true } : {}) } : {}) }, polyPts: [], skCons: auto.length ? [...s.skCons, ...auto] : s.skCons, status: `${isBSpline ? 'B樣條' : smooth ? '樣條' : '折線'}已閉合${auto.length ? ` · 自動加咗 ${auto.length} 個水平/豎直約束（Fusion 式推斷）` : ''} — 點「拉伸」（${smooth ? '真平滑曲面' : '直邊'}）` }
     })
     if (get().mode === 'sketch' && get().skCons.length) void get().resolveSk()
     // T773：折线闭合都推断重合（顶点啱啱落喺既有形状顶点上 → ◉）
@@ -10137,7 +10137,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (bp) {
       if (id && id !== bp.from) { get().pickComponentBooleanTool(id); return }
       const fromName = get().components.find((x) => x.id === bp.from)?.name ?? bp.from
-      set({ selectedComponent: bp.from, status: `组件布尔待选工具件：请点【另一个零件】完成（浏览树名称 / 视口 / 勾选复选框 / 上方列表）— 不要点「${fromName}」本身。Esc 或「取消」退出` })
+      set({ selectedComponent: bp.from, status: `組件布爾待選工具件：請點【另一個零件】完成（瀏覽樹名稱 / 視口 / 勾選復選框 / 上方列表）— 不要點「${fromName}」本身。Esc 或「取消」退出` })
       return
     }
     const mfrom = get().compMateFrom
@@ -10159,7 +10159,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   compMeasureFrom: null,
   measureFromComponent: (id) => {
     const c = get().components.find((x) => x.id === id)
-    set({ compMeasureFrom: id, compMateFrom: null, compMeasureSeg: null, status: `量两件距离：已选「${c?.name ?? id}」，请再点第二个零件（树或 3D 场景）` })
+    set({ compMeasureFrom: id, compMateFrom: null, compMeasureSeg: null, status: `量兩件距離：已選「${c?.name ?? id}」，請再點第二個零件（樹或 3D 場景）` })
   },
   // C3: window-version mate — solveMate (bbox-based) aligns two parts: concentric (centre ⊥ axes), flush
   // (centre + face contact), or distance (centre + gap). Reliable WITHOUT face/axis picking. Two-click: pick
@@ -10170,12 +10170,12 @@ export const useApp = create<AppState>((rawSet, get) => {
   mateFromComponent: (id) => {
     const c = get().components.find((x) => x.id === id)
     const lbl = { concentric: '同心对齐', flush: '面贴合', distance: '距离' }[get().mateType]
-    set({ compMateFrom: id, compMeasureFrom: null, status: `配合（${lbl}）：已选「${c?.name ?? id}」（要移动嘅件），请再点目标零件` })
+    set({ compMateFrom: id, compMeasureFrom: null, status: `配合（${lbl}）：已選「${c?.name ?? id}」（要移動嘅件），請再點目標零件` })
   },
   mateStack: (selId, targetId) => set((s) => {
     const B = s.components.find((c) => c.id === selId), A = s.components.find((c) => c.id === targetId)
-    if (!A || !B || A.id === B.id) return { status: '配合需要两个不同组件', compMateFrom: null }
-    if (!A.mesh.vertices.length || !B.mesh.vertices.length) return { status: '配合需要两个有实体几何嘅组件', compMateFrom: null }
+    if (!A || !B || A.id === B.id) return { status: '配合需要兩個不同組件', compMateFrom: null }
+    if (!A.mesh.vertices.length || !B.mesh.vertices.length) return { status: '配合需要兩個有實體幾何嘅組件', compMateFrom: null }
     const aBox = worldAABB(compWorldMatrix(A).elements, A.mesh.vertices)
     const bBox = worldAABB(compWorldMatrix(B).elements, B.mesh.vertices)
     // pos is a world-frame translation (compWorldMatrix applies it after the CAD→world rotation), so the
@@ -10183,7 +10183,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const delta = solveMate(aBox, bBox, s.mateType, s.mateAxis, s.mateSide, s.mateDistance)
     const np: [number, number, number] = [B.pos[0] + delta[0], B.pos[1] + delta[1], B.pos[2] + delta[2]]
     const ax = ['X', 'Y', 'Z'][s.mateAxis], lbl = { concentric: '同心对齐', flush: '面贴合', distance: `距离 ${s.mateDistance}mm` }[s.mateType]
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === B.id ? { ...c, pos: np } : c)), compMateFrom: null, selectedComponent: B.id, status: `已配合：「${B.name}」→「${A.name}」（${lbl}，${ax} 轴${s.mateSide > 0 ? '+' : '−'}侧，⊥轴居中；可撤销）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === B.id ? { ...c, pos: np } : c)), compMateFrom: null, selectedComponent: B.id, status: `已配合：「${B.name}」→「${A.name}」（${lbl}，${ax} 軸${s.mateSide > 0 ? '+' : '−'}側，⊥軸居中；可撤銷）` }
   }),
   // Face-pick mate (true face/axis alignment, upgrade over bbox mate). Pick face on A (reference) → face on B
   // (moves). B is rotated + translated so its face mates flat against A's. Planar coincident only (normals
@@ -10198,18 +10198,18 @@ export const useApp = create<AppState>((rawSet, get) => {
   startFaceMate: (oneShot?: boolean) => set({ faceMateMode: true, faceMatePick: null, faceMatePointPick: null, compMateFrom: null, faceMateOneShot: !!oneShot, status: oneShot
     ? '对齐：点【基准面】再点【要郁件】嘅面（平面贴平 / 圆柱同轴）；或按住 Shift 点两个实体点作精确点对点对齐。一次性，不记录配合。'
     : '拣面配合：先点【基准件】一个面（平面 或 圆柱孔/轴），再点【要郁件】对应面 → 平面对平面贴平 / 圆柱对圆柱同轴' }),
-  cancelFaceMate: () => set({ faceMateMode: false, faceMatePick: null, faceMatePointPick: null, status: '已退出拣面配合' }),
+  cancelFaceMate: () => set({ faceMateMode: false, faceMatePick: null, faceMatePointPick: null, status: '已退出揀面配合' }),
   pickFaceForMate: (compId, face) => { const _nm = get().mates.length; set((s) => {
-    if (!s.faceMatePick) { const kindLbl = face.kind === 'cyl' ? '圆柱面（同轴）' : '平面（贴平）'; return { faceMatePick: { compId, face }, status: `已选基准${kindLbl}，再点【要郁件】对应面` } }
+    if (!s.faceMatePick) { const kindLbl = face.kind === 'cyl' ? '圓柱面（同軸）' : '平面（貼平）'; return { faceMatePick: { compId, face }, status: `已選基準${kindLbl}，再點【要郁件】對應面` } }
     const A = s.faceMatePick
-    if (A.compId === compId) return { status: '请点【另一个】零件嘅面（唔可以同一件）' }
-    if (A.face.kind !== face.kind) return { status: `两个面类型唔夹：基准係${A.face.kind === 'cyl' ? '圆柱' : '平面'}，今次係${face.kind === 'cyl' ? '圆柱' : '平面'}。平面配平面、圆柱配圆柱` }
+    if (A.compId === compId) return { status: '請點【另一個】零件嘅面（唔可以同一件）' }
+    if (A.face.kind !== face.kind) return { status: `兩個面類型唔夾：基準係${A.face.kind === 'cyl' ? '圓柱' : '平面'}，今次係${face.kind === 'cyl' ? '圓柱' : '平面'}。平面配平面、圓柱配圓柱` }
     const B = s.components.find((c) => c.id === compId)
-    if (!B) return { faceMateMode: false, faceMatePick: null, status: '拣面配合失败：搵唔到要郁嘅零件' }
+    if (!B) return { faceMateMode: false, faceMatePick: null, status: '揀面配合失敗：搵唔到要郁嘅零件' }
     // Solve world delta to mate B's face onto A's face (planar coincident OR cylindrical coaxial), then decode
     // B's new pos/rot (root component).
     const Acomp = s.components.find((c) => c.id === A.compId)
-    if (!Acomp) return { faceMateMode: false, faceMatePick: null, status: '拣面配合失败：搵唔到基准件' }
+    if (!Acomp) return { faceMateMode: false, faceMatePick: null, status: '揀面配合失敗：搵唔到基準件' }
     const delta = solveFaceMateDelta(A.face, face, { flip: s.faceMateFlip, gap: s.faceMateGap })
     const Mb = compWorldMatrix(B)
     const Mnew = delta.clone().multiply(Mb)
@@ -10233,19 +10233,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
   }); if (get().mates.length > _nm && get().grounded) get().solveMates() },   // #13：新建持久配合后，有 grounded 锚点 → 闭环同时求解（多配合链一齐 settle；单配合等价旧 snap；无 grounded 保持旧 directed 行为，非回归）
   pickPointForMate: (compId, point) => set((s) => {
-    if (!s.faceMateOneShot) return { status: '点对点对齐只适用于「对齐」：请先运行 Modify → Align。' }
-    if (!s.faceMatePointPick) return { faceMatePick: null, faceMatePointPick: { compId, point }, status: '已选基准点；按住 Shift 点【另一个】零件的目标点。' }
+    if (!s.faceMateOneShot) return { status: '點對點對齊只適用於「對齊」：請先運行 Modify → Align。' }
+    if (!s.faceMatePointPick) return { faceMatePick: null, faceMatePointPick: { compId, point }, status: '已選基準點；按住 Shift 點【另一個】零件的目標點。' }
     const A = s.faceMatePointPick
-    if (A.compId === compId) return { status: '请在【另一个】零件上按住 Shift 点目标点。' }
+    if (A.compId === compId) return { status: '請在【另一個】零件上按住 Shift 點目標點。' }
     const Acomp = s.components.find((c) => c.id === A.compId)
     const B = s.components.find((c) => c.id === compId)
-    if (!Acomp || !B) return { faceMateMode: false, faceMatePointPick: null, status: '点对点对齐失败：找不到组件。' }
+    if (!Acomp || !B) return { faceMateMode: false, faceMatePointPick: null, status: '點對點對齊失敗：找不到組件。' }
     const pose = worldToPose(solvePointMateDelta({ p: A.point }, { p: point }).multiply(compWorldMatrix(B)), meshCenter3(B.mesh))
     return {
       faceMateMode: false, faceMatePick: null, faceMatePointPick: null, faceMateOneShot: false, selectedComponent: B.id,
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       components: s.components.map((c) => c.id === B.id ? { ...c, pos: pose.pos, rot: pose.rot } : c),
-      status: `已点对点对齐：「${B.name}」→「${Acomp.name}」（一次性，可撤销）`,
+      status: `已點對點對齊：「${B.name}」→「${Acomp.name}」（一次性，可撤銷）`,
     }
   }),
   // GM-W5 5.4：交互式关节 J-picker —— 克隆 pickFaceForMate 嘅两面拾取流，但拣完贴合后【喺所拣几何处】建真关节。
@@ -10261,13 +10261,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 第一拣：记低父件（接地边）
     if (!s.jointPick) {
       const kindLbl = face.kind === 'cyl' ? '圆柱面（同轴 → 旋转/滑动关节）' : '平面（贴平 → 刚性/平面关节）'
-      set({ jointPick: { compId, face }, status: `已选父件基准${kindLbl}，再点【子件（要郁件）】对应面` })
+      set({ jointPick: { compId, face }, status: `已選父件基準${kindLbl}，再點【子件（要郁件）】對應面` })
       return
     }
     // 第二拣：子件面 —— 同拣面配合一样嘅校验（唔同件；类型要夹：圆柱配圆柱 / 平面配平面）
     const A = s.jointPick   // 父（唔郁）
-    if (A.compId === compId) { set({ status: '请点【另一个】组件嘅面（关节两件唔可以係同一件）' }); return }
-    if (A.face.kind !== face.kind) { set({ status: `两个面类型唔夹：父件係${A.face.kind === 'cyl' ? '圆柱' : '平面'}，今次係${face.kind === 'cyl' ? '圆柱' : '平面'}。圆柱配圆柱、平面配平面` }); return }
+    if (A.compId === compId) { set({ status: '請點【另一個】組件嘅面（關節兩件唔可以係同一件）' }); return }
+    if (A.face.kind !== face.kind) { set({ status: `兩個面類型唔夾：父件係${A.face.kind === 'cyl' ? '圓柱' : '平面'}，今次係${face.kind === 'cyl' ? '圓柱' : '平面'}。圓柱配圓柱、平面配平面` }); return }
     const Acomp = s.components.find((c) => c.id === A.compId)
     const B = s.components.find((c) => c.id === compId)   // 子（郁）
     if (!Acomp || !B) { set({ jointPickMode: false, jointPick: null, status: '關節拾取失敗：搵唔到組件' }); return }
@@ -10294,7 +10294,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({
       jointPickMode: false, jointPick: null, selectedComponent: B.id,
       components: s.components.map((c) => (c.id === B.id ? { ...c, pos: pose.pos, rot: pose.rot } : c)),
-      status: `已贴合「${B.name}」→「${Acomp.name}」，请喺弹框选关节类型…`,
+      status: `已貼合「${B.name}」→「${Acomp.name}」，請喺弹框選關節類型…`,
     })
     // ── 关节类型选择（appPrompt 编号表，按几何门控）——取消 = 保留贴合、唔建关节（诚实状态）──
     void (async () => {
@@ -10304,7 +10304,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const r = await get().appPrompt(msg, '1', '关节类型')
       const s2 = get()
       if (r === null) {   // 取消：保留贴合、唔建关节 —— 净推贴合嘅单快照
-        set({ undoStack: [...preUndo, preSnap].slice(-60), redoStack: [], status: `已贴合「${B.name}」→「${Acomp.name}」（未建关节 — 可撤销贴合）` })
+        set({ undoStack: [...preUndo, preSnap].slice(-60), redoStack: [], status: `已貼合「${B.name}」→「${Acomp.name}」（未建關節 — 可撤銷貼合）` })
         return
       }
       const pick = parseInt(r.trim(), 10)
@@ -10316,7 +10316,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         undoStack: [...preUndo, preSnap].slice(-60), redoStack: [],
         joints: [...s2.joints, joint],
-        status: `已建 ${JOINT_LABEL[type]}关节 ${jid}：「${B.name}」⚓「${Acomp.name}」（${geomLbl}）— JOINTS 面板可驱动/加限位`,
+        status: `已建 ${JOINT_LABEL[type]}關節 ${jid}：「${B.name}」⚓「${Acomp.name}」（${geomLbl}）— JOINTS 面板可驅動/加限位`,
       })
     })()
   },
@@ -10361,7 +10361,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (r.dist > 0.1 || r.angle > 0.5) bad.push(`${m.id} 错位${r.dist.toFixed(1)}mm/${r.angle.toFixed(0)}°`)   // 容差：>0.1mm 或 >0.5° 当未满足
     }
     const warn = bad.length ? `（⚠ ${bad.length} 个过约束/冲突：${bad.slice(0, 3).join('；')}${bad.length > 3 ? '…' : ''}）` : ''
-    return { components: s.components.map((c) => ({ ...c, pos: pos.get(c.id) ?? c.pos, rot: rot.get(c.id) ?? c.rot })), mateErrors, status: `已重算 ${s.mates.length} 个配合（从动件跟随基准件）${warn}` }
+    return { components: s.components.map((c) => ({ ...c, pos: pos.get(c.id) ?? c.pos, rot: rot.get(c.id) ?? c.rot })), mateErrors, status: `已重算 ${s.mates.length} 個配合（從動件跟隨基準件）${warn}` }
   }),
   // #13：3D 闭环 mate 同时求解器 —— 取代 resolveMates 的 directed last-wins snap。所有 mate 残差【同时】最小二乘
   // （Gauss-Newton + Levenberg，纯模块 assembly/mateSolve）。grounded + opts.pin 固定不动；发散/奇异/NaN → 还原
@@ -10386,34 +10386,34 @@ export const useApp = create<AppState>((rawSet, get) => {
     const r = mateSolve(comps, s.mates, fixedIds, worldMatrixOf, L0)
     const bad = r.conflictingIds.map((id) => { const e = r.mateErrors[id]; return `${id} 错位${e.dist.toFixed(1)}mm/${e.angle.toFixed(0)}°` })
     const warn = !r.ok && r.warning ? `（⚠ ${r.warning}）` : bad.length ? `（⚠ ${bad.length} 个过约束/冲突：${bad.slice(0, 3).join('；')}${bad.length > 3 ? '…' : ''}${r.mobility < 0 ? ` · 自由度 ${r.mobility}<0 冗余` : ''}）` : ''
-    return { components: s.components.map((c) => ({ ...c, pos: r.pos.get(c.id) ?? c.pos, rot: r.rot.get(c.id) ?? c.rot })), mateErrors: r.mateErrors, status: `已闭环求解 ${s.mates.length} 个配合（同时最小二乘 · 残差 ${r.residual.toExponential(1)} · ${r.iters} 迭代）${warn}` }
+    return { components: s.components.map((c) => ({ ...c, pos: r.pos.get(c.id) ?? c.pos, rot: r.rot.get(c.id) ?? c.rot })), mateErrors: r.mateErrors, status: `已閉環求解 ${s.mates.length} 個配合（同時最小二乘 · 殘差 ${r.residual.toExponential(1)} · ${r.iters} 迭代）${warn}` }
   }),
-  clearMates: () => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], mates: [], status: s.mates.length ? `已清除 ${s.mates.length} 个配合关系（零件位置不变）` : '无配合关系可清除' })),   // bt4: 清配合可撤销
+  clearMates: () => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], mates: [], status: s.mates.length ? `已清除 ${s.mates.length} 個配合關係（零件位置不變）` : '無配合關係可清除' })),   // bt4: 清配合可撤销
   screwFitMode: false,
   startScrewFit: () => set({ screwFitMode: true, faceMateMode: false, faceMatePick: null, jointHolePick: null, status: '按孔配螺絲：點一個【圓柱孔面】→ 自動量孔徑、配 ISO 螺絲、同軸插入（孔面要係圓柱，非平面）' }),
   vpDlg: null,
   setVpDlg: (d) => set({ vpDlg: d }),
   // ── 几何级关节原点（T733）：拾取孔/圆柱面 → 关节锚点=孔心、轴=孔轴（铰链装到指定孔位）──
   jointHolePick: null,
-  startJointHolePick: (jointId) => set({ jointHolePick: jointId, screwFitMode: false, faceMateMode: false, faceMatePick: null, status: '🎯 拾孔定轴：点一个【圆柱孔/轴面】→ 关节锚点对到孔心、转轴沿孔轴（铰链/转轴装到指定孔位）' }),
+  startJointHolePick: (jointId) => set({ jointHolePick: jointId, screwFitMode: false, faceMateMode: false, faceMatePick: null, status: '🎯 拾孔定軸：點一個【圓柱孔/軸面】→ 關節錨點對到孔心、轉軸沿孔軸（鉸鏈/轉軸裝到指定孔位）' }),
   applyJointHolePick: (compId, face) => {
     const s = get()
     const jid = s.jointHolePick
     if (!jid) return
-    if (face.kind !== 'cyl') { set({ status: '拾孔定轴：要点【圆柱面】（孔内壁/圆轴外壁），唔係平面 — 再试' }); return }
+    if (face.kind !== 'cyl') { set({ status: '拾孔定軸：要點【圓柱面】（孔內壁/圓軸外壁），唔係平面 — 再試' }); return }
     const j = s.joints.find((x) => x.id === jid)
-    if (!j) { set({ jointHolePick: null, status: '拾孔定轴：关节已唔存在' }); return }
+    if (!j) { set({ jointHolePick: null, status: '拾孔定軸：關節已唔存在' }); return }
     const onPart = compId === j.parent || compId === j.child
     set({
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       jointHolePick: null,
       joints: s.joints.map((x) => (x.id === jid ? { ...x, anchor: [face.p[0], face.p[1], face.p[2]] as [number, number, number], axis: [face.axis[0], face.axis[1], face.axis[2]] as [number, number, number] } : x)),
-      status: `已把关节「${j.name}」锚到孔位（Ø${(2 * face.r).toFixed(1)} 孔心 + 沿孔轴）${onPart ? '' : ' ⚠ 呢个孔唔喺关节两件上（几何上照用得，但移动件后锚点唔跟）'} — 驱动滑块试下`,
+      status: `已把關節「${j.name}」錨到孔位（Ø${(2 * face.r).toFixed(1)} 孔心 + 沿孔軸）${onPart ? '' : ' ⚠ 呢個孔唔喺關節兩件上（幾何上照用得，但移動件後錨點唔跟）'} — 驅動滑塊試下`,
     })
   },
   fitScrewToHole: async (compId, face) => {
     const s = get()
-    if (face.kind !== 'cyl') { set({ status: '请点一个【圆柱孔面】（孔/沉台内壁），唔係平面' }); return }
+    if (face.kind !== 'cyl') { set({ status: '請點一個【圓柱孔面】（孔/沉台內壁），唔係平面' }); return }
     const hole = s.components.find((c) => c.id === compId)
     if (!hole) { set({ screwFitMode: false, status: '按孔配螺絲失敗：搵唔到零件' }); return }
     const holeDia = 2 * face.r
@@ -10423,7 +10423,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     try {
       set({ busy: true, status: `按孔配螺絲：孔Ø${holeDia.toFixed(1)} → 推薦 ${rec.size}（${fitLbl}），生成中…` })
       const mesh = await cad.rebuild(buildFastener('capscrew', rec.size, len))
-      if (!mesh?.vertices.length) { set({ busy: false, screwFitMode: false, status: '螺丝生成失败' }); return }
+      if (!mesh?.vertices.length) { set({ busy: false, screwFitMode: false, status: '螺絲生成失敗' }); return }
       const s2 = get()
       let maxN = 0; for (const c of s2.components) { const m = /^C(\d+)$/.exec(c.id); if (m) maxN = Math.max(maxN, Number(m[1])) }
       const nid = 'C' + (maxN + 1)
@@ -10453,12 +10453,12 @@ export const useApp = create<AppState>((rawSet, get) => {
   fitScrewsToAllHoles: async (compId) => {
     const s = get()
     const part = s.components.find((c) => c.id === compId)
-    if (!part || !part.mesh.vertices.length) { set({ status: '批量配螺丝：先选一个有孔嘅零件' }); return }
+    if (!part || !part.mesh.vertices.length) { set({ status: '批量配螺絲：先選一個有孔嘅零件' }); return }
     // Detect holes in CAD-local coords, then transform each axis/centre to world via the part's world matrix.
     const Mpart = compWorldMatrix(part)
     const cyls = detectAllCylinders(part.mesh).filter((c) => c.concave && c.r >= 1.4 && c.r <= 13.5)
-    if (!cyls.length) { set({ status: '批量配螺丝：呢个零件侦测唔到圆柱孔（孔太小/太大或非圆柱）' }); return }
-    set({ busy: true, status: `批量配螺丝：侦测到 ${cyls.length} 个孔，生成中…` })
+    if (!cyls.length) { set({ status: '批量配螺絲：呢個零件偵測唔到圓柱孔（孔太小/太大或非圓柱）' }); return }
+    set({ busy: true, status: `批量配螺絲：偵測到 ${cyls.length} 個孔，生成中…` })
     try {
       const newComps: AppState['components'] = []
       const newMates: AppState['mates'] = []
@@ -10485,15 +10485,15 @@ export const useApp = create<AppState>((rawSet, get) => {
         busy: false,
         undoStack: [...s2.undoStack, { ...docSnap(s2), components: s.components }].slice(-60), redoStack: [],
         components: [...s2.components, ...newComps], mates: [...s2.mates, ...newMates],
-        status: `已批量配螺丝：「${part.name}」嘅 ${newComps.length} 个孔各插入同轴内六角螺丝 + 记录配合（可撤销）`,
+        status: `已批量配螺絲：「${part.name}」嘅 ${newComps.length} 個孔各插入同軸內六角螺絲 + 記錄配合（可撤銷）`,
       })
       get().requestFit()
-    } catch (e) { set({ busy: false, status: '批量配螺丝失败：' + ((e as Error)?.message || e) }) }
+    } catch (e) { set({ busy: false, status: '批量配螺絲失敗：' + ((e as Error)?.message || e) }) }
   },
   compMeasureSeg: null,
   measureTwoComponents: (idA, idB) => {
     const s = get(); const A = s.components.find((c) => c.id === idA), B = s.components.find((c) => c.id === idB)
-    if (!A || !B) { set({ status: '量两件需要两个有效组件' }); return }
+    if (!A || !B) { set({ status: '量兩件需要兩個有效組件' }); return }
     const ca = s.componentCenter(idA), cb = s.componentCenter(idB)
     const dx = cb[0] - ca[0], dy = cb[1] - ca[1], dz = cb[2] - ca[2]
     const dist = Math.hypot(dx, dy, dz)
@@ -10526,7 +10526,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({
       compMeasureSeg: seg,
       lastMeasure: gap != null ? { value: gap, label: '净空' } : get().lastMeasure,
-      status: `「${A.name}」↔「${B.name}」：中心距 ${fmtLen(dist, u)}（ΔX ${fmtLen(Math.abs(dx), u)} ΔY ${fmtLen(Math.abs(dy), u)} ΔZ ${fmtLen(Math.abs(dz), u)}）${gap != null ? ` · 净空 ${gap === 0 ? '0（相交/重叠）' : fmtLen(gap, u) + (approx ? '（采样近似）' : '')}` : ''}`,
+      status: `「${A.name}」↔「${B.name}」：中心距 ${fmtLen(dist, u)}（ΔX ${fmtLen(Math.abs(dx), u)} ΔY ${fmtLen(Math.abs(dy), u)} ΔZ ${fmtLen(Math.abs(dz), u)}）${gap != null ? ` · 淨空 ${gap === 0 ? '0（相交/重疊）' : fmtLen(gap, u) + (approx ? '（採樣近似）' : '')}` : ''}`,
     })
   },
   checkedComps: [],
@@ -10537,7 +10537,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     set((s) => ({ checkedComps: s.checkedComps.includes(id) ? s.checkedComps.filter((x) => x !== id) : [...s.checkedComps, id] }))
   },
   clearCheckedComps: () => set({ checkedComps: [] }),
-  batchSetHiddenChecked: (hidden) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (s.checkedComps.includes(c.id) ? { ...c, hidden } : c)), status: `批量${hidden ? '隐藏' : '显示'} ${s.checkedComps.length} 个组件` })),   // bt4: 批量可见性可撤销
+  batchSetHiddenChecked: (hidden) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (s.checkedComps.includes(c.id) ? { ...c, hidden } : c)), status: `批量${hidden ? '隱藏' : '顯示'} ${s.checkedComps.length} 個組件` })),   // bt4: 批量可见性可撤销
   // Batch-assign a material (from MATERIALS, or '' to clear) to all checked components — sets density (→ mass/BOM)
   // and the matching preset colour. Undoable so a wrong pick is easy to revert.
   batchSetMaterialChecked: (mat) => set((s) => {
@@ -10546,7 +10546,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       components: s.components.map((c) => (sel.has(c.id) ? { ...c, material: mat || undefined, ...(m ? { color: m.color } : {}) } : c)),
-      status: `已为 ${sel.size} 个组件设材质：${mat || '无'}`,
+      status: `已為 ${sel.size} 個組件設材質：${mat || '無'}`,
     }
   }),
   // Export only the CHECKED components as a STL zip (selective subset — e.g. just the parts you want to print now).
@@ -10555,7 +10555,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const R = new Matrix4() // identity → CAD frame (Z-up, on z=0): slicer-ready single parts
     const checked = new Set(s.checkedComps)
     const comps = s.components.filter((c) => checked.has(c.id) && visibleDefinitionBodies(c, s.componentDefs).some((b) => b.mesh.vertices.length && b.mesh.triangles.length))
-    if (!comps.length) { set({ status: '冇勾选有实体几何嘅组件可导出' }); return }
+    if (!comps.length) { set({ status: '冇勾選有實體幾何嘅組件可匯出' }); return }
     const used = new Map<string, number>()
     const files = comps.map((c) => {
       let base = (c.name || 'part').replace(/[\\/:*?"<>|]/g, '_')
@@ -10564,31 +10564,31 @@ export const useApp = create<AppState>((rawSet, get) => {
       return { name: `${base}.stl`, data: new Uint8Array(meshesToBinarySTL(bodies.map((body) => ({ mesh: body.mesh, matrix: R.elements.slice() })))) }
     })
     triggerDownload(makeZip(files), `${projName(s.projectName)}-勾选零件.zip`, 'application/zip')
-    set({ status: `已导出勾选嘅 ${files.length} 个零件 STL（打包 zip）` })
+    set({ status: `已匯出勾選嘅 ${files.length} 個零件 STL（打包 zip）` })
   },
   // Align the 2nd checked component's centre to the 1st's on world axis (0=X,1=Y,2=Z) — line up two parts.
   alignCheckedComps: (axis) => set((s) => {
-    if (s.checkedComps.length !== 2) return { status: '对齐需要恰好勾选 2 个组件' }
+    if (s.checkedComps.length !== 2) return { status: '對齊需要恰好勾選 2 個組件' }
     const c1 = s.components.find((c) => c.id === s.checkedComps[0]), c2 = s.components.find((c) => c.id === s.checkedComps[1])
     if (!c1 || !c2) return {}
     const wc = (c: typeof c1) => visibleDefinitionBodies(c, s.componentDefs).length ? s.componentCenter(c.id) : null
-    const a = wc(c1), b = wc(c2); if (!a || !b) return { status: '组件无实体几何，无法对齐' }
+    const a = wc(c1), b = wc(c2); if (!a || !b) return { status: '組件無實體幾何，無法對齊' }
     const np: [number, number, number] = [c2.pos[0], c2.pos[1], c2.pos[2]]; np[axis] += a[axis] - b[axis]
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === c2.id ? { ...c, pos: np } : c)), status: `已把「${c2.name}」对齐到「${c1.name}」的 ${['X', 'Y', 'Z'][axis]} 轴中心` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === c2.id ? { ...c, pos: np } : c)), status: `已把「${c2.name}」對齊到「${c1.name}」的 ${['X', 'Y', 'Z'][axis]} 軸中心` }
   }),
   distributeCheckedComps: (axis) => set((s) => {
-    if (s.checkedComps.length < 3) return { status: '等距分布需要勾选 ≥3 个组件' }
+    if (s.checkedComps.length < 3) return { status: '等距分布需要勾選 ≥3 個組件' }
     const wc = (c: typeof s.components[number]) => visibleDefinitionBodies(c, s.componentDefs).length ? s.componentCenter(c.id) : null
     // Pair each checked component with its world-axis centre; drop any with no geometry.
     const items = s.checkedComps.map((id) => s.components.find((c) => c.id === id)).filter(Boolean).map((c) => ({ c: c!, ctr: wc(c!) })).filter((it) => it.ctr) as { c: typeof s.components[number]; ctr: [number, number, number] }[]
-    if (items.length < 3) return { status: '等距分布需要 ≥3 个有实体几何的组件' }
+    if (items.length < 3) return { status: '等距分布需要 ≥3 個有實體幾何的組件' }
     items.sort((p, q) => p.ctr[axis] - q.ctr[axis])
     const lo = items[0].ctr[axis], hi = items[items.length - 1].ctr[axis], span = hi - lo
-    if (Math.abs(span) < 1e-6) return { status: '所选组件在该轴上重合，无法分布（先沿该轴拉开）' }
+    if (Math.abs(span) < 1e-6) return { status: '所選組件在該軸上重合，無法分布（先沿該軸拉開）' }
     // Keep the two extremes fixed; evenly retarget the interior ones. Translation is 1:1 in world, so shifting pos[axis] by Δcentre is exact.
     const shifts = new Map<string, [number, number, number]>()
     for (let i = 1; i < items.length - 1; i++) { const it = items[i], target = lo + span * (i / (items.length - 1)), np: [number, number, number] = [it.c.pos[0], it.c.pos[1], it.c.pos[2]]; np[axis] += target - it.ctr[axis]; shifts.set(it.c.id, np) }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (shifts.has(c.id) ? { ...c, pos: shifts.get(c.id)! } : c)), status: `已把 ${items.length} 个组件沿 ${['X', 'Y', 'Z'][axis]} 轴等距分布（首尾不动，中间 ${items.length - 2} 个均分）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (shifts.has(c.id) ? { ...c, pos: shifts.get(c.id)! } : c)), status: `已把 ${items.length} 個組件沿 ${['X', 'Y', 'Z'][axis]} 軸等距分布（首尾不動，中間 ${items.length - 2} 個均分）` }
   }),
   batchDeleteChecked: () => set((s) => {
     const del = new Set(s.checkedComps)
@@ -10601,7 +10601,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       motionLinks: s.motionLinks.filter((l) => !removedJoints.has(l.driver) && !removedJoints.has(l.driven)),
       checkedComps: [], selectedComponent: del.has(s.selectedComponent ?? '') ? null : s.selectedComponent,
       selectedComponentBody: s.selectedComponentBody && del.has(s.selectedComponentBody.componentId) ? null : s.selectedComponentBody,
-      status: `已删除 ${del.size} 个组件`,
+      status: `已刪除 ${del.size} 個組件`,
     }
   }),
   setComponentPos: (id, pos) => { set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, pos } : c)) })); if (get().mates.some((m) => m.aComp === id)) get().resolveMates() },
@@ -10611,7 +10611,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // The occurrence remains the assembly selection target, matching Fusion's hierarchy.
   toggleComponentBodyVisible: (componentId, bodyId) => set((s) => {
     const c = s.components.find((x) => x.id === componentId)
-    if (!c?.defId) return { status: '此组件没有可管理的实体定义' }
+    if (!c?.defId) return { status: '此組件沒有可管理的實體定義' }
     let changed = false
     const defs = s.componentDefs.map((d) => d.id === c.defId ? (() => {
       const bodies = d.bodies.map((b) => b.id === bodyId ? (changed = true, { ...b, hidden: !b.hidden }) : b)
@@ -10619,10 +10619,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     })() : d)
     return changed
       ? { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], componentDefs: defs }
-      : { status: '找不到该实体' }
+      : { status: '找不到該實體' }
   }),
-  isolateComponent: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => ({ ...c, hidden: c.id !== id })), status: '已孤立显示——其余组件隐藏' })),
-  showAllComponents: () => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => ({ ...c, hidden: false })), status: '已显示全部组件' })),
+  isolateComponent: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => ({ ...c, hidden: c.id !== id })), status: '已孤立顯示——其餘組件隱藏' })),
+  showAllComponents: () => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => ({ ...c, hidden: false })), status: '已顯示全部組件' })),
   // Interference/collision check: pairwise world-AABB overlap of visible components.
   // S192：升级到【精确相交实体】—— AABB+蒙特卡洛做平价预筛，过筛对再用 manifold 布尔算真重叠几何 + 精确体积，
   // 红区由粗 AABB 盒变真重叠形状。布尔失败（非流形/空）→ 诚实回退蒙特卡洛估算 + AABB 盒。
@@ -10631,7 +10631,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // GM-X1 #6：只算选定子集（interfSubset 非空）；否则全部可见件。含共面（includeCoincident）放宽容差。
     const visible = s.components.filter((c) => !c.hidden)
     const comps = s.interfSubset.length ? visible.filter((c) => s.interfSubset.includes(c.id)) : visible
-    if (comps.length < 2) { set({ status: s.interfSubset.length ? '干涉检查：选定子集需 ≥2 个组件（在浏览器勾选后再算）' : '干涉检查需要 ≥2 个可见组件', interfReport: null, interfPanelOpen: false }); return }
+    if (comps.length < 2) { set({ status: s.interfSubset.length ? '干涉檢查：選定子集需 ≥2 個組件（在瀏覽器勾選後再算）' : '干涉檢查需要 ≥2 個可見組件', interfReport: null, interfPanelOpen: false }); return }
     const fk = computeFK(s.components.map((c) => c.id), s.joints)
     // This is an inspection-only aggregate.  Definition bodies remain independent in the model;
     // the temporary mesh merely lets one occurrence participate in collision checks as a union
@@ -10752,7 +10752,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       interfHits: hitBoxes, interfMeshes: hitMeshes,
       interfReport: { hits: report, gap: nearest.gap < Infinity ? { a: nearest.a, b: nearest.b, gap: nearest.gap } : null, comps: comps.length },
       interfPanelOpen: true,   // Fusion 干涉检查完即弹结果对话框（无论有冇干涉都开 — 无干涉本身就系答案）
-      status: hits.length ? `⚠ 干涉 ${hits.length} 处（${allExact ? '精确相交体积·manifold 布尔，红区=真重叠几何' : '部分回退蒙特卡洛估算 ≈，红区=重叠范围'}）：${hitStr}${gapStr}` : `✓ 无干涉（${comps.length} 个组件实体互不重叠）${gapStr}`,
+      status: hits.length ? `⚠ 干涉 ${hits.length} 處（${allExact ? '精確相交體積·manifold 布爾，紅區=真重疊幾何' : '部分回退蒙特卡洛估算 ≈，紅區=重疊範圍'}）：${hitStr}${gapStr}` : `✓ 無干涉（${comps.length} 個組件實體互不重疊）${gapStr}`,
     })
   },
   interfHits: [],
@@ -10764,9 +10764,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   // GM-X1 #6：干涉两步 —— 子集拾取（浏览器勾选 → interfSubset）+ 含共面开关（拆自动跑为「拣集 → Compute」）
   interfIncludeCoincident: false,
   interfSubset: [],
-  setInterfIncludeCoincident: (v) => set({ interfIncludeCoincident: v, status: v ? '干涉：含共面/接触面（放宽容差，贴面亦计）' : '干涉：只计真实体积重叠（排除刚接触）' }),
+  setInterfIncludeCoincident: (v) => set({ interfIncludeCoincident: v, status: v ? '干涉：含共面/接觸面（放寬容差，貼面亦計）' : '干涉：只計真實體積重疊（排除剛接觸）' }),
   toggleInterfSubsetId: (id) => set((s) => ({ interfSubset: s.interfSubset.includes(id) ? s.interfSubset.filter((x) => x !== id) : [...s.interfSubset, id] })),
-  clearInterfSubset: () => set({ interfSubset: [], status: '干涉子集已清 — Compute 将检查全部可见组件' }),
+  clearInterfSubset: () => set({ interfSubset: [], status: '干涉子集已清 — Compute 將檢查全部可見組件' }),
   copyInterfReport: () => {
     const r = get().interfReport
     if (!r) return
@@ -10777,7 +10777,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     r.hits.forEach((h, i) => lines.push(`${i + 1}. ${h.a} ∩ ${h.b}：${fmtV(h.vol)}${h.exact ? '（manifold 精确布尔）' : '（蒙特卡洛估算 ≈）'}　区域 ${fmtP(h.min)} → ${fmtP(h.max)}`))
     if (r.gap) lines.push('', `最近间隙 ≈ ${r.gap.gap.toFixed(2)} mm（${r.gap.a} ↔ ${r.gap.b}，顶点采样）`)
     try { void navigator.clipboard?.writeText(lines.join('\n')) } catch { /* 剪贴板唔可用 → status 照提示 */ }
-    set({ status: '已复制干涉报告到剪贴板（可贴入邮件/工单）' })
+    set({ status: '已複製干涉報告到剪貼板（可貼入郵件/工單）' })
   },
   // S163：跨运动干涉检查 — 扫掠某驱动关节全行程，每步重传播运动连接 + 重算 FK + AABB/蒙特卡洛实体重叠，
   // 二分细化「首次撞」嘅驱动值。纯检查：唔改任何关节值（喺本地副本上算，当前模型保持原状）。
@@ -10785,13 +10785,13 @@ export const useApp = create<AppState>((rawSet, get) => {
   interferenceAcrossMotion: (jointId) => {
     const s = get()
     const j0 = s.joints.find((j) => j.id === jointId)
-    if (!j0) { set({ status: '跨运动干涉：搵唔到指定关节' }); return }
+    if (!j0) { set({ status: '跨運動干涉：搵唔到指定關節' }); return }
     const comps = s.components.filter((c) => !c.hidden)
-    if (comps.length < 2) { set({ status: '跨运动干涉需要 ≥2 个可见组件' }); return }
-    if (j0.type === 'rigid') { set({ status: '跨运动干涉：刚性关节冇自由度可扫' }); return }
+    if (comps.length < 2) { set({ status: '跨運動干涉需要 ≥2 個可見組件' }); return }
+    if (j0.type === 'rigid') { set({ status: '跨運動干涉：剛性關節冇自由度可掃' }); return }
     // 从动件守卫：呢个关节本身系运动连接嘅从动件 → 扫佢只会被 propagateLinks 覆写返驱动值（冻结），出假「无干涉」。改扫驱动。
     const drv = s.motionLinks?.find((l) => l.driven === jointId && l.driver !== jointId)
-    if (drv) { set({ status: `跨运动干涉：${jointId} 系联动从动件（由 ${drv.driver} 驱动）—— 请改扫其驱动关节 ${drv.driver}` }); return }
+    if (drv) { set({ status: `跨運動干涉：${jointId} 系聯動從動件（由 ${drv.driver} 驅動）—— 請改掃其驅動關節 ${drv.driver}` }); return }
     // 扫掠变量：有转动嘅类型扫角（默认全 360°，有限位用限位）；纯滑动扫行程（必须先设 sMin/sMax）。
     const useAngle = j0.type !== 'slider'
     let lo: number, hi: number, key: 'angle' | 'slide', unitS: '°' | 'mm', degen = false
@@ -10801,7 +10801,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (hi - lo < 1e-6) { lo = 0; hi = 360; degen = true }   // 限位锁死 → 按全圈探查（下面 clone 会剥离限位令扫值真正生效）
     } else {
       key = 'slide'; unitS = 'mm'
-      if (j0.sMin == null || j0.sMax == null || j0.sMax - j0.sMin < 1e-6) { set({ status: '跨运动干涉：滑动关节请先喺关节面板设行程 sMin/sMax 再扫' }); return }
+      if (j0.sMin == null || j0.sMax == null || j0.sMax - j0.sMin < 1e-6) { set({ status: '跨運動干涉：滑動關節請先喺關節面板設行程 sMin/sMax 再掃' }); return }
       lo = j0.sMin; hi = j0.sMax
     }
     const span = hi - lo
@@ -10852,7 +10852,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     let firstStep = -1, lastHits: Hit[] = []
     for (let k = 0; k <= N; k++) { const h = clashAt(valAt(k)); if (h.length) { firstStep = k; lastHits = h; break } }
     if (firstStep < 0) {
-      set({ interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, status: `✓ 跨运动（采样 ${N} 步）未见干涉：驱动 ${jointId} 扫 ${lo.toFixed(0)}→${hi.toFixed(0)}${unitS}，各组件实体未见重叠 — 细薄件或步间穿越可能漏检${dofNote}${degNote}${heavyNote}` })
+      set({ interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, status: `✓ 跨運動（採樣 ${N} 步）未見干涉：驅動 ${jointId} 掃 ${lo.toFixed(0)}→${hi.toFixed(0)}${unitS}，各組件實體未見重疊 — 細薄件或步間穿越可能漏檢${dofNote}${degNote}${heavyNote}` })
       return
     }
     // 二分细化首撞值（firstStep-1 干净 → firstStep 撞；step0 即撞则取行程起点 lo）
@@ -10870,7 +10870,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       interfHits: fin.map((h) => ({ min: h.min, max: h.max, label: h.name })),
       interfMeshes: [],
       interfReport: null, interfPanelOpen: false,   // review：跨运动结果未入面板（v1）— 关咗旧静态面板免 stale 🔍
-      status: `⚠ 跨运动干涉：驱动 ${jointId} 扫到 ${clashV.toFixed(1)}${unitS} 时首次撞 — ${pairs || '组件实体重叠'}（红区=撞击范围；驱动到该值即见，当前模型未改）${dofNote}${degNote}${heavyNote}`,
+      status: `⚠ 跨運動干涉：驅動 ${jointId} 掃到 ${clashV.toFixed(1)}${unitS} 時首次撞 — ${pairs || '組件實體重疊'}（紅區=撞擊範圍；驅動到該值即見，當前模型未改）${dofNote}${degNote}${heavyNote}`,
     })
   },
   // T783：激光参数（GRBL S0-1000；默认 = 旧版硬编码值，行为不变）
@@ -10879,15 +10879,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   openLaserDlg: () => {
     const s = get()
     const shapes = [...(s.sketchShape ? [s.sketchShape] : []), ...s.sketchProfiles].filter((sh) => !sh.construction)
-    if (!shapes.length) { set({ status: '激光 G-code：先画一个封闭草图轮廓（矩形/圆/折线…），再导出' }); return }
-    set({ laserDlg: true, status: '⚡ 设置切割参数（或拣材料预设）→ 确定导出 G-code。预设系起步参考值 — 务必试切校准' })
+    if (!shapes.length) { set({ status: '激光 G-code：先畫一個封閉草圖輪廓（矩形/圓/折線…），再匯出' }); return }
+    set({ laserDlg: true, status: '⚡ 設置切割參數（或揀材料預設）→ 確定匯出 G-code。預設系起步參考值 — 務必試切校準' })
   },
   closeLaserDlg: () => set({ laserDlg: false }),
   setLaserOpts: (o) => set((s) => ({ laserOpts: { ...s.laserOpts, ...o } })),
   renderMode: false,
   cameraOrtho: false,
   // GM-X2 #2：旧 📐 掣仍用 toggleCameraOrtho —— 同步升级 cameraProj 三态（ortho⇄persp），保持一致。
-  toggleCameraOrtho: () => set((s) => ({ cameraOrtho: !s.cameraOrtho, cameraProj: (!s.cameraOrtho ? 'ortho' : 'persp') as CameraProj, fitNonce: s.fitNonce + 1, fitBBox: null, status: !s.cameraOrtho ? '📐 正交视图（无透视失真 — 工程审视/对齐/截图量度用）' : '透视视图' })),
+  toggleCameraOrtho: () => set((s) => ({ cameraOrtho: !s.cameraOrtho, cameraProj: (!s.cameraOrtho ? 'ortho' : 'persp') as CameraProj, fitNonce: s.fitNonce + 1, fitBBox: null, status: !s.cameraOrtho ? '📐 正交視圖（無透視失真 — 工程審視/對齊/截圖量度用）' : '透視視圖' })),
   // GM-W7 7.3：入/出草图自动切正交用嘅纯 setter —— 唔 bump fitNonce（CameraRig 自己取景，避免 FitView 抢框全模型），唔改 status。唔郁 cameraProj（草图临时态）。
   setCameraOrtho: (v) => set((s) => (s.cameraOrtho === v ? {} : { cameraOrtho: v })),
   // GM-X2 #2：相机三态。ortho=恒正交 / persp=恒透视 / perspOrtho=平时透视、标准视图吸正交。
@@ -10897,15 +10897,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     // ortho → 立即正交；persp → 立即透视；perspOrtho → 平时透视（standardView 由 ViewRig 触发吸正交）。
     cameraOrtho: cameraProjToOrtho(p, false),
     fitNonce: s.fitNonce + 1, fitBBox: null,
-    status: p === 'ortho' ? '📐 正交相机' : p === 'persp' ? '透视相机' : '透视带正交面（标准视图自动吸正交，转动回透视）',
+    status: p === 'ortho' ? '📐 正交相機' : p === 'persp' ? '透視相機' : '透視帶正交面（標準視圖自動吸正交，轉動回透視）',
   })),
   // 用户手动 orbit → perspOrtho 由临时正交退返透视（对齐 Fusion「转动即透视」）。只喺 model 模式生效（唔踩草图 auto-ortho）。
   notePerspOrthoOrbit: () => set((s) => (s.cameraProj === 'perspOrtho' && s.cameraOrtho && s.mode !== 'sketch' ? { cameraOrtho: false } : {})),
   cameraFov: 28,
   setCameraFov: (v) => set({ cameraFov: Math.max(10, Math.min(60, v || 28)) }),
   ssao: false,
-  toggleSsao: () => set((s) => ({ ssao: !s.ssao, graphicsPreset: 'custom' as GraphicsPreset, status: !s.ssao ? '🌑 环境光遮蔽（GTAO）开 — 缝隙/接触/凹陷加暗，立体感同真实感提升（发布截图用）' : '环境光遮蔽关' })),
-  toggleRenderMode: () => set((s) => ({ renderMode: !s.renderMode, graphicsPreset: 'custom' as GraphicsPreset, status: !s.renderMode ? '🌅 渲染模式开：HDRI 环境反射 + 软阴影 + ACES 曝光（发布截图用；金属/玻璃质感真实）' : '已返回工作模式（无反射阴影 — 建模更快）' })),
+  toggleSsao: () => set((s) => ({ ssao: !s.ssao, graphicsPreset: 'custom' as GraphicsPreset, status: !s.ssao ? '🌑 環境光遮蔽（GTAO）開 — 縫隙/接觸/凹陷加暗，立體感同真實感提升（發布截圖用）' : '環境光遮蔽關' })),
+  toggleRenderMode: () => set((s) => ({ renderMode: !s.renderMode, graphicsPreset: 'custom' as GraphicsPreset, status: !s.renderMode ? '🌅 渲染模式開：HDRI 環境反射 + 軟陰影 + ACES 曝光（發布截圖用；金屬/玻璃質感真實）' : '已返回工作模式（無反射陰影 — 建模更快）' })),
   renderExposure: 1,
   setRenderExposure: (v) => set({ renderExposure: Math.min(3, Math.max(0.2, v)) }),
   hdriPreset: '',
@@ -10920,12 +10920,12 @@ export const useApp = create<AppState>((rawSet, get) => {
   exportTransparent: false,
   setExportScale: (n) => set({ exportScale: [1, 2, 4].includes(n) ? n : 2 }),
   setExportTransparent: (v) => set({ exportTransparent: !!v }),
-  requestStill: () => set((s) => ({ stillReq: { scale: s.exportScale, transparent: s.exportTransparent }, status: `正在出高清图（${s.exportScale}×${s.exportTransparent ? ' · 透明' : ''}）…` })),
+  requestStill: () => set((s) => ({ stillReq: { scale: s.exportScale, transparent: s.exportTransparent }, status: `正在出高清圖（${s.exportScale}×${s.exportTransparent ? ' · 透明' : ''}）…` })),
   // S105：画布内路径追踪 — 开光追自动进渲染模式（要 PMREM 环境 + PBR 材质）
   rtMode: false,
   rtSamples: 256,
   rtProgress: 0,
-  toggleRtMode: () => set((s) => ({ rtMode: !s.rtMode, renderMode: !s.rtMode ? true : s.renderMode, rtProgress: 0, status: !s.rtMode ? '🔆 画布内光追：渐进路径追踪（GI / 真反射折射 / 软阴影 / 焦散）— 静置等收敛，相机一动重新累积。注：唔渲染程序化纹理/检视着色' : '已退出光追' })),
+  toggleRtMode: () => set((s) => ({ rtMode: !s.rtMode, renderMode: !s.rtMode ? true : s.renderMode, rtProgress: 0, status: !s.rtMode ? '🔆 畫布內光追：漸進路徑追蹤（GI / 真反射折射 / 軟陰影 / 焦散）— 靜置等收斂，相機一動重新累積。註：唔渲染程序化紋理/檢視着色' : '已退出光追' })),
   setRtSamples: (n) => set({ rtSamples: Math.max(16, Math.min(2048, n | 0)) }),
   // T789：CNC 铣削（GRBL 3018/Shapeoko 级 — 默认 1/8" 刀、椴木保守参数）
   millDlg: false,
@@ -10933,30 +10933,30 @@ export const useApp = create<AppState>((rawSet, get) => {
   openMillDlg: () => {
     const s = get()
     const shapes = [...(s.sketchShape ? [s.sketchShape] : []), ...s.sketchProfiles].filter((sh) => !sh.construction)
-    if (!shapes.length) { set({ status: 'CNC 铣削：先画一个封闭草图轮廓（矩形/圆/折线…），再出刀路' }); return }
-    set({ millDlg: true, status: '🪚 设置刀具/切深/进给（或拣材料预设）→ 确定出 GRBL G-code。预设系起步参考值 — 务必废料试切' })
+    if (!shapes.length) { set({ status: 'CNC 銑削：先畫一個封閉草圖輪廓（矩形/圓/折線…），再出刀路' }); return }
+    set({ millDlg: true, status: '🪚 設置刀具/切深/進給（或揀材料預設）→ 確定出 GRBL G-code。預設系起步參考值 — 務必廢料試切' })
   },
   closeMillDlg: () => set({ millDlg: false }),
   setMillOpts: (o) => set((s) => ({ millOpts: { ...s.millOpts, ...o } })),
   exportMillGcode: async () => {
     const s = get()
     const shapes = [...(s.sketchShape ? [s.sketchShape] : []), ...s.sketchProfiles].filter((sh) => !sh.construction)
-    if (!shapes.length) { set({ status: 'CNC 铣削：先画一个封闭草图轮廓' }); return }
+    if (!shapes.length) { set({ status: 'CNC 銑削：先畫一個封閉草圖輪廓' }); return }
     try {
       const { profilesToMillGcode } = await import('./cam/mill25d')
       const r = profilesToMillGcode(shapesToProfiles2D(shapes), s.millOpts)
       const st = gcodeStats(r.gcode)
       triggerDownload(new TextEncoder().encode(r.gcode), `${projName(s.projectName)}-铣削.gcode`, 'text/plain')
       const opName = s.millOpts.op === 'contour' ? '轮廓' : s.millOpts.op === 'pocket' ? '挖槽' : s.millOpts.op === 'face' ? '面铣' : '钻孔'
-      set({ status: `🪚 已导出铣削 G-code（${opName} · Ø${s.millOpts.toolD} 刀 · 深${s.millOpts.depth}/${s.millOpts.stepdown} 分层 · 切削 ${st.cutLen.toFixed(0)}mm · ${st.lines} 行）${r.warnings.length ? ' · ⚠ ' + r.warnings.slice(0, 2).join('；') : ''}` })
-    } catch (e) { set({ status: '铣削刀路失败：' + ((e as Error)?.message || e) }) }
+      set({ status: `🪚 已匯出銑削 G-code（${opName} · Ø${s.millOpts.toolD} 刀 · 深${s.millOpts.depth}/${s.millOpts.stepdown} 分層 · 切削 ${st.cutLen.toFixed(0)}mm · ${st.lines} 行）${r.warnings.length ? ' · ⚠ ' + r.warnings.slice(0, 2).join('；') : ''}` })
+    } catch (e) { set({ status: '銑削刀路失敗：' + ((e as Error)?.message || e) }) }
   },
   // T790：刀路回放预览 — 生成但唔下载，开 canvas 顶视图
   gcodePreview: null,
   previewGcode: async (kind) => {
     const s = get()
     const shapes = [...(s.sketchShape ? [s.sketchShape] : []), ...s.sketchProfiles].filter((sh) => !sh.construction)
-    if (!shapes.length) { set({ status: '预览刀路：先画一个封闭草图轮廓' }); return }
+    if (!shapes.length) { set({ status: '預覽刀路：先畫一個封閉草圖輪廓' }); return }
     try {
       if (kind === 'laser') {
         const g = profilesToGcode(shapesToProfiles2D(shapes), s.laserOpts)
@@ -10966,7 +10966,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const r = profilesToMillGcode(shapesToProfiles2D(shapes), s.millOpts)
         set({ gcodePreview: { gcode: r.gcode, title: `🪚 铣削刀路（Ø${s.millOpts.toolD} · 深${s.millOpts.depth} ÷ ${s.millOpts.stepdown}/层）${r.warnings.length ? ' ⚠' + r.warnings.length : ''}` } })
       }
-    } catch (e) { set({ status: '刀路预览失败：' + ((e as Error)?.message || e) }) }
+    } catch (e) { set({ status: '刀路預覽失敗：' + ((e as Error)?.message || e) }) }
   },
   closeGcodePreview: () => set({ gcodePreview: null }),
   // S81：CAM 3D 平行精加工 — 对活动实体网格（bodyMesh，CAD 坐标）出球头 raster G-code。
@@ -10996,7 +10996,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   runFinish3d: async (mode) => {
     const s = get()
     const mesh = s.bodyMesh
-    if (!mesh || !mesh.vertices.length) { set({ status: '3D 精加工：先要有活动实体' }); return }
+    if (!mesh || !mesh.vertices.length) { set({ status: '3D 精加工：先要有活動實體' }); return }
     try {
       const verts = Float32Array.from(mesh.vertices), tris = Uint32Array.from(mesh.triangles)
       let maxz = -Infinity
@@ -11006,19 +11006,19 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (o.strategy === 'rough') {
         const { meshToRoughGcode } = await import('./cam/finish3d')
         const r = meshToRoughGcode(verts, tris, { toolD: o.toolD, stepover: o.stepover, stepdown: o.stepdown, feedXY: o.feedXY, feedZ: o.feedZ, rpm: o.rpm, safeZ, allowance: o.allowance })
-        if (!r.gcode) { set({ status: '3D 粗加工失败：' + (r.warnings[0] || '无刀路（零件已填满毛坯？）') }); return }
+        if (!r.gcode) { set({ status: '3D 粗加工失敗：' + (r.warnings[0] || '無刀路（零件已填滿毛坯？）') }); return }
         const warn = r.warnings.length ? ' · ⚠ ' + r.warnings.slice(0, 2).join('；') : ''
         if (mode === 'preview') {
           set({ gcodePreview: { gcode: r.gcode, title: `🪚 3D 粗加工刀路（平刀Ø${o.toolD} · ${r.layers}层 · 行距${o.stepover} · ${r.points}点）${warn}` } })
         } else {
           triggerDownload(new TextEncoder().encode(r.gcode), `${projName(s.projectName)}-3D粗加工.gcode`, 'text/plain')
-          set({ finish3dDlg: false, status: `🪚 已导出 3D 粗加工 G-code（平端Ø${o.toolD} · ${r.layers}层×${o.stepdown}mm · 行距${o.stepover} · 余量${o.allowance}mm · 切削 ${r.cutLen.toFixed(0)}mm · 最小余隙 ${r.minClearance.toFixed(2)}mm≥0=唔过切）${warn} — 逐层挖槽清料，留余量畀精加工；非商用 CAM 级` })
+          set({ finish3dDlg: false, status: `🪚 已匯出 3D 粗加工 G-code（平端Ø${o.toolD} · ${r.layers}層×${o.stepdown}mm · 行距${o.stepover} · 餘量${o.allowance}mm · 切削 ${r.cutLen.toFixed(0)}mm · 最小餘隙 ${r.minClearance.toFixed(2)}mm≥0=唔過切）${warn} — 逐層挖槽清料，留餘量畀精加工；非商用 CAM 級` })
         }
         return
       }
       const { meshToFinishGcode } = await import('./cam/finish3d')
       const r = meshToFinishGcode(verts, tris, { toolD: o.toolD, stepover: o.stepover, feedXY: o.feedXY, feedZ: o.feedZ, rpm: o.rpm, safeZ })
-      if (!r.gcode) { set({ status: '3D 精加工失败：' + (r.warnings[0] || '无刀路') }); return }
+      if (!r.gcode) { set({ status: '3D 精加工失敗：' + (r.warnings[0] || '無刀路') }); return }
       const warn = r.warnings.length ? ' · ⚠ ' + r.warnings.slice(0, 2).join('；') : ''
       if (mode === 'preview') {
         set({ gcodePreview: { gcode: r.gcode, title: `🪚 3D 精加工刀路（球Ø${o.toolD} · 行距${o.stepover} · ${r.passes}行 · ${r.points}点）${warn}` } })
@@ -11026,10 +11026,10 @@ export const useApp = create<AppState>((rawSet, get) => {
         triggerDownload(new TextEncoder().encode(r.gcode), `${projName(s.projectName)}-3D精加工.gcode`, 'text/plain')
         set({
           finish3dDlg: false,
-          status: `🪚 已导出 3D 平行精加工 G-code（球头Ø${o.toolD} · 行距${o.stepover} · zmap ${r.nx}×${r.ny}@${r.gridPitch}mm · ${r.passes}行 · 切削 ${r.cutLen.toFixed(0)}mm · 刀尖Z ${r.zRange[0].toFixed(1)}~${r.zRange[1].toFixed(1)}）${warn} — 球头落刀防过切，非商用 CAM 级（无刀杆碰撞/余量再加工）`,
+          status: `🪚 已匯出 3D 平行精加工 G-code（球頭Ø${o.toolD} · 行距${o.stepover} · zmap ${r.nx}×${r.ny}@${r.gridPitch}mm · ${r.passes}行 · 切削 ${r.cutLen.toFixed(0)}mm · 刀尖Z ${r.zRange[0].toFixed(1)}~${r.zRange[1].toFixed(1)}）${warn} — 球頭落刀防過切，非商用 CAM 級（無刀桿碰撞/餘量再加工）`,
         })
       }
-    } catch (e) { set({ status: '3D 加工失败：' + ((e as Error)?.message || e) }) }
+    } catch (e) { set({ status: '3D 加工失敗：' + ((e as Error)?.message || e) }) }
   },
   // T799：CNC 车削 — 草图折线 = 回转半轮廓（点 X→轴向 z 取负、点 Y→半径 r）。先画半边轮廓再「车削」。
   latheDlg: false,
@@ -11037,15 +11037,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   openLatheDlg: () => {
     const s = get()
     const sk = s.sketchShape && s.sketchShape.type === 'poly' ? s.sketchShape : s.sketchProfiles.find((sh) => sh.type === 'poly')
-    if (!sk) { set({ status: 'CNC 车削：先用折线画回转件嘅【半边轮廓】（X 向右=轴向、Y 向上=半径），再车削' }); return }
-    set({ latheDlg: true, status: '🔄 车削参数（毛坯Ø/切深/进给/操作）→ 确定出 GRBL 车床 G-code。X 全程出直径' })
+    if (!sk) { set({ status: 'CNC 車削：先用折線畫回轉件嘅【半邊輪廓】（X 向右=軸向、Y 向上=半徑），再車削' }); return }
+    set({ latheDlg: true, status: '🔄 車削參數（毛坯Ø/切深/進給/操作）→ 確定出 GRBL 車床 G-code。X 全程出直徑' })
   },
   closeLatheDlg: () => set({ latheDlg: false }),
   setLatheOpts: (o) => set((st) => ({ latheOpts: { ...st.latheOpts, ...o } })),
   exportLatheGcode: async () => {
     const s = get()
     const sk = s.sketchShape && s.sketchShape.type === 'poly' ? s.sketchShape : s.sketchProfiles.find((sh) => sh.type === 'poly')
-    if (!sk || sk.type !== 'poly') { set({ status: 'CNC 车削：先画折线半轮廓' }); return }
+    if (!sk || sk.type !== 'poly') { set({ status: 'CNC 車削：先畫折線半輪廓' }); return }
     try {
       const { latheToGcode } = await import('./cam/lathe')
       // 草图点 → 回转轮廓：z = −点x（轴向,右端面为 0 向左负）、r = |点y|（径向半径）
@@ -11055,17 +11055,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       const buf = new TextEncoder().encode(r.gcode)
       triggerDownload(buf, `${projName(s.projectName)}-车削.gcode`, 'text/plain')
       const opName = o.op === 'turn' ? '外圆车削' : o.op === 'face' ? '端面' : '切槽'
-      set({ status: `🔄 已导出车削 G-code（${opName} · 毛坯Ø${o.stockD} · 切深${o.doc} · ${r.gcode.split('\n').length} 行）${r.warnings.length ? ' · ⚠ ' + r.warnings.slice(0, 2).join('；') : ''}` })
-    } catch (e) { set({ status: '车削刀路失败：' + ((e as Error)?.message || e) }) }
+      set({ status: `🔄 已匯出車削 G-code（${opName} · 毛坯Ø${o.stockD} · 切深${o.doc} · ${r.gcode.split('\n').length} 行）${r.warnings.length ? ' · ⚠ ' + r.warnings.slice(0, 2).join('；') : ''}` })
+    } catch (e) { set({ status: '車削刀路失敗：' + ((e as Error)?.message || e) }) }
   },
   recordReq: null,
-  setRecordReq: (r) => set({ recordReq: r, status: r === 'turntable' ? '🎬 录紧转盘动画（360° · 6 秒）— 完成自动下载 WebM' : r === 'explode' ? '🎬 录紧爆炸动画（4 秒）— 完成自动下载 WebM' : get().status }),
+  setRecordReq: (r) => set({ recordReq: r, status: r === 'turntable' ? '🎬 錄緊轉盤動畫（360° · 6 秒）— 完成自動下載 WebM' : r === 'explode' ? '🎬 錄緊爆炸動畫（4 秒）— 完成自動下載 WebM' : get().status }),
   explode: 0,
   setExplode: (n) => set({ explode: Math.max(0, n) }),
   xray: false,
-  toggleXray: () => set((s) => ({ xray: !s.xray, ...(!s.xray ? { inspectShade: 'off' as const, draftResult: null, slopeResult: null, accessResult: null } : {}), status: !s.xray ? '已开 X-ray 透视（半透明睇内部）' : '已关 X-ray 透视' })),   // S179 audit：开 X-ray 同时关曲率/斑马 overlay（对称互斥，否则不透明 overlay 盖死透视）；S187：连拔模/斜度面 overlay 一齐关
+  toggleXray: () => set((s) => ({ xray: !s.xray, ...(!s.xray ? { inspectShade: 'off' as const, draftResult: null, slopeResult: null, accessResult: null } : {}), status: !s.xray ? '已開 X-ray 透視（半透明睇內部）' : '已關 X-ray 透視' })),   // S179 audit：开 X-ray 同时关曲率/斑马 overlay（对称互斥，否则不透明 overlay 盖死透视）；S187：连拔模/斜度面 overlay 一齐关
   autoColorComponents: () => set((s) => {
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c, i) => ({ ...c, color: COMP_PALETTE[i % COMP_PALETTE.length] })), status: '已为各组件自动配色（便于区分）' }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c, i) => ({ ...c, color: COMP_PALETTE[i % COMP_PALETTE.length] })), status: '已為各組件自動配色（便於區分）' }
   }),
   renameComponent: (id, name) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, name } : c)) })),   // bt4: 改名可撤销
   setComponentColor: (id, color) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, color } : c)) })),
@@ -11073,7 +11073,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // Assign a material to a component → sets its density (for mass/BOM) AND its colour (visual), Fusion-style.
   setComponentMaterial: (id, name) => set((s) => {
     const m = MATERIALS[name]
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, material: name, ...(m ? { color: m.color } : {}) } : c)), status: `已将组件材质设为 ${name}${m?.density ? `（密度 ${m.density} g/cm³）` : ''}` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, material: name, ...(m ? { color: m.color } : {}) } : c)), status: `已將組件材質設為 ${name}${m?.density ? `（密度 ${m.density} g/cm³）` : ''}` }
   }),
   duplicateComponent: (id) => set((s) => {
     const src = s.components.find((c) => c.id === id)
@@ -11082,7 +11082,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // R2 P2 Copy = 共享定义：spread 带 src.defId/_rev/mesh（三者已镜像一致）→ 新 occurrence 共享 def。
     //   改任一实例（finishComponentEdit 写 def）→ reconcile 令全部共享实例跟新。src 无 defId（匿名/已独立化）→ 平铺独立副本（旧行为）。
     const copy = { ...src, id: nid, name: src.name + '副本', pos: [src.pos[0] + 60, src.pos[1], src.pos[2]] as [number, number, number] }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, copy], selectedComponent: nid, status: src.defId ? `已复制「${src.name}」（共享定义 — 编辑任一实例，全部跟新）` : `已复制「${src.name}」` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, copy], selectedComponent: nid, status: src.defId ? `已複製「${src.name}」（共享定義 — 編輯任一實例，全部跟新）` : `已複製「${src.name}」` }
   }),
   // R2 P2 独立化 / Paste-New：深拷共享定义成新 defId，新 occurrence 指向它 → 此后编辑两者互不影响。
   independentizeComponent: (id) => set((s) => {
@@ -11095,17 +11095,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       // mesh 视作不可变（所有几何 op 产生新对象，从不原地改）→ cloneDef 共享 ref 安全；编辑时 finishComponentEdit 会换新对象。
       const newDef = cloneDef(s.componentDefs, def)
       const occ = { ...src, id: nid, name: src.name + '副本', pos: npos, defId: newDef.id, _rev: 0, mesh: newDef.mesh, ...(newDef.src ? { src: newDef.src } : {}) }
-      return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, occ], componentDefs: [...s.componentDefs, newDef], selectedComponent: nid, status: `已独立复制「${src.name}」（新定义 — 改任一唔影响对方）` }
+      return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, occ], componentDefs: [...s.componentDefs, newDef], selectedComponent: nid, status: `已獨立複製「${src.name}」（新定義 — 改任一唔影響對方）` }
     }
     // 匿名源（无 def）：平铺独立副本（同旧 duplicate；本就独立）
     const copy = { ...src, id: nid, name: src.name + '副本', pos: npos }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, copy], selectedComponent: nid, status: `已独立复制「${src.name}」` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, copy], selectedComponent: nid, status: `已獨立複製「${src.name}」` }
   }),
   // ── T788（S66）子装配嵌套树 ───────────────────────────────────────────────────────────────
   groups: [],
   createGroupFromChecked: () => set((s) => {
     const ids = s.checkedComps.filter((id) => s.components.some((c) => c.id === id))
-    if (!ids.length) return { status: '建组：浏览树勾选 ≥1 个组件先' }
+    if (!ids.length) return { status: '建組：瀏覽樹勾選 ≥1 個組件先' }
     let maxG = 0; for (const g of s.groups) { const m = /^G(\d+)$/.exec(g.id); if (m) maxG = Math.max(maxG, Number(m[1])) }
     const gid = 'G' + (maxG + 1)
     // 全部勾选件同属一个组 → 新组做佢嘅子组（嵌套）；否则落顶层
@@ -11116,16 +11116,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       groups: [...s.groups, { id: gid, name: `组${maxG + 1}`, ...(parentId ? { parentId } : {}) }],
       components: s.components.map((c) => (ids.includes(c.id) ? { ...c, groupId: gid } : c)),
       checkedComps: [],
-      status: `📁 已建组（${ids.length} 件${parentId ? ' · 嵌套子组' : ''}）— 双击组名改名；组行有 整组隐藏/移动/复制/解组`,
+      status: `📁 已建組（${ids.length} 件${parentId ? ' · 嵌套子組' : ''}）— 雙擊組名改名；組行有 整組隱藏/移動/複製/解組`,
     }
   }),
   renameGroup: (id, name) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], groups: s.groups.map((g) => (g.id === id ? { ...g, name: name || g.name } : g)) })),   // bt4: 组改名可撤销
   toggleGroupHidden: (id) => set((s) => {
     const sub = _groupSubtree(s.groups, id)
     const members = s.components.filter((c) => c.groupId && sub.has(c.groupId))
-    if (!members.length) return { status: '组冇成员' }
+    if (!members.length) return { status: '組冇成員' }
     const toHidden = members.some((c) => !c.hidden)   // 有任何可见 → 全隐藏；全隐藏 → 全显示
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.groupId && sub.has(c.groupId) ? { ...c, hidden: toHidden } : c)), status: toHidden ? `已隐藏成组 ${members.length} 件` : `已显示成组 ${members.length} 件` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.groupId && sub.has(c.groupId) ? { ...c, hidden: toHidden } : c)), status: toHidden ? `已隱藏成組 ${members.length} 件` : `已顯示成組 ${members.length} 件` }
   }),
   dissolveGroup: (id) => set((s) => {
     const g = s.groups.find((x) => x.id === id)
@@ -11134,7 +11134,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],  // S105：解组入撤销栈
       groups: s.groups.filter((x) => x.id !== id).map((x) => (x.parentId === id ? { ...x, parentId: g.parentId } : x)),
       components: s.components.map((c) => (c.groupId === id ? (g.parentId ? { ...c, groupId: g.parentId } : (({ groupId: _drop, ...rest }) => rest)(c) as typeof c) : c)),
-      status: `已解组「${g.name}」（成员升到上一层 — 组件冇删）`,
+      status: `已解組「${g.name}」（成員升到上一層 — 組件冇刪）`,
     }
   }),
   deleteGroupDeep: (id) => set((s) => {
@@ -11148,7 +11148,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       components: s.components.filter((c) => !victims.has(c.id)),
       joints: s.joints.filter((j) => !victims.has(j.parent) && !victims.has(j.child)),
       checkedComps: s.checkedComps.filter((cid) => !victims.has(cid)),
-      status: `🗑 已删除组「${g.name}」+ ${victims.size} 件成员（Ctrl+Z 可一并撤销组结构同组件）`,
+      status: `🗑 已刪除組「${g.name}」+ ${victims.size} 件成員（Ctrl+Z 可一並撤銷組結構同組件）`,
     }
   }),
   duplicateGroup: (id) => set((s) => {
@@ -11158,7 +11158,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const g = s.groups.find((x) => x.id === id)
     if (!g) return {}
     const members = s.components.filter((c) => c.groupId && sub.has(c.groupId))
-    if (!members.length) return { status: '组冇成员，冇嘢可复制' }
+    if (!members.length) return { status: '組冇成員，冇嘢可複製' }
     let maxG = 0; for (const x of s.groups) { const m = /^G(\d+)$/.exec(x.id); if (m) maxG = Math.max(maxG, Number(m[1])) }
     const gmap = new Map<string, string>()
     const newGroups = [...sub].map((oldId, i) => { const ng = 'G' + (maxG + 1 + i); gmap.set(oldId, ng); return ng }).map((ng, i) => {
@@ -11184,29 +11184,29 @@ export const useApp = create<AppState>((rawSet, get) => {
       components: [...s.components, ...newComps],
       componentDefs: [...s.componentDefs, ...newDefs],   // R2：随组复制加入各成员嘅独立 def
       joints: [...s.joints, ...newJoints],
-      status: `⧉ 已复制组「${g.name}」：${newComps.length} 件 + ${newJoints.length} 条组内关节（x+60 摆开）${skippedJ ? ` · ⚠ ${skippedJ} 条跨组关节冇复制（接驳目标冇得估）` : ''}`,
+      status: `⧉ 已複製組「${g.name}」：${newComps.length} 件 + ${newJoints.length} 條組內關節（x+60 擺開）${skippedJ ? ` · ⚠ ${skippedJ} 條跨組關節冇複製（接驳目標冇得估）` : ''}`,
     }
   }),
   moveGroupBy: (id, dx, dy, dz) => set((s) => {
     const sub = _groupSubtree(s.groups, id)
     const members = s.components.filter((c) => c.groupId && sub.has(c.groupId))
-    if (!members.length) return { status: '组冇成员' }
+    if (!members.length) return { status: '組冇成員' }
     const ids = new Set(members.map((c) => c.id))
     return {
       components: s.components.map((c) => (ids.has(c.id) ? { ...c, pos: [c.pos[0] + dx, c.pos[1] + dy, c.pos[2] + dz] as [number, number, number] } : c)),
       // 组内关节锚点跟住搬 — 唔搬嘅话转轴会甩开零件
       joints: s.joints.map((j) => (ids.has(j.parent) && ids.has(j.child) ? { ...j, anchor: [j.anchor[0] + dx, j.anchor[1] + dy, j.anchor[2] + dz] as [number, number, number] } : j)),
-      status: `已整组移动 ${members.length} 件（Δ ${dx},${dy},${dz}）`,
+      status: `已整組移動 ${members.length} 件（Δ ${dx},${dy},${dz}）`,
     }
   }),
   // S123：整组旋转 — 子装配作为整体绕世界质心旋转（frame 旋转，存喺 group.rot，render/compWorldMatrix 左乘 groupMat）。
   // 枢轴 origin 第一次旋转时定（= 当时世界质心），之后重用 → 多次旋转绕同一枢轴。整组平移仍用 moveGroupBy（改成员 pos）。
   rotateGroup: (id, axis, deg) => set((s) => {
     const g = s.groups.find((x) => x.id === id)
-    if (!g) return { status: '组唔存在' }
+    if (!g) return { status: '組唔存在' }
     const sub = _groupSubtree(s.groups, id)
     const members = s.components.filter((c) => c.groupId && sub.has(c.groupId))
-    if (!members.length) return { status: '组冇成员' }
+    if (!members.length) return { status: '組冇成員' }
     const memberIds = new Set(members.map((c) => c.id))
     const internalJoint = s.joints.some((j) => memberIds.has(j.parent) && memberIds.has(j.child))
     // 枢轴：已有 origin（再旋转）则重用；否则取当时世界质心（compWorldMatrix 未含组 frame = 首次旋转时即渲染质心）。
@@ -11223,7 +11223,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       groups: s.groups.map((x) => (x.id === id ? { ...x, origin: pivot, rot } : x)),
-      status: `已整组旋转 ${deg}° 绕 ${axis}（子装配 frame · 绕世界质心）${internalJoint ? ' · ⚠ 组内有关节：旋转后关节锚点未跟随（自包含刚性组先准确）' : ''}`,
+      status: `已整組旋轉 ${deg}° 繞 ${axis}（子裝配 frame · 繞世界質心）${internalJoint ? ' · ⚠ 組內有關節：旋轉後關節錨點未跟隨（自包含剛性組先準確）' : ''}`,
     }
   }),
   checkGroupMembers: (id) => set((s) => {
@@ -11241,7 +11241,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     let maxN = 0; for (const c of s.components) { const m = /^C(\d+)$/.exec(c.id); if (m) maxN = Math.max(maxN, Number(m[1])) }
     const copies = []; const newDefs: StoreCompDef[] = []   // R2：每副本 clone 独立 def（编辑一件唔改全阵列）
     for (let i = 1; i < n; i++) copies.push({ ...src, id: 'C' + (maxN + i), name: `${src.name}#${i + 1}`, pos: [src.pos[0] + i * dx, src.pos[1], src.pos[2] + i * dz] as [number, number, number], ...(arrayCloneDefFor(src, s.componentDefs, newDefs) ?? {}) })
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, ...copies], componentDefs: [...s.componentDefs, ...newDefs], status: `已线性阵列「${src.name}」×${n}（加 ${copies.length} 件，间距 ${dx}/${dz}mm）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, ...copies], componentDefs: [...s.componentDefs, ...newDefs], status: `已線性陣列「${src.name}」×${n}（加 ${copies.length} 件，間距 ${dx}/${dz}mm）` }
   }),
   // Circular (polar) array of a component around the vertical axis (three-Y) through center (cx,cz):
   // each copy = the source rigidly rotated about that axis by θ_i (bolt circles / lug nuts / fan blades / spokes).
@@ -11263,7 +11263,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const nx = cx + ox * ca + oz * sa, nz = cz - ox * sa + oz * ca
       copies.push({ ...src, id: 'C' + (maxN + i), name: `${src.name}#${i + 1}`, pos: [nx, src.pos[1], nz] as [number, number, number], rot: [r0, r1 + deg, r2] as [number, number, number], ...(arrayCloneDefFor(src, s.componentDefs, newDefs) ?? {}) })
     }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, ...copies], componentDefs: [...s.componentDefs, ...newDefs], status: `已环形阵列「${src.name}」×${n}（${full ? '整圈 360°' : span + '°'}，半径 ${Math.hypot(ox, oz).toFixed(1)}mm）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, ...copies], componentDefs: [...s.componentDefs, ...newDefs], status: `已環形陣列「${src.name}」×${n}（${full ? '整圈 360°' : span + '°'}，半徑 ${Math.hypot(ox, oz).toFixed(1)}mm）` }
   }),
   // 2D rectangular grid array of a component: cols along three-X (step dx) × rows along three-Z (step dz).
   // The source occupies grid cell (0,0); every other cell gets an independent copy (trays, peg grids, tile layouts).
@@ -11271,7 +11271,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const src = s.components.find((c) => c.id === id)
     if (!src) return {}
     const nc = Math.max(1, Math.min(32, Math.round(cols) || 0)), nr = Math.max(1, Math.min(32, Math.round(rows) || 0))
-    if (nc * nr < 2) return { status: '网格阵列：列数×行数 至少要 2 件' }
+    if (nc * nr < 2) return { status: '網格陣列：列數×行數 至少要 2 件' }
     let maxN = 0; for (const c of s.components) { const m = /^C(\d+)$/.exec(c.id); if (m) maxN = Math.max(maxN, Number(m[1])) }
     const copies = []; let k = 0; const newDefs: StoreCompDef[] = []   // R2：每副本 clone 独立 def
     for (let r = 0; r < nr; r++) for (let c = 0; c < nc; c++) {
@@ -11279,7 +11279,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       k++
       copies.push({ ...src, id: 'C' + (maxN + k), name: `${src.name}#${k + 1}`, pos: [src.pos[0] + c * dx, src.pos[1], src.pos[2] + r * dz] as [number, number, number], ...(arrayCloneDefFor(src, s.componentDefs, newDefs) ?? {}) })
     }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, ...copies], componentDefs: [...s.componentDefs, ...newDefs], status: `已网格阵列「${src.name}」${nc}×${nr}（加 ${k} 件，间距 ${dx}/${dz}mm）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, ...copies], componentDefs: [...s.componentDefs, ...newDefs], status: `已網格陣列「${src.name}」${nc}×${nr}（加 ${k} 件，間距 ${dx}/${dz}mm）` }
   }),
   // Drop a component onto the ground plane: shift it down so its lowest point sits at three-y = 0
   // (the grid floor). Uses the real world transform, so rotated parts land on their true lowest vertex.
@@ -11287,7 +11287,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // bottom-up by current height. XZ left untouched (user arranges plan position). Self-written bbox math.
   stackComponents: () => set((s) => {
     const vis = s.components.filter((c) => !c.hidden && c.mesh.vertices.length)
-    if (vis.length < 2) return { status: '垂直堆叠需要 ≥2 个可见有实体组件' }
+    if (vis.length < 2) return { status: '垂直堆疊需要 ≥2 個可見有實體組件' }
     const info = vis.map((c) => {
       const M = compWorldMatrix(c).elements, v = c.mesh.vertices
       let mn = Infinity, mx = -Infinity
@@ -11297,7 +11297,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     let top = 0
     const moved = new Map<string, [number, number, number]>()
     for (const it of info) { moved.set(it.c.id, [it.c.pos[0], it.c.pos[1] + (top - it.mn), it.c.pos[2]]); top += it.h }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((x) => (moved.has(x.id) ? { ...x, pos: moved.get(x.id)! } : x)), status: `已垂直堆叠 ${vis.length} 件（自底向上叠放，总高 ${top.toFixed(0)}mm；XZ 位置不变）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((x) => (moved.has(x.id) ? { ...x, pos: moved.get(x.id)! } : x)), status: `已垂直堆疊 ${vis.length} 件（自底向上疊放，總高 ${top.toFixed(0)}mm；XZ 位置不變）` }
   }),
   // Arrange all visible solid components in a row along three-X, each dropped to the floor (minY→0) and
   // spaced gap mm apart (no overlap) — lay parts out flat on the print bed for slicing. Self-written bbox math.
@@ -11305,7 +11305,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // assembly onto the ground without rearranging plan position (vs arrangeForPrint which lays them in a row).
   dropAllToFloor: () => set((s) => {
     const vis = s.components.filter((c) => !c.hidden && c.mesh.vertices.length)
-    if (!vis.length) return { status: '无可见实体组件' }
+    if (!vis.length) return { status: '無可見實體組件' }
     let n = 0
     const comps = s.components.map((c) => {
       if (c.hidden || !c.mesh.vertices.length) return c
@@ -11316,11 +11316,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       n++
       return { ...c, pos: [c.pos[0], c.pos[1] - mnY, c.pos[2]] as [number, number, number] }
     })
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: comps, status: `已把 ${n} 件落到地面（Z=0，XZ 位置不变）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: comps, status: `已把 ${n} 件落到地面（Z=0，XZ 位置不變）` }
   }),
   arrangeForPrint: () => set((s) => {
     const vis = s.components.filter((c) => !c.hidden && c.mesh.vertices.length)
-    if (vis.length < 2) return { status: '排版需要 ≥2 个可见有实体组件' }
+    if (vis.length < 2) return { status: '排版需要 ≥2 個可見有實體組件' }
     const gap = 5
     const info = vis.map((c) => {
       const M = compWorldMatrix(c).elements, v = c.mesh.vertices
@@ -11336,16 +11336,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     let cur = 0
     const moved = new Map<string, [number, number, number]>()
     for (const it of info) { moved.set(it.c.id, [it.c.pos[0] + (cur - it.mnX), it.c.pos[1] - it.mnY, it.c.pos[2] - it.cz]); cur += it.w + gap }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((x) => (moved.has(x.id) ? { ...x, pos: moved.get(x.id)! } : x)), status: `已排版 ${vis.length} 件到地面（沿 X 一排，间距 ${gap}mm，全部落地 Z=0 — 备切片打印）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((x) => (moved.has(x.id) ? { ...x, pos: moved.get(x.id)! } : x)), status: `已排版 ${vis.length} 件到地面（沿 X 一排，間距 ${gap}mm，全部落地 Z=0 — 備切片打印）` }
   }),
   dropComponentToFloor: (id) => set((s) => {
     const c = s.components.find((x) => x.id === id)
     if (!c) return {}
-    const v = c.mesh.vertices; if (!v.length) return { status: '此件无实体几何，无法落地' }
+    const v = c.mesh.vertices; if (!v.length) return { status: '此件無實體幾何，無法落地' }
     const M = compWorldMatrix(c).elements
     let minY = Infinity
     for (let i = 0; i < v.length; i += 3) { const y = M[1] * v[i] + M[5] * v[i + 1] + M[9] * v[i + 2] + M[13]; if (y < minY) minY = y }
-    if (!Number.isFinite(minY)) return { status: '落地失败（几何异常）' }
+    if (!Number.isFinite(minY)) return { status: '落地失敗（幾何異常）' }
     if (Math.abs(minY) < 1e-6) return { status: `「${c.name}」已在地面上` }
     const np: [number, number, number] = [c.pos[0], c.pos[1] - minY, c.pos[2]]
     return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((x) => (x.id === id ? { ...x, pos: np } : x)), status: `「${c.name}」已落到地面（下移 ${minY.toFixed(1)}mm）` }
@@ -11355,7 +11355,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   centerComponentXZ: (id) => set((s) => {
     const c = s.components.find((x) => x.id === id)
     if (!c) return {}
-    const v = c.mesh.vertices; if (!v.length) return { status: '此件无实体几何，无法归中' }
+    const v = c.mesh.vertices; if (!v.length) return { status: '此件無實體幾何，無法歸中' }
     const M = compWorldMatrix(c).elements
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity
     for (let i = 0; i < v.length; i += 3) {
@@ -11363,11 +11363,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       const z = M[2] * v[i] + M[6] * v[i + 1] + M[10] * v[i + 2] + M[14]
       if (x < minX) minX = x; if (x > maxX) maxX = x; if (z < minZ) minZ = z; if (z > maxZ) maxZ = z
     }
-    if (!Number.isFinite(minX) || !Number.isFinite(minZ)) return { status: '归中失败（几何异常）' }
+    if (!Number.isFinite(minX) || !Number.isFinite(minZ)) return { status: '歸中失敗（幾何異常）' }
     const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2
     if (Math.abs(cx) < 1e-6 && Math.abs(cz) < 1e-6) return { status: `「${c.name}」已在中心` }
     const np: [number, number, number] = [c.pos[0] - cx, c.pos[1], c.pos[2] - cz]
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((x) => (x.id === id ? { ...x, pos: np } : x)), status: `「${c.name}」已 XZ 居中到原点` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((x) => (x.id === id ? { ...x, pos: np } : x)), status: `「${c.name}」已 XZ 居中到原點` }
   }),
   // Uniformly scale a placed component about its own bounding-box centre (so it stays put, just resizes).
   // Handy for fitting an imported STL/STEP part to size. Verts × factor about centre; normals unchanged
@@ -11379,10 +11379,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const c = s.components.find((x) => x.id === id)
     const def = c?.defId ? s.componentDefs.find((d) => d.id === c.defId) : undefined
     const pickedId = s.selectedComponentBody?.componentId === id ? s.selectedComponentBody.bodyId : undefined
-    if (def && def.bodies.length > 1 && !pickedId) return { status: `「${c?.name ?? id}」有多个实体：请先喺浏览器点选要修复嘅实体` }
+    if (def && def.bodies.length > 1 && !pickedId) return { status: `「${c?.name ?? id}」有多個實體：請先喺瀏覽器點選要修復嘅實體` }
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
     const source = picked?.mesh ?? c?.mesh
-    if (!c || !source?.vertices.length) return { status: '此件无网格可修复' }
+    if (!c || !source?.vertices.length) return { status: '此件無網格可修復' }
     const r = repairMesh(source.vertices, source.triangles)
     // Also unify triangle winding (fix flipped/inconsistent normals — black faces, wrong inside/outside).
     const w = unifyWinding(r.vertices, r.triangles)
@@ -11392,7 +11392,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       ...(def && picked ? (() => { const defs = s.componentDefs.map((d) => d.id === def.id ? writeDefBodyMesh(d, picked.id, { vertices: w.vertices, triangles: w.triangles, normals: w.normals }) : d); return { componentDefs: defs, components: reconcileComponents(s.components, defs) } })() : { components: s.components.map((x) => (x.id === id ? { ...x, mesh: { vertices: w.vertices, triangles: w.triangles, normals: w.normals }, ...DETACH_DEF } : x)) }),
-      status: `已修复「${c.name}${picked ? ' / ' + picked.name : ''}」：焊接 ${fixed} 重复顶点（${r.stats.vIn}→${r.stats.vOut}）· 删 ${r.stats.degenerate} 退化 + ${r.stats.duplicate} 重复三角${windNote} → ${wt.closed ? '✅ 现已水密' : `仍有 ${wt.boundary} 条开放边（真实孔洞，需补面）`}`,
+      status: `已修復「${c.name}${picked ? ' / ' + picked.name : ''}」：焊接 ${fixed} 重復頂點（${r.stats.vIn}→${r.stats.vOut}）· 刪 ${r.stats.degenerate} 退化 + ${r.stats.duplicate} 重復三角${windNote} → ${wt.closed ? '✅ 現已水密' : `仍有 ${wt.boundary} 條開放邊（真實孔洞，需補面）`}`,
     }
   }),
   // Lighten a heavy mesh by vertex-clustering decimation (cell mm). Bigger cell → fewer triangles (softer).
@@ -11400,16 +11400,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     const c = s.components.find((x) => x.id === id)
     const def = c?.defId ? s.componentDefs.find((d) => d.id === c.defId) : undefined
     const pickedId = s.selectedComponentBody?.componentId === id ? s.selectedComponentBody.bodyId : undefined
-    if (def && def.bodies.length > 1 && !pickedId) return { status: `「${c?.name ?? id}」有多个实体：请先喺浏览器点选要简化嘅实体` }
+    if (def && def.bodies.length > 1 && !pickedId) return { status: `「${c?.name ?? id}」有多個實體：請先喺瀏覽器點選要簡化嘅實體` }
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
     const source = picked?.mesh ?? c?.mesh
-    if (!c || !source?.vertices.length) return { status: '此件无网格可简化' }
+    if (!c || !source?.vertices.length) return { status: '此件無網格可簡化' }
     const r = simplifyMesh(source.vertices, source.triangles, cell)
-    if (!r.tOut) return { status: `简化格 ${cell}mm 太大（模型塌陷），请用更细嘅值` }
+    if (!r.tOut) return { status: `簡化格 ${cell}mm 太大（模型塌陷），請用更細嘅值` }
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       ...(def && picked ? (() => { const defs = s.componentDefs.map((d) => d.id === def.id ? writeDefBodyMesh(d, picked.id, { vertices: r.vertices, triangles: r.triangles, normals: r.normals }) : d); return { componentDefs: defs, components: reconcileComponents(s.components, defs) } })() : { components: s.components.map((x) => (x.id === id ? { ...x, mesh: { vertices: r.vertices, triangles: r.triangles, normals: r.normals }, ...DETACH_DEF } : x)) }),
-      status: `已简化「${c.name}${picked ? ' / ' + picked.name : ''}」：三角 ${r.tIn}→${r.tOut}（减面 ${(100 * (1 - r.tOut / r.tIn)).toFixed(0)}%，聚类格 ${cell}mm）`,
+      status: `已簡化「${c.name}${picked ? ' / ' + picked.name : ''}」：三角 ${r.tIn}→${r.tOut}（減面 ${(100 * (1 - r.tOut / r.tIn)).toFixed(0)}%，聚類格 ${cell}mm）`,
     }
   }),
   // S160：Taubin λ|μ 网格平滑（Fusion Mesh > Smooth）。shrink-free 保体积、边界钉住、拓扑不变。
@@ -11418,27 +11418,27 @@ export const useApp = create<AppState>((rawSet, get) => {
     const c = s.components.find((x) => x.id === id)
     const def = c?.defId ? s.componentDefs.find((d) => d.id === c.defId) : undefined
     const pickedId = s.selectedComponentBody?.componentId === id ? s.selectedComponentBody.bodyId : undefined
-    if (def && def.bodies.length > 1 && !pickedId) return { status: `「${c?.name ?? id}」有多个实体：请先喺浏览器点选要平滑嘅实体` }
+    if (def && def.bodies.length > 1 && !pickedId) return { status: `「${c?.name ?? id}」有多個實體：請先喺瀏覽器點選要平滑嘅實體` }
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
     const source = picked?.mesh ?? c?.mesh
-    if (!c || !source?.vertices.length || !source.triangles.length) return { status: '此件无网格可平滑' }
+    if (!c || !source?.vertices.length || !source.triangles.length) return { status: '此件無網格可平滑' }
     const P = Math.max(1, Math.min(40, Math.round(passes) || 5))
     const vol = (v: number[], t: number[]) => { let v6 = 0; for (let i = 0; i < t.length; i += 3) { const a = t[i] * 3, b = t[i + 1] * 3, cc = t[i + 2] * 3; v6 += v[a] * (v[b + 1] * v[cc + 2] - v[b + 2] * v[cc + 1]) - v[a + 1] * (v[b] * v[cc + 2] - v[b + 2] * v[cc]) + v[a + 2] * (v[b] * v[cc + 1] - v[b + 1] * v[cc]) } return Math.abs(v6) / 6 }
     const v0 = vol(source.vertices, source.triangles)
     const r = taubinSmooth(source.vertices, source.triangles, P)
-    if (!r.ok) return { status: `平滑「${c.name}」会令网格塌缩（网格太粗 / 趟数太多）— 已保持唔变。试少啲趟数，或先「重网格」加密再平滑` }   // 防 hollow：唔好搅烂仲报「保体积」
+    if (!r.ok) return { status: `平滑「${c.name}」會令網格塌縮（網格太粗 / 趟數太多）— 已保持唔變。試少啲趟數，或先「重網格」加密再平滑` }   // 防 hollow：唔好搅烂仲报「保体积」
     const v1 = vol(r.vertices, r.triangles)
     const dv = v0 > 1e-9 ? ((v1 - v0) / v0 * 100) : 0
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       ...(def && picked ? (() => { const defs = s.componentDefs.map((d) => d.id === def.id ? writeDefBodyMesh(d, picked.id, { vertices: r.vertices, triangles: r.triangles, normals: r.normals }) : d); return { componentDefs: defs, components: reconcileComponents(s.components, defs) } })() : { components: s.components.map((x) => (x.id === id ? { ...x, mesh: { vertices: r.vertices, triangles: r.triangles, normals: r.normals }, ...DETACH_DEF } : x)) }),
-      status: `已平滑「${c.name}${picked ? ' / ' + picked.name : ''}」：Taubin λ|μ ${P} 趟（保体积、边界钉住 — 体积 ${(v0 / 1000).toFixed(1)}→${(v1 / 1000).toFixed(1)} cm³，变化 ${dv.toFixed(1)}%）`,
+      status: `已平滑「${c.name}${picked ? ' / ' + picked.name : ''}」：Taubin λ|μ ${P} 趟（保體積、邊界钉住 — 體積 ${(v0 / 1000).toFixed(1)}→${(v1 / 1000).toFixed(1)} cm³，變化 ${dv.toFixed(1)}%）`,
     }
   }),
   // S160：网格属性只读测量（Fusion Mesh > Inspect/Measure）。体积/表面积/包围盒/三角数/水密 → status，无撤销。
   measureMeshComponent: (id) => set((s) => {
     const c = s.components.find((x) => x.id === id)
-    if (!c || !c.mesh.vertices.length || !c.mesh.triangles.length) return { status: '此件无网格可测量' }
+    if (!c || !c.mesh.vertices.length || !c.mesh.triangles.length) return { status: '此件無網格可測量' }
     const v = c.mesh.vertices, t = c.mesh.triangles
     let v6 = 0, area = 0
     for (let i = 0; i < t.length; i += 3) {
@@ -11454,7 +11454,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const wt = meshManifold(v, t)
     // GM-L2 #78：体积/面积/包围盒跟显示单位（mm/cm/inch），同物理属性面板一致 — 唔再硬编码 cm³/cm²/mm
     const u = s.unit
-    return { status: `📏「${c.name}」：体积 ${fmtVol(volMm3, u)} · 表面积 ${fmtArea(area, u)} · 包围盒 ${fmtLen(mx[0] - mn[0], u)}×${fmtLen(mx[1] - mn[1], u)}×${fmtLen(mx[2] - mn[2], u)} · ${t.length / 3} 三角 / ${v.length / 3} 顶点 · ${wt.closed ? '✅ 水密' : `⚠ ${wt.boundary} 条开放边（非水密，体积可能唔准）`}` }
+    return { status: `📏「${c.name}」：體積 ${fmtVol(volMm3, u)} · 表面積 ${fmtArea(area, u)} · 包圍盒 ${fmtLen(mx[0] - mn[0], u)}×${fmtLen(mx[1] - mn[1], u)}×${fmtLen(mx[2] - mn[2], u)} · ${t.length / 3} 三角 / ${v.length / 3} 頂點 · ${wt.closed ? '✅ 水密' : `⚠ ${wt.boundary} 條開放邊（非水密，體積可能唔準）`}` }
   }),
   // S165：网格抽壳/加厚（Fusion Mesh > Thicken）。闭合水密网格 → 沿法向内移壁厚 t 嘅内壳，外−内布尔掏空。
   // 内移系【内在】操作（沿法向），同件嘅 pos/rot 无关 → 直接喺 local mesh 上做，保留摆位。
@@ -11463,26 +11463,26 @@ export const useApp = create<AppState>((rawSet, get) => {
     const c = s.components.find((x) => x.id === id)
     const def = c?.defId ? s.componentDefs.find((d) => d.id === c.defId) : undefined
     const pickedId = s.selectedComponentBody?.componentId === id ? s.selectedComponentBody.bodyId : undefined
-    if (def && def.bodies.length > 1 && !pickedId) { set({ status: `「${c?.name ?? id}」有多个实体：请先喺浏览器点选要抽壳嘅实体` }); return }
+    if (def && def.bodies.length > 1 && !pickedId) { set({ status: `「${c?.name ?? id}」有多個實體：請先喺瀏覽器點選要抽殼嘅實體` }); return }
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
     const source = picked?.mesh ?? c?.mesh
-    if (!c || !source?.vertices.length || !source.triangles.length) { set({ status: '抽壳：此件无网格' }); return }
+    if (!c || !source?.vertices.length || !source.triangles.length) { set({ status: '抽殼：此件無網格' }); return }
     const t = Math.abs(thickness)
     if (!(t > 0)) { set({ status: illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL) }); return }
     const wt = meshManifold(source.vertices as number[], source.triangles as number[])
-    if (!wt.closed) { set({ status: `抽壳需要【水密闭合】网格（「${c.name}${picked ? ' / ' + picked.name : ''}」有 ${wt.boundary} 条开放边）— 先「🩹修复网格」补洞再抽壳` }); return }
-    set({ status: `正在抽壳「${c.name}${picked ? ' / ' + picked.name : ''}」（壁厚 ${t}mm）…` })
+    if (!wt.closed) { set({ status: `抽殼需要【水密閉合】網格（「${c.name}${picked ? ' / ' + picked.name : ''}」有 ${wt.boundary} 條開放邊）— 先「🩹修復網格」補洞再抽殼` }); return }
+    set({ status: `正在抽殼「${c.name}${picked ? ' / ' + picked.name : ''}」（壁厚 ${t}mm）…` })
     try {
       const { shellMesh, meshVolume } = await import('./io/meshBool')
       const res = await shellMesh({ vertices: source.vertices, triangles: source.triangles }, t)
       const vol = meshVolume(res)
-      if (!res.triangles.length || vol < 1e-6) { set({ status: '抽壳：结果为空 — 壁厚可能太大' }); return }
+      if (!res.triangles.length || vol < 1e-6) { set({ status: '抽殼：結果為空 — 壁厚可能太大' }); return }
       set((s2) => ({
         undoStack: [...s2.undoStack, docSnap(s2)].slice(-60), redoStack: [],
         ...(def && picked ? (() => { const defs = s2.componentDefs.map((d) => { if (d.id !== def.id) return d; const next = writeDefBodyMesh(d, picked.id, res as MeshData); return picked.id === d.bodies[0]?.id ? { ...next, src: undefined, edges: undefined } : next }); return { componentDefs: defs, components: reconcileComponents(s2.components, defs) } })() : { components: s2.components.map((x) => (x.id === id ? { ...x, mesh: res as MeshData, src: undefined, ...DETACH_DEF } : x)) }),
-        status: `已抽壳「${c.name}${picked ? ' / ' + picked.name : ''}」（壁厚 ${t}mm，掏空成壳）→ 壳体积 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(0) + ' mm³'}${(!picked && c.src) || (picked && picked.id === def?.bodies[0]?.id && c.src) ? '（已转净网格，参数源失效）' : ''}（可撤销 Ctrl+Z）`,
+        status: `已抽殼「${c.name}${picked ? ' / ' + picked.name : ''}」（壁厚 ${t}mm，掏空成殼）→ 殼體積 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(0) + ' mm³'}${(!picked && c.src) || (picked && picked.id === def?.bodies[0]?.id && c.src) ? '（已轉淨網格，參數源失效）' : ''}（可撤銷 Ctrl+Z）`,
       }))
-    } catch (e2) { set({ status: `抽壳失败：${(e2 as Error)?.message || e2}` }) }
+    } catch (e2) { set({ status: `抽殼失敗：${(e2 as Error)?.message || e2}` }) }
   },
   // S188：网格 3D 均匀偏移（Fusion Mesh > Offset）—— minkowski 与球膨胀/腐蚀，正=全方向外扩、负=内缩。
   // 烘焙级（同 shellMesh：清 src）。需水密闭合网格。offsetMesh 内部归一化绕向（inward STL 都啱）。
@@ -11491,45 +11491,45 @@ export const useApp = create<AppState>((rawSet, get) => {
     const c = s.components.find((x) => x.id === id)
     const def = c?.defId ? s.componentDefs.find((d) => d.id === c.defId) : undefined
     const pickedId = s.selectedComponentBody?.componentId === id ? s.selectedComponentBody.bodyId : undefined
-    if (def && def.bodies.length > 1 && !pickedId) { set({ status: `「${c?.name ?? id}」有多个实体：请先喺浏览器点选要偏移嘅实体` }); return }
+    if (def && def.bodies.length > 1 && !pickedId) { set({ status: `「${c?.name ?? id}」有多個實體：請先喺瀏覽器點選要偏移嘅實體` }); return }
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
     const source = picked?.mesh ?? c?.mesh
-    if (!c || !source?.vertices.length || !source.triangles.length) { set({ status: '偏移：此件无网格' }); return }
+    if (!c || !source?.vertices.length || !source.triangles.length) { set({ status: '偏移：此件無網格' }); return }
     if (!(Math.abs(distance) > 1e-9)) { set({ status: '偏移量唔可以系 0' }); return }
     const wt = meshManifold(source.vertices as number[], source.triangles as number[])
-    if (!wt.closed) { set({ status: `网格偏移需要【水密闭合】网格（「${c.name}${picked ? ' / ' + picked.name : ''}」有 ${wt.boundary} 条开放边）— 先「🩹修复网格」补洞再偏移` }); return }
-    set({ status: `正在偏移「${c.name}${picked ? ' / ' + picked.name : ''}」（${distance > 0 ? '外扩' : '内缩'} ${Math.abs(distance)}mm）…` })
+    if (!wt.closed) { set({ status: `網格偏移需要【水密閉合】網格（「${c.name}${picked ? ' / ' + picked.name : ''}」有 ${wt.boundary} 條開放邊）— 先「🩹修復網格」補洞再偏移` }); return }
+    set({ status: `正在偏移「${c.name}${picked ? ' / ' + picked.name : ''}」（${distance > 0 ? '外擴' : '內縮'} ${Math.abs(distance)}mm）…` })
     try {
       const { offsetMesh, meshVolume } = await import('./io/meshBool')
       const v0 = meshVolume(source)
       const res = await offsetMesh({ vertices: source.vertices, triangles: source.triangles }, distance)
-      if (!res.triangles.length) { set({ status: '偏移：结果为空' }); return }
+      if (!res.triangles.length) { set({ status: '偏移：結果為空' }); return }
       const v1 = meshVolume(res)
       set((s2) => ({
         undoStack: [...s2.undoStack, docSnap(s2)].slice(-60), redoStack: [],
         ...(def && picked ? (() => { const defs = s2.componentDefs.map((d) => { if (d.id !== def.id) return d; const next = writeDefBodyMesh(d, picked.id, res as MeshData); return picked.id === d.bodies[0]?.id ? { ...next, src: undefined, edges: undefined } : next }); return { componentDefs: defs, components: reconcileComponents(s2.components, defs) } })() : { components: s2.components.map((x) => (x.id === id ? { ...x, mesh: res as MeshData, src: undefined, ...DETACH_DEF } : x)) }),
-        status: `已偏移「${c.name}${picked ? ' / ' + picked.name : ''}」（${distance > 0 ? '+' : ''}${distance}mm，全方向${distance > 0 ? '外扩' : '内缩'}）→ 体积 ${(v0 / 1000).toFixed(2)}→${(v1 / 1000).toFixed(2)} cm³${(!picked && c.src) || (picked && picked.id === def?.bodies[0]?.id && c.src) ? '（已转净网格，参数源失效）' : ''}（可撤销 Ctrl+Z）`,
+        status: `已偏移「${c.name}${picked ? ' / ' + picked.name : ''}」（${distance > 0 ? '+' : ''}${distance}mm，全方向${distance > 0 ? '外擴' : '內縮'}）→ 體積 ${(v0 / 1000).toFixed(2)}→${(v1 / 1000).toFixed(2)} cm³${(!picked && c.src) || (picked && picked.id === def?.bodies[0]?.id && c.src) ? '（已轉淨網格，參數源失效）' : ''}（可撤銷 Ctrl+Z）`,
       }))
-    } catch (e2) { set({ status: `网格偏移失败：${(e2 as Error)?.message || e2}` }) }
+    } catch (e2) { set({ status: `網格偏移失敗：${(e2 as Error)?.message || e2}` }) }
   },
   // S178：网格凸包（Fusion Convex Hull）—— 顶点云 3D QuickHull 包成新组件（保留原件，新件继承位姿/材质/分组）。
   convexHullComponent: async (id) => {
     const s = get()
     const c = s.components.find((x) => x.id === id)
-    if (!c || !c.mesh.vertices.length) { set({ status: '凸包：此件无网格' }); return }
+    if (!c || !c.mesh.vertices.length) { set({ status: '凸包：此件無網格' }); return }
     const def = c.defId ? s.componentDefs.find((d) => d.id === c.defId) : undefined
     const pickedId = s.selectedComponentBody?.componentId === id ? s.selectedComponentBody.bodyId : undefined
-    if (def && def.bodies.length > 1 && !pickedId) { set({ status: `「${c.name}」有多个实体：请先喺浏览器点选要建立凸包嘅实体` }); return }
+    if (def && def.bodies.length > 1 && !pickedId) { set({ status: `「${c.name}」有多個實體：請先喺瀏覽器點選要建立凸包嘅實體` }); return }
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
     const source = picked?.mesh ?? c.mesh
-    if (!source.vertices.length) { set({ status: '凸包：此实体无网格' }); return }
+    if (!source.vertices.length) { set({ status: '凸包：此實體無網格' }); return }
     const sourceName = picked ? `${c.name} / ${picked.name}` : c.name
-    set({ status: `正在计算「${sourceName}」凸包…` })
+    set({ status: `正在計算「${sourceName}」凸包…` })
     try {
       const { convexHull3D } = await import('./geom/meshHull')
       const { meshVolume } = await import('./io/meshBool')
       const hull = convexHull3D(source.vertices as number[], source.triangles as number[])
-      if (!hull.triangles.length || hull.vertices.length < 12) { set({ status: '凸包：顶点云退化（<4 点 / 共线 / 共面）— 无法成 3D 凸包' }); return }
+      if (!hull.triangles.length || hull.vertices.length < 12) { set({ status: '凸包：頂點雲退化（<4 點 / 共線 / 共面）— 無法成 3D 凸包' }); return }
       const hullVol = meshVolume(hull)
       const fmt = (v: number) => (v >= 1000 ? (v / 1000).toFixed(2) + ' cm³' : v.toFixed(0) + ' mm³')
       // S178 audit LOW：⊇ 校验只喺【源网格水密闭合】时先有意义（开放/非流形源 origVol 系垃圾 → 唔好误报 ⚠）
@@ -11544,16 +11544,16 @@ export const useApp = create<AppState>((rawSet, get) => {
           // 保留原件；凸包做新组件（src:undefined 净网格 T759 政策；hidden:false 强制可见 — 新生成自动选中件唔好隐形）。
           components: [...s2.components, { ...c, id: hid, name: `${sourceName} 凸包`, mesh: hull as MeshData, src: undefined, hidden: false, ...DETACH_DEF }],   // R2 detach：凸包 = 独立新几何（唔共享源 def）
           selectedComponent: hid,
-          status: `已生成「${sourceName}」凸包（${hull.vertices.length / 3} 顶点 / ${hull.triangles.length / 3} 面）→ 体积 ${fmt(hullVol)}${srcClosed ? `（原 ${fmt(origVol)}，凸包 ⊇ 原${hullVol + 1e-6 >= origVol ? ' ✓' : ' ⚠'}）` : '（原网格非闭合，体积比从略）'}（可撤销 Ctrl+Z）`,
+          status: `已生成「${sourceName}」凸包（${hull.vertices.length / 3} 頂點 / ${hull.triangles.length / 3} 面）→ 體積 ${fmt(hullVol)}${srcClosed ? `（原 ${fmt(origVol)}，凸包 ⊇ 原${hullVol + 1e-6 >= origVol ? ' ✓' : ' ⚠'}）` : '（原網格非閉合，體積比從略）'}（可撤銷 Ctrl+Z）`,
         }
       })
-    } catch (e2) { set({ status: `凸包失败：${(e2 as Error)?.message || e2}` }) }
+    } catch (e2) { set({ status: `凸包失敗：${(e2 as Error)?.message || e2}` }) }
   },
   // S91：网格分离 Separate — 焊接重合顶点（量化 1e-4）后对规范顶点 union-find，按连通分量把
   // 多壳网格拆成 N 个独立组件（对标 Fusion Mesh「Separate」；导入多件 STL/扫描件拆件常用）。
   recognizeMeshPlanes: (id) => set((s) => {
     const c = s.components.find((x) => x.id === id)
-    if (!c || !c.mesh.vertices.length || !c.mesh.triangles.length) return { status: '此件无网格可识别平面区' }
+    if (!c || !c.mesh.vertices.length || !c.mesh.triangles.length) return { status: '此件無網格可識別平面區' }
     const v = c.mesh.vertices
     // 容差按模型尺度自适应：共面距离 = 包围盒对角 × 0.3%（最小 0.05mm），免大件太严/细件太松
     let mnx = Infinity, mny = Infinity, mnz = Infinity, mxx = -Infinity, mxy = -Infinity, mxz = -Infinity
@@ -11563,11 +11563,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     const sum = planarRegionSummary(regions, 0.01)
     const nTri = Math.round(c.mesh.triangles.length / 3)
     const big = sum.top[0]
-    return { status: `「${c.name}」平面区识别：${sum.significant} 个显著平面区（共 ${sum.total} 区 / ${nTri} 三角），平面覆盖 ${(sum.coveredFrac * 100).toFixed(0)}% 表面${big ? `，最大区占 ${((big.area / (regions.reduce((a, r) => a + r.area, 0) || 1)) * 100).toFixed(0)}%` : ''} — 平面区可转精确平面（Mesh→B-rep 参数化前置；覆盖率高=机加工/棱柱件，低=自由曲面/扫描件）` }
+    return { status: `「${c.name}」平面區識別：${sum.significant} 個顯著平面區（共 ${sum.total} 區 / ${nTri} 三角），平面覆蓋 ${(sum.coveredFrac * 100).toFixed(0)}% 表面${big ? `，最大區占 ${((big.area / (regions.reduce((a, r) => a + r.area, 0) || 1)) * 100).toFixed(0)}%` : ''} — 平面區可轉精確平面（Mesh→B-rep 參數化前置；覆蓋率高=機加工/棱柱件，低=自由曲面/掃描件）` }
   }),
   separateMeshComponent: (id) => set((s) => {
     const c = s.components.find((x) => x.id === id)
-    if (!c || !c.mesh.vertices.length || !c.mesh.triangles.length) return { status: '此件无网格可分离' }
+    if (!c || !c.mesh.vertices.length || !c.mesh.triangles.length) return { status: '此件無網格可分離' }
     const def = c.defId ? s.componentDefs.find((d) => d.id === c.defId) : undefined
     const pickedId = s.selectedComponentBody?.componentId === id ? s.selectedComponentBody.bodyId : undefined
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
@@ -11584,7 +11584,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     for (let i = 0; i < t.length; i += 3) { uni(cid[t[i]], cid[t[i + 1]]); uni(cid[t[i + 1]], cid[t[i + 2]]) }
     const groups = new Map<number, number[]>()
     for (let i = 0; i < t.length; i += 3) { const r = find(cid[t[i]]); let g = groups.get(r); if (!g) { g = []; groups.set(r, g) } g.push(i) }
-    if (groups.size < 2) return { status: `「${c.name}」已是单一连通件（${groups.size} 块），无需分离` }
+    if (groups.size < 2) return { status: `「${c.name}」已是單一連通件（${groups.size} 塊），無需分離` }
     const buildSub = (triIdxs: number[]) => {
       const remap = new Map<number, number>(); const nv: number[] = [], nn: number[] = [], nt: number[] = []
       for (const ti of triIdxs) for (let k = 0; k < 3; k++) {
@@ -11615,23 +11615,23 @@ export const useApp = create<AppState>((rawSet, get) => {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       components: s.components.flatMap((x) => (x.id === id ? newComps : [x])),
       joints, selectedComponent: newComps[0].id,
-      status: `已分离「${c.name}」→ ${subs.length} 个独立组件（按连通性，三角 ${subs.map((g) => g.length).join('/')}）`,
+      status: `已分離「${c.name}」→ ${subs.length} 個獨立組件（按連通性，三角 ${subs.map((g) => g.length).join('/')}）`,
     }
   }),
   // One-click seat an imported part: centre its bbox over the origin in XZ AND drop it onto the floor (z=0).
-  seatComponent: (id) => { get().centerComponentXZ(id); get().dropComponentToFloor(id); set({ status: '已归位摆正：XZ 居中 + 落地到 Z=0（方便摆放/打印）' }) },
+  seatComponent: (id) => { get().centerComponentXZ(id); get().dropComponentToFloor(id); set({ status: '已歸位擺正：XZ 居中 + 落地到 Z=0（方便擺放/打印）' }) },
   scaleComponent: (id, factor) => set((s) => {
     const c = s.components.find((x) => x.id === id)
     if (!c) return {}
     const def = c.defId ? s.componentDefs.find((d) => d.id === c.defId) : undefined
     const pickedId = s.selectedComponentBody?.componentId === id ? s.selectedComponentBody.bodyId : undefined
-    if (def && def.bodies.length > 1 && !pickedId) return { status: `「${c.name}」有多个实体：请先喺浏览器点选要缩放嘅实体` }
+    if (def && def.bodies.length > 1 && !pickedId) return { status: `「${c.name}」有多個實體：請先喺瀏覽器點選要縮放嘅實體` }
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
     const f = factor
-    if (!Number.isFinite(f) || f <= 0) return { status: '缩放比例要係正数' }
-    if (Math.abs(f - 1) < 1e-6) return { status: '比例 1，无变化' }
+    if (!Number.isFinite(f) || f <= 0) return { status: '縮放比例要係正數' }
+    if (Math.abs(f - 1) < 1e-6) return { status: '比例 1，無變化' }
     const source = picked?.mesh ?? c.mesh
-    const v = source.vertices; if (!v.length) return { status: '此件无实体几何，无法缩放' }
+    const v = source.vertices; if (!v.length) return { status: '此件無實體幾何，無法縮放' }
     let mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9]
     for (let i = 0; i < v.length; i += 3) for (let k = 0; k < 3; k++) { const x = v[i + k]; if (x < mn[k]) mn[k] = x; if (x > mx[k]) mx[k] = x }
     const cx = (mn[0] + mx[0]) / 2, cy = (mn[1] + mx[1]) / 2, cz = (mn[2] + mx[2]) / 2
@@ -11639,7 +11639,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     for (let i = 0; i < v.length; i += 3) { nv[i] = cx + (v[i] - cx) * f; nv[i + 1] = cy + (v[i + 1] - cy) * f; nv[i + 2] = cz + (v[i + 2] - cz) * f }
     const mesh = { ...source, vertices: nv }
     const change = def && picked ? (() => { const defs = s.componentDefs.map((d) => d.id === def.id ? writeDefBodyMesh(d, picked.id, mesh) : d); return { componentDefs: defs, components: reconcileComponents(s.components, defs) } })() : { components: s.components.map((x) => (x.id === id ? { ...x, mesh, ...DETACH_DEF } : x)) }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], ...change, status: `已缩放「${c.name}${picked ? ' / ' + picked.name : ''}」× ${f}（绕自身中心）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], ...change, status: `已縮放「${c.name}${picked ? ' / ' + picked.name : ''}」× ${f}（繞自身中心）` }
   }),
   // Non-uniform scale a component's mesh per-axis about its own centre. Pure mesh op — bypasses OCCT-wasm's
   // missing BRepBuilderAPI_GTransform (T705). The maker's #1 use: a downloaded STL stretched X/Y/Z独立.
@@ -11648,13 +11648,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!c) return {}
     const def = c.defId ? s.componentDefs.find((d) => d.id === c.defId) : undefined
     const pickedId = s.selectedComponentBody?.componentId === id ? s.selectedComponentBody.bodyId : undefined
-    if (def && def.bodies.length > 1 && !pickedId) return { status: `「${c.name}」有多个实体：请先喺浏览器点选要缩放嘅实体` }
+    if (def && def.bodies.length > 1 && !pickedId) return { status: `「${c.name}」有多個實體：請先喺瀏覽器點選要縮放嘅實體` }
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
     const f = [sx, sy, sz]
-    if (f.some((k) => !Number.isFinite(k) || k <= 0)) return { status: '缩放比例要係正数（X/Y/Z）' }
-    if (f.every((k) => Math.abs(k - 1) < 1e-6)) return { status: '比例 1，无变化' }
+    if (f.some((k) => !Number.isFinite(k) || k <= 0)) return { status: '縮放比例要係正數（X/Y/Z）' }
+    if (f.every((k) => Math.abs(k - 1) < 1e-6)) return { status: '比例 1，無變化' }
     const source = picked?.mesh ?? c.mesh
-    const v = source.vertices; if (!v.length) return { status: '此件无实体几何，无法缩放' }
+    const v = source.vertices; if (!v.length) return { status: '此件無實體幾何，無法縮放' }
     const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9]
     for (let i = 0; i < v.length; i += 3) for (let k = 0; k < 3; k++) { const x = v[i + k]; if (x < mn[k]) mn[k] = x; if (x > mx[k]) mx[k] = x }
     const ctr = [(mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2]
@@ -11672,7 +11672,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     for (let i = 0; i < nn.length; i += 3) { const L = Math.hypot(nn[i], nn[i + 1], nn[i + 2]) || 1; nn[i] /= L; nn[i + 1] /= L; nn[i + 2] /= L }
     const mesh: MeshData = { ...source, vertices: nv, normals: nn }
     const change = def && picked ? (() => { const defs = s.componentDefs.map((d) => d.id === def.id ? writeDefBodyMesh(d, picked.id, mesh) : d); return { componentDefs: defs, components: reconcileComponents(s.components, defs) } })() : { components: s.components.map((x) => (x.id === id ? { ...x, mesh, ...DETACH_DEF } : x)) }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], ...change, status: `已缩放「${c.name}${picked ? ' / ' + picked.name : ''}」 X×${sx} Y×${sy} Z×${sz}（非等比，绕自身中心）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], ...change, status: `已縮放「${c.name}${picked ? ' / ' + picked.name : ''}」 X×${sx} Y×${sy} Z×${sz}（非等比，繞自身中心）` }
   }),
   // ── 组件布尔（manifold-3d）────────────────────────────────────────────────
   compBoolPending: null,
@@ -11682,17 +11682,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     const def = c?.defId ? state.componentDefs.find((d) => d.id === c.defId) : undefined
     const pickedId = state.selectedComponentBody?.componentId === id ? state.selectedComponentBody.bodyId : undefined
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
-    if (def && def.bodies.length > 1 && !pickedId) { set({ status: `Component Boolean：请先在 Browser 选择「${c?.name ?? id}」的目标 Body` }); return }
-    if (def && !picked) { set({ status: 'Component Boolean：所选 Body 已不存在' }); return }
-    if (!c || !c.mesh.vertices.length) { set({ status: '组件布尔：此件无实体几何' }); return }
+    if (def && def.bodies.length > 1 && !pickedId) { set({ status: `Component Boolean：請先在 Browser 選擇「${c?.name ?? id}」的目標 Body` }); return }
+    if (def && !picked) { set({ status: 'Component Boolean：所選 Body 已不存在' }); return }
+    if (!c || !c.mesh.vertices.length) { set({ status: '組件布爾：此件無實體幾何' }); return }
     // GM-W4 4.2：一步式【活动参数化实体 ⊗ 网格件】布尔 —— 净得一个网格件（=拣中呢件）但有活动 B-rep 实体时，
     // 自动固化活动实体成网格件再行网格布尔（免用户手动「新建组件」两步）。固化 + 布尔合并成【一次可撤销】操作：
     // 一个 appConfirm 讲清「固化后时间轴唔再驱动」，跟住 op prompt，之后自动完成（无需点第二件）。
     if (get().components.filter((x) => x.mesh.vertices.length).length < 2) {
       const hasActiveBody = hasSolid(get().features) || !!(get().bodyMesh && get().bodyMesh!.triangles.length)
-      if (!hasActiveBody) { set({ status: '组件布尔需要至少两个有几何嘅零件（或有一个活动参数化实体可自动固化）' }); return }
+      if (!hasActiveBody) { set({ status: '組件布爾需要至少兩個有幾何嘅零件（或有一個活動參數化實體可自動固化）' }); return }
       const ok = await get().appConfirm('参数化实体将固化成网格再布尔（时间轴特征唔再驱动佢）。继续？', '一步式 实体⊗网格 布尔')
-      if (!ok) { set({ status: '已取消布尔（活动实体保留参数化）' }); return }
+      if (!ok) { set({ status: '已取消布爾（活動實體保留參數化）' }); return }
       const vf = await get().appPrompt(tStatus(`🧩一步式布爾 —「${c.name}」同【活動實體（將自動固化）】運算：\n1 = 合併（兩件熔成一件）\n2 = 切除（用固化實體喺「${c.name}」上切走重疊部分）\n   切除可加間隙做配對插槽：填 2,0.2 即工具件 XY 外擴 0.2mm\n3 = 相交（只留兩件重疊嘅公共部分）`, get().lang), '1')
       if (vf == null) return
       const pf = vf.split(/[,，\s]+/).filter(Boolean).map(Number)
@@ -11708,7 +11708,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const maxN = get().components.reduce((m, x) => { const n = parseInt(String(x.id).replace(/^C/, ''), 10); return Number.isFinite(n) && n > m ? n : m }, 0)
       const nid = 'C' + (maxN + 1)
       get().newComponent()   // 固化活动体 → 组件 nid
-      if (!get().components.find((x) => x.id === nid)) { set({ status: '自动固化失败（活动实体空/生成失败）— 布尔未执行' }); return }
+      if (!get().components.find((x) => x.id === nid)) { set({ status: '自動固化失敗（活動實體空/生成失敗）— 布爾未執行' }); return }
       await get().componentBoolean(id, nid, opf, clearancef, picked?.id)   // 拣中 Body ⊗ 刚固化件
       // 布尔成功 = 拣中件 mesh 已被换成布尔结果（新对象）；此时塌缩快照做原子撤销。失败则保留固化快照（起码可撤销固化）。
       const aMeshAfter = get().components.find((x) => x.id === id)?.mesh
@@ -11728,16 +11728,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({
       compBoolPending: { from: id, fromBodyId: picked?.id, op, clearance },
       selectedComponent: id,
-      status: `${opLbl}：请选择【第二个零件＝工具件】完成（${toolHint}${clearance ? `，间隙 ${clearance}mm` : ''}）— ①浏览树点另一个零件名 ②视口点另一个零件 ③勾选另一零件复选框 ④点上方列表按钮。Esc/取消 退出`,
+      status: `${opLbl}：請選擇【第二個零件＝工具件】完成（${toolHint}${clearance ? `，間隙 ${clearance}mm` : ''}）— ①瀏覽樹點另一個零件名 ②視口點另一個零件 ③勾選另一零件復選框 ④點上方列表按鈕。Esc/取消 退出`,
     })
   },
   // v1.25: canonical finish path for pending component boolean (Browser / viewport / checkbox / list).
   pickComponentBooleanTool: (toolId, toolBodyId) => {
     const bp = get().compBoolPending
-    if (!bp) { set({ status: '组件布尔：没有待选的工具件（请先点 🧩布尔）' }); return }
+    if (!bp) { set({ status: '組件布爾：沒有待選的工具件（請先點 🧩布爾）' }); return }
     if (!toolId || toolId === bp.from) {
       const fromName = get().components.find((x) => x.id === bp.from)?.name ?? bp.from
-      set({ status: `组件布尔：请点【另一个零件】作工具件，不要点「${fromName}」本身` })
+      set({ status: `組件布爾：請點【另一個零件】作工具件，不要點「${fromName}」本身` })
       return
     }
     set({ compBoolPending: null })
@@ -11745,7 +11745,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   cancelComponentBoolean: () => {
     if (!get().compBoolPending) return
-    set({ compBoolPending: null, status: '已取消组件布尔（未修改模型）' })
+    set({ compBoolPending: null, status: '已取消組件布爾（未修改模型）' })
   },
   // Mesh-level Boolean on exactly one Body from each occurrence.  Geometry is temporarily
   // expressed in world CAD coordinates for manifold-3d, then transformed back to A's local
@@ -11763,7 +11763,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     let pickedBId = bBodyId
     if (!pickedBId && bBodies.length > 1) {
       const answer = await get().appPrompt(`「${B.name}」有 ${bBodies.length} 個 Body；請選擇工具體編號：\n${bBodies.map((b, i) => `${i + 1} = ${b.name}`).join('\n')}`, '1')
-      if (answer == null) { set({ status: '已取消组件布尔' }); return }
+      if (answer == null) { set({ status: '已取消組件布爾' }); return }
       const n = Number(answer.trim())
       if (!Number.isInteger(n) || n < 1 || n > bBodies.length) { set({ status: '組件布爾：工具體編號無效' }); return }
       pickedBId = bBodies[n - 1].id
@@ -11800,7 +11800,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       const resWorld = await meshBoolean(aM, bM, op)
       const vol = meshVolume(resWorld)
-      if (!resWorld.triangles.length || vol < 1e-8) { set({ status: `组件布尔：${opLbl}结果为空，未修改模型` }); return }
+      if (!resWorld.triangles.length || vol < 1e-8) { set({ status: `組件布爾：${opLbl}結果為空，未修改模型` }); return }
       const res = transform(A, resWorld as MeshData, true) as MeshData
       const keepTool = op === 'subtract'  // 切除：工具件保留（插槽配对要对位检查；唔要可自行删除）；合并/相交：工具件已被消耗
       set((s2) => {
@@ -11852,7 +11852,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           grounded,
           selectedComponent: aId,
           selectedComponentBody: { componentId: aId, bodyId: aBody.id },
-          status: `已${opLbl}「${A.name} / ${aBody.name}」${opSym}「${B.name} / ${bBody.name}」→ 体积 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}${toolNote}${keepTool ? '（工具體保留）' : '（只消耗工具體）'}${removedJointCount ? `；工具件移除，连带移除 ${removedJointCount} 个关节` : '；來源位置與關節保留'}${removedMateCount ? `、${removedMateCount} 个配合` : ''}（可撤销 Ctrl+Z）`,
+          status: `已${opLbl}「${A.name} / ${aBody.name}」${opSym}「${B.name} / ${bBody.name}」→ 體積 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}${toolNote}${keepTool ? '（工具體保留）' : '（只消耗工具體）'}${removedJointCount ? `；工具件移除，連帶移除 ${removedJointCount} 個關節` : '；來源位置與關節保留'}${removedMateCount ? `、${removedMateCount} 個配合` : ''}（可撤銷 Ctrl+Z）`,
         }
       })
       // v1.24/v1.25: mesh boolean ≠ part solid — ALWAYS show primary bake statusAction after success.
@@ -11871,7 +11871,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         // Preserve bake guidance + statusAction (resolveMates only overwrites status string).
         set({ status: `${prevStatus} · 已重算 ${matesA.length} 個涉及來源件的配合` })
       }
-    } catch (e) { set({ status: `组件布尔失败：${(e as Error)?.message || e}` }) }
+    } catch (e) { set({ status: `組件布爾失敗：${(e as Error)?.message || e}` }) }
   },
   // T766（S44）：网格组件平面切割（Fusion Mesh > Plane Cut 带填充）— manifold 布尔减半空间巨盒，
   // 切面自动系实心补面（solid⊖solid 必然水密）。STL 导入件剪走支撑/分件打印日常。烘焙世界位姿后切。
@@ -11883,10 +11883,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const picked = def?.bodies.find((b) => b.id === pickedId)
     if (def && def.bodies.length > 1 && !picked) { set({ status: 'Select a Body in Browser before Plane Cut on a multi-body component.' }); return }
     if (def && pickedId && !picked) { set({ status: 'Plane Cut: selected Body is no longer in this component definition.' }); return }
-    if (!c || !c.mesh.vertices.length) { set({ status: '平面切割：组件冇几何' }); return }
+    if (!c || !c.mesh.vertices.length) { set({ status: '平面切割：組件冇幾何' }); return }
     const source = picked?.mesh ?? c.mesh
-    if (!source.vertices.length) { set({ status: '平面切割：所选 Body 冇几何' }); return }
-    set({ status: `正在平面切割「${picked?.name ?? c.name}」（${axis}=${offset}，保留 ${keep} 侧）…` })
+    if (!source.vertices.length) { set({ status: '平面切割：所選 Body 冇幾何' }); return }
+    set({ status: `正在平面切割「${picked?.name ?? c.name}」（${axis}=${offset}，保留 ${keep} 側）…` })
     try {
       const { meshBoolean, meshVolume } = await import('./io/meshBool')
       const fk = computeFK(s.components.map((x) => x.id), s.joints)
@@ -11907,7 +11907,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const bt = [0, 2, 1, 1, 2, 3, 4, 5, 6, 5, 7, 6, 0, 1, 4, 1, 5, 4, 2, 6, 3, 3, 6, 7, 0, 4, 2, 2, 4, 6, 1, 3, 5, 3, 7, 5]
       const res = await meshBoolean(baked, { vertices: bv, triangles: bt }, 'subtract')
       const vol = meshVolume(res)
-      if (!res.triangles.length || vol < 1e-6) { set({ status: '平面切割：保留侧冇嘢剩 — 检查位置/保留侧' }); return }
+      if (!res.triangles.length || vol < 1e-6) { set({ status: '平面切割：保留側冇嘢剩 — 檢查位置/保留側' }); return }
       set((s2) => ({
         undoStack: [...s2.undoStack, docSnap(s2)].slice(-60), redoStack: [],
         ...(() => {
@@ -11918,7 +11918,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           // that also preserves the edited occurrence's pos/rot/joints.
           if (def) {
             const bodyId = picked?.id ?? def.bodies[0]?.id
-            if (!bodyId) return { status: '平面切割：组件定义冇 Body' }
+            if (!bodyId) return { status: '平面切割：組件定義冇 Body' }
             const cloned = cloneDef(s2.componentDefs, def)
             const updated0 = writeDefBodyMesh(cloned, bodyId, local)
             // Body 1 owns the legacy parametric source/edge mirror.  A mesh
@@ -11935,9 +11935,9 @@ export const useApp = create<AppState>((rawSet, get) => {
           // result has already been converted from world back to local.
           return { components: s2.components.map((x) => x.id === id ? { ...x, mesh: local, src: undefined } : x) }
         })(),
-        status: `已平面切割「${picked?.name ?? c.name}」（${axis}=${offset} 保留${keep}侧）→ 体积 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}，切面已补实（可撤销 Ctrl+Z）`,
+        status: `已平面切割「${picked?.name ?? c.name}」（${axis}=${offset} 保留${keep}側）→ 體積 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}，切面已補實（可撤銷 Ctrl+Z）`,
       }))
-    } catch (e2) { set({ status: `平面切割失败：${(e2 as Error)?.message || e2}` }) }
+    } catch (e2) { set({ status: `平面切割失敗：${(e2 as Error)?.message || e2}` }) }
   },
   // T767（S46）：网格组件 → B-rep（Fusion Convert Mesh Faceted 级）。
   // 转换只在 definition 的 local 坐标进行并写回所选 Body；occurrence 位姿与 joints 保持。
@@ -11952,17 +11952,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       : undefined
     if (selectedBodyId && def && !targetBody) { set({ status: 'Mesh to B-Rep: selected Browser Body is no longer available.' }); return }
     const sourceMesh = targetBody?.mesh ?? c?.mesh
-    if (!c || !sourceMesh?.triangles.length) { set({ status: '转 B-rep：组件冇几何' }); return }
+    if (!c || !sourceMesh?.triangles.length) { set({ status: '轉 B-rep：組件冇幾何' }); return }
     const nTri = sourceMesh.triangles.length / 3
     // S189：>3 万三角唔再硬拒 —— 先用现成 QEM 自动简化到 ~2.5 万（保特征）再缝合，解除 wasm 内存硬墙
     //（之前要用户去切片软件简化先导入）。极端网格（自动简化后仍 >3 万，即原 >~1.25M）先诚实拒。
     let mv: ArrayLike<number> = sourceMesh.vertices, mt: ArrayLike<number> = sourceMesh.triangles, nTriEff = nTri, decimNote = ''
     if (nTri > 30000) {
-      set({ status: `${nTri.toFixed(0)} 三角超 wasm 缝合上限 → 正在 QEM 自动简化…` })
+      set({ status: `${nTri.toFixed(0)} 三角超 wasm 縫合上限 → 正在 QEM 自動簡化…` })
       const { qemSimplify } = await import('./io/meshRepair')
       const dec = qemSimplify(sourceMesh.vertices as number[], sourceMesh.triangles as number[], Math.min(0.9, 25000 / nTri))
       const decTri = dec.triangles.length / 3
-      if (!dec.triangles.length || decTri > 30000) { set({ status: `转 B-rep：${nTri.toFixed(0)} 三角太多，自动简化后仍 ${decTri.toFixed(0)}（>3万 wasm 上限）— 先喺切片软件大幅简化再导入` }); return }
+      if (!dec.triangles.length || decTri > 30000) { set({ status: `轉 B-rep：${nTri.toFixed(0)} 三角太多，自動簡化後仍 ${decTri.toFixed(0)}（>3萬 wasm 上限）— 先喺切片軟件大幅簡化再匯入` }); return }
       mv = dec.vertices; mt = dec.triangles; nTriEff = decTri
       decimNote = `（原 ${nTri.toFixed(0)} 三角已自动 QEM 简化到 ${decTri.toFixed(0)} 再缝合）`
     }
@@ -12000,7 +12000,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       } catch { fit = 'faceted' }
     }
     const isParam = fit === 'param' || fit === 'prismatic'
-    set({ status: `正在缝合 ${nTriEff.toFixed(0)} 个三角 → B-rep…${isParam ? cylNote : ''}${nTriEff > 8000 ? '（较多三角，可能要等十几秒）' : ''}` })
+    set({ status: `正在縫合 ${nTriEff.toFixed(0)} 個三角 → B-rep…${isParam ? cylNote : ''}${nTriEff > 8000 ? '（較多三角，可能要等十幾秒）' : ''}` })
     const f: Feature = { id: fid(), type: 'meshbody', v: local, t: tArr, op: 'new', fit }
     const ok = await get().applyFeatures([...get().features, f], `已转换「${c.name}」→ B-rep 实体（${nTriEff.toFixed(0)} 三角${isParam ? cylNote + '，' : ' 缝合，共面已合并'}${decimNote}）— 而家可以圆角/抽壳/布尔/导出 STEP`)
     if (ok && get().bodyMesh && get().bodyMesh!.triangles.length) {
@@ -12023,7 +12023,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           return {
             componentDefs: defs, components: reconcileComponents(s2.components, defs),
             features: [], bodyMesh: null, bodyTopZ: 0, sketchSources: {}, skPatternData: null, selectedComponent: id,
-            status: `已转换「${c.name} · ${liveBody.name}」→ 本地 B-rep（其余实体保留；${copies} 个 occurrence 的位置/关节保持）`,
+            status: `已轉換「${c.name} · ${liveBody.name}」→ 本地 B-rep（其餘實體保留；${copies} 個 occurrence 的位置/關節保持）`,
           }
         }
         // Legacy anonymous components retain the historical behaviour.  Modern
@@ -12041,7 +12041,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const target = Math.min(10000, Math.max(1, spec.ratio))
     const plan = suggestGearTrain(target, spec.m, { stages: spec.stages || undefined })
     const n = plan.stages.length
-    set({ busy: true, status: `正在生成 ${n} 级齿轮箱（目标比 ${target}）…` })
+    set({ busy: true, status: `正在生成 ${n} 級齒輪箱（目標比 ${target}）…` })
     try {
       const th = spec.th, bore = spec.bore, helix = spec.helix || 0
       const xs: number[] = [0]
@@ -12079,17 +12079,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       for (let i = 0; i <= n; i++) get().addJoint({ type: 'revolute', parent: 'GND', child: 'C' + (i + 1), anchor: get().componentCenter('C' + (i + 1)), axis: [0, 1, 0], angle: 0, slide: 0 })
       for (let k = 0; k < n; k++) get().addMotionLink('J' + (k + 1), 'J' + (k + 2), -plan.stages[k].zIn / plan.stages[k].zOut)
       get().requestFit()
-    } catch (e) { set({ busy: false, status: '齿轮箱生成失败：' + ((e as Error)?.message || e) }) }
+    } catch (e) { set({ busy: false, status: '齒輪箱生成失敗：' + ((e as Error)?.message || e) }) }
   },
   // Uniformly scale the WHOLE assembly about its overall centre — each part's mesh × f AND its position
   // re-spaced by f, so the relative gaps scale too (a true resize). Unlike a slicer's print-scale this changes
   // the model you keep editing/measuring/exporting. Works with part rotation (uniform scale commutes). Undoable.
   scaleAssembly: (factor) => set((s) => {
     const f = factor
-    if (!Number.isFinite(f) || f <= 0) return { status: '缩放比例要係正数' }
-    if (Math.abs(f - 1) < 1e-6) return { status: '比例 1，无变化' }
+    if (!Number.isFinite(f) || f <= 0) return { status: '縮放比例要係正數' }
+    if (Math.abs(f - 1) < 1e-6) return { status: '比例 1，無變化' }
     const comps = s.components.filter((c) => c.mesh.vertices.length)
-    if (!comps.length) return { status: '冇组件可整体缩放（单体请用「缩放」特征）' }
+    if (!comps.length) return { status: '冇組件可整體縮放（單體請用「縮放」特徵）' }
     const fk = computeFK(s.components.map((c) => c.id), s.joints)
     const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9]
     for (const c of comps) { const M = compWorldMatrix(c, fk.get(c.id)).elements, v = c.mesh.vertices; for (let i = 0; i < v.length; i += 3) { const x = v[i], y = v[i + 1], z = v[i + 2]; const w = [M[0] * x + M[4] * y + M[8] * z + M[12], M[1] * x + M[5] * y + M[9] * z + M[13], M[2] * x + M[6] * y + M[10] * z + M[14]]; for (let k = 0; k < 3; k++) { if (w[k] < mn[k]) mn[k] = w[k]; if (w[k] > mx[k]) mx[k] = w[k] } } }
@@ -12100,14 +12100,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       const np: [number, number, number] = [C[0] + (c.pos[0] - C[0]) * f, C[1] + (c.pos[1] - C[1]) * f, C[2] + (c.pos[2] - C[2]) * f]
       return { ...c, mesh: { ...c.mesh, vertices: nv }, pos: np, ...DETACH_DEF }   // R2 detach：整体缩放烘焙 → 各件脱离共享定义
     })
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: newComps, status: `已整体缩放装配 × ${f}（${comps.length} 件，含相对间距）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: newComps, status: `已整體縮放裝配 × ${f}（${comps.length} 件，含相對間距）` }
   }),
   // Lay out all visible components flat on the print bed (drop to z=0) in a left-to-right grid that wraps at the
   // selected bed width — the prep step for batch-printing all parts. Undoable (it moves parts; not assembly pose).
   arrangeOnBed: () => set((s) => {
     const bed = s.bedPreset === -1 && s.customBed ? s.customBed : (PRINT_BEDS[s.bedPreset] || PRINT_BEDS[0])
     const vis = s.components.filter((c) => !c.hidden && c.mesh.vertices.length)
-    if (!vis.length) return { status: '冇可排版嘅零件（先载入装配模板或新建组件）' }
+    if (!vis.length) return { status: '冇可排版嘅零件（先載入裝配模板或新建組件）' }
     const gap = 5
     const info = vis.map((c) => {
       const M = compWorldMatrix(c).elements, v = c.mesh.vertices
@@ -12123,7 +12123,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       moved.set(it.id, [p[0] + (cx - it.mnx), p[1] + (0 - it.mny), p[2] + (rz - it.mnz)])
       cx += it.W + gap; rowMaxD = Math.max(rowMaxD, it.D)
     }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (moved.has(c.id) ? { ...c, pos: moved.get(c.id)! } : c)), status: `已把 ${info.length} 个零件排版到打印床（铺平到 z=0，按 ${bed.x}mm 宽换行，间距 ${gap}mm）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (moved.has(c.id) ? { ...c, pos: moved.get(c.id)! } : c)), status: `已把 ${info.length} 個零件排版到打印床（鋪平到 z=0，按 ${bed.x}mm 寬換行，間距 ${gap}mm）` }
   }),
   // Mirror any placed component across a CAD plane.  The mirrored occurrence owns a baked,
   // reflected mesh/definition so its source definition remains unchanged (Fusion occurrence semantics).
@@ -12136,7 +12136,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       : plane
     const fk = computeFK(s.components.map((c) => c.id), s.joints)
     let rmesh: MeshData
-    try { rmesh = mirrorComponentMeshAcrossCadPlane(src, actualPlane, fk.get(src.id)) } catch { return { status: '镜像组件失败：镜像平面无效' } }
+    try { rmesh = mirrorComponentMeshAcrossCadPlane(src, actualPlane, fk.get(src.id)) } catch { return { status: '鏡像組件失敗：鏡像平面無效' } }
     // 碰撞安全 id（保 M 命名空间）：用现存组件【最大 M 数字后缀 +1】，唔可用 'M'+(length+1)——删件后数组缩短而唔重编号
     //   → length-based 会重铸已存在 id（两 occurrence 同 id → deleteComponent 一次删两件 / find 返首个 / 关节引用歧义）。
     const mMax = s.components.reduce((m, c) => { const n = parseInt(String(c.id).replace(/^M/, ''), 10); return Number.isFinite(n) && n > m ? n : m }, 0)
@@ -12146,7 +12146,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const did = nextDefId(s.componentDefs)
     const mdef: StoreCompDef = { id: did, name: src.name + ' 镜像', bodies: [{ id: did + '_B1', name: src.name + ' 镜像', mesh: rmesh }], mesh: rmesh, rev: 0 }   // body id 用 did → 存档往返幂等（与 makeDefOcc 一致）
     const comp = { ...src, id: nid, name: src.name + ' 镜像', mesh: rmesh, pos, rot: undefined, defId: did, _rev: 0, src: undefined }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, comp], componentDefs: [...s.componentDefs, mdef], selectedComponent: nid, status: `已镜像组件「${src.name}」（平面 n=[${actualPlane.n.map((v) => +v.toFixed(3)).join(',')}]）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, comp], componentDefs: [...s.componentDefs, mdef], selectedComponent: nid, status: `已鏡像組件「${src.name}」（平面 n=[${actualPlane.n.map((v) => +v.toFixed(3)).join(',')}]）` }
   }),
   deleteComponent: (id) => set((s) => {
     const c = s.components.find((x) => x.id === id)
@@ -12162,7 +12162,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       mates,
       grounded: s.grounded === id ? null : s.grounded,
       selectedComponent: s.selectedComponent === id ? null : s.selectedComponent,
-      status: c ? `已删除组件「${c.name}」${removedMateCount ? `（连带清除 ${removedMateCount} 个配合）` : ''}（可撤销 Ctrl+Z）` : s.status,
+      status: c ? `已刪除組件「${c.name}」${removedMateCount ? `（連帶清除 ${removedMateCount} 個配合）` : ''}（可撤銷 Ctrl+Z）` : s.status,
     }
   }),
   joints: [],
@@ -12187,7 +12187,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // branch:-1 → solve4Bar(θ=0) lands exactly on the authored rest C0=[20,30] (the open, non-crossing
   // crank-rocker config). With branch:+1 the same geometry resolves to the reflected/crossed pose
   // ([4,-18] at θ=0) — rigid & valid but visually crossed and not matching the authored rest. (Node-verified.)
-  makeFourBar: () => { set({ fourBar: { A: [-30, 0], D: [30, 0], B0: [-30, 20], C0: [20, 30], theta: 0, branch: -1 }, status: '已建平面四连杆（闭环机构）— 拖「曲柄角」滑杆驱动；杆长由约束求解器保持刚性。撳「翻转装配」睇另一支解' }); get().setView('front') },
+  makeFourBar: () => { set({ fourBar: { A: [-30, 0], D: [30, 0], B0: [-30, 20], C0: [20, 30], theta: 0, branch: -1 }, status: '已建平面四連桿（閉環機構）— 拖「曲柄角」滑桿驅動；桿長由約束求解器保持剛性。撳「翻轉裝配」睇另一支解' }); get().setView('front') },
   setFourBarAngle: (deg) => set((s) => (s.fourBar ? { fourBar: { ...s.fourBar, theta: deg } } : {})),
   // Parametric 4-bar by link lengths: rebuild rest pose A,D,B0,C0 from crank/coupler/rocker/ground.
   // A,D on the x-axis centred at origin; crank up at rest; C0 = circle∩circle (coupler from B0, rocker from D).
@@ -12198,14 +12198,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     const c = Math.max(1, patch.rocker ?? d(fb.D, fb.C0)), g = Math.max(1, patch.ground ?? d(fb.A, fb.D))
     const A: [number, number] = [-g / 2, 0], D: [number, number] = [g / 2, 0], B0: [number, number] = [-g / 2, a]
     const C0 = _fourbar.circleCircle(B0, b, D, c, fb.branch) || fb.C0
-    return { fourBar: { ...fb, A, D, B0, C0 }, status: `四连杆杆长：曲柄 ${a.toFixed(0)} · 连杆 ${b.toFixed(0)} · 摇杆 ${c.toFixed(0)} · 机架 ${g.toFixed(0)}${_fourbar.circleCircle(B0, b, D, c, fb.branch) ? '' : '（⚠ 杆长无法闭合）'}` }
+    return { fourBar: { ...fb, A, D, B0, C0 }, status: `四連桿桿長：曲柄 ${a.toFixed(0)} · 連桿 ${b.toFixed(0)} · 摇桿 ${c.toFixed(0)} · 機架 ${g.toFixed(0)}${_fourbar.circleCircle(B0, b, D, c, fb.branch) ? '' : '（⚠ 桿長無法閉合）'}` }
   }),
-  flipFourBar: () => set((s) => (s.fourBar ? { fourBar: { ...s.fourBar, branch: (s.fourBar.branch === 1 ? -1 : 1) as 1 | -1 }, status: '已翻转装配模式（另一支解）' } : {})),
-  closeFourBar: () => set({ fourBar: null, motionTracePts: [], motionEnvelope: null, status: '已关闭四连杆' }),
+  flipFourBar: () => set((s) => (s.fourBar ? { fourBar: { ...s.fourBar, branch: (s.fourBar.branch === 1 ? -1 : 1) as 1 | -1 }, status: '已翻轉裝配模式（另一支解）' } : {})),
+  closeFourBar: () => set({ fourBar: null, motionTracePts: [], motionEnvelope: null, status: '已關閉四連桿' }),
   // S193：四连杆机构分析（速度比 ω摇杆/ω曲柄 + 传动角 + 机械利益）—— Fusion Motion Study 级机构指标。
   runLinkageAnalysis: () => {
     const fb = get().fourBar
-    if (!fb) { set({ status: '机构分析：先建四连杆' }); return }
+    if (!fb) { set({ status: '機構分析：先建四連桿' }); return }
     const g = { A: fb.A, D: fb.D, B0: fb.B0, C0: fb.C0 }
     const cur = fourBarVelocity(g, fb.theta, fb.branch)
     const prof = fourBarVelocityProfile(g, fb.branch, 120).filter((p) => p.ok)
@@ -12213,10 +12213,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const ratios = prof.map((p) => Math.abs(p.ratio)).filter(Number.isFinite)
     const maxRatio = ratios.length ? Math.max(...ratios) : NaN
     const warn = Number.isFinite(minMu) && minMu < 40 ? `　⚠ 全程最差传动角 ${minMu.toFixed(0)}°<40° — 机构发卡/力传递差，调杆长改善` : ''
-    set({ status: `🔧 机构分析（曲柄 ${fb.theta.toFixed(0)}°）：速度比 ω摇杆/ω曲柄=${cur.ok ? cur.ratio.toFixed(3) : '死点∞'} · 传动角 ${cur.ok ? cur.transmission.toFixed(0) + '°' : '—'} · 机械利益 ${cur.ok && Number.isFinite(cur.mech) ? cur.mech.toFixed(2) + '×' : '∞'}　|　全程：最差传动角 ${Number.isFinite(minMu) ? minMu.toFixed(0) + '°' : '—'} · 峰值速度比 ${Number.isFinite(maxRatio) ? maxRatio.toFixed(2) : '—'}${warn}` })
+    set({ status: `🔧 機構分析（曲柄 ${fb.theta.toFixed(0)}°）：速度比 ω摇桿/ω曲柄=${cur.ok ? cur.ratio.toFixed(3) : '死點∞'} · 傳動角 ${cur.ok ? cur.transmission.toFixed(0) + '°' : '—'} · 機械利益 ${cur.ok && Number.isFinite(cur.mech) ? cur.mech.toFixed(2) + '×' : '∞'}　|　全程：最差傳動角 ${Number.isFinite(minMu) ? minMu.toFixed(0) + '°' : '—'} · 峰值速度比 ${Number.isFinite(maxRatio) ? maxRatio.toFixed(2) : '—'}${warn}` })
   },
   sliderCrank: null,
-  makeSliderCrank: () => { set({ sliderCrank: { r: 20, L: 60, e: 0, theta: 0 }, status: '已建滑块曲柄机构（活塞）— 拖「曲柄角」滑杆驱动；曲柄转→活塞往复（行程=2×曲柄半径），连杆长由闭环求解保持' }); get().setView('front') },
+  makeSliderCrank: () => { set({ sliderCrank: { r: 20, L: 60, e: 0, theta: 0 }, status: '已建滑塊曲柄機構（活塞）— 拖「曲柄角」滑桿驅動；曲柄轉→活塞往復（行程=2×曲柄半徑），連桿長由閉環求解保持' }); get().setView('front') },
   setSliderCrankAngle: (deg) => set((s) => (s.sliderCrank ? { sliderCrank: { ...s.sliderCrank, theta: deg } } : {})),
   setSliderCrank: (patch) => set((s) => {
     if (!s.sliderCrank) return {}
@@ -12225,13 +12225,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     const e = patch.e != null ? patch.e : s.sliderCrank.e
     // GM-L2 #92：偏置 e 过大（|e−B_y|>L）时部分曲柄角无解，轨迹会静默断裂 — 扫一圈可达性，非全程可达就诚实警告
     const reach = sliderCrankReachability({ r, L, e })
-    return { sliderCrank: { ...s.sliderCrank, r, L, e }, ...(reach.allReachable ? {} : { status: `⚠ 连杆太短/偏置太大 — 全程只有 ${(reach.fraction * 100).toFixed(0)}% 曲柄角可装配，其余角度活塞轨迹会断裂。加长连杆 L 或减小偏置 e` }) }
+    return { sliderCrank: { ...s.sliderCrank, r, L, e }, ...(reach.allReachable ? {} : { status: `⚠ 連桿太短/偏置太大 — 全程只有 ${(reach.fraction * 100).toFixed(0)}% 曲柄角可裝配，其餘角度活塞軌迹會斷裂。加長連桿 L 或減小偏置 e` }) }
   }),
-  closeSliderCrank: () => set({ sliderCrank: null, motionTracePts: [], motionEnvelope: null, status: '已关闭滑块曲柄' }),
+  closeSliderCrank: () => set({ sliderCrank: null, motionTracePts: [], motionEnvelope: null, status: '已關閉滑塊曲柄' }),
   sixBar: null,
-  makeSixBar: () => { set({ sixBar: { theta: 0 }, fourBar: null, sliderCrank: null, motionTracePts: [], status: '已建六杆机构（Stephenson-III 闭环）— 拖「曲柄角」驱动；输出点 E 由通用连杆求解器 solveLinkage 联立解算（非解析公式）' }); get().setView('front') },
+  makeSixBar: () => { set({ sixBar: { theta: 0 }, fourBar: null, sliderCrank: null, motionTracePts: [], status: '已建六桿機構（Stephenson-III 閉環）— 拖「曲柄角」驅動；輸出點 E 由通用連桿求解器 solveLinkage 聯立解算（非解析公式）' }); get().setView('front') },
   setSixBarAngle: (deg) => set((s) => (s.sixBar ? { sixBar: { theta: deg } } : {})),
-  closeSixBar: () => set({ sixBar: null, motionTracePts: [], motionEnvelope: null, status: '已关闭六杆机构' }),
+  closeSixBar: () => set({ sixBar: null, motionTracePts: [], motionEnvelope: null, status: '已關閉六桿機構' }),
   // Motion trace (C1): sweep the driver through a full turn and record a tracked point's path — the classic
   // coupler curve for a 4-bar, or the piston line for a slider-crank. Points use the same frame as the rig
   // view so the curve overlays the mechanism. Stored as flat xyz in motionTracePts (drawn by MotionTraceView).
@@ -12242,17 +12242,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.fourBar) {
       const fb = s.fourBar
       for (let d = 0; d <= 360; d += 4) { const sol = solve4Bar(fb, d, fb.branch); if (!sol.ok || !Number.isFinite(sol.C[0]) || !Number.isFinite(sol.C[1])) continue; pts.push((sol.B[0] + sol.C[0]) / 2, (sol.B[1] + sol.C[1]) / 2 - 15, 0) } // coupler midpoint, FourBarView P() frame
-      set({ motionTracePts: pts, status: pts.length ? `已描出四连杆耦合曲线（${pts.length / 3} 点，扫曲柄一圈）` : '此杆长机构唔够闭合，扫唔出连续轨迹' })
+      set({ motionTracePts: pts, status: pts.length ? `已描出四連桿耦合曲線（${pts.length / 3} 點，掃曲柄一圈）` : '此桿長機構唔夠閉合，掃唔出連續軌迹' })
     } else if (s.sliderCrank) {
       const sc = s.sliderCrank, ox = -sc.L / 2
       for (let d = 0; d <= 360; d += 4) { const sol = solveSliderCrank({ ...sc, theta: d }); if (!sol.ok || !Number.isFinite(sol.C[0])) continue; pts.push(sol.C[0] + ox, sol.C[1], 0) } // piston C, SliderCrankView P() frame
-      set({ motionTracePts: pts, status: pts.length ? `已描出活塞轨迹（${pts.length / 3} 点，行程 ${(2 * sc.r).toFixed(0)}mm）` : '连杆太短够唔到滑轨' })
+      set({ motionTracePts: pts, status: pts.length ? `已描出活塞軌迹（${pts.length / 3} 點，行程 ${(2 * sc.r).toFixed(0)}mm）` : '連桿太短夠唔到滑軌' })
     } else if (s.sixBar) {
       for (let d = 0; d <= 360; d += 4) { const sol = solveSixBar(d); const E = sol.pts[6]; if (!sol.ok || !Number.isFinite(E[0]) || !Number.isFinite(E[1])) continue; pts.push(E[0], E[1] - 15, 0) } // output point E, SixBarView P() frame
-      set({ motionTracePts: pts, status: pts.length ? `已描出六杆输出点 E 轨迹（${pts.length / 3} 点，扫曲柄一圈）` : '六杆某些角度未收敛，扫唔出连续轨迹' })
-    } else { set({ status: '运动轨迹：先载入机构（四连杆 / 滑块曲柄 / 六杆）' }) }
+      set({ motionTracePts: pts, status: pts.length ? `已描出六桿輸出點 E 軌迹（${pts.length / 3} 點，掃曲柄一圈）` : '六桿某些角度未收斂，掃唔出連續軌迹' })
+    } else { set({ status: '運動軌迹：先載入機構（四連桿 / 滑塊曲柄 / 六桿）' }) }
   },
-  clearTrace: () => set({ motionTracePts: [], status: '已清除运动轨迹' }),
+  clearTrace: () => set({ motionTracePts: [], status: '已清除運動軌迹' }),
   // Motion envelope (C5): sweep the driver a full turn, collect the AABB of ALL mechanism points → the planar
   // rectangle the mechanism sweeps through. Useful for sizing a housing / planning clearance around moving parts.
   motionEnvelope: null,
@@ -12262,11 +12262,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.fourBar) { const fb = s.fourBar; for (let d = 0; d <= 360; d += 4) { const sol = solve4Bar(fb, d, fb.branch); if (!sol.ok) continue; add(fb.A[0], fb.A[1] - 15); add(fb.D[0], fb.D[1] - 15); add(sol.B[0], sol.B[1] - 15); add(sol.C[0], sol.C[1] - 15) } }
     else if (s.sliderCrank) { const sc = s.sliderCrank, ox = -sc.L / 2; for (let d = 0; d <= 360; d += 4) { const sol = solveSliderCrank({ ...sc, theta: d }); if (!sol.ok) continue; add(sol.A[0] + ox, sol.A[1]); add(sol.B[0] + ox, sol.B[1]); add(sol.C[0] + ox, sol.C[1]) } }
     else if (s.sixBar) { for (let d = 0; d <= 360; d += 4) { const sol = solveSixBar(d); if (!sol.ok) continue; for (const p of sol.pts) add(p[0], p[1] - 15) } }
-    else { set({ status: '运动包络：先载入机构（四连杆 / 滑块曲柄 / 六杆）' }); return }
-    if (mn[0] > mx[0]) { set({ status: '机构扫描未收敛，算唔到包络' }); return }
-    set({ motionEnvelope: { min: [mn[0], mn[1]], max: [mx[0], mx[1]] }, status: `已算运动包络 ${(mx[0] - mn[0]).toFixed(0)}×${(mx[1] - mn[1]).toFixed(0)}mm（机构扫一圈占用范围 — 设计外壳/避让用）` })
+    else { set({ status: '運動包絡：先載入機構（四連桿 / 滑塊曲柄 / 六桿）' }); return }
+    if (mn[0] > mx[0]) { set({ status: '機構掃描未收斂，算唔到包絡' }); return }
+    set({ motionEnvelope: { min: [mn[0], mn[1]], max: [mx[0], mx[1]] }, status: `已算運動包絡 ${(mx[0] - mn[0]).toFixed(0)}×${(mx[1] - mn[1]).toFixed(0)}mm（機構掃一圈占用範圍 — 設計外殼/避讓用）` })
   },
-  clearEnvelope: () => set({ motionEnvelope: null, status: '已清除运动包络' }),
+  clearEnvelope: () => set({ motionEnvelope: null, status: '已清除運動包絡' }),
   setJointValue: (id, patch) => set((s) => {
     // 撤销策略：限位/导程 = 离散配置编辑（typed input，应入撤销栈）；angle/slide/angle2… = 滑杆连续驱动
     // （拖一下会高频调用 — 若每 tick 压快照会瞬间灌爆 60 格令 Ctrl+Z 失效）→ 只对 config 编辑压快照。
@@ -12279,16 +12279,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       const inLoop = loops.some((lp) => lp.joints.some((j) => j.id === id))
       if (inLoop) {
         const lp = loops.find((l) => l.joints.some((j) => j.id === id))!
-        if (!lp.cut) return { status: '⚠ 呢个回路冇转动关节可剪开 — 闭环暂时唔支持（净滑动环）' }
-        if (!loopPlane(lp)) return { status: '⚠ 闭环只支持平面机构（回路内转轴互相平行）— 呢个回路唔系平面，未求解' }
+        if (!lp.cut) return { status: '⚠ 呢個回路冇轉動關節可剪開 — 閉環暫時唔支持（淨滑動環）' }
+        if (!loopPlane(lp)) return { status: '⚠ 閉環只支持平面機構（回路內轉軸互相平行）— 呢個回路唔係平面，未求解' }
         const sol = solveLoop(s.joints, s.components.map((c) => c.id), id, { angle: patch.angle, slide: patch.slide })
-        if (!sol) return { status: '⚠ 机构到死点／目标不可达／撞限位 — 保持上一个可解位置' }
+        if (!sol) return { status: '⚠ 機構到死點／目標不可達／撞限位 — 保持上一個可解位置' }
         const joints2 = s.joints.map((j) => {
           const v = sol.get(j.id)
           if (!v) return j
           return { ...j, ...(v.angle !== undefined ? { angle: v.angle } : {}), ...(v.slide !== undefined ? { slide: v.slide } : {}) }
         })
-        return { joints: joints2, status: `闭环已求解 ✓（${lp.joints.length} 关节回路 — 通用平面闭环求解器）` }
+        return { joints: joints2, status: `閉環已求解 ✓（${lp.joints.length} 關節回路 — 通用平面閉環求解器）` }
       }
     }
     // T787（接触集）：目标值撞到第三方组件 → 二分到接触前一刻先写（Fusion Enable Contact 嘅拖拽手感）。
@@ -12346,33 +12346,33 @@ export const useApp = create<AppState>((rawSet, get) => {
     return contactNote ? { ...undoP, joints, status: contactNote } : { ...undoP, joints }
   }),
   contactSets: false,
-  toggleContactSets: () => set((s) => ({ contactSets: !s.contactSets, status: !s.contactSets ? '🧱 接触集已开：拖关节滑杆撞到第三方组件会自动挡停（卡扣/棘轮/限位手感）— 蒙特卡洛 >2mm³ 判触' : '接触集已关：关节自由穿过组件' })),
+  toggleContactSets: () => set((s) => ({ contactSets: !s.contactSets, status: !s.contactSets ? '🧱 接觸集已開：拖關節滑桿撞到第三方組件會自動挡停（卡扣/棘輪/限位手感）— 蒙特卡洛 >2mm³ 判觸' : '接觸集已關：關節自由穿過組件' })),
   // GM-3DV4 A9：命名逐对接触集 —— 全局 contactSets=All 为缺省；亦可登记指定对（全局 OFF 时只检呢批）。
   contactPairs: [],
   addContactPair: (a, b, name) => set((s) => {
-    if (!a || !b || a === b) return { status: '接触集：需要两个唔同组件' }
-    if (s.contactPairs.some((p) => (p.a === a && p.b === b) || (p.a === b && p.b === a))) return { status: '呢对接触集已存在' }
+    if (!a || !b || a === b) return { status: '接觸集：需要兩個唔同組件' }
+    if (s.contactPairs.some((p) => (p.a === a && p.b === b) || (p.a === b && p.b === a))) return { status: '呢對接觸集已存在' }
     const na = s.components.find((c) => c.id === a)?.name ?? a, nb = s.components.find((c) => c.id === b)?.name ?? b
     const id = 'CS' + (s.contactPairs.reduce((m, p) => Math.max(m, Number(p.id.replace(/^CS/, '')) || 0), 0) + 1)
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], contactPairs: [...s.contactPairs, { id, name: name || `${na}↔${nb}`, a, b }], status: `已加命名接触集「${na}↔${nb}」（全局「接触」关时只检呢啲登记对 — scoped，快）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], contactPairs: [...s.contactPairs, { id, name: name || `${na}↔${nb}`, a, b }], status: `已加命名接觸集「${na}↔${nb}」（全局「接觸」關時只檢呢啲登記對 — scoped，快）` }
   }),
-  removeContactPair: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], contactPairs: s.contactPairs.filter((p) => p.id !== id), status: '已删接触集' })),
+  removeContactPair: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], contactPairs: s.contactPairs.filter((p) => p.id !== id), status: '已刪接觸集' })),
   // GM-3DV4 A1：Joint Origin 可复用实体。
   jointOrigins: [],
   jointOriginPickMode: false,
   jointOriginMode: 'simple',
   jointOriginFirst: null,
-  startJointOriginPick: (mode = 'simple') => set({ jointOriginPickMode: true, jointOriginMode: mode, jointOriginFirst: null, jointPickMode: false, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, status: mode === 'twoFaces' ? '关节原点（两面之间）：先点第一个平面或圆柱面中心，再点第二个面建立中间原点' : mode === 'twoEdges' ? '关节原点（两边交点）：先点第一条实体边，再点第二条相交边' : '关节原点：点一个 snap 点（实体面心 / 圆柱孔心 / 顶点）→ 落一个可复用命名帧（之后建关节可引用之，取代默认件心）' }),
-  cancelJointOriginPick: () => set({ jointOriginPickMode: false, jointOriginFirst: null, status: '已退出关节原点拾取' }),
+  startJointOriginPick: (mode = 'simple') => set({ jointOriginPickMode: true, jointOriginMode: mode, jointOriginFirst: null, jointPickMode: false, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, status: mode === 'twoFaces' ? '關節原點（兩面之間）：先點第一個平面或圓柱面中心，再點第二個面建立中間原點' : mode === 'twoEdges' ? '關節原點（兩邊交點）：先點第一條實體邊，再點第二條相交邊' : '關節原點：點一個 snap 點（實體面心 / 圓柱孔心 / 頂點）→ 落一個可復用命名幀（之後建關節可引用之，取代預設件心）' }),
+  cancelJointOriginPick: () => set({ jointOriginPickMode: false, jointOriginFirst: null, status: '已退出關節原點拾取' }),
   addJointOrigin: (jo) => {
     const s = get()
     const n = s.jointOrigins.reduce((m, o) => Math.max(m, Number(o.id.replace(/^JO/, '')) || 0), 0) + 1
     const id = 'JO' + n
     const full: JointOrigin = { id, name: jo.name || ('关节原点' + n), point: jo.point, mode: jo.mode ?? 'simple', angle: jo.angle ?? 0, offset: jo.offset ?? [0, 0, 0], flip: jo.flip ?? false, ...(jo.axis ? { axis: jo.axis } : {}), ...(jo.compId ? { compId: jo.compId } : {}) }
-    set({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], jointOrigins: [...s.jointOrigins, full], status: `已建可复用「${full.name}」@(${full.point.map((x) => x.toFixed(1)).join(', ')})（存喺浏览器「关节原点」组；建关节时喺下拉引用之）` })
+    set({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], jointOrigins: [...s.jointOrigins, full], status: `已建可復用「${full.name}」@(${full.point.map((x) => x.toFixed(1)).join(', ')})（存喺瀏覽器「關節原點」組；建關節時喺下拉引用之）` })
     return id
   },
-  removeJointOrigin: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], jointOrigins: s.jointOrigins.filter((o) => o.id !== id), joints: s.joints.map((j) => ((j.originRef === id || j.originRef2 === id) ? { ...j, ...(j.originRef === id ? { originRef: undefined } : {}), ...(j.originRef2 === id ? { originRef2: undefined } : {}) } : j)), status: '已删关节原点（引用它的关节保留当前锚点，只解除关联）' })),
+  removeJointOrigin: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], jointOrigins: s.jointOrigins.filter((o) => o.id !== id), joints: s.joints.map((j) => ((j.originRef === id || j.originRef2 === id) ? { ...j, ...(j.originRef === id ? { originRef: undefined } : {}), ...(j.originRef2 === id ? { originRef2: undefined } : {}) } : j)), status: '已刪關節原點（引用它的關節保留當前錨點，只解除關聯）' })),
   updateJointOrigin: (id, patch) => set((s) => {
     const jointOrigins = s.jointOrigins.map((o) => (o.id === id ? { ...o, ...patch } : o))
     const changed = jointOrigins.find((o) => o.id === id)
@@ -12380,7 +12380,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // A parent-origin edit must update every dependent joint's physical anchor
     // and axis, rather than leaving the browser value disconnected from FK.
     const joints = frame ? s.joints.map((j) => j.originRef === id ? { ...j, anchor: frame.anchor, axis: frame.axis, ...(changed!.angle ? { originAngle: changed!.angle } : { originAngle: undefined }), ...(changed!.flip ? { flip: true } : { flip: undefined }) } : j) : s.joints
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], jointOrigins, joints, status: frame ? `已更新关节原点；${joints.filter((j) => j.originRef === id).length} 个引用关节已同步` : undefined }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], jointOrigins, joints, status: frame ? `已更新關節原點；${joints.filter((j) => j.originRef === id).length} 個引用關節已同步` : undefined }
   }),
   jointOriginAt: (point, axis, compId) => {
     const s = get()
@@ -12388,21 +12388,21 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.jointOriginMode === 'twoFaces') {
       const first = s.jointOriginFirst
       if (!first) {
-        set({ jointOriginFirst: { point, ...(axis ? { axis } : {}), ...(compId ? { compId } : {}) }, status: '关节原点（两面之间）：已选第一个面；请点第二个面以建立中间原点' })
+        set({ jointOriginFirst: { point, ...(axis ? { axis } : {}), ...(compId ? { compId } : {}) }, status: '關節原點（兩面之間）：已選第一個面；請點第二個面以建立中間原點' })
         return
       }
       // The Fusion-style between-two-faces origin has a unique, stable frame
       // only for parallel (or opposed-parallel) planar/cylindrical normals.
       // Do not silently manufacture a bisector frame for skew references.
       if (!first.axis || !axis) {
-        set({ status: '关节原点（两面之间）：请拣平面或圆柱面，顶点不能定义两面之间嘅方向' })
+        set({ status: '關節原點（兩面之間）：請揀平面或圓柱面，頂點不能定義兩面之間嘅方向' })
         return
       }
       const la = Math.hypot(first.axis[0], first.axis[1], first.axis[2])
       const lb = Math.hypot(axis[0], axis[1], axis[2])
       const dot = la > 1e-9 && lb > 1e-9 ? (first.axis[0] * axis[0] + first.axis[1] * axis[1] + first.axis[2] * axis[2]) / (la * lb) : 0
       if (Math.abs(dot) < 0.999) {
-        set({ status: '关节原点（两面之间）：两面必须平行或相对平行；请重新拣第二面' })
+        set({ status: '關節原點（兩面之間）：兩面必須平行或相對平行；請重新揀第二面' })
         return
       }
       const sum: [number, number, number] = [(first.axis?.[0] ?? 0) + (axis?.[0] ?? 0), (first.axis?.[1] ?? 0) + (axis?.[1] ?? 0), (first.axis?.[2] ?? 1) + (axis?.[2] ?? 1)]
@@ -12423,16 +12423,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (!s.jointOriginPickMode || s.jointOriginMode !== 'twoEdges') return
     const L = Math.hypot(dir[0], dir[1], dir[2])
-    if (L < 1e-8) { set({ status: '关节原点（两边交点）：选中边退化，改点另一条直边' }); return }
+    if (L < 1e-8) { set({ status: '關節原點（兩邊交點）：選中邊退化，改點另一條直邊' }); return }
     const d: [number, number, number] = [dir[0] / L, dir[1] / L, dir[2] / L]
     const first = s.jointOriginFirst
-    if (!first) { set({ jointOriginFirst: { point, dir: d, ...(compId ? { compId } : {}) }, status: '关节原点（两边交点）：已选第一条边；请点第二条相交边' }); return }
-    if (!first.dir) { set({ jointOriginFirst: null, status: '关节原点（两边交点）：第一条边资料失效，请重新选择' }); return }
+    if (!first) { set({ jointOriginFirst: { point, dir: d, ...(compId ? { compId } : {}) }, status: '關節原點（兩邊交點）：已選第一條邊；請點第二條相交邊' }); return }
+    if (!first.dir) { set({ jointOriginFirst: null, status: '關節原點（兩邊交點）：第一條邊資料失效，請重新選擇' }); return }
     const r = nearestPointBetweenLines(first.point, first.dir, point, d)
-    if (!r || r.dist > 0.1) { set({ status: '关节原点（两边交点）：两条边没有相交（相距超过 0.1mm），请重新选第二条边' }); return }
+    if (!r || r.dist > 0.1) { set({ status: '關節原點（兩邊交點）：兩條邊沒有相交（相距超過 0.1mm），請重新選第二條邊' }); return }
     const ax: [number, number, number] = [first.dir[1] * d[2] - first.dir[2] * d[1], first.dir[2] * d[0] - first.dir[0] * d[2], first.dir[0] * d[1] - first.dir[1] * d[0]]
     const al = Math.hypot(ax[0], ax[1], ax[2])
-    if (al < 1e-8) { set({ status: '关节原点（两边交点）：两条边平行，不能定义交点方向' }); return }
+    if (al < 1e-8) { set({ status: '關節原點（兩邊交點）：兩條邊平行，不能定義交點方向' }); return }
     get().addJointOrigin({ point: r.point, mode: 'twoEdges', angle: 0, offset: [0, 0, 0], flip: false, axis: [ax[0] / al, ax[1] / al, ax[2] / al], ...(first.compId ? { compId: first.compId } : compId ? { compId } : {}) })
     set({ jointOriginPickMode: false, jointOriginFirst: null })
   },
@@ -12459,33 +12459,33 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       joints = [...s.joints, ...add]
     }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints, rigidGroups: s.rigidGroups.map((x) => (x.id === id ? { ...x, suppressed: nowSup } : x)), status: nowSup ? `已抑制刚性组「${g.name}」（成员各自自由郁）` : `已恢复刚性组「${g.name}」（成员重新焊为一体）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints, rigidGroups: s.rigidGroups.map((x) => (x.id === id ? { ...x, suppressed: nowSup } : x)), status: nowSup ? `已抑制剛性組「${g.name}」（成員各自自由郁）` : `已恢復剛性組「${g.name}」（成員重新焊為一體）` }
   }),
   removeRigidGroup: (id) => set((s) => {
     const g = s.rigidGroups.find((x) => x.id === id)
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints: s.joints.filter((j) => j.groupRef !== id), rigidGroups: s.rigidGroups.filter((x) => x.id !== id), status: g ? `已删刚性组「${g.name}」（成员释放）` : '已删刚性组' }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints: s.joints.filter((j) => j.groupRef !== id), rigidGroups: s.rigidGroups.filter((x) => x.id !== id), status: g ? `已刪剛性組「${g.name}」（成員釋放）` : '已刪剛性組' }
   }),
   // GM-3DV4 A12：有序爆炸步（session 态 — 同现有 explode 滑杆一样唔入存档）。
   explodeSteps: [],
   explodeLeaders: false,
   addExplodeStep: (ids, dir, dist) => set((s) => {
     const good = ids.filter((id) => s.components.some((c) => c.id === id))
-    if (!good.length) return { status: '爆炸步：需要至少一个组件' }
-    return { explodeSteps: [...s.explodeSteps, { ids: good, dir, dist }], status: `已加爆炸步 #${s.explodeSteps.length + 1}（${good.length} 件 · ${dist}mm）— 拖爆炸滑杆逐步展开` }
+    if (!good.length) return { status: '爆炸步：需要至少一個組件' }
+    return { explodeSteps: [...s.explodeSteps, { ids: good, dir, dist }], status: `已加爆炸步 #${s.explodeSteps.length + 1}（${good.length} 件 · ${dist}mm）— 拖爆炸滑桿逐步展開` }
   }),
-  removeExplodeStep: (i) => set((s) => ({ explodeSteps: s.explodeSteps.filter((_, k) => k !== i), status: '已删爆炸步' })),
-  clearExplodeSteps: () => set({ explodeSteps: [], status: '已清除有序爆炸步（回到单一径向滑杆）' }),
+  removeExplodeStep: (i) => set((s) => ({ explodeSteps: s.explodeSteps.filter((_, k) => k !== i), status: '已刪爆炸步' })),
+  clearExplodeSteps: () => set({ explodeSteps: [], status: '已清除有序爆炸步（回到單一徑向滑桿）' }),
   toggleExplodeLeaders: () => set((s) => ({ explodeLeaders: !s.explodeLeaders })),
   motionLinks: [],
   addMotionLink: (driver, driven, ratio, kind, driver2, ratio2) => set((s) => {
-    if (!(driver && driven && driver !== driven && driver2 !== driven)) return { status: '运动连接需要唔同关节（从动唔可以做自己嘅驱动）' }
+    if (!(driver && driven && driver !== driven && driver2 !== driven)) return { status: '運動連接需要唔同關節（從動唔可以做自己嘅驅動）' }
     // 审计修复：环检测 —— motionLinks = 有向图 driver→driven。若 driven 已能到达 driver(或 driver2)，
     // 加呢条 link 会成环 → propagateLinks 定点迭代发散、用户驱动值被静默覆写/暴走。拒绝并报错。
     const adj = new Map<string, string[]>()
     for (const l of s.motionLinks) { (adj.get(l.driver) ?? adj.set(l.driver, []).get(l.driver)!).push(l.driven); if (l.driver2) (adj.get(l.driver2) ?? adj.set(l.driver2, []).get(l.driver2)!).push(l.driven) }
     const reaches = (from: string, target: string) => { const seen = new Set<string>(); const stk = [from]; while (stk.length) { const u = stk.pop()!; if (u === target) return true; if (seen.has(u)) continue; seen.add(u); for (const v of (adj.get(u) ?? [])) stk.push(v) } return false }
-    if (reaches(driven, driver) || (driver2 && reaches(driven, driver2))) return { status: '运动连接会成环（机构会发散 / 驱动值乱跳）— 已拒绝' }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], motionLinks: [...s.motionLinks, { id: 'ML' + (s.motionLinks.length + 1), driver, driven, ratio, ...(kind ? { kind } : {}), ...(driver2 && ratio2 != null ? { driver2, ratio2 } : {}) }], status: `已加运动连接：${driver}${driver2 ? `+${driver2} 双驱动` : ' 驱动'} ${driven}（${kind === 'rack' ? '齿条 角→移' : '比'} ${ratio}${driver2 ? ` + ${ratio2}` : ''}）` }
+    if (reaches(driven, driver) || (driver2 && reaches(driven, driver2))) return { status: '運動連接會成環（機構會發散 / 驅動值乱跳）— 已拒絕' }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], motionLinks: [...s.motionLinks, { id: 'ML' + (s.motionLinks.length + 1), driver, driven, ratio, ...(kind ? { kind } : {}), ...(driver2 && ratio2 != null ? { driver2, ratio2 } : {}) }], status: `已加運動連接：${driver}${driver2 ? `+${driver2} 雙驅動` : ' 驅動'} ${driven}（${kind === 'rack' ? '齒條 角→移' : '比'} ${ratio}${driver2 ? ` + ${ratio2}` : ''}）` }
   }),
   removeMotionLink: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], motionLinks: s.motionLinks.filter((l) => l.id !== id) })),
   removeJoint: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints: s.joints.filter((j) => j.id !== id), motionLinks: s.motionLinks.filter((l) => l.driver !== id && l.driven !== id) })),
@@ -12495,18 +12495,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     ? {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       joints: s.joints.map((j) => ({ ...j, angle: 0, slide: 0, angle2: 0, angle3: 0, slide2: 0, ...(j.type === 'slider' ? { slide: j.rest ?? 0 } : { angle: j.rest ?? 0 }) })),
-      status: `已把 ${s.joints.length} 个关节回到静止位（Rest，缺省 0）`,
+      status: `已把 ${s.joints.length} 個關節回到靜止位（Rest，缺省 0）`,
     }
-    : { status: '没有关节可归零' })),
+    : { status: '沒有關節可歸零' })),
   // 捕捉位置：快照当前每个关节嘅 5 个 DOF 值（以 id 为键），存为命名姿态。空机构唔压撤销（冇嘢捕捉）。
   jointPoses: [],
   jointKeyframes: [],
   saveJointPose: (name) => set((s) => {
-    if (!s.joints.length) return { status: '没有关节可捕捉' }
+    if (!s.joints.length) return { status: '沒有關節可捕捉' }
     const vals: Record<string, { angle?: number; slide?: number; angle2?: number; angle3?: number; slide2?: number }> = {}
     for (const j of s.joints) vals[j.id] = { angle: j.angle ?? 0, slide: j.slide ?? 0, angle2: j.angle2 ?? 0, angle3: j.angle3 ?? 0, slide2: j.slide2 ?? 0 }
     const nm = name || `姿态${s.jointPoses.length + 1}`
-    return { jointPoses: [...s.jointPoses, { name: nm, vals }], status: `已捕捉位置「${nm}」（${s.joints.length} 个关节）` }
+    return { jointPoses: [...s.jointPoses, { name: nm, vals }], status: `已捕捉位置「${nm}」（${s.joints.length} 個關節）` }
   }),
   // 套用姿态：把每个关节合并保存值（缺省关节保持现值），再行同 setJointValue 一致嘅 ca/cs 限位 + propagateLinks（驱动守限位、从动跟齿轮链）。
   applyJointPose: (i) => set((s) => {
@@ -12529,19 +12529,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     // S172 audit：姿态对当前关节冇任何对应值（关节被删/重建 id 唔再对得上）→ joints 引用全无变 →
     // 唔好压撤销快照 + 唔好清 redo（否则 no-op 都灌爆 60 格撤销、清走 redo）。未改 ⇒ map 返原 j 引用，靠引用相等侦测。
     const changed = joints.length !== s.joints.length || joints.some((j, k) => j !== s.joints[k])
-    if (!changed) return { status: `位置「${p.name}」对当前关节无对应可套用值` }
+    if (!changed) return { status: `位置「${p.name}」對當前關節無對應可套用值` }
     return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints, status: `已套用位置「${p.name}」` }
   }),
   deleteJointPose: (i) => set((s) => ({ jointPoses: s.jointPoses.filter((_, k) => k !== i) })),
   // S177：加关键帧 @ t（秒）— 快照当前所有关节驱动值（同 saveJointPose），同 t 覆盖、按 t 插入排序。
   addJointKeyframe: (t) => set((s) => {
-    if (!s.joints.length) return { status: '没有关节可加关键帧' }
+    if (!s.joints.length) return { status: '沒有關節可加關鍵幀' }
     const vals: Record<string, { angle?: number; slide?: number; angle2?: number; angle3?: number; slide2?: number }> = {}
     for (const j of s.joints) vals[j.id] = { angle: j.angle ?? 0, slide: j.slide ?? 0, angle2: j.angle2 ?? 0, angle3: j.angle3 ?? 0, slide2: j.slide2 ?? 0 }
     const tt = Math.max(0, t || 0)
     const kept = s.jointKeyframes.filter((k) => Math.abs(k.t - tt) > 1e-6)   // 同 t 覆盖（重打同一时刻 = 更新）
     const next = [...kept, { t: tt, vals }].sort((a, b) => a.t - b.t)
-    return { jointKeyframes: next, status: `已加关键帧 @ ${tt.toFixed(2)}s（${s.joints.length} 关节，共 ${next.length} 帧）` }
+    return { jointKeyframes: next, status: `已加關鍵幀 @ ${tt.toFixed(2)}s（${s.joints.length} 關節，共 ${next.length} 幀）` }
   }),
   deleteJointKeyframe: (i) => set((s) => ({ jointKeyframes: s.jointKeyframes.filter((_, k) => k !== i) })),
   // 套用时间 t：揾相邻括弧帧线性插值，行同 applyJointPose 一样嘅 ca/cs 限位 + propagateLinks。
@@ -12603,17 +12603,17 @@ export const useApp = create<AppState>((rawSet, get) => {
   // GM-X4 #9：时间轴齿轮设定（session UI，唔入存档）。
   timelineHideInactive: false,
   timelineColorSwatch: false,
-  toggleTimelineHideInactive: () => set((s) => ({ timelineHideInactive: !s.timelineHideInactive, status: !s.timelineHideInactive ? '时间轴：隐藏已抑制特征' : '时间轴：显示全部特征' })),
-  toggleTimelineColorSwatch: () => set((s) => ({ timelineColorSwatch: !s.timelineColorSwatch, status: !s.timelineColorSwatch ? '时间轴：按组件色板染色' : '时间轴：关闭色板' })),
+  toggleTimelineHideInactive: () => set((s) => ({ timelineHideInactive: !s.timelineHideInactive, status: !s.timelineHideInactive ? '時間軸：隱藏已抑制特徵' : '時間軸：顯示全部特徵' })),
+  toggleTimelineColorSwatch: () => set((s) => ({ timelineColorSwatch: !s.timelineColorSwatch, status: !s.timelineColorSwatch ? '時間軸：按組件色板染色' : '時間軸：關閉色板' })),
   // GM-X4 #10：从 chip「在浏览器中查找」—— 选中特征 + bump nonce（FeatRow effect 滚动+闪烁）+ 请求视口 fit（Find in Window 窄版）。
   browserFocusId: null,
   browserFocusNonce: 0,
-  focusFeatureInBrowser: (id) => set((s) => ({ selectedFeature: id, selectedFeatures: [id], browserFocusId: id, browserFocusNonce: s.browserFocusNonce + 1, fitNonce: s.fitNonce + 1, fitTargetId: null, fitBBox: null, status: '已在浏览器中定位该特征' })),
+  focusFeatureInBrowser: (id) => set((s) => ({ selectedFeature: id, selectedFeatures: [id], browserFocusId: id, browserFocusNonce: s.browserFocusNonce + 1, fitNonce: s.fitNonce + 1, fitTargetId: null, fitBBox: null, status: '已在瀏覽器中定位該特徵' })),
   selectedFeatures: [],
   toggleFeatureSel: (id) => set((s) => {
     const has = s.selectedFeatures.includes(id)
     const sel = has ? s.selectedFeatures.filter((x) => x !== id) : [...s.selectedFeatures, id]
-    return { selectedFeatures: sel, selectedFeature: has ? (sel[sel.length - 1] ?? null) : id, status: `已选 ${sel.length} 个特征（Ctrl+点加/减选 — 阵列/镜像「所选特征」一次食晒）` }
+    return { selectedFeatures: sel, selectedFeature: has ? (sel[sel.length - 1] ?? null) : id, status: `已選 ${sel.length} 個特徵（Ctrl+點加/減選 — 陣列/鏡像「所選特徵」一次食晒）` }
   }),
   fitNonce: 0,
   fitTargetId: null,
@@ -12638,11 +12638,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         bodyMesh: empty ? null : mesh, bodyTopZ: empty ? 0 : meshTopZ(mesh!), timelinePos: pos, busy: false,
         planes: planesFromFeatures(feats.slice(0, pos), sup),   // GM-W5 5.1：时间轴回放 → 参考面随 marker 出现/消失（只派生 marker 前嘅 datum 节点）
-        status: pos === 0 ? '时间轴：开头（空白）' : pos === total ? `时间轴：最新（共 ${total} 个特征）` : `时间轴：第 ${pos}/${total} 步（回放历史，编辑任意特征即回到最新）`,
+        status: pos === 0 ? '時間軸：開頭（空白）' : pos === total ? `時間軸：最新（共 ${total} 個特徵）` : `時間軸：第 ${pos}/${total} 步（回放歷史，編輯任意特徵即回到最新）`,
         failedFeatureIds: timelineFailures.ids,  // Hole 子步失败映射到可见父节点
         featureErrors: timelineFailures.errors,
       })
-    } catch (e) { console.error(e); set({ busy: false, status: '时间轴回放失败', failedFeatureIds: [], featureErrors: {} }) }
+    } catch (e) { console.error(e); set({ busy: false, status: '時間軸回放失敗', failedFeatureIds: [], featureErrors: {} }) }
   },
   view: 'iso',
   viewNonce: 0,
@@ -12663,7 +12663,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   bookmarkApplyNonce: 0,
   saveViewBookmark: (name, pos, target, capture) => set((s) => {
     const b = sanitizeViewBookmark({ ...capture, name: name || `视图${s.viewBookmarks.length + 1}`, pos, target })
-    if (!b) return { status: '保存视图书签失败：相机位置无效（NaN/Infinity）' }
+    if (!b) return { status: '儲存視圖书簽失敗：相機位置無效（NaN/Infinity）' }
     return { viewBookmarks: [...s.viewBookmarks, b] }
   }),
   applyViewBookmark: (i) => set((s) => {
@@ -12725,18 +12725,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
   },
   overhang: null,
-  clearOverhang: () => set({ overhang: null, status: '已关闭悬垂高亮' }),
+  clearOverhang: () => set({ overhang: null, status: '已關閉懸垂高亮' }),
   wallThin: null,
-  clearWall: () => set({ wallThin: null, status: '已关闭薄壁高亮' }),
+  clearWall: () => set({ wallThin: null, status: '已關閉薄壁高亮' }),
   // Wall-thickness check (window-sampled inward ray-cast, honest): flags faces whose local wall is thinner
   // than the minimum printable (default 0.8mm ≈ 2 perimeters at a 0.4 nozzle). Reports the thinnest sampled
   // wall and highlights thin faces in orange. Sampled approximation — not an exact medial-axis thickness field.
   analyzeWall: () => {
     const mesh = get().bodyMesh
-    if (!mesh || !mesh.triangles || !mesh.triangles.length) { set({ status: '壁厚检查需要一个活动实体（先建模或载入一个零件）' }); return }
+    if (!mesh || !mesh.triangles || !mesh.triangles.length) { set({ status: '壁厚檢查需要一個活動實體（先建模或載入一個零件）' }); return }
     const minMm = 0.8
     const s = wallScan(mesh, minMm)
-    if (s.minThick === null) { set({ wallThin: { on: true, tris: [] }, status: '壁厚检查：揾唔到对面壁（开放/薄片几何）— 无法量度' }); return }
+    if (s.minThick === null) { set({ wallThin: { on: true, tris: [] }, status: '壁厚檢查：揾唔到對面壁（開放/薄片幾何）— 無法量度' }); return }
     const nThin = s.tris.length / 9
     const msg = nThin > 0
       ? `壁厚检查：最薄约 ${s.minThick.toFixed(2)} mm（阈值 ${minMm} mm）— ⚠ ${nThin} 处薄壁红橙高亮（采样 ${s.sampled}/${s.ntri} 面）`
@@ -12749,24 +12749,24 @@ export const useApp = create<AppState>((rawSet, get) => {
   // for the as-modeled +Z orientation, highlights those faces, and suggests the least-support axis orientation.
   analyzeOverhang: () => {
     const mesh = get().bodyMesh
-    if (!mesh || !mesh.triangles || !mesh.triangles.length) { set({ status: '悬垂分析需要一个活动实体（先建模或载入一个零件）' }); return }
+    if (!mesh || !mesh.triangles || !mesh.triangles.length) { set({ status: '懸垂分析需要一個活動實體（先建模或載入一個零件）' }); return }
     const s = overhangScan(mesh, 45)
     const supZ = (s.pctZ / 100) * s.totalArea
-    set({ overhang: { on: true, tris: s.flaggedZ }, status: `悬垂分析（>45° 悬垂需支撑，红色高亮）：当前 +Z 朝上 需支撑面 ${s.pctZ.toFixed(1)}%（${supZ.toFixed(0)} mm²）；最省朝向 ${s.best} 朝上（${s.bestPct.toFixed(1)}%）` })
+    set({ overhang: { on: true, tris: s.flaggedZ }, status: `懸垂分析（>45° 懸垂需支撐，紅色高亮）：當前 +Z 朝上 需支撐面 ${s.pctZ.toFixed(1)}%（${supZ.toFixed(0)} mm²）；最省朝向 ${s.best} 朝上（${s.bestPct.toFixed(1)}%）` })
   },
   // One-click: rotate the active body to the least-support print orientation (the overhang analysis' suggested
   // axis), via a transform feature (in the tree, undoable, persists). Re-highlights overhang on the new pose.
   autoOrient: async () => {
     const mesh = get().bodyMesh
-    if (!mesh || !mesh.triangles || !mesh.triangles.length) { set({ status: '自动摆正需要一个活动实体（先建模或载入一个零件）' }); return }
-    if (!hasSolid(get().features)) { set({ status: '自动摆正需要一个特征实体（导入网格件唔可以重定向特征树）' }); return }
+    if (!mesh || !mesh.triangles || !mesh.triangles.length) { set({ status: '自動擺正需要一個活動實體（先建模或載入一個零件）' }); return }
+    if (!hasSolid(get().features)) { set({ status: '自動擺正需要一個特徵實體（匯入網格件唔可以重定向特徵樹）' }); return }
     const s = overhangScan(mesh, 45)
-    if (s.best === '+Z') { set({ overhang: { on: true, tris: s.flaggedZ }, status: `已经系最省支撑朝向（+Z 朝上，需支撑 ${s.pctZ.toFixed(1)}%），无需摆正` }); return }
+    if (s.best === '+Z') { set({ overhang: { on: true, tris: s.flaggedZ }, status: `已經系最省支撐朝向（+Z 朝上，需支撐 ${s.pctZ.toFixed(1)}%），無需擺正` }); return }
     const r = ORIENT_ROT[s.best] || {}
     const f: Feature = { id: fid(), type: 'transform', dx: 0, dy: 0, dz: 0, rz: 0, rx: r.rx || 0, ry: r.ry || 0 }
     await get().applyFeatures([...get().features, f], `正在摆正到 ${s.best} 朝上…`)
     const m2 = get().bodyMesh // re-scan the rebuilt (rotated) body and re-highlight on the new pose
-    if (m2 && m2.triangles && m2.triangles.length) { const s2 = overhangScan(m2, 45); set({ overhang: { on: true, tris: s2.flaggedZ }, status: `已自动摆正到 ${s.best} 朝上：需支撑面 ${s.pctZ.toFixed(1)}% → ${s2.pctZ.toFixed(1)}%（红色高亮；时间轴可撤销）` }) }
+    if (m2 && m2.triangles && m2.triangles.length) { const s2 = overhangScan(m2, 45); set({ overhang: { on: true, tris: s2.flaggedZ }, status: `已自動擺正到 ${s.best} 朝上：需支撐面 ${s.pctZ.toFixed(1)}% → ${s2.pctZ.toFixed(1)}%（紅色高亮；時間軸可撤銷）` }) }
   },
   // High-contrast neutral blue-grey: a new solid must be distinct from the
   // light construction grid, without looking like a selected face.
@@ -12806,15 +12806,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   // S101[8]：活动实体程序化纹理（三平面投影，无需 UV）。tex='' 清除。随 material 入 snapshot 自动持久化。
   setBodyTexture: (key, scale) => set((s) => ({ material: { ...s.material, tex: key, texScale: scale ?? s.material.texScale ?? 30 } })),
   setMatProp: (key, value) => set((s) => ({ material: { ...s.material, [key]: Math.max(0, Math.min(1, Number.isFinite(value) ? value : s.material[key] ?? 0)) } })),
-  setBodyImageTexture: (url) => set((s) => ({ material: { ...s.material, imageUrl: url || undefined, texScale: s.material.texScale ?? 30 }, status: url ? '已套用自订图片贴图（三平面投影 — 调「纹理尺度」改重复密度，无 UV 缝）' : '已清除图片贴图' })),
-  setBodyNormalMap: (url) => set((s) => ({ material: { ...s.material, normalUrl: url || undefined, texScale: s.material.texScale ?? 30 }, status: url ? '已套用法线贴图（三平面投影凹凸细节 — 同「纹理尺度」共用重复密度）' : '已清除法线贴图' })),
+  setBodyImageTexture: (url) => set((s) => ({ material: { ...s.material, imageUrl: url || undefined, texScale: s.material.texScale ?? 30 }, status: url ? '已套用自訂圖片貼圖（三平面投影 — 調「紋理尺度」改重復密度，無 UV 縫）' : '已清除圖片貼圖' })),
+  setBodyNormalMap: (url) => set((s) => ({ material: { ...s.material, normalUrl: url || undefined, texScale: s.material.texScale ?? 30 }, status: url ? '已套用法線貼圖（三平面投影凹凸細節 — 同「紋理尺度」共用重復密度）' : '已清除法線貼圖' })),
   decals: [],
   decalPick: null,
-  startDecalPick: (url) => set({ decalPick: url, shellMode: false, shellPicks: [], holeMode: false, holePos: null, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: '贴花：点击活动实体嘅一个面放置（logo/标签贴喺点击处，之后可调大小/旋转/删除；ESC 取消）' }),   // review HIGH：贴花同其他拾取模式互斥（同 toggleShell 同款清单）
-  cancelDecalPick: () => set({ decalPick: null, status: '已取消贴花放置' }),
+  startDecalPick: (url) => set({ decalPick: url, shellMode: false, shellPicks: [], holeMode: false, holePos: null, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: '貼花：點擊活動實體嘅一個面放置（logo/標籤貼喺點擊處，之後可調大小/旋轉/刪除；ESC 取消）' }),   // review HIGH：贴花同其他拾取模式互斥（同 toggleShell 同款清单）
+  cancelDecalPick: () => set({ decalPick: null, status: '已取消貼花放置' }),
   placeDecalAt: (pW, nW) => set((s) => {
     if (!s.decalPick) return {}
-    if (s.decals.length >= 16) return { decalPick: null, status: '贴花最多 16 个 — 先删一个（✕贴花）再放' }
+    if (s.decals.length >= 16) return { decalPick: null, status: '貼花最多 16 個 — 先刪一個（✕貼花）再放' }
     // three-world → CAD：[x, y, z]three = [x, z, -y]cad 嘅逆 → cad = [x, -z, y]
     const p: [number, number, number] = [pW[0], -pW[2], pW[1]]
     const nl = Math.hypot(nW[0], nW[1], nW[2]) || 1
@@ -12829,16 +12829,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (Number.isFinite(diag) && diag > 0) size = Math.max(4, Math.round(diag * 0.25))
     }
     const id = 'dc' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36)
-    return { decals: [...s.decals, { id, url: s.decalPick, p, n, size, rot: 0 }], decalPick: null, status: `已放置贴花（${size}mm）— 工具栏滑杆调大小 / ⟳旋转 / ✕删除` }
+    return { decals: [...s.decals, { id, url: s.decalPick, p, n, size, rot: 0 }], decalPick: null, status: `已放置貼花（${size}mm）— 工具欄滑桿調大小 / ⟳旋轉 / ✕刪除` }
   }),
-  removeDecal: (id) => set((s) => ({ decals: s.decals.filter((d) => d.id !== id), status: '已删除贴花' })),
+  removeDecal: (id) => set((s) => ({ decals: s.decals.filter((d) => d.id !== id), status: '已刪除貼花' })),
   setDecalSize: (id, size) => set((s) => ({ decals: s.decals.map((d) => (d.id === id ? { ...d, size: Math.max(1, Math.min(500, size)) } : d)) })),
   setDecalRot: (id, rot) => set((s) => ({ decals: s.decals.map((d) => (d.id === id ? { ...d, rot } : d)) })),
   updateDecal: (id, p) => set((s) => ({ decals: s.decals.map((d) => (d.id === id ? patchDecalFields(d, p) : d)) })),   // GM-X3 #5：逐项字段（清到默认自动省略，byte-compat）
   // S102[3]：逐面外观
   faceColors: {},
   faceColorPick: null,
-  startFacePaint: (hex) => set({ faceColorPick: hex, status: `逐面外观：点击实体上嘅面涂色（${hex}）— 再撳「外观」退出。改参数重建后色跟住几何面（几何变咗嘅面色丢）` }),
+  startFacePaint: (hex) => set({ faceColorPick: hex, status: `逐面外觀：點擊實體上嘅面涂色（${hex}）— 再撳「外觀」退出。改參數重建後色跟住幾何面（幾何變咗嘅面色丢）` }),
   paintFace: (faceId, hex) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], faceColors: { ...s.faceColors, [faceId]: hex } })),  // S105：逐面上色入撤销栈（component-only，撤销时还原 faceColors）
   clearFaceColors: () => set({ faceColors: {}, faceColorPick: null }),
 
@@ -12855,7 +12855,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ statusAction: null })
     if (a.id === 'bakeMeshToPart') {
       const id = a.componentId || get().selectedComponent
-      if (!id) { set({ status: '烘焙：请先选中网格组件' }); return }
+      if (!id) { set({ status: '烘焙：請先選中網格組件' }); return }
       await get().convertMeshComponent(id)
       if (!hasSolid(get().features)) {
         const still = get().components.find((c) => c.id === id)
@@ -13039,19 +13039,19 @@ export const useApp = create<AppState>((rawSet, get) => {
         datumPick: null, decalPick: null, edgePtPick: null, revAxisPtPick: false, screwFitMode: false,
         faceMateMode: false, faceMatePick: null, jointPickMode: false, jointPick: null, jointOriginPickMode: false, jointOriginFirst: null, jointHolePick: null, feaMode: 0, moldMode: 0, windMode: 0,
         datumCmd: null,   // GM-3DV2 R1：切去别嘅创建命令 → 关闭构造几何对话框
-        status: `已退出拾取模式 → 执行「${label}」`,
+        status: `已退出拾取模式 → 執行「${label}」`,
       })
     }
     set({ lastCommand: { id, label } })  // marking-menu N sector「重复上次」replays the latest command
     // Contextual SKETCH tab (Fusion-style): sk_* ids route to the freehand sketcher's tools/ops.
     if (id.startsWith('sk_')) {
-      if (get().mode !== 'sketch') { set({ status: '草图工具只在草图环境用 — 先「创建草图」揀基准面' }); return }
+      if (get().mode !== 'sketch') { set({ status: '草圖工具只在草圖環境用 — 先「創建草圖」揀基準面' }); return }
       const TOOLMAP: Record<string, SketchTool> = { sk_polyline: 'polyline', sk_mline: 'mline', sk_rect: 'rectangle', sk_crect: 'crect', sk_rect3: 'rect3', sk_circle: 'circle', sk_circle2p: 'circle2p', sk_circle3: 'circle3', sk_circle2t: 'circle2t', sk_circle3t: 'circle3t', sk_arc: 'arc', sk_arcc: 'arcc', sk_polygon: 'polygon', sk_spline: 'spline', sk_bspline: 'bspline', sk_slot: 'slot', sk_arcslot: 'arcslot', sk_rrect: 'rrect', sk_ellipse: 'ellipse', sk_earc: 'earc', sk_conic: 'conic', sk_point: 'point', sk_cline: 'cline', sk_select: 'select', sk_dim: 'dimension' }
       if (TOOLMAP[id]) {
         get().setSketchTool(TOOLMAP[id])
-        if (id === 'sk_select') set({ skArmedCon: null, status: '选择：点 点/边/圆（最多 2 个）→ 按约束按钮（水平/竖直/重合/平行/垂直/相等/相切/固定）' })
-        if (id === 'sk_dim') set({ status: '尺寸 D：点 边 → 放置（垂直偏置=真长 · 左右=竖直投影 · 上下=水平投影 · 点另一条边=平行间距/夹角）· 圆=Ø · 右键尺寸=R↔Ø/从动' })
-        if (id === 'sk_conic') set({ status: `圆锥曲线：点 起点 → 终点 → 顶点；底栏 ρ${get().sketchConicRho} 调充满度（<0.5 椭圆 / 0.5 抛物 / >0.5 双曲）` })
+        if (id === 'sk_select') set({ skArmedCon: null, status: '選擇：點 點/邊/圓（最多 2 個）→ 按約束按鈕（水平/豎直/重合/平行/垂直/相等/相切/固定）' })
+        if (id === 'sk_dim') set({ status: '尺寸 D：點 邊 → 放置（垂直偏置=真長 · 左右=豎直投影 · 上下=水平投影 · 點另一條邊=平行間距/夾角）· 圓=Ø · 右鍵尺寸=R↔Ø/從動' })
+        if (id === 'sk_conic') set({ status: `圓錐曲線：點 起點 → 終點 → 頂點；底欄 ρ${get().sketchConicRho} 調充滿度（<0.5 橢圓 / 0.5 拋物 / >0.5 雙曲）` })
         return
       }
       // constraint buttons apply to the current selection (select tool)
@@ -13064,7 +13064,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (id === 'sk_autoconstrain') return void get().autoConstrainSel()   // GM-FP2 #33：AutoConstrain wand
       if (id === 'sk_tanarc') {   // GM-FP2 #19：独立相切弧 = 折线 + 相切弧 submode，由现有曲线端点 G1 起手
         get().setSketchTool('polyline')
-        set({ polyArcMode: true, tanArcSeed: null, status: '⌒ 相切弧：点一条现有曲线嘅【端点】开始（G1 相切引弧）— 之后逐点续弧；A 键切返直线' })
+        set({ polyArcMode: true, tanArcSeed: null, status: '⌒ 相切弧：點一條現有曲線嘅【端點】開始（G1 相切引弧）— 之後逐點續弧；A 鍵切返直線' })
         return
       }
       switch (id) {
@@ -13075,20 +13075,20 @@ export const useApp = create<AppState>((rawSet, get) => {
           // GM-FP3 #39：Move = 画布 gizmo（X/Y 箭头 + 旋转弧，绕形心）+ Create Copy 剔（工具面板）+ 打字精确路径。
           get().startSkMove()
           return
-        case 'sk_trim': get().setSketchTool('trim'); set({ status: '✂ 修剪（T）：点一段剪走 · 或【按住拖扫】一笔多删 — 剪到同其它轮廓/构造线嘅相交点；冇相交成条删（Ctrl+Z 可还原）' }); return
-        case 'sk_extend': get().setSketchTool('extend'); set({ status: '⟶ 延伸：点开放路径嘅端段（靠自由端嗰半）— 沿原方向/原圆延长到最近相交几何' }); return
-        case 'sk_break': get().setSketchTool('break'); set({ status: '⊟ 打断：点曲线想分割嗰点 → 一分为二（两段都保留；近相交点会吸到精确交点，Ctrl+Z 还原）' }); return
+        case 'sk_trim': get().setSketchTool('trim'); set({ status: '✂ 修剪（T）：點一段剪走 · 或【按住拖掃】一筆多刪 — 剪到同其它輪廓/構造線嘅相交點；冇相交成條刪（Ctrl+Z 可還原）' }); return
+        case 'sk_extend': get().setSketchTool('extend'); set({ status: '⟶ 延伸：點開放路徑嘅端段（靠自由端嗰半）— 沿原方向/原圓延長到最近相交幾何' }); return
+        case 'sk_break': get().setSketchTool('break'); set({ status: '⊟ 打斷：點曲線想分割嗰點 → 一分為二（兩段都保留；近相交點會吸到精確交點，Ctrl+Z 還原）' }); return
         case 'sk_constr': return get().toggleConstruction()
-        case 'sk_filletc': get().setSketchTool('cfillet'); return set({ status: `倒圆角：点近一个直角顶点即按 R${get().sketchCornerR || 8} 倒嗰个角（底栏改 R，或按「全部角」一次过）` })
-        case 'sk_chamferc': get().setSketchTool('cchamfer'); return set({ status: `倒角：点近一个直角顶点即按 C${get().sketchCornerR || 8} 倒嗰个角（底栏改值，或按「全部角」一次过）` })
-        case 'sk_offset': get().setSketchTool('offset'); return set({ status: `偏移：点中一个轮廓即按 ${get().sketchOffsetD}mm 偏移（底栏可改距离/方向/双向）` })
+        case 'sk_filletc': get().setSketchTool('cfillet'); return set({ status: `倒圓角：點近一個直角頂點即按 R${get().sketchCornerR || 8} 倒嗰個角（底欄改 R，或按「全部角」一次過）` })
+        case 'sk_chamferc': get().setSketchTool('cchamfer'); return set({ status: `倒角：點近一個直角頂點即按 C${get().sketchCornerR || 8} 倒嗰個角（底欄改值，或按「全部角」一次過）` })
+        case 'sk_offset': get().setSketchTool('offset'); return set({ status: `偏移：點中一個輪廓即按 ${get().sketchOffsetD}mm 偏移（底欄可改距離/方向/雙向）` })
         case 'sk_guide': return get().bankSweepGuide()
         case 'sk_union': return get().skBoolShapes('union')
         case 'sk_subtract': return get().skBoolShapes('subtract')
-        case 'sk_mirrory': get().setSketchTool('mirror'); set({ mirrorPick: { shapes: [], stage: 'pick', p1: null } }); return set({ status: '镜像：点中要镜像嘅轮廓（可点多个）→ 撳底栏「✓ 画镜像线」→ 点两点定任意角度镜像线' })
+        case 'sk_mirrory': get().setSketchTool('mirror'); set({ mirrorPick: { shapes: [], stage: 'pick', p1: null } }); return set({ status: '鏡像：點中要鏡像嘅輪廓（可點多個）→ 撳底欄「✓ 畫鏡像線」→ 點兩點定任意角度鏡像線' })
         case 'sk_mirrorx': return get().mirrorSketch('x')
         case 'sk_project': return get().projectRefToSketch()   // S176：投影参考几何 → 真草图曲线
-        case 'sk_array': get().setSketchTool('array'); return set({ status: '阵列：底栏面板设 矩形(行列+间距) / 环形(数量+角度+中心)，实时预览 → 撳「应用阵列」' })
+        case 'sk_array': get().setSketchTool('array'); return set({ status: '陣列：底欄面板設 矩形(行列+間距) / 環形(數量+角度+中心)，實時預覽 → 撳「應用陣列」' })
         case 'sk_close': return get().closePolyline()
         case 'sk_dxf': return get().exportSketchDxf()
         case 'sk_extrude': return get().openExtrudeDlg()
@@ -13119,7 +13119,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (get().formMode) {
       const okInForm = id.startsWith('form') || new Set(['measureuni', 'select', 'offsetplane', 'createform']).has(id)
       if (!okInForm) {
-        set({ status: `「${label}」属于 SOLID 环境；请先按 FINISH FORM 返回 SOLID。` })
+        set({ status: `「${label}」屬於 SOLID 環境；請先按 FINISH FORM 返回 SOLID。` })
         return
       }
     }
@@ -13137,18 +13137,18 @@ export const useApp = create<AppState>((rawSet, get) => {
         const typeInput = await get().appPrompt(tStatus(`插入紧固件 — 选择内建 ISO 类型：\n${choices}\n\n实体尺寸按 ISO 规格生成；螺纹为简化光杆，并非 Autodesk 云端供应商链接。`, get().lang), '1', tStatus('插入紧固件', get().lang))
         if (typeInput == null) return
         const kind = kinds[Math.trunc(Number(typeInput.trim())) - 1]
-        if (!kind) { set({ status: tStatus('插入紧固件：请输入有效类型编号。', get().lang) }); return }
+        if (!kind) { set({ status: tStatus('插入緊固件：請輸入有效類型編號。', get().lang) }); return }
         const sizeInput = await get().appPrompt(tStatus(`插入紧固件 — ${FASTENER_KIND_LABEL[kind]}：输入规格 (${FASTENER_SIZES.join(' / ')})`, get().lang), 'M5', tStatus('紧固件规格', get().lang))
         if (sizeInput == null) return
         const size = sizeInput.trim().toUpperCase() as FastenerSize
-        if (!FASTENER_SIZES.includes(size)) { set({ status: tStatus(`插入紧固件：规格必须是 ${FASTENER_SIZES.join('、')}。`, get().lang) }); return }
+        if (!FASTENER_SIZES.includes(size)) { set({ status: tStatus(`插入緊固件：規格必須是 ${FASTENER_SIZES.join('、')}。`, get().lang) }); return }
         const needsLength = kind !== 'hexnut' && kind !== 'washer'
         let length = 16
         if (needsLength) {
           const lengthInput = await get().appPrompt(tStatus(`插入紧固件 — ${FASTENER_KIND_LABEL[kind]} ${size}：长度 mm（最少 3）`, get().lang), '16', tStatus('紧固件长度', get().lang))
           if (lengthInput == null) return
           length = Number(lengthInput.trim())
-          if (!Number.isFinite(length) || length < 3) { set({ status: tStatus('插入紧固件：长度必须是不少于 3 mm 的数字。', get().lang) }); return }
+          if (!Number.isFinite(length) || length < 3) { set({ status: tStatus('插入緊固件：長度必須是不少於 3 mm 的數字。', get().lang) }); return }
         }
         return get().insertFastener(kind, size, length)
       }
@@ -13157,7 +13157,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'basefeature': {
         const initial = get()
         if (!initial.bodyMesh?.triangles?.length || !hasSolid(initial.features)) {
-          set({ status: 'Create Base Feature 需要先有一个活动实体（装配组件不会被转换）' })
+          set({ status: 'Create Base Feature 需要先有一個活動實體（裝配組件不會被轉換）' })
           return
         }
         // A WebCAD Base Feature is a precise STEP snapshot of the active B-rep,
@@ -13191,32 +13191,32 @@ export const useApp = create<AppState>((rawSet, get) => {
         })()
         return
       }
-      case 'createpcb': set({ status: 'Create PCB：主选单位置已按 Fusion 对齐；ECAD/PCB 工作流仍在实现中。' }); return
-      case 'formsketch': set({ status: 'FORM 内 Create Sketch 尚未接到 T-spline 面；当前请先用 FORM 基元开始。' }); return
-      case 'formquadball': set({ formCreateKind: 'quadball', status: 'FORM Quadball：选择基准平面并设半径／细分。' }); return
-      case 'formpipe': set({ formCreateKind: 'pipe', status: 'FORM Pipe：输入 3D 路径点、圆形截面直径与面数，建立可编辑的开放端细分控制笼。' }); return
-      case 'formface': set({ formCreateKind: 'face', status: 'FORM Face：选择基准平面并设长、阔及细分。' }); return
+      case 'createpcb': set({ status: 'Create PCB：主選單位置已按 Fusion 對齊；ECAD/PCB 工作流仍在實現中。' }); return
+      case 'formsketch': set({ status: 'FORM 內 Create Sketch 尚未接到 T-spline 面；當前請先用 FORM 基元開始。' }); return
+      case 'formquadball': set({ formCreateKind: 'quadball', status: 'FORM Quadball：選擇基準平面並設半徑／細分。' }); return
+      case 'formpipe': set({ formCreateKind: 'pipe', status: 'FORM Pipe：輸入 3D 路徑點、圓形截面直徑與面數，建立可編輯的開放端細分控制笼。' }); return
+      case 'formface': set({ formCreateKind: 'face', status: 'FORM Face：選擇基準平面並設長、闊及細分。' }); return
       case 'formextrude': case 'formrevolve': case 'formsweep': case 'formloft':
-        set({ status: `${label}：FORM T-spline 曲线/截面求解仍在实现中；不会改用 SOLID 命令冒充。` }); return
-      case 'formedit': set({ status: get().formCage ? 'Edit Form：点控制点或面，再用画布 gizmo 移动／旋转／缩放。' : 'Edit Form：请先在 CREATE 建立一个 Form 基元。' }); return
+        set({ status: `${label}：FORM T-spline 曲線/截面求解仍在實現中；不會改用 SOLID 命令冒充。` }); return
+      case 'formedit': set({ status: get().formCage ? 'Edit Form：點控制點或面，再用畫布 gizmo 移動／旋轉／縮放。' : 'Edit Form：請先在 CREATE 建立一個 Form 基元。' }); return
       case 'formsubdiv': {
         const fc = get().formCage
-        if (!fc) { set({ status: 'Subdivide：请先建立一个 Form 基元。' }); return }
+        if (!fc) { set({ status: 'Subdivide：請先建立一個 Form 基元。' }); return }
         const next = fc.levels >= 3 ? 1 : fc.levels + 1
         get().setFormLevels(next)
-        set({ status: `Subdivide：细分级 ${next}/3（预览即时更新；FINISH FORM 烘焙）` })
+        set({ status: `Subdivide：細分級 ${next}/3（預覽即時更新；FINISH FORM 烘焙）` })
         return
       }
-      case 'formloop': if (get().formCage?.selFace != null) return void get().formInsertLoop(0); set({ status: 'Insert Edge：先点选一个控制笼面。' }); return
-      case 'formcrease': if (get().formCage?.selFace != null) return get().formCrease(); set({ status: 'Crease：先点选一个控制笼面。' }); return
-      case 'formbridge': set({ status: 'Bridge（FORM）：T-spline 桥接尚未支援 — 实体棱请用 SURFACE「桥接面」。' }); return
-      case 'formweld': set({ status: 'Weld（FORM）：顶点焊接尚未支援。' }); return
-      case 'formfillhole': set({ status: 'Fill Hole（FORM）：补洞尚未支援。' }); return
+      case 'formloop': if (get().formCage?.selFace != null) return void get().formInsertLoop(0); set({ status: 'Insert Edge：先點選一個控制笼面。' }); return
+      case 'formcrease': if (get().formCage?.selFace != null) return get().formCrease(); set({ status: 'Crease：先點選一個控制笼面。' }); return
+      case 'formbridge': set({ status: 'Bridge（FORM）：T-spline 橋接尚未支援 — 實體棱請用 SURFACE「橋接面」。' }); return
+      case 'formweld': set({ status: 'Weld（FORM）：頂點焊接尚未支援。' }); return
+      case 'formfillhole': set({ status: 'Fill Hole（FORM）：補洞尚未支援。' }); return
       case 'formerasefill': set({ status: 'Erase & Fill（FORM）：尚未支援。' }); return
       case 'formsymmetry': return get().cycleFormSym()
-      case 'formmirror': if (get().formCage) return void get().formMirror(0); set({ status: 'Mirror：请先建立一个 Form 基元。' }); return
-      case 'formrepair': set({ status: 'Repair Body：目前控制笼会在 FINISH FORM 时做拓扑检查；完整 Fusion 修复清单仍在实现中。' }); return
-      case 'forminsert': set({ status: 'Insert Mesh（FORM）：网格转 T-spline 仍在实现中。' }); return
+      case 'formmirror': if (get().formCage) return void get().formMirror(0); set({ status: 'Mirror：請先建立一個 Form 基元。' }); return
+      case 'formrepair': set({ status: 'Repair Body：目前控制笼會在 FINISH FORM 時做拓撲檢查；完整 Fusion 修復清單仍在實現中。' }); return
+      case 'forminsert': set({ status: 'Insert Mesh（FORM）：網格轉 T-spline 仍在實現中。' }); return
       case 'sketch': return get().startSketch()
       case 'sketcharray': {
         if(get().mode!=='sketch')return
@@ -13260,44 +13260,44 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'presspull':
         if (get().sketchShape || get().sketchProfiles.length) return get().openExtrudeDlg()  // Fusion: open the extrude dialog
         if (hasSolid(get().features)) return get().togglePushPull()  // Fusion Q: pick a face → push/pull
-        set({ status: '按拉：先画草图轮廓再拉伸，或在已有实体的平面上推/拉' }); return
+        set({ status: '按拉：先畫草圖輪廓再拉伸，或在已有實體的平面上推/拉' }); return
       case 'editface':
-        if (!hasSolid(get().features)) { set({ status: '编辑面：先要有实体' }); return }
+        if (!hasSolid(get().features)) { set({ status: '編輯面：先要有實體' }); return }
         set({ moveFaceKind: 'offset' })
         if (!get().moveFaceMode) get().toggleMoveFace()
-        set({ status: '编辑面：点一个或多个平面面 → 选择偏移或倾斜 → 输入距离／角度 →「确定」；相邻面会重新求解' }); return
+        set({ status: '編輯面：點一個或多個平面面 → 選擇偏移或傾斜 → 輸入距離／角度 →「確定」；相鄰面會重新求解' }); return
       case 'delface':  // T795 直接编辑删面
         if (hasSolid(get().features)) return get().toggleDelFace()
-        set({ status: '删面：要先有实体（或导入 STEP B-rep 件）' }); return
+        set({ status: '刪面：要先有實體（或匯入 STEP B-rep 件）' }); return
       case 'thicken':  // T811 加厚拾取面成实体
         if (hasSolid(get().features)) return get().toggleThicken()
-        set({ status: '加厚：要先有实体/曲面件' }); return
+        set({ status: '加厚：要先有實體/曲面件' }); return
       case 'offsetsurf':  // T812 偏移面成平行曲面
         if (hasSolid(get().features)) return get().toggleOffsetSurf()
-        set({ status: '偏移曲面：要先有实体/曲面件' }); return
+        set({ status: '偏移曲面：要先有實體/曲面件' }); return
       case 'extendface':  // S103 曲面延伸
         if (hasSolid(get().features) || get().bodyMesh?.parked?.length) return get().toggleExtendSurf()
-        set({ status: '曲面延伸：要先有实体/曲面件' }); return
+        set({ status: '曲面延伸：要先有實體/曲面件' }); return
       case 'splitface':  // S99 分割面
         if (hasSolid(get().features)) return get().toggleSplitFace()
-        set({ status: '分割面：要先有实体' }); return
+        set({ status: '分割面：要先有實體' }); return
       case 'replaceface':  // S99 替换面（平面顶替）
         if (hasSolid(get().features)) return get().toggleReplaceFace()
-        set({ status: '替换面：要先有实体' }); return
+        set({ status: '替換面：要先有實體' }); return
       case 'moveface':  // GM-B2 移动面（偏移/倾斜，内核重解）
         if (hasSolid(get().features)) return get().toggleMoveFace()
-        set({ status: '移动面：要先有实体' }); return
+        set({ status: '移動面：要先有實體' }); return
       case 'offsetface':  // GM-3DV3 M8 偏移面（Fusion Offset Face）= 复用移动面偏移路径（原地内核重解，唔造新曲面体）+ Offset Type
         if (hasSolid(get().features)) {
           set({ moveFaceKind: 'offset' })   // 强制偏移模式（Offset Face 无倾斜）
           if (!get().moveFaceMode) get().toggleMoveFace()
-          set({ status: '↔ 偏移面（Offset Face）：点实体一个或多个【平面】面 → 设距离(±mm) 原地偏移（朝内内核重解邻面/圆角 · 朝外加料）+ Offset Type → 「确定」。仅平面' })
+          set({ status: '↔ 偏移面（Offset Face）：點實體一個或多個【平面】面 → 設距離(±mm) 原地偏移（朝內內核重解鄰面/圓角 · 朝外加料）+ Offset Type → 「確定」。僅平面' })
           return
         }
-        set({ status: '偏移面：要先有实体' }); return
+        set({ status: '偏移面：要先有實體' }); return
       case 'rotateface':  // #12 Move Face 旋转（拔模式，零内核）
         if (hasSolid(get().features)) return get().toggleRotateFace()
-        set({ status: '旋转面：要先有实体' }); return
+        set({ status: '旋轉面：要先有實體' }); return
       case 'extrude':  // Fusion: Extrude needs a profile/sketch. No profile → refuse (no "create from nothing").
         if (get().sketchShape || get().sketchProfiles.length) return get().openExtrudeDlg()  // open dialog → set op/extent/distance/draft → 确定
         if (await get().hydrateSketchForFeature()) return get().openExtrudeDlg()  // T756：食选中/最近嘅独立草图（Fusion 完成草图后直接拉伸）；GM-W6 F5：多张未拣中 → prompt 拣
@@ -13336,7 +13336,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           }
           if (cands.length >= 2) {
             for (const c of cands) get().addLoftSectionFromSketch(c.skId)
-            if (get().loftSections.length >= 2) { set({ status: `已自动收集 ${get().loftSections.length} 个独立草图做放样截面（${cands.map((c) => c.label).join(' → ')}）` }); return get().openLoftDlg() }
+            if (get().loftSections.length >= 2) { set({ status: `已自動收集 ${get().loftSections.length} 個獨立草圖做放樣截面（${cands.map((c) => c.label).join(' → ')}）` }); return get().openLoftDlg() }
           }
         }
         set({ status: get().loftSections.length === 1 || get().sketchShape
@@ -13354,7 +13354,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'worm': return get().openFeatDlg('worm')
       case 'crowngear': return get().openFeatDlg('crowngear')
       case 'othread': {
-        if (!hasSolid(get().features)) { set({ status: '面加外螺纹：先要有实体（圆柱/凸台）' }); return }
+        if (!hasSolid(get().features)) { set({ status: '面加外螺紋：先要有實體（圓柱/凸台）' }); return }
         return get().startThreadFacePick()
       }
       case 'holepts': return void get().addHolesAtSketchPoints()
@@ -13385,7 +13385,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           // WIN 2：ox/oy/oz/dx/dy/dz = 构造轴覆写层（dy:1 = 世界 Y 默认；resolver 仅当用户实际改动时采用 → 完全向后兼容）
           featDlg: { kind: 'revolve', params: { ...(st0.pendingSketchFaceBinding?{axisReference:'sketch'}:{}), axis: 'Y', angle: 360, op: hasSolid(get().features) ? get().sketchOp : 'new', wall: 0, sym: 0, ox: bundle.faceBinding?boundSketchOrigin(bundle)[0]:0, oy: bundle.faceBinding?boundSketchOrigin(bundle)[1]:0, oz: bundle.faceBinding?boundSketchOrigin(bundle)[2]:0, dx: 0, dy: 1, dz: 0 }, payload: { prof, bundle } },
           holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false,
-          status: '旋转：选 操作/轴/角度（薄壁>0 做灯罩/碗壳）→ 确定',
+          status: '旋轉：選 操作/軸/角度（薄壁>0 做燈罩/碗殼）→ 確定',
         })
         return
       }
@@ -13406,7 +13406,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (!hasSolid(get().features)) { set(partSolidRequiredPatch('面圆角', get())); return }
         if (!get().faceFilletMode) get().toggleFaceFillet(); return
       case 'scale': return get().openFeatDlg('scale')
-      case 'offsetsolid': return hasSolid(get().features) ? get().openFeatDlg('offsetsolid') : set({ status: '整体偏移需要先有实体' })
+      case 'offsetsolid': return hasSolid(get().features) ? get().openFeatDlg('offsetsolid') : set({ status: '整體偏移需要先有實體' })
       case 'draft': return hasSolid(get().features) ? get().toggleDraftPick() : get().openFeatDlg('draft')
       case 'pattern': return get().openFeatDlg('pattern')
       case 'geopattern': return get().openFeatDlg('geoPattern')
@@ -13447,11 +13447,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'cptgrid': return get().openFeatDlg('cptgrid')   // 构造点阵列对话框（矩形 / 极坐标）— 纯状态
       case 'caxis': return get().openFeatDlg('caxis')
       case 'hole':  // Fusion-style: enter the hole command (pick a point on a face → set Ø/type → 确定)
-        if (!hasSolid(get().features)) { set({ status: '孔需要先有一个实体' }); return }
+        if (!hasSolid(get().features)) { set({ status: '孔需要先有一個實體' }); return }
         if (!get().holeMode) get().toggleHole(); return
       case 'text': return void get().addText()
       case 'emboss': return get().toggleEmboss()   // S162：拾面凸字/刻字
-      case 'ucs': return hasSolid(get().features) ? get().toggleUCSPick() : set({ status: 'UCS：需要先有实体（点其一个平面做局部坐标系原点+法向）' })   // #174-1：用户坐标系
+      case 'ucs': return hasSolid(get().features) ? get().toggleUCSPick() : set({ status: 'UCS：需要先有實體（點其一個平面做局部座標系原點+法向）' })   // #174-1：用户坐标系
       case 'projsurf': return void get().projectSketchToCylinder()   // #174-9：草图曲线卷到圆柱面（θ=x/R 可展映射，存 3D 参考曲线）
       case 'pipe': return void get().addPipe()
       case 'rib': return void get().addRib()
@@ -13459,13 +13459,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'pathpattern': return void get().addPathPattern()
       case 'splitbody': return get().openFeatDlg('splitbody')   // P2：对话框化（轴/位置/保留侧 + 切割面 ghost），取代撳掣即切 Z 中面
       case 'silhouettesplit': {
-        if (!hasSolid(get().features)) { set({ status: '轮廓分割需要先有实体' }); return }
+        if (!hasSolid(get().features)) { set({ status: '輪廓分割需要先有實體' }); return }
         const view = get().view
-        if (view === 'iso') { set({ status: '轮廓分割 v1：请先切换到前／后／上／下／左／右正交视图；等轴测自由方向暂未写入可重播历史。' }); return }
+        if (view === 'iso') { set({ status: '輪廓分割 v1：請先切換到前／後／上／下／左／右正交視圖；等軸測自由方向暫未寫入可重播歷史。' }); return }
         await get().applyFeatures([...get().features, { id: fid(), type: 'silhouettesplit', view }], `已按${view === 'front' ? '前' : view === 'back' ? '后' : view === 'top' ? '上' : view === 'bottom' ? '下' : view === 'right' ? '右' : '左'}视图尝试轮廓分割（v1：已验证圆柱／圆锥面；球／自由曲面会安全拒绝）。`, true, '轮廓分割未找到可安全分割的圆柱或圆锥轮廓 — 已保持原样')
         return
       }
-      case 'splitplane': return hasSolid(get().features) ? get().toggleSplitPlanePick() : set({ status: '任意平面切需要先有实体' })   // S184：拾任意平面切
+      case 'splitplane': return hasSolid(get().features) ? get().toggleSplitPlanePick() : set({ status: '任意平面切需要先有實體' })   // S184：拾任意平面切
       case 'splitsketch': return void get().splitBodyBySketch()
       case 'align': return get().startFaceMate(true)
       case 'newbody': return void get().startNewBody()
@@ -13479,7 +13479,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'arrangebed': return get().arrangeForPrint()
       case 'arrange': {
         const visible = get().components.filter((c) => !c.hidden)
-        if (visible.length < 2) { set({ status: '排列：需要至少 2 个可见组件；先建立／导入多个组件' }); return }
+        if (visible.length < 2) { set({ status: '排列：需要至少 2 個可見組件；先建立／匯入多個組件' }); return }
         get().arrangeForPrint(); return
       }
       case 'dropall': return get().dropAllToFloor()
@@ -13498,7 +13498,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'preferences': return get().setPrefsOpen(true)   // GM-X2 #12：应用偏好
       case 'docunits': return get().setUnitDlgOpen(true)    // GM-X2 #13：文档单位对话框
       case 'meshfacegroups': return get().toggleMeshFaceGroupColors()   // GM-X1 #16
-      case 'interference': return set({ interfPanelOpen: true, status: '干涉检查：配置子集/含共面后撳「Compute 计算」（Fusion 两步：拣集 → 计算）' })   // GM-X1 #6：两步（拣集 → Compute）
+      case 'interference': return set({ interfPanelOpen: true, status: '干涉檢查：配置子集/含共面後撳「Compute 計算」（Fusion 兩步：揀集 → 計算）' })   // GM-X1 #6：两步（拣集 → Compute）
       case 'zebra': return get().setInspectShade('zebra')      // S103[6]：斑马纹分析
       case 'curvmap': return get().setInspectShade('curv')     // S103[6]：曲率趋势
       case 'gausscurv': return get().setInspectShade('gausscurv')   // S179：高斯曲率 K 发散色阶
@@ -13522,7 +13522,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           return set({
             feaMode: mode,
             status: s.feaStale
-              ? (s.status.includes('失效') ? s.status : '⚠ 仿真结果已失效 — 请重新运行')
+              ? (s.status.includes('失效') ? s.status : '⚠ 仿真結果已失效 — 請重新運行')
               : '受力结果查看 — 可改约束 / 几何后重跑，或按面板取消清除',
           })
         }
@@ -13530,8 +13530,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'moldflow': return get().moldResult ? get().clearMold() : get().toggleMold()
       case 'windtunnel': return get().windResult ? get().clearWind() : get().toggleWind()
-      case 'physicslab': return set({ physicsLabOpen: true, status: '已打开 Physics Lab：互动级刚体模拟（非工程认证）' })
-      case 'slicepreview': { if (!get().bodyMesh) { set({ status: '切层预览需要先有实体' }); return } set({ sliceOpen: true }); return }
+      case 'physicslab': return set({ physicsLabOpen: true, status: '已打開 Physics Lab：互動級剛體模擬（非工程認證）' })
+      case 'slicepreview': { if (!get().bodyMesh) { set({ status: '切層預覽需要先有實體' }); return } set({ sliceOpen: true }); return }
       case 'history': return set({ historyOpen: true })
       case 'lasergcode': return get().openLaserDlg()
       case 'finish3d': return get().openFinish3dDlg()
@@ -13547,7 +13547,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (v == null) return
         const parts = String(v).split(/[,，\s]+/)
         const ang = parseFloat(parts[0]); const ax: 'X' | 'Y' = String(parts[1] || 'Y').toUpperCase() === 'X' ? 'X' : 'Y'
-        if (!Number.isFinite(ang) || Math.abs(ang) < 1e-6) { set({ status: '曲面旋转：角度无效' }); return }
+        if (!Number.isFinite(ang) || Math.abs(ang) < 1e-6) { set({ status: '曲面旋轉：角度無效' }); return }
         set({ skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchStart: null, sketchTool: 'select', mode: 'model' })
         return void get().addSurfRevolve(prof0, Math.abs(ang), ax, 'new')
       }
@@ -13558,7 +13558,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'surfbridge': return get().toggleSurfBridge()          // Surface Bridge v1：2 棱 → ThruSections 光滑过渡面
       case 'surfsew': {  // S86 曲面缝合 Stitch：把现有曲面/壳体缝成一个 shell，闭合则转实体
         const pk = get().bodyMesh?.parked
-        if (!pk || !pk.length) { set({ status: '曲面缝合 Stitch：先做曲面放样 / 补面 / 加厚 / 偏移曲面（要有曲面/壳体先缝得）' }); return }
+        if (!pk || !pk.length) { set({ status: '曲面縫合 Stitch：先做曲面放樣 / 補面 / 加厚 / 偏移曲面（要有曲面/殼體先縫得）' }); return }
         await get().applyFeatures([...get().features, { id: fid(), type: 'surfsew' }], '缝合曲面 Stitch（闭合则转实体）')
         return
       }
@@ -13566,13 +13566,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'clearintersect': return get().clearCCurves()                     // S168 清除相交曲线
       case 'surftrim': {  // S100 曲面平面裁剪
         const pkt = get().bodyMesh?.parked
-        if (!pkt || !pkt.length) { set({ status: '平面裁剪：冇曲面/壳体可裁（先做曲面拉伸 / 补面 / 缝合）' }); return }
+        if (!pkt || !pkt.length) { set({ status: '平面裁剪：冇曲面/殼體可裁（先做曲面拉伸 / 補面 / 縫合）' }); return }
         let tgt = 0
         if (pkt.length > 1) {
           const tv = await get().appPrompt(tStatus(`平面裁剪 — 选目标曲面（1~${pkt.length}）：${pkt.map((b, i) => `${i + 1}=${b.name}`).join(' · ')}`, get().lang), '1')
           if (tv == null) return
           tgt = Math.round(parseFloat(tv) || 1) - 1
-          if (tgt < 0 || tgt >= pkt.length) { set({ status: `平面裁剪：目标要喺 1~${pkt.length}` }); return }
+          if (tgt < 0 || tgt >= pkt.length) { set({ status: `平面裁剪：目標要喺 1~${pkt.length}` }); return }
         }
         const v = await get().appPrompt(tStatus('平面裁剪：①轴对齐 = 裁切平面,偏移mm,保留侧(+/-)，如 XY,20,+\n②任意平面 = 原点x,y,z,法向x,y,z[,保留侧]，如 0,0,10,1,0,1,+（保留法向正侧）', get().lang), 'XY,20,+')
         if (v == null) return
@@ -13590,7 +13590,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           return
         }
         const plane = (['XY', 'XZ', 'YZ'].includes((pp[0] || '').toUpperCase()) ? pp[0].toUpperCase() : 'XY') as Plane
-        const offset = parseFloat(pp[1]); if (!Number.isFinite(offset)) { set({ status: '平面裁剪：偏移无效' }); return }
+        const offset = parseFloat(pp[1]); if (!Number.isFinite(offset)) { set({ status: '平面裁剪：偏移無效' }); return }
         const keep: 'pos' | 'neg' = (pp[2] === '-' || pp[2] === 'neg') ? 'neg' : 'pos'
         await get().applyFeatures([...get().features, { id: fid(), type: 'surftrim', target: tgt, plane, offset, keep }], `平面裁剪 ${plane}=${offset} 保留${keep === 'pos' ? '+' : '−'}侧`)
         return
@@ -13599,46 +13599,46 @@ export const useApp = create<AppState>((rawSet, get) => {
         return void get().toggleSurfSurfTrim()
       case 'untrim': {  // S141 去裁 Untrim（surftrim 的逆）：还原泊车曲面到底层几何曲面嘅完整自然 UV 边界
         const pkt = get().bodyMesh?.parked
-        if (!pkt || !pkt.length) { set({ status: '去裁：冇曲面/壳体可还原（先做曲面裁剪 / 补面 / 拉伸）' }); return }
+        if (!pkt || !pkt.length) { set({ status: '去裁：冇曲面/殼體可還原（先做曲面裁剪 / 補面 / 拉伸）' }); return }
         let tgt = 0
         if (pkt.length > 1) {
           const tv = await get().appPrompt(tStatus(`去裁 — 选目标曲面（1~${pkt.length}）：${pkt.map((b, i) => `${i + 1}=${b.name}`).join(' · ')}`, get().lang), '1')
           if (tv == null) return
           tgt = Math.round(parseFloat(tv) || 1) - 1
-          if (tgt < 0 || tgt >= pkt.length) { set({ status: `去裁：目标要喺 1~${pkt.length}` }); return }
+          if (tgt < 0 || tgt >= pkt.length) { set({ status: `去裁：目標要喺 1~${pkt.length}` }); return }
         }
         await get().applyFeatures([...get().features, { id: fid(), type: 'untrim', target: tgt }], `去裁 还原 ${pkt[tgt].name} 自然边界`)
         return
       }
       case 'mergefaces': {  // S 合并面 Unify-Same-Domain：把泊车曲面/壳上同域（共面/共柱）邻面合并成一张面
         const pkt = get().bodyMesh?.parked
-        if (!pkt || !pkt.length) { set({ status: '合并面：冇曲面/壳体可合并（先做曲面裁剪 / 补面 / 缝合 / 导入）' }); return }
+        if (!pkt || !pkt.length) { set({ status: '合併面：冇曲面/殼體可合併（先做曲面裁剪 / 補面 / 縫合 / 匯入）' }); return }
         let tgt = 0
         if (pkt.length > 1) {
           const tv = await get().appPrompt(tStatus(`合并面 — 选目标曲面（1~${pkt.length}）：${pkt.map((b, i) => `${i + 1}=${b.name}`).join(' · ')}`, get().lang), '1')
           if (tv == null) return
           tgt = Math.round(parseFloat(tv) || 1) - 1
-          if (tgt < 0 || tgt >= pkt.length) { set({ status: `合并面：目标要喺 1~${pkt.length}` }); return }
+          if (tgt < 0 || tgt >= pkt.length) { set({ status: `合併面：目標要喺 1~${pkt.length}` }); return }
         }
         await get().applyFeatures([...get().features, { id: fid(), type: 'mergefaces', target: tgt }], `合并面 ${pkt[tgt].name} 同域邻面`)
         return
       }
       case 'reversesurf': {  // S157 翻转曲面定向 Reverse Surface：翻泊车曲面壳法向（影响 Thicken/Stitch 方向）
         const pkt = get().bodyMesh?.parked
-        if (!pkt || !pkt.length) { set({ status: '翻转曲面：冇曲面/壳体可翻（先做曲面拉伸 / 补面 / 偏移）' }); return }
+        if (!pkt || !pkt.length) { set({ status: '翻轉曲面：冇曲面/殼體可翻（先做曲面拉伸 / 補面 / 偏移）' }); return }
         let tgt = 0
         if (pkt.length > 1) {
           const tv = await get().appPrompt(tStatus(`翻转曲面 — 选目标曲面（1~${pkt.length}）：${pkt.map((b, i) => `${i + 1}=${b.name}`).join(' · ')}`, get().lang), '1')
           if (tv == null) return
           tgt = Math.round(parseFloat(tv) || 1) - 1
-          if (tgt < 0 || tgt >= pkt.length) { set({ status: `翻转曲面：目标要喺 1~${pkt.length}` }); return }
+          if (tgt < 0 || tgt >= pkt.length) { set({ status: `翻轉曲面：目標要喺 1~${pkt.length}` }); return }
         }
         await get().applyFeatures([...get().features, { id: fid(), type: 'reversesurf', target: tgt }], `翻转曲面定向 ${pkt[tgt].name}（法向反向）`)
         return
       }
       case 'thickenquilt': {  // S182 加厚整张泊车曲面/quilt → 实体（Fusion Thicken；同 patch-thicken 同款 MakeThickSolidBySimple）
         const pkt = get().bodyMesh?.parked
-        if (!pkt || !pkt.length) { set({ status: '加厚曲面：冇曲面/壳体可加厚（先做曲面放样 / 拉伸 / 缝合 / 补面）' }); return }
+        if (!pkt || !pkt.length) { set({ status: '加厚曲面：冇曲面/殼體可加厚（先做曲面放樣 / 拉伸 / 縫合 / 補面）' }); return }
         // S201：多张曲面必须经画布直接拣，避免 Face Pattern 后用户要对照编号猜目标。
         // 单张保留原有一步完成路径，既有快捷操作不会变慢。
         if (pkt.length > 1) { get().startQuiltPick(); return }
@@ -13653,16 +13653,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'surfunstitch': {  // S88 取消缝合：把曲面/壳体拆回逐张独立面
         const pk = get().bodyMesh?.parked
-        if (!pk || !pk.length) { set({ status: '取消缝合 Unstitch：冇曲面/壳体可拆（先有曲面或缝合体）' }); return }
+        if (!pk || !pk.length) { set({ status: '取消縫合 Unstitch：冇曲面/殼體可拆（先有曲面或縫合體）' }); return }
         await get().applyFeatures([...get().features, { id: fid(), type: 'surfunstitch' }], '取消缝合 Unstitch（拆回独立面）')
         return
       }
-      case 'formbox': { if (get().formMode) { get().setFormCreateKind('box'); return } const v = await get().appPrompt(tStatus('Form 盒（细分建模起手）：长,阔,高,X段,Y段,Z段\n（段数越多控制点越密 — 3,2,2 啱手柄/旋钮）', get().lang), '40,30,20,3,2,2'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 3 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 盒：请输入 6 个正数（长,阔,高,X段,Y段,Z段）' }); return } return void get().startFormBox(p[0], p[1], p[2], p[3] || 2, p[4] || 2, p[5] || 2) }
-      case 'formcyl': { if (get().formMode) { set({ formCreateKind: 'cylinder', status: 'FORM Cylinder：先选择基准平面，再设直径、高度与细分。' }); return } const v = await get().appPrompt(tStatus('Form 圆柱（box→squircle 无极点）：半径,高,周向段数,高度段数\n（段数越多越逼近标称半径 — 4 段起跳；CC 细分向内收）', get().lang), '10,20,4,2'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 圆柱：请输入 半径,高,周向段,高度段（正数）' }); return } return void get().startFormCylinder(p[0], p[1], p[2] || 4, p[3] || 2) }
-      case 'formplane': { if (get().formMode) { set({ formCreateKind: 'plane', status: 'FORM Plane：先选择基准平面，再设长、阔与细分。' }); return } const v = await get().appPrompt(tStatus('Form 平面/薄片（拖点出有机曲面）：长,阔,X段,Y段', get().lang), '40,30,4,4'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 平面：请输入 长,阔,X段,Y段（正数）' }); return } return void get().startFormPlane(p[0], p[1], p[2] || 4, p[3] || 4) }
-      case 'formsphere': { if (get().formMode) { set({ formCreateKind: 'sphere', status: 'FORM Sphere：选择基准平面并设直径与细分。' }); return } const v = await get().appPrompt(tStatus('Form 球（cube→sphere 无极点）：半径,每边段数\n（段越多越逼近标称半径 — 3 段起跳；CC 细分向内收）', get().lang), '12,3'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 1 || !Number.isFinite(p[0]) || p[0] <= 0) { set({ status: 'Form 球：请输入 半径[,段数]（正数）' }); return } return void get().startFormSphere(p[0], p[1] || 3) }
-      case 'formtorus': { if (get().formMode) { set({ formCreateKind: 'torus', status: 'FORM Torus：选择基准平面并设主直径、管直径与细分。' }); return } const v = await get().appPrompt(tStatus('Form 环面/甜甜圈：主半径,管半径,主向段数,管向段数\n（主半径 > 管半径；段越多越圆）', get().lang), '20,6,16,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || !Number.isFinite(p[0]) || !Number.isFinite(p[1]) || p[0] <= 0 || p[1] <= 0 || p[1] >= p[0]) { set({ status: 'Form 环面：请输入 主半径,管半径（主>管>0）[,主段,管段]' }); return } return void get().startFormTorus(p[0], p[1], p[2] || 16, p[3] || 10) }
-      case 'formpatch': { if (get().formMode) { set({ formCreateKind: 'face', status: 'FORM Face：选择基准平面并设长、阔与细分。' }); return } const v = await get().appPrompt(tStatus('Form 开放曲面片（真开放面 — 车身板/外壳/有机曲面）：长,阔,X段,Y段\n（边界自动跟 B-spline、4 角钉死；拖蓝点捏形）', get().lang), '60,40,4,4'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 开放曲面片：请输入 长,阔,X段,Y段（正数）' }); return } return void get().startFormOpenPatch(p[0], p[1], p[2] || 4, p[3] || 4) }
+      case 'formbox': { if (get().formMode) { get().setFormCreateKind('box'); return } const v = await get().appPrompt(tStatus('Form 盒（細分建模起手）：長,闊,高,X段,Y段,Z段\n（段數越多控制點越密 — 3,2,2 啱手柄/旋鈕）', get().lang), '40,30,20,3,2,2'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 3 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 盒：請輸入 6 個正數（長,闊,高,X段,Y段,Z段）' }); return } return void get().startFormBox(p[0], p[1], p[2], p[3] || 2, p[4] || 2, p[5] || 2) }
+      case 'formcyl': { if (get().formMode) { set({ formCreateKind: 'cylinder', status: 'FORM Cylinder：先選擇基準平面，再設直徑、高度與細分。' }); return } const v = await get().appPrompt(tStatus('Form 圓柱（box→squircle 無極點）：半徑,高,周向段數,高度段數\n（段數越多越逼近標稱半徑 — 4 段起跳；CC 細分向內收）', get().lang), '10,20,4,2'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 圓柱：請輸入 半徑,高,周向段,高度段（正數）' }); return } return void get().startFormCylinder(p[0], p[1], p[2] || 4, p[3] || 2) }
+      case 'formplane': { if (get().formMode) { set({ formCreateKind: 'plane', status: 'FORM Plane：先選擇基準平面，再設長、闊與細分。' }); return } const v = await get().appPrompt(tStatus('Form 平面/薄片（拖點出有機曲面）：長,闊,X段,Y段', get().lang), '40,30,4,4'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 平面：請輸入 長,闊,X段,Y段（正數）' }); return } return void get().startFormPlane(p[0], p[1], p[2] || 4, p[3] || 4) }
+      case 'formsphere': { if (get().formMode) { set({ formCreateKind: 'sphere', status: 'FORM Sphere：選擇基準平面並設直徑與細分。' }); return } const v = await get().appPrompt(tStatus('Form 球（cube→sphere 無極點）：半徑,每邊段數\n（段越多越逼近標稱半徑 — 3 段起跳；CC 細分向內收）', get().lang), '12,3'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 1 || !Number.isFinite(p[0]) || p[0] <= 0) { set({ status: 'Form 球：請輸入 半徑[,段數]（正數）' }); return } return void get().startFormSphere(p[0], p[1] || 3) }
+      case 'formtorus': { if (get().formMode) { set({ formCreateKind: 'torus', status: 'FORM Torus：選擇基準平面並設主直徑、管直徑與細分。' }); return } const v = await get().appPrompt(tStatus('Form 環面/甜甜圈：主半徑,管半徑,主向段數,管向段數\n（主半徑 > 管半徑；段越多越圓）', get().lang), '20,6,16,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || !Number.isFinite(p[0]) || !Number.isFinite(p[1]) || p[0] <= 0 || p[1] <= 0 || p[1] >= p[0]) { set({ status: 'Form 環面：請輸入 主半徑,管半徑（主>管>0）[,主段,管段]' }); return } return void get().startFormTorus(p[0], p[1], p[2] || 16, p[3] || 10) }
+      case 'formpatch': { if (get().formMode) { set({ formCreateKind: 'face', status: 'FORM Face：選擇基準平面並設長、闊與細分。' }); return } const v = await get().appPrompt(tStatus('Form 開放曲面片（真開放面 — 車身板/外殼/有機曲面）：長,闊,X段,Y段\n（邊界自動跟 B-spline、4 角钉死；拖藍點捏形）', get().lang), '60,40,4,4'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 開放曲面片：請輸入 長,闊,X段,Y段（正數）' }); return } return void get().startFormOpenPatch(p[0], p[1], p[2] || 4, p[3] || 4) }
       case 'ithread': return get().openFeatDlg('ithread')   // P2：对话框化（取代逗号字串 prompt）；拾孔内壁自动填走 applyThreadFacePick
       case 'insertmesh': return get().openStlDialog()
       case 'insertobj': return get().openObjDialog()
@@ -13679,7 +13679,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'importdxf': return get().openDxfDialog()
       case 'importsvg': return get().openSvgDialog()
-      case 'scaleasm': { if (!get().components.length) { set({ status: '整体缩放需要装配（多个组件）；单体请用「缩放」特征' }); return } const v = await get().appPrompt(tStatus('整体缩放装配比例（如 2=放大一倍、0.5=缩一半；含相对间距，绕装配中心）', get().lang), '2'); if (v == null) return; const f = Number(v.trim()); if (!Number.isFinite(f) || f <= 0) { set({ status: '请输入正数比例' }); return } return get().scaleAssembly(f) }
+      case 'scaleasm': { if (!get().components.length) { set({ status: '整體縮放需要裝配（多個組件）；單體請用「縮放」特徵' }); return } const v = await get().appPrompt(tStatus('整體縮放裝配比例（如 2=放大一倍、0.5=縮一半；含相對間距，繞裝配中心）', get().lang), '2'); if (v == null) return; const f = Number(v.trim()); if (!Number.isFinite(f) || f <= 0) { set({ status: '請輸入正數比例' }); return } return get().scaleAssembly(f) }
       case 'exportstl': return void get().exportStl()
       case 'exportstlascii': return get().exportStlAscii()
       case 'exportasmstl': return get().exportAssemblyStl()
@@ -13697,12 +13697,12 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (sf) return void get().removeFeature(sf)
         const sc = get().selectedComponent
         if (sc) return get().deleteComponent(sc)
-        set({ status: '先选中一个特征(时间轴)或组件(浏览器)再删除' }); return
+        set({ status: '先選中一個特徵(時間軸)或組件(瀏覽器)再刪除' }); return
       }
       case 'remove': {
         const sc = get().selectedComponent
         if (sc) return get().deleteComponent(sc)
-        set({ status: '移除：先在浏览器选择一个组件实例；此命令不会删除外部来源文件' }); return
+        set({ status: '移除：先在瀏覽器選擇一個組件實例；此命令不會刪除外部來源檔案' }); return
       }
       case 'removefeatures':
       {
@@ -13713,9 +13713,9 @@ export const useApp = create<AppState>((rawSet, get) => {
           const raw = await get().appPrompt('删除特征：先在时间轴选特征，或输入最大孔径 mm 自动选取【原生 Hole 特征】。\n\n留空 = 取消；不会处理布尔／草图切割形成的孔。', '')
           if (raw == null || !raw.trim()) return
           const maxD = Number(raw)
-          if (!(Number.isFinite(maxD) && maxD > 0)) { set({ status: '删除特征：最大孔径必须是正数 mm' }); return }
+          if (!(Number.isFinite(maxD) && maxD > 0)) { set({ status: '刪除特徵：最大孔徑必須是正數 mm' }); return }
           ids.push(...s.features.filter((f) => f.type === 'hole' && Number((f as Extract<Feature, { type: 'hole' }>).diameter) <= maxD).map((f) => f.id))
-          if (!ids.length) { set({ status: `删除特征：没有找到 Ø≤${maxD}mm 的原生 Hole 特征；未作改动。` }); return }
+          if (!ids.length) { set({ status: `刪除特徵：沒有找到 Ø≤${maxD}mm 的原生 Hole 特徵；未作改動。` }); return }
         }
         const labels = ids.map((id) => s.features.findIndex((f) => f.id === id) + 1).join(', ')
         const ok = await get().appConfirm(`抑制已选 ${ids.length} 个特征（时间轴 #${labels}）。\n\n确定 = 重建时跳过它们；原特征保留在时间轴，可 Ctrl+Z 完整还原。`, '删除特征')
@@ -13729,13 +13729,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'removefaces':
         if (hasSolid(get().features)) {
           if (!get().delFaceMode) get().toggleDelFace()
-          set({ status: '删除面：逐个点选要删除的面 →「确定」；相邻面会自动延伸并治愈实体' }); return
+          set({ status: '刪除面：逐個點選要刪除的面 →「確定」；相鄰面會自動延伸並治癒實體' }); return
         }
-        set({ status: '删除面：先要有实体' }); return
+        set({ status: '刪除面：先要有實體' }); return
       case 'replaceprimitives':
       {
         const s = get(), mesh = s.bodyMesh
-        if (!mesh?.vertices.length || !mesh.triangles.length) { set({ status: '使用基本体替换：先建立一个活动实体；组件／网格会在后续版本支持。' }); return }
+        if (!mesh?.vertices.length || !mesh.triangles.length) { set({ status: '使用基本體替換：先建立一個活動實體；組件／網格會在後續版本支持。' }); return }
         let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity
         for (let i = 0; i < mesh.vertices.length; i += 3) {
           const x = mesh.vertices[i], y = mesh.vertices[i + 1], z = mesh.vertices[i + 2]
@@ -13747,7 +13747,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const box = detectExactAxisBox(fit, diag)
         const cyl = box ? null : detectExactZCylinder(fit, diag)
         const sphere = box || cyl ? null : detectExactSphere(mesh.vertices, mesh.triangles, diag)
-        if (!box && !cyl && !sphere) { set({ status: '使用基本体替换：当前只接受无孔、无圆角、无自由曲面的严格轴对齐长方体、Z 轴完整圆柱或完整球体；此实体未达无损替换条件，未作任何改动。' }); return }
+        if (!box && !cyl && !sphere) { set({ status: '使用基本體替換：當前只接受無孔、無圓角、無自由曲面的嚴格軸對齊長方體、Z 軸完整圓柱或完整球體；此實體未達無損替換條件，未作任何改動。' }); return }
         const label = box ? `长方体 ${box.dims.map((n) => n.toFixed(3)).join(' × ')} mm` : cyl ? `圆柱 Ø${(2 * cyl.r).toFixed(3)} × 高${cyl.h.toFixed(3)} mm` : `球体 Ø${(2 * sphere!.r).toFixed(3)} mm`
         const ok = await get().appConfirm(`已严格验证为无孔轴对齐${label}。\n\n确定 = 抑制原建模特征并以等价 OCCT 基本体取代；可 Ctrl+Z 完整还原。`, '使用基本体替换')
         if (!ok) return
@@ -13769,20 +13769,20 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
       case 'vollattice':
-        set({ status: '体积晶格：菜单位置已跟 Fusion；体积场晶格内核仍未接通' }); return
+        set({ status: '體積晶格：菜單位置已跟 Fusion；體積場晶格內核仍未接通' }); return
       case 'voltexture':
-        set({ status: '体积纹理：菜单位置已跟 Fusion；体积场纹理内核仍未接通' }); return
+        set({ status: '體積紋理：菜單位置已跟 Fusion；體積場紋理內核仍未接通' }); return
       case 'volmodify':
-        set({ status: '修改体积晶格：当前文件没有可编辑的体积晶格特征' }); return
+        set({ status: '修改體積晶格：當前檔案沒有可編輯的體積晶格特徵' }); return
       case 'appearance': window.dispatchEvent(new CustomEvent('webcad:material-picker', { detail: { tab: 'appearance' } })); return
       case 'physicalmaterial': window.dispatchEvent(new CustomEvent('webcad:material-picker', { detail: { tab: 'physical' } })); return
       case 'managematerials': get().setMatLibOpen(true); return
       case 'computeall': {
-        if (!get().features.length) { set({ status: '全部计算：当前没有时间轴特征需要重新计算' }); return }
+        if (!get().features.length) { set({ status: '全部計算：當前沒有時間軸特徵需要重新計算' }); return }
         await get().applyFeatures(get().features, '全部计算完成（时间轴已由头重建）', false); return
       }
       case 'computeunresolved':
-        set({ status: '计算未解析：只在设计含未解析外部组件时可用；当前设计没有未解析外部组件' }); return
+        set({ status: '計算未解析：只在設計含未解析外部組件時可用；當前設計沒有未解析外部組件' }); return
       case 'compboolean': {
         // v1.26：ribbon / ASSEMBLE·MESH·实验室「组件布尔」— 原先只在视口选中栏 🧩布尔，Solid QA 找不到。
         // 若已选组件 → startComponentBoolean；否则若刚好一个有几何组件 → 用之；否则提示先在浏览器选。
@@ -13798,7 +13798,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           id = visible.length === 1 ? visible[0].id : null
         }
         if (!id) {
-          set({ status: '组件布尔：请先在浏览器选择一个组件（目标件），再点此工具；然后点另一个零件作工具件。零件内多体用「合并/切割」或「实体布尔」。' })
+          set({ status: '組件布爾：請先在瀏覽器選擇一個組件（目標件），再點此工具；然後點另一個零件作工具件。零件內多體用「合併/切割」或「實體布爾」。' })
           return
         }
         return void get().startComponentBoolean(id)
@@ -13818,7 +13818,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           id = visible.length === 1 ? visible[0].id : (visible.length ? visible[visible.length - 1].id : null)
         }
         if (!id) {
-          set({ status: 'MeshFit / 转 B-rep：先插入 STL/OBJ 网格（MESH → 插入，或 Alt+O），再转换。纯草图实体请直接建模。' })
+          set({ status: 'MeshFit / 轉 B-rep：先插入 STL/OBJ 網格（MESH → 插入，或 Alt+O），再轉換。純草圖實體請直接建模。' })
           return
         }
         if (s0.selectedComponent !== id) get().selectComponent(id)
@@ -13828,7 +13828,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'centerofmass': return get().toggleCom()
       case 'joint': {
         const comps = get().components
-        if (comps.length < 2) { set({ status: '关节需要≥2个组件——先「新建组件」固化多个实体' }); return }
+        if (comps.length < 2) { set({ status: '關節需要≥2個組件——先「新建組件」固化多個實體' }); return }
         // Fusion's primary Joint command is geometry-first: never silently bind
         // whichever two components happen to be first in the browser tree.
         get().startJointPick(); return
@@ -13839,7 +13839,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         get().startJointPick(); return
       }
       case 'asbuiltjoint': {
-        if (get().checkedComps.length !== 2) { set({ status: '按现状关节：先在浏览器勾选刚好 2 个组件，再执行命令' }); return }
+        if (get().checkedComps.length !== 2) { set({ status: '按現狀關節：先在瀏覽器勾選剛好 2 個組件，再執行命令' }); return }
         get().asBuiltJointChecked('revolute'); return
       }
       case 'jointorigin': return get().startJointOriginPick()   // GM-3DV4 A1：Joint Origin 可复用帧（Fusion CREATE > Joint Origin）
@@ -13847,7 +13847,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'enablecontact': return get().toggleContactSets()
       case 'newcontactset': {
         const ids = get().checkedComps
-        if (ids.length !== 2) { set({ status: '新建接触集：先在浏览器勾选刚好 2 个组件' }); return }
+        if (ids.length !== 2) { set({ status: '新建接觸集：先在瀏覽器勾選剛好 2 個組件' }); return }
         get().addContactPair(ids[0], ids[1]); get().clearCheckedComps(); return
       }
       case 'motionlink': {
@@ -13857,16 +13857,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'motionstudy': {
         const j = get().joints.find((x) => x.type === 'revolute' || x.type === 'slider')
-        if (!j) { set({ status: '运动研究需要一个转动或滑动单自由度关节' }); return }
+        if (!j) { set({ status: '運動研究需要一個轉動或滑動單自由度關節' }); return }
         window.dispatchEvent(new CustomEvent('webcad:assembly-focus', { detail: { section: 'motionstudy', jointId: j.id } }))
-        set({ status: `运动研究：已展开「${j.name}」动力学设置 — 设质量／刚度／阻尼／初始位置后求解` }); return
+        set({ status: `運動研究：已展開「${j.name}」動力學設置 — 設質量／剛度／阻尼／初始位置後求解` }); return
       }
       case 'drivejoints': {
-        if (!get().joints.length) { set({ status: '驱动关节：装配内未有任何关节' }); return }
+        if (!get().joints.length) { set({ status: '驅動關節：裝配內未有任何關節' }); return }
         window.dispatchEvent(new CustomEvent('webcad:assembly-focus', { detail: { section: 'drivejoints' } }))
-        set({ status: '驱动关节：使用关节面板滑杆、限位、停于接触或「▷ 运动」' }); return
+        set({ status: '驅動關節：使用關節面板滑桿、限位、停於接觸或「▷ 運動」' }); return
       }
-      case 'select': set({ status: '选择模式：点击实体或组件' }); return
+      case 'select': set({ status: '選擇模式：點擊實體或組件' }); return
       case 'params': return get().toggleParamsPanel()
       case 'drawing': return void get().generateDrawing()
       case 'asmdrawing': return void get().generateAsmDrawing()
@@ -13875,7 +13875,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'sixbar': return get().makeSixBar()
       default:
         console.log(`[command] ${id} (${label})`)
-        set({ status: `命令: ${label}（此功能尚未接入几何）` })
+        set({ status: `命令: ${label}（此功能尚未接入幾何）` })
     }
   },
 
@@ -13915,13 +13915,13 @@ export const useApp = create<AppState>((rawSet, get) => {
         const snap = s.sketchUndo[s.sketchUndo.length - 1]
         const {skParameterRestore,skConsumerRestore,skFrameRestore,...geometrySnap}=snap
         const cur = {...skSnap(s),...(skFrameRestore?{skFrameRestore:sketchFrameSnapshot(historyBefore)}:{}),...(skConsumerRestore?{skConsumerRestore:sketchConsumerSnapshot(historyBefore)}:{}),...(skParameterRestore?{skParameterRestore:captureSketchParameters(s.params,skParameterRestore.map(p=>p.id))}:{})}
-        return { ...geometrySnap,...restoredConsumer,...skFrameRestore,busy:false,...(skParameterRestore?{params:restoreSketchParameters(s.params,skParameterRestore)}:{}), skDof:snap.skDof??null, skConflict:snap.skConflict??false, skConflictIds:[...(snap.skConflictIds??[])], skFreeShapes:new Set(snap.skFreeShapes??[]), skPatternData: clonePatternData(snap.skPatternData), sketchUndo: s.sketchUndo.slice(0, -1), sketchRedo: [...s.sketchRedo, cur], sketchPreview: null, sketchSnap: null, sketchDim: null, skSel: [], skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null, status: '已撤销草图一步' }  // BOOL-2：撤销同时清拾取/预览状态（snap 唔含呢啲）
+        return { ...geometrySnap,...restoredConsumer,...skFrameRestore,busy:false,...(skParameterRestore?{params:restoreSketchParameters(s.params,skParameterRestore)}:{}), skDof:snap.skDof??null, skConflict:snap.skConflict??false, skConflictIds:[...(snap.skConflictIds??[])], skFreeShapes:new Set(snap.skFreeShapes??[]), skPatternData: clonePatternData(snap.skPatternData), sketchUndo: s.sketchUndo.slice(0, -1), sketchRedo: [...s.sketchRedo, cur], sketchPreview: null, sketchSnap: null, sketchDim: null, skSel: [], skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null, status: '已撤銷草圖一步' }  // BOOL-2：撤销同时清拾取/预览状态（snap 唔含呢啲）
       })
       if (!get().skPatternData) await get().resolveSk()
       return
     }
     const u = get().undoStack
-    if (!u.length) { set({ status: '没有可撤销的操作' }); return }
+    if (!u.length) { set({ status: '沒有可撤銷的操作' }); return }
     const prev = u[u.length - 1]
     const cur = get()
     // S105：features 引用变、或 抑制/参数/绑定 变（呢三样唔改 features 数组但 applyFeatures 会 live 读 → 影响几何）→ 要内核重放。
@@ -13932,11 +13932,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       || (prev.paramBindings ?? cur.paramBindings) !== cur.paramBindings
     const matesChanged = (prev.mates ?? cur.mates) !== cur.mates
     set((s) => ({ undoStack: s.undoStack.slice(0, -1), redoStack: [...s.redoStack, docSnap(s)], components: prev.components, componentDefs: prev.componentDefs ?? s.componentDefs, joints: prev.joints ?? s.joints, motionLinks: prev.motionLinks ?? s.motionLinks, sketchSources: prev.sketchSources ?? s.sketchSources, params: prev.params ?? s.params, paramBindings: prev.paramBindings ?? s.paramBindings, suppressedIds: prev.suppressedIds ?? s.suppressedIds, faceColors: prev.faceColors ?? s.faceColors, mates: prev.mates ?? s.mates, groups: prev.groups ?? s.groups, jointPoses: prev.jointPoses ?? s.jointPoses, jointKeyframes: prev.jointKeyframes ?? s.jointKeyframes, planes: prev.planes ?? s.planes, cpoints: prev.cpoints ?? s.cpoints, caxes: prev.caxes ?? s.caxes, jointOrigins: prev.jointOrigins ?? s.jointOrigins, rigidGroups: prev.rigidGroups ?? s.rigidGroups, contactPairs: prev.contactPairs ?? s.contactPairs, selectedFeature: null }))   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随撤销还原（旧栈缺 → 保持当前）
-    if (!needRebuild) set({ status: '已撤销' })
+    if (!needRebuild) set({ status: '已撤銷' })
     else if (!await get().applyFeatures(prev.features, '已撤销', false, undefined, docSnap(cur), true)) {
       const failureStatus = get().status
       set({ ...docSnap(cur), bodyMesh: cur.bodyMesh, bodyTopZ: cur.bodyTopZ, timelinePos: cur.timelinePos,
-        undoStack: cur.undoStack, redoStack: cur.redoStack, busy: false, status: '撤销失败，已保留原模型及历史 — ' + failureStatus })
+        undoStack: cur.undoStack, redoStack: cur.redoStack, busy: false, status: '撤銷失敗，已保留原模型及歷史 — ' + failureStatus })
       return
     }
     if (matesChanged) get().resolveMates()  // 还原配合后重算 follower 组件位姿（resolveMates 对空 mates 安全早返）
@@ -13973,13 +13973,13 @@ export const useApp = create<AppState>((rawSet, get) => {
         const snap = s.sketchRedo[s.sketchRedo.length - 1]
         const {skParameterRestore,skConsumerRestore,skFrameRestore,...geometrySnap}=snap
         const cur = {...skSnap(s),...(skFrameRestore?{skFrameRestore:sketchFrameSnapshot(historyBefore)}:{}),...(skConsumerRestore?{skConsumerRestore:sketchConsumerSnapshot(historyBefore)}:{}),...(skParameterRestore?{skParameterRestore:captureSketchParameters(s.params,skParameterRestore.map(p=>p.id))}:{})}
-        return { ...geometrySnap,...restoredConsumer,...skFrameRestore,busy:false,...(skParameterRestore?{params:restoreSketchParameters(s.params,skParameterRestore)}:{}), skDof:snap.skDof??null, skConflict:snap.skConflict??false, skConflictIds:[...(snap.skConflictIds??[])], skFreeShapes:new Set(snap.skFreeShapes??[]), skPatternData: clonePatternData(snap.skPatternData), sketchRedo: s.sketchRedo.slice(0, -1), sketchUndo: [...s.sketchUndo, cur], sketchPreview: null, sketchSnap: null, sketchDim: null, skSel: [], skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null, status: '已重做草图一步' }
+        return { ...geometrySnap,...restoredConsumer,...skFrameRestore,busy:false,...(skParameterRestore?{params:restoreSketchParameters(s.params,skParameterRestore)}:{}), skDof:snap.skDof??null, skConflict:snap.skConflict??false, skConflictIds:[...(snap.skConflictIds??[])], skFreeShapes:new Set(snap.skFreeShapes??[]), skPatternData: clonePatternData(snap.skPatternData), sketchRedo: s.sketchRedo.slice(0, -1), sketchUndo: [...s.sketchUndo, cur], sketchPreview: null, sketchSnap: null, sketchDim: null, skSel: [], skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null, status: '已重做草圖一步' }
       })
       if (!get().skPatternData) await get().resolveSk()
       return
     }
     const r = get().redoStack
-    if (!r.length) { set({ status: '没有可重做的操作' }); return }
+    if (!r.length) { set({ status: '沒有可重做的操作' }); return }
     const next = r[r.length - 1]
     const cur = get()
     const needRebuild = next.features !== cur.features
@@ -13992,7 +13992,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     else if (!await get().applyFeatures(next.features, '已重做', false, undefined, docSnap(cur), true)) {
       const failureStatus = get().status
       set({ ...docSnap(cur), bodyMesh: cur.bodyMesh, bodyTopZ: cur.bodyTopZ, timelinePos: cur.timelinePos,
-        undoStack: cur.undoStack, redoStack: cur.redoStack, busy: false, status: '重做失败，已保留原模型及历史 — ' + failureStatus })
+        undoStack: cur.undoStack, redoStack: cur.redoStack, busy: false, status: '重做失敗，已保留原模型及歷史 — ' + failureStatus })
       return
     }
     if (matesChanged) get().resolveMates()
@@ -14003,10 +14003,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const componentDraft = get().sketchAsComponent ? get() : null
     let componentAccepted = false
     try {
-    if (get().extrudeSelectionCleared) { set({ status: '请先选择轮廓' }); return }
+    if (get().extrudeSelectionCleared) { set({ status: '請先選擇輪廓' }); return }
     if (get().extrudeExpressionError) { set({ status: get().extrudeExpressionError! }); return }
     if (['distance', 'symmetric', 'twosides'].includes(get().extrudeExtent) && (!Number.isFinite(get().extrudeHeight) || !(Math.abs(get().extrudeHeight) > 1e-6))) {
-      set({ status: '请输入非零拉伸距离' }); return
+      set({ status: '請輸入非零拉伸距離' }); return
     }
     if(get().extrudeExtent==='twosides'&&(!Number.isFinite(get().extrudeSide2)||Math.abs(get().extrudeSide2)<=1e-6)){set({status:'請輸入有限非零的第二側拉伸距離'});return}
     // #9 New Component（Fusion Operation=New Component）：先把现有活动体固化成一个组件（newComponent，undo-safe），
@@ -14028,7 +14028,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const degOf = degenerateSketchProfile
     const nonDeg = all0.filter((sh) => !degOf(sh))
     if (get().extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(get().extrudeExpression!.trim()) && (nonDeg.length > 1 || !['distance', 'symmetric'].includes(get().extrudeExtent))) {
-      set({ status: '此版本的持久公式支持单轮廓、单侧或对称距离；多轮廓及其他终止方式请先用数值' }); return
+      set({ status: '此版本的持久公式支持單輪廓、單側或對稱距離；多輪廓及其他終止方式請先用數值' }); return
     }
     // A：有拣中轮廓 → 只拉伸拣中嗰几个（Fusion：拣边几个孔就只拉边几个）；冇拣 → 全部。skSel.shape 索引入 allRaw。
     const selSet = new Set(get().skSel.map((r) => (r as { shape?: number }).shape).filter((i): i is number => typeof i === 'number' && i >= 0 && i < allRaw.length).map((i) => allRaw[i]))
@@ -14044,11 +14044,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 发射原始图形（圆保持真圆、环碟由 even-odd 落返）；相交切分先用多边形面 + 再排布消相邻共享边。
     const rf = get().extrudeRegionFaces, rsel = get().extrudeRegionSel
     if (rf && JSON.stringify(rf) !== JSON.stringify(reg.pfaces)) {
-      set({ status: '草图区域已改变，原选区不再可靠；已保留草图及模型，请关闭并重新打开拉伸再选区域' }); return
+      set({ status: '草圖區域已改變，原選區不再可靠；已保留草圖及模型，請關閉並重新打開拉伸再選區域' }); return
     }
     const regionUi = !!(rf && rf.length === reg.pfaces.length && rsel.length === rf.length)
     const selCount = regionUi ? rsel.filter(Boolean).length : 0
-    if (regionUi && selCount === 0) { set({ status: '未拣任何区域 — 点画布上要拉伸嘅 profile（点中变蓝）再确定' }); return }
+    if (regionUi && selCount === 0) { set({ status: '未揀任何區域 — 點畫布上要拉伸嘅 profile（點中變藍）再確定' }); return }
     const subsetActive = regionUi && rf !== null && selCount < rf.length
     let exactPick: SketchShape[] | null = null
     if (subsetActive && !reg.split && !hasOpen) {
@@ -14072,7 +14072,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const regionSelection = reg.analytic && regionUi && selCount < reg.pfaces.length ? reg.analytic!.pfaces.filter((_, i) => rsel[i]).map(f => regionSignature(f.outer)) : undefined
     const exactRegions = analyticActive ? analyticRegionShapes(reg.analytic!, regionSelection) : null
     if ((analyticActive && !exactRegions?.length) || (!reg.analytic && !reg.analyticUnsupported && (useRegions || !!chosenP))) {
-      set({ status: '无法可靠重建所选区域的精确圆弧／直线边界；已保留草图、模型及历史，请检查微小间隙或重叠边后重新选择' }); return
+      set({ status: '無法可靠重建所選區域的精確圓弧／直線邊界；已保留草圖、模型及歷史，請檢查微小間隙或重疊邊後重新選擇' }); return
     }
     const approximateRegions = !reg.analytic && reg.analyticUnsupported && !exactPick && (useRegions || !!chosenP)
     const precisionNote = approximateRegions ? '；精度提示：此区域包含样条／椭圆等曲线，区域边界使用采样多边形近似，原始草图已保留' : ''
@@ -14080,16 +14080,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     const nDeg = all0.length - nonDeg.length
     if (!all.length) {
       const hasOpen = allRaw.some((sh) => sh.type === 'poly' && (sh as { open?: boolean }).open && !sh.construction)   // S161：开放曲线/弧 — 提示「闭合」封口，唔好误报「构造几何」
-      set({ status: !allRaw.length ? '请先在草图里画一个轮廓' : nDeg ? `全部 ${nDeg} 个轮廓都退化（太细/零面积）— 重画或打数字定准确尺寸` : hasOpen ? '只有开放曲线/弧 — 开放路径唔参与拉伸，撳「闭合」封口后再拉伸' : '只有构造几何 — 构造线唔参与拉伸（揀「构造」掣可转返实线）' }); return
+      set({ status: !allRaw.length ? '請先在草圖裏畫一個輪廓' : nDeg ? `全部 ${nDeg} 個輪廓都退化（太細/零面積）— 重畫或打數字定準確尺寸` : hasOpen ? '只有開放曲線/弧 — 開放路徑唔參與拉伸，撳「閉合」封口後再拉伸' : '只有構造幾何 — 構造線唔參與拉伸（揀「構造」掣可轉返實線）' }); return
     }
-    if (nDeg) set({ status: `⚠ 跳过 ${nDeg} 个退化轮廓（太细/零面积），其余 ${all.length} 个照拉伸` })
+    if (nDeg) set({ status: `⚠ 跳過 ${nDeg} 個退化輪廓（太細/零面積），其餘 ${all.length} 個照拉伸` })
     let op: BoolOp = get().sketchOp === 'newbody' && !hasSolid(get().features) ? 'new' : get().sketchOp   // P2 New Body：首体永远做活动体（单活动体架构 — 泊走首体会断「画→拉→切」流）
     if (op === 'newbody') {   // review：多轮廓（嵌套孔）New Body v1 唔支持 — 孔 cut 切唔到独立泊车体 → 降级 Join 并明示
       // P3（#10）：区域点选活跃时用【拣中区域数】做有效轮廓数 —— 拣单一区域（即使草图有多个图形做辅助）系单实体，唔应降级。
       const _nbShape = get().sketchShape
       const _nbFull = [...get().sketchProfiles, ...(_nbShape ? [_nbShape] : [])].filter((sh) => !sh.construction).length
       const _nbN = regionUi ? selCount : _nbFull
-      if (_nbN > 1) { op = 'new'; set({ status: '⬡新实体 v1 只支持单轮廓/单区域 — 多轮廓已改用 Join 建入活动实体（要独立体：逐个分开拉伸）' }) }
+      if (_nbN > 1) { op = 'new'; set({ status: '⬡新實體 v1 只支持單輪廓/單區域 — 多輪廓已改用 Join 建入活動實體（要獨立體：逐個分開拉伸）' }) }
     }
     const plane = get().sketchPlane
     const fromFace = get().sketchFromFace
@@ -14128,11 +14128,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     // T775（S55-①）：到面拉伸 — height/down 由目标面 offset 解析（RES_SIGN：XZ 面挤出方向系 −y）
     if (extent === 'toface') {
       const tOff = get().extrudeToFaceOff
-      if (tOff == null) { set({ status: '到面拉伸：先点目标面（范围拣「到面」后点平面）' }); return }
+      if (tOff == null) { set({ status: '到面拉伸：先點目標面（範圍揀「到面」後點平面）' }); return }
       const d = get().sketchArb
         ? tOff + (get().extrudeToFaceOffset || 0)
         : (tOff + (get().extrudeToFaceOffset || 0)) - baseZ   // P2：Fusion Offset 字段 — 首建初值都食埋
-      if (Math.abs(d) < 0.1) { set({ status: '目标面（含偏移）同草图平面重合 — 拉伸取消' }); return }
+      if (Math.abs(d) < 0.1) { set({ status: '目標面（含偏移）同草圖平面重合 — 拉伸取消' }); return }
       const RS: Record<Plane, number> = { XY: 1, XZ: -1, YZ: 1 }
       height = Math.abs(d)
       down = get().sketchArb ? ((get().sketchOp === 'cut' ? -1 : 1) * d) < 0 : (RS[plane] * d) < 0
@@ -14164,7 +14164,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // profile(u,v)=raw(s,t) 经 (xd, yd=n×xd) 落 CAD（同 SketchLayer arbFrame.lift）。撞唔到 → 诚实退回。
       if (nextExt) {
         const bm = get().bodyMesh
-        if (!bm || !bm.triangles || !bm.triangles.length) { set({ sketchShape: savedShape, sketchProfiles: savedProfiles, sketchArb: savedArb, mode: savedMode, status: '到下一面：暂时冇实体可停靠（请先建实体，或改用 距离/贯通）' }); return }
+        if (!bm || !bm.triangles || !bm.triangles.length) { set({ sketchShape: savedShape, sketchProfiles: savedProfiles, sketchArb: savedArb, mode: savedMode, status: '到下一面：暫時冇實體可停靠（請先建實體，或改用 距離/貫通）' }); return }
         down = get().extrudeFlip
         const nrm = savedArb.n, xdv = savedArb.xd, ov = savedArb.o
         const travSign = (op === 'cut' ? -1 : 1) * (down ? -1 : 1)
@@ -14172,7 +14172,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const yd: [number, number, number] = [nrm[1] * xdv[2] - nrm[2] * xdv[1], nrm[2] * xdv[0] - nrm[0] * xdv[2], nrm[0] * xdv[1] - nrm[1] * xdv[0]]
         const toCad = (u: number, v: number): [number, number, number] => [ov[0] + u * xdv[0] + v * yd[0], ov[1] + u * xdv[1] + v * yd[1], ov[2] + u * xdv[2] + v * yd[2]]
         const stop = _toNextDistance(all.map(rawP), dir, toCad, bm)
-        if (stop == null) { set({ sketchShape: savedShape, sketchProfiles: savedProfiles, sketchArb: savedArb, mode: savedMode, status: '到下一面：呢个方向前面冇面（改用 距离/贯通，或㩒 ⇅ 反向）' }); return }
+        if (stop == null) { set({ sketchShape: savedShape, sketchProfiles: savedProfiles, sketchArb: savedArb, mode: savedMode, status: '到下一面：呢個方向前面冇面（改用 距離/貫通，或㩒 ⇅ 反向）' }); return }
         height = stop
       }
       // #3 Start:Offset / #4 Two Sides — 斜面拉伸起点沿 arb 法向偏移（arb 无 symmetric 路：twosides 用 −side2 shift + 总高 side1+side2 沿 +n；否则 startOff）
@@ -14188,7 +14188,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 烘焙 height=实停距 → 回放读死数（确定性）；单轮廓打 extent:'next' 做 META 标记（多轮廓 extgroup v1 只烘焙、唔标记）。
     if (nextExt) {
       const bm = get().bodyMesh
-      if (!bm || !bm.triangles || !bm.triangles.length) { set({ sketchShape: savedShape, sketchProfiles: savedProfiles, sketchArb: savedArb, mode: savedMode, status: '到下一面：暂时冇实体可停靠（请先建实体，或改用 距离/贯通）' }); return }
+      if (!bm || !bm.triangles || !bm.triangles.length) { set({ sketchShape: savedShape, sketchProfiles: savedProfiles, sketchArb: savedArb, mode: savedMode, status: '到下一面：暫時冇實體可停靠（請先建實體，或改用 距離/貫通）' }); return }
       const RSn: Record<Plane, number> = { XY: 1, XZ: -1, YZ: 1 }
       down = get().extrudeFlip
       const axis = plane === 'XY' ? 2 : plane === 'XZ' ? 1 : 0
@@ -14196,7 +14196,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const dir: [number, number, number] = [0, 0, 0]; dir[axis] = dirSign
       const toCad = (u: number, v: number): [number, number, number] => plane === 'XY' ? [u, v, baseZ] : plane === 'XZ' ? [u, baseZ, v] : [baseZ, u, v]
       const stop = _toNextDistance(profiles, dir, toCad, bm)
-      if (stop == null) { set({ sketchShape: savedShape, sketchProfiles: savedProfiles, sketchArb: savedArb, mode: savedMode, status: '到下一面：呢个方向前面冇面（改用 距离/贯通，或㩒 ⇅ 反向）' }); return }
+      if (stop == null) { set({ sketchShape: savedShape, sketchProfiles: savedProfiles, sketchArb: savedArb, mode: savedMode, status: '到下一面：呢個方向前面冇面（改用 距離/貫通，或㩒 ⇅ 反向）' }); return }
       height = stop
     }
     // GM-3DV1 S12：Two Sides 每侧独立拔模 —— 有任一侧拔模且 op=new/cut 时，改由草图面向两侧【各自】挤出+各自拔模
@@ -14207,7 +14207,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const draft2 = get().extrudeDraft2 || 0
       await get().addExtrude(profiles[0], side1, op, baseZ, { twist, plane, draft, down: false })                 // 侧1：草图面向 +法向，拔模1
       await get().addExtrude(profiles[0], side2, op, baseZ, { twist, plane, draft: draft2, down: true })          // 侧2：草图面向 −法向，拔模2
-      set({ status: `已两侧拉伸（侧1 ${side1}${draft ? `/拔模${draft}°` : ''} · 侧2 ${side2}${draft2 ? `/拔模${draft2}°` : ''}）` })
+      set({ status: `已兩側拉伸（側1 ${side1}${draft ? `/拔模${draft}°` : ''} · 側2 ${side2}${draft2 ? `/拔模${draft2}°` : ''}）` })
     } else if (profiles.length === 1) {
       const useThrough = op === 'cut' && !nextExt && (throughAll || (faceCut && faceThrough))
       const useInward = faceCut && extent === 'distance' && !faceThrough && !throughAll && !nextExt
@@ -14331,17 +14331,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!Number.isInteger(idx) || idx < 0 || idx >= n) return { selectedParkedIndex: null }
     const name = s.bodyMesh!.parked![idx].name || `泊车实体${idx + 1}`
     const dlg = s.featDlg?.kind === 'move' ? { ...s.featDlg, params: { ...s.featDlg.params, bodyTarget: `parked${idx}` } } : s.featDlg
-    return { selectedParkedIndex: idx, status: `已选择「${name}」（泊车 · 可测量 / 可作合并工具 / Move 目标）`, ...(dlg !== s.featDlg ? { featDlg: dlg } : {}) }
+    return { selectedParkedIndex: idx, status: `已選擇「${name}」（泊車 · 可測量 / 可作合併工具 / Move 目標）`, ...(dlg !== s.featDlg ? { featDlg: dlg } : {}) }
   }),
   measureParkedBody: async (idx) => {
     const s = get()
-    if (!s.measureUniMode) { set({ status: '请先打开统一测量，并开启「体」过滤' }); return }
+    if (!s.measureUniMode) { set({ status: '請先打開統一測量，並開啟「體」過濾' }); return }
     const flt = s.measureSelFilter
     if (!(flt.body && !flt.face && !flt.edge)) {
       // 非纯体过滤时仍允许树点选量体积（用户明确点了泊车体）
     }
     const pb = s.bodyMesh?.parked?.[idx]
-    if (!pb?.vertices?.length || !pb.triangles?.length) { set({ status: '泊车实体无效，无法测量' }); return }
+    if (!pb?.vertices?.length || !pb.triangles?.length) { set({ status: '泊車實體無效，無法測量' }); return }
     get().selectParkedBody(idx)
     // Prefer B-rep measureBodyAt at mesh centroid (same path as viewport body filter).
     let sx = 0, sy = 0, sz = 0, n = pb.vertices.length / 3
@@ -14361,11 +14361,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       volume = mp.volume > 0 ? mp.volume : null
     }
     if (volume != null && volume > 0) get().addMeasureUniPick({ kind: 'body', volume })
-    else set({ status: '未能量度选中泊车实体，请点选有效实体' })
+    else set({ status: '未能量度選中泊車實體，請點選有效實體' })
   },
 
   startNewBody: async () => {
-    if (!hasSolid(get().features)) { set({ status: '新实体：先起一个实体（拉伸/原语），先有嘢可以泊车' }); return }
+    if (!hasSolid(get().features)) { set({ status: '新實體：先起一個實體（拉伸/原語），先有嘢可以泊車' }); return }
     const n = (get().bodyMesh?.parked?.length ?? 0) + 1
     await get().applyFeatures([...get().features, { id: fid(), type: 'newbody', name: `实体${n}` }],
       newBodySuccessStatus(n))
@@ -14379,8 +14379,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 行返现有 bodyboolean B-rep 路径（每个工具一条 bodyboolean 特征，时间轴可改/可删）。取代旧 cut-mode toggle。
   openCombineDlg: () => set((s) => {
     const parked = s.bodyMesh?.parked ?? []
-    if (!parked.length) return { status: '合并：没有工具体（泊车实体）— 两个实体必须分开：先建第一个 → 「新实体」泊车 → 再建第二个 → 再合并/布尔。若两个盒子已在同一活动体，请用「新实体」拆分路径重做。' }
-    if (!s.bodyMesh || !s.bodyMesh.triangles.length) return { status: '合并：冇活动实体（目标体）— 先建一个新实体' }
+    if (!parked.length) return { status: '合併：沒有工具體（泊車實體）— 兩個實體必須分開：先建第一個 → 「新實體」泊車 → 再建第二個 → 再合併/布爾。若兩個盒子已在同一活動體，請用「新實體」拆分路徑重做。' }
+    if (!s.bodyMesh || !s.bodyMesh.triangles.length) return { status: '合併：冇活動實體（目標體）— 先建一個新實體' }
     // P2 audit：对齐 Fusion Combine 默认 — Operation=Join、工具体初始不勾（旧默认 Cut+全勾 → 开对话框直接撳确定会意外切走所有泊车体）
     const params: Record<string, number | string> = { op: 'fuse' }
     parked.forEach((_, i) => { params['tool' + i] = parked.length === 1 ? 1 : 0 })   // 单一工具体 = 唔使拣，预勾佢（零阻力）；多个先要用户自选
@@ -14388,20 +14388,20 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       featDlg: { kind: 'combine', params },
       holeMode: false, holePos: null, holeFaceZ: null, holeDir: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false,
-      status: '合并：选 操作（默认 Join）+ 勾选工具体 → 确定。目标=活动实体；切除若目标被工具完全包含会自动对调（「新实体」后常见）。要明确保目标为活动体：拉伸/圆柱用「⬡新实体」泊车工具。',
+      status: '合併：選 操作（預設 Join）+ 勾選工具體 → 確定。目標=活動實體；切除若目標被工具完全包含會自動對調（「新實體」後常見）。要明確保目標為活動體：拉伸/圓柱用「⬡新實體」泊車工具。',
     }
   }),
   // Boundary Fill v1：严谨限定为「两封闭实体」的三格 B-rep cell 分割；不会把普通 Common 假称 Boundary Fill。
   // 完整 Fusion 行为所需的多工具、曲面/平面工具与任意 cell 选择，留待 kernel/选择器扩充。
   openBoundaryFillDlg: () => set((s) => {
     const parked = s.bodyMesh?.parked ?? []
-    if (!parked.length) return { status: 'Boundary Fill：需要活动实体加至少一个泊车实体；先用「新实体」建立第二个封闭实体' }
-    if (!s.bodyMesh || !s.bodyMesh.triangles.length) return { status: 'Boundary Fill：冇活动实体；先建立封闭实体' }
+    if (!parked.length) return { status: 'Boundary Fill：需要活動實體加至少一個泊車實體；先用「新實體」建立第二個封閉實體' }
+    if (!s.bodyMesh || !s.bodyMesh.triangles.length) return { status: 'Boundary Fill：冇活動實體；先建立封閉實體' }
     const params: Record<string, number | string> = { target: 0, cell: 'overlap' }
     return {
       featDlg: { kind: 'boundaryfill', params },
       holeMode: false, holePos: null, holeFaceZ: null, holeDir: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false,
-      status: 'Boundary Fill（两封闭实体）：选一个工具体及要保留的 cell；会真实生成目标独有／交集／工具独有 B-rep，其他 cell 会保留为独立实体。'
+      status: 'Boundary Fill（兩封閉實體）：選一個工具體及要保留的 cell；會真實生成目標獨有／交集／工具獨有 B-rep，其他 cell 會保留為獨立實體。'
     }
   }),
 
@@ -14465,7 +14465,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setHoleDepth: (n) => set({ holeDepth: n > 0 ? n : 0 }),
   // Drill a hole at CAD (cx,cy). Default (0,0) = body centre (legacy). The Hole command (below) passes the picked point.
   addHole: async (cx = 0, cy = 0, faceZ = null, dir = null, origin3d = null, group) => {
-    if (!hasSolid(get().features)) { set({ status: '孔需要先有一个实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '孔需要先有一個實體' }); return }
     // P2 修：揀咗低阶梯面时，盲孔深度/沉头 recess 应由「所揀面」起计（Fusion 行为）。
     // faceZ 只喺 pick 落上向平面先有值（侧壁 pick 唔算，防止孔顶埋喺料入面变空腔）；钳唔超 bodyTopZ 防浮点。
     const top = faceZ != null && faceZ > 0.5 ? Math.min(faceZ, get().bodyTopZ) : get().bodyTopZ
@@ -14638,12 +14638,12 @@ export const useApp = create<AppState>((rawSet, get) => {
       const nz = bm && bm.vertices && bm.triangles ? holeNextFaceZ(bm.vertices, bm.triangles, cx, cy, top) : null
       if (nz == null) {
         await get().addExtrude({ kind: 'circle', c: [cx, cy], r }, through, 'cut', 0)
-        set({ status: `⚠ 到下一面：孔心正下方冇面（悬空）— 已改钻贯通 Ø${D}${at}` })
+        set({ status: `⚠ 到下一面：孔心正下方冇面（懸空）— 已改鑽貫通 Ø${D}${at}` })
       } else {
         const depth = Math.max(1, top - nz)
         await get().addExtrude({ kind: 'circle', c: [cx, cy], r }, depth + 5, 'cut', nz)
-        if (get().bodyMesh?.triangles?.length) set({ status: `已钻孔到下一面 Ø${D} 深${depth.toFixed(1)}（止于 z=${nz.toFixed(1)}）${at}` })
-        else set({ status: `⚠ 到下一面孔 Ø${D} 过大 — 切掉了全部材料，请缩小孔径` })
+        if (get().bodyMesh?.triangles?.length) set({ status: `已鑽孔到下一面 Ø${D} 深${depth.toFixed(1)}（止於 z=${nz.toFixed(1)}）${at}` })
+        else set({ status: `⚠ 到下一面孔 Ø${D} 過大 — 切掉了全部材料，請縮小孔徑` })
       }
     } else if (get().holeThrough) {
       const ch = get().holeChamfer || 0
@@ -14655,8 +14655,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       } else {
         await get().addExtrude({ kind: 'circle', c: [cx, cy], r }, through, 'cut', 0)
         // Don't clobber the kernel's "结果为空" warning with a false success when the hole removed everything.
-        if (get().bodyMesh?.triangles?.length) set({ status: `已钻通孔 Ø${D}${at}（时间轴可改半径）` })
-        else set({ status: `⚠ 孔 Ø${D} 过大或位置超出实体 — 切掉了全部材料，请缩小孔径/改位置` })
+        if (get().bodyMesh?.triangles?.length) set({ status: `已鑽通孔 Ø${D}${at}（時間軸可改半徑）` })
+        else set({ status: `⚠ 孔 Ø${D} 過大或位置超出實體 — 切掉了全部材料，請縮小孔徑/改位置` })
       }
     } else {
       // blind hole: drill down from the top face by a finite depth (user value, or auto ≈1.5×Ø; capped so it doesn't break through)
@@ -14673,8 +14673,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       } else {
         const depth = Math.max(2, Math.min(top - 1, want))
         await get().addExtrude({ kind: 'circle', c: [cx, cy], r }, depth + 5, 'cut', top - depth)
-        if (get().bodyMesh?.triangles?.length) set({ status: `已钻盲孔 Ø${D} 深${depth.toFixed(0)}${at}` })
-        else set({ status: `⚠ 盲孔 Ø${D} 过大 — 切掉了全部材料，请缩小孔径` })
+        if (get().bodyMesh?.triangles?.length) set({ status: `已鑽盲孔 Ø${D} 深${depth.toFixed(0)}${at}` })
+        else set({ status: `⚠ 盲孔 Ø${D} 過大 — 切掉了全部材料，請縮小孔徑` })
       }
     }
   },
@@ -14708,10 +14708,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     // mutually exclusive with the other pick modes
     shellMode: false, faceFilletMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false,
     measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false,
-    status: !s.holeMode ? '孔：点实体的一个平面定位孔心 → 设 Ø/类型 → 按「确定」（不点则钻在中心）' : '已退出孔命令',
+    status: !s.holeMode ? '孔：點實體的一個平面定位孔心 → 設 Ø/類型 → 按「確定」（不點則鑽在中心）' : '已退出孔命令',
   })),
   holePickAt: (p, upNy, det) => set((s) => {
-    if (!hasSolid(s.features)) return { status: '孔需要先有实体' }
+    if (!hasSolid(s.features)) return { status: '孔需要先有實體' }
     // upNy = 拾取面世界法线嘅 three-y 分量（three y = CAD z）。>0.85 ≈ 上向平面 → 记低面高做盲孔基准。
     const onTop = upNy != null && upNy > 0.85
     // P2（Fusion At Center）：点中【直立圆柱面】（凸台外壁/孔内壁）→ 孔心自动 snap 到圆柱轴心；
@@ -14725,7 +14725,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           holePos: [cadX, onTop ? p[1] : topZ, -cadY],   // three 坐标 = [cadX, cadZ, -cadY]
           holeFaceZ: onTop ? p[1] : (topZ > 0.5 ? Math.round(topZ * 100) / 100 : null),
           holeDir: null,   // 对轴 = 直立圆柱 → 沿 Z（清任何斜面残留）
-          status: `⊙ 已对心到圆柱轴 @(${cadX},${cadY})${det.concave ? '（孔内壁 — 同心扩孔/沉头）' : '（凸台 — 顶面起钻）'} — 设 Ø/类型后按「确定」`,
+          status: `⊙ 已對心到圓柱軸 @(${cadX},${cadY})${det.concave ? '（孔內壁 — 同心擴孔/沉頭）' : '（凸台 — 頂面起鑽）'} — 設 Ø/類型後按「確定」`,
         }
       }
     }
@@ -14738,7 +14738,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (Math.max(Math.abs(u[0]), Math.abs(u[1]), Math.abs(u[2])) < 0.985) holeDir = u   // 非 cardinal = 斜面
     }
     return { holePos: p, holeFaceZ: onTop ? p[1] : null, holeDir,
-      status: holeDir ? `⟂ 斜面孔心已定位（沿面法向钻 — 简单圆孔支持斜钻）— 设 Ø/类型后按「确定」` : `孔心已定位 — 设 Ø/类型后按「确定」（可再点改位置）` }
+      status: holeDir ? `⟂ 斜面孔心已定位（沿面法向鑽 — 簡單圓孔支持斜鑽）— 設 Ø/類型後按「確定」` : `孔心已定位 — 設 Ø/類型後按「確定」（可再點改位置）` }
   }),
   commitHole: async () => {
     // Guard the diameter up front (hole mode stays open to fix) — a 0/neg Ø was a silent no-op before.
@@ -14807,7 +14807,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const canPersist = !get().holeSlot && !get().holeTapModeled && (kind === 'simple' || kind === 'counterbore' || kind === 'countersink' || kind === 'tapped')
       if (canPersist) await get().addHole(cx, cy, fz, null, null, { centers, pattern: { kind: 'bolt-circle', origin: [cx, cy], count: n, pcd: get().holeBcPcd } })
       else for (const [px, py] of centers) await get().addHole(px, py, fz)
-      set({ holeMode: false, holePos: null, holeFaceZ: null, holeDir: null, status: `已钻 ${n} 个螺栓孔 Ø${get().holeD} 均布于 PCD Ø${get().holeBcPcd}` })
+      set({ holeMode: false, holePos: null, holeFaceZ: null, holeDir: null, status: `已鑽 ${n} 個螺栓孔 Ø${get().holeD} 均布於 PCD Ø${get().holeBcPcd}` })
       return
     }
     const dir = get().holeDir
@@ -14816,14 +14816,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ holeMode: false, holePos: null, holeFaceZ: null, holeDir: null })
   },
   cancelHole: () => set({ holeMode: false, holeEditId: null, holePos: null, holeFaceZ: null, holeDir: null, status: '已取消孔命令' }),
-  clearHolePick: () => set({ holePos: null, holeFaceZ: null, holeDir: null, status: '已清除孔心 — 重新点实体面定位（不点=中心）' }),
+  clearHolePick: () => set({ holePos: null, holeFaceZ: null, holeDir: null, status: '已清除孔心 — 重新點實體面定位（不點=中心）' }),
 
   // ── Generic feature-param command bar (Fusion-style: invoke → set params → 确定) ──
   featDlg: null,
   openFeatDlg: (kind) => set((s) => {
     // Primitives + reference planes can be created from scratch (no solid needed); other ops modify an existing body.
     const noSolidNeeded = new Set(['box', 'cylinder', 'sphere', 'torus', 'cone', 'wedge', 'dome', 'halfcyl', 'pie', 'tube', 'rtube', 'profile', 'rbox', 'prism', 'pyramid', 'coil', 'plane', 'cpoint', 'cptgrid', 'caxis', 'thread', 'sheetmetal', 'gear', 'rack', 'pulley', 'gearbox', 'worm', 'crowngear'])
-    if (!noSolidNeeded.has(kind) && !hasSolid(s.features)) return { status: '请先创建一个实体' }
+    if (!noSolidNeeded.has(kind) && !hasSolid(s.features)) return { status: '請先創建一個實體' }
     const defaults: Record<string, Record<string, number | string>> = {
       pattern: { countX: 2, dx: 130, countY: 2, dy: 90, countZ: 1, dz: 60, dir1: '', dir2: '', dtype: 'spacing', objectType: 'bodies', objectPicked: 0, compute: 'optimized', suppress: '' },   // P2：dtype = Fusion Distance Type（spacing 间距 | extent 总长）；GM-3DV1 S3：objectType/compute/suppress
       geoPattern: { instances: '[{"translation":[30,0,0]}]', compute: 'optimized', suppress: '' },
@@ -14985,7 +14985,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   automatedModelPickFace: (face) => set((s) => {
     const d = s.featDlg
     if (!d || d.kind !== 'automatedmodel') return {}
-    if (!face) return { status: 'Automated Modeling：此 v1 只接受平面面；请选择一个平坦面。' }
+    if (!face) return { status: 'Automated Modeling：此 v1 只接受平面面；請選擇一個平坦面。' }
     const old = ((d.payload as { picks?: { p: [number, number, number]; n: [number, number, number] }[] } | undefined)?.picks ?? [])
     const picks = old.length >= 2 ? [face] : [...old, face]
     return {
@@ -15091,7 +15091,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           sweepTwist: f.twist ?? 0, sweepScale: f.scale ?? 1,
           sketchOp: f.op ?? 'new', polyPts: pathPts,
           holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null,
-          status: '编辑扫掠：原路径已保留；改参数后按确定重建',
+          status: '編輯掃掠：原路徑已保留；改參數後按確定重建',
         })
         return
       }
@@ -15104,7 +15104,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           loftRuled: !!f.ruled, loftWall: f.wall ?? 0, loftClosed: !!f.closed,
           loftContinuity: f.continuity ?? '', loftCapEnd: f.capEnd ?? 'last',
           sketchOp: f.op ?? 'new', holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null,
-          status: '编辑放样：截面及参数已回填；改参数后按确定重建',
+          status: '編輯放樣：截面及參數已回填；改參數後按確定重建',
         })
         return
       }
@@ -15151,15 +15151,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ featDlg: { kind, params, editId: featId, expressionContext: f.type === 'extrude' ? f.distanceExpression : undefined, ...(kind === 'rib' && f.type === 'rib' ? { payload: { isWeb: !!f.extend } } : {}) }, selectedFeature: featId,
       facePatternPick: false, facePatternPicks: (f.type === 'pattern' || f.type === 'circPattern') && f.objectType === 'faces' ? [...(f.nears ?? [])] : [],
       holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, decalPick: null,
-      status: '编辑特征：改参数 → 确定重建（棱/面选择集及轮廓保留原值）' })
+      status: '編輯特徵：改參數 → 確定重建（棱/面選擇集及輪廓保留原值）' })
   },
   // T775（S55-③）：选圆柱面加外螺纹 — 点凸台/轴嘅外圆面 → 直径/高度/位置自动读入 othread 对话框
   threadFacePick: false,
-  startThreadFacePick: () => set({ threadFacePick: true, holeMode: false, holePos: null, holeFaceZ: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false, status: '🔩 点一个【圆柱面】— 外圆面=包外螺纹 / 孔内壁=攻内螺纹，直径/高度/位置自动读入（Fusion Thread 同款）' }),
+  startThreadFacePick: () => set({ threadFacePick: true, holeMode: false, holePos: null, holeFaceZ: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false, status: '🔩 點一個【圓柱面】— 外圓面=包外螺紋 / 孔內壁=攻內螺紋，直徑/高度/位置自動讀入（Fusion Thread 同款）' }),
   applyThreadFacePick: (det) => {
-    if (!det || det.kind !== 'cyl' || !det.axis || !det.p || det.r == null) { set({ status: '要点【圆柱面】— 平面冇得包牙' }); return }
+    if (!det || det.kind !== 'cyl' || !det.axis || !det.p || det.r == null) { set({ status: '要點【圓柱面】— 平面冇得包牙' }); return }
     const az = Math.abs(det.axis[2]) / (Math.hypot(det.axis[0], det.axis[1], det.axis[2]) || 1)
-    if (az < 0.996) { set({ status: '内/外螺纹 v1 只支持 Z 轴圆柱面（直立轴/凸台/孔）— 呢个面斜咗' }); return }
+    if (az < 0.996) { set({ status: '內/外螺紋 v1 只支持 Z 軸圓柱面（直立軸/凸台/孔）— 呢個面斜咗' }); return }
     if (det.concave) {
       // P2：孔内壁 → 内螺纹对话框自动填（Fusion Thread 对内外面一视同仁）。Ø snap 到最近 ISO 公称 + 粗牙螺距；
       // 深度 = 孔壁轴向跨距；z0 = 孔底 z（盲孔由孔底向上攻，通孔 z0≈0 = 旧全程行为）。全部可改后再确定。
@@ -15172,7 +15172,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       get().openFeatDlg('ithread')
       set((s) => (s.featDlg && s.featDlg.kind === 'ithread' ? {
         featDlg: { ...s.featDlg, params: { ...s.featDlg.params, d: nom, pitch: PITCH[nom], height: h, x: Math.round(det.p![0] * 10) / 10, y: Math.round(det.p![1] * 10) / 10, z0: zb } },
-        status: `已读入孔内壁 实测Ø${measD.toFixed(1)} → M${nom}×${PITCH[nom]} 深${h}${zb > 0 ? ` 孔底z${zb}` : ''} — 可改 → 确定攻牙`,
+        status: `已讀入孔內壁 實測Ø${measD.toFixed(1)} → M${nom}×${PITCH[nom]} 深${h}${zb > 0 ? ` 孔底z${zb}` : ''} — 可改 → 確定攻牙`,
       } : {}))
       return
     }
@@ -15181,30 +15181,30 @@ export const useApp = create<AppState>((rawSet, get) => {
     get().openFeatDlg('othread')
     set((s) => (s.featDlg && s.featDlg.kind === 'othread' ? {
       featDlg: { ...s.featDlg, params: { ...s.featDlg.params, d: Math.round(det.r! * 2 * 10) / 10, height: Math.max(1, Math.round(h * 10) / 10), x: Math.round(det.p![0] * 10) / 10, y: Math.round(det.p![1] * 10) / 10, z0: Math.round((det.p![2] + (det.h0 ?? 0)) * 10) / 10 } },
-      status: `已读入圆柱面 Ø${(det.r! * 2).toFixed(1)} × 高${h.toFixed(1)} — 设螺距 → 确定包牙`,
+      status: `已讀入圓柱面 Ø${(det.r! * 2).toFixed(1)} × 高${h.toFixed(1)} — 設螺距 → 確定包牙`,
     } : {}))
   },
   // T775（S55-④）：草图点批量孔 — 活动草图嘅「点」实体逐个钻孔（孔径/类型食现有孔设置）
   addHolesAtSketchPoints: async () => {
     const s = get()
-    if (s.sketchArb || s.sketchPlane !== 'XY') { set({ status: '批量孔 v1 只支持 XY 草图嘅点（孔一律沿 Z 钻）' }); return }
+    if (s.sketchArb || s.sketchPlane !== 'XY') { set({ status: '批量孔 v1 只支持 XY 草圖嘅點（孔一律沿 Z 鑽）' }); return }
     const pts: Pt[] = []
     for (const sh of [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])]) {
       if (sh.type === 'circle' && (sh as { point?: boolean }).point) pts.push(sh.c)
     }
-    if (!pts.length) { set({ status: '当前草图冇草图点 — 用「点」工具落点（每点一孔），或用「孔」对话框嘅螺栓圈' }); return }
-    if (!hasSolid(s.features)) { set({ status: '批量孔：先要有实体先钻得' }); return }
+    if (!pts.length) { set({ status: '當前草圖冇草圖點 — 用「點」工具落點（每點一孔），或用「孔」對話框嘅螺栓圈' }); return }
+    if (!hasSolid(s.features)) { set({ status: '批量孔：先要有實體先鑽得' }); return }
     get().exitSketchMode()
-    set({ status: `正在按 ${pts.length} 个草图点打孔…` })
+    set({ status: `正在按 ${pts.length} 個草圖點打孔…` })
     for (const c of pts) { const p2 = stToProfile(c, 'XY'); await get().addHole(p2[0], p2[1]) }
-    set({ status: `已按 ${pts.length} 个草图点打孔（Ø${get().holeD}，孔一律由顶面沿 Z 钻 — 草图点只供 XY 位置）` })
+    set({ status: `已按 ${pts.length} 個草圖點打孔（Ø${get().holeD}，孔一律由頂面沿 Z 鑽 — 草圖點只供 XY 位置）` })
   },
   // S151：构造点批量孔 —— 镜像 addHolesAtSketchPoints，源换 s.cpoints（3D world 点）。令 construction points 真正【驱动
   // 几何】（Fusion Hole-at-points 同款），唔再只系 render/snap-only。孔一律由顶面沿 Z 钻，取构造点 x,y 做孔心（z 无关）。
   addHolesAtCpoints: async () => {
     const s = get()
-    if (!s.cpoints.length) { set({ status: '构造点批量孔：冇构造点 — 用「构造点」工具落点先（每点一孔）' }); return }
-    if (!hasSolid(s.features)) { set({ status: '构造点批量孔：先要有实体先钻得' }); return }
+    if (!s.cpoints.length) { set({ status: '構造點批量孔：冇構造點 — 用「構造點」工具落點先（每點一孔）' }); return }
+    if (!hasSolid(s.features)) { set({ status: '構造點批量孔：先要有實體先鑽得' }); return }
     // S 沿构造轴钻孔（Fusion「孔 > 方向：沿轴」）：选中 drillCaxis → 每个构造点沿该轴方向钻（斜面 / 侧壁 / 有 Z 的点都钻得正）。
     // 复用【已 SHIPPED】的 caxis→sweep-cut path3 spine（commitSweepPath:7975-7993 verbatim）：每点发一个 type:'sweep' op:'cut'
     // Feature，path3=[c, c+dir*depth]、圆截面 r=holeD/2。drillCaxis 未设 → 旧 addHole 顶面沿 Z 路径逐字节回放（旧档原样重放）。
@@ -15215,11 +15215,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       const LV: Record<string, [number, number, number]> = { X: [1, 0, 0], Y: [0, 1, 0], Z: [0, 0, 1] }
       const dRaw = ca.dirV ?? LV[ca.dir]
       const dl = Math.hypot(dRaw[0], dRaw[1], dRaw[2])
-      if (dl < 1e-9) { set({ status: '钻孔构造轴方向为零向量 — 重新拣轴（或选顶面沿Z）' }); return }
+      if (dl < 1e-9) { set({ status: '鑽孔構造軸方向為零向量 — 重新揀軸（或選頂面沿Z）' }); return }
       const dir: [number, number, number] = [dRaw[0] / dl, dRaw[1] / dl, dRaw[2] / dl]
       const r = Math.max(0.2, (get().holeD || 16) / 2)
       const depth = get().holeDepth > 0 ? get().holeDepth : get().holeD * 1.5   // blind 缺省 ≈1.5×Ø（同 addHole 盲孔深约定）
-      set({ status: `正在按 ${s.cpoints.length} 个构造点沿构造轴方向钻孔…` })
+      set({ status: `正在按 ${s.cpoints.length} 個構造點沿構造軸方向鑽孔…` })
       let feats = get().features
       for (const c of s.cpoints) {
         const path3: [number, number, number][] = [c, [c[0] + dir[0] * depth, c[1] + dir[1] * depth, c[2] + dir[2] * depth]]
@@ -15228,26 +15228,26 @@ export const useApp = create<AppState>((rawSet, get) => {
         await get().applyFeatures(feats, `构造点孔（沿构造轴 ${axIdx}）`)
         feats = get().features
       }
-      set({ status: `已按 ${s.cpoints.length} 个构造点沿构造轴 ${axIdx}（方向 ${dir.map((x) => x.toFixed(2)).join(',')}）钻孔（Ø${get().holeD}，深 ${depth.toFixed(1)}）` })
+      set({ status: `已按 ${s.cpoints.length} 個構造點沿構造軸 ${axIdx}（方向 ${dir.map((x) => x.toFixed(2)).join(',')}）鑽孔（Ø${get().holeD}，深 ${depth.toFixed(1)}）` })
       return
     }
-    set({ status: `正在按 ${s.cpoints.length} 个构造点打孔…` })
+    set({ status: `正在按 ${s.cpoints.length} 個構造點打孔…` })
     for (const c of s.cpoints) { await get().addHole(c[0], c[1]) }   // c=[x,y,z] world；孔沿 Z 钻，用 x,y 定位
-    set({ status: `已按 ${s.cpoints.length} 个构造点打孔（Ø${get().holeD}，孔由顶面沿 Z 钻 — 构造点提供 XY 位置）` })
+    set({ status: `已按 ${s.cpoints.length} 個構造點打孔（Ø${get().holeD}，孔由頂面沿 Z 鑽 — 構造點提供 XY 位置）` })
   },
   // T777（S54）：相切弧/切点圆/弧长尺寸
   polyArcMode: false,
   polyBulges: [],
   tanArcSeed: null,   // GM-FP2 #19
   togglePolyArc: () => set((s) => {
-    if (s.sketchTool !== 'polyline') return { status: '相切弧系折线工具嘅 submode — 先揀「折线」' }
-    if (!s.polyArcMode && s.polyPts.length < 2) return { status: '相切弧要有上一段先有切线方向 — 先画一段直线（≥2 点）再按 A' }
-    return { polyArcMode: !s.polyArcMode, status: !s.polyArcMode ? '⌒ 相切弧模式：下一段由上段方向相切引出（再按 A 返回直线）' : '已返回直线模式' }
+    if (s.sketchTool !== 'polyline') return { status: '相切弧系折線工具嘅 submode — 先揀「折線」' }
+    if (!s.polyArcMode && s.polyPts.length < 2) return { status: '相切弧要有上一段先有切線方向 — 先畫一段直線（≥2 點）再按 A' }
+    return { polyArcMode: !s.polyArcMode, status: !s.polyArcMode ? '⌒ 相切弧模式：下一段由上段方向相切引出（再按 A 返回直線）' : '已返回直線模式' }
   }),
   // GM-FP1 #9：Look At（正对）— 一键把相机重新正对草图平面法向、原点回中（orbit 打斜睇后返正）。
   // 复用 CameraRig 嘅入草图取景数学（focus/arb/plane 分支）：只 bump nonce，CameraRig 见到 deps 变即重跑 orient。
   skLookAtNonce: 0,
-  skLookAt: () => set((s) => s.mode === 'sketch' ? { skLookAtNonce: s.skLookAtNonce + 1, status: '⊥ 已正对草图平面（Look At）' } : {}),
+  skLookAt: () => set((s) => s.mode === 'sketch' ? { skLookAtNonce: s.skLookAtNonce + 1, status: '⊥ 已正對草圖平面（Look At）' } : {}),
   skDragInfer: null,
   tanRefs: [],
   sketchTanR: 5,
@@ -15257,10 +15257,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
     const hit = skHitTest(shapes, p, 3)
-    if (!hit || hit.kind !== 'edge') { set({ status: '切点圆：点直线、圆或圆弧' }); return }
+    if (!hit || hit.kind !== 'edge') { set({ status: '切點圓：點直線、圓或圓弧' }); return }
     const need = s.sketchTool === 'circle2t' ? 2 : 3
     const refs = [...s.tanRefs, { ref: hit, click: p }]
-    if (refs.length < need) { set({ tanRefs: refs, status: `切点圆：已拣 ${refs.length}/${need} 条边 — 继续点（点击侧 = 圆嘅一侧）` }); return }
+    if (refs.length < need) { set({ tanRefs: refs, status: `切點圓：已揀 ${refs.length}/${need} 條邊 — 繼續點（點擊側 = 圓嘅一側）` }); return }
     const circleOf = (r2: typeof refs[number]): { c: Pt; r: number } | null => {
       if (!('shape' in r2.ref)) return null
       const q = shapes[r2.ref.shape] as SketchShape | undefined
@@ -15281,19 +15281,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else if (cs.some(Boolean)) sol = null
     else { const lines = refs.map((r2) => { const [a, b] = skRefPts(shapes, r2.ref); return { p1: a, p2: b, click: r2.click } }); sol = solveTangentCircle(lines, need === 2 ? s.sketchTanR : undefined) }
     set({ tanRefs: [] })
-    if (!sol) { set({ status: need === 2 ? '两条线无公切圆（平行/点击落喺线上）— 重新拣' : '三条线无公切圆（有平行/共点）— 重新拣' }); return }
+    if (!sol) { set({ status: need === 2 ? '兩條線無公切圓（平行/點擊落喺線上）— 重新揀' : '三條線無公切圓（有平行/共點）— 重新揀' }); return }
     const newIdx = s.sketchProfiles.length + (s.sketchShape ? 1 : 0)
     const cons: SkCon[] = refs.map((r2) => ({ id: skConId(), kind: 'con', type: 'tangent', a: { kind: 'circle', shape: newIdx }, b: r2.ref } as SkCon))
     set((s2) => ({
       sketchProfiles: s2.sketchShape ? [...s2.sketchProfiles, s2.sketchShape] : s2.sketchProfiles,
       sketchShape: { type: 'circle', c: sol.c, r: sol.r },
       skCons: [...s2.skCons, ...cons],
-      status: `切点圆已建 R${sol.r.toFixed(2)} @(${sol.c[0].toFixed(1)}, ${sol.c[1].toFixed(1)})（已落 ${cons.length} 个相切约束）`,
+      status: `切點圓已建 R${sol.r.toFixed(2)} @(${sol.c[0].toFixed(1)}, ${sol.c[1].toFixed(1)})（已落 ${cons.length} 個相切約束）`,
     }))
     void get().resolveSk()
   },
   dimArcLen: false,
-  toggleDimArcLen: () => set((s) => ({ dimArcLen: !s.dimArcLen, sketchTool: 'dimension', status: !s.dimArcLen ? '⌒ 弧长尺寸模式：点一段圆弧（折线弧段/三点弧）落弧长' : '已返回普通尺寸' })),
+  toggleDimArcLen: () => set((s) => ({ dimArcLen: !s.dimArcLen, sketchTool: 'dimension', status: !s.dimArcLen ? '⌒ 弧長尺寸模式：點一段圓弧（折線弧段/三點弧）落弧長' : '已返回普通尺寸' })),
   // T792（S71 曲面工作流 v1）：曲面放样 — 收集全部【开放折线独立草图】（XY/偏移面，各自高度）做截面，
   // 截面内偏移 ±壁厚/2 成闭合带 → 实体放样 = 薄壳曲面件（导流罩/灯罩/曲面支架）。
   // 工作流：画开放折线 → 完成草图（唔绑操作）→ 改高度再画 → SURFACE「曲面放样」。
@@ -15312,7 +15312,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       secs.push({ pts: open.pts.map((p) => stToProfile(p, 'XY') as [number, number]), z: src.baseZ || 0 })
     }
     if (secs.length < 2) {
-      set({ status: `曲面放样：要 ≥2 张【开放折线独立草图】（XY/偏移面、唔同高度）— 画开放折线 → 完成草图 → 换个高度再画一张，重复${skippedArb ? `（${skippedArb} 张斜面草图 v1 唔支持，已跳过）` : ''}` })
+      set({ status: `曲面放樣：要 ≥2 張【開放折線獨立草圖】（XY/偏移面、唔同高度）— 畫開放折線 → 完成草圖 → 換個高度再畫一張，重復${skippedArb ? `（${skippedArb} 張斜面草圖 v1 唔支持，已跳過）` : ''}` })
       return
     }
     const v = await get().appPrompt(tStatus(`曲面放样（${secs.length} 个开放截面）：\n壁厚 mm（输 0 = 零厚放样曲面 / 真曲面件）[,直纹 1]\n直纹 = 截面间直线过渡；默认平滑样条。零厚曲面要实体再用「加厚」/「缝合」。\n注：薄壳厚度喺截面平面内量度 — 竖直曲面精确，斜面有 cos 损失`, get().lang), '2')
@@ -15328,13 +15328,13 @@ export const useApp = create<AppState>((rawSet, get) => {
   addSurfExtrude: async () => {
     const s = get()
     const sh = s.sketchShape || (s.sketchProfiles.length ? s.sketchProfiles[0] : null)
-    if (!sh) { set({ status: '曲面拉伸：先画一个截面（开放折线 = 曲面片 / 闭合轮廓 = 无盖管壳）' }); return }
+    if (!sh) { set({ status: '曲面拉伸：先畫一個截面（開放折線 = 曲面片 / 閉合輪廓 = 無蓋管殼）' }); return }
     const v = await get().appPrompt(tStatus('曲面拉伸（开放折线 → 零厚曲面片；闭合轮廓 → 无盖管壳。要实体再用「加厚」/「缝合」）：\n高度 mm（负 = 反向；前加 s = 对称双向，例 s20）', get().lang), '20')
     if (v == null) return
     const raw = v.trim()
     const symmetric = /^s/i.test(raw)   // S162：s 前缀 = 对称双向（±h/2）
     const h = parseFloat(raw.replace(/^s/i, ''))
-    if (!Number.isFinite(h) || Math.abs(h) < 1e-6) { set({ status: '曲面拉伸：高度无效' }); return }
+    if (!Number.isFinite(h) || Math.abs(h) < 1e-6) { set({ status: '曲面拉伸：高度無效' }); return }
     const down = !symmetric && h < 0   // 负 = 反向（对称时居中，忽略符号）
     const plane = s.sketchPlane
     const prof = shapeToProfile(sh, plane)
@@ -15351,11 +15351,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 路径：当前 sketchShape（折线/样条）或 polyPts —— 同 commitSweepPath 取 src 一致
     const sk = s.sketchShape
     const psrc = sk && sk.type === 'poly' ? (sk.smooth && sk.ctrl ? sk.ctrl : sk.pts) : s.polyPts
-    if (!psrc || psrc.length < 2) { set({ status: '曲面扫掠：先画一个【开放折线截面】完成草图，再画一条开放路径折线（≥2 点），先至撳此' }); return }
+    if (!psrc || psrc.length < 2) { set({ status: '曲面掃掠：先畫一個【開放折線截面】完成草圖，再畫一條開放路徑折線（≥2 點），先至撳此' }); return }
     const path = psrc.map((p) => stToProfile(p, 'XY'))
     // 截面：sketchProfiles 入面最后一个【开放折线】轮廓（开放截面 → 零厚开放壳）
     const cand = [...s.sketchProfiles].reverse().find((sh) => sh.type === 'poly' && (sh as { open?: boolean }).open && !sh.construction && sh.pts.length >= 2)
-    if (!cand || cand.type !== 'poly') { set({ status: '曲面扫掠：先画一个【开放折线截面】并「完成草图」（开放轮廓 = 零厚曲面截面），再画路径折线，先至扫掠' }); return }
+    if (!cand || cand.type !== 'poly') { set({ status: '曲面掃掠：先畫一個【開放折線截面】並「完成草圖」（開放輪廓 = 零厚曲面截面），再畫路徑折線，先至掃掠' }); return }
     const plane = s.sketchPlane
     const profile = shapeToProfile(cand, plane)
     // 曲面扫掠出独立 parked 曲面体（唔布尔活动实体）；op 仅在有实体时标 'join'（与 ruled 一致），worker 不强转实体。
@@ -15385,7 +15385,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       secs.push({ pts: open.pts.map((p) => stToProfile(p, 'XY') as [number, number]), z: src.baseZ || 0 })
     }
     if (secs.length < 2) {
-      set({ status: `规则曲面：要 ≥2 张【开放折线独立草图】（XY/偏移面、不同高度）— 画开放折线 → 完成草图 → 换高度再画一张${skippedArb ? `（${skippedArb} 张斜面草图 v1 不支持，已跳过）` : ''}` })
+      set({ status: `規則曲面：要 ≥2 張【開放折線獨立草圖】（XY/偏移面、不同高度）— 畫開放折線 → 完成草圖 → 換高度再畫一張${skippedArb ? `（${skippedArb} 張斜面草圖 v1 不支持，已跳過）` : ''}` })
       return
     }
     const f: Feature = { id: fid(), type: 'ruled', sections: secs, op: hasSolid(s.features) ? 'join' : undefined }
@@ -15399,18 +15399,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null,
     faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false,
     measureAngleMode: false, delFaceMode: false,
-    status: !s.patchMode ? '🩹 曲面 Patch：喺实体表面/空间顺序点 ≥3 个点圈出闭合边界 → 填充曲面 + 加厚成薄板。Enter/✓ 完成 · ⌫ 撤上一点 · Esc 取消' : '已退出曲面 Patch',
+    status: !s.patchMode ? '🩹 曲面 Patch：喺實體表面/空間順序點 ≥3 個點圈出閉合邊界 → 填充曲面 + 加厚成薄板。Enter/✓ 完成 · ⌫ 撤上一點 · Esc 取消' : '已退出曲面 Patch',
   })),
   patchAddPt: (p) => set((s) => {
     if (!s.patchMode) return {}
     const cad: [number, number, number] = [p[0], -p[2], p[1]]   // three → CAD（同 delFaceAt）
     const pts: [number, number, number][] = [...s.patchPts, cad]
-    return { patchPts: pts, status: `🩹 曲面 Patch：已拾 ${pts.length} 点${pts.length >= 3 ? ' — 可 Enter/✓ 完成' : '（再点，至少 3 点）'}` }
+    return { patchPts: pts, status: `🩹 曲面 Patch：已拾 ${pts.length} 點${pts.length >= 3 ? ' — 可 Enter/✓ 完成' : '（再點，至少 3 點）'}` }
   }),
-  undoPatchPt: () => set((s) => (s.patchPts.length ? { patchPts: s.patchPts.slice(0, -1), status: `🩹 已撤一点 — 余 ${s.patchPts.length - 1} 点` } : {})),
+  undoPatchPt: () => set((s) => (s.patchPts.length ? { patchPts: s.patchPts.slice(0, -1), status: `🩹 已撤一點 — 餘 ${s.patchPts.length - 1} 點` } : {})),
   finishPatch: async () => {
     const pts = get().patchPts
-    if (pts.length < 3) { set({ status: '曲面 Patch 需要 ≥3 个边界点' }); return }
+    if (pts.length < 3) { set({ status: '曲面 Patch 需要 ≥3 個邊界點' }); return }
     const v = await get().appPrompt(tStatus('曲面 Patch — 板厚 mm（0 = 净曲面薄片；>0 = 加厚成实体薄板）', get().lang), '2')
     if (v == null) return
     const thick = Math.max(0, Number(v.trim()) || 0)
@@ -15429,26 +15429,26 @@ export const useApp = create<AppState>((rawSet, get) => {
     boundaryPatchPick: !s.boundaryPatchPick, boundaryPatchPicks: [],
     edgeRoundPick: null, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null,
     faceSketchPick: false, embossPick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, delFaceMode: false,
-    status: !s.boundaryPatchPick ? '边界补面：逐条点选要封口/补洞嘅现有棱（可多条，≥2）→ 可勾 G1 相切 / 设加厚 → 按「确定」' : '已退出边界补面',
+    status: !s.boundaryPatchPick ? '邊界補面：逐條點選要封口/補洞嘅現有棱（可多條，≥2）→ 可勾 G1 相切 / 設加厚 → 按「確定」' : '已退出邊界補面',
   })),
   boundaryPatchEdgeAt: (p) => set((s) => {
     if (!s.boundaryPatchPick) return {}
     const picks = [...s.boundaryPatchPicks, p]
-    return { boundaryPatchPicks: picks, status: `已选 ${picks.length} 条边界棱 — 继续点选，或设相切/加厚后按「确定」（边界补面）` }
+    return { boundaryPatchPicks: picks, status: `已選 ${picks.length} 條邊界棱 — 繼續點選，或設相切/加厚後按「確定」（邊界補面）` }
   }),
   setBoundaryPatchTangent: (v) => set({ boundaryPatchTangent: !!v }),
   setBoundaryPatchThick: (n) => set({ boundaryPatchThick: Math.max(0, n || 0) }),
-  clearBoundaryPatchPicks: () => set({ boundaryPatchPicks: [], status: '已清空所选棱 — 重新点选边界棱' }),
+  clearBoundaryPatchPicks: () => set({ boundaryPatchPicks: [], status: '已清空所選棱 — 重新點選邊界棱' }),
   commitBoundaryPatch: async () => {
     const pts = get().boundaryPatchPicks
-    if (pts.length < 2) { set({ status: '边界补面需要 ≥2 条边界棱（请逐条点选）' }); return }
+    if (pts.length < 2) { set({ status: '邊界補面需要 ≥2 條邊界棱（請逐條點選）' }); return }
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])   // three-world → CAD（同 commitEdgeRound）
     const tangent = get().boundaryPatchTangent, thick = get().boundaryPatchThick
     const f: Feature = { id: fid(), type: 'boundarypatch', nears, ...(tangent ? { tangent: true } : {}), ...(thick > 0 ? { thick } : {}) }
     const ok = await get().applyFeatures([...get().features, f], `已边界补面（${nears.length} 条棱${tangent ? ' · G1 相切' : ''}${thick > 0 ? ` · 加厚 ${thick}mm` : ' · 净曲面'} → 曲面体，时间轴可改）`, true, '边界补面失败（边界唔成环 / 太扭 / 加厚失败）')
     if (ok) set({ boundaryPatchPick: false, boundaryPatchPicks: [] })
   },
-  cancelBoundaryPatch: () => set({ boundaryPatchPick: false, boundaryPatchPicks: [], status: '已取消边界补面' }),
+  cancelBoundaryPatch: () => set({ boundaryPatchPick: false, boundaryPatchPicks: [], status: '已取消邊界補面' }),
   // Surface Bridge v1（Surface 记分卡真缺口）：两条现有棱之间起光滑过渡面 — 行 boundarypatch 同款拾棱流。
   surfBridgePick: false,
   surfBridgePicks: [],
@@ -15457,26 +15457,26 @@ export const useApp = create<AppState>((rawSet, get) => {
     surfBridgePick: !s.surfBridgePick, surfBridgePicks: [],
     boundaryPatchPick: false, boundaryPatchPicks: [], edgeRoundPick: null, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, decalPick: null,
     faceSketchPick: false, embossPick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, delFaceMode: false,
-    status: !s.surfBridgePick ? '桥接面：点选【2 条】现有棱（一边一条，实体/泊车曲面都得）→ 可设加厚 → 按「确定」（两棱之间起光滑过渡面）' : '已退出桥接面',
+    status: !s.surfBridgePick ? '橋接面：點選【2 條】現有棱（一邊一條，實體/泊車曲面都得）→ 可設加厚 → 按「確定」（兩棱之間起光滑過渡面）' : '已退出橋接面',
   })),
   surfBridgeEdgeAt: (p) => set((s) => {
     if (!s.surfBridgePick) return {}
-    if (s.surfBridgePicks.length >= 2) return { status: '桥接面只要 2 条棱 — ✕清空重拣或按「确定」' }
+    if (s.surfBridgePicks.length >= 2) return { status: '橋接面只要 2 條棱 — ✕清空重揀或按「確定」' }
     const picks = [...s.surfBridgePicks, p]
-    return { surfBridgePicks: picks, status: picks.length < 2 ? '已选第 1 条棱 — 再点【另一条】棱' : '已选 2 条棱 — 设加厚（可选）后按「确定」' }
+    return { surfBridgePicks: picks, status: picks.length < 2 ? '已選第 1 條棱 — 再點【另一條】棱' : '已選 2 條棱 — 設加厚（可選）後按「確定」' }
   }),
   setSurfBridgeThick: (n) => set({ surfBridgeThick: Math.max(0, n || 0) }),
-  clearSurfBridgePicks: () => set({ surfBridgePicks: [], status: '已清空 — 重新点选 2 条棱' }),
+  clearSurfBridgePicks: () => set({ surfBridgePicks: [], status: '已清空 — 重新點選 2 條棱' }),
   commitSurfBridge: async () => {
     const pts = get().surfBridgePicks
-    if (pts.length !== 2) { set({ status: '桥接面需要恰好 2 条棱（一边一条）' }); return }
+    if (pts.length !== 2) { set({ status: '橋接面需要恰好 2 條棱（一邊一條）' }); return }
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])   // three-world → CAD
     const thick = get().surfBridgeThick
     const f: Feature = { id: fid(), type: 'surfbridge', nears, ...(thick > 0 ? { thick } : {}) }
     const ok = await get().applyFeatures([...get().features, f], `已桥接两棱（光滑过渡面${thick > 0 ? ` · 加厚 ${thick}mm` : ' · 净曲面'} → 泊车曲面体，时间轴可改）`, true, '桥接面失败（两棱太扭/退化 — 拣方向大致同向嘅两条棱）')
     if (ok) set({ surfBridgePick: false, surfBridgePicks: [] })
   },
-  cancelSurfBridge: () => set({ surfBridgePick: false, surfBridgePicks: [], status: '已取消桥接面' }),
+  cancelSurfBridge: () => set({ surfBridgePick: false, surfBridgePicks: [], status: '已取消橋接面' }),
   // T793（S72）Form-lite：盒 cage 细分建模 — 拖控制点捏有机形（手柄/旋钮/公仔），Catmull-Clark 实时预览，
   // 完成烘焙成【网格组件】（行已有 mesh 管线：水密检查/简化/转 B-rep/STL 全通）。诚实：v1 盒拓扑 cage、
   // 顶点级编辑（无加边/挤面）、输出系网格非 NURBS（同 Fusion T-spline 有本质距离，但 maker 有机件够用）。
@@ -15488,17 +15488,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     formCreateKind: null,
     formBoxDraft: null,
     activeTab: 'SOLID',
-    status: 'FORM 环境：从 CREATE 选择 Box、Plane、Cylinder、Sphere、Torus、Quadball、Pipe 或 Face；完成后按 FINISH FORM。',
+    status: 'FORM 環境：從 CREATE 選擇 Box、Plane、Cylinder、Sphere、Torus、Quadball、Pipe 或 Face；完成後按 FINISH FORM。',
   }) },
-  setFormCreateKind: (kind) => { ++_formCreateVersion; if (kind && get().formCage) { set({ status: '请先完成或取消当前 Form，再创建另一件' }); return }; set({
+  setFormCreateKind: (kind) => { ++_formCreateVersion; if (kind && get().formCage) { set({ status: '請先完成或取消當前 Form，再創建另一件' }); return }; set({
     formCreateKind: kind,
     formBoxDraft: kind === 'box' ? newFormBoxDraft() : null,
-    status: kind === 'box' ? 'FORM Box：选择一个平面或平面面。' : kind ? `FORM ${kind}：先选择基准平面，再设尺寸与细分；确定后进入 Edit Form。` : 'FORM：已取消当前创建命令。',
+    status: kind === 'box' ? 'FORM Box：選擇一個平面或平面面。' : kind ? `FORM ${kind}：先選擇基準平面，再設尺寸與細分；確定後進入 Edit Form。` : 'FORM：已取消當前創建命令。',
   }) },
   formBoxDraft: null,
   chooseFormBoxPlane: (plane, offset = 0) => set((s) => !s.formBoxDraft ? {} : ({
     formBoxDraft: { ...s.formBoxDraft, plane, planeOffset: offset, stage: 'center', center: null, cursor: [0, 0] },
-    status: 'FORM Box：指定中心点。',
+    status: 'FORM Box：指定中心點。',
   })),
   /** BUG-BD-4401: dialog / origin-plane quick place — plane + default center → ready (OK commits). */
   placeFormBoxOnOriginPlane: (plane: FormBoxPlane) => set((s) => !s.formBoxDraft ? {} : ({
@@ -15510,7 +15510,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       cursor: [0, 0],
       stage: 'ready',
     },
-    status: 'FORM Box：已选原点平面 ' + plane + '（默认中心）；按 OK 建立，或继续在视口调整。',
+    status: 'FORM Box：已選原點平面 ' + plane + '（預設中心）；按 OK 建立，或繼續在視口調整。',
   })),
   setFormBoxPointer: (p) => set((s) => {
     const d = s.formBoxDraft
@@ -15535,7 +15535,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   confirmFormBoxHeight: () => set((s) => !s.formBoxDraft || s.formBoxDraft.stage !== 'height' ? {} : ({
     formBoxDraft: { ...s.formBoxDraft, stage: 'ready' },
-    status: 'FORM Box：尺寸已确定；按 OK 建立并进入 Edit Form。',
+    status: 'FORM Box：尺寸已確定；按 OK 建立並進入 Edit Form。',
   })),
   patchFormBoxDraft: (patch) => set((s) => !s.formBoxDraft ? {} : ({ formBoxDraft: { ...s.formBoxDraft, ...patch } })),
   commitFormBoxDraft: async () => {
@@ -15551,14 +15551,14 @@ export const useApp = create<AppState>((rawSet, get) => {
         formCreateKind: null,
         formBoxDraft: null,
         formCage: { ...cage, sel: null, selFace: null, levels: 2, creases: [] },
-        status: 'Form Box 已建立 — 进入 Edit Form；完成后按 FINISH FORM。',
+        status: 'Form Box 已建立 — 進入 Edit Form；完成後按 FINISH FORM。',
       })
-    } catch (e) { set({ status: 'Form Box 失败：' + ((e as Error)?.message || e) }) }
+    } catch (e) { set({ status: 'Form Box 失敗：' + ((e as Error)?.message || e) }) }
   },
-  cancelFormCreate: () => { ++_formCreateVersion; set({ formCreateKind: null, formBoxDraft: null, status: 'FORM：已取消当前创建命令。' }) },
+  cancelFormCreate: () => { ++_formCreateVersion; set({ formCreateKind: null, formBoxDraft: null, status: 'FORM：已取消當前創建命令。' }) },
   formCage: null,
   formGizmoMode: 'move',
-  setFormGizmoMode: (m) => set({ formGizmoMode: m, status: m === 'move' ? 'Form 群组变换：移动模式' : m === 'rotate' ? 'Form 群组变换：旋转模式（绕选集中心）' : 'Form 群组变换：缩放模式（绕选集中心）' }),
+  setFormGizmoMode: (m) => set({ formGizmoMode: m, status: m === 'move' ? 'Form 群組變換：移動模式' : m === 'rotate' ? 'Form 群組變換：旋轉模式（繞選集中心）' : 'Form 群組變換：縮放模式（繞選集中心）' }),
   formUndo: [], formRedo: [], formEditStart: null, formEditId: null, formEditOriginalHidden: false,
   beginFormEdit: () => { const s = get(); if (s.formCage && !s.formEditStart) set({ formEditStart: s.formCage }) },
   endFormEdit: () => {
@@ -15567,12 +15567,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     const changed = s.formCage && formGeometryKey(before) !== formGeometryKey(s.formCage)
     set({ formEditStart: null, ...(changed ? { formUndo: [...s.formUndo, before].slice(-40), formRedo: [] } : {}) })
   },
-  cancelFormEdit: () => { const before = get().formEditStart; if (before) set({ formCage: before, formEditStart: null, status: '已取消 Form 拖动 — 控制笼已还原' }) },
+  cancelFormEdit: () => { const before = get().formEditStart; if (before) set({ formCage: before, formEditStart: null, status: '已取消 Form 拖動 — 控制笼已還原' }) },
   formUndoPop: () => {
     const s = get()
     if (s.formEditStart) { get().cancelFormEdit(); return }
-    if (!s.formCage || !s.formUndo.length) { set({ status: 'Form 没有可撤销的步骤' }); return }
-    set({ formCage: s.formUndo[s.formUndo.length - 1], formUndo: s.formUndo.slice(0, -1), formRedo: [...s.formRedo, s.formCage].slice(-40), status: '已撤销 Form 一步' })
+    if (!s.formCage || !s.formUndo.length) { set({ status: 'Form 沒有可撤銷的步驟' }); return }
+    set({ formCage: s.formUndo[s.formUndo.length - 1], formUndo: s.formUndo.slice(0, -1), formRedo: [...s.formRedo, s.formCage].slice(-40), status: '已撤銷 Form 一步' })
   },
   formRedoPop: () => {
     const s = get()
@@ -15582,19 +15582,19 @@ export const useApp = create<AppState>((rawSet, get) => {
   editFormComponent: (id) => {
     const s = get(), c = s.components.find(c => c.id === id)
     if (!c?.formSource || s.formMode || s.mode !== 'model' || s.busy || activeModelCommand(s)) return
-    if (c.formMeshSignature && c.formMeshSignature !== formMeshSignature(c.mesh)) { set({ status: '此 Form 完成后曾修改网格；旧控制笼不再对应当前形状，不能直接覆盖。请复原网格修改后重开 Form。' }); return }
+    if (c.formMeshSignature && c.formMeshSignature !== formMeshSignature(c.mesh)) { set({ status: '此 Form 完成後曾修改網格；舊控制笼不再對應當前形狀，不能直接覆蓋。請復原網格修改後重開 Form。' }); return }
     const cage = hydrateFormDraft({ cage: c.formSource }).formCage
-    if (!cage) { set({ status: 'Form 控制笼数据无效；原组件保持。' }); return }
+    if (!cage) { set({ status: 'Form 控制笼數據無效；原組件保持。' }); return }
     set({ formMode: true, formEditId: id, formEditOriginalHidden: !!c.hidden, formCage: { ...cage, sel: null, selFace: null, msel: [] },
       formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formBoxDraft: null,
       components: s.components.map(x => x.id === id ? { ...x, hidden: true } : x), selectedComponent: null,
-      status: '正在编辑 Form 的零件局部控制笼；完成后更新原组件，保留装配位置' })
+      status: '正在編輯 Form 的零件局部控制笼；完成後更新原組件，保留裝配位置' })
   },
   toggleFormVertSel: (i, additive) => set((s) => {
     if (!s.formCage || i < 0 || i >= s.formCage.verts.length) return {}
     const cur = s.formCage.msel ?? []
     const msel = additive ? (cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]) : (cur.length === 1 && cur[0] === i ? [] : [i])
-    return { formCage: { ...s.formCage, msel, sel: msel.length === 1 ? msel[0] : null, selFace: null }, status: msel.length >= 2 ? `已选 ${msel.length} 个控制点 — 移/旋/缩 gizmo 喺选集中心（面板切模式；对称编辑对群组变换唔生效）` : msel.length === 1 ? '已选 1 个控制点（Shift+点加选做群组变换）' : '' }
+    return { formCage: { ...s.formCage, msel, sel: msel.length === 1 ? msel[0] : null, selFace: null }, status: msel.length >= 2 ? `已選 ${msel.length} 個控制點 — 移/旋/縮 gizmo 喺選集中心（面板切模式；對稱編輯對群組變換唔生效）` : msel.length === 1 ? '已選 1 個控制點（Shift+點加選做群組變換）' : '' }
   }),
   transformFormVerts: (m16) => set((s) => {
     if (!s.formCage || m16.length !== 16 || !m16.every(Number.isFinite)) return {}
@@ -15611,17 +15611,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     return formChange(s, { ...s.formCage, verts })
   }),
   startFormBox: async (L, W, H, nx, ny, nz) => {
-    if (get().formCage) { set({ status: '请先完成或取消当前 Form' }); return }
+    if (get().formCage) { set({ status: '請先完成或取消當前 Form' }); return }
     const version = ++_formCreateVersion
     try {
       const { makeBoxCage } = await import('./cad/subdiv')
       if (version !== _formCreateVersion) return
       const cage = makeBoxCage(Math.max(2, L), Math.max(2, W), Math.max(2, H), Math.max(1, Math.round(nx)), Math.max(1, Math.round(ny)), Math.max(1, Math.round(nz)))
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formBoxDraft: null, formCage: { L, W, H, nx, ny, nz, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 盒已建 — 点蓝点拖捏形 / 点面拉伸（push-pull 抽肢凸台）。完成按 FINISH FORM' })
-    } catch (e) { set({ status: 'Form 盒失败：' + ((e as Error)?.message || e) }) }
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formBoxDraft: null, formCage: { L, W, H, nx, ny, nz, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 盒已建 — 點藍點拖捏形 / 點面拉伸（push-pull 抽肢凸台）。完成按 FINISH FORM' })
+    } catch (e) { set({ status: 'Form 盒失敗：' + ((e as Error)?.message || e) }) }
   },
   startFormCylinder: async (R, H, nSeg, nH) => {
-    if (get().formCage) { set({ status: '请先完成或取消当前 Form' }); return }
+    if (get().formCage) { set({ status: '請先完成或取消當前 Form' }); return }
     const version = ++_formCreateVersion
     try {
       const { makeCylinderCage } = await import('./cad/subdiv')
@@ -15629,33 +15629,33 @@ export const useApp = create<AppState>((rawSet, get) => {
       const r = Math.max(1, R), h = Math.max(2, H), ns = Math.max(2, Math.round(nSeg)), nh = Math.max(1, Math.round(nH))
       const cage = makeCylinderCage(r, h, ns, nh)
       // formCage 嘅 L/W/H/nx… 系盒记账位；圆柱用 2R×2R×H、nx=ny=nSeg 占位（编辑机制只食 verts/quads/creases）
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * r, W: 2 * r, H: h, nx: ns, ny: ns, nz: nh, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 圆柱已建（box→squircle 无极点映射）— 点蓝点捏形 / 点面拉伸；完成按 FINISH FORM' })
-    } catch (e) { set({ status: 'Form 圆柱失败：' + ((e as Error)?.message || e) }) }
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * r, W: 2 * r, H: h, nx: ns, ny: ns, nz: nh, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 圓柱已建（box→squircle 無極點映射）— 點藍點捏形 / 點面拉伸；完成按 FINISH FORM' })
+    } catch (e) { set({ status: 'Form 圓柱失敗：' + ((e as Error)?.message || e) }) }
   },
   startFormPlane: async (L, W, nx, ny) => {
-    if (get().formCage) { set({ status: '请先完成或取消当前 Form' }); return }
+    if (get().formCage) { set({ status: '請先完成或取消當前 Form' }); return }
     const version = ++_formCreateVersion
     try {
       const { makePlaneCage } = await import('./cad/subdiv')
       if (version !== _formCreateVersion) return
       const l = Math.max(2, L), w = Math.max(2, W), gx = Math.max(2, Math.round(nx)), gy = Math.max(2, Math.round(ny))
       const cage = makePlaneCage(l, w, gx, gy, 1)
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: l, W: w, H: 1, nx: gx, ny: gy, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 平面/薄片已建 — 点蓝点拖出有机曲面；完成按 FINISH FORM' })
-    } catch (e) { set({ status: 'Form 平面失败：' + ((e as Error)?.message || e) }) }
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: l, W: w, H: 1, nx: gx, ny: gy, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 平面/薄片已建 — 點藍點拖出有機曲面；完成按 FINISH FORM' })
+    } catch (e) { set({ status: 'Form 平面失敗：' + ((e as Error)?.message || e) }) }
   },
   startFormOpenPatch: async (L, W, nx, ny) => {
-    if (get().formCage) { set({ status: '请先完成或取消当前 Form' }); return }
+    if (get().formCage) { set({ status: '請先完成或取消當前 Form' }); return }
     const version = ++_formCreateVersion
     try {
       const { makeOpenPatchCage } = await import('./cad/subdiv')
       if (version !== _formCreateVersion) return
       const l = Math.max(2, L), w = Math.max(2, W), gx = Math.max(1, Math.round(nx)), gy = Math.max(1, Math.round(ny))
       const cage = makeOpenPatchCage(l, w, gx, gy)   // S192：真开放 grid（四周开边界）
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: l, W: w, H: 0, nx: gx, ny: gy, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 开放曲面片已建（真开放 grid）。点蓝点拖捏；完成按 FINISH FORM' })
-    } catch (e) { set({ status: 'Form 开放曲面片失败：' + ((e as Error)?.message || e) }) }
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: l, W: w, H: 0, nx: gx, ny: gy, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 開放曲面片已建（真開放 grid）。點藍點拖捏；完成按 FINISH FORM' })
+    } catch (e) { set({ status: 'Form 開放曲面片失敗：' + ((e as Error)?.message || e) }) }
   },
   startFormPipe: async (path, diameter, radialSegments) => {
-    if (get().formCage) { set({ status: '请先完成或取消当前 Form' }); return }
+    if (get().formCage) { set({ status: '請先完成或取消當前 Form' }); return }
     const version = ++_formCreateVersion
     try {
       if (version !== _formCreateVersion) return
@@ -15669,12 +15669,12 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formBoxDraft: null,
         formCage: { L, W, H, nx: path.length - 1, ny: seg, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] },
-        status: `🫧 FORM Pipe 已建：${path.length} 个路径点 × ${seg} 面圆截面（开放端细分控制笼）— 拖蓝点/选面编辑，完成按 FINISH FORM。`,
+        status: `🫧 FORM Pipe 已建：${path.length} 個路徑點 × ${seg} 面圓截面（開放端細分控制笼）— 拖藍點/選面編輯，完成按 FINISH FORM。`,
       })
-    } catch (e) { set({ status: 'FORM Pipe 创建失败：' + ((e as Error)?.message || e) }) }
+    } catch (e) { set({ status: 'FORM Pipe 創建失敗：' + ((e as Error)?.message || e) }) }
   },
   startFormSphere: async (R, nSeg) => {
-    if (get().formCage) { set({ status: '请先完成或取消当前 Form' }); return }
+    if (get().formCage) { set({ status: '請先完成或取消當前 Form' }); return }
     const version = ++_formCreateVersion
     try {
       const { makeSphereCage } = await import('./cad/subdiv')
@@ -15682,11 +15682,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       const r = Math.max(1, R), ns = Math.max(2, Math.round(nSeg))
       const cage = makeSphereCage(r, ns)
       // formCage L/W/H/nx… 系盒记账位；球用 2R³、nx=ny=nz=nSeg 占位（编辑机制只食 verts/quads/creases）
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * r, W: 2 * r, H: 2 * r, nx: ns, ny: ns, nz: ns, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 球已建（cube→sphere 无极点映射）— 点蓝点捏成有机球/液滴/头形；完成按 FINISH FORM' })
-    } catch (e) { set({ status: 'Form 球失败：' + ((e as Error)?.message || e) }) }
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * r, W: 2 * r, H: 2 * r, nx: ns, ny: ns, nz: ns, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 球已建（cube→sphere 無極點映射）— 點藍點捏成有機球/液滴/頭形；完成按 FINISH FORM' })
+    } catch (e) { set({ status: 'Form 球失敗：' + ((e as Error)?.message || e) }) }
   },
   startFormTorus: async (R, r, nMaj, nMin) => {
-    if (get().formCage) { set({ status: '请先完成或取消当前 Form' }); return }
+    if (get().formCage) { set({ status: '請先完成或取消當前 Form' }); return }
     const version = ++_formCreateVersion
     try {
       const { makeTorusCage } = await import('./cad/subdiv')
@@ -15694,8 +15694,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       const bigR = Math.max(2, R), tubeR = Math.max(0.5, Math.min(r, bigR - 0.5)), nm = Math.max(3, Math.round(nMaj)), nn = Math.max(3, Math.round(nMin))
       const cage = makeTorusCage(bigR, tubeR, nm, nn)
       // 环面系 genus-1，唔系盒 — L/W=2(R+r) 跨度、H=2r 占位
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * (bigR + tubeR), W: 2 * (bigR + tubeR), H: 2 * tubeR, nx: nm, ny: nn, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 环面（甜甜圈）已建 — 点蓝点捏成把手/O 形/扭环；完成按 FINISH FORM' })
-    } catch (e) { set({ status: 'Form 环面失败：' + ((e as Error)?.message || e) }) }
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * (bigR + tubeR), W: 2 * (bigR + tubeR), H: 2 * tubeR, nx: nm, ny: nn, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 環面（甜甜圈）已建 — 點藍點捏成把手/O 形/扭環；完成按 FINISH FORM' })
+    } catch (e) { set({ status: 'Form 環面失敗：' + ((e as Error)?.message || e) }) }
   },
   setFormVert: (i, p) => set((s) => {
     if (!s.formCage || !s.formCage.verts[i] || !p.every(Number.isFinite)) return {}
@@ -15707,52 +15707,52 @@ export const useApp = create<AppState>((rawSet, get) => {
     return formChange(s, { ...s.formCage, verts: s.formCage.verts.map((v, k) => (k === i ? p : v)) })
   }),
   formSym: null,
-  cycleFormSym: () => set((s) => { const nx = s.formSym === null ? 0 : s.formSym === 0 ? 1 : null; return { formSym: nx, status: nx === null ? 'Form 对称编辑：关' : `Form 对称编辑：${nx === 0 ? 'X' : 'Y'} 轴镜像（拖一边自动镜对面）` } }),
+  cycleFormSym: () => set((s) => { const nx = s.formSym === null ? 0 : s.formSym === 0 ? 1 : null; return { formSym: nx, status: nx === null ? 'Form 對稱編輯：關' : `Form 對稱編輯：${nx === 0 ? 'X' : 'Y'} 軸鏡像（拖一邊自動鏡對面）` } }),
   selFormVert: (i) => set((s) => (s.formCage ? { formCage: { ...s.formCage, sel: i, selFace: null, msel: [] } } : {})),   // S165：选点 → 清面选
   selFormFace: (i) => set((s) => (s.formCage ? { formCage: { ...s.formCage, selFace: i, sel: null, msel: i === null ? [] : [...(s.formCage.quads[i] ?? [])] } } : {})),   // S165：选面 → 清点选
   formExtrudeFace: async (dist) => {
     const fc = get().formCage
     if (!fc) return
-    if (fc.selFace == null) { set({ status: 'Form 拉伸面：先点拣一个 cage 面（再拉/压）' }); return }
-    if (!Number.isFinite(dist) || Math.abs(dist) < 1e-6) { set({ status: 'Form 拉伸面：距离要系非零数字' }); return }
+    if (fc.selFace == null) { set({ status: 'Form 拉伸面：先點揀一個 cage 面（再拉/壓）' }); return }
+    if (!Number.isFinite(dist) || Math.abs(dist) < 1e-6) { set({ status: 'Form 拉伸面：距離要系非零數字' }); return }
     try {
       const { extrudeQuadFace } = await import('./cad/subdiv')
       const r = extrudeQuadFace({ verts: fc.verts, quads: fc.quads }, fc.selFace, dist)
-      if (!r) { set({ status: 'Form 拉伸面：距离太细 / 内压过深穿过对壁（会翻转自交）/ 面退化 — 已保持唔变' }); return }
+      if (!r) { set({ status: 'Form 拉伸面：距離太細 / 內壓過深穿過對壁（會翻轉自交）/ 面退化 — 已保持唔變' }); return }
       // S172 audit：拉伸把选面换成帽面、原边界环散落做侧壁内边 → UI 再拣唔到该环（折痕变成除唔到 + 重折会翻倍）。
       // 故拉伸时把该面边界环嘅折痕「取消」（ref-count 各减一，邻面共享边仍存活）。
       const rq = fc.quads[fc.selFace]
       const rk = (a: number, b: number) => (a < b ? a : b) + '_' + (a < b ? b : a)
       const ringKeys = rq ? [rk(rq[0], rq[1]), rk(rq[1], rq[2]), rk(rq[2], rq[3]), rk(rq[3], rq[0])] : []
       // 帽面仍占原 selFace 槽 → 保留选中，可连续拉伸抽长
-      set((s) => (s.formCage === fc ? { ...formChange(s, { ...fc, verts: r.verts, quads: r.quads, msel: [...r.quads[fc.selFace!]], creases: ringKeys.length ? dropCreaseEdgesOnce(fc.creases, ringKeys) : fc.creases }), status: `已拉伸 cage 面（${dist > 0 ? '外推' : '内压'} ${Math.abs(dist)}mm）— 可再拉/拖点细修，✔ 完成烘焙` } : {}))
-    } catch (e) { set({ status: 'Form 拉伸面失败：' + ((e as Error)?.message || e) }) }
+      set((s) => (s.formCage === fc ? { ...formChange(s, { ...fc, verts: r.verts, quads: r.quads, msel: [...r.quads[fc.selFace!]], creases: ringKeys.length ? dropCreaseEdgesOnce(fc.creases, ringKeys) : fc.creases }), status: `已拉伸 cage 面（${dist > 0 ? '外推' : '內壓'} ${Math.abs(dist)}mm）— 可再拉/拖點細修，✔ 完成烘焙` } : {}))
+    } catch (e) { set({ status: 'Form 拉伸面失敗：' + ((e as Error)?.message || e) }) }
   },
   // S180：插入边线环（Fusion Insert Edge Loop）— 选中面沿 edgeSlot 方向，环绕笼走一圈 quad 各一分为二（加细分密度，唔改体积）。
   formInsertLoop: async (edgeSlot) => {
     const fc = get().formCage
     if (!fc) return
-    if (fc.selFace == null) { set({ status: 'Form 插环：先点拣一个 cage 面（再插边线环）' }); return }
+    if (fc.selFace == null) { set({ status: 'Form 插環：先點揀一個 cage 面（再插邊線環）' }); return }
     try {
       const { insertEdgeLoop } = await import('./cad/subdiv')
       const r = insertEdgeLoop({ verts: fc.verts, quads: fc.quads }, fc.selFace, edgeSlot)
-      if (!r) { set({ status: 'Form 插环：此方向边线交叉 / 非流形 — 试另一方向（↻ 切换方向）或换面' }); return }
+      if (!r) { set({ status: 'Form 插環：此方向邊線交叉 / 非流形 — 試另一方向（↻ 切換方向）或換面' }); return }
       // Split crease edges follow both child edges; preserve reference counts and softness.
       const splits = new Map(r.splitEdges.map(([a,b,m]) => [(a < b ? a+'_'+b : b+'_'+a), m]))
       const ordered = (a: number,b: number): [number,number] => a < b ? [a,b] : [b,a]
       const creases = fc.creases.flatMap(([a,b]): [number,number][] => { const m=splits.get(a < b ? a+'_'+b : b+'_'+a); return m === undefined ? [[a,b]] : [ordered(a,m),ordered(m,b)] })
       // selFace 失效（quad 已重排）→ 清选，避免指错面。
-      set((s) => (s.formCage === fc ? { ...formChange(s, { ...fc, verts: r.verts, quads: r.quads, creases, selFace: null, sel: null, msel: [] }), status: `已插入边线（穿过 ${(r.quads.length - fc.quads.length)} 新增面 / +${r.verts.length - fc.verts.length} 顶点；平滑外形可能改变）— 可拖新点细修，✔ 完成烘焙` } : {}))
-    } catch (e) { set({ status: 'Form 插环失败：' + ((e as Error)?.message || e) }) }
+      set((s) => (s.formCage === fc ? { ...formChange(s, { ...fc, verts: r.verts, quads: r.quads, creases, selFace: null, sel: null, msel: [] }), status: `已插入邊線（穿過 ${(r.quads.length - fc.quads.length)} 新增面 / +${r.verts.length - fc.verts.length} 頂點；平滑外形可能改變）— 可拖新點細修，✔ 完成烘焙` } : {}))
+    } catch (e) { set({ status: 'Form 插環失敗：' + ((e as Error)?.message || e) }) }
   },
   // S172：折痕（Crease / 二元无限锐）— 切换选中面 4 条边界边嘅锐利。锐边细分时唔被磨圆（棱角企硬，做凸台/筋/硬边）。
   // 再撳同一面 = 取消该面折痕（toggle）。折痕存顶点对（lo<hi），CC 烘焙/预览时传入 ccSubdivide。
   formCrease: () => set((s) => {
     const fc = s.formCage
     if (!fc) return {}
-    if (fc.selFace == null) return { status: 'Form 折痕：先点拣一个 cage 面（折硬佢 4 条边界边）' }
+    if (fc.selFace == null) return { status: 'Form 折痕：先點揀一個 cage 面（折硬佢 4 條邊界邊）' }
     const q = fc.quads[fc.selFace]
-    if (!q) return { status: 'Form 折痕：选中面无效' }
+    if (!q) return { status: 'Form 折痕：選中面無效' }
     const edges: [number, number][] = [[q[0], q[1]], [q[1], q[2]], [q[2], q[3]], [q[3], q[0]]].map(([a, b]) => (a < b ? [a, b] : [b, a]))
     const key = (a: number, b: number) => a + '_' + b
     const have = new Set(fc.creases.map(([a, b]) => key(a, b)))
@@ -15766,29 +15766,29 @@ export const useApp = create<AppState>((rawSet, get) => {
       creases = [...fc.creases, ...edges]
     }
     const distinct = new Set(creases.map(([a, b]) => key(a, b))).size
-    return { ...formChange(s, { ...fc, creases }), status: allOn ? '已取消该面折痕（共享边若邻面仍引用则保留）' : `已折硬该面 4 条边界边（折痕 ${distinct} 条）— 细分时棱角企硬，✔ 烘焙保锐` }
+    return { ...formChange(s, { ...fc, creases }), status: allOn ? '已取消該面折痕（共享邊若鄰面仍引用則保留）' : `已折硬該面 4 條邊界邊（折痕 ${distinct} 條）— 細分時棱角企硬，✔ 烘焙保銳` }
   }),
-  setFormCreaseSoft: (v) => set((s) => s.formCage ? { ...formChange(s, { ...s.formCage, creaseSoft: Math.max(0.05, Math.min(1, v || 1)) }), status: `折痕软硬：${(Math.max(0.05, Math.min(1, v || 1))).toFixed(2)}（1=硬棱角 / 细=软棱 semi-sharp，预览即时更新；细分烘焙生效）` } : {}),
+  setFormCreaseSoft: (v) => set((s) => s.formCage ? { ...formChange(s, { ...s.formCage, creaseSoft: Math.max(0.05, Math.min(1, v || 1)) }), status: `折痕軟硬：${(Math.max(0.05, Math.min(1, v || 1))).toFixed(2)}（1=硬棱角 / 細=軟棱 semi-sharp，預覽即時更新；細分烘焙生效）` } : {}),
   // S169：Form 镜像/对称 — cage 沿该轴【最小边界面】反射焊接成对称翻倍笼（Fusion T-spline Mirror）。
   // 镜像平面取 cage 该轴 bbox 最小值（盒嘅一个面边界）→ 干净 2× 体、共享焊缝、唔自交；
   // mirrorQuadCage 内部反绕向 + 删 seam-cap + prune + 边流形校验，非干净面边界（边≠2 面）返 null → 诚实保持唔变。
   formMirror: async (axis) => {
     const fc = get().formCage
     if (!fc) return
-    if (axis !== 0 && axis !== 1 && axis !== 2) { set({ status: 'Form 镜像：轴无效' }); return }
+    if (axis !== 0 && axis !== 1 && axis !== 2) { set({ status: 'Form 鏡像：軸無效' }); return }
     try {
       const { mirrorQuadCage } = await import('./cad/subdiv')
       let lo = Infinity; for (const v of fc.verts) if (v[axis] < lo) lo = v[axis]
       const r = mirrorQuadCage({ verts: fc.verts, quads: fc.quads }, axis, lo)
-      if (!r) { set({ status: 'Form 镜像：该轴最小边界唔系干净面边界（边非 2 面 / 体积异常）— 已保持唔变。先令该侧系完整面再镜' }); return }
+      if (!r) { set({ status: 'Form 鏡像：該軸最小邊界唔係干淨面邊界（邊非 2 面 / 體積異常）— 已保持唔變。先令該側系完整面再鏡' }); return }
       const ax = axis === 0 ? 'X' : axis === 1 ? 'Y' : 'Z'
       // Keep surviving creases on each mirrored half, without doubling seam references.
       const liveEdges = new Set(r.quads.flatMap(q => q.map((a,k) => [a,q[(k+1)%4]].sort((a,b)=>a-b).join('_'))))
       const halves = [r.sourceMap,r.mirrorMap].map(map => { const counts = new Map<string,number>(); for(const [a,b] of fc.creases) { const key=[map[a],map[b]].sort((a,b)=>a-b).join('_'); if(liveEdges.has(key)) counts.set(key,(counts.get(key)??0)+1) };return counts })
       const creases: [number,number][] = []
       for(const key of new Set([...halves[0].keys(),...halves[1].keys()])) for(let i=0;i<Math.max(halves[0].get(key)??0,halves[1].get(key)??0);i++) creases.push(key.split('_').map(Number) as [number,number])
-      set((s) => (s.formCage === fc ? { ...formChange(s, { ...fc, verts: r.verts, quads: r.quads, sel: null, selFace: null, msel: [], creases }), status: `已沿 ${ax}=${lo.toFixed(1)} 面镜像 cage（对称翻倍 → ${r.quads.length} 面）— 可再拖点/拉面细修，✔ 完成烘焙` } : {}))
-    } catch (e) { set({ status: 'Form 镜像失败：' + ((e as Error)?.message || e) }) }
+      set((s) => (s.formCage === fc ? { ...formChange(s, { ...fc, verts: r.verts, quads: r.quads, sel: null, selFace: null, msel: [], creases }), status: `已沿 ${ax}=${lo.toFixed(1)} 面鏡像 cage（對稱翻倍 → ${r.quads.length} 面）— 可再拖點/拉面細修，✔ 完成烘焙` } : {}))
+    } catch (e) { set({ status: 'Form 鏡像失敗：' + ((e as Error)?.message || e) }) }
   },
   orientFormCage: (plane) => set(s => !s.formCage || plane === 'XY' ? {} : { formCage: { ...s.formCage, verts: s.formCage.verts.map(([x,y,z]) => plane === 'XZ' ? [x,-z,y] : [z,y,-x]) } }),
   setFormLevels: (n) => set((s) => (s.formCage && Number.isFinite(n) ? formChange(s, { ...s.formCage, levels: Math.min(3, Math.max(1, Math.round(n))) }) : {})),
@@ -15800,8 +15800,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       get().cancelFormCreate()
     }
     const s = get(), cage = s.formCage
-    if (s.formEditId && !s.components.some(c => c.id === s.formEditId)) { set({ status: '原 Form 组件已不存在；控制笼已保留，請儲存專案。' }); return }
-    if (s.busy || s.formEditStart) { set({ status: '请先完成或取消当前 Form 操作' }); return }
+    if (s.formEditId && !s.components.some(c => c.id === s.formEditId)) { set({ status: '原 Form 組件已不存在；控制笼已保留，請儲存專案。' }); return }
+    if (s.busy || s.formEditStart) { set({ status: '請先完成或取消當前 Form 操作' }); return }
     if (!cage) { set({ formMode: false, formCreateKind: null, formBoxDraft: null, status: '已退出 FORM' }); return }
     try {
       const { ccSubdivide, quadsToTris } = await import('./cad/subdiv')
@@ -15816,14 +15816,14 @@ export const useApp = create<AppState>((rawSet, get) => {
         components: s.formEditId ? beforeComponents.map(c => c.id === nid ? { ...c, mesh, formSource: source, formMeshSignature: formMeshSignature(mesh), ...DETACH_DEF } : c)
           : [...cur.components, { id: nid, name: 'Form件', mesh, formSource: source, formMeshSignature: formMeshSignature(mesh), pos: [0, 0, 0] as [number, number, number], color: '#7bb8e8' }],
         formMode: false, formCreateKind: null, formBoxDraft: null, formCage: null, formEditId: null, formUndo: [], formRedo: [], formEditStart: null, selectedComponent: nid,
-        status: `Form 已完成：${mesh.triangles.length / 3} 三角；控制笼已保存，可双击组件重开编辑。输出为细分网格。`,
+        status: `Form 已完成：${mesh.triangles.length / 3} 三角；控制笼已儲存，可雙擊組件重開編輯。輸出為細分網格。`,
       }))
-    } catch (e) { set({ status: 'Form 完成失败，控制笼保留：' + ((e as Error)?.message || e) }) }
+    } catch (e) { set({ status: 'Form 完成失敗，控制笼保留：' + ((e as Error)?.message || e) }) }
   },
   cancelForm: () => { ++_formCreateVersion; set(s => ({
     components: s.components.map(c => c.id === s.formEditId ? { ...c, hidden: s.formEditOriginalHidden } : c),
     formMode: false, formCreateKind: null, formBoxDraft: null, formCage: null, formEditId: null, formUndo: [], formRedo: [], formEditStart: null,
-    status: '已取消 FORM；原组件保持，返回 SOLID。',
+    status: '已取消 FORM；原組件保持，返回 SOLID。',
   })) },
   // T782（快赢批B）：网格截面→草图 — 喺某轴某位置切一刀，闭合轮廓直接变成可编辑草图。
   // STL remix 杀手锏：导入件取轮廓 → 改尺寸 → 重新拉伸。轮廓系网格密铺折线（非光滑圆弧），每环抽稀到 ≤200 点。
@@ -15836,7 +15836,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     const comp = compId ? s.components.find((c) => c.id === compId) : null
     const mesh = comp ? comp.mesh : s.bodyMesh
-    if (!mesh || !mesh.triangles.length) { set({ status: '截面取轮廓：揾唔到几何' }); return }
+    if (!mesh || !mesh.triangles.length) { set({ status: '截面取輪廓：揾唔到幾何' }); return }
     // GM-W4 4.1 ②：组件烘焙到 CAD 世界系（Rx(+90°)·compWorldMatrix，含 pos/rot/关节 FK）
     let verts: ArrayLike<number> = mesh.vertices
     if (comp) {
@@ -15863,7 +15863,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       verts = out
     }
     const { loops, open } = sliceMesh({ vertices: verts, triangles: mesh.triangles } as Parameters<typeof sliceMesh>[0], coord)
-    if (!loops.length) { set({ status: `${axis}=${coord} 切唔到闭合轮廓（${open.length ? `净有 ${open.length} 条开放链 — 网格唔水密？` : '位置喺零件之外？'}）` }); return }
+    if (!loops.length) { set({ status: `${axis}=${coord} 切唔到閉合輪廓（${open.length ? `淨有 ${open.length} 條開放鏈 — 網格唔水密？` : '位置喺零件之外？'}）` }); return }
     // GM-W4 4.1：loops 已系目标草图面嘅 profile 坐标 [u,v]；转返 st（stToProfile 反向）令「完成草图/拉伸」落返同一世界位置。
     //   XY: st=[u,-v]  ·  YZ: st=[-u,v]  ·  XZ: st=[u,v]（对应 stToProfile：XY[s,-t] / YZ[-s,t] / XZ[s,t]）
     const plane: Plane = axis === 'Z' ? 'XY' : axis === 'X' ? 'YZ' : 'XZ'
@@ -15879,7 +15879,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       mode: 'sketch', sketchPlane: plane, sketchArb: null, sketchBaseZ: coord, sketchTool: 'select', sketchFromFace: false, pendingSketchFaceBinding: null, sketchOp: 'new',
       sketchStart: null, sketchPreview: null, sketchShape: null, sketchProfiles: profs, polyPts: [], sketchUndo: [], sketchRedo: [],
       skCons: [], skPatternData: null, skSel: [], skPendingPt: null, skPendingPair: null, skDof: null, skConflict: false, sizing: null, toolPreview: null,
-      status: `✂ 已取 ${axis}=${coord} 截面 ${profs.length} 个闭合轮廓入草图（${plane} 面 · 折线近似 · 世界坐标${comp ? '，已跟随摆位/旋转' : ''}）— 可改尺寸再拉伸/完成草图`,
+      status: `✂ 已取 ${axis}=${coord} 截面 ${profs.length} 個閉合輪廓入草圖（${plane} 面 · 折線近似 · 世界座標${comp ? '，已跟隨擺位/旋轉' : ''}）— 可改尺寸再拉伸/完成草圖`,
     })
   },
   // T780（S59）：网格修复（补洞）— 净适用网格组件（活动实体由特征重建本身水密）
@@ -15891,15 +15891,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (def && def.bodies.length > 1 && !pickedId) { set({ status: 'Select a Body in Browser before Mesh Repair.' }); return }
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
     const source = picked?.mesh ?? c?.mesh
-    if (!c) { set({ status: '修复净适用于【网格组件】（STL 导入件）— 活动实体由特征重建，本身水密' }); return }
-    if (!source?.triangles.length) { set({ status: '组件冇几何' }); return }
-    set({ status: '🩹 检测边界环 + 补洞…' })
+    if (!c) { set({ status: '修復淨適用於【網格組件】（STL 匯入件）— 活動實體由特徵重建，本身水密' }); return }
+    if (!source?.triangles.length) { set({ status: '組件冇幾何' }); return }
+    set({ status: '🩹 檢測邊界環 + 補洞…' })
     const r = await runRepairInWorker(source.vertices, source.triangles)
-    if (!r.holesFilled) { set({ status: r.boundaryEdgesBefore ? `⚠ 有 ${r.boundaryEdgesBefore} 条边界边但补唔到（${r.warnings.join('；') || '大洞/烂环'}）` : '✓ 网格已经水密 — 唔使修' }); return }
+    if (!r.holesFilled) { set({ status: r.boundaryEdgesBefore ? `⚠ 有 ${r.boundaryEdgesBefore} 條邊界邊但補唔到（${r.warnings.join('；') || '大洞/烂環'}）` : '✓ 網格已經水密 — 唔使修' }); return }
     set((s2) => ({
       undoStack: [...s2.undoStack, docSnap(s2)].slice(-60), redoStack: [],
       ...(def && picked ? (() => { const defs = s2.componentDefs.map((d) => d.id === def.id ? writeDefBodyMesh(d, picked.id, r.mesh) : d); return { componentDefs: defs, components: reconcileComponents(s2.components, defs) } })() : { components: s2.components.map((x) => (x.id === compId ? { ...x, mesh: r.mesh, ...DETACH_DEF } : x)) }),
-      status: `🩹 已补 ${r.holesFilled} 个洞（边界边 ${r.boundaryEdgesBefore}→${r.boundaryEdgesAfter}）${r.warnings.length ? ' · ⚠ ' + r.warnings.join('；') : ''} — 可撤销`,
+      status: `🩹 已補 ${r.holesFilled} 個洞（邊界邊 ${r.boundaryEdgesBefore}→${r.boundaryEdgesAfter}）${r.warnings.length ? ' · ⚠ ' + r.warnings.join('；') : ''} — 可撤銷`,
     }))
   },
   // T780：网格简化（按比例 — 顶点聚类自动定格，诚实快速法，唔扮 QEM）
@@ -15911,17 +15911,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (def && def.bodies.length > 1 && !pickedId) { set({ status: 'Select a Body in Browser before QEM Simplify.' }); return }
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
     const source = picked?.mesh ?? c?.mesh
-    if (!c || !source?.triangles.length) { set({ status: '简化：组件冇几何' }); return }
-    set({ status: '🔻 QEM 误差度量减面中…' })
+    if (!c || !source?.triangles.length) { set({ status: '簡化：組件冇幾何' }); return }
+    set({ status: '🔻 QEM 誤差度量減面中…' })
     // S101：换 Garland-Heckbert QEM（quadric 误差 + edge-collapse + 翻转/流形守卫，保特征保水密），
     // 取代旧顶点聚类近似法。qemSimplify 返回裸 {vertices,triangles,normals}（无 mesh 包装）。
     const out = await runQemInWorker(source.vertices, source.triangles, Math.min(0.9, Math.max(0.05, ratio)))
-    if (!out.triangles.length) { set({ status: '简化失败（输出空）— 比例太狠' }); return }
+    if (!out.triangles.length) { set({ status: '簡化失敗（輸出空）— 比例太狠' }); return }
     const tIn = source.triangles.length / 3, tOut = out.triangles.length / 3
     set((s2) => ({
       undoStack: [...s2.undoStack, docSnap(s2)].slice(-60), redoStack: [],
       ...(def && picked ? (() => { const defs = s2.componentDefs.map((d) => d.id === def.id ? writeDefBodyMesh(d, picked.id, out) : d); return { componentDefs: defs, components: reconcileComponents(s2.components, defs) } })() : { components: s2.components.map((x) => (x.id === compId ? { ...x, mesh: out, ...DETACH_DEF } : x)) }),
-      status: `🔻 QEM 减面 ${tIn}→${tOut} 三角（误差度量，保特征保水密）— 可撤销`,
+      status: `🔻 QEM 減面 ${tIn}→${tOut} 三角（誤差度量，保特徵保水密）— 可撤銷`,
     }))
   },
   // S102[9]：各向同性重网格（Botsch-Kobbelt：split/collapse/flip/tangent-relax + 原面重投影保形）— 把不规则/STL/扫描网格做成边长均匀近等边
@@ -15933,26 +15933,26 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (def && def.bodies.length > 1 && !pickedId) { set({ status: 'Select a Body in Browser before Remesh.' }); return }
     const picked = def ? def.bodies.find((b) => b.id === (pickedId ?? def.bodies[0]?.id)) : undefined
     const source = picked?.mesh ?? c?.mesh
-    if (!c || !source?.triangles.length) { set({ status: '重网格：组件冇几何' }); return }
+    if (!c || !source?.triangles.length) { set({ status: '重網格：組件冇幾何' }); return }
     const L = Math.max(0.1, targetLen)
     // OOM 守卫：估算输出三角数（粗略 = 原表面积 / (√3/4·L²)），太密直接拒（仿 convertMeshComponent 上限政策）
     const tIn = source.triangles.length / 3
-    set({ status: '▦ 各向同性重网格中（split/collapse/flip/relax + 重投影）…' })
+    set({ status: '▦ 各向同性重網格中（split/collapse/flip/relax + 重投影）…' })
     let out: { vertices: number[]; triangles: number[]; normals: number[]; edgeLenMean: number; edgeLenStd: number; trisOut: number }
     try { out = await runRemeshInWorker(source.vertices, source.triangles, L) }
-    catch (e) { set({ status: '重网格失败：' + ((e as Error)?.message || e) }); return }
-    if (!out.triangles.length || out.triangles.length / 3 > 300000) { set({ status: `重网格${out.triangles.length ? '三角爆炸(>30万，目标边长太细)' : '失败(输出空，边长太大)'} — 调整目标边长` }); return }
+    catch (e) { set({ status: '重網格失敗：' + ((e as Error)?.message || e) }); return }
+    if (!out.triangles.length || out.triangles.length / 3 > 300000) { set({ status: `重網格${out.triangles.length ? '三角爆炸(>30萬，目標邊長太細)' : '失敗(輸出空，邊長太大)'} — 調整目標邊長` }); return }
     set((s2) => ({
       undoStack: [...s2.undoStack, docSnap(s2)].slice(-60), redoStack: [],
       ...(def && picked ? (() => { const mesh = { vertices: out.vertices, triangles: out.triangles, normals: out.normals }; const defs = s2.componentDefs.map((d) => d.id === def.id ? writeDefBodyMesh(d, picked.id, mesh) : d); return { componentDefs: defs, components: reconcileComponents(s2.components, defs) } })() : { components: s2.components.map((x) => (x.id === compId ? { ...x, mesh: { vertices: out.vertices, triangles: out.triangles, normals: out.normals }, ...DETACH_DEF } : x)) }),
-      status: `▦ 均匀重网格 ${tIn}→${out.trisOut} 三角 · 平均边长 ${out.edgeLenMean.toFixed(2)}（目标 ${L}，σ=${out.edgeLenStd.toFixed(2)}）— 可撤销`,
+      status: `▦ 均匀重網格 ${tIn}→${out.trisOut} 三角 · 平均邊長 ${out.edgeLenMean.toFixed(2)}（目標 ${L}，σ=${out.edgeLenStd.toFixed(2)}）— 可撤銷`,
     }))
   },
   // T779（S57）：刚性组 — 勾选 N 件，头件做 leader，其余逐件 rigid 关节锁上（FK identity — 郁 leader 全组跟）。
   // GM-3DV4 A8：额外建【一级 Rigid-Group 节点】（浏览器可见、可抑制/删除），底层 rigid 关节打 groupRef 标 → 抑制即删呢批。
   rigidGroupChecked: () => set((s) => {
     const ids = s.checkedComps
-    if (ids.length < 2) return { status: '刚性组：浏览树勾选 ≥2 个组件先' }
+    if (ids.length < 2) return { status: '剛性組：瀏覽樹勾選 ≥2 個組件先' }
     const leader = ids[0]
     const rgId = 'RG' + (s.rigidGroups.reduce((m, g) => Math.max(m, Number(g.id.replace(/^RG/, '')) || 0), 0) + 1)
     let nid = s.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0)
@@ -15963,14 +15963,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       joints: [...s.joints, ...add], checkedComps: [],
       rigidGroups: [...s.rigidGroups, { id: rgId, name: `刚性组 ${rgId.replace('RG', '')}（${name}）`, members: [...ids] }],
-      status: `🔗 已建一级刚性组「${rgId}」（${ids.length} 件，「${name}」做头 — 浏览器可抑制/删除；抑制即释放全组）`,
+      status: `🔗 已建一級剛性組「${rgId}」（${ids.length} 件，「${name}」做頭 — 瀏覽器可抑制/刪除；抑制即釋放全組）`,
     }
   }),
   // T779：As-Built 关节 — 两件喺【现状位置】直接加转动关节（唔 snap 唔郁位 — Fusion As-Built Joint 语义）。
   // GM-3DV4 A10：轴由共享几何推断（接触带主轴 / 子件长轴）取代粗糙「竖直过件心」。
   asBuiltJointChecked: (jointType) => {
     const ids = get().checkedComps
-    if (ids.length !== 2) { set({ status: '按现状关节：浏览树勾选啱啱 2 个组件' }); return }
+    if (ids.length !== 2) { set({ status: '按現狀關節：瀏覽樹勾選啱啱 2 個組件' }); return }
     const jt = (jointType || 'revolute') as 'revolute' | 'rigid' | 'slider' | 'cylindrical' | 'ball'
     const s = get()
     const ca = s.components.find((c) => c.id === ids[0]), cb = s.components.find((c) => c.id === ids[1])
@@ -15984,19 +15984,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     get().addJoint({ type: jt, parent: ids[0], child: ids[1], anchor: get().componentCenter(ids[1]), axis, angle: 0, slide: 0 })
     get().clearCheckedComps()
     const nm: Record<string, string> = { revolute: '转动', rigid: '刚性', slider: '滑动', cylindrical: '圆柱', ball: '球' }
-    set({ status: `⚙ 已按现状加${nm[jt] || jt}关节（${ids[0]}→${ids[1]}，轴=${jt === 'rigid' ? '刚性无需轴' : `推断 ${axis.map((v) => +v.toFixed(2)).join(',')}（共享几何）`} — 要改用「拾孔定轴」或关节面板）` })
+    set({ status: `⚙ 已按現狀加${nm[jt] || jt}關節（${ids[0]}→${ids[1]}，軸=${jt === 'rigid' ? '剛性無需軸' : `推斷 ${axis.map((v) => +v.toFixed(2)).join(',')}（共享幾何）`} — 要改用「拾孔定軸」或關節面板）` })
   },
   // T779：停于接触 — 转动关节由当前角向 dir 扫（5° 步，≤360°），撞到嘢就二分到 ~0.01° 停喺接触前。
   // 碰撞 = AABB 重叠 + 蒙特卡洛实体重叠体积 >2mm³（干涉检查同一机器）。卡扣/棘轮「转到卡住」日常。
   driveJointToContact: async (jointId, dir, axisKind) => {
     const s = get()
     const j = s.joints.find((x) => x.id === jointId)
-    if (!j || (j.type !== 'revolute' && j.type !== 'slider' && j.type !== 'cylindrical')) { set({ status: '停于接触：仅支持 转动 / 滑动 / 圆柱 关节' }); return }
+    if (!j || (j.type !== 'revolute' && j.type !== 'slider' && j.type !== 'cylindrical')) { set({ status: '停於接觸：僅支持 轉動 / 滑動 / 圓柱 關節' }); return }
     const key: 'angle' | 'slide' = axisKind ?? (j.type === 'slider' ? 'slide' : 'angle')   // S98：圆柱关节默认驱动转，axisKind 可指定移
     const child = s.components.find((c) => c.id === j.child)
     const others = s.components.filter((c) => !c.hidden && c.id !== j.child && c.id !== j.parent && c.mesh.vertices.length > 12)
-    if (!child || !others.length) { set({ status: '停于接触：要有第三方可见组件先有得撞（关节父子唔计）' }); return }
-    set({ status: '🧱 揾接触位…' })
+    if (!child || !others.length) { set({ status: '停於接觸：要有第三方可見組件先有得撞（關節父子唔計）' }); return }
+    set({ status: '🧱 揾接觸位…' })
     await new Promise((r) => setTimeout(r, 30))
     const ids = s.components.map((c) => c.id)
     const worldBox = (c: typeof child, fk: ReturnType<typeof computeFK>) => {
@@ -16028,15 +16028,15 @@ export const useApp = create<AppState>((rawSet, get) => {
       return false
     }
     const start = (j[key] ?? 0) as number
-    if (collides(start)) { set({ status: `⚠ 而家已经撞紧第三方组件 — 先${key === 'angle' ? '转' : '移'}开啲再揾接触` }); return }
+    if (collides(start)) { set({ status: `⚠ 而家已經撞緊第三方組件 — 先${key === 'angle' ? '轉' : '移'}開啲再揾接觸` }); return }
     const stepSize = key === 'angle' ? 5 : 2                                              // 角 5°/步、移 2mm/步
     const maxSpan = key === 'angle' ? 360 : (j.sMax != null && j.sMin != null ? Math.abs(j.sMax - j.sMin) : 240)   // 滑动扫程 = 限位跨度，缺省 240mm
     const backoff = key === 'angle' ? 0.25 : 0.2                                          // 退安全裕度（防蒙特卡洛闪烁穿隧）
     const sw = sweepToContact({ start, dir, stepSize, maxSpan, backoff, collides })
-    if (!sw.hit) { set({ status: key === 'angle' ? '转咗 360° 都冇接触 — 路径上冇嘢挡' : `移咗 ${maxSpan}mm 都冇接触 — 路径上冇嘢挡` }); return }
+    if (!sw.hit) { set({ status: key === 'angle' ? '轉咗 360° 都冇接觸 — 路徑上冇嘢挡' : `移咗 ${maxSpan}mm 都冇接觸 — 路徑上冇嘢挡` }); return }
     const stop = Math.round(sw.stop * 1000) / 1000
     get().setJointValue(jointId, { [key]: stop } as { angle?: number; slide?: number })
-    set({ status: `🧱 已停于接触位 ${stop.toFixed(2)}${key === 'angle' ? '°' : 'mm'}（蒙特卡洛 >2mm³ 判触）` })
+    set({ status: `🧱 已停於接觸位 ${stop.toFixed(2)}${key === 'angle' ? '°' : 'mm'}（蒙特卡洛 >2mm³ 判觸）` })
   },
   // Motion Study：点质量趋势级动力学。每个关节自由度各自半隐式欧拉积分，
   // 回放时同帧写入全部坐标；这不是带耦合惯量矩阵/接触求解的商用多体求解器。
@@ -16045,7 +16045,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   runMotionStudy: (jointId, spec) => {
     const s = get()
     const j = s.joints.find((x) => x.id === jointId)
-    if (!j) { set({ status: '⚠ 关节不存在' }); return }
+    if (!j) { set({ status: '⚠ 關節不存在' }); return }
     const com = get().componentCenter(j.child)
     const massT = Math.max(1e-9, spec.mass) * 1e-3     // kg → tonne
     const g: [number, number, number] = spec.g ?? [0, -9810, 0]
@@ -16105,30 +16105,30 @@ export const useApp = create<AppState>((rawSet, get) => {
       // to inject the same 30°/mm displacement into every channel.
       const initial = index === 0 ? (d.value || spec.q0v) : d.value
       const r = simulateMotion({ kind: d.kind, mass: massT, k: spec.k, c: spec.c, q0: spec.q0, q0v: initial, anchor: j.anchor, axis: d.axis, com, g, dt, tEnd, sample: samp })
-      if (!r.q.length || !Number.isFinite(r.q[r.q.length - 1])) { set({ status: '⚙ Motion Study 数值发散 — 减阻尼/刚度或减质量再试' }); return }
+      if (!r.q.length || !Number.isFinite(r.q[r.q.length - 1])) { set({ status: '⚙ Motion Study 數值發散 — 減阻尼/剛度或減質量再試' }); return }
       qs[d.key] = r.q; first ||= r
     }
     if (!first) return
-    set({ motionStudy: { jointId, key: first.key, q: first.q, keys: dofs.map((d) => d.key), qs, dt: first.dt, tEnd: first.tEnd }, status: `⚙ Motion Study：${first.q.length} 帧 / ${first.tEnd}s，${dofs.length} 自由度同步轨迹 — 按▶播放` })
+    set({ motionStudy: { jointId, key: first.key, q: first.q, keys: dofs.map((d) => d.key), qs, dt: first.dt, tEnd: first.tEnd }, status: `⚙ Motion Study：${first.q.length} 幀 / ${first.tEnd}s，${dofs.length} 自由度同步軌迹 — 按▶播放` })
   },
   clearMotionStudy: () => set({ motionStudy: null }),
   // T778（S58）：datum 拾取 — 相切面（点圆柱面一下）/ 两面中面（点两个平行平面）
   datumPick: null,
   startDatumPick: (kind) => set({
     datumPick: { kind, picks: [] }, edgePtPick: null, holeMode: false, holePos: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false, threadFacePick: false, toFacePick: false,
-    status: kind === 'tanplane' ? '相切面：点一个【圆柱面】— 喺你点嘅嗰侧生成切面（法向 = 径向）' : kind === 'offsetface' ? '偏移面：点一个【平面】— 跟住输入偏移距离，沿面法向生成平行参考平面' : kind === 'normalaxis' ? '⊥面轴：点一个【平面】— 沿面法向、过点击点生成构造轴' : kind === 'circcenter' ? '圆心点：点一个【圆柱面】（孔壁/圆轴/凸台侧）— 喺轴上（点击高度）落构造点' : kind === 'planeaxis' ? '两面轴：点【两个唔平行嘅平面】— 沿其交线生成构造轴' : kind === 'parplanept' ? '过点平行面：点一个【平面】— 生成平行该面、且过【最后一个构造点】嘅参考平面（先落构造点）' : '两面中面：点【两个平行平面】— 喺正中间生成参考平面',
+    status: kind === 'tanplane' ? '相切面：點一個【圓柱面】— 喺你點嘅嗰側生成切面（法向 = 徑向）' : kind === 'offsetface' ? '偏移面：點一個【平面】— 跟住輸入偏移距離，沿面法向生成平行參考平面' : kind === 'normalaxis' ? '⊥面軸：點一個【平面】— 沿面法向、過點擊點生成構造軸' : kind === 'circcenter' ? '圓心點：點一個【圓柱面】（孔壁/圓軸/凸台側）— 喺軸上（點擊高度）落構造點' : kind === 'planeaxis' ? '兩面軸：點【兩個唔平行嘅平面】— 沿其交線生成構造軸' : kind === 'parplanept' ? '過點平行面：點一個【平面】— 生成平行該面、且過【最後一個構造點】嘅參考平面（先落構造點）' : '兩面中面：點【兩個平行平面】— 喺正中間生成參考平面',
   }),
   applyDatumPick: async (det, clickCAD) => {
     const s = get()
     const dp = s.datumPick
-    if (!dp || !det) { set({ status: '要点实体嘅面' }); return }
+    if (!dp || !det) { set({ status: '要點實體嘅面' }); return }
     // S158：偏移面 — 点一个平面 → 输入距离 → 沿法向偏移生平行参考平面（Fusion 最常用 datum，旧只可由世界 XY/XZ/YZ 偏移）
     if (dp.kind === 'offsetface') {
-      if (det.kind !== 'planar' || !det.n) { set({ datumPick: null, status: '偏移面要点【平面】（圆柱/孔壁请改用「相切面」）' }); return }
+      if (det.kind !== 'planar' || !det.n) { set({ datumPick: null, status: '偏移面要點【平面】（圓柱/孔壁請改用「相切面」）' }); return }
       const ans = await get().appPrompt('输入偏移距离（mm）— 正 = 沿面法向、负 = 反向：', '10', '偏移面参考平面')
       if (ans == null) { set({ datumPick: null, status: '已取消偏移面' }); return }
       const dist = parseFloat(ans)
-      if (!isFinite(dist)) { set({ datumPick: null, status: '偏移面：距离唔系有效数字' }); return }
+      if (!isFinite(dist)) { set({ datumPick: null, status: '偏移面：距離唔係有效數字' }); return }
       const nn = det.n, nl = Math.hypot(nn[0], nn[1], nn[2]) || 1
       const un: [number, number, number] = [nn[0] / nl, nn[1] / nl, nn[2] / nl]
       const o: [number, number, number] = [det.p[0] + un[0] * dist, det.p[1] + un[1] * dist, det.p[2] + un[2] * dist]
@@ -16152,8 +16152,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     // S170：过点平行面 — 点平面 → 生成平行该面、且过【最后一个构造点】嘅参考平面（Fusion Offset Plane to-point）。
     // 镜 offsetface 嘅 cardinal/arb 分流，唯一分别：offset 唔靠 prompt，而系令平面【穿过 cp】→ dist=(cp−det.p)·un（投影到面法向），o=det.p+un·dist 令 (cp−o)·un=0。
     if (dp.kind === 'parplanept') {
-      if (det.kind !== 'planar' || !det.n) { set({ datumPick: null, status: '过点平行面要点【平面】（圆柱/孔壁请改用「相切面」）' }); return }
-      if (!s.cpoints.length) { set({ datumPick: null, status: '过点平行面：先用「构造点」落一个点（用最后嗰个）' }); return }
+      if (det.kind !== 'planar' || !det.n) { set({ datumPick: null, status: '過點平行面要點【平面】（圓柱/孔壁請改用「相切面」）' }); return }
+      if (!s.cpoints.length) { set({ datumPick: null, status: '過點平行面：先用「構造點」落一個點（用最後嗰個）' }); return }
       const cp = s.cpoints[s.cpoints.length - 1]
       const nn = det.n, nl = Math.hypot(nn[0], nn[1], nn[2]) || 1
       const un: [number, number, number] = [nn[0] / nl, nn[1] / nl, nn[2] / nl]
@@ -16179,28 +16179,28 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     // S159：⊥面轴 — 点平面 → 沿面法向、过点击点生构造轴（Fusion Axis Normal to Face）。圆柱面唔适用（用 构造轴 🎯拾圆柱面 取自身轴）。
     if (dp.kind === 'normalaxis') {
-      if (det.kind !== 'planar' || !det.n) { set({ datumPick: null, status: '⊥面轴要点【平面】（圆柱面请用 构造轴 → 🎯拾圆柱面 取自身轴）' }); return }
+      if (det.kind !== 'planar' || !det.n) { set({ datumPick: null, status: '⊥面軸要點【平面】（圓柱面請用 構造軸 → 🎯拾圓柱面 取自身軸）' }); return }
       const nn = det.n, nl = Math.hypot(nn[0], nn[1], nn[2]) || 1
       const dv: [number, number, number] = [nn[0] / nl, nn[1] / nl, nn[2] / nl]
       const a = [Math.abs(dv[0]), Math.abs(dv[1]), Math.abs(dv[2])]
       const letter = a[0] >= a[1] && a[0] >= a[2] ? 'X' as const : a[1] >= a[2] ? 'Y' as const : 'Z' as const
-      set((s2) => ({ datumPick: null, caxes: [...s2.caxes, { dir: letter, at: clickCAD, dirV: dv }], status: `已建 ⊥面轴（过点击点、沿面法向 ${dv.map((v) => +v.toFixed(2)).join(',')}）— 可做孔向/扫掠轴/环形阵列轴` }))
+      set((s2) => ({ datumPick: null, caxes: [...s2.caxes, { dir: letter, at: clickCAD, dirV: dv }], status: `已建 ⊥面軸（過點擊點、沿面法向 ${dv.map((v) => +v.toFixed(2)).join(',')}）— 可做孔向/掃掠軸/環形陣列軸` }))
       return
     }
     // S159：圆心点 — 点圆柱面 → 喺轴上（点击高度）落构造点（Fusion Point at Center of Circle）。
     if (dp.kind === 'circcenter') {
-      if (det.kind !== 'cyl' || !det.axis) { set({ datumPick: null, status: '圆心点要点【圆柱面】（孔壁/圆轴/凸台侧）— 平面冇圆心' }); return }
+      if (det.kind !== 'cyl' || !det.axis) { set({ datumPick: null, status: '圓心點要點【圓柱面】（孔壁/圓軸/凸台側）— 平面冇圓心' }); return }
       const ax = det.axis, p0 = det.p
       const L = Math.hypot(ax[0], ax[1], ax[2]) || 1
       const u: [number, number, number] = [ax[0] / L, ax[1] / L, ax[2] / L]
       const d: [number, number, number] = [clickCAD[0] - p0[0], clickCAD[1] - p0[1], clickCAD[2] - p0[2]]
       const along = d[0] * u[0] + d[1] * u[1] + d[2] * u[2]
       const c: [number, number, number] = [p0[0] + along * u[0], p0[1] + along * u[1], p0[2] + along * u[2]]
-      set((s2) => ({ datumPick: null, cpoints: [...s2.cpoints, c], status: `已建圆心点 (${c.map((x) => x.toFixed(1)).join(', ')}) — 喺圆柱轴上（点击高度）；可做两点轴/中点/批量孔` }))
+      set((s2) => ({ datumPick: null, cpoints: [...s2.cpoints, c], status: `已建圓心點 (${c.map((x) => x.toFixed(1)).join(', ')}) — 喺圓柱軸上（點擊高度）；可做兩點軸/中點/批量孔` }))
       return
     }
     if (dp.kind === 'tanplane') {
-      if (det.kind !== 'cyl' || !det.axis || det.r == null) { set({ status: '相切面要点【圆柱面】（孔壁/轴/凸台侧）' }); return }
+      if (det.kind !== 'cyl' || !det.axis || det.r == null) { set({ status: '相切面要點【圓柱面】（孔壁/軸/凸台側）' }); return }
       // 切点 = 轴上投影点 + r·radial（radial = click 对轴嘅径向方向）
       const ax = det.axis, p0 = det.p
       const L = Math.hypot(ax[0], ax[1], ax[2]) || 1
@@ -16209,7 +16209,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const along = d[0] * u[0] + d[1] * u[1] + d[2] * u[2]
       let rad: [number, number, number] = [d[0] - along * u[0], d[1] - along * u[1], d[2] - along * u[2]]
       const rl = Math.hypot(rad[0], rad[1], rad[2])
-      if (rl < 1e-6) { set({ status: '点击太贴近轴心 — 点圆柱面侧边' }); return }
+      if (rl < 1e-6) { set({ status: '點擊太貼近軸心 — 點圓柱面側邊' }); return }
       rad = [rad[0] / rl, rad[1] / rl, rad[2] / rl]
       const o: [number, number, number] = [p0[0] + along * u[0] + rad[0] * det.r, p0[1] + along * u[1] + rad[1] * det.r, p0[2] + along * u[2] + rad[2] * det.r]
       const arb = { o, xd: u, n: rad }
@@ -16219,15 +16219,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     // S167：两面轴（Fusion Axis Through Two Planes）—— 收 2 个【唔平行】平面，交线生构造轴
     if (dp.kind === 'planeaxis') {
-      if (det.kind !== 'planar' || !det.n) { set({ status: '两面轴：要点【平面】' }); return }
+      if (det.kind !== 'planar' || !det.n) { set({ status: '兩面軸：要點【平面】' }); return }
       const picks = [...dp.picks, { p: det.p, n: det.n, click: clickCAD }]
-      if (picks.length < 2) { set({ datumPick: { ...dp, picks }, status: '已拣第 1 个面 — 再点【另一个唔平行嘅面】' }); return }
+      if (picks.length < 2) { set({ datumPick: { ...dp, picks }, status: '已揀第 1 個面 — 再點【另一個唔平行嘅面】' }); return }
       set({ datumPick: null })
       const n1 = picks[0].n!, n2 = picks[1].n!, p1 = picks[0].p, p2 = picks[1].p
       const cross = (a: number[], b: number[]): [number, number, number] => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
       const dRaw = cross(n1, n2)                         // 交线方向 = n1 × n2
       const dl = Math.hypot(dRaw[0], dRaw[1], dRaw[2])
-      if (dl < 0.02) { set({ status: '两面轴：两面平行（无交线）— 要两个唔平行嘅面' }); return }   // sin(夹角)<~1.1° 当平行
+      if (dl < 0.02) { set({ status: '兩面軸：兩面平行（無交線）— 要兩個唔平行嘅面' }); return }   // sin(夹角)<~1.1° 当平行
       const dh: [number, number, number] = [dRaw[0] / dl, dRaw[1] / dl, dRaw[2] / dl]
       // 交线上离原点最近点（两平面点法式）：p0 = (k1(n2×dRaw)+k2(dRaw×n1))/|dRaw|²，k=n·p
       const k1 = n1[0] * p1[0] + n1[1] * p1[1] + n1[2] * p1[2], k2 = n2[0] * p2[0] + n2[1] * p2[1] + n2[2] * p2[2]
@@ -16239,17 +16239,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       const at: [number, number, number] = [p0[0] + tt * dh[0], p0[1] + tt * dh[1], p0[2] + tt * dh[2]]
       const ax = [Math.abs(dh[0]), Math.abs(dh[1]), Math.abs(dh[2])]
       const letter = ax[0] >= ax[1] && ax[0] >= ax[2] ? 'X' : ax[1] >= ax[2] ? 'Y' : 'Z'
-      set((s2) => ({ caxes: [...s2.caxes, { dir: letter, at, dirV: dh }], status: `已建两面轴（交线方向 ${dh.map((v) => +v.toFixed(2)).join(',')} @ ${at.map((v) => +v.toFixed(1)).join(',')}）— 可做孔向/扫掠轴/环形阵列轴` }))
+      set((s2) => ({ caxes: [...s2.caxes, { dir: letter, at, dirV: dh }], status: `已建兩面軸（交線方向 ${dh.map((v) => +v.toFixed(2)).join(',')} @ ${at.map((v) => +v.toFixed(1)).join(',')}）— 可做孔向/掃掠軸/環形陣列軸` }))
       return
     }
     // midplane：收 2 个平行平面
-    if (det.kind !== 'planar' || !det.n) { set({ status: '两面中面要点【平面】' }); return }
+    if (det.kind !== 'planar' || !det.n) { set({ status: '兩面中面要點【平面】' }); return }
     const picks = [...dp.picks, { p: det.p, n: det.n, click: clickCAD }]
-    if (picks.length < 2) { set({ datumPick: { ...dp, picks }, status: '已拣第 1 个面 — 再点【平行嘅另一面】' }); return }
+    if (picks.length < 2) { set({ datumPick: { ...dp, picks }, status: '已揀第 1 個面 — 再點【平行嘅另一面】' }); return }
     const n1 = picks[0].n!, n2 = picks[1].n!
     const dot = Math.abs(n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2])
     set({ datumPick: null })
-    if (dot < 0.985) { set({ status: '两个面唔平行 — 中面要两个平行平面' }); return }
+    if (dot < 0.985) { set({ status: '兩個面唔平行 — 中面要兩個平行平面' }); return }
     const o: [number, number, number] = [(picks[0].p[0] + picks[1].p[0]) / 2, (picks[0].p[1] + picks[1].p[1]) / 2, (picks[0].p[2] + picks[1].p[2]) / 2]
     // 法向主轴 → cardinal 入口（可画草图嘅现成管线）；斜向 → arb
     const a = [Math.abs(n1[0]), Math.abs(n1[1]), Math.abs(n1[2])]
@@ -16418,7 +16418,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           ? [n1[0] - n2[0], n1[1] - n2[1], n1[2] - n2[2]]
           : [n1[0] + n2[0], n1[1] + n2[1], n1[2] + n2[2]]
         const len = Math.hypot(raw[0], raw[1], raw[2])
-        if (len < 1e-8) { set({ status: '中间平面：两面法向无效，无法建立角平分面' }); return }
+        if (len < 1e-8) { set({ status: '中間平面：兩面法向無效，無法建立角平分面' }); return }
         n = [raw[0] / len, raw[1] / len, raw[2] / len]
         const d1 = n1[0] * a.p[0] + n1[1] * a.p[1] + n1[2] * a.p[2]
         const d2 = n2[0] * b.p[0] + n2[1] * b.p[1] + n2[2] * b.p[2]
@@ -16439,7 +16439,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const v2: [number, number, number] = [pc[0] - pa[0], pc[1] - pa[1], pc[2] - pa[2]]
       const n: [number, number, number] = [v1[1] * v2[2] - v1[2] * v2[1], v1[2] * v2[0] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]]
       const nl = Math.hypot(n[0], n[1], n[2])
-      if (nl < 1e-6) { set({ status: '三点平面：三点共线 — 定唔到平面' }); return }
+      if (nl < 1e-6) { set({ status: '三點平面：三點共線 — 定唔到平面' }); return }
       const vl = Math.hypot(v1[0], v1[1], v1[2]) || 1
       clearPicks(); await get().addDatumFeature({ base: 'XY', offset: 0, angle: 0, arb: { o: pa, xd: [v1[0] / vl, v1[1] / vl, v1[2] / vl], n: [n[0] / nl, n[1] / nl, n[2] / nl] } }, '已建三点平面（画布选取）— 画草图时点佢做基准'); return
     }
@@ -16447,21 +16447,21 @@ export const useApp = create<AppState>((rawSet, get) => {
       const pa = asPoint(picks[0]).p, pb = asPoint(picks[1]).p
       const d: [number, number, number] = [pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]]
       const L = Math.hypot(d[0], d[1], d[2])
-      if (L < 1e-6) { set({ status: '两点轴：两点重合 — 定唔到轴' }); return }
+      if (L < 1e-6) { set({ status: '兩點軸：兩點重合 — 定唔到軸' }); return }
       const dirV: [number, number, number] = [d[0] / L, d[1] / L, d[2] / L]
       const a = [Math.abs(dirV[0]), Math.abs(dirV[1]), Math.abs(dirV[2])]
       const dir = a[0] >= a[1] && a[0] >= a[2] ? 'X' as const : a[1] >= a[2] ? 'Y' as const : 'Z' as const
-      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [], params: { ...s.datumCmd.params, __confirm: 0 } } } : {}), caxes: [...s.caxes, { dir, at: pa, dirV }], status: '已建两点轴（画布选取）' })); return
+      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [], params: { ...s.datumCmd.params, __confirm: 0 } } } : {}), caxes: [...s.caxes, { dir, at: pa, dirV }], status: '已建兩點軸（畫布選取）' })); return
     }
     if (key === 'point:midpoint') {
       const pa = asPoint(picks[0]).p, pb = asPoint(picks[1]).p
       const m: [number, number, number] = [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2, (pa[2] + pb[2]) / 2]
-      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [], params: { ...s.datumCmd.params, __confirm: 0 } } } : {}), cpoints: [...s.cpoints, m], status: `已建两点中点（画布选取） (${m.map((x) => x.toFixed(1)).join(', ')})` })); return
+      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [], params: { ...s.datumCmd.params, __confirm: 0 } } } : {}), cpoints: [...s.cpoints, m], status: `已建兩點中點（畫布選取） (${m.map((x) => x.toFixed(1)).join(', ')})` })); return
     }
     if (key === 'plane:twoEdges') {
       const e1 = asEdge(picks[0]), e2 = asEdge(picks[1])
       const r = planeThroughTwoEdges(e1.p1, e1.dir, e2.p1, e2.dir)
-      if (!r) { set({ status: '过两边平面：两边共线 — 定唔到平面' }); return }
+      if (!r) { set({ status: '過兩邊平面：兩邊共線 — 定唔到平面' }); return }
       clearPicks(); await get().addDatumFeature({ base: 'XY', offset: 0, angle: 0, arb: { o: r.o, xd: r.xd, n: r.n } }, '已建过两边平面（含两条边）— 画草图时点佢做基准'); return
     }
     if (key === 'plane:perp') {
@@ -16476,53 +16476,53 @@ export const useApp = create<AppState>((rawSet, get) => {
       const dv: [number, number, number] = [c.axis[0] / L, c.axis[1] / L, c.axis[2] / L]
       const a = [Math.abs(dv[0]), Math.abs(dv[1]), Math.abs(dv[2])]
       const letter = a[0] >= a[1] && a[0] >= a[2] ? 'X' as const : a[1] >= a[2] ? 'Y' as const : 'Z' as const
-      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [] } } : {}), caxes: [...s.caxes, { dir: letter, at: c.p, dirV: dv, src: { kind: 'cylAxis' as const, near: c.p, seedAxis: dv } }], status: `已建构造轴（过圆柱/锥面 R${c.r.toFixed(1)} · 🔗关联源圆柱）` })); return
+      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [] } } : {}), caxes: [...s.caxes, { dir: letter, at: c.p, dirV: dv, src: { kind: 'cylAxis' as const, near: c.p, seedAxis: dv } }], status: `已建構造軸（過圓柱/錐面 R${c.r.toFixed(1)} · 🔗關聯源圓柱）` })); return
     }
     if (key === 'point:twoEdges') {
       const e1 = asEdge(picks[0]), e2 = asEdge(picks[1])
       const r = nearestPointBetweenLines(e1.p1, e1.dir, e2.p1, e2.dir)
-      if (!r) { set({ status: '两边交点：两边平行 — 无唯一交点' }); return }
+      if (!r) { set({ status: '兩邊交點：兩邊平行 — 無唯一交點' }); return }
       const far = r.dist > 2 ? `（两边唔真相交，取最近逼近中点 · 相距 ${r.dist.toFixed(1)}mm）` : ''
-      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [] } } : {}), cpoints: [...s.cpoints, r.point], status: `已建两边交点构造点 (${r.point.map((x) => x.toFixed(1)).join(', ')})${far}` })); return
+      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [] } } : {}), cpoints: [...s.cpoints, r.point], status: `已建兩邊交點構造點 (${r.point.map((x) => x.toFixed(1)).join(', ')})${far}` })); return
     }
     if (key === 'point:threePlanes') {
       const r = threePlaneIntersection(picks.map((pk) => ({ p: asFace(pk).p, n: asFace(pk).n })))
-      if (!r) { set({ status: '三面交点：三面无唯一公共交点（含平行/共线面）' }); return }
-      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [] } } : {}), cpoints: [...s.cpoints, r], status: `已建三面交点构造点 (${r.map((x) => x.toFixed(1)).join(', ')})` })); return
+      if (!r) { set({ status: '三面交點：三面無唯一公共交點（含平行/共線面）' }); return }
+      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [] } } : {}), cpoints: [...s.cpoints, r], status: `已建三面交點構造點 (${r.map((x) => x.toFixed(1)).join(', ')})` })); return
     }
     if (key === 'point:edgePlane') {
       const e = asEdge(picks[0]), f = asFace(picks[1])
       const r = edgePlaneIntersection(e.p1, e.dir, f.p, f.n)
-      if (!r) { set({ status: '边穿面：边平行于面 — 无交点' }); return }
+      if (!r) { set({ status: '邊穿面：邊平行於面 — 無交點' }); return }
       const out = (r.t < -0.01 || r.t > 1.01) ? '（交点喺边延长线上）' : ''
-      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [] } } : {}), cpoints: [...s.cpoints, r.point], status: `已建边穿面构造点 (${r.point.map((x) => x.toFixed(1)).join(', ')})${out}` })); return
+      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [] } } : {}), cpoints: [...s.cpoints, r.point], status: `已建邊穿面構造點 (${r.point.map((x) => x.toFixed(1)).join(', ')})${out}` })); return
     }
     if (key === 'point:centerEdge') {
       const e = asEdge(picks[0])
       const r = circleCenterFromPolyline(e.pts)
-      if (!r) { set({ status: '圆边取心：呢条唔系圆/弧边（拟合失败）— 点圆形边，或改用「圆柱面取心」' }); return }
-      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [] } } : {}), cpoints: [...s.cpoints, r.center], status: `已建圆心构造点 (${r.center.map((x) => x.toFixed(1)).join(', ')}) · R${r.r.toFixed(1)}` })); return
+      if (!r) { set({ status: '圓邊取心：呢條唔係圓/弧邊（擬合失敗）— 點圓形邊，或改用「圓柱面取心」' }); return }
+      set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [] } } : {}), cpoints: [...s.cpoints, r.center], status: `已建圓心構造點 (${r.center.map((x) => x.toFixed(1)).join(', ')}) · R${r.r.toFixed(1)}` })); return
     }
   },
   // S164：构造点落最近边（Fusion Point Along Path / Point at Vertex）。复用 worker pointOnEdgeAt 嘅最近边搜索。
   edgePtPick: null,
   startEdgePointPick: async (mode) => {
-    if (!hasSolid(get().features)) { set({ status: mode === 'pathplane' ? '路径平面：需要先有实体' : mode === 'angleplane' ? '角度平面：需要先有实体' : mode === 'edgeaxis' ? '沿边轴：需要先有实体' : '边上构造点：需要先有实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: mode === 'pathplane' ? '路徑平面：需要先有實體' : mode === 'angleplane' ? '角度平面：需要先有實體' : mode === 'edgeaxis' ? '沿邊軸：需要先有實體' : '邊上構造點：需要先有實體' }); return }
     let ratio = 0.5, dist: number | null = null, ang = 45
     if (mode === 'angleplane') {
       const av = await get().appPrompt('角度平面（Plane at Angle 过拣中嘅边）— 平面【包含】该边、绕边轴倾斜嘅角度（度；0=种子⊥方向、可正负）', '45')
       if (av == null) { set({ status: '已取消' }); return }
       const a = parseFloat(av.trim())
-      if (!Number.isFinite(a)) { set({ status: '角度平面：角度唔系有效数字' }); return }
+      if (!Number.isFinite(a)) { set({ status: '角度平面：角度唔係有效數字' }); return }
       ang = a
     }
     if (mode === 'ratio' || mode === 'pathplane') {
       const v = await get().appPrompt(mode === 'pathplane' ? '路径平面（Plane Along Path）— 沿边位置：0~1 比例（0=起点·0.5=中点·1=终点），或「Nmm」距起点' : '边上构造点 — 沿边位置：0~1 比例（0=起点 · 1=终点 · 0.5=中点），或「Nmm」= 距起点 N 毫米', '0.5')
       if (v == null) { set({ status: '已取消' }); return }
       const t = v.trim()
-      if (/mm$/i.test(t)) { const d = parseFloat(t); if (!isFinite(d)) { set({ status: '边上点：距离唔系有效数字' }); return } dist = Math.max(0, d) }
-      else if (/[a-z]/i.test(t)) { set({ status: '边上点：单位只认「mm」（如 10mm）；纯数字 = 0~1 比例' }); return }   // 防「5m」「5cm」被当比例 5→1 静默误读
-      else { const r = parseFloat(t); if (!isFinite(r)) { set({ status: '边上点：位置唔系有效数字（0~1 或 Nmm）' }); return } ratio = Math.max(0, Math.min(1, r)) }
+      if (/mm$/i.test(t)) { const d = parseFloat(t); if (!isFinite(d)) { set({ status: '邊上點：距離唔係有效數字' }); return } dist = Math.max(0, d) }
+      else if (/[a-z]/i.test(t)) { set({ status: '邊上點：單位只認「mm」（如 10mm）；純數字 = 0~1 比例' }); return }   // 防「5m」「5cm」被当比例 5→1 静默误读
+      else { const r = parseFloat(t); if (!isFinite(r)) { set({ status: '邊上點：位置唔係有效數字（0~1 或 Nmm）' }); return } ratio = Math.max(0, Math.min(1, r)) }
     }
     set({
       edgePtPick: { mode, ratio, dist, ang },
@@ -16530,7 +16530,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // 否则佢哋若残留会喺 Viewport 拣取优先级抢先 fire 改坏模型（S162 类互斥陷阱，S164 audit HIGH）。
       datumPick: null, holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false, threadFacePick: false, toFacePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false,
       delFaceMode: false, patchMode: false, thickenMode: false, offsetSurfMode: false, extendSurfMode: false, splitFaceMode: false, replaceFaceMode: false, surfTrimMode: false, draftPickMode: 0, boundaryPatchPick: false, faceColorPick: null,
-      status: mode === 'angleplane' ? `🎯 点一条边 → 沿该边建一个倾斜 ${ang}° 嘅参考平面（平面包含该边）` : mode === 'pathplane' ? `🎯 点一条边 → 喺${dist != null ? `距起点 ${dist}mm` : `比例 ${ratio}`}处建【⊥切向】参考平面` : mode === 'edgeaxis' ? '🎯 点一条直边 → 沿该边建一条构造轴（Axis Through Edge）' : mode === 'vertex' ? '🎯 点一条边 → 喺最近【端点(顶点)】落构造点' : mode === 'mid' ? '🎯 点一条边 → 喺【中点】落构造点' : `🎯 点一条边 → 喺${dist != null ? `距起点 ${dist}mm` : `比例 ${ratio}`}处落构造点`,
+      status: mode === 'angleplane' ? `🎯 點一條邊 → 沿該邊建一個傾斜 ${ang}° 嘅參考平面（平面包含該邊）` : mode === 'pathplane' ? `🎯 點一條邊 → 喺${dist != null ? `距起點 ${dist}mm` : `比例 ${ratio}`}處建【⊥切向】參考平面` : mode === 'edgeaxis' ? '🎯 點一條直邊 → 沿該邊建一條構造軸（Axis Through Edge）' : mode === 'vertex' ? '🎯 點一條邊 → 喺最近【端點(頂點)】落構造點' : mode === 'mid' ? '🎯 點一條邊 → 喺【中點】落構造點' : `🎯 點一條邊 → 喺${dist != null ? `距起點 ${dist}mm` : `比例 ${ratio}`}處落構造點`,
     })
   },
   edgePointAt: async (threePt) => {
@@ -16538,7 +16538,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!pk) return
     const cp: [number, number, number] = [threePt[0], -threePt[2], threePt[1]]   // three 世界 → CAD（同 measureEdgeAt）
     const res = await cad.pointOnEdgeAt(cp, pk.mode === 'mid' ? 0.5 : pk.ratio)
-    if (!res) { set({ edgePtPick: null, status: '冇揾到边（请点喺某条边附近再试）' }); return }
+    if (!res) { set({ edgePtPick: null, status: '冇揾到邊（請點喺某條邊附近再試）' }); return }
     // S169：角度平面（Fusion Plane at Angle 过拣中嘅边）—— 平面【包含】该边（法向⊥边切向）、绕边轴转 ang° 倾斜。
     // 做法：种子法向 = ⊥切向（Gram-Schmidt，同 pathplane 套路）→ 绕切向 Rodrigues 旋转 ang° → 平面法向；xd = 边切向（在平面内）。
     // 关键：绕 tt 旋转保持 ⊥ tt（种子⊥tt 旋转后仍⊥tt）→ 边永远 lie-in-plane（dot(n,tt)≈0），同 addAnglePlane 嘅 Rodrigues 公式一致。
@@ -16564,9 +16564,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (pk.mode === 'pathplane') {
       let o = res.at, n = res.tangent
       if (pk.dist != null) {
-        if (!(res.length > 1e-9)) { set({ edgePtPick: null, status: '路径平面：边长近零，无法按距离定位' }); return }
+        if (!(res.length > 1e-9)) { set({ edgePtPick: null, status: '路徑平面：邊長近零，無法按距離定位' }); return }
         const r2 = await cad.pointOnEdgeAt(cp, Math.max(0, Math.min(1, pk.dist / res.length)))
-        if (!r2) { set({ edgePtPick: null, status: '路径平面：距离定位失败，未建平面' }); return }   // 唔好静默退回中点
+        if (!r2) { set({ edgePtPick: null, status: '路徑平面：距離定位失敗，未建平面' }); return }   // 唔好静默退回中点
         o = r2.at; n = r2.tangent
       }
       const nl = Math.hypot(n[0], n[1], n[2]) || 1
@@ -16582,16 +16582,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     // S178：沿边构造轴（Fusion Axis Through Edge）—— 直边：起点锚 + 方向 =(end−start) 归一（确定符号、轴同边重合，唔用中点局部切向）。
     if (pk.mode === 'edgeaxis') {
-      if (!(res.length > 1e-6)) { set({ edgePtPick: null, status: '沿边轴：边长近零，无法定轴' }); return }
+      if (!(res.length > 1e-6)) { set({ edgePtPick: null, status: '沿邊軸：邊長近零，無法定軸' }); return }
       // 圆/弧/样条边：局部切向唔系全局轴 → 拒，导去「🎯拾圆柱面」取真旋转轴（S178 audit P3）
-      if (!/line/i.test(res.kind || '')) { set({ edgePtPick: null, status: `沿边轴只支持【直边】（呢条系 ${res.kind} 边）— 圆/弧/圆柱请用「🎯拾圆柱面」取真旋转轴` }); return }
+      if (!/line/i.test(res.kind || '')) { set({ edgePtPick: null, status: `沿邊軸只支持【直邊】（呢條系 ${res.kind} 邊）— 圓/弧/圓柱請用「🎯拾圓柱面」取真旋轉軸` }); return }
       const d: [number, number, number] = [res.end[0] - res.start[0], res.end[1] - res.start[1], res.end[2] - res.start[2]]
       const L = Math.hypot(d[0], d[1], d[2])
-      if (L < 1e-9) { set({ edgePtPick: null, status: '沿边轴：边端点重合，无法定轴' }); return }
+      if (L < 1e-9) { set({ edgePtPick: null, status: '沿邊軸：邊端點重合，無法定軸' }); return }
       const dv: [number, number, number] = [d[0] / L, d[1] / L, d[2] / L]
       const a2 = [Math.abs(dv[0]), Math.abs(dv[1]), Math.abs(dv[2])]
       const letter = a2[0] >= a2[1] && a2[0] >= a2[2] ? 'X' as const : a2[1] >= a2[2] ? 'Y' as const : 'Z' as const   // 标签主轴；消费方一律食 dirV（同 addAxis2Points/S159）
-      set((s) => ({ edgePtPick: null, caxes: [...s.caxes, { dir: letter, at: res.start, dirV: dv }], status: `已建沿边构造轴（方向 ${dv.map((x) => +x.toFixed(2)).join(',')} @ ${res.start.map((x) => +x.toFixed(1)).join(',')}）— 可做旋转轴/环形阵列轴` }))
+      set((s) => ({ edgePtPick: null, caxes: [...s.caxes, { dir: letter, at: res.start, dirV: dv }], status: `已建沿邊構造軸（方向 ${dv.map((x) => +x.toFixed(2)).join(',')} @ ${res.start.map((x) => +x.toFixed(1)).join(',')}）— 可做旋轉軸/環形陣列軸` }))
       return
     }
     let pt = res.at, tag = `比例 ${pk.ratio}`
@@ -16603,18 +16603,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     // 诚实：pointAt(t) 系【参数】定位 — 直线/圆弧 t 即弧长比例(精确)，但样条/椭圆 t≠弧长 → 比例/距离系近似
     const approx = pk.mode !== 'vertex' && !/line|circle/i.test(res.kind || '') ? `（${res.kind} 边：位置按参数 t、非真弧长 — 比例/距离近似）` : ''
-    set((s) => ({ edgePtPick: null, cpoints: [...s.cpoints, pt], status: `已建边上构造点 (${pt.map((x) => x.toFixed(1)).join(', ')}) · ${tag}${approx} — 可做两点轴/中点/三点平面/批量孔` }))
+    set((s) => ({ edgePtPick: null, cpoints: [...s.cpoints, pt], status: `已建邊上構造點 (${pt.map((x) => x.toFixed(1)).join(', ')}) · ${tag}${approx} — 可做兩點軸/中點/三點平面/批量孔` }))
   },
   // T778：三点平面 / 两点轴 / 中点 — 食最后 N 个构造点（cpoints）
   addPlane3Points: () => {
     const s = get()
-    if (s.cpoints.length < 3) { set({ status: '三点平面：先用「构造点」落 3 个点（用最后 3 个）' }); return }
+    if (s.cpoints.length < 3) { set({ status: '三點平面：先用「構造點」落 3 個點（用最後 3 個）' }); return }
     const [pa, pb, pc] = s.cpoints.slice(-3)
     const v1: [number, number, number] = [pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]]
     const v2: [number, number, number] = [pc[0] - pa[0], pc[1] - pa[1], pc[2] - pa[2]]
     const n: [number, number, number] = [v1[1] * v2[2] - v1[2] * v2[1], v1[2] * v2[0] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]]
     const nl = Math.hypot(n[0], n[1], n[2])
-    if (nl < 1e-6) { set({ status: '三点共线 — 定唔到平面' }); return }
+    if (nl < 1e-6) { set({ status: '三點共線 — 定唔到平面' }); return }
     const nn: [number, number, number] = [n[0] / nl, n[1] / nl, n[2] / nl]
     const xl = Math.hypot(v1[0], v1[1], v1[2]) || 1
     const xd: [number, number, number] = [v1[0] / xl, v1[1] / xl, v1[2] / xl]
@@ -16622,21 +16622,21 @@ export const useApp = create<AppState>((rawSet, get) => {
     void get().addDatumFeature({ base: 'XY', offset: 0, angle: 0, arb: { o: pa, xd, n: nn } }, '已建三点平面（最后 3 个构造点）— 画草图时点佢做基准')
   },
   addAxis2Points: () => set((s) => {
-    if (s.cpoints.length < 2) return { status: '两点轴：先用「构造点」落 2 个点（用最后 2 个）' }
+    if (s.cpoints.length < 2) return { status: '兩點軸：先用「構造點」落 2 個點（用最後 2 個）' }
     const [pa, pb] = s.cpoints.slice(-2)
     const d: [number, number, number] = [pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]]
     const L = Math.hypot(d[0], d[1], d[2])
-    if (L < 1e-6) return { status: '两点重合 — 定唔到轴' }
+    if (L < 1e-6) return { status: '兩點重合 — 定唔到軸' }
     const dv: [number, number, number] = [d[0] / L, d[1] / L, d[2] / L]
     const a2 = [Math.abs(dv[0]), Math.abs(dv[1]), Math.abs(dv[2])]
     const letter = a2[0] >= a2[1] && a2[0] >= a2[2] ? 'X' as const : a2[1] >= a2[2] ? 'Y' as const : 'Z' as const
-    return { caxes: [...s.caxes, { dir: letter, at: pa, dirV: dv }], status: `已建两点轴（${pa.map((x) => x.toFixed(0))} → ${pb.map((x) => x.toFixed(0))}，任意方向）` }
+    return { caxes: [...s.caxes, { dir: letter, at: pa, dirV: dv }], status: `已建兩點軸（${pa.map((x) => x.toFixed(0))} → ${pb.map((x) => x.toFixed(0))}，任意方向）` }
   }),
   addMidpointCPoint: () => set((s) => {
-    if (s.cpoints.length < 2) return { status: '中点：先落 2 个构造点（用最后 2 个）' }
+    if (s.cpoints.length < 2) return { status: '中點：先落 2 個構造點（用最後 2 個）' }
     const [pa, pb] = s.cpoints.slice(-2)
     const m: [number, number, number] = [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2, (pa[2] + pb[2]) / 2]
-    return { cpoints: [...s.cpoints, m], status: `已建中点 (${m.map((x) => x.toFixed(1)).join(', ')})` }
+    return { cpoints: [...s.cpoints, m], status: `已建中點 (${m.map((x) => x.toFixed(1)).join(', ')})` }
   }),
   // T763（S41/构造包②）：拾圆柱面取轴 — 環形阵列/构造轴对话框嘅 🎯 掣。点活动实体嘅圆柱面
   //（孔壁/圆轴/凸台侧面）→ detectFace 出 CAD 坐标轴点+轴向 → 直接写入对话框参数。
@@ -16654,7 +16654,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return { facePatternPicks: picks, status: picks.length ? `已選 ${picks.length} 個面作為陣列對象` : '已清空面選取' }
   }),
   clearFacePatternPicks: () => set({ facePatternPicks: [], status: '已清空 Face Pattern 面選取' }),
-  startCpatAxisPick: () => set({ cpatAxisPick: true, revAxisPtPick: false, holeMode: false, holePos: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, status: '🎯 点一个【圆柱面】（孔壁/圆轴/凸台侧面）— 轴点+方向自动填入对话框' }),
+  startCpatAxisPick: () => set({ cpatAxisPick: true, revAxisPtPick: false, holeMode: false, holePos: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, status: '🎯 點一個【圓柱面】（孔壁/圓軸/凸台側面）— 軸點+方向自動填入對話框' }),
   // T764（S42）：参考图描摹 —— GM-X3 #2/#3：升级为多张 Canvas。canvasImg = 活动 canvas 的旧读数镜像。
   canvasImg: null,
   canvases: [],
@@ -16664,7 +16664,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!url) {   // 旧语义：清活动 canvas（无活动则清全部）
       const list = s.activeCanvas ? s.canvases.filter((c) => c.id !== s.activeCanvas) : []
       const active = list.length ? list[list.length - 1].id : null
-      return { canvases: list, activeCanvas: active, canvasImg: canvasToLegacyImg(list, active), canvasCal: null, status: '已移除参考图' }
+      return { canvases: list, activeCanvas: active, canvasImg: canvasToLegacyImg(list, active), canvasCal: null, status: '已移除參考圖' }
     }
     const ref = { plane: s.sketchPlane as string, baseZ: s.sketchBaseZ, arb: s.sketchArb ? { o: s.sketchArb.o, xd: s.sketchArb.xd, n: s.sketchArb.n } : undefined }
     // 单图旧入口：有活动 canvas → 就地替换（保旧单图语义）；无活动 → 追加新张（【绝不】清掉已载入/已有的其他 canvas）。
@@ -16672,14 +16672,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     let list: CanvasItem[]; let active: string
     if (hasActive) { const c = makeCanvas(s.activeCanvas as string, url, ref); list = s.canvases.map((x) => (x.id === s.activeCanvas ? c : x)); active = s.activeCanvas as string }
     else { const c = makeCanvas(nextCanvasId(s.canvases), url, ref); list = [...s.canvases, c]; active = c.id }
-    return { canvases: list, activeCanvas: active, canvasImg: canvasToLegacyImg(list, active), status: '📷 参考图已贴上草图面 — 用「宽度」调大小（或「📐标定」两点定比例）、「透明」调深浅，然后照住描轮廓' }
+    return { canvases: list, activeCanvas: active, canvasImg: canvasToLegacyImg(list, active), status: '📷 參考圖已貼上草圖面 — 用「寬度」調大小（或「📐標定」兩點定比例）、「透明」調深浅，然後照住描輪廓' }
   }),
   // GM-X3 #2：追加多一张 canvas（不替换现有），激活新张。多张 = Fusion Canvases 文件夹语义 → 建模态也显示（renderable）。
   addCanvas: (url) => set((s) => {
     const ref = { plane: s.sketchPlane as string, baseZ: s.sketchBaseZ, arb: s.sketchArb ? { o: s.sketchArb.o, xd: s.sketchArb.xd, n: s.sketchArb.n } : undefined }
     const c = makeCanvas(nextCanvasId(s.canvases), url, ref, { renderable: true })
     const list = [...s.canvases, c]
-    return { canvases: list, activeCanvas: c.id, canvasImg: canvasToLegacyImg(list, c.id), status: `📷 已加参考图（第 ${list.length} 张）— ◀▶ 切换 · 逐张可设缩放/旋转/翻转/入存档` }
+    return { canvases: list, activeCanvas: c.id, canvasImg: canvasToLegacyImg(list, c.id), status: `📷 已加參考圖（第 ${list.length} 張）— ◀▶ 切換 · 逐張可設縮放/旋轉/翻轉/入存檔` }
   }),
   updateCanvasImg: (p) => set((s) => {
     if (!s.activeCanvas) return {}
@@ -16694,32 +16694,32 @@ export const useApp = create<AppState>((rawSet, get) => {
   removeCanvas: (id) => set((s) => {
     const list = s.canvases.filter((c) => c.id !== id)
     const active = s.activeCanvas === id ? (list.length ? list[list.length - 1].id : null) : s.activeCanvas
-    return { canvases: list, activeCanvas: active, canvasImg: canvasToLegacyImg(list, active), status: `已删除参考图${list.length ? `（剩 ${list.length} 张）` : ''}` }
+    return { canvases: list, activeCanvas: active, canvasImg: canvasToLegacyImg(list, active), status: `已刪除參考圖${list.length ? `（剩 ${list.length} 張）` : ''}` }
   }),
   cycleCanvas: (dir) => set((s) => {
     if (s.canvases.length < 2) return {}
     const i = Math.max(0, s.canvases.findIndex((c) => c.id === s.activeCanvas))
     const ni = (i + dir + s.canvases.length) % s.canvases.length
     const active = s.canvases[ni].id
-    return { activeCanvas: active, canvasImg: canvasToLegacyImg(s.canvases, active), status: `参考图 ${ni + 1}/${s.canvases.length}` }
+    return { activeCanvas: active, canvasImg: canvasToLegacyImg(s.canvases, active), status: `參考圖 ${ni + 1}/${s.canvases.length}` }
   }),
   canvasCal: null,
-  startCanvasCal: () => set((s) => (s.activeCanvas ? { canvasCal: [], status: '📐 标定比例：喺图上点【两个】已知距离嘅点（例：尺/零件两端）→ 输入实际 mm' } : { status: '先上传参考图（📷）再标定' })),
+  startCanvasCal: () => set((s) => (s.activeCanvas ? { canvasCal: [], status: '📐 標定比例：喺圖上點【兩個】已知距離嘅點（例：尺/零件兩端）→ 輸入實際 mm' } : { status: '先上傳參考圖（📷）再標定' })),
   applyCpatAxisPick: (det) => set((s) => {
-    if (!det) return { status: '要点【圆柱面】先有轴 — 平面冇轴向（揾孔壁/圆轴/圆凸台侧面点）' }
+    if (!det) return { status: '要點【圓柱面】先有軸 — 平面冇軸向（揾孔壁/圓軸/圓凸台側面點）' }
     if (!s.featDlg) return { cpatAxisPick: false }
     const r1 = (n: number) => Math.round(n * 10) / 10
     const r3 = (n: number) => Math.round(n * 1000) / 1000
     // WIN 2：revolve 同 circpattern 共用 ox/oy/oz/dx/dy/dz 覆写层 → 拾圆柱面填入旋转轴（偏心车削）
     if (s.featDlg.kind === 'circpattern' || s.featDlg.kind === 'revolve') {
-      return { cpatAxisPick: false, featDlg: { ...s.featDlg, params: { ...s.featDlg.params, ox: r1(det.p[0]), oy: r1(det.p[1]), oz: r1(det.p[2]), dx: r3(det.axis[0]), dy: r3(det.axis[1]), dz: r3(det.axis[2]) } }, status: `已拾取圆柱轴（R${det.r.toFixed(1)}）— 轴点/方向已填入` }
+      return { cpatAxisPick: false, featDlg: { ...s.featDlg, params: { ...s.featDlg.params, ox: r1(det.p[0]), oy: r1(det.p[1]), oz: r1(det.p[2]), dx: r3(det.axis[0]), dy: r3(det.axis[1]), dz: r3(det.axis[2]) } }, status: `已拾取圓柱軸（R${det.r.toFixed(1)}）— 軸點/方向已填入` }
     }
     if (s.featDlg.kind === 'caxis') {
       const a = [Math.abs(det.axis[0]), Math.abs(det.axis[1]), Math.abs(det.axis[2])]
       const m = Math.max(a[0], a[1], a[2])
       const letter = a[0] === m ? 'X' : a[1] === m ? 'Y' : 'Z'
       const off = Math.acos(Math.min(1, m / (Math.hypot(det.axis[0], det.axis[1], det.axis[2]) || 1))) * 180 / Math.PI
-      return { cpatAxisPick: false, featDlg: { ...s.featDlg, params: { ...s.featDlg.params, dir: letter, x: r1(det.p[0]), y: r1(det.p[1]), z: r1(det.p[2]), _srcP: det.p.join(','), _srcAxis: det.axis.join(',') } }, status: `已拾取圆柱轴 → ${letter} 轴 @ (${r1(det.p[0])}, ${r1(det.p[1])}, ${r1(det.p[2])})${off > 5 ? `（真实轴向已保留 dirV）` : ''}` }   // datum 关联化：真实轴向经 _src* 透传 commit（旧路只存正交字母 = 精度损失+冇 provenance）
+      return { cpatAxisPick: false, featDlg: { ...s.featDlg, params: { ...s.featDlg.params, dir: letter, x: r1(det.p[0]), y: r1(det.p[1]), z: r1(det.p[2]), _srcP: det.p.join(','), _srcAxis: det.axis.join(',') } }, status: `已拾取圓柱軸 → ${letter} 軸 @ (${r1(det.p[0])}, ${r1(det.p[1])}, ${r1(det.p[2])})${off > 5 ? `（真實軸向已保留 dirV）` : ''}` }   // datum 关联化：真实轴向经 _src* 透传 commit（旧路只存正交字母 = 精度损失+冇 provenance）
     }
     return { cpatAxisPick: false }
   }),
@@ -16727,15 +16727,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 方向唔变（用对话框 X/Y/Z 钮设）。只对 revolve 对话框有效。
   revAxisPtPick: false,
   startRevAxisPtPick: () => set((s) => (s.featDlg?.kind === 'revolve'
-    ? { revAxisPtPick: true, cpatAxisPick: false, status: '🎯 点一个【中心点】（构造点/圆心/构造轴原点/原点）做旋转轴经过点 — 会自动 snap 到最近中心；再撳 X/Y/Z 设方向' }
-    : { status: '拾中心点只用于旋转：先开「旋转」对话框' })),
+    ? { revAxisPtPick: true, cpatAxisPick: false, status: '🎯 點一個【中心點】（構造點/圓心/構造軸原點/原點）做旋轉軸經過點 — 會自動 snap 到最近中心；再撳 X/Y/Z 設方向' }
+    : { status: '拾中心點只用於旋轉：先開「旋轉」對話框' })),
   applyRevAxisPtPick: (pt) => set((s) => {
     // GM-3DV1 S15：点空（冇 snap 到中心点）唔好静默清拾取槽 —— 槽保持 active（黏住），畀用户再点。仅对话框关咗/切走先清。
     if (!s.featDlg || s.featDlg.kind !== 'revolve') return { revAxisPtPick: false }
-    if (!pt) return { status: '未拾到中心点 — 再点一个中心点（构造点/圆心/构造轴原点/原点）；或撳其它字段退出拾取' }
+    if (!pt) return { status: '未拾到中心點 — 再點一個中心點（構造點/圓心/構造軸原點/原點）；或撳其它字段退出拾取' }
     // S173 audit (LOW)：球拾传入嘅系【精确中心坐标】→ 存原值唔 r1（保「拾中心 = 精确中心」承诺）；r1 只用于状态显示。
     const r1 = (n: number) => Math.round(n * 10) / 10
-    return { revAxisPtPick: false, featDlg: { ...s.featDlg, params: { ...s.featDlg.params, ox: pt[0], oy: pt[1], oz: pt[2] } }, status: `已拾旋转轴点 (${r1(pt[0])}, ${r1(pt[1])}, ${r1(pt[2])}) — 撳 X/Y/Z 设方向，或改「方向」分量` }
+    return { revAxisPtPick: false, featDlg: { ...s.featDlg, params: { ...s.featDlg.params, ox: pt[0], oy: pt[1], oz: pt[2] } }, status: `已拾旋轉軸點 (${r1(pt[0])}, ${r1(pt[1])}, ${r1(pt[2])}) — 撳 X/Y/Z 設方向，或改「方向」分量` }
   }),
   commitFeatDlg: async () => {
     const d = get().featDlg
@@ -16783,14 +16783,14 @@ export const useApp = create<AppState>((rawSet, get) => {
         const sx = +p.sx || 0, sy = +p.sy || 0
         for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) pts.push([col * sx - (cols - 1) * sx / 2, row * sy - (rows - 1) * sy / 2, z])
       }
-      set((s) => ({ featDlg: null, cpoints: [...s.cpoints, ...pts], status: `已建 ${pts.length} 个构造点（${String(p.mode) === 'polar' ? '极坐标' : '矩形'}阵列）` }))
+      set((s) => ({ featDlg: null, cpoints: [...s.cpoints, ...pts], status: `已建 ${pts.length} 個構造點（${String(p.mode) === 'polar' ? '極座標' : '矩形'}陣列）` }))
       return
     }
     if (d.kind === 'cpoint') { set((s) => ({ featDlg: null, cpoints: [...s.cpoints, [+p.x, +p.y, +p.z]], status: `已建構造點 (${+p.x},${+p.y},${+p.z})` })); return }
     // T770：齿轮箱向导 — 产物系 components（齿轮组+关节+运动连接），唔入时间轴，早退分支
     if (d.kind === 'gearbox') {
       const ratio = +p.ratio
-      if (!(Number.isFinite(ratio) && ratio >= 1)) { set({ status: '目标速比要 ≥1（减速比；要增速对调输入输出）' }); return }
+      if (!(Number.isFinite(ratio) && ratio >= 1)) { set({ status: '目標速比要 ≥1（減速比；要增速對調輸入輸出）' }); return }
       set({ featDlg: null })
       void get().buildGearTrain({ ratio, m: Math.max(0.5, +p.m), stages: Math.max(0, Math.round(+(p.stages || 0))), th: Math.max(2, +p.th), bore: Math.max(0, +p.bore), helix: +(p.helix || 0) })
       return
@@ -16801,7 +16801,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const bop = (p.op === 'fuse' || p.op === 'common' || p.op === 'cut') ? p.op as 'fuse' | 'cut' | 'common' : 'cut'
       // 收集勾选嘅工具索引；按【降序】排，咁 worker splice(target) 唔会令未处理嘅索引偏移。
       const tools = parked.map((_, i) => i).filter((i) => +(p['tool' + i] ?? 0) > 0).sort((a, b) => b - a)
-      if (!tools.length) { set({ status: '合并：至少勾选一个工具体' }); return }
+      if (!tools.length) { set({ status: '合併：至少勾選一個工具體' }); return }
       const keep = +(p.keepTools ?? 0) > 0   // S185 Keep Tools：保留工具体（可复用 / 留独立体）
       const feats: Feature[] = tools.map((t) => ({ id: fid(), type: 'bodyboolean', bop, target: t, keep: keep || undefined }))
       set({ featDlg: null })
@@ -16812,7 +16812,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const parked = get().bodyMesh?.parked ?? []
       const target = Math.round(+p.target)
       const cell = p.cell === 'target' || p.cell === 'tool' || p.cell === 'overlap' ? p.cell : 'overlap'
-      if (!Number.isInteger(target) || target < 0 || target >= parked.length) { set({ status: 'Boundary Fill：请选择有效工具实体' }); return }
+      if (!Number.isInteger(target) || target < 0 || target >= parked.length) { set({ status: 'Boundary Fill：請選擇有效工具實體' }); return }
       set({ featDlg: null })
       const cellName = cell === 'target' ? '目标独有' : cell === 'tool' ? '工具独有' : '交集'
       await get().applyFeatures([...get().features, { id: fid(), type: 'boundaryfill', target, cell }], `已 Boundary Fill：保留「${cellName}」cell；其余有效 cell 已作为独立实体保留（两封闭实体范围，B-rep 级／时间轴可改）`)
@@ -16821,10 +16821,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (d.kind === 'automatedmodel') {
       const picks = ((d.payload as { picks?: { p: [number, number, number]; n: [number, number, number] }[] } | undefined)?.picks ?? [])
       const radius = +p.radius
-      if (picks.length !== 2) { set({ status: 'Automated Modeling：请在画布选取两张平面面。' }); return }
-      if (!(Number.isFinite(radius) && radius > 0)) { set({ status: 'Automated Modeling：连接半径必须大于 0。' }); return }
+      if (picks.length !== 2) { set({ status: 'Automated Modeling：請在畫布選取兩張平面面。' }); return }
+      if (!(Number.isFinite(radius) && radius > 0)) { set({ status: 'Automated Modeling：連接半徑必須大於 0。' }); return }
       const a = picks[0].p, b = picks[1].p
-      if (Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) <= 1e-5) { set({ status: 'Automated Modeling：两张面中心重合，请选不同的平面面。' }); return }
+      if (Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) <= 1e-5) { set({ status: 'Automated Modeling：兩張面中心重合，請選不同的平面面。' }); return }
       set({ featDlg: null })
       await get().applyFeatures([...get().features, { id: fid(), type: 'automatedmodel', a, b, radius, op: 'newbody' }], `已建立 Automated Modeling Connector v1：两张平面面中心之间 R${radius} 连接器（New Body；时间轴可改）。`)
       return
@@ -16834,17 +16834,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (d.kind === 'pathpattern') {
       const pay = d.payload as { path?: [number, number][]; path3?: [number, number, number][] } | undefined
       const path = pay?.path ?? []
-      if (path.length < 2) { set({ status: '路径阵列：冇有效路径' }); return }
+      if (path.length < 2) { set({ status: '路徑陣列：冇有效路徑' }); return }
       const count = Math.round(+p.count)
-      if (!Number.isFinite(count) || count < 2) { set({ status: '路径阵列：数量至少为 2（非法值已拒绝，原模型不变）' }); return }
-      if (count > 100) { set({ status: '路径阵列：数量上限 100' }); return }
+      if (!Number.isFinite(count) || count < 2) { set({ status: '路徑陣列：數量至少為 2（非法值已拒絕，原模型不變）' }); return }
+      if (count > 100) { set({ status: '路徑陣列：數量上限 100' }); return }
       const orient = p.orient === 'path' ? 'path' as const : 'identical' as const
       const wantsFeature = p.target === 'feature'
       const selected = (get().selectedFeatures.length ? get().selectedFeatures : [get().selectedFeature]).filter((id): id is string => typeof id === 'string')
       const existingPattern = d.editId ? get().features.find((f) => f.id === d.editId) : undefined
       const retainedTargets = wantsFeature && existingPattern?.type === 'pathpattern' ? existingPattern.targets : undefined
       const targets = wantsFeature ? (selected.filter((id) => get().features.some((f) => f.id === id)).length ? selected.filter((id) => get().features.some((f) => f.id === id)) : retainedTargets) : undefined
-      if (wantsFeature && !targets?.length) { set({ status: '路径阵列（所选特征）：先喺时间轴选中要复制嘅特征，再按确定（Ctrl+点可多选）' }); return }
+      if (wantsFeature && !targets?.length) { set({ status: '路徑陣列（所選特徵）：先喺時間軸選中要複製嘅特徵，再按確定（Ctrl+點可多選）' }); return }
       set({ featDlg: null, revAxisPtPick: false })
       if (d.editId) {
         await get().editFeature(d.editId, { count, targets, orient })
@@ -16868,7 +16868,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (d.kind === 'rib') {
       const pay = d.payload as { paths?: [number, number][][]; baseZ?: number; arb?: ArbBasis; isWeb?: boolean } | undefined
       const paths = pay?.paths ?? []
-      if (!paths.length) { set({ featDlg: null, status: '加强筋：冇有效路径' }); return }
+      if (!paths.length) { set({ featDlg: null, status: '加強筋：冇有效路徑' }); return }
       const thickness = Math.max(0.1, +p.thickness || 6)
       const height = Math.max(0.1, +p.height || 20)
       const draft = +p.draft || 0
@@ -16896,7 +16896,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (d.kind === 'pipe') {
       const pay = d.payload as { path?: [number, number][]; smooth?: boolean } | undefined
       let path = pay?.path ?? []
-      if (path.length < 2) { set({ featDlg: null, status: '管道：冇有效路径' }); return }
+      if (path.length < 2) { set({ featDlg: null, status: '管道：冇有效路徑' }); return }
       const size = Math.max(0.1, +p.size || 24)
       const hollow = +(p.hollow || 0) > 0
       const thickness = Math.max(0.01, +p.thickness || 4)
@@ -16911,7 +16911,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         path = out.length >= 2 ? out : path.slice(0, 2)
       }
       const outerR = size / 2, innerR = outerR - thickness
-      if (hollow && innerR <= 0.05) { set({ status: '管道：壁厚过大（≥外半径），减小壁厚或加大尺寸' }); return }
+      if (hollow && innerR <= 0.05) { set({ status: '管道：壁厚過大（≥外半徑），減小壁厚或加大尺寸' }); return }
       const sm = pay?.smooth ? { smoothPath: true } : {}
       set({ featDlg: null, revAxisPtPick: false })
       const feats: Feature[] = []
@@ -16933,7 +16933,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const sa = typeof p._srcAxis === 'string' && p._srcAxis ? p._srcAxis.split(',').map(Number) as [number, number, number] : null
       const al = sa ? Math.hypot(sa[0], sa[1], sa[2]) || 1 : 1
       const ua = sa ? [sa[0] / al, sa[1] / al, sa[2] / al] as [number, number, number] : null
-      set((s) => ({ featDlg: null, caxes: [...s.caxes, { dir: p.dir as 'X' | 'Y' | 'Z', at: [+p.x, +p.y, +p.z] as [number, number, number], ...(ua && sp ? { dirV: ua, src: { kind: 'cylAxis' as const, near: sp, seedAxis: ua } } : {}) }], status: `已建构造轴 ${p.dir} 轴 @(${+p.x},${+p.y},${+p.z})${ua ? '（🔗关联源圆柱 · 真实轴向）' : ''}` }))
+      set((s) => ({ featDlg: null, caxes: [...s.caxes, { dir: p.dir as 'X' | 'Y' | 'Z', at: [+p.x, +p.y, +p.z] as [number, number, number], ...(ua && sp ? { dirV: ua, src: { kind: 'cylAxis' as const, near: sp, seedAxis: ua } } : {}) }], status: `已建構造軸 ${p.dir} 軸 @(${+p.x},${+p.y},${+p.z})${ua ? '（🔗關聯源圓柱 · 真實軸向）' : ''}` }))
       return
     }
     // Positive-dimension guard for the gear-family generators — reject ≤0 size so bad input gets a clear
@@ -16943,14 +16943,14 @@ export const useApp = create<AppState>((rawSet, get) => {
         : d.kind === 'rack' ? { 模数: +p.module, 长度: +p.length, 厚度: +p.thickness }
         : { 外径: +p.diameter, 宽度: +p.width }
       const bad = Object.entries(need).find(([, v]) => !(Number.isFinite(v) && v > 0))
-      if (bad) { set({ status: `${bad[0]} 要大于 0（请填正数）` }); return }
+      if (bad) { set({ status: `${bad[0]} 要大於 0（請填正數）` }); return }
     }
     // P2：缩放基准点（px/py/pz 全 0 = 世界原点 = 旧行为，唔写入 feature 保持旧档逐字节）
     const scalePt = (pp: Record<string, number | string>) => { const px = +(pp.px || 0), py = +(pp.py || 0), pz = +(pp.pz || 0); const hasPt = px !== 0 || py !== 0 || pz !== 0; return { px: px || undefined, py: py || undefined, pz: pz || undefined, ...(hasPt ? {} : { anchorCenter: true }) } }   // review：恒发（0→undefined=edit 清返世界原点=删 key）；无显式点 → anchorCenter，worker 用 bbox 中心锚（免离心体飞走）
     let f: Feature
     let msg: string
     // P2 Edit Feature：edit-kind 早特判 — 只 patch 标量/enum；array/pick（nears/radii 冇改时/profile/toFace）靠 editFeature 淺合并+undefined 过滤透传
-    if (d.kind === 'extrude-edit' && !(Math.abs(dimensionExpression(String(p.heightExpr ?? p.height), get().params, evalExpr, 'mm', d.expressionContext?.refs, Number(p.heightExprScale ?? 1)).value ?? 0) > 1e-6)) { set({ status: '请输入非零拉伸距离' }); return }
+    if (d.kind === 'extrude-edit' && !(Math.abs(dimensionExpression(String(p.heightExpr ?? p.height), get().params, evalExpr, 'mm', d.expressionContext?.refs, Number(p.heightExprScale ?? 1)).value ?? 0) > 1e-6)) { set({ status: '請輸入非零拉伸距離' }); return }
     if (d.editId && (d.kind === 'extrude-edit' || d.kind === 'fillet-edit' || d.kind === 'chamfer-edit' || d.kind === 'shell-edit')) {
       let patch: Record<string, number | string | number[] | boolean | undefined>
       if (d.kind === 'extrude-edit') {
@@ -17010,12 +17010,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else if (d.kind === 'pattern') {
       const facePicks = get().facePatternPicks
       if (p.objectType === 'faces' && !d.editId && !facePicks.length) { set({ status: '矩形 Face Pattern：請按「🎯選面」並在畫布選至少一個面' }); return }
-      if (p.objectType !== 'features' && p.objectType !== 'components' && p.objectType !== 'faces' && !+p.objectPicked) { set({ status: '矩形阵列：先在 Objects 按「选择」确认活动实体' }); return }
+      if (p.objectType !== 'features' && p.objectType !== 'components' && p.objectType !== 'faces' && !+p.objectPicked) { set({ status: '矩形陣列：先在 Objects 按「選擇」確認活動實體' }); return }
       const cX = Math.round(+p.countX), cY = Math.round(+p.countY), cZ = Math.round(+(p.countZ ?? 1))
       // SO12：非法数量原子拒绝（唔 clamp 成 1/2 后照提交）— 0/负/NaN 或总副本 <2 都拒，对话框保持开、历史唔变
-      if (![cX, cY, cZ].every((n) => Number.isFinite(n) && n >= 1)) { set({ status: '矩形阵列：X/Y/Z 数量须为正整数（≥1）' }); return }
-      if (cX * cY * cZ < 2) { set({ status: '矩形阵列：总副本数至少为 2（例如 2×1×1）；1×1×1 等于冇阵列' }); return }
-      if (cX * cY * cZ > 400) { set({ status: `阵列总数 ${cX}×${cY}×${cZ} 太多（上限 400）— 每个副本要做一次布尔，会很慢/卡。请减少数量` }); return }
+      if (![cX, cY, cZ].every((n) => Number.isFinite(n) && n >= 1)) { set({ status: '矩形陣列：X/Y/Z 數量須為正整數（≥1）' }); return }
+      if (cX * cY * cZ < 2) { set({ status: '矩形陣列：總副本數至少為 2（例如 2×1×1）；1×1×1 等於冇陣列' }); return }
+      if (cX * cY * cZ > 400) { set({ status: `陣列總數 ${cX}×${cY}×${cZ} 太多（上限 400）— 每個副本要做一次布爾，會很慢/卡。請減少數量` }); return }
       // Face Pattern is a B-rep surface-copy feature. Components are handled below as occurrences.
       // T781：特征级矩形阵列 — 同環形阵列一样食时间轴所选特征（孔阵/凸台阵唔郁实体其余部分）
       let ptTargets: string[] | undefined
@@ -17028,9 +17028,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         const selFs = get().selectedFeatures.length ? get().selectedFeatures : (get().selectedFeature ? [get().selectedFeature as string] : [])
         if (!selFs.length) { set({ status: '矩形陣列（所選特徵）：先喺時間軸單擊選中要陣列嘅特徵，再撳確定（Ctrl+點可多選）' }); return }
         const _live = selFs.filter((fid2) => get().features.some((x) => x.id === fid2))
-        if (!_live.length) { set({ status: '所选特征已唔存在 — 重新选' }); return }
+        if (!_live.length) { set({ status: '所選特徵已唔存在 — 重新選' }); return }
         { const _nb = _live.map((fid2) => get().features.find((x) => x.id === fid2) as { operation?: string; op?: string } | undefined).filter((tf) => tf && ((tf.operation ?? tf.op) === 'newbody'))
-          if (_nb.length) { set({ status: '「⬡新实体」特征系独立泊车体 — 特征级阵列/镜像 v1 唔适用（snapshot-delta 捕唔到泊车几何）。改用 合并布尔 或对成件实体阵列' }); return } }
+          if (_nb.length) { set({ status: '「⬡新實體」特徵系獨立泊車體 — 特徵級陣列/鏡像 v1 唔適用（snapshot-delta 捕唔到泊車幾何）。改用 合併布爾 或對成件實體陣列' }); return } }
         // Arbitrary-plane feature pattern: derive a stable local Y = normal × local-X.
         // Multiple targets are valid only when they share exactly one sketch plane; mixing planes
         // would make one Direction-1/2 pair ambiguous (Fusion likewise requires a coherent pattern basis).
@@ -17040,10 +17040,10 @@ export const useApp = create<AppState>((rawSet, get) => {
         })
         if (arbBases.some(Boolean)) {
           const base = arbBases[0]
-          if (!base || arbBases.some((a) => !_arbEq(a, base))) { set({ status: '矩形阵列（所选特征）：一次只可阵列同一个斜面草图基准嘅特征；请分开选择不同斜面嘅特征' }); return }
+          if (!base || arbBases.some((a) => !_arbEq(a, base))) { set({ status: '矩形陣列（所選特徵）：一次只可陣列同一個斜面草圖基準嘅特徵；請分開選擇不同斜面嘅特徵' }); return }
           const y: [number, number, number] = [base.n[1] * base.xd[2] - base.n[2] * base.xd[1], base.n[2] * base.xd[0] - base.n[0] * base.xd[2], base.n[0] * base.xd[1] - base.n[1] * base.xd[0]]
           const yl = Math.hypot(y[0], y[1], y[2])
-          if (yl < 1e-9) { set({ status: '矩形阵列（所选特征）：斜面局部方向无效，无法建立阵列基准' }); return }
+          if (yl < 1e-9) { set({ status: '矩形陣列（所選特徵）：斜面局部方向無效，無法建立陣列基準' }); return }
           sketchLocalDirs = { dir1: [...base.xd] as [number, number, number], dir2: [y[0] / yl, y[1] / yl, y[2] / yl] }
         }
         ptTargets = _live
@@ -17063,7 +17063,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const spc = (v: number, c: number) => (ext ? (c > 1 ? v / (c - 1) : 0) : v)
       const sdx = spc(+p.dx, cX), sdy = spc(+p.dy, cY), sdz = spc(+(p.dz || 60), cZ)
       // GM-L2 #68：数量>1 嘅方向若有效间距为 0 → 副本全叠喺同一位（几何同原件一样，状态却报「已阵列」）→ 拒绝并保持对话框开（同 featurePatternSketch 零间距守卫一致）
-      if ((cX > 1 && Math.abs(sdx) < 1e-6) || (cY > 1 && Math.abs(sdy) < 1e-6) || (cZ > 1 && Math.abs(sdz) < 1e-6)) { set({ status: '矩形阵列：数量>1 嘅方向间距唔可以係 0（副本会全叠喺一齐，等于乜都冇变）— 填间距或将该方向数量改返 1' }); return }
+      if ((cX > 1 && Math.abs(sdx) < 1e-6) || (cY > 1 && Math.abs(sdy) < 1e-6) || (cZ > 1 && Math.abs(sdz) < 1e-6)) { set({ status: '矩形陣列：數量>1 嘅方向間距唔可以係 0（副本會全疊喺一齊，等於乜都冇變）— 填間距或將該方向數量改返 1' }); return }
       // GM-3DV1 S3：逐实例抑制遮罩 — 解析逗号分隔实例索引（0=seed，(i*cy+j)*cz+k 顺序）→ boolean[]；compute/objectType 直通元数据。
       const suppress = parseSuppressMask(p.suppress, cX * cY * cZ)
       const compute = (p.compute === 'identical' || p.compute === 'adjust') ? p.compute as 'identical' | 'adjust' : undefined
@@ -17071,9 +17071,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (p.objectType === 'components') {
         const ids = get().checkedComps.length ? [...get().checkedComps] : (get().selectedComponent ? [get().selectedComponent] : [])
         const seeds = get().components.filter((c) => ids.includes(c.id))
-        if (!seeds.length) { set({ status: '组件阵列：先喺装配树勾选 ☑ 或画布选中组件，再撳确定' }); return }
+        if (!seeds.length) { set({ status: '組件陣列：先喺裝配樹勾選 ☑ 或畫布選中組件，再撳確定' }); return }
         const total = cX * cY * cZ
-        if (seeds.length * total > 400) { set({ status: `组件阵列总数 ${seeds.length}×${total} 太多（上限 400）— 请减少组件或数量` }); return }
+        if (seeds.length * total > 400) { set({ status: `組件陣列總數 ${seeds.length}×${total} 太多（上限 400）— 請減少組件或數量` }); return }
         const copies: typeof seeds = []
         // Keep Component occurrences on the same Direction-1/2 contract as body/feature
         // patterns.  `pos` is CAD-space, so no viewport coordinate conversion is needed.
@@ -17095,7 +17095,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           if ((Math.abs(ii) < 1e-9 && Math.abs(jj) < 1e-9 && Math.abs(kk) < 1e-9) || suppress?.[suppressIndex]) continue
           copies.push({ ...src, id: nextCid([...get().components, ...copies]), name: `${src.name}:${suppressIndex + 1}`, pos: [src.pos[0] + ii * sdx * cu1[0] + jj * sdy * cu2[0], src.pos[1] + ii * sdx * cu1[1] + jj * sdy * cu2[1], src.pos[2] + kk * sdz + ii * sdx * cu1[2] + jj * sdy * cu2[2]] as [number, number, number] })
         }
-        set({ undoStack: [...get().undoStack, docSnap(get())].slice(-60), redoStack: [], components: [...get().components, ...copies], featDlg: null, status: `已矩形阵列 ${seeds.length} 个组件 ×${cX}×${cY}${cZ > 1 ? '×' + cZ : ''}（加 ${copies.length} 个 occurrence；共享组件定义${dir1 || dir2 ? ' · 构造轴方向' : ''}）` })
+        set({ undoStack: [...get().undoStack, docSnap(get())].slice(-60), redoStack: [], components: [...get().components, ...copies], featDlg: null, status: `已矩形陣列 ${seeds.length} 個組件 ×${cX}×${cY}${cZ > 1 ? '×' + cZ : ''}（加 ${copies.length} 個 occurrence；共享組件定義${dir1 || dir2 ? ' · 構造軸方向' : ''}）` })
         return
       }
       const faceNears = facePicks.length ? facePicks : ((d.editId ? get().features.find((x) => x.id === d.editId) : undefined) as any)?.nears ?? []
@@ -17131,7 +17131,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else if (d.kind === 'ithread') {
       // P2：内螺纹对话框 commit — 直接走 addInternalThread（同 pattern/revolve 一样早 return，唔行共享尾）
       const dd = +p.d, pp2 = +p.pitch, hh = +p.height
-      if (!(dd > 0 && pp2 > 0 && hh > 0)) { set({ status: '内螺纹：公称Ø/螺距/深度都要大于 0' }); return }
+      if (!(dd > 0 && pp2 > 0 && hh > 0)) { set({ status: '內螺紋：公稱Ø/螺距/深度都要大於 0' }); return }
       // GM-3DV1 S11：cls/standard 元数据；局部长度 → z0 加偏移 toff
       const iFull = !!+(p.fullLen ?? 1)
       const iToff = iFull ? 0 : Math.max(0, +(p.toff || 0))
@@ -17158,7 +17158,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // Positive-dimension guard (consistent with prim/gear guards): reject ≤0 → clear message, dialog stays open.
       const smNeed: Record<string, number> = { 板厚: +p.thickness, 宽度: +p.width, 折弯半径: +p.radius, 边A: A, 边B: B }
       const smBad = Object.entries(smNeed).find(([, v]) => !(Number.isFinite(v) && v > 0))
-      if (smBad) { set({ status: `${smBad[0]} 要大于 0（请填正数）` }); return }
+      if (smBad) { set({ status: `${smBad[0]} 要大於 0（請填正數）` }); return }
       const preset = (p.preset as string) || 'L'
       // Preset → cross-section (straight runs `segs` joined by `angles` between them).
       const segs = preset === 'L' ? [A, B] : preset === 'Z' ? [B, A, B] : [B, A, B]   // U & Z share the 3-run pattern
@@ -17170,32 +17170,32 @@ export const useApp = create<AppState>((rawSet, get) => {
       msg = `已建钣金件 ${preset} 型（厚${T} 折弯R${R}）— 展开料长 ${DL.toFixed(1)}mm × 宽${+p.width}${flat ? '（展开图）' : ''}`
     } else if (d.kind === 'cpattern') {
       const cnt = Math.round(+p.count)
-      if (!Number.isFinite(cnt) || cnt < 2) { set({ status: '环形阵列：数量至少为 2（非法值已拒绝，原模型不变）' }); return }
-      if (cnt > 400) { set({ status: `环形阵列数量 ${cnt} 太多（上限 400）— 每个副本要做一次布尔，会很慢/卡。请减少` }); return }
+      if (!Number.isFinite(cnt) || cnt < 2) { set({ status: '環形陣列：數量至少為 2（非法值已拒絕，原模型不變）' }); return }
+      if (cnt > 400) { set({ status: `環形陣列數量 ${cnt} 太多（上限 400）— 每個副本要做一次布爾，會很慢/卡。請減少` }); return }
       f = { id: fid(), type: 'cpattern', count: cnt, angle: +p.angle, axis: p.axis as 'X' | 'Y' | 'Z', cx: +(p.cx || 0), cy: +(p.cy || 0), cz: +(p.cz || 0) }
       const offCtr = (+(p.cx || 0) || +(p.cy || 0) || +(p.cz || 0))
       msg = `已环形阵列 ×${f.count}（绕 ${f.axis} 轴 ${f.angle}°${offCtr ? ` @中心(${f.cx},${f.cy},${f.cz})` : ''}）`
     } else if (d.kind === 'circpattern') {
       const circFacePicks = get().facePatternPicks
       if (p.objectType === 'faces' && !d.editId && !circFacePicks.length) { set({ status: '環形 Face Pattern：請按「🎯選面」並在畫布選至少一個面' }); return }
-      if (p.objectType !== 'features' && p.objectType !== 'components' && p.objectType !== 'faces' && !+p.objectPicked) { set({ status: '环形阵列：先在 Objects 按「选择」确认活动实体' }); return }
+      if (p.objectType !== 'features' && p.objectType !== 'components' && p.objectType !== 'faces' && !+p.objectPicked) { set({ status: '環形陣列：先在 Objects 按「選擇」確認活動實體' }); return }
       // T757：Fusion 級環形阵列 — 对象（实体/所选特征）+ 任意轴 + full/angle/sym
       const cnt = Math.round(+p.count)
       // SO12：非法数量原子拒绝（唔再 Math.max 静默夹成 2）
-      if (!Number.isFinite(cnt) || cnt < 2) { set({ status: '环形阵列：数量至少为 2（非法值已拒绝，原模型不变）' }); return }
-      if (cnt > 400) { set({ status: `环形阵列数量 ${cnt} 太多（上限 400）— 每个副本要做一次布尔，会很慢/卡。请减少` }); return }
+      if (!Number.isFinite(cnt) || cnt < 2) { set({ status: '環形陣列：數量至少為 2（非法值已拒絕，原模型不變）' }); return }
+      if (cnt > 400) { set({ status: `環形陣列數量 ${cnt} 太多（上限 400）— 每個副本要做一次布爾，會很慢/卡。請減少` }); return }
       // Face Pattern is handled by the worker as B-rep surface copies; components use occurrences below.
       const dir: [number, number, number] = [+(p.dx || 0), +(p.dy || 0), +(p.dz || 0)]
-      if (Math.hypot(dir[0], dir[1], dir[2]) < 1e-9) { set({ status: '环形阵列：轴方向唔可以系零向量 — 拣 X/Y/Z 或填方向分量' }); return }
+      if (Math.hypot(dir[0], dir[1], dir[2]) < 1e-9) { set({ status: '環形陣列：軸方向唔可以系零向量 — 揀 X/Y/Z 或填方向分量' }); return }
       let targets: string[] | undefined
       if ((p.target === 'feature' || p.objectType === 'features') && !d.editId) {   // Edit Feature：编辑模式 targets 透传原值（undefined 过滤），唔使时间轴选中
         // P2 audit：多选（Ctrl+点 chip 累积 selectedFeatures）— 一次阵列/镜像多个特征；旧单选照兼容
         const selFs = get().selectedFeatures.length ? get().selectedFeatures : (get().selectedFeature ? [get().selectedFeature as string] : [])
         if (!selFs.length) { set({ status: '環形陣列（所選特徵）：先喺時間軸單擊選中要陣列嘅特徵，再撳確定（Ctrl+點可多選）' }); return }
         const _live = selFs.filter((fid2) => get().features.some((x) => x.id === fid2))
-        if (!_live.length) { set({ status: '所选特征已唔存在 — 重新选' }); return }
+        if (!_live.length) { set({ status: '所選特徵已唔存在 — 重新選' }); return }
         { const _nb = _live.map((fid2) => get().features.find((x) => x.id === fid2) as { operation?: string; op?: string } | undefined).filter((tf) => tf && ((tf.operation ?? tf.op) === 'newbody'))
-          if (_nb.length) { set({ status: '「⬡新实体」特征系独立泊车体 — 特征级阵列/镜像 v1 唔适用（snapshot-delta 捕唔到泊车几何）。改用 合并布尔 或对成件实体阵列' }); return } }
+          if (_nb.length) { set({ status: '「⬡新實體」特徵系獨立泊車體 — 特徵級陣列/鏡像 v1 唔適用（snapshot-delta 捕唔到泊車幾何）。改用 合併布爾 或對成件實體陣列' }); return } }
         targets = _live
       }
       const mode = (p.mode === 'angle' || p.mode === 'sym') ? p.mode as 'angle' | 'sym' : 'full'
@@ -17207,8 +17207,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (p.objectType === 'components') {
         const ids = get().checkedComps.length ? [...get().checkedComps] : (get().selectedComponent ? [get().selectedComponent] : [])
         const seeds = get().components.filter((c) => ids.includes(c.id))
-        if (!seeds.length) { set({ status: '环形组件阵列：先喺装配树勾选 ☑ 或画布选中组件，再撳确定' }); return }
-        if (seeds.length * cnt > 400) { set({ status: `环形组件阵列总数 ${seeds.length}×${cnt} 太多（上限 400）— 请减少组件或数量` }); return }
+        if (!seeds.length) { set({ status: '環形組件陣列：先喺裝配樹勾選 ☑ 或畫布選中組件，再撳確定' }); return }
+        if (seeds.length * cnt > 400) { set({ status: `環形組件陣列總數 ${seeds.length}×${cnt} 太多（上限 400）— 請減少組件或數量` }); return }
         const axis = new Vector3(...dir).normalize(), origin = new Vector3(+(p.ox || 0), +(p.oy || 0), +(p.oz || 0))
         const angles: number[] = []
         if (mode === 'sym') { const step = total / (cnt - 1), half = Math.floor((cnt - 1) / 2); for (let q = 1; q <= half; q++) { angles.push(step * q, -step * q) }; if ((cnt - 1) % 2) angles.push(step * (half + 1)) }
@@ -17225,7 +17225,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           const outEuler = new Euler().setFromRotationMatrix(worldRot, 'XYZ')
           copies.push({ ...src, id: nextCid([...get().components, ...copies]), name: `${src.name}:${instanceIndex + 1}`, pos: [pos.x, pos.y, pos.z], rot: [outEuler.x * 180 / Math.PI, outEuler.y * 180 / Math.PI, outEuler.z * 180 / Math.PI] })
         }
-        set({ undoStack: [...get().undoStack, docSnap(get())].slice(-60), redoStack: [], components: [...get().components, ...copies], featDlg: null, status: `已环形阵列 ${seeds.length} 个组件 ×${cnt}（加 ${copies.length} 个 occurrence；共享组件定义）` })
+        set({ undoStack: [...get().undoStack, docSnap(get())].slice(-60), redoStack: [], components: [...get().components, ...copies], featDlg: null, status: `已環形陣列 ${seeds.length} 個組件 ×${cnt}（加 ${copies.length} 個 occurrence；共享組件定義）` })
         return
       }
       const circFaceNears = circFacePicks.length ? circFacePicks : ((d.editId ? get().features.find((x) => x.id === d.editId) : undefined) as any)?.nears ?? []
@@ -17237,24 +17237,24 @@ export const useApp = create<AppState>((rawSet, get) => {
       // geometry about the selected plane.  This covers offset world planes, datum planes and picked faces.
       if (p.target === 'components') {
         const ids = get().checkedComps.length ? get().checkedComps : (get().selectedComponent ? [get().selectedComponent as string] : [])
-        if (!ids.length) { set({ status: '镜像组件：先喺装配树选中（或勾选 ☑）要镜像嘅组件，再撳确定' }); return }
+        if (!ids.length) { set({ status: '鏡像組件：先喺裝配樹選中（或勾選 ☑）要鏡像嘅組件，再撳確定' }); return }
         const plStr2 = String(p.plane)
         let mcPlane: ComponentMirrorPlane
         if (plStr2 === 'PICK') {
-          if (typeof p.pickO !== 'string' || typeof p.pickN !== 'string') { set({ status: '镜像组件：请先拾取一个平面面' }); return }
+          if (typeof p.pickO !== 'string' || typeof p.pickN !== 'string') { set({ status: '鏡像組件：請先拾取一個平面面' }); return }
           const o = p.pickO.split(',').map(Number), n = p.pickN.split(',').map(Number)
-          if (o.length !== 3 || n.length !== 3 || !o.every(Number.isFinite) || !n.every(Number.isFinite)) { set({ status: '镜像组件：拾取平面数据无效，请重新拾取' }); return }
+          if (o.length !== 3 || n.length !== 3 || !o.every(Number.isFinite) || !n.every(Number.isFinite)) { set({ status: '鏡像組件：拾取平面數據無效，請重新拾取' }); return }
           mcPlane = { o: o as [number, number, number], n: n as [number, number, number] }
         } else if (plStr2.startsWith('P')) {
           const dp = get().planes[Number(plStr2.slice(1))]
-          if (!dp?.arb) { set({ status: '镜像组件：所选构造面不存在，请重新选择' }); return }
+          if (!dp?.arb) { set({ status: '鏡像組件：所選構造面不存在，請重新選擇' }); return }
           mcPlane = { o: dp.arb.o, n: dp.arb.n }
         } else {
           const off = Number(p.offset) || 0
           mcPlane = plStr2 === 'XY' ? { o: [0, 0, off], n: [0, 0, 1] } : plStr2 === 'XZ' ? { o: [0, off, 0], n: [0, 1, 0] } : { o: [off, 0, 0], n: [1, 0, 0] }
         }
         for (const cid of ids) get().mirrorComponent(cid, mcPlane)
-        set({ featDlg: null, status: `已镜像 ${ids.length} 个组件（${plStr2 === 'PICK' ? '拾取面' : plStr2.startsWith('P') ? '构造面' : plStr2 + ' 基准面'}）` })
+        set({ featDlg: null, status: `已鏡像 ${ids.length} 個組件（${plStr2 === 'PICK' ? '拾取面' : plStr2.startsWith('P') ? '構造面' : plStr2 + ' 基準面'}）` })
         return
       }
       // T781：特征级镜像（targets）+ 任意构造面镜像（P<i> → planes[i].arb 法向+原点）
@@ -17264,9 +17264,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         const selFs = get().selectedFeatures.length ? get().selectedFeatures : (get().selectedFeature ? [get().selectedFeature as string] : [])
         if (!selFs.length) { set({ status: '鏡像（所選特徵）：先喺時間軸單擊選中要鏡像嘅特徵，再撳確定（Ctrl+點可多選）' }); return }
         const _live = selFs.filter((fid2) => get().features.some((x) => x.id === fid2))
-        if (!_live.length) { set({ status: '所选特征已唔存在 — 重新选' }); return }
+        if (!_live.length) { set({ status: '所選特徵已唔存在 — 重新選' }); return }
         { const _nb = _live.map((fid2) => get().features.find((x) => x.id === fid2) as { operation?: string; op?: string } | undefined).filter((tf) => tf && ((tf.operation ?? tf.op) === 'newbody'))
-          if (_nb.length) { set({ status: '「⬡新实体」特征系独立泊车体 — 特征级阵列/镜像 v1 唔适用（snapshot-delta 捕唔到泊车几何）。改用 合并布尔 或对成件实体阵列' }); return } }
+          if (_nb.length) { set({ status: '「⬡新實體」特徵系獨立泊車體 — 特徵級陣列/鏡像 v1 唔適用（snapshot-delta 捕唔到泊車幾何）。改用 合併布爾 或對成件實體陣列' }); return } }
         mrTargets = _live
       }
       const mrOp: 'newbody' | undefined = (p.mirrorOp && !mrTargets) ? 'newbody' : undefined   // #7b：镜像出独立体（仅整体镜像；特征级镜像唔适用）
@@ -17279,7 +17279,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         msg = `已镜像（跨所拾面，法向 [${pn.map((x) => x.toFixed(2)).join(',')}]${mrTargets ? ' · 所选特征' : ''}）`
       } else if (plStr.startsWith('P')) {
         const dp = get().planes[Number(plStr.slice(1))]
-        if (!dp?.arb) { set({ status: '所选构造面已唔存在/非任意面 — 重新拣面' }); return }
+        if (!dp?.arb) { set({ status: '所選構造面已唔存在/非任意面 — 重新揀面' }); return }
         f = { id: fid(), type: 'mirror', plane: 'XY', ...(mrTargets ? { targets: mrTargets } : {}), planeN: dp.arb.n, planeO: dp.arb.o, op: mrOp }
         msg = `已镜像（跨构造面${Number(plStr.slice(1)) + 1}${mrTargets ? ' · 所选特征' : ''}）`
       } else {
@@ -17298,7 +17298,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         // Fusion Move/Copy accepts a component selection set.  Prefer browser checkboxes, then
         // fall back to the canvas's single selected component.
         const ids: string[] = get().checkedComps.length ? [...get().checkedComps] : (get().selectedComponent ? [get().selectedComponent as string] : [])
-        if (!ids.length) { set({ status: '移动组件：请先喺浏览树勾选（或画布选中）一个或多个组件' }); return }
+        if (!ids.length) { set({ status: '移動組件：請先喺瀏覽樹勾選（或畫布選中）一個或多個組件' }); return }
         set({ featDlg: null })
         for (const cid of ids) {
           let target = cid
@@ -17310,11 +17310,11 @@ export const useApp = create<AppState>((rawSet, get) => {
             if (sol.rx || sol.ry || sol.rz) get().setComponentRot(target, [rot[0] + sol.rx, rot[1] + sol.ry, rot[2] + sol.rz])
           }
         }
-        set({ status: `已${copy ? '复制并' : ''}移动 ${ids.length} 个组件（${tLbl}：Δ[${sol.dx},${sol.dy},${sol.dz}]${sol.rx || sol.ry || sol.rz ? `　绕X${sol.rx}°Y${sol.ry}°Z${sol.rz}°` : ''}）` })
+        set({ status: `已${copy ? '複製並' : ''}移動 ${ids.length} 個組件（${tLbl}：Δ[${sol.dx},${sol.dy},${sol.dz}]${sol.rx || sol.ry || sol.rz ? `　繞X${sol.rx}°Y${sol.ry}°Z${sol.rz}°` : ''}）` })
         return
       }
-      if (objectType === 'faces') { set({ featDlg: null, status: '移动【面】请用「移动面」工具（↕ 内核重解邻面/圆角）— Move/Copy 对话框专注实体/组件' }); void get().toggleMoveFace?.(); return }
-      if (objectType === 'sketch') { set({ status: '移动【草图】：请进入草图环境用草图 Move gizmo（Create Copy 剔）— Move/Copy 对话框 v1 净支持实体/组件' }); return }
+      if (objectType === 'faces') { set({ featDlg: null, status: '移動【面】請用「移動面」工具（↕ 內核重解鄰面/圓角）— Move/Copy 對話框專註實體/組件' }); void get().toggleMoveFace?.(); return }
+      if (objectType === 'sketch') { set({ status: '移動【草圖】：請進入草圖環境用草圖 Move gizmo（Create Copy 剔）— Move/Copy 對話框 v1 淨支持實體/組件' }); return }
       // Fusion writes two timeline entries for Create Copy.  They are one atomic history commit,
       // so a single Undo removes both the CopyPasteBodies marker and its Move operation.
       if (copy) {
@@ -17350,11 +17350,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       // T762（③后）：非等比三轴缩放 — sx/sy/sz 任一 >0 即用 GTransform 路径（0 = 该轴不缩放）
       const sx = +(p.sx || 0), sy = +(p.sy || 0), sz = +(p.sz || 0)
       if (sx > 0 || sy > 0 || sz > 0) {
-        if ([sx, sy, sz].some((v) => v < 0)) { set({ status: '非等比缩放：每轴要 ≥0（0=不缩放该轴）' }); return }
+        if ([sx, sy, sz].some((v) => v < 0)) { set({ status: '非等比縮放：每軸要 ≥0（0=不縮放該軸）' }); return }
         f = { id: fid(), type: 'scale', factor: 1, sx: sx || undefined, sy: sy || undefined, sz: sz || undefined, ...scalePt(p) }
         msg = `已非等比缩放（X×${sx || 1} Y×${sy || 1} Z×${sz || 1}）— GTransform 真 B-rep`
       } else {
-        if (!(Number.isFinite(fac) && fac > 0)) { set({ status: '比例要大于 0（请填正数）' }); return }
+        if (!(Number.isFinite(fac) && fac > 0)) { set({ status: '比例要大於 0（請填正數）' }); return }
         f = { id: fid(), type: 'scale', factor: fac, sx: undefined, sy: undefined, sz: undefined, ...scalePt(p) }   // review：edit 由非等比改返等比 — 显式清 sx/sy/sz（worker sx 优先）
         msg = target > 0 ? `已缩放到最长边 ${target}（×${fac.toFixed(3)}）` : `已缩放 ×${fac}`
       }
@@ -17373,7 +17373,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
     } else if (d.kind === 'offsetsolid') {
       const dist = +p.distance
-      if (!(Number.isFinite(dist) && Math.abs(dist) > 1e-6)) { set({ status: '整体偏移：距离要系非零数字' }); return }
+      if (!(Number.isFinite(dist) && Math.abs(dist) > 1e-6)) { set({ status: '整體偏移：距離要系非零數字' }); return }
       f = { id: fid(), type: 'offsetsolid', distance: dist }
       msg = `已整体偏移${dist > 0 ? '外扩' : '内缩'} ${Math.abs(dist)}mm（均匀偏移所有面）`
     } else if (d.kind === 'draft') {
@@ -17392,7 +17392,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // Hollow tube / bushing = outer cylinder (new) with an inner cylinder cut out.
       // Always builds a fresh body (annular cut into an existing body is ambiguous), fully parametric (2 extrudes).
       const ro = (+p.d) / 2, wall = Math.max(0.1, +p.wall), ri = ro - wall
-      if (ri <= 0) { set({ status: '壁厚过大（≥外半径），请减小壁厚' }); return }
+      if (ri <= 0) { set({ status: '壁厚過大（≥外半徑），請減小壁厚' }); return }
       set({ featDlg: null })
       const outer: Feature = { id: fid(), type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: ro }, height: +p.h, operation: 'new' }
       const inner: Feature = { id: fid(), type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: ri }, height: +p.h, operation: 'cut' }
@@ -17401,9 +17401,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else if (d.kind === 'rtube') {
       // Rectangular hollow tube / box section (RHS) = outer rect (new) with an inner rect cut. Frames / enclosures.
       const W = +p.w, D = +p.d, H = +p.h, wall = Math.max(0.1, +p.wall)
-      if (!(W > 0 && D > 0 && H > 0)) { set({ status: '尺寸要大于 0（请填正数）' }); return }
+      if (!(W > 0 && D > 0 && H > 0)) { set({ status: '尺寸要大於 0（請填正數）' }); return }
       const iw = W - 2 * wall, id = D - 2 * wall
-      if (iw <= 0 || id <= 0) { set({ status: '壁厚过大（≥半个截面），请减小壁厚' }); return }
+      if (iw <= 0 || id <= 0) { set({ status: '壁厚過大（≥半個截面），請減小壁厚' }); return }
       set({ featDlg: null })
       const outer: Feature = { id: fid(), type: 'extrude', profile: { kind: 'rect', a: [-W / 2, -D / 2], b: [W / 2, D / 2] }, height: H, operation: 'new' }
       const inner: Feature = { id: fid(), type: 'extrude', profile: { kind: 'rect', a: [-iw / 2, -id / 2], b: [iw / 2, id / 2] }, height: H, operation: 'cut' }
@@ -17412,8 +17412,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else if (d.kind === 'profile') {
       // structural profile extrusion: L-angle / U-channel. Section in XY (centred), extruded `len` along Z.
       const W = +p.w, H = +p.h, t = Math.max(0.5, +p.t), L = +p.len, pt = String(p.ptype || 'L')
-      if (!(W > 0 && H > 0 && L > 0)) { set({ status: '尺寸要大于 0（请填正数）' }); return }
-      if (t >= Math.min(W, H)) { set({ status: '壁厚过大（≥截面尺寸），请减小壁厚' }); return }
+      if (!(W > 0 && H > 0 && L > 0)) { set({ status: '尺寸要大於 0（請填正數）' }); return }
+      if (t >= Math.min(W, H)) { set({ status: '壁厚過大（≥截面尺寸），請減小壁厚' }); return }
       let pts: [number, number][]
       if (pt === 'U') pts = [[0, 0], [W, 0], [W, H], [W - t, H], [W - t, t], [t, t], [t, H], [0, H]]               // channel, opening +Y
       else if (pt === 'T') pts = [[0, H - t], [(W - t) / 2, H - t], [(W - t) / 2, 0], [(W + t) / 2, 0], [(W + t) / 2, H - t], [W, H - t], [W, H], [0, H]]  // T: top flange + centred stem
@@ -17429,7 +17429,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else if (d.kind === 'pyramid') {
       // n-gon pyramid: loft from base polygon (z=0) to a near-point apex (z=H). Hoppers / funnels / roofs / finials.
       const n = Math.max(3, Math.min(24, Math.round(+p.sides))), R = (+p.d) / 2, H = +p.h
-      if (!(R > 0 && H > 0)) { set({ status: '尺寸要大于 0（请填正数）' }); return }
+      if (!(R > 0 && H > 0)) { set({ status: '尺寸要大於 0（請填正數）' }); return }
       const poly = (rad: number): [number, number][] => Array.from({ length: n }, (_, i) => { const a = (2 * Math.PI * i) / n + Math.PI / 2; return [rad * Math.cos(a), rad * Math.sin(a)] })
       const op2: BoolOp = get().cutMode && hasSolid(get().features) ? 'cut' : 'new'
       set({ featDlg: null })
@@ -17448,7 +17448,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (['l', 'w', 'h', 'd', 'pitch', 'wire'].some((k) => p[k] !== undefined && !(Number.isFinite(+p[k]) && +p[k] > 0))) { set({ status: illegalRejectStatus(ILLEGAL_LENGTH_DETAIL) }); return }
       if (d.kind === 'box') { f = { id: fid(), type: 'prim', shape: 'box', a: +p.l, b: +p.w, c: +p.h, op, cornerOrigin: true }; msg = boxSuccessStatus({ op: op === 'cut' ? 'cut' : op === 'newbody' ? 'newbody' : op === 'intersect' ? 'intersect' : 'new', l: p.l, w: p.w, h: p.h }, get().lang) }
       else if (d.kind === 'sphere') { f = { id: fid(), type: 'prim', shape: 'sphere', a: (+p.d) / 2, b: 0, c: 0, op }; msg = sphereSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d }, get().lang) }
-      else if (d.kind === 'torus') { const arc = Math.max(0, Math.min(360, +p.arc || 360)); if (!(+p.d > 2 * +p.td)) { set({ status: `圆环：管径要细过外径一半（管Ø<${(+p.d / 2).toFixed(1)}），否则中孔闭合/管自交退化 — 请调大外径或调细管径` }); return } f = { id: fid(), type: 'prim', shape: 'torus', a: (+p.d) / 2, b: (+p.td) / 2, c: arc < 360 ? arc : 0, op, outerTrue: true }; msg = (arc > 0 && arc < 360) ? `已${verb}部分圆环 ${arc}° 外Ø${p.d} 管Ø${p.td}` : torusSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', od: p.d, td: p.td }, get().lang) }   // GM-W8 β1-#29：a=真外半径 + outerTrue,worker 换算中线半径(tr=a−tb),令外Ø输入=真外Ø。GM-L2 #65：outerTrue 语义下中线半径=d/2−td/2、管半径=td/2，无自交要求 d/2−td/2>td/2 ⇒ d>2·td（旧 d>td 阈值太松，td<d≤2td 会自交）
+      else if (d.kind === 'torus') { const arc = Math.max(0, Math.min(360, +p.arc || 360)); if (!(+p.d > 2 * +p.td)) { set({ status: `圓環：管徑要細過外徑一半（管Ø<${(+p.d / 2).toFixed(1)}），否則中孔閉合/管自交退化 — 請調大外徑或調細管徑` }); return } f = { id: fid(), type: 'prim', shape: 'torus', a: (+p.d) / 2, b: (+p.td) / 2, c: arc < 360 ? arc : 0, op, outerTrue: true }; msg = (arc > 0 && arc < 360) ? `已${verb}部分圓環 ${arc}° 外Ø${p.d} 管Ø${p.td}` : torusSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', od: p.d, td: p.td }, get().lang) }   // GM-W8 β1-#29：a=真外半径 + outerTrue,worker 换算中线半径(tr=a−tb),令外Ø输入=真外Ø。GM-L2 #65：outerTrue 语义下中线半径=d/2−td/2、管半径=td/2，无自交要求 d/2−td/2>td/2 ⇒ d>2·td（旧 d>td 阈值太松，td<d≤2td 会自交）
       else if (d.kind === 'cone') { const sd = Math.round(+p.sides) || 0; f = { id: fid(), type: 'prim', shape: 'cone', a: (+p.d) / 2, b: Math.max(0, +p.dt) / 2, c: +p.h, op, ...(sd >= 3 ? { sides: sd } : {}) }; const poly = sd >= 3; msg = poly ? `已${verb}${((+p.dt) > 0 ? sd + '棱台' : sd + '棱锥')} 底Ø${p.d}${(+p.dt) > 0 ? ' 顶Ø' + p.dt : ''}×${p.h}` : coneSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, dt: Math.max(0, +p.dt), h: p.h }, get().lang) }
       else if (d.kind === 'wedge') { f = { id: fid(), type: 'prim', shape: 'wedge', a: +p.l, b: +p.w, c: +p.h, op }; msg = wedgeSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', l: p.l, w: p.w, h: p.h }, get().lang) }
       else if (d.kind === 'dome') { const cap = Math.max(0, +p.cap || 0), R = (+p.d) / 2; f = { id: fid(), type: 'prim', shape: 'dome', a: R, b: 0, c: cap, op }; msg = domeSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, cap }, get().lang) }
@@ -17466,7 +17466,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else {
       // revolve: the profile (+T746 sketch bundle) was captured into payload when the command opened
       // GM-L2 #60：旋转角度 0/空（清框 → Number('')=0，绕过 UI spinner min=1）唔好静默当整圈 360° — 前置拒绝、保持对话框开等用户改
-      if (!(+p.angle > 0)) { set({ status: '旋转角度要 >0（请填 1–360）' }); return }
+      if (!(+p.angle > 0)) { set({ status: '旋轉角度要 >0（請填 1–360）' }); return }
       set({ featDlg: null, revAxisPtPick: false })
       const pay = d.payload as { prof?: SketchProfile; bundle?: RevolveSketchBundle } | SketchProfile
       const prof = (pay && typeof pay === 'object' && 'prof' in pay && pay.prof) ? pay.prof : pay as SketchProfile
@@ -17491,7 +17491,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           else if (axStr.startsWith('A')) { const ca = get().caxes[Number(axStr.slice(1))]; if (ca) axV = ca.dirV ?? LV[ca.dir] }
           // axStr === 'Y' → 维持默认 [0,1,0]
         }
-        if (Math.hypot(axV[0], axV[1], axV[2]) < 1e-9) { set({ status: '旋转：自定义轴方向为零向量 — 改方向(dx/dy/dz)再确定' }); return }
+        if (Math.hypot(axV[0], axV[1], axV[2]) < 1e-9) { set({ status: '旋轉：自定義軸方向為零向量 — 改方向(dx/dy/dz)再確定' }); return }
         // BUG-SO111-001: cardinal override (Z button / synced dropdown) keeps a world-axis name
         // when through the origin; letter persistence uses revolvePersistedAxis below.
         const card = revolveCardinalAxis(axV)
@@ -17501,7 +17501,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       else if (axStr === 'Z') axisSpec = { axisV: [0, 0, 1], axisOrigin: [0, 0, 0], name: 'Z 轴' }
       else if (axStr.startsWith('A')) {
         const ca = get().caxes[Number(axStr.slice(1))]
-        if (!ca) { set({ status: '所选构造轴已唔存在 — 重新拣轴' }); return }
+        if (!ca) { set({ status: '所選構造軸已唔存在 — 重新揀軸' }); return }
         const LV: Record<string, [number, number, number]> = { X: [1, 0, 0], Y: [0, 1, 0], Z: [0, 0, 1] }
         axisSpec = { axisV: ca.dirV ?? LV[ca.dir], axisOrigin: ca.at, name: `构造轴${Number(axStr.slice(1)) + 1}` }
       }
@@ -17557,7 +17557,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           featDlg: null, revAxisPtPick: false, mode: 'sketch', sketchPlane: b.plane, sketchBaseZ: b.baseZ, sketchArb:b.arb??null,pendingSketchFaceBinding:b.faceBinding??null, sketchTool: 'select', sizing: null, toolPreview: null,
           sketchProfiles: shapes.slice(0, -1), sketchShape: shapes[shapes.length - 1],
           skCons: JSON.parse(JSON.stringify(b.cons)) as SkCon[], skPatternData: clonePatternData(b.patternData),
-          status: `已取消${lbl} — 草图已还原（轮廓 + 约束）`,
+          status: `已取消${lbl} — 草圖已還原（輪廓 + 約束）`,
         })
         if (b.cons.length && !b.patternData) void get().resolveSk()  // DOF/冲突徽章即时正确（审查 INFO5）
         return
@@ -17573,7 +17573,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const sk = s.sketchShape
     const isSpline = !!(sk && sk.type === 'poly' && sk.smooth)
     const srcPts = sk && sk.type === 'poly' ? (isSpline && sk.ctrl ? sk.ctrl : sk.pts) : s.polyPts
-    if (!srcPts || srcPts.length < 2) { set({ status: '管道需要一条路径：用「折线 / 样条」画一条路径（≥2 点，可不闭合），再点「管道」' }); return }
+    if (!srcPts || srcPts.length < 2) { set({ status: '管道需要一條路徑：用「折線 / 樣條」畫一條路徑（≥2 點，可不閉合），再點「管道」' }); return }
     const path = srcPts.map((p) => stToProfile(p, 'XY'))
     const bundle = {
       shapes: JSON.parse(JSON.stringify([...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])])) as SketchShape[],
@@ -17584,7 +17584,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model',
       featDlg: { kind: 'pipe', params: { section: 'circular', size: 24, hollow: 1, thickness: 4, dist: 1, op: hasSolid(get().features) ? get().sketchOp : 'new' }, payload: { path, smooth: isSpline, bundle } },
       holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false,
-      status: '管道：设 截面(圆/方)/尺寸/空心壁厚/距离(0–1)/操作 → 确定',
+      status: '管道：設 截面(圓/方)/尺寸/空心壁厚/距離(0–1)/操作 → 確定',
     })
   },
 
@@ -17597,7 +17597,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.sketchShape && s.sketchShape.type === 'poly' && (s.sketchShape as { open?: boolean }).open && s.sketchShape.pts.length >= 2) paths.push(s.sketchShape.pts)
     const src = s.sketchShape && s.sketchShape.type === 'poly' && !(s.sketchShape as { open?: boolean }).open ? s.sketchShape.pts : s.polyPts
     if (!paths.length && src && src.length >= 2) paths.push(src)
-    if (!paths.length) { set({ status: '加强筋需要中心线：用「折线」画一条或多条线（≥2 点，开放）— 多条 = 筋网 Web 一次过生成' }); return }
+    if (!paths.length) { set({ status: '加強筋需要中心線：用「折線」畫一條或多條線（≥2 點，開放）— 多條 = 筋網 Web 一次過生成' }); return }
     const baseZ = s.sketchBaseZ || 0
     const ribArb = s.sketchArb ? JSON.parse(JSON.stringify(s.sketchArb)) as ArbBasis : s.sketchPlane !== 'XY' ? cardinalSketchArb(s.sketchPlane, baseZ) : null
     // 路径落 XY profile 快照入 payload（对话框确定后 commitRib 消费；取消 → cancelFeatDlg 还原草图）
@@ -17611,15 +17611,15 @@ export const useApp = create<AppState>((rawSet, get) => {
       skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model',
       featDlg: { kind: 'rib', params: { thickness: 6, height: 20, draft: 0, thDir: 'sym', extent: ribArb ? 'distance' : hasSolid(get().features) ? 'next' : 'distance', flip: 0, extend: isWeb ? 1 : 0 }, payload: { paths: paths.map((pp) => pp.map((p) => ribArb ? (s.sketchArb ? p : stToProfile(p, s.sketchPlane)) : stToProfile(p, 'XY'))), baseZ, arb: ribArb ?? undefined, isWeb, bundle } },
       holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false,
-      status: ribArb ? `${s.sketchArb ? '任意参考' : s.sketchPlane}平面加强筋：沿该面法向以【距离】建立实体；自动到实体／Extend Curves 暂未支持` : isWeb ? '腹板 Web：设 厚度/方向/范围（可 Extend Curves 延伸到墙）→ 确定' : '加强筋：设 厚度/方向(对称·单侧)/范围(到实体·距离)/翻转/拔模 → 确定',
+      status: ribArb ? `${s.sketchArb ? '任意參考' : s.sketchPlane}平面加強筋：沿該面法向以【距離】建立實體；自動到實體／Extend Curves 暫未支持` : isWeb ? '腹板 Web：設 厚度/方向/範圍（可 Extend Curves 延伸到牆）→ 確定' : '加強筋：設 厚度/方向(對稱·單側)/範圍(到實體·距離)/翻轉/拔模 → 確定',
     })
   },
 
   addPathPattern: async () => {
     const s = get()
-    if (!hasSolid(s.features)) { set({ status: '路径阵列需要先有一个实体 —— 佢会沿你画嘅路径复制该实体（先建实体，再画路径）' }); return }
+    if (!hasSolid(s.features)) { set({ status: '路徑陣列需要先有一個實體 —— 佢會沿你畫嘅路徑複製該實體（先建實體，再畫路徑）' }); return }
     const src = s.sketchShape && s.sketchShape.type === 'poly' ? s.sketchShape.pts : s.polyPts
-    if (!src || src.length < 2) { set({ status: '路径阵列需要一条路径：用「折线 / 样条」画一条线（≥2 点），再点「路径阵列」' }); return }
+    if (!src || src.length < 2) { set({ status: '路徑陣列需要一條路徑：用「折線 / 樣條」畫一條線（≥2 點），再點「路徑陣列」' }); return }
     const path = src.map((p) => stToProfile(p, 'XY')) as [number, number][]
     const patternArb = s.sketchArb ?? (s.sketchPlane !== 'XY' ? cardinalSketchArb(s.sketchPlane, s.sketchBaseZ || 0) : null)
     const path3 = patternArb ? (() => {
@@ -17635,21 +17635,21 @@ export const useApp = create<AppState>((rawSet, get) => {
       skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model',
       featDlg: { kind: 'pathpattern', params: { count: 5, target: hasSelectedFeature ? 'feature' : 'body', orient: 'identical' }, payload: { path, path3, bundle } },
       holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false,
-      status: patternArb ? `${s.sketchArb ? '任意参考' : s.sketchPlane}平面路径阵列：沿该平面的 3D 路径平移复制（不旋转副本）→ 确定` : '路径阵列：设数量及对象（整个实体／所选特征）→ 确定',
+      status: patternArb ? `${s.sketchArb ? '任意參考' : s.sketchPlane}平面路徑陣列：沿該平面的 3D 路徑平移複製（不旋轉副本）→ 確定` : '路徑陣列：設數量及對象（整個實體／所選特徵）→ 確定',
     })
   },
 
   splitBody: async (axis, offset) => {
-    if (!get().bodyMesh) { set({ status: '分割需要先有一个活动实体' }); return }
-    set({ status: '正在分割实体…' })
+    if (!get().bodyMesh) { set({ status: '分割需要先有一個活動實體' }); return }
+    set({ status: '正在分割實體…' })
     const sup = get().suppressedIds
     const active = expandFeats(sup.length ? get().features.filter((f) => !sup.includes(f.id)) : get().features)   // featpattern → N extrude
     const res = await cad.splitBuild(active, axis, offset)
-    if (!res || !res.a?.vertices.length || !res.b?.vertices.length) { set({ status: '分割失败（平面可能没穿过实体）— 已保持原样' }); return }
+    if (!res || !res.a?.vertices.length || !res.b?.vertices.length) { set({ status: '分割失敗（平面可能沒穿過實體）— 已保持原樣' }); return }
     const comps = get().components
     const cA = { id: nextCid(comps), name: '分割A', mesh: res.a, pos: [0, 0, 0] as [number, number, number], color: '#e6194b' }
     const cB = { id: nextCid(comps, 1), name: '分割B', mesh: res.b, pos: [0, 0, 0] as [number, number, number], color: '#3cb44b' }
-    set({ components: [...comps, cA, cB], features: [], bodyMesh: null, bodyTopZ: 0, undoStack: [], redoStack: [], suppressedIds: [], selectedFeature: null, status: `已沿 ${axis} 轴分割成 2 个实体（分割A 红 / 分割B 绿，可移动/隐藏/爆炸看开）` })
+    set({ components: [...comps, cA, cB], features: [], bodyMesh: null, bodyTopZ: 0, undoStack: [], redoStack: [], suppressedIds: [], selectedFeature: null, status: `已沿 ${axis} 軸分割成 2 個實體（分割A 紅 / 分割B 綠，可移動/隱藏/爆炸看開）` })
     get().requestFit()
   },
 
@@ -17657,15 +17657,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 切两半（留一半作活动体，另一半泊车进 bodyMesh.parked 灰显）。features[]/undoStack/bodyMesh 全部由
   // applyFeatures 正常维护，可撤销、可改切割位置参数化重切 —— 取代旧 splitBody 嘅破坏性烘焙。
   addSplit: async (axis, offset) => {
-    if (!hasSolid(get().features)) { set({ status: '分割需要先有一个活动实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '分割需要先有一個活動實體' }); return }
     const f: Feature = { id: fid(), type: 'split', axis, offset, keep: 'hi', nameA: '分割A', nameB: '分割B' }
     await get().applyFeatures([...get().features, f], `已沿 ${axis} 轴分割（参数化 — 时间轴可改切割位置/删特征；另一半灰显，可隐藏/导出）`)
   },
   // S184：任意平面切（Fusion Split Body by 任意面）—— 拾一个平面（实体面/构造面）→ 沿该面切两半（参数化，保历史）。
   splitPlanePick: false,
-  toggleSplitPlanePick: () => set((s) => ({ splitPlanePick: !s.splitPlanePick, delFaceMode: false, patchMode: false, thickenMode: false, offsetSurfMode: false, pushPullMode: false, shellMode: false, holeMode: false, faceSketchPick: false, embossPick: false, draftPickMode: 0, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, splitFaceMode: false, replaceFaceMode: false, extendSurfMode: false, surfTrimMode: false, datumPick: null, featDlg: null, status: !s.splitPlanePick ? '✂ 任意平面切：点一个【平面】(实体平面/构造面) → 沿该面把实体切两半（留一半活动 · 另一半灰显泊车）' : '已退出平面切' })),   // S184 audit：清晒其它专属拾取模式（互斥，否则残留模式喺 Viewport onClick 抢先 fire）
+  toggleSplitPlanePick: () => set((s) => ({ splitPlanePick: !s.splitPlanePick, delFaceMode: false, patchMode: false, thickenMode: false, offsetSurfMode: false, pushPullMode: false, shellMode: false, holeMode: false, faceSketchPick: false, embossPick: false, draftPickMode: 0, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, splitFaceMode: false, replaceFaceMode: false, extendSurfMode: false, surfTrimMode: false, datumPick: null, featDlg: null, status: !s.splitPlanePick ? '✂ 任意平面切：點一個【平面】(實體平面/構造面) → 沿該面把實體切兩半（留一半活動 · 另一半灰顯泊車）' : '已退出平面切' })),   // S184 audit：清晒其它专属拾取模式（互斥，否则残留模式喺 Viewport onClick 抢先 fire）
   applySplitPlanePick: async (p, n) => {
-    if (!hasSolid(get().features)) { set({ status: '平面切需要先有一个活动实体', splitPlanePick: false }); return }
+    if (!hasSolid(get().features)) { set({ status: '平面切需要先有一個活動實體', splitPlanePick: false }); return }
     const L = Math.hypot(n[0], n[1], n[2]) || 1
     const po: [number, number, number] = [p[0], -p[2], p[1]]                      // three→CAD（同 draftFaceAt）
     const pn: [number, number, number] = [n[0] / L, -n[2] / L, n[1] / L]          // 法向 three→CAD
@@ -17673,12 +17673,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({
       splitPlanePick: false,
       featDlg: { kind: 'splitbody', params: { axis: 'Z', offset: 0, keep: 'lo', planeOrigin: po.map((x) => Math.round(x * 100) / 100).join(','), planeNormal: pn.map((x) => Math.round(x * 1000) / 1000).join(',') } },
-      status: '已拾切割平面 — 拣【保留侧】→ 按「确定」分割（参数化，保历史）',
+      status: '已拾切割平面 — 揀【保留側】→ 按「確定」分割（參數化，保歷史）',
     })
   },
   // P2：镜像画布拾面 — 对话框开住时点任意平面面即定镜像面（法向+面上一点 → worker planeN/planeO 早已支持）
   mirrorFacePick: false,
-  startMirrorFacePick: () => set((s) => (s.featDlg?.kind === 'mirror' ? { mirrorFacePick: true, status: '🎯 点实体上一个【平面】做镜像面（构造面都得）' } : {})),
+  startMirrorFacePick: () => set((s) => (s.featDlg?.kind === 'mirror' ? { mirrorFacePick: true, status: '🎯 點實體上一個【平面】做鏡像面（構造面都得）' } : {})),
   applyMirrorFacePick: (p, n) => set((s) => {
     if (!s.featDlg || s.featDlg.kind !== 'mirror') return { mirrorFacePick: false }
     const L = Math.hypot(n[0], n[1], n[2]) || 1
@@ -17687,7 +17687,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       mirrorFacePick: false,
       featDlg: { ...s.featDlg, params: { ...s.featDlg.params, plane: 'PICK', pickO: po.join(','), pickN: pn.join(',') } },
-      status: `已拾镜像面（法向 [${pn.join(',')}]）→ 确定镜像`,
+      status: `已拾鏡像面（法向 [${pn.join(',')}]）→ 確定鏡像`,
     }
   }),
 
@@ -17705,16 +17705,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   editPolesFace: null,
   editPolesDeltas: null,
   toggleEditPoles: () => set((s) => s.editPolesMode
-    ? { editPolesMode: false, editPolesTarget: null, editPolesFace: null, controlNet: null, editPolesDeltas: null, status: '已退出编辑曲面控制点' }
-    : { editPolesMode: true, status: '编辑曲面控制点：点一个灰显泊车曲面 → 拖蓝色控制点球变形（多面壳可「面 1/N」切面；跨缝 G1 后续）' }),
+    ? { editPolesMode: false, editPolesTarget: null, editPolesFace: null, controlNet: null, editPolesDeltas: null, status: '已退出編輯曲面控制點' }
+    : { editPolesMode: true, status: '編輯曲面控制點：點一個灰顯泊車曲面 → 拖藍色控制點球變形（多面殼可「面 1/N」切面；跨縫 G1 後續）' }),
   // 拣 parked 曲面 #idx 第 face 张面 → 读控制网 + 初始化 deltas 为零（长 nu*nv）。读唔到（非 NURBS / 直纹平面）就提示。
   pickParkedForPoles: async (idx, face = 0) => {
     set({ editPolesTarget: idx, editPolesFace: face, controlNet: null, editPolesDeltas: null })
     await get().loadControlNet(idx, face)
     const cn = get().controlNet
-    if (!cn) { set({ status: `曲面 #${idx + 1} 面 ${face + 1} 读唔到控制网（要弯曲嘅 NURBS 曲面 — 直/平面会 fail-safe）` }); return }
+    if (!cn) { set({ status: `曲面 #${idx + 1} 面 ${face + 1} 讀唔到控制網（要彎曲嘅 NURBS 曲面 — 直/平面會 fail-safe）` }); return }
     const n = cn.nu * cn.nv
-    set({ editPolesDeltas: Array.from({ length: n }, () => [0, 0, 0] as [number, number, number]), status: `曲面 #${idx + 1} 面 ${face + 1}${cn.nFaces && cn.nFaces > 1 ? `/${cn.nFaces}` : ''}：${cn.nu}×${cn.nv} = ${n} 个控制点 — 拖蓝球变形` })
+    set({ editPolesDeltas: Array.from({ length: n }, () => [0, 0, 0] as [number, number, number]), status: `曲面 #${idx + 1} 面 ${face + 1}${cn.nFaces && cn.nFaces > 1 ? `/${cn.nFaces}` : ''}：${cn.nu}×${cn.nv} = ${n} 個控制點 — 拖藍球變形` })
   },
   // S133+（多面）：循环到下一张面（切面重置 deltas — 佢哋索引另一张网，唔可保留）。<2 面 / 未拣目标 → 无操作。
   cycleEditPolesFace: async () => {
@@ -17738,27 +17738,27 @@ export const useApp = create<AppState>((rawSet, get) => {
   // T776（S56-②）：草图轮廓分割实体 — 封闭轮廓拉通做刀，A=外 B=内（圆/异形分割 — 平面分割嘅升级版）
   splitBodyBySketch: async () => {
     const s = get()
-    if (!s.bodyMesh) { set({ status: '草图分割需要先有一个活动实体' }); return }
-    if (s.sketchArb) { set({ status: '草图分割 v1 只支持标准平面草图' }); return }
+    if (!s.bodyMesh) { set({ status: '草圖分割需要先有一個活動實體' }); return }
+    if (s.sketchArb) { set({ status: '草圖分割 v1 只支持標準平面草圖' }); return }
     const cands = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])].filter((sh) => !sh.construction && !(sh.type === 'poly' && (sh as { open?: boolean }).open))
-    if (!cands.length) { set({ status: '草图分割：先画一个【封闭】轮廓（圆/矩形/闭合折线）' }); return }
-    if (cands.length > 1) { set({ status: '草图分割 v1 净支持一个封闭轮廓 — 删多余轮廓再试' }); return }
+    if (!cands.length) { set({ status: '草圖分割：先畫一個【封閉】輪廓（圓/矩形/閉合折線）' }); return }
+    if (cands.length > 1) { set({ status: '草圖分割 v1 淨支持一個封閉輪廓 — 刪多餘輪廓再試' }); return }
     const profile = shapeToProfile(cands[0] as SketchShape, s.sketchPlane)
     const plane = s.sketchPlane, baseZ = s.sketchBaseZ
     const _pd = docSnap(s)   // GM-W8 β1-#27：分割前全文档快照 → 入撤销栈,令「烘焙成网格两半」可 Ctrl+Z（以前直接清空撤销栈,无法还原）
     get().exitSketchMode()
-    set({ status: '正在按草图轮廓分割…（⚠ 分割会结束参数化时间轴 — 两半变净网格组件）' })
+    set({ status: '正在按草圖輪廓分割…（⚠ 分割會結束參數化時間軸 — 兩半變淨網格組件）' })
     const sup = get().suppressedIds
     const active = expandFeats(sup.length ? get().features.filter((f) => !sup.includes(f.id)) : get().features)   // featpattern → N extrude
     const res = await cad.splitBySketch(active, profile, plane, baseZ)
-    if (!res || !res.a?.vertices.length || !res.b?.vertices.length) { set({ status: '草图分割失败（轮廓可能没穿过实体）— 已保持原样' }); return }
+    if (!res || !res.a?.vertices.length || !res.b?.vertices.length) { set({ status: '草圖分割失敗（輪廓可能沒穿過實體）— 已保持原樣' }); return }
     const comps = get().components
     set({
       components: [...comps,
         { id: nextCid(comps), name: '分割A(外)', mesh: res.a, pos: [0, 0, 0] as [number, number, number], color: '#e6194b' },
         { id: nextCid(comps, 1), name: '分割B(内)', mesh: res.b, pos: [0, 0, 0] as [number, number, number], color: '#3cb44b' }],
       features: [], bodyMesh: null, bodyTopZ: 0, undoStack: [...get().undoStack, _pd].slice(-60), redoStack: [], suppressedIds: [], selectedFeature: null,   // GM-W8 β1-#27：推入分割前快照（可撤销）,唔再清空撤销/重做栈
-      status: '已按草图轮廓分割成 2 件（A=轮廓外 红 / B=轮廓内 绿）— 已烘焙成网格两半（可 Ctrl+Z 还原返参数化实体）',
+      status: '已按草圖輪廓分割成 2 件（A=輪廓外 紅 / B=輪廓內 綠）— 已烘焙成網格兩半（可 Ctrl+Z 還原返參數化實體）',
     })
     get().requestFit()
   },
@@ -17767,19 +17767,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     // BUG-BD-1804 / BUG-BD-3901：File→导入 STL 与 insertmesh 共用。优先 File System Access；
     // 失败回落 <input>。取消时清 status/busy，避免卡住「忙」或陈旧提示（自动化 flake 同类）。
     // v1.44: success path status parity with acceptMeshDropFile（正在读取 STL「…」…）。
-    const clearCancel = () => set({ busy: false, status: '已取消选择 STL' })
+    const clearCancel = () => set({ busy: false, status: '已取消選擇 STL' })
     const openFile = async (f: File) => {
-      set({ busy: true, status: `正在读取 STL「${f.name}」…` })
+      set({ busy: true, status: `正在讀取 STL「${f.name}」…` })
       try {
         const buf = await f.arrayBuffer()
         set({ busy: false })
         get().openMeshInsert('stl', f.name.replace(/\.[^.]+$/, ''), { buf })
       } catch {
-        set({ busy: false, status: 'STL 读取失败' })
+        set({ busy: false, status: 'STL 讀取失敗' })
       }
     }
     void (async () => {
-      set({ busy: false, status: '选择 STL 文件…' })
+      set({ busy: false, status: '選擇 STL 檔案…' })
       type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
       const picker = (window as OpenPickerWindow).showOpenFilePicker
       if (typeof picker === 'function') {
@@ -17817,11 +17817,11 @@ export const useApp = create<AppState>((rawSet, get) => {
   acceptMeshDropFile: async (file) => {
     const kind = meshDropKind(file.name)
     if (!kind) {
-      set({ busy: false, status: '不支持的网格拖放（请用 .stl / .obj / .3mf）' })
+      set({ busy: false, status: '不支持的網格拖放（請用 .stl / .obj / .3mf）' })
       return
     }
     const base = file.name.replace(/\.[^.]+$/, '')
-    set({ busy: true, status: `正在读取 ${kind.toUpperCase()}「${file.name}」…` })
+    set({ busy: true, status: `正在讀取 ${kind.toUpperCase()}「${file.name}」…` })
     try {
       if (kind === 'stl') {
         const buf = await file.arrayBuffer()
@@ -17837,7 +17837,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         await get().import3MF(buf, base)
       }
     } catch {
-      set({ busy: false, status: `${kind.toUpperCase()} 读取失败` })
+      set({ busy: false, status: `${kind.toUpperCase()} 讀取失敗` })
     }
   },
 
@@ -17853,7 +17853,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ busy: true, dxfImportEpoch: epoch, status: `DXF 解析中…（${(bytes / 1024).toFixed(0)} KB）` })
       try {
         const text = await f.text()
-        if (get().dxfImportEpoch !== epoch) { set({ busy: false, status: 'DXF 导入已取消' }); return }
+        if (get().dxfImportEpoch !== epoch) { set({ busy: false, status: 'DXF 匯入已取消' }); return }
         // GM-X3 #8 + v1.34：解析一次并缓存，确认插入不再二次 parse（避双倍主线程卡顿）
         const { parseDxfToProfiles } = await import('./io/dxfImport')
         const parsed = parseDxfToProfiles(text, {
@@ -17865,11 +17865,11 @@ export const useApp = create<AppState>((rawSet, get) => {
             }
           },
         })
-        if (get().dxfImportEpoch !== epoch || parsed.stats?.cancelled) { set({ busy: false, status: 'DXF 导入已取消' }); return }
+        if (get().dxfImportEpoch !== epoch || parsed.stats?.cancelled) { set({ busy: false, status: 'DXF 匯入已取消' }); return }
         const entReject = rejectDxfImport(bytes, parsed.stats?.entityCount || 0)
         if (entReject) { set({ busy: false, status: entReject }); return }
         const { profiles, texts, layers, note, skipped, stats } = parsed
-        if (!profiles.length && !(texts && texts.length)) { set({ busy: false, status: 'DXF 导入失败：' + note }); return }
+        if (!profiles.length && !(texts && texts.length)) { set({ busy: false, status: 'DXF 匯入失敗：' + note }); return }
         set({ busy: false })
         get().openInsertVec('dxf', text, layers.length ? layers : ['0'], {
           profileCount: profiles.length,
@@ -17879,16 +17879,16 @@ export const useApp = create<AppState>((rawSet, get) => {
           parseCache: { profiles, texts, note, skipped, layers, stats },
         })
       } catch (e) {
-        set({ busy: false, status: 'DXF 解析失败：' + ((e as Error)?.message || e) })
+        set({ busy: false, status: 'DXF 解析失敗：' + ((e as Error)?.message || e) })
       }
     }
     inp.click()
   },
 
   showProps: true,
-  toggleProps: () => set((s) => ({ showProps: !s.showProps, status: !s.showProps ? '已显示测量信息' : '已隐藏测量信息' })),
+  toggleProps: () => set((s) => ({ showProps: !s.showProps, status: !s.showProps ? '已顯示測量信息' : '已隱藏測量信息' })),
   showCom: false,
-  toggleCom: () => set((s) => ({ showCom: !s.showCom, status: !s.showCom ? '已显示重心(质心)标记' : '已隐藏重心标记' })),
+  toggleCom: () => set((s) => ({ showCom: !s.showCom, status: !s.showCom ? '已顯示重心(質心)標記' : '已隱藏重心標記' })),
   // ── GM-X1 #10：模态 Properties 对话框（复用 computeMassProps + buildPropsReport）──
   propsDialog: null,
   propsDialogData: null,
@@ -17901,7 +17901,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (typeof bodyId === 'string' && bodyId.startsWith('parked:')) {
       const idx = Number(bodyId.slice(7))
       const pb = s.bodyMesh?.parked?.[idx]
-      if (!pb?.triangles?.length) { set({ status: '属性：该泊车实体无几何' }); return }
+      if (!pb?.triangles?.length) { set({ status: '屬性：該泊車實體無幾何' }); return }
       mesh = pb
       name = pb.name || `泊车实体${idx + 1}`
       material = s.physMatName
@@ -17909,9 +17909,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       get().selectParkedBody(idx)
     } else if (bodyId) {
       const c = s.components.find((x) => x.id === bodyId)
-      if (!c || !c.mesh.triangles.length) { set({ status: '属性：该组件无实体几何' }); return }
+      if (!c || !c.mesh.triangles.length) { set({ status: '屬性：該組件無實體幾何' }); return }
       const bodies = visibleDefinitionBodies(c, s.componentDefs).map((b) => b.mesh)
-      if (!bodies.length) { set({ status: '属性：该组件没有可见实体几何' }); return }
+      if (!bodies.length) { set({ status: '屬性：該組件沒有可見實體幾何' }); return }
       if (bodies.length === 1) mesh = bodies[0]
       else {
         let offset = 0
@@ -17922,7 +17922,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       name = c.name; material = c.material
       density = (c.material && MATERIALS[c.material]?.density) || s.bodyDensity
     } else {
-      if (!s.bodyMesh || !s.bodyMesh.triangles.length) { set({ status: '属性：需要活动实体（或在浏览器选一个组件右键属性）' }); return }
+      if (!s.bodyMesh || !s.bodyMesh.triangles.length) { set({ status: '屬性：需要活動實體（或在瀏覽器選一個組件右鍵屬性）' }); return }
       mesh = s.bodyMesh; material = s.physMatName
       // GM-X1 #10：精度档 → 重新细分（仅 B-rep 活动实体）。Med 用现网格；Low/High 请 worker 出 coarse/fine STL 重算。
       if (acc !== 'med' && hasSolid(s.features)) {
@@ -17952,7 +17952,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const d = get().propsDialogData
     if (!d) return
     try { void navigator.clipboard?.writeText(d.text) } catch { /* 剪贴板唔可用 */ }
-    set({ status: '已复制物理属性到剪贴板（可贴入邮件/工单/报告）' })
+    set({ status: '已複製物理屬性到剪貼板（可貼入郵件/工單/報告）' })
   },
   measureMode: false,
   measurePts: [],
@@ -17963,9 +17963,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   measureUniPicks: [],
   measureUniResult: null,
   measureSelFilter: { face: true, edge: true, body: true, sketch: true },
-  toggleMeasureUni: () => set((s) => ({ measureUniMode: !s.measureUniMode, measureUniPicks: [], measureUniResult: null, measureMode: false, measurePts: [], measureDist: null, measureEdgeMode: false, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureAngleMode: false, measureAngleInfo: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureUniMode ? '统一测量：点任意实体（面/边/点，最多 2 个）→ 自动出面积/夹角/长度/最短距/距离' : '已退出统一测量' })),
+  toggleMeasureUni: () => set((s) => ({ measureUniMode: !s.measureUniMode, measureUniPicks: [], measureUniResult: null, measureMode: false, measurePts: [], measureDist: null, measureEdgeMode: false, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureAngleMode: false, measureAngleInfo: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureUniMode ? '統一測量：點任意實體（面/邊/點，最多 2 個）→ 自動出面積/夾角/長度/最短距/距離' : '已退出統一測量' })),
   setMeasureSelFilter: (patch) => set((s) => ({ measureSelFilter: { ...s.measureSelFilter, ...patch,...(patch.body===true?{face:false,edge:false}:patch.face===true||patch.edge===true?{body:false}:{}) },measureUniPicks:[],measureUniResult:null })),
-  clearMeasureUniPicks: () => set({ measureUniPicks: [], measureUniResult: null, status: '已清空测量拾取 — 重新点选' }),
+  clearMeasureUniPicks: () => set({ measureUniPicks: [], measureUniResult: null, status: '已清空測量拾取 — 重新點選' }),
   addMeasureUniPick: (pick) => set((s) => {
     // 累积拾取（满 2 个再点 → 从新开始，同旧 addMeasurePoint 手感）
     const picks = pick.kind==='body'||s.measureUniPicks.some(p=>p.kind==='body')||s.measureUniPicks.length >= 2 ? [pick] : [...s.measureUniPicks, pick]
@@ -18020,19 +18020,19 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // ── GM-X1 #3/#4/#5：测量精度 + 副单位 + 捕捉标记 ──
   measurePrecision: null,
-  setMeasurePrecision: (n) => set({ measurePrecision: n == null ? null : Math.max(0, Math.min(8, Math.round(n))), status: n == null ? '测量精度：默认（跟单位）' : `测量精度：${Math.max(0, Math.min(8, Math.round(n)))} 位小数` }),
+  setMeasurePrecision: (n) => set({ measurePrecision: n == null ? null : Math.max(0, Math.min(8, Math.round(n))), status: n == null ? '測量精度：預設（跟單位）' : `測量精度：${Math.max(0, Math.min(8, Math.round(n)))} 位小數` }),
   secondaryUnit: null,
-  setSecondaryUnit: (u) => set({ secondaryUnit: u, status: u ? `副单位并列显示：${u}` : '已关副单位' }),
+  setSecondaryUnit: (u) => set({ secondaryUnit: u, status: u ? `副單位並列顯示：${u}` : '已關副單位' }),
   measureSnapMarkers: false,
-  toggleMeasureSnapMarkers: () => set((s) => ({ measureSnapMarkers: !s.measureSnapMarkers, status: !s.measureSnapMarkers ? '测量捕捉标记：显示顶点/中点/中心捕捉点' : '已关捕捉标记' })),
+  toggleMeasureSnapMarkers: () => set((s) => ({ measureSnapMarkers: !s.measureSnapMarkers, status: !s.measureSnapMarkers ? '測量捕捉標記：顯示頂點/中點/中心捕捉點' : '已關捕捉標記' })),
   // ── GM-X1 #16：Display Mesh Face Groups ──
   meshFaceGroupColors: false,
-  toggleMeshFaceGroupColors: () => set((s) => ({ meshFaceGroupColors: !s.meshFaceGroupColors, status: !s.meshFaceGroupColors ? '网格面组上色：逐 B-rep 面/面组循环调色（Fusion Display Mesh Face Groups）' : '已关面组上色' })),
+  toggleMeshFaceGroupColors: () => set((s) => ({ meshFaceGroupColors: !s.meshFaceGroupColors, status: !s.meshFaceGroupColors ? '網格面組上色：逐 B-rep 面/面組循環調色（Fusion Display Mesh Face Groups）' : '已關面組上色' })),
   // S102[1]：量测捕获为参数
   lastMeasure: null,
   captureMeasureParam: (name) => {
     const lm = get().lastMeasure
-    if (!lm) { set({ status: '请先用「量边／量面／测量」量一个值，再捕获为参数' }); return }
+    if (!lm) { set({ status: '請先用「量邊／量面／測量」量一個值，再捕獲為參數' }); return }
     const before = get().params.length
     const nm = (name || '').trim() || `m${before + 1}`
     get().addParam(nm, +lm.value.toFixed(4))   // addParam 系同步 set（含命名/重名/保留名守卫，自己出 status）
@@ -18043,7 +18043,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   inspectMode: true,
   inspectInfo: null,
   clearInspect: () => set({ inspectInfo: null }),
-  toggleInspect: () => set((s) => ({ inspectMode: !s.inspectMode, inspectInfo: s.inspectMode ? null : s.inspectInfo, status: s.inspectMode ? '已关属性检查器' : '属性检查器：model 模式点面/棱即看属性（Alt+点=棱）' })),
+  toggleInspect: () => set((s) => ({ inspectMode: !s.inspectMode, inspectInfo: s.inspectMode ? null : s.inspectInfo, status: s.inspectMode ? '已關屬性檢查器' : '屬性檢查器：model 模式點面/棱即看屬性（Alt+點=棱）' })),
   inspectAt: async (p, isEdge) => {
     if (!hasSolid(get().features)) return
     const cp: [number, number, number] = [p[0], -p[2], p[1]]   // three world → CAD（同 6845 行）
@@ -18105,7 +18105,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const analyses = next === 'off'
       ? s.analyses.map((a) => (a.type === m ? { ...a, visible: false } : a))
       : _soleVisibleAnalysis(s.analyses, next as AnalysisType, { stripe: s.inspectStripe })
-    return { inspectShade: next, analyses, xray: false, wireframe: false, draftResult: null, slopeResult: null, accessResult: null, status: m === 'zebra' ? '斑马纹分析：转动视角，条纹错断/突疏密 = 切向(G1)不连续' : m === 'curv' ? '曲率趋势（平均曲率 |H|）：红=高曲率，蓝=平坦' : m === 'gausscurv' ? '高斯曲率 K（发散色阶）：红=凸(碗/球,K>0) · 白=可展(平/柱,K≈0) · 蓝=鞍(K<0)' : m === 'comb' ? '曲率梳 Curvature Comb：黄=最大主曲率方向 · 青=最小 — 睇曲面主流向 + 红凸/蓝凹强度（梳齿越长越弯）' : m === 'kmax' ? '最大主曲率 κmax（|H|+√(H²−K)）：红=最弯方向曲率大，蓝=平坦（趋势/近似）' : m === 'kmin' ? '最小主曲率 κmin（|H|−√(H²−K)）：红=凸、蓝=鞍(负) — 睇另一主方向弯曲（趋势/近似）' : '已关曲面分析' }
+    return { inspectShade: next, analyses, xray: false, wireframe: false, draftResult: null, slopeResult: null, accessResult: null, status: m === 'zebra' ? '斑馬紋分析：轉動視角，條紋錯斷/突疏密 = 切向(G1)不連續' : m === 'curv' ? '曲率趨勢（平均曲率 |H|）：紅=高曲率，藍=平坦' : m === 'gausscurv' ? '高斯曲率 K（發散色階）：紅=凸(碗/球,K>0) · 白=可展(平/柱,K≈0) · 藍=鞍(K<0)' : m === 'comb' ? '曲率梳 Curvature Comb：黃=最大主曲率方向 · 青=最小 — 睇曲面主流向 + 紅凸/藍凹強度（梳齒越長越彎）' : m === 'kmax' ? '最大主曲率 κmax（|H|+√(H²−K)）：紅=最彎方向曲率大，藍=平坦（趨勢/近似）' : m === 'kmin' ? '最小主曲率 κmin（|H|−√(H²−K)）：紅=凸、藍=鞍(負) — 睇另一主方向彎曲（趨勢/近似）' : '已關曲面分析' }
   }),
   setInspectStripe: (n) => set({ inspectStripe: Number.isFinite(n) ? Math.max(4, Math.min(120, n)) : 24 }),
   // S118：拔模分析 — 逐 B-rep 面拔模角 vs 脱模方向（绿=正拔模可脱 / 红=倒扣 / 黄=垂直要侧抽）。
@@ -18113,62 +18113,62 @@ export const useApp = create<AppState>((rawSet, get) => {
   draftResult: null,
   draftPull: [0, 0, 1],
   draftGradient: false,   // #174-4：默认逐面分类色；开 = 逐三角连续梯度（睇面内最差点）
-  toggleDraftGradient: () => set((s) => ({ draftGradient: !s.draftGradient, status: !s.draftGradient ? '拔模：逐三角梯度着色（绿→黄→红连续，睇面内渐变）' : '拔模：逐面分类色（绿=正/黄=垂直/红=倒扣）' })),
+  toggleDraftGradient: () => set((s) => ({ draftGradient: !s.draftGradient, status: !s.draftGradient ? '拔模：逐三角梯度着色（綠→黃→紅連續，睇面內漸變）' : '拔模：逐面分類色（綠=正/黃=垂直/紅=倒扣）' })),
   // S180：最小曲率半径（Fusion Inspect › Minimum Radius）— 复用 meshCurvature（已算 H/K），主曲率 κmax=|H|+√(max(0,H²−K))，R_min=1/maxκ。
   runMinRadius: async () => {
     const s = get()
-    if (!hasSolid(s.features) || !s.bodyMesh?.vertices?.length || !s.bodyMesh.triangles?.length) { set({ status: '最小曲率半径：需要活动实体' }); return }
+    if (!hasSolid(s.features) || !s.bodyMesh?.vertices?.length || !s.bodyMesh.triangles?.length) { set({ status: '最小曲率半徑：需要活動實體' }); return }
     try {
       const { minRadiusOfCurvature } = await import('./cad/curvatureAnalysis')
       const r = minRadiusOfCurvature(s.bodyMesh.vertices as number[], s.bodyMesh.triangles as number[])
-      if (!r) { set({ status: '最小曲率半径：网格全平 / 太粗，无有效内部曲率 — 无最小半径' }); return }
+      if (!r) { set({ status: '最小曲率半徑：網格全平 / 太粗，無有效內部曲率 — 無最小半徑' }); return }
       const u = get().unit
       const text = `最小曲率半径 R${fmtLen(r.rMin, u)}（最弯处 κ ${r.kappaMax.toExponential(2)}/mm · 趋势/近似，网格细化收敛 · 🔴标位）`
-      set({ inspectMode: true, inspectInfo: { kind: '最小曲率半径', radius: r.rMin, isEdge: false, center: r.at, text }, status: text })   // S180 audit：显式按钮强制开 inspect 面板（否则关咗就睇唔到结果）
-    } catch (e) { set({ status: '最小曲率半径失败：' + ((e as Error)?.message || e) }) }
+      set({ inspectMode: true, inspectInfo: { kind: '最小曲率半徑', radius: r.rMin, isEdge: false, center: r.at, text }, status: text })   // S180 audit：显式按钮强制开 inspect 面板（否则关咗就睇唔到结果）
+    } catch (e) { set({ status: '最小曲率半徑失敗：' + ((e as Error)?.message || e) }) }
   },
   runDraftAnalysis: (pull) => set((s) => {
     const bm = s.bodyMesh
-    if (!bm || !bm.vertices.length || !bm.faceGroups || !bm.faceGroups.length) return { status: '拔模分析：需要先有有 B-rep 面嘅活动实体（导入网格无逐面身份）' }
+    if (!bm || !bm.vertices.length || !bm.faceGroups || !bm.faceGroups.length) return { status: '拔模分析：需要先有有 B-rep 面嘅活動實體（匯入網格無逐面身份）' }
     const L = Math.hypot(pull[0], pull[1], pull[2])
-    if (!(L > 1e-9)) return { status: '拔模分析：脱模方向唔可以系零向量' }
+    if (!(L > 1e-9)) return { status: '拔模分析：脫模方向唔可以系零向量' }
     const unitPull: [number, number, number] = [pull[0] / L, pull[1] / L, pull[2] / L]
     const r = analyzeDraft(bm.vertices, bm.triangles, bm.faceGroups, unitPull)
     const nNeg = r.faces.filter((f) => f.cls === 'negative').length
     const nVert = r.faces.filter((f) => f.cls === 'vertical').length
-    return { draftResult: r, draftPull: unitPull, slopeResult: null, accessResult: null, inspectShade: 'off', analyses: _soleVisibleAnalysis(s.analyses, 'draft', { pull: unitPull }), status: `拔模分析（脱模 [${unitPull.map((x) => +x.toFixed(2)).join(',')}]）：${r.faces.length} 面 · 范围 ${r.min.toFixed(1)}°~${r.max.toFixed(1)}° · 🔴倒扣 ${nNeg} · 🟡垂直 ${nVert}（绿=可脱模）` }
+    return { draftResult: r, draftPull: unitPull, slopeResult: null, accessResult: null, inspectShade: 'off', analyses: _soleVisibleAnalysis(s.analyses, 'draft', { pull: unitPull }), status: `拔模分析（脫模 [${unitPull.map((x) => +x.toFixed(2)).join(',')}]）：${r.faces.length} 面 · 範圍 ${r.min.toFixed(1)}°~${r.max.toFixed(1)}° · 🔴倒扣 ${nNeg} · 🟡垂直 ${nVert}（綠=可脫模）` }
   }),
-  clearDraftAnalysis: () => set((s) => ({ draftResult: null, analyses: s.analyses.map((a) => (a.type === 'draft' ? { ...a, visible: false } : a)), status: '已关拔模分析' })),
+  clearDraftAnalysis: () => set((s) => ({ draftResult: null, analyses: s.analyses.map((a) => (a.type === 'draft' ? { ...a, visible: false } : a)), status: '已關拔模分析' })),
   // S187：斜度分析（Inspect › Slope）— 逐面相对参考方向倾角着色（绿=平/黄=过渡/蓝=陡）。纯函数 analyzeSlope 喺活动实体 mesh 上跑；与拔模/曲率/斑马互斥（同为面 overlay）。
   slopeResult: null,
   slopeRef: [0, 0, 1],
   runSlopeAnalysis: (ref) => set((s) => {
     const bm = s.bodyMesh
-    if (!bm || !bm.vertices.length || !bm.faceGroups || !bm.faceGroups.length) return { status: '斜度分析：需要先有有 B-rep 面嘅活动实体（导入网格无逐面身份）' }
+    if (!bm || !bm.vertices.length || !bm.faceGroups || !bm.faceGroups.length) return { status: '斜度分析：需要先有有 B-rep 面嘅活動實體（匯入網格無逐面身份）' }
     const L = Math.hypot(ref[0], ref[1], ref[2])
-    if (!(L > 1e-9)) return { status: '斜度分析：参考方向唔可以系零向量' }
+    if (!(L > 1e-9)) return { status: '斜度分析：參考方向唔可以系零向量' }
     const r = analyzeSlope(bm.vertices, bm.triangles, bm.faceGroups, ref)
     const nFlat = r.faces.filter((f) => f.cls === 'flat').length
     const nSteep = r.faces.filter((f) => f.cls === 'steep').length
-    return { slopeResult: r, slopeRef: ref, draftResult: null, accessResult: null, inspectShade: 'off', analyses: _soleVisibleAnalysis(s.analyses, 'slope', { ref }), status: `斜度分析（基准 [${ref.map((x) => +x.toFixed(2)).join(',')}]）：${r.faces.length} 面 · 范围 ${r.min.toFixed(1)}°~${r.max.toFixed(1)}° · 🟢平 ${nFlat} · 🔵陡 ${nSteep}（黄=过渡斜面）` }
+    return { slopeResult: r, slopeRef: ref, draftResult: null, accessResult: null, inspectShade: 'off', analyses: _soleVisibleAnalysis(s.analyses, 'slope', { ref }), status: `斜度分析（基準 [${ref.map((x) => +x.toFixed(2)).join(',')}]）：${r.faces.length} 面 · 範圍 ${r.min.toFixed(1)}°~${r.max.toFixed(1)}° · 🟢平 ${nFlat} · 🔵陡 ${nSteep}（黃=過渡斜面）` }
   }),
-  clearSlopeAnalysis: () => set((s) => ({ slopeResult: null, analyses: s.analyses.map((a) => (a.type === 'slope' ? { ...a, visible: false } : a)), status: '已关斜度分析' })),
+  clearSlopeAnalysis: () => set((s) => ({ slopeResult: null, analyses: s.analyses.map((a) => (a.type === 'slope' ? { ...a, visible: false } : a)), status: '已關斜度分析' })),
   // #174-7：脱模可达性 — 逐三角沿脱模方向射线，被自身网格挡 = 倒扣不可脱(红)/通=可脱(绿)。暴力射线 O(F²)，
   // 超过 maxTris 诚实降级（tooLarge → 提示改用拔模分析）。与拔模/斜度/曲率互斥（同为面 overlay）。
   accessResult: null,
   runAccessibility: (pull) => {
     const s = get()
     const bm = s.bodyMesh
-    if (!bm || !bm.vertices.length || !bm.triangles.length) { set({ status: '可达性分析：需要活动实体' }); return }
+    if (!bm || !bm.vertices.length || !bm.triangles.length) { set({ status: '可達性分析：需要活動實體' }); return }
     const L = Math.hypot(pull[0], pull[1], pull[2])
-    if (!(L > 1e-9)) { set({ status: '可达性分析：脱模方向唔可以系零向量' }); return }
+    if (!(L > 1e-9)) { set({ status: '可達性分析：脫模方向唔可以系零向量' }); return }
     import('./cad/accessibilityAnalysis').then(({ analyzeAccessibility }) => {
       const rep = analyzeAccessibility(bm.vertices as number[], bm.triangles as number[], pull)
-      if (rep.tooLarge) { set({ status: `可达性分析：网格 ${rep.nTotal} 三角太多（暴力射线 O(F²) 会卡）— 诚实跳过，请先简化网格或用拔模分析` }); return }
-      set((st) => ({ accessResult: { positions: rep.positions, colors: rep.colors, nBlocked: rep.nBlocked, nTotal: rep.nTotal, tooLarge: false }, draftResult: null, slopeResult: null, inspectShade: 'off', analyses: _soleVisibleAnalysis(st.analyses, 'access', { pull }), status: `脱模可达性（方向 [${pull.map((x) => +x.toFixed(2)).join(',')}]）：${rep.nTotal} 三角 · 🔴倒扣不可脱 ${rep.nBlocked} · 🟢可脱 ${rep.nTotal - rep.nBlocked}（趋势/近似，逐三角自身遮挡）` }))
-    }).catch((e) => set({ status: '可达性分析失败：' + ((e as Error)?.message || e) }))
+      if (rep.tooLarge) { set({ status: `可達性分析：網格 ${rep.nTotal} 三角太多（暴力射線 O(F²) 會卡）— 誠實跳過，請先簡化網格或用拔模分析` }); return }
+      set((st) => ({ accessResult: { positions: rep.positions, colors: rep.colors, nBlocked: rep.nBlocked, nTotal: rep.nTotal, tooLarge: false }, draftResult: null, slopeResult: null, inspectShade: 'off', analyses: _soleVisibleAnalysis(st.analyses, 'access', { pull }), status: `脫模可達性（方向 [${pull.map((x) => +x.toFixed(2)).join(',')}]）：${rep.nTotal} 三角 · 🔴倒扣不可脫 ${rep.nBlocked} · 🟢可脫 ${rep.nTotal - rep.nBlocked}（趨勢/近似，逐三角自身遮挡）` }))
+    }).catch((e) => set({ status: '可達性分析失敗：' + ((e as Error)?.message || e) }))
   },
-  clearAccessibility: () => set((s) => ({ accessResult: null, analyses: s.analyses.map((a) => (a.type === 'access' ? { ...a, visible: false } : a)), status: '已关可达性分析' })),
+  clearAccessibility: () => set((s) => ({ accessResult: null, analyses: s.analyses.map((a) => (a.type === 'access' ? { ...a, visible: false } : a)), status: '已關可達性分析' })),
   // S119：草图截面属性 — 收集所有非构造闭合轮廓 → 转闭合多段线 → 最大者为外形、内含者为孔（pointInPoly）、
   // 分离轮廓忽略（诚实计数）→ sectionProps（shoelace 面积/形心/截面惯矩/主轴）。纯函数主线程跑。
   sectionResult: null,
@@ -18183,7 +18183,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       return null
     }
     const loops = shapes.map(shapeLoop).filter((l): l is Pt[] => !!l && l.length >= 3)
-    if (!loops.length) return { status: '截面属性：草图里冇封闭轮廓（构造/开放线唔计）' }
+    if (!loops.length) return { status: '截面屬性：草圖裏冇封閉輪廓（構造/開放線唔計）' }
     // S186：嵌套深度奇偶分类（classifyLoops 用 loop 首顶点测深度，避开环形截面质心落孔嘅误判）。
     // 偶深=实体(+)、奇深=孔(−) → 多体（两个分离轮廓都算）+ 嵌套岛（孔中岛加返）都正确，唔再「忽略分离轮廓」。
     const cls = classifyLoops(loops)
@@ -18194,7 +18194,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const u = s.unit
     return {
       sectionResult: { ...r, nHoles, nBodies },
-      status: `截面属性：面积 ${fmtArea(r.area, u)} · 形心 (${r.centroid.map((c) => c.toFixed(2)).join(', ')}) · Ixx ${r.Ixx.toExponential(2)} Iyy ${r.Iyy.toExponential(2)} mm⁴ · 主轴 I₁/I₂ ${r.principal.I1.toExponential(2)}/${r.principal.I2.toExponential(2)}@${r.principal.angleDeg.toFixed(1)}° · 周长 ${fmtLen(r.perimeter, u)}${nBodies > 1 ? ` · ${nBodies}块` : ''}${nHoles ? ` · ${nHoles}孔` : ''}`,
+      status: `截面屬性：面積 ${fmtArea(r.area, u)} · 形心 (${r.centroid.map((c) => c.toFixed(2)).join(', ')}) · Ixx ${r.Ixx.toExponential(2)} Iyy ${r.Iyy.toExponential(2)} mm⁴ · 主軸 I₁/I₂ ${r.principal.I1.toExponential(2)}/${r.principal.I2.toExponential(2)}@${r.principal.angleDeg.toFixed(1)}° · 周長 ${fmtLen(r.perimeter, u)}${nBodies > 1 ? ` · ${nBodies}塊` : ''}${nHoles ? ` · ${nHoles}孔` : ''}`,
     }
   }),
   clearSectionProps: () => set({ sectionResult: null }),
@@ -18202,9 +18202,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 复用 sliceMesh（只切 Z 面 → 非 Z 轴先 remap 顶点令该轴变 Z）+ 同 computeSectionProps 一样嘅 外形/孔/分离 分类 + sectionProps。
   // 纯几何（圆按网格密铺近似）；截面 2D 在剖切平面坐标系（X 轴剖→(y,z) / Y 轴剖→(z,x) / Z 轴剖→(x,y)），形心/惯矩据此标架。
   computeSectionCut: () => set((s) => {
-    if (!s.section.on) return { status: '剖面截面属性：先开启剖切（Section）面板' }
+    if (!s.section.on) return { status: '剖面截面屬性：先開啟剖切（Section）面板' }
     const bm = s.bodyMesh
-    if (!bm || !bm.vertices?.length || !bm.triangles?.length) return { status: '剖面截面属性：冇活动实体可剖' }
+    if (!bm || !bm.vertices?.length || !bm.triangles?.length) return { status: '剖面截面屬性：冇活動實體可剖' }
     const ax = s.section.axis
     const ref = s.section.plane
     // 审计修复：剖切偏移夹到实体范围【开区间】(mn+eps, mx-eps)，避免切喺顶/底面边界 —— slicePreview d===0→+1e-9
@@ -18250,7 +18250,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     const { loops, open } = sliceMesh({ vertices: verts, triangles: bm.triangles } as Parameters<typeof sliceMesh>[0], off)
     const sectionLabel = ref?.label || ax
-    if (!loops.length) return { sectionResult: null, status: `剖面截面属性（${sectionLabel}=${off}）：剖面冇穿过实体 / 冇闭合截面${open.length ? `（${open.length} 条开放链 — 网格非水密）` : ''}` }
+    if (!loops.length) return { sectionResult: null, status: `剖面截面屬性（${sectionLabel}=${off}）：剖面冇穿過實體 / 冇閉合截面${open.length ? `（${open.length} 條開放鏈 — 網格非水密）` : ''}` }
     const loopsPt = loops as Pt[][]
     // S186：同 computeSectionProps —— 嵌套深度奇偶分类（多体/嵌套岛截面正确，唔再忽略分离轮廓）
     const cls = classifyLoops(loopsPt)
@@ -18262,26 +18262,26 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       sectionResult: { ...r, nHoles, nBodies, fromCut: true, openWarn: open.length > 0 },
       // GM-L2 #81：X/Y 轴剖切时 2D 坐标经 remap（X→(y,z)/Y→(z,x)/Z→(x,y)），形心/Ixx/Iyy 都喺呢个旋转后标架 — 明确标注平面，免用户当世界坐标误用
-      status: `剖面截面属性（${sectionLabel}=${off}${open.length ? ' ⚠非水密' : ''}）：面积 ${fmtArea(r.area, u)} · 形心 (${r.centroid.map((c) => c.toFixed(2)).join(', ')})（${ref ? '局部 UV' : ax === 'X' ? 'YZ' : ax === 'Y' ? 'ZX' : 'XY'} 平面坐标）· Ixx ${r.Ixx.toExponential(2)} Iyy ${r.Iyy.toExponential(2)} mm⁴ · 主轴 ${r.principal.I1.toExponential(2)}/${r.principal.I2.toExponential(2)}@${r.principal.angleDeg.toFixed(1)}° · 周长 ${fmtLen(r.perimeter, u)}${nBodies > 1 ? ` · ${nBodies}块` : ''}${nHoles ? ` · ${nHoles}孔` : ''}`,
+      status: `剖面截面屬性（${sectionLabel}=${off}${open.length ? ' ⚠非水密' : ''}）：面積 ${fmtArea(r.area, u)} · 形心 (${r.centroid.map((c) => c.toFixed(2)).join(', ')})（${ref ? '局部 UV' : ax === 'X' ? 'YZ' : ax === 'Y' ? 'ZX' : 'XY'} 平面座標）· Ixx ${r.Ixx.toExponential(2)} Iyy ${r.Iyy.toExponential(2)} mm⁴ · 主軸 ${r.principal.I1.toExponential(2)}/${r.principal.I2.toExponential(2)}@${r.principal.angleDeg.toFixed(1)}° · 周長 ${fmtLen(r.perimeter, u)}${nBodies > 1 ? ` · ${nBodies}塊` : ''}${nHoles ? ` · ${nHoles}孔` : ''}`,
     }
   }),
   addMeasurePoint: (p) => set((s) => {
     const pts: [number, number, number][] = s.measurePts.length >= 2 ? [p] : [...s.measurePts, p]
     if (pts.length === 2) {
       const d = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1], pts[1][2] - pts[0][2])
-      return { measurePts: pts, measureDist: d, lastMeasure: { value: d, label: '两点距离' }, status: `两点距离 ${fmtLen(d, s.unit)}（点新位置重新量 · 可在参数面板捕获为参数）` }
+      return { measurePts: pts, measureDist: d, lastMeasure: { value: d, label: '兩點距離' }, status: `兩點距離 ${fmtLen(d, s.unit)}（點新位置重新量 · 可在參數面板捕獲為參數）` }
     }
-    return { measurePts: pts, measureDist: null, status: '测量：再点第二点' }
+    return { measurePts: pts, measureDist: null, status: '測量：再點第二點' }
   }),
   measureEdgeMode: false,
   measureEdgeInfo: null,
   toggleMeasureEdge: () => set((s) => ({ measureEdgeMode: !s.measureEdgeMode, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureMode: false, measureAngleMode: false, measureAngleInfo: null, measureUniMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureEdgeMode ? '量邊：點擊實體某條棱 → 顯示其長度；圓孔棱顯示直徑Ø/半徑（導入網格件亦可 · 特徵棱鏈近似）' : '已退出量邊' })),
   // Click an edge → report its length, and for a closed circular edge its diameter/radius (a hole's bore Ø).
   measureEdgeAt: async (p) => {
-    if (!hasSolid(get().features)) { set({ status: '量边需要先有实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '量邊需要先有實體' }); return }
     const cp: [number, number, number] = [p[0], -p[2], p[1]]
     const r = await cad.measureEdgeAt(cp)
-    if (!r) { set({ measureEdgeInfo: null, status: '没找到棱（请点在某条棱附近）' }); return }
+    if (!r) { set({ measureEdgeInfo: null, status: '沒找到棱（請點在某條棱附近）' }); return }
     const ue = get().unit
     // For a closed circular edge (a hole bore), suggest the matching ISO screw (clearance vs tap fit).
     let fit = ''
@@ -18296,9 +18296,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   // GM-W4 4.4(a)：网格件量边 —— 导入件冇 B-rep 边拓扑，用【特征棱链】近似（meshMeasure 纯几何）。localPt = 网格自身局部坐标。
   measureMeshEdgeAt: (compId, faceIndex, localPt) => {
     const c = get().components.find((x) => x.id === compId)
-    if (!c || !c.mesh.triangles.length) { set({ measureEdgeInfo: null, status: '量边：揾唔到网格几何' }); return }
+    if (!c || !c.mesh.triangles.length) { set({ measureEdgeInfo: null, status: '量邊：揾唔到網格幾何' }); return }
     const r = measureMeshEdgeChain(c.mesh.vertices, c.mesh.triangles, faceIndex, localPt)
-    if (!r || r.length <= 0) { set({ measureEdgeInfo: null, status: '没找到棱（请点在某条棱附近）' }); return }
+    if (!r || r.length <= 0) { set({ measureEdgeInfo: null, status: '沒找到棱（請點在某條棱附近）' }); return }
     const ue = get().unit
     let fit = ''
     if (r.radius != null && r.closed) { try { const rec = recommendFastenerSize(r.radius * 2); fit = `　≈ ${rec.size} ${rec.fit === 'tap' ? '攻牙底孔' : rec.fit === 'clearance' ? '过孔(间隙)' : '松配'}` } catch { /* ignore */ } }
@@ -18312,13 +18312,13 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   measureFaceMode: false,
   measureFaceInfo: null,
-  toggleMeasureFace: () => set((s) => ({ measureFaceMode: !s.measureFaceMode, measureFaceInfo: null, measureMode: false, measureEdgeMode: false, measureAngleMode: false, measureAngleInfo: null, measureUniMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureFaceMode ? '量面：点击实体的一个面 → 显示其面积与类型（导入网格件亦可 · 共面区近似）' : '已退出量面' })),
+  toggleMeasureFace: () => set((s) => ({ measureFaceMode: !s.measureFaceMode, measureFaceInfo: null, measureMode: false, measureEdgeMode: false, measureAngleMode: false, measureAngleInfo: null, measureUniMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureFaceMode ? '量面：點擊實體的一個面 → 顯示其面積與類型（匯入網格件亦可 · 共面區近似）' : '已退出量面' })),
   // Click a face → report its surface area (summed from the face triangulation) + surface type.
   measureFaceAt: async (p) => {
-    if (!hasSolid(get().features)) { set({ status: '量面需要先有实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '量面需要先有實體' }); return }
     const cp: [number, number, number] = [p[0], -p[2], p[1]]
     const r = await cad.measureFaceAt(cp)
-    if (!r) { set({ measureFaceInfo: null, status: '没找到面（请点在某个面上）' }); return }
+    if (!r) { set({ measureFaceInfo: null, status: '沒找到面（請點在某個面上）' }); return }
     const TY: Record<string, string> = { PLANE: '平面', CYLINDRE: '圆柱面', CONE: '圆锥面', SPHERE: '球面', TORUS: '环面' }
     const ty = TY[r.kind] || r.kind || '面'
     const uf = get().unit
@@ -18335,29 +18335,29 @@ export const useApp = create<AppState>((rawSet, get) => {
   // GM-W4 4.4(a)：网格件量面 —— 导入件冇 B-rep 面拓扑，用【共面区 region-grow】近似面积（meshMeasure 纯几何）。
   measureMeshFaceAt: (compId, faceIndex) => {
     const c = get().components.find((x) => x.id === compId)
-    if (!c || !c.mesh.triangles.length) { set({ measureFaceInfo: null, status: '量面：揾唔到网格几何' }); return }
+    if (!c || !c.mesh.triangles.length) { set({ measureFaceInfo: null, status: '量面：揾唔到網格幾何' }); return }
     const r = measureMeshFaceRegion(c.mesh.vertices, c.mesh.triangles, faceIndex)
-    if (!r || r.area <= 0) { set({ measureFaceInfo: null, status: '没找到面（请点在某个面上）' }); return }
+    if (!r || r.area <= 0) { set({ measureFaceInfo: null, status: '沒找到面（請點在某個面上）' }); return }
     const uf = get().unit
     const info = r.planar
       ? `网格平面区（近似）：面积 ${fmtArea(r.area, uf)} · ${r.triCount} 三角`
       : `网格曲面 / 单三角（近似）：面积 ${fmtArea(r.area, uf)} · ${r.triCount} 三角`
-    set({ measureFaceInfo: info, lastMeasure: { value: r.area, label: '网格面积' }, status: info })
+    set({ measureFaceInfo: info, lastMeasure: { value: r.area, label: '網格面積' }, status: info })
   },
   measureAngleMode: false,
   measureAngleInfo: null,
-  toggleMeasureAngle: () => { _angleN1 = null; set((s) => ({ measureAngleMode: !s.measureAngleMode, measureAngleInfo: null, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureUniMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureAngleMode ? '量角：依次点两个面 → 显示两面夹角（活动实体 / 导入网格件均可，可混拣）' : '已退出量角' })) },
+  toggleMeasureAngle: () => { _angleN1 = null; set((s) => ({ measureAngleMode: !s.measureAngleMode, measureAngleInfo: null, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureUniMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureAngleMode ? '量角：依次點兩個面 → 顯示兩面夾角（活動實體 / 匯入網格件均可，可混揀）' : '已退出量角' })) },
   // Click two faces → angle between their normals (draft / bend / chamfer angle). Normals are in the
   // geometry frame (same for both), so the inter-normal angle is frame-independent.
   measureAngleAt: (n) => {
     const len = Math.hypot(n[0], n[1], n[2]) || 1
     const u: [number, number, number] = [n[0] / len, n[1] / len, n[2] / len]
-    if (!_angleN1) { _angleN1 = u; set({ measureAngleInfo: '已选第 1 面 — 再点第 2 面', status: '量角：再点第二个面' }); return }
+    if (!_angleN1) { _angleN1 = u; set({ measureAngleInfo: '已選第 1 面 — 再點第 2 面', status: '量角：再點第二個面' }); return }
     const dot = Math.max(-1, Math.min(1, _angleN1[0] * u[0] + _angleN1[1] * u[1] + _angleN1[2] * u[2]))
     const deg = (Math.acos(dot) * 180) / Math.PI
     // GM-L2 #80：两面法向几乎同向（dot≈1 → 0°）多数系拣咗同一面（或曲面同一三角）— 报「0°夹角」会误导。
     // 保留第 1 面等重拣第 2 面，唔好静静输出 0°。（真·两平行同向面唔需要量角，可拣唔同朝向嘅面。）
-    if (deg < 0.5) { set({ measureAngleInfo: '两面朝向相同（可能拣到同一面）— 要拣两个唔同朝向嘅面先量到夹角', status: '量角：两面朝向相同 — 请拣另一个唔同朝向嘅面（已保留第 1 面）' }); return }
+    if (deg < 0.5) { set({ measureAngleInfo: '兩面朝向相同（可能揀到同一面）— 要揀兩個唔同朝向嘅面先量到夾角', status: '量角：兩面朝向相同 — 請揀另一個唔同朝向嘅面（已保留第 1 面）' }); return }
     const tag = Math.abs(deg - 180) < 0.5 ? '（平行·反向）' : Math.abs(deg - 90) < 0.5 ? '（垂直）' : ''
     _angleN1 = null
     // GM-W8 β1-#79：同时报夹角 θ 同补角 180−θ（法向夹角 vs 二面角本互为补角,视法向朝向而定）— 用户按几何自取正确值。
@@ -18368,7 +18368,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   filletEdges: 'all',
   setFilletEdges: (e) => set({ filletEdges: e }),
   addFillet: async () => {
-    if (!hasSolid(get().features)) { set({ status: '请先创建一个实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '請先創建一個實體' }); return }
     const want = get().filletEdges
     const scopeOf = (e: EdgeSel) => (e === 'all' ? '所有棱边' : e === 'top' ? '顶面棱' : e === 'bottom' ? '底面棱' : '竖直棱')
     // Try the requested edge set; if "all" fails (common on complex parts), fall back to safer subsets so the user still gets a fillet (with an honest message).
@@ -18382,7 +18382,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   addChamfer: async () => {
-    if (!hasSolid(get().features)) { set({ status: '请先创建一个实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '請先創建一個實體' }); return }
     const want = get().filletEdges
     const scopeOf = (e: EdgeSel) => (e === 'all' ? '所有棱边' : e === 'top' ? '顶面棱' : e === 'bottom' ? '底面棱' : '竖直棱')
     const chain: EdgeSel[] = want === 'all' ? ['all', 'vertical', 'top'] : [want]
@@ -18395,7 +18395,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   addShell: async () => {
-    if (!hasSolid(get().features)) { set({ status: '请先创建一个实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '請先創建一個實體' }); return }
     const f: Feature = { id: fid(), type: 'shell', thickness: 4 }
     const hasRound = get().features.some((x) => x.type === 'fillet' || x.type === 'chamfer')
     const failMsg = hasRound ? '抽壳失败——OCCT 对已倒角的实体抽壳不稳定，建议顺序「先抽壳，后倒圆角/倒角」' : undefined
@@ -18403,13 +18403,13 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   addPattern: async () => {
-    if (!hasSolid(get().features)) { set({ status: '请先创建一个实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '請先創建一個實體' }); return }
     const f: Feature = { id: fid(), type: 'pattern', countX: 2, countY: 2, dx: 130, dy: 90, countZ: 1, dz: 60 }
     await get().applyFeatures([...get().features, f], '已矩形阵列 2×2（时间轴可加 Z 数量做 3D 阵列）')
   },
 
   addCPattern: async () => {
-    if (!hasSolid(get().features)) { set({ status: '请先创建实体（建议偏离中心，环形阵列更明显）' }); return }
+    if (!hasSolid(get().features)) { set({ status: '請先創建實體（建議偏離中心，環形陣列更明顯）' }); return }
     const f: Feature = { id: fid(), type: 'cpattern', count: 6, angle: 360, axis: 'Z' }
     await get().applyFeatures([...get().features, f], '已环形阵列 ×6（绕 Z 轴；时间轴可改绕 X/Y 轴）')
   },
@@ -18426,7 +18426,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   addMirror: async () => {
-    if (!hasSolid(get().features)) { set({ status: '请先创建实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '請先創建實體' }); return }
     const f: Feature = { id: fid(), type: 'mirror', plane: 'YZ', offset: 0 }
     await get().applyFeatures([...get().features, f], '已镜像（跨 YZ 平面；时间轴可设「对称面偏移」镜到任意 X 位置）')
   },
@@ -18439,7 +18439,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const f: Feature = { id: fid(), type: 'fillet', radius: r, edges: 'all' }
     const ok = await get().applyFeatures([...get().features, f], `已对所有棱倒圆角 R${r}（时间轴可改半径）`, true, `全棱倒圆角 R${r} 失败 — 半径相对几何过大，请调细再试`)
     // 成功嘅倒圆角必然令三角面增多（圆弧细分）。若无变（内核静默保旧形），诚实当失败。
-    if (ok && get().bodyMesh && get().bodyMesh!.triangles.length <= triBefore) { set({ status: `全棱倒圆角 R${r} 无效 — 半径相对几何过大，已保持原样，请调细再试` }); return false }
+    if (ok && get().bodyMesh && get().bodyMesh!.triangles.length <= triBefore) { set({ status: `全棱倒圓角 R${r} 無效 — 半徑相對幾何過大，已保持原樣，請調細再試` }); return false }
     return ok
   },
   chamferAllEdges: async (dist) => {
@@ -18448,11 +18448,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     const triBefore = get().bodyMesh ? get().bodyMesh!.triangles.length : 0
     const f: Feature = { id: fid(), type: 'chamfer', distance: d, edges: 'all' }
     const ok = await get().applyFeatures([...get().features, f], `已对所有棱倒角 ${d}mm（时间轴可改距离）`, true, `全棱倒角 ${d}mm 失败 — 距离过大，请调细再试`)
-    if (ok && get().bodyMesh && get().bodyMesh!.triangles.length === triBefore) { set({ status: `全棱倒角 ${d}mm 无效 — 距离过大，已保持原样，请调细再试` }); return false }
+    if (ok && get().bodyMesh && get().bodyMesh!.triangles.length === triBefore) { set({ status: `全棱倒角 ${d}mm 無效 — 距離過大，已保持原樣，請調細再試` }); return false }
     return ok
   },
   addTransform: async () => {
-    if (!hasSolid(get().features)) { set({ status: '移动需要先创建实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '移動需要先創建實體' }); return }
     const f: Feature = { id: fid(), type: 'transform', dx: 20, dy: 0, dz: 0, rz: 0, rx: 0, ry: 0 }
     await get().applyFeatures([...get().features, f], '已移動實體（時間軸可改 dx/dy/dz + 繞X/Y/Z 角，繞件中心旋轉）')
   },
@@ -18460,21 +18460,21 @@ export const useApp = create<AppState>((rawSet, get) => {
   addLoft: async () => {
     // No "create from nothing": loft requires ≥2 user-drawn sections (use addLoftSection then commitLoft).
     if (get().loftSections.length >= 2) return void get().commitLoft()
-    set({ status: '放样需要≥2个截面：创建草图画轮廓 →「＋放样截面」→ 改基准Z 画下一个 → 放样' })
+    set({ status: '放樣需要≥2個截面：創建草圖畫輪廓 →「＋放樣截面」→ 改基準Z 畫下一個 → 放樣' })
   },
   // Multi-section loft: the user draws a profile, banks it as a section at the current
   // base-Z, changes base-Z, draws the next, … then lofts a smooth solid through them all.
   loftSections: [],
   addLoftSection: () =>
     set((s) => {
-      if (!s.sketchShape) return { status: '先画一个截面轮廓，再点「+放样截面」' }
+      if (!s.sketchShape) return { status: '先畫一個截面輪廓，再點「+放樣截面」' }
       const sec = { profile: shapeToProfile(s.sketchShape, s.sketchPlane), z: Math.round(s.sketchBaseZ), plane: s.sketchPlane, ...(s.sketchArb ? { arbPlane: JSON.parse(JSON.stringify(s.sketchArb)) } : {}) }
       // #24：两个截面唔可以同一高度（ThruSections 会退化/失败）— 同 from-sketch 路径(4437)一致守卫
-      if (s.loftSections.some((x) => sec.arbPlane ? !!x.arbPlane && JSON.stringify(x.arbPlane) === JSON.stringify(sec.arbPlane) : !x.arbPlane && (x.plane || 'XY') === sec.plane && Math.abs(x.z - sec.z) < 1e-6)) return { status: '已有相同基准面位置嘅截面 — 改基准面、偏移或角度再加' }
+      if (s.loftSections.some((x) => sec.arbPlane ? !!x.arbPlane && JSON.stringify(x.arbPlane) === JSON.stringify(sec.arbPlane) : !x.arbPlane && (x.plane || 'XY') === sec.plane && Math.abs(x.z - sec.z) < 1e-6)) return { status: '已有相同基準面位置嘅截面 — 改基準面、偏移或角度再加' }
       // T753：截面草图源同步入银行（轮廓 + 约束）— commitLoft 成功后逐截面归档做可重开源
       const secSrc = { ...(_pendingDatumRef?{datumRef:structuredClone(_pendingDatumRef)}:{}), patternData: clonePatternData(s.skPatternData) ?? undefined, shapes: JSON.parse(JSON.stringify(s.skPatternData ? [...s.sketchProfiles, s.sketchShape] : [s.sketchShape])) as SketchShape[], cons: JSON.parse(JSON.stringify(s.skCons)) as SkCon[], z: sec.z, plane: sec.plane, ...(s.sketchArb ? { arb: JSON.parse(JSON.stringify(s.sketchArb)) } : {}) }
       const frameLabel = sec.arbPlane ? '斜参考面' : `${sec.plane} @ ${sec.z}`
-      return { loftSections: [...s.loftSections, sec], loftSecSrcs: [...s.loftSecSrcs, secSrc], sketchShape: null, sketchStart: null, sketchPreview: null, polyPts: [], skCons: [], skPatternData: null, status: `已加放样截面 ${s.loftSections.length + 1}（${frameLabel}）— 再画下一个；≥2 个后点「放样」` }
+      return { loftSections: [...s.loftSections, sec], loftSecSrcs: [...s.loftSecSrcs, secSrc], sketchShape: null, sketchStart: null, sketchPreview: null, polyPts: [], skCons: [], skPatternData: null, status: `已加放樣截面 ${s.loftSections.length + 1}（${frameLabel}）— 再畫下一個；≥2 個後點「放樣」` }
     }),
   loftSecSrcs: [],
   commitLoft: async () => {
@@ -18488,7 +18488,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const _idx = _rawSecs.map((_, i) => i).sort((a, b) => _samePlane ? _rawSecs[a].z - _rawSecs[b].z : a - b)
     const secs = _idx.map((i) => _rawSecs[i])
     const secSrcs = _aligned ? _idx.map((i) => _rawSrcs[i]) : _rawSrcs
-    if (secs.length < 2) { set({ status: '放样至少需要 2 个截面（用「+放样截面」逐个添加）' }); return }
+    if (secs.length < 2) { set({ status: '放樣至少需要 2 個截面（用「+放樣截面」逐個添加）' }); return }
     const _so = get().sketchOp
     const op: BoolOp = (_so === 'cut' || _so === 'intersect' || _so === 'newbody') && hasSolid(get().features) ? _so : 'new'   // P2 New Body + 修旧 bug：loft ∩ 掣一直有但 commit 只认 cut（intersect 静默变 Join）
     const ruled = get().loftRuled, wall = get().loftWall
@@ -18506,7 +18506,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const editId = get().loftEditId
     if (editId) {
       const old = get().features.find((x) => x.id === editId)
-      if (!old || old.type !== 'loft') { set({ loftEditId: null, loftDlgOpen: false, status: '原放样已不存在，无法重建' }); return }
+      if (!old || old.type !== 'loft') { set({ loftEditId: null, loftDlgOpen: false, status: '原放樣已不存在，無法重建' }); return }
       const closedEdit = get().loftClosed && secs.length >= 3
       set({ loftDlgOpen: false, loftEditId: null })
       await get().editFeature(editId, {
@@ -18545,27 +18545,27 @@ export const useApp = create<AppState>((rawSet, get) => {
   loftContinuity: '',
   setLoftOpt: (p) => set(p),
   openLoftDlg: () => set((s) => {
-    if (s.loftSections.length < 2) return { status: '放样需要≥2个截面：画轮廓→「＋放样截面」→改基准Z画下一个→≥2 个后再放样' }
-    return { loftDlgOpen: true, sketchOp: !hasSolid(s.features) ? 'new' : s.sketchOp, status: '放样：设 操作 → 确定（截面已预览）' }
+    if (s.loftSections.length < 2) return { status: '放樣需要≥2個截面：畫輪廓→「＋放樣截面」→改基準Z畫下一個→≥2 個後再放樣' }
+    return { loftDlgOpen: true, sketchOp: !hasSolid(s.features) ? 'new' : s.sketchOp, status: '放樣：設 操作 → 確定（截面已預覽）' }
   }),
-  cancelLoftDlg: () => set({ loftDlgOpen: false, loftEditId: null, status: '已取消放样（截面保留）' }),
+  cancelLoftDlg: () => set({ loftDlgOpen: false, loftEditId: null, status: '已取消放樣（截面保留）' }),
 
   // T772（S52）：放样导轨 — 同 sweepGuide 同款银行流程：画折线 → 记低（橙虚线）→ 放样时透传 rails
   loftRail: null,
   bankLoftRail: () => set((s) => {
     const src = s.sketchShape?.type === 'poly' ? (s.sketchShape.smooth && s.sketchShape.ctrl ? s.sketchShape.ctrl : s.sketchShape.pts) : s.polyPts
-    if (!src || src.length < 2) return { status: '放样导轨：先用「折线」画一条导轨（每个截面一个点 — 点数=截面数），再撳「记低导轨」' }
-    return { loftRail: JSON.parse(JSON.stringify(src)) as Pt[], polyPts: [], sketchShape: s.sketchShape?.type === 'poly' ? null : s.sketchShape, status: `放样导轨已记低（${src.length} 点）— 截面会拉到掂导轨（点数要 = 截面数，唔啱会诚实忽略）` }
+    if (!src || src.length < 2) return { status: '放樣導軌：先用「折線」畫一條導軌（每個截面一個點 — 點數=截面數），再撳「記低導軌」' }
+    return { loftRail: JSON.parse(JSON.stringify(src)) as Pt[], polyPts: [], sketchShape: s.sketchShape?.type === 'poly' ? null : s.sketchShape, status: `放樣導軌已記低（${src.length} 點）— 截面會拉到掂導軌（點數要 = 截面數，唔啱會誠實忽略）` }
   }),
-  clearLoftRail: () => set({ loftRail: null, status: '已清除放样导轨' }),
+  clearLoftRail: () => set({ loftRail: null, status: '已清除放樣導軌' }),
   sweepGuide: null,
   bankSweepGuide: () => set((s) => {
     // 当前折线（或样条控制点）做导轨；银行后清空俾用户画扫掠路径
     const src = s.sketchShape?.type === 'poly' ? (s.sketchShape.smooth && s.sketchShape.ctrl ? s.sketchShape.ctrl : s.sketchShape.pts) : s.polyPts
-    if (!src || src.length < 2) return { status: '扫掠导轨：先用「折线」画一条导轨（≥2 点），再撳「扫掠导轨」记低' }
-    return { sweepGuide: JSON.parse(JSON.stringify(src)) as Pt[], polyPts: [], sketchShape: s.sketchShape?.type === 'poly' ? null : s.sketchShape, status: `导轨已记低（${src.length} 点，虚线橙显示）— 再画扫掠【路径】折线 → 「沿路径扫掠」（截面会跟导轨转向）` }
+    if (!src || src.length < 2) return { status: '掃掠導軌：先用「折線」畫一條導軌（≥2 點），再撳「掃掠導軌」記低' }
+    return { sweepGuide: JSON.parse(JSON.stringify(src)) as Pt[], polyPts: [], sketchShape: s.sketchShape?.type === 'poly' ? null : s.sketchShape, status: `導軌已記低（${src.length} 點，虛線橙顯示）— 再畫掃掠【路徑】折線 → 「沿路徑掃掠」（截面會跟導軌轉向）` }
   }),
-  clearSweepGuide: () => set({ sweepGuide: null, status: '已清除扫掠导轨' }),
+  clearSweepGuide: () => set({ sweepGuide: null, status: '已清除掃掠導軌' }),
   addSweep: async () => {
     // No "create from nothing": sweep requires a user-drawn path (use commitSweepPath).
     const sh = asSweepPathShape(get().sketchShape)
@@ -18573,7 +18573,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (sh && sh !== get().sketchShape) set({ sketchShape: sh })
       return void get().commitSweepPath()
     }
-    set({ status: '扫掠需要一条路径：用「折线/样条」画开放路径（≥2 点）再扫掠' })
+    set({ status: '掃掠需要一條路徑：用「折線/樣條」畫開放路徑（≥2 點）再掃掠' })
   },
   // Sweep a round tube along the user's drawn (open) polyline/spline path on the ground.
   commitSweepPath: async () => {
@@ -18582,10 +18582,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     // instead of creating a second Sweep feature or silently flattening a 3D path.
     if (s.sweepEditId) {
       const old = s.features.find((f) => f.id === s.sweepEditId)
-      if (!old || old.type !== 'sweep') { set({ sweepEditId: null, sweepDlgOpen: false, status: '原扫掠已不存在，无法重建' }); return }
+      if (!old || old.type !== 'sweep') { set({ sweepEditId: null, sweepDlgOpen: false, status: '原掃掠已不存在，無法重建' }); return }
       const dia = Math.max(0.2, s.sweepDia || 12)
       const usesProfile = s.sweepSection === 'profile'
-      if (usesProfile && !old.profile) { set({ status: '此扫掠原本没有草图截面；请改回圆形截面，或取消后重新建立' }); return }
+      if (usesProfile && !old.profile) { set({ status: '此掃掠原本沒有草圖截面；請改回圓形截面，或取消後重新建立' }); return }
       const wall = usesProfile || s.sketchOp === 'cut' ? 0 : Math.max(0, Math.min(s.sweepWall || 0, dia / 2 - 0.2))
       const patch = {
         r: dia / 2, op: s.sketchOp,
@@ -18609,14 +18609,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     // ── GM-3DV1 S5：沿实体边链扫掠 —— 拾嘅边多段线（CAD 3D）首尾接力串成 path3 脊线，喂现有 worker sweep path3 分支。
     // 截面/操作/壁厚/朝向同画线路径一致。截面 profile 由 sketchProfiles 尾件（若有），否则圆管。
     if (s.sweepEdgePick || s.sweepEdgeLines.length) {
-      if (s.sweepEdgeLines.length < 1) { set({ status: '扫掠边链：先逐条点选相连嘅实体棱边（≥1 条）' }); return }
+      if (s.sweepEdgeLines.length < 1) { set({ status: '掃掠邊鏈：先逐條點選相連嘅實體棱邊（≥1 條）' }); return }
       const path3 = chainEdgePolylines(s.sweepEdgeLines)
-      if (!path3 || path3.length < 2) { set({ status: '扫掠边链：拾嘅边接唔埋成一条连续路径 — 拣首尾相连嘅边（容差 1.5mm）' }); return }
+      if (!path3 || path3.length < 2) { set({ status: '掃掠邊鏈：拾嘅邊接唔埋成一條連續路徑 — 揀首尾相連嘅邊（容差 1.5mm）' }); return }
       const opE: BoolOp = (s.sketchOp === 'cut' || s.sketchOp === 'intersect' || s.sketchOp === 'newbody') && hasSolid(s.features) ? s.sketchOp : 'new'
       let secProfileE: SketchProfile | undefined
       if (s.sweepSection === 'profile') {
         const candE = [...s.sketchProfiles].reverse().find((sh2) => sh2.type === 'rect' || sh2.type === 'circle' || (sh2.type === 'poly' && !sh2.construction && sh2.pts.length >= 3))
-        if (!candE) { set({ status: '截面=草图轮廓：先画一个闭合轮廓，或改用「◯ 圆」截面，再沿边链扫掠' }); return }
+        if (!candE) { set({ status: '截面=草圖輪廓：先畫一個閉合輪廓，或改用「◯ 圓」截面，再沿邊鏈掃掠' }); return }
         secProfileE = shapeToProfile(candE, 'XY')
       }
       const diaE = Math.max(0.2, s.sweepDia || 12)
@@ -18633,11 +18633,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 截面同旧路一致（circle 管径 / profile 草图轮廓）。旧画线路径分支逐字节保留（sweepAxis==='' 时）。
     if (s.sweepAxis && s.sweepAxis.startsWith('A')) {
       const ca = s.caxes[Number(s.sweepAxis.slice(1))]
-      if (!ca) { set({ status: '所选构造轴已唔存在 — 重新拣轴（或选「画线路径」）' }); return }
+      if (!ca) { set({ status: '所選構造軸已唔存在 — 重新揀軸（或選「畫線路徑」）' }); return }
       const LV: Record<string, [number, number, number]> = { X: [1, 0, 0], Y: [0, 1, 0], Z: [0, 0, 1] }
       const dRaw = ca.dirV ?? LV[ca.dir]
       const dl = Math.hypot(dRaw[0], dRaw[1], dRaw[2])
-      if (dl < 1e-9) { set({ status: '构造轴方向为零向量 — 重新拣轴' }); return }
+      if (dl < 1e-9) { set({ status: '構造軸方向為零向量 — 重新揀軸' }); return }
       const dir: [number, number, number] = [dRaw[0] / dl, dRaw[1] / dl, dRaw[2] / dl]
       const L = s.sweepAxisLen > 0 ? s.sweepAxisLen : 100
       const opA: BoolOp = (s.sketchOp === 'cut' || s.sketchOp === 'intersect' || s.sketchOp === 'newbody') && hasSolid(s.features) ? s.sketchOp : 'new'   // P2：sweep 补 ∩相交 + New Body
@@ -18645,7 +18645,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       let secProfileA: SketchProfile | undefined
       if (s.sweepSection === 'profile') {
         const candA = [...s.sketchProfiles].reverse().find((sh) => sh.type === 'rect' || sh.type === 'circle' || (sh.type === 'poly' && !sh.construction && sh.pts.length >= 3))
-        if (!candA) { set({ status: '截面=草图轮廓：先画一个闭合轮廓（矩形/圆/折线闭合），再选构造轴脊线，先至扫掠' }); return }
+        if (!candA) { set({ status: '截面=草圖輪廓：先畫一個閉合輪廓（矩形/圓/折線閉合），再選構造軸脊線，先至掃掠' }); return }
         secProfileA = shapeToProfile(candA, 'XY')
       }
       const diaA = Math.max(0.2, s.sweepDia || 12)
@@ -18663,14 +18663,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     const pathShape = asSweepPathShape(sk) ?? (sk && sk.type === 'poly' && sk.open ? sk : null)
     const isSpline = !!(pathShape && pathShape.type === 'poly' && pathShape.smooth)
     const src = pathShape && pathShape.type === 'poly' ? (isSpline && pathShape.ctrl ? pathShape.ctrl : (pathShape.verts ?? pathShape.pts)) : s.polyPts
-    if (!src || src.length < 2) { set({ status: '先用「折线」画一条路径（≥2 点，可不闭合），再点「沿路径扫掠」' }); return }
+    if (!src || src.length < 2) { set({ status: '先用「折線」畫一條路徑（≥2 點，可不閉合），再點「沿路徑掃掠」' }); return }
     const path = src.map((p) => stToProfile(p, 'XY'))
     const op: BoolOp = (s.sketchOp === 'cut' || s.sketchOp === 'intersect' || s.sketchOp === 'newbody') && hasSolid(s.features) ? s.sketchOp : 'new'   // P2：sweep 补 ∩相交 + New Body
     // T742 任意草图截面：揾 profiles 入面最后一个【闭合】轮廓做截面（截面以草图原点为中心，垂直路径放置）
     let secProfile: SketchProfile | undefined
     if (s.sweepSection === 'profile') {
       const cand = [...s.sketchProfiles].reverse().find((sh) => sh.type === 'rect' || sh.type === 'circle' || (sh.type === 'poly' && !sh.construction && sh.pts.length >= 3))
-      if (!cand) { set({ status: '截面=草图轮廓：先画一个闭合轮廓（矩形/圆/折线闭合），再画路径折线，先至扫掠' }); return }
+      if (!cand) { set({ status: '截面=草圖輪廓：先畫一個閉合輪廓（矩形/圓/折線閉合），再畫路徑折線，先至掃掠' }); return }
       secProfile = shapeToProfile(cand, 'XY')
     }
     const dia = Math.max(0.2, s.sweepDia || 12)
@@ -18725,20 +18725,20 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   addScale: async () => {
-    if (!hasSolid(get().features)) { set({ status: '请先创建实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '請先創建實體' }); return }
     const f: Feature = { id: fid(), type: 'scale', factor: 1.5 }
     await get().applyFeatures([...get().features, f], '已缩放 ×1.5（点时间轴节点改比例）')
   },
 
   addDraft: async () => {
-    if (!hasSolid(get().features)) { set({ status: '请先创建实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '請先創建實體' }); return }
     const f: Feature = { id: fid(), type: 'draft', angle: 10 }
     await get().applyFeatures([...get().features, f], '已拔模 10°（侧面，中性面 XY）')
   },
 
   editFeature: async (id, patch) => {
     const expressionOwner = get().features.find(f => f.id === id)
-    if ('height' in patch && !('distanceExpression' in patch) && expressionOwner?.type === 'extrude' && expressionOwner.distanceExpression) { set({ status: '距离由表达式驱动；请双击特征编辑表达式' }); return }
+    if ('height' in patch && !('distanceExpression' in patch) && expressionOwner?.type === 'extrude' && expressionOwner.distanceExpression) { set({ status: '距離由表達式驅動；請雙擊特徵編輯表達式' }); return }
     if (expressionOwner?.type === 'shell' && 'thickness' in patch && !(Number(patch.thickness) > 0)) { set({ status: illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL) }); return }
     // BUG-UI-003: reject non-positive length dims on timeline edit (prim a/b/c, hole Ø, fillet R…).
     // Signed dims (extrude height, transform, draft angle, offsets) are intentionally unconstrained.
@@ -18805,7 +18805,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   renameFeature: (id, name) => set((s) => {
     if (!s.features.some((f) => f.id === id)) return {}
     const nm = name.trim()
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], features: s.features.map((f) => (f.id === id ? ({ ...f, name: nm || undefined } as Feature) : f)), status: nm ? `特征已改名「${nm}」` : '已清除特征自订名' }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], features: s.features.map((f) => (f.id === id ? ({ ...f, name: nm || undefined } as Feature) : f)), status: nm ? `特徵已改名「${nm}」` : '已清除特徵自訂名' }
   }),
   moveFeature: async (id, dir) => {
     const fs = [...get().features]
@@ -18835,7 +18835,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setProjectName: (name) => set({ projectName: name }),
   unit: 'mm',
   // GM-X2 #13：改长度单位同步 unitPreset（同现 massUnit 组合检测配对/custom），保持单位对话框一致。
-  setUnit: (u) => set((s) => ({ unit: u, unitPreset: detectPreset(u as LenU, s.massUnit), status: `显示单位：${u === 'inch' ? '英寸' : u}（制造导出 STL/STEP/DXF 仍用 mm）` })),
+  setUnit: (u) => set((s) => ({ unit: u, unitPreset: detectPreset(u as LenU, s.massUnit), status: `顯示單位：${u === 'inch' ? '英寸' : u}（製造匯出 STL/STEP/DXF 仍用 mm）` })),
   browserCollapsed: false,
   toggleBrowser: () => set((s) => ({ browserCollapsed: !s.browserCollapsed })),
   navTool: 'orbit',
@@ -18843,14 +18843,14 @@ export const useApp = create<AppState>((rawSet, get) => {
   showGrid: true,
   toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
   groundShadow: false,
-  toggleGroundShadow: () => set((s) => ({ groundShadow: !s.groundShadow, graphicsPreset: 'custom' as GraphicsPreset, status: !s.groundShadow ? '接地阴影：开（工作模式也显示柔和落地阴影）' : '接地阴影：关' })),
+  toggleGroundShadow: () => set((s) => ({ groundShadow: !s.groundShadow, graphicsPreset: 'custom' as GraphicsPreset, status: !s.groundShadow ? '接地陰影：開（工作模式也顯示柔和落地陰影）' : '接地陰影：關' })),
   groundShadowOpacity: 0.35,
   setGroundShadowOpacity: (v) => set({ groundShadowOpacity: Math.max(0.05, Math.min(1, v || 0.35)) }),
   groundReflection: false,
-  toggleGroundReflection: () => set((s) => ({ groundReflection: !s.groundReflection, graphicsPreset: 'custom' as GraphicsPreset, status: !s.groundReflection ? '地面反射：开（光面地板镜出模型 — 产品展示/截图质感）' : '地面反射：关' })),
+  toggleGroundReflection: () => set((s) => ({ groundReflection: !s.groundReflection, graphicsPreset: 'custom' as GraphicsPreset, status: !s.groundReflection ? '地面反射：開（光面地板鏡出模型 — 產品展示/截圖質感）' : '地面反射：關' })),
   wireframe: false,
   // GM-X2 #1：旧着色/线框掣同步 visualStyle 枚举。
-  toggleWireframe: () => set((s) => { const wf = !s.wireframe; return { wireframe: wf, visualStyle: renderToVisualStyle(wf, edgeStateToMode(s.edgeDisplay, s.hiddenEdges)), ...(wf ? { inspectShade: 'off' as const, draftResult: null, slopeResult: null, accessResult: null } : {}), status: wf ? '线框显示模式' : '着色显示模式' } }),   // S179 audit：开线框同时关曲率/斑马 overlay（对称互斥）；S187：连拔模/斜度面 overlay 一齐关
+  toggleWireframe: () => set((s) => { const wf = !s.wireframe; return { wireframe: wf, visualStyle: renderToVisualStyle(wf, edgeStateToMode(s.edgeDisplay, s.hiddenEdges)), ...(wf ? { inspectShade: 'off' as const, draftResult: null, slopeResult: null, accessResult: null } : {}), status: wf ? '線框顯示模式' : '着色顯示模式' } }),   // S179 audit：开线框同时关曲率/斑马 overlay（对称互斥）；S187：连拔模/斜度面 overlay 一齐关
   // ── GM-X2 视图显示设定实现 ────────────────────────────────────────────
   // #1 视觉样式枚举：单一入口设 6 态 → 派生 wireframe + edgeDisplay + hiddenEdges（渲染管线仍读三者，零回归）。
   visualStyle: 'shadedVisible',
@@ -18881,7 +18881,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setGraphicsPreset: (p) => set((s) => {
     if (p === 'custom') return { graphicsPreset: 'custom' }
     const e = graphicsPresetEffects(p, { ssao: s.ssao, groundShadow: s.groundShadow, groundReflection: s.groundReflection, renderMode: s.renderMode })
-    return { graphicsPreset: p, ssao: e.ssao, groundShadow: e.groundShadow, groundReflection: e.groundReflection, renderMode: e.renderMode, status: p === 'performance' ? '图形预设：性能（关全部效果 — 建模最快）' : '图形预设：质量（AO+接地阴影+渲染模式 — 发布质感）' }
+    return { graphicsPreset: p, ssao: e.ssao, groundShadow: e.groundShadow, groundReflection: e.groundReflection, renderMode: e.renderMode, status: p === 'performance' ? '圖形預設：性能（關全部效果 — 建模最快）' : '圖形預設：質量（AO+接地陰影+渲染模式 — 發布質感）' }
   }),
   // #8 Object Visibility 主开关：逐类总控（草图 / 原点面·构造面 / 轴 / 关节）。渲染层各读此 gate。
   objectVis: { sketches: true, planes: true, axes: true, joints: true },
@@ -18894,7 +18894,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   prefsOpen: false,
   setPrefsOpen: (v) => set({ prefsOpen: v }),
   setPref: (k, v) => set((s) => { const prefs = { ...s.prefs, [k]: v }; try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)) } catch { /* quota */ } applyPrefsSide(prefs); return { prefs } }),
-  resetPrefs: () => set(() => { const prefs = { ...DEFAULT_PREFS }; try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)) } catch { /* quota */ } applyPrefsSide(prefs); return { prefs, status: '应用偏好已恢复默认' } }),
+  resetPrefs: () => set(() => { const prefs = { ...DEFAULT_PREFS }; try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)) } catch { /* quota */ } applyPrefsSide(prefs); return { prefs, status: '應用偏好已恢復預設' } }),
   // #13 单位配对预设（长度+质量）。设预设即改 unit（长度）+ massUnit；模型/导出恒 mm。
   unitPreset: 'mm_g',
   massUnit: 'g',
@@ -18903,9 +18903,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   setUnitPreset: (id) => set(() => {
     const d = presetById(id)
     if (!d) return { unitPreset: 'custom' }
-    return { unitPreset: id, unit: d.len as Unit, massUnit: d.mass, status: `单位：${d.label}（显示用；模型/导出恒 mm）` }
+    return { unitPreset: id, unit: d.len as Unit, massUnit: d.mass, status: `單位：${d.label}（顯示用；模型/匯出恒 mm）` }
   }),
-  setUnitCustom: (len, mass) => set(() => ({ unit: len as Unit, massUnit: mass, unitPreset: detectPreset(len, mass), status: `单位：自定义 ${len} / ${mass}（显示用；模型/导出恒 mm）` })),
+  setUnitCustom: (len, mass) => set(() => ({ unit: len as Unit, massUnit: mass, unitPreset: detectPreset(len, mass), status: `單位：自定義 ${len} / ${mass}（顯示用；模型/匯出恒 mm）` })),
   // #15 地平面偏移（移接地阴影/反射平面 Y）
   groundPlaneOffset: 0,
   setGroundPlaneOffset: (v) => set({ groundPlaneOffset: Number.isFinite(v) ? v : 0 }),
@@ -18914,26 +18914,26 @@ export const useApp = create<AppState>((rawSet, get) => {
   customBed: null,
   setCustomBed: (b) => set({ customBed: b, bedPreset: b ? -1 : 0 }),
   addParam: (name, value) => set((s) => {
-    if (s.busy) return { status: '请等待当前重建完成，再修改参数' }
+    if (s.busy) return { status: '請等待當前重建完成，再修改參數' }
     const nm = (name || '').trim() || `d${s.params.length + 1}`
-    if (s.params.some((p) => p.name === nm)) return { status: `参数「${nm}」已存在` }
+    if (s.params.some((p) => p.name === nm)) return { status: `參數「${nm}」已存在` }
     // Validate the name is a clean identifier the expression tokenizer can parse — must start with a
     // letter/underscore/CJK and contain no spaces or operators. Otherwise "2x"/"my w"/"a-b" silently break.
-    if (!/^[A-Za-z_一-龥][\w一-龥]*$/.test(nm)) return { status: `参数名「${nm}」无效——要用字母／中文／下划线开头，且唔含空格或运算符（如 宽度、wallT、d1）` }
+    if (!/^[A-Za-z_一-龥][\w一-龥]*$/.test(nm)) return { status: `參數名「${nm}」無效——要用字母／中文／下劃線開頭，且唔含空格或運算符（如 寬度、wallT、d1）` }
     // Reject names that collide with a built-in function (sin/max/sqrt…) or the pi constant — they'd be
     // shadowed in expressions and the param would never resolve. (e/tau are param-overridable, so allowed.)
-    if (isExprFunc(nm) || nm === 'pi' || nm === 'PI') return { status: `参数名「${nm}」係保留嘅函数／常量名——请改个名（如 ${nm}1）` }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], params: [...s.params, { id: crypto.randomUUID(), name: nm, value: value || 0, unit: 'mm' }], status: `已加参数 ${nm} = ${value || 0}` }   // bt4: 加参数可撤销(仅成功分支;新参数未绑定唔改几何,inline 快照即可)
+    if (isExprFunc(nm) || nm === 'pi' || nm === 'PI') return { status: `參數名「${nm}」係保留嘅函數／常量名——請改個名（如 ${nm}1）` }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], params: [...s.params, { id: crypto.randomUUID(), name: nm, value: value || 0, unit: 'mm' }], status: `已加參數 ${nm} = ${value || 0}` }   // bt4: 加参数可撤销(仅成功分支;新参数未绑定唔改几何,inline 快照即可)
   }),
   renameParam: (from, to) => set((s) => {
-    if (s.busy) return { status: '请等待当前重建完成，再修改参数' }
+    if (s.busy) return { status: '請等待當前重建完成，再修改參數' }
     const src = (from || '').trim(), nm = (to || '').trim()
     const target = s.params.find((p) => p.name === src)
-    if (!target) return { status: `参数「${src}」不存在` }
+    if (!target) return { status: `參數「${src}」不存在` }
     if (!nm || nm === src) return {}
-    if (s.params.some((p) => p.name === nm)) return { status: `参数「${nm}」已存在` }
-    if (!/^[A-Za-z_一-龥][\w一-龥]*$/.test(nm)) return { status: `参数名「${nm}」无效——要用字母／中文／下划线开头，且唔含空格或运算符` }
-    if (isExprFunc(nm) || nm === 'pi' || nm === 'PI') return { status: `参数名「${nm}」係保留嘅函数／常量名——请改个名（如 ${nm}1）` }
+    if (s.params.some((p) => p.name === nm)) return { status: `參數「${nm}」已存在` }
+    if (!/^[A-Za-z_一-龥][\w一-龥]*$/.test(nm)) return { status: `參數名「${nm}」無效——要用字母／中文／下劃線開頭，且唔含空格或運算符` }
+    if (isExprFunc(nm) || nm === 'pi' || nm === 'PI') return { status: `參數名「${nm}」係保留嘅函數／常量名——請改個名（如 ${nm}1）` }
     const id = parameterId(target)
     const renameToken = (expr?: string) => {
       if (!expr) return expr
@@ -18958,15 +18958,15 @@ export const useApp = create<AppState>((rawSet, get) => {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       params: s.params.map((p) => p === target || parameterId(p) === id ? { ...p, name: nm } : p),
       skCons: s.skCons.map(renameDim), sketchSources, paramBindings,
-      status: `已将参数 ${src} 改名为 ${nm}（身份保留）`,
+      status: `已將參數 ${src} 改名為 ${nm}（身份保留）`,
     }
   }),
   setParam: async (name, value) => {
-    if (get().busy) { set({ status: '请等待当前重建完成，再修改参数' }); return }
+    if (get().busy) { set({ status: '請等待當前重建完成，再修改參數' }); return }
     if(get().mode==='sketch'){await editActiveSketchParameter(name,{value});return}
     const _pd = docSnap(get())  // S110：操作前快照 → undo 真正还原 params（否则 docSnap 读到新值，撤销变空操作）
     // setting a value directly clears any expression (manual override), then re-evaluate dependents
-    try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, name, value, expr: undefined, refs: undefined } : p))) })) } catch (e) { set({ status: `参数更新失败：${String(e)}，已保留原值` }); return }
+    try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, name, value, expr: undefined, refs: undefined } : p))) })) } catch (e) { set({ status: `參數更新失敗：${String(e)}，已保留原值` }); return }
     // T746 批3：先重解 ƒx 绑定嘅草图（compute-only），一次 applyFeatures 重建；srcs 成功后先写（同 applySketchEdit 政策一致）
     set({ busy: true })
     try {
@@ -18977,15 +18977,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else {
       await get().applyFeatures(get().features, `参数 ${name} = ${value} — 已联动重建`, true, undefined, _pd)
     }
-    } catch (e) { set({ ..._pd, busy: false, status: `参数更新失败：${String(e)}，已恢复最后有效模型` }) }
+    } catch (e) { set({ ..._pd, busy: false, status: `參數更新失敗：${String(e)}，已恢復最後有效模型` }) }
   },
   setParamExpr: async (name, expr) => {
-    if (get().busy) { set({ status: '请等待当前重建完成，再修改参数' }); return }
+    if (get().busy) { set({ status: '請等待當前重建完成，再修改參數' }); return }
     if(get().mode==='sketch'){await editActiveSketchParameter(name,{expr});return}
     const target = get().params.find(p => p.name === name)
     const refs = parameterExpressionRefs(expr, get().params, target?.refs)
     const _pd = docSnap(get())  // S110：操作前快照（undo 还原 params/绑定）
-    try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, expr: expr || undefined, refs: expr ? refs : undefined } : p))) })) } catch (e) { set({ status: `参数更新失败：${String(e)}，已保留原值` }); return }
+    try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, expr: expr || undefined, refs: expr ? refs : undefined } : p))) })) } catch (e) { set({ status: `參數更新失敗：${String(e)}，已保留原值` }); return }
     const p = get().params.find((x) => x.name === name)
     const msg = expr ? `${name} = ${expr} = ${p ? +p.value.toFixed(2) : '?'} — 已联动` : `已清除 ${name} 的表达式`
     set({ busy: true })
@@ -18997,15 +18997,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else {
       await get().applyFeatures(get().features, msg, true, undefined, _pd)
     }
-    } catch (e) { set({ ..._pd, busy: false, status: `参数更新失败：${String(e)}，已恢复最后有效模型` }) }
+    } catch (e) { set({ ..._pd, busy: false, status: `參數更新失敗：${String(e)}，已恢復最後有效模型` }) }
   },
   removeParam: async (name) => {
-    if (get().busy) { set({ status: '请等待当前重建完成，再修改参数' }); return }
+    if (get().busy) { set({ status: '請等待當前重建完成，再修改參數' }); return }
     const p = get().params.find(p => p.name === name)
     const sketchDims = [...get().skCons,...Object.values(get().sketchSources).flatMap(src=>src.cons ?? [])]
-    if(p && sketchDims.some(c=>c.kind==='dim'&&(c.paramId===parameterId(p)||Object.values(c.refs??{}).includes(parameterId(p))||(!c.paramId&&c.param===name)))) { set({status:`参数 ${name} 仍被草图尺寸引用；请先解除引用`}); return }
+    if(p && sketchDims.some(c=>c.kind==='dim'&&(c.paramId===parameterId(p)||Object.values(c.refs??{}).includes(parameterId(p))||(!c.paramId&&c.param===name)))) { set({status:`參數 ${name} 仍被草圖尺寸引用；請先解除引用`}); return }
     if (p && (get().params.some(q => Object.values(q.refs ?? {}).includes(parameterId(p))) || get().features.some(f => f.type === 'extrude' && Object.values(f.distanceExpression?.refs ?? {}).includes(parameterId(p))))) {
-      set({ status: `参数 ${name} 仍被公式引用；请先解除引用` }); return
+      set({ status: `參數 ${name} 仍被公式引用；請先解除引用` }); return
     }
     const _pd = docSnap(get())  // S110：操作前快照（undo 还原 params/绑定）
     set((s) => {
@@ -19020,7 +19020,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   activeConfig: null,
   saveConfig: (name) => set((s) => {
     const nm = (name || '').trim()
-    if (!nm) return { status: '配置名称不可为空' }
+    if (!nm) return { status: '配置名稱不可為空' }
     const drivers = s.params.filter((p) => !p.expr)            // independent inputs only (expr params re-derive)
     // A config is a named snapshot of the whole VARIANT (params + suppression + appearance) — always saveable,
     // including a baseline 完整版 with nothing yet suppressed.
@@ -19030,7 +19030,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const comps = s.components.length ? s.components.map((c) => ({ id: c.id, pos: c.pos, rot: c.rot, hidden: c.hidden })) : undefined
     const cfg = { name: nm, values, suppressed: [...s.suppressedIds], bodyColor: s.bodyColor, bodyDensity: s.bodyDensity, comps }
     const configs = [...s.configs.filter((c) => c.name !== nm), cfg]
-    return { configs, activeConfig: nm, status: `已保存配置「${nm}」（${drivers.length} 参数${s.suppressedIds.length ? ` · ${s.suppressedIds.length} 抑制` : ''}${comps ? ` · ${comps.length} 组件位姿` : ''} · 颜色/材质）` }
+    return { configs, activeConfig: nm, status: `已儲存配置「${nm}」（${drivers.length} 參數${s.suppressedIds.length ? ` · ${s.suppressedIds.length} 抑制` : ''}${comps ? ` · ${comps.length} 組件位姿` : ''} · 顏色/材質）` }
   }),
   applyConfig: async (name) => {
     if (get().busy) return
@@ -19058,34 +19058,34 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else {
       await get().applyFeatures(get().features, `已应用配置「${name}」— 整模型按该规格联动重建（参数 / 抑制 / 材质）`, true, undefined, previous)
     }
-    } catch (e) { set({ ...previous, busy: false, status: `配置更新失败：${String(e)}，已恢复最后有效模型` }) }
+    } catch (e) { set({ ...previous, busy: false, status: `配置更新失敗：${String(e)}，已恢復最後有效模型` }) }
   },
-  deleteConfig: (name) => set((s) => ({ configs: s.configs.filter((c) => c.name !== name), activeConfig: s.activeConfig === name ? null : s.activeConfig, status: `已删除配置「${name}」` })),
+  deleteConfig: (name) => set((s) => ({ configs: s.configs.filter((c) => c.name !== name), activeConfig: s.activeConfig === name ? null : s.activeConfig, status: `已刪除配置「${name}」` })),
   // Export EVERY configuration as its own STL, packaged in one zip (manufacture all variants at once). Applies
   // each config → captures the rebuilt body → restores the active config afterward.
   exportAllConfigs: async () => {
     const s0 = get()
-    if (!s0.configs.length) { set({ status: '冇配置可导出（先喺「ƒx 参数」存几个配置）' }); return }
-    if (!s0.features.length) { set({ status: '配置导出需要一个实体（先建模）' }); return }
+    if (!s0.configs.length) { set({ status: '冇配置可匯出（先喺「ƒx 參數」存幾個配置）' }); return }
+    if (!s0.features.length) { set({ status: '配置匯出需要一個實體（先建模）' }); return }
     const R = new Matrix4(), base = projName(s0.projectName), restore = s0.activeConfig
     const files: { name: string; data: Uint8Array }[] = []
     for (let i = 0; i < s0.configs.length; i++) {
       const c = s0.configs[i]
-      set({ status: `配置导出中… ${i + 1}/${s0.configs.length}（${c.name}）` })
+      set({ status: `配置匯出中… ${i + 1}/${s0.configs.length}（${c.name}）` })
       await get().applyConfig(c.name)
       const m = get().bodyMesh
       if (m && m.vertices.length && m.triangles.length) files.push({ name: `${base}_${projName(c.name)}.stl`, data: new Uint8Array(meshesToBinarySTL([{ mesh: m, matrix: R.elements.slice() }])) })
     }
     if (restore) await get().applyConfig(restore) // restore the originally-active config
-    if (!files.length) { set({ status: '配置导出：所有配置都无几何' }); return }
+    if (!files.length) { set({ status: '配置匯出：所有配置都無幾何' }); return }
     triggerDownload(makeZip(files), `${base}-配置-${s0.configs.length}款.zip`, 'application/zip')
-    set({ status: `已导出 ${files.length} 个配置各一个 STL（打包 zip${restore ? `，已还原配置「${restore}」` : ''}）` })
+    set({ status: `已匯出 ${files.length} 個配置各一個 STL（打包 zip${restore ? `，已還原配置「${restore}」` : ''}）` })
   },
   // ── 设计表 CSV 往返（T736）：配置 × 驱动参数矩阵 — Excel 度排变体，导入即批量建配置 ──
   exportConfigsCsv: () => {
     const s = get()
     const drivers = s.params.filter((p) => !p.expr).map((p) => p.name)
-    if (!drivers.length) { set({ status: '设计表导出：冇驱动参数（先喺 ƒx 加参数并绑定到尺寸）' }); return }
+    if (!drivers.length) { set({ status: '設計表匯出：冇驅動參數（先喺 ƒx 加參數並绑定到尺寸）' }); return }
     const rows: string[][] = [['配置名', ...drivers]]
     if (s.configs.length) {
       for (const c of s.configs) rows.push([c.name, ...drivers.map((d) => (c.values[d] != null ? String(c.values[d]) : ''))])
@@ -19094,12 +19094,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     const csv = '﻿' + rows.map((r) => r.map((f) => (/[",\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f)).join(',')).join('\r\n')
     triggerDownload(new TextEncoder().encode(csv), `${projName(s.projectName)}-设计表.csv`, 'text/csv')
-    set({ status: `已导出设计表 CSV（${Math.max(s.configs.length, 1)} 行 × ${drivers.length} 参数）— Excel 改完「导入设计表」即批量建配置` })
+    set({ status: `已匯出設計表 CSV（${Math.max(s.configs.length, 1)} 行 × ${drivers.length} 參數）— Excel 改完「匯入設計表」即批量建配置` })
   },
   importConfigsCsv: (text) => {
     const s = get()
     const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim())
-    if (lines.length < 2) { set({ status: '设计表导入：CSV 要有表头 + 至少一行配置' }); return }
+    if (lines.length < 2) { set({ status: '設計表匯入：CSV 要有表頭 + 至少一行配置' }); return }
     // 简单 CSV 解析（支持引号包裹 + "" 转义）
     const parse = (line: string): string[] => {
       const out: string[] = []; let cur = '', inQ = false
@@ -19117,7 +19117,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const cols = head.map((h, i) => ({ name: h, i })).slice(1)
     const known = cols.filter((c) => driverSet.has(c.name))
     const unknown = cols.filter((c) => !driverSet.has(c.name)).map((c) => c.name)
-    if (!known.length) { set({ status: `设计表导入：表头冇匹配嘅驱动参数（现有：${[...driverSet].join(', ') || '无'}）— 列名要同 ƒx 参数名一致` }); return }
+    if (!known.length) { set({ status: `設計表匯入：表頭冇匹配嘅驅動參數（現有：${[...driverSet].join(', ') || '無'}）— 列名要同 ƒx 參數名一致` }); return }
     let added = 0, updated = 0, bad = 0
     let configs = [...s.configs]
     for (let r = 1; r < lines.length; r++) {
@@ -19132,8 +19132,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (exist >= 0) { configs[exist] = { ...configs[exist], values: { ...configs[exist].values, ...values } }; updated++ }
       else { configs = [...configs, { name, values }]; added++ }
     }
-    if (!added && !updated) { set({ status: `设计表导入：冇有效行（${bad} 行数据有问题）` }); return }
-    set({ configs, status: `设计表已导入：新增 ${added} / 更新 ${updated} 个配置（${known.length} 参数）${bad ? ` · ⚠${bad} 行跳过` : ''}${unknown.length ? ` · ⚠未知列已忽略：${unknown.join(',')}` : ''} — ƒx 面板一键切换` })
+    if (!added && !updated) { set({ status: `設計表匯入：冇有效行（${bad} 行數據有問題）` }); return }
+    set({ configs, status: `設計表已匯入：新增 ${added} / 更新 ${updated} 個配置（${known.length} 參數）${bad ? ` · ⚠${bad} 行跳過` : ''}${unknown.length ? ` · ⚠未知列已忽略：${unknown.join(',')}` : ''} — ƒx 面板一鍵切換` })
   },
   openConfigsCsvDialog: () => {
     const inp = document.createElement('input')
@@ -19167,52 +19167,52 @@ export const useApp = create<AppState>((rawSet, get) => {
   setCompShrink: (n) => set({ compShrink: n > 0.5 && n < 1.5 ? n : 1 }),
   exportStl: async () => {
     const s0 = get()
-    set({ busy: true, status: '导出 STL：生成网格…' })
+    set({ busy: true, status: '匯出 STL：生成網格…' })
     await new Promise((r) => requestAnimationFrame(() => r(null)))   // 让加载条先画出
     if (s0.compXY !== 0 || s0.compShrink !== 1) {
       // compensation active → mesh path (single-body STL is raw CAD Z-up; identity matrix, see exportAssemblyStl)
       const m = s0.bodyMesh
-      if (!m || !m.triangles || !m.triangles.length) { set({ busy: false, status: '没有可导出的实体，请先建模' }); return }
+      if (!m || !m.triangles || !m.triangles.length) { set({ busy: false, status: '沒有可匯出的實體，請先建模' }); return }
       const { compensateMesh } = await import('./io/meshComp')
       const cm = compensateMesh(m, { xyOffset: s0.compXY || undefined, scale: s0.compShrink !== 1 ? [s0.compShrink, s0.compShrink, s0.compShrink] : undefined })
       triggerDownload(meshesToBinarySTL([{ mesh: cm, matrix: new Matrix4().elements.slice() }]), `${projName(s0.projectName)}.stl`, 'model/stl')
-      set({ busy: false, status: `已导出 STL（打印补偿 XY ${s0.compXY > 0 ? '+' : ''}${s0.compXY}mm${s0.compShrink !== 1 ? ` · 收缩×${s0.compShrink}` : ''}）${wtWarn(cm)}` })
+      set({ busy: false, status: `已匯出 STL（打印補償 XY ${s0.compXY > 0 ? '+' : ''}${s0.compXY}mm${s0.compShrink !== 1 ? ` · 收縮×${s0.compShrink}` : ''}）${wtWarn(cm)}` })
       return
     }
     const buf = await cad.exportSTL(get().exportQuality)
-    if (!buf) { set({ busy: false, status: '没有可导出的实体，请先建模' }); return }
+    if (!buf) { set({ busy: false, status: '沒有可匯出的實體，請先建模' }); return }
     triggerDownload(buf, `${projName(get().projectName)}.stl`, 'model/stl')
-    set({ busy: false, status: `已导出 webcad-body.stl（细分=${get().exportQuality === 'fine' ? '细' : get().exportQuality === 'coarse' ? '粗' : '中'}）${wtWarn(get().bodyMesh)}` })
+    set({ busy: false, status: `已匯出 webcad-body.stl（細分=${get().exportQuality === 'fine' ? '細' : get().exportQuality === 'coarse' ? '粗' : '中'}）${wtWarn(get().bodyMesh)}` })
   },
   exportQuality: 'medium',
-  setExportQuality: (q) => set({ exportQuality: q, status: `导出细分精度 = ${q === 'fine' ? '细（面滑文件大）' : q === 'coarse' ? '粗（快文件细）' : '中'}` }),
+  setExportQuality: (q) => set({ exportQuality: q, status: `匯出細分精度 = ${q === 'fine' ? '細（面滑檔案大）' : q === 'coarse' ? '粗（快檔案細）' : '中'}` }),
   exportStlAscii: () => {
     const m = get().bodyMesh
-    if (!m || !m.triangles || !m.triangles.length) { set({ status: '没有可导出的实体，请先建模' }); return }
+    if (!m || !m.triangles || !m.triangles.length) { set({ status: '沒有可匯出的實體，請先建模' }); return }
     triggerDownload(new TextEncoder().encode(meshToAsciiSTL(m, projName(get().projectName))), `${projName(get().projectName)}-ascii.stl`, 'model/stl')
-    set({ status: `已导出 ASCII STL（${m.triangles.length / 3} 三角面）${wtWarn(m)}` })
+    set({ status: `已匯出 ASCII STL（${m.triangles.length / 3} 三角面）${wtWarn(m)}` })
   },
   // Design table: sweep one user parameter over a list of values, rebuild each, and export every variant as an
   // STL packed into one zip (parametric batch / variant production). The original value is restored after.
   batchExportDesignTable: async (paramName, values) => {
     const orig = get().params.find((p) => p.name === paramName)
-    if (!orig) { set({ status: `揾唔到参数「${paramName}」—— 先喺 ƒx 参数定义并绑定到特征` }); return }
-    if (!get().features.length) { set({ status: '设计表导出需要一个参数化实体（先建模并绑定参数）' }); return }
+    if (!orig) { set({ status: `揾唔到參數「${paramName}」—— 先喺 ƒx 參數定義並绑定到特徵` }); return }
+    if (!get().features.length) { set({ status: '設計表匯出需要一個參數化實體（先建模並绑定參數）' }); return }
     const vals = values.filter((v) => Number.isFinite(v)).slice(0, 24)
-    if (!vals.length) { set({ status: '请输入至少一个有效值（如 3,4,5,6 或 3:1:6）' }); return }
+    if (!vals.length) { set({ status: '請輸入至少一個有效值（如 3,4,5,6 或 3:1:6）' }); return }
     const R = new Matrix4(), base = projName(get().projectName), origVal = orig.value, origExpr = orig.expr   // GM-W8 β1-#37：记低原公式（sweep 用 setParam 会清 expr）
     const files: { name: string; data: Uint8Array }[] = []
     for (let i = 0; i < vals.length; i++) {
-      set({ status: `设计表导出中… ${i + 1}/${vals.length}（${paramName}=${vals[i]}）` })
+      set({ status: `設計表匯出中… ${i + 1}/${vals.length}（${paramName}=${vals[i]}）` })
       await get().setParam(paramName, vals[i])
       const m = get().bodyMesh
       if (m && m.vertices.length && m.triangles.length) files.push({ name: `${base}_${paramName}${vals[i]}.stl`, data: new Uint8Array(meshesToBinarySTL([{ mesh: m, matrix: R.elements.slice() }])) })
     }
     await get().setParam(paramName, origVal) // restore the original value
     if (origExpr) await get().setParamExpr(paramName, origExpr)   // GM-W8 β1-#37：还原公式 — 否则公式驱动参数经 sweep 后永久变成驱动值(丢失 ƒx 联动)
-    if (!files.length) { set({ status: '设计表导出：所有变体都无几何（检查参数会否令模型变空）' }); return }
+    if (!files.length) { set({ status: '設計表匯出：所有變體都無幾何（檢查參數會否令模型變空）' }); return }
     triggerDownload(makeZip(files), `${base}-设计表-${paramName}.zip`, 'application/zip')
-    set({ status: `已导出设计表：${paramName} = [${vals.join(', ')}] 共 ${files.length} 个 STL（打包 zip，已还原原值 ${origVal}）` })
+    set({ status: `已匯出設計表：${paramName} = [${vals.join(', ')}] 共 ${files.length} 個 STL（打包 zip，已還原原值 ${origVal}）` })
   },
 
   // Export the active body as Wavefront OBJ (text, license-free, self-written) — widely accepted by
@@ -19220,7 +19220,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // Uses the tessellated bodyMesh (CAD coords, same as STL). Includes vertex normals when available.
   exportObj: () => {
     const m = get().bodyMesh
-    if (!m || !m.vertices.length || !m.triangles.length) { set({ status: get().components.length ? '此设计是装配（多组件）—— 请用「导出装配 OBJ」导出全部零件' : '没有可导出的实体，请先建模' }); return }
+    if (!m || !m.vertices.length || !m.triangles.length) { set({ status: get().components.length ? '此設計是裝配（多組件）—— 請用「匯出裝配 OBJ」匯出全部零件' : '沒有可匯出的實體，請先建模' }); return }
     // Keep OBJ's position/normal indices coherent after collapsing OCCT's
     // per-face render vertices.  Blender otherwise imports a visually closed
     // box as six open shells (24 boundary edges).
@@ -19231,14 +19231,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     for (let i = 0; i < nr.length; i += 3) out.push(`vn ${fin0(nr[i])} ${fin0(nr[i + 1])} ${fin0(nr[i + 2])}`)
     for (let i = 0; i < t.length; i += 3) { const a = t[i] + 1, b = t[i + 1] + 1, c = t[i + 2] + 1, ni = i + 1; out.push(`f ${a}//${ni} ${b}//${ni + 1} ${c}//${ni + 2}`) }
     triggerDownload(new TextEncoder().encode(out.join('\n') + '\n'), `${projName(get().projectName)}.obj`, 'model/obj')
-    set({ status: `已导出 OBJ（${v.length / 3} 焊接顶点 · ${t.length / 3} 面，可导入 Blender / 游戏引擎 / 通用 3D 工具）${wtWarn(printable)}` })
+    set({ status: `已匯出 OBJ（${v.length / 3} 焊接頂點 · ${t.length / 3} 面，可匯入 Blender / 游戏引擎 / 通用 3D 工具）${wtWarn(printable)}` })
   },
 
   // Export the active body as 3MF (the modern 3D-print container: ZIP of XML, keeps mm units, supported by
   // Bambu Studio / PrusaSlicer / Cura). Self-written (license-safe) via the zero-dep zip writer. 0-indexed tris.
   exportThreeMF: () => {
     const m = get().bodyMesh
-    if (!m || !m.vertices.length || !m.triangles.length) { set({ status: get().components.length ? '此设计是装配（多组件）—— 请用「导出装配 3MF」导出全部零件' : '没有可导出的实体，请先建模' }); return }
+    if (!m || !m.vertices.length || !m.triangles.length) { set({ status: get().components.length ? '此設計是裝配（多組件）—— 請用「匯出裝配 3MF」匯出全部零件' : '沒有可匯出的實體，請先建模' }); return }
     // OCCT display meshes commonly keep a separate copy of a shared corner
     // per B-rep face.  3MF slicers treat indices as topology, not merely as
     // render vertices: emitting those copies made an otherwise closed box
@@ -19261,7 +19261,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       { name: '3D/3dmodel.model', data: enc(model) },
     ])
     triggerDownload(zip, `${projName(get().projectName)}.3mf`, 'model/3mf')
-    set({ status: `已导出 3MF（${v.length / 3} 焊接顶点 · ${t.length / 3} 三角；现代 3D 打印格式，保留 mm 单位，主流切片软件都支持）${wtWarn(printable)}` })
+    set({ status: `已匯出 3MF（${v.length / 3} 焊接頂點 · ${t.length / 3} 三角；現代 3D 打印格式，保留 mm 單位，主流切片軟件都支持）${wtWarn(printable)}` })
   },
 
   // Export the user-parameter table as CSV (name, value, expression) — documents/shares a parametric design.
@@ -19277,20 +19277,20 @@ export const useApp = create<AppState>((rawSet, get) => {
   exportSketchDxf: () => {
     const s = get()
     const shapes = [...(s.sketchShape ? [s.sketchShape] : []), ...s.sketchProfiles].filter((sh) => !sh.construction)  // 构造几何唔导出
-    if (!shapes.length) { set({ status: 'DXF 导出：先画一个草图轮廓（矩形/圆/折线…），再导出（可激光切割 / 导入其它 CAD）' }); return }
+    if (!shapes.length) { set({ status: 'DXF 匯出：先畫一個草圖輪廓（矩形/圓/折線…），再匯出（可激光切割 / 匯入其它 CAD）' }); return }
     triggerDownload(new TextEncoder().encode(shapesToDxfEntities(shapes)), `${projName(get().projectName)}-草图.dxf`, 'application/dxf')
-    set({ status: `已导出 DXF 真实体（${shapes.length} 个轮廓 → CIRCLE/ARC/LWPOLYLINE，可编辑半径 / 导入 AutoCAD / 激光 CAM）` })
+    set({ status: `已匯出 DXF 真實體（${shapes.length} 個輪廓 → CIRCLE/ARC/LWPOLYLINE，可編輯半徑 / 匯入 AutoCAD / 激光 CAM）` })
   },
   // 激光切割 G-code（GRBL）：同 DXF 同源攞当前草图轮廓，kerf 补偿（外扩/孔缩），先切孔后切外框。
   exportLaserGcode: (opts) => {
     const s = get()
     const shapes = [...(s.sketchShape ? [s.sketchShape] : []), ...s.sketchProfiles].filter((sh) => !sh.construction)  // 构造几何唔切割
-    if (!shapes.length) { set({ status: '激光 G-code：先画一个封闭草图轮廓（矩形/圆/折线…），再导出' }); return }
+    if (!shapes.length) { set({ status: '激光 G-code：先畫一個封閉草圖輪廓（矩形/圓/折線…），再匯出' }); return }
     const profiles = shapesToProfiles2D(shapes)
     const g = profilesToGcode(profiles, opts)
     const st = gcodeStats(g)
     triggerDownload(new TextEncoder().encode(g), `${projName(get().projectName)}-激光.gcode`, 'text/plain')
-    set({ status: `已导出激光 G-code（GRBL · ${profiles.length} 个轮廓 · 切割 ${st.cutLen.toFixed(1)}mm${st.arcs ? ` · ${st.arcs} 条真圆弧 G2/G3` : ''} · ${st.lines} 行${opts?.kerf ? ` · kerf ${opts.kerf}mm` : ''}）` })
+    set({ status: `已匯出激光 G-code（GRBL · ${profiles.length} 個輪廓 · 切割 ${st.cutLen.toFixed(1)}mm${st.arcs ? ` · ${st.arcs} 條真圓弧 G2/G3` : ''} · ${st.lines} 行${opts?.kerf ? ` · kerf ${opts.kerf}mm` : ''}）` })
   },
   // 特征级阵列：把一个草图拉伸特征组（凸台 + 其内部孔）复制成 cols×rows 网格。复用 sketchSources，
   // 每个副本平移轮廓后重新生成自己嘅特征组——所以每个副本「自己 cut 自己嘅孔」，唔会被其他副本填满
@@ -19300,15 +19300,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     const f = s.features.find((x) => x.id === featureId)
     const skId = f && f.type === 'extrude' ? f.sketchId : undefined
     const src = skId ? s.sketchSources[skId] : undefined
-    if (!skId || !src) { set({ status: '特征级阵列：要係草图拉伸特征（双击可编辑嗰种）先可以阵列；原语/旋转暂不支持' }); return }
-    if (!Number.isFinite(cols) || !Number.isFinite(rows) || !Number.isFinite(dx) || !Number.isFinite(dy)) { set({ status: '特征级阵列：列数/间距要係数字' }); return }
+    if (!skId || !src) { set({ status: '特徵級陣列：要係草圖拉伸特徵（雙擊可編輯嗰種）先可以陣列；原語/旋轉暫不支持' }); return }
+    if (!Number.isFinite(cols) || !Number.isFinite(rows) || !Number.isFinite(dx) || !Number.isFinite(dy)) { set({ status: '特徵級陣列：列數/間距要係數字' }); return }
     const cx = Math.max(1, Math.round(cols)), cy = Math.max(1, Math.round(rows))
-    if (cx * cy < 2) { set({ status: '阵列至少 2 个' }); return }
-    if (cx * cy > 400) { set({ status: `阵列总数 ${cx}×${cy} 太多（上限 400）` }); return }
+    if (cx * cy < 2) { set({ status: '陣列至少 2 個' }); return }
+    if (cx * cy > 400) { set({ status: `陣列總數 ${cx}×${cy} 太多（上限 400）` }); return }
     // 间距守卫：要阵列嘅轴间距唔可以 0，否则全部副本重叠喺同一位置 → 共面布尔退化/无声 no-op
-    if ((cx > 1 && Math.abs(dx) < 1e-6) || (cy > 1 && Math.abs(dy) < 1e-6)) { set({ status: '特征级阵列：要阵列嘅方向间距唔可以係 0（否则副本会叠喺一齐）' }); return }
+    if ((cx > 1 && Math.abs(dx) < 1e-6) || (cy > 1 && Math.abs(dy) < 1e-6)) { set({ status: '特徵級陣列：要陣列嘅方向間距唔可以係 0（否則副本會疊喺一齊）' }); return }
     const group = s.features.filter((x) => x.type === 'extrude' && x.sketchId === skId) as Extract<Feature, { type: 'extrude' }>[]
-    if (!group.length) { set({ status: '揾唔到草图特征组' }); return }
+    if (!group.length) { set({ status: '揾唔到草圖特徵組' }); return }
     const lastIdx = s.features.indexOf(group[group.length - 1])
     // 阵列 = 一个 featpattern 组节点（时间轴一个 icon，可改行列数/删除整组），唔再烘焙 N 个独立 extrude。
     // subs = 基础组各拉伸嘅轮廓+参数；送 worker 前由 expandFeats() 平移复制成网格（每副本独立含孔）。
@@ -19318,7 +19318,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     await get().applyFeatures(next, `已阵列 ${cx}×${cy}（共 ${cx * cy} 个${src.arb ? ' · 斜面局部 XY' : ''} — 时间轴一个「阵列」节点，可改 X/Y 数量或删除整组）`, true, '⚠ 特征阵列重建失败 — 已回退')
   },
   addInternalThread: async (d, pitch, height, cx, cy, z0 = 0, modeled = false, lefthand = false, cls, standard) => {
-    if (!hasSolid(get().features)) { set({ status: '内螺纹孔要喺实体上做 — 先建一个实体' }); return }
+    if (!hasSolid(get().features)) { set({ status: '內螺紋孔要喺實體上做 — 先建一個實體' }); return }
     // P2：z0 = 孔底 z（可选）— 由孔壁拾面/对话框传入，牙由 z0 向上攻 height；0 = 旧行为（由 z=0 起）
     // P2 Cosmetic：默认外观标注（B-rep 零触碰，可继续任何操作 — Fusion Modeled=OFF 默认）；modeled=true 先出真牙 compound
     // GM-3DV1 S11：cls/standard 纯元数据（配合等级/标准库），value-or-omit 保旧档逐字节。
@@ -19337,14 +19337,14 @@ export const useApp = create<AppState>((rawSet, get) => {
   setPhysicsLabOpen: (v) => set({ physicsLabOpen: v }),
   saveVersion: async (label) => {
     const id = await saveSnapshot(buildProjectPayload(get()), label || '未命名版本', 'named')
-    set({ status: id >= 0 ? `已保存版本「${label}」（浏览器本地历史 · 最多保留 30 个命名版本）` : '保存版本失败：此浏览器无法使用 IndexedDB（可能是私隐模式）' })
+    set({ status: id >= 0 ? `已儲存版本「${label}」（瀏覽器本地歷史 · 最多保留 30 個命名版本）` : '儲存版本失敗：此瀏覽器無法使用 IndexedDB（可能是私隱模式）' })
   },
   // 还原历史快照：同 restoreAutosave 同一 payload 形状（buildProjectPayload）。
   applySnapshot: async (data) => {
     const errors = [...documentReferenceErrors(data), ...documentPatternErrors(data), ...sketchDraftErrors(data)]
     if(errors.length) {set({status:`快照引用失效：${errors.join('；')}`});return}
     const d = data as Record<string, unknown> & { features?: Feature[] }
-    if (!d || typeof d !== 'object') { set({ status: '快照数据无效' }); return }
+    if (!d || typeof d !== 'object') { set({ status: '快照數據無效' }); return }
     const feats0: Feature[] = (Array.isArray(d.features) ? d.features : []).map((f: Feature) => ({ ...f }))
     bumpFid(feats0)
     const feats = migrateDatumFeatures(feats0, parseLegacyPlanes(d.planes))   // GM-W5 5.1：旧档 planes[] 但无 datum 特征 → 追加 datum 特征（保序），令参考面变时间轴节点
@@ -19409,7 +19409,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const feats = get().features
     const smIdx = (() => { for (let i = feats.length - 1; i >= 0; i--) if (feats[i].type === 'sheetmetal') return i; return -1 })()
     const sm = smIdx >= 0 ? feats[smIdx] as (Feature & { type: 'sheetmetal' }) : undefined
-    if (!sm) { set({ status: '展开 DXF：先建一个钣金件（SHEET METAL →「钣金件」），再导出展开图' }); return }
+    if (!sm) { set({ status: '展開 DXF：先建一個鈑金件（SHEET METAL →「鈑金件」），再匯出展開圖' }); return }
     const T = Math.max(0.2, sm.thickness), R = Math.max(0.01, sm.radius), K = Math.min(0.5, Math.max(0, sm.kfactor)), W = Math.max(1, sm.width)
     const segs = sm.segs.map((s) => Math.max(0.1, s))
     let x = 0; const bends: number[] = []
@@ -19449,16 +19449,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     const dxf = `${DXF_HEADER}0\nSECTION\n2\nENTITIES\n${body}0\nENDSEC\n0\nEOF\n`
     triggerDownload(new TextEncoder().encode(dxf), `${projName(get().projectName)}-展开.dxf`, 'application/dxf')
     const skipStr = skipped.length ? ` · ⚠ 跳过 ${skipped.length} 孔（${skipped.slice(0, 2).join('；')}${skipped.length > 2 ? '…' : ''}）` : ''
-    set({ status: `已导出钣金展开 DXF（料长 ${DL.toFixed(1)} × 宽 ${W}，${bends.length} 条折弯线 [BEND]${holes.length ? ` · ${holes.length} 个孔已展开定位` : ''}${skipStr}，可激光下料）` })
+    set({ status: `已匯出鈑金展開 DXF（料長 ${DL.toFixed(1)} × 寬 ${W}，${bends.length} 條折彎線 [BEND]${holes.length ? ` · ${holes.length} 個孔已展開定位` : ''}${skipStr}，可激光下料）` })
   },
 
   exportStep: async () => {
-    set({ busy: true, status: '导出 STEP：生成 B-rep…' })
+    set({ busy: true, status: '匯出 STEP：生成 B-rep…' })
     await new Promise((r) => requestAnimationFrame(() => r(null)))
     const buf = await cad.exportSTEP()
-    if (!buf) { set({ busy: false, status: '没有可导出的实体' }); return }
+    if (!buf) { set({ busy: false, status: '沒有可匯出的實體' }); return }
     triggerDownload(buf, `${projName(get().projectName)}.step`, 'application/step')
-    set({ busy: false, status: '已导出 webcad-body.step（可在任何 CAD 打开）' })
+    set({ busy: false, status: '已匯出 webcad-body.step（可在任何 CAD 打開）' })
   },
 
   // Export the WHOLE assembly (all visible components in their posed positions +
@@ -19481,11 +19481,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
     }
     if (s.bodyMesh) parts.push({ mesh: s.bodyMesh, matrix: new Matrix4().multiplyMatrices(Rfix, R).elements.slice() })
-    if (!parts.length) { set({ status: '没有可导出的几何' }); return }
+    if (!parts.length) { set({ status: '沒有可匯出的幾何' }); return }
     // GM-W4 4.4(b)：真布尔合并单壳 —— 逐件烘焙到世界坐标后依次 manifold union，出单一水密壳；失败回退三角汤。
     if (union) {
-      if (parts.length < 2) { set({ status: '真布尔合并需要≥2 件（装配 / 活动体 + 组件）— 单件直接用「导出 STL」' }); return }
-      set({ status: `真布尔合并单壳中（manifold union · ${parts.length} 件，慢，请稍候）…` })
+      if (parts.length < 2) { set({ status: '真布爾合併需要≥2 件（裝配 / 活動體 + 組件）— 單件直接用「匯出 STL」' }); return }
+      set({ status: `真布爾合併單殼中（manifold union · ${parts.length} 件，慢，請稍候）…` })
       const bake = (m: MeshData, M: number[]): { vertices: number[]; triangles: number[] } => {
         const v = m.vertices, out = new Array<number>(v.length)
         for (let i = 0; i < v.length; i += 3) {
@@ -19512,11 +19512,11 @@ export const useApp = create<AppState>((rawSet, get) => {
           const vol = meshVolume(outMesh)
           const IDENT = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
           triggerDownload(meshesToBinarySTL([{ mesh: outMesh, matrix: IDENT }]), `${projName(get().projectName)}-装配-合并.stl`, 'model/stl')
-          set({ status: `已导出装配 STL · 真布尔合并单壳（${parts.length} 件 → 1 水密壳 · 体积 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}${compNote}）` })
+          set({ status: `已匯出裝配 STL · 真布爾合併單殼（${parts.length} 件 → 1 水密殼 · 體積 ${vol >= 1000 ? (vol / 1000).toFixed(2) + ' cm³' : vol.toFixed(1) + ' mm³'}${compNote}）` })
         } catch (e) {
           // 诚实回退：某件非流形 / union 失败 → 退三角汤（多壳），提示先修复
-          triggerDownload(meshesToBinarySTL(parts), `${projName(get().projectName)}-装配.stl`, 'model/stl')
-          set({ status: `⚠ 真布尔合并失败（${(e as Error)?.message || e}）— 已回退三角汤导出（${parts.length} 件多壳，可能有内壁）。先对各件「🩹修复网格」令水密再试` })
+          triggerDownload(meshesToBinarySTL(parts), `${projName(get().projectName)}-裝配.stl`, 'model/stl')
+          set({ status: `⚠ 真布爾合併失敗（${(e as Error)?.message || e}）— 已回退三角汤匯出（${parts.length} 件多殼，可能有內壁）。先對各件「🩹修復網格」令水密再試` })
         }
       })()
       return
@@ -19526,14 +19526,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       void import('./io/meshComp').then(({ compensateMesh }) => {
         const opts = { xyOffset: s.compXY || undefined, scale: s.compShrink !== 1 ? [s.compShrink, s.compShrink, s.compShrink] as [number, number, number] : undefined }
         const cparts = parts.map((p) => ({ mesh: compensateMesh(p.mesh, opts), matrix: p.matrix }))
-        triggerDownload(meshesToBinarySTL(cparts), `${projName(get().projectName)}-装配.stl`, 'model/stl')
-        set({ status: `已导出装配 STL（${cparts.length} 个零件 · 打印补偿 XY ${s.compXY > 0 ? '+' : ''}${s.compXY}mm${s.compShrink !== 1 ? ` · 收缩×${s.compShrink}` : ''}）` })
+        triggerDownload(meshesToBinarySTL(cparts), `${projName(get().projectName)}-裝配.stl`, 'model/stl')
+        set({ status: `已匯出裝配 STL（${cparts.length} 個零件 · 打印補償 XY ${s.compXY > 0 ? '+' : ''}${s.compXY}mm${s.compShrink !== 1 ? ` · 收縮×${s.compShrink}` : ''}）` })
       })
       return
     }
     const buf = meshesToBinarySTL(parts)
-    triggerDownload(buf, `${projName(get().projectName)}-装配.stl`, 'model/stl')
-    set({ status: `已导出装配 STL（${parts.length} 个零件，含位姿）${wtWarnParts(parts.map((p) => p.mesh))}` })
+    triggerDownload(buf, `${projName(get().projectName)}-裝配.stl`, 'model/stl')
+    set({ status: `已匯出裝配 STL（${parts.length} 個零件，含位姿）${wtWarnParts(parts.map((p) => p.mesh))}` })
   },
 
   // Export the whole posed assembly as one OBJ (each visible part baked to three-world via compWorldMatrix,
@@ -19553,7 +19553,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
     }
     if (s.bodyMesh) parts.push({ mesh: s.bodyMesh, m: new Matrix4().multiplyMatrices(Rfix, R).elements.slice() })
-    if (!parts.length) { set({ status: '没有可导出的几何' }); return }
+    if (!parts.length) { set({ status: '沒有可匯出的幾何' }); return }
     const out: string[] = ['# webcad assembly OBJ', `# ${(s.projectName || 'webcad').replace(/\n/g, ' ')}`]
     let voff = 0, noff = 0, n = 0
     const printableParts: { vertices: number[]; triangles: number[] }[] = []
@@ -19580,8 +19580,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       voff += printable.vertices.length / 3
       noff += printable.loopNormals.length / 3
     }
-    triggerDownload(new TextEncoder().encode(out.join('\n') + '\n'), `${projName(s.projectName)}-装配.obj`, 'model/obj')
-    set({ status: `已导出装配 OBJ（${n} 个零件，含位姿）${wtWarnParts(printableParts)}` })
+    triggerDownload(new TextEncoder().encode(out.join('\n') + '\n'), `${projName(s.projectName)}-裝配.obj`, 'model/obj')
+    set({ status: `已匯出裝配 OBJ（${n} 個零件，含位姿）${wtWarnParts(printableParts)}` })
   },
 
   // Export the posed assembly as a multi-object 3MF — each visible part is its own <object> (world-baked verts),
@@ -19600,7 +19600,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
     }
     if (s.bodyMesh) parts.push({ mesh: s.bodyMesh, m: new Matrix4().multiplyMatrices(Rfix, R).elements.slice(), name: '本体' })
-    if (!parts.length) { set({ status: '没有可导出的几何' }); return }
+    if (!parts.length) { set({ status: '沒有可匯出的幾何' }); return }
     let objects = '', items = '', bases = '', id = 0
     const printableParts: MeshData[] = []
     for (const p of parts) {
@@ -19631,8 +19631,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       { name: '_rels/.rels', data: enc(rels) },
       { name: '3D/3dmodel.model', data: enc(model) },
     ])
-    triggerDownload(zip, `${projName(s.projectName)}-装配.3mf`, 'model/3mf')
-    set({ status: `已导出装配 3MF（${id} 个独立零件对象，可直接送切片软件分件摆位）${wtWarnParts(printableParts)}` })
+    triggerDownload(zip, `${projName(s.projectName)}-裝配.3mf`, 'model/3mf')
+    set({ status: `已匯出裝配 3MF（${id} 個獨立零件對象，可直接送切片軟件分件擺位）${wtWarnParts(printableParts)}` })
   },
 
   // T759（S35）：装配彩色 STEP — 每个有 src 嘅组件由特征树重建 B-rep，连名+颜色+位姿写入一份 XCAF AP214。
@@ -19669,16 +19669,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.bodyMesh && s.bodyMesh.triangles.length && !s.editingComponent && hasSolid(s.features)) {
       parts.push({ name: '本体', trsf: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0], useCurrent: true, color: hex2rgb(s.bodyColor) })
     }
-    if (!parts.length) { set({ status: `没有可导出的 B-rep 零件${meshOnly.length ? `（净网格件唔支持 STEP：${meshOnly.join('、')}）` : ' — 先建组件或实体'}` }); return }
-    set({ busy: true, status: `正在重建 ${parts.length} 个零件嘅 B-rep 并写入彩色 STEP…` })
+    if (!parts.length) { set({ status: `沒有可匯出的 B-rep 零件${meshOnly.length ? `（淨網格件唔支持 STEP：${meshOnly.join('、')}）` : ' — 先建組件或實體'}` }); return }
+    set({ busy: true, status: `正在重建 ${parts.length} 個零件嘅 B-rep 並寫入彩色 STEP…` })
     try {
       const res = await cad.exportAssemblySTEP(projName(s.projectName), parts)
-      if (!res || !res.exported.length) { set({ busy: false, status: '装配 STEP 导出失败 — 内核未能写出（试简化零件或逐件导出 STEP）' }); return }
-      triggerDownload(res.buf, `${projName(s.projectName)}-装配.step`, 'application/step')
+      if (!res || !res.exported.length) { set({ busy: false, status: '裝配 STEP 匯出失敗 — 內核未能寫出（試簡化零件或逐件匯出 STEP）' }); return }
+      triggerDownload(res.buf, `${projName(s.projectName)}-裝配.step`, 'application/step')
       const skips = [...res.skipped, ...meshOnly]
-      set({ busy: false, status: `已导出装配 STEP（${res.exported.length} 零件 · 含名称+颜色+位姿，Fusion/FreeCAD 直接开）${skips.length ? `；跳过：${skips.join('、')}（净网格/重建失败）` : ''}` })
+      set({ busy: false, status: `已匯出裝配 STEP（${res.exported.length} 零件 · 含名稱+顏色+位姿，Fusion/FreeCAD 直接開）${skips.length ? `；跳過：${skips.join('、')}（淨網格/重建失敗）` : ''}` })
     } catch (e) {
-      set({ busy: false, status: `装配 STEP 导出失败：${(e as Error)?.message || e}` })
+      set({ busy: false, status: `裝配 STEP 匯出失敗：${(e as Error)?.message || e}` })
     }
   },
 
@@ -19687,20 +19687,20 @@ export const useApp = create<AppState>((rawSet, get) => {
   exportComponentStl: (id) => {
     const state = get()
     const c = state.components.find((x) => x.id === id)
-    if (!c) { set({ status: '没有该组件' }); return }
+    if (!c) { set({ status: '沒有該組件' }); return }
     const bodies = visibleDefinitionBodies(c, state.componentDefs)
-    if (!bodies.length) { set({ status: `「${c.name}」没有可导出的可见实体` }); return }
+    if (!bodies.length) { set({ status: `「${c.name}」沒有可匯出的可見實體` }); return }
     // Reject degenerate reference frames (the hidden FK-root has a 1-triangle placeholder mesh).
     let v6 = 0
     for (const body of bodies) { const t = body.mesh.triangles, p = body.mesh.vertices; for (let i = 0; i < t.length; i += 3) { const a = t[i] * 3, b = t[i + 1] * 3, cc = t[i + 2] * 3; v6 += p[a] * (p[b + 1] * p[cc + 2] - p[b + 2] * p[cc + 1]) - p[a + 1] * (p[b] * p[cc + 2] - p[b + 2] * p[cc]) + p[a + 2] * (p[b] * p[cc + 1] - p[b + 1] * p[cc]) } }
-    if (Math.abs(v6) / 6 < 1) { set({ status: `「${c.name}」是固定参考件（无实体几何），无法导出` }); return }
+    if (Math.abs(v6) / 6 < 1) { set({ status: `「${c.name}」是固定參考件（無實體幾何），無法匯出` }); return }
     // Keep the part in its CAD frame (Z-up, sitting on z=0) — that's the slicer convention (Cura/Prusa/Bambu
     // all treat +Z as up, bed = XY). Do NOT rotate into the three.js view frame (Y-up), or the part imports
     // lying on its side and centred through the bed. Matches the active-body worker STL export.
     const R = new Matrix4() // identity → raw CAD mesh, Z-up
     const buf = meshesToBinarySTL(bodies.map((body) => ({ mesh: body.mesh, matrix: R.elements.slice() })))
     triggerDownload(buf, `${(c.name || 'component').replace(/[\\/:*?"<>|]/g, '_')}.stl`, 'model/stl')
-    set({ status: `已导出组件「${c.name}」STL（${bodies.length} 个可见实体、Z 朝上贴床，可直接拖入切片软件 3D 打印）` })
+    set({ status: `已匯出組件「${c.name}」STL（${bodies.length} 個可見實體、Z 朝上貼床，可直接拖入切片軟件 3D 打印）` })
   },
 
   // Export EVERY visible real component as its own STL, bundled into a single .zip (pure-JS zip, no dep).
@@ -19710,7 +19710,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const vol = (m: MeshData) => { const t = m.triangles, p = m.vertices; let v6 = 0; for (let i = 0; i < t.length; i += 3) { const a = t[i] * 3, b = t[i + 1] * 3, cc = t[i + 2] * 3; v6 += p[a] * (p[b + 1] * p[cc + 2] - p[b + 2] * p[cc + 1]) - p[a + 1] * (p[b] * p[cc + 2] - p[b + 2] * p[cc]) + p[a + 2] * (p[b] * p[cc + 1] - p[b + 1] * p[cc]) } return Math.abs(v6) / 6 }
     const state = get()
     const comps = state.components.filter((c) => !c.hidden && visibleDefinitionBodies(c, state.componentDefs).some((b) => vol(b.mesh) >= 1)) // skip degenerate FK-root frames
-    if (!comps.length) { set({ status: '没有可导出的零件（先载入装配模板或「新建组件」）' }); return }
+    if (!comps.length) { set({ status: '沒有可匯出的零件（先載入裝配模板或「新建組件」）' }); return }
     const used = new Map<string, number>()
     const files = comps.map((c) => {
       let base = (c.name || 'part').replace(/[\\/:*?"<>|]/g, '_')
@@ -19720,7 +19720,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     })
     const zip = makeZip(files)
     triggerDownload(zip, `${projName(get().projectName)}-parts.zip`, 'application/zip')
-    set({ status: `已导出全部 ${files.length} 个零件 STL（打包 zip，每件可单独 3D 打印）` })
+    set({ status: `已匯出全部 ${files.length} 個零件 STL（打包 zip，每件可單獨 3D 打印）` })
   },
 
   // Nearest-neighbour clearance for ONE component: min distance from this part to every other visible part
@@ -19729,9 +19729,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     const comps = s.components.filter((c) => !c.hidden)
     const self = comps.find((c) => c.id === id)
-    if (!self) { set({ status: '没有该组件' }); return }
+    if (!self) { set({ status: '沒有該組件' }); return }
     const others = comps.filter((c) => c.id !== id)
-    if (!others.length) { set({ status: '只有一个可见组件，没有邻件可量间隙' }); return }
+    if (!others.length) { set({ status: '只有一個可見組件，沒有鄰件可量間隙' }); return }
     const fk = computeFK(s.components.map((c) => c.id), s.joints)
     const worldPts = (c: typeof comps[number]) => {
       const M = compWorldMatrix(c, fk.get(c.id)); const meshes = visibleDefinitionBodies(c, s.componentDefs).map((b) => b.mesh)
@@ -19740,16 +19740,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       return pts
     }
     const A = worldPts(self)
-    if (A.length < 3) { set({ status: `「${self.name}」是固定参考件（无实体几何），无法量间隙` }); return }
+    if (A.length < 3) { set({ status: `「${self.name}」是固定參考件（無實體幾何），無法量間隙` }); return }
     let best = Infinity, bestName = ''
     for (const o of others) {
       const B = worldPts(o); if (B.length < 3) continue
       for (let i = 0; i < A.length; i += 3) { const ax = A[i], ay = A[i + 1], az = A[i + 2]
         for (let j = 0; j < B.length; j += 3) { const dx = ax - B[j], dy = ay - B[j + 1], dz = az - B[j + 2]; const d2 = dx * dx + dy * dy + dz * dz; if (d2 < best) { best = d2; bestName = o.name } } }
     }
-    if (best === Infinity) { set({ status: `「${self.name}」周围没有可量的实体邻件` }); return }
+    if (best === Infinity) { set({ status: `「${self.name}」周圍沒有可量的實體鄰件` }); return }
     const g = Math.sqrt(best)
-    set({ status: g < 0.3 ? `「${self.name}」与「${bestName}」接触/重叠（间隙 ≈0）` : `「${self.name}」最近邻件「${bestName}」：间隙 ≈${fmtLen(g, s.unit)}（顶点采样）` })
+    set({ status: g < 0.3 ? `「${self.name}」與「${bestName}」接觸/重疊（間隙 ≈0）` : `「${self.name}」最近鄰件「${bestName}」：間隙 ≈${fmtLen(g, s.unit)}（頂點採樣）` })
   },
 
   // Bill of Materials (BOM): one row per (visible) component name with count, single-part volume &
@@ -19760,7 +19760,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // No assembly components — fall back to the single active body so BOM works for single-part designs too.
       const bm = get().bodyMesh
       if (bm && bm.vertices.length) comps = [{ id: 'body', name: get().projectName || 'webcad 零件', mesh: bm, pos: [0, 0, 0] }]
-      else { set({ status: 'BOM 需要实体或装配组件（先建模，或载入「齿轮组/轴承」等模板）' }); return }
+      else { set({ status: 'BOM 需要實體或裝配組件（先建模，或載入「齒輪組/軸承」等模板）' }); return }
     }
     const meshVolMm3 = (m: MeshData) => {
       const t = m.triangles, p = m.vertices; let v6 = 0
@@ -19832,7 +19832,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const anyMat = comps.some((c) => c.material && MATERIALS[c.material]?.density)
     const summary = `BOM（${groups.size} 种零件 · 共 ${totQty} 件 · 总质量 ${totMass >= 1000 ? (totMass / 1000).toFixed(2) + ' kg' : totMass.toFixed(0) + ' g'}${anyMat ? '，按各组件材质密度' : ` @${density}g/cm³`} · 实心料长 ${totFil.toFixed(1)}m@1.75${badParts ? ` · ⚠${badParts} 种非水密` : ' · 全部水密'}）`
     // BUG-BD-1805：同时弹出可见表格（下载可能被自动化拦截，表格可核验）
-    set({ bomDialog: { rows, summary }, status: `已导出 ` + summary + ' — 已打开 BOM 表' })
+    set({ bomDialog: { rows, summary }, status: `已匯出 ` + summary + ' — 已打開 BOM 表' })
   },
   bomDialog: null,
   closeBomDialog: () => set({ bomDialog: null }),
@@ -19841,9 +19841,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   exportFeaCsv: () => {
     const s = get()
     const r = s.feaResult
-    if (!r) { set({ status: 'FEA 导出：未有结果 — 先①固定面 ②受力面 ▶求解' }); return }
+    if (!r) { set({ status: 'FEA 匯出：未有結果 — 先①固定面 ②受力面 ▶求解' }); return }
     triggerDownload(new TextEncoder().encode(buildFeaCsv(r)), `${projName(s.projectName)}-FEA.csv`, 'text/csv')
-    set({ status: `已导出 FEA 结果 CSV（${r.nVox} 体素 · vmMax ${r.vmMax.toFixed(1)}MPa · SF ${r.vmMax > 0 ? (r.sy / r.vmMax).toFixed(2) : 'N/A'}）` })
+    set({ status: `已匯出 FEA 結果 CSV（${r.nVox} 體素 · vmMax ${r.vmMax.toFixed(1)}MPa · SF ${r.vmMax > 0 ? (r.sy / r.vmMax).toFixed(2) : 'N/A'}）` })
   },
 
   // Export the whole posed design as one binary glTF (.glb) WITH per-part colour — for sharing /
@@ -19860,13 +19860,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
     }
     if (s.bodyMesh) parts.push({ mesh: s.bodyMesh, matrix: R.elements.slice(), color: s.bodyColor })
-    if (!parts.length) { set({ status: '没有可导出的几何' }); return }
+    if (!parts.length) { set({ status: '沒有可匯出的幾何' }); return }
     try {
       const buf = await meshesToGLB(parts)
       triggerDownload(buf, `${projName(s.projectName)}.glb`, 'model/gltf-binary')
-      set({ status: `已导出 webcad.glb（${parts.length} 个零件，含颜色，可在 Windows 3D 查看器/网页打开）` })
+      set({ status: `已匯出 webcad.glb（${parts.length} 個零件，含顏色，可在 Windows 3D 查看器/網頁打開）` })
     } catch (e) {
-      set({ status: 'glTF 导出失败：' + String(e).slice(0, 60) })
+      set({ status: 'glTF 匯出失敗：' + String(e).slice(0, 60) })
     }
   },
 
@@ -19885,13 +19885,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!get().bodyMesh || !get().bodyMesh!.triangles.length) {
       // 冇活动实体但有装配组件 → 自动行装配工程图（三个入口：命令/D 键/文件菜单 统一分流）
       if (get().components.some((c) => !c.hidden)) { void get().generateAsmDrawing(); return }
-      set({ status: '工程图需要先有一个活动实体（先建模一个零件）' }); return
+      set({ status: '工程圖需要先有一個活動實體（先建模一個零件）' }); return
     }
-    set({ status: '正在生成三视图…' })
+    set({ status: '正在生成三視圖…' })
     const views = await cad.projectViews()
     try { const section = await cad.projectSection(get().drawingSectionFrac, get().drawingSectionAxis); if (section && views) views.push(section) } catch { /* section optional */ }
-    if (!views || !views.length) { set({ status: '工程图生成失败' }); return }
-    set({ drawingViews: views, drawingKind: 'part', drawingBalloons: null, drawingBom: null, drawingOpen: true, status: `已生成工程图（前/上/右 + 立体${views && views.some((v) => v.name === 'section') ? ' + 剖视' : ''}）` })
+    if (!views || !views.length) { set({ status: '工程圖生成失敗' }); return }
+    set({ drawingViews: views, drawingKind: 'part', drawingBalloons: null, drawingBom: null, drawingOpen: true, status: `已生成工程圖（前/上/右 + 立體${views && views.some((v) => v.name === 'section') ? ' + 剖視' : ''}）` })
   },
   // 装配工程图 + 气泡 BOM（T732，BIG3 ★ 最大出图缺口）：全部可见组件按 posed 世界矩阵做
   // 网格边投影（轮廓边 + 边界边 + 24° 特征边 — 同视口 Edges 同款判据），三视图叠加 + 每件气泡
@@ -19982,7 +19982,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // v2: persist the FULL document. T746：复用 buildProjectPayload（单一真相）— 以前手砌一份并行 payload，
     // 字段一多就甩漏（实锤：save 写咗 mates 但 open 冇还原 → .json 往返丢配合）。
     const errors = [...documentReferenceErrors(s), ...documentPatternErrors(s), ...patternDataErrors(s.skPatternData,[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])],s.skCons), ...(s.mode === 'sketch' ? sketchReferenceErrors(s.skCons,s.params) : [])]
-    if(errors.length) {set({status:`保存失败：尺寸引用失效 — ${errors.join('；')}（现有模型未动）`});return}
+    if(errors.length) {set({status:`儲存失敗：尺寸引用失效 — ${errors.join('；')}（現有模型未動）`});return}
     // BUG-UI-002：open the save picker *before* JSON.stringify so the user gesture stays fresh;
     // if picker is unavailable/cancelled/blocked, hardened anchor still lands a lasting download.
     const result = await durableDownloadFrom(`${projName(s.projectName)}.json`, 'application/json', () => {
@@ -19990,12 +19990,12 @@ export const useApp = create<AppState>((rawSet, get) => {
       return new TextEncoder().encode(data)
     })
     if (!result.ok) {
-      if (result.reason === 'aborted') set({ status: '已取消保存（现有模型未动）' })
-      else set({ status: `保存失败：无法写入文件${result.message ? ' — ' + result.message : ''}（现有模型未动）` })
+      if (result.reason === 'aborted') set({ status: '已取消儲存（現有模型未動）' })
+      else set({ status: `儲存失敗：無法寫入檔案${result.message ? ' — ' + result.message : ''}（現有模型未動）` })
       return
     }
     const where = result.method === 'file-picker' ? ' · 已写入所选位置' : (result.method === 'anchor' ? ' · 已下载到浏览器下载目录' : '')
-    set({ status: `已儲存專案（${s.components.length} 組件 · ${s.joints.length} 关节 · ${s.features.length} 活动特征 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 组件特征）${where}` })
+    set({ status: `已儲存專案（${s.components.length} 組件 · ${s.joints.length} 關節 · ${s.features.length} 活動特徵 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 組件特徵）${where}` })
   },
 
   openProject: () => {
@@ -20006,7 +20006,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       } catch {
         // looksLikeWebcadDoc / applyProjectData already refuse bad docs without clearing;
         // JSON.parse failure must also leave the current document untouched.
-        set({ status: '打开失败：文件格式不正确（现有模型未动）' })
+        set({ status: '打開失敗：檔案格式不正確（現有模型未動）' })
       }
     }
     const pickViaInput = () => {
@@ -20039,7 +20039,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           return
         } catch (err) {
           const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
-          if (name === 'AbortError') { set({ status: '已取消打开（现有模型未动）' }); return }
+          if (name === 'AbortError') { set({ status: '已取消打開（現有模型未動）' }); return }
           // Unsupported / permission → fall back to <input type=file>.
         }
       }
@@ -20050,13 +20050,13 @@ export const useApp = create<AppState>((rawSet, get) => {
   applyProjectData: async (data, statusVerb = '已打开项目') => {
     // GM-W8 β1-#39：先验证係咪 webcad 项目 — 唔係就拒,唔郁现有模型（以前任何 JSON 都当成功并清空）。
     const referenceErrors = [...documentReferenceErrors(data), ...documentPatternErrors(data), ...sketchDraftErrors(data)]
-    if (referenceErrors.length) { set({status:`打开失败：尺寸引用失效 — ${referenceErrors.join('；')}；现有模型未动`}); return }
-    if (!looksLikeWebcadDoc(data)) { set({ status: '唔似係 webcad 项目文件 — 未打开（现有模型未动）' }); return }
+    if (referenceErrors.length) { set({status:`打開失敗：尺寸引用失效 — ${referenceErrors.join('；')}；現有模型未動`}); return }
+    if (!looksLikeWebcadDoc(data)) { set({ status: '唔似係 webcad 項目檔案 — 未打開（現有模型未動）' }); return }
     // GM-W8 β1-#41：现有模型有内容 → 先确认再覆盖（撤销栈会清,救唔返）。分享链接开页时模型仲系空 → 呢度自然唔弹（cur 为空）。
     const cur = get()
     if (cur.features.length || cur.components.length || cur.formCage || cur.sketchProfiles.length || cur.sketchShape || cur.polyPts.length || cur.sketchStart || Object.keys(cur.sketchSources).length || cur.params.length || cur.canvases.length) {
       const ok = await get().appConfirm('目前文件有內容，包括未完成草圖。開啟會取代目前文件，請先取消並儲存需要保留嘅改動。繼續開啟？', '打开新文件')
-      if (!ok) { set({ status: '已取消打开（现有模型未动）' }); return }
+      if (!ok) { set({ status: '已取消打開（現有模型未動）' }); return }
     }
     const raw: Feature[] = Array.isArray(data) ? (data as Feature[]) : ((data.features as Feature[]) ?? [])
     const d = (Array.isArray(data) ? {} : data) as Record<string, unknown>
@@ -20115,7 +20115,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // document immediately after File > Open or following a shared link.
     get().requestFit()
     const s = get()
-    set({ status: `${statusVerb}（${s.components.length} 組件 · ${s.joints.length} 关节 · ${s.features.length} 活动特征 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 组件特征）` })
+    set({ status: `${statusVerb}（${s.components.length} 組件 · ${s.joints.length} 關節 · ${s.features.length} 活動特徵 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 組件特徵）` })
   },
   // T797：分享链接 — buildProjectPayload → gzip → base64url → location.hash + 复制剪贴板。零后端零隐私（链接本身就系全部数据）。
   shareLink: async () => {
@@ -20132,11 +20132,11 @@ export const useApp = create<AppState>((rawSet, get) => {
         b64 = 'r' + _bytesToB64url(bytes)  // 'r' = raw（旧浏览器无 CompressionStream）
       }
       const url = location.origin + location.pathname + '#p=' + b64
-      if (url.length > 1_900_000) { set({ status: '⚠ 模型太大,分享链接超长（>1.9MB）— 改用「儲存專案」传 .json 档' }); return }
+      if (url.length > 1_900_000) { set({ status: '⚠ 模型太大,分享鏈接超長（>1.9MB）— 改用「儲存專案」傳 .json 檔' }); return }
       try { await navigator.clipboard.writeText(url) } catch { /* clipboard 可能要用户手势 — 至少落 hash */ }
       location.hash = 'p=' + b64
-      set({ status: `🔗 分享链接已复制到剪贴板（${(url.length / 1024).toFixed(0)}KB · 全部数据喺链接内,零服务器）— 发畀人/收藏即可重开` })
-    } catch (e) { set({ status: '分享链接生成失败：' + ((e as Error)?.message || e) }) }
+      set({ status: `🔗 分享鏈接已複製到剪貼板（${(url.length / 1024).toFixed(0)}KB · 全部數據喺鏈接內,零服務器）— 發畀人/收藏即可重開` })
+    } catch (e) { set({ status: '分享鏈接生成失敗：' + ((e as Error)?.message || e) }) }
   },
   loadShareHash: async () => {
     try {
@@ -20155,7 +20155,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       history.replaceState(null, '', location.pathname)   // 清 hash（避免刷新重复载入 + 唔污染存档）
       await get().applyProjectData(data, '已从分享链接打开')
       return true
-    } catch { set({ status: '分享链接解析失败（链接可能截断咗）' }); return false }
+    } catch { set({ status: '分享鏈接解析失敗（鏈接可能截斷咗）' }); return false }
   },
 
   restoreAutosave: async () => {
@@ -20192,7 +20192,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       if (!data) return
       const referenceErrors = [...documentReferenceErrors(data), ...documentPatternErrors(data), ...sketchDraftErrors(data)]
-      if(referenceErrors.length) {set({status:`自动存档引用失效：${referenceErrors.join('；')}`});return}
+      if(referenceErrors.length) {set({status:`自動存檔引用失效：${referenceErrors.join('；')}`});return}
       const feats0: Feature[] = (Array.isArray(data.features) ? data.features : []).map((f: Feature) => ({ ...f }))
       bumpFid(feats0)  // ids are kept (paramBindings/suppressedIds reference them) → counter must skip past
       const comps = Array.isArray(data.components) ? data.components : []
@@ -20248,7 +20248,7 @@ export const useApp = create<AppState>((rawSet, get) => {
 
   newComponent: () => {
     const b = get().bodyMesh
-    if (!b) { set({ status: '当前没有实体——先建一个，再「新建组件」' }); return }
+    if (!b) { set({ status: '當前沒有實體——先建一個，再「新建組件」' }); return }
     const comps = get().components
     // Freeze at the CURRENT originX (not 0): geometry is always built around the origin, so each successive
     // component must be PLACED at the running offset or they all stack on top of each other. (importStl/Step
@@ -20272,7 +20272,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       features: [], bodyMesh: null, bodyTopZ: 0, undoStack: [...get().undoStack, snap].slice(-60), redoStack: [],
       selectedFeature: null, sketchShape: null, mode: 'model',
       originX: get().originX + 130,
-      status: `已固化「${comp.name}」；下一个组件将在其右侧 (+130mm) 处绘制`,
+      status: `已固化「${comp.name}」；下一個組件將在其右側 (+130mm) 處繪製`,
       ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('几何已改（已固化为组件）') : {}),
     })
     // The worker still owns the live OCCT shape at this point. Capture its B-rep
@@ -20288,19 +20288,19 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   importStl: async (buf, name, opt) => {
-    set({ busy: true, status: `导入 STL：解析网格…（${(buf.byteLength / 1048576).toFixed(1)} MB）` })
+    set({ busy: true, status: `匯入 STL：解析網格…（${(buf.byteLength / 1048576).toFixed(1)} MB）` })
     const { meshImportRisk } = await import('./io/meshBudget')
     const risk = meshImportRisk(buf)
     if (risk.requiresConfirm) {
       set({ busy: false })
       const ok = await get().appConfirm(`「${name || 'STL'}」含 ${risk.reason}。目前浏览器版会在主线程解析并建立多份网格数据，可能占用大量内存或短暂无响应。继续导入？`, '大型网格导入')
-      if (!ok) { set({ status: '已取消大型 STL 导入' }); return }
-      set({ busy: true, status: `导入 STL：正在解析大型网格（${risk.reason}）…` })
+      if (!ok) { set({ status: '已取消大型 STL 匯入' }); return }
+      set({ busy: true, status: `匯入 STL：正在解析大型網格（${risk.reason}）…` })
     }
     await new Promise((r) => requestAnimationFrame(() => r(null)))   // 让加载条先画出（parseSTL 系同步、大档会阻塞）
     let mesh: MeshData
-    try { const { parseStlInWorker } = await import('./analysis/meshClient'); mesh = await parseStlInWorker(buf) } catch { set({ busy: false, status: 'STL 解析失败' }); return }
-    if (!mesh.vertices.length) { set({ busy: false, status: 'STL 为空或格式不支持' }); return }
+    try { const { parseStlInWorker } = await import('./analysis/meshClient'); mesh = await parseStlInWorker(buf) } catch { set({ busy: false, status: 'STL 解析失敗' }); return }
+    if (!mesh.vertices.length) { set({ busy: false, status: 'STL 為空或格式不支持' }); return }
     mesh = applyMeshInsertOpt(mesh, opt)   // GM-X3 #11：单位换算 + flip-up
     const comps = get().components
     const nid = nextCid(comps)
@@ -20310,7 +20310,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const placedAt = meshInsertPosition(mesh.vertices, get().originX, opt?.place)
     const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('导入' + (comps.length + 1)), mesh, placedAt, { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence
     const comp = occ
-    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, busy: false, selectedComponent: nid, status: `已导入「${comp.name}」（${mesh.triangles.length / 3} 三角面）${opt?.unit && opt.unit !== 'mm' ? ` · 单位 ${opt.unit}→mm` : ''}${opt?.flipUp ? ' · 已翻正 Y↔Z' : ''}${wtWarn(mesh) || '　·　水密 ✓ 可打印'} · 可用 MeshFit/转 B-rep` }))
+    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, busy: false, selectedComponent: nid, status: `已匯入「${comp.name}」（${mesh.triangles.length / 3} 三角面）${opt?.unit && opt.unit !== 'mm' ? ` · 單位 ${opt.unit}→mm` : ''}${opt?.flipUp ? ' · 已翻正 Y↔Z' : ''}${wtWarn(mesh) || '　·　水密 ✓ 可打印'} · 可用 MeshFit/轉 B-rep` }))
     get().requestFit()
   },
   importObj: async (text, name, opt) => {
@@ -20318,11 +20318,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     const risk = textMeshImportRisk(text)
     if (risk.requiresConfirm) {
       const ok = await get().appConfirm(`「${name || 'OBJ'}」是 ${risk.reason}。目前浏览器版会在主线程解析 OBJ，可能占用大量内存或短暂无响应。继续导入？`, '大型 OBJ 导入')
-      if (!ok) { set({ status: '已取消大型 OBJ 导入' }); return }
+      if (!ok) { set({ status: '已取消大型 OBJ 匯入' }); return }
     }
     let mesh: MeshData
-    try { const { parseObjInWorker } = await import('./analysis/meshClient'); mesh = await parseObjInWorker(text) } catch { set({ status: 'OBJ 解析失败' }); return }
-    if (!mesh.vertices.length || !mesh.triangles.length) { set({ status: 'OBJ 为空或无面（只支持 v/f 几何）' }); return }
+    try { const { parseObjInWorker } = await import('./analysis/meshClient'); mesh = await parseObjInWorker(text) } catch { set({ status: 'OBJ 解析失敗' }); return }
+    if (!mesh.vertices.length || !mesh.triangles.length) { set({ status: 'OBJ 為空或無面（只支持 v/f 幾何）' }); return }
     mesh = applyMeshInsertOpt(mesh, opt)   // GM-X3 #11：单位换算 + flip-up
     const comps = get().components
     const nid = nextCid(comps)
@@ -20330,23 +20330,23 @@ export const useApp = create<AppState>((rawSet, get) => {
     const placedAt = meshInsertPosition(mesh.vertices, get().originX, opt?.place)
     const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('导入' + (comps.length + 1)), mesh, placedAt, { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence
     const comp = occ
-    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, selectedComponent: nid, status: `已导入 OBJ「${comp.name}」（${mesh.triangles.length / 3} 三角面）${opt?.unit && opt.unit !== 'mm' ? ` · 单位 ${opt.unit}→mm` : ''}${opt?.flipUp ? ' · 已翻正 Y↔Z' : ''}${wtWarn(mesh) || '　·　水密 ✓ 可打印'} · 可用 MeshFit/转 B-rep` }))
+    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, selectedComponent: nid, status: `已匯入 OBJ「${comp.name}」（${mesh.triangles.length / 3} 三角面）${opt?.unit && opt.unit !== 'mm' ? ` · 單位 ${opt.unit}→mm` : ''}${opt?.flipUp ? ' · 已翻正 Y↔Z' : ''}${wtWarn(mesh) || '　·　水密 ✓ 可打印'} · 可用 MeshFit/轉 B-rep` }))
     get().requestFit()
   },
   openObjDialog: () => {
     // v1.44: chooser success status parity with acceptMeshDropFile.
     const openFile = async (f: File) => {
-      set({ busy: true, status: `正在读取 OBJ「${f.name}」…` })
+      set({ busy: true, status: `正在讀取 OBJ「${f.name}」…` })
       try {
         const text = await f.text()
         set({ busy: false })
         get().openMeshInsert('obj', f.name.replace(/\.[^.]+$/, ''), { text })
       } catch {
-        set({ busy: false, status: 'OBJ 读取失败' })
+        set({ busy: false, status: 'OBJ 讀取失敗' })
       }
     }
     void (async () => {
-      set({ busy: false, status: '选择 OBJ 文件…' })
+      set({ busy: false, status: '選擇 OBJ 檔案…' })
       type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
       const picker = (window as OpenPickerWindow).showOpenFilePicker
       if (typeof picker === 'function') {
@@ -20378,9 +20378,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // GM-X3 #11：Mesh 插入对话框
   insertMesh: null,
-  openMeshInsert: (kind, name, data) => set({ insertMesh: { kind, name, buf: data.buf, text: data.text, unit: 'mm', flipUp: false, place: 'none' }, status: `${kind.toUpperCase()} 插入：选单位 / 是否翻正 Y↔Z / 落地摆位` }),
+  openMeshInsert: (kind, name, data) => set({ insertMesh: { kind, name, buf: data.buf, text: data.text, unit: 'mm', flipUp: false, place: 'none' }, status: `${kind.toUpperCase()} 插入：選單位 / 是否翻正 Y↔Z / 落地擺位` }),
   setInsertMesh: (p) => set((s) => (s.insertMesh ? { insertMesh: { ...s.insertMesh, ...p } } : {})),
-  cancelInsertMesh: () => set({ insertMesh: null, status: '已取消网格插入' }),
+  cancelInsertMesh: () => set({ insertMesh: null, status: '已取消網格插入' }),
   confirmInsertMesh: async () => {
     const m = get().insertMesh
     if (!m) return
@@ -20396,33 +20396,33 @@ export const useApp = create<AppState>((rawSet, get) => {
     const risk = meshImportRisk(buf, '3mf')
     if (risk.requiresConfirm) {
       const ok = await get().appConfirm(`「${name || '3MF'}」是 ${risk.reason}。解压及解析会占用较多浏览器内存；继续导入？`, '大型 3MF 导入')
-      if (!ok) { set({ status: '已取消大型 3MF 导入' }); return }
+      if (!ok) { set({ status: '已取消大型 3MF 匯入' }); return }
     }
     let r: Awaited<ReturnType<typeof import('./analysis/meshClient').parse3mfInWorker>>
-    try { const { parse3mfInWorker } = await import('./analysis/meshClient'); r = await parse3mfInWorker(buf) } catch (e) { set({ status: e instanceof Error ? e.message : '3MF 解析失败' }); return }
+    try { const { parse3mfInWorker } = await import('./analysis/meshClient'); r = await parse3mfInWorker(buf) } catch (e) { set({ status: e instanceof Error ? e.message : '3MF 解析失敗' }); return }
     const comps = get().components
     const px = get().originX
     const defs0 = get().componentDefs
     const pairs = r.meshes.map((m, i) => makeDefOcc(defs0, nextCid(comps, i), r.meshes.length > 1 ? m.name : (name || m.name || ('导入' + (comps.length + 1))), { vertices: m.vertices, triangles: m.triangles } as MeshData, [px, 0, 0], { color: m.color || COMP_PALETTE[(comps.length + i) % COMP_PALETTE.length], defIdOffset: i }))   // R2：每件建 def+occurrence
     const added = pairs.map((p) => p.occ), addedDefs = pairs.map((p) => p.def)
     const tris = r.meshes.reduce((s2, m) => s2 + m.triangles.length / 3, 0)
-    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, ...added], componentDefs: [...s.componentDefs, ...addedDefs], originX: px + 130, status: `已导入 3MF「${name}」（${added.length} 个零件 · ${tris} 三角面 · 单位 ${r.unit} 已转 mm）${added.length === 1 ? (wtWarn(added[0].mesh) || '　·　水密 ✓ 可打印') : ''}` }))
+    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, ...added], componentDefs: [...s.componentDefs, ...addedDefs], originX: px + 130, status: `已匯入 3MF「${name}」（${added.length} 個零件 · ${tris} 三角面 · 單位 ${r.unit} 已轉 mm）${added.length === 1 ? (wtWarn(added[0].mesh) || '　·　水密 ✓ 可打印') : ''}` }))
     get().requestFit()
   },
   open3MFDialog: () => {
     // v1.44: chooser success status parity with acceptMeshDropFile.
     const openFile = async (f: File) => {
-      set({ busy: true, status: `正在读取 3MF「${f.name}」…` })
+      set({ busy: true, status: `正在讀取 3MF「${f.name}」…` })
       try {
         const buf = await f.arrayBuffer()
         set({ busy: false })
         await get().import3MF(buf, f.name.replace(/\.[^.]+$/, ''))
       } catch {
-        set({ busy: false, status: '3MF 读取失败' })
+        set({ busy: false, status: '3MF 讀取失敗' })
       }
     }
     void (async () => {
-      set({ busy: false, status: '选择 3MF 文件…' })
+      set({ busy: false, status: '選擇 3MF 檔案…' })
       type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
       const picker = (window as OpenPickerWindow).showOpenFilePicker
       if (typeof picker === 'function') {
@@ -20463,10 +20463,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       const f = inp.files?.[0]; if (!f) return
       const limit = 32 * 1024 * 1024
       if (f.size > limit) {
-        set({ status: `插入组件：STEP 文件 ${(f.size / 1048576).toFixed(1)}MB 超过 ${limit / 1048576}MB 安全导入上限；请先在外部简化模型。` })
+        set({ status: `插入組件：STEP 檔案 ${(f.size / 1048576).toFixed(1)}MB 超過 ${limit / 1048576}MB 安全匯入上限；請先在外部簡化模型。` })
         return
       }
-      set({ status: `正在插入 STEP 组件「${f.name}」…（读取装配结构、相对位置与可用颜色）` })
+      set({ status: `正在插入 STEP 組件「${f.name}」…（讀取裝配結構、相對位置與可用顏色）` })
       await get().importStep(await f.arrayBuffer(), f.name.replace(/\.[^.]+$/, ''))
     }
     inp.click()
@@ -20477,9 +20477,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     inp.type = 'file'; inp.accept = '.step,.stp'
     inp.onchange = async () => {
       const f = inp.files?.[0]; if (!f) return
-      if (f.size > 8 * 1024 * 1024) { set({ status: `STEP 实体导入：文件 ${(f.size / 1048576).toFixed(1)}MB 超 8MB 上限（B-rep 特征会入存档）— 大文件请用「导入 STEP…」（转网格组件，唔入树）` }); return }
+      if (f.size > 8 * 1024 * 1024) { set({ status: `STEP 實體匯入：檔案 ${(f.size / 1048576).toFixed(1)}MB 超 8MB 上限（B-rep 特徵會入存檔）— 大檔案請用「匯入 STEP…」（轉網格組件，唔入樹）` }); return }
       const text = await f.text()
-      set({ status: asDerived ? '正在派生 STEP 为 B-rep 快照…（非关联；入时间轴后可继续编辑）' : '正在导入 STEP 为 B-rep 实体…（入时间轴，可继续切/圆角/导出）' })
+      set({ status: asDerived ? '正在派生 STEP 為 B-rep 快照…（非關聯；入時間軸後可繼續編輯）' : '正在匯入 STEP 為 B-rep 實體…（入時間軸，可繼續切/圓角/匯出）' })
       const op: BoolOp = get().cutMode && hasSolid(get().features) ? 'cut' : 'new'
       const ok = await get().applyFeatures([...get().features, { id: fid(), type: 'stepbody', step: text, op }],
         asDerived
@@ -20490,7 +20490,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     inp.click()
   },
   importStep: async (buf, name) => {
-    set({ busy: true, status: `正在导入 STEP…（解析 B-rep + 颜色，${(buf.byteLength / 1048576).toFixed(1)} MB）` })
+    set({ busy: true, status: `正在匯入 STEP…（解析 B-rep + 顏色，${(buf.byteLength / 1048576).toFixed(1)} MB）` })
     await new Promise((r) => requestAnimationFrame(() => r(null)))   // 让加载条先画出
     try {
     // XCAF assembly or compound → independent exact B-rep parts.
@@ -20506,20 +20506,20 @@ export const useApp = create<AppState>((rawSet, get) => {
         set((s) => ({
           undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
           components: [...comps, ...added], componentDefs: [...s.componentDefs, ...addedDefs],
-          status: `已导入 STEP「${base}」：${added.length} 个独立零件（保留精确 B-rep，可双击继续编辑；${asm.some((x) => !x.color) ? '无色件用调色板；' : ''}原始零件名未保留）`,
+          status: `已匯入 STEP「${base}」：${added.length} 個獨立零件（保留精確 B-rep，可雙擊繼續編輯；${asm.some((x) => !x.color) ? '無色件用調色板；' : ''}原始零件名未保留）`,
         }))
         get().requestFit()
         return
       }
     } catch { /* 装配路失败 → 单件路兜底 */ }
     let mesh: MeshData | null = null
-    try { mesh = await cad.importStep(buf) } catch { set({ status: 'STEP 导入失败：文件无法解析（可能损坏或非 STEP）' }); return } // defensive: never let a malformed STEP throw unhandled
-    if (!mesh || !mesh.vertices.length) { set({ status: 'STEP 导入失败或为空' }); return }
+    try { mesh = await cad.importStep(buf) } catch { set({ status: 'STEP 匯入失敗：檔案無法解析（可能損壞或非 STEP）' }); return } // defensive: never let a malformed STEP throw unhandled
+    if (!mesh || !mesh.vertices.length) { set({ status: 'STEP 匯入失敗或為空' }); return }
     const comps = get().components
     const nid = nextCid(comps)
     const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('导入' + (comps.length + 1)), mesh, [get().originX, 0, 0], { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence
     const comp = occ
-    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, status: `已导入 STEP「${comp.name}」（${mesh.triangles.length / 3} 三角面；参考网格，精确编辑请用 STEP 实体导入）` }))
+    set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, status: `已匯入 STEP「${comp.name}」（${mesh.triangles.length / 3} 三角面；參考網格，精確編輯請用 STEP 實體匯入）` }))
     get().requestFit()
     } finally { set({ busy: false }) }   // 任何路径（成功/失败/早 return）都清返加载条
   },
@@ -20532,7 +20532,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       ? parseCache as { profiles: import('./io/dxfImport').ImpProfile[]; texts: import('./io/dxfImport').ImpText[]; note: string; skipped: string[]; layers: string[] }
       : parseDxfToProfiles(text)
     const { profiles, texts, note, skipped } = parsed
-    if (!profiles.length && !(texts && texts.length)) { set({ status: 'DXF 导入失败：' + note }); return }
+    if (!profiles.length && !(texts && texts.length)) { set({ status: 'DXF 匯入失敗：' + note }); return }
     const [ox, oy] = profiles.length ? profilesRecenterOffset(profiles) : (() => {
       if (!texts.length) return [0, 0] as [number, number]
       let mnx = 1e9, mny = 1e9, mxx = -1e9, mxy = -1e9
@@ -20574,7 +20574,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const labelShapes = (labels.length ? textsToConstructionShapes(labels, { maxMarkers: markerCap }) : (opt?.labelShapes || []).slice()) as SketchShape[]
     const markerNote = labels.length > markerCap ? `；构造标记 ${markerCap}/${labels.length}（标注全保留，防几何爆炸）` : ''
     const labelNote = labels.length ? `；保留 ${labels.length} 个文字标注（重开草图可见）${markerNote}` : ''
-    if (!use.length && !labels.length) { set({ status: label + '：无可用轮廓' + (opt?.include?.length ? '（所选层为空）' : '') }); return }
+    if (!use.length && !labels.length) { set({ status: label + '：無可用輪廓' + (opt?.include?.length ? '（所選層為空）' : '') }); return }
     const h = Number.isFinite(height) && height > 0 ? (height as number) : 5
     const plane = (opt?.plane ?? 'XY') as Plane
     const baseZ = opt?.baseZ ?? 0
@@ -20595,7 +20595,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       } else {
         set((st) => ({
           sketchSources: { ...st.sketchSources, [skId]: { shapes, cons: [], plane, baseZ, op: 'new' as BoolOp, height: h, labels: JSON.parse(JSON.stringify(labels)) } },
-          status: `${label}${labelNote}${skipped && skipped.length ? `；跳过未支持实体 ${skipped.join('/')}` : ''}`,
+          status: `${label}${labelNote}${skipped && skipped.length ? `；跳過未支持實體 ${skipped.join('/')}` : ''}`,
         }))
       }
       get().requestFit()
@@ -20618,7 +20618,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
       // apply failed → still park source so geometry is not lost
-      set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: shapesCopy, cons: [], plane, baseZ, op: 'new' as BoolOp, height: 0, ...(labelsCopy ? { labels: labelsCopy } : {}), name: 'DXF草图' } }, status: `${label}：草图源已保留（特征写入失败）` }))
+      set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: shapesCopy, cons: [], plane, baseZ, op: 'new' as BoolOp, height: 0, ...(labelsCopy ? { labels: labelsCopy } : {}), name: 'DXF草圖' } }, status: `${label}：草圖源已保留（特徵寫入失敗）` }))
       get().requestFit()
       return
     }
@@ -20650,7 +20650,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const { parseSvgToProfiles } = await import('./io/svgImport')
     const { classifyProfiles } = await import('./io/dxfImport')
     const { profiles, note, skipped } = parseSvgToProfiles(text)
-    if (!profiles.length) { set({ status: 'SVG 导入失败：' + note }); return }
+    if (!profiles.length) { set({ status: 'SVG 匯入失敗：' + note }); return }
     await get().importProfiles2D(classifyProfiles(profiles), `已导入 SVG：${note}`, skipped, height, opt)
   },
   openSvgDialog: () => {
@@ -20695,18 +20695,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     const inc = s.insertVec.include.includes(layer) ? s.insertVec.include.filter((l) => l !== layer) : [...s.insertVec.include, layer]
     return { insertVec: { ...s.insertVec, include: inc } }
   }),
-  cancelInsertVec: () => set((s) => ({ insertVec: null, dxfImportEpoch: (s.dxfImportEpoch || 0) + 1, busy: false, status: '已取消矢量导入' })),
+  cancelInsertVec: () => set((s) => ({ insertVec: null, dxfImportEpoch: (s.dxfImportEpoch || 0) + 1, busy: false, status: '已取消矢量匯入' })),
   confirmInsertVec: async () => {
     const v = get().insertVec
     if (!v) return
     // 有逐层勾选却一个都没勾 = 退化状态：拦下，别落到「空 include→null→全量导入」。
     if (v.layers.length > 1 && v.include.length === 0) {
-      set({ insertVec: null, status: (v.kind === 'dxf' ? 'DXF' : 'SVG') + ' 导入：未勾选任何图层 → 已取消（勾选需要的层；全选=全部导入）' })
+      set({ insertVec: null, status: (v.kind === 'dxf' ? 'DXF' : 'SVG') + ' 匯入：未勾選任何圖層 → 已取消（勾選需要的層；全選=全部匯入）' })
       return
     }
     const cache = v.parseCache
     const sketchOnly = !!(v.forceSketchOnly || v.sketchOnly)
-    set({ insertVec: null, busy: true, status: sketchOnly ? 'DXF 导入：写入草图…' : 'DXF/SVG 导入中…' })
+    set({ insertVec: null, busy: true, status: sketchOnly ? 'DXF 匯入：寫入草圖…' : 'DXF/SVG 匯入中…' })
     try {
       // 单位（DXF）：把长度按单位缩放到 mm（叠加用户 scale）。SVG 无单位 → 恒 mm。
       const unitScale = v.kind === 'dxf' ? meshUnitScaleMm(v.unit) : 1
@@ -20828,7 +20828,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       let dd = D, tt = t, nn = N, hr = holeR, br = bcR, bo = bore
       if (v) { const a = v.split(/[,，\s]+/).map(Number); if (a[0] > 0) dd = a[0]; if (a[1] > 0) tt = a[1]; if (a[2] >= 1) nn = Math.round(a[2]); if (a[3] > 0) hr = a[3] / 2; if (a[4] > 0) br = a[4] / 2; if (a[5] > 0) bo = a[5] }
       // Guard: holes must fit inside the disc and not collide with the bore.
-      if (br + hr > dd / 2 - 1) { set({ status: `分度盘：节圆Ø${br * 2}+孔径 超出盘外缘，请调小节圆或孔径` }); return }
+      if (br + hr > dd / 2 - 1) { set({ status: `分度盤：節圓Ø${br * 2}+孔徑 超出盤外緣，請調小節圓或孔徑` }); return }
       get().addParam('盘半径R', dd / 2); get().addParam('中心孔r', bo / 2)
       const disc = fid(), ctr = fid()
       const feats: Feature[] = [
@@ -20847,7 +20847,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const v = await get().appPrompt(tStatus('L 角铁 — 边长 a, 壁厚 t, 长度 L（等边角钢；取消用默认）', get().lang), `${a0},${t0},${L0}`)
       let a = a0, t = t0, L = L0
       if (v) { const p = v.split(/[,，\s]+/).map(Number); if (p[0] > 0) a = p[0]; if (p[1] > 0) t = p[1]; if (p[2] > 0) L = p[2] }
-      if (t >= a) { set({ status: `L 角铁：壁厚 t(${t}) 需小于边长 a(${a})` }); return }
+      if (t >= a) { set({ status: `L 角鐵：壁厚 t(${t}) 需小於邊長 a(${a})` }); return }
       const pts: [number, number][] = [[0, 0], [a, 0], [a, t], [t, t], [t, a], [0, a]]
       await get().applyFeatures([{ id: fid(), type: 'extrude', profile: { kind: 'poly', pts }, height: L, operation: 'new' }],
         `已载入示例：L 角铁/角钢（等边 ${a}×${a}×厚${t}，长 ${L}；结构支撑/框架。改尺寸重载模板）`)
@@ -20862,7 +20862,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (v) { const a = v.split(/[,，\s]+/).map(Number); if (a[0] > 0) d = a[0]; if (a[1] > 0) L = a[1] }
       const k = parallelKey(d)
       const b = k.b, h = k.h, r = b / 2
-      if (L <= b) { set({ status: `平键：键长 L 需大于键宽 b=${b}` }); return }
+      if (L <= b) { set({ status: `平鍵：鍵長 L 需大於鍵寬 b=${b}` }); return }
       // Stadium polygon in XY (length along X ±L/2, width along Y ±b/2), rounded ends radius r.
       const pts: [number, number][] = []
       const SEG = 10, cx = L / 2 - r
@@ -21029,7 +21029,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         { id: fid(), type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: rRim }, height: th, operation: 'new' },
         { id: fid(), type: 'gear', module: m, teeth: zr, thickness: th + 4, bore: 0, op: 'cut' },
       ])
-      if (!sun?.vertices.length || !planet?.vertices.length || !ring?.vertices.length) { set({ status: '行星齿轮组模板生成失败' }); return }
+      if (!sun?.vertices.length || !planet?.vertices.length || !ring?.vertices.length) { set({ status: '行星齒輪組模板生成失敗' }); return }
       const R = (m * (zs + zp)) / 2 // carrier radius = planet centre distance from sun = 30
       const comps: { id: string; name: string; mesh: typeof sun; pos: [number, number, number]; rot?: [number, number, number]; color?: string; material?: string }[] = [
         { id: 'SUN', name: `太阳轮 z${zs}`, mesh: sun, pos: [0, 0, 0], color: '#d8af48', material: '钢' },
@@ -21043,7 +21043,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       set({
         components: comps, componentDefs: [], features: [], bodyMesh: null, bodyTopZ: 0, selectedFeature: null,   // R2 清共享定义（全文档替换）
-        status: `已载入行星齿轮组：太阳轮 z${zs} + ${N} 行星轮 z${zp} + 内齿圈 z${zr}（减速比 1+zr/zs=${(1 + zr / zs).toFixed(2)}，固定齿圈；几何精确齿相位示意）${spaceWarn}`,
+        status: `已載入行星齒輪組：太陽輪 z${zs} + ${N} 行星輪 z${zp} + 內齒圈 z${zr}（減速比 1+zr/zs=${(1 + zr / zs).toFixed(2)}，固定齒圈；幾何精確齒相位示意）${spaceWarn}`,
       })
       get().requestFit(); return
     }
@@ -21057,7 +21057,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const rp = (m * z) / 2 // pinion pitch radius
       const pinion = await cad.rebuild([{ id: fid(), type: 'gear', module: m, teeth: z, thickness: th, bore: 6 }])
       const rack = await cad.rebuild([{ id: fid(), type: 'rack', module: m, length: L, baseH, thickness: th }])
-      if (!pinion?.vertices.length || !rack?.vertices.length) { set({ status: '齿轮齿条模板生成失败' }); return }
+      if (!pinion?.vertices.length || !rack?.vertices.length) { set({ status: '齒輪齒條模板生成失敗' }); return }
       // pos in THREE world coords. Pinion lies flat (axis = three-Y); its pitch circle is in the three XZ plane.
       // Rack natural orientation (after CAD→three): length +X, teeth point −Z, pitch line at three z = −(baseH+1.25m).
       // Put the rack on the +Z side so its pitch line lands at z = +rp (tangent to the pinion pitch circle, teeth pointing −Z toward it).
@@ -21071,7 +21071,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         ],
         joints: [], motionLinks: [], componentDefs: [], jointOrigins: [], rigidGroups: [], contactPairs: [], explodeSteps: [],
         features: [], bodyMesh: null, bodyTopZ: 0, selectedFeature: null,
-        status: `已载入齿轮齿条：小齿轮 z${z}(分度Ø${m * z}) + 齿条 m${m}（已自动接线：转小齿轮→齿条直线移）。撳「装配关节」▷运动 即睇齿条机构`,
+        status: `已載入齒輪齒條：小齒輪 z${z}(分度Ø${m * z}) + 齒條 m${m}（已自動接線：轉小齒輪→齒條直線移）。撳「裝配關節」▷運動 即睇齒條機構`,
       })
       // Auto-wire rotation→translation: pinion revolute (axis three-Y) + rack slider (axis three-X) + rack-type link.
       // No-slip: rack slide(mm) = pinion angle(deg) × (rp · π/180).
@@ -21098,7 +21098,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         { id: fid(), type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: Rp + ballR }, height: W, operation: 'cut' },
       ])
       const ball = await cad.rebuild([{ id: fid(), type: 'prim', shape: 'sphere', a: ballR, b: 0, c: 0 }])
-      if (!inner?.vertices.length || !outer?.vertices.length || !ball?.vertices.length) { set({ status: '轴承模板生成失败' }); return }
+      if (!inner?.vertices.length || !outer?.vertices.length || !ball?.vertices.length) { set({ status: '軸承模板生成失敗' }); return }
       // Merge N translated ball copies into one mesh (prim sphere centre sits at z = ballR, so z-offset = zc - ballR).
       const N = Math.max(5, Math.min(20, Math.round((Math.PI * Rp) / (ballR * 1.5)))), zc = W / 2, vc = ball.vertices.length / 3
       const verts: number[] = [], norms: number[] = [], tris: number[] = []
@@ -21117,7 +21117,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           { id: 'BALLS', name: `滚珠 ×${N}`, mesh: balls, pos: [0, 0, 0], color: '#eef1f4', material: '钢' },
         ],
         features: [], bodyMesh: null, bodyTopZ: 0, selectedFeature: null,
-        status: `已载入滚珠轴承 608（内Ø8 外Ø22 宽7，${N} 滚珠；外圈/内圈/滚珠 三组件。简化平槽，滚珠正好填满径向间隙）`,
+        status: `已載入滾珠軸承 608（內Ø8 外Ø22 寬7，${N} 滾珠；外圈/內圈/滾珠 三組件。簡化平槽，滾珠正好填滿徑向間隙）`,
       })
       get().requestFit(); return
     }
@@ -21146,7 +21146,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           { id: 'C3', name: '摇杆', mesh: barMesh(C0, D), pos: [0, 0, 0], color: '#16a36b', material: '钢' },
         ],
         joints: [], motionLinks: [], componentDefs: [], jointOrigins: [], rigidGroups: [], contactPairs: [], explodeSteps: [], features: [], bodyMesh: null, bodyTopZ: 0, selectedFeature: null,
-        status: '已载入闭环四连杆（真組件 · 通用闭环求解器）— 「装配关节」面板拖 J1 角度，成个机构即时联动；到死点会诚实停低',
+        status: '已載入閉環四連桿（真組件 · 通用閉環求解器）— 「裝配關節」面板拖 J1 角度，成個機構即時聯動；到死點會誠實停低',
       })
       get().addJoint({ type: 'revolute', parent: 'GND', child: 'C1', anchor: anc(A), axis: [0, 1, 0], angle: 0, slide: 0 })
       get().addJoint({ type: 'revolute', parent: 'C1', child: 'C2', anchor: anc(B0), axis: [0, 1, 0], angle: 0, slide: 0 })
@@ -21162,7 +21162,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (gv) { const p = gv.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length >= 3 && p.every((x) => Number.isFinite(x) && x > 0)) { m = p[0]; z1 = Math.max(5, Math.round(p[1])); z2 = Math.max(5, Math.round(p[2])) } }
       const g1 = await cad.rebuild([{ id: fid(), type: 'gear', module: m, teeth: z1, thickness: 10, bore: 8 }])
       const g2 = await cad.rebuild([{ id: fid(), type: 'gear', module: m, teeth: z2, thickness: 10, bore: 6, phase: 180 / z2 }])
-      if (!g1?.vertices.length || !g2?.vertices.length) { set({ status: '齿轮组模板生成失败' }); return }
+      if (!g1?.vertices.length || !g2?.vertices.length) { set({ status: '齒輪組模板生成失敗' }); return }
       const cd = (m * (z1 + z2)) / 2
       // A hidden "ground" component is the fixed FK root so BOTH gears can spin (a root component is static;
       // only children of a joint move). Tiny degenerate mesh, hidden → never rendered/exported/fit.
@@ -21175,7 +21175,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         ],
         joints: [], motionLinks: [], componentDefs: [], jointOrigins: [], rigidGroups: [], contactPairs: [], explodeSteps: [],
         features: [], bodyMesh: null, bodyTopZ: 0, selectedFeature: null,
-        status: `已载入齿轮组：大齿轮 z${z1} + 小齿轮 z${z2}（已自动加关节+运动连接，比 ${-(z1 / z2).toFixed(2)}）。撳「装配关节」面板嘅 ▷运动 即睇两齿轮反向啮合转`,
+        status: `已載入齒輪組：大齒輪 z${z1} + 小齒輪 z${z2}（已自動加關節+運動連接，比 ${-(z1 / z2).toFixed(2)}）。撳「裝配關節」面板嘅 ▷運動 即睇兩齒輪反向嚙合轉`,
       })
       // Auto-wire: each gear spins about its own axis (three-Y, through its centre); motion-link couples them at -z1/z2.
       get().addJoint({ type: 'revolute', parent: 'GND', child: 'C1', anchor: get().componentCenter('C1'), axis: [0, 1, 0], angle: 0, slide: 0 })
@@ -21367,9 +21367,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   insertFastener: async (kind, size, length = 16) => {
     const s = get()
     try {
-      set({ busy: true, status: `生成标准件：${fastenerLabel(kind, size, length)}…` })
+      set({ busy: true, status: `生成標準件：${fastenerLabel(kind, size, length)}…` })
       const mesh = await cad.rebuild(buildFastener(kind, size, length))
-      if (!mesh?.vertices.length) { set({ busy: false, status: '标准件生成失败' }); return }
+      if (!mesh?.vertices.length) { set({ busy: false, status: '標準件生成失敗' }); return }
       let maxN = 0; for (const c of s.components) { const m = /^C(\d+)$/.exec(c.id); if (m) maxN = Math.max(maxN, Number(m[1])) }
       const nid = 'C' + (maxN + 1)
       const off = s.components.length * 14 // fan out so stacked inserts don't overlap
@@ -21381,10 +21381,10 @@ export const useApp = create<AppState>((rawSet, get) => {
         busy: false,
         undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
         components: [...s.components, comp], componentDefs: [...s.componentDefs, def], selectedComponent: nid,
-        status: `已插入标准件：${fastenerLabel(kind, size, length)}（ISO 尺寸；简化件＝光杆无螺牙，外形尺寸标准。可用「配合」对齐、撤销）${kind !== 'hexnut' && kind !== 'washer' && kind !== 'dowel' ? `　|　推荐拧紧扭矩 ${tighteningTorque(size, '8.8').toFixed(1)}/${tighteningTorque(size, '10.9').toFixed(1)}/${tighteningTorque(size, '12.9').toFixed(1)} N·m（8.8/10.9/12.9 级钢，干，K0.2）` : ''}`,
+        status: `已插入標準件：${fastenerLabel(kind, size, length)}（ISO 尺寸；簡化件＝光桿無螺牙，外形尺寸標準。可用「配合」對齊、撤銷）${kind !== 'hexnut' && kind !== 'washer' && kind !== 'dowel' ? `　|　推荐拧緊扭矩 ${tighteningTorque(size, '8.8').toFixed(1)}/${tighteningTorque(size, '10.9').toFixed(1)}/${tighteningTorque(size, '12.9').toFixed(1)} N·m（8.8/10.9/12.9 級鋼，干，K0.2）` : ''}`,
       })
       get().requestFit()
-    } catch (e) { set({ busy: false, status: '标准件生成失败：' + ((e as Error)?.message || e) }) }
+    } catch (e) { set({ busy: false, status: '標準件生成失敗：' + ((e as Error)?.message || e) }) }
   },
   // Point-4: narrow-version structural check — analytic Euler–Bernoulli BEAM theory (NOT 3D FEM). Uses the
   // part's bbox as a prismatic beam + a point load + material E/σy → max bending stress, tip deflection, and
@@ -21419,15 +21419,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   feaResult: null,
   feaStale: false,
   toggleFea: () => set((s) => {
-    if (s.feaBusy) return { status: 'FEA 计算紧 — 等佢完成' }
+    if (s.feaBusy) return { status: 'FEA 計算緊 — 等佢完成' }
     // S171 audit（LOW）：退出要清晒拾取模式 — feaBearingPick 嘅 Viewport click 路由【冇】gate feaMode，残留会喺退出后点圆柱面静静起轴承载荷。一并清 feaPin/feaPinPick 对称。
-    if (s.feaMode) return { feaMode: 0 as const, feaFixed: null, feaLoad: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, status: '已退出受力云图' }
-    if (!s.bodyMesh || !s.bodyMesh.vertices.length) return { status: '受力云图：需要先有活动实体' }
+    if (s.feaMode) return { feaMode: 0 as const, feaFixed: null, feaLoad: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, status: '已退出受力雲圖' }
+    if (!s.bodyMesh || !s.bodyMesh.vertices.length) return { status: '受力雲圖：需要先有活動實體' }
     return {
       feaMode: 1 as const, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaProbe: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force' as const,
       shellMode: false, holeMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false,
       measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, featDlg: null,
-      status: '受力云图 ①：点实体嘅【固定面】（被夹住/锁实/上螺丝嗰个面）',
+      status: '受力雲圖 ①：點實體嘅【固定面】（被夾住/鎖實/上螺絲嗰個面）',
     }
   }),
   feaPickAt: (p, n, faceTris) => set((s) => {
@@ -21440,23 +21440,23 @@ export const useApp = create<AppState>((rawSet, get) => {
     //   缺省（imported mesh 无 faceGroup → faceTris undefined）→ 留空 → 求解器回退无限平面 band。
     const cadTris: number[] | undefined = (faceTris && faceTris.length >= 9) ? faceTris : undefined
     const stale = hasLiveSimResults(s) ? invalidateSimResultsPatch(s.feaMode === 1 ? '固定面已改' : '受力面已改') : null
-    if (s.feaMode === 1) return { ...(stale ?? {}), feaFixed: { point: cadP, normal: cadN, faceTris: cadTris }, feaMode: 2 as const, status: stale ? stale.status : '受力云图 ②：点【受力面】（力作用嘅面）' }
-    return { ...(stale ?? {}), feaLoad: { point: cadP, normal: cadN, faceTris: cadTris }, status: stale ? stale.status : '已选受力面 — 设力/方向/材料/分辨率 → 按「运行」（重点受力面可改选）' }
+    if (s.feaMode === 1) return { ...(stale ?? {}), feaFixed: { point: cadP, normal: cadN, faceTris: cadTris }, feaMode: 2 as const, status: stale ? stale.status : '受力雲圖 ②：點【受力面】（力作用嘅面）' }
+    return { ...(stale ?? {}), feaLoad: { point: cadP, normal: cadN, faceTris: cadTris }, status: stale ? stale.status : '已選受力面 — 設力/方向/材料/分辨率 → 按「運行」（重點受力面可改選）' }
   }),
   // S116：拾销/圆柱约束孔。复用 detectFace（同 cpatAxisPick 一样喺活动实体 CAD 系，唔乘 matrixWorld）。
   // 点圆柱面（孔内壁/圆轴侧面）→ {p=轴点, axis=轴向, r=半径} → PinConstraint。径向 DOF 锁、轴向+切向自由。
-  startFeaPinPick: () => set({ feaPinPick: true, cpatAxisPick: false, holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, status: '🎯 点一个【圆柱孔面】（孔内壁/圆轴侧面）→ 销/圆柱约束：径向锁、轴向+切向自由（销轴/螺栓支承）' }),
+  startFeaPinPick: () => set({ feaPinPick: true, cpatAxisPick: false, holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, status: '🎯 點一個【圓柱孔面】（孔內壁/圓軸側面）→ 銷/圓柱約束：徑向鎖、軸向+切向自由（銷軸/螺栓支承）' }),
   applyFeaPinPick: (det) => set((s) => {
-    if (!det) return { feaPinPick: false, status: '要点【圆柱面】先有销轴 — 平面冇轴/半径（揾孔内壁/圆轴/圆凸台侧面点）' }
+    if (!det) return { feaPinPick: false, status: '要點【圓柱面】先有銷軸 — 平面冇軸/半徑（揾孔內壁/圓軸/圓凸台側面點）' }
     const stale = hasLiveSimResults(s) ? invalidateSimResultsPatch('销约束已改') : null
-    return { ...(stale ?? {}), feaPinPick: false, feaPin: { axisPoint: det.p, axisDir: det.axis, radius: det.r }, status: stale ? stale.status : `已拾销约束孔 Ø${(det.r * 2).toFixed(1)}（轴向自由、径向锁）— 运行 FEA 即生效` }
+    return { ...(stale ?? {}), feaPinPick: false, feaPin: { axisPoint: det.p, axisDir: det.axis, radius: det.r }, status: stale ? stale.status : `已拾銷約束孔 Ø${(det.r * 2).toFixed(1)}（軸向自由、徑向鎖）— 運行 FEA 即生效` }
   }),
   // S171：拾轴承载荷孔（同 pin 一样 detectFace 圆柱面 → 轴点/轴向/半径）；载荷大小/方向用 feaForceN + feaDir。
-  startFeaBearingPick: () => set({ feaBearingPick: true, feaPinPick: false, cpatAxisPick: false, holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, status: '🎯 点一个【圆柱孔面】（孔内壁/圆轴侧面）→ 轴承载荷：合力沿载荷方向余弦分布喺孔受推半边（用「力」大小+方向；销/螺栓推孔）' }),
+  startFeaBearingPick: () => set({ feaBearingPick: true, feaPinPick: false, cpatAxisPick: false, holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, status: '🎯 點一個【圓柱孔面】（孔內壁/圓軸側面）→ 軸承載荷：合力沿載荷方向餘弦分布喺孔受推半邊（用「力」大小+方向；銷/螺栓推孔）' }),
   applyFeaBearingPick: (det) => set((s) => {
-    if (!det) return { feaBearingPick: false, status: '要点【圆柱面】先有孔 — 平面冇轴/半径（揾孔内壁/圆轴/圆凸台侧面点）' }
+    if (!det) return { feaBearingPick: false, status: '要點【圓柱面】先有孔 — 平面冇軸/半徑（揾孔內壁/圓軸/圓凸台側面點）' }
     const stale = hasLiveSimResults(s) ? invalidateSimResultsPatch('轴承载荷已改') : null
-    return { ...(stale ?? {}), feaBearingPick: false, feaBearing: { axisPoint: det.p, axisDir: det.axis, radius: det.r }, feaLoadMode: 'bearing' as const, feaLoad: null, status: stale ? stale.status : `已拾轴承载荷孔 Ø${(det.r * 2).toFixed(1)}（合力沿载荷方向余弦分布喺受推半边）— 设「力」大小/方向后运行 FEA` }
+    return { ...(stale ?? {}), feaBearingPick: false, feaBearing: { axisPoint: det.p, axisDir: det.axis, radius: det.r }, feaLoadMode: 'bearing' as const, feaLoad: null, status: stale ? stale.status : `已拾軸承載荷孔 Ø${(det.r * 2).toFixed(1)}（合力沿載荷方向餘弦分布喺受推半邊）— 設「力」大小/方向後運行 FEA` }
   }),
   setFeaOpt: (p) => set((s) => {
     // BUG-BD-010 / BUG-BD-1302：Fixed→Roller 等物理/BC 选项改动后，旧彩图唔可以当新结果。显示场/探针/变形控件唔使失效。
@@ -21479,7 +21479,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   autoFeaCantilever: () => {
     const s = get()
     const m = s.bodyMesh
-    if (!m || !m.vertices.length) { set({ status: 'FEA 自动设定：先要有一个活动实体' }); return }
+    if (!m || !m.vertices.length) { set({ status: 'FEA 自動設定：先要有一個活動實體' }); return }
     const v = m.vertices
     let mnx = Infinity, mny = Infinity, mnz = Infinity, mxx = -Infinity, mxy = -Infinity, mxz = -Infinity
     for (let i = 0; i < v.length; i += 3) { const x = v[i], y = v[i + 1], z = v[i + 2]; if (x < mnx) mnx = x; if (x > mxx) mxx = x; if (y < mny) mny = y; if (y > mxy) mxy = y; if (z < mnz) mnz = z; if (z > mxz) mxz = z }
@@ -21497,14 +21497,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       feaFixed: { point: fixedPt, normal: nrm }, feaLoad: { point: loadPt, normal: nrm },
       feaFixed2: null, feaBeam3pt: false,
       feaLoadMode: 'force', feaDir: ax === 2 ? 'custom' : 'down', feaCustomDir: dirCustom,
-      status: stale ? stale.status : `FEA 已自动设定 ✅（悬臂）：夹住一端、受力另一端（沿最长轴 ${['X', 'Y', 'Z'][ax]}，长 ${(hi - lo).toFixed(0)}mm）→ 设个合理嘅力 → 撳 run受力`,
+      status: stale ? stale.status : `FEA 已自動設定 ✅（懸臂）：夾住一端、受力另一端（沿最長軸 ${['X', 'Y', 'Z'][ax]}，長 ${(hi - lo).toFixed(0)}mm）→ 設個合理嘅力 → 撳 run受力`,
     })
   },
   // ★ 简支梁 / 3 点弯自动设定（用户想睇「中间断」）：两端做支撑（roller，只锁竖直）、中间施力 → 弯矩最大喺中间。
   autoFeaSimplySupported: () => {
     const s = get()
     const m = s.bodyMesh
-    if (!m || !m.vertices.length) { set({ status: 'FEA 自动设定：先要有一个活动实体' }); return }
+    if (!m || !m.vertices.length) { set({ status: 'FEA 自動設定：先要有一個活動實體' }); return }
     const v = m.vertices
     let mnx = Infinity, mny = Infinity, mnz = Infinity, mxx = -Infinity, mxy = -Infinity, mxz = -Infinity
     for (let i = 0; i < v.length; i += 3) { const x = v[i], y = v[i + 1], z = v[i + 2]; if (x < mnx) mnx = x; if (x > mxx) mxx = x; if (y < mny) mny = y; if (y > mxy) mxy = y; if (z < mnz) mnz = z; if (z > mxz) mxz = z }
@@ -21526,7 +21526,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       feaLoad: { point: ptAt((lo + hi) / 2), normal: nrm },                                        // 中间施力
       feaBeam3pt: true, feaLoadMode: 'force', feaDir: ax === 2 ? 'custom' : 'down', feaCustomDir: dirCustom,
       feaField: 'disp',   // ★ 默认用【位移】着色：梁中间凹最多 = 中间最红，最直觉、无支撑接触奇异；想睇应力随时切「应力」
-      status: stale ? stale.status : `FEA 已自动设定 ✅（简支梁 / 3 点弯）：两端托住、中间施力（跨度 ${(hiS - loS).toFixed(0)}mm）→ 设个合理嘅力 → 撳 run受力。挠度同弯曲应力最大会喺【中间】（默认睇位移；切「应力」睇 von Mises）。`,
+      status: stale ? stale.status : `FEA 已自動設定 ✅（簡支梁 / 3 點彎）：兩端托住、中間施力（跨度 ${(hiS - loS).toFixed(0)}mm）→ 設個合理嘅力 → 撳 run受力。撓度同彎曲應力最大會喺【中間】（預設睇位移；切「應力」睇 von Mises）。`,
     })
   },
   runFeaSolve: async () => {
@@ -21534,11 +21534,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.feaBusy) return
     // S101[6]：载荷换算抽到 buildFeaSolveInput（与收敛研究共用，杜绝两份漂移）
     const built = buildFeaSolveInput(s)
-    if ('error' in built) { set({ status: `受力云图：${built.error}` }); return }
+    if ('error' in built) { set({ status: `受力雲圖：${built.error}` }); return }
     const { mech, loadNote } = built
     const F = Math.hypot(built.force[0], built.force[1], built.force[2])
     // S 修：清晒所有兄弟结果状态（模态/屈曲/生成式/热）+ 自身旧云图 → 同时只显示一层体素 overlay，免两团叠画。
-    set({ feaBusy: true, feaResult: null, feaProbe: null, modalResult: null, bucklingResult: null, topoptResult: null, thermalResult: null, status: 'FEA：体素化…' })
+    set({ feaBusy: true, feaResult: null, feaProbe: null, modalResult: null, bucklingResult: null, topoptResult: null, thermalResult: null, status: 'FEA：體素化…' })
     let lastT = 0
     try {
       const r = await runFeaInWorker({
@@ -21561,12 +21561,12 @@ export const useApp = create<AppState>((rawSet, get) => {
         const now = Date.now()
         if (now - lastT < 150) return
         lastT = now
-        set({ status: `FEA：${phase === 'voxelize' ? '体素化' : phase === 'solve' ? '求解' : '算应力'} ${(frac * 100).toFixed(0)}%` })
+        set({ status: `FEA：${phase === 'voxelize' ? '體素化' : phase === 'solve' ? '求解' : '算應力'} ${(frac * 100).toFixed(0)}%` })
       })
-      if (!r.ok) { set({ feaBusy: false, status: `受力云图失败：${r.error || '未知错误'}` }); return }
+      if (!r.ok) { set({ feaBusy: false, status: `受力雲圖失敗：${r.error || '未知錯誤'}` }); return }
       // S100：滚子/对称约束只锁法向 DOF — 若载荷令模型可整体平动/转动则欠约束、刚体漂移（dispMax 暴涨/非有限）。诚实拦截。
       if (s.feaFixMode !== 'fixed' && (!Number.isFinite(r.dispMax) || r.dispMax > 1e4)) {
-        set({ feaBusy: false, feaMode: 0, status: `⚠ 滚子/对称约束下模型【欠约束】— 位移发散（${Number.isFinite(r.dispMax) ? r.dispMax.toExponential(1) + 'mm' : '非有限'}），结果不可信。滚子只锁法向，要载荷沿法向、或再加一个固定面挡住刚体漂移（面内平动/转动）。` })
+        set({ feaBusy: false, feaMode: 0, status: `⚠ 滾子/對稱約束下模型【欠約束】— 位移發散（${Number.isFinite(r.dispMax) ? r.dispMax.toExponential(1) + 'mm' : '非有限'}），結果不可信。滾子只鎖法向，要載荷沿法向、或再加一個固定面挡住剛體漂移（面內平動/轉動）。` })
         return
       }
       const sf = r.vmMax > 1e-9 ? mech.sy / r.vmMax : Infinity
@@ -21601,13 +21601,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         feaBusy: false, feaMode: 0, feaProbe: null, feaStale: false, feaDeform: autoDeform,
         feaResult: { h: r.h, nVox: r.nVox, centers: r.centers, vm: r.vm, vmMax: r.vmMax, vmMaxAt: r.vmMaxAt, vmMaxE: r.vmMaxE, dispMax: r.dispMax, disp: r.disp, dispVec: r.dispVec, converged: r.converged, residual: r.residual, warnings: r.warnings, sy: mech.sy, se: mech.se, su: mech.su, matName: s.feaMat, vmSmooth, vmSmoothMax, smoothSpan, reaction: r.reaction, reactionMag: r.reactionMag, s1: r.s1, s3: r.s3, shear: r.shear, s1Max: r.s1Max, s3Min: r.s3Min, shearMax: r.shearMax, sed: r.sed, sedMax: r.sedMax },
-        status: `受力云图（${s.feaMat}·${loadNote || F.toFixed(0) + 'N'}·${r.nVox}体素）：最大 von Mises ≈ ${f2(r.vmMax)} MPa（红⚠位=最可能断）· 位移 ≈ ${f2(r.dispMax)}mm${deformNote ? `（${deformNote}）` : ''} · 屈服 ${mech.sy} → SF≈${sf === Infinity ? '∞' : f2(sf)} ${verdict}${r.converged ? '' : ` · ⚠未完全收敛(残差${r.residual.toExponential(1)})`}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 体素趋势着色（线弹性），睇边度红，数值非商用 FEA 级`,
+        status: `受力雲圖（${s.feaMat}·${loadNote || F.toFixed(0) + 'N'}·${r.nVox}體素）：最大 von Mises ≈ ${f2(r.vmMax)} MPa（紅⚠位=最可能斷）· 位移 ≈ ${f2(r.dispMax)}mm${deformNote ? `（${deformNote}）` : ''} · 屈服 ${mech.sy} → SF≈${sf === Infinity ? '∞' : f2(sf)} ${verdict}${r.converged ? '' : ` · ⚠未完全收斂(殘差${r.residual.toExponential(1)})`}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 體素趨勢着色（線弹性），睇邊度紅，數值非商用 FEA 級`,
       })
     } catch (err) {
-      set({ feaBusy: false, status: `受力云图异常：${err instanceof Error ? err.message : String(err)}` })
+      set({ feaBusy: false, status: `受力雲圖異常：${err instanceof Error ? err.message : String(err)}` })
     }
   },
-  clearFea: () => set({ feaMode: 0, feaFixed: null, feaFixed2: null, feaBeam3pt: false, feaLoad: null, feaResult: null, feaStale: false, feaConvResult: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, status: '已清除受力云图' }),
+  clearFea: () => set({ feaMode: 0, feaFixed: null, feaFixed2: null, feaBeam3pt: false, feaLoad: null, feaResult: null, feaStale: false, feaConvResult: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, status: '已清除受力雲圖' }),
 
   // ── S101[6]：网格收敛研究（mesh convergence study）──────────────────────
   // 同模型同载荷跑 3 档递增体素分辨率，记 (nDof,vmMax,dispMax) → 看 vmMax 是否趋稳 + Richardson 外推。
@@ -21618,14 +21618,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (s.feaConvBusy || s.feaBusy || s.modalBusy || s.bucklingBusy || s.topoptBusy || s.thermalBusy) return
     const built = buildFeaSolveInput(s)
-    if ('error' in built) { set({ status: `收敛研究：${built.error}` }); return }
+    if ('error' in built) { set({ status: `收斂研究：${built.error}` }); return }
     const levels = [20, 28, 40]
-    set({ feaConvBusy: true, feaResult: null, feaProbe: null, modalResult: null, status: '收敛研究：跑 3 档分辨率…' })
+    set({ feaConvBusy: true, feaResult: null, feaProbe: null, modalResult: null, status: '收斂研究：跑 3 檔分辨率…' })
     try {
       const rows: { res: number; nVox: number; nDof: number; vmMax: number; dispMax: number; converged: boolean }[] = []
       for (let li = 0; li < levels.length; li++) {
         const res = levels[li]
-        set({ status: `收敛研究：第 ${li + 1}/3 档（分辨率 ${res}）…` })
+        set({ status: `收斂研究：第 ${li + 1}/3 檔（分辨率 ${res}）…` })
         const r = await runFeaInWorker({
           vertices: Float32Array.from(built.vertices), triangles: Uint32Array.from(built.triangles),
           // S171 audit（HIGH）：轴承模式同 runFeaSolve 一样 — 传远虚拟受力面（loadList 空）+ 透传 bearing，否则收敛研究会用 stale 受力面把轴承合力均布散布（错载荷工况、悄悄畀用户看错数）。
@@ -21636,10 +21636,10 @@ export const useApp = create<AppState>((rawSet, get) => {
           ...(s.feaGravity ? { gravity: [s.feaAccel[0] * 9810, s.feaAccel[1] * 9810, s.feaAccel[2] * 9810] as [number, number, number], density: MATERIALS[s.feaMat]?.density ?? s.bodyDensity } : {}),
           ...(s.feaPin ? { pin: { axisPoint: s.feaPin.axisPoint, axisDir: s.feaPin.axisDir, radius: s.feaPin.radius } } : {}),
         })
-        if (!r.ok) { set({ feaConvBusy: false, status: `收敛研究失败（分辨率 ${res}）：${r.error || '未知'}` }); return }
+        if (!r.ok) { set({ feaConvBusy: false, status: `收斂研究失敗（分辨率 ${res}）：${r.error || '未知'}` }); return }
         // S189：与 runFeaSolve 同款欠约束诚实拦截 —— 滚子/对称只锁法向 DOF，载荷不沿法向则模型刚体漂移，kernel 返 ok:true 但 converged:false + 垃圾值（dispMax 暴涨/非有限、vmMax 各档乱跳）。中止收敛研究而非把无意义行记进 verdict（否则同一输入主线求解诚实报错、这里却悄悄畀用户看似是而非嘅数）。
         if (s.feaFixMode !== 'fixed' && (!Number.isFinite(r.dispMax) || r.dispMax > 1e4)) {
-          set({ feaConvBusy: false, status: `⚠ 滚子/对称约束下模型【欠约束】— 位移发散（${Number.isFinite(r.dispMax) ? r.dispMax.toExponential(1) + 'mm' : '非有限'}），结果不可信。滚子只锁法向，要载荷沿法向、或再加一个固定面挡住刚体漂移（面内平动/转动）。` })
+          set({ feaConvBusy: false, status: `⚠ 滾子/對稱約束下模型【欠約束】— 位移發散（${Number.isFinite(r.dispMax) ? r.dispMax.toExponential(1) + 'mm' : '非有限'}），結果不可信。滾子只鎖法向，要載荷沿法向、或再加一個固定面挡住剛體漂移（面內平動/轉動）。` })
           return
         }
         rows.push({ res, nVox: r.nVox, nDof: r.nDof, vmMax: r.vmMax, dispMax: r.dispMax, converged: r.converged })
@@ -21652,9 +21652,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       const vmInf = (ratio > 1e-6 && ratio < 1) ? rows[2].vmMax + d21 * ratio / (1 - ratio) : rows[2].vmMax
       set({
         feaConvBusy: false, feaConvResult: { matName: s.feaMat, loadNote: built.loadNote, rows, vmInf, relLast, settled },
-        status: `收敛研究（${s.feaMat}）：vmMax ${rows.map((r) => r.vmMax.toFixed(1)).join(' → ')} MPa · 相邻末档差 ${(relLast * 100).toFixed(1)}% · 外推 ≈ ${vmInf.toFixed(1)} MPa · ${settled ? '✅ 已收敛' : '⚠ 未收敛（建议再加密）'} — 体素趋势级，非商用 FEA`,
+        status: `收斂研究（${s.feaMat}）：vmMax ${rows.map((r) => r.vmMax.toFixed(1)).join(' → ')} MPa · 相鄰末檔差 ${(relLast * 100).toFixed(1)}% · 外推 ≈ ${vmInf.toFixed(1)} MPa · ${settled ? '✅ 已收斂' : '⚠ 未收斂（建議再加密）'} — 體素趨勢級，非商用 FEA`,
       })
-    } catch (err) { set({ feaConvBusy: false, status: `收敛研究异常：${err instanceof Error ? err.message : String(err)}` }) }
+    } catch (err) { set({ feaConvBusy: false, status: `收斂研究異常：${err instanceof Error ? err.message : String(err)}` }) }
   },
 
   // ── S80：模态分析（固有频率）─────────────────────────────────────────
@@ -21662,15 +21662,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   modalShow: 0,
   modalResult: null,
   setModalShow: (i) => set((s) => ({ modalShow: s.modalResult ? Math.max(0, Math.min(s.modalResult.freqs.length - 1, Math.round(i))) : 0 })),
-  clearModal: () => set({ modalResult: null, modalShow: 0, status: '已清除模态分析' }),
+  clearModal: () => set({ modalResult: null, modalShow: 0, status: '已清除模態分析' }),
   runModalSolve: async () => {
     const s = get()
     if (s.modalBusy || s.feaBusy) return
     const mesh = s.bodyMesh
-    if (!s.feaFixed || !mesh) { set({ status: '模态分析：先喺 FEA 面板点一个【固定面】（约束模态）' }); return }
+    if (!s.feaFixed || !mesh) { set({ status: '模態分析：先喺 FEA 面板點一個【固定面】（約束模態）' }); return }
     const mech = MATERIAL_MECH[s.feaMat] || DEFAULT_MECH
     const nu = mech.E < 10000 ? 0.35 : 0.3   // 同静力：塑料 ~0.35 / 金属 ~0.3
-    set({ modalBusy: true, feaResult: null, feaProbe: null, bucklingResult: null, topoptResult: null, thermalResult: null, status: '模态：体素化…' })   // 清静力云图 + 屈曲/生成式/热 免重叠（同时只一层体素 overlay）
+    set({ modalBusy: true, feaResult: null, feaProbe: null, bucklingResult: null, topoptResult: null, thermalResult: null, status: '模態：體素化…' })   // 清静力云图 + 屈曲/生成式/热 免重叠（同时只一层体素 overlay）
     let lastT = 0
     try {
       const r = await runModalInWorker({
@@ -21680,19 +21680,19 @@ export const useApp = create<AppState>((rawSet, get) => {
         const now = Date.now()
         if (now - lastT < 150) return
         lastT = now
-        set({ status: `模态：${phase === 'voxelize' ? '体素化' : '求解固有频率'} ${(frac * 100).toFixed(0)}%` })
+        set({ status: `模態：${phase === 'voxelize' ? '體素化' : '求解固有頻率'} ${(frac * 100).toFixed(0)}%` })
       })
-      if (!r.ok) { set({ modalBusy: false, status: `模态分析失败：${r.error || '未知错误'}` }); return }
+      if (!r.ok) { set({ modalBusy: false, status: `模態分析失敗：${r.error || '未知錯誤'}` }); return }
       const fmt = (f: number) => (f >= 1000 ? f.toFixed(0) : f >= 100 ? f.toFixed(1) : f.toFixed(2))
       const list = r.freqs.map((f, i) => `f${i + 1}≈${fmt(f)}Hz`).join(' · ')
       set({
         modalBusy: true, feaMode: 0, modalShow: 0,
         modalResult: { h: r.h, nVox: r.nVox, centers: r.centers, freqs: r.freqs, shapes: r.shapes, amps: r.amps, warnings: r.warnings, matName: s.feaMat, converged: r.modeConverged },
-        status: `模态分析（${s.feaMat}·${r.nVox}体素·约束模态）：${list}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 振型动画放大示意，频率为体素趋势级（≈±5%，非商用 FEA）`,
+        status: `模態分析（${s.feaMat}·${r.nVox}體素·約束模態）：${list}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 振型動畫放大示意，頻率為體素趨勢級（≈±5%，非商用 FEA）`,
       })
       set({ modalBusy: false })
     } catch (err) {
-      set({ modalBusy: false, status: `模态分析异常：${err instanceof Error ? err.message : String(err)}` })
+      set({ modalBusy: false, status: `模態分析異常：${err instanceof Error ? err.message : String(err)}` })
     }
   },
 
@@ -21704,15 +21704,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (s.bucklingBusy || s.feaBusy || s.modalBusy) return
     const mesh = s.bodyMesh
-    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '屈曲分析：先点固定面 + 受力面（同受力云图一样）' }); return }
+    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '屈曲分析：先點固定面 + 受力面（同受力雲圖一樣）' }); return }
     const mech = MATERIAL_MECH[s.feaMat] || DEFAULT_MECH
     const F = Math.abs(s.feaForceN) || 50
     let dir: [number, number, number]
     if (s.feaDir === 'down') dir = [0, 0, -1]
-    else if (s.feaDir === 'normal') { const n = s.feaLoad.normal; const Ln = Math.hypot(n[0], n[1], n[2]); if (!(Ln > 0)) { set({ status: '屈曲：受力面法向量为零（退化几何）— 重新拣有效平面,或改「向下 / 自定义」方向' }); return }; dir = [-n[0] / Ln, -n[1] / Ln, -n[2] / Ln] }
+    else if (s.feaDir === 'normal') { const n = s.feaLoad.normal; const Ln = Math.hypot(n[0], n[1], n[2]); if (!(Ln > 0)) { set({ status: '屈曲：受力面法向量為零（退化幾何）— 重新揀有效平面,或改「向下 / 自定義」方向' }); return }; dir = [-n[0] / Ln, -n[1] / Ln, -n[2] / Ln] }
     else { const c = s.feaCustomDir; const Ln = Math.hypot(c[0], c[1], c[2]) || 1; dir = [c[0] / Ln, c[1] / Ln, c[2] / Ln] }
     const nu = mech.E < 10000 ? 0.35 : 0.3
-    set({ bucklingBusy: true, feaResult: null, feaProbe: null, modalResult: null, topoptResult: null, thermalResult: null, status: '屈曲：体素化…' })
+    set({ bucklingBusy: true, feaResult: null, feaProbe: null, modalResult: null, topoptResult: null, thermalResult: null, status: '屈曲：體素化…' })
     let lastT = 0
     try {
       const r = await runBucklingInWorker({
@@ -21724,16 +21724,16 @@ export const useApp = create<AppState>((rawSet, get) => {
         const ph = phase === 'voxelize' ? '体素化' : phase === 'solve' ? '静力预应力' : phase === 'kg' ? '几何刚度' : '求屈曲因子'
         set({ status: `屈曲：${ph} ${(frac * 100).toFixed(0)}%` })
       })
-      if (!r.ok) { set({ bucklingBusy: false, status: `屈曲分析失败：${r.error || '未知错误'}` }); return }
+      if (!r.ok) { set({ bucklingBusy: false, status: `屈曲分析失敗：${r.error || '未知錯誤'}` }); return }
       const f2 = (x: number) => x >= 100 ? x.toFixed(0) : x >= 1 ? x.toFixed(2) : x.toFixed(3)
       const lam = r.lambda1
       const verdict = lam <= 0 ? '⚠ 该方向唔会屈曲（受拉/方向相反）' : lam >= 2 ? `✅ 安全（屈曲因子 ${f2(lam)}≥2）` : lam >= 1 ? `⚠ 偏险（1≤${f2(lam)}<2）` : `❌ 会屈曲（因子 ${f2(lam)}<1，临界 ${f2(r.Pcr)}N < 施加 ${f2(F)}N）`
       set({
         bucklingBusy: false, feaMode: 0,
         bucklingResult: { h: r.h, nVox: r.nVox, centers: r.centers, shape: r.shape, amp: r.amp, lambda1: r.lambda1, Pcr: r.Pcr, forceN: r.forceN, converged: r.converged, warnings: r.warnings, matName: s.feaMat },
-        status: `屈曲分析（${s.feaMat}·${r.nVox}体素·${F}N）：屈曲载荷因子 λ₁≈${f2(lam)} → 临界载荷 Pcr≈${f2(r.Pcr)}N ${verdict}${r.converged ? '' : ' · ⚠未完全收敛'}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 体素趋势级（≈±5%），非商用 FEA`,
+        status: `屈曲分析（${s.feaMat}·${r.nVox}體素·${F}N）：屈曲載荷因子 λ₁≈${f2(lam)} → 临界載荷 Pcr≈${f2(r.Pcr)}N ${verdict}${r.converged ? '' : ' · ⚠未完全收斂'}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 體素趨勢級（≈±5%），非商用 FEA`,
       })
-    } catch (err) { set({ bucklingBusy: false, status: `屈曲分析异常：${err instanceof Error ? err.message : String(err)}` }) }
+    } catch (err) { set({ bucklingBusy: false, status: `屈曲分析異常：${err instanceof Error ? err.message : String(err)}` }) }
   },
 
   // ── S183：预应力（应力刚化）模态 ── 复用 FEA 面板 fixed+load+force（同屈曲一样）；结果走 modalResult 渲染路径
@@ -21741,15 +21741,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (s.modalBusy || s.feaBusy || s.bucklingBusy) return
     const mesh = s.bodyMesh
-    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '预应力模态：先点固定面 + 预载面 + 设预载力（拉/压，同屈曲一样）' }); return }
+    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '預應力模態：先點固定面 + 預載面 + 設預載力（拉/壓，同屈曲一樣）' }); return }
     const mech = MATERIAL_MECH[s.feaMat] || DEFAULT_MECH
     const F = Math.abs(s.feaForceN) || 50
     let dir: [number, number, number]
     if (s.feaDir === 'down') dir = [0, 0, -1]
-    else if (s.feaDir === 'normal') { const n = s.feaLoad.normal; const Ln = Math.hypot(n[0], n[1], n[2]); if (!(Ln > 0)) { set({ status: '预应力模态：预载面法向量为零（退化几何）— 重新拣有效平面,或改「向下 / 自定义」方向' }); return }; dir = [-n[0] / Ln, -n[1] / Ln, -n[2] / Ln] }
+    else if (s.feaDir === 'normal') { const n = s.feaLoad.normal; const Ln = Math.hypot(n[0], n[1], n[2]); if (!(Ln > 0)) { set({ status: '預應力模態：預載面法向量為零（退化幾何）— 重新揀有效平面,或改「向下 / 自定義」方向' }); return }; dir = [-n[0] / Ln, -n[1] / Ln, -n[2] / Ln] }
     else { const c = s.feaCustomDir; const Ln = Math.hypot(c[0], c[1], c[2]) || 1; dir = [c[0] / Ln, c[1] / Ln, c[2] / Ln] }
     const nu = mech.E < 10000 ? 0.35 : 0.3
-    set({ modalBusy: true, feaResult: null, feaProbe: null, bucklingResult: null, topoptResult: null, thermalResult: null, status: '预应力模态：体素化…' })
+    set({ modalBusy: true, feaResult: null, feaProbe: null, bucklingResult: null, topoptResult: null, thermalResult: null, status: '預應力模態：體素化…' })
     let lastT = 0
     try {
       const r = await runPrestressedModalInWorker({
@@ -21759,9 +21759,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       }, (phase, frac) => {
         const now = Date.now(); if (now - lastT < 150) return; lastT = now
         const ph = phase === 'voxelize' ? '体素化' : phase === 'preload' ? '静力预载' : phase === 'kg' ? '几何刚度' : '求固有频率'
-        set({ status: `预应力模态：${ph} ${(frac * 100).toFixed(0)}%` })
+        set({ status: `預應力模態：${ph} ${(frac * 100).toFixed(0)}%` })
       })
-      if (!r.ok) { set({ modalBusy: false, status: `预应力模态失败：${r.error || '未知错误'}` }); return }
+      if (!r.ok) { set({ modalBusy: false, status: `預應力模態失敗：${r.error || '未知錯誤'}` }); return }
       const fmt = (f: number) => (f >= 1000 ? f.toFixed(0) : f >= 100 ? f.toFixed(1) : f.toFixed(2))
       const list = r.freqs.map((f, i) => `f${i + 1}≈${fmt(f)}Hz`).join(' · ')
       // 拉/压判断：力沿固定→预载面方向（外法向）为拉。简单用 dir·(load.point−fixed.point) 符号。
@@ -21771,10 +21771,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         modalBusy: true, feaMode: 0, modalShow: 0,
         modalResult: { h: r.h, nVox: r.nVox, centers: r.centers, freqs: r.freqs, shapes: r.shapes, amps: r.amps, warnings: r.warnings, matName: s.feaMat, converged: r.modeConverged },
-        status: `预应力模态（${s.feaMat}·${r.nVox}体素·预载 ${F}N ${tensile ? '受拉↑刚化' : '受压↓软化'}）：${list}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 频率随预载偏移（拉升压降，近屈曲→0），体素趋势级`,
+        status: `預應力模態（${s.feaMat}·${r.nVox}體素·預載 ${F}N ${tensile ? '受拉↑剛化' : '受壓↓軟化'}）：${list}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 頻率隨預載偏移（拉升壓降，近屈曲→0），體素趨勢級`,
       })
       set({ modalBusy: false })
-    } catch (err) { set({ modalBusy: false, status: `预应力模态异常：${err instanceof Error ? err.message : String(err)}` }) }
+    } catch (err) { set({ modalBusy: false, status: `預應力模態異常：${err instanceof Error ? err.message : String(err)}` }) }
   },
 
   // ── S83：生成式设计 / 拓扑优化 ───────────────────────────────────────
@@ -21782,20 +21782,20 @@ export const useApp = create<AppState>((rawSet, get) => {
   topoptVolfrac: 0.4,
   topoptResult: null,
   setTopoptVolfrac: (v) => set({ topoptVolfrac: Math.min(0.9, Math.max(0.05, v)) }),
-  clearTopopt: () => set({ topoptResult: null, status: '已清除生成式设计结果' }),
+  clearTopopt: () => set({ topoptResult: null, status: '已清除生成式設計結果' }),
   runTopoptSolve: async () => {
     const s = get()
     if (s.topoptBusy || s.feaBusy || s.modalBusy || s.bucklingBusy) return
     const mesh = s.bodyMesh
-    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '生成式设计：先点固定面（保留区）+ 受力面 + 设力（同受力云图一样）' }); return }
+    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '生成式設計：先點固定面（保留區）+ 受力面 + 設力（同受力雲圖一樣）' }); return }
     const mech = MATERIAL_MECH[s.feaMat] || DEFAULT_MECH
     const F = Math.abs(s.feaForceN) || 50
     let dir: [number, number, number]
     if (s.feaDir === 'down') dir = [0, 0, -1]
-    else if (s.feaDir === 'normal') { const n = s.feaLoad.normal; const Ln = Math.hypot(n[0], n[1], n[2]); if (!(Ln > 0)) { set({ status: '生成式设计：受力面法向量为零（退化几何）— 重新拣有效平面,或改「向下 / 自定义」方向' }); return }; dir = [-n[0] / Ln, -n[1] / Ln, -n[2] / Ln] }
+    else if (s.feaDir === 'normal') { const n = s.feaLoad.normal; const Ln = Math.hypot(n[0], n[1], n[2]); if (!(Ln > 0)) { set({ status: '生成式設計：受力面法向量為零（退化幾何）— 重新揀有效平面,或改「向下 / 自定義」方向' }); return }; dir = [-n[0] / Ln, -n[1] / Ln, -n[2] / Ln] }
     else { const c = s.feaCustomDir; const Ln = Math.hypot(c[0], c[1], c[2]) || 1; dir = [c[0] / Ln, c[1] / Ln, c[2] / Ln] }
     const nu = mech.E < 10000 ? 0.35 : 0.3
-    set({ topoptBusy: true, feaResult: null, feaProbe: null, modalResult: null, bucklingResult: null, thermalResult: null, status: '生成式设计：体素化…' })
+    set({ topoptBusy: true, feaResult: null, feaProbe: null, modalResult: null, bucklingResult: null, thermalResult: null, status: '生成式設計：體素化…' })
     let lastT = 0
     try {
       const r = await runTopoptInWorker({
@@ -21804,22 +21804,22 @@ export const useApp = create<AppState>((rawSet, get) => {
         E: mech.E, nu, resolution: s.feaRes, volfrac: s.topoptVolfrac, iters: 40,
       }, (phase, frac) => {
         const now = Date.now(); if (now - lastT < 150) return; lastT = now
-        set({ status: `生成式设计：${phase === 'voxelize' ? '体素化' : '优化迭代'} ${(frac * 100).toFixed(0)}%` })
+        set({ status: `生成式設計：${phase === 'voxelize' ? '體素化' : '優化迭代'} ${(frac * 100).toFixed(0)}%` })
       })
-      if (!r.ok) { set({ topoptBusy: false, status: `生成式设计失败：${r.error || '未知错误'}` }); return }
+      if (!r.ok) { set({ topoptBusy: false, status: `生成式設計失敗：${r.error || '未知錯誤'}` }); return }
       const ch = r.complianceHistory
       const stiffGain = (ch.length && ch[ch.length - 1] > 1e-9) ? ch[0] / ch[ch.length - 1] : 1
       set({
         topoptBusy: false, feaMode: 0,
         topoptResult: { h: r.h, nVox: r.nVox, centers: r.centers, density: r.density, complianceHistory: ch, volfrac: r.volfrac, finalVol: r.finalVol, matName: s.feaMat },
-        status: `生成式设计（${s.feaMat}·${r.nVox}体素·体积比 ${(r.volfrac * 100).toFixed(0)}%·${r.iters}迭代）：柔度 ${ch[0].toFixed(0)}→${ch[ch.length - 1].toFixed(0)}（刚度↑${stiffGain.toFixed(1)}×）· 实际体积 ${(r.finalVol * 100).toFixed(0)}%${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 红=承力料路，蓝/透=可去料；体素趋势级（最小柔度），非商用 FEA`,
+        status: `生成式設計（${s.feaMat}·${r.nVox}體素·體積比 ${(r.volfrac * 100).toFixed(0)}%·${r.iters}迭代）：柔度 ${ch[0].toFixed(0)}→${ch[ch.length - 1].toFixed(0)}（剛度↑${stiffGain.toFixed(1)}×）· 實際體積 ${(r.finalVol * 100).toFixed(0)}%${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 紅=承力料路，藍/透=可去料；體素趨勢級（最小柔度），非商用 FEA`,
       })
-    } catch (err) { set({ topoptBusy: false, status: `生成式设计异常：${err instanceof Error ? err.message : String(err)}` }) }
+    } catch (err) { set({ topoptBusy: false, status: `生成式設計異常：${err instanceof Error ? err.message : String(err)}` }) }
   },
   exportGenerativeStl: () => {
     const s = get()
     const tr = s.topoptResult
-    if (!tr) { set({ status: '先运行生成式设计再导出' }); return }
+    if (!tr) { set({ status: '先運行生成式設計再匯出' }); return }
     const { centers, density, h } = tr
     const thr = 0.35, half = h / 2
     // 保留体素 → 量化网格键集（中心差 h → 键差 1）
@@ -21832,7 +21832,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const i = Math.round(x / h), j = Math.round(y / h), k = Math.round(z / h)
       set0.add(key(i, j, k)); qi.push(i); qj.push(j); qk.push(k); cx.push(x); cy.push(y); cz.push(z)
     }
-    if (!qi.length) { set({ status: '生成式结果无保留材料可导出（调高保留体积）' }); return }
+    if (!qi.length) { set({ status: '生成式結果無保留材料可匯出（調高保留體積）' }); return }
     // 6 面：法向 + 平面内 u,v（u×v = 法向，保证外法线 CCW）+ 邻居偏移
     const faces: [number[], number[], number[], [number, number, number]][] = [
       [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 0, 0]], [[-1, 0, 0], [0, 0, 1], [0, 1, 0], [-1, 0, 0]],
@@ -21857,7 +21857,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const { meshesToBinarySTL } = await import('./io/stl')
       const buf = meshesToBinarySTL([{ mesh: { vertices: verts, triangles: tris, normals: [] }, matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] }])
       triggerDownload(new Uint8Array(buf), `${projName(s.projectName)}-生成式设计.stl`, 'model/stl')
-      set({ status: `🧬 已导出生成式设计 STL（${qi.length} 保留体素 · ${tris.length / 3} 三角 · 体素边界面，对角细节处可能非流形（多数切片器可处理），可打印 / 重导入再光顺）` })
+      set({ status: `🧬 已匯出生成式設計 STL（${qi.length} 保留體素 · ${tris.length / 3} 三角 · 體素邊界面，對角細節處可能非流形（多數切片器可處理），可打印 / 重匯入再光順）` })
     })()
   },
 
@@ -21869,12 +21869,12 @@ export const useApp = create<AppState>((rawSet, get) => {
   thermalStressBusy: false,
   thermalTref: 20,
   setThermalTemps: (p) => set((s) => ({ thermalThot: p.Thot ?? s.thermalThot, thermalTcold: p.Tcold ?? s.thermalTcold })),
-  clearThermal: () => set({ thermalResult: null, status: '已清除热分析' }),
+  clearThermal: () => set({ thermalResult: null, status: '已清除熱分析' }),
   // S90：统一仿真报告 — 把当前已运行嘅各分析结果汇总成 .txt（对标 Fusion Simulation 研究报告）。
   exportSimReport: () => {
     const s = get()
     const fea = s.feaResult, modal = s.modalResult, buck = s.bucklingResult, therm = s.thermalResult, topo = s.topoptResult
-    if (!fea && !modal && !buck && !therm && !topo) { set({ status: '导出仿真报告：先运行 受力/模态/屈曲/热/生成式 任一分析' }); return }
+    if (!fea && !modal && !buck && !therm && !topo) { set({ status: '匯出仿真報告：先運行 受力/模態/屈曲/熱/生成式 任一分析' }); return }
     const f2 = (x: number) => (Math.abs(x) >= 100 ? x.toFixed(0) : Math.abs(x) >= 1 ? x.toFixed(1) : x.toFixed(3))
     const wk = (w: number) => (w >= 1000 ? (w / 1000).toFixed(2) + ' kW' : w.toFixed(1) + ' W')
     const L: string[] = []
@@ -21901,17 +21901,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       '诚实声明：均匀体素阶梯网格，曲面/应力集中处误差大；非 tet/曲面单元商用 FEA 精度，数值供趋势参考。')
     triggerDownload(new TextEncoder().encode(L.join('\n')), `${projName(s.projectName)}-仿真分析报告.txt`, 'text/plain')
     const ran = [fea && '静力', modal && '模态', buck && '屈曲', therm && '热', topo && '生成式'].filter(Boolean).join('/')
-    set({ status: `📄 已导出仿真分析报告 .txt（含：${ran}）` })
+    set({ status: `📄 已匯出仿真分析報告 .txt（含：${ran}）` })
   },
   runThermalSolve: async () => {
     const s = get()
     if (s.thermalBusy || s.feaBusy || s.modalBusy || s.bucklingBusy || s.topoptBusy) return
     const mesh = s.bodyMesh
-    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '热分析：先点两个面 —— ① 固定面=热面、② 受力面=冷面' }); return }
+    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '熱分析：先點兩個面 —— ① 固定面=熱面、② 受力面=冷面' }); return }
     // 材料导热系数 W/(m·K)（趋势级常用值）
     const THERMAL_K: Record<string, number> = { 钢: 50, 不锈钢: 16, 铝: 237, 黄铜: 109, 铜: 401, 钛: 22, ABS: 0.17, PLA: 0.13, PETG: 0.2, 尼龙: 0.25 }
     const k = THERMAL_K[s.feaMat] ?? 50
-    set({ thermalBusy: true, feaResult: null, feaProbe: null, modalResult: null, bucklingResult: null, topoptResult: null, status: '热分析：体素化…' })
+    set({ thermalBusy: true, feaResult: null, feaProbe: null, modalResult: null, bucklingResult: null, topoptResult: null, status: '熱分析：體素化…' })
     let lastT = 0
     try {
       const r = await runThermalInWorker({
@@ -21919,16 +21919,16 @@ export const useApp = create<AppState>((rawSet, get) => {
         hot: s.feaFixed, cold: s.feaLoad, Thot: s.thermalThot, Tcold: s.thermalTcold, k, resolution: s.feaRes,
       }, (phase, frac) => {
         const now = Date.now(); if (now - lastT < 150) return; lastT = now
-        set({ status: `热分析：${phase === 'voxelize' ? '体素化' : '求解温度场'} ${(frac * 100).toFixed(0)}%` })
+        set({ status: `熱分析：${phase === 'voxelize' ? '體素化' : '求解溫度場'} ${(frac * 100).toFixed(0)}%` })
       })
-      if (!r.ok) { set({ thermalBusy: false, status: `热分析失败：${r.error || '未知错误'}` }); return }
+      if (!r.ok) { set({ thermalBusy: false, status: `熱分析失敗：${r.error || '未知錯誤'}` }); return }
       const f1 = (x: number) => (Math.abs(x) >= 100 ? x.toFixed(0) : x.toFixed(1))
       set({
         thermalBusy: false, feaMode: 0,
         thermalResult: { h: r.h, nVox: r.nVox, centers: r.centers, temp: r.temp, tMin: r.tMin, tMax: r.tMax, heatFlowW: r.heatFlowW, matName: s.feaMat, k, converged: r.converged },
-        status: `热分析（${s.feaMat}·k=${k}W/mK·${r.nVox}体素）：温度 ${f1(r.tMin)}~${f1(r.tMax)}°C（热${f1(s.thermalThot)}/冷${f1(s.thermalTcold)}）· 总热流 Q≈${r.heatFlowW >= 1000 ? (r.heatFlowW / 1000).toFixed(2) + 'kW' : r.heatFlowW.toFixed(1) + 'W'}${r.converged ? '' : ' · ⚠未完全收敛'}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 红=热蓝=冷；稳态导热趋势级（截面体素化致热流 ±~10%），非商用 FEA`,
+        status: `熱分析（${s.feaMat}·k=${k}W/mK·${r.nVox}體素）：溫度 ${f1(r.tMin)}~${f1(r.tMax)}°C（熱${f1(s.thermalThot)}/冷${f1(s.thermalTcold)}）· 總熱流 Q≈${r.heatFlowW >= 1000 ? (r.heatFlowW / 1000).toFixed(2) + 'kW' : r.heatFlowW.toFixed(1) + 'W'}${r.converged ? '' : ' · ⚠未完全收斂'}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 紅=熱藍=冷；穩態導熱趨勢級（截面體素化致熱流 ±~10%），非商用 FEA`,
       })
-    } catch (err) { set({ thermalBusy: false, status: `热分析异常：${err instanceof Error ? err.message : String(err)}` }) }
+    } catch (err) { set({ thermalBusy: false, status: `熱分析異常：${err instanceof Error ? err.message : String(err)}` }) }
   },
   // S105：热-结构耦合（约束热膨胀应力）。用现有两个面拣（①+②）映射到「双端夹持 + 温差」问题：
   //   两面都做结构夹持（fixed + fixed2，全 DOF 锁），同时分别做热/冷定温面 → 约束热膨胀 → 真 von Mises 应力场。
@@ -21937,13 +21937,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (s.thermalStressBusy || s.feaBusy || s.modalBusy || s.bucklingBusy || s.topoptBusy || s.thermalBusy) return
     const mesh = s.bodyMesh
-    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '热应力FEM：先点两个面 —— ①夹持+热面、②夹持+冷面（双端约束 + 温差 → 约束热膨胀应力）' }); return }
+    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '熱應力FEM：先點兩個面 —— ①夾持+熱面、②夾持+冷面（雙端約束 + 溫差 → 約束熱膨脹應力）' }); return }
     const mech = MATERIAL_MECH[s.feaMat] || DEFAULT_MECH
     const nu = mech.E < 10000 ? 0.35 : 0.3
     // 导热系数 W/(m·K)（与 runThermalSolve 同表，趋势级常用值）—— 只定温度场拓扑，绝对热流量级不入结构
     const THERMAL_K: Record<string, number> = { 钢: 50, 不锈钢: 16, 铝: 237, 黄铜: 109, 铜: 401, 钛: 22, ABS: 0.17, PLA: 0.13, PETG: 0.2, 尼龙: 0.25 }
     const k = THERMAL_K[s.feaMat] ?? 50
-    set({ thermalStressBusy: true, feaResult: null, feaProbe: null, thermalResult: null, modalResult: null, bucklingResult: null, topoptResult: null, status: '热应力FEM：体素化…' })
+    set({ thermalStressBusy: true, feaResult: null, feaProbe: null, thermalResult: null, modalResult: null, bucklingResult: null, topoptResult: null, status: '熱應力FEM：體素化…' })
     let lastT = 0
     try {
       const r = await runThermalStressInWorker({
@@ -21955,18 +21955,18 @@ export const useApp = create<AppState>((rawSet, get) => {
       }, (phase, frac) => {
         const now = Date.now(); if (now - lastT < 150) return; lastT = now
         const ph = phase === 'voxelize' ? '体素化' : phase === 'thermal' ? '温度场' : phase === 'solve' ? '求解' : '算应力'
-        set({ status: `热应力FEM：${ph} ${(frac * 100).toFixed(0)}%` })
+        set({ status: `熱應力FEM：${ph} ${(frac * 100).toFixed(0)}%` })
       })
-      if (!r.ok) { set({ thermalStressBusy: false, status: `热应力FEM失败：${r.error || '未知错误'}` }); return }
+      if (!r.ok) { set({ thermalStressBusy: false, status: `熱應力FEM失敗：${r.error || '未知錯誤'}` }); return }
       const sf = r.vmMax > 1e-9 ? mech.sy / r.vmMax : Infinity
       const f2 = (x: number) => x >= 100 ? x.toFixed(0) : x >= 1 ? x.toFixed(1) : x.toFixed(3)
       const verdict = sf >= 2 ? '✅ 安全(SF≥2)' : sf >= 1 ? '⚠ 偏险(1≤SF<2)' : '❌ 可能屈服(SF<1)'
       set({
         thermalStressBusy: false, feaMode: 0, feaField: 'vm', feaProbe: null, feaStale: false,
         feaResult: { h: r.h, nVox: r.nVox, centers: r.centers, vm: r.vm, vmMax: r.vmMax, vmMaxAt: r.vmMaxAt, vmMaxE: r.vmMaxE, dispMax: r.dispMax, disp: r.disp, dispVec: r.dispVec, converged: r.converged, residual: r.residual, warnings: r.warnings, sy: mech.sy, se: mech.se, su: mech.su, matName: s.feaMat },
-        status: `热应力FEM（${s.feaMat}·α=${mech.cte}µ/°C·热${s.thermalThot}/冷${s.thermalTcold}/参考${s.thermalTref}°C·${r.nVox}体素）：约束热膨胀 von Mises 最大 ≈ ${f2(r.vmMax)} MPa（红⚠=最危）· 热位移 ≈ ${f2(r.dispMax)}mm · 屈服 ${mech.sy} → SF≈${sf === Infinity ? '∞' : f2(sf)} ${verdict}${r.converged ? '' : ` · ⚠未完全收敛(残差${r.residual.toExponential(1)})`}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 双端夹持+温差，σ=D(Bu−αΔT) 线弹性体素趋势级，非商用 FEA`,
+        status: `熱應力FEM（${s.feaMat}·α=${mech.cte}µ/°C·熱${s.thermalThot}/冷${s.thermalTcold}/參考${s.thermalTref}°C·${r.nVox}體素）：約束熱膨脹 von Mises 最大 ≈ ${f2(r.vmMax)} MPa（紅⚠=最危）· 熱位移 ≈ ${f2(r.dispMax)}mm · 屈服 ${mech.sy} → SF≈${sf === Infinity ? '∞' : f2(sf)} ${verdict}${r.converged ? '' : ` · ⚠未完全收斂(殘差${r.residual.toExponential(1)})`}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 雙端夾持+溫差，σ=D(Bu−αΔT) 線弹性體素趨勢級，非商用 FEA`,
       })
-    } catch (err) { set({ thermalStressBusy: false, status: `热应力FEM异常：${err instanceof Error ? err.message : String(err)}` }) }
+    } catch (err) { set({ thermalStressBusy: false, status: `熱應力FEM異常：${err instanceof Error ? err.message : String(err)}` }) }
   },
 
   // ── T771（S50）：注塑模流趋势 ─────────────────────────────────────────
@@ -22028,11 +22028,11 @@ export const useApp = create<AppState>((rawSet, get) => {
   windPoseDragging: false,
   windPoseCompare: null,
   toggleMold: () => set((s) => {
-    if (s.moldBusy) return { status: '模流计算紧 — 等佢完成' }
-    if (s.moldMode) return { moldMode: 0 as const, status: '已退出模流分析（浇口保留 — 再开继续）' }
+    if (s.moldBusy) return { status: '模流計算緊 — 等佢完成' }
+    if (s.moldMode) return { moldMode: 0 as const, status: '已退出模流分析（澆口保留 — 再開繼續）' }
     // 活动实体优先；否则可直接用【选中/唯一嘅网格组件】（导入 STL 唔使转 B-rep）。
     const tgt = moldTargetMesh(s)
-    if (!tgt) return { status: '模流分析：需要先有活动实体（塑胶件）或选中一个导入网格组件（STL/OBJ/3MF）' }
+    if (!tgt) return { status: '模流分析：需要先有活動實體（塑胶件）或選中一個匯入網格組件（STL/OBJ/3MF）' }
     const onComp = !!tgt.comp
     return {
       moldMode: 1 as const, moldResult: null,
@@ -22048,7 +22048,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const L = Math.hypot(n[0], n[1], n[2]) || 1
     const cadN: [number, number, number] = [n[0] / L, n[1] / L, n[2] / L]
     const gates = [...s.moldGates, { point: cadP, normal: cadN, type: 'edge' as GateType, flowWeight: 1 }]
-    return { moldGates: gates, status: `已选 ${gates.length} 个浇口 — 继续点选 / 改类型 / 开流道平衡 / 按「运行」` }
+    return { moldGates: gates, status: `已選 ${gates.length} 個澆口 — 繼續點選 / 改類型 / 開流道平衡 / 按「運行」` }
   }),
   setMoldOpt: (p) => set(p),
   setMoldGate: (idx, patch) => set((s) => {
@@ -22061,7 +22061,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.moldBusy) return
     // 活动实体优先；否则用【选中/唯一网格组件】bake 到 CAD（导入 STL 唔使转 B-rep）。浇口同 mesh 同帧（Rx+90）。
     const tgt = moldTargetMesh(s)
-    if (!tgt || !tgt.vertices.length) { set({ status: '模流分析：需要先有活动实体（塑胶件）或选中一个导入网格组件（STL/OBJ/3MF）' }); return }
+    if (!tgt || !tgt.vertices.length) { set({ status: '模流分析：需要先有活動實體（塑胶件）或選中一個匯入網格組件（STL/OBJ/3MF）' }); return }
     const mesh = { vertices: tgt.vertices, triangles: tgt.triangles }
     // 浇口 forgiving：未手动点浇口 → 自动放喺零件顶部中心（同抽壳「默认开顶面」一样唔使逼用户点）。
     // 非程序员开咗模流㩒「运行」即出结果，而唔系卡喺灰掣 / 「先点浇口位」。仍可手动点选改位。
@@ -22075,7 +22075,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ moldGates: gates })   // 写返 store → UI 见到自动浇口，可清除/改位
       autoGateNote = '（未指定浇口，已自动放喺顶部中心，可手动点选改位）'
     }
-    set({ moldBusy: true, moldProg: 0, moldProgNote: '体素化', status: `模流：体素化…${autoGateNote}` })
+    set({ moldBusy: true, moldProg: 0, moldProgNote: '體素化', status: `模流：體素化…${autoGateNote}` })
     let lastT = 0
     try {
       const { runMold } = await import('./analysis/moldClient')
@@ -22156,10 +22156,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         moldBusy: false, moldMode: 0, moldT: 1, moldField: nextField,
         moldResult: { ...r, matName: s.moldMat }, moldReport: report,
-        status: `${lead}模流（${s.moldMat}·${gates.length}浇口·${r.nVox}体素）：注射≈${fT(r.tFill)} · 冷却≈${fT(r.tCool)} · 周期≈${fT(r.cycle)}${weldN ? ` · ⚠焊接线 ${weldN} 体素` : ''}${autoGateNote} — 体素趋势着色，压力/变形系相对值`,
+        status: `${lead}模流（${s.moldMat}·${gates.length}澆口·${r.nVox}體素）：註射≈${fT(r.tFill)} · 冷卻≈${fT(r.tCool)} · 周期≈${fT(r.cycle)}${weldN ? ` · ⚠焊接線 ${weldN} 體素` : ''}${autoGateNote} — 體素趨勢着色，壓力/變形系相對值`,
       })
     } catch (err) {
-      set({ moldBusy: false, status: `模流异常：${err instanceof Error ? err.message : String(err)}` })
+      set({ moldBusy: false, status: `模流異常：${err instanceof Error ? err.message : String(err)}` })
     }
   },
   clearMold: () => set({ moldMode: 0, moldGates: [], moldResult: null, moldReport: '', status: '已清除模流分析' }),
@@ -22257,16 +22257,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   downloadMoldReport: () => {
     const rep = get().moldReport
-    if (!rep) { set({ status: '先运行模流分析' }); return }
+    if (!rep) { set({ status: '先運行模流分析' }); return }
     triggerDownload(new TextEncoder().encode(rep), `${projName(get().projectName)}-模流趋势报告.txt`, 'text/plain')
-    set({ status: '已导出模流趋势报告 .txt' })
+    set({ status: '已匯出模流趨勢報告 .txt' })
   },
   // 充填流动 GIF —— 由 result.centers+fill 投影成俯视 fill-time 进程动画（业界标准模流出图），
   //   自写 GIF89a 编码（零依赖）。前沿=白、焊接线=紫红、困气=橙、浇口=青；色阶=充填先后。
   exportMoldGif: () => {
     const s = get()
     const res = s.moldResult
-    if (!res || !res.nVox) { set({ status: '先运行模流分析先可以导出动画' }); return }
+    if (!res || !res.nVox) { set({ status: '先運行模流分析先可以匯出動畫' }); return }
     try {
       const R = projectFillRaster(res)
       const NF = 24
@@ -22276,7 +22276,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const pad = 10, titleH = 30, barH = 28
       const W = R.cw * cellPx + pad * 2, H = R.ch * cellPx + titleH + barH
       const cv = document.createElement('canvas'); cv.width = W; cv.height = H
-      const ctx = cv.getContext('2d'); if (!ctx) { set({ status: 'GIF 导出失败：无 canvas 上下文' }); return }
+      const ctx = cv.getContext('2d'); if (!ctx) { set({ status: 'GIF 匯出失敗：無 canvas 上下文' }); return }
       const palette: [number, number, number][] = []
       for (let i = 0; i < 240; i++) palette.push(turbo(i / 239))
       const BG: [number, number, number] = [21, 24, 29], CAV: [number, number, number] = [44, 49, 56], FRONT: [number, number, number] = [255, 255, 255]
@@ -22312,20 +22312,20 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       const gif = encodeGif(frames, W, H, palette, { delayCs: 7, lastHoldCs: 160 })
       triggerDownload(gif, `${projName(s.projectName)}-充填动画.gif`, 'image/gif')
-      set({ status: `已导出充填动画 GIF（${W}×${H} · ${NF} 帧 · ${(gif.length / 1024).toFixed(0)} KB）` })
-    } catch (e) { set({ status: 'GIF 导出失败：' + (e instanceof Error ? e.message : String(e)) }) }
+      set({ status: `已匯出充填動畫 GIF（${W}×${H} · ${NF} 幀 · ${(gif.length / 1024).toFixed(0)} KB）` })
+    } catch (e) { set({ status: 'GIF 匯出失敗：' + (e instanceof Error ? e.message : String(e)) }) }
   },
   // 模流 PDF 报告 —— 整页（标题 + 俯视充填时间热图 + 全部数值 + 建议机台吨位 + 诚实声明）由 canvas
   //   渲染（中文用系统字体）后嵌成单页 JPEG PDF（自写最小 PDF，零字体嵌入、零依赖）。
   exportMoldPdf: () => {
     const s = get()
     const res = s.moldResult
-    if (!res || !res.nVox) { set({ status: '先运行模流分析先可以导出 PDF' }); return }
+    if (!res || !res.nVox) { set({ status: '先運行模流分析先可以匯出 PDF' }); return }
     try {
       const R = projectFillRaster(res)
       const CW = 1240, CH = 1754
       const cv = document.createElement('canvas'); cv.width = CW; cv.height = CH
-      const ctx = cv.getContext('2d'); if (!ctx) { set({ status: 'PDF 导出失败：无 canvas 上下文' }); return }
+      const ctx = cv.getContext('2d'); if (!ctx) { set({ status: 'PDF 匯出失敗：無 canvas 上下文' }); return }
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, CW, CH)
       const M = 60
       ctx.fillStyle = '#13294a'; ctx.fillRect(0, 0, CW, 96)
@@ -22375,8 +22375,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
       const pdf = buildImagePdf([{ jpeg: bytes, w: CW, h: CH }])
       triggerDownload(pdf, `${projName(s.projectName)}-模流报告.pdf`, 'application/pdf')
-      set({ status: `已导出模流 PDF 报告（${(pdf.length / 1024).toFixed(0)} KB）` })
-    } catch (e) { set({ status: 'PDF 导出失败：' + (e instanceof Error ? e.message : String(e)) }) }
+      set({ status: `已匯出模流 PDF 報告（${(pdf.length / 1024).toFixed(0)} KB）` })
+    } catch (e) { set({ status: 'PDF 匯出失敗：' + (e instanceof Error ? e.message : String(e)) }) }
   },
 
   analyzeBeam: (force, support, compId, torque = 0, shape = 'rect', wallT = 2) => {
@@ -22384,7 +22384,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const comp = compId ? s.components.find((c) => c.id === compId) : null
     const mesh = comp ? comp.mesh : s.bodyMesh
     const matName = comp ? comp.material : undefined
-    if (!mesh || !mesh.vertices.length) { set({ status: '受力估算：先选一个有实体几何嘅零件/主体' }); return }
+    if (!mesh || !mesh.vertices.length) { set({ status: '受力估算：先選一個有實體幾何嘅零件/主體' }); return }
     // bbox extents (mm) — for a component use its world matrix, for the body use raw verts.
     const el = comp ? compWorldMatrix(comp).elements : [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
     const box = worldAABB(el, mesh.vertices)
@@ -22403,7 +22403,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const dL = mech.cte * 1e-6 * r.L * 50
     // Concise status line (verdict + headline numbers); full multi-line report goes to a downloadable .txt.
     set({
-      status: `受力估算【梁理论·示意，非3D FEM】${matName || '钢(默认)'} · ${supLbl} · ${force}N → σ=${r.sigmaMax.toFixed(1)}MPa δ=${r.deflMax.toFixed(3)}mm SF=${r.safety === Infinity ? '∞' : r.safety.toFixed(2)} ${verdict}　·　屈曲 ${bSF === Infinity ? '∞' : bSF.toFixed(1)} · f₁≈${r.freqHz.toFixed(0)}Hz · 许用 ${r.loadCapacity.toFixed(0)}N · 刚度 ${stiff}${torque > 0 ? ' · 扭转✓' : ''}${slenderWarn ? '　' + slenderWarn : ''}　|　按「📄报告」导出完整分析`,
+      status: `受力估算【梁理論·示意，非3D FEM】${matName || '鋼(預設)'} · ${supLbl} · ${force}N → σ=${r.sigmaMax.toFixed(1)}MPa δ=${r.deflMax.toFixed(3)}mm SF=${r.safety === Infinity ? '∞' : r.safety.toFixed(2)} ${verdict}　·　屈曲 ${bSF === Infinity ? '∞' : bSF.toFixed(1)} · f₁≈${r.freqHz.toFixed(0)}Hz · 許用 ${r.loadCapacity.toFixed(0)}N · 剛度 ${stiff}${torque > 0 ? ' · 扭轉✓' : ''}${slenderWarn ? '　' + slenderWarn : ''}　|　按「📄報告」匯出完整分析`,
       beamReport: [
         `WebCAD 工程分析报告（梁理论·示意，非 3D 有限元）`,
         `零件：${comp ? comp.name : (get().projectName || '主体')}　材质：${matName || '钢(默认)'}（E=${mech.E}MPa σy=${mech.sy}MPa ρ=${mech.rho}g/cm³ α=${mech.cte}µ/°C）`,
@@ -22436,25 +22436,25 @@ export const useApp = create<AppState>((rawSet, get) => {
     const v = await get().appPrompt(tStatus('过盈配合（轴压入毂，钢 μ0.15）：\n配合直径 d, 毂外径 D, 过盈量 δ(直径上), 配合长度 L（mm，逗号分隔）', get().lang), '20, 40, 0.03, 25')
     if (!v) return
     const p = v.split(/[,，\s]+/).filter(Boolean).map(Number)
-    if (p.length < 4 || p.some((x) => !Number.isFinite(x)) || p[0] <= 0 || p[1] <= p[0] || p[2] <= 0 || p[3] <= 0) { set({ status: '过盈配合：请输入 d,D,δ,L（D>d，δ>0，正数）' }); return }
+    if (p.length < 4 || p.some((x) => !Number.isFinite(x)) || p[0] <= 0 || p[1] <= p[0] || p[2] <= 0 || p[3] <= 0) { set({ status: '過盈配合：請輸入 d,D,δ,L（D>d，δ>0，正數）' }); return }
     const [d, D, delta, L] = p, E = 200000, mu = 0.15
     const press = (E * delta * (D * D - d * d)) / (2 * d * D * D)   // MPa (δ diametral)
     const holdF = Math.PI * d * L * mu * press                      // N
     const torque = holdF * (d / 2) / 1000                           // N·m (friction torque capacity)
     const hubHoop = press * (D * D + d * d) / (D * D - d * d)        // MPa hub bore hoop stress
-    set({ status: `过盈配合 d${d}/D${D} 过盈δ${delta} 长${L}（钢 μ0.15）→ 接触压力 p≈${press.toFixed(1)}MPa · 轴向保持力≈${holdF.toFixed(0)}N · 传递扭矩≈${torque.toFixed(1)}N·m · 毂孔环向应力≈${hubHoop.toFixed(0)}MPa${hubHoop > 215 ? ' ⚠超钢屈服~' : ''}（Lamé 厚壁，同材；装配需加热/压力机）` })
+    set({ status: `過盈配合 d${d}/D${D} 過盈δ${delta} 長${L}（鋼 μ0.15）→ 接觸壓力 p≈${press.toFixed(1)}MPa · 軸向保持力≈${holdF.toFixed(0)}N · 傳遞扭矩≈${torque.toFixed(1)}N·m · 毂孔環向應力≈${hubHoop.toFixed(0)}MPa${hubHoop > 215 ? ' ⚠超鋼屈服~' : ''}（Lamé 厚壁，同材；裝配需加熱/壓力機）` })
   },
   // Belt length for two pulleys: L = 2C + π(D1+D2)/2 + (D1−D2)²/(4C). Also wrap angles + speed ratio.
   beltLengthCalc: async () => {
     const v = await get().appPrompt(tStatus('皮带长度（两轮）：小轮节径 D1, 大轮节径 D2, 中心距 C（mm，逗号分隔）', get().lang), '40, 80, 200')
     if (!v) return
     const p = v.split(/[,，\s]+/).filter(Boolean).map(Number)
-    if (p.length < 3 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: '皮带长度：请输入 D1,D2,C（正数 mm）' }); return }
+    if (p.length < 3 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: '皮帶長度：請輸入 D1,D2,C（正數 mm）' }); return }
     const [D1, D2, C] = p
     const L = 2 * C + Math.PI * (D1 + D2) / 2 + (D2 - D1) ** 2 / (4 * C)
     const wrapSmall = 180 - 2 * Math.asin((D2 - D1) / (2 * C)) * 180 / Math.PI   // open belt, small-pulley wrap
     const ratio = D2 / D1
-    set({ status: `皮带（开口）D1 ${D1}/D2 ${D2}/中心距 ${C} → 皮带长 L≈${L.toFixed(1)}mm · 小轮包角≈${(isFinite(wrapSmall) ? wrapSmall : 180).toFixed(0)}° · 速比 ${ratio.toFixed(2)}:1（节径计；选标准带长就近取）` })
+    set({ status: `皮帶（開口）D1 ${D1}/D2 ${D2}/中心距 ${C} → 皮帶長 L≈${L.toFixed(1)}mm · 小輪包角≈${(isFinite(wrapSmall) ? wrapSmall : 180).toFixed(0)}° · 速比 ${ratio.toFixed(2)}:1（節徑計；選標準帶長就近取）` })
   },
   // Machinist spindle speed: RPM = 1000·Vc/(π·d). Vc (m/min) by material (HSS/carbide-ish typical).
   drillSpeedCalc: async () => {
@@ -22462,10 +22462,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const v = await get().appPrompt(tStatus(`钻孔/铣削转速：刀具直径 d(mm), 材料切削速度 Vc(m/min)\n常用 Vc：${mats}（HSS 钻头典型；硬质合金可×2~3）`, get().lang), '6, 30')
     if (!v) return
     const p = v.split(/[,，\s]+/).filter(Boolean).map(Number)
-    if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: '转速：请输入 刀具直径d, 切削速度Vc（正数）' }); return }
+    if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: '轉速：請輸入 刀具直徑d, 切削速度Vc（正數）' }); return }
     const [d, vc] = p
     const rpm = (1000 * vc) / (Math.PI * d)
-    set({ status: `主轴转速：Ø${d}mm 刀具 @ Vc ${vc}m/min → n≈${rpm.toFixed(0)} RPM（n=1000·Vc/πd）。进给参考 ${(rpm * 0.1).toFixed(0)}~${(rpm * 0.25).toFixed(0)} mm/min（0.1~0.25mm/转）` })
+    set({ status: `主軸轉速：Ø${d}mm 刀具 @ Vc ${vc}m/min → n≈${rpm.toFixed(0)} RPM（n=1000·Vc/πd）。進給參考 ${(rpm * 0.1).toFixed(0)}~${(rpm * 0.25).toFixed(0)} mm/min（0.1~0.25mm/轉）` })
   },
   // O-ring groove sizing (static radial seal): from cross-section CS → groove width ≈1.3·CS, depth gives
   // ~18% squeeze (depth≈0.82·CS), gland fill ~75%. Common rule-of-thumb for 3D-print/maker waterproofing.
@@ -22473,9 +22473,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     const v = await get().appPrompt(tStatus('O 形圈密封槽（静态径向）：O 圈线径 CS（截面直径 mm）', get().lang), '2')
     if (!v) return
     const cs = Number((v.split(/[,，\s]+/)[0] || '').trim())
-    if (!Number.isFinite(cs) || cs <= 0) { set({ status: 'O 形圈：请输入线径 CS（正数 mm）' }); return }
+    if (!Number.isFinite(cs) || cs <= 0) { set({ status: 'O 形圈：請輸入線徑 CS（正數 mm）' }); return }
     const width = 1.3 * cs, depth = 0.82 * cs, squeeze = (cs - depth) / cs * 100
-    set({ status: `O 形圈密封槽（静态径向，CS Ø${cs}）→ 槽宽≈${width.toFixed(2)}mm · 槽深≈${depth.toFixed(2)}mm · 压缩率≈${squeeze.toFixed(0)}%（建议 15~25%）· 槽口倒角 R${(0.2 * cs).toFixed(1)}。诚实：经验法则，精密密封请查 O 圈手册` })
+    set({ status: `O 形圈密封槽（靜態徑向，CS Ø${cs}）→ 槽寬≈${width.toFixed(2)}mm · 槽深≈${depth.toFixed(2)}mm · 壓縮率≈${squeeze.toFixed(0)}%（建議 15~25%）· 槽口倒角 R${(0.2 * cs).toFixed(1)}。誠實：經驗法則，精密密封請查 O 圈手册` })
   },
   // Power–torque–speed: P[kW] = T[N·m]·n[rpm]/9549. Give torque + rpm → power, or power + rpm → torque.
   powerTorqueCalc: async () => {
@@ -22483,10 +22483,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!v) return
     const p = v.split(/[,，\s]+/).filter(Boolean).map(Number)
     const [T, n, P] = [p[0] || 0, p[1] || 0, p[2] || 0]
-    if (T > 0 && n > 0) { const pw = T * n / 9549; set({ status: `传动换算：扭矩 ${T}N·m @ ${n}rpm → 功率 P≈${pw.toFixed(3)}kW（${(pw * 1.341).toFixed(2)}HP）· 角速度 ${(n * 2 * Math.PI / 60).toFixed(1)}rad/s` }) }
-    else if (P > 0 && n > 0) { const tq = P * 9549 / n; set({ status: `传动换算：功率 ${P}kW @ ${n}rpm → 扭矩 T≈${tq.toFixed(2)}N·m` }) }
-    else if (P > 0 && T > 0) { const rpm = P * 9549 / T; set({ status: `传动换算：功率 ${P}kW，扭矩 ${T}N·m → 转速 n≈${rpm.toFixed(0)}rpm` }) }
-    else set({ status: '换算：请填其中两个（T,n 求 P；P,n 求 T；P,T 求 n）' })
+    if (T > 0 && n > 0) { const pw = T * n / 9549; set({ status: `傳動換算：扭矩 ${T}N·m @ ${n}rpm → 功率 P≈${pw.toFixed(3)}kW（${(pw * 1.341).toFixed(2)}HP）· 角速度 ${(n * 2 * Math.PI / 60).toFixed(1)}rad/s` }) }
+    else if (P > 0 && n > 0) { const tq = P * 9549 / n; set({ status: `傳動換算：功率 ${P}kW @ ${n}rpm → 扭矩 T≈${tq.toFixed(2)}N·m` }) }
+    else if (P > 0 && T > 0) { const rpm = P * 9549 / T; set({ status: `傳動換算：功率 ${P}kW，扭矩 ${T}N·m → 轉速 n≈${rpm.toFixed(0)}rpm` }) }
+    else set({ status: '換算：請填其中兩個（T,n 求 P；P,n 求 T；P,T 求 n）' })
   },
   // Fully-constrained thermal stress: σ = E·α·ΔT (part heated but not free to expand → internal stress).
   thermalStressCalc: async () => {
@@ -22495,10 +22495,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const parts = v.split(/[,，\s]+/).filter(Boolean)
     const dT = Number(parts[0]); const mat = parts[1] || '钢'
     const m = MATERIAL_MECH[mat] || DEFAULT_MECH
-    if (!Number.isFinite(dT)) { set({ status: '热应力：请输入温升 ΔT(°C)' }); return }
+    if (!Number.isFinite(dT)) { set({ status: '熱應力：請輸入溫升 ΔT(°C)' }); return }
     const sigma = m.E * (m.cte * 1e-6) * dT   // MPa
     const yieldFrac = Math.abs(sigma) / m.sy
-    set({ status: `约束热应力（${mat}，ΔT ${dT}°C）：σ=E·α·ΔT≈${sigma.toFixed(1)}MPa（${dT > 0 ? '受压' : '受拉'}）· 屈服 ${m.sy}MPa 之 ${(yieldFrac * 100).toFixed(0)}%${yieldFrac >= 1 ? ' ❌可能屈服' : yieldFrac >= 0.5 ? ' ⚠偏高' : ' ✅'}。诚实：完全约束上限（实际部分约束更低）` })
+    set({ status: `約束熱應力（${mat}，ΔT ${dT}°C）：σ=E·α·ΔT≈${sigma.toFixed(1)}MPa（${dT > 0 ? '受壓' : '受拉'}）· 屈服 ${m.sy}MPa 之 ${(yieldFrac * 100).toFixed(0)}%${yieldFrac >= 1 ? ' ❌可能屈服' : yieldFrac >= 0.5 ? ' ⚠偏高' : ' ✅'}。誠實：完全約束上限（實際部分約束更低）` })
   },
   // ISO metric thread quick-reference from the fastener spec table (pitch, tap-drill, clearance, hex AF…).
   threadSpecLookup: async () => {
@@ -22506,16 +22506,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!v) return
     const key = v.trim().toUpperCase().replace(/\s/g, '') as FastenerSize
     const s = FASTENER_SPEC[key]
-    if (!s) { set({ status: '螺纹速查：支持 M3/M4/M5/M6/M8/M10/M12' }); return }
+    if (!s) { set({ status: '螺紋速查：支持 M3/M4/M5/M6/M8/M10/M12' }); return }
     const tapDrill = (s.d - s.P).toFixed(2)
-    set({ status: `${key} 螺纹：公称Ø${s.d} · 螺距 ${s.P}mm · 攻牙底孔Ø≈${tapDrill}（D−P） · 过孔Ø${recommendFastenerSize(s.d).clearance} · 内六角对边 ${s.hexAf} · 六角头对边 ${s.hbS} · 螺母对边 ${s.nutS}×厚${s.nutM} · 垫圈 ${s.wIn}/${s.wOut}×${s.wTh}` })
+    set({ status: `${key} 螺紋：公稱Ø${s.d} · 螺距 ${s.P}mm · 攻牙底孔Ø≈${tapDrill}（D−P） · 過孔Ø${recommendFastenerSize(s.d).clearance} · 內六角對邊 ${s.hexAf} · 六角頭對邊 ${s.hbS} · 螺母對邊 ${s.nutS}×厚${s.nutM} · 墊圈 ${s.wIn}/${s.wOut}×${s.wTh}` })
   },
   gearMeshCalc: async () => {
     // Standard spur-gear pair geometry (20° pressure angle, ISO addendum=1m / dedendum=1.25m).
     const v = await get().appPrompt(tStatus('齿轮啮合速查：模数 m, 齿数 z1, 齿数 z2（逗号分隔）', get().lang), '2,24,48')
     if (!v) return
     const nums = v.split(/[,，\s]+/).map(Number).filter((x) => isFinite(x) && x > 0)
-    if (nums.length < 3) { set({ status: '齿轮速查：请输入 模数,齿1,齿2（如 2,24,48）' }); return }
+    if (nums.length < 3) { set({ status: '齒輪速查：請輸入 模數,齒1,齒2（如 2,24,48）' }); return }
     const [m, z1, z2] = nums
     const pd1 = m * z1, pd2 = m * z2                       // 分度圆Ø
     const od1 = m * (z1 + 2), od2 = m * (z2 + 2)           // 齿顶圆Ø = m(z+2)
@@ -22523,14 +22523,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     const cd = m * (z1 + z2) / 2                            // 中心距
     const ratio = z2 / z1                                   // 传动比
     const cp = Math.PI * m                                  // 周节（齿距）
-    set({ status: `齿轮啮合 m${m}：分度圆Ø ${pd1}/${pd2} · 齿顶Ø ${od1}/${od2} · 齿根Ø ${rd1}/${rd2} · 中心距 ${cd}mm · 传动比 ${ratio.toFixed(3)} · 齿距 ${cp.toFixed(2)}mm（20°压力角，标准齿）` })
+    set({ status: `齒輪嚙合 m${m}：分度圓Ø ${pd1}/${pd2} · 齒頂Ø ${od1}/${od2} · 齒根Ø ${rd1}/${rd2} · 中心距 ${cd}mm · 傳動比 ${ratio.toFixed(3)} · 齒距 ${cp.toFixed(2)}mm（20°壓力角，標準齒）` })
   },
   springRateCalc: async () => {
     // Helical compression spring: rate k = G·d⁴/(8·D³·n). Wahl factor + shear stress at a load.
     const v = await get().appPrompt(tStatus('压缩弹簧速查：线径 d, 中径 D, 有效圈数 n, 工作力 F(N)（逗号分隔，钢 G=79300）', get().lang), '2,16,8,10')
     if (!v) return
     const nums = v.split(/[,，\s]+/).map(Number).filter((x) => isFinite(x))
-    if (nums.length < 3 || nums[0] <= 0 || nums[1] <= 0 || nums[2] <= 0) { set({ status: '弹簧速查：请输入 线径,中径,圈数[,力]（如 2,16,8,10）' }); return }
+    if (nums.length < 3 || nums[0] <= 0 || nums[1] <= 0 || nums[2] <= 0) { set({ status: '弹簧速查：請輸入 線徑,中徑,圈數[,力]（如 2,16,8,10）' }); return }
     const d = nums[0], D = nums[1], n = nums[2], F = nums.length >= 4 ? Math.max(0, nums[3]) : 0, G = 79300
     const k = G * d ** 4 / (8 * D ** 3 * n)               // N/mm
     const C = D / d                                        // 弹簧指数
@@ -22538,7 +22538,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const tau = F > 0 ? Wahl * 8 * F * D / (Math.PI * d ** 3) : 0   // 工作剪应力 MPa
     const defl = F > 0 ? F / k : 0                         // 压缩量 mm
     const cIdx = C < 4 ? '（C<4 偏硬难绕）' : C > 12 ? '（C>12 偏软易缠绕）' : '（C 合理）'
-    set({ status: `压缩弹簧 d${d}/D${D}/n${n}：刚度 k=${k.toFixed(3)} N/mm · 弹簧指数 C=${C.toFixed(1)}${cIdx} · Wahl=${Wahl.toFixed(3)}${F > 0 ? ` · 力${F}N → 压缩 ${defl.toFixed(2)}mm · 剪应力 τ=${tau.toFixed(1)}MPa` : ''}（钢 G=79300）` })
+    set({ status: `壓縮弹簧 d${d}/D${D}/n${n}：剛度 k=${k.toFixed(3)} N/mm · 弹簧指數 C=${C.toFixed(1)}${cIdx} · Wahl=${Wahl.toFixed(3)}${F > 0 ? ` · 力${F}N → 壓縮 ${defl.toFixed(2)}mm · 剪應力 τ=${tau.toFixed(1)}MPa` : ''}（鋼 G=79300）` })
   },
   isoFitCalc: async () => {
     // ISO 286 hole-basis clearance fit (H hole + f/g/h shaft). Deviations from the standard formulas:
@@ -22547,29 +22547,29 @@ export const useApp = create<AppState>((rawSet, get) => {
     const v = await get().appPrompt(tStatus('ISO 公差配合速查（H 孔基准 · 间隙配合）：直径 mm + 配合代号（H7/g6 · H7/h6 · H8/f7…）', get().lang), '25 H7/g6')
     if (!v) return
     const m = v.trim().match(/^([\d.]+)\s*[, ]?\s*H(\d+)\s*\/\s*([fgh])(\d+)$/i)
-    if (!m) { set({ status: 'ISO 配合：格式如「25 H7/g6」（孔限 H，轴限 f/g/h，等级 5–11）' }); return }
+    if (!m) { set({ status: 'ISO 配合：格式如「25 H7/g6」（孔限 H，軸限 f/g/h，等級 5–11）' }); return }
     const d = +m[1], hg = +m[2], sl = m[3].toLowerCase(), sg = +m[4]
     const ranges: [number, number][] = [[0, 3], [3, 6], [6, 10], [10, 18], [18, 30], [30, 50], [50, 80], [80, 120], [120, 180], [180, 250], [250, 315], [315, 400], [400, 500]]
     const rg = ranges.find((r) => d > r[0] && d <= r[1])
-    if (!rg || d <= 0) { set({ status: 'ISO 配合：直径需在 0–500mm（ISO 286-1）' }); return }
+    if (!rg || d <= 0) { set({ status: 'ISO 配合：直徑需在 0–500mm（ISO 286-1）' }); return }
     const D = Math.sqrt(Math.max(1, rg[0]) * rg[1])
     const i = 0.45 * Math.cbrt(D) + 0.001 * D
     const mult: Record<number, number> = { 5: 7, 6: 10, 7: 16, 8: 25, 9: 40, 10: 64, 11: 100 }
-    if (!mult[hg] || !mult[sg]) { set({ status: 'ISO 配合：等级仅支持 IT5–IT11' }); return }
+    if (!mult[hg] || !mult[sg]) { set({ status: 'ISO 配合：等級僅支持 IT5–IT11' }); return }
     const ITh = Math.round(i * mult[hg]), ITs = Math.round(i * mult[sg])     // μm
     const es = sl === 'h' ? 0 : sl === 'g' ? -2.5 * Math.pow(D, 0.34) : -5.5 * Math.pow(D, 0.41)  // μm
     const esR = Math.round(es), eiR = esR - ITs                              // shaft upper/lower dev (μm)
     const ES = ITh, EI = 0                                                   // hole upper/lower dev (μm)
     const cMin = EI - esR, cMax = ES - eiR                                   // clearance min/max (μm)
     const fp = (x: number) => (x / 1000).toFixed(3)                          // μm → mm
-    set({ status: `Ø${d} H${hg}/${sl}${sg}：孔 ${d}(+${fp(ES)}/0) · 轴 ${d}(${esR <= 0 ? '' : '+'}${fp(esR)}/${fp(eiR)}) · 间隙 ${fp(cMin)}~${fp(cMax)}mm（${cMin >= 0 ? '间隙配合 ' + (sl === 'h' ? '定位/滑动' : sl === 'g' ? '转动精密' : '自由转动') : '含过盈'}，ISO286 公式估算）` })
+    set({ status: `Ø${d} H${hg}/${sl}${sg}：孔 ${d}(+${fp(ES)}/0) · 軸 ${d}(${esR <= 0 ? '' : '+'}${fp(esR)}/${fp(eiR)}) · 間隙 ${fp(cMin)}~${fp(cMax)}mm（${cMin >= 0 ? '間隙配合 ' + (sl === 'h' ? '定位/滑動' : sl === 'g' ? '轉動精密' : '自由轉動') : '含過盈'}，ISO286 公式估算）` })
   },
   bendAllowanceCalc: async () => {
     // Sheet-metal bend: BA = θ·(R + K·T); OSSB = (R+T)·tan(θ/2); BD = 2·OSSB − BA. Flat = legs − BD (per bend).
     const v = await get().appPrompt(tStatus('钣金折弯展开：料厚 T, 内弯半径 R, 折弯角 θ°, K因子, [边1 L1, 边2 L2]（逗号分隔；K 常用 0.33~0.45）', get().lang), '2,1,90,0.4,30,30')
     if (!v) return
     const n = v.split(/[,，\s]+/).map(Number).filter((x) => isFinite(x))
-    if (n.length < 4 || n[0] <= 0 || n[2] <= 0) { set({ status: '折弯展开：请输入 料厚,内R,角度,K[,边1,边2]（如 2,1,90,0.4,30,30）' }); return }
+    if (n.length < 4 || n[0] <= 0 || n[2] <= 0) { set({ status: '折彎展開：請輸入 料厚,內R,角度,K[,邊1,邊2]（如 2,1,90,0.4,30,30）' }); return }
     const T = n[0], R = n[1], ang = n[2], K = n[3], a = ang * Math.PI / 180
     const BA = a * (R + K * T)                       // 弯曲补偿（中性层弧长）
     const OSSB = (R + T) * Math.tan(a / 2)           // 外缘相切距
@@ -22577,20 +22577,20 @@ export const useApp = create<AppState>((rawSet, get) => {
     const f = (x: number) => x.toFixed(3)
     let flatTxt = ''
     if (n.length >= 6) { const flat = n[4] + n[5] - BD; flatTxt = ` · 两边 ${n[4]}+${n[5]} → 展开下料 ${f(flat)}mm（减 BD）` }
-    set({ status: `钣金折弯 T${T}/R${R}/${ang}°/K${K}：弯曲补偿 BA=${f(BA)} · 弯曲扣除 BD=${f(BD)} · 外缘相切 OSSB=${f(OSSB)}mm${flatTxt}（中性层 K 因子法）` })
+    set({ status: `鈑金折彎 T${T}/R${R}/${ang}°/K${K}：彎曲補償 BA=${f(BA)} · 彎曲扣除 BD=${f(BD)} · 外緣相切 OSSB=${f(OSSB)}mm${flatTxt}（中性層 K 因子法）` })
   },
   bearingLifeCalc: async () => {
     // ISO 281 basic rating life: L10 = (C/P)^p · 10⁶ rev (p=3 球轴承, 10/3 滚子); 寿命小时 = L10/(60·n).
     const v = await get().appPrompt(tStatus('轴承寿命 L10（ISO 281）：额定动载荷 C(N), 当量动载荷 P(N), 转速 n(rpm), 类型(1=球 2=滚子)', get().lang), '10000,2000,1500,1')
     if (!v) return
     const n = v.split(/[,，\s]+/).map(Number).filter((x) => isFinite(x))
-    if (n.length < 3 || n[0] <= 0 || n[1] <= 0 || n[2] <= 0) { set({ status: '轴承寿命：请输入 C,P,n[,类型]（如 10000,2000,1500,1）' }); return }
+    if (n.length < 3 || n[0] <= 0 || n[1] <= 0 || n[2] <= 0) { set({ status: '軸承壽命：請輸入 C,P,n[,類型]（如 10000,2000,1500,1）' }); return }
     const C = n[0], P = n[1], rpm = n[2], roller = n[3] === 2
     const p = roller ? 10 / 3 : 3
     const L10rev = Math.pow(C / P, p) * 1e6        // 百万转
     const hrs = L10rev / (60 * rpm)                 // 小时
     const days = hrs / 24
-    set({ status: `轴承寿命 L10（${roller ? '滚子 p=10/3' : '球 p=3'}）：${(L10rev / 1e6).toFixed(1)} 百万转 = ${hrs.toFixed(0)} 小时（≈${days.toFixed(1)} 天连续）· C/P=${(C / P).toFixed(2)}（ISO 281，90% 可靠度）` })
+    set({ status: `軸承壽命 L10（${roller ? '滾子 p=10/3' : '球 p=3'}）：${(L10rev / 1e6).toFixed(1)} 百萬轉 = ${hrs.toFixed(0)} 小時（≈${days.toFixed(1)} 天連續）· C/P=${(C / P).toFixed(2)}（ISO 281，90% 可靠度）` })
   },
   boltClampCalc: async () => {
     // Bolt clamp force from tightening torque: T = K·F·d ⇒ F = T/(K·d). Stress σ = F/At,
@@ -22601,31 +22601,31 @@ export const useApp = create<AppState>((rawSet, get) => {
     const key = (parts[0] || '').trim().toUpperCase().replace(/\s/g, '') as FastenerSize
     const s = FASTENER_SPEC[key]
     const T = Number(parts[1]), K = Number(parts[2]) || 0.2
-    if (!s || !isFinite(T) || T <= 0) { set({ status: '螺栓夹紧力：格式如「M8,15,0.2」（M 号 + 扭矩 N·m + 摩擦系数）' }); return }
+    if (!s || !isFinite(T) || T <= 0) { set({ status: '螺栓夾緊力：格式如「M8,15,0.2」（M 號 + 扭矩 N·m + 摩擦係數）' }); return }
     const F = (T * 1000) / (K * s.d)                       // N（T 由 N·m → N·mm）
     const At = 0.7854 * Math.pow(s.d - 0.9382 * s.P, 2)    // mm²（ISO 应力截面积）
     const sigma = F / At                                   // MPa
     // 8.8 级钢屈服 ≈640MPa；预紧一般取 0.7σp（σp≈580）。判级。
     const ratio = sigma / 640
     const tag = ratio > 1 ? '⚠ 超 8.8 级屈服' : ratio > 0.9 ? '偏高（接近 8.8 级上限）' : '合理'
-    set({ status: `${key} 夹紧力：扭矩 ${T}N·m / K${K} → 预紧力 F≈${(F / 1000).toFixed(2)} kN · 应力截面 At=${At.toFixed(1)}mm² · 轴向应力 σ≈${sigma.toFixed(0)} MPa（占 8.8 级屈服 ${(ratio * 100).toFixed(0)}%，${tag}）` })
+    set({ status: `${key} 夾緊力：扭矩 ${T}N·m / K${K} → 預緊力 F≈${(F / 1000).toFixed(2)} kN · 應力截面 At=${At.toFixed(1)}mm² · 軸向應力 σ≈${sigma.toFixed(0)} MPa（占 8.8 級屈服 ${(ratio * 100).toFixed(0)}%，${tag}）` })
   },
   leadScrewCalc: async () => {
     // Lead screw drive: linear speed v = lead·rpm; thrust F = 2π·η·T/lead (T in N·mm). η: ACME~0.4, ball~0.9.
     const v = await get().appPrompt(tStatus('丝杆/导程 — 导程 L(mm/转), 转速 n(rpm), 电机扭矩 T(N·m), 效率 η(梯形丝杆~0.4 / 滚珠~0.9)', get().lang), '8,300,0.5,0.9')
     if (!v) return
     const n = v.split(/[,，\s]+/).map(Number).filter((x) => isFinite(x))
-    if (n.length < 3 || n[0] <= 0 || n[2] < 0) { set({ status: '丝杆：请输入 导程,转速,扭矩[,效率]（如 8,300,0.5,0.9）' }); return }
+    if (n.length < 3 || n[0] <= 0 || n[2] < 0) { set({ status: '絲桿：請輸入 導程,轉速,扭矩[,效率]（如 8,300,0.5,0.9）' }); return }
     const L = n[0], rpm = n[1], T = n[2], eta = n.length >= 4 && n[3] > 0 && n[3] <= 1 ? n[3] : 0.9
     const vmin = L * rpm                            // mm/min
     const F = (2 * Math.PI * eta * (T * 1000)) / L  // N
-    set({ status: `丝杆 导程${L}/转速${rpm}：直线速度 ${vmin.toFixed(0)} mm/min = ${(vmin / 60).toFixed(1)} mm/s · 推力 F≈${F.toFixed(0)} N（${(F / 9.81).toFixed(0)} kgf，效率 η=${eta}）` })
+    set({ status: `絲桿 導程${L}/轉速${rpm}：直線速度 ${vmin.toFixed(0)} mm/min = ${(vmin / 60).toFixed(1)} mm/s · 推力 F≈${F.toFixed(0)} N（${(F / 9.81).toFixed(0)} kgf，效率 η=${eta}）` })
   },
   downloadBeamReport: () => {
     const rep = get().beamReport
-    if (!rep) { set({ status: '请先「🔩受力估算」再导出报告' }); return }
+    if (!rep) { set({ status: '請先「🔩受力估算」再匯出報告' }); return }
     triggerDownload(new TextEncoder().encode(rep), `${projName(get().projectName)}-工程分析.txt`, 'text/plain')
-    set({ status: '已导出工程分析报告 .txt' })
+    set({ status: '已匯出工程分析報告 .txt' })
   },
 })})
 

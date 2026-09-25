@@ -29,8 +29,8 @@ const GDT_SYMS: { sym: string; ascii: string; name: string }[] = [
   { sym: '⊥', ascii: 'PERP', name: '垂直度' },
   { sym: '∥', ascii: 'PARA', name: '平行度' },
   { sym: '⌖', ascii: 'POS', name: '位置度' },
-  { sym: '○', ascii: 'ROUND', name: '圆度' },
-  { sym: '◎', ascii: 'CONC', name: '同轴度' },
+  { sym: '○', ascii: 'ROUND', name: '圓度' },
+  { sym: '◎', ascii: 'CONC', name: '同軸度' },
 ]
 const gdtAscii = (sym: string) => (GDT_SYMS.find((g) => g.sym === sym)?.ascii) ?? sym
 
@@ -838,7 +838,7 @@ export default function DrawingPanel() {
       tableSvg += `<line x1="0" y1="${y0.toFixed(1)}" x2="${W0.toFixed(1)}" y2="${y0.toFixed(1)}" stroke="#1c1c1c" stroke-width="0.6"/>`
       tableSvg += `<text x="2" y="${(yy + rowH * 0.72).toFixed(1)}" font-size="${fs.toFixed(1)}" fill="#1c1c1c" font-weight="bold">${msg('draw.holeTable', lang).replace('{0}', viewLabel(ht.view, lang))} ${ht.summary.map((s) => `${s.tag}:${s.n}xØ${s.d}`).join('  ')}</text>`
       yy += rowH
-      tableSvg += cellTxt(['标签', 'X', 'Y', '孔径'], yy, true); yy += rowH
+      tableSvg += cellTxt(['標籤', 'X', 'Y', '孔徑'], yy, true); yy += rowH
       for (const r of ht.rows) { tableSvg += cellTxt([r.tag, r.x.toFixed(2), r.y.toFixed(2), 'Ø' + r.d], yy); yy += rowH }
       for (let j = 1; j <= nData + 2; j++) { const gy = y0 + rowH * j; tableSvg += `<line x1="0" y1="${gy.toFixed(1)}" x2="${W0.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="#bbb" stroke-width="0.3"/>` }
       for (const b of colB) tableSvg += `<line x1="${b.toFixed(1)}" y1="${(y0 + rowH).toFixed(1)}" x2="${b.toFixed(1)}" y2="${(y0 + tableH).toFixed(1)}" stroke="#bbb" stroke-width="0.3"/>`
@@ -854,7 +854,7 @@ export default function DrawingPanel() {
       tableSvg += `<line x1="0" y1="${y0.toFixed(1)}" x2="${W0.toFixed(1)}" y2="${y0.toFixed(1)}" stroke="#1c1c1c" stroke-width="0.6"/>`
       tableSvg += `<text x="2" y="${(yy + rowH * 0.72).toFixed(1)}" font-size="${fs.toFixed(1)}" fill="#1c1c1c" font-weight="bold">${msg('draw.bomTitle', lang).replace('{0}', String(bom.reduce((t, r) => t + r.qty, 0)))}</text>`
       yy += rowH
-      tableSvg += cellTxt(['序号', '名称', '数量', '材质', '质量(g)'], yy, true); yy += rowH
+      tableSvg += cellTxt(['序號', '名稱', '數量', '材質', '質量(g)'], yy, true); yy += rowH
       for (const r of bom) { tableSvg += cellTxt([String(r.n), r.name, String(r.qty), r.mat, r.grams.toFixed(1)], yy); yy += rowH }
       for (let j = 1; j <= nData + 2; j++) { const gy = y0 + rowH * j; tableSvg += `<line x1="0" y1="${gy.toFixed(1)}" x2="${W0.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="#bbb" stroke-width="0.3"/>` }
       for (const b of colB) tableSvg += `<line x1="${b.toFixed(1)}" y1="${(y0 + rowH).toFixed(1)}" x2="${b.toFixed(1)}" y2="${(y0 + bomH).toFixed(1)}" stroke="#bbb" stroke-width="0.3"/>`
@@ -863,7 +863,7 @@ export default function DrawingPanel() {
     const block = gbFrame ? '' : `<rect x="0" y="0" width="${W0.toFixed(1)}" height="${(total + tableH).toFixed(1)}" fill="none" stroke="#1c1c1c" stroke-width="0.6"/>`
       + `<line x1="0" y1="${H0.toFixed(1)}" x2="${W0.toFixed(1)}" y2="${H0.toFixed(1)}" stroke="#1c1c1c" stroke-width="0.6"/>`
       + `<text x="3" y="${(H0 + tbH * 0.42).toFixed(1)}" font-size="${(tbH * 0.3).toFixed(1)}" fill="#1c1c1c">${(projectName || msg('draw.partDefault', lang)).replace(/[<>&]/g, '')}　·　${oL ?? '?'}×${oW ?? '?'}×${oH ?? '?'} mm${materialTxt ? `　·　材料 ${materialTxt.replace(/[<>&]/g, '')}` : ''}</text>`
-      + `<text x="3" y="${(H0 + tbH * 0.8).toFixed(1)}" font-size="${(tbH * 0.26).toFixed(1)}" fill="#555">比例 ${scale}　·　单位 mm　·　${projLabel}${genTol ? `　·　未注公差 ${genTol}` : ''}${massStr ? `　·　密度 ${density}g/cm³　·　估重 ${massStr}` : ''}${drawnBy ? `　·　绘图 ${drawnBy.replace(/[<>&]/g, '')}` : ''}　·　${today}</text>`
+      + `<text x="3" y="${(H0 + tbH * 0.8).toFixed(1)}" font-size="${(tbH * 0.26).toFixed(1)}" fill="#555">比例 ${scale}　·　單位 mm　·　${projLabel}${genTol ? `　·　未註公差 ${genTol}` : ''}${massStr ? `　·　密度 ${density}g/cm³　·　估重 ${massStr}` : ''}${drawnBy ? `　·　繪圖 ${drawnBy.replace(/[<>&]/g, '')}` : ''}　·　${today}</text>`
     const contentW = W0, contentH = total + tableH
     // T749：45° 剖面线 pattern（固定 2.5mm 间距 — 真图纸惯例）；嵌套 svg 内引用照样生效
     const hatchDefs = `<defs><pattern id="hpx" patternUnits="userSpaceOnUse" width="2.5" height="2.5" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="2.5" stroke="#888" stroke-width="0.3"/></pattern></defs>`
@@ -1039,7 +1039,7 @@ export default function DrawingPanel() {
     <div className="drawing-overlay" onClick={(e) => { if (e.target === e.currentTarget) close() }}>
       <div className="drawing-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="dw-body">
-        <div className="dw-head">📐 {drawingKind === 'assembly' ? tStatus('裝配工程圖 — 三視圖 + 氣泡 BOM', lang) : tStatus('工程圖 — 三視圖 + 立體圖', lang)}{' '}<span className="dw-kind-tabs" style={{ marginLeft: 10, display: 'inline-flex', gap: 4, verticalAlign: 'middle' }} role="tablist" aria-label={tStatus('工程圖種類', lang)}><button type="button" role="tab" aria-selected={drawingKind !== 'assembly'} className="cs-btn" style={drawingKind !== 'assembly' ? { background: '#1565c0', color: '#fff', fontSize: 11, padding: '2px 8px' } : { fontSize: 11, padding: '2px 8px' }} onClick={() => void generateDrawing()} title={tStatus('零件工程圖（三視圖 + 立體圖）', lang)}>{tStatus('工程圖', lang)}</button><button type="button" role="tab" aria-selected={drawingKind === 'assembly'} className="cs-btn" style={drawingKind === 'assembly' ? { background: '#8a5a00', color: '#fff', fontSize: 11, padding: '2px 8px' } : { fontSize: 11, padding: '2px 8px' }} onClick={() => void generateAsmDrawing()} title={tStatus('裝配工程圖（三視圖 + 氣泡 BOM；需可見組件）', lang)}>{tStatus('裝配工程圖', lang)}</button></span>{drawingKind === 'assembly' && <span style={{ marginLeft: 10, color: '#8a5a00', fontSize: 11, fontWeight: 'normal' }} title={tStatus('装配视图由组件网格投影（轮廓+特征边）：无隐藏线消除、圆为折线 — 诚实近似', lang)}>{tStatus('mesh 投影', lang)}</span>}{dimMode && <span style={{ marginLeft: 12, color: '#c2185b', fontSize: 12, fontWeight: 'normal' }}>📏 {pendPt ? tStatus('再点第二点完成标注', lang) : tStatus('点第一点（自动吸附最近孔心）', lang)}</span>}{radMode && <span style={{ marginLeft: 12, color: '#8a5a00', fontSize: 12, fontWeight: 'normal' }}>◯ {tStatus('点一个圆 → 标', lang)}{radMode === 'r' ? tStatus('半径 R', lang) : tStatus('直径 Ø', lang)}</span>}{angMode && <span style={{ marginLeft: 12, color: '#6a1b9a', fontSize: 12, fontWeight: 'normal' }}>∠ {pendSeg ? tStatus('再点第二条边完成角度', lang) : tStatus('点第一条边（两边夹角）', lang)}</span>}{datumMode && <span style={{ marginLeft: 12, color: '#00838f', fontSize: 12, fontWeight: 'normal' }}>▣ {tStatus('点一处 → 放基准标记（自动 A/B/C…）', lang)}</span>}{fcfMode && <span style={{ marginLeft: 12, color: '#00838f', fontSize: 12, fontWeight: 'normal' }}>▥ {tStatus('点一处 → 放形位公差框（', lang)}{fcfSym} {fcfTol}{fcfDatum.trim() ? ' ' + fcfDatum.trim() : ''}）</span>}<span className="dw-x" onClick={close}>✕</span></div>
+        <div className="dw-head">📐 {drawingKind === 'assembly' ? tStatus('裝配工程圖 — 三視圖 + 氣泡 BOM', lang) : tStatus('工程圖 — 三視圖 + 立體圖', lang)}{' '}<span className="dw-kind-tabs" style={{ marginLeft: 10, display: 'inline-flex', gap: 4, verticalAlign: 'middle' }} role="tablist" aria-label={tStatus('工程圖種類', lang)}><button type="button" role="tab" aria-selected={drawingKind !== 'assembly'} className="cs-btn" style={drawingKind !== 'assembly' ? { background: '#1565c0', color: '#fff', fontSize: 11, padding: '2px 8px' } : { fontSize: 11, padding: '2px 8px' }} onClick={() => void generateDrawing()} title={tStatus('零件工程圖（三視圖 + 立體圖）', lang)}>{tStatus('工程圖', lang)}</button><button type="button" role="tab" aria-selected={drawingKind === 'assembly'} className="cs-btn" style={drawingKind === 'assembly' ? { background: '#8a5a00', color: '#fff', fontSize: 11, padding: '2px 8px' } : { fontSize: 11, padding: '2px 8px' }} onClick={() => void generateAsmDrawing()} title={tStatus('裝配工程圖（三視圖 + 氣泡 BOM；需可見組件）', lang)}>{tStatus('裝配工程圖', lang)}</button></span>{drawingKind === 'assembly' && <span style={{ marginLeft: 10, color: '#8a5a00', fontSize: 11, fontWeight: 'normal' }} title={tStatus('裝配視圖由組件網格投影（輪廓+特徵邊）：無隱藏線消除、圓為折線 — 誠實近似', lang)}>{tStatus('mesh 投影', lang)}</span>}{dimMode && <span style={{ marginLeft: 12, color: '#c2185b', fontSize: 12, fontWeight: 'normal' }}>📏 {pendPt ? tStatus('再點第二點完成標註', lang) : tStatus('點第一點（自動吸附最近孔心）', lang)}</span>}{radMode && <span style={{ marginLeft: 12, color: '#8a5a00', fontSize: 12, fontWeight: 'normal' }}>◯ {tStatus('點一個圓 → 標', lang)}{radMode === 'r' ? tStatus('半徑 R', lang) : tStatus('直徑 Ø', lang)}</span>}{angMode && <span style={{ marginLeft: 12, color: '#6a1b9a', fontSize: 12, fontWeight: 'normal' }}>∠ {pendSeg ? tStatus('再點第二條邊完成角度', lang) : tStatus('點第一條邊（兩邊夾角）', lang)}</span>}{datumMode && <span style={{ marginLeft: 12, color: '#00838f', fontSize: 12, fontWeight: 'normal' }}>▣ {tStatus('點一處 → 放基準標記（自動 A/B/C…）', lang)}</span>}{fcfMode && <span style={{ marginLeft: 12, color: '#00838f', fontSize: 12, fontWeight: 'normal' }}>▥ {tStatus('點一處 → 放形位公差框（', lang)}{fcfSym} {fcfTol}{fcfDatum.trim() ? ' ' + fcfDatum.trim() : ''}）</span>}<span className="dw-x" onClick={close}>✕</span></div>
         <div className="dw-views">
           {views.map((v) => {
             const [, , w, h] = v.vb.split(/\s+/).map(Number)
@@ -1063,7 +1063,7 @@ export default function DrawingPanel() {
               const hsp = Math.max(vw0 - 12, vh0 - 12) * 0.035
               return (
                 <div key={id} className="dw-view">
-                  <div className="dw-vtitle" style={{ color: '#2e7d32' }}>🔍 {tStatus('局部放大', lang)} {ROMAN[g] ?? g + 1}（{viewLabel(vn, lang)} · {tStatus('图纸', lang)} 2:1）</div>
+                  <div className="dw-vtitle" style={{ color: '#2e7d32' }}>🔍 {tStatus('局部放大', lang)} {ROMAN[g] ?? g + 1}（{viewLabel(vn, lang)} · {tStatus('圖紙', lang)} 2:1）</div>
                   <svg viewBox={`${(dd.cx - dd.r).toFixed(2)} ${(dd.cy - dd.r).toFixed(2)} ${(2 * dd.r).toFixed(2)} ${(2 * dd.r).toFixed(2)}`} preserveAspectRatio="xMidYMid meet" style={{ width: `${dd.r*4}mm`, height: `${dd.r*4}mm`, maxWidth:'none', background: '#fff' }}>
                     {sv.hatch && sv.hatch.length > 0 && (
                       <defs>
@@ -1090,19 +1090,19 @@ export default function DrawingPanel() {
           return (
             <div style={{ marginTop: 10 }}>
               {overflow && <div role="alert" style={{color:'#b42318'}}>{msg('draw.overflow', lang)}</div>}
-              <div style={{ fontSize: 12, color: '#5a6b78', marginBottom: 4 }}>🖼 {tStatus('GB 图框预览 —', lang)} {sheet} {tStatus('横向', lang)} {sheet === 'A3' ? '420×297' : '297×210'} mm · {tStatus('10mm 边框 + 右下标题栏（导出 SVG / PNG / PDF 同此版面）', lang)}</div>
-              <img src={'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)} alt={tStatus('GB 图框预览', lang)} style={{ width: '100%', background: '#fff', border: '1px solid #ccc', borderRadius: 4 }} />
+              <div style={{ fontSize: 12, color: '#5a6b78', marginBottom: 4 }}>🖼 {tStatus('GB 圖框預覽 —', lang)} {sheet} {tStatus('橫向', lang)} {sheet === 'A3' ? '420×297' : '297×210'} mm · {tStatus('10mm 邊框 + 右下標題欄（匯出 SVG / PNG / PDF 同此版面）', lang)}</div>
+              <img src={'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)} alt={tStatus('GB 圖框預覽', lang)} style={{ width: '100%', background: '#fff', border: '1px solid #ccc', borderRadius: 4 }} />
             </div>
           )
         })()}
         <div className="dw-titleblock" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', padding: '6px 10px', borderTop: '1px solid #ccc', fontSize: 12, color: '#333' }}>
-          <span><b>{tStatus('名称', lang)}</b> {projectName || tStatus('webcad 零件', lang)}</span>
+          <span><b>{tStatus('名稱', lang)}</b> {projectName || tStatus('webcad 零件', lang)}</span>
           <span><b>{tStatus('總尺寸', lang)}</b> {oL ?? '?'}×{oW ?? '?'}×{oH ?? '?'} mm</span>
-          <span><b>{tStatus('材料', lang)}</b> <input value={materialTxt} onChange={(e) => setMaterialTxt(e.target.value)} placeholder={tStatus('如 6061铝', lang)} style={{ fontSize: 12, width: 64, padding: '0 3px' }} title={tStatus('材料（自由文字，写入标题栏 + 导出）', lang)} /></span>
+          <span><b>{tStatus('材料', lang)}</b> <input value={materialTxt} onChange={(e) => setMaterialTxt(e.target.value)} placeholder={tStatus('如 6061鋁', lang)} style={{ fontSize: 12, width: 64, padding: '0 3px' }} title={tStatus('材料（自由文字，寫入標題欄 + 匯出）', lang)} /></span>
           <span><b>{tStatus('比例', lang)}</b> <select value={scale} onChange={(e) => setScale(e.target.value)} style={{ fontSize: 12, padding: '0 2px' }} title={tStatus('實際紙面比例；模型尺寸標註保持原值', lang)}>{['1:1', '1:2', '1:5', '1:10', '2:1', '5:1', '10:1'].map((s) => <option key={s} value={s}>{s}</option>)}</select></span>
-          <span><b>{tStatus('单位', lang)}</b> mm</span>
-          <span title={tStatus('图幅（T791）：GB 图框纸张大小 — A4 横向 297×210 / A3 横向 420×297（导出 SVG/PNG/PDF 同步）', lang)}><b>{tStatus('图幅', lang)}</b> <select value={sheet} onChange={(e) => setSheet(e.target.value as 'A4' | 'A3')} style={{ fontSize: 12 }}><option value="A4">{tStatus('A4 横', lang)}</option><option value="A3">{tStatus('A3 横', lang)}</option></select></span>
-          <span title={tStatus('第三角（美/日）：俯视喺前视上方、右视喺右方；第一角（GB/ISO）：俯视喺前视下方、右视喺左方。切换会重排视图位置 + 更新标题栏文字与截锥符号', lang)}>
+          <span><b>{tStatus('單位', lang)}</b> mm</span>
+          <span title={tStatus('圖幅（T791）：GB 圖框紙張大小 — A4 橫向 297×210 / A3 橫向 420×297（匯出 SVG/PNG/PDF 同步）', lang)}><b>{tStatus('圖幅', lang)}</b> <select value={sheet} onChange={(e) => setSheet(e.target.value as 'A4' | 'A3')} style={{ fontSize: 12 }}><option value="A4">{tStatus('A4 橫', lang)}</option><option value="A3">{tStatus('A3 橫', lang)}</option></select></span>
+          <span title={tStatus('第三角（美/日）：俯視喺前視上方、右視喺右方；第一角（GB/ISO）：俯視喺前視下方、右視喺左方。切換會重排視圖位置 + 更新標題欄文字與截錐符號', lang)}>
             <b>{tStatus('投影', lang)}</b>{' '}
             <select value={firstAngle ? '1' : '3'} onChange={(e) => setFirstAngle(e.target.value === '1')} style={{ fontSize: 12 }}>
               <option value="3">{tStatus('第三角', lang)}</option>
@@ -1114,22 +1114,22 @@ export default function DrawingPanel() {
                 {s.circles.map((c, i) => <circle key={'c' + i} cx={c.cx} cy={c.cy} r={c.r} fill="none" stroke="#333" strokeWidth={0.8} />)}
               </svg>) })()}
           </span>
-          <span><b>{tStatus('未注公差', lang)}</b> <select value={genTol} onChange={(e) => setGenTol(e.target.value)} style={{ fontSize: 12 }} title={tStatus('ISO 2768 一般公差等级（线性/角度未注尺寸的默认公差）', lang)}>{[['', '—'], ['ISO 2768-f', 'f 精'], ['ISO 2768-m', 'm 中'], ['ISO 2768-c', 'c 粗'], ['ISO 2768-v', 'v 最粗']].map(([v, l]) => <option key={v} value={v}>{tStatus(l, lang)}</option>)}</select></span>
+          <span><b>{tStatus('未註公差', lang)}</b> <select value={genTol} onChange={(e) => setGenTol(e.target.value)} style={{ fontSize: 12 }} title={tStatus('ISO 2768 一般公差等級（線性/角度未註尺寸的預設公差）', lang)}>{[['', '—'], ['ISO 2768-f', 'f 精'], ['ISO 2768-m', 'm 中'], ['ISO 2768-c', 'c 粗'], ['ISO 2768-v', 'v 最粗']].map(([v, l]) => <option key={v} value={v}>{tStatus(l, lang)}</option>)}</select></span>
           {massStr && <span><b>{tStatus('密度', lang)}</b> {density} g/cm³</span>}
           {massStr && <span><b>{tStatus('估重', lang)}</b> {massStr}</span>}
-          <span><b>{tStatus('绘图', lang)}</b> <input value={drawnBy} onChange={(e) => setDrawnBy(e.target.value)} placeholder={tStatus('姓名/缩写', lang)} style={{ fontSize: 12, width: 70, padding: '0 3px' }} title={tStatus('绘图者（写入标题栏 + 导出 SVG）', lang)} /></span>
+          <span><b>{tStatus('繪圖', lang)}</b> <input value={drawnBy} onChange={(e) => setDrawnBy(e.target.value)} placeholder={tStatus('姓名/縮寫', lang)} style={{ fontSize: 12, width: 70, padding: '0 3px' }} title={tStatus('繪圖者（寫入標題欄 + 匯出 SVG）', lang)} /></span>
           <span><b>{tStatus('日期', lang)}</b> {today}</span>
         </div>
         {drawingKind === 'assembly' && bom && bom.length > 0 && (
           <div style={{ padding: '4px 10px', borderTop: '1px solid #ccc', fontSize: 11, color: '#333', maxHeight: 170, overflow: 'auto' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: 3 }}>🔢 {tStatus('BOM 材料清单', lang)}　<span style={{ fontWeight: 'normal', color: '#777' }}>{tStatus('（气泡编号 = 序号 · 共', lang)} {bom.reduce((t, r) => t + r.qty, 0)} {tStatus('件）', lang)}</span></div>
+            <div style={{ fontWeight: 'bold', marginBottom: 3 }}>🔢 {tStatus('BOM 材料清單', lang)}　<span style={{ fontWeight: 'normal', color: '#777' }}>{tStatus('（氣泡編號 = 序號 · 共', lang)} {bom.reduce((t, r) => t + r.qty, 0)} {tStatus('件）', lang)}</span></div>
             <table style={{ borderCollapse: 'collapse', width: '100%' }}>
               <thead><tr style={{ background: '#f0f0f0' }}>
-                <th style={{ border: '1px solid #ccc', padding: '1px 8px' }}>{tStatus('序号', lang)}</th>
-                <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'left' }}>{tStatus('名称', lang)}</th>
-                <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'right' }}>{tStatus('数量', lang)}</th>
-                <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'left' }}>{tStatus('材质', lang)}</th>
-                <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'right' }}>{tStatus('质量(g)', lang)}</th>
+                <th style={{ border: '1px solid #ccc', padding: '1px 8px' }}>{tStatus('序號', lang)}</th>
+                <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'left' }}>{tStatus('名稱', lang)}</th>
+                <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'right' }}>{tStatus('數量', lang)}</th>
+                <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'left' }}>{tStatus('材質', lang)}</th>
+                <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'right' }}>{tStatus('質量(g)', lang)}</th>
               </tr></thead>
               <tbody>
                 {bom.map((r) => (
@@ -1143,7 +1143,7 @@ export default function DrawingPanel() {
                 ))}
               </tbody>
             </table>
-            <button className="cs-btn" style={{ marginTop: 3, fontSize: 11 }} title={tStatus('导出完整 BOM CSV（含体积/密度/料长等全列）', lang)} onClick={() => useApp.getState().exportBOM(density)}>📥 BOM CSV</button>
+            <button className="cs-btn" style={{ marginTop: 3, fontSize: 11 }} title={tStatus('匯出完整 BOM CSV（含體積/密度/料長等全列）', lang)} onClick={() => useApp.getState().exportBOM(density)}>📥 BOM CSV</button>
           </div>
         )}
         {(() => {
@@ -1151,13 +1151,13 @@ export default function DrawingPanel() {
           if (!ht) return null
           return (
             <div className="dw-holetable" style={{ padding: '4px 10px', borderTop: '1px solid #ccc', fontSize: 11, color: '#333', maxHeight: 150, overflow: 'auto' }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 3 }}>🕳 {tStatus('孔表 Hole Table', lang)}　<span style={{ fontWeight: 'normal', color: '#777' }}>（{viewLabel(ht.view, lang)}{tStatus('，原点：零件中心，X→右 Y→上 mm）', lang)}</span></div>
+              <div style={{ fontWeight: 'bold', marginBottom: 3 }}>🕳 {tStatus('孔表 Hole Table', lang)}　<span style={{ fontWeight: 'normal', color: '#777' }}>（{viewLabel(ht.view, lang)}{tStatus('，原點：零件中心，X→右 Y→上 mm）', lang)}</span></div>
               <table style={{ borderCollapse: 'collapse', width: '100%' }}>
                 <thead><tr style={{ background: '#f0f0f0' }}>
-                  <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'left' }}>{tStatus('标签', lang)}</th>
+                  <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'left' }}>{tStatus('標籤', lang)}</th>
                   <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'right' }}>X</th>
                   <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'right' }}>Y</th>
-                  <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'right' }}>{tStatus('孔径', lang)}</th>
+                  <th style={{ border: '1px solid #ccc', padding: '1px 8px', textAlign: 'right' }}>{tStatus('孔徑', lang)}</th>
                 </tr></thead>
                 <tbody>
                   {ht.rows.map((r) => (
@@ -1171,80 +1171,80 @@ export default function DrawingPanel() {
                 </tbody>
               </table>
               <div style={{ marginTop: 3, color: '#555' }}>{ht.summary.map((s) => `${s.tag}：${s.n}×Ø${s.d}`).join('　')}
-                <button className="cs-btn" style={{ marginLeft: 8, fontSize: 11 }} title={tStatus('导出钻孔坐标表为 CSV（标签/X/Y/孔径）— 送 CNC / 钻床 / Excel 做钻孔指引', lang)} onClick={() => {
-                  const csv = '﻿标签,X(mm),Y(mm),孔径Ø(mm)\n' + ht.rows.map((r) => `${r.tag},${r.x.toFixed(3)},${r.y.toFixed(3)},${r.d}`).join('\n') + '\n'
+                <button className="cs-btn" style={{ marginLeft: 8, fontSize: 11 }} title={tStatus('匯出鑽孔座標表為 CSV（標籤/X/Y/孔徑）— 送 CNC / 鑽床 / Excel 做鑽孔指引', lang)} onClick={() => {
+                  const csv = '﻿標籤,X(mm),Y(mm),孔徑Ø(mm)\n' + ht.rows.map((r) => `${r.tag},${r.x.toFixed(3)},${r.y.toFixed(3)},${r.d}`).join('\n') + '\n'
                   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-                  const a = document.createElement('a'); a.href = url; a.download = `${(projectName || 'webcad')}-钻孔表.csv`; a.click(); URL.revokeObjectURL(url)
-                }}>📥 {tStatus('钻孔CSV', lang)}</button>
+                  const a = document.createElement('a'); a.href = url; a.download = `${(projectName || 'webcad')}-鑽孔表.csv`; a.click(); URL.revokeObjectURL(url)
+                }}>📥 {tStatus('鑽孔CSV', lang)}</button>
               </div>
             </div>
           )
         })()}
         </div>
         <div className="dw-foot">
-          <span className="dw-legend">{tStatus('— 可见轮廓　┄ 隐藏轮廓', lang)}</span>
-          <label style={{ fontSize: 12, marginLeft: 4, cursor: 'pointer' }} title={tStatus('显示/隐藏 虚线隐藏轮廓（屏幕 + 导出 SVG 同步）', lang)}><input type="checkbox" checked={showHidden} onChange={(e) => setShowHidden(e.target.checked)} /> {tStatus('隐藏线', lang)}</label>
-          <label style={{ fontSize: 12, marginLeft: 2, cursor: 'pointer' }} title={tStatus('显示/隐藏 自动孔径Ø标注 + 中心标记（屏幕 + 导出同步）', lang)}><input type="checkbox" checked={showCallouts} onChange={(e) => setShowCallouts(e.target.checked)} /> {tStatus('Ø标注', lang)}</label>
-          <label style={{ fontSize: 12, marginLeft: 2, cursor: 'pointer' }} title={tStatus('GB 式 A4 横向图框：10mm 边框 + 右下标题栏（名称/材料/比例/单位/日期/制图 + 投影符号）— 开启后下方显示预览，导出 SVG/PNG/PDF 同步', lang)}><input type="checkbox" checked={gbFrame} onChange={(e) => setGbFrame(e.target.checked)} /> {tStatus('GB 图框', lang)}</label>
-          <span style={{ fontSize: 11, color: '#888', marginLeft: 4 }}>📐 {tStatus('标注：', lang)}</span>
-          <button className="cs-btn" style={dimMode ? { background: '#c2185b', color: '#fff' } : undefined} onClick={() => { setDimMode((m) => !m); setRadMode(null); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('进入标注模式后，喺任一视图点两点 → 标出两点间线性尺寸（自动吸附孔心/端点；Esc 取消）', lang)}>{dimMode ? tStatus('✓ 线性标注中（点两点）', lang) : tStatus('＋线性标注', lang)}</button>
-          <button className="cs-btn" style={radMode === 'r' ? { background: '#8a5a00', color: '#fff' } : undefined} onClick={() => { setRadMode((m) => (m === 'r' ? null : 'r')); setDimMode(false); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('进入后点一个圆 → 标半径 R（自动吸附侦测到的圆）', lang)}>{radMode === 'r' ? tStatus('✓ 半径标注中（点圆）', lang) : tStatus('＋半径 R', lang)}</button>
-          <button className="cs-btn" style={radMode === 'd' ? { background: '#8a5a00', color: '#fff' } : undefined} onClick={() => { setRadMode((m) => (m === 'd' ? null : 'd')); setDimMode(false); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('进入后点一个圆 → 标直径 Ø（自动吸附侦测到的圆）', lang)}>{radMode === 'd' ? tStatus('✓ 直径标注中（点圆）', lang) : tStatus('＋直径 Ø', lang)}</button>
-          <button className="cs-btn" style={angMode ? { background: '#6a1b9a', color: '#fff' } : undefined} onClick={() => { setAngMode((m) => !m); setDimMode(false); setRadMode(null); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('进入后点两条直线边 → 标出两边夹角（平行线无法标）', lang)}>{angMode ? tStatus('✓ 角度标注中（点两边）', lang) : tStatus('＋角度标注', lang)}</button>
+          <span className="dw-legend">{tStatus('— 可見輪廓　┄ 隱藏輪廓', lang)}</span>
+          <label style={{ fontSize: 12, marginLeft: 4, cursor: 'pointer' }} title={tStatus('顯示/隱藏 虛線隱藏輪廓（屏幕 + 匯出 SVG 同步）', lang)}><input type="checkbox" checked={showHidden} onChange={(e) => setShowHidden(e.target.checked)} /> {tStatus('隱藏線', lang)}</label>
+          <label style={{ fontSize: 12, marginLeft: 2, cursor: 'pointer' }} title={tStatus('顯示/隱藏 自動孔徑Ø標註 + 中心標記（屏幕 + 匯出同步）', lang)}><input type="checkbox" checked={showCallouts} onChange={(e) => setShowCallouts(e.target.checked)} /> {tStatus('Ø標註', lang)}</label>
+          <label style={{ fontSize: 12, marginLeft: 2, cursor: 'pointer' }} title={tStatus('GB 式 A4 橫向圖框：10mm 邊框 + 右下標題欄（名稱/材料/比例/單位/日期/制圖 + 投影符號）— 開啟後下方顯示預覽，匯出 SVG/PNG/PDF 同步', lang)}><input type="checkbox" checked={gbFrame} onChange={(e) => setGbFrame(e.target.checked)} /> {tStatus('GB 圖框', lang)}</label>
+          <span style={{ fontSize: 11, color: '#888', marginLeft: 4 }}>📐 {tStatus('標註：', lang)}</span>
+          <button className="cs-btn" style={dimMode ? { background: '#c2185b', color: '#fff' } : undefined} onClick={() => { setDimMode((m) => !m); setRadMode(null); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('進入標註模式後，喺任一視圖點兩點 → 標出兩點間線性尺寸（自動吸附孔心/端點；Esc 取消）', lang)}>{dimMode ? tStatus('✓ 線性標註中（點兩點）', lang) : tStatus('＋線性標註', lang)}</button>
+          <button className="cs-btn" style={radMode === 'r' ? { background: '#8a5a00', color: '#fff' } : undefined} onClick={() => { setRadMode((m) => (m === 'r' ? null : 'r')); setDimMode(false); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('進入後點一個圓 → 標半徑 R（自動吸附偵測到的圓）', lang)}>{radMode === 'r' ? tStatus('✓ 半徑標註中（點圓）', lang) : tStatus('＋半徑 R', lang)}</button>
+          <button className="cs-btn" style={radMode === 'd' ? { background: '#8a5a00', color: '#fff' } : undefined} onClick={() => { setRadMode((m) => (m === 'd' ? null : 'd')); setDimMode(false); setAngMode(false); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('進入後點一個圓 → 標直徑 Ø（自動吸附偵測到的圓）', lang)}>{radMode === 'd' ? tStatus('✓ 直徑標註中（點圓）', lang) : tStatus('＋直徑 Ø', lang)}</button>
+          <button className="cs-btn" style={angMode ? { background: '#6a1b9a', color: '#fff' } : undefined} onClick={() => { setAngMode((m) => !m); setDimMode(false); setRadMode(null); setPendPt(null); setPendSeg(null); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }} title={tStatus('進入後點兩條直線邊 → 標出兩邊夾角（平行線無法標）', lang)}>{angMode ? tStatus('✓ 角度標註中（點兩邊）', lang) : tStatus('＋角度標註', lang)}</button>
           <span className="dw-tool-group">
-            <button className="cs-btn" style={tolOn ? { background: '#00695c', color: '#fff' } : undefined} onClick={() => setTolOn((o) => !o)} title={tStatus('开启后，新放置嘅线性/半径/直径尺寸会附上公差（上/下偏差）', lang)}>{tolOn ? tStatus('✓ 公差', lang) : tStatus('公差 ±', lang)}</button>
+            <button className="cs-btn" style={tolOn ? { background: '#00695c', color: '#fff' } : undefined} onClick={() => setTolOn((o) => !o)} title={tStatus('開啟後，新放置嘅線性/半徑/直徑尺寸會附上公差（上/下偏差）', lang)}>{tolOn ? tStatus('✓ 公差', lang) : tStatus('公差 ±', lang)}</button>
             {tolOn && <>
               <input type="number" step="0.01" value={tolU} onChange={(e) => setTolU(+e.target.value || 0)} style={{ width: 56 }} title={tStatus('上偏差 (mm)', lang)} />
               <input type="number" step="0.01" value={tolL} onChange={(e) => setTolL(+e.target.value || 0)} style={{ width: 56 }} title={tStatus('下偏差 (mm)', lang)} />
-              <input value={fitCode} onChange={(e) => setFitCode(e.target.value)} placeholder={tStatus('配合H7', lang)} style={{ width: 60 }} title={tStatus('直径配合代号（选填，纯文字，如 H7 / g6）', lang)} />
+              <input value={fitCode} onChange={(e) => setFitCode(e.target.value)} placeholder={tStatus('配合H7', lang)} style={{ width: 60 }} title={tStatus('直徑配合代號（選填，純文字，如 H7 / g6）', lang)} />
               <span style={{ fontSize: 11, color: '#00695c' }}>{tolStr({ u: tolU, l: tolL }).trim() || '0'}</span>
             </>}
           </span>
           <span className="dw-tool-group">
-            <button className="cs-btn" style={autoTolOn ? { background: '#1565c0', color: '#fff' } : undefined} onClick={() => setAutoTolOn((o) => !o)} title={tStatus('一般公差：给自动标注嘅总宽/总高 + Ø 孔径附上对称公差 ±（ISO 2768 风格，免逐个手标）', lang)}>{autoTolOn ? tStatus('✓ 一般公差', lang) : tStatus('一般公差 ±', lang)}</button>
+            <button className="cs-btn" style={autoTolOn ? { background: '#1565c0', color: '#fff' } : undefined} onClick={() => setAutoTolOn((o) => !o)} title={tStatus('一般公差：給自動標註嘅總寬/總高 + Ø 孔徑附上對稱公差 ±（ISO 2768 風格，免逐個手標）', lang)}>{autoTolOn ? tStatus('✓ 一般公差', lang) : tStatus('一般公差 ±', lang)}</button>
             {autoTolOn && <>
-              <input type="number" step="0.05" min="0" value={autoTol} onChange={(e) => setAutoTol(Math.max(0, +e.target.value || 0))} style={{ width: 56 }} title={tStatus('自动尺寸对称公差 ±(mm)', lang)} />
+              <input type="number" step="0.05" min="0" value={autoTol} onChange={(e) => setAutoTol(Math.max(0, +e.target.value || 0))} style={{ width: 56 }} title={tStatus('自動尺寸對稱公差 ±(mm)', lang)} />
               <span style={{ fontSize: 11, color: '#1565c0' }}>±{fmtTol(autoTol)}</span>
             </>}
           </span>
-          <button className="cs-btn" style={datumMode ? { background: '#00838f', color: '#fff' } : undefined} onClick={() => { setDatumMode((m) => !m); setFcfMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setPendPt(null); setPendSeg(null); setNoteMode(false) }} title={tStatus('进入后点一处 → 放基准标记（方框字母，自动 A/B/C…）', lang)}>{datumMode ? tStatus('✓ 基准中（点放置）', lang) : tStatus('＋基准', lang)}</button>
+          <button className="cs-btn" style={datumMode ? { background: '#00838f', color: '#fff' } : undefined} onClick={() => { setDatumMode((m) => !m); setFcfMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setPendPt(null); setPendSeg(null); setNoteMode(false) }} title={tStatus('進入後點一處 → 放基準標記（方框字母，自動 A/B/C…）', lang)}>{datumMode ? tStatus('✓ 基準中（點放置）', lang) : tStatus('＋基準', lang)}</button>
           <span className="dw-tool-group">
-            <button className="cs-btn" style={fcfMode ? { background: '#00838f', color: '#fff' } : undefined} onClick={() => { setFcfMode((m) => !m); setDatumMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setPendPt(null); setPendSeg(null); setNoteMode(false) }} title={tStatus('进入后点一处 → 放形位公差框（特性符号 | 公差 | 基准）', lang)}>{fcfMode ? tStatus('✓ 形位公差中（点放置）', lang) : tStatus('＋形位公差', lang)}</button>
+            <button className="cs-btn" style={fcfMode ? { background: '#00838f', color: '#fff' } : undefined} onClick={() => { setFcfMode((m) => !m); setDatumMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setPendPt(null); setPendSeg(null); setNoteMode(false) }} title={tStatus('進入後點一處 → 放形位公差框（特性符號 | 公差 | 基準）', lang)}>{fcfMode ? tStatus('✓ 形位公差中（點放置）', lang) : tStatus('＋形位公差', lang)}</button>
             {fcfMode && <>
-              <select value={fcfSym} onChange={(e) => setFcfSym(e.target.value)} title={tStatus('特性符号', lang)}>{GDT_SYMS.map((g) => <option key={g.sym} value={g.sym}>{g.sym} {tStatus(g.name, lang)}</option>)}</select>
+              <select value={fcfSym} onChange={(e) => setFcfSym(e.target.value)} title={tStatus('特性符號', lang)}>{GDT_SYMS.map((g) => <option key={g.sym} value={g.sym}>{g.sym} {tStatus(g.name, lang)}</option>)}</select>
               <input value={fcfTol} onChange={(e) => setFcfTol(e.target.value)} placeholder={tStatus('公差', lang)} style={{ width: 50 }} title={tStatus('公差值', lang)} />
-              <input value={fcfDatum} onChange={(e) => setFcfDatum(e.target.value)} placeholder={tStatus('基准', lang)} style={{ width: 44 }} title={tStatus('基准参照（选填，如 A）', lang)} />
+              <input value={fcfDatum} onChange={(e) => setFcfDatum(e.target.value)} placeholder={tStatus('基準', lang)} style={{ width: 44 }} title={tStatus('基準參照（選填，如 A）', lang)} />
             </>}
           </span>
           <span className="dw-tool-group">
-            <button className="cs-btn" style={noteMode ? { background: '#5d4037', color: '#fff' } : undefined} onClick={() => { setNoteMode((m) => !m); setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setPendPt(null); setPendSeg(null) }} title={tStatus('进入后点几何 → 放注释（螺纹 M / 倒角 C / 粗糙度 Ra / 自由文字）', lang)}>{noteMode ? tStatus('✓ 注释中（点放置）', lang) : tStatus('📝 注释', lang)}</button>
+            <button className="cs-btn" style={noteMode ? { background: '#5d4037', color: '#fff' } : undefined} onClick={() => { setNoteMode((m) => !m); setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setPendPt(null); setPendSeg(null) }} title={tStatus('進入後點幾何 → 放註釋（螺紋 M / 倒角 C / 粗糙度 Ra / 自由文字）', lang)}>{noteMode ? tStatus('✓ 註釋中（點放置）', lang) : tStatus('📝 註釋', lang)}</button>
             {noteMode && <>
-              <select value={noteType} onChange={(e) => { const t = e.target.value as NoteKind; setNoteType(t); setNoteVal(t === 'thread' ? '6' : t === 'chamfer' ? '2' : t === 'surf' ? '3.2' : '') }} title={tStatus('注释类型', lang)}>
-                <option value="thread">{tStatus('螺纹 M（点孔）', lang)}</option><option value="chamfer">{tStatus('倒角 C（点边）', lang)}</option><option value="surf">{tStatus('粗糙度 Ra', lang)}</option><option value="text">{tStatus('自由文字', lang)}</option>
+              <select value={noteType} onChange={(e) => { const t = e.target.value as NoteKind; setNoteType(t); setNoteVal(t === 'thread' ? '6' : t === 'chamfer' ? '2' : t === 'surf' ? '3.2' : '') }} title={tStatus('註釋類型', lang)}>
+                <option value="thread">{tStatus('螺紋 M（點孔）', lang)}</option><option value="chamfer">{tStatus('倒角 C（點邊）', lang)}</option><option value="surf">{tStatus('粗糙度 Ra', lang)}</option><option value="text">{tStatus('自由文字', lang)}</option>
               </select>
-              <input value={noteVal} onChange={(e) => setNoteVal(e.target.value)} placeholder={noteType === 'thread' ? tStatus('如 6 或 6×1', lang) : noteType === 'chamfer' ? tStatus('如 2 或 2×45°', lang) : noteType === 'surf' ? tStatus('如 3.2', lang) : tStatus('文字', lang)} style={{ width: 78 }} title={tStatus('注释内容', lang)} />
+              <input value={noteVal} onChange={(e) => setNoteVal(e.target.value)} placeholder={noteType === 'thread' ? tStatus('如 6 或 6×1', lang) : noteType === 'chamfer' ? tStatus('如 2 或 2×45°', lang) : noteType === 'surf' ? tStatus('如 3.2', lang) : tStatus('文字', lang)} style={{ width: 78 }} title={tStatus('註釋內容', lang)} />
             </>}
           </span>
-          <button className="cs-btn" style={detailMode ? { background: '#2e7d32', color: '#fff' } : undefined} onClick={() => { setDetailMode((m) => !m); setOrdMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setNoteMode(false); setPendPt(null); setPendSeg(null) }} title={tStatus('局部放大（T749）：进入后点视图任一处 → 该圆形区域出一个 2:1 放大视图（图纸导出同步；DXF 唔支持，诚实跳过）', lang)}>{detailMode ? tStatus('✓ 局部放大中（点区域）', lang) : tStatus('🔍 局部放大', lang)}</button>
-          <button className="cs-btn" style={ordMode ? { background: '#2e7d32', color: '#fff' } : undefined} onClick={() => { setOrdMode((m) => !m); setDetailMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setNoteMode(false); setPendPt(null); setPendSeg(null) }} title={tStatus('坐标式标注（T791 — 多孔板神器）：首点 = 原点 ⊕，之后逐点出 (X, Y) 坐标标注（自动吸附圆心；Y 向上为正 = 钻床/CNC 惯例）。随存档保留', lang)}>{ordMode ? tStatus('✓ 坐标标注中（首点=原点）', lang) : tStatus('⊕ 坐标标注', lang)}</button>
+          <button className="cs-btn" style={detailMode ? { background: '#2e7d32', color: '#fff' } : undefined} onClick={() => { setDetailMode((m) => !m); setOrdMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setNoteMode(false); setPendPt(null); setPendSeg(null) }} title={tStatus('局部放大（T749）：進入後點視圖任一處 → 該圓形區域出一個 2:1 放大視圖（圖紙匯出同步；DXF 唔支持，誠實跳過）', lang)}>{detailMode ? tStatus('✓ 局部放大中（點區域）', lang) : tStatus('🔍 局部放大', lang)}</button>
+          <button className="cs-btn" style={ordMode ? { background: '#2e7d32', color: '#fff' } : undefined} onClick={() => { setOrdMode((m) => !m); setDetailMode(false); setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setNoteMode(false); setPendPt(null); setPendSeg(null) }} title={tStatus('座標式標註（T791 — 多孔板神器）：首點 = 原點 ⊕，之後逐點出 (X, Y) 座標標註（自動吸附圓心；Y 向上為正 = 鑽床/CNC 慣例）。隨存檔保留', lang)}>{ordMode ? tStatus('✓ 座標標註中（首點=原點）', lang) : tStatus('⊕ 座標標註', lang)}</button>
           {drawingKind !== 'assembly' && views.some((x) => x.name === 'section') && (
-            <span className="dw-tool-group" title={tStatus('A—A 剖切：位置百分比 + 剖切轴（Y=沿深度睇前视；X=沿阔度睇侧视）— 改完撳 ↻ 重新生成', lang)}>
+            <span className="dw-tool-group" title={tStatus('A—A 剖切：位置百分比 + 剖切軸（Y=沿深度睇前視；X=沿闊度睇側視）— 改完撳 ↻ 重新生成', lang)}>
               <span style={{ fontSize: 11, color: '#2e7d32' }}>✂A—A</span>
-              <select value={sectionAxis} onChange={(e) => setSectionAxis(e.target.value as 'Y' | 'X')} style={{ fontSize: 11 }} title={tStatus('剖切轴（T791）', lang)}><option value="Y">{tStatus('Y 深度', lang)}</option><option value="X">{tStatus('X 阔度', lang)}</option></select>
+              <select value={sectionAxis} onChange={(e) => setSectionAxis(e.target.value as 'Y' | 'X')} style={{ fontSize: 11 }} title={tStatus('剖切軸（T791）', lang)}><option value="Y">{tStatus('Y 深度', lang)}</option><option value="X">{tStatus('X 闊度', lang)}</option></select>
               <input type="number" aria-label={tStatus('剖切位置百分比', lang)} min={5} max={95} step={5} value={Math.round(sectionFrac * 100)} onChange={(e) => setSectionFrac((+e.target.value || 50) / 100)} style={{ width: 46 }} />%
               <button className="cs-btn" onClick={() => void regen()} title={tStatus('按新剖切位置/軸重新生成剖視圖', lang)}>↻</button>
               <label style={{ fontSize: 11, color: '#2e7d32', display: 'inline-flex', alignItems: 'center', gap: 2 }} title={tStatus('半剖（T791）：剖視圖格仔左半顯示外形、右半顯示剖切 — 對稱件一圖睇晒內外（機械圖慣例；導出同步）', lang)}><input type="checkbox" checked={halfSec} onChange={(e) => setHalfSec(e.target.checked)} />{tStatus('半剖', lang)}</label>
             </span>
           )}
-          {annoHist.length > 0 && <button className="cs-btn" onClick={undoAnno} title={tStatus('撤销最后加嘅一个标注（逐个撤，唔会清晒）', lang)}>{tStatus('↶ 撤销标注', lang)}</button>}
-          {Object.values(manualDims).concat(Object.values(manualRDims) as never[], Object.values(manualADims) as never[], Object.values(manualNotes) as never[]).some((a) => (a as unknown[]).length > 0) && <button className="cs-btn" onClick={clearAllAnno} title={tStatus('清空全部手动标注（T784 标注而家会随存档/重生成保留 — 几何大改错位时用呢个重标）', lang)}>{tStatus('🧹 清空', lang)}</button>}
-          {annoHist.length > 0 && <button className="cs-btn" onClick={() => { setManualDims({}); setManualRDims({}); setManualADims({}); setManualDatums({}); setManualFCF({}); setManualNotes({}); setDetails({}); setAnnoHist([]); setPendPt(null); setPendSeg(null) }}>{tStatus('清除标注', lang)}</button>}
-          <span style={{ fontSize: 11, color: '#888', marginLeft: 8, borderLeft: '1px solid #ddd', paddingLeft: 8 }}>📤 {tStatus('导出：', lang)}</span>
-          <button className="cs-btn" onClick={exportSVG}>{tStatus('导出 SVG', lang)}</button>
-          <button className="cs-btn" onClick={exportPNG} title={tStatus('導出工程圖為 PNG 圖片（高清位圖，方便貼文檔 / 聊天 / 郵件）', lang)}>{tStatus('导出 PNG', lang)}</button>
-          <button className="cs-btn" onClick={exportPDF} title={tStatus('PDF（位图嵌入，A4 横向）', lang)}>{tStatus('导出 PDF', lang)}</button>
-          <button className="cs-btn" onClick={exportDXF} title={tStatus('導出三視圖為 DXF（2D CAD/CAM 標準交換格式，可在 AutoCAD 等打開）', lang)}>{tStatus('导出 DXF', lang)}</button>
-          <button className="cs-btn" onClick={close}>{tStatus('关闭', lang)}</button>
+          {annoHist.length > 0 && <button className="cs-btn" onClick={undoAnno} title={tStatus('撤銷最後加嘅一個標註（逐個撤，唔會清晒）', lang)}>{tStatus('↶ 撤銷標註', lang)}</button>}
+          {Object.values(manualDims).concat(Object.values(manualRDims) as never[], Object.values(manualADims) as never[], Object.values(manualNotes) as never[]).some((a) => (a as unknown[]).length > 0) && <button className="cs-btn" onClick={clearAllAnno} title={tStatus('清空全部手動標註（T784 標註而家會隨存檔/重生成保留 — 幾何大改錯位時用呢個重標）', lang)}>{tStatus('🧹 清空', lang)}</button>}
+          {annoHist.length > 0 && <button className="cs-btn" onClick={() => { setManualDims({}); setManualRDims({}); setManualADims({}); setManualDatums({}); setManualFCF({}); setManualNotes({}); setDetails({}); setAnnoHist([]); setPendPt(null); setPendSeg(null) }}>{tStatus('清除標註', lang)}</button>}
+          <span style={{ fontSize: 11, color: '#888', marginLeft: 8, borderLeft: '1px solid #ddd', paddingLeft: 8 }}>📤 {tStatus('匯出：', lang)}</span>
+          <button className="cs-btn" onClick={exportSVG}>{tStatus('匯出 SVG', lang)}</button>
+          <button className="cs-btn" onClick={exportPNG} title={tStatus('導出工程圖為 PNG 圖片（高清位圖，方便貼文檔 / 聊天 / 郵件）', lang)}>{tStatus('匯出 PNG', lang)}</button>
+          <button className="cs-btn" onClick={exportPDF} title={tStatus('PDF（位圖嵌入，A4 橫向）', lang)}>{tStatus('匯出 PDF', lang)}</button>
+          <button className="cs-btn" onClick={exportDXF} title={tStatus('導出三視圖為 DXF（2D CAD/CAM 標準交換格式，可在 AutoCAD 等打開）', lang)}>{tStatus('匯出 DXF', lang)}</button>
+          <button className="cs-btn" onClick={close}>{tStatus('關閉', lang)}</button>
         </div>
       </div>
     </div>

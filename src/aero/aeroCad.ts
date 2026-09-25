@@ -4,7 +4,7 @@
 //   shell : B-spline meridian revolved about the body (X) axis
 // The replicad module is injected so the same code runs in the browser worker (aerocad.worker.ts)
 // and in node kernel tests.
-import { bladeSections, hubDims, shellMeridian, wingSections, type P3 } from './geometry'
+import { bladeSections, hubDims, shellMeridian, spinnerProfile, wingSections, type P3 } from './geometry'
 import { paramsOf, propGeomOf, type DesignSpec } from './designSpace'
 
 // Minimal structural typing of the replicad API we use (avoid importing replicad here → keeps the
@@ -35,10 +35,16 @@ export function buildAeroShape(r: ReplicadLike, spec: DesignSpec, x: Record<stri
   }
   if (spec.kind === 'prop') {
     const g = propGeomOf(paramsOf(spec, x))
-    const secs = bladeSections(spec, x, 8, 26)
+    const secs = bladeSections(spec, x, 12, 26)
     const blade0 = r.loft(secs.map((s) => sectionWire(r, s)), { ruled: false })
     const h = hubDims(spec, x)
     let body = r.makeCylinder(h.r, h.z1 - h.z0, [0, 0, h.z0], [0, 0, 1])
+    // spinner: elliptic ogive meridian in the XZ plane, closed along the axis, revolved about Z
+    const sp = spinnerProfile(spec, x, 12)
+    const apex = sp[sp.length - 1]
+    const ogive = r.makeBSplineApproximation(sp.map(([rr, z]) => [rr, 0, z]), { tolerance: 0.02, smoothing: null, degMax: 3, degMin: 1 })
+    const spinner = r.revolution(r.makeFace(r.assembleWire([ogive, r.makeLine([0, 0, apex[1]], [0, 0, sp[0][1]]), r.makeLine([0, 0, sp[0][1]], [sp[0][0], 0, sp[0][1]])])), [0, 0, 0], [0, 0, 1], 360)
+    body = body.fuse(spinner)
     for (let b = 0; b < g.blades; b++) {
       const bl = b === 0 ? blade0 : blade0.clone().rotate(360 * b / g.blades, [0, 0, 0], [0, 0, 1])
       body = body.fuse(bl)

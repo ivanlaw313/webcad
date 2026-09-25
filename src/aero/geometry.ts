@@ -45,18 +45,42 @@ export function wingSections(spec: DesignSpec, x: Record<string, number>, nSpan 
   return out
 }
 
-/** Blade section loops from root (inside the hub) to tip, for blade 0 (radial axis +X). mm. */
-export function bladeSections(spec: DesignSpec, x: Record<string, number>, nRad = 10, nSide = 24): P3[][] {
+/** Blade thickness scale vs r/R: thick structural root → thin tip, exactly 1 at 0.75R (the BEMT reference section). */
+export const bladeThicknessScale = (rR: number): number => Math.min(1.45, Math.max(0.8, 1.55 - 0.7333 * rR))
+/** Elliptic tip planform factor: 1 inboard of 0.88R, rounds off to a small tip chord at R. */
+export const bladeTipChordScale = (rR: number): number => {
+  const r1 = 0.88
+  if (rR <= r1) return 1
+  const u = Math.min(1, (rR - r1) / (1 - r1))
+  return Math.max(0.2, Math.sqrt(Math.max(0, 1 - u * u)))
+}
+
+/** Blade section loops from root (inside the hub) to tip, for blade 0 (radial axis +X). mm.
+ *  Visual/structural shaping (same sections feed preview, STL/CFD and the B-rep loft):
+ *  thickness taper (1 at 0.75R so the BEMT polar still describes the blade), elliptic tip,
+ *  and a root that blends into a rounded, thick section where it meets the hub. */
+export function bladeSections(spec: DesignSpec, x: Record<string, number>, nRad = 14, nSide = 24): P3[][] {
   const g = propGeomOf(paramsOf(spec, x))
   const R = g.diameter / 2, Rh = g.hubDiameter / 2
-  const loop = foil(g.airfoil, nSide)
   const out: P3[][] = []
   const r0 = Rh * 0.7
   for (let i = 0; i <= nRad; i++) {
     const t = i / nRad
-    const r = i === nRad ? R * 0.999 : r0 + (R - r0) * t
+    // sine spacing: stations bunch toward the tip so the rounded tip lofts smoothly
+    const r = i === nRad ? R * 0.999 : r0 + (R - r0) * Math.sin(t * Math.PI / 2)
+    const rR = r / R
     const st = interpStations(g.stations, Math.max(r, Rh) / R)
-    const c = Math.max(st.chord, 0.02 * R) * (i === nRad ? 0.85 : 1)
+    const rootBlend = Math.min(1, Math.max(0, (1.3 * Rh - r) / (0.3 * Rh)))   // 1 inside hub → 0 at 1.3·Rh
+    const c = Math.max(st.chord, 0.02 * R) * bladeTipChordScale(rR) * (1 - 0.05 * rootBlend)
+    const tRel = Math.max(0.02, g.airfoil.t * bladeThicknessScale(rR))
+    const base = foil({ ...g.airfoil, t: tRel }, nSide)
+    const half = (base.length - 1) / 2
+    const loop = rootBlend > 0
+      ? base.map(([u, v], k) => {
+        const ell = (k < half ? -1 : 1) * 0.16 * Math.sqrt(Math.max(0, 1 - (2 * u - 1) ** 2))
+        return [u, v + rootBlend * (ell - v)] as [number, number]
+      })
+      : base
     const th = st.twistDeg * Math.PI / 180
     const cth = Math.cos(th), sth = Math.sin(th)
     out.push(loop.map(([u, v]) => {
@@ -77,6 +101,18 @@ export function hubDims(spec: DesignSpec, x: Record<string, number>): { r: numbe
   for (const s of secs.slice(0, 2)) for (const p of s) { zmin = Math.min(zmin, p[2]); zmax = Math.max(zmax, p[2]) }
   const pad = 0.15 * (zmax - zmin) + 1
   return { r: g.hubDiameter / 2 * 1000, z0: zmin - pad, z1: zmax + pad }
+}
+
+/** Spinner (upstream nose cone on the +Z hub face) meridian (r, z) in mm: tangent ogive from the hub rim to the tip. */
+export function spinnerProfile(spec: DesignSpec, x: Record<string, number>, n = 16): [number, number][] {
+  const h = hubDims(spec, x)
+  const len = 1.7 * h.r
+  const out: [number, number][] = []
+  for (let i = 0; i <= n; i++) {
+    const s = i / n
+    out.push([i === n ? 0 : h.r * Math.pow(Math.cos(s * Math.PI / 2), 0.75), h.z1 + len * s])   // slender ogive, tangent-ish at the rim
+  }
+  return out
 }
 
 /** Shell meridian profile (x, r) in mm, nose (x=0,r=0) → tail. */
@@ -128,6 +164,24 @@ function cylinderMesh(m: TriMesh, r: number, z0: number, z1: number, seg = 32): 
   }
 }
 
+/** Closed spinner surface: base disc at the hub face + ogive rings up to an apex (outward normals). */
+function spinnerMesh(m: TriMesh, prof: [number, number][], seg = 32): void {
+  const base = m.vertices.length / 3
+  const rings = prof.length - 1                     // last point = apex (r = 0)
+  for (let i = 0; i < rings; i++) for (let j = 0; j < seg; j++) {
+    const a = 2 * Math.PI * j / seg
+    m.vertices.push(prof[i][0] * Math.cos(a), prof[i][0] * Math.sin(a), prof[i][1])
+  }
+  const apex = m.vertices.length / 3
+  m.vertices.push(0, 0, prof[rings][1])
+  const baseC = apex + 1
+  m.vertices.push(0, 0, prof[0][1])
+  const v = (i: number, j: number) => base + i * seg + (j % seg)
+  for (let i = 0; i < rings - 1; i++) for (let j = 0; j < seg; j++) m.triangles.push(v(i, j), v(i, j + 1), v(i + 1, j), v(i, j + 1), v(i + 1, j + 1), v(i + 1, j))
+  for (let j = 0; j < seg; j++) m.triangles.push(v(rings - 1, j), v(rings - 1, j + 1), apex)
+  for (let j = 0; j < seg; j++) m.triangles.push(baseC, v(0, j + 1), v(0, j))
+}
+
 export function designMesh(spec: DesignSpec, x: Record<string, number>): TriMesh {
   const m: TriMesh = { vertices: [], triangles: [] }
   if (spec.kind === 'wing') {
@@ -141,6 +195,7 @@ export function designMesh(spec: DesignSpec, x: Record<string, number>): TriMesh
     }
     const h = hubDims(spec, x)
     cylinderMesh(m, h.r, h.z0, h.z1)
+    spinnerMesh(m, spinnerProfile(spec, x))
   } else {
     const prof = shellMeridian(spec, x, 72)
     const seg = 48

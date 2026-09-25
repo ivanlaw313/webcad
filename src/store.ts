@@ -180,6 +180,7 @@ export type SampleKind = 'plate' | 'enclosure' | 'flange' | 'bracket' | 'hexnut'
 let _fid = 0
 const fid = () => 'F' + ++_fid
 let _anSeq = 0
+let windRunSeq = 0   // wind-fix：风洞 CPU 运行序号（cancelWind 递增 → 进行中嗰轮返嚟时自知作废）
 const anId = () => 'AN' + ++_anSeq   // GM-X1 #12：分析节点稳定 id
 // GM-X1 #12：把一个分析 type 设为唯一可见（overlay 互斥），upsert 入节点表并隐藏其余。
 function _soleVisibleAnalysis(arr: AnalysisNode[], type: AnalysisType, params?: Record<string, unknown>): AnalysisNode[] {
@@ -2860,6 +2861,9 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   toggleWind: () => void
   runWindSolve: () => Promise<void>
   clearWind: () => void
+  windGpuRunId: number                 // wind-fix：GPU 引擎「运行」请求号（撳运行 +1；0 = 冇请求/已取消）。选 GPU 唔会自动开跑
+  cancelWind: () => void               // wind-fix：中止进行中嘅计算（CPU worker / GPU solver），一定放返 windBusy；唔掂已有结果
+  requestClearWind: () => void         // wind-fix：Esc / ✕ / 取消 / ribbon 用：计算中 → 取消；有结果 → 要确认先清
   setWindOpt: (p: Partial<Pick<AppState, 'windSpeed' | 'windFluid' | 'windAxis' | 'windSign' | 'windRes' | 'windField' | 'windShowFlow' | 'windViz' | 'windXray' | 'windSmokeAlpha' | 'windSmokeSpeed' | 'windSmokeColor' | 'windStreakScale' | 'windRibbonAlpha' | 'windRibbonWidth' | 'windRibbonSigma' | 'windRibbonSpread' | 'windEngine' | 'windLive' | 'windSubsteps' | 'windTier'>>) => void
   downloadWindReport: () => void
   setFeaOpt: (p: Partial<Pick<AppState, 'feaForceN' | 'feaLoadMode' | 'feaPressure' | 'feaDir' | 'feaCustomDir' | 'feaRes' | 'feaMat' | 'feaField' | 'feaFatigueCase' | 'feaFixMode' | 'feaDeform' | 'feaProbeOn' | 'feaProbe'>>) => void
@@ -13536,7 +13540,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         return get().toggleFea()
       }
       case 'moldflow': return get().moldResult ? get().clearMold() : get().toggleMold()
-      case 'windtunnel': return get().windResult ? get().clearWind() : get().toggleWind()
+      case 'windtunnel': return get().windResult || get().windBusy ? get().requestClearWind() : get().toggleWind()
       case 'physicslab': return set({ physicsLabOpen: true, status: '已打開 Physics Lab：互動級剛體模擬（非工程認證）' })
       case 'slicepreview': { if (!get().bodyMesh) { set({ status: '切層預覽需要先有實體' }); return } set({ sliceOpen: true }); return }
       case 'aerolab': openAeroLab(); return set({ status: '已打開氣動設計實驗室：BEMT / VLM / 經驗阻力估算 + 自動優化（工程估算，非 CFD）' })
@@ -22059,6 +22063,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   windResult: null,
   windReport: '',
   windEngine: 'cpu',        // ★ 唔准改做 'gpu' ★ 见 type 宣告嗰度：球体 Cd 高 2.0–2.2× 未修
+  windGpuRunId: 0,
   windLive: false,
   windSubsteps: 0,
   windTier: 'auto',
@@ -22215,8 +22220,29 @@ export const useApp = create<AppState>((rawSet, get) => {
       status: '风洞 / 水洞 🌬️：设风速 + 流体（空气/水）+ 吹向 → 撳「运行」。出风阻系数 Cd + 阻力 + 流场（趋势级 LBM）',
     }
   }),
-  setWindOpt: (p) => set(p),
-  clearWind: () => set({ windMode: 0, windResult: null, windReport: '', status: '已清除风洞分析', windPose: null, windPoseDragging: false, windPoseCompare: null }),
+  // wind-fix：换引擎 → 作废 GPU 运行请求（否则切返 GPU 会用旧请求号即刻自动开跑）
+  setWindOpt: (p) => set(p.windEngine !== undefined && p.windEngine !== get().windEngine ? { ...p, windGpuRunId: 0 } : p),
+  clearWind: () => {
+    if (get().windBusy) get().cancelWind()
+    set({ windMode: 0, windResult: null, windReport: '', status: '已清除风洞分析', windPose: null, windPoseDragging: false, windPoseCompare: null, windGpuRunId: 0 })
+  },
+  cancelWind: () => {
+    windRunSeq++                   // 令进行中嘅 runWindSolve 返嚟时认得自己已作废（唔覆写结果/状态）
+    void import('./analysis/windClient').then((m) => m.cancelWindRun()).catch(() => { /* worker 未开过 = 冇嘢要停 */ })
+    // windGpuRunId=0 → WindTunnelGpu 拆 solver（佢 cleanup 亦会放 busy）；呢度直接放，唔靠组件仲 mount 住
+    set({ windBusy: false, windProg: 0, windProgNote: '', windGpuRunId: 0, status: '已取消风洞计算（已有结果保持不变）' })
+  },
+  requestClearWind: () => {
+    const s = get()
+    if (s.windBusy) { get().cancelWind(); return }
+    if (s.windResult) {
+      // wind-fix：Esc / ✕ 唔可以静静鸡删走一个跑咗几分钟嘅结果（用户报 205 秒结果一撳 Esc 就冇咗）
+      const ok = typeof window !== 'undefined' && typeof window.confirm === 'function'
+        && window.confirm('清除风洞分析结果？（取消 = 保留结果）')
+      if (!ok) { set({ status: '已保留风洞结果 —— 要清除请撳面板「清除结果」' }); return }
+    }
+    get().clearWind()
+  },
   /* ── 可拖拽位姿（GPU 引擎）───────────────────────────────────────────────
    * 拖拽期间【每帧】都会 call setWindPose —— 所以呢度一个多余嘅 set 都唔可以有。
    * 恒等矩阵一律存 null（省得 solver 每帧比对 16 个 float 去认「其实冇郁过」）。 */
@@ -22237,15 +22263,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   runWindSolve: async () => {
     const s = get()
     if (s.windBusy) return
-    /* GPU 引擎係【开住面板就逐帧自己行】（WindTunnelGpu 个 useFrame driver），唔使撳「运行」。
-     * 唔喺度截住嘅话，撳掣会行 CPU worker，然后用 CPU 结果【覆写】咗 GPU 嗰个 windResult。 */
-    if (s.windEngine === 'gpu') {
-      set({ windMode: 1, status: 'GPU 引擎：开住面板就逐帧求解（拖零件即时更新）—— 唔使撳运行' })
-      return
-    }
     const tgt = moldTargetMesh(s)
     if (!tgt || !tgt.vertices.length) { set({ status: '风洞分析：需要先有活动实体，或选中一个导入网格组件' }); return }
+    /* GPU 引擎由 WindTunnelGpu 个 useFrame driver 求解。wind-fix：★ 撳「运行」先开跑 ★（windGpuRunId+1），
+     * 拣 GPU / 改条件唔会自动开跑；唔喺度截住嘅话会行 CPU worker 覆写 GPU 嗰个 windResult。 */
+    if (s.windEngine === 'gpu') {
+      set({ windMode: 1, windGpuRunId: s.windGpuRunId + 1, status: 'GPU 风洞：准备中…' })
+      return
+    }
     const fluidCN = s.windFluid === 'water' ? '水' : '空气'
+    const seq = ++windRunSeq
     set({ windBusy: true, windProg: 0, windProgNote: '体素化', status: `风洞：体素化…（${fluidCN} @ ${s.windSpeed} m/s）` })
     let lastT = 0
     try {
@@ -22254,20 +22281,25 @@ export const useApp = create<AppState>((rawSet, get) => {
         vertices: Float32Array.from(tgt.vertices), triangles: Uint32Array.from(tgt.triangles),
         speed: s.windSpeed, fluid: s.windFluid, axis: s.windAxis ?? undefined, sign: s.windSign, resolution: s.windRes, maxRes: s.lowPower ? 40 : 64,
         onProgress: (pct: number, note: string) => {
+          if (seq !== windRunSeq) return
           const now = Date.now(); if (now - lastT < 120) return; lastT = now
           set({ windProg: Math.max(0, Math.min(1, pct / 100)), windProgNote: note, status: `风洞：${note} ${pct.toFixed(0)}%` })
         },
       })
+      if (seq !== windRunSeq) return   // wind-fix：已取消 / 已被新一轮取代 → 唔覆写
       const f1 = (x: number) => (x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x >= 1 ? x.toFixed(2) : x.toFixed(3))
-      const dragStr = r.dragN >= 1 ? `${f1(r.dragN)} N` : `${(r.dragN * 1000).toFixed(2)} mN`
+      const nStr = (n: number) => (n >= 1 ? `${f1(n)} N` : `${(n * 1000).toFixed(2)} mN`)
+      const dragStr = nStr(r.dragN)
+      const cdHead = r.cdCorr ?? r.cd   // wind-fix：报告/状态同面板一致用修正后 Cd；阻力 dragN 亦系按修正 Cd
       const axisCN = ['X', 'Y', 'Z'][s.windAxis ?? -1] || '最长轴(自动)'
       const report = [
         'WebCAD 风洞 / 水洞趋势报告（格子玻尔兹曼 LBM D3Q19 + Smagorinsky LES — 趋势级，非商用 CFD 验证级）',
         `零件：${s.projectName} · 流体：${r.fluidName}（ρ=${r.rho} kg/m³, μ=${r.mu.toExponential(2)} Pa·s）`,
         `工况：来流 ${r.speed} m/s · 方向：${axisCN}${s.windSign < 0 ? '(−)' : '(+)'} · 体素分辨率：${r.res}${r.bumped ? `（薄件自动加密：${s.windRes}→${r.res}）` : ''}`,
         `── 结果 ──`,
-        `风阻系数 Cd ≈ ${r.cd.toFixed(3)}（无量纲；形阻由压力场积分 + 摩擦阻经验补）`,
-        `阻力 ≈ ${dragStr}（沿来流方向；F = Cd · ½ρV² · 迎风面积）`,
+        `风阻系数 Cd ≈ ${cdHead.toFixed(3)}（无量纲；Maskell 堵塞修正后；形阻由压力场积分 + 摩擦阻经验补）`,
+        r.cdCorr !== undefined ? `原始 Cd ${r.cd.toFixed(3)} · 堵塞率 ${((r.blockage ?? 0) * 100).toFixed(0)}% · 原始阻力 ${nStr(r.dragNRaw ?? r.cd * r.dragN / cdHead)}` : '',
+        `阻力 ≈ ${dragStr}（沿来流方向；F = Cd · ½ρV² · 迎风面积，Cd 用修正后值）`,
         `迎风投影面积 ≈ ${r.frontalAreaMM2 >= 100 ? r.frontalAreaMM2.toFixed(0) : r.frontalAreaMM2.toFixed(1)} mm²`,
         `雷诺数 Re ≈ ${r.re.toExponential(2)}（特征长度 = 迎风等效直径 ${(r.refLenM * 1000).toFixed(1)} mm）`,
         `表面压力系数 Cp 范围：${r.cpMin.toFixed(2)} ～ ${r.cpMax.toFixed(2)}（>0 迎风高压红 / <0 背风吸力蓝）`,
@@ -22282,10 +22314,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         windBusy: false, windMode: 0,
         windResult: r, windReport: report,
-        status: `风洞（${fluidCN}·${r.speed}m/s·${r.nSurf}面${r.bumped ? `·薄件加密${r.res}` : ''}）：Cd≈${r.cd.toFixed(3)} · 阻力≈${dragStr} · Re≈${r.re.toExponential(1)} — 趋势级 LBM，相对比较可信；红=迎风高压、蓝=背风吸力`,
+        status: `风洞（${fluidCN}·${r.speed}m/s·${r.nSurf}面${r.bumped ? `·薄件加密${r.res}` : ''}）：Cd≈${cdHead.toFixed(3)} · 阻力≈${dragStr} · Re≈${r.re.toExponential(1)} — 趋势级 LBM，相对比较可信；红=迎风高压、蓝=背风吸力`,
       })
     } catch (err) {
+      if (seq !== windRunSeq) return   // 用户取消：cancelWind 已经放咗 busy + 写咗状态
       set({ windBusy: false, status: `风洞异常：${err instanceof Error ? err.message : String(err)}` })
+    } finally {
+      // wind-fix：任何出口（成功 / 异常 / 超时）都一定放返 busy（只限仲系当前呢一轮）
+      if (seq === windRunSeq && get().windBusy) set({ windBusy: false })
     }
   },
   downloadWindReport: () => {

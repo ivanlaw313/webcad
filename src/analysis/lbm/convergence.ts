@@ -410,3 +410,16 @@ export function blendFrameMs(prev: number, sample: number, alpha = 0.2): number 
   const a = Math.min(1, Math.max(0, alpha))
   return prev * (1 - a) + sample * a
 }
+
+/**
+ * wind-fix：GPU driver 呢一帧要唔要暂停（唔 advance）。
+ *
+ * 旧 gate 净系 `windMode === 0 || hidden`。但 CPU 跑完 runWindSolve 会设 windMode=0（面板靠 windResult
+ * 继续显示），之后喺同一个面板拣 GPU → solver 建好、shader 编译好，driver 见 windMode===0 就永远暂停：
+ * 进度 0%、状态栏停喺「编译 shader…」。而家：driver 自己揸住 busy（面板显示紧「计算中…」）就照行；
+ * 真系閂咗面板（冇 run 喺度）或者 tab 唔见人先暂停。
+ */
+export function gpuDriverShouldPause(p: { windMode: number; owningRun: boolean; hidden: boolean }): boolean {
+  if (p.hidden) return true
+  return p.windMode === 0 && !p.owningRun
+}

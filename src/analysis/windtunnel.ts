@@ -59,6 +59,7 @@ export interface WindResult {
   streamSpeedMax?: number          // 流线速度上限 m/s（着色归一化）
   // ── GM-W3 3.2：Maskell 钝体堵塞修正（optional，兼容旧存档）──
   cdCorr?: number                  // 堵塞修正后 Cd（面板 headline；cd 仍系未修正原值）
+  dragNRaw?: number                // wind-fix：未修正 Cd 对应嘅阻力 N（次要显示）；dragN 本身 = cdCorr·½ρV²A，同 headline Cd 一致
   blockage?: number                // 堵塞率 B = 迎风面积 / 流道截面（0..1）
   // ── GM-W3 3.3：诚实度透明字段（optional）──
   reClamped?: boolean              // reLb 是否真的被钳入稳定带 [6,800]（面板据此提示）
@@ -123,7 +124,9 @@ export function runWindTunnel(inp: WindInput): WindResult {
 
   // 2) 砌带边距嘅流道域（来流→ +X）。上游短、下游长（畀尾流发展）、四壁留边距。
   const crossMax = Math.max(nA, nB)
-  const padUp = Math.round(0.4 * crossMax) + 4
+  // wind-fix：上游 0.4→1.0·crossMax。0.4 时入口（软平衡态 Dirichlet）离钝体仅 ~0.9D，滞点压力场顶到入口 → 入口面静压
+  //   中心高、四边低，核心流管总压被抬高 ~1.4 个动压 → 迎风 Cp≈1.8–2.5 + 迎风压力（形阻）虚高。1.0 时入口面静压横向均匀。
+  const padUp = Math.round(1.0 * crossMax) + 4
   const padDown = Math.round(1.2 * crossMax) + 6
   // 逐轴侧壁边距：按【该轴自身】大细（唔再一律用 crossMax）—— 薄板嘅薄轴唔会再被过度 padding 撑爆个域（快 + 慳内存）
   const padA = Math.round(0.45 * nA) + 4
@@ -252,7 +255,16 @@ export function runWindTunnel(inp: WindInput): WindResult {
     for (let dz = 0; dz < DZ; dz++) for (let dy = 0; dy < DY; dy++) {
       const bi = idxOf(0, dy, dz) * Q; for (let q = 0; q < Q; q++) fnew[bi + q] = feqB[q]
       const bo = idxOf(DX - 1, dy, dz) * Q, bin = idxOf(DX - 2, dy, dz) * Q
-      for (let q = 0; q < Q; q++) fnew[bo + q] = fnew[bin + q]
+      // wind-fix：出口防倒灌。纯零梯度 copy 会令尾流中心由出口倒吸入一条 ~−U 嘅反向射流，撞落背风面
+      //   → 底压变正（球底 Cp≈+0.25）、Cp_max 跑去背面。倒流格改为 feq(ρ, ux=0, uy, uz)（CFD 常用 backflow 抑制）。
+      let r0 = 0, mxo = 0
+      for (let q = 0; q < Q; q++) { const fq = fnew[bin + q]; r0 += fq; mxo += EX[q] * fq }
+      if (mxo < 0 && r0 > 1e-6) {
+        let myo = 0, mzo = 0
+        for (let q = 0; q < Q; q++) { const fq = fnew[bin + q]; myo += EY[q] * fq; mzo += EZ[q] * fq }
+        const uy = myo / r0, uz = mzo / r0, us = uy * uy + uz * uz
+        for (let q = 0; q < Q; q++) { const eu = EY[q] * uy + EZ[q] * uz; fnew[bo + q] = W[q] * r0 * (1 + 3 * eu + 4.5 * eu * eu - 1.5 * us) }
+      } else for (let q = 0; q < Q; q++) fnew[bo + q] = fnew[bin + q]
     }
     for (let dx = 0; dx < DX; dx++) for (let dz = 0; dz < DZ; dz++) {
       let nn = idxOf(dx, 0, dz) * Q; for (let q = 0; q < Q; q++) fnew[nn + q] = feqB[q]
@@ -317,17 +329,19 @@ export function runWindTunnel(inp: WindInput): WindResult {
   fricScale = Math.min(1, Math.max(0.4, fricScale))
   const cdFric = cf * wettedFaces / aLb * fricScale
   const cd = cdForm + cdFric                                  // 原始（未修正）Cd
-  const dragN = cd * 0.5 * fluid.rho * V * V * frontalAreaM2  // Cd 无量纲 → 换返真实工况 SI（用原始 Cd）
+  const qA = 0.5 * fluid.rho * V * V * frontalAreaM2          // ½ρV²·A（N / 单位 Cd）
   // GM-W3 3.2：Maskell 钝体堵塞修正 —— 迎风投影/流道截面愈大，风洞壁令实测 Cd 偏高。
   // Cd_corr = Cd / (1 + εM·Cd·B)，εM≈0.96（Maskell 1963 钝体形式），B = 迎风面积/流道截面。诚实：趋势级经验修正。
   const blockage = aLb / (DY * DZ)                            // 堵塞率 B（格子面积比 = 物理面积比）
   const EPS_MASKELL = 0.96
   const cdCorr = cd / (1 + EPS_MASKELL * cd * blockage)
+  // wind-fix：阻力同 headline（修正后）Cd 一致 —— 旧版用原始 Cd，面板 Cd 同阻力 N 对唔上（1.475 vs 1.947）。原始值留喺 dragNRaw。
+  const dragN = cdCorr * qA
+  const dragNRaw = cd * qA
 
   // 6) 采表面场（Cp + 表面流速）+ 流场样本（箭头）
   prog(96, '取场')
   const cadT = [0, 0, 0]
-  const halfU2 = 0.5 * U_LB * U_LB
   const Vscale = V / U_LB
   const surfCenters: number[] = [], surfCp: number[] = [], surfSpd: number[] = []
   const macro = (n: number) => {
@@ -336,6 +350,19 @@ export function runWindTunnel(inp: WindInput): WindResult {
     if (rho < 1e-6) rho = 1e-6
     return { rho, ux: mx / rho, uy: my / rho, uz: mz / rho }
   }
+  // ★Cp 参考压力（wind-fix）★：旧式假设 p∞ = 入口名义 ρ0=1（(ρ-1)/3）。但出口系零梯度（压力浮动），要推流过钝体，
+  //   成个上游域静压会整体抬高 ~0.5 个动压 → 所有 Cp 被加一个正偏移（迎风 Cp>1、背风/底压变正）。
+  //   改用风洞 Pitot-static 做法：喺上游参考面（入口后第 2 层）量【总压】P0 = p + ½ρ|u|²（横截面平均），
+  //   p∞ = P0 − ½ρ∞U²、q∞ = ½ρ∞U²。均匀偏移喺封闭表面积分 Σp·n 中抵消 → Cd / 阻力唔受呢个参考影响。
+  let p0Sum = 0, rhoRefSum = 0, refCnt = 0
+  for (let dz = 1; dz < DZ - 1; dz++) for (let dy = 1; dy < DY - 1; dy++) {
+    const n = idxOf(Math.min(2, DX - 2), dy, dz); if (obst[n]) continue
+    const mm = macro(n)
+    p0Sum += (mm.rho - 1) / 3 + 0.5 * mm.rho * (mm.ux * mm.ux + mm.uy * mm.uy + mm.uz * mm.uz); rhoRefSum += mm.rho; refCnt++
+  }
+  const rhoRef = refCnt ? rhoRefSum / refCnt : 1
+  const qRef = 0.5 * rhoRef * U_LB * U_LB                   // 参考动压 q∞（格子单位）
+  const pRef = refCnt ? p0Sum / refCnt - qRef : 0           // 参考静压 p∞（gauge，相对 1/3）
   let cpMin = Infinity, cpMax = -Infinity
   for (let dz = 1; dz < DZ - 1; dz++) for (let dy = 1; dy < DY - 1; dy++) for (let dx = 1; dx < DX - 1; dx++) {
     const n = idxOf(dx, dy, dz)
@@ -347,7 +374,7 @@ export function runWindTunnel(inp: WindInput): WindResult {
       const mm = macro(m); rhoS += mm.rho; spdS += Math.sqrt(mm.ux * mm.ux + mm.uy * mm.uy + mm.uz * mm.uz); cnt++
     }
     if (!cnt) continue   // 内部体素 → 唔输出（只着色表面壳）
-    const cp = (rhoS / cnt - 1) / (3 * halfU2)    // Cp=(p-p∞)/(½ρV²)=(ρ-1)/(3·½u_lb²)
+    const cp = ((rhoS / cnt - 1) / 3 - pRef) / qRef    // Cp=(p−p∞)/q∞，p∞/q∞ 由上游参考面总压反推
     domToCad(dx, dy, dz, cadT)
     surfCenters.push(cadT[0], cadT[1], cadT[2]); surfCp.push(cp); surfSpd.push((spdS / cnt) * Vscale)
     if (cp < cpMin) cpMin = cp; if (cp > cpMax) cpMax = cp
@@ -512,7 +539,7 @@ export function runWindTunnel(inp: WindInput): WindResult {
     fluidName: fluid.name, rho: fluid.rho, mu: fluid.mu,
     steps: step, converged, cpMin, cpMax, res, bumped, warnings,
     // GM-W3 3.2 / 3.3：修正 Cd + 堵塞率 + 钳制/振荡透明度（全部 optional，兼容旧存档）
-    cdCorr, blockage, reClamped, cdOsc,
+    cdCorr, blockage, reClamped, cdOsc, dragNRaw: Math.abs(dragNRaw),
     // GM-W3 3.1：真流线（有解到先带；否则唔加字段 → 旧渲染/字节兼容）
     ...(streamLineOffsets.length > 1 ? { streamPts, streamSpeed, streamLineOffsets, streamSpeedMax } : {}),
     // S1 GPU 烟流：速度场 3D texture + 域→CAD 矩阵 + 烟耙（optional；旧渲染完全唔受影响）

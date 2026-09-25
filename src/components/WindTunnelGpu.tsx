@@ -80,7 +80,7 @@ import {
 import type { MrtReport, PhiField, SolverReport, TierName, WindDomain } from '../analysis/lbm/lbmGpu'
 import { OMEGA_MINUS, U_LB, lambdaFromOmegas } from '../analysis/lbm/lattice'
 import {
-  CD_COMPARE_NOTE, ConvergenceTracker, GPU_CD_BASIS, blendFrameMs, planSchedule, substepBudget,
+  CD_COMPARE_NOTE, ConvergenceTracker, GPU_CD_BASIS, blendFrameMs, gpuDriverShouldPause, planSchedule, substepBudget,
 } from '../analysis/lbm/convergence'
 import type { CdBasis, ConvStats } from '../analysis/lbm/convergence'
 import {
@@ -115,6 +115,8 @@ type GpuKnobs = {
    * 有嘅话就快 140ms、而且撳落手柄嗰刻即刻停收样本。
    */
   windPoseDragging?: boolean
+  /** wind-fix：撳「运行」先 +1；0 = 未请求 / 已取消 / 已停止。★ 选 GPU 唔会自动开跑 ★ */
+  windGpuRunId?: number
 }
 
 /**
@@ -229,7 +231,19 @@ function packResult(solver: LbmGpu, stats: ConvStats, ctx: PackCtx): GpuWindResu
 
   // ── 表面 Cp + 表面流速（windtunnel.ts:340-355 逐条搬）──
   // 偏差形式之下 delta = rho − 1，所以 Cp = delta / (3·½u_lb²) 直接得，唔使再减 1。
-  const halfU2 = 0.5 * U_LB * U_LB
+  // wind-fix：p∞ 唔再假设 = 名义 ρ0=1 —— 出口零梯度令上游静压整体浮高，旧式 Cp 被加正偏移（迎风 Cp≈2–2.8）。
+  //   同 CPU 一样喺上游参考面（x=2）量平均总压 P0 = p + ½ρ|u|²，p∞ = P0 − q∞（Pitot-static 做法）。
+  let p0Sum = 0, rhoRefSum = 0, refCnt = 0
+  {
+    const xr = Math.min(2, DX - 2)
+    for (let z = 1; z < DZ - 1; z++) for (let y = 1; y < DY - 1; y++) {
+      const k = idxOf(xr, y, z); if (obst[k]) continue
+      const rho = 1 + m.delta[k]
+      p0Sum += m.delta[k] / 3 + 0.5 * rho * (m.ux[k] * m.ux[k] + m.uy[k] * m.uy[k] + m.uz[k] * m.uz[k]); rhoRefSum += rho; refCnt++
+    }
+  }
+  const qRef = 0.5 * (refCnt ? rhoRefSum / refCnt : 1) * U_LB * U_LB
+  const pRef = refCnt ? p0Sum / refCnt - qRef : 0
   const vm = dom.volMatrix
   const toCad = (x: number, y: number, z: number, out: number[]): void => {
     // volMatrix 係【cell-centre 约定】：cell i 嘅中心係 i + 0.5（同 WindSmoke 嘅 texcoord = p/N 同源）
@@ -255,7 +269,7 @@ function packResult(solver: LbmGpu, stats: ConvStats, ctx: PackCtx): GpuWindResu
       cnt++
     }
     if (!cnt) continue                       // 内部体素 → 唔输出（只着色表面壳）
-    const cp = (dSum / cnt) / (3 * halfU2)
+    const cp = ((dSum / cnt) / 3 - pRef) / qRef
     toCad(x, y, z, cadT)
     surfCenters.push(cadT[0], cadT[1], cadT[2]); surfCp.push(cp); surfSpd.push((sSum / cnt) * Vscale)
     if (cp < cpMin) cpMin = cp
@@ -379,7 +393,10 @@ function packResult(solver: LbmGpu, stats: ConvStats, ctx: PackCtx): GpuWindResu
   const areaMM2 = ctx.areaMM2 > 0 ? ctx.areaMM2 : dom.frontalAreaMM2
   const blockage = dom.frontalCells / (DY * DZ)
   const cdCorr = cd / (1 + EPS_MASKELL * cd * blockage)
-  const dragN = cd * 0.5 * ctx.rho * ctx.speed * ctx.speed * (areaMM2 * 1e-6)
+  // wind-fix：阻力同面板 headline（修正后）Cd 一致；原始值入 dragNRaw
+  const qA = 0.5 * ctx.rho * ctx.speed * ctx.speed * (areaMM2 * 1e-6)
+  const dragN = cdCorr * qA
+  const dragNRaw = cd * qA
 
   const warnings = ctx.warnings.slice()
   if (!stats.converged) warnings.push(`未收敛（行咗 ${solver.stepCount} substep 就撞到上限）—— Cd 係末段时均，仲喺度飘`)
@@ -397,7 +414,7 @@ function packResult(solver: LbmGpu, stats: ConvStats, ctx: PackCtx): GpuWindResu
     fluidName: ctx.fluidName, rho: ctx.rho, mu: ctx.mu,
     steps: solver.stepCount, converged: stats.converged,
     cpMin, cpMax, res: ctx.res, bumped: false, warnings,
-    cdCorr, blockage, reClamped: solver.flow.reClamped, cdOsc: stats.cdOsc,
+    cdCorr, blockage, reClamped: solver.flow.reClamped, cdOsc: stats.cdOsc, dragNRaw: Math.abs(dragNRaw),
     ...(lineOff.length > 1 ? {
       streamPts: Float32Array.from(streamPtsArr),
       streamSpeed: Float32Array.from(streamSpeedArr),
@@ -452,6 +469,8 @@ interface Live {
   poseErr: string
   /** 逐帧重用，唔好喺 useFrame 入面 new Matrix4 */
   m4: Matrix4
+  /** wind-fix：呢个 solver 仲揸住 store 嘅 windBusy（拆 solver 时一定要放返，否则面板永远「计算中…」） */
+  busy: boolean
 }
 
 /** 一帧最多畀 solver 食几多 ms（余返嘅係 CAD 视窗 + React）。 */
@@ -536,6 +555,7 @@ export default function WindTunnelGpu() {
   const bodyMesh = useApp((s) => s.bodyMesh)
   const selComp = useApp((s) => s.selectedComponent)
   const nComp = useApp((s) => s.components.length)
+  const runId = useApp((s) => (s as unknown as GpuKnobs).windGpuRunId ?? 0)
 
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
@@ -546,8 +566,15 @@ export default function WindTunnelGpu() {
     substeps: 6, maxSubsteps: 24, substepsPreDrag: 6, dragging: false,
     frameMs: NaN, lastT: 0, lastProgT: 0, lastPublishT: 0,
     published: false, areaMM2: 0, links: 0, dead: '',
-    poseSupported: false, poseErr: '', m4: new Matrix4(),
+    poseSupported: false, poseErr: '', m4: new Matrix4(), busy: false,
   })
+  /** wind-fix：统一放 windBusy —— 所有「呢个 run 完咗 / 死咗 / 拆咗」嘅出口都行呢度。 */
+  const releaseBusy = (extra?: Partial<ReturnType<typeof useApp.getState>>) => {
+    const S = L.current
+    const wasBusy = S.busy
+    S.busy = false
+    if (wasBusy || extra) useApp.setState({ ...(wasBusy ? { windBusy: false } : {}), ...(extra ?? {}) } as Partial<ReturnType<typeof useApp.getState>>)
+  }
 
   // ── 能力探测：★ allocate 任何嘢之前 ★（probeMRT.ts 文件头讲晒点解）──
   const caps: MrtReport = useMemo(() => {
@@ -580,7 +607,8 @@ export default function WindTunnelGpu() {
     S.areaMM2 = 0; S.links = 0; S.frameMs = NaN
     S.dragging = false; S.poseSupported = false; S.poseErr = ''
 
-    if (engine !== 'gpu' || !caps.ok || !caps.force7) return
+    // wind-fix：★ 净系撳「运行」（windGpuRunId>0）先建 solver ★ —— 以前一拣 GPU 就即刻分配 ~144 MB + 编译 shader 开跑。
+    if (engine !== 'gpu' || !caps.ok || !caps.force7 || runId === 0) return
 
     const st = useApp.getState()
     const tgt = moldTargetMesh(st)
@@ -613,7 +641,7 @@ export default function WindTunnelGpu() {
         measure: true,          // ★ Cd 就係产品 ★
         needVolume: false,      // 我哋出 RGBA8 volData 畀现有渲染器，唔使 solver 逐帧填 3D 体积（省 nz 个 draw call）
         needQ: false,
-        maxTier: tierPref !== 'auto' ? tierPref : undefined,
+        maxTier: (() => { const t = (st as unknown as GpuKnobs).windTier ?? 'auto'; return t !== 'auto' ? t : undefined })(),
         caps,
       })
       const solver = built.solver
@@ -646,6 +674,7 @@ export default function WindTunnelGpu() {
         report: rep,
       }
       S.compiling = true
+      S.busy = true
       useApp.setState({
         windBusy: true, windProg: 0, windProgNote: '编译 shader',
         status: `GPU 风洞：${rep.nx}×${rep.ny}×${rep.nz}（${rep.tier}）· ${Math.round(rep.vram.total / 1048576)} MB · 编译 shader…`,
@@ -662,15 +691,16 @@ export default function WindTunnelGpu() {
         if (cancelled || S.solver !== solver) return
         S.compiling = false
         S.dead = e instanceof Error ? e.message : String(e)
-        useApp.setState({ windBusy: false, status: '⚠ GPU 风洞 shader 编译失败：' + S.dead })
+        releaseBusy({ status: '⚠ GPU 风洞 shader 编译失败：' + S.dead })
       })
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       S.dead = msg
+      S.busy = false
       // ★ context lost 唔係「显存唔够」★ —— 细 lattice 救唔到，唔好扮可以 retry
       useApp.setState({
         windBusy: false,
-        windEngine: 'cpu',
+        windEngine: 'cpu', windGpuRunId: 0,
         status: (isContextLostError(e) ? '⚠ GPU 风洞：WebGL context 遗失（重开页面再试）— ' : '⚠ GPU 风洞起唔到 — ')
           + msg + '；已切返 CPU 引擎',
       } as Partial<ReturnType<typeof useApp.getState>>)
@@ -681,11 +711,30 @@ export default function WindTunnelGpu() {
       S.solver?.dispose()
       S.solver = null; S.tracker = null; S.pc = null; S.report = null; S.ctx = null
       S.ready = false; S.compiling = false; S.dragging = false
+      // wind-fix：取消 / 切 CPU / 閂面板 / 重新运行 → 拆 solver 嘅同时一定放返 windBusy（以前漏咗 → 永远「计算中…」要 reload）
+      releaseBusy()
     }
     // ⚠ substepPref 蓄意【唔】喺 deps 入面：拉一拉 substep slider 唔应该掉咗成个流场重头计。
     //   佢喺 useFrame 度每帧读，所以照样即时生效。
+    // ⚠ wind-fix：条件 / 几何【唔再】喺 deps —— 改咗唔会静静鸡自动重开一个 GPU run（见下面嗰个 effect：停低 + 叫用户撳运行）。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine, caps, gl, invalidate, windSpeed, windFluid, windAxis, windSign, tierPref, bodyMesh, selComp, nComp])
+  }, [engine, caps, gl, invalidate, runId])
+
+  // wind-fix：条件 / 几何一变 → 停低进行中嘅 GPU run（windGpuRunId=0 → 上面 cleanup 拆 solver + 放 busy），
+  //   唔自动重开。用「上一次嘅值」比较而唔系「首次 mount 跳过」—— StrictMode 双跑 effect 时值一样，唔会误停。
+  const paramsRef = useRef<unknown[] | null>(null)
+  useEffect(() => {
+    const cur: unknown[] = [windSpeed, windFluid, windAxis, windSign, tierPref, bodyMesh, selComp, nComp]
+    const prev = paramsRef.current
+    paramsRef.current = cur
+    if (!prev || prev.every((v, i) => Object.is(v, cur[i]))) return
+    const st = useApp.getState() as unknown as GpuKnobs
+    if ((st.windGpuRunId ?? 0) === 0) return
+    useApp.setState({
+      windGpuRunId: 0,
+      status: 'GPU 风洞：条件 / 几何已改 —— 已停止当前计算；撳「运行」用新条件重新计算',
+    } as Partial<ReturnType<typeof useApp.getState>>)
+  }, [windSpeed, windFluid, windAxis, windSign, tierPref, bodyMesh, selComp, nComp])
 
   // ── 每帧 ──
   useFrame(() => {
@@ -695,7 +744,10 @@ export default function WindTunnelGpu() {
     // ★ 面板閂咗 / tab 唔见人 = 硬暂停 ★（唔係行慢啲，係零）
     // ⚠ 暂停嗰阵一定要把 lastT 清零：唔清嘅话 resume 嗰一帧个 dt 係「暂停咗几耐」，
     //   EMA 会即刻爆 → substep 跌到 1，然后要几十帧先爬返上嚟。
-    if (windMode === 0 || (typeof document !== 'undefined' && document.hidden)) {
+    // wind-fix：★ 0% 永远唔郁嘅根因 ★ —— CPU 跑完 runWindSolve 会设 windMode=0（面板靠 windResult 继续显示），
+    //   之后喺同一个面板拣 GPU → solver 建好、shader 编译好，但呢度见 windMode===0 就永远暂停，
+    //   状态栏停喺「编译 shader…」、进度 0%。而家：自己揸住 busy（即面板显示紧「计算中…」）就照行。
+    if (gpuDriverShouldPause({ windMode, owningRun: S.busy, hidden: typeof document !== 'undefined' && document.hidden })) {
       S.lastT = 0
       return
     }
@@ -741,7 +793,7 @@ export default function WindTunnelGpu() {
       solver.advance(S.substeps)
     } catch (e) {
       S.dead = e instanceof Error ? e.message : String(e)
-      useApp.setState({ windBusy: false, status: '⚠ GPU 风洞行到一半死咗：' + S.dead })
+      releaseBusy({ status: '⚠ GPU 风洞行到一半死咗：' + S.dead })
       return
     }
 
@@ -806,19 +858,20 @@ export default function WindTunnelGpu() {
       }
 
       const dragStr = r.dragN >= 1 ? `${r.dragN.toFixed(2)} N` : `${(r.dragN * 1000).toFixed(2)} mN`
+      S.busy = false
       useApp.setState({
         windBusy: false, windProg: 1, windProgNote: '完成',
         windResult: r,
         // ★ 有得比就先讲比值 ★ —— 绝对数留喺后面而且逐个标住「未校正趋势值」
         status: (line ? line + ' — ' : '')
           + `GPU 风洞（动量交换 Cd，★ 未校正趋势值：实测偏高 ${GPU_CD_GAIN_RANGE[0]}–${GPU_CD_GAIN_RANGE[1]}× ★）：`
-          + `Cd≈${r.cd.toFixed(3)}${(r.cdOsc ?? 0) > 1e-4 ? ` ± ${(r.cdOsc ?? 0).toFixed(3)}` : ''}`
+          + `Cd≈${(r.cdCorr ?? r.cd).toFixed(3)}${(r.cdOsc ?? 0) > 1e-4 ? ` ± ${(r.cdOsc ?? 0).toFixed(3)}` : ''}`
           + ` · 阻力≈${dragStr} · ${solver.stepCount} step${stats.converged ? '（已收敛）' : '（未收敛，达上限）'}`
           + ' — ⚠ 绝对值请用 CPU 引擎；GPU 路径只可以做相对比较',
       })
     } catch (e) {
       S.dead = e instanceof Error ? e.message : String(e)
-      useApp.setState({ windBusy: false, status: '⚠ GPU 风洞取场失败：' + S.dead })
+      releaseBusy({ status: '⚠ GPU 风洞取场失败：' + S.dead })
     }
   })
 

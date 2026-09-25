@@ -48,4 +48,5 @@ export const GROUP_TO_KEY: Record<string, string> = {
   '檢查擴展': 'group.INSPECT_EXT',
   '检查扩展': 'group.INSPECT_EXT',
   '工具': 'group.TOOLS_CN',
+  '助手': 'group.ASSIST',
 }

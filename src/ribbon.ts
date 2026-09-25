@@ -466,6 +466,9 @@ const UTILITIES: Panel[] = [
     { id: 'exportglb', label: '導出glTF', icon: 'exportfile' },
   ] },
   g('INSPECT'),
+  { name: '助手', tools: [
+    { id: 'aicopilot', label: 'AI 助手', icon: 'ai', shortcut: 'Ctrl+Shift+A', quick: true, tip: '用自然語言操作同協助使用本程式（OpenAI / Grok / Gemini / 本地模型）。快捷鍵 Ctrl+Shift+A。' },
+  ] },
   { name: 'SELECT', tools: [{ id: 'select', label: '選擇', icon: 'select', quick: true, tip: '選擇工具：撳零件/面/邊就拣中佢（撳空白處 = 唔拣）；撳 Del 鍵刪除所選。' }] },
 ]
 

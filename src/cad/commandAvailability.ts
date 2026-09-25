@@ -4,7 +4,7 @@ import { msg, type LangInput } from '../i18n'
 type Context = Partial<Pick<AppState, 'mode' | 'skDrag' | 'formMode' | 'formCage' | 'formCreateKind' | 'busy' | 'featDlg' | 'holeMode' | 'shellMode' | 'pushPullMode' | 'edgeRoundPick' | 'faceFilletMode' | 'draftPickMode' | 'extrudeDlgOpen' | 'sweepDlgOpen' | 'loftDlgOpen' | 'moveFaceMode' | 'rotateFaceMode' | 'lang'>>
 
 export const SKETCH_OK_CMDS = new Set(['sketch', 'csketch', 'select', 'measure', 'measureuni', 'measureedge', 'measureface', 'measureangle', 'properties', 'delete', 'appearance', 'params', 'sketcharray', 'extrude', 'revolve', 'sweep', 'pipe', 'loft', 'rib', 'pathpattern', 'act:save', 'act:undo', 'act:redo', 'act:params'])
-const VIEW_COMMANDS = new Set(['act:fit', 'act:help'])
+const VIEW_COMMANDS = new Set(['act:fit', 'act:help', 'aicopilot'])
 
 export function activeModelCommand(s: Context): string | null {
   if (s.featDlg) return s.featDlg.kind

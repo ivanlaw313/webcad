@@ -13513,6 +13513,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'sectionprops': return get().sectionResult ? get().clearSectionProps() : get().computeSectionProps()   // S119：草图截面属性
       case 'autoorient': return void get().autoOrient()
       case 'wallcheck': return get().wallThin?.on ? get().clearWall() : get().analyzeWall()
+      case 'aicopilot': return get().toggleAiPanel()
       case 'fea': {
         // BUG-BD-1301/1302：有结果或已失效时再点「受力云图」应打开面板查看/改约束重跑，
         // 唔好 clearFea 把彩图同失效标一齐抹掉（QA 会当成「无彩图 / 无失效」）。

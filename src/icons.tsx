@@ -112,6 +112,7 @@ const paths: Record<string, ReactNode> = {
   calc: <><rect x="5" y="3" width="14" height="18" rx="1.6" /><rect x="7.5" y="5.5" width="9" height="3" /><path d="M9 13h0M12.5 13h0M16 13h0M9 17h0M12.5 17h0M16 17h0" strokeWidth="2.2" /></>,   // 工程计算器
   pipeicon: <><ellipse cx="7" cy="6" rx="3.2" ry="1.4" /><path d="M3.8 6v6c0 4 8 4 12 4" /><path d="M10 16h6M16 13l3 3-3 3" opacity=".8" /></>,   // 管道（弯管+出口）
 
+  ai: <><path d="M12 3.2 13.4 8.6 18.8 10 13.4 11.4 12 16.8 10.6 11.4 5.2 10 10.6 8.6z" /><path d="M17.5 14.5 18.2 16.8 20.5 17.5 18.2 18.2 17.5 20.5 16.8 18.2 14.5 17.5 16.8 16.8z" /></>,
   default: <><rect x="4.5" y="4.5" width="15" height="15" rx="2" /></>,
 }
 

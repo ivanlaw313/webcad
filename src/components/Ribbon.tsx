@@ -487,6 +487,7 @@ export default function Ribbon() {
             onChange={(e) => setBodyColor(e.target.value)} />
         </label>
         </>)}{/* GM-W2 2.1 草图库隐藏结束 */}
+        <button type="button" className="tb-btn tb-text" data-testid="ai-copilot-entry" title={`${msg('cmd.aicopilot', lang)} (Ctrl+Shift+A)\n${msg('tip.aicopilot', lang)}`} onClick={() => useApp.getState().runCommand('aicopilot', 'AI 助手')}><ToolIcon name="ai" size={16} /> {msg('cmd.aicopilot', lang)}</button>
         <button className="tb-btn" title="搜索命令（按 / 键）—— 打字搵任何工具，例如 齿轮 / 倒角 / 导出" onClick={() => setCmdPalette(true)}>🔍</button>
         <button className="tb-btn" title="帮助 / 快捷键 (F1)" onClick={() => toggleHelp()} style={{ fontWeight: 700, color: '#2a7aa8' }}>?</button>
         <div className="tb-user">U</div>

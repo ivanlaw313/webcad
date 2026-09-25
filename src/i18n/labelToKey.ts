@@ -1,6 +1,7 @@
 // label (zh-HK / legacy SC) → stable message key
 export const LABEL_TO_KEY: Record<string, string> = {
   '3D加工': 'tool.finish3d',
+  'AI 助手': 'tool.aicopilot',
   'Automated Modeling': 'tool.automatedmodel',
   'BOM 表': 'tool.bom',
   'Boundary Fill': 'tool.boundaryfill',

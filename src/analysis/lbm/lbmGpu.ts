@@ -277,6 +277,22 @@ export function isContextLostError(e: unknown): boolean {
   return !!(e && typeof e === 'object' && (e as TaggedError).contextLost === true)
 }
 
+/**
+ * wind-fix：three r184 嘅 WebGL3DRenderTarget(count>1) 净系 textures[0] 係 Data3DTexture；其余 attachment 係 2D
+ * Texture，冇 wrapR 属性（RenderTarget._setTextureOptions → setValues 静静鸡略过），之后 setTextureParameters(TEXTURE_3D)
+ * 做 texParameteri(WRAP_R, undefined) = 「WebGL: INVALID_ENUM: texParameter」。补返 wrapR（同 textures[0] 一致）。
+ */
+export function fixMrt3DWrapR(rt: { textures: unknown[] }): number {
+  const t0 = rt.textures[0] as { wrapR?: number } | undefined
+  const want = t0?.wrapR ?? ClampToEdgeWrapping
+  let fixed = 0
+  for (const t of rt.textures) {
+    const tt = t as { wrapR?: number }
+    if (tt.wrapR === undefined) { tt.wrapR = want; fixed++ }
+  }
+  return fixed
+}
+
 /* ════════════════════════════════════════════════════════ GLSL 前置 */
 
 // three 会自己前置 '#version 300 es'（glslVersion: GLSL3），所以我哋唔可以再写一次；
@@ -610,6 +626,10 @@ export class LbmGpu {
       wrapS: ClampToEdgeWrapping, wrapT: ClampToEdgeWrapping, wrapR: ClampToEdgeWrapping,
       depthBuffer: false, stencilBuffer: false, generateMipmaps: false,
     })
+    // wind-fix：three r184 嘅 WebGL3DRenderTarget(count>1) 净系 textures[0] 係 Data3DTexture；其余係 2D Texture，
+    //   冇 wrapR 属性（setValues 静静鸡略过）→ setTextureParameters(TEXTURE_3D) 做 texParameteri(WRAP_R, undefined)
+    //   = 「WebGL: INVALID_ENUM: texParameter」。补返 wrapR，令第 2 张 attachment 同第 1 张一样 clamp。
+    fixMrt3DWrapR(this.volRT)
     this._realize(this.volRT, 'volume', 0)
 
     if (this.measure) {

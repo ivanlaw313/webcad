@@ -362,6 +362,8 @@ export const LABEL_TO_KEY: Record<string, string> = {
   '球': 'tool.sphere',
   '環境實驗室': 'tool.physicslab',
   '环境实验室': 'tool.physicslab',
+  '氣動設計實驗室': 'tool.aerolab',
+  '气动设计实验室': 'tool.aerolab',
   '環形陣列': 'tool.circpattern',
   '环形阵列': 'tool.circpattern',
   '用戶坐標系': 'tool.ucs',

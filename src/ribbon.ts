@@ -244,6 +244,7 @@ const LAB: Panel[] = [
       { id: 'physicslab', label: '環境實驗室', icon: 'joint', quick: true, tip: 'Physics Lab：將 CAD 零件放入剛體實驗室，即時模擬重力、碰撞、摩擦、反彈和統一風。互動級模擬，非工程認證。' },
       { id: 'topopt', label: '生成式設計', icon: 'topopt', quick: true, tip: '拓撲優化（SIMP）：在設計域內按保留體積分配材料，得出較省料又較硬的承力結構。趨勢級，非商用認證。先點固定面與受力面。' },
       { id: 'thermal', label: '熱分析', icon: 'thermal', quick: true, tip: '穩態熱分析（導熱）：①固定面＝熱面、②受力面＝冷面，求溫度場與總熱流。趨勢級，非商用認證。' },
+      { id: 'aerolab', label: '氣動設計實驗室', icon: 'wind', quick: true, tip: '氣動／水動設計實驗室：揀範本或用一句說話講需求（螺旋槳／風扇、機翼、流線外殼）→ 自動優化效率、推力、升阻比、阻力 → 揀最佳設計插入模型、送風洞或 CFD 驗證。BEMT／VLM／經驗公式工程估算，非 CFD。' },
     ],
   },
   {

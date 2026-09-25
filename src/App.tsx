@@ -19,6 +19,8 @@ const SlicePanel = lazy(() => import('./components/SlicePanel'))
 const HistoryPanel = lazy(() => import('./components/HistoryPanel'))
 const DrawingPanel = lazy(() => import('./components/DrawingPanel'))
 const PhysicsLab = lazy(() => import('./components/PhysicsLab'))
+const AeroLab = lazy(() => import('./components/AeroLab'))
+import { useAeroUi } from './aero/aeroUiStore'
 import IntroCard from './components/IntroCard'
 import ErrorBoundary from './components/ErrorBoundary'
 import PromptDialog from './components/PromptDialog'
@@ -56,6 +58,7 @@ export default function App() {
   const cmdPaletteOpen = useApp((s) => s.cmdPaletteOpen)
   const aiOpen = useApp((s) => s.aiOpen)
   const physicsLabOpen = useApp((s) => s.physicsLabOpen)
+  const aeroLabOpen = useAeroUi((s) => s.open)
   // Restore: 分享链接(#p=) 优先于自动存档（T797）；冇分享链接先还原 autosave。
   useEffect(() => {
     void (async () => {
@@ -342,6 +345,7 @@ export default function App() {
       <ErrorBoundary name="參數面板" compact><ParamsPanel /></ErrorBoundary>
       {drawingOpen && <ErrorBoundary name="工程圖" compact><Suspense fallback={null}><DrawingPanel /></Suspense></ErrorBoundary>}
       {physicsLabOpen && <ErrorBoundary name="環境模擬實驗室" compact><Suspense fallback={null}><PhysicsLab /></Suspense></ErrorBoundary>}
+      {aeroLabOpen && <ErrorBoundary name="氣動設計實驗室" compact><Suspense fallback={null}><AeroLab /></Suspense></ErrorBoundary>}
       {sliceOpen && sliceMesh && <ErrorBoundary name="切層預覽" compact><Suspense fallback={null}><SlicePanel mesh={sliceMesh} onClose={() => useApp.getState().setSliceOpen(false)} /></Suspense></ErrorBoundary>}
       {historyOpen && <Suspense fallback={null}><HistoryPanel onClose={() => useApp.getState().setHistoryOpen(false)} onSaveNamed={(label) => useApp.getState().saveVersion(label)} onRestore={(data) => void useApp.getState().applySnapshot(data)} /></Suspense>}
       {helpOpen && <Suspense fallback={null}><HelpPanelLazy /></Suspense>}

@@ -45,6 +45,7 @@ import { formBoxSizeFromPoints, makePlacedBoxCage, newFormBoxDraft, type FormBox
 import { makeFormPipeCage, setSymmetricFormVert } from './cad/subdiv'   // S193：Form 镜像对称编辑（纯函数，Node 测过）
 import { detectLang, tStatus, msg, normalizeLang, type Lang } from './i18n'   // T800 + v1.74 locales
 import { searchRibbonCommand } from './ribbon'   // P6 AI 教学：把用户问句模糊匹配到真实 ribbon 命令位置
+import { openAeroLab } from './aero/aeroUiStore'   // Aero Design Lab（氣動設計實驗室）面板開關 — 獨立小 store
 import type { MeshData, Feature, SketchProfile, BoolOp, EdgeSel, DrawView, Plane } from './worker/cad.worker'
 import { computeFK, _fourbar, solve4Bar, fourBarVelocity, fourBarVelocityProfile, solveSliderCrank, sliderCrankReachability, solveLinkage, solveSixBar, sweepToContact, simulateMotion, JOINT_LABEL, resolveJointOrigin, type Joint, type JointType, type JointOrigin, type JointOriginMode } from './assembly/kinematics'
 import { findLoops, loopPlane, solveLoop, type Loop } from './assembly/linkage'   // T774（S51）：通用平面闭环求解器
@@ -13538,6 +13539,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'windtunnel': return get().windResult ? get().clearWind() : get().toggleWind()
       case 'physicslab': return set({ physicsLabOpen: true, status: '已打開 Physics Lab：互動級剛體模擬（非工程認證）' })
       case 'slicepreview': { if (!get().bodyMesh) { set({ status: '切層預覽需要先有實體' }); return } set({ sliceOpen: true }); return }
+      case 'aerolab': openAeroLab(); return set({ status: '已打開氣動設計實驗室：BEMT / VLM / 經驗阻力估算 + 自動優化（工程估算，非 CFD）' })
       case 'history': return set({ historyOpen: true })
       case 'lasergcode': return get().openLaserDlg()
       case 'finish3d': return get().openFinish3dDlg()

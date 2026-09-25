@@ -7386,12 +7386,12 @@ export default function Viewport() {
       {matLibOpen && (
         <div className="cmd-palette" style={{ width: 230 }}>{/* GM-G4b：外观材质库 — 统一命令 palette 外壳（.cmd-palette head/body），取代 ad-hoc 内联卡片 */}
           <div className="cmd-palette-head">
-            <span style={{ fontWeight: 700 }}>📚 {tStatus('外观材质库', lang)}</span>
+            <span style={{ fontWeight: 700 }}>📚 {tStatus('外觀材質庫', lang)}</span>
             <span className="cmd-palette-x" title={tStatus('關閉', lang)} onClick={() => useApp.getState().setMatLibOpen(false)}>✕</span>
           </div>
           <div className="cmd-palette-body">
           <button
-            onClick={async () => { const nm = await useApp.getState().appPrompt(tStatus('外观预设名（存当前颜色+金属度+粗糙度+纹理）', lang), tStatus('我的材质', lang)); if (nm && nm.trim()) useApp.getState().saveMaterialPreset(nm.trim()) }}
+            onClick={async () => { const nm = await useApp.getState().appPrompt(tStatus('外觀預設名（存當前顏色+金屬度+粗糙度+紋理）', lang), tStatus('我的材質', lang)); if (nm && nm.trim()) useApp.getState().saveMaterialPreset(nm.trim()) }}
             style={{ width: '100%', padding: '6px 0', marginBottom: 8, border: '1px solid #c7d0d8', borderRadius: 6, background: '#f4f7fa', cursor: 'pointer', fontSize: 12 }}
           >💾 {tStatus('保存当前外观…', lang)}</button>
           {Object.keys(materialLibrary).length === 0
@@ -7786,7 +7786,7 @@ export default function Viewport() {
           <input type="range" min={12} max={55} step={1} value={cameraFov} onChange={(e) => useApp.getState().setCameraFov(Number(e.target.value))} style={{ width: 58, accentColor: '#1572c4', cursor: 'ew-resize' }} />
           <span style={{ minWidth: 30, whiteSpace: 'nowrap', flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{cameraFov}°</span>
         </span>}
-        <button className={'tb-btn' + (matLibOpen ? ' tb-on' : '')} title={tStatus('📚 外观材质库（S187）：把当前外观（颜色+金属度+粗糙度+纹理）存做具名预设，一击套用 — 对标 Fusion Appearance 收藏。跨文档全局保存。', lang)} onClick={() => useApp.getState().setMatLibOpen(!matLibOpen)}>📚</button>
+        <button className={'tb-btn' + (matLibOpen ? ' tb-on' : '')} title={tStatus('📚 外觀材質庫（S187）：把當前外觀（顏色+金屬度+粗糙度+紋理）存做具名預設，一擊套用 — 對標 Fusion Appearance 收藏。跨文檔全局保存。', lang)} onClick={() => useApp.getState().setMatLibOpen(!matLibOpen)}>📚</button>
         <span title={tStatus('实时微调当前实体外观：金属度（0 漫反射→1 金属）/ 粗糙度（0 镜面→1 哑光）—— 脱离预设直接拖（Fusion appearance 滑杆）', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
           ⬤<input type="range" min={0} max={1} step={0.02} value={material.metalness} onChange={(e) => useApp.getState().setMatProp('metalness', Number(e.target.value))} title={tStatus('金属度', lang) + ' ' + material.metalness.toFixed(2)} style={{ width: 50 }} />
           ◗<input type="range" min={0} max={1} step={0.02} value={material.roughness} onChange={(e) => useApp.getState().setMatProp('roughness', Number(e.target.value))} title={tStatus('粗糙度', lang) + ' ' + material.roughness.toFixed(2)} style={{ width: 50 }} />

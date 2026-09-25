@@ -12,9 +12,9 @@ const cs = readFileSync(new URL('../src/sketch/csketch.ts', import.meta.url), 'u
 const mvp = readFileSync(new URL('../src/components/MultiViewPanes.tsx', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 2.01; SW webcad-v2.01', () => {
-  assert.match(version, /APP_VERSION = '2\.01'/)
-  assert.match(sw, /const CACHE = 'webcad-v2\.01'/)
+test('APP_VERSION 2.02; SW webcad-v2.02', () => {
+  assert.match(version, /APP_VERSION = '2\.02'/)
+  assert.match(sw, /const CACHE = 'webcad-v2\.02'/)
 })
 
 test('csketch setTool / empty / trim tips are 港繁', () => {

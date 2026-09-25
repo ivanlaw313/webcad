@@ -15,9 +15,9 @@ const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.ur
 const bt = readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 2.00; SW webcad-v2.00', () => {
-  assert.match(version, /APP_VERSION = '2\.00'/)
-  assert.match(sw, /const CACHE = 'webcad-v2\.00/)
+test('APP_VERSION 2.01; SW webcad-v2.01', () => {
+  assert.match(version, /APP_VERSION = '2\.01'/)
+  assert.match(sw, /const CACHE = 'webcad-v2\.01/)
 })
 
 test('ProjectionLinkStatus TC strings; no key SC forms', () => {

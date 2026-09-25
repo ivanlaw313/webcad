@@ -10,13 +10,13 @@ import { tStatus, type Lang } from '../i18n'
 export type MultiViewPreset = 'front' | 'right' | 'top' | 'iso'
 
 export const SPLIT_PANES: { view: MultiViewPreset; label: string }[] = [
-  { view: 'front', label: '前视' },
-  { view: 'right', label: '右视' },
+  { view: 'front', label: '前視' },
+  { view: 'right', label: '右視' },
 ]
 export const QUAD_PANES: { view: MultiViewPreset; label: string }[] = [
-  { view: 'top', label: '上视' },
-  { view: 'front', label: '前视' },
-  { view: 'right', label: '右视' },
+  { view: 'top', label: '上視' },
+  { view: 'front', label: '前視' },
+  { view: 'right', label: '右視' },
   { view: 'iso', label: '等角' },
 ]
 
@@ -120,10 +120,10 @@ function OnePane({ view, label, lang, empty }: { view: MultiViewPreset; label: s
   const ortho = view !== 'iso'
   return (
     <div className="vp-pane" data-testid={`vp-pane-${view}`} data-view={view}>
-      <div className="vp-pane-label">{tStatus(label, lang)} · {tStatus('预览／环视', lang)}</div>
+      <div className="vp-pane-label">{tStatus(label, lang)} · {tStatus('預覽／環視', lang)}</div>
       {empty && (
         <div className="vp-pane-empty" data-testid={`vp-pane-empty-${view}`} role="status">
-          {tStatus('此窗格暂无实体 — 请在「单一视图」建模后再切回二／四视图预览', lang)}
+          {tStatus('此窗格暫無實體 — 請在「單一視圖」建模後再切回二／四視圖預覽', lang)}
         </div>
       )}
       <Canvas
@@ -158,7 +158,7 @@ export default function MultiViewPanes({ layout }: { layout: 'split' | 'quad' })
       data-multiview-preview="true"
     >
       <div className="vp-multiview-banner" data-testid="vp-multiview-honesty" role="status">
-        {tStatus(layout === 'split' ? '二视图 · 预览／环视（完整工具请切回「单一视图」）' : '四视图 · 预览／环视（完整工具请切回「单一视图」）', lang)}
+        {tStatus(layout === 'split' ? '二視圖 · 預覽／環視（完整工具請切回「單一視圖」）' : '四視圖 · 預覽／環視（完整工具請切回「單一視圖」）', lang)}
       </div>
       {panes.map((p) => <OnePane key={p.view + layout} view={p.view} label={p.label} lang={lang} empty={empty} />)}
     </div>

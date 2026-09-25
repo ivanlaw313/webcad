@@ -81,7 +81,7 @@ const lineAng = (s: CS, l: CLine) => Math.atan2(pt(s, l.p2).y - pt(s, l.p1).y, p
 
 export const useCSketch = create<CS>((set, get) => ({
   points: [], lines: [], circles: [], constraints: [], dimRefs: {},
-  tool: 'line', setTool: (t) => set({ tool: t, draft: [], selection: [], status: t === 'trim' ? '修剪：点线段 → 删到最近交点（无交点删整条）' : t === 'extend' ? '延伸：点线段靠近想延长嘅一端 → 延长到最近嘅线 / 圆' : t === 'break' ? '打断：点线段中间想分割嘅位置 → 一条变两段（两段都保留）' : t === 'select' ? '选择：点实体选取，拖动点可移动（受约束）' : `绘制 ${t === 'line' ? '直线' : t === 'rect' ? '矩形' : '圆'}：点击落点` }),
+  tool: 'line', setTool: (t) => set({ tool: t, draft: [], selection: [], status: t === 'trim' ? '修剪：點線段 → 刪到最近交點（無交點刪整條）' : t === 'extend' ? '延伸：點線段靠近想延長嘅一端 → 延長到最近嘅線 / 圓' : t === 'break' ? '打斷：點線段中間想分割嘅位置 → 一條變兩段（兩段都保留）' : t === 'select' ? '選擇：點實體選取，拖動點可移動（受約束）' : `繪製 ${t === 'line' ? '直線' : t === 'rect' ? '矩形' : '圓'}：點擊落點` }),
   selection: [], draft: [], preview: null, dragging: null,
   polySides: 6, setPolySides: (n) => set({ polySides: Math.min(120, Math.max(3, Math.round(n) || 3)) }),  // cap 120 — guard against huge input freezing the sketch
   status: '約束草圖：選 直線/矩形/圓 繪製；選擇實體後加約束/標註', conflicts: [], dof: -1, dofDiag: null,
@@ -92,7 +92,7 @@ export const useCSketch = create<CS>((set, get) => ({
     const s = get()
     if (!s.past.length) { set({ status: '冇得再撤銷（約束草圖）' }); return }
     const prev = s.past[s.past.length - 1]
-    set({ ...csSnap(prev), past: s.past.slice(0, -1), future: [...s.future, csSnap(s)], selection: [], draft: [], preview: null, status: '已撤销（Ctrl+Y 重做）' })
+    set({ ...csSnap(prev), past: s.past.slice(0, -1), future: [...s.future, csSnap(s)], selection: [], draft: [], preview: null, status: '已撤銷（Ctrl+Y 重做）' })
     void get().solve()
   },
   redo: () => {
@@ -106,9 +106,9 @@ export const useCSketch = create<CS>((set, get) => ({
   // Seed a fixed ORIGIN datum point at (0,0) so geometry can be dimensioned / constrained RELATIVE TO ORIGIN
   // (e.g. circle centre 20mm from origin). It's pinned (fixed) and protected from deletion. Pure reference —
   // a lone point forms no profile, so it never affects extrude.
-  reset: () => set({ points: [{ id: 'ORIGIN', x: 0, y: 0, fixed: true }], lines: [], circles: [], constraints: [], dimRefs: {}, selection: [], draft: [], preview: null, dragging: null, conflicts: [], dofDiag: null, past: [], future: [], status: '已清空草图（保留原点 ⊕，可对原点打尺寸定位）' }),
+  reset: () => set({ points: [{ id: 'ORIGIN', x: 0, y: 0, fixed: true }], lines: [], circles: [], constraints: [], dimRefs: {}, selection: [], draft: [], preview: null, dragging: null, conflicts: [], dofDiag: null, past: [], future: [], status: '已清空草圖（保留原點 ⊕，可對原點打尺寸定位）' }),
   // Like reset but UNDOABLE (snapshots first, keeps the undo stack) — a「重新嚟过」button.
-  clearAll: () => { const s = get(); if (s.points.length <= 1 && !s.lines.length && !s.circles.length) { set({ status: '草图已经係空白' }); return } get().pushUndo(); set({ points: [{ id: 'ORIGIN', x: 0, y: 0, fixed: true }], lines: [], circles: [], constraints: [], dimRefs: {}, selection: [], draft: [], preview: null, conflicts: [], dof: -1, dofDiag: null, status: '已清空（保留原点 ⊕，可撤销 Ctrl+Z）' }) },
+  clearAll: () => { const s = get(); if (s.points.length <= 1 && !s.lines.length && !s.circles.length) { set({ status: '草圖已經係空白' }); return } get().pushUndo(); set({ points: [{ id: 'ORIGIN', x: 0, y: 0, fixed: true }], lines: [], circles: [], constraints: [], dimRefs: {}, selection: [], draft: [], preview: null, conflicts: [], dof: -1, dofDiag: null, status: '已清空（保留原點 ⊕，可撤銷 Ctrl+Z）' }) },
 
   onClick: (x, y, hit) => {
     const s = get()
@@ -119,7 +119,7 @@ export const useCSketch = create<CS>((set, get) => ({
       // Fusion Trim: click a line → delete it up to its nearest intersections with other lines/circles.
       let target = hit && hit.kind === 'line' ? s.lines.find((l) => l.id === hit.id) || null : null
       if (!target) { let bestD = Infinity; for (const l of s.lines) { const a = pt(s, l.p1), b = pt(s, l.p2); const t = Math.max(0, Math.min(1, segT(a, b, x, y))); const d = Math.hypot(a.x + t * (b.x - a.x) - x, a.y + t * (b.y - a.y) - y); if (d < bestD) { bestD = d; target = l } } if (bestD > 12) target = null }
-      if (!target) { set({ status: '修剪：点选要删除嘅线段（会删到最近交点；无交点则删整条）' }); return }
+      if (!target) { set({ status: '修剪：點選要刪除嘅線段（會刪到最近交點；無交點則刪整條）' }); return }
       const tg = target, a = pt(s, tg.p1), b = pt(s, tg.p2)
       const ts: number[] = []
       for (const l of s.lines) { if (l.id === tg.id) continue; const t = lineLineT(a, b, pt(s, l.p1), pt(s, l.p2)); if (t != null) ts.push(t) }
@@ -152,18 +152,18 @@ export const useCSketch = create<CS>((set, get) => ({
       // until it meets the nearest other line/circle ahead. The far end stays put.
       let target = hit && hit.kind === 'line' ? s.lines.find((l) => l.id === hit.id) || null : null
       if (!target) { let bestD = Infinity; for (const l of s.lines) { const a = pt(s, l.p1), b = pt(s, l.p2); const t = Math.max(0, Math.min(1, segT(a, b, x, y))); const d = Math.hypot(a.x + t * (b.x - a.x) - x, a.y + t * (b.y - a.y) - y); if (d < bestD) { bestD = d; target = l } } if (bestD > 14) target = null }
-      if (!target) { set({ status: '延伸：点选要延长嘅线段（靠近想延长嘅一端）' }); return }
+      if (!target) { set({ status: '延伸：點選要延長嘅線段（靠近想延長嘅一端）' }); return }
       const tg = target, a = pt(s, tg.p1), b = pt(s, tg.p2)
       const extendP2 = Math.hypot(x - b.x, y - b.y) <= Math.hypot(x - a.x, y - a.y) // extend the end nearer the cursor
       const ts: number[] = []
       for (const l of s.lines) { if (l.id === tg.id) continue; const t = lineLineTInf(a, b, pt(s, l.p1), pt(s, l.p2)); if (t != null) ts.push(t) }
       for (const cc of s.circles) { const cp = pt(s, cc.c); for (const t of lineCircleTInf(a, b, cp.x, cp.y, cc.r)) ts.push(t) }
       const cand = (extendP2 ? ts.filter((t) => t > 1 + 1e-4).sort((p, q) => p - q) : ts.filter((t) => t < -1e-4).sort((p, q) => q - p))
-      if (!cand.length) { set({ status: '延伸：该端前方无可延伸到嘅线 / 圆' }); return }
+      if (!cand.length) { set({ status: '延伸：該端前方無可延伸到嘅線 / 圓' }); return }
       const nt = cand[0]
       const nx = a.x + nt * (b.x - a.x), ny = a.y + nt * (b.y - a.y)
       const epId = extendP2 ? tg.p2 : tg.p1
-      set((st) => ({ points: st.points.map((p) => (p.id === epId ? { ...p, x: nx, y: ny } : p)), selection: [], status: '已延伸到最近交点' }))
+      set((st) => ({ points: st.points.map((p) => (p.id === epId ? { ...p, x: nx, y: ny } : p)), selection: [], status: '已延伸到最近交點' }))
       void get().solve()
       return
     }
@@ -172,10 +172,10 @@ export const useCSketch = create<CS>((set, get) => ({
       // Fusion Break: click a line at an interior point → split it there into two segments (both kept).
       let target = hit && hit.kind === 'line' ? s.lines.find((l) => l.id === hit.id) || null : null
       if (!target) { let bestD = Infinity; for (const l of s.lines) { const a = pt(s, l.p1), b = pt(s, l.p2); const t = Math.max(0, Math.min(1, segT(a, b, x, y))); const d = Math.hypot(a.x + t * (b.x - a.x) - x, a.y + t * (b.y - a.y) - y); if (d < bestD) { bestD = d; target = l } } if (bestD > 12) target = null }
-      if (!target) { set({ status: '打断：点线段上想分割嘅位置' }); return }
+      if (!target) { set({ status: '打斷：點線段上想分割嘅位置' }); return }
       const tg = target, a = pt(s, tg.p1), b = pt(s, tg.p2)
       const t = segT(a, b, x, y)
-      if (t <= 1e-3 || t >= 1 - 1e-3) { set({ status: '打断：分割点要喺线段中间（唔可以喺端点）' }); return }
+      if (t <= 1e-3 || t >= 1 - 1e-3) { set({ status: '打斷：分割點要喺線段中間（唔可以喺端點）' }); return }
       const bx = a.x + t * (b.x - a.x), by = a.y + t * (b.y - a.y)
       set((st) => {
         const np = nid('p')
@@ -183,7 +183,7 @@ export const useCSketch = create<CS>((set, get) => ({
         const op2 = tg.p2
         const lines = st.lines.map((l) => (l.id === tg.id ? { ...l, p2: np } : l))
         lines.push({ id: nid('l'), p1: np, p2: op2, construction: tg.construction })
-        return { points, lines, selection: [], status: '已打断（一条 → 两段）' }
+        return { points, lines, selection: [], status: '已打斷（一條 → 兩段）' }
       })
       void get().solve()
       return
@@ -256,7 +256,7 @@ export const useCSketch = create<CS>((set, get) => ({
         for (let i = 0; i < n; i++) { const a = a0 + (i * 2 * Math.PI) / n; const id = nid('p'); points.push({ id, x: c.x + r * Math.cos(a), y: c.y + r * Math.sin(a), fixed: false }); vids.push(id) }
         const lines = [...st.lines]
         for (let i = 0; i < n; i++) lines.push({ id: nid('l'), p1: vids[i], p2: vids[(i + 1) % n] })
-        return { points, lines, draft: [], status: `已画 ${n} 边形（${n} 条边）` }
+        return { points, lines, draft: [], status: `已畫 ${n} 邊形（${n} 條邊）` }
       })
       void get().solve()
       return
@@ -304,7 +304,7 @@ export const useCSketch = create<CS>((set, get) => ({
     if (k === 'distance' && pts.length === 2) return add({ id: id(), type: 'p2p_distance', p1_id: pts[0], p2_id: pts[1], distance: Math.round(Math.hypot(pt(s, pts[1]).x - pt(s, pts[0]).x, pt(s, pts[1]).y - pt(s, pts[0]).y)) || 10 } as Constraint)
     if (k === 'distance' && lns.length === 1) { const l = s.lines.find((x) => x.id === lns[0])!; return add({ id: id(), type: 'p2p_distance', p1_id: l.p1, p2_id: l.p2, distance: Math.round(lineLen(s, l)) || 10 } as Constraint) }
     // Point-to-line perpendicular distance dimension (e.g. hole centre offset from an edge). |(B−A)×(P−A)| / |B−A|.
-    if (k === 'pldist' && pts.length === 1 && lns.length === 1) { const l = s.lines.find((x) => x.id === lns[0])!; const A = pt(s, l.p1), B = pt(s, l.p2), P = pt(s, pts[0]); const len = Math.hypot(B.x - A.x, B.y - A.y); if (len < 1e-9) { set({ status: '点到线距离：该线退化为点,无法定义距离' }); return }; const d = Math.abs((B.x - A.x) * (P.y - A.y) - (B.y - A.y) * (P.x - A.x)) / len; return add({ id: id(), type: 'p2l_distance', p_id: pts[0], l_id: lns[0], distance: Math.round(d) || 10 } as Constraint) }
+    if (k === 'pldist' && pts.length === 1 && lns.length === 1) { const l = s.lines.find((x) => x.id === lns[0])!; const A = pt(s, l.p1), B = pt(s, l.p2), P = pt(s, pts[0]); const len = Math.hypot(B.x - A.x, B.y - A.y); if (len < 1e-9) { set({ status: '點到線距離：該線退化為點,無法定義距離' }); return }; const d = Math.abs((B.x - A.x) * (P.y - A.y) - (B.y - A.y) * (P.x - A.x)) / len; return add({ id: id(), type: 'p2l_distance', p_id: pts[0], l_id: lns[0], distance: Math.round(d) || 10 } as Constraint) }
     // Lock a point's X or Y coordinate to a value (Fusion 水平/竖直 定位尺寸；可双击改 / 绑参数).
     if (k === 'coordx' && pts.length === 1) return add({ id: id(), type: 'coordinate_x', p_id: pts[0], x: Math.round(pt(s, pts[0]).x) } as Constraint)
     if (k === 'coordy' && pts.length === 1) return add({ id: id(), type: 'coordinate_y', p_id: pts[0], y: Math.round(pt(s, pts[0]).y) } as Constraint)
@@ -315,33 +315,33 @@ export const useCSketch = create<CS>((set, get) => ({
     if (k === 'angle' && lns.length === 2) { const a = Math.round(((lineAng(s, s.lines.find((x) => x.id === lns[1])!) - lineAng(s, s.lines.find((x) => x.id === lns[0])!)) * 180 / Math.PI + 360) % 360); return add({ id: id(), type: 'l2l_angle_ll', l1_id: lns[0], l2_id: lns[1], angle: (a || 90) * Math.PI / 180 } as Constraint) }
     // Specific guidance per constraint so a non-coder knows exactly what to select (not just "wrong combo").
     const REQ: Partial<Record<ConstraintKind, string>> = {
-      coincident: '选 2 个点', horizontal: '选 1 条线 或 2 个点', vertical: '选 1 条线 或 2 个点',
-      parallel: '选 2 条线', perpendicular: '选 2 条线', equal: '选 2 条线 或 2 个圆',
-      point_on_line: '选 1 个点 + 1 条线', tangent: '选 1 线 + 1 圆 或 2 个圆', concentric: '选 2 个圆',
-      symmetric: '选 2 个点 + 1 条线（轴）', fix: '选 ≥1 个点', distance: '选 2 个点 或 1 条线',
-      radius: '选 1 个圆', angle: '选 2 条线', midpoint: '选 1 个点 + 1 条线（点锁到线中点）',
-      pldist: '选 1 个点 + 1 条线（点到线垂直距离尺寸）',
-      coordx: '选 1 个点（锁定其 X 坐标，可双击改/绑参）', coordy: '选 1 个点（锁定其 Y 坐标，可双击改/绑参）',
-      cdist: '选 2 个圆（圆心到圆心距离尺寸，即孔距）', collinear: '选 2 条线（共线：在同一直线上）',
+      coincident: '選 2 個點', horizontal: '選 1 條線 或 2 個點', vertical: '選 1 條線 或 2 個點',
+      parallel: '選 2 條線', perpendicular: '選 2 條線', equal: '選 2 條線 或 2 個圓',
+      point_on_line: '選 1 個點 + 1 條線', tangent: '選 1 線 + 1 圓 或 2 個圓', concentric: '選 2 個圓',
+      symmetric: '選 2 個點 + 1 條線（軸）', fix: '選 ≥1 個點', distance: '選 2 個點 或 1 條線',
+      radius: '選 1 個圓', angle: '選 2 條線', midpoint: '選 1 個點 + 1 條線（點鎖到線中點）',
+      pldist: '選 1 個點 + 1 條線（點到線垂直距離尺寸）',
+      coordx: '選 1 個點（鎖定其 X 坐標，可雙擊改/綁參）', coordy: '選 1 個點（鎖定其 Y 坐標，可雙擊改/綁參）',
+      cdist: '選 2 個圓（圓心到圓心距離尺寸，即孔距）', collinear: '選 2 條線（共線：在同一直線上）',
     }
-    set({ status: `约束「${k}」：${REQ[k] || '选择组合唔啱'}（而家 选咗 ${pts.length} 点 / ${lns.length} 线 / ${cir.length} 圆）` })
+    set({ status: `約束「${k}」：${REQ[k] || '選擇組合唔啱'}（而家 選咗 ${pts.length} 點 / ${lns.length} 線 / ${cir.length} 圓）` })
   },
 
   toggleConstruction: () => {
     const s = get()
     const lns = s.selection.filter((x) => x.kind === 'line').map((x) => x.id)
-    if (!lns.length) { set({ status: '先选中线，再切换为构造线（参考用，虚线显示，不计入轮廓）' }); return }
+    if (!lns.length) { set({ status: '先選中線，再切換為構造線（參考用，虛線顯示，不計入輪廓）' }); return }
     get().pushUndo()
-    set({ lines: s.lines.map((l) => (lns.includes(l.id) ? { ...l, construction: !l.construction } : l)), selection: [], status: '已切换构造线（虚线 = 参考几何，不参与拉伸轮廓）' })
+    set({ lines: s.lines.map((l) => (lns.includes(l.id) ? { ...l, construction: !l.construction } : l)), selection: [], status: '已切換構造線（虛線 = 參考幾何，不參與拉伸輪廓）' })
   },
 
   // Fusion Mirror: select the geometry to mirror, then select ONE line last as the mirror axis.
   mirrorSel: () => {
     const s = get()
     const selLines = s.selection.filter((x) => x.kind === 'line')
-    if (selLines.length < 1) { set({ status: '镜像：先选要镜像嘅实体（线 / 圆），最后再选一条线做镜像轴' }); return }
+    if (selLines.length < 1) { set({ status: '鏡像：先選要鏡像嘅實體（線 / 圓），最後再選一條線做鏡像軸' }); return }
     const axis = s.lines.find((l) => l.id === selLines[selLines.length - 1].id)
-    if (!axis) { set({ status: '镜像：揾唔到镜像轴线' }); return }
+    if (!axis) { set({ status: '鏡像：揾唔到鏡像軸線' }); return }
     const A = pt(s, axis.p1), B = pt(s, axis.p2)
     const reflect = (p: { x: number; y: number }) => {
       const dx = B.x - A.x, dy = B.y - A.y, L2 = dx * dx + dy * dy || 1
@@ -351,14 +351,14 @@ export const useCSketch = create<CS>((set, get) => ({
     }
     const mLines = new Set(selLines.slice(0, -1).map((x) => x.id))            // every selected line except the axis
     const mCircles = new Set(s.selection.filter((x) => x.kind === 'circle').map((x) => x.id))
-    if (!mLines.size && !mCircles.size) { set({ status: '镜像：除咗轴线之外，仲要拣至少一条线 / 一个圆嚟镜像' }); return }
+    if (!mLines.size && !mCircles.size) { set({ status: '鏡像：除咗軸線之外，仲要揀至少一條線 / 一個圓嚟鏡像' }); return }
     get().pushUndo()
     set((st) => {
       const points = [...st.points], lines = [...st.lines], circles = [...st.circles]
       const mk = (q: { x: number; y: number }) => { const id = nid('p'); points.push({ id, x: q.x, y: q.y, fixed: false }); return id }
       for (const l of st.lines) { if (!mLines.has(l.id)) continue; lines.push({ id: nid('l'), p1: mk(reflect(pt(st, l.p1))), p2: mk(reflect(pt(st, l.p2))), construction: l.construction }) }
       for (const c of st.circles) { if (!mCircles.has(c.id)) continue; circles.push({ id: nid('c'), c: mk(reflect(pt(st, c.c))), r: c.r }) }
-      return { points, lines, circles, selection: [], status: `已镜像 ${mLines.size + mCircles.size} 个实体（跨所选轴线）` }
+      return { points, lines, circles, selection: [], status: `已鏡像 ${mLines.size + mCircles.size} 個實體（跨所選軸線）` }
     })
     void get().solve()
   },
@@ -368,16 +368,16 @@ export const useCSketch = create<CS>((set, get) => ({
   chamferCorner: (d) => {
     const s = get()
     const selP = s.selection.filter((x) => x.kind === 'point')
-    if (selP.length !== 1) { set({ status: '倒角：先选一个角点（两条线嘅交点）' }); return }
+    if (selP.length !== 1) { set({ status: '倒角：先選一個角點（兩條線嘅交點）' }); return }
     const cId = selP[0].id
-    if (s.circles.some((c) => c.c === cId)) { set({ status: '倒角：该点系圆心，唔倒角' }); return }
+    if (s.circles.some((c) => c.c === cId)) { set({ status: '倒角：該點係圓心，唔倒角' }); return }
     const usingLines = s.lines.filter((l) => l.p1 === cId || l.p2 === cId)
-    if (usingLines.length !== 2) { set({ status: '倒角：该点要正好连住两条线（一个角）' }); return }
+    if (usingLines.length !== 2) { set({ status: '倒角：該點要正好連住兩條線（一個角）' }); return }
     const lA = usingLines[0], lB = usingLines[1], C = pt(s, cId)
     const A = pt(s, lA.p1 === cId ? lA.p2 : lA.p1), B = pt(s, lB.p1 === cId ? lB.p2 : lB.p1)
     const lenA = Math.hypot(A.x - C.x, A.y - C.y), lenB = Math.hypot(B.x - C.x, B.y - C.y)
     const dd = Math.min(d, lenA * 0.99, lenB * 0.99)
-    if (!(dd > 0) || lenA < 1e-6 || lenB < 1e-6) { set({ status: '倒角：距离要 > 0 且短过两条边' }); return }
+    if (!(dd > 0) || lenA < 1e-6 || lenB < 1e-6) { set({ status: '倒角：距離要 > 0 且短過兩條邊' }); return }
     const uAx = (A.x - C.x) / lenA, uAy = (A.y - C.y) / lenA, uBx = (B.x - C.x) / lenB, uBy = (B.y - C.y) / lenB
     get().pushUndo()
     set((st) => {
@@ -399,10 +399,10 @@ export const useCSketch = create<CS>((set, get) => ({
     const s = get()
     const selL = s.selection.filter((x) => x.kind === 'line').map((x) => x.id)
     const selC = s.selection.filter((x) => x.kind === 'circle').map((x) => x.id)
-    if (!selL.length && !selC.length) { set({ status: '矩形阵列：先选要阵列嘅实体（线 / 圆），再设数量' }); return }
+    if (!selL.length && !selC.length) { set({ status: '矩形陣列：先選要陣列嘅實體（線 / 圓），再設數量' }); return }
     const cx = Math.max(1, Math.round(nx)), cy = Math.max(1, Math.round(ny))
-    if (cx * cy < 2) { set({ status: '矩形阵列：总数至少 2（列×行 ≥ 2）' }); return }
-    if (cx * cy > 400) { set({ status: `阵列总数 ${cx}×${cy} 太多（上限 400）` }); return }
+    if (cx * cy < 2) { set({ status: '矩形陣列：總數至少 2（列×行 ≥ 2）' }); return }
+    if (cx * cy > 400) { set({ status: `陣列總數 ${cx}×${cy} 太多（上限 400）` }); return }
     get().pushUndo()
     set((st) => {
       const points = [...st.points], lines = [...st.lines], circles = [...st.circles]
@@ -413,7 +413,7 @@ export const useCSketch = create<CS>((set, get) => ({
         for (const id of selL) { const l = st.lines.find((x) => x.id === id); if (!l) continue; const a = pt(st, l.p1), b = pt(st, l.p2); lines.push({ id: nid('l'), p1: mk(a.x + ox, a.y + oy), p2: mk(b.x + ox, b.y + oy), construction: l.construction }) }
         for (const id of selC) { const cc = st.circles.find((x) => x.id === id); if (!cc) continue; const cp = pt(st, cc.c); circles.push({ id: nid('c'), c: mk(cp.x + ox, cp.y + oy), r: cc.r }) }
       }
-      return { points, lines, circles, selection: [], status: `已矩形阵列 ${cx}×${cy}（共 ${cx * cy} 份）` }
+      return { points, lines, circles, selection: [], status: `已矩形陣列 ${cx}×${cy}（共 ${cx * cy} 份）` }
     })
     void get().solve()
   },
@@ -423,7 +423,7 @@ export const useCSketch = create<CS>((set, get) => ({
     const s = get()
     const selL = s.selection.filter((x) => x.kind === 'line').map((x) => x.id)
     const selC = s.selection.filter((x) => x.kind === 'circle').map((x) => x.id)
-    if (!selL.length && !selC.length) { set({ status: '环形阵列：先选要阵列嘅实体（线 / 圆），可加选一个点做中心（否则绕原点），再设数量' }); return }
+    if (!selL.length && !selC.length) { set({ status: '環形陣列：先選要陣列嘅實體（線 / 圓），可加選一個點做中心（否則繞原點），再設數量' }); return }
     const n = Math.max(2, Math.min(400, Math.round(count)))
     const selPt = s.selection.find((x) => x.kind === 'point')
     const C = selPt ? pt(s, selPt.id) : { x: 0, y: 0 }
@@ -439,7 +439,7 @@ export const useCSketch = create<CS>((set, get) => ({
         for (const id of selL) { const l = st.lines.find((x) => x.id === id); if (!l) continue; const a = pt(st, l.p1), b = pt(st, l.p2); const [ax, ay] = rot(a.x, a.y, th), [bx, by] = rot(b.x, b.y, th); lines.push({ id: nid('l'), p1: mk(ax, ay), p2: mk(bx, by), construction: l.construction }) }
         for (const id of selC) { const cc = st.circles.find((x) => x.id === id); if (!cc) continue; const cp = pt(st, cc.c); const [cxr, cyr] = rot(cp.x, cp.y, th); circles.push({ id: nid('c'), c: mk(cxr, cyr), r: cc.r }) }
       }
-      return { points, lines, circles, selection: [], status: `已环形阵列 ${n} 个（${full ? '整圈' : angleTotal + '°'}${selPt ? '，绕所选点' : '，绕原点'}）` }
+      return { points, lines, circles, selection: [], status: `已環形陣列 ${n} 個（${full ? '整圈' : angleTotal + '°'}${selPt ? '，繞所選點' : '，繞原點'}）` }
     })
     void get().solve()
   },
@@ -451,7 +451,7 @@ export const useCSketch = create<CS>((set, get) => ({
     const s = get()
     const selL = s.selection.filter((x) => x.kind === 'line').map((x) => x.id)
     const selC = s.selection.filter((x) => x.kind === 'circle').map((x) => x.id)
-    if (!selL.length && !selC.length) { set({ status: '旋转：先选要转嘅实体（线 / 圆），可加选一个点做旋转中心（否则绕原点）' }); return }
+    if (!selL.length && !selC.length) { set({ status: '旋轉：先選要轉嘅實體（線 / 圓），可加選一個點做旋轉中心（否則繞原點）' }); return }
     const selPt = s.selection.find((x) => x.kind === 'point')
     const C = selPt ? pt(s, selPt.id) : { x: 0, y: 0 }
     const th = (angleDeg * Math.PI) / 180, cs = Math.cos(th), sn = Math.sin(th)
@@ -463,7 +463,7 @@ export const useCSketch = create<CS>((set, get) => ({
     get().pushUndo()
     set((st) => ({
       points: st.points.map((p) => { if (!moveIds.has(p.id)) return p; const dx = p.x - C.x, dy = p.y - C.y; return { ...p, x: C.x + dx * cs - dy * sn, y: C.y + dx * sn + dy * cs } }),
-      selection: [], status: `已旋转 ${angleDeg}°（${selPt ? '绕所选点' : '绕原点'}）`,
+      selection: [], status: `已旋轉 ${angleDeg}°（${selPt ? '繞所選點' : '繞原點'}）`,
     }))
     void get().solve()
   },
@@ -473,11 +473,11 @@ export const useCSketch = create<CS>((set, get) => ({
   // object"). Honest narrow version: bbox outline + Z-hole centres (not a full silhouette of arbitrary edges).
   projectBody: () => {
     const body = useApp.getState().bodyMesh
-    if (!body || !body.vertices.length) { set({ status: '冇实体可投影（先返 3D 起一个实体）' }); return }
+    if (!body || !body.vertices.length) { set({ status: '冇實體可投影（先返 3D 起一個實體）' }); return }
     const v = body.vertices
     let mnx = 1e9, mny = 1e9, mxx = -1e9, mxy = -1e9
     for (let i = 0; i < v.length; i += 3) { const x = v[i], y = v[i + 1]; if (x < mnx) mnx = x; if (x > mxx) mxx = x; if (y < mny) mny = y; if (y > mxy) mxy = y }
-    if (!(mxx - mnx > 1e-3 && mxy - mny > 1e-3)) { set({ status: '实体投影到 XY 平面太细（可能垂直于此平面）' }); return }
+    if (!(mxx - mnx > 1e-3 && mxy - mny > 1e-3)) { set({ status: '實體投影到 XY 平面太細（可能垂直於此平面）' }); return }
     const cyls = detectAllCylinders(body).filter((c) => c.concave && Math.abs(c.axis[2]) > 0.9 && c.r >= 0.5)
     get().pushUndo()
     set((st) => {
@@ -486,7 +486,7 @@ export const useCSketch = create<CS>((set, get) => ({
       const c0 = mk(mnx, mny), c1 = mk(mxx, mny), c2 = mk(mxx, mxy), c3 = mk(mnx, mxy)
       lines.push({ id: nid('l'), p1: c0, p2: c1, construction: true }, { id: nid('l'), p1: c1, p2: c2, construction: true }, { id: nid('l'), p1: c2, p2: c3, construction: true }, { id: nid('l'), p1: c3, p2: c0, construction: true })
       for (const cy of cyls) mk(cy.p[0], cy.p[1])   // hole centres → fixed reference points
-      return { points, lines, selection: [], status: `已投影实体：外形矩形（参考线）+ ${cyls.length} 个孔中心（参考点）— 可对佢哋打尺寸/约束新几何（相对 3D 定位）` }
+      return { points, lines, selection: [], status: `已投影實體：外形矩形（參考線）+ ${cyls.length} 個孔中心（參考點）— 可對佢哋打尺寸/約束新幾何（相對 3D 定位）` }
     })
     void get().solve()
   },
@@ -557,21 +557,21 @@ export const useCSketch = create<CS>((set, get) => ({
       const pmap = new Map(res.geometry.filter((g) => g.type === 'point').map((g) => [g.id, g as { x: number; y: number }]))
       const cmap = new Map(res.geometry.filter((g) => g.type === 'circle').map((g) => [g.id, g as { radius: number }]))
       // 过约束/退化几何时求解器可能返回 NaN/Infinity → 直接写入会污染整张草图。校验有限性,非有限即抛(下面 catch 出诚实「求解失败」而非静默崩坏)。
-      for (const [, pt] of pmap) if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) throw new Error('求解器返回非有限坐标')
-      for (const [, cc] of cmap) if (!Number.isFinite(cc.radius)) throw new Error('求解器返回非有限半径')
+      for (const [, pt] of pmap) if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) throw new Error('求解器返回非有限坐標')
+      for (const [, cc] of cmap) if (!Number.isFinite(cc.radius)) throw new Error('求解器返回非有限半徑')
       set((st) => ({
         points: st.points.map((p) => (pmap.has(p.id) ? { ...p, x: pmap.get(p.id)!.x, y: pmap.get(p.id)!.y } : p)),
         circles: st.circles.map((c) => (cmap.has(c.id) ? { ...c, r: cmap.get(c.id)!.radius } : c)),
         conflicts: res.conflicts,
         dof: res.dof,
-        status: res.conflicts.length ? `⚠ 约束冲突 (${res.conflicts.length}) — 过约束 / 矛盾；撤销刚加嘅(Ctrl+Z) 或喺下面尺寸列表 ✕ 删一个` : res.dof === 0 ? '✓ 完全定义（黑）' : res.dof > 0 ? `欠定义 ${res.dof} 自由度（蓝）— 加尺寸/约束` : '✓ 已求解',
+        status: res.conflicts.length ? `⚠ 約束衝突 (${res.conflicts.length}) — 過約束 / 矛盾；撤銷剛加嘅(Ctrl+Z) 或喺下面尺寸列表 ✕ 刪一個` : res.dof === 0 ? '✓ 完全定義（黑）' : res.dof > 0 ? `欠定義 ${res.dof} 自由度（藍）— 加尺寸/約束` : '✓ 已求解',
       }))
       // GM-F4 · solve 落定之后先跑逐点 DOF 诊断（debounce + 拓扑 cache + 拖曳中跳过）。
       // 唔喺 solve 主链等佢 → 对拖曳/求解交互零延迟；探针 async 算好先套用上色。
       scheduleDofDiag()
     } catch (e) {
       console.error('[csketch] solve failed', e)
-      set({ status: '求解失败：' + String(e) })
+      set({ status: '求解失敗：' + String(e) })
     }
   },
 

@@ -1,12 +1,22 @@
 // Aero Design Lab — runs CMA-ES (1 objective) or NSGA-II (≥2 objectives) on a DesignSpec.
 // Pure function: used by the Web Worker (src/worker/aero.worker.ts) and by unit tests.
-import { decode, encode, evaluateSpec, objectiveVector, type DesignSpec, type Metrics } from '../designSpace'
+import { decode, encode, evaluateSpec, objectiveVector, violationOf, type DesignSpec, type Metrics } from '../designSpace'
+import { applyFactors, factorsAt, type Correction } from '../correction'
 import { runCmaes } from './cmaes'
 import { runNsga2, nonDominatedSort } from './nsga2'
 import { soKey, type Individual, type OptProblem } from './types'
 
-export interface AeroRunOptions { seed?: number; budget?: number; topN?: number }
-export interface Candidate { id: number; x: Record<string, number>; metrics: Metrics; objectives: number[]; feasible: boolean; violation: number; pareto: boolean }
+export interface AeroRunOptions {
+  seed?: number; budget?: number; topN?: number
+  /** CFD correction surrogate (auto-design loop): objectives/constraints use estimator × e^GP(u). */
+  correction?: Correction | null
+}
+export interface Candidate {
+  id: number; x: Record<string, number>; metrics: Metrics; objectives: number[]; feasible: boolean; violation: number; pareto: boolean
+  /** with a correction: raw estimator stays in `metrics`; objectives/feasibility come from `corrected` */
+  corrected?: Metrics
+  u?: number[]
+}
 export interface AeroProgress {
   pct: number; gen: number; evals: number; budget: number
   best: number[] | null                 // best objective vector (physical sense, not negated)
@@ -29,6 +39,14 @@ export function runAeroOptimization(spec: DesignSpec, opts: AeroRunOptions = {},
   const topN = opts.topN ?? 8
   const nObj = Math.max(1, spec.objectives.length)
   const cache = new Map<string, { metrics: Metrics; f: number[]; viol: number }>()
+  const corr = opts.correction && Object.keys(opts.correction.models ?? {}).length ? opts.correction : null
+  /** estimator (+ optional CFD correction) → metrics the optimiser ranks on */
+  const evalAt = (x: Record<string, number>): { raw: Metrics; m: Metrics; viol: number } => {
+    const ev = evaluateSpec(spec, x)
+    if (!corr || ev.violation >= 1e6) return { raw: ev.metrics, m: ev.metrics, viol: ev.violation }
+    const m = applyFactors(spec.kind, ev.metrics, factorsAt(corr, encode(spec, x)))
+    return { raw: ev.metrics, m, viol: violationOf(spec, m) }
+  }
   const physical = (f: number[]) => f.map((v, i) => (spec.objectives[i]?.sense === 'max' ? -v : v))
   const prob: OptProblem = {
     n: spec.vars.length,
@@ -37,8 +55,8 @@ export function runAeroOptimization(spec: DesignSpec, opts: AeroRunOptions = {},
       const key = spec.vars.map((v) => x[v.key].toPrecision(7)).join('|')
       let hit = cache.get(key)
       if (!hit) {
-        const ev = evaluateSpec(spec, x)
-        hit = { metrics: ev.metrics, f: objectiveVector(spec, ev.metrics), viol: ev.violation }
+        const ev = evalAt(x)
+        hit = { metrics: ev.m, f: objectiveVector(spec, ev.m), viol: ev.viol }
         if (cache.size < 50000) cache.set(key, hit)
       }
       return { f: hit.f, viol: hit.viol }
@@ -47,8 +65,8 @@ export function runAeroOptimization(spec: DesignSpec, opts: AeroRunOptions = {},
   const history: AeroRunResult['history'] = []
   const toCand = (ind: Individual, id: number, pareto = false): Candidate => {
     const x = decode(spec, ind.u)
-    const ev = evaluateSpec(spec, x)
-    return { id, x, metrics: ev.metrics, objectives: physical(objectiveVector(spec, ev.metrics)), feasible: ev.violation <= 0, violation: ev.violation, pareto }
+    const ev = evalAt(x)
+    return { id, x, metrics: ev.raw, objectives: physical(objectiveVector(spec, ev.m)), feasible: ev.viol <= 0, violation: ev.viol, pareto, u: encode(spec, x), ...(corr ? { corrected: ev.m } : {}) }
   }
   const x0 = encode(spec, Object.fromEntries(spec.vars.map((v) => [v.key, v.value ?? (v.min + v.max) / 2])))
   const baseInd = { u: x0, ...prob.evaluate(x0) }

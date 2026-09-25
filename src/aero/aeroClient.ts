@@ -23,6 +23,13 @@ export async function runAero(spec: DesignSpec, opts: AeroRunOptions, onProgress
   return opt().run(spec, opts, onProgress ? proxy(onProgress) : undefined)
 }
 
+/** One optimisation on a dedicated worker (terminated afterwards) — used by the auto-design loop so
+ *  the lab's own Run/Stop (which terminates the shared worker) can never strand a loop round. */
+export async function runAeroOnce(spec: DesignSpec, opts: AeroRunOptions): Promise<AeroRunResult> {
+  const w = new Worker(new URL('../worker/aero.worker.ts', import.meta.url), { type: 'module', name: 'aero-loop' })
+  try { return await wrap<AeroWorkerAPI>(w).run(spec, opts) } finally { w.terminate() }
+}
+
 /** Stop a running optimisation (terminates the worker; the pending promise never resolves → caller ignores it). */
 export function cancelAero(): void {
   optWorker?.terminate()

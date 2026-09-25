@@ -13021,7 +13021,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'create_pyramid': { const bd = num('base_diameter', 20), td = Math.max(0, Number(a.top_diameter) || 0), sd = Math.min(12, Math.max(3, Math.round(Number(a.sides)) || 4)); return mk({ id: fid(), type: 'prim', shape: 'cone', a: bd / 2, b: td / 2, c: num('height', 20), sides: sd, op: opOf() }, `${verb()}${td > 0 ? sd + '棱台' : sd + '棱锥'} 底Ø${bd}${td > 0 ? ' 顶Ø' + td : ''}×${num('height', 20)}mm`) }   // P6：cone + sides≥3 = 正多边形棱锥/棱台
       case 'fillet_all_edges': { if (!hasSolid(get().features)) return '✗ 需要先有实体'; const ok = await get().filletAllEdges(num('radius', 2)); return ok ? `✓ 已对所有棱倒圆角 R${num('radius', 2)}` : '✗ 全棱倒圆角失败（半径相对几何过大 — 请用户调细再试）' }
       case 'chamfer_all_edges': { if (!hasSolid(get().features)) return '✗ 需要先有实体'; const ok = await get().chamferAllEdges(num('distance', 1)); return ok ? `✓ 已对所有棱倒角 ${num('distance', 1)}mm` : '✗ 全棱倒角失败（距离过大 — 请用户调细再试）' }
-      default: return '✗ 未知工具：' + name
+      default: {
+        if (name.startsWith('aero_')) {   // Aero Design Lab / auto-design loop (lazy: pulls the lab code only when used)
+          const r = await (await import('./aero/aeroCopilot')).runAeroToolLive(name, a, get().aiConfig)
+          if (r !== null) return r
+        }
+        return '✗ 未知工具：' + name
+      }
     }
   },
 

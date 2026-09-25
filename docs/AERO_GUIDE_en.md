@@ -15,7 +15,7 @@ They are not three equally accurate calculators. Lower in the list means closer 
 | | ① Engineering estimate | ② Browser wind tunnel | ③ Local OpenFOAM |
 | --- | --- | --- | --- |
 | Where | Aero Design Lab, **▶ Run optimisation** | **Accurate (LBM)** on a result row, or **Run** in the wind/water tunnel | **OpenFOAM CFD verification** under the lab results, or **Verify this shape with OpenFOAM** on the tunnel panel |
-| How accurate | For **ranking**. Drag and efficiency usually read **about 30% low**. Correct them with the layer-③ factor. This is not CFD. | **Trend-level**. With the same settings, which shape has less drag is trustworthy. Do not treat the absolute drag coefficient Cd as a lab report. | The most accurate of the three. A sphere checks out at Cd **0.490** against a reference of about **0.47** (a few percent). A spinning propeller or fan is **not validated**. |
+| How accurate | For **ranking and shortlisting**, not CFD. Versus OpenFOAM it can be off by **one to three times**, depending on the shape and the mesh, so correct it with layer ③. Auto-design mode learns that gap (see g). | **Trend-level**. With the same settings, which shape has less drag is trustworthy. Do not treat the absolute drag coefficient Cd as a lab report. | The most accurate of the three. A sphere checks out at Cd **0.490** against a reference of about **0.47** (a few percent). A spinning propeller or fan is **not validated**. |
 | How long | The panel shows **milliseconds**. 1200 evaluations usually finish within a few seconds. 300 is faster; 8000 is still seconds. | CPU: resolution around 24 is tens of seconds; 48 can be minutes (large parts slower). GPU: drag the part and watch the flow live, but Cd reads **about 2× high**. | Coarse mesh: minutes, up to about ten (the checked sphere setup is about 10 minutes). Fine mesh or a difficult shape can be tens of minutes. **One job at a time**; the rest queue. |
 | When | Sweep many sizes, drop the obvious losers, keep a shortlist. | Which outline is cleaner, which direction has less drag, or you want to see smoke. | The last one or two candidates, or a shape you modelled yourself, when you need a serious Cd or drag force. |
 
@@ -31,7 +31,7 @@ Rule of thumb: the estimate picks the shortlist, the tunnel compares shapes, Ope
 
 Or press **/** , type “aero”, and pick **Aero Design Lab**.
 
-The panel is four steps: ① Design brief, ② Design space, ③ Optimise, ④ Results.
+The panel is four steps: ① Design brief, ② Design space, ③ Optimise, ④ Results. At the bottom there is also **⑤ Auto-design mode**. See section g. You do not have to finish the four steps first.
 
 ---
 
@@ -143,7 +143,7 @@ Then:
 8. When it finishes, the table has three columns:
    - **Engineering estimate** — the lab number.
    - **OpenFOAM** — this run.
-   - **Ratio CFD/est.** — OpenFOAM divided by the estimate. ×1.40 means the estimate was about 70% of the CFD value, **about 30% low**.
+   - **Ratio CFD/est.** — OpenFOAM divided by the estimate. ×1.40 means this CFD result is 1.4 times the estimate. Do not memorise “always 30% low”: depending on the shape and the mesh, the gap can be one to three times. Auto-design mode learns those multipliers (see g).
 9. **Calibration factor (CFD ÷ estimate, per template)** stores that multiplier (averaged if you finish more than one job on the same template). It stays empty until a job finishes.
 10. Tick **Re-rank with CFD / calibrated values**. A candidate that already has CFD uses the CFD number. The others use estimate × factor. Lower is better for drag; higher is better for efficiency.
 
@@ -173,11 +173,140 @@ Keep the OpenFOAM number. Do not compare a GPU-engine Cd with OpenFOAM as if bot
 
 ---
 
+## g) Auto-design mode (it designs, tests, and looks for the best)
+
+At the bottom of the lab the title is **⑤ Auto-design mode (closed loop)**. You do not click **▶ Run optimisation** and then send CFD by hand, round after round. One click on **▶ Start auto-design** repeats: search with the estimate → send a few different shapes to local OpenFOAM → teach a correction model from the CFD → search again with the corrected estimate.
+
+Set the design space first (a template or one sentence, sections a–c). If you do not, the lab opens on the propeller / fan template, and a propeller does **not** send CFD unless you opt in (below).
+
+### Which settings to pick
+
+You cannot edit these while a loop is running. The defaults are a reasonable first try:
+
+| Field | Default | What it does |
+| --- | --- | --- |
+| **Rounds** | 3 | How many times to optimise, then CFD, then learn. About 1 to 20. Leave 3 the first time. |
+| **CFD per round** | 2 | How many **different** designs this round sends to OpenFOAM. Use 1 if you want it faster. About 1 to 8. |
+| **CFD job budget** | 6 | Total CFD jobs for the whole loop. When it is used up the loop stops, even if rounds remain. 3 rounds × 2 jobs = 6, so the default spends the budget exactly. |
+| **Time limit (min)** | 120 | Stop when the clock runs out. One coarse job is minutes, up to the teens; six of them can be an hour or two. |
+| **Stop if improvement < ε** | 0.01 | Stop when the best so far is not at least 1% (0.01) better than the previous round. Smaller searches harder; larger stops sooner. |
+
+On the same row:
+
+- Leave **Mesh** on **coarse** the first time. Medium and fine take much longer.
+- Wings and shells have **Solver preset**. Leave **Auto (Re<3e5 → laminar transient)**. Propellers do not show this list.
+- Leave **Evaluations** at **1200**. That is how many estimates each auto-design round runs. The Evaluations control in step ③ applies only when you press **▶ Run optimisation** yourself. It is not copied here.
+
+Then click **▶ Start auto-design**. The line beside it reads round 0/3, CFD jobs 0/6, and elapsed time, plus the step it is on: checking the CFD service, optimising, submitting CFD jobs, waiting for CFD, updating the correction model.
+
+**■ Stop auto-design** keeps finished results and cancels queued or running CFD jobs. **Clear** is available only after the loop has stopped.
+
+The stop line names the reason. Usual ones: **all rounds done**, **CFD job budget used up**, **time limit reached**, **improvement below ε — converged**, **stopped**. If every CFD job in a round fails, it stops and keeps the best estimate.
+
+### What each round does
+
+1. **Optimise.** Search the design space with the engineering estimate. From round 2 on, that estimate is **corrected**. It is no longer the raw formula.
+2. **Pick the top N.** N is **CFD per round**. It does not send N near-copies. It spreads the picks, and it skips shapes already verified by CFD.
+3. **CFD.** Local OpenFOAM. The service runs one job at a time; the rest queue. Each job is usually minutes, sometimes into the teens.
+4. **The correction model learns.** After CFD finishes it learns from CFD ÷ estimate (the panel intro calls this a Gaussian process). In plain words: for a shape like this, what multiplier makes the estimate land near the CFD number.
+5. **Optimise again.** Back to step 1, until the rounds, the CFD budget, or the time limit is used up, or the improvement is below ε.
+
+### How to read the chart and the round table
+
+The chart title is **Best per round (solid = CFD-verified, dashed = corrected estimate)**.
+
+- **Dashed line, grey dots**: that round’s best corrected estimate.
+- **Green dots**: that round’s best CFD.
+- **Solid green line**: the best CFD-verified result up to that round. It can stay flat. It is not always equal to this round’s green dot, because an earlier round may still be better.
+- Estimator-only for the whole loop: no green line, only the dashed one.
+
+Each table row is one round:
+
+- **Round**. A **⚠** after the number means this round did not use CFD.
+- **Best estimate (corrected)**.
+- **Best CFD**. Blank means no CFD job finished this round.
+- **Correction**. The learned multiplier, for example `Cd×1.800 (n=2)`. n is how many CFD points were used. “—” means no CFD yet.
+- **Prediction error**. How far the model’s multiplier was from what this round actually measured, in percent. Round 1 has no earlier data, so this is how far the raw estimate was from CFD.
+- **CFD jobs**. `#id:✓` done, `✗` failed, a percent while it runs, `…` not sent yet.
+
+While a round is running, the lines under the table show each job id, stage, and progress. Open **Log** for a timed line of what happened.
+
+### How to use the “best verified design” card
+
+When there is a result, a card appears underneath.
+
+- **Green border, 🏆 Best verified design**: at least one design has finished CFD and still meets the constraints. The **CFD values** on this card are the numbers to keep.
+- **Amber border, ⚠ Best design (NOT CFD-verified — estimate only)**: there is no usable CFD. The amber line says again that every number below is an engineering estimate, not CFD-verified. Do not put them in a report.
+
+Three columns: **Estimator** (uncorrected), **Corrected estimate**, **CFD values**. The main objective (L/D, drag, efficiency) is in bold. Under that, the design’s parameters (span, chord, and so on).
+
+Three buttons:
+
+- **＋ Insert into model**. After it is on the timeline, edit and export as in section d.
+- **⬇ Download STL**.
+- **⬇ Download STEP**.
+
+If the CFD line says **⚠ not converged**, discount that CFD number.
+
+### When the CFD service is off, or the browser blocks it
+
+The loop checks the service first.
+
+- Online: a green banner, **CFD closed loop: every round is verified by OpenFOAM and the model corrected**.
+- Not online: an amber banner, **Estimator only (no CFD verification)**, plus a reason.
+  - **local CFD service unreachable**. Double-click `C:\ClaudeCode\aero-cfd-service\start-service.bat` and leave the console open. The same instruction is repeated under the banner. At the start of the next round, if the service is back, it switches to CFD mode. The log says the CFD service came online and it is switching to CFD mode.
+  - **browser blocks local network access**. Same fix as in Common questions: lock or settings icon to the left of the address bar → Site settings → **Local network access** → **Allow** → reload. The steps are repeated under the banner.
+
+In estimator-only mode the best card is always the amber, unverified one. The rest of the lab (run optimisation yourself, insert, wind tunnel) still works.
+
+### A propeller does not use CFD unless you ask
+
+Propeller and fan rotor CFD is **not validated**. Auto-design does **not** send it unless you opt in. The amber line is: **rotor CFD is unvalidated and off by default — tick below to use it anyway**. The mode is estimator-only for that reason.
+
+If you still want a rough which-one-makes-more-thrust look, tick **⚠ Use rotor CFD anyway (unvalidated)**. With the service online it becomes a CFD closed loop, but the banner, the table, and the card all say **NOT validated**. Qualitative only. Not real thrust, power, or efficiency.
+
+### Close the tab and reopen: it picks up where it left off
+
+The loop is stored in this browser. Close the tab or reload:
+
+- **Still running**: when you open WebCAD again, the Aero Design Lab **opens by itself** and continues from the step it stopped on (it keeps watching queued and running CFD jobs). You do not press Start again.
+- **Already finished**: the result is still there. Open the lab yourself and the best card is waiting. You do not recompute it.
+
+If you also closed the black console, CFD itself stops. After you start `start-service.bat` again, finished results are still there. A job that was cut off mid-run may have to be done again.
+
+---
+
+## h) Ask the AI assistant to do it
+
+Sections a–g are all buttons you press yourself. **With no AI key, the lab still works**: templates, the rule parser for one sentence, and the auto-design button do not need a key. Without a key you only lose the AI Assistant chat.
+
+1. On the **top bar, at the right** (next to search 🔍 and help ?), click **AI Assistant**, or press **Ctrl+Shift+A**.
+2. The panel title is **✦ AI Copilot**. If no key is set, the settings block opens by itself. The **⚙** button in the title bar opens it too. The tooltip is **Settings (Provider / API Key / Model)**.
+3. Pick a **Provider** (OpenAI, Grok, Gemini, or a local model). Paste your own key in **API Key**. The note says the key stays in this browser and talks to the provider directly. It is not sent through a WebCAD server.
+4. Type what you want in the box below and press Enter. For example:
+
+   幫我設計一個 1.2 米翼展嘅滑翔機翼，用 CFD 驗證兩輪
+
+   (Design me a glider wing with a 1.2 m span, and verify it with CFD for two rounds.)
+
+It calls these four tools itself. You do not type the names:
+
+- **aero_open_lab**. Opens the Aero Design Lab and sets the design space from your sentence (propeller / fan, wing, or streamlined shell).
+- **aero_start_auto_design**. Starts auto-design, the same loop as the button in section g. The example above opens the lab, sets the span to about 1.2 m, aims at L/D, and runs. “兩輪” (two rounds) sets Rounds to 2. It replies at once that it has started. CFD runs in the background, minutes per job. It does not wait for every job before answering.
+- **aero_auto_design_status**. Ask “how far along” or “what is the best”. It reports the round, estimate versus CFD, the correction factor, and whether the best design is CFD-verified.
+- **aero_stop_auto_design**. Say stop. Queued and running CFD jobs are cancelled. Finished results stay.
+
+Before you say “verify with CFD”, `start-service.bat` must be open and the browser must allow local network access. Otherwise it tells you plainly that the loop is estimator-only and the result is not verified. A propeller or fan does not use rotor CFD unless you say so. If you say to use rotor CFD anyway, it will, and it will warn you that rotor CFD is not validated.
+
+Send a message with no key and the reply is: **⚠ Enter your API Key in Settings (gear icon) first.** Go back to the lab and press the buttons yourself. That does not need a key.
+
+---
+
 ## Known limits (plain)
 
 - **Propeller and fan CFD is not validated.** The local run is a steady rotor approximation. It has not been checked against measured propeller data. The panel marks it **NOT validated**. Use it only as a rough “which one makes more thrust” hint, not as real thrust, power, or efficiency.
 - **Browser-tunnel absolute Cd is biased.** It is a lattice trend solver. Compare two shapes at the same speed, fluid, and engine. Do not write that Cd into a report as a tunnel measurement.
-- **The engineering estimate runs about 30% low and needs a correction.** Drag and efficiency in the lab are fast formulas. Multiply the estimate by the **calibration factor** (CFD ÷ estimate) from layer ③ before you trust a ranking. Until you have run CFD, the estimate is only a filter.
+- **The engineering estimate and CFD can differ by one to three times, and the estimate needs a correction.** It is not a fixed “30% low”. How far depends on the shape and the mesh. Multiply the estimate by the **calibration factor** (CFD ÷ estimate) from layer ③ before you trust a ranking. Auto-design mode learns that multiplier from CFD results (see g). Until you have run CFD, the estimate is only a filter.
 - **GPU tunnel Cd is about 2× high.** On a sphere it measured 2.0–2.2 times the reference, at several resolutions, so it is not “the mesh was coarse”. The engine therefore defaults to CPU. GPU is for “which direction is less drag, in percent” and for dragging the part around. Absolute Cd and drag come from CPU or from OpenFOAM.
 - Neither the estimate nor the browser tunnel is a certified solver. OpenFOAM’s sphere check is a few percent. Wing drag can still read high; read the job warnings (not converged, mesh warnings).
 - The shell you insert is a solid outer shape. Wall thickness is not a hollow wall.
@@ -207,7 +336,7 @@ Click the lock or settings icon **to the left of the address bar** → **Site se
 
 The three layers are three different methods. The numbers are not supposed to match.
 
-- The estimate is fast and usually **about 30% low**.
+- The estimate is fast, and versus CFD it can be off by **one to three times**, depending on the shape and the mesh. It is not a fixed 30% low. Auto-design learns the gap (see g).
 - The tunnel is a trend. Absolute Cd is off, and the GPU path is about twice as high.
 - OpenFOAM is the one that lands near the reference (sphere 0.490 versus 0.47).
 

@@ -17958,7 +17958,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // GM-X2 #13：质量按 massUnit 重格式（g 保留 propsReport 默认 g/kg 自动切；kg/oz/lb 覆盖）。
     if (s.massUnit !== 'g') {
       const massG = (mp.mass ?? density * 1e-9 * mp.volume) * 1e6
-      const mr = rows.find((r) => r.label === '质量')
+      const mr = rows.find((r) => r.label === '質量' || r.label === '质量')   // propsReport 发 '質量'（港繁）；旧简体 label 兼容
       if (mr) mr.value = fmtMassU(massG, s.massUnit, s.measurePrecision)
     }
     set({ propsDialog: { bodyId: bodyId ?? null, frame, accuracy: acc }, propsDialogData: { rows, text, massProps: mp } })

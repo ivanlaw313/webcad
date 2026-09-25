@@ -40,8 +40,8 @@ export default function SlicePanel({ mesh, onClose }: { mesh: MeshLike; onClose:
       <div className="drawing-overlay" onClick={onClose}>
         <div className="drawing-modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(92vw, 420px)' }}>
           <div className="dw-head">🔪 切層預覽<span className="dw-x" onClick={onClose}>✕</span></div>
-          <div style={{ fontSize: 13, color: '#5a6b78', padding: '8px 0 4px' }}>无可切几何 —— 实体网格为空或冇高度。</div>
-          <div className="dw-foot"><button className="cs-btn" onClick={onClose}>关闭</button></div>
+          <div style={{ fontSize: 13, color: '#5a6b78', padding: '8px 0 4px' }}>無可切幾何 —— 實體網格為空或冇高度。</div>
+          <div className="dw-foot"><button className="cs-btn" onClick={onClose}>關閉</button></div>
         </div>
       </div>
     )
@@ -64,15 +64,15 @@ export default function SlicePanel({ mesh, onClose }: { mesh: MeshLike; onClose:
   return (
     <div className="drawing-overlay" onClick={onClose}>
       <div className="drawing-modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(92vw, 760px)' }}>
-        <div className="dw-head">🔪 切層預覽 — 打印前逐层检查<span className="dw-x" onClick={onClose}>✕</span></div>
+        <div className="dw-head">🔪 切層預覽 — 打印前逐層檢查<span className="dw-x" onClick={onClose}>✕</span></div>
 
         {/* 警告汇总 */}
         <div style={{ fontSize: 13, marginBottom: 8, lineHeight: 1.7 }}>
           {ana.islands.length > 0
-            ? <span style={{ color: '#c62828', fontWeight: 600 }}>⚠ {ana.islands.length} 层有悬空孤岛（首个喺 Z={ana.islands[0].z.toFixed(2)}mm — 落料时浮空，要加支撑）</span>
-            : <span style={{ color: '#2e7d32', fontWeight: 600 }}>✓ 无悬空孤岛</span>}
-          <span style={{ color: '#5a6b78' }}>　·　首层接触面积 <b style={ana.firstLayerArea < 50 ? { color: '#c62828' } : undefined}>{fmtA(ana.firstLayerArea)} mm²</b>{ana.firstLayerArea < 50 && '（偏细，易甩板）'}　·　最薄层 <b>{fmtA(ana.minArea.area)} mm²</b>（Z={ana.minArea.z.toFixed(2)}mm）</span>
-          {ana.openLayers > 0 && <div style={{ color: '#e65100', fontSize: 12 }}>⚠ {ana.openLayers} 层切出未闭合轮廓（虚线红）—— 网格可能唔水密，切片软件会乱估内部</div>}
+            ? <span style={{ color: '#c62828', fontWeight: 600 }}>⚠ {ana.islands.length} 層有懸空孤島（首個喺 Z={ana.islands[0].z.toFixed(2)}mm — 落料時浮空，要加支撐）</span>
+            : <span style={{ color: '#2e7d32', fontWeight: 600 }}>✓ 無懸空孤島</span>}
+          <span style={{ color: '#5a6b78' }}>　·　首層接觸面積 <b style={ana.firstLayerArea < 50 ? { color: '#c62828' } : undefined}>{fmtA(ana.firstLayerArea)} mm²</b>{ana.firstLayerArea < 50 && '（偏細，易甩板）'}　·　最薄層 <b>{fmtA(ana.minArea.area)} mm²</b>（Z={ana.minArea.z.toFixed(2)}mm）</span>
+          {ana.openLayers > 0 && <div style={{ color: '#e65100', fontSize: 12 }}>⚠ {ana.openLayers} 層切出未閉合輪廓（虛線紅）—— 網格可能唔水密，切片軟件會亂估內部</div>}
           {ana.note && <div style={{ color: '#5a6b78', fontSize: 12 }}>ℹ {ana.note}</div>}
         </div>
 
@@ -89,25 +89,25 @@ export default function SlicePanel({ mesh, onClose }: { mesh: MeshLike; onClose:
 
         {/* 层滑杆 + 当前层读数 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, fontSize: 12, color: '#333' }}>
-          <input type="range" min={0} max={Math.max(0, ana.layers - 1)} step={1} value={li} onChange={(e) => setLayerIdx(+e.target.value)} style={{ flex: 1 }} title="拖动逐层查看（↑顶层 ↓首层）" />
+          <input type="range" min={0} max={Math.max(0, ana.layers - 1)} step={1} value={li} onChange={(e) => setLayerIdx(+e.target.value)} style={{ flex: 1 }} title="拖動逐層查看（↑頂層 ↓首層）" />
           <span style={{ fontFamily: 'monospace', whiteSpace: 'nowrap' }}>第 {li + 1}/{ana.layers} 层 · Z={z.toFixed(2)} mm</span>
         </div>
         <div style={{ fontSize: 12, color: '#5a6b78', marginTop: 4 }}>
-          本层：实体区 {cls.solidIdx.length} 个 · 净面积 {fmtA(layerArea)} mm²
-          {islIdx.length > 0 && <span style={{ color: '#c62828', fontWeight: 600 }}> · ⚠ {islIdx.length} 个悬空孤岛（红色区 —— 下一层冇承托）</span>}
-          {cur.open.length > 0 && <span style={{ color: '#e65100' }}> · 未闭合链 {cur.open.length} 条</span>}
+          本層：實體區 {cls.solidIdx.length} 個 · 淨面積 {fmtA(layerArea)} mm²
+          {islIdx.length > 0 && <span style={{ color: '#c62828', fontWeight: 600 }}> · ⚠ {islIdx.length} 個懸空孤島（紅色區 —— 下一層冇承托）</span>}
+          {cur.open.length > 0 && <span style={{ color: '#e65100' }}> · 未閉合鏈 {cur.open.length} 條</span>}
         </div>
 
         <div className="dw-foot">
-          <span style={{ fontSize: 11, color: '#888', marginRight: 'auto' }}>■ 浅蓝=实体　□ 白=孔　■ 红=悬空孤岛（需支撑）　┄ 红虚线=未闭合轮廓</span>
-          <label style={{ fontSize: 12 }} title="模拟打印层高（改变后全模型重新分析）">层高{' '}
+          <span style={{ fontSize: 11, color: '#888', marginRight: 'auto' }}>■ 淺藍=實體　□ 白=孔　■ 紅=懸空孤島（需支撐）　┄ 紅虛線=未閉合輪廓</span>
+          <label style={{ fontSize: 12 }} title="模擬打印層高（改變後全模型重新分析）">層高{' '}
             <select value={String(layerH)} onChange={(e) => { setLayerH(+e.target.value); setLayerIdx(0) }} style={{ fontSize: 12 }}>
               <option value="0.12">0.12 mm</option>
               <option value="0.2">0.2 mm</option>
               <option value="0.28">0.28 mm</option>
             </select>
           </label>
-          <button className="cs-btn" onClick={onClose}>关闭</button>
+          <button className="cs-btn" onClick={onClose}>關閉</button>
         </div>
       </div>
     </div>

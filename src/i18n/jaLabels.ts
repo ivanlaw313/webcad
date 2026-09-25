@@ -582,3 +582,8 @@ Object.assign(JA_LABEL, {
   '匯出glTF': 'glTF書き出し',
   '匯出DXF': 'DXF書き出し',
 })
+
+// grok-tc2 zh-HK whole-string keys (legacy SC / 導出 keys above stay).
+Object.assign(JA_LABEL, {
+  '匯出全部零件 STL(zip)': '全パーツSTL書き出し(zip)',
+})

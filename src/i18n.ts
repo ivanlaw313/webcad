@@ -426,6 +426,11 @@ Object.assign(EN_LABEL, {
   '匯出glTF': 'Export glTF',
   '匯出DXF': 'Export DXF',
 })
+
+// grok-tc2: zh-HK ribbon/label keys. Legacy SC / 導出 keys above stay.
+Object.assign(EN_LABEL, {
+  '匯出全部零件 STL(zip)': 'Export all parts STL (zip)',
+})
 // Legacy ZH maps retained for reference / tests that peek at TC group/tab chrome.
 const ZH_GROUP: Record<string, string> = {
   CREATE: '建立', MODIFY: '修改', CONSTRAINTS: '約束', FINISH: '完成', INSPECT: '檢查',
@@ -3510,6 +3515,13 @@ Object.assign(STATUS_PHRASES_X, {
   '不鏽鋼': 'Stainless',
   '尼龍': 'Nylon',
   '樹脂': 'Resin',
+})
+
+// grok-tc2: zh-HK whole-string status keys. Legacy SC keys above stay.
+Object.assign(STATUS_PHRASES_X, {
+  '匯出全部零件 STL(zip)': 'Export all parts STL (zip)',
+  '從頭播放重建過程': 'Play rebuild from start',
+  '關節': 'joint',
 })
 const _STATUS_EXACT: Record<string, string> = { ...STATUS_PHRASES, ...STATUS_PHRASES_X }
 

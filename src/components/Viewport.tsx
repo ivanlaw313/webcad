@@ -5590,7 +5590,7 @@ export default function Viewport() {
           okDisabled={windBusy}
           okTip="把零件放入虚拟流道解流场 → 风阻系数 Cd + 阻力 + 流场（Enter）"
           onOk={() => void runWindSolve()}
-          onCancel={() => useApp.getState().clearWind()}
+          onCancel={() => useApp.getState().requestClearWind()}
           summary={<>{windFluid === 'water' ? '水' : '空气'} · {windSpeed} m/s · 趋势级 LBM（非商用 CFD）</>}
         >
           {windBusy && (
@@ -5709,6 +5709,7 @@ export default function Viewport() {
               {windResult.bumped && <div style={{ color: '#2f9e44' }}>🧩 薄件自动加密：分辨率 → {windResult.res}（最薄方向够体素，Cd 较可信）</div>}
               <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => useApp.getState().downloadWindReport()}>📄 下载报告</button>
+                <button type="button" data-testid="wind-clear-result" onClick={() => useApp.getState().clearWind()}>🗑 清除结果</button>
                 <button
                   type="button"
                   data-testid="physics-send-wind-to-lab"

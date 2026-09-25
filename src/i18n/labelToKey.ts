@@ -2,6 +2,10 @@
 export const LABEL_TO_KEY: Record<string, string> = {
   '3D加工': 'tool.finish3d',
   'AI 助手': 'tool.aicopilot',
+  '生成式設計': 'tool.topopt',
+  '生成式设计': 'tool.topopt',
+  '熱分析': 'tool.thermal',
+  '热分析': 'tool.thermal',
   'Automated Modeling': 'tool.automatedmodel',
   'BOM 表': 'tool.bom',
   'Boundary Fill': 'tool.boundaryfill',

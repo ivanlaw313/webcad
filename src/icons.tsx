@@ -98,6 +98,8 @@ const paths: Record<string, ReactNode> = {
   cpoint: <><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none" /><path d="M12 4v3.5M12 16.5V20M4 12h3.5M16.5 12H20" /></>,   // 构造点（实心点+十字）
   cam: <><path d="M10 3h4v6l-2 3-2-3z" /><path d="M4 19c3.5 0 3.5-3 7-3s3.5 3 7 3" /></>,   // CNC 加工：铣刀 + 加工波纹面
   stress: <><path d="M3 4v16" /><path d="M3 9h13a5 5 0 0 1 0 8" /><path d="M16 16.5v4M14 18.5l2 2 2-2" /></>,   // 受力：悬臂弯 + 力箭头
+  topopt: <><path d="M4 19h16" /><path d="M5 19 12 5l7 14" /><path d="M8.2 13.5h7.6" /></>,   // 生成式：桁架三角
+  thermal: <><path d="M9 3.5h6" /><path d="M10 3.5v10.2a3.2 3.2 0 1 0 4 0V3.5" /><circle cx="12" cy="16.2" r="1.2" fill="currentColor" stroke="none" /></>,   // 热分析：温度计
   moldflow: <><rect x="4" y="9" width="16" height="10" rx="1" /><path d="M12 3v6m-2.3-2.3L12 9l2.3-2.3" /><path d="M8 14h8" opacity=".45" /></>,   // 模流：型腔 + 浇口注入 + 流线
   wind: <><circle cx="7.5" cy="12" r="3.4" /><path d="M12.5 8.2c3.5 0 4.5 1 7 1M12.5 12h7M12.5 15.8c3.5 0 4.5-1 7-1" opacity=".8" /></>,   // 风洞：零件（圆）+ 绕流流线
   importmesh: <><path d="M3 19 8 9l5 10z" /><path d="M13 19l4-8 3 8z" opacity=".55" /></>,   // 网格导入：三角网

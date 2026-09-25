@@ -140,7 +140,7 @@ export interface WindDomain {
  */
 export function buildDomain(g: VoxelGridLike, opts: DomainOptions = {}): WindDomain {
   const { nx, ny, nz, h, ox, oy, oz, solid } = g
-  if (!(nx >= 1 && ny >= 1 && nz >= 1 && h > 0)) throw new Error('buildDomain: 体素网格无效 ' + nx + 'x' + ny + 'x' + nz)
+  if (!(nx >= 1 && ny >= 1 && nz >= 1 && h > 0)) throw new Error('buildDomain: 體素網格無效 ' + nx + 'x' + ny + 'x' + nz)
 
   const dims = [nx, ny, nz]
   let fa = opts.axis
@@ -356,15 +356,15 @@ export function bakePhi(dom: WindDomain, opts: PhiOptions = {}): PhiField {
   const data = new Float32Array(DX * DY * DZ)
   if (!trueSdf) {
     for (let i = 0; i < data.length; i++) data[i] = obst[i] ? -1 : 1
-    notes.push('二值 mask（固体 -1 / 流体 +1）：同 CPU 参考解同一个几何')
+    notes.push('二值 mask（固體 -1 / 流體 +1）：同 CPU 參考解同一個幾何')
     return { data, DX, DY, DZ, trueSdf: false, band: 1, nearBodyPhi: Infinity, notes }
   }
 
-  if (!(band >= 2.5)) notes.push('band=' + band + ' < 2.5：nearBody gate 保持无条件（gate 要 band >= 2.5 先证明得到）')
+  if (!(band >= 2.5)) notes.push('band=' + band + ' < 2.5：nearBody gate 保持無條件（gate 要 band >= 2.5 先證明得到）')
   const dOut = chamfer(obst, 1, DX, DY, DZ, band)   // 到最近【固体】格心嘅距离（流体侧有用）
   const dIn = chamfer(obst, 0, DX, DY, DZ, band)    // 到最近【流体】格心嘅距离（固体侧有用）
   for (let i = 0; i < data.length; i++) data[i] = obst[i] ? -dIn[i] : dOut[i]
-  notes.push('chamfer narrow band（权重 1 / √2 / √3 = 真实 offset 长度），半宽 ' + band + ' 格')
+  notes.push('chamfer narrow band（權重 1 / √2 / √3 = 真實 offset 長度），半寬 ' + band + ' 格')
 
   return {
     data, DX, DY, DZ,
@@ -397,7 +397,7 @@ export function checkNearBodyGate(phi: PhiField, obst: Uint8Array, gate: number)
       if (obst[idx(nx2, ny2, nz2)]) touches = true
     }
     if (touches && !(data[c] < gate)) {
-      bad.push('cell ' + [x, y, z] + ' 掂住固体但 phi=' + data[c] + ' >= gate ' + gate)
+      bad.push('cell ' + [x, y, z] + ' 掂住固體但 phi=' + data[c] + ' >= gate ' + gate)
       if (bad.length >= 8) break
     }
   }

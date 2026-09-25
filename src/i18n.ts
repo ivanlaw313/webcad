@@ -3692,6 +3692,35 @@ Object.assign(STATUS_PHRASES_X, {
   '模流分析 🎯：點零件上嘅【澆口位】（膠水入料點，可點多個 — 多澆口會預測焊接線）→ 選材料 → 運行': 'Mold Flow 🎯: click the 【gate location】 on the part (melt inlet point, pick several — multiple gates predict weld lines) → choose material → Run',
   '彈簧速查：請輸入 線徑,中徑,圈數[,力]（如 2,16,8,10）': 'Spring quick-check: enter wire dia, mean dia, coils[, force] (e.g. 2,16,8,10)',
 })
+
+// grok-wind-tc: zh-HK whole-string keys for wind / water tunnel. Legacy SC keys above stay.
+Object.assign(STATUS_PHRASES_X, {
+  '風洞 / 水洞（LBM 體素趨勢）': 'Wind / Water Tunnel (LBM voxel trend)',
+  '計算中…': 'Solving…',
+  '重新運行': 'Run again',
+  '把零件放入虛擬流道解流場 → 風阻係數 Cd + 阻力 + 流場（Enter）': 'Place the part in a virtual duct and solve the flow → drag coefficient Cd + drag + flow field (Enter)',
+  '風洞計算緊 — 等佢完成': 'Wind tunnel solving — wait for it to finish',
+  '風洞分析：需要先有活動實體，或選中一個匯入網格組件（STL/OBJ/3MF）': 'Wind tunnel: needs an active body, or select an imported mesh component (STL/OBJ/3MF)',
+  '風洞分析：需要先有活動實體，或選中一個匯入網格組件': 'Wind tunnel: needs an active body, or select an imported mesh component',
+  '風洞 / 水洞 🌬️：設風速 + 流體（空氣/水）+ 吹向 → 撳「運行」。出風阻係數 Cd + 阻力 + 流場（趨勢級 LBM）': 'Wind tunnel / water tunnel 🌬️: set flow speed + fluid (air / water) + direction → hit 「Run」. Outputs drag coefficient Cd + drag + flow field (trend-grade LBM)',
+  '已清除風洞分析': 'Wind tunnel analysis cleared',
+  '已取消風洞計算（已有結果保持不變）': 'Cancelled wind-tunnel solve (existing results kept)',
+  '已保留風洞結果 —— 要清除請撳面板「清除結果」': 'Kept wind-tunnel results — click 「Clear results」 on the panel to discard',
+  'GPU 風洞：準備中…': 'GPU wind tunnel: preparing…',
+  '先運行風洞分析': 'Run wind tunnel analysis first',
+  '已匯出風洞趨勢報告 .txt': 'Wind tunnel trend report exported (.txt)',
+  'WebCAD 風洞 / 水洞趨勢報告（格子玻爾茲曼 LBM D3Q19 + Smagorinsky LES — 趨勢級，非商用 CFD 驗證級）': 'WebCAD Wind / Water Tunnel Trend Report (Lattice Boltzmann LBM D3Q19 + Smagorinsky LES — trend grade, not commercial CFD-validated)',
+  '· 高 Re 用穩定層流帶 reLb 近似 → 絕對 Cd 偏趨勢值；【相對比較】(鈍體 vs 流線 / 不同朝向) 最可信': '· High Re uses a stable laminar band with reLb approximation → absolute Cd is a trend value; 【relative comparison】 (bluff vs streamlined / different orientations) is most trustworthy',
+  'GPU 風洞：條件 / 幾何已改 —— 已停止當前計算；撳「運行」用新條件重新計算': 'GPU wind tunnel: conditions / geometry changed — stopped the current solve; hit 「Run」 to recompute with the new conditions',
+  '⚠ 呢部機唔支援 WebGL2 浮點渲染目標（EXT_color_buffer_float）— 煙流已自動退返「流線」': '⚠ This machine does not support WebGL2 floating-point render targets (EXT_color_buffer_float) — smoke has fallen back to 「Streamlines」',
+  '⚠ 呢部機唔支援 WebGL2 浮點渲染目標（EXT_color_buffer_float）— 煙耙條帶已自動退返「流線」': '⚠ This machine does not support WebGL2 floating-point render targets (EXT_color_buffer_float) — smoke-rake ribbons have fallen back to 「Streamlines」',
+  '求解流場': 'Solving flow field',
+  '體素化': 'Voxelizing',
+  '編譯 shader': 'Compiling shaders',
+  '取場': 'Sampling field',
+  '追蹤流線': 'Tracing streamlines',
+  '打包流場': 'Packing flow field',
+})
 const _STATUS_EXACT: Record<string, string> = { ...STATUS_PHRASES, ...STATUS_PHRASES_X }
 
 // zh-HK 原樣；zh-CN 整句轉簡體。en/ja 只喺整句／整詞同表完全一致時替換。

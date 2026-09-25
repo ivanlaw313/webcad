@@ -132,7 +132,7 @@ type PoseCapableSolver = { setPose?: (m: Matrix4, opts?: { keepFlow?: boolean; c
 /** 推一个位姿落 solver。★ 唯一一处掂 setPose 嘅地方 ★。返 null = 成功，返 string = 错误讯息。 */
 function applySolverPose(solver: LbmGpu, m: Matrix4, dragging = false): string | null {
   const fn = (solver as unknown as PoseCapableSolver).setPose
-  if (typeof fn !== 'function') return 'solver.setPose 未落地（lbmGpu.ts 嗰条线未 merge）'
+  if (typeof fn !== 'function') return 'solver.setPose 未落地（lbmGpu.ts 嗰條線未 merge）'
   try {
     /* keepFlow: true —— 唔重置流场，咁拖拽先至係「流场逐帧跟住变」而唔係「每格重头计一次」
      *
@@ -399,9 +399,9 @@ function packResult(solver: LbmGpu, stats: ConvStats, ctx: PackCtx): GpuWindResu
   const dragNRaw = cd * qA
 
   const warnings = ctx.warnings.slice()
-  if (!stats.converged) warnings.push(`未收敛（行咗 ${solver.stepCount} substep 就撞到上限）—— Cd 係末段时均，仲喺度飘`)
-  if (!(ctx.links > 0)) warnings.push('★ 一条反弹 link 都冇：条流根本掂唔到零件 —— 呢个 Cd 冇意义')
-  if (stats.cdSigned < 0) warnings.push(`★ 阻力方向係 −X（cd_signed = ${stats.cdSigned.toFixed(3)}）—— 来流係 +X，动量交换嘅符号可能反咗`)
+  if (!stats.converged) warnings.push(`未收斂（行咗 ${solver.stepCount} substep 就撞到上限）—— Cd 係末段時均，仲喺度飄`)
+  if (!(ctx.links > 0)) warnings.push('★ 一條反彈 link 都冇：條流根本掂唔到零件 —— 呢個 Cd 冇意義')
+  if (stats.cdSigned < 0) warnings.push(`★ 阻力方向係 −X（cd_signed = ${stats.cdSigned.toFixed(3)}）—— 來流係 +X，動量交換嘅符號可能反咗`)
 
   return {
     h,
@@ -508,7 +508,7 @@ function syncPose(S: Live, solver: LbmGpu, nowMs: number, invalidate: () => void
         if (tr.needsSolverPose) {
           // 非刚体（用户拉紧 scale / 镜像）就唔好送落去食 exception —— setPose 会 throw
           const err = !isRigidPose(pose)
-            ? '位姿唔係刚体（有缩放或者镜像）—— LBM 只食旋转 + 平移'
+            ? '位姿唔係剛體（有縮放或者鏡像）—— LBM 只食旋轉 + 平移'
             // 第三个参数 = 而家係咪拖紧 → 拖紧就熄 refill 诊断（慳返实测 7.99ms/帧，见 applySolverPose）
             : applySolverPose(solver, S.m4.fromArray(pose), pc.state === 'dragging' || !!knobs.windPoseDragging)
           if (err) {
@@ -516,9 +516,9 @@ function syncPose(S: Live, solver: LbmGpu, nowMs: number, invalidate: () => void
             S.poseSupported = false
             // ★ 唔可以扮冇事继续报数 ★：solver 入面嘅几何而家同 store 嘅位姿唔同步，
             //   继续报就係攞住旧几何嘅力扮新姿态嘅结果 —— 正正係呢条线要挡嘅嗰种谎话。
-            pc.disable('拖拽求解停用：' + err)
+            pc.disable('拖曳求解停用：' + err)
             useApp.setState({
-              status: '⚠ GPU 风洞：位姿推唔落 solver（' + err + '）—— 拖拽实时求解已停用，其余照旧',
+              status: '⚠ GPU 風洞：位姿推唔落 solver（' + err + '）—— 拖曳實時求解已停用，其餘照舊',
             })
           } else {
             S.poseSupported = true
@@ -594,7 +594,7 @@ export default function WindTunnelGpu() {
     if (caps.ok && caps.force7) return
     useApp.setState({
       windEngine: 'cpu',
-      status: '⚠ GPU 风洞用唔到：' + caps.reason + ' — 已自动切返 CPU 引擎（结果一样有效，只係慢啲）',
+      status: '⚠ GPU 風洞用唔到：' + caps.reason + ' — 已自動切返 CPU 引擎（結果一樣有效，只係慢啲）',
     } as Partial<ReturnType<typeof useApp.getState>>)
   }, [engine, caps])
 
@@ -661,7 +661,7 @@ export default function WindTunnelGpu() {
         },
       })
       S.poseSupported = typeof (solver as unknown as PoseCapableSolver).setPose === 'function'
-      S.poseErr = S.poseSupported ? '' : 'solver.setPose 未落地 —— 拖拽实时求解未 available'
+      S.poseErr = S.poseSupported ? '' : 'solver.setPose 未落地 —— 拖曳實時求解未 available'
       S.substeps = substepPref > 0 ? Math.round(substepPref) : rep.substeps
       S.maxSubsteps = Math.max(S.substeps, rep.substeps * 4)
       S.substepsPreDrag = S.substeps
@@ -670,14 +670,14 @@ export default function WindTunnelGpu() {
         fluidName: fluid.name, rho: fluid.rho, mu: fluid.mu, speed: flow.speed,
         res: Math.max(1, Math.round(Math.max(extent[0], extent[1], extent[2]) / solver.domain.h)),
         areaMM2: 0, links: 0,
-        warnings: rep.warnings.concat(built.attempts.map((a) => `品质阶梯：${a.tier} 试唔到（${a.error}）`)),
+        warnings: rep.warnings.concat(built.attempts.map((a) => `品質階梯：${a.tier} 試唔到（${a.error}）`)),
         report: rep,
       }
       S.compiling = true
       S.busy = true
       useApp.setState({
-        windBusy: true, windProg: 0, windProgNote: '编译 shader',
-        status: `GPU 风洞：${rep.nx}×${rep.ny}×${rep.nz}（${rep.tier}）· ${Math.round(rep.vram.total / 1048576)} MB · 编译 shader…`,
+        windBusy: true, windProg: 0, windProgNote: '編譯 shader',
+        status: `GPU 風洞：${rep.nx}×${rep.ny}×${rep.nz}（${rep.tier}）· ${Math.round(rep.vram.total / 1048576)} MB · 編譯 shader…`,
       })
       // ★ 第一个 advance() 之前一定要 await ready() ★：展开十九方向嘅 step shader 有千几行，
       //   force 变体再嚟一次 —— 冷 cache 嗰下 link 会喺主线程卡几百 ms。
@@ -685,13 +685,13 @@ export default function WindTunnelGpu() {
         if (cancelled || S.solver !== solver) return
         S.compiling = false
         S.ready = true
-        useApp.setState({ windProgNote: '求解流场' })
+        useApp.setState({ windProgNote: '求解流場' })
         invalidate()
       }).catch((e: unknown) => {
         if (cancelled || S.solver !== solver) return
         S.compiling = false
         S.dead = e instanceof Error ? e.message : String(e)
-        releaseBusy({ status: '⚠ GPU 风洞 shader 编译失败：' + S.dead })
+        releaseBusy({ status: '⚠ GPU 風洞 shader 編譯失敗：' + S.dead })
       })
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
@@ -701,7 +701,7 @@ export default function WindTunnelGpu() {
       useApp.setState({
         windBusy: false,
         windEngine: 'cpu', windGpuRunId: 0,
-        status: (isContextLostError(e) ? '⚠ GPU 风洞：WebGL context 遗失（重开页面再试）— ' : '⚠ GPU 风洞起唔到 — ')
+        status: (isContextLostError(e) ? '⚠ GPU 風洞：WebGL context 遺失（重開頁面再試）— ' : '⚠ GPU 風洞起唔到 — ')
           + msg + '；已切返 CPU 引擎',
       } as Partial<ReturnType<typeof useApp.getState>>)
     }
@@ -732,7 +732,7 @@ export default function WindTunnelGpu() {
     if ((st.windGpuRunId ?? 0) === 0) return
     useApp.setState({
       windGpuRunId: 0,
-      status: 'GPU 风洞：条件 / 几何已改 —— 已停止当前计算；撳「运行」用新条件重新计算',
+      status: 'GPU 風洞：條件 / 幾何已改 —— 已停止當前計算；撳「運行」用新條件重新計算',
     } as Partial<ReturnType<typeof useApp.getState>>)
   }, [windSpeed, windFluid, windAxis, windSign, tierPref, bodyMesh, selComp, nComp])
 
@@ -793,7 +793,7 @@ export default function WindTunnelGpu() {
       solver.advance(S.substeps)
     } catch (e) {
       S.dead = e instanceof Error ? e.message : String(e)
-      releaseBusy({ status: '⚠ GPU 风洞行到一半死咗：' + S.dead })
+      releaseBusy({ status: '⚠ GPU 風洞行到一半死咗：' + S.dead })
       return
     }
 
@@ -814,13 +814,13 @@ export default function WindTunnelGpu() {
       const p = pc.progress(solver.stepCount)
       // ★ 过渡态嘅文案一定要讲明「未可信」★ —— 呢个係用户唯一见到嘅诚实提示
       const note = pc.state === 'dragging'
-        ? '拖拽中（唔收样本）'
+        ? '拖曳中（唔收樣本）'
         : pc.state === 'settling' && pc.entries.length > 0
-          ? '新姿态：流场重建中（数字未可信）'
-          : tracker.phase(solver.stepCount) === 'ramp' ? '入口渐升' : '求解流场'
+          ? '新姿態：流場重建中（數字未可信）'
+          : tracker.phase(solver.stepCount) === 'ramp' ? '入口漸升' : '求解流場'
       useApp.setState({
         windProg: p, windProgNote: note,
-        status: `GPU 风洞：${note} ${(p * 100).toFixed(0)}% · ${solver.stepCount} step · ${S.substeps} step/帧 · ${tracker.samples} 个 Cd 样本`,
+        status: `GPU 風洞：${note} ${(p * 100).toFixed(0)}% · ${solver.stepCount} step · ${S.substeps} step/幀 · ${tracker.samples} 個 Cd 樣本`,
       })
     }
 
@@ -853,7 +853,7 @@ export default function WindTunnelGpu() {
       //   否则用户见住零件打咗侧，而个数其实係打直嗰个，仲以为已经算咗。
       if (!pc.enabled && pc.disabledReason) {
         r.warnings = r.warnings.concat(
-          `★ ${pc.disabledReason} —— 呢个结果係【建 solver 嗰阵嘅朝向】嘅，唔係你而家见到嗰个 ★`,
+          `★ ${pc.disabledReason} —— 呢個結果係【建 solver 嗰陣嘅朝向】嘅，唔係你而家見到嗰個 ★`,
         )
       }
 
@@ -864,14 +864,14 @@ export default function WindTunnelGpu() {
         windResult: r,
         // ★ 有得比就先讲比值 ★ —— 绝对数留喺后面而且逐个标住「未校正趋势值」
         status: (line ? line + ' — ' : '')
-          + `GPU 风洞（动量交换 Cd，★ 未校正趋势值：实测偏高 ${GPU_CD_GAIN_RANGE[0]}–${GPU_CD_GAIN_RANGE[1]}× ★）：`
+          + `GPU 風洞（動量交換 Cd，★ 未校正趨勢值：實測偏高 ${GPU_CD_GAIN_RANGE[0]}–${GPU_CD_GAIN_RANGE[1]}× ★）：`
           + `Cd≈${(r.cdCorr ?? r.cd).toFixed(3)}${(r.cdOsc ?? 0) > 1e-4 ? ` ± ${(r.cdOsc ?? 0).toFixed(3)}` : ''}`
-          + ` · 阻力≈${dragStr} · ${solver.stepCount} step${stats.converged ? '（已收敛）' : '（未收敛，达上限）'}`
-          + ' — ⚠ 绝对值请用 CPU 引擎；GPU 路径只可以做相对比较',
+          + ` · 阻力≈${dragStr} · ${solver.stepCount} step${stats.converged ? '（已收斂）' : '（未收斂，達上限）'}`
+          + ' — ⚠ 絕對值請用 CPU 引擎；GPU 路徑只可以做相對比較',
       })
     } catch (e) {
       S.dead = e instanceof Error ? e.message : String(e)
-      releaseBusy({ status: '⚠ GPU 风洞取场失败：' + S.dead })
+      releaseBusy({ status: '⚠ GPU 風洞取場失敗：' + S.dead })
     }
   })
 

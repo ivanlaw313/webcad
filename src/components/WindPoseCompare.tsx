@@ -61,11 +61,11 @@ export interface WindPoseCompareProps {
 const IDENTITY_16: readonly number[] = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
 
 const ZH = {
-  title: '风洞位姿比较',
-  empty: '未有已记录位姿 — 拖动测试件、放手等流场重新收敛，就会自动记一笔',
-  ref: '参考', cur: '目前', finalize: '立即记录（未收敛）', setRef: '设为参考', clear: '清除', reset: '重置位姿',
-  area: '迎风面积', noSetter: '未接线', notSignificant: '差异细过涡脱落噪声底，讲唔到嘢', samples: '样本',
-  state: { idle: '未追踪位姿', dragging: '拖拽中…', settling: '流场重建中…' } as Record<string, string>,
+  title: '風洞位姿比較',
+  empty: '未有已記錄位姿 — 拖動測試件、放手等流場重新收斂，就會自動記一筆',
+  ref: '參考', cur: '目前', finalize: '立即記錄（未收斂）', setRef: '設為參考', clear: '清除', reset: '重置位姿',
+  area: '迎風面積', noSetter: '未接線', notSignificant: '差異細過渦脫落噪聲底，講唔到嘢', samples: '樣本',
+  state: { idle: '未追蹤位姿', dragging: '拖曳中…', settling: '流場重建中…' } as Record<string, string>,
 }
 const EN = {
   title: 'Wind pose compare',

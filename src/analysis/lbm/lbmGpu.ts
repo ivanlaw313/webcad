@@ -229,9 +229,9 @@ export function deriveFlow(dom: WindDomain, inp: FlowInput): FlowSetup {
   const omegaPlus = omegaFromNu(nuLb)
   const reLbEffective = U_LB * dom.dLb / nuLb
 
-  if (reClamped) warnings.push(`真实 Re≈${reReal.toExponential(1)} → 格子 Re 钳到 ${reLbTarget.toFixed(0)}（稳定层流带 [${RE_LB_MIN},${RE_LB_MAX}]）；绝对 Cd 係趋势值，相对比较仍可信`)
-  if (omegaClamped) warnings.push(`格子 Re 再被 omega_plus<=${OMEGA_PLUS_MAX} 钳到 ${reLbEffective.toFixed(0)}：要更高 Re 要加分辨率，唔係推呢个数`)
-  if (dom.dLb < 8) warnings.push(`迎风等效直径仅 ${dom.dLb.toFixed(1)} 格：边界层解唔到，Cd 准度有限`)
+  if (reClamped) warnings.push(`真實 Re≈${reReal.toExponential(1)} → 格子 Re 鉗到 ${reLbTarget.toFixed(0)}（穩定層流帶 [${RE_LB_MIN},${RE_LB_MAX}]）；絕對 Cd 係趨勢值，相對比較仍可信`)
+  if (omegaClamped) warnings.push(`格子 Re 再被 omega_plus<=${OMEGA_PLUS_MAX} 鉗到 ${reLbEffective.toFixed(0)}：要更高 Re 要加分辨率，唔係推呢個數`)
+  if (dom.dLb < 8) warnings.push(`迎風等效直徑僅 ${dom.dLb.toFixed(1)} 格：邊界層解唔到，Cd 準度有限`)
 
   return {
     reReal, reLbTarget, reLbEffective, nuLb, omegaPlus,
@@ -507,12 +507,12 @@ export class LbmGpu {
     this.caps = caps
     if (!caps.ok) throw taggedError('LBM: ' + caps.reason, { contextLost: caps.contextLost })
     if (this.measure && !caps.force7) {
-      throw taggedError('LBM: 要七个 RGBA32F attachment 先量到阻力，呢部机得 ' + caps.maxColorAttachments + ' 个（' + caps.reason + '）', {})
+      throw taggedError('LBM: 要七個 RGBA32F attachment 先量到阻力，呢部機得 ' + caps.maxColorAttachments + ' 個（' + caps.reason + '）', {})
     }
 
     this.A = layout(this.nx, this.ny, this.nz, caps.maxTextureSize)
     if (this.nx > caps.max3DTextureSize || this.ny > caps.max3DTextureSize || this.nz > caps.max3DTextureSize) {
-      throw taggedError('LBM: 域 ' + this.nx + '×' + this.ny + '×' + this.nz + ' 超过 MAX_3D_TEXTURE_SIZE=' + caps.max3DTextureSize, {})
+      throw taggedError('LBM: 域 ' + this.nx + '×' + this.ny + '×' + this.nz + ' 超過 MAX_3D_TEXTURE_SIZE=' + caps.max3DTextureSize, {})
     }
 
     const flowIn = opts.flow ?? { speed: 10, rho: 1.204, mu: 1.81e-5 }
@@ -576,11 +576,11 @@ export class LbmGpu {
     for (let i = 0; i < 64; i++) { const e = gl.getError(); if (e === gl.NO_ERROR) break; err = e }
     this.renderer.setRenderTarget(null)
     if (gl.isContextLost()) {
-      throw taggedError('LBM: 分配 "' + name + '" 嗰阵 WebGL context 遗失 —— 唔係显存唔够，细 lattice 救唔到', { contextLost: true })
+      throw taggedError('LBM: 分配 "' + name + '" 嗰陣 WebGL context 遺失 —— 唔係顯存唔夠，細 lattice 救唔到', { contextLost: true })
     }
     if (st !== gl.FRAMEBUFFER_COMPLETE || err === gl.OUT_OF_MEMORY) {
       throw taggedError(
-        'LBM: render target "' + name + '" 分配失败 — ' + fbStatusName(gl, st) +
+        'LBM: render target "' + name + '" 分配失敗 — ' + fbStatusName(gl, st) +
         (err !== gl.NO_ERROR ? '（GL error 0x' + err.toString(16) + '）' : ''),
         { oom: true },
       )
@@ -596,7 +596,7 @@ export class LbmGpu {
       const rt = this._rt(lw, lh, nTargets)
       levels.push({ w: lw, h: lh, rt })
       this._realize(rt, name + lw + 'x' + lh)
-      if (levels.length > 24) throw taggedError('LBM: reduce 金字塔唔收敛', {})
+      if (levels.length > 24) throw taggedError('LBM: reduce 金字塔唔收斂', {})
     }
     return levels
   }
@@ -766,8 +766,8 @@ export class LbmGpu {
         else setTimeout(fn, 8)
       }
       const poll = () => {
-        if (this.disposed) { reject(new Error('LBM: solver 喺编译途中畀 dispose 咗')); return }
-        if (this.gl.isContextLost()) { reject(taggedError('LBM: 编译途中 context 遗失', { contextLost: true })); return }
+        if (this.disposed) { reject(new Error('LBM: solver 喺編譯途中畀 dispose 咗')); return }
+        if (this.gl.isContextLost()) { reject(taggedError('LBM: 編譯途中 context 遺失', { contextLost: true })); return }
         for (const m of Array.from(pending)) {
           const props = this.renderer.properties.get(m) as MaterialPropsLike | undefined
           const prog = props?.currentProgram
@@ -780,7 +780,7 @@ export class LbmGpu {
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
         if (now > deadline) {
           const names = Array.from(pending).map((m) => nameOf.get(m) ?? m.name ?? '(未命名)')
-          reject(new Error('LBM: shader 编译 ' + (timeoutMs / 1000) + ' 秒仲未完；仲未好：' + names.join(', ')))
+          reject(new Error('LBM: shader 編譯 ' + (timeoutMs / 1000) + ' 秒仲未完；仲未好：' + names.join(', ')))
           return
         }
         again(poll)
@@ -853,10 +853,10 @@ export class LbmGpu {
   setGeometry(phi: PhiField): void {
     if (this.disposed) return
     if (phi.DX !== this.nx || phi.DY !== this.ny || phi.DZ !== this.nz) {
-      throw new Error('LBM: phi 尺寸 ' + [phi.DX, phi.DY, phi.DZ] + ' 唔等于域 ' + [this.nx, this.ny, this.nz])
+      throw new Error('LBM: phi 尺寸 ' + [phi.DX, phi.DY, phi.DZ] + ' 唔等於域 ' + [this.nx, this.ny, this.nz])
     }
     if (phi.nearBodyPhi !== this.nearBodyPhi) {
-      throw new Error('LBM: nearBody gate 係烘死喺 shader 嘅（' + this.nearBodyPhi + '），换成 ' + phi.nearBodyPhi + ' 要重建 solver')
+      throw new Error('LBM: nearBody gate 係烘死喺 shader 嘅（' + this.nearBodyPhi + '），換成 ' + phi.nearBodyPhi + ' 要重建 solver')
     }
     this.phiMeta = { trueSdf: phi.trueSdf, band: phi.band, nearBodyPhi: phi.nearBodyPhi, notes: phi.notes.slice() }
 
@@ -938,7 +938,7 @@ export class LbmGpu {
     const chk = rigidCheck(m)
     const keepFlow = !!opts.keepFlow
     const phi = this.phiLike
-    if (!phi || !this._sphere) throw new Error('LBM: setPose 之前一定要有几何（setGeometry）')
+    if (!phi || !this._sphere) throw new Error('LBM: setPose 之前一定要有幾何（setGeometry）')
 
     /* refill 计数喺 CPU 用 shader 嘅镜像模型做，只扫两个姿态外接球嘅并集 —— 精确，唔係估。
      *
@@ -965,7 +965,7 @@ export class LbmGpu {
     this._poseKeepFlow = keepFlow
     this._poseStep = this.stepCount
     this._poseNotes = []
-    if (chk.det < 0) this._poseNotes.push('位姿係镜射（det < 0）：保距所以 SDF 仲合法，但零件已经係镜像')
+    if (chk.det < 0) this._poseNotes.push('位姿係鏡射（det < 0）：保距所以 SDF 仲合法，但零件已經係鏡像')
 
     const box = this.poseBox()
     const c = this._sphere.centre
@@ -979,8 +979,8 @@ export class LbmGpu {
       if (q[a] < box.min[a] - 1e-6 || q[a] > box.max[a] + 1e-6) {
         // ★ 唔喺呢度夹 ★ —— 夹咗就等于静静鸡改咗 caller 要嘅姿态。报出去，caller 用
         //   clampPose() 自己夹（拖拽 UI 要嘅係「推唔郁」嘅手感，唔係「跳咗去第度」）。
-        this._poseNotes.push('轴 ' + a + '：外接球球心 ' + q[a].toFixed(2) + ' 出咗合法盒 [' +
-          box.min[a].toFixed(2) + ', ' + box.max[a].toFixed(2) + ']，零件会畀域边界切走一橛')
+        this._poseNotes.push('軸 ' + a + '：外接球球心 ' + q[a].toFixed(2) + ' 出咗合法盒 [' +
+          box.min[a].toFixed(2) + ', ' + box.max[a].toFixed(2) + ']，零件會畀域邊界切走一橛')
       }
     }
 
@@ -1016,7 +1016,7 @@ export class LbmGpu {
    */
   poseBox(marginCells = 2): PoseBox {
     const phi = this.phiLike
-    if (!phi) throw new Error('LBM: poseBox 之前一定要有几何（setGeometry）')
+    if (!phi) throw new Error('LBM: poseBox 之前一定要有幾何（setGeometry）')
     if (!this._poseBox || this._poseBox.marginCells !== marginCells) {
       this._poseBox = safePoseBox({ DX: this.nx, DY: this.ny, DZ: this.nz }, phi, marginCells)
     }
@@ -1396,7 +1396,7 @@ export function createLbmSolver(renderer: WebGLRenderer, req: SolverRequest): So
   for (let i = Math.max(0, start); i >= 0; i--) {
     const tier = QUALITY_TIERS[i]
     const plan = planResolution(req.extent, tier, { axis: req.axis, sign: req.sign, padForRotation: req.padForRotation, maxRes: req.maxRes })
-    if (!plan.fits) { attempts.push({ tier: tier.name, error: '零件长宽比令域装唔落呢个 tier（' + plan.DX + '×' + plan.DY + '×' + plan.DZ + '）' }); continue }
+    if (!plan.fits) { attempts.push({ tier: tier.name, error: '零件長寬比令域裝唔落呢個 tier（' + plan.DX + '×' + plan.DY + '×' + plan.DZ + '）' }); continue }
     let solver: LbmGpu | null = null
     try {
       const grid = req.voxelizeAt(plan.res)
@@ -1414,7 +1414,7 @@ export function createLbmSolver(renderer: WebGLRenderer, req: SolverRequest): So
       attempts.push({ tier: tier.name, error: e instanceof Error ? e.message : String(e) })
     }
   }
-  throw new Error('LBM: 连最细嘅 tier 都建唔起 —— ' + attempts.map((a) => a.tier + ': ' + a.error).join('；'))
+  throw new Error('LBM: 連最細嘅 tier 都建唔起 —— ' + attempts.map((a) => a.tier + ': ' + a.error).join('；'))
 }
 
 /** 畀外面（Stage 6 / 诊断）用嘅 re-export，唔使认得成个 lbm 目录。 */

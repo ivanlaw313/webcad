@@ -14,7 +14,7 @@ export type FluidKind = 'air' | 'water'
 
 export interface FluidProps { name: string; rho: number; mu: number }   // SI: kg/m³, Pa·s
 export const WIND_FLUIDS: Record<FluidKind, FluidProps> = {
-  air: { name: '空气 (20°C)', rho: 1.204, mu: 1.81e-5 },
+  air: { name: '空氣 (20°C)', rho: 1.204, mu: 1.81e-5 },
   water: { name: '水 (20°C)', rho: 998, mu: 1.0e-3 },
 }
 
@@ -108,9 +108,9 @@ export function runWindTunnel(inp: WindInput): WindResult {
   if (thinnest > 1e-6 && longest > 0) { const need = Math.ceil(6 * longest / thinnest); if (need > baseRes) { res = Math.min(capRes, need); bumped = res > baseRes } }
 
   // 1) 体素化零件（CAD mm）
-  prog(2, bumped ? `体素化（薄件自动加密到 ${res}）` : '体素化')
-  const g = voxelize(inp.vertices, inp.triangles, res, (fr) => prog(2 + fr * 6, '体素化'), Math.max(64, capRes))
-  if (!g.nVox || g.nx < 1 || g.ny < 1 || g.nz < 1) throw new Error('风洞：体素化失败（网格可能唔水密或太细）')
+  prog(2, bumped ? `體素化（薄件自動加密到 ${res}）` : '體素化')
+  const g = voxelize(inp.vertices, inp.triangles, res, (fr) => prog(2 + fr * 6, '體素化'), Math.max(64, capRes))
+  if (!g.nVox || g.nx < 1 || g.ny < 1 || g.nz < 1) throw new Error('風洞：體素化失敗（網格可能唔水密或太細）')
   const { nx, ny, nz, h, ox, oy, oz, solid } = g
 
   // 来流轴：缺省最长轴
@@ -135,7 +135,7 @@ export function runWindTunnel(inp: WindInput): WindResult {
   const DY = nA + 2 * padA
   const DZ = nB + 2 * padB
   const DN = DX * DY * DZ
-  if (DN > 2_600_000) warnings.push(`流道域 ${DX}×${DY}×${DZ}=${(DN / 1e6).toFixed(1)}M 体素偏大，计算较慢；可调低精细度`)
+  if (DN > 2_600_000) warnings.push(`流道域 ${DX}×${DY}×${DZ}=${(DN / 1e6).toFixed(1)}M 體素偏大，計算較慢；可調低精細度`)
 
   const obst = new Uint8Array(DN)
   const idxOf = (dx: number, dy: number, dz: number) => dx + DX * (dy + DY * dz)
@@ -298,7 +298,7 @@ export function runWindTunnel(inp: WindInput): WindResult {
         for (const x of w) { if (x < mn) mn = x; if (x > mx) mx = x; sum += x }
         if ((mx - mn) / (Math.abs(sum / w.length) + 1e-9) < 0.012) { converged = true; step++; break }
       }
-      prog(8 + 86 * Math.min(1, step / maxSteps), `求解流场 ${(100 * Math.min(1, step / maxSteps)).toFixed(0)}%`)
+      prog(8 + 86 * Math.min(1, step / maxSteps), `求解流場 ${(100 * Math.min(1, step / maxSteps)).toFixed(0)}%`)
     }
   }
   // GM-W3 3.3(c)：末段【窗口】时均（ramp 后样本的最后 25%，最少 6 个）抑制残余波动 = 形阻系数（模拟解出），
@@ -340,7 +340,7 @@ export function runWindTunnel(inp: WindInput): WindResult {
   const dragNRaw = cd * qA
 
   // 6) 采表面场（Cp + 表面流速）+ 流场样本（箭头）
-  prog(96, '取场')
+  prog(96, '取場')
   const cadT = [0, 0, 0]
   const Vscale = V / U_LB
   const surfCenters: number[] = [], surfCp: number[] = [], surfSpd: number[] = []
@@ -399,7 +399,7 @@ export function runWindTunnel(inp: WindInput): WindResult {
 
   // GM-W3 3.1：真流线 —— 像商用 CFD 咁显示【流动】而非「简单箭头」。
   // 由入口面播种网格 + 环绕零件迎风轮廓加密带，用 RK2 中点 + 三线性插值沿解出嘅速度场向下游积分。
-  prog(97, '追踪流线')
+  prog(97, '追蹤流線')
   // 域速度场缓存（格子单位）；障碍/固体节点 = 0 → 流线到壁面自然减速停下（无滑移，唔会穿入零件）。
   const vfield = new Float32Array(DN * 3)
   for (let n = 0; n < DN; n++) {
@@ -486,7 +486,7 @@ export function runWindTunnel(inp: WindInput): WindResult {
   //    点解 RGBA8 唔用 Float32：① 4 bytes/voxel 而唔系 12（传输 + VRAM 细 3 倍）② RGBA8 嘅 linear filtering
   //    喺 WebGL2 系保证支援，Float32 3D linear 要 OES_texture_float_linear（好多手机冇）③ 精度 1/255·uMax
   //    做视觉化绰绰有余。最大 res=48 都只系 ~7 MB，唔使降采样。
-  prog(98, '打包流场')
+  prog(98, '打包流場')
   let volUMax = 1e-6
   for (let n = 0; n < DN; n++) {
     if (obst[n]) continue
@@ -524,11 +524,11 @@ export function runWindTunnel(inp: WindInput): WindResult {
   const rake = { x: seedDx + 0.5, y0: y0s + 0.5, y1: y1s + 0.5, z0: z0s + 0.5, z1: z1s + 0.5 }
 
   prog(100, '完成')
-  if (reReal > 1e4) warnings.push(`真实 Re≈${reReal.toExponential(1)}（湍流区）— 趋势模拟用稳定层流带 reLb=${reLb.toFixed(0)}，绝对 Cd 偏趋势值，相对比较仍可信`)
-  if (g.oddColumns > g.nVox * 0.02) warnings.push('网格可能唔完全水密（部分射线奇数交点），阻力含少量误差')
-  if (bumped) warnings.push(`薄件自动加密：分辨率 ${baseRes}→${res}（令最薄方向够体素，绝对 Cd 较可信）`)
+  if (reReal > 1e4) warnings.push(`真實 Re≈${reReal.toExponential(1)}（湍流區）— 趨勢模擬用穩定層流帶 reLb=${reLb.toFixed(0)}，絕對 Cd 偏趨勢值，相對比較仍可信`)
+  if (g.oddColumns > g.nVox * 0.02) warnings.push('網格可能唔完全水密（部分射線奇數交點），阻力含少量誤差')
+  if (bumped) warnings.push(`薄件自動加密：分辨率 ${baseRes}→${res}（令最薄方向夠體素，絕對 Cd 較可信）`)
   const thinVox = thinnest > 1e-6 ? Math.round(thinnest / h) : 0
-  if (thinVox > 0 && thinVox < 4) warnings.push(`零件最薄方向仅 ${thinVox} 个体素 — 仍偏薄，Cd 准度有限；如重要可手动再调高精细度或换吹向`)
+  if (thinVox > 0 && thinVox < 4) warnings.push(`零件最薄方向僅 ${thinVox} 個體素 — 仍偏薄，Cd 準度有限；如重要可手動再調高精細度或換吹向`)
 
   return {
     h, nSurf: surfCp.length,

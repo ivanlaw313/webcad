@@ -170,7 +170,7 @@ This path does not go through the design lab. Any solid you sketched, or a lab b
    - **精細度** (resolution): start in the middle. Further right is slower.
    - **引擎** (engine): leave **CPU（準·可比舊數）** (CPU, the number you can compare). GPU is only for dragging the part. Its Cd is not trustworthy; see the limits.
 4. Click **運行** (Run) and wait for the bar. Then read **風阻係數 Cd** (drag coefficient) and **阻力** (drag force). The small print says this is trend-level: relative comparisons are the trustworthy part; absolute Cd is only a trend.
-5. At the bottom of the same panel, click **🧮 Verify this shape with OpenFOAM** (in Chinese UI: **用 OpenFOAM 驗證呢個形狀**). `start-service.bat` must be open. If it is not, the panel says the service is offline or the browser blocked local network access. This panel has no mesh picker. The lab’s CFD verification and auto-design are where you choose a mesh, and those default to **coarse** (see e). This button still sends **medium**.
+5. At the bottom of the same panel, click **🧮 Verify this shape with OpenFOAM** (in Chinese UI: **用 OpenFOAM 驗證呢個形狀**). `start-service.bat` must be open. If it is not, the panel says the service is offline or the browser blocked local network access. This panel has no mesh picker. The lab’s CFD verification and auto-design are where you choose a mesh, and those default to **coarse** (see e). This button also sends **coarse**.
 6. The LBM Cd is printed beside the button. When the job finishes, the OpenFOAM Cd is shown against that LBM number. They will not match. That is expected; see Common questions.
 
 Keep the OpenFOAM number. Do not compare a GPU-engine Cd with OpenFOAM as if both were absolute.

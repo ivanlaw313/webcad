@@ -1,0 +1,3 @@
+[fix/grok-qa-v1.91-sketch-panel-tc 6814b25] fix(qa): v1.91 SketchToolPanel leftover SC→TC (TOOL_HINT+)
+ 14 files changed, 421 insertions(+), 114 deletions(-)
+ create mode 100644 tests/grok-qa-v1.91-sketch-panel-tc.test.mjs

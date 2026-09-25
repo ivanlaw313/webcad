@@ -1,0 +1,10 @@
+STAMP v1.91-20260919-172446
+ENTRY index-D0jjpV3y-r2.js
+MD5 1629e2a0eb5213ed393996504c0c1da3
+PREV /var/www/webcad-releases/v1.90-20260919-171414 -> ok
+  uploaded 25…
+  uploaded 50…
+  uploaded 75…
+uploaded=84
+nginx root root /var/www/webcad-releases/v1.91-20260919-172446
+DONE

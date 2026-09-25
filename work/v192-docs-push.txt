@@ -1,0 +1,7 @@
+remote: 
+remote: Create a pull request for 'docs/v1.92-deploy-result' on GitHub by visiting:        
+remote:      https://github.com/ivanlaw313/webcad/pull/new/docs/v1.92-deploy-result        
+remote: 
+To https://github.com/ivanlaw313/webcad.git
+ * [new branch]      HEAD -> docs/v1.92-deploy-result
+branch 'docs/v1.92-deploy-result' set up to track 'origin/docs/v1.92-deploy-result'.

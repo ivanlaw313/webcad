@@ -1,0 +1,25 @@
+STAMP v1.97-20260919-184516
+ENTRY index-CVTIKPTQ-r2.js
+MD5 44c05ed792895210e7689fcd3953f8e2
+PREV /var/www/webcad-releases/v1.96-20260919-182731 -> ok
+  uploaded 25…
+  uploaded 50…
+  uploaded 75…
+uploaded=84
+nginx root -> root /var/www/webcad-releases/v1.97-20260919-184516;
+LIVE sw // WebCAD service worker（T739 PWA 离线）— 自写零依赖（license-safe）。
+// 策略：
+//   · 导航请求（开 app）：network-first，离线时退回缓存嘅 index.html —— 永远攞最新版，断网照开。
+//   · /assets/*（Vite 内容哈希，不可变）+ .wasm/.ttf：cache-first —— 命中即离线可用，免重复下载几 MB wasm。
+//   · 其他同源 GET：network-first + 缓存兜底。
+// 版本：CACHE 名带版本号；activate 时清旧缓存。部署�
+LIVE index index-CVTIKPTQ-r2.js
+DONE v1.97-20260919-184516
+ webcad-v1.97），否则 activate 唔会删旧缓存 → 硬刷新仍见旧 badge（Solid @1.66 GATE）。
+const CACHE = 'webcad-v1.97'
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/'])).then(() => self.skipWaiting()))
+})
+LIVE index index-CVTIKPTQ-r2.js
+DONE v1.97-20260919-184320

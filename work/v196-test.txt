@@ -1,0 +1,238 @@
+TAP version 13
+# Subtest: APP_VERSION 1.96; SW webcad-v1.96
+ok 1 - APP_VERSION 1.96; SW webcad-v1.96
+  ---
+  duration_ms: 2.938054
+  type: 'test'
+  ...
+# Subtest: catalog parity ≥1314
+ok 2 - catalog parity ≥1314
+  ---
+  duration_ms: 0.594395
+  type: 'test'
+  ...
+# Subtest: BD-8201: profile/dialog 寬 not 宽; OK 確定
+ok 3 - BD-8201: profile/dialog 寬 not 宽; OK 確定
+  ---
+  duration_ms: 2.506443
+  type: 'test'
+  ...
+# Subtest: BD-8301: nav 顯示 + timeline 並
+ok 4 - BD-8301: nav 顯示 + timeline 並
+  ---
+  duration_ms: 0.847697
+  type: 'test'
+  ...
+# Subtest: BD-8302: mesh panel 移動/旋轉 繞X° 歸零 體積
+ok 5 - BD-8302: mesh panel 移動/旋轉 繞X° 歸零 體積
+  ---
+  duration_ms: 1.96688
+  type: 'test'
+  ...
+# Subtest: toast: 網格參數化／重建為 (no SC 网格|参数化|重建为)
+ok 6 - toast: 網格參數化／重建為 (no SC 网格|参数化|重建为)
+  ---
+  duration_ms: 1.122168
+  type: 'test'
+  ...
+# Subtest: BD-8303: HistoryPanel confirm via hist.*
+ok 7 - BD-8303: HistoryPanel confirm via hist.*
+  ---
+  duration_ms: 1.924278
+  type: 'test'
+  ...
+# Subtest: Pins retained
+ok 8 - Pins retained
+  ---
+  duration_ms: 0.18172
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 1.96; SW webcad-v1.96
+ok 9 - APP_VERSION 1.96; SW webcad-v1.96
+  ---
+  duration_ms: 0.854199
+  type: 'test'
+  ...
+# Subtest: catalog parity
+ok 10 - catalog parity
+  ---
+  duration_ms: 0.553343
+  type: 'test'
+  ...
+# Subtest: BD-8901: radius-group status TC — 半徑組已啟用
+ok 11 - BD-8901: radius-group status TC — 半徑組已啟用
+  ---
+  duration_ms: 2.395754
+  type: 'test'
+  ...
+# Subtest: BD-8901: fillet dialog 棱→稜 / 半径→半徑
+ok 12 - BD-8901: fillet dialog 棱→稜 / 半径→半徑
+  ---
+  duration_ms: 1.155511
+  type: 'test'
+  ...
+# Subtest: BD-8901: tStatus / tc2sc for radius-group phrase
+ok 13 - BD-8901: tStatus / tc2sc for radius-group phrase
+  ---
+  duration_ms: 0.438842
+  type: 'test'
+  ...
+# Subtest: BD-8902: SketchToolPanel four labels TC (no SC leftovers)
+ok 14 - BD-8902: SketchToolPanel four labels TC (no SC leftovers)
+  ---
+  duration_ms: 0.242952
+  type: 'test'
+  ...
+# Subtest: BD-8902: SketchToolPanel related titles/hints TC
+ok 15 - BD-8902: SketchToolPanel related titles/hints TC
+  ---
+  duration_ms: 0.118537
+  type: 'test'
+  ...
+# Subtest: BD-8902: tStatus zh-HK / zh-CN / en for panel labels
+ok 16 - BD-8902: tStatus zh-HK / zh-CN / en for panel labels
+  ---
+  duration_ms: 1.969061
+  type: 'test'
+  ...
+# Subtest: BD-8901 residual: 選中第 N 組 / no 选中第 / 稜 not 棱 in fillet labels
+ok 17 - BD-8901 residual: 選中第 N 組 / no 选中第 / 稜 not 棱 in fillet labels
+  ---
+  duration_ms: 0.489342
+  type: 'test'
+  ...
+# Subtest: Pins retained
+ok 18 - Pins retained
+  ---
+  duration_ms: 0.306436
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 1.96; SW webcad-v1.96
+ok 19 - APP_VERSION 1.96; SW webcad-v1.96
+  ---
+  duration_ms: 0.806363
+  type: 'test'
+  ...
+# Subtest: catalog parity
+ok 20 - catalog parity
+  ---
+  duration_ms: 0.722006
+  type: 'test'
+  ...
+# Subtest: BD-9101: TOOL_TITLE / TOOL_HINT TC (no SC leftovers)
+ok 21 - BD-9101: TOOL_TITLE / TOOL_HINT TC (no SC leftovers)
+  ---
+  duration_ms: 0.208256
+  type: 'test'
+  ...
+# Subtest: BD-9101: SK_CON_LABEL_ZH + Hint summary TC
+ok 22 - BD-9101: SK_CON_LABEL_ZH + Hint summary TC
+  ---
+  duration_ms: 0.205098
+  type: 'test'
+  ...
+# Subtest: BD-9101: mirror / dimension / construction-line hints TC
+ok 23 - BD-9101: mirror / dimension / construction-line hints TC
+  ---
+  duration_ms: 0.180509
+  type: 'test'
+  ...
+# Subtest: BD-9101: TOOL_HINT displays go through T()
+ok 24 - BD-9101: TOOL_HINT displays go through T()
+  ---
+  duration_ms: 1.225572
+  type: 'test'
+  ...
+# Subtest: BD-9101: tStatus zh-HK / zh-CN / en for TOOL_HINT samples
+ok 25 - BD-9101: tStatus zh-HK / zh-CN / en for TOOL_HINT samples
+  ---
+  duration_ms: 2.506784
+  type: 'test'
+  ...
+# Subtest: BD-9101: STATUS_PHRASES_X v1.91 block present
+ok 26 - BD-9101: STATUS_PHRASES_X v1.91 block present
+  ---
+  duration_ms: 0.246954
+  type: 'test'
+  ...
+# Subtest: BD-9101: user-grep SC forms absent from SketchToolPanel UI strings
+ok 27 - BD-9101: user-grep SC forms absent from SketchToolPanel UI strings
+  ---
+  duration_ms: 0.259631
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 1.96; SW webcad-v1.96
+ok 28 - APP_VERSION 1.96; SW webcad-v1.96
+  ---
+  duration_ms: 0.672633
+  type: 'test'
+  ...
+# Subtest: catalog parity
+ok 29 - catalog parity
+  ---
+  duration_ms: 0.605413
+  type: 'test'
+  ...
+# Subtest: BD-9301 status tips pattern/mirror TC in store
+ok 30 - BD-9301 status tips pattern/mirror TC in store
+  ---
+  duration_ms: 3.084697
+  type: 'test'
+  ...
+# Subtest: Solid S1-face / topology toast TC in worker
+ok 31 - Solid S1-face / topology toast TC in worker
+  ---
+  duration_ms: 0.654206
+  type: 'test'
+  ...
+# Subtest: BD-9301 + S1 toast tStatus zh-HK / zh-CN / en
+ok 32 - BD-9301 + S1 toast tStatus zh-HK / zh-CN / en
+  ---
+  duration_ms: 2.16311
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 1.96; SW webcad-v1.96
+ok 33 - APP_VERSION 1.96; SW webcad-v1.96
+  ---
+  duration_ms: 1.711706
+  type: 'test'
+  ...
+# Subtest: catalog parity
+ok 34 - catalog parity
+  ---
+  duration_ms: 3.179362
+  type: 'test'
+  ...
+# Subtest: store tip Record residual SC cleared (move/scale/box/…)
+ok 35 - store tip Record residual SC cleared (move/scale/box/…)
+  ---
+  duration_ms: 0.962003
+  type: 'test'
+  ...
+# Subtest: Viewport high-vis status/dialog TC samples
+ok 36 - Viewport high-vis status/dialog TC samples
+  ---
+  duration_ms: 1.362422
+  type: 'test'
+  ...
+# Subtest: store mirror/pattern status leftovers TC
+ok 37 - store mirror/pattern status leftovers TC
+  ---
+  duration_ms: 2.142392
+  type: 'test'
+  ...
+# Subtest: v1.95 tip tStatus zh-HK / zh-CN / en
+ok 38 - v1.95 tip tStatus zh-HK / zh-CN / en
+  ---
+  duration_ms: 2.408555
+  type: 'test'
+  ...
+1..38
+# tests 38
+# suites 0
+# pass 38
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 395.60111

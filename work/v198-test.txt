@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: APP_VERSION 1.98; SW webcad-v1.98
+ok 1 - APP_VERSION 1.98; SW webcad-v1.98
+  ---
+  duration_ms: 0.688932
+  type: 'test'
+  ...
+# Subtest: BD-9601 ribbon titles TC
+ok 2 - BD-9601 ribbon titles TC
+  ---
+  duration_ms: 0.275919
+  type: 'test'
+  ...
+# Subtest: BD-9601 texture labels TC
+ok 3 - BD-9601 texture labels TC
+  ---
+  duration_ms: 0.141845
+  type: 'test'
+  ...
+# Subtest: BD-9601 joint/motion + browser tips TC
+ok 4 - BD-9601 joint/motion + browser tips TC
+  ---
+  duration_ms: 2.316439
+  type: 'test'
+  ...
+# Subtest: locale-v195 move dialog residuals TC
+ok 5 - locale-v195 move dialog residuals TC
+  ---
+  duration_ms: 1.593162
+  type: 'test'
+  ...
+# Subtest: locale-v195 construction axis dialog TC
+ok 6 - locale-v195 construction axis dialog TC
+  ---
+  duration_ms: 2.389554
+  type: 'test'
+  ...
+# Subtest: MESH pin now TC 插入STL網格 (lifted in v1.97 BD-9701)
+ok 7 - MESH pin now TC 插入STL網格 (lifted in v1.97 BD-9701)
+  ---
+  duration_ms: 2.925118
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 1.98; SW webcad-v1.98
+ok 8 - APP_VERSION 1.98; SW webcad-v1.98
+  ---
+  duration_ms: 0.687212
+  type: 'test'
+  ...
+# Subtest: BD-9603 move/copy tips + labels TC
+ok 9 - BD-9603 move/copy tips + labels TC
+  ---
+  duration_ms: 1.908516
+  type: 'test'
+  ...
+# Subtest: BD-9602 construction axis tip + chip TC
+ok 10 - BD-9602 construction axis tip + chip TC
+  ---
+  duration_ms: 3.026189
+  type: 'test'
+  ...
+# Subtest: BD-9601 ribbon/texture/joint/browser TC
+ok 11 - BD-9601 ribbon/texture/joint/browser TC
+  ---
+  duration_ms: 1.658775
+  type: 'test'
+  ...
+# Subtest: MESH pin 插入STL網格 (TC)
+ok 12 - MESH pin 插入STL網格 (TC)
+  ---
+  duration_ms: 0.213536
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 1.98; SW webcad-v1.98
+ok 13 - APP_VERSION 1.98; SW webcad-v1.98
+  ---
+  duration_ms: 0.549938
+  type: 'test'
+  ...
+# Subtest: BD-9602 objectVis status 全部構造軸：顯示／隱藏 TC
+ok 14 - BD-9602 objectVis status 全部構造軸：顯示／隱藏 TC
+  ---
+  duration_ms: 6.314106
+  type: 'test'
+  ...
+# Subtest: locale-v197: axis tip includes 構造幾何 token (prepend)
+ok 15 - locale-v197: axis tip includes 構造幾何 token (prepend)
+  ---
+  duration_ms: 0.966642
+  type: 'test'
+  ...
+# Subtest: Viewport mate/beam/screenshot residuals TC
+ok 16 - Viewport mate/beam/screenshot residuals TC
+  ---
+  duration_ms: 1.462794
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 102.706134

@@ -1,0 +1,3 @@
+[fix/v2.03-bd2301-sketch-tips-tc bb463db] fix(qa): v2.03 BD-2301 sketch tips SC→港繁
+ 16 files changed, 3379 insertions(+), 3156 deletions(-)
+ create mode 100644 tests/grok-qa-v2.03-bd2301-sketch-tips-tc.test.mjs

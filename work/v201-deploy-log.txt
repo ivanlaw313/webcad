@@ -1,0 +1,46 @@
+STAMP v2.01-20260925-094241
+ENTRY index-DYCQfLkE-r2.js
+MD5 0127701c9254eadb60396a1b2f04882c
+CURRENT_NGINX root /var/www/webcad-releases/v2.00-20260925-090839
+  uploaded 25…
+  uploaded 50…
+  uploaded 75…
+uploaded=84
+LIVE_SW_HEAD:
+ // WebCAD service worker（T739 PWA 离线）— 自写零依赖（license-safe）。
+// 策略：
+//   · 导航请求（开 app）：network-first，离线时退回缓存嘅 index.html —— 永远攞最新版，断网照开。
+//   · /assets/*（Vite 内容哈希，不可变）+ .wasm/.ttf：cache-first —— 命中即离线可用，免重复下载几 MB wasm。
+//   · 其他同源 GET：network-first + 缓存兜底。
+// 版本：CACHE 名带版本号；activate 时清旧缓存。部署新版后首次在线访问会自动换新（导航 network-first 保证）。
+// RELEASE: CACHE 必须随每次发版改名（例 webcad-v1.99），否则 activate 唔会删旧缓存 → 硬刷新仍见旧 badge（Solid @1.66 GATE）。
+const CACHE = 'webcad-v2.01'
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/'])).then(() => self.skipWaiting()))
+})
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()),
+  )
+})
+
+self.addEventListener('fetch', (e) => {
+LIVE_IDX_SNIP:
+ <!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1572c4" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebCAD · 代號 (Fusion-like)</title>
+    <script type="module" crossorigin src="/assets/index-DYCQfLkE-r2.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-QTnfLwEv.js">
+    <link rel="modulepreload" crossorigin href="/assets/cad-runtime-DMyQeny3.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-runtime-DQ_9nlup.js">
+    <link rel="modulepreload" cro
+DONE v2.01-20260925-094241

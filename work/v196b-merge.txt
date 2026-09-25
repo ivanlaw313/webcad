@@ -1,0 +1,15 @@
+From https://github.com/ivanlaw313/webcad
+ * branch            feat/native-car-stage1-20260906 -> FETCH_HEAD
+   861013d..d8c205f  feat/native-car-stage1-20260906 -> origin/feat/native-car-stage1-20260906
+Updating 861013d..d8c205f
+Fast-forward
+ src/components/BrowserTree.tsx                |  4 +-
+ src/components/CommandDialog.tsx              |  4 +-
+ src/components/Ribbon.tsx                     | 10 ++--
+ src/components/Viewport.tsx                   | 20 +++----
+ src/i18n.ts                                   |  4 +-
+ src/render/procTextures.ts                    |  2 +-
+ src/store.ts                                  | 38 +++++++-------
+ tests/grok-qa-v1.96-bd9601-dialog-tc.test.mjs | 75 +++++++++++++++++++++++++++
+ 8 files changed, 116 insertions(+), 41 deletions(-)
+ create mode 100644 tests/grok-qa-v1.96-bd9601-dialog-tc.test.mjs

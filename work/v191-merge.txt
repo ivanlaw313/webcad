@@ -1,0 +1,21 @@
+From https://github.com/ivanlaw313/webcad
+ * branch            feat/native-car-stage1-20260906 -> FETCH_HEAD
+   371b4e2..89024ed  feat/native-car-stage1-20260906 -> origin/feat/native-car-stage1-20260906
+Updating 371b4e2..89024ed
+Fast-forward
+ public/sw.js                                 |   4 +-
+ src/components/SketchToolPanel.tsx           | 174 +++++++++++++--------------
+ src/i18n.ts                                  | 173 ++++++++++++++++++++++++++
+ src/i18n/tc2sc.ts                            |  32 +++++
+ src/version.ts                               |   2 +-
+ tests/grok-qa-v1.84-bd7301-history.test.mjs  |   6 +-
+ tests/grok-qa-v1.84-bd8201-830x.test.mjs     |   6 +-
+ tests/grok-qa-v1.85-zh-hk-sc-leaks.test.mjs  |   6 +-
+ tests/grok-qa-v1.86-bd8501-8502.test.mjs     |   6 +-
+ tests/grok-qa-v1.87-bd8601.test.mjs          |   6 +-
+ tests/grok-qa-v1.88-bd8701.test.mjs          |   6 +-
+ tests/grok-qa-v1.89-bd8801.test.mjs          |   6 +-
+ tests/grok-qa-v1.90-bd8901.test.mjs          |   6 +-
+ tests/grok-qa-v1.91-sketch-panel-tc.test.mjs | 102 ++++++++++++++++
+ 14 files changed, 421 insertions(+), 114 deletions(-)
+ create mode 100644 tests/grok-qa-v1.91-sketch-panel-tc.test.mjs

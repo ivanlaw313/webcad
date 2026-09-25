@@ -1,0 +1,18 @@
+From https://github.com/ivanlaw313/webcad
+ * branch            feat/native-car-stage1-20260906 -> FETCH_HEAD
+   4ed5292..7db8271  feat/native-car-stage1-20260906 -> origin/feat/native-car-stage1-20260906
+Updating 4ed5292..7db8271
+Fast-forward
+ public/sw.js                                       |  2 +-
+ src/App.tsx                                        |  2 +-
+ src/components/MaterialSwatchPicker.tsx            |  4 +-
+ src/components/Viewport.tsx                        |  6 +-
+ src/i18n.ts                                        | 58 ++++++++++++++
+ src/store.ts                                       | 20 ++---
+ src/version.ts                                     |  2 +-
+ .../grok-qa-v2.00-bd2001-display-intro-tc.test.mjs |  6 +-
+ .../grok-qa-v2.01-bd2101-csketch-tips-tc.test.mjs  |  6 +-
+ ...ok-qa-v2.02-bd2201-measure-material-tc.test.mjs | 91 ++++++++++++++++++++++
+ 10 files changed, 173 insertions(+), 24 deletions(-)
+ create mode 100644 tests/grok-qa-v2.02-bd2201-measure-material-tc.test.mjs
+{"mergeCommit":{"oid":"7db8271932ae9813a98ffa5275bc43a3a0c149fd"},"mergedAt":"2026-09-25T02:07:00Z","state":"MERGED","url":"https://github.com/ivanlaw313/webcad/pull/224"}

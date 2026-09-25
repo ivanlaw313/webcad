@@ -1,0 +1,35 @@
+From https://github.com/ivanlaw313/webcad
+ * branch            feat/native-car-stage1-20260906 -> FETCH_HEAD
+   83fc324..b3ab86b  feat/native-car-stage1-20260906 -> origin/feat/native-car-stage1-20260906
+Updating 83fc324..b3ab86b
+Fast-forward
+ public/sw.js                                       |   4 +-
+ src/components/BrowserTree.tsx                     |   8 +-
+ src/components/Ribbon.tsx                          |  13 +-
+ src/components/Viewport.tsx                        | 160 ++++++++++-----------
+ src/i18n.ts                                        |  47 ++++++
+ src/i18n/labelToKey.ts                             |   2 +
+ src/i18n/locales/zh-HK.ts                          |   8 +-
+ src/ribbon.ts                                      |   6 +-
+ src/store.ts                                       |  22 +--
+ src/version.ts                                     |   2 +-
+ ...construct-plane-axis-point-traditional.test.mjs |  14 +-
+ tests/grok-qa-v1.84-bd7301-history.test.mjs        |   2 +-
+ tests/grok-qa-v1.84-bd8201-830x.test.mjs           |   6 +-
+ tests/grok-qa-v1.85-zh-hk-sc-leaks.test.mjs        |   6 +-
+ tests/grok-qa-v1.86-bd8501-8502.test.mjs           |   6 +-
+ tests/grok-qa-v1.87-bd8601.test.mjs                |   6 +-
+ tests/grok-qa-v1.88-bd8701.test.mjs                |   6 +-
+ tests/grok-qa-v1.89-bd8801.test.mjs                |   6 +-
+ tests/grok-qa-v1.90-bd8901.test.mjs                |   6 +-
+ tests/grok-qa-v1.91-sketch-panel-tc.test.mjs       |   6 +-
+ tests/grok-qa-v1.92-sketch-chrome-tc.test.mjs      |   6 +-
+ ...rok-qa-v1.93-featdlg-pattern-mirror-tc.test.mjs |   6 +-
+ tests/grok-qa-v1.94-bd9301-status-topo-tc.test.mjs |   6 +-
+ tests/grok-qa-v1.95-tip-dialog-tc.test.mjs         |   6 +-
+ tests/grok-qa-v1.96-bd9601-dialog-tc.test.mjs      |  20 +--
+ tests/grok-qa-v1.97-bd9701-residual-tc.test.mjs    |  75 ++++++++++
+ tests/grok-qa-v1.97-locale-leftovers-tc.test.mjs   |  71 +++++++++
+ 27 files changed, 363 insertions(+), 163 deletions(-)
+ create mode 100644 tests/grok-qa-v1.97-bd9701-residual-tc.test.mjs
+ create mode 100644 tests/grok-qa-v1.97-locale-leftovers-tc.test.mjs

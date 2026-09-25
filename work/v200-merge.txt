@@ -1,0 +1,22 @@
+From https://github.com/ivanlaw313/webcad
+ * branch            feat/native-car-stage1-20260906 -> FETCH_HEAD
+   c1046d8..49eec96  feat/native-car-stage1-20260906 -> origin/feat/native-car-stage1-20260906
+Updating c1046d8..49eec96
+Fast-forward
+ index.html                                         |  2 +-
+ public/sw.js                                       |  2 +-
+ src/cad/viewModel.ts                               |  4 +-
+ src/components/BrowserTree.tsx                     |  2 +-
+ src/components/IntroCard.tsx                       | 24 +++----
+ src/components/Viewport.tsx                        |  8 +--
+ src/i18n.ts                                        | 68 +++++++++++++++++++
+ src/store.ts                                       |  2 +-
+ src/version.ts                                     |  3 +-
+ tests/brep-display-contract.test.mjs               |  2 +-
+ tests/grok-qa-v1.97-bd9701-residual-tc.test.mjs    |  8 +--
+ tests/grok-qa-v1.97-locale-leftovers-tc.test.mjs   |  8 +--
+ tests/grok-qa-v1.98-bd9602-caxis-tip-tc.test.mjs   |  8 +--
+ .../grok-qa-v1.99-bd9901-project-link-tc.test.mjs  |  8 +--
+ .../grok-qa-v2.00-bd2001-display-intro-tc.test.mjs | 79 ++++++++++++++++++++++
+ 15 files changed, 187 insertions(+), 41 deletions(-)
+ create mode 100644 tests/grok-qa-v2.00-bd2001-display-intro-tc.test.mjs

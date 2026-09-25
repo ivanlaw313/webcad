@@ -1,0 +1,14 @@
+STAMP v1.92-20260919-174009
+ENTRY index-CH679vvG-r2.js
+MD5 118271c6282aa794c316b07bd1be00d1
+PREV /var/www/webcad-releases/v1.91-20260919-172446 -> ok
+  retry 1/5 icon-192.png: [Errno 2] No such file
+  uploaded 25…
+  uploaded 50…
+  uploaded 75…
+uploaded=84
+nginx root root /var/www/webcad-releases/v1.92-20260919-174009
+DONE
+-174009
+verify: HTTP/2 200
+DONE

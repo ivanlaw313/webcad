@@ -1,0 +1,26 @@
+From https://github.com/ivanlaw313/webcad
+ * branch            feat/native-car-stage1-20260906 -> FETCH_HEAD
+   e4c2a27..69f3f6b  feat/native-car-stage1-20260906 -> origin/feat/native-car-stage1-20260906
+Updating e4c2a27..69f3f6b
+Fast-forward
+ public/sw.js                                       |    2 +-
+ src/App.tsx                                        |    2 +-
+ src/components/BrowserTree.tsx                     |    4 +-
+ src/components/CSketch.tsx                         |   84 +-
+ src/components/Ribbon.tsx                          |    4 +-
+ src/components/SketchLayer.tsx                     | 6150 ++++++++++----------
+ src/i18n.ts                                        |   76 +
+ src/sketch/constrainedDrag.ts                      |   10 +-
+ src/sketch/constrainedEdgeDrag.ts                  |   12 +-
+ src/sketch/dimensionEditInput.ts                   |   12 +-
+ src/sketch/extendTransaction.ts                    |   10 +-
+ src/version.ts                                     |    2 +-
+ .../grok-qa-v2.00-bd2001-display-intro-tc.test.mjs |    6 +-
+ .../grok-qa-v2.01-bd2101-csketch-tips-tc.test.mjs  |    6 +-
+ ...ok-qa-v2.02-bd2201-measure-material-tc.test.mjs |    8 +-
+ tests/grok-qa-v2.03-bd2301-sketch-tips-tc.test.mjs |  147 +
+ 16 files changed, 3379 insertions(+), 3156 deletions(-)
+ create mode 100644 tests/grok-qa-v2.03-bd2301-sketch-tips-tc.test.mjs
+From https://github.com/ivanlaw313/webcad
+ * branch            feat/native-car-stage1-20260906 -> FETCH_HEAD
+Already up to date.

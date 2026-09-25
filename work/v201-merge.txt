@@ -1,0 +1,15 @@
+From https://github.com/ivanlaw313/webcad
+ * branch            feat/native-car-stage1-20260906 -> FETCH_HEAD
+   b46af27..eb09409  feat/native-car-stage1-20260906 -> origin/feat/native-car-stage1-20260906
+Updating b46af27..eb09409
+Fast-forward
+ public/sw.js                                       |  2 +-
+ src/components/MultiViewPanes.tsx                  | 16 ++--
+ src/i18n.ts                                        | 81 +++++++++++++++++++
+ src/sketch/csketch.ts                              | 94 +++++++++++-----------
+ src/version.ts                                     |  2 +-
+ .../grok-qa-v1.99-bd9901-project-link-tc.test.mjs  |  6 +-
+ .../grok-qa-v2.00-bd2001-display-intro-tc.test.mjs |  6 +-
+ .../grok-qa-v2.01-bd2101-csketch-tips-tc.test.mjs  | 73 +++++++++++++++++
+ 8 files changed, 217 insertions(+), 63 deletions(-)
+ create mode 100644 tests/grok-qa-v2.01-bd2101-csketch-tips-tc.test.mjs

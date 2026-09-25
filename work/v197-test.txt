@@ -1,0 +1,154 @@
+TAP version 13
+# Subtest: APP_VERSION 1.97; SW webcad-v1.97
+ok 1 - APP_VERSION 1.97; SW webcad-v1.97
+  ---
+  duration_ms: 0.637601
+  type: 'test'
+  ...
+# Subtest: catalog parity
+ok 2 - catalog parity
+  ---
+  duration_ms: 2.254159
+  type: 'test'
+  ...
+# Subtest: store tip Record residual SC cleared (move/scale/box/…)
+ok 3 - store tip Record residual SC cleared (move/scale/box/…)
+  ---
+  duration_ms: 0.947893
+  type: 'test'
+  ...
+# Subtest: Viewport high-vis status/dialog TC samples
+ok 4 - Viewport high-vis status/dialog TC samples
+  ---
+  duration_ms: 1.295701
+  type: 'test'
+  ...
+# Subtest: store mirror/pattern status leftovers TC
+ok 5 - store mirror/pattern status leftovers TC
+  ---
+  duration_ms: 2.231502
+  type: 'test'
+  ...
+# Subtest: v1.95 tip tStatus zh-HK / zh-CN / en
+ok 6 - v1.95 tip tStatus zh-HK / zh-CN / en
+  ---
+  duration_ms: 2.153921
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 1.97; SW webcad-v1.97
+ok 7 - APP_VERSION 1.97; SW webcad-v1.97
+  ---
+  duration_ms: 0.629892
+  type: 'test'
+  ...
+# Subtest: BD-9601 ribbon titles TC
+ok 8 - BD-9601 ribbon titles TC
+  ---
+  duration_ms: 0.297229
+  type: 'test'
+  ...
+# Subtest: BD-9601 texture labels TC
+ok 9 - BD-9601 texture labels TC
+  ---
+  duration_ms: 0.140569
+  type: 'test'
+  ...
+# Subtest: BD-9601 joint/motion + browser tips TC
+ok 10 - BD-9601 joint/motion + browser tips TC
+  ---
+  duration_ms: 6.924019
+  type: 'test'
+  ...
+# Subtest: locale-v195 move dialog residuals TC
+ok 11 - locale-v195 move dialog residuals TC
+  ---
+  duration_ms: 1.594423
+  type: 'test'
+  ...
+# Subtest: locale-v195 construction axis dialog TC
+ok 12 - locale-v195 construction axis dialog TC
+  ---
+  duration_ms: 1.388143
+  type: 'test'
+  ...
+# Subtest: MESH pin now TC 插入STL網格 (lifted in v1.97 BD-9701)
+ok 13 - MESH pin now TC 插入STL網格 (lifted in v1.97 BD-9701)
+  ---
+  duration_ms: 2.225768
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 1.97; SW webcad-v1.97
+ok 14 - APP_VERSION 1.97; SW webcad-v1.97
+  ---
+  duration_ms: 1.125524
+  type: 'test'
+  ...
+# Subtest: BD-9701 MESH pin 插入STL網格 (no SC 网格)
+ok 15 - BD-9701 MESH pin 插入STL網格 (no SC 网格)
+  ---
+  duration_ms: 0.145151
+  type: 'test'
+  ...
+# Subtest: BD-9701 Ribbon fastener/clear/template TC
+ok 16 - BD-9701 Ribbon fastener/clear/template TC
+  ---
+  duration_ms: 0.218204
+  type: 'test'
+  ...
+# Subtest: BD-9701 Viewport prefs TC
+ok 17 - BD-9701 Viewport prefs TC
+  ---
+  duration_ms: 1.779328
+  type: 'test'
+  ...
+# Subtest: BD-9701 press-pull / shell / sketch-text TC
+ok 18 - BD-9701 press-pull / shell / sketch-text TC
+  ---
+  duration_ms: 1.873938
+  type: 'test'
+  ...
+# Subtest: BD-9701 i18n TC→EN mappings present
+ok 19 - BD-9701 i18n TC→EN mappings present
+  ---
+  duration_ms: 0.516339
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 1.97; SW webcad-v1.97
+ok 20 - APP_VERSION 1.97; SW webcad-v1.97
+  ---
+  duration_ms: 0.616147
+  type: 'test'
+  ...
+# Subtest: BD-9603 move/copy tips + labels TC
+ok 21 - BD-9603 move/copy tips + labels TC
+  ---
+  duration_ms: 2.017839
+  type: 'test'
+  ...
+# Subtest: BD-9602 construction axis tip + chip TC
+ok 22 - BD-9602 construction axis tip + chip TC
+  ---
+  duration_ms: 2.828902
+  type: 'test'
+  ...
+# Subtest: BD-9601 ribbon/texture/joint/browser TC
+ok 23 - BD-9601 ribbon/texture/joint/browser TC
+  ---
+  duration_ms: 1.470934
+  type: 'test'
+  ...
+# Subtest: MESH pin 插入STL網格 (TC)
+ok 24 - MESH pin 插入STL網格 (TC)
+  ---
+  duration_ms: 0.128842
+  type: 'test'
+  ...
+1..24
+# tests 24
+# suites 0
+# pass 24
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 321.096136

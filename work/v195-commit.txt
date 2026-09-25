@@ -1,0 +1,3 @@
+[fix/grok-qa-v1.95-tip-dialog-tc 889a80a] fix(qa): v1.95 residual tip/dialog SC→TC in store+Viewport
+ 18 files changed, 290 insertions(+), 173 deletions(-)
+ create mode 100644 tests/grok-qa-v1.95-tip-dialog-tc.test.mjs

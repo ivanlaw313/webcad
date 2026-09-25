@@ -1,0 +1,130 @@
+TAP version 13
+# Subtest: APP_VERSION 2.02; SW webcad-v2.02
+ok 1 - APP_VERSION 2.02; SW webcad-v2.02
+  ---
+  duration_ms: 0.662595
+  type: 'test'
+  ...
+# Subtest: VISUAL_STYLE_LABELS all TC; no SC label values
+ok 2 - VISUAL_STYLE_LABELS all TC; no SC label values
+  ---
+  duration_ms: 0.187112
+  type: 'test'
+  ...
+# Subtest: Viewport B-rep 視覺樣式; no B-rep 视觉样式
+ok 3 - Viewport B-rep 視覺樣式; no B-rep 视觉样式
+  ---
+  duration_ms: 0.912984
+  type: 'test'
+  ...
+# Subtest: store setVisualStyle status TC
+ok 4 - store setVisualStyle status TC
+  ---
+  duration_ms: 0.788084
+  type: 'test'
+  ...
+# Subtest: IntroCard TC; no key SC forms
+ok 5 - IntroCard TC; no key SC forms
+  ---
+  duration_ms: 0.182063
+  type: 'test'
+  ...
+# Subtest: index.html 代號; no 代号
+ok 6 - index.html 代號; no 代号
+  ---
+  duration_ms: 0.068157
+  type: 'test'
+  ...
+# Subtest: BrowserTree 文檔單位 leaf; UnitDialog heading present
+ok 7 - BrowserTree 文檔單位 leaf; UnitDialog heading present
+  ---
+  duration_ms: 0.215486
+  type: 'test'
+  ...
+# Subtest: i18n has TC + legacy SC keys for visual styles
+ok 8 - i18n has TC + legacy SC keys for visual styles
+  ---
+  duration_ms: 0.633189
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 2.02; SW webcad-v2.02
+ok 9 - APP_VERSION 2.02; SW webcad-v2.02
+  ---
+  duration_ms: 0.633142
+  type: 'test'
+  ...
+# Subtest: csketch setTool / empty / trim tips are 港繁
+ok 10 - csketch setTool / empty / trim tips are 港繁
+  ---
+  duration_ms: 0.207567
+  type: 'test'
+  ...
+# Subtest: csketch status tips: key SC forms absent
+ok 11 - csketch status tips: key SC forms absent
+  ---
+  duration_ms: 0.12732
+  type: 'test'
+  ...
+# Subtest: MultiViewPanes TC tip; SC absent
+ok 12 - MultiViewPanes TC tip; SC absent
+  ---
+  duration_ms: 0.093999
+  type: 'test'
+  ...
+# Subtest: i18n has TC + legacy SC MultiView keys
+ok 13 - i18n has TC + legacy SC MultiView keys
+  ---
+  duration_ms: 0.285291
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 2.02; SW webcad-v2.02
+ok 14 - APP_VERSION 2.02; SW webcad-v2.02
+  ---
+  duration_ms: 0.554111
+  type: 'test'
+  ...
+# Subtest: store measure / material tips are 港繁
+ok 15 - store measure / material tips are 港繁
+  ---
+  duration_ms: 9.942901
+  type: 'test'
+  ...
+# Subtest: store status tips: key SC forms absent (user-visible)
+ok 16 - store status tips: key SC forms absent (user-visible)
+  ---
+  duration_ms: 7.282752
+  type: 'test'
+  ...
+# Subtest: MaterialSwatchPicker 物理材質 TC; SC absent in UI
+ok 17 - MaterialSwatchPicker 物理材質 TC; SC absent in UI
+  ---
+  duration_ms: 0.270845
+  type: 'test'
+  ...
+# Subtest: Viewport mat-lib chrome TC; SC absent in tStatus args
+ok 18 - Viewport mat-lib chrome TC; SC absent in tStatus args
+  ---
+  duration_ms: 1.755839
+  type: 'test'
+  ...
+# Subtest: App ESC measure tip TC
+ok 19 - App ESC measure tip TC
+  ---
+  duration_ms: 0.119094
+  type: 'test'
+  ...
+# Subtest: i18n has TC + legacy SC measure/material keys
+ok 20 - i18n has TC + legacy SC measure/material keys
+  ---
+  duration_ms: 0.646109
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 116.966253

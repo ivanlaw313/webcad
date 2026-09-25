@@ -1,0 +1,145 @@
+TAP version 13
+# node:internal/modules/esm/resolve:274
+#     throw new ERR_MODULE_NOT_FOUND(
+#           ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/workspace/webcad/src/i18n/types' imported from /workspace/webcad/src/i18n.ts
+#     at finalizeResolution (node:internal/modules/esm/resolve:274:11)
+#     at moduleResolve (node:internal/modules/esm/resolve:859:10)
+#     at defaultResolve (node:internal/modules/esm/resolve:983:11)
+#     at \#cachedDefaultResolve (node:internal/modules/esm/loader:717:20)
+#     at ModuleLoader.resolve (node:internal/modules/esm/loader:694:38)
+#     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:308:38)
+#     at ModuleJob._link (node:internal/modules/esm/module_job:183:49) {
+#   code: 'ERR_MODULE_NOT_FOUND',
+#   url: 'file:///workspace/webcad/src/i18n/types'
+# }
+# Node.js v22.19.0
+# Subtest: tests/grok-qa-v1.95-tip-dialog-tc.test.mjs
+not ok 1 - tests/grok-qa-v1.95-tip-dialog-tc.test.mjs
+  ---
+  duration_ms: 130.316918
+  type: 'test'
+  location: '/workspace/webcad/tests/grok-qa-v1.95-tip-dialog-tc.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: APP_VERSION 1.97; SW webcad-v1.97
+ok 2 - APP_VERSION 1.97; SW webcad-v1.97
+  ---
+  duration_ms: 0.644088
+  type: 'test'
+  ...
+# Subtest: BD-9601 ribbon titles TC
+ok 3 - BD-9601 ribbon titles TC
+  ---
+  duration_ms: 0.249437
+  type: 'test'
+  ...
+# Subtest: BD-9601 texture labels TC
+ok 4 - BD-9601 texture labels TC
+  ---
+  duration_ms: 0.132879
+  type: 'test'
+  ...
+# Subtest: BD-9601 joint/motion + browser tips TC
+ok 5 - BD-9601 joint/motion + browser tips TC
+  ---
+  duration_ms: 2.078522
+  type: 'test'
+  ...
+# Subtest: locale-v195 move dialog residuals TC
+ok 6 - locale-v195 move dialog residuals TC
+  ---
+  duration_ms: 1.710913
+  type: 'test'
+  ...
+# Subtest: locale-v195 construction axis dialog TC
+ok 7 - locale-v195 construction axis dialog TC
+  ---
+  duration_ms: 1.210632
+  type: 'test'
+  ...
+# Subtest: MESH pin now TC 插入STL網格 (lifted in v1.97 BD-9701)
+ok 8 - MESH pin now TC 插入STL網格 (lifted in v1.97 BD-9701)
+  ---
+  duration_ms: 1.371998
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 1.97; SW webcad-v1.97
+ok 9 - APP_VERSION 1.97; SW webcad-v1.97
+  ---
+  duration_ms: 0.768879
+  type: 'test'
+  ...
+# Subtest: BD-9701 MESH pin 插入STL網格 (no SC 网格)
+ok 10 - BD-9701 MESH pin 插入STL網格 (no SC 网格)
+  ---
+  duration_ms: 0.15681
+  type: 'test'
+  ...
+# Subtest: BD-9701 Ribbon fastener/clear/template TC
+ok 11 - BD-9701 Ribbon fastener/clear/template TC
+  ---
+  duration_ms: 0.229311
+  type: 'test'
+  ...
+# Subtest: BD-9701 Viewport prefs TC
+ok 12 - BD-9701 Viewport prefs TC
+  ---
+  duration_ms: 2.076494
+  type: 'test'
+  ...
+# Subtest: BD-9701 press-pull / shell / sketch-text TC
+ok 13 - BD-9701 press-pull / shell / sketch-text TC
+  ---
+  duration_ms: 2.086123
+  type: 'test'
+  ...
+# Subtest: BD-9701 i18n TC→EN mappings present
+ok 14 - BD-9701 i18n TC→EN mappings present
+  ---
+  duration_ms: 0.593954
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 1.97; SW webcad-v1.97
+ok 15 - APP_VERSION 1.97; SW webcad-v1.97
+  ---
+  duration_ms: 0.640549
+  type: 'test'
+  ...
+# Subtest: BD-9603 move/copy tips + labels TC
+ok 16 - BD-9603 move/copy tips + labels TC
+  ---
+  duration_ms: 5.329133
+  type: 'test'
+  ...
+# Subtest: BD-9602 construction axis tip + chip TC
+ok 17 - BD-9602 construction axis tip + chip TC
+  ---
+  duration_ms: 2.884994
+  type: 'test'
+  ...
+# Subtest: BD-9601 ribbon/texture/joint/browser TC
+ok 18 - BD-9601 ribbon/texture/joint/browser TC
+  ---
+  duration_ms: 1.496469
+  type: 'test'
+  ...
+# Subtest: MESH pin 插入STL網格 (TC)
+ok 19 - MESH pin 插入STL網格 (TC)
+  ---
+  duration_ms: 0.209108
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 18
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 137.208653

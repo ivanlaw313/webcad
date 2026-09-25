@@ -1,0 +1,7 @@
+remote: 
+remote: Create a pull request for 'fix/grok-qa-v2.01-bd2101-csketch-tips-tc' on GitHub by visiting:        
+remote:      https://github.com/ivanlaw313/webcad/pull/new/fix/grok-qa-v2.01-bd2101-csketch-tips-tc        
+remote: 
+To https://github.com/ivanlaw313/webcad.git
+ * [new branch]      HEAD -> fix/grok-qa-v2.01-bd2101-csketch-tips-tc
+branch 'fix/grok-qa-v2.01-bd2101-csketch-tips-tc' set up to track 'origin/fix/grok-qa-v2.01-bd2101-csketch-tips-tc'.

@@ -1,0 +1,130 @@
+TAP version 13
+# Subtest: APP_VERSION 2.01; SW webcad-v2.01
+ok 1 - APP_VERSION 2.01; SW webcad-v2.01
+  ---
+  duration_ms: 0.731621
+  type: 'test'
+  ...
+# Subtest: ProjectionLinkStatus TC strings; no key SC forms
+ok 2 - ProjectionLinkStatus TC strings; no key SC forms
+  ---
+  duration_ms: 0.199823
+  type: 'test'
+  ...
+# Subtest: projectLinks projectLinkIssueText TC
+ok 3 - projectLinks projectLinkIssueText TC
+  ---
+  duration_ms: 0.109248
+  type: 'test'
+  ...
+# Subtest: FloatingViewMenu 顯示方式
+ok 4 - FloatingViewMenu 顯示方式
+  ---
+  duration_ms: 0.150001
+  type: 'test'
+  ...
+# Subtest: Viewport 文檔單位 / 顯示方式 / 僅影響屏上讀數
+ok 5 - Viewport 文檔單位 / 顯示方式 / 僅影響屏上讀數
+  ---
+  duration_ms: 1.198977
+  type: 'test'
+  ...
+# Subtest: BrowserTree 重建失敗
+ok 6 - BrowserTree 重建失敗
+  ---
+  duration_ms: 0.109854
+  type: 'test'
+  ...
+# Subtest: store project-relink status TC
+ok 7 - store project-relink status TC
+  ---
+  duration_ms: 0.755815
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 2.01; SW webcad-v2.01
+ok 8 - APP_VERSION 2.01; SW webcad-v2.01
+  ---
+  duration_ms: 0.783757
+  type: 'test'
+  ...
+# Subtest: VISUAL_STYLE_LABELS all TC; no SC label values
+ok 9 - VISUAL_STYLE_LABELS all TC; no SC label values
+  ---
+  duration_ms: 0.20844
+  type: 'test'
+  ...
+# Subtest: Viewport B-rep 視覺樣式; no B-rep 视觉样式
+ok 10 - Viewport B-rep 視覺樣式; no B-rep 视觉样式
+  ---
+  duration_ms: 0.903265
+  type: 'test'
+  ...
+# Subtest: store setVisualStyle status TC
+ok 11 - store setVisualStyle status TC
+  ---
+  duration_ms: 0.752489
+  type: 'test'
+  ...
+# Subtest: IntroCard TC; no key SC forms
+ok 12 - IntroCard TC; no key SC forms
+  ---
+  duration_ms: 0.183441
+  type: 'test'
+  ...
+# Subtest: index.html 代號; no 代号
+ok 13 - index.html 代號; no 代号
+  ---
+  duration_ms: 0.070717
+  type: 'test'
+  ...
+# Subtest: BrowserTree 文檔單位 leaf; UnitDialog heading present
+ok 14 - BrowserTree 文檔單位 leaf; UnitDialog heading present
+  ---
+  duration_ms: 0.223808
+  type: 'test'
+  ...
+# Subtest: i18n has TC + legacy SC keys for visual styles
+ok 15 - i18n has TC + legacy SC keys for visual styles
+  ---
+  duration_ms: 0.617323
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 2.01; SW webcad-v2.01
+ok 16 - APP_VERSION 2.01; SW webcad-v2.01
+  ---
+  duration_ms: 0.780124
+  type: 'test'
+  ...
+# Subtest: csketch setTool / empty / trim tips are 港繁
+ok 17 - csketch setTool / empty / trim tips are 港繁
+  ---
+  duration_ms: 0.229839
+  type: 'test'
+  ...
+# Subtest: csketch status tips: key SC forms absent
+ok 18 - csketch status tips: key SC forms absent
+  ---
+  duration_ms: 0.154297
+  type: 'test'
+  ...
+# Subtest: MultiViewPanes TC tip; SC absent
+ok 19 - MultiViewPanes TC tip; SC absent
+  ---
+  duration_ms: 0.10232
+  type: 'test'
+  ...
+# Subtest: i18n has TC + legacy SC MultiView keys
+ok 20 - i18n has TC + legacy SC MultiView keys
+  ---
+  duration_ms: 0.316309
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 78.417586

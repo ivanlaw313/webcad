@@ -1,0 +1,6 @@
+可繼續點擊落點 YES
+測量：點擊實體 YES
+外觀材質庫 YES
+物理材質 YES
+2.02 YES
+webcad-v2.02 NO

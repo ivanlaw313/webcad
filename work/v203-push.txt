@@ -1,0 +1,7 @@
+remote: 
+remote: Create a pull request for 'fix/v2.03-bd2301-sketch-tips-tc' on GitHub by visiting:        
+remote:      https://github.com/ivanlaw313/webcad/pull/new/fix/v2.03-bd2301-sketch-tips-tc        
+remote: 
+To https://github.com/ivanlaw313/webcad.git
+ * [new branch]      fix/v2.03-bd2301-sketch-tips-tc -> fix/v2.03-bd2301-sketch-tips-tc
+branch 'fix/v2.03-bd2301-sketch-tips-tc' set up to track 'origin/fix/v2.03-bd2301-sketch-tips-tc'.

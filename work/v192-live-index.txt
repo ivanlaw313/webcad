@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1572c4" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebCAD · 代号 (Fusion-like)</title>
+    <script type="module" crossorigin src="/assets/index-CH679vvG-r2.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-QTnfLwEv.js">
+    <link rel="modulepreload" crossorigin href="/assets/cad-runtime-DMyQeny3.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-runtime-DQ_9nlup.js">
+    <link rel="modulepreload" crossorigin href="/assets/three-runtime-DV8YCxtq.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-DcPwJPVW.js">
+    <link rel="modulepreload" crossorigin href="/assets/meshClient-CXMPh9Cx.js">
+    <link rel="modulepreload" crossorigin href="/assets/insertModel-hr3_FXMB.js">
+    <link rel="modulepreload" crossorigin href="/assets/subdiv-DIyudEQU.js">
+    <link rel="modulepreload" crossorigin href="/assets/stl-BT4ejAmg.js">
+    <link rel="modulepreload" crossorigin href="/assets/sketchOps-lcScIEpY.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-DCvpGgHT.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

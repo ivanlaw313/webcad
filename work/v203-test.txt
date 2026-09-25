@@ -1,0 +1,190 @@
+TAP version 13
+# Subtest: APP_VERSION 2.03; SW webcad-v2.03
+ok 1 - APP_VERSION 2.03; SW webcad-v2.03
+  ---
+  duration_ms: 0.729827
+  type: 'test'
+  ...
+# Subtest: VISUAL_STYLE_LABELS all TC; no SC label values
+ok 2 - VISUAL_STYLE_LABELS all TC; no SC label values
+  ---
+  duration_ms: 0.806728
+  type: 'test'
+  ...
+# Subtest: Viewport B-rep 視覺樣式; no B-rep 视觉样式
+ok 3 - Viewport B-rep 視覺樣式; no B-rep 视觉样式
+  ---
+  duration_ms: 0.979291
+  type: 'test'
+  ...
+# Subtest: store setVisualStyle status TC
+ok 4 - store setVisualStyle status TC
+  ---
+  duration_ms: 0.821321
+  type: 'test'
+  ...
+# Subtest: IntroCard TC; no key SC forms
+ok 5 - IntroCard TC; no key SC forms
+  ---
+  duration_ms: 0.192145
+  type: 'test'
+  ...
+# Subtest: index.html 代號; no 代号
+ok 6 - index.html 代號; no 代号
+  ---
+  duration_ms: 0.071564
+  type: 'test'
+  ...
+# Subtest: BrowserTree 文檔單位 leaf; UnitDialog heading present
+ok 7 - BrowserTree 文檔單位 leaf; UnitDialog heading present
+  ---
+  duration_ms: 0.259856
+  type: 'test'
+  ...
+# Subtest: i18n has TC + legacy SC keys for visual styles
+ok 8 - i18n has TC + legacy SC keys for visual styles
+  ---
+  duration_ms: 0.720559
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 2.03; SW webcad-v2.03
+ok 9 - APP_VERSION 2.03; SW webcad-v2.03
+  ---
+  duration_ms: 0.659032
+  type: 'test'
+  ...
+# Subtest: csketch setTool / empty / trim tips are 港繁
+ok 10 - csketch setTool / empty / trim tips are 港繁
+  ---
+  duration_ms: 0.20464
+  type: 'test'
+  ...
+# Subtest: csketch status tips: key SC forms absent
+ok 11 - csketch status tips: key SC forms absent
+  ---
+  duration_ms: 0.129963
+  type: 'test'
+  ...
+# Subtest: MultiViewPanes TC tip; SC absent
+ok 12 - MultiViewPanes TC tip; SC absent
+  ---
+  duration_ms: 0.095681
+  type: 'test'
+  ...
+# Subtest: i18n has TC + legacy SC MultiView keys
+ok 13 - i18n has TC + legacy SC MultiView keys
+  ---
+  duration_ms: 0.307355
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 2.03; SW webcad-v2.03
+ok 14 - APP_VERSION 2.03; SW webcad-v2.03
+  ---
+  duration_ms: 0.598907
+  type: 'test'
+  ...
+# Subtest: store measure / material tips are 港繁
+ok 15 - store measure / material tips are 港繁
+  ---
+  duration_ms: 3.439031
+  type: 'test'
+  ...
+# Subtest: store status tips: key SC forms absent (user-visible)
+ok 16 - store status tips: key SC forms absent (user-visible)
+  ---
+  duration_ms: 5.316533
+  type: 'test'
+  ...
+# Subtest: MaterialSwatchPicker 物理材質 TC; SC absent in UI
+ok 17 - MaterialSwatchPicker 物理材質 TC; SC absent in UI
+  ---
+  duration_ms: 0.218683
+  type: 'test'
+  ...
+# Subtest: Viewport mat-lib chrome TC; SC absent in tStatus args
+ok 18 - Viewport mat-lib chrome TC; SC absent in tStatus args
+  ---
+  duration_ms: 1.516513
+  type: 'test'
+  ...
+# Subtest: App ESC measure tip TC
+ok 19 - App ESC measure tip TC
+  ---
+  duration_ms: 0.114334
+  type: 'test'
+  ...
+# Subtest: i18n has TC + legacy SC measure/material keys
+ok 20 - i18n has TC + legacy SC measure/material keys
+  ---
+  duration_ms: 0.512869
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 2.03; SW webcad-v2.03
+ok 21 - APP_VERSION 2.03; SW webcad-v2.03
+  ---
+  duration_ms: 0.983723
+  type: 'test'
+  ...
+# Subtest: App Esc cancel tip is 港繁
+ok 22 - App Esc cancel tip is 港繁
+  ---
+  duration_ms: 1.483805
+  type: 'test'
+  ...
+# Subtest: CSketch toolbar titles / prompts are 港繁
+ok 23 - CSketch toolbar titles / prompts are 港繁
+  ---
+  duration_ms: 0.219284
+  type: 'test'
+  ...
+# Subtest: SketchLayer dim/constraint tips are 港繁
+ok 24 - SketchLayer dim/constraint tips are 港繁
+  ---
+  duration_ms: 1.139148
+  type: 'test'
+  ...
+# Subtest: dimensionEditInput error strings are 港繁
+ok 25 - dimensionEditInput error strings are 港繁
+  ---
+  duration_ms: 0.139792
+  type: 'test'
+  ...
+# Subtest: constrainedDrag / constrainedEdgeDrag reasons are 港繁
+ok 26 - constrainedDrag / constrainedEdgeDrag reasons are 港繁
+  ---
+  duration_ms: 0.10754
+  type: 'test'
+  ...
+# Subtest: extendTransaction failure reasons are 港繁
+ok 27 - extendTransaction failure reasons are 港繁
+  ---
+  duration_ms: 0.155963
+  type: 'test'
+  ...
+# Subtest: Ribbon B-rep / union titles are 港繁
+ok 28 - Ribbon B-rep / union titles are 港繁
+  ---
+  duration_ms: 0.117261
+  type: 'test'
+  ...
+# Subtest: BrowserTree 圓柱 + 無法自動更新 tip
+ok 29 - BrowserTree 圓柱 + 無法自動更新 tip
+  ---
+  duration_ms: 0.446068
+  type: 'test'
+  ...
+# Subtest: i18n has TC + legacy SC sketch-tip keys
+ok 30 - i18n has TC + legacy SC sketch-tip keys
+  ---
+  duration_ms: 0.694259
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 100.86243

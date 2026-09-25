@@ -1,0 +1,268 @@
+TAP version 13
+# Subtest: B-rep visual styles retain shaded face modes
+ok 1 - B-rep visual styles retain shaded face modes
+  ---
+  duration_ms: 1.479251
+  type: 'test'
+  ...
+# Subtest: B-rep display has a direct shaded-visible recovery control
+ok 2 - B-rep display has a direct shaded-visible recovery control
+  ---
+  duration_ms: 1.155071
+  type: 'test'
+  ...
+# Subtest: Sketch keeps a lower display-mode entry even when its toolbar is moved or collapsed
+ok 3 - Sketch keeps a lower display-mode entry even when its toolbar is moved or collapsed
+  ---
+  duration_ms: 1.067635
+  type: 'test'
+  ...
+# Subtest: shaded hidden edges are depth-occluded instead of redrawing all edges
+ok 4 - shaded hidden edges are depth-occluded instead of redrawing all edges
+  ---
+  duration_ms: 0.194578
+  type: 'test'
+  ...
+# Subtest: wire modes that distinguish visible or hidden edges retain an invisible depth prepass
+ok 5 - wire modes that distinguish visible or hidden edges retain an invisible depth prepass
+  ---
+  duration_ms: 0.620643
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 2.00; SW webcad-v2.00
+ok 6 - APP_VERSION 2.00; SW webcad-v2.00
+  ---
+  duration_ms: 0.688527
+  type: 'test'
+  ...
+# Subtest: BD-9701 MESH pin 插入STL網格 (no SC 网格)
+ok 7 - BD-9701 MESH pin 插入STL網格 (no SC 网格)
+  ---
+  duration_ms: 0.148484
+  type: 'test'
+  ...
+# Subtest: BD-9701 Ribbon fastener/clear/template TC
+ok 8 - BD-9701 Ribbon fastener/clear/template TC
+  ---
+  duration_ms: 0.215778
+  type: 'test'
+  ...
+# Subtest: BD-9701 Viewport prefs TC
+ok 9 - BD-9701 Viewport prefs TC
+  ---
+  duration_ms: 1.952194
+  type: 'test'
+  ...
+# Subtest: BD-9701 press-pull / shell / sketch-text TC
+ok 10 - BD-9701 press-pull / shell / sketch-text TC
+  ---
+  duration_ms: 2.234277
+  type: 'test'
+  ...
+# Subtest: BD-9701 i18n TC→EN mappings present
+ok 11 - BD-9701 i18n TC→EN mappings present
+  ---
+  duration_ms: 1.079485
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 2.00; SW webcad-v2.00
+ok 12 - APP_VERSION 2.00; SW webcad-v2.00
+  ---
+  duration_ms: 0.562277
+  type: 'test'
+  ...
+# Subtest: BD-9602 objectVis status 全部構造軸：顯示／隱藏 TC
+ok 13 - BD-9602 objectVis status 全部構造軸：顯示／隱藏 TC
+  ---
+  duration_ms: 7.939034
+  type: 'test'
+  ...
+# Subtest: locale-v197: axis tip includes 構造幾何 token (prepend)
+ok 14 - locale-v197: axis tip includes 構造幾何 token (prepend)
+  ---
+  duration_ms: 0.898906
+  type: 'test'
+  ...
+# Subtest: Viewport mate/beam/screenshot residuals TC
+ok 15 - Viewport mate/beam/screenshot residuals TC
+  ---
+  duration_ms: 2.150985
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 2.00; SW webcad-v2.00
+ok 16 - APP_VERSION 2.00; SW webcad-v2.00
+  ---
+  duration_ms: 0.669628
+  type: 'test'
+  ...
+# Subtest: ProjectionLinkStatus TC strings; no key SC forms
+ok 17 - ProjectionLinkStatus TC strings; no key SC forms
+  ---
+  duration_ms: 0.190889
+  type: 'test'
+  ...
+# Subtest: projectLinks projectLinkIssueText TC
+ok 18 - projectLinks projectLinkIssueText TC
+  ---
+  duration_ms: 0.1269
+  type: 'test'
+  ...
+# Subtest: FloatingViewMenu 顯示方式
+ok 19 - FloatingViewMenu 顯示方式
+  ---
+  duration_ms: 0.992687
+  type: 'test'
+  ...
+# Subtest: Viewport 文檔單位 / 顯示方式 / 僅影響屏上讀數
+ok 20 - Viewport 文檔單位 / 顯示方式 / 僅影響屏上讀數
+  ---
+  duration_ms: 1.130609
+  type: 'test'
+  ...
+# Subtest: BrowserTree 重建失敗
+ok 21 - BrowserTree 重建失敗
+  ---
+  duration_ms: 0.159342
+  type: 'test'
+  ...
+# Subtest: store project-relink status TC
+ok 22 - store project-relink status TC
+  ---
+  duration_ms: 0.795664
+  type: 'test'
+  ...
+# Subtest: APP_VERSION 2.00; SW webcad-v2.00
+ok 23 - APP_VERSION 2.00; SW webcad-v2.00
+  ---
+  duration_ms: 0.694268
+  type: 'test'
+  ...
+# Subtest: VISUAL_STYLE_LABELS all TC; no SC label values
+ok 24 - VISUAL_STYLE_LABELS all TC; no SC label values
+  ---
+  duration_ms: 0.202319
+  type: 'test'
+  ...
+# Subtest: Viewport B-rep 視覺樣式; no B-rep 视觉样式
+ok 25 - Viewport B-rep 視覺樣式; no B-rep 视觉样式
+  ---
+  duration_ms: 0.924575
+  type: 'test'
+  ...
+# Subtest: store setVisualStyle status TC
+ok 26 - store setVisualStyle status TC
+  ---
+  duration_ms: 0.915733
+  type: 'test'
+  ...
+# Subtest: IntroCard TC; no key SC forms
+ok 27 - IntroCard TC; no key SC forms
+  ---
+  duration_ms: 0.496964
+  type: 'test'
+  ...
+# Subtest: index.html 代號; no 代号
+ok 28 - index.html 代號; no 代号
+  ---
+  duration_ms: 0.146421
+  type: 'test'
+  ...
+# Subtest: BrowserTree 文檔單位 leaf; UnitDialog heading present
+ok 29 - BrowserTree 文檔單位 leaf; UnitDialog heading present
+  ---
+  duration_ms: 0.278975
+  type: 'test'
+  ...
+# Subtest: i18n has TC + legacy SC keys for visual styles
+ok 30 - i18n has TC + legacy SC keys for visual styles
+  ---
+  duration_ms: 0.845406
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 158.418354
+TAP version 13
+# ========== PASS/FAIL 总表 ==========
+#   PASS  6 个视觉样式
+#   PASS  shaded → 着色无边
+#   PASS  shadedHidden → 着色隐藏边
+#   PASS  shadedVisible → 着色可见边
+#   PASS  wire → 线框无边
+#   PASS  wireHidden → 线框隐藏边
+#   PASS  wireVisible → 线框可见边
+#   PASS  render↔style 往返一致
+#   PASS  Ctrl+4 = shaded
+#   PASS  Ctrl+9 = wireVisible
+#   PASS  键映射覆盖 4..9 共 6 个
+#   PASS  edgeState off
+#   PASS  edgeState on+visible
+#   PASS  edgeState on+hidden
+#   PASS  edgeMode→state visible
+#   PASS  edgeMode→state hidden
+#   PASS  edgeMode→state off
+#   PASS  旧默认态 → 着色可见边
+#   PASS  performance = 全关
+#   PASS  quality = AO+阴影+渲染
+#   PASS  custom 保留现状
+#   PASS  effectsToPreset 命中 performance
+#   PASS  effectsToPreset 命中 quality
+#   PASS  effectsToPreset 手改任一 → custom
+#   PASS  Fixed 默认 = 旧硬编码 10/100
+#   PASS  Fixed spacing=250 subdiv=5 → cell 50
+#   PASS  Adaptive 近距离 cell 细
+#   PASS  Adaptive 单调不减（距离越大 cell 越大或等）
+#   PASS  Adaptive 有下限 0.1
+#   PASS  Adaptive section = cell×subdiv
+#   PASS  subdiv 钳到 ≥1
+#   PASS  ortho 恒正交
+#   PASS  persp 恒透视
+#   PASS  perspOrtho 平时透视
+#   PASS  perspOrtho 标准视图吸正交
+#   PASS  默认 prefs 完整
+#   PASS  mergePrefs 空 → 默认
+#   PASS  mergePrefs 部分覆盖
+#   PASS  mergePrefs 拒非法值
+#   PASS  mergePrefs 布尔守卫
+#   PASS  5 个预设
+#   PASS  presetById mm_g
+#   PASS  detectPreset 配对命中
+#   PASS  detectPreset 非配对 → custom
+#   PASS  convLen mm→cm
+#   PASS  convLen mm→m
+#   PASS  convLen mm→inch
+#   PASS  convLen mm→ft
+#   PASS  convMass g→kg
+#   PASS  convMass g→oz
+#   PASS  convMass g→lb
+#   PASS  fmtLenU mm 默认 1 位
+#   PASS  fmtLenU m 默认 4 位
+#   PASS  fmtLenU ft
+#   PASS  fmtMassU g 默认 2 位
+#   PASS  fmtMassU kg
+#   PASS  fmtMassU lb
+#   PASS  areaVolBaseUnit 公制→cm
+#   PASS  areaVolBaseUnit 英制→inch
+# ====================================
+# 全部 59 项通过
+# Subtest: tests/viewx2.test.mjs
+ok 1 - tests/viewx2.test.mjs
+  ---
+  duration_ms: 84.222333
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 90.144673

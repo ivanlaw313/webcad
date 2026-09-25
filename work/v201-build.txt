@@ -1,0 +1,7 @@
+
+> webcad@0.0.0 build
+> tsc -b && vite build
+
+src/i18n.ts(2880,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/i18n.ts(2881,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/i18n.ts(2882,3): error TS1117: An object literal cannot have multiple properties with the same name.

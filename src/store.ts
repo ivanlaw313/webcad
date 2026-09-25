@@ -21440,10 +21440,10 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   simFocus: null,
   openSimPanel: (focus) => set((s) => {
-    const need = focus === 'topopt' ? '生成式设计：需要先有活动实体' : '热分析：需要先有活动实体'
+    const need = focus === 'topopt' ? '生成式設計：需要先有活動實體' : '熱分析：需要先有活動實體'
     const hint = focus === 'topopt'
-      ? '生成式设计：点①固定面（保留区）+ ②受力面 + 设力，再在面板按「生成式设计（拓扑优化）」'
-      : '热分析：点①固定面=热面、②受力面=冷面，再设温度，按面板「热分析（稳态导热）」'
+      ? '生成式設計：點①固定面（保留區）+ ②受力面 + 設力，再喺面板按「生成式設計（拓撲優化）」'
+      : '熱分析：點①固定面=熱面、②受力面=冷面，再設溫度，按面板「熱分析（穩態導熱）」'
     if (s.feaBusy || s.topoptBusy || s.thermalBusy || s.thermalStressBusy || s.modalBusy || s.bucklingBusy) {
       return { simFocus: focus, status: hint }
     }

@@ -120,15 +120,15 @@ const PER_FILE = Object.fromEntries(FILES.map((f) => [f, leakCount(readFileSync(
 const TOTAL = Object.values(PER_FILE).reduce((a, b) => a + b, 0)
 
 /**
- * Ceiling locked to the post-conversion count (2026-09-25, lane grok-tc2): 2383.
- * Per file: Viewport 473, Ribbon 13, ribbon.ts 227, BrowserTree 74, Timeline 39,
+ * Ceiling locked to the post-conversion count (2026-09-25, lane grok-wind-tc): 2357.
+ * Per file: Viewport 462, Ribbon 13, ribbon.ts 227, BrowserTree 74, Timeline 39,
  * Help 0, CommandPalette 0, Intro 0, Tour 8, Inspector 0, Joints 15, Slice 0,
- * PhysicsLab 20, store 1514.
- * Includes shared glyphs 面/除/件, the untouched wind-tunnel panel in Viewport,
- * and store strings that are not status/toast. Do not raise this to hide a
- * new simplified string — fix the copy or justify the exception here.
+ * PhysicsLab 20, store 1499.
+ * Includes shared glyphs 面/除/件 and store strings that are not status/toast.
+ * Do not raise this to hide a new simplified string — fix the copy or justify
+ * the exception here.
  */
-const MAX_LEAK_STRINGS = 2384 // +1 = wind-fix merge (wind panel TC pending, lane grok-wind-tc)
+const MAX_LEAK_STRINGS = 2357
 
 test('zh-HK lane files do not grow simplified-Chinese string literals', () => {
   assert.ok(TOTAL <= MAX_LEAK_STRINGS, `leak strings ${TOTAL} > ${MAX_LEAK_STRINGS}\n` + JSON.stringify(PER_FILE, null, 2))

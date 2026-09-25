@@ -11,7 +11,7 @@ import type { AeroProgress, AeroRunResult, Candidate } from '../aero/optimize/ru
 import { runAero, cancelAero, buildAeroCad, disposeAeroWorkers } from '../aero/aeroClient'
 import { specFromBrief } from '../aero/brief'
 import { designMesh, meshToStl } from '../aero/geometry'
-import { cfdCaseZip, getCfdUrl, sendToCfd, setCfdUrl } from '../aero/cfdExport'
+import AeroCfdPanel from './AeroCfdPanel'
 import { runAccurateWind, type AccurateWind } from '../aero/windBridge'
 import { ParetoChart, ConvergenceChart } from './AeroLabCharts'
 
@@ -68,8 +68,6 @@ export default function AeroLab() {
   const [busy, setBusy] = useState('')
   const [msg, setMsg] = useState('')
   const [lbm, setLbm] = useState<Record<number, AccurateWind | string>>({})
-  const [cfdN, setCfdN] = useState(3)
-  const [cfdUrl, setCfdUrlState] = useState(getCfdUrl())
   const runId = useRef(0)
 
   useEffect(() => () => disposeAeroWorkers(), [])
@@ -143,16 +141,6 @@ export default function AeroLab() {
     } catch (e) {
       setLbm((m) => ({ ...m, [c.id]: `${t('failed')}: ${String((e as Error)?.message || e).slice(0, 60)}` }))
     }
-  }
-
-  const sendCfd = async () => {
-    const top = cands.filter((c) => c.feasible).slice(0, Math.max(1, cfdN))
-    if (!top.length) return
-    setBusy('CFD…'); setCfdUrl(cfdUrl)
-    const r = await sendToCfd(cfdUrl, spec, top)
-    setBusy('')
-    if (r.ok) setMsg(`${t('cfdOk')}${r.jobId ? ` (job ${r.jobId})` : ''}`)
-    else { download(cfdCaseZip(spec, top) as BlobPart, `aero-${spec.kind}-cfd-case.zip`, 'application/zip'); setMsg(`${t('cfdFail')} [${r.error}]`) }
   }
 
   // ── spec editing helpers ──
@@ -324,12 +312,7 @@ export default function AeroLab() {
           </div>
           {showPreview && previewMesh && <div style={{ marginTop: 6 }}><Suspense fallback={<div style={{ height: 220 }}>…</div>}><AeroLabPreview mesh={previewMesh} /></Suspense></div>}
         </div>}
-        <div style={{ marginTop: 8, borderTop: '1px solid var(--border)', paddingTop: 6, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span>{t('cfdUrl')}</span>
-          <input value={cfdUrl} onChange={(e) => setCfdUrlState(e.target.value)} style={{ ...inp, width: 170 }} />
-          <span>N</span><input type="number" min={1} max={8} value={cfdN} onChange={(e) => setCfdN(Math.max(1, Math.min(8, Math.round(Number(e.target.value)) || 1)))} style={{ ...inp, width: 40 }} />
-          <button type="button" style={btn} disabled={!!busy} onClick={sendCfd}>🧮 {t('cfd')}</button>
-        </div>
+        <AeroCfdPanel spec={spec} cands={cands} lang={lang} />
       </div>}
 
       {(busy || msg) && <div style={{ marginTop: 8, fontSize: 11, color: busy ? 'var(--accent)' : 'var(--text-dim)' }}>{busy || msg}</div>}

@@ -127,6 +127,7 @@ const CurvatureAnalysisOverlays = lazy(() => import('./CurvatureOverlay').then((
   default: () => <><m.CurvatureOverlay /><m.CurvatureCombOverlay /><m.MinRadiusMarker /></>,
 })))
 import { GATE_TYPES, type GateType } from '../analysis/gateTypes'   // 浇口类型谱（轻模块）
+import WindCfdVerify from './WindCfdVerify'   // cfd-link: OpenFOAM verification of the tunnel body
 // GM-W8 β3：模流 Stage-2 热耦合 per-material 缺省熔体/模壁温度 °C（对齐 moldsolve MOLD_CROSS 嘅 tMelt/tMold；此处硬编码免 import 求解器模块入主 bundle — 同 gateTypes 抽轻模块同一理由）。留空输入 → store null → 求解器用材料缺省。
 const MOLD_MAT_TEMP: Record<string, { melt: number; mold: number }> = {
   ABS: { melt: 230, mold: 60 }, PP: { melt: 230, mold: 40 }, PC: { melt: 300, mold: 90 },
@@ -5727,6 +5728,7 @@ export default function Viewport() {
             </div>
             )
           })()}
+          <WindCfdVerify />
         </CommandDialog>
       )}
       {(moldModeP > 0 || moldBusy || moldResult) && (

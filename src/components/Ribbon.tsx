@@ -29,9 +29,9 @@ function FastenerPicker() {
         {FASTENER_SIZES.map((sz) => <option key={sz} value={sz}>{sz}</option>)}
       </select>
       {kind !== 'hexnut' && kind !== 'washer' && (
-        <label title={kind === 'dowel' ? '销长 mm' : '杆长 mm（头下）'} style={{ fontSize: 12 }}>{msg('ui.len', lang)}<input type="number" step={2} min={3} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ width: 46 }} /></label>
+        <label title={kind === 'dowel' ? '銷長 mm' : '桿長 mm（頭下）'} style={{ fontSize: 12 }}>{msg('ui.len', lang)}<input type="number" step={2} min={3} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ width: 46 }} /></label>
       )}
-      <button className="tb-btn tb-text" title="插入標準件到裝配（ISO 尺寸真實體；簡化＝光杆無螺牙，外形標準。可用「配合」對齊）" onClick={() => void insertFastener(kind, size, len)}>
+      <button className="tb-btn tb-text" title="插入標準件到裝配（ISO 尺寸真實體；簡化＝光桿無螺牙，外形標準。可用「配合」對齊）" onClick={() => void insertFastener(kind, size, len)}>
         <ToolIcon name="component" size={15} /> {msg('ui.insertFastener', lang)}
       </button>
     </>
@@ -380,7 +380,7 @@ export default function Ribbon() {
           {fileMenu && createPortal(
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 149 }} onClick={() => setFileMenu(false)} />
-              <div ref={fileMenuRef} role="menu" aria-label="文件 File" onKeyDown={(e) => {
+              <div ref={fileMenuRef} role="menu" aria-label="檔案 File" onKeyDown={(e) => {
                 if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
                 e.preventDefault(); e.stopPropagation()
                 const items = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
@@ -391,12 +391,12 @@ export default function Ribbon() {
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm(msg('file.newConfirm', lang))) void reset() }}><ToolIcon name="newdoc" size={16} />{msg('file.new', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => openProject()}><ToolIcon name="insert" size={16} />{msg('file.open', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => saveProject()}><ToolIcon name="save" size={16} />{msg('file.save', lang)}<span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>Ctrl+S</span></button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="分享链接（T797）：整个项目压缩入一条 URL（gzip+base64,零服务器零隐私）→ 复制到剪贴板。发畀人/收藏即可重开。大模型超 1.9MB 改用「保存」传档" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{msg('file.share', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="分享鏈接（T797）：整個項目壓縮入一條 URL（gzip+base64,零服務器零隱私）→ 複製到剪貼板。發畀人/收藏即可重開。大模型超 1.9MB 改用「儲存」傳檔" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{msg('file.share', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => useApp.getState().setHistoryOpen(true)}><ToolIcon name="undo" size={16} />{msg('file.history', lang)}</button>
                 <div className="panel-menu-divider" />
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStl}><ToolIcon name="insert" size={16} />{msg('file.importStl', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStep}><ToolIcon name="insert" size={16} />{msg('file.importStep', lang)}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="保留 B-rep 入時間軸：導入後可繼續 切割/圓角/抽殼/再導出 STEP（≤8MB；大文件用上面網格路線）" onClick={() => useApp.getState().openStepBrepDialog()}><ToolIcon name="insert" size={16} />{msg('file.importStepBrep', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="保留 B-rep 入時間軸：匯入後可繼續 切割/圓角/抽殼/再匯出 STEP（≤8MB；大檔案用上面網格路線）" onClick={() => useApp.getState().openStepBrepDialog()}><ToolIcon name="insert" size={16} />{msg('file.importStepBrep', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={onImport3MF}><ToolIcon name="insert" size={16} />{msg('file.import3mf', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={openObjDialog}><ToolIcon name="insert" size={16} />{msg('file.importObj', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={openDxfDialog}><ToolIcon name="importdxf" size={16} />{msg('file.importDxf', lang)}</button>
@@ -408,10 +408,10 @@ export default function Ribbon() {
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={exportObj}><ToolIcon name="save" size={16} />{msg('file.exportObj', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" title={msg('file.exportSketchDxf', lang)} onClick={exportSketchDxf}><ToolIcon name="importdxf" size={16} />{msg('file.exportSketchDxf', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => exportAssemblyStl()}><ToolIcon name="save" size={16} />{msg('file.exportAsmStl', lang)}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="真布爾合併單殼（manifold union）：把裝配各件熔成一個水密殼再導出——慢，但打印更穩（冇內壁/重疊殼）。要各件水密；失敗會誠實回退三角湯" onClick={() => exportAssemblyStl(true)}><ToolIcon name="save" size={16} />{msg('file.exportAsmStlUnion', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="真布爾合併單殼（manifold union）：把裝配各件熔成一個水密殼再匯出——慢，但打印更穩（冇內壁/重疊殼）。要各件水密；失敗會誠實回退三角湯" onClick={() => exportAssemblyStl(true)}><ToolIcon name="save" size={16} />{msg('file.exportAsmStlUnion', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportGLB()}><ToolIcon name="save" size={16} />{msg('file.exportGlb', lang)}</button>
                 <div className="panel-menu-divider" />
-                <button type="button" role="menuitem" className="panel-menu-item" title="导出当前 3D 视图为 PNG 截图（贴文档/邮件）" onClick={() => useApp.getState().runCommand('viewpng', '视图截图')}><ToolIcon name="save" size={16} />{msg('file.exportViewPng', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="匯出當前 3D 視圖為 PNG 截圖（貼文檔/郵件）" onClick={() => useApp.getState().runCommand('viewpng', '視圖截圖')}><ToolIcon name="save" size={16} />{msg('file.exportViewPng', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void generateDrawing()}><ToolIcon name="drawing" size={16} />{msg('file.drawing', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" title="裝配三視圖 + 氣泡編號 + BOM 表（組件網格投影：輪廓+特徵邊）" onClick={() => void useApp.getState().generateAsmDrawing()}><ToolIcon name="drawing" size={16} />{msg('file.asmDrawing', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('清空全部？當前模型（特徵 + 組件）會清除——未儲存嘅話請先「儲存」。')) void reset() }}><ToolIcon name="trash" size={16} />{msg('file.clear', lang)}</button>
@@ -423,29 +423,29 @@ export default function Ribbon() {
         <button className="tb-btn" title={msg('cmd.actUndo', lang) + ' (Ctrl+Z)'} onClick={() => void undo()}><ToolIcon name="undo" size={18} /></button>
         <button className="tb-btn" title={msg('cmd.actRedo', lang) + ' (Ctrl+Y)'} onClick={() => void redo()}><ToolIcon name="redo" size={18} /></button>
         <div className="tb-spacer" />
-        <div className="doc-tab" title="文件名（用於保存檔名／工程圖標題欄）— 點擊改名">
+        <div className="doc-tab" title="檔案名（用於儲存檔名／工程圖標題欄）— 點擊改名">
           <span className="doc-cube" />
           <input className="doc-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder={msg('file.untitled', lang)} />
         </div>
         <div className="tb-spacer" />
         {/* GM-W2 2.1 对标 Fusion：草图模式下收起非情境嘅「模板/材料/螺丝/材质/纹理/颜色」库，只保留文件·保存·撤销·文档名·搜索·帮助·语言 */}
         {!inSketch && !inForm && (<>
-        <button className="tb-btn tb-text" title="模板 / 材料 / 螺丝 库（收埋令顶栏干净似 Fusion；撳开拣）" onClick={() => setShowLib((v) => !v)}>📦 {showLib ? '▴' : '▾'}</button>
+        <button className="tb-btn tb-text" title="模板 / 材料 / 螺絲 庫（收埋令頂欄乾淨似 Fusion；撳開揀）" onClick={() => setShowLib((v) => !v)}>📦 {showLib ? '▴' : '▾'}</button>
         {showLib && (<>
         <select className="tb-mat" title="選擇起始模板" value={sampleKind} onChange={(e) => setSampleKind(e.target.value as SampleKind)}>
           {(() => {
             // Grouped template menu (was a flat 30+ list). Any kind not listed falls into 「其他」 so nothing is lost.
             const cats: [string, SampleKind[]][] = [
-              ['基础件', ['plate', 'enclosure', 'flange', 'bracket', 'smbracket', 'washer', 'indexplate', 'angleiron', 'vent']],
-              ['机械传动', ['gear', 'gearpair', 'gearring', 'rackpinion', 'planetary', 'coupling', 'keyshaft', 'parkey', 'spring', 'bearing', 'shaft']],
-              ['紧固/标准件', ['hexnut', 'bolt', 'boltflange', 'standoff', 'bushing']],
-              ['maker/电子', ['nema17', 'knob', 'heatsink', 'tslot']],
+              ['基礎件', ['plate', 'enclosure', 'flange', 'bracket', 'smbracket', 'washer', 'indexplate', 'angleiron', 'vent']],
+              ['機械傳動', ['gear', 'gearpair', 'gearring', 'rackpinion', 'planetary', 'coupling', 'keyshaft', 'parkey', 'spring', 'bearing', 'shaft']],
+              ['緊固/標準件', ['hexnut', 'bolt', 'boltflange', 'standoff', 'bushing']],
+              ['maker/電子', ['nema17', 'knob', 'heatsink', 'tslot']],
               ['曲面/管件', ['vase', 'elbow', 'bowl']],
             ]
             const seen = new Set<string>(cats.flatMap((c) => c[1]))
             const other = (Object.keys(SAMPLE_LABELS) as SampleKind[]).filter((k) => !seen.has(k))
             const groups = other.length ? [...cats, ['其他', other] as [string, SampleKind[]]] : cats
-            const OPTG_KEY: Record<string, string> = { '基础件': 'ui.sample.basic', '机械传动': 'ui.sample.mech', '紧固/标准件': 'ui.sample.fastener', 'maker/电子': 'ui.sample.maker', '曲面/管件': 'ui.sample.surf', '其他': 'ui.sample.other' }
+            const OPTG_KEY: Record<string, string> = { '基礎件': 'ui.sample.basic', '機械傳動': 'ui.sample.mech', '緊固/標準件': 'ui.sample.fastener', 'maker/電子': 'ui.sample.maker', '曲面/管件': 'ui.sample.surf', '其他': 'ui.sample.other' }
             return groups.map(([label, kinds]) => (
               <optgroup key={label} label={OPTG_KEY[label] ? msg(OPTG_KEY[label], lang) : label}>
                 {kinds.filter((k) => SAMPLE_LABELS[k]).map((k) => <option key={k} value={k}>{msg('sample.' + k, lang)}</option>)}
@@ -467,7 +467,7 @@ export default function Ribbon() {
         <select className="tb-mat" title="材質預設" defaultValue="" onChange={(e) => { if (e.target.value) setMaterialPreset(e.target.value) }}>
           <option value="">{msg('ui.materialEllipsis', lang)}</option>
           {Object.keys(MATERIALS).map((m) => {
-            const MAT_TC: Record<string, string> = { 钢: '鋼', 铝: '鋁', 黄铜: '黃銅', 喷漆: '噴漆', 不锈钢: '不鏽鋼', 尼龙PA: '尼龍PA', 树脂: '樹脂' }
+            const MAT_TC: Record<string, string> = { 鋼: '鋼', 鋁: '鋁', 黃銅: '黃銅', 噴漆: '噴漆', 不鏽鋼: '不鏽鋼', 尼龍PA: '尼龍PA', 樹脂: '樹脂' }
             return <option key={m} value={m}>{MAT_TC[m] || m}</option>
           })}
         </select>
@@ -488,8 +488,8 @@ export default function Ribbon() {
         </label>
         </>)}{/* GM-W2 2.1 草图库隐藏结束 */}
         <button type="button" className="tb-btn tb-text" data-testid="ai-copilot-entry" title={`${msg('cmd.aicopilot', lang)} (Ctrl+Shift+A)\n${msg('tip.aicopilot', lang)}`} onClick={() => useApp.getState().runCommand('aicopilot', 'AI 助手')}><ToolIcon name="ai" size={16} /> {msg('cmd.aicopilot', lang)}</button>
-        <button className="tb-btn" title="搜索命令（按 / 键）—— 打字搵任何工具，例如 齿轮 / 倒角 / 导出" onClick={() => setCmdPalette(true)}>🔍</button>
-        <button className="tb-btn" title="帮助 / 快捷键 (F1)" onClick={() => toggleHelp()} style={{ fontWeight: 700, color: '#2a7aa8' }}>?</button>
+        <button className="tb-btn" title="搜索命令（按 / 鍵）—— 打字搵任何工具，例如 齒輪 / 倒角 / 匯出" onClick={() => setCmdPalette(true)}>🔍</button>
+        <button className="tb-btn" title="幫助 / 快捷鍵 (F1)" onClick={() => toggleHelp()} style={{ fontWeight: 700, color: '#2a7aa8' }}>?</button>
         <div className="tb-user">U</div>
       </div>
 

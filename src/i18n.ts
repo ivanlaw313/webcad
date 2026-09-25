@@ -407,10 +407,29 @@ export const EN_LABEL: Record<string, string> = {
 
 
 
+
+// grok-tc2: zh-HK ribbon/label keys. Legacy SC / 導出 keys above stay.
+Object.assign(EN_LABEL, {
+  '匯入DXF': 'Import DXF',
+  '匯入SVG': 'Import SVG',
+  '匯出STL': 'Export STL',
+  '匯出裝配STL': 'Export Assembly STL',
+  '匯出裝配OBJ': 'Export Assembly OBJ',
+  '匯出裝配3MF': 'Export Assembly 3MF',
+  '匯出裝配STEP': 'Export Assembly STEP',
+  '匯出glTF/GLB': 'Export glTF/GLB',
+  '匯出OBJ': 'Export OBJ',
+  '匯出3MF': 'Export 3MF',
+  '匯出展開DXF': 'Export Flat DXF',
+  '匯出STEP': 'Export STEP',
+  '匯出STL(ASCII)': 'Export STL (ASCII)',
+  '匯出glTF': 'Export glTF',
+  '匯出DXF': 'Export DXF',
+})
 // Legacy ZH maps retained for reference / tests that peek at TC group/tab chrome.
 const ZH_GROUP: Record<string, string> = {
   CREATE: '建立', MODIFY: '修改', CONSTRAINTS: '約束', FINISH: '完成', INSPECT: '檢查',
-  CONSTRUCT: '構造', ASSEMBLE: '裝配', SELECT: '選擇', EXPORT: '導出', CONFIGURE: '配置',
+  CONSTRUCT: '構造', ASSEMBLE: '裝配', SELECT: '選擇', EXPORT: '匯出', CONFIGURE: '配置',
   INSERT: '插入', PARAMETERS: '參數', DRAWING: '工程圖', MAKE: '製造',
   SYMMETRY: '對稱', UTILITIES: '工具',
 }
@@ -3476,6 +3495,21 @@ Object.assign(STATUS_PHRASES_X, {
   '絲桿：請輸入 導程,轉速,扭矩[,效率]（如 8,300,0.5,0.9）': 'Lead screw: enter lead, speed, torque[, efficiency] (e.g. 8,300,0.5,0.9)',
   '請先「🔩受力估算」再匯出報告': 'Run 🔩 Load Estimate before exporting report',
   '已匯出工程分析報告 .txt': 'Engineering analysis report exported (.txt)',
+})
+
+// grok-tc2: zh-HK whole-string status keys. Legacy SC keys above stay.
+Object.assign(STATUS_PHRASES_X, {
+  '匯入DXF': 'Import DXF',
+  '匯入SVG': 'Import SVG',
+  '平面四連桿閉環機構：拖曲柄角→連桿/搖桿約束求解聯動（桿長剛性）。': 'Planar four-bar linkage (closed loop): drag the crank angle and the coupler and rocker solve together (rigid link lengths).',
+  '圓管/襯套：設外徑Ø/壁厚/高建空心管。': 'Tube / bushing: set outer diameter Ø, wall thickness, and height to create a hollow tube.',
+  '檔案名（用於儲存檔名／工程圖標題欄）— 點擊改名': 'File name (used for save filename / drawing title block) — click to rename',
+  '鋼': 'steel',
+  '鋁': 'aluminum',
+  '黃銅': 'Brass',
+  '不鏽鋼': 'Stainless',
+  '尼龍': 'Nylon',
+  '樹脂': 'Resin',
 })
 const _STATUS_EXACT: Record<string, string> = { ...STATUS_PHRASES, ...STATUS_PHRASES_X }
 

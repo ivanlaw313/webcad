@@ -242,6 +242,7 @@ const LAB: Panel[] = [
       { id: 'moldflow', label: '模流分析', icon: 'moldflow', quick: true, tip: '注塑模流趋势：點浇口位（可多個）→ 選塑料 → 出充填時間/壓力/冷却/變形趋势云圖 + 焊接線 + 充填動畫。可開「壓力求解器」出真實壓力值。' },
       { id: 'windtunnel', label: '風洞水洞', icon: 'wind', quick: true, tip: '風洞 / 水洞趋势模擬：把零件放入虛擬風道/水道解流場 → 風阻系數 Cd + 阻力 + 表面壓力/流場。可調風速 · 流體(空氣/水) · 吹向。屬趋势級,相對比較可信,非商用驗證級。' },
       { id: 'physicslab', label: '環境實驗室', icon: 'joint', quick: true, tip: 'Physics Lab：將 CAD 零件放入剛體實驗室，即時模擬重力、碰撞、摩擦、反彈和統一風。互動級模擬，非工程認證。' },
+      { id: 'aerolab', label: '氣動設計實驗室', icon: 'wind', quick: true, tip: '氣動／水動設計實驗室：揀範本或用一句說話講需求（螺旋槳／風扇、機翼、流線外殼）→ 自動優化效率、推力、升阻比、阻力 → 揀最佳設計插入模型、送風洞或 CFD 驗證。BEMT／VLM／經驗公式工程估算，非 CFD。' },
     ],
   },
   {

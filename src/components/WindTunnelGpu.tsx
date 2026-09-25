@@ -229,7 +229,19 @@ function packResult(solver: LbmGpu, stats: ConvStats, ctx: PackCtx): GpuWindResu
 
   // ── 表面 Cp + 表面流速（windtunnel.ts:340-355 逐条搬）──
   // 偏差形式之下 delta = rho − 1，所以 Cp = delta / (3·½u_lb²) 直接得，唔使再减 1。
-  const halfU2 = 0.5 * U_LB * U_LB
+  // wind-fix：p∞ 唔再假设 = 名义 ρ0=1 —— 出口零梯度令上游静压整体浮高，旧式 Cp 被加正偏移（迎风 Cp≈2–2.8）。
+  //   同 CPU 一样喺上游参考面（x=2）量平均总压 P0 = p + ½ρ|u|²，p∞ = P0 − q∞（Pitot-static 做法）。
+  let p0Sum = 0, rhoRefSum = 0, refCnt = 0
+  {
+    const xr = Math.min(2, DX - 2)
+    for (let z = 1; z < DZ - 1; z++) for (let y = 1; y < DY - 1; y++) {
+      const k = idxOf(xr, y, z); if (obst[k]) continue
+      const rho = 1 + m.delta[k]
+      p0Sum += m.delta[k] / 3 + 0.5 * rho * (m.ux[k] * m.ux[k] + m.uy[k] * m.uy[k] + m.uz[k] * m.uz[k]); rhoRefSum += rho; refCnt++
+    }
+  }
+  const qRef = 0.5 * (refCnt ? rhoRefSum / refCnt : 1) * U_LB * U_LB
+  const pRef = refCnt ? p0Sum / refCnt - qRef : 0
   const vm = dom.volMatrix
   const toCad = (x: number, y: number, z: number, out: number[]): void => {
     // volMatrix 係【cell-centre 约定】：cell i 嘅中心係 i + 0.5（同 WindSmoke 嘅 texcoord = p/N 同源）
@@ -255,7 +267,7 @@ function packResult(solver: LbmGpu, stats: ConvStats, ctx: PackCtx): GpuWindResu
       cnt++
     }
     if (!cnt) continue                       // 内部体素 → 唔输出（只着色表面壳）
-    const cp = (dSum / cnt) / (3 * halfU2)
+    const cp = ((dSum / cnt) / 3 - pRef) / qRef
     toCad(x, y, z, cadT)
     surfCenters.push(cadT[0], cadT[1], cadT[2]); surfCp.push(cp); surfSpd.push((sSum / cnt) * Vscale)
     if (cp < cpMin) cpMin = cp
@@ -379,7 +391,10 @@ function packResult(solver: LbmGpu, stats: ConvStats, ctx: PackCtx): GpuWindResu
   const areaMM2 = ctx.areaMM2 > 0 ? ctx.areaMM2 : dom.frontalAreaMM2
   const blockage = dom.frontalCells / (DY * DZ)
   const cdCorr = cd / (1 + EPS_MASKELL * cd * blockage)
-  const dragN = cd * 0.5 * ctx.rho * ctx.speed * ctx.speed * (areaMM2 * 1e-6)
+  // wind-fix：阻力同面板 headline（修正后）Cd 一致；原始值入 dragNRaw
+  const qA = 0.5 * ctx.rho * ctx.speed * ctx.speed * (areaMM2 * 1e-6)
+  const dragN = cdCorr * qA
+  const dragNRaw = cd * qA
 
   const warnings = ctx.warnings.slice()
   if (!stats.converged) warnings.push(`未收敛（行咗 ${solver.stepCount} substep 就撞到上限）—— Cd 係末段时均，仲喺度飘`)
@@ -397,7 +412,7 @@ function packResult(solver: LbmGpu, stats: ConvStats, ctx: PackCtx): GpuWindResu
     fluidName: ctx.fluidName, rho: ctx.rho, mu: ctx.mu,
     steps: solver.stepCount, converged: stats.converged,
     cpMin, cpMax, res: ctx.res, bumped: false, warnings,
-    cdCorr, blockage, reClamped: solver.flow.reClamped, cdOsc: stats.cdOsc,
+    cdCorr, blockage, reClamped: solver.flow.reClamped, cdOsc: stats.cdOsc, dragNRaw: Math.abs(dragNRaw),
     ...(lineOff.length > 1 ? {
       streamPts: Float32Array.from(streamPtsArr),
       streamSpeed: Float32Array.from(streamSpeedArr),
@@ -812,7 +827,7 @@ export default function WindTunnelGpu() {
         // ★ 有得比就先讲比值 ★ —— 绝对数留喺后面而且逐个标住「未校正趋势值」
         status: (line ? line + ' — ' : '')
           + `GPU 风洞（动量交换 Cd，★ 未校正趋势值：实测偏高 ${GPU_CD_GAIN_RANGE[0]}–${GPU_CD_GAIN_RANGE[1]}× ★）：`
-          + `Cd≈${r.cd.toFixed(3)}${(r.cdOsc ?? 0) > 1e-4 ? ` ± ${(r.cdOsc ?? 0).toFixed(3)}` : ''}`
+          + `Cd≈${(r.cdCorr ?? r.cd).toFixed(3)}${(r.cdOsc ?? 0) > 1e-4 ? ` ± ${(r.cdOsc ?? 0).toFixed(3)}` : ''}`
           + ` · 阻力≈${dragStr} · ${solver.stepCount} step${stats.converged ? '（已收敛）' : '（未收敛，达上限）'}`
           + ' — ⚠ 绝对值请用 CPU 引擎；GPU 路径只可以做相对比较',
       })

@@ -22220,15 +22220,18 @@ export const useApp = create<AppState>((rawSet, get) => {
         },
       })
       const f1 = (x: number) => (x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x >= 1 ? x.toFixed(2) : x.toFixed(3))
-      const dragStr = r.dragN >= 1 ? `${f1(r.dragN)} N` : `${(r.dragN * 1000).toFixed(2)} mN`
+      const nStr = (n: number) => (n >= 1 ? `${f1(n)} N` : `${(n * 1000).toFixed(2)} mN`)
+      const dragStr = nStr(r.dragN)
+      const cdHead = r.cdCorr ?? r.cd   // wind-fix：报告/状态同面板一致用修正后 Cd；阻力 dragN 亦系按修正 Cd
       const axisCN = ['X', 'Y', 'Z'][s.windAxis ?? -1] || '最长轴(自动)'
       const report = [
         'WebCAD 风洞 / 水洞趋势报告（格子玻尔兹曼 LBM D3Q19 + Smagorinsky LES — 趋势级，非商用 CFD 验证级）',
         `零件：${s.projectName} · 流体：${r.fluidName}（ρ=${r.rho} kg/m³, μ=${r.mu.toExponential(2)} Pa·s）`,
         `工况：来流 ${r.speed} m/s · 方向：${axisCN}${s.windSign < 0 ? '(−)' : '(+)'} · 体素分辨率：${r.res}${r.bumped ? `（薄件自动加密：${s.windRes}→${r.res}）` : ''}`,
         `── 结果 ──`,
-        `风阻系数 Cd ≈ ${r.cd.toFixed(3)}（无量纲；形阻由压力场积分 + 摩擦阻经验补）`,
-        `阻力 ≈ ${dragStr}（沿来流方向；F = Cd · ½ρV² · 迎风面积）`,
+        `风阻系数 Cd ≈ ${cdHead.toFixed(3)}（无量纲；Maskell 堵塞修正后；形阻由压力场积分 + 摩擦阻经验补）`,
+        r.cdCorr !== undefined ? `原始 Cd ${r.cd.toFixed(3)} · 堵塞率 ${((r.blockage ?? 0) * 100).toFixed(0)}% · 原始阻力 ${nStr(r.dragNRaw ?? r.cd * r.dragN / cdHead)}` : '',
+        `阻力 ≈ ${dragStr}（沿来流方向；F = Cd · ½ρV² · 迎风面积，Cd 用修正后值）`,
         `迎风投影面积 ≈ ${r.frontalAreaMM2 >= 100 ? r.frontalAreaMM2.toFixed(0) : r.frontalAreaMM2.toFixed(1)} mm²`,
         `雷诺数 Re ≈ ${r.re.toExponential(2)}（特征长度 = 迎风等效直径 ${(r.refLenM * 1000).toFixed(1)} mm）`,
         `表面压力系数 Cp 范围：${r.cpMin.toFixed(2)} ～ ${r.cpMax.toFixed(2)}（>0 迎风高压红 / <0 背风吸力蓝）`,
@@ -22243,7 +22246,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         windBusy: false, windMode: 0,
         windResult: r, windReport: report,
-        status: `风洞（${fluidCN}·${r.speed}m/s·${r.nSurf}面${r.bumped ? `·薄件加密${r.res}` : ''}）：Cd≈${r.cd.toFixed(3)} · 阻力≈${dragStr} · Re≈${r.re.toExponential(1)} — 趋势级 LBM，相对比较可信；红=迎风高压、蓝=背风吸力`,
+        status: `风洞（${fluidCN}·${r.speed}m/s·${r.nSurf}面${r.bumped ? `·薄件加密${r.res}` : ''}）：Cd≈${cdHead.toFixed(3)} · 阻力≈${dragStr} · Re≈${r.re.toExponential(1)} — 趋势级 LBM，相对比较可信；红=迎风高压、蓝=背风吸力`,
       })
     } catch (err) {
       set({ windBusy: false, status: `风洞异常：${err instanceof Error ? err.message : String(err)}` })

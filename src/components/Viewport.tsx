@@ -5700,7 +5700,7 @@ export default function Viewport() {
             <div style={{ margin: '2px 0 0', padding: '6px 8px', borderRadius: 4, background: '#1a1d22', fontSize: 11.5, lineHeight: 1.5 }}>
               <div style={{ fontWeight: 700, color: '#cfd6dd' }}>风阻系数 Cd ≈ <span style={{ color: '#4f9dff' }}>{cdHead.toFixed(3)}{osc > 1e-4 ? ` ± ${osc.toFixed(3)}` : ''}</span></div>
               {windResult.blockage !== undefined && (
-                <div style={{ color: '#9aa3ad' }}>原始 Cd {windResult.cd.toFixed(3)} · 堵塞率 {(windResult.blockage * 100).toFixed(0)}%（Maskell 修正）</div>
+                <div style={{ color: '#9aa3ad' }}>原始 Cd {windResult.cd.toFixed(3)} · 堵塞率 {(windResult.blockage * 100).toFixed(0)}%（Maskell 修正）{windResult.dragNRaw !== undefined ? ` · 原始阻力 ${windResult.dragNRaw >= 1 ? windResult.dragNRaw.toFixed(2) + ' N' : (windResult.dragNRaw * 1000).toFixed(2) + ' mN'}` : ''}</div>
               )}
               <div>阻力 ≈ <b style={{ color: '#ffd166' }}>{windResult.dragN >= 1 ? windResult.dragN.toFixed(2) + ' N' : (windResult.dragN * 1000).toFixed(2) + ' mN'}</b>（{windResult.fluidName} · {windResult.speed} m/s）</div>
               <div style={{ color: '#9aa3ad' }}>Re ≈ {windResult.re.toExponential(1)} · 迎风面积 {windResult.frontalAreaMM2 >= 100 ? windResult.frontalAreaMM2.toFixed(0) : windResult.frontalAreaMM2.toFixed(1)} mm²</div>

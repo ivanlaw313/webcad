@@ -266,7 +266,7 @@ export default function App() {
         if (s.decalPick) { e.preventDefault(); s.cancelDecalPick(); return }                             // P2 Render review：ESC 取消贴花放置（同其他 pick 模式一致）
         if (s.edgePtPick) { e.preventDefault(); useApp.setState({ edgePtPick: null, status: s.edgePtPick.mode === 'pathplane' ? '已取消路径平面拾取' : s.edgePtPick.mode === 'angleplane' ? '已取消角度平面拾取' : s.edgePtPick.mode === 'edgeaxis' ? '已取消沿边轴拾取' : '已取消边上构造点拾取' }); return }   // S164/S166/S169/S178：ESC 取消边上构造点/路径平面/角度平面/沿边轴拾取
         if (s.measureMode || s.measureEdgeMode || s.measureFaceMode || s.measureAngleMode || s.measureUniMode) {             // 测量（含统一测量）
-          e.preventDefault(); useApp.setState({ measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, measureUniMode: false, status: '已退出测量' }); return
+          e.preventDefault(); useApp.setState({ measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, measureUniMode: false, status: '已退出測量' }); return
         }
       }
       // Arrow-key nudge of the selected component (ground plane: ←→ = X, ↑↓ = Z; Shift = ×10 step).

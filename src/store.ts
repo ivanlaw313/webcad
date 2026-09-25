@@ -9318,7 +9318,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (s.sketchTool === 'point') {
         // 草图点（Fusion Point）：单击即落一个构造点（r=0 圆，只有可约束嘅圆心）— 钻孔定位/对称轴锚日常。
         const ptShape: SketchShape = { type: 'circle', c: pt, r: 0, point: true, construction: true }
-        return { sketchProfiles: [...s.sketchProfiles, ptShape], status: `已落草图点 (${pt[0].toFixed(1)}, ${pt[1].toFixed(1)}) — 可继续点击落点，或用 D 对佢标尺寸` }
+        return { sketchProfiles: [...s.sketchProfiles, ptShape], status: `已落草圖點 (${pt[0].toFixed(1)}, ${pt[1].toFixed(1)}) — 可繼續點擊落點，或用 D 對佢標尺寸` }
       }
       if (s.sketchTool === 'rectangle') {
         if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '再点第二个角点完成矩形' }
@@ -12781,27 +12781,27 @@ export const useApp = create<AppState>((rawSet, get) => {
   // GM-3DV3 M14：Physical Material 与 Appearance 分家 —— 物理材质只设【密度】（→ 质量/FEA/BOM），唔郁外观颜色/PBR。
   // （对标 Fusion：可以畀件「钢密度做质量计算」但外观照旧原色；反之外观库只管睇相唔改密度。）
   physMatName: '',
-  setPhysicalMaterial: (name) => { const m = MATERIALS[name]; if (m && m.density) set({ bodyDensity: m.density, physMatName: name, status: `已设物理材质「${name}」密度 ${m.density} g/cm³（质量/FEA/BOM 用；外观不变）` }) },
+  setPhysicalMaterial: (name) => { const m = MATERIALS[name]; if (m && m.density) set({ bodyDensity: m.density, physMatName: name, status: `已設物理材質「${name}」密度 ${m.density} g/cm³（質量/FEA/BOM 用；外觀不變）` }) },
   // S187：用户外观材质库 — save = 把当前 bodyColor+material 存做具名预设（localStorage 全局持久）；load = 套用；delete = 删。
   materialLibrary: matLoadLibrary(),
   matLibOpen: false,
   setMatLibOpen: (b) => set({ matLibOpen: b }),
   saveMaterialPreset: (name) => set((s) => {
     const key = name.trim()
-    if (!key) return { status: '材质库：请输入预设名' }
+    if (!key) return { status: '材質庫：請輸入預設名' }
     const lib = matAddPreset(s.materialLibrary, key, { color: s.bodyColor, metalness: s.material.metalness, roughness: s.material.roughness, opacity: s.material.opacity, tex: s.material.tex, texScale: s.material.texScale })
     matSaveLibrary(lib)
-    return { materialLibrary: lib, status: `已存外观预设「${key}」` }
+    return { materialLibrary: lib, status: `已存外觀預設「${key}」` }
   }),
   loadMaterialPreset: (name) => set((s) => {
     const p = s.materialLibrary[name]
-    if (!p) return { status: `材质库：搵唔到预设「${name}」` }
-    return { bodyColor: p.color, material: { metalness: p.metalness, roughness: p.roughness, opacity: p.opacity, tex: p.tex ?? '', texScale: p.texScale ?? s.material.texScale ?? 30 }, status: `已套用外观预设「${name}」` }
+    if (!p) return { status: `材質庫：搵唔到預設「${name}」` }
+    return { bodyColor: p.color, material: { metalness: p.metalness, roughness: p.roughness, opacity: p.opacity, tex: p.tex ?? '', texScale: p.texScale ?? s.material.texScale ?? 30 }, status: `已套用外觀預設「${name}」` }
   }),
   deleteMaterialPreset: (name) => set((s) => {
     const lib = matRemovePreset(s.materialLibrary, name)
     matSaveLibrary(lib)
-    return { materialLibrary: lib, status: `已删外观预设「${name}」` }
+    return { materialLibrary: lib, status: `已刪外觀預設「${name}」` }
   }),
   // S101[8]：活动实体程序化纹理（三平面投影，无需 UV）。tex='' 清除。随 material 入 snapshot 自动持久化。
   setBodyTexture: (key, scale) => set((s) => ({ material: { ...s.material, tex: key, texScale: scale ?? s.material.texScale ?? 30 } })),
@@ -17957,7 +17957,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   measureMode: false,
   measurePts: [],
   measureDist: null,
-  toggleMeasure: () => set((s) => ({ measureMode: !s.measureMode, measurePts: [], measureDist: null, measureEdgeMode: false, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureAngleMode: false, measureAngleInfo: null, measureUniMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureMode ? '测量：点击实体上两点量距离' : '已退出测量' })),
+  toggleMeasure: () => set((s) => ({ measureMode: !s.measureMode, measurePts: [], measureDist: null, measureEdgeMode: false, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureAngleMode: false, measureAngleInfo: null, measureUniMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureMode ? '測量：點擊實體上兩點量距離' : '已退出測量' })),
   // ── GM-X1 #1/#2：统一 Measure 命令 —— 拾取集 + 上下文读数引擎 ──
   measureUniMode: false,
   measureUniPicks: [],
@@ -18036,7 +18036,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const before = get().params.length
     const nm = (name || '').trim() || `m${before + 1}`
     get().addParam(nm, +lm.value.toFixed(4))   // addParam 系同步 set（含命名/重名/保留名守卫，自己出 status）
-    if (get().params.length > before) set({ status: `已把量测「${lm.label}」= ${+lm.value.toFixed(4)} 存为参数 ${nm} — 可在表达式引用（如 半径=${nm}/2）或时间轴 ƒx 绑尺寸` })
+    if (get().params.length > before) set({ status: `已把量測「${lm.label}」= ${+lm.value.toFixed(4)} 存為參數 ${nm} — 可在表達式引用（如 半徑=${nm}/2）或時間軸 ƒx 綁尺寸` })
     // 否则 addParam 已出「已存在／无效／保留名」status，唔覆盖
   },
   // S103[4]：选择属性检查器 — 复用 worker measureFaceAt/measureEdgeAt，单击即出几何属性（无需先入命令）
@@ -18275,7 +18275,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   measureEdgeMode: false,
   measureEdgeInfo: null,
-  toggleMeasureEdge: () => set((s) => ({ measureEdgeMode: !s.measureEdgeMode, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureMode: false, measureAngleMode: false, measureAngleInfo: null, measureUniMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureEdgeMode ? '量边：点击实体某条棱 → 显示其长度；圆孔棱显示直径Ø/半径（导入网格件亦可 · 特征棱链近似）' : '已退出量边' })),
+  toggleMeasureEdge: () => set((s) => ({ measureEdgeMode: !s.measureEdgeMode, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureMode: false, measureAngleMode: false, measureAngleInfo: null, measureUniMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureEdgeMode ? '量邊：點擊實體某條棱 → 顯示其長度；圓孔棱顯示直徑Ø/半徑（導入網格件亦可 · 特徵棱鏈近似）' : '已退出量邊' })),
   // Click an edge → report its length, and for a closed circular edge its diameter/radius (a hole's bore Ø).
   measureEdgeAt: async (p) => {
     if (!hasSolid(get().features)) { set({ status: '量边需要先有实体' }); return }

@@ -51,7 +51,7 @@ export default function MaterialSwatchPicker() {
         <div role="menu" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 30000, background: '#fff', border: '1px solid #cfd6dd', borderRadius: 8, boxShadow: '0 8px 28px rgba(0,0,0,.22)', padding: 8, width: 296, maxHeight: '72vh', overflowY: 'auto' }}>
           <div style={{ display: 'flex', gap: 0, marginBottom: 8, borderBottom: '1px solid #e3e8ee' }}>
             <button style={tabBtn('appearance')} onClick={() => setTab('appearance')}>🎨 外觀</button>
-            <button style={tabBtn('physical')} onClick={() => setTab('physical')}>⚖ 物理材质</button>
+            <button style={tabBtn('physical')} onClick={() => setTab('physical')}>⚖ 物理材質</button>
           </div>
           {tab === 'appearance' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
@@ -76,7 +76,7 @@ export default function MaterialSwatchPicker() {
               <div style={{ fontSize: 10, color: '#8a95a0', marginBottom: 6 }}>只設【密度】→ 質量 / FEA / BOM（外觀顏色不變）。當前：{physMatName || '（未指定，用默認密度）'}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {physKeys.map((k) => (
-                  <button key={k} title={`物理材质：${k}（密度 ${MATERIALS[k].density} g/cm³）`} onClick={() => { setPhysicalMaterial(k); setOpen(false) }}
+                  <button key={k} title={`物理材質：${k}（密度 ${MATERIALS[k].density} g/cm³）`} onClick={() => { setPhysicalMaterial(k); setOpen(false) }}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, border: '1px solid ' + (physMatName === k ? '#2b6cf0' : 'transparent'), borderRadius: 6, padding: '3px 8px', background: physMatName === k ? '#eef3fc' : 'none', cursor: 'pointer', fontSize: 12 }}
                     onMouseEnter={(e) => { if (physMatName !== k) e.currentTarget.style.background = '#f2f5f9' }}
                     onMouseLeave={(e) => { if (physMatName !== k) e.currentTarget.style.background = 'none' }}>

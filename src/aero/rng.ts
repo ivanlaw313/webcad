@@ -22,7 +22,7 @@ export function makeRng(seed: number): Rng {
   }
   const normal = (): number => {
     if (spare !== null) { const s = spare; spare = null; return s }
-    let u = 0, v = 0, s = 0
+    let u: number, v: number, s: number
     do { u = next() * 2 - 1; v = next() * 2 - 1; s = u * u + v * v } while (s >= 1 || s === 0)
     const m = Math.sqrt(-2 * Math.log(s) / s)
     spare = v * m

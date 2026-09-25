@@ -52,10 +52,10 @@ export function runAeroOptimization(spec: DesignSpec, opts: AeroRunOptions = {},
   }
   const x0 = encode(spec, Object.fromEntries(spec.vars.map((v) => [v.key, v.value ?? (v.min + v.max) / 2])))
   const baseInd = { u: x0, ...prob.evaluate(x0) }
-  let archive: Individual[] = []
-  let paretoInds: Individual[] = []
+  let archive: Individual[]
+  let paretoInds: Individual[]
   let algorithm: AeroRunResult['algorithm']
-  let evals = 0
+  let evals: number
   if (nObj === 1) {
     algorithm = 'CMA-ES'
     const lambda = Math.max(8, 4 + Math.floor(3 * Math.log(spec.vars.length)) * 2)

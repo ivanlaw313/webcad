@@ -31,7 +31,7 @@ Rule of thumb: the estimate picks the shortlist, the tunnel compares shapes, Ope
 
 Or press **/** , type “aero”, and pick **Aero Design Lab**.
 
-The panel is four steps: ① Design brief, ② Design space, ③ Optimise, ④ Results.
+The panel is four steps: ① Design brief, ② Design space, ③ Optimise, ④ Results. At the bottom there is also **⑤ Auto-design mode**. See section g. You do not have to finish the four steps first.
 
 ---
 
@@ -170,6 +170,109 @@ This path does not go through the design lab. Any solid you sketched, or a lab b
 6. The LBM Cd is printed beside the button. When the job finishes, the OpenFOAM Cd is shown against that LBM number. They will not match. That is expected; see Common questions.
 
 Keep the OpenFOAM number. Do not compare a GPU-engine Cd with OpenFOAM as if both were absolute.
+
+---
+
+## g) Auto-design mode (it designs, tests, and looks for the best)
+
+At the bottom of the lab the title is **⑤ Auto-design mode (closed loop)**. You do not click **▶ Run optimisation** and then send CFD by hand, round after round. One click on **▶ Start auto-design** repeats: search with the estimate → send a few different shapes to local OpenFOAM → teach a correction model from the CFD → search again with the corrected estimate.
+
+Set the design space first (a template or one sentence, sections a–c). If you do not, the lab opens on the propeller / fan template, and a propeller does **not** send CFD unless you opt in (below).
+
+### Which settings to pick
+
+You cannot edit these while a loop is running. The defaults are a reasonable first try:
+
+| Field | Default | What it does |
+| --- | --- | --- |
+| **Rounds** | 3 | How many times to optimise, then CFD, then learn. About 1 to 20. Leave 3 the first time. |
+| **CFD per round** | 2 | How many **different** designs this round sends to OpenFOAM. Use 1 if you want it faster. About 1 to 8. |
+| **CFD job budget** | 6 | Total CFD jobs for the whole loop. When it is used up the loop stops, even if rounds remain. 3 rounds × 2 jobs = 6, so the default spends the budget exactly. |
+| **Time limit (min)** | 120 | Stop when the clock runs out. One coarse job is minutes, up to the teens; six of them can be an hour or two. |
+| **Stop if improvement < ε** | 0.01 | Stop when the best so far is not at least 1% (0.01) better than the previous round. Smaller searches harder; larger stops sooner. |
+
+On the same row:
+
+- Leave **Mesh** on **coarse** the first time. Medium and fine take much longer.
+- Wings and shells have **Solver preset**. Leave **Auto (Re<3e5 → laminar transient)**. Propellers do not show this list.
+- Leave **Evaluations** at **1200**. That is how many estimates each auto-design round runs. The Evaluations control in step ③ applies only when you press **▶ Run optimisation** yourself. It is not copied here.
+
+Then click **▶ Start auto-design**. The line beside it reads round 0/3, CFD jobs 0/6, and elapsed time, plus the step it is on: checking the CFD service, optimising, submitting CFD jobs, waiting for CFD, updating the correction model.
+
+**■ Stop auto-design** keeps finished results and cancels queued or running CFD jobs. **Clear** is available only after the loop has stopped.
+
+The stop line names the reason. Usual ones: **all rounds done**, **CFD job budget used up**, **time limit reached**, **improvement below ε — converged**, **stopped**. If every CFD job in a round fails, it stops and keeps the best estimate.
+
+### What each round does
+
+1. **Optimise.** Search the design space with the engineering estimate. From round 2 on, that estimate is **corrected**. It is no longer the raw formula.
+2. **Pick the top N.** N is **CFD per round**. It does not send N near-copies. It spreads the picks, and it skips shapes already verified by CFD.
+3. **CFD.** Local OpenFOAM. The service runs one job at a time; the rest queue. Each job is usually minutes, sometimes into the teens.
+4. **The correction model learns.** After CFD finishes it learns from CFD ÷ estimate (the panel intro calls this a Gaussian process). In plain words: for a shape like this, what multiplier makes the estimate land near the CFD number.
+5. **Optimise again.** Back to step 1, until the rounds, the CFD budget, or the time limit is used up, or the improvement is below ε.
+
+### How to read the chart and the round table
+
+The chart title is **Best per round (solid = CFD-verified, dashed = corrected estimate)**.
+
+- **Dashed line, grey dots**: that round’s best corrected estimate.
+- **Green dots**: that round’s best CFD.
+- **Solid green line**: the best CFD-verified result up to that round. It can stay flat. It is not always equal to this round’s green dot, because an earlier round may still be better.
+- Estimator-only for the whole loop: no green line, only the dashed one.
+
+Each table row is one round:
+
+- **Round**. A **⚠** after the number means this round did not use CFD.
+- **Best estimate (corrected)**.
+- **Best CFD**. Blank means no CFD job finished this round.
+- **Correction**. The learned multiplier, for example `Cd×1.800 (n=2)`. n is how many CFD points were used. “—” means no CFD yet.
+- **Prediction error**. How far the model’s multiplier was from what this round actually measured, in percent. Round 1 has no earlier data, so this is how far the raw estimate was from CFD.
+- **CFD jobs**. `#id:✓` done, `✗` failed, a percent while it runs, `…` not sent yet.
+
+While a round is running, the lines under the table show each job id, stage, and progress. Open **Log** for a timed line of what happened.
+
+### How to use the “best verified design” card
+
+When there is a result, a card appears underneath.
+
+- **Green border, 🏆 Best verified design**: at least one design has finished CFD and still meets the constraints. The **CFD values** on this card are the numbers to keep.
+- **Amber border, ⚠ Best design (NOT CFD-verified — estimate only)**: there is no usable CFD. The amber line says again that every number below is an engineering estimate, not CFD-verified. Do not put them in a report.
+
+Three columns: **Estimator** (uncorrected), **Corrected estimate**, **CFD values**. The main objective (L/D, drag, efficiency) is in bold. Under that, the design’s parameters (span, chord, and so on).
+
+Three buttons:
+
+- **＋ Insert into model**. After it is on the timeline, edit and export as in section d.
+- **⬇ Download STL**.
+- **⬇ Download STEP**.
+
+If the CFD line says **⚠ not converged**, discount that CFD number.
+
+### When the CFD service is off, or the browser blocks it
+
+The loop checks the service first.
+
+- Online: a green banner, **CFD closed loop: every round is verified by OpenFOAM and the model corrected**.
+- Not online: an amber banner, **Estimator only (no CFD verification)**, plus a reason.
+  - **local CFD service unreachable**. Double-click `C:\ClaudeCode\aero-cfd-service\start-service.bat` and leave the console open. The same instruction is repeated under the banner. At the start of the next round, if the service is back, it switches to CFD mode. The log says the CFD service came online and it is switching to CFD mode.
+  - **browser blocks local network access**. Same fix as in Common questions: lock or settings icon to the left of the address bar → Site settings → **Local network access** → **Allow** → reload. The steps are repeated under the banner.
+
+In estimator-only mode the best card is always the amber, unverified one. The rest of the lab (run optimisation yourself, insert, wind tunnel) still works.
+
+### A propeller does not use CFD unless you ask
+
+Propeller and fan rotor CFD is **not validated**. Auto-design does **not** send it unless you opt in. The amber line is: **rotor CFD is unvalidated and off by default — tick below to use it anyway**. The mode is estimator-only for that reason.
+
+If you still want a rough which-one-makes-more-thrust look, tick **⚠ Use rotor CFD anyway (unvalidated)**. With the service online it becomes a CFD closed loop, but the banner, the table, and the card all say **NOT validated**. Qualitative only. Not real thrust, power, or efficiency.
+
+### Close the tab and reopen: it picks up where it left off
+
+The loop is stored in this browser. Close the tab or reload:
+
+- **Still running**: when you open WebCAD again, the Aero Design Lab **opens by itself** and continues from the step it stopped on (it keeps watching queued and running CFD jobs). You do not press Start again.
+- **Already finished**: the result is still there. Open the lab yourself and the best card is waiting. You do not recompute it.
+
+If you also closed the black console, CFD itself stops. After you start `start-service.bat` again, finished results are still there. A job that was cut off mid-run may have to be done again.
 
 ---
 

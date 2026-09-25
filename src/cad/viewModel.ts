@@ -18,8 +18,8 @@ export type EdgeMode = 'off' | 'visible' | 'hidden'
 export const VISUAL_STYLES: VisualStyle[] = ['shaded', 'shadedHidden', 'shadedVisible', 'wire', 'wireHidden', 'wireVisible']
 
 export const VISUAL_STYLE_LABELS: Record<VisualStyle, string> = {
-  shaded: '着色', shadedHidden: '着色 + 隐藏边', shadedVisible: '着色 + 可见边',
-  wire: '线框', wireHidden: '线框 + 隐藏边', wireVisible: '线框 + 可见边',
+  shaded: '著色', shadedHidden: '著色 + 隱藏邊', shadedVisible: '著色 + 可見邊',
+  wire: '線框', wireHidden: '線框 + 隱藏邊', wireVisible: '線框 + 可見邊',
 }
 
 // 键盘 Ctrl+4..9 → 样式（对标 Fusion 肌肉记忆）。key = 事件 e.key（'4'..'9'）。

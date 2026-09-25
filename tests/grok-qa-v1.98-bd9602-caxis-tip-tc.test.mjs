@@ -1,7 +1,7 @@
 /**
  * v1.99: BD-9602 objectVis status TC + locale-v197 construction-axis tip must
  * contain token 構造幾何 (title/mode stay 構造軸／軸). Viewport mate/screenshot residuals TC.
- * APP 1.99 + SW webcad-v1.99.
+ * APP 2.00 + SW webcad-v2.00.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -12,9 +12,9 @@ const sw = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.99; SW webcad-v1.99', () => {
-  assert.match(version, /APP_VERSION = '1\.99'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.99/)
+test('APP_VERSION 2.00; SW webcad-v2.00', () => {
+  assert.match(version, /APP_VERSION = '2\.00'/)
+  assert.match(sw, /const CACHE = 'webcad-v2\.00/)
 })
 
 test('BD-9602 objectVis status 全部構造軸：顯示／隱藏 TC', () => {

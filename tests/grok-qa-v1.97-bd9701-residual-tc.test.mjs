@@ -1,7 +1,7 @@
 /**
  * v1.97 BD-9701: residual SC→HK TC (MESH pin, Ribbon titles/confirms,
  * Viewport prefs / press-pull / shell / sketch-text).
- * APP 1.99 + SW webcad-v1.99.
+ * APP 2.00 + SW webcad-v2.00.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -14,9 +14,9 @@ const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.
 const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.99; SW webcad-v1.99', () => {
-  assert.match(version, /APP_VERSION = '1\.99'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.99/)
+test('APP_VERSION 2.00; SW webcad-v2.00', () => {
+  assert.match(version, /APP_VERSION = '2\.00'/)
+  assert.match(sw, /const CACHE = 'webcad-v2\.00/)
 })
 
 test('BD-9701 MESH pin 插入STL網格 (no SC 网格)', () => {

@@ -1,6 +1,6 @@
 /**
  * v1.99 BD-9901: project-link dialog + viewport/browser high-exposure SC→港繁.
- * APP 1.99 + SW webcad-v1.99.
+ * APP 2.00 + SW webcad-v2.00.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -15,9 +15,9 @@ const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.ur
 const bt = readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.99; SW webcad-v1.99', () => {
-  assert.match(version, /APP_VERSION = '1\.99'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.99/)
+test('APP_VERSION 2.00; SW webcad-v2.00', () => {
+  assert.match(version, /APP_VERSION = '2\.00'/)
+  assert.match(sw, /const CACHE = 'webcad-v2\.00/)
 })
 
 test('ProjectionLinkStatus TC strings; no key SC forms', () => {

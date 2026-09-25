@@ -14,7 +14,7 @@ test('B-rep visual styles retain shaded face modes', () => {
 test('B-rep display has a direct shaded-visible recovery control', () => {
   assert.match(viewport, /onClick=\{\(\) => setVisualStyle\('shadedVisible'\)\}/)
   assert.match(viewport, /B-rep：實體面加可見邊/)
-  assert.match(viewport, /B-rep 视觉样式/)
+  assert.match(viewport, /B-rep 視覺樣式/)
 })
 
 test('Sketch keeps a lower display-mode entry even when its toolbar is moved or collapsed', () => {

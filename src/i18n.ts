@@ -470,10 +470,9 @@ export function tTab(tab: string, lang: LangInput): string {
   return tab
 }
 
-// T807（测试报告观察 G）：状态栏讯息 zh→en 渲染时翻译。753 条状态串多为含 ${} 插值嘅模板，冇 message-key
-// 间接层，逐句改 753 处风险大。改用【渲染时短语替换】：按短语长度由长到短逐个 literal 替换（长词先替，
-// 避免被子串截断），数字/单位/未收录词原样保留。zh 模式完全唔改（零风险）；en 模式输出可读英文，未收录片段
-// fallback 中文（唔会崩、唔会乱）。覆盖 app 状态词汇高频项；新词只需喺呢度加一行。
+// T807：状态栏讯息 zh→en。v2.03 起只做整句／整詞完全匹配（key 必須等於成條字串）。
+// 舊版由左至右最長子串替換會把單字嵌進中文詞（軸→Axis、點→Points、圓→Circle、平面→plane）。
+// 冇完整英文就原樣返回中文。參數化 toast（長方體／圓柱等）另走 tStatus 入面嘅整句 regex。
 const STATUS_PHRASES: Record<string, string> = {
   '長': 'Length',
   '长': 'Length',
@@ -3021,11 +3020,18 @@ Object.assign(STATUS_PHRASES_X, {
   "现有尺寸或约束使端点无法到达延伸目标，草图未更改；请先调整相关尺寸或约束": "Existing dims/constraints prevent endpoint reaching extend target — sketch unchanged; adjust related dims/constraints first",
 })
 
-const _STATUS_SORTED: [string, string][] = Object.entries({ ...STATUS_PHRASES, ...STATUS_PHRASES_X }).sort((a, b) => b[0].length - a[0].length)
+Object.assign(STATUS_PHRASES_X, {
+  // v2.03 whole-string EN (no mid-word glossary splice). Legacy SC keys kept where the source still emits them.
+  '參數化時間軸 — 建模後特徵出現在這裏，點擊任意節點可改參數並自動重建': 'Parametric timeline — after modeling, features appear here. Click any node to edit parameters and rebuild automatically.',
+  '圓管/衬套：設外徑Ø/壁厚/高建空心管。': 'Tube / bushing: set outer diameter Ø, wall thickness, and height to create a hollow tube.',
+  '圓管/衬套：設外徑Ø/壁厚/高 → 確定。管/衬套/垫環/隔套常用（恒建新體，外圓拉伸+內圓切除，時間軸可改）。': 'Tube / bushing: set outer dia Ø / wall thickness / height → OK. Common for pipes / bushings / washers / spacers (always creates a new body: outer-circle extrude + inner-circle cut, editable in the timeline).',
+  '平面四連杆閉環機構：拖曲柄角→連杆/摇杆約束求解聯動（杆長剛性）。': 'Planar four-bar linkage (closed loop): drag the crank angle and the coupler and rocker solve together (rigid link lengths).',
+})
 
-// 渲染时翻译状态串：zh 原样；en 左到右最长匹配替换（未收录片段保留中文，唔会崩）。
-// v1.37: 必须 LTR longest-match —— 旧版全局 split/join 会在长词 identity 之后仍用短词二次切开
-// （已抽壳 壁厚 → 仍被 抽壳/壁厚/已 拆成 "Done: shell Wall …"）。
+const _STATUS_EXACT: Record<string, string> = { ...STATUS_PHRASES, ...STATUS_PHRASES_X }
+
+// zh-HK 原樣；zh-CN 整句轉簡體。en/ja 只喺整句／整詞同表完全一致時替換。
+// 子串匹配已移除：否則「時間軸」會變「時間Axis」、「點擊」會變「Points擊」。
 export function tStatus(s: string, lang: LangInput): string {
   if (!s) return s
   const L = normalizeLang(lang)
@@ -3141,30 +3147,10 @@ export function tStatus(s: string, lang: LangInput): string {
       return msg('status.coilTaperCreated', L).replace('{0}', coilTM[3]).replace('{1}', coilTM[4])
     }
   }
-  if (L !== 'en') {
-    // ja (and future): reuse EN phrase table when possible, else keep source
-    // Fall through to EN replacement for coverage; leftover CJK stays (honest).
-  }
   if (L !== 'en' && L !== 'ja') return s
-  // v1.80: JA — swap 尺寸* to catalog BEFORE EN table turns 尺寸→Dimension
-  if (L === 'ja') {
-    if (s.includes('尺寸工具')) s = s.split('尺寸工具').join(msg('sk.toolTitle.dimension', L))
-    if (s.includes('尺寸')) s = s.split('尺寸').join(msg('sk.dimension', L))
-  }
-  let out = ''
-  let i = 0
-  while (i < s.length) {
-    let hit: [string, string] | null = null
-    for (const pair of _STATUS_SORTED) {
-      if (s.startsWith(pair[0], i)) { hit = pair; break }
-    }
-    if (hit) {
-      out += hit[1]
-      i += hit[0].length
-    } else {
-      out += s[i]
-      i += 1
-    }
-  }
-  return out
+  // Exact key only. Single-character entries (軸 / 點 / 圓 / 面) still translate when the
+  // whole string is that word; they must not match inside a longer Chinese sentence.
+  const exact = _STATUS_EXACT[s]
+  if (exact !== undefined) return exact
+  return s
 }

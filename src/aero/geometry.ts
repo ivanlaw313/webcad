@@ -29,8 +29,9 @@ export function wingSections(spec: DesignSpec, x: Record<string, number>, nSpan 
   const out: P3[][] = []
   for (let k = -nSpan; k <= nSpan; k++) {
     const s = half * Math.sin((Math.PI / 2) * k / nSpan)
-    const c = Math.max(chordAt(g, s), 0.12 * g.rootChord)
-    const xle = leAt(g, s) + (g.planform === 'elliptic' ? (chordAt(g, s) - c) / 4 : 0)
+    const c0 = Math.max(chordAt(g, s), 0.12 * g.rootChord)
+    const c = Math.max(c0 * bladeTipChordScale(Math.abs(s) / half), 0.12 * g.rootChord)   // rounded (elliptic) wing tip
+    const xle = leAt(g, s) + (g.planform === 'elliptic' ? (chordAt(g, s) - c0) / 4 : 0) + 0.6 * (c0 - c)   // tip rounds off mostly from the LE
     const tw = -g.twistTip * Math.abs(s) / half * Math.PI / 180   // nose-down for washout (twistTip < 0 → rotate TE up)
     const ct = Math.cos(tw), st = Math.sin(tw)
     const z0 = Math.abs(s) * dih

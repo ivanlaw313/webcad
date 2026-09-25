@@ -30,7 +30,7 @@ function sectionWire(r: ReplicadLike, pts: P3[]): any {
 
 export function buildAeroShape(r: ReplicadLike, spec: DesignSpec, x: Record<string, number>): any {
   if (spec.kind === 'wing') {
-    const secs = wingSections(spec, x, 6, 30)
+    const secs = wingSections(spec, x, 10, 30)
     return r.loft(secs.map((s) => sectionWire(r, s)), { ruled: false })
   }
   if (spec.kind === 'prop') {

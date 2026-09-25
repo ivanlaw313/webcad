@@ -3661,6 +3661,37 @@ Object.assign(STATUS_PHRASES_X, {
   '範圍': 'range',
   '⚠ 當前角度超出可達範圍（曲柄轉不到這）': '⚠ Angle out of reach (crank can\'t reach here)',
 })
+
+// grok-tc2: zh-HK whole-string status keys. Legacy SC keys above stay.
+Object.assign(STATUS_PHRASES_X, {
+  '曲面裁剪：搵唔到裁刀（需另一張曲面，或一個活動實體）': 'Surface trim: no cutting tool found (need another surface, or an active body)',
+  '拉伸：圖元太多（簡化後仍超預算）— 區域點選停用，將拉伸全部輪廓': 'Extrude: too many entities (over budget after simplification) — region picking disabled, all profiles will extrude',
+  '拉伸：設 操作 / 範圍 / 距離 / 拔模角 → 确定（或取消）': 'Extrude: set operation / extent / distance / draft angle → OK (or Cancel)',
+  '揀面配合：先點【基準件】一個面（平面 或 圓柱孔/軸），再點【要郁件】對應面 → 平面對平面貼平 / 圓柱對圓柱同軸': 'Face Mate: click a face of the 【base part】 first (planar, or cylindrical hole / shaft), then the matching face of the 【part to move】 → plane-to-plane flush / cylinder-to-cylinder coaxial',
+  '此桿長機構唔夠閉合，掃唔出連續軌跡': 'Linkage doesn\'t close at this bar length — no continuous path',
+  '六桿某些角度未收斂，掃唔出連續軌跡': 'Six-bar doesn\'t converge at some angles — no continuous path',
+  '運動軌跡：先載入機構（四連桿 / 滑塊曲柄 / 六桿）': 'Motion trace: load a mechanism first (four-bar / slider-crank / six-bar)',
+  '已清除運動軌跡': 'Motion trace cleared',
+  '🧱 接觸集已開：拖關節滑桿撞到第三方組件會自動擋停（卡扣/棘輪/限位手感）— 蒙特卡洛 >2mm³ 判觸': '🧱 Contact set on: dragging a joint slider into a third-party component auto-stops (snap / ratchet / limit feel) — Monte Carlo >2mm³ counts as contact',
+  '運動連接會成環（機構會發散 / 驅動值亂跳）— 已拒絕': 'Motion link would form a loop (mechanism diverges / drive value jumps) — rejected',
+  '儲存視圖書簽失敗：相機位置無效（NaN/Infinity）': 'Save view bookmark failed: invalid camera position (NaN/Infinity)',
+  '就緒': 'Ready',
+  '截面取輪廓：搵唔到幾何': 'Section profile: no geometry found',
+  '轉咗 360° 都冇接觸 — 路徑上冇嘢擋': 'Full 360° with no contact — nothing blocking the path',
+  '冇搵到邊（請點喺某條邊附近再試）': 'No edge found (click near an edge and retry)',
+  '📷 參考圖已貼上草圖面 — 用「寬度」調大小（或「📐標定」兩點定比例）、「透明」調深淺，然後照住描輪廓': '📷 Reference image attached to the sketch plane — use 「Width」 to resize (or 「📐 Calibrate」 two points to set scale), 「Opacity」 to adjust, then trace the outline',
+  '要點【圓柱面】先有軸 — 平面冇軸向（搵孔壁/圓軸/圓凸台側面點）': 'Pick a [cylindrical face] to get an axis — planes have none (try a hole wall/shaft/round boss side)',
+  '量邊：點擊實體某條棱 → 顯示其長度；圓孔棱顯示直徑Ø/半徑（匯入網格件亦可 · 特徵棱鏈近似）': 'Measure edge: click an edge → shows its length; circular edges show diameter Ø / radius (imported meshes OK · feature edge-chain approx.)',
+  '設計表匯出：冇驅動參數（先喺 ƒx 加參數並綁定到尺寸）': 'Design table export: no driving parameters — add parameters in ƒx and bind to dimensions',
+  '設計表匯出需要一個參數化實體（先建模並綁定參數）': 'Design table export needs a parametric body — model and bind parameters first',
+  '冇用戶參數可匯出（先喺 ƒx 參數表加參數）': 'No user parameters to export (add some in the ƒx table first)',
+  '要點【圓柱面】先有銷軸 — 平面冇軸/半徑（搵孔內壁/圓軸/圓凸台側面點）': 'Pick a [cylindrical face] to get a pin axis — planes have no axis/radius (try a hole wall/shaft/round boss side)',
+  '要點【圓柱面】先有孔 — 平面冇軸/半徑（搵孔內壁/圓軸/圓凸台側面點）': 'Pick a [cylindrical face] to get a hole — planes have no axis/radius (try a hole wall/shaft/round boss side)',
+  '模流分析：需要先有活動實體（塑膠件）或選中一個匯入網格組件（STL/OBJ/3MF）': 'Mold flow: requires an active body (plastic part) or a selected imported mesh component (STL/OBJ/3MF)',
+  '模流分析 🎯（匯入網格件）：點零件上嘅【澆口位】（可多個）→ 選材料 → 運行（直接喺 STL 上跑，唔使轉 B-rep）': 'Mold Flow 🎯 (imported mesh part): click the 【gate locations】 on the part (multiple allowed) → choose material → Run (runs directly on the STL, no B-rep conversion needed)',
+  '模流分析 🎯：點零件上嘅【澆口位】（膠水入料點，可點多個 — 多澆口會預測焊接線）→ 選材料 → 運行': 'Mold Flow 🎯: click the 【gate location】 on the part (melt inlet point, pick several — multiple gates predict weld lines) → choose material → Run',
+  '彈簧速查：請輸入 線徑,中徑,圈數[,力]（如 2,16,8,10）': 'Spring quick-check: enter wire dia, mean dia, coils[, force] (e.g. 2,16,8,10)',
+})
 const _STATUS_EXACT: Record<string, string> = { ...STATUS_PHRASES, ...STATUS_PHRASES_X }
 
 // zh-HK 原樣；zh-CN 整句轉簡體。en/ja 只喺整句／整詞同表完全一致時替換。

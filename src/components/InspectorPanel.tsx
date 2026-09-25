@@ -5,6 +5,7 @@ import { useApp } from '../store'   // 选中体属性卡（Fusion Inspector 风
 import { useState } from 'react'
 import { useDraggable } from './useDraggable'
 import { msg } from '../i18n'
+import { isMinRadiusKind } from '../cad/curvatureAnalysis'
 
 export default function InspectorPanel() {
   const info = useApp((s) => s.inspectInfo)
@@ -15,7 +16,7 @@ export default function InspectorPanel() {
   if (!on || !info) return null
 
   // 边报告曲线中点（非质心），面报告质心 —— 标签据 isEdge 区分；S180：最小曲率半径报【最弯处】顶点位（kind 感知）。
-  const centerLabel = info.kind === '最小曲率半径' ? msg('insp.bendSpot', lang) : info.isEdge ? msg('insp.midpoint', lang) : msg('insp.centroid', lang)
+  const centerLabel = isMinRadiusKind(info.kind) ? msg('insp.bendSpot', lang) : info.isEdge ? msg('insp.midpoint', lang) : msg('insp.centroid', lang)
 
   if (collapsed) return (
     <button

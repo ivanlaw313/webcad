@@ -1,7 +1,7 @@
 import { useMemo, useEffect } from 'react'
 import { BufferGeometry, Float32BufferAttribute } from 'three'
 import { useApp } from '../store'
-import { meshCurvature, principalCurvaturesHK } from '../cad/curvatureAnalysis'
+import { meshCurvature, principalCurvaturesHK, isMinRadiusKind } from '../cad/curvatureAnalysis'
 import { principalCurvature } from '../cad/curvatureComb'   // S190：曲率梳主方向
 
 // S118b 真曲率分析 overlay（Fusion Inspect › Curvature）：升级原 inspectShade:'curv' 嘅【屏幕空间
@@ -132,7 +132,7 @@ export function CurvatureCombOverlay() {
 export function MinRadiusMarker() {
   const info = useApp((s) => s.inspectInfo)
   const on = useApp((s) => s.inspectMode)
-  if (!on || !info || info.kind !== '最小曲率半径' || !info.center) return null
+  if (!on || !info || !isMinRadiusKind(info.kind) || !info.center) return null
   const c = info.center
   return (
     <mesh position={[c[0], c[2], -c[1]]} renderOrder={999} raycast={() => null}>

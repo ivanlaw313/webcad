@@ -18137,12 +18137,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (!hasSolid(s.features) || !s.bodyMesh?.vertices?.length || !s.bodyMesh.triangles?.length) { set({ status: '最小曲率半徑：需要活動實體' }); return }
     try {
-      const { minRadiusOfCurvature } = await import('./cad/curvatureAnalysis')
+      const { minRadiusOfCurvature, MIN_RADIUS_KIND } = await import('./cad/curvatureAnalysis')
       const r = minRadiusOfCurvature(s.bodyMesh.vertices as number[], s.bodyMesh.triangles as number[])
       if (!r) { set({ status: '最小曲率半徑：網格全平 / 太粗，無有效內部曲率 — 無最小半徑' }); return }
       const u = get().unit
       const text = `最小曲率半径 R${fmtLen(r.rMin, u)}（最弯处 κ ${r.kappaMax.toExponential(2)}/mm · 趋势/近似，网格细化收敛 · 🔴标位）`
-      set({ inspectMode: true, inspectInfo: { kind: '最小曲率半徑', radius: r.rMin, isEdge: false, center: r.at, text }, status: text })   // S180 audit：显式按钮强制开 inspect 面板（否则关咗就睇唔到结果）
+      set({ inspectMode: true, inspectInfo: { kind: MIN_RADIUS_KIND, radius: r.rMin, isEdge: false, center: r.at, text }, status: text })   // S180 audit：显式按钮强制开 inspect 面板（否则关咗就睇唔到结果）
     } catch (e) { set({ status: '最小曲率半徑失敗：' + ((e as Error)?.message || e) }) }
   },
   runDraftAnalysis: (pull) => set((s) => {

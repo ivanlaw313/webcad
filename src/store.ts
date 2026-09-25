@@ -17958,7 +17958,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // GM-X2 #13：质量按 massUnit 重格式（g 保留 propsReport 默认 g/kg 自动切；kg/oz/lb 覆盖）。
     if (s.massUnit !== 'g') {
       const massG = (mp.mass ?? density * 1e-9 * mp.volume) * 1e6
-      const mr = rows.find((r) => r.label === '质量')
+      const mr = rows.find((r) => r.label === '質量' || r.label === '质量')   // propsReport 发 '質量'（港繁）；旧简体 label 兼容
       if (mr) mr.value = fmtMassU(massG, s.massUnit, s.measurePrecision)
     }
     set({ propsDialog: { bodyId: bodyId ?? null, frame, accuracy: acc }, propsDialogData: { rows, text, massProps: mp } })
@@ -18137,12 +18137,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (!hasSolid(s.features) || !s.bodyMesh?.vertices?.length || !s.bodyMesh.triangles?.length) { set({ status: '最小曲率半徑：需要活動實體' }); return }
     try {
-      const { minRadiusOfCurvature } = await import('./cad/curvatureAnalysis')
+      const { minRadiusOfCurvature, MIN_RADIUS_KIND } = await import('./cad/curvatureAnalysis')
       const r = minRadiusOfCurvature(s.bodyMesh.vertices as number[], s.bodyMesh.triangles as number[])
       if (!r) { set({ status: '最小曲率半徑：網格全平 / 太粗，無有效內部曲率 — 無最小半徑' }); return }
       const u = get().unit
       const text = `最小曲率半径 R${fmtLen(r.rMin, u)}（最弯处 κ ${r.kappaMax.toExponential(2)}/mm · 趋势/近似，网格细化收敛 · 🔴标位）`
-      set({ inspectMode: true, inspectInfo: { kind: '最小曲率半徑', radius: r.rMin, isEdge: false, center: r.at, text }, status: text })   // S180 audit：显式按钮强制开 inspect 面板（否则关咗就睇唔到结果）
+      set({ inspectMode: true, inspectInfo: { kind: MIN_RADIUS_KIND, radius: r.rMin, isEdge: false, center: r.at, text }, status: text })   // S180 audit：显式按钮强制开 inspect 面板（否则关咗就睇唔到结果）
     } catch (e) { set({ status: '最小曲率半徑失敗：' + ((e as Error)?.message || e) }) }
   },
   runDraftAnalysis: (pull) => set((s) => {

@@ -75,7 +75,7 @@ test('startup blocks input until shared/autosave hydration has completed', () =>
 })
 
 test('whole-kernel rebuild failures retain the previous model and flag a recoverable suspected feature', () => {
-  assert.match(rebuild, /已保持上一个有效状态/)
+  assert.match(rebuild, /已保持上一個有效狀態/)
   assert.match(rebuild, /const suspect = \[\.\.\.bound\]\.reverse\(\)\.find\(\(f\) => !sup\.includes\(f\.id\)\)/)
   assert.match(rebuild, /疑似此特征；可改参数或抑制后重试/)
   assert.match(rebuild, /failedFeatureIds: suspect \? \[suspect\.id\] : \[\]/)

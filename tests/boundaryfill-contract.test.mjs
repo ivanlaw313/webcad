@@ -13,6 +13,6 @@ ok(store.includes("type: 'boundaryfill', target, cell"), 'Boundary Fill persists
 ok(worker.includes("type: 'boundaryfill'; target: number; cell: 'target' | 'overlap' | 'tool'"), 'Worker feature contract has explicit selected-cell semantics')
 ok(worker.includes("source.clone().cut(tool.clone())") && worker.includes("source.clone().intersect(tool.clone())") && worker.includes("tool.clone().cut(source.clone())"), 'Worker constructs the three real B-rep cells with independent boolean operands')
 ok(worker.includes("parkedBodies.splice(f.target, 1)") && worker.includes("Boundary Fill：交集"), 'Selected result becomes active and remaining valid cells are retained as bodies')
-ok(viewport.includes('多工具、曲面／平面工具及任意多 cell 选择尚未提供'), 'UI states the supported two-solid scope rather than claiming full Fusion parity')
+ok(viewport.includes('多工具、曲面／平面工具及任意多 cell 選擇尚未提供'), 'UI states the supported two-solid scope rather than claiming full Fusion parity')
 
 if (failed) process.exitCode = 1

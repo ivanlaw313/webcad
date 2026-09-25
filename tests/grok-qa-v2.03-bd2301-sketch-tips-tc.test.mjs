@@ -21,9 +21,11 @@ const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
 const stripComments = (s) => s.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
 
-test('APP_VERSION 2.03; SW webcad-v2.03', () => {
-  assert.match(version, /APP_VERSION = '2\.03'/)
-  assert.match(sw, /const CACHE = 'webcad-v2\.03'/)
+test('APP_VERSION >= 2.03 and SW cache name matches APP_VERSION', () => {
+  const app = version.match(/APP_VERSION = '(\d+)\.(\d+)'/)
+  assert.ok(app, 'APP_VERSION literal present')
+  assert.ok(Number(app[1]) > 2 || (Number(app[1]) === 2 && Number(app[2]) >= 3), `APP_VERSION ${app[1]}.${app[2]} >= 2.03`)
+  assert.match(sw, new RegExp(`const CACHE = 'webcad-v${app[1]}[.]${app[2]}'`))
 })
 
 test('App Esc cancel tip is 港繁', () => {
@@ -118,7 +120,7 @@ test('extendTransaction failure reasons are 港繁', () => {
 })
 
 test('Ribbon B-rep \/ union titles are 港繁', () => {
-  assert.match(rib, /保留 B-rep 入時間軸：導入後可繼續 切割\/圓角\/抽殼/)
+  assert.match(rib, /保留 B-rep 入時間軸：匯入後可繼續 切割\/圓角\/抽殼/)
   assert.match(rib, /真布爾合併單殼（manifold union）/)
   assert.doesNotMatch(rib, /入时间轴：导入后可继续/)
   assert.doesNotMatch(rib, /真布尔合并单壳/)

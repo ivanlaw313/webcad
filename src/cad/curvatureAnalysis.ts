@@ -219,6 +219,11 @@ export function meshCurvature(vertices: number[], triangles: number[]): Curvatur
   return { mean, gaussian, area, boundary, min, max, interiorCount }
 }
 
+// inspectInfo.kind 标记：显示文字已转港繁（i18n zh-HK），比较一律用 isMinRadiusKind（兼容旧简体标记），
+// 唔好喺组件度硬写字面量 —— 否则一转繁简红球标记同「最弯处」标签就静静失效。
+export const MIN_RADIUS_KIND = '最小曲率半徑'
+export const isMinRadiusKind = (kind: unknown): boolean => kind === MIN_RADIUS_KIND || kind === '最小曲率半径'
+
 // S180：最小曲率半径（Fusion Inspect › Minimum Radius）。
 // 主曲率 κ1,κ2 = H ± √(H²−K)；最大 |主曲率| = |H| + √(max(0,H²−K))（mean 已系 |H|，符号唔影响 R=1/|κ|）。
 // R_min = 1 / max_i |κ_max|，喺【最弯】嗰个内部顶点。返回 R_min + κ_max + 该顶点 index/世界坐标；

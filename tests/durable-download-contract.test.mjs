@@ -50,9 +50,9 @@ test('saveProject uses durableDownloadFrom (picker before JSON) and never claims
   assert.match(body, /saveProject: async/)
   assert.match(body, /await durableDownloadFrom\(/)
   assert.match(body, /JSON\.stringify/)
-  assert.match(body, /已取消保存（现有模型未动）/)
-  assert.match(body, /保存失败：无法写入文件/)
-  assert.match(body, /现有模型未动/)
+  assert.match(body, /已取消儲存（現有模型未動）/)
+  assert.match(body, /儲存失敗：無法寫入檔案/)
+  assert.match(body, /現有模型未動/)
   assert.match(body, /已下载到浏览器下载目录/)
   assert.doesNotMatch(body, /triggerDownload\(new TextEncoder/)
   assert.doesNotMatch(body, /await durableDownload\(/)
@@ -61,8 +61,8 @@ test('saveProject uses durableDownloadFrom (picker before JSON) and never claims
 test('openProject prefers showOpenFilePicker and keeps the document on cancel/bad JSON', () => {
   const body = impl('openProject', 'applyProjectData')
   assert.match(body, /showOpenFilePicker/)
-  assert.match(body, /已取消打开（现有模型未动）/)
-  assert.match(body, /打开失败：文件格式不正确（现有模型未动）/)
+  assert.match(body, /已取消打開（現有模型未動）/)
+  assert.match(body, /打開失敗：檔案格式不正確（現有模型未動）/)
   assert.match(body, /applyProjectData/)
 })
 

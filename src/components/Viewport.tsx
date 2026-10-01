@@ -5643,9 +5643,13 @@ export default function Viewport() {
               </select>
             </label>
             <label style={{ color: windShowFlow ? '#2f9e44' : '#6b7680' }}><input type="checkbox" checked={windShowFlow} onChange={(e) => setWindOpt({ windShowFlow: e.target.checked })} /> 流場</label>
-            {/* S4：求解引擎。★ 预设一定係 CPU ★ —— GPU 求解器实测球体 Cd 高 2.0–2.2×（三个分辨率都一致 =
-             *   常数系统增益，根因未查）。所以 GPU 只卖【可拖 + 相对比较】，绝对 Cd 由 CPU 出。 */}
-            <label title="CPU＝壓力積分＋經驗摩擦，worker 跑完凍結，絕對 Cd 用呢個；GPU＝逐幀 LBM，可以拖住零件即時睇流場變化，但絕對 Cd 有未修嘅 2.0–2.2× 系統偏差，只可以睇【相對】比較">
+            {/* S4：求解引擎。★ 预设一定係 CPU ★ —— GPU 求解器嘅【绝对 Cd 未经有效验证】。
+             *   旧嗰个「高 2.0–2.2×」数字唔可靠：出自一个堵塞率 14–17%（λ = d/D = 0.427）
+             *   而且从未收敛（Re≈600 尾流非稳态）嘅实验，分辨唔到係碼错定係约束物理。
+             *   已排除：动量交换重复计数（GPU link 数 == CPU 真值 7242，比值 1.0000）、
+             *   公式、规范项、归一化。根因未定案，正确嘅绝对 Cd 仍然未量到。
+             *   所以 GPU 只卖【可拖 + 同域相对比较】，绝对 Cd 由 CPU 出。 */}
+            <label title="CPU＝壓力積分＋經驗摩擦，worker 跑完凍結，絕對 Cd 用呢個；GPU＝逐幀 LBM，可以拖住零件即時睇流場變化，但絕對 Cd 未經驗證，只可以睇【相對】比較">
               <span style={{ color: '#6b7680' }}>引擎 </span>
               <select value={windEngineP} onChange={(e) => setWindOpt({ windEngine: e.target.value as 'cpu' | 'gpu' })} style={{ fontSize: 11 }}>
                 <option value="cpu">CPU（準·可比舊數）</option>

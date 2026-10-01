@@ -24,7 +24,19 @@ import * as SH from '../shaders.ts'
 import * as SDF from '../sdfBake.ts'
 import * as GPU from '../lbmGpu.ts'
 import { probeMRT } from '../probeMRT.ts'
+import * as CDF from './cdFixture.ts'
 import { WebGLRenderer } from 'three'
+
+/**
+ * ★★ 來流軸一律明寫 ★★
+ *
+ * buildDomain(g) 唔傳 opts.axis 嘅話會【自己揀最長軸】做來流方向（sdfBake.ts:147）。
+ * 2026-10-01 嘅堵塞率掃描就係咁報廢嘅：側向加完留白之後 Y/Z 變成最長軸 →
+ * 流向軸由 X 靜靜雞跳去 Y（症狀：DY 冇變、只有 DZ 變大），而冇任何一句 assert 會響。
+ * 所以呢個檔【所有】buildDomain 都傳 FLOW_X，除咗兩條刻意測「預設規則」嘅 case
+ * （下面有標註）。呢條規則本身喺 lbm.cdmethod.test.ts 度有測試釘住。
+ */
+const FLOW_X = { axis: 0, sign: 1 } as const
 
 /* ══════════════════════════════════════════════════ HARNESS（装咗 vitest 就删呢段） */
 
@@ -62,6 +74,12 @@ const it = useHost && HOST.it ? HOST.it : localIt
 
 /** 直接掟错嘅断言 —— 比 expect(cond).toBe(true) 有用一万倍，因为讲得出【点解】。 */
 function assert(cond: boolean, msg: string): void { if (!cond) throw new Error(msg) }
+/** 唔係 null 就還返，係 null 就掟錯。畀 TS 收窄用 —— assert() 唔會收窄。 */
+function notNull<T>(v: T | null | undefined, msg: string): T {
+  if (v === null || v === undefined) throw new Error(msg)
+  return v
+}
+
 function close(a: number, b: number, tol: number, msg: string): void {
   if (!(Math.abs(a - b) <= tol)) throw new Error(msg + '：' + a + ' vs ' + b + '（容差 ' + tol + '）')
 }
@@ -209,6 +227,8 @@ function sample3D(vol: Float32Array, N: [number, number, number], comp: number, 
 describe('lbm/域建构：同 windtunnel.ts【逐条数式一样】', () => {
   it('padding 公式同 CPU 参考解一致', () => {
     const g = boxGrid(20, 12, 8)
+    // ★ 呢條【刻意】唔傳 FLOW_X ★ —— 佢測嘅就係「唔傳 axis 會自己揀最長軸」呢條規則。
+    //   下面 assert(d.fa === fa) 就係嗰條規則本身。所有【唔係測呢條規則】嘅 case 一律傳 FLOW_X。
     const d = SDF.buildDomain(g)
     // 独立重算（windtunnel.ts §2）
     const dims = [20, 12, 8]
@@ -228,7 +248,7 @@ describe('lbm/域建构：同 windtunnel.ts【逐条数式一样】', () => {
 
   it('零件真係摆咗入去，而且只喺测试段', () => {
     const g = boxGrid(10, 6, 6)
-    const d = SDF.buildDomain(g)
+    const d = SDF.buildDomain(g, FLOW_X)
     let n = 0
     for (let i = 0; i < d.obst.length; i++) if (d.obst[i]) n++
     assert(n === 10 * 6 * 6, '障碍格数 ' + n + ' != 体素数 360')
@@ -244,8 +264,8 @@ describe('lbm/域建构：同 windtunnel.ts【逐条数式一样】', () => {
     const solid = new Uint8Array(nx * ny * nz)
     for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < 2; i++) solid[i + nx * (j + ny * k)] = 1
     const g: SDF.VoxelGridLike = { h: 1, nx, ny, nz, ox: 0, oy: 0, oz: 0, solid }
-    const p = SDF.buildDomain(g, { sign: 1 })
-    const m = SDF.buildDomain(g, { sign: -1 })
+    const p = SDF.buildDomain(g, { ...FLOW_X, sign: 1 })
+    const m = SDF.buildDomain(g, { ...FLOW_X, sign: -1 })
     const at = (d: SDF.WindDomain, x: number) => d.obst[x + d.DX * (d.padA + d.DY * d.padB)]
     assert(at(p, p.padUp) === 1 && at(p, p.padUp + 7) === 0, '+1：零件嘅厚头应该喺上游')
     assert(at(m, m.padUp) === 0 && at(m, m.padUp + 7) === 1, '-1：零件嘅厚头应该喺下游')
@@ -254,7 +274,7 @@ describe('lbm/域建构：同 windtunnel.ts【逐条数式一样】', () => {
   it('volMatrix 把 lattice cell-centre 送返 CAD mm', () => {
     const g: SDF.VoxelGridLike = { h: 2.5, nx: 6, ny: 4, nz: 4, ox: 11, oy: -3, oz: 7, solid: new Uint8Array(6 * 4 * 4).fill(1) }
     for (const sign of [1, -1] as const) {
-      const d = SDF.buildDomain(g, { sign })
+      const d = SDF.buildDomain(g, { ...FLOW_X, sign })
       const M = d.volMatrix
       const map = (p: [number, number, number]): [number, number, number] => [
         M[0] * p[0] + M[1] * p[1] + M[2] * p[2] + M[3],
@@ -273,7 +293,7 @@ describe('lbm/域建构：同 windtunnel.ts【逐条数式一样】', () => {
 
   it('迎风面积同特征长度（球）', () => {
     const g = sphereGrid(24, 100)
-    const d = SDF.buildDomain(g)
+    const d = SDF.buildDomain(g, FLOW_X)
     // 球嘅迎风投影 = πr²，r = 12 格 → ~452 格（体素化会略细）
     rel(d.frontalCells, Math.PI * 12 * 12, 0.12, '球嘅迎风格数')
     // 等效直径应该返回 ~24 格
@@ -284,7 +304,7 @@ describe('lbm/域建构：同 windtunnel.ts【逐条数式一样】', () => {
 
   it('冇零件都唔会除零', () => {
     const g: SDF.VoxelGridLike = { h: 1, nx: 4, ny: 4, nz: 4, ox: 0, oy: 0, oz: 0, solid: new Uint8Array(64) }
-    const d = SDF.buildDomain(g)
+    const d = SDF.buildDomain(g, FLOW_X)
     assert(d.frontalCells === 1, '空零件应该钳到 1 格迎风面积，唔係 0')
     assert(Number.isFinite(d.dLb) && d.dLb > 0, 'dLb 应该有限')
   })
@@ -352,7 +372,7 @@ describe('lbm/tier 拣选 + VRAM 帐', () => {
 /* ══════════════════════════════════════════════════════ uniform 推导 */
 
 describe('lbm/uniform 推导：物理落地嘅地方', () => {
-  const dom = SDF.buildDomain(sphereGrid(24, 100))
+  const dom = SDF.buildDomain(sphereGrid(24, 100), FLOW_X)
 
   it('omega / nu 来回一致，而且 omega_plus 唔会过界', () => {
     for (const speed of [0.5, 5, 30, 120]) {
@@ -547,7 +567,7 @@ describe('lbm/(d) padding：力金字塔係【连 padding 一齐加】嘅', () =
 /* ══════════════════════════════════════════════════════════ sdfBake */
 
 describe('lbm/sdfBake：二值 mask 同 narrow band', () => {
-  const dom = SDF.buildDomain(sphereGrid(20, 100))
+  const dom = SDF.buildDomain(sphereGrid(20, 100), FLOW_X)
 
   it('预设二值：固体 -1 / 流体 +1，nearBody gate 无条件', () => {
     const phi = SDF.bakePhi(dom)
@@ -640,7 +660,7 @@ describe('lbm/(b) 球阻力：参考曲线（CPU 部分）', () => {
   })
 
   it('球喺我哋钳完 Re 之后落喺曲线嘅边度（诚实度）', () => {
-    const dom = SDF.buildDomain(sphereGrid(24, 100))
+    const dom = SDF.buildDomain(sphereGrid(24, 100), FLOW_X)
     const f = GPU.deriveFlow(dom, { speed: 10, rho: 1.204, mu: 1.81e-5 })
     assert(f.reReal > 5e4, '100mm 球 @10 m/s 空气应该係 Re ~ 7e4')
     assert(f.reLbEffective <= GPU.RE_LB_MAX + 1, '有效 Re 应该已经钳落稳定带')
@@ -651,63 +671,279 @@ describe('lbm/(b) 球阻力：参考曲线（CPU 部分）', () => {
     assert(f.reClamped, 'reClamped 旗要着')
   })
 
-  it('堵塞率细到唔使担心（Maskell 修正之前）', () => {
-    const dom = SDF.buildDomain(sphereGrid(24, 100))
-    const blockage = dom.frontalCells / (dom.DY * dom.DZ)
-    assert(blockage < 0.15, '堵塞率 ' + (blockage * 100).toFixed(1) + '% 太高，侧边距唔够')
-    assert(blockage > 0.02, '堵塞率 ' + (blockage * 100).toFixed(1) + '% 低到离谱 → 侧边距浪费咗好多格')
+  /*
+   * ★★ 2026-10-01：呢個 case 原本叫「堵塞率細到唔使擔心」，而佢講大話 ★★
+   *
+   * 原文係 `assert(blockage < 0.15)` —— 一個貼邊立方包圍盒嘅球實測 14.35%，
+   * 啱啱好擦過 15% 過關；medium / high tier 係 15.4% / 16.6%，兩個都超咗，
+   * 但【呢個 case 同 Cd fixture 用嘅唔係同一個域】，所以超咗都冇人知。
+   * 而個下限 `blockage > 0.02`（低過 2% 就算「浪費格數」）更加係反方向：
+   * 2% 正正就係我哋要追嘅目標。
+   *
+   * 改成：老實記錄舊域【幾受限】，而真正嘅閘搬去 Cd fixture 自己身上
+   *（見下面 cdDomain()）。呢個 case 淨係一條回歸鎖：如果有人日後收返側邊距
+   * 公式，呢度會即刻爆。
+   */
+  it('★ 貼邊包圍盒嘅球係【重度受限】—— 呢個係舊 2× 嘅頭號嫌疑', () => {
+    const dom = SDF.buildDomain(sphereGrid(24, 100), FLOW_X)
+    const b = CDF.blockageOf(dom)
+    assert(b.blockage > 0.10, '貼邊域嘅堵塞率應該 >10%：' + CDF.blockageLine(b))
+    assert(b.lambda > 0.35, '貼邊域嘅 λ 應該 >0.35：' + CDF.blockageLine(b))
+    // Stokes 區上界：λ≈0.41 嘅管壁因子 ~3.8×。即係「量到 2×」連上界都未到，
+    // 所以【唔可以】由 2× 推論「碼有 2× bug」。
+    assert(b.habermanSayre > 2.0, '約束上界 ' + b.habermanSayre.toFixed(2) + '× 細過 2×，呢條推論就唔成立')
+    assert(b.blockage > CDF.BLOCKAGE_MAX, '舊域一定要過唔到新閘，否則呢次修正冇意義')
   })
 
-  itGl('★ GPU：球嘅 Cd 落喺 Clift-Gauvin ±50% 之内（趋势级）', (env) => {
+  /* ────────────────────────────────────────────────────────────────────────
+   * ★★ 球體 Cd 驗收：2026-10-01 嘅方法學重寫 ★★
+   *
+   * 舊版（2026-07）嘅三個問題，同埋點解「GPU 有 ~2× 系統偏差」呢個結論【唔成立】：
+   *
+   *  (1) 重度壁面約束。sphereGrid(res, 100) 出一個貼邊立方包圍盒，
+   *      buildDomain 嘅側邊距只有 0.45×截面+4 → 域 64×47×47、迎風 317 格、
+   *      dLb = 20.09 ⇒ λ = d/D = 0.427、堵塞率 14.35%。
+   *      Stokes 區 Haberman-Sayre 管壁因子喺 λ=0.427 係 3.99×；Maskell 鈍體估計
+   *      係 +40%。即係 2× 完全落喺約束物理嘅範圍。
+   *      而「三個 tier 比值都 ~2.1 → 同解析度無關 → 所以係碼錯」呢個推論失效，
+   *      因為三個 tier 嘅【堵塞率亦然冇變】（14.4 / 15.4 / 16.6%）—— 解析度無關性
+   *      完全唔能夠分辨「碼錯」同「約束物理」。
+   *
+   *  (2) 從來冇收斂過。原判據「末 10 個樣本波動 < 1.2%」對 Re ≈ 600 有渦脫落嘅球
+   *      係一個【永遠達唔到】嘅條件（實測五個配置全部 converged:false，Cd 由 0.509
+   *      跳到 1.393 非單調亂跳）。更壞嘅係佢偶然會喺波峰附近 fire，報一個偏咗 >10%
+   *      嘅快照 —— 見 lbm.cdmethod.test.ts 嗰條合成正弦測試，嗰度證明咗呢件事。
+   *
+   *  (3) 來流軸會靜靜雞轉。buildDomain(g) 唔傳 axis 會自己揀最長軸；側向加完留白
+   *      之後 Y/Z 變成最長軸 → 流向由 X 跳去 Y，而個 fixture 一聲都唔會響。
+   *      ⇒ 下面所有 buildDomain 一律傳 FLOW_X = { axis: 0, sign: 1 }。
+   *
+   * 已經排除嘅（2026-10-01 真 5070 Ti 實測，唔使再查）：
+   *      GPU 報嘅邊界 link 數 == CPU 數嘅真值（7242 == 7242，五個配置都係 1.0000）；
+   *      迎風面積 317 == 317。動量交換冇重複計數，公式 −c_i(gIn+gOut) 亦經獨立
+   *      動量平衡推導核實正確。
+   *
+   * ⚠ 下面兩條 fixture 喺 headless 會 SKIP，所以呢次改動【未經 GPU 驗證】。
+   *   純邏輯部分（堵塞率、軸選擇、時均窗口推導）已抽去 cdFixture.ts，
+   *   由 lbm.cdmethod.test.ts headless 全部測過。
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  /**
+   * 驗收專用域：球嘅解析度照 tier low 嘅 planResolution，但側向【加大留白】
+   * 令堵塞率跌到 BLOCKAGE_MAX 以下。
+   *
+   * ★ 呢個域超出所有 QUALITY_TIERS 嘅 budget（high 都只係 160×80×80）★
+   *   佢唔係一個產品 tier，係一個驗收域。產品面板嗰邊嘅 Cd 仍然係喺受限域度
+   *   算嘅趨勢值 —— 兩者唔可以混淆。
+   */
+  function cdDomain(): SDF.WindDomain {
+    const tier = GPU.QUALITY_TIERS[0]
+    const plan = SDF.planResolution([100, 100, 100], tier)   // 只攞 plan.res（球嘅解析度）
+    const dom = SDF.buildDomain(CDF.sphereGridLateralPad(plan.res, CDF.CD_LATERAL_PAD, 100), FLOW_X)
+    // ★★ 堵塞率閘：落喺 Cd fixture 自己身上，唔係另一條 case ★★
+    const b = CDF.blockageOf(dom)
+    assert(b.blockage <= CDF.BLOCKAGE_MAX,
+      '★ ' + CDF.blockageLine(b) + ' 過咗上限 ' + (CDF.BLOCKAGE_MAX * 100).toFixed(1)
+      + '% —— 側邊距唔夠，呢個 Cd 量嘅係「管道裏面嘅球」，唔係自由流嘅球')
+    assert(dom.fa === 0 && dom.sign === 1, '★ 來流軸唔係 +X（fa=' + dom.fa + '）—— 冇傳 axis？')
+    assert(dom.dLb > 12, '球淨係得 ' + dom.dLb.toFixed(1) + ' 格直徑，邊界層解唔到，測呢個冇意義')
+    return dom
+  }
+
+  interface CdRun {
+    cd: number
+    want: number
+    reLb: number
+    fluctuation: number
+    samples: number
+    cycles: number
+    line: string
+  }
+
+  /**
+   * 跑一次球體 Cd，用【時均】而唔係「收斂」。
+   *
+   * 窗口由 cdFixture.averagingWindow() 推：
+   *   settle = rampSteps + 3 個流過時間（T_flow = DX/U_LB）
+   *   窗口   = 非穩態（Re_lb > 210）→ max(10 個脫落週期, 1 個 T_flow)
+   *            穩態                  → 1 個 T_flow
+   * 脫落週期 T_shed = dLb / (St·U_LB)，St = 0.2（球體 subcritical 帶）。
+   */
+  function runSphereCd(env: GlEnv, cfg: { mu: number; lesCs?: number }): CdRun {
     const caps = probeMRT(env.gl)
-    assert(caps.ok, 'GPU 唔支援五个 RGBA32F：' + caps.reason)
+    assert(caps.ok, 'GPU 唔支援五個 RGBA32F：' + caps.reason)
     assert(caps.force7, '量唔到力就冇 Cd：' + caps.reason)
     const renderer = makeRenderer(env)
     let solver: GPU.LbmGpu | null = null
     try {
-      const tier = GPU.QUALITY_TIERS[0]                       // low：够快、又够解析（球 ~20 格）
-      const plan = SDF.planResolution([100, 100, 100], tier)
-      const dom = SDF.buildDomain(sphereGrid(plan.res, 100))
+      const dom = cdDomain()
+      const maxTex = caps.maxTextureSize || 16384
+      const vram = GPU.vramBytesFor(dom.DX, dom.DY, dom.DZ, true, maxTex)
+      assert(vram.atlas.width <= maxTex && vram.atlas.height <= maxTex,
+        'atlas ' + vram.atlas.width + '×' + vram.atlas.height + ' 爆 maxTextureSize ' + maxTex)
       const phi = SDF.bakePhi(dom)
-      const flow = { speed: 10, rho: 1.204, mu: 1.81e-5 }
+      const flow = { speed: 10, rho: 1.204, mu: cfg.mu }
+      const substeps = 8
       solver = new GPU.LbmGpu(renderer, dom, phi, {
-        measure: true, needVolume: false, substeps: 8, flow, caps, tier: tier.name,
+        measure: true, needVolume: false, substeps, flow, caps, tier: GPU.QUALITY_TIERS[0].name,
       })
+      // LES：穩態低 Re 個案要熄（Smagorinsky 會喺層流度加一層假渦黏度，令有效 Re
+      // 跌低過 nominal，而我哋正正係要同一條【只睇 Re】嘅相關式比）。
+      if (cfg.lesCs !== undefined) solver.flow = { ...solver.flow, lesCs: cfg.lesCs }
       const f = solver.report().flow
-      assert(dom.dLb > 12, '球淨係得 ' + dom.dLb.toFixed(1) + ' 格直径，边界层解唔到，测呢个冇意义')
 
-      // 收敛：★ 由「成功读到几多次」驱动，唔係由帧数 ★（见 asyncReader.ts）
-      const samples: number[] = []
-      const minSteps = f.rampSteps + Math.round(1.8 * dom.DX / LAT.U_LB)
-      const maxSteps = f.rampSteps + Math.round(4.5 * dom.DX / LAT.U_LB)
+      const win = CDF.averagingWindow({
+        dLb: dom.dLb, DX: dom.DX, uLb: LAT.U_LB, rampSteps: f.rampSteps, reLb: f.reLbEffective,
+      })
+
+      const samples: { step: number; cd: number }[] = []
       let guard = 0
-      while (solver.stepCount < maxSteps && guard++ < 20000) {
-        solver.advance()
+      const guardMax = Math.ceil(win.avgEnd / substeps) * 4 + 1000
+      while (solver.stepCount < win.avgEnd && guard++ < guardMax) {
+        solver.advance(substeps)
         const s = solver.pollForce()
         if (!s || !s.rampDone) continue
-        assert(s.links > 0, '★ 一条反弹 link 都冇 —— 条流根本掂唔到零件（phi 上传错咗？）')
-        samples.push(s.cd)
-        if (solver.stepCount > minSteps && samples.length >= 12) {
-          const w = samples.slice(-10)
-          const mn = Math.min(...w), mx = Math.max(...w)
-          const mean = w.reduce((a, b) => a + b, 0) / w.length
-          if ((mx - mn) / (Math.abs(mean) + 1e-9) < 0.012) break
-        }
+        assert(s.links > 0, '★ 一條反彈 link 都冇 —— 條流根本掂唔到零件（phi 上傳錯咗？）')
+        samples.push({ step: s.step, cd: s.cd })
       }
-      assert(samples.length >= 12, '只攞到 ' + samples.length + ' 个 Cd 样本 —— async readback 冇返嘢？')
-      const tail = samples.slice(-Math.max(6, Math.round(samples.length * 0.25)))
-      const cd = tail.reduce((a, b) => a + b, 0) / tail.length
+      assert(solver.stepCount >= win.avgEnd,
+        '★ 跑唔夠步（' + solver.stepCount + ' / ' + win.avgEnd + '）—— guard 觸發咗，時均窗口唔完整')
 
-      // ★ 唔好 Math.abs ★：来流係域嘅 +X，阻力就一定係 +X。取绝对值会把一个
-      //   「动量交换符号搞反咗」嘅 bug 变成一个睇落几靓嘅 Cd。
-      assert(Number.isFinite(cd) && cd > 0, 'Cd 唔係一个正数（' + cd + '）—— 动量交换嘅符号反咗？')
-      // ★ 要同【我哋真係解紧嗰个 Re】比，唔係同真实 Re 比 ★ —— 见上面「诚实双 Cd」。
+      const ta = notNull(CDF.timeAverage(samples, win),
+        '★ 時均窗口 [' + win.avgStart + ', ' + win.avgEnd + '] 入面一個樣本都冇'
+        + '（總共收到 ' + samples.length + ' 個）—— async readback 冇返嘢？')
+      // 窗口要【真係】蓋夠。只得三個樣本嘅「時均」等於快照。
+      assert(ta.n >= 50, '★ 時均只用到 ' + ta.n + ' 個樣本，太少 —— readback miss rate 太高？')
+      if (win.unsteady) {
+        assert(ta.spanCycles >= 9, '★ 樣本只蓋到 ' + ta.spanCycles.toFixed(2)
+          + ' 個脫落週期（要 ≥9）—— 窗口頭尾冇樣本，時均唔可信')
+      }
+
+      // ★ 唔好 Math.abs ★：來流係域嘅 +X，阻力就一定係 +X。取絕對值會把一個
+      //   「動量交換符號搞反咗」嘅 bug 變成一個睇落幾靚嘅 Cd。
+      assert(Number.isFinite(ta.mean) && ta.mean > 0,
+        'Cd 唔係一個正數（' + ta.mean + '）—— 動量交換嘅符號反咗？')
+
+      // ★ 要同【我哋真係解緊嗰個 Re】比，唔係同真實 Re 比 ★ —— 見上面「誠實雙 Cd」。
       const want = sphereCd(f.reLbEffective)
-      rel(cd, want, 0.5, '球 @Re_lb=' + f.reLbEffective.toFixed(0) + ' 嘅 Cd（' + tail.length + ' 个样本）')
+      const b = CDF.blockageOf(dom)
+      const line = 'Re_lb=' + f.reLbEffective.toFixed(0)
+        + ' 時均 Cd=' + ta.mean.toFixed(4) + ' / Clift-Gauvin=' + want.toFixed(4)
+        + ' = ' + (ta.mean / want).toFixed(3) + '×'
+        + '；峰峰波動 ' + (ta.fluctuation * 100).toFixed(1) + '%'
+        + '（' + ta.n + ' 個樣本、' + ta.spanCycles.toFixed(1) + ' 個脫落週期、'
+        + (ta.spanSteps / win.flowThrough).toFixed(2) + ' 個流過時間）'
+        + '；' + CDF.blockageLine(b)
+        + '；域 ' + dom.DX + '×' + dom.DY + '×' + dom.DZ
+        + '、VRAM ' + ((vram.total - vram.vol) / 1048576).toFixed(0) + ' MB'
+      console.log('   ⟶ ' + line)
+      return {
+        cd: ta.mean, want, reLb: f.reLbEffective,
+        fluctuation: ta.fluctuation, samples: ta.n, cycles: ta.spanCycles, line,
+      }
     } finally {
       solver?.dispose()
       renderer.dispose()
     }
+  }
+
+  /*
+   * ══ 容差點嚟 ══════════════════════════════════════════════════════════
+   *
+   * 舊版係 ±50%，冇寫理由。誤差預算（dLb = 20.09 格、堵塞率 2.10%、λ = 0.163）：
+   *
+   *   · Clift-Gauvin 相關式自己            ±6%    （Re < 3e5 嘅引用精度）
+   *   · 殘餘堵塞（Maskell K=2.77、S=2.1%）  +6%    （已經由 14.35% 壓落嚟）
+   *   · 階梯式 bounce-back 嘅 20 格球       ±15%   （階梯粗糙度加形狀阻力；
+   *                                                 Re=150 嘅邊界層厚度
+   *                                                 ~ d/√Re = 1.6 格 —— 解唔到）
+   *   · 半格反彈嘅有效壁面位置 ±1 格         ±5%    （水動力直徑 vs 幾何直徑）
+   *   · 上游距離只有 2.7d（文獻要 ≥5d）      ±5%
+   *   RSS ≈ 18%，線性最壞 ≈ 37%。
+   *
+   * ⇒ 穩態個案（A）用 ±30%：RSS 之上留一點，但唔再係一個「乜都過得」嘅數。
+   * ⇒ 非穩態個案（B）再加兩項：
+   *      · Re_lb 本身被 omega_plus 鉗（597，唔係 target 800）→ 我哋解緊嘅唔係
+   *        一個乾淨嘅 Re，而 Clift-Gauvin 嘅斜率喺嗰度唔平
+   *      · Smagorinsky LES（Cs=0.12）喺 20 格嘅球上面係 under-resolved
+   *   ⇒ 保留 ±50%，但【而家係一個時均值】，唔再係隨機相位快照。
+   *
+   * ⛔ 如果加大側邊距之後 Cd 仍然 ~2× → 約束唔係主因，根因仍然未知。
+   *    嗰個情況下【唔准】放鬆呢兩個容差去過測；要喺呢度寫落實測數字，
+   *    然後繼續查（下一個嫌疑：bounce-back 嘅壁面位置、同 LES 喺階梯面嘅行為）。
+   *
+   * ✅ 2026-10-01 已填（GM 喺真 RTX 5070 Ti 跑；ANGLE/D3D11；域 128×123×123 = 1.94 M 格）：
+   *
+   *      (A) Re_lb = 143.5  時均 Cd = 1.0506 / 0.931 = 1.128×   波動 7.48%
+   *          reClamped = false、omegaClamped = false（乾淨 Re）、unsteady = false（穩態尾流）
+   *          窗內樣本 320、牆鐘 12 秒
+   *      (B) Re_lb = 596.7  時均 Cd = 0.7611 / 0.543 = 1.402×   波動 3012%
+   *          reClamped = true、omegaClamped = true、unsteady = true
+   *          窗內樣本 2512、蓋 10.0 個脫落週期、牆鐘 593 秒
+   *
+   * ★★ 結論：原先嗰個「~2× 系統偏差」唔存在。★★
+   *    (A) 1.128× 落喺上面誤差預算推出嘅 ±30%（RSS ≈ 18%）之內 —— 即係對一個 20 格
+   *    階梯式球體（Re=150 嘅邊界層厚度只有 1.6 格）嚟講，呢個就係應有精度，唔係 bug。
+   *
+   *    舊嗰個 2.072× 係四樣嘢疊埋嘅假象：
+   *      ① 堵塞率 14.35%（λ = 0.427，Haberman-Sayre K ≈ 3.99）
+   *      ② 從未收斂 —— 隨機相位快照（見 lbm.cdmethod.test.ts 嗰條合成正弦測試：
+   *         原判據會喺波峰附近「收斂」，報一個偏咗 >10% 嘅數）
+   *      ③ Re_lb 被 omega_plus 鉗（597，唔係 target 800）
+   *      ④ LES 開 —— Smagorinsky 喺層流區加一層假渦黏度
+   *    已經排除嘅：動量交換重複計數（GPU link 數 == CPU 真值 7242，比值 1.0000，
+   *    五個不同域都係）、公式（獨立動量平衡推導）、規範項（球體反演對稱抵消到零）、歸一化。
+   *
+   * ⚠ (B) 留低一個【新嘅、未解釋】嘅嘢：峰峰波動 3012%。
+   *    渦脫落唔應該令 Cd 擺 30 倍。2512 個樣本嘅【均值】仍然落喺 ±50%，但咁大嘅散佈
+   *    代表有離群樣本（可能係 readback 撞到寫入中途、或者 fp32 樹歸約偶發失準）。
+   *    ★ 呢條 fixture 而家冇波動閘，所以 3012% 會靜靜鷄過測 ★ —— 唔好當冇事。
+   *    下一步應該係：先睇 Cd 時間序列（係單點尖刺定係真嘅大幅振盪），
+   *    再決定係加離群值濾除、改用穩健統計（std / IQR）定係查 readback 時序。
+   *    暫時唔加閘，因為未知閾值應該係幾多 —— 亂填一個數就係另一個「冇根據嘅容差」。
+   * ══════════════════════════════════════════════════════════════════════
+   */
+
+  /**
+   * (A) ★ 量化閘 ★ —— 穩態尾流（Re_lb ≈ 143 < 210），真係收斂得到。
+   *
+   * 點解改 mu：Clift-Gauvin 係一條【只睇 Re】嘅相關式，所以任何 (rho, V, mu)
+   * 組合出同一個 Re 都係合法對照。揀 Re_real = 150 令 deriveFlow 出嘅 Re_lb
+   * 落喺 143.5：
+   *   · 低過 SHEDDING_RE_ONSET = 210 → 球體尾流穩態軸對稱（Taneda 1956），
+   *     時均窗口只需要 1 個流過時間，總步數 11,776（vs 空氣個案 29,306，便宜 2.5×）
+   *   · reClamped = false、omegaClamped = false → 我哋解緊嘅係一個乾淨嘅 Re，
+   *     唔係一個被 omega_plus 鉗過嘅數
+   *   · Clift-Gauvin @143.5 = 0.931 —— 曲線嘅平滑段，唔係 drag crisis 附近
+   *
+   * cost：域 128×123×123 = 1.94 M 格 × 11,776 步 ≈ 22.8 G 格更新。VRAM ≈ 488 MB。
+   *       ⏱ 牆鐘時間未量過（我冇 GPU）—— 跑嘅時候 console 會打出嚟。
+   */
+  itGl('★ GPU (A)：穩態球 Re_lb≈143 嘅【時均】Cd 落喺 Clift-Gauvin ±30%', (env) => {
+    const r = runSphereCd(env, { mu: 1.204 * 10 * 0.1 / 150, lesCs: 0 })
+    assert(r.reLb < CDF.SHEDDING_RE_ONSET,
+      'Re_lb = ' + r.reLb.toFixed(0) + ' 高過脫落門檻 210，呢條 fixture 嘅「穩態」前提唔成立')
+    // 穩態個案嘅波動應該細 —— 如果大過 10%，即係尾流其實唔穩態，個 Re 推導有問題。
+    assert(r.fluctuation < 0.10, '★ 穩態個案嘅峰峰波動 ' + (r.fluctuation * 100).toFixed(1)
+      + '% 太大 —— 尾流其實唔穩態？' + r.line)
+    rel(r.cd, r.want, 0.30, '穩態球嘅時均 Cd ｜ ' + r.line)
+  })
+
+  /**
+   * (B) ★ 趨勢閘 ★ —— 產品配置（空氣、Re_lb ≈ 597、LES 開）。
+   *
+   * 呢個係非穩態個案：Re_lb 597 > 210，有渦脫落。所以【唔求收斂】，
+   * 求時均：settle 3 個流過時間之後，蓋 10 個脫落週期（T_shed ≈ 2009 步）。
+   * 總步數 29,306 ≈ 11.4 個流過時間。
+   *
+   * cost：1.94 M 格 × 29,306 步 ≈ 56.8 G 格更新。VRAM ≈ 488 MB。
+   */
+  itGl('★ GPU (B)：空氣球 Re_lb≈597 嘅【10 個脫落週期時均】Cd 落喺 Clift-Gauvin ±50%', (env) => {
+    const r = runSphereCd(env, { mu: 1.81e-5 })
+    assert(r.reLb > CDF.SHEDDING_RE_ONSET,
+      'Re_lb = ' + r.reLb.toFixed(0) + ' 低過 210，咁就應該用 (A) 嗰條穩態 fixture')
+    assert(r.cycles >= 9, '時均只蓋 ' + r.cycles.toFixed(2) + ' 個脫落週期 ｜ ' + r.line)
+    rel(r.cd, r.want, 0.50, '空氣球嘅時均 Cd ｜ ' + r.line)
   })
 })
 
@@ -849,7 +1085,7 @@ describe('lbm/probeMRT + 资源守则', () => {
       assert(after <= base, '分配失败之后仲漏低咗 ' + (after - base) + ' 张 texture —— walk-down 冇得救')
 
       // 而且【成功】嘅 solver dispose 完都要归零
-      const okDom = SDF.buildDomain(sphereGrid(16, 100))
+      const okDom = SDF.buildDomain(sphereGrid(16, 100), FLOW_X)
       const s = new GPU.LbmGpu(renderer, okDom, SDF.bakePhi(okDom), { measure: true, needVolume: false, caps })
       assert(renderer.info.memory.textures > base, '正常建构应该真係攞咗 texture')
       s.dispose()

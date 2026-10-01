@@ -11,7 +11,7 @@
 //     瞬时值，而佢会当咗係结论。
 //  ③ 跨朝向嘅比较要用【阻力面积 Cd×A】。朝向一转迎风面积就变，净係比 Cd = 比紧两个
 //     唔同分母嘅数。呢度有一条 fixture 係「Cd 升咗 20% 但阻力实情细咗 40%」。
-//  ④ 诚实文案（实测 2.0–2.2× 常数增益、绝对值唔可信）唔可以畀人静静鸡改走。
+//  ④ 诚实文案（绝对 Cd 未经验证；2.0–2.2× 只係可疑嘅历史观察值、唔係已确认偏差）唔可以畀人静静鸡改走。
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -363,7 +363,7 @@ test('★ 跨朝向：Cd 升咗 20% 但阻力实情细咗 40%（分母唔同件�
   assert.ok(b.step > a.step)
 })
 
-test('★ 常数系统增益（实测 2.0–2.2×）喺比值入面会完全消掉', () => {
+test('★ 数学性质：假设有常数增益（历史观察值 2.0–2.2× 仅作示例），比值会完全消掉', () => {
   const build = (gain) => {
     const { sched, pc } = makeRig()
     pc.notePose(IDENTITY_POSE, 1000, 0)
@@ -437,12 +437,20 @@ test('参考位姿可以改；改咗成张表要跟住重算', () => {
 /* ══════════════════════════════════════ ⑥ 诚实文案 / 常数 */
 
 test('★ 诚实文案同实测常数冇畀人静静鸡改走', () => {
-  assert.deepEqual([...GPU_CD_GAIN_RANGE], [2.0, 2.2], '实测增益范围唔可以改（改之前请再量一次）')
-  assert.deepEqual([...GPU_CD_GAIN_DLB_TESTED], [20, 28, 37], '「唔飘」係基于呢三个解析度')
-  assert.equal(GPU_CD_ABSOLUTE_TRUSTWORTHY, false, '★ GPU 绝对 Cd 唔可信 —— 呢个唔係设定，係实测结论')
+  // 呢两个係【历史观察值，唔可靠】—— 值保留只为咗唔好有人靜靜雞改（亦唔好有人拎嚟当校正系数）
+  assert.deepEqual([...GPU_CD_GAIN_RANGE], [2.0, 2.2], '历史观察值唔可以静静鸡改（亦唔可以当已确认偏差）')
+  assert.deepEqual([...GPU_CD_GAIN_DLB_TESTED], [20, 28, 37], '历史 fixture 用过嘅三个解析度')
+  assert.equal(GPU_CD_ABSOLUTE_TRUSTWORTHY, false, '★ GPU 绝对 Cd 未经有效验证 —— 唔可以当真数显示')
 
-  for (const claim of ['2.0–2.2', 'dLb 20/28/37', '常數系統增益', '比值', 'CPU 引擎']) {
+  // 2026-10-01：絕對 Cd 已經喺乾淨條件下量到（1.13×），所以 '未定案' / '仍然未量到' 唔再成立，
+  // 換成實測事實。必須保留嘅係：舊嗰個 2× 講法唔成立、乾淨條件下嘅實測值、同「用 CPU 引擎」嘅出路。
+  for (const claim of ['唔成立', '堵塞率 14–17%', '0.427', '從未收斂', '2.1%', '1.13', '趨勢級', '比值', 'CPU 引擎']) {
     assert.ok(POSE_COMPARE_NOTE.includes(claim), `诚实文案唔见咗「${claim}」`)
+  }
+  // 反向：唔准写成已确认嘅求解器缺陷 / 已确认嘅常数系统增益 / 已确认冇偏差
+  // 反向：唔准寫成已確認嘅求解器缺陷、唔准宣稱「完全冇偏差」、唔准把成因一口咬定
+  for (const bad of ['常數系統增益', '計咗兩次', '冇偏差', '已確認係堵塞', '未定案', '仍然未量到']) {
+    assert.ok(!POSE_COMPARE_NOTE.includes(bad), `诚实文案唔可以讲过头：「${bad}」`)
   }
   assert.ok(POSE_COMPARE_NOTE.length > 120, '文案畀人删剩一句 = 冇讲清楚')
   for (const claim of ['迎風面積', 'Cd×A', 'dragRatio']) {
@@ -714,7 +722,7 @@ test('★ toWindPoseRecords：id 转 string、比值照过、【蓄意冇 dragN�
   assert.equal(recs.length, 2)
   for (const r of recs) {
     assert.equal(typeof r.id, 'string', 'WindPoseCompare.tsx 要 string id 做 React key')
-    // ★ 绝对阻力（带住实测 2.0–2.2× 增益）唔可以流出去 store ★
+    // ★ 绝对阻力（未经验证）唔可以流出去 store ★
     assert.equal('dragN' in r, false, '★ 蓄意缺栏：绝对阻力唔可以摆落 store 畀人第日「顺手」显示')
     assert.equal('cd' in r, false, '★ 绝对 Cd 一样唔可以流出去')
   }

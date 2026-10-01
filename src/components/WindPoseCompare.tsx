@@ -14,8 +14,8 @@
 //   我跟住 PoseCompare.readout() 呢个方法名叫佢 windPoseReadout——GM 接线要跟呢个名，或者告诉我改。
 //
 // ★★ 绝对 Cd/阻力唔准当真数睇 ★★（同 PoseCompare 果边嘅结论一致，唔係我重新发明）
-// GPU 风洞求解器有个已实测嘅系统性增益（球体 Cd 三个分辨率都一致咁高 gainRange 倍）。净系
-// 【比值】先可信。本卡将 poseCompare.ts 嘅 POSE_COMPARE_NOTE / POSE_AREA_NOTE 原文咁展示
+// GPU 风洞求解器嘅绝对 Cd 未经有效验证（历史观察到 ~2× 但嗰个数出自堵塞率偏高且未收敛嘅 fixture，
+// 唔可靠；gainRange 只係历史观察值，唔好当系统增益显示）。净系【比值】（同域相对比较）先当可信。本卡将 poseCompare.ts 嘅 POSE_COMPARE_NOTE / POSE_AREA_NOTE 原文咁展示
 // （佢哋文件头写明「面板必须原文显示」），唔自己改写呢两句诚实文案。
 //
 // 位置：left:14 bottom:210 —— 同 WindLegend.tsx 嘅 right:14 bottom:210 对称，唔打架。

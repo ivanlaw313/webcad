@@ -52,9 +52,9 @@
 //    headless 测得到（tests/lbm-pose-driver.test.mjs）。
 //  · ★ setPose 由另一条 agent 同时喺度写 ★ —— 所以呢度係 feature-detect + try/catch：
 //    佢未落地嘅时候呢个档案照编译、照跑，只係降级成「唔支援拖拽」。
-//  · ★ 呢度只报比值 / Δ%，唔卖绝对 Cd ★：真机实测 GPU 球体 Cd 係 Clift-Gauvin 嘅
-//    2.0–2.2 倍而且三个解析度都唔飘（= 常数系统增益，根因未查）。常数增益喺 A/B 比值
-//    入面会消掉，所以「边个朝向阻力细 12%」而家讲得，「Cd = 0.47」讲唔得。
+//  · ★ 呢度只报比值 / Δ%，唔卖绝对 Cd ★：GPU 绝对 Cd 未经有效验证（之前观察到嘅
+//    ~2× 数字出自堵塞率 14–17% 且未收敛嘅 fixture，唔可靠，根因未定案）。
+//    所以「边个朝向阻力细 12%」（同域相对比较）而家讲得，「Cd = 0.47」讲唔得。
 //    见 poseCompare.POSE_COMPARE_NOTE。
 //
 //
@@ -174,11 +174,11 @@ export interface GpuWindResult extends WindResult {
 
   /* ── 位姿对比（拖拽驱动）。★ 有呢几个栏位嘅时候，面板要卖比值唔好卖 cd ★ ── */
   /**
-   * ★ true = 上面个 `cd` 係【未校正嘅趋势值】★
-   * 实测常数系统增益 2.0–2.2×（见 gpuCdGainRange）。面板显示绝对 Cd 嘅话一定要标住。
+   * ★ true = 上面个 `cd` 係【未经验证嘅趋势值】★
+   * 绝对 Cd 未经有效验证（历史观察 2.0–2.2× 唔可靠，见 gpuCdGainRange）。面板显示绝对 Cd 嘅话一定要标住。
    */
   gpuCdTrendOnly?: boolean
-  /** 实测增益范围，畀面板讲得出「高几多」 */
+  /** ⚠ 历史观察值（不可靠，唔係已确认偏差）。面板【唔好】拎佢讲「高几多」 */
   gpuCdGainRange?: [number, number]
   /** 诚实文案（比值可信 / 绝对唔可信）—— 面板要原文显示 */
   gpuCdTrendNote?: string
@@ -847,7 +847,7 @@ export default function WindTunnelGpu() {
       if (entry) r.gpuPoseLabel = entry.label
       if (table.rows.length > 0) r.gpuPoseTable = table
       if (line) r.gpuPoseLine = line
-      // ★ 未校正嘅绝对 Cd 一定要标住 ★（实测系统增益 2.0–2.2×，见 POSE_COMPARE_NOTE）
+      // ★ 未经验证嘅绝对 Cd 一定要标住 ★（见 POSE_COMPARE_NOTE）
       if (!r.warnings.includes(POSE_COMPARE_NOTE)) r.warnings = r.warnings.concat(POSE_COMPARE_NOTE)
       // ★ 位姿推唔落 solver 嘅时候，个结果係【烘焙嗰阵嘅朝向】嘅 ★ —— 一定要讲，
       //   否则用户见住零件打咗侧，而个数其实係打直嗰个，仲以为已经算咗。
@@ -864,7 +864,7 @@ export default function WindTunnelGpu() {
         windResult: r,
         // ★ 有得比就先讲比值 ★ —— 绝对数留喺后面而且逐个标住「未校正趋势值」
         status: (line ? line + ' — ' : '')
-          + `GPU 風洞（動量交換 Cd，★ 未校正趨勢值：實測偏高 ${GPU_CD_GAIN_RANGE[0]}–${GPU_CD_GAIN_RANGE[1]}× ★）：`
+          + 'GPU 風洞（動量交換 Cd，★ 絕對值未經驗證，只當趨勢值 ★）：'
           + `Cd≈${(r.cdCorr ?? r.cd).toFixed(3)}${(r.cdOsc ?? 0) > 1e-4 ? ` ± ${(r.cdOsc ?? 0).toFixed(3)}` : ''}`
           + ` · 阻力≈${dragStr} · ${solver.stepCount} step${stats.converged ? '（已收斂）' : '（未收斂，達上限）'}`
           + ' — ⚠ 絕對值請用 CPU 引擎；GPU 路徑只可以做相對比較',

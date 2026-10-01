@@ -66,7 +66,7 @@ import {
 import type { BodySphere, PoseBox, PoseSampleMode } from './rigidPose.ts'
 import { fbStatusName, probeMRT } from './probeMRT.ts'
 import type { MrtReport } from './probeMRT.ts'
-import { AsyncPixelReader } from './asyncReader.ts'
+import { AsyncPixelReader, type ReadbackMode } from './asyncReader.ts'
 
 /* ════════════════════════════════════════════════════ 写死嘅物理设定 */
 
@@ -368,7 +368,25 @@ export interface SolverReport {
   /** 上一次 setPose 入面【由固体变返流体】嘅格数 —— 即係食咗 simple refill 嗰批 */
   poseRefillCells: number
   pose: PoseReport
+  /** GPU 讀回路（PBO+fence）嘅健康狀況 —— 退階咗就一定要見得到 */
+  readback: ReadbackStatus
   warnings: string[]
+}
+
+/**
+ * 讀回路狀態。★ 靜靜雞退階係講大話 ★ —— 一旦 fence 卡死而我哋轉咗同步 readPixels，
+ * caller（UI / 風洞 driver / 報告）要睇得到，因為代價唔同：同步讀每次掉一幀。
+ *
+ * ⚠ 呢個【唔】影響 pollForce() 嘅對外合約：null 一樣係「今帧冇新數」。
+ */
+export interface ReadbackStatus {
+  /** 三條 fence 任何一條退階過 = 'sync-fallback' */
+  mode: ReadbackMode
+  degraded: boolean
+  /** 第一個退階嘅原因（'fence-stall' / 'wait-failed'），冇就 null */
+  reason: string | null
+  /** 逐條 fence 嘅狀態（measure=false 嗰阵三個都係 'async'，因為根本冇落單） */
+  readers: { force: ReadbackMode; torque: ReadbackMode; area: ReadbackMode }
 }
 
 export interface PoseReport {
@@ -635,9 +653,9 @@ export class LbmGpu {
     if (this.measure) {
       this.pyrForce = this._pyramid(A.width, A.height, 2, 'reduceF')
       this.pyrArea = this._pyramid(this.ny, this.nz, 1, 'reduceA')
-      this.readForce = new AsyncPixelReader(this.gl, 4)
-      this.readTorque = new AsyncPixelReader(this.gl, 4)
-      this.readArea = new AsyncPixelReader(this.gl, 4)
+      this.readForce = new AsyncPixelReader(this.gl, 4, { label: 'force' })
+      this.readTorque = new AsyncPixelReader(this.gl, 4, { label: 'torque' })
+      this.readArea = new AsyncPixelReader(this.gl, 4, { label: 'area' })
     }
 
     // phi 3D texture（R32F，NEAREST）。二值 mask 畀 linear filter 抽样会产生【假嘅小数距离】。
@@ -1284,8 +1302,34 @@ export class LbmGpu {
       poseApplied: this._poseApplied,
       poseRefillCells: this._poseRefill,
       pose: this._poseReport(),
+      readback: this._readbackReport(),
       warnings: this.flow.warnings.concat(this.warnings),
     }
+  }
+
+  private _readbackReport(): ReadbackStatus {
+    const rs = [this.readForce, this.readTorque, this.readArea]
+    const degraded = rs.some(r => r?.degraded === true)
+    const reason = rs.find(r => r?.degraded === true)?.degradeReason ?? null
+    return {
+      mode: degraded ? 'sync-fallback' : 'async',
+      degraded,
+      reason,
+      readers: {
+        force: this.readForce?.mode ?? 'async',
+        torque: this.readTorque?.mode ?? 'async',
+        area: this.readArea?.mode ?? 'async',
+      },
+    }
+  }
+
+  /**
+   * 把三條讀回路推返 async 重新試。★ 唔好喺帧循环裏面 call ★（見 asyncReader.reset()）。
+   * 畀「WebGL context 復原 / 換 tier 重建」之後用。
+   */
+  resetReadback(): void {
+    this.readForce?.reset(); this.readTorque?.reset(); this.readArea?.reset()
+    this._fresh = false; this._haveArea = false
   }
 
   private _poseReport(): PoseReport {

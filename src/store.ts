@@ -2839,8 +2839,11 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   windReport: string
   /* ── GPU LBM 引擎 + 可拖拽位姿（2026-07-25）────────────────────────────────
    * ★ windEngine 预设一定要係 'cpu' ★ —— GPU 求解器喺真 RTX 5070 Ti 实测球体 Cd
-   *   高 2.0–2.2×，而且三个分辨率(dLb 20/28/37)两个 Re 都【唔飘】= 常数系统增益，
-   *   根因未查（最可疑：动量交换每条 link 计咗两次）。所以：
+   *   高 2.0–2.2×」—— 但 2026-10-01 查证发现嗰个数【唔可靠】：实验跑喺堵塞率 14–17%
+   *   （λ = d/D = 0.427）嘅重度受限域，而且从未收敛（Re≈600 尾流非稳态）。
+   *   ★ 已排除 ★ 动量交换重复计数（GPU link 数 == CPU 真值 7242，比值 1.0000）、
+   *   公式（独立动量平衡推导核实）、规范项（球体反演对称抵消到零）、归一化。
+   *   根因未定案，正确嘅绝对 Cd 仍然未量到。所以：
    *     ❌ 绝对 Cd 唔准喺 GPU 路径当真数卖   ✅ A/B 相对比较可信（常数增益喺比值消掉）
    *   见 analysis/lbm/poseCompare.ts 嘅 POSE_COMPARE_NOTE。 */
   windEngine: 'cpu' | 'gpu'
@@ -22068,7 +22071,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   windXray: false,
   windResult: null,
   windReport: '',
-  windEngine: 'cpu',        // ★ 唔准改做 'gpu' ★ 见 type 宣告嗰度：球体 Cd 高 2.0–2.2× 未修
+  windEngine: 'cpu',        // ★ 唔准改做 'gpu' ★ 见 type 宣告嗰度：GPU 绝对 Cd 未经验证
   windGpuRunId: 0,
   windLive: false,
   windSubsteps: 0,

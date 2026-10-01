@@ -143,14 +143,14 @@ export default function CSketch() {
       <div className="cs-toolbar">
         <span className="cs-title">{tStatus('約束草圖', lang)}</span>
         {TOOLS.map((t) => (
-          <button key={t.t} title={t.title} className={'cs-btn' + (s.tool === t.t ? ' on' : '')} onClick={() => s.setTool(t.t)}>{t.label}</button>
+          <button key={t.t} title={t.title ? tStatus(t.title, lang) : undefined} className={'cs-btn' + (s.tool === t.t ? ' on' : '')} onClick={() => s.setTool(t.t)}>{tStatus(t.label, lang)}</button>
         ))}
         {s.tool === 'polygon' && (
           <label className="cs-h" title="正多邊形邊數（3–120）">邊數 <input type="number" min={3} max={120} value={s.polySides} onChange={(e) => s.setPolySides(Number(e.target.value))} style={{ width: 44 }} /></label>
         )}
         <span className="cs-div" />
         {CBTN.map((b) => (
-          <button key={b.k} className="cs-btn cs-cstr" title={b.title} onClick={() => s.apply(b.k)}>{b.label}</button>
+          <button key={b.k} className="cs-btn cs-cstr" title={tStatus(b.title, lang)} onClick={() => s.apply(b.k)}>{tStatus(b.label, lang)}</button>
         ))}
         <span className="cs-div" />
         <button className="cs-btn cs-cstr" title="把所選線設為/取消構造線（參考/中心線，虛線顯示，不計入拉伸輪廓）" onClick={() => s.toggleConstruction()}>┄ 構造線</button>

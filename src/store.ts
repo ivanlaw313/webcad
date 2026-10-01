@@ -1,4 +1,5 @@
 import { offsetPatternSources } from './sketch/offsetPatternSources'
+import { resolvePatternTargets, type PatternSelectionRef } from './sketch/patternSourceSelection'
 import { captureSketchParameters, restoreSketchParameters, type SketchParameterSnapshot } from './sketch/sketchParameterHistory'
 import { refValid as dimensionReferenceValid } from './sketch/freesolve'
 import { patternDistanceSideError } from './sketch/patternDistanceSides'
@@ -1132,7 +1133,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   skCornerAt: (p: Pt) => void   // T790：Fusion 式单角倒圆角/倒角 — 点近一个直角顶点，按 sketchCornerR + 当前工具(cfillet/cchamfer) 倒嗰个角
   toolPreview: SketchShape[] | null  // T792：offset/倒角 悬停预览 ghost（绿虚线）— 点之前已睇到结果（正/反/双向）
   refreshToolPreview: () => void     // T792：设定（距离/反向/双向/半径）一改即重算预览（用 sketchPreview 作光标位）
-  sizing: { tool: 'offset' | 'cfillet' | 'cchamfer'; shapeIdx: number; vi: number; anchor: Pt; ref: SketchShape; raw?: Pt; typed?: boolean } | null  // T796：拖柄实时调尺寸 — 点锁定目标后，移动鼠标拖 距离/半径（1mm 步进），再点确定。ref=锁定形状身份（防中途删/改令 index 错位）；raw/typed=刚打过数字时维持嘅值
+  sizing: { tool: 'offset' | 'cfillet' | 'cchamfer'; shapeIdx: number; vi: number; anchor: Pt; ref: SketchShape; raw?: Pt; typed?: boolean; typedValue?: number } | null  // T796：拖柄实时调尺寸 — 点锁定目标后，移动鼠标拖 距离/半径（1mm 步进），再点确定。ref=锁定形状身份（防中途删/改令 index 错位）；raw/typed=刚打过数字时维持嘅值
   sizeTypeKey: (key: string) => void   // T796b：调尺寸时键盘输入（数字设 距离/半径，唔好误入起点坐标）
   offsetSketch: (d: number) => void
   mirrorSketch: (axis: 'x' | 'y') => void
@@ -5175,9 +5176,22 @@ export const useApp = create<AppState>((rawSet, get) => {
   }
   let arrayPreviewRequest=0
   let arrayCache: {revision:unknown[];cfg:AppState['arrayCfg'];transforms:CopyTransform[];prepared:Awaited<ReturnType<typeof prepareCopy>>}|null=null
-  const patternTargets=(s:AppState,shapes:SketchShape[])=>{
-    const selected=[...new Set(s.skSel.flatMap(r=>'shape'in r&&Number.isInteger(r.shape)&&r.shape>=0&&r.shape<shapes.length?[r.shape]:[]))]
-    return selected.length?selected:shapes.map((_,i)=>i)
+  /* ★ BUG-209 修 ★ —— 外部 QA 報「環形陣列套用時複製晒草圖所有封閉輪廓（預覽只有 6 個）」。
+   *
+   * 根因就係下面原本嗰句 fallback：`selected.length ? selected : shapes.map((_,i)=>i)`
+   * —— 空選擇會【靜靜擴大成整張草圖】。而預覽同套用讀選擇嘅時刻唔同
+   * （預覽喺 SketchLayer 嘅 useLayoutEffect、套用喺 commit 嗰刻 get()），
+   * 所以中途一失去選擇，預覽仲係 6 個、套用就變成陣列成張草圖。
+   * 呢個係資料完整性問題：用戶以為陣列緊一個圓，實際多咗一堆唔想要嘅輪廓。
+   *
+   * 注意：關聯路徑（store.ts:4473 / 7292）本來就【已經有】拒絕空選擇嘅守衛，
+   * 淨係呢條非關聯路徑漏咗 —— 兩邊規則唔一致先至係真正嘅缺口。
+   *
+   * allowImplicitSingle：草圖得一個輪廓時空選擇冇歧義，照做（唔好整紅
+   * tests/sketch-array-store.test.mjs 現有嗰條單輪廓 case）。兩個或以上就一定要揀。 */
+  const patternTargets=(s:AppState,shapes:SketchShape[]):number[]|{error:string}=>{
+    const r=resolvePatternTargets(s.skSel as PatternSelectionRef[],shapes.length,{allowImplicitSingle:true})
+    return r.ok?r.targets:{error:r.reason}
   }
   const previewArray=async()=>{
     const session=get().skPatternSession
@@ -5187,7 +5201,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s=get(),c=s.arrayCfg,revision=copyRevision(s)
     if(s.mode!=='sketch'||s.sketchTool!=='array'){set({arrayPreview:{shapes:null,pending:false,error:null}});return}
     set({arrayPreview:{shapes:null,pending:true,error:null}})
-    const shapes=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])] as SketchShape[],targets=patternTargets(s,shapes)
+    const shapes=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])] as SketchShape[],tgtR=patternTargets(s,shapes)
+    // BUG-209：空選擇／失效選擇 → 預覽直接講原因，唔好靜靜陣列成張草圖
+    if(!Array.isArray(tgtR)){set({arrayPreview:{shapes:null,pending:false,error:tgtR.error}});return}
+    const targets=tgtR
     const plan=c.kind==='rect'?planRectPattern(c.nx,c.distType==='extent'&&c.nx>1?c.dx/(c.nx-1):c.dx,c.ny,c.distType==='extent'&&c.ny>1?c.dy/(c.ny-1):c.dy):planCircularPattern(c.count,c.angleType==='full'&&Number.isFinite(c.angle)?(c.angle<0?-360:360):c.angle,c.cx,c.cy)
     const error=!plan.ok?plan.reason:!shapes.length?'請先選擇或繪製輪廓':shapes.length+targets.length*plan.transforms.length>1000?'陣列總輪廓數超過1000':null
     if(error||!plan.ok){set({arrayPreview:{shapes:null,pending:false,error}});return}
@@ -5205,7 +5222,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     get().skDragCancel()
     const s=get(),shapes=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])] as SketchShape[]
     if(!shapes.length){set({status:'陣列：先畫至少一個輪廓'});return}
-    const targets=patternTargets(s,shapes)
+    const tgtR=patternTargets(s,shapes)
+    // BUG-209：套用同預覽必須用同一條規則 —— 原本套用嗰條漏咗守衛，所以預覽 6 個、套用陣列晒全部
+    if(!Array.isArray(tgtR)){set({status:'陣列：'+tgtR.error});return}
+    const targets=tgtR
     if(shapes.length+targets.length*plan.transforms.length>1000){set({status:'陣列總輪廓數超過1000，請減少數量'});return}
     const request=++patternRequest,cfg=s.arrayCfg
     set({arrayPending:true})
@@ -5459,7 +5479,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   sketchSlotW: 20,
   setSketchSlotW: (n) => set({ sketchSlotW: Math.max(1, n || 20) }),
   sketchCornerR: 8,
-  setSketchCornerR: (n) => { set((s) => ({ sketchCornerR: Math.max(0, n || 0), ...(s.sizing ? { sizing: { ...s.sizing, typed: true, raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改半径即更新倒角预览；T796-3：调尺寸中打数字→标记 typed，下一次鼠标轻微移动唔覆盖打嘅值
+  setSketchCornerR: (n) => { set((s) => ({ sketchCornerR: Math.max(0, n || 0), ...(s.sizing ? { sizing: { ...s.sizing, typed: true, typedValue: Math.max(0, n || 0), raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改半径即更新倒角预览；T796-3：调尺寸中打数字→标记 typed，下一次鼠标轻微移动唔覆盖打嘅值
   sketchConicRho: 0.5,
   setSketchConicRho: (n) => { set({ sketchConicRho: Math.min(0.95, Math.max(0.05, n || 0.5)) }); get().refreshToolPreview() },   // S177：改 ρ 即更新圆锥曲线预览（clamp 0.05~0.95 避退化）
   // Round every corner of the current closed poly sketch by radius r — TRUE tangent arcs (bulge segments,
@@ -5534,7 +5554,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return { ...undo, sketchProfiles: np, status: minT < d - 1e-6 ? `已對 ${hit} 個輪廓共 ${total} 個角倒角（要求 C${d}，部分角因鄰邊短收窄至 C${minT.toFixed(2)}）` : `已對 ${hit} 個輪廓共 ${total} 個角倒 C${d} 倒角` }
   }),
   sketchOffsetD: 5,
-  setSketchOffsetD: (n) => { set((s) => ({ sketchOffsetD: n || 0, ...(s.sizing ? { sizing: { ...s.sizing, typed: true, raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改距离即更新预览；T796-3：调尺寸中打数字→标记 typed，唔被鼠标轻微移动覆盖
+  setSketchOffsetD: (n) => { set((s) => ({ sketchOffsetD: n || 0, ...(s.sizing ? { sizing: { ...s.sizing, typed: true, typedValue: n || 0, raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改距离即更新预览；T796-3：调尺寸中打数字→标记 typed，唔被鼠标轻微移动覆盖
   sketchOffsetBoth: false,
   toggleSketchOffsetBoth: () => { set((s) => ({ sketchOffsetBoth: !s.sketchOffsetBoth })); get().refreshToolPreview() },
   toolPreview: null,
@@ -9619,12 +9639,21 @@ export const useApp = create<AppState>((rawSet, get) => {
       const szShapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
       // SIZING-4：锁定目标已被删/改（ref 唔再喺数组）→ 收起拖柄并提示，唔好静静偏移到第二个轮廓
       if (!szShapes.includes(sz.ref)) return { sizing: null, toolPreview: null, sketchPreview: raw, sketchSnap: null, snapSrc: null, sketchDim: null, status: '調尺寸：所選目標已改動/刪除 — 重新點目標' }
-      // T796-3：刚打过数字 → 喺 3mm 死区内维持打嘅值，唔畀鼠标轻微移动覆盖；明显拖开先恢复跟手
-      const moved = !(sz.typed && sz.raw) || Math.hypot(raw[0] - sz.raw![0], raw[1] - sz.raw![1]) > 3
-      if (sz.typed && !moved) return { sketchPreview: raw, sketchSnap: null, snapSrc: null }
-      const clearTyped = sz.typed ? { sizing: { ...sz, typed: false } } : {}
-      const value = sizingValueAt(szShapes, sz, raw)
-      if (sz.tool === 'offset') return { ...clearTyped, sketchPreview: raw, sketchSnap: null, snapSrc: null, sketchOffsetD: value, toolPreview: previewLockedSizing(szShapes, sz, value, s.sketchOffsetBoth, s.sketchCornerR), sketchDim: `偏移 ${value} mm（拖 / 打数字 / 点确定）` }
+      /* ★ BUG-207 修 ★ —— 外部 QA 報「草圖偏移 5 mm 出 40×30 → 58×48」。
+       *
+       * 58−40 = 48−30 = 18 = 2×9 → 真正 commit 落去嘅 d 係 9 唔係 5。
+       * 偏移算法本身啱（offsetPath 實測 40×30 外偏 5 = 50×40，誤差 1e-6）。
+       * 錯喺呢度：原本只有一個 3mm 死區保護打落嘅數字，一超過就 clearTyped
+       * 兼用游標距離覆蓋。而【你要移動滑鼠去撳「確定」】—— 嗰下移動必然超過 3mm，
+       * 所以打咗嘅數字【永遠】commit 唔到（除非撳 Enter）。呢個係靜默改用戶輸入，
+       * 同 BUG-279 數量夾 64、BUG-290 FEA 力值改值係同一個病根。
+       *
+       * 改法：打咗數字就【黐住】，唔再由移動距離解除。游標照跟（預覽位置要跟手），
+       * 但數值一路用打嘅嗰個，直到用戶自己清空輸入／換目標／換工具。 */
+      const typedStick = !!(sz.typed && Number.isFinite(sz.typedValue) && sz.typedValue !== 0)
+      const clearTyped = {}
+      const value = typedStick ? (sz.typedValue as number) : sizingValueAt(szShapes, sz, raw)
+      if (sz.tool === 'offset') return { ...clearTyped, sketchPreview: raw, sketchSnap: null, snapSrc: null, sketchOffsetD: value, toolPreview: previewLockedSizing(szShapes, sz, value, s.sketchOffsetBoth, s.sketchCornerR), sketchDim: typedStick ? `偏移 ${value} mm（已鎖定打入值 — 清空輸入框先恢復跟手）` : `偏移 ${value} mm（拖 / 打數字 / 點確定）` }
       const tp = previewLockedSizing(szShapes, sz, s.sketchOffsetD, false, value)
       return { ...clearTyped, sketchPreview: raw, sketchSnap: null, snapSrc: null, sketchCornerR: value, toolPreview: tp, sketchDim: sizingCornerDim(szShapes, sz, value, !!tp) }
     }
@@ -14467,7 +14496,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   holeBcCount: 4,
   holeBcPcd: 50,
   setHoleBoltCircle: (v) => set({ holeBoltCircle: v }),
-  setHoleBcCount: (n) => set({ holeBcCount: Math.max(2, Math.min(64, Math.round(n) || 4)) }),
+  // ★ BUG-279 修 ★ —— 外部 QA 報「螺栓孔圓數量靜默夾住 64，冇上限提示」。
+  // 原本靜靜鷄 clamp：用戶打 100，欄位變 64，一個字都唔講 → 佢以為做咗 100 個孔。
+  // 靜默改用戶輸入係呢個 app 嘅一個通病（同類：FEA 力值 0→50、−5→5）。
+  // 而家：真係夾到先出聲，夾唔到就一個多餘 set 都冇（唔好嘈）。
+  setHoleBcCount: (n) => set(() => {
+    const want = Math.round(n) || 4
+    const got = Math.max(2, Math.min(64, want))
+    if (got === want || want === 0) return { holeBcCount: got }
+    return { holeBcCount: got, status: `螺栓孔圓數量 ${want} 超出範圍（2–64），已改為 ${got} —— 唔係靜默夾，係提你知` }
+  }),
   setHoleBcPcd: (n) => set({ holeBcPcd: Math.max(1, n || 50) }),
   holeClearance: 0,
   setHoleClearance: (n) => set({ holeClearance: Number.isFinite(n) ? n : 0 }),

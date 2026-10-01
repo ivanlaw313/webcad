@@ -159,12 +159,21 @@ function runSweep(label, mesh, L, F, I, resList) {
   const delta = (F * L * L * L) / (3 * E * I);
   const eb = [], ec = [];
   const rows = [];
+  const seen = new Set();   // 去重：唔同 res 可能解出同一个网格（见下）
   for (const res of resList) {
     const b = runVoxelFea({ vertices: Float32Array.from(mesh.vertices), triangles: Uint32Array.from(mesh.triangles), fixed: { point: [0, 0, 0], normal: [1, 0, 0] }, load: { point: [L, 0, 0], normal: [1, 0, 0] }, force: [0, 0, -F], E, nu, resolution: res, cutCell: false });
     const c = runVoxelFea({ vertices: Float32Array.from(mesh.vertices), triangles: Uint32Array.from(mesh.triangles), fixed: { point: [0, 0, 0], normal: [1, 0, 0] }, load: { point: [L, 0, 0], normal: [1, 0, 0] }, force: [0, 0, -F], E, nu, resolution: res, cutCell: true });
     if (!b.ok || !c.ok) throw new Error(`sweep res=${res} 失败：${b.error || c.error}`);
     const errB = Math.abs(b.dispMax - delta) / delta * 100;
     const errC = Math.abs(c.dispMax - delta) / delta * 100;
+    // BUG-289 修正后：runVoxelFea 对幼长件会自动把【最短轴】加密到至少 4 层体素，
+    // 所以低 res 几档会【塌埋同一个网格】(res 14~24 全部 → h=5、288 体素)。重复样本会
+    // 令聚合统计被嗰一档嘅运气放大（某档二值碰巧贴近解析值 → 平均值失真）。
+    // 按实际网格（nVox + h）去重，每个【唔同嘅网格】先计一次 —— 保持原测试意图
+    // 「一组递增分辨率上嘅系统性误差」，而唔系改宽容差夹数。
+    const key = b.nVox + '/' + b.h.toFixed(9);
+    if (seen.has(key)) continue;
+    seen.add(key);
     eb.push(errB); ec.push(errC);
     rows.push({ res, nVox: b.nVox, dB: b.dispMax, errB, dC: c.dispMax, errC });
   }
@@ -179,7 +188,7 @@ function runSweep(label, mesh, L, F, I, resList) {
     console.log(`    ${r.res.toString().padEnd(4)} ${r.nVox.toString().padEnd(5)} ${f(r.dB, 5).padStart(8)} ${f(r.errB, 2).padStart(9)}   ${f(r.dC, 5).padStart(8)} ${f(r.errC, 2).padStart(9)}`);
   }
   const mB = mean(eb), mC = mean(ec);
-  console.log(`  ── 聚合（${resList.length} 档）──`);
+  console.log(`  ── 聚合（${eb.length} 个唯一网格 / ${resList.length} 档 res）──`);
   console.log(`    平均误差：二值 ${f(mB, 2)} %  →  cut-cell ${f(mC, 2)} %   （相对降低 ${f((mB - mC) / mB * 100, 1)}%）`);
   console.log(`    中位误差：二值 ${f(med(eb), 2)} %  →  cut-cell ${f(med(ec), 2)} %`);
   console.log(`    RMS 误差： 二值 ${f(rms(eb), 2)} %  →  cut-cell ${f(rms(ec), 2)} %`);

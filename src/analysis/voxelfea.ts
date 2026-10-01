@@ -750,12 +750,77 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     }
 
     const res = clampResolution(inp.resolution)
-    if (Number.isFinite(inp.resolution) && Math.round(inp.resolution) !== res) {
-      warnings.push(`分辨率 ${inp.resolution} 超出 [4,64]，已用 ${res}`)
+    // 注：clamp 警告推迟到 §1a 之后先出 —— §1a 可能会按【真‧体素预算】还返被 64 上限削走嘅
+    // 分辨率，嗰阵「已用 64」就系错嘅讲法。到时用最终 resEff 讲返实话。
+
+    // ---- 1a. BUG-289：截面最少层数自适应（SECTION-REFINE）
+    //   根因：`resolution` 定义 = 【最长轴】嘅分割数，h = longest/res。幼长件（梁/杆）嘅
+    //   【截面】系最短轴 → 截面层数 = thin/h = thin·res/longest，会随梁长 L 变长而【下降】。
+    //   10×10 截面、res=32：L=100 → 截面 3 层；L=200 → 1 层；L=300 → 1 层（h 仲大过截面）。
+    //   后果（三样一齐爆，正正系 QA BUG-289 报嘅症状）：
+    //     ① 单层 hex 表达唔到弯曲（无上下纤维可拉压）→ 结构假性过刚；
+    //     ② 应力喺【单元中心】采样，单层时中心 = 中性轴 → 弯曲应力采样到 ≈0 → σ 低一两个数量级；
+    //     ③ L 越长截面越粗 → σ 越细 ⇒「加长梁应力反而下降」趋势倒转（实测 L=100 σ=22.2、
+    //        L=200 σ=2.49 @res=16，跌 9 倍；解析应该系升一倍）。
+    //   另外 clampResolution 硬上限 64，令用户【根本冇办法】靠扭高 resolution 救返（L/thin>16
+    //   就必然少于 4 层），所以净系喺 UI 调参系解决唔到嘅 —— 必须喺呢度自适应。
+    //   修正：令【最短非零轴】至少有 MIN_SECTION_VOX 层体素，喺体素预算内自动加密 res
+    //   （只会【加】唔会减，厚实件 needRes ≤ res → 完全唔变，字节级向后兼容）。
+    const MIN_SECTION_VOX = 4   // 弯曲最少要 4 层：中性轴两边各 2 层，最外层中心喺 0.75c（见 §6 采样说明）
+    const VOX_BUDGET = 60000    // 低过 nVox>80000 嘅硬 fail 线，留余量（bbox 盒数系实体数嘅上界）
+    let resEff = res
+    {
+      let bx0 = Infinity, by0 = Infinity, bz0 = Infinity, bx1 = -Infinity, by1 = -Infinity, bz1 = -Infinity
+      const nV = Math.floor(inp.vertices.length / 3)
+      for (let v = 0; v < nV; v++) {
+        const x = inp.vertices[v * 3], y = inp.vertices[v * 3 + 1], z = inp.vertices[v * 3 + 2]
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) { bx0 = Infinity; break }
+        if (x < bx0) bx0 = x; if (x > bx1) bx1 = x
+        if (y < by0) by0 = y; if (y > by1) by1 = y
+        if (z < bz0) bz0 = z; if (z > bz1) bz1 = z
+      }
+      const ex = bx1 - bx0, ey = by1 - by0, ez = bz1 - bz0
+      const longest = Math.max(ex, ey, ez)
+      if (Number.isFinite(longest) && longest > 0) {
+        // 退化轴（薄板/平面件）唔计入：细过最长轴 1e-6 当系零厚度，加密都救唔到。
+        const eps = longest * 1e-6
+        let thin = Infinity
+        for (const e0 of [ex, ey, ez]) if (e0 > eps && e0 < thin) thin = e0
+        if (Number.isFinite(thin) && thin > 0) {
+          const needRes = Math.ceil((longest / thin) * MIN_SECTION_VOX)
+          if (needRes > resEff) {
+            // 体素预算：盒内格数 = ex·ey·ez/h³ = ex·ey·ez·r³/longest³ ≤ VOX_BUDGET
+            //   → r ≤ longest·(VOX_BUDGET/(ex·ey·ez))^(1/3)。退化轴用 h 做厚度（至少一层）。
+            const vol = Math.max(ex, eps) * Math.max(ey, eps) * Math.max(ez, eps)
+            const rBudget = Math.floor(longest * Math.cbrt(VOX_BUDGET / vol))
+            // 用户要求嘅 res 若本身被 clampResolution 嘅 64 硬上限削过，而体素预算仲食得落，
+            // 就还返俾佢（64 本来只系「体素预算」嘅粗代理；我哋而家有实数预算 rBudget）。
+            //   → 网格收敛研究（加密 res 要真系细 h）先至做得到；上限 256 防病态巨网格。
+            const asked = Math.round(Number.isFinite(inp.resolution) ? inp.resolution : res)
+            const userWant = Math.min(Math.max(asked, res), Math.max(rBudget, 1), 256)
+            const target = Math.max(Math.min(needRes, Math.max(rBudget, 1)), userWant)
+            if (target > resEff) {
+              resEff = target
+              const got = (thin / longest) * resEff
+              warnings.push(got + 1e-9 >= MIN_SECTION_VOX
+                ? `截面自适应加密：分辨率 ${res} → ${resEff}（幼长件截面只得 ${((thin / longest) * res).toFixed(1)} 层体素，弯曲算唔准；已加到 ${got.toFixed(1)} 层）`
+                : `截面自适应加密：分辨率 ${res} → ${resEff}，但受体素预算限制截面仍只得 ${got.toFixed(1)} 层（< ${MIN_SECTION_VOX}）：弯曲应力偏低、属趋势级参考`)
+            } else {
+              warnings.push(`⚠ 幼长件截面只得 ${((thin / longest) * res).toFixed(1)} 层体素（长细比 ${(longest / thin).toFixed(0)}:1），体素预算唔够加密：弯曲位移/应力会明显偏低，只可当趋势参考`)
+            }
+          }
+        }
+      }
+    }
+
+    if (Number.isFinite(inp.resolution) && Math.round(inp.resolution) !== resEff) {
+      warnings.push(`分辨率 ${inp.resolution} 超出可用范围（下限 4 / 上限由体素预算定），已用 ${resEff}`)
     }
 
     // ---- 1. 体素化
-    const grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog('voxelize', fr))
+    //   maxRes 传 resEff：clampResolution 内置 64 上限系【FEA 体素预算】嘅代理，但上面已经
+    //   直接用 VOX_BUDGET 算实数，所以呢度要解开 64 嘅枷锁（否则长细比 >16 嘅件永远救唔返）。
+    const grid = voxelize(inp.vertices, inp.triangles, resEff, (fr) => prog('voxelize', fr), Math.max(64, resEff))
     h = grid.h
     nVox = grid.nVox
     if (grid.oddColumns > 0) warnings.push(`奇异列 ${grid.oddColumns} 条（网格边/缝）`)
@@ -1126,8 +1191,28 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     // ---- 6. 应力（单元中心）
     prog('stress', 0)
     const D = buildD(inp.E, inp.nu)
-    const Bc = new Float64Array(144)
-    fillB(Bc, 0, 0, 0, h)
+    // ---- BUG-289 修正②：应力采样位置（SURFACE-SAMPLE）
+    //   旧做法净喺【单元中心】(ξ=η=ζ=0) 采样。弯曲时 σ 沿厚度线性分布、中性轴 = 0、峰值喺表面，
+    //   所以中心采样系【系统性低估】：n 层体素时最外层中心喺 0.75c(n=4)/0.833c(n=6)… → 低 1/(1−1/n) 倍，
+    //   n=1 更加系直接采喺中性轴 → σ≈0（呢个就系 BUG-289 σ 低一两个数量级嘅第二成因）。
+    //   修正：改为采【单元内 9 点】(中心 + 8 个角 ξ,η,ζ=±1)，取 von Mises 最大嗰点做该单元代表值。
+    //   呢个唔系 fudge factor —— 三线性 hex 嘅 FE 应变场喺自然坐标系精确三线性，喺角点求值
+    //   = 标准「Gauss 点应力外推到节点」(√3 外推) 嘅精确等价；系 Fusion/Abaqus 嘅常规应力恢复做法。
+    //   中心点仍然包含喺候选内 → 新值恒 ≥ 旧值，唔会令任何已通过嘅「应力应 ≈0」回归变红。
+    const SAMPLE_PTS: ReadonlyArray<readonly [number, number, number]> = [
+      [0, 0, 0],
+      [-1, -1, -1], [1, -1, -1], [-1, 1, -1], [1, 1, -1],
+      [-1, -1, 1], [1, -1, 1], [-1, 1, 1], [1, 1, 1],
+    ]
+    const nSamp = SAMPLE_PTS.length
+    const Bs = new Float64Array(nSamp * 144)
+    {
+      const tmp = new Float64Array(144)
+      for (let s = 0; s < nSamp; s++) {
+        fillB(tmp, SAMPLE_PTS[s][0], SAMPLE_PTS[s][1], SAMPLE_PTS[s][2], h)
+        Bs.set(tmp, s * 144)
+      }
+    }
     const vm = new Float32Array(nVox)
     const disp = new Float32Array(nVox)   // S96：体素中心位移幅值（8 节点 u 平均）
     const dispVec = new Float32Array(nVox * 3)   // S168：体素中心有符号位移向量 [ux,uy,uz]（变形形态/动画）
@@ -1148,11 +1233,34 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
       for (let d = 0; d < 24; d++) ue[d] = sol.u[elemDofs[base + d]]
       // S96：体素中心位移 = 8 节点 (ux,uy,uz) 平均 → 幅值（同 runVoxelModal 振型平均同款）
       { let dux = 0, duy = 0, duz = 0; for (let a = 0; a < 8; a++) { dux += ue[a * 3]; duy += ue[a * 3 + 1]; duz += ue[a * 3 + 2] } const ax = dux / 8, ay = duy / 8, az = duz / 8; disp[el] = Math.hypot(ax, ay, az); dispVec[el * 3] = ax; dispVec[el * 3 + 1] = ay; dispVec[el * 3 + 2] = az }
-      for (let r2 = 0; r2 < 6; r2++) {
-        let s = 0
-        const row = r2 * 24
-        for (let m = 0; m < 24; m++) s += Bc[row + m] * ue[m]
-        strain[r2] = s
+      // 9 点扫描：取 von Mises 最大嗰点嘅 strain/stress 做该单元代表值（表面纤维 → 弯曲峰值）。
+      //   NaN 处理：`v > vBest` 对 NaN 恒 false，所以 best 一定係有限值嗰点；若全部非有限，
+      //   bestS 维持 0（= 中心点）→ 下面照样 recompute 出 NaN，vmNonFinite 守卫原样生效。
+      let bestS = 0, vBest = -1
+      for (let s = 0; s < nSamp; s++) {
+        const sb = s * 144
+        let a0 = 0, a1 = 0, a2 = 0, a3 = 0, a4 = 0, a5 = 0
+        for (let m = 0; m < 24; m++) {
+          const um = ue[m]
+          if (um === 0) continue
+          a0 += Bs[sb + m] * um; a1 += Bs[sb + 24 + m] * um; a2 += Bs[sb + 48 + m] * um
+          a3 += Bs[sb + 72 + m] * um; a4 += Bs[sb + 96 + m] * um; a5 += Bs[sb + 120 + m] * um
+        }
+        const sx = D[0] * a0 + D[1] * a1 + D[2] * a2
+        const sy = D[6] * a0 + D[7] * a1 + D[8] * a2
+        const sz = D[12] * a0 + D[13] * a1 + D[14] * a2
+        const txy = D[21] * a3, tyz = D[28] * a4, tzx = D[35] * a5
+        const vs = vonMises(sx, sy, sz, txy, tyz, tzx)
+        if (vs > vBest) { vBest = vs; bestS = s }
+      }
+      {
+        const sb = bestS * 144
+        for (let r2 = 0; r2 < 6; r2++) {
+          let s = 0
+          const row = sb + r2 * 24
+          for (let m = 0; m < 24; m++) s += Bs[row + m] * ue[m]
+          strain[r2] = s
+        }
       }
       for (let r2 = 0; r2 < 6; r2++) {
         let s = 0

@@ -11,6 +11,7 @@ import { msg } from './i18n/catalog'
 import { LABEL_TO_KEY } from './i18n/labelToKey'
 import { TAB_TO_KEY, GROUP_TO_KEY } from './i18n/tabGroupKeys'
 import { traditionalToSimplified } from './i18n/tc2sc'
+import { simplifiedToTraditionalHK } from './i18n/sc2tcHK'
 import { JA_LABEL } from './i18n/jaLabels'
 import { ZH_CN_LABEL } from './i18n/zhCNLabels'
 
@@ -3728,7 +3729,9 @@ const _STATUS_EXACT: Record<string, string> = { ...STATUS_PHRASES, ...STATUS_PHR
 export function tStatus(s: string, lang: LangInput): string {
   if (!s) return s
   const L = normalizeLang(lang)
-  if (L === 'zh-HK') return s
+  // BUG-302: store.ts (monolith, off-limits to this lane) still emits simplified
+  // status text. Convert at the render layer instead of at every call site.
+  if (L === 'zh-HK') return simplifiedToTraditionalHK(s)
   if (L === 'zh-CN') return traditionalToSimplified(s)
 
   // v1.79/v1.80: Finish Sketch / sketch tool titles — avoid doneSketch / Dimension shred

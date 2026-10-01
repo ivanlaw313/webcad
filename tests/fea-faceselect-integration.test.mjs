@@ -115,7 +115,11 @@ console.log('\n=== T3 bounded face does NOT leak onto a coplanar sibling face (t
 // faceTris covering only y in [0,8] must select fewer nodes than the full x=40 plane band.
 const SLAB = [40, 28, 8];
 const { vertices: sv, triangles: st } = boxMesh(...SLAB);
-const slabRes = 14;            // longest axis 40 -> h≈2.857; ny≈10, nz≈3 (just needs >1 node row diff)
+// BUG-289 修正后：runVoxelFea 会自动把【最短轴】加密到至少 4 层体素（幼长件截面层数
+// 自适应）。slabRes 必须【本身已满足】该下限，否则 solver 内部用嘅 grid 同下面手动
+// voxelize(slabRes) 出嘅 grid 唔同，T3c 就会拿紧两个唔同网格嘅 nodeId 嚟比（假阳性）。
+// 40x28x8：thin=8、longest=40 → 下限 res = (40/8)*4 = 20。取 20 即 solver 唔会再加密。
+const slabRes = 20;            // longest axis 40 -> h≈2.857; ny≈10, nz≈3 (just needs >1 node row diff)
 const slabGrid = voxelize(sv, st, slabRes);
 const partialFaceTris = xFaceTris(SLAB[0], 8, SLAB[2]);   // x=40 face, only y in [0,8] (partial!)
 const fullPlaneSel = faceFeaSelect({ faceTris: xFaceTris(SLAB[0], SLAB[1], SLAB[2]), grid: slabGrid });

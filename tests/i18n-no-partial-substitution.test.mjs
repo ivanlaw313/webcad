@@ -11,6 +11,14 @@ const TUBE_TIP = '圓管/衬套：設外徑Ø/壁厚/高建空心管。'
 const TUBE_DLG = '圓管/衬套：設外徑Ø/壁厚/高 → 確定。管/衬套/垫環/隔套常用（恒建新體，外圓拉伸+內圓切除，時間軸可改）。'
 const FOURBAR = '平面四連杆閉環機構：拖曲柄角→連杆/摇杆約束求解聯動（杆長剛性）。'
 
+/** BUG-302: expected zh-HK rendering (simplified residue converted, wording otherwise kept). */
+const ZH_HK = {
+  [TIMELINE]: TIMELINE,
+  [TUBE_TIP]: '\u5713\u7ba1/\u896f\u5957\uff1a\u8a2d\u5916\u5f91\u00d8/\u58c1\u539a/\u9ad8\u5efa\u7a7a\u5fc3\u7ba1\u3002',
+  [TUBE_DLG]: '\u5713\u7ba1/\u896f\u5957\uff1a\u8a2d\u5916\u5f91\u00d8/\u58c1\u539a/\u9ad8 \u2192 \u78ba\u5b9a\u3002\u7ba1/\u896f\u5957/\u588a\u74b0/\u9694\u5957\u5e38\u7528\uff08\u6046\u5efa\u65b0\u9ad4\uff0c\u5916\u5713\u62c9\u4f38+\u5167\u5713\u5207\u9664\uff0c\u6642\u9593\u8ef8\u53ef\u6539\uff09\u3002',
+  [FOURBAR]: '\u5e73\u9762\u56db\u9023\u687f\u9589\u74b0\u6a5f\u69cb\uff1a\u62d6\u66f2\u67c4\u89d2\u2192\u9023\u687f/\u6416\u687f\u7d04\u675f\u6c42\u89e3\u806f\u52d5\uff08\u687f\u9577\u525b\u6027\uff09\u3002',
+}
+
 const CJK = /[\u4e00-\u9fff]/
 const GARBAGE = /Axis|Points|Circle管|plane四|Autorebuild|feature出現|時間timeline|Points擊|節Points/
 
@@ -48,7 +56,9 @@ test('timeline, tube/bushing, and four-bar hints are complete English sentences'
     assert.notEqual(en, src)
     assert.doesNotMatch(en, CJK)
     assert.doesNotMatch(en, GARBAGE)
-    assert.equal(tStatus(src, 'zh-HK'), src)
+    // BUG-302: zh-HK no longer echoes the source verbatim — it traditionalises the
+    // simplified residue (衬/垫/恒/杆/摇) that these store strings still carry.
+    assert.equal(tStatus(src, 'zh-HK'), ZH_HK[src])
   }
   assert.match(tStatus(TIMELINE, 'en'), /Parametric timeline/)
   assert.match(tStatus(TIMELINE, 'en'), /rebuild automatically/)

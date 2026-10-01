@@ -74,7 +74,7 @@ import { detectFace, nearSharpEdge } from '../geom/faceDetect'
 import { cutFaceGeom } from '../geom/sectionCap'   // S186：剖面盖切面三角抽取（切面上色）
 import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按需预览（避免普通建模首屏载入齿轮搜索）
 import { ToolIcon } from '../icons'
-import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, DATUM_CMD_METHODS, DATUM_CMD_ACC } from '../store'
+import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
 import { cadPointToThree, formBoxRectCadCorners, makePlacedBoxCage, type FormBoxDraft, type FormBoxPlane } from '../cad/formBox'
@@ -6000,10 +6000,41 @@ export default function Viewport() {
             <button className={'sb-tool' + (holeType === 'nuttrap' ? ' active' : '')} style={{ flex: 1 }} title="螺母陷阱：過孔 + 六角槽嵌螺母（3D 打印捕獲螺母）" onClick={() => setHoleType('nuttrap')}>螺母槽</button>
             <button className={'sb-tool' + (holeType === 'tapped' ? ' active' : '')} style={{ flex: 1 }} title="攻牙底孔：鑽 攻絲底孔Ø(d−螺距)，留料攻 M 螺紋（按 ISO 底孔表，非建模螺紋）" onClick={() => setHoleType('tapped')}>攻牙</button>
           </div>
+          {/* ★ BUG-263 修 ★ —— 外部 QA 報「揀 M6 實際建成 M5×0.8（底孔 Ø4.2）」。
+            *  根因唔係算術，係【語義陷阱】：攻牙模式之下呢個欄位要嘅係【螺紋公稱徑】
+            *  （M6 → 入 6，程式自己鑽 6 − 螺距 1.0 = Ø5.0），但佢標住「直徑 Ø」，
+            *  用戶照字面入底孔 5.0 → nearestIsoNom(5) = 5 → 建成 M5×0.8、底孔 4.2，
+            *  規格靜靜鷄跌一級。而且原本【完全冇 M 規格選單】，只有一個數字欄。
+            *  修法：攻牙模式改標籤做「螺紋 M」+ 畀一個 ISO 規格選單 + 即時顯示推導出嘅底孔，
+            *  令「入乜 → 出乜」喺提交之前就睇得到。*/}
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ color: '#6b7680' }}>直徑 Ø</span>
-            <span><LenInput mm={holeD} onMm={setHoleD} unit={unit} w={66} min={0.1} title="孔徑（inch 模式可打分數，如 1/4）" /> {unit === 'inch' ? 'in' : unit}</span>
+            <span style={{ color: '#6b7680' }}>{holeType === 'tapped' ? '螺紋 M（公稱徑）' : '直徑 Ø'}</span>
+            <span><LenInput mm={holeD} onMm={setHoleD} unit={unit} w={66} min={0.1} title={holeType === 'tapped' ? '螺紋公稱徑：M6 就入 6（唔係入底孔 5.0）。底孔由程式按 ISO 表自己算。' : '孔徑（inch 模式可打分數，如 1/4）'} /> {unit === 'inch' ? 'in' : unit}</span>
           </label>
+          {holeType === 'tapped' && (() => {
+            const nom = ISO_NOMS.reduce((a, b) => (Math.abs(b - holeD) < Math.abs(a - holeD) ? b : a))
+            const fine = holeFinePitch && ISO_FINE[nom] != null
+            const pitch = fine ? ISO_FINE[nom] : ISO_COARSE[nom]
+            const drill = Math.max(0.5, nom - pitch)
+            const off = Math.abs(holeD - nom) > 1e-6
+            return (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
+                  <span style={{ color: '#6b7680', fontSize: 12 }}>規格</span>
+                  {ISO_NOMS.map((m) => (
+                    <button key={m} type="button" className={'sb-tool' + (Math.abs(holeD - m) < 1e-6 ? ' active' : '')}
+                      style={{ padding: '0 6px', minWidth: 0 }} onClick={() => setHoleD(m)}>M{m}</button>
+                  ))}
+                </div>
+                {/* 「入乜 → 出乜」寫晒出嚟：用戶一眼睇到自己揀緊邊個規格、鑽幾大 */}
+                <div style={{ fontSize: 11.5, color: off ? '#b42318' : '#2f9e44' }}>
+                  {off
+                    ? `⚠ ${holeD} 唔係標準 ISO 公稱徑，會當成最接近嘅 M${nom} → ${fine ? '細牙' : '粗牙'} ×${pitch}、底孔 Ø${drill.toFixed(1)}。想要 M${Math.round(holeD)} 就撳上面個掣。`
+                    : `→ M${nom} ${fine ? '細牙' : '粗牙'} ×${pitch}，鑽底孔 Ø${drill.toFixed(1)}`}
+                </div>
+              </div>
+            )
+          })()}
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }} title="標準螺栓孔：選一個即自動填直徑（過孔=螺栓穿過；攻絲=螺紋底孔）">
             <span style={{ color: '#6b7680' }}>標準孔</span>
             <select defaultValue="0" onChange={(e) => { const v = Number(e.target.value); if (v > 0) setHoleD(v) }} style={{ height: 26 }}>
@@ -6100,7 +6131,7 @@ export default function Viewport() {
           </label>
           {holeBoltCircle && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 8, fontSize: 12, color: '#6b7680' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 3 }}>數量 <input type="number" min={2} max={64} step={1} value={holeBcCount} onChange={(e) => setHoleBcCount(Number(e.target.value))} style={{ width: 44 }} /></label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 3 }}>數量（2–64）<input type="number" min={2} max={64} step={1} value={holeBcCount} onChange={(e) => setHoleBcCount(Number(e.target.value))} style={{ width: 44 }} /></label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 3 }} title="節圓直徑 Pitch Circle Diameter">PCD Ø <input type="number" min={1} step={1} value={holeBcPcd} onChange={(e) => setHoleBcPcd(Number(e.target.value))} style={{ width: 50 }} /></label>
             </div>
           )}
@@ -6240,7 +6271,7 @@ export default function Viewport() {
                 <summary>{tStatus(`進階：${instances.length || 1} 個實例`, lang)}</summary>
                 <textarea aria-label={tStatus('進階實例資料', lang)} value={String(featDlg.params.instances ?? '[]')} onChange={(e) => setFeatParam('instances', e.target.value)} spellCheck={false} style={{ display: 'block', width: '100%', minHeight: 72, marginTop: 4, fontFamily: 'monospace', fontSize: 11, boxSizing: 'border-box' }} />
               </details>
-              <label title={tStatus('抑制實例：逗號分隔實例索引（0 是列表內第一個副本；seed 不在列表）。', lang)}>{tStatus('抑制實例', lang)} <input type="text" value={String(featDlg.params.suppress ?? '')} onChange={(e) => setFeatParam('suppress', e.target.value)} placeholder="2,5" style={{ width: 84 }} /></label>
+              <label title={tStatus('抑制實例：逗號分隔實例索引（0 是列表內第一個副本；seed 不在列表）。', lang)}>{tStatus('抑制實例', lang)} <input type="text" value={String(featDlg.params.suppress ?? '')} onChange={(e) => setFeatParam('suppress', e.target.value)} placeholder="留空=全部保留" style={{ width: 84 }} /></label>
               <label title={tStatus('計算選項目前保留為時間軸意圖；剛體幾何使用同一穩定重建路徑。', lang)}>{tStatus('計算', lang)} <select value={String(featDlg.params.compute ?? 'optimized')} onChange={(e) => setFeatParam('compute', e.target.value)} style={{ height: 26 }}><option value="optimized">{tStatus('優化', lang)}</option><option value="identical">{tStatus('相同', lang)}</option><option value="adjust">{tStatus('調整', lang)}</option></select></label>
             </>
           })()}
@@ -6280,7 +6311,7 @@ export default function Viewport() {
               <label title={tStatus('方向2（Y 間距沿此方向）：用已建構造軸驅動，缺省=世界 Y 軸。選中後 Y 間距沿該軸鋪。', lang)}>{tStatus('方向2', lang)} <select value={String(featDlg.params.dir2 ?? '')} onChange={(e) => setFeatParam('dir2', e.target.value)} style={{ height: 26 }}><option value="">{tStatus('— 世界 Y 軸 —', lang)}</option>{useApp.getState().caxes.map((ca, i) => { const LV: Record<string, [number, number, number]> = { X: [1, 0, 0], Y: [0, 1, 0], Z: [0, 0, 1] }; const dv = ca.dirV ?? LV[ca.dir]; return <option key={'D2A' + i} value={dv.join(',')}>{tStatus('構造軸', lang)}{i + 1}（{ca.dirV ? ca.dirV.map((v) => +v.toFixed(1)).join(',') : ca.dir}）</option> })}</select></label>
             </>)}
             {/* GM-3DV1 S3：逐实例抑制 + Compute Option */}
-            <label title={tStatus('抑制實例（Fusion Suppression）：逗號分隔要跳過嘅副本索引（0=原件，之後按 (i*Y層+j)*Z層+k 順序）。例：2,5', lang)}>{tStatus('抑制實例', lang)} <input type="text" value={String(featDlg.params.suppress ?? '')} onChange={(e) => setFeatParam('suppress', e.target.value)} placeholder="2,5" style={{ width: 84 }} /></label>
+            <label title={tStatus('抑制實例（Fusion Suppression）：逗號分隔要跳過嘅副本索引（0=原件，之後按 (i*Y層+j)*Z層+k 順序）。例：2,5', lang)}>{tStatus('抑制實例', lang)} <input type="text" value={String(featDlg.params.suppress ?? '')} onChange={(e) => setFeatParam('suppress', e.target.value)} placeholder="留空=全部保留" style={{ width: 84 }} /></label>
             <label title={tStatus('計算選項（Fusion Compute Option）：優化=快、碰撞副本重算；相同=全部同一形狀（快）；調整=逐副本重算（慢，處理碰撞）。直通提示，v1 不改幾何。', lang)}>{tStatus('計算', lang)} <select value={String(featDlg.params.compute ?? 'optimized')} onChange={(e) => setFeatParam('compute', e.target.value)} style={{ height: 26 }}><option value="optimized">{tStatus('優化', lang)}</option><option value="identical">{tStatus('相同', lang)}</option><option value="adjust">{tStatus('調整', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'cpattern' && (<>
@@ -6319,7 +6350,7 @@ export default function Viewport() {
             <label title={tStatus('完整 = 360° 均分；指定角度 = 副本鋪滿指定角（端點含）；對稱 = 以原件為中心 ± 對稱分布', lang)}>{tStatus('角度', lang)} <select value={featDlg.params.mode} onChange={(e) => setFeatParam('mode', e.target.value)} style={{ height: 26 }}><option value="full">{tStatus('完整 360°', lang)}</option><option value="angle">{tStatus('指定角度', lang)}</option><option value="sym">{tStatus('對稱', lang)}</option></select></label>
             {featDlg.params.mode !== 'full' && <label>{tStatus('總角', lang)} <input type="number" step={15} value={featDlg.params.totalAngle} onChange={(e) => setFeatParam('totalAngle', Number(e.target.value))} style={{ width: 56 }} />°</label>}
             {/* GM-3DV1 S3：逐实例抑制 + Compute Option（环形：0=原件，1..count-1 按角度顺序） */}
-            <label title={tStatus('抑制實例（Fusion Suppression）：逗號分隔要跳過嘅副本索引（0=原件，1..數量-1 按角度順序）。例：2,5', lang)}>{tStatus('抑制實例', lang)} <input type="text" value={String(featDlg.params.suppress ?? '')} onChange={(e) => setFeatParam('suppress', e.target.value)} placeholder="2,5" style={{ width: 84 }} /></label>
+            <label title={tStatus('抑制實例（Fusion Suppression）：逗號分隔要跳過嘅副本索引（0=原件，1..數量-1 按角度順序）。例：2,5', lang)}>{tStatus('抑制實例', lang)} <input type="text" value={String(featDlg.params.suppress ?? '')} onChange={(e) => setFeatParam('suppress', e.target.value)} placeholder="留空=全部保留" style={{ width: 84 }} /></label>
             <label title={tStatus('計算選項（Fusion Compute Option）：優化/相同/調整。直通提示，v1 不改幾何。', lang)}>{tStatus('計算', lang)} <select value={String(featDlg.params.compute ?? 'optimized')} onChange={(e) => setFeatParam('compute', e.target.value)} style={{ height: 26 }}><option value="optimized">{tStatus('優化', lang)}</option><option value="identical">{tStatus('相同', lang)}</option><option value="adjust">{tStatus('調整', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'mirror' && (<>

@@ -3,6 +3,8 @@
 // 网格：单位下拉 + flip-up（Y↔Z）+ 落地摆位（不动/居中/落地）。
 import { useApp } from '../store'
 import { msg } from '../i18n'
+import { useNumericDraft } from '../ui/useNumericDraft'
+import type { NumericFieldSpec } from '../cad/numericInput'
 
 const overlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 30000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(20,24,28,0.42)' }
 const panel: React.CSSProperties = { width: 'min(460px, 94vw)', maxHeight: '86vh', overflowY: 'auto', background: '#fff', borderRadius: 10, boxShadow: '0 12px 48px rgba(0,0,0,0.32)', fontSize: 13, color: '#222', display: 'flex', flexDirection: 'column' }
@@ -19,9 +21,24 @@ function fmt(template: string, ...args: Array<string | number>): string {
   return template.replace(/\{(\d+)\}/g, (_, i) => String(args[Number(i)] ?? ''))
 }
 
+// BUG-409：插入對話框三個數值欄嘅規格（模組常數 = 身份穩定，唔會每 render 變）。
+const SPEC_ZANGLE: NumericFieldSpec = { label: 'Z 角', unit: '°', min: -360, max: 360 }
+const SPEC_SCALE: NumericFieldSpec = { label: '縮放', min: 0, minInclusive: false, max: 1e4 }
+const SPEC_HEIGHT: NumericFieldSpec = { label: '高度', unit: 'mm', min: 0, minInclusive: false, max: 1e6 }
+
 function InsertVecDialog() {
   const v = useApp((s) => s.insertVec)
   const lang = useApp((s) => s.lang)
+  // BUG-409：draft 欄 —— 非法／空／超範圍一律唔寫 model，亦唔靜默代入 0 / 1 / 5。
+  const zAngleField = useNumericDraft(
+    Math.round(((v?.zAngle ?? 0) * 180) / Math.PI),
+    SPEC_ZANGLE,
+    (deg) => useApp.getState().setInsertVec({ zAngle: (deg * Math.PI) / 180 }),
+  )
+  const scaleField = useNumericDraft(v?.scale ?? 1, SPEC_SCALE, (scale) => useApp.getState().setInsertVec({ scale }))
+  const heightField = useNumericDraft(v?.height ?? 5, SPEC_HEIGHT, (height) => useApp.getState().setInsertVec({ height }))
+  const numError = zAngleField.error ?? scaleField.error ?? heightField.error
+  const numOk = zAngleField.result.ok && scaleField.result.ok && heightField.result.ok
   if (!v) return null
   const set = useApp.getState().setInsertVec
   const title = fmt(msg('insert.title', lang), v.kind.toUpperCase())
@@ -29,7 +46,7 @@ function InsertVecDialog() {
     <div role="dialog" aria-modal="true" aria-label={title} style={overlay} onMouseDown={(e) => { if (e.target === e.currentTarget) useApp.getState().cancelInsertVec() }}>
       <div style={panel} onKeyDown={(e) => {
         if (e.key === 'Escape') { e.preventDefault(); useApp.getState().cancelInsertVec() }
-        if (e.key === 'Enter') { e.preventDefault(); void useApp.getState().confirmInsertVec() }
+        if (e.key === 'Enter') { e.preventDefault(); if (numOk) void useApp.getState().confirmInsertVec() }   // BUG-409：非法數值不准硬揤 Enter 送出
       }}>
         <div style={head}><span>{v.kind === 'dxf' ? '📐' : '🖼'}</span><span>{title}</span></div>
         <div style={body}>
@@ -38,8 +55,8 @@ function InsertVecDialog() {
               {PLANES.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
-          <div style={row}><span>{msg('insert.zAngle', lang)}</span><input type="number" step={5} style={num} value={Math.round(v.zAngle * 180 / Math.PI)} onChange={(e) => set({ zAngle: (Number(e.target.value) || 0) * Math.PI / 180 })} /></div>
-          <div style={row}><span>{msg('insert.scale', lang)}</span><input type="number" step={0.1} style={num} value={v.scale} onChange={(e) => set({ scale: Number(e.target.value) || 1 })} /></div>
+          <div style={row}><span>{msg('insert.zAngle', lang)}</span><input type="number" step={5} style={num} value={zAngleField.value} onChange={zAngleField.onChange} aria-invalid={!!zAngleField.error} title={zAngleField.error ?? undefined} /></div>
+          <div style={row}><span>{msg('insert.scale', lang)}</span><input type="number" step={0.1} style={num} value={scaleField.value} onChange={scaleField.onChange} aria-invalid={!!scaleField.error} title={scaleField.error ?? undefined} /></div>
           {v.kind === 'dxf' && (
             <div style={row}><span>{msg('insert.unit', lang)}</span>
               <select value={v.unit} onChange={(e) => set({ unit: e.target.value as 'mm' })} style={num as React.CSSProperties}>
@@ -47,7 +64,7 @@ function InsertVecDialog() {
               </select>
             </div>
           )}
-          <div style={row}><span>{msg('insert.height', lang)}</span><input type="number" step={1} min={0.1} style={num} value={v.height} disabled={v.sketchOnly} title={v.sketchOnly ? msg('insert.noExtrudeTip', lang) : undefined} onChange={(e) => set({ height: Number(e.target.value) || 5 })} /></div>
+          <div style={row}><span>{msg('insert.height', lang)}</span><input type="number" step={1} min={0.1} style={num} value={heightField.value} disabled={v.sketchOnly} title={v.sketchOnly ? msg('insert.noExtrudeTip', lang) : (heightField.error ?? undefined)} aria-invalid={!!heightField.error} onChange={heightField.onChange} /></div>
           <label style={{ ...row, justifyContent: 'flex-start', gap: 8 }} title={msg('insert.asSketch', lang)}>
             <input type="checkbox" checked={v.asSketch} disabled={v.sketchOnly} onChange={(e) => set({ asSketch: e.target.checked })} /><span>{msg('insert.asSketchLabel', lang)}</span>
           </label>
@@ -74,8 +91,9 @@ function InsertVecDialog() {
           )}
         </div>
         <div style={foot}>
+          {numError && <div role="alert" data-testid="insert-numeric-error" style={{ marginRight: 'auto', color: '#b42318', fontSize: 12 }}>{numError}</div>}
           <button className="cmd-cancel" onClick={() => useApp.getState().cancelInsertVec()}>{msg('insert.cancel', lang)}</button>
-          <button className="cmd-ok" onClick={() => void useApp.getState().confirmInsertVec()}>{msg('insert.confirm', lang)}</button>
+          <button className="cmd-ok" disabled={!numOk} onClick={() => void useApp.getState().confirmInsertVec()}>{msg('insert.confirm', lang)}</button>
         </div>
       </div>
     </div>

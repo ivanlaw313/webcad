@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useCSketch, type Sel, type ConstraintKind } from '../sketch/csketch'
 import { useApp } from '../store'
 import { tStatus } from '../i18n'
+import { parseNumericField, type NumericFieldSpec } from '../cad/numericInput'
+// BUG-409：拉伸高度 / 尺寸欄不准靜默代入 1 / 0。
+const SPEC_CS_HEIGHT: NumericFieldSpec = { label: '高度', unit: 'mm', min: 0, minInclusive: false, max: 1e6 }
+const SPEC_CS_DIM: NumericFieldSpec = { label: '尺寸', min: -1e6, max: 1e6 }
 
 const SCALE = 2.6 // px per mm
 
@@ -48,7 +52,10 @@ export default function CSketch() {
   const params = useApp((a) => a.params)
   const svgRef = useRef<SVGSVGElement>(null)
   const [size, setSize] = useState<[number, number]>([800, 600])
-  const [height, setHeight] = useState(40)
+  const [heightRaw, setHeightRaw] = useState('40')
+  const heightField = parseNumericField(heightRaw, SPEC_CS_HEIGHT)
+  const [dimErr, setDimErr] = useState<string | null>(null)   // BUG-409：尺寸欄要講真原因
+  const height = heightField.ok ? heightField.value : 40
   const [op, setOp] = useState<'new' | 'cut' | 'intersect'>('new')  // Fusion: extrude operation (join/cut/intersect)
 
   // Start every constraint-sketch session blank — otherwise geometry from a previous (finished or
@@ -168,8 +175,9 @@ export default function CSketch() {
         <button className={'cs-btn' + (op === 'new' ? ' on' : '')} title="新建 / 加料實體" onClick={() => setOp('new')}>＋新建</button>
         <button className={'cs-btn' + (op === 'cut' ? ' on' : '')} title="從現有實體切除（要先有實體）" onClick={() => setOp('cut')}>－切割</button>
         <button className={'cs-btn' + (op === 'intersect' ? ' on' : '')} title="只保留與現有實體的公共部分" onClick={() => setOp('intersect')}>∩相交</button>
-        <label className="cs-h">高度 <input type="number" min={1} value={height} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setHeight(Number(e.target.value) || 1)} /> mm</label>
-        <button className="cs-btn cs-finish" onClick={() => void finish()}>{op === 'cut' ? '完成並切割' : op === 'intersect' ? '完成並相交' : '完成並拉伸'}</button>
+        <label className="cs-h">高度 <input type="number" min={1} value={heightRaw} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setHeightRaw(e.target.value)} aria-invalid={heightField.state === 'invalid'} title={heightField.ok ? undefined : heightField.reason} /> mm</label>
+        {!heightField.ok && <span role="alert" className="cs-h" style={{ color: '#b42318' }}>{heightField.reason}</span>}
+        <button className="cs-btn cs-finish" disabled={!heightField.ok} title={heightField.ok ? undefined : heightField.reason} onClick={() => void finish()}>{op === 'cut' ? '完成並切割' : op === 'intersect' ? '完成並相交' : '完成並拉伸'}</button>
         <button className="cs-btn" onClick={() => closeCSketch()}>取消</button>
       </div>
 
@@ -260,13 +268,14 @@ export default function CSketch() {
       {dims.length > 0 && (
         <div className="cs-dims">
           <div className="cs-dims-title">尺寸（改數值即重建）</div>
+          {dimErr && <div role="alert" style={{ color: '#b42318', fontSize: 12 }}>{dimErr}</div>}
           {dims.map((c) => (
             <div key={c.id} className="cs-dim">
               <span>{c.type === 'circle_radius' ? '半徑' : c.type === 'l2l_angle_ll' ? '角度' : '距離'}</span>
               <input type="number" disabled={!!s.dimRefs[c.id]} title={s.dimRefs[c.id] ? `由參數 ${s.dimRefs[c.id]} 驅動` : '直接數值'}
                 value={c.type === 'circle_radius' ? Number(c.radius).toFixed(1) : c.type === 'l2l_angle_ll' ? (Number(c.angle) * 180 / Math.PI).toFixed(1) : Number((c as { distance: number }).distance).toFixed(1)}
                 onFocus={(e) => { e.currentTarget.select(); dimEditRef.current = null }}
-                onChange={(e) => { if (dimEditRef.current !== c.id) { s.pushUndo(); dimEditRef.current = c.id } void s.editDimension(c.id, Number(e.target.value) || 0) }}
+                onChange={(e) => { if (dimEditRef.current !== c.id) { s.pushUndo(); dimEditRef.current = c.id } const r = parseNumericField(e.target.value, SPEC_CS_DIM); setDimErr(r.ok || r.state === 'blank' ? null : r.reason); if (r.ok) void s.editDimension(c.id, r.value) }}   // BUG-409：非法尺寸不准靜默變 0
                 onBlur={() => { dimEditRef.current = null }} />
               {params.length > 0 && (
                 <select className="cs-dimparam" title="鏈接到用戶參數（參數變→此尺寸自動跟着變）" value={s.dimRefs[c.id] || ''} onChange={(e) => void s.setDimRef(c.id, e.target.value)}>

@@ -92,7 +92,8 @@ import { segmentPlanarRegions, planarRegionSummary, measureMeshEdgeChain, measur
 import { sliceMesh, classifyLoops } from './geom/slicePreview'   // T782：网格截面→草图；S186：classifyLoops 嵌套深度奇偶分类（多体/嵌套岛截面属性）
 import { EMPTY_ANNO, hydrateAnno, type DrawingAnno } from './io/drawingAnno'   // T784：工程图标注持久化
 import { documentPersistenceEnabled } from './runtime/uiTestIsolation'
-import { canClaimUntaggedIdbAutosave, clearTabAutosave, isAutosaveForThisTab, markUntaggedIdbAutosaveClaimed, readTabAutosaveRaw, withTabSessionId, writeTabAutosaveRaw } from './runtime/tabDocumentSession'
+import { canClaimUntaggedIdbAutosave, clearTabAutosave, dropRecoverableAutosave, isAutosaveForThisTab, listRecoverableAutosaves, markUntaggedIdbAutosaveClaimed, readRecoverableAutosave, readTabAutosaveRaw, withTabSessionId, writeTabAutosaveRaw } from './runtime/tabDocumentSession'
+import type { RecoverableAutosave } from './runtime/tabDocumentSession'
 import { mapPointToFlat, type SmSpec } from './cad/smUnfold'   // T785：钣金展开图带孔
 import { remapFaceColors } from './cad/faceFingerprint'   // S114：逐面色跨重建持久化（几何指纹 remap，取代清空）
 import { analyzeDraft, type DraftReport } from './cad/draftAnalysis'   // S118：拔模分析（Inspect › Draft）
@@ -2714,6 +2715,13 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   shareLink: () => Promise<void>                          // T797：项目压缩入 URL → 复制（serverless 分享）
   loadShareHash: () => Promise<boolean>                   // T797：开页若 #p= 还原
   restoreAutosave: () => Promise<void>
+  /* ★ BUG-406（P0 資料遺失）★ —— 閂晒所有分頁再開，未儲存工作永久消失、冇提示、
+   * F5 同版本歷史都救唔返（外部 QA 重現 2/2）。根因見 runtime/tabDocumentSession.ts。
+   * 呢度係【提供恢復】嗰半：搵唔到本分頁嘅存檔但有孤兒副本，就列出嚟畀用戶揀，
+   * ⚠ 刻意唔自動載入 —— 自動載入會令 BUG-276（新分頁靜靜還原別人文件）翻兜。*/
+  autosaveRecovery: RecoverableAutosave[] | null
+  recoverAutosave: (tabId: string) => Promise<void>
+  dismissAutosaveRecovery: (tabId?: string) => void
   csketchOpen: boolean
   openCSketch: () => void
   closeCSketch: () => void
@@ -20217,6 +20225,24 @@ export const useApp = create<AppState>((rawSet, get) => {
     } catch { set({ status: '分享鏈接解析失敗（鏈接可能截斷咗）' }); return false }
   },
 
+  autosaveRecovery: null,
+  /** 用戶明確揀咗一份孤兒存檔 → 照正常開檔路徑還原（同「打開項目」同一條路，唔另開 loader）。 */
+  recoverAutosave: async (tabId) => {
+    const raw = readRecoverableAutosave(tabId)
+    if (!raw) { set({ status: '恢復失敗：嗰份自動存檔已經唔喺度（可能已被清理）', autosaveRecovery: listRecoverableAutosaves() }); return }
+    let data: Record<string, unknown> | null = null
+    try { const p: unknown = JSON.parse(raw); data = p && typeof p === 'object' ? p as Record<string, unknown> : null } catch { data = null }
+    if (!data) { set({ status: '恢復失敗：嗰份自動存檔內容已損壞', autosaveRecovery: listRecoverableAutosaves() }); return }
+    set({ autosaveRecovery: null })
+    await get().applyProjectData(data, '已恢復自動存檔')
+    // 恢復成功先清走孤兒，唔好喺恢復之前清（中途失敗就兩頭唔到岸）
+    dropRecoverableAutosave(tabId)
+  },
+  dismissAutosaveRecovery: (tabId) => {
+    if (tabId) dropRecoverableAutosave(tabId)
+    const left = listRecoverableAutosaves()
+    set({ autosaveRecovery: tabId ? (left.length ? left : null) : null })
+  },
   restoreAutosave: async () => {
     if (!documentPersistenceEnabled()) return
     try {
@@ -20249,7 +20275,16 @@ export const useApp = create<AppState>((rawSet, get) => {
           break
         }
       }
-      if (!data) return
+      if (!data) {
+        /* ★ BUG-406 ★ 原本呢度淨係 `return` —— 連「有舊工作救得返」都唔講，
+         * 加上 autosave 只住喺 sessionStorage，閂晒分頁就等於永久消失。
+         * 而家：有孤兒恢復副本就列出嚟，由用戶明確揀（唔自動載入）。 */
+        const rec = listRecoverableAutosaves()
+        if (rec.length) {
+          set({ autosaveRecovery: rec, status: `搵到 ${rec.length} 份未儲存嘅自動存檔（${rec[0].label}）—— 檔案 ▾ → 恢復自動存檔` })
+        }
+        return
+      }
       const referenceErrors = [...documentReferenceErrors(data), ...documentPatternErrors(data), ...sketchDraftErrors(data)]
       if(referenceErrors.length) {set({status:`自動存檔引用失效：${referenceErrors.join('；')}`});return}
       const feats0: Feature[] = (Array.isArray(data.features) ? data.features : []).map((f: Feature) => ({ ...f }))
@@ -23219,7 +23254,7 @@ if (typeof window !== 'undefined') {
     if (documentReferenceErrors(s).length || (s.mode === 'sketch' && sketchReferenceErrors(s.skCons, s.params).length)) return
     saveTimer = setTimeout(() => {
       // BUG-UI-006 / UI05: persist into this browser tab's session slot — never the shared legacy key.
-      try { writeTabAutosaveRaw(JSON.stringify(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>))) } catch { try { clearTabAutosave() } catch { /* ignore */ } }   // R2：配额溢出 → 清除 stale tab slot，令 restoreAutosave 的 if(!data) 正确 fallthrough 到更新嘅 IDB 快照（否则读到旧 stale 存档静默丢工作）
+      try { writeTabAutosaveRaw(JSON.stringify(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>)), { name: s.projectName, features: s.features.length, bodies: s.components.length }) } catch { try { clearTabAutosave() } catch { /* ignore */ } }   // R2：配额溢出 → 清除 stale tab slot，令 restoreAutosave 的 if(!data) 正确 fallthrough 到更新嘅 IDB 快照（否则读到旧 stale 存档静默丢工作）
     }, 800)
     idbTimer = setTimeout(() => {
       if (s.features.length || s.components.length || s.mode === 'sketch' || s.sketchShape || s.sketchProfiles.length || s.formCage) void saveSnapshot(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>), '自動儲存', 'auto')

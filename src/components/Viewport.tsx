@@ -1157,18 +1157,34 @@ function PatternPreview() {
   const ghost = (key: string, inner: ReactNode) => <group key={key}>{inner}</group>
   const gm = () => <mesh geometry={geom}><meshBasicMaterial color="#1aa0ff" transparent opacity={0.22} depthWrite={false} /></mesh>
   const ghosts: ReactNode[] = []
+  /* ★ BUG-419（P0：分頁 crash）★ —— 外部 QA 實測：矩形陣列 X 數量打 1e9，
+   * 確認後幾秒分頁 crash「Aw, Snap! Error code: 9」，重現 2/2；UI 線另報
+   * 「輸入／撳 Tab 期間程式冇反應，要 F5」。
+   *
+   * 根因唔喺 commit —— commit 路徑本來就有 `cX*cY*cZ > 400` 守衛會乾淨拒絕。
+   * 錯喺【render 期間嘅即時預覽】：下面幾個 ghost 循環完全冇上限，
+   * cx=1e9 就會喺一次 render 入面 push 十億個 React element → OOM → 分頁死。
+   * 即係守衛只落喺 commit，冇落喺預覽 —— 同今輪另外幾條 bug 同一個毛病
+   * （BUG-209 守衛只落喺關聯路徑、BUG-419 守衛只落喺 commit）。
+   *
+   * ⚠ 刻意【唔】夾用戶打嘅值 —— 夾咗就變成 BUG-409 嗰種靜默換值。
+   *   呢度只係「數量過多就唔畫預覽」，commit 嗰個 400 守衛照樣會出聲講原因。 */
+  const GHOST_CAP = 400                 // 同 commit 嗰個上限一致（store.ts 矩形陣列 400）
+  const ghostCount = (n: number) => (Number.isFinite(n) && n >= 1 ? Math.min(Math.round(n), GHOST_CAP + 1) : 1)
   if (k === 'pattern') {
-    const cx = Math.max(1, Math.round(+p.countX || 1)), cy = Math.max(1, Math.round(+p.countY || 1)), cz = Math.max(1, Math.round(+p.countZ || 1))
+    const cx = ghostCount(+p.countX || 1), cy = ghostCount(+p.countY || 1), cz = ghostCount(+p.countZ || 1)
+    // 超過上限就【完全唔畫】預覽：畫一半會畀人以為真係得咁多個副本。
+    const tooMany = cx * cy * cz > GHOST_CAP
     // P2：extent（总长）模式 — 预览同 commit 一样换算 spacing = extent/(qty−1)，预览先同实际一致
     const ext = p.dtype === 'extent'
     const sp = (v: number, c: number) => (ext ? (c > 1 ? v / (c - 1) : 0) : v)
     const dx = sp(+p.dx || 0, cx), dy = sp(+p.dy || 0, cy), dz = sp(+p.dz || 0, cz)
-    for (let i = 0; i < cx; i++) for (let j = 0; j < cy; j++) for (let m = 0; m < cz; m++) {
+    if (!tooMany) for (let i = 0; i < cx; i++) for (let j = 0; j < cy; j++) for (let m = 0; m < cz; m++) {
       if (i === 0 && j === 0 && m === 0) continue
       ghosts.push(ghost(`p${i}_${j}_${m}`, <group position={[i * dx, j * dy, m * dz]}>{gm()}</group>))
     }
   } else if (k === 'cpattern') {
-    const n = Math.max(2, Math.round(+p.count || 2)), ang = +p.angle || 360, axis = String(p.axis || 'Z')
+    const n = Math.min(GHOST_CAP, Math.max(2, ghostCount(+p.count || 2))), ang = +p.angle || 360, axis = String(p.axis || 'Z')   // BUG-419：預覽封頂
     const ctr: [number, number, number] = [+p.cx || 0, +p.cy || 0, +p.cz || 0]
     // T757 修：部分弧 worker 用 angle/(n−1)（端點含），预览以前永远 /n — 同步返先唔会预览同实际唔一致
     const step = Math.abs(ang) >= 359.9 ? ang / n : ang / (n - 1)
@@ -1180,7 +1196,7 @@ function PatternPreview() {
   } else if (k === 'circpattern') {
     // T757：任意轴 ghost — 同 worker cpAngles 同一套角度（保持同步！），quaternion 绕 CAD 轴
     //（ghosts 喺 Rx(-90°) 组内 = CAD 空间，axis 直接用 CAD 分量）
-    const n = Math.max(2, Math.round(+p.count || 2))
+    const n = Math.min(GHOST_CAP, Math.max(2, ghostCount(+p.count || 2)))   // BUG-419：預覽封頂
     const mode = p.mode === 'angle' || p.mode === 'sym' ? String(p.mode) : 'full'
     const total = mode === 'full' ? 360 : (+p.totalAngle || 360)
     const angles: number[] = []
@@ -3290,15 +3306,42 @@ function PoleNet() {
 function LenInput({ mm, onMm, unit, w = 56, title }: { mm: number; onMm: (v: number) => void; unit: LenUnit; w?: number; min?: number; title?: string }) {
   const [txt, setTxt] = useState(() => toLenInput(mm, unit))
   const [foc, setFoc] = useState(false)
-  useEffect(() => { if (!foc) setTxt(toLenInput(mm, unit)) }, [mm, unit, foc])
+  // ⚠ 用 ref 唔用 state：喺 render 期間 setState 係反模式（StrictMode 會嘈，而且脆弱）。
+  //   effect 係 render 之後才跑，所以嗰時 badRef 已經係今次 render 嘅值。
+  const badRef = useRef(false)
+  // 外部改 mm（載入文件 / 預設掣 / 規格掣）要同步顯示 —— 但【唔准】覆蓋用戶
+  // 打錯緊嗰串字，否則又變返「靜默換走輸入」。
+  useEffect(() => { if (!foc && !badRef.current) setTxt(toLenInput(mm, unit)) }, [mm, unit, foc])
+  /* ★ BUG-409（P1，合併 9 條）嘅【單一最大源頭】★
+   *
+   * 外部 QA 實測：SOLID Box 長度打 `1e9` / `abc` / 清空，欄位會【靜默變返 80】，
+   * 零訊息；但打 `0` / `-5` 就會明確講「尺寸已拒絕：尺寸必須大於 0」。
+   *
+   * 根因唔係 `|| 預設值` 嗰個 idiom，係呢個共用組件：
+   *   · parseLen 失敗返 null（已實測：'1e9'、'abc'、'' 三者都返 null）
+   *   · 失敗就唔 call onMm → model 保持舊值
+   *   · 然後 onBlur 無條件 setTxt(toLenInput(mm)) → 用戶打嘅字被抹走、換成舊值
+   * 所以用戶見到「我打咗 1e9，佢自己變返 80」而且冇任何解釋。
+   * Box 長/寬/高、孔徑、好多尺寸欄都經呢個組件，所以修呢一個覆蓋一大片。
+   *
+   * 修法：parse 失敗要【留住用戶打嘅字】+ 畫紅框 + 講真原因（唔好 snap 走，
+   * 否則用戶連自己打錯咩都睇唔到）。只有欄位空咗或者 parse 得到才同步 model。
+   * ⚠ 刻意唔夾值、唔代入預設 —— 嗰個正係 BUG-409 要根治嘅行為。 */
+  const bad = txt.trim() !== '' && parseLen(txt, unit) == null
+  badRef.current = bad
+  const reason = bad
+    ? `唔係一個有效長度（你打咗「${txt.trim()}」）${unit === 'inch' ? '；inch 模式可打分數，例如 1/4' : '；例如 80 或 12.5'}`
+    : ''
   return (
     <input
-      type="text" inputMode="decimal" value={txt} title={title} aria-label={title || '數值輸入'}
+      type="text" inputMode="decimal" value={txt} title={reason || title} aria-label={title || '數值輸入'}
+      aria-invalid={bad || undefined}
       onFocus={() => setFoc(true)}
-      onBlur={() => { setFoc(false); setTxt(toLenInput(mm, unit)) }}
+      // ★ 唔好 snap ★：打錯咗要睇得到自己打咗乜，唔係畀人靜靜換走。
+      onBlur={() => { setFoc(false); if (!bad) setTxt(toLenInput(mm, unit)) }}
       // BUG-SO18F-001: notify parent even when below min (Ø-1) so preview/confirm can reject+clear instead of keeping a stale legal value.
       onChange={(e) => { setTxt(e.target.value); const v = parseLen(e.target.value, unit); if (v != null) onMm(v) }}
-      style={{ width: w }}
+      style={{ width: w, ...(bad ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
     />
   )
 }

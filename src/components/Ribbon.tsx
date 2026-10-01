@@ -10,6 +10,10 @@ import { WORKSPACE_TABS, WORKSPACES, SKETCH_PANELS, FORM_PANELS, type Tool } fro
 import { tGroup, tTab, msg, tStatus, normalizeLang, ribbonCmdLabel, type Lang } from '../i18n'   // T800 + v1.83 cmd.*
 import { FASTENER_KIND_LABEL, FASTENER_SIZES, type FastenerKind, type FastenerSize } from '../cad/fasteners'
 import { TEXTURE_KEYS } from '../render/procTextures'
+import { parseNumericField, type NumericFieldSpec } from '../cad/numericInput'
+
+// BUG-409：標準件桿長。舊寫法 `Math.max(3, Number(x) || 16)` 會把 NaN / 空 / 1 靜默換成 16 / 3。
+const SPEC_FASTENER_LEN: NumericFieldSpec = { label: '桿長', unit: 'mm', min: 3, max: 1000 }
 import MaterialSwatchPicker from './MaterialSwatchPicker'   // 材质球视觉拣料
 
 // Standard metric fastener library picker: choose kind / size (/length for screws) → insert a real ISO-dim
@@ -19,7 +23,8 @@ function FastenerPicker() {
   const lang = useApp((s) => s.lang)   // GM-W8 C3：EN 模式翻译按钮/标签
   const [kind, setKind] = useState<FastenerKind>('capscrew')
   const [size, setSize] = useState<FastenerSize>('M5')
-  const [len, setLen] = useState(16)
+  const [lenRaw, setLenRaw] = useState('16')
+  const lenField = parseNumericField(lenRaw, SPEC_FASTENER_LEN)
   return (
     <>
       <select className="tb-mat" title="標準件類型（ISO 標準尺寸）" value={kind} onChange={(e) => setKind(e.target.value as FastenerKind)}>
@@ -29,9 +34,9 @@ function FastenerPicker() {
         {FASTENER_SIZES.map((sz) => <option key={sz} value={sz}>{sz}</option>)}
       </select>
       {kind !== 'hexnut' && kind !== 'washer' && (
-        <label title={kind === 'dowel' ? '銷長 mm' : '桿長 mm（頭下）'} style={{ fontSize: 12 }}>{msg('ui.len', lang)}<input type="number" step={2} min={3} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ width: 46 }} /></label>
+        <label title={kind === 'dowel' ? '銷長 mm' : '桿長 mm（頭下）'} style={{ fontSize: 12 }}>{msg('ui.len', lang)}<input type="number" step={2} min={3} value={lenRaw} onChange={(e) => setLenRaw(e.target.value)} aria-invalid={lenField.state === 'invalid'} title={lenField.ok ? undefined : lenField.reason} style={{ width: 46, ...(lenField.state === 'invalid' ? { borderColor: '#b42318' } : {}) }} /></label>
       )}
-      <button className="tb-btn tb-text" title="插入標準件到裝配（ISO 尺寸真實體；簡化＝光桿無螺牙，外形標準。可用「配合」對齊）" onClick={() => void insertFastener(kind, size, len)}>
+      <button className="tb-btn tb-text" title="插入標準件到裝配（ISO 尺寸真實體；簡化＝光桿無螺牙，外形標準。可用「配合」對齊）" disabled={!lenField.ok && kind !== 'hexnut' && kind !== 'washer'} onClick={() => void insertFastener(kind, size, lenField.ok ? lenField.value : 16)}>
         <ToolIcon name="component" size={15} /> {msg('ui.insertFastener', lang)}
       </button>
     </>
@@ -44,20 +49,23 @@ function FastenerDialog({ onClose }: { onClose: () => void }) {
   const lang = useApp((s) => s.lang)
   const [kind, setKind] = useState<FastenerKind>('capscrew')
   const [size, setSize] = useState<FastenerSize>('M5')
-  const [len, setLen] = useState(16)
+  const [lenRaw, setLenRaw] = useState('16')
+  const lenField = parseNumericField(lenRaw, SPEC_FASTENER_LEN)
   const needsLength = kind !== 'hexnut' && kind !== 'washer'
   useEscapeLayer(true, onClose, 400)
-  const submit = async () => { await insertFastener(kind, size, needsLength ? Math.max(3, len || 16) : 16); onClose() }
+  // BUG-409：非法桿長不准提交，亦不准靜默換 16。
+  const submittable = !needsLength || lenField.ok
+  const submit = async () => { if (!submittable) return; await insertFastener(kind, size, needsLength && lenField.ok ? lenField.value : 16); onClose() }
   return <div role="dialog" aria-modal="true" aria-label={msg('fastener.title', lang)} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(20,28,38,.28)', display: 'grid', placeItems: 'center' }} onMouseDown={onClose}>
     <section style={{ width: 392, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 10, boxShadow: '0 16px 48px rgba(0,0,0,.28)', padding: 18, color: '#263746' }} onMouseDown={(e) => e.stopPropagation()}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}><ToolIcon name="component" size={22} /><strong style={{ fontSize: 17 }}>{msg('fastener.title', lang)}</strong><button type="button" aria-label={msg('dlg.close', lang)} onClick={onClose} style={{ marginLeft: 'auto', border: 0, background: 'transparent', fontSize: 22, cursor: 'pointer', color: '#637484' }}>×</button></div>
       <div style={{ display: 'grid', gap: 11, fontSize: 13 }}>
         <label>{msg('fastener.type', lang)}<select aria-label={msg('fastener.typeAria', lang)} value={kind} onChange={(e) => setKind(e.target.value as FastenerKind)} style={{ display: 'block', width: '100%', marginTop: 4 }}>{(Object.keys(FASTENER_KIND_LABEL) as FastenerKind[]).map((k) => <option key={k} value={k}>{FASTENER_KIND_LABEL[k]}</option>)}</select></label>
         <label>{msg('fastener.size', lang)}<select aria-label={msg('fastener.sizeAria', lang)} value={size} onChange={(e) => setSize(e.target.value as FastenerSize)} style={{ display: 'block', width: '100%', marginTop: 4 }}>{FASTENER_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
-        {needsLength && <label>{msg('fastener.length', lang)}<input aria-label={msg('fastener.lengthAria', lang)} type="number" min={3} step={1} value={len} onChange={(e) => setLen(Math.max(3, Number(e.target.value) || 16))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 4 }} /></label>}
+        {needsLength && <label>{msg('fastener.length', lang)}<input aria-label={msg('fastener.lengthAria', lang)} type="number" min={3} step={1} value={lenRaw} onChange={(e) => setLenRaw(e.target.value)} aria-invalid={lenField.state === 'invalid'} title={lenField.ok ? undefined : lenField.reason} style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 4 }} /></label>}
         <p style={{ margin: '1px 0 0', color: '#637484', lineHeight: 1.45 }}>{msg('fastener.note', lang)}</p>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 17 }}><button type="button" onClick={onClose}>{msg('dlg.cancel', lang)}</button><button type="button" onClick={() => void submit()} style={{ background: '#078acb', border: 0, borderRadius: 5, padding: '7px 15px', color: '#fff', fontWeight: 700 }}>{msg('insert.confirm', lang)}</button></div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 17 }}><button type="button" onClick={onClose}>{msg('dlg.cancel', lang)}</button><button type="button" disabled={!submittable} onClick={() => void submit()} style={{ background: '#078acb', border: 0, borderRadius: 5, padding: '7px 15px', color: '#fff', fontWeight: 700 }}>{msg('insert.confirm', lang)}</button></div>
     </section>
   </div>
 }
@@ -309,6 +317,7 @@ export default function Ribbon() {
   const exportGLB = useApp((s) => s.exportGLB)
   const saveProject = useApp((s) => s.saveProject)
   const openProject = useApp((s) => s.openProject)
+  const recoverable = useApp((s) => s.autosaveRecovery)   // BUG-406：有救得返嘅未儲存工作先出呢個入口
   const requestFit = useApp((s) => s.requestFit)
   const reset = useApp((s) => s.reset)
   const loadSample = useApp((s) => s.loadSample)
@@ -393,6 +402,33 @@ export default function Ribbon() {
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => saveProject()}><ToolIcon name="save" size={16} />{msg('file.save', lang)}<span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>Ctrl+S</span></button>
                 <button type="button" role="menuitem" className="panel-menu-item" title="分享鏈接（T797）：整個項目壓縮入一條 URL（gzip+base64,零服務器零隱私）→ 複製到剪貼板。發畀人/收藏即可重開。大模型超 1.9MB 改用「儲存」傳檔" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{msg('file.share', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => useApp.getState().setHistoryOpen(true)}><ToolIcon name="undo" size={16} />{msg('file.history', lang)}</button>
+                {/* ★ BUG-406（P0 資料遺失）★ —— 外部 QA：閂晒所有分頁再開，未儲存工作永久消失，
+                  * 而且「檔案」選單只有版本歷史，連一個恢復入口都冇。
+                  * 恢復副本由 runtime/tabDocumentSession 保住；呢度係用戶唯一搵得到佢嘅地方。
+                  * ⚠ 刻意要用戶明確揀 —— 自動載入會令 BUG-276（新分頁靜靜還原別人文件）翻兜。*/}
+                {!!recoverable?.length && (
+                  <button
+                    type="button" role="menuitem" className="panel-menu-item"
+                    style={{ color: '#b54708', fontWeight: 600 }}
+                    title={'閂晒分頁之後仲救得返嘅未儲存工作。揀一份就會打開佢（唔會自動覆蓋你而家呢份）。'}
+                    onClick={async () => {
+                      const list = useApp.getState().autosaveRecovery ?? []
+                      if (!list.length) return
+                      const pick = list[0]
+                      if (await useApp.getState().appConfirm(`恢復未儲存嘅自動存檔？
+
+${pick.label}
+
+（會取代而家畫面上嘅內容）`)) {
+                        void useApp.getState().recoverAutosave(pick.tabId)
+                      } else {
+                        useApp.getState().dismissAutosaveRecovery()
+                      }
+                    }}
+                  >
+                    <ToolIcon name="undo" size={16} />恢復自動存檔（{recoverable.length}）
+                  </button>
+                )}
                 <div className="panel-menu-divider" />
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStl}><ToolIcon name="insert" size={16} />{msg('file.importStl', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStep}><ToolIcon name="insert" size={16} />{msg('file.importStep', lang)}</button>

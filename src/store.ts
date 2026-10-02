@@ -2724,6 +2724,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
    * 呢度係【提供恢復】嗰半：搵唔到本分頁嘅存檔但有孤兒副本，就列出嚟畀用戶揀，
    * ⚠ 刻意唔自動載入 —— 自動載入會令 BUG-276（新分頁靜靜還原別人文件）翻兜。*/
   autosaveRecovery: RecoverableAutosave[] | null
+  /** 手動開恢復清單（含本分頁自己嗰份）—— BUG-510 */
+  openAutosaveRecovery: () => void
   recoverAutosave: (tabId: string) => Promise<void>
   dismissAutosaveRecovery: (tabId?: string) => void
   csketchOpen: boolean
@@ -12929,7 +12931,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     _dialogResolve = (v) => resolve(typeof v === 'string' ? v : null)
     set({ uiDialog: { kind: 'prompt', title, msg, def } })
   }),
-  appConfirm: (msg, title = '确认') => new Promise<boolean>((resolve) => {
+  appConfirm: (msg, title = '確認') => new Promise<boolean>((resolve) => {   // BUG-511：預設標題原本係簡體「确认」—— 影響全 app 每個確認框，唔止恢復自動存檔嗰個
     if (_dialogResolve) { _dialogResolve(null); _dialogResolve = null }
     _dialogResolve = (v) => resolve(v === true)
     set({ uiDialog: { kind: 'confirm', title, msg, def: '' } })
@@ -20247,6 +20249,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   autosaveRecovery: null,
+  /* ★ BUG-510 修 ★ —— 手動開清單一定要【包含本分頁自己嗰份】。
+   * 啟動時嘅自動提示排除本分頁（本分頁嗰時本來就冇副本，提佢只會嘈）；
+   * 但用戶手動撳恢復嗰陣，佢最想救嘅通常就係本分頁最新嗰份。
+   * QA 實測：唔包本分頁 → 還原出其他分頁一份較早嘅模型（改到 63 但還原 40×30×10）。 */
+  openAutosaveRecovery: () => {
+    const list = listRecoverableAutosaves({ includeSelf: true })
+    if (!list.length) { set({ status: '冇可以恢復嘅自動存檔' }); return }
+    set({ autosaveRecovery: list })
+  },
   /** 用戶明確揀咗一份孤兒存檔 → 照正常開檔路徑還原（同「打開項目」同一條路，唔另開 loader）。 */
   recoverAutosave: async (tabId) => {
     const raw = readRecoverableAutosave(tabId)

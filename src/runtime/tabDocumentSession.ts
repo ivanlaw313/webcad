@@ -230,6 +230,10 @@ export interface RecoverableAutosave {
   bytes: number
   /** 已經砌好嘅人話標籤，例如「未命名零件 · 3 特徵 · 12.4 KB」 */
   label: string
+  /** 係唔係本分頁自己嗰份（手動開清單時要標出嚟，免得用戶以為揀錯） */
+  isSelf: boolean
+  /** 相對時間，例如「2 分鐘前」 */
+  age: string
   meta: AutosaveMeta
 }
 
@@ -267,6 +271,16 @@ function writeIndex(ix: Record<string, IndexEntry>): void {
   try {
     if (typeof localStorage !== 'undefined') localStorage.setItem(RECOVERY_INDEX_KEY, JSON.stringify(ix))
   } catch { /* ignore */ }
+}
+
+/** 相對時間（QA 報「冇時間、分唔到邊份」）。 */
+export function formatRecoveryAge(ts: number, now = Date.now()): string {
+  const s = Math.max(0, Math.round((now - ts) / 1000))
+  if (s < 60) return s + ' 秒前'
+  const m = Math.round(s / 60)
+  if (m < 60) return m + ' 分鐘前'
+  const h = Math.floor(m / 60)
+  return h + ' 小時 ' + (m % 60) + ' 分前'
 }
 
 export function formatRecoveryLabel(meta: AutosaveMeta, bytes: number): string {
@@ -314,13 +328,23 @@ function mirrorForRecovery(json: string, meta?: AutosaveMeta): void {
  * ⚠ 刻意【唔】自動載入：自動載入就會變成 BUG-276（新分頁靜靜還原咗另一個
  *   分頁嘅文件）。所以呢度只負責【列出】，載入要用戶明確揀。
  */
-export function listRecoverableAutosaves(): RecoverableAutosave[] {
+export function listRecoverableAutosaves(opts?: { includeSelf?: boolean }): RecoverableAutosave[] {
   if (typeof localStorage === 'undefined') return []
   const self = getTabSessionId()
   const ix = readIndex()
   const out: RecoverableAutosave[] = []
   for (const tabId of Object.keys(ix)) {
-    if (tabId === self) continue
+    /* ★ BUG-510 修 ★ —— QA 實測：喺一個活住嘅分頁撳「恢復自動存檔」，還原出
+     * 一份【較早嘅另一個模型】而唔係自己最新嗰份（改 Box 長 61→62→63，還原出 40×30×10）。
+     *
+     * 根因就係下面原本無條件嘅 `if (tabId === self) continue`。排除本分頁係為咗
+     * 「閂晒分頁」嗰個情境（嗰時本分頁本來就冇自己嘅副本）。但用戶喺一個活住嘅
+     * 分頁手動撳恢復嗰陣，佢最新嘅工作正正就住喺本分頁嘅槽 —— 排除咗之後就只剩
+     * 其他分頁嘅舊副本，於是「最需要救返最新改動」嗰刻救錯版本。
+     *
+     * 而家：啟動時嘅自動提示仍然排除本分頁（唔好嘈），
+     * 但手動開清單要 includeSelf（見 store 嘅 openAutosaveRecovery）。 */
+    if (tabId === self && !opts?.includeSelf) continue
     let bytes = ix[tabId].bytes
     try {
       const raw = localStorage.getItem(`${LEGACY_AUTOSAVE_KEY}:${tabId}`)
@@ -328,7 +352,7 @@ export function listRecoverableAutosaves(): RecoverableAutosave[] {
       bytes = raw.length
     } catch { continue }
     const meta = ix[tabId].meta ?? {}
-    out.push({ tabId, ts: ix[tabId].ts, seq: ix[tabId].seq ?? 0, bytes, meta, label: formatRecoveryLabel(meta, bytes) })
+    out.push({ tabId, ts: ix[tabId].ts, seq: ix[tabId].seq ?? 0, bytes, meta, label: formatRecoveryLabel(meta, bytes), isSelf: tabId === self, age: formatRecoveryAge(ix[tabId].ts) })
   }
   return out.sort((a, b) => (b.ts - a.ts) || (b.seq - a.seq))
 }

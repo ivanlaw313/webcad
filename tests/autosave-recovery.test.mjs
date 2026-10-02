@@ -156,3 +156,48 @@ test('File → 新建 只清自己，唔准清走別人嘅恢復副本', async (
   assert.equal(M.readTabAutosaveRaw(), null, '自己嗰份要清走')
   assert.equal(M.listRecoverableAutosaves().length, n, '★ 別人嘅恢復副本唔准被 File→新建 清走 ★')
 })
+
+/* ── BUG-510：手動開清單要包本分頁，而且要分得出邊份最新 ─────────────── */
+
+test('★ BUG-510：includeSelf 之下一定要見到本分頁自己嗰份（最新改動通常就喺度）★', async () => {
+  const M = await freshModule()
+  M.writeTabAutosaveRaw(doc('舊分頁'), { name: '舊分頁', features: 2 })
+  closeAllTabs()
+  M.writeTabAutosaveRaw(doc('本分頁最新'), { name: '本分頁最新', features: 9 })
+
+  const auto = M.listRecoverableAutosaves()                    // 啟動自動提示：排除本分頁
+  assert.ok(!auto.some((r) => r.meta.name === '本分頁最新'), '自動提示唔應該提本分頁（會嘈）')
+
+  const manual = M.listRecoverableAutosaves({ includeSelf: true })   // 手動開清單：要包
+  const self = manual.find((r) => r.meta.name === '本分頁最新')
+  assert.ok(self, '★ 手動清單一定要包本分頁 —— 否則用戶最想救嘅最新改動根本唔喺清單 ★')
+  assert.equal(self.isSelf, true, '要標明係本分頁，免得用戶以為揀錯')
+  assert.equal(manual[0].meta.name, '本分頁最新', '最新嗰份要排第一（預設揀中嘅就係佢）')
+})
+
+test('★ BUG-510：清單排序一定要係真‧最新排前（唔可以靠時鐘精度）★', async () => {
+  const M = await freshModule()
+  for (const n of ['a', 'b', 'c']) {
+    globalThis.sessionStorage = makeStorage()
+    M.writeTabAutosaveRaw(doc(n), { name: n, features: 1 })
+  }
+  const l = M.listRecoverableAutosaves({ includeSelf: true })
+  assert.deepEqual(l.map((r) => r.meta.name), ['c', 'b', 'a'],
+    '同一毫秒連寫都要靠 seq 分得出新舊 —— QA 實測舊版會還原出較早嘅模型')
+})
+
+test('每份副本要有相對時間（QA：冇時間、分唔到邊份）', async () => {
+  const M = await freshModule()
+  M.writeTabAutosaveRaw(doc('X'), { name: 'X', features: 1 })
+  closeAllTabs()
+  const [r] = M.listRecoverableAutosaves()
+  assert.match(r.age, /秒前|分鐘前|小時/, '要有人話時間，實得：' + r.age)
+})
+
+test('formatRecoveryAge：秒 / 分 / 小時 都講得出', async () => {
+  const M = await freshModule()
+  const now = 1_000_000_000_000
+  assert.match(M.formatRecoveryAge(now - 5_000, now), /^5 秒前$/)
+  assert.match(M.formatRecoveryAge(now - 180_000, now), /^3 分鐘前$/)
+  assert.match(M.formatRecoveryAge(now - 7_500_000, now), /^2 小時/)
+})

@@ -402,33 +402,43 @@ export default function Ribbon() {
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => saveProject()}><ToolIcon name="save" size={16} />{msg('file.save', lang)}<span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>Ctrl+S</span></button>
                 <button type="button" role="menuitem" className="panel-menu-item" title="分享鏈接（T797）：整個項目壓縮入一條 URL（gzip+base64,零服務器零隱私）→ 複製到剪貼板。發畀人/收藏即可重開。大模型超 1.9MB 改用「儲存」傳檔" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{msg('file.share', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => useApp.getState().setHistoryOpen(true)}><ToolIcon name="undo" size={16} />{msg('file.history', lang)}</button>
-                {/* ★ BUG-406（P0 資料遺失）★ —— 外部 QA：閂晒所有分頁再開，未儲存工作永久消失，
-                  * 而且「檔案」選單只有版本歷史，連一個恢復入口都冇。
+                {/* ★ BUG-406（P0 資料遺失）+ BUG-510 ★
+                  * 閂晒分頁再開，未儲存工作本來會永久消失，而「檔案」選單連一個恢復入口都冇。
                   * 恢復副本由 runtime/tabDocumentSession 保住；呢度係用戶唯一搵得到佢嘅地方。
-                  * ⚠ 刻意要用戶明確揀 —— 自動載入會令 BUG-276（新分頁靜靜還原別人文件）翻兜。*/}
-                {!!recoverable?.length && (
+                  *
+                  * BUG-510：原本只提供 list[0]、冇時間、冇列表 —— QA 實測會還原出一份較早嘅
+                  * 另一個模型（改到 Box 長 63 但還原 40×30×10）。根因係清單排除咗本分頁，
+                  * 而用戶最新嘅工作正正住喺本分頁。而家：逐份列出（最新排前、有相對時間、
+                  * 標明邊份係本分頁），由用戶自己揀。
+                  * ⚠ 仍然刻意唔自動載入 —— 自動載入會令 BUG-276（新分頁靜靜還原別人文件）翻兜。*/}
+                <button
+                  type="button" role="menuitem" className="panel-menu-item"
+                  style={{ color: '#b54708', fontWeight: 600 }}
+                  title="閂晒分頁之後仲救得返嘅未儲存工作。會列出全部副本（最新排前）畀你揀 —— 唔會自動覆蓋你而家呢份。"
+                  onClick={(e) => { e.stopPropagation(); useApp.getState().openAutosaveRecovery() }}
+                >
+                  <ToolIcon name="undo" size={16} />恢復自動存檔{recoverable?.length ? `（${recoverable.length}）` : ''}
+                </button>
+                {!!recoverable?.length && recoverable.map((r) => (
                   <button
-                    type="button" role="menuitem" className="panel-menu-item"
-                    style={{ color: '#b54708', fontWeight: 600 }}
-                    title={'閂晒分頁之後仲救得返嘅未儲存工作。揀一份就會打開佢（唔會自動覆蓋你而家呢份）。'}
+                    key={r.tabId} type="button" role="menuitem" className="panel-menu-item"
+                    style={{ paddingLeft: 28, fontSize: 12 }}
+                    title={`${r.label} · ${r.age}${r.isSelf ? ' · 本分頁' : ''}`}
                     onClick={async () => {
-                      const list = useApp.getState().autosaveRecovery ?? []
-                      if (!list.length) return
-                      const pick = list[0]
-                      if (await useApp.getState().appConfirm(`恢復未儲存嘅自動存檔？
+                      if (await useApp.getState().appConfirm(
+                        `恢復呢份自動存檔？
 
-${pick.label}
+${r.label}
+${r.age}${r.isSelf ? '（本分頁）' : ''}
 
-（會取代而家視圖上嘅內容）`)) {
-                        void useApp.getState().recoverAutosave(pick.tabId)
-                      } else {
-                        useApp.getState().dismissAutosaveRecovery()
-                      }
+（會取代而家視圖上嘅內容）`,
+                        '恢復自動存檔',
+                      )) void useApp.getState().recoverAutosave(r.tabId)
                     }}
                   >
-                    <ToolIcon name="undo" size={16} />恢復自動存檔（{recoverable.length}）
+                    {r.age} · {r.label}{r.isSelf ? ' · 本分頁' : ''}
                   </button>
-                )}
+                ))}
                 <div className="panel-menu-divider" />
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStl}><ToolIcon name="insert" size={16} />{msg('file.importStl', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={onImportStep}><ToolIcon name="insert" size={16} />{msg('file.importStep', lang)}</button>

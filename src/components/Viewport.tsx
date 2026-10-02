@@ -3307,12 +3307,6 @@ function PoleNet() {
 function LenInput({ mm, onMm, unit, w = 56, title }: { mm: number; onMm: (v: number) => void; unit: LenUnit; w?: number; min?: number; title?: string }) {
   const [txt, setTxt] = useState(() => toLenInput(mm, unit))
   const [foc, setFoc] = useState(false)
-  // ⚠ 用 ref 唔用 state：喺 render 期間 setState 係反模式（StrictMode 會嘈，而且脆弱）。
-  //   effect 係 render 之後才跑，所以嗰時 badRef 已經係今次 render 嘅值。
-  const badRef = useRef(false)
-  // 外部改 mm（載入文件 / 預設掣 / 規格掣）要同步顯示 —— 但【唔准】覆蓋用戶
-  // 打錯緊嗰串字，否則又變返「靜默換走輸入」。
-  useEffect(() => { if (!foc && !badRef.current) setTxt(toLenInput(mm, unit)) }, [mm, unit, foc])
   /* ★ BUG-409（P1，合併 9 條）嘅【單一最大源頭】★
    *
    * 外部 QA 實測：SOLID Box 長度打 `1e9` / `abc` / 清空，欄位會【靜默變返 80】，
@@ -3329,20 +3323,40 @@ function LenInput({ mm, onMm, unit, w = 56, title }: { mm: number; onMm: (v: num
    * 否則用戶連自己打錯咩都睇唔到）。只有欄位空咗或者 parse 得到才同步 model。
    * ⚠ 刻意唔夾值、唔代入預設 —— 嗰個正係 BUG-409 要根治嘅行為。 */
   const bad = txt.trim() !== '' && parseLen(txt, unit) == null
-  badRef.current = bad
+  const blank = txt.trim() === ''
+  /* ★ BUG-501 修（P1：畫面數字 ≠ 實際結果）★
+   *
+   * QA 實測：孔對話框撳預設「M6 過孔 6.6」，直徑欄仍然顯示 16，但真係做出 Ø6.6。
+   * 「手打過一次先會跟預設；重開編輯孔又唔跟。」
+   *
+   * ⚠ 先講清楚：唔係 v2.16 嘅 LenInput 改動造成嘅。
+   *   實測 toLenInput → parseLen 喺 mm/inch、全部相關數值都 round-trip 成功，
+   *   所以 bad 恆為 false，舊版嗰個 `&& !badRef.current` 守衛係 no-op，
+   *   行為同 v2.15 一致。QA 喺 §2.4 段發現佢，所以合理地標做回歸。
+   *
+   * 但佢係真 P1 —— 而「顯示同結果唔一致」係最危險嘅一類。
+   * 所以唔止修症狀，改成一個【結構上唔可能有呢個 bug】嘅寫法：
+   *   舊：txt 係獨立 state，靠 useEffect 喺 mm 變嗰陣同步
+   *       → 一有 focus／事件次序嘅交互，就有「model 變咗但 txt 冇跟」嘅窗口。
+   *   新：未聚焦、冇打錯、冇清空嘅時候，顯示【直接由 mm 推導】。
+   *       冇 effect、冇同步窗口，所以欄位根本冇可能同 model 唔一致。
+   *       只有聚焦中／打錯緊／清空咗才顯示用戶自己嗰串字（BUG-409 要嘅行為）。 */
+  const shown = (foc || bad || blank) ? txt : toLenInput(mm, unit)
   const reason = bad
     ? `唔係一個有效長度（你打咗「${txt.trim()}」）${unit === 'inch' ? '；inch 模式可打分數，例如 1/4' : '；例如 80 或 12.5'}`
-    : ''
+    : blank ? '未輸入數值' : ''
   return (
     <input
-      type="text" inputMode="decimal" value={txt} title={reason || title} aria-label={title || '數值輸入'}
-      aria-invalid={bad || undefined}
+      type="text" inputMode="decimal" value={shown} title={reason || title} aria-label={title || '數值輸入'}
+      aria-invalid={bad || blank || undefined}
       onFocus={() => setFoc(true)}
-      // ★ 唔好 snap ★：打錯咗要睇得到自己打咗乜，唔係畀人靜靜換走。
-      onBlur={() => { setFoc(false); if (!bad) setTxt(toLenInput(mm, unit)) }}
+      /* ★ 唔好 snap ★：打錯咗／清空咗要睇得到，唔係畀人靜靜換走。
+       * BD16-02：QA 報「清空仍靜默變返 80」—— 舊版 blank 唔算 bad，於是 onBlur 照 snap。
+       * 而家 blank 同 bad 一樣唔 snap。 */
+      onBlur={() => { setFoc(false); if (!bad && !blank) setTxt(toLenInput(mm, unit)) }}
       // BUG-SO18F-001: notify parent even when below min (Ø-1) so preview/confirm can reject+clear instead of keeping a stale legal value.
       onChange={(e) => { setTxt(e.target.value); const v = parseLen(e.target.value, unit); if (v != null) onMm(v) }}
-      style={{ width: w, ...(bad ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
+      style={{ width: w, ...(bad || blank ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
     />
   )
 }

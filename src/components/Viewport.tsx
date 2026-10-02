@@ -3304,7 +3304,7 @@ function PoleNet() {
 
 // T794：单位感知长度输入框 — 当前单位显示（inch 模式可打分数 "1/4"/"1 1/2"、后缀 mm/in/"），内部存 mm。
 // 文本框（非 number — 要容分数斜线）；失焦重格式化对齐显示。解析唔到就保持旧值（唔写）。
-function LenInput({ mm, onMm, unit, w = 56, title }: { mm: number; onMm: (v: number) => void; unit: LenUnit; w?: number; min?: number; title?: string }) {
+function LenInput({ mm, onMm, onText, unit, w = 56, title }: { mm: number; onMm: (v: number) => void; /** BD16-02：每次改都報【原文】（連 parse 失敗都報）—— onMm 喺 parse 失敗嗰陣根本唔會 call，所以父層單靠 onMm 永遠唔知道欄位而家係非法／空白。 */ onText?: (raw: string) => void; unit: LenUnit; w?: number; min?: number; title?: string }) {
   const [txt, setTxt] = useState(() => toLenInput(mm, unit))
   const [foc, setFoc] = useState(false)
   /* ★ BUG-409（P1，合併 9 條）嘅【單一最大源頭】★
@@ -3355,7 +3355,7 @@ function LenInput({ mm, onMm, unit, w = 56, title }: { mm: number; onMm: (v: num
        * 而家 blank 同 bad 一樣唔 snap。 */
       onBlur={() => { setFoc(false); if (!bad && !blank) setTxt(toLenInput(mm, unit)) }}
       // BUG-SO18F-001: notify parent even when below min (Ø-1) so preview/confirm can reject+clear instead of keeping a stale legal value.
-      onChange={(e) => { setTxt(e.target.value); const v = parseLen(e.target.value, unit); if (v != null) onMm(v) }}
+      onChange={(e) => { setTxt(e.target.value); const v = parseLen(e.target.value, unit); if (v != null) onMm(v); onText?.(e.target.value) }}
       style={{ width: w, ...(bad || blank ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
     />
   )
@@ -6698,9 +6698,9 @@ export default function Viewport() {
             <label>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'new'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('加料/切割(車槽)/相交', lang) : tStatus('沒有實體，只能加料', lang)}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割(車槽)', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新實體', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'box' && (<>
-            <label>{tStatus('長', lang)} <LenInput mm={Number(featDlg.params.l)} onMm={(v) => setFeatParam('l', v)} unit={unit} w={52} min={0.1} /></label>
-            <label>{tStatus('寬', lang)} <LenInput mm={Number(featDlg.params.w)} onMm={(v) => setFeatParam('w', v)} unit={unit} w={52} min={0.1} /></label>
-            <label>{tStatus('高', lang)} <LenInput mm={Number(featDlg.params.h)} onMm={(v) => setFeatParam('h', v)} unit={unit} w={52} min={0.1} /></label>
+            <label>{tStatus('長', lang)} <LenInput mm={Number(featDlg.params.l)} onMm={(v) => setFeatParam('l', v)} onText={(raw) => setFeatParam('l', parseLen(raw, unit) ?? Number(featDlg.params.l), raw)} unit={unit} w={52} min={0.1} /></label>
+            <label>{tStatus('寬', lang)} <LenInput mm={Number(featDlg.params.w)} onMm={(v) => setFeatParam('w', v)} onText={(raw) => setFeatParam('w', parseLen(raw, unit) ?? Number(featDlg.params.w), raw)} unit={unit} w={52} min={0.1} /></label>
+            <label>{tStatus('高', lang)} <LenInput mm={Number(featDlg.params.h)} onMm={(v) => setFeatParam('h', v)} onText={(raw) => setFeatParam('h', parseLen(raw, unit) ?? Number(featDlg.params.h), raw)} unit={unit} w={52} min={0.1} /></label>
             <label title={tStatus('＋加料=並入活動體；⬡新實體=獨立泊車（活動體保持為目標，适合後續合併/切割挖孔）；－切割=從活動體切除', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut" disabled={!bodyMesh?.triangles?.length}>{tStatus('－切割', lang)}</option><option value="newbody" disabled={!bodyMesh?.triangles?.length}>{tStatus('⬡新實體', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'cylinder' && (<>

@@ -212,6 +212,8 @@ export const NUMERIC_FIELDS = {
   patternSpacing: { label: '陣列間距', unit: 'mm', min: 0, minInclusive: false, max: 1e6 },
   /** 拔模角（原本 NaN / abc → 靜默變 0）。0 合法（= 唔拔模）。 */
   draftAngle: { label: '拔模角', unit: '°', min: -85, max: 85 },
+  /** 原語直徑（圓柱／球／圓錐 Ø）。同 holeDiameter 分開係為咗 label 唔會讀錯。 */
+  bodyDiameter: { label: '直徑Ø', unit: 'mm', min: 0, minInclusive: false, max: 1e6 },
   /** 分割位置（原本 NaN → 0；0 / -5 照建立）。可以負，所以唔設 min。 */
   splitPosition: { label: '分割位置', unit: 'mm', min: -1e6, max: 1e6 },
 } as const satisfies Record<string, NumericFieldSpec>

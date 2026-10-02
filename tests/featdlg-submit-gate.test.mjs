@@ -82,8 +82,47 @@ test('★ REGRESSION：被拒嘅結果唔准帶住一個「代入出嚟」嘅數
 })
 
 test('spec 表本身：登記過嘅 kind/param 冇被靜靜改走', () => {
-  assert.deepEqual(Object.keys(FEAT_PARAM_SPEC).sort(), ['circpattern', 'cpattern', 'draft', 'pattern', 'splitbody'])
+  // 每次加對話框都要更新呢行 —— 咁就唔會有人靜靜加／刪一個 kind 而冇人知。
+  assert.deepEqual(Object.keys(FEAT_PARAM_SPEC).sort(),
+    ['box', 'circpattern', 'cpattern', 'cylinder', 'draft', 'pattern', 'sphere', 'splitbody', 'wedge'])
+  assert.equal(FEAT_PARAM_SPEC.box.l, 'boxLength')
+  assert.equal(FEAT_PARAM_SPEC.cylinder.d, 'bodyDiameter')
   assert.equal(FEAT_PARAM_SPEC.pattern.countX, 'patternCount')
   assert.equal(FEAT_PARAM_SPEC.draft.angle, 'draftAngle')
   assert.equal(FEAT_PARAM_SPEC.splitbody.offset, 'splitPosition')
+})
+
+/* ── BD16-02：Box 對話框接入同一條通道 ─────────────────────────────── */
+
+test('★ BD16-02：Box 長度打 1e9 / abc 要阻住提交（QA：紅框但確定仍撳得）★', () => {
+  for (const raw of ['1e9', 'abc', 'NaN', '0', '-5']) {
+    const r = featDlgBlockingReason(dlg('box', { l: 80, w: 60, h: 30 }, { l: raw }))
+    assert.ok(r, `Box 長度「${raw}」應該阻住提交，實得 ${JSON.stringify(r)}`)
+  }
+})
+
+test('★ BD16-02：Box 長度清空都要阻住（QA：清空靜默變返 80）★', () => {
+  const r = featDlgBlockingReason(dlg('box', { l: 80 }, { l: '' }))
+  assert.ok(r, '空白唔可以提交 —— 否則就係「清空之後靜靜用返舊值」')
+  const r2 = featDlgBlockingReason(dlg('box', { l: 80 }, { l: '   ' }))
+  assert.ok(r2, '只有空格都算空白')
+})
+
+test('Box 合法值唔准被阻；三個欄各自獨立判斷', () => {
+  assert.equal(featDlgBlockingReason(dlg('box', { l: 50 }, { l: '50' })), null)
+  assert.equal(featDlgBlockingReason(dlg('box', { l: 50, w: 35, h: 25 }, { l: '50', w: '35', h: '25' })), null)
+  assert.ok(featDlgBlockingReason(dlg('box', { l: 50, w: 35, h: 25 }, { l: '50', w: 'abc', h: '25' })),
+    '其中一個非法就要阻住')
+})
+
+test('圓柱／球 Ø 同高度都接入（label 唔可以讀成「孔徑」）', () => {
+  assert.equal(featDlgBlockingReason(dlg('cylinder', { d: 20, h: 40 }, { d: '20', h: '40' })), null)
+  const r = featDlgBlockingReason(dlg('cylinder', { d: 20 }, { d: 'abc' }))
+  assert.ok(r && r.includes('直徑'), `圓柱嘅理由應該講「直徑」唔係「孔徑」，實得：${r}`)
+  assert.ok(featDlgBlockingReason(dlg('sphere', { d: 0 }, { d: '0' })), '球 Ø 0 唔合法')
+})
+
+test('wedge 同 box 共用同一組 spec（唔好一個有閘一個冇）', () => {
+  assert.ok(featDlgBlockingReason(dlg('wedge', { l: 80 }, { l: 'abc' })))
+  assert.equal(featDlgBlockingReason(dlg('wedge', { l: 80 }, { l: '80' })), null)
 })

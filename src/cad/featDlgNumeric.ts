@@ -41,6 +41,13 @@ export const FEAT_PARAM_SPEC: Record<string, Record<string, NumericFieldKey>> = 
     dx: 'patternSpacing', dy: 'patternSpacing', dz: 'patternSpacing',
   },
   cpattern: { count: 'patternCount' },
+  /* BD16-02：QA 報 Box 長度欄紅框時「確定」掣仍然撳得、清空靜默變返 80。
+   * 接落同一條 paramRaw 通道就自動有：空白同非法都會令 firstBlockingReason
+   * 返原因 → commit 擋住 + 確定掣停用 + alert 講真原因。 */
+  box: { l: 'boxLength', w: 'boxWidth', h: 'boxHeight' },
+  wedge: { l: 'boxLength', w: 'boxWidth', h: 'boxHeight' },
+  cylinder: { d: 'bodyDiameter', h: 'boxHeight' },
+  sphere: { d: 'bodyDiameter' },
   circpattern: { count: 'patternCount' },
   draft: { angle: 'draftAngle' },
   splitbody: { offset: 'splitPosition' },

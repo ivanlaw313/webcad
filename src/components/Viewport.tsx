@@ -74,6 +74,7 @@ import { detectFace, nearSharpEdge } from '../geom/faceDetect'
 import { cutFaceGeom } from '../geom/sectionCap'   // S186：剖面盖切面三角抽取（切面上色）
 import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按需预览（避免普通建模首屏载入齿轮搜索）
 import { ToolIcon } from '../icons'
+import { featDlgBlockingReason } from '../cad/featDlgNumeric'   // 純邏輯模組，唔經 monolith
 import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
@@ -6275,8 +6276,19 @@ export default function Viewport() {
           (featDlg.kind === 'automatedmodel' && (((featDlg.payload as { picks?: unknown[] } | undefined)?.picks?.length ?? 0) !== 2 || !(+featDlg.params.radius > 0))) ||
           (featDlg.kind === 'shell-edit' && !(+featDlg.params.thickness > 0)) ||
           ((featDlg.kind === 'box' || featDlg.kind === 'wedge') && [featDlg.params.l, featDlg.params.w, featDlg.params.h].some((v) => !(+v > 0))) ||
-          ((featDlg.kind === 'cylinder' || featDlg.kind === 'sphere') && [featDlg.params.d, featDlg.kind === 'sphere' ? 1 : featDlg.params.h].some((v) => !(+v > 0)))
+          ((featDlg.kind === 'cylinder' || featDlg.kind === 'sphere') && [featDlg.params.d, featDlg.kind === 'sphere' ? 1 : featDlg.params.h].some((v) => !(+v > 0))) ||
+          /* ★ BUG-417 修 ★ —— 原本有錯訊息都撳得「確定」，撳咗先驗證。
+           * 而家同 commitFeatDlg 用【同一條】規則（featDlgBlockingReason），
+           * 唔好兩邊各寫一套 —— 兩套遲早會唔同步。*/
+          !!featDlgBlockingReason(featDlg)
         } onOk={() => void commitFeatDlg()} onCancel={() => cancelFeatDlg()}>
+          {/* 真原因（含用戶打咗乜）—— 取代舊嘅籠統訊息。QA 實測舊行為：
+            * 打 1e9 顯示「必須大於 0」、打 0 顯示「半徑太大」，理由完全錯。*/}
+          {!!featDlgBlockingReason(featDlg) && (
+            <div role="alert" data-testid="feat-numeric-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>
+              尺寸已拒絕：{featDlgBlockingReason(featDlg)}
+            </div>
+          )}
           {featDlg.kind === 'shell-edit' && !(+featDlg.params.thickness > 0) && <div role="alert" data-testid="shell-edit-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div>}
           {(featDlg.kind === 'box' || featDlg.kind === 'wedge') && [featDlg.params.l, featDlg.params.w, featDlg.params.h].some((v) => !(+v > 0)) && <div role="alert" data-testid="prim-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_LENGTH_DETAIL)}</div>}
           {featDlg.kind === 'extrude-edit' && <div role="status">{!currentEditPreview ? '正在計算上游預覽…' : currentEditPreview.failed ? '預覽失敗，請檢查距離及輪廓' : '上游預覽；确定後重建下游特徵'}</div>}
@@ -6332,11 +6344,17 @@ export default function Viewport() {
             {String(featDlg.params.objectType ?? 'bodies') === 'components' && <span style={{ fontSize: 11, color: cpSelCompCount ? '#2c7' : '#c60' }}>{cpSelCompCount ? `✓ ${tStatus('已選組件', lang)} ×${cpSelCompCount}（${tStatus('共享定義的 occurrence 陣列', lang)}）` : tStatus('← 先喺裝配樹勾選 ☑ 或畫布選中組件', lang)}</span>}
             {featDlg.params.target === 'feature' && <span style={{ fontSize: 11, color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已選特徵', lang)} ×${useApp.getState().selectedFeatures.length || 1}` : msg('ui.clickFeatureFirst', lang)}</span>}
             <label title={tStatus('距離類型（Fusion Distance Type）：間距 = 相鄰副本距離；總長 = 首末副本總跨距（間距自動 = 總長÷(數量−1)）', lang)}>{tStatus('距離', lang)} <select value={String(featDlg.params.dtype ?? 'spacing')} onChange={(e) => setFeatParam('dtype', e.target.value)} style={{ height: 26 }}><option value="spacing">{tStatus('間距', lang)}</option><option value="extent">{tStatus('總長', lang)}</option></select></label>
-            <label>{tStatus('X數量', lang)} <input type="number" min={1} step={1} value={featDlg.params.countX} onChange={(e) => setFeatParam('countX', Number(e.target.value))} style={{ width: 46 }} /></label>
+            <label>{tStatus('X數量', lang)} <input type="number" min={1} step={1} value={featDlg.params.countX} onChange={(e) => setFeatParam('countX', Number(e.target.value), e.target.value)}   /* BUG-409/417：連原文一齊傳，唔好淨傳 Number（打「abc」會變 NaN，原文就冇咗）。
+               ⚠ 註釋唔准用直引號 —— tests/zh-hk-no-sc-leak 嘅引號掃描器唔識 comment，
+                 一個直引號會令後面成段文字被錯配成「字串」，撞爆簡體字上限。 */ style={{ width: 46 }} /></label>
             <label>{tStatus(featDlg.params.dtype === 'extent' ? 'X總長' : 'X間距', lang)} <input type="number" step={5} value={featDlg.params.dx} onChange={(e) => setFeatParam('dx', Number(e.target.value))} style={{ width: 56 }} /></label>
-            <label>{tStatus('Y數量', lang)} <input type="number" min={1} step={1} value={featDlg.params.countY} onChange={(e) => setFeatParam('countY', Number(e.target.value))} style={{ width: 46 }} /></label>
+            <label>{tStatus('Y數量', lang)} <input type="number" min={1} step={1} value={featDlg.params.countY} onChange={(e) => setFeatParam('countY', Number(e.target.value), e.target.value)}   /* BUG-409/417：連原文一齊傳，唔好淨傳 Number（打「abc」會變 NaN，原文就冇咗）。
+               ⚠ 註釋唔准用直引號 —— tests/zh-hk-no-sc-leak 嘅引號掃描器唔識 comment，
+                 一個直引號會令後面成段文字被錯配成「字串」，撞爆簡體字上限。 */ style={{ width: 46 }} /></label>
             <label>{tStatus(featDlg.params.dtype === 'extent' ? 'Y總長' : 'Y間距', lang)} <input type="number" step={5} value={featDlg.params.dy} onChange={(e) => setFeatParam('dy', Number(e.target.value))} style={{ width: 56 }} /></label>
-            <label title={tStatus('層數（Z 方向，1=平面陣列）', lang)}>{tStatus('Z層數', lang)} <input type="number" min={1} step={1} value={featDlg.params.countZ ?? 1} onChange={(e) => setFeatParam('countZ', Number(e.target.value))} style={{ width: 46 }} /></label>
+            <label title={tStatus('層數（Z 方向，1=平面陣列）', lang)}>{tStatus('Z層數', lang)} <input type="number" min={1} step={1} value={featDlg.params.countZ ?? 1} onChange={(e) => setFeatParam('countZ', Number(e.target.value), e.target.value)}   /* BUG-409/417：連原文一齊傳，唔好淨傳 Number（打「abc」會變 NaN，原文就冇咗）。
+               ⚠ 註釋唔准用直引號 —— tests/zh-hk-no-sc-leak 嘅引號掃描器唔識 comment，
+                 一個直引號會令後面成段文字被錯配成「字串」，撞爆簡體字上限。 */ style={{ width: 46 }} /></label>
             <label title={tStatus('Z 方向層間距', lang)}>{tStatus(featDlg.params.dtype === 'extent' ? 'Z總長' : 'Z間距', lang)} <input type="number" step={5} value={featDlg.params.dz ?? 60} onChange={(e) => setFeatParam('dz', Number(e.target.value))} style={{ width: 56 }} /></label>
             {(useApp.getState().bodyMesh?.parked?.length ?? 0) > 0 && !featDlg.params.target && (
               <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('對象類型 Bodies（Fusion Object Type）：連所有泊車實體一齊陣列（每個泊車體各自鋪柵格副本）。關＝只陣列活動實體。', lang)}>

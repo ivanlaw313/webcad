@@ -419,7 +419,7 @@ export default function Ribbon() {
 
 ${pick.label}
 
-（會取代而家畫面上嘅內容）`)) {
+（會取代而家視圖上嘅內容）`)) {
                         void useApp.getState().recoverAutosave(pick.tabId)
                       } else {
                         useApp.getState().dismissAutosaveRecovery()

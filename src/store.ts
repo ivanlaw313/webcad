@@ -92,6 +92,10 @@ import { segmentPlanarRegions, planarRegionSummary, measureMeshEdgeChain, measur
 import { sliceMesh, classifyLoops } from './geom/slicePreview'   // T782：网格截面→草图；S186：classifyLoops 嵌套深度奇偶分类（多体/嵌套岛截面属性）
 import { EMPTY_ANNO, hydrateAnno, type DrawingAnno } from './io/drawingAnno'   // T784：工程图标注持久化
 import { documentPersistenceEnabled } from './runtime/uiTestIsolation'
+import { featDlgBlockingReason } from './cad/featDlgNumeric'
+import { FEAT_PARAM_SPEC } from './cad/featDlgNumeric'
+import { parseField } from './cad/numericInput'
+export { featDlgBlockingReason }
 import { canClaimUntaggedIdbAutosave, clearTabAutosave, dropRecoverableAutosave, isAutosaveForThisTab, listRecoverableAutosaves, markUntaggedIdbAutosaveClaimed, readRecoverableAutosave, readTabAutosaveRaw, withTabSessionId, writeTabAutosaveRaw } from './runtime/tabDocumentSession'
 import type { RecoverableAutosave } from './runtime/tabDocumentSession'
 import { mapPointToFlat, type SmSpec } from './cad/smUnfold'   // T785：钣金展开图带孔
@@ -2406,13 +2410,13 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   cancelHole: () => void
   clearHolePick: () => void  // SelectionChip ✕ → unset the hole centre, keep the dialog open
   // Generic feature-param command (Fusion-style set params → 确定) for pattern/cpattern/mirror
-  featDlg: { kind: 'pattern' | 'geoPattern' | 'cpattern' | 'circpattern' | 'pathpattern' | 'mirror' | 'move' | 'scale' | 'draft' | 'revolve' | 'rib' | 'pipe' | 'box' | 'cylinder' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie' | 'tube' | 'rtube' | 'profile' | 'rbox' | 'prism' | 'pyramid' | 'coil' | 'plane' | 'cpoint' | 'cptgrid' | 'caxis' | 'thread' | 'cylpatch' | 'sheetmetal' | 'gear' | 'rack' | 'pulley' | 'gearbox' | 'worm' | 'crowngear' | 'othread' | 'ithread' | 'combine' | 'boundaryfill' | 'automatedmodel' | 'offsetsolid' | 'splitbody' | 'extrude-edit' | 'fillet-edit' | 'chamfer-edit' | 'shell-edit'; params: Record<string, number | string>; payload?: unknown; editId?: string; expressionContext?: import('./cad/dimensionExpression').DimensionExpression } | null
+  featDlg: { kind: 'pattern' | 'geoPattern' | 'cpattern' | 'circpattern' | 'pathpattern' | 'mirror' | 'move' | 'scale' | 'draft' | 'revolve' | 'rib' | 'pipe' | 'box' | 'cylinder' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie' | 'tube' | 'rtube' | 'profile' | 'rbox' | 'prism' | 'pyramid' | 'coil' | 'plane' | 'cpoint' | 'cptgrid' | 'caxis' | 'thread' | 'cylpatch' | 'sheetmetal' | 'gear' | 'rack' | 'pulley' | 'gearbox' | 'worm' | 'crowngear' | 'othread' | 'ithread' | 'combine' | 'boundaryfill' | 'automatedmodel' | 'offsetsolid' | 'splitbody' | 'extrude-edit' | 'fillet-edit' | 'chamfer-edit' | 'shell-edit'; params: Record<string, number | string>; /** BUG-417/409：用戶打落去嘅【原文】。有 raw 嘅欄位才會受提交閘管 —— 未遷移嘅欄位行為逐字不變。 */ paramRaw?: Record<string, string>; payload?: unknown; editId?: string; expressionContext?: import('./cad/dimensionExpression').DimensionExpression } | null
   openFeatDlg: (kind: 'pattern' | 'geoPattern' | 'cpattern' | 'circpattern' | 'mirror' | 'move' | 'scale' | 'draft' | 'box' | 'cylinder' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie' | 'tube' | 'rtube' | 'profile' | 'rbox' | 'prism' | 'pyramid' | 'coil' | 'plane' | 'cpoint' | 'cptgrid' | 'caxis' | 'thread' | 'cylpatch' | 'sheetmetal' | 'gear' | 'rack' | 'pulley' | 'gearbox' | 'worm' | 'crowngear' | 'othread' | 'ithread' | 'combine' | 'automatedmodel' | 'offsetsolid' | 'splitbody') => void
   openCombineDlg: () => void   // S128：真 Combine 对话框（活动体⊗泊车工具体，行返 bodyboolean B-rep）
   openBoundaryFillDlg: () => void // 两封闭实体的真实 B-rep cell 分割；范围明确小于 Fusion 完整 Boundary Fill
   buildGearTrain: (spec: { ratio: number; m: number; stages: number; th: number; bore: number; helix: number }) => Promise<void>  // T770（S49）：齿轮箱向导 — 目标速比 → 齿数组合 + 自动摆位 + 关节 + 运动连接
   previewExtrudeEdit: () => Promise<MeshData | null>
-  setFeatParam: (key: string, value: number | string) => void
+  setFeatParam: (key: string, value: number | string, raw?: string) => void
   automatedModelPickFace: (face: { p: [number, number, number]; n: [number, number, number] } | null) => void
   openFeatDlgForEdit: (featId: string) => void   // P2 Edit Feature：双击时间线重开原创建对话框（值反填，OK=editFeature 非 push）
   commitFeatDlg: () => Promise<void>
@@ -15030,9 +15034,21 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (mesh && !mesh.failed?.length) { _previewFeatures.set(mesh, active); set({ editPreviewMesh: mesh }) }
     return mesh
   },
-  setFeatParam: (key, value) => set((s) => {
+  setFeatParam: (key, value, raw) => set((s) => {
     if (!s.featDlg) return {}
     let params: Record<string, number | string> = { ...s.featDlg.params, [key]: value }
+    /* BUG-417/409：有原文就記住，並即刻用真原因覆蓋舊嘅籠統訊息。
+     * （QA 實測舊行為：打 1e9 顯示「必須大於 0」、打 0 顯示「半徑太大」—— 理由完全錯。） */
+    let rawPatch: { paramRaw?: Record<string, string> } = {}
+    let rawReject: { status?: string } = {}
+    if (typeof raw === 'string') {
+      rawPatch = { paramRaw: { ...(s.featDlg.paramRaw ?? {}), [key]: raw } }
+      const specKey = FEAT_PARAM_SPEC[s.featDlg.kind]?.[key]
+      if (specKey) {
+        const r = parseField(specKey, raw)
+        if (!r.ok && r.state === 'invalid') rawReject = { status: `尺寸已拒絕：${r.reason}` }
+      }
+    }
     // BUG-UI-001: live-type ≤0 on length/thickness keys (Confirm may be disabled).
     const positiveFeatKeys = new Set(['a', 'b', 'c', 'l', 'w', 'h', 'd', 'diameter', 'radius', 'thickness', 'distance', 'pitch', 'module', 'width', 'bore', 'wireR', 'size', 'thick', 'ext', 'length', 'depth', 'r', 'r2', 'td'])
     const liveReject = typeof value === 'number' && positiveFeatKeys.has(key) && isNonPositiveDim(value)
@@ -15047,7 +15063,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         params = { ...params, dx: v[0], dy: v[1], dz: v[2] }
       }
     }
-    return { featDlg: { ...s.featDlg, params }, ...liveReject }
+    return { featDlg: { ...s.featDlg, params, ...rawPatch }, ...liveReject, ...rawReject }
   }),
   automatedModelPickFace: (face) => set((s) => {
     const d = s.featDlg
@@ -16807,6 +16823,11 @@ export const useApp = create<AppState>((rawSet, get) => {
   commitFeatDlg: async () => {
     const d = get().featDlg
     if (!d) return
+    /* ★ BUG-417 修 ★ —— 原本「確定」掣喺有錯訊息嘅情況下仍然撳得，撳咗才驗證，
+     * 而且部分路徑會照用被靜默換過嘅值去建幾何（= BUG-409 嘅後果）。
+     * 而家：同「確定」掣用【同一條】規則（featDlgBlockingReason），對話框保持開住。*/
+    const blocked = featDlgBlockingReason(d)
+    if (blocked) { set({ status: `未提交：${blocked}` }); return }
     const p = d.params
     // GM-3DV1 S3：解析逐实例抑制字串（"2,5,7" 逗号/空格分隔实例索引）→ boolean[] 遮罩（长 total，越界忽略）。空 ⇒ undefined（旧档逐字节）。
     const parseSuppressMask = (raw: number | string | undefined, total: number): boolean[] | undefined => {

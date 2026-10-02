@@ -1,4 +1,5 @@
 import { parseDimensionEditInput } from '../sketch/dimensionEditInput'
+import { boltCircleCenters, boltCircleRadius } from '../cad/boltCircle'
 import { fixesWholeShape, sketchGeometryVisible } from './sketchFixVisual'
 import { sketchConstraintColor } from './sketchConstraintColor'
 import { sketchPlaneRaycast } from '../sketch/sketchPlaneRaycast'
@@ -1528,6 +1529,11 @@ export function HolePreview() {
   const holeType = useApp((s) => s.holeType)
   const holeCbD = useApp((s) => s.holeCbD)
   const holeCbDepth = useApp((s) => s.holeCbDepth)
+  // ★ BUG-515 ★ 螺栓孔圈開住嘅時候，鬼影一定要畫【真正會鑽嘅 N 個孔】。
+  // 原本呢個預覽只畫 holePos 一個孔 → 用戶見 1 個、確定之後鑽 64 個，直接造錯件。
+  const holeBoltCircle = useApp((s) => s.holeBoltCircle)
+  const holeBcCount = useApp((s) => s.holeBcCount)
+  const holeBcPcd = useApp((s) => s.holeBcPcd)
   const cfg = useMemo(() => {
     // BUG-SO18F-001: illegal Ø≤0 must not keep a stale preview from the prior legal diameter.
     if (!holeMode || !holePos || !(holeD > 0)) return null
@@ -1539,28 +1545,45 @@ export function HolePreview() {
     const len = holeThrough ? 400 : Math.max(2, holeDepth > 0 ? holeDepth : holeD * 1.5)
     const cbR = Math.max(r + 0.5, holeCbD != null ? holeCbD / 2 : holeD * 0.9)   // 无自定义值 → 比例 ≈1.8·D（screwSpec 缺省口径）
     const cbDep = Math.max(0.5, holeCbDepth != null ? holeCbDepth : holeD * 0.9)
-    return { q: [q.x, q.y, q.z, q.w] as [number, number, number, number], r, len, cbR, cbDep, type: holeType }
-  }, [holeMode, holePos, holeDir, holeD, holeDepth, holeThrough, holeType, holeCbD, holeCbDepth])
+    // ★ 唔准喺度自己計 ★ 一定要行 boltCircleCenters —— 預覽同結果共用同一個來源，
+    // 咁「見 1 個鑽 64 個」喺結構上就冇得再發生。原點 (0,0) 出相對偏移。
+    // CAD XY → three：dx → +x，dy → −z（同 holeCommit 嘅 centers 同一個平面）。
+    const offsets: V3[] = holeBoltCircle
+      ? boltCircleCenters(0, 0, holeBcCount, holeBcPcd).map(([dx, dy]) => [dx, 0, -dy] as V3)
+      : [[0, 0, 0]]
+    const pr = boltCircleRadius(holeBcPcd)
+    return { q: [q.x, q.y, q.z, q.w] as [number, number, number, number], r, len, cbR, cbDep, type: holeType, offsets, pcdR: holeBoltCircle ? pr : 0 }
+  }, [holeMode, holePos, holeDir, holeD, holeDepth, holeThrough, holeType, holeCbD, holeCbDepth, holeBoltCircle, holeBcCount, holeBcPcd])
   if (!cfg || !holePos) return null
   const RED = '#ff5a4d'
+  const mat = <meshBasicMaterial color={RED} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide} />
+  // 節圓（PCD）線 — 令用戶一眼睇到「呢批孔排喺幾大個圈上」。
+  const pcdRing = cfg.pcdR > 0
+    ? Array.from({ length: 65 }, (_, i) => { const a = (i / 64) * Math.PI * 2; return [cfg.pcdR * Math.cos(a), 0, -cfg.pcdR * Math.sin(a)] as V3 })
+    : null
   return (
-    <group position={holePos} quaternion={cfg.q}>
-      <mesh position={[0, cfg.len / 2, 0]} renderOrder={2} raycast={() => null}>
-        <cylinderGeometry args={[cfg.r, cfg.r, cfg.len, 24]} />
-        <meshBasicMaterial color={RED} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide} />
-      </mesh>
-      {cfg.type === 'counterbore' && (
-        <mesh position={[0, cfg.cbDep / 2, 0]} renderOrder={2} raycast={() => null}>
-          <cylinderGeometry args={[cfg.cbR, cfg.cbR, cfg.cbDep, 24]} />
-          <meshBasicMaterial color={RED} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide} />
-        </mesh>
-      )}
-      {cfg.type === 'countersink' && (
-        <mesh position={[0, cfg.cbDep / 2, 0]} renderOrder={2} raycast={() => null}>
-          <cylinderGeometry args={[cfg.r, cfg.cbR, cfg.cbDep, 24]} />
-          <meshBasicMaterial color={RED} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide} />
-        </mesh>
-      )}
+    <group position={holePos}>
+      {pcdRing && <Line points={pcdRing} color={RED} lineWidth={1.4} transparent opacity={0.65} depthTest={false} />}
+      {cfg.offsets.map((o, i) => (
+        <group key={i} position={o} quaternion={cfg.q}>
+          <mesh position={[0, cfg.len / 2, 0]} renderOrder={2} raycast={() => null}>
+            <cylinderGeometry args={[cfg.r, cfg.r, cfg.len, 24]} />
+            {mat}
+          </mesh>
+          {cfg.type === 'counterbore' && (
+            <mesh position={[0, cfg.cbDep / 2, 0]} renderOrder={2} raycast={() => null}>
+              <cylinderGeometry args={[cfg.cbR, cfg.cbR, cfg.cbDep, 24]} />
+              {mat}
+            </mesh>
+          )}
+          {cfg.type === 'countersink' && (
+            <mesh position={[0, cfg.cbDep / 2, 0]} renderOrder={2} raycast={() => null}>
+              <cylinderGeometry args={[cfg.r, cfg.cbR, cfg.cbDep, 24]} />
+              {mat}
+            </mesh>
+          )}
+        </group>
+      ))}
     </group>
   )
 }

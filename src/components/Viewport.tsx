@@ -6043,7 +6043,7 @@ export default function Viewport() {
           okDisabled={(!holePos && !holeEditId) || !(holeD > 0)}
           onOk={() => void commitHole()}
           onCancel={() => cancelHole()}
-          summary={!(holeD > 0) ? '孔徑必須大於 0' : holeType === 'counterbore' ? `沉頭孔（${holeThrough ? '通' : '盲'}+沉台 Ø${(holeCbD ?? holeSpec.cbD).toFixed(1)}）` : holeType === 'countersink' ? `埋頭孔（${holeThrough ? '通' : '盲'}+${holeCsAngle}°錐 Ø${(holeCsD ?? holeSpec.csD).toFixed(1)}）` : holeType === 'nuttrap' ? '螺母陷阱（過孔+六角槽嵌螺母）' : holeType === 'tapped' ? (holeTapModeled ? `建模螺紋（真螺旋牙，${holeThrough ? '通孔' : '盲孔'}）` : `攻牙底孔（鑽 d−螺距，攻 M 螺紋用，${holeThrough ? '通孔' : '盲孔'}）`) : holeThrough ? `通孔 Ø${holeD}` : `盲孔 Ø${holeD}${holeDepth > 0 ? ` 深${holeDepth}` : '（深≈1.5×Ø）'}`}
+          summary={(holeBoltCircle ? `⚠ 螺栓孔圈：會鑽 ${Math.max(2, Math.min(64, Math.round(holeBcCount) || 4))} 個孔（PCD Ø${holeBcPcd}）— ` : '') + (!(holeD > 0) ? '孔徑必須大於 0' : holeType === 'counterbore' ? `沉頭孔（${holeThrough ? '通' : '盲'}+沉台 Ø${(holeCbD ?? holeSpec.cbD).toFixed(1)}）` : holeType === 'countersink' ? `埋頭孔（${holeThrough ? '通' : '盲'}+${holeCsAngle}°錐 Ø${(holeCsD ?? holeSpec.csD).toFixed(1)}）` : holeType === 'nuttrap' ? '螺母陷阱（過孔+六角槽嵌螺母）' : holeType === 'tapped' ? (holeTapModeled ? `建模螺紋（真螺旋牙，${holeThrough ? '通孔' : '盲孔'}）` : `攻牙底孔（鑽 d−螺距，攻 M 螺紋用，${holeThrough ? '通孔' : '盲孔'}）`) : holeThrough ? `通孔 Ø${holeD}` : `盲孔 Ø${holeD}${holeDepth > 0 ? ` 深${holeDepth}` : '（深≈1.5×Ø）'}`)}
         >
           {!(holeD > 0) && <div role="alert" data-testid="hole-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>尺寸已拒絕：孔徑Ø必須大於 0（已清除非法預覽）</div>}
           <div style={{ color: '#6b7680', fontWeight: 600 }}>Placement</div>

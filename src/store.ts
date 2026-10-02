@@ -1,4 +1,5 @@
 import { offsetPatternSources } from './sketch/offsetPatternSources'
+import { boltCircleCenters, boltCircleCount } from './cad/boltCircle'
 import { resolvePatternTargets, type PatternSelectionRef } from './sketch/patternSourceSelection'
 import { captureSketchParameters, restoreSketchParameters, type SketchParameterSnapshot } from './sketch/sketchParameterHistory'
 import { refValid as dimensionReferenceValid } from './sketch/freesolve'
@@ -14848,10 +14849,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       const spec = screwSpec(nominal)
       const bolt = get().holeBoltCircle
-      const boltCount = Math.max(2, Math.min(64, Math.round(get().holeBcCount) || 4))
-      const boltRadius = Math.max(0.5, get().holeBcPcd / 2)
+      const boltCount = boltCircleCount(get().holeBcCount)
       const centers: [number, number][] | undefined = bolt
-        ? Array.from({ length: boltCount }, (_, i) => { const a = (i / boltCount) * Math.PI * 2; return [cx + boltRadius * Math.cos(a), cy + boltRadius * Math.sin(a)] as [number, number] })
+        ? boltCircleCenters(cx, cy, get().holeBcCount, get().holeBcPcd)   // BUG-515：同預覽共用同一個函數
         : undefined
       const updated: Feature = {
         ...previous, kind, center: [cx, cy], ...(centers ? { centers, pattern: { kind: 'bolt-circle' as const, origin: [cx, cy] as [number, number], count: boltCount, pcd: get().holeBcPcd } } : { centers: undefined, pattern: undefined }), diameter, nominalDiameter: nominal, clearance: get().holeClearance, through: get().holeThrough,
@@ -14872,10 +14872,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     if (get().holeBoltCircle) {
       // bolt circle: N evenly-spaced holes on a pitch-circle (PCD) centred on the picked point.
-      const n = Math.max(2, Math.min(64, Math.round(get().holeBcCount) || 4))
-      const pr = Math.max(0.5, get().holeBcPcd / 2)
+      const n = boltCircleCount(get().holeBcCount)
       const fz = get().holeFaceZ
-      const centers: [number, number][] = Array.from({ length: n }, (_, i) => { const a = (i / n) * Math.PI * 2; return [cx + pr * Math.cos(a), cy + pr * Math.sin(a)] as [number, number] })
+      const centers: [number, number][] = boltCircleCenters(cx, cy, get().holeBcCount, get().holeBcPcd)   // BUG-515：同預覽共用
       const kind = get().holeType
       const canPersist = !get().holeSlot && !get().holeTapModeled && (kind === 'simple' || kind === 'counterbore' || kind === 'countersink' || kind === 'tapped')
       if (canPersist) await get().addHole(cx, cy, fz, null, null, { centers, pattern: { kind: 'bolt-circle', origin: [cx, cy], count: n, pcd: get().holeBcPcd } })
@@ -20910,7 +20909,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       measureMode:false,measureEdgeMode:false,measureFaceMode:false,measureAngleMode:false,measureUniMode:false,
       measurePts:[],measureDist:null,measureEdgeInfo:null,measureFaceInfo:null,measureAngleInfo:null,
       measureUniPicks:[],measureUniResult:null,lastMeasure:null,selectedParkedIndex:null})
-    set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
+    set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, holeBoltCircle: false, holeBcCount: 4, holeBcPcd: 50, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
     set({ ...hydrateSketchDraft(null), ...hydrateFormDraft(null) })
     // record=false so "New" is a clean fresh start — undo must NOT resurrect the old document (Fusion-style new doc).
     await get().applyFeatures([], '新建 — 已清空（空白文档）', false)

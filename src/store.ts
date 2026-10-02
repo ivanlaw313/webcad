@@ -22819,7 +22819,33 @@ export const useApp = create<AppState>((rawSet, get) => {
 })})
 
 // Kernel self-heal status: surface worker restarts (wasm abort → terminate + respawn + replay) to the user.
-onKernelRestart((msg) => useApp.setState({ status: msg, busy: false }))
+/* ★ BUG-506（P0 間歇性資料遺失）★
+ *
+ * 外部 QA：MeshFit／FEA 有時令模型靜默清空，冇操作、冇提示、Ctrl+Z 同 F5 都救唔返。
+ * cadService 而家會分 kind：'recovered'（模型保住）同 ★'lost'★（內核變空）。
+ *
+ * 'lost' 嗰刻最關鍵嘅判斷：UI 仍然以為自己【有】特徵。
+ * 嗰個就係「用戶眼中嘅模型」同「內核實況」分叉嘅一刻 —— 以前呢度只係靜靜設一行
+ * status，所以用戶根本唔知發生過咩事。而家：
+ *   · 大聲講明未儲存部分可能冇咗
+ *   · ★ 主動把恢復清單填出嚟 ★（重用 BUG-406 嗰套副本機制），
+ *     令「檔案 ▾ → 恢復自動存檔」即刻有嘢可揀，唔使用戶自己去撞
+ *
+ * ⚠ 刻意唔自動還原 —— 自動覆蓋用戶畫面會製造第二種資料遺失（而且 BUG-276 會翻兜）。
+ *   提供選擇，唔代用戶做決定。 */
+onKernelRestart((msg, kind) => {
+  const s = useApp.getState()
+  if (kind !== 'lost') { useApp.setState({ status: msg, busy: false }); return }
+  const hadWork = s.features.length > 0 || s.components.length > 0
+  const rec = hadWork ? listRecoverableAutosaves({ includeSelf: true }) : []
+  useApp.setState({
+    status: hadWork
+      ? `${msg}（當時有 ${s.features.length} 個特徵${rec.length ? `；搵到 ${rec.length} 份自動存檔可以恢復` : '；冇自動存檔可恢復'}）`
+      : msg,
+    busy: false,
+    ...(rec.length ? { autosaveRecovery: rec } : {}),
+  })
+})
 
 /* ★ 风洞位姿安全阀 ★ —— 几何一变就要撳返恒等。
  *

@@ -19,7 +19,12 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const serviceSrc = readFileSync(new URL('../src/cad/cadService.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.32+', () => {
-  assert.match(version, /APP_VERSION = '1\.3[2-9]'|APP_VERSION = '1\.[4-9]\d'/)
+  // ★ 唔准再用版號字面 pattern ★ —— 原本寫死 /1\.3[2-9]|1\.[4-9]\d/，到 2.x 就永遠紅，
+  // 一條長期假紅會遮住真失敗（v2.16 就係咁帶住一條紅出貨）。改成真‧數值比較。
+  const m = version.match(/APP_VERSION\s*=\s*'(\d+)\.(\d+)'/)
+  assert.ok(m, `搵唔到 APP_VERSION 宣告，實得：${version.slice(0, 200)}`)
+  const [maj, min] = [Number(m[1]), Number(m[2])]
+  assert.ok(maj > 1 || (maj === 1 && min >= 32), `版本要 ≥ 1.32，實得 ${maj}.${min}`)
 })
 
 test('v1.32 wiring: previewRound is LONG + single-flight gate present', () => {
@@ -89,7 +94,7 @@ test('HARD: stacked slow previewRound must NOT restart when each run is under ti
   assert.equal(r3.tag, 'c')
   assert.deepEqual(calls, ['a', 'b', 'c'])
   assert.equal(k.getState().restartCount, 0, 'must not restart on stacked previews')
-  assert.ok(!toasts.some((t) => /内核已重启/.test(t)), `no restart toast; got ${JSON.stringify(toasts)}`)
+  assert.ok(!toasts.some((t) => /內核已重啟|内核已重启/.test(t)), `no restart toast; got ${JSON.stringify(toasts)}`)
   assert.equal(term, 0)
   // Wall time ≈ 3×50ms serialized; without gate call #2/#3 would hit TIMEOUT while queued
   assert.ok(elapsed >= 140, `expected serialized ~150ms+, got ${elapsed}`)
@@ -114,9 +119,9 @@ test('still restarts on true exclusive-slot hang', async () => {
   const toasts = []
   k.onKernelRestart((m) => toasts.push(m))
   await k.proxy.rebuild([])
-  await assert.rejects(() => k.proxy.previewRound('hang'), /内核已重启/)
+  await assert.rejects(() => k.proxy.previewRound('hang'), /內核已重啟|内核已重启/)
   // allow recover to settle
   await new Promise((r) => setTimeout(r, 30))
   assert.ok(k.getState().restartCount >= 1)
-  assert.ok(toasts.some((t) => /内核已重启|几何内核崩溃/.test(t)))
+  assert.ok(toasts.some((t) => /內核已重啟|内核已重启|幾何內核崩潰|几何内核崩溃/.test(t)))
 })

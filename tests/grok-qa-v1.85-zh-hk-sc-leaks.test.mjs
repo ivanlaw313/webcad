@@ -20,9 +20,15 @@ const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.
 const ribbonSrc = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 const tl = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.98; SW webcad-v1.98', () => {
-  assert.match(version, /APP_VERSION = '1\.98'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.98/)
+test('SW 快取版號要同 APP_VERSION 一致', () => {
+  // ★ 原本寫死 '1.98' ★ —— 版號一升就永遠紅，長期假紅會遮住真失敗。
+  // 真正要守嘅唔係某個版號，而係【兩邊同步】：SW CACHE 落後於 APP_VERSION，
+  // 用戶就會食住舊 bundle（即係 BUG-401「修完仍然重現」嗰個懷疑路徑）。
+  const v = version.match(/APP_VERSION\s*=\s*'([\d.]+)'/)
+  assert.ok(v, '搵唔到 APP_VERSION 宣告')
+  const c = sw.match(/const CACHE = 'webcad-v([\d.]+)/)
+  assert.ok(c, '搵唔到 SW CACHE 宣告')
+  assert.equal(c[1], v[1], `SW 快取版號 ${c[1]} 唔等於 APP_VERSION ${v[1]} → 舊 bundle 會殘留`)
 })
 
 test('catalog parity', () => {
@@ -89,9 +95,9 @@ test('BD-8302: MeshFit → 網格擬合; insertmesh pin retained', () => {
   assert.equal(msg('tool.meshfit', 'zh-HK'), '網格擬合 / 轉 B-rep')
   assert.equal(msg('cmd.meshfit', 'zh-HK'), '網格擬合 / 轉 B-rep')
   assert.match(ribbonSrc, /label: '網格擬合 \/ 轉 B-rep'/)
-  // exempt MESH pin (Solid / prior BOT-D)
-  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
-  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL网格'/)
+  // 原本係「簡體豁免」pin；i18n 線之後已經正字化做繁體 —— 方向正確，所以跟住釘繁體。
+  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL網格')
+  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL網格'/)
 })
 
 test('BD-8303: autosave label 自動儲存', () => {
@@ -101,7 +107,7 @@ test('BD-8303: autosave label 自動儲存', () => {
 })
 
 test('Pins retained', () => {
-  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
+  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL網格')
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')
   assert.equal(msg('mm.fit', 'zh-HK'), '適應視窗')
   assert.equal(msg('status.dimRejected', 'zh-HK'), '尺寸已拒絕')

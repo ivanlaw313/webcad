@@ -7,7 +7,15 @@ import type { Remote } from 'comlink'
 import type { CadAPI, Feature } from '../worker/cad.worker'
 
 // 在飞调用被内核重启打断时收到嘅错误文案（store 直接展示俾用户）
-export const KERNEL_RESTART_MSG = '内核已重启（上次操作令几何内核崩溃）— 模型已恢复到上一个成功状态，请简化嗰步操作再试'
+/**
+ * 內核重啟通知嘅性質 —— UI 要靠佢分輕重（BUG-506）。
+ *   info      進行中／一般訊息
+ *   recovered 已經恢復到上一個成功狀態（模型保住，低調講一聲就夠）
+ *   lost      ★ 模型冇咗 ★ —— 要大聲講 + 主動提供恢復入口
+ */
+export type KernelRestartKind = 'info' | 'recovered' | 'lost'
+
+export const KERNEL_RESTART_MSG = '內核已重啟（上次操作令幾何內核崩潰）— 模型已恢復到上一個成功狀態，請簡化嗰步操作再試'
 
 // v1.33: 预览被提交/取消抢占时嘅 benign 错误（唔触发「内核已重启」toast，唔加 restartCount）
 export const PREVIEW_CANCELLED_MSG = 'preview cancelled'
@@ -42,7 +50,9 @@ export function looksLikeKernelCrash(reason: unknown): boolean {
   const m = String((reason as { message?: unknown } | null)?.message ?? reason ?? '').toLowerCase()
   if (!m) return false
   // 自愈文案本身唔好再当崩溃（防连环）
-  if (m.includes('内核已重启') || m.includes('kernel restart')) return false
+  // ⚠ 兩種字體都要認：呢個守衛用字串比對。只認一種，改文案就會令守衛失效 →
+  //   「重啟訊息」被當成新崩潰，可能觸發重啟迴圈。保留簡體係為咗兼容舊字串。
+  if (m.includes('內核已重啟') || m.includes('内核已重启') || m.includes('kernel restart')) return false
   if (m.includes('preview cancelled')) return false
   return (
     /\baborted\s*\(/.test(m) ||
@@ -88,8 +98,27 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
   let exclusiveMethod: string | null = null       // 当前独占槽上嘅方法名
   let previewEpoch = 0                            // v1.33: 取消排队中嘅 previewRound
   const pending = new Set<Pending>()
-  const restartCbs: ((msg: string) => void)[] = []
-  const notify = (msg: string) => { for (const cb of restartCbs.slice()) { try { cb(msg) } catch { /* UI 回调唔好炸代理 */ } } }
+  /**
+   * ★ BUG-506（P0 間歇性資料遺失）★
+   *
+   * 外部 QA 實測：MeshFit 有時會令模型【靜默清空】—— 冇操作、冇提示、冇錯誤，
+   * Ctrl+Z 同 F5 都救唔返。重現率 MeshFit 2/19、FEA 2/11。
+   * 同一輪另外 2/19 次係【有提示 + 模型保留】（restart() 嗰條路）。
+   *
+   * 根因就係下面兩條恢復路徑一條出聲一條唔出聲：
+   *   restart()                          → 三個分支全部 notify（= QA 見到有提示嗰次）
+   *   silentRecoverAfterPreviewPreempt() → 完全冇 notify
+   *
+   * 第二條本來係為「預覽被 Confirm/Esc 搶佔」嘅【良性】情況設計，刻意唔嘈。
+   * 但佢分唔開「良性」同「資料遺失」：如果重放本身都崩潰（MeshFit 正係會），
+   * 佢就靜靜開一個空內核 —— UI 仍然以為有特徵，下一次 rebuild 就出一個空模型，
+   * 全程零提示。而 cancelPreviews() 喺每次 Confirm/Esc 有預覽在飛時都會 call 佢。
+   *
+   * 修法：notify 帶一個 kind，令 UI 分得出「順利恢復」同「真係冇咗」。
+   * ⚠ 良性情況【仍然】唔 notify（唔好為咗修呢條就製造一堆雜訊 toast）。
+   */
+  const restartCbs: ((msg: string, kind?: KernelRestartKind) => void)[] = []
+  const notify = (msg: string, kind: KernelRestartKind = 'info') => { for (const cb of restartCbs.slice()) { try { cb(msg, kind) } catch { /* UI 回调唔好炸代理 */ } } }
   const sc = (globalThis as { structuredClone?: <T>(v: T) => T }).structuredClone
   const deepCopy = <T,>(v: T): T => (sc ? sc(v) : JSON.parse(JSON.stringify(v)))
 
@@ -127,13 +156,20 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
     spawn()
     recovering = (async () => {
       const snap = lastGoodFeatures
-      if (!snap) return
+      // 冇快照可重放 = 新內核係空嘅。良性情況（真係冇模型）唔使嘈，
+      // 但 UI 有可能仍然以為自己有特徵 —— 交畀 UI 自己對照（kind='lost'）。
+      if (!snap) { notify('幾何內核已重啟（冇可重放嘅模型狀態）', 'lost'); return }
       try {
         await withTimeout(raw.api.rebuild(deepCopy(snap)), longT)
+        // 重放成功 = 真正嘅良性情況 → ★ 刻意唔 notify ★（呢個就係本函數叫 silent 嘅原因）
       } catch {
+        /* ★ BUG-506 核心 ★ 重放都崩潰 → 而家個內核係【空】嘅，但 UI 以為有模型。
+         * 原本呢度完全靜默，所以用戶見到「模型自己冇咗、冇任何提示」。
+         * 呢一刻已經唔係良性搶佔，係資料遺失，一定要出聲。 */
         lastGoodFeatures = null
         try { raw.terminate() } catch { /* 已死 */ }
         spawn()
+        notify('⚠ 幾何內核崩潰後恢復失敗 — 內核已重設為空。你嘅模型未儲存嘅部分可能已經冇咗，請用「檔案 ▾ → 恢復自動存檔」救返', 'lost')
       }
     })().finally(() => { recovering = null; restarting = false })
   }
@@ -159,20 +195,20 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
     for (const p of pending) { clearTimeout(p.timer); try { p.reject(err) } catch { /* 已 settle */ } }
     pending.clear()
     spawn()
-    notify(`⚠ 几何内核崩溃（${why}），已自动重启，正在恢复上一个成功状态…`)
+    notify(`⚠ 幾何內核崩潰（${why}），已自動重啟，正在恢復上一個成功狀態…`, 'info')
     // 3) 重放快照令新内核状态追返 UI；后续调用会先 await recovering 再发出
     recovering = (async () => {
       const snap = lastGoodFeatures
-      if (!snap) { notify('内核已重启（无可恢复嘅模型状态）'); return }
+      if (!snap) { notify('內核已重啟（冇可恢復嘅模型狀態）', 'lost'); return }
       try {
         await withTimeout(raw.api.rebuild(deepCopy(snap)), longT)
-        notify('内核已重启 — 模型已恢复到上一个成功状态')
+        notify('內核已重啟 — 模型已恢復到上一個成功狀態', 'recovered')
       } catch {
         // 重放本身都令内核死 → 弃快照、再开个干净内核（防无限重启循环）
         lastGoodFeatures = null
         try { raw.terminate() } catch { /* 已死 */ }
         spawn()
-        notify('⚠ 内核重启后恢复失败 — 已重置为空内核，请撤销最后一步操作再重建')
+        notify('⚠ 內核重啟後恢復失敗 — 已重設為空內核。未儲存嘅部分可能已經冇咗，請用「檔案 ▾ → 恢復自動存檔」救返', 'lost')
       }
     })().finally(() => { recovering = null; restarting = false })
   }
@@ -250,7 +286,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
     },
   })
 
-  function onKernelRestart(cb: (msg: string) => void): () => void {
+  function onKernelRestart(cb: (msg: string, kind?: KernelRestartKind) => void): () => void {
     restartCbs.push(cb)
     return () => { const i = restartCbs.indexOf(cb); if (i >= 0) restartCbs.splice(i, 1) }
   }
@@ -290,7 +326,7 @@ export const cad = (kernel ? kernel.proxy : ({} as unknown)) as Remote<CadAPI>
 if (typeof window !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }).env?.DEV) (window as { cad?: unknown }).cad = cad
 
 // UI 订阅内核重启状态（integration：store 可以 onKernelRestart((msg) => set({ status: msg }))）
-export function onKernelRestart(cb: (msg: string) => void): () => void {
+export function onKernelRestart(cb: (msg: string, kind?: KernelRestartKind) => void): () => void {
   return kernel ? kernel.onKernelRestart(cb) : () => {}
 }
 

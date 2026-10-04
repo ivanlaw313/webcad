@@ -8549,7 +8549,9 @@ function FeatNum({ k, v, w = 56, unit = '', title }: { k: string; v: unknown; w?
   return (
     <input
       type="text" inputMode="decimal" value={shown} style={{ width: w, ...(bad ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
-      title={bad ? `唔係有效數值（你打咗「${txt.trim()}」）` : title} aria-label={title || k} aria-invalid={bad || undefined}
+      title={bad ? `唔係有效數值（你打咗「${txt.trim()}」）` : title} aria-label={title || undefined} aria-invalid={bad || undefined}
+      /* ★ 唔好用 k 做 aria-label ★ 內部參數名（countX／dx）會蓋過旁邊可見嘅中文標籤，
+       * 螢幕閱讀器反而讀到更差嘅名。冇 title 就留返畀 <label> 自己關聯。 */
       onFocus={() => { setFoc(true); setTxt(shownVal) }}
       onBlur={() => { setFoc(false); if (!bad) setTxt('') }}
       onChange={(e) => {

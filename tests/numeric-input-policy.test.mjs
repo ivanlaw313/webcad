@@ -1,5 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { evalArith, normalizeWide } from '../src/io/units.ts'
+
+const STRICT_RE = /^[+-]?(?:\d+\.?\d*|\.\d+)$/
 import {
   parseNumericField,
   parseField,
@@ -189,8 +192,11 @@ test('REGRESSION BUG-409：任何輸入都唔可以令函數返「一個同用�
       catch (err) { assert.fail(`${key} / ${String(raw)}：唔准 throw（${err?.message}）`) }
 
       if (r.ok) {
-        // 合法嘅話，value 一定要**真係由用戶輸入推出嚟**：Number(raw.trim()) 要等於佢。
-        const back = Number(String(raw).trim())
+        // 合法嘅話，value 一定要**真係由用戶輸入推出嚟**。
+        // BUG-514/509 之後有兩個【有記錄嘅】轉換：全角正規化、算式求值。
+        // 守衛本質不變 —— 反推唔返就係靜默代入。
+        const t = normalizeWide(String(raw)).trim()
+        const back = STRICT_RE.test(t) ? Number(t) : evalArith(t)
         assert.equal(r.value, back, `${key} / ${String(raw)}：ok 嘅 value 必須 = 用戶輸入本身`)
         assert.ok(Number.isFinite(r.value))
       } else {
@@ -225,4 +231,43 @@ test('REGRESSION：訊息一定要含用戶原文，所以理由冇可能同輸�
       if (!r.ok) assert.ok(r.reason.includes(raw), `${spec.label} / ${raw}：訊息冇講用戶打咗乜 → ${r.reason}`)
     }
   }
+})
+
+/* ── BUG-509 / BUG-514：算式同全角（新增行為，明寫釘住）────────────────── */
+
+test('★ BUG-509：算式要收 —— 唔准「確定仍撳得，但只取第一個數」★', () => {
+  for (const [raw, want] of [['10+5', 15], ['2*25', 50], ['(40-4)/2', 18], ['100-20', 80]]) {
+    const r = parseField('boxLength', raw)
+    assert.equal(r.ok, true, `「${raw}」應該收，實得 ${JSON.stringify(r)}`)
+    assert.equal(r.value, want, `★ 「${raw}」做出 ${r.value} —— 舊行為係取第一個數，即係打 10+5 做 10mm ★`)
+  }
+})
+
+test('★ BUG-514：全角數字要收（中文輸入法日常）★', () => {
+  const r = parseField('boxLength', '４０')
+  assert.equal(r.ok, true, '全角 ４０ 要讀成 40，唔係「唔係數字」')
+  assert.equal(r.value, 40)
+  assert.equal(parseField('boxLength', '４０＋５').value, 45, '全角算式都要通')
+})
+
+test('算式唔准滑坡：殘缺／除零／疊符號／雜質一律拒，而且唔准帶 value', () => {
+  for (const raw of ['10+', '+*5', '10/0', '--5', '(10+5', '10+5mm', '1e9+1', '10 + abc']) {
+    const r = parseField('boxLength', raw)
+    assert.equal(r.ok, false, `「${raw}」唔應該收，實得 ${JSON.stringify(r)}`)
+    assert.equal('value' in r, false, `「${raw}」被拒竟然帶 value`)
+    assert.ok(r.reason.includes(raw), `理由要夾原文，實得：${r.reason}`)
+  }
+})
+
+test('算式結果照樣要過範圍閘（唔准借算式繞過上限）', () => {
+  const r = parseField('patternCount', '200*100')
+  assert.equal(r.ok, false, '20000 超陣列上限，唔可以因為係算式就放行')
+  assert.equal('value' in r, false)
+})
+
+test('evalArith 本身唔用 eval —— 唔准執行任何非算術字元', () => {
+  for (const bad of ['alert(1)', '1;2', '1,2', 'process', '`x`', '1**2'.replace('**', '^')]) {
+    assert.equal(evalArith(bad), null, `「${bad}」唔應該求值`)
+  }
+  assert.equal(normalizeWide('（１＋２）'), '(1+2)')
 })

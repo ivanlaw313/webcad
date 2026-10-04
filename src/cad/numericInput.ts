@@ -22,6 +22,7 @@
  */
 
 import { illegalRejectStatus } from '../ui/illegalInput'
+import { evalArith, normalizeWide } from '../io/units'
 
 /** 一個數值欄嘅規格（純資料，可以放 JSON 表，符合「調參表要可編輯」嘅規矩）。 */
 export type NumericFieldSpec = {
@@ -87,7 +88,9 @@ const withUnit = (n: number, spec: NumericFieldSpec): string => (spec.unit ? `${
  */
 export function parseNumericField(input: unknown, spec: NumericFieldSpec): NumericResult {
   const raw = rawOf(input)
-  const trimmed = raw.trim()
+  // BUG-514：全角數字（中文輸入法好容易打到「４０」）唔可以當成「唔係數字」。
+  // 正規化之後再驗，但 reason 永遠用【原文 raw】—— 用戶要認得返自己打咗乜。
+  const trimmed = normalizeWide(raw).trim()
   const name = fieldName(spec)
 
   // ── 1. 空白：未輸入。唔算打錯（唔好即刻紅），但唔可以提交。
@@ -97,10 +100,16 @@ export function parseNumericField(input: unknown, spec: NumericFieldSpec): Numer
 
   // ── 2. 解析失敗：'abc' / 'NaN' / 'Infinity' / '12mm' / '1,000'。
   //     唔准代入任何預設值 —— 要明講用戶打咗乜。
+  // BUG-509：算式（10+5、2*25、(40-4)/2）。CAD 用戶慣性動作 —— 舊行為係
+  // 「確定仍撳得，取第一個數」，即係打 10+5 做出 10mm。寧願明講都唔好靜靜取一半。
+  let exprValue: number | null = null
   if (!STRICT_NUMBER.test(trimmed)) {
-    return { ok: false, state: 'invalid', reason: `${name}：唔係數字（你打咗「${raw}」）`, raw }
+    exprValue = evalArith(trimmed)
+    if (exprValue == null) {
+      return { ok: false, state: 'invalid', reason: `${name}：唔係數字（你打咗「${raw}」）`, raw }
+    }
   }
-  const value = Number(trimmed)
+  const value = exprValue ?? Number(trimmed)
   if (!Number.isFinite(value)) {
     // '1e999' 文法啱但溢出去 Infinity。
     return { ok: false, state: 'invalid', reason: `${name}：數值過大／無法表示（你打咗「${raw}」）`, raw }

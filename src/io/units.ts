@@ -14,8 +14,78 @@ export const lengthScale = (unit: LenUnit): number => PER[unit]
 //   "1/2" "1 1/2" "1-1/2"  → 分数（英寸钢尺式；whole + num/den）
 //   "0.5in" "0.5\"" "12mm" "1.2cm"  → 显式后缀覆盖当前单位
 // 解析唔到 → null（调用方保持旧值，唔好当 0）。
+/* ── BUG-514：全角數字／符號正規化 ──────────────────────────────────────
+ * QA 打全角「４０」→ 舊版 Number() 得 NaN → 靜靜變 0.1mm。中文輸入法好容易打到全角，
+ * 所以呢個唔係刁難輸入，係日常。順手收全角括號同運算符。 */
+const WIDE = '０１２３４５６７８９．＋－＊／（）　'
+const NARROW = '0123456789.+-*/() '
+export function normalizeWide(raw: string): string {
+  let out = ''
+  for (const ch of raw) { const i = WIDE.indexOf(ch); out += i >= 0 ? NARROW[i] : ch }
+  return out
+}
+
+/* ── 算式求值（+ − × ÷ 同括號）───────────────────────────────────────────
+ * 自己寫遞歸下降，唔用 eval／new Function —— 輸入框嘅字串直接入 eval 等於開後門。
+ * 解析唔到（多餘字元、括號唔對、除零）一律 null，由調用方當「非法輸入」處理。 */
+export function evalArith(src: string): number | null {
+  const s = src.replace(/\s+/g, '')
+  if (!s || !/^[0-9.+\-*/()]+$/.test(s)) return null
+  let i = 0
+  const peek = () => s[i]
+  const expr = (): number | null => {
+    let v = term()
+    if (v == null) return null
+    while (peek() === '+' || peek() === '-') {
+      const op = s[i++]
+      const r = term()
+      if (r == null) return null
+      v = op === '+' ? v + r : v - r
+    }
+    return v
+  }
+  const term = (): number | null => {
+    let v = unary()
+    if (v == null) return null
+    while (peek() === '*' || peek() === '/') {
+      const op = s[i++]
+      const r = unary()
+      if (r == null) return null
+      if (op === '/') { if (r === 0) return null; v = v / r } else v = v * r
+    }
+    return v
+  }
+  const unary = (): number | null => {
+    // ★ 唔准疊加正負號 ★ '--5' 數學上 = 5，但喺尺寸欄嗰度幾乎一定係打錯，
+    // 而且會打爛「返出嚟嘅值必須同用戶輸入對得上」呢條 BUG-409 核心守衛。
+    // 所以符號後面只准跟數字或括號，唔准再跟符號。
+    if (peek() === '+' || peek() === '-') {
+      const neg = s[i++] === '-'
+      const v = primary()
+      return v == null ? null : (neg ? -v : v)
+    }
+    return primary()
+  }
+  const primary = (): number | null => {
+    if (peek() === '(') {
+      i++
+      const v = expr()
+      if (v == null || peek() !== ')') return null
+      i++
+      return v
+    }
+    const m = s.slice(i).match(/^\d*\.?\d+/)
+    if (!m) return null
+    i += m[0].length
+    return parseFloat(m[0])
+  }
+  const v = expr()
+  if (v == null || i !== s.length || !Number.isFinite(v)) return null   // 有剩字元 = 唔好當部分成功
+  return v
+}
+
 export function parseLen(raw: string, unit: LenUnit): number | null {
-  let s = String(raw).trim().toLowerCase()
+  let s = normalizeWide(String(raw)).trim().toLowerCase()
   if (!s) return null
   let u: LenUnit = unit
   // 显式单位后缀（" 同 in 都当 inch）
@@ -29,9 +99,15 @@ export function parseLen(raw: string, unit: LenUnit): number | null {
     const num = parseFloat(frac[2]), den = parseFloat(frac[3])
     if (!den) return null
     val = whole + num / den
-  } else {
-    if (!/^[+-]?\d*\.?\d+$/.test(s)) return null   // 净接纯数字（拒绝杂质 — 唔好 parseFloat "12abc" 当 12）
+  } else if (/^[+-]?\d*\.?\d+$/.test(s)) {
     val = parseFloat(s)
+  } else {
+    // BUG-509/514：算式（10+5、2*25、(40-4)/2）。CAD 用戶慣性動作，Fusion 都收。
+    // 重點係【唔准 parseFloat 取第一個數】—— 舊版 Number('10+5')=NaN 跟手靜靜變預設值，
+    // 用戶以為自己落咗 15，實際做出 0.1mm。寧願拒絕都唔好代入。
+    const e = evalArith(s)
+    if (e == null) return null
+    val = e
   }
   if (!Number.isFinite(val)) return null
   return val * PER[u]

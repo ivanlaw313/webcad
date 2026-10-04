@@ -4948,7 +4948,7 @@ export default function Viewport() {
             {/* Fusion Chamfer palette order: parameter row → Type → selection → Tangent Chain → Flip → Corner Type. */}
             <label>
               <span style={{ color: '#6b7680' }}>{chamferMode === 'two' ? 'Distance 1' : 'Distance'}</span>
-              <span><input type="number" aria-label="Chamfer distance mm" min={0} step={0.5} value={edgeRoundSize} onChange={(e) => setEdgeRoundSize(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={66} min={0} title="倒角距離（inch 模式可打分數 1/16；亦收算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
             {chamferMode === 'two' && <label>
               <span style={{ color: '#6b7680' }}>Distance 2</span>
@@ -5011,7 +5011,7 @@ export default function Viewport() {
           ) : edgeRoundPick === 'fillet' && filletType === 'rule' ? (
             <label>
               <span style={{ color: '#6b7680' }}>半徑</span>
-              <span><input type="number" aria-label="圓角半徑 mm" min={0.5} step={0.5} value={edgeRoundSize} onChange={(e) => setEdgeRoundSize(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={66} min={0.5} title="圓角半徑（inch 模式可打分數 1/16；亦收算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           ) : null}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode === 'radius' && filletR2 > 0 && (
@@ -5038,7 +5038,7 @@ export default function Viewport() {
                 {edgeRoundPicks.map((_, i) => (
                   <div key={'err' + i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                     <span style={{ width: 38, color: '#8a97a2' }}>稜 {i + 1}</span>
-                    <input type="number" aria-label={`稜 ${i + 1} 距離 mm`} min={0.1} step={0.5} value={+(edgeRoundRadii[i] ?? edgeRoundSize).toFixed(2)} onChange={(e) => useApp.getState().setEdgeRoundRadiusAt(i, Number(e.target.value))} style={{ width: 60 }} /> mm
+                    <LenInput mm={edgeRoundRadii[i] ?? edgeRoundSize} onMm={(v) => useApp.getState().setEdgeRoundRadiusAt(i, v)} unit={unit} w={60} min={0.1} title={`稜 ${i + 1} 距離`} /> {unit === 'inch' ? 'in' : unit}
                   </div>
                 ))}
               </div>
@@ -8544,6 +8544,17 @@ function FormPanel() {
   const [formSegA, setFormSegA] = useState(4)
   const [formSegB, setFormSegB] = useState(3)
   const [formPipePath, setFormPipePath] = useState('0,0,0; 30,0,0; 30,25,10')
+  const unit = useApp((s) => s.unit)
+  // BUG-514：記住邊個尺寸欄而家係非法／空白。LenInput 只會喺【合法】嗰刻寫入 model，
+  // 所以舊版「靜靜變 0.1mm」已經冇；呢個 state 係多做一步 —— 連「確定」都唔准撳。
+  const [badDims, setBadDims] = useState<Record<string, string>>({})
+  const markDim = (k: string) => (txt: string) => setBadDims((m) => {
+    const bad = txt.trim() === '' || parseLen(txt, unit) == null
+    if (bad === !!m[k] && (!bad || m[k] === txt)) return m
+    const n = { ...m }
+    if (bad) n[k] = txt; else delete n[k]
+    return n
+  })
   if (!formMode) return null
   if (!cage) {
     if (!createKind) return null
@@ -8553,6 +8564,11 @@ function FormPanel() {
       const row: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 8 }
       const field: CSSProperties = { width: 86, height: 23, boxSizing: 'border-box' }
       const zh = lang !== 'en'
+      // 唔用嵌套 template literal（即係 template 裡面 interpolation 再夾 template）——
+      // 呢個 repo 嘅簡體洩漏掃描器係簡易 scanner，唔識嵌套，一用就令之後整個檔嘅
+      // 字串切割錯位。註釋裡面都【唔好】出現反引號，同一個原因。
+      const badEntry = Object.entries(badDims)[0]
+      const badHint = badEntry ? badEntry[0] + '「' + (badEntry[1].trim() || '（空白）') + '」' : ''
       const stageHint = boxDraft.stage === 'plane' ? (zh ? '點下方 XY/XZ/YZ，或點原點/平面' : 'Select XY/XZ/YZ below, or click an origin/planar face') : boxDraft.stage === 'center' ? (zh ? '指定中心點' : 'Specify center point') : boxDraft.stage === 'size' ? (zh ? '指定矩形大小' : 'Specify size of rectangle') : boxDraft.stage === 'height' ? (zh ? '指定高度' : 'Specify height') : (zh ? '就緒' : 'Ready')
       return (
         <FormPalette title={zh ? '建立造型' : 'Create Form'}>
@@ -8571,11 +8587,11 @@ function FormPanel() {
             </span>
           </label>
           {expanded && <>
-            <label style={row}>{zh ? '長度' : 'Length'} <span><input aria-label="Form Box Length" type="number" min={0.1} step={0.1} value={Number(boxDraft.length.toFixed(3))} onChange={(e) => patch({ length: Math.max(0.1, Number(e.target.value) || 0.1) })} style={field} /> mm</span></label>
+            <label style={row}>{zh ? '長度' : 'Length'} <span><LenInput mm={boxDraft.length} onMm={(v) => patch({ length: v })} onText={markDim('length')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
             <label style={row}>{zh ? '長度面數' : 'Length Faces'} <input aria-label="Form Box Length Faces" type="number" min={1} step={1} value={boxDraft.lengthFaces} onChange={(e) => patch({ lengthFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
-            <label style={row}>{zh ? '寬度' : 'Width'} <span><input aria-label="Form Box Width" type="number" min={0.1} step={0.1} value={Number(boxDraft.width.toFixed(3))} onChange={(e) => patch({ width: Math.max(0.1, Number(e.target.value) || 0.1) })} style={field} /> mm</span></label>
+            <label style={row}>{zh ? '寬度' : 'Width'} <span><LenInput mm={boxDraft.width} onMm={(v) => patch({ width: v })} onText={markDim('width')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
             <label style={row}>{zh ? '寬度面數' : 'Width Faces'} <input aria-label="Form Box Width Faces" type="number" min={1} step={1} value={boxDraft.widthFaces} onChange={(e) => patch({ widthFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
-            <label style={row}>{zh ? '高度' : 'Height'} <span><input aria-label="Form Box Height" type="number" min={0.1} step={0.1} value={Number(boxDraft.height.toFixed(3))} onChange={(e) => patch({ height: Math.max(0.1, Number(e.target.value) || 0.1) })} style={field} /> mm</span></label>
+            <label style={row}>{zh ? '高度' : 'Height'} <span><LenInput mm={boxDraft.height} onMm={(v) => patch({ height: v })} onText={markDim('height')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
             <label style={row}>{zh ? '高度面數' : 'Height Faces'} <input aria-label="Form Box Height Faces" type="number" min={1} step={1} value={boxDraft.heightFaces} onChange={(e) => patch({ heightFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
           </>}
           <label style={row}>{zh ? '方向' : 'Direction'}
@@ -8584,9 +8600,16 @@ function FormPanel() {
           {expanded && <label style={row}>{zh ? '對稱' : 'Symmetry'}
             <select value={boxDraft.symmetry} onChange={(e) => patch({ symmetry: e.target.value as FormBoxDraft['symmetry'] })} style={field}><option value="none">{zh ? '無' : 'None'}</option></select>
           </label>}
+          {Object.keys(badDims).length > 0 && (
+            <div role="alert" data-testid="form-box-numeric-alert" style={{ color: '#b42318', fontSize: 11, marginTop: 5 }}>
+              尺寸已拒絕：{badHint} —— 請輸入正數（可用算式 10+5）
+            </div>
+          )}
           <div style={{ fontSize: 11, color: '#687782', minHeight: 18, marginTop: 5 }}>{stageHint}</div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, borderTop: '1px solid #d8dee3', paddingTop: 8, marginTop: 8 }}>
-            <button className="cs-btn" disabled={!boxDraft.plane} data-testid="form-box-ok" onClick={() => void useApp.getState().commitFormBoxDraft()}>{zh ? '確定' : 'OK'}</button>
+            <button className="cs-btn" disabled={!boxDraft.plane || !!badHint} data-testid="form-box-ok"
+              title={badHint ? '未提交：' + badHint + ' 唔係有效尺寸' : undefined}
+              onClick={() => void useApp.getState().commitFormBoxDraft()}>{zh ? '確定' : 'OK'}</button>
             <button className="cs-btn" onClick={() => useApp.getState().cancelFormCreate()}>{zh ? '取消' : 'Cancel'}</button>
           </div>
         </FormPalette>

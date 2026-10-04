@@ -128,7 +128,15 @@ const TOTAL = Object.values(PER_FILE).reduce((a, b) => a + b, 0)
  * Do not raise this to hide a new simplified string — fix the copy or justify
  * the exception here.
  */
-const MAX_LEAK_STRINGS = 2357
+/* 2026-10-05（v2.18 lane，BUG-507/509/517/521 type="number" 大掃除）：2357 → 2361。
+ * 已逐條核實【冇新增簡體字串】—— 用「簡體獨有」字集（唔含 面／件／除 等繁簡同形
+ * 或繁體常用字）掃過所有新行，零命中。呢 +4 嘅來源：
+ *   · +1 真新標籤「面圓角半徑」—— 含共用字形 面，本檔 docblock 已列明 面 會被計入
+ *   · +3 掃描器假陽性 —— 呢個 scanner 唔識 template literal 嵌套同某些 regex，
+ *        新增 code 會令佢嘅字串切割偏移（實測：會把 pickComponentBooleanTool 嗰行
+ *        嘅 code 當成字串）。唔係真洩漏。
+ * 教訓記錄：註釋入面放反引號亦會令佢偏移（已踩過一次）。 */
+const MAX_LEAK_STRINGS = 2361
 
 test('zh-HK lane files do not grow simplified-Chinese string literals', () => {
   assert.ok(TOTAL <= MAX_LEAK_STRINGS, `leak strings ${TOTAL} > ${MAX_LEAK_STRINGS}\n` + JSON.stringify(PER_FILE, null, 2))

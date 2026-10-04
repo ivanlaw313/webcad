@@ -104,7 +104,8 @@ import { GradientEquirectTexture } from 'three-gpu-pathtracer'   // 工作模式
 import { msg, tStatus, tLabel, type LangInput } from '../i18n'
 import { profileSectionName } from '../ui/featureStatus'
 import { feaStaleBannerText, invalidateSimResultsPatch, hasLiveSimResults } from '../simulation/resultValidity'
-import { parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：单位感知长度输入（分数英寸）
+import { evalArith, normalizeWide, parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：單位感知長度輸入（分數英寸）
+import { NumInput } from './NumInput'   // BUG-507/509：受驗數值欄（取代 type="number"）
 import type { MeshData } from '../worker/cad.worker'
 import { computeFK, solve4Bar, solveSliderCrank, solveSixBar } from '../assembly/kinematics'
 import { getProcTexture } from '../render/procTextures'   // S101[8]：程序化纹理（三平面投影）
@@ -4904,7 +4905,7 @@ export default function Viewport() {
             </label>
             <label>
               <span style={{ color: '#6b7680' }}>{tStatus('距離', lang)}</span>
-              <span><input data-testid="press-pull-distance" type="number" aria-label="按拉距離 mm" step={0.5} value={pushPullDist} onChange={(e) => setPushPullDist(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+              <span><LenInput mm={pushPullDist} onMm={setPushPullDist} unit={unit} w={66} title="按拉距離（inch 模式可打分數；亦收算式）" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           </>}
         </CommandDialog>
@@ -4952,11 +4953,11 @@ export default function Viewport() {
             </label>
             {chamferMode === 'two' && <label>
               <span style={{ color: '#6b7680' }}>Distance 2</span>
-              <span><input type="number" aria-label="Chamfer second distance mm" min={0} step={0.5} value={chamferSize2} onChange={(e) => setChamferSize2(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+              <span><LenInput mm={chamferSize2} onMm={setChamferSize2} unit={unit} w={66} min={0} title="倒角第二距離" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>}
             {chamferMode === 'angle' && <label>
               <span style={{ color: '#6b7680' }}>Angle</span>
-              <span><input type="number" aria-label="Chamfer angle deg" min={0} max={90} step={1} value={chamferAngle} onChange={(e) => setChamferAngle(Number(e.target.value))} style={{ width: 66 }} /> deg</span>
+              <span><NumInput value={chamferAngle} onValue={setChamferAngle} label="倒角角度" unit="°" min={0} max={90} w={66} /> deg</span>
             </label>}
             <label>
               <span style={{ color: '#6b7680' }}>Type</span>
@@ -4984,7 +4985,7 @@ export default function Viewport() {
                   const active = gi === filletActiveGroup
                   return <div key={`frg-${gi}`} onClick={() => useApp.getState().selectFilletRadiusGroup(gi)} style={{ display: 'grid', gridTemplateColumns: '54px 62px 1fr', gap: 4, alignItems: 'center', padding: '3px 4px', borderRadius: 3, cursor: 'pointer', background: active ? '#dceeff' : 'transparent', outline: active ? '1px solid #4b91d1' : '1px solid transparent' }}>
                     <span style={{ fontSize: 11, color: active ? '#145f9b' : '#596772' }}>{n} 邊</span>
-                    <span><input type="number" aria-label={filletMode === 'asymmetric' ? `半徑組 ${gi + 1} 偏移 1 mm` : `半徑組 ${gi + 1} 半徑 mm`} min={0} step={0.5} value={g.radius} onClick={(e) => e.stopPropagation()} onFocus={() => useApp.getState().selectFilletRadiusGroup(gi)} onChange={(e) => useApp.getState().setFilletGroupRadius(gi, Number(e.target.value))} style={{ width: 48 }} /> mm</span>
+                    <span onClick={(e) => e.stopPropagation()} onFocus={() => useApp.getState().selectFilletRadiusGroup(gi)}><LenInput mm={g.radius} onMm={(v) => useApp.getState().setFilletGroupRadius(gi, v)} unit={unit} w={48} min={0} title={filletMode === 'asymmetric' ? '半徑組 ' + (gi + 1) + ' 偏移 1' : '半徑組 ' + (gi + 1) + ' 半徑'} /> {unit === 'inch' ? 'in' : unit}</span>
                     <select aria-label={`半徑組 ${gi + 1} 連續性`} value={filletMode === 'asymmetric' ? 'G1' : g.continuity} disabled={filletMode === 'asymmetric'} title={filletMode === 'asymmetric' ? 'Fusion 360 不對稱圓角固定使用 G1 連續性' : undefined} onClick={(e) => e.stopPropagation()} onFocus={() => useApp.getState().selectFilletRadiusGroup(gi)} onChange={(e) => useApp.getState().setFilletGroupContinuity(gi, e.target.value as 'G1' | 'G2')} style={{ height: 24, minWidth: 92 }}><option value="G1">相切 G1</option><option value="G2">曲率 G2</option></select>
                   </div>
                 })}
@@ -5006,7 +5007,7 @@ export default function Viewport() {
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode === 'chord' ? (
             <label title="弦高：兩切點之間的弦長；半徑由每條稜局部二面角自動換算（直邊精確，變角曲邊用中點近似）">
               <span style={{ color: '#6b7680' }}>弦高</span>
-              <span><input type="number" aria-label="弦高 mm" min={0.5} step={0.5} value={filletChord} onChange={(e) => setFilletChord(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+              <span><LenInput mm={filletChord} onMm={setFilletChord} unit={unit} w={66} min={0.5} title="弦高" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           ) : edgeRoundPick === 'fillet' && filletType === 'rule' ? (
             <label>
@@ -5017,13 +5018,13 @@ export default function Viewport() {
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode === 'radius' && filletR2 > 0 && (
             <label title="變半徑圓角：末端半徑 ≠ 起始半徑 → 沿每條稜線性漸變（0=等半徑）">
               <span style={{ color: '#6b7680' }}>末端半徑 (變徑)</span>
-              <span><input type="number" aria-label="末端半徑（變徑）mm" min={0} step={0.5} value={filletR2} onChange={(e) => setFilletR2(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+              <span><LenInput mm={filletR2} onMm={setFilletR2} unit={unit} w={66} min={0} title="末端半徑（變徑）" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           )}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode === 'asymmetric' && <>
             <label title="不對稱圓角：兩個相鄰面分別使用獨立偏移；截面為真實四分之一橢圓。">
               <span style={{ color: '#6b7680' }}>偏移 2</span>
-              <span><input type="number" aria-label="不對稱圓角偏移 2 mm" min={0.1} step={0.5} value={filletR2} onChange={(e) => setFilletR2(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+              <span><LenInput mm={filletR2} onMm={setFilletR2} unit={unit} w={66} min={0.1} title="不對稱圓角偏移 2" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
             <label className="sb-hint" title="交換偏移 1 與偏移 2 所屬的相鄰面">
               <input type="checkbox" checked={filletAsymFlip} onChange={(e) => setFilletAsymFlip(e.target.checked)} /> 翻轉偏移方向
@@ -5143,7 +5144,7 @@ export default function Viewport() {
           <SelectionChip label="兩張面" count={faceFilletPicks.length} hint="① 點選兩張相鄰面；确認前會驗證共同 B-rep 邊" onClear={() => useApp.getState().clearFaceFilletPicks()} />
           <label>
             <span style={{ color: '#6b7680' }}>半徑</span>
-            <span><input type="number" aria-label="面圓角半徑 mm" min={0.1} step={0.5} value={faceFilletRadius} onChange={(e) => setFaceFilletRadius(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+            <span><LenInput mm={faceFilletRadius} onMm={setFaceFilletRadius} unit={unit} w={66} min={0.1} title="面圓角半徑" /> {unit === 'inch' ? 'in' : unit}</span>
           </label>
           <div style={{ fontSize: 11, color: '#8a97a2', lineHeight: 1.4 }}>窄版：平面-平面 / 平面-圓柱(軸⟂) 解析切點；一般曲面對滾球需改核（cad2）後置。</div>
         </CommandDialog>
@@ -5166,7 +5167,7 @@ export default function Viewport() {
           {/* P2（v8-S）：角度/翻转/双面入对话框（Fusion Draft 同款）— 撳「确定拔模」直接落特征，唔再弹文本 prompt */}
           <label title="拔模角°：遠離中性面側收縮（正角）；「翻轉」反向脫模">
             <span style={{ color: '#6b7680' }}>角度</span>
-            <span><input type="number" step={1} min={0.5} max={45} value={draftAngle} onChange={(e) => useApp.getState().setDraftAngle(Number(e.target.value))} style={{ width: 56 }} /> °</span>
+            <span><NumInput value={draftAngle} onValue={(v) => useApp.getState().setDraftAngle(v)} label="拔模角" unit="°" min={0.5} max={45} w={56} /> °</span>
           </label>
           <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title="Flip Direction：把脫模方向反轉（等同負角度）">
             <input type="checkbox" checked={draftFlip} onChange={(e) => useApp.getState().setDraftFlip(e.target.checked)} /> 翻转方向
@@ -6141,7 +6142,7 @@ export default function Viewport() {
                 {holeType === 'simple' && <label style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12 }} title="到物件（Fusion To Object）：勾選後點目標平面；會儲存面指紋並於重建時重新解析。v1 僅支持同入口平行的平面。"><input type="checkbox" checked={holeToObject} onChange={(e) => setHoleToObject(e.target.checked)} />到物件</label>}
                 {holeType === 'simple' && holeToObject && <button className={'sb-tool pick-slot' + (holeToObjectPick ? ' active' : '')} style={{ padding: '0 5px', minWidth: 0 }} onClick={() => setHoleToObject(true)}>{holeToObjectPick ? '點目標面…' : holeToObjectPt ? '重揀' : '揀目標面'}</button>}
                 {(() => { const ta = holeType === 'simple' && (holeToNext || holeToObject); return <label style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, opacity: ta ? 0.4 : 1 }}><input type="checkbox" checked={holeThrough} disabled={ta} onChange={(e) => setHoleThrough(e.target.checked)} />贯通</label> })()}
-                {!holeThrough && !(holeType === 'simple' && (holeToNext || holeToObject)) && <span><input type="number" min={0} step={1} value={holeDepth} placeholder="自動" onChange={(e) => setHoleDepth(Number(e.target.value))} style={{ width: 50 }} /> mm</span>}
+                {!holeThrough && !(holeType === 'simple' && (holeToNext || holeToObject)) && <span><LenInput mm={holeDepth} onMm={setHoleDepth} unit={unit} w={50} min={0} title="孔深（0／空白＝自動）" /> {unit === 'inch' ? 'in' : unit}</span>}
               </span>
             </label>
           )}
@@ -6314,7 +6315,7 @@ export default function Viewport() {
               <div style={{ fontSize: 11, lineHeight: 1.45, color: '#64727d', padding: '2px 0 6px' }}>Connector v1：依次點選兩張<b>平面面</b>，建立一個獨立實體連接器。曲面面、避讓體及 Fusion 生成式 alternatives 暫未包含。</div>
               <div style={{ fontSize: 12, color: picks[0] ? '#257c45' : '#9a6a1b' }}>面 1：{fmt(picks[0])}</div>
               <div style={{ fontSize: 12, color: picks[1] ? '#257c45' : '#9a6a1b' }}>面 2：{fmt(picks[1])}</div>
-              <label title="連接器半徑（mm）；結果會作為 New Body 保留，可在時間軸編輯。">連接半徑 <input type="number" step={0.5} min={0.1} value={featDlg.params.radius} onChange={(e) => setFeatParam('radius', Number(e.target.value))} style={{ width: 58 }} /> mm</label>
+              <label title="連接器半徑（mm）；結果會作為 New Body 保留，可在時間軸編輯。">連接半徑 <FeatNum k="radius" v={featDlg.params.radius} w={58} unit="mm" /> mm</label>
               <div style={{ fontSize: 11, color: '#8a97a2' }}>選滿兩面後再次點選，會由第 1 面重新開始。</div>
             </>
           })()}
@@ -6358,18 +6359,12 @@ export default function Viewport() {
             {String(featDlg.params.objectType ?? 'bodies') === 'components' && <span style={{ fontSize: 11, color: cpSelCompCount ? '#2c7' : '#c60' }}>{cpSelCompCount ? `✓ ${tStatus('已選組件', lang)} ×${cpSelCompCount}（${tStatus('共享定義的 occurrence 陣列', lang)}）` : tStatus('← 先喺裝配樹勾選 ☑ 或畫布選中組件', lang)}</span>}
             {featDlg.params.target === 'feature' && <span style={{ fontSize: 11, color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已選特徵', lang)} ×${useApp.getState().selectedFeatures.length || 1}` : msg('ui.clickFeatureFirst', lang)}</span>}
             <label title={tStatus('距離類型（Fusion Distance Type）：間距 = 相鄰副本距離；總長 = 首末副本總跨距（間距自動 = 總長÷(數量−1)）', lang)}>{tStatus('距離', lang)} <select value={String(featDlg.params.dtype ?? 'spacing')} onChange={(e) => setFeatParam('dtype', e.target.value)} style={{ height: 26 }}><option value="spacing">{tStatus('間距', lang)}</option><option value="extent">{tStatus('總長', lang)}</option></select></label>
-            <label>{tStatus('X數量', lang)} <input type="number" min={1} step={1} value={featDlg.params.countX} onChange={(e) => setFeatParam('countX', Number(e.target.value), e.target.value)}   /* BUG-409/417：連原文一齊傳，唔好淨傳 Number（打「abc」會變 NaN，原文就冇咗）。
-               ⚠ 註釋唔准用直引號 —— tests/zh-hk-no-sc-leak 嘅引號掃描器唔識 comment，
-                 一個直引號會令後面成段文字被錯配成「字串」，撞爆簡體字上限。 */ style={{ width: 46 }} /></label>
-            <label>{tStatus(featDlg.params.dtype === 'extent' ? 'X總長' : 'X間距', lang)} <input type="number" step={5} value={featDlg.params.dx} onChange={(e) => setFeatParam('dx', Number(e.target.value))} style={{ width: 56 }} /></label>
-            <label>{tStatus('Y數量', lang)} <input type="number" min={1} step={1} value={featDlg.params.countY} onChange={(e) => setFeatParam('countY', Number(e.target.value), e.target.value)}   /* BUG-409/417：連原文一齊傳，唔好淨傳 Number（打「abc」會變 NaN，原文就冇咗）。
-               ⚠ 註釋唔准用直引號 —— tests/zh-hk-no-sc-leak 嘅引號掃描器唔識 comment，
-                 一個直引號會令後面成段文字被錯配成「字串」，撞爆簡體字上限。 */ style={{ width: 46 }} /></label>
-            <label>{tStatus(featDlg.params.dtype === 'extent' ? 'Y總長' : 'Y間距', lang)} <input type="number" step={5} value={featDlg.params.dy} onChange={(e) => setFeatParam('dy', Number(e.target.value))} style={{ width: 56 }} /></label>
-            <label title={tStatus('層數（Z 方向，1=平面陣列）', lang)}>{tStatus('Z層數', lang)} <input type="number" min={1} step={1} value={featDlg.params.countZ ?? 1} onChange={(e) => setFeatParam('countZ', Number(e.target.value), e.target.value)}   /* BUG-409/417：連原文一齊傳，唔好淨傳 Number（打「abc」會變 NaN，原文就冇咗）。
-               ⚠ 註釋唔准用直引號 —— tests/zh-hk-no-sc-leak 嘅引號掃描器唔識 comment，
-                 一個直引號會令後面成段文字被錯配成「字串」，撞爆簡體字上限。 */ style={{ width: 46 }} /></label>
-            <label title={tStatus('Z 方向層間距', lang)}>{tStatus(featDlg.params.dtype === 'extent' ? 'Z總長' : 'Z間距', lang)} <input type="number" step={5} value={featDlg.params.dz ?? 60} onChange={(e) => setFeatParam('dz', Number(e.target.value))} style={{ width: 56 }} /></label>
+            <label>{tStatus('X數量', lang)} <FeatNum k="countX" v={featDlg.params.countX} w={46} /></label>
+            <label>{tStatus(featDlg.params.dtype === 'extent' ? 'X總長' : 'X間距', lang)} <FeatNum k="dx" v={featDlg.params.dx} w={56} /></label>
+            <label>{tStatus('Y數量', lang)} <FeatNum k="countY" v={featDlg.params.countY} w={46} /></label>
+            <label>{tStatus(featDlg.params.dtype === 'extent' ? 'Y總長' : 'Y間距', lang)} <FeatNum k="dy" v={featDlg.params.dy} w={56} /></label>
+            <label title={tStatus('層數（Z 方向，1=平面陣列）', lang)}>{tStatus('Z層數', lang)} <FeatNum k="countZ" v={featDlg.params.countZ} w={46} /></label>
+            <label title={tStatus('Z 方向層間距', lang)}>{tStatus(featDlg.params.dtype === 'extent' ? 'Z總長' : 'Z間距', lang)} <FeatNum k="dz" v={featDlg.params.dz} w={56} /></label>
             {(useApp.getState().bodyMesh?.parked?.length ?? 0) > 0 && !featDlg.params.target && (
               <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('對象類型 Bodies（Fusion Object Type）：連所有泊車實體一齊陣列（每個泊車體各自鋪柵格副本）。關＝只陣列活動實體。', lang)}>
                 <input type="checkbox" checked={!!featDlg.params.bodies} onChange={(e) => setFeatParam('bodies', e.target.checked ? 1 : 0)} /> {tStatus('連泊車體一齊陣列', lang)}
@@ -6391,9 +6386,9 @@ export default function Viewport() {
           </>)}
           {featDlg.kind === 'cpattern' && (<>
             <label>{tStatus('軸', lang)} <select value={featDlg.params.axis} onChange={(e) => setFeatParam('axis', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
-            <label>{tStatus('數量', lang)} <input type="number" min={2} step={1} value={featDlg.params.count} onChange={(e) => setFeatParam('count', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label>{tStatus('角度', lang)} <input type="number" step={15} value={featDlg.params.angle} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 56 }} />°</label>
-            <label title={tStatus('旋轉中心（CAD 坐標，預設原點）。繞偏心軸陣列時設定。', lang)}>{tStatus('中心', lang)} <input type="number" step={5} value={featDlg.params.cx} onChange={(e) => setFeatParam('cx', Number(e.target.value))} style={{ width: 40 }} /><input type="number" step={5} value={featDlg.params.cy} onChange={(e) => setFeatParam('cy', Number(e.target.value))} style={{ width: 40 }} /><input type="number" step={5} value={featDlg.params.cz} onChange={(e) => setFeatParam('cz', Number(e.target.value))} style={{ width: 40 }} /></label>
+            <label>{tStatus('數量', lang)} <FeatNum k="count" v={featDlg.params.count} w={46} /></label>
+            <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={56} />°</label>
+            <label title={tStatus('旋轉中心（CAD 坐標，預設原點）。繞偏心軸陣列時設定。', lang)}>{tStatus('中心', lang)} <FeatNum k="cx" v={featDlg.params.cx} w={40} /><FeatNum k="cy" v={featDlg.params.cy} w={40} /><FeatNum k="cz" v={featDlg.params.cz} w={40} /></label>
             {useApp.getState().cpoints.length > 0 && (
               <label title={tStatus('用已建構造點做旋轉中心：選中後自動填中心 cx/cy/cz（Fusion『繞此點陣列』）', lang)}>{tStatus('構造點', lang)} <select value="" onChange={(e) => { const i = Number(e.target.value); if (!Number.isInteger(i)) return; const cp = useApp.getState().cpoints[i]; if (!cp) return; setFeatParam('cx', cp[0]); setFeatParam('cy', cp[1]); setFeatParam('cz', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{useApp.getState().cpoints.map((cp, i) => <option key={'CP' + i} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>
             )}
@@ -6419,11 +6414,11 @@ export default function Viewport() {
             {useApp.getState().cpoints.length > 0 && (
               <label title={tStatus('用已建構造點做陣列軸點（origin）：選中後自動填軸點 ox/oy/oz（Fusion『繞此點陣列』）', lang)}>{tStatus('構造點', lang)} <select value="" onChange={(e) => { const i = Number(e.target.value); if (!Number.isInteger(i)) return; const cp = useApp.getState().cpoints[i]; if (!cp) return; setFeatParam('ox', cp[0]); setFeatParam('oy', cp[1]); setFeatParam('oz', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{useApp.getState().cpoints.map((cp, i) => <option key={'CP' + i} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>
             )}
-            <label title={tStatus('軸經過嘅點（CAD 坐標）— 繞偏心軸陣列時設定', lang)}>{tStatus('軸點', lang)} <input type="number" step={5} value={featDlg.params.ox} onChange={(e) => setFeatParam('ox', Number(e.target.value))} style={{ width: 40 }} /><input type="number" step={5} value={featDlg.params.oy} onChange={(e) => setFeatParam('oy', Number(e.target.value))} style={{ width: 40 }} /><input type="number" step={5} value={featDlg.params.oz} onChange={(e) => setFeatParam('oz', Number(e.target.value))} style={{ width: 40 }} /></label>
-            <label title={tStatus('軸方向分量（可以斜軸，例 1,0,1）', lang)}>{tStatus('方向', lang)} <input type="number" step={1} value={featDlg.params.dx} onChange={(e) => setFeatParam('dx', Number(e.target.value))} style={{ width: 36 }} /><input type="number" step={1} value={featDlg.params.dy} onChange={(e) => setFeatParam('dy', Number(e.target.value))} style={{ width: 36 }} /><input type="number" step={1} value={featDlg.params.dz} onChange={(e) => setFeatParam('dz', Number(e.target.value))} style={{ width: 36 }} /></label>
-            <label>{tStatus('數量', lang)} <input type="number" min={2} max={400} step={1} value={featDlg.params.count} onChange={(e) => setFeatParam('count', Number(e.target.value))} style={{ width: 46 }} /></label>
+            <label title={tStatus('軸經過嘅點（CAD 坐標）— 繞偏心軸陣列時設定', lang)}>{tStatus('軸點', lang)} <FeatNum k="ox" v={featDlg.params.ox} w={40} /><FeatNum k="oy" v={featDlg.params.oy} w={40} /><FeatNum k="oz" v={featDlg.params.oz} w={40} /></label>
+            <label title={tStatus('軸方向分量（可以斜軸，例 1,0,1）', lang)}>{tStatus('方向', lang)} <FeatNum k="dx" v={featDlg.params.dx} w={36} /><FeatNum k="dy" v={featDlg.params.dy} w={36} /><FeatNum k="dz" v={featDlg.params.dz} w={36} /></label>
+            <label>{tStatus('數量', lang)} <FeatNum k="count" v={featDlg.params.count} w={46} /></label>
             <label title={tStatus('完整 = 360° 均分；指定角度 = 副本鋪滿指定角（端點含）；對稱 = 以原件為中心 ± 對稱分布', lang)}>{tStatus('角度', lang)} <select value={featDlg.params.mode} onChange={(e) => setFeatParam('mode', e.target.value)} style={{ height: 26 }}><option value="full">{tStatus('完整 360°', lang)}</option><option value="angle">{tStatus('指定角度', lang)}</option><option value="sym">{tStatus('對稱', lang)}</option></select></label>
-            {featDlg.params.mode !== 'full' && <label>{tStatus('總角', lang)} <input type="number" step={15} value={featDlg.params.totalAngle} onChange={(e) => setFeatParam('totalAngle', Number(e.target.value))} style={{ width: 56 }} />°</label>}
+            {featDlg.params.mode !== 'full' && <label>{tStatus('總角', lang)} <FeatNum k="totalAngle" v={featDlg.params.totalAngle} w={56} />°</label>}
             {/* GM-3DV1 S3：逐实例抑制 + Compute Option（环形：0=原件，1..count-1 按角度顺序） */}
             <label title={tStatus('抑制實例（Fusion Suppression）：逗號分隔要跳過嘅副本索引（0=原件，1..數量-1 按角度順序）。例：2,5', lang)}>{tStatus('抑制實例', lang)} <input type="text" value={String(featDlg.params.suppress ?? '')} onChange={(e) => setFeatParam('suppress', e.target.value)} placeholder="留空=全部保留" style={{ width: 84 }} /></label>
             <label title={tStatus('計算選項（Fusion Compute Option）：優化/相同/調整。直通提示，v1 不改幾何。', lang)}>{tStatus('計算', lang)} <select value={String(featDlg.params.compute ?? 'optimized')} onChange={(e) => setFeatParam('compute', e.target.value)} style={{ height: 26 }}><option value="optimized">{tStatus('優化', lang)}</option><option value="identical">{tStatus('相同', lang)}</option><option value="adjust">{tStatus('調整', lang)}</option></select></label>
@@ -6436,7 +6431,7 @@ export default function Viewport() {
             {featDlg.params.target === 'feature' && <span style={{ fontSize: 11, color: cpSelFeat ? '#2c7' : '#c60' }}>{cpSelFeat ? `✓ ${tStatus('已選特徵', lang)} ×${useApp.getState().selectedFeatures.length || 1}` : msg('ui.clickFeatureFirst', lang)}</span>}
             {featDlg.params.target === 'components' && (() => { const n = useApp.getState().checkedComps.length || (useApp.getState().selectedComponent ? 1 : 0); return <span style={{ fontSize: 11, color: n ? '#2c7' : '#c60' }}>{n ? `✓ ${tStatus('已選組件', lang)} ×${n}（${tStatus('支持偏移、構造面及所拾平面', lang)}）` : tStatus('← 先喺裝配樹勾選 ☑ 或選中組件', lang)}</span> })()}
             <label title={tStatus('鏡像基準面：三個世界面（可加偏移）或任意構造面；組件鏡像同樣支持。', lang)}>{tStatus('鏡像面', lang)} <select value={featDlg.params.plane} onChange={(e) => setFeatParam('plane', e.target.value)} style={{ height: 26 }}>{String(featDlg.params.plane) === 'PICK' && <option value="PICK">🎯 {tStatus('拾取面', lang)}</option>}<option>XY</option><option>XZ</option><option>YZ</option>{useApp.getState().planes.map((pl, i) => pl.arb ? <option key={'P' + i} value={'P' + i}>{tStatus('構造面', lang)}{i + 1}</option> : null)}</select></label>
-            {!String(featDlg.params.plane).startsWith('P') && <label>{tStatus('偏移', lang)} <input type="number" step={5} value={featDlg.params.offset} onChange={(e) => setFeatParam('offset', Number(e.target.value))} style={{ width: 56 }} /></label>}
+            {!String(featDlg.params.plane).startsWith('P') && <label>{tStatus('偏移', lang)} <FeatNum k="offset" v={featDlg.params.offset} w={56} /></label>}
             {(featDlg.params.target ?? 'body') === 'body' && (
               <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('操作 New Body（Fusion Mirror Operation）：鏡像副本泊車做獨立實體（唔 fuse 入活動體）。關＝Join 融合成一件。', lang)}>
                 <input type="checkbox" checked={!!featDlg.params.mirrorOp} onChange={(e) => setFeatParam('mirrorOp', e.target.checked ? 1 : 0)} /> {tStatus('鏡像出獨立實體', lang)}
@@ -6462,27 +6457,27 @@ export default function Viewport() {
                 {modes.map(([v, lbl, tip]) => <button key={v} className={'sb-tool' + (mt === v ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={tStatus(tip, lang)} onClick={() => setFeatParam('moveType', v)}>{tStatus(lbl, lang)}</button>)}
               </div>
               {(mt === 'free' || mt === 'translate') && (<>
-                <label>dx <input type="number" step={5} value={featDlg.params.dx} onChange={(e) => setFeatParam('dx', Number(e.target.value))} style={{ width: 52 }} /></label>
-                <label>dy <input type="number" step={5} value={featDlg.params.dy} onChange={(e) => setFeatParam('dy', Number(e.target.value))} style={{ width: 52 }} /></label>
-                <label>dz <input type="number" step={5} value={featDlg.params.dz} onChange={(e) => setFeatParam('dz', Number(e.target.value))} style={{ width: 52 }} /></label>
+                <label>dx <FeatNum k="dx" v={featDlg.params.dx} w={52} /></label>
+                <label>dy <FeatNum k="dy" v={featDlg.params.dy} w={52} /></label>
+                <label>dz <FeatNum k="dz" v={featDlg.params.dz} w={52} /></label>
               </>)}
               {mt === 'free' && (<>
-                <label title={tStatus('繞件中心 X 軸旋轉', lang)}>{tStatus('繞X°', lang)} <input type="number" step={15} value={featDlg.params.rx ?? 0} onChange={(e) => setFeatParam('rx', Number(e.target.value))} style={{ width: 50 }} /></label>
-                <label title={tStatus('繞件中心 Y 軸旋轉', lang)}>{tStatus('繞Y°', lang)} <input type="number" step={15} value={featDlg.params.ry ?? 0} onChange={(e) => setFeatParam('ry', Number(e.target.value))} style={{ width: 50 }} /></label>
-                <label title={tStatus('繞件中心 Z 軸旋轉', lang)}>{tStatus('繞Z°', lang)} <input type="number" step={15} value={featDlg.params.rz} onChange={(e) => setFeatParam('rz', Number(e.target.value))} style={{ width: 50 }} /></label>
+                <label title={tStatus('繞件中心 X 軸旋轉', lang)}>{tStatus('繞X°', lang)} <FeatNum k="rx" v={featDlg.params.rx} w={50} /></label>
+                <label title={tStatus('繞件中心 Y 軸旋轉', lang)}>{tStatus('繞Y°', lang)} <FeatNum k="ry" v={featDlg.params.ry} w={50} /></label>
+                <label title={tStatus('繞件中心 Z 軸旋轉', lang)}>{tStatus('繞Z°', lang)} <FeatNum k="rz" v={featDlg.params.rz} w={50} /></label>
               </>)}
               {mt === 'rotate' && (<>
                 <label title={tStatus('旋轉軸（繞件中心）', lang)}>{tStatus('軸', lang)} <select value={String(featDlg.params.raxis ?? 'Z')} onChange={(e) => setFeatParam('raxis', e.target.value)} style={{ height: 26 }}><option value="X">X</option><option value="Y">Y</option><option value="Z">Z</option></select></label>
-                <label title={tStatus('旋轉角°', lang)}>{tStatus('角度', lang)} <input type="number" step={15} value={featDlg.params.angle ?? 0} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 56 }} />°</label>
+                <label title={tStatus('旋轉角°', lang)}>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={56} />°</label>
               </>)}
               {(mt === 'ptp' || mt === 'ptpos') && (<>
                 <div style={{ fontSize: 11, color: '#6b7680', width: '100%' }}>{tStatus(mt === 'ptp' ? 'P1=起點、P2=目標點（世界坐標）→ 平移 P2−P1' : 'P1=點、P2=目的坐標（世界坐標）→ 把 P1 搬到 P2', lang)}</div>
-                <label>P1x <input type="number" step={1} value={featDlg.params.p1x ?? 0} onChange={(e) => setFeatParam('p1x', Number(e.target.value))} style={{ width: 48 }} /></label>
-                <label>P1y <input type="number" step={1} value={featDlg.params.p1y ?? 0} onChange={(e) => setFeatParam('p1y', Number(e.target.value))} style={{ width: 48 }} /></label>
-                <label>P1z <input type="number" step={1} value={featDlg.params.p1z ?? 0} onChange={(e) => setFeatParam('p1z', Number(e.target.value))} style={{ width: 48 }} /></label>
-                <label>P2x <input type="number" step={1} value={featDlg.params.p2x ?? 0} onChange={(e) => setFeatParam('p2x', Number(e.target.value))} style={{ width: 48 }} /></label>
-                <label>P2y <input type="number" step={1} value={featDlg.params.p2y ?? 0} onChange={(e) => setFeatParam('p2y', Number(e.target.value))} style={{ width: 48 }} /></label>
-                <label>P2z <input type="number" step={1} value={featDlg.params.p2z ?? 0} onChange={(e) => setFeatParam('p2z', Number(e.target.value))} style={{ width: 48 }} /></label>
+                <label>P1x <FeatNum k="p1x" v={featDlg.params.p1x} w={48} /></label>
+                <label>P1y <FeatNum k="p1y" v={featDlg.params.p1y} w={48} /></label>
+                <label>P1z <FeatNum k="p1z" v={featDlg.params.p1z} w={48} /></label>
+                <label>P2x <FeatNum k="p2x" v={featDlg.params.p2x} w={48} /></label>
+                <label>P2y <FeatNum k="p2y" v={featDlg.params.p2y} w={48} /></label>
+                <label>P2z <FeatNum k="p2z" v={featDlg.params.p2z} w={48} /></label>
               </>)}
               <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('Create Copy：留低原件、移動一個副本（Fusion Move/Copy 嘅複製半邊）', lang)}><input type="checkbox" checked={!!+(featDlg.params.createCopy || 0)} onChange={(e) => setFeatParam('createCopy', e.target.checked ? 1 : 0)} /> {tStatus('建立副本', lang)}</label>
             </>)
@@ -6491,11 +6486,11 @@ export default function Viewport() {
           {featDlg.kind === 'rib' && (() => {
             const isWeb = !!(featDlg.payload && typeof featDlg.payload === 'object' && (featDlg.payload as { isWeb?: boolean }).isWeb)
             return (<>
-              <label title={tStatus('筋壁厚度（沿中心線兩側或單側鋪開）', lang)}>{tStatus('厚度', lang)} <input type="number" min={0.1} step={0.5} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
+              <label title={tStatus('筋壁厚度（沿中心線兩側或單側鋪開）', lang)}>{tStatus('厚度', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={56} unit="mm" /> mm</label>
               <label title={tStatus('厚度方向（Fusion Thickness Direction）：對稱=中心線兩側各半 / 單側=全部厚度落中心線一側', lang)}>{tStatus('厚度方向', lang)} <select value={String(featDlg.params.thDir ?? 'sym')} onChange={(e) => setFeatParam('thDir', e.target.value)} style={{ height: 26 }}><option value="sym">{tStatus('對稱', lang)}</option><option value="one">{tStatus('單側', lang)}</option></select></label>
               <label title={tStatus('範圍（Fusion Extent）：到實體=向下落到實體底面並融合（需實體在下）/ 距離=向上按固定高度', lang)}>{tStatus('範圍', lang)} <select value={String(featDlg.params.extent ?? 'next')} onChange={(e) => setFeatParam('extent', e.target.value)} style={{ height: 26 }}><option value="next">{tStatus('到實體', lang)}</option><option value="distance">{tStatus('距離', lang)}</option></select></label>
-              {featDlg.params.extent === 'distance' && <label>{tStatus('高度', lang)} <input type="number" min={0.1} step={1} value={featDlg.params.height} onChange={(e) => setFeatParam('height', Number(e.target.value))} style={{ width: 56 }} /> mm</label>}
-              <label title={tStatus('拔模角°：筋身向遠端逐漸收窄（注塑/衝壓脫模）', lang)}>{tStatus('拔模角', lang)} <input type="number" step={1} min={-85} max={85} value={featDlg.params.draft} onChange={(e) => setFeatParam('draft', Number(e.target.value))} style={{ width: 50 }} />°</label>
+              {featDlg.params.extent === 'distance' && <label>{tStatus('高度', lang)} <FeatNum k="height" v={featDlg.params.height} w={56} unit="mm" /> mm</label>}
+              <label title={tStatus('拔模角°：筋身向遠端逐漸收窄（注塑/衝壓脫模）', lang)}>{tStatus('拔模角', lang)} <FeatNum k="draft" v={featDlg.params.draft} w={50} />°</label>
               <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('翻轉筋擠出方向（up↔down）', lang)}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} /> {tStatus('翻转方向', lang)}</label>
               {isWeb && <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('延伸曲線（Fusion Web Extend Curves）：把開放折線端點外延到實體牆面，令交叉/近牆筋網自動閉合', lang)}><input type="checkbox" checked={!!+(featDlg.params.extend || 0)} onChange={(e) => setFeatParam('extend', e.target.checked ? 1 : 0)} /> {tStatus('延伸曲线到墙', lang)}</label>}
             </>)
@@ -6503,14 +6498,14 @@ export default function Viewport() {
           {/* GM-3DV1 S9：Pipe 建立对话框 — 截面/尺寸/空心壁厚/距离/操作 */}
           {featDlg.kind === 'pipe' && (<>
             <label title={tStatus('截面形狀（Fusion Section）：圓形 / 方形', lang)}>{tStatus('截面', lang)} <select value={String(featDlg.params.section ?? 'circular')} onChange={(e) => setFeatParam('section', e.target.value)} style={{ height: 26 }}><option value="circular">{tStatus('圓形', lang)}</option><option value="square">{tStatus('方形', lang)}</option></select></label>
-            <label title={tStatus('截面尺寸（外徑Ø / 方形邊寬）', lang)}>{tStatus('截面尺寸', lang)} <input type="number" min={0.1} step={1} value={featDlg.params.size} onChange={(e) => setFeatParam('size', Number(e.target.value))} style={{ width: 56 }} /> {featDlg.params.section === 'square' ? '□' : 'Ø'} mm</label>
+            <label title={tStatus('截面尺寸（外徑Ø / 方形邊寬）', lang)}>{tStatus('截面尺寸', lang)} <FeatNum k="size" v={featDlg.params.size} w={56} /> {featDlg.params.section === 'square' ? '□' : 'Ø'} mm</label>
             <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('空心（Fusion Hollow）：勾選 = 中空管（減壁厚成內孔）；不勾 = 實心棒', lang)}><input type="checkbox" checked={!!+(featDlg.params.hollow || 0)} onChange={(e) => setFeatParam('hollow', e.target.checked ? 1 : 0)} /> {tStatus('空心', lang)}</label>
-            {!!+(featDlg.params.hollow || 0) && <label title={tStatus('壁厚（Section Thickness）', lang)}>{tStatus('壁厚', lang)} <input type="number" min={0.01} step={0.5} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 52 }} /> mm</label>}
-            <label title={tStatus('距離（Fusion Distance）：沿路徑覆蓋比例 0–1（1=全長）', lang)}>{tStatus('距離', lang)} <input type="number" min={0.01} max={1} step={0.05} value={featDlg.params.dist} onChange={(e) => setFeatParam('dist', Number(e.target.value))} style={{ width: 52 }} /></label>
+            {!!+(featDlg.params.hollow || 0) && <label title={tStatus('壁厚（Section Thickness）', lang)}>{tStatus('壁厚', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={52} unit="mm" /> mm</label>}
+            <label title={tStatus('距離（Fusion Distance）：沿路徑覆蓋比例 0–1（1=全長）', lang)}>{tStatus('距離', lang)} <FeatNum k="dist" v={featDlg.params.dist} w={52} /></label>
             <label title={tStatus('操作：＋加料 / －切割 / ∩相交 / ⬡新實體', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新實體', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'pathpattern' && (<>
-            <label title={tStatus('副本總數（包括原始實體／特徵）；沿路徑按等弧長均勻擺放', lang)}>{tStatus('數量', lang)} <input type="number" min={2} max={100} step={1} value={featDlg.params.count} onChange={(e) => setFeatParam('count', Number(e.target.value))} style={{ width: 56 }} /></label>
+            <label title={tStatus('副本總數（包括原始實體／特徵）；沿路徑按等弧長均勻擺放', lang)}>{tStatus('數量', lang)} <FeatNum k="count" v={featDlg.params.count} w={56} /></label>
             <label title={tStatus('整個實體會複製當前實體；所選特徵會只複製時間軸中已選中嘅孔／凸台等特徵', lang)}>{tStatus('對象', lang)} <select value={String(featDlg.params.target ?? 'body')} onChange={(e) => setFeatParam('target', e.target.value)} style={{ height: 26 }}><option value="body">{tStatus('整個實體', lang)}</option><option value="feature">{tStatus('所選特徵（時間軸）', lang)}</option></select></label>
             <label title={tStatus('相同=每個副本保持原始方向；沿路徑=各副本按局部切線作最短旋轉。急彎頂點使用出段切線。', lang)}>{tStatus('方向', lang)} <select value={String(featDlg.params.orient ?? 'identical')} onChange={(e) => setFeatParam('orient', e.target.value)} style={{ height: 26 }}><option value="identical">{tStatus('相同', lang)}</option><option value="path">{tStatus('沿路徑', lang)}</option></select></label>
             <div style={{ fontSize: 11, color: '#6b7680' }}>{tStatus('路徑由剛才草圖提供；取消會還原草圖。', lang)}</div>
@@ -6541,11 +6536,11 @@ export default function Viewport() {
             <label title={tStatus('把兩實體空間切成三個不重疊體積；所選 cell 成為活動實體，其余有效 cell 保留為灰顯獨立實體。', lang)}>{tStatus('保留 cell', lang)} <select value={String(featDlg.params.cell ?? 'overlap')} onChange={(e) => setFeatParam('cell', e.target.value)} style={{ height: 26 }}><option value="target">{tStatus('目標獨有（目標 − 工具）', lang)}</option><option value="overlap">{tStatus('交集（目標 ∩ 工具）', lang)}</option><option value="tool">{tStatus('工具獨有（工具 − 目標）', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'scale' && (<>
-            <label title={tStatus('均勻縮放比例', lang)}>{tStatus('比例', lang)} <input type="number" min={0.01} step={0.1} value={featDlg.params.factor} onChange={(e) => setFeatParam('factor', Number(e.target.value))} style={{ width: 56 }} /> ×</label>
-            <label title={tStatus('或直接輸入目標最長邊尺寸（mm）→ 自動算比例；0=用上面比例', lang)}>{tStatus('或 目標最長邊', lang)} <input type="number" min={0} step={1} value={featDlg.params.target ?? 0} onChange={(e) => setFeatParam('target', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
-            <label title={tStatus('非等比三軸縮放（T762 GTransform 真 B-rep）：任一軸 >0 即生效，0=該軸不縮放；填咗就忽略上面等比', lang)}>{tStatus('非等比 X', lang)} <input type="number" min={0} step={0.1} value={featDlg.params.sx ?? 0} onChange={(e) => setFeatParam('sx', Number(e.target.value))} style={{ width: 44 }} />Y <input type="number" min={0} step={0.1} value={featDlg.params.sy ?? 0} onChange={(e) => setFeatParam('sy', Number(e.target.value))} style={{ width: 44 }} />Z <input type="number" min={0} step={0.1} value={featDlg.params.sz ?? 0} onChange={(e) => setFeatParam('sz', Number(e.target.value))} style={{ width: 44 }} /></label>
+            <label title={tStatus('均勻縮放比例', lang)}>{tStatus('比例', lang)} <FeatNum k="factor" v={featDlg.params.factor} w={56} /> ×</label>
+            <label title={tStatus('或直接輸入目標最長邊尺寸（mm）→ 自動算比例；0=用上面比例', lang)}>{tStatus('或 目標最長邊', lang)} <FeatNum k="target" v={featDlg.params.target} w={56} unit="mm" /> mm</label>
+            <label title={tStatus('非等比三軸縮放（T762 GTransform 真 B-rep）：任一軸 >0 即生效，0=該軸不縮放；填咗就忽略上面等比', lang)}>{tStatus('非等比 X', lang)} <FeatNum k="sx" v={featDlg.params.sx} w={44} />Y <FeatNum k="sy" v={featDlg.params.sy} w={44} />Z <FeatNum k="sz" v={featDlg.params.sz} w={44} /></label>
             {/* P2（Fusion Scale Point）：缩放基准点 — 默认实体中心（开对话框预填）；0,0,0=世界原点（旧行为） */}
-            <label title={tStatus('縮放基準點（CAD 坐標）：實體繞呢個點縮放，唔會飛走。預設=實體包圍盒中心（Fusion 同款）；0,0,0=世界原點（舊行為）', lang)}>{tStatus('基準點', lang)} <input type="number" step={5} value={featDlg.params.px ?? 0} onChange={(e) => setFeatParam('px', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={featDlg.params.py ?? 0} onChange={(e) => setFeatParam('py', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={featDlg.params.pz ?? 0} onChange={(e) => setFeatParam('pz', Number(e.target.value))} style={{ width: 44 }} /></label>
+            <label title={tStatus('縮放基準點（CAD 坐標）：實體繞呢個點縮放，唔會飛走。預設=實體包圍盒中心（Fusion 同款）；0,0,0=世界原點（舊行為）', lang)}>{tStatus('基準點', lang)} <FeatNum k="px" v={featDlg.params.px} w={44} /><FeatNum k="py" v={featDlg.params.py} w={44} /><FeatNum k="pz" v={featDlg.params.pz} w={44} /></label>
             <button className="cs-btn" title={tStatus('把基準點設到實體包圍盒中心（原地縮放）', lang)} onClick={() => {
               const m = useApp.getState().bodyMesh; if (!m?.vertices?.length) return
               const vv = m.vertices; let xn = 1e9, xp = -1e9, yn = 1e9, yp = -1e9, zn = 1e9, zp = -1e9
@@ -6570,7 +6565,7 @@ export default function Viewport() {
                     for (let i = axIdx; i < vv.length; i += 3) { if (vv[i] < lo) lo = vv[i]; if (vv[i] > hi) hi = vv[i] }
                     setFeatParam('offset', Math.round((lo + hi) / 2 * 10) / 10)
                   }} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
-                  <label title={tStatus('切割位置（CAD 世界坐標，沿選定軸）。長方體預設角落原點時 x=15 把 40 寬切成 15+25 → 體積 3000+5000', lang)}>{tStatus('位置', lang)} <input type="number" step={1} value={featDlg.params.offset} onChange={(e) => setFeatParam('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>
+                  <label title={tStatus('切割位置（CAD 世界坐標，沿選定軸）。長方體預設角落原點時 x=15 把 40 寬切成 15+25 → 體積 3000+5000', lang)}>{tStatus('位置', lang)} <FeatNum k="offset" v={featDlg.params.offset} w={60} unit="mm" /> mm</label>
                   <button className="cs-btn" title={tStatus('把切割位置居中到實體包圍盒中點（當前軸）', lang)} onClick={() => {
                     const m = useApp.getState().bodyMesh; if (!m?.vertices?.length) return
                     const axIdx = featDlg.params.axis === 'X' ? 0 : featDlg.params.axis === 'Y' ? 1 : 2
@@ -6598,8 +6593,8 @@ export default function Viewport() {
               {(featDlg.params.extent === 'distance' || featDlg.params.extent === 'next') && (
                 <button type="button" className={'sb-tool' + (+(featDlg.params.heightExprFlip || 0) ? ' active' : '')} style={{ width: '100%' }} title={tStatus('把拉伸/切割方向反轉（同喺「距離」打負數效果一樣）', lang)} onClick={() => setFeatParam('heightExprFlip', +(featDlg.params.heightExprFlip || 0) ? 0 : 1)}>{tStatus('⇅ 反向方向', lang)}{+(featDlg.params.heightExprFlip || 0) ? tStatus('（已反）', lang) : ''}</button>
               )}
-              <label>{tStatus('拔模角', lang)} <input type="number" step={1} min={-45} max={45} value={featDlg.params.draft} onChange={(e) => setFeatParam('draft', Number(e.target.value))} style={{ width: 50 }} />°</label>
-              <label>{tStatus('扭轉', lang)} <input type="number" step={5} value={featDlg.params.twist} onChange={(e) => setFeatParam('twist', Number(e.target.value))} style={{ width: 50 }} />°</label>
+              <label>{tStatus('拔模角', lang)} <FeatNum k="draft" v={featDlg.params.draft} w={50} />°</label>
+              <label>{tStatus('扭轉', lang)} <FeatNum k="twist" v={featDlg.params.twist} w={50} />°</label>
               {skId && <button className="tb-btn" title={tStatus('重開草圖編輯輪廓（改完全樹重建）', lang)} onClick={() => { const id = featDlg.editId!; cancelFeatDlg(); useApp.getState().editSketchOf(id) }}>✎ {tStatus('編輯草圖', lang)}</button>}
             </>)
           })()}
@@ -6613,8 +6608,8 @@ export default function Viewport() {
                 ))}
               </div>
             ) : (<>
-              <label>{tStatus('半徑', lang)} <input type="number" step={0.5} min={0.1} value={featDlg.params.radius} onChange={(e) => setFeatParam('radius', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
-              <label title={tStatus('變半徑圓角：起始用「半徑」，末端用呢個值（0=均一半徑）', lang)}>{tStatus('末端半徑', lang)} <input type="number" step={0.5} min={0} value={featDlg.params.radius2} onChange={(e) => setFeatParam('radius2', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
+              <label>{tStatus('半徑', lang)} <FeatNum k="radius" v={featDlg.params.radius} w={56} unit="mm" /> mm</label>
+              <label title={tStatus('變半徑圓角：起始用「半徑」，末端用呢個值（0=均一半徑）', lang)}>{tStatus('末端半徑', lang)} <FeatNum k="radius2" v={featDlg.params.radius2} w={56} unit="mm" /> mm</label>
             </>)}
             <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.chain || 0)} onChange={(e) => setFeatParam('chain', e.target.checked ? 1 : 0)} />{tStatus('切線鏈', lang)}</label>
           </>)}
@@ -6622,22 +6617,22 @@ export default function Viewport() {
             <SelectionChip label={tStatus('棱', lang)} count={Math.max(1, +(featDlg.params.nearsN || 0))} hint="" />
             <label>{tStatus('類型', lang)} <select value={String(featDlg.params.cmode)} onChange={(e) => setFeatParam('cmode', e.target.value)} style={{ height: 26 }}>
               <option value="equal">{tStatus('等距', lang)}</option><option value="two">{tStatus('兩距離', lang)}</option><option value="angle">{tStatus('距離+角度', lang)}</option></select></label>
-            <label>{tStatus('距離', lang)} <input type="number" step={0.5} min={0.1} value={featDlg.params.distance} onChange={(e) => setFeatParam('distance', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
-            {featDlg.params.cmode === 'two' && <label>{tStatus('距離2', lang)} <input type="number" step={0.5} min={0.1} value={featDlg.params.dist2} onChange={(e) => setFeatParam('dist2', Number(e.target.value))} style={{ width: 56 }} /> mm</label>}
-            {featDlg.params.cmode === 'angle' && <label>{tStatus('角度', lang)} <input type="number" step={5} min={5} max={85} value={featDlg.params.angle} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 50 }} />°</label>}
+            <label>{tStatus('距離', lang)} <FeatNum k="distance" v={featDlg.params.distance} w={56} unit="mm" /> mm</label>
+            {featDlg.params.cmode === 'two' && <label>{tStatus('距離2', lang)} <FeatNum k="dist2" v={featDlg.params.dist2} w={56} unit="mm" /> mm</label>}
+            {featDlg.params.cmode === 'angle' && <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={50} />°</label>}
             {featDlg.params.cmode !== 'equal' && <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} />{tStatus('翻转', lang)}</label>}
             <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.chain || 0)} onChange={(e) => setFeatParam('chain', e.target.checked ? 1 : 0)} />{tStatus('切線鏈', lang)}</label>
           </>)}
           {featDlg.kind === 'shell-edit' && (<>
             <SelectionChip label={tStatus('開口面', lang)} count={+(featDlg.params.nearsN || 0)} hint={tStatus('0 = 預設開頂面', lang)} />
-            <label>{tStatus('壁厚', lang)} <input type="number" step={0.2} min={0.2} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
+            <label>{tStatus('壁厚', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={56} unit="mm" /> mm</label>
             <label title={tStatus('壁厚方向：向內=外形保留 · 向外=尺寸外擴 · 兩側=壁跨原邊界', lang)}>{tStatus('方向', lang)} <select value={String(featDlg.params.direction ?? 'inside')} onChange={(e) => setFeatParam('direction', e.target.value)} style={{ height: 26 }}><option value="inside">{tStatus('向內', lang)}</option><option value="outside">{tStatus('向外', lang)}</option><option value="both">{tStatus('兩側', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'offsetsolid' && (<>
-            <label title={tStatus('整體偏移所有面：正=外擴(加厚鑄件壁/補償)，負=內縮。凸邊按圓角接合', lang)}>{tStatus('偏移距離', lang)} <input type="number" step={0.5} value={featDlg.params.distance} onChange={(e) => setFeatParam('distance', Number(e.target.value))} style={{ width: 56 }} /> mm</label>
+            <label title={tStatus('整體偏移所有面：正=外擴(加厚鑄件壁/補償)，負=內縮。凸邊按圓角接合', lang)}>{tStatus('偏移距離', lang)} <FeatNum k="distance" v={featDlg.params.distance} w={56} unit="mm" /> mm</label>
           </>)}
           {featDlg.kind === 'draft' && (
-            <label>{tStatus('角度', lang)} <input type="number" step={1} value={featDlg.params.angle} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 56 }} />°</label>
+            <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={56} />°</label>
           )}
           {featDlg.kind === 'revolve' && (<>
             {featDlg.params.axisReference !== undefined && <label>{tStatus('軸參照', lang)} <select aria-label={tStatus('旋轉軸參照', lang)} value={featDlg.params.axisReference} onChange={e=>setFeatParam('axisReference',e.target.value)}><option value="sketch">{tStatus('隨草圖移動', lang)}</option><option value="world">{tStatus('固定世界軸', lang)}</option></select></label>}
@@ -6687,10 +6682,10 @@ export default function Viewport() {
             <span title={tStatus('方向：過上面軸點，沿 X / Y / Z 做旋轉軸', lang)} style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }}>{tStatus('軸向', lang)}
               {(['X', 'Y', 'Z'] as const).map((ax) => { const on = (ax === 'X' && featDlg.params.dx === 1 && !featDlg.params.dy && !featDlg.params.dz) || (ax === 'Y' && featDlg.params.dy === 1 && !featDlg.params.dx && !featDlg.params.dz) || (ax === 'Z' && featDlg.params.dz === 1 && !featDlg.params.dx && !featDlg.params.dy); return <button key={ax} className={'cs-btn' + (on ? ' on' : '')} title={tStatus(`沿 ${ax} 軸（過上面軸點）`, lang)} onClick={() => { setFeatParam('axis', ax); setFeatParam('dx', ax === 'X' ? 1 : 0); setFeatParam('dy', ax === 'Y' ? 1 : 0); setFeatParam('dz', ax === 'Z' ? 1 : 0) }} style={{ padding: '2px 7px', ...(on ? { background: '#1572c4', color: '#fff' } : {}) }}>{ax}</button> })}
             </span>
-            <label title={tStatus('旋轉軸經過嘅點（CAD 坐標）— 偏離原點車削設定；預設 0,0,0 = 用上面旋轉軸預設', lang)}>{tStatus('軸點', lang)} <input type="number" step={5} aria-label={tStatus('旋轉軸點 X', lang)} value={featDlg.params.ox} onChange={(e) => setFeatParam('ox', Number(e.target.value))} style={{ width: 40 }} /><input type="number" step={5} aria-label={tStatus('旋转轴点 Y', lang)} value={featDlg.params.oy} onChange={(e) => setFeatParam('oy', Number(e.target.value))} style={{ width: 40 }} /><input type="number" step={5} aria-label={tStatus('旋轉軸點 Z', lang)} value={featDlg.params.oz} onChange={(e) => setFeatParam('oz', Number(e.target.value))} style={{ width: 40 }} /></label>
-            <label title={tStatus('旋轉軸方向分量（可斜軸，例 1,0,1）— 預設 0,1,0 = 世界 Y。注意：輪廓必須完全喺軸一側，否則建模失敗', lang)}>{tStatus('方向', lang)} <input type="number" step={1} aria-label={tStatus('旋轉軸方向 X', lang)} value={featDlg.params.dx} onChange={(e) => setFeatParam('dx', Number(e.target.value))} style={{ width: 36 }} /><input type="number" step={1} aria-label={tStatus('旋转轴方向 Y', lang)} value={featDlg.params.dy} onChange={(e) => setFeatParam('dy', Number(e.target.value))} style={{ width: 36 }} /><input type="number" step={1} aria-label={tStatus('旋轉軸方向 Z', lang)} value={featDlg.params.dz} onChange={(e) => setFeatParam('dz', Number(e.target.value))} style={{ width: 36 }} /></label>
-            <label>{tStatus('角度', lang)} <input type="number" step={15} min={1} max={360} value={featDlg.params.angle} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 56 }} />°</label>
-            <label title={tStatus('薄壁 mm：>0 把旋轉體抽成薄殼（燈罩/碗殼/漏斗等曲面殼），0=實心', lang)}>{tStatus('薄壁', lang)} <input type="number" step={0.5} min={0} value={featDlg.params.wall ?? 0} onChange={(e) => setFeatParam('wall', Number(e.target.value))} style={{ width: 48 }} /> mm</label>
+            <label title={tStatus('旋轉軸經過嘅點（CAD 坐標）— 偏離原點車削設定；預設 0,0,0 = 用上面旋轉軸預設', lang)}>{tStatus('軸點', lang)} <FeatNum k="ox" v={featDlg.params.ox} w={40} /><FeatNum k="oy" v={featDlg.params.oy} w={40} /><FeatNum k="oz" v={featDlg.params.oz} w={40} /></label>
+            <label title={tStatus('旋轉軸方向分量（可斜軸，例 1,0,1）— 預設 0,1,0 = 世界 Y。注意：輪廓必須完全喺軸一側，否則建模失敗', lang)}>{tStatus('方向', lang)} <FeatNum k="dx" v={featDlg.params.dx} w={36} /><FeatNum k="dy" v={featDlg.params.dy} w={36} /><FeatNum k="dz" v={featDlg.params.dz} w={36} /></label>
+            <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={56} />°</label>
+            <label title={tStatus('薄壁 mm：>0 把旋轉體抽成薄殼（燈罩/碗殼/漏斗等曲面殼），0=實心', lang)}>{tStatus('薄壁', lang)} <FeatNum k="wall" v={featDlg.params.wall} w={48} unit="mm" /> mm</label>
             {Number(featDlg.params.angle) > 0 && Number(featDlg.params.angle) < 360 && (
               <label title={tStatus('兩側對稱：部分角旋轉時把角度均分跨越截面平面兩側（Fusion symmetric revolve）', lang)}><input type="checkbox" checked={!!featDlg.params.sym} onChange={(e) => setFeatParam('sym', e.target.checked ? 1 : 0)} /> {tStatus('两侧对称', lang)}</label>
             )}
@@ -6712,96 +6707,96 @@ export default function Viewport() {
             <label>Ø <LenInput mm={Number(featDlg.params.d)} onMm={(v) => setFeatParam('d', v)} unit={unit} w={60} min={0.1} /></label>
           )}
           {featDlg.kind === 'torus' && (<>
-            <label>{tStatus('外Ø', lang)} <input type="number" step={5} min={2} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 56 }} /></label>
-            <label>{tStatus('管Ø', lang)} <input type="number" step={2} min={1} value={featDlg.params.td} onChange={(e) => setFeatParam('td', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label title={tStatus('掃掠角°：360=整環；<360=部分圓環/C 形（卡簧/C 夾/弧形把手）', lang)}>{tStatus('弧', lang)} <input type="number" step={15} min={10} max={360} value={featDlg.params.arc ?? 360} onChange={(e) => setFeatParam('arc', Number(e.target.value))} style={{ width: 48 }} />°</label>
+            <label>{tStatus('外Ø', lang)} <FeatNum k="d" v={featDlg.params.d} w={56} /></label>
+            <label>{tStatus('管Ø', lang)} <FeatNum k="td" v={featDlg.params.td} w={52} /></label>
+            <label title={tStatus('掃掠角°：360=整環；<360=部分圓環/C 形（卡簧/C 夾/弧形把手）', lang)}>{tStatus('弧', lang)} <FeatNum k="arc" v={featDlg.params.arc} w={48} />°</label>
           </>)}
           {featDlg.kind === 'cone' && (<>
-            <label>{tStatus('底Ø', lang)} <input type="number" step={5} min={1} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label title={tStatus('頂部直徑，設 0 即尖錐', lang)}>{tStatus('頂Ø', lang)} <input type="number" step={5} min={0} value={featDlg.params.dt} onChange={(e) => setFeatParam('dt', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label title={tStatus('底面邊數：0=圓錐/圓台；≥3=N 棱錐/棱台（金字塔/尖塔/方錐）', lang)}>{tStatus('邊數', lang)} <input type="number" step={1} min={0} max={24} value={featDlg.params.sides ?? 0} onChange={(e) => setFeatParam('sides', Number(e.target.value))} style={{ width: 44 }} /></label>
+            <label>{tStatus('底Ø', lang)} <FeatNum k="d" v={featDlg.params.d} w={52} /></label>
+            <label title={tStatus('頂部直徑，設 0 即尖錐', lang)}>{tStatus('頂Ø', lang)} <FeatNum k="dt" v={featDlg.params.dt} w={52} /></label>
+            <label>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={48} /></label>
+            <label title={tStatus('底面邊數：0=圓錐/圓台；≥3=N 棱錐/棱台（金字塔/尖塔/方錐）', lang)}>{tStatus('邊數', lang)} <FeatNum k="sides" v={featDlg.params.sides} w={44} /></label>
           </>)}
           {featDlg.kind === 'wedge' && (<>
-            <label>{tStatus('長', lang)} <input type="number" step={5} min={1} value={featDlg.params.l} onChange={(e) => setFeatParam('l', Number(e.target.value))} style={{ width: 50 }} /></label>
-            <label>{tStatus('寬', lang)} <input type="number" step={5} min={1} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 50 }} /></label>
-            <label title={tStatus('高的一端在長度方向的一側，斜面削到 0', lang)}>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 50 }} /></label>
+            <label>{tStatus('長', lang)} <FeatNum k="l" v={featDlg.params.l} w={50} /></label>
+            <label>{tStatus('寬', lang)} <FeatNum k="w" v={featDlg.params.w} w={50} /></label>
+            <label title={tStatus('高的一端在長度方向的一側，斜面削到 0', lang)}>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={50} /></label>
           </>)}
           {featDlg.kind === 'dome' && (<>
-            <label title={tStatus('球面直徑', lang)}>Ø <input type="number" step={5} min={1} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 60 }} /></label>
-            <label title={tStatus('冠高 mm：0=半球（高=半徑）；0<冠高<半徑=淺球冠（鏡片/表鏡/按鈕）', lang)}>{tStatus('冠高', lang)} <input type="number" step={1} min={0} value={featDlg.params.cap ?? 0} onChange={(e) => setFeatParam('cap', Number(e.target.value))} style={{ width: 48 }} /></label>
+            <label title={tStatus('球面直徑', lang)}>Ø <FeatNum k="d" v={featDlg.params.d} w={60} /></label>
+            <label title={tStatus('冠高 mm：0=半球（高=半徑）；0<冠高<半徑=淺球冠（鏡片/表鏡/按鈕）', lang)}>{tStatus('冠高', lang)} <FeatNum k="cap" v={featDlg.params.cap} w={48} /></label>
           </>)}
           {featDlg.kind === 'halfcyl' && (<>
-            <label>Ø <input type="number" step={5} min={1} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 56 }} /></label>
-            <label>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 56 }} /></label>
+            <label>Ø <FeatNum k="d" v={featDlg.params.d} w={56} /></label>
+            <label>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={56} /></label>
           </>)}
           {featDlg.kind === 'pie' && (<>
-            <label>Ø <input type="number" step={5} min={1} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label title={tStatus('扇形角度（度，1–360）', lang)}>{tStatus('角度', lang)} <input type="number" step={15} min={1} max={360} value={featDlg.params.ang} onChange={(e) => setFeatParam('ang', Number(e.target.value))} style={{ width: 48 }} />°</label>
-            <label>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
+            <label>Ø <FeatNum k="d" v={featDlg.params.d} w={52} /></label>
+            <label title={tStatus('扇形角度（度，1–360）', lang)}>{tStatus('角度', lang)} <FeatNum k="ang" v={featDlg.params.ang} w={48} />°</label>
+            <label>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={48} /></label>
           </>)}
           {featDlg.kind === 'tube' && (<>
-            <label>{tStatus('外Ø', lang)} <input type="number" step={5} min={2} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label>{tStatus('壁厚', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.wall} onChange={(e) => setFeatParam('wall', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
+            <label>{tStatus('外Ø', lang)} <FeatNum k="d" v={featDlg.params.d} w={52} /></label>
+            <label>{tStatus('壁厚', lang)} <FeatNum k="wall" v={featDlg.params.wall} w={46} /></label>
+            <label>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={48} /></label>
           </>)}
           {featDlg.kind === 'rtube' && (<>
-            <label title={tStatus('截面寬度 X', lang)}>{tStatus('寬', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label title={tStatus('截面深度 Y', lang)}>{tStatus('深', lang)} <input type="number" step={5} min={2} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label title={tStatus('壁厚', lang)}>{tStatus('壁厚', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.wall} onChange={(e) => setFeatParam('wall', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label title={tStatus('長度（沿 Z 高）', lang)}>{tStatus('長', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
+            <label title={tStatus('截面寬度 X', lang)}>{tStatus('寬', lang)} <FeatNum k="w" v={featDlg.params.w} w={48} /></label>
+            <label title={tStatus('截面深度 Y', lang)}>{tStatus('深', lang)} <FeatNum k="d" v={featDlg.params.d} w={48} /></label>
+            <label title={tStatus('壁厚', lang)}>{tStatus('壁厚', lang)} <FeatNum k="wall" v={featDlg.params.wall} w={46} /></label>
+            <label title={tStatus('長度（沿 Z 高）', lang)}>{tStatus('長', lang)} <FeatNum k="h" v={featDlg.params.h} w={48} /></label>
           </>)}
           {featDlg.kind === 'profile' && (<>
             <label>{tStatus('截面', lang)} <select value={featDlg.params.ptype} onChange={(e) => setFeatParam('ptype', e.target.value)} style={{ height: 26 }}><option value="L">{profileSectionName('L', lang)}</option><option value="U">{profileSectionName('U', lang)}</option><option value="T">{profileSectionName('T', lang)}</option></select></label>
-            <label title={tStatus('截面寬度 X', lang)}>{tStatus('寬', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label title={tStatus('截面高度 Y', lang)}>{tStatus('高', lang)} <input type="number" step={5} min={2} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label title={tStatus('壁厚/料厚', lang)}>{tStatus('厚', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.t} onChange={(e) => setFeatParam('t', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label title={tStatus('長度（沿 Z）', lang)}>{tStatus('長', lang)} <input type="number" step={10} min={1} value={featDlg.params.len} onChange={(e) => setFeatParam('len', Number(e.target.value))} style={{ width: 50 }} /></label>
+            <label title={tStatus('截面寬度 X', lang)}>{tStatus('寬', lang)} <FeatNum k="w" v={featDlg.params.w} w={46} /></label>
+            <label title={tStatus('截面高度 Y', lang)}>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={46} /></label>
+            <label title={tStatus('壁厚/料厚', lang)}>{tStatus('厚', lang)} <FeatNum k="t" v={featDlg.params.t} w={44} /></label>
+            <label title={tStatus('長度（沿 Z）', lang)}>{tStatus('長', lang)} <FeatNum k="len" v={featDlg.params.len} w={50} /></label>
           </>)}
           {featDlg.kind === 'rbox' && (<>
-            <label>{tStatus('長', lang)} <input type="number" step={5} min={2} value={featDlg.params.l} onChange={(e) => setFeatParam('l', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label>{tStatus('寬', lang)} <input type="number" step={5} min={2} value={featDlg.params.w} onChange={(e) => setFeatParam('w', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label title={tStatus('四條豎邊的圓角半徑（會自動限制在 min(長,寬)/2 以內）', lang)}>{tStatus('圓角R', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.r} onChange={(e) => setFeatParam('r', Number(e.target.value))} style={{ width: 46 }} /></label>
+            <label>{tStatus('長', lang)} <FeatNum k="l" v={featDlg.params.l} w={48} /></label>
+            <label>{tStatus('寬', lang)} <FeatNum k="w" v={featDlg.params.w} w={48} /></label>
+            <label>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={48} /></label>
+            <label title={tStatus('四條豎邊的圓角半徑（會自動限制在 min(長,寬)/2 以內）', lang)}>{tStatus('圓角R', lang)} <FeatNum k="r" v={featDlg.params.r} w={46} /></label>
           </>)}
           {featDlg.kind === 'prism' && (<>
-            <label>{tStatus('邊數', lang)} <input type="number" step={1} min={3} max={24} value={featDlg.params.sides} onChange={(e) => setFeatParam('sides', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label>{tStatus('外接Ø', lang)} <input type="number" step={5} min={2} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
+            <label>{tStatus('邊數', lang)} <FeatNum k="sides" v={featDlg.params.sides} w={44} /></label>
+            <label>{tStatus('外接Ø', lang)} <FeatNum k="d" v={featDlg.params.d} w={52} /></label>
+            <label>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={48} /></label>
           </>)}
           {featDlg.kind === 'pyramid' && (<>
-            <label title={tStatus('底多邊形邊數', lang)}>{tStatus('邊數', lang)} <input type="number" step={1} min={3} max={24} value={featDlg.params.sides} onChange={(e) => setFeatParam('sides', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label title={tStatus('底多邊形外接圓直徑', lang)}>{tStatus('底外接Ø', lang)} <input type="number" step={5} min={2} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label title={tStatus('錐高（底到頂尖）', lang)}>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
+            <label title={tStatus('底多邊形邊數', lang)}>{tStatus('邊數', lang)} <FeatNum k="sides" v={featDlg.params.sides} w={44} /></label>
+            <label title={tStatus('底多邊形外接圓直徑', lang)}>{tStatus('底外接Ø', lang)} <FeatNum k="d" v={featDlg.params.d} w={52} /></label>
+            <label title={tStatus('錐高（底到頂尖）', lang)}>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={48} /></label>
           </>)}
           {featDlg.kind === 'coil' && (<>
-            <label>Ø <input type="number" step={5} min={2} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label>{tStatus('螺距', lang)} <input type="number" step={1} min={1} value={featDlg.params.pitch} onChange={(e) => setFeatParam('pitch', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label>{tStatus('高', lang)} <input type="number" step={5} min={2} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label>{tStatus('絲Ø', lang)} <input type="number" step={1} min={1} value={featDlg.params.wire} onChange={(e) => setFeatParam('wire', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label title={tStatus('末端外徑 Ø（錐形塔簧）：留空/0 = 圓柱彈簧；填≠起始Ø = 錐形漸變（內核已支持，B樣條變徑螺旋）', lang)}>{tStatus('末端Ø', lang)} <input type="number" step={5} min={0} value={featDlg.params.d2 ?? 0} onChange={(e) => setFeatParam('d2', Number(e.target.value))} style={{ width: 48 }} /></label>
+            <label>Ø <FeatNum k="d" v={featDlg.params.d} w={48} /></label>
+            <label>{tStatus('螺距', lang)} <FeatNum k="pitch" v={featDlg.params.pitch} w={46} /></label>
+            <label>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={48} /></label>
+            <label>{tStatus('絲Ø', lang)} <FeatNum k="wire" v={featDlg.params.wire} w={44} /></label>
+            <label title={tStatus('末端外徑 Ø（錐形塔簧）：留空/0 = 圓柱彈簧；填≠起始Ø = 錐形漸變（內核已支持，B樣條變徑螺旋）', lang)}>{tStatus('末端Ø', lang)} <FeatNum k="d2" v={featDlg.params.d2} w={48} /></label>
           </>)}
           {featDlg.kind === 'gear' && (<>
-            <label title={tStatus('模數 = 分度圓直徑 / 齒數；齒越大模數越大', lang)}>{tStatus('模數m', lang)} <input type="number" step={0.5} min={0.2} value={featDlg.params.module} onChange={(e) => setFeatParam('module', Number(e.target.value))} style={{ width: 50 }} /></label>
-            <label>{tStatus('齒數z', lang)} <input type="number" step={1} min={5} value={featDlg.params.teeth} onChange={(e) => setFeatParam('teeth', Number(e.target.value))} style={{ width: 50 }} /></label>
-            <label>{tStatus('厚度', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label>{tStatus('中心孔Ø', lang)} <input type="number" step={1} min={0} value={featDlg.params.bore} onChange={(e) => setFeatParam('bore', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label title={tStatus('螺旋角 β（T770 斜齒輪）：0=直齒；>0=斜齒扭轉近似（齧合對要 β 同值反向）', lang)}>β° <input type="number" step={5} min={-45} max={45} value={featDlg.params.helix ?? 0} onChange={(e) => setFeatParam('helix', Number(e.target.value))} style={{ width: 44 }} /></label>
+            <label title={tStatus('模數 = 分度圓直徑 / 齒數；齒越大模數越大', lang)}>{tStatus('模數m', lang)} <FeatNum k="module" v={featDlg.params.module} w={50} /></label>
+            <label>{tStatus('齒數z', lang)} <FeatNum k="teeth" v={featDlg.params.teeth} w={50} /></label>
+            <label>{tStatus('厚度', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={48} /></label>
+            <label>{tStatus('中心孔Ø', lang)} <FeatNum k="bore" v={featDlg.params.bore} w={48} /></label>
+            <label title={tStatus('螺旋角 β（T770 斜齒輪）：0=直齒；>0=斜齒扭轉近似（齧合對要 β 同值反向）', lang)}>β° <FeatNum k="helix" v={featDlg.params.helix} w={44} /></label>
             <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('分度圓Ø', lang)} {(Number(featDlg.params.module) * Number(featDlg.params.teeth)).toFixed(0)}</span>
           </>)}
           {featDlg.kind === 'gearbox' && (<>
-            <label title={tStatus('減速比（輸出慢 = 比 >1）。要增速對調輸入輸出。', lang)}>{tStatus('目標速比', lang)} <input type="number" step={0.5} min={1} value={featDlg.params.ratio} onChange={(e) => setFeatParam('ratio', Number(e.target.value))} style={{ width: 56 }} /></label>
-            <label>{tStatus('模數m', lang)} <input type="number" step={0.5} min={0.5} value={featDlg.params.m} onChange={(e) => setFeatParam('m', Number(e.target.value))} style={{ width: 46 }} /></label>
+            <label title={tStatus('減速比（輸出慢 = 比 >1）。要增速對調輸入輸出。', lang)}>{tStatus('目標速比', lang)} <FeatNum k="ratio" v={featDlg.params.ratio} w={56} /></label>
+            <label>{tStatus('模數m', lang)} <FeatNum k="m" v={featDlg.params.m} w={46} /></label>
             <label title={tStatus('0 = 自動按比例決定級數（>6 自動拆級，上限 4 級）', lang)}>{tStatus('級數', lang)} <select value={featDlg.params.stages} onChange={(e) => setFeatParam('stages', Number(e.target.value))} style={{ height: 26 }}><option value={0}>{tStatus('自動', lang)}</option><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
-            <label>{tStatus('厚度', lang)} <input type="number" step={1} min={2} value={featDlg.params.th} onChange={(e) => setFeatParam('th', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label>{tStatus('孔Ø', lang)} <input type="number" step={1} min={0} value={featDlg.params.bore} onChange={(e) => setFeatParam('bore', Number(e.target.value))} style={{ width: 42 }} /></label>
-            <label title={tStatus('斜齒螺旋角（0=直齒）— 自動齧合對反向', lang)}>β° <input type="number" step={5} min={0} max={35} value={featDlg.params.helix ?? 0} onChange={(e) => setFeatParam('helix', Number(e.target.value))} style={{ width: 42 }} /></label>
+            <label>{tStatus('厚度', lang)} <FeatNum k="th" v={featDlg.params.th} w={44} /></label>
+            <label>{tStatus('孔Ø', lang)} <FeatNum k="bore" v={featDlg.params.bore} w={42} /></label>
+            <label title={tStatus('斜齒螺旋角（0=直齒）— 自動齧合對反向', lang)}>β° <FeatNum k="helix" v={featDlg.params.helix} w={42} /></label>
             <GearboxPreview ratio={Number(featDlg.params.ratio)} m={Number(featDlg.params.m)} stages={Number(featDlg.params.stages)} />
           </>)}
           {featDlg.kind === 'worm' && (<>
-            <label>{tStatus('模數m', lang)} <input type="number" step={0.5} min={0.5} value={featDlg.params.module} onChange={(e) => setFeatParam('module', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label title={tStatus('頭數：1頭=大減速比自鎖傾向；2-4頭=高效', lang)}>{tStatus('頭數', lang)} <input type="number" step={1} min={1} max={4} value={featDlg.params.starts} onChange={(e) => setFeatParam('starts', Number(e.target.value))} style={{ width: 42 }} /></label>
-            <label>{tStatus('長度', lang)} <input type="number" step={5} min={10} value={featDlg.params.length} onChange={(e) => setFeatParam('length', Number(e.target.value))} style={{ width: 50 }} /></label>
+            <label>{tStatus('模數m', lang)} <FeatNum k="module" v={featDlg.params.module} w={48} /></label>
+            <label title={tStatus('頭數：1頭=大減速比自鎖傾向；2-4頭=高效', lang)}>{tStatus('頭數', lang)} <FeatNum k="starts" v={featDlg.params.starts} w={42} /></label>
+            <label>{tStatus('長度', lang)} <FeatNum k="length" v={featDlg.params.length} w={50} /></label>
             <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('分度Ø', lang)} {(Number(featDlg.params.module) * 8).toFixed(0)} · {tStatus('比=頭數:蝸輪齒數', lang)}</span>
           </>)}
           {(featDlg.kind === 'othread' || featDlg.kind === 'ithread') && (() => {
@@ -6814,14 +6809,14 @@ export default function Viewport() {
             return (<>
               <label title={tStatus('螺紋標準（Fusion Thread Type）：ISO 公制 / UNC·UNF 英制。UNC/UNF 用英制尺寸+25.4/tpi 螺距，牙形仍 60° ISO 近似。', lang)}>{tStatus('標準', lang)} <select value={std} onChange={(e) => setFeatParam('standard', e.target.value)} style={{ height: 26 }}>{Object.entries(THREAD_STDS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></label>
               <ThreadSpecSelect d={+featDlg.params.d} pitch={+featDlg.params.pitch} std={std} lang={lang} onPick={(dd, pp) => { setFeatParam('d', dd); setFeatParam('pitch', pp) }} />
-              <label title={isI ? tStatus('公稱螺紋直徑（M 值）：M8=8', lang) : tStatus('圓柱面直徑（牙底 Ø）', lang)}>{tStatus(isI ? '公稱Ø' : '直徑Ø', lang)} <input type="number" step={0.5} min={isI ? 1 : 2} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 50 }} /></label>
-              <label title={tStatus('螺距（mm）', lang)}>{tStatus('螺距', lang)} <input type="number" step={0.25} min={0.3} value={featDlg.params.pitch} onChange={(e) => setFeatParam('pitch', Number(e.target.value))} style={{ width: 46 }} /></label>
+              <label title={isI ? tStatus('公稱螺紋直徑（M 值）：M8=8', lang) : tStatus('圓柱面直徑（牙底 Ø）', lang)}>{tStatus(isI ? '公稱Ø' : '直徑Ø', lang)} <FeatNum k="d" v={featDlg.params.d} w={50} /></label>
+              <label title={tStatus('螺距（mm）', lang)}>{tStatus('螺距', lang)} <FeatNum k="pitch" v={featDlg.params.pitch} w={46} /></label>
               <label title={tStatus('配合等級（Fusion Class）：外螺紋 6g/2A… 內螺紋 6H/2B…。純公差元數据，v1 不改牙幾何。', lang)}>{tStatus('等級', lang)} <select value={String(featDlg.params.cls ?? '')} onChange={(e) => setFeatParam('cls', e.target.value)} style={{ height: 26 }}><option value="">{tStatus('（預設）', lang)}</option>{classes.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={tStatus('全長（Fusion Full Length）：勾=攻/包整段（長度=下面高度/深度）；唔勾=局部螺紋（露出 長度 + 偏移 字段）', lang)}><input type="checkbox" checked={full} onChange={(e) => setFeatParam('fullLen', e.target.checked ? 1 : 0)} />{tStatus('全长', lang)}</label>
-              <label title={isI ? tStatus('攻牙深度/長度（由孔底 z + 偏移 向上）', lang) : tStatus('螺紋長度（沿圓柱面軸向）', lang)}>{tStatus(full ? (isI ? '深度' : '高度') : '長度', lang)} <input type="number" step={1} min={1} value={featDlg.params.height} onChange={(e) => setFeatParam('height', Number(e.target.value))} style={{ width: 48 }} /></label>
-              {!full && <label title={tStatus('偏移（Fusion Offset）：由面/孔起點沿軸向偏移一段再開始上牙（局部螺紋起點）', lang)}>{tStatus('偏移', lang)} <input type="number" step={1} min={0} value={featDlg.params.toff ?? 0} onChange={(e) => setFeatParam('toff', Number(e.target.value))} style={{ width: 48 }} /></label>}
-              {isI && <label title={tStatus('孔底 z（盲孔攻牙由呢度向上；0=由底面起 — 舊行為）', lang)}>{tStatus('孔底z', lang)} <input type="number" step={1} min={0} value={featDlg.params.z0 ?? 0} onChange={(e) => setFeatParam('z0', Number(e.target.value))} style={{ width: 48 }} /></label>}
-              {isI && <label title={tStatus('孔心 CAD 坐標（拾孔內壁自動填）', lang)}>{tStatus('中心', lang)} <input type="number" step={1} value={featDlg.params.x} onChange={(e) => setFeatParam('x', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={1} value={featDlg.params.y} onChange={(e) => setFeatParam('y', Number(e.target.value))} style={{ width: 44 }} /></label>}
+              <label title={isI ? tStatus('攻牙深度/長度（由孔底 z + 偏移 向上）', lang) : tStatus('螺紋長度（沿圓柱面軸向）', lang)}>{tStatus(full ? (isI ? '深度' : '高度') : '長度', lang)} <FeatNum k="height" v={featDlg.params.height} w={48} /></label>
+              {!full && <label title={tStatus('偏移（Fusion Offset）：由面/孔起點沿軸向偏移一段再開始上牙（局部螺紋起點）', lang)}>{tStatus('偏移', lang)} <FeatNum k="toff" v={featDlg.params.toff} w={48} /></label>}
+              {isI && <label title={tStatus('孔底 z（盲孔攻牙由呢度向上；0=由底面起 — 舊行為）', lang)}>{tStatus('孔底z', lang)} <FeatNum k="z0" v={featDlg.params.z0} w={48} /></label>}
+              {isI && <label title={tStatus('孔心 CAD 坐標（拾孔內壁自動填）', lang)}>{tStatus('中心', lang)} <FeatNum k="x" v={featDlg.params.x} w={44} /><FeatNum k="y" v={featDlg.params.y} w={44} /></label>}
               {!isI && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('位置', lang)} ({featDlg.params.x},{featDlg.params.y}) z{featDlg.params.z0}{tStatus('（拾面自動填）', lang)}</span>}
               <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={tStatus('建模螺紋 Modeled：勾=真螺旋牙（compound，之後唔好圓角/STEP）；唔勾=cosmetic 外觀標注（B-rep 乾淨 — Fusion 預設）', lang)}><input type="checkbox" checked={!!+(featDlg.params.modeled || 0)} onChange={(e) => setFeatParam('modeled', e.target.checked ? 1 : 0)} />{tStatus('建模螺纹', lang)}</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={tStatus('左旋牙 Left hand（Fusion）：勾=左旋（逆時針擰入）；缺省=右旋（標準）', lang)}><input type="checkbox" checked={!!+(featDlg.params.lefthand || 0)} onChange={(e) => setFeatParam('lefthand', e.target.checked ? 1 : 0)} />{tStatus('左旋牙', lang)}</label>
@@ -6829,52 +6824,52 @@ export default function Viewport() {
             </>)
           })()}
           {featDlg.kind === 'crowngear' && (<>
-            <label>{tStatus('模數m', lang)} <input type="number" step={0.5} min={0.5} value={featDlg.params.module} onChange={(e) => setFeatParam('module', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label>{tStatus('齒數z', lang)} <input type="number" step={1} min={8} value={featDlg.params.teeth} onChange={(e) => setFeatParam('teeth', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label>{tStatus('盤厚', lang)} <input type="number" step={1} min={1} value={featDlg.params.discH} onChange={(e) => setFeatParam('discH', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label>{tStatus('齒寬', lang)} <input type="number" step={1} min={2} value={featDlg.params.faceW} onChange={(e) => setFeatParam('faceW', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label>{tStatus('孔Ø', lang)} <input type="number" step={1} min={0} value={featDlg.params.bore} onChange={(e) => setFeatParam('bore', Number(e.target.value))} style={{ width: 42 }} /></label>
+            <label>{tStatus('模數m', lang)} <FeatNum k="module" v={featDlg.params.module} w={48} /></label>
+            <label>{tStatus('齒數z', lang)} <FeatNum k="teeth" v={featDlg.params.teeth} w={48} /></label>
+            <label>{tStatus('盤厚', lang)} <FeatNum k="discH" v={featDlg.params.discH} w={44} /></label>
+            <label>{tStatus('齒寬', lang)} <FeatNum k="faceW" v={featDlg.params.faceW} w={44} /></label>
+            <label>{tStatus('孔Ø', lang)} <FeatNum k="bore" v={featDlg.params.bore} w={42} /></label>
           </>)}
           {featDlg.kind === 'pulley' && (<>
-            <label>{tStatus('外徑', lang)} <input type="number" step={5} min={4} value={featDlg.params.diameter} onChange={(e) => setFeatParam('diameter', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label>{tStatus('寬度', lang)} <input type="number" step={2} min={2} value={featDlg.params.width} onChange={(e) => setFeatParam('width', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label>{tStatus('中心孔Ø', lang)} <input type="number" step={1} min={1} value={featDlg.params.bore} onChange={(e) => setFeatParam('bore', Number(e.target.value))} style={{ width: 46 }} /></label>
+            <label>{tStatus('外徑', lang)} <FeatNum k="diameter" v={featDlg.params.diameter} w={52} /></label>
+            <label>{tStatus('寬度', lang)} <FeatNum k="width" v={featDlg.params.width} w={46} /></label>
+            <label>{tStatus('中心孔Ø', lang)} <FeatNum k="bore" v={featDlg.params.bore} w={46} /></label>
           </>)}
           {featDlg.kind === 'rack' && (<>
-            <label title={tStatus('模數要同齧合嘅齒輪一致', lang)}>{tStatus('模數m', lang)} <input type="number" step={0.5} min={0.2} value={featDlg.params.module} onChange={(e) => setFeatParam('module', Number(e.target.value))} style={{ width: 50 }} /></label>
-            <label>{tStatus('長度', lang)} <input type="number" step={10} min={5} value={featDlg.params.length} onChange={(e) => setFeatParam('length', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label>{tStatus('底座高', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.baseH} onChange={(e) => setFeatParam('baseH', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label>{tStatus('厚度', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 46 }} /></label>
+            <label title={tStatus('模數要同齧合嘅齒輪一致', lang)}>{tStatus('模數m', lang)} <FeatNum k="module" v={featDlg.params.module} w={50} /></label>
+            <label>{tStatus('長度', lang)} <FeatNum k="length" v={featDlg.params.length} w={52} /></label>
+            <label>{tStatus('底座高', lang)} <FeatNum k="baseH" v={featDlg.params.baseH} w={46} /></label>
+            <label>{tStatus('厚度', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={46} /></label>
           </>)}
           {featDlg.kind === 'thread' && (<>
-            <label>Ø <input type="number" step={1} min={2} value={featDlg.params.d} onChange={(e) => setFeatParam('d', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label>{tStatus('螺距', lang)} <input type="number" step={0.5} min={0.5} value={featDlg.params.pitch} onChange={(e) => setFeatParam('pitch', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label>{tStatus('高', lang)} <input type="number" step={5} min={2} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 52 }} /></label>
+            <label>Ø <FeatNum k="d" v={featDlg.params.d} w={52} /></label>
+            <label>{tStatus('螺距', lang)} <FeatNum k="pitch" v={featDlg.params.pitch} w={48} /></label>
+            <label>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={52} /></label>
           </>)}
           {featDlg.kind === 'cylpatch' && (<>
             <label>{tStatus('類型', lang)} <select value={featDlg.params.mode} onChange={(e) => setFeatParam('mode', e.target.value)} style={{ height: 26 }}><option value="boss">{tStatus('凸台', lang)}</option><option value="pocket">{tStatus('凹槽', lang)}</option><option value="flat">{tStatus('銼平面', lang)}</option></select></label>
-            <label>{tStatus('角度位置', lang)} <input type="number" step={15} value={featDlg.params.ang} onChange={(e) => setFeatParam('ang', Number(e.target.value))} style={{ width: 50 }} />°</label>
-            {featDlg.params.mode !== 'flat' && <label>{tStatus('角寬', lang)} <input type="number" step={10} min={5} value={featDlg.params.arc} onChange={(e) => setFeatParam('arc', Number(e.target.value))} style={{ width: 46 }} />°</label>}
-            <label>{tStatus('軸向中心', lang)} <input type="number" step={5} value={featDlg.params.zc} onChange={(e) => setFeatParam('zc', Number(e.target.value))} style={{ width: 48 }} /></label>
-            <label>{tStatus('高', lang)} <input type="number" step={5} min={1} value={featDlg.params.h} onChange={(e) => setFeatParam('h', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label>{tStatus('深度', lang)} <input type="number" step={1} min={0.5} value={featDlg.params.depth} onChange={(e) => setFeatParam('depth', Number(e.target.value))} style={{ width: 44 }} /></label>
+            <label>{tStatus('角度位置', lang)} <FeatNum k="ang" v={featDlg.params.ang} w={50} />°</label>
+            {featDlg.params.mode !== 'flat' && <label>{tStatus('角寬', lang)} <FeatNum k="arc" v={featDlg.params.arc} w={46} />°</label>}
+            <label>{tStatus('軸向中心', lang)} <FeatNum k="zc" v={featDlg.params.zc} w={48} /></label>
+            <label>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={46} /></label>
+            <label>{tStatus('深度', lang)} <FeatNum k="depth" v={featDlg.params.depth} w={44} /></label>
           </>)}
           {featDlg.kind === 'sheetmetal' && (<>
             <label title={tStatus('鈑金規則（T768 Fusion Sheet Metal Rules）：按材料一鍵填 厚度/折彎R/K 因子', lang)}>{tStatus('規則', lang)} <select defaultValue="" onChange={(e) => { const r = SM_RULES[e.target.value]; if (r) { setFeatParam('thickness', r.t); setFeatParam('radius', r.r); setFeatParam('kfactor', r.k) } }} style={{ height: 26 }}><option value="">{tStatus('自定義', lang)}</option>{Object.keys(SM_RULES).map((k) => <option key={k} value={k}>{k}</option>)}</select></label>
             <label>{tStatus('截面', lang)} <select value={featDlg.params.preset} onChange={(e) => setFeatParam('preset', e.target.value)} style={{ height: 26 }}><option value="L">{profileSectionName('L', lang)}</option><option value="U">{msg('profile.name.U', lang)}</option><option value="Z">{tStatus('Z 件', lang)}</option></select></label>
-            <label>{tStatus('厚度', lang)} <input type="number" step={0.5} min={0.2} value={featDlg.params.thickness} onChange={(e) => setFeatParam('thickness', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label>{tStatus('折彎R', lang)} <input type="number" step={0.5} min={0.1} value={featDlg.params.radius} onChange={(e) => setFeatParam('radius', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label title={tStatus('K 因子：中性軸位置(0~0.5)，鋼件常用 0.38~0.44，決定展開料長', lang)}>K <input type="number" step={0.05} min={0} max={0.5} value={featDlg.params.kfactor} onChange={(e) => setFeatParam('kfactor', Number(e.target.value))} style={{ width: 44 }} /></label>
-            <label>{tStatus('寬', lang)} <input type="number" step={5} min={1} value={featDlg.params.width} onChange={(e) => setFeatParam('width', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label>{tStatus('段長A', lang)} <input type="number" step={5} min={1} value={featDlg.params.legA} onChange={(e) => setFeatParam('legA', Number(e.target.value))} style={{ width: 46 }} /></label>
-            <label>{tStatus('段長B', lang)} <input type="number" step={5} min={1} value={featDlg.params.legB} onChange={(e) => setFeatParam('legB', Number(e.target.value))} style={{ width: 46 }} /></label>
+            <label>{tStatus('厚度', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={44} /></label>
+            <label>{tStatus('折彎R', lang)} <FeatNum k="radius" v={featDlg.params.radius} w={44} /></label>
+            <label title={tStatus('K 因子：中性軸位置(0~0.5)，鋼件常用 0.38~0.44，決定展開料長', lang)}>K <FeatNum k="kfactor" v={featDlg.params.kfactor} w={44} /></label>
+            <label>{tStatus('寬', lang)} <FeatNum k="width" v={featDlg.params.width} w={46} /></label>
+            <label>{tStatus('段長A', lang)} <FeatNum k="legA" v={featDlg.params.legA} w={46} /></label>
+            <label>{tStatus('段長B', lang)} <FeatNum k="legB" v={featDlg.params.legB} w={46} /></label>
             <label title={tStatus('展開 = 激光下料用的平料(含 K 因子折彎餘量)', lang)}>{tStatus('狀態', lang)} <select value={featDlg.params.flat} onChange={(e) => setFeatParam('flat', Number(e.target.value))} style={{ height: 26 }}><option value={0}>{tStatus('折疊', lang)}</option><option value={1}>{tStatus('展開圖', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'plane' && (<>
             <label>{tStatus('基準面', lang)} <select value={featDlg.params.base} onChange={(e) => setFeatParam('base', e.target.value)} style={{ height: 26 }}><option value="XY">{tStatus('XY(上)', lang)}</option><option value="XZ">{tStatus('XZ(前)', lang)}</option><option value="YZ">{tStatus('YZ(右)', lang)}</option><option value="midXY">{tStatus('XY 中間面', lang)}</option><option value="midXZ">{tStatus('XZ 中間面', lang)}</option><option value="midYZ">{tStatus('YZ 中間面', lang)}</option></select></label>
-            {!String(featDlg.params.base).startsWith('mid') && <label>{tStatus('偏移', lang)} <input type="number" step={5} value={featDlg.params.offset} onChange={(e) => setFeatParam('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>}
+            {!String(featDlg.params.base).startsWith('mid') && <label>{tStatus('偏移', lang)} <FeatNum k="offset" v={featDlg.params.offset} w={60} unit="mm" /> mm</label>}
             {String(featDlg.params.base).startsWith('mid') && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('自動取實體中部', lang)}</span>}
-            {!String(featDlg.params.base).startsWith('mid') && <label title={tStatus('角度面（Fusion Plane at Angle）：基面繞自身局部 x/y 軸旋轉 — 0 = 普通偏移平面', lang)}>{tStatus('∠角度', lang)} <input type="number" step={5} min={-89} max={89} value={featDlg.params.angle ?? 0} onChange={(e) => setFeatParam('angle', Number(e.target.value))} style={{ width: 48 }} />°</label>}
+            {!String(featDlg.params.base).startsWith('mid') && <label title={tStatus('角度面（Fusion Plane at Angle）：基面繞自身局部 x/y 軸旋轉 — 0 = 普通偏移平面', lang)}>{tStatus('∠角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={48} />°</label>}
             {!String(featDlg.params.base).startsWith('mid') && Number(featDlg.params.angle) !== 0 && <label>{tStatus('繞', lang)} <select value={featDlg.params.aaxis ?? 'x'} onChange={(e) => setFeatParam('aaxis', e.target.value)} style={{ height: 26 }}><option value="x">{tStatus('面內 x 軸', lang)}</option><option value="y">{tStatus('面內 y 軸', lang)}</option></select></label>}
             <div style={{ display: 'flex', gap: 4, width: '100%' }}>
               <button className="cs-btn" style={{ flex: 1 }} title={tStatus('三點平面（T778）：用最後 3 個構造點定一個面', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().addPlane3Points() }}>{tStatus('三點面', lang)}</button>
@@ -6887,9 +6882,9 @@ export default function Viewport() {
             </div>
           </>)}
           {featDlg.kind === 'cpoint' && (<>
-            <label>X <input type="number" step={5} value={featDlg.params.x} onChange={(e) => setFeatParam('x', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label>Y <input type="number" step={5} value={featDlg.params.y} onChange={(e) => setFeatParam('y', Number(e.target.value))} style={{ width: 52 }} /></label>
-            <label>Z <input type="number" step={5} value={featDlg.params.z} onChange={(e) => setFeatParam('z', Number(e.target.value))} style={{ width: 52 }} /></label>
+            <label>X <FeatNum k="x" v={featDlg.params.x} w={52} /></label>
+            <label>Y <FeatNum k="y" v={featDlg.params.y} w={52} /></label>
+            <label>Z <FeatNum k="z" v={featDlg.params.z} w={52} /></label>
             <button className="cs-btn" title={tStatus('兩點中點（T778）：用最後 2 個構造點嘅中點落一個新構造點', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().addMidpointCPoint() }}>{tStatus('兩點中點', lang)}</button>
             <button className="cs-btn" title={tStatus('圓心點（S159，Fusion Point at Center）：點圓柱面（孔壁/圓軸/凸台側）→ 喺其軸上（點擊高度）落構造點', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().startDatumPick('circcenter') }}>{tStatus('圓心點', lang)}</button>
             <button className="cs-btn" title={tStatus('邊上點（S164，Fusion Point Along Path）：點一條邊 → 輸入沿邊比例 0~1 或「Nmm」距起點 → 落構造點', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); void useApp.getState().startEdgePointPick('ratio') }}>{tStatus('邊上點', lang)}</button>
@@ -6903,20 +6898,20 @@ export default function Viewport() {
           {featDlg.kind === 'cptgrid' && (<>
             <label title={tStatus('矩形陣列（行×列，居中於原點）/ 极坐標陣列（個數均布於半徑圓）', lang)}>{tStatus('模式', lang)} <select value={featDlg.params.mode} onChange={(e) => setFeatParam('mode', e.target.value)} style={{ height: 26 }}><option value="rect">{tStatus('矩形', lang)}</option><option value="polar">{tStatus('极坐標', lang)}</option></select></label>
             {featDlg.params.mode !== 'polar' && (<>
-              <label>{tStatus('行', lang)} <input type="number" step={1} min={1} value={featDlg.params.rows} onChange={(e) => setFeatParam('rows', Number(e.target.value))} style={{ width: 44 }} /></label>
-              <label>{tStatus('列', lang)} <input type="number" step={1} min={1} value={featDlg.params.cols} onChange={(e) => setFeatParam('cols', Number(e.target.value))} style={{ width: 44 }} /></label>
-              <label>{tStatus('X間距', lang)} <input type="number" step={5} value={featDlg.params.sx} onChange={(e) => setFeatParam('sx', Number(e.target.value))} style={{ width: 50 }} /></label>
-              <label>{tStatus('Y間距', lang)} <input type="number" step={5} value={featDlg.params.sy} onChange={(e) => setFeatParam('sy', Number(e.target.value))} style={{ width: 50 }} /></label>
+              <label>{tStatus('行', lang)} <FeatNum k="rows" v={featDlg.params.rows} w={44} /></label>
+              <label>{tStatus('列', lang)} <FeatNum k="cols" v={featDlg.params.cols} w={44} /></label>
+              <label>{tStatus('X間距', lang)} <FeatNum k="sx" v={featDlg.params.sx} w={50} /></label>
+              <label>{tStatus('Y間距', lang)} <FeatNum k="sy" v={featDlg.params.sy} w={50} /></label>
             </>)}
             {featDlg.params.mode === 'polar' && (<>
-              <label>{tStatus('個數', lang)} <input type="number" step={1} min={1} value={featDlg.params.count} onChange={(e) => setFeatParam('count', Number(e.target.value))} style={{ width: 48 }} /></label>
-              <label>{tStatus('半徑', lang)} <input type="number" step={5} min={0} value={featDlg.params.r} onChange={(e) => setFeatParam('r', Number(e.target.value))} style={{ width: 52 }} /></label>
+              <label>{tStatus('個數', lang)} <FeatNum k="count" v={featDlg.params.count} w={48} /></label>
+              <label>{tStatus('半徑', lang)} <FeatNum k="r" v={featDlg.params.r} w={52} /></label>
             </>)}
-            <label>Z <input type="number" step={5} value={featDlg.params.z} onChange={(e) => setFeatParam('z', Number(e.target.value))} style={{ width: 52 }} /></label>
+            <label>Z <FeatNum k="z" v={featDlg.params.z} w={52} /></label>
           </>)}
           {featDlg.kind === 'caxis' && (<>
             <label>{tStatus('方向', lang)} <select value={featDlg.params.dir} onChange={(e) => setFeatParam('dir', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
-            <label>{tStatus('經過', lang)} <input type="number" step={5} value={featDlg.params.x} onChange={(e) => setFeatParam('x', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={featDlg.params.y} onChange={(e) => setFeatParam('y', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={featDlg.params.z} onChange={(e) => setFeatParam('z', Number(e.target.value))} style={{ width: 44 }} /></label>
+            <label>{tStatus('經過', lang)} <FeatNum k="x" v={featDlg.params.x} w={44} /><FeatNum k="y" v={featDlg.params.y} w={44} /><FeatNum k="z" v={featDlg.params.z} w={44} /></label>
             {useApp.getState().cpoints.length > 0 && (
               <label title={tStatus('用已建構造點做軸經過點：選中後自動填經過點 x/y/z（構造點驅動軸原點）', lang)}>{tStatus('構造點', lang)} <select value="" onChange={(e) => { const i = Number(e.target.value); if (!Number.isInteger(i)) return; const cp = useApp.getState().cpoints[i]; if (!cp) return; setFeatParam('x', cp[0]); setFeatParam('y', cp[1]); setFeatParam('z', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{useApp.getState().cpoints.map((cp, i) => <option key={'CP' + i} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>
             )}
@@ -8525,6 +8520,48 @@ function QuiltPickPanel() {
 }
 
 // T793：Form 模式浮動面板 — 級數 + 完成/取消（formCage 活動先出現）
+/* FeatNum ── featDlg（時間軸／特徵編輯對話框）嘅數值欄
+ * ════════════════════════════════════════════════════════════════════════════
+ * ★ 唔准用 type="number" ★ 喺真 Chrome 逐鍵實測：打「1/4」欄位 value 變「014」、
+ * 「3/8」→「038」、「10/0」→「0100」、「2*3」→「023」。瀏覽器喺 JS 見到之前已經
+ * 剝走符號，剩低嘅數字係一個合法但完全唔同嘅值 —— v2.17 QA 報嘅 BUG-507／509
+ * 每一個錯值都係咁嚟。改 parser 冇用，要改 input type。
+ *
+ * 呢個組件接上已有嘅 BUG-409/417 通道：setFeatParam(k, value, raw) 會記住原文，
+ * featDlgBlockingReason 就閂得到「確定」掣，理由亦夾得到用戶原文。
+ * unit='mm' 嘅欄行 parseLen → 連 inch 分數（1/4）同算式（10+5）一齊通。 */
+function FeatNum({ k, v, w = 56, unit = '', title }: { k: string; v: unknown; w?: number; unit?: '' | 'mm' | 'deg'; title?: string }) {
+  const setFeatParam = useApp((s) => s.setFeatParam)
+  const docUnit = useApp((s) => s.unit)
+  const [txt, setTxt] = useState('')
+  const [foc, setFoc] = useState(false)
+  const num = typeof v === 'number' ? v : Number(v)
+  const parse = (raw: string): number | null =>
+    unit === 'mm' ? parseLen(raw, docUnit) : (() => {
+      const t = normalizeWide(raw).trim()
+      if (t === '') return null
+      if (/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(t)) return Number(t)
+      return evalArith(t)
+    })()
+  const shownVal = unit === 'mm' ? toLenInput(num, docUnit) : (Number.isFinite(num) ? String(Math.round(num * 1e6) / 1e6) : '')
+  const bad = txt.trim() !== '' && parse(txt) == null
+  const shown = (foc || bad) ? txt : shownVal
+  return (
+    <input
+      type="text" inputMode="decimal" value={shown} style={{ width: w, ...(bad ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
+      title={bad ? `唔係有效數值（你打咗「${txt.trim()}」）` : title} aria-label={title || k} aria-invalid={bad || undefined}
+      onFocus={() => { setFoc(true); setTxt(shownVal) }}
+      onBlur={() => { setFoc(false); if (!bad) setTxt('') }}
+      onChange={(e) => {
+        const raw = e.target.value
+        setTxt(raw)
+        const n = parse(raw)
+        setFeatParam(k, n == null ? NaN : n, raw)   // 連原文一齊傳 → 確定掣閂得到、理由夾得到原文
+      }}
+    />
+  )
+}
+
 function FormPanel() {
   const formGizmoMode = useApp(s => s.formGizmoMode)
   const formMode = useApp((s) => s.formMode)
@@ -8548,11 +8585,30 @@ function FormPanel() {
   // BUG-514：記住邊個尺寸欄而家係非法／空白。LenInput 只會喺【合法】嗰刻寫入 model，
   // 所以舊版「靜靜變 0.1mm」已經冇；呢個 state 係多做一步 —— 連「確定」都唔准撳。
   const [badDims, setBadDims] = useState<Record<string, string>>({})
+  /* BUG-517／518／524：FORM 其他原語（圓柱／球／平面／Torus／Quadball／Pipe）本來
+   * 完全冇驗證 —— QA 實測 1e9+1 變 01、-5 變 05、0 照收、999999999*999999999 照收，
+   * 而 Pipe 直徑打 -5 直接搞崩幾何內核。所以負值／0／超上限一律唔准入內核。 */
+  const [primBadReason, setPrimBadReason] = useState('')
+  const setPrimBad = (r: string) => setPrimBadReason(r)
+  /* BUG-514 第二輪：QA 實測 0／-5／-0／0.0000001 冇紅字、確定可撳，結果件變 0.1mm。
+   * 根因 —— 呢個閘【只查 parse 得唔得】，但 0 同 -5 係 parse 得到嘅合法數字，
+   * 之後落到幾何層畀 Math.max(0.1, …) 夾成 0.1。所以範圍一定要喺呢度一齊驗。
+   * BUG-524：順便補上限 —— FORM Box 本來冇上限（999999999*999999999 照收），
+   * 而 Solid Box 有 1000000 mm，兩邊唔一致本身就係 bug。 */
+  const FORM_DIM_MAX = 1000000
+  const dimReason = (txt: string): string => {
+    if (txt.trim() === '') return '未輸入'
+    const v = parseLen(txt, unit)
+    if (v == null) return `唔係有效尺寸（你打咗「${txt.trim()}」）`
+    if (!(v > 0)) return `必須大於 0（你打咗「${txt.trim()}」）`
+    if (v > FORM_DIM_MAX) return `最大 ${FORM_DIM_MAX} mm（你打咗「${txt.trim()}」）`
+    return ''
+  }
   const markDim = (k: string) => (txt: string) => setBadDims((m) => {
-    const bad = txt.trim() === '' || parseLen(txt, unit) == null
-    if (bad === !!m[k] && (!bad || m[k] === txt)) return m
+    const why = dimReason(txt)
+    if (!why === !m[k] && (!why || m[k] === why)) return m
     const n = { ...m }
-    if (bad) n[k] = txt; else delete n[k]
+    if (why) n[k] = why; else delete n[k]
     return n
   })
   if (!formMode) return null
@@ -8568,7 +8624,7 @@ function FormPanel() {
       // 呢個 repo 嘅簡體洩漏掃描器係簡易 scanner，唔識嵌套，一用就令之後整個檔嘅
       // 字串切割錯位。註釋裡面都【唔好】出現反引號，同一個原因。
       const badEntry = Object.entries(badDims)[0]
-      const badHint = badEntry ? badEntry[0] + '「' + (badEntry[1].trim() || '（空白）') + '」' : ''
+      const badHint = badEntry ? badEntry[0] + '：' + badEntry[1] : ''
       const stageHint = boxDraft.stage === 'plane' ? (zh ? '點下方 XY/XZ/YZ，或點原點/平面' : 'Select XY/XZ/YZ below, or click an origin/planar face') : boxDraft.stage === 'center' ? (zh ? '指定中心點' : 'Specify center point') : boxDraft.stage === 'size' ? (zh ? '指定矩形大小' : 'Specify size of rectangle') : boxDraft.stage === 'height' ? (zh ? '指定高度' : 'Specify height') : (zh ? '就緒' : 'Ready')
       return (
         <FormPalette title={zh ? '建立造型' : 'Create Form'}>
@@ -8602,13 +8658,13 @@ function FormPanel() {
           </label>}
           {Object.keys(badDims).length > 0 && (
             <div role="alert" data-testid="form-box-numeric-alert" style={{ color: '#b42318', fontSize: 11, marginTop: 5 }}>
-              尺寸已拒絕：{badHint} —— 請輸入正數（可用算式 10+5）
+              尺寸已拒絕：{badHint}（可用算式 10+5、全角、inch 分數 1/2）
             </div>
           )}
           <div style={{ fontSize: 11, color: '#687782', minHeight: 18, marginTop: 5 }}>{stageHint}</div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, borderTop: '1px solid #d8dee3', paddingTop: 8, marginTop: 8 }}>
             <button className="cs-btn" disabled={!boxDraft.plane || !!badHint} data-testid="form-box-ok"
-              title={badHint ? '未提交：' + badHint + ' 唔係有效尺寸' : undefined}
+              title={badHint ? '未提交：' + badHint : undefined}
               onClick={() => void useApp.getState().commitFormBoxDraft()}>{zh ? '確定' : 'OK'}</button>
             <button className="cs-btn" onClick={() => useApp.getState().cancelFormCreate()}>{zh ? '取消' : 'Cancel'}</button>
           </div>
@@ -8617,8 +8673,19 @@ function FormPanel() {
     }
     const makePrimitive = async () => {
       const s = useApp.getState()
-      const a = Math.max(1, formL || 1), b = Math.max(1, formW || 1), h = Math.max(1, formH || 1)
-      const na = Math.max(1, Math.round(formSegA || 1)), nb = Math.max(1, Math.round(formSegB || 1))
+      /* ★ 唔准靜默代入 ★ 舊版 `Math.max(1, formL || 1)` 喺 NaN／0／負數嗰刻悄悄變 1，
+       * 而 FORM Pipe 直徑 -5 更加會搞崩幾何內核（BUG-518）。呢度係第二道閘 ——
+       * 就算有人用鍵盤或者程式繞過輸入框，都唔准把一個無效尺寸送入內核。 */
+      const MAXD = 1000000
+      const okDim = (v: number) => Number.isFinite(v) && v > 0 && v <= MAXD
+      const dims: [string, number][] = [['長度／直徑', formL], ['寬度', formW], ['高度', formH]]
+      const badDim = dims.find(([, v]) => !okDim(v))
+      if (badDim) { useApp.setState({ status: `未建立：${badDim[0]} ${badDim[1]} 唔係有效尺寸（要大於 0 且唔超過 ${MAXD} mm）` }); return }
+      if (!Number.isFinite(formSegA) || !Number.isFinite(formSegB) || formSegA < 1 || formSegB < 1) {
+        useApp.setState({ status: '未建立：面數必須係 1 或以上嘅整數' }); return
+      }
+      const a = formL, b = formW, h = formH
+      const na = Math.round(formSegA), nb = Math.round(formSegB)
       if (createKind === 'box') await s.startFormBox(a, b, h, na, nb, Math.max(1, Math.round(h / 10)))
       else if (createKind === 'plane') await s.startFormPlane(a, b, na, nb)
       else if (createKind === 'cylinder') await s.startFormCylinder(a / 2, h, Math.max(4, na), Math.max(1, nb))
@@ -8677,18 +8744,20 @@ function FormPanel() {
             <textarea aria-label="FORM Pipe path points" value={formPipePath} onChange={(e) => setFormPipePath(e.target.value)} rows={3} style={{ width: '100%', boxSizing: 'border-box', marginTop: 3, resize: 'vertical', fontSize: 11 }} />
           </label>
           <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }} data-testid="form-pipe-profile-label">{zh ? '輪廓' : 'Profile'} <select aria-label="FORM Pipe profile" value="circle" disabled style={{ width: 105 }}><option value="circle">{zh ? '圓' : 'Circle'}</option></select></label>
-          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }} data-testid="form-pipe-diameter-label">{zh ? '直徑' : 'Diameter'} <input aria-label="FORM Pipe diameter" type="number" min={0.1} value={formL} onChange={(e) => setFormL(Number(e.target.value))} style={{ width: 72 }} /></label>
-          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }} data-testid="form-pipe-faces-label">{zh ? '輪廓面數' : 'Profile Faces'} <input aria-label="FORM Pipe profile faces" type="number" min={3} max={32} value={formSegA} onChange={(e) => setFormSegA(Number(e.target.value))} style={{ width: 72 }} /></label>
+          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }} data-testid="form-pipe-diameter-label">{zh ? '直徑' : 'Diameter'} <NumInput value={formL} onValue={setFormL} onInvalid={setPrimBad} label={zh ? '直徑' : 'Diameter'} unit="mm" min={0.1} max={1000000} w={72} /></label>
+          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }} data-testid="form-pipe-faces-label">{zh ? '輪廓面數' : 'Profile Faces'} <NumInput value={formSegA} onValue={setFormSegA} onInvalid={setPrimBad} label={zh ? '輪廓面數' : 'Profile Faces'} min={3} max={32} integer w={72} /></label>
           <div style={{ fontSize: 11, color: '#687782', minHeight: 18, marginTop: 5 }} data-testid="form-pipe-hint">{pipeHint}</div>
         </> : <>
-          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{primaryDim} <input type="number" min={1} value={formL} onChange={(e) => setFormL(Number(e.target.value))} style={{ width: 72 }} /></label>
-          {!['sphere', 'quadball', 'cylinder'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{createKind === 'torus' ? dimTube : dimWidth} <input type="number" min={1} value={formW} onChange={(e) => setFormW(Number(e.target.value))} style={{ width: 72 }} /></label>}
-          {['box', 'cylinder'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{dimHeight} <input type="number" min={1} value={formH} onChange={(e) => setFormH(Number(e.target.value))} style={{ width: 72 }} /></label>}
-          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{dimFaces} <span><input type="number" min={1} value={formSegA} onChange={(e) => setFormSegA(Number(e.target.value))} style={{ width: 45 }} /> × <input type="number" min={1} value={formSegB} onChange={(e) => setFormSegB(Number(e.target.value))} style={{ width: 45 }} /></span></label>
+          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{primaryDim} <NumInput value={formL} onValue={setFormL} onInvalid={setPrimBad} label={primaryDim} unit="mm" min={0.1} max={1000000} w={72} /></label>
+          {!['sphere', 'quadball', 'cylinder'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{createKind === 'torus' ? dimTube : dimWidth} <NumInput value={formW} onValue={setFormW} onInvalid={setPrimBad} label={createKind === 'torus' ? dimTube : dimWidth} unit="mm" min={0.1} max={1000000} w={72} /></label>}
+          {['box', 'cylinder'].includes(createKind) && <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{dimHeight} <NumInput value={formH} onValue={setFormH} onInvalid={setPrimBad} label={dimHeight} unit="mm" min={0.1} max={1000000} w={72} /></label>}
+          <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>{dimFaces} <span><NumInput value={formSegA} onValue={setFormSegA} onInvalid={setPrimBad} label={dimFaces} min={1} max={256} integer w={45} /> × <NumInput value={formSegB} onValue={setFormSegB} onInvalid={setPrimBad} label={dimFaces} min={1} max={256} integer w={45} /></span></label>
         </>}
         {createKind !== 'pipe' && <div style={{ fontSize: 11, color: '#687782', minHeight: 18, marginTop: 5 }} data-testid="form-create-plane-hint">{planeHint} · {formPlane}</div>}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, borderTop: '1px solid #d8dee3', paddingTop: 8, marginTop: 8 }}>
-          <button className="cs-btn" data-testid={`form-${createKind}-ok`} onClick={() => void makePrimitive()}>{okLabel}</button>
+          {primBadReason && <div role="alert" data-testid="form-prim-numeric-alert" style={{ color: '#b42318', fontSize: 11, marginBottom: 5 }}>尺寸已拒絕：{primBadReason}</div>}
+          <button className="cs-btn" data-testid={`form-${createKind}-ok`} disabled={!!primBadReason}
+            title={primBadReason || undefined} onClick={() => void makePrimitive()}>{okLabel}</button>
           <button className="cs-btn" onClick={() => useApp.getState().cancelFormCreate()}>{cancelLabel}</button>
         </div>
       </FormPalette>

@@ -1,5 +1,5 @@
 import { offsetPatternSources } from './sketch/offsetPatternSources'
-import { boltCircleCenters, boltCircleCount } from './cad/boltCircle'
+import { boltCircleCenters, boltCircleCount, checkBoltCircle } from './cad/boltCircle'
 import { resolvePatternTargets, type PatternSelectionRef } from './sketch/patternSourceSelection'
 import { captureSketchParameters, restoreSketchParameters, type SketchParameterSnapshot } from './sketch/sketchParameterHistory'
 import { refValid as dimensionReferenceValid } from './sketch/freesolve'
@@ -14875,14 +14875,32 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     if (get().holeBoltCircle) {
       // bolt circle: N evenly-spaced holes on a pitch-circle (PCD) centred on the picked point.
-      const n = boltCircleCount(get().holeBcCount)
+      const nRequested = boltCircleCount(get().holeBcCount)
       const fz = get().holeFaceZ
-      const centers: [number, number][] = boltCircleCenters(cx, cy, get().holeBcCount, get().holeBcPcd)   // BUG-515：同預覽共用
+      const all: [number, number][] = boltCircleCenters(cx, cy, get().holeBcCount, get().holeBcPcd)   // BUG-515：同預覽共用
+      /* ★ BUG-521 ★ QA 實測：PCD Ø200 喺 80×40 件上 toast 話「已鑽 6 個」但一個孔都冇；
+       * PCD Ø1 六個孔疊成一個洞。所以先篩走出件外同互相重疊嘅，再用【真數目】報。 */
+      const bm = get().bodyMesh
+      let bbox: { minX: number; maxX: number; minY: number; maxY: number } | null = null
+      if (bm && bm.vertices.length >= 3) {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+        for (let i = 0; i < bm.vertices.length; i += 3) {
+          const x = bm.vertices[i], y = bm.vertices[i + 1]
+          if (x < minX) minX = x; if (x > maxX) maxX = x
+          if (y < minY) minY = y; if (y > maxY) maxY = y
+        }
+        if (Number.isFinite(minX)) bbox = { minX, maxX, minY, maxY }
+      }
+      const chk = checkBoltCircle(all, Math.max(0.05, get().holeD / 2), bbox)
+      if (!chk.kept.length) { set({ status: `未鑽孔：${chk.warning || '全部孔都落喺件範圍外'}` }); return }
+      const n = chk.kept.length
+      const centers = chk.kept
       const kind = get().holeType
       const canPersist = !get().holeSlot && !get().holeTapModeled && (kind === 'simple' || kind === 'counterbore' || kind === 'countersink' || kind === 'tapped')
       if (canPersist) await get().addHole(cx, cy, fz, null, null, { centers, pattern: { kind: 'bolt-circle', origin: [cx, cy], count: n, pcd: get().holeBcPcd } })
       else for (const [px, py] of centers) await get().addHole(px, py, fz)
-      set({ holeMode: false, holePos: null, holeFaceZ: null, holeDir: null, status: `已鑽 ${n} 個螺栓孔 Ø${get().holeD} 均布於 PCD Ø${get().holeBcPcd}` })
+      const shortfall = n < nRequested ? `（要求 ${nRequested} 個，${chk.warning.replace('螺栓孔圈：', '')}）` : ''
+      set({ holeMode: false, holePos: null, holeFaceZ: null, holeDir: null, status: `已鑽 ${n} 個螺栓孔 Ø${get().holeD} 均布於 PCD Ø${get().holeBcPcd}${shortfall}` })
       return
     }
     const dir = get().holeDir
@@ -15631,6 +15649,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     const raw = get().formBoxDraft
     // BUG-BD-4401: allow OK after plane is known — fill default center if interactive place incomplete.
     if (!raw || !raw.plane) return
+    /* ★ BUG-514 第二道閘 ★ QA 實測 0／-5／-0 會做出 0.1×30×20 嘅件 —— 因為幾何層
+     * 有 Math.max(0.1, …) 靜靜夾走。UI 閘已經擋住，但鍵盤／程式路徑唔可以靠 UI。
+     * BUG-524：上限同 Solid Box 對齊（1000000 mm），FORM 本來完全冇上限。 */
+    const FORM_DIM_MAX = 1000000
+    const bad = ([['長度', raw.length], ['寬度', raw.width], ['高度', raw.height]] as [string, number][])
+      .find(([, v]) => !Number.isFinite(v) || v <= 0 || v > FORM_DIM_MAX)
+    if (bad) { set({ status: `未建立：${bad[0]} ${bad[1]} 唔係有效尺寸（要大於 0 且唔超過 ${FORM_DIM_MAX} mm）` }); return }
     const draft = raw.stage === 'ready' && raw.center
       ? raw
       : { ...raw, center: raw.center ?? ([0, 0] as [number, number]), stage: 'ready' as const }

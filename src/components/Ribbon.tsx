@@ -318,6 +318,10 @@ export default function Ribbon() {
   const saveProject = useApp((s) => s.saveProject)
   const openProject = useApp((s) => s.openProject)
   const recoverable = useApp((s) => s.autosaveRecovery)   // BUG-406：有救得返嘅未儲存工作先出呢個入口
+  // BUG-527：內核崩潰通知。刻意【唔】用狀態列 —— QA 實測狀態列會即刻被下一句
+  // 「已切割（布爾減）…」蓋走，於是三次內核崩潰畫面零提示，只喺 console 見到。
+  const kernelNotice = useApp((s) => s.kernelNotice)
+  const dismissKernelNotice = useApp((s) => s.dismissKernelNotice)
   const requestFit = useApp((s) => s.requestFit)
   const reset = useApp((s) => s.reset)
   const loadSample = useApp((s) => s.loadSample)
@@ -377,6 +381,20 @@ export default function Ribbon() {
   return (
     <div className="ribbon-shell">
       <div className="app-version" data-testid="app-version">WebCAD · version {APP_VERSION}</div>
+      {kernelNotice && (
+        <div role="alert" data-testid="kernel-notice"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', fontSize: 12, lineHeight: 1.4,
+            background: kernelNotice.kind === 'lost' ? '#fde8e6' : kernelNotice.kind === 'warn' ? '#fff4e5' : '#e8f4ea',
+            color: kernelNotice.kind === 'lost' ? '#8c1d18' : '#3d3222',
+            borderBottom: '1px solid ' + (kernelNotice.kind === 'lost' ? '#d7342a' : '#c9a227'),
+          }}>
+          <span style={{ flex: 1 }}>{kernelNotice.text}</span>
+          <button type="button" className="cs-btn" data-testid="kernel-notice-dismiss"
+            style={{ height: 20, padding: '0 8px', fontSize: 11 }}
+            onClick={dismissKernelNotice}>知道了</button>
+        </div>
+      )}
       {/* top app bar — Fusion: file ▾ / save / undo / redo left, doc name centered, search/help right.
           Everything that used to crowd this bar lives in the 文件▾ menu or the ribbon groups. */}
       <div className="topbar">

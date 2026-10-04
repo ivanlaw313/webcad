@@ -15,6 +15,14 @@ import type { CadAPI, Feature } from '../worker/cad.worker'
  */
 export type KernelRestartKind = 'info' | 'recovered' | 'lost'
 
+/* ★ BUG-516 ★ 「已恢復到上一個成功狀態」曾經係一句假話 —— 內核重放咗一棵【空】特徵樹，
+ * rebuild([]) 當然成功，於是我哋大聲宣布恢復成功，但用戶望住個空樹。報假嘅好消息
+ * 比完全唔出聲更差。
+ *
+ * 內核代理【唔知道】UI 以為自己有幾多特徵，所以唔應該由佢判斷。佢只負責講事實：
+ * 「我重放咗 N 個特徵」。由 store（唯一知道真相嘅一方）去對數。 */
+export type KernelRestartInfo = { replayed?: number }
+
 export const KERNEL_RESTART_MSG = '內核已重啟（上次操作令幾何內核崩潰）— 模型已恢復到上一個成功狀態，請簡化嗰步操作再試'
 
 // v1.33: 预览被提交/取消抢占时嘅 benign 错误（唔触发「内核已重启」toast，唔加 restartCount）
@@ -117,8 +125,8 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
    * 修法：notify 帶一個 kind，令 UI 分得出「順利恢復」同「真係冇咗」。
    * ⚠ 良性情況【仍然】唔 notify（唔好為咗修呢條就製造一堆雜訊 toast）。
    */
-  const restartCbs: ((msg: string, kind?: KernelRestartKind) => void)[] = []
-  const notify = (msg: string, kind: KernelRestartKind = 'info') => { for (const cb of restartCbs.slice()) { try { cb(msg, kind) } catch { /* UI 回调唔好炸代理 */ } } }
+  const restartCbs: ((msg: string, kind?: KernelRestartKind, info?: KernelRestartInfo) => void)[] = []
+  const notify = (msg: string, kind: KernelRestartKind = 'info', info?: KernelRestartInfo) => { for (const cb of restartCbs.slice()) { try { cb(msg, kind, info) } catch { /* UI 回调唔好炸代理 */ } } }
   const sc = (globalThis as { structuredClone?: <T>(v: T) => T }).structuredClone
   const deepCopy = <T,>(v: T): T => (sc ? sc(v) : JSON.parse(JSON.stringify(v)))
 
@@ -202,7 +210,10 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
       if (!snap) { notify('內核已重啟（冇可恢復嘅模型狀態）', 'lost'); return }
       try {
         await withTimeout(raw.api.rebuild(deepCopy(snap)), longT)
-        notify('內核已重啟 — 模型已恢復到上一個成功狀態', 'recovered')
+        // ★ 唔准單憑「rebuild 冇掟」就宣布恢復成功 ★ 要連【重放咗幾個特徵】一齊講，
+        // 等 store 對得返自己手頭嘅數目。snap 係空嘅時候 replayed = 0，store 就知呢次
+        // 其實乜都冇恢復到（BUG-516）。
+        notify('內核已重啟 — 模型已恢復到上一個成功狀態', 'recovered', { replayed: snap.length })
       } catch {
         // 重放本身都令内核死 → 弃快照、再开个干净内核（防无限重启循环）
         lastGoodFeatures = null
@@ -286,7 +297,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
     },
   })
 
-  function onKernelRestart(cb: (msg: string, kind?: KernelRestartKind) => void): () => void {
+  function onKernelRestart(cb: (msg: string, kind?: KernelRestartKind, info?: KernelRestartInfo) => void): () => void {
     restartCbs.push(cb)
     return () => { const i = restartCbs.indexOf(cb); if (i >= 0) restartCbs.splice(i, 1) }
   }
@@ -326,7 +337,7 @@ export const cad = (kernel ? kernel.proxy : ({} as unknown)) as Remote<CadAPI>
 if (typeof window !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }).env?.DEV) (window as { cad?: unknown }).cad = cad
 
 // UI 订阅内核重启状态（integration：store 可以 onKernelRestart((msg) => set({ status: msg }))）
-export function onKernelRestart(cb: (msg: string, kind?: KernelRestartKind) => void): () => void {
+export function onKernelRestart(cb: (msg: string, kind?: KernelRestartKind, info?: KernelRestartInfo) => void): () => void {
   return kernel ? kernel.onKernelRestart(cb) : () => {}
 }
 

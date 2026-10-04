@@ -2609,6 +2609,9 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   enterFormMode: () => void
   setFormCreateKind: (kind: AppState['formCreateKind']) => void
   formBoxDraft: FormBoxDraft | null
+  /** BUG-527：內核崩潰通知。刻意獨立於 status —— status 會被下一個成功操作蓋走。 */
+  kernelNotice: { text: string; kind: 'warn' | 'ok' | 'lost' } | null
+  dismissKernelNotice: () => void
   chooseFormBoxPlane: (plane: FormBoxPlane, offset?: number) => void
   placeFormBoxOnOriginPlane: (plane: FormBoxPlane) => void
   setFormBoxPointer: (p: [number, number]) => void
@@ -15580,6 +15583,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     status: kind === 'box' ? 'FORM Box：選擇一個平面或平面面。' : kind ? `FORM ${kind}：先選擇基準平面，再設尺寸與細分；確定後進入 Edit Form。` : 'FORM：已取消當前創建命令。',
   }) },
   formBoxDraft: null,
+  kernelNotice: null,
+  dismissKernelNotice: () => set({ kernelNotice: null }),
   chooseFormBoxPlane: (plane, offset = 0) => set((s) => !s.formBoxDraft ? {} : ({
     formBoxDraft: { ...s.formBoxDraft, plane, planeOffset: offset, stage: 'center', center: null, cursor: [0, 0] },
     status: 'FORM Box：指定中心點。',
@@ -20136,7 +20141,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     })()
   },
   // T797：共用还原 — 文件 open 同分享链接都行呢条（单一真相，避免两份 schema 漂移）。
-  applyProjectData: async (data, statusVerb = '已打开项目') => {
+  applyProjectData: async (data, statusVerb = '已打開項目') => {   // BUG-302 類：預設文案原本係簡體
     // GM-W8 β1-#39：先验证係咪 webcad 项目 — 唔係就拒,唔郁现有模型（以前任何 JSON 都当成功并清空）。
     const referenceErrors = [...documentReferenceErrors(data), ...documentPatternErrors(data), ...sketchDraftErrors(data)]
     if (referenceErrors.length) { set({status:`打開失敗：尺寸引用失效 — ${referenceErrors.join('；')}；現有模型未動`}); return }
@@ -20144,7 +20149,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // GM-W8 β1-#41：现有模型有内容 → 先确认再覆盖（撤销栈会清,救唔返）。分享链接开页时模型仲系空 → 呢度自然唔弹（cur 为空）。
     const cur = get()
     if (cur.features.length || cur.components.length || cur.formCage || cur.sketchProfiles.length || cur.sketchShape || cur.polyPts.length || cur.sketchStart || Object.keys(cur.sketchSources).length || cur.params.length || cur.canvases.length) {
-      const ok = await get().appConfirm('目前文件有內容，包括未完成草圖。開啟會取代目前文件，請先取消並儲存需要保留嘅改動。繼續開啟？', '打开新文件')
+      const ok = await get().appConfirm('目前文件有內容，包括未完成草圖。開啟會取代目前文件，請先取消並儲存需要保留嘅改動。繼續開啟？', '打開新文件')
       if (!ok) { set({ status: '已取消打開（現有模型未動）' }); return }
     }
     const raw: Feature[] = Array.isArray(data) ? (data as Feature[]) : ((data.features as Feature[]) ?? [])
@@ -20204,7 +20209,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     // document immediately after File > Open or following a shared link.
     get().requestFit()
     const s = get()
-    set({ status: `${statusVerb}（${s.components.length} 組件 · ${s.joints.length} 關節 · ${s.features.length} 活動特徵 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 組件特徵）` })
+    const counts = `${s.components.length} 組件 · ${s.joints.length} 關節 · ${s.features.length} 活動特徵 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 組件特徵`
+    /* ★ BUG-506 / BUG-425 ★ 載入大檔（QA：222 個特徵）會令內核崩潰，而舊版無論結果點
+     * 都照報「已打開項目（0 組件 · 0 活動特徵）」—— 講「已打開」但乜都冇，用戶以為
+     * 係個空檔，唔知其實係崩潰。檔案講明有幾多特徵，就一定要對得返。 */
+    if (feats.length > 0 && s.features.length < feats.length) {
+      const head = `⚠ 打開未完成：檔案有 ${feats.length} 個特徵，只重建到 ${s.features.length} 個（幾何內核中途失敗）`
+      set({ status: `${head} — ${counts}`, kernelNotice: { text: head + '　→ 唔好喺呢個狀態上面繼續改，會覆蓋原檔', kind: 'lost' } })
+      return
+    }
+    set({ status: `${statusVerb}（${counts}）` })
   },
   // T797：分享链接 — buildProjectPayload → gzip → base64url → location.hash + 复制剪贴板。零后端零隐私（链接本身就系全部数据）。
   shareLink: async () => {
@@ -22832,16 +22846,56 @@ export const useApp = create<AppState>((rawSet, get) => {
  *
  * ⚠ 刻意唔自動還原 —— 自動覆蓋用戶畫面會製造第二種資料遺失（而且 BUG-276 會翻兜）。
  *   提供選擇，唔代用戶做決定。 */
-onKernelRestart((msg, kind) => {
+/* 內核崩潰／恢復通知 ── BUG-506 / BUG-516 / BUG-527
+ *
+ * 三件事喺呢度一次解決：
+ *
+ * 1. ★ BUG-527：狀態列係錯嘅通道 ★
+ *    QA 實測：貫通切割之後 console 出三次「內核已重啟」，但畫面零提示 —— 因為
+ *    restart() 其實有寫狀態列，寫完即刻被下一句「已切割（布爾減）…」蓋走。
+ *    崩潰通知而家另走 kernelNotice，佢【只可以由用戶自己關】，冇可能被蓋走。
+ *
+ * 2. ★ BUG-516：「已恢復到上一個成功狀態」係假話 ★
+ *    內核重放咗一棵空特徵樹（rebuild([]) 當然成功）→ 舊版照報恢復成功，但用戶望住
+ *    個空樹。所以崩潰嗰刻（kind='info'）記低 UI 當時有幾多特徵，到 'recovered'
+ *    嗰刻同內核真正重放到嘅數目對數：少咗就【當資料遺失處理】，唔准講好消息。
+ *
+ * 3. BUG-506：真正救唔返嘅時候要彈恢復清單（已有）。 */
+let crashFeatureCount = 0
+let crashComponentCount = 0
+
+onKernelRestart((msg, kind, info) => {
   const s = useApp.getState()
-  if (kind !== 'lost') { useApp.setState({ status: msg, busy: false }); return }
-  const hadWork = s.features.length > 0 || s.components.length > 0
+
+  if (kind === 'info') {
+    // 崩潰剛發現，重放未開始 —— 呢一刻 UI 仲係崩潰前嘅樣，係唯一攞得到真實數目嘅時機。
+    crashFeatureCount = s.features.length
+    crashComponentCount = s.components.length
+    useApp.setState({ status: msg, busy: false, kernelNotice: { text: msg, kind: 'warn' } })
+    return
+  }
+
+  // 內核話重放成功，但重放到嘅特徵【少過】崩潰前 UI 手頭嗰啲 → 其實係遺失。
+  const shortfall = kind === 'recovered' && info?.replayed != null && info.replayed < crashFeatureCount
+  const lost = kind === 'lost' || shortfall
+
+  if (!lost) {
+    useApp.setState({ status: msg, busy: false, kernelNotice: { text: msg, kind: 'ok' } })
+    return
+  }
+
+  const hadWork = crashFeatureCount > 0 || crashComponentCount > 0 || s.features.length > 0 || s.components.length > 0
   const rec = hadWork ? listRecoverableAutosaves({ includeSelf: true }) : []
+  const head = shortfall
+    ? `⚠ 內核重啟後只恢復到 ${info?.replayed ?? 0} 個特徵，崩潰前有 ${crashFeatureCount} 個 — 有部分模型冇咗`
+    : msg
+  const tail = hadWork
+    ? `（崩潰前有 ${crashFeatureCount} 個特徵${rec.length ? `；搵到 ${rec.length} 份自動存檔可以恢復` : '；冇自動存檔可恢復'}）`
+    : ''
   useApp.setState({
-    status: hadWork
-      ? `${msg}（當時有 ${s.features.length} 個特徵${rec.length ? `；搵到 ${rec.length} 份自動存檔可以恢復` : '；冇自動存檔可恢復'}）`
-      : msg,
+    status: head + tail,
     busy: false,
+    kernelNotice: { text: head + (rec.length ? '　→ 已開恢復清單' : '　→ 冇自動存檔可恢復'), kind: 'lost' },
     ...(rec.length ? { autosaveRecovery: rec } : {}),
   })
 })

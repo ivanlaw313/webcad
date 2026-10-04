@@ -138,3 +138,61 @@ test('toast 文案要繁體（BUG-511 同類：QA 報 console 紅字係簡體）
     assert.ok(!/[内几复启溃统阵圆]/.test(m), `notify 文案夾咗簡體字：${m}`)
   }
 })
+
+/* ── BUG-516 / BUG-527（v2.17 QA 回報）──────────────────────────────────── */
+
+test('★ BUG-516：rebuild([]) 成功唔等於恢復成功 —— 要報返重放咗幾個特徵 ★', async () => {
+  const { createKernelProxy } = await load()
+  const { spawnRaw } = harness()
+  const k = createKernelProxy(spawnRaw, { defaultTimeout: 40, longTimeout: 40 })
+  const ev = []
+  k.onKernelRestart((msg, kind, info) => ev.push({ kind, info }))
+  await k.proxy.rebuild([])                      // 空文件 = 合法好狀態 → 快照 = []
+  await assert.rejects(() => k.proxy.meshFit('x'), /內核已重啟|内核已重启/)
+  await new Promise((r) => setTimeout(r, 80))
+  const rec = ev.find((e) => e.kind === 'recovered')
+  assert.ok(rec, '要有 recovered 事件，實得 ' + JSON.stringify(ev))
+  assert.equal(rec.info?.replayed, 0,
+    '★ 一定要講明重放咗 0 個 —— 否則 store 冇可能知道「已恢復」其實係假話 ★')
+})
+
+test('重放到真實特徵嘅時候，replayed 要等於快照大小', async () => {
+  const { createKernelProxy } = await load()
+  const { spawnRaw } = harness()
+  const k = createKernelProxy(spawnRaw, { defaultTimeout: 40, longTimeout: 40 })
+  const ev = []
+  k.onKernelRestart((msg, kind, info) => ev.push({ kind, info }))
+  await k.proxy.rebuild([{ id: 'a', type: 'prim' }, { id: 'b', type: 'prim' }])
+  await assert.rejects(() => k.proxy.meshFit('x'), /內核已重啟|内核已重启/)
+  await new Promise((r) => setTimeout(r, 80))
+  assert.equal(ev.find((e) => e.kind === 'recovered')?.info?.replayed, 2)
+})
+
+test('崩潰一發現就要出聲（info），唔准等重放完 —— 重放可能要幾十秒', async () => {
+  const { createKernelProxy } = await load()
+  const { spawnRaw } = harness()
+  const k = createKernelProxy(spawnRaw, { defaultTimeout: 40, longTimeout: 40 })
+  const order = []
+  k.onKernelRestart((msg, kind) => order.push(kind))
+  await k.proxy.rebuild([{ id: 'a', type: 'prim' }])
+  await assert.rejects(() => k.proxy.meshFit('x'), /內核已重啟|内核已重启/)
+  assert.equal(order[0], 'info', '第一個事件要係 info，實得 ' + JSON.stringify(order))
+})
+
+/* ── BUG-527：通知通道（source-scan，固定字串）─────────────────────────── */
+
+test('★ BUG-527：崩潰通知唔准只寫狀態列（下一句成功操作會蓋走）★', () => {
+  const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
+  assert.ok(store.includes('kernelNotice'),
+    '★ 冇獨立通知通道 —— QA 實測三次內核崩潰畫面零提示，因為狀態列即刻被「已切割（布爾減）」蓋走 ★')
+  assert.ok(store.includes('dismissKernelNotice'), '通知要用戶自己關，唔可以自動消失')
+  const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
+  assert.ok(ribbon.includes('data-testid="kernel-notice"'), '通知要真係畫出嚟')
+})
+
+test('★ BUG-506/425：載入大檔只重建到一部分，唔准報「已打開項目」★', () => {
+  const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
+  assert.ok(store.includes('打開未完成'),
+    '★ 檔案有 222 個特徵但只重建到 0 個，舊版照報「已打開項目（0 活動特徵）」★')
+  assert.equal(store.includes("statusVerb = '已打开项目'"), false, '預設文案要繁體')
+})

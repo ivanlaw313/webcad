@@ -2612,6 +2612,19 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   /** BUG-527：內核崩潰通知。刻意獨立於 status —— status 會被下一個成功操作蓋走。 */
   kernelNotice: { text: string; kind: 'warn' | 'ok' | 'lost' } | null
   dismissKernelNotice: () => void
+  /* ★ BUG-529/533/537/538/541/542 ★ 「而家有邊個數值欄係非法」嘅單一真相。
+   *
+   * v2.18 QA：確定掣灰咗，但喺欄入面撳 Enter 照樣建件 —— 而且用【上一個合法值】。
+   * 根因有兩層：
+   *   1. 圓角／孔／拔模／拉伸嘅 okDisabled 只查「有冇揀到邊」同 model 值，
+   *      從來冇查過欄入面而家係咪非法；
+   *   2. 設計上非法就唔寫入 model（啱嘅），所以 model 仲係上一個合法值 —— 提交
+   *      就靜靜用咗嗰個值。用戶見到自己打嘅字，件卻係另一個尺寸。
+   *
+   * 修法唔可以再逐個對話框接（上一輪就係咁漏咗一半）：由輸入欄【自己登記】，
+   * 掣、Enter、同 commit 三邊查同一個 map。漏接喺結構上唔可能發生。 */
+  numericInvalid: Record<string, string>
+  reportNumericInvalid: (id: string, reason: string | null) => void
   chooseFormBoxPlane: (plane: FormBoxPlane, offset?: number) => void
   placeFormBoxOnOriginPlane: (plane: FormBoxPlane) => void
   setFormBoxPointer: (p: [number, number]) => void
@@ -15603,6 +15616,14 @@ export const useApp = create<AppState>((rawSet, get) => {
   formBoxDraft: null,
   kernelNotice: null,
   dismissKernelNotice: () => set({ kernelNotice: null }),
+  numericInvalid: {},
+  reportNumericInvalid: (id, reason) => set((st) => {
+    const cur = st.numericInvalid[id]
+    if (reason) { if (cur === reason) return {}; return { numericInvalid: { ...st.numericInvalid, [id]: reason } } }
+    if (cur === undefined) return {}
+    const n = { ...st.numericInvalid }; delete n[id]
+    return { numericInvalid: n }
+  }),
   chooseFormBoxPlane: (plane, offset = 0) => set((s) => !s.formBoxDraft ? {} : ({
     formBoxDraft: { ...s.formBoxDraft, plane, planeOffset: offset, stage: 'center', center: null, cursor: [0, 0] },
     status: 'FORM Box：指定中心點。',
@@ -15652,6 +15673,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     /* ★ BUG-514 第二道閘 ★ QA 實測 0／-5／-0 會做出 0.1×30×20 嘅件 —— 因為幾何層
      * 有 Math.max(0.1, …) 靜靜夾走。UI 閘已經擋住，但鍵盤／程式路徑唔可以靠 UI。
      * BUG-524：上限同 Solid Box 對齊（1000000 mm），FORM 本來完全冇上限。 */
+    const typing = pendingNumericIssue()
+    if (typing) { set({ status: `未建立：有欄位仲係非法 —— ${typing}` }); return }
     const FORM_DIM_MAX = 1000000
     const bad = ([['長度', raw.length], ['寬度', raw.width], ['高度', raw.height]] as [string, number][])
       .find(([, v]) => !Number.isFinite(v) || v <= 0 || v > FORM_DIM_MAX)
@@ -16852,6 +16875,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     return { revAxisPtPick: false, featDlg: { ...s.featDlg, params: { ...s.featDlg.params, ox: pt[0], oy: pt[1], oz: pt[2] } }, status: `已拾旋轉軸點 (${r1(pt[0])}, ${r1(pt[1])}, ${r1(pt[2])}) — 撳 X/Y/Z 設方向，或改「方向」分量` }
   }),
   commitFeatDlg: async () => {
+    {
+      const typing = pendingNumericIssue()
+      if (typing) { set({ status: `未提交：有欄位仲係非法 —— ${typing}` }); return }
+    }
     const d = get().featDlg
     if (!d) return
     /* ★ BUG-417 修 ★ —— 原本「確定」掣喺有錯訊息嘅情況下仍然撳得，撳咗才驗證，
@@ -20240,7 +20267,15 @@ export const useApp = create<AppState>((rawSet, get) => {
      * 係個空檔，唔知其實係崩潰。檔案講明有幾多特徵，就一定要對得返。 */
     if (feats.length > 0 && s.features.length < feats.length) {
       const head = `⚠ 打開未完成：檔案有 ${feats.length} 個特徵，只重建到 ${s.features.length} 個（幾何內核中途失敗）`
-      set({ status: `${head} — ${counts}`, kernelNotice: { text: head + '　→ 唔好喺呢個狀態上面繼續改，會覆蓋原檔', kind: 'lost' } })
+      /* BUG-536：QA 實測呢條路徑冇自動彈恢復清單 —— 因為內核重啟嘅對數係喺崩潰
+       * 嗰刻記低 UI 特徵數，而載入路徑崩潰嗰陣 UI 仲係空（特徵最後先 apply）。
+       * 所以呢度要自己開清單。 */
+      const rec = listRecoverableAutosaves({ includeSelf: true })
+      set({
+        status: `${head} — ${counts}`,
+        kernelNotice: { text: head + (rec.length ? '　→ 已開恢復清單' : '　→ 唔好喺呢個狀態上面繼續改，會覆蓋原檔'), kind: 'lost' },
+        ...(rec.length ? { autosaveRecovery: rec } : {}),
+      })
       return
     }
     set({ status: `${statusVerb}（${counts}）` })
@@ -20938,6 +20973,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     // caller right after reset() (e.g. starting a new sketch) would be clobbered when this set
     // ran after the await below.
     cancelSkDimEdit()   // UI02: drop any live dimension ghost before wiping the document
+    set({ kernelNotice: null })   // BUG-535：QA 實測載入崩潰之後撳「新建」，紅色「打開未完成」橫額仲留住 —— 狀態唔同步
+
     set({inspectMode:false,inspectInfo:null,propsDialog:null,propsDialogData:null,hoverFace:null,
       editPreviewMesh:null,roundPreviewMesh:null,shellPreviewMesh:null,roundPreviewBusy:false,shellPreviewBusy:false,roundPreviewFail:false,shellPreviewFail:false,
       edgeRoundPicks:[],edgeRoundPickLines:[],edgeRoundRadii:[],edgeRoundGroupIds:[],
@@ -22888,6 +22925,20 @@ export const useApp = create<AppState>((rawSet, get) => {
  * 3. BUG-506：真正救唔返嘅時候要彈恢復清單（已有）。 */
 let crashFeatureCount = 0
 let crashComponentCount = 0
+
+/* ★ BUG-529/533/537/538/541/542 ★ commit 側嘅守衛。
+ *
+ * 實測重現：FORM Box 打 1e9+1 → 確定掣【真係】灰咗、紅字【真係】出咗，但喺欄入面
+ * 撳 Enter 照樣建件 —— 因為 App.tsx 有個全域 Enter 捷徑直接 call commitFormBoxDraft()，
+ * 完全繞過對話框個閘。
+ *
+ * 教訓：正確性唔可以淨係放喺 UI 閘。只要有第二條入口（鍵盤捷徑、程式、AI 助手），
+ * UI 閘就形同虛設。所以每個 commit 自己查 —— 呢個先係最後一道、亦唔繞得過嘅閘。 */
+function pendingNumericIssue(): string | null {
+  const m = useApp.getState().numericInvalid
+  const first = Object.values(m)[0]
+  return first ?? null
+}
 
 onKernelRestart((msg, kind, info) => {
   const s = useApp.getState()

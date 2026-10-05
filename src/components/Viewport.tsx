@@ -8,7 +8,7 @@ import { FormTransformFields } from './FormTransformFields'
 import { FormPalette } from './FormPalette'
 import { activeModelCommand } from '../cad/commandAvailability'
 import { ExpressionInput } from './ExpressionInput'
-import { useMemo, useState, useRef, useEffect, Fragment, lazy, Suspense, type ReactNode, type CSSProperties } from 'react'
+import { useMemo, useState, useRef, useEffect, useId, Fragment, lazy, Suspense, type ReactNode, type CSSProperties } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { PMREMGenerator } from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'   // T783：HDRI 渲染（three 内置，离线可用，MIT）
@@ -3305,7 +3305,7 @@ function PoleNet() {
 
 // T794：单位感知长度输入框 — 当前单位显示（inch 模式可打分数 "1/4"/"1 1/2"、后缀 mm/in/"），内部存 mm。
 // 文本框（非 number — 要容分数斜线）；失焦重格式化对齐显示。解析唔到就保持旧值（唔写）。
-function LenInput({ mm, onMm, onText, unit, w = 56, title }: { mm: number; onMm: (v: number) => void; /** BD16-02：每次改都報【原文】（連 parse 失敗都報）—— onMm 喺 parse 失敗嗰陣根本唔會 call，所以父層單靠 onMm 永遠唔知道欄位而家係非法／空白。 */ onText?: (raw: string) => void; unit: LenUnit; w?: number; min?: number; title?: string }) {
+function LenInput({ mm, onMm, onText, unit, w = 56, max, title }: { mm: number; onMm: (v: number) => void; /** BD16-02：每次改都報【原文】（連 parse 失敗都報）—— onMm 喺 parse 失敗嗰陣根本唔會 call，所以父層單靠 onMm 永遠唔知道欄位而家係非法／空白。 */ onText?: (raw: string) => void; unit: LenUnit; w?: number; min?: number; max?: number; title?: string }) {
   const [txt, setTxt] = useState(() => toLenInput(mm, unit))
   const [foc, setFoc] = useState(false)
   /* ★ BUG-409（P1，合併 9 條）嘅【單一最大源頭】★
@@ -3323,8 +3323,22 @@ function LenInput({ mm, onMm, onText, unit, w = 56, title }: { mm: number; onMm:
    * 修法：parse 失敗要【留住用戶打嘅字】+ 畫紅框 + 講真原因（唔好 snap 走，
    * 否則用戶連自己打錯咩都睇唔到）。只有欄位空咗或者 parse 得到才同步 model。
    * ⚠ 刻意唔夾值、唔代入預設 —— 嗰個正係 BUG-409 要根治嘅行為。 */
-  const bad = txt.trim() !== '' && parseLen(txt, unit) == null
+  /* BUG-540/541：之前完全冇上限 —— QA 打 1e9+1 建出 1000000001 mm 嘅拉伸，視圖變空白；
+   * 圓角／孔 Ø／孔深打 1e9+1 靜靜變 1。超上限要當非法（留原文＋紅框＋閂確定），
+   * ★ 唔准靜默夾 ★ 嗰個正正係 BUG-409 要根治嘅行為。 */
+  const parsed = txt.trim() === '' ? null : parseLen(txt, unit)
+  const overMax = max != null && parsed != null && parsed > max
+  const bad = txt.trim() !== '' && (parsed == null || overMax)
   const blank = txt.trim() === ''
+  /* ★ BUG-529/533/537/538/541/542 ★ 自己向 store 登記「我而家非法」。
+   * 唔可以再靠每個對話框記得查 —— 上一輪就係咁漏咗一半。欄自己講，
+   * 掣／Enter／commit 三邊查同一個 map。unmount 自動除名。 */
+  const gateId = useId()
+  const reportNumericInvalid = useApp((s) => s.reportNumericInvalid)
+  useEffect(() => {
+    reportNumericInvalid(gateId, bad ? `非法輸入「${txt.trim()}」` : null)
+    return () => reportNumericInvalid(gateId, null)
+  }, [gateId, bad, txt, reportNumericInvalid])
   /* ★ BUG-501 修（P1：畫面數字 ≠ 實際結果）★
    *
    * QA 實測：孔對話框撳預設「M6 過孔 6.6」，直徑欄仍然顯示 16，但真係做出 Ø6.6。
@@ -3343,7 +3357,9 @@ function LenInput({ mm, onMm, onText, unit, w = 56, title }: { mm: number; onMm:
    *       冇 effect、冇同步窗口，所以欄位根本冇可能同 model 唔一致。
    *       只有聚焦中／打錯緊／清空咗才顯示用戶自己嗰串字（BUG-409 要嘅行為）。 */
   const shown = (foc || bad || blank) ? txt : toLenInput(mm, unit)
-  const reason = bad
+  const reason = overMax
+    ? `超出上限 ${max} mm（你打咗「${txt.trim()}」）`
+    : bad
     ? `唔係一個有效長度（你打咗「${txt.trim()}」）${unit === 'inch' ? '；inch 模式可打分數，例如 1/4' : '；例如 80 或 12.5'}`
     : blank ? '未輸入數值' : ''
   return (
@@ -3356,7 +3372,7 @@ function LenInput({ mm, onMm, onText, unit, w = 56, title }: { mm: number; onMm:
        * 而家 blank 同 bad 一樣唔 snap。 */
       onBlur={() => { setFoc(false); if (!bad && !blank) setTxt(toLenInput(mm, unit)) }}
       // BUG-SO18F-001: notify parent even when below min (Ø-1) so preview/confirm can reject+clear instead of keeping a stale legal value.
-      onChange={(e) => { setTxt(e.target.value); const v = parseLen(e.target.value, unit); if (v != null) onMm(v); onText?.(e.target.value) }}
+      onChange={(e) => { setTxt(e.target.value); const v = parseLen(e.target.value, unit); if (v != null && !(max != null && v > max)) onMm(v); onText?.(e.target.value) }}
       style={{ width: w, ...(bad || blank ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
     />
   )
@@ -3742,6 +3758,10 @@ export default function Viewport() {
   const editPreviewMesh = useApp(s => s.editPreviewMesh)
   const setFeatParam = useApp((s) => s.setFeatParam)
   const commitFeatDlg = useApp((s) => s.commitFeatDlg)
+  /* ★ BUG-529/533/537/538/541/542 ★ 單一真相：任何數值欄而家非法就唔准提交。
+   * 由欄自己登記（見 LenInput／FeatNum／NumInput），所以新加對話框唔會漏接。 */
+  const numericInvalid = useApp((s) => s.numericInvalid)
+  const numBad = Object.values(numericInvalid)[0] ?? ''
   const cancelFeatDlg = useApp((s) => s.cancelFeatDlg)
   const cpSelFeat = useApp((s) => s.selectedFeature)   // T757：環形阵列「所选特征」对象提示
   const facePatternPicks = useApp((s) => s.facePatternPicks)
@@ -4882,7 +4902,7 @@ export default function Viewport() {
           title={pushPullPicks.length ? tStatus('偏移面', lang) : tStatus('按拉', lang)}
           width={244}
           okLabel={tStatus('確定', lang)}
-          okDisabled={!pushPullPicks.length || Math.abs(pushPullDist) < 1e-9}
+          okDisabled={!!numBad || (!pushPullPicks.length || Math.abs(pushPullDist) < 1e-9)}
           okTip={tStatus('應用（Enter）', lang)}
           onOk={() => void useApp.getState().commitPushPull()}
           onCancel={() => useApp.getState().togglePushPull()}
@@ -4917,7 +4937,7 @@ export default function Viewport() {
           title={edgeRoundPick === 'chamfer' ? '倒角' : '圓角'}
           width={300}
           okLabel={edgeRoundPick === 'chamfer' ? 'OK' : `確定（${edgeRoundPicks.length}）`}
-          okDisabled={!edgeRoundPicks.length || roundPreviewFail || (edgeRoundPick === 'fillet' && filletType === 'rule' && filletRuleMode === 'between' && !(filletRuleFaceSets.includes(1) && filletRuleFaceSets.includes(2))) || (edgeRoundPick === 'fillet' && filletType === 'full' && !([1, 2, 3] as const).every((slot) => filletFullFaceSets.includes(slot))) || (edgeRoundPick === 'fillet' && filletType !== 'full' && (filletMode === 'chord' ? !(filletChord > 0) : filletMode === 'asymmetric' ? !(filletR2 > 0) || edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)) : edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)))) || (edgeRoundPick === 'chamfer' && (!(edgeRoundSize > 0) || (chamferMode === 'two' && !(chamferSize2 > 0)) || (chamferMode === 'angle' && (!chamferRefFace || !(chamferAngle > 0 && chamferAngle < 90)))))}
+          okDisabled={!!numBad || (!edgeRoundPicks.length || roundPreviewFail || (edgeRoundPick === 'fillet' && filletType === 'rule' && filletRuleMode === 'between' && !(filletRuleFaceSets.includes(1) && filletRuleFaceSets.includes(2))) || (edgeRoundPick === 'fillet' && filletType === 'full' && !([1, 2, 3] as const).every((slot) => filletFullFaceSets.includes(slot))) || (edgeRoundPick === 'fillet' && filletType !== 'full' && (filletMode === 'chord' ? !(filletChord > 0) : filletMode === 'asymmetric' ? !(filletR2 > 0) || edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)) : edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)))) || (edgeRoundPick === 'chamfer' && (!(edgeRoundSize > 0) || (chamferMode === 'two' && !(chamferSize2 > 0)) || (chamferMode === 'angle' && (!chamferRefFace || !(chamferAngle > 0 && chamferAngle < 90))))))}
           okTip="應用（Enter）"
           onOk={() => void commitEdgeRound()}
           onCancel={() => cancelEdgeRound()}
@@ -4949,7 +4969,7 @@ export default function Viewport() {
             {/* Fusion Chamfer palette order: parameter row → Type → selection → Tangent Chain → Flip → Corner Type. */}
             <label>
               <span style={{ color: '#6b7680' }}>{chamferMode === 'two' ? 'Distance 1' : 'Distance'}</span>
-              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={66} min={0} title="倒角距離（inch 模式可打分數 1/16；亦收算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
+              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={66} min={0} max={1000000} title="倒角距離（inch 模式可打分數 1/16；亦收算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
             {chamferMode === 'two' && <label>
               <span style={{ color: '#6b7680' }}>Distance 2</span>
@@ -5012,13 +5032,13 @@ export default function Viewport() {
           ) : edgeRoundPick === 'fillet' && filletType === 'rule' ? (
             <label>
               <span style={{ color: '#6b7680' }}>半徑</span>
-              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={66} min={0.5} title="圓角半徑（inch 模式可打分數 1/16；亦收算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
+              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={66} min={0.5} max={1000000} title="圓角半徑（inch 模式可打分數 1/16；亦收算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           ) : null}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode === 'radius' && filletR2 > 0 && (
             <label title="變半徑圓角：末端半徑 ≠ 起始半徑 → 沿每條稜線性漸變（0=等半徑）">
               <span style={{ color: '#6b7680' }}>末端半徑 (變徑)</span>
-              <span><LenInput mm={filletR2} onMm={setFilletR2} unit={unit} w={66} min={0} title="末端半徑（變徑）" /> {unit === 'inch' ? 'in' : unit}</span>
+              <span><LenInput mm={filletR2} onMm={setFilletR2} unit={unit} w={66} min={0} max={1000000} title="末端半徑（變徑）" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           )}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode === 'asymmetric' && <>
@@ -5058,7 +5078,7 @@ export default function Viewport() {
           title={tStatus('橋接面', lang)}
           width={320}
           okLabel={`確定（${surfBridgePicks.length}/2）`}
-          okDisabled={surfBridgePicks.length !== 2}
+          okDisabled={!!numBad || (surfBridgePicks.length !== 2)}
           okTip={tStatus('橋接（Enter）', lang)}
           onOk={() => void useApp.getState().commitSurfBridge()}
           onCancel={() => useApp.getState().cancelSurfBridge()}
@@ -5067,7 +5087,7 @@ export default function Viewport() {
           <SelectionChip label={tStatus('棱', lang)} count={surfBridgePicks.length} hint={tStatus('① 點選 2 條現有棱（一邊一條，青點標記）→ 光滑過渡面', lang)} onClear={() => useApp.getState().clearSurfBridgePicks()} />
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, marginTop: 6 }}>
             <span style={{ color: '#6b7680' }}>{tStatus('加厚', lang)}</span>
-            <span><input type="number" min={0} step={0.5} value={surfBridgeThick} onChange={(e) => useApp.getState().setSurfBridgeThick(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+            <span><LenInput mm={surfBridgeThick} onMm={(v) => useApp.getState().setSurfBridgeThick(v)} unit={unit} w={66} min={0} title="橋接厚度" /> {unit === 'inch' ? 'in' : unit}</span>
           </label>
           <div style={{ fontSize: 11, color: '#8a97a2', marginTop: 4 }}>{tStatus('對稱 C1 光滑過渡（兩棱方向要大致同向）；結果泊車做曲面體', lang)}</div>
         </CommandDialog>
@@ -5079,7 +5099,7 @@ export default function Viewport() {
           title="邊界補面"
           width={320}
           okLabel={`確定（${boundaryPatchPicks.length}）`}
-          okDisabled={boundaryPatchPicks.length < 2}
+          okDisabled={!!numBad || (boundaryPatchPicks.length < 2)}
           okTip="補面（Enter）"
           onOk={() => void commitBoundaryPatch()}
           onCancel={() => cancelBoundaryPatch()}
@@ -5091,7 +5111,7 @@ export default function Viewport() {
           </label>
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, marginTop: 6 }}>
             <span style={{ color: '#6b7680' }}>加厚</span>
-            <span><input type="number" aria-label="加厚 mm（0=淨曲面）" min={0} step={0.5} value={boundaryPatchThick} onChange={(e) => useApp.getState().setBoundaryPatchThick(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+            <span><LenInput mm={boundaryPatchThick} onMm={(v) => useApp.getState().setBoundaryPatchThick(v)} unit={unit} w={66} min={0} title="加厚（0＝淨曲面）" /> {unit === 'inch' ? 'in' : unit}</span>
           </label>
         </CommandDialog>
       )}
@@ -5102,7 +5122,7 @@ export default function Viewport() {
           title="抽殼"
           width={236}
           okLabel={tStatus('確定', lang)}
-          okDisabled={!shellPicks.length || !(shellThickness > 0)}
+          okDisabled={!!numBad || (!shellPicks.length || !(shellThickness > 0))}
           okTip="抽殼（Enter）"
           onOk={() => void commitShell()}
           onCancel={() => cancelShell()}
@@ -5120,7 +5140,7 @@ export default function Viewport() {
           {!(shellThickness > 0) && <div role="alert" data-testid="shell-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div>}
           <label>
             <span style={{ color: '#6b7680' }}>壁厚</span>
-            <span><input type="number" min={0.01} step={0.5} value={shellThickness} onChange={(e) => setShellThickness(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+            <span><LenInput mm={shellThickness} onMm={setShellThickness} unit={unit} w={66} min={0.01} max={1000000} title="抽殼壁厚" /> {unit === 'inch' ? 'in' : unit}</span>
           </label>
           <label title={tStatus('壁厚方向（Fusion Direction）：向內=外形保留 · 向外=尺寸外擴 · 兩側=壁跨原邊界（逐面不同厚度請事後用「偏移面」）', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('方向', lang)}</span>
@@ -5135,7 +5155,7 @@ export default function Viewport() {
           title="面圓角"
           width={244}
           okLabel={`確定（${faceFilletPicks.length}/2）`}
-          okDisabled={faceFilletPicks.length !== 2}
+          okDisabled={!!numBad || (faceFilletPicks.length !== 2)}
           okTip="面圓角（Enter）"
           onOk={() => void commitFaceFillet()}
           onCancel={() => cancelFaceFillet()}
@@ -5144,7 +5164,7 @@ export default function Viewport() {
           <SelectionChip label="兩張面" count={faceFilletPicks.length} hint="① 點選兩張相鄰面；确認前會驗證共同 B-rep 邊" onClear={() => useApp.getState().clearFaceFilletPicks()} />
           <label>
             <span style={{ color: '#6b7680' }}>半徑</span>
-            <span><LenInput mm={faceFilletRadius} onMm={setFaceFilletRadius} unit={unit} w={66} min={0.1} title="面圓角半徑" /> {unit === 'inch' ? 'in' : unit}</span>
+            <span><LenInput mm={faceFilletRadius} onMm={setFaceFilletRadius} unit={unit} w={66} min={0.1} max={1000000} title="面圓角半徑" /> {unit === 'inch' ? 'in' : unit}</span>
           </label>
           <div style={{ fontSize: 11, color: '#8a97a2', lineHeight: 1.4 }}>窄版：平面-平面 / 平面-圓柱(軸⟂) 解析切點；一般曲面對滾球需改核（cad2）後置。</div>
         </CommandDialog>
@@ -5156,7 +5176,7 @@ export default function Viewport() {
           title="拔模（拾中性面）"
           width={248}
           okLabel="確定拔模"
-          okDisabled={!draftNeutral}
+          okDisabled={!!numBad || (!draftNeutral)}
           okTip="拾完面後取角度拔模（Enter）"
           onOk={() => void useApp.getState().finishDraftPick()}
           onCancel={() => useApp.getState().toggleDraftPick()}
@@ -5185,7 +5205,7 @@ export default function Viewport() {
           title="FEA：受力/模態/屈曲/生成式/熱（體素趨勢）"
           width={272}
           okLabel={feaBusy ? '計算中…' : feaResult ? '重新運行' : '運行受力'}
-          okDisabled={feaBusy || modalBusy || bucklingBusy || topoptBusy || thermalBusy || thermalStressBusy || !feaFixed || !feaLoad}
+          okDisabled={!!numBad || (feaBusy || modalBusy || bucklingBusy || topoptBusy || thermalBusy || thermalStressBusy || !feaFixed || !feaLoad)}
           okTip="求解 von Mises 趨勢雲圖（Enter）"
           onOk={() => void runFeaSolve()}
           onCancel={() => {
@@ -5652,7 +5672,7 @@ export default function Viewport() {
           title="風洞 / 水洞（LBM 體素趨勢）"
           width={290}
           okLabel={windBusy ? '計算中…' : windResult ? '重新運行' : '運行'}
-          okDisabled={windBusy}
+          okDisabled={!!numBad || (windBusy)}
           okTip="把零件放入虛擬流道解流場 → 風阻係數 Cd + 阻力 + 流場（Enter）"
           onOk={() => void runWindSolve()}
           onCancel={() => useApp.getState().requestClearWind()}
@@ -5800,7 +5820,7 @@ export default function Viewport() {
           title="模流分析（Hele-Shaw 體素趨勢）"
           width={282}
           okLabel={moldBusy ? '計算中…' : moldResult ? '重新運行' : '運行'}
-          okDisabled={moldBusy}
+          okDisabled={!!numBad || (moldBusy)}
           okTip="運行充填/冷卻/壓力/變形趨勢（Enter）— 未點澆口會自動放喺頂部中心"
           onOk={() => void runMoldSolve()}
           onCancel={() => useApp.getState().clearMold()}
@@ -6041,7 +6061,7 @@ export default function Viewport() {
           title={holeEditId ? '編輯孔' : '孔'}
           width={320}
           okTip={holePos || holeEditId ? '建立孔（Enter）' : '請先選擇面或草圖點'}
-          okDisabled={(!holePos && !holeEditId) || !(holeD > 0)}
+          okDisabled={!!numBad || ((!holePos && !holeEditId) || !(holeD > 0))}
           onOk={() => void commitHole()}
           onCancel={() => cancelHole()}
           summary={(holeBoltCircle ? `⚠ 螺栓孔圈：會鑽 ${Math.max(2, Math.min(64, Math.round(holeBcCount) || 4))} 個孔（PCD Ø${holeBcPcd}）— ` : '') + (!(holeD > 0) ? '孔徑必須大於 0' : holeType === 'counterbore' ? `沉頭孔（${holeThrough ? '通' : '盲'}+沉台 Ø${(holeCbD ?? holeSpec.cbD).toFixed(1)}）` : holeType === 'countersink' ? `埋頭孔（${holeThrough ? '通' : '盲'}+${holeCsAngle}°錐 Ø${(holeCsD ?? holeSpec.csD).toFixed(1)}）` : holeType === 'nuttrap' ? '螺母陷阱（過孔+六角槽嵌螺母）' : holeType === 'tapped' ? (holeTapModeled ? `建模螺紋（真螺旋牙，${holeThrough ? '通孔' : '盲孔'}）` : `攻牙底孔（鑽 d−螺距，攻 M 螺紋用，${holeThrough ? '通孔' : '盲孔'}）`) : holeThrough ? `通孔 Ø${holeD}` : `盲孔 Ø${holeD}${holeDepth > 0 ? ` 深${holeDepth}` : '（深≈1.5×Ø）'}`)}
@@ -6068,7 +6088,7 @@ export default function Viewport() {
             *  令「入乜 → 出乜」喺提交之前就睇得到。*/}
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ color: '#6b7680' }}>{holeType === 'tapped' ? '螺紋 M（公稱徑）' : '直徑 Ø'}</span>
-            <span><LenInput mm={holeD} onMm={setHoleD} unit={unit} w={66} min={0.1} title={holeType === 'tapped' ? '螺紋公稱徑：M6 就入 6（唔係入底孔 5.0）。底孔由程式按 ISO 表自己算。' : '孔徑（inch 模式可打分數，如 1/4）'} /> {unit === 'inch' ? 'in' : unit}</span>
+            <span><LenInput mm={holeD} onMm={setHoleD} unit={unit} w={66} min={0.1} max={1000000} title={holeType === 'tapped' ? '螺紋公稱徑：M6 就入 6（唔係入底孔 5.0）。底孔由程式按 ISO 表自己算。' : '孔徑（inch 模式可打分數，如 1/4）'} /> {unit === 'inch' ? 'in' : unit}</span>
           </label>
           {holeType === 'tapped' && (() => {
             const nom = ISO_NOMS.reduce((a, b) => (Math.abs(b - holeD) < Math.abs(a - holeD) ? b : a))
@@ -6142,7 +6162,7 @@ export default function Viewport() {
                 {holeType === 'simple' && <label style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12 }} title="到物件（Fusion To Object）：勾選後點目標平面；會儲存面指紋並於重建時重新解析。v1 僅支持同入口平行的平面。"><input type="checkbox" checked={holeToObject} onChange={(e) => setHoleToObject(e.target.checked)} />到物件</label>}
                 {holeType === 'simple' && holeToObject && <button className={'sb-tool pick-slot' + (holeToObjectPick ? ' active' : '')} style={{ padding: '0 5px', minWidth: 0 }} onClick={() => setHoleToObject(true)}>{holeToObjectPick ? '點目標面…' : holeToObjectPt ? '重揀' : '揀目標面'}</button>}
                 {(() => { const ta = holeType === 'simple' && (holeToNext || holeToObject); return <label style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, opacity: ta ? 0.4 : 1 }}><input type="checkbox" checked={holeThrough} disabled={ta} onChange={(e) => setHoleThrough(e.target.checked)} />贯通</label> })()}
-                {!holeThrough && !(holeType === 'simple' && (holeToNext || holeToObject)) && <span><LenInput mm={holeDepth} onMm={setHoleDepth} unit={unit} w={50} min={0} title="孔深（0／空白＝自動）" /> {unit === 'inch' ? 'in' : unit}</span>}
+                {!holeThrough && !(holeType === 'simple' && (holeToNext || holeToObject)) && <span><LenInput mm={holeDepth} onMm={setHoleDepth} unit={unit} w={50} min={0} max={1000000} title="孔深（0／空白＝自動）" /> {unit === 'inch' ? 'in' : unit}</span>}
               </span>
             </label>
           )}
@@ -6283,7 +6303,7 @@ export default function Viewport() {
       )}
 
       {featDlg && (
-        <CommandDialog icon={featDlg.kind === 'geoPattern' ? 'pattern' : (FD_ICON[featDlg.kind] ?? 'default')} title={tStatus((featDlg.editId ? '編輯 · ' : '') + (featDlg.kind === 'geoPattern' ? '幾何陣列' : (FD_TITLE[featDlg.kind] ?? featDlg.kind)), lang)} okDisabled={
+        <CommandDialog icon={featDlg.kind === 'geoPattern' ? 'pattern' : (FD_ICON[featDlg.kind] ?? 'default')} title={tStatus((featDlg.editId ? '編輯 · ' : '') + (featDlg.kind === 'geoPattern' ? '幾何陣列' : (FD_TITLE[featDlg.kind] ?? featDlg.kind)), lang)} okDisabled={!!numBad || (
           (featDlg.kind === 'extrude-edit' && (!currentEditPreview || currentEditPreview.failed)) ||
           ((featDlg.kind === 'pattern' || featDlg.kind === 'circpattern') && (String(featDlg.params.objectType ?? 'bodies') === 'features' ? !cpSelFeat : String(featDlg.params.objectType ?? 'bodies') === 'components' ? !cpSelCompCount : String(featDlg.params.objectType ?? 'bodies') === 'faces' ? !facePatternPicks.length : !+featDlg.params.objectPicked)) ||
           (featDlg.kind === 'geoPattern' && !featDlg.editId && !cpSelFeat) ||
@@ -6296,7 +6316,7 @@ export default function Viewport() {
            * 而家同 commitFeatDlg 用【同一條】規則（featDlgBlockingReason），
            * 唔好兩邊各寫一套 —— 兩套遲早會唔同步。*/
           !!featDlgBlockingReason(featDlg)
-        } onOk={() => void commitFeatDlg()} onCancel={() => cancelFeatDlg()}>
+        )} onOk={() => void commitFeatDlg()} onCancel={() => cancelFeatDlg()}>
           {/* 真原因（含用戶打咗乜）—— 取代舊嘅籠統訊息。QA 實測舊行為：
             * 打 1e9 顯示「必須大於 0」、打 0 顯示「半徑太大」，理由完全錯。*/}
           {!!featDlgBlockingReason(featDlg) && (
@@ -6315,7 +6335,7 @@ export default function Viewport() {
               <div style={{ fontSize: 11, lineHeight: 1.45, color: '#64727d', padding: '2px 0 6px' }}>Connector v1：依次點選兩張<b>平面面</b>，建立一個獨立實體連接器。曲面面、避讓體及 Fusion 生成式 alternatives 暫未包含。</div>
               <div style={{ fontSize: 12, color: picks[0] ? '#257c45' : '#9a6a1b' }}>面 1：{fmt(picks[0])}</div>
               <div style={{ fontSize: 12, color: picks[1] ? '#257c45' : '#9a6a1b' }}>面 2：{fmt(picks[1])}</div>
-              <label title="連接器半徑（mm）；結果會作為 New Body 保留，可在時間軸編輯。">連接半徑 <FeatNum k="radius" v={featDlg.params.radius} w={58} unit="mm" /> mm</label>
+              <label title="連接器半徑（mm）；結果會作為 New Body 保留，可在時間軸編輯。">連接半徑 <FeatNum k="radius" v={featDlg.params.radius} w={58} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
               <div style={{ fontSize: 11, color: '#8a97a2' }}>選滿兩面後再次點選，會由第 1 面重新開始。</div>
             </>
           })()}
@@ -6486,10 +6506,10 @@ export default function Viewport() {
           {featDlg.kind === 'rib' && (() => {
             const isWeb = !!(featDlg.payload && typeof featDlg.payload === 'object' && (featDlg.payload as { isWeb?: boolean }).isWeb)
             return (<>
-              <label title={tStatus('筋壁厚度（沿中心線兩側或單側鋪開）', lang)}>{tStatus('厚度', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={56} unit="mm" /> mm</label>
+              <label title={tStatus('筋壁厚度（沿中心線兩側或單側鋪開）', lang)}>{tStatus('厚度', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
               <label title={tStatus('厚度方向（Fusion Thickness Direction）：對稱=中心線兩側各半 / 單側=全部厚度落中心線一側', lang)}>{tStatus('厚度方向', lang)} <select value={String(featDlg.params.thDir ?? 'sym')} onChange={(e) => setFeatParam('thDir', e.target.value)} style={{ height: 26 }}><option value="sym">{tStatus('對稱', lang)}</option><option value="one">{tStatus('單側', lang)}</option></select></label>
               <label title={tStatus('範圍（Fusion Extent）：到實體=向下落到實體底面並融合（需實體在下）/ 距離=向上按固定高度', lang)}>{tStatus('範圍', lang)} <select value={String(featDlg.params.extent ?? 'next')} onChange={(e) => setFeatParam('extent', e.target.value)} style={{ height: 26 }}><option value="next">{tStatus('到實體', lang)}</option><option value="distance">{tStatus('距離', lang)}</option></select></label>
-              {featDlg.params.extent === 'distance' && <label>{tStatus('高度', lang)} <FeatNum k="height" v={featDlg.params.height} w={56} unit="mm" /> mm</label>}
+              {featDlg.params.extent === 'distance' && <label>{tStatus('高度', lang)} <FeatNum k="height" v={featDlg.params.height} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>}
               <label title={tStatus('拔模角°：筋身向遠端逐漸收窄（注塑/衝壓脫模）', lang)}>{tStatus('拔模角', lang)} <FeatNum k="draft" v={featDlg.params.draft} w={50} />°</label>
               <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('翻轉筋擠出方向（up↔down）', lang)}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} /> {tStatus('翻转方向', lang)}</label>
               {isWeb && <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('延伸曲線（Fusion Web Extend Curves）：把開放折線端點外延到實體牆面，令交叉/近牆筋網自動閉合', lang)}><input type="checkbox" checked={!!+(featDlg.params.extend || 0)} onChange={(e) => setFeatParam('extend', e.target.checked ? 1 : 0)} /> {tStatus('延伸曲线到墙', lang)}</label>}
@@ -6500,7 +6520,7 @@ export default function Viewport() {
             <label title={tStatus('截面形狀（Fusion Section）：圓形 / 方形', lang)}>{tStatus('截面', lang)} <select value={String(featDlg.params.section ?? 'circular')} onChange={(e) => setFeatParam('section', e.target.value)} style={{ height: 26 }}><option value="circular">{tStatus('圓形', lang)}</option><option value="square">{tStatus('方形', lang)}</option></select></label>
             <label title={tStatus('截面尺寸（外徑Ø / 方形邊寬）', lang)}>{tStatus('截面尺寸', lang)} <FeatNum k="size" v={featDlg.params.size} w={56} /> {featDlg.params.section === 'square' ? '□' : 'Ø'} mm</label>
             <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('空心（Fusion Hollow）：勾選 = 中空管（減壁厚成內孔）；不勾 = 實心棒', lang)}><input type="checkbox" checked={!!+(featDlg.params.hollow || 0)} onChange={(e) => setFeatParam('hollow', e.target.checked ? 1 : 0)} /> {tStatus('空心', lang)}</label>
-            {!!+(featDlg.params.hollow || 0) && <label title={tStatus('壁厚（Section Thickness）', lang)}>{tStatus('壁厚', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={52} unit="mm" /> mm</label>}
+            {!!+(featDlg.params.hollow || 0) && <label title={tStatus('壁厚（Section Thickness）', lang)}>{tStatus('壁厚', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={52} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>}
             <label title={tStatus('距離（Fusion Distance）：沿路徑覆蓋比例 0–1（1=全長）', lang)}>{tStatus('距離', lang)} <FeatNum k="dist" v={featDlg.params.dist} w={52} /></label>
             <label title={tStatus('操作：＋加料 / －切割 / ∩相交 / ⬡新實體', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新實體', lang)}</option></select></label>
           </>)}
@@ -6537,7 +6557,7 @@ export default function Viewport() {
           </>)}
           {featDlg.kind === 'scale' && (<>
             <label title={tStatus('均勻縮放比例', lang)}>{tStatus('比例', lang)} <FeatNum k="factor" v={featDlg.params.factor} w={56} /> ×</label>
-            <label title={tStatus('或直接輸入目標最長邊尺寸（mm）→ 自動算比例；0=用上面比例', lang)}>{tStatus('或 目標最長邊', lang)} <FeatNum k="target" v={featDlg.params.target} w={56} unit="mm" /> mm</label>
+            <label title={tStatus('或直接輸入目標最長邊尺寸（mm）→ 自動算比例；0=用上面比例', lang)}>{tStatus('或 目標最長邊', lang)} <FeatNum k="target" v={featDlg.params.target} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
             <label title={tStatus('非等比三軸縮放（T762 GTransform 真 B-rep）：任一軸 >0 即生效，0=該軸不縮放；填咗就忽略上面等比', lang)}>{tStatus('非等比 X', lang)} <FeatNum k="sx" v={featDlg.params.sx} w={44} />Y <FeatNum k="sy" v={featDlg.params.sy} w={44} />Z <FeatNum k="sz" v={featDlg.params.sz} w={44} /></label>
             {/* P2（Fusion Scale Point）：缩放基准点 — 默认实体中心（开对话框预填）；0,0,0=世界原点（旧行为） */}
             <label title={tStatus('縮放基準點（CAD 坐標）：實體繞呢個點縮放，唔會飛走。預設=實體包圍盒中心（Fusion 同款）；0,0,0=世界原點（舊行為）', lang)}>{tStatus('基準點', lang)} <FeatNum k="px" v={featDlg.params.px} w={44} /><FeatNum k="py" v={featDlg.params.py} w={44} /><FeatNum k="pz" v={featDlg.params.pz} w={44} /></label>
@@ -6565,7 +6585,7 @@ export default function Viewport() {
                     for (let i = axIdx; i < vv.length; i += 3) { if (vv[i] < lo) lo = vv[i]; if (vv[i] > hi) hi = vv[i] }
                     setFeatParam('offset', Math.round((lo + hi) / 2 * 10) / 10)
                   }} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
-                  <label title={tStatus('切割位置（CAD 世界坐標，沿選定軸）。長方體預設角落原點時 x=15 把 40 寬切成 15+25 → 體積 3000+5000', lang)}>{tStatus('位置', lang)} <FeatNum k="offset" v={featDlg.params.offset} w={60} unit="mm" /> mm</label>
+                  <label title={tStatus('切割位置（CAD 世界坐標，沿選定軸）。長方體預設角落原點時 x=15 把 40 寬切成 15+25 → 體積 3000+5000', lang)}>{tStatus('位置', lang)} <FeatNum k="offset" v={featDlg.params.offset} w={60} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
                   <button className="cs-btn" title={tStatus('把切割位置居中到實體包圍盒中點（當前軸）', lang)} onClick={() => {
                     const m = useApp.getState().bodyMesh; if (!m?.vertices?.length) return
                     const axIdx = featDlg.params.axis === 'X' ? 0 : featDlg.params.axis === 'Y' ? 1 : 2
@@ -6608,8 +6628,8 @@ export default function Viewport() {
                 ))}
               </div>
             ) : (<>
-              <label>{tStatus('半徑', lang)} <FeatNum k="radius" v={featDlg.params.radius} w={56} unit="mm" /> mm</label>
-              <label title={tStatus('變半徑圓角：起始用「半徑」，末端用呢個值（0=均一半徑）', lang)}>{tStatus('末端半徑', lang)} <FeatNum k="radius2" v={featDlg.params.radius2} w={56} unit="mm" /> mm</label>
+              <label>{tStatus('半徑', lang)} <FeatNum k="radius" v={featDlg.params.radius} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
+              <label title={tStatus('變半徑圓角：起始用「半徑」，末端用呢個值（0=均一半徑）', lang)}>{tStatus('末端半徑', lang)} <FeatNum k="radius2" v={featDlg.params.radius2} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
             </>)}
             <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.chain || 0)} onChange={(e) => setFeatParam('chain', e.target.checked ? 1 : 0)} />{tStatus('切線鏈', lang)}</label>
           </>)}
@@ -6617,19 +6637,19 @@ export default function Viewport() {
             <SelectionChip label={tStatus('棱', lang)} count={Math.max(1, +(featDlg.params.nearsN || 0))} hint="" />
             <label>{tStatus('類型', lang)} <select value={String(featDlg.params.cmode)} onChange={(e) => setFeatParam('cmode', e.target.value)} style={{ height: 26 }}>
               <option value="equal">{tStatus('等距', lang)}</option><option value="two">{tStatus('兩距離', lang)}</option><option value="angle">{tStatus('距離+角度', lang)}</option></select></label>
-            <label>{tStatus('距離', lang)} <FeatNum k="distance" v={featDlg.params.distance} w={56} unit="mm" /> mm</label>
-            {featDlg.params.cmode === 'two' && <label>{tStatus('距離2', lang)} <FeatNum k="dist2" v={featDlg.params.dist2} w={56} unit="mm" /> mm</label>}
+            <label>{tStatus('距離', lang)} <FeatNum k="distance" v={featDlg.params.distance} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
+            {featDlg.params.cmode === 'two' && <label>{tStatus('距離2', lang)} <FeatNum k="dist2" v={featDlg.params.dist2} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>}
             {featDlg.params.cmode === 'angle' && <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={50} />°</label>}
             {featDlg.params.cmode !== 'equal' && <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} />{tStatus('翻转', lang)}</label>}
             <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.chain || 0)} onChange={(e) => setFeatParam('chain', e.target.checked ? 1 : 0)} />{tStatus('切線鏈', lang)}</label>
           </>)}
           {featDlg.kind === 'shell-edit' && (<>
             <SelectionChip label={tStatus('開口面', lang)} count={+(featDlg.params.nearsN || 0)} hint={tStatus('0 = 預設開頂面', lang)} />
-            <label>{tStatus('壁厚', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={56} unit="mm" /> mm</label>
+            <label>{tStatus('壁厚', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
             <label title={tStatus('壁厚方向：向內=外形保留 · 向外=尺寸外擴 · 兩側=壁跨原邊界', lang)}>{tStatus('方向', lang)} <select value={String(featDlg.params.direction ?? 'inside')} onChange={(e) => setFeatParam('direction', e.target.value)} style={{ height: 26 }}><option value="inside">{tStatus('向內', lang)}</option><option value="outside">{tStatus('向外', lang)}</option><option value="both">{tStatus('兩側', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'offsetsolid' && (<>
-            <label title={tStatus('整體偏移所有面：正=外擴(加厚鑄件壁/補償)，負=內縮。凸邊按圓角接合', lang)}>{tStatus('偏移距離', lang)} <FeatNum k="distance" v={featDlg.params.distance} w={56} unit="mm" /> mm</label>
+            <label title={tStatus('整體偏移所有面：正=外擴(加厚鑄件壁/補償)，負=內縮。凸邊按圓角接合', lang)}>{tStatus('偏移距離', lang)} <FeatNum k="distance" v={featDlg.params.distance} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
           </>)}
           {featDlg.kind === 'draft' && (
             <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={56} />°</label>
@@ -6685,7 +6705,7 @@ export default function Viewport() {
             <label title={tStatus('旋轉軸經過嘅點（CAD 坐標）— 偏離原點車削設定；預設 0,0,0 = 用上面旋轉軸預設', lang)}>{tStatus('軸點', lang)} <FeatNum k="ox" v={featDlg.params.ox} w={40} /><FeatNum k="oy" v={featDlg.params.oy} w={40} /><FeatNum k="oz" v={featDlg.params.oz} w={40} /></label>
             <label title={tStatus('旋轉軸方向分量（可斜軸，例 1,0,1）— 預設 0,1,0 = 世界 Y。注意：輪廓必須完全喺軸一側，否則建模失敗', lang)}>{tStatus('方向', lang)} <FeatNum k="dx" v={featDlg.params.dx} w={36} /><FeatNum k="dy" v={featDlg.params.dy} w={36} /><FeatNum k="dz" v={featDlg.params.dz} w={36} /></label>
             <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={56} />°</label>
-            <label title={tStatus('薄壁 mm：>0 把旋轉體抽成薄殼（燈罩/碗殼/漏斗等曲面殼），0=實心', lang)}>{tStatus('薄壁', lang)} <FeatNum k="wall" v={featDlg.params.wall} w={48} unit="mm" /> mm</label>
+            <label title={tStatus('薄壁 mm：>0 把旋轉體抽成薄殼（燈罩/碗殼/漏斗等曲面殼），0=實心', lang)}>{tStatus('薄壁', lang)} <FeatNum k="wall" v={featDlg.params.wall} w={48} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
             {Number(featDlg.params.angle) > 0 && Number(featDlg.params.angle) < 360 && (
               <label title={tStatus('兩側對稱：部分角旋轉時把角度均分跨越截面平面兩側（Fusion symmetric revolve）', lang)}><input type="checkbox" checked={!!featDlg.params.sym} onChange={(e) => setFeatParam('sym', e.target.checked ? 1 : 0)} /> {tStatus('两侧对称', lang)}</label>
             )}
@@ -6867,7 +6887,7 @@ export default function Viewport() {
           </>)}
           {featDlg.kind === 'plane' && (<>
             <label>{tStatus('基準面', lang)} <select value={featDlg.params.base} onChange={(e) => setFeatParam('base', e.target.value)} style={{ height: 26 }}><option value="XY">{tStatus('XY(上)', lang)}</option><option value="XZ">{tStatus('XZ(前)', lang)}</option><option value="YZ">{tStatus('YZ(右)', lang)}</option><option value="midXY">{tStatus('XY 中間面', lang)}</option><option value="midXZ">{tStatus('XZ 中間面', lang)}</option><option value="midYZ">{tStatus('YZ 中間面', lang)}</option></select></label>
-            {!String(featDlg.params.base).startsWith('mid') && <label>{tStatus('偏移', lang)} <FeatNum k="offset" v={featDlg.params.offset} w={60} unit="mm" /> mm</label>}
+            {!String(featDlg.params.base).startsWith('mid') && <label>{tStatus('偏移', lang)} <FeatNum k="offset" v={featDlg.params.offset} w={60} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>}
             {String(featDlg.params.base).startsWith('mid') && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('自動取實體中部', lang)}</span>}
             {!String(featDlg.params.base).startsWith('mid') && <label title={tStatus('角度面（Fusion Plane at Angle）：基面繞自身局部 x/y 軸旋轉 — 0 = 普通偏移平面', lang)}>{tStatus('∠角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={48} />°</label>}
             {!String(featDlg.params.base).startsWith('mid') && Number(featDlg.params.angle) !== 0 && <label>{tStatus('繞', lang)} <select value={featDlg.params.aaxis ?? 'x'} onChange={(e) => setFeatParam('aaxis', e.target.value)} style={{ height: 26 }}><option value="x">{tStatus('面內 x 軸', lang)}</option><option value="y">{tStatus('面內 y 軸', lang)}</option></select></label>}
@@ -6941,7 +6961,7 @@ export default function Viewport() {
         return (
           <CommandDialog icon="plane" title={dc.type === 'axis' ? '構造軸' : dc.type === 'point' ? '構造點' : '構造幾何'} width={288} summary={summary}
             okLabel={isField || acc ? '確定' : '關閉'}
-            okDisabled={!!acc && !ready}
+            okDisabled={!!numBad || (!!acc && !ready)}
             onOk={() => {
               if (isField) { useApp.getState().commitDatumCmdField(); return }
               if (acc) {
@@ -7138,8 +7158,7 @@ export default function Viewport() {
           )}
           {!inSkToolMode && (<>
           <span className="sb-spacer" />
-          {extrudeDlgOpen && <><label>{tStatus('高度', lang)} <input type="number" step={0.1} value={extrudeHeight} onFocus={(e) => e.currentTarget.select()}
-            onChange={(e) => { const n = Number(e.target.value); setExtrudeHeight(Number.isFinite(n) ? n : 0) }} /> mm</label>
+          {extrudeDlgOpen && <><label>{tStatus('高度', lang)} <LenInput mm={extrudeHeight} onMm={setExtrudeHeight} unit={unit} w={70} max={1000000} title="拉伸距離（上限 1000000 mm）" /> {unit === 'inch' ? 'in' : unit}</label>
           <label className="sb-hint" title={tStatus('對稱：以草圖面為中心，向兩側各拉伸一半', lang)}><input type="checkbox" checked={sketchSymmetric} onChange={(e) => setSketchSymmetric(e.target.checked)} /> {tStatus('對稱', lang)}</label>
           <label className="sb-hint" title={tStatus('扭轉角：拉伸時繞高度方向旋轉（度）', lang)}>{tStatus('扭轉', lang)} <input type="number" value={sketchTwist} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setSketchTwist(Number(e.target.value))} style={{ width: 46 }} /> °</label></>}
           {sketchShape && (
@@ -7271,7 +7290,7 @@ export default function Viewport() {
           title={tStatus('拉伸', lang)}
           width={320}
           okTip={extrudeRegionTotal > 0 && extrudeRegionSelCount === 0 ? tStatus('先點畫布揀要拉伸嘅 profile 區域', lang) : tStatus('生成（Enter）', lang)}
-          okDisabled={busy || (!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) || !!extrudeExpressionError || extrudeSelectionCleared || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6))}
+          okDisabled={!!numBad || (busy || (!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) || !!extrudeExpressionError || extrudeSelectionCleared || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6)))}
           onOk={() => void extrudeSketch()}
           onCancel={() => cancelExtrudeDlg()}
 
@@ -7418,7 +7437,7 @@ export default function Viewport() {
           {sketchOp !== 'cut' && (
             <label title={tStatus('壁厚 mm：>0 掃成空心管（導管/水管/扶手/線管），0=實心圓桿', lang)}>
               <span style={{ color: '#6b7680' }}>{tStatus('壁厚 (空心)', lang)}</span>
-              <span><input type="number" min={0} step={0.5} value={sweepWall} onChange={(e) => setSweepWall(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
+              <span><LenInput mm={sweepWall} onMm={setSweepWall} unit={unit} w={66} min={0} title="掃掠壁厚" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           )}
           <label title={tStatus('3D 爬升：沿路徑按弧長均勻升 Z（樓梯扶手/排水管坡道/纜線槽）。0 = 平面掃掠；非 0 時脊線走平滑 3D 樣條', lang)}>
@@ -8545,6 +8564,12 @@ function FeatNum({ k, v, w = 56, unit = '', title }: { k: string; v: unknown; w?
     })()
   const shownVal = unit === 'mm' ? toLenInput(num, docUnit) : (Number.isFinite(num) ? String(Math.round(num * 1e6) / 1e6) : '')
   const bad = txt.trim() !== '' && parse(txt) == null
+  const gateId = useId()
+  const reportNumericInvalid = useApp((s) => s.reportNumericInvalid)
+  useEffect(() => {
+    reportNumericInvalid(gateId, bad ? `非法輸入「${txt.trim()}」` : null)
+    return () => reportNumericInvalid(gateId, null)
+  }, [gateId, bad, txt, reportNumericInvalid])
   const shown = (foc || bad) ? txt : shownVal
   return (
     <input
@@ -8606,6 +8631,9 @@ function FormPanel() {
     if (v > FORM_DIM_MAX) return `最大 ${FORM_DIM_MAX} mm（你打咗「${txt.trim()}」）`
     return ''
   }
+  // BUG-530/539：對話框一開（或者換咗原語）就清走上次嘅紅字 —— QA 見到重開之後
+  // 欄位已經係預設值，但紅字仲寫住上一次嘅錯誤。
+  useEffect(() => { setBadDims({}); setPrimBadReason('') }, [createKind, boxDraft?.stage == null])
   const markDim = (k: string) => (txt: string) => setBadDims((m) => {
     const why = dimReason(txt)
     if (!why === !m[k] && (!why || m[k] === why)) return m
@@ -8645,11 +8673,11 @@ function FormPanel() {
             </span>
           </label>
           {expanded && <>
-            <label style={row}>{zh ? '長度' : 'Length'} <span><LenInput mm={boxDraft.length} onMm={(v) => patch({ length: v })} onText={markDim('length')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
+            <label style={row}>{zh ? '長度' : 'Length'} <span><LenInput mm={boxDraft.length} onMm={(v) => patch({ length: v })} onText={markDim('長度')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
             <label style={row}>{zh ? '長度面數' : 'Length Faces'} <input aria-label="Form Box Length Faces" type="number" min={1} step={1} value={boxDraft.lengthFaces} onChange={(e) => patch({ lengthFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
-            <label style={row}>{zh ? '寬度' : 'Width'} <span><LenInput mm={boxDraft.width} onMm={(v) => patch({ width: v })} onText={markDim('width')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
+            <label style={row}>{zh ? '寬度' : 'Width'} <span><LenInput mm={boxDraft.width} onMm={(v) => patch({ width: v })} onText={markDim('寬度')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
             <label style={row}>{zh ? '寬度面數' : 'Width Faces'} <input aria-label="Form Box Width Faces" type="number" min={1} step={1} value={boxDraft.widthFaces} onChange={(e) => patch({ widthFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
-            <label style={row}>{zh ? '高度' : 'Height'} <span><LenInput mm={boxDraft.height} onMm={(v) => patch({ height: v })} onText={markDim('height')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
+            <label style={row}>{zh ? '高度' : 'Height'} <span><LenInput mm={boxDraft.height} onMm={(v) => patch({ height: v })} onText={markDim('高度')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
             <label style={row}>{zh ? '高度面數' : 'Height Faces'} <input aria-label="Form Box Height Faces" type="number" min={1} step={1} value={boxDraft.heightFaces} onChange={(e) => patch({ heightFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
           </>}
           <label style={row}>{zh ? '方向' : 'Direction'}

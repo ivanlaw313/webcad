@@ -203,7 +203,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
     for (const p of pending) { clearTimeout(p.timer); try { p.reject(err) } catch { /* 已 settle */ } }
     pending.clear()
     spawn()
-    notify(`⚠ 幾何內核崩潰（${why}），已自動重啟，正在恢復上一個成功狀態…`, 'info')
+    notify(`⚠ 幾何內核崩潰 —— ${why}。已自動重啟，正在恢復上一個成功狀態…`, 'info')   // BUG-534：原本外層再包一重括號，同 why 入面嘅括號疊埋變成唔對稱
     // 3) 重放快照令新内核状态追返 UI；后续调用会先 await recovering 再发出
     recovering = (async () => {
       const snap = lastGoodFeatures
@@ -251,7 +251,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
             const entry: Pending = {
               reject,
               method,
-              timer: setTimeout(() => { if (pending.has(entry)) restart(`${method} 超时（${Math.round(timeoutMs / 1000)}s 无响应）`) }, timeoutMs),
+              timer: setTimeout(() => { if (pending.has(entry)) restart(`${method} 超時（${Math.round(timeoutMs / 1000)} 秒冇回應）`) }, timeoutMs),
             }
             pending.add(entry)
             const settle = () => { clearTimeout(entry.timer); pending.delete(entry) }

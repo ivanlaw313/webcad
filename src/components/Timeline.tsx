@@ -1,4 +1,5 @@
 import { useEscapeLayer } from './useEscapeLayer'
+import { parseLen, toLenInput } from '../io/units'   // BUG-507/509：時間軸編輯條跟對話框同一條解析
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react'
 import { ToolIcon } from '../icons'
 import { useApp } from '../store'
@@ -12,17 +13,21 @@ const EDIT_DLG_KINDS = new Set<string>(['extrude', 'revolve', 'sweep', 'loft', '
 
 // 测试报告观察 C：时间轴特徵尺寸输入 — 改为本地缓冲 + 失焦/Enter 先提交（之前每个 keystroke 即触发
 // 异步重建，令打字被打断 / 自动化改唔到值）。同 featDlg 输入一致行为。外部值变（参数绑定/撤销）会重新同步。
-function NumField({ value, disabled, step = 0.5, min, onCommit, rejectDetail }: { value: number; disabled?: boolean; step?: number; min?: number; onCommit: (n: number) => void; rejectDetail?: string }) {
+function NumField({ value, disabled, min, onCommit, rejectDetail }: { value: number; disabled?: boolean; step?: number; min?: number; onCommit: (n: number) => void; rejectDetail?: string }) {   // step 已不再用（轉了 type=text），保留 prop 令呼叫端不必改
+  const unit = useApp((s) => s.unit)
   const [buf, setBuf] = useState(String(value))
   const skipCommit = useRef(false)
-  useEffect(() => { setBuf(String(value)) }, [value])
+  useEffect(() => { setBuf(toLenInput(value, unit)) }, [value, unit])
   const commit = () => {
-    if (skipCommit.current) { skipCommit.current = false; setBuf(String(value)); return }
-    const n = Number(buf)
+    if (skipCommit.current) { skipCommit.current = false; setBuf(toLenInput(value, unit)); return }
+    /* ★ BUG-507/509 ★ 跟對話框行同一條解析：inch 分數（1 1/2）、算式（2*3）、全角。
+     * 舊版 Number(buf) 會把「1 1/2」變 NaN（已經好過 type=number 剥成 112），
+     * 但用戶在對話框打得到在時間軸打不到，本身就係不一致。 */
+    const n = parseLen(buf, unit) ?? Number(buf)
     // BUG-UI-003 / BUG-UI-001: reject n < min (≤0 length) and announce 尺寸已拒絕 — silent revert hid the reason.
     if (Number.isFinite(n) && (min == null || n >= min)) { if (n !== value) onCommit(n) }
     else {
-      setBuf(String(value))
+      setBuf(toLenInput(value, unit))
       if (min != null) useApp.setState({ status: illegalRejectStatus(rejectDetail || ILLEGAL_LENGTH_DETAIL) })
     }
   }
@@ -30,13 +35,16 @@ function NumField({ value, disabled, step = 0.5, min, onCommit, rejectDetail }: 
     <input
       // No HTML min: browsers with min>0 silently block typing "-1" before commit, so reject never runs.
       // Logical min stays in commit() above. Esc still skips commit via skipCommit.
-      type="number" step={step} disabled={disabled} value={buf}
+      /* ★ BUG-507/509 ★ 唔准用 type="number"：瀏覽器會在 JS 見到之前剥走 / + * ( )。
+       * QA 實測時間軸編輯條打「1 1/2」變「112」、「2*3」變「23」，静默落錯值。
+       * 本身已經有 commit 時的 reject 邏輯，所以只要把原文交到手就正確。 */
+      type="text" inputMode="decimal" disabled={disabled} value={buf}
       onChange={(e) => setBuf(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => {
         if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur() }
         // BUG-UI-002: Esc reverts the draft and skips the blur commit so closing the editor does not apply.
-        if (e.key === 'Escape') { e.preventDefault(); skipCommit.current = true; setBuf(String(value)); (e.currentTarget as HTMLInputElement).blur() }
+        if (e.key === 'Escape') { e.preventDefault(); skipCommit.current = true; setBuf(toLenInput(value, unit)); (e.currentTarget as HTMLInputElement).blur() }
       }}
     />
   )

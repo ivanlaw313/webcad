@@ -23,7 +23,8 @@
  * 【顯示唔會同 model 飄】未聚焦／冇打錯／冇清空嘅時候，顯示【直接由 value 推導】，
  * 冇 useEffect 同步窗口 —— 同 LenInput 一樣嘅結構性防 BUG-501 寫法。
  */
-import { useState } from 'react'
+import { useEffect, useId, useState } from 'react'
+import { useApp } from '../store'
 import { parseNumericField, type NumericFieldSpec } from '../cad/numericInput'
 
 export type NumInputProps = {
@@ -57,6 +58,14 @@ export function NumInput({
   const r = txt.trim() === '' ? null : parseNumericField(txt, spec)
   const bad = r != null && !r.ok
   const blank = foc && txt.trim() === ''
+  /* ★ BUG-537/538 ★ 向 store 登記「我而家非法」—— 掣／Enter／commit 三邊查同一個真相。
+   * 唔靠每個對話框記得查，所以漏接喺結構上唔可能發生。 */
+  const gateId = useId()
+  const reportNumericInvalid = useApp((st) => st.reportNumericInvalid)
+  useEffect(() => {
+    reportNumericInvalid(gateId, bad ? (r && !r.ok ? r.reason ?? '非法輸入' : '非法輸入') : null)
+    return () => reportNumericInvalid(gateId, null)
+  }, [gateId, bad, r, reportNumericInvalid])
   // 未聚焦／一切正常 → 顯示由 value 推導（冇同步窗口，顯示唔可能同 model 唔同）
   const shown = foc || bad ? txt : fmt(value)
   const reason = bad ? (r.reason ?? '') : blank ? `${label}：未輸入` : ''

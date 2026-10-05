@@ -36,8 +36,11 @@ test('★ BUG-514：FORM BOX 長／寬／高 唔准再有 `Number(...) || 0.1` �
 })
 
 test('★ BUG-514：三個尺寸欄要行 LenInput（三態：合法／非法／空白）★', () => {
-  for (const [zhLabel, key] of [['長度', 'length'], ['寬度', 'width'], ['高度', 'height']]) {
-    const line = LINES.find((l) => l.includes("'" + zhLabel + "'") && l.includes('<LenInput'))
+  // BUG-531：key 由內部英文名改成中文 —— 拒絕訊息會直接顯示佢，寫 length 會出街
+  for (const [zhLabel, key] of [['長度', '長度'], ['寬度', '寬度'], ['高度', '高度']]) {
+    // ⚠ 要連 markDim 一齊配 —— 拉伸嘅「高度」欄都係 <LenInput 而且排喺前面，
+    // 淨係配標籤會捉錯佢（實測過）。
+    const line = LINES.find((l) => l.includes("'" + zhLabel + "'") && l.includes('<LenInput') && l.includes('markDim('))
     assert.ok(line, 'FORM BOX ' + zhLabel + ' 仲未換成 LenInput')
     assert.ok(line.includes("onText={markDim('" + key + "')}"),
       zhLabel + ' 要上報非法狀態，否則確定掣閂唔到')

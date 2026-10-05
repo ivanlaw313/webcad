@@ -7136,7 +7136,18 @@ export const useApp = create<AppState>((rawSet, get) => {
   clearExtrudeSelection: () => set({ extrudeSelectionCleared: true, extrudeRegionSel: get().extrudeRegionSel.map(() => false), status: '已清空輪廓；請在畫布重新選擇' }),
   setExtrudeExpression: (text) => {
     const s = get(), result = dimensionExpression(text, s.params, evalExpr, 'mm', undefined, lengthScale(s.unit))
-    set({ extrudeExpression: text, extrudeExpressionError: result.error ?? null, extrudeHeight: result.value ?? 0 })
+    /* ★ BUG-549 ★ 拉伸距離完全冇上限 —— QA 五種提交方法都建出 1000000001 mm 嘅拉伸，
+     * bbox 210×60×1000000001，之後視口全空而且零提示。表達式求值出嚟嘅值
+     * 直接寫入 extrudeHeight，所以我喺輸入欄加嘅上限完全繞得過。
+     * 範圍要喺【求值呢度】驗，唔係喺某一個輸入框。 */
+    const EXTRUDE_MAX = 1000000
+    const v = result.value
+    const over = v != null && Math.abs(v) > EXTRUDE_MAX
+    set({
+      extrudeExpression: text,
+      extrudeExpressionError: result.error ?? (over ? `超出上限 ${EXTRUDE_MAX} mm（你打咗「${text.trim()}」）` : null),
+      ...(over ? {} : { extrudeHeight: v ?? 0 }),   // 超上限唔准寫入 —— 否則任何提交路徑都會用到污染值
+    })
   },
   // Keep zero while entering a distance; preview and commit reject zero solids.
   setExtrudeHeight: (h) => {
@@ -15617,13 +15628,17 @@ export const useApp = create<AppState>((rawSet, get) => {
   kernelNotice: null,
   dismissKernelNotice: () => set({ kernelNotice: null }),
   numericInvalid: {},
-  reportNumericInvalid: (id, reason) => set((st) => {
+  reportNumericInvalid: (id, reason) => {
+    /* ★ BUG-560 ★ 冇變就【完全唔好 call set】—— zustand 嘅 set({}) 一樣會通知
+     * 所有 subscriber，配埋一個 deps 寫錯咗嘅 effect 就會變無限迴圈。
+     * 喺呢度斬多一刀：就算將來又有人寫錯 deps，都唔會轆到崩潰。 */
+    const st = get()
     const cur = st.numericInvalid[id]
-    if (reason) { if (cur === reason) return {}; return { numericInvalid: { ...st.numericInvalid, [id]: reason } } }
-    if (cur === undefined) return {}
+    if (reason) { if (cur === reason) return; set({ numericInvalid: { ...st.numericInvalid, [id]: reason } }); return }
+    if (cur === undefined) return
     const n = { ...st.numericInvalid }; delete n[id]
-    return { numericInvalid: n }
-  }),
+    set({ numericInvalid: n })
+  },
   chooseFormBoxPlane: (plane, offset = 0) => set((s) => !s.formBoxDraft ? {} : ({
     formBoxDraft: { ...s.formBoxDraft, plane, planeOffset: offset, stage: 'center', center: null, cursor: [0, 0] },
     status: 'FORM Box：指定中心點。',

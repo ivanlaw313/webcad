@@ -72,7 +72,7 @@ test('★ BUG-540/541：長度欄要有上限（1e9 建出 1000000001 mm 嘅件�
   assert.ok(vp.includes('const overMax = max != null'), 'LenInput 冇上限檢查')
   assert.ok(vp.includes('超出上限 ${max} mm'), '超上限要講原因')
   // 超上限唔准寫入 model（否則「確定」閂住但 model 已經污染）
-  assert.ok(vp.includes('if (v != null && !(max != null && v > max)) onMm(v)'),
+  assert.ok(vp.includes('!(max != null && v > max)') && vp.includes('onMm(v)'),
     '超上限仲寫入 model —— 之後任何提交路徑都會用到嗰個污染值')
   assert.ok((vp.match(/max=\{1000000\}/g) ?? []).length >= 8,
     '圓角／孔 Ø／孔深／抽殼／拉伸 等要加上限，實得 ' + (vp.match(/max=\{1000000\}/g) ?? []).length)
@@ -132,4 +132,47 @@ test('★ BUG-536：載入只重建到一部分 → 要自動彈恢復清單 ★
   const blk = store.slice(i - 600, i + 900)
   assert.ok(blk.includes('listRecoverableAutosaves'),
     '★ 呢條路徑冇彈恢復清單 —— 崩潰嗰刻 UI 仲係空，所以對數對唔到 ★')
+})
+
+/* ── v2.19 QA 回報（我自己造成嘅崩潰 + min 從未驗證）───────────────────── */
+
+test('★ BUG-560（我造成嘅 P1）：登記 effect 嘅 deps 唔准放物件 ★', () => {
+  // React #185「Maximum update depth exceeded」—— NumInput 個 deps 放咗 parseNumericField
+  // 嘅結果物件，identity 次次唔同 → effect 次次跑 → set → re-render → 無限迴圈，
+  // 直接搞到「3D 視口」面板崩潰，而且擋住 QA 大量測試（BUG-517-BLOCKED）。
+  const ni = readFileSync(new URL('components/NumInput.tsx', SRC), 'utf8')
+  assert.equal(/\}, \[gateId, bad, r, reportNumericInvalid\]\)/.test(ni), false,
+    '★ deps 放返個物件 —— 無限 re-render ★')
+  assert.ok(ni.includes('const invalidReason ='), 'deps 要用【原始值】（字串）')
+  // 除名要獨立 unmount effect，唔好同 report 擺埋（否則每個 keystroke 清一次設一次）
+  assert.ok(ni.includes('useEffect(() => () => reportNumericInvalid(gateId, null)'),
+    '除名要擺喺獨立嘅 unmount effect')
+})
+
+test('★ BUG-560 第二道：store 冇變就唔准 call set ★', () => {
+  const blk = store.slice(store.indexOf('reportNumericInvalid: (id, reason)'),
+    store.indexOf('reportNumericInvalid: (id, reason)') + 900)
+  assert.equal(blk.includes('set((st) =>'), false,
+    '★ zustand set({}) 一樣會通知 subscriber —— 配埋寫錯 deps 就轆到崩潰 ★')
+  assert.ok(blk.includes('if (cur === reason) return'), '冇變就直接 return，唔好入 set')
+})
+
+test('★ BUG-551/552/561/514：min 一直宣告咗但從來冇驗證 ★', () => {
+  const li = vp.slice(vp.indexOf('function LenInput('), vp.indexOf('function LenInput(') + 4500)
+  assert.ok(li.includes('const underMin = min != null'),
+    '★ 抽殼壁厚打 -5 建出壁厚 5、孔深打 -5 變自動深度 —— 全部因為 min 冇驗 ★')
+  assert.ok(li.includes('最小 ${min} mm'), '要講返最小值同用戶原文')
+  assert.ok(li.includes('!(min != null && v < min)'), '低過 min 唔准寫入 model')
+  // FeatNum 一樣要有
+  const fn = vp.slice(vp.indexOf('function FeatNum('), vp.indexOf('function FeatNum(') + 3500)
+  assert.ok(fn.includes('const outRange ='), 'FeatNum 冇範圍檢查')
+})
+
+test('★ BUG-549：拉伸距離要喺【求值嗰度】封頂，唔係靠某一個輸入框 ★', () => {
+  const blk = store.slice(store.indexOf('setExtrudeExpression: (text)'),
+    store.indexOf('setExtrudeExpression: (text)') + 1400)
+  assert.ok(blk.includes('EXTRUDE_MAX = 1000000'),
+    '★ QA 五種提交方法都建出 1000000001 mm —— 表達式求值直接寫入 extrudeHeight，繞過輸入框 ★')
+  assert.ok(blk.includes('...(over ? {} : { extrudeHeight'), '超上限唔准寫入 extrudeHeight')
+  assert.ok(vp.includes('!!extrudeExpressionError ||'), '確定掣要查表達式錯誤')
 })

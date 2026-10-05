@@ -3305,7 +3305,7 @@ function PoleNet() {
 
 // T794：单位感知长度输入框 — 当前单位显示（inch 模式可打分数 "1/4"/"1 1/2"、后缀 mm/in/"），内部存 mm。
 // 文本框（非 number — 要容分数斜线）；失焦重格式化对齐显示。解析唔到就保持旧值（唔写）。
-function LenInput({ mm, onMm, onText, unit, w = 56, max, title }: { mm: number; onMm: (v: number) => void; /** BD16-02：每次改都報【原文】（連 parse 失敗都報）—— onMm 喺 parse 失敗嗰陣根本唔會 call，所以父層單靠 onMm 永遠唔知道欄位而家係非法／空白。 */ onText?: (raw: string) => void; unit: LenUnit; w?: number; min?: number; max?: number; title?: string }) {
+function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: number; onMm: (v: number) => void; /** BD16-02：每次改都報【原文】（連 parse 失敗都報）—— onMm 喺 parse 失敗嗰陣根本唔會 call，所以父層單靠 onMm 永遠唔知道欄位而家係非法／空白。 */ onText?: (raw: string) => void; unit: LenUnit; w?: number; min?: number; max?: number; title?: string }) {
   const [txt, setTxt] = useState(() => toLenInput(mm, unit))
   const [foc, setFoc] = useState(false)
   /* ★ BUG-409（P1，合併 9 條）嘅【單一最大源頭】★
@@ -3328,7 +3328,12 @@ function LenInput({ mm, onMm, onText, unit, w = 56, max, title }: { mm: number; 
    * ★ 唔准靜默夾 ★ 嗰個正正係 BUG-409 要根治嘅行為。 */
   const parsed = txt.trim() === '' ? null : parseLen(txt, unit)
   const overMax = max != null && parsed != null && parsed > max
-  const bad = txt.trim() !== '' && (parsed == null || overMax)
+  /* ★ BUG-551/552/561/514 ★ `min` 由 v2.19 開始一直【宣告咗但從來冇驗證】——
+   * 所以抽殼壁厚打 -5、孔深打 -5 全部當合法，落到幾何層先被 abs／預設值蓋走，
+   * 建出壁厚 5、自動深度 7.5。負號喺欄入面「留唔低」亦都係呢個原因：
+   * -5 當合法 → onBlur 用 toLenInput 改寫成「5」。 */
+  const underMin = min != null && parsed != null && parsed < min
+  const bad = txt.trim() !== '' && (parsed == null || overMax || underMin)
   const blank = txt.trim() === ''
   /* ★ BUG-529/533/537/538/541/542 ★ 自己向 store 登記「我而家非法」。
    * 唔可以再靠每個對話框記得查 —— 上一輪就係咁漏咗一半。欄自己講，
@@ -3337,8 +3342,9 @@ function LenInput({ mm, onMm, onText, unit, w = 56, max, title }: { mm: number; 
   const reportNumericInvalid = useApp((s) => s.reportNumericInvalid)
   useEffect(() => {
     reportNumericInvalid(gateId, bad ? `非法輸入「${txt.trim()}」` : null)
-    return () => reportNumericInvalid(gateId, null)
   }, [gateId, bad, txt, reportNumericInvalid])
+  // 除名只喺 unmount（見 NumInput 嘅 BUG-560 註）
+  useEffect(() => () => reportNumericInvalid(gateId, null), [gateId, reportNumericInvalid])
   /* ★ BUG-501 修（P1：畫面數字 ≠ 實際結果）★
    *
    * QA 實測：孔對話框撳預設「M6 過孔 6.6」，直徑欄仍然顯示 16，但真係做出 Ø6.6。
@@ -3359,6 +3365,8 @@ function LenInput({ mm, onMm, onText, unit, w = 56, max, title }: { mm: number; 
   const shown = (foc || bad || blank) ? txt : toLenInput(mm, unit)
   const reason = overMax
     ? `超出上限 ${max} mm（你打咗「${txt.trim()}」）`
+    : underMin
+    ? `最小 ${min} mm（你打咗「${txt.trim()}」）`
     : bad
     ? `唔係一個有效長度（你打咗「${txt.trim()}」）${unit === 'inch' ? '；inch 模式可打分數，例如 1/4' : '；例如 80 或 12.5'}`
     : blank ? '未輸入數值' : ''
@@ -3372,7 +3380,7 @@ function LenInput({ mm, onMm, onText, unit, w = 56, max, title }: { mm: number; 
        * 而家 blank 同 bad 一樣唔 snap。 */
       onBlur={() => { setFoc(false); if (!bad && !blank) setTxt(toLenInput(mm, unit)) }}
       // BUG-SO18F-001: notify parent even when below min (Ø-1) so preview/confirm can reject+clear instead of keeping a stale legal value.
-      onChange={(e) => { setTxt(e.target.value); const v = parseLen(e.target.value, unit); if (v != null && !(max != null && v > max)) onMm(v); onText?.(e.target.value) }}
+      onChange={(e) => { setTxt(e.target.value); const v = parseLen(e.target.value, unit); if (v != null && !(max != null && v > max) && !(min != null && v < min)) onMm(v); onText?.(e.target.value) }}
       style={{ width: w, ...(bad || blank ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
     />
   )
@@ -7290,7 +7298,7 @@ export default function Viewport() {
           title={tStatus('拉伸', lang)}
           width={320}
           okTip={extrudeRegionTotal > 0 && extrudeRegionSelCount === 0 ? tStatus('先點畫布揀要拉伸嘅 profile 區域', lang) : tStatus('生成（Enter）', lang)}
-          okDisabled={!!numBad || (busy || (!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) || !!extrudeExpressionError || extrudeSelectionCleared || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6)))}
+          okDisabled={!!numBad || !!extrudeExpressionError || (busy || (!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) || !!extrudeExpressionError || extrudeSelectionCleared || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6)))}
           onOk={() => void extrudeSketch()}
           onCancel={() => cancelExtrudeDlg()}
 
@@ -8549,7 +8557,7 @@ function QuiltPickPanel() {
  * 呢個組件接上已有嘅 BUG-409/417 通道：setFeatParam(k, value, raw) 會記住原文，
  * featDlgBlockingReason 就閂得到「確定」掣，理由亦夾得到用戶原文。
  * unit='mm' 嘅欄行 parseLen → 連 inch 分數（1/4）同算式（10+5）一齊通。 */
-function FeatNum({ k, v, w = 56, unit = '', title }: { k: string; v: unknown; w?: number; unit?: '' | 'mm' | 'deg'; title?: string }) {
+function FeatNum({ k, v, w = 56, unit = '', min, max, title }: { k: string; v: unknown; w?: number; unit?: '' | 'mm' | 'deg'; min?: number; max?: number; title?: string }) {
   const setFeatParam = useApp((s) => s.setFeatParam)
   const docUnit = useApp((s) => s.unit)
   const [txt, setTxt] = useState('')
@@ -8563,18 +8571,21 @@ function FeatNum({ k, v, w = 56, unit = '', title }: { k: string; v: unknown; w?
       return evalArith(t)
     })()
   const shownVal = unit === 'mm' ? toLenInput(num, docUnit) : (Number.isFinite(num) ? String(Math.round(num * 1e6) / 1e6) : '')
-  const bad = txt.trim() !== '' && parse(txt) == null
+  const pv = txt.trim() === '' ? null : parse(txt)
+  const outRange = pv != null && ((min != null && pv < min) || (max != null && pv > max))
+  const bad = txt.trim() !== '' && (pv == null || outRange)
   const gateId = useId()
   const reportNumericInvalid = useApp((s) => s.reportNumericInvalid)
   useEffect(() => {
     reportNumericInvalid(gateId, bad ? `非法輸入「${txt.trim()}」` : null)
-    return () => reportNumericInvalid(gateId, null)
   }, [gateId, bad, txt, reportNumericInvalid])
+  // 除名只喺 unmount（見 NumInput 嘅 BUG-560 註）
+  useEffect(() => () => reportNumericInvalid(gateId, null), [gateId, reportNumericInvalid])
   const shown = (foc || bad) ? txt : shownVal
   return (
     <input
       type="text" inputMode="decimal" value={shown} style={{ width: w, ...(bad ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
-      title={bad ? `唔係有效數值（你打咗「${txt.trim()}」）` : title} aria-label={title || undefined} aria-invalid={bad || undefined}
+      title={outRange ? `超出範圍${min != null ? ` 最小 ${min}` : ''}${max != null ? ` 最大 ${max}` : ''}（你打咗「${txt.trim()}」）` : bad ? `唔係有效數值（你打咗「${txt.trim()}」）` : title} aria-label={title || undefined} aria-invalid={bad || undefined}
       /* ★ 唔好用 k 做 aria-label ★ 內部參數名（countX／dx）會蓋過旁邊可見嘅中文標籤，
        * 螢幕閱讀器反而讀到更差嘅名。冇 title 就留返畀 <label> 自己關聯。 */
       onFocus={() => { setFoc(true); setTxt(shownVal) }}
@@ -8583,7 +8594,8 @@ function FeatNum({ k, v, w = 56, unit = '', title }: { k: string; v: unknown; w?
         const raw = e.target.value
         setTxt(raw)
         const n = parse(raw)
-        setFeatParam(k, n == null ? NaN : n, raw)   // 連原文一齊傳 → 確定掣閂得到、理由夾得到原文
+        const out = n != null && ((min != null && n < min) || (max != null && n > max))
+        setFeatParam(k, (n == null || out) ? NaN : n, raw)   // 連原文一齊傳 → 確定掣閂得到、理由夾得到原文
       }}
     />
   )
@@ -8673,11 +8685,11 @@ function FormPanel() {
             </span>
           </label>
           {expanded && <>
-            <label style={row}>{zh ? '長度' : 'Length'} <span><LenInput mm={boxDraft.length} onMm={(v) => patch({ length: v })} onText={markDim('長度')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
+            <label style={row}>{zh ? '長度' : 'Length'} <span><LenInput mm={boxDraft.length} onMm={(v) => patch({ length: v })} onText={markDim('長度')} unit={unit} w={86} min={0.1} max={1000000}  title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
             <label style={row}>{zh ? '長度面數' : 'Length Faces'} <input aria-label="Form Box Length Faces" type="number" min={1} step={1} value={boxDraft.lengthFaces} onChange={(e) => patch({ lengthFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
-            <label style={row}>{zh ? '寬度' : 'Width'} <span><LenInput mm={boxDraft.width} onMm={(v) => patch({ width: v })} onText={markDim('寬度')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
+            <label style={row}>{zh ? '寬度' : 'Width'} <span><LenInput mm={boxDraft.width} onMm={(v) => patch({ width: v })} onText={markDim('寬度')} unit={unit} w={86} min={0.1} max={1000000}  title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
             <label style={row}>{zh ? '寬度面數' : 'Width Faces'} <input aria-label="Form Box Width Faces" type="number" min={1} step={1} value={boxDraft.widthFaces} onChange={(e) => patch({ widthFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
-            <label style={row}>{zh ? '高度' : 'Height'} <span><LenInput mm={boxDraft.height} onMm={(v) => patch({ height: v })} onText={markDim('高度')} unit={unit} w={86} min={0.1} title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
+            <label style={row}>{zh ? '高度' : 'Height'} <span><LenInput mm={boxDraft.height} onMm={(v) => patch({ height: v })} onText={markDim('高度')} unit={unit} w={86} min={0.1} max={1000000}  title={zh ? '可以打算式（10+5、2*25）同分數（inch 模式 1/2）；打錯會留住原文，唔會靜靜代入預設值' : undefined} /> {unit === 'inch' ? 'in' : unit}</span></label>
             <label style={row}>{zh ? '高度面數' : 'Height Faces'} <input aria-label="Form Box Height Faces" type="number" min={1} step={1} value={boxDraft.heightFaces} onChange={(e) => patch({ heightFaces: Math.max(1, Math.round(Number(e.target.value) || 1)) })} style={field} /></label>
           </>}
           <label style={row}>{zh ? '方向' : 'Direction'}

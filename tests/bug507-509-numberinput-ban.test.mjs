@@ -78,8 +78,10 @@ test('★ BUG-507：逐組半徑欄（QA 明確報 1/4→14mm、3/8→38mm）★
 
 test('★ BUG-509：featDlg 數值欄要行 FeatNum，而且連原文一齊傳 ★', () => {
   assert.ok(vp.includes('function FeatNum('), '搵唔到 FeatNum')
-  assert.ok(vp.includes('setFeatParam(k, n == null ? NaN : n, raw)'),
-    '★ 一定要連原文 raw 一齊傳 —— 否則「確定」閂唔到、理由夾唔到用戶打嘅字 ★')
+  // 釘【意圖】唔釘逐字：解析唔到／超範圍 → 唔准畀個合法數字，但原文 raw 一定要傳返上去
+  const fn = vp.slice(vp.indexOf('function FeatNum('), vp.indexOf('function FeatNum(') + 3500)
+  assert.ok(fn.includes('NaN : n, raw)') && fn.includes('setFeatParam(k,'),
+    '★ 一定要連原文 raw 一齊傳，而且非法要傳 NaN 唔好傳個代入值 ★')
   assert.ok((vp.match(/<FeatNum k="/g) ?? []).length >= 100, '只換咗一部分 featDlg 欄')
 })
 

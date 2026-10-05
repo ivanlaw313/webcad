@@ -62,10 +62,15 @@ export function NumInput({
    * 唔靠每個對話框記得查，所以漏接喺結構上唔可能發生。 */
   const gateId = useId()
   const reportNumericInvalid = useApp((st) => st.reportNumericInvalid)
-  useEffect(() => {
-    reportNumericInvalid(gateId, bad ? (r && !r.ok ? r.reason ?? '非法輸入' : '非法輸入') : null)
-    return () => reportNumericInvalid(gateId, null)
-  }, [gateId, bad, r, reportNumericInvalid])
+  /* ★ BUG-560（我造成嘅 P1：React #185 無限更新迴圈）★
+   * 第一版個 deps 放咗 `r` —— 佢係每次 render 都新建嘅物件，identity 次次唔同，
+   * 所以 effect 次次都跑 → set → re-render → effect 再跑 → 視口面板直接崩潰。
+   * ⚠ deps 只准放【原始值】。另外除名要擺喺【獨立嘅 unmount effect】，
+   * 唔好同 report 擺埋一齊 —— 否則每個 keystroke 都會「清一次再設一次」，
+   * 白白多一輪通知同 re-render。 */
+  const invalidReason = bad ? ((r && !r.ok && r.reason) ? r.reason : '非法輸入') : ''
+  useEffect(() => { reportNumericInvalid(gateId, invalidReason || null) }, [gateId, invalidReason, reportNumericInvalid])
+  useEffect(() => () => reportNumericInvalid(gateId, null), [gateId, reportNumericInvalid])
   // 未聚焦／一切正常 → 顯示由 value 推導（冇同步窗口，顯示唔可能同 model 唔同）
   const shown = foc || bad ? txt : fmt(value)
   const reason = bad ? (r.reason ?? '') : blank ? `${label}：未輸入` : ''

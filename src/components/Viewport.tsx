@@ -3,7 +3,7 @@ import { revolvePointToCad, type RevolveFrameSource } from '../cad/revolvePrevie
 import { FloatingViewMenu } from './FloatingViewMenu'
 import MultiViewPanes from './MultiViewPanes'
 import { useEscapeLayer } from './useEscapeLayer'
-import { sketchFacePlane } from '../geom/sketchFacePlane'
+import { sketchFacePlane, planarSketchPick } from '../geom/sketchFacePlane'
 import { FormTransformFields } from './FormTransformFields'
 import { FormPalette } from './FormPalette'
 import { activeModelCommand } from '../cad/commandAvailability'
@@ -75,7 +75,7 @@ import { cutFaceGeom } from '../geom/sectionCap'   // S186：剖面盖切面三�
 import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按需预览（避免普通建模首屏载入齿轮搜索）
 import { ToolIcon } from '../icons'
 import { featDlgBlockingReason } from '../cad/featDlgNumeric'   // 純邏輯模組，唔經 monolith
-import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC } from '../store'
+import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
 import { cadPointToThree, formBoxRectCadCorners, makePlacedBoxCage, type FormBoxDraft, type FormBoxPlane } from '../cad/formBox'
@@ -665,6 +665,14 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
           || (frozen && !!compId && (faceSketchPick || mode === 'pickplane'))   // GM-W4 4.3：网格件拾面画草图都有共面高亮
         if (armed && e.faceIndex != null) { e.stopPropagation(); const fg = faceGroupTris(mesh, e.faceIndex); setHoverFace(fg.length ? fg : coplanarFaceTris(mesh, e.faceIndex)) }   // S99：优先真 B-rep 面（分割子面分得开），回落共面拟合
         else setHoverFace(null)   // pick mode ended (or moved off a face) → clear any lingering highlight
+      }}
+      onContextMenu={(e) => {
+        // BUG-272: right-click selects the planar face under the cursor so 建立草圖 can start on it.
+        // Flag the native event (runs before the viewport menu) so a miss can drop a stale face.
+        if (frozen || mode === 'sketch') return
+        ;(e.nativeEvent as { __webcadPlanar?: boolean }).__webcadPlanar = true
+        const pick = e.faceIndex != null ? planarSketchPick(faceGroupTris(mesh, e.faceIndex), [e.point.x, e.point.y, e.point.z]) : null
+        notePlanarFace(pick?.three ?? null, pick?.n)
       }}
       onClick={(e) => {
         if (automatedModelPicking && !frozen && e.faceIndex != null) {
@@ -4380,7 +4388,11 @@ export default function Viewport() {
         e.preventDefault()  // never show the browser's native menu in the viewport
         const d = rcDown.current; rcDown.current = null
         const moved = d ? Math.hypot(e.clientX - d.x, e.clientY - d.y) : 99
-        if (moved < 6) setCtxMenu({ x: e.clientX, y: e.clientY })  // right-click (not right-drag-pan) → our menu
+        if (moved < 6) {
+          setCtxMenu({ x: e.clientX, y: e.clientY })  // right-click (not right-drag-pan) → our menu
+          const hit = (e.nativeEvent as { __webcadPlanar?: boolean }).__webcadPlanar
+          if (useApp.getState().mode !== 'sketch' && !hit) notePlanarFace(null)
+        }
       }}
     >
       {viewLayout !== 'single' && <MultiViewPanes layout={viewLayout} />}
@@ -4832,7 +4844,13 @@ export default function Viewport() {
           // （旧 model 数组有 9 项 — DIRS[8] 越界，第 9 粒「测量」render 即 crash 嘅潜伏 bug，呢度顺手修正：删面→溢出列表）。
           const del: MMItem = { key: 'del', icon: 'trash', label: msg('mm.delete', lang), disabled: !selectedFeature && !selectedComponent, fn: () => { if (selectedFeature) { removeFeature(selectedFeature); selectFeature(null) } else if (selectedComponent) useApp.getState().deleteComponent(selectedComponent) } }
           const fit: MMItem = { key: 'fit', glyph: '⊕', label: msg('mm.fit', lang), fn: () => requestFit() }
-          const newSketch: MMItem = { key: 'sketch', icon: 'sketch', label: msg('mm.createSketch', lang), fn: () => startSketch() }
+          const newSketch: MMItem = { key: 'sketch', icon: 'sketch', label: msg('mm.createSketch', lang), fn: () => {
+            // BUG-272: right-click on a planar face (side or top) then 建立草圖 starts there.
+            // No face (empty right-click) keeps the origin-plane picker. The pickplane click path is unchanged.
+            const face = peekPlanarFace()
+            if (face) void useApp.getState().startSketchOnFace(face.three, face.n)
+            else startSketch()
+          } }
           if (bodyMesh) {
             // ── 实体上（有活动实体）：N 重复 · NE 草图 · E 按拉 · SE 测量 · S 删除 · SW 移动 · W 圆角 · NW 适应
             sectors = [

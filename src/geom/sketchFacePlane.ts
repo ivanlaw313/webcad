@@ -19,3 +19,15 @@ export function sketchFacePlane(triangles: ArrayLike<number>): { p: V3; n: V3 } 
   }
   return {p,n}
 }
+
+/** Project a three.js hit onto a planar CAD face.
+ *  `three` is the point startSketchOnFace expects (three Y-up); `n` is the CAD normal.
+ *  Non-planar or malformed faces return null — never a fitted triangle. */
+export function planarSketchPick(triangles: ArrayLike<number>, threePoint: V3): { three: V3; n: V3 } | null {
+  const det = sketchFacePlane(triangles)
+  if (!det || threePoint.length < 3 || !threePoint.every(Number.isFinite)) return null
+  const q: V3 = [threePoint[0], -threePoint[2], threePoint[1]]
+  const distance = (q[0] - det.p[0]) * det.n[0] + (q[1] - det.p[1]) * det.n[1] + (q[2] - det.p[2]) * det.n[2]
+  const cad: V3 = [q[0] - distance * det.n[0], q[1] - distance * det.n[1], q[2] - distance * det.n[2]]
+  return { three: [cad[0], cad[2], -cad[1]], n: det.n }
+}

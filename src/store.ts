@@ -71,7 +71,7 @@ import { ellipseLineTangentPair, initialEllipseContact, applyRelationUpdates, el
 import { solveConstrainedPointDrag, sketchesNumericallyEqual } from './sketch/constrainedDrag'
 import { appendMirrorAxis, buildMirrorRelations, solveMirrorCandidate } from './sketch/mirrorRelations'
 import { buildMoveCandidate, solveMoveCandidate } from './sketch/moveRelations'
-import { buildCopyRelations, solveCopyCandidate, type CopyTransform } from './sketch/copyRelations'
+import { buildCopyRelations, solveCopyCandidate, transformCopyShape, type CopyTransform } from './sketch/copyRelations'
 import { solveConstrainedEdgeDrag } from './sketch/constrainedEdgeDrag'
 import { constraintsAfterTrim } from './sketch/trimConstraints'
 import { detectAnalyticRegions, type AnalyticLoop } from './sketch/analyticRegions'
@@ -244,6 +244,15 @@ const bumpSkid = (keys: string[]) => { for (const k of keys) { const n = Number(
 // #11 datum 关联化 v2：sketchOnDatumPlane 捕获嘅关联 datum（有 src）→ commitStandaloneSketch 写入 sketchSource.datumRef。
 //   仅【基准平面草图（cardinal datum）】；角度面草图（arb）= v2.1。byte-compat：无 datumRef 嘅草图源永不受影响。
 let _faceSketchPickSequence = 0
+// BUG-272: last planar body face the user selected (left-click or right-click). Not persisted.
+let _selectedPlanarFace: { three: [number, number, number]; n: [number, number, number] } | null = null
+export function notePlanarFace(three: [number, number, number] | null, n?: [number, number, number]) {
+  if (!three || !n || three.length < 3 || n.length < 3 || !three.every(Number.isFinite) || !n.every(Number.isFinite)) { _selectedPlanarFace = null; return }
+  _selectedPlanarFace = { three: [three[0], three[1], three[2]], n: [n[0], n[1], n[2]] }
+}
+export function peekPlanarFace() { return _selectedPlanarFace }
+let _sketchClip: SketchShape[] | null = null
+let _sketchPasteN = 0
 let _pendingDatumRef: { idx: number; base: Plane; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } } | null = null   // GM-3DV2 R12：arb = 角度/斜 datum 草图创建时嘅 datum arb 签名（datum 郁 → 草图 arb + extgroup arbPlane 跟）
 let _datumRepassGuard = false   // 防 datum 重烘焙第二趟 rebuild 无限递归
 let _skEditRollback = false     // GM-W6 F1：重开草图编辑时时间轴已回卷（gotoStep(featIdx)）→ 非重建退出路径要还原返最尾
@@ -1717,6 +1726,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   toggleConstruction: () => void           // 构造几何切换（Fusion X）：选中 shape ⇄ 虚线参考几何
   skMutationError: string | null
   skDeleteSel: () => Promise<void>                  // Delete：选中点→删顶点 / 选中边/圆→删轮廓（约束重映射）
+  copySketchSelection: () => void               // BUG-210：Ctrl+C 复制选中边/轮廓（纯几何，非关联）
+  pasteSketchSelection: () => void              // BUG-210：Ctrl+V 贴上并偏移约 10 mm，避免叠在原位
   // 选择工具拖拽点：欠约束几何实时跟手（planegcs coordinate 钉住光标，约束实时满足 — Fusion 拖拽）
   // grab = 圆周抓取偏移（T740：揸住圆嘅圆周拖 = 拖圆心 + 保持抓点相对位置，Fusion 同款手感）
   skDrag: { ref: SkRef; start: Pt; moved: boolean; undoSnap: AppState['sketchUndo'][number]; finishing?: boolean; outcome?: 'moved' | 'locked' | 'failed'; grab?: Pt; ends?: [Pt, Pt]; radius?: Pt } | null  // ends（S197）= 拖成条边/弧：dragStart 记低段两端原位 — move 时两端同步 pin 到 原位+总Δ; radius（GM-FP3 #40）= 拖圆周改半径：记圆心，move 时按 |光标−圆心| 缩放（圆心不动）
@@ -8979,8 +8990,36 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
   },
 
+  // BUG-210：草图复制/贴上。只克隆几何，不走 buildCopyRelations（不是关联偏移 BUG-207）。
   // Fusion-style: Create Sketch first asks you to pick a datum — one of the 3 origin planes
   // (shown as clickable coloured planes in 3D) OR any planar face of an existing solid — then you draw.
+  copySketchSelection: () => {
+    const s = get()
+    if (s.mode !== 'sketch') return
+    const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
+    const idx = [...new Set(s.skSel.flatMap((r) => ('shape' in r ? [r.shape] : [])))].filter((i) => shapes[i]).sort((a, b) => a - b)
+    if (!idx.length) { set({ status: '複製：請先選一條邊或輪廓' }); return }
+    _sketchClip = idx.map((i) => structuredClone(shapes[i]))
+    _sketchPasteN = 0
+    set({ status: `已複製 ${_sketchClip.length} 個草圖圖元 — Ctrl+V 貼上（偏移 10 mm）` })
+  },
+  pasteSketchSelection: () => {
+    const s = get()
+    if (s.mode !== 'sketch') return
+    if (!_sketchClip?.length) { set({ status: '貼上：剪貼板沒有草圖圖元（先選邊或輪廓再 Ctrl+C）' }); return }
+    if (s.skPatternData) { set({ status: '貼上：陣列草圖暫不支援 Ctrl+V（避免打亂陣列身份）' }); return }
+    _sketchPasteN += 1
+    const off = 10 * _sketchPasteN
+    const clones = _sketchClip.map((sh) => transformCopyShape(sh, { dx: off, dy: 0, angleDeg: 0, cx: 0, cy: 0 }))
+    const base = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
+    const start = base.length
+    const sel: SkRef[] = clones.map((sh, i) => sh.type === 'circle' ? { kind: 'circle', shape: start + i } : { kind: 'edge', shape: start + i, idx: 0 })
+    set({
+      sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
+      sketchProfiles: [...base, ...clones], sketchShape: null, skSel: sel, sketchTool: 'select',
+      status: `已貼上 ${clones.length} 個草圖圖元（偏移 ${off} mm，避免疊在原位）`,
+    })
+  },
   startSketch: () => {
     _hydraSk = null  // T756：开新草图 = 唔再系「食紧独立草图」状态
     set(() => ({ projectRelink:null, mode: 'pickplane', sketchTool: 'select', navTool: 'orbit', sketchOp: 'new', selSketch: null,  // every new sketch defaults to ＋新建 (Fusion-like) — avoids a stale 切割/相交 op silently eating the next extrude

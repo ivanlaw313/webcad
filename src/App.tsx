@@ -109,6 +109,12 @@ export default function App() {
         else if (ck === 'f' && e.shiftKey) { e.preventDefault(); try { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen() } catch { /* 不支持 */ } }
         // AI Copilot。Ctrl+Shift+A 未用於其他命令（Ctrl+Shift+F = 全屏、Ctrl+Shift+Z = 重做）。
         else if (ck === 'a' && e.shiftKey) { e.preventDefault(); useApp.getState().runCommand('aicopilot', 'AI 助手') }
+        // BUG-210：草图内 Ctrl+C / Ctrl+V。其他模式照旧 return，唔抢浏览器复制。
+        else if ((ck === 'c' || ck === 'v') && !e.shiftKey && useApp.getState().mode === 'sketch') {
+          e.preventDefault()
+          if (ck === 'c') useApp.getState().copySketchSelection()
+          else useApp.getState().pasteSketchSelection()
+        }
         return
       }
       // BUG-BD-1804：Alt+O = 插入 STL（绕过可能挂起的原生菜单路径）

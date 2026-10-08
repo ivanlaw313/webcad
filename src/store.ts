@@ -256,6 +256,84 @@ let _sketchPasteN = 0
 let _pendingDatumRef: { idx: number; base: Plane; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } } | null = null   // GM-3DV2 R12：arb = 角度/斜 datum 草图创建时嘅 datum arb 签名（datum 郁 → 草图 arb + extgroup arbPlane 跟）
 let _datumRepassGuard = false   // 防 datum 重烘焙第二趟 rebuild 无限递归
 let _skEditRollback = false     // GM-W6 F1：重开草图编辑时时间轴已回卷（gotoStep(featIdx)）→ 非重建退出路径要还原返最尾
+// BUG-213：完成草图写入时间轴之后，Ctrl+Z 要回到草图编辑（矩形还在），不能把文档弹成空档。
+// 会话挂在「完成前」那条撤销条目上，不进存档。再按 Ctrl+Z 仍走草图逐步撤销。
+const SKETCH_FINISH_UNDO_STATUS = '已撤銷完成草圖 — 返回編輯'
+type SketchFinishUndo = {
+  sketchTool: AppState['sketchTool']
+  sketchPlane: Plane
+  sketchBaseZ: number
+  sketchArb: AppState['sketchArb']
+  sketchFromFace: boolean
+  pendingSketchFaceBinding: AppState['pendingSketchFaceBinding']
+  pendingDatumRef: { idx: number; base: Plane; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } } | null
+  sketchProfiles: SketchShape[]
+  sketchShape: SketchShape | null
+  skCons: SkCon[]
+  skPatternData: AppState['skPatternData']
+  sketchUndo: AppState['sketchUndo']
+  sketchRedo: AppState['sketchRedo']
+  polyPts: Pt[]
+  sketchStart: Pt | null
+  skDof: number | null
+  skConflict: boolean
+  skConflictIds: string[]
+  skFreeShapes: Set<number>
+  skDimLabelOff: AppState['skDimLabelOff']
+  skRefGeo: RefGeo | null
+  skId: string
+}
+const _sketchFinishUndo = new WeakMap<object, SketchFinishUndo>()
+const cloneSketchFinishUndo = (s: AppState, skId: string): SketchFinishUndo | null => {
+  try {
+    return structuredClone({
+      sketchTool: s.sketchTool, sketchPlane: s.sketchPlane, sketchBaseZ: s.sketchBaseZ, sketchArb: s.sketchArb,
+      sketchFromFace: s.sketchFromFace, pendingSketchFaceBinding: s.pendingSketchFaceBinding, pendingDatumRef: _pendingDatumRef,
+      sketchProfiles: s.sketchProfiles, sketchShape: s.sketchShape, skCons: s.skCons, skPatternData: s.skPatternData,
+      sketchUndo: s.sketchUndo, sketchRedo: s.sketchRedo, polyPts: s.polyPts, sketchStart: s.sketchStart,
+      skDof: s.skDof, skConflict: s.skConflict, skConflictIds: s.skConflictIds, skFreeShapes: s.skFreeShapes,
+      skDimLabelOff: s.skDimLabelOff, skRefGeo: s.skRefGeo, skId,
+    })
+  } catch { return null }
+}
+const reopenSketchState = (session: SketchFinishUndo): Partial<AppState> => {
+  const live = structuredClone(session)
+  setRefGeo(live.skRefGeo)
+  _pendingDatumRef = live.pendingDatumRef
+  return {
+    mode: 'sketch', navTool: 'orbit', sketchTool: live.sketchTool, sketchPlane: live.sketchPlane, sketchBaseZ: live.sketchBaseZ,
+    sketchArb: live.sketchArb, sketchFromFace: live.sketchFromFace, pendingSketchFaceBinding: live.pendingSketchFaceBinding,
+    sketchProfiles: live.sketchProfiles, sketchShape: live.sketchShape, skCons: live.skCons, skPatternData: live.skPatternData,
+    sketchUndo: live.sketchUndo, sketchRedo: live.sketchRedo, polyPts: live.polyPts, sketchStart: live.sketchStart,
+    skDof: live.skDof, skConflict: live.skConflict, skConflictIds: live.skConflictIds, skFreeShapes: live.skFreeShapes,
+    skDimLabelOff: live.skDimLabelOff, skRefGeo: live.skRefGeo, skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null,
+    skArmedCon: null, skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null, skEditTarget: null,
+    sketchPreview: null, sketchSnap: null, sketchDim: null, sketchFocus: null,
+    ...(useApp.getState().selSketch === live.skId ? { selSketch: null } : {}),
+    status: SKETCH_FINISH_UNDO_STATUS,
+  }
+}
+const closeFinishedSketchState = (): Partial<AppState> => {
+  setRefGeo(null)
+  _pendingDatumRef = null
+  return {
+    mode: 'model', navTool: 'orbit', sketchTool: 'select', sketchStart: null, polyPts: [], sketchUndo: [], sketchRedo: [], skSel: [],
+    skPendingPt: null, skPendingPair: null, skPendingEdge: null, skArmedCon: null, skRefGeo: null, sketchFocus: null, sketchShape: null,
+    sketchProfiles: [], sketchArb: null, skCons: [], skPatternData: null, skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null,
+    sketchPreview: null, sketchSnap: null, sketchDim: null,
+  }
+}
+const sketchEditorFields = (s: AppState): Partial<AppState> => ({
+  mode: s.mode, navTool: s.navTool, sketchTool: s.sketchTool, sketchPlane: s.sketchPlane, sketchBaseZ: s.sketchBaseZ,
+  sketchArb: s.sketchArb, sketchFromFace: s.sketchFromFace, pendingSketchFaceBinding: s.pendingSketchFaceBinding,
+  sketchProfiles: s.sketchProfiles, sketchShape: s.sketchShape, skCons: s.skCons, skPatternData: s.skPatternData,
+  sketchUndo: s.sketchUndo, sketchRedo: s.sketchRedo, polyPts: s.polyPts, sketchStart: s.sketchStart,
+  skDof: s.skDof, skConflict: s.skConflict, skConflictIds: s.skConflictIds, skFreeShapes: s.skFreeShapes,
+  skDimLabelOff: s.skDimLabelOff, skRefGeo: s.skRefGeo, skSel: s.skSel, skPendingPt: s.skPendingPt, skPendingPair: s.skPendingPair,
+  skPendingEdge: s.skPendingEdge, skArmedCon: s.skArmedCon, skBoolPending: s.skBoolPending, mirrorPick: s.mirrorPick,
+  toolPreview: s.toolPreview, sizing: s.sizing, skEditTarget: s.skEditTarget, sketchPreview: s.sketchPreview, sketchSnap: s.sketchSnap,
+  sketchDim: s.sketchDim, sketchFocus: s.sketchFocus, selSketch: s.selSketch,
+})
 // 纯函数：datum（源面）移动后，重烘焙【带 datumRef 嘅草图源 baseZ】+ 依赖 extrude 嘅 baseZ（用 delta，稳健于本地偏移）。
 //   返 null = 无嘢改（无 datumRef 草图源 / datum 无移动）→ caller 完全跳过（现行行为）。
 //   ⚠ 用【array index】做 datum key（唔用 src.near —— rederiveDatums 会把 src.near 更新到新面位置，故 srcNear 面移动后必失配）。
@@ -4872,7 +4950,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         pushHistory()
         // No active body — but an assembly-only doc (components, 0 features) is NOT empty: show the caller's
         // message, not "已清空", or loading/restoring an assembly falsely flashes "cleared" and alarms the user.
-        set({ features: bound, bodyMesh: null, bodyTopZ: 0, timelinePos: bound.length, busy: false, status: (bound.length || get().components.length) ? okMsg : '已清空', failedFeatureIds: [], featureErrors: {}, planes: planesFromFeatures(bound, sup), ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('幾何已改') : {}) })   // GM-W5 5.1：空树亦派生 planes（全抑制/空档 → []）
+        set({ features: bound, bodyMesh: null, bodyTopZ: 0, timelinePos: bound.length, busy: false, status: (bound.length || get().components.length || get().mode === 'sketch') ? okMsg : '已清空', failedFeatureIds: [], featureErrors: {}, planes: planesFromFeatures(bound, sup), ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('幾何已改') : {}) })   // GM-W5 5.1：空树亦派生 planes（全抑制/空档 → []）
         return true
       }
       // Operation-specific hint (used by both the empty-mesh and kernel-threw paths) — far more actionable
@@ -9228,12 +9306,20 @@ export const useApp = create<AppState>((rawSet, get) => {
     const savedPatternData = clonePatternData(s.skPatternData)
     const savedPlane = s.sketchPlane, savedZ = s.sketchBaseZ
     const savedArb = s.sketchArb ? JSON.parse(JSON.stringify(s.sketchArb)) as NonNullable<AppState['sketchArb']> : null
+    const finishUndo = cloneSketchFinishUndo(s, skId)   // BUG-213：清场前记下草图会话，撤销完成时原样 reopen
     const savedDatumRef = _pendingDatumRef; _pendingDatumRef = null   // #11：捕获关联 datum 签名（若草图开自关联基准面）→ 写入 sketchSource
     setRefGeo(null)
+    const histMark = get().undoStack.length
     set({ mode: 'model', sketchStart: null, polyPts: [], sketchUndo: [], sketchRedo: [], skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null, skArmedCon: null, skRefGeo: null, sketchFocus: null, sketchShape: null, sketchProfiles: [], sketchArb: null, skCons: [], skPatternData: null, skBoolPending: null, mirrorPick: null, toolPreview: null, sizing: null })
     const ok = await get().applyFeatures([...get().features, f], `草图已完成（${shapes.length} 个轮廓，紫色线）— 可「拉伸/旋转」直接用，或画多个唔同基准Z嘅草图再「放样」；双击时间轴/浏览树可重开`)
     if (ok) {
       set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: savedShapes, cons: savedCons, ...(savedPatternData ? {patternData: savedPatternData} : {}), plane: savedPlane, baseZ: savedZ, op: 'new' as BoolOp, height: 0, visible: true, arb: savedArb ?? undefined, ...(savedDatumRef ? { datumRef: savedDatumRef } : {}), ...(get().pendingSketchFaceBinding ? { faceBinding: get().pendingSketchFaceBinding! } : {}) } } }))
+      if (finishUndo) {
+        const stack = get().undoStack
+        const idx = histMark < stack.length ? histMark : stack.length - 1
+        const entry = stack[idx]
+        if (entry && !entry.features.some((ft) => ft.id === f.id)) _sketchFinishUndo.set(entry, finishUndo)
+      }
     } else {
       // 失败（极少 — 特征本身无几何）：草图唔可以丢，回返编辑模式
       set({ mode: 'sketch', sketchPlane: savedPlane, sketchBaseZ: savedZ, sketchArb: savedArb, sketchShape: null, sketchProfiles: savedShapes, skCons: savedCons, skPatternData: clonePatternData(savedPatternData), status: '⚠ 完成草圖失敗 — 你嘅草圖未丟，已留返喺編輯模式' })
@@ -14055,6 +14141,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!u.length) { set({ status: '沒有可撤銷的操作' }); return }
     const prev = u[u.length - 1]
     const cur = get()
+    const reopen = _sketchFinishUndo.get(prev) ?? null
+    const datumBefore = _pendingDatumRef
     // S105：features 引用变、或 抑制/参数/绑定 变（呢三样唔改 features 数组但 applyFeatures 会 live 读 → 影响几何）→ 要内核重放。
     // 旧栈条目缺呢啲字段时 `?? cur.x` 退化成「同当前相等」→ 唔触发多余重建。
     const needRebuild = prev.features !== cur.features
@@ -14062,15 +14150,22 @@ export const useApp = create<AppState>((rawSet, get) => {
       || (prev.params ?? cur.params) !== cur.params
       || (prev.paramBindings ?? cur.paramBindings) !== cur.paramBindings
     const matesChanged = (prev.mates ?? cur.mates) !== cur.mates
-    set((s) => ({ undoStack: s.undoStack.slice(0, -1), redoStack: [...s.redoStack, docSnap(s)], components: prev.components, componentDefs: prev.componentDefs ?? s.componentDefs, joints: prev.joints ?? s.joints, motionLinks: prev.motionLinks ?? s.motionLinks, sketchSources: prev.sketchSources ?? s.sketchSources, params: prev.params ?? s.params, paramBindings: prev.paramBindings ?? s.paramBindings, suppressedIds: prev.suppressedIds ?? s.suppressedIds, faceColors: prev.faceColors ?? s.faceColors, mates: prev.mates ?? s.mates, groups: prev.groups ?? s.groups, jointPoses: prev.jointPoses ?? s.jointPoses, jointKeyframes: prev.jointKeyframes ?? s.jointKeyframes, planes: prev.planes ?? s.planes, cpoints: prev.cpoints ?? s.cpoints, caxes: prev.caxes ?? s.caxes, jointOrigins: prev.jointOrigins ?? s.jointOrigins, rigidGroups: prev.rigidGroups ?? s.rigidGroups, contactPairs: prev.contactPairs ?? s.contactPairs, selectedFeature: null }))   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随撤销还原（旧栈缺 → 保持当前）
-    if (!needRebuild) set({ status: '已撤銷' })
-    else if (!await get().applyFeatures(prev.features, '已撤销', false, undefined, docSnap(cur), true)) {
+    const reopenPatch = reopen ? reopenSketchState(reopen) : null
+    set((s) => {
+      const redoEntry = docSnap(s)
+      if (reopen) _sketchFinishUndo.set(redoEntry, reopen)
+      return { undoStack: s.undoStack.slice(0, -1), redoStack: [...s.redoStack, redoEntry], components: prev.components, componentDefs: prev.componentDefs ?? s.componentDefs, joints: prev.joints ?? s.joints, motionLinks: prev.motionLinks ?? s.motionLinks, sketchSources: prev.sketchSources ?? s.sketchSources, params: prev.params ?? s.params, paramBindings: prev.paramBindings ?? s.paramBindings, suppressedIds: prev.suppressedIds ?? s.suppressedIds, faceColors: prev.faceColors ?? s.faceColors, mates: prev.mates ?? s.mates, groups: prev.groups ?? s.groups, jointPoses: prev.jointPoses ?? s.jointPoses, jointKeyframes: prev.jointKeyframes ?? s.jointKeyframes, planes: prev.planes ?? s.planes, cpoints: prev.cpoints ?? s.cpoints, caxes: prev.caxes ?? s.caxes, jointOrigins: prev.jointOrigins ?? s.jointOrigins, rigidGroups: prev.rigidGroups ?? s.rigidGroups, contactPairs: prev.contactPairs ?? s.contactPairs, selectedFeature: null, ...(reopenPatch ?? {}) }
+    })   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随撤销还原（旧栈缺 → 保持当前）。BUG-213：完成草图的条目同时 reopen 草图
+    if (!needRebuild) set({ status: reopen ? SKETCH_FINISH_UNDO_STATUS : '已撤銷' })
+    else if (!await get().applyFeatures(prev.features, reopen ? SKETCH_FINISH_UNDO_STATUS : '已撤销', false, undefined, docSnap(cur), true)) {
       const failureStatus = get().status
+      if (reopen) { setRefGeo(cur.skRefGeo); _pendingDatumRef = datumBefore }
       set({ ...docSnap(cur), bodyMesh: cur.bodyMesh, bodyTopZ: cur.bodyTopZ, timelinePos: cur.timelinePos,
-        undoStack: cur.undoStack, redoStack: cur.redoStack, busy: false, status: '撤銷失敗，已保留原模型及歷史 — ' + failureStatus })
+        undoStack: cur.undoStack, redoStack: cur.redoStack, busy: false, ...(reopen ? sketchEditorFields(cur) : {}), status: '撤銷失敗，已保留原模型及歷史 — ' + failureStatus })
       return
     }
     if (matesChanged) get().resolveMates()  // 还原配合后重算 follower 组件位姿（resolveMates 对空 mates 安全早返）
+    if (reopen) set({ status: SKETCH_FINISH_UNDO_STATUS })
   }),
 
   redo: () => enqueueHistoryTransition(async () => {
@@ -14113,17 +14208,25 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!r.length) { set({ status: '沒有可重做的操作' }); return }
     const next = r[r.length - 1]
     const cur = get()
+    const reopen = _sketchFinishUndo.get(next) ?? null
+    const datumBefore = _pendingDatumRef
     const needRebuild = next.features !== cur.features
       || (next.suppressedIds ?? cur.suppressedIds) !== cur.suppressedIds
       || (next.params ?? cur.params) !== cur.params
       || (next.paramBindings ?? cur.paramBindings) !== cur.paramBindings
     const matesChanged = (next.mates ?? cur.mates) !== cur.mates
-    set((s) => ({ redoStack: s.redoStack.slice(0, -1), undoStack: [...s.undoStack, docSnap(s)], components: next.components, componentDefs: next.componentDefs ?? s.componentDefs, joints: next.joints ?? s.joints, motionLinks: next.motionLinks ?? s.motionLinks, sketchSources: next.sketchSources ?? s.sketchSources, params: next.params ?? s.params, paramBindings: next.paramBindings ?? s.paramBindings, suppressedIds: next.suppressedIds ?? s.suppressedIds, faceColors: next.faceColors ?? s.faceColors, mates: next.mates ?? s.mates, groups: next.groups ?? s.groups, jointPoses: next.jointPoses ?? s.jointPoses, jointKeyframes: next.jointKeyframes ?? s.jointKeyframes, planes: next.planes ?? s.planes, cpoints: next.cpoints ?? s.cpoints, caxes: next.caxes ?? s.caxes, jointOrigins: next.jointOrigins ?? s.jointOrigins, rigidGroups: next.rigidGroups ?? s.rigidGroups, contactPairs: next.contactPairs ?? s.contactPairs, selectedFeature: null }))   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随重做还原
+    const closePatch = reopen ? closeFinishedSketchState() : null
+    set((s) => {
+      const undoEntry = docSnap(s)
+      if (reopen) _sketchFinishUndo.set(undoEntry, reopen)
+      return { redoStack: s.redoStack.slice(0, -1), undoStack: [...s.undoStack, undoEntry], components: next.components, componentDefs: next.componentDefs ?? s.componentDefs, joints: next.joints ?? s.joints, motionLinks: next.motionLinks ?? s.motionLinks, sketchSources: next.sketchSources ?? s.sketchSources, params: next.params ?? s.params, paramBindings: next.paramBindings ?? s.paramBindings, suppressedIds: next.suppressedIds ?? s.suppressedIds, faceColors: next.faceColors ?? s.faceColors, mates: next.mates ?? s.mates, groups: next.groups ?? s.groups, jointPoses: next.jointPoses ?? s.jointPoses, jointKeyframes: next.jointKeyframes ?? s.jointKeyframes, planes: next.planes ?? s.planes, cpoints: next.cpoints ?? s.cpoints, caxes: next.caxes ?? s.caxes, jointOrigins: next.jointOrigins ?? s.jointOrigins, rigidGroups: next.rigidGroups ?? s.rigidGroups, contactPairs: next.contactPairs ?? s.contactPairs, selectedFeature: null, ...(closePatch ?? {}) }
+    })   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随重做还原。BUG-213：重做完成草图时退出编辑
     if (!needRebuild) set({ status: '已重做' })
     else if (!await get().applyFeatures(next.features, '已重做', false, undefined, docSnap(cur), true)) {
       const failureStatus = get().status
+      if (reopen) { setRefGeo(cur.skRefGeo); _pendingDatumRef = datumBefore }
       set({ ...docSnap(cur), bodyMesh: cur.bodyMesh, bodyTopZ: cur.bodyTopZ, timelinePos: cur.timelinePos,
-        undoStack: cur.undoStack, redoStack: cur.redoStack, busy: false, status: '重做失敗，已保留原模型及歷史 — ' + failureStatus })
+        undoStack: cur.undoStack, redoStack: cur.redoStack, busy: false, ...(reopen ? sketchEditorFields(cur) : {}), status: '重做失敗，已保留原模型及歷史 — ' + failureStatus })
       return
     }
     if (matesChanged) get().resolveMates()

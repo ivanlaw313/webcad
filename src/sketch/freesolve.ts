@@ -396,8 +396,12 @@ export function refPts(shapes: FShape[], r: SkRef): FPt[] {
   }
   if (isSplinePoly(sh)) { return r.kind === 'pt' ? [sh.ctrl[r.idx]] : [] }  // S103[8]：样条 ref 住 ctrl 控制点
   const pts = sh.type === 'rect' ? rectCorners(sh) : (sh.verts ?? sh.pts)
-  if (r.kind === 'pt') return [pts[r.idx]]
-  if (r.kind === 'edge') return [pts[r.idx], pts[(r.idx + 1) % pts.length]]  // arc segment → its chord endpoints
+  if (!pts || !pts.length) return []
+  if (r.kind === 'pt') return pts[r.idx] ? [pts[r.idx]] : []
+  if (r.kind === 'edge') {
+    const a = pts[r.idx], b = pts[(r.idx + 1) % pts.length]
+    return a && b ? [a, b] : []  // arc segment → its chord endpoints；越界/空洞唔好塞 undefined（Viewport refMid 读 [0] 会崩）
+  }
   return []
 }
 
@@ -464,7 +468,7 @@ export function refMid(shapes: FShape[], r: SkRef): FPt {
   if (r.kind === 'origin') return [0, 0]
   if (r.kind === 'refpt' || r.kind === 'refedge') {
     const ps = refPts(shapes, r)
-    if (ps.length === 2) return [(ps[0][0] + ps[1][0]) / 2, (ps[0][1] + ps[1][1]) / 2]
+    if (ps.length === 2 && ps[0] && ps[1]) return [(ps[0][0] + ps[1][0]) / 2, (ps[0][1] + ps[1][1]) / 2]
     return ps[0] ?? [0, 0]
   }
   const sh = shapes[r.shape]
@@ -475,7 +479,7 @@ export function refMid(shapes: FShape[], r: SkRef): FPt {
     return bulgeMid(sh.verts[r.idx], sh.verts[(r.idx + 1) % sh.verts.length], sh.bulges[r.idx])
   }
   const ps = refPts(shapes, r)
-  if (ps.length === 2) return [(ps[0][0] + ps[1][0]) / 2, (ps[0][1] + ps[1][1]) / 2]
+  if (ps.length === 2 && ps[0] && ps[1]) return [(ps[0][0] + ps[1][0]) / 2, (ps[0][1] + ps[1][1]) / 2]
   return ps[0] ?? [0, 0]
 }
 

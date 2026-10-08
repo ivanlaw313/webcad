@@ -5996,12 +5996,29 @@ export const useApp = create<AppState>((rawSet, get) => {
   // T794：构造参考线 —— 点位置即落一条 水平 或 竖直 嘅长虚线（construction），可做对中参考 / 镜像轴。
   skAddConstructionLine: (p) => set((s) => {
     if (s.mode !== 'sketch') return {}
+    if (!p || !Number.isFinite(p[0]) || !Number.isFinite(p[1])) return {}
     const SPAN = 5000   // 够长睇落似无限线（典型零件范围内）
     const cl = s.clineCenterline ? { centerline: true } : {}   // GM-FP4 #23：中心线语义标记
     const line: SketchShape = s.clineOrient === 'h'
       ? { type: 'poly', pts: [[p[0] - SPAN, p[1]], [p[0] + SPAN, p[1]]], open: true, construction: true, ...cl }
       : { type: 'poly', pts: [[p[0], p[1] - SPAN], [p[0], p[1] + SPAN]], open: true, construction: true, ...cl }
-    return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: [...s.sketchProfiles, line], status: `已加${s.clineOrient === 'h' ? '水平' : '豎直'}${s.clineCenterline ? '中心線' : '構造參考線'}（過 ${p[0].toFixed(0)},${p[1].toFixed(0)}）— 可做對中參考 / 鏡像軸 / 旋轉軸` }
+    // [...profiles, sketchShape] 入面 sketchShape 嘅 index = profiles.length。
+    // 構造線 append 入 profiles 会令 sketchShape 整体 +1；矩形落笔时存嘅 H/V 约束仍指旧 index →
+    // 约束徽章 refMid 读到 2 点构造线嘅 edge 2/3 = undefined[0] → Viewport 崩溃。
+    // 有 sketchShape 时，把 shape >= cut 嘅约束引用整体 +1，保持绑定喺 sketchShape。
+    const cut = s.sketchProfiles.length
+    let skCons = s.skCons
+    if (s.sketchShape) {
+      const bump = (r: SkRef): SkRef =>
+        ('shape' in r && typeof (r as { shape: number }).shape === 'number' && (r as { shape: number }).shape >= cut)
+          ? ({ ...r, shape: (r as { shape: number }).shape + 1 } as SkRef)
+          : r
+      skCons = s.skCons.map((c) => {
+        const a = bump(c.a), b = c.b ? bump(c.b) : undefined, cc = (c as { c?: SkRef }).c ? bump((c as { c: SkRef }).c) : undefined
+        return { ...c, a, ...(b ? { b } : {}), ...(cc ? { c: cc } : {}) } as SkCon
+      })
+    }
+    return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: [...s.sketchProfiles, line], skCons, status: `已加${s.clineOrient === 'h' ? '水平' : '豎直'}${s.clineCenterline ? '中心線' : '構造參考線'}（過 ${p[0].toFixed(0)},${p[1].toFixed(0)}）— 可做對中參考 / 鏡像軸 / 旋轉軸` }
   }),
   // 平行偏移当前轮廓（d>0 外扩 / d<0 内缩）。支持 圆/矩形/折线（含真圆弧路径）。保留原件，偏移线做新轮廓（Fusion 行为）。
   // 注：sk_offset 命令而家进 offset 工具模式（点轮廓偏移）；呢个 action 留作程序化/无拣中时嘅 fallback。

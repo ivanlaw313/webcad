@@ -2291,7 +2291,7 @@ export function SizingHandle() {
 
 // Shared by the extrude manipulator + its tip dimension label: bbox-centre of the first profile,
 // extrusion top z1 and world tip/growth-direction (cardinal planes only, same math as ExtrudePreview).
-function extrudeTipFrame(plane: Plane, baseZ: number, h: number, flip: boolean, extent: string, shapes: SketchShape[]) {
+function extrudeTipFrame(plane: Plane, baseZ: number, h: number, flip: boolean, extent: string, shapes: SketchShape[], faceCut?: { fromFace: boolean; faceOutSign: number; faceThrough: boolean; op: string } | null) {
   if (!shapes.length || extent === 'through') return null
   const sh = shapes[0]
   const pts: Pt[] = sh.type === 'rect' ? [sh.a, sh.b] : sh.type === 'circle' ? [[sh.c[0] - sh.r, sh.c[1] - sh.r], [sh.c[0] + sh.r, sh.c[1] + sh.r]] : sh.pts
@@ -2301,8 +2301,13 @@ function extrudeTipFrame(plane: Plane, baseZ: number, h: number, flip: boolean, 
   const H = Math.max(0.1, Math.abs(h) || 1)
   const down = flip !== (h < 0)
   const RES = plane === 'XZ' ? -1 : 1   // 同 ExtrudePreview：箭头必须指向内核实际行进方向（RES_SIGN,XZ=−1）
-  const z0 = extent === 'symmetric' ? baseZ - H / 2 : baseZ
-  const z1 = extent === 'symmetric' ? baseZ + H / 2 : baseZ + (down ? -H : H) * RES
+  // Blind face cuts use the inward tool (worker: span [base+0.5*sgn, base−depth*sgn]).
+  // The join/generic arrow points the other way, so aiming it "into the plate" flips `down`
+  // and only the 0.5mm overshoot enters — a 5mm cut reads ~0.5mm. Match that span here.
+  const blindFace = !!(faceCut && faceCut.op === 'cut' && faceCut.fromFace && extent === 'distance' && !faceCut.faceThrough)
+  let z0 = extent === 'symmetric' ? baseZ - H / 2 : baseZ
+  let z1 = extent === 'symmetric' ? baseZ + H / 2 : baseZ + (down ? -H : H) * RES
+  if (blindFace) { const sgn = (faceCut!.faceOutSign || 1) * (down ? -1 : 1); z0 = baseZ + 0.5 * sgn; z1 = baseZ - H * sgn }
   const tip = SK[plane].lift(c, z1)
   const b0 = SK[plane].lift(c, z0)
   const d = new Vector3(tip[0] - b0[0], tip[1] - b0[1], tip[2] - b0[2])
@@ -2327,13 +2332,16 @@ export function ExtrudeArrow() {
   const flip = useApp((s) => s.extrudeFlip)
   const extent = useApp((s) => s.extrudeExtent)
   const op = useApp((s) => s.sketchOp)
+  const sketchFromFace = useApp((s) => s.sketchFromFace)
+  const faceOutSign = useApp((s) => s.faceOutSign)
+  const faceCutThrough = useApp((s) => s.faceCutThrough)
   const camera = useThree((s) => s.camera)
   const gl = useThree((s) => s.gl)
   const controls = useThree((s) => s.controls) as unknown as { enabled?: boolean } | null
   const cleanup = useRef<(() => void) | null>(null)
   useEffect(() => () => cleanup.current?.(), [])
   const all = [...profiles, ...(shape ? [shape] : [])] as SketchShape[]
-  const frame = open && !arb ? extrudeTipFrame(plane, baseZ, h, flip, extent, all) : null
+  const frame = open && !arb ? extrudeTipFrame(plane, baseZ, h, flip, extent, all, { fromFace: sketchFromFace, faceOutSign, faceThrough: faceCutThrough, op }) : null
   if (!frame) return null
   const { tip, dir } = frame
   const color = op === 'cut' ? '#ff5a4d' : '#1572c4'
@@ -2588,6 +2596,10 @@ export function SketchDimLayer() {
   const exH = useApp((s) => s.extrudeHeight)
   const exFlip = useApp((s) => s.extrudeFlip)
   const exExtent = useApp((s) => s.extrudeExtent)
+  const exFromFace = useApp((s) => s.sketchFromFace)
+  const exFaceSign = useApp((s) => s.faceOutSign)
+  const exFaceThrough = useApp((s) => s.faceCutThrough)
+  const exOp = useApp((s) => s.sketchOp)
   const skCons = useApp((s) => s.skCons)
   const skAnnot = useApp((s) => s.skView.annot)   // 标注（尺寸）显示开关
   const skConsVis = useApp((s) => s.skView.cons)   // GM-FP4 #5：约束徽章独立显示开关（Fusion Dimensions/Constraints 分开 gate）
@@ -2649,7 +2661,7 @@ export function SketchDimLayer() {
     // tip, click → type the exact distance. Same anchor math as ExtrudeArrow.
     if (exOpen && !arb) {  // 拉伸操纵杆 tip 标签：extrudeTipFrame 系 cardinal 面几何 — arb 面跳过
       const all = [...profiles, ...(shape ? [shape] : [])] as SketchShape[]
-      const tf = extrudeTipFrame(plane, baseZ, exH, exFlip, exExtent, all)
+      const tf = extrudeTipFrame(plane, baseZ, exH, exFlip, exExtent, all, { fromFace: exFromFace, faceOutSign: exFaceSign, faceThrough: exFaceThrough, op: exOp })
       if (tf) {
         const a = tf.tip.clone().add(tf.dir.clone().multiplyScalar(22))
         out.push({ key: 'exh', anchor: [a.x, a.y, a.z], text: dimFmtU(Math.abs(exH) || 1, unit) + (unit === 'inch' ? 'in' : unit), edit: { target: 'shape', dim: 'ext', value: Math.abs(exH) || 1 } })
@@ -2669,7 +2681,7 @@ export function SketchDimLayer() {
     }
     const positioned=out.map(label=>editing===label.key&&editingLabel.current?.key===label.key?editingLabel.current:label)
     return modelingCommandActive ? positioned.filter((label) => label.edit?.dim === 'ext') : positioned
-  }, [mode, plane, baseZ, profiles, shape, arb, exOpen, exH, exFlip, exExtent, skCons, unit, skAnnot, skConsVis, skDimLabelOff, modelingCommandActive,dimPreview,editing, dxfLabels])
+  }, [mode, plane, baseZ, profiles, shape, arb, exOpen, exH, exFlip, exExtent, exFromFace, exFaceSign, exFaceThrough, exOp, skCons, unit, skAnnot, skConsVis, skDimLabelOff, modelingCommandActive,dimPreview,editing, dxfLabels])
   const setDim = useApp((s) => s.setSketchDimValue)
   const skConflictIds = useApp((s) => s.skConflictIds)   // S194：冲突约束逐个红标
   const skSelCon = useApp((s) => s.skSelCon)   // GM-FP3 #35：当前选中约束（点徽章=选中，Delete 删）

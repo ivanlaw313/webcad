@@ -36,6 +36,25 @@ await runE2E(async (page, ok) => {
   await page.waitForTimeout(600)
   const typed = { shown: await fld.inputValue(), size: await page.evaluate(() => window.useApp.getState().edgeRoundSize) }
   ok('typing 0.5 keeps the decimal point', typed.shown === '0.5' && typed.size === 0.5, typed)
+  // tester path: the preview had FAILED (distance too big) and then they retyped 0.5
+  await fld.press('Control+a'); await fld.pressSequentially('30', { delay: 120 })
+  await page.waitForFunction(() => { const s = window.useApp.getState(); return !s.roundPreviewBusy && (s.roundPreviewMesh || s.roundPreviewFail) }, null, { timeout: 20000 }).catch(() => {})
+  const failSt = await page.evaluate(() => { const s = window.useApp.getState(); return { fail: s.roundPreviewFail, status: s.status } })
+  await page.waitForTimeout(1500)
+  const failSt2 = await page.evaluate(() => window.useApp.getState().status)
+  ok('30 mm fails with a Traditional cause', failSt.fail && /太大|倒唔到/.test(failSt2), { ...failSt, later: failSt2 })
+  await fld.press('Control+a'); await fld.pressSequentially('0.5', { delay: 250 })
+  await page.waitForTimeout(600)
+  const typed2 = { shown: await fld.inputValue(), size: await page.evaluate(() => window.useApp.getState().edgeRoundSize) }
+  ok('after a failed preview, typing 0.5 keeps the decimal point', typed2.shown === '0.5' && typed2.size === 0.5, typed2)
+  await fld.press('Control+a'); await fld.pressSequentially('0.5', { delay: 0 })
+  const typed3 = { shown: await fld.inputValue(), size: await page.evaluate(() => window.useApp.getState().edgeRoundSize) }
+  ok('fast typing 0.5 keeps the decimal point', typed3.shown === '0.5' && typed3.size === 0.5, typed3)
+  // HK Chinese IME in Chinese mode turns '.' into '。'
+  await fld.press('Control+a'); await fld.pressSequentially('0', { delay: 120 }); await page.keyboard.insertText('。'); await fld.pressSequentially('5', { delay: 120 })
+  await page.waitForTimeout(400)
+  const ime = { size: await page.evaluate(() => window.useApp.getState().edgeRoundSize), invalid: await fld.getAttribute('aria-invalid') }
+  ok('IME full stop 0。5 is taken as 0.5', ime.size === 0.5 && !ime.invalid, ime)
   await fld.press('Control+a'); await fld.pressSequentially('1', { delay: 120 })
   await page.waitForFunction(() => { const s = window.useApp.getState(); return !s.roundPreviewBusy && (s.roundPreviewMesh || s.roundPreviewFail) }, null, { timeout: 20000 }).catch(() => {})
   const pv = await page.evaluate(() => { const s = window.useApp.getState(); return { ok: !!s.roundPreviewMesh, fail: s.roundPreviewFail, status: s.status } })
@@ -45,4 +64,28 @@ await runE2E(async (page, ok) => {
   await page.waitForTimeout(2500)
   const done = await page.evaluate(() => { const s = window.useApp.getState(); return { types: s.features.map((f) => f.type), failed: s.failedFeatureIds, status: s.status } })
   ok('chamfer committed', done.types.includes('chamfer') && !done.failed.length, done)
+
+  // #2 cont.：timeline edit dialog (FeatNum) and the fillet radius field (min 0.5) must keep '0.5' too
+  const typeSlow = async (loc, txt) => { await loc.click(); await loc.press('Control+a'); await loc.pressSequentially(txt, { delay: 250 }); await page.waitForTimeout(700); return loc.inputValue() }
+  const chId = await page.evaluate(() => window.useApp.getState().features.find((f) => f.type === 'chamfer').id)
+  await page.evaluate((id) => window.useApp.getState().openFeatDlgForEdit(id), chId)
+  await page.waitForTimeout(800)
+  const editFld = page.locator('label', { hasText: /^距離/ }).locator('input').first()
+  const ev = await typeSlow(editFld, '0.5')
+  const ep = await page.evaluate(() => window.useApp.getState().featDlg?.params?.distance)
+  ok('edit dialog: typing 0.5 keeps the decimal point', ev === '0.5' && +ep === 0.5, { shown: ev, param: ep })
+  await page.shot('edit05')
+  await page.evaluate(() => window.useApp.getState().closeFeatDlg?.() ?? window.useApp.setState({ featDlg: null }))
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(500)
+  await page.evaluate(() => window.useApp.getState().runCommand('fillet'))
+  await page.waitForTimeout(400)
+  const [fx, fy] = await page.cadToScreen([39.7 * Math.cos(2.2), 40, -39.7 * Math.sin(2.2)])
+  await page.mouse.click(fx, fy); await page.waitForTimeout(1200)
+  console.log('fillet state', JSON.stringify(await page.evaluate(() => { const s = window.useApp.getState(); return { p: s.edgeRoundPick, n: s.edgeRoundPicks.length, dlg: s.featDlg?.kind, st: s.status } })))
+  await page.shot('fillet')
+  const fv = await typeSlow(page.locator('input[aria-label="半徑組 1 半徑"]').first(), '0.5')
+  const fs = await page.evaluate(() => window.useApp.getState().edgeRoundSize)
+  ok('fillet: typing 0.5 keeps the decimal point', fv === '0.5' && fs === 0.5, { shown: fv, size: fs })
+  await page.keyboard.press('Escape')
 })

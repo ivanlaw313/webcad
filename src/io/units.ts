@@ -19,9 +19,13 @@ export const lengthScale = (unit: LenUnit): number => PER[unit]
  * 所以呢個唔係刁難輸入，係日常。順手收全角括號同運算符。 */
 const WIDE = '０１２３４５６７８９．＋－＊／（）　'
 const NARROW = '0123456789.+-*/() '
+/* UX2 #2：香港中文輸入法（速成／倉頡／廣東話）中文模式下撳「.」出嘅係句號「。」(U+3002)／半形「｡」(U+FF61)，
+ * 舊版當非法 → 用戶覺得小數點俾欄「食咗」。喺數值欄度句號只可能係小數點，一律當「.」。
+ * 歐陸寫法「0,5」（得一個逗號、冇其他運算、逗號後唔係啱啱 3 位）亦當小數點。 */
 export function normalizeWide(raw: string): string {
   let out = ''
-  for (const ch of raw) { const i = WIDE.indexOf(ch); out += i >= 0 ? NARROW[i] : ch }
+  for (const ch of raw) { const i = WIDE.indexOf(ch); out += i >= 0 ? NARROW[i] : ch === '。' || ch === '｡' ? '.' : ch }
+  if (/^\s*[+-]?\d*[,，](?:\d{1,2}|\d{4,})\s*$/.test(out)) out = out.replace(/[,，]/, '.')   // 「1,000」似千位分隔 → 唔估，照舊當非法
   return out
 }
 
@@ -99,7 +103,8 @@ export function parseLen(raw: string, unit: LenUnit): number | null {
     const num = parseFloat(frac[2]), den = parseFloat(frac[3])
     if (!den) return null
     val = whole + num / den
-  } else if (/^[+-]?\d*\.?\d+$/.test(s)) {
+  } else if (/^[+-]?\d*\.?\d+$/.test(s) || /^[+-]?\d+\.$/.test(s)) {
+    // UX2 #2：「0.」「5.」係打緊小數嘅中途狀態 — 當合法（= 0 / 5），唔好閃紅框／閂確定
     val = parseFloat(s)
   } else {
     // BUG-509/514：算式（10+5、2*25、(40-4)/2）。CAD 用戶慣性動作，Fusion 都收。

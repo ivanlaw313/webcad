@@ -134,6 +134,7 @@ import { NumInput } from './NumInput'   // BUG-507/509：受驗數值欄（取�
 import type { MeshData } from '../worker/cad.worker'
 import { fitCameraDistance } from '../cad/fitCameraDistance'
 import { computeFK, solve4Bar, solveSliderCrank, solveSixBar, jointDragToValue, JOINT_LABEL_TC } from '../assembly/kinematics'
+import { localizeAsmName } from '../assembly/names'   // RETEST17 #3：組件/關節預設名繁體顯示
 import { assemblyMassSummary } from '../assembly/asmMass'   // BUG(C)：装配质心用 FK 世界矩阵
 import { getProcTexture } from '../render/procTextures'   // S101[8]：程序化纹理（三平面投影）
 import { meshManifold } from '../geom/meshCheck'
@@ -7988,7 +7989,7 @@ export default function Viewport() {
       {selComp && !editingComp && !modelingCommandActive && mode !== 'sketch' && (
         <div className="sketch-bar">
           <button className="sb-tool" title={compBarMin ? tStatus('展開零件工具欄', lang) : tStatus('折疊零件工具欄（淨留名稱同完成，唔擋視圖）', lang)} onClick={toggleCompBar} style={{ fontWeight: 700, minWidth: 22 }}>{compBarMin ? '▸' : '▾'}</button>
-          <span className="sb-title">{tStatus('移動/旋轉', lang)} {selComp.name}</span>
+          <span className="sb-title">{tStatus('移動/旋轉', lang)} {localizeAsmName(selComp.name, lang)}</span>
           {!compBarMin && (<>
           <label>X <input type="number" step={5} value={selComp.pos[0]} onChange={(e) => setComponentPos(selComp.id, [Number(e.target.value) || 0, selComp.pos[1], selComp.pos[2]])} /></label>
           <label>Y <input type="number" step={5} value={selComp.pos[1]} onChange={(e) => setComponentPos(selComp.id, [selComp.pos[0], Number(e.target.value) || 0, selComp.pos[2]])} /></label>
@@ -8870,7 +8871,7 @@ function CompBoolPickPanel() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {tools.map((c) => (
             <button key={c.id} type="button" className="cs-btn" data-testid={`comp-bool-tool-${c.id}`} title={tStatus(`以「${c.name}」為工具件完成${opLbl}`, lang)} onClick={() => useApp.getState().pickComponentBooleanTool(c.id)} style={{ borderColor: '#2563eb', color: '#1d4ed8', fontWeight: 600 }}>
-              {c.name}
+              {localizeAsmName(c.name, lang)}
             </button>
           ))}
         </div>

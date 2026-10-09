@@ -11,11 +11,12 @@ const PREFIX: Record<string, { tc: string; sc: string; en: string }> = {
 
 export function localizeAsmName(name: string, lang: string | null | undefined): string {
   if (!name) return name
-  const m = /^(组件|組件|关节|關節|实体|實體)(\d+)$/.exec(name)
+  const m = /^(组件|組件|关节|關節|实体|實體)(\d+)( \(\d+\))?$/.exec(name)   // RETEST17 #3：亦認「實體3 (1)」副本預設名
   const L = lang || 'zh-HK'
   if (m) {
     const p = PREFIX[m[1]]
-    return (L === 'zh-HK' ? p.tc : L === 'zh-CN' ? p.sc : p.en) + m[2]
+    return (L === 'zh-HK' ? p.tc : L === 'zh-CN' ? p.sc : p.en) + m[2] + (m[3] ?? '')
   }
   return L === 'zh-HK' ? simplifiedToTraditionalHK(name) : name
 }
+

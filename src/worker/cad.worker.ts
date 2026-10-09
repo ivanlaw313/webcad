@@ -2776,7 +2776,7 @@ function buildShape(features: Feature[], noCache = false): any {
   const merge = (solid: any, op?: string) => {
     if (op === 'cut' && shape) { const tool = solid.translate(0, 0, -0.5); _recordBool(_curOpIndex, 'cut', tool); shape = shape.cut(tool) } // nudge cut tool to avoid coplanar-face boolean failures
     else if (op === 'intersect' && shape) { _recordBool(_curOpIndex, 'intersect', solid); shape = shape.intersect(solid) }
-    else if (op === 'newbody' && shape) parkedBodies.push({ name: `实体${parkedBodies.length + 1}`, shape: solid })   // P2 New Body：独立泊车（活动体唔郁）；无活动体时落 else = 做活动体（首体永远活动，Fusion body1 同义）
+    else if (op === 'newbody' && shape) parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape: solid })   // P2 New Body：独立泊车（活动体唔郁）；无活动体时落 else = 做活动体（首体永远活动，Fusion body1 同义）
     else { if (shape) { _recordBool(_curOpIndex, 'fuse', solid); shape = fuseRobust(shape, solid) } else shape = solid }
   }
   let prevBefore: any = null, prevWasCut = false // for cpattern: shape before the last feature + whether it was a cut
@@ -2970,7 +2970,7 @@ function buildShape(features: Feature[], noCache = false): any {
         if (!shape) shape = solid
         else if (f.operation === 'cut') { _recordBool(_i, 'cut', solid); shape = shape.cut(solid) }   // GM-γ2a：斜面拉伸切除亦录工具体供 S2
         else if (f.operation === 'intersect') { _recordBool(_i, 'intersect', solid); shape = shape.intersect(solid) }
-        else if (f.operation === 'newbody') parkedBodies.push({ name: `实体${parkedBodies.length + 1}`, shape: solid })   // P2 New Body（斜面拉伸同样支持）
+        else if (f.operation === 'newbody') parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape: solid })   // P2 New Body（斜面拉伸同样支持）
         else { _recordBool(_i, 'fuse', solid); shape = shape.fuse(solid) }
         if (_cpT) cpSnap[f.id] = { before: _cpB, after: shape ? shape.clone() : null, cutTool: _boolKindAt[_i] === 'cut' ? _boolToolAt[_i]?.clone() : undefined }
         prevBefore = snapBefore; prevWasCut = f.operation === 'cut'
@@ -3100,7 +3100,7 @@ function buildShape(features: Feature[], noCache = false): any {
         if (!shape) shape = solid
         else if (f.operation === 'cut') { _recordBool(_i, 'cut', solid); shape = shape.cut(solid) }   // GM-γ2a：录工具体（含 overshoot）供 S2 backward 重跑 — repro #2「附近开槽」正正行呢条
         else if (f.operation === 'intersect') { _recordBool(_i, 'intersect', solid); shape = shape.intersect(solid) }
-        else if (f.operation === 'newbody') parkedBodies.push({ name: `实体${parkedBodies.length + 1}`, shape: solid })   // P2 New Body
+        else if (f.operation === 'newbody') parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape: solid })   // P2 New Body
         else { _recordBool(_i, 'fuse', solid); shape = fuseRobust(shape, solid, n) }  // 共面 fuse 兜底（实战 T744：内底凸台经典失败位）
       }
     } else if (f.type === 'revolve') {
@@ -3266,7 +3266,7 @@ function buildShape(features: Feature[], noCache = false): any {
         _recordBool(_i, f.op === 'cut' ? 'cut' : 'intersect', tool)   // GM-γ2b：车削布尔亦录工具体供 S2
         shape = out
       }
-      else if (f.op === 'newbody') parkedBodies.push({ name: `实体${parkedBodies.length + 1}`, shape: solid })   // P2 New Body
+      else if (f.op === 'newbody') parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape: solid })   // P2 New Body
       else { _recordBool(_i, 'fuse', solid); shape = shape.fuse(solid) }
     } else if (f.type === 'stepbody') {
       // STEP B-rep 导入（T729）：预解析缓存攞 shape，clone 落树（缓存母本唔俾布尔消耗）
@@ -3276,7 +3276,7 @@ function buildShape(features: Feature[], noCache = false): any {
     } else if (f.type === 'newbody') {
       // 泊车当前活动实体 → 开新实体（之后嘅特征全部作用喺新实体；泊车实体喺视口灰显）
       if (!shape) buildWarnings.push('⚠ 新实体：当前冇活动实体可泊车 — 已忽略（先起一个实体）')
-      else { parkedBodies.push({ name: f.name || `实体${parkedBodies.length + 1}`, shape }); shape = null }
+      else { parkedBodies.push({ name: f.name || `實體${parkedBodies.length + 1}`, shape }); shape = null }
     } else if (f.type === 'bodyboolean') {
       // 活动实体 ⊗ 泊车实体（真 B-rep 布尔 — 结果仲可以圆角/抽壳/导 STEP，对比 T723 网格级组件布尔）
       const t = parkedBodies[f.target]
@@ -4538,7 +4538,7 @@ function buildShape(features: Feature[], noCache = false): any {
               const sewn = cast(out)
               const isSolid = (() => { try { return out.ShapeType && out.ShapeType() === _oc.TopAbs_ShapeEnum.TopAbs_SOLID } catch { return false } })()
               if (isSolid && !shape) { shape = sewn; parkedBodies = []; buildWarnings.push(`缝合成闭合实体（${surfaces.length} 张曲面 → 实体，已设为活动体）`) }
-              else { parkedBodies = [{ name: isSolid ? '缝合实体' : '缝合壳', shape: sewn }]; buildWarnings.push(closed ? `缝合成闭合${isSolid ? '实体' : '壳'}（${surfaces.length} 张曲面）` : `缝合成开放壳（${surfaces.length} 张曲面，${freeEdges < 0 ? '有' : freeEdges} 条自由边未闭合）`) }
+              else { parkedBodies = [{ name: isSolid ? '縫合實體' : '縫合殼', shape: sewn }]; buildWarnings.push(closed ? `缝合成闭合${isSolid ? '实体' : '壳'}（${surfaces.length} 张曲面）` : `缝合成开放壳（${surfaces.length} 张曲面，${freeEdges < 0 ? '有' : freeEdges} 条自由边未闭合）`) }
             }
           }
         } catch (e) { buildWarnings.push('缝合失败：' + ((e as any)?.message || e)) }
@@ -5905,7 +5905,7 @@ function buildShape(features: Feature[], noCache = false): any {
       if (parkIdx >= 0 && parkedBodies[parkIdx]) {
         const sibling = shape || undefined
         if (f.copy) {
-          parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(parkedBodies[parkIdx].shape.clone(), sibling) })
+          parkedBodies.push({ name: `實體${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(parkedBodies[parkIdx].shape.clone(), sibling) })
         } else {
           const pb = parkedBodies[parkIdx]
           parkedBodies[parkIdx] = { name: pb.name, ...(pb.kind ? { kind: pb.kind } : {}), shape: applyXf(pb.shape, sibling) }
@@ -5914,7 +5914,7 @@ function buildShape(features: Feature[], noCache = false): any {
         const sibling = parkedBodies.length === 1 ? parkedBodies[0].shape : undefined
         if (f.copy) {
           // Create Copy 必须保留原实体并加一个独立实体，绝不能融合成单一固体。
-          parkedBodies.push({ name: `实体${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(shape.clone(), sibling) })
+          parkedBodies.push({ name: `實體${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(shape.clone(), sibling) })
         } else {
           shape = applyXf(shape, sibling)
         }
@@ -6967,7 +6967,7 @@ const api = {
           if (solids.length > 1) {
             for (let k = 0; k < solids.length; k++) {
               const solid = cast(solids[k])
-              parts.push({ name: `零件${i + 1}·实体${k + 1}`, color: colorOf(lab), mesh: meshOf(solid), step: await solid.blobSTEP().text() })
+              parts.push({ name: `零件${i + 1}·實體${k + 1}`, color: colorOf(lab), mesh: meshOf(solid), step: await solid.blobSTEP().text() })
             }
           } else {
             const shape = cast(shp)

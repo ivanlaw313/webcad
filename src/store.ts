@@ -3462,7 +3462,7 @@ function partSolidRequiredPatch(
   const def = focus.defId ? s.componentDefs.find((d) => d.id === focus.defId) : undefined
   const body0 = def?.bodies?.[0]
   const hasSrc = !!(focus.src?.features?.length || body0?.src?.features?.length || def?.src?.features?.length)
-  const name = focus.name || '组件'
+  const name = focus.name || '組件'
   const meshfitAction: StatusAction = { id: 'meshfit', label: 'MeshFit / 转 B-rep', componentId: focus.id }
   // v1.39: pure mesh (组件布尔结果 / 导入 STL) → primary bake chip (same as post-boolean), not MeshFit.
   const bakeAction: StatusAction = { id: 'bakeMeshToPart', label: '烘焙為零件實體', componentId: focus.id }
@@ -10886,7 +10886,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const type: JointType = allowTypes[(Number.isFinite(pick) ? pick : 1) - 1] ?? defType
       // 建关节：唔用 addJoint（佢自带撤销快照会破坏原子性）—— 此处复用 addJoint 嘅 id/命名规则，同贴合共一快照
       const n = s2.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
-      const jid = 'J' + n, joint: Joint = { id: jid, name: '关节' + n, type, parent: A.compId, child: B.id, anchor, axis, angle: 0, slide: 0 }
+      const jid = 'J' + n, joint: Joint = { id: jid, name: '關節' + n, type, parent: A.compId, child: B.id, anchor, axis, angle: 0, slide: 0 }
       const geomLbl = A.face.kind === 'cyl' ? '轴/锚点取自所拣圆柱面' : '锚点取自贴合面心、轴取自平面法向'
       set({
         undoStack: [...preUndo, preSnap].slice(-60), redoStack: [],
@@ -12719,8 +12719,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     const pos: [number, number, number] = [0, 0, 0]
     // R2：反射几何与源 def 不同 → 建【独立 def】（永不共享源 def 嘅 mesh）。反射后 src 已失效（会重建原向几何）→ 弃 src（净网格镜像件）。
     const did = nextDefId(s.componentDefs)
-    const mdef: StoreCompDef = { id: did, name: src.name + ' 镜像', bodies: [{ id: did + '_B1', name: src.name + ' 镜像', mesh: rmesh }], mesh: rmesh, rev: 0 }   // body id 用 did → 存档往返幂等（与 makeDefOcc 一致）
-    const comp = { ...src, id: nid, name: src.name + ' 镜像', mesh: rmesh, pos, rot: undefined, defId: did, _rev: 0, src: undefined }
+    const mdef: StoreCompDef = { id: did, name: src.name + ' 鏡像', bodies: [{ id: did + '_B1', name: src.name + ' 鏡像', mesh: rmesh }], mesh: rmesh, rev: 0 }   // body id 用 did → 存档往返幂等（与 makeDefOcc 一致）
+    const comp = { ...src, id: nid, name: src.name + ' 鏡像', mesh: rmesh, pos, rot: undefined, defId: did, _rev: 0, src: undefined }
     return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...s.components, comp], componentDefs: [...s.componentDefs, mdef], selectedComponent: nid, status: `已鏡像組件「${src.name}」（平面 n=[${actualPlane.n.map((v) => +v.toFixed(3)).join(',')}]）` }
   }),
   deleteComponent: (id) => set((s) => {
@@ -12758,7 +12758,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   addJoint: (j) => set((s) => {
     if (isCompGrounded(s, j.child)) return { status: groundedJointMsg(s, j.child) }   // BUG(B)：固定件唔可以做關節子件（會被驅動）
     const n = s.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints: [...s.joints, { ...j, id: 'J' + n, name: '关节' + n }] }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints: [...s.joints, { ...j, id: 'J' + n, name: '關節' + n }] }
   }),
   addJointAtPose: (j, childId, pose) => set((s) => {
     if (isCompGrounded(s, childId)) return { status: groundedJointMsg(s, childId) }
@@ -12766,7 +12766,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       components: s.components.map((c) => c.id === childId ? { ...c, pos: pose.pos, rot: pose.rot } : c),
-      joints: [...s.joints, { ...j, id: 'J' + n, name: '关节' + n }],
+      joints: [...s.joints, { ...j, id: 'J' + n, name: '關節' + n }],
     }
   }),
   // Closed-loop 4-bar: a default Grashof crank-rocker (centred, in the XY view plane). Drive the crank
@@ -12958,7 +12958,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     const n = s.jointOrigins.reduce((m, o) => Math.max(m, Number(o.id.replace(/^JO/, '')) || 0), 0) + 1
     const id = 'JO' + n
-    const full: JointOrigin = { id, name: jo.name || ('关节原点' + n), point: jo.point, mode: jo.mode ?? 'simple', angle: jo.angle ?? 0, offset: jo.offset ?? [0, 0, 0], flip: jo.flip ?? false, ...(jo.axis ? { axis: jo.axis } : {}), ...(jo.compId ? { compId: jo.compId } : {}) }
+    const full: JointOrigin = { id, name: jo.name || ('關節原點' + n), point: jo.point, mode: jo.mode ?? 'simple', angle: jo.angle ?? 0, offset: jo.offset ?? [0, 0, 0], flip: jo.flip ?? false, ...(jo.axis ? { axis: jo.axis } : {}), ...(jo.compId ? { compId: jo.compId } : {}) }
     set({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], jointOrigins: [...s.jointOrigins, full], status: `已建可復用「${full.name}」@(${full.point.map((x) => x.toFixed(1)).join(', ')})（存喺瀏覽器「關節原點」組；建關節時喺下拉引用之）` })
     return id
   },
@@ -13045,7 +13045,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       for (let i = 1; i < g.members.length; i++) {
         if (exist.has(g.members[i])) continue
         nid++
-        add.push({ id: 'J' + nid, name: '关节' + nid, type: 'rigid', parent: leader, child: g.members[i], anchor: get().componentCenter(g.members[i]), axis: [0, 1, 0], angle: 0, slide: 0, groupRef: id })
+        add.push({ id: 'J' + nid, name: '關節' + nid, type: 'rigid', parent: leader, child: g.members[i], anchor: get().componentCenter(g.members[i]), axis: [0, 1, 0], angle: 0, slide: 0, groupRef: id })
       }
       joints = [...s.joints, ...add]
     }
@@ -14985,7 +14985,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     const n = s.bodyMesh?.parked?.length ?? 0
     if (!Number.isInteger(idx) || idx < 0 || idx >= n) return { selectedParkedIndex: null }
-    const name = s.bodyMesh!.parked![idx].name || `泊车实体${idx + 1}`
+    const name = s.bodyMesh!.parked![idx].name || `泊車實體${idx + 1}`
     const dlg = s.featDlg?.kind === 'move' ? { ...s.featDlg, params: { ...s.featDlg.params, bodyTarget: `parked${idx}` } } : s.featDlg
     return { selectedParkedIndex: idx, status: `已選擇「${name}」（泊車 · 可測量 / 可作合併工具 / Move 目標）`, ...(dlg !== s.featDlg ? { featDlg: dlg } : {}) }
   }),
@@ -15023,7 +15023,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   startNewBody: async () => {
     if (!hasSolid(get().features)) { set({ status: '新實體：先起一個實體（拉伸/原語），先有嘢可以泊車' }); return }
     const n = (get().bodyMesh?.parked?.length ?? 0) + 1
-    await get().applyFeatures([...get().features, { id: fid(), type: 'newbody', name: `实体${n}` }],
+    await get().applyFeatures([...get().features, { id: fid(), type: 'newbody', name: `實體${n}` }],
       newBodySuccessStatus(n))
   },
   // 实体布尔：活动实体 ⊗ 泊车实体（真 B-rep — 结果仲可以继续圆角/抽壳/导 STEP；对比组件布尔嘅网格级）
@@ -16686,12 +16686,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     const rgId = 'RG' + (s.rigidGroups.reduce((m, g) => Math.max(m, Number(g.id.replace(/^RG/, '')) || 0), 0) + 1)
     let nid = s.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0)
     const add: Joint[] = []
-    for (let i = 1; i < ids.length; i++) { nid++; add.push({ id: 'J' + nid, name: '关节' + nid, type: 'rigid', parent: leader, child: ids[i], anchor: s.componentCenter(ids[i]), axis: [0, 1, 0], angle: 0, slide: 0, groupRef: rgId }) }
+    for (let i = 1; i < ids.length; i++) { nid++; add.push({ id: 'J' + nid, name: '關節' + nid, type: 'rigid', parent: leader, child: ids[i], anchor: s.componentCenter(ids[i]), axis: [0, 1, 0], angle: 0, slide: 0, groupRef: rgId }) }
     const name = s.components.find((c) => c.id === leader)?.name ?? leader
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       joints: [...s.joints, ...add], checkedComps: [],
-      rigidGroups: [...s.rigidGroups, { id: rgId, name: `刚性组 ${rgId.replace('RG', '')}（${name}）`, members: [...ids] }],
+      rigidGroups: [...s.rigidGroups, { id: rgId, name: `剛性組 ${rgId.replace('RG', '')}（${name}）`, members: [...ids] }],
       status: `🔗 已建一級剛性組「${rgId}」（${ids.length} 件，「${name}」做頭 — 瀏覽器可抑制/刪除；抑制即釋放全組）`,
     }
   }),
@@ -21207,7 +21207,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     let activeDef: (typeof defsAcc)[number] | null = null
     live.forEach((lb, i) => {
       const n = maxN + 1 + i
-      const nm = lb.active ? '组件' + n : (lb.name ? `${lb.name}` : '组件' + n)
+      const nm = lb.active ? '組件' + n : (lb.name ? `${lb.name}` : '組件' + n)   // RETEST17 #3：預設名繁體（顯示層再按語言 localizeAsmName）
       const { def, occ } = makeDefOcc(defsAcc, 'C' + n, nm, lb.mesh, [get().originX, 0, 0], lb.active && srcSnap.features.length ? { src: srcSnap } : (i ? { color: COMP_PALETTE[(comps.length + i) % COMP_PALETTE.length] } : undefined))
       defsAcc = [...defsAcc, def]; newDefs.push(def); newComps.push(occ as (typeof comps)[number])
       if (lb.active) activeDef = def

@@ -379,7 +379,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
         <span className="tw-toggle" />
         <span className="tw-eye" title={body.hidden ? '顯示實體' : '隱藏實體'} onClick={(e) => { e.stopPropagation(); toggleBodyVisible(c.id, body.id) }}>{body.hidden ? '○' : '◉'}</span>
         <span className="tw-ico"><ToolIcon name="box" size={12} /></span>
-        <span style={{ flex: 1, fontSize: 11 }}>{body.name}{body.id.endsWith('_B1') ? ' · 參數體' : ''}</span>
+        <span style={{ flex: 1, fontSize: 11 }}>{localizeAsmName(body.name, lang)}{body.id.endsWith('_B1') ? ' · 參數體' : ''}</span>
         {body.color && <span className="tw-swatch" style={{ background: body.color }} title="實體顏色" />}
       </div>
     ))}
@@ -724,7 +724,7 @@ export default function BrowserTree() {
         <Section label={`${msg('tree.bodies', lang)}${bodyMesh?.parked?.length ? ` (${(bodyMesh.triangles.length ? 1 : 0) + bodyMesh.parked.length})` : ''}`}>
           {anyBodyHidden && bodyMesh ? <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().showAllBodies()} title={L2('顯示所有隱藏的實體/組件', 'Show all hidden bodies/components', lang)}>👁 {L2('顯示全部', 'Show All', lang)}</div> : null}
           {bodyMesh && bodyMesh.triangles.length > 0 ? <BodyRow visKey={ACTIVE_BODY_KEY} label={`${components.length > 0 ? '當前組件' : '活動實體'} ●`} sel={selectedParkedIndex == null} onClick={() => { useApp.getState().selectParkedBody(null); void useApp.getState().openPropertiesDialog(null) }} /> : null}
-          {bodyMesh?.parked?.map((b, i) => <BodyRow key={'pb' + i} parkedIndex={i} visKey={parkedBodyKey(b.name, i)} label={(b as any).kind === 'body' ? b.name : `${b.name}（泊車 · 灰顯）`} sel={selectedParkedIndex === i} onClick={() => {
+          {bodyMesh?.parked?.map((b, i) => <BodyRow key={'pb' + i} parkedIndex={i} visKey={parkedBodyKey(b.name, i)} label={(b as any).kind === 'body' ? localizeAsmName(b.name, lang) : `${localizeAsmName(b.name, lang)}（泊車 · 灰顯）`} sel={selectedParkedIndex === i} onClick={() => {
             const st = useApp.getState()
             st.selectParkedBody(i)
             // SO10 / BUG-SO15-002：统一测量 + 体过滤时树点选即量泊车半体体积；否则开属性。

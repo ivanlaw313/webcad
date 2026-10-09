@@ -175,7 +175,7 @@ export default function JointsPanel() {
   }, [kfPlaying])
 
   if (components.length < 2) return null
-  const name = (id: string) => components.find((c) => c.id === id)?.name ?? id
+  const name = (id: string) => localizeAsmName(components.find((c) => c.id === id)?.name ?? id, lang)   // RETEST17 #3：標題行「組件1 → 實體1」繁體
   const kfEnd = jointKeyframes.length ? jointKeyframes[jointKeyframes.length - 1].t : 5   // S177 时间轴末端 = 末帧 t（无帧默认 5s）
 
   const add = () => {

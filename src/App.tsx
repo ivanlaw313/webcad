@@ -1,3 +1,4 @@
+import { createShortcutGuard } from './cad/shortcutGuard'
 import { protectEscape } from './cad/escapeKey'
 import { useEffect, lazy, Suspense, useState, useRef } from 'react'
 import Ribbon from './components/Ribbon'
@@ -76,11 +77,15 @@ export default function App() {
   // First-ever visit (no `webcad_seen_intro` flag) → show the quick-start card once.
   useEffect(() => { try { if (!isUiTestIsolation() && !localStorage.getItem('webcad_seen_intro')) useApp.getState().openIntro() } catch { /* ignore */ } }, [])
   useEffect(() => {
+    // UX1 #4：欄位打字失焦／焦點喺對話框 → 單鍵快捷鍵（H 孔、E 拉伸、Delete…）唔准觸發（src/cad/shortcutGuard.ts）
+    const guard = createShortcutGuard()
+    const noteFieldKey = (e: KeyboardEvent) => guard.note(e, e.target as HTMLElement | null, document.activeElement as HTMLElement | null)
     const onKey = (e: KeyboardEvent) => {
       if (!startupReady) return
       if (e.key === 'Escape' && e.repeat) return
       const t = e.target as HTMLElement | null
       if (e.isComposing || e.keyCode === 229) return
+      if (guard.blocks(e, e.target as HTMLElement | null, document.activeElement as HTMLElement | null)) return
       // Keep normal text entry local to the focused field, but never swallow the
       // two command-dialog keys Fusion users rely on: Enter commits and Esc
       // cancels even while a numeric field has focus.  Modifier shortcuts (undo,
@@ -339,8 +344,9 @@ export default function App() {
       }
     }
     window.addEventListener('keydown', protectEscape, true)
+    window.addEventListener('keydown', noteFieldKey, true)
     window.addEventListener('keydown', onKey)
-    return () => { window.removeEventListener('keydown', protectEscape, true); window.removeEventListener('keydown', onKey) }
+    return () => { window.removeEventListener('keydown', protectEscape, true); window.removeEventListener('keydown', noteFieldKey, true); window.removeEventListener('keydown', onKey) }
   }, [startupReady])
 
   return (

@@ -38,9 +38,11 @@ test('Delete on one segment of a drawn polyline keeps the other segments', async
   assert.equal(segs, 3, JSON.stringify(shapes()))
 })
 
-test('pure: zero-bulge verts polyline splits; a real arc still falls back to whole delete', () => {
+test('pure: zero-bulge verts polyline splits; UX4 #9: a path with an arc segment splits too and the arc keeps its bulge', () => {
   const z = removeContourEdges({ type: 'poly', pts: P, verts: P, bulges: [0, 0, 0, 0], open: true }, [2])
   assert.equal(z.shapes.length, 2)
-  assert.equal(removeContourEdges({ type: 'poly', pts: P, verts: P, bulges: [0, 0.4, 0, 0], open: true }, [2]), null)
+  const a = removeContourEdges({ type: 'poly', pts: P, verts: P, bulges: [0, 0.4, 0, 0], open: true }, [2])
+  assert.equal(a.shapes.length, 2)
+  assert.ok(a.shapes.some((sh) => (sh.bulges ?? []).includes(0.4)), 'arc segment survives with its bulge')
 })
 test('done', () => setTimeout(() => process.exit(process.exitCode || 0), 50))

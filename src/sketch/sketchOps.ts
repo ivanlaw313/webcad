@@ -1062,6 +1062,9 @@ export interface TrimPath {
   verts: Pt[];
   bulges: number[];
   closed: boolean;
+  /** UX4（Fusion）：顶点 = 独立线段实体嘅分界（矩形 4 条边 / 折线每段）→ 剪裁跨度喺顶点止步，唔会穿过转角
+   *  食埋隔篱条边。圆（拆成 2 段弧嘅内部表示）/ 采样曲线唔设（佢哋嘅顶点唔系实体分界）。 */
+  breakVerts?: boolean;
 }
 // closed=true: 隐式闭合段 verts[n−1]→verts[0], bulge = bulges[n−1]。
 // closed=false (开放折线): n 顶点 n−1 段; bulges 长 n−1 (缺项/多项容错, 缺当 0)。
@@ -1130,6 +1133,10 @@ function collectTrimHits(tSegs: BoolSeg[], target: TrimPath, cSegs: BoolSeg[]): 
         break;
       }
     }
+  }
+  if (target.breakVerts) {
+    // 闭合：全部顶点；开放：内部顶点（两端本身就系路径终点）
+    for (let vi = target.closed ? 0 : 1; vi < (target.closed ? nV : nV - 1); vi++) hits.push({ u: vi, p: clonePt(target.verts[vi]) });
   }
   hits.sort((x, y) => x.u - y.u);
   const out: TrimHit[] = [];

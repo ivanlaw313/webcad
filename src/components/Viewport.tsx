@@ -4749,6 +4749,7 @@ export default function Viewport() {
           const stc = useApp.getState()
           if (ctxHit.kind === 'component' && ctxHit.compId) stc.contextSelectComponent(ctxHit.compId)
           if (ctxHit.kind === 'body' && ctxHit.parked != null && stc.selectedParkedIndex !== ctxHit.parked) stc.selectParkedBody(ctxHit.parked)
+          if (stc.mode === 'sketch') stc.skContextPick()   // UX4 #1：右鍵 hover 中嘅線/弧/圓 → 先選中，菜單即有「刪除」
           setCtxMenu({ x: e.clientX, y: e.clientY, hit: ctxHit })  // right-click (not right-drag-pan) → our menu
           const hit = (e.nativeEvent as { __webcadPlanar?: boolean }).__webcadPlanar
           if (useApp.getState().mode !== 'sketch' && !hit) notePlanarFace(null)

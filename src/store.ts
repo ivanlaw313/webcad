@@ -223,6 +223,7 @@ function groundedJointMsg(s: { components: { id: string; name: string }[] }, id:
 }
 // BUG-207 跟進（G）：用戶喺偏移工具未揀輪廓前已喺欄位打數 → 之後鎖定輪廓時數值優先（換工具即重置）。
 let _offsetTypedPre = false
+let _cornerTypedPre = false   // UX4 #6：揀角之前已打咗圓角/倒角值（底欄欄位或直接打數字）→ 鎖定時當 typed
 function nextCid(comps: { id: string }[], offset = 0): string {
   const maxN = comps.reduce((m, c) => { const n = parseInt(String(c.id).replace(/^C/, ''), 10); return Number.isFinite(n) && n > m ? n : m }, 0)
   return 'C' + (maxN + 1 + offset)
@@ -615,6 +616,14 @@ let _snapPerfPending: string | null = null
 let _snapPerfShown = false
 // 草图诊断：记低最后一次拣取嘅结果（畀「诊断」掣 copy → 用户贴返，AI 一睇就知撳击有冇到/中咗乜）。
 let _skLastClick = '(未撳过)'
+let _skHoverRaw: Pt | null = null   // UX4 #1：最近一次 hover 拾取用嘅【未吸附】游標（Delete 冇選擇時刪 hover 實體前重驗）
+// 防 stale hover（幾何改咗但滑鼠未郁）：游標位置重新命中返同一個實體先算數；只收草圖實體（原點/參考幾何唔刪）
+function validSkHover(s: { skHover: SkRef | null; sketchProfiles: SketchShape[]; sketchShape: SketchShape | null; sketchTool: string; skArmedCon: SkConType | null; skSel: SkRef[] }): SkRef | null {
+  const hv = s.skHover, cur = _skHoverRaw
+  if (!hv || !cur || !('shape' in hv)) return null
+  const allSh = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
+  return JSON.stringify(skHitTest(allSh, cur, pickTol(), undefined, { preferCurves: skPreferCurves(s) })) === JSON.stringify(hv) ? hv : null
+}
 // ── 诊断录制模式 ──：开咗记低用户每个动作（鼠标坐标/时间/撳边个掣）+ 背后状态变化 → 一键 copy 问题报告畀 AI。
 let _dbg: string[] = []
 let _dbgT0 = 0
@@ -628,6 +637,10 @@ export function dbgCount(): number { return _dbg.length }
 export function dbgClear(): void { _dbg = []; _dbgT0 = 0 }
 // 拾取容差 = 真·14px 屏幕半径（缩到几远都揿得中条线/圆心；最少 2.5mm 防深放大时变 0）
 const pickTol = () => Math.max(2.5, 14 * _mmPerPx)
+// UX4 #3：而家揀嘅嘢只可以係曲線（武裝咗 相等/相切/平行/垂直/同心/共線，或者已選嘅全部係圓/弧）→ 拾取曲線優先於圓心/端點
+const CURVE_ONLY_CONS: readonly SkConType[] = ['equal', 'tangent', 'parallel', 'perp', 'concentric', 'collinear']
+const skPreferCurves = (s: { sketchTool: string; skArmedCon: SkConType | null; skSel: SkRef[] }): boolean =>
+  s.sketchTool === 'select' && ((!!s.skArmedCon && CURVE_ONLY_CONS.includes(s.skArmedCon)) || (s.skSel.length > 0 && s.skSel.every((r) => r.kind === 'circle')))
 let _angleN1: [number, number, number] | null = null // first face normal picked in 量角 (measure-angle) mode
 // Fusion 式 zoom 自适应格点 (T744 实战 #7)：拣最细嘅「好数」步长令一格 ≥ 8 屏幕 px —— 放大时吸
 // 0.1/0.5/1mm（74.4 呢类小数放大后照点得中），缩远先用粗格；永远唔粗过用户设定嘅 _snap。
@@ -680,6 +693,11 @@ const _DISARM_ON = new Set(['sketch', 'facesketch', 'extrude', 'revolve', 'sweep
 export type SnapSrc = { kind: 'pt' | 'mid' | 'center' | 'quad' | 'x'; p: Pt; seg?: [Pt, Pt] }
 let _snapSrc: SnapSrc | null = null
 let _snapKind: 'point' | 'quad' | 'tan' | 'mid' | 'x' = 'point'   // 最近一次捕捉命中类型（象限/切点/边中点/交点 → 状态栏提示用，同模块内 onSketchMove 读）
+// UX4 #10：三點弧 / 三點圓嘅【第三點】只定曲率 —— 唔好食網格吸附（以前落點被拉去最近格點 → 條弧唔經過你點嗰度）。
+// 幾何吸附（端點/中點/象限…）照用；預覽（onSketchMove）同落點（onSketchClick）共用呢個規則，保證所見即所得。
+function threePointFree(s: { sketchTool: string; polyPts: Pt[] }, r: { pt: Pt; onPoint: boolean }, raw: Pt): Pt {
+  return (s.sketchTool === 'arc' || s.sketchTool === 'circle3') && s.polyPts.length === 2 && !r.onPoint ? [raw[0], raw[1]] : r.pt
+}
 function snapInSketch(raw: Pt, start: Pt | null, poly: Pt[], shape: SketchShape | null, profiles: SketchShape[], angleAnchor: Pt | null = null, snapStart = true, polySegments = true): { pt: Pt; onPoint: boolean } {
   _snapKind = 'point'; _snapSrc = null   // GM-W7 7.4
   // 几何捕捉关（工具栏掣）或按住 Alt 临时停 → 跳过所有几何/角度辅助，只剩网格捕捉，自由精准落点。
@@ -1859,6 +1877,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   setAutoConstrain: (on: boolean) => void
   toggleConstruction: () => void           // 构造几何切换（Fusion X）：选中 shape ⇄ 虚线参考几何
   skMutationError: string | null
+  skContextPick: () => void                        // UX4 #1：右鍵 hover 中嘅草圖實體（未選中）→ 先選中佢，右鍵菜單就有「刪除」（Fusion 同款）
   skDeleteSel: () => Promise<void>                  // Delete：选中点→删顶点 / 选中边/圆→删轮廓（约束重映射）
   copySketchSelection: () => void               // BUG-210：Ctrl+C 复制选中边/轮廓（纯几何，非关联）
   pasteSketchSelection: () => void              // BUG-210：Ctrl+V 贴上并偏移约 10 mm，避免叠在原位
@@ -4061,6 +4080,7 @@ function bulgeFromMid(a: Pt, b: Pt, m: Pt): number {
 // T777：折线末段切线方向（相切弧续画用）— 直线段 = 段方向；弧段 = 终点半径向量旋 90°（方向跟弧行进）
 export { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'   // BUG(F)：纯函数搬出（node 可测）
 import { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'
+import { remapCornerConstraints, maxFilletRadius } from './sketch/cornerRemap'   // UX4 #2/#4/#5
 import { sketchPointsOf, finishedSketchPointCandidates, holeSnapTargetsFromSources, snapHoleXY } from './sketch/holePoints'
 import { sketchLocalToPlane } from './sketch/planeCoords'
 import { resolveCoilOp } from './cad/coilOp'
@@ -4088,6 +4108,25 @@ export function findEndpointTangent(shapes: FShape[], p: Pt, tol: number): { p: 
   return best ? { p: best.p, t: best.t } : null
 }
 
+// UX4 #7：開放折線（直線工具連續畫）收筆 → 已吸正嘅直段自動落 水平/豎直（Fusion 畫線時即時落）。
+// 連續段之間嘅接點係同一條路徑嘅共享頂點（= 天然重合，DOF 同 Fusion「獨立線 + 重合」一樣），唔使額外 ◉。
+function openPolyHVCons(sh: SketchShape, idx: number): SkCon[] {
+  if (sh.type !== 'poly' || !sh.verts) return []
+  const v = sh.verts, b = sh.bulges ?? [], out: SkCon[] = []
+  for (let j = 0; j + 1 < v.length; j++) {
+    if (Math.abs(b[j] || 0) > 1e-12) continue
+    const dx = Math.abs(v[j + 1][0] - v[j][0]), dy = Math.abs(v[j + 1][1] - v[j][1])
+    if (dy < 0.01 && dx > 0.5) out.push({ id: skConId(), kind: 'con', type: 'h', a: { kind: 'edge', shape: idx, idx: j } } as SkCon)
+    else if (dx < 0.01 && dy > 0.5) out.push({ id: skConId(), kind: 'con', type: 'v', a: { kind: 'edge', shape: idx, idx: j } } as SkCon)
+  }
+  return out
+}
+function autoSummary(auto: SkCon[]): string {
+  if (!auto.length) return ''
+  const n = (t: string) => auto.filter((c) => c.kind === 'con' && c.type === t).length
+  const parts = [n('coincident') && `${n('coincident')} 重合`, (n('h') + n('v')) && `${n('h') + n('v')} 水平/豎直`, n('tangent') && `${n('tangent')} 相切`].filter(Boolean)
+  return ` · 自動加咗 ${auto.length} 個約束（${parts.join('、')}）`
+}
 function vertsPoly(verts: Pt[], bulges: number[]): SketchShape {
   return { type: 'poly', pts: pathPts(verts, bulges), verts, bulges }
 }
@@ -4590,13 +4629,15 @@ function sizingCornerDim(shapes: SketchShape[], sz: Sizing, value: number, fits:
 function shapeToTrimPath(sh: SketchShape): TrimPath | null {
   if (sh.type === 'rect') {
     const xa = Math.min(sh.a[0], sh.b[0]), xb = Math.max(sh.a[0], sh.b[0]), ya = Math.min(sh.a[1], sh.b[1]), yb = Math.max(sh.a[1], sh.b[1])
-    return { verts: [[xa, ya], [xb, ya], [xb, yb], [xa, yb]], bulges: [0, 0, 0, 0], closed: true }
+    return { verts: [[xa, ya], [xb, ya], [xb, yb], [xa, yb]], bulges: [0, 0, 0, 0], closed: true, breakVerts: true }
   }
   if (sh.type === 'circle') { if (sh.point || sh.r < 1e-6) return null; return { verts: [[sh.c[0] - sh.r, sh.c[1]], [sh.c[0] + sh.r, sh.c[1]]], bulges: [1, 1], closed: true } }
   if (sh.type === 'poly') {
     if (sh.smooth) return null
-    if (sh.verts && sh.bulges) return { verts: sh.verts.map((p) => [...p] as Pt), bulges: [...sh.bulges], closed: !sh.open }
-    if (sh.pts.length >= 2) return { verts: sh.pts.map((p) => [...p] as Pt), bulges: sh.pts.map(() => 0), closed: !sh.open }
+    // UX4：直线/折线/矩形嘅顶点 = Fusion 独立线段分界 → 剪裁只删点中嗰段（唔穿过转角）；采样曲线（椭圆/圆锥/样条）顶点唔系分界
+    const sampled = !!(sh.ell || sh.earc || sh.conic || sh.bspline || sh.ctrl || sh.arc)
+    if (sh.verts && sh.bulges) return { verts: sh.verts.map((p) => [...p] as Pt), bulges: [...sh.bulges], closed: !sh.open, breakVerts: !sampled }
+    if (sh.pts.length >= 2) return { verts: sh.pts.map((p) => [...p] as Pt), bulges: sh.pts.map(() => 0), closed: !sh.open, breakVerts: !sampled }
   }
   return null
 }
@@ -5964,7 +6005,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // A fresh document is in navigation/selection mode.  Geometry tools are
   // explicit commands, never an accidental first click.
   sketchTool: 'select',
-  setSketchTool: (t) => { _offsetTypedPre = false; if(get().skScale)discardScale(); get().skDragCancel(); set({ sketchTool: t, sketchStart: null, sketchPreview: null, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, tanRefs: [], skBoolPending: null, toolPreview: null, sizing: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, skMarquee: null, skSelCon: null, ...(t !== 'move' ? { skMove: null } : {}), ...(t !== 'select' ? { skArmedCon: null } : {}), ...(t !== 'mirror' ? { mirrorPick: null } : {}), ...(t !== 'dimension' ? { dimArcLen: false } : {}) }) },  // T777：换工具清相切弧/切点圆 buffer；T790：离开镜像清进行中状态；T791：换工具取消合并拾取；T792：清悬停预览；GM-FP2：换工具清尺寸 pending / 非 select 清 tool-first 武装；GM-FP3：清框选/约束选中，非 move 清 move gizmo
+  setSketchTool: (t) => { _offsetTypedPre = false; if (t !== 'cfillet' && t !== 'cchamfer') _cornerTypedPre = false; if(get().skScale)discardScale(); get().skDragCancel(); set({ sketchTool: t, sketchStart: null, sketchPreview: null, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, tanRefs: [], skBoolPending: null, toolPreview: null, sizing: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, skMarquee: null, skSelCon: null, ...(t !== 'move' ? { skMove: null } : {}), ...(t !== 'select' ? { skArmedCon: null } : {}), ...(t !== 'mirror' ? { mirrorPick: null } : {}), ...(t !== 'dimension' ? { dimArcLen: false } : {}) }) },  // T777：换工具清相切弧/切点圆 buffer；T790：离开镜像清进行中状态；T791：换工具取消合并拾取；T792：清悬停预览；GM-FP2：换工具清尺寸 pending / 非 select 清 tool-first 武装；GM-FP3：清框选/约束选中，非 move 清 move gizmo
   hoverFace: null,
   setHoverFace: (t) => set((s) => (s.hoverFace === t || (!s.hoverFace && !t) ? {} : { hoverFace: t })),
   // Fusion ESC behaviour: 1st ESC cancels the in-progress draw (a started rect/circle or polyline points)
@@ -6070,7 +6111,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   sketchSlotW: 20,
   setSketchSlotW: (n) => set({ sketchSlotW: Math.max(1, n || 20) }),
   sketchCornerR: 8,
-  setSketchCornerR: (n) => { set((s) => ({ sketchCornerR: Math.max(0, n || 0), ...(s.sizing ? { sizing: { ...s.sizing, typed: true, typedValue: Math.max(0, n || 0), raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改半径即更新倒角预览；T796-3：调尺寸中打数字→标记 typed，下一次鼠标轻微移动唔覆盖打嘅值
+  setSketchCornerR: (n) => { if (!get().sizing) _cornerTypedPre = (n || 0) > 0; set((s) => ({ sketchCornerR: Math.max(0, n || 0), ...(s.sizing ? { sizing: { ...s.sizing, typed: true, typedValue: Math.max(0, n || 0), raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改半径即更新倒角预览；T796-3：调尺寸中打数字→标记 typed，下一次鼠标轻微移动唔覆盖打嘅值
   sketchConicRho: 0.5,
   setSketchConicRho: (n) => { set({ sketchConicRho: Math.min(0.95, Math.max(0.05, n || 0.5)) }); get().refreshToolPreview() },   // S177：改 ρ 即更新圆锥曲线预览（clamp 0.05~0.95 避退化）
   // Round every corner of the current closed poly sketch by radius r — TRUE tangent arcs (bulge segments,
@@ -6167,7 +6208,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 解决 SIZING-2/T796-2：以前键盘数字会误入「起点坐标」种咗个幽灵 sketchStart，仲整坏第一下 ESC 取消。
   sizeTypeKey: (key) => {
     const s = get()
-    if (!s.sizing) return
+    if (!s.sizing) {
+      // UX4 #6：倒圓角/倒角工具未揀角就打數字 = 預設半徑（之後揀角即用呢個值，拖動唔覆蓋）
+      if (s.mode !== 'sketch' || (s.sketchTool !== 'cfillet' && s.sketchTool !== 'cchamfer')) return
+      let b = s.dimBuf[0] || ''
+      if (key === 'Backspace') b = b.slice(0, -1); else if (/^[0-9.]$/.test(key)) b = (b + key).slice(0, 9); else return
+      const v = parseFloat(b)
+      set({ dimBuf: [b, ''], status: `${s.sketchTool === 'cchamfer' ? '倒角 C' : '圓角 R'}${isFinite(v) ? v : '…'} — 點近一個角即用呢個值` })
+      get().setSketchCornerR(isFinite(v) && v > 0 ? v : 0)
+      return
+    }
     const off = s.sizing.tool === 'offset'
     if (key === 'Enter') { const a = s.sizing.anchor; set({ dimBuf: ['', ''] }); off ? get().skOffsetAt(a) : get().skCornerAt(a); return }
     if (key === 'Escape') { set({ dimBuf: ['', ''] }); get().escSketch(); return }
@@ -6231,7 +6281,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     })
   },
   // T790：Fusion 式单角倒圆角/倒角 — 点近一个直角顶点 → 只倒嗰个角（半径取底栏 圆角R）。工具 cfillet=真圆弧、cchamfer=直斜角。
-  skCornerAt: (p) => {
+  skCornerAt: async (p) => {
     const s = get()
     if (s.mode !== 'sketch') return
     const isCh = s.sketchTool === 'cchamfer'
@@ -6248,7 +6298,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       const cp = paths[bi]!, nC = cp.verts.length, prevI = (vi - 1 + nC) % nC
       if (Math.abs(cp.bulges[vi] || 0) > 1e-9 || Math.abs(cp.bulges[prevI] || 0) > 1e-9) { set({ status: `${lbl}：呢個角已經系圓弧角，唔使再倒；想倒請點其它直角頂點` }); return }
       // T796-1：锁定即把 sketchPreview 设到点击处 + seed 半径（触屏 tap-tap 见到拖柄、commit 锁定角而非旧默认）
-      set({ sizing: { tool: s.sketchTool as 'cfillet' | 'cchamfer', shapeIdx: bi, vi, anchor: cp.verts[vi], ref: shapes[bi], raw: p }, sketchPreview: p, sketchCornerR: s.sketchCornerR || 8, dimBuf: ['', ''], status: `${lbl}：移動鼠標拖${isCh ? '回縮 C' : '半徑 R'}（1mm 步進）→ 點一下確定 · 打數字精確 · ESC 取消` })
+      // UX4 #6：揀角之前已經打咗半徑（底欄「圓角R」或者直接打數字）→ 鎖定即當 typed（黐住），拖動唔再覆蓋（以前打 25 拖完變 R12）
+      const preTyped = _cornerTypedPre && s.sketchCornerR > 0
+      set({ sizing: { tool: s.sketchTool as 'cfillet' | 'cchamfer', shapeIdx: bi, vi, anchor: cp.verts[vi], ref: shapes[bi], raw: p, ...(preTyped ? { typed: true, typedValue: s.sketchCornerR } : {}) }, sketchPreview: p, sketchCornerR: s.sketchCornerR || 8, dimBuf: ['', ''], status: preTyped ? `${lbl}：用已輸入 ${isCh ? 'C' : 'R'}${s.sketchCornerR} → 點一下確定 · 再打數字可改 · ESC 取消` : `${lbl}：移動鼠標拖${isCh ? '回縮 C' : '半徑 R'}（1mm 步進）→ 點一下確定 · 打數字精確 · ESC 取消` })
       get().refreshToolPreview()
       return
     }
@@ -6261,20 +6313,34 @@ export const useApp = create<AppState>((rawSet, get) => {
     const nC = cp.verts.length, prevI = (vi - 1 + nC) % nC
     let res: { verts: Pt[]; bulges: number[] }
     try { res = isCh ? chamferAtIdx(cp.verts, cp.bulges, vi, r) : filletAt(cp.verts, cp.bulges, vi, r) }
-    catch (e) { set({ sizing: null, toolPreview: null, status: `${lbl}失敗：${(e as Error)?.message || e}（試細啲嘅 R）` }); return }
+    catch (e) {
+      // UX4 #5：半徑太大唔好靜靜雞失敗 —— 講明最大可用 R，並【保持鎖定】呢個角，直接打細啲再確定就得
+      const rMax = isCh ? 0 : maxFilletRadius(cp.verts, vi)
+      const msg = !isCh && rMax > 0 && r >= rMax - 1e-6
+        ? `⚠ 圓角 R${r} 太大，放唔落呢個角（最大約 R${(Math.floor((rMax - 1e-6) * 10) / 10).toFixed(1)}）— 打細啲嘅數字再點一下確定，或 ESC 取消`
+        : `⚠ ${lbl}失敗：${(e as Error)?.message || e}（試細啲嘅 ${isCh ? 'C' : 'R'}）`
+      set({ status: msg, sketchDim: msg, dimBuf: ['', ''] }); return
+    }
+    _cornerTypedPre = false
     const isCon = !!sh.construction
     const nv = vertsPoly(res.verts, res.bulges)
     const newShape: SketchShape = isCon ? { ...nv, construction: true } : nv
     const isActive = !!s.sketchShape && bi === s.sketchProfiles.length
+    // UX4 #2/#4：約束跟住新頂點/邊 index 重映射（以前錯位 → 求解後邊變斜），倒圓角補 2 個相切約束（Fusion 同款）。
+    const remap = remapCornerConstraints(sh as never, cp.verts, vi, bi, s.skCons, { fillet: !isCh, mkId: skConId })
+    const consNote = `${remap.tangents.length ? ` · 已加 ${remap.tangents.length} 個相切約束` : ''}${remap.dropped ? ` · ${remap.dropped} 個量度舊尖角嘅約束/尺寸已移除` : ''}`
     const okBody = (() => {
       if (!isCh) return `倒圆角 R${r}`
       const A = cp.verts[prevI], B = cp.verts[vi], C = cp.verts[(vi + 1) % nC]
       const tA = Math.min(r, Math.hypot(A[0] - B[0], A[1] - B[1]) * 0.45, Math.hypot(C[0] - B[0], C[1] - B[1]) * 0.45)
       return tA < r - 1e-6 ? `倒角 C${tA.toFixed(1)}（邻边太短，已由 C${r} 收窄）` : `倒角 C${r}`
     })()
-    const okStatus = `已${okBody}（1 個角）— 繼續點其它角或換工具`
-    if (isActive) set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: newShape, sizing: null, toolPreview: null, status: okStatus })
-    else { const np = [...s.sketchProfiles]; np[bi] = newShape; set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: np, sizing: null, toolPreview: null, status: okStatus }) }
+    const okStatus = `已${okBody}（1 個角）${consNote} — 繼續點其它角或換工具`
+    // 一次 set = 一個 undo 步（Ctrl+Z 一下即還原【原本】幾何同約束）；resolveSk 唔會再推 undo。
+    const common = { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: remap.cons, skSel: [], skHover: null, sizing: null, toolPreview: null, sketchDim: null, dimBuf: ['', ''] as [string, string] }
+    if (isActive) set({ ...common, sketchShape: newShape, status: okStatus })
+    else { const np = [...s.sketchProfiles]; np[bi] = newShape; set({ ...common, sketchProfiles: np, status: okStatus }) }
+    if (remap.cons.length) await get().resolveSk({ statusNote: `${okBody}${consNote}` })
   },
   // Mirror the current profile across the X or Y axis → keeps original + adds the mirror as a contour.
   mirrorSketch: async (axis) => {
@@ -6441,7 +6507,7 @@ export const useApp = create<AppState>((rawSet, get) => {
 
     if(s.drawConstruction)sh={...sh,construction:true}
     const originals=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])],candidate=[...originals,sh]
-    const auto=s.autoConstrain?[...inferCoincident(candidate,originals.length,s.skCons),...polyTangentArcCons(sh,originals.length,s.skCons,skConId)]:[]   // BUG(F)：相切弧段同时补相切约束
+    const auto=s.autoConstrain?[...inferCoincident(candidate,originals.length,s.skCons),...polyTangentArcCons(sh,originals.length,s.skCons,skConId),...(smooth?[]:openPolyHVCons(sh,originals.length))]:[]   // BUG(F)：相切弧段同时补相切约束；UX4 #7：直段吸正咗水平/豎直 → 自動落 H/V（同閉合折線 S43 一致）
     let completed=candidate,cons=[...s.skCons,...auto],dof=s.skDof
     if(auto.length){
       const current=()=>{const c=get();return c.mode===s.mode&&c.sketchTool===s.sketchTool&&c.sketchProfiles===s.sketchProfiles&&c.sketchShape===s.sketchShape&&c.polyPts===s.polyPts&&c.polyBulges===s.polyBulges&&c.skCons===s.skCons&&c.params===s.params&&c.drawConstruction===s.drawConstruction&&c.autoConstrain===s.autoConstrain}
@@ -6452,7 +6518,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         completed=[...originals,result.shapes[originals.length] as SketchShape];cons=applyRelationUpdates(cons,result);dof=result.dof
       }catch{if(current())set({status:'端點關係求解失敗；繪製和原模型保留'});return}
     }
-    set({sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],sketchProfiles:completed,sketchShape:null,skCons:cons,skDof:dof,polyPts:[],polyBulges:[],polyArcMode:false,sketchStart:null,sketchPreview:null,sketchSnap:null,snapSrc:null,status:smooth?`已完成開放${isBSpline?'B樣條':'樣條'}曲線（${pts.length} 控制點）`:`已完成開放折線（${pts.length-1} 段）${auto.length?` · 已保留 ${auto.length} 個端點重合關係`:''}`})
+    set({sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],sketchProfiles:completed,sketchShape:null,skCons:cons,skDof:dof,polyPts:[],polyBulges:[],polyArcMode:false,sketchStart:null,sketchPreview:null,sketchSnap:null,snapSrc:null,status:smooth?`已完成開放${isBSpline?'B樣條':'樣條'}曲線（${pts.length} 控制點）`:`已完成開放折線（${pts.length-1} 段）${autoSummary(auto)}`})
   },
 
   clineOrient: 'v',
@@ -8505,7 +8571,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       return
     }
     const tol = pickTol()  // true screen-radius picking (T731) — the old draw-snap-based tol shrank to ~4px when zoomed out
-    const hit = skHitTest(shapes, p, tol)
+    // UX4 #3：而家揀嘅嘢只可以係曲線（武裝咗 相等/相切/平行/垂直/同心/共線，或者已選嘅全部係圓/弧）→ 曲線優先於圓心/端點
+    const hit = skHitTest(shapes, p, tol, undefined, { preferCurves: skPreferCurves(s) })
     _skLastClick = `@(${p[0].toFixed(1)},${p[1].toFixed(1)}) → ${hit ? hit.kind + (('idx' in hit && hit.idx != null) ? '#' + hit.idx : '') : 'MISS（呢度冇撳中任何点/边）'}`   // 诊断用
     const r1 = (n: number) => Math.round(n * 10) / 10
     if (s.sketchTool === 'dimension') {
@@ -9482,10 +9549,27 @@ export const useApp = create<AppState>((rawSet, get) => {
   skTrimSweepEnd: async () => { _skTrimSweep = false; _skTrimPushed = false; await patternTrimQueue; if(!_skTrimSweep)_patternTrimPushedSweeps.clear(); if (get().mode === 'sketch') set({ toolPreview: null }) },
   // Delete 删除（Fusion Del）：单选一个 poly 顶点 → 删顶点（前后段并成直线）；其他选中 → 删成个轮廓。
   // 轮廓删除会重映射剩余约束嘅 shape 索引，引用被删轮廓嘅约束一并移除（诚实，唔静默换目标）。
+  skContextPick: () => {
+    const s = get()
+    if (s.mode !== 'sketch') return
+    let hv = validSkHover(s)
+    if (!hv && _skHoverRaw && s.sketchStart == null && !s.polyPts.length) {   // 繪圖工具（冇 hover 高亮）：照游標位置拾取
+      const allSh = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
+      const h = skHitTest(allSh, _skHoverRaw, pickTol())
+      if (h && 'shape' in h) hv = h
+    }
+    if (!hv || s.skSel.some((r) => JSON.stringify(r) === JSON.stringify(hv))) return
+    set({ skSel: [hv], skSelCon: null })
+  },
   skDeleteSel: async () => {
     const s = get()
     if (s.mode !== 'sketch') return
-    if (!s.skSel.length) { set({ status: '刪除：先用選擇工具點中 點（刪頂點）/ 邊或圓（刪成個輪廓），再按 Delete' }); return }
+    if (!s.skSel.length) {
+      // UX4 #1：冇選擇但滑鼠停喺一條線/弧/圓/點上面（hover 高亮緊）→ 刪嗰個（同右鍵選中再刪一致），唔好淨係出提示。
+      const hv = validSkHover(s)
+      if (hv) { set({ skSel: [hv] }); return get().skDeleteSel() }
+      set({ status: '刪除：未選中任何草圖幾何 — 用「選擇」工具點中 線 / 弧 / 圓 / 點，再按 Delete 或 Backspace（或右鍵 →「刪除」）' }); return
+    }
     const nProf = s.sketchProfiles.length
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
     const r0 = s.skSel[0]
@@ -9515,21 +9599,32 @@ export const useApp = create<AppState>((rawSet, get) => {
       const sh = shapes[r0.shape]
       if (sh && sh.type === 'poly' && !sh.arc && !sh.smooth) {
         const verts = (sh.verts ?? sh.pts).map((p) => [p[0], p[1]] as Pt)
-        if (verts.length <= 3) { set({ status: '輪廓至少要 3 個頂點 — 要刪成個輪廓請點中一條邊再按 Delete' }); return }
+        const isOpen = !!sh.open
+        if (verts.length <= (isOpen ? 2 : 3)) { set({ status: isOpen ? '呢條線只剩 2 個端點 — 要刪就點中條線再按 Delete' : '輪廓至少要 3 個頂點 — 要刪成個輪廓請點中一條邊再按 Delete' }); return }
         const bulges = sh.bulges ? [...sh.bulges] : new Array(verts.length).fill(0)
+        while (bulges.length < verts.length) bulges.push(0)
         const i = r0.idx
-        verts.splice(i, 1); bulges.splice(i, 1)
+        let upd: SketchShape
+        const con = sh.construction ? { construction: true } : {}
+        if (isOpen) {
+          // UX4 #9：開放折線（直線工具畫嘅連續線）刪頂點 → 保持【開放】（以前會變咗閉合多邊形）。端點 = 剪走頭/尾一段；中間點 = 前後兩段併成直線。
+          if (i === 0) { verts.shift(); bulges.shift() } else if (i === verts.length - 1) { verts.pop(); bulges.splice(i - 1, 1) } else { verts.splice(i, 1); bulges.splice(i, 1); bulges[i - 1] = 0 }
+          upd = { ...openVertsPoly(verts, bulges.slice(0, verts.length - 1)), ...con }
+        } else {
+          verts.splice(i, 1); bulges.splice(i, 1)
+          const nn = verts.length
+          bulges[(i - 1 + nn) % nn] = 0  // 前后段并成一条直线段（弧端点被删 → 该弧退化直线，诚实）
+          const hasArc = bulges.some((b) => Math.abs(b) > 1e-12)
+          upd = hasArc ? { ...vertsPoly(verts, bulges), ...con } : { type: 'poly', pts: verts, ...con }
+        }
         const nn = verts.length
-        bulges[(i - 1 + nn) % nn] = 0  // 前后段并成一条直线段（弧端点被删 → 该弧退化直线，诚实）
-        const hasArc = bulges.some((b) => Math.abs(b) > 1e-12)
-        const upd: SketchShape = hasArc ? { ...vertsPoly(verts, bulges), ...(sh.construction ? { construction: true } : {}) } : { type: 'poly', pts: verts, ...(sh.construction ? { construction: true } : {}) }
         const dropIdx = r0.shape
         const ncons = s.skCons.filter((c) => ![c.a, c.b, (c as { c?: SkRef }).c].some((r) => r && 'shape' in r && (r as { shape: number }).shape === dropIdx))
         set({
           sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
           sketchProfiles: s.sketchProfiles.map((x, j) => (j === dropIdx ? upd : x)),
           sketchShape: dropIdx === nProf ? upd : s.sketchShape,
-          skSel: [], skCons: ncons,
+          skSel: [], skHover: null, skCons: ncons,
           status: `已刪除頂點（剩 ${nn} 個）${ncons.length < s.skCons.length ? ' · 該輪廓上嘅約束已一並移除' : ''}`,
         })
         void get().resolveSk()
@@ -9543,7 +9638,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const splits = new Map<number, ReturnType<typeof removeContourEdges>>()
       for (const [i, refs] of byShape) {
         if (!refs.every((r) => r.kind === 'edge')) continue
-        const sp = removeContourEdges(shapes[i] as never, refs.map((r) => (r as { idx: number }).idx))
+        const sp = removeContourEdges(shapes[i] as never, refs.map((r) => (r as { idx: number }).idx), (v, b) => openVertsPoly(v as Pt[], b) as never)
         if (sp && sp.shapes.length) splits.set(i, sp)
       }
       if (splits.size) {
@@ -9576,7 +9671,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
           // 活动轮廓（sketchShape = 最后一个）原样保留就仍做活动轮廓；被拆嘅轮廓变开放折线入 sketchProfiles
           ...(s.sketchShape && whole.has(nProf) ? { sketchProfiles: out.slice(0, -1), sketchShape: out[out.length - 1] } : { sketchProfiles: out, sketchShape: null }),
-          skSel: [], skCons: ncons2,
+          skSel: [], skHover: null, skCons: ncons2,
           status: `已刪除 ${nEdges} 條線${nWhole ? `、${nWhole} 個輪廓` : ''}（其餘線段保留）${ncons2.length < s.skCons.length ? `（${s.skCons.length - ncons2.length} 個相關約束一並移除）` : ''}`,
         })
         void get().resolveSk()
@@ -9604,7 +9699,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
       sketchProfiles: activeSurvived ? kept.slice(0, -1) : kept,
       sketchShape: activeSurvived ? kept[kept.length - 1] : null,
-      skSel: [], skCons: ncons,
+      skSel: [], skHover: null, skCons: ncons,
       status: `已刪除 ${del.size} 個輪廓${ncons.length < s.skCons.length ? `（${s.skCons.length - ncons.length} 個相關約束一並移除）` : ''}`,
     })
     void get().resolveSk()
@@ -10180,7 +10275,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (s.mode !== 'sketch') return {}
       const angleAnchor: Pt | null = (s.sketchTool === 'polyline' || s.sketchTool === 'spline' || s.sketchTool === 'bspline') && s.polyPts.length > 0 ? s.polyPts[s.polyPts.length - 1] : null
       const twoClick = ['rectangle', 'crect', 'circle', 'circle2p', 'ellipse', 'polygon', 'slot', 'rrect', 'mline'].includes(s.sketchTool)
-      const pt = snapInSketch(raw, s.sketchStart, s.polyPts, s.sketchShape, s.sketchProfiles, angleAnchor, !twoClick, s.sketchTool==='polyline').pt
+      const _sr = snapInSketch(raw, s.sketchStart, s.polyPts, s.sketchShape, s.sketchProfiles, angleAnchor, !twoClick, s.sketchTool==='polyline')
+      const pt = threePointFree(s, _sr, raw)
       const r: Record<string, unknown> = (() => {
       if (s.sketchTool === 'rect3') {
         // 三点矩形（Fusion 同款斜矩形）：点1→点2 定一条边，点3 定宽（投影到边法向）
@@ -10505,7 +10601,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.mode !== 'sketch') return {}
     const angleAnchor: Pt | null = (s.sketchTool === 'polyline' || s.sketchTool === 'spline' || s.sketchTool === 'bspline') && s.polyPts.length > 0 ? s.polyPts[s.polyPts.length - 1] : null
     const twoClick = ['rectangle', 'crect', 'circle', 'circle2p', 'ellipse', 'polygon', 'slot', 'rrect', 'mline'].includes(s.sketchTool)   // #11：加返 'crect'（同 onSketchClick 一致），否则中心矩形预览第二点会吸返中心塌成零矩形；GM-FP4：mline/circle2p 亦两击
-    const { pt, onPoint } = snapInSketch(raw, s.sketchStart, s.polyPts, s.sketchShape, s.sketchProfiles, angleAnchor, !twoClick, s.sketchTool==='polyline')
+    const _sr = snapInSketch(raw, s.sketchStart, s.polyPts, s.sketchShape, s.sketchProfiles, angleAnchor, !twoClick, s.sketchTool==='polyline')
+    const onPoint = _sr.onPoint, pt = threePointFree(s, _sr, raw)
     // T796：锁定中（拖柄调尺寸）→ 用【未吸附】光标算 整数值（1mm 步进，跟住光标行），更新 距离/半径 + 锁定预览；唔行下面绘制/悬停逻辑
     // SIZING-3：加工具守卫 — 泄漏入其它工具/重开草图嘅 stale sizing 唔再冻结绘制（唯有真系喺 offset/cfillet/cchamfer 工具先生效）
     if (s.sizing && (s.sketchTool === 'offset' || s.sketchTool === 'cfillet' || s.sketchTool === 'cchamfer')) {
@@ -10545,12 +10642,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     // GM-W6 C6：选择/尺寸工具嘅悬停反馈 —— 用 skClickAt 同款最近实体拾取（skHitTest + pickTol，收 raw 未吸附点，
     // 同真㩒一致），写 transient skHover。SkSelDraw 见到即淡橙高亮 + 游标转 pointer。非呢两个工具即早退：
     // 若有 stale skHover 就清（null），否则唔郁（skHover=undefined → 唔写入，慳 re-render）。
+    _skHoverRaw = [raw[0], raw[1]]
     const hoverTool = s.sketchTool === 'select' || s.sketchTool === 'dimension'
     let skHover: SkRef | null | undefined
     if (hoverTool) {
       const hShapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
       const rg = getRefGeo()
-      skHover = (hShapes.length || (rg && (rg.pts.length || rg.segs.length))) ? skHitTest(hShapes, raw, pickTol()) : null
+      skHover = (hShapes.length || (rg && (rg.pts.length || rg.segs.length))) ? skHitTest(hShapes, raw, pickTol(), undefined, { preferCurves: skPreferCurves(s) }) : null
     } else if (s.skHover) {
       skHover = null
     }
@@ -24454,7 +24552,36 @@ function liveSketchSources(s: AppState): AppState['sketchSources'] {
 // 用 shapes（编辑/重解后嘅完整集，含构造）喺 all 里重生成 skId 组：特征参数以 timeline 现值（olds）为准；
 // revolve=最后画嘅实线轮廓（审查 B1）；多轮廓按包含深度重嵌套（同创建端同一逻辑）。
 // 返回 null = 组唔存在/冇实线轮廓。live = 写返 sketchSources 嘅 live 参数。
-function regenGroupFeatures(all: Feature[], skId: string, src: AppState['sketchSources'][string], shapes: SketchShape[], extras?: { polyPts?: Pt[] }): { next: Feature[]; label: string; live: { height: number; op: BoolOp; twist?: number; symmetric?: boolean; draft?: number; down?: boolean }; srcExtra?: Partial<AppState['sketchSources'][string]> } | null {
+type RegenResult = { next: Feature[]; label: string; live: { height: number; op: BoolOp; twist?: number; symmetric?: boolean; draft?: number; down?: boolean }; srcExtra?: Partial<AppState['sketchSources'][string]> }
+// UX4：重開草圖改尺寸（80→100）後，拉伸嘅「已選區域」簽名（shape:segment:方向）可能因為重疊邊歸屬 / 段序變化而對唔上 →
+// 以前直接「草圖組重生成失敗 — 編輯未應用」。Fusion 會跟住同一個 profile。逐層對應：精確簽名 → 同一組來源輪廓 + 孔數
+// （唯一）→ 區域數目不變時按原次序。對唔到先至誠實失敗。
+function remapRegionSelection(oldShapes: SketchShape[], newReg: NonNullable<ReturnType<typeof detectAnalyticRegions>>, selection: string[]): string[] | null {
+  const newSigs = newReg.pfaces.map(f => regionSignature(f.outer))
+  if (selection.every(sel => newSigs.includes(sel))) return selection
+  const oldReg = detectAnalyticRegions(oldShapes.filter(sh => !sh.construction))
+  if (!oldReg) return null
+  const oldSigs = oldReg.pfaces.map(f => regionSignature(f.outer))
+  const loose = (f: (typeof newReg.pfaces)[number]) => `${[...new Set(f.outer.sources.map(x => x.shape))].sort((a, b) => a - b).join(',')}#${f.holes.length}`
+  const out: string[] = []
+  for (const sel of selection) {
+    if (newSigs.includes(sel)) { out.push(sel); continue }
+    const oi = oldSigs.indexOf(sel); if (oi < 0) return null
+    const key = loose(oldReg.pfaces[oi]), cands = newReg.pfaces.map((f, i) => loose(f) === key ? i : -1).filter(i => i >= 0)
+    if (cands.length === 1) out.push(newSigs[cands[0]])
+    else if (oldReg.pfaces.length === newReg.pfaces.length) out.push(newSigs[oi])
+    else return null
+  }
+  const uniq = [...new Set(out)]
+  return uniq.length === selection.length ? uniq : null
+}
+function regenGroupFeatures(all: Feature[], skId: string, src: AppState['sketchSources'][string], shapes: SketchShape[], extras?: { polyPts?: Pt[] }): RegenResult | null {
+  const box: { sel?: string[] } = {}
+  const r = regenGroupFeaturesImpl(all, skId, src, shapes, extras, box)
+  if (r && box.sel) r.srcExtra = { ...(r.srcExtra ?? {}), regionSelection: box.sel }
+  return r
+}
+function regenGroupFeaturesImpl(all: Feature[], skId: string, src: AppState['sketchSources'][string], shapes: SketchShape[], extras: { polyPts?: Pt[] } | undefined, box: { sel?: string[] }): RegenResult | null {
   const sketchNodes = all.filter((f) => f.type === 'sketch' && f.sketchId === skId)
   if (sketchNodes.length && all.some((f) => f.type !== 'sketch' && (f as { sketchId?: string }).sketchId === skId)) {
     const result = regenGroupFeatures(all.filter((f) => !sketchNodes.includes(f)), skId, src, shapes, extras)
@@ -24471,6 +24598,11 @@ function regenGroupFeatures(all: Feature[], skId: string, src: AppState['sketchS
     const reg = sketchRegions(solidShapes)
     if (solidShapes.some(sh => sh.type === 'poly' && sh.open) || reg.split || src.regionSelection) {
       if (!reg.analytic && src.regionSelection) return null
+      if (src.regionSelection && reg.analytic) {
+        const remapped = remapRegionSelection(src.shapes || [], reg.analytic, src.regionSelection)
+        if (!remapped) return null
+        if (remapped !== src.regionSelection) { src = { ...src, regionSelection: remapped }; box.sel = remapped }
+      }
       let resolved: SketchShape[] | null = null
       // Independent/nested closed contours retain native circle/ellipse types
       // when the persisted face selection can be expressed as original loops.

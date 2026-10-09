@@ -2626,10 +2626,16 @@ export function SketchDimProjector() {
   useFrame(() => {
     if (mode !== 'sketch') return
     // Screen-space snap: mm-per-pixel at the sketch plane → ~10px snap radius (Fusion-like).
-    const cam = camera as unknown as { isPerspectiveCamera?: boolean; fov?: number; position: Vector3 }
+    const cam = camera as unknown as { isPerspectiveCamera?: boolean; isOrthographicCamera?: boolean; fov?: number; zoom?: number; top?: number; bottom?: number; position: Vector3 }
     if (cam.isPerspectiveCamera && controls?.target) {
       const dist = cam.position.distanceTo(controls.target as unknown as Vector3)
       const visH = 2 * dist * Math.tan(((cam.fov || 28) * Math.PI / 180) / 2)
+      if (visH > 0 && size.height > 0) setSnapScale(visH / size.height)
+    } else if (cam.isOrthographicCamera) {
+      // UX4 #8/#3/#10：草圖預設自動切【正交】相機 — 以前呢度只處理透視，正交下 mm/px 永遠停喺入草圖前嘅舊值：
+      // 放大後吸附半徑/拾取容差/網格步長變成幾十～幾百 px → 落點被遠處舊 hover 目標吸走（斜線）、細圓點中變圓心、
+      // 三點弧落點偏離。正交可見高度 = (top − bottom) / zoom。
+      const visH = ((cam.top ?? 0) - (cam.bottom ?? 0)) / (cam.zoom || 1)
       if (visH > 0 && size.height > 0) setSnapScale(visH / size.height)
     }
     // GM-W6 C3/C4：投影后先加【固定屏幕像素偏移】pxOff（C3 移离几何、C4 同锚徽章横向分列），

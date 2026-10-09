@@ -561,7 +561,9 @@ function refLineId(r: SkRef): string | null {
 //   1. points (incl. circle centres) — but only inside a TIGHTER radius (0.6×tol), otherwise a vertex
 //      several mm away steals clicks aimed at an edge (vertex-greedy picking, classic CAD pitfall);
 //   2. circle rims;  3. edges — both at the full tol.
-export function hitTest(shapes: FShape[], p: FPt, tol: number, exclude?: (r: SkRef) => boolean): SkRef | null {
+// opts.preferCurves（UX4 #3）：揀緊只收曲線嘅約束（相等/相切/平行/垂直/同心…）→ 容差內有曲線就揀曲線，
+//   唔再俾圓心/端點搶（細圓喺低倍率下成個都喺 0.35tol 點優先區內 → 以前永遠揀到圓心）。
+export function hitTest(shapes: FShape[], p: FPt, tol: number, exclude?: (r: SkRef) => boolean, opts?: { preferCurves?: boolean }): SkRef | null {
   const d2 = (a: FPt, b: FPt) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2
   const t2 = tol * tol
   const ok = (r: SkRef) => !(exclude && exclude(r))   // 揾第 2 点时可跳过已选 ref（避免撳第 2 点反而 toggle 走第 1 点）
@@ -594,7 +596,17 @@ export function hitTest(shapes: FShape[], p: FPt, tol: number, exclude?: (r: SkR
   //   否则落 tier-2/3 揾最近边／圆周，再同点比真实距离拣真正最近。
   const ptBest: SkRef | null = best
   const ptBestD = bestD
-  if (ptBest && ptBestD <= (tol * 0.35) ** 2) return ptBest
+  // UX4 #3：圓心 / 弧心唔喺佢自己條曲線上 —— 細圓（r < 0.35tol）點邊都落入圓心優先區。只有【真係喺曲線上】嘅點
+  //   （端點/頂點）先可以短路；圓心要同曲線比真實距離（下面 tier-2/3 之後）。
+  const centreOf = (r: SkRef | null): number => {
+    if (!r || !('shape' in r)) return -1
+    const sh = shapes[r.shape]
+    if (r.kind === 'pt' && sh?.type === 'circle' && !sh.point) return r.shape
+    if (r.kind === 'pt' && sh && isArcPoly(sh) && r.idx === 2) return r.shape
+    if (r.kind === 'center') return r.shape
+    return -1
+  }
+  if (ptBest && ptBestD <= (tol * 0.35) ** 2 && !opts?.preferCurves && centreOf(ptBest) < 0) return ptBest
   // tiers 2+3: circle rims and edges at full tolerance (incl. projected reference edges)
   best = null       // #52：重开 best 畀边／圆周填（tier-1 点结果已存喺 ptBest，唔好被 tier-2/3 覆盖）
   bestD = t2 * 1.3225   // GM-FP3 #49：曲线（边／圆周）命中容差略放宽 1.15×（1.15²=1.3225）— 操作员实战「圆周细，边细」易命中
@@ -675,6 +687,7 @@ export function hitTest(shapes: FShape[], p: FPt, tol: number, exclude?: (r: SkR
   // #52：tier-1 点距 > 0.35tol → 同 tier-2/3 最近边／圆周比真实距离。
   // GM-FP3 #49：曲线 > 填充 > 点 —— 平手/曲线更近都拣【曲线】（操作员实战「圆周易被其上点抢」）；
   //   点净系【严格更近】先赢（`<`，非 `<=`）。≤0.35tol 短半径点优先区已喺上面短路返 ptBest（#52 保留）。
+  if (opts?.preferCurves && best) return best
   if (ptBest && (!best || ptBestD < bestD)) return ptBest
   return best
 }
@@ -989,7 +1002,21 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
             if (isArcPoly(shapes[other.shape])) prims.push({ id: c.id, type: 'tangent_aa', a1_id: cid(other.shape), a2_id: seg } as Constraint)  // 三点弧 ↔ 弧段
             else prims.push({ id: c.id, type: 'tangent_ca', c_id: cid(other.shape), a_id: seg } as Constraint)
           } else {
-            const oLn = other ? refLineId(other) : null
+            // UX4 #4：同一條 line/arc 路徑上【共用端點】嘅直線段 ↔ 弧段（倒圓角 / 相切弧）。tangent_la（圓心到線距 = R）
+            //   喺呢種情況係 d ≤ R 嘅極大值 → 解咗之後 Jacobian 退化，planegcs 判做 redundant，DOF 冇跌（倒圓角後 DOF 4→9）。
+            //   改用「線 ⟂ 圓心→共用端點」（Fusion/FreeCAD 端點相切同一原理），非退化、DOF 正確。
+            const segRef = (sgA ? A : B) as SkRef
+            const shOf = other && other.kind === 'edge' && segRef.kind === 'edge' && other.shape === segRef.shape ? shapes[other.shape] : null
+            let done = false
+            if (shOf && isVertsPoly(shOf) && segRef.kind === 'edge' && other?.kind === 'edge') {
+              const n = shOf.verts.length, s0 = segRef.idx, s1 = (segRef.idx + 1) % n, o0 = other.idx, o1 = (other.idx + 1) % n
+              const common = s0 === o0 || s0 === o1 ? s0 : s1 === o0 || s1 === o1 ? s1 : -1
+              if (common >= 0 && Math.abs(shOf.bulges[other.idx] || 0) < 1e-12) {
+                prims.push({ id: c.id, type: 'perpendicular_pppp', l1p1_id: pid(other.shape, o0), l1p2_id: pid(other.shape, o1), l2p1_id: paid(segRef.shape, segRef.idx), l2p2_id: pid(segRef.shape, common) } as Constraint)
+                done = true
+              }
+            }
+            const oLn = !done && other ? refLineId(other) : null
             if (oLn) prims.push({ id: c.id, type: 'tangent_la', l_id: oLn, a_id: seg } as Constraint)
           }
           break

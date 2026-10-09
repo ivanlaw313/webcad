@@ -166,6 +166,10 @@ export default function App() {
           (/^[0-9.]$/.test(e.key) || (s.sizing.tool === 'offset' && e.key === '-') || e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Escape')) {
         e.preventDefault(); s.sizeTypeKey(e.key); return
       }
+      // UX4 #6：倒圓角/倒角工具未揀角時打數字 = 預設半徑（唔好當「起點座標」）
+      if (!editingText && s.mode === 'sketch' && !s.sizing && (s.sketchTool === 'cfillet' || s.sketchTool === 'cchamfer') && (/^[0-9.]$/.test(e.key) || (e.key === 'Backspace' && !!s.dimBuf[0]))) {
+        e.preventDefault(); s.sizeTypeKey(e.key); return
+      }
       // Exact-dimension typing while sketching: digits/'.'/Tab/Enter/Backspace go to the dim entry.
       if (!editingText && s.mode === 'sketch' && (s.sketchStart != null || s.polyPts.length > 0) &&
           (/^[0-9.]$/.test(e.key) || e.key === 'Enter' || e.key === 'Tab' || e.key === 'Backspace')) {
@@ -335,6 +339,10 @@ export default function App() {
         case 'home': s.requestFit(s.selectedComponent || null); e.preventDefault(); break  // S112：适应窗口 / 框到选中组件（Fusion Home）
         case 'enter': if (s.formBoxDraft?.stage === 'ready') { e.preventDefault(); void s.commitFormBoxDraft() } break
         case 'escape': if (s.formMode) { e.preventDefault(); if (s.formEditStart) s.cancelFormEdit(); else if (s.formCreateKind) s.cancelFormCreate(); else { s.selFormVert(null); s.selFormFace(null) } } else if (s.formBoxDraft) { e.preventDefault(); s.cancelFormCreate() } else if (s.mode === 'sketch' && (s.dimBuf[0] || s.dimBuf[1])) s.sketchTypeKey('Escape'); else if (s.mode === 'sketch') { if (!s.escSketch()) useApp.setState({ status: '已取消選擇 — 草圖保留，完成請按「完成草圖」' }) } else if (s.mode === 'pickplane') s.exitSketchMode(); else { s.selectFeature(null); s.selectComponent(null); s.clearInspect(); s.clearModelSel(); useApp.setState({ hoverFace: null, status: '已取消選擇 — 模型及視角保留' }) } break  // T792：ESC 退草图前 confirm/save（防意外丢失）；escSketch 先消化子动作（取消绘制/拾取/退返选择工具）
+        case 'backspace':
+          // UX4 #1：草圖入面 Backspace = Delete（Mac 鍵盤冇 Delete 鍵；Fusion 同款）。打緊尺寸/座標嘅 Backspace 已喺上面截咗。
+          if (s.mode === 'sketch') { e.preventDefault(); if (s.skSelCon) { s.removeSkCon(s.skSelCon); s.selectSkCon(null) } else if (!s.sizing) void s.skDeleteSel() }
+          break
         case 'delete':
           // GM-FP3 #35：选中约束（点徽章）→ Delete 移除该约束；否则删几何。T796b：调尺寸中 Delete 唔删几何。
           if (s.mode === 'sketch') { if (s.skSelCon) { s.removeSkCon(s.skSelCon); s.selectSkCon(null) } else if (!s.sizing) s.skDeleteSel() }

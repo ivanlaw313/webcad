@@ -29,7 +29,7 @@ function geometrySignature(sh: SketchShape): unknown {
 /** Solve creation with original anchors protected, then validate the persistent system. */
 export async function solveMirrorCandidate(originalShapes: SketchShape[], candidate: {shapes: SketchShape[];cons: SkCon[]}): Promise<{ok:true;shapes:SketchShape[];dof:number;cons:SkCon[]}|{ok:false;reason:string}> {
   const unchanged = (shapes: SketchShape[]) => shapes.length >= originalShapes.length && originalShapes.every((sh,i) => shapes[i]?.type===sh.type && numericEqual(geometrySignature(sh),geometrySignature(shapes[i])))
-  if(!finiteGeometry(candidate.shapes)||!unchanged(candidate.shapes))return {ok:false,reason:'Mirror candidate changed original geometry or contains invalid coordinates.'}
+  if(!finiteGeometry(candidate.shapes)||!unchanged(candidate.shapes))return {ok:false,reason:'鏡像候選改變咗原圖或含無效座標'}
   const pins: SkCon[] = [], used = new Set(candidate.cons.map(c=>c.id))
   const pin=(a:SkRef)=>{let id=`mirror-create-pin:${pins.length}`;while(used.has(id))id+='_';used.add(id);pins.push({id,kind:'con',type:'fix',a})}
   originalShapes.forEach((sh,shape)=>{
@@ -41,14 +41,25 @@ export async function solveMirrorCandidate(originalShapes: SketchShape[], candid
     const segN=sh.type==='poly'&&sh.arc?1:sh.type==='poly'&&sh.verts?(sh.open?n-1:n):0
     for(let idx=0;idx<segN;idx++){const r:SkRef={kind:'center',shape,idx};if(refValid(originalShapes,r))pin(r)}
   })
+  // UX4：原圖已有尺寸/相切等約束時，佢哋喺「全部原點已釘」系統入面變成零自由參數嘅方程 —— 只要殘差有 1e-9 級誤差
+  // planegcs 就報 conflict（Fusion 照鏡像）。原圖幾何已釘死，淨係原圖之間嘅約束對呢步冇作用 → 第一步只解涉及副本嘅約束。
+  const n0=originalShapes.length
+  const refShapes=(c:SkCon)=>[c.a,c.b,'c' in c?c.c:undefined].flatMap(r=>r&&'shape' in r&&typeof r.shape==='number'?[r.shape]:[])
+  const touchesCopy=(c:SkCon)=>refShapes(c).some(i=>i>=n0)
+  // 第二步（唔釘）原圖可能因求解收斂誤差郁咗極少；容差按草圖尺度（Fusion 唔會因為 1e-6 拒絕鏡像）
+  const scale=Math.max(1,...originalShapes.flatMap(sh=>JSON.stringify(geometrySignature(sh)).match(/-?\d+(\.\d+)?(e-?\d+)?/g)?.map(v=>Math.abs(+v))??[]))
+  const sigClose=(a:unknown,b:unknown):boolean=>typeof a==='number'&&typeof b==='number'?Math.abs(a-b)<=1e-6*scale:Array.isArray(a)&&Array.isArray(b)?a.length===b.length&&a.every((v,i)=>sigClose(v,b[i])):a===b
+  const nearlyUnchanged=(shapes:SketchShape[])=>shapes.length>=n0&&originalShapes.every((sh,i)=>shapes[i]?.type===sh.type&&sigClose(geometrySignature(sh),geometrySignature(shapes[i])))
   try {
-    const protectedResult=await solveFree(candidate.shapes,[...candidate.cons,...pins])
-    if(!protectedResult||protectedResult.conflict||!finiteGeometry(protectedResult.shapes)||!unchanged(protectedResult.shapes as SketchShape[]))return {ok:false,reason:'Mirror conflicts with existing dimensions or cannot preserve the original geometry.'}
-    const exact=protectedResult.shapes.map((sh,i)=>i<originalShapes.length?originalShapes[i]:sh) as SketchShape[]
-    const result=await solveFree(exact,applyRelationUpdates(candidate.cons,protectedResult))
-    if(!result||result.conflict||!finiteGeometry(result.shapes)||!unchanged(result.shapes as SketchShape[]))return {ok:false,reason:'The persistent mirror constraints could not be validated without moving source geometry.'}
-    return {ok:true,shapes:result.shapes.map((sh,i)=>i<originalShapes.length?originalShapes[i]:sh) as SketchShape[],dof:result.dof,cons:applyRelationUpdates(candidate.cons,result)}
-  } catch { return {ok:false,reason:'The sketch solver could not validate this mirror.'} }
+    const protectedResult=await solveFree(candidate.shapes,[...candidate.cons.filter(touchesCopy),...pins])
+    if(!protectedResult||protectedResult.conflict||!finiteGeometry(protectedResult.shapes)||!unchanged(protectedResult.shapes as SketchShape[]))return {ok:false,reason:'鏡像約束無法喺唔郁原圖嘅情況下成立（請檢查鏡像軸同所選輪廓）'}
+    const exact=protectedResult.shapes.map((sh,i)=>i<n0?originalShapes[i]:sh) as SketchShape[]
+    const merged=applyRelationUpdates(candidate.cons,protectedResult)
+    const result=await solveFree(exact,merged)
+    if(!result||!finiteGeometry(result.shapes))return {ok:false,reason:'草圖求解器無法驗證此鏡像'}
+    if(!result.conflict&&nearlyUnchanged(result.shapes as SketchShape[]))return {ok:true,shapes:result.shapes.map((sh,i)=>i<n0?originalShapes[i]:sh) as SketchShape[],dof:result.dof,cons:applyRelationUpdates(candidate.cons,result)}
+    return {ok:false,reason:'鏡像會令原圖移位或與現有約束衝突，已保留原草圖'}
+  } catch { return {ok:false,reason:'草圖求解器無法驗證此鏡像'} }
 }
 
 /** Builds a candidate only. The caller must solve and validate it before committing history. */
@@ -65,10 +76,23 @@ export function buildMirrorRelations(shapes: SketchShape[], cons: SkCon[], sourc
   const mirror = (p: FPt): FPt => { const t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2; return [2 * (a[0] + t * dx) - p[0], 2 * (a[1] + t * dy) - p[1]] }
   const out = [...shapes], added: SkCon[] = [], copyIndices: number[] = []
   const used = new Set(cons.map(c => c.id))
+  // UX4：源點啱啱喺鏡像軸上（例如由原點起畫、軸 = 原點 Y 軸）→ 副本點同源點重合；p2p_symmetric 喺 p1==p2 時方向退化
+  // planegcs 報 conflict。Fusion 做法 = 副本端點同源點重合（軸上點自然對稱）→ 用 coincident。
+  const axisLen = Math.sqrt(len2)
+  const onAxis = (q: FPt | undefined) => !!q && Math.abs((q[0] - a[0]) * dy - (q[1] - a[1]) * dx) / axisLen <= 1e-7 * Math.max(1, Math.abs(q[0]), Math.abs(q[1]))
   const symmetric = (source: SkRef, copy: SkRef) => {
     let id = `${idPrefix}:sym:${added.length}`
     while (used.has(id)) id += '_'
-    used.add(id); added.push({ id, kind: 'con', type: 'symmetric', a: source, b: copy, c: { ...axis } })
+    used.add(id)
+    const pointLike = source.kind === 'pt' || source.kind === 'center'
+    const sq = pointLike ? refPts(shapes, source)[0] : undefined
+    if (pointLike && onAxis(sq) && !(shapes[(source as {shape:number}).shape]?.type === 'circle')) { added.push({ id, kind: 'con', type: 'coincident', a: source, b: copy }); return }
+    if (source.kind === 'circle' && shapes[source.shape]?.type === 'circle' && onAxis((shapes[source.shape] as {c:FPt}).c)) {
+      added.push({ id, kind: 'con', type: 'coincident', a: { kind: 'pt', shape: source.shape, idx: 0 }, b: { kind: 'pt', shape: (copy as {shape:number}).shape, idx: 0 } })
+      let id2 = `${id}:r`; while (used.has(id2)) id2 += '_'; used.add(id2)
+      added.push({ id: id2, kind: 'con', type: 'equal', a: source, b: copy }); return
+    }
+    added.push({ id, kind: 'con', type: 'symmetric', a: source, b: copy, c: { ...axis } })
   }
   for (const i of indices) {
     const sh = shapes[i], j = out.length

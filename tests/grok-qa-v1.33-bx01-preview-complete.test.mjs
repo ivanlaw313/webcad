@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs'
 
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 test('APP_VERSION is 1.33+', () => {
-  assert.match(version, /APP_VERSION = '1\.3[3-9]'|APP_VERSION = '1\.[4-9]\d'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 globalThis.require = createRequire(import.meta.url)

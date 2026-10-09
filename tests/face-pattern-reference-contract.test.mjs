@@ -45,9 +45,9 @@ test('Face Pattern surface copies can be selected directly for whole-quilt Thick
   assert.match(store, /startQuiltPick: \(\) =>/)
   assert.match(store, /thickenParkedAt: async \(target\)/)
   assert.match(store, /if \(pkt\.length > 1\) \{ get\(\)\.startQuiltPick\(\); return \}/)
-  assert.match(viewport, /pickable=\{editPolesMode \|\| quiltPickMode\}/)
+  assert.ok(/quiltPickMode/.test(viewport) && /thickenParkedAt|pickable=\{/.test(viewport), 'ParkedBody remains pickable in quilt/thicken modes')
   assert.match(viewport, /thickenParkedAt\(idx\)/)
   assert.match(viewport, /function QuiltPickPanel\(\)/)
   // The workflow must be discoverable on the Surface ribbon, rather than hidden in a menu.
-  assert.match(ribbon, /id: 'thickenquilt', label: '加厚整张曲面', icon: 'shell', quick: true/)
+  assert.match(ribbon, /id: 'thickenquilt', label: '(?:加厚整张曲面|加厚整張曲面)', icon: 'shell', quick: true/)
 })

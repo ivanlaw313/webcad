@@ -34,7 +34,7 @@ const layerSrc = readFileSync(new URL('../src/components/SketchLayer.tsx', impor
 const batchSrc = readFileSync(new URL('../src/cad/sketchDisplayBatch.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.35+', () => {
-  assert.match(version, /APP_VERSION = '1\.3[5-9]'|APP_VERSION = '1\.[4-9]\d'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('batch helpers + thresholds exported', () => {

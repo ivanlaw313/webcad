@@ -38,7 +38,7 @@ test('inserting a loop keeps the split crease edges and undo restores the origin
  await useApp.getState().undo();assert.deepEqual(useApp.getState().formCage.creases,before.creases);
 });
 test('post-finish mesh edits cannot be overwritten by the old control cage',async()=>{
- await box();await useApp.getState().finishForm();let c=useApp.getState().components[0];useApp.setState({components:[{...c,mesh:{...c.mesh,vertices:c.mesh.vertices.map((v,i)=>i===0?v+1:v)}}]});useApp.getState().editFormComponent(c.id);assert.equal(useApp.getState().formMode,false);assert.match(useApp.getState().status,/旧控制笼/);
+ await box();await useApp.getState().finishForm();let c=useApp.getState().components[0];useApp.setState({components:[{...c,mesh:{...c.mesh,vertices:c.mesh.vertices.map((v,i)=>i===0?v+1:v)}}]});useApp.getState().editFormComponent(c.id);assert.equal(useApp.getState().formMode,false);assert.match(useApp.getState().status,/(?:旧控制笼|舊控制籠)/);
 });
 test('unfinished Form and re-edit draft survive actual project loader and cancellation',async()=>{
  await import('../src/worker/cad.worker.ts');await globalThis.__wheelWorker.ready();

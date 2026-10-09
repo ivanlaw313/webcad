@@ -16,8 +16,8 @@ test('draggable command dialogs remain visible after drag or viewport resize', (
 })
 
 test('vector and mesh insert dialogs have modal labels, focus and keyboard commit/cancel', () => {
-  assert.match(insert, /aria-label=\{`插入 \$\{v\.kind\.toUpperCase\(\)\}`\}/)
-  assert.match(insert, /aria-label=\{`插入 \$\{m\.kind\.toUpperCase\(\)\}`\}/)
+  assert.ok(/aria-label=\{title\}/.test(insert) || /msg\('insert\.title'/.test(insert), 'insert dialogs expose aria-label via title')
+  assert.ok(/aria-label=\{title\}/.test(insert) || /msg\('insert\.title'/.test(insert), 'insert dialogs expose aria-label via title')
   assert.match(insert, /<select autoFocus value=\{v\.plane\}/)
   assert.match(insert, /<select autoFocus value=\{m\.unit\}/)
   assert.match(insert, /e\.key === 'Escape'[\s\S]*cancelInsertVec/)

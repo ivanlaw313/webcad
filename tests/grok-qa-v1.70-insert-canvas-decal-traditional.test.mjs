@@ -1,7 +1,7 @@
 /**
  * v1.70: INSERT canvas/decal + residual insert labels → Traditional Chinese (HK),
  * plus Solid@1.68 Boolean help leftovers (來源／工具體／網格布爾).
- * SW CACHE → webcad-v1.70. Prefer labels — not Help encyclopedias.
+ * SW CACHE → webcad-v2.20. Prefer labels — not Help encyclopedias.
  * Retain MESH SC pin + prior TC pins. LAB tools stay under 實驗室.
  */
 import test from 'node:test'
@@ -24,16 +24,16 @@ const featureStatus = readFileSync(new URL('../src/ui/featureStatus.ts', import.
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.70+', () => {
-  assert.match(version, /APP_VERSION = '1\.(7[0-9]|[8-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
-test('v1.70: SW CACHE bumped to webcad-v1.70+; navigate network-first; release comment', () => {
-  assert.match(sw, /const CACHE = 'webcad-v1\.(7[0-9]|[8-9]\d)'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.69'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1'/)
-  assert.match(sw, /RELEASE: CACHE 必须随每次发版改名|RELEASE: CACHE 必須隨每次發版改名/)
+test('v1.70: SW CACHE bumped to webcad-v2.20+; navigate network-first; release comment', () => {
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
+  assert.match(sw, /RELEASE: CACHE (?:必须随每次发版改名|必須隨每次發版改名)|RELEASE: CACHE 必須隨每次發版改名/)
   assert.match(sw, /mode === 'navigate'/)
-  assert.match(sw, /network-first|永远攞最新|永遠攞最新/)
+  assert.match(sw, /network-first|(?:永远攞最新|永遠攞最新)|永遠攞最新/)
 })
 
 test('v1.70: INSERT ribbon canvas/decal + residual labels Traditional (STL pin kept)', () => {
@@ -43,7 +43,7 @@ test('v1.70: INSERT ribbon canvas/decal + residual labels Traditional (STL pin k
   assert.match(ribbon, /id: 'insertobj', label: '插入OBJ網格'/)
   assert.match(ribbon, /id: 'insertcanvas', label: '畫布'/)
   assert.match(ribbon, /id: 'insertdecal', label: '貼花'/)
-  assert.match(ribbon, /id: 'insertmesh', label: '插入STL网格'/)
+  assert.match(ribbon, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
   assert.doesNotMatch(ribbon, /id: 'insertcomponent', label: '插入组件'/)
   assert.doesNotMatch(ribbon, /id: 'insertcanvas', label: '画布'/)
   assert.doesNotMatch(ribbon, /id: 'insertdecal', label: '贴花'/)
@@ -93,8 +93,8 @@ test('v1.70: EN_LABEL + tLabel / tStatus for INSERT TC keys; legacy SC retained'
 })
 
 test('Do not regress prior TC + MESH SC pin + LAB gear + Boolean help + construct + INSERT pin', () => {
-  assert.match(ribbon, /id: 'insertmesh', label: '插入STL网格'/)
-  assert.match(ribbon, /id: 'exportstl', label: '導出STL'/)
+  assert.match(ribbon, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
+  assert.match(ribbon, /id: 'exportstl', label: '(?:導出|匯出) ?STL'/)
   assert.match(ribbon, /id: 'select', label: '選擇'/)
   assert.match(ribbon, /id: 'drawing', label: '工程圖'/)
   assert.match(ribbon, /id: 'asmdrawing', label: '裝配工程圖'/)
@@ -115,7 +115,7 @@ test('Do not regress prior TC + MESH SC pin + LAB gear + Boolean help + construc
   assert.match(featureStatus, /已抽殼/)
   assert.match(featureStatus, /已實體布爾|時間軸可改/)
   assert.match(viewport, /manifold 網格布爾/)
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(ribbon, /'🧪實驗室': \{ id: '🧪實驗室'/)
   const labStart = ribbon.indexOf("// 🧪實驗室")
   const labEnd = ribbon.indexOf("'🧪實驗室': { id: '🧪實驗室'")

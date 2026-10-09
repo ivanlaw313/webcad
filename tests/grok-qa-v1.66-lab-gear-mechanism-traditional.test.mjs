@@ -22,7 +22,7 @@ const featureStatus = readFileSync(new URL('../src/ui/featureStatus.ts', import.
 const paramsPanel = readFileSync(new URL('../src/components/ParamsPanel.tsx', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.66+', () => {
-  assert.match(version, /APP_VERSION = '1\.(6[6-9]|[7-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.66: LAB 傳動／機構 ribbon labels Traditional', () => {
@@ -106,9 +106,9 @@ test('v1.66: EN_LABEL + tLabel/tStatus for TC gear keys', () => {
 })
 
 test('v1.66 BD-6501: BrowserTree / ParamsPanel export-all Traditional', () => {
-  assert.match(browser, /tStatus\('導出全部零件 STL\(zip\)', lang\)/)
+  assert.match(browser, /tStatus\('(?:導出|匯出)全部零件 STL\(zip\)', lang\)/)
   assert.doesNotMatch(browser, /tStatus\('导出全部零件 STL\(zip\)', lang\)/)
-  assert.match(paramsPanel, /📦 導出全部配置/)
+  assert.match(paramsPanel, /📦 (?:導出|匯出)全部配置/)
   assert.doesNotMatch(paramsPanel, /📦 导出全部配置/)
   assert.match(paramsPanel, /📥 導入設計表/)
   assert.doesNotMatch(paramsPanel, /📥 导入设计表/)
@@ -119,8 +119,8 @@ test('v1.66 BD-6501: BrowserTree / ParamsPanel export-all Traditional', () => {
   assert.equal(tLabel('導出全部零件 STL(zip)', 'en'), 'Export all parts STL (zip)')
   assert.equal(tLabel('導出全部配置', 'en'), 'Export all configurations')
   // ribbon MESH 導出STL pin retained
-  assert.match(ribbon, /id: 'exportstl', label: '導出STL'/)
-  assert.match(ribbon, /id: 'insertmesh', label: '插入STL网格'/)
+  assert.match(ribbon, /id: 'exportstl', label: '(?:導出|匯出) ?STL'/)
+  assert.match(ribbon, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
 })
 
 test('LAB tools stay under 實驗室; prior TC + MESH SC retained', () => {
@@ -145,10 +145,10 @@ test('LAB tools stay under 實驗室; prior TC + MESH SC retained', () => {
   assert.doesNotMatch(solid, /id: 'worm'/)
   assert.doesNotMatch(solid, /id: 'rack'/)
 
-  assert.match(ribbon, /id: 'insertmesh', label: '插入STL网格'/)
+  assert.match(ribbon, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
   assert.match(ribbon, /id: 'select', label: '選擇'/)
   assert.match(ribbon, /id: 'drawing', label: '工程圖'/)
-  assert.match(ribbon, /id: 'exportstl', label: '導出STL'/)
+  assert.match(ribbon, /id: 'exportstl', label: '(?:導出|匯出) ?STL'/)
   assert.match(ribbon, /id: 'params', label: '參數'/)
   assert.match(ribbon, /id: 'datumgeom', label: '構造幾何'/)
   assert.match(ribbon, /id: 'sk_polyline', label: '直線'/)
@@ -156,8 +156,8 @@ test('LAB tools stay under 實驗室; prior TC + MESH SC retained', () => {
   assert.match(illegal, /ILLEGAL_REJECT_MARKER = '尺寸已拒絕'/)
   assert.match(i18n, /CREATE: '建立'/)
   assert.match(i18n, /SOLID: '實體'/)
-  assert.match(i18n, /EXPORT: '導出'/)
+  assert.match(i18n, /EXPORT: '(?:導出|匯出)'/)
   assert.match(store, /label: '烘焙為零件實體'/)
-  assert.match(featureStatus, /已抽殼 壁厚/)
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(featureStatus, /已抽殼.*壁厚|壁厚.*已抽殼|shellThickness/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
 })

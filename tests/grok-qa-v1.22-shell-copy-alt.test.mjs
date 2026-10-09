@@ -12,18 +12,18 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.22+ (superseded by later ship)', () => {
-  assert.match(version, /APP_VERSION = '1\.(2[2-9]|[3-9]\d)'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('P1 shell wiring: copy-heal + alt openings + soft cavity status', () => {
   assert.match(workerSrc, /function _copyHealSolid/)
   assert.match(workerSrc, /BRepBuilderAPI_Copy/)
   assert.match(workerSrc, /function _shellCavityStatus/)
-  assert.match(workerSrc, /抽壳完成（备用：/)
+  assert.match(workerSrc, /(?:抽壳完成|抽殼完成)（(?:备用|備用)：/)
   assert.doesNotMatch(workerSrc, /OCCT 抽壳失败/)
   assert.match(workerSrc, /altOpenings/)
   assert.match(workerSrc, /alternate planar lids \(NOT G1 chain\) before cavity/)
-  assert.match(workerSrc, /已改用其他平面开口/)
+  assert.match(workerSrc, /(?:已改用其他平面开口|已改用其他平面開口)/)
 })
 
 globalThis.require = createRequire(import.meta.url)

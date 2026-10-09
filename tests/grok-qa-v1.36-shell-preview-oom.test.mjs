@@ -20,7 +20,7 @@ const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8
 const serviceSrc = readFileSync(new URL('../src/cad/cadService.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.36+', () => {
-  assert.match(version, /APP_VERSION = '1\.3[6-9]'|APP_VERSION = '1\.[4-9]\d'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.36 wiring: join budgets + early trim + lazy alt bases + preview mesh + cancel on schedule', () => {

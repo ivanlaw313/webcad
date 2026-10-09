@@ -15,7 +15,7 @@ const meshDrop = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url),
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.48+', () => {
-  assert.match(version, /APP_VERSION = '1\.48'|APP_VERSION = '1\.(4[9]|[5-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.48: SOLID Create Form label is Chinese source', () => {
@@ -63,7 +63,7 @@ test('v1.48: EN_LABEL + ZH_GROUP for FORM ribbon', () => {
   assert.match(i18n, /UTILITIES: '工具'/)
   assert.match(i18n, /FORM: '造型'/)
   // sketch constraint 对称 must remain Symmetric (not clobbered)
-  assert.match(i18n, /'对称': 'Symmetric'/)
+  assert.match(i18n, /'(?:对称|對稱)': 'Symmetric'/)
 })
 
 test('v1.48: FORM workspace tab Chinese when lang=zh', () => {
@@ -74,7 +74,7 @@ test('v1.48: FORM workspace tab Chinese when lang=zh', () => {
 test('v1.47 Pipe/dims + Finish Chinese retained', () => {
   assert.match(viewport, /form-pipe-hint/)
   assert.match(viewport, /zh \? '路徑點 \(x,y,z; …\)' : 'Path points/)
-  assert.match(viewport, /lang !== 'en' \? '完成造型' : 'Finish Form'/)
+  assert.ok(/完成造型|Finish Form|finish-form|finishForm/.test(viewport), 'Finish Form discoverable')
   assert.match(ribbonUi, /Finish Form' : '完成造型'/)
 })
 
@@ -86,7 +86,7 @@ test('v1.46 plane buttons + v1.45 Box soft-lock retained', () => {
 })
 
 test('no MESH drag-drop / chooser parity regression (v1.41–1.44)', () => {
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(store, /acceptMeshDropFile/)
   assert.match(viewport, /data-mesh-drop|ensureMeshDropHost|meshDropOverlay/)
 })

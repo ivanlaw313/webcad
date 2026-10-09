@@ -20,7 +20,7 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.29+', () => {
-  assert.match(version, /APP_VERSION = '1\.29'|APP_VERSION = '1\.[3-9]\d'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.29 wiring: thickness-nudge retry after exact MakeThickSolid miss', () => {
@@ -29,7 +29,7 @@ test('v1.29 wiring: thickness-nudge retry after exact MakeThickSolid miss', () =
   assert.match(workerSrc, /const nudged = signedThickness/)
   assert.match(workerSrc, /v1\.28: also try Intersection\/RemoveIntEdges flag combos/)
   assert.match(workerSrc, /function _shellCavityStatus/)
-  assert.match(workerSrc, /抽壳完成（备用：.+型腔）/)
+  assert.match(workerSrc, /(?:抽壳完成|抽殼完成)（(?:备用|備用)：.+型腔）/)
   assert.match(workerSrc, /never call cavity before the widened seeds ladder/)
 })
 

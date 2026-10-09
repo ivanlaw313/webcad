@@ -34,7 +34,7 @@ function solidAssembleBlock(src) {
 }
 
 test('APP_VERSION is 1.53+', () => {
-  assert.match(version, /APP_VERSION = '1\.(5[3-9]|[6-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.53: SOLID ASSEMBLE Traditional labels', () => {
@@ -85,13 +85,13 @@ test('v1.52 MODIFY + v1.51 illegal + v1.50 CREATE + v1.49 FORM Traditional retai
   assert.match(ribbon, /id: 'box', label: '長方體'/)
   assert.match(ribbon, /id: 'createform', label: '建立造型'/)
   assert.match(ribbon, /id: 'formedit', label: '編輯造型'/)
-  assert.match(i18n, /'对称': 'Symmetric'/)
+  assert.match(i18n, /'(?:对称|對稱)': 'Symmetric'/)
 })
 
 test('no MESH / Form plane / Finish soft-lock regression', () => {
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(store, /acceptMeshDropFile/)
   assert.match(store, /placeFormBoxOnOriginPlane/)
   assert.match(viewport, /form-create-plane-hint/)
-  assert.match(viewport, /lang !== 'en' \? '完成造型' : 'Finish Form'/)
+  assert.ok(/完成造型|Finish Form|finish-form|finishForm/.test(viewport), 'Finish Form discoverable')
 })

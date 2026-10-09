@@ -14,12 +14,12 @@ test('per-curve preview uses real solver, moves coincident circle and retains co
  await useApp.getState().undo();assert.deepEqual(useApp.getState().sketchShape.c,[10,0]);await useApp.getState().redo();assert.deepEqual(useApp.getState().sketchShape.c,[12,0])
 })
 test('driving width conflict is rejected with no geometry or history change',async()=>{
- setup({skCons:[...cons,{id:'k3',kind:'dim',type:'len',a:{kind:'edge',shape:0,idx:0},value:10,name:'d2'}]});const before=geom();useApp.getState().beginProjectRelink(0);await useApp.getState().selectProjectRelinkCandidate(0);assert.match(useApp.getState().projectRelink.error,/冲突/);assert.equal(await useApp.getState().confirmProjectRelink(),false);assert.equal(geom(),before)
+ setup({skCons:[...cons,{id:'k3',kind:'dim',type:'len',a:{kind:'edge',shape:0,idx:0},value:10,name:'d2'}]});const before=geom();useApp.getState().beginProjectRelink(0);await useApp.getState().selectProjectRelinkCandidate(0);assert.match(useApp.getState().projectRelink.error,/(?:冲突|衝突)/);assert.equal(await useApp.getState().confirmProjectRelink(),false);assert.equal(geom(),before)
 })
 test('cancel, Escape, and changed source reject stale previews without committing',async()=>{
  setup();const before=geom();await preview();assert.equal(useApp.getState().escSketch(),true);assert.equal(useApp.getState().projectRelink,null);assert.equal(useApp.getState().mode,'sketch');assert.equal(geom(),before)
  await preview();useApp.setState({skRefGeo:ref(14)});assert.equal(await useApp.getState().confirmProjectRelink(),false);assert.equal(geom(),before)
- useApp.getState().cancelProjectRelink();setup({skRefGeo:null});useApp.getState().beginProjectRelink(0);assert.match(useApp.getState().projectRelink.error,/没有可用/)
+ useApp.getState().cancelProjectRelink();setup({skRefGeo:null});useApp.getState().beginProjectRelink(0);assert.match(useApp.getState().projectRelink.error,/(?:没有可用|沒有可用)/)
 })
 test('per-item break preserves other linked curves and all constraints, and Undo restores metadata',async()=>{
  setup({sketchProfiles:[structuredClone(loop),structuredClone(circle),{...structuredClone(loop),projectLinkSource:{version:1,points:loop.pts,open:false}}],sketchShape:null});const before=structuredClone(useApp.getState().sketchProfiles);useApp.getState().breakProjectLink(2);assert.equal(useApp.getState().sketchProfiles[0].projectLink,'all');assert.equal(useApp.getState().sketchProfiles[2].projectLink,undefined);assert.deepEqual(useApp.getState().skCons,cons);await useApp.getState().undo();assert.deepEqual(useApp.getState().sketchProfiles,before)
@@ -53,5 +53,5 @@ test('expression-bound dimension and reference IDs survive relink, stale paramet
 })
 
 test('pure projected loop with only driving width rejects all-fixed conflict atomically',async()=>{
- setup({sketchProfiles:[structuredClone(loop)],sketchShape:null,skCons:[{id:'width',kind:'dim',type:'len',a:{kind:'edge',shape:0,idx:0},value:10}]});const before=geom();useApp.getState().beginProjectRelink(0);await useApp.getState().selectProjectRelinkCandidate(0);assert.match(useApp.getState().projectRelink.error,/冲突/);assert.equal(await useApp.getState().confirmProjectRelink(),false);assert.equal(geom(),before)
+ setup({sketchProfiles:[structuredClone(loop)],sketchShape:null,skCons:[{id:'width',kind:'dim',type:'len',a:{kind:'edge',shape:0,idx:0},value:10}]});const before=geom();useApp.getState().beginProjectRelink(0);await useApp.getState().selectProjectRelinkCandidate(0);assert.match(useApp.getState().projectRelink.error,/(?:冲突|衝突)/);assert.equal(await useApp.getState().confirmProjectRelink(),false);assert.equal(geom(),before)
 })

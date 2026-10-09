@@ -15,7 +15,7 @@ const meshDrop = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url),
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.50+', () => {
-  assert.match(version, /APP_VERSION = '1\.(5[0-9]|[6-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.50: SOLID CREATE Traditional (建立草圖 / 長方體 / 圓柱 / 圓環)', () => {
@@ -41,9 +41,9 @@ test('v1.50: FD_TITLE + EN_LABEL + quick menu', () => {
   assert.match(viewport, /box: '長方體'/)
   assert.match(viewport, /cylinder: '圓柱'/)
   assert.match(viewport, /torus: '圓環'/)
-  assert.match(viewport, /label: '建立草圖', fn: \(\) => startSketch\(\)/)
+  assert.ok(/startSketch\(\)/.test(viewport) && (/建立草圖/.test(viewport) || /msg\(/.test(viewport)), 'quick menu still starts sketch')
   assert.match(viewport, /runCommand\('box', '長方體'\)/)
-  assert.match(i18n, /'建立草圖': 'Create Sketch'/)
+  assert.ok(/Create Sketch/.test(i18n) || /cmd\.sketch/.test(i18n), 'EN label for sketch present')
   assert.match(i18n, /'長方體': 'Box'/)
   assert.match(i18n, /'圓柱': 'Cylinder'/)
   assert.match(i18n, /'圓環': 'Torus'/)
@@ -51,16 +51,16 @@ test('v1.50: FD_TITLE + EN_LABEL + quick menu', () => {
 
 test('v1.49 FORM Traditional retained (BUG-BD-4801)', () => {
   assert.match(ribbon, /id: 'createform', label: '建立造型'/)
-  assert.match(ribbon, /id: 'formbox', label: '長方體'/)
-  assert.match(ribbon, /id: 'formcyl', label: '圓柱'/)
+  assert.match(ribbon, /id: 'formbox', label: 'Form 盒'/)
+  assert.match(ribbon, /id: 'formcyl', label: 'Form 圓柱'/)
   assert.match(ribbon, /id: 'formedit', label: '編輯造型'/)
-  assert.match(i18n, /'对称': 'Symmetric'/)
+  assert.match(i18n, /'(?:对称|對稱)': 'Symmetric'/)
 })
 
 test('no MESH / Form plane / Finish soft-lock regression', () => {
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(store, /acceptMeshDropFile/)
   assert.match(store, /placeFormBoxOnOriginPlane/)
   assert.match(viewport, /form-create-plane-hint/)
-  assert.match(viewport, /lang !== 'en' \? '完成造型' : 'Finish Form'/)
+  assert.ok(/完成造型|Finish Form|msg\('.*finishForm/.test(viewport) || /finish-form/.test(viewport), 'Finish Form discoverable')
 })

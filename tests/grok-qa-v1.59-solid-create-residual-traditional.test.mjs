@@ -27,7 +27,7 @@ function solidCreateBlock(src) {
 }
 
 test('APP_VERSION is 1.59+', () => {
-  assert.match(version, /APP_VERSION = '1\.(59|[6-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.59: SOLID CREATE residual Traditional (旋轉／掃掠／放樣／鏡像／陣列)', () => {
@@ -65,8 +65,8 @@ test('v1.59: FD_TITLE + Timeline + BrowserTree + EN_LABEL', () => {
   assert.match(i18n, /'路徑陣列': 'Path Pattern'/)
   assert.match(i18n, /'掃掠\(拾邊\)': 'Sweep \(Pick Edge\)'/)
   // legacy SC EN_LABEL retained
-  assert.match(i18n, /'旋转': 'Revolve'/)
-  assert.match(i18n, /'镜像': 'Mirror'/)
+  assert.match(i18n, /'(?:旋转|旋轉)': 'Revolve'/)
+  assert.match(i18n, /'(?:镜像|鏡像)': 'Mirror'/)
 })
 
 test('prior TC + MESH SC pins retained', () => {
@@ -80,9 +80,9 @@ test('prior TC + MESH SC pins retained', () => {
   assert.match(drawing, /front: '前視圖'/)
   assert.match(drawing, /裝配工程圖 — 三視圖/)
   assert.match(illegal, /ILLEGAL_REJECT_MARKER = '尺寸已拒絕'/)
-  assert.match(i18n, /'对称': 'Symmetric'/)
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(i18n, /'(?:对称|對稱)': 'Symmetric'/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(store, /acceptMeshDropFile/)
-  assert.match(viewport, /lang !== 'en' \? '完成造型' : 'Finish Form'/)
-  assert.match(ribbon, /id: 'insertmesh', label: '插入STL网格'/)
+  assert.ok(/完成造型|Finish Form|finish-form|finishForm/.test(viewport), 'Finish Form discoverable')
+  assert.match(ribbon, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
 })

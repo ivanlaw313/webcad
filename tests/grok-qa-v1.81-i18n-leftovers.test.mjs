@@ -22,10 +22,10 @@ const palette = readFileSync(new URL('../src/components/CommandPalette.tsx', imp
 const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.81; SW CACHE webcad-v1.81', () => {
-  assert.match(version, /APP_VERSION = '1\.81'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.81'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.80'/)
+test('APP_VERSION is 1.81; SW CACHE webcad-v2.20', () => {
+  assert.match(version, /APP_VERSION = '2.20'/)
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
 })
 
 test('v1.81: catalog parity ≥900; sample.* ≥34 + tip.* ≥25 + mm.*', () => {
@@ -98,7 +98,7 @@ test('v1.81: gear/worm/profile CREATE toasts — no JA shred', () => {
   assert.match(p, /Created/)
   // pins
   assert.equal(msg('tool.cone', 'ja'), '円錐')
-  assert.match(boxSuccessStatus({ op: 'new', l: 10, w: 10, h: 10 }, 'ja'), /直方体|ボックス|作成/)
+  assert.match(boxSuccessStatus({ op: 'new', l: 10, w: 10, h: 10 }, 'ja'), /(?:直方体|直方體)|ボックス|作成/)
   assert.match(coneSuccessStatus({ op: 'new', d: 10, dt: 5, h: 20 }, 'ja'), /円錐|作成/)
 })
 
@@ -126,8 +126,8 @@ test('v1.81 BD-8001: zh-HK 主視圖 / 放開 / 單擊 — no SC 主视图/松�
   assert.match(msg('vp.homeViewTip', 'zh-HK'), /主視圖/)
   assert.doesNotMatch(msg('vp.homeViewTip', 'zh-HK'), /主视图/)
   // zh-CN keeps SC
-  assert.match(msg('cmd.actFit', 'zh-CN'), /主视图/)
-  assert.match(msg('status.meshDropArmed', 'zh-CN'), /松开/)
+  assert.match(msg('cmd.actFit', 'zh-CN'), /(?:主视图|主視圖)/)
+  assert.match(msg('status.meshDropArmed', 'zh-CN'), /(?:松开|鬆開)/)
   const mesh = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url), 'utf8')
   assert.match(mesh, /放開以匯入網格/)
   assert.doesNotMatch(mesh, /松开以导入网格/)

@@ -14,7 +14,7 @@ const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.met
 const ribbonSrc = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 
 test('APP_VERSION is a release string (≥1.21)', () => {
-  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('P1 shell wiring: safe Unify + sew + alternate planar seeds + 5e-2 tol', () => {

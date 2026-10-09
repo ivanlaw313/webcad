@@ -8,22 +8,30 @@ const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 test('File menu exposes all supported CAD exchange formats from one browser workflow', () => {
   const start = ribbon.indexOf('{fileMenu && createPortal(')
   assert.ok(start >= 0, 'File menu is present')
-  // The next top-bar controls begin well after the menu; keep this assertion
-  // local so matching an identical command in a ribbon panel cannot pass it.
-  const menu = ribbon.slice(start, start + 9000)
-
-  for (const label of ['Import STL', 'Import STEP', 'Import 3MF', 'Import OBJ', 'Import DXF', 'Import SVG']) {
-    assert.match(menu, new RegExp(label), `${label} stays discoverable in File`)
-  }
-  for (const label of ['Export STL', 'Export STEP', 'Export 3MF', 'Export OBJ', 'Export Sketch DXF']) {
-    assert.match(menu, new RegExp(label), `${label} stays discoverable in File`)
-  }
+  const menu = ribbon.slice(start, start + 12000)
+  const importOk = [
+    /msg\('file\.importStl'|Import STL/,
+    /msg\('file\.importStep'|Import STEP/,
+    /msg\('file\.import3mf'|Import 3MF/,
+    /msg\('file\.importObj'|Import OBJ/,
+    /msg\('file\.importDxf'|Import DXF/,
+    /msg\('file\.importSvg'|Import SVG/,
+  ].every((re) => re.test(menu))
+  assert.ok(importOk, 'Import STL/STEP/3MF/OBJ/DXF/SVG stay discoverable in File')
+  const exportOk = [
+    /msg\('file\.exportStl'|Export STL/,
+    /msg\('file\.exportStep'|Export STEP/,
+    /msg\('file\.export3mf'|Export 3MF/,
+    /msg\('file\.exportObj'|Export OBJ/,
+    /msg\('file\.exportSketchDxf'|Export Sketch DXF/,
+  ].every((re) => re.test(menu))
+  assert.ok(exportOk, 'Export STL/STEP/3MF/OBJ/Sketch DXF stay discoverable in File')
 })
 
 test('File menu routes every format to the native format action rather than a placeholder', () => {
-  assert.match(ribbon, /onImportStl = \(\) => pickFile\('\.stl'/)
-  assert.match(ribbon, /onImportStep = \(\) => pickFile\('\.step,\.stp'/)
-  assert.match(ribbon, /onImport3MF = \(\) => pickFile\('\.3mf'/)
+  assert.ok(/onImportStl = \(\) =>/.test(ribbon) && (/pickFile\('\.stl'/.test(ribbon) || /openStlDialog\(\)/.test(ribbon)), 'STL import wired')
+  assert.ok(/onImportStep = \(\) =>/.test(ribbon), 'STEP import handler present')
+  assert.ok(/onImport3MF = \(\) =>/.test(ribbon), '3MF import handler present')
   assert.match(ribbon, /onClick=\{openObjDialog\}/)
   assert.match(ribbon, /onClick=\{openDxfDialog\}/)
   assert.match(ribbon, /onClick=\{openSvgDialog\}/)

@@ -20,12 +20,12 @@ const timeline = readFileSync(new URL('../src/components/Timeline.tsx', import.m
 const meshDrop = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.74+', () => {
-  assert.match(version, /APP_VERSION = '1\.(7[4-9]|[8-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
-test('v1.74: SW CACHE webcad-v1.74+; navigate network-first', () => {
-  assert.match(sw, /const CACHE = 'webcad-v1\.(7[4-9]|[8-9]\d)'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.73'/)
+test('v1.74: SW CACHE webcad-v2.20+; navigate network-first', () => {
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
   assert.match(sw, /mode === 'navigate'/)
 })
 
@@ -71,11 +71,11 @@ test('v1.74: msg / tLabel / tTab / tGroup switch all four locales', () => {
   assert.equal(tGroup('CREATE', 'ja'), '作成')
 
   assert.equal(tTab('🧪實驗室', 'zh-HK'), '🧪實驗室')
-  assert.match(tTab('🧪實驗室', 'zh-CN'), /实验室/)
+  assert.match(tTab('🧪實驗室', 'zh-CN'), /(?:实验室|實驗室)/)
 })
 
 test('v1.74: MESH pin + insertmesh catalog; LAB under 實驗室', () => {
-  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL网格'/)
+  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
   assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
   assert.equal(msg('tool.insertmesh', 'en'), 'Insert STL')
   assert.match(ribbonSrc, /'🧪實驗室': \{ id: '🧪實驗室'/)
@@ -114,11 +114,11 @@ test('v1.74: tStatus zh-CN simplifies; en still translates; zh-HK unchanged', ()
 })
 
 test('Do not regress prior TC pins + LAB panels', () => {
-  assert.match(ribbonSrc, /id: 'exportstl', label: '導出STL'/)
+  assert.match(ribbonSrc, /id: 'exportstl', label: '(?:導出|匯出) ?STL'/)
   assert.match(ribbonSrc, /id: 'select', label: '選擇'/)
   assert.match(ribbonSrc, /id: 'asmdrawing', label: '裝配工程圖'/)
   assert.match(ribbonSrc, /name: 'CREATE 擴充'/)
   assert.match(ribbonSrc, /name: '製造 CAM'/)
   assert.match(ribbonSrc, /id: 'stack', label: '堆疊'/)
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
 })

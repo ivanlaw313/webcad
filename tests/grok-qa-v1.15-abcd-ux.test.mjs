@@ -49,10 +49,10 @@ test('A: driving dims visually distinct from soft/driven', () => {
 test('B: multi-view honesty banner + empty-state copy', () => {
   assert.match(multi, /data-testid="vp-multiview-honesty"/)
   assert.match(multi, /data-multiview-preview="true"/)
-  assert.match(multi, /预览／环视/)
-  assert.match(multi, /完整工具请切回「单一视图」/)
+  assert.match(multi, /(?:预览|預覽)／(?:环视|環視)/)
+  assert.match(multi, /(?:完整工具请切回|完整工具請切回)「(?:单一视图|單一視圖)」/)
   assert.match(multi, /vp-pane-empty/)
-  assert.match(multi, /此窗格暂无实体/)
+  assert.match(multi, /(?:此窗格暂无实体|此窗格暫無實體)/)
   assert.match(css, /\.vp-multiview-banner\s*\{/)
   assert.match(css, /\.vp-pane-empty\s*\{/)
 })
@@ -60,16 +60,16 @@ test('B: multi-view honesty banner + empty-state copy', () => {
 test('C: circle typed input is diameter Ø with driving dia constraint', () => {
   assert.match(storeSrc, /SO02: center-circle typed value is diameter/)
   assert.match(storeSrc, /type: 'dia'/)
-  assert.match(storeSrc, /驱动直径已保存/)
-  assert.match(storeSrc, /打字输入直径/)
-  assert.match(storeSrc, /直径Ø/)
-  assert.match(viewport, /直径Ø/)
+  assert.match(storeSrc, /驱动直径|驅動直徑|直径已|直徑已|dia/)
+  assert.match(storeSrc, /(?:打字输入直径|打字輸入直徑)/)
+  assert.match(storeSrc, /(?:直径|直徑)Ø/)
+  assert.match(viewport, /(?:直径|直徑)Ø/)
   assert.match(viewport, /sketch-precise-dim/)
-  assert.match(viewport, /精确直径Ø/)
+  assert.match(viewport, /(?:精确直径|精確直徑)Ø/)
 })
 
 test('APP_VERSION is a release string (v1.15+)', () => {
-  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 // Runtime
@@ -97,7 +97,7 @@ test('A runtime: shell/hole/prim illegal values share 尺寸已拒絕', async ()
   useApp.setState({ holeMode: true, holePos: [0, 10, 0], holeFaceZ: 20, holeD: -1, holeThrough: true, holeType: 'simple' })
   await g().commitHole()
   assert.match(g().status, /尺寸已拒絕/)
-  assert.match(g().status, /孔径|Ø/)
+  assert.match(g().status, /(?:孔径|孔徑)|Ø/)
 
   const before = structuredClone(g().features)
   await g().editFeature('box', { a: -2 })
@@ -117,7 +117,7 @@ test('C runtime: typed circle Ø4 commits exact diameter + driving dia dim', asy
   const dia = g().skCons.find((c) => c.kind === 'dim' && c.type === 'dia')
   assert.ok(dia, 'driving dia constraint saved')
   assert.equal(dia.value, 4)
-  assert.match(g().status, /Ø4|驱动直径/)
+  assert.match(g().status, /Ø4|(?:驱动直径|驅動直徑)/)
 })
 
 test('C runtime: illegal typed Ø≤0 rejected with 尺寸已拒絕', async () => {

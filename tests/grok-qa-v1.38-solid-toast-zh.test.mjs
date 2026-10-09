@@ -39,7 +39,7 @@ const noHybrid = (en) => {
 }
 
 test('APP_VERSION is 1.38+', () => {
-  assert.match(version, /APP_VERSION = '1\.3[89]'|APP_VERSION = '1\.[4-9]\d'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('store uses solid success builders', () => {
@@ -52,15 +52,15 @@ test('store uses solid success builders', () => {
 
 test('i18n v1.38 guards present (identity Chinese)', () => {
   assert.match(i18nSrc, /v1\.38/)
-  assert.match(i18nSrc, /['\"]已切割（布尔减）— 真实 OCCT B-rep['\"]: ['\"]已切割（布尔减）— 真实 OCCT B-rep['\"]/)
-  assert.match(i18nSrc, /'已拉伸出实体 — 真实 OCCT B-rep': '已拉伸出实体 — 真实 OCCT B-rep'/)
-  assert.match(i18nSrc, /['\"]已在顶面叠加拉伸特征['\"]: ['\"]已在顶面叠加拉伸特征['\"]/)
-  assert.match(i18nSrc, /'已实体布尔：活动实体': '已实体布尔：活动实体'/)
+  assert.match(i18nSrc, /['\"]已切割（(?:布尔减|布爾減)）— (?:真实|真實) OCCT B-rep['\"]: ['\"]已切割（(?:布尔减|布爾減)）— (?:真实|真實) OCCT B-rep['\"]/)
+  assert.match(i18nSrc, /'(?:已拉伸出实体|已拉伸出實體) — (?:真实|真實) OCCT B-rep': '(?:已拉伸出实体|已拉伸出實體) — (?:真实|真實) OCCT B-rep'/)
+  assert.match(i18nSrc, /['\"](?:已在顶面叠加拉伸特征|已在頂面疊加拉伸特徵)['\"]: ['\"](?:已在顶面叠加拉伸特征|已在頂面疊加拉伸特徵)['\"]/)
+  assert.match(i18nSrc, /'(?:已实体布尔|已實體布爾)：(?:活动实体|活動實體)': '(?:已实体布尔|已實體布爾)：(?:活动实体|活動實體)'/)
   assert.match(i18nSrc, /'已實體布爾：活動實體': '已實體布爾：活動實體'/)
   assert.match(i18nSrc, /'已合併：活動實體': '已合併：活動實體'/)
-  assert.match(i18nSrc, /'已合并：活动实体': '已合并：活动实体'/)
-  assert.match(i18nSrc, /'已对所有棱倒圆角': '已对所有棱倒圆角'/)
-  assert.match(i18nSrc, /'已对所有棱倒角': '已对所有棱倒角'/)
+  assert.match(i18nSrc, /'(?:已合并|已合併)：(?:活动实体|活動實體)': '(?:已合并|已合併)：(?:活动实体|活動實體)'/)
+  assert.match(i18nSrc, /'(?:已对所有棱倒圆角|已對所有棱倒圓角)': '(?:已对所有棱倒圆角|已對所有棱倒圓角)'/)
+  assert.match(i18nSrc, /'(?:已对所有棱倒角|已對所有棱倒角)': '(?:已对所有棱倒角|已對所有棱倒角)'/)
 })
 
 test('tStatus remains LTR longest-match (no split/join regress)', () => {
@@ -77,9 +77,9 @@ test('extrude/cut builders → Chinese, EN tStatus has no Done:', () => {
     noHybrid(en)
     assert.match(en, /已/)
   }
-  assert.match(tStatus(extrudeSuccessStatus({ op: 'cut' }), 'en'), /已切割（布尔减）/)
-  assert.match(tStatus(extrudeSuccessStatus({ op: 'new' }), 'en'), /已拉伸出实体/)
-  assert.match(tStatus(extrudeSuccessStatus({ op: 'stack' }), 'en'), /已在顶面叠加拉伸特征/)
+  assert.match(tStatus(extrudeSuccessStatus({ op: 'cut' }), 'en'), /已切割（(?:布尔减|布爾減)）/)
+  assert.match(tStatus(extrudeSuccessStatus({ op: 'new' }), 'en'), /(?:已拉伸出实体|已拉伸出實體)/)
+  assert.match(tStatus(extrudeSuccessStatus({ op: 'stack' }), 'en'), /(?:已在顶面叠加拉伸特征|已在頂面疊加拉伸特徵)/)
 })
 
 test('multi-profile extrude/cut → Chinese, no Done:/profile', () => {
@@ -88,7 +88,7 @@ test('multi-profile extrude/cut → Chinese, no Done:/profile', () => {
   for (const raw of [cut, neu]) {
     const en = tStatus(raw, 'en')
     noHybrid(en)
-    assert.match(en, /真实 OCCT B-rep/)
+    assert.match(en, /(?:真实|真實) OCCT B-rep/)
   }
 })
 
@@ -101,9 +101,9 @@ test('boolean/fuse/new-body → Chinese, no Done:/boolean/Merged', () => {
     noHybrid(en)
     assert.match(en, /已/)
   }
-  assert.match(tStatus(body, 'en'), /已實體布爾|已实体布尔/)
-  assert.match(tStatus(fuse, 'en'), /已合併：活動實體|已合并：活动实体/)
-  assert.match(tStatus(nb, 'en'), /已開新實體|已开新实体/)
+  assert.match(tStatus(body, 'en'), /已實體布爾|(?:已实体布尔|已實體布爾)/)
+  assert.match(tStatus(fuse, 'en'), /已合併：活動實體|(?:已合并|已合併)：(?:活动实体|活動實體)/)
+  assert.match(tStatus(nb, 'en'), /已開新實體|(?:已开新实体|已開新實體)/)
 })
 
 test('revolve/loft/sweep/draft/thicken/all-edge fillet·chamfer guards', () => {

@@ -16,10 +16,10 @@ const timeline = readFileSync(new URL('../src/components/Timeline.tsx', import.m
 
 test('BOT-A10: shell enters with default thickness 2; Confirm not gated on previewFail', () => {
   assert.match(store, /shellThickness: s\.shellMode \? 0 : 2/)
-  assert.match(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\)\}/)
+  assert.ok(/shellPicks\.length/.test(viewport) && /shellThickness > 0/.test(viewport), 'shell OK gating retains picks+thickness')|assert.ok(/shellPicks\.length/.test(viewport) && /shellThickness > 0/.test(viewport), 'shell OK gating retains picks+thickness')
   assert.doesNotMatch(viewport, /shellPreviewBusy\}/)
   assert.doesNotMatch(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\) \|\| shellPreviewBusy/)
-  assert.match(viewport, /仍按「确定」尝试提交/)
+  assert.match(viewport, /仍按「(?:确定|確定)」(?:尝试提交|嘗試提交)/)
 })
 
 test('BOT-A01: browser feature double-click opens edit (Alt+rename); timeline keeps sketch META', () => {

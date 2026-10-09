@@ -14,7 +14,7 @@ const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 
 test('v1.14 contract: APP_VERSION release string; soft-axis suppress + reject toast + cons sync', () => {
-  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
   assert.match(layer, /BOT-A01 \(v1\.14\)/)
   assert.match(layer, /coversAxis/)
   assert.match(layer, /illegalRejectStatus\('尺寸必須為有限正數'\)/)

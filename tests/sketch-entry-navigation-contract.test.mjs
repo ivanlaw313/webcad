@@ -40,7 +40,7 @@ test('Escape steps back to Select and retains sketch; explicit exit restores Orb
   assert.deepEqual(useApp.getState().sketchShape,shape);assert.deepEqual(useApp.getState().sketchProfiles,profiles)
   assert.equal(useApp.getState().escSketch(),false);assert.equal(useApp.getState().mode,'sketch');assert.equal(useApp.getState().navTool,'pan')
   assert.deepEqual(useApp.getState().sketchShape,shape);assert.deepEqual(useApp.getState().sketchProfiles,profiles)
-  assert.match(app, /s\.mode === 'sketch'\) \{ if \(!s\.escSketch\(\)\) useApp\.setState\(\{ status: '已取消选择 — 草图保留/)
+  assert.match(app, /s\.mode === 'sketch'\) \{ if \(!s\.escSketch\(\)\) useApp\.setState\(\{ status: '(?:已取消选择|已取消選擇) — (?:草图保留|草圖保留)/)
   useApp.getState().exitSketchMode()
   assert.equal(useApp.getState().mode,'model');assert.equal(useApp.getState().navTool,'orbit');assert.equal(useApp.getState().sketchTool,'select')
   assert.deepEqual(useApp.getState().sketchShape,shape);assert.deepEqual(useApp.getState().sketchProfiles,profiles)

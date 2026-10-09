@@ -22,7 +22,7 @@ test('command palettes focus a usable control while ribbon icon commands retain 
   assert.match(source, /first instanceof HTMLInputElement\) first\.select\(\)/)
   assert.match(source, /window\.setTimeout/)
   assert.match(source, /tabIndex=\{-1\}/)
-  assert.match(ribbon, /aria-label=\{tLabel\(t\.label, lang\)\}/)
+  assert.match(ribbon, /aria-label=\{(?:tLabel\(t\.label, lang\)|resolveRibbonCmd\(t\.id, lang, t\.label\))\}/)
   assert.match(ribbon, /aria-pressed=\{active \|\| undefined\}/)
   assert.match(icons, /aria-hidden="true" focusable="false"/)
 })

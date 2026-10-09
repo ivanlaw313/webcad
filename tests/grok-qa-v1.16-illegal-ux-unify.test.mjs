@@ -40,7 +40,7 @@ test('BUG-UI-001: Shell + prim dialogs show the same reject marker as hole', () 
 })
 
 test('APP_VERSION is a product release string (bumped after v1.16)', () => {
-  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('helper still embeds 尺寸已拒絕', () => {
@@ -73,7 +73,7 @@ test('BUG-UI-001 runtime: setShellThickness(≤0) sets 尺寸已拒絕 without c
   assert.match(g().status, /尺寸已拒絕/)
   const feats = structuredClone(g().features)
   await g().commitShell()
-  assert.match(g().status, /尺寸已拒絕|请先选择/)
+  assert.match(g().status, /尺寸已拒絕|(?:请先选择|請先選擇)/)
   assert.deepEqual(g().features, feats)
 })
 

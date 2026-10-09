@@ -133,7 +133,7 @@ test('worker revolve boolean path prefers preview −ang sense and rolls back em
   assert.match(workerSrc, /SO04: partial-angle revolve/)
   assert.match(workerSrc, /rotate\(-ang, org, rax\)/)
   assert.doesNotMatch(workerSrc, /rotate\(180, org, rax\)/)
-  assert.match(workerSrc, /旋转相交区域为空/)
+  assert.match(workerSrc, /(?:旋转相交区域为空|旋轉相交區域為空)/)
   assert.match(workerSrc, /BUG-SO15-001: no prior solid/)
   assert.match(workerSrc, /f\.type === 'revolve' && \(\(f as any\)\.op === 'cut' \|\| \(f as any\)\.op === 'intersect'\)/)
   assert.match(preview, /flipSense \? -total : 0/)
@@ -143,7 +143,7 @@ test('worker revolve boolean path prefers preview −ang sense and rolls back em
   assert.match(storeSrc, /revOp: BoolOp = \(rawOp === 'cut' \|\| rawOp === 'intersect' \|\| rawOp === 'newbody'\) && hasSolid/)
   // UI: ∩ gated on real triangles — empty independent-sketch bodyMesh must NOT enable Intersect.
   assert.match(viewport, /disabled=\{!bodyMesh\?\.triangles\?\.length\}/)
-  assert.match(storeSrc, /无底板时请用＋加料/)
+  assert.match(storeSrc, /(?:无底板时请用|無底板時請用)＋加料/)
 })
 
 test('revolve intersect alone (no prior solid) creates body like New — offset profile', async () => {
@@ -330,7 +330,7 @@ test('BUG-SO111-001 source: confirm persists cardinal letter from axisV (not sta
   assert.match(storeSrc, /BUG-SO111-001/)
   assert.match(storeSrc, /keep axis letter and dx\/dy\/dz in lockstep/)
   // Timeline feature editor must offer Z (QA reopen showed only X/Y → forced Y display)
-  assert.match(tlSrc, /value: 'Z', label: 'Z 轴'/)
+  assert.match(tlSrc, /value: 'Z', label: 'Z (?:轴|軸)'/)
   const revMeta = tlSrc.split("revolve: {")[1].split('fillet:')[0]
   assert.match(revMeta, /value: 'Z'/)
 })

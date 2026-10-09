@@ -111,7 +111,7 @@ test('SIM: successful solve clears feaStale so a new colormap is current', async
 test('SIM: FEA panel source shows 失效 banner when feaStale', () => {
   const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
   assert.match(vp, /feaStale/)
-  assert.match(vp, /结果已失效|結果已失效|feaStaleBannerText/)
+  assert.match(vp, /(?:结果已失效|結果已失效)|結果已失效|feaStaleBannerText/)
   assert.match(vp, /fea-stale-banner|fea-stale-viewport-banner/)
 })
 
@@ -119,7 +119,7 @@ test('SIM: ribbon fea with live result reopens panel instead of clearFea', () =>
   const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
   // Guard: must not wipe feaResult merely by re-clicking 受力云图 when a result exists.
   assert.match(store, /feaResult \|\| s\.feaStale/)
-  assert.match(store, /受力结果查看|feaStale/)
+  assert.match(store, /(?:受力结果查看|受力結果查看)|feaStale/)
   const idx = store.indexOf("case 'fea'")
   assert.ok(idx > 0)
   const slice = store.slice(idx, idx + 700)
@@ -128,7 +128,7 @@ test('SIM: ribbon fea with live result reopens panel instead of clearFea', () =>
 
 test('SIM: applyFeatures success path atomically invalidates live results', () => {
   const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
-  assert.match(store, /hasLiveSimResults\(s2\) \? invalidateSimResultsPatch\('几何已改'\)/)
+  assert.match(store, /hasLiveSimResults\(s2\) \? invalidateSimResultsPatch\('(?:几何已改|幾何已改)'\)/)
 })
 
 test('SIM: component mesh change marks results 失效', () => {

@@ -1,6 +1,6 @@
 /**
  * v2.03 BD-2301: sketch-adjacent high-exposure tips SC→港繁.
- * APP 2.03 + SW webcad-v2.03.
+ * APP 2.03 + SW webcad-v2.20.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -22,7 +22,7 @@ const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const stripComments = (s) => s.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
 
 test('APP_VERSION >= 2.03 and SW cache name matches APP_VERSION', () => {
-  const app = version.match(/APP_VERSION = '(\d+)\.(\d+)'/)
+  const app = version.match(/APP_VERSION = '2.20'/)
   assert.ok(app, 'APP_VERSION literal present')
   assert.ok(Number(app[1]) > 2 || (Number(app[1]) === 2 && Number(app[2]) >= 3), `APP_VERSION ${app[1]}.${app[2]} >= 2.03`)
   assert.match(sw, new RegExp(`const CACHE = 'webcad-v${app[1]}[.]${app[2]}'`))

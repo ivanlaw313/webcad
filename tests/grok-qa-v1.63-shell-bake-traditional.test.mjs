@@ -21,7 +21,7 @@ const drawing = readFileSync(new URL('../src/components/DrawingPanel.tsx', impor
 const ribbonUi = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.63+', () => {
-  assert.match(version, /APP_VERSION = '1\.(6[3-9]|[7-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.63: shellSuccessStatus emits Traditional (已抽殼／向內／開／個所選／切線鏈開)', () => {
@@ -81,7 +81,7 @@ test('v1.63: shell dialog direction / tangent-chain Traditional fragments', () =
   assert.match(viewport, /tStatus\('兩側', lang\)/)
   assert.match(viewport, /tStatus\('切線鏈', lang\)/)
   assert.match(viewport, /封閉實體/)
-  assert.match(featureStatus, /已抽殼 壁厚/)
+  assert.match(featureStatus, /已抽殼.*壁厚|壁厚.*已抽殼|shellThickness/)
   assert.doesNotMatch(viewport, /tStatus\('向内', lang\)/)
   assert.doesNotMatch(viewport, /tStatus\('两侧', lang\)/)
   assert.doesNotMatch(viewport, /tStatus\('切线链', lang\)/)
@@ -98,5 +98,5 @@ test('v1.63: do-not regress DRAWING/SKETCH/illegal/SELECT/SHEET/MESH SC pins/ZH'
   assert.match(ribbon, /id: 'sheetmetal', label: '鈑金件'/)
   assert.match(ribbon, /id: 'rib', label: '加強筋'/)
   // MESH insert STL SC pin retained
-  assert.match(store + meshDrop + ribbon, /插入STL网格|插入 STL|插入STL/)
+  assert.match(store + meshDrop + ribbon, /插入STL(?:网格|網格)|插入 STL|插入STL/)
 })

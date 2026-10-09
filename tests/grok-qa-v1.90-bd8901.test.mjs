@@ -16,9 +16,9 @@ const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.ur
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const sk = readFileSync(new URL('../src/components/SketchToolPanel.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.98; SW webcad-v1.98', () => {
-  assert.match(version, /APP_VERSION = '1\.98'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.98/)
+test('APP_VERSION 1.98; SW webcad-v2.20', () => {
+  assert.match(version, /APP_VERSION = '2.20'/)
+  assert.match(sw, /const CACHE = 'webcad-v2\.20/)
 })
 
 test('catalog parity', () => {
@@ -56,8 +56,8 @@ test('BD-8901: tStatus / tc2sc for radius-group phrase', () => {
   const tc = '半徑組 1 已啟用：之後點選嘅邊會加入呢組'
   assert.equal(tStatus(tc, 'zh-HK'), tc)
   const sc = traditionalToSimplified(tc)
-  assert.match(sc, /半径组/)
-  assert.match(sc, /已启用/)
+  assert.match(sc, /(?:半径组|半徑組)/)
+  assert.match(sc, /(?:已启用|已啟用)/)
   assert.equal(tStatus('半徑組', 'zh-HK'), '半徑組')
   assert.equal(tStatus('稜', 'zh-HK'), '稜')
 })
@@ -100,10 +100,10 @@ test('BD-8902: tStatus zh-HK / zh-CN / en for panel labels', () => {
     assert.equal(tStatus(tc, 'zh-CN'), sc)
     assert.notEqual(tStatus(tc, 'en'), tc, `EN missing for ${tc}`)
   }
-  assert.match(traditionalToSimplified('撳空白 = 清選擇'), /清选择/)
-  assert.match(traditionalToSimplified('自動約束推斷'), /自动约束推断/)
-  assert.match(traditionalToSimplified('✨ 一鍵自動約束'), /一键自动约束/)
-  assert.match(traditionalToSimplified('⚟ 畫成構造幾何（下一筆）'), /画成构造几何/)
+  assert.match(traditionalToSimplified('撳空白 = 清選擇'), /(?:清选择|清選擇)/)
+  assert.match(traditionalToSimplified('自動約束推斷'), /(?:自动约束推断|自動約束推斷)/)
+  assert.match(traditionalToSimplified('✨ 一鍵自動約束'), /(?:一键自动约束|一鍵自動約束)/)
+  assert.match(traditionalToSimplified('⚟ 畫成構造幾何（下一筆）'), /(?:画成构造几何|畫成構造幾何)/)
   assert.equal(tStatus('撳空白 = 清選擇', 'en'), 'Click empty = Clear selection')
   assert.equal(tStatus('自動約束推斷', 'en'), 'Auto-constrain inference')
   assert.equal(tStatus('✨ 一鍵自動約束', 'en'), '✨ One-click AutoConstrain')

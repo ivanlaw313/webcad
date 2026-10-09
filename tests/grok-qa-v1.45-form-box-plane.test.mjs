@@ -16,7 +16,7 @@ const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.m
 const meshDrop = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.45+', () => {
-  assert.match(version, /APP_VERSION = '1\.45'|APP_VERSION = '1\.(4[6-9]|[5-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('BUG-BD-4401: dialog origin-plane quick place API', () => {
@@ -56,8 +56,8 @@ test('BUG-BD-4401: origin planes pickable + larger Form Box datums', () => {
 })
 
 test('no MESH drag-drop / chooser parity regression (v1.41–1.44)', () => {
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(store, /acceptMeshDropFile|acceptMeshDropFile/)
   assert.match(viewport, /data-mesh-drop|ensureMeshDropHost|meshDropOverlay/)
-  assert.match(store, /正在读取 STL|正在读取 STL/)
+  assert.match(store, /(?:正在读取|正在讀取) STL|(?:正在读取|正在讀取) STL/)
 })

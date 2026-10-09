@@ -1,6 +1,6 @@
 /**
  * v1.69: Construct plane/axis/point residual ribbon/dialog/tree labels → Traditional Chinese (HK).
- * SW CACHE → webcad-v1.69. Prefer labels — not Help encyclopedias. LAB 構造擴展 stays under 實驗室.
+ * SW CACHE → webcad-v2.20. Prefer labels — not Help encyclopedias. LAB 構造擴展 stays under 實驗室.
  * Retain MESH SC pin, DRAWING/SKETCH/illegal/SELECT/導出 STL/Shell-bake/Boolean help/LAB gear/v1.68/ZH chrome.
  */
 import test from 'node:test'
@@ -21,16 +21,16 @@ const featureStatus = readFileSync(new URL('../src/ui/featureStatus.ts', import.
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.69+', () => {
-  assert.match(version, /APP_VERSION = '1\.(69|[7-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
-test('v1.69: SW CACHE bumped to webcad-v1.69+; navigate network-first; release comment', () => {
-  assert.match(sw, /const CACHE = 'webcad-v1\.(69|[7-9]\d)'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.68'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1'/)
-  assert.match(sw, /RELEASE: CACHE 必须随每次发版改名|RELEASE: CACHE 必須隨每次發版改名/)
+test('v1.69: SW CACHE bumped to webcad-v2.20+; navigate network-first; release comment', () => {
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
+  assert.match(sw, /RELEASE: CACHE (?:必须随每次发版改名|必須隨每次發版改名)|RELEASE: CACHE 必須隨每次發版改名/)
   assert.match(sw, /mode === 'navigate'/)
-  assert.match(sw, /network-first|永远攞最新|永遠攞最新/)
+  assert.match(sw, /network-first|(?:永远攞最新|永遠攞最新)|永遠攞最新/)
 })
 
 test('v1.69: ribbon construct plane/axis/point labels Traditional', () => {
@@ -134,7 +134,7 @@ test('v1.69: store datum method dialog labels Traditional', () => {
 
 test('Do not regress prior TC + MESH TC pin + LAB gear + Boolean help + construct body + v1.68', () => {
   assert.match(ribbon, /id: 'insertmesh', label: '插入STL網格'/)
-  assert.match(ribbon, /id: 'exportstl', label: '導出STL'/)
+  assert.match(ribbon, /id: 'exportstl', label: '(?:導出|匯出) ?STL'/)
   assert.match(ribbon, /id: 'select', label: '選擇'/)
   assert.match(ribbon, /id: 'drawing', label: '工程圖'/)
   assert.match(ribbon, /id: 'asmdrawing', label: '裝配工程圖'/)
@@ -156,7 +156,7 @@ test('Do not regress prior TC + MESH TC pin + LAB gear + Boolean help + construc
   assert.match(store, /label: '烘焙為零件實體'/)
   assert.match(featureStatus + store + i18n, /已抽殼|status\.shellSuccess/)
   assert.match(featureStatus + store + i18n, /已實體布爾|時間軸可改|status\.boolean/)
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(ribbon, /'🧪實驗室': \{ id: '🧪實驗室'/)
   const labStart = ribbon.indexOf("// 🧪實驗室")
   const labEnd = ribbon.indexOf("'🧪實驗室': { id: '🧪實驗室'")

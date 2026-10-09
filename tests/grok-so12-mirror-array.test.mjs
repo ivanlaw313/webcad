@@ -105,7 +105,7 @@ test('commitFeatDlg rejects illegal array counts atomically', async () => {
   for (const bad of [0, 1, -1, NaN]) {
     useApp.getState().setFeatParam('count', bad)
     await g().commitFeatDlg()
-    assert.match(g().status, /数量至少为 2|非法/)
+    assert.match(g().status, /(?:数量至少为|數量至少為) 2|非法/)
     assert.ok(g().featDlg, 'dialog stays open')
     assert.deepEqual(g().features, before.features)
     assert.equal(g().undoStack.length, before.undo)
@@ -117,7 +117,7 @@ test('commitFeatDlg rejects illegal array counts atomically', async () => {
   useApp.getState().setFeatParam('countX', 0)
   useApp.getState().setFeatParam('countY', 3)
   await g().commitFeatDlg()
-  assert.match(g().status, /正整数|数量/)
+  assert.match(g().status, /(?:正整数|正整數)|(?:数量|數量)/)
   assert.deepEqual(g().features, before.features)
   assert.equal(g().undoStack.length, before.undo)
 
@@ -125,7 +125,7 @@ test('commitFeatDlg rejects illegal array counts atomically', async () => {
   useApp.getState().setFeatParam('countY', 1)
   useApp.getState().setFeatParam('countZ', 1)
   await g().commitFeatDlg()
-  assert.match(g().status, /至少为 2|冇阵列/)
+  assert.match(g().status, /(?:至少为|至少為) 2|(?:冇阵列|冇陣列)/)
   assert.deepEqual(g().features, before.features)
 })
 

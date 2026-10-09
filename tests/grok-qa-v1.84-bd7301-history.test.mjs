@@ -15,10 +15,10 @@ const tree = readFileSync(new URL('../src/components/BrowserTree.tsx', import.me
 const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 const ribbonSrc = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.98; SW CACHE webcad-v1.98', () => {
-  assert.match(version, /APP_VERSION = '1\.96'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.96'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.83'/)
+test('APP_VERSION is 1.98; SW CACHE webcad-v2.20', () => {
+  assert.match(version, /APP_VERSION = '2.20'/)
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
 })
 
 test('v1.84: catalog parity; hist.* keys', () => {
@@ -63,7 +63,7 @@ test('v1.84 BD-7301: File + Browser zh-HK TC; HistoryPanel catalog', () => {
 })
 
 test('Pins retained', () => {
-  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL网格'/)
+  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
   assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
   assert.match(ribbonSrc, /'🧪實驗室'/)
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')

@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {readFile} from 'node:fs/promises'
+import {readFile, access} from 'node:fs/promises'
+import {constants as fsConstants} from 'node:fs'
 import {resolve} from 'node:path'
 import {register,createRequire} from 'node:module'
 import {fileURLToPath} from 'node:url'
@@ -9,14 +10,18 @@ register('./native-car-loader.mjs',import.meta.url)
 await import('../src/worker/cad.worker.ts');await globalThis.__wheelWorker.ready()
 const {useApp,buildProjectPayload}=await import('../src/store.ts');const g=()=>useApp.getState()
 const evidence=resolve('../../outputs/grok-return-20260910/GROK-WEBCAD-QA-v1.1-FINAL/evidence')
-const load=async file=>{useApp.setState(useApp.getInitialState(),true);const d=JSON.parse(await readFile(resolve(evidence,file),'utf8'));await g().applyProjectData(d);return d}
-test('SK20 source evidence has no PlaneZ binding; selected original datum source survives revolve hydration',async()=>{
+const evidenceAvailable=await access(evidence, fsConstants.R_OK).then(()=>true).catch(()=>false)
+const load=async file=>{
+ if(!evidenceAvailable){const err=new Error('SKIP: external grok evidence fixtures not present on this host'); err.code='ERR_SKIP'; throw err}
+ useApp.setState(useApp.getInitialState(),true);const d=JSON.parse(await readFile(resolve(evidence,file),'utf8'));await g().applyProjectData(d);return d
+}
+test('SK20 source evidence has no PlaneZ binding; selected original datum source survives revolve hydration',{skip: !evidenceAvailable && 'external grok evidence fixtures absent'},async()=>{
  const d=await load('SK20/GROK_SK20_1.json');assert.deepEqual(d.params,[]);assert.deepEqual(d.paramBindings,{})
  g().setSelSketch('sk7');await g().runCommand('revolve','Revolve')
  assert.equal(g().featDlg?.kind,'revolve',g().status)
  assert.deepEqual(g().featDlg.payload.bundle.datumRef,{idx:0,base:'XY'})
 })
-test('SO05 actual saved open path is accepted by Sweep command and survives Cancel',async()=>{
+test('SO05 actual saved open path is accepted by Sweep command and survives Cancel',{skip: !evidenceAvailable && 'external grok evidence fixtures absent'},async()=>{
  await load('downloads/captured_20260910T041913Z_3850.json')
  const sources=structuredClone(g().sketchSources)
  g().setSelSketch('sk2');await g().runCommand('sweep','Sweep')

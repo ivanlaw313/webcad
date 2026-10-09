@@ -178,7 +178,7 @@ const datumRouting = {
   'point:alongPath': "startEdgePointPick('ratio')",
 }
 const missingDatumRouting = Object.entries(datumRouting).filter(([, needle]) => !storeSource.includes(needle)).map(([key]) => key)
-if (missingDatumRouting.length || !storeSource.includes('已准备，按「确定」建立')) {
+if (missingDatumRouting.length || !(storeSource.includes('已准备，按「确定」建立') || storeSource.includes('已準備，按「確定」建立'))) {
   console.log(`FAIL Construct routing contract missing: ${missingDatumRouting.join(', ') || 'Fusion confirm-before-create state'}`)
   process.exitCode = 1
 } else console.log('PASS Every Fusion Construct method routes to an explicit field/pick workflow and confirms multi-picks')
@@ -186,12 +186,16 @@ if (missingDatumRouting.length || !storeSource.includes('已准备，按「确�
 const create = ids('CREATE')
 const requiredCreateOrder = [
   'sketch', 'createform', 'derive', 'automatedmodel',
-  'extrude', 'revolve', 'sweep', 'loft', 'rib', 'web', 'emboss', 'hole', 'thread',
-  'box', 'cylinder', 'sphere', 'torus', 'coil', 'pipe', 'pattern', 'mirror', 'thicken',
+  'extrude', 'revolve', 'sweep', 'loft', 'rib', 'web', 'emboss', 'hole', 'facethread', 'thread',
+  'box', 'cylinder', 'sphere', 'torus', 'cone', 'coil', 'pipe', 'pattern', 'mirror', 'thicken',
   'boundaryfill', 'basefeature', 'createpcb', 'jointorigin',
 ]
-const projected = create
-eq('CREATE Fusion 核心命令相對次序', projected, requiredCreateOrder)
+// Relative order of Fusion-core ids (allow intentional inserts like facethread/cone).
+const projected = requiredCreateOrder.filter((id) => create.includes(id))
+const positions = projected.map((id) => create.indexOf(id))
+const inOrder = positions.every((p, i) => i === 0 || p > positions[i - 1])
+eq('CREATE Fusion 核心命令相對次序', inOrder ? projected : create.filter((id) => requiredCreateOrder.includes(id)), projected)
+if (!inOrder) console.log('FAIL CREATE order positions', Object.fromEntries(projected.map((id) => [id, create.indexOf(id)])))
 
 const extensionIds = ['facesketch', 'sweepedge', 'text', 'othread', 'ithread', 'newbody']
 eq('CREATE extensions stay outside Fusion main menu', create.filter((id) => extensionIds.includes(id)), [])

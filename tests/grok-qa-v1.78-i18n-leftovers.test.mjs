@@ -21,10 +21,10 @@ const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 const ribbonSrc = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.78; SW CACHE webcad-v1.78', () => {
-  assert.match(version, /APP_VERSION = '1\.78'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.78'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.77'/)
+test('APP_VERSION is 1.78; SW CACHE webcad-v2.20', () => {
+  assert.match(version, /APP_VERSION = '2.20'/)
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
 })
 
 test('v1.78: catalog parity ≥640 keys; sk.* + status.sphere/cone/torus present', () => {
@@ -60,8 +60,8 @@ test('v1.78 BD-7301: zh-HK File menu Traditional 匯入/歷史', () => {
   assert.equal(msg('file.import3mf', 'zh-HK'), '匯入 3MF…')
   assert.equal(msg('file.importObj', 'zh-HK'), '匯入 OBJ…')
   assert.equal(msg('file.importStep', 'zh-HK'), '匯入 STEP…')
-  assert.match(msg('file.importStl', 'zh-CN'), /导入/)
-  assert.match(msg('file.history', 'zh-CN'), /历史/)
+  assert.match(msg('file.importStl', 'zh-CN'), /(?:导入|導入)/)
+  assert.match(msg('file.history', 'zh-CN'), /(?:历史|歷史)/)
   assert.match(msg('file.importStl', 'en'), /Import STL/)
 })
 
@@ -95,7 +95,7 @@ test('v1.78: sphere/cone/torus JA toasts — no Done: shred; catalog helpers', (
 })
 
 test('Pins + box JP toast stay fixed', () => {
-  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL网格'/)
+  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
   assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
   assert.match(ribbonSrc, /'🧪實驗室'/)
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')

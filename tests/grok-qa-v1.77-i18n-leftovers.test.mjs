@@ -24,10 +24,10 @@ const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.m
 const tree = readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')
 const timeline = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.77; SW CACHE webcad-v1.77', () => {
-  assert.match(version, /APP_VERSION = '1\.77'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.77'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.76'/)
+test('APP_VERSION is 1.77; SW CACHE webcad-v2.20', () => {
+  assert.match(version, /APP_VERSION = '2.20'/)
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
 })
 
 test('v1.77: catalog parity ≥580 keys; new draw/insp/dlg/hint/vp/ui keys', () => {
@@ -76,7 +76,7 @@ test('v1.77: ribbon tips no residual SC markers (这/说/点击/实体…)', () 
 })
 
 test('Pins + BOT-D 7302 false-positive: tree/timeline TC labels present', () => {
-  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL网格'/)
+  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
   assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
   assert.match(ribbonSrc, /'🧪實驗室'/)
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')

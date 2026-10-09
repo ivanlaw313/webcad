@@ -36,7 +36,7 @@ function drawingPanelBlock(src) {
 }
 
 test('APP_VERSION is 1.60+', () => {
-  assert.match(version, /APP_VERSION = '1\.(6\d|[7-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.60: DRAWING ribbon exposes 裝配工程圖 icon', () => {
@@ -83,8 +83,8 @@ test('no regress: SKETCH / part DRAWING / 翻轉曲面 / illegal / MESH SC pins'
   assert.match(ribbon, /id: 'createform', label: '建立造型'/)
   assert.match(ribbon, /id: 'revolve', label: '旋轉'/)
   assert.match(ribbon, /id: 'sweep', label: '掃掠'/)
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(store, /acceptMeshDropFile/)
   assert.match(viewport, /form-create-plane-hint/)
-  assert.match(ribbon, /insertmesh.*插入STL网格/)
+  assert.match(ribbon, /insertmesh.*插入STL(?:网格|網格)/)
 })

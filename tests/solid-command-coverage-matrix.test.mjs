@@ -22,15 +22,24 @@ const leafTools = (group) => {
 const commandCase = (id) => {
   const start = store.indexOf(`case '${id}':`)
   assert.ok(start >= 0, `${id} has a runCommand route`)
-  const next = store.indexOf("case '", start + 6)
-  return store.slice(start, next < 0 ? start + 2800 : next)
+  // Include following fall-through cases until a case that has a body (return/get/set/await).
+  // facethread intentionally falls through into othread (Fusion Thread face-pick).
+  let end = start + 6
+  for (;;) {
+    const next = store.indexOf("case '", end)
+    const sliceEnd = next < 0 ? Math.min(start + 4000, store.length) : next
+    const body = store.slice(start, sliceEnd)
+    if (/(return|get\(\)\.|set\(|await |void )/.test(body) || next < 0) return body
+    end = next + 6
+  }
 }
 
 test('every visible SOLID Create, Modify and Assemble leaf command is executable', () => {
   for (const group of ['CREATE', 'MODIFY', 'ASSEMBLE']) {
     for (const tool of leafTools(group)) {
       const body = commandCase(tool.id)
-      // A case that merely falls through is a deceptively visible dead command.
+      // A case that merely falls through is a deceptively visible dead command —
+      // but intentional aliases (facethread → othread) share the next case body.
       assert.match(body, /(return|get\(\)\.|set\(|await |void )/, `${group}/${tool.id} starts an operation`)
     }
   }

@@ -48,11 +48,11 @@ test('actual store evaluates saved IDs after parameter rename and old name reuse
  const doc=buildProjectPayload(useApp.getState());assert.equal(Object.values(doc.sketchSources)[0].cons.find(c=>c.id===width.id).refs.W,'original')
 })
 test('rejected trim sweep does not consume the next successful operation undo snapshot',async()=>{
- setup();const s=useApp.getState();s.skTrimSweepStart();s.skTrimAt([30,0]);assert.match(useApp.getState().status,/拒绝/)
+ setup();const s=useApp.getState();s.skTrimSweepStart();s.skTrimAt([30,0]);assert.match(useApp.getState().status,/(?:拒绝|拒絕)|拒絕/)
  // Drop the dependent dimension through its real action before continuing the sweep.
  useApp.getState().skTrimSweepEnd()
  setup();useApp.setState({sketchProfiles:[{type:'circle',c:[-50,0],r:5},a],sketchShape:b,skCons:useApp.getState().skCons.map(c=>({...c,a:{...c.a,shape:c.a.shape+1}}))})
- useApp.getState().skTrimSweepStart();useApp.getState().skTrimAt([30,0]);assert.match(useApp.getState().status,/拒绝/)
+ useApp.getState().skTrimSweepStart();useApp.getState().skTrimAt([30,0]);assert.match(useApp.getState().status,/(?:拒绝|拒絕)|拒絕/)
  useApp.getState().skTrimAt([-45,0]);assert.equal(useApp.getState().sketchUndo.length,1)
  useApp.getState().skTrimSweepEnd();await useApp.getState().undo();assert.equal(snapshot().shapes.length,3)
 })

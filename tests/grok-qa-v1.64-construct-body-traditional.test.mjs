@@ -22,7 +22,7 @@ const ribbonUi = readFileSync(new URL('../src/components/Ribbon.tsx', import.met
 const featureStatus = readFileSync(new URL('../src/ui/featureStatus.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.64+', () => {
-  assert.match(version, /APP_VERSION = '1\.(6[4-9]|[7-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.64: ribbon construct/body labels Traditional', () => {
@@ -74,7 +74,7 @@ test('v1.64: EN_LABEL + tLabel for TC keys', () => {
 })
 
 test('prior TC + MESH SC + Shell/bake + ZH chrome retained', () => {
-  assert.match(ribbon, /id: 'insertmesh', label: '插入STL网格'/)
+  assert.match(ribbon, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
   assert.match(ribbon, /id: 'select', label: '選擇'/)
   assert.match(ribbon, /id: 'drawing', label: '工程圖'/)
   assert.match(ribbon, /id: 'sk_polyline', label: '直線'/)
@@ -84,7 +84,7 @@ test('prior TC + MESH SC + Shell/bake + ZH chrome retained', () => {
   assert.match(i18n, /CONSTRUCT: '構造'/)
   assert.match(i18n, /SOLID: '實體'/)
   assert.match(store, /label: '烘焙為零件實體'/)
-  assert.match(featureStatus, /已抽殼 壁厚/)
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(featureStatus, /已抽殼.*壁厚|壁厚.*已抽殼|shellThickness/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(ribbonUi.length ? ribbonUi : 'ok', /./)
 })

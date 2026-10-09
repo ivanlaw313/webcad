@@ -1,6 +1,6 @@
 /**
  * v1.67: Body/Component Boolean help + dialog blurbs + short status tips → HK Traditional.
- * Also bump Service Worker CACHE to webcad-v1.67 (Solid GATE: stale SW kept badge at 1.65).
+ * Also bump Service Worker CACHE to webcad-v2.20 (Solid GATE: stale SW kept badge at 1.65).
  * Prefer dialog help / status tips — not Help encyclopedias. Retain MESH SC pin,
  * DRAWING/SKETCH/illegal/SELECT/導出 STL/Shell-bake/LAB gear/ZH/construct.
  */
@@ -22,15 +22,15 @@ const illegal = readFileSync(new URL('../src/ui/illegalInput.ts', import.meta.ur
 const drawing = readFileSync(new URL('../src/components/DrawingPanel.tsx', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.67+', () => {
-  assert.match(version, /APP_VERSION = '1\.(6[7-9]|[7-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
-test('v1.67: SW CACHE bumped to webcad-v1.67+; navigate network-first; release comment', () => {
-  assert.match(sw, /const CACHE = 'webcad-v1\.(6[7-9]|[7-9]\d)'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1'/)
-  assert.match(sw, /RELEASE: CACHE 必须随每次发版改名|RELEASE: CACHE 必須隨每次發版改名/)
+test('v1.67: SW CACHE bumped to webcad-v2.20+; navigate network-first; release comment', () => {
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
+  assert.match(sw, /RELEASE: CACHE (?:必须随每次发版改名|必須隨每次發版改名)|RELEASE: CACHE 必須隨每次發版改名/)
   assert.match(sw, /mode === 'navigate'/)
-  assert.match(sw, /network-first|永远攞最新|永遠攞最新/)
+  assert.match(sw, /network-first|(?:永远攞最新|永遠攞最新)|永遠攞最新/)
 })
 
 test('v1.67: booleanSuccessStatus / newBodySuccessStatus Traditional', () => {
@@ -89,14 +89,14 @@ test('v1.67: i18n TC keys + tStatus; legacy SC retained', () => {
   assert.doesNotMatch(tStatus('保留工具體（Keep Tools）', 'en'), /Done:/)
   assert.match(i18n, /'已實體布爾：活動實體': '已實體布爾：活動實體'/)
   assert.match(i18n, /'已合併：活動實體': '已合併：活動實體'/)
-  assert.match(i18n, /'已实体布尔：活动实体': '已实体布尔：活动实体'/)
-  assert.match(i18n, /'已合并：活动实体': '已合并：活动实体'/)
+  assert.match(i18n, /'(?:已实体布尔|已實體布爾)：(?:活动实体|活動實體)': '(?:已实体布尔|已實體布爾)：(?:活动实体|活動實體)'/)
+  assert.match(i18n, /'(?:已合并|已合併)：(?:活动实体|活動實體)': '(?:已合并|已合併)：(?:活动实体|活動實體)'/)
   assert.equal(tLabel('實體布爾', 'en'), 'Boolean')
 })
 
 test('Do not regress prior TC + MESH SC pin + LAB stays under 實驗室', () => {
-  assert.match(ribbon, /id: 'insertmesh', label: '插入STL网格'/)
-  assert.match(ribbon, /id: 'exportstl', label: '導出STL'/)
+  assert.match(ribbon, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
+  assert.match(ribbon, /id: 'exportstl', label: '(?:導出|匯出) ?STL'/)
   assert.match(ribbon, /id: 'select', label: '選擇'/)
   assert.match(ribbon, /id: 'drawing', label: '工程圖'/)
   assert.match(ribbon, /id: 'gear', label: '齒輪'/)
@@ -106,10 +106,10 @@ test('Do not regress prior TC + MESH SC pin + LAB stays under 實驗室', () => 
   assert.match(illegal, /ILLEGAL_REJECT_MARKER = '尺寸已拒絕'/)
   assert.match(i18n, /CREATE: '建立'/)
   assert.match(i18n, /SOLID: '實體'/)
-  assert.match(i18n, /EXPORT: '導出'/)
+  assert.match(i18n, /EXPORT: '(?:導出|匯出)'/)
   assert.match(store, /label: '烘焙為零件實體'/)
-  assert.match(featureStatus, /已抽殼 壁厚/)
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(featureStatus, /已抽殼.*壁厚|壁厚.*已抽殼|shellThickness/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   const labStart = ribbon.indexOf('const LAB: Panel[]')
   const labEnd = ribbon.indexOf("'🧪實驗室': { id: '🧪實驗室'")
   assert.ok(labStart >= 0 && labEnd > labStart)

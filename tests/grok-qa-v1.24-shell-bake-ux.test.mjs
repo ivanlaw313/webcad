@@ -15,23 +15,23 @@ const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.24+ (superseded by later ship)', () => {
-  assert.match(version, /APP_VERSION = '1\.(2[4-9]|[3-9]\d)'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('shell soft status uses full bilingual phrases (no 抽殼done mangling)', () => {
-  assert.match(worker, /抽壳完成（备用：直柱型腔）/)
-  assert.match(worker, /抽壳完成（备用：开口面偏移型腔）/)
+  assert.match(worker, /(?:抽壳完成|抽殼完成)（(?:备用|備用)：直柱型腔）/)
+  assert.match(worker, /(?:抽壳完成|抽殼完成)（(?:备用|備用)：(?:开口面偏移型腔|開口面偏移型腔)）/)
   assert.doesNotMatch(worker, /抽殼完成（备用重建/)
   assert.match(i18n, /Shell done \(fallback: prismatic cavity\)/)
   assert.match(i18n, /Shell done \(fallback: opening-face offset cavity\)/)
   assert.match(i18n, /Shell: primary opening OCCT did not converge/)
   // Full phrases must exist so short 完成/重建 fragments cannot mangle them first.
-  assert.match(i18n, /'抽壳完成（备用：直柱型腔）'/)
+  assert.match(i18n, /'(?:抽壳完成|抽殼完成)（(?:备用|備用)：直柱型腔）'/)
 })
 
 test('v1.24 planarSameZ OCCT before cavity (G1 chain still deferred)', () => {
   assert.match(worker, /v1\.24: coplanar same-Z planar seeds via tryBases BEFORE cavity/)
-  assert.match(worker, /抽壳：已用共面开口集合完成/)
+  assert.match(worker, /(?:抽壳|抽殼)：(?:已用共面开口集合完成|已用共面開口集合完成)/)
   const beforeCavity = worker.indexOf('coplanar same-Z planar seeds via tryBases BEFORE cavity')
   const cavity = worker.indexOf('Seeds-only miss → cavity/prismatic BEFORE alt lids / G1')
   assert.ok(beforeCavity >= 0 && cavity > beforeCavity, 'planarSameZ step must precede cavity')
@@ -55,9 +55,9 @@ test('componentBoolean bake is primary statusAction (no blocking confirm)', () =
 test('Fillet/Shell dead-end sets MeshFit statusAction one-click hint', () => {
   assert.match(store, /function partSolidRequiredPatch/)
   assert.match(store, /id: 'meshfit'/)
-  assert.match(store, /MeshFit \/ 转 B-rep/)
-  assert.match(store, /partSolidRequiredPatch\('圆角'/)
-  assert.match(store, /partSolidRequiredPatch\('抽壳'/)
+  assert.match(store, /MeshFit \/ (?:转|轉) B-rep/)
+  assert.match(store, /partSolidRequiredPatch\('(?:圆角|圓角)'/)
+  assert.match(store, /partSolidRequiredPatch\('(?:抽壳|抽殼)'/)
 })
 
 test('Viewport renders statusAction button', () => {

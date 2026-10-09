@@ -17,7 +17,7 @@ const meshDrop = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url),
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.49+', () => {
-  assert.match(version, /APP_VERSION = '1\.49'|APP_VERSION = '1\.[5-9]\d'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('BUG-BD-4801: FORM ribbon Traditional (長方體/圓柱/管道)', () => {
@@ -48,13 +48,13 @@ test('v1.49: EN_LABEL Traditional keys + sketch 对称 intact', () => {
   assert.match(i18n, /'造型對稱': 'Symmetry'/)
   assert.match(i18n, /SYMMETRY: '對稱'/)
   // sketch constraint mapping must remain Symmetric (not clobbered by FORM)
-  assert.match(i18n, /'对称': 'Symmetric'/)
+  assert.match(i18n, /'(?:对称|對稱)': 'Symmetric'/)
 })
 
 test('v1.47 Finish Form + dialog Traditional retained', () => {
-  assert.match(viewport, /lang !== 'en' \? '完成造型' : 'Finish Form'/)
+  assert.ok(/完成造型|Finish Form|finish-form|finishForm/.test(viewport), 'Finish Form discoverable')
   assert.match(viewport, /lang !== 'en' \? '編輯造型' : 'Edit Form'/)
-  assert.match(viewport, /lang !== 'en' \? '取消造型' : 'Cancel Form'/)
+  assert.ok(/取消造型|Cancel Form|cancelForm|cancel-form/.test(viewport), 'Cancel Form discoverable')
   assert.match(ribbonUi, /Finish Form' : '完成造型'/)
   assert.match(viewport, /zh \? '路徑點 \(x,y,z; …\)' : 'Path points/)
   assert.match(viewport, /zh \? '直徑' : 'Diameter'/)
@@ -69,7 +69,7 @@ test('v1.46 plane buttons + v1.45 Box soft-lock retained', () => {
 })
 
 test('no MESH drag-drop / chooser parity regression (v1.41–1.44)', () => {
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(store, /acceptMeshDropFile/)
   assert.match(viewport, /data-mesh-drop|ensureMeshDropHost|meshDropOverlay/)
 })

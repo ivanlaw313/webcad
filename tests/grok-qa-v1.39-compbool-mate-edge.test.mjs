@@ -12,7 +12,7 @@ const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.39+', () => {
-  assert.match(version, /APP_VERSION = '1\.39'|APP_VERSION = '1\.[4-9]\d'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('finishComponentEdit rebuilds mates that touch the edited component', () => {
@@ -24,7 +24,7 @@ test('finishComponentEdit rebuilds mates that touch the edited component', () =>
   assert.match(block, /mates\.filter\(\(m\) => m\.aComp === id \|\| m\.bComp === id\)/)
   assert.match(block, /solveMates\(\)/)
   assert.match(block, /resolveMates\(\)/)
-  assert.match(block, /已重算 \$\{matesTouch\.length\} 个涉及此件的配合/)
+  assert.match(block, /已重算 \$\{matesTouch\.length\} (?:个涉及此件的配合|個涉及此件的配合)/)
   assert.match(block, /prevStatus/)
 })
 
@@ -55,7 +55,7 @@ test('componentBoolean rebuilds remaining mates involving source A', () => {
   const end = store.indexOf('planeCutComponent: async')
   const block = store.slice(start, end)
   assert.match(block, /matesA\.length/)
-  assert.match(block, /已重算 \$\{matesA\.length\} 个涉及来源件的配合/)
+  assert.match(block, /已重算 \$\{matesA\.length\} (?:个涉及来源件的配合|個涉及來源件的配合)/)
   assert.match(block, /Preserve bake guidance/)
 })
 
@@ -67,7 +67,7 @@ test('deleteComponent clears dangling mates', () => {
   assert.match(block, /v1\.39: drop dangling face-mates/)
   assert.match(block, /mates\.filter\(\(m\) => m\.aComp !== id && m\.bComp !== id\)/)
   assert.match(block, /mates,/)
-  assert.match(block, /连带清除/)
+  assert.match(block, /(?:连带清除|連帶清除)/)
 })
 
 test('partSolidRequiredPatch: pure mesh offers bakeMeshToPart (not only MeshFit)', () => {

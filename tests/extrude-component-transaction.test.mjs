@@ -26,7 +26,7 @@ for(const scenario of ['no region selected','missing target face'])test(`new-com
  const after=useApp.getState()
  for(const key of ['features','components','componentDefs','originX','undoStack','sketchSources','skCons','sketchShape','sketchProfiles','sketchAsComponent','extrudeDlgOpen'])assert.deepEqual(after[key],before[key],key)
  assert.ok(Math.abs(measureVolume(await importSTEP(new Blob([await w.exportSTEP()]))) -12000)<1e-5)
- assert.match(after.status,scenario==='no region selected'?/未拣任何区域/:/先点目标面/)
+ assert.match(after.status,scenario==='no region selected'?/(?:未拣任何区域|未揀任何區域)/:/(?:先点目标面|先點目標面)/)
 })
 test('successful new-component extrusion has one undo step that restores the original body',async()=>{
  const before=await setup([circle]);await before.extrudeSketch();const after=useApp.getState()

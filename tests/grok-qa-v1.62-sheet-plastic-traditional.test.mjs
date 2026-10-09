@@ -48,16 +48,16 @@ function zhTabBlock(src) {
 }
 
 test('APP_VERSION is 1.62+', () => {
-  assert.match(version, /APP_VERSION = '1\.(6[2-9]|[7-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.62: SHEET METAL ribbon Traditional (鈑金件／法蘭／導出展開／選擇)', () => {
   const block = sheetBlock(ribbon)
   assert.match(block, /id: 'sheetmetal', label: '鈑金件'/)
   assert.match(block, /id: 'extrude', label: '薄板\/法蘭\(拉伸\)'/)
-  assert.match(block, /id: 'exportflatdxf', label: '導出展開DXF'/)
-  assert.match(block, /id: 'exportstep', label: '導出STEP'/)
-  assert.match(block, /id: 'exportstl', label: '導出STL'/)
+  assert.match(block, /id: 'exportflatdxf', label: '(?:導出|匯出)展開DXF'/)
+  assert.match(block, /id: 'exportstep', label: '(?:導出|匯出)STEP'/)
+  assert.match(block, /id: 'exportstl', label: '(?:導出|匯出) ?STL'/)
   assert.match(block, /id: 'select', label: '選擇'/)
   assert.match(block, /tip: '選擇工具/)
   assert.match(block, /把鈑金件展開成平料/)
@@ -85,12 +85,12 @@ test('v1.62: companion Timeline / BrowserTree / FD_TITLE / EN_LABEL', () => {
   assert.match(viewport, /rib: '加強筋\/腹板'/)
   assert.match(i18n, /'鈑金件': 'Sheet Metal'/)
   assert.match(i18n, /'薄板\/法蘭\(拉伸\)': 'Flange \(Extrude\)'/)
-  assert.match(i18n, /'導出展開DXF': 'Export Flat DXF'/)
+  assert.match(i18n, /'(?:導出|匯出)展開DXF': 'Export Flat DXF'/)
   assert.match(i18n, /'加強筋': 'Rib'/)
   // legacy SC EN_LABEL retained
-  assert.match(i18n, /'钣金件': 'Sheet Metal'/)
-  assert.match(i18n, /'加强筋': 'Rib'/)
-  assert.match(i18n, /'薄板\/法兰\(拉伸\)': 'Flange \(Extrude\)'/)
+  assert.match(i18n, /'(?:钣金件|鈑金件)': 'Sheet Metal'/)
+  assert.match(i18n, /'(?:加强筋|加強筋)': 'Rib'/)
+  assert.match(i18n, /'薄板\/(?:法兰|法蘭)\(拉伸\)': 'Flange \(Extrude\)'/)
 })
 
 test('v1.62 BUG-BD-6101: no ribbon select label Simplified 选择', () => {
@@ -111,13 +111,13 @@ test('no regress: DRAWING / SKETCH / illegal / MESH SC / ZH chrome / 裝配工�
   assert.match(ribbon, /id: 'reversesurf', label: '翻轉曲面'/)
   assert.match(ribbon, /id: 'revolve', label: '旋轉'/)
   assert.match(ribbon, /id: 'sweep', label: '掃掠'/)
-  assert.match(ribbon, /insertmesh.*插入STL网格/)
+  assert.match(ribbon, /insertmesh.*插入STL(?:网格|網格)/)
   assert.match(ribbonUi, /完成草圖/)
   assert.match(ribbonUi, /裝配工程圖 \+ BOM/)
   assert.match(drawing, /front: '前視圖'/)
   assert.match(drawing, /裝配工程圖 — 三視圖/)
   assert.match(illegal, /ILLEGAL_REJECT_MARKER = '尺寸已拒絕'/)
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(store, /acceptMeshDropFile/)
   const zg = zhGroupBlock(i18n)
   assert.match(zg, /CREATE: '建立'/)

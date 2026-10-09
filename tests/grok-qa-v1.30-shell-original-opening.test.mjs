@@ -22,7 +22,7 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.30+', () => {
-  assert.match(version, /APP_VERSION = '1\.3[0-9]'|APP_VERSION = '1\.[4-9]\d'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.30 wiring: torus rim expand + fillet trim + deferred alt lids', () => {
@@ -31,7 +31,7 @@ test('v1.30 wiring: torus rim expand + fillet trim + deferred alt lids', () => {
   assert.match(workerSrc, /v1\.30: seeds \+ adjacent TORUS rim/)
   assert.match(workerSrc, /v1\.30: trim opening-rim fillet then OCCT/)
   assert.match(workerSrc, /v1\.30: alternate planar lids AFTER cavity/)
-  assert.match(workerSrc, /抽壳：原开口 OCCT 未收敛，已改用其他平面开口/)
+  assert.match(workerSrc, /(?:抽壳|抽殼)：(?:原开口|原開口) OCCT (?:未收敛|未收斂)，(?:已改用其他平面开口|已改用其他平面開口)/)
   assert.match(workerSrc, /v1\.29: fuse\+outer-fillet singularity/)
   assert.match(workerSrc, /v1\.28: also try Intersection\/RemoveIntEdges flag combos/)
 })

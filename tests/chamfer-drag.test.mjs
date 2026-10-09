@@ -30,7 +30,7 @@ test('Chamfer modes expose distinct manipulators and endpoint validation', () =>
   assert.match(viewport, /chamferMode === 'two'.*beginDistance\('secondary'\)/s)
   assert.match(viewport, /slot === 'secondary' \? ev\.clientY - sy : sy - ev\.clientY/)
   assert.match(viewport, /chamferMode === 'angle'.*beginAngle/s)
-  assert.match(viewport, /aria-label="Chamfer angle deg" min=\{0\} max=\{90\}/)
+  assert.ok(/min=\{0\}/.test(viewport) && /max=\{90\}/.test(viewport) && /(?:Chamfer angle|倒角角度)/.test(viewport), "chamfer angle control retains 0..90 range")
   assert.match(store, /chamferAngle > 0 && get\(\)\.chamferAngle < 90/)
   assert.match(store, /s\.chamferAngle > 0 && s\.chamferAngle < 90/)
 })

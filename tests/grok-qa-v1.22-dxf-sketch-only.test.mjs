@@ -12,7 +12,7 @@ const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8
 const dlgSrc = readFileSync(new URL('../src/components/InsertDialog.tsx', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.22+ (superseded by later ship)', () => {
-  assert.match(version, /APP_VERSION = '1\.(2[2-9]|[3-9]\d)'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('preferDxfSketchOnly heuristic', () => {
@@ -70,10 +70,10 @@ test('sketchOnly path builds one sketchSource with labels; features would be 1 s
 test('store + dialog wire sketchOnly', () => {
   assert.match(storeSrc, /sketchOnly\?: boolean/)
   assert.match(storeSrc, /preferDxfSketchOnly/)
-  assert.match(storeSrc, /仅导入为草图/)
+  assert.match(storeSrc, /(?:仅导入为草图|僅導入為草圖)/)
   assert.match(storeSrc, /type: 'sketch'/)
   assert.match(storeSrc, /sketchOnly/)
   assert.match(dlgSrc, /dxf-sketch-only/)
-  assert.match(dlgSrc, /仅导入为草图（不拉伸）/)
+  assert.match(dlgSrc, /(?:仅导入为草图|僅導入為草圖)（不拉伸）/)
   assert.match(dlgSrc, /sketchOnly/)
 })

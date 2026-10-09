@@ -22,7 +22,7 @@ function toolIds(tab, panelName) {
 }
 
 test('APP_VERSION is 1.26+ (superseded by later ship)', () => {
-  assert.match(version, /APP_VERSION = '1\.(2[6-9]|[3-9]\d)'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('ribbon command id compboolean exists (ASSEMBLE + MESH MODIFY + LAB)', () => {
@@ -32,7 +32,7 @@ test('ribbon command id compboolean exists (ASSEMBLE + MESH MODIFY + LAB)', () =
   const direct = lab.find((p) => p.name === '直接編輯擴展' || p.name === '直接编辑扩展')
   assert.ok(direct?.tools.some((t) => t.id === 'compboolean'), 'LAB 直接編輯擴展 missing compboolean')
   assert.match(ribbon, /id: 'compboolean'/)
-  assert.match(ribbon, /label: '組件布爾'|label: '组件布尔'/)
+  assert.match(ribbon, /label: '組件布爾'|label: '(?:组件布尔|組件布爾)'/)
 })
 
 test('SOLID MODIFY Fusion order unchanged (compboolean NOT in Fusion MODIFY)', () => {
@@ -49,7 +49,7 @@ test('runCommand maps compboolean → startComponentBoolean', () => {
   const block = store.slice(start, end)
   assert.match(block, /startComponentBoolean\(id\)/)
   assert.match(block, /selectedComponent/)
-  assert.match(block, /请先在浏览器选择一个组件/)
+  assert.match(block, /(?:请先在浏览器选择一个组件|請先在瀏覽器選擇一個組件)/)
   assert.match(block, /visible\.length === 1/)
 })
 
@@ -67,10 +67,10 @@ test('CompBoolPickPanel + bake chip preserved', () => {
 test('BrowserTree ⋯ menu exposes 組件布爾', () => {
   assert.match(browser, /data-testid="browser-compboolean"/)
   assert.match(browser, /startComponentBoolean\(c\.id\)/)
-  assert.match(browser, /組件布爾|组件布尔/)
+  assert.match(browser, /組件布爾|(?:组件布尔|組件布爾)/)
 })
 
 test('CommandPalette synonym for 組件布爾', () => {
   assert.match(palette, /compboolean:/)
-  assert.match(palette, /組件布爾|组件布尔/)
+  assert.match(palette, /組件布爾|(?:组件布尔|組件布爾)/)
 })

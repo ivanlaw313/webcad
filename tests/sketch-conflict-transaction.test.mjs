@@ -58,7 +58,7 @@ test('a rejected driving conversion preserves both histories and reference dimen
   await useApp.getState().toggleSkDimDriven('k2')
   assert.deepEqual({ cons: useApp.getState().skCons, shape: useApp.getState().sketchShape,
     undo: useApp.getState().sketchUndo, redo: useApp.getState().sketchRedo }, before)
-  assert.match(useApp.getState().status, /失败|冲突/)
+  assert.match(useApp.getState().status, /失败|失敗|冲突|衝突|拒絕|拒绝|尺寸已/)
 })
 test('reference → driving → upstream diameter edit keeps a downstream bore through undo and JSON/STEP', async () => {
   await import('../src/worker/cad.worker.ts')

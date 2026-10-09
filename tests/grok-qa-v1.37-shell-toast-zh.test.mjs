@@ -17,7 +17,7 @@ const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8
 const i18nSrc = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.37+', () => {
-  assert.match(version, /APP_VERSION = '1\.3[7-9]'|APP_VERSION = '1\.[4-9]\d'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('commitShell uses shellSuccessStatus helper', () => {
@@ -33,11 +33,11 @@ test('tStatus is LTR longest-match (not global split/join)', () => {
 
 test('i18n guards: shell success Chinese identities present', () => {
   assert.match(i18nSrc, /'已抽殼 壁厚': '已抽殼 壁厚'/)
-  assert.match(i18nSrc, /'已抽壳 壁厚': '已抽壳 壁厚'/ )  // legacy SC
+  assert.match(i18nSrc, /'(?:已抽壳|已抽殼) 壁厚': '(?:已抽壳|已抽殼) 壁厚'/ )  // legacy SC
   assert.match(i18nSrc, /'個所選面': '個所選面'/)
-  assert.match(i18nSrc, /'个所选面': '个所选面'/ )
+  assert.match(i18nSrc, /'(?:个所选面|個所選面)': '(?:个所选面|個所選面)'/ )
   assert.match(i18nSrc, /'切線鏈開': '切線鏈開'/)
-  assert.match(i18nSrc, /'切线链开': '切线链开'/ )
+  assert.match(i18nSrc, /'(?:切线链开|切線鏈開)': '(?:切线链开|切線鏈開)'/ )
 })
 
 test('shellSuccessStatus builds Chinese CLEAN pattern', () => {
@@ -95,7 +95,7 @@ test('EN tStatus keeps Chinese fillet/chamfer success (no Done:/fillet hybrid)',
     assert.doesNotMatch(en, /\bchamfer\b/i)
     assert.match(en, /已/)
   }
-  assert.match(tStatus(fillet, 'en'), /倒圆角/)
+  assert.match(tStatus(fillet, 'en'), /(?:倒圆角|倒圓角)/)
   assert.match(tStatus(chamfer, 'en'), /倒角/)
-  assert.match(tStatus(face, 'en'), /已建立面圆角/)
+  assert.match(tStatus(face, 'en'), /(?:已建立面圆角|已建立面圓角)/)
 })

@@ -14,7 +14,7 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 test('BUG-UI-001: layout menu still offers single/split/quad and mounts live multi-camera panes', () => {
   assert.match(viewport, /viewLayout !== 'single' && <MultiViewPanes layout=\{viewLayout\}/)
   assert.match(viewport, /viewLayout === 'single' && \(/)
-  assert.match(viewport, /\(\[\['single', '单一视图'\], \['split', '二视图/)
+  assert.match(viewport, /\(\[\['single', '(?:单一视图|單一視圖)'\], \['split', '(?:二视图|二視圖)/)
   assert.match(multi, /export const SPLIT_PANES/)
   assert.match(multi, /export const QUAD_PANES/)
   assert.match(multi, /data-testid="vp-multiview"/)
@@ -53,11 +53,11 @@ test('BUG-UI-004: linear dim picks use full-viewBox hit rect + reject zero-lengt
 
 test('BUG-UI-001 honesty: preview/orbit banner + empty-state wiring', () => {
   assert.match(multi, /data-testid="vp-multiview-honesty"/)
-  assert.match(multi, /预览／环视/)
+  assert.match(multi, /(?:预览|預覽)／(?:环视|環視)/)
   assert.match(multi, /vp-pane-empty/)
   assert.match(css, /\.vp-multiview-banner/)
 })
 
 test('APP_VERSION stays at 1.14 on current train (release bump separate)', () => {
-  assert.match(version, /APP_VERSION = '1\.14'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })

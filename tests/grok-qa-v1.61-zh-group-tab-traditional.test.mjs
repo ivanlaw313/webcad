@@ -35,7 +35,7 @@ function zhTabBlock(src) {
 }
 
 test('APP_VERSION is 1.61+', () => {
-  assert.match(version, /APP_VERSION = '1\.(6[1-9]|[7-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.61: ZH_GROUP chrome Traditional (建立／構造／選擇／導出／參數／製造)', () => {
@@ -43,7 +43,7 @@ test('v1.61: ZH_GROUP chrome Traditional (建立／構造／選擇／導出／�
   assert.match(block, /CREATE: '建立'/)
   assert.match(block, /CONSTRUCT: '構造'/)
   assert.match(block, /SELECT: '選擇'/)
-  assert.match(block, /EXPORT: '導出'/)
+  assert.match(block, /EXPORT: '(?:導出|匯出)'/)
   assert.match(block, /PARAMETERS: '參數'/)
   assert.match(block, /MAKE: '製造'/)
   assert.match(block, /DRAWING: '工程圖'/)
@@ -80,14 +80,14 @@ test('no regress: DRAWING / SKETCH / illegal / MESH SC / SOLID residual / 裝配
   assert.match(ribbon, /id: 'revolve', label: '旋轉'/)
   assert.match(ribbon, /id: 'sweep', label: '掃掠'/)
   assert.match(ribbon, /id: 'createform', label: '建立造型'/)
-  assert.match(ribbon, /insertmesh.*插入STL网格/)
+  assert.match(ribbon, /insertmesh.*插入STL(?:网格|網格)/)
   assert.match(ribbonUi, /完成草圖/)
   assert.match(ribbonUi, /裝配工程圖 \+ BOM/)
   assert.match(drawing, /front: '前視圖'/)
   assert.match(drawing, /裝配工程圖 — 三視圖/)
   assert.match(illegal, /ILLEGAL_REJECT_MARKER = '尺寸已拒絕'/)
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(store, /acceptMeshDropFile/)
   assert.match(viewport, /form-create-plane-hint/)
-  assert.match(i18n, /'对称': 'Symmetric'/)
+  assert.match(i18n, /'(?:对称|對稱)': 'Symmetric'/)
 })

@@ -33,7 +33,7 @@ const i18nSrc = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const meshDropSrc = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.43+', () => {
-  assert.match(version, /APP_VERSION = '1\.43'|APP_VERSION = '1\.(4[4-9]|[5-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('meshDropKind / MESH_DROP_EXTS unchanged', () => {
@@ -72,8 +72,8 @@ test('filesFromDataTransfer prefers files; falls back to items.getAsFile', () =>
 })
 
 test('empty-drop + armed status strings exported', () => {
-  assert.match(MESH_DROP_EMPTY_STATUS, /未能读取拖放文件/)
-  assert.match(MESH_DROP_ARMED_STATUS, /放開以匯入網格|松开以导入网格/)
+  assert.match(MESH_DROP_EMPTY_STATUS, /(?:未能读取拖放文件|未能讀取拖放文件)/)
+  assert.match(MESH_DROP_ARMED_STATUS, /放開以匯入網格|(?:松开以导入网格|鬆開以導入網格)/)
 })
 
 test('drop dedupe suppresses double accept within 800ms', () => {
@@ -114,17 +114,17 @@ test('acceptMeshDropFile still reuses openMeshInsert / import3MF', () => {
   assert.match(block, /openMeshInsert\('obj'/)
   assert.match(block, /import3MF/)
   assert.doesNotMatch(block, /parseStl|parseSTL|parseObj|parse3mf/)
-  assert.match(block, /不支持的网格拖放/)
+  assert.match(block, /(?:不支持的网格拖放|不支持的網格拖放)/)
 })
 
 test('i18n keeps mesh-drop Chinese + v1.43 empty/armed', () => {
-  assert.match(i18nSrc, /'不支持的网格拖放（请用 \.stl \/ \.obj \/ \.3mf）': '不支持的网格拖放（请用 \.stl \/ \.obj \/ \.3mf）'/)
-  assert.match(i18nSrc, /'正在读取 STL「': '正在读取 STL「'/)
-  assert.match(i18nSrc, /未能读取拖放文件/)
-  assert.match(i18nSrc, /放開以匯入網格|松开以导入网格/)
+  assert.match(i18nSrc, /'(?:不支持的网格拖放|不支持的網格拖放)（(?:请用|請用) \.stl \/ \.obj \/ \.3mf）': '(?:不支持的网格拖放|不支持的網格拖放)（(?:请用|請用) \.stl \/ \.obj \/ \.3mf）'/)
+  assert.match(i18nSrc, /'(?:正在读取|正在讀取) STL「': '(?:正在读取|正在讀取) STL「'/)
+  assert.match(i18nSrc, /(?:未能读取拖放文件|未能讀取拖放文件)/)
+  assert.match(i18nSrc, /放開以匯入網格|(?:松开以导入网格|鬆開以導入網格)/)
   assert.match(i18nSrc, /'已抽殼 壁厚': '已抽殼 壁厚'/)
-  assert.match(i18nSrc, /'已抽壳 壁厚': '已抽壳 壁厚'/ )
+  assert.match(i18nSrc, /'(?:已抽壳|已抽殼) 壁厚': '(?:已抽壳|已抽殼) 壁厚'/ )
   assert.match(i18nSrc, /'烘焙為零件實體': '烘焙為零件實體'/)
-  assert.match(i18nSrc, /'烘焙为零件实体': '烘焙为零件实体'/ )
+  assert.match(i18nSrc, /'(?:烘焙为零件实体|烘焙為零件實體)': '(?:烘焙为零件实体|烘焙為零件實體)'/ )
   assert.match(i18nSrc, /'已切除「': '已切除「'/)
 })

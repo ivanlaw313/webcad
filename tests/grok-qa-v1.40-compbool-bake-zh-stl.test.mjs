@@ -37,18 +37,18 @@ function tStatus(s, phrases) {
 }
 
 test('APP_VERSION is 1.40+', () => {
-  assert.match(version, /APP_VERSION = '1\.4[0-9]'|APP_VERSION = '1\.[5-9]\d'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('i18n X keeps bake chip + 已切除/合并/相交 Chinese under EN (no Done:/Bake into)', () => {
   assert.match(i18nSrc, /v1\.40:.*bake chip|v1\.40: component-boolean success toast/)
   assert.match(i18nSrc, /'烘焙為零件實體': '烘焙為零件實體'/)
-  assert.match(i18nSrc, /'烘焙为零件实体': '烘焙为零件实体'/ )  // legacy SC
+  assert.match(i18nSrc, /'(?:烘焙为零件实体|烘焙為零件實體)': '(?:烘焙为零件实体|烘焙為零件實體)'/ )  // legacy SC
   assert.match(i18nSrc, /'已切除「': '已切除「'/)
-  assert.match(i18nSrc, /'已合并「': '已合并「'/)
+  assert.match(i18nSrc, /'(?:已合并|已合併)「': '(?:已合并|已合併)「'/)
   assert.match(i18nSrc, /'已相交「': '已相交「'/)
   assert.match(i18nSrc, /'已烘焙入零件時間軸，可圓角\/抽殼': '已烘焙入零件時間軸，可圓角\/抽殼'/)
-  assert.match(i18nSrc, /'已烘焙入零件时间轴，可圆角\/抽壳': '已烘焙入零件时间轴，可圆角\/抽壳'/ )
+  assert.match(i18nSrc, /'(?:已烘焙入零件时间轴|已烘焙入零件時間軸)，(?:可圆角|可圓角)\/(?:抽壳|抽殼)': '(?:已烘焙入零件时间轴|已烘焙入零件時間軸)，(?:可圆角|可圓角)\/(?:抽壳|抽殼)'/ )
 })
 
 test('tStatus EN: component boolean cut/union/intersect toast stays Chinese (no Done:)', () => {
@@ -86,14 +86,14 @@ test('openStlDialog: FSA + input fallback; cancel clears busy/status (BUG-BD-390
   assert.match(block, /AbortError/)
   assert.match(block, /addEventListener\('cancel'/)
   assert.match(block, /busy:\s*false/)
-  assert.match(block, /已取消选择 STL/)
+  assert.match(block, /(?:已取消选择|已取消選擇) STL/)
   assert.match(block, /openMeshInsert\('stl'/)
 })
 
 test('File menu Import STL and insertmesh both use openStlDialog', () => {
   assert.match(ribbon, /openStlDialog/)
   assert.match(ribbon, /BUG-BD-2001/)
-  assert.match(ribbon, /导入 STL/)
+  assert.match(ribbon, /(?:导入|導入) STL/)
   const start = store.indexOf("case 'insertmesh'")
   assert.ok(start >= 0)
   assert.match(store.slice(start, start + 160), /openStlDialog\(\)/)
@@ -102,9 +102,9 @@ test('File menu Import STL and insertmesh both use openStlDialog', () => {
 test('v1.37/v1.38/v1.39 Chinese toast guards still present (no regress)', () => {
   assert.match(i18nSrc, /v1\.37/)
   assert.match(i18nSrc, /'已抽殼 壁厚': '已抽殼 壁厚'/)
-  assert.match(i18nSrc, /'已抽壳 壁厚': '已抽壳 壁厚'/ )
+  assert.match(i18nSrc, /'(?:已抽壳|已抽殼) 壁厚': '(?:已抽壳|已抽殼) 壁厚'/ )
   assert.match(i18nSrc, /v1\.38/)
-  assert.match(i18nSrc, /'已拉伸出实体 — 真实 OCCT B-rep': '已拉伸出实体 — 真实 OCCT B-rep'/)
+  assert.match(i18nSrc, /'(?:已拉伸出实体|已拉伸出實體) — (?:真实|真實) OCCT B-rep': '(?:已拉伸出实体|已拉伸出實體) — (?:真实|真實) OCCT B-rep'/)
   assert.match(i18nSrc, /v1\.39/)
   assert.match(i18nSrc, /'已重算': '已重算'/)
 })

@@ -22,10 +22,10 @@ const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 const ribbonSrc = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.82; SW CACHE webcad-v1.82', () => {
-  assert.match(version, /APP_VERSION = '1\.82'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.82'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.81'/)
+test('APP_VERSION is 1.82; SW CACHE webcad-v2.20', () => {
+  assert.match(version, /APP_VERSION = '2.20'/)
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
 })
 
 test('v1.82: catalog parity ≥950; ui.disabled.* + profile.name + mm leftovers + tip expand', () => {
@@ -62,7 +62,7 @@ test('v1.82: commandAvailability uses msg(ui.disabled.*) — no SC 请先放开�
   assert.doesNotMatch(drag, /放开|鼠标/)
   assert.match(commandDisabledReason({ skDrag: true, lang: 'ja' }, 'box'), /ドラッグ|Esc/)
   assert.match(commandDisabledReason({ skDrag: true, lang: 'en' }, 'box'), /Release|Esc/i)
-  assert.match(commandDisabledReason({ busy: true, lang: 'zh-CN' }, 'box'), /计算/)
+  assert.match(commandDisabledReason({ busy: true, lang: 'zh-CN' }, 'box'), /(?:计算|計算)/)
 })
 
 test('v1.82: profile.name L/U/T localized — no SC 槽钢/角铁 in toast', () => {

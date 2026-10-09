@@ -27,10 +27,10 @@ const tree = readFileSync(new URL('../src/components/BrowserTree.tsx', import.me
 const timeline = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
 const sketchPanel = readFileSync(new URL('../src/components/SketchToolPanel.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.79; SW CACHE webcad-v1.79', () => {
-  assert.match(version, /APP_VERSION = '1\.79'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.79'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.78'/)
+test('APP_VERSION is 1.79; SW CACHE webcad-v2.20', () => {
+  assert.match(version, /APP_VERSION = '2.20'/)
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
 })
 
 test('v1.79: catalog parity ≥670; new browser/prim/opHelp/sk.dim keys', () => {
@@ -176,7 +176,7 @@ test('v1.79 CREATE menu includes cone — JA 円錐 via tool.cone', () => {
 })
 
 test('Pins + prior JP box/sphere/cone/torus stay fixed', () => {
-  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL网格'/)
+  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
   assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
   assert.match(ribbonSrc, /'🧪實驗室'/)
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')

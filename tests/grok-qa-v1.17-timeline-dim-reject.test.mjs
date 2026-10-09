@@ -36,7 +36,7 @@ test('v1.17: NumField keeps logical min commit reject without HTML min attr', ()
 })
 
 test('v1.17: APP_VERSION is a release string', () => {
-  assert.match(version, /APP_VERSION = '\d+\.\d+'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('helper: illegalRejectStatus still embeds marker for prim length', () => {

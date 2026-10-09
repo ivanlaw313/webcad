@@ -12,23 +12,23 @@ const worker = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.u
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.23+ (superseded by later ship)', () => {
-  assert.match(version, /APP_VERSION = '1\.(2[3-9]|[3-9]\d)'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('partSolidRequiredStatus helper guides mesh / component-boolean dead-end', () => {
   assert.match(store, /function partSolidRequiredPatch/)
-  assert.match(store, /MeshFit\/转 B-rep/)
-  assert.match(store, /實體布爾|实体布尔/)
-  assert.match(store, /✎编辑/)
+  assert.match(store, /MeshFit\/(?:转|轉) B-rep/)
+  assert.match(store, /實體布爾|(?:实体布尔|實體布爾)/)
+  assert.match(store, /✎(?:编辑|編輯)/)
   assert.match(store, /組件布爾\/網格件/)
-  assert.match(store, /零件时间轴实体/)
+  assert.match(store, /(?:零件时间轴实体|零件時間軸實體)/)
 })
 
 test('Fillet / Chamfer / Shell / FaceFillet use guided status (not bare 先要有实体)', () => {
-  assert.match(store, /partSolidRequiredPatch\('圆角'/)
+  assert.match(store, /partSolidRequiredPatch\('(?:圆角|圓角)'/)
   assert.match(store, /partSolidRequiredPatch\('倒角'/)
-  assert.match(store, /partSolidRequiredPatch\('抽壳'/)
-  assert.match(store, /partSolidRequiredPatch\('面圆角'/)
+  assert.match(store, /partSolidRequiredPatch\('(?:抽壳|抽殼)'/)
+  assert.match(store, /partSolidRequiredPatch\('(?:面圆角|面圓角)'/)
   // Ribbon entry cases must not keep the dead-end bare toast.
   const filletCase = store.match(/case 'fillet':[\s\S]{0,280}?return/)
   assert.ok(filletCase, 'fillet case')
@@ -50,7 +50,7 @@ test('componentBoolean offers bake into part solid after success', () => {
   assert.match(block, /bakeMeshToPart|convertMeshComponent/)
   assert.match(store, /runStatusAction/)
   assert.match(store, /已烘焙入零件時間軸，可圓角\/抽殼/)
-  assert.match(block, /MeshFit\/转 B-rep|实体布尔/)
+  assert.match(block, /MeshFit\/(?:转|轉) B-rep|(?:实体布尔|實體布爾)/)
 })
 
 test('i18n covers v1.23 guidance phrases', () => {

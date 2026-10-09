@@ -14,7 +14,7 @@ const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.m
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.25+ (superseded by later ship)', () => {
-  assert.match(version, /APP_VERSION = '1\.(2[5-9]|[3-9]\d)'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('pickComponentBooleanTool + cancelComponentBoolean exist', () => {
@@ -26,7 +26,7 @@ test('pickComponentBooleanTool + cancelComponentBoolean exist', () => {
 test('selectComponent keeps pending on null/source; finishes via pickComponentBooleanTool', () => {
   assert.match(store, /never silently drop compBoolPending/)
   assert.match(store, /get\(\)\.pickComponentBooleanTool\(id\)/)
-  assert.match(store, /组件布尔待选工具件/)
+  assert.match(store, /(?:组件布尔待选工具件|組件布爾待選工具件)/)
 })
 
 test('selectComponentBody finishes boolean on other component (does not wipe pending)', () => {
@@ -41,10 +41,10 @@ test('toggleCheckComp finishes pending boolean when checking another component',
 
 test('startComponentBoolean status documents Browser / viewport / checkbox / list', () => {
   assert.match(store, /document ALL completable pick paths/)
-  assert.match(store, /浏览树点另一个零件名/)
-  assert.match(store, /视口点另一个零件/)
-  assert.match(store, /勾选另一零件复选框/)
-  assert.match(store, /上方列表按钮/)
+  assert.match(store, /(?:浏览树点另一个零件名|瀏覽樹點另一個零件名)/)
+  assert.match(store, /(?:视口点另一个零件|視口點另一個零件)/)
+  assert.match(store, /(?:勾选另一零件复选框|勾選另一零件複選框)/)
+  assert.match(store, /(?:上方列表按钮|上方列表按鈕)/)
 })
 
 test('successful componentBoolean always sets bake statusAction', () => {
@@ -70,7 +70,7 @@ test('Viewport CompBoolPickPanel + no toggle-null while pending', () => {
 test('BrowserTree pending-aware click + checkbox title', () => {
   assert.match(browser, /compBoolPending/)
   assert.match(browser, /if \(compBoolPending\) selectComponent\(c\.id\)/)
-  assert.match(browser, /勾選此零件＝選為組件布爾工具件|勾选此零件＝选为组件布尔工具件/)
+  assert.match(browser, /勾選此零件＝選為組件布爾工具件|(?:勾选此零件|勾選此零件)＝(?:选为组件布尔工具件|選為組件布爾工具件)/)
 })
 
 test('Esc cancels compBoolPending', () => {

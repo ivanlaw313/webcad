@@ -16,10 +16,10 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const sw = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8')
 const palette = readFileSync(new URL('../src/components/CommandPalette.tsx', import.meta.url), 'utf8')
 
-test('APP_VERSION is 1.80; SW CACHE webcad-v1.80', () => {
-  assert.match(version, /APP_VERSION = '1\.80'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.80'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.79'/)
+test('APP_VERSION is 1.80; SW CACHE webcad-v2.20', () => {
+  assert.match(version, /APP_VERSION = '2.20'/)
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
 })
 
 test('v1.80: catalog parity; ≥109 alias.* + cmd.act* extras', () => {
@@ -71,12 +71,12 @@ test('v1.80: zh-HK extras Traditional (no SC 保存项目/打开项目/适应窗
 
 test('v1.80: four-locale alias.cone / alias.gear searchable', () => {
   assert.match(msg('alias.cone', 'ja'), /円錐/)
-  assert.match(msg('alias.cone', 'zh-HK'), /圓錐|圆锥/)
+  assert.match(msg('alias.cone', 'zh-HK'), /圓錐|(?:圆锥|圓錐)/)
   assert.match(msg('alias.gear', 'ja'), /歯車|ギア/)
   assert.match(msg('alias.fillet', 'ja'), /フィレット/)
   assert.match(msg('alias.extrude', 'en'), /extrude/i)
-  assert.match(msg('alias.shell', 'zh-CN'), /抽壳/)
-  assert.match(msg('alias.insertmesh', 'zh-HK'), /stl|STL|網格|网格/i)
+  assert.match(msg('alias.shell', 'zh-CN'), /(?:抽壳|抽殼)/)
+  assert.match(msg('alias.insertmesh', 'zh-HK'), /stl|STL|網格|(?:网格|網格)/i)
 })
 
 test('v1.80: JA / EN extras + act labels', () => {

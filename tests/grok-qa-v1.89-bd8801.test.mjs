@@ -12,9 +12,9 @@ const sw = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8')
 const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.98; SW webcad-v1.98', () => {
-  assert.match(version, /APP_VERSION = '1\.98'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.98/)
+test('APP_VERSION 1.98; SW webcad-v2.20', () => {
+  assert.match(version, /APP_VERSION = '2.20'/)
+  assert.match(sw, /const CACHE = 'webcad-v2\.20/)
 })
 
 test('catalog parity', () => {

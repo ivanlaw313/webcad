@@ -31,8 +31,14 @@ test('input Cmd/Ctrl Undo and Redo remain local; canvas shortcuts still reach mo
  for(const target of [{tagName:'INPUT'},{tagName:'TEXTAREA'},{tagName:'DIV',isContentEditable:true},{tagName:'CANVAS'}]) {
   for(const key of ['z','y']) {
    let calls=0, prevented=0
-   const onKey=vm.runInNewContext(stripTypeScriptTypes(`(e)=>{${body}}`),{useApp:{getState:()=>({undo:()=>calls++,redo:()=>calls++})}})
-   onKey({target,key,metaKey:true,preventDefault:()=>prevented++})
+   const sandbox={
+     useApp:{getState:()=>({undo:()=>calls++,redo:()=>calls++})},
+     document:{activeElement:target},
+     HTMLElement:function HTMLElement(){},
+     window:{},
+   }
+   const onKey=vm.runInNewContext(stripTypeScriptTypes(`(e)=>{${body}}`),sandbox)
+   onKey({target,key,metaKey:true,ctrlKey:true,preventDefault:()=>prevented++,isComposing:false,keyCode:key==='z'?90:89})
    assert.equal(calls,target.tagName==='CANVAS'?1:0)
    assert.equal(prevented,target.tagName==='CANVAS'?1:0)
   }
@@ -53,7 +59,7 @@ test('picked-edge rounds never replace the requested size with a smaller success
  for(const [name,end] of [['roundNearPoint','// Tangent-chain expansion'],['roundNearPoints','// Asymmetric chamfer']]) {
   const begin=src.indexOf(`function ${name}(`)
   const fn=src.slice(begin,src.indexOf(end,begin))
-  const context=vm.createContext({_fpCapture:()=>({v1:[],v2:[]}),_recordFillet:()=>{},buildWarnings:[],_lastResolvedFp:null,_lastResolvedFpV2:null,_curOpIndex:0})
+  const context=vm.createContext({_fpCapture:()=>({v1:[],v2:[]}),_recordFillet:()=>{},buildWarnings:[],_lastResolvedFp:null,_lastResolvedFpV2:null,_curOpIndex:0,_edgePickRank:()=>0,_nearEdgeBetter:(dmin,rank,bestD,bestRank)=>dmin<bestD-1e-24||(dmin<=bestD+1e-24&&rank<bestRank),hasSolid:()=>true,_fpSelectMids:()=>null,_s1CarryMids:()=>null,_s2CarriedFlag:false})
   const api=vm.runInContext(stripTypeScriptTypes(fn+`;${name}`),context)
   const attempts=[]
   const shape={edges:[{pointAt:()=>({x:0,y:0,z:20})}],fillet:r=>{attempts.push(r);if(r>20)throw Error('too large');return {solid:true}}}
@@ -77,8 +83,9 @@ test('partial downstream rebuild cannot replace committed geometry or create his
  const api=vm.runInNewContext(stripTypeScriptTypes(`(()=>{${shared};return {${wrapper}}})()`),{
   featureLiveGet:()=>state,featureLiveSet:p=>state={...state,...(typeof p==='function'?p(state):p)},
   cad:{rebuild:async f=>{builds.push(f);return builds.length===1?{triangles:[0,1,2],failed:[{id:'f',error:'radius too large'}]}:mesh}},
-  applyParamBindings:f=>f,expandFeats:f=>f,SOLID_TYPES:['extrude'],
+  applyParamBindings:f=>f,expandFeats:f=>f,SOLID_TYPES:['extrude'],hasSolid:fs=>fs.some(f=>f.type==='extrude'),
   mapKernelFailuresToTimeline:()=>({ids:['f'],errors:{f:'radius too large'}}),docSnap:s=>s,console,
+  _sketchFinishUndo:new WeakMap(),
  })
  assert.equal(await api.applyFeatures([...old,{id:'f',type:'fillet'}],'ok'),false)
  assert.equal(state.bodyMesh,mesh);assert.equal(state.features,old);assert.equal(state.undoStack.length,0);assert.deepEqual(state.redoStack,['redo'])
@@ -94,7 +101,7 @@ test('failed model Undo/Redo restores both document metadata and history stacks'
   const target={features:[{id:'old'}],components:['old-component']}
   let state={features:[{id:'current'}],components:['current-component'],mode:'model',bodyMesh:{tag:'valid'},bodyTopZ:30,timelinePos:1,undoStack:action==='undo'?[target]:[],redoStack:action==='redo'?[target]:[],applyFeatures:async()=>false}
   const initial=state
-  const api=vm.runInNewContext(stripTypeScriptTypes(`({${body}})`),{get:()=>state,set:p=>state={...state,...(typeof p==='function'?p(state):p)},enqueueHistoryTransition:f=>f(),docSnap:s=>({features:s.features,components:s.components})})
+  const api=vm.runInNewContext(stripTypeScriptTypes(`({${body}})`),{get:()=>state,set:p=>state={...state,...(typeof p==='function'?p(state):p)},enqueueHistoryTransition:f=>f(),docSnap:s=>({features:s.features,components:s.components}),_sketchFinishUndo:new WeakMap(),SKETCH_FINISH_UNDO_STATUS:'sketch-finish-undo',_pendingDatumRef:null,_liveFeatureSession:null})
   await api[action]()
   assert.equal(state.features,initial.features);assert.equal(state.components,initial.components);assert.equal(state.bodyMesh,initial.bodyMesh)
   assert.equal(state.undoStack,initial.undoStack);assert.equal(state.redoStack,initial.redoStack)

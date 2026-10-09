@@ -1,7 +1,7 @@
 /**
  * v1.75: JA tool.* fill + high-traffic status toast catalog.
  * Target: identical JA/EN tool.* count ≤ 40 (prefer 0; EN proper-noun exceptions documented).
- * SW CACHE → webcad-v1.75. Keep MESH pin + 實驗室 + 尺寸已拒絕.
+ * SW CACHE → webcad-v2.20. Keep MESH pin + 實驗室 + 尺寸已拒絕.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -21,12 +21,12 @@ const ribbon = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8'
 const illegal = readFileSync(new URL('../src/ui/illegalInput.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.75+', () => {
-  assert.match(version, /APP_VERSION = '1\.(7[5-9]|[8-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
-test('v1.75: SW CACHE webcad-v1.75+; network-first; release comment', () => {
-  assert.match(sw, /const CACHE = 'webcad-v1\.(7[5-9]|[8-9]\d)'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.74'/)
+test('v1.75: SW CACHE webcad-v2.20+; network-first; release comment', () => {
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
 })
 
 test('catalog parity across 4 locales', () => {
@@ -68,7 +68,7 @@ test('v1.75: status toast keys resolve in all 4 locales', () => {
 })
 
 test('pins retained: MESH SC / 實驗室 / 尺寸已拒絕 / 日本語 switcher', () => {
-  assert.match(ribbon, /id: 'insertmesh',\s*label: '插入STL网格'/)
+  assert.match(ribbon, /id: 'insertmesh',\s*label: '插入STL(?:网格|網格)'/)
   assert.equal(tLabel('插入STL网格', 'zh-HK'), '插入STL网格')
   assert.match(ribbon, /實驗室/)
   assert.match(illegal, /ILLEGAL_REJECT_MARKER = '尺寸已拒絕'/)

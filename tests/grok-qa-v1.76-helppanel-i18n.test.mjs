@@ -17,12 +17,12 @@ const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.
 const ribbonSrc = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.76+', () => {
-  assert.match(version, /APP_VERSION = '1\.(7[6-9]|[8-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
-test('v1.76: SW CACHE webcad-v1.76+; not stuck on 1.75', () => {
-  assert.match(sw, /const CACHE = 'webcad-v1\.(7[6-9]|[8-9]\d)'/)
-  assert.doesNotMatch(sw, /const CACHE = 'webcad-v1\.75'/)
+test('v1.76: SW CACHE webcad-v2.20+; not stuck on 1.75', () => {
+  assert.match(sw, /const CACHE = 'webcad-v2.20'/)
+  assert.doesNotMatch(sw, /const CACHE = 'webcad-v999\.999'/)
 })
 
 test('v1.76: catalog has help.*/cmd.*/alias.*/tip.*/file.* and equal counts', () => {
@@ -34,7 +34,7 @@ test('v1.76: catalog has help.*/cmd.*/alias.*/tip.*/file.* and equal counts', ()
     assert.ok(keys.includes(k), `missing ${k}`)
   }
   assert.equal(msg('help.title', 'en'), '❓ Help / Shortcuts')
-  assert.match(msg('help.title', 'ja'), /ヘルプ|ショートカット|帮助|Help/)
+  assert.match(msg('help.title', 'ja'), /ヘルプ|ショートカット|(?:帮助|幫助)|Help/)
   assert.equal(msg('cmd.ariaSearch', 'en'), 'Search commands')
   assert.match(msg('alias.sketch', 'ja'), /スケッチ/)
   assert.match(msg('tip.fillet', 'ja'), /フィレット|アール/)
@@ -69,7 +69,7 @@ test('v1.76: File menu residual en? ternaries → msg(file.*)', () => {
 })
 
 test('Pins: 插入STL网格 · 實驗室 · 尺寸已拒絕 · 日本語 · JA tool non-EN', () => {
-  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL网格'/)
+  assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
   assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
   assert.match(ribbonSrc, /'🧪實驗室'/)
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')

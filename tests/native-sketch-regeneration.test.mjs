@@ -27,5 +27,5 @@ test('all constrained native car sketches solve without changing the reference g
  for(const c of d.components)for(const [id,src]of Object.entries(c.src.sketchSources))if(src.cons.length){const r=await solveFree(src.shapes,src.cons);assert.ok(r&&!r.conflict,id);r.shapes.forEach((sh,i)=>{const a=coords(src.shapes[i]),b=coords(sh);assert.equal(a.length,b.length);assert.ok(b.every((v,k)=>Math.abs(v-a[k])<1e-5),id)});count++;}assert.equal(count,47);
 });
 test('finishing a component cannot bypass an unfinished sketch',()=>{
- useApp.setState({...useApp.getInitialState(),mode:'sketch',editingComponent:'C1'},true);useApp.getState().finishComponentEdit();assert.equal(useApp.getState().editingComponent,'C1');assert.equal(useApp.getState().mode,'sketch');assert.match(useApp.getState().status,/先完成草图/);
+ useApp.setState({...useApp.getInitialState(),mode:'sketch',editingComponent:'C1'},true);useApp.getState().finishComponentEdit();assert.equal(useApp.getState().editingComponent,'C1');assert.equal(useApp.getState().mode,'sketch');assert.match(useApp.getState().status,/(?:先完成草图|先完成草圖)/);
 });

@@ -28,7 +28,7 @@ const dlgSrc = readFileSync(new URL('../src/components/InsertDialog.tsx', import
 const dxfSrc = readFileSync(new URL('../src/io/dxfImport.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.34+', () => {
-  assert.match(version, /APP_VERSION = '1\.(3[4-9]|[4-9]\d)'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('spatial-hash chain present (not O(n²) full scan)', () => {

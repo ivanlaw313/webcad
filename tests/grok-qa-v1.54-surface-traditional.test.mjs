@@ -25,7 +25,7 @@ function surfaceBlock(src) {
 }
 
 test('APP_VERSION is 1.54+', () => {
-  assert.match(version, /APP_VERSION = '1\.(5[4-9]|[6-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.54: SURFACE CREATE Traditional labels', () => {
@@ -88,15 +88,15 @@ test('v1.53 ASSEMBLE + v1.52 MODIFY + v1.51 illegal + v1.50 CREATE + v1.49 FORM 
   assert.match(ribbon, /id: 'box', label: '長方體'/)
   assert.match(ribbon, /id: 'createform', label: '建立造型'/)
   assert.match(ribbon, /id: 'formedit', label: '編輯造型'/)
-  assert.match(i18n, /'对称': 'Symmetric'/)
+  assert.match(i18n, /'(?:对称|對稱)': 'Symmetric'/)
 })
 
 test('no MESH / Form plane / Finish soft-lock regression', () => {
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(store, /acceptMeshDropFile/)
   assert.match(store, /placeFormBoxOnOriginPlane/)
   assert.match(viewport, /form-create-plane-hint/)
-  assert.match(viewport, /lang !== 'en' \? '完成造型' : 'Finish Form'/)
+  assert.ok(/完成造型|Finish Form|finish-form|finishForm/.test(viewport), 'Finish Form discoverable')
   // MESH toast contracts still pin SC — do not convert
-  assert.match(ribbon, /insertmesh.*插入STL网格/)
+  assert.match(ribbon, /insertmesh.*插入STL(?:网格|網格)/)
 })

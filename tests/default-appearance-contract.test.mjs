@@ -12,7 +12,7 @@ test('new and restored designs use a contrast-safe solid appearance', () => {
 
 test('ribbon exposes a labelled immediate body-colour control', () => {
   assert.match(ribbon, /className="tb-color-control"/)
-  assert.match(ribbon, /aria-label=\{en \? 'Body colour' :/)
+  assert.ok(/aria-label=\{(?:en \? 'Body colour'|msg\('ui\.bodyColor')/.test(ribbon), 'body colour control is labelled')
   assert.match(ribbon, /onInput=\{\(e\) => setBodyColor\(e\.currentTarget\.value\)\}/)
   assert.match(ribbon, /onChange=\{\(e\) => setBodyColor\(e\.target\.value\)\}/)
 })

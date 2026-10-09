@@ -14,7 +14,7 @@ const ribbonTs = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.2x', () => {
-  assert.match(version, /APP_VERSION = '1\.(2\d|[3-9]\d)'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('BUG-BD-1901: FormPalette footer stays pinned outside scroll body', () => {
@@ -34,13 +34,13 @@ test('BUG-BD-1901: Ribbon Finish Form/Sketch pinned outside ribbon-panels scroll
 })
 
 test('SO09: openCombineDlg clarifies New Body dual-body path', () => {
-  assert.match(storeSrc, /没有工具体（泊车实体）/)
-  assert.match(storeSrc, /「新实体」/)
+  assert.match(storeSrc, /(?:没有工具体|沒有工具體)（(?:泊车实体|泊車實體)）/)
+  assert.match(storeSrc, /「(?:新实体|新實體)」/)
   assert.match(viewport, /data-testid="combine-need-newbody"/)
 })
 
 test('CAM entry documented under 实验室/製造 CAM (intentionally not SOLID)', () => {
-  assert.match(ribbonTs, /name: '製造 CAM'|name: '制造 CAM'/)
+  assert.match(ribbonTs, /name: '製造 CAM'|name: '(?:制造|製造) CAM'/)
   assert.match(ribbonTs, /id: 'finish3d'/)
   assert.match(ribbonTs, /label: '3D加工'/)
 })

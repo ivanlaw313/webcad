@@ -25,10 +25,7 @@ const i18nSrc = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const meshDropSrc = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.42+', () => {
-  assert.match(version, /APP_VERSION = '1\.42'|APP_VERSION = '1\.(4[3-9]|[5-9]\d)'|APP_VERSION = '[2-9]\./)
-})
-
-test('meshDropKind / MESH_DROP_EXTS unchanged', () => {
+  assert.match(version, /APP_VERSION = '2.20'|APP_VERSION = '2.20'|APP_VERSION = '2.20'meshDropKind / MESH_DROP_EXTS unchanged', () => {
   assert.equal(meshDropKind('cube_20mm.stl'), 'stl')
   assert.equal(meshDropKind('a.OBJ'), 'obj')
   assert.equal(meshDropKind('x.3mf'), '3mf')

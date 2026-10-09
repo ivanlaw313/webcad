@@ -17,7 +17,7 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const workerSrc = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.28+', () => {
-  assert.match(version, /APP_VERSION = '1\.2[8-9]'|APP_VERSION = '1\.[3-9]\d'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.28 wiring: MakeThickSolid Intersection/RemoveIntEdges flag combos', () => {
@@ -27,7 +27,7 @@ test('v1.28 wiring: MakeThickSolid Intersection/RemoveIntEdges flag combos', () 
   assert.match(workerSrc, /flags\.removeInt/)
   assert.match(workerSrc, /never call cavity before the widened seeds ladder/)
   assert.match(workerSrc, /function _shellCavityStatus/)
-  assert.match(workerSrc, /抽壳完成（备用：开口面偏移型腔）/)
+  assert.match(workerSrc, /(?:抽壳完成|抽殼完成)（(?:备用|備用)：(?:开口面偏移型腔|開口面偏移型腔)）/)
 })
 
 globalThis.require = createRequire(import.meta.url)

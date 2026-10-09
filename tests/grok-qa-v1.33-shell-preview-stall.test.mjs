@@ -19,7 +19,7 @@ const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.33+', () => {
-  assert.match(version, /APP_VERSION = '1\.3[3-9]'|APP_VERSION = '1\.[4-9]\d'/)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.33 wiring: Confirm ungated + silent preview preempt', () => {
@@ -35,7 +35,7 @@ test('v1.33 wiring: Confirm ungated + silent preview preempt', () => {
   const cancelIdx = storeSrc.indexOf('cancelShell: () => {')
   assert.ok(cancelIdx > 0)
   assert.match(storeSrc.slice(cancelIdx, cancelIdx + 800), /cancelPreviews\(\)/)
-  assert.match(storeSrc.slice(cancelIdx, cancelIdx + 800), /已取消抽壳/)
+  assert.match(storeSrc.slice(cancelIdx, cancelIdx + 800), /(?:已取消抽壳|已取消抽殼)/)
   const commitIdx = storeSrc.indexOf('commitShell: async')
   assert.match(storeSrc.slice(commitIdx, commitIdx + 1600), /cancelPreviews\(\)/)
 })

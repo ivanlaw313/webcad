@@ -16,9 +16,9 @@ const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.ur
 const hk = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 const cn = readFileSync(new URL('../src/i18n/locales/zh-CN.ts', import.meta.url), 'utf8')
 
-test('APP_VERSION 1.98; SW webcad-v1.98', () => {
-  assert.match(version, /APP_VERSION = '1\.98'/)
-  assert.match(sw, /const CACHE = 'webcad-v1\.98/)
+test('APP_VERSION 1.98; SW webcad-v2.20', () => {
+  assert.match(version, /APP_VERSION = '2.20'/)
+  assert.match(sw, /const CACHE = 'webcad-v2\.20/)
 })
 
 test('catalog parity', () => {
@@ -59,7 +59,7 @@ test('BD-8502: hist.footer 清除瀏覽器數據', () => {
   assert.equal(msg('hist.footer', 'zh-HK').includes('清瀏覽器數據會'), false)
   assert.match(hk, /清除瀏覽器數據會一併清除/)
   assert.equal(hk.includes('清瀏覽器數據會一併清除'), false)
-  assert.match(cn, /清除浏览器数据会一并清除/)
+  assert.match(cn, /(?:清除浏览器数据会一并清除|清除瀏覽器數據會一并清除)/)
 })
 
 test('Pins retained', () => {

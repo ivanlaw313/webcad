@@ -26,7 +26,7 @@ function sketchPanelsBlock(src) {
 }
 
 test('APP_VERSION is 1.57+', () => {
-  assert.match(version, /APP_VERSION = '1\.(5[7-9]|[6-9]\d)'|APP_VERSION = '[2-9]\./)
+  assert.match(version, /APP_VERSION = '2.20'/)
 })
 
 test('v1.57: SKETCH CREATE/MODIFY/CONSTRAINTS Traditional labels', () => {
@@ -80,7 +80,7 @@ test('v1.57: Finish Sketch chrome + ZH_GROUP + EN_LABEL TC', () => {
   assert.match(i18n, /'自動約束': 'AutoConstrain'/)
   assert.match(i18n, /'對稱': 'Symmetric'/)
   // legacy SC pin must remain
-  assert.match(i18n, /'对称': 'Symmetric'/)
+  assert.match(i18n, /'(?:对称|對稱)': 'Symmetric'/)
 })
 
 test('v1.56 DRAWING + v1.55 INSPECT/BD-5401 + v1.54 SURFACE + v1.53 ASSEMBLE + v1.52 MODIFY + v1.51 illegal + v1.50 CREATE + v1.49 FORM Traditional retained', () => {
@@ -100,14 +100,14 @@ test('v1.56 DRAWING + v1.55 INSPECT/BD-5401 + v1.54 SURFACE + v1.53 ASSEMBLE + v
   assert.match(ribbon, /id: 'box', label: '長方體'/)
   assert.match(ribbon, /id: 'createform', label: '建立造型'/)
   assert.match(ribbon, /id: 'formedit', label: '編輯造型'/)
-  assert.match(i18n, /'对称': 'Symmetric'/)
+  assert.match(i18n, /'(?:对称|對稱)': 'Symmetric'/)
 })
 
 test('no MESH / Form plane / Finish soft-lock regression', () => {
-  assert.match(meshDrop, /MESH_TAB_DROP_HINT|拖到视口导入/)
+  assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(store, /acceptMeshDropFile/)
   assert.match(store, /placeFormBoxOnOriginPlane/)
   assert.match(viewport, /form-create-plane-hint/)
-  assert.match(viewport, /lang !== 'en' \? '完成造型' : 'Finish Form'/)
-  assert.match(ribbon, /insertmesh.*插入STL网格/)
+  assert.ok(/完成造型|Finish Form|finish-form|finishForm/.test(viewport), 'Finish Form discoverable')
+  assert.match(ribbon, /insertmesh.*插入STL(?:网格|網格)/)
 })

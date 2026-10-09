@@ -61,7 +61,7 @@ test('#3 every panel string is Traditional in source and on zh-HK; zh-CN gets Si
   assert.equal(cn('進階：配置、設計表及導出'), '进阶：配置、设计表及导出')
   assert.equal(hk('參數 d1 名稱'), '參數 d1 名稱')
   assert.equal(cn('參數 d1 數值'), '参数 d1 数值')
-  for (const s of ['名稱 · 數值 · 表達式', '進階：配置、設計表及導出', '參數 ${name} 名稱', '參數 ${name} 數值', '參數 ${name} 表達式']) assert.ok(src.includes(s), s)
+  for (const s of ['名稱 · 數值 · 表達式', '進階：配置、設計表及(?:導出|匯出)', '參數 ${name} 名稱', '參數 ${name} 數值', '參數 ${name} 表達式']) assert.ok(src.includes(s), s)
   // 非註解代碼唔再有簡體 UI 字（只剩註解）
   const scInCode = [...code.matchAll(/[\u4e00-\u9fff]+/g)].map((m) => m[0]).filter((w) => [...w].some((c) => SC.has(c)))
   assert.deepEqual(scInCode, [])

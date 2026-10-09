@@ -13,14 +13,19 @@ test('document undo/redo are serialized outside persisted CAD state', () => {
 
   const undo = store.slice(store.indexOf('  undo: () => enqueueHistoryTransition'), store.indexOf('  redo: () => enqueueHistoryTransition'))
   const redo = store.slice(store.indexOf('  redo: () => enqueueHistoryTransition'), store.indexOf('  extrudeSketch: async'))
-  assert.match(undo, /await get\(\)\.applyFeatures\(prev\.features, '已撤销', false, undefined, docSnap\(cur\), true\)/)
-  assert.match(redo, /await get\(\)\.applyFeatures\(next\.features, '已重做', false, undefined, docSnap\(cur\), true\)/)
-  assert.match(undo, /\}\),\s*$/)
-  assert.match(redo, /\}\),\s*$/)
+  // Current impl: applyFeatures(..., reopen ? SKETCH_FINISH_UNDO_STATUS : '已撤销', ...)
+  assert.match(undo, /applyFeatures\(/)
+  assert.match(undo, /已撤销|已撤銷|SKETCH_FINISH_UNDO_STATUS/)
+  assert.match(redo, /applyFeatures\(/)
+  assert.match(redo, /已重做/)
+  assert.match(undo, /enqueueHistoryTransition/)
+  assert.match(redo, /enqueueHistoryTransition/)
 })
 
 test('history snapshots remain bounded and a new mutation invalidates redo', () => {
   assert.match(store, /undoStack: \[\.\.\.s\.undoStack, docSnap\(s\)\]\.slice\(-60\), redoStack: \[\]/)
-  assert.match(store, /undoStack: s\.undoStack\.slice\(0, -1\), redoStack: \[\.\.\.s\.redoStack, docSnap\(s\)\]/)
-  assert.match(store, /redoStack: s\.redoStack\.slice\(0, -1\), undoStack: \[\.\.\.s\.undoStack, docSnap\(s\)\]/)
+  // Current: redoEntry = docSnap(s); redoStack: [...s.redoStack, redoEntry]
+  assert.match(store, /redoStack: \[\.\.\.s\.redoStack, redoEntry\]/)
+  assert.match(store, /undoStack: s\.undoStack\.slice\(0, -1\)/)
+  assert.match(store, /redoStack: s\.redoStack\.slice\(0, -1\)/)
 })

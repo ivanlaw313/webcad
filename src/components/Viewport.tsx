@@ -102,7 +102,7 @@ import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按
 import { ToolIcon } from '../icons'
 import { featDlgBlockingReason, patternOverlapWarning } from '../cad/featDlgNumeric'   // 純邏輯模組，唔經 monolith
 import { startRenderGovernor } from '../render/renderGovernor'
-import { PRIM_PLACE_KINDS } from '../store'   // UX3 #2
+import { PRIM_PLACE_KINDS, shellFailReason } from '../store'   // UX3 #2 / CORE16 b4
 import { useApp, holeBlindOverrun, meshBboxSize, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
@@ -3592,7 +3592,7 @@ function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: num
   const gateId = useId()
   const reportNumericInvalid = useApp((s) => s.reportNumericInvalid)
   useEffect(() => {
-    reportNumericInvalid(gateId, bad ? `非法輸入「${txt.trim()}」` : null)
+    reportNumericInvalid(gateId, bad ? `非法輸入「${txt.trim()}」` : blank ? "尚未輸入數值（欄位不可留空）" : null)   // CORE16 b4 (b)：留空不可提交
   }, [gateId, bad, txt, reportNumericInvalid])
   // 除名只喺 unmount（見 NumInput 嘅 BUG-560 註）
   useEffect(() => () => reportNumericInvalid(gateId, null), [gateId, reportNumericInvalid])
@@ -5613,7 +5613,7 @@ export default function Viewport() {
           onCancel={() => cancelShell()}
           summary={<>{shellType === 'closed' ? '封閉實體' : `開 ${shellPicks.length} 面`} · 壁厚 {shellThickness}</>}
         >
-          <div role="status" aria-live="polite" data-testid="shell-preview-status">{shellPreviewBusy ? '正在計算預覽…' : shellPreviewFail ? '預覽失敗（已保留原模型）— 可改壁厚/方向/開口面，或仍按「確定」嘗試提交' : shellPreviewMesh ? '即時預覽；確定後才儲存操作' : '選擇開口面並輸入壁厚，即時預覽結果'}</div>
+          <div role="status" aria-live="polite" data-testid="shell-preview-status">{shellPreviewBusy ? '正在計算預覽…' : shellPreviewFail ? '⚠ ' + shellFailReason(useApp.getState().bodyMesh, shellThickness).replace(/^抽殼失敗：/, '預覽失敗：') + '（亦可仍按「確定」嘗試提交）' : shellPreviewMesh ? '即時預覽；確定後才儲存操作' : '選擇開口面並輸入壁厚，即時預覽結果'}</div>
           <SelectionChip label={shellType === 'closed' ? '實體' : '面'} count={shellPicks.length} hint={shellType === 'closed' ? '點選要建立封閉空腔的實體' : '點選要移除的面（再點取消）'} onClear={() => useApp.getState().clearShellPicks()} />
           {shellType === 'open' && <label style={{ justifyContent: 'flex-start', gap: 6 }} title="相切鏈：沿共用邊自動加入 G1 相切連續面">
             <input type="checkbox" checked={shellTangentChain} onChange={() => toggleShellTangentChain()} /> 切線鏈

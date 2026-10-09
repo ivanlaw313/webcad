@@ -5053,6 +5053,38 @@ export function effectiveMaterial(s: Pick<AppState, 'bodyDensity' | 'lang'>, c?:
   const k = materialForDensity(d)
   return { key: k, label: k ? tMaterialName(k, lang) + '（預設）' : `密度 ${d}`, density: d }
 }
+// CORE16 b4 (b)：抽殼／分割實體失敗講具體原因（唔再淨係「重建失敗」）。mesh = 上一個有效模型（CAD 坐標）。
+function bodySpanAlong(mesh: MeshData | null | undefined, o: [number, number, number], n: [number, number, number]): [number, number] | null {
+  const v = mesh?.vertices; if (!v || !v.length) return null
+  const L = Math.hypot(n[0], n[1], n[2]) || 1
+  let lo = Infinity, hi = -Infinity
+  for (let i = 0; i < v.length; i += 3) { const d = ((v[i] - o[0]) * n[0] + (v[i + 1] - o[1]) * n[1] + (v[i + 2] - o[2]) * n[2]) / L; if (d < lo) lo = d; if (d > hi) hi = d }
+  return [lo, hi]
+}
+export function splitPlaneMissReason(mesh: MeshData | null | undefined, f: { axis?: string; offset?: number; planeOrigin?: [number, number, number]; planeNormal?: [number, number, number] }): string | null {
+  const ax = f.axis === 'X' ? 0 : f.axis === 'Y' ? 1 : 2
+  const o: [number, number, number] = f.planeOrigin ?? [0, 0, 0]
+  const n: [number, number, number] = f.planeNormal ?? (ax === 0 ? [1, 0, 0] : ax === 1 ? [0, 1, 0] : [0, 0, 1])
+  if (!f.planeOrigin) o[ax] = Number(f.offset) || 0
+  const sp = bodySpanAlong(mesh, o, n); if (!sp) return null
+  const eps = 1e-3
+  if (sp[0] < -eps && sp[1] > eps) return null
+  const r = (x: number) => +x.toFixed(2)
+  if (f.planeOrigin) return `分割實體：分割平面沒有穿過實體（實體全部位於平面${sp[0] >= -eps ? '正' : '負'}側，最近距離約 ${r(Math.min(Math.abs(sp[0]), Math.abs(sp[1])))} mm）— 請改選穿過實體的平面`
+  const off = o[ax], a = off + sp[0], b = off + sp[1]   // 實體沿軸範圍
+  return `分割實體：${f.axis ?? 'Z'} = ${r(off)} mm 的平面沒有穿過實體（實體在 ${f.axis ?? 'Z'} 方向範圍為 ${r(a)}～${r(b)} mm）— 請把位置設在此範圍之內`
+}
+export function shellFailReason(mesh: MeshData | null | undefined, t: number): string {
+  if (!(t > 0)) return '抽殼失敗：壁厚必須大於 0'
+  const v = mesh?.vertices
+  if (v && v.length) {
+    const mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity]
+    for (let i = 0; i < v.length; i += 3) for (let k = 0; k < 3; k++) { const x = v[i + k]; if (x < mn[k]) mn[k] = x; if (x > mx[k]) mx[k] = x }
+    const thin = Math.min(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2])
+    if (t * 2 >= thin - 1e-6) return `抽殼失敗：壁厚 ${t} mm 過大 — 實體最薄方向只有約 ${+thin.toFixed(2)} mm，壁厚須小於其一半（約 ${+(thin / 2).toFixed(2)} mm）`
+  }
+  return `抽殼失敗：壁厚 ${t} mm 相對局部幾何過大，或所選開口面不適合 — 請減小壁厚或改選開口面`
+}
 function buildBOM(s: AppState, density?: number): { rows: string[][]; summary: string; csv: string } | null {
     let comps = s.components.filter((c) => !c.hidden)
     if (!comps.length) {
@@ -5630,8 +5662,19 @@ export const useApp = create<AppState>((rawSet, get) => {
           {
             const detail = Object.values(failure.errors)[0]
             const failedRound = bound.find((f) => failure.ids.includes(f.id) && (f.type === 'chamfer' || f.type === 'fillet'))
-            const toast = typeof detail === 'string' && /旋转相交|旋转切割|旋转截面/.test(detail)
+            const reasoned = bound.find((f) => failure.ids.includes(f.id) && (f.type === 'pushpull' || f.type === 'thickenface'))   // CORE16 #1/#2：按拉／加厚講真原因（例如超過厚度）
+            const reasonTxt = reasoned ? failure.errors[reasoned.id] : undefined
+            // CORE16 b4 (b)：抽殼／分割實體 → 按參數＋上一個有效模型推出具體原因
+            const failedShell = bound.find((f) => failure.ids.includes(f.id) && f.type === 'shell') as (Feature & { thickness?: number }) | undefined
+            const failedSplit = bound.find((f) => failure.ids.includes(f.id) && f.type === 'split') as Parameters<typeof splitPlaneMissReason>[1] | undefined
+            const specific = failedShell ? (active.some((x) => x.type === 'fillet' || x.type === 'chamfer') && Number(failedShell.thickness) > 0 ? '抽殼失敗：已倒圓角／倒角的實體抽殼不穩定，建議先抽殼後再倒角' : shellFailReason(get().bodyMesh, Number(failedShell.thickness)))
+              : failedSplit ? (splitPlaneMissReason(get().bodyMesh, failedSplit) ?? '分割實體失敗：分割平面與實體的交線無法建立 — 請稍為移動平面位置再試')
+              : null
+            const toast = specific ? '⚠ ' + specific + '（已保留上一個有效模型）'
+              : typeof detail === 'string' && /旋转相交|旋转切割|旋转截面/.test(detail)
               ? '⚠ ' + detail
+              : typeof reasonTxt === 'string' && /[\u3400-\u9fff]/.test(reasonTxt)
+                ? '⚠ ' + reasonTxt + '（已保留上一個有效模型）'
               : failedRound   // UX2 #12：倒角／圓角失敗講返原因（繁體），唔再淨係「重建失败」或英文內核原文
                 ? '⚠ ' + plainFeatureError(failedRound.type, failure.errors[failedRound.id] ?? '') + '（已保留上一個有效模型）'
                 : '⚠ 重建失败 — 已保留上一个有效模型，请修正参数后重试'
@@ -18909,9 +18952,11 @@ export const useApp = create<AppState>((rawSet, get) => {
         const po = p.planeOrigin.split(',').map(Number) as [number, number, number]
         const pn = p.planeNormal.split(',').map(Number) as [number, number, number]
         f = { id: fid(), type: 'split', axis: 'Z', offset: 0, keep, nameA: '分割A', nameB: '分割B', planeOrigin: po, planeNormal: pn }
+        { const miss = splitPlaneMissReason(get().bodyMesh, f as Parameters<typeof splitPlaneMissReason>[1]); if (miss) { set({ status: miss }); return } }
         msg = `已沿所拾平面分割（法向 [${pn.map((x) => x.toFixed(2)).join(',')}]；保留${keep === 'hi' ? '法向正' : '法向负'}側為活動體，另一半灰顯泊車）`
       } else {
         const axis = (p.axis === 'X' || p.axis === 'Y' || p.axis === 'Z') ? p.axis : 'Z'
+        if (String(p.offset ?? '').trim() === '' || !Number.isFinite(+p.offset)) { set({ status: '分割實體：請輸入分割平面的位置（數字，單位 mm）' }); return }
         // CORE16：平面不穿過實體 → 清楚講明（以前只係籠統「重建失敗」）
         const bm = get().bodyMesh
         if (!d.editId && bm?.vertices?.length) {
@@ -18921,6 +18966,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           if (!(off > lo + 1e-6 && off < hi - 1e-6)) { set({ status: `分割平面沒有穿過實體（${axis} 範圍 ${+lo.toFixed(2)} 至 ${+hi.toFixed(2)}）— 請把位置設在此範圍內` }); return }
         }
         f = { id: fid(), type: 'split', axis, offset: +p.offset || 0, keep, nameA: '分割A', nameB: '分割B' }
+        { const miss = splitPlaneMissReason(get().bodyMesh, f as Parameters<typeof splitPlaneMissReason>[1]); if (miss) { set({ status: miss }); return } }
         msg = `已沿 ${axis}=${+p.offset || 0} 平面分割（保留${keep === 'hi' ? '高' : '低'}側為活動體，另一半灰顯泊車 — 時間軸可改位置/保留側）`
       }
     } else if (d.kind === 'offsetsolid') {

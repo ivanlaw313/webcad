@@ -44,8 +44,19 @@ const NULL_RAYCAST: typeof MESH_RAYCAST = () => {}
 // perf（v2.20 lag）：主视口改 frameloop="demand"。localStorage webcad-frameloop=always 可退回旧行为（诊断用）。
 const VIEWPORT_FRAMELOOP: 'always' | 'demand' = (() => { try { return typeof localStorage !== 'undefined' && localStorage.getItem('webcad-frameloop') === 'always' ? 'always' : 'demand' } catch { return 'demand' } })()
 // perf：局部订阅 status 嘅细组件（避免 Viewport 根组件因 status 变而整体重渲染）。
+// v2.20 P4：狀態列尾段嘅重建警告（formatBuildWarnings 以「　⚠ 」接上）同警告 pill 一樣，BUILD_WARN_MS 後自動收起；
+// 主訊息保留。整句本身就係錯誤（⚠ 開頭）唔郁 — 嗰啲係失敗原因唔係警告。
+const BUILD_WARN_MS = 10000
 function StatusText({ lang, span }: { lang: Parameters<typeof tStatus>[1]; span?: boolean }) {
-  const status = useApp((s) => s.status)
+  const raw = useApp((s) => s.status)
+  const [expired, setExpired] = useState<string | null>(null)
+  const cut = raw.indexOf('　⚠ ')
+  useEffect(() => {
+    if (cut <= 0) return
+    const t = window.setTimeout(() => setExpired(raw), BUILD_WARN_MS)
+    return () => window.clearTimeout(t)
+  }, [raw, cut])
+  const status = cut > 0 && expired === raw ? raw.slice(0, cut) : raw
   const text = tStatus(status, lang)
   return span ? <span className="vp-status-message" title={text}>{text}</span> : <>{text}</>
 }
@@ -4356,6 +4367,13 @@ export default function Viewport() {
   const lastDecal = useApp((s) => (s.decals.length ? s.decals[s.decals.length - 1] : null))
   const interfPanelOpen = useApp((s) => s.interfPanelOpen)   // P2 Inspect：干涉结果面板
   const buildWarns = useApp((s) => s.lastBuildWarnings)      // P2 audit：重建警告持久 pill（要订阅 — getState() 喺 render 唔会跟变）
+  // v2.20 P4：重建警告 pill 自動消失（BUILD_WARN_MS 後；滑鼠停留其上時暫停），唔再一直釘住。
+  const [buildWarnHover, setBuildWarnHover] = useState(false)
+  useEffect(() => {
+    if (!buildWarns.length || buildWarnHover) return
+    const t = window.setTimeout(() => { if (useApp.getState().lastBuildWarnings === buildWarns) useApp.getState().dismissBuildWarnings() }, BUILD_WARN_MS)
+    return () => window.clearTimeout(t)
+  }, [buildWarns, buildWarnHover])
   const interfReport = useApp((s) => s.interfReport)
   const interfIncludeCoincident = useApp((s) => s.interfIncludeCoincident)   // GM-X1 #6
   const interfSubset = useApp((s) => s.interfSubset)
@@ -8402,7 +8420,7 @@ export default function Viewport() {
         const bw = buildWarns
         if (!bw.length) return null
         return (
-          <div className="vp-build-warning">
+          <div className="vp-build-warning" data-testid="build-warning" onMouseEnter={() => setBuildWarnHover(true)} onMouseLeave={() => setBuildWarnHover(false)}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
               <b>⚠ {tStatus('重建警告', lang)} ×{bw.length}</b>
               <button className="tb-btn" style={{ padding: '0 5px' }} onClick={() => useApp.getState().dismissBuildWarnings()}>✕</button>

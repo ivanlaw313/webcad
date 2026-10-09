@@ -2975,6 +2975,24 @@ function placeThreadTool(tool: any, frame?: ThreadFrame): any {
   const t = r ? tool.rotate(r.deg, [0, 0, 0], r.dir) : tool
   return t.translate(frame.o[0], frame.o[1], frame.o[2])
 }
+// v2.20 P4：實體「橫跨」鏡像面先警告孔會被填埋。只係貼住鏡像面（例如 L 形一邊落喺 YZ 面）唔係橫跨：
+// OCCT 包圍盒有容差／曲面放大（圓角後尤甚），單靠 bbox ±1e-6 會誤報。先用寬鬆 bbox 篩，再量兩側真實材料體積 —
+// 兩邊都有超過容差嘅體積先算橫跨。
+function mirrorStraddles(shape: any, k: number, off: number): boolean {
+  const bb = shape.boundingBox.bounds as [number, number, number][]
+  const diag = Math.hypot(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]) || 1
+  const tol = Math.max(1e-4, diag * 1e-6)
+  if (!(bb[0][k] < off - tol && bb[1][k] > off + tol)) return false
+  const total = measureVolume(shape)
+  const eps = Math.max(1e-3, Math.abs(total) * 1e-6)
+  const pad = diag + 1
+  const side = (sign: number) => {
+    const lo = bb[0].map((x) => x - pad) as [number, number, number], hi = bb[1].map((x) => x + pad) as [number, number, number]
+    if (sign < 0) hi[k] = off; else lo[k] = off
+    try { return measureVolume(shape.clone().intersect(makeBox(lo, hi) as any)) } catch { return Infinity }
+  }
+  return side(-1) > eps && side(1) > eps
+}
 // Material probe (no OCCT classifier in this build): a tiny cube at p intersected with the body.
 function materialAt(shape: any, p: [number, number, number]): boolean {
   try { const h = 0.05; return measureVolume(shape.intersect(makeBox([p[0] - h, p[1] - h, p[2] - h], [p[0] + h, p[1] + h, p[2] + h]) as any)) > 1e-6 } catch { return false }
@@ -4244,7 +4262,7 @@ function buildShape(features: Feature[], noCache = false): any {
           else buildWarnings.push('⚠ 镜像（新实体）：副本为空 — 已跳过')
         } else {
           let _straddle = false
-          try { if (!f.planeN) { const _k = f.plane === 'XY' ? 2 : f.plane === 'XZ' ? 1 : 0; const _bb = (shape as any).boundingBox.bounds; const _off = f.offset ?? 0; if (_bb[0][_k] < _off - 1e-6 && _bb[1][_k] > _off + 1e-6) _straddle = true } } catch { /* */ }
+          try { if (!f.planeN) _straddle = mirrorStraddles(shape, f.plane === 'XY' ? 2 : f.plane === 'XZ' ? 1 : 0, f.offset ?? 0) } catch { /* */ }
           shape = shape.fuse(mirrorOf(shape.clone()))
           if (_straddle) buildWarnings.push('⚠ 镜像：实体横跨镜像面 → 镜像副本与原体重叠，重叠区的孔会被填埋。请把镜像面偏移到实体一侧，或改用「镜像特征」。')
         }

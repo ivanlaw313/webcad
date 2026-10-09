@@ -37,7 +37,13 @@ export function commitDraft(s: FieldDraft, external: string, opts: { keepFocus?:
   return { next: opts.keepFocus ? s : idleDraft, commit }
 }
 
-type ElLike = { tagName?: string; isContentEditable?: boolean } | null | undefined
+type ElLike = { tagName?: string; isContentEditable?: boolean; type?: string } | null | undefined
+
+/** ASM2 #6：冇文字可撤銷嘅 <input>（滑桿／勾選／顏色…）— 焦點喺佢身上時 Ctrl+Z／Ctrl+Y 照樣係「模型撤銷／重做」。 */
+const NON_TEXT_INPUT = new Set(['range', 'checkbox', 'radio', 'button', 'submit', 'reset', 'color', 'file', 'image'])
+/** 焦點元素自己有原生文字撤銷（Ctrl+Z 應留畀欄位）？滑桿等非文字 input → false。 */
+export const ownsTextUndo = (el: ElLike): boolean =>
+  !!el && (el.tagName === 'TEXTAREA' || !!el.isContentEditable || (el.tagName === 'INPUT' && !NON_TEXT_INPUT.has(String(el.type || 'text').toLowerCase())))
 
 /** input / textarea / select / contenteditable — anything that owns its own keystrokes. */
 export const isTextEntry = (el: ElLike): boolean =>
@@ -56,7 +62,11 @@ const FIELD_NATIVE_CTRL = new Set(['a', 'c', 'v', 'x', 'z', 'y'])
  */
 export function fieldKeyOwner(e: KeyLike, target: ElLike, active: ElLike): 'field' | 'dialog' | 'global' {
   if (!isTextEntry(target) && !isTextEntry(active)) return 'global'
-  if (e.ctrlKey || e.metaKey) return FIELD_NATIVE_CTRL.has(e.key.toLowerCase()) ? 'field' : 'global'
+  if (e.ctrlKey || e.metaKey) {
+    const k = e.key.toLowerCase()
+    if ((k === 'z' || k === 'y') && !ownsTextUndo(target) && !ownsTextUndo(active)) return 'global'   // ASM2 #6：滑桿上 Ctrl+Z = 模型撤銷
+    return FIELD_NATIVE_CTRL.has(k) ? 'field' : 'global'
+  }
   if (e.key === 'Enter' || e.key === 'Escape') return 'dialog'
   return 'field'
 }

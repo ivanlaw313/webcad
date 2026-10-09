@@ -24,7 +24,7 @@ const AeroLab = lazy(() => import('./components/AeroLab'))
 import { useAeroUi } from './aero/aeroUiStore'
 import IntroCard from './components/IntroCard'
 import ErrorBoundary from './components/ErrorBoundary'
-import { FEATURE_RENAME_EVENT } from './ui/fieldInput'
+import { FEATURE_RENAME_EVENT, ownsTextUndo } from './ui/fieldInput'
 import PromptDialog from './components/PromptDialog'
 import InsertDialog from './components/InsertDialog'   // GM-X3 #7/#8/#11：矢量（SVG/DXF）+ 网格（STL/OBJ）插入对话框
 import TeachPointer from './components/TeachPointer'   // P6 v1.1：AI 教学高亮命令时的弹跳箭头图像指引
@@ -95,7 +95,8 @@ export default function App() {
       const ae = document.activeElement as HTMLElement | null
       const isField = (el: HTMLElement | null) => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)
       const editingText = isField(t) || isField(ae)
-      if (editingText && (e.ctrlKey || e.metaKey) && ['z', 'y'].includes(e.key.toLowerCase())) return
+      // ASM2 #6：只有真文字欄位先保留原生 Ctrl+Z／Y；關節滑桿等 range／checkbox 有焦點時照樣做模型撤銷（放手一步）
+      if ((ownsTextUndo(t) || ownsTextUndo(ae)) && (e.ctrlKey || e.metaKey) && ['z', 'y'].includes(e.key.toLowerCase())) return
       // Select-all / clipboard stay native in a field (fieldKeyOwner → 'field'): Ctrl+A must select the
       // dialog value, and sketch-mode Ctrl+C/V (Extrude dialog lives in sketch mode) must not hijack paste.
       if (editingText && (e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) return

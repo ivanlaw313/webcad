@@ -8863,6 +8863,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
     }
+    // SKETCH12 re-check：點中開放路徑但該方向沒有可相交的曲線 → 專用訊息；草圖不變，亦不推撤銷步驟。
+    const tolHit = pickTol()
+    if (shapes.some((sh) => sh.type === 'poly' && sh.open && distToShapeOutline(sh, p) <= tolHit)) { set({ toolPreview: null, status: '延伸：此方向沒有可延伸至的曲線' }); return }
     set({ toolPreview: null, status: '延伸：請點選開放路徑的端段（靠近要延伸的一端），沿原方向或原圓延長至最近的相交幾何；閉合輪廓無法延伸，前方沒有相交幾何時亦不會更改' })
   },
   bindSkDimParam: (conId, paramName) => {

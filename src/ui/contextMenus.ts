@@ -77,7 +77,8 @@ export type TreeMenuOpts = { hidden?: boolean; canRename?: boolean; canDelete?: 
 export function treeMenuKeys(kind: TreeNodeKind, o: TreeMenuOpts = {}): string[] {
   const vis = o.hidden ? 'show' : 'hide'
   switch (kind) {
-    case 'activeBody': return [vis, 'createComp', 'sep', 'appearance', 'physmat', 'props', 'sep', 'fit']
+    // UX1 #6：活動實體行同 Fusion 實體一樣可「重新命名」／「刪除」
+    case 'activeBody': return [vis, 'rename', 'createComp', 'sep', 'appearance', 'physmat', 'props', 'sep', 'fit', ...(o.canDelete === false ? [] : ['sep', 'delete'])]
     case 'parkedBody': return [vis, 'sep', 'props']
     case 'component': return [vis, 'isolate', ...(o.canEdit ? ['edit'] : []), ...(o.canRename ? ['rename'] : []), 'sep', 'focus', 'props', 'sep', ...(o.canDelete === false ? [] : ['delete'])]
     case 'componentBody': return [vis]

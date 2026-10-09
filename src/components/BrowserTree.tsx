@@ -167,21 +167,38 @@ function SketchRow({ k }: { k: string }) {
   const selSketch = useApp((s) => s.selSketch)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
-  if (!src) return null
+  const openMenu = useTreeMenu()
   const defaultLabel = k.replace('sk', '草圖')
   // 孤儿判定：冇任何特徵经 sketchId 或 sketchIds（loft 截面）引用佢 = 未使用。消费特徵删除后仍可能残留（旧档 liveSketchSources 剪除前保存 / undo）。
   const referenced = features.some((f) => (f as { sketchId?: string }).sketchId === k || ((f as { sketchIds?: string[] }).sketchIds?.includes(k) ?? false))
-  const standalone = features.some((f) => f.type === 'sketch' && (f as { sketchId?: string }).sketchId === k)
+  const standaloneFeat = features.find((f) => f.type === 'sketch' && (f as { sketchId?: string }).sketchId === k)
+  const standalone = !!standaloneFeat
+  // UX1 #6：草圖只喺「草圖」資料夾列一次（Fusion）→ 獨立草圖特徵嘅刪除／時間軸選中／F2 改名都喺呢行處理。
+  const consumed = features.some((f) => f.type !== 'sketch' && ((f as { sketchId?: string }).sketchId === k || ((f as { sketchIds?: string[] }).sketchIds?.includes(k) ?? false)))
+  const selectedFeature = useApp((s) => s.selectedFeature)
+  const featSel = !!standaloneFeat && selectedFeature === standaloneFeat.id
+  useEffect(() => {
+    if (!standaloneFeat) return
+    const onRename = (e: Event) => { if ((e as CustomEvent<string>).detail === standaloneFeat.id) { setName(useApp.getState().sketchSources[k]?.name || k.replace('sk', '草圖')); setEditing(true) } }
+    window.addEventListener(FEATURE_RENAME_EVENT, onRename)
+    return () => window.removeEventListener(FEATURE_RENAME_EVENT, onRename)
+  }, [standaloneFeat?.id, k])
+  if (!src) return null
   const orphan = !referenced
   const commit = () => { useApp.getState().renameSketchSrc(k, name); setEditing(false) }
-  const openMenu = useTreeMenu()
+  const canDel = (orphan || (standalone && !consumed)) && !skLock
+  const del = async () => {
+    if (skDelGuard()) return
+    if (orphan) { if (await useApp.getState().appConfirm(tStatus(`刪除未使用草圖「${src.name || defaultLabel}」？`, lang))) useApp.getState().deleteSketchSrc(k); return }
+    if (standaloneFeat) void useApp.getState().requestRemoveFeature(standaloneFeat.id)
+  }
   return (
-    <div className="tree-row" style={{ paddingLeft: 18, ...(selSketch === k ? { background: 'rgba(21,114,196,.14)', borderRadius: 4 } : {}) }}
-      onContextMenu={(e) => openMenu(e, 'sketch', { hidden: !src.visible, canRename: true, canDelete: orphan && !skLock }, {
+    <div className="tree-row" style={{ paddingLeft: 18, ...(selSketch === k || featSel ? { background: 'rgba(21,114,196,.14)', borderRadius: 4 } : {}) }}
+      onContextMenu={(e) => openMenu(e, 'sketch', { hidden: !src.visible, canRename: true, canDelete: canDel }, {
         editSketch: () => { if (referenced) useApp.getState().editSketchBySrc(k); else void useApp.getState().reopenOrphanSketch(k) },
         hide: () => useApp.getState().toggleSketchVis(k), show: () => useApp.getState().toggleSketchVis(k),
         rename: () => { setName(src.name || defaultLabel); setEditing(true) },
-        delete: async () => { if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`刪除未使用草圖「${src.name || defaultLabel}」？`, lang))) useApp.getState().deleteSketchSrc(k) },
+        delete: () => void del(),
       })}
       title={tStatus(`${src.name || defaultLabel} — ${src.shapes.length} 個輪廓 · ${src.cons.length} 個約束${src.arb ? ' · 斜面' : ` · ${src.plane}`}${standalone ? ' · 獨立草圖 — 單擊選中（拉伸/旋轉直接用）' : ''}${orphan ? '（未使用 — 消費特徵已刪；「重開」還原做獨立草圖 / 🗑刪除）' : referenced ? ' — 雙擊重開編輯' : ''}（Alt+雙擊 = 改名）`, lang)}
       onClick={() => standalone && useApp.getState().setSelSketch(selSketch === k ? null : k)}
@@ -199,7 +216,7 @@ function SketchRow({ k }: { k: string }) {
       )}
       {orphan && <span className="tw-act" title={tStatus('重開編輯此未使用草圖（會還原做獨立草圖，之後可拉伸/旋轉/刪除）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().reopenOrphanSketch(k) }}>{tStatus('重開', lang)}</span>}
       <span className="tw-act" title={src.visible ? tStatus('隱藏草圖', lang) : tStatus('喺模型上顯示草圖（紫色線）', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleSketchVis(k) }}>{src.visible ? '👁' : '─'}</span>
-      {orphan && <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除未使用草圖', lang)} onClick={async (e) => { e.stopPropagation(); if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`刪除未使用草圖「${src.name || defaultLabel}」？`, lang))) useApp.getState().deleteSketchSrc(k) }}>🗑</span>}
+      {(orphan || (standalone && !consumed)) && <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : orphan ? '刪除未使用草圖' : '刪除草圖', lang)} onClick={(e) => { e.stopPropagation(); void del() }}>🗑</span>}
     </div>
   )
 }
@@ -405,27 +422,46 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
   )
 }
 
-// Root-body row (活動實體 / 泊車實體): eye toggle + app context menu (隱藏/顯示 · 建立組件 · 外觀 · 物理材質 · 屬性).
+// Root-body row (活動實體 / 泊車實體): eye toggle + app context menu (隱藏/顯示 · 重新命名 · 建立組件 · 外觀 · 物理材質 · 屬性 · 刪除).
+// UX1 #6：活動實體行可改名（右鍵「重新命名」／F2-style 雙擊名）同刪除（= 移除建立佢嘅特徵，草圖保留，可撤銷）— 對齊 Fusion 實體節點。
 function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; visKey: string; sel: boolean; parkedIndex?: number; onClick: () => void }) {
   const lang = useApp((s) => s.lang)
   const hidden = useApp((s) => s.bodyHidden.includes(visKey))
   const allOff = useApp((s) => !s.objectVis.bodies)
+  const skLock = useApp((s) => s.mode === 'sketch' || s.formMode)
+  const active = parkedIndex == null
+  const customName = useApp((s) => (active ? s.activeBodyName : ''))
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState('')
   const openMenu = useTreeMenu()
   const toggle = () => useApp.getState().toggleBodyHidden(visKey)
-  const active = parkedIndex == null
+  const startRename = () => { setName(customName || tStatus(label.replace(/ ●$/, ''), lang)); setEditing(true) }
+  const commit = (v: string) => { setEditing(false); const nm = v.trim(); if (nm === tStatus(label.replace(/ ●$/, ''), lang)) return; useApp.getState().renameActiveBody(nm) }
+  const del = () => { if (skDelGuard()) return; void useApp.getState().deleteActiveBody() }
   return (
-    <div className={'tree-row' + (sel ? ' sel' : '')} style={{ paddingLeft: 18, opacity: hidden || allOff ? 0.55 : 1 }} onClick={onClick}
-      onContextMenu={(e) => openMenu(e, active ? 'activeBody' : 'parkedBody', { hidden }, {
+    <div className={'tree-row' + (sel ? ' sel' : '')} style={{ paddingLeft: 18, opacity: hidden || allOff ? 0.55 : 1 }} onClick={editing ? undefined : onClick}
+      onContextMenu={(e) => { if ((e.target as HTMLElement).closest?.('input')) { e.stopPropagation(); return } openMenu(e, active ? 'activeBody' : 'parkedBody', { hidden, canDelete: !skLock }, {
         hide: toggle, show: toggle,
+        ...(active ? { rename: startRename, delete: del } : {}),
         createComp: () => useApp.getState().newComponent(),
         appearance: () => void useApp.getState().runCommand('appearance', '外觀'),
         physmat: () => void useApp.getState().runCommand('physicalmaterial', '物理材質'),
         props: () => void useApp.getState().openPropertiesDialog(active ? null : `parked:${parkedIndex}`),
         fit: () => useApp.getState().requestFit(),
-      })}>
+      }) }}>
       <span className="tw-eye" title={L2(hidden ? '顯示實體' : '隱藏實體', hidden ? 'Show body' : 'Hide body', lang)} onClick={(e) => { e.stopPropagation(); toggle() }}>{hidden ? '🚫' : '👁'}</span>
       <span className="tw-ico"><ToolIcon name="box" size={13} /></span>
-      <span style={{ flex: 1 }}>{tStatus(label, lang)}</span>
+      {editing ? (
+        <input className="tree-rename" aria-label={tStatus('重命名實體', lang)} value={name} autoFocus
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={(e) => commit(e.currentTarget.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') commit(e.currentTarget.value); else if (e.key === 'Escape') setEditing(false); e.stopPropagation() }} />
+      ) : (
+        <span style={{ flex: 1 }} title={active ? tStatus('單擊：屬性 · 右鍵：重新命名／刪除 · Alt+雙擊改名', lang) : undefined}
+          onDoubleClick={active ? (e) => { if (e.altKey) { e.stopPropagation(); startRename() } } : undefined}>{active && customName ? `${customName} ●` : tStatus(label, lang)}</span>
+      )}
+      {active && !editing && <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除實體（移除建立佢嘅特徵，草圖保留；可撤銷）', lang)} onClick={(e) => { e.stopPropagation(); del() }}>🗑</span>}
     </div>
   )
 }
@@ -528,6 +564,8 @@ export default function BrowserTree() {
   const bodyMesh = useApp((s) => s.bodyMesh)
   const selectedParkedIndex = useApp((s) => s.selectedParkedIndex)  // SO10：泊车半体树选中高亮
   const sketchSources = useApp((s) => s.sketchSources)   // GM-W6 F2：草图行渲染移入 SketchRow（每行自订名/孤儿重开+删除）
+  // UX1 #6（Fusion）：獨立草圖特徵已喺「草圖」資料夾列出 → 特徵資料夾唔再重複（草圖源唔見咗嘅先保留，免得冇得揀）
+  const treeFeatures = features.filter((f) => !(f.type === 'sketch' && !!sketchSources[(f as { sketchId?: string }).sketchId ?? '']))
   const components = useApp((s) => s.components)
   const jointOrigins = useApp((s) => s.jointOrigins)   // GM-3DV4 A1：可复用关节原点
   const rigidGroups = useApp((s) => s.rigidGroups)     // GM-3DV4 A8：一级刚性组节点
@@ -757,11 +795,11 @@ export default function BrowserTree() {
             {Object.keys(sketchSources).map((k) => <SketchRow key={k} k={k} />)}
           </Section>
         )}
-        <Section label={`${msg('tree.features', lang)} (${features.length})`}>
-          {features.length === 0 ? (
+        <Section label={`${msg('tree.features', lang)} (${treeFeatures.length})`}>
+          {treeFeatures.length === 0 ? (
             <Leaf icon="default" label="（尚無特徵）" />
           ) : (
-            features.map((f) => <FeatRow key={f.id} f={f} />)
+            treeFeatures.map((f) => <FeatRow key={f.id} f={f} />)
           )}
         </Section>
       </div>

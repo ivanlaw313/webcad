@@ -1538,6 +1538,9 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   bodyHidden: string[]                                    // 实体可见性（活动实体 'active' / 泊车实体 parkedBodyKey）— 浏览器树眼掣/右键「隱藏」；随项目存档（空 = 省略键）
   toggleBodyHidden: (key: string) => void
   setBodyHidden: (key: string, hide: boolean) => void
+  activeBodyName: string                                  // UX1 #6：活動實體自訂名（瀏覽樹右鍵「重新命名」；空 = 預設「活動實體」；隨項目存檔，空則省略鍵）
+  renameActiveBody: (name: string) => void
+  deleteActiveBody: () => Promise<void>                   // UX1 #6：刪除活動實體 = 移除建立佢嘅特徵（草圖保留做獨立草圖；可撤銷）
   showAllBodies: () => void                                // 「顯示全部」：实体 + 组件 + 组件实体 + 对象可见性·实体
   modelSel: ModelSelItem[]                                 // Fusion 式模型多选（面/边/实体）：Ctrl/Shift+点 增减；框选按过滤器；圆角/倒角/抽壳/按拉 作预选
   modelSelClick: (item: ModelSelItem, mod: SelMod) => void
@@ -7257,6 +7260,42 @@ export const useApp = create<AppState>((rawSet, get) => {
   planes: [],
   datumHidden: [],
   bodyHidden: [],
+  activeBodyName: '',
+  renameActiveBody: (name) => set((s) => {
+    const nm = name.trim()
+    if (nm === s.activeBodyName) return {}
+    return { activeBodyName: nm, status: nm ? `實體已改名「${nm}」` : '已清除實體自訂名' }
+  }),
+  // UX1 #6（Fusion：瀏覽樹實體右鍵「刪除」）：活動實體 = 最後一個「新實體」之後嘅實體特徵；刪除 = 移走呢啲特徵
+  //（之前泊車嘅實體唔郁）。佢哋用過嘅草圖保留做獨立草圖（Fusion 刪實體唔會刪草圖）。一步重建，Ctrl+Z 可還原。
+  deleteActiveBody: async () => {
+    const s0 = get()
+    if (!s0.bodyMesh?.triangles?.length) { set({ status: '冇活動實體可刪除' }); return }
+    const start = s0.features.map((f) => f.type).lastIndexOf('newbody') + 1
+    const keepType = (t: string) => t === 'sketch' || t === 'datum' || t === 'newbody'
+    const doomed = new Set(s0.features.slice(start).filter((f) => !keepType(f.type)).map((f) => f.id))
+    if (!doomed.size) { set({ status: '冇可刪除嘅實體特徵' }); return }
+    const nm = s0.activeBodyName || '活動實體'
+    const ok = await get().appConfirm(`刪除「${nm}」？\n會移除建立佢嘅 ${doomed.size} 個特徵（草圖保留做獨立草圖）。\n\n可用 Ctrl+Z 還原。`, '刪除實體')
+    if (!ok) { set({ status: '已取消刪除 — 模型及歷史不變' }); return }
+    const cur = get()
+    if (cur.features !== s0.features) { set({ status: '模型已變更 — 請再試一次刪除實體' }); return }
+    const before = docSnap(cur)
+    const kept = cur.features.filter((f) => !doomed.has(f.id))
+    const refd = (fs: Feature[]) => { const r = new Set<string>(); for (const f of fs) { const sk = (f as { sketchId?: string }).sketchId; if (sk) r.add(sk); for (const k of (f as { sketchIds?: string[] }).sketchIds ?? []) r.add(k) } return r }
+    const live = refd(kept)
+    const next: Feature[] = []
+    for (const f of cur.features) {
+      if (!doomed.has(f.id)) { next.push(f); continue }
+      for (const k of [(f as { sketchId?: string }).sketchId, ...((f as { sketchIds?: string[] }).sketchIds ?? [])]) {
+        if (k && cur.sketchSources[k] && !live.has(k)) { live.add(k); next.push({ id: fid(), type: 'sketch', sketchId: k } as Feature) }
+      }
+    }
+    set((st) => ({ suppressedIds: st.suppressedIds.filter((x) => !doomed.has(x)) }))
+    const done = await get().applyFeatures(next, `已刪除「${nm}」（${doomed.size} 個特徵；草圖保留）`, true, undefined, before)
+    if (!done) { set({ suppressedIds: cur.suppressedIds, failedFeatureIds: [], featureErrors: {}, status: '⚠ 刪除實體後重建失敗 — 已保留原模型及歷史' }); return }
+    set((st) => ({ activeBodyName: '', bodyHidden: st.bodyHidden.filter((k) => k !== 'active'), ...(doomed.has(st.selectedFeature ?? '') ? { selectedFeature: null } : {}) }))
+  },
   modelSel: [],
   modelSelClick: (item, mod) => set((s) => { const modelSel = applySelClick(s.modelSel, item, mod); return { modelSel, status: modelSelStatus(modelSel) } }),
   modelSelSet: (items, additive) => set((s) => { const modelSel = additive ? mergeSel(s.modelSel, items) : items; return { modelSel, status: modelSelStatus(modelSel) } }),
@@ -18869,7 +18908,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const acc: PropsAccuracy = s.propsDialog?.accuracy || 'med'
     const frame: PropsFrame = s.propsDialog?.frame || 'com'
     let mesh: { vertices: ArrayLike<number>; triangles: ArrayLike<number> } | null = null
-    let name = '活動實體', material: string | undefined, density = s.bodyDensity
+    let name = s.activeBodyName || '活動實體', material: string | undefined, density = s.bodyDensity
     if (typeof bodyId === 'string' && bodyId.startsWith('parked:')) {
       const idx = Number(bodyId.slice(7))
       const pb = s.bodyMesh?.parked?.[idx]
@@ -20449,6 +20488,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       ccurves: Array.isArray(d.ccurves) ? d.ccurves as AppState['ccurves'] : [],   // S168：相交曲线随版本快照还原（applySnapshot 系第 3 个 loader，勿漏）
       viewBookmarks: sanitizeBookmarks(d.viewBookmarks),   // battle-test-2 #9：过滤 NaN/Infinity 书签坐标
       bodyHidden: sanitizeBodyHidden(d.bodyHidden),
+      activeBodyName: typeof d.activeBodyName === 'string' ? d.activeBodyName.slice(0, 120) : '',   // UX1 #6
       jointPoses: sanitizeJointPoses(d.jointPoses), jointKeyframes: sanitizeJointKeyframes(d.jointKeyframes),        // S172/S177：捕捉位置 + 关键帧随版本快照还原（applySnapshot 系第 1 个 loader，3 个都要补）
       bgPreset: typeof d.bgPreset === 'string' ? d.bgPreset : '',
       edgeDisplay: d.edgeDisplay === 'off' ? 'off' : 'on',
@@ -21059,7 +21099,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // UX1 #5：未命名文件第一次儲存 → 先問檔名（Fusion「儲存」對話框），唔再靜靜雞落「未命名零件 (n).json」。
     if (!_docNamed && isUntitledProjectName(get().projectName)) {
       const lang = get().lang
-      const name = await get().appPrompt(lang === 'en' ? 'File name' : lang === 'zh-CN' ? '文件名称' : '檔案名稱', get().projectName || '未命名零件', lang === 'en' ? 'Save' : lang === 'zh-CN' ? '保存' : '儲存')
+      const name = await get().appPrompt(lang === 'en' ? 'File name' : tStatus('檔案名稱', lang), get().projectName ?? '', lang === 'en' ? 'Save' : tStatus('儲存', lang))
       if (name == null || !name.trim()) { set({ status: '已取消儲存（現有模型未動）' }); return }
       set({ projectName: name.trim().replace(/\.json$/i, '') })
       _docNamed = true
@@ -21153,7 +21193,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       bodyColor: (d.bodyColor as string) ?? '#4a7296',
       material: sanitizeMaterial(d.material), bodyDensity: typeof d.bodyDensity === 'number' ? d.bodyDensity : 2.7,   // battle-test-2 #8
       originX: typeof d.originX === 'number' ? d.originX : 0,
-      planes: planesFromFeatures(feats, supOpen), cpoints: arr('cpoints') as AppState['cpoints'], caxes: arr('caxes') as AppState['caxes'], ccurves: arr('ccurves') as AppState['ccurves'], viewBookmarks: sanitizeBookmarks(d.viewBookmarks), bodyHidden: sanitizeBodyHidden(d.bodyHidden), jointPoses: sanitizeJointPoses(d.jointPoses), jointKeyframes: sanitizeJointKeyframes(d.jointKeyframes),   // GM-W5 5.1：planes[] 由 datum 特征派生
+      planes: planesFromFeatures(feats, supOpen), cpoints: arr('cpoints') as AppState['cpoints'], caxes: arr('caxes') as AppState['caxes'], ccurves: arr('ccurves') as AppState['ccurves'], viewBookmarks: sanitizeBookmarks(d.viewBookmarks), bodyHidden: sanitizeBodyHidden(d.bodyHidden), activeBodyName: typeof d.activeBodyName === 'string' ? d.activeBodyName.slice(0, 120) : '', jointPoses: sanitizeJointPoses(d.jointPoses), jointKeyframes: sanitizeJointKeyframes(d.jointKeyframes),   // GM-W5 5.1：planes[] 由 datum 特征派生
       bgPreset: typeof d.bgPreset === 'string' ? d.bgPreset : '',
       edgeDisplay: d.edgeDisplay === 'off' ? 'off' : 'on',
       renderMode: !!d.renderMode, groundShadow: !!d.groundShadow,
@@ -21339,7 +21379,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         bodyColor: data.bodyColor ?? '#4a7296',
         material: sanitizeMaterial(data.material), bodyDensity: typeof data.bodyDensity === 'number' ? data.bodyDensity : 2.7,   // battle-test-2 #8
         originX: typeof data.originX === 'number' ? data.originX : 0,
-        planes: planesFromFeatures(feats, supAuto), cpoints: Array.isArray(data.cpoints) ? data.cpoints : [], caxes: Array.isArray(data.caxes) ? data.caxes : [], ccurves: Array.isArray(data.ccurves) ? data.ccurves : [], viewBookmarks: sanitizeBookmarks(data.viewBookmarks), bodyHidden: sanitizeBodyHidden(data.bodyHidden), jointPoses: sanitizeJointPoses(data.jointPoses), jointKeyframes: sanitizeJointKeyframes(data.jointKeyframes),   // GM-W5 5.1：planes[] 由 datum 特征派生
+        planes: planesFromFeatures(feats, supAuto), cpoints: Array.isArray(data.cpoints) ? data.cpoints : [], caxes: Array.isArray(data.caxes) ? data.caxes : [], ccurves: Array.isArray(data.ccurves) ? data.ccurves : [], viewBookmarks: sanitizeBookmarks(data.viewBookmarks), bodyHidden: sanitizeBodyHidden(data.bodyHidden), activeBodyName: typeof data.activeBodyName === 'string' ? data.activeBodyName.slice(0, 120) : '', jointPoses: sanitizeJointPoses(data.jointPoses), jointKeyframes: sanitizeJointKeyframes(data.jointKeyframes),   // GM-W5 5.1：planes[] 由 datum 特征派生
         bgPreset: typeof data.bgPreset === 'string' ? data.bgPreset : '',
         edgeDisplay: data.edgeDisplay === 'off' ? 'off' : 'on',
         renderMode: !!data.renderMode, groundShadow: !!data.groundShadow,   // S166：恢复渲染/HDRI 环境状态
@@ -21928,7 +21968,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       measureMode:false,measureEdgeMode:false,measureFaceMode:false,measureAngleMode:false,measureUniMode:false,
       measurePts:[],measureDist:null,measureEdgeInfo:null,measureFaceInfo:null,measureAngleInfo:null,
       measureUniPicks:[],measureUniResult:null,lastMeasure:null,selectedParkedIndex:null})
-    set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], bodyHidden: [], jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, holeBoltCircle: false, holeBcCount: 4, holeBcPcd: 50, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
+    set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], bodyHidden: [], activeBodyName: '', jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, holeBoltCircle: false, holeBcCount: 4, holeBcPcd: 50, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
     set({ ...hydrateSketchDraft(null), ...hydrateFormDraft(null) })
     // record=false so "New" is a clean fresh start — undo must NOT resurrect the old document (Fusion-style new doc).
     await get().applyFeatures([], '新建 — 已清空（空白文档）', false)
@@ -24397,6 +24437,7 @@ export function buildProjectPayload(s: AppState) {
     // S166：渲染/外观环境状态（原本系 session 态，reload/分享/自动保存全丢）— HDRI/渲染模式/接地阴影随项目存档
     renderMode: s.renderMode, hdriPreset: s.hdriPreset, hdriIntensity: s.hdriIntensity, hdriRotation: s.hdriRotation, groundShadow: s.groundShadow,
     decals: s.decals,             // P2 Render：贴花随项目存档（data-URL + CAD 位姿）
+    ...(s.activeBodyName ? { activeBodyName: s.activeBodyName } : {}),   // UX1 #6：活動實體自訂名（空 → 省略鍵，舊檔字節兼容）
     ...(s.bodyHidden.length ? { bodyHidden: s.bodyHidden } : {}),   // 实体可见性（默认全显 → 省略键，旧档字节兼容）
     // GM-X3 #2：只有【入存档】的 canvas 才落盘（保留 dataURL；会话级底图不入档，避 payload 暴肥）。默认无 → 省略键（byte-compat）。
     ...(archivedCanvases(s.canvases).length ? { canvases: archivedCanvases(s.canvases) } : {}),

@@ -32,13 +32,16 @@ test('input Cmd/Ctrl Undo and Redo remain local; canvas shortcuts still reach mo
   for(const key of ['z','y']) {
    let calls=0, prevented=0
    const sandbox={
-     useApp:{getState:()=>({undo:()=>calls++,redo:()=>calls++})},
-     document:{activeElement:target},
+     useApp:{getState:()=>({undo:()=>calls++,redo:()=>calls++,csketchOpen:false,mode:'model'})},
+     useCSketch:{getState:()=>({undo:()=>{},redo:()=>{} })},
+     guard:{blocks:()=>false},
+     VISUAL_STYLE_KEYMAP:{},
+     document:{activeElement:target,fullscreenElement:null,exitFullscreen:()=>{},documentElement:{requestFullscreen:()=>{}}},
      HTMLElement:function HTMLElement(){},
      window:{},
    }
    const onKey=vm.runInNewContext(stripTypeScriptTypes(`(e)=>{${body}}`),sandbox)
-   onKey({target,key,metaKey:true,ctrlKey:true,preventDefault:()=>prevented++,isComposing:false,keyCode:key==='z'?90:89})
+   onKey({target,key,metaKey:true,ctrlKey:true,preventDefault:()=>prevented++,isComposing:false,keyCode:key==='z'?90:89,shiftKey:false})
    assert.equal(calls,target.tagName==='CANVAS'?1:0)
    assert.equal(prevented,target.tagName==='CANVAS'?1:0)
   }
@@ -85,6 +88,7 @@ test('partial downstream rebuild cannot replace committed geometry or create his
   cad:{rebuild:async f=>{builds.push(f);return builds.length===1?{triangles:[0,1,2],failed:[{id:'f',error:'radius too large'}]}:mesh}},
   applyParamBindings:f=>f,expandFeats:f=>f,SOLID_TYPES:['extrude'],hasSolid:fs=>fs.some(f=>f.type==='extrude'),
   mapKernelFailuresToTimeline:()=>({ids:['f'],errors:{f:'radius too large'}}),docSnap:s=>s,console,
+  plainFeatureError:(type,msg)=>msg||String(type),formatBuildWarnings:()=>'',
   _sketchFinishUndo:new WeakMap(),
  })
  assert.equal(await api.applyFeatures([...old,{id:'f',type:'fillet'}],'ok'),false)

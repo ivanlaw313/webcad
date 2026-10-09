@@ -33,12 +33,16 @@ test('BUG-SO18F-001: hole Ø≤0 not coerced; preview/confirm gated', () => {
   assert.match(storeSrc, /setHoleD:\s*\(n\) => set\(\{ holeD: Number\.isFinite\(n\) \? n : 5 \}\)/)
   assert.doesNotMatch(storeSrc, /setHoleD:\s*\(n\) => set\(\{ holeD: Math\.max\(1/)
   assert.match(sketch, /!\(holeD > 0\)\) return null/)
-  assert.match(viewport, /okDisabled=\{\(!holePos && !holeEditId\) \|\| !\(holeD > 0\)\}/)
+  // current CommandDialog gate: numBad OR (no pick && not editing) OR Ø≤0
+  assert.match(viewport, /okDisabled=\{!!numBad \|\| \(\(!holePos && !holeEditId\) \|\| !\(holeD > 0\)\)\}/)
   assert.match(viewport, /尺寸已拒絕：孔徑Ø必須大於 0|(?:孔径|孔徑) Ø (?:必须大于|必須大於) 0/)
-  // LenInput notifies parent even when below min so illegal Ø reaches store
+  // LenInput keeps min gate (BUG-551); hole Ø≤0 still gated by okDisabled + preview null
   const lenAt = viewport.indexOf('function LenInput')
-  const len = viewport.slice(lenAt, lenAt + 900)
-  assert.match(len, /if \(v != null\) onMm\(v\)/)
+  const lenEnd = viewport.indexOf('// Drag-to-move triad gizmo', lenAt)
+  const len = viewport.slice(lenAt, lenEnd > lenAt ? lenEnd : lenAt + 12000)
+  assert.match(len, /onMm\(v\)/)
+  assert.match(len, /!\(min != null && v < min\)/)
+  assert.match(viewport, /BUG-SO18F-001|holeD > 0/)
 })
 
 // Runtime: editFeature rejects prim a=-1 without mutating features

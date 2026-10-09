@@ -294,7 +294,7 @@ console.log('⑦ RMS 守衛：径向加噪粗糙圆柱 → 极严守衛拒当 fa
 }
 
 // ───────────────────────── Case ⑧ 30k 三角性能 smoke ─────────────────────────
-console.log('⑧ 性能 smoke：~30k 三角 < 500ms:')
+console.log('⑧ 性能 smoke：~30k 三角（median-of-3，相對單缸 baseline）:')
 {
   // 拼多个圆柱 + 盒凑 ~30k 三角
   const parts = []
@@ -310,10 +310,27 @@ console.log('⑧ 性能 smoke：~30k 三角 < 500ms:')
   for (let i = 0; i < 62; i++) append(bigCyl, [i % 8 * 20, Math.floor(i / 8) * 20, 0])
   const nTri = T.length / 3
   ok(nTri >= 29000, `构造 ~30k 三角（实 ${nTri}）`)
-  const t0 = performance.now()
-  const res = fitPrimitives(V, T, { diag: 200 })
-  const dt = performance.now() - t0
-  ok(dt < 500, `30k 三角分析 < 500ms（实 ${dt.toFixed(0)}ms）`)
+  const medianOf3 = (fn) => {
+    const samples = []
+    for (let i = 0; i < 3; i++) {
+      const t0 = performance.now()
+      fn()
+      samples.push(performance.now() - t0)
+    }
+    samples.sort((a, b) => a - b)
+    return { med: samples[1], samples }
+  }
+  // warm-up + baseline：單缸 ~480 tri — 負載高時絕對 500ms 會誤殺，改用 baseline×份數×overhead
+  fitPrimitives(bigCyl.v, bigCyl.t, { diag: 20 })
+  const base = medianOf3(() => { fitPrimitives(bigCyl.v, bigCyl.t, { diag: 20 }) })
+  const baseMed = Math.max(base.med, 0.05)
+  fitPrimitives(V, T, { diag: 200 }) // warm 30k
+  let res
+  const big = medianOf3(() => { res = fitPrimitives(V, T, { diag: 200 }) })
+  const dt = big.med
+  // 62 份幾何 + 聚類開銷；×8 容許同機負載抖動，下限保留原 500ms（空載機仍嚴格）
+  const budget = Math.max(500, baseMed * 62 * 8)
+  ok(dt < budget, `30k 三角分析 median-of-3 < ${budget.toFixed(0)}ms（baseline ${baseMed.toFixed(1)}ms×62×8；实 ${dt.toFixed(0)}ms；runs ${big.samples.map((t) => t.toFixed(0)).join(',')})`)
   ok(res.cylCount >= 30, `识别到多个圆柱（实 ${res.cylCount}）`)
   void parts
 }

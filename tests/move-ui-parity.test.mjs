@@ -20,8 +20,7 @@ test('bottom workspace panels can move or collapse instead of permanently overla
   assert.match(timeline, /useDraggable\('webcad-timeline', \{ right: 0, bottom: 0 \}\)/)
   assert.match(timeline, /const \[collapsed, setCollapsed\] = useState\(false\)/)
   assert.match(joints, /useDraggable\('webcad-joints', \{ right: 14, bottom: 210 \}\)/)
-  assert.match(joints, /const collapsed = userCollapsed \|\| dlgOpen/)
-  assert.match(joints, /\|\| \(?inspectMode/)   // RETEST21 #3：(inspectMode && !userExpanded)
+  assert.match(joints, /const collapsed = userCollapsed \|\| dlgOpen \|\| \(inspectMode && !userExpanded\)/)  // RETEST21 #3：inspect defaults collapsed; pill expands via userExpanded
   assert.match(inspector, /useDraggable\('webcad-inspector-panel', \{ right: 12, bottom: 220, zIndex: 96 \}\)/)
   assert.match(inspector, /const \[collapsed, setCollapsed\] = useState\(false\)/)
   // Advanced beam analysis must not expand a full bottom toolbar every time a body is selected.

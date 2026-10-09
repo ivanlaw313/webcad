@@ -2417,6 +2417,7 @@ Object.assign(STATUS_PHRASES_X, {
   '心心': 'Center-center',
   '心心距': 'Center-center',
   '刪除約束': 'Delete constraint',
+  '已選取；雙擊數值可修改尺寸': 'Selected; double-click the value to edit the dimension',
   '打斷': 'Break',
   '槽寬': 'Slot width',
   '邊數': 'Sides',

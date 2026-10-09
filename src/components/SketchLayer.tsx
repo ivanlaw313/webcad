@@ -2832,6 +2832,17 @@ export function SketchDimLayer() {
     return request===dimInputRequest.current&&useApp.getState().skDimPreview.id===e.conId&&!useApp.getState().skDimPreview.pending&&!useApp.getState().skDimPreview.error&&!!useApp.getState().skDimPreview.shapes
   }
   const initialValue = useRef('')
+  // 單擊尺寸數值：驅動尺寸選取該約束；軟尺寸選取所屬幾何（圓／圓弧／橢圓／邊）。
+  const selectDimLabel = (label: DimLabel) => {
+    const e = label.edit; if (!e) return
+    const st = useApp.getState()
+    if (e.conId) { st.selectSkCon(e.conId); return }
+    const idx = e.target === 'shape' ? st.sketchProfiles.length : e.target
+    const sh = [...st.sketchProfiles, ...(st.sketchShape ? [st.sketchShape] : [])][idx]
+    if (!sh) return
+    const ref: SkRef = sh.type === 'circle' || (sh.type === 'poly' && sh.arc) ? { kind: 'circle', shape: idx } : sh.type === 'poly' && sh.ell ? { kind: 'ellipse', shape: idx } as SkRef : { kind: 'edge', shape: idx, idx: 0 }
+    useApp.setState({ skSel: [ref], skSelCon: null, status: '已選取；雙擊數值可修改尺寸' })
+  }
   const justPlaced = useRef<string | null>(null)   // SKETCH12 (b)：呢個編輯框係尺寸工具啱放低自動開嘅
   const beginEdit = (label: DimLabel) => {
     if (!label.edit) return
@@ -3016,9 +3027,11 @@ export function SketchDimLayer() {
               // GM-FP3 #35：约束徽章 click = 选中该约束（高亮 partner + Delete 删），唔再一撳即删；冲突（红）徽章仍 click=移除（兑现承诺）。
               // GM-FP4 #31：啱啱拖完标签（重定位）→ 唔好误开编辑框（consumedDrag 守卫）。
               l.edit?.conId && skConflictIds.includes(l.edit.conId) ? () => { if (consumedDrag()) return; useApp.getState().removeSkCon(l.edit!.conId!) }
-                : l.edit ? () => { if (consumedDrag()) return; beginEdit(l) }
+                : l.edit ? () => { if (consumedDrag()) return; if (l.edit!.dim === 'ext') { beginEdit(l); return } selectDimLabel(l) }
                   : l.remove ? () => { if (skConflictIds.includes(l.remove!)) useApp.getState().removeSkCon(l.remove!); else useApp.getState().selectSkCon(l.remove!) } : undefined
             }
+            // SKETCH12 re-check：尺寸數值（含圓 Ø、圓弧 R）單擊＝選取，雙擊＝開啟數值輸入（與線性尺寸一致）。
+            onDoubleClick={l.edit && !(l.edit.conId && skConflictIds.includes(l.edit.conId)) ? (e) => { e.stopPropagation(); if (consumedDrag()) return; beginEdit(l) } : undefined}
             onContextMenu={l.edit?.dim === 'con' && l.edit.conId ? (e) => { e.preventDefault(); e.stopPropagation(); setDimMenu({ conId: l.edit!.conId!, x: e.clientX, y: e.clientY, driven: !!l.driven, radDia: l.edit!.radDia }) } : l.remove ? (e) => { e.preventDefault(); e.stopPropagation(); useApp.getState().selectSkCon(l.remove!); setConMenu({ conId: l.remove!, x: e.clientX, y: e.clientY }) } : undefined}
             style={{ ...LBL, ...(l.remove ? { background: '#5a8fb8', fontSize: 10, lineHeight: '13px', padding: '0 4px' } : {}), ...(l.driven ? { background: '#8a97a2' } : {}), ...(l.remove && skSelCon === l.remove ? { background: '#8e44ad', boxShadow: '0 0 0 2px rgba(142,68,173,.4)' } : {}), ...((l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? { background: '#c9362a', boxShadow: '0 0 0 2px rgba(201,54,42,.35)' } : {}), pointerEvents: l.edit || l.remove || l.referenceExtent ? 'auto' : 'none', cursor: l.edit?.dim === 'con' ? 'move' : l.edit || l.remove ? 'pointer' : 'default' }}
           >

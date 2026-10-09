@@ -411,6 +411,12 @@ const MAP: Record<string, string> = {
   '錐': '锥',
   '雲': '云',
   '驅': '驱',
+  '嘗': '尝',
+  '螢': '萤',
+  '憶': '忆',
+  '裡': '里',
+  '匯': '汇',
+  '蹤': '踪',
 }
 
 export function traditionalToSimplified(s: string): string {

@@ -4780,9 +4780,9 @@ function translateProfile(p: SketchProfile, dx: number, dy: number): SketchProfi
 // id 传入：预览用固定 '~pv-round'（sig 稳定 → 同半径连续预览全中 T730 缓存），提交用 fid()。
 // UX2 #1：倒角/圓角預覽失敗嘅原因（繁體）。tinyOk=同一組棱用 0.05 mm 都得 → 真係數值太大；唔得 → 棱本身倒唔到。
 export function roundFailText(kind: '倒角' | '圓角', workerMsg: string, tinyOk: boolean | null): string {
-  if (/no edges? near points?|no adjacent face/i.test(workerMsg)) return `⚠ 揀中嘅棱喺而家個實體上搵唔返 — 請重新揀棱再試`
-  if (tinyOk === false) return `⚠ 呢條棱${kind}唔到（可能係旋轉體嘅接縫線，或者幾個面喺度相交）— 同數值無關，請揀另一條棱`
-  return `⚠ ${kind}${kind === '倒角' ? '距離' : '半徑'}太大（超過相鄰面）— 減小數值先撳確定`
+  if (/no edges? near points?|no adjacent face/i.test(workerMsg)) return `⚠ 在目前的實體上已找不到所選稜邊 — 請重新選取稜邊後再試`
+  if (tinyOk === false) return `⚠ 此稜邊無法${kind}（可能是旋轉體的接縫線，或多個面在此相交）— 與數值無關，請選取另一條稜邊`
+  return `⚠ ${kind}${kind === '倒角' ? '距離' : '半徑'}太大（超過相鄰面）— 請減小數值後再按「確定」`
 }
 async function probeTinyRound(active: Feature[]): Promise<boolean | null> {
   const last = active[active.length - 1] as Feature & { distance?: number; dist2?: number; radius?: number; radii?: number[]; distances?: number[] }
@@ -6738,7 +6738,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setChamferAngle: (n) => { set({ chamferAngle: Number.isFinite(n) ? Math.min(90, Math.max(0, n)) : 45 }); get().scheduleRoundPreview() },
   setChamferReferenceFace: (p, faceId) => set((s) => {
     if (s.edgeRoundPick !== 'chamfer' || s.chamferMode !== 'angle' || s.chamferRefFace) return {}
-    return { chamferRefFace: { p, faceId }, roundPreviewMesh: null, roundPreviewFail: false, status: '距離＋角度：已揀參考面，再揀呢個面邊界上嘅一條棱' }
+    return { chamferRefFace: { p, faceId }, roundPreviewMesh: null, roundPreviewFail: false, status: '距離與角度：已選取參考面，請再選取此面邊界上的一條稜邊' }
   }),
   toggleChamferFlip: () => { set((s) => ({ chamferFlip: !s.chamferFlip })); get().scheduleRoundPreview() },
   // Fusion-style: enter fillet/chamfer COMMAND mode (select edges, then 确定). Toggling clears the selection.
@@ -6793,7 +6793,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!pts.length) { set({ status: `請先點選要${kind === 'chamfer' ? '倒角' : '倒圓角'}的棱` }); return }
     if (kind === 'fillet' && get().filletType === 'rule' && get().filletRuleMode === 'between' && !(get().filletRuleFaceSets.includes(1) && get().filletRuleFaceSets.includes(2))) { set({ status: '兩組之間規則：第 1 組同第 2 組都要至少選擇一個面/特徵' }); return }
     if (kind === 'fillet' && get().filletType === 'full' && !([1, 2, 3] as const).every((slot) => get().filletFullFaceSets.includes(slot))) { set({ status: '全圓角：側面組 1、中心面、側面組 2 都要至少選擇一個面' }); return }
-    if (kind === 'chamfer' && get().chamferMode === 'angle' && !get().chamferRefFace) { set({ status: '距離＋角度：請先揀 1 個參考面，再揀佢邊界上嘅 1 條棱' }); return }
+    if (kind === 'chamfer' && get().chamferMode === 'angle' && !get().chamferRefFace) { set({ status: '距離與角度：請先選取 1 個參考面，再選取其邊界上的 1 條稜邊' }); return }
     if (kind === 'chamfer' && get().chamferMode === 'two' && !(get().chamferSize2 > 0)) { set({ status: '兩個距離：距離 2 必須大於 0' }); return }
     if (kind === 'chamfer' && get().chamferMode === 'angle' && !(get().chamferAngle > 0 && get().chamferAngle < 90)) { set({ status: '距離＋角度：角度必須大於 0° 同埋小於 90°' }); return }
     if (!(kind === 'fillet' && get().filletType === 'full' ? true : kind === 'fillet' && get().filletMode === 'chord' ? get().filletChord > 0 : kind === 'fillet' && get().filletMode === 'asymmetric' ? get().filletR2 > 0 && get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : kind === 'fillet' ? get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : sz > 0)) { set({ status: `請輸入大於 0 的${kind === 'chamfer' ? '倒角距離' : get().filletMode === 'chord' ? '弦長' : get().filletMode === 'asymmetric' ? '兩個偏移距離' : '圓角半徑'}` }); return }
@@ -6872,14 +6872,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       // worker 遇过大半径会自动收细 + 出 warning（唔 fail）— 预览时即场同用户讲，等佢未撳确定已知
       const warn = mesh!.warnings && mesh!.warnings.length ? `⚠ ${mesh!.warnings.join('；')}` : ''
       _previewFeatures.set(mesh!, active)
-      set({ roundPreviewMesh: mesh, roundPreviewFail: false, roundPreviewBusy: false, ...(warn ? { status: warn } : /^⚠.*(倒角|圓角|圆角|棱)/.test(get().status) ? { status: '預覽正常 — 撳「確定」套用' } : {}) })   // UX2：之前失敗嘅「距離太大」唔好殘留喺狀態列
+      set({ roundPreviewMesh: mesh, roundPreviewFail: false, roundPreviewBusy: false, ...(warn ? { status: warn } : /^⚠.*(倒角|圓角|圆角|棱)/.test(get().status) ? { status: '預覽正常 — 按「確定」套用' } : {}) })   // UX2：之前失敗嘅「距離太大」唔好殘留喺狀態列
     } else {
       // UX2 #1：唔好一律話「距離太大」— 實測 flange 杯 1 mm 失敗嘅真因係揀錯棱／接縫棱。即刻標失敗（唔阻 UI），
       // 再喺背景用 worker 錯誤 + 0.05 mm 探測分辨原因，仍係同一次預覽先改 status。
       const kind = s.edgeRoundPick === 'chamfer' ? '倒角' : '圓角'
       const special = s.edgeRoundPick === 'fillet' && s.filletType === 'full' ? '⚠ 全圓角預覽失敗：檢查三組面是否相鄰，而且兩條邊界是否直線兼互相平行' : s.edgeRoundPick === 'fillet' && s.filletMode === 'asymmetric' ? '⚠ 不對稱圓角預覽失敗：目前要求凸直線邊及兩個互相垂直平面' : ''
       const ownFail = mesh?.failed?.find((x) => x.id === f.id)
-      set({ roundPreviewMesh: null, roundPreviewFail: true, roundPreviewBusy: false, status: special || (mesh?.failed?.length && !ownFail ? '⚠ 前面嘅特徵重建失敗（時間軸紅色嗰個）— 先修正佢再加' + kind : roundFailText(kind, String(ownFail?.msg || ''), true)) })
+      set({ roundPreviewMesh: null, roundPreviewFail: true, roundPreviewBusy: false, status: special || (mesh?.failed?.length && !ownFail ? '⚠ 前面的特徵重建失敗（時間軸中標紅者）— 請先修正該特徵，再加' + kind : roundFailText(kind, String(ownFail?.msg || ''), true)) })
       if (!special && (ownFail || !mesh)) {
         void probeTinyRound(active).then((tinyOk) => {
           if (seq !== _roundPvSeq || !get().roundPreviewFail || !get().edgeRoundPick) return
@@ -8204,7 +8204,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // P2 修：默认开（Fusion Tangent Chain 默认 ON）；用户偏好 localStorage 持久（'0'=关）。
   edgeRoundChain: (() => { try { return localStorage.getItem('webcad-chain') !== '0' } catch { return true } })(),
-  toggleEdgeRoundChain: () => set((s) => { const next = !s.edgeRoundChain; try { localStorage.setItem('webcad-chain', next ? '1' : '0') } catch { /* ignore */ } return { edgeRoundChain: next, status: next ? '切線鏈：開 — 點一條棱自動連埋成條相切邊鏈（如圓角矩形成圈邊）' : '切線鏈：關 — 只處理點中嘅棱' } }),
+  toggleEdgeRoundChain: () => set((s) => { const next = !s.edgeRoundChain; try { localStorage.setItem('webcad-chain', next ? '1' : '0') } catch { /* ignore */ } return { edgeRoundChain: next, status: next ? '相切鏈：開 — 點選一條稜邊會自動連同相切的整條邊鏈（例如圓角矩形整圈邊）' : '相切鏈：關 — 只處理點選的稜邊' } }),
   sketchTwist: 0,
   setSketchTwist: (n) => set({ sketchTwist: n || 0 }),
   snapSize: 5,
@@ -18494,7 +18494,8 @@ export const useApp = create<AppState>((rawSet, get) => {
         patch = { radius: Math.max(0.05, +p.radius || 1), chain: !!+(p.chain || 0), radius2: +p.radius2 > 0 ? +p.radius2 : 0 }
         if (typeof p.radii === 'string' && p.radii.trim()) patch.radii = p.radii.split(',').map((x) => Math.max(0.05, +x || 1))
       } else if (d.kind === 'chamfer-edit') {
-        patch = { distance: Math.max(0.05, +p.distance || 1), cmode: String(p.cmode || 'equal'), dist2: +p.dist2 || 0, angle: +p.angle || 45, flip: !!+(p.flip || 0), chain: !!+(p.chain || 0) }
+        if (!(+p.distance > 0)) { set({ status: illegalRejectStatus(ILLEGAL_LENGTH_DETAIL) }); return }   // CORE16 #3：0／負數唔再靜靜變 0.05
+        patch = { distance: +p.distance, cmode: String(p.cmode || 'equal'), dist2: +p.dist2 || 0, angle: +p.angle || 45, flip: !!+(p.flip || 0), chain: !!+(p.chain || 0) }
       } else {
         // GM-3DV3 M2：shell-edit 带 direction（inside→undefined 清 key 保逐字节）
         // Illegal t≤0 must REJECT on confirm — never coerce 0→1 / negative→0.1 (SO02 / handoff P1).
@@ -20497,6 +20498,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       const merged = { ...f, ...clean, ...(detach ? { toFace: undefined } : {}) } as Record<string, unknown>
       for (const k of dels) if (!(detach && k === 'toFace')) delete merged[k]
+      // CORE16 #3：倒角／圓角有逐邊值（distances / radii）時，改主距離／半徑要一齊改逐邊值 —— 以前 worker 用逐邊值，
+      // 編輯 1.5→0.5 報「已更新」但幾何完全冇變。等於舊主值嘅邊跟新值；冇一條等於（全部各自設定）就全部用新值。
+      for (const [main, per] of [['distance', 'distances'], ['radius', 'radii']] as const) {
+        const arr = (f as Record<string, unknown>)[per]
+        if ((f.type === 'chamfer' || f.type === 'fillet') && main in clean && !(per in clean) && Array.isArray(arr) && arr.length) {
+          const old = Number((f as Record<string, unknown>)[main]), nv = Number(clean[main])
+          const any = (arr as number[]).some((x) => Math.abs(x - old) < 1e-6)
+          const next = (arr as number[]).map((x) => (!any || Math.abs(x - old) < 1e-6) ? nv : x)
+          if (next.every((x) => Math.abs(x - nv) < 1e-9)) delete merged[per]; else merged[per] = next
+        }
+      }
       if (typeof merged.distanceExpression === 'string') merged.distanceExpression = JSON.parse(merged.distanceExpression)
       return merged as unknown as Feature
     })

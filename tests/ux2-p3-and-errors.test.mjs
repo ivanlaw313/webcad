@@ -19,8 +19,8 @@ test('#12 kernel round failures read in Traditional (no English worker text)', (
     const t = plainFeatureError(ty, m)
     assert.ok(noLatin(t.replace(/G[12]/g, '')), t)
   }
-  assert.match(plainFeatureError('chamfer', 'chamfer near points failed'), /倒角做唔到.*距離/)
-  assert.match(plainFeatureError('chamfer', 'no edge near point'), /搵唔返/)
+  assert.match(plainFeatureError('chamfer', 'chamfer near points failed'), /無法建立倒角.*距離/)
+  assert.match(plainFeatureError('chamfer', 'no edge near point'), /找不到/)
   assert.equal(plainFeatureError('revolve', '旋轉截面跨過軸'), '旋轉截面跨過軸')
   const tl = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
   assert.match(tl, /plainFeatureError\(sel\.type, featureErrors\[sel\.id\]\)/)
@@ -40,7 +40,7 @@ test('#12 committing a too-big chamfer: status + timeline error are Traditional'
 
 test('P3 typo: no 「試閉」 and the chamfer hint reads naturally', () => {
   const hk = roundFailLines('zh-HK').join('')
-  assert.doesNotMatch(hk, /試閉/); assert.match(hk, /切線鏈/)
+  assert.doesNotMatch(hk, /試閉|試吓|剔走/); assert.match(hk, /相切鏈/)
 })
 
 test('P3 hole default diameter is Ø5 (Fusion-ish), not Ø16', () => {

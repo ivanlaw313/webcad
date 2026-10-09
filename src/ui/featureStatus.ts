@@ -315,7 +315,7 @@ export function profileSuccessStatus(opts: {
 export function roundFailLines(lang: LangInput): string[] {
   const lg = normalizeLang(lang)
   if (lg === 'en' || lg === 'ja') return ['1 error(s)', 'The fillet/chamfer could not be created at the requested size.', 'Try adjusting the size, deselecting some of the edges (try disabling Tangent Chain), or using multiple separate operations.']
-  return ['1 個錯誤', '無法按指定尺寸建立圓角／倒角。', '請調整尺寸、取消選取部分稜邊（可以試吓剔走「切線鏈」），或分開多次操作。'].map((t) => tStatus(t, lg))
+  return ['1 個錯誤', '無法按指定尺寸建立圓角／倒角。', '請調整尺寸、取消選取部分稜邊（可嘗試取消勾選「相切鏈」），或分多次操作。'].map((t) => tStatus(t, lg))
 }
 
 /** UX2 #12：內核失敗原因（worker 原文多數係英文，例如「chamfer near points failed」）→ 用戶睇得明嘅繁體。
@@ -326,12 +326,12 @@ export function plainFeatureError(type: string | undefined, msg: string): string
   const round = type === 'chamfer' || type === 'fillet' || /^(chamfer|fillet)\b/i.test(t)
   if (round) {
     const kind = type === 'fillet' || /^fillet/i.test(t) ? '圓角' : '倒角'
-    if (/no edges? near points?|no adjacent face|edge (not found|lost)/i.test(t)) return `揀中嘅棱喺而家個實體上搵唔返 — 請重新揀棱再試`
-    if (/did not converge/i.test(t)) return `${kind}計唔到（G2 曲率連續唔收斂）— 試改用 G1 或細啲嘅半徑`
-    return `${kind}做唔到 — ${kind === '倒角' ? '距離' : '半徑'}可能太大（超過相鄰面），或者呢條棱本身${kind}唔到（例如旋轉體接縫）；請減細數值或者重新揀棱`
+    if (/no edges? near points?|no adjacent face|edge (not found|lost)/i.test(t)) return `在目前的實體上已找不到所選稜邊 — 請重新選取稜邊後再試`
+    if (/did not converge/i.test(t)) return `${kind}無法計算（G2 曲率連續未能收斂）— 請改用 G1 或較小的半徑`
+    return `無法建立${kind} — ${kind === '倒角' ? '距離' : '半徑'}可能過大（超過相鄰面），或該稜邊本身無法${kind}（例如旋轉體接縫）；請減小數值或重新選取稜邊`
   }
   if (/^\s*$/.test(t)) return '內核未能完成重建'
-  return `內核未能完成呢個特徵（${t}）`
+  return `內核未能完成此特徵（${t}）`
 }
 
 /** Rebuild-warning suffix: one leading ⚠ (worker warnings often carry their own → was 「⚠ ⚠」), duplicates removed. */
@@ -340,11 +340,11 @@ export function plainFeatureError(type: string | undefined, msg: string): string
 export function plainBuildWarning(w: string): string {
   const t = String(w)
   let m: RegExpMatchArray | null
-  if (/^持久邊名.*真拓撲命名 S\d/.test(t)) return '圓角／倒角嘅邊已自動重新配對，請檢查'
+  if (/^持久邊名.*真拓撲命名 S\d/.test(t)) return '圓角／倒角的邊已自動重新配對，請檢查'
   if (/^持久面名.*真拓撲命名 S\d/.test(t)) return '所選面已自動重新配對，請檢查'
-  if ((m = t.match(/^(圆角|圓角|倒角)：持久[边邊]名.*?([\d.]+)\s*mm/))) return `${m[1] === '倒角' ? '倒角' : '圓角'}嘅邊搵唔返，已改用最近嘅邊（相差 ${m[2]} mm，可能揀錯），請檢查或重新揀邊`
-  if ((m = t.match(/^面[拣揀]：持久面名.*?([\d.]+)\s*mm/))) return `所選面搵唔返，已改用最近嘅面（相差 ${m[1]} mm，可能揀錯），請檢查或重新揀面`
-  if (/^真拓撲命名 S2：/.test(t)) return '部分圓角／倒角嘅邊搵唔返，已改用最近嘅邊，請檢查或重新揀邊'
+  if ((m = t.match(/^(圆角|圓角|倒角)：持久[边邊]名.*?([\d.]+)\s*mm/))) return `${m[1] === '倒角' ? '倒角' : '圓角'}的邊已找不到，已改用最近的邊（相差 ${m[2]} mm，可能選錯），請檢查或重新選邊`
+  if ((m = t.match(/^面[拣揀]：持久面名.*?([\d.]+)\s*mm/))) return `所選面已找不到，已改用最近的面（相差 ${m[1]} mm，可能選錯），請檢查或重新選面`
+  if (/^真拓撲命名 S2：/.test(t)) return '部分圓角／倒角的邊已找不到，已改用最近的邊，請檢查或重新選邊'
   return t
 }
 

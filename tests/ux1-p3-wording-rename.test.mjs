@@ -10,18 +10,18 @@ const worker = rd('src/worker/cad.worker.ts')
 
 test('topology-naming warnings shown in plain words (worker originals untouched)', () => {
   const s1 = worker.match(/buildWarnings\.push\('(持久邊名經上游變換以拓撲順序追蹤解析（真拓撲命名 S1）)'\)/)[1]
-  assert.equal(plainBuildWarning(s1), '圓角／倒角嘅邊已自動重新配對，請檢查')
-  assert.equal(plainBuildWarning('持久邊名經上游布爾／圓角以 OCCT 歷史追蹤解析（真拓撲命名 S2）'), '圓角／倒角嘅邊已自動重新配對，請檢查')
-  assert.equal(plainBuildWarning('持久邊名經上游 3 個特徵（布爾／圓角）逐跳 OCCT 歷史追蹤解析（真拓撲命名 S2 多跳）'), '圓角／倒角嘅邊已自動重新配對，請檢查')
+  assert.equal(plainBuildWarning(s1), '圓角／倒角的邊已自動重新配對，請檢查')
+  assert.equal(plainBuildWarning('持久邊名經上游布爾／圓角以 OCCT 歷史追蹤解析（真拓撲命名 S2）'), '圓角／倒角的邊已自動重新配對，請檢查')
+  assert.equal(plainBuildWarning('持久邊名經上游 3 個特徵（布爾／圓角）逐跳 OCCT 歷史追蹤解析（真拓撲命名 S2 多跳）'), '圓角／倒角的邊已自動重新配對，請檢查')
   assert.equal(plainBuildWarning('持久面名經上游變換以拓撲順序追蹤解析（真拓撲命名 S1-面）'), '所選面已自動重新配對，請檢查')
   const drift = '圆角：持久边名喺当前实体上解析唔到、已退回近点拣边，但近点距最近棱 4.2mm（疑上游变换/旋转令选择漂移 — 对称体旋转后边命名会失效）。如结果唔啱请重新拾边。'
   assert.ok(worker.includes("持久边名喺当前实体上解析唔到、已退回近点拣边，但近点距最近棱 ${nd.toFixed(1)}mm"))
   const p = plainBuildWarning(drift)
-  assert.match(p, /^圓角嘅邊搵唔返，已改用最近嘅邊（相差 4\.2 mm/)
+  assert.match(p, /^圓角的邊已找不到，已改用最近的邊（相差 4\.2 mm/)
   assert.doesNotMatch(p, /持久|漂移|拓撲|近点/)
-  assert.match(plainBuildWarning('面拣：持久面名喺当前实体上解析唔到、已退回近点拣面，但近点距最近面 3.0mm（…）'), /^所選面搵唔返/)
+  assert.match(plainBuildWarning('面拣：持久面名喺当前实体上解析唔到、已退回近点拣面，但近点距最近面 3.0mm（…）'), /^所選面已找不到/)
   assert.equal(plainBuildWarning('掃掠：導軌退回直線'), '掃掠：導軌退回直線')   // unrelated warnings untouched
-  assert.equal(formatBuildWarnings(['⚠ ' + s1, s1]), '　⚠ 圓角／倒角嘅邊已自動重新配對，請檢查')
+  assert.equal(formatBuildWarnings(['⚠ ' + s1, s1]), '　⚠ 圓角／倒角的邊已自動重新配對，請檢查')
   assert.ok(rd('src/components/Viewport.tsx').includes("plainBuildWarning(w)"))
 })
 test('tree rename inputs ignore the IME candidate Enter and commit the live input value', () => {

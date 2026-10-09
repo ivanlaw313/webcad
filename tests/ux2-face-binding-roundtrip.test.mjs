@@ -12,7 +12,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 const prof = { kind: 'poly', pts: [[0, 0], [30, 0], [30, 35], [40, 35], [40, 40], [0, 40]] }
 const CUP = [{ id: 'r', type: 'revolve', profile: prof, angle: 360, axis: 'Y', op: 'new' }, { id: 's', type: 'shell', thickness: 2, nears: [[10, 40, 0]], tangentChain: false, direction: 'inside' }]
 const vol = () => { const m = g().bodyMesh; let v = 0; const V = m.vertices, T = m.triangles; for (let i = 0; i < T.length; i += 3) { const a = T[i] * 3, b = T[i + 1] * 3, c = T[i + 2] * 3; v += (V[a] * (V[b + 1] * V[c + 2] - V[b + 2] * V[c + 1]) - V[a + 1] * (V[b] * V[c + 2] - V[b + 2] * V[c]) + V[a + 2] * (V[b] * V[c + 1] - V[b + 1] * V[c])) / 6 } return Math.abs(v) }
-const bad = (ws) => ws.filter((x) => /持久面名|面[拣揀]|搵唔返|S1-面|近点|近點/.test(x))
+const bad = (ws) => ws.filter((x) => /持久面名|面[拣揀]|搵唔返|找不到|S1-面|近点|近點/.test(x))
 
 test('cup shell (+chamfer) survives save → reopen twice with no face-drift warning and identical geometry', async () => {
   await g().reset()

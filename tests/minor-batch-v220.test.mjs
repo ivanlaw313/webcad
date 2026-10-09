@@ -28,7 +28,7 @@ test('2 fillet/chamfer failure banner localized; chamfer OK = 確定', () => {
   const hk = roundFailLines('zh-HK')
   assert.equal(hk.length, 3)
   assert.ok(hk.every((l) => !/[A-Za-z]{4,}/.test(l)), hk.join('|'))
-  assert.match(hk[2], /切線鏈/)
+  assert.match(hk[2], /相切鏈/)   // CORE16 #3：與倒角面板「相切鏈」一致、正式書面語
   assert.equal(roundFailLines('en')[0], '1 error(s)')
   assert.doesNotMatch(viewport, /<div>1 error\(s\)<\/div>/)
   assert.doesNotMatch(viewport, /edgeRoundPick === 'chamfer' \? 'OK'/)

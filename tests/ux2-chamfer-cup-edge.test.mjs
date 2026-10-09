@@ -43,8 +43,8 @@ test('store path: pick that rim, 1 mm chamfer previews and commits', async () =>
 })
 
 test('failure text names the real cause in Traditional Chinese', () => {
-  assert.match(roundFailText('倒角', 'no edges near points', null), /搵唔返/)
-  assert.match(roundFailText('倒角', 'BRep_API: command not done', false), /同數值無關/)
+  assert.match(roundFailText('倒角', 'no edges near points', null), /找不到/)
+  assert.match(roundFailText('倒角', 'BRep_API: command not done', false), /與數值無關/)
   assert.match(roundFailText('倒角', 'BRep_API: command not done', true), /倒角距離太大/)
   assert.match(roundFailText('倒角', 'chamfer near points failed', true), /倒角距離太大/)   // 通用內核失敗 ≠ 棱搵唔返
   assert.match(roundFailText('圓角', '', true), /圓角半徑太大/)

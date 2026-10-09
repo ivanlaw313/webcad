@@ -28,7 +28,7 @@ test('Press Pull starts at zero and never silently turns zero into 10 mm', () =>
 
 test('Press Pull uses a Fusion-style docked command dialog with guarded OK', () => {
   assert.equal((viewport.match(/\{pushPullMode && \(/g) || []).length, 1)
-  assert.match(viewport, /title=\{pushPullPicks\.length \? tStatus\('偏移面'/)
+  assert.match(viewport, /title=\{tStatus\('按拉', lang\)\}/)   // CORE16 #2：選咗面後標題仍係「按拉」
   assert.ok(/okDisabled=\{/.test(viewport) && /pushPullPicks/.test(viewport) && /pushPullDist/.test(viewport), 'press-pull OK gated')
   assert.match(viewport, /<option value="modify">\{tStatus\('(?:修改现有特征|修改現有特徵)'/)
   assert.match(viewport, /<option value="new">\{tStatus\('新偏移'/)
@@ -90,10 +90,10 @@ test('Fillet and Chamfer expose the native type fields and reject zero size', ()
   assert.match(viewport, /aria-label="(?:圆角半径类型|圓角半徑類型)"/)
   assert.match(viewport, /<option value="constant">(?:常数|常數)<\/option>/)
   assert.match(viewport, /<option value="variable">(?:变量|變量)<\/option>/)
-  assert.match(viewport, /aria-label="Chamfer Type"/)
-  assert.match(viewport, /<option value="equal">Equal Distance<\/option><option value="two">Two Distance<\/option><option value="angle">Distance and Angle<\/option>/)
-  assert.match(viewport, /aria-label="Chamfer Corner Type"/)
-  assert.match(viewport, /<option value="chamfer">Chamfer<\/option><option disabled>Miter<\/option><option disabled>Blend<\/option>/)
+  assert.match(viewport, /aria-label="倒角類型"/)   // CORE16 #3：倒角面板全繁體
+  assert.match(viewport, /<option value="equal">等距<\/option><option value="two">雙距離<\/option><option value="angle">距離與角度<\/option>/)
+  assert.match(viewport, /aria-label="倒角角類型"/)
+  assert.match(viewport, /<option value="chamfer">倒角<\/option><option disabled>斜接<\/option><option disabled>融合<\/option>/)
   assert.match(viewport, />(?:转角类型|轉角類型)<\/span>/)
 })
 
@@ -114,13 +114,13 @@ test('Chamfer type transitions follow the measured Fusion selection and validati
   assert.match(worker, /refFaceNear\?: \[number, number, number\]/)
   assert.match(worker, /adj\.sort\(refFaceNear \? \(a, b\) => a\.refD - b\.refD/)
   assert.match(worker, /!!f\.flip, f\.refFaceNear, f\.edgeFp/)
-  // Fusion palette order still present; distance may be LenInput (no Chamfer distance mm aria).
-  const type = viewport.indexOf('aria-label="Chamfer Type"')
-  const selection = viewport.indexOf('label="Edges/Faces/Features"')
-  const tangent = viewport.indexOf('Tangent Chain', selection)
-  const corner = viewport.indexOf('aria-label="Chamfer Corner Type"')
+  // Palette order still present; distance may be LenInput (no Chamfer distance mm aria). CORE16 #3: labels are Traditional.
+  const type = viewport.indexOf('aria-label="倒角類型"')
+  const selection = viewport.indexOf('label="邊／面／特徵"')
+  const tangent = viewport.indexOf('相切鏈', selection)
+  const corner = viewport.indexOf('aria-label="倒角角類型"')
   assert.ok(type >= 0 && selection > type && tangent > selection && corner > tangent, 'chamfer Type → selection → Tangent Chain → Corner order')
-  assert.ok(/Chamfer Type|setChamferMode|chamferMode/.test(viewport), 'chamfer type control present')
+  assert.ok(/倒角類型|setChamferMode|chamferMode/.test(viewport), 'chamfer type control present')
   assert.ok(/fillet\/chamfer could not be created|圓角半徑太大|倒角距離太大|減小數值/.test(viewport), 'oversize fillet/chamfer warned')
 })
 

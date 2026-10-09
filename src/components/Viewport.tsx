@@ -3580,6 +3580,10 @@ function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: num
    * 建出壁厚 5、自動深度 7.5。負號喺欄入面「留唔低」亦都係呢個原因：
    * -5 當合法 → onBlur 用 toLenInput 改寫成「5」。 */
   const underMin = min != null && parsed != null && parsed < min
+  // CORE16 #3：外部改咗 mm（例如倒角主距離帶動逐邊距離由 0 變 1.5）而欄位未聚焦 → 舊字（「0」）唔可以繼續
+  // 標紅兼登記非法、閂住「確定」。只喺 mm 真係變咗先同步；用戶打錯而 mm 冇變嘅情況（BUG-409）不受影響。
+  const lastMm = useRef(mm)
+  useEffect(() => { if (lastMm.current !== mm) { lastMm.current = mm; if (!foc) setTxt(toLenInput(mm, unit)) } }, [mm, unit, foc])
   const bad = txt.trim() !== '' && (parsed == null || overMax || underMin)
   const blank = txt.trim() === ''
   /* ★ BUG-529/533/537/538/541/542 ★ 自己向 store 登記「我而家非法」。
@@ -5414,35 +5418,35 @@ export default function Viewport() {
             </div>)}
             <div className="sb-hint">半徑由三組面自動推導；三組都選齊後立即顯示真實 B-rep 預覽。</div>
           </> : edgeRoundPick === 'chamfer' ? <>
-            {/* Fusion Chamfer palette order: parameter row → Type → selection → Tangent Chain → Flip → Corner Type. */}
+            {/* Chamfer palette order: parameter row → Type → selection → Tangent Chain → Flip → Corner Type（CORE16 #3：全部繁體）. */}
             <label>
-              <span style={{ color: '#6b7680' }}>{chamferMode === 'two' ? 'Distance 1' : 'Distance'}</span>
-              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={66} min={0} max={1000000} title="倒角距離（inch 模式可打分數 1/16；亦收算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
+              <span style={{ color: '#6b7680' }}>{chamferMode === 'two' ? '距離 1' : '距離'}</span>
+              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={66} min={0} max={1000000} title="倒角距離（inch 模式可輸入分數 1/16；亦接受算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
             {chamferMode === 'two' && <label>
-              <span style={{ color: '#6b7680' }}>Distance 2</span>
+              <span style={{ color: '#6b7680' }}>距離 2</span>
               <span><LenInput mm={chamferSize2} onMm={setChamferSize2} unit={unit} w={66} min={0} title="倒角第二距離" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>}
             {chamferMode === 'angle' && <label>
-              <span style={{ color: '#6b7680' }}>Angle</span>
+              <span style={{ color: '#6b7680' }}>角度</span>
               <span><NumInput value={chamferAngle} onValue={setChamferAngle} label="倒角角度" unit="°" min={0} max={90} w={66} /> deg</span>
             </label>}
             <label>
-              <span style={{ color: '#6b7680' }}>Type</span>
-              <span><select value={chamferMode} onChange={(e) => setChamferMode(e.target.value as 'equal' | 'two' | 'angle')} style={{ height: 26 }} aria-label="Chamfer Type"><option value="equal">Equal Distance</option><option value="two">Two Distance</option><option value="angle">Distance and Angle</option></select></span>
+              <span style={{ color: '#6b7680' }}>類型</span>
+              <span><select value={chamferMode} onChange={(e) => setChamferMode(e.target.value as 'equal' | 'two' | 'angle')} style={{ height: 26 }} aria-label="倒角類型"><option value="equal">等距</option><option value="two">雙距離</option><option value="angle">距離與角度</option></select></span>
             </label>
-            <SelectionChip label="Edges/Faces/Features" count={edgeRoundPicks.length + (chamferMode === 'angle' && chamferRefFace ? 1 : 0)} hint="Select" selectedText={chamferMode === 'angle' ? `${chamferRefFace ? 1 : 0} Face, ${edgeRoundPicks.length} Edge${edgeRoundPicks.length === 1 ? '' : 's'}` : undefined} onClear={() => useApp.getState().clearEdgeRoundPicks()} />
-            <label className="sb-hint" title="Fusion Tangent Chain：點一條稜，自動連同相切連續邊鏈">
-              <span style={{ color: '#6b7680' }}>Tangent Chain</span>
-              <input type="checkbox" aria-label="Tangent Chain" checked={edgeRoundChain} onChange={() => useApp.getState().toggleEdgeRoundChain()} />
+            <SelectionChip label="邊／面／特徵" count={edgeRoundPicks.length + (chamferMode === 'angle' && chamferRefFace ? 1 : 0)} hint="選擇" selectedText={chamferMode === 'angle' ? `${chamferRefFace ? 1 : 0} 個面，${edgeRoundPicks.length} 條邊` : undefined} onClear={() => useApp.getState().clearEdgeRoundPicks()} />
+            <label className="sb-hint" title="相切鏈：點選一條稜邊時，自動連同與其相切連續的邊一併選取">
+              <span style={{ color: '#6b7680' }}>相切鏈</span>
+              <input type="checkbox" aria-label="相切鏈" checked={edgeRoundChain} onChange={() => useApp.getState().toggleEdgeRoundChain()} />
             </label>
             {chamferMode !== 'equal' && <label style={{ fontSize: 12, color: '#6b7680' }} title="交換兩個相鄰面的參考側">
-              <span>Flip</span>
-              <button type="button" aria-label="Flip" aria-pressed={chamferFlip} onClick={() => toggleChamferFlip()} style={{ minWidth: 34 }}>{chamferFlip ? '↔' : '⇄'}</button>
+              <span>翻轉</span>
+              <button type="button" aria-label="翻轉" aria-pressed={chamferFlip} onClick={() => toggleChamferFlip()} style={{ minWidth: 34 }}>{chamferFlip ? '↔' : '⇄'}</button>
             </label>}
-            <label title="Fusion Corner Type">
-              <span style={{ color: '#6b7680' }}>Corner Type</span>
-              <span><select value="chamfer" style={{ height: 26 }} aria-label="Chamfer Corner Type"><option value="chamfer">Chamfer</option><option disabled>Miter</option><option disabled>Blend</option></select></span>
+            <label title="角類型：多條倒角邊相交處的處理方式（目前支援倒角）">
+              <span style={{ color: '#6b7680' }}>角類型</span>
+              <span><select value="chamfer" style={{ height: 26 }} aria-label="倒角角類型"><option value="chamfer">倒角</option><option disabled>斜接</option><option disabled>融合</option></select></span>
             </label>
           </> : <SelectionChip label="邊／面／特徵" count={edgeRoundPicks.length} hint="逐條點選要處理的稜（成條高亮；再點同一條=取消）" onClear={() => useApp.getState().clearEdgeRoundPicks()} />}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && filletMode !== 'chord' && (
@@ -5463,7 +5467,7 @@ export default function Viewport() {
           )}
           {roundPreviewFail && (edgeRoundPick === 'chamfer'
             ? <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>{roundFailLines(lang).map((t, i) => <div key={i} style={i === 2 ? { fontWeight: 400 } : undefined}>{t}</div>)}</div>
-            : <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>⚠ {filletType === 'full' ? '三組面必須相鄰，而且當前要求兩條邊界為平行直線' : filletMode === 'asymmetric' ? '目前只支持凸直線邊與互相垂直的兩個平面；幾何保持不變' : '圓角半徑太大（超過相鄰面）— 減小數值先撳得確定'}</div>)}
+            : <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>⚠ {filletType === 'full' ? '三組面必須相鄰，而且當前要求兩條邊界為平行直線' : filletMode === 'asymmetric' ? '目前只支持凸直線邊與互相垂直的兩個平面；幾何保持不變' : '圓角半徑太大（超過相鄰面）— 請減小數值後再按「確定」'}</div>)}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && <label className="sb-hint" title="切線鏈（Fusion tangent chain）：點一條稜，自動連埋同佢相切連續嘅成條邊鏈（例如圓角矩形頂圈 = 4 直邊 + 4 弧一次過倒）">
             <input type="checkbox" checked={edgeRoundChain && filletMode !== 'asymmetric'} disabled={edgeRoundPick === 'fillet' && filletMode === 'asymmetric'} onChange={() => useApp.getState().toggleEdgeRoundChain()} /> 切線鏈（自動連相切稜）
           </label>}
@@ -5501,7 +5505,7 @@ export default function Viewport() {
           </>}
           {/* S174 逐边半径 / GM-3DV3 M7 逐边距离：≥2 条棱时，逐条改半径/距离（Fusion 多半径圆角 / 逐边倒角 —— 一个特征内 A 棱 R2、B 棱 R8）。默认 = 上面全局值，改边即按边落不同值。倒角仅 equal 模式（两距离/角度各棱统一）。 */}
           {(edgeRoundPick === 'chamfer' && chamferMode === 'equal') && edgeRoundPicks.length >= 2 && (
-            <div style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 4 }} title="逐邊尺寸：每條揀中稜各自圓角半徑／倒角距離。預設跟上面全局值；改某條即該稜用唔同值。">
+            <div style={{ borderTop: '1px solid #2a2e33', marginTop: 4, paddingTop: 4 }} title="逐邊尺寸：每條選中稜邊各自的倒角距離。預設與上方距離相同；修改某條即該稜邊使用不同數值。">
               <div style={{ color: '#6b7680', fontSize: 11, marginBottom: 2 }}>逐邊距離（逐邊倒角）</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 120, overflowY: 'auto' }}>
                 {edgeRoundPicks.map((_, i) => (
@@ -5611,7 +5615,7 @@ export default function Viewport() {
         >
           <div role="status" aria-live="polite" data-testid="shell-preview-status">{shellPreviewBusy ? '正在計算預覽…' : shellPreviewFail ? '預覽失敗（已保留原模型）— 可改壁厚/方向/開口面，或仍按「確定」嘗試提交' : shellPreviewMesh ? '即時預覽；確定後才儲存操作' : '選擇開口面並輸入壁厚，即時預覽結果'}</div>
           <SelectionChip label={shellType === 'closed' ? '實體' : '面'} count={shellPicks.length} hint={shellType === 'closed' ? '點選要建立封閉空腔的實體' : '點選要移除的面（再點取消）'} onClear={() => useApp.getState().clearShellPicks()} />
-          {shellType === 'open' && <label style={{ justifyContent: 'flex-start', gap: 6 }} title="Fusion Tangent Chain：沿共享邊自動加入 G1 相切連續面">
+          {shellType === 'open' && <label style={{ justifyContent: 'flex-start', gap: 6 }} title="相切鏈：沿共用邊自動加入 G1 相切連續面">
             <input type="checkbox" checked={shellTangentChain} onChange={() => toggleShellTangentChain()} /> 切線鏈
           </label>}
           <label>

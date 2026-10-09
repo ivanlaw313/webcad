@@ -2546,7 +2546,10 @@ function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], sh
       const at: Pt = sh.type === 'rect' ? [(sh.a[0] + sh.b[0]) / 2, Math.max(sh.a[1], sh.b[1])]
         : sh.type === 'circle' ? [sh.c[0] - sh.r * Math.SQRT1_2, sh.c[1] + sh.r * Math.SQRT1_2]
           : sh.pts.length > 1 ? [(sh.pts[0][0] + sh.pts[1][0]) / 2, (sh.pts[0][1] + sh.pts[1][1]) / 2] : sh.pts[0]
-      if (at) out.push({ key: k + 'off', anchor: lift(at), pxOff: [0, -18], text: '⇥' + dimFmtU(Math.abs(sh.offsetOf.d), unit), edit: { target, dim: 'off', value: Math.abs(sh.offsetOf.d) } })
+      if (at) {
+        const od = sh.offsetOf.d
+        out.push({ key: k + 'off', anchor: lift(at), pxOff: [0, -18], text: '⇥' + (od < 0 ? '−' : '') + dimFmtU(Math.abs(od), unit), edit: { target, dim: 'off', value: Math.abs(od) } })
+      }
       return
     }
     if (sh.construction) return   // 用户实战 bug：构造几何（cline ±10000 等）唔出自动尺寸标签 —— Fusion 参考线无 auto dim,净系整乱画面
@@ -2841,7 +2844,7 @@ export function SketchDimLayer() {
     const sh = [...st.sketchProfiles, ...(st.sketchShape ? [st.sketchShape] : [])][idx]
     if (!sh) return
     const ref: SkRef = sh.type === 'circle' || (sh.type === 'poly' && sh.arc) ? { kind: 'circle', shape: idx } : sh.type === 'poly' && sh.ell ? { kind: 'ellipse', shape: idx } as SkRef : { kind: 'edge', shape: idx, idx: 0 }
-    useApp.setState({ skSel: [ref], skSelCon: null, status: '已選取；雙擊數值可修改尺寸' })
+    useApp.setState({ skSel: [ref], skSelCon: null, status: '已選取：再點一次（或雙擊）數值可修改尺寸' })
   }
   const justPlaced = useRef<string | null>(null)   // SKETCH12 (b)：呢個編輯框係尺寸工具啱放低自動開嘅
   const beginEdit = (label: DimLabel) => {
@@ -2921,7 +2924,12 @@ export function SketchDimLayer() {
   }, [skDimEditReq, labels, unit, mode, dimensionRequestTool])
   DIM_REG.labels = labels
   if (mode !== 'sketch' || patternCandidate || labels.length === 0) { DIM_REG.els.clear(); if (editing) setEditing(null); return null }
-  const reg = (key: string) => (el: HTMLElement | null) => { if (el) DIM_REG.els.set(key, el); else DIM_REG.els.delete(key) }
+  const reg = (key: string) => (el: HTMLElement | null) => {
+    if (el) {
+      if (!DIM_REG.els.has(key) && !el.style.transform) el.style.transform = 'translate(-200px,-200px)'
+      DIM_REG.els.set(key, el)
+    } else DIM_REG.els.delete(key)
+  }
   const commit = async (e: DimEdit, fromBlur = false) => {
     if(e.dim==='con'&&e.conId){
       const editorEpoch=dimEditorEpoch.current
@@ -2990,7 +2998,10 @@ export function SketchDimLayer() {
     }
     setEditing(null)
   }
-  const LBL = { position: 'absolute' as const, maxWidth: 'calc(100% - 8px)', boxSizing: 'border-box' as const, left: 0, top: 0, transform: 'translate(-200px,-200px)', background: '#1572c4', color: '#fff', fontSize: 11, lineHeight: '15px', padding: '0 5px', borderRadius: 3, fontWeight: 600, whiteSpace: 'nowrap' as const, boxShadow: '0 1px 3px rgba(0,0,0,.3)' }
+  // transform is owned by SketchDimProjector (imperative). Keeping it out of React style
+  // stops re-renders (e.g. soft-dim select status) from yanking labels to -200,-200 under
+  // frameloop=demand — that gap ate the 2nd click of a double-click so the offset ⇥d editor never opened.
+  const LBL = { position: 'absolute' as const, maxWidth: 'calc(100% - 8px)', boxSizing: 'border-box' as const, left: 0, top: 0, background: '#1572c4', color: '#fff', fontSize: 11, lineHeight: '15px', padding: '0 5px', borderRadius: 3, fontWeight: 600, whiteSpace: 'nowrap' as const, boxShadow: '0 1px 3px rgba(0,0,0,.3)' }
   return (
     <div className="sketch-dim-layer" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 6 }}>
       {labels.map((l) => editing === l.key && l.edit
@@ -3027,7 +3038,7 @@ export function SketchDimLayer() {
         ) : (
           <div
             key={l.key} data-reference-extent={l.referenceExtent} data-dim={l.text} data-dimension-id={l.edit?.conId} data-constraint-id={l.remove} data-frame-angle={l.frameAngleDeg} data-auto-dimension-shape={l.edit&&l.edit.dim!=='con'?String(l.edit.target):undefined} data-dim-role={l.driven || l.referenceExtent ? 'driven' : l.edit?.dim === 'con' ? 'driving' : l.edit ? 'soft' : undefined} data-dim-driving={l.edit?.dim === 'con' && !l.driven ? 'true' : undefined} className={l.driven || l.referenceExtent ? 'sk-dim-driven' : l.edit?.dim === 'con' ? 'sk-dim-driving' : l.edit ? 'sk-dim-soft' : undefined} ref={reg(l.key)}
-            title={[l.referenceExtent?msg('sk.dim.refExtent', lang).replace('{0}', String(l.referenceExtent)):'',l.frameAngleDeg===undefined?'':msg('sk.dim.frameAngle', lang).replace('{0}', dimFmt(l.frameAngleDeg)), (l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? tStatus('⚠ 衝突約束 — 點擊移除以解開過約束', lang) : l.edit && l.edit.dim === 'con' ? ((l.name ? `${l.name} = ` : '') + (l.expression ? `${l.expression} → ${l.text} · ` : `${l.text} · `) + (l.driven ? tStatus('從動尺寸（量度值）— 點擊改值即轉驅動 · 右鍵選單（轉驅動/R↔Ø/刪除） · ✕刪除', lang) : tStatus('點擊修改尺寸 · 輸入公式可引用其他尺寸（如 d1*2） · 右鍵選單（轉從動/R↔Ø/刪除） · ✕刪除', lang))) : l.edit ? tStatus('點擊修改尺寸', lang) : l.remove ? tStatus('約束（點擊選中 → Delete 移除）', lang) : undefined].filter(Boolean).join(' · ')||undefined}
+            title={[l.referenceExtent?msg('sk.dim.refExtent', lang).replace('{0}', String(l.referenceExtent)):'',l.frameAngleDeg===undefined?'':msg('sk.dim.frameAngle', lang).replace('{0}', dimFmt(l.frameAngleDeg)), (l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? tStatus('⚠ 衝突約束 — 點擊移除以解開過約束', lang) : l.edit && l.edit.dim === 'con' ? ((l.name ? `${l.name} = ` : '') + (l.expression ? `${l.expression} → ${l.text} · ` : `${l.text} · `) + (l.driven ? tStatus('從動尺寸（量度值）— 點擊改值即轉驅動 · 右鍵選單（轉驅動/R↔Ø/刪除） · ✕刪除', lang) : tStatus('點擊修改尺寸 · 輸入公式可引用其他尺寸（如 d1*2） · 右鍵選單（轉從動/R↔Ø/刪除） · ✕刪除', lang))) : l.edit ? tStatus('點選後再點（或雙擊）可修改尺寸', lang) : l.remove ? tStatus('約束（點擊選中 → Delete 移除）', lang) : undefined].filter(Boolean).join(' · ')||undefined}
             onPointerDown={l.edit?.dim === 'con' && l.edit.conId ? (e) => onLabelDown(e, l.edit!.conId!) : undefined}
             onClick={
               // 用户实战 feedback：冲突（红色）尺寸 tooltip 一直话「点击移除」但旧行为系开编辑框 → 令用户「揀唔到又删唔到」。
@@ -3035,7 +3046,17 @@ export function SketchDimLayer() {
               // GM-FP3 #35：约束徽章 click = 选中该约束（高亮 partner + Delete 删），唔再一撳即删；冲突（红）徽章仍 click=移除（兑现承诺）。
               // GM-FP4 #31：啱啱拖完标签（重定位）→ 唔好误开编辑框（consumedDrag 守卫）。
               l.edit?.conId && skConflictIds.includes(l.edit.conId) ? () => { if (consumedDrag()) return; useApp.getState().removeSkCon(l.edit!.conId!) }
-                : l.edit ? () => { if (consumedDrag()) return; if (l.edit!.dim === 'ext' || useApp.getState().sketchTool === 'dimension') { beginEdit(l); return } selectDimLabel(l) }   // 尺寸工具中單擊標籤＝直接開輸入框（點中圓 Ø／圓弧 R 標籤都一樣）；選取工具中單擊＝選取、雙擊＝編輯
+                : l.edit ? () => {
+                    if (consumedDrag()) return
+                    // 尺寸工具／拉伸距離：單擊即開輸入框。選取工具：軟尺寸（含偏移 ⇥d）第一次選取、已選再點（或雙擊）開編輯。
+                    if (l.edit!.dim === 'ext' || useApp.getState().sketchTool === 'dimension') { beginEdit(l); return }
+                    if (l.edit!.dim !== 'con') {
+                      const st = useApp.getState()
+                      const idx = l.edit!.target === 'shape' ? st.sketchProfiles.length : l.edit!.target
+                      if (st.skSel.some((r) => 'shape' in r && r.shape === idx)) { beginEdit(l); return }
+                    }
+                    selectDimLabel(l)
+                  }
                   : l.remove ? () => { if (skConflictIds.includes(l.remove!)) useApp.getState().removeSkCon(l.remove!); else useApp.getState().selectSkCon(l.remove!) } : undefined
             }
             // SKETCH12 re-check：尺寸數值（含圓 Ø、圓弧 R）單擊＝選取，雙擊＝開啟數值輸入（與線性尺寸一致）。

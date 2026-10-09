@@ -90,7 +90,39 @@ test('the sketch layer shows ONE editable offset dimension on a linked curve and
   const src = fs.readFileSync(new URL('../src/components/SketchLayer.tsx', import.meta.url), 'utf8')
   const start = src.indexOf('function buildDimLabels'), body = src.slice(start, src.indexOf('if (sh.construction) return', start))
   assert.match(body, /if \(sh\.offsetOf\)/)
-  assert.match(body, /edit: \{ target, dim: 'off', value: Math\.abs\(sh\.offsetOf\.d\) \}/)
+  assert.match(body, /dim: 'off', value: Math\.abs\(od\)/)
+  assert.match(body, /od < 0 \? '−' : ''/, 'inward offsets show a signed ⇥−d label')
   assert.match(body, /return\s*\n\s*\}\s*$/, 'linked curves do not also get W/H/Ø soft labels')
   assert.match(src, /else if\(e\.dim!=='con'\)setDim\(e\.target, e\.dim, v\)/)
+  // Select tool: first click selects the offset curve; a second click (or double-click) opens the value editor.
+  assert.match(src, /st\.skSel\.some\(\(r\) => 'shape' in r && r\.shape === idx\)\) \{ beginEdit\(l\); return \}/)
+  assert.match(src, /onDoubleClick=\{l\.edit &&[^\n]*beginEdit\(l\)/)
+})
+
+test('open-line inward offset: setSketchDimValue keeps side and re-derives; canvas label is signed ⇥−d', async () => {
+  useApp.setState({
+    ...useApp.getInitialState(), mode: 'sketch', sketchTool: 'offset',
+    sketchProfiles: [{ type: 'poly', pts: [[0, 0], [80, 0]], open: true }],
+    sketchShape: null, skCons: [], sketchOffsetD: 6, sketchOffsetBoth: false,
+  })
+  await g().skOffsetAt([40, 5])
+  assert.ok(g().sizing)
+  useApp.setState({ sketchOffsetD: -6 })
+  await g().skOffsetAt([40, 5])
+  assert.equal(g().sketchDim, null, 'finished offset clears live HUD so it cannot be mistaken for the dim label')
+  const offI = offIndex()
+  const off0 = g().sketchProfiles[offI]
+  assert.equal(off0.offsetOf.d, -6)
+  near(bbox(off0), [0, -6, 80, -6], 'open-line offset at −6')
+  g().setSketchTool('select')
+  assert.equal(g().sketchDim, null)
+  const depth = g().sketchUndo.length
+  g().setSketchDimValue(offI, 'off', 10)
+  await new Promise((r) => setTimeout(r, 0))
+  const off1 = g().sketchProfiles.find((s) => s.offsetOf)
+  assert.equal(off1.offsetOf.d, -10, 'side preserved')
+  near(bbox(off1), [0, -10, 80, -10], 're-derived at 10')
+  assert.equal(g().sketchUndo.length, depth + 1)
+  await g().undo()
+  assert.equal(g().sketchProfiles.find((s) => s.offsetOf).offsetOf.d, -6)
 })

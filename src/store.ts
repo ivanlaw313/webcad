@@ -6510,7 +6510,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // A fresh document is in navigation/selection mode.  Geometry tools are
   // explicit commands, never an accidental first click.
   sketchTool: 'select',
-  setSketchTool: (t) => { _offsetTypedPre = false; _slotTypedDone = false; if (t !== 'cfillet' && t !== 'cchamfer') _cornerTypedPre = false; if(get().skScale)discardScale(); get().skDragCancel(); set({ sketchTool: t, sketchStart: null, sketchPreview: null, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, tanRefs: [], skBoolPending: null, toolPreview: null, sizing: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, skMarquee: null, skSelCon: null, ...(t !== 'move' ? { skMove: null } : {}), ...(t !== 'select' ? { skArmedCon: null } : {}), ...(t !== 'mirror' ? { mirrorPick: null } : {}), ...(t !== 'dimension' ? { dimArcLen: false } : {}) }) },  // T777：换工具清相切弧/切点圆 buffer；T790：离开镜像清进行中状态；T791：换工具取消合并拾取；T792：清悬停预览；GM-FP2：换工具清尺寸 pending / 非 select 清 tool-first 武装；GM-FP3：清框选/约束选中，非 move 清 move gizmo
+  setSketchTool: (t) => { _offsetTypedPre = false; _slotTypedDone = false; if (t !== 'cfillet' && t !== 'cchamfer') _cornerTypedPre = false; if(get().skScale)discardScale(); get().skDragCancel(); set({ sketchTool: t, sketchStart: null, sketchPreview: null, sketchDim: null, dimBuf: ['', ''], dimField: 0, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, tanRefs: [], skBoolPending: null, toolPreview: null, sizing: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, skMarquee: null, skSelCon: null, ...(t !== 'move' ? { skMove: null } : {}), ...(t !== 'select' ? { skArmedCon: null } : {}), ...(t !== 'mirror' ? { mirrorPick: null } : {}), ...(t !== 'dimension' ? { dimArcLen: false } : {}) }) },  // T777：换工具清相切弧/切点圆 buffer；T790：离开镜像清进行中状态；T791：换工具取消合并拾取；T792：清悬停预览；GM-FP2：换工具清尺寸 pending / 非 select 清 tool-first 武装；GM-FP3：清框选/约束选中，非 move 清 move gizmo；偏移完成後殘留 sketchDim「偏移 N mm」HUD 一併清掉
   hoverFace: null,
   setHoverFace: (t) => set((s) => (s.hoverFace === t || (!s.hoverFace && !t) ? {} : { hoverFace: t })),
   // Fusion ESC behaviour: 1st ESC cancels the in-progress draw (a started rect/circle or polyline points)
@@ -6714,8 +6714,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 第二击 → 用锁定目标 commit。SIZING-1：用身份(ref)解析，唔信 shapeIdx（中途删/改轮廓后位置会错位）。
     const d = s.sketchOffsetD
     const src = shapes.includes(s.sizing.ref) ? s.sizing.ref : null
-    if (!src) { set({ sizing: null, toolPreview: null, status: '偏移：所選輪廓已改動/刪除 — 重新點輪廓' }); return }
-    if (!d) { set({ sizing: null, toolPreview: null, status: '偏移：距離為 0，已取消' }); return }
+    if (!src) { set({ sizing: null, toolPreview: null, sketchDim: null, status: '偏移：所選輪廓已改動/刪除 — 重新點輪廓' }); return }
+    if (!d) { set({ sizing: null, toolPreview: null, sketchDim: null, status: '偏移：距離為 0，已取消' }); return }
     const isCon = !!src.construction
     const dirs = s.sketchOffsetBoth ? [d, -d] : [d]
     const made: SketchShape[] = []
@@ -6724,13 +6724,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     const sid = src.sid ?? newOffsetSid()
     for (const dd of dirs) { const r = offsetSketchShape(src, dd); if (r) { made.push({ ...r, ...(isCon ? { construction: true } : {}), offsetOf: { src: sid, d: dd } } as SketchShape); if (dd > 0) outOk = true; else inOk = true } }
     if (!made.length) {
-      set({ sizing: null, toolPreview: null, status: `偏移失敗（距離 ${Math.abs(d)} 令輪廓自交/塌陷，試小一些）` }); return
+      set({ sizing: null, toolPreview: null, sketchDim: null, status: `偏移失敗（距離 ${Math.abs(d)} 令輪廓自交/塌陷，試小一些）` }); return
     }
     const linkedShapes = src.sid ? shapes : shapes.map((sh) => sh === src ? { ...sh, sid } as SketchShape : sh)
     const sideTxt = s.sketchOffsetBoth ? (outOk && inOk ? '（雙向）' : outOk ? '（只有外側，內側塌陷）' : '（只有內側，外側塌陷）') : !offsetClosed(src) ? '（游標所在側）' : d > 0 ? '（外）' : '（內）'
     set({
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
       sketchProfiles: [...linkedShapes, ...made], sketchShape: null, skSel: [], sizing: null, toolPreview: null,
+      sketchDim: null, dimBuf: ['', ''], dimField: 0,
       status: `已偏移 ${Math.abs(d)}mm${sideTxt}（關聯：跟隨來源）— 現 ${shapes.length + made.length} 個輪廓，繼續點其它輪廓或換工具`,
     })
   },
@@ -11061,7 +11062,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const poly: Pt[] = []
         for (let i = 0; i < SEG; i++) { const a = (i * 2 * Math.PI) / SEG; poly.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]) }
         // S87：48 边 poly 仅供 2D 显示/布尔；ell 参数令内核画真椭圆单曲线边（光滑面，非 48 facet）
-        return { sketchShape: { type: 'poly', pts: poly, ell: { cx, cy, rx, ry, rot: 0 } }, sketchStart: null, status: `橢圓已建立（水平軸全長 ${ellFmt(rx * 2)} mm × 豎直軸全長 ${ellFmt(ry * 2)} mm）— 點擊半軸數值或以尺寸工具點選橢圓即可修改` }
+        return { sketchShape: { type: 'poly', pts: poly, ell: { cx, cy, rx, ry, rot: 0 } }, sketchStart: null, sketchPreview: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `橢圓已建立（水平軸全長 ${ellFmt(rx * 2)} mm × 豎直軸全長 ${ellFmt(ry * 2)} mm）— 點擊半軸數值或以尺寸工具點選橢圓即可修改` }
       }
       if (s.sketchTool === 'conic') {
         // S177 圆锥曲线（Fusion Conic）：① 起点 P0 → ② 终点 P2 → ③ 顶点 apex(两端切线交点)；底栏 ρ 调充满度。
@@ -11302,15 +11303,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       return
     }
     if (dim === 'off') {
+      let applied = false
       set((s) => {
         const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])]
         const r = editOffsetLinkDistance(shapes, index, value)
         if ('error' in r) return { status: r.error }
         if (r.shapes === shapes) return {}
+        applied = true
         const n = s.sketchProfiles.length
         return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: r.shapes.slice(0, n), ...(s.sketchShape ? { sketchShape: r.shapes[n] } : {}), status: `已改偏移距離 → ${value} mm（關聯偏移，來源改動會跟隨）` }
       })
-      if (get().skCons.length > 0) void get().resolveSk()
+      if (applied && get().skCons.length > 0) void get().resolveSk({ statusNote: `已改偏移距離 → ${value} mm` })
       return
     }
     const bound=axisBound()

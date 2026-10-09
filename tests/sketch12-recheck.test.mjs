@@ -47,7 +47,9 @@ test('Extend with nothing ahead: dedicated formal message, no change, no undo st
 
 test('Dimension labels (Ø / R included): single click selects, double-click opens the input', () => {
   const sl = readFileSync(new URL('../src/components/SketchLayer.tsx', import.meta.url), 'utf8')
-  assert.match(sl, /if \(l\.edit!\.dim === 'ext' \|\| useApp\.getState\(\)\.sketchTool === 'dimension'\) \{ beginEdit\(l\); return \} selectDimLabel\(l\)/)
+  assert.match(sl, /l\.edit!\.dim === 'ext' \|\| useApp\.getState\(\)\.sketchTool === 'dimension'\)/)
+  assert.match(sl, /st\.skSel\.some\(\(r\) => 'shape' in r && r\.shape === idx\)\) \{ beginEdit\(l\); return \}/)
+  assert.match(sl, /selectDimLabel\(l\)/)
   assert.match(sl, /onDoubleClick=\{l\.edit && [^\n]*beginEdit\(l\)/)
   assert.match(sl, /sh\.type === 'circle' \|\| \(sh\.type === 'poly' && sh\.arc\) \? \{ kind: 'circle', shape: idx \}/)
 })

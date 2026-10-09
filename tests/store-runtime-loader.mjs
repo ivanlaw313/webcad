@@ -1,5 +1,5 @@
 export async function resolve(spec,ctx,next) {
- if(spec.endsWith('/cadService')||spec.endsWith('/cadService.ts')) return {url:'data:text/javascript,'+encodeURIComponent('export const cad=new Proxy({}, {get:(_,key)=>async(...args)=> key==="ready"?true:key==="rebuild"&&args[0].every(f=>f.type==="sketch")?{vertices:[],triangles:[],normals:[]}:null}); export const onKernelRestart=()=>{}'),shortCircuit:true}
+ if(spec.endsWith('/cadService')||spec.endsWith('/cadService.ts')) return {url:'data:text/javascript,'+encodeURIComponent('export const cad=new Proxy({}, {get:(_,key)=>async(...args)=> key==="ready"?true:key==="rebuild"&&args[0].every(f=>f.type==="sketch")?{vertices:[],triangles:[],normals:[]}:null}); export const onKernelRestart=()=>{}; export function cancelPreviews(){}; export function isPreviewCancelled(){return false}'),shortCircuit:true}
  if(spec.endsWith('?url')) return {url:'data:text/javascript,export default %22%22',shortCircuit:true}
  return next(spec,ctx)
 }

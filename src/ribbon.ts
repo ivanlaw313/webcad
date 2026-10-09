@@ -1,3 +1,5 @@
+import { simplifiedToTraditionalHK } from './i18n/sc2tcHK'
+
 export type Tool = {
   id: string; label: string; icon: string; shortcut?: string; big?: boolean; tip?: string
   quick?: boolean        // shown as a quick icon in the ribbon strip (Fusion: ~≤7 per group); others live in the ▾ dropdown only
@@ -655,17 +657,27 @@ function _flattenRibbon(): RibbonHit[] {
 }
 
 // 模糊评分：query 同命令 id/label/tip 双向子串匹配（支持中文问句如「点样倒圆角」命中 label「圆角」）。返最高分命中或 null。
+// 简繁归一：ribbon labels 现为繁体，AI-teach / 用户问句可能是简体 —— 双方都经 simplifiedToTraditionalHK + toLowerCase，简繁任一脚本可命中。
+function _normRibbonSearch(s: string): string {
+  // Search-only synonyms: Fusion-style「建立草圖」superseded older「创建草图／創建草圖」wording.
+  // Applied after SC→TC so简体「创建草图」and繁体「創建草圖」both land on the live label.
+  let out = simplifiedToTraditionalHK((s || '').trim())
+  out = out.split('創建草圖').join('建立草圖')
+  return out.toLowerCase()
+}
 export function searchRibbonCommand(query: string): RibbonHit | null {
-  const q = (query || '').trim().toLowerCase()
+  const q = _normRibbonSearch(query)
   if (!q) return null
   _ribbonFlat = _ribbonFlat ?? _flattenRibbon()
   let best: RibbonHit | null = null, bestScore = 0
   for (const h of _ribbonFlat) {
-    const id = h.id.toLowerCase(), label = h.label.toLowerCase(), tip = (h.tip || '').toLowerCase()
+    const id = h.id.toLowerCase()
+    const label = _normRibbonSearch(h.label)
+    const tip = _normRibbonSearch(h.tip || '')
     let s = 0
     if (id === q || label === q) s = 100
     else if (id.length >= 2 && (q.includes(id) || id.includes(q))) s = 80
-    else if (q.includes(label) || label.includes(q)) s = 70
+    else if (label && (q.includes(label) || label.includes(q))) s = 70
     else if (tip.includes(q)) s = 30
     if (s > bestScore) { bestScore = s; best = h }
   }

@@ -1191,14 +1191,13 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     // ---- 6. 应力（单元中心）
     prog('stress', 0)
     const D = buildD(inp.E, inp.nu)
-    // ---- BUG-289 修正②：应力采样位置（SURFACE-SAMPLE）
-    //   旧做法净喺【单元中心】(ξ=η=ζ=0) 采样。弯曲时 σ 沿厚度线性分布、中性轴 = 0、峰值喺表面，
-    //   所以中心采样系【系统性低估】：n 层体素时最外层中心喺 0.75c(n=4)/0.833c(n=6)… → 低 1/(1−1/n) 倍，
-    //   n=1 更加系直接采喺中性轴 → σ≈0（呢个就系 BUG-289 σ 低一两个数量级嘅第二成因）。
-    //   修正：改为采【单元内 9 点】(中心 + 8 个角 ξ,η,ζ=±1)，取 von Mises 最大嗰点做该单元代表值。
-    //   呢个唔系 fudge factor —— 三线性 hex 嘅 FE 应变场喺自然坐标系精确三线性，喺角点求值
-    //   = 标准「Gauss 点应力外推到节点」(√3 外推) 嘅精确等价；系 Fusion/Abaqus 嘅常规应力恢复做法。
-    //   中心点仍然包含喺候选内 → 新值恒 ≥ 旧值，唔会令任何已通过嘅「应力应 ≈0」回归变红。
+    // ---- BUG-289 修正② + 单轴校准：应力采样
+    //   SECTION-REFINE（上面 MIN_SECTION_VOX）已令弯曲最少 4 层，中心采样唔再会落到中性轴。
+    //   单元【代表值】vm/s1/s3/shear/sed 用【单元中心】(ξ=η=ζ=0) —— 同 FeaResult 注释、
+    //   同均匀应力场解析值（单轴 bar σ=F/A）对齐；9 点取 max 会喺均勻场把角点 FE 振荡当成代表值，
+    //   令中段 σ 偏高 ~17%（principal 单轴校核失败）。
+    //   另：仍扫【单元内 9 点】(中心 + 8 角) 取 von Mises 峰值，写入 vmMax（悬臂表面纤维峰值，
+    //   fea-cantilever 用）。云图/单元场 = 中心；全局峰值 = 9 点 max。
     const SAMPLE_PTS: ReadonlyArray<readonly [number, number, number]> = [
       [0, 0, 0],
       [-1, -1, -1], [1, -1, -1], [-1, 1, -1], [1, 1, -1],
@@ -1233,10 +1232,9 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
       for (let d = 0; d < 24; d++) ue[d] = sol.u[elemDofs[base + d]]
       // S96：体素中心位移 = 8 节点 (ux,uy,uz) 平均 → 幅值（同 runVoxelModal 振型平均同款）
       { let dux = 0, duy = 0, duz = 0; for (let a = 0; a < 8; a++) { dux += ue[a * 3]; duy += ue[a * 3 + 1]; duz += ue[a * 3 + 2] } const ax = dux / 8, ay = duy / 8, az = duz / 8; disp[el] = Math.hypot(ax, ay, az); dispVec[el * 3] = ax; dispVec[el * 3 + 1] = ay; dispVec[el * 3 + 2] = az }
-      // 9 点扫描：取 von Mises 最大嗰点嘅 strain/stress 做该单元代表值（表面纤维 → 弯曲峰值）。
-      //   NaN 处理：`v > vBest` 对 NaN 恒 false，所以 best 一定係有限值嗰点；若全部非有限，
-      //   bestS 维持 0（= 中心点）→ 下面照样 recompute 出 NaN，vmNonFinite 守卫原样生效。
-      let bestS = 0, vBest = -1
+      // 9 点扫描：峰值只入 vmMax（弯曲表面纤维）；单元代表场用中心点（s=0）。
+      //   NaN 处理：`v > vBest` 对 NaN 恒 false；若全部非有限，vBest 维持 -1 → 下面中心 recompute 出 NaN。
+      let vPeak = -1
       for (let s = 0; s < nSamp; s++) {
         const sb = s * 144
         let a0 = 0, a1 = 0, a2 = 0, a3 = 0, a4 = 0, a5 = 0
@@ -1251,10 +1249,11 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         const sz = D[12] * a0 + D[13] * a1 + D[14] * a2
         const txy = D[21] * a3, tyz = D[28] * a4, tzx = D[35] * a5
         const vs = vonMises(sx, sy, sz, txy, tyz, tzx)
-        if (vs > vBest) { vBest = vs; bestS = s }
+        if (vs > vPeak) vPeak = vs
       }
+      // 单元中心 (s=0) → 代表场
       {
-        const sb = bestS * 144
+        const sb = 0
         for (let r2 = 0; r2 < 6; r2++) {
           let s = 0
           const row = sb + r2 * 24
@@ -1270,7 +1269,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
       }
       const v = vonMises(stress[0], stress[1], stress[2], stress[3], stress[4], stress[5])
       vm[el] = v
-      // S164：主应力（σ1≥σ2≥σ3）+ 最大剪应力 τmax=(σ1−σ3)/2
+      // S164：主应力（σ1≥σ2≥σ3）+ 最大剪应力 τmax=(σ1−σ3)/2（中心代表值）
       const pr = princ3(stress[0], stress[1], stress[2], stress[3], stress[4], stress[5])
       const sh = (pr[0] - pr[2]) / 2
       s1f[el] = pr[0]; s3f[el] = pr[2]; shf[el] = sh
@@ -1283,9 +1282,10 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
       let u = 0; for (let i = 0; i < 6; i++) u += stress[i] * strain[i]; u *= 0.5
       sed[el] = u
       if (Number.isFinite(u) && u > sedMax) sedMax = u
-      // NaN/Infinity 显式追踪：`v > vmMax` 对 NaN 恒为 false，净靠佢会静默留 0
-      if (!Number.isFinite(v)) vmNonFinite = true
-      else if (v > vmMax) { vmMax = v; vmMaxE = el }
+      // 峰值：9 点 max（弯曲表面）；非有限则跟中心 v 一齐标 dirty
+      const peak = vPeak > v ? vPeak : v
+      if (!Number.isFinite(v) || !Number.isFinite(peak)) vmNonFinite = true
+      else if (peak > vmMax) { vmMax = peak; vmMaxE = el }
       if ((el & 4095) === 0) prog('stress', el / nVox)
     }
     prog('stress', 1)

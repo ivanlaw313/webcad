@@ -6987,7 +6987,7 @@ export default function Viewport() {
           </>)}
           {featDlg.kind === 'pushpull-edit' && (<>
             <div style={{ fontSize: 11, color: '#6b7680' }}>{tStatus(`已選面：${featDlg.params.faces ?? 1} 個（沿用原有選擇）`, lang)}</div>
-            <label title={tStatus('正數＝沿面法線拉出（加料）；負數＝壓入（減料）', lang)}>{tStatus('距離', lang)} <FeatNum k="dist" v={featDlg.params.dist} w={64} /> mm</label>
+            <label title={tStatus('正數＝沿面法線拉出（加料）；負數＝壓入（減料）', lang)}>{tStatus('距離', lang)} <FeatNum k="dist" v={featDlg.params.dist} w={64} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
             {Number(featDlg.params.dist) < 0 && <div role="status" data-testid="pushpull-neg-note" style={{ fontSize: 11, color: '#b54708' }}>{tStatus('負距離：壓入（減料）', lang)}</div>}
           </>)}
           {featDlg.kind === 'mirror' && (<>

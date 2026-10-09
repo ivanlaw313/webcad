@@ -22,6 +22,7 @@ test('#3 default body names (實體N / 複製實體N / Body N) are not reused as
 test('#3 body right-click 「建立組件」: tree (active + parked) and viewport (face / body) menus', () => {
   assert.ok(treeMenuKeys('activeBody').includes('createComp'))
   assert.ok(treeMenuKeys('parkedBody').includes('createComp'))
+  assert.ok(treeMenuKeys('parkedBody').includes('activate'))   // ASM2 P1
   assert.ok(modelMenuLayout('body').sectors.includes('createcomp'))
   assert.ok(modelMenuLayout('face').overflow.includes('createcomp'))
   assert.equal(typeof g().createComponentFromBody, 'function')

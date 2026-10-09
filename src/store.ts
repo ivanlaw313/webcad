@@ -2492,6 +2492,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   cycleEditPolesFace: () => Promise<void>                 // S133+（多面）：循环到下一张面（重读该面网 + 重置 deltas）
   moveEditPole: (poleIndex: number, worldDelta: [number, number, number]) => Promise<void>  // 累加该极点世界偏移入 deltas → editPolesCommit 重建变形
   startNewBody: () => Promise<void>                                       // 多实体：独立实体当前实体开新（T728）
+  activateParkedBody: (idx: number) => Promise<void>                      // ASM2 P1：獨立實體設為活動（可撤銷；之後孔／切除作用於此體）
   selectedParkedIndex: number | null                                      // SO10 / BUG-SO15-002：画布/浏览器树选中的另一半（独立实体）索引
   selectParkedBody: (idx: number | null) => void                          // 选择/取消选择独立实体（高亮 + 状态栏）
   measureParkedBody: (idx: number) => Promise<void>                       // 统一测量体过滤：量另一半（独立实体）体积（树点选 / 无画布命中时）
@@ -8022,7 +8023,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s0 = get()
     if (!s0.bodyMesh?.triangles?.length) { set({ status: '沒有活動實體可刪除' }); return }
     const start = s0.features.map((f) => f.type).lastIndexOf('newbody') + 1
-    const keepType = (t: string) => t === 'sketch' || t === 'datum' || t === 'newbody'
+    const keepType = (t: string) => t === 'sketch' || t === 'datum' || t === 'newbody' || t === 'activatebody'
     const doomed = new Set(s0.features.slice(start).filter((f) => !keepType(f.type)).map((f) => f.id))
     if (!doomed.size) { set({ status: '沒有可刪除的實體特徵' }); return }
     const nm = s0.activeBodyName || '活動實體'
@@ -16237,6 +16238,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     await get().applyFeatures([...get().features, { id: fid(), type: 'newbody', name: `實體${n}` }],
       newBodySuccessStatus(n))
   },
+  activateParkedBody: async (idx) => {
+    const s = get()
+    const parked = s.bodyMesh?.parked ?? []
+    if (!Number.isInteger(idx) || idx < 0 || idx >= parked.length) { set({ status: '設為活動：請選擇一個獨立實體' }); return }
+    const name = parked[idx].name || `實體${idx + 1}`
+    const activeName = s.activeBodyName || undefined
+    const ok = await get().applyFeatures(
+      [...s.features, { id: fid(), type: 'activatebody', target: idx, ...(activeName ? { activeName } : {}) }],
+      `已將「${name}」設為活動實體（可再右鍵其他實體「設為活動」切換）`,
+    )
+    if (ok) set({ activeBodyName: isDefaultBodyName(name) ? '' : name, selectedParkedIndex: null })
+  },
   // 实体布尔：活动实体 ⊗ 独立实体（真 B-rep — 结果仲可以继续圆角/抽壳/导 STEP；对比组件布尔嘅网格级）
   commitBodyBoolean: async (bop, target) => {
     await get().applyFeatures([...get().features, { id: fid(), type: 'bodyboolean', bop, target }],
@@ -19619,7 +19632,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       return
     } else if (d.kind === 'box' || d.kind === 'sphere' || d.kind === 'torus' || d.kind === 'cone' || d.kind === 'wedge' || d.kind === 'dome' || d.kind === 'halfcyl' || d.kind === 'pie' || d.kind === 'cylinder' || d.kind === 'prism' || d.kind === 'coil' || d.kind === 'thread') {
       // Primitives: dialog op (v1.27 box/cylinder expose ⬡新实体) > cutMode > new.
-      // BX02: box active + cylinder op=newbody parks the tool while keeping the box as Combine target.
+      // BX02 / ASM2 P1：cylinder op=newbody 令圓柱成活動體（舊箱改獨立實體）；若要箱作 Combine 目標，用 type:newbody 先泊箱。
       let rawOp = String(p.op ?? '')
       // UX3 #2：位置（CAD mm）。長方體 = 角點；圓柱／圓錐／球 = 底面中心。
       const at: [number, number, number] = [Number(p.px) || 0, Number(p.py) || 0, Number(p.pz) || 0]

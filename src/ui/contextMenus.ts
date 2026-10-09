@@ -37,7 +37,7 @@ export function modelMenuLayout(hit: ViewportHit, opts: ModelMenuOpts = {}): Men
       }
     case 'body':
       return {
-        sectors: ['repeat', 'measure', 'move', 'hidebody', 'createcomp', null, 'props', 'fit'],
+        sectors: ['repeat', 'measure', 'move', 'hidebody', 'activate', 'createcomp', 'props', 'fit'],  // ASM2 P1：設為活動
         overflow: [...showAll, 'sep', ...VIEWS],
       }
     case 'component':
@@ -79,7 +79,7 @@ export function treeMenuKeys(kind: TreeNodeKind, o: TreeMenuOpts = {}): string[]
   switch (kind) {
     // UX1 #6：活動實體行同 Fusion 實體一樣可「重新命名」／「刪除」
     case 'activeBody': return [vis, 'rename', 'createComp', 'sep', 'appearance', 'physmat', 'props', 'sep', 'fit', ...(o.canDelete === false ? [] : ['sep', 'delete'])]
-    case 'parkedBody': return [vis, 'createComp', 'sep', 'props']
+    case 'parkedBody': return [vis, 'activate', 'createComp', 'sep', 'props']  // ASM2 P1：設為活動（之後孔／切除作用於此體）
     // ASM2 #4：組件右鍵亦有「固定／取消固定」（之前只喺 ⋯ 選項列）
     case 'component': return [vis, 'isolate', ...(o.canEdit ? ['edit'] : []), ...(o.canRename ? ['rename'] : []), 'sep', o.grounded ? 'unground' : 'ground', 'sep', 'focus', 'props', 'sep', ...(o.canDelete === false ? [] : ['delete'])]
     case 'componentBody': return [vis]

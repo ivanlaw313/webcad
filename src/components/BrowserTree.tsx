@@ -23,6 +23,7 @@ function treeItemLabel(key: string, lang: string): string {
     case 'rename': return L2('重新命名', 'Rename', lang)
     case 'delete': return L2('刪除', 'Delete', lang)
     case 'createComp': return L2('建立組件', 'Create Component', lang)
+    case 'activate': return L2('設為活動', 'Set as Active', lang)
     case 'ground': return L2('固定', 'Ground', lang)
     case 'unground': return L2('取消固定', 'Unground', lang)
     case 'editSketch': return L2('編輯草圖', 'Edit Sketch', lang)
@@ -112,6 +113,7 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   rib: { icon: 'default', label: '加強筋' },
   text: { icon: 'default', label: '文字' },
   newbody: { icon: 'box', label: '新實體' },
+  activatebody: { icon: 'box', label: '設為活動' },
   bodyboolean: { icon: 'combine', label: '實體布爾' },
   split: { icon: 'default', label: '分割' },  // S128：参数化分割（保历史）
   stepbody: { icon: 'insert', label: 'STEP實體' },
@@ -507,7 +509,9 @@ function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; 
     <div className={'tree-row' + (sel ? ' sel' : '')} style={{ paddingLeft: 18, opacity: hidden || allOff ? 0.55 : 1 }} onClick={editing ? undefined : onClick}
       onContextMenu={(e) => { if ((e.target as HTMLElement).closest?.('input')) { e.stopPropagation(); return } openMenu(e, active ? 'activeBody' : 'parkedBody', { hidden, canDelete: !skLock }, {
         hide: toggle, show: toggle,
-        ...(active ? { rename: startRename, delete: del } : {}),
+        ...(active ? { rename: startRename, delete: del } : {
+          activate: () => void useApp.getState().activateParkedBody(parkedIndex!),   // ASM2 P1
+        }),
         createComp: () => void useApp.getState().createComponentFromBody(active ? null : parkedIndex),   // ASM2 #3：只轉換右鍵嗰個實體
         appearance: () => void useApp.getState().runCommand('appearance', '外觀'),
         physmat: () => void useApp.getState().runCommand('physicalmaterial', '物理材質'),
@@ -523,9 +527,11 @@ function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; 
           onBlur={(e) => commit(e.currentTarget.value)}
           onKeyDown={(e) => { e.stopPropagation(); if (imeBusy(e)) return; if (e.key === 'Enter') commit(e.currentTarget.value); else if (e.key === 'Escape') setEditing(false) }} />
       ) : (
-        <span style={{ flex: 1 }} title={active ? tStatus('單擊：屬性 · 右鍵：重新命名／刪除 · Alt+雙擊改名', lang) : undefined}
-          onDoubleClick={active ? (e) => { if (e.altKey) { e.stopPropagation(); startRename() } } : undefined}>{active && customName ? `${customName} ●` : tStatus(label, lang)}</span>
+        <span style={{ flex: 1, fontWeight: active ? 700 : undefined }} data-testid={active ? 'tree-body-active' : `tree-body-parked-${parkedIndex}`} title={active ? tStatus('單擊：屬性 · 右鍵：重新命名／刪除 · Alt+雙擊改名', lang) : tStatus('雙擊或右鍵「設為活動」：之後的孔／切除作用於此實體', lang)}
+          onDoubleClick={(e) => { if (active) { if (e.altKey) { e.stopPropagation(); startRename() } } else { e.stopPropagation(); void useApp.getState().activateParkedBody(parkedIndex!) } }}>{active && customName ? `${customName} ●` : tStatus(label, lang)}</span>
       )}
+      {!active && !editing && <span className="tw-act" data-testid={`tree-body-activate-${parkedIndex}`} title={tStatus('設為活動實體', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().activateParkedBody(parkedIndex!) }}>●</span>}
+      {!active && !editing && <button type="button" className="tw-act" data-testid={`tree-body-more-${parkedIndex}`} aria-label={tStatus('實體選項', lang)} title={tStatus('實體選項', lang)} onClick={(e) => { e.stopPropagation(); openMenu(e as unknown as ReactMouseEvent, 'parkedBody', { hidden, canDelete: !skLock }, { hide: toggle, show: toggle, activate: () => void useApp.getState().activateParkedBody(parkedIndex!), createComp: () => void useApp.getState().createComponentFromBody(parkedIndex), props: () => void useApp.getState().openPropertiesDialog(`parked:${parkedIndex}`), fit: () => useApp.getState().requestFit() }) }}>⋯</button>}
       {active && !editing && <BodyMaterialSelect />}
       {active && !editing && <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除實體（移除建立它的特徵，草圖保留；可撤銷）', lang)} onClick={(e) => { e.stopPropagation(); del() }}>🗑</span>}
     </div>

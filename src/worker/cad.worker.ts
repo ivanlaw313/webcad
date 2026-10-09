@@ -145,6 +145,8 @@ export type Feature =
   // ── 多实体（T728）──：newbody = 独立实体当前活动实体（计入 bodies 清单）并开新实体；之后嘅特征作用喺新实体。
   // bodyboolean = 活动实体 ⊗ 独立实体[target]（B-rep 级布尔，参数化、可重放），用完该独立实体被消耗。
   | { id: string; type: 'newbody'; name?: string }
+  // ASM2 P1：將獨立實體 #target 設為活動實體（與當前活動實體對調；無活動實體則直接提升並移出獨立清單）
+  | { id: string; type: 'activatebody'; target: number; activeName?: string }
   | { id: string; type: 'bodyboolean'; bop: 'fuse' | 'cut' | 'common'; target: number; keep?: boolean }  // S185 keep=保留工具体（Fusion Combine「Keep Tools」）；缺省=消耗（逐字节回放旧档）
   // Boundary Fill（当前可靠范围：两个封闭实体）。把活动实体与一个独立实体工具体切成 target-only / overlap / tool-only 三个不重叠 B-rep cell；cell 是要保留为活动体的那格，其余有效格保留为独立实体。不是把 Common 冒充完整 Boundary Fill。
   | { id: string; type: 'boundaryfill'; target: number; cell: 'target' | 'overlap' | 'tool' }
@@ -3060,7 +3062,7 @@ function buildShape(features: Feature[], noCache = false): any {
   const merge = (solid: any, op?: string) => {
     if (op === 'cut' && shape) { const tool = solid.translate(0, 0, -0.5); _recordBool(_curOpIndex, 'cut', tool); shape = shape.cut(tool) } // nudge cut tool to avoid coplanar-face boolean failures
     else if (op === 'intersect' && shape) { _recordBool(_curOpIndex, 'intersect', solid); shape = shape.intersect(solid) }
-    else if (op === 'newbody' && shape) parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape: solid })   // P2 New Body：独立实体（活动体唔郁）；无活动体时落 else = 做活动体（首体永远活动，Fusion body1 同义）
+    else if (op === 'newbody') { if (shape) parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape }); shape = solid }   // ASM2 P1：新實體做活動體（舊活動體改獨立實體，之後孔／切除作用於新體；無活動體時直接做活動體
     else { if (shape) { _recordBool(_curOpIndex, 'fuse', solid); shape = fuseRobust(shape, solid) } else shape = solid }
   }
   let prevBefore: any = null, prevWasCut = false // for cpattern: shape before the last feature + whether it was a cut
@@ -3261,7 +3263,8 @@ function buildShape(features: Feature[], noCache = false): any {
         if (!shape) shape = solid
         else if (f.operation === 'cut') { _recordBool(_i, 'cut', solid); shape = shape.cut(solid) }   // GM-γ2a：斜面拉伸切除亦录工具体供 S2
         else if (f.operation === 'intersect') { _recordBool(_i, 'intersect', solid); shape = shape.intersect(solid) }
-        else if (f.operation === 'newbody') parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape: solid })   // P2 New Body（斜面拉伸同样支持）
+        else if (f.operation === 'newbody') { if (shape) parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape }); shape = solid }   // ASM2 P1：新實體做活動體
+        
         else { _recordBool(_i, 'fuse', solid); shape = shape.fuse(solid) }
         if (_cpT) cpSnap[f.id] = { before: _cpB, after: shape ? shape.clone() : null, cutTool: _boolKindAt[_i] === 'cut' ? _boolToolAt[_i]?.clone() : undefined }
         prevBefore = snapBefore; prevWasCut = f.operation === 'cut'
@@ -3391,7 +3394,8 @@ function buildShape(features: Feature[], noCache = false): any {
         if (!shape) shape = solid
         else if (f.operation === 'cut') { _recordBool(_i, 'cut', solid); shape = shape.cut(solid) }   // GM-γ2a：录工具体（含 overshoot）供 S2 backward 重跑 — repro #2「附近开槽」正正行呢条
         else if (f.operation === 'intersect') { _recordBool(_i, 'intersect', solid); shape = shape.intersect(solid) }
-        else if (f.operation === 'newbody') parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape: solid })   // P2 New Body
+        else if (f.operation === 'newbody') { if (shape) parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape }); shape = solid }   // ASM2 P1：新實體做活動體
+        
         else { _recordBool(_i, 'fuse', solid); shape = fuseRobust(shape, solid, n) }  // 共面 fuse 兜底（实战 T744：内底凸台经典失败位）
       }
     } else if (f.type === 'revolve') {
@@ -3557,7 +3561,8 @@ function buildShape(features: Feature[], noCache = false): any {
         _recordBool(_i, f.op === 'cut' ? 'cut' : 'intersect', tool)   // GM-γ2b：车削布尔亦录工具体供 S2
         shape = out
       }
-      else if (f.op === 'newbody') parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape: solid })   // P2 New Body
+      else if (f.op === 'newbody') { if (shape) parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape }); shape = solid }   // ASM2 P1：新實體做活動體
+      
       else { _recordBool(_i, 'fuse', solid); shape = shape.fuse(solid) }
     } else if (f.type === 'stepbody') {
       // STEP B-rep 导入（T729）：预解析缓存攞 shape，clone 落树（缓存母本唔俾布尔消耗）
@@ -3568,6 +3573,14 @@ function buildShape(features: Feature[], noCache = false): any {
       // 独立实体当前活动实体 → 开新实体（之后嘅特征全部作用喺新实体；独立实体喺视口灰显）
       if (!shape) buildWarnings.push('⚠ 新实体：当前没有活动实体可另存为独立实体 — 已忽略（先起一个实体）')
       else { parkedBodies.push({ name: f.name || `實體${parkedBodies.length + 1}`, shape }); shape = null }
+    } else if (f.type === 'activatebody') {
+      // ASM2 P1：獨立實體 → 活動實體（與當前活動實體對調；無活動實體則提升並移出清單）
+      const t = parkedBodies[f.target]
+      if (!t) throw new Error(`設為活動：獨立實體 #${f.target + 1} 不存在或已被前一步消耗`)
+      const prev = shape
+      shape = t.shape
+      if (prev) parkedBodies[f.target] = { name: f.activeName || `實體${f.target + 1}`, shape: prev }
+      else parkedBodies.splice(f.target, 1)
     } else if (f.type === 'bodyboolean') {
       // 活动实体 ⊗ 独立实体（真 B-rep 布尔 — 结果仲可以圆角/抽壳/导 STEP，对比 T723 网格级组件布尔）
       const t = parkedBodies[f.target]

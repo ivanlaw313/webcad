@@ -37,7 +37,7 @@ test('BX02 v1.27: box/cylinder dialog expose ⬡新實體 op', () => {
   // UX3 #2: default op is auto (overlap → newbody); explicit ⬡新實體 still on PrimOpSelect
   assert.match(storeSrc, /box: \{ l: 80, w: 60, h: 40, op: 'auto'/)
   assert.match(storeSrc, /cylinder: \{ d: 60, h: 50, op: 'auto'/)
-  assert.match(storeSrc, /BX02: box active \+ cylinder op=newbody/)
+  assert.match(storeSrc, /BX02 \/ ASM2 P1：cylinder op=newbody/)
   assert.match(viewportSrc, /function PrimOpSelect/)
   assert.match(viewportSrc, /value="newbody"/)
   assert.match(viewportSrc, /featDlg\.kind === 'box'[\s\S]*?PrimOpSelect/)
@@ -67,13 +67,13 @@ test('BX02 LIVE-fail path: box→新实体→contained cyl→cut now rebuilds (a
   assert.ok(body && body.volume > 10000 && body.volume < 50000, `expected holed-box volume, got ${body?.volume}`)
 })
 
-test('BX02 control: box active + cyl op=newbody cut (no swap needed)', async () => {
-  const cylPark = { id: 'cyl', type: 'extrude', profile: { kind: 'circle', c: [25, 20], r: 10 }, height: 30, operation: 'newbody' }
-  const m = await w.rebuild([boxCorner, cylPark, cut])
+test('BX02 control: cyl op=newbody becomes active (ASM2 P1); keep box active via type:newbody then cyl', async () => {
+  // ASM2 P1：operation=newbody 令新建體成活動體。要「箱仍為活動、圓柱為工具」須用 type:newbody 先泊箱。
+  const park = { id: 'park', type: 'newbody', name: '實體1' }
+  const cyl = { id: 'cyl', type: 'extrude', profile: { kind: 'circle', c: [25, 20], r: 10 }, height: 30, operation: 'new' }
+  const m = await w.rebuild([boxCorner, park, cyl, cut])
   assert.deepEqual(m.failed ?? [], [], `rebuild failed: ${JSON.stringify(m.failed)}`)
   assert.ok((m.triangles?.length ?? 0) > 0)
-  const warnings = m.warnings ?? []
-  assert.ok(!warnings.some((w) => /自动对调/.test(w)), `control must not auto-swap: ${JSON.stringify(warnings)}`)
 })
 
 test('BX02 classic extrude path still rebuilds', async () => {
@@ -88,7 +88,8 @@ test('BX02: non-overlapping cut stays honest (no false swap)', async () => {
   const far = { id: 'cyl', type: 'extrude', profile: { kind: 'circle', c: [200, 200], r: 10 }, height: 30, operation: 'newbody' }
   const m = await w.rebuild([boxCorner, far, cut])
   assert.deepEqual(m.failed ?? [], [])
-  // box unchanged-ish volume (~50000); far tool consumed with no material removed
-  const body = await w.measureBodyAt([25, 20, 12])
-  assert.ok(body && body.volume > 40000, `unexpected volume ${body?.volume}`)
+  // ASM2 P1：far cyl 成活動體；box 爲獨立實體。bodyboolean cut 以獨立實體#0（箱）切活動圓柱 — 不相交 → 圓柱體積不變。
+  assert.equal(m.parked?.length, 1)
+  const body = await w.measureBodyAt([200, 200, 12])
+  assert.ok(body && body.volume > 8000 && body.volume < 12000, `far cylinder volume ${body?.volume}`)
 })

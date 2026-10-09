@@ -31,7 +31,7 @@ import { activeModelCommand, commandDisabledReason } from './cad/commandAvailabi
 import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad/viewBookmark'
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
-import { sanitizeBodyHidden, toggleHiddenKey, setHiddenKey } from './ui/contextMenus'
+import { sanitizeBodyHidden, toggleHiddenKey, setHiddenKey, parkedBodyKey as bomParkedKey } from './ui/contextMenus'
 import { removeContourEdges } from './sketch/deleteSketchEdges'
 import { applySelClick, mergeSel, type ModelSelItem, type SelMod } from './cad/modelSelection'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
@@ -5057,8 +5057,22 @@ function buildBOM(s: AppState, density?: number): { rows: string[][]; summary: s
     let comps = s.components.filter((c) => !c.hidden)
     if (!comps.length) {
       // No assembly components — fall back to the single active body so BOM works for single-part designs too.
+      // CORE16 b4 (a)：多實體（非組件）設計 —— 活動實體＋所有可見嘅獨立（暫存）實體都要入 BOM（之前只計活動實體，
+      // 例如板 157 g 漏咗另一個圓柱實體 18.5 g）。曲面件唔係實體，唔計質量。
       const bm = s.bodyMesh
-      if (bm && bm.vertices.length) comps = [{ id: 'body', name: s.projectName || 'webcad 零件', mesh: bm, pos: [0, 0, 0] }]
+      const showBodies = s.objectVis?.bodies !== false
+      const hid = s.bodyHidden ?? []
+      if (bm && showBodies) {
+        const list: typeof comps = []
+        if (bm.vertices.length && !hid.includes('active')) list.push({ id: 'body', name: s.projectName || 'webcad 零件', mesh: bm, pos: [0, 0, 0] })
+        ;(bm.parked ?? []).forEach((pb, i) => {
+          if (!pb.vertices.length || hid.includes(bomParkedKey(pb.name, i))) return
+          if (/曲面|surface|補面|补面|桥接面|橋接面|Patch/i.test(pb.name || '')) return   // 開放曲面唔係實體
+          list.push({ id: 'parked' + i, name: pb.name || `實體${i + 2}`, mesh: pb as MeshData, pos: [0, 0, 0] })
+        })
+        comps = list
+      }
+      if (comps.length) { /* ok */ }
       else { useApp.setState({ status: 'BOM 需要實體或裝配組件（先建模，或載入「齒輪組/軸承」等模板）' }); return null }
     }
     const meshVolMm3 = (m: MeshData) => {

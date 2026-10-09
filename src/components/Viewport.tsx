@@ -1,4 +1,5 @@
 import { LiveSketchReadout } from './LiveSketchReadout'
+import { HoleSketchPointsButton } from './HoleSketchPoints'
 import { revolvePointToCad, type RevolveFrameSource } from '../cad/revolvePreviewFrame'
 import { FloatingViewMenu } from './FloatingViewMenu'
 import MultiViewPanes from './MultiViewPanes'
@@ -6257,7 +6258,7 @@ export default function Viewport() {
           {!(holeD > 0) && <div role="alert" data-testid="hole-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>尺寸已拒絕：孔徑Ø必須大於 0（已清除非法預覽）</div>}
           <div style={{ color: '#6b7680', fontWeight: 600 }}>Placement</div>
           <SelectionChip label="面／草圖點" count={holePos ? 1 : 0} hint={holePos ? '已選位置；可再點面改位置' : '請在實體面上點選孔位置'} onClear={() => useApp.getState().clearHolePick()} />
-          <button className="cs-btn" title="按草圖點批量打孔：先在草圖以「點」工具放置 N 個點，再一次建立 N 個孔。" onClick={() => void useApp.getState().addHolesAtSketchPoints()}>⊙ 從草圖點批量建立</button>
+          <HoleSketchPointsButton />
           <div style={{ color: '#6b7680', fontWeight: 600, borderTop: '1px solid #d9e0e5', paddingTop: 8 }}>Shape Settings</div>
           <div style={{ color: '#6b7680' }}>孔型</div>
           <div style={{ display: 'flex', gap: 4 }}>

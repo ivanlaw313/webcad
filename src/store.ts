@@ -1588,7 +1588,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   threadFacePick: boolean                                 // T775：选圆柱面加外螺纹
   startThreadFacePick: () => void
   applyThreadFacePick: (det: { kind: string; axis?: [number, number, number]; p?: [number, number, number]; r?: number; h0?: number; h1?: number; concave?: boolean } | null) => void
-  addHolesAtSketchPoints: () => Promise<void>             // T775：草图点批量孔（法兰螺栓圈流）
+  addHolesAtSketchPoints: (sketchId?: string) => Promise<void>             // T775：草图点批量孔（法兰螺栓圈流）
   addHolesAtCpoints: () => Promise<void>                  // S151：构造点批量孔（令 construction points 驱动几何）
   drillCaxis: number | null                               // S 构造点孔钻孔方向：选中的构造轴索引（caxes[i]）— null = 顶面沿 Z（现状默认）；否则沿该轴方向斜钻/侧钻
   // T777（S54）：相切弧续画 + 切点圆 + 弧长尺寸
@@ -3964,6 +3964,7 @@ function bulgeFromMid(a: Pt, b: Pt, m: Pt): number {
 // T777：折线末段切线方向（相切弧续画用）— 直线段 = 段方向；弧段 = 终点半径向量旋 90°（方向跟弧行进）
 export { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'   // BUG(F)：纯函数搬出（node 可测）
 import { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'
+import { sketchPointsOf, finishedSketchPointCandidates, holeSnapTargetsFromSources, snapHoleXY } from './sketch/holePoints'
 
 // GM-FP2 #19：独立相切弧工具 —— 揾最近嘅现有【开放曲线端点】+ 该端点外向切线（G1 续弧起手）。
 // 只对开放 poly 端点（画完一条线/弧再由端点引相切弧嘅日常）；verts-poly 用 verts+bulges 算真切线，
@@ -15212,8 +15213,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       const u: [number, number, number] = [nn[0] / L, nn[1] / L, nn[2] / L]
       if (Math.max(Math.abs(u[0]), Math.abs(u[1]), Math.abs(u[2])) < 0.985) holeDir = u   // 非 cardinal = 斜面
     }
+    // BUG（Hole-1）：平面孔心吸附到草圖點／圓心／頂點（3mm 內），唔再落喺原始點擊位。
+    let snapMsg = ''
+    if (!holeDir) {
+      const sn = snapHoleXY([p[0], -p[2]], holeSnapTargetsFromSources(s as never, s.mode === 'sketch' && s.sketchPlane === 'XY' && !s.sketchArb ? ([...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as never) : null))
+      if (sn) { p = [sn[0], p[1], -sn[1]]; snapMsg = `◎ 已吸附草圖點 @(${+sn[0].toFixed(2)},${+sn[1].toFixed(2)}) — ` }
+    }
     return { holePos: p, holeFaceZ: onTop ? p[1] : null, holeDir,
-      status: holeDir ? `⟂ 斜面孔心已定位（沿面法向鑽 — 簡單圓孔支持斜鑽）— 設 Ø/類型後按「確定」` : `孔心已定位 — 設 Ø/類型後按「確定」（可再點改位置）` }
+      status: snapMsg + (holeDir ? `⟂ 斜面孔心已定位（沿面法向鑽 — 簡單圓孔支持斜鑽）— 設 Ø/類型後按「確定」` : `孔心已定位 — 設 Ø/類型後按「確定」（可再點改位置）`) }
   }),
   commitHole: async () => {
     // Guard the diameter up front (hole mode stays open to fix) — a 0/neg Ø was a silent no-op before.
@@ -15688,19 +15695,26 @@ export const useApp = create<AppState>((rawSet, get) => {
     } : {}))
   },
   // T775（S55-④）：草图点批量孔 — 活动草图嘅「点」实体逐个钻孔（孔径/类型食现有孔设置）
-  addHolesAtSketchPoints: async () => {
+  addHolesAtSketchPoints: async (sketchId) => {
     const s = get()
-    if (s.sketchArb || s.sketchPlane !== 'XY') { set({ status: '批量孔 v1 只支持 XY 草圖嘅點（孔一律沿 Z 鑽）' }); return }
-    const pts: Pt[] = []
-    for (const sh of [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])]) {
-      if (sh.type === 'circle' && (sh as { point?: boolean }).point) pts.push(sh.c)
+    // BUG（Hole-1）：唔再只睇進行中草圖 — 已完成嘅 XY 草圖入面嘅草圖點都得（可揀草圖；缺省最新一個）。
+    const inSk = s.mode === 'sketch'
+    const activeOk = inSk && !s.sketchArb && s.sketchPlane === 'XY'
+    let pts: Pt[] = activeOk && !sketchId ? sketchPointsOf([...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as never) : []
+    let from = '當前草圖'
+    if (!pts.length) {
+      const cands = finishedSketchPointCandidates(s as never)
+      const pick = (sketchId ? cands.find((c) => c.id === sketchId) : undefined) ?? cands[cands.length - 1]
+      if (pick) { pts = pick.pts; from = `「${pick.name}」` }
     }
-    if (!pts.length) { set({ status: '當前草圖冇草圖點 — 用「點」工具落點（每點一孔），或用「孔」對話框嘅螺栓圈' }); return }
+    if (!pts.length) {
+      set({ status: inSk && !activeOk ? '批量孔 v1 只支持 XY 草圖嘅點（孔一律沿 Z 鑽）' : '搵唔到含草圖點嘅 XY 草圖 — 用「點」工具喺草圖落點（每點一孔），或用「孔」對話框嘅螺栓圈' }); return
+    }
     if (!hasSolid(s.features)) { set({ status: '批量孔：先要有實體先鑽得' }); return }
-    get().exitSketchMode()
-    set({ status: `正在按 ${pts.length} 個草圖點打孔…` })
-    for (const c of pts) { const p2 = stToProfile(c, 'XY'); await get().addHole(p2[0], p2[1]) }
-    set({ status: `已按 ${pts.length} 個草圖點打孔（Ø${get().holeD}，孔一律由頂面沿 Z 鑽 — 草圖點只供 XY 位置）` })
+    if (inSk) get().exitSketchMode()
+    set({ status: `正在按${from} ${pts.length} 個草圖點打孔…` })
+    for (const c of pts) await get().addHole(c[0], c[1])
+    set({ status: `已按${from} ${pts.length} 個草圖點打孔（Ø${get().holeD}，孔一律由頂面沿 Z 鑽 — 草圖點只供 XY 位置）` })
   },
   // S151：构造点批量孔 —— 镜像 addHolesAtSketchPoints，源换 s.cpoints（3D world 点）。令 construction points 真正【驱动
   // 几何】（Fusion Hole-at-points 同款），唔再只系 render/snap-only。孔一律由顶面沿 Z 钻，取构造点 x,y 做孔心（z 无关）。

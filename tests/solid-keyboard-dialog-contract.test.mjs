@@ -10,7 +10,9 @@ const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 
 test('SOLID dialogs keep Enter/Escape active while a numeric input is focused', () => {
-  assert.match(app, /const editingText = !!t && \(t\.tagName === 'INPUT' \|\| t\.tagName === 'TEXTAREA' \|\| t\.isContentEditable\)/)
+  // Field check covers both the event target and document.activeElement (focused field never leaks keys).
+  assert.match(app, /const isField = \(el: HTMLElement \| null\) => !!el && \(el\.tagName === 'INPUT' \|\| el\.tagName === 'TEXTAREA' \|\| el\.tagName === 'SELECT' \|\| el\.isContentEditable\)/)
+  assert.match(app, /const editingText = isField\(t\) \|\| isField\(ae\)/)
   assert.match(app, /editingText && !e\.ctrlKey && !e\.metaKey && e\.key !== 'Enter' && e\.key !== 'Escape'/)
 })
 

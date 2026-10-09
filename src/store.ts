@@ -4816,6 +4816,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   type DimSession={before:AppState;revision:unknown[];id:string;request:number;wanted:DimPatch|null;key:string|null;candidate:DimCandidate|null}
   let dimSession:DimSession|null=null,dimPreviewWork:Promise<void>|null=null,dimEditEpoch=0
   const dimSessionCurrent=(session:DimSession)=>dimSession===session&&patternRevision(get()).every((v,i)=>v===session.revision[i])
+  // Returns true when the sketch changed under us (caller must abort arming).
+  const endDrawForConstraint=async()=>{
+    const s0=get()
+    const drawTool=s0.sketchTool==='polyline'||s0.sketchTool==='spline'||s0.sketchTool==='bspline'
+    if(drawTool&&s0.polyPts.length>=2&&!s0.sketchStart){
+      await get().finishOpenPolyline()
+      return get().mode!=='sketch'
+    }
+    return false
+  }
   const cancelSkDimEdit=()=>{++dimEditEpoch;dimSession=null;set({skDimPreview:emptyDimPreview()})}
   const beginSkDimEdit=(id:string)=>{
     cancelSkDimEdit()
@@ -8217,7 +8227,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     const conShapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
     // GM-FP2 #34 tool-first：撳约束掣但（未有合适选择 / 唔喺 select 工具）→ 进入「拣对象」武装态（Fusion），保持 select-first 兼容
     if (!conApplicable(t, s.skSel, conShapes)) {
-      set({ sketchTool: 'select', skArmedCon: t, sizing: null, toolPreview: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: `施約束「${SK_CON_ZH[t]}」：揀要約束嘅對象 — ${SK_CON_REQ[t]}（揀夠即施加、保持武裝；ESC 退出）` })
+      // Arming a constraint ends any in-progress draw gesture first (Fusion: picking a constraint
+      // command terminates the line command). A ≥2-pt polyline is kept as committed geometry (same as
+      // Esc); a lone start point / rubber band is discarded so no canvas click can extend it.
+      if (await endDrawForConstraint()) return
+      set({ sketchTool: 'select', skArmedCon: t, sketchStart: null, sketchPreview: null, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, sketchSnap: null, snapSrc: null, sizing: null, toolPreview: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: `施約束「${SK_CON_ZH[t]}」：揀要約束嘅對象 — ${SK_CON_REQ[t]}（揀夠即施加、保持武裝；ESC 退出）` })
       return
     }
     if(s.skPatternData){
@@ -8283,7 +8297,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.mode !== 'sketch') return
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
     const edges = s.skSel.filter((r) => r.kind === 'edge' || r.kind === 'refedge')
-    if (!edges.length) { set({ sketchTool: 'select', skArmedCon: 'h', status: '水平/豎直（合一）：揀一條或多條邊 — 按邊嘅方向自動判定水平定豎直施加' }); return }
+    if (!edges.length) { if (await endDrawForConstraint()) return; set({ sketchTool: 'select', skArmedCon: 'h', sketchStart: null, sketchPreview: null, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, sketchSnap: null, snapSrc: null, status: '水平/豎直（合一）：揀一條或多條邊 — 按邊嘅方向自動判定水平定豎直施加' }); return }
     const add: SkCon[] = []
     for (const r of edges) {
       const ep = skRefPts(shapes, r as SkRef)
@@ -10180,7 +10194,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // (X Tab Y Enter). Gives exact position control in the freehand sketch (e.g. circle centre at 20,15).
     const placingStart = s.sketchStart == null && s.polyPts.length === 0
     if (placingStart) {
-      const startReadout = (b: string[], f: number) => `⌖ 起点 X ${f === 0 ? `[${b[0] || '_'}]` : (b[0] || '_')} , Y ${f === 1 ? `[${b[1] || '_'}]` : (b[1] || '_')} mm　(打字定位·Tab 换 X/Y·Enter 放点)`
+      const startReadout = (b: string[], f: number) => `⌖ 起點 X ${f === 0 ? `[${b[0] || '_'}]` : (b[0] || '_')} , Y ${f === 1 ? `[${b[1] || '_'}]` : (b[1] || '_')} mm　(打字定位·Tab 換 X/Y·Enter 放點)`
       if (/^[0-9.\-]$/.test(key)) { buf[s.dimField] = (buf[s.dimField] + key).slice(0, 9); return { dimBuf: buf, sketchDim: startReadout(buf, s.dimField) } }
       if (key === 'Backspace') { buf[s.dimField] = buf[s.dimField].slice(0, -1); return { dimBuf: buf, sketchDim: startReadout(buf, s.dimField) } }
       if (key === 'Tab') { const nf = s.dimField === 0 ? 1 : 0; return { dimField: nf, sketchDim: startReadout(buf, nf) } }
@@ -23417,6 +23431,18 @@ useApp.subscribe((s, prev) => {
 useApp.subscribe((s, prev) => {
   const fields: (keyof AppState)[] = ['shellMode', 'mode', 'shellPicks', 'shellThickness', 'shellType', 'shellDir', 'shellTangentChain', 'features', 'bodyMesh', 'params', 'paramBindings', 'suppressedIds']
   if ((s.shellMode || prev.shellMode) && fields.some(k => s[k] !== prev[k])) s.scheduleShellPreview()
+})
+
+// Snap/hover feedback (sketchSnap, snapSrc.seg, skHover) is computed by onSketchMove against the
+// geometry under the cursor at that instant. When a constraint, solve, drag or undo replaces the
+// sketch geometry while the pointer is still (tool-first 水平/豎直/重合/相切: the pick click lands on
+// the edge midpoint and the solver then moves that edge), the cached snapSrc.seg kept drawing the
+// PRE-solve edge — users saw the old line stay put plus a "new" constrained stub. Invalidate the
+// transient feedback whenever the geometry identity changes; the next pointer move recomputes it.
+useApp.subscribe((s, prev) => {
+  if (s.sketchProfiles === prev.sketchProfiles && s.sketchShape === prev.sketchShape) return
+  if (!s.sketchSnap && !s.snapSrc && !s.skHover) return
+  useApp.setState({ sketchSnap: null, snapSrc: null, skHover: null })
 })
 
 useApp.subscribe((s,prev)=>{

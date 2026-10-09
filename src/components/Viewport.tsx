@@ -4384,7 +4384,7 @@ export default function Viewport() {
         // clicking the canvas blurs any focused input — otherwise single-letter shortcuts (D/E/F/...)
         // stay dead after typing in a field (the global keydown handler ignores INPUT targets)
         const ae = document.activeElement as HTMLElement | null
-        if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.tagName === 'TEXTAREA') && !(e.target as HTMLElement).closest?.('input,select,textarea')) ae.blur()
+        if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.tagName === 'TEXTAREA') && !(e.target as HTMLElement).closest?.('input,select,textarea,[data-dim-editor]')) ae.blur()   // dim editor's own ✓/✕/⋮ keep its input focused
         if (e.button === 2) rcDown.current = { x: e.clientX, y: e.clientY }
       }}
       onContextMenu={(e) => {

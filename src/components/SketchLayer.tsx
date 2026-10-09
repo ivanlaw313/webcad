@@ -2838,7 +2838,11 @@ export function SketchDimLayer() {
       {labels.map((l) => editing === l.key && l.edit
         ? (
           // GM-FP4 #32：编辑框旁 ⋮ 显示尺寸参数名（d1/d2…）— 提示佢系命名参数，可喺其它尺寸公式引用（如 d1*2）。
-          <div key={l.key} ref={reg(l.key)} style={{ ...LBL, background: '#fff', color: '#0d4f8c', border: '1px solid #0d4f8c', padding: '1px 3px', display: 'inline-flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', gap: 2, pointerEvents: 'auto' }}>
+          // The editor box is ONLY the input, centred where the label was; ✓/✕/⋮name/error hang off its right
+          // edge (absolute). Previously the flex row (input+✓+✕+⋮) re-centred on the anchor, so the 2nd press
+          // of a double-click landed on ✓ — the Viewport pointerdown blur + ✓ then committed/cancelled the
+          // editor and the next digits fell through to sketch type-to-place (only "8" of "80" applied).
+          <div key={l.key} ref={reg(l.key)} data-dim-editor="" style={{ ...LBL, background: '#fff', color: '#0d4f8c', border: '1px solid #0d4f8c', padding: '1px 3px', display: 'inline-flex', minWidth: 0, alignItems: 'center', pointerEvents: 'auto', overflow: 'visible' }}>
             <input
               autoFocus value={val} aria-label={tStatus('尺寸数值', lang)}
               onFocus={(e) => e.currentTarget.select()}
@@ -2847,6 +2851,7 @@ export function SketchDimLayer() {
               onKeyDown={(e) => { e.stopPropagation(); if (e.nativeEvent.isComposing || e.keyCode === 229) return; if (e.key === 'Enter') void commit(l.edit!); else if (e.key === 'Escape') {e.preventDefault();cancelDimension()} }}
               style={{ width: l.expression ? 168 : 64, minWidth: 40, maxWidth: '100%', padding: 0, textAlign: 'center', border: 'none', outline: 'none', background: 'transparent', color: '#0d4f8c', fontWeight: 600, fontSize: 11 }}
             />
+            <span style={{ position: 'absolute', left: '100%', top: -1, marginLeft: 2, display: 'inline-flex', alignItems: 'center', gap: 2, background: '#fff', border: '1px solid #0d4f8c', borderRadius: 3, padding: '1px 3px', whiteSpace: 'nowrap' }}>
             {l.edit.dim==='con'&&<>
               <button aria-label="Confirm dimension" disabled={!!inputError||dimPreview.pending||!!dimPreview.error||!dimPreview.shapes} onMouseDown={e=>e.preventDefault()} onClick={()=>void commit(l.edit!)}>✓</button>
               <button aria-label="Cancel dimension" onMouseDown={e=>e.preventDefault()} onClick={cancelDimension}>✕</button>
@@ -2859,6 +2864,7 @@ export function SketchDimLayer() {
                 style={{ fontSize: 9, color: '#6b7884', borderLeft: '1px solid #cdd8e0', paddingLeft: 2, cursor: 'default', userSelect: 'none' }}
               >⋮{l.name}</span>
             )}
+            </span>
           </div>
         ) : (
           <div

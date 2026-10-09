@@ -84,7 +84,11 @@ export default function App() {
       // two command-dialog keys Fusion users rely on: Enter commits and Esc
       // cancels even while a numeric field has focus.  Modifier shortcuts (undo,
       // redo, save…) must stay available too.
-      const editingText = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
+      // Check the focused element too, not only e.target: a key dispatched while focus sits in a field
+      // (or retargeted to body mid-rerender) must never reach sketch type-to-place / single-key shortcuts.
+      const ae = document.activeElement as HTMLElement | null
+      const isField = (el: HTMLElement | null) => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)
+      const editingText = isField(t) || isField(ae)
       if (editingText && (e.ctrlKey || e.metaKey) && ['z', 'y'].includes(e.key.toLowerCase())) return
       if (editingText && !e.ctrlKey && !e.metaKey && e.key !== 'Enter' && e.key !== 'Escape') return
       // UI02: Escape in a free text/number field (dimension edit, document name, …)
@@ -93,7 +97,7 @@ export default function App() {
       if (editingText && e.key === 'Escape') {
         // BUG-UI-002: timeline feature-dimension editor (.feat-editor) is a dialog-class overlay —
         // Esc must close it (selectFeature null), not get swallowed as a free-text local cancel.
-        const inDialog = !!(t.closest?.('[role="dialog"], .cmd-palette, .feat-editor'))
+        const inDialog = !!((isField(t) ? t : ae)?.closest?.('[role="dialog"], .cmd-palette, .feat-editor'))
         if (!inDialog) return
       }
       if (e.ctrlKey || e.metaKey) {
@@ -165,7 +169,9 @@ export default function App() {
       }
       // Before the first point: typing a digit/'.'/'-' starts ABSOLUTE start-coordinate entry (X Tab Y Enter)
       // for the active draw tool. Tab/Enter/Backspace only when a buffer's started (avoid placing 0,0 by accident).
-      if (s.mode === 'sketch' && s.sketchStart == null && s.polyPts.length === 0) {
+      // Not for pick tools (select/dimension) nor while a dimension editor session is open — there a stray
+      // digit (focus lost mid-edit) used to arm a ghost 「起點」 entry instead of reaching the dimension.
+      if (s.mode === 'sketch' && s.sketchStart == null && s.polyPts.length === 0 && s.sketchTool !== 'select' && s.sketchTool !== 'dimension' && !s.skDimPreview.id) {
         const hasBuf = !!(s.dimBuf[0] || s.dimBuf[1])
         if (/^[0-9.\-]$/.test(e.key) || ((e.key === 'Enter' || e.key === 'Tab' || e.key === 'Backspace') && hasBuf)) {
           e.preventDefault(); s.sketchTypeKey(e.key); return

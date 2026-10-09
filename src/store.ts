@@ -436,8 +436,8 @@ const bumpFid = (feats: { id: string }[]) => { for (const f of feats) { const n 
 // Map a sketch-local 2D point [s,t] to the CAD profile coords for the active plane.
 // XY: [s,-t] (existing top-view flip). XZ(front): identity. YZ(right): [-s,t].
 // These mirror the on-screen lift mappings in SketchLayer so drawn ⇄ solid coincide.
-const stToProfile = ([s, t]: Pt, plane: Plane): [number, number] =>
-  plane === 'XZ' ? [s, t] : plane === 'YZ' ? [-s, t] : [s, -t]
+// RETEST18 #4：同 holePoints / 狀態列讀數共用 sketch/planeCoords（單一真源，冇 Y 鏡像分歧）。
+const stToProfile = (p: Pt, plane: Plane): [number, number] => sketchLocalToPlane(p, plane)
 // S128：把 CAD 点 [x,y,z]（Z-up）投到主平面卡片坐标 [s,t,n]（n = 沿法向有符号距离）。
 // 必须同 computeRefGeo 嘅 `map`（freesolve.ts）逐字一致，令投影点同 footprint refpt + 立出嘅实体重合。
 const projCardinal = (x: number, y: number, z: number, plane: Plane): [number, number, number] =>
@@ -4029,6 +4029,7 @@ function bulgeFromMid(a: Pt, b: Pt, m: Pt): number {
 export { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'   // BUG(F)：纯函数搬出（node 可测）
 import { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'
 import { sketchPointsOf, finishedSketchPointCandidates, holeSnapTargetsFromSources, snapHoleXY } from './sketch/holePoints'
+import { sketchLocalToPlane } from './sketch/planeCoords'
 import { resolveCoilOp } from './cad/coilOp'
 
 // GM-FP2 #19：独立相切弧工具 —— 揾最近嘅现有【开放曲线端点】+ 该端点外向切线（G1 续弧起手）。
@@ -9889,7 +9890,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (s.sketchTool === 'point') {
         // 草图点（Fusion Point）：单击即落一个构造点（r=0 圆，只有可约束嘅圆心）— 钻孔定位/对称轴锚日常。
         const ptShape: SketchShape = { type: 'circle', c: pt, r: 0, point: true, construction: true }
-        return { sketchProfiles: [...s.sketchProfiles, ptShape], status: `已落草圖點 (${pt[0].toFixed(1)}, ${pt[1].toFixed(1)}) — 可繼續點擊落點，或用 D 對佢標尺寸` }
+        const shown = s.sketchArb ? pt : sketchLocalToPlane(pt, s.sketchPlane)   // RETEST18 #4：報平面 CAD 座標（同孔落點一致）
+        return { sketchProfiles: [...s.sketchProfiles, ptShape], status: `已落草圖點 (${shown[0].toFixed(1)}, ${shown[1].toFixed(1)}) — 可繼續點擊落點，或用 D 對佢標尺寸` }
       }
       if (s.sketchTool === 'rectangle') {
         if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '再點第二個角點完成矩形' }
@@ -15975,7 +15977,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (inSk) get().exitSketchMode()
     set({ status: `正在按${from} ${pts.length} 個草圖點打孔…` })
     for (const c of pts) await get().addHole(c[0], c[1])
-    set({ status: `已按${from} ${pts.length} 個草圖點打孔（Ø${get().holeD}，孔一律由頂面沿 Z 鑽 — 草圖點只供 XY 位置）` })
+    const at = pts.slice(0, 4).map((c) => `(${+c[0].toFixed(2)},${+c[1].toFixed(2)})`).join(' ') + (pts.length > 4 ? ' …' : '')
+    set({ status: `已按${from} ${pts.length} 個草圖點打孔 @ ${at}（Ø${get().holeD}，孔一律由頂面沿 Z 鑽 — 草圖點只供 XY 位置）` })
   },
   // S151：构造点批量孔 —— 镜像 addHolesAtSketchPoints，源换 s.cpoints（3D world 点）。令 construction points 真正【驱动
   // 几何】（Fusion Hole-at-points 同款），唔再只系 render/snap-only。孔一律由顶面沿 Z 钻，取构造点 x,y 做孔心（z 无关）。

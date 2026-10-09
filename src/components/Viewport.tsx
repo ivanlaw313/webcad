@@ -136,6 +136,7 @@ import type { MeshData } from '../worker/cad.worker'
 import { fitCameraDistance } from '../cad/fitCameraDistance'
 import { computeFK, solve4Bar, solveSliderCrank, solveSixBar, jointDragFrame, jointDragLiveValue, jointDragStatus, drivingJointOf, JOINT_LABEL_TC, type Joint } from '../assembly/kinematics'
 import { claimGumballPointer } from '../assembly/gumballPick'   // RETEST18 #1：把手指標路徑
+import { sketchCursorReadout } from '../sketch/planeCoords'   // RETEST18 #4：光標讀數 = 平面 CAD 座標（XY 唔再 Y 反號）
 import { localizeAsmName } from '../assembly/names'   // RETEST17 #3：組件/關節預設名繁體顯示
 import { assemblyMassSummary, threeToCadPoint } from '../assembly/asmMass'   // BUG(C)：装配质心用 FK 世界矩阵
 import { getProcTexture } from '../render/procTextures'   // S101[8]：程序化纹理（三平面投影）
@@ -7488,7 +7489,7 @@ export default function Viewport() {
                 onClick={() => { const n = !snapPaused; setSnapPaused(n); setGeoSnapAlt(n) }}>{tStatus('⏸吸附', lang)}</button>
             </span>
           )}
-          {sketchPreview && <span className="sb-hint" title={tStatus('當前光標在草圖平面的 (X, Y) 坐標 mm（已吸附）', lang)} style={{ fontVariantNumeric: 'tabular-nums', color: '#5a6b78' }}>⌖ {sketchPreview[0].toFixed(1)}, {sketchPreview[1].toFixed(1)}</span>}
+          {sketchPreview && <span className="sb-hint" title={tStatus('當前光標在草圖平面的 (X, Y) 坐標 mm（已吸附）', lang)} style={{ fontVariantNumeric: 'tabular-nums', color: '#5a6b78' }}>⌖ {(() => { const r = sketchCursorReadout(sketchPreview, sketchPlane, !!sketchArb); return `${r[0].toFixed(1)}, ${r[1].toFixed(1)}` })()}</span>}
           {sketchArb ? <span className="sb-hint">{tStatus('自定草圖平面', lang)}</span> : <label className="sb-hint" title={tStatus('草圖平面：上=水平面 XY；前=豎直面 XZ（拉伸沿 Y 出料）；右=豎直面 YZ（拉伸沿 X 出料）。做 L 形件/加強筋時選豎直面。', lang)}>{tStatus('面', lang)}
             <select value={sketchPlane} onChange={(e) => setSketchOrient(e.target.value as 'XY' | 'XZ' | 'YZ')}>
               <option value="XY">{tStatus('上 XY', lang)}</option>

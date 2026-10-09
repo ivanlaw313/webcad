@@ -5,8 +5,9 @@ type Shape = { type: string; c?: P2; r?: number; point?: boolean; a?: P2; b?: P2
 type Src = { shapes: Shape[]; plane: string; arb?: unknown; name?: string }
 export type HolePointSketch = { id: string; name: string; pts: P2[] }
 
-// sketch-local [s,t] → CAD XY（同 store stToProfile 'XY'：[s,-t]）
-const xy = (p: P2): P2 => [p[0], -p[1]]
+import { sketchLocalToPlane } from './planeCoords'
+// sketch-local [s,t] → CAD XY（同 store stToProfile 'XY' — 共用 planeCoords 單一真源）
+const xy = (p: P2): P2 => sketchLocalToPlane(p, 'XY')
 
 export function sketchPointsOf(shapes: readonly Shape[]): P2[] {
   const out: P2[] = []

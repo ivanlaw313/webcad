@@ -1,4 +1,5 @@
 import { activeModelCommand } from '../cad/commandAvailability'
+import { localizeAsmName } from '../assembly/names'   // BUG(E)：裝配名繁體顯示
 import { useState, useRef, useEffect, createContext, useContext, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react'
 import { ToolIcon } from '../icons'
 import { useApp, MATERIALS, compWorldMatrix, datumVisKey, type AppState } from '../store'
@@ -341,7 +342,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
           onBlur={() => { rename(c.id, name || c.name); setEditing(false) }}
           onKeyDown={(e) => { if (e.key === 'Enter') { rename(c.id, name || c.name); setEditing(false) } }} />
       ) : (
-        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} title={tStatus(`「${c.name}」 ${compDimsStr(c.mesh)}（雙擊參數化件=進入編輯；Alt+雙擊=改名；點選=屬性）`, lang)} onClick={() => { if (compBoolPending) selectComponent(c.id); else selectComponent(c.id === sel ? null : c.id) }} onDoubleClick={(e) => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.formSource && !e.altKey) { useApp.getState().editFormComponent(c.id) } else if (cc?.src?.features?.length && !e.altKey) { selectComponent(c.id); void useApp.getState().editComponent(c.id) } else { setName(c.name); setEditing(true) } }}>{c.name}</span>
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} title={tStatus(`「${localizeAsmName(c.name, lang)}」 ${compDimsStr(c.mesh)}（雙擊參數化件=進入編輯；Alt+雙擊=改名；點選=屬性）`, lang)} onClick={() => { if (compBoolPending) selectComponent(c.id); else selectComponent(c.id === sel ? null : c.id) }} onDoubleClick={(e) => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.formSource && !e.altKey) { useApp.getState().editFormComponent(c.id) } else if (cc?.src?.features?.length && !e.altKey) { selectComponent(c.id); void useApp.getState().editComponent(c.id) } else { setName(c.name); setEditing(true) } }}>{localizeAsmName(c.name, lang)}</span>
       )}
       {grounded && <span data-testid="comp-grounded" title={tStatus('已固定（Ground）— 不可拖動，關節不會驅動', lang)} style={{ fontSize: 10, color: '#8a5a00', marginRight: 2, flexShrink: 0 }}>📌{tStatus('(已固定)', lang)}</span>}
       {shareCount > 1 && <span title={tStatus(`${shareCount} 個實例共享同一定義 — 編輯任一，全部更新（「獨立複製」可脫離）`, lang)} style={{ fontSize: 10, fontWeight: 600, color: '#1572c4', background: 'rgba(21,114,196,.12)', borderRadius: 3, padding: '0 4px', marginRight: 2, flexShrink: 0 }}>×{shareCount}</span>}

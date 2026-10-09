@@ -3,14 +3,17 @@ import type React from 'react'
 import { Euler, Quaternion, Vector3 } from 'three'
 import { useApp } from '../store'
 import { useDraggable } from './useDraggable'
-import { JOINT_LABEL, totalDOF, resolveJointOrigin, cadAxisToWorld, type JointType } from '../assembly/kinematics'
-import { findLoops } from '../assembly/linkage'   // T779：DOF 闭环 Grübler 修正
+import { JOINT_LABEL_TC, totalDOF, resolveJointOrigin, cadAxisToWorld, type JointType } from '../assembly/kinematics'
+import { findLoops } from '../assembly/linkage'
+import { localizeAsmName } from '../assembly/names'   // BUG(E)：繁體模式顯示名
+import { tStatus } from '../i18n'   // T779：DOF 闭环 Grübler 修正
 
 // BUG(D-axis)：X/Y/Z = CAD 軸（Z 向上）→ three 世界向量（cadAxisToWorld）。
 const AXES: { k: 'X' | 'Y' | 'Z'; v: [number, number, number] }[] = (['X', 'Y', 'Z'] as const).map((k) => ({ k, v: cadAxisToWorld(k) }))
 const TYPES: JointType[] = ['revolute', 'slider', 'cylindrical', 'pinslot', 'ball', 'planar', 'screw', 'rigid']
 
 export default function JointsPanel() {
+  const lang = useApp((s) => s.lang)
   const components = useApp((s) => s.components)
   const joints = useApp((s) => s.joints)
   const addJoint = useApp((s) => s.addJoint)
@@ -225,7 +228,7 @@ export default function JointsPanel() {
   }
   // DOF breakdown by joint type (e.g. "2旋转 · 1滑动") — a quick read of the mechanism's mobility.
   const byType = joints.reduce((m, j) => { m[j.type] = (m[j.type] || 0) + 1; return m }, {} as Record<string, number>)
-  const breakdown = Object.entries(byType).map(([t, n]) => `${n}${JOINT_LABEL[t as JointType]}`).join(' · ')
+  const breakdown = Object.entries(byType).map(([t, n]) => `${n}${tStatus(JOINT_LABEL_TC[t as JointType], lang)}`).join(' · ')
   // 闭环 Grübler 修正：每个平面环减 3 — 切口锚点闭合 2 条约束 + back-edge 关节值变从动 1。
   // 验算：四连杆 4−3=1 ✓；曲柄滑块 4−3=1 ✓；Stephenson 六杆 7−2×3=1 ✓。
   const mechDOF = Math.max(0, totalDOF(joints) - 3 * findLoops(useApp.getState().components.map((c) => c.id), joints).length)
@@ -254,8 +257,8 @@ export default function JointsPanel() {
       {joints.map((j) => (
         <div key={j.id} className="jp-joint" data-joint-id={j.id}>
           <div className="jp-row">
-            <b>{j.name}</b>
-            <span className="jp-type">{JOINT_LABEL[j.type]}</span>
+            <b>{localizeAsmName(j.name, lang)}</b>
+            <span className="jp-type">{tStatus(JOINT_LABEL_TC[j.type], lang)}</span>
             <span className="jp-cc">{name(j.parent)} → {name(j.child)}</span>
             <button className="cs-x" style={holePicking === j.id ? { color: '#ff8a2a' } : undefined} title="🎯 拾孔定軸：點此後再點零件上一個【圓柱孔/軸面】→ 關節錨點對到孔心、轉軸沿孔軸（鉸鏈/轉軸裝到指定孔位）" onClick={() => startJointHolePick(j.id)}>🎯</button>
             {j.type !== 'rigid' && <button className="cs-x" style={posFor === j.id ? { color: '#ff8a2a' } : undefined} title="GM-3DV4 A2/A3：位置 / Rest — 兩原點之間嘅靜止偏移(X/Y/Z + 角度 + Flip) + 靜止(Rest)位。" onClick={() => setPosFor(posFor === j.id ? '' : j.id)}>⚓</button>}
@@ -360,10 +363,10 @@ export default function JointsPanel() {
       ))}
 
       <div className="jp-add">
-        <select value={parent} onChange={(e) => setParent(e.target.value)}>{components.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+        <select value={parent} onChange={(e) => setParent(e.target.value)}>{components.map((c) => <option key={c.id} value={c.id}>{localizeAsmName(c.name, lang)}</option>)}</select>
         <span>→</span>
-        <select value={child} onChange={(e) => setChild(e.target.value)}>{components.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-        <select value={type} onChange={(e) => setType(e.target.value as JointType)}>{TYPES.map((t) => <option key={t} value={t}>{JOINT_LABEL[t]}</option>)}</select>
+        <select value={child} onChange={(e) => setChild(e.target.value)}>{components.map((c) => <option key={c.id} value={c.id}>{localizeAsmName(c.name, lang)}</option>)}</select>
+        <select value={type} onChange={(e) => setType(e.target.value as JointType)}>{TYPES.map((t) => <option key={t} value={t}>{tStatus(JOINT_LABEL_TC[t], lang)}</option>)}</select>
         <select value={axis} onChange={(e) => setAxis(e.target.value as 'X' | 'Y' | 'Z')} disabled={!!originRef} title={originRef ? '已引用關節原點 — 軸由原點決定' : '關節軸（X/Y/Z）'}>{AXES.map((a) => <option key={a.k} value={a.k}>{a.k} 軸</option>)}</select>
         {jointOrigins.length > 0 && (
           <select value={originRef} onChange={(e) => setOriginRef(e.target.value)} title="父件關節原點：作為關節錨點與軸。選擇兩個原點可先對準子件位置。">
@@ -425,9 +428,9 @@ export default function JointsPanel() {
             </div>
           ))}
           <div className="jp-add">
-            <select value={csA || components[0]?.id} onChange={(e) => setCsA(e.target.value)}>{components.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+            <select value={csA || components[0]?.id} onChange={(e) => setCsA(e.target.value)}>{components.map((c) => <option key={c.id} value={c.id}>{localizeAsmName(c.name, lang)}</option>)}</select>
             <span>↔</span>
-            <select value={csB || components[1]?.id} onChange={(e) => setCsB(e.target.value)}>{components.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+            <select value={csB || components[1]?.id} onChange={(e) => setCsB(e.target.value)}>{components.map((c) => <option key={c.id} value={c.id}>{localizeAsmName(c.name, lang)}</option>)}</select>
             <button className="cs-btn" title="登記一對命名接觸集" onClick={() => useApp.getState().addContactPair(csA || components[0]?.id, csB || components[1]?.id)}>+ 接觸對</button>
           </div>
         </div>
@@ -477,18 +480,18 @@ export default function JointsPanel() {
             </div>
           ))}
           <div className="jp-add">
-            <select value={mlDrv || rotJoints[0]?.id} onChange={(e) => setMlDrv(e.target.value)} title="主動關節">{rotJoints.map((j) => <option key={j.id} value={j.id}>{j.name}</option>)}</select>
+            <select value={mlDrv || rotJoints[0]?.id} onChange={(e) => setMlDrv(e.target.value)} title="主動關節">{rotJoints.map((j) => <option key={j.id} value={j.id}>{localizeAsmName(j.name, lang)}</option>)}</select>
             <span>→</span>
-            <select value={mlDvn || rotJoints[1]?.id} onChange={(e) => setMlDvn(e.target.value)} title="從動關節">{rotJoints.map((j) => <option key={j.id} value={j.id}>{j.name}</option>)}</select>
+            <select value={mlDvn || rotJoints[1]?.id} onChange={(e) => setMlDvn(e.target.value)} title="從動關節">{rotJoints.map((j) => <option key={j.id} value={j.id}>{localizeAsmName(j.name, lang)}</option>)}</select>
             <input type="number" step={0.1} value={mlRatio} title="傳動比：齒輪齧合用 -(主齒數/從齒數)，例 -1（同徑反向）" onChange={(e) => setMlRatio(Number(e.target.value))} style={{ width: 52 }} />
             <button className="cs-btn" onClick={() => addMotionLink(mlDrv || rotJoints[0]?.id, mlDvn || rotJoints[1]?.id, mlRatio, undefined, ml2On && rotJoints.length >= 3 ? (mlDrv2 || rotJoints[2]?.id) : undefined, ml2On ? mlRatio2 : undefined)}>+ 連接</button>
           </div>
           {rotJoints.length >= 3 && (
             <div className="jp-add" style={{ fontSize: 11, alignItems: 'center', gap: 4, marginTop: 2 }} title="雙驅動（行星動畫）：從動 = 比1×驅動1 + 比2×驅動2 — 行星輪自轉 = a×太陽 + b×行星架。勾選後「+ 連接」帶埋第二驅動">
-              <label style={{ display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer' }}><input type="checkbox" checked={ml2On} onChange={(e) => setMl2On(e.target.checked)} /> 双驱动</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer' }}><input type="checkbox" checked={ml2On} onChange={(e) => setMl2On(e.target.checked)} /> 雙驅動</label>
               {ml2On && (<>
                 <span>＋</span>
-                <select value={mlDrv2 || rotJoints[2]?.id} onChange={(e) => setMlDrv2(e.target.value)} title="第二驅動關節">{rotJoints.map((j) => <option key={j.id} value={j.id}>{j.name}</option>)}</select>
+                <select value={mlDrv2 || rotJoints[2]?.id} onChange={(e) => setMlDrv2(e.target.value)} title="第二驅動關節">{rotJoints.map((j) => <option key={j.id} value={j.id}>{localizeAsmName(j.name, lang)}</option>)}</select>
                 <span>×</span>
                 <input type="number" step={0.1} value={mlRatio2} title="第二驅動嘅比" onChange={(e) => setMlRatio2(Number(e.target.value))} style={{ width: 52 }} />
               </>)}

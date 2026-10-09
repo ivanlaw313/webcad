@@ -67,8 +67,22 @@ export function resolveJointOrigin(jo: JointOrigin, applyFlip = true): { anchor:
   return { anchor, axis: [ax.x, ax.y, ax.z] }
 }
 
+// BUG(D-axis)：用户揀嘅「X/Y/Z 軸」係 CAD 座標（Z-up，同草圖/屬性/ViewCube 一致），但 Joint.axis 存 three 世界（Y-up）。
+// 舊版直接用 [0,0,1] 做「Z 軸」= three Z = CAD −Y（水平）→ 旋轉 Z 90° 令直立軸瞓低、滑動 Z 50 橫向滑出。
+// CAD→three：(x, y, z) → (x, z, −y)。
+export function cadAxisToWorld(k: 'X' | 'Y' | 'Z'): [number, number, number] {
+  return k === 'X' ? [1, 0, 0] : k === 'Y' ? [0, 0, -1] : [0, 1, 0]
+}
+
 export const JOINT_DOF: Record<JointType, number> = { rigid: 0, revolute: 1, slider: 1, cylindrical: 2, ball: 3, planar: 3, screw: 1, pinslot: 2 }
 export const JOINT_LABEL: Record<JointType, string> = { rigid: '刚性', revolute: '旋转', slider: '滑动', cylindrical: '圆柱', ball: '球', planar: '平面', screw: '螺旋', pinslot: '销槽' }
+// BUG(E)：繁體（港）標籤 — UI 以此為源，再經 tStatus(lang) 轉 zh-CN/en。JOINT_LABEL（簡體）保留畀舊呼叫者。
+export const JOINT_LABEL_TC: Record<JointType, string> = { rigid: '剛性', revolute: '旋轉', slider: '滑動', cylindrical: '圓柱', ball: '球', planar: '平面', screw: '螺旋', pinslot: '銷槽' }
+// 關節拾取彈框：全部 8 種類型，幾何建議嘅類型排第一（預設 1）。
+export const ALL_JOINT_TYPES: JointType[] = ['revolute', 'slider', 'cylindrical', 'pinslot', 'ball', 'planar', 'screw', 'rigid']
+export function jointTypeMenu(preferred: JointType[]): JointType[] {
+  return [...preferred, ...ALL_JOINT_TYPES.filter((t) => !preferred.includes(t))]
+}
 
 // The local motion A_J(v) of a joint, expressed in rest-world coords.
 function jointMotion(j: Joint): Matrix4 {

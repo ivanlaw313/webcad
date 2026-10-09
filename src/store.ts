@@ -49,7 +49,7 @@ import { detectLang, tStatus, msg, normalizeLang, type Lang } from './i18n'   //
 import { searchRibbonCommand } from './ribbon'   // P6 AI 教学：把用户问句模糊匹配到真实 ribbon 命令位置
 import { openAeroLab } from './aero/aeroUiStore'   // Aero Design Lab（氣動設計實驗室）面板開關 — 獨立小 store
 import type { MeshData, Feature, SketchProfile, BoolOp, EdgeSel, DrawView, Plane } from './worker/cad.worker'
-import { computeFK, _fourbar, solve4Bar, fourBarVelocity, fourBarVelocityProfile, solveSliderCrank, sliderCrankReachability, solveLinkage, solveSixBar, sweepToContact, simulateMotion, JOINT_LABEL, resolveJointOrigin, type Joint, type JointType, type JointOrigin, type JointOriginMode } from './assembly/kinematics'
+import { computeFK, _fourbar, solve4Bar, fourBarVelocity, fourBarVelocityProfile, solveSliderCrank, sliderCrankReachability, solveLinkage, solveSixBar, sweepToContact, simulateMotion, JOINT_LABEL_TC, jointTypeMenu, resolveJointOrigin, type Joint, type JointType, type JointOrigin, type JointOriginMode } from './assembly/kinematics'
 import { findLoops, loopPlane, solveLoop, type Loop } from './assembly/linkage'   // T774（S51）：通用平面闭环求解器
 import { inferAsBuiltAxis, type ExplodeStep } from './assembly/asmUtil'   // GM-3DV4 A10：as-built 推轴；A12：有序爆炸步类型
 import { solveMate, worldAABB, type MateType, type MateAxis, type MateSide } from './assembly/mates'
@@ -10666,13 +10666,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       // 圆柱+圆柱：轴 = 父圆柱轴（world，父件唔郁 → 直接用）；锚 = 父轴上一点（父圆柱面心，world）
       const ax = new Vector3(A.face.axis[0], A.face.axis[1], A.face.axis[2]); if (ax.lengthSq() < 1e-12) ax.set(0, 0, 1); ax.normalize()
       anchor = [A.face.p[0], A.face.p[1], A.face.p[2]]; axis = [ax.x, ax.y, ax.z]
-      allowTypes = ['revolute', 'slider', 'cylindrical', 'rigid']; defType = 'revolute'
+      allowTypes = jointTypeMenu(['revolute', 'slider', 'cylindrical']); defType = 'revolute'   // 全部 8 類（同 JOINTS 面板一致），幾何建議者排前
     } else if (A.face.kind === 'planar' && face.kind === 'planar') {
       // 平面+平面：锚 = 子件所拣面【贴合后】面心（world = delta·子面）；轴 = 平面法向（world，用父法向 —— 父唔郁）
       const post = transformFace(face, delta) as Extract<MateFace, { kind: 'planar' }>
       const n = new Vector3(A.face.n[0], A.face.n[1], A.face.n[2]); if (n.lengthSq() < 1e-12) n.set(0, 1, 0); n.normalize()
       anchor = [post.p[0], post.p[1], post.p[2]]; axis = [n.x, n.y, n.z]
-      allowTypes = ['rigid', 'planar']; defType = 'rigid'   // 滑动沿法向会分离两面（无意义）、沿面内轴方向歧义 → 只提供 kinematics 支持嘅 planar（面内 U/V 平移 + 绕法向转）
+      allowTypes = jointTypeMenu(['rigid', 'planar']); defType = 'rigid'   // 全部 8 類可選（同 JOINTS 面板一致）；建議 rigid/planar 排前。舊註： 滑动沿法向会分离两面（无意义）、沿面内轴方向歧义 → 只提供 kinematics 支持嘅 planar（面内 U/V 平移 + 绕法向转）
     } else { set({ jointPickMode: false, jointPick: null, status: '關節拾取失敗：面類型組合唔支持' }); return }
     // ── 先贴合（俾用户睇到 snap，似 Fusion）—— 但【唔即刻推撤销栈】，留返同建关节一齐做单快照（原子）──
     const preUndo = s.undoStack, preSnap = docSnap(s)   // 贴合前撤销栈 + 全文档快照（最终净推一个 → undo 一步同时还原 snap+joint）
@@ -10683,10 +10683,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     })
     // ── 关节类型选择（appPrompt 编号表，按几何门控）——取消 = 保留贴合、唔建关节（诚实状态）──
     void (async () => {
-      const msg = A.face.kind === 'cyl'
-        ? '关节类型（输入编号）：1=旋转（默认） 2=滑动（沿轴） 3=圆柱（转+滑） 4=刚性'
-        : '关节类型（输入编号）：1=刚性（默认） 2=平面（面内平移 + 绕法向转）'
-      const r = await get().appPrompt(msg, '1', '关节类型')
+      // BUG(E)/P3：列出全部 8 種類型（同 JOINTS 面板下拉一致），繁體源字串經 tStatus 按語言轉換。
+      const msg = '關節類型（輸入編號）：' + allowTypes.map((t, i) => `${i + 1}=${JOINT_LABEL_TC[t]}${i === 0 ? '（預設）' : ''}`).join('　')
+      const r = await get().appPrompt(tStatus(msg, get().lang), '1', tStatus('關節類型', get().lang))
       const s2 = get()
       if (r === null) {   // 取消：保留贴合、唔建关节 —— 净推贴合嘅单快照
         set({ undoStack: [...preUndo, preSnap].slice(-60), redoStack: [], status: `已貼合「${B.name}」→「${Acomp.name}」（未建關節 — 可撤銷貼合）` })
@@ -10701,7 +10700,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         undoStack: [...preUndo, preSnap].slice(-60), redoStack: [],
         joints: [...s2.joints, joint],
-        status: `已建 ${JOINT_LABEL[type]}關節 ${jid}：「${B.name}」⚓「${Acomp.name}」（${geomLbl}）— JOINTS 面板可驅動/加限位`,
+        status: `已建 ${JOINT_LABEL_TC[type]}關節 ${jid}：「${B.name}」⚓「${Acomp.name}」（${geomLbl}）— JOINTS 面板可驅動/加限位`,
       })
     })()
   },

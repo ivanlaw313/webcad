@@ -3,12 +3,11 @@ import type React from 'react'
 import { Euler, Quaternion, Vector3 } from 'three'
 import { useApp } from '../store'
 import { useDraggable } from './useDraggable'
-import { JOINT_LABEL, totalDOF, resolveJointOrigin, type JointType } from '../assembly/kinematics'
+import { JOINT_LABEL, totalDOF, resolveJointOrigin, cadAxisToWorld, type JointType } from '../assembly/kinematics'
 import { findLoops } from '../assembly/linkage'   // T779：DOF 闭环 Grübler 修正
 
-const AXES: { k: 'X' | 'Y' | 'Z'; v: [number, number, number] }[] = [
-  { k: 'X', v: [1, 0, 0] }, { k: 'Y', v: [0, 1, 0] }, { k: 'Z', v: [0, 0, 1] },
-]
+// BUG(D-axis)：X/Y/Z = CAD 軸（Z 向上）→ three 世界向量（cadAxisToWorld）。
+const AXES: { k: 'X' | 'Y' | 'Z'; v: [number, number, number] }[] = (['X', 'Y', 'Z'] as const).map((k) => ({ k, v: cadAxisToWorld(k) }))
 const TYPES: JointType[] = ['revolute', 'slider', 'cylindrical', 'pinslot', 'ball', 'planar', 'screw', 'rigid']
 
 export default function JointsPanel() {

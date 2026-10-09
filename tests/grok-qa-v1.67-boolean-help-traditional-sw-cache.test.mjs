@@ -50,10 +50,11 @@ test('v1.67: booleanSuccessStatus / newBodySuccessStatus Traditional', () => {
 
 test('v1.67: Viewport combine dialog help Traditional', () => {
   assert.match(viewport, /若切除結果為空/)
-  assert.match(viewport, /目標 = 活動實體；勾選工具體/)
-  assert.match(viewport, /沒有工具體：請先用「新實體」泊車當前體/)
-  assert.match(viewport, /保留工具體：運算後工具體仍作為獨立泊車實體保留/)
-  assert.match(viewport, /保留工具體（Keep Tools）/)
+  assert.match(viewport, /目標＝活動實體；請勾選工具實體/)   // CORE16 b4 (c)：Keep Tools→保留工具、泊車→獨立實體
+  assert.match(viewport, /沒有工具實體：請先用「新實體」把目前實體另存為獨立實體/)
+  assert.match(viewport, /保留工具：運算後工具實體仍保留為獨立實體/)
+  assert.match(viewport, /tStatus\('保留工具', lang\)/)
+  assert.doesNotMatch(viewport, /Keep Tools）/)
   assert.match(viewport, /＋合併/)
   assert.doesNotMatch(viewport, /若切除结果为空/)
   assert.doesNotMatch(viewport, /没有工具体：请先用「新实体」/)

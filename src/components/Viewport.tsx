@@ -6956,13 +6956,13 @@ export default function Viewport() {
             const moveComponentCount = checkedComps.length || (selectedComponent ? 1 : 0)
             const modes: [string, string, string][] = [['free', '自由', '六自由度：dx/dy/dz + 繞件中心 X/Y/Z'], ['translate', '平移', '只平移 dx/dy/dz'], ['rotate', '旋轉', '單軸 + 角度（繞件中心）'], ['ptp', '點對點', '把 P1 搬到 P2（兩點坐標）'], ['ptpos', '點對位', '把 P1 搬到目的坐標 P2']]
             return (<>
-              <label title={tStatus('對象類型（Fusion Move Object）：當前完整支持活動實體和已選組件；面與草圖須用專屬工具。', lang)}>{tStatus('對象', lang)} <select value={objectType} onChange={(e) => setFeatParam('objectType', e.target.value)} style={{ height: 26 }}><option value="bodies">{tStatus('實體', lang)}</option><option value="components">{tStatus('組件', lang)}</option><option value="faces" disabled>{tStatus('面（用移動面）', lang)}</option><option value="sketch" disabled>{tStatus('草圖（草圖環境）', lang)}</option></select></label>
+              <label title={tStatus('對象類型：目前支援實體及已選組件；面與草圖請使用專屬工具。', lang)}>{tStatus('對象', lang)} <select value={objectType} onChange={(e) => setFeatParam('objectType', e.target.value)} style={{ height: 26 }}><option value="bodies">{tStatus('實體', lang)}</option><option value="components">{tStatus('組件', lang)}</option><option value="faces" disabled>{tStatus('面（用移動面）', lang)}</option><option value="sketch" disabled>{tStatus('草圖（草圖環境）', lang)}</option></select></label>
               {objectType === 'bodies' ? (<>
-                <label title={tStatus('SO10：分割後可選擇泊車半體移動，避免只移活動低側疊入另一半導致合併體積丟失', lang)}>{tStatus('實體', lang)} <select value={String(featDlg.params.bodyTarget ?? 'active')} onChange={(e) => setFeatParam('bodyTarget', e.target.value)} style={{ height: 26 }}>
+                <label title={tStatus('分割後可選擇移動另一半（獨立實體），避免只移動活動實體而與另一半重疊、令合併後體積丟失', lang)}>{tStatus('實體', lang)} <select value={String(featDlg.params.bodyTarget ?? 'active')} onChange={(e) => setFeatParam('bodyTarget', e.target.value)} style={{ height: 26 }}>
                   <option value="active">{tStatus('活動實體', lang)}</option>
-                  {(bodyMesh?.parked ?? []).map((b, i) => <option key={i} value={'parked' + i}>{b.name || (tStatus('泊車實體', lang) + (i + 1))}</option>)}
+                  {(bodyMesh?.parked ?? []).map((b, i) => <option key={i} value={'parked' + i}>{b.name || (tStatus('獨立實體', lang) + (i + 1))}</option>)}
                 </select></label>
-                <SelectionChip label={tStatus('對象', lang)} count={1} hint={tStatus('可選活動實體或泊車實體（分割另一半）；確定後移動所選實體。', lang)} />
+                <SelectionChip label={tStatus('對象', lang)} count={1} hint={tStatus('可選活動實體或其他獨立實體（例如分割後的另一半）；按「確定」後移動所選實體。', lang)} />
               </>) : <SelectionChip label={tStatus('組件', lang)} count={moveComponentCount} hint={moveComponentCount ? tStatus('已選組件；可在瀏覽樹勾選多個組件，按 × 清除後重新選擇。', lang) : tStatus('先在瀏覽樹或畫布選擇一個或多個組件。', lang)} onClear={() => useApp.setState({ checkedComps: [], selectedComponent: null })} />}
               <div style={{ display: 'flex', gap: 3, width: '100%' }}>
                 {modes.map(([v, lbl, tip]) => <button key={v} className={'sb-tool' + (mt === v ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={tStatus(tip, lang)} onClick={() => setFeatParam('moveType', v)}>{tStatus(lbl, lang)}</button>)}
@@ -6990,7 +6990,7 @@ export default function Viewport() {
                 <label>P2y <FeatNum k="p2y" v={featDlg.params.p2y} w={48} /></label>
                 <label>P2z <FeatNum k="p2z" v={featDlg.params.p2z} w={48} /></label>
               </>)}
-              <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('Create Copy：留低原件、移動一個副本（Fusion Move/Copy 嘅複製半邊）', lang)}><input type="checkbox" checked={!!+(featDlg.params.createCopy || 0)} onChange={(e) => setFeatParam('createCopy', e.target.checked ? 1 : 0)} /> {tStatus('建立副本', lang)}</label>
+              <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('建立副本：保留原件，移動一個副本', lang)}><input type="checkbox" checked={!!+(featDlg.params.createCopy || 0)} onChange={(e) => setFeatParam('createCopy', e.target.checked ? 1 : 0)} /> {tStatus('建立副本', lang)}</label>
             </>)
           })()}
           {/* GM-3DV1 S1：Rib/Web 建立对话框 — 厚度/方向/范围/翻转/拔模（Web 多 Extend Curves） */}
@@ -7023,11 +7023,11 @@ export default function Viewport() {
           </>)}
           {featDlg.kind === 'combine' && (<>
             <label title={tStatus('合併=兩體並集 · 切除=目標減工具 · 相交=公共體（真 B-rep）。若切除結果為空且對調後有體積，會自動對調（「新實體」後第二體作活動目標時常見）', lang)}>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'cut'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}><option value="fuse">{tStatus('＋合併', lang)}</option><option value="cut">{tStatus('－切除(目標−工具)', lang)}</option><option value="common">{tStatus('∩相交', lang)}</option></select></label>
-            <div style={{ fontSize: 11, color: '#6b7680', margin: '2px 0' }}>{tStatus('目標 = 活動實體；勾選工具體（泊車）。挖孔：保持大塊為活動體，用工具體（⬡新實體/新實體泊車）切除。', lang)}</div>
-            {featDlg.editId && <div role="status" data-testid="combine-edit-note" style={{ fontSize: 11, color: '#6b7680', margin: '2px 0' }}>{tStatus('編輯：工具體沿用原有設定；可改操作類型或保留工具體', lang)}</div>}
+            <div style={{ fontSize: 11, color: '#6b7680', margin: '2px 0' }}>{tStatus('目標＝活動實體；請勾選工具實體（其他獨立實體）。挖孔：保持大塊為活動實體，用以「⬡新實體」建立的工具實體切除。', lang)}</div>
+            {featDlg.editId && <div role="status" data-testid="combine-edit-note" style={{ fontSize: 11, color: '#6b7680', margin: '2px 0' }}>{tStatus('編輯：工具實體沿用原有設定；可更改操作類型或「保留工具」', lang)}</div>}
             {!featDlg.editId && !(bodyMesh?.parked?.length) && (
               <div role="status" data-testid="combine-need-newbody" style={{ fontSize: 11, color: '#b42318', margin: '4px 0' }}>
-                {tStatus('沒有工具體：請先用「新實體」泊車當前體，再建造第二個實體，然後返回合併/布爾。', lang)}
+                {tStatus('沒有工具實體：請先用「新實體」把目前實體另存為獨立實體，再建立第二個實體，然後返回合併／布爾。', lang)}
               </div>
             )}
             {!featDlg.editId && (bodyMesh?.parked ?? []).map((b, i) => (
@@ -7037,9 +7037,9 @@ export default function Viewport() {
               </label>
             ))}
             {/* S185 Keep Tools（Fusion Combine）：保留工具体做独立泊车体（可复用 / 重复布尔），唔消耗 */}
-            <label style={{ justifyContent: 'flex-start', gap: 6, marginTop: 2 }} title={tStatus('保留工具體：運算後工具體仍作為獨立泊車實體保留（可再次布爾/匯出）；預設消耗', lang)}>
+            <label style={{ justifyContent: 'flex-start', gap: 6, marginTop: 2 }} title={tStatus('保留工具：運算後工具實體仍保留為獨立實體（可再次布爾／匯出）；預設會消耗工具實體', lang)}>
               <input type="checkbox" checked={+(featDlg.params.keepTools ?? 0) > 0} onChange={(e) => setFeatParam('keepTools', e.target.checked ? 1 : 0)} />
-              <span>{tStatus('保留工具體', lang)}</span>
+              <span>{tStatus('保留工具', lang)}</span>
             </label>
           </>)}
           {featDlg.kind === 'boundaryfill' && (<>

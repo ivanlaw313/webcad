@@ -23,7 +23,7 @@ test('APP_VERSION 2.00; SW webcad-v2.20', () => {
 
 test('BD-9603 move/copy tips + labels TC', () => {
   assert.match(vp, /tStatus\('實體', lang\)/)
-  assert.match(vp, /分割後可選擇泊車半體移動/)
+  assert.match(vp, /分割後可選擇移動另一半（獨立實體）/)   // CORE16 b4 (c)：去「泊車」術語
   assert.match(vp, /移動一個副本/)
   assert.match(vp, /繞件中心 X 軸旋轉/)
   assert.match(vp, /面（用移動面）/)

@@ -15771,7 +15771,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       featDlg: { kind: 'combine', params },
       holeMode: false, holePos: null, holeFaceZ: null, holeDir: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false,
-      status: '合併：選 操作（預設 Join）+ 勾選工具體 → 確定。目標=活動實體；切除若目標被工具完全包含會自動對調（「新實體」後常見）。要明確保目標為活動體：拉伸/圓柱用「⬡新實體」泊車工具。',
+      status: '合併：選擇操作（預設為「合併」），勾選工具實體後按「確定」。目標＝活動實體；切除時若目標被工具完全包含，會自動對調。如要指定目標，請以「⬡新實體」建立工具實體。',
     }
   }),
   // Boundary Fill v1：严谨限定为「两封闭实体」的三格 B-rep cell 分割；不会把普通 Common 假称 Boundary Fill。
@@ -18878,7 +18878,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       const sol = solveMove(p as Parameters<typeof solveMove>[0])
       const objectType = String(p.objectType || 'bodies')
       const copy = +(p.createCopy || 0) > 0
-      if (!isNonZeroMove(sol)) { set({ status: '移動：請設一個非零嘅平移/旋轉/點對點位移' }); return }
+      // CORE16 b4 (c)：空白欄位按 0 計算，但要講明（之前靜靜當 0）
+      const mvKeys: Record<string, string[]> = { free: ['dx', 'dy', 'dz', 'rx', 'ry', 'rz'], translate: ['dx', 'dy', 'dz'], rotate: ['angle'], ptp: ['p1x', 'p1y', 'p1z', 'p2x', 'p2y', 'p2z'], ptpos: ['p1x', 'p1y', 'p1z', 'p2x', 'p2y', 'p2z'] }
+      const mvBlank = (mvKeys[String(p.moveType || 'free')] ?? []).filter((k) => String(p[k] ?? '').trim() === '')
+      const blankNote = mvBlank.length ? `（空白欄位已按 0 計算：${mvBlank.join('、')}）` : ''
+      if (!isNonZeroMove(sol)) { set({ status: '移動：請輸入非零的平移、旋轉或點對點位移' + blankNote }); return }
       const mtLbl: Record<string, string> = { free: '自由', translate: '平移', rotate: '旋轉', ptp: '點對點', ptpos: '點對位' }
       const tLbl = mtLbl[String(p.moveType || 'free')] || '自由'
       if (objectType === 'components') {
@@ -18908,10 +18912,10 @@ export const useApp = create<AppState>((rawSet, get) => {
         const bt0 = String(p.bodyTarget || 'active')
         const parkedTarget0 = bt0.startsWith('parked') ? Number(bt0.slice(6)) : NaN
         const parked0 = Number.isInteger(parkedTarget0) && parkedTarget0 >= 0 ? parkedTarget0 : undefined
-        const copyMarker: Feature = { id: fid(), type: 'copybody', name: 'CopyPasteBodies1' }
+        const copyMarker: Feature = { id: fid(), type: 'copybody', name: `複製實體${get().features.filter((x) => x.type === 'copybody').length + 1}` }   // CORE16 b4 (c)：唔再顯示英文 CopyPasteBodies1
         const moveCopy: Feature = { id: fid(), type: 'transform', dx: sol.dx, dy: sol.dy, dz: sol.dz, rz: sol.rz, rx: sol.rx, ry: sol.ry, copy: true, ...(parked0 != null ? { parked: parked0 } : {}) }
         set({ featDlg: null })
-        await get().applyFeatures([...get().features, copyMarker, moveCopy], `已複製并移動${parked0 != null ? `泊車實體#${parked0 + 1}` : '实体'}（${tLbl}：dx${sol.dx} dy${sol.dy} dz${sol.dz}　绕X${sol.rx}° Y${sol.ry}° Z${sol.rz}°）`, true)
+        await get().applyFeatures([...get().features, copyMarker, moveCopy], `已複製並移動${parked0 != null ? `獨立實體#${parked0 + 1}` : '實體'}（${tLbl}：dx${sol.dx} dy${sol.dy} dz${sol.dz}　繞X${sol.rx}° Y${sol.ry}° Z${sol.rz}°）${blankNote}`, true)
         return
       }
       // bodies（缺省）：就地 transform 特征。SO10：bodyTarget=parkedN → 变换泊车实体 N（分割另一半可独立平移后再合并）。
@@ -18919,7 +18923,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const parkedTarget = bt.startsWith('parked') ? Number(bt.slice(6)) : NaN
       const parked = Number.isInteger(parkedTarget) && parkedTarget >= 0 ? parkedTarget : undefined
       f = { id: fid(), type: 'transform', dx: sol.dx, dy: sol.dy, dz: sol.dz, rz: sol.rz, rx: sol.rx, ry: sol.ry, ...(parked != null ? { parked } : {}) }
-      msg = `已${copy ? '复制并' : ''}移動${parked != null ? `泊車實體#${parked + 1}` : '实体'}（${tLbl}：dx${sol.dx} dy${sol.dy} dz${sol.dz}　绕X${sol.rx}° Y${sol.ry}° Z${sol.rz}°）`
+      msg = `已${copy ? '複製並' : ''}移動${parked != null ? `獨立實體#${parked + 1}` : '實體'}（${tLbl}：dx${sol.dx} dy${sol.dy} dz${sol.dz}　繞X${sol.rx}° Y${sol.ry}° Z${sol.rz}°）${blankNote}`
     } else if (d.kind === 'scale') {
       // Reject ≤0 / NaN instead of silently clamping to 0.01 (which made a typo'd "0" shrink the part to nothing).
       let fac = +p.factor

@@ -43,7 +43,7 @@ test('solid Move/Copy exposes a live CAD-space triad', () => {
 
 test('Create Copy remains a separate body and writes Fusion-style timeline entries', () => {
   assert.match(store, /type:\s*'copybody'/)
-  assert.match(store, /copyMarker[\s\S]*CopyPasteBodies1/)
+  assert.match(store, /copyMarker[\s\S]*name: `複製實體\$\{/)   // CORE16 b4 (c)
   assert.match(worker, /Create Copy (?:必须保留原实体并加一个独立实体|必須保留原實體并加一個獨立實體)/)
   assert.doesNotMatch(worker, /shape\s*=\s*shape\.fuse\(applyXf\(shape\.clone\(\)\)\)/)
   assert.match(timeline, /copybody:\s*\{[^}]*label:\s*'(?:复制实体|複製實體)'/)

@@ -142,6 +142,8 @@ const TOTAL = Object.values(PER_FILE).reduce((a, b) => a + b, 0)
 /* 2026-10-09（loft-fix）：2274 → 2283。放樣截面清單／揀平面新文案 +7（全部係繁體，只因「截面／平面」嘅「面」喺 LEAK 集而被計入，逐條核對過冇簡體字）；另 +2 係 origin 上 UX2 #1/#2 已帶入（rebase 前 origin 已係 2276）。 */
 /* 2026-10-09（CORE16）：2283 → 2290。新增浮雕／加厚對話框、分割平面驗證、倒角選取計數、ribbon 提示（移走 Fusion 字眼）等 +7，
  * 逐條核對全部係繁體，只因共用字形「面／件」被計入；冇簡體字串。 */
+/* 2026-10-09（CORE16 batch 3）：總數維持 2290（rebase 後實測）。加厚對話框／鏡像拾取平面／倒角面板／抽殼・分割實體原因／BOM 曲面排除新文案，全部係繁體正式書面語，
+ * 只因「面／件」喺 LEAK 集而被計入；已用 simplifiedToTraditionalHK 逐條核對所有新增字串（轉換前後一致＝冇簡體）。 */
 const MAX_LEAK_STRINGS = 2290
 
 test('zh-HK lane files do not grow simplified-Chinese string literals', () => {

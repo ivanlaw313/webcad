@@ -172,7 +172,7 @@ export type DatumCmdPick =
 // GM-3DV2 R1：每个 Type 嘅 Method 下拉选项（对标 Fusion CONSTRUCT 菜单，clean-room 只对齐行为）。
 export const DATUM_CMD_METHODS: Record<DatumCmdType, { id: string; label: string }[]> = {
   plane: [
-    { id: 'offset', label: '偏移 / 成角 / 中間面' }, { id: 'offsetFace', label: '偏移面（拾面+距離）' }, { id: 'atAngleEdge', label: '成角（過邊）' },
+    { id: 'offset', label: '偏移平面（原點面或所選面）/ 成角' }, { id: 'offsetFace', label: '偏移面（拾面+距離）' }, { id: 'atAngleEdge', label: '成角（過邊）' },
     { id: 'tangent', label: '相切面（圓柱面）' }, { id: 'midplane', label: '兩面中面' }, { id: 'perp', label: '垂直面（面+參考邊+距離）' },
     { id: 'twoEdges', label: '過兩邊' }, { id: 'threePoints', label: '過三點（構造點）' }, { id: 'parPlanePt', label: '過點平行面' }, { id: 'alongPath', label: '路徑平面（沿邊）' },
   ],
@@ -1624,6 +1624,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   setDatumCmdParam: (k: string, v: number | string) => void
   closeDatumCmd: () => void
   commitDatumCmdField: () => void                                  // 字段法（offset 面 / xyz 点 / dir 轴）确定
+  datumCmdFieldFacePick: (det: { kind: string; p: [number, number, number]; n?: [number, number, number] } | null) => void   // v2.20 P2：偏移平面拾面 = 由所選面起計；拾兩個平行面 = 中間平面
   datumCmdClickAt: (det: DetectedFace | null, threeWorld: [number, number, number], source?: 'constructPoint' | 'modelVertex') => Promise<void>   // 累积法：画布点面/边 → 按当前 method 下一槽消费
   edgePointAt: (threePt: [number, number, number]) => Promise<void>
   addPlane3Points: () => void                             // T778：最后 3 个构造点 → 三点平面
@@ -18148,7 +18149,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   datumPick: null,
   startDatumPick: (kind) => set({
     datumPick: { kind, picks: [] }, edgePtPick: null, holeMode: false, holePos: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false, threadFacePick: false, toFacePick: false,
-    status: kind === 'tanplane' ? '相切面：點一個【圓柱面】— 在你點的該側生成切面（法向 = 徑向）' : kind === 'offsetface' ? '偏移面：點一個【平面】— 跟住輸入偏移距離，沿面法向生成平行參考平面' : kind === 'normalaxis' ? '⊥面軸：點一個【平面】— 沿面法向、過點擊點生成構造軸' : kind === 'circcenter' ? '圓心點：點一個【圓柱面】（孔壁/圓軸/凸台側）— 在軸上（點擊高度）落構造點' : kind === 'planeaxis' ? '兩面軸：點【兩個不平行的平面】— 沿其交線生成構造軸' : kind === 'parplanept' ? '過點平行面：點一個【平面】— 生成平行該面、且過【最後一個構造點】的參考平面（先落構造點）' : '兩面中面：點【兩個平行平面】— 在正中間生成參考平面',
+    status: kind === 'tanplane' ? '相切面：點一個【圓柱面】— 在你點的該側生成切面（法向 = 徑向）' : kind === 'offsetface' ? '偏移面：點一個【平面】— 跟住輸入偏移距離，沿面法向生成平行參考平面' : kind === 'normalaxis' ? '⊥面軸：點一個【平面】— 沿面法向、過點擊點生成構造軸' : kind === 'circcenter' ? '圓心點：點一個【圓柱面】（孔壁/圓軸/凸台側）— 在軸上（點擊高度）落構造點' : kind === 'planeaxis' ? '兩面軸：點【兩個不平行的平面】— 沿其交線生成構造軸' : kind === 'parplanept' ? '過點平行面：點一個【平面】— 生成平行該面、且過【最後一個構造點】的參考平面（先落構造點）' : '中間平面：請選取兩個平行面 — 在兩面正中建立參考平面',
   }),
   applyDatumPick: async (det, clickCAD) => {
     const s = get()
@@ -18277,11 +18278,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     // midplane：收 2 个平行平面
     if (det.kind !== 'planar' || !det.n) { set({ status: '兩面中面要點【平面】' }); return }
     const picks = [...dp.picks, { p: det.p, n: det.n, click: clickCAD }]
-    if (picks.length < 2) { set({ datumPick: { ...dp, picks }, status: '已選第 1 個面 — 再點【平行的另一面】' }); return }
+    if (picks.length < 2) { set({ datumPick: { ...dp, picks }, status: '中間平面：已選第 1 個面 — 請再選取與它平行的另一個面' }); return }
     const n1 = picks[0].n!, n2 = picks[1].n!
     const dot = Math.abs(n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2])
     set({ datumPick: null })
-    if (dot < 0.985) { set({ status: '兩個面不平行 — 中面要兩個平行平面' }); return }
+    if (dot < 0.985) { set({ status: '中間平面：兩個面並不平行 — 請選取兩個平行面' }); return }
     const o: [number, number, number] = [(picks[0].p[0] + picks[1].p[0]) / 2, (picks[0].p[1] + picks[1].p[1]) / 2, (picks[0].p[2] + picks[1].p[2]) / 2]
     // 法向主轴 → cardinal 入口（可画草图嘅现成管线）；斜向 → arb
     const a = [Math.abs(n1[0]), Math.abs(n1[1]), Math.abs(n1[2])]
@@ -18357,10 +18358,59 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (typeof document !== 'undefined') document.body.style.cursor = ''
     set({ datumCmd: null, datumPick: null, edgePtPick: null, cpatAxisPick: false, status: '已退出構造幾何' })
   },
+  datumCmdFieldFacePick: (det) => {
+    const dc = get().datumCmd; if (!dc || dc.type + ':' + dc.method !== 'plane:offset') return
+    if (!det || det.kind !== 'planar' || !det.n) { set({ status: '偏移平面：請點選實體的【平面】作偏移基準（圓柱／圓錐側面不能作基準）' }); return }
+    const pick: DatumCmdPick = { kind: 'face', p: det.p, n: det.n }
+    const prev = dc.picks.filter((x) => x.kind === 'face')
+    const picks = prev.length >= 2 ? [pick] : [...prev, pick]
+    if (picks.length === 2) {
+      const a = picks[0] as Extract<DatumCmdPick, { kind: 'face' }>, dot = a.n[0] * det.n[0] + a.n[1] * det.n[1] + a.n[2] * det.n[2]
+      if (Math.abs(dot) < 0.9999) { set({ datumCmd: { ...dc, picks: [picks[0]] }, status: '中間平面：兩個面並不平行 — 請選取兩個平行面（已保留第 1 個面）' }); return }
+      set({ datumCmd: { ...dc, picks }, status: '已選兩個平行面 — 按「確定」在兩面正中建立中間平面' })
+      return
+    }
+    set({ datumCmd: { ...dc, picks }, status: '已選偏移基準面 — 輸入偏移距離（沿面的外法向，負數向內）後按「確定」；再點一個平行面則改為建立兩面中間平面' })
+  },
   commitDatumCmdField: () => {
     const dc = get().datumCmd; if (!dc) return
     const p = dc.params
     const key = dc.type + ':' + dc.method
+    const faces = dc.picks.filter((x) => x.kind === 'face') as Extract<DatumCmdPick, { kind: 'face' }>[]
+    if (key === 'plane:offset' && faces.length) {
+      // v2.20 P2/P3：拾咗面 → 由所選面起計（唔再由原點 XY 起計）；兩個平行面 → 兩面中間平面。
+      const fmt = (v: number) => String(+v.toFixed(3))
+      const n = faces[0].n, nl = Math.hypot(n[0], n[1], n[2]) || 1, nn = [n[0] / nl, n[1] / nl, n[2] / nl] as [number, number, number]
+      let o: [number, number, number], label: string
+      if (faces.length === 2) {
+        const b = faces[1]
+        if (Math.abs(nn[0] * b.n[0] + nn[1] * b.n[1] + nn[2] * b.n[2]) / (Math.hypot(...b.n) || 1) < 0.9999) { set({ status: '中間平面：請選取兩個平行面' }); return }
+        // 第二面沿法向投影到第一面法線上取中點（兩點唔一定對正）
+        const d1 = nn[0] * faces[0].p[0] + nn[1] * faces[0].p[1] + nn[2] * faces[0].p[2], d2 = nn[0] * b.p[0] + nn[1] * b.p[1] + nn[2] * b.p[2]
+        const t = (d2 - d1) / 2
+        o = [faces[0].p[0] + nn[0] * t, faces[0].p[1] + nn[1] * t, faces[0].p[2] + nn[2] * t]
+        label = '中間平面'
+      } else {
+        const d = Number(p.offset) || 0
+        o = [faces[0].p[0] + nn[0] * d, faces[0].p[1] + nn[1] * d, faces[0].p[2] + nn[2] * d]
+        label = `偏移平面（由所選面起 ${fmt(d)} mm）`
+      }
+      set({ datumCmd: null })
+      const k = [0, 1, 2].find((i) => Math.abs(nn[i]) > 0.9999)
+      if (k != null) {
+        const base: Plane = k === 2 ? 'XY' : k === 1 ? 'XZ' : 'YZ'
+        const off = +o[k].toFixed(6)
+        void get().addDatumFeature({ base, offset: off }, `已建${label} ${base}@${fmt(off)} — 畫草圖時點選它作基準面`)
+      } else {
+        const ref: [number, number, number] = Math.abs(nn[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0]
+        const dd = ref[0] * nn[0] + ref[1] * nn[1] + ref[2] * nn[2]
+        let xd: [number, number, number] = [ref[0] - dd * nn[0], ref[1] - dd * nn[1], ref[2] - dd * nn[2]]
+        const xl = Math.hypot(xd[0], xd[1], xd[2]) || 1
+        xd = [xd[0] / xl, xd[1] / xl, xd[2] / xl]
+        void get().addDatumFeature({ base: 'XY', offset: 0, angle: 0, arb: { o, xd, n: nn } }, `已建${label}（斜向）— 畫草圖時點選它作基準面`)
+      }
+      return
+    }
     if (key === 'plane:offset') {
       const baseStr = String(p.base ?? 'XY')
       set({ datumCmd: null })

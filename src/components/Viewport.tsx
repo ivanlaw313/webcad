@@ -651,6 +651,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
   const datumPicking = useApp((s) => !!s.datumPick)      // T778：相切面/两面中面拾取
   const datumCmd = useApp((s) => s.datumCmd)             // GM-3DV2 R1：统一构造几何命令
   const datumCmdAcc = !!(datumCmd && DATUM_CMD_ACC[datumCmd.type + ':' + datumCmd.method] && !datumPicking && !edgePtPick)   // 累积拾取法激活（遗留 pick 优先）
+  const datumCmdOffsetFace = !!(datumCmd && datumCmd.type === 'plane' && datumCmd.method === 'offset' && !datumPicking && !edgePtPick)   // v2.20 P2：偏移平面可拾面作基準
   const mode = useApp((s) => s.mode)
   const formBoxDraft = useApp((s) => s.formBoxDraft)
   const xray = useApp((s) => s.xray)
@@ -699,7 +700,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
     splitFaceMode || replaceFaceMode || rotateFaceMode || moveFaceMode || surfTrimMode ||
     draftPickMode || splitPlanePick || mirrorFacePick || faceColorPick || inspectMode ||
     faceSketchPick || loftFacePick || automatedModelPicking || embossPick || ucsPick || cpatAxisPick || feaPinPick || feaBearingPick ||
-    toFacePick || holeToObjectPick || threadFacePick || datumPicking || datumCmdAcc || edgePtPick || decalArmed ||
+    toFacePick || holeToObjectPick || threadFacePick || datumPicking || datumCmdAcc || datumCmdOffsetFace || edgePtPick || decalArmed ||
     jointOriginPickMode || mode === 'pickplane' || formBoxDraft?.stage === 'plane'
   )
   // frozen 组件：只对作用于 frozen 件嘅命令绕过过滤器（faceMate/screwFit/joint/量边·面·角/网格件画草图/浇口目标）。
@@ -924,6 +925,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         // T778：datum 拾取（相切面 / 两面中面）— click 点转 CAD
         if (datumPicking && !frozen && e.faceIndex != null) { e.stopPropagation(); useApp.getState().applyDatumPick(detectFace(mesh, e.faceIndex), [e.point.x, -e.point.z, e.point.y]); return }
         // GM-3DV2 R1：统一构造几何 · 累积拾取法（过两边/垂直面/圆柱轴/两边交点/三面交点/边穿面/圆边取心）— 边槽用 e.point 交 store 解析最近边，面槽用 detectFace。
+        if (datumCmdOffsetFace && !frozen && e.faceIndex != null) { e.stopPropagation(); useApp.getState().datumCmdFieldFacePick(detectFace(mesh, e.faceIndex)); return }
         if (datumCmdAcc && !frozen && e.point) { e.stopPropagation(); const det = e.faceIndex != null ? detectFace(mesh, e.faceIndex) : null; void useApp.getState().datumCmdClickAt(det, [e.point.x, e.point.y, e.point.z], 'modelVertex'); return }
         if (shellMode && !frozen && e.face) { e.stopPropagation(); shellPickAt([e.point.x, e.point.y, e.point.z]); return }
         if (faceFilletMode && !frozen && e.face) { e.stopPropagation(); faceFilletPickAt([e.point.x, e.point.y, e.point.z]); return }   // R1 面圆角：拾面（guarded — 需 e.face，行 shell 同款）
@@ -7561,9 +7563,20 @@ export default function Viewport() {
             </div>
             <label>{tStatus('方法', lang)} <select value={dc.method} onChange={(e) => useApp.getState().setDatumCmdMethod(e.target.value)} style={{ height: 26, maxWidth: 190 }}>{DATUM_CMD_METHODS[dc.type].map((m) => <option key={m.id} value={m.id}>{tStatus(m.label, lang)}</option>)}</select></label>
             {/* 字段法 */}
-            {key === 'plane:offset' && (<>
+            {key === 'plane:offset' && dc.picks.length > 0 && (() => {
+              const fp = dc.picks.filter((x) => x.kind === 'face') as { kind: 'face'; p: [number, number, number]; n: [number, number, number] }[]
+              const f3 = (v: number[]) => v.map((x) => +x.toFixed(2)).join(', ')
+              return (<>
+                <div className="sb-hint" data-testid="datum-offset-ref" style={{ width: '100%', fontSize: 11, lineHeight: 1.4 }}>
+                  {fp.length === 2 ? tStatus('基準：兩個平行面 → 建立兩面正中的中間平面', lang) : `${tStatus('基準：所選面（法向', lang)} ${f3(fp[0].n)}）${tStatus('— 偏移由該面起計；再點一個平行面則改為中間平面', lang)}`}
+                  <button className="sb-tool" type="button" style={{ marginLeft: 6 }} onClick={() => useApp.setState({ datumCmd: { ...dc, picks: [] } })}>{tStatus('清除選擇', lang)}</button>
+                </div>
+                {fp.length === 1 && <label>{tStatus('偏移', lang)} <input type="number" step="any" value={Number(P.offset ?? 0)} onChange={(e) => dp('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>}
+              </>)
+            })()}
+            {key === 'plane:offset' && dc.picks.length === 0 && (<>
               <div className="sb-hint" style={{ width: '100%', fontSize: 11, lineHeight: 1.4 }}>
-                {tStatus('圓柱／圓錐側面不能當偏移基準；先在下面選原點 XY／XZ／YZ（或中間面），再輸入偏移距離。', lang)}
+                {tStatus('可在畫布點選實體平面作偏移基準（偏移由該面起計）；點選兩個平行面則建立中間平面。不選面時，由下面的原點面 XY／XZ／YZ 起計。', lang)}
               </div>
               <label>{tStatus('基準面', lang)} <select value={String(P.base ?? 'XY')} onChange={(e) => dp('base', e.target.value)} style={{ height: 26 }}><option value="XY">{tStatus('XY(上)', lang)}</option><option value="XZ">{tStatus('XZ(前)', lang)}</option><option value="YZ">{tStatus('YZ(右)', lang)}</option><option value="midXY">{tStatus('XY 中間面', lang)}</option><option value="midXZ">{tStatus('XZ 中間面', lang)}</option><option value="midYZ">{tStatus('YZ 中間面', lang)}</option></select></label>
               {!String(P.base).startsWith('mid') && <label>{tStatus('偏移', lang)} <input type="number" step={5} value={Number(P.offset ?? 0)} onChange={(e) => dp('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>}
@@ -7586,7 +7599,7 @@ export default function Viewport() {
             {/* 累积拾取进度 */}
             {acc && <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', fontSize: 11, color: ready ? '#2f9e44' : '#1572c4' }}><span style={{ flex: 1 }}>{tStatus('已拾', lang)} {dc.picks.length}/{acc.length}（{acc.map((x) => tStatus(x === 'p' ? '構造點' : x === 'e' ? '邊' : x === 'c' ? '圓柱面' : '平面', lang)).join(' + ')}）</span>{dc.picks.length > 0 && <button className="sb-tool" type="button" onClick={() => useApp.setState({ datumCmd: { ...dc, picks: [], params: { ...dc.params, __confirm: 0 } } })}>{tStatus('清除選擇', lang)}</button>}</div>}
             {/* 遗留拾取法提示 */}
-            {!isField && !isButton && !acc && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('在畫布按提示拾取（狀態欄有指引）', lang)}</span>}
+            {!isField && !isButton && !acc && <span style={{ fontSize: 11, color: '#8a939c' }}>{key === 'plane:midplane' ? tStatus('請選取兩個平行面 — 在兩面正中建立參考平面', lang) : tStatus('在畫布按提示拾取（狀態欄有指引）', lang)}</span>}
           </CommandDialog>
         )
       })()}

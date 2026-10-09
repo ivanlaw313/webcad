@@ -1,4 +1,4 @@
-import { Matrix4, Vector3 } from 'three'
+import { Matrix4, Quaternion, Vector3 } from 'three'
 
 export type JointType = 'rigid' | 'revolute' | 'slider' | 'cylindrical' | 'ball' | 'planar' | 'screw' | 'pinslot'
 
@@ -519,4 +519,37 @@ export function simulateMotion(spec: MotionSpec): MotionResult {
     q += qd * dt     // …then position with the updated velocity.
   }
   return { key: revolute ? 'angle' : 'slide', q: out, dt: dt * samp, tEnd }
+}
+
+// BUG(D)：視窗拖動關節子件 → 投影到關節自由度（唔再自由改 pos 令子件離開關節軸）。
+//   parentM = 父件 FK 世界矩陣（根件=單位）；delta = 拖動嘅世界增量矩陣（PivotControls mdW）；pivot = 拖動支點（世界）。
+//   旋轉類（revolute/cylindrical）：取 delta 旋轉繞關節軸嘅 twist 分量；純平移拖動 → 支點繞軸掃過嘅角度。
+//   滑動類（slider/cylindrical）：支點位移沿軸分量。其他類型（剛性/球/平面/螺旋/銷槽）→ null（呼叫者拒絕 + 提示）。
+export function jointDragToValue(j: Joint, parentM: Matrix4, delta: Matrix4, pivot: [number, number, number]): { angle?: number; slide?: number } | null {
+  if (j.type !== 'revolute' && j.type !== 'slider' && j.type !== 'cylindrical') return null
+  const axis = new Vector3(j.axis[0], j.axis[1], j.axis[2])
+  if (!Number.isFinite(axis.lengthSq()) || axis.lengthSq() < 1e-9) axis.set(0, 1, 0)
+  axis.normalize()
+  if (j.flip) axis.multiplyScalar(-1)
+  const axisW = axis.clone().transformDirection(parentM)
+  const anchorW = new Vector3(j.anchor[0], j.anchor[1], j.anchor[2]).applyMatrix4(parentM)
+  const p0 = new Vector3(pivot[0], pivot[1], pivot[2])
+  const p1 = p0.clone().applyMatrix4(delta)
+  const out: { angle?: number; slide?: number } = {}
+  if (j.type === 'revolute' || j.type === 'cylindrical') {
+    const q = new Quaternion().setFromRotationMatrix(new Matrix4().extractRotation(delta))
+    const proj = q.x * axisW.x + q.y * axisW.y + q.z * axisW.z
+    let twist = (2 * Math.atan2(proj, q.w) * 180) / Math.PI
+    if (Math.abs(twist) < 1e-3 && j.type === 'revolute') {
+      // 純平移拖動：支點繞軸掃過嘅角度（旋轉關節唯一自由度）
+      const a = p0.clone().sub(anchorW), b = p1.clone().sub(anchorW)
+      a.sub(axisW.clone().multiplyScalar(a.dot(axisW))); b.sub(axisW.clone().multiplyScalar(b.dot(axisW)))
+      twist = a.lengthSq() > 1e-12 && b.lengthSq() > 1e-12 ? (Math.atan2(new Vector3().crossVectors(a, b).dot(axisW), a.dot(b)) * 180) / Math.PI : 0
+    }
+    while (twist > 180) twist -= 360
+    while (twist <= -180) twist += 360
+    out.angle = j.angle + twist
+  }
+  if (j.type === 'slider' || j.type === 'cylindrical') out.slide = j.slide + p1.clone().sub(p0).dot(axisW)
+  return out
 }

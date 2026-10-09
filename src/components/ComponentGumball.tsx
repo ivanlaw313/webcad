@@ -49,6 +49,8 @@ export type ComponentGumballProps = {
   resolveMates: () => void
   /** Hide the gumball outside model mode (pass `mode === 'model'`). Defaults to true. */
   enabled?: boolean
+  /** BUG(D)：關節子件 — 拖動改由關節自由度承接（delta=世界增量，pivot=gizmo 世界支點），唔再寫 pos/rot。 */
+  jointDrag?: (delta: Matrix4, pivot: [number, number, number]) => void
 }
 
 // World-space AABB centre of the part (strided over vertices for perf) — used only as the gizmo anchor.
@@ -77,6 +79,7 @@ export default function ComponentGumball({
   setComponentRot,
   resolveMates,
   enabled = true,
+  jointDrag,
 }: ComponentGumballProps) {
   // Latest WORLD-space delta transform captured during the drag (drei onDrag 4th arg). Ref so we read the
   // freshest value in onDragEnd without re-rendering on every drag frame.
@@ -117,6 +120,14 @@ export default function ComponentGumball({
       onDragStart={() => { deltaW.current.identity() }}
       onDrag={(_mL, _mdL, _mW, mdW) => { deltaW.current.copy(mdW) }}
       onDragEnd={() => {
+        if (jointDrag) {
+          // BUG(D)：關節子件唔可以自由移動（會離開關節軸）→ 交俾關節投影（旋轉角／滑動量）。
+          const pv = new Vector3().setFromMatrixPosition(seed)
+          jointDrag(deltaW.current.clone(), [pv.x, pv.y, pv.z])
+          deltaW.current.identity()
+          setGen((g) => g + 1)
+          return
+        }
         // Apply the captured world delta to the part's ORIGINAL world matrix, then decode to {pos, rot°}.
         const Mnew = deltaW.current.clone().multiply(compWorldMatrix(c, fkMat))
         const pose = worldToPose(Mnew, meshCenter3(c.mesh))

@@ -107,7 +107,7 @@ import { feaStaleBannerText, invalidateSimResultsPatch, hasLiveSimResults } from
 import { evalArith, normalizeWide, parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：單位感知長度輸入（分數英寸）
 import { NumInput } from './NumInput'   // BUG-507/509：受驗數值欄（取代 type="number"）
 import type { MeshData } from '../worker/cad.worker'
-import { computeFK, solve4Bar, solveSliderCrank, solveSixBar } from '../assembly/kinematics'
+import { computeFK, solve4Bar, solveSliderCrank, solveSixBar, jointDragToValue, JOINT_LABEL_TC } from '../assembly/kinematics'
 import { assemblyMassSummary } from '../assembly/asmMass'   // BUG(C)：装配质心用 FK 世界矩阵
 import { getProcTexture } from '../render/procTextures'   // S101[8]：程序化纹理（三平面投影）
 import { meshManifold } from '../geom/meshCheck'
@@ -3442,10 +3442,24 @@ function ComponentGizmo() {
   const resolveMates = useApp((s) => s.resolveMates)
   const grounded = useApp((s) => s.grounded)
   const mode = useApp((s) => s.mode)
+  const joints = useApp((s) => s.joints)
   const c = components.find((x) => x.id === sel)
+  // BUG(D)：被關節驅動嘅子件 → gizmo 放喺 FK 位置，拖動投影到關節自由度（更新角度／滑桿），唔改 pos。
+  const childJoint = c ? joints.find((j) => j.child === c.id) : undefined
+  const fk = useMemo(() => (childJoint ? computeFK(components.map((x) => x.id), joints) : null), [childJoint, components, joints])
+  const jointDrag = childJoint && fk ? (delta: Matrix4, pivot: [number, number, number]) => {
+    const st = useApp.getState()
+    const v = jointDragToValue(childJoint, fk.get(childJoint.parent) ?? new Matrix4(), delta, pivot)
+    if (!v) { useApp.setState({ status: `「${c!.name}」受${JOINT_LABEL_TC[childJoint.type]}關節「${childJoint.name}」約束 — 拖動已忽略；請用關節面板滑桿調整` }); return }
+    const before = useApp.getState().status
+    st.setJointValue(childJoint.id, v)
+    if (useApp.getState().status === before) useApp.setState({ status: `已沿關節「${childJoint.name}」軸${v.angle !== undefined ? ` 轉到 ${v.angle.toFixed(1)}°` : ''}${v.slide !== undefined ? ` 滑到 ${v.slide.toFixed(2)} mm` : ''}（拖動受關節約束）` })
+  } : undefined
   return (
     <ComponentGumball
       component={c}
+      fkMat={childJoint && fk && c ? fk.get(c.id) : undefined}
+      jointDrag={jointDrag}
       grounded={grounded}
       setComponentPos={setComponentPos}
       setComponentRot={setComponentRot}

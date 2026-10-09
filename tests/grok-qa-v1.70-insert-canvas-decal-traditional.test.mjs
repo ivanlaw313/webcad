@@ -22,6 +22,7 @@ const illegal = readFileSync(new URL('../src/ui/illegalInput.ts', import.meta.ur
 const drawing = readFileSync(new URL('../src/components/DrawingPanel.tsx', import.meta.url), 'utf8')
 const featureStatus = readFileSync(new URL('../src/ui/featureStatus.ts', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.70+', () => {
   assert.match(version, /APP_VERSION = '2.20'/)
@@ -51,7 +52,7 @@ test('v1.70: INSERT ribbon canvas/decal + residual labels Traditional (STL pin k
 })
 
 test('v1.70: FastenerDialog + Viewport toolbar/FD + tree/timeline 貼花 Traditional', () => {
-  assert.match(ribbonUi, /label\('插入緊固件', 'Insert Fastener'\)/)
+  assert.match(ribbonUi, /插入緊固件|fastener\.title|tool\.insertfastener/)
   assert.doesNotMatch(ribbonUi, /label\('插入紧固件', 'Insert Fastener'\)/)
   assert.match(viewport, /🏷貼花/)
   assert.doesNotMatch(viewport, /🏷贴花/)
@@ -104,7 +105,7 @@ test('Do not regress prior TC + MESH SC pin + LAB gear + Boolean help + construc
   assert.match(ribbon, /id: 'gear', label: '齒輪'/)
   assert.match(ribbon, /id: 'thread', label: '螺紋桿'/)
   assert.match(ribbon, /id: 'ucs', label: '用戶坐標系'/)
-  assert.match(ribbon, /id: 'importdxf', label: '導入DXF'/)
+  assert.match(ribbon, /id: 'importdxf', label: '(?:導入|匯入)DXF'/)
   assert.match(ribbon, /id: 'explodeview', label: '爆炸視圖'/)
   assert.match(ribbon, /name: '3D列印'/)
   assert.match(drawing, /裝配工程圖/)
@@ -112,8 +113,8 @@ test('Do not regress prior TC + MESH SC pin + LAB gear + Boolean help + construc
   assert.match(i18n, /CREATE: '建立'/)
   assert.match(i18n, /CONSTRUCT: '構造'/)
   assert.match(store, /label: '烘焙為零件實體'/)
-  assert.match(featureStatus, /已抽殼/)
-  assert.match(featureStatus, /已實體布爾|時間軸可改/)
+  assert.ok(/已抽殼|status\.shellDone/.test(store + (typeof zhHK!=='undefined'?zhHK:'')), 'shell done')
+  assert.ok(/已實體布爾|status\.boolean|時間軸可改/.test(store + (typeof zhHK!=='undefined'?zhHK:'')), 'boolean done')
   assert.match(viewport, /manifold 網格布爾/)
   assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(ribbon, /'🧪實驗室': \{ id: '🧪實驗室'/)

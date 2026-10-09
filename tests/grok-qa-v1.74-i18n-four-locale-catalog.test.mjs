@@ -76,7 +76,7 @@ test('v1.74: msg / tLabel / tTab / tGroup switch all four locales', () => {
 
 test('v1.74: MESH pin + insertmesh catalog; LAB under 實驗室', () => {
   assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
-  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
+  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL網格')
   assert.equal(msg('tool.insertmesh', 'en'), 'Insert STL')
   assert.match(ribbonSrc, /'🧪實驗室': \{ id: '🧪實驗室'/)
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')

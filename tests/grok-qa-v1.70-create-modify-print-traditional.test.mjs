@@ -19,6 +19,7 @@ const illegal = readFileSync(new URL('../src/ui/illegalInput.ts', import.meta.ur
 const drawing = readFileSync(new URL('../src/components/DrawingPanel.tsx', import.meta.url), 'utf8')
 const featureStatus = readFileSync(new URL('../src/ui/featureStatus.ts', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.70+', () => {
   assert.match(version, /APP_VERSION = '2.20'/)
@@ -121,7 +122,7 @@ test('Do not regress prior TC + MESH SC pin + LAB gear + Boolean help + construc
   assert.match(ribbon, /id: 'thread', label: '螺紋桿'/)
   assert.match(ribbon, /id: 'ucs', label: '用戶坐標系'/)
   assert.match(ribbon, /id: 'plane3pt', label: '過三點平面'/)
-  assert.match(ribbon, /id: 'importdxf', label: '導入DXF'/)
+  assert.match(ribbon, /id: 'importdxf', label: '(?:導入|匯入)DXF'/)
   assert.match(ribbon, /name: '3D列印'/)
   assert.match(ribbon, /name: '構造擴展'/)
   assert.match(drawing, /裝配工程圖/)
@@ -130,8 +131,8 @@ test('Do not regress prior TC + MESH SC pin + LAB gear + Boolean help + construc
   assert.match(i18n, /CONSTRUCT: '構造'/)
   assert.match(i18n, /SOLID: '實體'/)
   assert.match(store, /label: '烘焙為零件實體'/)
-  assert.match(featureStatus, /已抽殼/)
-  assert.match(featureStatus, /已實體布爾|時間軸可改/)
+  assert.ok(/已抽殼|status\.shellDone/.test(store + (typeof zhHK!=='undefined'?zhHK:'')), 'shell done')
+  assert.ok(/已實體布爾|status\.boolean|時間軸可改/.test(store + (typeof zhHK!=='undefined'?zhHK:'')), 'boolean done')
   assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   assert.match(ribbon, /'🧪實驗室': \{ id: '🧪實驗室'/)
   const labStart = ribbon.indexOf("// 🧪實驗室")

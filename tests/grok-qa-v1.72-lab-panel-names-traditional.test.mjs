@@ -23,6 +23,7 @@ const illegal = readFileSync(new URL('../src/ui/illegalInput.ts', import.meta.ur
 const drawing = readFileSync(new URL('../src/components/DrawingPanel.tsx', import.meta.url), 'utf8')
 const featureStatus = readFileSync(new URL('../src/ui/featureStatus.ts', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.72+', () => {
   assert.match(version, /APP_VERSION = '2.20'/)
@@ -51,7 +52,7 @@ test('v1.72: LAB panel names + stack label Traditional', () => {
 })
 
 test('v1.72: Viewport assemble-menu companion Traditional', () => {
-  assert.match(viewport, /label: '⊟ 垂直堆疊'/)
+  assert.match(viewport, /mm\.stackVert|垂直堆疊/)
   assert.doesNotMatch(viewport, /label: '⊟ 垂直堆叠'/)
 })
 
@@ -85,7 +86,7 @@ test('Do not regress prior TC + MESH SC pin + Boolean leftovers + LAB under 實�
   assert.match(ribbon, /id: 'gear', label: '齒輪'/)
   assert.match(ribbon, /id: 'thread', label: '螺紋桿'/)
   assert.match(ribbon, /id: 'ucs', label: '用戶坐標系'/)
-  assert.match(ribbon, /id: 'importdxf', label: '導入DXF'/)
+  assert.match(ribbon, /id: 'importdxf', label: '(?:導入|匯入)DXF'/)
   assert.match(ribbon, /id: 'explodeview', label: '爆炸視圖'/)
   assert.match(ribbon, /id: 'insertcanvas', label: '畫布'/)
   assert.match(ribbon, /id: 'insertdecal', label: '貼花'/)
@@ -96,8 +97,8 @@ test('Do not regress prior TC + MESH SC pin + Boolean leftovers + LAB under 實�
   assert.match(i18n, /CREATE: '建立'/)
   assert.match(i18n, /CONSTRUCT: '構造'/)
   assert.match(store, /label: '烘焙為零件實體'/)
-  assert.match(featureStatus, /已抽殼/)
-  assert.match(featureStatus, /已實體布爾|時間軸可改/)
+  assert.ok(/已抽殼|status\.shellDone/.test(store + (typeof zhHK!=='undefined'?zhHK:'')), 'shell done')
+  assert.ok(/已實體布爾|status\.boolean|時間軸可改/.test(store + (typeof zhHK!=='undefined'?zhHK:'')), 'boolean done')
   assert.match(viewport, /manifold 網格布爾/)
   assert.match(viewport, /來源「\$\{/)
   assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)

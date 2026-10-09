@@ -69,7 +69,7 @@ test('v1.75: status toast keys resolve in all 4 locales', () => {
 
 test('pins retained: MESH SC / 實驗室 / 尺寸已拒絕 / 日本語 switcher', () => {
   assert.match(ribbon, /id: 'insertmesh',\s*label: '插入STL(?:网格|網格)'/)
-  assert.equal(tLabel('插入STL网格', 'zh-HK'), '插入STL网格')
+  assert.equal(tLabel('插入STL网格', 'zh-HK'), '插入STL網格')  // SC query → TC display
   assert.match(ribbon, /實驗室/)
   assert.match(illegal, /ILLEGAL_REJECT_MARKER = '尺寸已拒絕'/)
   const ribbonUi = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')

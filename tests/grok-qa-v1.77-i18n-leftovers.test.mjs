@@ -77,7 +77,7 @@ test('v1.77: ribbon tips no residual SC markers (这/说/点击/实体…)', () 
 
 test('Pins + BOT-D 7302 false-positive: tree/timeline TC labels present', () => {
   assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
-  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
+  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL網格')
   assert.match(ribbonSrc, /'🧪實驗室'/)
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')
   assert.match(ribbon, /日本語/)

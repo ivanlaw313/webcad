@@ -145,7 +145,7 @@ test('Do not regress prior TC + MESH TC pin + LAB gear + Boolean help + construc
   assert.match(ribbon, /id: 'thread', label: '螺紋桿'/)
   assert.match(ribbon, /id: 'ucs', label: '用戶坐標系'/)
   assert.match(ribbon, /id: 'pointvertex', label: '頂點構造點'/)
-  assert.match(ribbon, /id: 'importdxf', label: '導入DXF'/)
+  assert.match(ribbon, /id: 'importdxf', label: '(?:導入|匯入)DXF'/)
   assert.match(ribbon, /id: 'explodeview', label: '爆炸視圖'/)
   assert.match(ribbon, /name: '3D列印'/)
   assert.match(drawing, /裝配工程圖/)

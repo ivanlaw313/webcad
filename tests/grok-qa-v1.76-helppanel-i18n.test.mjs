@@ -70,7 +70,7 @@ test('v1.76: File menu residual en? ternaries → msg(file.*)', () => {
 
 test('Pins: 插入STL网格 · 實驗室 · 尺寸已拒絕 · 日本語 · JA tool non-EN', () => {
   assert.match(ribbonSrc, /id: 'insertmesh', label: '插入STL(?:网格|網格)'/)
-  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
+  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL網格')
   assert.match(ribbonSrc, /'🧪實驗室'/)
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')
   assert.match(ribbon, /日本語/)

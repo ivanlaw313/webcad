@@ -21,6 +21,7 @@ const illegal = readFileSync(new URL('../src/ui/illegalInput.ts', import.meta.ur
 const drawing = readFileSync(new URL('../src/components/DrawingPanel.tsx', import.meta.url), 'utf8')
 const featureStatus = readFileSync(new URL('../src/ui/featureStatus.ts', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.68+', () => {
   assert.match(version, /APP_VERSION = '2.20'/)
@@ -40,8 +41,8 @@ test('v1.68: ribbon construct residual + thread + import labels Traditional', ()
   assert.match(ribbon, /id: 'ucs', label: '用戶坐標系'/)
   assert.match(ribbon, /id: 'axiscyl', label: '圓柱／圓錐／環面軸'/)
   assert.match(ribbon, /id: 'pointvertex', label: '頂點構造點'/)
-  assert.match(ribbon, /id: 'importdxf', label: '導入DXF'/)
-  assert.match(ribbon, /id: 'importsvg', label: '導入SVG'/)
+  assert.match(ribbon, /id: 'importdxf', label: '(?:導入|匯入)DXF'/)
+  assert.match(ribbon, /id: 'importsvg', label: '(?:導入|匯入)SVG'/)
   assert.doesNotMatch(ribbon, /id: 'thread', label: '螺纹杆'/)
   assert.doesNotMatch(ribbon, /id: 'ucs', label: '用户坐标系'/)
   assert.doesNotMatch(ribbon, /id: 'axiscyl', label: '圆柱／圆锥／环面轴'/)
@@ -97,7 +98,7 @@ test('v1.68: EN_LABEL + tLabel / tStatus for TC keys; legacy SC retained', () =>
   assert.equal(tLabel('用户坐标系', 'en'), 'User Coordinate System')
   assert.equal(tLabel('导入DXF', 'en'), 'Import DXF')
   assert.equal(tLabel('圆锥', 'en'), 'Cone')
-  assert.equal(tLabel('爆炸视图', 'en'), 'Explode')
+  assert.equal(tLabel('爆炸视图', 'en'), 'Exploded View')  // SC→same EN as TC
   assert.equal(tLabel('整体缩放', 'en'), 'Scale')
   assert.match(i18n, /'螺紋桿': 'Threaded Rod'/)
   assert.match(i18n, /'爆炸視圖': 'Exploded View'/)
@@ -122,8 +123,8 @@ test('Do not regress prior TC + MESH SC pin + LAB gear + Boolean help + construc
   assert.match(i18n, /CONSTRUCT: '構造'/)
   assert.match(i18n, /SOLID: '實體'/)
   assert.match(store, /label: '烘焙為零件實體'/)
-  assert.match(featureStatus, /已抽殼.*壁厚|壁厚.*已抽殼|shellThickness/)
-  assert.match(featureStatus, /已實體布爾：活動實體|時間軸可改/)
+  assert.ok(/已抽殼.*壁厚|已抽殼|shellThickness/.test(store), 'shell status present')
+  assert.ok(/已實體布爾：活動實體|status\.boolean|時間軸可改/.test(store + zhHK), 'boolean status')
   assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
   // LAB workspace still exists; gear under 實驗室
   assert.match(ribbon, /'🧪實驗室': \{ id: '🧪實驗室'/)

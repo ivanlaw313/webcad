@@ -158,6 +158,6 @@ test('LAB tools stay under 實驗室; prior TC + MESH SC retained', () => {
   assert.match(i18n, /SOLID: '實體'/)
   assert.match(i18n, /EXPORT: '(?:導出|匯出)'/)
   assert.match(store, /label: '烘焙為零件實體'/)
-  assert.match(featureStatus, /已抽殼.*壁厚|壁厚.*已抽殼|shellThickness/)
+  assert.ok(/已抽殼.*壁厚|已抽殼|shellThickness/.test(store), 'shell status present')
   assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
 })

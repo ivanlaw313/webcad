@@ -1,8 +1,37 @@
 import { activeModelCommand } from '../cad/commandAvailability'
-import { useState, useRef, useEffect, type ReactNode } from 'react'
+import { useState, useRef, useEffect, createContext, useContext, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react'
 import { ToolIcon } from '../icons'
 import { useApp, MATERIALS, compWorldMatrix, datumVisKey, type AppState } from '../store'
-import { tStatus, msg } from '../i18n'
+import { tStatus, msg, tLabel } from '../i18n'
+import { treeMenuKeys, ACTIVE_BODY_KEY, parkedBodyKey, type TreeNodeKind, type TreeMenuOpts } from '../ui/contextMenus'
+import { useEscapeLayer } from './useEscapeLayer'
+
+// Browser-tree app context menu (Fusion browser right-click) — replaces Chrome's native menu on tree rows.
+type TreeMenuItem = { key: string; label: string; fn: () => void; disabled?: boolean }
+type TreeMenuAction = Partial<Record<string, (() => void) | undefined>>
+const TreeMenuCtx = createContext<(e: ReactMouseEvent, kind: TreeNodeKind, opts: TreeMenuOpts, actions: TreeMenuAction) => void>(() => {})
+const L2 = (zh: string, en: string, lang: string) => (lang === 'en' || lang === 'ja' ? en : tStatus(zh, lang as never))
+// Item labels (TC source + en). 外觀/物理材質 reuse the ribbon catalogue via tLabel.
+function treeItemLabel(key: string, lang: string): string {
+  switch (key) {
+    case 'hide': return L2('隱藏', 'Hide', lang)
+    case 'show': return L2('顯示', 'Show', lang)
+    case 'rename': return L2('重新命名', 'Rename', lang)
+    case 'delete': return L2('刪除', 'Delete', lang)
+    case 'createComp': return L2('建立組件', 'Create Component', lang)
+    case 'editSketch': return L2('編輯草圖', 'Edit Sketch', lang)
+    case 'edit': return L2('編輯組件', 'Edit Component', lang)
+    case 'isolate': return L2('孤立顯示', 'Isolate', lang)
+    case 'focus': return L2('聚焦', 'Focus', lang)
+    case 'props': return L2('屬性', 'Properties', lang)
+    case 'appearance': return tLabel('外觀', lang as never)
+    case 'physmat': return tLabel('物理材質', lang as never)
+    case 'showAll': return L2('顯示全部', 'Show All', lang)
+    case 'fit': return L2('適應視窗', 'Fit to Window', lang)
+    default: return key
+  }
+}
+function useTreeMenu() { return useContext(TreeMenuCtx) }
 
 // GM-W2 2.2 情境化（对标 Fusion）：草图模式中锁破坏性删除 — 正画紧嘅草图可能依赖被删对象
 //（参考面/組件面/构造轴），完成草图先至俾删。返回 true = 已拦截（调用处直接 return）。
@@ -140,8 +169,15 @@ function SketchRow({ k }: { k: string }) {
   const standalone = features.some((f) => f.type === 'sketch' && (f as { sketchId?: string }).sketchId === k)
   const orphan = !referenced
   const commit = () => { useApp.getState().renameSketchSrc(k, name); setEditing(false) }
+  const openMenu = useTreeMenu()
   return (
     <div className="tree-row" style={{ paddingLeft: 18, ...(selSketch === k ? { background: 'rgba(21,114,196,.14)', borderRadius: 4 } : {}) }}
+      onContextMenu={(e) => openMenu(e, 'sketch', { hidden: !src.visible, canRename: true, canDelete: orphan && !skLock }, {
+        editSketch: () => { if (referenced) useApp.getState().editSketchBySrc(k); else void useApp.getState().reopenOrphanSketch(k) },
+        hide: () => useApp.getState().toggleSketchVis(k), show: () => useApp.getState().toggleSketchVis(k),
+        rename: () => { setName(src.name || defaultLabel); setEditing(true) },
+        delete: async () => { if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`刪除未使用草圖「${src.name || defaultLabel}」？`, lang))) useApp.getState().deleteSketchSrc(k) },
+      })}
       title={tStatus(`${src.name || defaultLabel} — ${src.shapes.length} 個輪廓 · ${src.cons.length} 個約束${src.arb ? ' · 斜面' : ` · ${src.plane}`}${standalone ? ' · 獨立草圖 — 單擊選中（拉伸/旋轉直接用）' : ''}${orphan ? '（未使用 — 消費特徵已刪；「重開」還原做獨立草圖 / 🗑刪除）' : referenced ? ' — 雙擊重開編輯' : ''}（Alt+雙擊 = 改名）`, lang)}
       onClick={() => standalone && useApp.getState().setSelSketch(selSketch === k ? null : k)}
       onDoubleClick={(e) => { if (referenced && !e.altKey) useApp.getState().editSketchBySrc(k); else { setName(src.name || defaultLabel); setEditing(true) } }}>
@@ -282,9 +318,19 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
   const toggleBodyVisible = useApp((s) => s.toggleComponentBodyVisible)
   const selectedBody = useApp((s) => s.selectedComponentBody)
   const selectBody = useApp((s) => s.selectComponentBody)
+  const openMenu = useTreeMenu()
+  const onCompMenu = (e: ReactMouseEvent) => openMenu(e, 'component', { hidden: !!c.hidden, canRename: true, canEdit: !!(c.src?.features?.length || c.formSource) }, {
+    hide: () => toggleVis(c.id), show: () => toggleVis(c.id),
+    isolate: () => isolate(c.id),
+    edit: () => { if (c.formSource) useApp.getState().editFormComponent(c.id); else { selectComponent(c.id); void useApp.getState().editComponent(c.id) } },
+    rename: () => { setName(c.name); setEditing(true) },
+    focus: () => requestFit(c.id),
+    props: () => void useApp.getState().openPropertiesDialog(c.id),
+    delete: async () => { if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`刪除組件「${c.name}」？`, lang))) del(c.id) },
+  })
   return (
     <>
-    <div className={'tree-row' + (c.id === sel ? ' sel' : '') + (compBoolPending && c.id !== compBoolPending.from ? ' comp-bool-pickable' : '')} style={{ paddingLeft: 18 + depth * 14, ...(compBoolPending && c.id !== compBoolPending.from ? { outline: '1px dashed #2563eb', background: 'rgba(37,99,235,.06)' } : {}) }} title={compBoolPending && c.id !== compBoolPending.from ? tStatus('組件布爾：點此零件（或勾選）作為工具件完成運算', lang) : undefined}>
+    <div onContextMenu={onCompMenu} className={'tree-row' + (c.id === sel ? ' sel' : '') + (compBoolPending && c.id !== compBoolPending.from ? ' comp-bool-pickable' : '')} style={{ paddingLeft: 18 + depth * 14, ...(compBoolPending && c.id !== compBoolPending.from ? { outline: '1px dashed #2563eb', background: 'rgba(37,99,235,.06)' } : {}) }} title={compBoolPending && c.id !== compBoolPending.from ? tStatus('組件布爾：點此零件（或勾選）作為工具件完成運算', lang) : undefined}>
       <input type="checkbox" checked={checked} title={tStatus(compBoolPending && c.id !== compBoolPending.from ? '勾選此零件＝選為組件布爾工具件並立即完成' : '勾選以做批量操作（隱藏/顯示/刪除）', lang)} onClick={(e) => e.stopPropagation()} onChange={() => toggleCheck(c.id)} style={{ marginRight: 2, cursor: 'pointer' }} />
       <span className="tw-eye" title={tStatus('顯示/隱藏', lang)} onClick={(e) => { e.stopPropagation(); toggleVis(c.id) }}>{c.hidden ? '🚫' : '👁'}</span>
       <span className="tw-ico"><ToolIcon name="component" size={13} /></span>
@@ -318,7 +364,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
       <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除組件', lang)} onClick={async (e) => { e.stopPropagation(); if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`刪除組件「${c.name}」？`, lang))) del(c.id) }}>🗑</span>
     </div>}
     {bodies.length > 1 && bodies.map((body) => (
-      <div key={body.id} className={'tree-row' + (selectedBody?.componentId === c.id && selectedBody.bodyId === body.id ? ' sel' : '')} style={{ paddingLeft: 40 + depth * 14, minHeight: 22, opacity: body.hidden ? 0.5 : 1 }} title={`實體：${body.name}（單擊選取此實體；顯示狀態會同步到其所有實例）`} onClick={() => selectBody(c.id, body.id)}>
+      <div key={body.id} className={'tree-row' + (selectedBody?.componentId === c.id && selectedBody.bodyId === body.id ? ' sel' : '')} style={{ paddingLeft: 40 + depth * 14, minHeight: 22, opacity: body.hidden ? 0.5 : 1 }} title={`實體：${body.name}（單擊選取此實體；顯示狀態會同步到其所有實例）`} onClick={() => selectBody(c.id, body.id)} onContextMenu={(e) => openMenu(e, 'componentBody', { hidden: !!body.hidden }, { hide: () => toggleBodyVisible(c.id, body.id), show: () => toggleBodyVisible(c.id, body.id) })}>
         <span className="tw-toggle" />
         <span className="tw-eye" title={body.hidden ? '顯示實體' : '隱藏實體'} onClick={(e) => { e.stopPropagation(); toggleBodyVisible(c.id, body.id) }}>{body.hidden ? '○' : '◉'}</span>
         <span className="tw-ico"><ToolIcon name="box" size={12} /></span>
@@ -327,6 +373,31 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
       </div>
     ))}
     </>
+  )
+}
+
+// Root-body row (活動實體 / 泊車實體): eye toggle + app context menu (隱藏/顯示 · 建立組件 · 外觀 · 物理材質 · 屬性).
+function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; visKey: string; sel: boolean; parkedIndex?: number; onClick: () => void }) {
+  const lang = useApp((s) => s.lang)
+  const hidden = useApp((s) => s.bodyHidden.includes(visKey))
+  const allOff = useApp((s) => !s.objectVis.bodies)
+  const openMenu = useTreeMenu()
+  const toggle = () => useApp.getState().toggleBodyHidden(visKey)
+  const active = parkedIndex == null
+  return (
+    <div className={'tree-row' + (sel ? ' sel' : '')} style={{ paddingLeft: 18, opacity: hidden || allOff ? 0.55 : 1 }} onClick={onClick}
+      onContextMenu={(e) => openMenu(e, active ? 'activeBody' : 'parkedBody', { hidden }, {
+        hide: toggle, show: toggle,
+        createComp: () => useApp.getState().newComponent(),
+        appearance: () => void useApp.getState().runCommand('appearance', '外觀'),
+        physmat: () => void useApp.getState().runCommand('physicalmaterial', '物理材質'),
+        props: () => void useApp.getState().openPropertiesDialog(active ? null : `parked:${parkedIndex}`),
+        fit: () => useApp.getState().requestFit(),
+      })}>
+      <span className="tw-eye" title={L2(hidden ? '顯示實體' : '隱藏實體', hidden ? 'Show body' : 'Hide body', lang)} onClick={(e) => { e.stopPropagation(); toggle() }}>{hidden ? '🚫' : '👁'}</span>
+      <span className="tw-ico"><ToolIcon name="box" size={13} /></span>
+      <span style={{ flex: 1 }}>{tStatus(label, lang)}</span>
+    </div>
   )
 }
 
@@ -446,6 +517,26 @@ export default function BrowserTree() {
   const setView = useApp((s) => s.setView)
   const savedViews = useApp(s => s.viewBookmarks)
   const requestFit = useApp((s) => s.requestFit)
+  const anyBodyHidden = useApp((s) => s.bodyHidden.length > 0 || !s.objectVis.bodies)
+  const [treeMenu, setTreeMenu] = useState<{ x: number; y: number; items: (TreeMenuItem | 'sep')[] } | null>(null)
+  useEscapeLayer(!!treeMenu, () => setTreeMenu(null), 260)
+  const openTreeMenu = (e: ReactMouseEvent, kind: TreeNodeKind, opts: TreeMenuOpts, actions: TreeMenuAction) => {
+    e.preventDefault(); e.stopPropagation()
+    const items: (TreeMenuItem | 'sep')[] = []
+    for (const k of treeMenuKeys(kind, opts)) {
+      if (k === 'sep') { if (items.length && items[items.length - 1] !== 'sep') items.push('sep'); continue }
+      const fn = actions[k]
+      if (fn) items.push({ key: k, label: treeItemLabel(k, lang), fn })
+    }
+    while (items.length && items[items.length - 1] === 'sep') items.pop()
+    if (items.length) setTreeMenu({ x: e.clientX, y: e.clientY, items })
+  }
+  const rootActions: TreeMenuAction = { showAll: () => useApp.getState().showAllBodies(), fit: () => requestFit() }
+  const onBrowserContextMenu = (e: ReactMouseEvent) => {
+    const t = e.target as HTMLElement
+    if (t.closest?.('input,textarea,select')) return   // keep native copy/paste in rename fields
+    openTreeMenu(e, 'root', {}, rootActions)
+  }
 
   // Entering a phone-sized layout frees the canvas, while the restore handle stays reachable.
   // Returning to a wider layout restores the user's previous tree preference.
@@ -475,7 +566,8 @@ export default function BrowserTree() {
   }
 
   return (
-    <div className="browser">
+    <TreeMenuCtx.Provider value={openTreeMenu}>
+    <div className="browser" onContextMenu={onBrowserContextMenu}>
       <div className="browser-head">
         <span style={{ cursor: 'pointer' }} title={msg('ui.browserCollapse', lang)} onClick={() => toggleBrowser()}>◂◂</span>
         <span style={{ marginLeft: 6 }}>{msg('ui.browser', lang)}</span>
@@ -619,8 +711,9 @@ export default function BrowserTree() {
           </Section>
         )}
         <Section label={`${msg('tree.bodies', lang)}${bodyMesh?.parked?.length ? ` (${(bodyMesh.triangles.length ? 1 : 0) + bodyMesh.parked.length})` : ''}`}>
-          {bodyMesh && bodyMesh.triangles.length > 0 ? <Leaf icon="box" label={`${components.length > 0 ? '當前組件' : '活動實體'} ●`} sel={selectedParkedIndex == null} onClick={() => { useApp.getState().selectParkedBody(null); void useApp.getState().openPropertiesDialog(null) }} /> : null}
-          {bodyMesh?.parked?.map((b, i) => <Leaf key={'pb' + i} icon="box" label={(b as any).kind === 'body' ? b.name : `${b.name}（泊車 · 灰顯）`} sel={selectedParkedIndex === i} onClick={() => {
+          {anyBodyHidden && bodyMesh ? <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().showAllBodies()} title={L2('顯示所有隱藏的實體/組件', 'Show all hidden bodies/components', lang)}>👁 {L2('顯示全部', 'Show All', lang)}</div> : null}
+          {bodyMesh && bodyMesh.triangles.length > 0 ? <BodyRow visKey={ACTIVE_BODY_KEY} label={`${components.length > 0 ? '當前組件' : '活動實體'} ●`} sel={selectedParkedIndex == null} onClick={() => { useApp.getState().selectParkedBody(null); void useApp.getState().openPropertiesDialog(null) }} /> : null}
+          {bodyMesh?.parked?.map((b, i) => <BodyRow key={'pb' + i} parkedIndex={i} visKey={parkedBodyKey(b.name, i)} label={(b as any).kind === 'body' ? b.name : `${b.name}（泊車 · 灰顯）`} sel={selectedParkedIndex === i} onClick={() => {
             const st = useApp.getState()
             st.selectParkedBody(i)
             // SO10 / BUG-SO15-002：统一测量 + 体过滤时树点选即量泊车半体体积；否则开属性。
@@ -643,6 +736,18 @@ export default function BrowserTree() {
           )}
         </Section>
       </div>
+      {treeMenu && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 300 }} onClick={() => setTreeMenu(null)} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setTreeMenu(null) }} />
+          <div role="menu" className="tree-ctx-menu" style={{ position: 'fixed', left: Math.min(treeMenu.x, window.innerWidth - 190), top: Math.min(treeMenu.y, window.innerHeight - treeMenu.items.length * 28 - 16), zIndex: 301, minWidth: 160, background: '#fff', border: '1px solid #c4ccd4', borderRadius: 6, boxShadow: '0 6px 24px rgba(0,0,0,.18)', padding: 4, fontSize: 13, color: '#2a2f35', userSelect: 'none' }}
+            onContextMenu={(e) => { e.preventDefault(); e.stopPropagation() }}>
+            {treeMenu.items.map((it, i) => it === 'sep'
+              ? <div key={'s' + i} style={{ height: 1, background: '#e6e9ee', margin: '4px 6px' }} />
+              : <div key={it.key} role="menuitem" data-key={it.key} onClick={(e) => { e.stopPropagation(); setTreeMenu(null); if (!it.disabled) it.fn() }} style={{ padding: '6px 12px', borderRadius: 4, cursor: it.disabled ? 'default' : 'pointer', opacity: it.disabled ? 0.5 : 1, whiteSpace: 'nowrap' }} onMouseEnter={(e) => { if (!it.disabled) e.currentTarget.style.background = '#eaf2fb' }} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>{it.label}</div>)}
+          </div>
+        </>
+      )}
     </div>
+    </TreeMenuCtx.Provider>
   )
 }

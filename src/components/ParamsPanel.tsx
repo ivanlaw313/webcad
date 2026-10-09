@@ -92,6 +92,14 @@ export default function ParamsPanel() {
   const [dtVals, setDtVals] = useState('')
   const [collapsed, setCollapsed] = useState(false)
   const panelDrag = useDraggable('webcad-parameters', { left: 14, top: 128 })
+  // 「+添加」留空名 → 自动 d# ；建立后即聚焦+全选新行名称栏，直接打字改名（免再搵个格）。
+  const [focusName, setFocusName] = useState<string | null>(null)
+  useEffect(() => {
+    if (!focusName || !params.some((p) => p.name === focusName)) return
+    const el = document.querySelector<HTMLInputElement>(`.params-panel input.pp-name[aria-label="参数 ${CSS.escape(focusName)} 名称"]`)
+    if (el) { el.focus(); el.select() }
+    setFocusName(null)
+  }, [focusName, params])
   if (!open) return null
   if (collapsed) return <button ref={panelDrag.ref} className={'params-pill' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} type="button" style={panelDrag.style} onPointerDown={panelDrag.onPointerDown} title="展開用戶參數面板" onClick={() => { if (panelDrag.consumeClick()) return; setCollapsed(false) }}>ƒx 參數 ▸</button>
   const usedBy = parameterUsage(params, sources, bindings, features, mode === 'sketch' ? live : [])
@@ -116,7 +124,7 @@ export default function ParamsPanel() {
       <div className="pp-add">
         <input className="pp-name-in" aria-label="参数名称" placeholder="名称 d1" value={name} onChange={(e) => setName(e.target.value)} />
         <input className="pp-val" aria-label="参数数值" type="number" value={val} onChange={(e) => setVal(Number(e.target.value))} />
-        <button className="cs-btn" onClick={() => { addParam(name, val); setName('') }}>+ 添加</button>
+        <button className="cs-btn" onClick={() => { const auto = !name.trim(); const nm = auto ? `d${params.length + 1}` : ''; addParam(name, val); setName(''); if (auto) setFocusName(nm) }}>+ 添加</button>
       </div>
       <details><summary>进阶：配置、设计表及导出</summary>
       {params.length > 0 && <div className="pp-add" style={{ justifyContent: 'flex-end' }}><button className="cs-btn" title="把参数表导出为 CSV（名称/值/表达式，方便文档/分享/Excel）" onClick={() => exportCsv()}>📋 导出参数 CSV</button></div>}

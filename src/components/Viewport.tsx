@@ -119,6 +119,7 @@ import { CameraRig, SketchSurface, SketchDraw, DimensionEditPreview, SkSelDraw, 
 import { SketchToolPanel } from './SketchToolPanel'
 import { useDraggable } from './useDraggable'            // GM-W6 A4：草图工具条可拖移（同 AI ✦ / 🩺诊断 钮共用 hook）
 import MarkingMenu, { type MMItem } from './MarkingMenu'
+import { modelMenuLayout, pickItems, nearEdgePx, ACTIVE_BODY_KEY, parkedBodyKey, type ViewportHit } from '../ui/contextMenus'
 import { CommandDialog, SelectionChip } from './CommandDialog'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL } from '../ui/illegalInput'
 import { MATERIAL_MECH } from '../analysis/beamStress'
@@ -392,6 +393,7 @@ function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: {
       <mesh
         geometry={geom}
         raycast={pickable ? MESH_RAYCAST : NULL_RAYCAST}
+        onContextMenu={pickable ? (e) => noteCtxHit(e.nativeEvent, { kind: 'body', parked: index }) : undefined}
         onClick={pickable ? (e) => { e.stopPropagation(); let face = 0; if (e.faceIndex != null && mesh.faceGroups?.length) { const tri3 = e.faceIndex * 3; const gi = mesh.faceGroups.findIndex((g) => tri3 >= g.start && tri3 < g.start + g.count); if (gi >= 0) face = gi } const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null; onPick?.(index, face, [e.point.x, e.point.y, e.point.z], wn ? [wn.x, wn.y, wn.z] : undefined) } : undefined}
       >
         <meshStandardMaterial color={picked ? '#7bb8e8' : mesh.kind === 'body' ? '#aeb9c4' : '#9aa6b0'} transparent={mesh.kind !== 'body'} opacity={mesh.kind === 'body' ? 1 : 0.55} roughness={0.8} metalness={0.05} />
@@ -428,6 +430,34 @@ function BrepEdgeOverlay({ mesh, color, fallbackThreshold = 25, hidden = false, 
       ? <lineDashedMaterial color={color} clippingPlanes={clip} transparent opacity={0.42} dashSize={1.8} gapSize={1.4} scale={1} depthTest depthFunc={GreaterDepth} depthWrite={false} />
       : <lineBasicMaterial color={color} clippingPlanes={clip} depthTest={!through} depthWrite={false} />}
   </lineSegments>
+}
+
+// Right-click hit info for the context-sensitive marking menu (Fusion: face / edge / body / component / empty).
+// R3F handlers run before the viewport div's onContextMenu, nearest intersection first → first writer wins.
+type CtxHitInfo = { kind: ViewportHit; compId?: string; parked?: number }
+function noteCtxHit(ev: Event, hit: CtxHitInfo) {
+  const ne = ev as { __webcadHit?: CtxHitInfo }
+  if (!ne.__webcadHit) ne.__webcadHit = hit
+}
+const _edgePosCache = new WeakMap<object, number[] | null>()
+// Screen-space test: is the right-click within a few px of a B-rep edge of this body? (edge vs face menu)
+function ctxNearBrepEdge(mesh: MeshData, e: { object: Object3D; camera: Camera; nativeEvent: MouseEvent }): boolean {
+  let pos = _edgePosCache.get(mesh)
+  if (pos === undefined) { pos = brepEdgePositions(mesh); _edgePosCache.set(mesh, pos) }
+  if (!pos?.length) return false
+  const el = e.nativeEvent.target as HTMLElement | null
+  const r = el?.getBoundingClientRect?.()
+  if (!r || !r.width || !r.height) return false
+  const px = e.nativeEvent.clientX - r.left, py = e.nativeEvent.clientY - r.top
+  const m = e.object.matrixWorld, v = new Vector3()
+  const seg = new Float32Array((pos.length / 6) * 4)
+  for (let i = 0, j = 0; i + 5 < pos.length; i += 3, j += 2) {
+    v.set(pos[i], pos[i + 1], pos[i + 2]).applyMatrix4(m).project(e.camera)
+    const ok = v.z > -1 && v.z < 1
+    seg[j] = ok ? (v.x + 1) / 2 * r.width : NaN
+    seg[j + 1] = ok ? (1 - v.y) / 2 * r.height : NaN
+  }
+  return nearEdgePx(seg, px, py, 6)
 }
 
 function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = false, compId, pos = [0, 0, 0], rot, rotationCenter, selected = false, motion, explodeOffset, clip = [], compColor, compOpacity = 1, pickable = true, moldTarget = false, onSelect, onFocus, onFaceMatePick, onPointMatePick }: { mesh: MeshData; pickOnly?: boolean; displayOnly?: boolean; frozen?: boolean; compId?: string; pos?: [number, number, number]; rot?: [number, number, number]; rotationCenter?: [number, number, number]; selected?: boolean; motion?: Matrix4; explodeOffset?: [number, number, number]; clip?: Plane[]; compColor?: string; compOpacity?: number; pickable?: boolean; moldTarget?: boolean; onSelect?: () => void; onFocus?: () => void; onFaceMatePick?: (face: import('../assembly/faceMate').MateFace) => void; onPointMatePick?: (point: [number, number, number]) => void }) {
@@ -673,6 +703,8 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         // The B-rep edge overlay is a child lineSegments. R3F delivers those hits to this
         // handler too, with faceIndex null, after the triangle. Noting null would wipe the
         // face while __webcadPlanar stays set, so the radial item sees no face.
+        if (mode !== 'sketch' && !frozen && e.faceIndex == null && (e.object as { isLineSegments?: boolean }).isLineSegments) noteCtxHit(e.nativeEvent, { kind: 'edge' })
+        if (mode !== 'sketch' && e.faceIndex != null) noteCtxHit(e.nativeEvent, frozen ? { kind: 'component', compId } : { kind: ctxNearBrepEdge(mesh, e) ? 'edge' : 'face' })
         if (frozen || mode === 'sketch' || e.faceIndex == null) return
         ;(e.nativeEvent as { __webcadPlanar?: boolean }).__webcadPlanar = true
         const pick = planarSketchPick(faceGroupTris(mesh, e.faceIndex), [e.point.x, e.point.y, e.point.z])
@@ -3897,6 +3929,8 @@ export default function Viewport() {
   const gridRefNumbers = useApp((s) => s.gridRefNumbers)
   const setGridConfig = useApp((s) => s.setGridConfig)
   const objectVis = useApp((s) => s.objectVis)            // #8 对象可见性主开关
+  const bodyHidden = useApp((s) => s.bodyHidden)          // 实体可见性（浏览器树眼掣 / 右键隱藏）
+  const activeBodyHidden = !objectVis.bodies || bodyHidden.includes(ACTIVE_BODY_KEY)
   const setObjectVis = useApp((s) => s.setObjectVis)
   const setPrefsOpen = useApp((s) => s.setPrefsOpen)      // #12 应用偏好
   // #14 标准视图按钮复用已存在嘅 setView selector（上面已声明）
@@ -4011,7 +4045,7 @@ export default function Viewport() {
   const selectedFeature = useApp((s) => s.selectedFeature)
   const removeFeature = useApp((s) => s.removeFeature)
   const selectFeature = useApp((s) => s.selectFeature)
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; hit: CtxHitInfo } | null>(null)
   const [marq, setMarq] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null)   // GM-W5 5.3：框选橡皮筋（wrapper 像素坐标）
   const [lassoPath, setLassoPath] = useState<[number, number][] | null>(null)   // GM-X4 #17：套索自由多边形（wrapper 像素坐标）
   const lassoMode = useApp((s) => s.lassoMode)   // GM-X4 #17：套索模式（select 工具下拖多边形而非矩形）
@@ -4390,7 +4424,12 @@ export default function Viewport() {
         const d = rcDown.current; rcDown.current = null
         const moved = d ? Math.hypot(e.clientX - d.x, e.clientY - d.y) : 99
         if (moved < 6) {
-          setCtxMenu({ x: e.clientX, y: e.clientY })  // right-click (not right-drag-pan) → our menu
+          const ctxHit = (e.nativeEvent as { __webcadHit?: CtxHitInfo }).__webcadHit ?? { kind: 'empty' as const }
+          // Fusion: right-clicking a component/parked body selects it so the menu acts on what was hit.
+          const stc = useApp.getState()
+          if (ctxHit.kind === 'component' && ctxHit.compId && !stc.compBoolPending && stc.selectedComponent !== ctxHit.compId) stc.selectComponent(ctxHit.compId)
+          if (ctxHit.kind === 'body' && ctxHit.parked != null && stc.selectedParkedIndex !== ctxHit.parked) stc.selectParkedBody(ctxHit.parked)
+          setCtxMenu({ x: e.clientX, y: e.clientY, hit: ctxHit })  // right-click (not right-drag-pan) → our menu
           const hit = (e.nativeEvent as { __webcadPlanar?: boolean }).__webcadPlanar
           if (useApp.getState().mode !== 'sketch' && !hit) notePlanarFace(null)
         }
@@ -4464,17 +4503,17 @@ export default function Viewport() {
           return <Fragment key={c.id}>{bodies.filter((b) => !b.hidden).map((b) => <KernelBody key={b.id} mesh={b.mesh} frozen compId={c.id} pos={c.pos} explodeOffset={o} rot={c.rot} rotationCenter={pivot} selected={c.id === selectedComponent} motion={motion} clip={clip} compColor={b.color || c.color} compOpacity={compOpacity} pickable={pickable || c.id === moldTargetCompId} moldTarget={c.id === moldTargetCompId} onSelect={() => { const st = useApp.getState(); if (st.compBoolPending) { st.selectComponent(c.id); return } selectComponent(c.id === selectedComponent ? null : c.id) }} onFocus={() => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.src?.features?.length) { void useApp.getState().editComponent(c.id) } else { selectComponent(c.id); requestFit(c.id) } }} onFaceMatePick={(face) => { const st = useApp.getState(); if (st.jointHolePick) st.applyJointHolePick(c.id, face); else if (st.screwFitMode) void st.fitScrewToHole(c.id, face); else if (st.jointPickMode) st.pickFaceForJoint(c.id, face); else st.pickFaceForMate(c.id, face) }} onPointMatePick={(point) => useApp.getState().pickPointForMate(c.id, point)} />)}</Fragment>
         })}
         {bodyMesh && bodyMesh.triangles.length > 0
-          ? <>
+          ? (activeBodyHidden ? null : <>
             {section.on && section.capped && sectionCapStatus === 'empty' ? null
               : section.on && section.capped && sectionCapStatus === 'ready' && sectionMesh
                 ? <KernelBody mesh={sectionMesh} displayOnly={!!((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh))} pickable={selPicksBody(selFilter) && mode !== 'sketch' && !formMode} />
                 : <KernelBody mesh={editPreviewMesh || (shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh) || bodyMesh} displayOnly={!!((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh))} clip={clip} pickable={selPicksBody(selFilter) && mode !== 'sketch' && !formMode} />}
             {((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh)) && <KernelBody mesh={bodyMesh} pickOnly clip={clip} />}
-          </>
+          </>)
           : (mode === 'model' && !formMode && components.length === 0 && !(bodyMesh?.parked?.length) ? <PlaceholderBody /> : null)}
         {/* 多实体（T728）：泊车实体灰显。圆角/草图仍作用喺活动实体；SO10：测量体过滤 + 普通体选择时可拾泊车半体。
             S133：编辑曲面控制点 / 加厚曲面模式下变可拾。 */}
-        {bodyMesh?.parked?.map((b, i) => <ParkedBody key={'pk' + i} mesh={b} index={i} pickable={editPolesMode || quiltPickMode || measureUniMode || (mode === 'model' && !formMode && selPicksBody(selFilter))} picked={(editPolesMode && editPolesTarget === i) || quiltPickMode || (selectedParkedIndex === i)} onPick={(idx, face, threePt, faceN) => {
+        {bodyMesh?.parked?.map((b, i) => (!objectVis.bodies || bodyHidden.includes(parkedBodyKey(b.name, i))) ? null : <ParkedBody key={'pk' + i} mesh={b} index={i} pickable={editPolesMode || quiltPickMode || measureUniMode || (mode === 'model' && !formMode && selPicksBody(selFilter))} picked={(editPolesMode && editPolesTarget === i) || quiltPickMode || (selectedParkedIndex === i)} onPick={(idx, face, threePt, faceN) => {
           if (measureUniMode) { useApp.getState().selectParkedBody(idx); void useApp.getState().pickMeasureUniAt(threePt, faceN, false); return }
           if (quiltPickMode) void useApp.getState().thickenParkedAt(idx)
           else if (editPolesMode) void useApp.getState().pickParkedForPoles(idx, face)
@@ -4839,12 +4878,18 @@ export default function Viewport() {
             { key: 'tggrid', label: `${skView.grid ? '☑' : '☐'} 網格`, fn: () => setSkView({ grid: !skView.grid }) },
           ]
         } else {
-          const sc = selectedComponent ? components.find((c) => c.id === selectedComponent) : undefined
-          // GM-G4b：三上下文放射菜单（Fusion 式）—— 草图内(上面 if 分支) / 实体上(有活动实体) / 3D 空境(无实体)。
-          // 全部 fn 与旧线性时代逐字相同（复用现有 runCommand/store 接线，纯排布升级）；每个 context 严格 8 扇区
-          // （旧 model 数组有 9 项 — DIRS[8] 越界，第 9 粒「测量」render 即 crash 嘅潜伏 bug，呢度顺手修正：删面→溢出列表）。
-          const del: MMItem = { key: 'del', icon: 'trash', label: msg('mm.delete', lang), disabled: !selectedFeature && !selectedComponent, fn: () => { if (selectedFeature) { removeFeature(selectedFeature); selectFeature(null) } else if (selectedComponent) useApp.getState().deleteComponent(selectedComponent) } }
-          const fit: MMItem = { key: 'fit', glyph: '⊕', label: msg('mm.fit', lang), fn: () => requestFit() }
+          // Fusion 式情境菜单：按右键命中嘅对象（面 / 边 / 泊车实体 / 组件 / 空白）过滤项目（modelMenuLayout，纯函数有测试）。
+          // 全部 fn 复用现有 runCommand/store 接线，只係揀边啲项目出现。
+          const hit = ctxMenu.hit
+          const L = (zh: string, en: string) => (lang === 'en' || lang === 'ja' ? en : zh)
+          const st = useApp.getState()
+          const scId = hit.kind === 'component' && hit.compId ? hit.compId : selectedComponent
+          const sc = scId ? components.find((c) => c.id === scId) : undefined
+          const hideKey = hit.kind === 'body' && hit.parked != null ? parkedBodyKey(bodyMesh?.parked?.[hit.parked]?.name, hit.parked) : ACTIVE_BODY_KEY
+          const anyHidden = st.bodyHidden.length > 0 || !st.objectVis.bodies || components.some((c) => c.hidden)
+          const del: MMItem = hit.kind === 'component' && sc
+            ? { key: 'del', icon: 'trash', label: msg('mm.delete', lang), fn: () => useApp.getState().deleteComponent(sc.id) }
+            : { key: 'del', icon: 'trash', label: msg('mm.delete', lang), disabled: !selectedFeature && !selectedComponent, fn: () => { if (selectedFeature) { removeFeature(selectedFeature); selectFeature(null) } else if (selectedComponent) useApp.getState().deleteComponent(selectedComponent) } }
           const newSketch: MMItem = { key: 'sketch', icon: 'sketch', label: msg('mm.createSketch', lang), fn: () => {
             // BUG-272: right-click on a planar face (side or top) then 建立草圖 starts there.
             // No face (empty right-click) keeps the origin-plane picker. The pickplane click path is unchanged.
@@ -4852,70 +4897,65 @@ export default function Viewport() {
             if (face) void useApp.getState().startSketchOnFace(face.three, face.n)
             else startSketch()
           } }
-          if (bodyMesh) {
-            // ── 实体上（有活动实体）：N 重复 · NE 草图 · E 按拉 · SE 测量 · S 删除 · SW 移动 · W 圆角 · NW 适应
-            sectors = [
-              repeat,
-              newSketch,
-              { key: 'presspull', icon: 'presspull', label: msg('mm.pressPull', lang), fn: () => runCommand('presspull', '按拉') },
-              { key: 'measure', icon: 'measure', label: msg('mm.measure', lang), fn: () => runCommand('measure', '測量') },
-              del,
-              { key: 'move', icon: 'move', label: msg('mm.moveCopy', lang), fn: () => runCommand('move', '移動') },
-              { key: 'fillet', icon: 'fillet', label: msg('mm.fillet', lang), fn: () => runCommand('fillet', '圓角') },
-              fit,
-            ]
-          } else {
-            // ── 3D 空境（无活动实体）：建模掣全灰冇意思 → 换视图导航 + 起步命令（全部现有接线）
-            sectors = [
-              repeat,
-              newSketch,
-              { key: 'viso', glyph: '◈', label: msg('mm.iso', lang), fn: () => setView('iso') },
-              { key: 'vtop', glyph: '⬚', label: msg('mm.topView', lang), fn: () => setView('top') },
-              fit,
-              { key: 'vfront', glyph: '⬚', label: msg('mm.frontView', lang), fn: () => setView('front') },
-              { key: 'vright', glyph: '⬚', label: msg('mm.rightView', lang), fn: () => setView('right') },
-              del,
-            ]
+          const sectionPrompt = async (compId?: string) => { const v = await useApp.getState().appPrompt(compId ? '截面：軸,位置mm（世界坐標，跟隨擺位/旋轉）— 切一刀，閉合輪廓變可編輯草圖（STL remix：取輪廓→改尺寸→重新拉伸）\n例：Z,10 = 水平切；X,0 / Y,5 亦可' : '截面：軸,位置mm — 喺活動實體呢個位置切一刀，閉合輪廓變成可編輯草圖\n例：Z,10 = 喺 z=10 水平切；X,0 / Y,5 亦可（世界坐標）', 'Z,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (ax.length !== 1 || !'XYZ'.includes(ax)) { await useApp.getState().appAlert('軸要系 X / Y / Z（例 Z,10）'); return } const c = Number(p[1]); if (!Number.isFinite(c)) { await useApp.getState().appAlert('請輸入數字位置，例 Z,10'); return } useApp.getState().meshSectionToSketch(compId, ax as 'X' | 'Y' | 'Z', c) }
+          const compItems: MMItem[] = sc ? [
+            ...(hit.kind === 'component' ? [] : [{ key: 'focus', label: `🎯 聚焦「${sc.name}」`, fn: () => requestFit(sc.id) } as MMItem]),
+            { key: 'cstl', label: `📥 匯出「${sc.name}」STL`, fn: () => useApp.getState().exportComponentStl(sc.id) },
+            { key: 'cmirror', label: `⇄ 鏡像「${sc.name}」`, fn: () => useApp.getState().mirrorComponent(sc.id) },
+            { key: 'cbrep', label: `⧉ 轉 B-rep「${sc.name}」（自動：識別圓柱）`, fn: () => void useApp.getState().convertMeshComponent(sc.id) },
+            { key: 'cbrepf', label: `⧉ 轉 B-rep「${sc.name}」（faceted 逐面）`, fn: () => void useApp.getState().convertMeshComponent(sc.id, 'faceted') },
+            { key: 'csection', label: `✂ 截面取輪廓「${sc.name}」`, fn: () => void sectionPrompt(sc.id) },
+            { key: 'crepair', label: `🩹 補洞修復「${sc.name}」`, fn: () => void useApp.getState().repairActiveMesh(sc.id) },
+            { key: 'csimplify', label: `🔻 簡化網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('簡化到原三角數嘅幾多？（0.05–0.9，例 0.3 = 留 30%）\nQEM 誤差度量減面（保特徵保水密）', '0.3'); if (v == null) return; void useApp.getState().simplifyComponentMeshRatio(sc.id, Number(v) || 0.3) } },
+            { key: 'cremesh', label: `▦ 重網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('各向同性重網格（Botsch-Kobbelt：均勻邊長 + 原面重投影保形）\n目標邊長 mm（細=三角多更平滑，粗=三角少）', '3'); if (v == null) return; void useApp.getState().remeshComponentMesh(sc.id, Number(v) || 3) } },
+            { key: 'csmooth', label: `〰 平滑網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('Taubin λ|μ 平滑趟數（1–40，越多越順）\nshrink-free 保體積、邊界釘住、拓撲不變（去掃描噪聲/階梯）', '5'); if (v == null) return; useApp.getState().smoothComponentMesh(sc.id, Number(v) || 5) } },
+            { key: 'cmeasure', label: `📏 網格屬性「${sc.name}」`, fn: () => useApp.getState().measureMeshComponent(sc.id) },
+            { key: 'cplanecut', label: `✂ 平面切割「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('平面切割（T766 Mesh Plane Cut — 切面自動補實）：\n軸,位置mm,保留側(+/-)\n例：Z,10,+ = 喺 z=10 水平切，保留上半', 'Z,10,+'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (!'XYZ'.includes(ax)) { await useApp.getState().appAlert('軸要系 X/Y/Z'); return } void useApp.getState().planeCutComponent(sc.id, ax as 'X' | 'Y' | 'Z', Number(p[1]) || 0, (p[2] || '+').includes('-') ? '-' : '+') } },
+            { key: 'cshell', label: `🥚 抽殼「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('網格抽殼 / 加厚（Fusion Mesh Thicken）：沿法向內移壁厚 t，掏空成中空殼（要水密閉合網格）\n壁厚 mm', '2'); if (v == null) return; const t = Number(v.trim()); if (!Number.isFinite(t) || t <= 0) { await useApp.getState().appAlert('壁厚要系正數'); return } void useApp.getState().shellMeshComponent(sc.id, t) } },
+            { key: 'coffset', label: `⊕ 偏移網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('網格 3D 均勻偏移（Fusion Mesh Offset）：沿全方向脹縮（minkowski 球膨脹/腐蝕，要水密閉合網格）\n偏移量 mm（正=外擴 / 負=內縮）', '1'); if (v == null) return; const d = Number(v.trim()); if (!Number.isFinite(d) || d === 0) { await useApp.getState().appAlert('偏移量要系非零數字（正外擴/負內縮）'); return } void useApp.getState().offsetMeshComponent(sc.id, d) } },
+            { key: 'chull', label: `◇ 凸包「${sc.name}」`, fn: () => void useApp.getState().convexHullComponent(sc.id) },
+          ] : []
+          const multiItems: MMItem[] = components.filter((c) => !c.hidden).length > 1 ? [
+            { key: 'stack', label: '⊟ ' + msg('mm.stackVert', lang), fn: () => useApp.getState().stackComponents() },
+            { key: 'arrange', label: '⊞ ' + msg('mm.arrangeBed', lang), fn: () => useApp.getState().arrangeForPrint() },
+            { key: 'drop', label: '⬇ ' + msg('mm.dropAll', lang), fn: () => useApp.getState().dropAllToFloor() },
+          ] : []
+          const q = st.exportQuality
+          // 扇区版（icon/glyph）；溢出列表用 ov() 把 glyph 前置入 label（同旧线性菜单观感一致）
+          const table: Record<string, MMItem | MMItem[] | undefined> = {
+            repeat, sketch: newSketch, del,
+            presspull: { key: 'presspull', icon: 'presspull', label: msg('mm.pressPull', lang), fn: () => runCommand('presspull', '按拉') },
+            measure: { key: 'measure', icon: 'measure', glyph: '📏', label: msg('mm.measure', lang), fn: () => runCommand('measure', '測量') },
+            move: { key: 'move', icon: 'move', label: msg('mm.moveCopy', lang), fn: () => runCommand('move', '移動') },
+            fillet: { key: 'fillet', icon: 'fillet', label: msg('mm.fillet', lang), fn: () => runCommand('fillet', '圓角') },
+            chamfer: { key: 'chamfer', icon: 'chamfer', glyph: '◣', label: msg('mm.chamfer', lang), fn: () => runCommand('chamfer', '倒角') },
+            shell: { key: 'shell', icon: 'shell', glyph: '⬚', label: msg('mm.shell', lang), fn: () => runCommand('shell', '抽殼') },
+            delface: { key: 'delface', glyph: '⌦', label: msg('mm.delFace', lang), fn: () => runCommand('delface', '刪面') },
+            facefillet: { key: 'facefillet', glyph: '⌒', label: msg('mm.faceFillet', lang), fn: () => runCommand('facefillet', '面圓角') },
+            fit: { key: 'fit', glyph: '⊕', label: msg('mm.fit', lang), fn: () => requestFit() },
+            focus: sc ? { key: 'focus', glyph: '🎯', label: L('聚焦', 'Focus'), fn: () => requestFit(sc.id) } : undefined,
+            appearance: { key: 'appearance', glyph: '🎨', label: '外觀', fn: () => runCommand('appearance', '外觀') },
+            physmat: { key: 'physmat', glyph: '⚖', label: '物理材質', fn: () => runCommand('physicalmaterial', '物理材質') },
+            props: { key: 'props', glyph: 'ℹ', label: L('屬性', 'Properties'), fn: () => void useApp.getState().openPropertiesDialog(hit.kind === 'component' && sc ? sc.id : hit.kind === 'body' && hit.parked != null ? `parked:${hit.parked}` : null) },
+            hidebody: bodyMesh ? { key: 'hidebody', glyph: '🙈', label: L('隱藏實體', 'Hide Body'), fn: () => useApp.getState().setBodyHidden(hideKey, true) } : undefined,
+            hidecomp: sc ? { key: 'hidecomp', glyph: '🙈', label: L('隱藏組件', 'Hide Component'), fn: () => { const ss = useApp.getState(); if (ss.selectedComponent === sc.id) ss.selectComponent(null); ss.toggleComponentVisible(sc.id) } } : undefined,
+            showall: { key: 'showall', glyph: '👁', label: L('顯示全部', 'Show All'), disabled: !anyHidden, fn: () => useApp.getState().showAllBodies() },
+            expq: { key: 'expq', label: `📐 匯出精度：${q === 'fine' ? '細' : q === 'coarse' ? '粗' : '中'}`, fn: () => { const qq = useApp.getState().exportQuality; useApp.getState().setExportQuality(qq === 'medium' ? 'fine' : qq === 'fine' ? 'coarse' : 'medium') } },
+            bsection: { key: 'bsection', label: '✂ ' + msg('mm.sectionSk', lang), fn: () => void sectionPrompt(undefined) },
+            viso: { key: 'viso', glyph: '◈', label: msg('mm.iso', lang), fn: () => setView('iso') },
+            vtop: { key: 'vtop', glyph: '⬚', label: msg('mm.topView', lang), fn: () => setView('top') },
+            vfront: { key: 'vfront', glyph: '⬚', label: msg('mm.frontView', lang), fn: () => setView('front') },
+            vright: { key: 'vright', glyph: '⬚', label: msg('mm.rightView', lang), fn: () => setView('right') },
+            compitems: compItems,
+            multicomp: multiItems,
           }
-          overflow = [
-            ...(bodyMesh ? [
-              { key: 'delface', label: '⌦ ' + msg('mm.delFace', lang), fn: () => runCommand('delface', '刪面') } as MMItem,
-            ] : [
-              { key: 'measure', label: '📏 ' + msg('mm.measure', lang), fn: () => runCommand('measure', '測量') } as MMItem,
-            ]),
-            ...(bodyMesh ? [
-              { key: 'chamfer', label: '◣ ' + msg('mm.chamfer', lang), fn: () => runCommand('chamfer', '倒角') } as MMItem,
-              { key: 'facefillet', label: '⌒ ' + msg('mm.faceFillet', lang), fn: () => runCommand('facefillet', '面圓角') } as MMItem,
-              { key: 'shell', label: '⬚ ' + msg('mm.shell', lang), fn: () => runCommand('shell', '抽殼') } as MMItem,
-              { key: 'expq', label: `📐 匯出精度：${useApp.getState().exportQuality === 'fine' ? '細' : useApp.getState().exportQuality === 'coarse' ? '粗' : '中'}`, fn: () => { const q = useApp.getState().exportQuality; useApp.getState().setExportQuality(q === 'medium' ? 'fine' : q === 'fine' ? 'coarse' : 'medium') } } as MMItem,
-              { key: 'bsection', label: '✂ ' + msg('mm.sectionSk', lang), fn: async () => { const v = await useApp.getState().appPrompt('截面：軸,位置mm — 喺活動實體呢個位置切一刀，閉合輪廓變成可編輯草圖\n例：Z,10 = 喺 z=10 水平切；X,0 / Y,5 亦可（世界坐標）', 'Z,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (ax.length !== 1 || !'XYZ'.includes(ax)) { await useApp.getState().appAlert('軸要系 X / Y / Z（例 Z,10）'); return } const c = Number(p[1]); if (!Number.isFinite(c)) { await useApp.getState().appAlert('請輸入數字位置，例 Z,10'); return } useApp.getState().meshSectionToSketch(undefined, ax as 'X' | 'Y' | 'Z', c) } } as MMItem,
-            ] : []),
-            ...(sc ? ['sep' as const,
-              { key: 'focus', label: `🎯 聚焦「${sc.name}」`, fn: () => requestFit(sc.id) } as MMItem,
-              { key: 'cstl', label: `📥 匯出「${sc.name}」STL`, fn: () => useApp.getState().exportComponentStl(sc.id) } as MMItem,
-              { key: 'cmirror', label: `⇄ 鏡像「${sc.name}」`, fn: () => useApp.getState().mirrorComponent(sc.id) } as MMItem,
-              { key: 'cbrep', label: `⧉ 轉 B-rep「${sc.name}」（自動：識別圓柱）`, fn: () => void useApp.getState().convertMeshComponent(sc.id) } as MMItem,
-              { key: 'cbrepf', label: `⧉ 轉 B-rep「${sc.name}」（faceted 逐面）`, fn: () => void useApp.getState().convertMeshComponent(sc.id, 'faceted') } as MMItem,
-              { key: 'csection', label: `✂ 截面取輪廓「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('截面：軸,位置mm（世界坐標，跟隨擺位/旋轉）— 切一刀，閉合輪廓變可編輯草圖（STL remix：取輪廓→改尺寸→重新拉伸）\n例：Z,10 = 水平切；X,0 / Y,5 亦可', 'Z,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (ax.length !== 1 || !'XYZ'.includes(ax)) { await useApp.getState().appAlert('軸要系 X / Y / Z（例 Z,10）'); return } const c = Number(p[1]); if (!Number.isFinite(c)) { await useApp.getState().appAlert('請輸入數字位置，例 Z,10'); return } useApp.getState().meshSectionToSketch(sc.id, ax as 'X' | 'Y' | 'Z', c) } } as MMItem,
-              { key: 'crepair', label: `🩹 補洞修復「${sc.name}」`, fn: () => void useApp.getState().repairActiveMesh(sc.id) } as MMItem,
-              { key: 'csimplify', label: `🔻 簡化網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('簡化到原三角數嘅幾多？（0.05–0.9，例 0.3 = 留 30%）\nQEM 誤差度量減面（保特徵保水密）', '0.3'); if (v == null) return; void useApp.getState().simplifyComponentMeshRatio(sc.id, Number(v) || 0.3) } } as MMItem,
-              { key: 'cremesh', label: `▦ 重網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('各向同性重網格（Botsch-Kobbelt：均勻邊長 + 原面重投影保形）\n目標邊長 mm（細=三角多更平滑，粗=三角少）', '3'); if (v == null) return; void useApp.getState().remeshComponentMesh(sc.id, Number(v) || 3) } } as MMItem,
-              { key: 'csmooth', label: `〰 平滑網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('Taubin λ|μ 平滑趟數（1–40，越多越順）\nshrink-free 保體積、邊界釘住、拓撲不變（去掃描噪聲/階梯）', '5'); if (v == null) return; useApp.getState().smoothComponentMesh(sc.id, Number(v) || 5) } } as MMItem,
-              { key: 'cmeasure', label: `📏 網格屬性「${sc.name}」`, fn: () => useApp.getState().measureMeshComponent(sc.id) } as MMItem,
-              { key: 'cplanecut', label: `✂ 平面切割「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('平面切割（T766 Mesh Plane Cut — 切面自動補實）：\n軸,位置mm,保留側(+/-)\n例：Z,10,+ = 喺 z=10 水平切，保留上半', 'Z,10,+'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (!'XYZ'.includes(ax)) { await useApp.getState().appAlert('軸要系 X/Y/Z'); return } void useApp.getState().planeCutComponent(sc.id, ax as 'X' | 'Y' | 'Z', Number(p[1]) || 0, (p[2] || '+').includes('-') ? '-' : '+') } } as MMItem,
-              { key: 'cshell', label: `🥚 抽殼「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('網格抽殼 / 加厚（Fusion Mesh Thicken）：沿法向內移壁厚 t，掏空成中空殼（要水密閉合網格）\n壁厚 mm', '2'); if (v == null) return; const t = Number(v.trim()); if (!Number.isFinite(t) || t <= 0) { await useApp.getState().appAlert('壁厚要系正數'); return } void useApp.getState().shellMeshComponent(sc.id, t) } } as MMItem,
-              { key: 'coffset', label: `⊕ 偏移網格「${sc.name}」`, fn: async () => { const v = await useApp.getState().appPrompt('網格 3D 均勻偏移（Fusion Mesh Offset）：沿全方向脹縮（minkowski 球膨脹/腐蝕，要水密閉合網格）\n偏移量 mm（正=外擴 / 負=內縮）', '1'); if (v == null) return; const d = Number(v.trim()); if (!Number.isFinite(d) || d === 0) { await useApp.getState().appAlert('偏移量要系非零數字（正外擴/負內縮）'); return } void useApp.getState().offsetMeshComponent(sc.id, d) } } as MMItem,
-              { key: 'chull', label: `◇ 凸包「${sc.name}」`, fn: () => void useApp.getState().convexHullComponent(sc.id) } as MMItem,
-            ] : []),
-            ...(components.filter((c) => !c.hidden).length > 1 ? ['sep' as const,
-              { key: 'stack', label: '⊟ ' + msg('mm.stackVert', lang), fn: () => useApp.getState().stackComponents() } as MMItem,
-              { key: 'arrange', label: '⊞ ' + msg('mm.arrangeBed', lang), fn: () => useApp.getState().arrangeForPrint() } as MMItem,
-              { key: 'drop', label: '⬇ ' + msg('mm.dropAll', lang), fn: () => useApp.getState().dropAllToFloor() } as MMItem,
-            ] : []),
-          ]
+          const ov = (it: MMItem | null | 'sep'): MMItem | 'sep' | null => (it && it !== 'sep' && it.glyph ? { ...it, label: it.glyph + ' ' + it.label, icon: undefined, glyph: undefined } : it)
+          const layout = modelMenuLayout(hit.kind, { hasSelection: !!(selectedFeature || selectedComponent), anyHidden })
+          sectors = pickItems(layout.sectors, table).map((it) => (it === 'sep' ? null : it))
+          overflow = pickItems(layout.overflow, table).map(ov).filter((it): it is MMItem | 'sep' => it != null)
         }
-        // GM-G4b：空境 context 视图掣已升做扇区 → 溢出列表唔再重复；草图/实体上照旧入溢出
-        if (mode === 'sketch' || bodyMesh) overflow.push('sep',
+        // 草图模式：视图掣入溢出（模型模式由 modelMenuLayout 决定）
+        if (mode === 'sketch') overflow.push('sep',
           { key: 'vfront', label: '⬚ ' + msg('mm.frontView', lang), fn: () => setView('front') },
           { key: 'vtop', label: '⬚ ' + msg('mm.topView', lang), fn: () => setView('top') },
           { key: 'vright', label: '⬚ ' + msg('mm.rightView', lang), fn: () => setView('right') },
@@ -8068,12 +8108,12 @@ export default function Viewport() {
         </div>
         {/* GM-X2 #8：Object Visibility 主開關（全部草圖 / 原點/構造面 / 軸 / 關節） */}
         <div style={{ position: 'relative' }}>
-          <button className={'tb-btn' + (navPop === 'objvis' ? ' tb-on' : '')} title={tStatus('對象可見性：全部草圖 / 原點面 / 構造軸 / 關節 主開關', lang)} onClick={() => setNavPop(navPop === 'objvis' ? null : 'objvis')}>👁▾</button>
+          <button className={'tb-btn' + (navPop === 'objvis' ? ' tb-on' : '')} title={tStatus('對象可見性：實體 / 全部草圖 / 原點面 / 構造軸 / 關節 主開關', lang)} onClick={() => setNavPop(navPop === 'objvis' ? null : 'objvis')}>👁▾</button>
           {navPop === 'objvis' && (
             <div className="panel-menu" style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 6, zIndex: 120, minWidth: 170 }}>
               <div className="panel-menu-head">{tStatus('對象可見性', lang)}</div>
-              {(['sketches', 'planes', 'axes', 'joints'] as const).map((k) => (
-                <div key={k} className="panel-menu-item" onClick={() => setObjectVis(k, !objectVis[k])}>{objectVis[k] ? '👁 ' : '🙈 '}{tStatus(k === 'sketches' ? '全部草圖' : k === 'planes' ? '原點/構造面' : k === 'axes' ? '構造軸' : '關節', lang)}</div>
+              {(['bodies', 'sketches', 'planes', 'axes', 'joints'] as const).map((k) => (
+                <div key={k} className="panel-menu-item" onClick={() => setObjectVis(k, !objectVis[k])}>{objectVis[k] ? '👁 ' : '🙈 '}{k === 'bodies' ? (lang === 'en' || lang === 'ja' ? 'Bodies' : tStatus('實體', lang)) : tStatus(k === 'sketches' ? '全部草圖' : k === 'planes' ? '原點/構造面' : k === 'axes' ? '構造軸' : '關節', lang)}</div>
               ))}
             </div>
           )}

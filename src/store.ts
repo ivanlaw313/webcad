@@ -30,6 +30,7 @@ import { activeModelCommand, commandDisabledReason } from './cad/commandAvailabi
 import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad/viewBookmark'
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
+import { sanitizeBodyHidden, toggleHiddenKey, setHiddenKey } from './ui/contextMenus'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
 import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus, gearSuccessStatus, wormSuccessStatus, profileSuccessStatus, profileSectionName } from './ui/featureStatus'
 import { lengthScale } from './io/units'
@@ -1505,6 +1506,10 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   caxes: { dir: 'X' | 'Y' | 'Z'; at: [number, number, number]; dirV?: [number, number, number]; src?: { kind: 'cylAxis'; near: [number, number, number]; seedAxis: [number, number, number] }; stale?: boolean }[]   // dirV（T778）任意方向轴；src（datum 关联化 v1）：拾圆柱取轴嘅出处 — rebuild 后配返最近平行圆柱跟住郁
   datumHidden: string[]                                   // S 构造基准隐藏集（内容键，datumVisKey）— 浏览器树眼掣可隐/显逐个参考面/轴/点（视图态，会话内）
   toggleDatumVis: (key: string) => void
+  bodyHidden: string[]                                    // 实体可见性（活动实体 'active' / 泊车实体 parkedBodyKey）— 浏览器树眼掣/右键「隱藏」；随项目存档（空 = 省略键）
+  toggleBodyHidden: (key: string) => void
+  setBodyHidden: (key: string, hide: boolean) => void
+  showAllBodies: () => void                                // 「顯示全部」：实体 + 组件 + 组件实体 + 对象可见性·实体
   ccurves: [number, number, number][][]   // S168：相交曲线（Fusion Intersection Curve）—— 每条系一串 3D 点 polyline（随项目存档）
   computeIntersectionCurves: () => Promise<void>   // S168：所有体两两求交 → 交线参考曲线（worker intersectionCurves）
   clearCCurves: () => void                         // S168：清除全部相交曲线
@@ -2615,8 +2620,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   graphicsPreset: GraphicsPreset
   setGraphicsPreset: (p: GraphicsPreset) => void
   // #8 Object Visibility 全局主开关（全部草图 / 原点面 / 轴 / 关节）
-  objectVis: { sketches: boolean; planes: boolean; axes: boolean; joints: boolean }
-  setObjectVis: (k: 'sketches' | 'planes' | 'axes' | 'joints', v: boolean) => void
+  objectVis: { sketches: boolean; planes: boolean; axes: boolean; joints: boolean; bodies: boolean }
+  setObjectVis: (k: 'sketches' | 'planes' | 'axes' | 'joints' | 'bodies', v: boolean) => void
   // #10 约束 orbit（锁上向、防翻转过极）
   orbitConstrained: boolean
   toggleOrbitConstrained: () => void
@@ -7078,6 +7083,20 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   planes: [],
   datumHidden: [],
+  bodyHidden: [],
+  toggleBodyHidden: (key) => set((s) => { const bodyHidden = toggleHiddenKey(s.bodyHidden, key); return { bodyHidden, status: bodyHidden.includes(key) ? '已隱藏實體' : '已顯示實體' } }),
+  setBodyHidden: (key, hide) => set((s) => ({ bodyHidden: setHiddenKey(s.bodyHidden, key, hide), status: hide ? '已隱藏實體' : '已顯示實體' })),
+  showAllBodies: () => set((s) => {
+    const compsHidden = s.components.some((c) => c.hidden)
+    const defsHidden = s.componentDefs.some((d) => d.bodies?.some((b) => b.hidden))
+    return {
+      bodyHidden: [], objectVis: { ...s.objectVis, bodies: true },
+      ...(compsHidden || defsHidden ? { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [] } : {}),
+      ...(compsHidden ? { components: s.components.map((c) => (c.hidden ? { ...c, hidden: false } : c)) } : {}),
+      ...(defsHidden ? { componentDefs: s.componentDefs.map((d) => (d.bodies?.some((b) => b.hidden) ? { ...d, bodies: d.bodies.map((b) => (b.hidden ? { ...b, hidden: false } : b)) } : d)) } : {}),
+      status: '已顯示全部',
+    }
+  }),
   toggleDatumVis: (key) => set((s) => ({ datumHidden: s.datumHidden.includes(key) ? s.datumHidden.filter((k) => k !== key) : [...s.datumHidden, key] })),
   // datum 关联化 v1（Construct 记分卡最大缺口）：datum 由 XYZ 快照升级为「记住出处、rebuild 后跟住源面郁」。
   // 纯 client 叠加 — 只 set planes/caxes/datumHidden，【禁】触发 applyFeatures/rebuild（无循环可能）。
@@ -19452,8 +19471,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     return { graphicsPreset: p, ssao: e.ssao, groundShadow: e.groundShadow, groundReflection: e.groundReflection, renderMode: e.renderMode, status: p === 'performance' ? '圖形預設：性能（關全部效果 — 建模最快）' : '圖形預設：質量（AO+接地陰影+渲染模式 — 發布質感）' }
   }),
   // #8 Object Visibility 主开关：逐类总控（草图 / 原点面·构造面 / 轴 / 关节）。渲染层各读此 gate。
-  objectVis: { sketches: true, planes: true, axes: true, joints: true },
-  setObjectVis: (k, v) => set((s) => ({ objectVis: { ...s.objectVis, [k]: v }, status: `${({ sketches: '全部草圖', planes: '全部原點/構造面', axes: '全部構造軸', joints: '全部關節' } as Record<string, string>)[k]}：${v ? '顯示' : '隱藏'}` })),
+  objectVis: { sketches: true, planes: true, axes: true, joints: true, bodies: true },
+  setObjectVis: (k, v) => set((s) => ({ objectVis: { ...s.objectVis, [k]: v }, status: `${({ sketches: '全部草圖', planes: '全部原點/構造面', axes: '全部構造軸', joints: '全部關節', bodies: '全部實體' } as Record<string, string>)[k]}：${v ? '顯示' : '隱藏'}` })),
   // #10 约束 orbit（防翻过极；webcad OrbitControls 本身唔 roll，此掣控极点钳制）
   orbitConstrained: true,
   toggleOrbitConstrained: () => set((s) => ({ orbitConstrained: !s.orbitConstrained, status: !s.orbitConstrained ? '約束環繞：鎖世界上向（防翻轉過極）' : '自由環繞（可越過極點）' })),
@@ -19940,6 +19959,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       caxes: Array.isArray(d.caxes) ? d.caxes as AppState['caxes'] : [],
       ccurves: Array.isArray(d.ccurves) ? d.ccurves as AppState['ccurves'] : [],   // S168：相交曲线随版本快照还原（applySnapshot 系第 3 个 loader，勿漏）
       viewBookmarks: sanitizeBookmarks(d.viewBookmarks),   // battle-test-2 #9：过滤 NaN/Infinity 书签坐标
+      bodyHidden: sanitizeBodyHidden(d.bodyHidden),
       jointPoses: sanitizeJointPoses(d.jointPoses), jointKeyframes: sanitizeJointKeyframes(d.jointKeyframes),        // S172/S177：捕捉位置 + 关键帧随版本快照还原（applySnapshot 系第 1 个 loader，3 个都要补）
       bgPreset: typeof d.bgPreset === 'string' ? d.bgPreset : '',
       edgeDisplay: d.edgeDisplay === 'off' ? 'off' : 'on',
@@ -20653,7 +20673,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       bodyColor: (d.bodyColor as string) ?? '#4a7296',
       material: sanitizeMaterial(d.material), bodyDensity: typeof d.bodyDensity === 'number' ? d.bodyDensity : 2.7,   // battle-test-2 #8
       originX: typeof d.originX === 'number' ? d.originX : 0,
-      planes: planesFromFeatures(feats, supOpen), cpoints: arr('cpoints') as AppState['cpoints'], caxes: arr('caxes') as AppState['caxes'], ccurves: arr('ccurves') as AppState['ccurves'], viewBookmarks: sanitizeBookmarks(d.viewBookmarks), jointPoses: sanitizeJointPoses(d.jointPoses), jointKeyframes: sanitizeJointKeyframes(d.jointKeyframes),   // GM-W5 5.1：planes[] 由 datum 特征派生
+      planes: planesFromFeatures(feats, supOpen), cpoints: arr('cpoints') as AppState['cpoints'], caxes: arr('caxes') as AppState['caxes'], ccurves: arr('ccurves') as AppState['ccurves'], viewBookmarks: sanitizeBookmarks(d.viewBookmarks), bodyHidden: sanitizeBodyHidden(d.bodyHidden), jointPoses: sanitizeJointPoses(d.jointPoses), jointKeyframes: sanitizeJointKeyframes(d.jointKeyframes),   // GM-W5 5.1：planes[] 由 datum 特征派生
       bgPreset: typeof d.bgPreset === 'string' ? d.bgPreset : '',
       edgeDisplay: d.edgeDisplay === 'off' ? 'off' : 'on',
       renderMode: !!d.renderMode, groundShadow: !!d.groundShadow,
@@ -20839,7 +20859,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         bodyColor: data.bodyColor ?? '#4a7296',
         material: sanitizeMaterial(data.material), bodyDensity: typeof data.bodyDensity === 'number' ? data.bodyDensity : 2.7,   // battle-test-2 #8
         originX: typeof data.originX === 'number' ? data.originX : 0,
-        planes: planesFromFeatures(feats, supAuto), cpoints: Array.isArray(data.cpoints) ? data.cpoints : [], caxes: Array.isArray(data.caxes) ? data.caxes : [], ccurves: Array.isArray(data.ccurves) ? data.ccurves : [], viewBookmarks: sanitizeBookmarks(data.viewBookmarks), jointPoses: sanitizeJointPoses(data.jointPoses), jointKeyframes: sanitizeJointKeyframes(data.jointKeyframes),   // GM-W5 5.1：planes[] 由 datum 特征派生
+        planes: planesFromFeatures(feats, supAuto), cpoints: Array.isArray(data.cpoints) ? data.cpoints : [], caxes: Array.isArray(data.caxes) ? data.caxes : [], ccurves: Array.isArray(data.ccurves) ? data.ccurves : [], viewBookmarks: sanitizeBookmarks(data.viewBookmarks), bodyHidden: sanitizeBodyHidden(data.bodyHidden), jointPoses: sanitizeJointPoses(data.jointPoses), jointKeyframes: sanitizeJointKeyframes(data.jointKeyframes),   // GM-W5 5.1：planes[] 由 datum 特征派生
         bgPreset: typeof data.bgPreset === 'string' ? data.bgPreset : '',
         edgeDisplay: data.edgeDisplay === 'off' ? 'off' : 'on',
         renderMode: !!data.renderMode, groundShadow: !!data.groundShadow,   // S166：恢复渲染/HDRI 环境状态
@@ -21427,7 +21447,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       measureMode:false,measureEdgeMode:false,measureFaceMode:false,measureAngleMode:false,measureUniMode:false,
       measurePts:[],measureDist:null,measureEdgeInfo:null,measureFaceInfo:null,measureAngleInfo:null,
       measureUniPicks:[],measureUniResult:null,lastMeasure:null,selectedParkedIndex:null})
-    set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, holeBoltCircle: false, holeBcCount: 4, holeBcPcd: 50, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
+    set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], bodyHidden: [], jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, holeBoltCircle: false, holeBcCount: 4, holeBcPcd: 50, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
     set({ ...hydrateSketchDraft(null), ...hydrateFormDraft(null) })
     // record=false so "New" is a clean fresh start — undo must NOT resurrect the old document (Fusion-style new doc).
     await get().applyFeatures([], '新建 — 已清空（空白文档）', false)
@@ -23896,6 +23916,7 @@ export function buildProjectPayload(s: AppState) {
     // S166：渲染/外观环境状态（原本系 session 态，reload/分享/自动保存全丢）— HDRI/渲染模式/接地阴影随项目存档
     renderMode: s.renderMode, hdriPreset: s.hdriPreset, hdriIntensity: s.hdriIntensity, hdriRotation: s.hdriRotation, groundShadow: s.groundShadow,
     decals: s.decals,             // P2 Render：贴花随项目存档（data-URL + CAD 位姿）
+    ...(s.bodyHidden.length ? { bodyHidden: s.bodyHidden } : {}),   // 实体可见性（默认全显 → 省略键，旧档字节兼容）
     // GM-X3 #2：只有【入存档】的 canvas 才落盘（保留 dataURL；会话级底图不入档，避 payload 暴肥）。默认无 → 省略键（byte-compat）。
     ...(archivedCanvases(s.canvases).length ? { canvases: archivedCanvases(s.canvases) } : {}),
   }

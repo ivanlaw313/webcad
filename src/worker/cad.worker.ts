@@ -3133,7 +3133,14 @@ function buildShape(features: Feature[], noCache = false): any {
         // GM-W1 1.3：尊重 f.down（⇅ 反向）— 旧版方向硬编 cut→−n / add→+n，斜面/角度面草图撳反向完全无效
         //（预览有跟、内核唔跟 → 静默切空）。byte-compat：旧特征 down=undefined → dir=1 → 几何逐字节不变。
         const dirA = effDown ? -1 : 1
-        const solid = sk2.extrude((f.operation === 'cut' ? -h : h) * dirA)  // cut → into material (−normal); add → out (+normal)；down 反转
+        let solid = sk2.extrude((f.operation === 'cut' ? -h : h) * dirA)  // cut → into material (−normal); add → out (+normal)；down 反转
+        if (f.through && f.operation === 'cut') {
+          // CORE16 P1：任意面／斜面草圖「切除 · 貫通」— 以前 arb 分支完全唔睇 through → 用 height（常為 0/短）→ 切唔到。
+          // 同標準平面一樣：沿法向兩邊各 BIG/2 嘅棱柱，一刀穿透。
+          const BIG = 4000, nl = Math.hypot(ap.n[0], ap.n[1], ap.n[2]) || 1
+          const o2: [number, number, number] = [ap.o[0] - ap.n[0] / nl * BIG / 2, ap.o[1] - ap.n[1] / nl * BIG / 2, ap.o[2] - ap.n[2] / nl * BIG / 2]
+          solid = profileOnPlane(f.profile, new RPlane(o2 as any, ap.xd as any, ap.n as any)).extrude(BIG)
+        }
         if (!shape) shape = solid
         else if (f.operation === 'cut') { _recordBool(_i, 'cut', solid); shape = shape.cut(solid) }   // GM-γ2a：斜面拉伸切除亦录工具体供 S2
         else if (f.operation === 'intersect') { _recordBool(_i, 'intersect', solid); shape = shape.intersect(solid) }
@@ -3290,7 +3297,7 @@ function buildShape(features: Feature[], noCache = false): any {
       const authoredPlane = (f.plane ?? 'XY') as 'XY' | 'XZ' | 'YZ'
       const lathePlane = f.arbPlane ? authoredPlane : revolveLathePlane(authoredPlane, rax)
       const remapped = !f.arbPlane && lathePlane !== authoredPlane
-      if (remapped) buildWarnings.push(`旋转：${authoredPlane} 截面绕轴无轴向厚度 — 已按车削平面 ${lathePlane} 重解释（与预览一致）`)
+      if (remapped) buildWarnings.push(`旋轉：所選軸垂直於 ${authoredPlane} 草圖平面 — 已改用車削平面 ${lathePlane} 計算（與預覽一致）`)
       const prof = remapped ? revolveRemapProfile(f.profile as any, authoredPlane, lathePlane) : f.profile
       const rcfg: Record<string, unknown> = {}
       if (ang > 0 && ang < 360) rcfg.angle = ang
@@ -5493,6 +5500,14 @@ function buildShape(features: Feature[], noCache = false): any {
         let bbOk = false
         try { const bb = swept.boundingBox.bounds; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 失败当无界 */ }
         if (!bbOk) { buildWarnings.push('⚠ 扫掠 twist/缩放返无界或退化几何 — 已退回普通扫掠'); swept = tube(f.r, false, true); plain2 = true }
+      }
+      // CORE16：純扭轉（無縮放）唔應該改變體積。尖角折線路徑上 frame 扭轉會出自交／塌陷幾何（實測 Ø10 L 形 5484→388），
+      // 體積偏差 >10% → 退回無扭轉掃掠並講明，唔好靜默出錯誤實體。
+      if (swTwist && swScale === 1 && !plain2) {
+        try {
+          const ref = tube(f.r, true, true), vt = _solidVolume(swept), vr = _solidVolume(ref)
+          if (vr > 1e-9 && !(Math.abs(vt - vr) / vr <= 0.1)) { buildWarnings.push('⚠ 扭轉掃掠在此路徑（尖角）產生錯誤幾何 — 已退回無扭轉掃掠；請把路徑轉角改為圓角或樣條'); swept = ref; plain2 = true }
+        } catch { /* 參考掃掠失敗 → 保留扭轉結果 */ }
       }
       // wall>0 → hollow pipe: subtract an inner tube (r − wall) swept along the same spine (导管/水管/扶手/线管).
       if (!f.profile && f.wall && f.wall > 0 && f.wall < f.r) {

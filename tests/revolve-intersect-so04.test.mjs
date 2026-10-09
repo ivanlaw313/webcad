@@ -178,7 +178,7 @@ test('BUG-SO16-001: plate + XZ-front profile ∩ Y-axis remaps to lathe plane (c
   assert.equal(r.valid, true)
   assert.ok((r.mesh.triangles?.length ?? 0) > 0)
   assert.ok(Math.abs(r.volume - FULL_INTERSECT) < 1e-2, `vol ${r.volume}, expected ~${FULL_INTERSECT}`)
-  assert.ok(r.warnings.some((w) => /车削平面|重解释/.test(w)), `expected remap warning, got ${JSON.stringify(r.warnings)}`)
+  assert.ok(r.warnings.some((w) => /车削平面|車削平面/.test(w)), `expected remap warning, got ${JSON.stringify(r.warnings)}`)
 })
 
 test('BUG-SO16-001: plate + XZ ∩ Y 180° partial-angle still matches preview −ang sense', async () => {

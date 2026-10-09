@@ -23,7 +23,7 @@ export default class ErrorBoundary extends Component<Props, State> {
         }}>
           <b>⚠ 「{this.props.name}」面板出错</b>
           <span style={{ fontSize: 12, color: '#a05050', fontFamily: 'monospace', maxWidth: 480, wordBreak: 'break-word' }}>{this.state.err.message || String(this.state.err)}</span>
-          <span style={{ fontSize: 12, color: '#7a6060' }}>其余功能仍可用。撳「重试」重新加载呢个面板,或「刷新页面」整体复位（你嘅模型有自动存档,唔会丢）。</span>
+          <span style={{ fontSize: 12, color: '#7a6060' }}>其余功能仍可用。按「重试」重新加载此面板,或「刷新页面」整体复位（你的模型有自动存档,不会丢）。</span>
           <span style={{ display: 'flex', gap: 8 }}>
             <button onClick={reset} style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #c47', background: '#fff', cursor: 'pointer' }}>重试 Retry</button>
             <button onClick={() => location.reload()} style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}>刷新页面</button>

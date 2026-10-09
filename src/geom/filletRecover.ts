@@ -143,9 +143,9 @@ export function recoverFillets(seg: SegmentationResult, opts: FilletRecoverOptio
     if (!flagged && !(opts.includeUnflaggedStrips ?? true ? narrow || prm.kind === 'torus' : false)) continue
     candidates++
 
-    const reject = (why: string): void => { rejected++; warnings.push(`區 ${reg.index}（r=${radius.toFixed(3)}）唔算圓角：${why}`) }
+    const reject = (why: string): void => { rejected++; warnings.push(`區 ${reg.index}（r=${radius.toFixed(3)}）不算圓角：${why}`) }
     if (!(radius > 0) || radius > seg.diag * maxRadiusFrac) { reject(`半徑 ${radius.toFixed(3)} 出界`); continue }
-    if (reg.area > totalArea * maxAreaFrac) { reject(`面積佔比 ${(reg.area / totalArea * 100).toFixed(1)}% 太大（似係主體面）`); continue }
+    if (reg.area > totalArea * maxAreaFrac) { reject(`面積佔比 ${(reg.area / totalArea * 100).toFixed(1)}% 太大（似是主體面）`); continue }
 
     // ── 共用邊統計（順手攞相切讀數）──
     interface NbInfo { region: number; edges: number; tangSum: number; pts: Vec3[] }
@@ -183,13 +183,13 @@ export function recoverFillets(seg: SegmentationResult, opts: FilletRecoverOptio
       Math.abs(Math.abs(surfValue(supB, axisPt)) - radius) / radius,
     ]
     if (prm.kind === 'cylinder' && (rc[0] > 0.05 || rc[1] > 0.05))
-      warnings.push(`區 ${reg.index}: 支撐面到圓角軸嘅距離同半徑差 ${(Math.max(rc[0], rc[1]) * 100).toFixed(2)}%（可能唔係等半徑圓角）`)
+      warnings.push(`區 ${reg.index}: 支撐面到圓角軸的距離同半徑差 ${(Math.max(rc[0], rc[1]) * 100).toFixed(2)}%（可能不是等半徑圓角）`)
 
     // ── 壓平後嘅利邊 = 兩張支撐面嘅解析交線 ──
     const brs = intersectSurfaces(supA, supB)
     let sharp: SharpEdgeSpec | null = null
     if (!brs.length) {
-      warnings.push(`區 ${reg.index}: 兩張支撐面（${supA.kind}∧${supB.kind}）求唔到解析交線 → 只壓平，冇利邊規格`)
+      warnings.push(`區 ${reg.index}: 兩張支撐面（${supA.kind}∧${supB.kind}）無法求解析交線 → 只壓平，沒有利邊規格`)
     } else {
       // 揀最貼圓角帶嘅分支；範圍由帶嘅共用邊點投影出嚟
       const probe = [...sa.pts, ...sb.pts]
@@ -296,7 +296,7 @@ export interface ReapplyResult {
 export function reapplyFillets(OC: OCModule, shape: OCShape, strips: FilletStrip[], opts: { pickTol?: number } = {}): ReapplyResult {
   const warnings: string[] = []
   const out: ReapplyResult = { shape: null, applied: 0, requested: strips.length, warnings }
-  if (!shape || !strips.length) { warnings.push('冇 shape 或者冇圓角規格'); return out }
+  if (!shape || !strips.length) { warnings.push('沒有 shape 或者沒有圓角規格'); return out }
   const MF = OC.BRepFilletAPI_MakeFillet_2 ?? OC.BRepFilletAPI_MakeFillet_1 ?? OC.BRepFilletAPI_MakeFillet
   if (typeof MF !== 'function') { warnings.push('BRepFilletAPI_MakeFillet 未綁定'); return out }
   const pickTol = opts.pickTol ?? 1e-4
@@ -314,7 +314,7 @@ export function reapplyFillets(OC: OCModule, shape: OCShape, strips: FilletStrip
       edges.push(e)
     }
   } catch (e) { warnings.push(`邊列舉失敗 ${(e as Error)?.message ?? e}`); return out }
-  if (!edges.length) { warnings.push('實體冇邊'); return out }
+  if (!edges.length) { warnings.push('實體沒有邊'); return out }
 
   // ctor 逐個簽名試（worker lineage 先例：fillet 通常要第二個 ChFi3d 參數，但唔同 build 有唔同綁法）
   const fShape = OC.ChFi3d_FilletShape?.ChFi3d_Rational ?? 0
@@ -323,7 +323,7 @@ export function reapplyFillets(OC: OCModule, shape: OCShape, strips: FilletStrip
   if (!mk) { warnings.push('MakeFillet 構造返 null'); return out }
 
   for (const s of strips) {
-    if (!s.sharpEdge) { warnings.push(`區 ${s.region}: 冇利邊規格，跳過`); continue }
+    if (!s.sharpEdge) { warnings.push(`區 ${s.region}: 沒有利邊規格，跳過`); continue }
     let bestE: OCShape | null = null, bestD = Infinity
     for (const e of edges) {
       // 兩重判據：① 邊要【成條】落喺解析利邊上 ② 利邊中點要落喺呢條邊上
@@ -331,17 +331,17 @@ export function reapplyFillets(OC: OCModule, shape: OCShape, strips: FilletStrip
       const d = pointEdgeDist(OC, e, s.sharpEdge.mid)
       if (d < bestD) { bestD = d; bestE = e }
     }
-    if (!bestE || !(bestD <= pickTol)) { warnings.push(`區 ${s.region}: 喺實體上揀唔到利邊（最近 ${bestD.toExponential(2)}mm > ${pickTol}）`); continue }
+    if (!bestE || !(bestD <= pickTol)) { warnings.push(`區 ${s.region}: 在實體上無法選取利邊（最近 ${bestD.toExponential(2)}mm > ${pickTol}）`); continue }
     try { mk.Add_2(s.radius, OC.TopoDS.Edge_1(bestE)); out.applied++ }
     catch (e) { warnings.push(`區 ${s.region}: Add(r=${s.radius}) 拋 ${(e as Error)?.message ?? e}`) }
   }
-  if (!out.applied) { warnings.push('冇一條邊加得入'); return out }
+  if (!out.applied) { warnings.push('沒有一條邊加得入'); return out }
 
   try {
     const prog = OC.Message_ProgressRange_1 ? new OC.Message_ProgressRange_1() : undefined
     try { mk.Build(prog) } catch { mk.Build() }
   } catch (e) { warnings.push(`Build 拋 ${(e as Error)?.message ?? e}`); return out }
-  try { if (typeof mk.IsDone === 'function' && !mk.IsDone()) { warnings.push('MakeFillet 唔 IsDone'); return out } } catch { /* 冇 IsDone 就算 */ }
+  try { if (typeof mk.IsDone === 'function' && !mk.IsDone()) { warnings.push('MakeFillet 不 IsDone'); return out } } catch { /* 冇 IsDone 就算 */ }
   const res = nonNull(mk.Shape())
   if (!res) { warnings.push('MakeFillet 出 null shape'); return out }
   out.shape = res

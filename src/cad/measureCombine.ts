@@ -106,7 +106,7 @@ export function combineMeasure(picks: MeasurePick[]): MeasureResult {
       if (!a.normal || !b.normal) return { type: 'unsupported', label: '夹角', value: null, valueUnit: 'none', parts, note: '两面需有法向先量夹角' }
       const c = Math.max(-1, Math.min(1, dot(norm(a.normal), norm(b.normal))))
       const deg = (Math.acos(c) * 180) / Math.PI
-      if (deg < 0.5) return { type: 'unsupported', label: '夹角', value: null, valueUnit: 'none', parts, note: '两面朝向相同（可能拣到同一面）— 拣两个唔同朝向嘅面' }
+      if (deg < 0.5) return { type: 'unsupported', label: '夹角', value: null, valueUnit: 'none', parts, note: '两面朝向相同（可能选到同一面）— 选两个不同朝向的面' }
       return { type: 'angle', label: '夹角', value: deg, valueUnit: 'angle', supplement: 180 - deg, parts }
     }
     // 2 点 → 距离 + ΔXYZ
@@ -155,8 +155,8 @@ export function combineMeasure(picks: MeasurePick[]): MeasureResult {
       if (!pt.p || !edge.mid) return { type: 'unsupported', label: '距离', value: null, valueUnit: 'none', parts }
       return { type: 'distance', label: '距离', value: pointLineDist(pt.p, edge.mid, edge.dir), valueUnit: 'len', parts, note: '点→边直线距' }
     }
-    return { type: 'unsupported', label: '组合', value: null, valueUnit: 'none', parts, note: '呢个组合暂唔支持 — 清空重拣' }
+    return { type: 'unsupported', label: '组合', value: null, valueUnit: 'none', parts, note: '此组合暂不支持 — 清空重选' }
   }
 
-  return { type: 'unsupported', label: '组合', value: null, valueUnit: 'none', parts, note: 'Measure 最多拣 2 个实体 — 清空重拣' }
+  return { type: 'unsupported', label: '组合', value: null, valueUnit: 'none', parts, note: 'Measure 最多选 2 个实体 — 清空重选' }
 }

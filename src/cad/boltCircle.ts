@@ -68,8 +68,8 @@ export function checkBoltCircle(
     kept.push(c)
   }
   const bits: string[] = []
-  if (outside) bits.push(`${outside} 個喺件範圍外`)
-  if (overlapping) bits.push(`${overlapping} 個同其他孔重疊`)
+  if (outside) bits.push(`${outside} 個在件範圍外`)
+  if (overlapping) bits.push(`${overlapping} 個與其他孔重疊`)
   const warning = bits.length
     ? `螺栓孔圈：${centers.length} 個孔之中 ${bits.join('、')} —— 實際只會鑽到 ${kept.length} 個`
     : ''

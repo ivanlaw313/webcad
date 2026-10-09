@@ -10,14 +10,14 @@ type Step = { title: string; body: string; anchor?: string; optional?: boolean; 
 
 // 黄金流程 8 步。anchor = data-cmd id 或 CSS 选择器（TeachPointer 会 data-cmd 优先、否则 querySelector）。
 const STEPS: Step[] = [
-  { title: '新建草圖', body: '撳上面工具欄「建立草圖」掣，開始畫你嘅第一個零件。', anchor: 'sketch', done: (s) => s.mode === 'pickplane' || s.mode === 'sketch' },
-  { title: '揀一個平面', body: '喺 3D 畫面中間點任何一個基準面（紅 / 綠 / 藍），或者實體嘅一個平面。', done: (s) => s.mode === 'sketch' },
-  { title: '畫一個矩形', body: '撳「矩形」，再喺畫布點兩個對角，畫出一個方框。', anchor: 'sk_rect', done: (s) => !!s.sketchShape || s.sketchProfiles.length > 0 },
-  { title: '標個尺寸（可跳過）', body: '想更精確：撳「尺寸」再點條邊打個數值。唔想標可以撳「跳過呢步」。', anchor: 'sk_dim', optional: true, done: (s) => s.sketchTool === 'dimension' },
-  { title: '拉伸成實體', body: '撳畫面下面藍色「⬆ 拉伸…」掣，把平面圖變成立體。', anchor: 'skextrude', done: (s) => s.extrudeDlgOpen },
-  { title: '確定拉伸', body: '喺彈出嘅「拉伸」面板設個高度，撳「確定」（或撳 Enter 鍵）。', done: (s) => s.mode === 'model' && s.features.some((f) => f.type === 'extrude') },
-  { title: '倒個圓角', body: '撳「圓角」，再點實體嘅稜邊，把利角磨圓滑。', anchor: 'fillet', done: (s) => s.features.some((f) => f.type === 'fillet') || !!s.edgeRoundPick },
-  { title: '匯出打印', body: '搞掂！撳「檔案 ▾ → 匯出 STL」就可以攞去 3D 打印。撳下面「完成」結束教學。', anchor: 'exportstl', done: () => false },
+  { title: '新建草圖', body: '按上面工具欄「建立草圖」掣，開始畫你的第一個零件。', anchor: 'sketch', done: (s) => s.mode === 'pickplane' || s.mode === 'sketch' },
+  { title: '選一個平面', body: '在 3D 畫面中間點任何一個基準面（紅 / 綠 / 藍），或者實體的一個平面。', done: (s) => s.mode === 'sketch' },
+  { title: '畫一個矩形', body: '按「矩形」，再在畫布點兩個對角，畫出一個方框。', anchor: 'sk_rect', done: (s) => !!s.sketchShape || s.sketchProfiles.length > 0 },
+  { title: '標個尺寸（可跳過）', body: '想更精確：按「尺寸」再點條邊打個數值。不想標可以按「跳過此步」。', anchor: 'sk_dim', optional: true, done: (s) => s.sketchTool === 'dimension' },
+  { title: '拉伸成實體', body: '按畫面下面藍色「⬆ 拉伸…」掣，把平面圖變成立體。', anchor: 'skextrude', done: (s) => s.extrudeDlgOpen },
+  { title: '確定拉伸', body: '在彈出的「拉伸」面板設定一個高度，按「確定」（或按 Enter 鍵）。', done: (s) => s.mode === 'model' && s.features.some((f) => f.type === 'extrude') },
+  { title: '倒個圓角', body: '按「圓角」，再點實體的稜邊，把利角磨圓滑。', anchor: 'fillet', done: (s) => s.features.some((f) => f.type === 'fillet') || !!s.edgeRoundPick },
+  { title: '匯出打印', body: '完成！按「檔案 ▾ → 匯出 STL」就可以取去 3D 打印。按下面「完成」結束教學。', anchor: 'exportstl', done: () => false },
 ]
 
 // TeachPointer 借呢个攞当前步嘅锚点 + 标题（做 sticky 高亮），避免 STEPS 重复定义。
@@ -70,18 +70,18 @@ export default function Tour() {
   if (!st) return null
   const isLast = tour.step === STEPS.length - 1
   const finish = () => { useApp.setState({ status: '🎓 教學完成！你已經識由零整一個 3D 零件。' }); end() }
-  const skipAll = () => { useApp.setState({ status: '已跳過手把手教學（隨時喺「幫助」面板再開）' }); end() }
+  const skipAll = () => { useApp.setState({ status: '已跳過手把手教學（隨時在「幫助」面板再開）' }); end() }
   return (
     <div style={cardStyle}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={badgeStyle}>🎓 第 {tour.step + 1}/{STEPS.length} 步</span>
-        {uiDone && !isLast && <span style={{ color: '#16a36b', fontWeight: 700, fontSize: 12 }}>✅ 做到喇！</span>}
+        {uiDone && !isLast && <span style={{ color: '#16a36b', fontWeight: 700, fontSize: 12 }}>✅ 做到！</span>}
       </div>
       <div style={{ fontWeight: 700, fontSize: 14, color: '#1a2b3a', marginBottom: 4 }}>{st.title}</div>
       <div style={{ fontSize: 12.5, color: '#3a4650', lineHeight: 1.5, marginBottom: 10 }}>{st.body}</div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button className="cs-btn" onClick={skipAll}>跳過教學</button>
-        {st.optional && !isLast && <button className="cs-btn" onClick={() => advance()}>跳過呢步 →</button>}
+        {st.optional && !isLast && <button className="cs-btn" onClick={() => advance()}>跳過此步 →</button>}
         {isLast ? (
           <button className="cs-btn" style={primaryBtn} onClick={finish}>🎉 完成</button>
         ) : uiDone ? (

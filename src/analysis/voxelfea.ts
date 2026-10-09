@@ -803,10 +803,10 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
               resEff = target
               const got = (thin / longest) * resEff
               warnings.push(got + 1e-9 >= MIN_SECTION_VOX
-                ? `截面自适应加密：分辨率 ${res} → ${resEff}（幼长件截面只得 ${((thin / longest) * res).toFixed(1)} 层体素，弯曲算唔准；已加到 ${got.toFixed(1)} 层）`
+                ? `截面自适应加密：分辨率 ${res} → ${resEff}（幼长件截面只得 ${((thin / longest) * res).toFixed(1)} 层体素，弯曲算不得；已加到 ${got.toFixed(1)} 层）`
                 : `截面自适应加密：分辨率 ${res} → ${resEff}，但受体素预算限制截面仍只得 ${got.toFixed(1)} 层（< ${MIN_SECTION_VOX}）：弯曲应力偏低、属趋势级参考`)
             } else {
-              warnings.push(`⚠ 幼长件截面只得 ${((thin / longest) * res).toFixed(1)} 层体素（长细比 ${(longest / thin).toFixed(0)}:1），体素预算唔够加密：弯曲位移/应力会明显偏低，只可当趋势参考`)
+              warnings.push(`⚠ 幼长件截面只得 ${((thin / longest) * res).toFixed(1)} 层体素（长细比 ${(longest / thin).toFixed(0)}:1），体素预算不足加密：弯曲位移/应力会明显偏低，只可当趋势参考`)
             }
           }
         }
@@ -865,7 +865,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         fixedFaceMask = new Uint8Array(nNodes)
         for (let i = 0; i < fsel.nodes.length; i++) { const c = fsel.nodes[i]; if (c >= 0 && c < nNodes) fixedFaceMask[c] = 1 }
       } else {
-        warnings.push(`固定面三角解算失败（${fsel.error || '空节点'}）：已回退到固定平面 band 拣点`)
+        warnings.push(`固定面三角解算失败（${fsel.error || '空节点'}）：已回退到固定平面 band 选点`)
       }
     }
     let loadFaceMask: Uint8Array | null = null
@@ -875,7 +875,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         loadFaceMask = new Uint8Array(nNodes)
         for (let i = 0; i < lsel.nodes.length; i++) { const c = lsel.nodes[i]; if (c >= 0 && c < nNodes) loadFaceMask[c] = 1 }
       } else {
-        warnings.push(`受力面三角解算失败（${lsel.error || '空节点'}）：已回退到受力平面 band 拣点`)
+        warnings.push(`受力面三角解算失败（${lsel.error || '空节点'}）：已回退到受力平面 band 选点`)
       }
     }
 
@@ -909,11 +909,11 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     if (overlap > 0) warnings.push(`固定带与受力带重叠：已从受力节点移除 ${overlap} 个共享节点`)
     if (fixedCount < 3) return fail(`固定节点不足（${fixedCount} < 3）：fixed 平面可能未接触实体（试调 bandTol）`)
     // ★ 过度约束警告（用户实测：幼杆/曲面件撳侧弧面做固定 → 径向法向令约束带沿成条杆 → 几乎全锁 → 位移失真细到唔合理）。
-    if (fixedCount > 0.4 * nNodes) warnings.push(`⚠ 固定面覆盖咗 ${(fixedCount / nNodes * 100).toFixed(0)}% 体素节点（零件几乎全锁）：位移会偏细、结果失真。悬臂/受力测试应净夹【一个端面】、受力撳【另一端面】；细杆/曲面件唔好撳侧弧面（侧面法向系径向，约束会沿成条杆走）。`)
+    if (fixedCount > 0.4 * nNodes) warnings.push(`⚠ 固定面覆盖了 ${(fixedCount / nNodes * 100).toFixed(0)}% 体素节点（零件几乎全锁）：位移会偏细、结果失真。悬臂/受力测试应净夹【一个端面】、受力按【另一端面】；细杆/曲面件不要按侧弧面（侧面法向是径向，约束会沿整条杆走）。`)
     loadCount = loadList.length
     // ★ 退化（用户实测）：受力区完全喺固定区内（侧面点固定+受力，两带重叠）→ 无意义。唔好用下面就近兜底乱揾节点【掩盖】，明确报错引导。
     if (loadCount < 1 && overlap > 0 && !inp.bearing) {
-      return fail('受力面同固定面系同一区域（受力区完全喺固定区内）：约束过度、无法分析 — 请夹【一端】、受力【另一端】（细杆/曲面件撳两端嘅平面，唔好撳侧弧面）')
+      return fail('受力面与固定面是同一区域（受力区完全在固定区内）：约束过度、无法分析 — 请夹【一端】、受力【另一端】（细杆/曲面件按两端的平面，不要按侧弧面）')
     }
     // ★ 就近兜底（仅【真‧band 漏空】overlap===0）：薄件/曲面/中段点击拣唔到受力节点 → 自动补，唔好静默 fail。
     //   ① 放宽 band 到 3h 重拣（仍系一带分布载荷）；② 仍 0 → 取离受力点最近(≤6h)嘅单节点。bearing 模式唔行此路。
@@ -938,7 +938,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         if (best >= 0 && bestD <= maxNear * maxNear) loadList.push(best)
       }
       loadCount = loadList.length
-      if (loadCount > 0) warnings.push(`受力面拣唔到节点（薄件/曲面/中段点击）：已自动就近补 ${loadCount} 个受力节点`)
+      if (loadCount > 0) warnings.push(`受力面无法选取节点（薄件/曲面/中段点击）：已自动就近补 ${loadCount} 个受力节点`)
     }
     if (loadCount < 1 && !inp.bearing) return fail('受力节点为 0：load 平面可能未接触实体（试调 bandTol）')
 
@@ -959,7 +959,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     if (hasGravity) {
       const dens = inp.density
       if (!Number.isFinite(dens as number) || !((dens as number) > 0)) {
-        return fail('开启 gravity 但 density 无效（需 > 0 g/cm³）：无密度算唔到自重')
+        return fail('开启 gravity 但 density 无效（需 > 0 g/cm³）：无密度无法计算自重')
       }
       rhoCons = (dens as number) * 1e-9   // g/cm³ → tonne/mm³（同 runVoxelModal 同款）
     }
@@ -1095,7 +1095,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         pinDirs.push(rx * inv, ry * inv, rz * inv)   // 单位径向方向
       }
       if (pinNodes.length < 1) {
-        warnings.push('pin 圆柱面带内无实体节点（半径/容差/轴线可能唔啱）：销约束未生效')
+        warnings.push('pin 圆柱面带内无实体节点（半径/容差/轴线可能不正确）：销约束未生效')
       } else {
         // 自适应罚刚度：结构对角中位量级 × 1e6（足以锁径向又唔致病态）。
         // 用 buildKe 对角元素（24 个）嘅最大值做量级估计（同单元对角同阶）。
@@ -1145,7 +1145,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         if (!bNodes.length || !(wSum > 1e-12)) {
           warnings.push(axialDot > 0.99
             ? '轴承载荷：载荷方向≈孔轴向，轴承推力须【垂直】孔轴 → 用「自定义」指定径向方向（未生效）'
-            : '轴承载荷：孔面带内无受推节点（半径/容差/轴线唔啱？）：未生效')
+            : '轴承载荷：孔面带内无受推节点（半径/容差/轴线不正确？）：未生效')
         } else {
           if (ovFixed > 0) warnings.push(`轴承孔面与固定带重叠：${ovFixed} 个受推节点已固定（跳过；合力归一到余下节点）— 若孔本身被夹紧，结果可能偏保守`)
           for (let k = 0; k < bNodes.length; k++) {
@@ -1176,7 +1176,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         occ[el] = fr
       }
       elemScale = occ
-      if (nBoundary === 0) warnings.push('cut-cell：无部分体积边界单元（轴对齐方块？）— 结果同二值一致')
+      if (nBoundary === 0) warnings.push('cut-cell：无部分体积边界单元（轴对齐方块？）— 结果与二值一致')
     }
 
     // ---- 5. 求解
@@ -1397,7 +1397,7 @@ export function smoothVmNodal(inp: SmoothInput): SmoothResult {
     if (!inp || !inp.centers || !inp.vm) return fail('空输入（缺 centers/vm）')
     const nVox = inp.nVox | 0
     if (!(nVox > 0)) return fail('nVox ≤ 0')
-    if (inp.centers.length < nVox * 3 || inp.vm.length < nVox) return fail('centers/vm 长度同 nVox 唔一致')
+    if (inp.centers.length < nVox * 3 || inp.vm.length < nVox) return fail('centers/vm 长度同 nVox 不一致')
     const h = inp.h
     if (!Number.isFinite(h) || !(h > 0)) return fail('h 无效（需 > 0）')
 
@@ -1416,7 +1416,7 @@ export function smoothVmNodal(inp: SmoothInput): SmoothResult {
       const i = Math.round((inp.centers[el * 3] - ox) / h - 0.5)
       const j = Math.round((inp.centers[el * 3 + 1] - oy) / h - 0.5)
       const k = Math.round((inp.centers[el * 3 + 2] - oz) / h - 0.5)
-      if (i < 0 || j < 0 || k < 0) return fail('网格索引还原失败（centers 唔系规则体素网格？）')
+      if (i < 0 || j < 0 || k < 0) return fail('网格索引还原失败（centers 不是规则体素网格？）')
       eI[el] = i; eJ[el] = j; eK[el] = k
       if (i > mi) mi = i; if (j > mj) mj = j; if (k > mk) mk = k
     }
@@ -1485,7 +1485,7 @@ export function smoothVmNodal(inp: SmoothInput): SmoothResult {
       ok: true, vmSmooth, nodeVm, nNodes,
       spanBefore, spanAfter, integralBefore: intB, integralAfter: intA,
       method: 'nodal-averaging',
-      ...(vmHasNonFinite ? { error: '部分单元 vm 非有限：已跳过唔参与平均（保留原值）' } : {}),
+      ...(vmHasNonFinite ? { error: '部分单元 vm 非有限：已跳过不参与平均（保留原值）' } : {}),
     }
   } catch (err) {
     return fail(`内部错误：${err instanceof Error ? err.message : String(err)}`)
@@ -1988,7 +1988,7 @@ export function runVoxelBuckling(inp: BucklingInput): BucklingResult {
     const lambda1 = lambda
     const Pcr = lambda1 * forceN
     if (!conv) warnings.push('屈曲逆幂迭代未在上限内收敛（载荷因子为近似值）')
-    if (lambda1 <= 0) warnings.push('最低屈曲因子 ≤ 0：该载荷方向唔会屈曲（受拉或方向相反）— 试反向施力或检查约束')
+    if (lambda1 <= 0) warnings.push('最低屈曲因子 ≤ 0：该载荷方向不会屈曲（受拉或方向相反）— 试反向施力或检查约束')
 
     return {
       ok: true, warnings, h, nVox, nDof, centers,

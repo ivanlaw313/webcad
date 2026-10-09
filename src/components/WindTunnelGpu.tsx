@@ -132,7 +132,7 @@ type PoseCapableSolver = { setPose?: (m: Matrix4, opts?: { keepFlow?: boolean; c
 /** 推一个位姿落 solver。★ 唯一一处掂 setPose 嘅地方 ★。返 null = 成功，返 string = 错误讯息。 */
 function applySolverPose(solver: LbmGpu, m: Matrix4, dragging = false): string | null {
   const fn = (solver as unknown as PoseCapableSolver).setPose
-  if (typeof fn !== 'function') return 'solver.setPose 未落地（lbmGpu.ts 嗰條線未 merge）'
+  if (typeof fn !== 'function') return 'solver.setPose 未落地（lbmGpu.ts 該條線未 merge）'
   try {
     /* keepFlow: true —— 唔重置流场，咁拖拽先至係「流场逐帧跟住变」而唔係「每格重头计一次」
      *
@@ -399,9 +399,9 @@ function packResult(solver: LbmGpu, stats: ConvStats, ctx: PackCtx): GpuWindResu
   const dragNRaw = cd * qA
 
   const warnings = ctx.warnings.slice()
-  if (!stats.converged) warnings.push(`未收斂（行咗 ${solver.stepCount} substep 就撞到上限）—— Cd 係末段時均，仲喺度飄`)
-  if (!(ctx.links > 0)) warnings.push('★ 一條反彈 link 都冇：條流根本掂唔到零件 —— 呢個 Cd 冇意義')
-  if (stats.cdSigned < 0) warnings.push(`★ 阻力方向係 −X（cd_signed = ${stats.cdSigned.toFixed(3)}）—— 來流係 +X，動量交換嘅符號可能反咗`)
+  if (!stats.converged) warnings.push(`未收斂（行了 ${solver.stepCount} substep 就撞到上限）—— Cd 是末段時均，仍在此飄`)
+  if (!(ctx.links > 0)) warnings.push('★ 一條反彈 link 都沒有：條流根本無法掂零件 —— 此 Cd 沒有意義')
+  if (stats.cdSigned < 0) warnings.push(`★ 阻力方向是 −X（cd_signed = ${stats.cdSigned.toFixed(3)}）—— 來流是 +X，動量交換的符號可能反了`)
 
   return {
     h,
@@ -508,7 +508,7 @@ function syncPose(S: Live, solver: LbmGpu, nowMs: number, invalidate: () => void
         if (tr.needsSolverPose) {
           // 非刚体（用户拉紧 scale / 镜像）就唔好送落去食 exception —— setPose 会 throw
           const err = !isRigidPose(pose)
-            ? '位姿唔係剛體（有縮放或者鏡像）—— LBM 只食旋轉 + 平移'
+            ? '位姿不是剛體（有縮放或者鏡像）—— LBM 只食旋轉 + 平移'
             // 第三个参数 = 而家係咪拖紧 → 拖紧就熄 refill 诊断（慳返实测 7.99ms/帧，见 applySolverPose）
             : applySolverPose(solver, S.m4.fromArray(pose), pc.state === 'dragging' || !!knobs.windPoseDragging)
           if (err) {
@@ -518,7 +518,7 @@ function syncPose(S: Live, solver: LbmGpu, nowMs: number, invalidate: () => void
             //   继续报就係攞住旧几何嘅力扮新姿态嘅结果 —— 正正係呢条线要挡嘅嗰种谎话。
             pc.disable('拖曳求解停用：' + err)
             useApp.setState({
-              status: '⚠ GPU 風洞：位姿推唔落 solver（' + err + '）—— 拖曳實時求解已停用，其餘照舊',
+              status: '⚠ GPU 風洞：位姿無法推入 solver（' + err + '）—— 拖曳實時求解已停用，其餘照舊',
             })
           } else {
             S.poseSupported = true
@@ -594,7 +594,7 @@ export default function WindTunnelGpu() {
     if (caps.ok && caps.force7) return
     useApp.setState({
       windEngine: 'cpu',
-      status: '⚠ GPU 風洞用唔到：' + caps.reason + ' — 已自動切返 CPU 引擎（結果一樣有效，只係慢啲）',
+      status: '⚠ GPU 風洞無法用：' + caps.reason + ' — 已自動切回 CPU 引擎（結果一樣有效，只是慢一些）',
     } as Partial<ReturnType<typeof useApp.getState>>)
   }, [engine, caps])
 
@@ -670,7 +670,7 @@ export default function WindTunnelGpu() {
         fluidName: fluid.name, rho: fluid.rho, mu: fluid.mu, speed: flow.speed,
         res: Math.max(1, Math.round(Math.max(extent[0], extent[1], extent[2]) / solver.domain.h)),
         areaMM2: 0, links: 0,
-        warnings: rep.warnings.concat(built.attempts.map((a) => `品質階梯：${a.tier} 試唔到（${a.error}）`)),
+        warnings: rep.warnings.concat(built.attempts.map((a) => `品質階梯：${a.tier} 無法試（${a.error}）`)),
         report: rep,
       }
       S.compiling = true
@@ -701,7 +701,7 @@ export default function WindTunnelGpu() {
       useApp.setState({
         windBusy: false,
         windEngine: 'cpu', windGpuRunId: 0,
-        status: (isContextLostError(e) ? '⚠ GPU 風洞：WebGL context 遺失（重開頁面再試）— ' : '⚠ GPU 風洞起唔到 — ')
+        status: (isContextLostError(e) ? '⚠ GPU 風洞：WebGL context 遺失（重開頁面再試）— ' : '⚠ GPU 風洞無法起 — ')
           + msg + '；已切返 CPU 引擎',
       } as Partial<ReturnType<typeof useApp.getState>>)
     }
@@ -732,7 +732,7 @@ export default function WindTunnelGpu() {
     if ((st.windGpuRunId ?? 0) === 0) return
     useApp.setState({
       windGpuRunId: 0,
-      status: 'GPU 風洞：條件 / 幾何已改 —— 已停止當前計算；撳「運行」用新條件重新計算',
+      status: 'GPU 風洞：條件 / 幾何已改 —— 已停止當前計算；按「運行」用新條件重新計算',
     } as Partial<ReturnType<typeof useApp.getState>>)
   }, [windSpeed, windFluid, windAxis, windSign, tierPref, bodyMesh, selComp, nComp])
 
@@ -793,7 +793,7 @@ export default function WindTunnelGpu() {
       solver.advance(S.substeps)
     } catch (e) {
       S.dead = e instanceof Error ? e.message : String(e)
-      releaseBusy({ status: '⚠ GPU 風洞行到一半死咗：' + S.dead })
+      releaseBusy({ status: '⚠ GPU 風洞行到一半死了：' + S.dead })
       return
     }
 
@@ -814,7 +814,7 @@ export default function WindTunnelGpu() {
       const p = pc.progress(solver.stepCount)
       // ★ 过渡态嘅文案一定要讲明「未可信」★ —— 呢个係用户唯一见到嘅诚实提示
       const note = pc.state === 'dragging'
-        ? '拖曳中（唔收樣本）'
+        ? '拖曳中（不收樣本）'
         : pc.state === 'settling' && pc.entries.length > 0
           ? '新姿態：流場重建中（數字未可信）'
           : tracker.phase(solver.stepCount) === 'ramp' ? '入口漸升' : '求解流場'
@@ -853,7 +853,7 @@ export default function WindTunnelGpu() {
       //   否则用户见住零件打咗侧，而个数其实係打直嗰个，仲以为已经算咗。
       if (!pc.enabled && pc.disabledReason) {
         r.warnings = r.warnings.concat(
-          `★ ${pc.disabledReason} —— 呢個結果係【建 solver 嗰陣嘅朝向】嘅，唔係你而家見到嗰個 ★`,
+          `★ ${pc.disabledReason} —— 此結果是【建 solver 那時的朝向】的，不是你目前見到該個 ★`,
         )
       }
 
@@ -913,7 +913,7 @@ export default function WindTunnelGpu() {
           enabled: pc.enabled,
           disabledReason: pc.disabledReason,
           state: pc.state,
-          matrixOrder: 'column-major (three Matrix4.elements)，语义 = 相对烘焙几何嘅 delta',
+          matrixOrder: 'column-major (three Matrix4.elements)，语义 = 相对烘焙几何的 delta',
           pose: pc.pose,
           key: pc.poseKey,
           stepCount: step,
@@ -1067,21 +1067,21 @@ export async function runGpuValidation(
   }
 
   // ── fixture ①：五个 RGBA32F 要真係 clear 得（唔止 COMPLETE）──
-  await run('★ 五个 RGBA32F 要真係 clear 得（唔止 COMPLETE）', async () => {
+  await run('★ 五个 RGBA32F 要真是 clear 得（不止 COMPLETE）', async () => {
     const r = probeMRT(gl)
-    vAssert(r.webgl2, '应该係 WebGL2')
+    vAssert(r.webgl2, '应该是 WebGL2')
     vAssert(r.levels.length >= 4, '起码要试四组')
     if (r.ok) {
-      vAssert(r.supported.indexOf('5 x RGBA32F') >= 0, 'ok=true 但 supported 冇列出嚟')
-      vAssert(r.colorBufferFloat, 'RGBA32F 画得但冇 EXT_color_buffer_float？')
+      vAssert(r.supported.indexOf('5 x RGBA32F') >= 0, 'ok=true 但 supported 沒有列出來')
+      vAssert(r.colorBufferFloat, 'RGBA32F 画得但没有 EXT_color_buffer_float？')
     }
-    vAssert(gl.getError() === gl.NO_ERROR, 'probe 留低咗 GL error')
+    vAssert(gl.getError() === gl.NO_ERROR, 'probe 留低了 GL error')
     return { supported: r.supported, force7: r.force7, renderer: r.renderer }
   })
 
   // ── fixture ②：空周期盒行 1000 substep，macro 场要 machine-zero 咁均匀 ──
-  await run('★ GPU：空周期盒行 1000 substep，macro 场要 machine-zero 咁均匀', async () => {
-    vAssert(caps.ok, 'GPU 唔支援五个 RGBA32F：' + caps.reason)
+  await run('★ GPU：空周期盒行 1000 substep，macro 场要 machine-zero 如此均匀', async () => {
+    vAssert(caps.ok, 'GPU 不支援五个 RGBA32F：' + caps.reason)
     const dom = emptyDomain(16)
     const phi = bakePhi(dom)             // 全部 +1：一格固体都冇
     let solver: LbmGpu | null = null
@@ -1103,7 +1103,7 @@ export async function runGpuValidation(
         solver.advance(10)
         if (f % 10 === 9) await yieldToBrowser()     // 唔好锁死成个 tab
       }
-      vAssert(solver.stepCount === 1000, 'substep 数唔啱：' + solver.stepCount)
+      vAssert(solver.stepCount === 1000, 'substep 数不正确：' + solver.stepCount)
       const m = solver.readMacro()
       let maxD = 0, maxUx = 0, maxUyz = 0
       for (let i = 0; i < m.delta.length; i++) {
@@ -1112,9 +1112,9 @@ export async function runGpuValidation(
         maxUyz = Math.max(maxUyz, Math.abs(m.uy[i]), Math.abs(m.uz[i]))
       }
       // fp32 十九项求和误差 ~1e-8；1000 步随机游走最多再放大 sqrt(1000) ≈ 32 倍
-      vAssert(maxD < 1e-6, '★ 空盒生出咗密度扰动：max|delta| = ' + maxD)
-      vAssert(maxUx < 1e-6, '★ 空盒嘅 ux 飘咗：max|ux − U_LB| = ' + maxUx)
-      vAssert(maxUyz < 1e-6, '★ 空盒生出咗横向速度：max|uy,uz| = ' + maxUyz)
+      vAssert(maxD < 1e-6, '★ 空盒生出了密度扰动：max|delta| = ' + maxD)
+      vAssert(maxUx < 1e-6, '★ 空盒的 ux 飘了：max|ux − U_LB| = ' + maxUx)
+      vAssert(maxUyz < 1e-6, '★ 空盒生出了横向速度：max|uy,uz| = ' + maxUyz)
       return { maxDelta: maxD, maxUx, maxUyz, steps: solver.stepCount }
     } finally {
       solver?.dispose()
@@ -1122,9 +1122,9 @@ export async function runGpuValidation(
   })
 
   // ── fixture ③：球嘅 Cd 落喺 Clift-Gauvin ±50% 之内 ──
-  await run('★ GPU：球嘅 Cd 落喺 Clift-Gauvin ±50% 之内（趋势级）', async () => {
-    vAssert(caps.ok, 'GPU 唔支援五个 RGBA32F：' + caps.reason)
-    vAssert(caps.force7, '量唔到力就冇 Cd：' + caps.reason)
+  await run('★ GPU：球的 Cd 落在 Clift-Gauvin ±50% 之内（趋势级）', async () => {
+    vAssert(caps.ok, 'GPU 不支援五个 RGBA32F：' + caps.reason)
+    vAssert(caps.force7, '無法量力就沒有 Cd：' + caps.reason)
     let solver: LbmGpu | null = null
     try {
       const tier = QUALITY_TIERS[0]                     // low：够快、又够解析（球 ~20 格）
@@ -1137,7 +1137,7 @@ export async function runGpuValidation(
       })
       await solver.ready()
       const f = solver.report().flow
-      vAssert(dom.dLb > 12, '球淨係得 ' + dom.dLb.toFixed(1) + ' 格直径，边界层解唔到，测呢个冇意义')
+      vAssert(dom.dLb > 12, '球僅得 ' + dom.dLb.toFixed(1) + ' 格直径，边界层无法解，测此没有意义')
 
       // 收敛：★ 由「成功读到几多次」驱动，唔係由帧数 ★（见 asyncReader.ts）
       const samples: number[] = []
@@ -1157,7 +1157,7 @@ export async function runGpuValidation(
         const s = solver.pollForce()
         await yieldToBrowser()
         if (!s || !s.rampDone) continue
-        vAssert(s.links > 0, '★ 一条反弹 link 都冇 —— 条流根本掂唔到零件（phi 上传错咗？）')
+        vAssert(s.links > 0, '★ 一条反弹 link 都没有 —— 条流根本无法掂零件（phi 上传错了？）')
         samples.push(s.cd)
         if (solver.stepCount > minSteps && samples.length >= 12) {
           const w = samples.slice(-10)
@@ -1166,14 +1166,14 @@ export async function runGpuValidation(
           if ((mx - mn) / (Math.abs(mean) + 1e-9) < 0.012) break
         }
       }
-      vAssert(samples.length >= 12, '只攞到 ' + samples.length + ' 个 Cd 样本 —— async readback 冇返嘢？')
+      vAssert(samples.length >= 12, '只取到 ' + samples.length + ' 个 Cd 样本 —— async readback 没有回东西？')
       const tail = samples.slice(-Math.max(6, Math.round(samples.length * 0.25)))
       const cd = tail.reduce((a, b) => a + b, 0) / tail.length
       // ★ 唔好 Math.abs ★：来流係域嘅 +X，阻力就一定係 +X。取绝对值会把一个
       //   「动量交换符号搞反咗」嘅 bug 变成一个睇落几靓嘅 Cd。
-      vAssert(Number.isFinite(cd) && cd > 0, 'Cd 唔係一个正数（' + cd + '）—— 动量交换嘅符号反咗？')
+      vAssert(Number.isFinite(cd) && cd > 0, 'Cd 不是一个正数（' + cd + '）—— 动量交换的符号反了？')
       const want = sphereCd(f.reLbEffective)
-      vRel(cd, want, 0.5, '球 @Re_lb=' + f.reLbEffective.toFixed(0) + ' 嘅 Cd（' + tail.length + ' 个样本）')
+      vRel(cd, want, 0.5, '球 @Re_lb=' + f.reLbEffective.toFixed(0) + ' 的 Cd（' + tail.length + ' 个样本）')
       return {
         cd, want, reLb: f.reLbEffective, dLb: dom.dLb,
         steps: solver.stepCount, samples: samples.length, domain: [dom.DX, dom.DY, dom.DZ],
@@ -1185,8 +1185,8 @@ export async function runGpuValidation(
 
   // ── fixture ④：分配失败要自己 dispose 自己（walk-down 嘅前提）──
   if (opts.includeOom !== false) {
-    await run('★ 分配失败要自己 dispose 自己（walk-down 嘅前提）', async () => {
-      vAssert(caps.ok, 'GPU 唔支援五个 RGBA32F：' + caps.reason)
+    await run('★ 分配失败要自己 dispose 自己（walk-down 的前提）', async () => {
+      vAssert(caps.ok, 'GPU 不支援五个 RGBA32F：' + caps.reason)
       // ★ 用完即弃嘅 renderer ★：呢条 fixture 蓄意撞一次 OOM。喺 CAD 视窗自己嗰个 context
       //   上面咁做，最坏情况係成个 viewport 嘅 context 被 driver 收返（用户见到黑屏）。
       const canvas = document.createElement('canvas')
@@ -1195,7 +1195,7 @@ export async function runGpuValidation(
       try {
         const scaps = probeMRT(scratch.getContext() as WebGL2RenderingContext)
         scratch.resetState()
-        vAssert(scaps.ok, '用完即弃嗰个 context 撑唔起五个 RGBA32F：' + scaps.reason)
+        vAssert(scaps.ok, '用完即弃该个 context 无法撑起五个 RGBA32F：' + scaps.reason)
         const base = scratch.info.memory.textures
         // 大到冇任何消费级 GPU 撑得起（atlas ~16384²，五个 target ping-pong = 几十 GB）
         const dom = emptyDomain(256)
@@ -1205,14 +1205,14 @@ export async function runGpuValidation(
         let threw = false
         try { built = new LbmGpu(scratch, huge, phi, { measure: true, caps: scaps }) }
         catch { threw = true }
-        if (!threw) { built?.dispose(); throw new Error('呢部 GPU 竟然分配到 ~40 GB？测试无效，换个更大嘅尺寸') }
+        if (!threw) { built?.dispose(); throw new Error('此部 GPU 竟然分配到 ~40 GB？测试无效，换个更大的尺寸') }
         const after = scratch.info.memory.textures
-        vAssert(after <= base, '分配失败之后仲漏低咗 ' + (after - base) + ' 张 texture —— walk-down 冇得救')
+        vAssert(after <= base, '分配失败之后仍漏低了 ' + (after - base) + ' 张 texture —— walk-down 无法救')
 
         // 而且【成功】嘅 solver dispose 完都要归零
         const okDom = buildDomain(sphereGrid(16, 100))
         const s = new LbmGpu(scratch, okDom, bakePhi(okDom), { measure: true, needVolume: false, caps: scaps })
-        vAssert(scratch.info.memory.textures > base, '正常建构应该真係攞咗 texture')
+        vAssert(scratch.info.memory.textures > base, '正常建构应该真是取了 texture')
         s.dispose()
         vAssert(scratch.info.memory.textures <= base, 'dispose() 之后仲有 texture 未放')
         return { baseTextures: base }

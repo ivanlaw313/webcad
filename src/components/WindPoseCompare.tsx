@@ -64,7 +64,7 @@ const ZH = {
   title: '風洞位姿比較',
   empty: '未有已記錄位姿 — 拖動測試件、放手等流場重新收斂，就會自動記一筆',
   ref: '參考', cur: '目前', finalize: '立即記錄（未收斂）', setRef: '設為參考', clear: '清除', reset: '重置位姿',
-  area: '迎風面積', noSetter: '未接線', notSignificant: '差異細過渦脫落噪聲底，講唔到嘢', samples: '樣本',
+  area: '迎風面積', noSetter: '未接線', notSignificant: '差異小於渦脫落噪聲底，無法講東西', samples: '樣本',
   state: { idle: '未追蹤位姿', dragging: '拖曳中…', settling: '流場重建中…' } as Record<string, string>,
 }
 const EN = {

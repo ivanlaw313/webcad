@@ -56,7 +56,7 @@ export const GPU_CD_BASIS: CdBasis = 'momentum-exchange'
 export const CPU_CD_BASIS: CdBasis = 'pressure-integral+friction'
 
 export const CD_BASIS_LABEL: Record<CdBasis, string> = {
-  'momentum-exchange': '動量交換（邊界 link 直接求和，唔含經驗摩擦項）',
+  'momentum-exchange': '動量交換（邊界 link 直接求和，不含經驗摩擦項）',
   'pressure-integral+friction': '壓力積分形阻 + 平板 Cf 經驗摩擦項',
 }
 
@@ -69,9 +69,9 @@ export const CD_BASIS_LABEL: Record<CdBasis, string> = {
  * 「新嗰个啱咗」—— 所以过渡期两个数并排摆，由用户自己睇。
  */
 export const CD_COMPARE_NOTE =
-  '⚠ GPU 引擎同 CPU 引擎嘅 Cd【唔可以直接比】：碰撞算子（TRT+LES vs BGK+LES）、格子速度（0.05 vs 0.10）、'
-  + '邊界條件、同阻力定義（純動量交換 vs 壓力積分＋經驗摩擦項）四樣一齊變咗，鈍體上典型差 10–30%。'
-  + '各自引擎【內部】嘅相對比較（鈍體 vs 流線型 / 唔同朝向）先至可信。'
+  '⚠ GPU 引擎同 CPU 引擎的 Cd【不可直接比】：碰撞算子（TRT+LES vs BGK+LES）、格子速度（0.05 vs 0.10）、'
+  + '邊界條件、同阻力定義（純動量交換 vs 壓力積分＋經驗摩擦項）四樣一起變了，鈍體上典型差 10–30%。'
+  + '各自引擎【內部】的相對比較（鈍體 vs 流線型 / 不同朝向）才可信。'
 
 /* ════════════════════════════════════════════════════════════════ 渐升 / 排程 */
 

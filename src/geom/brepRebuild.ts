@@ -662,7 +662,7 @@ export function planRebuild(seg: SegmentationResult, opts: RebuildOptions = {}):
         for (const q of p2) { uMin = Math.min(uMin, q.u); uMax = Math.max(uMax, q.u); vMin = Math.min(vMin, q.v); vMax = Math.max(vMax, q.v) }
         planned.push(plan)
       }
-      if (!planned.length) { fp.note = '平面冇边界环（网格坏）'; skipped.push(g.id); warnings.push(`组 ${g.id}: 平面冇边界环，跳过`); faces.push(fp); continue }
+      if (!planned.length) { fp.note = '平面没有边界环（网格坏）'; skipped.push(g.id); warnings.push(`组 ${g.id}: 平面没有边界环，跳过`); faces.push(fp); continue }
       let oi = 0
       for (let i = 1; i < planned.length; i++) if (planned[i].area > planned[oi].area) oi = i
       planned[oi].isOuter = true
@@ -700,7 +700,7 @@ export function planRebuild(seg: SegmentationResult, opts: RebuildOptions = {}):
       fp.uvBounds = []
       fp.naturalClosed = loops.length === 0
       fp.loops = loops.map((lp) => ({ kind: 'polygon' as const, isOuter: false, pts: flat3(seg, lp), area: 0, neighbour: loopNeighbour(lp, g.id) }))
-      fp.note = `sphere r=${prm.radius.toFixed(4)}${fp.naturalClosed ? ' natural-closed' : ' 有边界环（v1 用自然整球，会缝唔埋）'}`
+      fp.note = `sphere r=${prm.radius.toFixed(4)}${fp.naturalClosed ? ' natural-closed' : ' 有边界环（v1 用自然整球，会缝不埋）'}`
       if (!fp.naturalClosed) warnings.push(`组 ${g.id}: 部分球面 v1 未裁（用整球面）`)
     } else if (prm.kind === 'torus') {
       fp.build = 'analytic'
@@ -709,7 +709,7 @@ export function planRebuild(seg: SegmentationResult, opts: RebuildOptions = {}):
       fp.naturalClosed = loops.length === 0
       fp.loops = loops.map((lp) => ({ kind: 'polygon' as const, isOuter: false, pts: flat3(seg, lp), area: 0, neighbour: loopNeighbour(lp, g.id) }))
       fp.note = `torus R=${prm.majorRadius.toFixed(4)} r=${prm.minorRadius.toFixed(4)}`
-      if (!fp.naturalClosed) warnings.push(`组 ${g.id}: 圆角带（部分环面）v1 未裁 —— 交俾 M5 圆角路径`)
+      if (!fp.naturalClosed) warnings.push(`组 ${g.id}: 圆角带（部分环面）v1 未裁 —— 交给 M5 圆角路径`)
     } else {
       // freeform：试 B 样条被单（execute 会用 DeviationSample 复核，唔过就丢）
       const grid = opts.bsplineFreeform ?? true ? resampleGrid(seg, g.tris) : null
@@ -719,9 +719,9 @@ export function planRebuild(seg: SegmentationResult, opts: RebuildOptions = {}):
         fp.note = `freeform → FitBSplineFace ${grid.nu}×${grid.nv}`
       } else {
         fp.build = 'skip'
-        fp.note = 'freeform 无法参数化（网格投影唔单射）'
+        fp.note = 'freeform 无法参数化（网格投影不单射）'
         skipped.push(g.id)
-        warnings.push(`组 ${g.id}: freeform 区（${g.tris.length} 三角）起唔到解析/样条面 → 唔会入缝合`)
+        warnings.push(`组 ${g.id}: freeform 区（${g.tris.length} 三角）无法起解析/样条面 → 不会入缝合`)
       }
     }
     faces.push(fp)
@@ -913,7 +913,7 @@ function buildFace(OC: OCModule, fp: FacePlan, sewTol: number, warnings: string[
       const w = circleWire(OC, outer.circle.centre, outer.circle.normal, outer.circle.radius, false)
       if (!w) return null
       let face = nonNull(new OC.BRepBuilderAPI_MakeFace_15(w, true).Face())
-      if (!face) { warnings.push(`组 ${fp.group}: 圆盘面起唔到`); return null }
+      if (!face) { warnings.push(`组 ${fp.group}: 圆盘面无法起`); return null }
       face = applyHoles(OC, face, holes, fp, warnings)
       return face
     }
@@ -948,7 +948,7 @@ function applyHoles(OC: OCModule, face: OCShape, holes: LoopPlan[], fp: FacePlan
       : (rev: boolean) => polyWire(OC, h.pts, rev)
     const holed = addHole(OC, cur, mk, Math.max(h.area, 0))
     if (holed) cur = holed
-    else warnings.push(`组 ${fp.group}: 孔环（${h.kind}）加唔入，面保持无孔`)
+    else warnings.push(`组 ${fp.group}: 孔环（${h.kind}）无法加入，面保持无孔`)
   }
   return cur
 }
@@ -967,11 +967,11 @@ export function executePlan(seg: SegmentationResult, plan: RebuildPlan, OC: OCMo
     shape: null, tier: 'failed', faceCount: 0, deviation: { max: NaN, mean: NaN, samples: 0 },
     warnings, plan, valid: null, msPlan: 0, msBuild: 0,
   }
-  if (!W) { warnings.push('OC.FitWrapper 唔存在 —— 内核未重建（_occt-build/_rebuilt）'); return empty }
+  if (!W) { warnings.push('OC.FitWrapper 不存在 —— 内核未重建（_occt-build/_rebuilt）'); return empty }
   const maxFaces = opts.maxFaces ?? 4000
   const buildable = plan.faces.filter((f) => f.build !== 'skip').length
   if (buildable > maxFaces) {
-    warnings.push(`计划 ${buildable} 张面 > maxFaces ${maxFaces} —— 识别碎晒（噪声/扫描件），唔入内核，请退 faceted 路径`)
+    warnings.push(`计划 ${buildable} 张面 > maxFaces ${maxFaces} —— 识别结果全部破碎（噪声/扫描件），不入内核，请退 faceted 路径`)
     return empty
   }
 
@@ -979,9 +979,9 @@ export function executePlan(seg: SegmentationResult, plan: RebuildPlan, OC: OCMo
   for (const fp of plan.faces) {
     const f = buildFace(OC, fp, plan.sewTol, warnings)
     if (f && shapeType(OC, f) === ST_FACE) faces.push(f)
-    else if (fp.build !== 'skip') warnings.push(`组 ${fp.group}（${fp.kind}）起唔到面 → 缺面`)
+    else if (fp.build !== 'skip') warnings.push(`组 ${fp.group}（${fp.kind}）无法起面 → 缺面`)
   }
-  if (!faces.length) { warnings.push('冇任何面起到'); return { ...empty, msBuild: performance.now() - t0 } }
+  if (!faces.length) { warnings.push('沒有任何面起到'); return { ...empty, msBuild: performance.now() - t0 } }
 
   let shape: OCShape | null = null
   let tier: RebuildTier = 'failed'
@@ -993,7 +993,7 @@ export function executePlan(seg: SegmentationResult, plan: RebuildPlan, OC: OCMo
   }
   if (!shape && closedCandidate) {
     shape = solidFromClosedFace(OC, faces[0])
-    if (shape) { tier = 'solid'; warnings.push('单张自然闭合面 → TopoDS_Builder 实体（SewSolidify 唔食单面）') }
+    if (shape) { tier = 'solid'; warnings.push('单张自然闭合面 → TopoDS_Builder 实体（SewSolidify 不食单面）') }
   }
   if (!shape) {
     try { shape = nonNull(W.SewSolidify(faces, plan.sewTol, false)) } catch (e) { warnings.push(`SewSolidify(open) 抛 ${(e as Error)?.message ?? e}`) }
@@ -1009,7 +1009,7 @@ export function executePlan(seg: SegmentationResult, plan: RebuildPlan, OC: OCMo
   // 偏差：网格顶点 → 重建面嘅最近距离
   const dev = sampleDeviation(seg, OC, shape, opts.deviationSamples ?? 500, opts.deviationPerFace ?? 'auto')
   const valid = checkValid(OC, shape)
-  if (valid === false) warnings.push('BRepCheck_Analyzer 报唔有效')
+  if (valid === false) warnings.push('BRepCheck_Analyzer 报不有效')
 
   return {
     shape, tier, faceCount: countFaces(OC, shape), deviation: dev, warnings, plan, valid,

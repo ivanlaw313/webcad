@@ -138,7 +138,7 @@ export function suggestGearTrain(target: number, m: number, opts?: { stages?: nu
   const maxReach = Math.pow(rMax, n)
   const ok = errPct <= GEARTRAIN_ERR_TOL
   const warning = ok ? undefined
-    : `${n} 级最多约 ${maxReach >= 100 ? maxReach.toFixed(0) : maxReach.toFixed(1)} 倍，目标 ${t} 倍达唔到（实得 ${achieved.toFixed(2)}，误差 ${errPct.toFixed(1)}%）— 请加级数`
+    : `${n} 级最多约 ${maxReach >= 100 ? maxReach.toFixed(0) : maxReach.toFixed(1)} 倍，目标 ${t} 倍无法达（实得 ${achieved.toFixed(2)}，误差 ${errPct.toFixed(1)}%）— 请加级数`
   return {
     stages,
     achieved,

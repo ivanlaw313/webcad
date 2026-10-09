@@ -67,12 +67,12 @@ export interface MrtReport {
 
 /** spec 用嘅 hex 写返做人话 —— 单单一个 0x8cdd 对任何人都冇意义。 */
 export function fbStatusName(gl: WebGL2RenderingContext, st: number): string {
-  if (st === 0) return 'probe 喺攞到 status 之前已經掟錯（driver 直接拒絕咗呢次分配）'
+  if (st === 0) return 'probe 在取到 status 之前已經拋出錯誤（driver 直接拒絕了此次分配）'
   if (st === gl.FRAMEBUFFER_COMPLETE) return 'COMPLETE'
-  if (st === gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT) return 'INCOMPLETE_ATTACHMENT（attachment 冇拎到真存儲）'
+  if (st === gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT) return 'INCOMPLETE_ATTACHMENT（attachment 沒有取到真存儲）'
   if (st === gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT) return 'INCOMPLETE_MISSING_ATTACHMENT'
   if (st === gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE) return 'INCOMPLETE_MULTISAMPLE'
-  if (st === gl.FRAMEBUFFER_UNSUPPORTED) return 'UNSUPPORTED（呢部 GPU 唔肯渲染呢個格式組合）'
+  if (st === gl.FRAMEBUFFER_UNSUPPORTED) return 'UNSUPPORTED（此部 GPU 不肯渲染此格式組合）'
   return '0x' + Number(st).toString(16)
 }
 
@@ -120,12 +120,12 @@ function probeLevel(gl: WebGL2RenderingContext, n: number, fmt: MrtFormat): { ok
 
 const EMPTY: MrtReport = {
   webgl2: false, contextLost: false, ok: false, force7: false,
-  status: 0, statusName: '冇 WebGL2 context',
+  status: 0, statusName: '沒有 WebGL2 context',
   levels: [], supported: [],
   colorBufferFloat: false, floatLinear: false, floatBlend: false, parallelCompile: false,
   maxColorAttachments: 0, maxDrawBuffers: 0, maxTextureSize: 0, max3DTextureSize: 0, maxTextureImageUnits: 0,
   renderer: 'unknown',
-  reason: '呢個環境冇 WebGL2 —— GPU 風洞用唔到，要行返 CPU 求解器',
+  reason: '此環境沒有 WebGL2 —— GPU 風洞無法用，要改用 CPU 求解器',
 }
 
 /**
@@ -138,7 +138,7 @@ export function probeMRT(gl: WebGL2RenderingContext | null | undefined): MrtRepo
     return { ...EMPTY, levels: [], supported: [] }
   }
   if (gl.isContextLost && gl.isContextLost()) {
-    return { ...EMPTY, webgl2: true, contextLost: true, statusName: 'context lost', reason: 'WebGL context 已經遺失 —— 唔係缺功能，重建 canvas 就得' }
+    return { ...EMPTY, webgl2: true, contextLost: true, statusName: 'context lost', reason: 'WebGL context 已經遺失 —— 不是缺功能，重建 canvas 就得' }
   }
 
   // EXT_color_buffer_float 一定要喺 probe 之前攞：冇佢 RGBA32F 根本唔係 renderable，
@@ -189,10 +189,10 @@ export function probeMRT(gl: WebGL2RenderingContext | null | undefined): MrtRepo
   const lost = !!(gl.isContextLost && gl.isContextLost())
 
   let reason: string
-  if (lost) reason = 'WebGL context 喺 probe 期間遺失咗 —— 唔係缺功能，重建 canvas 再試'
-  else if (!cbf) reason = '呢部機冇 EXT_color_buffer_float：浮點 render target 用唔到，GPU 風洞冇得行'
-  else if (!ok) reason = '五個 RGBA32F attachment 同時用唔到（' + (five?.statusName || '?') + '）—— tile memory 唔夠，GPU 風洞冇得行'
-  else if (!force7) reason = '五個 RGBA32F 得，但七個唔得（' + (seven?.statusName || 'MAX_COLOR_ATTACHMENTS=' + maxColorAttachments) + '）—— 流場畫得，但量唔到阻力'
+  if (lost) reason = 'WebGL context 在 probe 期間遺失了 —— 不是缺功能，重建 canvas 再試'
+  else if (!cbf) reason = '此部機沒有 EXT_color_buffer_float：浮點 render target 無法用，GPU 風洞無法行'
+  else if (!ok) reason = '五個 RGBA32F attachment 同時無法用（' + (five?.statusName || '?') + '）—— tile memory 不足，GPU 風洞無法行'
+  else if (!force7) reason = '五個 RGBA32F 得，但七個不行（' + (seven?.statusName || 'MAX_COLOR_ATTACHMENTS=' + maxColorAttachments) + '）—— 流場畫得，但無法量阻力'
   else reason = 'GPU 風洞可以行（' + levels.filter((l) => l.ok).map((l) => l.label).join('、') + '）'
 
   return {

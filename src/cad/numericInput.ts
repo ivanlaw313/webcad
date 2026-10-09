@@ -106,18 +106,18 @@ export function parseNumericField(input: unknown, spec: NumericFieldSpec): Numer
   if (!STRICT_NUMBER.test(trimmed)) {
     exprValue = evalArith(trimmed)
     if (exprValue == null) {
-      return { ok: false, state: 'invalid', reason: `${name}：唔係數字（你打咗「${raw}」）`, raw }
+      return { ok: false, state: 'invalid', reason: `${name}：不是數字（你打了「${raw}」）`, raw }
     }
   }
   const value = exprValue ?? Number(trimmed)
   if (!Number.isFinite(value)) {
     // '1e999' 文法啱但溢出去 Infinity。
-    return { ok: false, state: 'invalid', reason: `${name}：數值過大／無法表示（你打咗「${raw}」）`, raw }
+    return { ok: false, state: 'invalid', reason: `${name}：數值過大／無法表示（你打了「${raw}」）`, raw }
   }
 
   // ── 3. 整數要求（陣列數量、面數）。2.5 唔准靜默 round。
   if (spec.integer && !Number.isInteger(value)) {
-    return { ok: false, state: 'invalid', reason: `${name}：必須係整數（你打咗「${raw}」）`, raw }
+    return { ok: false, state: 'invalid', reason: `${name}：必須是整數（你打了「${raw}」）`, raw }
   }
 
   // ── 4. 範圍：**唔准靜默夾**（舊行為係 Math.max/Math.min 悄悄改走）。
@@ -126,8 +126,8 @@ export function parseNumericField(input: unknown, spec: NumericFieldSpec): Numer
     const below = minInc ? value < spec.min : value <= spec.min
     if (below) {
       const reason = minInc
-        ? `${name}：最小 ${withUnit(spec.min, spec)}（你打咗「${raw}」）`
-        : `${name}：必須大於 ${withUnit(spec.min, spec)}（你打咗「${raw}」）`
+        ? `${name}：最小 ${withUnit(spec.min, spec)}（你打了「${raw}」）`
+        : `${name}：必須大於 ${withUnit(spec.min, spec)}（你打了「${raw}」）`
       return { ok: false, state: 'invalid', reason, raw }
     }
   }
@@ -136,8 +136,8 @@ export function parseNumericField(input: unknown, spec: NumericFieldSpec): Numer
     const above = maxInc ? value > spec.max : value >= spec.max
     if (above) {
       const reason = maxInc
-        ? `${name}：最大 ${withUnit(spec.max, spec)}（你打咗「${raw}」）`
-        : `${name}：必須小於 ${withUnit(spec.max, spec)}（你打咗「${raw}」）`
+        ? `${name}：最大 ${withUnit(spec.max, spec)}（你打了「${raw}」）`
+        : `${name}：必須小於 ${withUnit(spec.max, spec)}（你打了「${raw}」）`
       return { ok: false, state: 'invalid', reason, raw }
     }
   }

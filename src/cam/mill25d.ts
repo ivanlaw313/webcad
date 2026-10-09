@@ -367,7 +367,7 @@ export function profilesToMillGcode(profiles: Profile2D[], opts: MillOpts): { gc
     ['feedXY', opts.feedXY], ['feedZ', opts.feedZ], ['rpm', opts.rpm], ['safeZ', opts.safeZ],
   ]
   for (const [k, v] of checks) {
-    if (!(Number.isFinite(v) && v > 0)) throw new Error(`参数 ${k} 必须为正数（而家系 ${v}）`)
+    if (!(Number.isFinite(v) && v > 0)) throw new Error(`参数 ${k} 必须为正数（目前是 ${v}）`)
   }
   // stepover clamp 到 [toolD*0.2, toolD*0.9]：太细嘥时间，太大留脊
   const stepover = Math.min(opts.toolD * 0.9, Math.max(opts.toolD * 0.2, opts.stepover ?? opts.toolD * 0.45))
@@ -433,7 +433,7 @@ export function profilesToMillGcode(profiles: Profile2D[], opts: MillOpts): { gc
         // 留料桥可行性：桥高 1mm，depth 太浅（<1.5）桥同底冇分别 → 唔做
         let doTabs = nTabs > 0
         if (doTabs && opts.depth < 1.5) {
-          warn(`深度 ${fmt(opts.depth)}mm < 1.5mm 唔够位做留料桥 — tabs 已略过`)
+          warn(`深度 ${fmt(opts.depth)}mm < 1.5mm 不足位做留料桥 — tabs 已略过`)
           doTabs = false
         }
         zs.forEach((z, li) => {
@@ -534,14 +534,14 @@ export function profilesToMillGcode(profiles: Profile2D[], opts: MillOpts): { gc
       if (!circ) { warn(`轮廓 ${i + 1} 非圆形 — drill 净支持圆, 已跳过`); return }
       if (circ.dia > drillMaxD + 1e-9) { warn(`Ø${fmt(circ.dia)} 大过 drillMaxD Ø${fmt(drillMaxD)} — 已跳过`); return }
       if (circ.dia > opts.toolD * 1.05 + 1e-9) {
-        warn(`Ø${fmt(circ.dia)} 大过刀径 Ø${fmt(opts.toolD)}（位置钻净啱 ≤ ×1.05）— 请改 op:'contour' 当孔铣`)
+        warn(`Ø${fmt(circ.dia)} 大过刀径 Ø${fmt(opts.toolD)}（位置钻净适合 ≤ ×1.05）— 请改 op:'contour' 当孔铣`)
         return
       }
       dn++
       if (canned) holes.push(circ.c)
       else emitDrill(st, circ.c, zs, opts, `钻 ${dn} Ø${fmt(circ.dia)} X${fmt(circ.c[0])} Y${fmt(circ.c[1])} 啄×${zs.length}`)
     })
-    if (canned && holes.length) { emitDrillCanned(st, holes, opts); warn('canned 模式输出 G81/G83 — GRBL 唔识，要 Fanuc/Haas 等工业控制器') }
+    if (canned && holes.length) { emitDrillCanned(st, holes, opts); warn('canned 模式输出 G81/G83 — GRBL 不识，要 Fanuc/Haas 等工业控制器') }
   }
 
   // 尾：升安全高 → 熄主轴 → 完

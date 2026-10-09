@@ -48,17 +48,17 @@ export function diagnoseRevolve(inp: RevolveDiagInput): string[] {
   if (loop.length >= 2) {
     const radial = loop.map((p) => { const q = sub(revolvePointToCad(p, inp.source, false, ax), org); const t = dot(q, ax); return [q[0] - ax[0] * t, q[1] - ax[1] * t, q[2] - ax[2] * t] as V3 })
     const ref = radial.reduce<V3 | null>((r, v) => r ?? (Math.hypot(...v) > tol ? v : null), null)
-    if (!ref) out.push('成個截面貼住旋轉軸（離軸距離 0）— 旋轉唔到體積，請將截面畫喺軸嘅一邊')
+    if (!ref) out.push('整個截面貼住旋轉軸（離軸距離 0）— 旋無法轉體積，請將截面畫在軸的一邊')
     else {
       const s = radial.map((v) => dot(v, ref) / Math.hypot(...ref))
-      if (s.some((v) => v > tol) && s.some((v) => v < -tol)) out.push('截面跨過咗旋轉軸 — 截面要成個喺軸嘅同一邊（可以貼住軸，唔可以過咗去）')
+      if (s.some((v) => v > tol) && s.some((v) => v < -tol)) out.push('截面跨過了旋轉軸 — 截面要整個在軸的同一邊（可以貼住軸，不可過了去）')
     }
   }
   // 2) 極短線段（吸附留低嘅碎線）
   const n = loop.length
   let tiny = 0
   for (let i = 0; i < n; i++) { const a = loop[i], b = loop[(i + 1) % n]; if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.05 && n > 3) tiny++ }
-  if (tiny) out.push(`截面有 ${tiny} 段極短（<0.05 mm）嘅碎線 — 通常係吸附留低，刪咗或者合併端點`)
+  if (tiny) out.push(`截面有 ${tiny} 段極短（<0.05 mm）的碎線 — 通常是吸附留低，刪了或者合併端點`)
   // 3) 自交
   if (inp.profile.kind === 'poly' && n >= 4 && n <= 400) {
     let x = false
@@ -66,7 +66,7 @@ export function diagnoseRevolve(inp: RevolveDiagInput): string[] {
       if (i === 0 && j === n - 1) continue
       if (segsCross(loop[i], loop[(i + 1) % n], loop[j], loop[(j + 1) % n])) x = true
     }
-    if (x) out.push('截面線條自己交叉（打交叉）— 輪廓要係一個唔交叉嘅封閉圈')
+    if (x) out.push('截面線條自己交叉（打交叉）— 輪廓要是一個不交叉的封閉圈')
   }
   // 4) 草圖層面：未閉合半剖 / 多個輪廓 / 散線
   const main = inp.mainShape
@@ -74,19 +74,19 @@ export function diagnoseRevolve(inp: RevolveDiagInput): string[] {
   const others = real.filter((s) => s !== main && JSON.stringify(s) !== JSON.stringify(main))
   if (main && main.type === 'poly' && main.open && main.pts && main.pts.length >= 2) {
     const ends = [main.pts[0], main.pts[main.pts.length - 1]].map((p) => { const q = sub(revolvePointToCad(p, inp.source, true, ax), org); const t = dot(q, ax); return Math.hypot(q[0] - ax[0] * t, q[1] - ax[1] * t, q[2] - ax[2] * t) })
-    if (ends.some((d) => d > Math.max(0.01, tol))) out.push(`截面未閉合：半剖面兩端要落喺旋轉軸上（而家離軸 ${ends.map((d) => d.toFixed(2)).join(' / ')} mm）— 補返線閉合，或者將端點拉到軸上`)
+    if (ends.some((d) => d > Math.max(0.01, tol))) out.push(`截面未閉合：半剖面兩端要落在旋轉軸上（目前離軸 ${ends.map((d) => d.toFixed(2)).join(' / ')} mm）— 補返線閉合，或者將端點拉到軸上`)
   }
   const closedOthers = others.filter((s) => !(s.type === 'poly' && s.open)).length
   const stray = others.filter((s) => s.type === 'poly' && s.open).length
-  if (closedOthers) out.push(`草圖有 ${closedOthers + 1} 個輪廓 — 旋轉只用揀中嗰個；如要其他都旋轉，請逐個揀或者合併成一個輪廓`)
-  if (stray) out.push(`草圖仲有 ${stray} 條冇接駁嘅散線 — 刪走，或者接駁到截面上`)
+  if (closedOthers) out.push(`草圖有 ${closedOthers + 1} 個輪廓 — 旋轉只用選中該個；如要其他都旋轉，請逐個選或者合併成一個輪廓`)
+  if (stray) out.push(`草圖仲有 ${stray} 條沒有接駁的散線 — 刪除，或者接駁到截面上`)
   if (!out.length && inp.workerError) {
-    if (/跨过|跨過/.test(inp.workerError)) out.push('截面跨過咗旋轉軸 — 截面要成個喺軸嘅同一邊')
-    else if (/退化|zero-volume/i.test(inp.workerError)) out.push('截面相對旋轉軸退化（例如貼晒軸或者同軸平行嘅平面）— 換個軸或者截面平面')
+    if (/跨过|跨過/.test(inp.workerError)) out.push('截面跨過了旋轉軸 — 截面要整個在軸的同一邊')
+    else if (/退化|zero-volume/i.test(inp.workerError)) out.push('截面相對旋轉軸退化（例如全部貼軸或者與軸平行的平面）— 換個軸或者截面平面')
   }
   return out
 }
 
 export function revolveFailStatus(causes: string[]): string {
-  return causes.length ? `⚠ 旋轉失敗：${causes.join('；')}（已保留原模型）` : '⚠ 旋轉失敗 — 檢查截面：要閉合、唔好跨軸、唔好有散線／碎線（已保留原模型）'
+  return causes.length ? `⚠ 旋轉失敗：${causes.join('；')}（已保留原模型）` : '⚠ 旋轉失敗 — 檢查截面：要閉合、不要跨軸、不要有散線／碎線（已保留原模型）'
 }

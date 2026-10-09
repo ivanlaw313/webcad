@@ -235,29 +235,29 @@ export const GPU_CD_ABSOLUTE_TRUSTWORTHY = false
  * 唔係「阻力係几多牛顿」。绝对值要问 CPU 引擎。
  */
 export const POSE_COMPARE_NOTE =
-  '⚠ GPU 求解器嘅【絕對】Cd 只係趨勢級。之前講「球體 Cd 高 2.0–2.2 倍、係求解器嘅系統偏差」'
-  + '嗰個講法【唔成立】—— 2026-10-01 喺真硬件查證：嗰個實驗跑喺堵塞率 14–17%'
-  + '（λ = d/D = 0.427）嘅重度受限域、從未收斂、Re 被 omega 鉗、LES 開。'
-  + '改喺乾淨條件下量（堵塞率 2.1%、穩態 Re_lb 143、熄 LES、時均）得 1.13 倍 Clift-Gauvin，'
-  + '落喺 20 格階梯式球體應有嘅數值誤差（±30%）之內。'
+  '⚠ GPU 求解器的【絕對】Cd 只是趨勢級。之前講「球體 Cd 高 2.0–2.2 倍、是求解器的系統偏差」'
+  + '該個講法【不成立】—— 2026-10-01 在真硬件查證：該個實驗跑在堵塞率 14–17%'
+  + '（λ = d/D = 0.427）的重度受限域、從未收斂、Re 被 omega 鉗、LES 開。'
+  + '改在乾淨條件下量（堵塞率 2.1%、穩態 Re_lb 143、熄 LES、時均）得 1.13 倍 Clift-Gauvin，'
+  + '落在 20 格階梯式球體應有的數值誤差（±30%）之內。'
   + '產品配置（空氣、Re_lb 597、LES 開）時均得 1.40 倍，但瞬時波動極大（峰峰 3012%，成因未查），'
-  + '所以絕對值仍然唔好當真數 —— 唔係因為有 bug，係因為解析度、Re 鉗制、LES 同非穩態。'
-  + '所以呢度【只報比值同 Δ%】（同一求解器、同一個域入面嘅相對比較）；'
+  + '所以絕對值仍然不要當真數 —— 不是因為有 bug，是因為解析度、Re 鉗制、LES 同非穩態。'
+  + '所以此處【只報比值同 Δ%】（同一求解器、同一個域內的相對比較）；'
   + '要絕對 Cd 數值請用 CPU 引擎。'
 
 /** 点解跨朝向要睇 Cd×A 而唔係 Cd —— 呢句同上面嗰句一样重要，UI 两句都要有。 */
 export const POSE_AREA_NOTE =
-  '⚠ 朝向一轉，迎風面積 A 就跟住轉，所以兩個朝向嘅 Cd 比值【唔係】阻力比值（分母唔同件事）。'
-  + '真正嘅阻力係 F = Cd·½ρU²·A，而 ½ρU² 喺同一次風洞入面係常數 —— '
-  + '所以跨朝向嘅比較一定要睇【阻力面積 Cd×A】（下面嘅 dragRatio / dragDeltaPct）。'
+  '⚠ 朝向一轉，迎風面積 A 就跟隨轉，所以兩個朝向的 Cd 比值【不是】阻力比值（分母不同件事）。'
+  + '真正的阻力是 F = Cd·½ρU²·A，而 ½ρU² 在同一次風洞內是常數 —— '
+  + '所以跨朝向的比較一定要查看【阻力面積 Cd×A】（下面的 dragRatio / dragDeltaPct）。'
 
 /** 过渡态（dragging / settling）嘅统一讲法 —— 唔准喺呢啲状态畀任何数字出去。 */
 export const POSE_UNSETTLED_NOTE =
-  '流場仲追緊新姿態 —— 而家嘅數字係過渡值，唔好信。等佢 settle 咗先有得比。'
+  '流場仍正在追蹤新姿態 —— 目前的數字是過渡值，不要信。等它 settle 了才可比較。'
 
 export const POSE_STATE_LABEL: Record<PoseState, string> = {
   idle: '未追蹤位姿',
-  dragging: '拖曳中（唔收樣本）',
+  dragging: '拖曳中（不收樣本）',
   settling: '流場重建中（未可信）',
   settled: '已 settle',
 }
@@ -745,12 +745,12 @@ export class PoseCompare {
       if (entry) return { trusted: true, state: 'settled', entry, table: this.compare(), note: POSE_COMPARE_NOTE }
       // 理论上到唔到呢度（settled 一定有 entry）；到咗就老实报未可信，唔好靠估
       return {
-        trusted: false, state: 'settling', reason: '已 settle 但搵唔返記錄',
+        trusted: false, state: 'settling', reason: '已 settle 但無法找回記錄',
         progress: 1, samples: this.tracker.samples, note: POSE_UNSETTLED_NOTE,
       }
     }
     const reason = this._state === 'dragging'
-      ? '拖曳中：位姿仲喺度郁，一個樣本都冇收'
+      ? '拖曳中：位姿仍在移動，一個樣本都沒有收'
       : this._state === 'settling'
         ? (stepCount < this._relaxUntil
           ? `流場過渡期（仲要 ${Math.max(0, Math.round(this._relaxUntil - stepCount))} substep 先開始收樣本）`
@@ -823,11 +823,11 @@ export class PoseCompare {
     const sign = cur.dragDeltaPct <= 0 ? '−' : '+'
     const mag = Math.abs(cur.dragDeltaPct).toFixed(1)
     const verdict = cur.significant
-      ? (cur.dragDeltaPct < 0 ? '阻力細咗' : '阻力大咗')
-      : '同參考分唔到（差異細過渦脫落噪聲）'
+      ? (cur.dragDeltaPct < 0 ? '阻力細了' : '阻力大了')
+      : '同參考無法分（差異小於渦脫落噪聲）'
     const tail = cur.significant ? `${sign}${mag}%` : `${sign}${mag}% vs 噪聲底 ±${cur.noisePct.toFixed(1)}%`
     return `位姿 #${cur.id}（${cur.label}）vs 參考 #${t.referenceId}：${verdict} ${tail}`
-      + (cur.converged ? '' : '（★ 未收斂，呢個數唔好用 ★）')
+      + (cur.converged ? '' : '（★ 未收斂，此數不要用 ★）')
   }
 }
 

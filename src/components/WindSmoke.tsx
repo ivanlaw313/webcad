@@ -214,7 +214,7 @@ export default function WindSmoke() {
 
   useEffect(() => {
     if (viz !== 'smoke' || floatRT) return
-    useApp.setState({ windViz: 'stream', status: '⚠ 呢部機唔支援 WebGL2 浮點渲染目標（EXT_color_buffer_float）— 煙流已自動退返「流線」' })
+    useApp.setState({ windViz: 'stream', status: '⚠ 此部機不支援 WebGL2 浮點渲染目標（EXT_color_buffer_float）— 煙流已自動退回「流線」' })
   }, [viz, floatRT])
 
   const active = !!res && show && viz === 'smoke' && !!res.volData && !!res.volDims && !!res.volMatrix && floatRT

@@ -121,22 +121,22 @@ export function mapPointToFlat(
         ? (((phi - b.phi0) % TAU) + TAU) % TAU
         : (((b.phi0 - phi) % TAU) + TAU) % TAU
       if (delta <= Math.abs(b.a) + 1e-6) {
-        return { error: '孔喺折弯区 — 真实折弯会变形，展开图唔标' }
+        return { error: '孔在折弯区 — 真实折弯会变形，展开图不标' }
       }
     }
-    return { error: '孔唔喺钣金面上' }
+    return { error: '孔不在钣金面上' }
   }
 
   // 轴向检查：要近乎垂直板面（XZ 分量贴段 normal、Y 分量够细）先保形
   const al = Math.hypot(axis[0], axis[1], axis[2])
   if (!(al > 1e-9) || Math.abs(axis[1] / al) >= 0.35) {
-    return { error: '孔轴唔垂直于板面 — 斜孔展开唔保形' }
+    return { error: '孔轴不垂直于板面 — 斜孔展开不保形' }
   }
   const xzLen = Math.hypot(axis[0], axis[2])
   const r = runs[best]
   const dot = (axis[0] / xzLen) * r.normal[0] + (axis[2] / xzLen) * r.normal[1]
   if (Math.abs(dot) <= 0.9) {
-    return { error: '孔轴唔垂直于板面 — 斜孔展开唔保形' }
+    return { error: '孔轴不垂直于板面 — 斜孔展开不保形' }
   }
 
   return { fx: r.flatStart + Math.min(Math.max(bestT, 0), r.len), fy: v, run: best }

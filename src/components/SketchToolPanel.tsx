@@ -186,7 +186,7 @@ export function SketchToolPanel() {
           <button className="sb-tool" style={{ flex: 1 }} title={T('把偏移方向（外↔內）調轉')} onClick={() => g().flipSketchOffset()}>{T('⇄ 反向')}</button>
           <button className={'sb-tool' + (offsetBoth ? ' active' : '')} style={{ flex: 1 }} title={T('兩側各加一條偏移線')} onClick={() => g().toggleSketchOffsetBoth()}>{T('⇆ 雙向')}</button>
         </div>
-        <Hint>{T('點一個輪廓鎖定 → 拖滑鼠調距離（外+/內−，1mm 步進）→ 點確定。或喺度打數字精確。')}</Hint>
+        <Hint>{T('點一個輪廓鎖定 → 拖滑鼠調距離（外+/內−，1mm 步進）→ 點確定。或在此打數字精確。')}</Hint>
       </>)
       break
     case 'cfillet':
@@ -205,12 +205,12 @@ export function SketchToolPanel() {
         <div style={{ fontSize: 12, fontWeight: 600, color: inLine ? '#1aa06b' : '#3a4750' }}>
           {inLine ? `② ${T('點一條直線邊做鏡像軸')}` : `① ${T('已選')} ${mirrorPick ? mirrorPick.shapes.length : 0} ${T('個輪廓')}`}
         </div>
-        {!inLine && <button className="sb-tool" title={T('揀好要鏡像嘅輪廓 → 撳此 → 點一條現有直線邊/構造線做鏡像軸')} onClick={() => g().mirrorBeginLine()}>{T('✓ 揀軸線 →')}</button>}
+        {!inLine && <button className="sb-tool" title={T('選好要鏡像的輪廓 → 按此 → 點一條現有直線邊/構造線做鏡像軸')} onClick={() => g().mirrorBeginLine()}>{T('✓ 選軸線 →')}</button>}
         <div style={{ display: 'flex', gap: 6 }}>
           <button className="sb-tool" style={{ flex: 1 }} title={T('一鍵左右對稱（Y 軸）')} onClick={() => g().mirrorSketch('y')}>{T('⇋ 左右軸')}</button>
           <button className="sb-tool" style={{ flex: 1 }} title={T('一鍵上下對稱（X 軸）')} onClick={() => g().mirrorSketch('x')}>{T('⇅ 上下軸')}</button>
         </div>
-        <Hint>{T('① 點輪廓揀（綠，點一個=揀晒成條相連邊）→「✓揀軸線」→ ② 點一條現有直線邊做鏡像軸（Fusion 式）。或用一鍵軸對稱。')}</Hint>
+        <Hint>{T('① 點輪廓選（綠，點一個=全部選整條相連邊）→「✓選軸線」→ ② 點一條現有直線邊做鏡像軸。或用一鍵軸對稱。')}</Hint>
       </>)
       break
     }
@@ -228,8 +228,8 @@ export function SketchToolPanel() {
         <Row label={T('邊數')}><input className="tp-num" type="number" min={3} value={sides} onFocus={(e) => e.currentTarget.select()} onChange={(e) => g().setSketchSides(Number(e.target.value))} style={{ width: 56 }} /></Row>
         <button className={'sb-tool' + (inscribed ? ' active' : '')} title={T('切換 外接圓(過角點) / 內切圓(對邊距=扳手尺寸)')} onClick={() => g().togglePolyInscribed()}>{inscribed ? T('內切（對邊距）') : T('外接（過角點）')}</button>
         {/* GM-FP4 #17：多邊形【邊】變體 —— 點一條邊兩端定邊長+朝向 */}
-        <button className={'sb-tool' + (polyEdgeMode ? ' active' : '')} title={T('邊模式（Fusion Edge Polygon）：點一條邊嘅兩端定邊長+朝向，多邊形沿該邊生長（vs 中心+半徑）')} onClick={() => g().setPolyEdgeMode(!polyEdgeMode)}>{polyEdgeMode ? T('⬡ 邊模式（點兩端）') : T('◉ 中心模式')}</button>
-        <Hint>{polyEdgeMode ? T('點一條邊嘅兩端（定邊長+朝向）') : T('點中心 → 點一角')}</Hint>
+        <button className={'sb-tool' + (polyEdgeMode ? ' active' : '')} title={T('邊模式：點一條邊的兩端定邊長+朝向，多邊形沿該邊生長（vs 中心+半徑）')} onClick={() => g().setPolyEdgeMode(!polyEdgeMode)}>{polyEdgeMode ? T('⬡ 邊模式（點兩端）') : T('◉ 中心模式')}</button>
+        <Hint>{polyEdgeMode ? T('點一條邊的兩端（定邊長+朝向）') : T('點中心 → 點一角')}</Hint>
       </>)
       break
     case 'slot':
@@ -298,8 +298,8 @@ export function SketchToolPanel() {
         {a.kind === 'rect' ? (<>
           {/* GM-FP4 #53：Distance Type（Fusion Rectangular Pattern）—— 間距 Spacing（每格）/ 總跨 Extent（首末總距） */}
           <div style={{ display: 'flex', gap: 4 }}>
-            <button className={'sb-tool' + (a.distType === 'spacing' ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={T('間距：X/Y 值 = 相鄰兩格之間嘅距離')} onClick={() => set({ distType: 'spacing' })}>{T('間距 Spacing')}</button>
-            <button className={'sb-tool' + (a.distType === 'extent' ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={T('總跨：X/Y 值 = 首末兩件之間嘅總距（內部自動 ÷(n−1)）')} onClick={() => set({ distType: 'extent' })}>{T('總跨 Extent')}</button>
+            <button className={'sb-tool' + (a.distType === 'spacing' ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={T('間距：X/Y 值 = 相鄰兩格之間的距離')} onClick={() => set({ distType: 'spacing' })}>{T('間距 Spacing')}</button>
+            <button className={'sb-tool' + (a.distType === 'extent' ? ' active' : '')} style={{ flex: 1, fontSize: 11 }} title={T('總跨：X/Y 值 = 首末兩件之間的總距（內部自動 ÷(n−1)）')} onClick={() => set({ distType: 'extent' })}>{T('總跨 Extent')}</button>
           </div>
           <Row label={T('列數 ×')}><ScaleValueInput label="Array columns" value={a.nx} onValue={n=>set({nx:n})} width={80} /></Row>
           <Row label={a.distType === 'extent' ? T('X 總跨') : T('X 間距')}><ScaleValueInput label="Array X distance" value={a.dx} onValue={n=>set({dx:n})} width={80} /></Row>
@@ -333,11 +333,11 @@ export function SketchToolPanel() {
           <button className={'sb-tool' + (clineOrient === 'h' ? ' active' : '')} style={{ flex: 1 }} title={T('水平構造線（過點的左右方向）')} onClick={() => g().setClineOrient('h')}>{T('┄ 水平')}</button>
         </div>
         {/* GM-FP4 #23：中心線語義標記（旋轉軸 / 對稱參照） */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('中心線（Fusion Centerline）：做旋轉軸 / 對稱參照嘅語義標記')}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('中心線：做旋轉軸 / 對稱參照的語義標記')}>
           <input type="checkbox" checked={clineCenterline} onChange={(e) => g().setClineCenterline(e.target.checked)} />
           <span>{T('┋ 中心線（旋轉軸/對稱參照）')}</span>
         </label>
-        <Hint>{T('點位置即落一條長虛線構造參考線。做對中參考，或做鏡像嘅中心軸（鏡像第②步點佢）。唔參與拉伸。')}</Hint>
+        <Hint>{T('點位置即落一條長虛線構造參考線。做對中參考，或做鏡像的中心軸（鏡像第②步點它）。不參與拉伸。')}</Hint>
       </>)
       break
     case 'polyline':
@@ -345,7 +345,7 @@ export function SketchToolPanel() {
     case 'bspline':
       body = (<>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="sb-tool sb-finish" style={{ flex: 1, opacity: polyN >= 2 ? 1 : 0.5 }} title={T('完成做開放直線/折線（唔回起點，可做參考/掃掠路徑/鏡像軸）')} onClick={() => g().finishOpenPolyline()}>{T('✓ 完成線')}</button>
+          <button className="sb-tool sb-finish" style={{ flex: 1, opacity: polyN >= 2 ? 1 : 0.5 }} title={T('完成做開放直線/折線（不回起點，可做參考/掃掠路徑/鏡像軸）')} onClick={() => g().finishOpenPolyline()}>{T('✓ 完成線')}</button>
           <button className="sb-tool sb-finish" style={{ flex: 1, opacity: polyN >= 3 ? 1 : 0.5 }} title={T('回起點閉合成面（可拉伸）')} onClick={() => g().closePolyline()}>{T('✓ 閉合')}</button>
         </div>
         <Hint>{`${polyN} ${T('點')} · ${T(TOOL_HINT[tool] || '連續點擊落點')}　—　${T('畫一條直線：點 2 點 →「✓ 完成線」')}`}</Hint>
@@ -365,7 +365,7 @@ export function SketchToolPanel() {
       break
     case 'move':
       body = skMove ? (<>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('剔=複製（原件保留）；唔剔=移動')}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('勾選=複製（原件保留）；不勾選=移動')}>
           <input type="checkbox" checked={!!skMove.copy} onChange={(e) => g().setSkMoveCopy(e.target.checked)} />
           <span>{T('Create Copy 複製')}</span>
         </label>
@@ -380,7 +380,7 @@ export function SketchToolPanel() {
         </div>
         <button className="sb-tool" style={{ width: '100%' }} title={T('打字精確 dx,dy[,角度][,副本數]')} onClick={() => void g().skMovePrompt()}>{T('⌨ 打字精確…')}</button>
         <Hint>{T('拖 →X（紅）/ ↑Y（綠）箭頭平移 · 拖藍弧轉（繞形心）· Enter 確定 · Esc 取消')}</Hint>
-      </>) : <Hint>{T('先用選擇工具揀一個或多個輪廓，再撳 Move')}</Hint>
+      </>) : <Hint>{T('先用選擇工具選一個或多個輪廓，再按 Move')}</Hint>
       break
     case 'select':
       body = (<>
@@ -390,17 +390,17 @@ export function SketchToolPanel() {
         {(armedCon === 'tangent' || ellipseLineSelected) && <div style={{ fontSize: 11.5, color: '#1c6fb8', lineHeight: 1.5 }}>{ellipseTangentNeedsRotation ? m('sk.tan.needsRot') : noEllipseTangentCandidate ? m('sk.tan.noCand') : m('sk.tan.whole')}</div>}
         {dragging && <button className="sb-tool" onClick={() => g().skDragCancel()}>{m('sk.drag.cancel')}</button>}
         {armedCon
-          ? <div style={{ fontSize: 12, fontWeight: 700, color: '#1c6fb8', lineHeight: 1.5 }}>{`${T('施約束武裝中')}：${T(SK_CON_LABEL_ZH[armedCon] ?? armedCon)}`}<div style={{ fontWeight: 400, color: '#5a6b78', fontSize: 11.5, marginTop: 2 }}>{T('揀要約束嘅對象（揀夠即施加，保持武裝）· ESC 退出')}</div></div>
-          : <Hint>{T('點 點/邊/圓 揀選（可多選）· 空白左拖=框選（左→右全包/右→左相觸）· 雙擊邊=鏈選 → 撳約束/尺寸掣。或先撳約束掣（無選擇）= tool-first。')}</Hint>}
+          ? <div style={{ fontSize: 12, fontWeight: 700, color: '#1c6fb8', lineHeight: 1.5 }}>{`${T('施約束武裝中')}：${T(SK_CON_LABEL_ZH[armedCon] ?? armedCon)}`}<div style={{ fontWeight: 400, color: '#5a6b78', fontSize: 11.5, marginTop: 2 }}>{T('選要約束的對象（選夠即施加，保持武裝）· ESC 退出')}</div></div>
+          : <Hint>{T('點 點/邊/圓 選取（可多選）· 空白左拖=框選（左→右全包/右→左相觸）· 雙擊邊=鏈選 → 按約束/尺寸掣。或先按約束掣（無選擇）= tool-first。')}</Hint>}
         {/* GM-FP4 #47：撳真空白 = 清選擇（Fusion 默認）/ 唔清（防誤清，webcad 舊手感） */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('開=撳真空白即清選擇（Fusion 默認）；關=撳空唔清（防誤清，ESC 先清）')}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('開=按真空白即清選擇（預設）；關=按空不清（防誤清，ESC 先清）')}>
           <input type="checkbox" checked={selEmptyClear} onChange={(e) => g().setSelEmptyClear(e.target.checked)} />
-          <span>{T('撳空白 = 清選擇')}</span>
+          <span>{T('按空白 = 清選擇')}</span>
         </label>
       </>)
       break
     default:
-      body = <Hint>{T(TOOL_HINT[tool] || '喺上方 ribbon「草圖」揀一個工具')}</Hint>
+      body = <Hint>{T(TOOL_HINT[tool] || '在上方 ribbon「草圖」選一個工具')}</Hint>
   }
 
   return (
@@ -431,13 +431,13 @@ export function SketchToolPanel() {
           {body}
           {/* GM-FP2 #33：AutoConstrain — 繪製時自動推斷開關（默認開，Fusion palette 同款）+ 一鍵對選中/全部推斷 */}
           <div style={{ borderTop: '1px solid #e3ebf3', marginTop: 2, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('畫圖時自動加 水平/豎直/重合/平行/相切… 約束（Fusion AutoConstrain）')}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('畫圖時自動加 水平/豎直/重合/平行/相切… 約束')}>
               <input type="checkbox" checked={autoConstrain} onChange={(e) => g().setAutoConstrain(e.target.checked)} />
               <span>{T('自動約束推斷')}</span>
             </label>
             <button className="sb-tool" style={{ width: '100%' }} title={T('對選中集（無選擇=全部幾何）一次推斷多約束')} onClick={() => g().autoConstrainSel()}>{T('✨ 一鍵自動約束')}</button>
             {/* GM-FP4 #22：Linetype 預開關 —— 開住時之後畫嘅幾何即時成構造（琥珀虛線，Fusion Linetype 預切換） */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: drawConstruction ? '#b9822a' : '#3a4750', cursor: 'pointer' }} title={T('構造線型預切換（Fusion Linetype）：開住時之後畫嘅形即時成構造幾何（琥珀虛線，唔參與拉伸）')}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: drawConstruction ? '#b9822a' : '#3a4750', cursor: 'pointer' }} title={T('構造線型預切換：開住時之後畫的形即時成構造幾何（琥珀虛線，不參與拉伸）')}>
               <input type="checkbox" checked={drawConstruction} onChange={() => g().toggleDrawConstruction()} />
               <span>{T('⚟ 畫成構造幾何（下一筆）')}</span>
             </label>

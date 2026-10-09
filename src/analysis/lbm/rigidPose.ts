@@ -87,7 +87,7 @@ export function rigidCheck(m: Mat4Like, tol = 1e-5): RigidCheck {
   const affineErr = Math.max(Math.abs(e[3]), Math.abs(e[7]), Math.abs(e[11]), Math.abs(e[15] - 1))
 
   if (affineErr > tol) {
-    return { rigid: false, orthoErr, det, affineErr, reason: '底行唔係 [0,0,0,1]（有透視分量），偏差 ' + affineErr.toExponential(3) }
+    return { rigid: false, orthoErr, det, affineErr, reason: '底行不是 [0,0,0,1]（有透視分量），偏差 ' + affineErr.toExponential(3) }
   }
   if (orthoErr > tol) {
     // 缩放同切变分开报，因为两者嘅成因完全唔同（前者係单位换错，后者係矩阵砌错）
@@ -95,11 +95,11 @@ export function rigidCheck(m: Mat4Like, tol = 1e-5): RigidCheck {
     const scaley = Math.max(Math.abs(s[0] - 1), Math.abs(s[1] - 1), Math.abs(s[2] - 1)) > tol
     return {
       rigid: false, orthoErr, det, affineErr,
-      reason: (scaley ? '有縮放（列長 ' + s.map((v) => v.toFixed(6)).join(' / ') + '）' : '有切變（列之間唔垂直）') +
+      reason: (scaley ? '有縮放（列長 ' + s.map((v) => v.toFixed(6)).join(' / ') + '）' : '有切變（列之間不垂直）') +
         '，MᵀM 偏差 ' + orthoErr.toExponential(3),
     }
   }
-  return { rigid: true, orthoErr, det, affineErr, reason: det < 0 ? '正交但係鏡射（det < 0）' : '' }
+  return { rigid: true, orthoErr, det, affineErr, reason: det < 0 ? '正交但是鏡射（det < 0）' : '' }
 }
 
 /**
@@ -126,7 +126,7 @@ export function isRigid(m: Mat4Like, tol = 1e-5): boolean {
 export function assertRigid(m: Mat4Like, tol = 1e-5): void {
   const r = rigidCheck(m, tol)
   if (!r.rigid) {
-    throw new Error('rigidPose: 位姿矩陣唔係剛體 —— ' + r.reason + '。SDF 嘅距離度量喺縮放/切變之下會爆，唔可以靜靜接受。')
+    throw new Error('rigidPose: 位姿矩陣不是剛體 —— ' + r.reason + '。SDF 的距離度量在縮放/切變之下會爆，不可靜靜接受。')
   }
 }
 
@@ -209,7 +209,7 @@ export function safePoseBox(dom: DomainLike, phi: PhiLike, marginCells = 2): Pos
   const D = [dom.DX, dom.DY, dom.DZ]
   const notes: string[] = []
   if (phi.DX !== dom.DX || phi.DY !== dom.DY || phi.DZ !== dom.DZ) {
-    throw new Error('safePoseBox: phi 尺寸 ' + [phi.DX, phi.DY, phi.DZ] + ' 唔等於域 ' + D)
+    throw new Error('safePoseBox: phi 尺寸 ' + [phi.DX, phi.DY, phi.DZ] + ' 不等於域 ' + D)
   }
   const margin = Math.max(0, marginCells)
   const min: [number, number, number] = [0, 0, 0]
@@ -222,10 +222,10 @@ export function safePoseBox(dom: DomainLike, phi: PhiLike, marginCells = 2): Pos
     else {
       feasible = false
       min[a] = max[a] = D[a] * 0.5
-      notes.push('軸 ' + a + '：域得 ' + D[a] + ' 格，裝唔落「外接球 ' + (2 * s.radius).toFixed(1) + ' + 兩邊 margin ' + margin + '」')
+      notes.push('軸 ' + a + '：域得 ' + D[a] + ' 格，無法裝入「外接球 ' + (2 * s.radius).toFixed(1) + ' + 兩邊 margin ' + margin + '」')
     }
   }
-  if (s.solidCells === 0) notes.push('phi 入面一個固體格都冇 —— 外接球退化成一點')
+  if (s.solidCells === 0) notes.push('phi 內一個固體格都沒有 —— 外接球退化成一點')
   return { min, max, centre: s.centre, radius: s.radius, marginCells: margin, feasible, notes }
 }
 

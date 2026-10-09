@@ -297,7 +297,7 @@ export default function JointsPanel() {
   return (
     <div className={'joints-panel' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} ref={(el) => { panelRef.current = el; panelDrag.ref(el) }} style={dockMaxH ? { ...panelDrag.style, maxHeight: dockMaxH } : panelDrag.style} onScroll={(e) => { const el = e.currentTarget; bottomGap.current = el.scrollHeight - el.scrollTop }} onPointerDown={beginPanelDrag} title="拖動面板空白處或標題可移動位置">
       <div className="jp-title" title="機構自由度 DOF = 獨立運動數（各關節自由度之和 − 閉環約束 ×3/環：錨點閉合 2 + back-edge 從動 1，平面 Grübler 修正 T779。四連桿 = 1 ✓）。0 = 全固定；越大越「松」。">裝配關節 {joints.length} · 自由度 {mechDOF}{breakdown ? `（${breakdown}）` : ''}
-        <button className="cs-x" style={{ float: 'right', marginLeft: 4, ...(contactSetsOn ? { color: '#ff8a2a', fontWeight: 700 } : {}) }} title={contactSetsOn ? '🧱 接觸集開緊：拖關節滑桿撞到第三方組件會自動擋停（再撳關閉 — 關咗可自由穿過）' : '🧱 接觸集（T787 / Fusion Enable Contact）：開咗之後拖關節滑桿，子件撞到第三方組件即停喺接觸前一刻 — 卡扣/棘輪/限位嘅真實手感'} onClick={() => useApp.getState().toggleContactSets()}>🧱{contactSetsOn ? '開' : ''}</button>
+        <button className="cs-x" style={{ float: 'right', marginLeft: 4, ...(contactSetsOn ? { color: '#ff8a2a', fontWeight: 700 } : {}) }} title={contactSetsOn ? '🧱 接觸集正在開啟：拖關節滑桿撞到第三方組件會自動擋停（再按關閉 — 關了可自由穿過）' : '🧱 接觸集（T787 /）：開了之後拖關節滑桿，子件撞到第三方組件即停在接觸前一刻 — 卡扣/棘輪/限位的真實手感'} onClick={() => useApp.getState().toggleContactSets()}>🧱{contactSetsOn ? '開' : ''}</button>
         <span className="pp-x" style={{ float: 'right' }} title="折疊面板" onClick={() => { setUserCollapsed(true); setUserExpanded(false) }}>▾</span></div>
 
       {joints.map((j) => (
@@ -307,14 +307,14 @@ export default function JointsPanel() {
             <span className="jp-type">{tStatus(JOINT_LABEL_TC[j.type], lang)}</span>
             <span className="jp-cc">{name(j.parent)} → {name(j.child)}</span>
             <button className="cs-x" style={holePicking === j.id ? { color: '#ff8a2a' } : undefined} title="🎯 拾孔定軸：點此後再點零件上一個【圓柱孔/軸面】→ 關節錨點對到孔心、轉軸沿孔軸（鉸鏈/轉軸裝到指定孔位）" onClick={() => startJointHolePick(j.id)}>🎯</button>
-            {j.type !== 'rigid' && <button className="cs-x" style={posFor === j.id ? { color: '#ff8a2a' } : undefined} title="GM-3DV4 A2/A3：位置 / Rest — 兩原點之間嘅靜止偏移(X/Y/Z + 角度 + Flip) + 靜止(Rest)位。" onClick={() => setPosFor(posFor === j.id ? '' : j.id)}>⚓</button>}
-            {j.type !== 'rigid' && <button className="cs-x" title="🔍 跨運動干涉：自動掃掠呢個關節嘅全行程（含齒輪聯動），二分搵出『首次撞』嘅驅動值 — 唔使逐幀手拖就知機構成程會唔會自撞（Fusion Motion+Interference）。滑動關節需先設行程限位。" onClick={() => useApp.getState().interferenceAcrossMotion(j.id)}>🔍</button>}
+            {j.type !== 'rigid' && <button className="cs-x" style={posFor === j.id ? { color: '#ff8a2a' } : undefined} title="GM-3DV4 A2/A3：位置 / Rest — 兩原點之間的靜止偏移(X/Y/Z + 角度 + Flip) + 靜止(Rest)位。" onClick={() => setPosFor(posFor === j.id ? '' : j.id)}>⚓</button>}
+            {j.type !== 'rigid' && <button className="cs-x" title="🔍 跨運動干涉：自動掃掠此關節的全行程（含齒輪聯動），二分找出『首次撞』的驅動值 — 無需逐幀手拖就知機構成程是否會自撞。滑動關節需先設行程限位。" onClick={() => useApp.getState().interferenceAcrossMotion(j.id)}>🔍</button>}
             <button className="cs-x" data-testid={'joint-card-del-' + j.id} title="刪除關節（Ctrl+Z 可還原）" onClick={() => removeJoint(j.id)}>✕</button>
           </div>
           {posFor === j.id && j.type !== 'rigid' && (
             <div className="jp-lim" style={{ flexWrap: 'wrap', gap: 4, background: 'rgba(21,114,196,.06)', borderRadius: 4, padding: '3px 4px' }}>
-              <span style={{ color: '#6b7680', fontWeight: 600 }} title="GM-3DV4 A2：兩 joint-origin 之間嘅靜止偏移（關節基 U/V/軸）+ 靜止轉角 + Flip；GM-3DV4 A3：Rest 靜止位（歸零回此）">位置</span>
-              {j.originRef && <span style={{ color: '#12b886', fontSize: 11 }} title="此關節引用咗可復用關節原點">⚓{jointOrigins.find((o) => o.id === j.originRef)?.name ?? j.originRef}</span>}
+              <span style={{ color: '#6b7680', fontWeight: 600 }} title="GM-3DV4 A2：兩 joint-origin 之間的靜止偏移（關節基 U/V/軸）+ 靜止轉角 + Flip；GM-3DV4 A3：Rest 靜止位（歸零回此）">位置</span>
+              {j.originRef && <span style={{ color: '#12b886', fontSize: 11 }} title="此關節引用了可復用關節原點">⚓{jointOrigins.find((o) => o.id === j.originRef)?.name ?? j.originRef}</span>}
               靜 <NumInput value={j.rest ?? 0} onValue={(v) => { setJointValue(j.id, { rest: v }) }} label={`Rest 靜止位（${j.type === 'slider' ? 'mm' : '°'}）— ⌂歸零即回此`} w={48} title={`Rest 靜止位（${j.type === 'slider' ? 'mm' : '°'}）— ⌂歸零即回此`} />{j.type === 'slider' ? 'mm' : '°'}
               <span title="兩原點之間靜止偏移（關節基：沿U / 沿V / 沿軸 mm）">偏</span>
               <NumInput value={j.offset?.[0] ?? 0} onValue={(v) => { setJointValue(j.id, { offset: [v, j.offset?.[1] ?? 0, j.offset?.[2] ?? 0] }) }} label="沿 U 偏移 mm" w={42} title="沿 U 偏移 mm" />
@@ -429,7 +429,7 @@ export default function JointsPanel() {
         <button className="cs-btn" onClick={add}>+ 關節</button>
         {hasMovable && <button className={'cs-btn' + (playing ? ' on' : '')} onClick={() => { setMsPlaying(false); setKfPlaying(false); setPlaying((p) => !p) }}>{playing ? '⏸ 停' : '▷ 運動'}</button>}
         {joints.length > 0 && <button className="cs-btn" title="把所有關節角度/位移歸零，機構回到初始姿態" onClick={() => { setPlaying(false); setMsPlaying(false); setKfPlaying(false); useApp.getState().homeJoints() }}>⌂ 歸零</button>}
-        {joints.length > 0 && <button className="cs-btn" title="捕捉位置：把當前所有關節角度/位移存為命名姿態，一鍵套回（Fusion Capture Position）" onClick={async () => { const nm = await useApp.getState().appPrompt('姿態名稱', `姿態${jointPoses.length + 1}`); if (nm != null) useApp.getState().saveJointPose(nm) }}>📍 捕捉位置</button>}
+        {joints.length > 0 && <button className="cs-btn" title="捕捉位置：把當前所有關節角度/位移存為命名姿態，一鍵套回" onClick={async () => { const nm = await useApp.getState().appPrompt('姿態名稱', `姿態${jointPoses.length + 1}`); if (nm != null) useApp.getState().saveJointPose(nm) }}>📍 捕捉位置</button>}
       </div>
 
       {jointOrigins.length > 0 && (
@@ -456,7 +456,7 @@ export default function JointsPanel() {
           {rigidGroups.map((g) => (
             <div key={g.id} className="jp-row" style={{ fontSize: 12 }}>
               <span style={{ flex: 1, opacity: g.suppressed ? 0.5 : 1 }} title={`${g.members.length} 件焊為一體${g.suppressed ? '（已抑制 — 各自自由）' : ''}`}>🔗 {g.name}（{g.members.length}）{g.suppressed ? ' · 已抑制' : ''}</span>
-              <button className="cs-x" title={g.suppressed ? '恢復剛性組（重新焊為一體）' : '抑制剛性組（成員釋放自由郁）'} onClick={() => useApp.getState().toggleRigidGroupSuppressed(g.id)}>{g.suppressed ? '▷' : '⏸'}</button>
+              <button className="cs-x" title={g.suppressed ? '恢復剛性組（重新焊為一體）' : '抑制剛性組（成員釋放自由移動）'} onClick={() => useApp.getState().toggleRigidGroupSuppressed(g.id)}>{g.suppressed ? '▷' : '⏸'}</button>
               <button className="cs-x" title="刪除剛性組（成員釋放）" onClick={() => useApp.getState().removeRigidGroup(g.id)}>✕</button>
             </div>
           ))}
@@ -466,7 +466,7 @@ export default function JointsPanel() {
       {/* GM-3DV4 A9：命名逐对接触集（全局「接触」关时只检呢啲对 — scoped/快） */}
       {components.length >= 2 && (
         <div className="jp-mlink" ref={contactRef}>
-          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }} title="命名接觸集：全局🧱開 = All（全部相撞）；全局關但登記咗對 → 只檢呢啲對（scoped，齒輪齧合/卡扣局部接觸用）">{tStatus('命名接觸集', lang)}{contactSetsOn ? tStatus(' · 全局（全部）開', lang) : ''}</div>
+          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }} title="命名接觸集：全局🧱開 = All（全部相撞）；全局關但登記了對 → 只檢這些對（scoped，齒輪齧合/卡扣局部接觸用）">{tStatus('命名接觸集', lang)}{contactSetsOn ? tStatus(' · 全局（全部）開', lang) : ''}</div>
           {contactPairs.map((p) => (
             <div key={p.id} className="jp-row" style={{ fontSize: 12 }}>
               <span style={{ flex: 1 }}>🧱 {p.name}</span>
@@ -487,7 +487,7 @@ export default function JointsPanel() {
           <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>捕捉位置（Capture Position）</div>
           {jointPoses.map((p, i) => (
             <div key={i} className="jp-row" style={{ fontSize: 12 }}>
-              <button className="cs-btn" style={{ flex: 1, textAlign: 'left' }} title="套用此姿態（機構跳到捕捉時嘅角度/位移）" onClick={() => { setPlaying(false); setMsPlaying(false); setKfPlaying(false); useApp.getState().applyJointPose(i) }}>▷ {p.name}</button>
+              <button className="cs-btn" style={{ flex: 1, textAlign: 'left' }} title="套用此姿態（機構跳到捕捉時的角度/位移）" onClick={() => { setPlaying(false); setMsPlaying(false); setKfPlaying(false); useApp.getState().applyJointPose(i) }}>▷ {p.name}</button>
               <button className="cs-x" title="刪除此姿態" onClick={() => useApp.getState().deleteJointPose(i)}>✕</button>
             </div>
           ))}
@@ -503,7 +503,7 @@ export default function JointsPanel() {
             <span style={{ minWidth: 38, color: '#8a939c' }}>{kfTime.toFixed(2)}s</span>
           </div>
           <div className="jp-row" style={{ gap: 6 }}>
-            <button className="cs-btn" style={{ flex: 1 }} title={`喺 t=${kfTime.toFixed(2)}s 加一個關鍵幀（快照當前所有關節角度/位移）— 同 t 會覆蓋`} onClick={() => { setKfPlaying(false); useApp.getState().addJointKeyframe(kfTime) }}>◆ 加關鍵幀 @ {kfTime.toFixed(2)}s</button>
+            <button className="cs-btn" style={{ flex: 1 }} title={`在 t=${kfTime.toFixed(2)}s 加一個關鍵幀（快照當前所有關節角度/位移）— 同 t 會覆蓋`} onClick={() => { setKfPlaying(false); useApp.getState().addJointKeyframe(kfTime) }}>◆ 加關鍵幀 @ {kfTime.toFixed(2)}s</button>
             {jointKeyframes.length >= 2 && <button className={'cs-btn' + (kfPlaying ? ' on' : '')} title="從 0 掃到末幀回放（真實時間）" onClick={() => { setPlaying(false); setMsPlaying(false); setKfPlaying((p) => !p) }}>{kfPlaying ? '⏸ 停' : '▶ 播放'}</button>}
           </div>
           {jointKeyframes.map((kf, i) => (
@@ -539,11 +539,11 @@ export default function JointsPanel() {
                 <span>＋</span>
                 <select value={mlDrv2 || rotJoints[2]?.id} onChange={(e) => setMlDrv2(e.target.value)} title="第二驅動關節">{rotJoints.map((j) => <option key={j.id} value={j.id}>{localizeAsmName(j.name, lang)}</option>)}</select>
                 <span>×</span>
-                <NumInput value={mlRatio2} onValue={(v) => { setMlRatio2(v) }} label="第二驅動嘅比" w={52} title="第二驅動嘅比" />
+                <NumInput value={mlRatio2} onValue={(v) => { setMlRatio2(v) }} label="第二驅動的比" w={52} title="第二驅動的比" />
               </>)}
             </div>
           )}
-          <div className="jp-add" style={{ fontSize: 11, alignItems: 'center', gap: 4, marginTop: 2 }} title="由齒數自動算齒輪傳動比 = −(主齒數/從齒數)（齧合反向）。撳「算比」填入上方傳動比框">
+          <div className="jp-add" style={{ fontSize: 11, alignItems: 'center', gap: 4, marginTop: 2 }} title="由齒數自動算齒輪傳動比 = −(主齒數/從齒數)（齧合反向）。按「算比」填入上方傳動比框">
             <span style={{ color: '#8a939c' }}>齒數</span>
             <NumInput value={mlZ1} onValue={(v) => { setMlZ1(Math.max(1, v)) }} label="主動齒輪齒數 z1" min={1} integer w={44} title="主動齒輪齒數 z1" />
             <span>/</span>

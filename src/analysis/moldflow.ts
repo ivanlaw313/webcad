@@ -864,10 +864,10 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
     }
     pPeakPa = Math.max(pPeakPa, peakInj)   // 头条峰值注射压力计入浇口压降（点/潜伏浇口会显著升）
     fillImbalance = (nGate > 1 && fMax > 0 && Number.isFinite(fMin)) ? (fMax - fMin) / fMax : 0
-    if (sol.nReached < nVox) warnings.push(`求解器：${nVox - sol.nReached} 个体素前沿到唔到（困气孤岛/窄缝）`)
+    if (sol.nReached < nVox) warnings.push(`求解器：${nVox - sol.nReached} 个体素前沿无法到达（困气孤岛/窄缝）`)
     if (nVox > 8000) warnings.push(`求解器体素 ${nVox} 较多，计算较慢（每步重解压力）—— 薄壁件建议；厚实件可降分辨率`)
     if (nGate > 1) warnings.push(balanced ? `已启用自动流道平衡：按责任域体积分配流量，浇口充填不平衡度 ${(fillImbalance * 100).toFixed(0)}%（越细越同步）` : `多浇口未平衡（各 ${(100 / nGate).toFixed(0)}% 均分或手动权重）：充填不平衡度 ${(fillImbalance * 100).toFixed(0)}% — 可开「流道平衡」自动分配`)
-    warnings.push('求解器：工程级 2.5D Hele-Shaw（Cross 黏度 + 移动前沿 FVM）；材料系数为文献家族典型值，非牌号实测 — 压力/锁模力/浇口压降系同阶估算')
+    warnings.push('求解器：工程级 2.5D Hele-Shaw（Cross 黏度 + 移动前沿 FVM）；材料系数为文献家族典型值，非牌号实测 — 压力/锁模力/浇口压降是同阶估算')
     // #88 锁模力诚实注记：已改用峰压投影积分（修正旧法系统性低估），旧值保留于 clampForceAvgKN
     if (clampForcePeakN > 0) warnings.push(`锁模力估算 ${(clampForcePeakN / 1e3).toFixed(0)} kN：用峰值压力×投影面积积分（Σ每列历时峰压·h²），修正旧「充填末瞬时全场均压×单层面积」系统性低估（旧值 ${(clampForceN / 1e3).toFixed(0)} kN）—— 趋势级同阶、方向偏保守。`)
     // #42 精神：诚实标出锁模力超出标准最大机台量程（3200t），避免下游「建议机台」静默封顶 3200t 误导
@@ -960,7 +960,7 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
   let moldable: 'ok' | 'thick' | 'solid' = 'ok'
   if (wallMedian > THIN_WALL_MAX) {
     moldable = 'solid'
-    warnings.unshift(`⚠ 零件偏厚/实心（中位壁厚 ${wallMedian.toFixed(1)} mm，最厚 ${wallMax.toFixed(1)} mm）：注塑模流假设薄壁件（约 1–${THIN_WALL_TYP} mm，上限 ~${THIN_WALL_MAX} mm）。实心/厚件实际会缩水、内部空洞、冷却超长 —— 唔适合直接注塑。建议先用「抽壳」整空到 2–4 mm 壁厚再分析。下列冷却/周期为厚段【上限】估算（1D 板式公式）。`)
+    warnings.unshift(`⚠ 零件偏厚/实心（中位壁厚 ${wallMedian.toFixed(1)} mm，最厚 ${wallMax.toFixed(1)} mm）：注塑模流假设薄壁件（约 1–${THIN_WALL_TYP} mm，上限 ~${THIN_WALL_MAX} mm）。实心/厚件实际会缩水、内部空洞、冷却超长 —— 不适合直接注塑。建议先用「抽壳」整空到 2–4 mm 壁厚再分析。下列冷却/周期为厚段【上限】估算（1D 板式公式）。`)
   } else if (wallMax > THIN_WALL_MAX) {
     moldable = 'thick'
     warnings.unshift(`⚠ 局部厚段（最厚 ${wallMax.toFixed(1)} mm > 薄壁建议 ~${THIN_WALL_MAX} mm）：厚位（凸台/筋根/芯部）冷却慢 + 易缩痕，周期由最厚位主导。可挖空厚位或加圆角过渡减薄。冷却为该处 1D 板式【上限】估算。`)

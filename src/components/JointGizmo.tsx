@@ -82,7 +82,7 @@ function useJointHandleDrag(j: Joint) {
       if (target && target !== st.gl.domElement) return null   // 多視窗副 canvas／HTML 覆蓋層唔關事
       // RETEST21 #1：診斷錄制開住時記低點解冇接（真 Chrome 同 headless 唔同時有得查）
       const why = app.mode !== 'model' ? 'mode=' + app.mode : app.busy ? 'busy' : app.jointPickMode ? 'jointPick' : app.faceMateMode ? 'faceMate' : app.jointOriginPickMode ? 'jointOriginPick' : !app.objectVis.joints ? 'joints hidden' : ''
-      if (why) { if (app.debugMode) dbgLog(`關節把手 ${j.id}：唔接（${why}）`); return null }
+      if (why) { if (app.debugMode) dbgLog(`關節把手 ${j.id}：不接（${why}）`); return null }
       const cur = app.joints.find((q) => q.id === j.id)
       if (!cur) return null
       const r = st.gl.domElement.getBoundingClientRect()

@@ -21,9 +21,9 @@ export function parseSvgPointList(value: string): [number, number][] {
 
 export function parseSvgToProfiles(text: string): { profiles: ImpProfile[]; note: string; skipped: string[] } {
   let doc: Document
-  try { doc = new DOMParser().parseFromString(text, 'image/svg+xml') } catch { return { profiles: [], note: '唔系有效 SVG', skipped: [] } }
+  try { doc = new DOMParser().parseFromString(text, 'image/svg+xml') } catch { return { profiles: [], note: '不是有效 SVG', skipped: [] } }
   const root = doc.querySelector('svg')
-  if (!root || doc.querySelector('parsererror')) return { profiles: [], note: '唔系有效 SVG 或解析失败', skipped: [] }
+  if (!root || doc.querySelector('parsererror')) return { profiles: [], note: '不是有效 SVG 或解析失败', skipped: [] }
 
   const profiles: ImpProfile[] = []
   const skipped = new Set<string>()

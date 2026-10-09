@@ -27,7 +27,7 @@ export function _moveFacePlan(f: { mode?: 'offset' | 'tilt'; dist: number; angle
   const mode = f.mode === 'tilt' ? 'tilt' : 'offset'
   const nf = Number.isFinite(f.nfaces as number) ? (f.nfaces as number) : 1   // GM-L2：拾面数（缺省单面）
   if (mode === 'tilt') {
-    if (nf > 1) return { op: 'reject-multi-tilt', note: '倾斜暂唔支持多面（每面倾斜方向有歧义）— 请逐面倾斜，或改用「偏移」多面串链' }   // GM-L2：多面倾斜诚实 reject
+    if (nf > 1) return { op: 'reject-multi-tilt', note: '倾斜暂不支持多面（每面倾斜方向有歧义）— 请逐面倾斜，或改用「偏移」多面串链' }   // GM-L2：多面倾斜诚实 reject
     let a = Number.isFinite(f.angle as number) ? (f.angle as number) : 0
     if (a > 60) a = 60; else if (a < -60) a = -60   // 钳 |angle| ≤ 60（内核倾斜太尽会退化）
     if (Math.abs(a) < 1e-6) return { op: 'skip-zero', note: '倾斜角为 0 — 跳过（保持原样）' }

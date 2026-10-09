@@ -134,7 +134,7 @@ export default function WindObjectGizmo() {
   useEffect(() => {
     if (!import.meta.env.DEV || warnedBoxRef.current || poseBox !== undefined) return
     warnedBoxRef.current = true
-    console.warn('[WindObjectGizmo] windPoseBox 未接线 — 平移唔会夹住风洞边界（可以拖到穿风洞墙，堵塞率可能爆錶令 Cd 冇意义）。数值仍会写入 windPose。')
+    console.warn('[WindObjectGizmo] windPoseBox 未接线 — 平移不会夹住风洞边界（可以拖到穿风洞墙，堵塞率可能爆錶令 Cd 没有意义）。数值仍会写入 windPose。')
   }, [poseBox])
 
   // 外部改咗 windPose（例如 WindPoseCompare 嘅「重置位姿」掣、或者第日嘅「读档」）→ 要重新 seed；

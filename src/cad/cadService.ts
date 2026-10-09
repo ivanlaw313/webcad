@@ -23,7 +23,7 @@ export type KernelRestartKind = 'info' | 'recovered' | 'lost'
  * 「我重放咗 N 個特徵」。由 store（唯一知道真相嘅一方）去對數。 */
 export type KernelRestartInfo = { replayed?: number }
 
-export const KERNEL_RESTART_MSG = '內核已重啟（上次操作令幾何內核崩潰）— 模型已恢復到上一個成功狀態，請簡化嗰步操作再試'
+export const KERNEL_RESTART_MSG = '內核已重啟（上次操作令幾何內核崩潰）— 模型已恢復到上一個成功狀態，請簡化該步操作再試'
 
 // v1.33: 预览被提交/取消抢占时嘅 benign 错误（唔触发「内核已重启」toast，唔加 restartCount）
 export const PREVIEW_CANCELLED_MSG = 'preview cancelled'
@@ -166,7 +166,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
       const snap = lastGoodFeatures
       // 冇快照可重放 = 新內核係空嘅。良性情況（真係冇模型）唔使嘈，
       // 但 UI 有可能仍然以為自己有特徵 —— 交畀 UI 自己對照（kind='lost'）。
-      if (!snap) { notify('幾何內核已重啟（冇可重放嘅模型狀態）', 'lost'); return }
+      if (!snap) { notify('幾何內核已重啟（沒有可重放的模型狀態）', 'lost'); return }
       try {
         await withTimeout(raw.api.rebuild(deepCopy(snap)), longT)
         // 重放成功 = 真正嘅良性情況 → ★ 刻意唔 notify ★（呢個就係本函數叫 silent 嘅原因）
@@ -177,7 +177,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
         lastGoodFeatures = null
         try { raw.terminate() } catch { /* 已死 */ }
         spawn()
-        notify('⚠ 幾何內核崩潰後恢復失敗 — 內核已重設為空。你嘅模型未儲存嘅部分可能已經冇咗，請用「檔案 ▾ → 恢復自動存檔」救返', 'lost')
+        notify('⚠ 幾何內核崩潰後恢復失敗 — 內核已重設為空。你的模型未儲存的部分可能已經失去，請用「檔案 ▾ → 恢復自動存檔」救回', 'lost')
       }
     })().finally(() => { recovering = null; restarting = false })
   }
@@ -207,7 +207,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
     // 3) 重放快照令新内核状态追返 UI；后续调用会先 await recovering 再发出
     recovering = (async () => {
       const snap = lastGoodFeatures
-      if (!snap) { notify('內核已重啟（冇可恢復嘅模型狀態）', 'lost'); return }
+      if (!snap) { notify('內核已重啟（沒有可恢復的模型狀態）', 'lost'); return }
       try {
         await withTimeout(raw.api.rebuild(deepCopy(snap)), longT)
         // ★ 唔准單憑「rebuild 冇掟」就宣布恢復成功 ★ 要連【重放咗幾個特徵】一齊講，
@@ -219,7 +219,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
         lastGoodFeatures = null
         try { raw.terminate() } catch { /* 已死 */ }
         spawn()
-        notify('⚠ 內核重啟後恢復失敗 — 已重設為空內核。未儲存嘅部分可能已經冇咗，請用「檔案 ▾ → 恢復自動存檔」救返', 'lost')
+        notify('⚠ 內核重啟後恢復失敗 — 已重設為空內核。未儲存的部分可能已經失去，請用「檔案 ▾ → 恢復自動存檔」救回', 'lost')
       }
     })().finally(() => { recovering = null; restarting = false })
   }
@@ -251,7 +251,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
             const entry: Pending = {
               reject,
               method,
-              timer: setTimeout(() => { if (pending.has(entry)) restart(`${method} 超時（${Math.round(timeoutMs / 1000)} 秒冇回應）`) }, timeoutMs),
+              timer: setTimeout(() => { if (pending.has(entry)) restart(`${method} 超時（${Math.round(timeoutMs / 1000)} 秒沒有回應）`) }, timeoutMs),
             }
             pending.add(entry)
             const settle = () => { clearTimeout(entry.timer); pending.delete(entry) }

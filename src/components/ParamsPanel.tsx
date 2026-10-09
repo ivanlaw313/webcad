@@ -137,7 +137,7 @@ export default function ParamsPanel() {
     if (el) { el.focus(); el.select() }
     setFocusName(null)
   }, [focusName, params])
-  const add = () => { const v = Number(val); if (!val.trim() || !Number.isFinite(v)) { useApp.setState({ status: tz('參數數值要係數字') }); return } const auto = !name.trim(); const nm = auto ? `d${params.length + 1}` : ''; addParam(name, v); if (!auto && !useApp.getState().params.some((p) => p.name === name.trim())) return; setName(''); if (auto) setFocusName(nm) }
+  const add = () => { const v = Number(val); if (!val.trim() || !Number.isFinite(v)) { useApp.setState({ status: tz('參數數值要是數字') }); return } const auto = !name.trim(); const nm = auto ? `d${params.length + 1}` : ''; addParam(name, v); if (!auto && !useApp.getState().params.some((p) => p.name === name.trim())) return; setName(''); if (auto) setFocusName(nm) }
   if (!open) return null
   if (collapsed) return <button ref={panelDrag.ref} className={'params-pill' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} type="button" style={panelDrag.style} onPointerDown={panelDrag.onPointerDown} title={tz('展開用戶參數面板')} onClick={() => { if (panelDrag.consumeClick()) return; setCollapsed(false) }}>ƒx {tz('參數')} ▸</button>
   const usedBy = parameterUsage(params, sources, bindings, features, mode === 'sketch' ? live : [])
@@ -162,7 +162,7 @@ export default function ParamsPanel() {
         <button className="cs-btn" onClick={add}>{tz('+ 新增')}</button>
       </div>
       <details><summary>{tz('進階：配置、設計表及導出')}</summary>
-      {params.length > 0 && <div className="pp-add" style={{ justifyContent: 'flex-end' }}><button className="cs-btn" title={tz('把參數表導出為 CSV（名稱/值/表達式，方便文檔/分享/Excel）')} onClick={() => exportCsv()}>{tz('📋 導出參數 CSV')}</button></div>}
+      {params.length > 0 && <div className="pp-add" style={{ justifyContent: 'flex-end' }}><button className="cs-btn" title={tz('把參數表導出為 CSV（名稱/值/表達式，方便文件/分享/Excel）')} onClick={() => exportCsv()}>{tz('📋 導出參數 CSV')}</button></div>}
       {params.length > 0 && (
         <div className="pp-add" style={{ flexWrap: 'wrap', gap: 4, borderTop: '1px solid #2a2e33', paddingTop: 6, marginTop: 4 }}>
           <span style={{ fontSize: 11, color: '#888', width: '100%' }}>{tz('🗂 設計表：改一個參數掃多個值 → 一次導出 N 個 STL（zip）')}</span>
@@ -186,7 +186,7 @@ export default function ParamsPanel() {
           <button className="cs-btn" title={tz('把當前所有驅動參數（非表達式）存為一個命名配置')} onClick={() => { saveConfig(cfgName); setCfgName('') }}>{tz('💾 存配置')}</button>
           {configs.length > 0 && <button className="cs-btn" title={tz('把每個配置各導出一個 STL，打包成 zip（一次過製造所有變體；完成後還原當前配置）')} onClick={() => void useApp.getState().exportAllConfigs()}>{tz('📦 導出全部配置')}</button>}
           <button className="cs-btn" title={tz('設計表 CSV 導出：配置 × 驅動參數矩陣（無配置時出一行當前值模板）— Excel 排變體')} onClick={() => useApp.getState().exportConfigsCsv()}>{tz('📤 設計表CSV')}</button>
-          <button className="cs-btn" title={tz('設計表 CSV 導入：每行一個配置（列名 = ƒx 參數名）→ 批量新增/更新配置，再一鍵切換或「導出全部配置」出晒所有變體 STL')} onClick={() => useApp.getState().openConfigsCsvDialog()}>{tz('📥 導入設計表')}</button>
+          <button className="cs-btn" title={tz('設計表 CSV 導入：每行一個配置（列名 = ƒx 參數名）→ 批量新增/更新配置，再一鍵切換或「導出全部配置」匯出所有變體 STL')} onClick={() => useApp.getState().openConfigsCsvDialog()}>{tz('📥 導入設計表')}</button>
         </div>
       )}
       {/* GM-3DV3 M15：Change Parameters 设计表格视图（行=配置 × 列=参数）— 对标 Fusion/SolidWorks 设计表。点行 = 应用该配置。 */}

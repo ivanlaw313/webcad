@@ -31,7 +31,7 @@ const api = {
     await ready
     const shape = buildAeroShape(replicad as unknown as ReplicadLike, spec, x)
     const volume = volumeOf(shape)
-    if (!(volume > 0)) throw new Error('氣動實驗室：生成嘅實體無效（體積 ≤ 0）— 請換一個候選設計')
+    if (!(volume > 0)) throw new Error('氣動實驗室：生成的實體無效（體積 ≤ 0）— 請換一個候選設計')
     const step = await shape.blobSTEP().text()
     const m = shape.mesh({ tolerance: 0.3, angularTolerance: 0.4 })
     const vertices = new Float32Array(m.vertices), triangles = new Uint32Array(m.triangles)

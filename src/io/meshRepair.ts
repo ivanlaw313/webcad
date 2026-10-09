@@ -302,14 +302,14 @@ export function repairMesh(vertices: ArrayLike<number>, triangles: ArrayLike<num
   const outTris = new Array<number>(nT * 3)
   for (let i = 0; i < nT * 3; i++) outTris[i] = triangles[i]
   if (nV === 0 || nT === 0) {
-    warnings.push('空网格 — 无嘢可修')
+    warnings.push('空网格 — 无东西可修')
     return {
       mesh: { vertices: outVerts, triangles: outTris, normals: new Array<number>(outVerts.length).fill(0) },
       holesFilled: 0, boundaryEdgesBefore: 0, boundaryEdgesAfter: 0, warnings,
     }
   }
   const info = analyzeBoundary(vertices, triangles)
-  if (info.degenerate > 0) warnings.push(`焊接后跳过 ${info.degenerate} 个退化/非法三角形（唔参与边界统计）`)
+  if (info.degenerate > 0) warnings.push(`焊接后跳过 ${info.degenerate} 个退化/非法三角形（不参与边界统计）`)
   if (info.openChains > 0) warnings.push(`${info.openChains} 条边界链无法闭合（悬挂/非流形边界）— 跳过`)
   const posOf = (id: number): V3 => {
     const o = info.rep[id] * 3
@@ -391,7 +391,7 @@ export function simplifyMesh(vertices: ArrayLike<number>, triangles: ArrayLike<n
   const nV = Math.floor(vertices.length / 3)
   const trisBefore = Math.floor(triangles.length / 3)
   const empty = (): SimplifyResult => ({ mesh: { vertices: [], triangles: [], normals: [] }, trisBefore, trisAfter: 0, warnings })
-  if (nV === 0 || trisBefore === 0) { warnings.push('空网格输入 — 无嘢可简化'); return empty() }
+  if (nV === 0 || trisBefore === 0) { warnings.push('空网格输入 — 无东西可简化'); return empty() }
   let ratio = targetRatio
   if (!Number.isFinite(ratio)) { ratio = 0.5; warnings.push('targetRatio 非法 — 改用 0.5') }
   if (ratio < 0.05 || ratio > 0.9) { ratio = Math.min(0.9, Math.max(0.05, ratio)); warnings.push('targetRatio 截到 [0.05, 0.9]') }
@@ -430,7 +430,7 @@ export function simplifyMesh(vertices: ArrayLike<number>, triangles: ArrayLike<n
     outTris.push(m)
   }
   const trisAfter = outTris.length / 3
-  if (trisAfter > targetTris * 2 || trisAfter * 2 < targetTris) warnings.push('简化比例偏离目标（顶点聚类系近似法）')
+  if (trisAfter > targetTris * 2 || trisAfter * 2 < targetTris) warnings.push('简化比例偏离目标（顶点聚类是近似法）')
   return {
     mesh: { vertices: outVerts, triangles: outTris, normals: recomputeNormals(outVerts, outTris) },
     trisBefore,

@@ -340,12 +340,12 @@ export type CenterlineResult = {
 }
 
 const LIMITS = [
-  '只适用【单线稿】（线宽大致一致嘅笔画）；实心色块请用轮廓向量化（imageTrace）',
-  '相交/相贴嘅笔画会并成一个节点 —— 位图入面「叠住」同「真交叉」本质分唔到',
-  '交点位置精度约 ±0.5~1 个笔宽（细化固有误差，已用切线交点修复但唔系无损）',
-  '唔做文字 / 尺寸线 / 箭头 / 剖面线识别，唔做图层分离 → 工程图纸唔喺范围内',
+  '只适用【单线稿】（线宽大致一致的笔画）；实心色块请用轮廓向量化（imageTrace）',
+  '相交/相贴的笔画会并成一个节点 —— 位图内「叠住」与「真交叉」本质无法分',
+  '交点位置精度约 ±0.5~1 个笔宽（细化固有误差，已用切线交点修复但不是无损）',
+  '不做文字 / 尺寸线 / 箭头 / 剖面线识别，不做图层分离 → 工程图纸不在范围内',
   '输出以【开放路径】为主：可做扫掠路径 / 加厚 / 偏移封闭；只有闭合环先可以直接拉伸',
-  '虚线 / 点线会断成多条独立笔画（唔做 dash 合并推断）',
+  '虚线 / 点线会断成多条独立笔画（不做 dash 合并推断）',
 ]
 
 const EMPTY = (note: string): CenterlineResult => ({ strokes: [], nodes: [], shapes: [], profiles: [], strokeWidth: 0, threshold: 0, note, warnings: [], limits: LIMITS })
@@ -354,12 +354,12 @@ const EMPTY = (note: string): CenterlineResult => ({ strokes: [], nodes: [], sha
 export function traceCenterlines(img: GrayImage, opt: CenterlineOptions = {}): CenterlineResult {
   const w = Math.floor(img.width), h = Math.floor(img.height)
   if (!(w >= 3 && h >= 3)) return EMPTY('图太细（至少 3×3 像素）')
-  if (!img.data || img.data.length < w * h) return EMPTY('灰度数据长度唔够 width×height')
+  if (!img.data || img.data.length < w * h) return EMPTY('灰度数据长度不足 width×height')
 
   const bin = binarize(img, { threshold: opt.threshold, foreground: opt.foreground, blur: opt.blur, minArea: opt.minArea })
   let ink = 0
   for (let i = 0; i < bin.mask.length; i++) ink += bin.mask[i]
-  if (ink === 0 || ink === w * h) return { ...EMPTY('阈值化后冇笔画（整张全背景或全前景）'), threshold: bin.threshold }
+  if (ink === 0 || ink === w * h) return { ...EMPTY('阈值化后没有笔画（整张全背景或全前景）'), threshold: bin.threshold }
 
   const skel = zhangSuenThin(bin.mask, w, h)
   const g = skeletonGraph(skel, w, h)
@@ -411,7 +411,7 @@ export function traceCenterlines(img: GrayImage, opt: CenterlineOptions = {}): C
   const nLine = strokes.reduce((s, st) => s + st.segs.filter((x) => x.kind === 'line').length, 0)
   const nArc = strokes.reduce((s, st) => s + st.segs.filter((x) => x.kind === 'arc').length, 0)
   if (fixed) warnings.push(`修复 ${fixed} 个交点位置（切线交点法）`)
-  if (!strokes.length) warnings.push('细化后冇够长嘅笔画 —— 线可能太幼（<2px）或者图系实心色块（应改用轮廓向量化）')
+  if (!strokes.length) warnings.push('细化后没有够长的笔画 —— 线可能太幼（<2px）或者图是实心色块（应改用轮廓向量化）')
   const note = `识别 ${strokes.length} 条中线（${nLine} 直线 / ${nArc} 圆弧 · ${nodes.length} 个节点 · 估算笔宽 ${(strokeWidth * scale).toFixed(2)}${scale === 1 ? 'px' : 'mm'}）`
   return { strokes, nodes, shapes, profiles, strokeWidth: strokeWidth * scale, threshold: bin.threshold, note, warnings, limits: LIMITS }
 }

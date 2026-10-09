@@ -83,7 +83,7 @@ export function makeFormPipeCage(path: [number, number, number][], radius: numbe
 export function makeBoxCage(L: number, W: number, H: number, nx: number, ny: number, nz: number): QuadMesh {
   if (!(L > 0 && W > 0 && H > 0)) throw new Error('makeBoxCage: 尺寸要 > 0')
   if (!Number.isInteger(nx) || !Number.isInteger(ny) || !Number.isInteger(nz) || nx < 1 || ny < 1 || nz < 1) {
-    throw new Error('makeBoxCage: 分段数要系 ≥1 嘅整数')
+    throw new Error('makeBoxCage: 分段数要是 ≥1 的整数')
   }
   const verts: [number, number, number][] = []
   const quads: [number, number, number, number][] = []
@@ -153,7 +153,7 @@ export function makePlaneCage(L: number, W: number, nx = 2, ny = 2, thick = 1): 
  *  需闭合流形故对开放片 no-op（诚实 v1 限制）。 */
 export function makeOpenPatchCage(L: number, W: number, nx = 3, ny = 3): QuadMesh {
   if (!(L > 0 && W > 0)) throw new Error('makeOpenPatchCage: 尺寸要 > 0')
-  if (!Number.isInteger(nx) || !Number.isInteger(ny) || nx < 1 || ny < 1) throw new Error('makeOpenPatchCage: 分段数要系 ≥1 整数')
+  if (!Number.isInteger(nx) || !Number.isInteger(ny) || nx < 1 || ny < 1) throw new Error('makeOpenPatchCage: 分段数要是 ≥1 整数')
   const verts: [number, number, number][] = []
   const quads: [number, number, number, number][] = []
   const dx = L / nx, dy = W / ny, x0 = -L / 2, y0 = -W / 2
@@ -377,7 +377,7 @@ export function setSymmetricFormVert(m: QuadMesh, i: number, p: [number, number,
  *  边界顶点 = 立方 B-spline 边界规则、patch 角点（边界顶点 valence-2）钉死。3 面共边 = 非流形仍 throw。
  *  闭合无折痕输入逐字节同旧实现一致（回归门保住）。 */
 export function ccSubdivide(m: QuadMesh, levels: number, creases?: [number, number][], creaseW?: number[]): QuadMesh {
-  if (!Number.isInteger(levels) || levels < 1) throw new Error('ccSubdivide: levels 要系 ≥1 嘅整数')
+  if (!Number.isInteger(levels) || levels < 1) throw new Error('ccSubdivide: levels 要是 ≥1 的整数')
   let cur = m
   // S172/S 折痕：二元无限锐（旧）或【分数 sharpness】w∈(0,1]（creaseW 平行 creases；缺省 w=1=无限锐，
   // 逐字节同旧二元一致 → 回归门保住）。转成 edge-key → 权重 Map（key = lo·nV + hi，同 edge map 编码）。

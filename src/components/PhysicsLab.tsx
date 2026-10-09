@@ -4413,7 +4413,7 @@ export default function PhysicsLab() {
               />
             </label>
             <p className="physics-lab-note">
-              房間六面都係剛性碰撞邊界；改尺寸會重設物理世界，並按同一比例重放已投入嘅
+              房間六面都是剛性碰撞邊界；改尺寸會重設物理世界，並按同一比例重放已投入的
               CAD 裝配。
             </p>
             <h3>快速場景</h3>
@@ -5061,7 +5061,7 @@ export default function PhysicsLab() {
             <p className="physics-lab-note" data-testid="physics-cad-rl-navigation-status">
               {cadRlNavigationPolicy
                 ? `真 Q-learning：${cadRlNavigationPolicy.episodes} episodes · 24 states × 4 actions · 評估成功率 ${(cadRlNavigationPolicy.evaluationSuccessRate * 100).toFixed(1)}% · 平均 reward ${cadRlNavigationPolicy.evaluationRewardMean.toFixed(2)}${cadRlNavigationEnabled ? " · 正在控制真 Rapier CAD 地面車" : " · 已訓練但未啟用"}`
-                : "尚未訓練；訓練會以 epsilon-greedy episodic reward 更新 Q-table，唔係參數搜尋。"}
+                : "尚未訓練；訓練會以 epsilon-greedy episodic reward 更新 Q-table，不是參數搜尋。"}
             </p>
             <label className="physics-lab-toggle">
               <span>瞬態彈塑性預覽（降階模型）</span>
@@ -5137,7 +5137,7 @@ export default function PhysicsLab() {
                 : "未達碎裂門檻；原 CAD 剛體保持完整。"}
             </p>
             <p className="physics-lab-note">
-              呢個係按 Rapier 接觸方向選擇 CAD-local 主軸嘅有符號 Kelvin–Voigt＋雙線性彈塑性模型，會累積反向塑性功及損傷；適合 120 Hz 即時趨勢預覽，唔等同完整非線性瞬態 FEA。
+              這是按 Rapier 接觸方向選擇 CAD-local 主軸的有符號 Kelvin–Voigt＋雙線性彈塑性模型，會累積反向塑性功及損傷；適合 120 Hz 即時趨勢預覽，不等同完整非線性瞬態 FEA。
             </p>
             <label>
               升力係數 CL <output>{cadLiftCoefficient.toFixed(2)}</output>

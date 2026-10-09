@@ -65,12 +65,12 @@ export async function meshBoolean(a: MeshLike, b: MeshLike, op: BoolOp3): Promis
     // status() returns the string 'NoError' in this build (emval enum-as-string), not a {value} object
     const bad = (m: any) => { const st = m.status?.(); return st != null && st !== 'NoError' && st?.value !== 0 }
     ma = toManifold(wasm, a)
-    if (bad(ma)) throw new Error('第一件网格唔系水密流形 — 先用「🩹修复网格」再试')
+    if (bad(ma)) throw new Error('第一件网格不是水密流形 — 先用「🩹修复网格」再试')
     mb = toManifold(wasm, b)
-    if (bad(mb)) throw new Error('第二件网格唔系水密流形 — 先用「🩹修复网格」再试')
+    if (bad(mb)) throw new Error('第二件网格不是水密流形 — 先用「🩹修复网格」再试')
     mr = op === 'union' ? ma.add(mb) : op === 'subtract' ? ma.subtract(mb) : ma.intersect(mb)
     const out = fromManifold(mr)
-    if (!out.triangles.length) throw new Error(op === 'intersect' ? '两件冇重叠部分（相交结果为空）' : '布尔结果为空')
+    if (!out.triangles.length) throw new Error(op === 'intersect' ? '两件没有重叠部分（相交结果为空）' : '布尔结果为空')
     return out
   } finally {
     try { ma?.delete?.() } catch { /* wasm cleanup best-effort */ }
@@ -145,12 +145,12 @@ export async function shellMesh(m: MeshLike, t: number): Promise<OutMesh> {
   for (let i = 0; i < nv; i++) { const o = i * 3, c = cid[i] * 3; inner[o] = v0[o] + delta[c]; inner[o + 1] = v0[o + 1] + delta[c + 1]; inner[o + 2] = v0[o + 2] + delta[c + 2] }
   const viSigned = signedVol(inner, tr)
   // 内壳必须同外向一致（正）+ 严格细过外（无翻转/自交/溢穿对壁）
-  if (!(viSigned > 1e-9) || viSigned >= vOuter) throw new Error('壁厚太大 — 内壳自交/塌陷/穿透对壁（试细啲壁厚 / 先重网格加密）')
+  if (!(viSigned > 1e-9) || viSigned >= vOuter) throw new Error('壁厚太大 — 内壳自交/塌陷/穿透对壁（试细一些壁厚 / 先重网格加密）')
   let res: OutMesh
   try {
     res = await meshBoolean({ vertices: v0, triangles: tr }, { vertices: inner, triangles: tr }, 'subtract')
   } catch {
-    throw new Error('壁厚太大 — 内壳自交，掏唔出有效壳（试细啲壁厚）')   // 唔好叫用户去修复佢本来好嘅网格
+    throw new Error('壁厚太大 — 内壳自交，无法掏出有效壳（试细一些壁厚）')   // 唔好叫用户去修复佢本来好嘅网格
   }
   const vr = meshVolume(res)
   if (!(vr > 1e-6) || vr >= vOuter * 0.999) throw new Error('壁厚太大 — 抽壳结果体积异常（壳应细过实体），未改')   // 翻转 union 垃圾守卫
@@ -176,12 +176,12 @@ export async function offsetMesh(m: MeshLike, d: number, sphereSeg = 16): Promis
   try {
     const bad = (x: any) => { const st = x.status?.(); return st != null && st !== 'NoError' && st?.value !== 0 }
     ma = toManifold(wasm, mNorm)
-    if (bad(ma)) throw new Error('网格唔系水密流形 — 先用「🩹修复网格」再试')
+    if (bad(ma)) throw new Error('网格不是水密流形 — 先用「🩹修复网格」再试')
     if (Math.abs(d) < 1e-9) { const out = fromManifold(ma); if (!out.triangles.length) throw new Error('网格为空'); return out }   // 零偏移 = 焊接复制
     sp = wasm.Manifold.sphere(Math.abs(d), Math.max(8, Math.min(64, Math.round(sphereSeg))))
     mr = d > 0 ? ma.minkowskiSum(sp) : ma.minkowskiDifference(sp)
     const out = fromManifold(mr)
-    if (!out.triangles.length) throw new Error(d < 0 ? '内缩量太大 — 网格被蚀剩空（试细啲偏移量）' : '偏移结果为空')
+    if (!out.triangles.length) throw new Error(d < 0 ? '内缩量太大 — 网格被蚀剩空（试细一些偏移量）' : '偏移结果为空')
     return out
   } finally {
     try { ma?.delete?.() } catch { /* wasm cleanup best-effort */ }

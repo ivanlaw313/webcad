@@ -13,7 +13,7 @@ export function HoleSketchPointsButton() {
   return (
     <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
       <button className="cs-btn" style={{ flex: 1 }} data-testid="hole-from-sketch-points"
-        title="按草圖點批量打孔：喺草圖以「點」工具放 N 個點（進行中或已完成嘅 XY 草圖都得），一次建立 N 個孔。"
+        title="按草圖點批量打孔：在草圖以「點」工具放 N 個點（進行中或已完成的 XY 草圖都得），一次建立 N 個孔。"
         onClick={() => void useApp.getState().addHolesAtSketchPoints(mode === 'sketch' ? undefined : pick?.id)}>
         ⊙ 從草圖點批量建立{pick && mode !== 'sketch' ? `（${pick.pts.length}）` : ''}
       </button>

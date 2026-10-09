@@ -51,30 +51,30 @@ export function LoftSectionList() {
             {<>
               <button style={btn} disabled={i === 0} title={tStatus('向前移（改放樣次序）', lang)} onClick={() => st().moveLoftSection(i, -1)}>↑</button>
               <button style={btn} disabled={i === ord.length - 1} title={tStatus('向後移（改放樣次序）', lang)} onClick={() => st().moveLoftSection(i, 1)}>↓</button>
-              <button style={{ ...btn, color: '#c0392b' }} title={tStatus('移除呢個截面', lang)} onClick={() => st().removeLoftSection(i)}>✕</button>
+              <button style={{ ...btn, color: '#c0392b' }} title={tStatus('移除此截面', lang)} onClick={() => st().removeLoftSection(i)}>✕</button>
             </>}
           </div>
         ))}
-        {sections.length === 0 && <span className="sel-chip empty">{tStatus('未有截面 — 喺下面揀草圖或平面', lang)}</span>}
+        {sections.length === 0 && <span className="sel-chip empty">{tStatus('未有截面 — 在下面選草圖或平面', lang)}</span>}
       </div>
-      {editId && <div style={{ fontSize: 11, color: '#8a97a2' }}>{tStatus('編輯現有放樣：可加／排／移除截面；要改截面形狀請喺時間軸重開對應草圖', lang)}</div>}
+      {editId && <div style={{ fontSize: 11, color: '#8a97a2' }}>{tStatus('編輯現有放樣：可加／排／移除截面；要改截面形狀請在時間軸重開對應草圖', lang)}</div>}
       {<div style={{ display: 'flex', gap: 4 }}>
-            <select data-testid="loft-add-sketch" value="" onChange={(e) => { if (e.target.value) st().addLoftSectionFromSketch(e.target.value) }} style={{ flex: 1, height: 24, minWidth: 0 }} disabled={!cands.length} title={tStatus('加一個已完成草圖嘅閉合輪廓做截面', lang)}>
-              <option value="">{tStatus(cands.length ? `＋ 加草圖截面（${cands.length} 個可用）` : '＋ 冇其他可用草圖', lang)}</option>
+            <select data-testid="loft-add-sketch" value="" onChange={(e) => { if (e.target.value) st().addLoftSectionFromSketch(e.target.value) }} style={{ flex: 1, height: 24, minWidth: 0 }} disabled={!cands.length} title={tStatus('加一個已完成草圖的閉合輪廓做截面', lang)}>
+              <option value="">{tStatus(cands.length ? `＋ 加草圖截面（${cands.length} 個可用）` : '＋ 沒有其他可用草圖', lang)}</option>
               {cands.map((c) => <option key={c.skId} value={c.skId}>{c.label}</option>)}
             </select>
-            <button className={'sb-tool' + (facePick ? ' active' : '')} data-testid="loft-pick-face" disabled={!bodyTris} style={{ height: 24 }} title={tStatus(bodyTris ? '揀實體上嘅平面做截面（佢嘅外框）' : '未有實體可以揀平面', lang)} onClick={() => st().setLoftFacePick(!facePick)}>{tStatus('＋ 揀平面', lang)}</button>
+            <button className={'sb-tool' + (facePick ? ' active' : '')} data-testid="loft-pick-face" disabled={!bodyTris} style={{ height: 24 }} title={tStatus(bodyTris ? '選實體上的平面做截面（它的外框）' : '未有實體可以選平面', lang)} onClick={() => st().setLoftFacePick(!facePick)}>{tStatus('＋ 選平面', lang)}</button>
           </div>}
-      <label title={tStatus('導軌（可選）：一條連接各截面嘅折線，每個截面一點（點數 = 截面數）。放樣時每個截面會水平平移去掂導軌點，截面形狀不變。導軌要喺 XY（水平）草圖畫。', lang)}>
+      <label title={tStatus('導軌（可選）：一條連接各截面的折線，每個截面一點（點數 = 截面數）。放樣時每個截面會水平平移去掂導軌點，截面形狀不變。導軌要在 XY（水平）草圖畫。', lang)}>
         <span style={{ color: '#6b7680' }}>{tStatus('導軌', lang)}</span>
         {rail
           ? <span className="sel-chip" style={railBad ? { borderColor: '#e0a030', color: '#9a6a00' } : undefined}>{tStatus(railBad ? `⚠ ${rail.length} 點 ≠ ${sections.length} 截面` : `已選（${rail.length} 點）`, lang)}<span className="sel-chip-x" onClick={() => st().clearLoftRail()}>✕</span></span>
           : railCands.length
             ? <select data-testid="loft-rail-sketch" value="" onChange={(e) => { if (e.target.value) st().setLoftRailFromSketch(e.target.value) }} style={{ height: 24, maxWidth: 130 }}>
-                <option value="">{tStatus('可選：揀導軌草圖', lang)}</option>
+                <option value="">{tStatus('可選：選導軌草圖', lang)}</option>
                 {railCands.map((c) => <option key={c.skId} value={c.skId}>{c.label}</option>)}
               </select>
-            : <span className="sel-chip empty">{tStatus('可選：揀一條連接各截面嘅曲線', lang)}</span>}
+            : <span className="sel-chip empty">{tStatus('可選：選一條連接各截面的曲線', lang)}</span>}
       </label>
       <div data-testid="loft-preview-status" role="status" aria-live="polite" style={{ fontSize: 11, color: pv?.error ? '#c0392b' : '#6b7680', lineHeight: 1.35 }}>
         {sections.length < 2

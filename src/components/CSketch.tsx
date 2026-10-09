@@ -14,10 +14,10 @@ const TOOLS: { t: 'select' | 'line' | 'rect' | 'circle' | 'polygon' | 'trim' | '
   { t: 'line', label: '／ 直線' },
   { t: 'rect', label: '▭ 矩形' },
   { t: 'circle', label: '◯ 圓' },
-  { t: 'polygon', label: '⬡ 多邊形', title: '正多邊形：點中心 → 點一個頂點（定半徑+朝向）。邊數喺右邊設' },
+  { t: 'polygon', label: '⬡ 多邊形', title: '正多邊形：點中心 → 點一個頂點（定半徑+朝向）。邊數在右邊設' },
   { t: 'trim', label: '✂ 修剪', title: '修剪：點線段 → 刪到最近交點' },
-  { t: 'extend', label: '⊢ 延伸', title: '延伸：點線段靠近想延長嘅一端 → 延長到最近嘅線 / 圓' },
-  { t: 'break', label: '⊟ 打斷', title: '打斷：點線段中間 → 一分為二（兩段都保留，用嚟局部約束 / 修剪）' },
+  { t: 'extend', label: '⊢ 延伸', title: '延伸：點線段靠近想延長的一端 → 延長到最近的線 / 圓' },
+  { t: 'break', label: '⊟ 打斷', title: '打斷：點線段中間 → 一分為二（兩段都保留，用來局部約束 / 修剪）' },
 ]
 
 const CBTN: { k: ConstraintKind; label: string; title: string }[] = [
@@ -161,16 +161,16 @@ export default function CSketch() {
         ))}
         <span className="cs-div" />
         <button className="cs-btn cs-cstr" title="把所選線設為/取消構造線（參考/中心線，虛線顯示，不計入拉伸輪廓）" onClick={() => s.toggleConstruction()}>┄ 構造線</button>
-        <button className="cs-btn cs-cstr" title="鏡像：先選要鏡像嘅實體（線/圓），最後再選一條線做鏡像軸 → 按此" onClick={() => s.mirrorSel()}>⇋ 鏡像</button>
-        <button className="cs-btn cs-cstr" title="倒角：先選一個角點（兩條線嘅交點）→ 按此 → 輸入斜角距離" onClick={async () => { const v = await useApp.getState().appPrompt('倒角距離 mm（沿兩邊各縮短此距離，加斜角線）', '5'); if (v != null) { const d = Number(v); if (d > 0) s.chamferCorner(d) } }}>⌐ 倒角</button>
+        <button className="cs-btn cs-cstr" title="鏡像：先選要鏡像的實體（線/圓），最後再選一條線做鏡像軸 → 按此" onClick={() => s.mirrorSel()}>⇋ 鏡像</button>
+        <button className="cs-btn cs-cstr" title="倒角：先選一個角點（兩條線的交點）→ 按此 → 輸入斜角距離" onClick={async () => { const v = await useApp.getState().appPrompt('倒角距離 mm（沿兩邊各縮短此距離，加斜角線）', '5'); if (v != null) { const d = Number(v); if (d > 0) s.chamferCorner(d) } }}>⌐ 倒角</button>
         <button className="cs-btn cs-cstr" title="矩形陣列：先選實體（線/圓）→ 按此 → 輸入 列數,列距,行數,行距" onClick={async () => { const v = await useApp.getState().appPrompt('矩形陣列  列數,列距,行數,行距（例 3,20,2,15）', '3,20,1,0'); if (v) { const p = v.split(',').map(Number); s.patternRect(p[0] || 1, p[1] || 20, p[2] || 1, p[3] || 0) } }}>▦ 矩形陣列</button>
         <button className="cs-btn cs-cstr" title="環形陣列：先選實體（線/圓），可加選一個點做中心（否則繞原點）→ 按此 → 輸入 數量,總角度°" onClick={async () => { const v = await useApp.getState().appPrompt('環形陣列  數量,總角度°（例 6,360）', '6,360'); if (v) { const p = v.split(',').map(Number); s.patternCirc(p[0] || 6, p[1] ?? 360) } }}>✸ 環形陣列</button>
-        <button className="cs-btn cs-cstr" title="旋轉：先選要轉嘅實體（線/圓），可加選一個點做旋轉中心（否則繞原點）→ 按此 → 輸入角度°" onClick={async () => { const v = await useApp.getState().appPrompt('旋轉角度°（正=逆時針；繞所選點，否則原點）', '90'); if (v != null) { const a = Number(v); if (Number.isFinite(a)) s.rotateSel(a) } }}>⟳ 旋轉</button>
-        <button className="cs-btn cs-cstr" title="投影實體：把現有 3D 實體嘅外形矩形（參考線）+ 各豎直孔中心（參考點）投影入草圖 → 可對佢哋打尺寸/約束新幾何（相對 3D 物體定位）" onClick={() => s.projectBody()}>⧉ 投影實體</button>
+        <button className="cs-btn cs-cstr" title="旋轉：先選要轉的實體（線/圓），可加選一個點做旋轉中心（否則繞原點）→ 按此 → 輸入角度°" onClick={async () => { const v = await useApp.getState().appPrompt('旋轉角度°（正=逆時針；繞所選點，否則原點）', '90'); if (v != null) { const a = Number(v); if (Number.isFinite(a)) s.rotateSel(a) } }}>⟳ 旋轉</button>
+        <button className="cs-btn cs-cstr" title="投影實體：把現有 3D 實體的外形矩形（參考線）+ 各豎直孔中心（參考點）投影入草圖 → 可對它們打尺寸/約束新幾何（相對 3D 物體定位）" onClick={() => s.projectBody()}>⧉ 投影實體</button>
         <button className="cs-btn" title="刪除所選" onClick={() => void s.deleteSelected()}>🗑</button>
         <button className="cs-btn" title="復原 (Ctrl+Z)" disabled={!s.past.length} onClick={() => s.undo()}>↶</button>
         <button className="cs-btn" title="重做 (Ctrl+Y)" disabled={!s.future.length} onClick={() => s.redo()}>↷</button>
-        <button className="cs-btn" title="清空草圖，重新嚟過（可 Ctrl+Z 復原）" onClick={() => s.clearAll()}>🧹 全清</button>
+        <button className="cs-btn" title="清空草圖，重新來過（可 Ctrl+Z 復原）" onClick={() => s.clearAll()}>🧹 全清</button>
         <span className="cs-spacer" />
         <button className={'cs-btn' + (op === 'new' ? ' on' : '')} title="新建 / 加料實體" onClick={() => setOp('new')}>＋新建</button>
         <button className={'cs-btn' + (op === 'cut' ? ' on' : '')} title="從現有實體切除（要先有實體）" onClick={() => setOp('cut')}>－切割</button>

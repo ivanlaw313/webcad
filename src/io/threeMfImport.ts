@@ -19,7 +19,7 @@ export const THREE_MF_MAX_TRIANGLES = 2_000_000
 // 规范允许嘅 6 种单位 → mm 比例（millimeter 系默认）
 const UNIT_MM: Record<string, number> = { micron: 0.001, millimeter: 1, centimeter: 10, inch: 25.4, foot: 304.8, meter: 1000 }
 
-const fail = (reason: string): never => { throw new Error(`呢个 3MF 文件解析唔到（${reason}）`) }
+const fail = (reason: string): never => { throw new Error(`此 3MF 文件无法解析（${reason}）`) }
 
 // 3MF transform = 12 个数 "m00 m01 m02 m10 m11 m12 m20 m21 m22 m30 m31 m32"（行向量约定 [x y z 1]·M，
 // 最尾 3 个 m30 m31 m32 系平移）。即 x' = m00·x + m10·y + m20·z + m30 — 同 three.js 列优先唔同，唔好搞混。
@@ -118,7 +118,7 @@ function parseXmlDocument(xml: string): XmlDocument {
 export function parse3MF(buf: ArrayBuffer): { meshes: ThreeMFMesh[]; unit: string } {
   // ── 1. 解 ZIP ──
   let entries: Record<string, Uint8Array>
-  try { entries = unzipSync(new Uint8Array(buf)) } catch { return fail('唔係有效嘅 ZIP 压缩包') }
+  try { entries = unzipSync(new Uint8Array(buf)) } catch { return fail('不是有效的 ZIP 压缩包') }
   const names = Object.keys(entries)
   const unpackedBytes = names.reduce((total, name) => total + entries[name].byteLength, 0)
   if (names.length > THREE_MF_MAX_ENTRIES) return fail(`ZIP has too many entries (limit ${THREE_MF_MAX_ENTRIES})`)
@@ -134,7 +134,7 @@ export function parse3MF(buf: ArrayBuffer): { meshes: ThreeMFMesh[]; unit: strin
   }
   if (!modelXml) {
     const k = names.find((n) => /\.model$/i.test(n))
-    if (!k) return fail('搵唔到 3D/3dmodel.model 模型文件')
+    if (!k) return fail('找不到 3D/3dmodel.model 模型文件')
     modelXml = strFromU8(entries[k])
   }
 
@@ -142,7 +142,7 @@ export function parse3MF(buf: ArrayBuffer): { meshes: ThreeMFMesh[]; unit: strin
   let doc: XmlDocument
   try { doc = parseXmlDocument(modelXml) } catch { return fail('模型 XML 格式有错') }
   const model = doc.getElementsByTagName('model')[0]
-  if (!model) return fail('XML 入面冇 <model> 根节点')
+  if (!model) return fail('XML 内没有 <model> 根节点')
   // Bambu Studio commonly stores tessellation in 3D/Objects/*.model and leaves
   // the root model with only component p:path references.  Collect those model
   // resources too, or such a project would import as an empty model.
@@ -201,7 +201,7 @@ export function parse3MF(buf: ArrayBuffer): { meshes: ThreeMFMesh[]; unit: strin
         // silently bending a malformed 3MF model toward the origin.
         const sx = vEls[j].getAttribute('x'), sy = vEls[j].getAttribute('y'), sz = vEls[j].getAttribute('z')
         const x = sx == null ? NaN : Number(sx), y = sy == null ? NaN : Number(sy), z = sz == null ? NaN : Number(sz)
-        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return fail('顶点坐标唔係有效数字')
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return fail('顶点坐标不是有效数字')
         v.push(x, y, z)
       }
       const nv = v.length / 3
@@ -283,6 +283,6 @@ export function parse3MF(buf: ArrayBuffer): { meshes: ThreeMFMesh[]; unit: strin
     for (const o of objs.values()) for (const c of o.comps ?? []) children.add(c.id)
     for (const id of objs.keys()) if (!children.has(id)) emit(id, IDENT, 0, new Set())
   }
-  if (!out.length) return fail('入面冇任何网格几何')
+  if (!out.length) return fail('内没有任何网格几何')
   return { meshes: out, unit }
 }

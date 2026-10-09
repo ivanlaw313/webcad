@@ -40,7 +40,7 @@ export default function SlicePanel({ mesh, onClose }: { mesh: MeshLike; onClose:
       <div className="drawing-overlay" onClick={onClose}>
         <div className="drawing-modal" onClick={(e) => e.stopPropagation()} style={{ width: 'min(92vw, 420px)' }}>
           <div className="dw-head">🔪 切層預覽<span className="dw-x" onClick={onClose}>✕</span></div>
-          <div style={{ fontSize: 13, color: '#5a6b78', padding: '8px 0 4px' }}>無可切幾何 —— 實體網格為空或冇高度。</div>
+          <div style={{ fontSize: 13, color: '#5a6b78', padding: '8px 0 4px' }}>無可切幾何 —— 實體網格為空或沒有高度。</div>
           <div className="dw-foot"><button className="cs-btn" onClick={onClose}>關閉</button></div>
         </div>
       </div>
@@ -69,10 +69,10 @@ export default function SlicePanel({ mesh, onClose }: { mesh: MeshLike; onClose:
         {/* 警告汇总 */}
         <div style={{ fontSize: 13, marginBottom: 8, lineHeight: 1.7 }}>
           {ana.islands.length > 0
-            ? <span style={{ color: '#c62828', fontWeight: 600 }}>⚠ {ana.islands.length} 層有懸空孤島（首個喺 Z={ana.islands[0].z.toFixed(2)}mm — 落料時浮空，要加支撐）</span>
+            ? <span style={{ color: '#c62828', fontWeight: 600 }}>⚠ {ana.islands.length} 層有懸空孤島（首個在 Z={ana.islands[0].z.toFixed(2)}mm — 落料時浮空，要加支撐）</span>
             : <span style={{ color: '#2e7d32', fontWeight: 600 }}>✓ 無懸空孤島</span>}
           <span style={{ color: '#5a6b78' }}>　·　首層接觸面積 <b style={ana.firstLayerArea < 50 ? { color: '#c62828' } : undefined}>{fmtA(ana.firstLayerArea)} mm²</b>{ana.firstLayerArea < 50 && '（偏細，易甩板）'}　·　最薄層 <b>{fmtA(ana.minArea.area)} mm²</b>（Z={ana.minArea.z.toFixed(2)}mm）</span>
-          {ana.openLayers > 0 && <div style={{ color: '#e65100', fontSize: 12 }}>⚠ {ana.openLayers} 層切出未閉合輪廓（虛線紅）—— 網格可能唔水密，切片軟件會亂估內部</div>}
+          {ana.openLayers > 0 && <div style={{ color: '#e65100', fontSize: 12 }}>⚠ {ana.openLayers} 層切出未閉合輪廓（虛線紅）—— 網格可能不水密，切片軟件會亂估內部</div>}
           {ana.note && <div style={{ color: '#5a6b78', fontSize: 12 }}>ℹ {ana.note}</div>}
         </div>
 
@@ -94,7 +94,7 @@ export default function SlicePanel({ mesh, onClose }: { mesh: MeshLike; onClose:
         </div>
         <div style={{ fontSize: 12, color: '#5a6b78', marginTop: 4 }}>
           本層：實體區 {cls.solidIdx.length} 個 · 淨面積 {fmtA(layerArea)} mm²
-          {islIdx.length > 0 && <span style={{ color: '#c62828', fontWeight: 600 }}> · ⚠ {islIdx.length} 個懸空孤島（紅色區 —— 下一層冇承托）</span>}
+          {islIdx.length > 0 && <span style={{ color: '#c62828', fontWeight: 600 }}> · ⚠ {islIdx.length} 個懸空孤島（紅色區 —— 下一層沒有承托）</span>}
           {cur.open.length > 0 && <span style={{ color: '#e65100' }}> · 未閉合鏈 {cur.open.length} 條</span>}
         </div>
 

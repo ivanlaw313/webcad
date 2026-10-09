@@ -24,10 +24,10 @@ export default function JointOriginPalette() {
         </div>
         <div style={{ color: '#53616b', fontSize: 12, lineHeight: 1.45 }}>
           {mode === 'twoFaces'
-            ? (first ? '已選第一面。請在畫布揀選第二個平面或圓柱面。' : '請在畫布揀選第一個平面或圓柱面。')
+            ? (first ? '已選第一面。請在畫布選取第二個平面或圓柱面。' : '請在畫布選取第一個平面或圓柱面。')
             : mode === 'twoEdges'
-              ? (first ? '已選第一條邊。請揀選第二條相交直邊。' : '請在活動實體揀選第一條直邊。')
-              : '請在畫布揀選面心、圓柱孔心或頂點。'}
+              ? (first ? '已選第一條邊。請選取第二條相交直邊。' : '請在活動實體選取第一條直邊。')
+              : '請在畫布選取面心、圓柱孔心或頂點。'}
         </div>
         <div style={{ color: '#8a939c', fontSize: 11 }}>建立後可在瀏覽器「關節原點」資料夾引用或刪除。</div>
       </div>

@@ -110,7 +110,7 @@ export function runWindTunnel(inp: WindInput): WindResult {
   // 1) 体素化零件（CAD mm）
   prog(2, bumped ? `體素化（薄件自動加密到 ${res}）` : '體素化')
   const g = voxelize(inp.vertices, inp.triangles, res, (fr) => prog(2 + fr * 6, '體素化'), Math.max(64, capRes))
-  if (!g.nVox || g.nx < 1 || g.ny < 1 || g.nz < 1) throw new Error('風洞：體素化失敗（網格可能唔水密或太細）')
+  if (!g.nVox || g.nx < 1 || g.ny < 1 || g.nz < 1) throw new Error('風洞：體素化失敗（網格可能不水密或太小）')
   const { nx, ny, nz, h, ox, oy, oz, solid } = g
 
   // 来流轴：缺省最长轴
@@ -525,7 +525,7 @@ export function runWindTunnel(inp: WindInput): WindResult {
 
   prog(100, '完成')
   if (reReal > 1e4) warnings.push(`真實 Re≈${reReal.toExponential(1)}（湍流區）— 趨勢模擬用穩定層流帶 reLb=${reLb.toFixed(0)}，絕對 Cd 偏趨勢值，相對比較仍可信`)
-  if (g.oddColumns > g.nVox * 0.02) warnings.push('網格可能唔完全水密（部分射線奇數交點），阻力含少量誤差')
+  if (g.oddColumns > g.nVox * 0.02) warnings.push('網格可無法能完全水密（部分射線奇數交點），阻力含少量誤差')
   if (bumped) warnings.push(`薄件自動加密：分辨率 ${baseRes}→${res}（令最薄方向夠體素，絕對 Cd 較可信）`)
   const thinVox = thinnest > 1e-6 ? Math.round(thinnest / h) : 0
   if (thinVox > 0 && thinVox < 4) warnings.push(`零件最薄方向僅 ${thinVox} 個體素 — 仍偏薄，Cd 準度有限；如重要可手動再調高精細度或換吹向`)

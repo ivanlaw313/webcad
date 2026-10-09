@@ -157,14 +157,14 @@ export function solveTripleVertex(surfs: [PrimitiveParams, PrimitiveParams, Prim
     if (!Number.isFinite(res)) return { p, residual: res, ok: false, iterations: it, note: '隱函數返 NaN' }
     if (res <= tol) return { p, residual: res, ok: true, iterations: it, note: '' }
     const g0 = surfGrad(surfs[0], p), g1 = surfGrad(surfs[1], p), g2 = surfGrad(surfs[2], p)
-    if (!g0 || !g1 || !g2) return { p, residual: res, ok: false, iterations: it, note: '梯度退化（點喺軸/頂點上）' }
+    if (!g0 || !g1 || !g2) return { p, residual: res, ok: false, iterations: it, note: '梯度退化（點在軸/頂點上）' }
     const step = solve3([g0[0], g0[1], g0[2], g1[0], g1[1], g1[2], g2[0], g2[1], g2[2]], [-f[0], -f[1], -f[2]])
-    if (!step) return { p, residual: res, ok: false, iterations: it, note: '三面近乎共面（角點唔唯一）' }
+    if (!step) return { p, residual: res, ok: false, iterations: it, note: '三面近乎共面（角點不唯一）' }
     const L = len3(step)
     const s = L > maxStep ? maxStep / L : 1
     p = add3(p, mul3(step, s))
   }
-  return { p, residual: res, ok: res <= tol * 100, iterations: 60, note: res <= tol * 100 ? '收斂慢（放寬 100×）' : 'Newton 唔收斂' }
+  return { p, residual: res, ok: res <= tol * 100, iterations: 60, note: res <= tol * 100 ? '收斂慢（放寬 100×）' : 'Newton 不收斂' }
 }
 
 // ═══════════════════════════════════ 解析曲線 ═══════════════════════════════════
@@ -755,7 +755,7 @@ function buildGroups(seg: SegmentationResult, opts: Tier2Options, warnings: stri
   let strips = 0
   for (const [reg, sup] of supportOf) {
     const ga = regionGroup[sup[0]], gb = regionGroup[sup[1]]
-    if (ga < 0 || gb < 0) { warnings.push(`圓角壓平：區 ${reg} 嘅支撐面 [${sup}] 冇對應組，跳過`); continue }
+    if (ga < 0 || gb < 0) { warnings.push(`圓角壓平：區 ${reg} 的支撐面 [${sup}] 沒有對應組，跳過`); continue }
     strips++
     for (const t of R[reg].triIndices) {
       // 三角重心到兩張支撐面嘅距離 —— 邊個近就歸邊個（等於喺圓角帶【脊線】切開）
@@ -930,10 +930,10 @@ export function planTier2(seg: SegmentationResult, opts: Tier2Options = {}): Tie
     }
   }
   if (plan.stats.worstUnsnappedDeg > 0)
-    warnings.push(`有面對「差 ${plan.stats.worstUnsnappedDeg.toExponential(2)}° 就正交/平行」但未 snap —— M1 snap 應該開住（segmentAndFit 嘅 snap:true）`)
+    warnings.push(`有面對「差 ${plan.stats.worstUnsnappedDeg.toExponential(2)}° 就正交/平行」但未 snap —— M1 snap 應該開住（segmentAndFit 的 snap:true）`)
   const decline = (why: string): Tier2Plan => { plan.declined = true; reasons.push(why); return plan }
-  if (groups.length < 2) return decline(`只有 ${groups.length} 組 —— 唔夠砌實體`)
-  for (const g of groups) if (g.kind === 'freeform') return decline(`組 ${g.id} 係 freeform —— Tier-2 只做解析面`)
+  if (groups.length < 2) return decline(`只有 ${groups.length} 組 —— 不足砌實體`)
+  for (const g of groups) if (g.kind === 'freeform') return decline(`組 ${g.id} 是 freeform —— Tier-2 只做解析面`)
 
   // ── 共享曲線表：key =「組對 + 分支」→ 一條曲線，兩張面【共用同一組數字】→ 縫隙 = 0 ──
   const curveCache = new Map<string, Tier2Curve[]>()
@@ -976,7 +976,7 @@ export function planTier2(seg: SegmentationResult, opts: Tier2Options = {}): Tie
     const r = solveTripleVertex([groups[ga].surf, groups[gb].surf, groups[gc].surf], seed, diag, vertexTol)
     if (!r.ok) {
       warnings.push(`角點 (${ga},${gb},${gc}) Newton 殘差 ${r.residual.toExponential(2)}mm：${r.note}`)
-      if (!(r.residual < diag * 1e-6)) { plan.declined = true; reasons.push(`角點 (${ga},${gb},${gc}) 解唔到（殘差 ${r.residual.toExponential(2)}mm）`) }
+      if (!(r.residual < diag * 1e-6)) { plan.declined = true; reasons.push(`角點 (${ga},${gb},${gc}) 無法解（殘差 ${r.residual.toExponential(2)}mm）`) }
     }
     plan.stats.corners++
     return addVertex(r.p, r.residual, r.ok, r.note)
@@ -997,7 +997,7 @@ export function planTier2(seg: SegmentationResult, opts: Tier2Options = {}): Tie
       const m = lp.length
       const nbs: number[] = []
       for (let i = 0; i < m; i++) nbs.push(nbOfEdge(lp[i], lp[(i + 1) % m], g.id))
-      if (nbs.some((x) => x < 0)) return decline(`組 ${g.id} 有邊界邊搵唔到鄰面（網格唔水密 / 有洞）`)
+      if (nbs.some((x) => x < 0)) return decline(`組 ${g.id} 有邊界邊找不到鄰面（網格不水密 / 有洞）`)
       const pts = lp.map(P)
       if (new Set(nbs).size === 1) { raws.push({ arcs: [{ nb: nbs[0], ids: lp.slice() }], ring: true, pts }); continue }
       let start = 0
@@ -1011,7 +1011,7 @@ export function planTier2(seg: SegmentationResult, opts: Tier2Options = {}): Tie
       }
       raws.push({ arcs, ring: false, pts })
     }
-    if (!raws.length) return decline(`組 ${g.id} 冇邊界環`)
+    if (!raws.length) return decline(`組 ${g.id} 沒有邊界環`)
     groupLoops.push(raws)
   }
 
@@ -1065,7 +1065,7 @@ export function planTier2(seg: SegmentationResult, opts: Tier2Options = {}): Tie
     const g = groups[gi]
     if (wrapping[gi] || uvRect[gi]) continue
     if (groupLoops[gi].some((l) => l.ring) && (g.kind === 'sphere' || g.kind === 'torus'))
-      return decline(`組 ${gi}（${g.kind}）畀閉環夾住 —— v1 只支援柱/錐嘅周期切半`)
+      return decline(`組 ${gi}（${g.kind}）給閉環夾住 —— v1 只支援柱/錐的周期切半`)
     if ((g.kind === 'cylinder' || g.kind === 'cone') && groupLoops[gi].filter((l) => l.ring).length > 0 && groupLoops[gi].length !== 2)
       return decline(`組 ${gi}（${g.kind}）有 ${groupLoops[gi].length} 條環（非共軸正圓），v1 只支援 2`)
   }
@@ -1140,7 +1140,7 @@ export function planTier2(seg: SegmentationResult, opts: Tier2Options = {}): Tie
     if (rl.ring) {
       const nb = rl.arcs[0].nb
       const brs = branchesOf(gi, nb)
-      if (!brs.length) { decline(`組 ${gi} × ${nb}：求交冇解析分支（${groups[gi].kind}∧${groups[nb].kind}）`); return null }
+      if (!brs.length) { decline(`組 ${gi} × ${nb}：求交沒有解析分支（${groups[gi].kind}∧${groups[nb].kind}）`); return null }
       const bi = pickBranch(brs, rl.pts)
       const cv = brs[bi]
       if (!cv.closed) { decline(`組 ${gi} × ${nb}：閉環對開放曲線`); return null }
@@ -1166,7 +1166,7 @@ export function planTier2(seg: SegmentationResult, opts: Tier2Options = {}): Tie
     const cids: number[] = [], cvs: Tier2Curve[] = []
     for (const a of rl.arcs) {
       const brs = branchesOf(gi, a.nb)
-      if (!brs.length) { decline(`組 ${gi} × ${a.nb}：求交冇解析分支（${groups[gi].kind}∧${groups[a.nb].kind}）`); return null }
+      if (!brs.length) { decline(`組 ${gi} × ${a.nb}：求交沒有解析分支（${groups[gi].kind}∧${groups[a.nb].kind}）`); return null }
       const bi = pickBranch(brs, a.ids.map(P))
       cvs.push(brs[bi])
       cids.push(registerCurve(gi, a.nb, bi, brs[bi]))
@@ -1225,13 +1225,13 @@ export function planTier2(seg: SegmentationResult, opts: Tier2Options = {}): Tie
     for (const rl of raws) {
       const nb = rl.arcs[0].nb
       const brs = branchesOf(gi, nb)
-      if (!brs.length) return decline(`組 ${gi} × ${nb}：求交冇解析分支（${g.kind}∧${groups[nb].kind}）`)
+      if (!brs.length) return decline(`組 ${gi} × ${nb}：求交沒有解析分支（${g.kind}∧${groups[nb].kind}）`)
       const bi = pickBranch(brs, rl.pts)
       const cv = brs[bi]
-      if (!cv.closed) return decline(`組 ${gi} × ${nb}：周期宿主嘅環對開放曲線`)
+      if (!cv.closed) return decline(`組 ${gi} × ${nb}：周期宿主的環對開放曲線`)
       const cid = registerCurve(gi, nb, bi, cv)
       const sp = splitParams(cv, g.surf)
-      if (!sp) return decline(`組 ${gi}：切半參數解唔到`)
+      if (!sp) return decline(`組 ${gi}：切半參數無法解`)
       const v0 = addVertex(curvePointAt(cv, sp[0]), 0, true, 'seam-split'), v1 = addVertex(curvePointAt(cv, sp[1]), 0, true, 'seam-split')
       // 兩條 forward 區間邊條覆蓋 u∈[0,π]？（曲線法向可以同軸反向，唔可以假設）
       const h01 = halfOfArc(cv, g.surf, sp[0], sp[1])
@@ -1244,7 +1244,7 @@ export function planTier2(seg: SegmentationResult, opts: Tier2Options = {}): Tie
     const seams: number[] = []
     for (let k = 0; k < 2; k++) {
       const pa = plan.vertices[rings[0].vs[k]].p, pb = plan.vertices[rings[1].vs[k]].p
-      if (!(dist3(pa, pb) > 1e-9)) return decline(`組 ${gi}：seam 邊退化（兩條環嘅切點重疊）`)
+      if (!(dist3(pa, pb) > 1e-9)) return decline(`組 ${gi}：seam 邊退化（兩條環的切點重疊）`)
       seams.push(registerSeam(`${gi}#${k}`, lineCurve(pa, sub3(pb, pa), 'seam(母線)')))
     }
     for (let patch = 0; patch < 2; patch++) {
@@ -1387,7 +1387,7 @@ function buildFace(OC: OCModule, plan: Tier2Face, all: Tier2Plan, warnings: stri
       const kind = ANALYTIC_KIND[plan.kind]
       const cand = kind === undefined ? null : nonNull(OC.FitWrapper.MakeAnalyticFace(kind, plan.hostParams, plan.uvBounds))
       if (!cand) { warnings.push(`組 ${plan.group}: MakeAnalyticFace(${plan.kind}, uv) 返 null`); return null }
-      if (!areaOk(cand)) { warnings.push(`組 ${plan.group}: uv 矩形面面積閘唔過（${faceArea(OC, cand).toFixed(3)} vs 網格 ${plan.meshArea.toFixed(3)}）`); return null }
+      if (!areaOk(cand)) { warnings.push(`組 ${plan.group}: uv 矩形面面積無法閘過（${faceArea(OC, cand).toFixed(3)} vs 網格 ${plan.meshArea.toFixed(3)}）`); return null }
       return cand
     }
     if (plan.kind === 'plane') {
@@ -1405,7 +1405,7 @@ function buildFace(OC: OCModule, plan: Tier2Face, all: Tier2Plan, warnings: stri
       const host = nonNull(OC.FitWrapper.MakeAnalyticFace(kind, plan.hostParams, []))
       if (!host) { warnings.push(`組 ${plan.group}: MakeAnalyticFace(${plan.kind}) 返 null`); return null }
       const surf = OC.BRep_Tool.Surface_2(OC.TopoDS.Face_1(host))
-      if (!surf) { warnings.push(`組 ${plan.group}: 攞唔到 Handle_Geom_Surface`); return null }
+      if (!surf) { warnings.push(`組 ${plan.group}: 無法取得 Handle_Geom_Surface`); return null }
       for (const rev of [false, true]) {
         const w = wireOfLoop(OC, all, outer, rev)
         if (!w) continue
@@ -1425,11 +1425,11 @@ function buildFace(OC: OCModule, plan: Tier2Face, all: Tier2Plan, warnings: stri
     warnings.push(`組 ${plan.group}: 起面拋異常 ${(e as Error)?.message ?? e}`)
     return null
   }
-  if (!face) { warnings.push(`組 ${plan.group}（${plan.kind} patch ${plan.patch}）起唔到面（面積閘唔過）`); return null }
+  if (!face) { warnings.push(`組 ${plan.group}（${plan.kind} patch ${plan.patch}）無法起面（面積無法閘過）`); return null }
   for (const h of holes) {
     const holed = addHole(OC, face, all, h)
     if (holed) face = holed
-    else warnings.push(`組 ${plan.group}: 孔環加唔入，面保持無孔`)
+    else warnings.push(`組 ${plan.group}: 孔環無法加入，面保持無孔`)
   }
   return face
 }
@@ -1444,7 +1444,7 @@ export function executeTier2(seg: SegmentationResult, plan: Tier2Plan, OC: OCMod
   }
   if (plan.declined) return { ...base, tier: 'declined' }
   const W = OC?.FitWrapper
-  if (!W) { warnings.push('OC.FitWrapper 唔存在 —— 內核未重建（_occt-build/_rebuilt）'); return { ...base, tier: 'declined' } }
+  if (!W) { warnings.push('OC.FitWrapper 不存在 —— 內核未重建（_occt-build/_rebuilt）'); return { ...base, tier: 'declined' } }
 
   const faces: OCShape[] = []
   for (const fp of plan.faces) {
@@ -1452,7 +1452,7 @@ export function executeTier2(seg: SegmentationResult, plan: Tier2Plan, OC: OCMod
     if (f && shapeType(f) === ST_FACE) faces.push(f)
     else { warnings.push(`組 ${fp.group}（${fp.kind}）缺面 → Tier-2 放棄`); return { ...base, tier: 'declined', msBuild: performance.now() - t0 } }
   }
-  if (faces.length < 2) { warnings.push('起到嘅面少過 2 張'); return { ...base, tier: 'declined', msBuild: performance.now() - t0 } }
+  if (faces.length < 2) { warnings.push('起到的面少於 2 張'); return { ...base, tier: 'declined', msBuild: performance.now() - t0 } }
 
   let shape: OCShape | null = null
   let tier: Tier2Tier = 'failed'
@@ -1470,7 +1470,7 @@ export function executeTier2(seg: SegmentationResult, plan: Tier2Plan, OC: OCMod
   if (!shape) { warnings.push('縫合完全失敗'); return { ...base, msBuild: performance.now() - t0 } }
 
   const valid = checkValid(OC, shape)
-  if (valid === false) warnings.push('BRepCheck_Analyzer 報唔有效')
+  if (valid === false) warnings.push('BRepCheck_Analyzer 報不有效')
   return {
     shape, tier, faceCount: countFaces(OC, shape), valid,
     deviation: sampleDeviation(seg, OC, shape, opts.deviationSamples ?? 400),

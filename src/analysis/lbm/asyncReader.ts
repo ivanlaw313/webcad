@@ -267,8 +267,8 @@ export class AsyncPixelReader {
       this.warn(
         `[LBM asyncReader:${this.label}] GPU fence 讀回卡死（${reason}；` +
         `連續 ${this.timeouts} 次 TIMEOUT / ≥${this.stallMs}ms）→ 退階做同步 readPixels。` +
-        '已觀察到喺 document.hidden === true 嘅 tab 必然發生；前景 tab 未測。' +
-        '同步讀每次會令 CPU 等 GPU（掉幀），但慢一幀好過永遠冇數字。',
+        '已觀察到在 document.hidden === true 的 tab 必然發生；前景 tab 未測。' +
+        '同步讀每次會令 CPU 等 GPU（掉幀），但慢一幀好過永遠沒有數字。',
       )
     }
     if (!this.lastRect) return null

@@ -415,7 +415,7 @@ export default function Ribbon() {
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void useApp.getState().newFileFlow()}><ToolIcon name="newdoc" size={16} />{msg('file.new', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => openProject()}><ToolIcon name="insert" size={16} />{msg('file.open', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => saveProject()}><ToolIcon name="save" size={16} />{msg('file.save', lang)}<span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>Ctrl+S</span></button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="分享鏈接（T797）：整個項目壓縮入一條 URL（gzip+base64,零服務器零隱私）→ 複製到剪貼板。發畀人/收藏即可重開。大模型超 1.9MB 改用「儲存」傳檔" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{msg('file.share', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="分享鏈接（T797）：整個項目壓縮入一條 URL（gzip+base64,零服務器零隱私）→ 複製到剪貼板。發給人/收藏即可重開。大模型超 1.9MB 改用「儲存」傳檔" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{msg('file.share', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => useApp.getState().setHistoryOpen(true)}><ToolIcon name="undo" size={16} />{msg('file.history', lang)}</button>
                 {/* ★ BUG-406（P0 資料遺失）+ BUG-510 ★
                   * 閂晒分頁再開，未儲存工作本來會永久消失，而「檔案」選單連一個恢復入口都冇。
@@ -429,7 +429,7 @@ export default function Ribbon() {
                 <button
                   type="button" role="menuitem" className="panel-menu-item"
                   style={{ color: '#b54708', fontWeight: 600 }}
-                  title="閂晒分頁之後仲救得返嘅未儲存工作。會列出全部副本（最新排前）畀你揀 —— 唔會自動覆蓋你而家呢份。"
+                  title="關閉所有分頁之後仍可救回的未儲存工作。會列出全部副本（最新排前）給你選 —— 不會自動覆蓋你目前此份。"
                   onClick={(e) => { e.stopPropagation(); useApp.getState().openAutosaveRecovery() }}
                 >
                   <ToolIcon name="undo" size={16} />恢復自動存檔{recoverable?.length ? `（${recoverable.length}）` : ''}
@@ -441,12 +441,12 @@ export default function Ribbon() {
                     title={`${r.label} · ${r.age}${r.isSelf ? ' · 本分頁' : ''}`}
                     onClick={async () => {
                       if (await useApp.getState().appConfirm(
-                        `恢復呢份自動存檔？
+                        `恢復此份自動存檔？
 
 ${r.label}
 ${r.age}${r.isSelf ? '（本分頁）' : ''}
 
-（會取代而家視圖上嘅內容）`,
+（會取代目前視圖上的內容）`,
                         '恢復自動存檔',
                       )) void useApp.getState().recoverAutosave(r.tabId)
                     }}
@@ -469,13 +469,13 @@ ${r.age}${r.isSelf ? '（本分頁）' : ''}
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={exportObj}><ToolIcon name="save" size={16} />{msg('file.exportObj', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" title={msg('file.exportSketchDxf', lang)} onClick={exportSketchDxf}><ToolIcon name="importdxf" size={16} />{msg('file.exportSketchDxf', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => exportAssemblyStl()}><ToolIcon name="save" size={16} />{msg('file.exportAsmStl', lang)}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" title="真布爾合併單殼（manifold union）：把裝配各件熔成一個水密殼再匯出——慢，但打印更穩（冇內壁/重疊殼）。要各件水密；失敗會誠實回退三角湯" onClick={() => exportAssemblyStl(true)}><ToolIcon name="save" size={16} />{msg('file.exportAsmStlUnion', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="真布爾合併單殼（manifold union）：把裝配各件熔成一個水密殼再匯出——慢，但打印更穩（沒有內壁/重疊殼）。要各件水密；失敗會誠實回退三角湯" onClick={() => exportAssemblyStl(true)}><ToolIcon name="save" size={16} />{msg('file.exportAsmStlUnion', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void exportGLB()}><ToolIcon name="save" size={16} />{msg('file.exportGlb', lang)}</button>
                 <div className="panel-menu-divider" />
-                <button type="button" role="menuitem" className="panel-menu-item" title="匯出當前 3D 視圖為 PNG 截圖（貼文檔/郵件）" onClick={() => useApp.getState().runCommand('viewpng', '視圖截圖')}><ToolIcon name="save" size={16} />{msg('file.exportViewPng', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" title="匯出當前 3D 視圖為 PNG 截圖（貼文件/郵件）" onClick={() => useApp.getState().runCommand('viewpng', '視圖截圖')}><ToolIcon name="save" size={16} />{msg('file.exportViewPng', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void generateDrawing()}><ToolIcon name="drawing" size={16} />{msg('file.drawing', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" title="裝配三視圖 + 氣泡編號 + BOM 表（組件網格投影：輪廓+特徵邊）" onClick={() => void useApp.getState().generateAsmDrawing()}><ToolIcon name="drawing" size={16} />{msg('file.asmDrawing', lang)}</button>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('清空全部？當前模型（特徵 + 組件）會清除——未儲存嘅話請先「儲存」。')) void reset() }}><ToolIcon name="trash" size={16} />{msg('file.clear', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm('清空全部？當前模型（特徵 + 組件）會清除——未儲存的話請先「儲存」。')) void reset() }}><ToolIcon name="trash" size={16} />{msg('file.clear', lang)}</button>
               </div>
             </>, document.body
           )}
@@ -491,7 +491,7 @@ ${r.age}${r.isSelf ? '（本分頁）' : ''}
         <div className="tb-spacer" />
         {/* GM-W2 2.1 对标 Fusion：草图模式下收起非情境嘅「模板/材料/螺丝/材质/纹理/颜色」库，只保留文件·保存·撤销·文档名·搜索·帮助·语言 */}
         {!inSketch && !inForm && (<>
-        <button className="tb-btn tb-text" title="模板 / 材料 / 螺絲 庫（收埋令頂欄乾淨似 Fusion；撳開揀）" onClick={() => setShowLib((v) => !v)}>📦 {showLib ? '▴' : '▾'}</button>
+        <button className="tb-btn tb-text" title="模板 / 材料 / 螺絲 庫（收起令頂欄乾淨；按開選）" onClick={() => setShowLib((v) => !v)}>📦 {showLib ? '▴' : '▾'}</button>
         {showLib && (<>
         <select className="tb-mat" title="選擇起始模板" value={sampleKind} onChange={(e) => setSampleKind(e.target.value as SampleKind)}>
           {(() => {
@@ -517,7 +517,7 @@ ${r.age}${r.isSelf ? '（本分頁）' : ''}
         <button className="tb-btn tb-text" title="載入選中的起始模板（載入後改 ƒx 參數即整模型聯動）—— 新手可先玩這個" onClick={async () => {
           // GM-W2 2.1 防数据丢失：有现存工作（特征/组件）先弹确认，避免 载入 静静清空未保存嘅项目
           if (useApp.getState().features.length > 0 || useApp.getState().components.length > 0) {
-            const ok = await useApp.getState().appConfirm('載入模板會清空當前項目（包括未儲存嘅工作）— 確定載入？')
+            const ok = await useApp.getState().appConfirm('載入模板會清空當前項目（包括未儲存的工作）— 確定載入？')
             if (!ok) return
           }
           void loadSample(sampleKind)
@@ -546,7 +546,7 @@ ${r.age}${r.isSelf ? '（本分頁）' : ''}
         </label>
         </>)}{/* GM-W2 2.1 草图库隐藏结束 */}
         <button type="button" className="tb-btn tb-text" data-testid="ai-copilot-entry" title={`${msg('cmd.aicopilot', lang)} (Ctrl+Shift+A)\n${msg('tip.aicopilot', lang)}`} onClick={() => useApp.getState().runCommand('aicopilot', 'AI 助手')}><ToolIcon name="ai" size={16} /> {msg('cmd.aicopilot', lang)}</button>
-        <button className="tb-btn" title="搜索命令（按 / 鍵）—— 打字搵任何工具，例如 齒輪 / 倒角 / 匯出" onClick={() => setCmdPalette(true)}>🔍</button>
+        <button className="tb-btn" title="搜索命令（按 / 鍵）—— 打字找任何工具，例如 齒輪 / 倒角 / 匯出" onClick={() => setCmdPalette(true)}>🔍</button>
         <button className="tb-btn" title="幫助 / 快捷鍵 (F1)" onClick={() => toggleHelp()} style={{ fontWeight: 700, color: '#2a7aa8' }}>?</button>
         <div className="tb-user">U</div>
       </div>

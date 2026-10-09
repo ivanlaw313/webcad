@@ -29,7 +29,7 @@ function geometrySignature(sh: SketchShape): unknown {
 /** Solve creation with original anchors protected, then validate the persistent system. */
 export async function solveMirrorCandidate(originalShapes: SketchShape[], candidate: {shapes: SketchShape[];cons: SkCon[]}): Promise<{ok:true;shapes:SketchShape[];dof:number;cons:SkCon[]}|{ok:false;reason:string}> {
   const unchanged = (shapes: SketchShape[]) => shapes.length >= originalShapes.length && originalShapes.every((sh,i) => shapes[i]?.type===sh.type && numericEqual(geometrySignature(sh),geometrySignature(shapes[i])))
-  if(!finiteGeometry(candidate.shapes)||!unchanged(candidate.shapes))return {ok:false,reason:'鏡像候選改變咗原圖或含無效座標'}
+  if(!finiteGeometry(candidate.shapes)||!unchanged(candidate.shapes))return {ok:false,reason:'鏡像候選改變了原圖或含無效座標'}
   const pins: SkCon[] = [], used = new Set(candidate.cons.map(c=>c.id))
   const pin=(a:SkRef)=>{let id=`mirror-create-pin:${pins.length}`;while(used.has(id))id+='_';used.add(id);pins.push({id,kind:'con',type:'fix',a})}
   originalShapes.forEach((sh,shape)=>{
@@ -52,7 +52,7 @@ export async function solveMirrorCandidate(originalShapes: SketchShape[], candid
   const nearlyUnchanged=(shapes:SketchShape[])=>shapes.length>=n0&&originalShapes.every((sh,i)=>shapes[i]?.type===sh.type&&sigClose(geometrySignature(sh),geometrySignature(shapes[i])))
   try {
     const protectedResult=await solveFree(candidate.shapes,[...candidate.cons.filter(touchesCopy),...pins])
-    if(!protectedResult||protectedResult.conflict||!finiteGeometry(protectedResult.shapes)||!unchanged(protectedResult.shapes as SketchShape[]))return {ok:false,reason:'鏡像約束無法喺唔郁原圖嘅情況下成立（請檢查鏡像軸同所選輪廓）'}
+    if(!protectedResult||protectedResult.conflict||!finiteGeometry(protectedResult.shapes)||!unchanged(protectedResult.shapes as SketchShape[]))return {ok:false,reason:'鏡像約束無法在不移動原圖的情況下成立（請檢查鏡像軸與所選輪廓）'}
     const exact=protectedResult.shapes.map((sh,i)=>i<n0?originalShapes[i]:sh) as SketchShape[]
     const merged=applyRelationUpdates(candidate.cons,protectedResult)
     const result=await solveFree(exact,merged)

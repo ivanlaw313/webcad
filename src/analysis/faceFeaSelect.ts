@@ -138,7 +138,7 @@ export function faceFeaSelect(inp: FaceFeaSelectInput): FaceFeaSelectResult {
   const { h, nx, ny, nz, ox, oy, oz, solid } = inp.grid
   if (!(h > 0) || !Number.isFinite(h)) return fail('h 无效（需 > 0）')
   if (!(nx > 0 && ny > 0 && nz > 0)) return fail('nx/ny/nz 无效（需 > 0）')
-  if (!solid || solid.length < nx * ny * nz) return fail('solid 长度同 nx*ny*nz 唔一致')
+  if (!solid || solid.length < nx * ny * nz) return fail('solid 长度同 nx*ny*nz 不一致')
   const nTri = Math.floor(inp.faceTris.length / 9)
   if (nTri < 1) return fail('面三角不足（faceTris 需 ≥ 9 个数 = 1 三角）')
 

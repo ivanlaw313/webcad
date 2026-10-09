@@ -227,7 +227,7 @@ function SketchRow({ k }: { k: string }) {
         <span style={{ flex: 1, opacity: src.visible ? 1 : 0.55 }}>{src.name ? src.name : tStatus(defaultLabel, lang)}{standalone ? tStatus('·獨立', lang) : ''}{orphan ? tStatus('（未使用）', lang) : ''}{ownerComp && !refs(features) ? ` · ${ownerComp}` : ''}{(() => { const pc = sketchProfileCount(src.shapes as never); return <span data-profile-count={pc.closed} style={{ color: '#6b7884' }}>{tStatus(` ·${pc.closed}輪廓`, lang)}{pc.open ? tStatus(` ·${pc.open}開放線`, lang) : ''}</span> })()}{src.cons.length ? tStatus(` ·${src.cons.length}約束`, lang) : ''}</span>
       )}
       {orphan && <span className="tw-act" title={tStatus('重開編輯此未使用草圖（會還原做獨立草圖，之後可拉伸/旋轉/刪除）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().reopenOrphanSketch(k) }}>{tStatus('重開', lang)}</span>}
-      <span className="tw-act" title={src.visible ? tStatus('隱藏草圖', lang) : tStatus('喺模型上顯示草圖（紫色線）', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleSketchVis(k) }}>{src.visible ? '👁' : '─'}</span>
+      <span className="tw-act" title={src.visible ? tStatus('隱藏草圖', lang) : tStatus('在模型上顯示草圖（紫色線）', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleSketchVis(k) }}>{src.visible ? '👁' : '─'}</span>
       {(orphan || (standalone && !consumed)) && <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : orphan ? '刪除未使用草圖' : '刪除草圖', lang)} onClick={(e) => { e.stopPropagation(); void del() }}>🗑</span>}
     </div>
   )
@@ -327,13 +327,13 @@ function GroupRow({ g, depth, collapsed, onToggle }: { g: { id: string; name: st
           onBlur={(e) => { app().renameGroup(g.id, e.currentTarget.value || g.name); setEditing(false) }}
           onKeyDown={(e) => { e.stopPropagation(); if (imeBusy(e)) return; if (e.key === 'Enter') { app().renameGroup(g.id, e.currentTarget.value || g.name); setEditing(false) } else if (e.key === 'Escape') { setName(g.name); setEditing(false) } }} />
       ) : (
-        <span style={{ flex: 1, cursor: 'pointer', fontWeight: 600 }} title={tStatus(`子裝配組「${g.name}」（${deepIds.length} 件，雙擊改名）— 組係組織結構，關節仍係零件級`, lang)} onDoubleClick={() => { setName(g.name); setEditing(true) }}>{g.name}<span style={{ fontWeight: 400, color: '#8a97a2' }}>（{deepIds.length}）</span></span>
+        <span style={{ flex: 1, cursor: 'pointer', fontWeight: 600 }} title={tStatus(`子裝配組「${g.name}」（${deepIds.length} 件，雙擊改名）— 組是組織結構，關節仍是零件級`, lang)} onDoubleClick={() => { setName(g.name); setEditing(true) }}>{g.name}<span style={{ fontWeight: 400, color: '#8a97a2' }}>（{deepIds.length}）</span></span>
       )}
-      <span className="tw-act" title={tStatus('複製成組（模組複用 T788）：深複製全部成員 + 組內關節（輪組插四次就係咁）', lang)} onClick={(e) => { e.stopPropagation(); app().duplicateGroup(g.id) }}>⧉</span>
+      <span className="tw-act" title={tStatus('複製整組（模組複用 T788）：深複製全部成員 + 組內關節（輪組插四次就是如此）', lang)} onClick={(e) => { e.stopPropagation(); app().duplicateGroup(g.id) }}>⧉</span>
       <span className="tw-act" title={tStatus('整組移動：輸入 Δx,Δy,Δz（視圖座標 mm，組內關節錨點跟住搬）', lang)} onClick={async (e) => { e.stopPropagation(); const v = await useApp.getState().appPrompt(tStatus('整組移動 Δx,Δy,Δz（mm，三維視圖座標）', lang), '20,0,0'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 1 || p.some((x) => !Number.isFinite(x))) { await useApp.getState().appAlert(tStatus('請輸入數字', lang)); return } app().moveGroupBy(g.id, p[0] || 0, p[1] || 0, p[2] || 0) }}>⇣</span>
       <span className="tw-act" title={tStatus('整組旋轉（S123 子裝配 frame）：輸入 軸,角度（X/Y/Z, 度），整個子裝配繞世界質心剛性旋轉。自包含剛性組準確；組內有關節會提示。', lang)} onClick={async (e) => { e.stopPropagation(); const v = await useApp.getState().appPrompt(tStatus('整組旋轉 軸,角度（軸=X/Y/Z，度，例 Z,90）', lang), 'Z,90'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); const deg = Number(p[1]); if (!['X', 'Y', 'Z'].includes(ax) || !Number.isFinite(deg)) { await useApp.getState().appAlert(tStatus('請輸入：軸(X/Y/Z),角度。例 Z,90', lang)); return } app().rotateGroup(g.id, ax as 'X' | 'Y' | 'Z', deg) }}>↻</span>
-      <span className="tw-act" title={tStatus('解組：組拆走、成員升到上一層（組件唔刪）', lang)} onClick={(e) => { e.stopPropagation(); app().dissolveGroup(g.id) }}>⛓</span>
-      <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除組 + 全部成員（組件可撤銷）', lang)} onClick={async (e) => { e.stopPropagation(); if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`刪除組「${g.name}」同埋入面 ${deepIds.length} 件成員？`, lang))) app().deleteGroupDeep(g.id) }}>🗑</span>
+      <span className="tw-act" title={tStatus('解組：組拆走、成員升到上一層（組件不刪）', lang)} onClick={(e) => { e.stopPropagation(); app().dissolveGroup(g.id) }}>⛓</span>
+      <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除組 + 全部成員（組件可撤銷）', lang)} onClick={async (e) => { e.stopPropagation(); if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`刪除組「${g.name}」以及內 ${deepIds.length} 件成員？`, lang))) app().deleteGroupDeep(g.id) }}>🗑</span>
       {memberIds.length === 0 && deepIds.length === 0 && <span style={{ fontSize: 10, color: '#a76' }}>{tStatus('（空組）', lang)}</span>}
     </div>
   )
@@ -417,7 +417,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
       <span className="tw-act" title={tStatus('物理屬性（面積/質量/體積/質心/慣性，精度可調，可複製）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().openPropertiesDialog(c.id) }}>⚖</span>
       <span className="tw-act" title={tStatus('孤立顯示（隱藏其余）', lang)} onClick={(e) => { e.stopPropagation(); isolate(c.id) }}>◎</span>
       <span className="tw-act" title={tStatus('複製組件（共享定義 — 編輯任一實例全部更新）', lang)} onClick={(e) => { e.stopPropagation(); duplicate(c.id) }}>⧉</span>
-      <span className="tw-act" title={tStatus('獨立複製 / Paste-New（新定義 — 改任一唔影響對方）', lang)} onClick={(e) => { e.stopPropagation(); independentize(c.id) }}>⧉+</span>
+      <span className="tw-act" title={tStatus('獨立複製 / Paste-New（新定義 — 改任一不影響對方）', lang)} onClick={(e) => { e.stopPropagation(); independentize(c.id) }}>⧉+</span>
       <span className="tw-act" title={tStatus('鏡像組件：左右對稱（跨 YZ 面）', lang)} onClick={(e) => { e.stopPropagation(); mirror(c.id, 'lr') }}>⇋</span>
       <span className="tw-act" title={tStatus('鏡像組件：前後對稱（跨 XY 面）', lang)} onClick={(e) => { e.stopPropagation(); mirror(c.id, 'fb') }}>⇅</span>
       <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除組件', lang)} onClick={async (e) => { e.stopPropagation(); if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`刪除組件「${c.name}」？`, lang))) del(c.id) }}>🗑</span>
@@ -527,7 +527,7 @@ function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; 
           onDoubleClick={active ? (e) => { if (e.altKey) { e.stopPropagation(); startRename() } } : undefined}>{active && customName ? `${customName} ●` : tStatus(label, lang)}</span>
       )}
       {active && !editing && <BodyMaterialSelect />}
-      {active && !editing && <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除實體（移除建立佢嘅特徵，草圖保留；可撤銷）', lang)} onClick={(e) => { e.stopPropagation(); del() }}>🗑</span>}
+      {active && !editing && <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除實體（移除建立它的特徵，草圖保留；可撤銷）', lang)} onClick={(e) => { e.stopPropagation(); del() }}>🗑</span>}
     </div>
   )
 }
@@ -596,12 +596,12 @@ function CompBatchBar() {
         {Object.keys(MATERIALS).map((k) => <option key={k} value={k}>{tMaterialName(k, lang)}</option>)}
         <option value="__clear">{tStatus('（清除材質）', lang)}</option>
       </select>
-      <span className="tw-act" title={tStatus('把勾選的組件匯出為 STL 打包 zip（只匯出你揀嘅，方便分批 3D 列印）', lang)} onClick={() => batchZip()}>📦{tStatus('匯出zip', lang)}</span>
+      <span className="tw-act" title={tStatus('把勾選的組件匯出為 STL 打包 zip（只匯出你選的，方便分批 3D 列印）', lang)} onClick={() => batchZip()}>📦{tStatus('匯出zip', lang)}</span>
       <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '批量刪除勾選的組件（可撤銷）', lang)} onClick={async () => { if (skDelGuard()) return; if (await useApp.getState().appConfirm(tStatus(`刪除勾選的 ${n} 個組件？（可 Ctrl+Z 撤銷）`, lang))) batchDel() }}>🗑{tStatus('刪除', lang)}</span>
       <span className="tw-act" title={tStatus('清除勾選', lang)} onClick={() => clear()}>✕{tStatus('清除勾選', lang)}</span>
-      <span className="tw-act" title={tStatus('📁 建組（T788 子裝配）：勾選嘅組件組成一個組 — 整組隱藏/移動/複製/BOM 分層；勾選同組成員再建組 = 嵌套子組', lang)} onClick={() => useApp.getState().createGroupFromChecked()}>📁{tStatus('建組', lang)}</span>
-      {n >= 2 && <span className="tw-act" title={tStatus('剛性組（T779 Fusion Rigid Group）：勾選嘅組件鎖做一組 — 第一件做頭，郁佢全組跟（rigid 關節實現，可喺關節面板拆）', lang)} onClick={() => useApp.getState().rigidGroupChecked()}>🔗{tStatus('剛性組', lang)}</span>}
-      {n === 2 && <select className="tw-act" defaultValue="" title={tStatus('按現狀關節（T779 Fusion As-Built Joint）：兩件喺而家位置直接加關節 — 揀類型即加，唔 snap 唔郁位（要改軸用拾孔定軸）', lang)} onChange={(e) => { const t = e.target.value; if (t) useApp.getState().asBuiltJointChecked(t) }}>
+      <span className="tw-act" title={tStatus('📁 建組（T788 子裝配）：勾選的組件組成一個組 — 整組隱藏/移動/複製/BOM 分層；勾選同組成員再建組 = 嵌套子組', lang)} onClick={() => useApp.getState().createGroupFromChecked()}>📁{tStatus('建組', lang)}</span>
+      {n >= 2 && <span className="tw-act" title={tStatus('剛性組（T779）：勾選的組件鎖做一組 — 第一件做頭，移動它全組跟（rigid 關節實現，可在關節面板拆）', lang)} onClick={() => useApp.getState().rigidGroupChecked()}>🔗{tStatus('剛性組', lang)}</span>}
+      {n === 2 && <select className="tw-act" defaultValue="" title={tStatus('按現狀關節（T779）：兩件在目前位置直接加關節 — 選類型即加，不 snap 不移動位（要改軸用拾孔定軸）', lang)} onChange={(e) => { const t = e.target.value; if (t) useApp.getState().asBuiltJointChecked(t) }}>
         <option value="">⚙{tStatus('按現狀關節…', lang)}</option>
         <option value="revolute">{tStatus('轉動', lang)}</option>
         <option value="rigid">{tStatus('剛性', lang)}</option>
@@ -716,7 +716,7 @@ export default function BrowserTree() {
       <div style={{ paddingLeft: 8 }}>
         <Section label={msg('tree.docSettings', lang)} defaultOpen={false}>
           {/* GM-X2 #13：单位对话框（配对预设 长度+质量 + 自定义）。模型/导出恒 mm。 */}
-          <Leaf icon="default" label={`文檔單位: ${unit === 'inch' ? 'in' : unit} / ${massUnit}`} onClick={() => setUnitDlgOpen(true)} />
+          <Leaf icon="default" label={`文件單位: ${unit === 'inch' ? 'in' : unit} / ${massUnit}`} onClick={() => setUnitDlgOpen(true)} />
         </Section>
         <Section label={msg('tree.namedViews', lang)} defaultOpen={false}>
           {savedViews.map((v, i) => <Leaf key={i} icon="home" label={v.name} onClick={() => useApp.getState().applyViewBookmark(i)} />)}
@@ -747,7 +747,7 @@ export default function BrowserTree() {
                 <span className="tw-act" title={tStatus('顯示 / 隱藏此參考面', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleDatumVis(datumVisKey('pl', pl)) }}>{datumHidden.includes(datumVisKey('pl', pl)) ? '🙈' : '👁'}</span>
                 {/* GM-W1 1.5：编辑 offset（角度面另可改 angle）。诚实：只郁呢块 datum 本身 — 已经喺佢上面拉伸/开咗嘅草图唔会跟住重算（timeline 关联系后续功能）。datum-pick 固定 arb 面（有 arb 无 aaxis）唔畀改 offset（无实义）。*/}
                 {(pl.aaxis != null || !pl.arb) && (
-                  <span className="tw-act" title={tStatus(`編輯偏移${pl.aaxis != null ? '/角度' : ''} — 改動只影響之後新畫嘅草圖（唔會重算已拉伸嘅特徵）`, lang)} onClick={(e) => { e.stopPropagation(); void (async () => {
+                  <span className="tw-act" title={tStatus(`編輯偏移${pl.aaxis != null ? '/角度' : ''} — 改動只影響之後新畫的草圖（不會重算已拉伸的特徵）`, lang)} onClick={(e) => { e.stopPropagation(); void (async () => {
                     const ap = useApp.getState()
                     const ov = await ap.appPrompt(tStatus('新偏移 mm（沿基面法向平移此參考面）', lang), String(pl.offset), tStatus('編輯參考面', lang))
                     if (ov == null) return
@@ -798,7 +798,7 @@ export default function BrowserTree() {
         {jointOrigins.length > 0 && (
           <Section label={`${msg('tree.jointOrigins', lang)} (${jointOrigins.length})`}>
             {jointOrigins.map((jo) => (
-              <div key={jo.id} className="tree-row" style={{ paddingLeft: 18 }} title={tStatus(`可復用關節原點「${jo.name}」@(${jo.point.map((x) => x.toFixed(1)).join(', ')}) — 建關節時喺關節面板下拉引用之（取代預設件心）`, lang)}>
+              <div key={jo.id} className="tree-row" style={{ paddingLeft: 18 }} title={tStatus(`可復用關節原點「${jo.name}」@(${jo.point.map((x) => x.toFixed(1)).join(', ')}) — 建關節時在關節面板下拉引用之（取代預設件心）`, lang)}>
                 <span className="tw-toggle" />
                 <span className="tw-ico"><ToolIcon name="joint" size={13} /></span>
                 <span style={{ flex: 1 }}>⚓ {jo.name}</span>
@@ -811,11 +811,11 @@ export default function BrowserTree() {
         {rigidGroups.length > 0 && (
           <Section label={`${msg('tree.rigidGroups', lang)} (${rigidGroups.length})`}>
             {rigidGroups.map((g) => (
-              <div key={g.id} className="tree-row" style={{ paddingLeft: 18, opacity: g.suppressed ? 0.5 : 1 }} title={tStatus(`剛性組「${g.name}」：${g.members.length} 件焊為一體（第一件做頭，郁佢全組跟）${g.suppressed ? ' — 已抑制' : ''}`, lang)}>
+              <div key={g.id} className="tree-row" style={{ paddingLeft: 18, opacity: g.suppressed ? 0.5 : 1 }} title={tStatus(`剛性組「${g.name}」：${g.members.length} 件焊為一體（第一件做頭，移動它全組跟）${g.suppressed ? ' — 已抑制' : ''}`, lang)}>
                 <span className="tw-toggle" />
                 <span className="tw-ico"><ToolIcon name="joint" size={13} /></span>
                 <span style={{ flex: 1 }}>🔗 {g.name}（{g.members.length}）{g.suppressed ? tStatus(' · 已抑制', lang) : ''}</span>
-                <span className="tw-act" title={tStatus(g.suppressed ? '恢復剛性組（重新焊為一體）' : '抑制剛性組（成員釋放自由郁）', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleRigidGroupSuppressed(g.id) }}>{g.suppressed ? '▷' : '⏸'}</span>
+                <span className="tw-act" title={tStatus(g.suppressed ? '恢復剛性組（重新焊為一體）' : '抑制剛性組（成員釋放自由移動）', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleRigidGroupSuppressed(g.id) }}>{g.suppressed ? '▷' : '⏸'}</span>
                 <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除剛性組（成員釋放）', lang)} onClick={(e) => { e.stopPropagation(); if (skDelGuard()) return; useApp.getState().removeRigidGroup(g.id) }}>🗑</span>
               </div>
             ))}

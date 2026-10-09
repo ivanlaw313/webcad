@@ -139,7 +139,7 @@ export function latheToGcode(
     ['rpm', opts.rpm], ['safeX', opts.safeX], ['safeZ', opts.safeZ],
   ]
   for (const [k, v] of checks) {
-    if (!(Number.isFinite(v) && v > 0)) throw new Error(`参数 ${k} 必须为正数（而家系 ${v}）`)
+    if (!(Number.isFinite(v) && v > 0)) throw new Error(`参数 ${k} 必须为正数（目前是 ${v}）`)
   }
   if (opts.safeX <= opts.stockD) {
     throw new Error(`安全直径要大于毛坯（safeX ${fmt(opts.safeX)} ≤ stockD ${fmt(opts.stockD)}）`)
@@ -163,7 +163,7 @@ export function latheToGcode(
     // 轮廓超毛坯检查：任何成品半径 > 毛坯半径 → 该处唔切，钳到毛坯（warning）
     const clampedRaw = profile.map((p) => {
       if (p.r > stockR + EPS) {
-        warn(`轮廓超出毛坯（r ${fmt(p.r)} > 毛坯半径 ${fmt(stockR)}）— 该处钳到毛坯, 唔切`)
+        warn(`轮廓超出毛坯（r ${fmt(p.r)} > 毛坯半径 ${fmt(stockR)}）— 该处钳到毛坯, 不切`)
         return { z: p.z, r: stockR }
       }
       return { z: p.z, r: p.r }
@@ -231,7 +231,7 @@ export function latheToGcode(
     const grooveW = opts.grooveW ?? opts.doc
     const grooveDepth = opts.grooveDepth ?? 0
     if (!(Number.isFinite(grooveDepth) && grooveDepth > 0)) {
-      throw new Error(`参数 grooveDepth 必须为正数（而家系 ${grooveDepth}）`)
+      throw new Error(`参数 grooveDepth 必须为正数（目前是 ${grooveDepth}）`)
     }
     // 槽口起始半径 = 该 Z 处毛坯外圆（呢度成品 = 毛坯外径，简化用 stockR；
     // 槽底半径 = 起始 − grooveDepth），切到底直径要 ≥ 0。

@@ -475,7 +475,7 @@ export function filletAt(
   if (!(r > EPS)) throw new Error('圓角半徑須為正');
   const ip = (i - 1 + n) % n;
   if (Math.abs(bulgeOf(bulges, ip)) > EPS || Math.abs(bulgeOf(bulges, i)) > EPS) {
-    throw new Error('暫只支持直線角倒圓角');
+    throw new Error('暫只支援直線角倒圓角');
   }
   const vp = verts[ip];
   const v = verts[i];

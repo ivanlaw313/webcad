@@ -625,7 +625,7 @@ export function SketchSurface() {
       if (app.skDragStart(st)) { if (controls) controls.enabled = false; if (e.pointerId !== undefined) captureGeometry(e.pointerId); return }
       // BUG-207 跟進（G）：撳中幾何但拖動被拒（關聯偏移曲線／陣列實例／完全約束）→ 唔好轉去環繞相機，並保留拒動提示。
       const refusedHint = useApp.getState().status
-      if (app.skHitTestAt(st) && /^(偏移曲線跟隨來源輪廓|陣列實例由來源控制|呢個幾何已完全約束)/.test(refusedHint)) {
+      if (app.skHitTestAt(st) && /^(偏移曲線跟隨來源輪廓|陣列實例由來源控制|呢個幾何已完全約束|此幾何已完全約束)/.test(refusedHint)) {
         refusedDrag.current = true
         if (controls) controls.enabled = false
         app.skClickAt(st)
@@ -3008,7 +3008,7 @@ export function SketchDimLayer() {
         ) : (
           <div
             key={l.key} data-reference-extent={l.referenceExtent} data-dim={l.text} data-dimension-id={l.edit?.conId} data-constraint-id={l.remove} data-frame-angle={l.frameAngleDeg} data-auto-dimension-shape={l.edit&&l.edit.dim!=='con'?String(l.edit.target):undefined} data-dim-role={l.driven || l.referenceExtent ? 'driven' : l.edit?.dim === 'con' ? 'driving' : l.edit ? 'soft' : undefined} data-dim-driving={l.edit?.dim === 'con' && !l.driven ? 'true' : undefined} className={l.driven || l.referenceExtent ? 'sk-dim-driven' : l.edit?.dim === 'con' ? 'sk-dim-driving' : l.edit ? 'sk-dim-soft' : undefined} ref={reg(l.key)}
-            title={[l.referenceExtent?msg('sk.dim.refExtent', lang).replace('{0}', String(l.referenceExtent)):'',l.frameAngleDeg===undefined?'':msg('sk.dim.frameAngle', lang).replace('{0}', dimFmt(l.frameAngleDeg)), (l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? tStatus('⚠ 衝突約束 — 點擊移除以解開過約束', lang) : l.edit && l.edit.dim === 'con' ? ((l.name ? `${l.name} = ` : '') + (l.expression ? `${l.expression} → ${l.text} · ` : `${l.text} · `) + (l.driven ? tStatus('從動尺寸（量度值）— 點擊改值即轉驅動 · 右鍵菜單（轉驅動/R↔Ø/刪除） · ✕刪除', lang) : tStatus('點擊修改尺寸 · 輸入公式可引用其他尺寸（如 d1*2） · 右鍵菜單（轉從動/R↔Ø/刪除） · ✕刪除', lang))) : l.edit ? tStatus('點擊修改尺寸', lang) : l.remove ? tStatus('約束（點擊選中 → Delete 移除）', lang) : undefined].filter(Boolean).join(' · ')||undefined}
+            title={[l.referenceExtent?msg('sk.dim.refExtent', lang).replace('{0}', String(l.referenceExtent)):'',l.frameAngleDeg===undefined?'':msg('sk.dim.frameAngle', lang).replace('{0}', dimFmt(l.frameAngleDeg)), (l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? tStatus('⚠ 衝突約束 — 點擊移除以解開過約束', lang) : l.edit && l.edit.dim === 'con' ? ((l.name ? `${l.name} = ` : '') + (l.expression ? `${l.expression} → ${l.text} · ` : `${l.text} · `) + (l.driven ? tStatus('從動尺寸（量度值）— 點擊改值即轉驅動 · 右鍵選單（轉驅動/R↔Ø/刪除） · ✕刪除', lang) : tStatus('點擊修改尺寸 · 輸入公式可引用其他尺寸（如 d1*2） · 右鍵選單（轉從動/R↔Ø/刪除） · ✕刪除', lang))) : l.edit ? tStatus('點擊修改尺寸', lang) : l.remove ? tStatus('約束（點擊選中 → Delete 移除）', lang) : undefined].filter(Boolean).join(' · ')||undefined}
             onPointerDown={l.edit?.dim === 'con' && l.edit.conId ? (e) => onLabelDown(e, l.edit!.conId!) : undefined}
             onClick={
               // 用户实战 feedback：冲突（红色）尺寸 tooltip 一直话「点击移除」但旧行为系开编辑框 → 令用户「揀唔到又删唔到」。
@@ -3028,7 +3028,7 @@ export function SketchDimLayer() {
             {/* 尺寸约束专属 ✕ 仔：一撳即删（stopPropagation 免误开编辑框）。徽章本身 click=移除,唔使 ✕。 */}
             {l.edit?.dim === 'con' && l.edit.conId && (
               <span
-                title={tStatus('删除呢个尺寸', lang)}
+                title={tStatus('删除此尺寸', lang)}
                 onClick={(e) => { e.stopPropagation(); useApp.getState().removeSkCon(l.edit!.conId!) }}
                 style={{ marginLeft: 4, padding: '0 2px', opacity: 0.72, cursor: 'pointer', fontWeight: 700 }}
                 onPointerEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}

@@ -580,7 +580,7 @@ function fitSphereCandidate(rd: RegionData): Candidate | null {
   const params: SphereParams = { kind: 'sphere', centre: [p[0], p[1], p[2]], radius }
   const m = measure(params, rd)
   const ill = radius > rd.diag * 5
-  return { kind: 'sphere', params, rms: m.rms, maxErr: m.maxErr, normalDevDeg: m.normalDevDeg, ok: !ill, note: ill ? '半径 > 5× 包围盒（其实系平面）' : '', illConditioned: ill }
+  return { kind: 'sphere', params, rms: m.rms, maxErr: m.maxErr, normalDevDeg: m.normalDevDeg, ok: !ill, note: ill ? '半径 > 5× 包围盒（其实是平面）' : '', illConditioned: ill }
 }
 
 /** 由擬合好嘅轴/点/半径砌完整 CylinderParams（轴范围、周向范围、凸凹）。 */
@@ -831,7 +831,7 @@ function fitOneRegion(rd: RegionData, eps: number, alphaDeg: number, ratio: numb
     if (viable) {
       if (!best) best = c
       else if (c.rms * ratio <= best.rms) best = c    // 简约律：复杂者要赢 ≥ratio× 先上位
-      else note = note || `唔够简单者 ${ratio}× 好（${c.rms.toExponential(2)} vs ${best.rms.toExponential(2)}）`
+      else note = note || `不足简单者 ${ratio}× 好（${c.rms.toExponential(2)} vs ${best.rms.toExponential(2)}）`
     }
     notes.push(note)
   }

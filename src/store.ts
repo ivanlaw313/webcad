@@ -21608,7 +21608,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   openBOM: () => {
     const b = buildBOM(get())
     if (!b) return
-    set({ bomDialog: { rows: b.rows, summary: b.summary }, status: '已打開' + b.summary + ' — 撳「匯出 CSV」先會下載' })
+    set({ bomDialog: { rows: b.rows, summary: b.summary }, status: '已打開' + b.summary + ' — 點擊「匯出 CSV」才會下載' })
   },
   bomDialog: null,
   closeBomDialog: () => set({ bomDialog: null }),

@@ -73,5 +73,60 @@ export function featParamResults(d: FeatDlgLike): NumericResult[] {
  */
 export function featDlgBlockingReason(d: FeatDlgLike | null): string | null {
   if (!d) return null
-  return firstBlockingReason(featParamResults(d))
+  return firstBlockingReason(featParamResults(d)) ?? featDlgSemanticReason(d)
+}
+
+/** CORE16：唔靠原文都要擋嘅語義規則（確定掣停用 + 紅字；commit 共用）。 */
+export function featDlgSemanticReason(d: FeatDlgLike): string | null {
+  const p = d.params
+  const num = (k: string) => Number(p[k])
+  if (d.kind === 'revolve') {
+    const a = num('angle')
+    if (!(a > 0 && a <= 360)) return '旋轉角度必須大於 0° 且不超過 360°'
+    if (num('wall') < 0) return '薄壁不可為負數'
+  }
+  if (d.kind === 'pattern') {
+    // 只驗【已填且係有限數】嘅欄位 —— NaN／缺欄沿用舊行為（由 paramRaw 閘或 commit 處理）
+    for (const k of ['countX', 'countY', 'countZ']) if (p[k] !== undefined && Number.isFinite(num(k)) && !(Number.isInteger(num(k)) && num(k) >= 1)) return '陣列數量必須是不小於 1 的整數'
+    const sp = patternSpacings(p), keys = ['dx', 'dy', 'dz']
+    if (sp.some(([c, v], i) => p[keys[i]] !== undefined && Number.isFinite(c) && c > 1 && Number.isFinite(v) && !(Math.abs(v) > 1e-6))) return '數量大於 1 的方向，間距不可為 0（所有實例會重疊在同一位置）'
+  }
+  if (d.kind === 'circpattern' && p.count !== undefined && Number.isFinite(num('count')) && !(Number.isInteger(num('count')) && num('count') >= 2)) return '環形陣列數量必須是不小於 2 的整數'
+  if (d.kind === 'cone') {
+    if (!(num('d') > 0)) return '底部直徑必須大於 0'
+    if (!(num('h') > 0)) return '高度必須大於 0'
+    if (num('dt') < 0) return '頂部直徑不可為負數'
+  }
+  if (d.kind === 'emboss') {
+    if (!String(p.text ?? '').trim()) return '請輸入浮雕文字'
+    if (!(num('depth') > 0)) return '浮雕深度必須大於 0（凸起／刻入用下方選項切換）'
+    if (!(num('size') > 0)) return '字高必須大於 0'
+  }
+  if (d.kind === 'move') for (const k of ['dx', 'dy', 'dz', 'rx', 'ry', 'rz']) if (p[k] !== undefined && p[k] !== '' && !Number.isFinite(num(k))) return '移動距離／角度必須是數值'
+  return null
+}
+
+/** 矩形陣列每方向 [數量, 實際間距]（dtype='extent' → 總跨距 ÷ (數量−1)）。 */
+export function patternSpacings(p: Record<string, number | string | undefined>): [number, number][] {
+  const ext = p.dtype === 'extent'
+  const one = (cK: string, vK: string, def?: number): [number, number] => {
+    const c = Math.round(Number(p[cK] ?? 1)), v = Number(p[vK] ?? def ?? 0)
+    return [c, ext ? (c > 1 ? v / (c - 1) : 0) : v]
+  }
+  return [one('countX', 'dx'), one('countY', 'dy'), one('countZ', 'dz', 60)]
+}
+
+/** CORE16：矩形陣列實例重疊（間距細過實體沿該軸尺寸）→ 非阻擋警告（結果會合併成一體）。只適用世界軸方向。 */
+export function patternOverlapWarning(d: FeatDlgLike | null, size: [number, number, number] | null): string | null {
+  if (!d || d.kind !== 'pattern' || !size) return null
+  const p = d.params
+  if (p.objectType && p.objectType !== 'bodies') return null
+  if (p.dir1 || p.dir2) return null
+  const names = ['X', 'Y', 'Z']
+  const sp = patternSpacings(p)
+  for (let i = 0; i < 3; i++) {
+    const [c, v] = sp[i]
+    if (c > 1 && Math.abs(v) > 1e-6 && Math.abs(v) < size[i] - 1e-6) return `⚠ ${names[i]} 方向間距 ${+Math.abs(v).toFixed(3)} mm 小於實體尺寸 ${+size[i].toFixed(2)} mm — 實例會重疊並合併成一個實體`
+  }
+  return null
 }

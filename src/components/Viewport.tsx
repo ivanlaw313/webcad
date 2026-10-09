@@ -1,3 +1,4 @@
+import { meshVolumeMm3 } from '../ui/splitVolume'
 import { LiveSketchReadout } from './LiveSketchReadout'
 import { threadLocalToWorld } from '../cad/threadFrame'
 import { HoleSketchPointsButton } from './HoleSketchPoints'
@@ -99,10 +100,10 @@ import { detectFace, nearSharpEdge } from '../geom/faceDetect'
 import { cutFaceGeom } from '../geom/sectionCap'   // S186：剖面盖切面三角抽取（切面上色）
 import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按需预览（避免普通建模首屏载入齿轮搜索）
 import { ToolIcon } from '../icons'
-import { featDlgBlockingReason } from '../cad/featDlgNumeric'   // 純邏輯模組，唔經 monolith
+import { featDlgBlockingReason, patternOverlapWarning } from '../cad/featDlgNumeric'   // 純邏輯模組，唔經 monolith
 import { startRenderGovernor } from '../render/renderGovernor'
 import { PRIM_PLACE_KINDS } from '../store'   // UX3 #2
-import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection } from '../store'
+import { useApp, holeBlindOverrun, meshBboxSize, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
 import { cadPointToThree, formBoxRectCadCorners, makePlacedBoxCage, type FormBoxDraft, type FormBoxPlane } from '../cad/formBox'
@@ -259,10 +260,10 @@ function ThreadSpecSelect({ d, pitch, std, onPick, lang }: { d: number; pitch: n
 }
 
 // featDlg palette: per-kind Chinese title + icon (titles match ribbon.ts labels).
-const FD_TITLE: Record<string, string> = { gearbox: '齒輪箱向導', worm: '蝸桿', crowngear: '冠齒輪', automatedmodel: 'Automated Modeling · Connector v1', pattern: '矩形陣列', cpattern: '環形陣列', circpattern: '環形陣列', pathpattern: '路徑陣列', mirror: '鏡像', move: '移動/複製', scale: '縮放', draft: '拔模', revolve: '旋轉', rib: '加強筋/腹板', pipe: '管道', box: '長方體', cylinder: '圓柱', sphere: '球', torus: '圓環', cone: '圓錐/圓台', wedge: '楔形', dome: '圓頂', halfcyl: '半圓柱', pie: '扇形柱', tube: '圓管/襯套', rtube: '方管', profile: '型材', rbox: '圓角盒', prism: '多邊形棱柱', pyramid: '棱錐', coil: '螺旋', thread: '螺紋桿', cylpatch: '曲面貼花', sheetmetal: '鈑金件', gear: '齒輪', rack: '齒條', pulley: 'V帶輪', plane: '參考平面', cpoint: '構造點', caxis: '構造軸', combine: '合併/布爾', splitbody: '分割實體', 'extrude-edit': '拉伸', 'fillet-edit': '圓角', 'chamfer-edit': '倒角', 'shell-edit': '抽殼',
+const FD_TITLE: Record<string, string> = { gearbox: '齒輪箱向導', worm: '蝸桿', crowngear: '冠齒輪', automatedmodel: 'Automated Modeling · Connector v1', pattern: '矩形陣列', cpattern: '環形陣列', circpattern: '環形陣列', pathpattern: '路徑陣列', mirror: '鏡像', move: '移動/複製', scale: '縮放', draft: '拔模', revolve: '旋轉', rib: '加強筋/腹板', pipe: '管道', box: '長方體', cylinder: '圓柱', sphere: '球', torus: '圓環', cone: '圓錐/圓台', wedge: '楔形', dome: '圓頂', halfcyl: '半圓柱', pie: '扇形柱', tube: '圓管/襯套', rtube: '方管', profile: '型材', rbox: '圓角盒', prism: '多邊形棱柱', pyramid: '棱錐', coil: '螺旋', thread: '螺紋桿', cylpatch: '曲面貼花', sheetmetal: '鈑金件', gear: '齒輪', rack: '齒條', pulley: 'V帶輪', plane: '參考平面', cpoint: '構造點', caxis: '構造軸', combine: '合併/布爾', splitbody: '分割實體', 'extrude-edit': '拉伸', 'fillet-edit': '圓角', 'chamfer-edit': '倒角', 'shell-edit': '抽殼', emboss: '浮雕',
   // RETEST18 #3：補漏 — 冇標題嘅 kind 會顯示原始 key（「othread」）。
   othread: '螺紋', ithread: '內螺紋', cptgrid: '構造點陣列', boundaryfill: '邊界填充', offsetsolid: '偏移實體' }
-const FD_ICON: Record<string, string> = { gearbox: 'default', worm: 'default', crowngear: 'default', automatedmodel: 'cylinder', pattern: 'pattern', cpattern: 'pattern', circpattern: 'pattern', pathpattern: 'pattern', mirror: 'mirror', move: 'move', scale: 'scale', draft: 'draft', revolve: 'revolve', rib: 'default', pipe: 'cylinder', box: 'box', cylinder: 'cylinder', sphere: 'sphere', torus: 'cylinder', cone: 'cylinder', wedge: 'box', dome: 'sphere', halfcyl: 'cylinder', pie: 'cylinder', tube: 'cylinder', rtube: 'box', profile: 'box', rbox: 'box', prism: 'box', pyramid: 'cylinder', plane: 'plane', cpoint: 'point', caxis: 'axis', combine: 'combine', splitbody: 'split', 'extrude-edit': 'extrude', 'fillet-edit': 'fillet', 'chamfer-edit': 'chamfer', 'shell-edit': 'shell' }
+const FD_ICON: Record<string, string> = { gearbox: 'default', worm: 'default', crowngear: 'default', automatedmodel: 'cylinder', pattern: 'pattern', cpattern: 'pattern', circpattern: 'pattern', pathpattern: 'pattern', mirror: 'mirror', move: 'move', scale: 'scale', draft: 'draft', revolve: 'revolve', rib: 'default', pipe: 'cylinder', box: 'box', cylinder: 'cylinder', sphere: 'sphere', torus: 'cylinder', cone: 'cylinder', wedge: 'box', dome: 'sphere', halfcyl: 'cylinder', pie: 'cylinder', tube: 'cylinder', rtube: 'box', profile: 'box', rbox: 'box', prism: 'box', pyramid: 'cylinder', plane: 'plane', cpoint: 'point', caxis: 'axis', combine: 'combine', splitbody: 'split', 'extrude-edit': 'extrude', 'fillet-edit': 'fillet', 'chamfer-edit': 'chamfer', 'shell-edit': 'shell', emboss: 'emboss' }
 
 // Compact per-part fit indicator (🖨️✓/↻/✗) using the shared bed choice — no dropdown, for the move-bar.
 function CompBedFit({ w, d, h }: { w: number; d: number; h: number }) {
@@ -4081,6 +4082,13 @@ export default function Viewport() {
     return () => { cancelled = true; clearTimeout(timer) }
   }, [featDlg, bodyMesh, editPreviewParams, editPreviewBindings, editPreviewSuppressed, editPreviewFeatures])
   const currentEditPreview = editPreview?.dialog === featDlg ? editPreview : null
+  // CORE16：通用 featDlg 內核預覽（圓柱/圓錐/陣列/鏡像/移動/分割/合併/旋轉…）— 同 commit 同一套組裝，結果同確定一致。
+  useEffect(() => {
+    if (!featDlg || featDlg.kind === 'extrude-edit') return
+    let cancelled = false
+    const timer = setTimeout(() => { if (!cancelled) void useApp.getState().previewFeatDlg().catch(() => null) }, 200)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [featDlg, bodyMesh, editPreviewParams, editPreviewBindings, editPreviewSuppressed, editPreviewFeatures])
   const editPreviewMesh = useApp(s => s.editPreviewMesh)
   const setFeatParam = useApp((s) => s.setFeatParam)
   const commitFeatDlg = useApp((s) => s.commitFeatDlg)
@@ -6470,10 +6478,11 @@ export default function Viewport() {
           summary={(holeBoltCircle ? `⚠ 螺栓孔圈：會鑽 ${Math.max(2, Math.min(64, Math.round(holeBcCount) || 4))} 個孔（PCD Ø${holeBcPcd}）— ` : '') + (!(holeD > 0) ? '孔徑必須大於 0' : holeType === 'counterbore' ? `沉頭孔（${holeThrough ? '通' : '盲'}+沉台 Ø${(holeCbD ?? holeSpec.cbD).toFixed(1)}）` : holeType === 'countersink' ? `埋頭孔（${holeThrough ? '通' : '盲'}+${holeCsAngle}°錐 Ø${(holeCsD ?? holeSpec.csD).toFixed(1)}）` : holeType === 'nuttrap' ? '螺母陷阱（過孔+六角槽嵌螺母）' : holeType === 'tapped' ? (holeTapModeled ? `建模螺紋（真螺旋牙，${holeThrough ? '通孔' : '盲孔'}）` : `攻牙底孔（鑽 d−螺距，攻 M 螺紋用，${holeThrough ? '通孔' : '盲孔'}）`) : holeThrough ? `通孔 Ø${holeD}` : `盲孔 Ø${holeD}${holeDepth > 0 ? ` 深${holeDepth}` : '（深≈1.5×Ø）'}`)}
         >
           {!(holeD > 0) && <div role="alert" data-testid="hole-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>尺寸已拒絕：孔徑Ø必須大於 0（已清除非法預覽）</div>}
-          <div style={{ color: '#6b7680', fontWeight: 600 }}>Placement</div>
+          {(() => { const ov = holeBlindOverrun(useApp.getState()); return ov ? <div role="status" data-testid="hole-deep-warning" style={{ color: '#b54708', fontSize: 12, marginBottom: 6 }}>{tStatus(`⚠ 盲孔深度已超過實體厚度（約 ${+ov.thick.toFixed(2)} mm）— 結果等同貫通`, lang)}</div> : null })()}
+          <div style={{ color: '#6b7680', fontWeight: 600 }}>放置</div>
           <SelectionChip label="面／草圖點" count={holePos ? 1 : 0} hint={holePos ? '已選位置；可再點面改位置' : '請在實體面上點選孔位置'} onClear={() => useApp.getState().clearHolePick()} />
           <HoleSketchPointsButton />
-          <div style={{ color: '#6b7680', fontWeight: 600, borderTop: '1px solid #d9e0e5', paddingTop: 8 }}>Shape Settings</div>
+          <div style={{ color: '#6b7680', fontWeight: 600, borderTop: '1px solid #d9e0e5', paddingTop: 8 }}>形狀設定</div>
           <div style={{ color: '#6b7680' }}>孔型</div>
           <div style={{ display: 'flex', gap: 4 }}>
             <button className={'sb-tool' + (holeType === 'simple' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setHoleType('simple')}>通/盲</button>
@@ -6564,14 +6573,14 @@ export default function Viewport() {
                 {holeType === 'simple' && <label style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12 }} title="到下一面（Fusion To Next）：由入口面鑽到正下方最近嘅面止 — 唔使量深度，跟幾何走"><input type="checkbox" checked={holeToNext} onChange={(e) => setHoleToNext(e.target.checked)} />到下一面</label>}
                 {holeType === 'simple' && <label style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12 }} title="到物件（Fusion To Object）：勾選後點目標平面；會儲存面指紋並於重建時重新解析。v1 僅支持同入口平行的平面。"><input type="checkbox" checked={holeToObject} onChange={(e) => setHoleToObject(e.target.checked)} />到物件</label>}
                 {holeType === 'simple' && holeToObject && <button className={'sb-tool pick-slot' + (holeToObjectPick ? ' active' : '')} style={{ padding: '0 5px', minWidth: 0 }} onClick={() => setHoleToObject(true)}>{holeToObjectPick ? '點目標面…' : holeToObjectPt ? '重揀' : '揀目標面'}</button>}
-                {(() => { const ta = holeType === 'simple' && (holeToNext || holeToObject); return <label style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, opacity: ta ? 0.4 : 1 }}><input type="checkbox" checked={holeThrough} disabled={ta} onChange={(e) => setHoleThrough(e.target.checked)} />贯通</label> })()}
+                {(() => { const ta = holeType === 'simple' && (holeToNext || holeToObject); return <label style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, opacity: ta ? 0.4 : 1 }}><input type="checkbox" checked={holeThrough} disabled={ta} onChange={(e) => setHoleThrough(e.target.checked)} />貫通</label> })()}
                 {!holeThrough && !(holeType === 'simple' && (holeToNext || holeToObject)) && <span><LenInput mm={holeDepth} onMm={setHoleDepth} unit={unit} w={50} min={0} max={1000000} title="孔深（0／空白＝自動）" /> {unit === 'inch' ? 'in' : unit}</span>}
               </span>
             </label>
           )}
           {holeType === 'simple' && !holeThrough && (
             <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 8, color: '#6b7680', flexWrap: 'wrap' }} title="鑽尖：盲孔底加真實麻花鑽錐尖（機加工實際形狀）；關=平底。鑽尖角：118°標準鋼 / 135°硬料·不鏽 / 90°定心鑽">
-              <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={holeDrillPoint} onChange={(e) => setHoleDrillPoint(e.target.checked)} /> 钻尖锥底</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={holeDrillPoint} onChange={(e) => setHoleDrillPoint(e.target.checked)} /> 鑽尖錐底</label>
               {holeDrillPoint && (<>
                 <input type="number" min={60} max={180} step={1} value={holeDrillAngle} onChange={(e) => setHoleDrillAngle(Number(e.target.value))} style={{ width: 48 }} />°
                 {[118, 135, 90].map((v) => <button key={v} className={'sb-tool' + (holeDrillAngle === v ? ' active' : '')} style={{ padding: '0 6px', minWidth: 0 }} title={v === 118 ? '標準鋼' : v === 135 ? '硬料/不鏽' : '定心鑽'} onClick={() => setHoleDrillAngle(v)}>{v}°</button>)}
@@ -6727,9 +6736,14 @@ export default function Viewport() {
               尺寸已拒絕：{featDlgBlockingReason(featDlg)}
             </div>
           )}
+          {(() => { const w = patternOverlapWarning(featDlg, meshBboxSize(bodyMesh)); return w ? <div role="status" data-testid="pattern-overlap-warning" style={{ color: '#b54708', fontSize: 12, marginBottom: 6 }}>{tStatus(w, lang)}</div> : null })()}
+          {!featDlgBlockingReason(featDlg) && editPreviewMesh && featDlg.kind !== 'extrude-edit' && (() => {
+            const vt = meshVolumeMm3(editPreviewMesh.vertices, editPreviewMesh.triangles) + (editPreviewMesh.parked ?? []).reduce((a, pb) => a + meshVolumeMm3(pb.vertices, pb.triangles), 0)
+            return <div data-testid="feat-preview-volume" style={{ fontSize: 11, color: '#16a36b', marginBottom: 6 }}>{tStatus('即時預覽（同確定後結果一樣）', lang)} · {tStatus('體積', lang)} {vt >= 1000 ? (vt / 1000).toFixed(2) + ' cm³' : vt.toFixed(1) + ' mm³'}</div>
+          })()}
           {featDlg.kind === 'shell-edit' && !(+featDlg.params.thickness > 0) && <div role="alert" data-testid="shell-edit-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div>}
           {(featDlg.kind === 'box' || featDlg.kind === 'wedge') && [featDlg.params.l, featDlg.params.w, featDlg.params.h].some((v) => !(+v > 0)) && <div role="alert" data-testid="prim-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_LENGTH_DETAIL)}</div>}
-          {featDlg.kind === 'extrude-edit' && <div role="status">{!currentEditPreview ? '正在計算上游預覽…' : currentEditPreview.failed ? '預覽失敗，請檢查距離及輪廓' : '上游預覽；确定後重建下游特徵'}</div>}
+          {featDlg.kind === 'extrude-edit' && <div role="status">{!currentEditPreview ? '正在計算上游預覽…' : currentEditPreview.failed ? '預覽失敗，請檢查距離及輪廓' : '上游預覽；確定後重建下游特徵'}</div>}
           {featDlg.editId && <div style={{ fontSize: 11, color: '#8a97a2', marginBottom: 4 }}>{tStatus('編輯模式：改參數 → 確定重建；稜/面選擇集及輪廓保留原值', lang)}</div>}
           {featDlg.kind === 'automatedmodel' && (() => {
             const picks = ((featDlg.payload as { picks?: { p: [number, number, number] }[] } | undefined)?.picks ?? [])
@@ -7050,6 +7064,13 @@ export default function Viewport() {
             <SelectionChip label={tStatus('開口面', lang)} count={+(featDlg.params.nearsN || 0)} hint={tStatus('0 = 預設開頂面', lang)} />
             <label>{tStatus('壁厚', lang)} <FeatNum k="thickness" v={featDlg.params.thickness} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
             <label title={tStatus('壁厚方向：向內=外形保留 · 向外=尺寸外擴 · 兩側=壁跨原邊界', lang)}>{tStatus('方向', lang)} <select value={String(featDlg.params.direction ?? 'inside')} onChange={(e) => setFeatParam('direction', e.target.value)} style={{ height: 26 }}><option value="inside">{tStatus('向內', lang)}</option><option value="outside">{tStatus('向外', lang)}</option><option value="both">{tStatus('兩側', lang)}</option></select></label>
+          </>)}
+          {featDlg.kind === 'emboss' && (<>
+            <label>{tStatus('文字', lang)} <input aria-label={tStatus('浮雕文字', lang)} value={String(featDlg.params.text ?? '')} onChange={(e) => setFeatParam('text', e.target.value)} style={{ width: 140, height: 24 }} autoFocus /></label>
+            <label>{tStatus('字型', lang)} <select aria-label={tStatus('字型', lang)} value={String(featDlg.params.font ?? 'cad')} onChange={(e) => setFeatParam('font', e.target.value)} style={{ height: 26 }}><option value="cad">{tStatus('CAD 標準字型', lang)}</option></select></label>
+            <label>{tStatus('字高', lang)} <FeatNum k="size" v={featDlg.params.size} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
+            <label>{tStatus('深度', lang)} <FeatNum k="depth" v={featDlg.params.depth} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
+            <label>{tStatus('類型', lang)} <select aria-label={tStatus('浮雕類型', lang)} value={String(featDlg.params.mode ?? 'emboss')} onChange={(e) => setFeatParam('mode', e.target.value)} style={{ height: 26 }}><option value="emboss">{tStatus('凸起', lang)}</option><option value="engrave">{tStatus('刻入', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'offsetsolid' && (<>
             <label title={tStatus('整體偏移所有面：正=外擴(加厚鑄件壁/補償)，負=內縮。凸邊按圓角接合', lang)}>{tStatus('偏移距離', lang)} <FeatNum k="distance" v={featDlg.params.distance} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
@@ -7710,7 +7731,7 @@ export default function Viewport() {
           icon="extrude"
           title={tStatus('拉伸', lang)}
           width={320}
-          okTip={extrudeRegionTotal > 0 && extrudeRegionSelCount === 0 ? tStatus('先點畫布揀要拉伸嘅 profile 區域', lang) : tStatus('生成（Enter）', lang)}
+          okTip={extrudeRegionTotal > 0 && extrudeRegionSelCount === 0 ? tStatus('先點畫布揀要拉伸嘅輪廓區域', lang) : tStatus('生成（Enter）', lang)}
           okDisabled={!!numBad || !!extrudeExpressionError || (busy || (!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) || !!extrudeExpressionError || extrudeSelectionCleared || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6)))}
           onOk={() => void extrudeSketch()}
           onCancel={() => cancelExtrudeDlg()}
@@ -7719,6 +7740,8 @@ export default function Viewport() {
           <SelectionChip label="輪廓" count={extrudeSelectionCleared ? 0 : extrudeRegionTotal > 0 ? extrudeRegionSelCount : sketchProfiles.length + (sketchShape ? 1 : 0)} hint="在畫布點選閉合區域" onClear={() => useApp.getState().clearExtrudeSelection()} />
           {extrudeRegionTotal > 1 && <button className="sb-tool" onClick={() => useApp.setState({ extrudeSelectionCleared: false, extrudeRegionSel: useApp.getState().extrudeRegionSel.map(() => true) })}>全選輪廓</button>}
           {(!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) && <p role="alert">公式暫支持單輪廓的單側／對稱距離；其他方式請用數值。</p>}
+          {['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6) && <p role="alert" data-testid="extrude-zero-alert" style={{ color: '#b42318', fontSize: 12, margin: '2px 0' }}>{tStatus('距離不可為 0 — 請輸入非零距離（負數＝反方向）', lang)}</p>}
+          {extrudeExtent === 'distance' && extrudeHeight < -1e-6 && <p role="status" data-testid="extrude-flip-note" style={{ color: '#b54708', fontSize: 12, margin: '2px 0' }}>{tStatus(`⇅ 負距離：向反方向拉伸 ${+Math.abs(extrudeHeight).toFixed(4)} mm`, lang)}</p>}
           <label>起點 <span>草圖平面</span></label>
           <label>方向 <select aria-label="拉伸方向" value={extrudeExtent === 'symmetric' || extrudeExtent === 'twosides' ? extrudeExtent : 'distance'} onChange={e => setExtrudeExtent(e.target.value as typeof extrudeExtent)}>
             <option value="distance">單側</option><option value="symmetric">對稱</option><option value="twosides">兩側</option>
@@ -7776,11 +7799,12 @@ export default function Viewport() {
               <span><LenInput mm={extrudeStart} onMm={(v) => useApp.getState().setExtrudeStart(v)} unit={unit} w={66} title={tStatus('起點偏移（0=由草圖面起）', lang)} /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           )}
+          {/* CORE16：拔模角收入「高級」（Fusion Taper Angle 唔喺主欄）— 開對話框直接打數字落距離，唔會誤入拔模角；拔模≠0 時自動展開 */}
+          <details className="command-advanced" open={extrudeDraft !== 0 || undefined}><summary>{msg('vp.advancedTwist', lang)}</summary>
           <label title={tStatus('拔模角：側壁錐度（正=越拉越窄）。僅水平(XY/頂面)草圖；凹輪廓太陡會自動改直拉伸。', lang)}>
             <span style={{ color: 'var(--text-dim)' }}>{tStatus('拔模角', lang)}</span>
-            <span><input type="number" step={1} value={extrudeDraft} onChange={(e) => setExtrudeDraft(Number(e.target.value) || 0)} style={{ width: 66 }} /> °</span>
+            <span><input type="number" step={1} aria-label={tStatus('拔模角', lang)} value={extrudeDraft} onChange={(e) => setExtrudeDraft(Number(e.target.value) || 0)} style={{ width: 66 }} /> °</span>
           </label>
-          <details className="command-advanced"><summary>{msg('vp.advancedTwist', lang)}</summary>
           <label title={tStatus('扭轉角：拉伸時繞高度方向旋轉', lang)}>
             <span style={{ color: 'var(--text-dim)' }}>{tStatus('扭轉', lang)}</span>
             <span><input type="number" step={5} value={sketchTwist} onChange={(e) => setSketchTwist(Number(e.target.value) || 0)} style={{ width: 66 }} /> °</span>
@@ -7816,14 +7840,14 @@ export default function Viewport() {
         >
           <SelectionChip label={tStatus('路徑', lang)} count={sweepEdgeLinesV.length ? sweepEdgeLinesV.length : (sweepAxis || sweepEditId ? 1 : ((sketchShape && sketchShape.type === 'poly') || polyPts.length >= 2 ? 1 : 0))} hint={tStatus(sweepEditId ? '編輯模式會保留原本的 2D/3D 路徑與導軌；改參數後按确定重建' : '先畫折線/樣條作路徑，或選構造軸脊線，或用下面「拾實體邊」逐條接力', lang)} onClear={sweepEdgeLinesV.length ? () => useApp.getState().clearSweepEdges() : undefined} />
           {/* GM-3DV1 S5：沿实体边链拾路径（Fusion Chain Path）+ S15 active pick-slot 高亮 */}
-          <label title={tStatus('沿實體邊鏈做路徑（Fusion Chain Path）：撳「拾實體邊」→ 喺實體上逐條點相連嘅棱邊接力（青色高亮），截面沿邊鏈掃掠。适合沿已有實體邊加管/導軌。', lang)}>
+          <label title={tStatus('沿實體邊鏈做路徑：撳「拾實體邊」→ 喺實體上逐條點相連嘅棱邊接力（青色高亮），截面沿邊鏈掃掠。适合沿已有實體邊加管/導軌。', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('實體邊鏈', lang)}</span>
             <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <button className={'cs-btn pick-slot' + (sweepEdgePickV ? ' active' : '')} onClick={() => useApp.getState().toggleSweepEdgePick()}>{sweepEdgePickV ? tStatus('拾邊中…', lang) : tStatus('🎯拾實體邊', lang)}</button>
               {sweepEdgeLinesV.length > 0 && <span className="sel-chip">{sweepEdgeLinesV.length}<span className="sel-chip-x" onClick={() => useApp.getState().clearSweepEdges()}>✕</span></span>}
             </span>
           </label>
-          <SelectionChip label={tStatus('導軌', lang)} count={sweepGuide && sweepGuide.length >= 2 ? 1 : 0} hint={tStatus('⤳掃掠導軌（草圖工具欄）：畫折線→記低 — 截面沿路徑行進時跟導軌轉向（Fusion Guide Rail）', lang)} onClear={() => useApp.getState().clearSweepGuide()} />
+          <SelectionChip label={tStatus('導軌', lang)} count={sweepGuide && sweepGuide.length >= 2 ? 1 : 0} hint={tStatus('⤳掃掠導軌（草圖工具欄）：畫折線→記低 — 截面沿路徑行進時跟導軌轉向（導軌）', lang)} onClear={() => useApp.getState().clearSweepGuide()} />
           {caxes.length > 0 && (
             <label title={tStatus('路徑來源：用你畫的折線，或拿一條構造軸當直線脊線（沿軸方向掃一段長度）', lang)}>
               <span style={{ color: '#6b7680' }}>{tStatus('路徑來源', lang)}</span>
@@ -7842,7 +7866,7 @@ export default function Viewport() {
           <div style={{ color: '#6b7680' }}>{tStatus('截面', lang)}</div>
           <div style={{ display: 'flex', gap: 4 }}>
             <button className={'sb-tool' + (sweepSection === 'circle' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSweepSection('circle')}>{tStatus('◯ 圓', lang)}</button>
-            <button className={'sb-tool' + (sweepSection === 'profile' ? ' active' : '')} style={{ flex: 1 }} title={tStatus('任意草圖截面（Fusion 式）：先畫一個閉合輪廓（以原點為中心），再畫路徑折線 — 截面垂直路徑掃過', lang)} onClick={() => setSweepSection('profile')}>{tStatus('▱ 草圖輪廓', lang)}</button>
+            <button className={'sb-tool' + (sweepSection === 'profile' ? ' active' : '')} style={{ flex: 1 }} title={tStatus('任意草圖截面：先畫一個閉合輪廓（以原點為中心），再畫路徑折線 — 截面垂直路徑掃過', lang)} onClick={() => setSweepSection('profile')}>{tStatus('▱ 草圖輪廓', lang)}</button>
           </div>
           {sweepError && <div className="sb-hint" role="alert" style={{ color: '#e03131', fontSize: 11 }}>⚠ {tStatus(sweepError, lang)}</div>}{/* RETEST21 #2：唔可以靜靜雞失敗 */}
           {sweepSection === 'circle' && <label title={tStatus('圓形截面的直徑，沿路徑掃掠', lang)}>
@@ -7866,7 +7890,7 @@ export default function Viewport() {
             </>
           )}
           {/* GM-3DV1 S5：截面朝向（Fusion Orientation）— 垂直=截面恒⊥脊线（缺省）；平行=截面保初始朝向不随脊线转（对圆截面无视觉差，配草图轮廓/扭转用） */}
-          <label title={tStatus('截面朝向（Fusion Orientation）：垂直=截面沿路徑恆保持⊥脊線（缺省）；平行=截面保持初始朝向、不隨脊線轉向。對圓截面無視覺差別，配非對稱草圖輪廓時最明顯', lang)}>
+          <label title={tStatus('截面朝向：垂直=截面沿路徑恆保持⊥脊線（缺省）；平行=截面保持初始朝向、不隨脊線轉向。對圓截面無視覺差別，配非對稱草圖輪廓時最明顯', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('截面朝向', lang)}</span>
             <span><select value={sweepOrient} onChange={(e) => setSweepOrient(e.target.value as 'perp' | 'parallel')} style={{ width: 120 }}>
               <option value="perp">{tStatus('垂直（⊥脊線）', lang)}</option>
@@ -7883,11 +7907,11 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>{tStatus('爬升 Z (3D)', lang)}</span>
             <span><input type="number" step={5} value={sweepClimb} onChange={(e) => setSweepClimb(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
           </label>
-          <label title={tStatus('扭轉：截面沿脊線行進時繞路徑方向旋轉嘅總角度（Fusion sweep twist）。0=不扭。對圓截面無視覺效果，配草圖輪廓截面用。', lang)}>
+          <label title={tStatus('扭轉：截面沿脊線行進時繞路徑方向旋轉嘅總角度。0=不扭。對圓截面無視覺效果，配草圖輪廓截面用。', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('扭轉', lang)}</span>
             <span><input type="number" step={15} value={sweepTwist} onChange={(e) => setSweepTwist(Number(e.target.value))} style={{ width: 66 }} /> °</span>
           </label>
-          <label title={tStatus('末端縮放：末端截面相對起端等比縮放（taper，Fusion sweep scale）。1=不變；0.5=末端收一半；>1=放大。喇叭口/錐管/收口。', lang)}>
+          <label title={tStatus('末端縮放：末端截面相對起端等比縮放（錐度）。1=不變；0.5=末端收一半；>1=放大。喇叭口/錐管/收口。', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('末端縮放', lang)}</span>
             <span><input type="number" min={0.05} step={0.1} value={sweepScale} onChange={(e) => setSweepScale(Number(e.target.value) || 1)} style={{ width: 66 }} /> ×</span>
           </label>

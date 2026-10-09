@@ -1319,7 +1319,7 @@ const messages: Record<string, string> = {
   "ui.selectThroughOn": "🔓 Select through: ON (click also picks occluded components; box/lasso already penetrate)",
   "ui.showToolNames": "Show or hide tool names",
   "ui.workspace": "Workspace",
-  "vp.advancedTwist": "Advanced · twist",
+  "vp.advancedTwist": "Advanced · taper / twist",
   "vp.cancelForm": "Cancel Form",
   "vp.ctrlPoint": "Control point · mm",
   "vp.finishForm": "Finish Form",

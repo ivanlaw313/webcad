@@ -1319,7 +1319,7 @@ const messages: Record<string, string> = {
   "ui.selectThroughOn": "🔓 貫通選択：ON（クリックで隠れコンポーネントも選択；枠/なげなわは元から貫通）",
   "ui.showToolNames": "ツール名の表示／非表示",
   "ui.workspace": "ワークスペース",
-  "vp.advancedTwist": "詳細 · ねじり",
+  "vp.advancedTwist": "詳細 · テーパー／ねじり",
   "vp.cancelForm": "フォーム取消",
   "vp.ctrlPoint": "制御点 · mm",
   "vp.finishForm": "フォーム完了",

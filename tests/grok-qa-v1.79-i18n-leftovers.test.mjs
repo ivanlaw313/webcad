@@ -168,7 +168,7 @@ test('v1.79 CREATE menu includes cone — JA 円錐 via tool.cone', () => {
   // cone sits with box/cyl/sphere/torus (not only LAB 更多基元)
   const sphereAt = create.indexOf("id: 'sphere'")
   const torusAt = create.indexOf("id: 'torus'")
-  const coneAt = create.indexOf("id: 'cone'")
+  const coneAt = create.lastIndexOf("id: 'cone'")   // CORE16：圓柱 ▾ flyout 亦含 cone；獨立項仍喺 torus 之後
   assert.ok(coneAt > torusAt && torusAt > sphereAt, 'cone should follow torus in CREATE')
   assert.equal(msg('tool.cone', 'ja'), '円錐')
   assert.equal(tLabel('圓錐', 'ja'), '円錐')

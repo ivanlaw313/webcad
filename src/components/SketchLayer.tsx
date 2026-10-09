@@ -1407,7 +1407,8 @@ export function RevolvePreview() {
     if (wall > 0) { const inner: Pt[][] = []; for (const L of loops2D) { const o = shrinkLoopToward(L, wall); if (o) inner.push(o) } loops2D.push(...inner) }
     const op = String(p.op || 'new')
     const color = op === 'cut' ? '#ff5a4d' : op === 'intersect' ? '#c78ae0' : '#1572c4'
-    let ang = Math.abs(+p.angle || 360); if (!(ang > 0)) ang = 360; ang = Math.min(360, ang)
+    const ang0 = +p.angle; if (!(ang0 > 0 && ang0 <= 360)) return null   // CORE16：角度 0／空白／>360 = 非法 → 唔畫整圈假預覽（對話框紅字 + 確定停用）
+    const ang = Math.min(360, ang0)
     const sym = !!p.sym && ang > 0 && ang < 360
     // 轴方向/轴点（CAD）：共用 resolveRevolveAxis（同 RevolveAngleHandle）。
     // Resolve axis against authored origin first, then rebuild the lathe frame with that axis
@@ -1542,7 +1543,8 @@ export function RevolveAngleHandle() {
     const { axO, d } = axis
     const frame = revolvePreviewContext(featDlg, features, d)
     const outer = revolveOuterLoop(featDlg as { payload?: unknown; editId?: string }, features as { id: string; type?: string; profile?: unknown }[]); if (!outer) return null
-    let ang = Math.abs(+p.angle || 360); if (!(ang > 0)) ang = 360; ang = Math.min(360, ang)
+    const ang0 = +p.angle; if (!(ang0 > 0 && ang0 <= 360)) return null   // CORE16：角度 0／空白／>360 = 非法 → 唔畫整圈假預覽（對話框紅字 + 確定停用）
+    const ang = Math.min(360, ang0)
     const total = (ang * Math.PI) / 180, sym = !!p.sym && ang > 0 && ang < 360
     const op = String(p.op || 'new')
     const flipSense = (op === 'cut' || op === 'intersect') && !sym && ang < 359.9

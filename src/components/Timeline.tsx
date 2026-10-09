@@ -10,7 +10,7 @@ import { useDraggable } from './useDraggable'
 import { computeScrubIndex, chipSwatchColor } from '../cad/selectionModel'   // GM-X4 #9：色板 + hideInactive 稳健回卷索引
 
 // P2 Edit Feature：双击呢啲 kind 重开原创建对话框（其余 sketch 类照旧开草图编辑器 / fallback 内联条）
-const EDIT_DLG_KINDS = new Set<string>(['extrude', 'revolve', 'sweep', 'loft', 'fillet', 'chamfer', 'shell', 'mirror', 'pattern', 'geoPattern', 'circPattern', 'pathpattern', 'coil', 'rib', 'scale', 'transform', 'draft', 'othread', 'ithread', 'hole'])
+const EDIT_DLG_KINDS = new Set<string>(['extrude', 'revolve', 'sweep', 'loft', 'fillet', 'chamfer', 'shell', 'mirror', 'pattern', 'geoPattern', 'circPattern', 'pathpattern', 'coil', 'rib', 'scale', 'transform', 'draft', 'othread', 'ithread', 'hole', 'split', 'text'])
 
 // 测试报告观察 C：时间轴特徵尺寸输入 — 改为本地缓冲 + 失焦/Enter 先提交（之前每个 keystroke 即触发
 // 异步重建，令打字被打断 / 自动化改唔到值）。同 featDlg 输入一致行为。外部值变（参数绑定/撤销）会重新同步。
@@ -145,7 +145,13 @@ export default function Timeline() {
   const toggleSuppress = useApp((s) => s.toggleSuppress)
   const moveFeature = useApp((s) => s.moveFeature)
   const timelinePos = useApp((s) => s.timelinePos)
-  const commandEditing = useApp(s => !!s.featDlg || s.extrudeDlgOpen || !!s.edgeRoundPick || s.shellMode || s.pushPullMode || s.mode === 'sketch')
+  const commandEditing = useApp(s => !!s.featDlg || s.extrudeDlgOpen || !!s.edgeRoundPick || s.shellMode || s.pushPullMode || s.holeMode || s.sweepDlgOpen || s.loftDlgOpen || s.mode === 'sketch')
+  // CORE16：命令（對話框／孔／拉伸…）一關，底部編輯條唔好再彈返出嚟（Fusion：確定後冇選中特徵）。
+  const wasEditingRef = useRef(commandEditing)
+  useEffect(() => {
+    if (wasEditingRef.current && !commandEditing && useApp.getState().selectedFeature) useApp.getState().selectFeature(null)
+    wasEditingRef.current = commandEditing
+  }, [commandEditing])
   const editId = useApp((s) => s.featDlg?.kind === 'extrude-edit' ? s.featDlg.editId : undefined)
   const editIndex = editId ? features.findIndex(f => f.id === editId) : -1
   const gotoStep = useApp((s) => s.gotoStep)

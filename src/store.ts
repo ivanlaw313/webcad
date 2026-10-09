@@ -137,7 +137,7 @@ import { visualStyleToRender, renderToVisualStyle, edgeStateToMode, edgeModeToSt
 import { detectPreset, presetById, fmtLenU, fmtMassU, areaVolBaseUnit, type LenU, type MassU, type UnitPreset } from './cad/unitPresets'
 import { makeCanvas, patchCanvas, sanitizeCanvases, archivedCanvases, canvasToLegacyImg, nextCanvasId, decalExtras, patchDecalFields, buildImportSketchSource, preferDxfSketchOnly, forceDxfSketchOnly, rejectDxfImport, DXF_MAX_TEXT_MARKERS, DXF_SCHEMATIC_TEXT_MARKERS, filterByLayers, transformMesh, meshUnitScaleMm, meshInsertPosition, type CanvasItem, type ImpItem, type MeshUnit } from './cad/insertModel'   // GM-X3 插入：多张 Canvas / 逐张字段 / Decal 字段 / SVG·DXF→草图源 / Mesh 单位·flip·摆位（纯逻辑，Node 測過）
 import { DEFAULT_SEL_FILTER, migrateSelFilter, withSelType, withAllTypes, withNoTypes, withPriority, withSelThrough, matchByName, matchBySize, invertSet, SEL_TYPES, type SelFilter, type SelType, type SelPriority, type SizeOp } from './cad/selectionModel'   // GM-X4 选择：selFilter 逐类型过滤 + 优先级 + 穿透 + By-Name/Size + Invert（纯逻辑，Node 测过）
-import { featureDependents, reorderedFeatures, orderViolation, topoFeaturesToCheck, topoRefsResolvable } from './cad/featureDeps'   // T1/T2 + RETEST19 #1
+import { featureDependents, reorderedFeatures, orderViolation, topoFeaturesToCheck, topoRefsResolvable, isTopoRefFeature } from './cad/featureDeps'   // T1/T2 + RETEST19 #1
 
 export type Pt = [number, number] // three.js ground coords [x, z]
 export type PickOption = { value: string; label: string; hint?: string }   // RETEST17 #1：appPick 清單項
@@ -19722,6 +19722,27 @@ export const useApp = create<AppState>((rawSet, get) => {
       const cur = get()
       const before = docSnap(cur)
       const features = cur.features.filter((f) => !doomed.has(f.id))
+      // RETEST19 #6：先用 previewRound 試建（唔掂 store status／當前形狀）搵出刪除後會失敗嘅特徵，問完先真正重建 ——
+      // 以前用 applyFeatures 試，失敗訊息（「圓角半徑太大」）會喺確認框之前閃現喺狀態列。
+      {
+        const sup = cur.suppressedIds.filter((x) => !doomed.has(x))
+        const bound = applyParamBindings(features, cur.params, cur.paramBindings)
+        const active = expandFeats(sup.length ? bound.filter((x) => !sup.includes(x.id)) : bound)
+        let pm: Awaited<ReturnType<typeof cad.previewRound>> = null, probed = false
+        if (active.length) { try { pm = await cad.previewRound(active); probed = true } catch { probed = false } }
+        if (get().features !== cur.features) return   // 期間文件變咗 → 放棄
+        let probeFail: string[] = []
+        if (pm) probeFail = mapKernelFailuresToTimeline(pm.failed, bound).ids
+        else if (probed) probeFail = features.filter((f) => !sup.includes(f.id) && isTopoRefFeature(f as unknown as Parameters<typeof isTopoRefFeature>[0])).map((f) => f.id)   // 冇實體 → 圓角／抽殼等冇嘢可做
+        const failing = probeFail.filter((x) => !doomed.has(x) && cur.features.some((f) => f.id === x))
+        if (failing.length) {
+          const names = failing.map((x) => label(cur.features.find((f) => f.id === x)!))
+          const more = await get().appConfirm(`刪除後以下特徵會重建失敗（依賴已刪除的幾何）：\n${names.map((n) => '・' + n).join('\n')}\n\n確定：一併刪除\n取消：保留原模型`, '刪除特徵')
+          if (!more) { set({ status: '已取消刪除 — 模型及歷史不變' }); return }
+          doomed = new Set([...doomed, ...failing])
+          continue
+        }
+      }
       set((st) => ({ suppressedIds: st.suppressedIds.filter((x) => !doomed.has(x)) }))
       const ok = await get().applyFeatures(features, doomed.size > 1 ? `已刪除 ${doomed.size} 個特徵並重建` : '已刪除特徵並重建', true, undefined, before)
       if (ok) {

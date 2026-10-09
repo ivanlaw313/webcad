@@ -4180,6 +4180,24 @@ export function findEndpointTangent(shapes: FShape[], p: Pt, tol: number): { p: 
 
 // UX4 #7：開放折線（直線工具連續畫）收筆 → 已吸正嘅直段自動落 水平/豎直（Fusion 畫線時即時落）。
 // 連續段之間嘅接點係同一條路徑嘅共享頂點（= 天然重合，DOF 同 Fusion「獨立線 + 重合」一樣），唔使額外 ◉。
+// SKETCH12 WF：一鍵自動約束用嘅容差 — 手畫直線同水平／豎直夾角 ≤ 4° 當作水平／豎直；端點距離 ≤ 1 mm 當作重合
+export const AUTO_CON_ANG_TOL = 4
+export const AUTO_CON_POS_TOL = 1
+export function autoHVCons(sh: SketchShape, idx: number, existing: SkCon[], angTolDeg = AUTO_CON_ANG_TOL): SkCon[] {
+  if (sh.type !== 'poly' || sh.smooth || sh.arc || sh.ell || sh.earc || sh.ctrl || sh.projected) return []
+  const v = sh.verts ?? sh.pts, b = sh.bulges ?? [], n = v.length, segN = sh.open ? n - 1 : n, out: SkCon[] = []
+  if (n < 2) return out
+  const tol = Math.tan(angTolDeg * Math.PI / 180)
+  const has = (j: number) => existing.some((c) => c.kind === 'con' && (c.type === 'h' || c.type === 'v') && !c.b && c.a && c.a.kind === 'edge' && (c.a as { shape: number }).shape === idx && (c.a as { idx: number }).idx === j)
+  for (let j = 0; j < segN; j++) {
+    if (Math.abs(b[j] || 0) > 1e-12 || has(j)) continue
+    const p = v[j], q = v[(j + 1) % n], dx = Math.abs(q[0] - p[0]), dy = Math.abs(q[1] - p[1])
+    if (Math.hypot(dx, dy) < 1e-6) continue
+    if (dy <= dx * tol) out.push({ id: skConId(), kind: 'con', type: 'h', a: { kind: 'edge', shape: idx, idx: j } } as SkCon)
+    else if (dx <= dy * tol) out.push({ id: skConId(), kind: 'con', type: 'v', a: { kind: 'edge', shape: idx, idx: j } } as SkCon)
+  }
+  return out
+}
 function openPolyHVCons(sh: SketchShape, idx: number): SkCon[] {
   if (sh.type !== 'poly' || !sh.verts) return []
   const v = sh.verts, b = sh.bulges ?? [], out: SkCon[] = []
@@ -10547,11 +10565,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     const targets = selIdx.size ? [...selIdx] : shapes.map((_, i) => i)
     const sameRef = (x?: SkRef, y?: SkRef) => !!x && !!y && x.kind === y.kind && (x as { shape?: number }).shape === (y as { shape?: number }).shape && (x as { idx?: number }).idx === (y as { idx?: number }).idx
     const auto: SkCon[] = []
-    // ① 重合：逐个目标形跑 inferCoincident（端点精确吸附既有点/圆心/原点）
+    const CAP = 32
+    // ① 重合：逐个目标形跑 inferCoincident。SKETCH12 WF：手畫端點通常差少少先到原點／其他端點 → 用容差（1 mm）推斷，唔再只認精確重合
     for (const ti of targets) {
-      for (const c of inferCoincident(shapes as FShape[], ti, [...s.skCons, ...auto])) auto.push(c)
-      if (auto.length >= 12) break
+      for (const c of inferCoincident(shapes as FShape[], ti, [...s.skCons, ...auto], AUTO_CON_POS_TOL, CAP)) auto.push(c)
+      if (auto.length >= CAP) break
     }
+    // ①b 水平／豎直：直線段同水平／豎直夾角 ≤ AUTO_CON_ANG_TOL° → 加 H/V（之前完全唔推斷，手畫折線只得一個原點重合）
+    const hvEdge = (r: SkRef) => [...s.skCons, ...auto].some((c) => c.kind === 'con' && (c.type === 'h' || c.type === 'v') && !c.b && sameRef(c.a, r))
+    for (const ti of targets) for (const c of autoHVCons(shapes[ti], ti, s.skCons)) { if (auto.length >= CAP) break; auto.push(c) }
     // ② 方向类：把每个 store 形拆成 line/circle/point prim（同 applyDrawInference 一致），对目标形对其余形推断
     type Carrier = { prim: InfPrim; whole: SkRef }
     const shapeInfPrims = (sh: SketchShape, idx: number): Carrier[] => {
@@ -10566,7 +10588,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const conExists = (type: SkConType, a: SkRef, b: SkRef) => s.skCons.some((c) => c.kind === 'con' && c.type === type && ((sameRef(c.a, a) && sameRef(c.b, b)) || (sameRef(c.a, b) && sameRef(c.b, a))))
     const targetSet = new Set(targets)
     for (const { c: tc, idx: ti } of allPrims) {
-      if (!targetSet.has(ti) || auto.length >= 12) continue
+      if (!targetSet.has(ti) || auto.length >= CAP) continue
       const others = allPrims.filter((x) => x.idx !== ti).map((x, k) => ({ ...x.c.prim, id: String(k), _w: x.c.whole } as InfExistingPrim & { _w: SkRef }))
       for (const ic of inferConstraints(tc.prim, others, { angTolDeg: 3, posTol: 1.5 })) {
         const t = typeMap[ic.type]; if (!t) continue
@@ -10574,16 +10596,31 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (!oth) continue
         const a = tc.whole, b = (oth as { _w: SkRef })._w
         if (conExists(t, a, b) || auto.some((c) => c.type === t && ((sameRef(c.a, a) && sameRef(c.b, b)) || (sameRef(c.a, b) && sameRef(c.b, a))))) continue
+        if ((t === 'parallel' || t === 'perp') && hvEdge(a) && hvEdge(b)) continue   // 兩邊都已 H/V → 平行／垂直係多餘（會過約束）
         auto.push({ id: skConId(), kind: 'con', type: t, a, b } as SkCon)
-        if (auto.length >= 12) break
+        if (auto.length >= CAP) break
       }
     }
-    if (!auto.length) { set({ status: `AutoConstrain：${selIdx.size ? '選中集' : '全部幾何'}找不到可加的約束（已足夠約束或無明顯關係）` }); return }
-    const batch = auto.slice(0, 12)
+    if (!auto.length) { set({ status: `自動約束：${selIdx.size ? '選中集' : '全部幾何'}找不到可加的約束（已足夠約束或無明顯關係）` }); return }
+    const batch = auto.slice(0, CAP)
     const ids = new Set(batch.map((c) => c.id))
-    set((s2) => ({ sketchUndo: [...s2.sketchUndo, skSnap(s2)].slice(-80), sketchRedo: [], skCons: [...s2.skCons, ...batch], skSel: [], status: `✓ AutoConstrain：自動加 ${batch.length} 個約束（重合/平行/垂直/相切/等半徑）— 點擊徽章可移除` }))
+    const summary = (list: SkCon[]) => { const n = (f: (c: SkCon) => boolean) => list.filter(f).length; const parts: string[] = []; const h = n((c) => c.type === 'h'), v = n((c) => c.type === 'v'), co = n((c) => c.type === 'coincident'), o = list.length - h - v - co; if (co) parts.push(`重合 ${co}`); if (h) parts.push(`水平 ${h}`); if (v) parts.push(`豎直 ${v}`); if (o) parts.push(`其他 ${o}`); return parts.join('、') }
+    set((s2) => ({ sketchUndo: [...s2.sketchUndo, skSnap(s2)].slice(-80), sketchRedo: [], skCons: [...s2.skCons, ...batch], skSel: [], status: `✓ 自動約束：已加入 ${batch.length} 個約束（${summary(batch)}）— 點擊徽章可移除` }))
     await get().resolveSk()
-    if (get().skConflict) { set((s2) => ({ skCons: s2.skCons.filter((c) => !ids.has(c.id)), status: '⚠ AutoConstrain 部分約束與現有衝突，已整批撤銷' })); await get().resolveSk() }
+    if (get().skConflict) {
+      // SKETCH12 WF：唔再整批撤銷 — 逐個加，衝突嗰個就略過（仍然係一個 undo 步驟；全部衝突 → 收返個 undo 快照）
+      set((s2) => ({ skCons: s2.skCons.filter((c) => !ids.has(c.id)) })); await get().resolveSk()
+      const kept: SkCon[] = []
+      for (const c of batch) {
+        set((s2) => ({ skCons: [...s2.skCons, c] })); await get().resolveSk()
+        if (get().skConflict) { set((s2) => ({ skCons: s2.skCons.filter((x) => x.id !== c.id) })); await get().resolveSk() } else kept.push(c)
+      }
+      if (!kept.length) set((s2) => ({ sketchUndo: s2.sketchUndo.slice(0, -1) }))
+      set({ status: kept.length ? `✓ 自動約束：已加入 ${kept.length} 個約束（${summary(kept)}）；${batch.length - kept.length} 個與現有約束衝突，已略過` : '⚠ 自動約束：推斷所得約束均與現有約束衝突，未有更改' })
+    } else {
+      const dof = get().skDof
+      set({ status: `✓ 自動約束：已加入 ${batch.length} 個約束（${summary(batch)}）${dof != null ? `，剩餘自由度 ${dof}` : ''} — 點擊徽章可移除` })
+    }
   },
   // T756：旧 finishSketch 嘅退出行为 — 保留 live 轮廓唔 commit（ESC / 拉伸消费闸门用）
   exitSketchMode: () => {

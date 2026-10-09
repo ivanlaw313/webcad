@@ -17,7 +17,7 @@ test('default component/joint/body names are localized for display', () => {
 test('JointsPanel / BrowserTree render localized names and Traditional joint labels', () => {
   const jp = readFileSync(new URL('../src/components/JointsPanel.tsx', import.meta.url), 'utf8')
   assert.doesNotMatch(jp, /JOINT_LABEL\[/)
-  assert.match(jp, /tStatus\(JOINT_LABEL_TC\[j\.type\], lang\)/)
+  assert.match(jp, /tStatus\(JOINT_LABEL_TC\[(j\.type|t)\], lang\)/)   // ASM2 P3：卡片類型改為可更改的下拉（選項同樣經 tStatus）
   assert.match(jp, /localizeAsmName\(c\.name, lang\)/)
   const bt = readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')
   assert.match(bt, /\{localizeAsmName\(c\.name, lang\)\}<\/span>/)

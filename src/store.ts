@@ -2256,6 +2256,9 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   computeEnvelope: () => void
   clearEnvelope: () => void
   removeJoint: (id: string) => void
+  jointTypePref: JointType                              // ASM2 P3：「關節」面板類型下拉 ＝ 關節工具類型清單預設高亮（選完記住）
+  setJointTypePref: (t: JointType) => void
+  setJointType: (id: string, type: JointType) => void   // ASM2 P3：更改已建關節的類型（可撤銷）
   selectedJoint: string | null                         // ASM2 #7：瀏覽樹「關節」資料夾選取嘅關節
   selectJoint: (id: string | null) => void
   renameJoint: (id: string, name: string) => void      // ASM2 #7：可撤銷
@@ -11858,13 +11861,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       anchor = [hit.x, hit.y, hit.z]; axis = [ax.x, ax.y, ax.z]
       allowTypes = jointTypeMenu(['revolute', 'slider', 'cylindrical']); defType = 'revolute'
     }
+    // ASM2 P3：預設（高亮＋排第一＋「（預設）」）＝ 用戶已選類型（面板下拉／上次選擇，初始「旋轉」），唔再按幾何默默變「剛性」；
+    // 幾何建議只決定其餘排序。
+    { const pref = s.jointTypePref; if (pref && pref !== defType) { defType = pref; allowTypes = jointTypeMenu([pref, ...allowTypes.filter((t) => t !== pref)]) } }
     const pose = worldToPose(delta.clone().multiply(Mb), meshCenter3(B.mesh))
     // ── 先贴合（俾用户睇到 snap，似 Fusion）—— 但【唔即刻推撤销栈】，留返同建关节一齐做单快照（原子）──
     const preUndo = s.undoStack, preSnap = docSnap(s)   // 贴合前撤销栈 + 全文档快照（最终净推一个 → undo 一步同时还原 snap+joint）
     set({
       jointPickMode: false, jointPick: null, selectedComponent: B.id,
       components: s.components.map((c) => (c.id === B.id ? { ...c, pos: pose.pos, rot: pose.rot } : c)),
-      status: `已貼合「${B.name}」→「${Acomp.name}」${swapped ? '（第一件已固定 → 已自動對調：它做父件）' : ''}，請在彈框選關節類型…`,
+      status: `已貼合「${B.name}」→「${Acomp.name}」${swapped ? '（第一件已固定 → 已自動對調為父件）' : ''}，請在彈出視窗選擇關節類型…`,
     })
     // ── 关节类型选择（appPrompt 编号表，按几何门控）——取消 = 保留贴合、唔建关节（诚实状态）──
     void (async () => {
@@ -11878,6 +11884,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
       const type: JointType = (allowTypes as string[]).includes(r) ? (r as JointType) : defType
+      set({ jointTypePref: type })   // ASM2 P3：記住選擇（面板下拉同步）
       // 建关节：唔用 addJoint（佢自带撤销快照会破坏原子性）—— 此处复用 addJoint 嘅 id/命名规则，同贴合共一快照
       const n = s2.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
       const jid = 'J' + n, joint: Joint = { id: jid, name: '關節' + n, type, parent: A.compId, child: B.id, anchor, axis, angle: 0, slide: 0 }
@@ -14137,6 +14144,23 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   removeMotionLink: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], motionLinks: s.motionLinks.filter((l) => l.id !== id) })),
   // RETEST21 #3：關節卡 ✕ 刪除 = 一步撤銷快照（Fusion：刪除可撤銷）；狀態列講明 Ctrl+Z 可還原（連同佢嘅運動連接）。
+  jointTypePref: 'revolute' as JointType,
+  setJointTypePref: (t) => set({ jointTypePref: t }),
+  setJointType: (id, type) => set((s) => {
+    const j = s.joints.find((x) => x.id === id)
+    if (!j || j.type === type || !(type in JOINT_LABEL_TC)) return {}
+    // 新類型冇嘅自由度歸零（例：旋轉 → 滑動，角度歸 0；→ 剛性全部歸 0），其餘保留；軸／錨點不變
+    const ROT = new Set(['revolute', 'cylindrical', 'ball', 'planar', 'screw', 'pinslot']), SLD = new Set(['slider', 'cylindrical', 'planar', 'pinslot'])
+    const nj: Joint = { ...j, type, angle: ROT.has(type) ? j.angle : 0, slide: SLD.has(type) ? j.slide : 0 }
+    if (type !== 'ball') { delete nj.angle2; delete nj.angle3 }
+    if (type !== 'planar') delete nj.slide2
+    if (type !== 'screw') delete nj.lead
+    return {
+      undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
+      joints: s.joints.map((x) => (x.id === id ? nj : x)),
+      status: `已將關節「${j.name || j.id}」的類型由「${JOINT_LABEL_TC[j.type]}」改為「${JOINT_LABEL_TC[type]}」（可撤銷）`,
+    }
+  }),
   selectedJoint: null,
   selectJoint: (id) => set((s) => {
     const j = id ? s.joints.find((x) => x.id === id) : null

@@ -56,7 +56,9 @@ export default function JointsPanel() {
 
   const [parent, setParent] = useState('')
   const [child, setChild] = useState('')
-  const [type, setType] = useState<JointType>('revolute')
+  // ASM2 P3：關節類型同「關節」工具彈出的類型清單共用（store.jointTypePref）—— 兩邊預設／高亮一致
+  const type = useApp((s) => s.jointTypePref)
+  const setType = useApp((s) => s.setJointTypePref)
   const [axis, setAxis] = useState<'X' | 'Y' | 'Z'>('Z')
   const [originRef, setOriginRef] = useState('')       // GM-3DV4 A1：新关节引用嘅关节原点（''=默认件心）
   const [childOriginRef, setChildOriginRef] = useState('')
@@ -306,7 +308,8 @@ export default function JointsPanel() {
         <div key={j.id} className={'jp-joint' + (j.id === selectedJoint ? ' sel' : '')} data-joint-id={j.id} style={j.id === selectedJoint ? { outline: '2px solid #1572c4', outlineOffset: -1, borderRadius: 4 } : undefined}>
           <div className="jp-row">
             <b>{localizeAsmName(j.name, lang)}</b>
-            <span className="jp-type">{tStatus(JOINT_LABEL_TC[j.type], lang)}</span>
+            {/* ASM2 P3：已建關節可改類型（可撤銷） */}
+            <select className="jp-type" data-testid={`jp-type-${j.id}`} title={tStatus('更改關節類型', lang)} value={j.type} onChange={(e) => useApp.getState().setJointType(j.id, e.target.value as JointType)} style={{ font: 'inherit', cursor: 'pointer' }}>{TYPES.map((t) => <option key={t} value={t}>{tStatus(JOINT_LABEL_TC[t], lang)}</option>)}</select>
             <span className="jp-cc">{name(j.parent)} → {name(j.child)}</span>
             <button className="cs-x" style={holePicking === j.id ? { color: '#ff8a2a' } : undefined} title="🎯 拾孔定軸：點此後再點零件上一個【圓柱孔/軸面】→ 關節錨點對到孔心、轉軸沿孔軸（鉸鏈/轉軸裝到指定孔位）" onClick={() => startJointHolePick(j.id)}>🎯</button>
             {j.type !== 'rigid' && <button className="cs-x" style={posFor === j.id ? { color: '#ff8a2a' } : undefined} title="GM-3DV4 A2/A3：位置 / Rest — 兩原點之間的靜止偏移(X/Y/Z + 角度 + Flip) + 靜止(Rest)位。" onClick={() => setPosFor(posFor === j.id ? '' : j.id)}>⚓</button>}

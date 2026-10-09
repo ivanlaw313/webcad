@@ -66,9 +66,15 @@ test('store: shaft cylinder (parent) + hub plane (child) also accepted', async (
   assert.ok(near(Math.abs(j.axis[2]), 1) && near(j.anchor[0], 0) && near(j.anchor[1], 0) && near(j.anchor[2], 12), `${j.axis} @ ${j.anchor}`)
 })
 
-test('same-kind picks unchanged (plane+plane → rigid default, cyl+cyl → revolute)', async () => {
+test('same-kind picks: dialog default = the user-chosen joint type (ASM2 P3: initially 旋轉, then the last choice) — no silent 剛性', async () => {
+  useApp.setState({ jointTypePref: 'revolute' })
   let a = await pickPair({ kind: 'planar', n: [0, 1, 0], p: [0, 0, 0] }, { kind: 'planar', n: [0, 1, 0], p: [0, 30, 0] })
+  assert.equal(a.def, 'revolute'); assert.equal(g().joints[0].type, 'revolute')
+  assert.equal(a.opts[0], 'revolute')   // listed first (and labelled （預設）)
+  useApp.setState({ jointTypePref: 'rigid' })   // e.g. 剛性 chosen in the 關節 panel / last dialog
+  a = await pickPair({ kind: 'planar', n: [0, 1, 0], p: [0, 0, 0] }, { kind: 'planar', n: [0, 1, 0], p: [0, 30, 0] })
   assert.equal(a.def, 'rigid'); assert.equal(g().joints[0].type, 'rigid')
+  useApp.setState({ jointTypePref: 'revolute' })
   a = await pickPair({ kind: 'cyl', axis: [0, 1, 0], p: [0, 0, 0], r: 3 }, { kind: 'cyl', axis: [0, 1, 0], p: [5, 0, 0], r: 3 })
   assert.equal(a.def, 'revolute'); assert.equal(g().joints[0].type, 'revolute')
 })

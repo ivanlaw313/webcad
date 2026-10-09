@@ -16,7 +16,7 @@ const comp = (id, name) => ({ id, name, mesh: box(), pos: [0, 0, 0], rot: [0, 0,
 test('#3 default body names (實體N / 複製實體N / Body N) are not reused as component names; custom names are', () => {
   for (const n of ['實體1', '实体2', '複製實體3', 'Body 4', 'body5', '實體']) assert.equal(isDefaultBodyName(n), true, n)
   for (const n of ['軸', 'Shaft', '底板 A', '組件1']) assert.equal(isDefaultBodyName(n), false, n)
-  assert.match(read('src/store.ts'), /const nm = !lb\.active && lb\.name && !isDefaultBodyName\(lb\.name\) \? lb\.name : '組件' \+ n/)
+  assert.match(read('src/store.ts'), /const nm = !lb\.active && lb\.name && !isDefaultBodyName\(lb\.name\) \? lb\.name : '組件' \+ \(nameNo0 \+ nameK\+\+\)/)
 })
 
 test('#3 body right-click 「建立組件」: tree (active + parked) and viewport (face / body) menus', () => {
@@ -89,4 +89,24 @@ test('#7 joints folder: select, rename (undoable), edit focuses the panel, delet
   assert.deepEqual(treeMenuKeys('joint'), ['editJoint', 'rename', 'sep', 'delete'])
   const tree = read('src/components/BrowserTree.tsx')
   assert.match(tree, /msg\('tree\.joints', lang\)/); assert.match(read('src/i18n/locales/zh-HK.ts'), /"tree\.joints": "關節"/)
+})
+
+test('P3 component numbering follows existing 組件N names (no skip to 組件2 after delete/undo id gaps)', async () => {
+  const { nextComponentNameNo } = await import('../src/store.ts')
+  assert.equal(nextComponentNameNo([]), 1)
+  assert.equal(nextComponentNameNo([{ name: '組件1' }]), 2)
+  assert.equal(nextComponentNameNo([{ name: '底板' }, { name: '組件3' }]), 4)
+})
+
+test('P3 existing joint type can be changed from the panel (undoable); panel + joint tool share the chosen type', async () => {
+  useApp.setState({ components: [comp('A', '組件1'), comp('B', '組件2')], joints: [{ id: 'J1', name: '關節1', type: 'revolute', parent: 'A', child: 'B', anchor: [0, 0, 0], axis: [0, 1, 0], angle: 30, slide: 0 }], undoStack: [], redoStack: [] })
+  g().setJointType('J1', 'slider')
+  assert.equal(g().joints[0].type, 'slider'); assert.equal(g().joints[0].angle, 0)
+  assert.match(g().status, /類型由「旋轉」改為「滑動」/)
+  await g().undo()
+  assert.equal(g().joints[0].type, 'revolute'); assert.equal(g().joints[0].angle, 30)
+  const panel = read('src/components/JointsPanel.tsx')
+  assert.match(panel, /data-testid=\{`jp-type-\$\{j\.id\}`\}/)
+  assert.match(panel, /useApp\(\(s\) => s\.jointTypePref\)/)
+  assert.equal(g().jointTypePref, 'revolute')
 })

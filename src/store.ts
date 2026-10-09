@@ -10848,20 +10848,20 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 唔再係 componentCenter + 硬编码轴嘅估算。贴合 + 建关节共用【单一撤销快照】原子处理（似 Wave-4 4.2）。
   jointPickMode: false,
   jointPick: null,
-  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, status: '關節拾取：先點【父件（接地邊）】一個面（圓柱孔/軸 或 平面），再點【子件（要郁件）】對應面 → 子件貼合 + 喺該幾何建真關節（圓柱=旋轉/滑動/圓柱/剛性 · 平面=剛性/平面）' }),
+  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, status: '關節拾取：先點【父件（接地邊）】一個面（圓柱孔/軸 或 平面），再點【子件（要郁件）】對應面 → 子件貼合 + 喺該幾何建真關節（圓柱=旋轉/滑動/圓柱/剛性 · 平面=剛性/平面 · 圓柱↔平面=軸穿面心，預設旋轉）' }),
   cancelJointPick: () => set({ jointPickMode: false, jointPick: null, status: '已退出關節拾取' }),
   pickFaceForJoint: (compId, face) => {
     const s = get()
     // 第一拣：记低父件（接地边）
     if (!s.jointPick) {
       const kindLbl = face.kind === 'cyl' ? '圆柱面（同轴 → 旋转/滑动关节）' : '平面（贴平 → 刚性/平面关节）'
-      set({ jointPick: { compId, face }, status: `已選父件基準${kindLbl}，再點【子件（要郁件）】對應面` })
+      set({ jointPick: { compId, face }, status: `已選父件基準${kindLbl}，再點【子件（要郁件）】對應面（圓柱或平面都得 — 圓柱↔平面 = 軸穿面心）` })
       return
     }
-    // 第二拣：子件面 —— 同拣面配合一样嘅校验（唔同件；类型要夹：圆柱配圆柱 / 平面配平面）
+    // 第二拣：子件面 —— 唔同件；RETEST18 #2：類型可以混合（圓柱↔平面）
     const A = s.jointPick   // 父（唔郁）
     if (A.compId === compId) { set({ status: '請點【另一個】組件嘅面（關節兩件唔可以係同一件）' }); return }
-    if (A.face.kind !== face.kind) { set({ status: `兩個面類型唔夾：父件係${A.face.kind === 'cyl' ? '圓柱' : '平面'}，今次係${face.kind === 'cyl' ? '圓柱' : '平面'}。圓柱配圓柱、平面配平面` }); return }
+    // RETEST18 #2：Fusion 容許混合 snap（圓柱軸 ↔ 平面面心/法向）— 唔再拒絕「父平面 + 子圓柱」或相反。
     const Acomp = s.components.find((c) => c.id === A.compId)
     const B = s.components.find((c) => c.id === compId)   // 子（郁）
     if (!Acomp || !B) { set({ jointPickMode: false, jointPick: null, status: '關節拾取失敗：搵唔到組件' }); return }
@@ -10883,7 +10883,19 @@ export const useApp = create<AppState>((rawSet, get) => {
       const n = new Vector3(A.face.n[0], A.face.n[1], A.face.n[2]); if (n.lengthSq() < 1e-12) n.set(0, 1, 0); n.normalize()
       anchor = [post.p[0], post.p[1], post.p[2]]; axis = [n.x, n.y, n.z]
       allowTypes = jointTypeMenu(['rigid', 'planar']); defType = 'rigid'   // 全部 8 類可選（同 JOINTS 面板一致）；建議 rigid/planar 排前。舊註： 滑动沿法向会分离两面（无意义）、沿面内轴方向歧义 → 只提供 kinematics 支持嘅 planar（面内 U/V 平移 + 绕法向转）
-    } else { set({ jointPickMode: false, jointPick: null, status: '關節拾取失敗：面類型組合唔支持' }); return }
+    } else {
+      // RETEST18 #2：圓柱 ↔ 平面（混合 snap）：關節軸 = 圓柱軸（貼合後同平面法向共線）；錨點 = 軸線同平面嘅交點
+      // （= 平面父件面心 / 圓柱父件軸上子面心）。預設旋轉（軸穿板 / 輪轂坐落軸肩）。
+      const cylW = (A.face.kind === 'cyl' ? A.face : transformFace(face, delta)) as Extract<MateFace, { kind: 'cyl' }>
+      const planeW = (A.face.kind === 'planar' ? A.face : transformFace(face, delta)) as Extract<MateFace, { kind: 'planar' }>
+      const ax = new Vector3(cylW.axis[0], cylW.axis[1], cylW.axis[2]); if (ax.lengthSq() < 1e-12) ax.set(0, 1, 0); ax.normalize()
+      const cp = new Vector3(cylW.p[0], cylW.p[1], cylW.p[2]), pp = new Vector3(planeW.p[0], planeW.p[1], planeW.p[2])
+      const n = new Vector3(planeW.n[0], planeW.n[1], planeW.n[2]).normalize()
+      const den = ax.dot(n)
+      const hit = Math.abs(den) > 1e-6 ? cp.clone().add(ax.clone().multiplyScalar(pp.clone().sub(cp).dot(n) / den)) : cp
+      anchor = [hit.x, hit.y, hit.z]; axis = [ax.x, ax.y, ax.z]
+      allowTypes = jointTypeMenu(['revolute', 'slider', 'cylindrical']); defType = 'revolute'
+    }
     // ── 先贴合（俾用户睇到 snap，似 Fusion）—— 但【唔即刻推撤销栈】，留返同建关节一齐做单快照（原子）──
     const preUndo = s.undoStack, preSnap = docSnap(s)   // 贴合前撤销栈 + 全文档快照（最终净推一个 → undo 一步同时还原 snap+joint）
     set({
@@ -10906,7 +10918,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // 建关节：唔用 addJoint（佢自带撤销快照会破坏原子性）—— 此处复用 addJoint 嘅 id/命名规则，同贴合共一快照
       const n = s2.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
       const jid = 'J' + n, joint: Joint = { id: jid, name: '關節' + n, type, parent: A.compId, child: B.id, anchor, axis, angle: 0, slide: 0 }
-      const geomLbl = A.face.kind === 'cyl' ? '轴/锚点取自所拣圆柱面' : '锚点取自贴合面心、轴取自平面法向'
+      const geomLbl = A.face.kind !== face.kind ? '軸取自圓柱軸、錨點 = 軸線穿過平面處（混合 snap）' : A.face.kind === 'cyl' ? '轴/锚点取自所拣圆柱面' : '锚点取自贴合面心、轴取自平面法向'
       set({
         undoStack: [...preUndo, preSnap].slice(-60), redoStack: [],
         joints: [...s2.joints, joint],

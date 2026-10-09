@@ -61,7 +61,30 @@ export function solveFaceMateDelta(faceA: MateFace, faceB: MateFace, opts?: { fl
       .multiply(R)
       .multiply(new Matrix4().makeTranslation(-pB.x, -pB.y, -pB.z))
   }
-  return new Matrix4() // mismatched kinds → identity (caller should require same kind)
+  // RETEST18 #2：Fusion 式混合 snap（圓柱軸 ↔ 平面）。軸方向對準平面法向（揀最少轉動嗰個符號 → 唔會無故反轉零件），
+  // 軸線穿過平面面心；沿軸/法向嘅高度保留（同 cyl-cyl 保留軸向位置一致 — 唔會將軸一半插入板）。flip 反轉方向。
+  if (faceA.kind === 'cyl' && faceB.kind === 'planar') {
+    // 父 = 圓柱（軸），子 = 平面：子面法向 → ±父軸；子面心移到父軸線上（軸向位置保留）
+    const aA = v3(faceA.axis).normalize(), nB = v3(faceB.n).normalize()
+    const pA = v3(faceA.p), pB = v3(faceB.p)
+    let target = nB.dot(aA) >= 0 ? aA.clone() : aA.clone().negate()
+    if (flip) target = target.negate()
+    const R = new Matrix4().makeRotationFromQuaternion(quatFromTo(nB, target))
+    const proj = pA.clone().add(aA.clone().multiplyScalar(pB.clone().sub(pA).dot(aA) + gap))
+    return new Matrix4().makeTranslation(proj.x, proj.y, proj.z).multiply(R).multiply(new Matrix4().makeTranslation(-pB.x, -pB.y, -pB.z))
+  }
+  if (faceA.kind === 'planar' && faceB.kind === 'cyl') {
+    // 父 = 平面，子 = 圓柱（軸）：子軸 → ±父法向；子軸線穿過父面心（沿法向高度保留）
+    const nA = v3(faceA.n).normalize(), aB = v3(faceB.axis).normalize()
+    const pA = v3(faceA.p), pB = v3(faceB.p)
+    let target = aB.dot(nA) >= 0 ? nA.clone() : nA.clone().negate()
+    if (flip) target = target.negate()
+    const R = new Matrix4().makeRotationFromQuaternion(quatFromTo(aB, target))
+    const h = pB.clone().sub(pA).dot(nA) + gap
+    const dst = pA.clone().add(nA.clone().multiplyScalar(h))
+    return new Matrix4().makeTranslation(dst.x, dst.y, dst.z).multiply(R).multiply(new Matrix4().makeTranslation(-pB.x, -pB.y, -pB.z))
+  }
+  return new Matrix4()
 }
 
 export type MatePoint = { p: [number, number, number] }

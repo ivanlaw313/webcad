@@ -103,7 +103,7 @@ import { ToolIcon } from '../icons'
 import { featDlgBlockingReason, patternOverlapWarning } from '../cad/featDlgNumeric'   // 純邏輯模組，唔經 monolith
 import { startRenderGovernor } from '../render/renderGovernor'
 import { PRIM_PLACE_KINDS, shellFailReason } from '../store'   // UX3 #2 / CORE16 b4
-import { useApp, holeBlindOverrun, meshBboxSize, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection } from '../store'
+import { useApp, holeBlindOverrun, meshBboxSize, extrudePreviewKey, extrudePreviewCurrent, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
 import { cadPointToThree, formBoxRectCadCorners, makePlacedBoxCage, type FormBoxDraft, type FormBoxPlane } from '../cad/formBox'
@@ -4130,6 +4130,16 @@ export default function Viewport() {
     return () => { cancelled = true; clearTimeout(timer) }
   }, [featDlg, bodyMesh, editPreviewParams, editPreviewBindings, editPreviewSuppressed, editPreviewFeatures])
   const editPreviewMesh = useApp(s => s.editPreviewMesh)
+  // CORE16：新拉伸對話框內核預覽 — 輸入停 250ms 先算（打字唔會卡）；舊結果一失效即退回即時近似鬼影
+  const xPv = useApp(s => extrudePreviewCurrent(s))
+  const xpKey = useApp(s => s.extrudeDlgOpen ? extrudePreviewKey(s) : '')
+  const xpSketch = useApp(s => s.sketchShape), xpProfiles = useApp(s => s.sketchProfiles), xpArb = useApp(s => s.sketchArb)
+  useEffect(() => {
+    if (!xpKey) { if (useApp.getState().extrudeKernelPreview) useApp.setState({ extrudeKernelPreview: null }); return }
+    let cancelled = false
+    const timer = setTimeout(() => { if (!cancelled) void useApp.getState().previewExtrudeDlg().catch(() => null) }, 250)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [xpKey, xpSketch, xpProfiles, xpArb, editPreviewFeatures, bodyMesh])
   const setFeatParam = useApp((s) => s.setFeatParam)
   const commitFeatDlg = useApp((s) => s.commitFeatDlg)
   /* ★ BUG-529/533/537/538/541/542 ★ 單一真相：任何數值欄而家非法就唔准提交。
@@ -4364,6 +4374,9 @@ export default function Viewport() {
   const sweepAxisLen = useApp((s) => s.sweepAxisLen)
   const setSweepAxisLen = useApp((s) => s.setSweepAxisLen)
   const setSweepDia = useApp((s) => s.setSweepDia)
+  // CORE16：管徑 Ø 打 0／負數唔再靜默變返 12 — 留原文、紅框、閂確定、講原因
+  const [sweepDiaTxt, setSweepDiaTxt] = useState<string | null>(null)
+  useEffect(() => { if (!sweepDlgOpen) setSweepDiaTxt(null) }, [sweepDlgOpen])
   const sketchProfiles = useApp((s) => s.sketchProfiles)
   const sketchShape = useApp((s) => s.sketchShape)
   const sketchUndoN = useApp((s) => s.sketchUndo.length)
@@ -4879,10 +4892,15 @@ export default function Viewport() {
             {section.on && section.capped && sectionCapStatus === 'empty' ? null
               : section.on && section.capped && sectionCapStatus === 'ready' && sectionMesh
                 ? <KernelBody mesh={sectionMesh} displayOnly={!!((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh))} pickable={selPicksBody(selFilter) && mode !== 'sketch' && !formMode} />
+                : xPv ? <KernelBody mesh={bodyMesh} pickOnly clip={clip} pickable={selPicksBody(selFilter) && mode !== 'sketch' && !formMode} />
                 : <KernelBody mesh={editPreviewMesh || (shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh) || bodyMesh} selected={modelSelBodyKeys.includes(ACTIVE_BODY_KEY)} displayOnly={!!((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh))} clip={clip} pickable={selPicksBody(selFilter) && mode !== 'sketch' && !formMode} />}
             {((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh)) && <KernelBody mesh={bodyMesh} pickOnly clip={clip} />}
           </>)
-          : null}   {/* UX1 #2：空白文件唔再畫 100×40×60 灰色半透明「佔位體」（用戶以為係舊檔殘留線框）— Fusion 新檔係空場景 */}
+          : null}
+        {/* CORE16：新拉伸內核預覽 — 確定後嘅真實結果（活動體＋新泊車體），半透明 */}
+        {xPv && <KernelBody key="xpv" mesh={xPv.mesh} frozen displayOnly compColor={sketchOp === 'cut' ? '#e8837a' : sketchOp === 'intersect' ? '#c78ae0' : '#5b9bd5'} compOpacity={0.55} clip={clip} />}
+        {xPv && (xPv.mesh.parked ?? []).slice(bodyMesh?.parked?.length ?? 0).map((pb, i) => <KernelBody key={'xpvp' + i} mesh={pb as unknown as MeshData} frozen displayOnly compColor="#5b9bd5" compOpacity={0.55} clip={clip} />)}
+        {/* UX1 #2：空白文件唔再畫 100×40×60 灰色半透明「佔位體」（用戶以為係舊檔殘留線框）— Fusion 新檔係空場景 */}
         {/* 多实体（T728）：泊车实体灰显。圆角/草图仍作用喺活动实体；SO10：测量体过滤 + 普通体选择时可拾泊车半体。
             S133：编辑曲面控制点 / 加厚曲面模式下变可拾。 */}
         {bodyMesh?.parked?.map((b, i) => (!objectVis.bodies || bodyHidden.includes(parkedBodyKey(b.name, i))) ? null : <ParkedBody key={'pk' + i} mesh={b} index={i} pickable={editPolesMode || quiltPickMode || measureUniMode || (mode === 'model' && !formMode && selPicksBody(selFilter))} picked={modelSelBodyKeys.includes(parkedBodyKey(b.name, i)) || (editPolesMode && editPolesTarget === i) || quiltPickMode || (selectedParkedIndex === i)} onPick={(idx, face, threePt, faceN, toggle) => {
@@ -5140,7 +5158,7 @@ export default function Viewport() {
         <ToolHoverPreview />
         <SizingHandle />
         <CommittedSketches />
-        <ExtrudePreview />
+        {!xPv && <ExtrudePreview />}
         <RevolvePreview />
         {/* GM-W8 A1：补齐无实体预览嘅命令鬼影 */}
         <FaceOffsetGhost />{/* A1.3 加厚 + A1.4 按拉 hover 面偏移板体 */}
@@ -7816,6 +7834,7 @@ export default function Viewport() {
           {extrudeRegionTotal > 1 && <button className="sb-tool" onClick={() => useApp.setState({ extrudeSelectionCleared: false, extrudeRegionSel: useApp.getState().extrudeRegionSel.map(() => true) })}>全選輪廓</button>}
           {(!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) && <p role="alert">公式暫支持單輪廓的單側／對稱距離；其他方式請用數值。</p>}
           {['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6) && <p role="alert" data-testid="extrude-zero-alert" style={{ color: '#b42318', fontSize: 12, margin: '2px 0' }}>{tStatus('距離不可為 0 — 請輸入非零距離（負數＝反方向）', lang)}</p>}
+          {xPv && <div data-testid="extrude-preview-volume" style={{ fontSize: 11, color: '#16a36b', margin: '2px 0 4px' }}>{tStatus('即時預覽（同確定後結果一樣）', lang)} · {tStatus('體積', lang)} {xPv.volume >= 1000 ? (xPv.volume / 1000).toFixed(2) + ' cm³' : xPv.volume.toFixed(1) + ' mm³'}</div>}
           {extrudeExtent === 'distance' && extrudeHeight < -1e-6 && <p role="status" data-testid="extrude-flip-note" style={{ color: '#b54708', fontSize: 12, margin: '2px 0' }}>{tStatus(`⇅ 負距離：向反方向拉伸 ${+Math.abs(extrudeHeight).toFixed(4)} mm`, lang)}</p>}
           <label>起點 <span>草圖平面</span></label>
           <label>方向 <select aria-label="拉伸方向" value={extrudeExtent === 'symmetric' || extrudeExtent === 'twosides' ? extrudeExtent : 'distance'} onChange={e => setExtrudeExtent(e.target.value as typeof extrudeExtent)}>
@@ -7908,6 +7927,7 @@ export default function Viewport() {
           width={232}
           okTip={tStatus('生成（Enter）', lang)}
           onOk={() => void commitSweepPath()}
+          okDisabled={!!numBad || (sweepSection === 'circle' && sweepDiaTxt != null && !(Number(sweepDiaTxt.trim()) > 0))}
           onCancel={() => cancelSweepDlg()}
           summary={sweepSection === 'profile'
             ? (sketchOp === 'cut' ? tStatus('沿路徑掃掠切割（草圖截面）', lang) : sketchOp === 'intersect' ? tStatus('沿路徑掃掠 ∩ 保留公共部分', lang) : tStatus('沿路徑掃掠成實體（草圖截面）', lang))
@@ -7946,8 +7966,9 @@ export default function Viewport() {
           {sweepError && <div className="sb-hint" role="alert" style={{ color: '#e03131', fontSize: 11 }}>⚠ {tStatus(sweepError, lang)}</div>}{/* RETEST21 #2：唔可以靜靜雞失敗 */}
           {sweepSection === 'circle' && <label title={tStatus('圓形截面的直徑，沿路徑掃掠', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('管徑 Ø', lang)}</span>
-            <span><input type="number" min={0.5} step={1} value={sweepDia} onChange={(e) => setSweepDia(Number(e.target.value) || 12)} style={{ width: 66 }} /> mm</span>
+            <span><LenInput mm={sweepDia} onMm={(v) => setSweepDia(v)} onText={setSweepDiaTxt} unit={unit} w={66} min={0.01} max={100000} title={tStatus('管徑 Ø', lang)} /> {unit === 'inch' ? 'in' : 'mm'}</span>
           </label>}
+          {sweepSection === 'circle' && sweepDiaTxt != null && sweepDiaTxt.trim() !== '' && Number.isFinite(Number(sweepDiaTxt.trim())) && !(Number(sweepDiaTxt.trim()) > 0) && <div role="alert" data-testid="sweep-dia-alert" style={{ color: '#b42318', fontSize: 11 }}>{tStatus('尺寸已拒絕：管徑 Ø 必須大於 0', lang)}</div>}
           {sweepSection === 'profile' && (
             <>
               {(() => {

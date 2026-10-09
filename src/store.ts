@@ -35,7 +35,7 @@ import { sanitizeBodyHidden, toggleHiddenKey, setHiddenKey, parkedBodyKey as bom
 import { removeContourEdges } from './sketch/deleteSketchEdges'
 import { applySelClick, mergeSel, type ModelSelItem, type SelMod } from './cad/modelSelection'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
-import { splitVolumeNoteForMesh } from './ui/splitVolume'
+import { splitVolumeNoteForMesh, meshVolumeMm3 } from './ui/splitVolume'
 import { formatBuildWarnings, plainFeatureError } from './ui/featureStatus'
 import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, extrudeExtraNote, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus, gearSuccessStatus, wormSuccessStatus, profileSuccessStatus, profileSectionName } from './ui/featureStatus'
 import { lengthScale } from './io/units'
@@ -2286,6 +2286,9 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   setSection: (patch: Partial<{ on: boolean; axis: 'X' | 'Y' | 'Z'; offset: number; capped: boolean; flip: boolean; plane?: { origin: [number, number, number]; normal: [number, number, number]; label?: string; sourceIndex?: number } }>) => void
   sectionCapStatus: 'idle' | 'busy' | 'ready' | 'empty' | 'unavailable'
   editPreviewMesh: MeshData | null
+  /** CORE16：新拉伸對話框內核預覽（同確定同一套組裝 → 結果完全一致）；只在 key/引用同當前狀態一致時顯示 */
+  extrudeKernelPreview: ExtrudeKernelPreview | null
+  previewExtrudeDlg: () => Promise<MeshData | null>
   sectionMesh: MeshData | null            // capped-section solid (body ∩ half-space); null = clip-plane mode
   refreshSectionCap: () => Promise<void>  // recompute the capped-section solid from the current model
   overhang: { on: boolean; tris: number[] } | null // 3D-print overhang analysis: flagged face positions
@@ -4925,6 +4928,20 @@ let _roundPvTimer: ReturnType<typeof setTimeout> | null = null
 const _previewFeatures = new WeakMap<MeshData, Feature[]>()
 let _sectionCapSeq = 0
 let _editPreviewSeq = 0
+let _extrudePreviewSeq = 0
+export type ExtrudeKernelPreview = { mesh: MeshData; volume: number; key: string; features: Feature[]; shape: unknown; profiles: unknown; arb: unknown }
+/** CORE16：影響新拉伸結果嘅全部對話框輸入（數值部分）；草圖/特徵用引用比較 */
+export function extrudePreviewKey(s: AppState): string {
+  return JSON.stringify([s.extrudeHeight, s.extrudeSide2, s.extrudeExtent, s.extrudeFlip, s.extrudeDraft, s.extrudeDraft2, s.extrudeStart, s.sketchOp, s.symMeasure, s.sketchTwist,
+    s.faceCutThrough, s.faceOutSign, s.extrudeToFaceOff, s.extrudeToFaceOffset, s.extrudeToFacePt, s.extrudeRegionSel, s.extrudeSelectionCleared, s.extrudeExpression, s.skSel, s.sketchBaseZ, s.sketchPlane, s.params, s.paramBindings, s.suppressedIds])
+}
+/** 預覽仍然對應當前對話框狀態？（任何輸入一改即失效 → 退回即時近似鬼影，直至新內核預覽返嚟） */
+export function extrudePreviewCurrent(s: AppState): ExtrudeKernelPreview | null {
+  const p = s.extrudeKernelPreview
+  if (!p || !s.extrudeDlgOpen) return null
+  if (p.features !== s.features || p.shape !== s.sketchShape || p.profiles !== s.sketchProfiles || p.arb !== s.sketchArb) return null
+  return p.key === extrudePreviewKey(s) ? p : null
+}
 /** CORE16 dry-run：非 null 時 store 內部 set 唔寫、applyFeatures 只截獲特徵列表（永不 resolve）。 */
 let _featDlgDry: Feature[][] | null = null
 export const FEAT_DLG_DRY_PREVIEW_KINDS = new Set<string>(['cylinder', 'cone', 'box', 'sphere', 'torus', 'wedge', 'pattern', 'circpattern', 'move', 'scale', 'splitbody', 'combine', 'revolve', 'draft', 'offsetsolid', 'emboss'])
@@ -14032,6 +14049,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   sectionMesh: null,
   sectionCapStatus: 'idle',
   editPreviewMesh: null,
+  extrudeKernelPreview: null,
   refreshSectionCap: async () => {
     const seq = ++_sectionCapSeq
     const s = get()
@@ -16459,6 +16477,31 @@ export const useApp = create<AppState>((rawSet, get) => {
     const mesh = await cad.previewRound(active)
     if (seq !== _editPreviewSeq || get().featDlg !== d || get().features !== s.features || get().params !== s.params || get().paramBindings !== s.paramBindings || get().suppressedIds !== s.suppressedIds) return null
     if (mesh && !mesh.failed?.length) { _previewFeatures.set(mesh, active); set({ editPreviewMesh: mesh }) }
+    return mesh
+  },
+  previewExtrudeDlg: async () => {
+    const seq = ++_extrudePreviewSeq
+    const s = get()
+    const clear = () => { if (get().extrudeKernelPreview) set({ extrudeKernelPreview: null }); return null }
+    if (!s.extrudeDlgOpen || s.busy || s.skDrag || s.sketchAsComponent) return clear()
+    // 兩側各自拔模 = 兩個串行特徵（第二個要等第一個建完）→ 乾跑只捉到第一個，唔顯示假預覽
+    if (s.extrudeExtent === 'twosides' && ((s.extrudeDraft || 0) !== 0 || (s.extrudeDraft2 || 0) !== 0)) return clear()
+    const key = extrudePreviewKey(s)
+    const cap: Feature[][] = []
+    _featDlgDry = cap
+    try { void get().extrudeSketch().catch(() => {}) } catch { /* 組裝期錯誤 = 冇預覽 */ } finally { _featDlgDry = null }
+    const feats = cap[0]
+    if (!feats?.length || feats.length <= s.features.length) return clear()
+    const bound = applyParamBindings(feats, s.params, s.paramBindings)
+    const active = expandFeats(bound.filter(f => !s.suppressedIds.includes(f.id)))
+    let mesh: MeshData | null = null
+    try { mesh = await cad.previewRound(active) } catch { mesh = null }
+    if (seq !== _extrudePreviewSeq) return null
+    const now = get()
+    if (!now.extrudeDlgOpen || now.features !== s.features || now.sketchShape !== s.sketchShape || now.sketchProfiles !== s.sketchProfiles || now.sketchArb !== s.sketchArb || extrudePreviewKey(now) !== key) return null
+    if (!mesh || mesh.failed?.length || !mesh.triangles?.length) return clear()
+    const volume = meshVolumeMm3(mesh.vertices, mesh.triangles) + (mesh.parked ?? []).reduce((a, pb) => a + meshVolumeMm3(pb.vertices, pb.triangles), 0)
+    set({ extrudeKernelPreview: { mesh, volume, key, features: s.features, shape: s.sketchShape, profiles: s.sketchProfiles, arb: s.sketchArb } })
     return mesh
   },
   previewExtrudeEdit: async () => {

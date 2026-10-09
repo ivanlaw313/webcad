@@ -102,7 +102,7 @@ function useFloatingMenu(open: boolean, anchor: { current: HTMLElement | null },
 
 // Which sk_* tool id is currently the active freehand sketch tool (for Fusion-style pressed highlight).
 const SK_TOOL_OF_ID: Record<string, string> = {
-  sk_polyline: 'polyline', sk_rect: 'rectangle', sk_crect: 'crect', sk_circle: 'circle', sk_circle2p: 'circle2p', sk_circle3: 'circle3', sk_circle2t: 'circle2t', sk_circle3t: 'circle3t',
+  sk_polyline: 'polyline', sk_mline: 'mline', sk_rect: 'rectangle', sk_crect: 'crect', sk_circle: 'circle', sk_circle2p: 'circle2p', sk_circle3: 'circle3', sk_circle2t: 'circle2t', sk_circle3t: 'circle3t',
   sk_arc: 'arc', sk_arcc: 'arcc', sk_select: 'select', sk_dim: 'dimension', sk_move: 'move', sk_trim: 'trim', sk_extend: 'extend', sk_break: 'break', sk_offset: 'offset', sk_point: 'point', sk_cline: 'cline', sk_rect3: 'rect3', sk_polygon: 'polygon', sk_spline: 'spline', sk_bspline: 'bspline', sk_slot: 'slot', sk_arcslot: 'arcslot', sk_rrect: 'rrect', sk_ellipse: 'ellipse', sk_earc: 'earc', sk_conic: 'conic',
 }
 
@@ -142,24 +142,21 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
   const cmd = t.children?.length ? t.children[0] : t
   // Sketch tools render a 2D text glyph (◯ ▭ ⊿ …) + their Chinese label below, so a non-coder can
   // recognise 圆/矩形/折线 at a glance (the SVG icon set has no 2D-sketch shapes).
-  if (t.glyph) {
-    return (
-      <button
-        data-cmd={t.id}
-        className={'tool-btn sk' + (active ? ' active' : '')}
-        title={title}
-        aria-label={resolveRibbonCmd(t.id, lang, t.label)}
-        aria-pressed={active || undefined}
-        disabled={off}
-        style={off ? { opacity: 0.32, cursor: 'not-allowed' } : undefined}
-        onClick={() => { if (off) return; if (onRun) onRun(); else run(cmd.id, cmd.label) }}
-      >
-        <span className="sk-glyph">{t.glyph}</span>
-        <span className="sk-label">{resolveRibbonCmd(t.id, lang, t.label)}</span>
-      </button>
-    )
-  }
-  const mainButton = <button
+  // SKETCH12 #1：草圖工具嘅 ▾ 分拆按鈕（矩形／圓／圓弧）— 子工具任何一個啟用時，主按鈕都顯示為啟用。
+  const childActive = inSketch && !armedCon && !!t.quickChildren?.some((c) => SK_TOOL_OF_ID[c.id] === skTool)
+  const mainButton = t.glyph ? <button
+    data-cmd={t.id}
+    className={'tool-btn sk' + (active || childActive ? ' active' : '')}
+    title={title}
+    aria-label={resolveRibbonCmd(t.id, lang, t.label)}
+    aria-pressed={active || childActive || undefined}
+    disabled={off}
+    style={off ? { opacity: 0.32, cursor: 'not-allowed' } : undefined}
+    onClick={() => { if (off) return; if (onRun) onRun(); else run(cmd.id, cmd.label) }}
+  >
+    <span className="sk-glyph">{t.glyph}</span>
+    <span className="sk-label">{resolveRibbonCmd(t.id, lang, t.label)}</span>
+  </button> : <button
     data-cmd={t.id}
     className={'tool-btn' + (active ? ' active' : '')}
     title={title}
@@ -191,7 +188,7 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
           title={resolveRibbonTip(child.id, lang, child.tip) || resolveRibbonCmd(child.id, lang, child.label)}
           role="menuitem" tabIndex={gate(child.id) ? -1 : 0} aria-disabled={gate(child.id)} onKeyDown={e => { if (!gate(child.id) && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setQuickOpen(false); run(child.id, child.label) } }}
           onClick={() => { if (gate(child.id)) return; setQuickOpen(false); run(child.id, child.label) }}
-        ><ToolIcon name={child.icon} size={16} />{resolveRibbonCmd(child.id, lang, child.label)}{child.shortcut && <span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>{child.shortcut}</span>}</div>)}
+        >{child.glyph ? <span style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{child.glyph}</span> : <ToolIcon name={child.icon} size={16} />}{resolveRibbonCmd(child.id, lang, child.label)}{child.shortcut && <span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>{child.shortcut}</span>}</div>)}
       </div>
     </>, document.body)}
   </div>

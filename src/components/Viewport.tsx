@@ -130,7 +130,7 @@ import { computeMassProps } from '../cad/massProps'      // S117：主惯性矩 
 import { orientedBBox } from '../cad/obb'                // S121：定向最小包围盒（料块/排版/省料）
 import { HDRI_PRESETS, type HdriPresetId } from '../render/hdriPresets'
 import { GradientEquirectTexture } from 'three-gpu-pathtracer'   // 工作模式背景预设：程序化渐变 equirect（同 HdriEnvironment GradientFallback 一致）
-import { msg, tStatus, tLabel, tMaterialName, type LangInput } from '../i18n'
+import { msg, tStatus, tLabel, tMaterialName, ribbonCmdLabel, type LangInput } from '../i18n'
 import { profileSectionName, roundFailLines, plainBuildWarning } from '../ui/featureStatus'
 import { feaStaleBannerText, invalidateSimResultsPatch, hasLiveSimResults } from '../simulation/resultValidity'
 import { evalArith, normalizeWide, parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：單位感知長度輸入（分數英寸）
@@ -5265,6 +5265,11 @@ export default function Viewport() {
             { key: 'crect', label: '⊞ ' + msg('mm.crect', lang), fn: () => setSketchTool('crect') },
             { key: 'circle2p', label: '⊘ ' + msg('mm.circle2p', lang), fn: () => setSketchTool('circle2p') },
             { key: 'circle3', label: '◓ ' + msg('mm.circle3', lang), fn: () => setSketchTool('circle3') },
+            // SKETCH12 #1：三點矩形／中心點弧／相切弧／延伸亦可由右鍵選單直接選用。
+            { key: 'rect3', label: '◇ ' + ribbonCmdLabel('sk_rect3', lang, '三點矩形'), fn: () => useApp.getState().runCommand('sk_rect3', '三點矩形') },
+            { key: 'arcc', label: '◠ ' + ribbonCmdLabel('sk_arcc', lang, '中心點弧'), fn: () => useApp.getState().runCommand('sk_arcc', '中心點弧') },
+            { key: 'tanarc', label: '◝ ' + ribbonCmdLabel('sk_tanarc', lang, '相切弧'), fn: () => useApp.getState().runCommand('sk_tanarc', '相切弧') },
+            { key: 'extend', label: '⟶ ' + ribbonCmdLabel('sk_extend', lang, '延伸'), fn: () => useApp.getState().runCommand('sk_extend', '延伸') },
             { key: 'polygon', label: '⬡ ' + msg('mm.polygon', lang), fn: () => setSketchTool('polygon') },
             ...(sketchShape || sketchProfiles.length > 0 ? [{ key: 'skarr', label: '▦ ' + msg('mm.skArr', lang), fn: () => useApp.getState().runCommand('sketcharray', '陣列輪廓') } as MMItem] : []),
             'sep',
@@ -7730,6 +7735,14 @@ export default function Viewport() {
           <button className="sb-tool" title={tStatus('更多草圖工具：參考圖描摹 / 網格捕捉步長 / CAM 匯出（DXF·激光·CNC·車削）', lang)} onClick={toggleSkMore}>{tStatus('更多', lang)}▾</button>
           {skMorePop && (
             <div className="panel-menu" style={{ position: 'fixed', left: skMorePos.x, top: skMorePos.y, zIndex: 300, minWidth: 250, maxWidth: 340 }} onClick={(e) => e.stopPropagation()}>
+              {/* SKETCH12 #1：較少用的建立／修改工具（三點矩形、兩點圓、相切弧、延伸等）亦可在「更多▾」直接選用。 */}
+              <div className="panel-menu-head">{tStatus('繪製工具', lang)}</div>
+              {([['sk_rect3', '◇', '三點矩形'], ['sk_crect', '⊞', '中心矩形'], ['sk_circle2p', '⊘', '兩點圓'], ['sk_circle3', '◓', '三點圓'], ['sk_arcc', '◠', '中心點弧'], ['sk_tanarc', '◝', '相切弧'], ['sk_extend', '⟶', '延伸']] as const).map(([id, glyph, label]) => (
+                <button type="button" key={id} data-testid={`sketch-more-${id}`} data-cmd-more={id} className="panel-menu-item"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); setSkMorePop(false); useApp.getState().runCommand(id, label) }}
+                ><span style={{ width: 16, textAlign: 'center' }}>{glyph}</span>{ribbonCmdLabel(id, lang, label)}</button>
+              ))}
               <div className="panel-menu-head">{tStatus('B-rep 顯示方式', lang)}</div>
               {VISUAL_STYLES.map((vs, i) => (
                 <button

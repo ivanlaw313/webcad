@@ -1343,5 +1343,8 @@ const messages: Record<string, string> = {
   "vp.plane.XZ": "Front",
   "vp.plane.YZ": "Right",
   "vp.sketchPlane": "sketch plane",
+  "skmenu.sk_rect": "2-Point Rectangle",
+  "skmenu.sk_circle": "Center Diameter Circle",
+  "skmenu.sk_arc": "3-Point Arc",
 }
 export default messages

@@ -1,5 +1,8 @@
 // label (zh-HK / legacy SC) → stable message key
 export const LABEL_TO_KEY: Record<string, string> = {
+  '兩點矩形': 'skmenu.sk_rect',
+  '圓心直徑圓': 'skmenu.sk_circle',
+  '三點圓弧': 'skmenu.sk_arc',
   '3D加工': 'tool.finish3d',
   'AI 助手': 'tool.aicopilot',
   '生成式設計': 'tool.topopt',

@@ -1343,5 +1343,8 @@ const messages: Record<string, string> = {
   "vp.plane.XZ": "正面",
   "vp.plane.YZ": "右面",
   "vp.sketchPlane": "スケッチ平面",
+  "skmenu.sk_rect": "2点長方形",
+  "skmenu.sk_circle": "中心と直径で指定した円",
+  "skmenu.sk_arc": "3点円弧",
 }
 export default messages

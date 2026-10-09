@@ -1343,5 +1343,8 @@ const messages: Record<string, string> = {
   "vp.plane.XZ": "前",
   "vp.plane.YZ": "右",
   "vp.sketchPlane": "草图平面",
+  "skmenu.sk_rect": "两点矩形",
+  "skmenu.sk_circle": "圆心直径圆",
+  "skmenu.sk_arc": "三点圆弧",
 }
 export default messages

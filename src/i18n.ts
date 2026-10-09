@@ -2393,6 +2393,7 @@ Object.assign(STATUS_PHRASES_X, {
   '列數 ×': 'Columns ×',
   '半徑 R': 'Radius R',
   '三點圓弧': '3-point arc',
+  '繪製工具': 'Draw tools',
   '┄ 水平': '┄ Horizontal',
   'X 總跨': 'X extent',
   '應用陣列': 'Apply pattern',

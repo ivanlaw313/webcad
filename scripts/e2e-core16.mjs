@@ -659,8 +659,13 @@ await runE2E(async (page, okRaw) => {
     await ribbon('mirror')
     await selectIn(/^鏡像面/, 'YZ')
     await previewCheck('mirror', '', genericPreview)
-    const chk = page.locator('.cmd-palette label', { hasText: /鏡像出獨立實體/ }).locator('input').first()
-    await chk.check(); await W(300); await chk.uncheck(); await W(300)
+    // 操作 select（6d20a39：合併／新實體，取代舊「鏡像出獨立實體」勾選）
+    const opSel = page.locator('.cmd-palette select[data-testid="mirror-op"]').first()
+    await opSel.selectOption('newbody'); await W(400)
+    const opNb = await S(() => window.useApp.getState().featDlg?.params?.mirrorOp)
+    await opSel.selectOption('join'); await W(600)
+    ok('操作 select switches 合併 ↔ 新實體', !!opNb && !(await S(() => window.useApp.getState().featDlg?.params?.mirrorOp)), { opNb })
+    await waitIdle()
     await tradOnly('mirror panel', await dlgText())
     const pv = await meshVol(genericPreview)
     await clickOk()
@@ -672,6 +677,16 @@ await runE2E(async (page, okRaw) => {
     const v2 = (await vol()).total
     ok('edit offset 2.5 → rebuilt, two disjoint halves 6400', near(v2, 6400, 0.01) && !(await st()).failed.length, { v2 })
     await undoRedo(v1, v2)
+    // 新實體: mirrored copy is a separate body (two bodies, active unchanged)
+    await fresh(); await build([{ id: 'b1', type: 'extrude', profile: { kind: 'rect', a: [5, -10], b: [25, 10] }, height: 8, operation: 'new' }])
+    await ribbon('mirror'); await selectIn(/^鏡像面/, 'YZ')
+    await page.locator('.cmd-palette select[data-testid="mirror-op"]').first().selectOption('newbody'); await W(400); await waitIdle()
+    const pvNb = await meshVol(genericPreview)
+    await clickOk()
+    const vNb = await vol()
+    ok('新實體 mirror → two bodies, active 3200, total 6400', vNb.bodies === 2 && near(vNb.active, 3200, 0.01) && near(vNb.total, 6400, 0.01), vNb)
+    ok('新實體 preview == result total', pvNb != null && near(pvNb, vNb.total, 0.02), { pvNb, vNb })
+    await tradOnly('mirror newbody status', await statusBar())
     await ribbon('mirror'); await selectIn(/^鏡像面/, 'YZ'); await typeField(/^偏移/, '15'); await commitField(field(/^偏移/))
     await clickOk()
     await errorMsg('mirror overlapping/self (offset 15 overlaps)', /鏡像|重疊|合併|已/)
@@ -792,7 +807,11 @@ await runE2E(async (page, okRaw) => {
     // error: radius too large
     await ribbon('fillet'); await clickCad([-20, 0, 9.9]); await W(800)
     const r3 = page.locator('input[aria-label="半徑組 1 半徑"], input[title="半徑組 1 半徑"]').first()
-    await typeInto(r3, '30'); await commitField(r3); await waitIdle()
+    await typeInto(r3, '30'); await commitField(r3)
+    await page.waitForFunction(() => { const s = window.useApp.getState(); return !s.roundPreviewBusy && (!!s.roundPreviewMesh || s.roundPreviewFail) }, null, { timeout: 30000 }).catch(() => {}); await W(400)
+    const rw = await S(() => document.querySelector('[data-testid="round-preview-warn"], [data-testid="round-preview-fail"]')?.textContent || '')
+    ok('fillet R30: visible reason line in the dialog', /太大|減小|超過/.test(rw), { rw })
+    await tradOnly('fillet R30 reason', rw)
     await errorMsg('fillet R30 too large', /太大|減小|超過/)
   })
 
@@ -801,12 +820,21 @@ await runE2E(async (page, okRaw) => {
     await build([{ id: 'r', type: 'revolve', profile: { kind: 'poly', pts: [[0, 0], [30, 0], [30, 35], [40, 35], [40, 40], [0, 40]] }, angle: 360, axis: 'Y', op: 'new' }, { id: 's', type: 'shell', thickness: 2, nears: [[10, 40, 0]], tangentChain: false, direction: 'inside' }], 'cup')
     await page.evaluate(() => { const { camera, controls } = window.__three; controls.target.set(0, 0, -30); camera.position.set(110, 130, -230); camera.lookAt(0, 0, -30); controls.update() })
     await W(600)
+    // B-rep 精確體積（OCCT GProp，經統一測量「體」過濾）— 網格體積會因倒角後重新三角化而漂移 ~100 mm³，唔適合驗 1 mm 倒角
+    const exactVol = (cadPt) => S(async (p) => {
+      const g = () => window.useApp.getState(), prev = { measureUniMode: g().measureUniMode, measureSelFilter: g().measureSelFilter, measureUniPicks: g().measureUniPicks }
+      window.useApp.setState({ measureUniMode: true, measureSelFilter: { face: false, edge: false, body: true, sketch: false }, measureUniPicks: [] })
+      try { await g().pickMeasureUniAt([p[0], p[2], -p[1]], null, false); const pk = g().measureUniPicks.at(-1); return pk?.volume != null ? +pk.volume.toFixed(2) : null }
+      finally { window.useApp.setState(prev) }
+    }, cadPt)
     const v0 = (await vol()).total
+    const e0 = await exactVol([39, 38, 0])
     await ribbon('chamfer')
     const a = Math.PI / 3, rr = 39.7
-    await mouseClick(await page.evaluate(([x, y, z]) => { const { camera } = window.__three; const c = document.querySelector('canvas').getBoundingClientRect(); const v = camera.position.clone().set(x, y, z).project(camera); return [c.left + (v.x + 1) / 2 * c.width, c.top + (1 - v.y) / 2 * c.height] }, [rr * Math.cos(a), 40, -rr * Math.sin(a)]))
+    // 舊版把 CAD 座標直接當 three 座標投影（drift：點到 r=28 內壁邊）— 改用 harness 的 CAD→螢幕換算（CAD (x,y,z) → three (x,z,−y)）
+    await mouseClick(await at([rr * Math.cos(a), 40, rr * Math.sin(a)]))
     await W(1200)
-    const pick = await S(() => { const s = window.useApp.getState(); const ln = s.edgeRoundPickLines[0]; return { n: s.edgeRoundPicks.length, r: ln ? Math.hypot(ln[0][0], ln[0][2]) : null } })
+    const pick = await S(() => { const s = window.useApp.getState(); const ln = s.edgeRoundPickLines[0]; const rs = ln ? ln.map((q) => Math.hypot(q[0], q[2])) : []; const ys = ln ? ln.map((q) => q[1]) : []; return { n: s.edgeRoundPicks.length, r: ln ? Math.hypot(ln[0][0], ln[0][2]) : null, rMin: Math.min(...rs), rMax: Math.max(...rs), yMin: Math.min(...ys), yMax: Math.max(...ys), pts: rs.length } })
     ok('flange outer top edge (R40) picked', pick.n === 1 && Math.abs(pick.r - 40) < 0.1, pick)
     const c = page.locator('input[title^="倒角距離"]').first()
     await typeInto(c, '1'); await commitField(c); await waitIdle()
@@ -815,8 +843,10 @@ await runE2E(async (page, okRaw) => {
     const pvv = await meshVol('roundPreviewMesh')
     await clickOk()
     const v1 = (await vol()).total
+    const e1 = await exactVol([38.5, 36, 0])
     const removed = 0.5 * 1 * 1 * 2 * Math.PI * (40 - 1 / 3)
-    ok('chamfer REMOVES material (volume goes down by ≈ ring triangle)', v1 < v0 && near(v0 - v1, removed, 0.15), { v0, v1, removed, status: await statusBar() })
+    ok('chamfer REMOVES material (mesh volume goes down)', v1 < v0, { v0, v1 })
+    ok('chamfer removes ≈ ring triangle (B-rep exact volume)', e0 != null && e1 != null && near(e0 - e1, removed, 0.03), { e0, e1, removedExact: e0 != null && e1 != null ? +(e0 - e1).toFixed(2) : null, expected: +removed.toFixed(2), status: await statusBar() })
     await previewMatches(pvv, v1)
     cur.vol = v1
   })

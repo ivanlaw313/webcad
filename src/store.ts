@@ -18268,13 +18268,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
       const picker = (window as OpenPickerWindow).showOpenFilePicker
       if (typeof picker === 'function') {
+        const pickStart = Date.now()
         try {
           const [handle] = await picker.call(window, { multiple: false, types: [{ description: 'STL mesh', accept: { 'model/stl': ['.stl'], 'application/sla': ['.stl'] } }] })
           await openFile(await handle.getFile())
           return
         } catch (err) {
           const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
-          if (name === 'AbortError') { clearCancel(); return }
+          if (name === 'AbortError' && !isQuickPickerAbort(pickStart)) { clearCancel(); return }
           // Non-abort failure (e.g. insecure context) → fall through to <input>.
         }
       }
@@ -18300,6 +18301,14 @@ export const useApp = create<AppState>((rawSet, get) => {
 
   // v1.41: MESH drag-drop — reuse openMeshInsert / import3MF (same as openStlDialog success path).
   acceptMeshDropFile: async (file) => {
+    // Dropping a saved project (.json) onto the viewport opens it via the same path as
+    // 檔案 → 開啟舊檔案 (applyProjectData: validation + 覆蓋確認 + rebuild).
+    if (/\.json$/i.test(file.name)) {
+      let data: Record<string, unknown>
+      try { data = JSON.parse(await file.text()) } catch { set({ busy: false, status: '打開失敗：檔案格式不正確（現有模型未動）' }); return }
+      try { await get().applyProjectData(data) } catch { set({ busy: false, status: '打開失敗：檔案格式不正確（現有模型未動）' }) }
+      return
+    }
     const kind = meshDropKind(file.name)
     if (!kind) {
       set({ busy: false, status: '不支持的網格拖放（請用 .stl / .obj / .3mf）' })
@@ -20518,6 +20527,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       const picker = (window as OpenPickerWindow).showOpenFilePicker
       if (typeof picker === 'function') {
+        const pickStart = Date.now()
         try {
           const [handle] = await picker.call(window, {
             multiple: false,
@@ -20528,8 +20538,8 @@ export const useApp = create<AppState>((rawSet, get) => {
           return
         } catch (err) {
           const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
-          if (name === 'AbortError') { set({ status: '已取消打開（現有模型未動）' }); return }
-          // Unsupported / permission → fall back to <input type=file>.
+          if (name === 'AbortError' && !isQuickPickerAbort(pickStart)) { set({ status: '已取消打開（現有模型未動）' }); return }
+          // Unsupported / permission / instant auto-abort (no human could cancel that fast) → fall back to <input type=file>.
         }
       }
       pickViaInput()
@@ -20892,13 +20902,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
       const picker = (window as OpenPickerWindow).showOpenFilePicker
       if (typeof picker === 'function') {
+        const pickStart = Date.now()
         try {
           const [handle] = await picker.call(window, { multiple: false, types: [{ description: 'OBJ mesh', accept: { 'text/plain': ['.obj'], 'model/obj': ['.obj'] } }] })
           await openFile(await handle.getFile())
           return
         } catch (err) {
           const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
-          if (name === 'AbortError') { set({ busy: false, status: '已取消 OBJ 插入' }); return }
+          if (name === 'AbortError' && !isQuickPickerAbort(pickStart)) { set({ busy: false, status: '已取消 OBJ 插入' }); return }
         }
       }
       const inp = document.createElement('input')
@@ -20968,13 +20979,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       type OpenPickerWindow = Window & { showOpenFilePicker?: (options?: { multiple?: boolean; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle[]> }
       const picker = (window as OpenPickerWindow).showOpenFilePicker
       if (typeof picker === 'function') {
+        const pickStart = Date.now()
         try {
           const [handle] = await picker.call(window, { multiple: false, types: [{ description: '3MF mesh', accept: { 'model/3mf': ['.3mf'], 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml': ['.3mf'] } }] })
           await openFile(await handle.getFile())
           return
         } catch (err) {
           const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
-          if (name === 'AbortError') { set({ busy: false, status: '已取消 3MF 插入' }); return }
+          if (name === 'AbortError' && !isQuickPickerAbort(pickStart)) { set({ busy: false, status: '已取消 3MF 插入' }); return }
         }
       }
       const inp = document.createElement('input')
@@ -23735,6 +23747,15 @@ export function hydrateSketchDraft(raw: unknown): Partial<AppState> {
 }
 
 // Single source of truth for the project payload (autosave / IDB version history / restore all share it).
+// Open-picker robustness: an AbortError that arrives < QUICK_PICKER_ABORT_MS after
+// showOpenFilePicker() was called cannot be a human cancel (automation / policy /
+// embedded browsers auto-dismiss the native dialog) → fall back to <input type=file>
+// instead of reporting 「已取消」 and doing nothing.
+export const QUICK_PICKER_ABORT_MS = 250
+export function isQuickPickerAbort(startedAt: number, now: number = Date.now()): boolean {
+  return now - startedAt < QUICK_PICKER_ABORT_MS
+}
+
 export function buildProjectPayload(s: AppState) {
   const errors = [...documentReferenceErrors(s), ...documentPatternErrors(s), ...patternDataErrors(s.skPatternData,[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])],s.skCons), ...(s.mode === 'sketch' ? sketchReferenceErrors(s.skCons,s.params) : [])]
   if(errors.length) throw new Error(`存档引用失效：${errors.join('；')}`)

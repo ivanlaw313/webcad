@@ -1,0 +1,199 @@
+{
+  "app": "webcad",
+  "version": 4,
+  "features": [
+    {
+      "id": "F19",
+      "type": "sketch",
+      "sketchId": "sk11"
+    },
+    {
+      "id": "F20",
+      "type": "extrude",
+      "profile": {
+        "kind": "rect",
+        "a": [
+          -105,
+          25
+        ],
+        "b": [
+          -55,
+          -15
+        ]
+      },
+      "height": 10,
+      "operation": "new",
+      "baseZ": 0,
+      "sketchId": "sk11",
+      "distanceExpression": {
+        "expression": "10",
+        "refs": {},
+        "unit": "mm",
+        "implicitScale": 1,
+        "measure": "whole",
+        "flip": false
+      },
+      "down": false
+    },
+    {
+      "id": "F21",
+      "type": "fillet",
+      "radius": 3,
+      "nears": [
+        [
+          -77.60645008470507,
+          -15.000000000000002,
+          9.999999999999996
+        ]
+      ],
+      "continuities": [
+        "G1"
+      ],
+      "chain": true,
+      "edgeFp": [
+        "e1|l:772|m:39/0/15|e:0/0/15;77/0/15|d:0/0/100|s:0|O"
+      ],
+      "edgeFpV2": [
+        "e2|l:772|m:0/31/8|e:39/31/8;39/31/8|d:0/0/100|s:0|O"
+      ]
+    }
+  ],
+  "components": [],
+  "componentDefs": [],
+  "joints": [],
+  "motionLinks": [],
+  "mates": [],
+  "jointOrigins": [],
+  "rigidGroups": [],
+  "contactPairs": [],
+  "fourBar": null,
+  "sliderCrank": null,
+  "projectName": "未命名零件",
+  "grounded": null,
+  "bodyColor": "#e6b800",
+  "material": {
+    "metalness": 0.6,
+    "roughness": 0.3,
+    "opacity": 1,
+    "tex": "",
+    "texScale": 30
+  },
+  "bodyDensity": 19.3,
+  "originX": 0,
+  "planes": [],
+  "cpoints": [],
+  "caxes": [],
+  "ccurves": [],
+  "viewBookmarks": [],
+  "jointPoses": [],
+  "jointKeyframes": [],
+  "bgPreset": "",
+  "edgeDisplay": "on",
+  "suppressedIds": [],
+  "params": [],
+  "paramBindings": {},
+  "configs": [],
+  "activeConfig": null,
+  "unit": "mm",
+  "bedPreset": 0,
+  "customBed": null,
+  "visualStyle": "shadedVisible",
+  "hiddenEdges": false,
+  "cameraProj": "ortho",
+  "unitPreset": "mm_g",
+  "massUnit": "g",
+  "sketchSources": {
+    "sk11": {
+      "shapes": [
+        {
+          "type": "rect",
+          "a": [
+            -105,
+            -25
+          ],
+          "b": [
+            -55,
+            15
+          ]
+        }
+      ],
+      "cons": [
+        {
+          "id": "k39",
+          "kind": "con",
+          "type": "h",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 0
+          }
+        },
+        {
+          "id": "k40",
+          "kind": "con",
+          "type": "v",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 1
+          }
+        },
+        {
+          "id": "k41",
+          "kind": "con",
+          "type": "h",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 2
+          }
+        },
+        {
+          "id": "k42",
+          "kind": "con",
+          "type": "v",
+          "a": {
+            "kind": "edge",
+            "shape": 0,
+            "idx": 3
+          }
+        }
+      ],
+      "plane": "XY",
+      "baseZ": 0,
+      "op": "new",
+      "height": 10
+    }
+  },
+  "drawingAnno": {
+    "manualDims": {},
+    "manualRDims": {},
+    "manualADims": {},
+    "manualDatums": {},
+    "manualFCF": {},
+    "manualNotes": {},
+    "details": {},
+    "ordinates": {},
+    "scale": "1:1",
+    "drawnBy": "",
+    "genTol": "",
+    "materialTxt": "",
+    "firstAngle": false,
+    "gbFrame": false,
+    "sheet": "A4",
+    "autoTolOn": false,
+    "autoTol": 0.1,
+    "showHidden": true,
+    "showCallouts": true
+  },
+  "groups": [],
+  "faceColors": {},
+  "compXY": 0,
+  "compShrink": 1,
+  "renderMode": false,
+  "hdriPreset": "",
+  "hdriIntensity": 1,
+  "hdriRotation": 0,
+  "groundShadow": false,
+  "decals": []
+}

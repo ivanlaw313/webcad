@@ -144,7 +144,9 @@ const TOTAL = Object.values(PER_FILE).reduce((a, b) => a + b, 0)
  * 逐條核對全部係繁體，只因共用字形「面／件」被計入；冇簡體字串。 */
 /* 2026-10-09（CORE16 batch 3）：總數維持 2290（rebase 後實測）。加厚對話框／鏡像拾取平面／倒角面板／抽殼・分割實體原因／BOM 曲面排除新文案，全部係繁體正式書面語，
  * 只因「面／件」喺 LEAK 集而被計入；已用 simplifiedToTraditionalHK 逐條核對所有新增字串（轉換前後一致＝冇簡體）。 */
-const MAX_LEAK_STRINGS = 2290
+/* 2026-10-09（ASM2 P1 + P3 construction UX）：2290 → 2299。設為活動（樹／⋯／●／雙擊／時間軸）、偏移平面提示、軸／平面標籤等新文案；
+ * 逐條核對全部係繁體正式書面語，只因共用字形「面／件／實／體」被 LEAK 集計入；冇新增簡體 UI 字串（抽殼備用提示已改繁體並唔在本檔 FILES 清單）。 */
+const MAX_LEAK_STRINGS = 2299
 
 test('zh-HK lane files do not grow simplified-Chinese string literals', () => {
   assert.ok(TOTAL <= MAX_LEAK_STRINGS, `leak strings ${TOTAL} > ${MAX_LEAK_STRINGS}\n` + JSON.stringify(PER_FILE, null, 2))

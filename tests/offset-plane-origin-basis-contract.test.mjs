@@ -8,6 +8,9 @@ const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 test('Offset Plane opens the Construction Geometry workflow with explicit origin bases', () => {
   assert.match(store, /case 'offsetplane': return get\(\)\.openDatumCmd\(\{ type: 'plane', method: 'offset' \}\)/)
   assert.match(store, /'plane:offset'.*base: 'XY'/)
+  // Planar body faces are valid offset bases; cylindrical/conical sides are still rejected (formal TC).
+  assert.match(viewport, /可在畫布點選實體平面作偏移基準/)
   assert.match(viewport, /圓柱／圓錐側面不能當偏移基準/)
+  assert.match(store, /圓柱／圓錐側面不能作基準/)
   for (const base of ['XY(上)', 'XZ(前)', 'YZ(右)']) assert.ok(viewport.includes(base), `origin base ${base} is present`)
 })

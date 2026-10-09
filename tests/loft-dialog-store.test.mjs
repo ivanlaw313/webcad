@@ -106,7 +106,11 @@ for (const op of ['cut', 'intersect', 'newbody']) test(`operation ${op} applies 
   const v = await bodyVolume()
   if (op === 'cut') assert.ok(v < v0 && v > v0 * 0.5, `cut ${v} < ${v0}`)
   if (op === 'intersect') assert.ok(v > 0 && v < 30 * 1600 + 1, `intersect ${v}`)
-  if (op === 'newbody') assert.ok(Math.abs(v - v0) < 1e-3 * v0 || v > v0, `newbody keeps the active body ${v} vs ${v0}`)
+  if (op === 'newbody') {
+    // ASM2 P1：operation 新實體 → 放樣體成為活動體，原盒改獨立實體
+    assert.ok(Math.abs(v - v0) > 1e-3 * v0, `newbody makes loft active (volume changes) ${v} vs ${v0}`)
+    assert.equal((g().bodyMesh?.parked ?? []).length, 1, 'seed box parked as 獨立實體')
+  }
 })
 
 test('coincident sections fail with a clear Traditional reason in the preview', async () => {

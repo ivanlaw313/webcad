@@ -31,6 +31,7 @@ import { activeModelCommand, commandDisabledReason } from './cad/commandAvailabi
 import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad/viewBookmark'
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
+import { centerRectExtras } from './sketch/centerRect'
 import { sanitizeBodyHidden, toggleHiddenKey, setHiddenKey, parkedBodyKey as bomParkedKey } from './ui/contextMenus'
 import { removeContourEdges } from './sketch/deleteSketchEdges'
 import { applySelClick, mergeSel, type ModelSelItem, type SelMod } from './cad/modelSelection'
@@ -1909,6 +1910,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   deleteSplineFitPoint: (shapeIdx: number, ptIdx: number) => void
   undoSkCon: () => Promise<void>          // remove the last constraint/dim and re-solve
   removeSkCon: (id: string) => Promise<void>  // remove a specific one (clicking its badge)
+  refreshSkDof: () => Promise<void>   // SKETCH12：只重算剩餘自由度（唔改幾何）
   resolveSk: (opts?: { statusNote?: string; promptOverconstrain?: boolean; target?: { id: string; cancelValue?: number; cancelDriven?: boolean } }) => Promise<void>   // target（GM-FP2 #30 编辑路径）：过约束抉择针对呢个尺寸；取消=还原旧值/旧从动态（非移除）  // promptOverconstrain（GM-FP2 #30）= 交互放尺寸路径：过约束时弹模态问「转从动/取消」；缺省（还原/replay/拖拽/批）= 自动降从动 fallback（唔弹框）
 
   // parametric feature tree (single source of truth, replayed by the kernel)
@@ -4102,7 +4104,7 @@ function bulgeFromMid(a: Pt, b: Pt, m: Pt): number {
 // Canonical builder for a mixed line/arc poly — pts is ALWAYS derived via pathPts (the invariant).
 // T777：折线末段切线方向（相切弧续画用）— 直线段 = 段方向；弧段 = 终点半径向量旋 90°（方向跟弧行进）
 export { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'   // BUG(F)：纯函数搬出（node 可测）
-import { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'
+import { tangentArcBulge, polyTangentArcCons, endTangent, crossShapeTangentCons } from './sketch/tangentArc'
 import { remapCornerConstraints, maxFilletRadius } from './sketch/cornerRemap'   // UX4 #2/#4/#5
 import { sketchPointsOf, finishedSketchPointCandidates, holeSnapTargetsFromSources, snapHoleXY } from './sketch/holePoints'
 import { sketchLocalToPlane } from './sketch/planeCoords'
@@ -4143,6 +4145,46 @@ function openPolyHVCons(sh: SketchShape, idx: number): SkCon[] {
     else if (dx < 0.01 && dy > 0.5) out.push({ id: skConId(), kind: 'con', type: 'v', a: { kind: 'edge', shape: idx, idx: j } } as SkCon)
   }
   return out
+}
+// SKETCH12 #2：打字定尺寸（Enter）落形同滑鼠第二擊一樣：每一個新形狀都有一個 Ctrl+Z 步驟（之前圓以外多數無快照，
+// 撤銷會連上一步一齊冇），並行重合／畫即約束推斷（之前打字 Ø 嘅圓心落原點都無 ◉，重做後 DOF 對唔上）。
+// SKETCH12 #3：中心矩形落形 — 中心吸附到原點／點 → 構造對角線 + 中點約束（centerRectExtras）；否則只係矩形。
+function centerRectCommit(s: Pick<AppState, 'sketchProfiles' | 'sketchShape' | 'skCons' | 'autoConstrain'>, rect: SketchShape, center: Pt): Partial<AppState> {
+  const others = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])]
+  const ex = s.autoConstrain ? centerRectExtras(others as FShape[], rect as FShape, center, s.skCons) : null
+  if (!ex) return { sketchProfiles: others, sketchShape: rect }
+  return { sketchProfiles: [...others, ex.diag as SketchShape], sketchShape: rect, skCons: [...s.skCons, ...ex.cons] }
+}
+const PIN_FIRST_TYPES = new Set<SkConType>(['tangent', 'parallel', 'perp', 'equal', 'concentric', 'collinear'])
+// 第一個選擇所屬形狀暫時「固定」求解；衝突或幾何唔變 → 回傳 null（照舊正常求解）。
+async function pinFirstSelectionSolve(s: AppState, added: SkCon): Promise<SketchShape[] | null> {
+  if (added.kind !== 'con' || !PIN_FIRST_TYPES.has(added.type) || !added.b || !('shape' in added.a) || !('shape' in added.b) || added.a.shape === added.b.shape) return null
+  const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
+  const pin: SkCon = { id: '__pin_first', kind: 'con', type: 'fix', a: added.a }
+  try {
+    const res = await solveFree(structuredClone(shapes), withParamVals([...s.skCons, added, pin], s.params))
+    if (!res || res.conflict) return null
+    return res.shapes as SketchShape[]
+  } catch { return null }
+}
+type PolyRedoEntry = { before: Pt[]; p: Pt; bulges: number[]; profiles: SketchShape[]; shape: SketchShape | null; tool: SketchTool }
+const _polyRedo: PolyRedoEntry[] = []
+// 只有喺同一條未完成折線、撤銷後未再落新點時先重做（避免把舊點駁去另一條線）。
+export function polyRedoApplies(e: PolyRedoEntry, s: Pick<AppState, 'mode' | 'polyPts' | 'sketchProfiles' | 'sketchShape' | 'sketchTool'>): boolean {
+  return s.mode === 'sketch' && s.sketchTool === e.tool && s.sketchProfiles === e.profiles && s.sketchShape === e.shape &&
+    s.polyPts.length === e.before.length && s.polyPts.every((q, i) => q[0] === e.before[i][0] && q[1] === e.before[i][1])
+}
+function afterTypedCommit(pre: AppState) {
+  const now = useApp.getState()
+  if (now.mode !== 'sketch' || !now.sketchShape || now.sketchShape === pre.sketchShape || now.sketchStart) return
+  if (now.sketchUndo === pre.sketchUndo) useApp.setState({ sketchUndo: [...pre.sketchUndo, skSnap(pre)].slice(-80), sketchRedo: [] })
+  // 保留輸入提交的狀態訊息（例如「Ø4 驅動直徑已儲存」），推斷訊息附加於其後。
+  const st0 = now.status
+  const keep = () => { const st = useApp.getState().status; if (st0 && st !== st0 && !st.startsWith(st0)) useApp.setState({ status: `${st0} · ${st}` }) }
+  if (now.autoConstrain) {
+    const p = now.applyCoincidentInference(); keep()
+    void p.then(() => useApp.getState().applyDrawInference()).then(() => useApp.getState().resolveSk()).then(keep)
+  } else void now.resolveSk()
 }
 function autoSummary(auto: SkCon[]): string {
   if (!auto.length) return ''
@@ -6306,7 +6348,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if((s.sketchTool==='earc'||s.sketchTool==='ellipse'&&s.ellipseCreation==='three-point')&&s.sketchUndo.length){const previous=s.sketchUndo.at(-1)!;set({...previous,sketchUndo:s.sketchUndo.slice(0,-1),sketchRedo:[],sketchPreview:null,dimBuf:['',''],dimField:0,sketchDim:null,status:previous.sketchStart?'已退回上一繪製步驟':'已取消曲線；原草圖保留'});return true}
       // S194（Fusion 式收笔）：ESC 结束线链时【已放低嘅段保留】做正式几何（Fusion：ESC 收笔唔丢嘢）。
       // ≥2 点先成段 → finishOpenPolyline 提交；单点/rect-circle 未落第二点 = 冇几何，先真取消。
-      if (s.polyPts && s.polyPts.length >= 2 && !s.sketchStart) {
+      if (s.polyPts && s.polyPts.length >= 2 && (!s.sketchStart || s.sketchTool === 'polyline')) {   // SKETCH12 #4：相切弧（折線 + 弧模式，由端點起手會設 sketchStart）都係收筆，唔好當多階段工具逐點退
         get().finishOpenPolyline()
         set({ sketchPreview: null, sketchDim: '', status: '已收筆 — 保留已畫段（完成請按「完成草圖」）' })
         return true
@@ -6733,7 +6775,7 @@ export const useApp = create<AppState>((rawSet, get) => {
 
     if(s.drawConstruction)sh={...sh,construction:true}
     const originals=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])],candidate=[...originals,sh]
-    const auto=s.autoConstrain?[...inferCoincident(candidate,originals.length,s.skCons),...polyTangentArcCons(sh,originals.length,s.skCons,skConId),...(smooth?[]:openPolyHVCons(sh,originals.length))]:[]   // BUG(F)：相切弧段同时补相切约束；UX4 #7：直段吸正咗水平/豎直 → 自動落 H/V（同閉合折線 S43 一致）
+    const auto=s.autoConstrain?[...inferCoincident(candidate,originals.length,s.skCons),...polyTangentArcCons(sh,originals.length,s.skCons,skConId),...(smooth?[]:crossShapeTangentCons(candidate,originals.length,s.skCons,skConId)),...(smooth?[]:openPolyHVCons(sh,originals.length))]:[]   // BUG(F)：相切弧段同时补相切约束；UX4 #7：直段吸正咗水平/豎直 → 自動落 H/V（同閉合折線 S43 一致）
     let completed=candidate,cons=[...s.skCons,...auto],dof=s.skDof
     if(auto.length){
       const current=()=>{const c=get();return c.mode===s.mode&&c.sketchTool===s.sketchTool&&c.sketchProfiles===s.sketchProfiles&&c.sketchShape===s.sketchShape&&c.polyPts===s.polyPts&&c.polyBulges===s.polyBulges&&c.skCons===s.skCons&&c.params===s.params&&c.drawConstruction===s.drawConstruction&&c.autoConstrain===s.autoConstrain}
@@ -9110,7 +9152,13 @@ export const useApp = create<AppState>((rawSet, get) => {
         status: ellipsePair ? '已加入曲線與直線相切約束；切點保留在曲線內，可沿直線延長線' : '已加入橢圓弧端點相切約束' })
       return
     }
-    set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: [...s.skCons, { id: skConId(), kind: 'con', type: t, a: s.skSel[0], b: s.skSel[1], c: s.skSel[2] }], skSel: [] })
+    const added: SkCon = { id: skConId(), kind: 'con', type: t, a: s.skSel[0], b: s.skSel[1], c: s.skSel[2] }
+    // SKETCH12 #4：兩個形狀之間加關係（相切／平行／垂直…）→ 先試【第一個揀嘅形狀不動】求解（只移動第二個，同主流 CAD 一致），
+    //   成功就以結果做起點再正常求解 —— 已標尺寸嘅直線唔會被拉長／縮短或平移，移動嘅係後揀嗰條弧。
+    const pinned = await pinFirstSelectionSolve(s, added)
+    { const cur = get(); if (cur.mode !== 'sketch' || cur.skCons !== s.skCons || cur.sketchProfiles !== s.sketchProfiles || cur.sketchShape !== s.sketchShape) return }
+    set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: [...s.skCons, added], skSel: [],
+      ...(pinned ? { sketchProfiles: pinned.slice(0, s.sketchProfiles.length) as SketchShape[], sketchShape: s.sketchShape ? pinned[s.sketchProfiles.length] as SketchShape : null } : {}) })
     void get().resolveSk()
   },
   // GM-FP4 #37：Horizontal/Vertical 合一命令（Fusion「Horizontal/Vertical」单命令按线朝向自动判定）。
@@ -10055,12 +10103,23 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ skCons: s.skCons.slice(0, -1), status: '已移除最後一個約束/尺寸' })
     void get().resolveSk()
   },
+  // SKETCH12 #3/#5：只計 DOF（唔改幾何）— 無約束／剛落形／畫緊嘢時工具列都顯示真實剩餘自由度。
+  refreshSkDof: async () => {
+    const s = get()
+    if (s.mode !== 'sketch' || s.skDrag || s.skConflict) return
+    const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
+    if (!shapes.length) { if (s.skDof !== 0 && !s.skCons.length) set({ skDof: 0 }); return }
+    const res = await solveFree(structuredClone(shapes), withParamVals(s.skCons, s.params)).catch(() => null)
+    const now = get()
+    if (!res || res.conflict || now.mode !== 'sketch' || now.skDrag || now.sketchProfiles !== s.sketchProfiles || now.sketchShape !== s.sketchShape || now.skCons !== s.skCons || now.params !== s.params) return
+    if (now.skDof !== res.dof) set({ skDof: res.dof })
+  },
   resolveSk: async (opts) => {
     const s = get()
     if (s.skMutationError) { set({status:s.skMutationError}); return }
     const referenceErrors = sketchReferenceErrors(s.skCons, s.params)
     if (referenceErrors.length) { set({skDof:null,skConflict:true,status:`尺寸引用失效：${referenceErrors.join('；')}`}); return }
-    if (!s.skCons.length) { set({ skDof: null, skConflict: false, skConflictIds: [], skFreeShapes: new Set() }); return }
+    if (!s.skCons.length) { set({ skDof: null, skConflict: false, skConflictIds: [], skFreeShapes: new Set() }); await get().refreshSkDof(); return }   // SKETCH12 #3/#5：無約束都計 DOF（唔再顯示「DOF —」）
     // A solve or confirmation belongs to this exact sketch revision. Recheck
     // after every await so a delayed answer cannot edit a newer sketch.
     const isCurrentSolve = () => {
@@ -10209,7 +10268,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
     if (shapes.length < 1) return
     const coin = inferCoincident(shapes, shapes.length - 1, s.skCons)
-    const tan = polyTangentArcCons(shapes[shapes.length - 1] as SketchShape, shapes.length - 1, s.skCons, skConId)   // BUG(F)：相切弧段 ↔ 前一段 相切
+    const tan = [...polyTangentArcCons(shapes[shapes.length - 1] as SketchShape, shapes.length - 1, s.skCons, skConId), ...crossShapeTangentCons(shapes, shapes.length - 1, s.skCons, skConId)]   // BUG(F)：相切弧段 ↔ 前一段 相切；SKETCH12 #4：由其他形狀端點引出 → 同嗰條曲線相切
     const auto = [...coin, ...tan]
     if (!auto.length) return
     const ids = new Set(auto.map((c) => c.id))
@@ -10622,7 +10681,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '中心矩形：再點一個角點（關於中心對稱）' }
         const c = s.sketchStart
         const a: Pt = [2 * c[0] - pt[0], 2 * c[1] - pt[1]]
-        return { sketchShape: { type: 'rect', a, b: pt }, sketchStart: null, status: `中心矩形已畫好 ${(Math.abs(2 * (pt[0] - c[0]))).toFixed(0)}×${(Math.abs(2 * (pt[1] - c[1]))).toFixed(0)} — 點「拉伸」` }
+        if (Math.abs(pt[0] - c[0]) < 1e-6 || Math.abs(pt[1] - c[1]) < 1e-6) return { status: '矩形寬高必須大於零' }
+        const rect: SketchShape = { type: 'rect', a, b: pt }
+        return { ...centerRectCommit(s, rect, c), sketchStart: null, status: `中心矩形已畫好 ${(Math.abs(2 * (pt[0] - c[0]))).toFixed(1)}×${(Math.abs(2 * (pt[1] - c[1]))).toFixed(1)}${s.autoConstrain && centerRectExtras([...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[], rect as FShape, c, s.skCons) ? ' — 中心已重合，位置已鎖定' : ''} — 點「拉伸」` }
       }
       if (s.sketchTool === 'circle') {
         if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '移動並點擊定半徑，或打數字輸入精確直徑Ø' }
@@ -11110,7 +11171,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setEllipseArcDirection: (direction) => set({ellipseArcDirection:direction,sketchStart:null,polyPts:[],sketchPreview:null,dimBuf:['',''],dimField:0,sketchDim:null,status:direction==='ccw'?'橢圓弧：逆時針；點中心':'橢圓弧：順時針；點中心'}),
   ellipseCreation: 'axis-aligned',
   setEllipseCreation: (mode) => set({ellipseCreation:mode,sketchStart:null,polyPts:[],sketchPreview:null,dimBuf:['',''],dimField:0,sketchDim:null,status:mode==='three-point'?'橢圓：點中心 → 軸端點 → 另一半軸':'橢圓：點中心 → 包圍框角點'}),
-  sketchTypeKey: (key) => { let _finishChain = false; let rectangleCommitted = false; set((s) => {
+  sketchTypeKey: (key) => { let _finishChain = false; let rectangleCommitted = false; const _typedPre = get(); set((s) => {
     if (s.mode !== 'sketch') return {}
     if (s.sizing) return {}   // T796b：调尺寸中由 sizeTypeKey 处理，唔好误入起点坐标输入（防幽灵 sketchStart）
     const tool = s.sketchTool
@@ -11207,7 +11268,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       const dx = prev[0] - start[0], dy = prev[1] - start[1]
       const W = num(buf[0], Math.abs(2 * dx) || 20), H = num(buf[1], Math.abs(2 * dy) || W)
       const sx = dx < 0 ? -1 : 1, sy = dy < 0 ? -1 : 1
-      return { ...bank, sketchShape: { type: 'rect', a: [start[0] - sx * W / 2, start[1] - sy * H / 2], b: [start[0] + sx * W / 2, start[1] + sy * H / 2] }, sketchStart: null, ...clr, status: `中心矩形 ${W} × ${H} mm — 點「拉伸」` }
+      const rect: SketchShape = { type: 'rect', a: [start[0] - sx * W / 2, start[1] - sy * H / 2], b: [start[0] + sx * W / 2, start[1] + sy * H / 2] }
+      return { ...centerRectCommit({ ...s, ...bank, sketchShape: null }, rect, start), sketchStart: null, ...clr, status: `中心矩形 ${W} × ${H} mm — 點「拉伸」` }
     }
     if(start && tool==='ellipse' && s.ellipseCreation==='three-point'){
       if(buf[0]!==''&&(!Number.isFinite(Number(buf[0]))||Number(buf[0])<=0))return {status:'半軸長度必須是完整正數'}
@@ -11377,7 +11439,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     if (tool === 'arc' || tool === 'circle3') return unsup   // 三点弧曲率/三点圆 单数字歧义/欠定 → 诚实提示（keys 已被吃，可接受）
     return {}
-  }); if (rectangleCommitted) void get().resolveSk(); if (_finishChain) get().finishOpenPolyline() },   // GM-FP1 #14：两值全锁后收笔（set 同步完成后 polyPts 已含新点）
+  }); if (rectangleCommitted) void get().resolveSk(); else if (key === 'Enter') afterTypedCommit(_typedPre); if (_finishChain) get().finishOpenPolyline() },   // GM-FP1 #14：两值全锁后收笔（set 同步完成后 polyPts 已含新点）
 
   closePolyline: () => {
     let activeClosed = false   // D4-2：只有「活动 shape 被闭合 / live 链闭合」先跑 trailing 推断；profile-close 唔好跑去活动 shape 上
@@ -15367,6 +15429,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (s0.mode === 'sketch' && (s0.sketchTool === 'polyline' || s0.sketchTool === 'spline' || s0.sketchTool === 'bspline') && s0.polyPts.length) {
         set((s) => {
           const n = s.polyPts.length
+          // SKETCH12 #5：記低撤走嘅點（連弧段 bulge），畫緊折線時 Ctrl+Y 可逐段重做。
+          _polyRedo.push({ before: s.polyPts.slice(0, -1), p: s.polyPts[n - 1], bulges: s.polyBulges.slice(), profiles: s.sketchProfiles, shape: s.sketchShape, tool: s.sketchTool })
           // 逐點加入時可能已推咗快照（點擊路徑有、打字長度路徑冇）— 頂層快照正係「加呢點之前」就一併彈走，免得之後 Ctrl+Z 復活已撤嘅點
           const top = s.sketchUndo[s.sketchUndo.length - 1] as { polyPts?: Pt[] } | undefined
           const same = (a: Pt[] | undefined, len: number) => !!a && a.length === len && a.every((p, i) => p[0] === s.polyPts[i][0] && p[1] === s.polyPts[i][1])
@@ -15445,6 +15509,17 @@ export const useApp = create<AppState>((rawSet, get) => {
 
   redo: () => enqueueHistoryTransition(async () => {
     if (get().formMode) { get().formRedoPop(); return }
+    // SKETCH12 #5：畫緊折線／樣條時 Ctrl+Y = 重做最後一段被撤銷嘅線段（同 Ctrl+Z 逐段撤銷對稱）。
+    {
+      const s0 = get(), top = _polyRedo[_polyRedo.length - 1]
+      if (top && polyRedoApplies(top, s0)) {
+        _polyRedo.pop()
+        const polyPts = [...s0.polyPts, top.p]
+        set({ polyPts, polyBulges: top.bulges, sketchStart: s0.sketchStart ?? (polyPts.length === 1 ? top.p : s0.sketchStart), sketchPreview: top.p, sketchDim: null, status: `已重做一段 — 共 ${polyPts.length} 點，繼續繪畫（Ctrl+Z 可再撤銷）` })
+        return
+      }
+      if (_polyRedo.length && !(s0.mode === 'sketch' && s0.polyPts.length)) _polyRedo.length = 0
+    }
     if (get().mode === 'sketch' && get().sketchRedo.length) {
       const historyBefore=get(),historySnap=historyBefore.sketchRedo[historyBefore.sketchRedo.length-1]
       const historyEpoch=_patternTrimRevision,historyRevision=patternRevision(historyBefore)

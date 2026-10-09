@@ -146,6 +146,7 @@ import { buildFaceGroupColors } from '../cad/faceGroupColors'   // GM-X1 #16：�
 // GM-X1 #16：面组上色调色板（同 store COMP_PALETTE 精神一致，此处独立以免跨模块耦合）
 const FG_PALETTE = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#42d4d4', '#f032e6', '#bf9000', '#469990', '#9a6324']
 import { pathArea, bulgeRadius } from '../sketch/sketchOps'
+import { LoftSectionList } from './LoftSectionList'
 import { CameraRig, SketchSurface, SketchDraw, DimensionEditPreview, SkSelDraw, MirrorPickDraw, MarqueeDraw, MoveGizmoDraw, ScaleGizmoDraw, ArrayPreview, ToolHoverPreview, SizingHandle, CommittedSketches, CanvasImageLayer, ExtrudePreview, RevolvePreview, RevolveAngleHandle, RegionPickLayer, ExtrudeArrow, LoftPreview, FitView, ViewRig, BookmarkRig, SketchDimProjector, SketchDimLayer, HolePreview, FaceOffsetGhost, MoveScaleGhost, CoilPreview, SweepPreview } from './SketchLayer'
 import { SketchToolPanel } from './SketchToolPanel'
 import { useDraggable } from './useDraggable'            // GM-W6 A4：草图工具条可拖移（同 AI ✦ / 🩺诊断 钮共用 hook）
@@ -579,6 +580,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
   const measureMode = useApp((s) => s.measureMode)
   const addMeasurePoint = useApp((s) => s.addMeasurePoint)
   const faceSketchPick = useApp((s) => s.faceSketchPick)
+  const loftFacePick = useApp((s) => s.loftFacePick)   // 放樣對話框「揀平面」做截面
   const automatedModelPicking = useApp((s) => s.featDlg?.kind === 'automatedmodel')
   const automatedModelPickFace = useApp((s) => s.automatedModelPickFace)
   const embossPick = useApp((s) => s.embossPick)   // S162 Emboss 拾面
@@ -693,7 +695,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
     delFaceMode || patchMode || thickenMode || offsetSurfMode || extendSurfMode ||
     splitFaceMode || replaceFaceMode || rotateFaceMode || moveFaceMode || surfTrimMode ||
     draftPickMode || splitPlanePick || mirrorFacePick || faceColorPick || inspectMode ||
-    faceSketchPick || automatedModelPicking || embossPick || ucsPick || cpatAxisPick || feaPinPick || feaBearingPick ||
+    faceSketchPick || loftFacePick || automatedModelPicking || embossPick || ucsPick || cpatAxisPick || feaPinPick || feaBearingPick ||
     toFacePick || holeToObjectPick || threadFacePick || datumPicking || datumCmdAcc || edgePtPick || decalArmed ||
     jointOriginPickMode || mode === 'pickplane' || formBoxDraft?.stage === 'plane'
   )
@@ -717,13 +719,13 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         // pick command is armed (fillet/chamfer/measure/hole/shell/press-pull/sketch-on-face/pick-plane).
         if (frozen && (faceSketchPick || mode === 'pickplane')) cv.style.cursor = 'crosshair'   // GM-W4 4.3：网格件都可拾面画草图 → 十字光标
         else if (frozen) cv.style.cursor = 'pointer'
-        else if (edgeRoundPick || boundaryPatchPick || measureMode || measureEdgeMode || measureFaceMode || measureAngleMode || holeMode || shellMode || feaMode || moldMode || pushPullMode || delFaceMode || patchMode || thickenMode || offsetSurfMode || extendSurfMode || splitFaceMode || replaceFaceMode || rotateFaceMode || moveFaceMode || surfTrimMode || draftPickMode || splitPlanePick || faceSketchPick || automatedModelPicking || embossPick || cpatAxisPick || feaPinPick || feaBearingPick || mode === 'pickplane' || formBoxDraft?.stage === 'plane') cv.style.cursor = 'crosshair'
+        else if (edgeRoundPick || boundaryPatchPick || measureMode || measureEdgeMode || measureFaceMode || measureAngleMode || holeMode || shellMode || feaMode || moldMode || pushPullMode || delFaceMode || patchMode || thickenMode || offsetSurfMode || extendSurfMode || splitFaceMode || replaceFaceMode || rotateFaceMode || moveFaceMode || surfTrimMode || draftPickMode || splitPlanePick || faceSketchPick || loftFacePick || automatedModelPicking || embossPick || cpatAxisPick || feaPinPick || feaBearingPick || mode === 'pickplane' || formBoxDraft?.stage === 'plane') cv.style.cursor = 'crosshair'
       }}
       onPointerOut={() => { setHovered(false); setHoverFace(null); const cv = document.querySelector('canvas'); if (cv) cv.style.cursor = '' }}
       onPointerMove={(e) => {
         // While a face-pick command is armed, highlight the coplanar face under the cursor (Fusion-style),
         // so the user clearly sees which face they're about to sketch-on / drill / push-pull / shell.
-        const armed = (!frozen && (faceSketchPick || automatedModelPicking || embossPick || holeMode || pushPullMode || delFaceMode || thickenMode || offsetSurfMode || extendSurfMode || splitFaceMode || replaceFaceMode || rotateFaceMode || moveFaceMode || surfTrimMode || !!draftPickMode || splitPlanePick || shellMode || (edgeRoundPick === 'fillet' && (filletType === 'rule' || filletType === 'full')) || (edgeRoundPick === 'chamfer' && chamferMode === 'angle') || !!feaMode || cpatAxisPick || feaPinPick || feaBearingPick || measureFaceMode || measureAngleMode || moldMode || mode === 'pickplane' || formBoxDraft?.stage === 'plane'))   // GM-W8 A5：补活动实体面拾取模式嘅共面高亮（拾轴/销孔/轴承孔/量面/量角/浇口）
+        const armed = (!frozen && (faceSketchPick || loftFacePick || automatedModelPicking || embossPick || holeMode || pushPullMode || delFaceMode || thickenMode || offsetSurfMode || extendSurfMode || splitFaceMode || replaceFaceMode || rotateFaceMode || moveFaceMode || surfTrimMode || !!draftPickMode || splitPlanePick || shellMode || (edgeRoundPick === 'fillet' && (filletType === 'rule' || filletType === 'full')) || (edgeRoundPick === 'chamfer' && chamferMode === 'angle') || !!feaMode || cpatAxisPick || feaPinPick || feaBearingPick || measureFaceMode || measureAngleMode || moldMode || mode === 'pickplane' || formBoxDraft?.stage === 'plane'))   // GM-W8 A5：补活动实体面拾取模式嘅共面高亮（拾轴/销孔/轴承孔/量面/量角/浇口）
           || (frozen && !!compId && (faceSketchPick || mode === 'pickplane'))   // GM-W4 4.3：网格件拾面画草图都有共面高亮
         if (armed && e.faceIndex != null) { e.stopPropagation(); const fg = faceGroupTris(mesh, e.faceIndex); setHoverFace(fg.length ? fg : coplanarFaceTris(mesh, e.faceIndex)) }   // S99：优先真 B-rep 面（分割子面分得开），回落共面拟合
         else setHoverFace(null)   // pick mode ended (or moved off a face) → clear any lingering highlight
@@ -854,6 +856,14 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
           if (Math.abs(nz) >= Math.abs(nx) && Math.abs(nz) >= Math.abs(ny)) useApp.getState().chooseFormBoxPlane('XY', det.p[2])
           else if (Math.abs(ny) >= Math.abs(nx)) useApp.getState().chooseFormBoxPlane('XZ', det.p[1])
           else useApp.getState().chooseFormBoxPlane('YZ', det.p[0])
+          return
+        }
+        if (loftFacePick && !frozen && e.face) {
+          e.stopPropagation()
+          const det = e.faceIndex != null ? sketchFacePlane(faceGroupTris(mesh, e.faceIndex)) : null
+          if (!det) { useApp.setState({ status: '放樣截面只可以揀平面（呢個係曲面）' }); return }
+          const q: [number, number, number] = [e.point.x, -e.point.z, e.point.y]
+          void useApp.getState().addLoftSectionFromFace(q, det.n as [number, number, number])
           return
         }
         if ((mode === 'pickplane' || faceSketchPick) && !frozen && e.face) {
@@ -4396,7 +4406,6 @@ export default function Viewport() {
   const skConflict = useApp((s) => s.skConflict)
   const skConflictIds = useApp((s) => s.skConflictIds)   // S194：冲突约束 id 数（状态栏显示 ×N + 红徽章提示）
   const loftSections = useApp((s) => s.loftSections)
-  const loftRail = useApp((s) => s.loftRail)   // T772
   const addLoftSection = useApp((s) => s.addLoftSection)
   const commitLoft = useApp((s) => s.commitLoft)
   const loftDlgOpen = useApp((s) => s.loftDlgOpen)
@@ -7557,7 +7566,7 @@ export default function Viewport() {
           )}
           {/* GM-W2 2.3：CAM 导出（导出DXF/⚡激光/🪚CNC/🔄车削 — CAM 属冻结模块）已收纳入「更多▾」弹层，唔再长占底栏 */}
           {sketchShape && <button className="sb-tool" title={tStatus('把當前輪廓加為放樣截面；可在 XY/XZ/YZ 或任意參考平面繼續畫下一個截面', lang)} onClick={() => addLoftSection()}>{tStatus('＋放樣截面', lang)}</button>}
-          {loftSections.length >= 2 && <button className="sb-tool" title={tStatus('放樣導軌（T772）：畫一條折線（每個截面一個點，點數=截面數）→ 記低 → 放樣時截面拉到掂導軌', lang)} onClick={() => useApp.getState().bankLoftRail()}>{tStatus('⤳放樣導軌', lang)}</button>}
+          {loftSections.length >= 2 && <button className="sb-tool" title={tStatus('放樣導軌（可選）：喺 XY 草圖畫一條連接各截面嘅折線（每個截面一點，點數 = 截面數）→ 撳呢個記低；放樣時截面會水平平移去掂導軌點', lang)} onClick={() => useApp.getState().bankLoftRail()}>{tStatus('⤳放樣導軌', lang)}</button>}
           {loftSections.length > 0 && <span className="sb-hint">{tStatus('放樣截面', lang)} {loftSections.length}</span>}
           {loftSections.length >= 2 && <button className="sb-tool sb-finish" title={tStatus('在各截面之間放樣：彈面板設 操作（加料/切割）+ 截面預覽', lang)} onClick={() => openLoftDlg()}>{tStatus('放樣', lang)}{loftSections.length}{tStatus('截面…', lang)}</button>}
           {sketchPlane === 'XY' && ((sketchShape && sketchShape.type === 'poly') || polyPts.length >= 2) && <button className="sb-tool" title={tStatus('把當前折線/樣條作為路徑掃掠：彈面板設 管徑 + 操作（加料/切割）', lang)} onClick={() => openSweepDlg()}>{tStatus('沿路徑掃掠…', lang)}</button>}
@@ -7861,8 +7870,7 @@ export default function Viewport() {
           onCancel={() => cancelLoftDlg()}
           summary={<>{sketchOp === 'cut' ? tStatus('從實體切除', lang) : sketchOp === 'intersect' ? tStatus('保留公共部分', lang) : tStatus('生成/拼合實體', lang)} · {tStatus('穿', lang)} {loftSections.length} {tStatus('截面', lang)}</>}
         >
-          <SelectionChip label={tStatus('截面', lang)} count={loftSections.length} hint={tStatus('畫輪廓 →「＋放樣截面」逐個加', lang)} />
-          <SelectionChip label={tStatus('導軌', lang)} count={loftRail ? 1 : 0} hint={tStatus('⤳放樣導軌：折線每截面一點（只支持 1 條 — 內核單 auxiliary spine 槽）', lang)} onClear={() => useApp.getState().clearLoftRail()} />
+          <LoftSectionList />
           <div style={{ color: '#6b7680' }}>{tStatus('曲面選項', lang)}</div>
           <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('直紋邊界曲面：截面之間用直線連接（developable，乾淨輕量），關＝平滑樣條過渡', lang)}>
             <input type="checkbox" checked={loftRuled} onChange={(e) => setLoftOpt({ loftRuled: e.target.checked })} /> {tStatus('直纹边界曲面', lang)}

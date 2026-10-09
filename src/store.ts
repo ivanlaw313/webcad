@@ -55,6 +55,7 @@ import { detectLang, tStatus, msg, normalizeLang, tMaterialName, type Lang } fro
 import { searchRibbonCommand } from './ribbon'   // P6 AI 教学：把用户问句模糊匹配到真实 ribbon 命令位置
 import { openAeroLab } from './aero/aeroUiStore'   // Aero Design Lab（氣動設計實驗室）面板開關 — 獨立小 store
 import type { MeshData, Feature, SketchProfile, BoolOp, EdgeSel, DrawView, Plane } from './worker/cad.worker'
+import { loftEffectiveOrder, loftMoveOrder, faceLoopToSection } from './cad/loftSections'
 import { computeFK, drivingJointOf, _fourbar, solve4Bar, fourBarVelocity, fourBarVelocityProfile, solveSliderCrank, sliderCrankReachability, solveLinkage, solveSixBar, sweepToContact, simulateMotion, JOINT_LABEL_TC, jointTypeMenu, jointTypePickOptions, resolveJointOrigin, type Joint, type JointType, type JointOrigin, type JointOriginMode } from './assembly/kinematics'
 import { findLoops, loopPlane, solveLoop, isMechanismLoop, type Loop } from './assembly/linkage'   // T774（S51）：通用平面闭环求解器
 import { inferAsBuiltAxis, type ExplodeStep } from './assembly/asmUtil'   // GM-3DV4 A10：as-built 推轴；A12：有序爆炸步类型
@@ -2582,7 +2583,16 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   loftSections: { profile: SketchProfile; z: number; plane?: Plane; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[]
   addLoftSection: () => void
   commitLoft: () => Promise<void>
-  loftSecSrcs: { datumRef?:AppState['sketchSources'][string]['datumRef']; patternData?: SketchPatternData; shapes: SketchShape[]; cons: SkCon[]; z: number; plane?: Plane; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[]  // T753：每个放样截面嘅草图源（同 loftSections 平行，commitLoft 时归档）
+  loftSecSrcs: { label?: string; skId?: string; face?: boolean; datumRef?:AppState['sketchSources'][string]['datumRef']; patternData?: SketchPatternData; shapes: SketchShape[]; cons: SkCon[]; z: number; plane?: Plane; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[]  // label/skId/face：對話框截面清單顯示 + 避免重複加；T753：每个放样截面嘅草图源（同 loftSections 平行，commitLoft 时归档）
+  loftOrderManual: boolean          // 用户喺放樣對話框手動排過截面次序 → 唔再按 z 自動排
+  moveLoftSection: (i: number, dir: -1 | 1) => void   // i = 對話框（有效次序）入面嘅位置
+  removeLoftSection: (i: number) => void
+  loftFacePick: boolean             // 放樣對話框「揀平面」模式：點實體平面 → 加做截面
+  setLoftFacePick: (on: boolean) => void
+  addLoftSectionFromFace: (p: [number, number, number], n: [number, number, number]) => Promise<void>   // p/n = CAD 座標
+  loftPreview: { mesh: MeshData | null; edges: [number, number, number][][]; error?: string; warnings: string[]; volume?: number } | null
+  loftPreviewBusy: boolean
+  scheduleLoftPreview: () => void
   loftDlgOpen: boolean              // Fusion-style loft dialog: operation + section count + ghost preview
   // 非空代表由時間軸重開現有 Loft；確認時改同一個特徵而非新增一個。
   loftEditId: string | null
@@ -2599,6 +2609,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   sweepGuide: Pt[] | null
   loftRail: Pt[] | null                                   // T772：放样导轨（草图坐标点列 — 点数=截面数）
   bankLoftRail: () => void
+  setLoftRailFromSketch: (skId: string) => void       // 對話框揀已完成嘅 XY 折線草圖做導軌
   clearLoftRail: () => void                          // T755 导轨：银行咗嘅折线（截面跟佢转向）— bankSweepGuide 收当前折线
   bankSweepGuide: () => void
   clearSweepGuide: () => void
@@ -4664,6 +4675,32 @@ function buildShellFeature(s: Pick<AppState, 'shellPicks' | 'shellThickness' | '
 }
 let _shellPvTimer: ReturnType<typeof setTimeout> | null = null
 let _shellPvSeq = 0
+
+// ── 放樣：對話框／預覽／確定共用同一個特徵構造（預覽 = 結果） ──
+let _loftPvTimer: ReturnType<typeof setTimeout> | null = null
+let _loftPvSeq = 0
+function buildLoftFeature(s: AppState, id: string) {
+  const ord = loftEffectiveOrder(s.loftSections, s.loftOrderManual)
+  const secs = ord.map((i) => s.loftSections[i])
+  const secSrcs = s.loftSecSrcs.length === s.loftSections.length ? ord.map((i) => s.loftSecSrcs[i]) : s.loftSecSrcs
+  if (secs.length < 2) return null
+  const _so = s.sketchOp
+  const op: BoolOp = (_so === 'cut' || _so === 'intersect' || _so === 'newbody') && hasSolid(s.features) ? _so : 'new'   // P2 New Body + 修旧 bug：loft ∩ 掣一直有但 commit 只认 cut（intersect 静默变 Join）
+  const ruled = s.loftRuled, wall = s.loftWall
+  const rail = s.loftRail   // T772：导轨透传（点数唔啱 worker 诚实忽略）
+  const capIdx = s.loftCapPoint
+  const capPt = (capIdx != null && capIdx >= 0 && capIdx < s.cpoints.length) ? s.cpoints[capIdx] : null
+  const capEnd = s.loftCapEnd
+  const continuity = (!ruled && (s.loftContinuity === 'C1' || s.loftContinuity === 'C2')) ? s.loftContinuity : undefined
+  const closed = s.loftClosed && secs.length >= 3   // #8：闭环需 ≥3 截面（worker 亦守）
+  let feature: Feature = { id, type: 'loft', op, sections: secs, ...(ruled ? { ruled: true } : {}), ...(wall > 0 ? { wall } : {}), ...(rail && rail.length >= 2 ? { rails: [rail.map((p) => stToProfile(p, 'XY'))] } : {}), ...(capPt ? { capPoint: capPt, capEnd } : {}), ...(continuity ? { continuity } : {}), ...(closed ? { closed: true } : {}) }
+  if (s.loftEditId) {
+    // 編輯：保留原特徵嘅導軌／封口點（同 commit 一致），預覽先會同結果一樣
+    const old = s.features.find((x) => x.id === s.loftEditId)
+    if (old && old.type === 'loft') feature = { ...(feature as object), ...(old.rails ? { rails: old.rails } : {}), ...(old.capPoint ? { capPoint: old.capPoint, capEnd: old.capEnd } : {}) } as Feature
+  }
+  return { feature, secs, secSrcs, ruled, wall, rail, capPt, capEnd, continuity, closed }
+}
 
 let _roundPvTimer: ReturnType<typeof setTimeout> | null = null
 const _previewFeatures = new WeakMap<MeshData, Feature[]>()
@@ -9894,9 +9931,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.loftSections.some(sameFrame)) { set({ status: '已有相同基準面位置嘅截面 — 請改偏移、角度或選擇另一面' }); return }
     const sh = JSON.parse(JSON.stringify(solid[solid.length - 1])) as SketchShape
     const sec = { profile: shapeToProfile(sh, src.plane), z, plane: src.plane, ...(src.arb ? { arbPlane: JSON.parse(JSON.stringify(src.arb)) } : {}) }
-    const secSrc = { ...(src.datumRef?{datumRef:structuredClone(src.datumRef)}:{}), patternData: clonePatternData(src.patternData) ?? undefined, shapes: JSON.parse(JSON.stringify(src.shapes)) as SketchShape[], cons: JSON.parse(JSON.stringify(src.cons)) as SkCon[], z, plane: src.plane, ...(src.arb ? { arb: JSON.parse(JSON.stringify(src.arb)) } : {}) }
-    const frameLabel = src.arb ? '斜参考面' : `${src.plane} @ ${z}`
-    set((st) => ({ loftSections: [...st.loftSections, sec], loftSecSrcs: [...st.loftSecSrcs, secSrc], status: `已加放樣截面 ${st.loftSections.length + 1}（${frameLabel}，來自獨立草圖）${st.loftSections.length + 1 >= 2 ? ' — 可以「放樣」喇' : ' — 再揀一個截面'}` }))
+    const secSrc = { label: src.name || skId.replace('sk', '草圖'), skId, ...(src.datumRef?{datumRef:structuredClone(src.datumRef)}:{}), patternData: clonePatternData(src.patternData) ?? undefined, shapes: JSON.parse(JSON.stringify(src.shapes)) as SketchShape[], cons: JSON.parse(JSON.stringify(src.cons)) as SkCon[], z, plane: src.plane, ...(src.arb ? { arb: JSON.parse(JSON.stringify(src.arb)) } : {}) }
+    const frameLabel = src.arb ? '斜參考面' : `${src.plane} @ ${z}`
+    set((st) => ({ ...(st.loftSections.length ? {} : { loftOrderManual: false }), loftSections: [...st.loftSections, sec], loftSecSrcs: [...st.loftSecSrcs, secSrc], status: `已加放樣截面 ${st.loftSections.length + 1}（${frameLabel}，來自獨立草圖）${st.loftSections.length + 1 >= 2 ? ' — 可以「放樣」喇' : ' — 再揀一個截面'}` }))
   },
   // 重开编辑完成：用编辑后嘅轮廓喺原 timeline 位置重生成成组特征（嵌套孔逻辑按新几何重算），全树重建。
   // T746 批3：重生成逻辑抽出 regenGroupFeatures（同 ƒx 参数→草图联动共用，杜绝两份逻辑漂移）。
@@ -16005,7 +16042,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (sections.length < 2) { get().selectFeature(featId); return }
         set({
           loftDlgOpen: true, loftEditId: featId, selectedFeature: featId,
-          loftSections: JSON.parse(JSON.stringify(sections)) as typeof sections,
+          loftSections: JSON.parse(JSON.stringify(sections)) as typeof sections, loftSecSrcs: [], loftOrderManual: true, loftFacePick: false,
           loftRuled: !!f.ruled, loftWall: f.wall ?? 0, loftClosed: !!f.closed,
           loftContinuity: f.continuity ?? '', loftCapEnd: f.capEnd ?? 'last',
           sketchOp: f.op ?? 'new', holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null,
@@ -19521,62 +19558,45 @@ export const useApp = create<AppState>((rawSet, get) => {
       // #24：两个截面唔可以同一高度（ThruSections 会退化/失败）— 同 from-sketch 路径(4437)一致守卫
       if (s.loftSections.some((x) => sec.arbPlane ? !!x.arbPlane && JSON.stringify(x.arbPlane) === JSON.stringify(sec.arbPlane) : !x.arbPlane && (x.plane || 'XY') === sec.plane && Math.abs(x.z - sec.z) < 1e-6)) return { status: '已有相同基準面位置嘅截面 — 改基準面、偏移或角度再加' }
       // T753：截面草图源同步入银行（轮廓 + 约束）— commitLoft 成功后逐截面归档做可重开源
-      const secSrc = { ...(_pendingDatumRef?{datumRef:structuredClone(_pendingDatumRef)}:{}), patternData: clonePatternData(s.skPatternData) ?? undefined, shapes: JSON.parse(JSON.stringify(s.skPatternData ? [...s.sketchProfiles, s.sketchShape] : [s.sketchShape])) as SketchShape[], cons: JSON.parse(JSON.stringify(s.skCons)) as SkCon[], z: sec.z, plane: sec.plane, ...(s.sketchArb ? { arb: JSON.parse(JSON.stringify(s.sketchArb)) } : {}) }
+      const secSrc = { label: `截面 ${s.loftSections.length + 1}（${sec.arbPlane ? '斜參考面' : `${sec.plane} @ ${sec.z}`}）`, ...(_pendingDatumRef?{datumRef:structuredClone(_pendingDatumRef)}:{}), patternData: clonePatternData(s.skPatternData) ?? undefined, shapes: JSON.parse(JSON.stringify(s.skPatternData ? [...s.sketchProfiles, s.sketchShape] : [s.sketchShape])) as SketchShape[], cons: JSON.parse(JSON.stringify(s.skCons)) as SkCon[], z: sec.z, plane: sec.plane, ...(s.sketchArb ? { arb: JSON.parse(JSON.stringify(s.sketchArb)) } : {}) }
       const frameLabel = sec.arbPlane ? '斜参考面' : `${sec.plane} @ ${sec.z}`
-      return { loftSections: [...s.loftSections, sec], loftSecSrcs: [...s.loftSecSrcs, secSrc], sketchShape: null, sketchStart: null, sketchPreview: null, polyPts: [], skCons: [], skPatternData: null, status: `已加放樣截面 ${s.loftSections.length + 1}（${frameLabel}）— 再畫下一個；≥2 個後點「放樣」` }
+      return { ...(s.loftSections.length ? {} : { loftOrderManual: false }), loftSections: [...s.loftSections, sec], loftSecSrcs: [...s.loftSecSrcs, secSrc], sketchShape: null, sketchStart: null, sketchPreview: null, polyPts: [], skCons: [], skPatternData: null, status: `已加放樣截面 ${s.loftSections.length + 1}（${frameLabel}）— 再畫下一個；≥2 個後點「放樣」` }
     }),
   loftSecSrcs: [],
   commitLoft: async () => {
-    // 同一平面旧档按偏移排序；跨 Origin 平面放样按用户选择顺序（Fusion Loft 的 section order 语义）。
-    const _rawSecs = get().loftSections, _rawSrcs = get().loftSecSrcs
-    const _aligned = _rawSrcs.length === _rawSecs.length
-    const _frameKey = (sec: typeof _rawSecs[number]) => sec.arbPlane
-      ? `arb:${JSON.stringify(sec.arbPlane)}`
-      : `origin:${sec.plane || 'XY'}`
-    const _samePlane = _rawSecs.every((sec) => _frameKey(sec) === _frameKey(_rawSecs[0]))
-    const _idx = _rawSecs.map((_, i) => i).sort((a, b) => _samePlane ? _rawSecs[a].z - _rawSecs[b].z : a - b)
-    const secs = _idx.map((i) => _rawSecs[i])
-    const secSrcs = _aligned ? _idx.map((i) => _rawSrcs[i]) : _rawSrcs
-    if (secs.length < 2) { set({ status: '放樣至少需要 2 個截面（用「+放樣截面」逐個添加）' }); return }
-    const _so = get().sketchOp
-    const op: BoolOp = (_so === 'cut' || _so === 'intersect' || _so === 'newbody') && hasSolid(get().features) ? _so : 'new'   // P2 New Body + 修旧 bug：loft ∩ 掣一直有但 commit 只认 cut（intersect 静默变 Join）
-    const ruled = get().loftRuled, wall = get().loftWall
-    const rail = get().loftRail   // T772：导轨透传（worker 三级回退，点数唔啱诚实忽略）
-    // S 放样封口构造点：选中 cpoint → 该端用顶点封口成真水密尖（缺省 ⇒ 不加字段 = 旧 Feature 逐字节回放）
-    const capIdx = get().loftCapPoint
-    const cps = get().cpoints
-    const capPt = (capIdx != null && capIdx >= 0 && capIdx < cps.length) ? cps[capIdx] : null
-    const capEnd = get().loftCapEnd
-    // S 放样端条件：C1 切线 / C2 曲率连续（直纹时无意义 → 忽略；缺省 ⇒ 不加字段 = 旧路径逐字节回放）
-    const cont = get().loftContinuity
-    const continuity = (!ruled && (cont === 'C1' || cont === 'C2')) ? cont : undefined
+    // 次序：同一參考面 + 未手動排 → 按偏移排；否則按清單（Fusion section order）。同預覽共用 buildLoftFeature。
+    const built = buildLoftFeature(get(), fid())
+    if (!built) { set({ status: '放樣至少需要 2 個截面（用「+放樣截面」逐個添加，或喺對話框揀草圖／平面）' }); return }
+    const { feature: f, secs, secSrcs, ruled, wall, rail, capPt, capEnd, continuity, closed } = built
+    const op = f.type === 'loft' ? (f.op ?? 'new') : 'new'
+    if (_loftPvTimer) { clearTimeout(_loftPvTimer); _loftPvTimer = null }
+    ++_loftPvSeq
     // Timeline edit: replace the existing Loft definition in place.  Do not append another loft and do not
     // discard its stored guide / point-cap when this dialog has no new replacement for those selections.
     const editId = get().loftEditId
     if (editId) {
       const old = get().features.find((x) => x.id === editId)
-      if (!old || old.type !== 'loft') { set({ loftEditId: null, loftDlgOpen: false, status: '原放樣已不存在，無法重建' }); return }
-      const closedEdit = get().loftClosed && secs.length >= 3
-      set({ loftDlgOpen: false, loftEditId: null })
+      if (!old || old.type !== 'loft') { set({ loftEditId: null, loftDlgOpen: false, loftPreview: null, status: '原放樣已不存在，無法重建' }); return }
+      set({ loftDlgOpen: false, loftEditId: null, loftFacePick: false, loftPreview: null, loftPreviewBusy: false })
       await get().editFeature(editId, {
         sections: secs as unknown as number[], op,
         ruled: ruled || undefined, wall: wall > 0 ? wall : undefined,
-        continuity, closed: closedEdit || undefined,
+        continuity, closed: closed || undefined,
         // Existing rails / capPoint stay attached unless a future explicit re-selection replaces them.
       })
       return
     }
-    set({ loftSections: [], loftSecSrcs: [], loftRail: null, loftCapPoint: null, skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model', loftDlgOpen: false })
-    const closed = get().loftClosed && secs.length >= 3   // #8：闭环需 ≥3 截面（worker 亦守）
-    const f: Feature = { id: fid(), type: 'loft', op, sections: secs, ...(ruled ? { ruled: true } : {}), ...(wall > 0 ? { wall } : {}), ...(rail && rail.length >= 2 ? { rails: [rail.map((p) => stToProfile(p, 'XY'))] } : {}), ...(capPt ? { capPoint: capPt, capEnd } : {}), ...(continuity ? { continuity } : {}), ...(closed ? { closed: true } : {}) }
+    set({ loftSections: [], loftSecSrcs: [], loftOrderManual: false, loftFacePick: false, loftPreview: null, loftPreviewBusy: false, loftRail: null, loftCapPoint: null, skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model', loftDlgOpen: false })
     const sfx = `${ruled ? '·直纹边界曲面' : ''}${wall > 0 ? `·薄壁 ${wall}mm` : ''}${rail ? '·导轨' : ''}${capPt ? `·${capEnd === 'first' ? '底' : '顶'}点封口` : ''}${continuity ? `·${continuity === 'C2' ? '曲率' : '切线'}连续` : ''}${closed ? '·闭环' : ''}`
-    const ok = await get().applyFeatures([...get().features, f], `已放样 ${secs.length} 個截面（Z ${secs.map((x) => x.z).join('→')}）${sfx}`)
+    const ok = await get().applyFeatures([...get().features, f], `已放樣 ${secs.length} 個截面${secs.every((x) => !x.arbPlane && (x.plane || 'XY') === (secs[0].plane || 'XY')) ? `（${secs[0].plane || 'XY'} ${secs.map((x) => x.z).join('→')}）` : ''}${sfx}`)
     // T753：成功后逐截面归档草图源 + 打 sketchIds（顺序对应 sections）— loft 都可重开编辑
-    if (ok && secSrcs.length === secs.length) {
+    // 揀平面嘅截面冇草圖源 → 唔歸檔 sketchIds（時間軸重開編輯仍可用）
+    if (ok && secSrcs.length === secs.length && !secSrcs.some((x) => x.face)) {
       _pendingDatumRef=null
       const ids: string[] = []
       const entries: AppState['sketchSources'] = {}
-      for (const ss of secSrcs) {
+      for (const ss0 of secSrcs) {
+        const { label: _lb, skId: _sk, face: _fc, ...ss } = ss0; void _lb; void _sk; void _fc
         const skId = 'sk' + ++_skidN
         ids.push(skId)
         entries[skId] = { ...(ss.datumRef?{datumRef:structuredClone(ss.datumRef)}:{}), patternData: clonePatternData(ss.patternData) ?? undefined, shapes: ss.shapes, cons: ss.cons, plane: ss.plane || 'XY', baseZ: ss.z, ...(ss.arb ? { arb: ss.arb } : {}), op, height: 0 }
@@ -19586,6 +19606,63 @@ export const useApp = create<AppState>((rawSet, get) => {
         sketchSources: { ...st.sketchSources, ...entries },
       }))
     }
+  },
+  loftOrderManual: false,
+  moveLoftSection: (i, dir) => {
+    const s = get()
+    if (s.loftEditId) { set({ status: '編輯現有放樣時唔可以改截面清單 — 喺時間軸重開對應草圖修改' }); return }
+    const ord = loftMoveOrder(s.loftSections, s.loftOrderManual, i, dir)
+    if (!ord) return
+    const aligned = s.loftSecSrcs.length === s.loftSections.length
+    set({ loftSections: ord.map((k) => s.loftSections[k]), ...(aligned ? { loftSecSrcs: ord.map((k) => s.loftSecSrcs[k]) } : {}), loftOrderManual: true, status: `已將截面移去第 ${i + dir + 1} 位` })
+  },
+  removeLoftSection: (i) => {
+    const s = get()
+    if (s.loftEditId) { set({ status: '編輯現有放樣時唔可以改截面清單 — 喺時間軸重開對應草圖修改' }); return }
+    const ord = loftEffectiveOrder(s.loftSections, s.loftOrderManual)
+    const k = ord[i]
+    if (k == null) return
+    const aligned = s.loftSecSrcs.length === s.loftSections.length
+    const keep = ord.filter((x) => x !== k)
+    set({ loftSections: keep.map((x) => s.loftSections[x]), ...(aligned ? { loftSecSrcs: keep.map((x) => s.loftSecSrcs[x]) } : {}), loftOrderManual: s.loftOrderManual, ...(keep.length < 2 ? { loftPreview: null } : {}), status: `已移除截面（剩 ${keep.length} 個${keep.length < 2 ? ' — 放樣要 ≥2 個截面' : ''}）` })
+  },
+  loftFacePick: false,
+  setLoftFacePick: (on) => set({ loftFacePick: on, status: on ? '揀平面：點實體上嘅一個平面，佢嘅外框會加做放樣截面（Esc／再按一次取消）' : '已退出揀平面' }),
+  addLoftSectionFromFace: async (p, n) => {
+    const s = get()
+    if (s.loftEditId) { set({ status: '編輯現有放樣時唔可以加截面' }); return }
+    let res: Awaited<ReturnType<typeof cad.planarFaceLoopAt>> | null = null
+    try { res = await cad.planarFaceLoopAt(p) } catch { res = null }
+    if (!res || 'error' in res) { set({ status: `⚠ 揀平面失敗：${res && 'error' in res ? res.error : '內核未能讀取呢個面'}` }); return }
+    const dotn = res.normal[0] * n[0] + res.normal[1] * n[1] + res.normal[2] * n[2]
+    const sec = faceLoopToSection({ ...res, normal: dotn < 0 ? [-res.normal[0], -res.normal[1], -res.normal[2]] as [number, number, number] : res.normal })
+    const st = get()
+    const dup = st.loftSections.some((x) => x.arbPlane && Math.hypot(x.arbPlane.o[0] - sec.arbPlane.o[0], x.arbPlane.o[1] - sec.arbPlane.o[1], x.arbPlane.o[2] - sec.arbPlane.o[2]) < 1e-6)
+    if (dup) { set({ status: '呢個平面已經係截面' }); return }
+    const nFace = st.loftSecSrcs.filter((x) => x.face).length + 1
+    const secSrc = { label: `平面 ${nFace}${sec.profile.kind === 'poly' ? '（曲邊近似成多段線）' : ''}`, face: true, shapes: [] as SketchShape[], cons: [] as SkCon[], z: 0, plane: 'XY' as Plane, arb: sec.arbPlane }
+    set({ ...(st.loftSections.length ? {} : { loftOrderManual: false }), loftSections: [...st.loftSections, sec as AppState['loftSections'][number]], loftSecSrcs: [...(st.loftSecSrcs.length === st.loftSections.length ? st.loftSecSrcs : st.loftSections.map(() => ({ shapes: [], cons: [], z: 0 }))), secSrc], status: `已加平面做第 ${st.loftSections.length + 1} 個截面` })
+  },
+  loftPreview: null,
+  loftPreviewBusy: false,
+  scheduleLoftPreview: () => {
+    if (_loftPvTimer) clearTimeout(_loftPvTimer)
+    const seq = ++_loftPvSeq
+    const s0 = get()
+    if (!s0.loftDlgOpen || s0.loftSections.length < 2) { set({ loftPreview: null, loftPreviewBusy: false }); return }
+    set({ loftPreviewBusy: true })
+    _loftPvTimer = setTimeout(async () => {
+      _loftPvTimer = null
+      const s = get()
+      const built = buildLoftFeature(s, '~pv-loft')
+      if (!built || !s.loftDlgOpen) { if (seq === _loftPvSeq) set({ loftPreview: null, loftPreviewBusy: false }); return }
+      const fpv = { ...built.feature, op: 'new' } as Feature
+      let r: Awaited<ReturnType<typeof cad.previewLoft>> | null = null
+      try { r = typeof (cad as { previewLoft?: unknown }).previewLoft === 'function' ? await cad.previewLoft(fpv) : null } catch { r = null }
+      if (seq !== _loftPvSeq || !get().loftDlgOpen) return
+      if (!r) { set({ loftPreview: { mesh: null, edges: [], warnings: [], error: '預覽暫時唔可用 — 仍可按「確定」' }, loftPreviewBusy: false }); return }
+      set({ loftPreview: r, loftPreviewBusy: false })
+    }, 150)
   },
   loftDlgOpen: false,
   loftEditId: null,
@@ -19597,16 +19674,26 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.loftSections.length < 2) return { status: '放樣需要≥2個截面：畫輪廓→「＋放樣截面」→改基準Z畫下一個→≥2 個後再放樣' }
     return { loftDlgOpen: true, sketchOp: !hasSolid(s.features) ? 'new' : s.sketchOp, status: '放樣：設 操作 → 確定（截面已預覽）' }
   }),
-  cancelLoftDlg: () => set((s) => ({ loftDlgOpen: false, loftEditId: null, ...(s.loftEditId ? { selectedFeature: null, loftSections: [], status: '已取消編輯放樣' } : { status: '已取消放樣（截面保留）' }) })),   // UX1 #3
+  cancelLoftDlg: () => set((s) => ({ loftDlgOpen: false, loftEditId: null, loftFacePick: false, loftPreview: null, loftPreviewBusy: false, ...(s.loftEditId ? { selectedFeature: null, loftSections: [], status: '已取消編輯放樣' } : { status: '已取消放樣（截面保留）' }) })),   // UX1 #3
 
   // T772（S52）：放样导轨 — 同 sweepGuide 同款银行流程：画折线 → 记低（橙虚线）→ 放样时透传 rails
   loftRail: null,
   bankLoftRail: () => set((s) => {
     const src = s.sketchShape?.type === 'poly' ? (s.sketchShape.smooth && s.sketchShape.ctrl ? s.sketchShape.ctrl : s.sketchShape.pts) : s.polyPts
     if (!src || src.length < 2) return { status: '放樣導軌：先用「折線」畫一條導軌（每個截面一個點 — 點數=截面數），再撳「記低導軌」' }
+    if (s.sketchPlane !== 'XY' || s.sketchArb) return { status: '放樣導軌：導軌要喺 XY（水平）草圖上畫 — 截面會喺水平方向平移去掂導軌點' }
     return { loftRail: JSON.parse(JSON.stringify(src)) as Pt[], polyPts: [], sketchShape: s.sketchShape?.type === 'poly' ? null : s.sketchShape, status: `放樣導軌已記低（${src.length} 點）— 截面會拉到掂導軌（點數要 = 截面數，唔啱會誠實忽略）` }
   }),
   clearLoftRail: () => set({ loftRail: null, status: '已清除放樣導軌' }),
+  setLoftRailFromSketch: (skId) => {
+    const src = get().sketchSources[skId]
+    if (!src) { set({ status: '草圖源已唔存在' }); return }
+    const path = src.shapes.find((sh) => sh.type === 'poly' && sh.open && sh.pts.length >= 2)
+    if (!path || path.type !== 'poly') { set({ status: '放樣導軌：呢個草圖冇開放折線 — 導軌要用「折線」畫，每個截面一點' }); return }
+    if (src.plane !== 'XY' || src.arb) { set({ status: '放樣導軌：導軌要喺 XY（水平）草圖上畫' }); return }
+    const n = get().loftSections.length
+    set({ loftRail: JSON.parse(JSON.stringify(path.pts)) as Pt[], status: `已揀導軌（${path.pts.length} 點）${path.pts.length !== n ? ` — ⚠ 要每個截面一點（而家 ${n} 個截面），唔啱會忽略導軌` : ''}` })
+  },
   sweepGuide: null,
   bankSweepGuide: () => set((s) => {
     // 当前折线（或样条控制点）做导轨；银行后清空俾用户画扫掠路径

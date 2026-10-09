@@ -2425,37 +2425,45 @@ export function ExtrudeArrow() {
   )
 }
 
-// Ghost preview of the banked loft sections while the loft dialog is open (each profile loop at its Z + connectors).
+// 放樣即時預覽：內核（worker previewLoft，同 buildShape 共用 makeLoftSolid）算出嘅放樣體 —— 半透明實體 +
+// 真 B-rep 邊（截面環 + 側邊配對線）。預覽同「確定」後嘅結果係同一段內核碼，唔再用前端估算連線（舊版方↔圓會交叉扭曲）。
 export function LoftPreview() {
   const open = useApp((s) => s.loftDlgOpen)
   const sections = useApp((s) => s.loftSections)
+  const manual = useApp((s) => s.loftOrderManual)
+  const ruled = useApp((s) => s.loftRuled)
+  const wall = useApp((s) => s.loftWall)
+  const closed = useApp((s) => s.loftClosed)
+  const cont = useApp((s) => s.loftContinuity)
+  const cap = useApp((s) => s.loftCapPoint)
+  const capEnd = useApp((s) => s.loftCapEnd)
+  const rail = useApp((s) => s.loftRail)
   const op = useApp((s) => s.sketchOp)
-  if (!open || sections.length < 2) return null
+  const pv = useApp((s) => s.loftPreview)
+  useEffect(() => {
+    useApp.getState().scheduleLoftPreview()
+  }, [open, sections, manual, ruled, wall, closed, cont, cap, capEnd, rail])
+  const geom = useMemo(() => {
+    const m = pv?.mesh
+    if (!m || !m.triangles.length) return null
+    const g = new BufferGeometry()
+    g.setAttribute('position', new Float32BufferAttribute(m.vertices, 3))
+    if (m.normals?.length === m.vertices.length) g.setAttribute('normal', new Float32BufferAttribute(m.normals, 3))
+    g.setIndex(m.triangles)
+    if (!(m.normals?.length === m.vertices.length)) g.computeVertexNormals()
+    return g
+  }, [pv?.mesh])
+  useEffect(() => () => { geom?.dispose() }, [geom])
+  if (!open || sections.length < 2 || !pv || !geom) return null
   const color = op === 'cut' ? '#ff5a4d' : op === 'intersect' ? '#b07cff' : '#1aa0ff'
-  const loopAt = (p: { kind: string; a?: Pt; b?: Pt; c?: Pt; r?: number; pts?: Pt[] }, z: number): V3[] => {
-    const lift = (pt: Pt): V3 => SK.XY.lift(pt, z)
-    if (p.kind === 'rect' && p.a && p.b) return rectPts(p.a, p.b, lift)
-    if (p.kind === 'circle' && p.c && p.r != null) return circlePts(p.c, p.r, lift)
-    const pts = p.pts || []
-    return pts.length ? [...pts.map(lift), lift(pts[0])] : []
-  }
-  const loops = sections.map((s) => loopAt(s.profile, s.z))
-  const els: ReactNode[] = loops.map((pts, i) => <Line key={'lf' + i} points={pts} color={color} lineWidth={1.8} />)
-  // connectors between consecutive sections — a rough rail
-  // #62 GM-L2：连接线用【等参比例取点】配对 —— 唔再用同序号 a[j]/b[j]（两截面顶点数唔同时只连到头几个、
-  // 其余顶点无连线且方向乱跳，圆↔方过渡预览扭曲）。改为两 loop 各按相同参数比例 t 取点，令圆(33点)对
-  // 矩形(5点)嘅过渡都均匀连、预览 sane（等参配对 ≈ ThruSections 线性配对观感，非精确但唔再乱跳）。
-  for (let i = 0; i < loops.length - 1; i++) {
-    const a = loops[i], b = loops[i + 1]
-    if (!a.length || !b.length) continue
-    const K = 8
-    for (let k = 0; k < K; k++) {
-      const t = k / K
-      const ai = Math.round(t * (a.length - 1)), bi = Math.round(t * (b.length - 1))
-      els.push(<Line key={'lc' + i + '_' + k} points={[a[ai], b[bi]]} color={color} lineWidth={0.9} dashed dashSize={3} gapSize={2} />)
-    }
-  }
-  return <group>{els}</group>
+  return (
+    <group rotation={[-Math.PI / 2, 0, 0]} renderOrder={40} userData={{ loftPreview: true }}>
+      <mesh geometry={geom} raycast={() => null}>
+        <meshStandardMaterial color={color} transparent opacity={0.32} depthWrite={false} side={DoubleSide} />
+      </mesh>
+      {pv.edges.map((pts, i) => pts.length >= 2 ? <Line key={'lpe' + i} points={pts} color={color} lineWidth={1.6} /> : null)}
+    </group>
+  )
 }
 
 // ── Dimension labels (Fusion-style annotations on committed sketch geometry) ──

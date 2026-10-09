@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type React from 'react'
 import { Euler, Quaternion, Vector3 } from 'three'
 import { useApp } from '../store'
@@ -93,6 +93,34 @@ export default function JointsPanel() {
   const kfRaf = useRef(0)
   const panelRef = useRef<HTMLDivElement>(null)
   const panelDrag = useDraggable('webcad-joints', { right: 14, bottom: 210 })
+  // UX3 #4：面板向上長（右下錨）以前會一路長到蓋住 ribbon、頂部命令欄（揀草圖基準面／移動欄）同 ViewCube。
+  // 依家高度封頂喺 ribbon 底 + 190px 之下，超出就面板內捲動。
+  const [dockMaxH, setDockMaxH] = useState<number | undefined>(undefined)
+  useLayoutEffect(() => {
+    const fit = () => {
+      const el = panelRef.current
+      if (!el) return
+      const rb = (document.querySelector('.ribbon') as HTMLElement | null)?.getBoundingClientRect().bottom ?? 110
+      const r = el.getBoundingClientRect()
+      const mh = panelDrag.isDragged ? Math.round(window.innerHeight - r.top - 12) : Math.round(r.bottom - (rb + 190))
+      const v = Math.max(140, mh)
+      setDockMaxH((o) => (o === v ? o : v))
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  })
+  // UX3 #5：加完關節，新卡插喺上面 → 面板一捲動，原本滑鼠下面嘅掣就換咗做新卡嘅限位欄（用家誤撳）。
+  // 加卡前後保持「距底部」嘅捲動位置不變 → 滑鼠下面仍然係同一個掣。
+  const prevJointCount = useRef(joints.length)
+  const bottomGap = useRef<number | null>(null)
+  useLayoutEffect(() => {
+    const el = panelRef.current
+    if (!el) { prevJointCount.current = joints.length; return }
+    if (joints.length > prevJointCount.current && bottomGap.current != null) el.scrollTop = Math.max(0, el.scrollHeight - bottomGap.current)
+    prevJointCount.current = joints.length
+    bottomGap.current = el.scrollHeight - el.scrollTop
+  })
   const beginPanelDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button, input, select, label')) return
     panelDrag.onPointerDown(e)
@@ -265,8 +293,8 @@ export default function JointsPanel() {
   }
 
   return (
-    <div className={'joints-panel' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} ref={(el) => { panelRef.current = el; panelDrag.ref(el) }} style={panelDrag.style} onPointerDown={beginPanelDrag} title="拖動面板空白處或標題可移動位置">
-      <div className="jp-title" title="機構自由度 DOF = 獨立運動數（各關節自由度之和 − 閉環約束 ×3/環：錨點閉合 2 + back-edge 從動 1，平面 Grübler 修正 T779。四連桿 = 1 ✓）。0 = 全固定；越大越「松」。">裝配關節 {joints.length} · 自由度 DOF {mechDOF}{breakdown ? `（${breakdown}）` : ''}
+    <div className={'joints-panel' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} ref={(el) => { panelRef.current = el; panelDrag.ref(el) }} style={dockMaxH ? { ...panelDrag.style, maxHeight: dockMaxH } : panelDrag.style} onScroll={(e) => { const el = e.currentTarget; bottomGap.current = el.scrollHeight - el.scrollTop }} onPointerDown={beginPanelDrag} title="拖動面板空白處或標題可移動位置">
+      <div className="jp-title" title="機構自由度 DOF = 獨立運動數（各關節自由度之和 − 閉環約束 ×3/環：錨點閉合 2 + back-edge 從動 1，平面 Grübler 修正 T779。四連桿 = 1 ✓）。0 = 全固定；越大越「松」。">裝配關節 {joints.length} · 自由度 {mechDOF}{breakdown ? `（${breakdown}）` : ''}
         <button className="cs-x" style={{ float: 'right', marginLeft: 4, ...(contactSetsOn ? { color: '#ff8a2a', fontWeight: 700 } : {}) }} title={contactSetsOn ? '🧱 接觸集開緊：拖關節滑桿撞到第三方組件會自動擋停（再撳關閉 — 關咗可自由穿過）' : '🧱 接觸集（T787 / Fusion Enable Contact）：開咗之後拖關節滑桿，子件撞到第三方組件即停喺接觸前一刻 — 卡扣/棘輪/限位嘅真實手感'} onClick={() => useApp.getState().toggleContactSets()}>🧱{contactSetsOn ? '開' : ''}</button>
         <span className="pp-x" style={{ float: 'right' }} title="折疊面板" onClick={() => { setUserCollapsed(true); setUserExpanded(false) }}>▾</span></div>
 

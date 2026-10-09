@@ -8067,7 +8067,7 @@ export default function Viewport() {
         </div>
       )}
 
-      {selComp && !editingComp && !modelingCommandActive && mode !== 'sketch' && (
+      {selComp && !editingComp && !modelingCommandActive && mode !== 'sketch' && mode !== 'pickplane' && (   // UX3 #4：揀草圖基準面時唔再蓋住「選擇草圖基準面」欄
         <div className="sketch-bar">
           <button className="sb-tool" title={compBarMin ? tStatus('展開零件工具欄', lang) : tStatus('折疊零件工具欄（淨留名稱同完成，唔擋視圖）', lang)} onClick={toggleCompBar} style={{ fontWeight: 700, minWidth: 22 }}>{compBarMin ? '▸' : '▾'}</button>
           <span className="sb-title">{tStatus('移動/旋轉', lang)} {localizeAsmName(selComp.name, lang)}</span>

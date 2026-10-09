@@ -1275,8 +1275,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   setSketchCornerR: (n: number) => void
   sketchConicRho: number   // S177：圆锥曲线充满度 ρ ∈(0,1)（<0.5椭圆/0.5抛物/>0.5双曲）
   setSketchConicRho: (n: number) => void
-  filletSketchCorners: (r: number) => void
-  chamferSketchCorners: (d: number) => void
+  filletSketchCorners: (r: number) => Promise<void>
+  chamferSketchCorners: (d: number) => Promise<void>
   sketchOffsetD: number
   setSketchOffsetD: (n: number) => void
   sketchOffsetBoth: boolean
@@ -4484,6 +4484,71 @@ function distToShapeOutline(sh: SketchShape, p: Pt): number {
   return best
 }
 // T790：草图 倒圆角/倒角 单角拾取用。把一个 SketchShape 解析成可倒角嘅顶点路径（矩形→4 角；闭合直线/弧折线→verts+bulges）。圆/样条/弓形/开放路径返 null。
+// UX4-B #1：「全部角一次過」逐角做（由大 index 到細，細 index 唔郁），每角都行同單角 skCornerAt 一樣嘅
+// remapCornerConstraints（約束跟住新頂點/邊 index、鄰邊長度尺寸改掛虛擬尖角、倒圓角補 2 個相切）。
+// 倒圓角：第一個圓弧加半徑尺寸 R，其餘圓弧「等半徑」黐住佢（Fusion 同款）→ 自由度淨變 0；改一個 R 全部跟。
+// 返回 null = 呢個輪廓唔適用（圓/樣條/開放/冇可倒嘅直角）。
+function cornersAllOnShape(
+  sh: SketchShape, shapeIdx: number, cons: SkCon[], fillet: boolean, r: number,
+  radAnchor: { id: string | null; mkName: () => string; lineDir?: (r: SkRef) => Pt | null },
+): { shape: SketchShape; cons: SkCon[]; done: number; tangents: number; kept: number; dropped: number; minT: number } | null {
+  const cp0 = shapeCornerPath(sh)
+  if (!cp0) return null
+  let cur: SketchShape = sh, verts = cp0.verts, bulges = cp0.bulges, cc = cons
+  let done = 0, tangents = 0, kept = 0, dropped = 0, minT = Infinity
+  for (let i = verts.length - 1; i >= 0; i--) {
+    let res: { verts: Pt[]; bulges: number[] }
+    try { res = fillet ? filletAt(verts, bulges, i, r) : chamferAtIdx(verts, bulges, i, r) } catch { continue }
+    if (!fillet) {
+      const n = verts.length, A = verts[(i - 1 + n) % n], B = verts[i], C = verts[(i + 1) % n]
+      minT = Math.min(minT, r, Math.hypot(A[0] - B[0], A[1] - B[1]) * 0.45, Math.hypot(C[0] - B[0], C[1] - B[1]) * 0.45)
+    }
+    const rm = remapCornerConstraints(cur as never, verts, i, shapeIdx, cc, { fillet, mkId: skConId, lineDir: radAnchor.lineDir })
+    cc = rm.cons; tangents += rm.tangents.length; kept += rm.kept; dropped += rm.dropped
+    if (fillet) {
+      const arc: SkRef = { kind: 'edge', shape: shapeIdx, idx: i } as SkRef
+      const anchor = radAnchor.id ? cc.find((c) => c.id === radAnchor.id) : undefined
+      if (anchor) cc = [...cc, { id: skConId(), kind: 'con', type: 'equal', a: arc, b: anchor.a } as SkCon]
+      else { const id = skConId(); radAnchor.id = id; cc = [...cc, { id, name: radAnchor.mkName(), kind: 'dim', type: 'rad', a: arc, value: r } as SkCon] }
+    }
+    verts = res.verts; bulges = res.bulges; done++
+    cur = vertsPoly(verts, bulges)
+  }
+  if (!done) return null
+  const hasArc = bulges.some((b) => Math.abs(b) > 1e-12)
+  const out: SketchShape = hasArc ? vertsPoly(verts, bulges) : { type: 'poly', pts: verts } as SketchShape
+  return { shape: sh.construction ? { ...out, construction: true } as SketchShape : out, cons: cc, done, tangents, kept, dropped, minT }
+}
+async function cornersAll(set: (p: Partial<AppState>) => void, get: () => AppState, fillet: boolean, r: number): Promise<void> {
+  const s = get()
+  if (s.mode !== 'sketch') return
+  if (!(r > 0)) { set({ status: fillet ? '半徑要 > 0' : '倒角距離要 > 0' }); return }
+  const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
+  // 有活動輪廓 → 淨係倒佢；冇（offset/陣列/trim 後常態）→ 倒全部輪廓（#16）
+  const targets = s.sketchShape ? [s.sketchProfiles.length] : shapes.map((_, i) => i)
+  let cons = s.skCons, total = 0, hit = 0, tangents = 0, kept = 0, dropped = 0, minT = Infinity
+  const next = [...shapes]
+  const radAnchor = { id: null as string | null, mkName: () => nextDimName({ ...s, skCons: cons }), lineDir: (r: SkRef) => { const q = skRefPts(next as FShape[], r); return q.length >= 2 ? [q[1][0] - q[0][0], q[1][1] - q[0][1]] as Pt : null } }
+  for (const bi of targets) {
+    const res = cornersAllOnShape(shapes[bi], bi, cons, fillet, r, radAnchor)
+    if (!res) continue
+    next[bi] = res.shape; cons = res.cons; total += res.done; hit++; tangents += res.tangents; kept += res.kept; dropped += res.dropped; minT = Math.min(minT, res.minT)
+  }
+  if (!hit) {
+    set({ status: fillet ? '冇可倒圓角嘅輪廓（要矩形/折線/多邊形嘅直線角；圓/樣條/弓形/半徑太大唔適用）' : '冇可倒角嘅輪廓（要矩形/折線/多邊形嘅直線角）' })
+    return
+  }
+  const where = hit > 1 || !s.sketchShape ? `${hit} 個輪廓共 ${total} 個角` : `${total} 個角`
+  const body = fillet ? `已對 ${where}倒 R${r} 真圓弧` : (minT < r - 1e-6 ? `已對 ${where}倒角（要求 C${r}，部分角因鄰邊短收窄至 C${minT.toFixed(2)}）` : `已對 ${where}倒 C${r} 倒角`)
+  const note = `${tangents ? ` · 已加 ${tangents} 個相切約束` : ''}${fillet ? ` · 半徑尺寸 R${r}${total > 1 ? `（其餘 ${total - 1} 個圓弧等半徑）` : ''}` : ''}${kept ? ` · ${kept} 個約束/尺寸已改掛虛擬尖角` : ''}${dropped ? ` · ${dropped} 個量度舊尖角嘅約束/尺寸已移除` : ''}`
+  const np = next.slice(0, s.sketchProfiles.length)
+  // 一次 set = 一個 undo 步（Ctrl+Z 一下即還原原本幾何同約束）；resolveSk 唔會再推 undo。
+  set({
+    sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: cons, skSel: [], skHover: null, sizing: null, toolPreview: null,
+    sketchProfiles: np, ...(s.sketchShape ? { sketchShape: next[s.sketchProfiles.length] } : {}), status: `${body}${note}`,
+  })
+  if (cons.length) await get().resolveSk({ statusNote: `${body}${note}` })
+}
 function shapeCornerPath(sh: SketchShape): { verts: Pt[]; bulges: number[] } | null {
   if (sh.type === 'rect') {
     const x0 = Math.min(sh.a[0], sh.b[0]), x1 = Math.max(sh.a[0], sh.b[0]), y0 = Math.min(sh.a[1], sh.b[1]), y1 = Math.max(sh.a[1], sh.b[1])
@@ -6142,74 +6207,11 @@ export const useApp = create<AppState>((rawSet, get) => {
   // Round every corner of the current closed poly sketch by radius r — TRUE tangent arcs (bulge segments,
   // extrudes to real cylindrical corner faces). Corners that can't take r (arc-adjacent / collinear / r too
   // big for the edge) are skipped and counted honestly.
-  filletSketchCorners: (r) => set((s) => {
-    if (r <= 0) return { status: '半徑要 > 0' }
-    // 单轮廓倒圆助手；返回 null = 唔适用（样条/弓形/无可倒角）
-    const filletShape = (sh: SketchShape): { shape: SketchShape; done: number } | null => {
-      if (sh.type !== 'poly' || sh.pts.length < 3 || sh.smooth || sh.arc) return null
-      let verts = (sh.verts ?? sh.pts).map((p) => [p[0], p[1]] as Pt)
-      let bulges = sh.bulges ? [...sh.bulges] : new Array(verts.length).fill(0)
-      let done = 0
-      for (let i = verts.length - 1; i >= 0; i--) { try { const o = filletAt(verts, bulges, i, r); verts = o.verts; bulges = o.bulges; done++ } catch { /* skip */ } }
-      return done ? { shape: vertsPoly(verts, bulges), done } : null
-    }
-    const undo = { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [] }
-    if (s.sketchShape) {
-      const res = filletShape(s.sketchShape)
-      if (!res) return { status: '請先畫一個折線/多邊形輪廓再倒圓角（樣條/弓形/半徑太大唔適用）' }
-      return { ...undo, sketchShape: res.shape, status: `已對 ${res.done} 個角倒 R${r} 真圓弧` }
-    }
-    // #16：无活动轮廓（offset/阵列/trim 后常态）→ 倒【全部 poly 轮廓】，唔好再弹「请先画一个轮廓」
-    let total = 0, hit = 0
-    const np = s.sketchProfiles.map((sh) => { const res = filletShape(sh); if (res) { total += res.done; hit++; return res.shape } return sh })
-    if (!hit) return { status: '冇可倒圓角嘅輪廓（要折線/多邊形；樣條/弓形/半徑太大唔適用）' }
-    return { ...undo, sketchProfiles: np, status: `已對 ${hit} 個輪廓共 ${total} 個角倒 R${r} 真圓弧` }
-  }),
+  filletSketchCorners: (r) => cornersAll(set, get, true, r),
   // Chamfer (straight bevel) every corner of the current closed poly sketch by setback d
   // (replace each corner vertex with two points set back along the two adjacent edges,
   // clamped to 45% of each edge; near-straight/degenerate corners are skipped).
-  chamferSketchCorners: (d) => set((s) => {
-    if (d <= 0) return { status: '倒角距離要 > 0' }
-    // 单轮廓倒角助手；返回 null = 唔适用
-    const chamferShape = (sh: SketchShape): { shape: SketchShape; cut: number; minT: number } | null => {
-      if (sh.type !== 'poly' || sh.pts.length < 3 || sh.smooth || sh.arc) return null
-      const verts = (sh.verts ?? sh.pts).map((p) => [p[0], p[1]] as Pt)
-      const bulges = sh.bulges ? [...sh.bulges] : new Array(verts.length).fill(0)
-      let cut = 0, minT = Infinity   // GM-L2 #56：记录实际最小回缩量，畀状态诚实反映邻边短时被夹细嘅真值
-      for (let i = verts.length - 1; i >= 0; i--) {  // descending: splice at i keeps smaller indices stable
-        const n = verts.length, prev = (i - 1 + n) % n
-        if (Math.abs(bulges[prev] || 0) > 1e-12 || Math.abs(bulges[i] || 0) > 1e-12) continue  // arc-adjacent corner
-        const A = verts[prev], B = verts[i], C = verts[(i + 1) % n]
-        let v1 = [A[0] - B[0], A[1] - B[1]], v2 = [C[0] - B[0], C[1] - B[1]]
-        const l1 = Math.hypot(v1[0], v1[1]), l2 = Math.hypot(v2[0], v2[1])
-        if (l1 < 1e-6 || l2 < 1e-6) continue
-        v1 = [v1[0] / l1, v1[1] / l1]; v2 = [v2[0] / l2, v2[1] / l2]
-        const dot = Math.max(-1, Math.min(1, v1[0] * v2[0] + v1[1] * v2[1]))
-        const ang = Math.acos(dot)
-        if (ang < 0.05 || ang > Math.PI - 0.05) continue
-        const t = Math.min(d, l1 * 0.45, l2 * 0.45)
-        if (t < minT) minT = t
-        verts.splice(i, 1, [B[0] + v1[0] * t, B[1] + v1[1] * t], [B[0] + v2[0] * t, B[1] + v2[1] * t])
-        bulges.splice(i, 0, 0)  // new chamfer segment (between the two setback points) is straight
-        cut++
-      }
-      if (!cut) return null
-      const hasArc = bulges.some((b) => Math.abs(b) > 1e-12)
-      return { shape: hasArc ? vertsPoly(verts, bulges) : { type: 'poly', pts: verts }, cut, minT }
-    }
-    const undo = { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [] }
-    if (s.sketchShape) {
-      const res = chamferShape(s.sketchShape)
-      if (!res) return { status: '請先畫一個折線/多邊形輪廓再倒角（樣條/弓形唔適用）' }
-      // GM-L2 #56：邻边过短被夹 → 状态诚实报实际最小 t，唔好谎报用户输入嘅 d（对齐单角版 skCornerAt 嘅收窄提示）
-      return { ...undo, sketchShape: res.shape, status: res.minT < d - 1e-6 ? `已對草圖 ${res.cut} 個角倒角（要求 C${d}，部分角因鄰邊短收窄至 C${res.minT.toFixed(2)}）` : `已對草圖 ${res.cut} 個角倒 C${d} 倒角` }
-    }
-    // #16：无活动轮廓 → 倒【全部 poly 轮廓】
-    let total = 0, hit = 0, minT = Infinity
-    const np = s.sketchProfiles.map((sh) => { const res = chamferShape(sh); if (res) { total += res.cut; hit++; if (res.minT < minT) minT = res.minT; return res.shape } return sh })
-    if (!hit) return { status: '冇可倒角嘅輪廓（要折線/多邊形直線角）' }
-    return { ...undo, sketchProfiles: np, status: minT < d - 1e-6 ? `已對 ${hit} 個輪廓共 ${total} 個角倒角（要求 C${d}，部分角因鄰邊短收窄至 C${minT.toFixed(2)}）` : `已對 ${hit} 個輪廓共 ${total} 個角倒 C${d} 倒角` }
-  }),
+  chamferSketchCorners: (d) => cornersAll(set, get, false, d),
   sketchOffsetD: 5,
   setSketchOffsetD: (n) => { if (!get().sizing) _offsetTypedPre = true; set((s) => ({ sketchOffsetD: n || 0, ...(s.sizing ? { sizing: { ...s.sizing, typed: true, typedValue: n || 0, raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改距离即更新预览；T796-3：调尺寸中打数字→标记 typed，唔被鼠标轻微移动覆盖
   sketchOffsetBoth: false,
@@ -6310,7 +6312,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (s.mode !== 'sketch') return
     const isCh = s.sketchTool === 'cchamfer'
-    const lbl = isCh ? '倒角' : '圆角'
+    const lbl = isCh ? '倒角' : '圓角'
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
     if (!shapes.length) { set({ status: `${lbl}：先畫一個矩形/折線輪廓` }); return }
     // T796：第一击 = 锁定角点（唔即倒），跟住移动鼠标拖半径；第二击 = 确定。
@@ -6352,13 +6354,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     const newShape: SketchShape = isCon ? { ...nv, construction: true } : nv
     const isActive = !!s.sketchShape && bi === s.sketchProfiles.length
     // UX4 #2/#4：約束跟住新頂點/邊 index 重映射（以前錯位 → 求解後邊變斜），倒圓角補 2 個相切約束（Fusion 同款）。
-    const remap = remapCornerConstraints(sh as never, cp.verts, vi, bi, s.skCons, { fillet: !isCh, mkId: skConId })
-    const consNote = `${remap.tangents.length ? ` · 已加 ${remap.tangents.length} 個相切約束` : ''}${remap.dropped ? ` · ${remap.dropped} 個量度舊尖角嘅約束/尺寸已移除` : ''}`
+    // UX4-B #2：鄰邊長度/位置尺寸改掛虛擬尖角（唔再刪）；倒圓角再加半徑尺寸 R（Fusion 同款）→ 相切 2 + 半徑 1 = 自由度淨變 0。
+    const remap = remapCornerConstraints(sh as never, cp.verts, vi, bi, s.skCons, { fillet: !isCh, mkId: skConId, lineDir: (r: SkRef) => { const q = skRefPts(shapes as FShape[], r); return q.length >= 2 ? [q[1][0] - q[0][0], q[1][1] - q[0][1]] as Pt : null } })
+    if (!isCh) remap.cons = [...remap.cons, { id: skConId(), name: nextDimName(s), kind: 'dim', type: 'rad', a: { kind: 'edge', shape: bi, idx: vi } as SkRef, value: r } as SkCon]
+    const consNote = `${remap.tangents.length ? ` · 已加 ${remap.tangents.length} 個相切約束` : ''}${!isCh ? ` · 半徑尺寸 R${r}` : ''}${remap.kept ? ` · ${remap.kept} 個約束/尺寸已改掛虛擬尖角` : ''}${remap.dropped ? ` · ${remap.dropped} 個量度舊尖角嘅約束/尺寸已移除` : ''}`
     const okBody = (() => {
-      if (!isCh) return `倒圆角 R${r}`
+      if (!isCh) return `倒圓角 R${r}`
       const A = cp.verts[prevI], B = cp.verts[vi], C = cp.verts[(vi + 1) % nC]
       const tA = Math.min(r, Math.hypot(A[0] - B[0], A[1] - B[1]) * 0.45, Math.hypot(C[0] - B[0], C[1] - B[1]) * 0.45)
-      return tA < r - 1e-6 ? `倒角 C${tA.toFixed(1)}（邻边太短，已由 C${r} 收窄）` : `倒角 C${r}`
+      return tA < r - 1e-6 ? `倒角 C${tA.toFixed(1)}（鄰邊太短，已由 C${r} 收窄）` : `倒角 C${r}`
     })()
     const okStatus = `已${okBody}（1 個角）${consNote} — 繼續點其它角或換工具`
     // 一次 set = 一個 undo 步（Ctrl+Z 一下即還原【原本】幾何同約束）；resolveSk 唔會再推 undo。

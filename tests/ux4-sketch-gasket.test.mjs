@@ -92,6 +92,7 @@ test('#2/#4 fillet: constraints follow the new indices, 2 tangents added, geomet
   assert.equal(sh.verts.length, 5, g().status)
   const tans = g().skCons.filter((c) => c.type === 'tangent')
   assert.equal(tans.length, 2, 'two tangent constraints')
+  assert.equal(g().skCons.filter((c) => c.type === 'rad').length, 1, 'radius dimension added (Fusion)')
   const byId = Object.fromEntries(g().skCons.map((c) => [c.id, c]))
   assert.equal(byId.h2.a.idx, 3, 'top edge h moved past the new arc'); assert.equal(byId.v3.a.idx, 4)
   assert.equal(byId.v1.a.idx, 1)
@@ -99,7 +100,7 @@ test('#2/#4 fillet: constraints follow the new indices, 2 tangents added, geomet
   const v = sh.verts
   assert.ok(near(v[3][1], v[4][1], 1e-6) && near(v[4][0], v[0][0], 1e-6) && near(v[1][0], v[2][0], 1e-6), JSON.stringify(v))
   assert.equal(g().skConflict, false)
-  assert.equal(g().skDof, dof0 + 1, `DOF = rect DOF + radius (Fusion) — got ${g().skDof} vs ${dof0}`)
+  assert.equal(g().skDof, dof0, `DOF net 0: radius DOF is taken by the auto radius dimension (Fusion) — got ${g().skDof} vs ${dof0}`)
   assert.equal(g().sketchUndo.length, undo0 + 1, 'exactly one undo step')
   await g().undo(); await settle()
   assert.equal(JSON.stringify({ sh: g().sketchShape, cons: g().skCons }), before, 'Ctrl+Z restores the exact rectangle + constraints')
@@ -132,9 +133,12 @@ test('#6 typed radius wins over the drag value (typed before picking the corner)
 test('cornerRemap: rect drawn from top-right keeps refs straight; maxFilletRadius', () => {
   const r = R.remapCornerConstraints({ type: 'rect', a: [60, 40], b: [0, 0] }, [[0, 0], [60, 0], [60, 40], [0, 40]], 2, 0,
     [{ id: 'a', kind: 'con', type: 'h', a: { kind: 'edge', shape: 0, idx: 0 } }, { id: 'p', kind: 'con', type: 'coincident', a: { kind: 'pt', shape: 0, idx: 0 }, b: { kind: 'origin' } }], { fillet: true, mkId: () => 'x' })
-  // old edge 0 = (60,40)→(0,40) = corner-path edge 2 (adjacent) → becomes 3; old pt 0 = (60,40) = the filleted corner → dropped
+  // old edge 0 = (60,40)→(0,40) = corner-path edge 2 (adjacent) → becomes 3; old pt 0 = (60,40) = the filleted corner →
+  // UX4-B #2: coincident(corner, origin) is kept as origin-on-both-adjacent-lines (virtual sharp) instead of being dropped
   assert.equal(r.cons.find((c) => c.id === 'a').a.idx, 3)
-  assert.equal(r.dropped, 1)
+  assert.equal(r.dropped, 0); assert.equal(r.kept, 1)
+  const co = r.cons.filter((c) => c.type === 'coincident')
+  assert.deepEqual(co.map((c) => [c.a.kind, c.b.kind, c.b.idx]), [['origin', 'edge', 1], ['origin', 'edge', 3]])
   assert.ok(near(R.maxFilletRadius([[0, 0], [60, 0], [60, 40], [0, 40]], 2), 40))
 })
 

@@ -5347,14 +5347,14 @@ export default function Viewport() {
       {pushPullMode && (
         <CommandDialog
           icon="presspull"
-          title={pushPullPicks.length ? tStatus('偏移面', lang) : tStatus('按拉', lang)}
+          title={tStatus('按拉', lang)}
           width={244}
           okLabel={tStatus('確定', lang)}
           okDisabled={!!numBad || (!pushPullPicks.length || Math.abs(pushPullDist) < 1e-9)}
           okTip={tStatus('應用（Enter）', lang)}
           onOk={() => void useApp.getState().commitPushPull()}
           onCancel={() => useApp.getState().togglePushPull()}
-          summary={<>{pushPullPicks.length ? tStatus('偏移面', lang) : tStatus('按拉', lang)}{pushPullPicks.length ? ` · ${pushPullPicks.length} ${tStatus('面', lang)} · ${pushPullDist} mm` : ''}</>}
+          summary={<>{tStatus('按拉', lang)}{pushPullPicks.length ? ` · ${pushPullPicks.length} ${tStatus('面', lang)} · ${pushPullDist} mm` : ''}</>}
         >
           <SelectionChip
             label={pushPullPicks.length ? tStatus('面', lang) : tStatus('選擇', lang)}
@@ -5363,7 +5363,7 @@ export default function Viewport() {
             onClear={() => useApp.getState().clearPushPullPicks()}
           />
           {pushPullPicks.length > 0 && <>
-            <label title={tStatus('Fusion Offset Type：自動、修改現有特徵或建立新偏移', lang)}>
+            <label title={tStatus('偏移類型：自動、修改現有特徵或建立新偏移', lang)}>
               <span style={{ color: '#6b7680' }}>{tStatus('偏移類型', lang)}</span>
               <span><select value={offsetType} onChange={(e) => setOffsetType(e.target.value as 'modify' | 'new' | 'auto')} style={{ height: 26 }}>
                 <option value="modify">{tStatus('修改現有特徵', lang)}</option>
@@ -5373,7 +5373,7 @@ export default function Viewport() {
             </label>
             <label>
               <span style={{ color: '#6b7680' }}>{tStatus('距離', lang)}</span>
-              <span><LenInput mm={pushPullDist} onMm={setPushPullDist} unit={unit} w={66} title="按拉距離（inch 模式可打分數；亦收算式）" /> {unit === 'inch' ? 'in' : unit}</span>
+              <span><LenInput mm={pushPullDist} onMm={setPushPullDist} unit={unit} w={66} title="按拉距離：正數＝拉出，負數＝推入（inch 模式可輸入分數；亦接受算式）" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           </>}
         </CommandDialog>

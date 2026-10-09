@@ -20466,6 +20466,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (expressionOwner?.type === 'text' && 'height' in patch && !(Number(patch.height) > 0)) { set({ status: '浮雕深度必須大於 0（不可為 0）' }); return }
     if (expressionOwner?.type === 'text' && 'size' in patch && !(Number(patch.size) > 0)) { set({ status: '浮雕字高必須大於 0' }); return }
     if (expressionOwner?.type === 'text' && 'text' in patch && !String(patch.text ?? '').trim()) { set({ status: '請輸入浮雕文字' }); return }
+    if (expressionOwner?.type === 'pushpull' && 'dist' in patch && !(Number.isFinite(Number(patch.dist)) && Number(patch.dist) !== 0)) { set({ status: illegalRejectStatus('按拉距離不可為 0（正數＝拉出，負數＝推入）') }); return }   // CORE16 #2
     if (expressionOwner?.type === 'shell' && 'thickness' in patch && !(Number(patch.thickness) > 0)) { set({ status: illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL) }); return }
     // BUG-UI-003: reject non-positive length dims on timeline edit (prim a/b/c, hole Ø, fillet R…).
     // Signed dims (extrude height, transform, draft angle, offsets) are intentionally unconstrained.

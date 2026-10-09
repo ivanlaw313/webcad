@@ -100,7 +100,7 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
   cpattern: { icon: 'cpattern', label: '環形陣列', param: '數量', field: 'count', unit: '', fields: [{ key: 'count', label: '數量', unit: '' }, { key: 'angle', label: '總角度', unit: '°' }, { key: 'axis', label: '繞軸', unit: '', opts: [{ value: 'Z', label: 'Z 軸(水平面內)' }, { value: 'X', label: 'X 軸' }, { value: 'Y', label: 'Y 軸' }] }] },
   copybody: { icon: 'newbody', label: '複製實體', param: '', field: '', unit: '', fields: [] },
   transform: { icon: 'move', label: '移動', param: 'X', field: 'dx', unit: 'mm', fields: [{ key: 'dx', label: 'X', unit: 'mm' }, { key: 'dy', label: 'Y', unit: 'mm' }, { key: 'dz', label: 'Z', unit: 'mm' }, { key: 'rx', label: '繞X', unit: '°' }, { key: 'ry', label: '繞Y', unit: '°' }, { key: 'rz', label: '繞Z', unit: '°' }] },
-  pushpull: { icon: 'presspull', label: '按拉', param: '距離', field: 'dist', unit: 'mm' },
+  pushpull: { icon: 'presspull', label: '按拉', param: '距離', field: 'dist', unit: 'mm', fields: [{ key: 'dist', label: '距離', unit: 'mm' }] },   // CORE16 #2：有號距離（負＝推入），唔再套 min 0.1
   delface: { icon: 'delface', label: '刪面', param: '', field: '', unit: '', fields: [] },
   thickenface: { icon: 'thicken', label: '加厚', param: '厚度', field: 'thick', unit: 'mm', fields: [{ key: 'thick', label: '厚度', unit: 'mm' }, { key: 'side', label: '方向', unit: '', opts: [{ value: 'pos', label: '正向' }, { value: 'neg', label: '反向' }, { value: 'both', label: '對稱' }] }, { key: 'op', label: '操作', unit: '', opts: [{ value: 'newbody', label: '新實體' }, { value: 'join', label: '合併' }] }] },   // CORE16 #1：厚度有號（負＝翻轉方向）＋方向／操作
   offsetsurf: { icon: 'offsetsurf', label: '偏移曲面', param: '距離', field: 'dist', unit: 'mm', fields: [{ key: 'dist', label: '距離', unit: 'mm' }] },
@@ -408,7 +408,7 @@ export default function Timeline() {
                       rejectDetail={fd.key === 'thickness' ? ILLEGAL_THICKNESS_DETAIL : POSITIVE_LENGTH_KEYS.has(fd.key) ? ILLEGAL_LENGTH_DETAIL : undefined}
                       disabled={!!bound}
                       value={(sel as unknown as Record<string, number>)[fd.key] ?? (fd.defKey ? (sel as unknown as Record<string, number>)[fd.defKey] : undefined) ?? 0}
-                      onCommit={(n) => editFeature(sel.id, { [fd.key]: isCount ? Math.max(fd.key === 'count' ? 2 : 1, Math.round(n)) : n })}
+                      onCommit={(n) => { if (sel.type === 'pushpull' && fd.key === 'dist' && n === 0) { useApp.setState({ status: illegalRejectStatus('按拉距離不可為 0（正數＝拉出，負數＝推入）') }); return false } void editFeature(sel.id, { [fd.key]: isCount ? Math.max(fd.key === 'count' ? 2 : 1, Math.round(n)) : n }) }}
                     />
                   )}
                   {fd.unit}

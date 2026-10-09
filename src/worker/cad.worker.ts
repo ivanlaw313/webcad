@@ -337,6 +337,27 @@ function _edgeIndexNearestNear(shape: any, p: [number, number, number]): { idx: 
 // S1 near-at-prior（面）：喺 priorShape.faces 揾返【三角最近】stored near p 嘅面索引 + 平方距。
 //   ⚠ 与 _ffCapture 嘅选面完全同口径（同 ptTriDist2、同 min-over-tri）→ prior（变换前）几何同 stored near 食正 → d2≈0。
 //     供 _s1CarryFacePts 喺指纹歧义（_ffSelectPts(prior) 返 null）时退回 near 解析 prior 索引。空面集/三角化失败 → idx=-1。
+// CORE16 #2：按拉向內（cut）如果會把實體切空 → 拋出帶真原因嘅錯誤（實體喺該方向嘅厚度），唔再淨係「重建失敗」。
+// 穿過局部（例如凹槽底面推穿成通孔）照常成功 —— 只有結果零體積先算失敗。
+function _ppCut(shape: any, prism: any, near: [number, number, number], n: { x: number; y: number; z: number }, dist: number): any {
+  const next = shape.cut(prism)
+  let vol = NaN
+  try { const g = new _oc.GProp_GProps_1(); _oc.BRepGProp.VolumeProperties_1(next.wrapped, g, false, false, false); vol = Math.abs(g.Mass()) } catch { /* */ }
+  if (!(Number.isFinite(vol) && vol < 1e-6)) return next
+  let depth = 0
+  try {
+    for (const fc of shape.faces as any[]) {
+      const tri = fc.triangulation ? fc.triangulation() : null
+      const V = (tri?.vertices ?? []) as number[]
+      for (let i = 0; i < V.length; i += 3) depth = Math.max(depth, (near[0] - V[i]) * n.x + (near[1] - V[i + 1]) * n.y + (near[2] - V[i + 2]) * n.z)
+    }
+  } catch { /* */ }
+  const e = new Error(depth > 1e-3
+    ? `按拉距離 ${Math.abs(dist)} mm 超過實體在此方向的厚度（約 ${+depth.toFixed(2)} mm），會把實體完全切空 — 請將距離改為小於 ${+depth.toFixed(2)} mm`
+    : `按拉距離 ${Math.abs(dist)} mm 會把實體完全切空 — 請減少距離`) as Error & { ppReason?: boolean }
+  e.ppReason = true
+  throw e
+}
 function _faceIndexNearestNear(shape: any, p: [number, number, number]): { idx: number; d2: number } {
   const faces = shape.faces as any[]
   let best = -1, bestD = Infinity
@@ -6055,18 +6076,18 @@ function buildShape(features: Feature[], noCache = false): any {
               } else {
                 if (Math.abs(dotN) < 0.2) buildWarnings.push('移面方向接近与面相切 — 侧移结果系近似（用法向分量决定加/减料；想干净移面请拣有法向分量嘅方向）')
                 const prism = basicFaceExtrusion(bestF, new Vector([ux * f.dist, uy * f.dist, uz * f.dist]))
-                if ((f.dist * dotN) >= 0) { _recordBool(_i, 'fuse', prism); shape = shape.fuse(prism) } else { _recordBool(_i, 'cut', prism); shape = shape.cut(prism) }
+                if ((f.dist * dotN) >= 0) { _recordBool(_i, 'fuse', prism); shape = shape.fuse(prism) } else { _recordBool(_i, 'cut', prism); shape = _ppCut(shape, prism, near, n, f.dist) }
               }
             } else {
               const prism = basicFaceExtrusion(bestF, n.multiply(f.dist))
-              if (f.dist >= 0) { _recordBool(_i, 'fuse', prism); shape = shape.fuse(prism) } else { _recordBool(_i, 'cut', prism); shape = shape.cut(prism) }
+              if (f.dist >= 0) { _recordBool(_i, 'fuse', prism); shape = shape.fuse(prism) } else { _recordBool(_i, 'cut', prism); shape = _ppCut(shape, prism, near, n, f.dist) }
             }
           }
         }
         }
         { const _cap = _lastResolvedFaceFp as string[] | null; if (_cap && _cap.length) { _resolvedFaceFp[f.id] = _cap; _lastResolvedFaceFp = null } }   // S128：捕获嘅面指纹交俾 store 写回（多面=与 nears 平行数组）
         { const _capV2 = _lastResolvedFaceFpV2 as string[] | null; if (_capV2 && _capV2.length) { _resolvedFaceFpV2[f.id] = _capV2; _lastResolvedFaceFpV2 = null } { const _capTopo = _lastResolvedFaceFpTopo as string[] | null; if (_capTopo && _capTopo.length) { _resolvedFaceFpTopo[f.id] = _capTopo; _lastResolvedFaceFpTopo = null } } }   // S136：v2 平行写回
-      } catch (e) { console.error('[pushpull]', e) }
+      } catch (e) { if ((e as { ppReason?: boolean })?.ppReason) throw e; console.error('[pushpull]', e) }   // CORE16 #2：切空實體嘅真原因交返時間軸／狀態列
     } else if (f.type === 'rib') {
       // Rib/web (加强筋): thicken a drawn centreline into a thin wall, fused to the body.
       // Per-segment thin rectangles (no mitres → bulletproof for any polyline).

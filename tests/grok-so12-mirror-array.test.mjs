@@ -105,7 +105,8 @@ test('commitFeatDlg rejects illegal array counts atomically', async () => {
   for (const bad of [0, 1, -1, NaN]) {
     useApp.getState().setFeatParam('count', bad)
     await g().commitFeatDlg()
-    assert.match(g().status, /(?:数量至少为|數量至少為) 2|非法/)
+    // featDlgSemanticReason rejects 0/1/-1/NaN with one message before commit; legacy store wording still accepted
+    assert.match(g().status, /環形陣列數量必須是不小於 2 的整數|(?:数量至少为|數量至少為) 2|非法/)
     assert.ok(g().featDlg, 'dialog stays open')
     assert.deepEqual(g().features, before.features)
     assert.equal(g().undoStack.length, before.undo)

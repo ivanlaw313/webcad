@@ -89,7 +89,7 @@ test('partial downstream rebuild cannot replace committed geometry or create his
   applyParamBindings:f=>f,expandFeats:f=>f,SOLID_TYPES:['extrude'],hasSolid:fs=>fs.some(f=>f.type==='extrude'),
   mapKernelFailuresToTimeline:()=>({ids:['f'],errors:{f:'radius too large'}}),docSnap:s=>s,console,
   plainFeatureError:(type,msg)=>msg||String(type),formatBuildWarnings:()=>'',
-  _sketchFinishUndo:new WeakMap(),
+  _sketchFinishUndo:new WeakMap(),_featDlgDry:null,
  })
  assert.equal(await api.applyFeatures([...old,{id:'f',type:'fillet'}],'ok'),false)
  assert.equal(state.bodyMesh,mesh);assert.equal(state.features,old);assert.equal(state.undoStack.length,0);assert.deepEqual(state.redoStack,['redo'])

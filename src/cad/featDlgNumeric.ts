@@ -92,7 +92,8 @@ export function featDlgSemanticReason(d: FeatDlgLike): string | null {
     const sp = patternSpacings(p), keys = ['dx', 'dy', 'dz']
     if (sp.some(([c, v], i) => p[keys[i]] !== undefined && Number.isFinite(c) && c > 1 && Number.isFinite(v) && !(Math.abs(v) > 1e-6))) return '數量大於 1 的方向，間距不可為 0（所有實例會重疊在同一位置）'
   }
-  if (d.kind === 'circpattern' && p.count !== undefined && Number.isFinite(num('count')) && !(Number.isInteger(num('count')) && num('count') >= 2)) return '環形陣列數量必須是不小於 2 的整數'
+  // NaN／非有限值與 0／1／-1 同一提示（Number.isInteger(NaN) === false）
+  if (d.kind === 'circpattern' && p.count !== undefined && !(Number.isInteger(num('count')) && num('count') >= 2)) return '環形陣列數量必須是不小於 2 的整數'
   if (d.kind === 'cone') {
     if (!(num('d') > 0)) return '底部直徑必須大於 0'
     if (!(num('h') > 0)) return '高度必須大於 0'

@@ -62,7 +62,7 @@ test('v1.67: Viewport combine dialog help Traditional', () => {
 })
 
 test('v1.67: Viewport component-boolean + edit titles Traditional', () => {
-  assert.match(viewport, /組件布爾：此件同另一個零件/)
+  assert.match(viewport, /組件布爾：此件與另一個零件/)
   assert.match(viewport, /manifold 網格布爾/)
   assert.match(viewport, /切除可留間隙/)
   assert.match(viewport, /重開參數化編輯（edit-in-place）/)
@@ -84,10 +84,11 @@ test('v1.67: store component-boolean prompts use 外擴 / TC chrome', () => {
 })
 
 test('v1.67: i18n TC keys + tStatus; legacy SC retained', () => {
-  // STATUS_PHRASES_X identity: EN mode keeps Chinese (no Done: mangling)
-  assert.equal(tStatus('保留工具體（Keep Tools）', 'en'), '保留工具體（Keep Tools）')
+  // CORE16 b4 (c): the combine-dialog label is now 「保留工具」 (was 保留工具體（Keep Tools）); EN shows Keep Tools
+  assert.equal(tStatus('保留工具', 'en'), 'Keep Tools')
+  assert.equal(tStatus('保留工具', 'zh-HK'), '保留工具')
   assert.equal(tStatus('沒有工具體：請先用「新實體」把當前體另存為獨立實體，再建造第二個實體，然後返回合併/布爾。', 'zh'), '沒有工具體：請先用「新實體」把當前體另存為獨立實體，再建造第二個實體，然後返回合併/布爾。')
-  assert.doesNotMatch(tStatus('保留工具體（Keep Tools）', 'en'), /Done:/)
+  assert.doesNotMatch(tStatus('保留工具', 'en'), /Done:/)
   assert.match(i18n, /'已實體布爾：活動實體': '已實體布爾：活動實體'/)
   assert.match(i18n, /'已合併：活動實體': '已合併：活動實體'/)
   assert.match(i18n, /'(?:已实体布尔|已實體布爾)：(?:活动实体|活動實體)': '(?:已实体布尔|已實體布爾)：(?:活动实体|活動實體)'/)

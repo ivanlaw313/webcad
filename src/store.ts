@@ -1967,6 +1967,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   fitScrewsToAllHoles: (compId: string) => Promise<void>
   checkedComps: string[]
   toggleCheckComp: (id: string) => void
+  toggleComponentInSelection: (id: string) => void   // RETEST19 #5：視口／瀏覽樹 Ctrl/Shift+點組件 = 增減（首下就把已選組件併入集合）
+  contextSelectComponent: (id: string) => void      // RETEST19 #4：右鍵組件 — 已喺選集就唔郁；未選就選中，唔清面／邊／實體選擇
   clearCheckedComps: () => void
   batchSetHiddenChecked: (hidden: boolean) => void
   batchSetMaterialChecked: (mat: string) => void
@@ -11143,6 +11145,23 @@ export const useApp = create<AppState>((rawSet, get) => {
     // v1.25: Browser checkbox on another component = pick tool (testers often勾选 instead of clicking the name).
     if (bp && id && id !== bp.from) { get().pickComponentBooleanTool(id); return }
     set((s) => ({ checkedComps: s.checkedComps.includes(id) ? s.checkedComps.filter((x) => x !== id) : [...s.checkedComps, id] }))
+  },
+  toggleComponentInSelection: (id) => {
+    const s = get()
+    if (s.compBoolPending && id !== s.compBoolPending.from) { get().pickComponentBooleanTool(id); return }
+    // Fusion：選集 = 主選組件 + 勾選集合。以前首下 Ctrl+點只入 checkedComps（主選嗰件唔計）→ 數目冇加、睇落冇反應。
+    const cur = s.checkedComps.length ? [...s.checkedComps] : (s.selectedComponent ? [s.selectedComponent] : [])
+    if (s.selectedComponent && !cur.includes(s.selectedComponent)) cur.unshift(s.selectedComponent)
+    const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]
+    const primary = next.includes(s.selectedComponent ?? '') ? s.selectedComponent : (next[next.length - 1] ?? null)
+    set({ checkedComps: next.length > 1 ? next : [] })
+    if (primary !== s.selectedComponent) get().selectComponent(primary)
+  },
+  contextSelectComponent: (id) => {
+    const s = get()
+    if (s.compBoolPending || s.compMateFrom || s.compMeasureFrom) return   // 兩步拾取進行中：右鍵唔當「揀第二件」
+    if (s.selectedComponent === id || s.checkedComps.includes(id)) return   // 已喺選集 → 保留整個多選
+    set({ selectedComponent: id, selectedComponentBody: null, checkedComps: [] })
   },
   clearCheckedComps: () => set({ checkedComps: [] }),
   batchSetHiddenChecked: (hidden) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (s.checkedComps.includes(c.id) ? { ...c, hidden } : c)), status: `批量${hidden ? '隱藏' : '顯示'} ${s.checkedComps.length} 個組件` })),   // bt4: 批量可见性可撤销

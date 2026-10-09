@@ -23,7 +23,7 @@ import { useRef, useState, useMemo, useEffect } from 'react'
 import { PivotControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { Matrix4, Vector2, Vector3, Raycaster, type Group, type Intersection } from 'three'
-import { GUMBALL_USERDATA, gumballFirst, isGumballObject, registerGumballHitTester } from '../assembly/gumballPick'
+import { GUMBALL_USERDATA, gumballFirst, isSecondaryButtonEvent, isGumballObject, registerGumballHitTester } from '../assembly/gumballPick'
 import { compWorldMatrix, meshCenter3 } from '../store'
 import { worldToPose } from '../assembly/faceMate'
 import type { MeshData } from '../worker/cad.worker'
@@ -135,7 +135,7 @@ export default function ComponentGumball({
       return rc.intersectObject(g, true).some((h) => isGumballObject(h.object))
     }, () => getR3F().controls as unknown as { enabled: boolean } | null)
     const prevFilter = getR3F().events.filter
-    setEvents({ filter: (hits: Intersection[], st) => gumballFirst(prevFilter ? prevFilter(hits, st) : hits) })
+    setEvents({ filter: (hits: Intersection[], st) => gumballFirst(prevFilter ? prevFilter(hits, st) : hits, isSecondaryButtonEvent(st.internal.lastEvent.current as { type?: string; button?: number } | null)) })
     return () => { registerGumballHitTester(null); setEvents({ filter: prevFilter }) }
   }, [show, getR3F, setEvents])
 

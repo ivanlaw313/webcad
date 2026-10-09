@@ -18,11 +18,20 @@ export function isGumballObject(o: Object3D | null | undefined): boolean {
   return false
 }
 
-/** R3F events.filter：把手命中排最前（穩定分區，其餘次序不變）— 把手喺零件後面都拎得到。 */
-export function gumballFirst<T extends Pick<Intersection, 'object'>>(hits: T[]): T[] {
+/** R3F events.filter：把手命中排最前（穩定分區，其餘次序不變）— 把手喺零件後面都拎得到。
+ *  RETEST19 #4：dropGumball = 右鍵／中鍵（drei 把手唔分掣，右鍵會開始拖拉＋食咗事件）→ 剔走把手命中，右鍵落到組件本身開菜單。 */
+export function gumballFirst<T extends Pick<Intersection, 'object'>>(hits: T[], dropGumball = false): T[] {
   const g: T[] = [], rest: T[] = []
   for (const h of hits) (isGumballObject(h.object) ? g : rest).push(h)
+  if (dropGumball) return g.length ? rest : hits
   return g.length ? [...g, ...rest] : hits
+}
+
+/** 呢個 DOM 事件係咪非主鍵（右鍵／中鍵）嘅按下／放開／contextmenu — 把手唔應該接。pointermove（button -1）唔計。 */
+export function isSecondaryButtonEvent(ev: { type?: string; button?: number } | null | undefined): boolean {
+  if (!ev) return false
+  if (ev.type === 'contextmenu' || ev.type === 'auxclick') return true
+  return (ev.type === 'pointerdown' || ev.type === 'pointerup' || ev.type === 'mousedown' || ev.type === 'mouseup') && (ev.button ?? 0) > 0
 }
 
 type Tester = (clientX: number, clientY: number) => boolean

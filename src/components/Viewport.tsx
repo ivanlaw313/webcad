@@ -995,7 +995,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
           // GM-X4 ②：组件普通选择尊重「组件」类型过滤（默认勾住 = 旧行为逐字节；moldTarget 令 mesh 可拣但类型关咗就唔当选）。
           if (!selAllowsType(st.selFilter, 'component')) return
           const ne = e.nativeEvent as MouseEvent
-          if (compId && clickMod(ne) === 'toggle') { st.toggleCheckComp(compId); return }   // Fusion：Ctrl/Shift+点组件 = 增减多选
+          if (compId && clickMod(ne) === 'toggle') { st.toggleComponentInSelection(compId); return }   // Fusion：Ctrl/Shift+点组件 = 增减多选（RETEST19 #5：首下就併入已選組件）
           // GM-X4 ③：穿透选择单击 — selectThrough 时消费 R3F e.intersections（已按距离升序）→ 收全部组件命中入 checkedComps（含被遮挡）；关时保持仅最前（onSelect）。
           if (st.selFilter.selectThrough && Array.isArray(e.intersections) && e.intersections.length > 1) {
             const ids = resolvePickHits(e.intersections, true)
@@ -4722,12 +4722,14 @@ export default function Viewport() {
       onContextMenu={(e) => {
         e.preventDefault()  // never show the browser's native menu in the viewport
         const d = rcDown.current; rcDown.current = null
-        const moved = d ? Math.hypot(e.clientX - d.x, e.clientY - d.y) : 99
+        // RETEST19 #4：冇記錄到右鍵 pointerdown（Linux 喺 mousedown 就出 contextmenu／把手食咗 pointerdown）唔等於右拖平移 → 照開菜單。
+        const moved = d ? Math.hypot(e.clientX - d.x, e.clientY - d.y) : 0
         if (moved < 6) {
           const ctxHit = (e.nativeEvent as { __webcadHit?: CtxHitInfo }).__webcadHit ?? { kind: 'empty' as const }
-          // Fusion: right-clicking a component/parked body selects it so the menu acts on what was hit.
+          // Fusion: right-clicking a component/parked body selects it so the menu acts on what was hit —
+          // but never clears an existing selection (already-selected component keeps the whole multi-select; faces/edges kept).
           const stc = useApp.getState()
-          if (ctxHit.kind === 'component' && ctxHit.compId && !stc.compBoolPending && stc.selectedComponent !== ctxHit.compId) stc.selectComponent(ctxHit.compId)
+          if (ctxHit.kind === 'component' && ctxHit.compId) stc.contextSelectComponent(ctxHit.compId)
           if (ctxHit.kind === 'body' && ctxHit.parked != null && stc.selectedParkedIndex !== ctxHit.parked) stc.selectParkedBody(ctxHit.parked)
           setCtxMenu({ x: e.clientX, y: e.clientY, hit: ctxHit })  // right-click (not right-drag-pan) → our menu
           const hit = (e.nativeEvent as { __webcadPlanar?: boolean }).__webcadPlanar

@@ -962,8 +962,8 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
             const fg = faceGroupTris(mesh, e.faceIndex)
             const tris = fg.length ? fg : coplanarFaceTris(mesh, e.faceIndex)
             const gi = mesh.faceGroups?.find((g) => e.faceIndex! * 3 >= g.start && e.faceIndex! * 3 < g.start + g.count)
-            const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null
-            item = { kind: 'face', key: gi ? 'f' + gi.faceId : 't' + e.faceIndex, pt: tp, ...(wn ? { n: [wn.x, wn.y, wn.z] as [number, number, number] } : {}), tris }
+            const cn = e.face?.normal   // mesh-local = CAD 法向（同 pushPullAt / startSketchOnFace 惯例）
+            item = { kind: 'face', key: gi ? 'f' + gi.faceId : 't' + e.faceIndex, pt: tp, ...(cn ? { n: [cn.x, cn.y, cn.z] as [number, number, number] } : {}), tris }
           } else if (selAllowsType(sf, 'body')) item = { kind: 'body', key: ACTIVE_BODY_KEY }
           if (item) st.modelSelClick(item, clickMod(ne))
         }
@@ -1173,7 +1173,7 @@ function boxSelectRootBodies(cam: Camera, w: number, h: number, rect: Rect, winM
         const t0 = gs[0].start / 3, m = b.mesh
         const ia = m.triangles[t0 * 3] * 3, ib = m.triangles[t0 * 3 + 1] * 3, ic = m.triangles[t0 * 3 + 2] * 3
         const c = [0, 1, 2].map((k) => (m.vertices[ia + k] + m.vertices[ib + k] + m.vertices[ic + k]) / 3)
-        const n = new Vector3(m.normals[ia], m.normals[ia + 2], -m.normals[ia + 1]).normalize()
+        const n = new Vector3(m.normals[ia], m.normals[ia + 1], m.normals[ia + 2]).normalize()   // CAD 法向（pushPullAt 惯例）
         const tris: number[] = []
         for (const g of gs) for (let t = g.start / 3; t < (g.start + g.count) / 3; t++) for (let k = 0; k < 3; k++) { const vi = m.triangles[t * 3 + k] * 3; tris.push(m.vertices[vi], m.vertices[vi + 1], m.vertices[vi + 2]) }
         out.push({ kind: 'face', key: 'f' + fid, pt: toThree(c[0], c[1], c[2]), n: [n.x, n.y, n.z], tris })
@@ -5195,7 +5195,12 @@ export default function Viewport() {
           // 扇区版（icon/glyph）；溢出列表用 ov() 把 glyph 前置入 label（同旧线性菜单观感一致）
           const table: Record<string, MMItem | MMItem[] | undefined> = {
             repeat, sketch: newSketch, del,
-            presspull: { key: 'presspull', icon: 'presspull', label: msg('mm.pressPull', lang), fn: () => runCommand('presspull', '按拉') },
+            presspull: { key: 'presspull', icon: 'presspull', label: msg('mm.pressPull', lang), fn: () => {
+              // 右键面 → 按拉：未有预选面时，用右键嗰个面（BUG-272 notePlanarFace）作预选
+              const st = useApp.getState(), face = hit.kind === 'face' ? peekPlanarFace() : null
+              if (face && !st.modelSel.some((x) => x.kind === 'face')) st.modelSelSet([{ kind: 'face', key: 'ctx', pt: face.three, n: face.n, tris: [] }], false)
+              runCommand('presspull', '按拉')
+            } },
             measure: { key: 'measure', icon: 'measure', glyph: '📏', label: msg('mm.measure', lang), fn: () => runCommand('measure', '測量') },
             move: { key: 'move', icon: 'move', label: msg('mm.moveCopy', lang), fn: () => runCommand('move', '移動') },
             fillet: { key: 'fillet', icon: 'fillet', label: msg('mm.fillet', lang), fn: () => runCommand('fillet', '圓角') },

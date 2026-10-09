@@ -3430,6 +3430,15 @@ function dropCreaseEdgesOnce(creases: [number, number][], rmKeys: string[]): [nu
 const COMP_PALETTE = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#42d4d4', '#f032e6', '#bf9000', '#469990', '#9a6324']
 const SOLID_TYPES = ['extrude', 'extgroup', 'revolve', 'prim', 'loft', 'sweep', 'coil', 'rib', 'thread', 'sheetmetal', 'pathpattern', 'gear', 'rack', 'pulley', 'worm', 'crowngear', 'meshbody', 'surfloft', 'surfpatch', 'boundarypatch', 'surfbridge']
 const hasSolid = (fs: Feature[]) => fs.some((f) => SOLID_TYPES.includes(f.type))
+/** CAD normal of the first non-degenerate triangle in a flat CAD triangle list (fallback for pre-selected faces). */
+function trisCadNormal(t: ArrayLike<number>): [number, number, number] {
+  for (let i = 0; i + 8 < t.length; i += 9) {
+    const ux = t[i + 3] - t[i], uy = t[i + 4] - t[i + 1], uz = t[i + 5] - t[i + 2], vx = t[i + 6] - t[i], vy = t[i + 7] - t[i + 1], vz = t[i + 8] - t[i + 2]
+    const n: [number, number, number] = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx], l = Math.hypot(n[0], n[1], n[2])
+    if (l > 1e-12) return [n[0] / l, n[1] / l, n[2] / l]
+  }
+  return [0, 0, 1]
+}
 function modelSelStatus(sel: ModelSelItem[]): string {
   if (!sel.length) return '已取消選擇'
   const n = (k: ModelSelItem['kind']) => sel.filter((x) => x.kind === k).length
@@ -13805,12 +13814,23 @@ export const useApp = create<AppState>((rawSet, get) => {
         return get().startSketch()
       }
       case 'presspull': {
-        const pre = get().modelSel.filter((x) => x.kind === 'face')
-        if (pre.length && hasSolid(get().features)) { if (!get().pushPullMode) get().togglePushPull(); for (const it of pre) if (it.kind === 'face') get().pushPullAt(it.pt, it.n ?? [0, 1, 0]); set({ modelSel: [] }); return }   // Fusion：预选面直接按拉
-      }
-        if (get().sketchShape || get().sketchProfiles.length) return get().openExtrudeDlg()  // Fusion: open the extrude dialog
-        if (hasSolid(get().features)) return get().togglePushPull()  // Fusion Q: pick a face → push/pull
+        // Fusion Press Pull：预选面（单击/Ctrl·Shift 多选/框选/右键面）→ 直接进入按拉并带入嗰啲面（偏移面 / 面拉伸合并），
+        //   之后输入距离 →「確定」= commitPushPull（真改实体体积）。冇预选：有实体 → 等拾面；纯草图（未有实体）→ 拉伸对话框。
+        const s0 = get()
+        const pre = s0.modelSel.filter((x): x is Extract<ModelSelItem, { kind: 'face' }> => x.kind === 'face')
+        if (pre.length && hasSolid(s0.features)) {
+          if (!s0.pushPullMode) get().togglePushPull()
+          else set({ pushPullPicks: [] })
+          for (const it of pre) get().pushPullAt(it.pt, it.n ?? trisCadNormal(it.tris))
+          const n = get().pushPullPicks.length
+          set({ modelSel: [], status: `按拉：已帶入 ${n} 個預選面 — 拖動箭頭或輸入距離 →「確定」` })
+          return
+        }
+        if (s0.mode === 'sketch' && (s0.sketchShape || s0.sketchProfiles.length)) return get().openExtrudeDlg()   // 草图内 = 拉伸轮廓
+        if (hasSolid(s0.features)) { if (!s0.pushPullMode) get().togglePushPull(); return }   // Fusion Q：拾面 → 推/拉（唔再误开草图轮廓拉伸）
+        if (s0.sketchShape || s0.sketchProfiles.length) return get().openExtrudeDlg()  // 未有实体：拉伸草图轮廓
         set({ status: '按拉：先畫草圖輪廓再拉伸，或在已有實體的平面上推/拉' }); return
+      }
       case 'editface':
         if (!hasSolid(get().features)) { set({ status: '編輯面：先要有實體' }); return }
         set({ moveFaceKind: 'offset' })

@@ -75,7 +75,7 @@ export type Feature =
   | { id: string; type: 'featpattern'; cols: number; dx: number; rows: number; dy: number; subs: { profile: SketchProfile; height: number; operation: BoolOp; baseZ?: number; through?: boolean; plane?: Plane; twist?: number; symmetric?: boolean; draft?: number; down?: boolean; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[] }
   // 拉伸组（多轮廓一次拉伸 → 一个时间轴节点）：subs = 各轮廓+各自参数，共享一个 height（改 height 即全部一齐变）。store expandFeats() 送 worker 前展开成 N 个 extrude（worker 零改动）。
   | { id: string; type: 'extgroup'; sketchFaceBinding?: SketchFaceBinding; height: number; sketchId?: string; subs: { profile: SketchProfile; operation: BoolOp; baseZ?: number; twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[] }
-  | { id: string; type: 'prim'; shape: 'box' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie'; a: number; b: number; c: number; op?: BoolOp; sides?: number; outerTrue?: boolean /* GM-W8 β1-#29：torus 专用 — 有此 flag 时 a=真外半径（中线半径=a−管半径）；缺=旧语义 a=中线半径 */; cornerOrigin?: boolean /* SO10：box 专用 — true 时平移到角落原点 [0,a]×[0,b]×[0,c]（对标「40×20×10 在 x=15 切成 3000+5000」）；缺=旧 makeBaseBox XY 居中逐字节 */ }
+  | { id: string; type: 'prim'; shape: 'box' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie'; a: number; b: number; c: number; op?: BoolOp; sides?: number; at?: [number, number, number] /* UX3 #2：基本體位置（CAD mm 平移；box=角點、其餘=底面中心）；缺=原點 */; outerTrue?: boolean /* GM-W8 β1-#29：torus 专用 — 有此 flag 时 a=真外半径（中线半径=a−管半径）；缺=旧语义 a=中线半径 */; cornerOrigin?: boolean /* SO10：box 专用 — true 时平移到角落原点 [0,a]×[0,b]×[0,c]（对标「40×20×10 在 x=15 切成 3000+5000」）；缺=旧 makeBaseBox XY 居中逐字节 */ }
   // Automated Modeling Connector v1 core: an analytic connector between two
   // face-derived seed points. UI may only create this after two planar-face
   // picks; the feature itself stays deterministic and replayable.
@@ -4117,6 +4117,7 @@ function buildShape(features: Feature[], noCache = false): any {
         const ang = (f.c && f.c > 0 && f.c < 360) ? f.c : 360
         solid = (ang >= 360 ? tube.revolve([0, 0, 1]) : tube.revolve([0, 0, 1], { angle: ang })).translate(0, 0, tb)
       }
+      if (f.at && f.at.some((v) => Math.abs(v) > 1e-9)) solid = solid.translate(f.at[0], f.at[1], f.at[2])   // UX3 #2
       merge(solid, f.op)
     } else if (f.type === 'mirror' && shape) {
       // Mirror across the plane (optionally offset along its normal by `offset`):

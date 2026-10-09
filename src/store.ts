@@ -1710,6 +1710,9 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   clearFacePatternPicks: () => void
   // S173：旋转轴「拾中心点」模式 — 点 3D 中心点（构造点/构造轴原点/圆心/原点，snap 到最近者）→ 填旋转轴点 ox/oy/oz；方向用 X/Y/Z 钮
   revAxisPtPick: boolean
+  primPtPick: boolean   // UX3 #2：基本體對話框「📍 拾位置」— 下一下 3D 點擊（實體面或地面 Z=0）填 X/Y/Z
+  startPrimPtPick: () => void
+  applyPrimPtPick: (pt: [number, number, number] | null) => void
   startRevAxisPtPick: () => void
   applyRevAxisPtPick: (pt: [number, number, number] | null) => void
   // T764（S42）：Canvas 参考图描摹 — 相片贴上草图面描轮廓（逆向实物半数场景）。会话级（唔入存档 — dataURL 太肥）
@@ -4879,6 +4882,27 @@ async function computeParamSketches(context: Pick<AppState, 'params' | 'features
     if (_degenDimNotes.size) throw new Error(`${[..._degenDimNotes].join('、')} 公式失效或求值 ≤0（退化尺寸）`)
     const note = undefined
     return n ? { feats, srcs, n, note } : null
+}
+
+// UX3 #2：基本體位置 + 「自動」操作。PRIM_PLACE_KINDS = 對話框有 X/Y/Z 同 📍 拾位置嘅基本體。
+export const PRIM_PLACE_KINDS = new Set(['box', 'cylinder', 'sphere', 'cone'])
+type Box3 = { min: [number, number, number]; max: [number, number, number] }
+/** CAD-space AABB of the primitive the dialog would build (null for kinds without placement). */
+export function primPlacementBox(kind: string, p: Record<string, number | string>, at: [number, number, number]): Box3 | null {
+  const [x, y, z] = at
+  if (kind === 'box') return { min: [x, y, z], max: [x + +p.l, y + +p.w, z + +p.h] }
+  if (kind === 'cylinder' || kind === 'cone') { const r = +p.d / 2; return { min: [x - r, y - r, z], max: [x + r, y + r, z + +p.h] } }
+  if (kind === 'sphere') { const r = +p.d / 2; return { min: [x - r, y - r, z], max: [x + r, y + r, z + 2 * r] } }
+  return null
+}
+/** Does the box overlap (with volume, not just touch) any triangle bbox of the mesh? Coarse but conservative. */
+export function meshBoxOverlap(mesh: { vertices: number[] } | null | undefined, b: Box3, eps = 1e-3): boolean {
+  const v = mesh?.vertices
+  if (!v?.length) return false
+  const mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity]
+  for (let i = 0; i < v.length; i += 3) for (let k = 0; k < 3; k++) { const t = v[i + k]; if (t < mn[k]) mn[k] = t; if (t > mx[k]) mx[k] = t }
+  for (let k = 0; k < 3; k++) if (b.max[k] <= mn[k] + eps || b.min[k] >= mx[k] - eps) return false
+  return true
 }
 
 // UX3 #1：材料／密度單一來源 —— 組件有指定材質用佢；否則用文件預設密度（屬性列「材料密度」揀嘅 bodyDensity，
@@ -15951,11 +15975,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       offsetsolid: { distance: 2 },
       draft: { angle: 10 },
       automatedmodel: { radius: 6 },
-      box: { l: 80, w: 60, h: 40, op: 'new' },
-      cylinder: { d: 60, h: 50, op: 'new' },
-      sphere: { d: 60 },
+      // UX3 #2：位置 px/py/pz（CAD mm；長方體 = 角點，圓柱／圓錐／球 = 底面中心）＋ op 'auto'
+      // （有實體而同佢重疊 → ⬡新實體，唔會靜靜併入；唔重疊 → ＋加料），同 Fusion 一樣唔會將軸「融」入底板。
+      box: { l: 80, w: 60, h: 40, op: 'auto', px: 0, py: 0, pz: 0 },
+      cylinder: { d: 60, h: 50, op: 'auto', px: 0, py: 0, pz: 0 },
+      sphere: { d: 60, op: 'auto', px: 0, py: 0, pz: 0 },
       torus: { d: 80, td: 24, arc: 360 },
-      cone: { d: 60, dt: 0, h: 60, sides: 0 },
+      cone: { d: 60, dt: 0, h: 60, sides: 0, op: 'auto', px: 0, py: 0, pz: 0 },
       wedge: { l: 60, w: 40, h: 40 },
       dome: { d: 60, cap: 0 },
       halfcyl: { d: 40, h: 40 },
@@ -16048,7 +16074,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       params.objectPicked = 1
     }
     return {
-      featDlg: { kind, params },
+      featDlg: { kind, params }, primPtPick: false,
       // mutually exclusive with the pick-modes
       holeMode: false, holePos: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false, revAxisPtPick: false,
       status: tip[kind],
@@ -17905,6 +17931,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   // S173：旋转轴「拾中心点」— 点 3D 任一中心点（snap 喺 Viewport 做：最近 构造点/构造轴原点/圆心/原点）→ 填旋转轴点。
   // 方向唔变（用对话框 X/Y/Z 钮设）。只对 revolve 对话框有效。
   revAxisPtPick: false,
+  primPtPick: false,
+  startPrimPtPick: () => set((s) => (s.featDlg && PRIM_PLACE_KINDS.has(s.featDlg.kind)
+    ? { primPtPick: true, revAxisPtPick: false, cpatAxisPick: false, status: '📍 喺 3D 點一下：實體上一點，或空白處（落喺 Z=0 地平）→ 做基本體位置' }
+    : { primPtPick: false })),
+  applyPrimPtPick: (pt) => set((s) => {
+    if (!s.featDlg || !PRIM_PLACE_KINDS.has(s.featDlg.kind)) return { primPtPick: false }
+    if (!pt) return { status: '未拾到位置 — 再點實體或空白處' }
+    const r2 = (n: number) => Math.round(n * 100) / 100
+    return { primPtPick: false, featDlg: { ...s.featDlg, params: { ...s.featDlg.params, px: r2(pt[0]), py: r2(pt[1]), pz: r2(pt[2]) } }, status: `已拾位置 (${r2(pt[0])}, ${r2(pt[1])}, ${r2(pt[2])}) — 撳「確定」建立` }
+  }),
   startRevAxisPtPick: () => set((s) => (s.featDlg?.kind === 'revolve'
     ? { revAxisPtPick: true, cpatAxisPick: false, status: '🎯 點一個【中心點】（構造點/圓心/構造軸原點/原點）做旋轉軸經過點 — 會自動 snap 到最近中心；再撳 X/Y/Z 設方向' }
     : { status: '拾中心點只用於旋轉：先開「旋轉」對話框' })),
@@ -18627,7 +18663,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else if (d.kind === 'box' || d.kind === 'sphere' || d.kind === 'torus' || d.kind === 'cone' || d.kind === 'wedge' || d.kind === 'dome' || d.kind === 'halfcyl' || d.kind === 'pie' || d.kind === 'cylinder' || d.kind === 'prism' || d.kind === 'coil' || d.kind === 'thread') {
       // Primitives: dialog op (v1.27 box/cylinder expose ⬡新实体) > cutMode > new.
       // BX02: box active + cylinder op=newbody parks the tool while keeping the box as Combine target.
-      const rawOp = String(p.op ?? '')
+      let rawOp = String(p.op ?? '')
+      // UX3 #2：位置（CAD mm）。長方體 = 角點；圓柱／圓錐／球 = 底面中心。
+      const at: [number, number, number] = [Number(p.px) || 0, Number(p.py) || 0, Number(p.pz) || 0]
+      const placed = at.some((v) => Math.abs(v) > 1e-9)
+      const autoOp = rawOp === 'auto'
+      if (autoOp) {
+        const bb = primPlacementBox(d.kind, p, at)
+        rawOp = bb && hasSolid(get().features) && meshBoxOverlap(get().bodyMesh, bb) ? 'newbody' : 'new'
+      }
       const op: BoolOp = d.kind === 'coil' ? resolveCoilOp(rawOp, hasSolid(get().features), get().cutMode)   // BUG（Coil-3）
         : (rawOp === 'cut' || rawOp === 'intersect' || rawOp === 'newbody') && hasSolid(get().features)
         ? rawOp as BoolOp
@@ -18636,15 +18680,15 @@ export const useApp = create<AppState>((rawSet, get) => {
       // Reject non-positive / NaN primary dimensions up front — clearer than a mirrored "-5" box or a cryptic
       // kernel-empty error. Covers coil/thread pitch & coil wire too (else a 0/neg helix silently clamps).
       if (['l', 'w', 'h', 'd', 'pitch', 'wire'].some((k) => p[k] !== undefined && !(Number.isFinite(+p[k]) && +p[k] > 0))) { set({ status: illegalRejectStatus(ILLEGAL_LENGTH_DETAIL) }); return }
-      if (d.kind === 'box') { f = { id: fid(), type: 'prim', shape: 'box', a: +p.l, b: +p.w, c: +p.h, op, cornerOrigin: true }; msg = boxSuccessStatus({ op: op === 'cut' ? 'cut' : op === 'newbody' ? 'newbody' : op === 'intersect' ? 'intersect' : 'new', l: p.l, w: p.w, h: p.h }, get().lang) }
-      else if (d.kind === 'sphere') { f = { id: fid(), type: 'prim', shape: 'sphere', a: (+p.d) / 2, b: 0, c: 0, op }; msg = sphereSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d }, get().lang) }
+      if (d.kind === 'box') { f = { id: fid(), type: 'prim', shape: 'box', a: +p.l, b: +p.w, c: +p.h, op, cornerOrigin: true, ...(placed ? { at } : {}) }; msg = boxSuccessStatus({ op: op === 'cut' ? 'cut' : op === 'newbody' ? 'newbody' : op === 'intersect' ? 'intersect' : 'new', l: p.l, w: p.w, h: p.h }, get().lang) }
+      else if (d.kind === 'sphere') { f = { id: fid(), type: 'prim', shape: 'sphere', a: (+p.d) / 2, b: 0, c: 0, op, ...(placed ? { at } : {}) }; msg = sphereSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d }, get().lang) }
       else if (d.kind === 'torus') { const arc = Math.max(0, Math.min(360, +p.arc || 360)); if (!(+p.d > 2 * +p.td)) { set({ status: `圓環：管徑要細過外徑一半（管Ø<${(+p.d / 2).toFixed(1)}），否則中孔閉合/管自交退化 — 請調大外徑或調細管徑` }); return } f = { id: fid(), type: 'prim', shape: 'torus', a: (+p.d) / 2, b: (+p.td) / 2, c: arc < 360 ? arc : 0, op, outerTrue: true }; msg = (arc > 0 && arc < 360) ? `已${verb}部分圓環 ${arc}° 外Ø${p.d} 管Ø${p.td}` : torusSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', od: p.d, td: p.td }, get().lang) }   // GM-W8 β1-#29：a=真外半径 + outerTrue,worker 换算中线半径(tr=a−tb),令外Ø输入=真外Ø。GM-L2 #65：outerTrue 语义下中线半径=d/2−td/2、管半径=td/2，无自交要求 d/2−td/2>td/2 ⇒ d>2·td（旧 d>td 阈值太松，td<d≤2td 会自交）
-      else if (d.kind === 'cone') { const sd = Math.round(+p.sides) || 0; f = { id: fid(), type: 'prim', shape: 'cone', a: (+p.d) / 2, b: Math.max(0, +p.dt) / 2, c: +p.h, op, ...(sd >= 3 ? { sides: sd } : {}) }; const poly = sd >= 3; msg = poly ? `已${verb}${((+p.dt) > 0 ? sd + '棱台' : sd + '棱锥')} 底Ø${p.d}${(+p.dt) > 0 ? ' 顶Ø' + p.dt : ''}×${p.h}` : coneSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, dt: Math.max(0, +p.dt), h: p.h }, get().lang) }
+      else if (d.kind === 'cone') { const sd = Math.round(+p.sides) || 0; f = { id: fid(), type: 'prim', shape: 'cone', a: (+p.d) / 2, b: Math.max(0, +p.dt) / 2, c: +p.h, op, ...(sd >= 3 ? { sides: sd } : {}), ...(placed ? { at } : {}) }; const poly = sd >= 3; msg = poly ? `已${verb}${((+p.dt) > 0 ? sd + '棱台' : sd + '棱锥')} 底Ø${p.d}${(+p.dt) > 0 ? ' 顶Ø' + p.dt : ''}×${p.h}` : coneSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, dt: Math.max(0, +p.dt), h: p.h }, get().lang) }
       else if (d.kind === 'wedge') { f = { id: fid(), type: 'prim', shape: 'wedge', a: +p.l, b: +p.w, c: +p.h, op }; msg = wedgeSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', l: p.l, w: p.w, h: p.h }, get().lang) }
       else if (d.kind === 'dome') { const cap = Math.max(0, +p.cap || 0), R = (+p.d) / 2; f = { id: fid(), type: 'prim', shape: 'dome', a: R, b: 0, c: cap, op }; msg = domeSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, cap }, get().lang) }
       else if (d.kind === 'halfcyl') { f = { id: fid(), type: 'prim', shape: 'halfcyl', a: (+p.d) / 2, b: 0, c: +p.h, op }; msg = halfcylSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, h: p.h }, get().lang) }
       else if (d.kind === 'pie') { f = { id: fid(), type: 'prim', shape: 'pie', a: (+p.d) / 2, b: Math.max(1, Math.min(360, +p.ang)), c: +p.h, op }; msg = pieSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, ang: p.ang, h: p.h }, get().lang) }
-      else if (d.kind === 'cylinder') { f = { id: fid(), type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: (+p.d) / 2 }, height: +p.h, operation: op }; msg = cylSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, h: p.h }, get().lang) }
+      else if (d.kind === 'cylinder') { f = { id: fid(), type: 'extrude', profile: { kind: 'circle', c: [at[0], at[1]], r: (+p.d) / 2 }, height: +p.h, operation: op, ...(Math.abs(at[2]) > 1e-9 ? { baseZ: at[2] } : {}) }; msg = cylSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, h: p.h }, get().lang) }
       else if (d.kind === 'prism') {
         const n = Math.max(3, Math.min(24, Math.round(+p.sides))), r = (+p.d) / 2
         const pts = Array.from({ length: n }, (_, i) => { const a = (2 * Math.PI * i) / n + Math.PI / 2; return [r * Math.cos(a), r * Math.sin(a)] as [number, number] })
@@ -18653,6 +18697,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       else if (d.kind === 'coil') { const rv = (+p.d) / 2, r2v = (+p.d2 || 0) / 2; f = { id: fid(), type: 'coil', pitch: +p.pitch, height: +p.h, radius: rv, wireR: (+p.wire) / 2, op, ...(r2v > 0 && Math.abs(r2v - rv) > 1e-6 ? { r2: r2v } : {}) }; msg = (r2v > 0 && Math.abs(r2v - rv) > 1e-6) ? coilSuccessStatus({ taper: true, d: p.d, d2: p.d2 }, get().lang) : coilSuccessStatus({}, get().lang) }
       else { f = { id: fid(), type: 'thread', d: +p.d, pitch: +p.pitch, height: +p.h, op }; msg = `已${verb}螺紋桿 Ø${p.d} 螺距${p.pitch} 高${p.h}` }
+      if (autoOp && op === 'newbody') msg = `${msg} — 自動：同現有實體重疊 → 新實體（冇合併）`
     } else {
       // revolve: the profile (+T746 sketch bundle) was captured into payload when the command opened
       // GM-L2 #60：旋转角度 0/空（清框 → Number('')=0，绕过 UI spinner min=1）唔好静默当整圈 360° — 前置拒绝、保持对话框开等用户改

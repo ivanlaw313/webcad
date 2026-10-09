@@ -101,6 +101,7 @@ import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按
 import { ToolIcon } from '../icons'
 import { featDlgBlockingReason } from '../cad/featDlgNumeric'   // 純邏輯模組，唔經 monolith
 import { startRenderGovernor } from '../render/renderGovernor'
+import { PRIM_PLACE_KINDS } from '../store'   // UX3 #2
 import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
@@ -4798,6 +4799,7 @@ export default function Viewport() {
             near 负值令物体喺相机后面都唔裁切（正交无远近）。关时此元件卸载 → 回退 Canvas 默认透视相机。 */}
         {cameraOrtho && <OrthographicCamera makeDefault position={[240, 190, 270]} near={-100000} far={200000} zoom={4} />}
         <MarqueeCamBridge />{/* GM-W5 5.3：交当前相机俾框选投影 */}
+        <PrimPointPicker />{/* UX3 #2 */}
         {/* Multi-light studio setup for nice metal highlights (no env map → keeps capture/perf solid). */}
         <ambientLight intensity={0.8} />
         <hemisphereLight args={['#ffffff', '#9aa4ad', 0.55]} />
@@ -7127,16 +7129,20 @@ export default function Viewport() {
             <label>{tStatus('長', lang)} <LenInput mm={Number(featDlg.params.l)} onMm={(v) => setFeatParam('l', v)} onText={(raw) => setFeatParam('l', parseLen(raw, unit) ?? Number(featDlg.params.l), raw)} unit={unit} w={52} min={0.1} /></label>
             <label>{tStatus('寬', lang)} <LenInput mm={Number(featDlg.params.w)} onMm={(v) => setFeatParam('w', v)} onText={(raw) => setFeatParam('w', parseLen(raw, unit) ?? Number(featDlg.params.w), raw)} unit={unit} w={52} min={0.1} /></label>
             <label>{tStatus('高', lang)} <LenInput mm={Number(featDlg.params.h)} onMm={(v) => setFeatParam('h', v)} onText={(raw) => setFeatParam('h', parseLen(raw, unit) ?? Number(featDlg.params.h), raw)} unit={unit} w={52} min={0.1} /></label>
-            <label title={tStatus('＋加料=並入活動體；⬡新實體=獨立泊車（活動體保持為目標，适合後續合併/切割挖孔）；－切割=從活動體切除', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut" disabled={!bodyMesh?.triangles?.length}>{tStatus('－切割', lang)}</option><option value="newbody" disabled={!bodyMesh?.triangles?.length}>{tStatus('⬡新實體', lang)}</option></select></label>
+            <label title={tStatus('＋加料=並入活動體；⬡新實體=獨立泊車（活動體保持為目標，适合後續合併/切割挖孔）；－切割=從活動體切除', lang)}>{tStatus('操作', lang)} <PrimOpSelect /></label>
+            <PrimPlaceFields />
           </>)}
           {featDlg.kind === 'cylinder' && (<>
             <label>Ø <LenInput mm={Number(featDlg.params.d)} onMm={(v) => setFeatParam('d', v)} unit={unit} w={56} min={0.1} /></label>
             <label>{tStatus('高', lang)} <LenInput mm={Number(featDlg.params.h)} onMm={(v) => setFeatParam('h', v)} unit={unit} w={56} min={0.1} /></label>
-            <label title={tStatus('BX02：先長方體，再圓柱選「⬡新實體」→ 圓柱泊車、盒子保持活動目標 → 合併/切割切除挖孔', lang)}>{tStatus('操作', lang)} <select value={String(featDlg.params.op ?? 'new')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut" disabled={!bodyMesh?.triangles?.length}>{tStatus('－切割', lang)}</option><option value="newbody" disabled={!bodyMesh?.triangles?.length}>{tStatus('⬡新實體', lang)}</option></select></label>
+            <label title={tStatus('BX02：先長方體，再圓柱選「⬡新實體」→ 圓柱泊車、盒子保持活動目標 → 合併/切割切除挖孔', lang)}>{tStatus('操作', lang)} <PrimOpSelect /></label>
+            <PrimPlaceFields />
           </>)}
-          {featDlg.kind === 'sphere' && (
+          {featDlg.kind === 'sphere' && (<>
             <label>Ø <LenInput mm={Number(featDlg.params.d)} onMm={(v) => setFeatParam('d', v)} unit={unit} w={60} min={0.1} /></label>
-          )}
+            <label>{tStatus('操作', lang)} <PrimOpSelect /></label>
+            <PrimPlaceFields />
+          </>)}
           {featDlg.kind === 'torus' && (<>
             <label>{tStatus('外Ø', lang)} <FeatNum k="d" v={featDlg.params.d} w={56} /></label>
             <label>{tStatus('管Ø', lang)} <FeatNum k="td" v={featDlg.params.td} w={52} /></label>
@@ -7147,6 +7153,8 @@ export default function Viewport() {
             <label title={tStatus('頂部直徑，設 0 即尖錐', lang)}>{tStatus('頂Ø', lang)} <FeatNum k="dt" v={featDlg.params.dt} w={52} /></label>
             <label>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={48} /></label>
             <label title={tStatus('底面邊數：0=圓錐/圓台；≥3=N 棱錐/棱台（金字塔/尖塔/方錐）', lang)}>{tStatus('邊數', lang)} <FeatNum k="sides" v={featDlg.params.sides} w={44} /></label>
+            <label>{tStatus('操作', lang)} <PrimOpSelect /></label>
+            <PrimPlaceFields />
           </>)}
           {featDlg.kind === 'wedge' && (<>
             <label>{tStatus('長', lang)} <FeatNum k="l" v={featDlg.params.l} w={50} /></label>
@@ -8983,6 +8991,60 @@ function QuiltPickPanel() {
  * 呢個組件接上已有嘅 BUG-409/417 通道：setFeatParam(k, value, raw) 會記住原文，
  * featDlgBlockingReason 就閂得到「確定」掣，理由亦夾得到用戶原文。
  * unit='mm' 嘅欄行 parseLen → 連 inch 分數（1/4）同算式（10+5）一齊通。 */
+// UX3 #2：基本體「操作」— 自動（有實體而重疊 → ⬡新實體；否則 ＋加料），同 Fusion 一樣唔會靜靜將新件融入舊件。
+function PrimOpSelect() {
+  const op = useApp((s) => String(s.featDlg?.params.op ?? 'auto'))
+  const has = useApp((s) => !!s.bodyMesh?.triangles?.length)
+  const lang = useApp((s) => s.lang)
+  return <select data-testid="prim-op" value={has ? op : 'auto'} onChange={(e) => useApp.getState().setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!has}
+    title={tStatus('自動：同現有實體重疊 → ⬡新實體（獨立實體，唔會併入）；唔重疊 → ＋加料。＋加料=並入活動體；－切割=從活動體切除', lang)}>
+    <option value="auto">{tStatus('自動（重疊→新實體）', lang)}</option>
+    <option value="new">{tStatus('＋加料', lang)}</option>
+    <option value="cut">{tStatus('－切割', lang)}</option>
+    <option value="newbody">{tStatus('⬡新實體', lang)}</option>
+  </select>
+}
+// UX3 #2：基本體位置 X/Y/Z（長方體＝角點；圓柱／圓錐／球＝底面中心）＋ 📍 喺 3D 拾位置。
+function PrimPlaceFields() {
+  const kind = useApp((s) => s.featDlg?.kind)
+  const params = useApp((s) => s.featDlg?.params)
+  const picking = useApp((s) => s.primPtPick)
+  const lang = useApp((s) => s.lang)
+  if (!params || !kind) return null
+  return <label data-testid="prim-place" title={tStatus(kind === 'box' ? '位置：長方體角點（CAD 坐標）' : '位置：底面中心（CAD 坐標）', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+    {tStatus(kind === 'box' ? '角點' : '底心', lang)} X<FeatNum k="px" v={params.px ?? 0} w={44} /> Y<FeatNum k="py" v={params.py ?? 0} w={44} /> Z<FeatNum k="pz" v={params.pz ?? 0} w={44} />
+    <button type="button" data-testid="prim-pick-pt" className={'cs-btn pick-slot' + (picking ? ' active' : '')} onClick={() => useApp.getState().startPrimPtPick()} title={tStatus('📍 喺 3D 點實體面上一點，或空白處（地面 Z=0）做位置', lang)} style={{ padding: '2px 6px' }}>📍</button>
+  </label>
+}
+// UX3 #2：📍 拾位置 — 開咗就攔截下一下左鍵（capture，唔畀選擇／轉鏡頭），射線打 CAD 實體網格；冇中就落地面（CAD Z=0）。
+function PrimPointPicker() {
+  const on = useApp((s) => s.primPtPick && !!s.featDlg && PRIM_PLACE_KINDS.has(s.featDlg.kind))
+  const { gl, camera, scene } = useThree()
+  useEffect(() => {
+    if (!on) return
+    const el = gl.domElement
+    const prevCursor = el.style.cursor
+    el.style.cursor = 'crosshair'
+    const down = (e: PointerEvent) => {
+      if (e.button !== 0) return
+      e.stopPropagation(); e.preventDefault()
+      const r = el.getBoundingClientRect()
+      const ndc = new Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
+      const rc = new Raycaster(); rc.setFromCamera(ndc, camera)
+      const targets: Object3D[] = []
+      scene.traverse((o) => { if ((o as Mesh).isMesh && o.visible && (o.userData as { cadBody?: boolean }).cadBody) targets.push(o) })
+      const hit = rc.intersectObjects(targets, false)[0]
+      let w: Vector3 | null = hit ? hit.point.clone() : null
+      if (!w) { const t = new Vector3(); if (rc.ray.intersectPlane(new Plane(new Vector3(0, 1, 0), 0), t)) w = t }
+      // three (x, y, z) → CAD (x, −z, y)
+      useApp.getState().applyPrimPtPick(w ? [w.x, -w.z, w.y] : null)
+    }
+    el.addEventListener('pointerdown', down, true)
+    return () => { el.removeEventListener('pointerdown', down, true); el.style.cursor = prevCursor }
+  }, [on, gl, camera, scene])
+  return null
+}
+
 function FeatNum({ k, v, w = 56, unit = '', min, max, title }: { k: string; v: unknown; w?: number; unit?: '' | 'mm' | 'deg'; min?: number; max?: number; title?: string }) {
   const setFeatParam = useApp((s) => s.setFeatParam)
   const docUnit = useApp((s) => s.unit)

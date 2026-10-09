@@ -16709,6 +16709,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get(), d = s.featDlg
     if (!d || !FEAT_DLG_DRY_PREVIEW_KINDS.has(d.kind) || featDlgBlockingReason(d)) return null
     if (d.kind === 'move' && String(d.params.objectType || 'bodies') !== 'bodies') return null
+    if (d.kind === 'mirror' && d.params.target === 'components') return null   // 組件鏡像唔經 applyFeatures，冇內核預覽
     const cap: Feature[][] = []
     _featDlgDry = cap
     try { void get().commitFeatDlg().catch(() => {}) } catch { /* 組裝期錯誤 = 冇預覽 */ } finally { _featDlgDry = null }
@@ -16716,7 +16717,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!feats?.length || feats === s.features) return null
     const bound = applyParamBindings(feats, s.params, s.paramBindings)
     const active = expandFeats(bound.filter(f => !s.suppressedIds.includes(f.id)))
-    const mesh = await cad.previewRound(active)
+    // 鏡像「新實體」：副本係新獨立實體 → 連 parked 一齊預覽（0 起計 = 結果全場總體積；畫面只畫新增嗰啲）
+    const mesh = await cad.previewRound(active, d.kind === 'mirror' && d.params.mirrorOp ? 0 : undefined)
     if (seq !== _editPreviewSeq || get().featDlg !== d || get().features !== s.features || get().params !== s.params || get().paramBindings !== s.paramBindings || get().suppressedIds !== s.suppressedIds) return null
     if (mesh && !mesh.failed?.length) { _previewFeatures.set(mesh, active); set({ editPreviewMesh: mesh }) }
     return mesh

@@ -4919,6 +4919,7 @@ export default function Viewport() {
           : null}
         {/* CORE16：新拉伸內核預覽 — 確定後嘅真實結果（活動體＋新泊車體），半透明 */}
         {xPv && <KernelBody key="xpv" mesh={xPv.mesh} frozen displayOnly compColor={sketchOp === 'cut' ? '#e8837a' : sketchOp === 'intersect' ? '#c78ae0' : '#5b9bd5'} compOpacity={0.55} clip={clip} />}
+        {editPreviewMesh && featDlg?.kind === 'mirror' && (editPreviewMesh.parked ?? []).slice(bodyMesh?.parked?.length ?? 0).map((pb, i) => <KernelBody key={'mpvp' + i} mesh={pb as unknown as MeshData} frozen displayOnly compColor="#5b9bd5" compOpacity={0.55} clip={clip} />)}
         {xPv && (xPv.mesh.parked ?? []).slice(bodyMesh?.parked?.length ?? 0).map((pb, i) => <KernelBody key={'xpvp' + i} mesh={pb as unknown as MeshData} frozen displayOnly compColor="#5b9bd5" compOpacity={0.55} clip={clip} />)}
         {/* UX1 #2：空白文件唔再畫 100×40×60 灰色半透明「佔位體」（用戶以為係舊檔殘留線框）— Fusion 新檔係空場景 */}
         {/* 多实体（T728）：泊车实体灰显。圆角/草图仍作用喺活动实体；SO10：测量体过滤 + 普通体选择时可拾泊车半体。

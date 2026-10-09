@@ -123,7 +123,7 @@ export default function PromptDialog() {
             </button>
           )}
           <button className="cmd-ok" onClick={ok} autoFocus={dlg.kind !== 'prompt' && dlg.kind !== 'pick'}>
-            {dlg.kind === 'alert' ? msg('dlg.gotIt', lang) : msg('dlg.ok', lang)}
+            {dlg.kind === 'alert' ? msg('dlg.gotIt', lang) : (dlg.okLabel || msg('dlg.ok', lang))}
           </button>
         </div>
       </div>

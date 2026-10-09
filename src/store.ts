@@ -2392,7 +2392,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
 
   // T805（报告 R3）：统一应用内对话框 — 取代 native prompt/alert/confirm。
   // 真实浏览器一致 UI + 校验，并且喺自动化/沙箱（Chrome 抑制原生弹窗）下唔会静默失效。
-  uiDialog: { kind: 'prompt' | 'confirm' | 'alert' | 'pick'; title: string; msg: string; def: string; /** T3: optional third button (e.g. 儲存) — resolves 'alt' */ alt?: string; /** RETEST17 #1：kind='pick' 可點選清單（Fusion 下拉式）— value 回傳、label 顯示、hint 次行說明 */ options?: PickOption[] } | null
+  uiDialog: { kind: 'prompt' | 'confirm' | 'alert' | 'pick'; title: string; msg: string; def: string; /** T3: optional third button (e.g. 儲存) — resolves 'alt' */ alt?: string; /** WORKFLOW #7：主按鈕文字（例「開新檔案」）；缺省＝確定 */ okLabel?: string; /** RETEST17 #1：kind='pick' 可點選清單（Fusion 下拉式）— value 回傳、label 顯示、hint 次行說明 */ options?: PickOption[] } | null
   /** v1.24: primary one-click action shown next to status (bake / MeshFit). */
   statusAction: { id: 'bakeMeshToPart' | 'meshfit'; label: string; componentId?: string } | null
   runStatusAction: () => Promise<void>
@@ -2404,7 +2404,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   appAlert: (msg: string, title?: string) => Promise<void>
   resolveDialog: (v: string | boolean | null) => void
   /** T3: confirm with a third button (Fusion「儲存／不儲存／取消」) → 'ok' | 'alt' | null(cancel). */
-  appChoice: (msg: string, alt: string, title?: string) => Promise<'ok' | 'alt' | null>
+  appChoice: (msg: string, alt: string, title?: string, okLabel?: string) => Promise<'ok' | 'alt' | null>
   /** T3: File ▸ New — 儲存 (save, then new only if the save landed) / 確定 (discard) / 取消. */
   newFileFlow: () => Promise<void>
 
@@ -14640,14 +14640,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ uiDialog: null })
     if (r) r(v)
   },
-  appChoice: (msg, alt, title = '確認') => new Promise<'ok' | 'alt' | null>((resolve) => {
+  appChoice: (msg, alt, title = '確認', okLabel) => new Promise<'ok' | 'alt' | null>((resolve) => {
     if (_dialogResolve) { _dialogResolve(null); _dialogResolve = null }
     _dialogResolve = (v) => resolve(v === true ? 'ok' : v === 'alt' ? 'alt' : null)
-    set({ uiDialog: { kind: 'confirm', title, msg, def: '', alt } })
+    set({ uiDialog: { kind: 'confirm', title, msg, def: '', alt, ...(okLabel ? { okLabel } : {}) } })
   }),
   newFileFlow: async () => {
     const lang = get().lang
-    const choice = await get().appChoice(msg('file.newConfirm', lang), lang === 'en' ? 'Save' : lang === 'zh-CN' ? '保存' : '儲存', lang === 'en' ? 'New file' : '開新檔案')
+    const newLbl = lang === 'en' ? 'New file' : lang === 'zh-CN' ? '新建文件' : '開新檔案'
+    const choice = await get().appChoice(msg('file.newConfirm', lang), lang === 'en' ? 'Save' : lang === 'zh-CN' ? '保存' : '儲存', newLbl, newLbl)
     if (choice === null) return
     if (choice === 'alt') {
       await get().saveProject()

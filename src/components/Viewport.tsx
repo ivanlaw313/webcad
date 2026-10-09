@@ -4164,8 +4164,6 @@ export default function Viewport() {
   const runCommand = useApp((s) => s.runCommand)
   const lastCommand = useApp((s) => s.lastCommand)
   const selectedFeature = useApp((s) => s.selectedFeature)
-  const removeFeature = useApp((s) => s.removeFeature)
-  const selectFeature = useApp((s) => s.selectFeature)
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; hit: CtxHitInfo } | null>(null)
   const [marq, setMarq] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null)   // GM-W5 5.3：框选橡皮筋（wrapper 像素坐标）
   const [lassoPath, setLassoPath] = useState<[number, number][] | null>(null)   // GM-X4 #17：套索自由多边形（wrapper 像素坐标）
@@ -5012,7 +5010,7 @@ export default function Viewport() {
           const anyHidden = st.bodyHidden.length > 0 || !st.objectVis.bodies || components.some((c) => c.hidden)
           const del: MMItem = hit.kind === 'component' && sc
             ? { key: 'del', icon: 'trash', label: msg('mm.delete', lang), fn: () => useApp.getState().deleteComponent(sc.id) }
-            : { key: 'del', icon: 'trash', label: msg('mm.delete', lang), disabled: !selectedFeature && !selectedComponent, fn: () => { if (selectedFeature) { removeFeature(selectedFeature); selectFeature(null) } else if (selectedComponent) useApp.getState().deleteComponent(selectedComponent) } }
+            : { key: 'del', icon: 'trash', label: msg('mm.delete', lang), disabled: !selectedFeature && !selectedComponent, fn: () => { if (selectedFeature) { void useApp.getState().requestRemoveFeature(selectedFeature) } else if (selectedComponent) useApp.getState().deleteComponent(selectedComponent) } }
           const newSketch: MMItem = { key: 'sketch', icon: 'sketch', label: msg('mm.createSketch', lang), fn: () => {
             // BUG-272: right-click on a planar face (side or top) then 建立草圖 starts there.
             // No face (empty right-click) keeps the origin-plane picker. The pickplane click path is unchanged.

@@ -134,6 +134,7 @@ import { visualStyleToRender, renderToVisualStyle, edgeStateToMode, edgeModeToSt
 import { detectPreset, presetById, fmtLenU, fmtMassU, areaVolBaseUnit, type LenU, type MassU, type UnitPreset } from './cad/unitPresets'
 import { makeCanvas, patchCanvas, sanitizeCanvases, archivedCanvases, canvasToLegacyImg, nextCanvasId, decalExtras, patchDecalFields, buildImportSketchSource, preferDxfSketchOnly, forceDxfSketchOnly, rejectDxfImport, DXF_MAX_TEXT_MARKERS, DXF_SCHEMATIC_TEXT_MARKERS, filterByLayers, transformMesh, meshUnitScaleMm, meshInsertPosition, type CanvasItem, type ImpItem, type MeshUnit } from './cad/insertModel'   // GM-X3 插入：多张 Canvas / 逐张字段 / Decal 字段 / SVG·DXF→草图源 / Mesh 单位·flip·摆位（纯逻辑，Node 測過）
 import { DEFAULT_SEL_FILTER, migrateSelFilter, withSelType, withAllTypes, withNoTypes, withPriority, withSelThrough, matchByName, matchBySize, invertSet, SEL_TYPES, type SelFilter, type SelType, type SelPriority, type SizeOp } from './cad/selectionModel'   // GM-X4 选择：selFilter 逐类型过滤 + 优先级 + 穿透 + By-Name/Size + Invert（纯逻辑，Node 测过）
+import { featureDependents, reorderedFeatures, orderViolation } from './cad/featureDeps'   // T1/T2
 
 export type Pt = [number, number] // three.js ground coords [x, z]
 // GM-X3 #6/#7/#8：矢量（SVG/DXF）导入选项 —— asSketch=入可编辑草图源（默认 true）；plane/baseZ/zAngle/scale/include（逐层）。
@@ -2270,7 +2271,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
 
   // T805（报告 R3）：统一应用内对话框 — 取代 native prompt/alert/confirm。
   // 真实浏览器一致 UI + 校验，并且喺自动化/沙箱（Chrome 抑制原生弹窗）下唔会静默失效。
-  uiDialog: { kind: 'prompt' | 'confirm' | 'alert'; title: string; msg: string; def: string } | null
+  uiDialog: { kind: 'prompt' | 'confirm' | 'alert'; title: string; msg: string; def: string; /** T3: optional third button (e.g. 儲存) — resolves 'alt' */ alt?: string } | null
   /** v1.24: primary one-click action shown next to status (bake / MeshFit). */
   statusAction: { id: 'bakeMeshToPart' | 'meshfit'; label: string; componentId?: string } | null
   runStatusAction: () => Promise<void>
@@ -2279,6 +2280,10 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   appConfirm: (msg: string, title?: string) => Promise<boolean>
   appAlert: (msg: string, title?: string) => Promise<void>
   resolveDialog: (v: string | boolean | null) => void
+  /** T3: confirm with a third button (Fusion「儲存／不儲存／取消」) → 'ok' | 'alt' | null(cancel). */
+  appChoice: (msg: string, alt: string, title?: string) => Promise<'ok' | 'alt' | null>
+  /** T3: File ▸ New — 儲存 (save, then new only if the save landed) / 確定 (discard) / 取消. */
+  newFileFlow: () => Promise<void>
 
   // T809：AI Copilot — 多供应商 LLM（OpenAI/Grok/Gemini/本地）聊天 + 工具调用控制 app。
   aiOpen: boolean
@@ -2574,6 +2579,12 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   toggleCutMode: () => void
   editFeature: (id: string, patch: Record<string, number | string | number[] | string[] | boolean | undefined>) => Promise<void>  // number[]（T768）：钣金 ＋翻边；string[]：特征选择集
   removeFeature: (id: string) => Promise<void>
+  /** T1：UI delete — confirm when other features depend on it (Fusion-style list), cascade on OK; a delete whose
+   *  rebuild would fail asks to delete the failing dependents too, else keeps the model with nothing marked red. */
+  requestRemoveFeature: (id: string) => Promise<void>
+  /** T2：timeline drag / 上移 / 下移 — move feature `id` to array index `to`; one undo step; refuses moves that put a
+   *  feature before what it references; a move whose rebuild fails is reverted (nothing left red). */
+  reorderFeature: (id: string, to: number) => Promise<boolean>
   renameFeature: (id: string, name: string) => void  // GM-W6 F2：浏览树双击改特征名（存 feature.name；Timeline META/浏览树显示自订名；空=清返默认标签）
   suppressedIds: string[]
   failedFeatureIds: string[]                  // S107 逐特征隔离：本次重建 throw 嘅坏特征 id（时间轴标红）
@@ -3178,6 +3189,15 @@ function parallelKey(d: number): { b: number; h: number; t1: number; t2: number 
 type FeaSolveInput = { vertices: number[] | Float32Array; triangles: number[] | Uint32Array; force: [number, number, number]; E: number; nu: number; mech: typeof DEFAULT_MECH; loadNote: string }
 // S105 统一撤销快照：一次过捕捉 11 个文档字段（5 旧 + 6 新：参数/绑定/抑制/逐面色/配合/分组）。
 // 接收 s / s2 / get() 任一 state-like 对象。新增字段在还原侧用 ?? 兜底（兼容旧 5 字段栈条目）。
+// T1/T2：human label for confirm/status text — custom name, else type label + timeline ordinal.
+const FEATURE_TYPE_LABEL: Record<string, string> = { extrude: '拉伸', extgroup: '拉伸', sketch: '草圖', revolve: '旋轉', sweep: '掃掠', loft: '放樣', fillet: '圓角', chamfer: '倒角', shell: '抽殼', hole: '孔', mirror: '鏡像', pattern: '陣列', circPattern: '環形陣列', pathpattern: '路徑陣列', draft: '拔模', rib: '加強筋', transform: '移動', scale: '縮放', pushpull: '按拉' }
+function featureDisplayName(f: Feature, all: readonly Feature[]): string {
+  const custom = (f as { name?: string }).name
+  if (custom) return custom
+  const base = FEATURE_TYPE_LABEL[f.type] ?? f.type
+  const n = all.filter((g) => (FEATURE_TYPE_LABEL[g.type] ?? g.type) === base).findIndex((g) => g.id === f.id) + 1
+  return n > 0 ? `${base}${n}` : base
+}
 function docSnap(s: Pick<AppState, 'features' | 'components' | 'componentDefs' | 'joints' | 'motionLinks' | 'sketchSources' | 'params' | 'paramBindings' | 'suppressedIds' | 'faceColors' | 'mates' | 'groups' | 'jointPoses' | 'jointKeyframes' | 'planes' | 'cpoints' | 'caxes' | 'jointOrigins' | 'rigidGroups' | 'contactPairs'>) {
   return {
     features: s.features, components: s.components, componentDefs: referencedDefs(s.components, s.componentDefs), joints: s.joints, motionLinks: s.motionLinks, sketchSources: Object.fromEntries(Object.entries(s.sketchSources).map(([id,src])=>[id,src.patternData?{...src,patternData:structuredClone(src.patternData)}:src])),   // R2：componentDefs 必须入撤销快照（否则撤销 def 编辑 → occurrence 镜像 stale）；剪孤儿 def 防 undo 栈膨胀（占内存嘅是孤儿 def 独持嘅旧 mesh）——快照唔剥 occ.mesh 故即使剪错都零几何丢失
@@ -13328,6 +13348,22 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ uiDialog: null })
     if (r) r(v)
   },
+  appChoice: (msg, alt, title = '確認') => new Promise<'ok' | 'alt' | null>((resolve) => {
+    if (_dialogResolve) { _dialogResolve(null); _dialogResolve = null }
+    _dialogResolve = (v) => resolve(v === true ? 'ok' : v === 'alt' ? 'alt' : null)
+    set({ uiDialog: { kind: 'confirm', title, msg, def: '', alt } })
+  }),
+  newFileFlow: async () => {
+    const lang = get().lang
+    const choice = await get().appChoice(msg('file.newConfirm', lang), lang === 'en' ? 'Save' : lang === 'zh-CN' ? '保存' : '儲存', lang === 'en' ? 'New file' : '開新檔案')
+    if (choice === null) return
+    if (choice === 'alt') {
+      await get().saveProject()
+      // Only start the new file when the save really landed (cancelled picker / write error keep the model).
+      if (!get().status.startsWith('已儲存專案')) return
+    }
+    await get().reset()
+  },
 
   // ── T809 AI Copilot ──：多供应商 LLM 聊天 + 工具调用控制 app。
   aiOpen: false,
@@ -14146,7 +14182,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'exportflatdxf': return get().exportFlatDxf()
       case 'delete': {
         const sf = get().selectedFeature
-        if (sf) return void get().removeFeature(sf)
+        if (sf) return void get().requestRemoveFeature(sf)
         const sc = get().selectedComponent
         if (sc) return get().deleteComponent(sc)
         set({ status: '先選中一個特徵(時間軸)或組件(瀏覽器)再刪除' }); return
@@ -19425,9 +19461,12 @@ export const useApp = create<AppState>((rawSet, get) => {
 
   removeFeature: async (id) => {
     const features = get().features.filter((f) => f.id !== id)
+    // T1：exact pre-delete snapshot for the undo entry (taken BEFORE suppressedIds is trimmed) so Ctrl+Z restores
+    // the very document that was built, and a failed rebuild rolls suppressedIds back too.
+    const before = docSnap(get())
     set((s) => ({ suppressedIds: s.suppressedIds.filter((x) => x !== id) }))
     // T746：重建【成功后】先剪孤儿草图源 — 失败时特征树回滚，源唔可以已经剪咗（否则幸存特征 sketchId 悬空、重开报「冇草图源」）
-    const ok = await get().applyFeatures(features, '已删除特征并重建')
+    const ok = await get().applyFeatures(features, '已刪除特徵並重建', true, undefined, before)
     if (ok) {
       const live = new Set<string>()
       for (const f of get().features) {
@@ -19441,6 +19480,58 @@ export const useApp = create<AppState>((rawSet, get) => {
       })
     }
   },
+  requestRemoveFeature: async (id) => {
+    const s0 = get()
+    const target = s0.features.find((f) => f.id === id)
+    if (!target) return
+    const label = (f: Feature) => featureDisplayName(f, s0.features)
+    const deps = featureDependents(s0.features as unknown as Parameters<typeof featureDependents>[0], id) as unknown as Feature[]
+    if (deps.length) {
+      const ok = await get().appConfirm(`「${label(target)}」被以下特徵依賴：\n${deps.map((f) => '・' + label(f)).join('\n')}\n\n確定：連同依賴特徵一併刪除（可撤銷）\n取消：保留全部`, '刪除特徵')
+      if (!ok) { set({ status: '已取消刪除 — 模型及歷史不變' }); return }
+    }
+    let doomed = new Set([id, ...deps.map((f) => f.id)])
+    for (let round = 0; round < 4; round++) {
+      const cur = get()
+      const before = docSnap(cur)
+      const features = cur.features.filter((f) => !doomed.has(f.id))
+      set((st) => ({ suppressedIds: st.suppressedIds.filter((x) => !doomed.has(x)) }))
+      const ok = await get().applyFeatures(features, doomed.size > 1 ? `已刪除 ${doomed.size} 個特徵並重建` : '已刪除特徵並重建', true, undefined, before)
+      if (ok) {
+        const live = new Set<string>()
+        for (const f of get().features) { const sk = (f as { sketchId?: string }).sketchId; if (sk) live.add(sk); for (const k of (f as { sketchIds?: string[] }).sketchIds ?? []) live.add(k) }
+        set((st) => { const ss: AppState['sketchSources'] = {}; for (const k in st.sketchSources) if (live.has(k)) ss[k] = st.sketchSources[k]; return { sketchSources: ss } })
+        if (doomed.has(get().selectedFeature ?? '')) set({ selectedFeature: null }); return }
+      // Rebuild refused: the old model is kept. Features that fail without the deleted one depend on its body.
+      const failing = get().failedFeatureIds.filter((x) => !doomed.has(x) && cur.features.some((f) => f.id === x))
+      set({ failedFeatureIds: [], featureErrors: {} })   // the kept model is intact — never leave it red
+      if (!failing.length) { set({ status: '⚠ 刪除後重建失敗 — 已保留原模型及歷史' }); return }
+      const names = failing.map((x) => label(cur.features.find((f) => f.id === x)!))
+      const more = await get().appConfirm(`刪除後以下特徵會重建失敗（依賴已刪除的幾何）：\n${names.map((n) => '・' + n).join('\n')}\n\n確定：一併刪除\n取消：保留原模型`, '刪除特徵')
+      if (!more) { set({ status: '已取消刪除 — 模型及歷史不變' }); return }
+      doomed = new Set([...doomed, ...failing])
+    }
+  },
+  reorderFeature: async (id, to) => {
+    const s0 = get()
+    const next = reorderedFeatures(s0.features as unknown as Parameters<typeof reorderedFeatures>[0], id, to) as unknown as Feature[] | null
+    if (!next) return false
+    const label = (f: Feature) => featureDisplayName(f, s0.features)
+    // Only refuse violations the move introduces (legacy files may already carry odd orders elsewhere).
+    const bad = orderViolation(next as unknown as Parameters<typeof orderViolation>[0])
+    if (bad && (bad.feature.id === id || bad.needs.id === id)) {
+      set({ status: `不能移動：「${label(bad.feature as unknown as Feature)}」依賴「${label(bad.needs as unknown as Feature)}」，必須排喺佢之後` })
+      return false
+    }
+    const from = s0.features.findIndex((f) => f.id === id)
+    const ok = await get().applyFeatures(next, `已${to < from ? '上' : '下'}移「${label(s0.features[from])}」並重建（可撤銷）`, true, undefined, docSnap(s0))
+    if (!ok) {
+      const why = Object.values(get().featureErrors)[0]
+      set({ failedFeatureIds: [], featureErrors: {}, status: `⚠ 移動後重建失敗${why ? '（' + why + '）' : ''} — 已還原原順序` })
+      return false
+    }
+    return true
+  },
   // GM-W6 F2：浏览树双击特征行改名（存喺 feature.name — worker 唔读，纯 metadata；同 sketchId 一样喺 store-side feature 上持久，regenGroupFeatures/moveFeature 等 spread {...f} 时自动保留）。改名唔重建几何，undo 安全（docSnap 含 features）。
   renameFeature: (id, name) => set((s) => {
     if (!s.features.some((f) => f.id === id)) return {}
@@ -19448,12 +19539,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], features: s.features.map((f) => (f.id === id ? ({ ...f, name: nm || undefined } as Feature) : f)), status: nm ? `特徵已改名「${nm}」` : '已清除特徵自訂名' }
   }),
   moveFeature: async (id, dir) => {
-    const fs = [...get().features]
-    const i = fs.findIndex((f) => f.id === id)
-    const j = i + dir
-    if (i < 0 || j < 0 || j >= fs.length) return
-    ;[fs[i], fs[j]] = [fs[j], fs[i]]
-    await get().applyFeatures(fs, `已${dir < 0 ? '上' : '下'}移特征并重建`)
+    const i = get().features.findIndex((f) => f.id === id)
+    if (i < 0) return
+    await get().reorderFeature(id, i + dir)
   },
   params: [],
   paramBindings: {},

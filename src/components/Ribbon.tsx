@@ -415,7 +415,7 @@ export default function Ribbon() {
                 const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : (index + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
                 items[next]?.focus()
               }} className="panel-menu file-menu" style={{ position: 'fixed', top: filePosition.top, left: filePosition.left, zIndex: 150, width: 'min(320px, calc(100vw - 16px))', maxHeight: `calc(100dvh - ${filePosition.top + 8}px)`, overflowY: 'auto' }} onClick={() => setFileMenu(false)}>
-                <button type="button" role="menuitem" className="panel-menu-item" onClick={async () => { if (await useApp.getState().appConfirm(msg('file.newConfirm', lang))) void reset() }}><ToolIcon name="newdoc" size={16} />{msg('file.new', lang)}</button>
+                <button type="button" role="menuitem" className="panel-menu-item" onClick={() => void useApp.getState().newFileFlow()}><ToolIcon name="newdoc" size={16} />{msg('file.new', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => openProject()}><ToolIcon name="insert" size={16} />{msg('file.open', lang)}</button>
                 <button type="button" role="menuitem" className="panel-menu-item" onClick={() => saveProject()}><ToolIcon name="save" size={16} />{msg('file.save', lang)}<span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>Ctrl+S</span></button>
                 <button type="button" role="menuitem" className="panel-menu-item" title="分享鏈接（T797）：整個項目壓縮入一條 URL（gzip+base64,零服務器零隱私）→ 複製到剪貼板。發畀人/收藏即可重開。大模型超 1.9MB 改用「儲存」傳檔" onClick={() => { setFileMenu(false); void useApp.getState().shareLink() }}><ToolIcon name="insert" size={16} />{msg('file.share', lang)}</button>

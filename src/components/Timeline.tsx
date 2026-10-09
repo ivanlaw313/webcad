@@ -137,7 +137,6 @@ export default function Timeline() {
   const selected = useApp((s) => s.selectedFeature)
   const selectFeature = useApp((s) => s.selectFeature)
   const editFeature = useApp((s) => s.editFeature)
-  const removeFeature = useApp((s) => s.removeFeature)
   const suppressedIds = useApp((s) => s.suppressedIds)
   const multiSel = useApp((s) => s.selectedFeatures)   // P2 audit：Ctrl+点多选高亮
   const failedFeatureIds = useApp((s) => s.failedFeatureIds)  // S107 逐特徵隔离：坏特徵标红
@@ -158,6 +157,8 @@ export default function Timeline() {
   // GM-X4 #6：chip 右键上下文菜单 + 齿轮弹层（本地 UI 态）。
   const [chipMenu, setChipMenu] = useState<{ x: number; y: number; id: string; i: number } | null>(null)
   const [gearOpen, setGearOpen] = useState(false)
+  const [dragId, setDragId] = useState<string | null>(null)   // T2：拖放重排中嘅特徵
+  const [dropAt, setDropAt] = useState<number | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const featureEditorDrag = useDraggable('webcad-feature-editor', { left: 12, bottom: 96 })
   const panelDrag = useDraggable('webcad-timeline', { right: 0, bottom: 0 })
@@ -299,7 +300,14 @@ export default function Timeline() {
                   <button
                     data-fi={i}
                     className={'tl-chip' + (f.id === selected || multiSel.includes(f.id) ? ' sel' : '') + (suppressedIds.includes(f.id) ? ' suppressed' : '') + (isCut ? ' cut' : '') + (failedFeatureIds.includes(f.id) ? ' err' : '')}
-                    style={chipStyle}
+                    style={{ ...chipStyle, ...(dropAt === i && dragId && dragId !== f.id ? { outline: '2px solid #1572c4', outlineOffset: 1 } : {}) }}
+                    // T2：拖放重排（Fusion 同款）— 放落邊個 chip 就移去佢嘅位置；依賴檢查 + 失敗自動還原喺 store.reorderFeature。
+                    draggable={!commandEditing}
+                    onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-webcad-feature', f.id); setDragId(f.id) }}
+                    onDragOver={(e) => { if (!dragId) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dropAt !== i) setDropAt(i) }}
+                    onDragLeave={() => { if (dropAt === i) setDropAt(null) }}
+                    onDrop={(e) => { e.preventDefault(); const id = dragId; setDragId(null); setDropAt(null); if (id && id !== f.id) void useApp.getState().reorderFeature(id, i) }}
+                    onDragEnd={() => { setDragId(null); setDropAt(null) }}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); selectFeature(f.id); setChipMenu({ x: e.clientX, y: e.clientY, id: f.id, i }) }}
                     title={tStatus(`【${m.label}】${nameTag}${threadTag}${paramSummary ? ' · ' + paramSummary : ''}${isCut && f.type !== 'extrude' ? '（切割）' : ''}${rolled ? ' · 已回退到此步之前 — 點擊重建到這' : suppressedIds.includes(f.id) ? ' · 已抑制（點擊編輯/恢復）' : ' · 點擊：選中編輯（參數條喺下方；回卷用拖時間線 marker）'}${editDlg ? ' · 雙擊：編輯特徵（重開對話框）' : hasSketch ? ' · 雙擊：重開草圖編輯（改輪廓/約束 → 全樹重建）' : ''}${featureErrors[f.id] ? ' · 🔴 重建失敗：' + featureErrors[f.id] + '（請檢查參數後重試；以狀態欄的保留／重建結果為準）' : ''}`, lang)}
                     onClick={(e) => {   // detail>1 = 双击第二下（俾 onDoubleClick）。单击=只选中高亮；Ctrl/⌘+点=多选（阵列/镜像多目标）；rolled chip 点击重建到该步
@@ -409,7 +417,7 @@ export default function Timeline() {
           <button className="fe-del" title={tStatus('上移（更早重建）', lang)} onClick={() => void moveFeature(sel.id, -1)}>◀</button>
           <button className="fe-del" title={tStatus('下移（更晚重建）', lang)} onClick={() => void moveFeature(sel.id, 1)}>▶</button>
           <button className="fe-del" onClick={() => void toggleSuppress(sel.id)}>{suppressedIds.includes(sel.id) ? tStatus('恢復', lang) : tStatus('抑制', lang)}</button>
-          <button className="fe-del" onClick={() => { removeFeature(sel.id); selectFeature(null) }}>{tStatus('刪除', lang)}</button>
+          <button className="fe-del" onClick={() => { void useApp.getState().requestRemoveFeature(sel.id) }}>{tStatus('刪除', lang)}</button>
           <button className="fe-close" onClick={() => selectFeature(null)}>{tStatus('關閉', lang)}</button>
         </div>
       )}
@@ -430,7 +438,7 @@ export default function Timeline() {
           { label: tStatus('上移', lang), glyph: '◀', fn: () => void moveFeature(cf.id, -1), disabled: chipMenu.i <= 0 },
           { label: tStatus('下移', lang), glyph: '▶', fn: () => void moveFeature(cf.id, 1), disabled: chipMenu.i >= features.length - 1 },
           { label: tStatus('在瀏覽器中查找', lang), glyph: '🔍', fn: () => useApp.getState().focusFeatureInBrowser(cf.id) },
-          { label: tStatus('刪除', lang), glyph: '🗑', fn: () => { removeFeature(cf.id); selectFeature(null) }, danger: true },
+          { label: tStatus('刪除', lang), glyph: '🗑', fn: () => { void useApp.getState().requestRemoveFeature(cf.id) }, danger: true },
         ]
         const mx = Math.min(chipMenu.x, window.innerWidth - 180)
         const my = Math.max(8, Math.min(chipMenu.y, window.innerHeight - (items.length * 30 + 12)))

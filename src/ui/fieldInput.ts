@@ -60,3 +60,6 @@ export function fieldKeyOwner(e: KeyLike, target: ElLike, active: ElLike): 'fiel
   if (e.key === 'Enter' || e.key === 'Escape') return 'dialog'
   return 'field'
 }
+
+/** T4: F2 on a selected feature → its browser-tree row turns into the rename input (detail = feature id). */
+export const FEATURE_RENAME_EVENT = 'webcad:rename-feature'

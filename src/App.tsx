@@ -23,6 +23,7 @@ const AeroLab = lazy(() => import('./components/AeroLab'))
 import { useAeroUi } from './aero/aeroUiStore'
 import IntroCard from './components/IntroCard'
 import ErrorBoundary from './components/ErrorBoundary'
+import { FEATURE_RENAME_EVENT } from './ui/fieldInput'
 import PromptDialog from './components/PromptDialog'
 import InsertDialog from './components/InsertDialog'   // GM-X3 #7/#8/#11：矢量（SVG/DXF）+ 网格（STL/OBJ）插入对话框
 import TeachPointer from './components/TeachPointer'   // P6 v1.1：AI 教学高亮命令时的弹跳箭头图像指引
@@ -324,13 +325,14 @@ export default function App() {
         case 'x': if (s.mode === 'sketch') s.toggleConstruction(); break       // Fusion: X=Construction（构造几何切换）
         case 't': if (s.mode === 'sketch') s.runCommand('sk_trim', '修剪'); break   // Fusion: T=Trim（T760）
         case 'n': if (s.mode === 'sketch') { s.skLookAt(); e.preventDefault() } break   // GM-FP1 #9：N = 正对草图平面（Look At，键盘路径）
+        case 'f2': if (s.mode !== 'sketch' && s.selectedFeature) { e.preventDefault(); window.dispatchEvent(new CustomEvent(FEATURE_RENAME_EVENT, { detail: s.selectedFeature })) } break   // T4：F2 = 改名選中特徵（瀏覽樹行變輸入框，Fusion 同款）
         case 'home': s.requestFit(s.selectedComponent || null); e.preventDefault(); break  // S112：适应窗口 / 框到选中组件（Fusion Home）
         case 'enter': if (s.formBoxDraft?.stage === 'ready') { e.preventDefault(); void s.commitFormBoxDraft() } break
         case 'escape': if (s.formMode) { e.preventDefault(); if (s.formEditStart) s.cancelFormEdit(); else if (s.formCreateKind) s.cancelFormCreate(); else { s.selFormVert(null); s.selFormFace(null) } } else if (s.formBoxDraft) { e.preventDefault(); s.cancelFormCreate() } else if (s.mode === 'sketch' && (s.dimBuf[0] || s.dimBuf[1])) s.sketchTypeKey('Escape'); else if (s.mode === 'sketch') { if (!s.escSketch()) useApp.setState({ status: '已取消選擇 — 草圖保留，完成請按「完成草圖」' }) } else if (s.mode === 'pickplane') s.exitSketchMode(); else { s.selectFeature(null); s.selectComponent(null); s.clearInspect(); useApp.setState({ hoverFace: null, status: '已取消選擇 — 模型及視角保留' }) } break  // T792：ESC 退草图前 confirm/save（防意外丢失）；escSketch 先消化子动作（取消绘制/拾取/退返选择工具）
         case 'delete':
           // GM-FP3 #35：选中约束（点徽章）→ Delete 移除该约束；否则删几何。T796b：调尺寸中 Delete 唔删几何。
           if (s.mode === 'sketch') { if (s.skSelCon) { s.removeSkCon(s.skSelCon); s.selectSkCon(null) } else if (!s.sizing) s.skDeleteSel() }
-          else if (s.selectedFeature) { s.removeFeature(s.selectedFeature); s.selectFeature(null) }
+          else if (s.selectedFeature) { void s.requestRemoveFeature(s.selectedFeature) }   // T1：依賴確認 + 可撤銷
           else if (s.selectedComponent) { s.deleteComponent(s.selectedComponent) }
           break
       }

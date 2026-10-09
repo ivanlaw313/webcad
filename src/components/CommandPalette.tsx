@@ -87,7 +87,7 @@ function buildCommands(): Cmd[] {
   const extras: Cmd[] = [
     { id: 'act:save', label: msg('cmd.actSave', g().lang), labelKey: 'cmd.actSave', from: msg('cmd.fromFile', g().lang), fromKey: 'cmd.fromFile', run: () => g().saveProject() },
     { id: 'act:open', label: msg('cmd.actOpen', g().lang), labelKey: 'cmd.actOpen', from: msg('cmd.fromFile', g().lang), fromKey: 'cmd.fromFile', run: () => g().openProject() },
-    { id: 'act:new', label: msg('file.new', g().lang), labelKey: 'file.new', from: msg('file.menu', g().lang), fromKey: 'file.menu', tip: msg('file.newConfirm', g().lang), run: async () => { if (await g().appConfirm(msg('file.newConfirm', g().lang))) void g().reset() } },
+    { id: 'act:new', label: msg('file.new', g().lang), labelKey: 'file.new', from: msg('file.menu', g().lang), fromKey: 'file.menu', tip: msg('file.newConfirm', g().lang), run: () => void g().newFileFlow() },
     { id: 'act:undo', label: msg('cmd.actUndo', g().lang), labelKey: 'cmd.actUndo', from: msg('cmd.fromEdit', g().lang), fromKey: 'cmd.fromEdit', shortcut: 'Ctrl+Z', run: () => void g().undo() },
     { id: 'act:redo', label: msg('cmd.actRedo', g().lang), labelKey: 'cmd.actRedo', from: msg('cmd.fromEdit', g().lang), fromKey: 'cmd.fromEdit', shortcut: 'Ctrl+Y', run: () => void g().redo() },
     { id: 'act:fit', label: msg('cmd.actFit', g().lang), labelKey: 'cmd.actFit', from: msg('cmd.fromView', g().lang), fromKey: 'cmd.fromView', run: () => g().requestFit() },

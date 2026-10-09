@@ -6,6 +6,7 @@ import { useApp, MATERIALS, compWorldMatrix, datumVisKey, type AppState } from '
 import { tStatus, msg, tLabel } from '../i18n'
 import { treeMenuKeys, ACTIVE_BODY_KEY, parkedBodyKey, type TreeNodeKind, type TreeMenuOpts } from '../ui/contextMenus'
 import { useEscapeLayer } from './useEscapeLayer'
+import { FEATURE_RENAME_EVENT } from '../ui/fieldInput'
 
 // Browser-tree app context menu (Fusion browser right-click) — replaces Chrome's native menu on tree rows.
 type TreeMenuItem = { key: string; label: string; fn: () => void; disabled?: boolean }
@@ -231,6 +232,12 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
       return () => clearTimeout(t)
     }
   }, [focusNonce, focusId, f.id])
+  // T4：F2（App 全局鍵）→ 呢行變改名輸入框。
+  useEffect(() => {
+    const onRename = (e: Event) => { if ((e as CustomEvent<string>).detail === f.id) { setName(custom || ''); setEditing(true); rowRef.current?.scrollIntoView({ block: 'nearest' }) } }
+    window.addEventListener(FEATURE_RENAME_EVENT, onRename)
+    return () => window.removeEventListener(FEATURE_RENAME_EVENT, onRename)
+  }, [f.id, custom])
   return (
     <div ref={rowRef} className={'tree-row' + (f.id === selected ? ' sel' : '') + (err ? ' err' : '')} style={{ paddingLeft: 18, ...(flash ? { background: '#fff3c4', transition: 'background .3s', boxShadow: 'inset 0 0 0 1px #e0a83a' } : {}) }}>
       <span className="tw-toggle" />
@@ -242,7 +249,7 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
           onBlur={commit}
           onKeyDown={(e) => { if (e.key === 'Enter') commit(); else if (e.key === 'Escape') setEditing(false); e.stopPropagation() }} />
       ) : (
-        <span style={{ flex: 1, cursor: 'pointer' }} title={tStatus('單擊選中 · 雙擊編輯特徵／草圖 · Alt+雙擊改名', lang)} onClick={() => selectFeature(f.id === selected ? null : f.id)} onDoubleClick={(e) => { if (e.altKey) { setName(custom || ''); setEditing(true) } else openFeatureEdit() }}>{custom || tStatus(meta.label, lang)}</span>
+        <span style={{ flex: 1, cursor: 'pointer' }} title={tStatus('單擊選中 · 雙擊編輯特徵／草圖 · F2／Alt+雙擊改名', lang)} onClick={() => selectFeature(f.id === selected ? null : f.id)} onDoubleClick={(e) => { if (e.altKey) { setName(custom || ''); setEditing(true) } else openFeatureEdit() }}>{custom || tStatus(meta.label, lang)}</span>
       )}
       {err && <span className="tw-err" title={tStatus('重建失敗：', lang) + err}>🔴</span>}
     </div>

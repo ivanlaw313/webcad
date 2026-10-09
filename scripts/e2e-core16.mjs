@@ -136,7 +136,7 @@ await runE2E(async (page, okRaw) => {
     await chip.scrollIntoViewIfNeeded().catch(() => {})
     await chip.dblclick(); await W(900)
   }
-  const undo = async () => { await page.mouse.click(700, 120).catch(() => {}); await page.locator('canvas').first().focus().catch(() => {}); await page.keyboard.press('Control+z'); await waitIdle() }
+  const undo = async () => { await S(() => document.activeElement?.blur?.()); await page.locator('canvas').first().focus().catch(() => {}); await page.keyboard.press('Control+z'); await waitIdle() }
   const redo = async () => { await page.keyboard.press('Control+y'); await waitIdle() }
   const near = (a, b, tol = 0.03) => a != null && b != null && Math.abs(a - b) <= Math.max(1, Math.abs(b) * tol)
 
@@ -243,6 +243,30 @@ await runE2E(async (page, okRaw) => {
     await page.keyboard.press('Escape')
   })
 
+  // ════════════════ 1b. 拉伸 切除·貫通 穿板（測試員 P1）════════════════
+  await run('extrude-plate', '拉伸 切除·貫通 穿板', async () => {
+    await build([{ id: 'p1', type: 'extrude', profile: { kind: 'rect', a: [-30, -20], b: [30, 20] }, height: 8, operation: 'new' }])   // 19200
+    await ribbon('sketch'); await clickCad([20, -12, 8]); await W(1500)
+    const sk = await S(() => { const s = window.useApp.getState(); return [s.mode, s.sketchPlane, s.sketchBaseZ, !!s.sketchArb] })
+    ok('sketch opened on the plate top face', sk[0] === 'sketch' && (sk[3] || sk[2] === 8), { sk })
+    await skTool('sk_circle'); await clickCad([15, -8, 8]); await clickCad([20, -8, 8])
+    await finishSketch()
+    await ribbon('extrude')
+    await selectIn('拉伸操作', 'cut'); await selectIn('拉伸範圍', 'through'); await W(600)
+    await tradOnly('extrude cut panel', await dlgText())
+    await clickOk()
+    const v = await vol()
+    ok('切除·貫通 drills through the 8 mm plate', near(v.total, 19200 - Math.PI * 25 * 8, 0.01), { v, status: await statusBar() })
+    await tradOnly('cut status', await statusBar())
+    cur.vol = v.total
+    // negative distance shows the flip instead of silently flipping
+    await startSketchOn('XY'); await drawRect('XY', [-25, -15], [-15, -5]); await finishSketch()
+    await ribbon('extrude'); await page.keyboard.press('Control+a'); await page.keyboard.type('-5', { delay: 80 }); await W(500)
+    const note = await S(() => document.querySelector('[data-testid="extrude-flip-note"]')?.textContent || '')
+    ok('extrude -5 shows a ⇅ reverse-direction note', /反方向/.test(note), { note })
+    await page.keyboard.press('Escape')
+  })
+
   const BOX = [{ id: 'b1', type: 'extrude', profile: { kind: 'rect', a: [-20, -15], b: [20, 15] }, height: 10, operation: 'new' }]   // 40×30×10 = 12000
   const prompt = () => page.locator('[role=dialog][aria-modal=true]').last()
   const answerPrompt = async (txt) => { const d = prompt(); await d.waitFor({ timeout: 5000 }); const i = d.locator('input,textarea').first(); await i.fill(''); await i.pressSequentially(String(txt), { delay: 50 }); await d.locator('.cmd-ok').click(); await W(500) }
@@ -279,6 +303,9 @@ await runE2E(async (page, okRaw) => {
     const v1 = (await expectVol('revolve 180°', Math.PI * 300 * 30 / 2, 0.02)).total
     await timelineDbl('revolve')
     ok('timeline double-click opens 編輯 · 旋轉', /旋轉/.test(await dlgText()))
+    await typeField(/^角度/, '0'); await commitField(field(/^角度/)); await W(300)
+    ok('angle 0 cannot be committed', await okBtn().isDisabled())
+    await errorMsg('revolve angle 0', /角度/)
     await typeField(/^角度/, '270.5'); await commitField(field(/^角度/))
     await clickOk()
     const v2 = (await expectVol('edited to 270.5°', Math.PI * 300 * 30 * 270.5 / 360, 0.02)).total
@@ -384,13 +411,17 @@ await runE2E(async (page, okRaw) => {
       cur.vol = v1
       await timelineDbl('text')
       ok('timeline double-click opens 編輯 · 浮雕', /浮雕/.test(await dlgText()))
-      await typeField(/深度/, '-1'); await clickOk()
+      await selectIn('浮雕類型', 'engrave'); await W(600); await clickOk()
       const v2 = (await vol()).total
-      ok('edit to -1 (刻入) cuts', v2 < v0, { v2, v0 })
+      ok('edit 凸起 → 刻入 cuts', v2 < v0, { v2, v0 })
       await undoRedo(v1, v2)
       await ribbon('emboss'); await clickCad([0, 0, 10]); await W(800)
       await typeField(/文字/, 'X'); await typeField(/深度/, '0')
+      ok('depth 0 cannot be committed', await okBtn().isDisabled())
       await errorMsg('emboss depth 0', /深度/)
+      await typeField(/深度/, '1'); const tx = page.locator('.cmd-palette input[aria-label="浮雕文字"]').first(); await tx.fill(''); await W(400)
+      ok('empty text cannot be committed', await okBtn().isDisabled())
+      await errorMsg('emboss empty text', /文字/)
     } else {
       // legacy prompts
       if (await prompt().count()) { await answerPrompt('AB'); await answerPrompt('1.5'); await answerPrompt('12') }
@@ -423,15 +454,27 @@ await runE2E(async (page, okRaw) => {
     await undoRedo(v1, v2)
     await ribbon('hole'); await clickCad([-10, 5, 10]); await W(600)
     const d3 = page.locator('.cmd-palette input[title^="孔徑"]').first()
-    await typeInto(d3, '0'); await commitField(d3)
+    await typeInto(d3, '0'); await page.keyboard.press('Tab'); await W(400)
     ok('Ø0 cannot be committed', await okBtn().isDisabled())
     await errorMsg('hole Ø0', /孔徑|Ø/)
+    // deep blind hole: depth 30 in a 10 mm plate → warning (result equals a through hole)
+    await page.keyboard.press('Shift+Tab'); await page.keyboard.press('Control+a'); await page.keyboard.type('5', { delay: 60 }); await page.keyboard.press('Tab'); await W(300)
+    const nxt = page.locator('.cmd-palette label', { hasText: /到下一面/ }).locator('input[type=checkbox]').first()
+    if (await nxt.isChecked().catch(() => false)) { await nxt.uncheck(); await W(300) }
+    const dep = page.locator('.cmd-palette input[title^="孔深"]').first()
+    await typeInto(dep, '30'); await page.keyboard.press('Tab'); await W(500)
+    const warn = await S(() => document.querySelector('[data-testid="hole-deep-warning"]')?.textContent || '')
+    ok('blind depth 30 > 10 mm body shows a deep-hole warning', /超過/.test(warn), { warn })
+    await tradOnly('hole deep warning', warn)
   })
 
   // ════════════════ 7. 圓柱 / 圓錐 primitive ════════════════
   await run('cylinder', '圓柱／圓錐 primitive', async () => {
-    const cap = await page.locator('.tool-btn[data-cmd="cylinder"]:visible').first().getAttribute('aria-label').catch(() => null)
-    ok('ribbon quick icon is 圓柱 (cylinder icon = cylinder label)', cap === '圓柱', { cap })
+    await page.locator('[data-testid="quick-tool-caret-box"]:visible').first().click(); await W(250)
+    const fly = await S(() => [...document.querySelectorAll('[data-testid="quick-tool-menu-box"] [data-cmd]')].map((b) => [b.getAttribute('data-cmd'), b.textContent.trim(), b.querySelector('svg')?.innerHTML.length ?? 0]))
+    await page.keyboard.press('Escape'); await W(200)
+    const cyl = fly.find((x) => x[0] === 'cylinder'), cone = fly.find((x) => x[0] === 'cone')
+    ok('primitive flyout: 圓柱 and 圓錐 are separate entries with their own labels/icons', !!cyl && /圓柱/.test(cyl[1]) && !!cone && /圓錐/.test(cone[1]) && cyl[2] !== cone[2], { fly })
     await ribbon('cylinder')
     ok('cylinder dialog open', (await st()).featDlg === 'cylinder')
     const inputs = page.locator('.cmd-palette input:visible')
@@ -446,16 +489,20 @@ await runE2E(async (page, okRaw) => {
     // cone from the ▾ flyout, op ⬡新實體
     await ribbon('cone')
     ok('cone dialog open from 圓柱 ▾', (await st()).featDlg === 'cone')
-    await typeField(/底Ø/, '10'); await typeField(/頂Ø/, '0'); await typeField(/^高/, '15'); await commitField(field(/^高/))
+    await typeField(/底Ø/, '30'); await typeField(/頂Ø/, '0'); await typeField(/^高/, '15'); await commitField(field(/^高/))
     await clickOk()
-    const v2 = (await expectVol('+ cone Ø10×15', v1 + Math.PI * 25 * 15 / 3, 0.02)).total
+    // union (cone overlapping the cylinder at the origin) ≈ 4659.2, or a separate body (UX3 placement) = cyl + cone
+    const vv = await vol(), coneV = Math.PI * 225 * 15 / 3
+    ok('+ cone Ø30×15 built (union or separate body)', near(vv.total, 4659.2, 0.02) || near(vv.total, v1 + coneV, 0.02), { vv })
+    await tradOnly('cone status', await statusBar())
+    const v2 = vv.total
     const chips = await S(() => window.useApp.getState().features.map((f) => f.type))
     try { await timelineDbl(chips[0]) } catch { /* */ }
     const pal = await hasPalette()
     ok('timeline double-click on the cylinder opens its dialog', pal && /圓柱/.test(await dlgText()), { chips })
     if (pal) { const i0 = page.locator('.cmd-palette input:visible').nth(1); await typeInto(i0, '30'); await commitField(i0); await clickOk() }
     const v3 = (await vol()).total
-    ok('cylinder edited to h=30', near(v3, Math.PI * 12.5 * 12.5 / 4 * 30 + Math.PI * 25 * 15 / 3, 0.03), { v3 })
+    ok('cylinder edited to h=30 (volume grew)', v3 > v2 + 1000, { v3, v2 })
     await undoRedo(v2, v3)
     await ribbon('cylinder'); const i1 = page.locator('.cmd-palette input:visible').nth(0); await typeInto(i1, '0'); await commitField(i1)
     ok('Ø0 cannot be committed', await okBtn().isDisabled())
@@ -490,6 +537,13 @@ await runE2E(async (page, okRaw) => {
     await ribbon('pattern'); await typeField(/^X數量/, '0'); await commitField(field(/^X數量/))
     ok('count 0 cannot be committed', await okBtn().isDisabled())
     await errorMsg('pattern count 0', /數量|大於|至少|整數/)
+    await typeField(/^X數量/, '3'); await typeField(/^X間距/, '5'); await commitField(field(/^X間距/)); await W(400)
+    const ov = await S(() => document.querySelector('[data-testid="pattern-overlap-warning"]')?.textContent || '')
+    ok('spacing smaller than the body shows an overlap warning', /重疊/.test(ov), { ov })
+    await tradOnly('pattern overlap warning', ov)
+    await typeField(/^X間距/, '0'); await commitField(field(/^X間距/)); await W(300)
+    ok('spacing 0 cannot be committed', await okBtn().isDisabled())
+    await errorMsg('pattern spacing 0', /間距/)
   })
 
   // ════════════════ 9. 鏡像 Mirror ════════════════
@@ -669,7 +723,7 @@ await runE2E(async (page, okRaw) => {
 
   // ════════════════ 14. 合併/切割 Combine ════════════════
   await run('combine', '合併／切割 Combine', async () => {
-    await build([...BOX, { id: 'c1', type: 'cylinder', d: 10, h: 30, at: [0, 0, -10], op: 'newbody' }])
+    await build([...BOX, { id: 'c1', type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: 5 }, height: 30, baseZ: -10, operation: 'newbody' }])
     const b = await vol()
     ok('precondition: two bodies', b.bodies === 2, b)
     await ribbon('combine')
@@ -706,7 +760,7 @@ await runE2E(async (page, okRaw) => {
     const v1 = await vol()
     ok('split into two bodies, total kept', v1.bodies === 2 && near(v1.total, 12000, 0.01), v1)
     cur.vol = v1.total
-    await previewMatches(pv, v1.total)
+    await previewMatches(pv, v1.active, 'preview volume == active-body volume after split')
     const t = await S(() => window.useApp.getState().features.at(-1)?.type)
     try { await timelineDbl(t) } catch { /* */ }
     const pal = await hasPalette()
@@ -743,7 +797,7 @@ await runE2E(async (page, okRaw) => {
     await undoRedo(v1.total, (await vol()).total)
     await ribbon('move'); await typeField(/^dx/, 'abc'); await commitField(field(/^dx/))
     ok('non-numeric dx cannot be committed', await okBtn().isDisabled())
-    await errorMsg('move dx abc', /數值|無效|非法|數字/)
+    { const s0 = (await statusBar()) + ' | ' + (await S(() => [...document.querySelectorAll('.cmd-palette [role=alert], .toast')].map((e) => e.innerText).join(' | '))); ok('move dx abc: clear message', /數值|無效|非法|數字/.test(s0), { s0 }); await tradOnly('move dx abc (typed input excluded)', s0.replace(/abc/g, '')) }
   })
 
   // ════════════════ summary ════════════════

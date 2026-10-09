@@ -921,7 +921,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   '組件布爾：點此零件（或勾選）作為工具件完成運算': 'Component Boolean: click this part (or check) as the tool body',
   '勾選此零件＝選為組件布爾工具件並立即完成': 'Check this part = select as Component Boolean tool and finish now',
   '剛性組（T779）：勾選的組件鎖做一組 — 第一件做頭，移動它全組跟（rigid 關節實現，可在關節面板拆）': 'Rigid Group (T779): lock checked components — first is leader; move it and the group follows (rigid joints; break in joint panel)',
-  '按現狀關節（T779）：兩件在目前位置直接加關節 — 選類型即加，不 snap 不移動位（要改軸用拾孔定軸）': 'As-Built Joint (T779): add joint at current pose for two checked parts — pick type; no snap/move (use hole-pick to set axis)',
+  '按現狀關節：兩件在目前位置直接加關節 — 選類型即加，不會先移動或吸附組件（要改軸請用拾孔定軸）': 'As-Built Joint: add joint at current pose for two checked parts — pick type; components are not moved or snapped first (use hole-pick to set axis)',
   '已取消当前绘制（再按 ESC 退出草图）': 'Cancelled current draw (press ESC again to exit sketch)',
   '先画一个轮廓（一个），再阵列': 'Draw a profile first, then pattern',
   '阵列至少 2 个': 'Pattern needs at least 2 copies',

@@ -610,7 +610,7 @@ function CompBatchBar() {
       <span className="tw-act" title={tStatus('清除勾選', lang)} onClick={() => clear()}>✕{tStatus('清除勾選', lang)}</span>
       <span className="tw-act" title={tStatus('📁 建組（T788 子裝配）：勾選的組件組成一個組 — 整組隱藏/移動/複製/BOM 分層；勾選同組成員再建組 = 嵌套子組', lang)} onClick={() => useApp.getState().createGroupFromChecked()}>📁{tStatus('建組', lang)}</span>
       {n >= 2 && <span className="tw-act" title={tStatus('剛性組（T779）：勾選的組件鎖做一組 — 第一件做頭，移動它全組跟（rigid 關節實現，可在關節面板拆）', lang)} onClick={() => useApp.getState().rigidGroupChecked()}>🔗{tStatus('剛性組', lang)}</span>}
-      {n === 2 && <select className="tw-act" defaultValue="" title={tStatus('按現狀關節（T779）：兩件在目前位置直接加關節 — 選類型即加，不 snap 不移動位（要改軸用拾孔定軸）', lang)} onChange={(e) => { const t = e.target.value; if (t) useApp.getState().asBuiltJointChecked(t) }}>
+      {n === 2 && <select className="tw-act" defaultValue="" title={tStatus('按現狀關節：兩件在目前位置直接加關節 — 選類型即加，不會先移動或吸附組件（要改軸請用拾孔定軸）', lang)} onChange={(e) => { const t = e.target.value; if (t) useApp.getState().asBuiltJointChecked(t) }}>
         <option value="">⚙{tStatus('按現狀關節…', lang)}</option>
         <option value="revolute">{tStatus('轉動', lang)}</option>
         <option value="rigid">{tStatus('剛性', lang)}</option>

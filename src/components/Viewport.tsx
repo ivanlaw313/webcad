@@ -4480,6 +4480,13 @@ export default function Viewport() {
   const sketchDim = useApp((s) => s.sketchDim)
   const skCons = useApp((s) => s.skCons)
   const skDof = useApp((s) => s.skDof)
+  // SKETCH12 #3/#5：草圖幾何／約束一變就（去抖）重算 DOF — 無約束、只有弧、畫緊嘢時都顯示數字，唔再顯示「DOF —」。
+  const skDofShapes = useApp((s) => s.sketchProfiles), skDofShape = useApp((s) => s.sketchShape), skDofCons = useApp((s) => s.skCons), skDofMode = useApp((s) => s.mode)
+  useEffect(() => {
+    if (skDofMode !== 'sketch') return
+    const t = setTimeout(() => { void useApp.getState().refreshSkDof() }, 180)
+    return () => clearTimeout(t)
+  }, [skDofMode, skDofShapes, skDofShape, skDofCons])
   const skConflict = useApp((s) => s.skConflict)
   const skConflictIds = useApp((s) => s.skConflictIds)   // S194：冲突约束 id 数（状态栏显示 ×N + 红徽章提示）
   const loftSections = useApp((s) => s.loftSections)
@@ -7627,9 +7634,9 @@ export default function Viewport() {
           </>)}
           {[...sketchProfiles, ...(sketchShape ? [sketchShape] : [])].some((sh) => sh.type === 'poly' && sh.projectLink === 'all') && <button className="sb-tool" title={tStatus('斷開投影連結（Fusion Break Link）：保留紫色投影曲線，但停止以後隨實體更新；之後可獨立修改。', lang)} onClick={() => useApp.getState().breakProjectLinks()}>{tStatus('⛓斷開連結', lang)}</button>}
           <button className={'sb-tool' + (sketchTool === 'dimension' ? ' active' : '')} title={tStatus('尺寸工具（D）：點 邊=長度 · 圓=Ø · 弧=R · 點→點→放置=距離 · 點→邊=垂直距離', lang)} onClick={() => setSketchTool('dimension')}>{'⟷ ' + msg('sk.dimension', lang)}</button>
-          {skCons.length > 0 && (
-            <span className="sb-hint" style={{ color: skConflict ? '#d6694e' : skDof === 0 ? '#1aa06b' : '#1572c4', fontWeight: 600 }} title={tStatus('約束求解狀態：DOF = 剩餘自由度（0 = 完全定義，綠色）。衝突時紅色徽章 = 互相衝突嘅約束，點擊其一移除即解；或按「↶撤約束」。', lang)}>
-              {skConflict ? tStatus(skConflictIds.length ? `⚠ 約束衝突 ×${skConflictIds.length}（紅徽章點擊移除）` : '⚠ 約束衝突', lang) : skDof === 0 && skCons.length > 0 ? tStatus(`✓ 完全定義 · DOF 0 · 約束 ${skCons.length}`, lang) : tStatus(`約束 ${skCons.length} · DOF ${skDof ?? '—'}`, lang)}
+          {(skCons.length > 0 || sketchProfiles.length > 0 || !!sketchShape) && (
+            <span className="sb-hint" data-testid="sketch-dof" style={{ color: skConflict ? '#d6694e' : skDof === 0 ? '#1aa06b' : '#1572c4', fontWeight: 600 }} title={tStatus('約束求解狀態：DOF = 剩餘自由度（0 = 完全定義，綠色）。衝突時紅色徽章 = 互相衝突嘅約束，點擊其一移除即解；或按「↶撤約束」。', lang)}>
+              {skConflict ? tStatus(skConflictIds.length ? `⚠ 約束衝突 ×${skConflictIds.length}（紅徽章點擊移除）` : '⚠ 約束衝突', lang) : skDof === 0 && skCons.length > 0 ? tStatus(`✓ 完全定義 · DOF 0 · 約束 ${skCons.length}`, lang) : tStatus(`約束 ${skCons.length} · DOF ${skDof ?? '…'}`, lang)}
             </span>
           )}
           {['rectangle','circle','polyline','spline','bspline'].includes(sketchTool) && <span className="sb-hint" title={tStatus('畫的時候直接打數字 → 精確尺寸（矩形：打寬 → Tab 換高 → Enter；圓：打直徑Ø → Enter，如 Ø4）。游標會吸附到已有的點。', lang)}>{tStatus('⌨ 打數字=尺寸', lang)}</span>}

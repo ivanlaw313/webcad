@@ -76,7 +76,7 @@ test('SO05: closed triangle profile sketch is still refused as sweep path', asyn
   g().setSelSketch(Object.keys(g().sketchSources)[0])
   await g().runCommand('sweep', 'Sweep')
   assert.equal(g().sweepDlgOpen, false)
-  assert.match(g().status, /开放路径/)
+  assert.match(g().status, /開放路徑|开放路径/)
 })
 
 test('SO05: cancel after hydrating saved path does not mutate sketchSources', async () => {

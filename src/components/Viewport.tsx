@@ -7418,7 +7418,9 @@ export default function Viewport() {
           okTip={tStatus('生成（Enter）', lang)}
           onOk={() => void commitSweepPath()}
           onCancel={() => cancelSweepDlg()}
-          summary={sketchOp === 'cut' ? tStatus(`沿路徑切圓槽 Ø${sweepDia}`, lang) : sketchOp === 'intersect' ? tStatus('沿路徑掃掠 ∩ 保留公共部分', lang) : tStatus(`沿路徑掃圓管 Ø${sweepDia}`, lang)}
+          summary={sweepSection === 'profile'
+            ? (sketchOp === 'cut' ? tStatus('沿路徑掃掠切割（草圖截面）', lang) : sketchOp === 'intersect' ? tStatus('沿路徑掃掠 ∩ 保留公共部分', lang) : tStatus('沿路徑掃掠成實體（草圖截面）', lang))
+            : (sketchOp === 'cut' ? tStatus(`沿路徑切圓槽 Ø${sweepDia}`, lang) : sketchOp === 'intersect' ? tStatus('沿路徑掃掠 ∩ 保留公共部分', lang) : tStatus(`沿路徑掃圓管 Ø${sweepDia}`, lang))}
         >
           <SelectionChip label={tStatus('路徑', lang)} count={sweepEdgeLinesV.length ? sweepEdgeLinesV.length : (sweepAxis || sweepEditId ? 1 : ((sketchShape && sketchShape.type === 'poly') || polyPts.length >= 2 ? 1 : 0))} hint={tStatus(sweepEditId ? '編輯模式會保留原本的 2D/3D 路徑與導軌；改參數後按确定重建' : '先畫折線/樣條作路徑，或選構造軸脊線，或用下面「拾實體邊」逐條接力', lang)} onClear={sweepEdgeLinesV.length ? () => useApp.getState().clearSweepEdges() : undefined} />
           {/* GM-3DV1 S5：沿实体边链拾路径（Fusion Chain Path）+ S15 active pick-slot 高亮 */}
@@ -7454,7 +7456,16 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>{tStatus('管徑 Ø', lang)}</span>
             <span><input type="number" min={0.5} step={1} value={sweepDia} onChange={(e) => setSweepDia(Number(e.target.value) || 12)} style={{ width: 66 }} /> mm</span>
           </label>}
-          {sweepSection === 'profile' && <div className="sb-hint" style={{ fontSize: 11 }}>{tStatus('用 profiles 入面最後一個閉合輪廓做截面（畫輪廓 → 畫路徑折線 → 确定）', lang)}</div>}
+          {sweepSection === 'profile' && (
+            <>
+              <SelectionChip
+                label={tStatus('截面輪廓', lang)}
+                count={sketchProfiles.filter((sh) => sh.type === 'rect' || sh.type === 'circle' || (sh.type === 'poly' && !sh.construction && !sh.open && sh.pts.length >= 3)).length + (sketchShape && (sketchShape.type === 'rect' || sketchShape.type === 'circle' || (sketchShape.type === 'poly' && !sketchShape.construction && !sketchShape.open && sketchShape.pts.length >= 3)) ? 1 : 0)}
+                hint={tStatus('點畫布上的閉合輪廓（圓/矩形/閉合折線）選做截面；缺省用最後一個閉合輪廓', lang)}
+              />
+              <div className="sb-hint" style={{ fontSize: 11 }}>{tStatus('點閉合輪廓選截面（畫輪廓 → 畫路徑折線 → 确定）', lang)}</div>
+            </>
+          )}
           {/* GM-3DV1 S5：截面朝向（Fusion Orientation）— 垂直=截面恒⊥脊线（缺省）；平行=截面保初始朝向不随脊线转（对圆截面无视觉差，配草图轮廓/扭转用） */}
           <label title={tStatus('截面朝向（Fusion Orientation）：垂直=截面沿路徑恆保持⊥脊線（缺省）；平行=截面保持初始朝向、不隨脊線轉向。對圓截面無視覺差別，配非對稱草圖輪廓時最明顯', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('截面朝向', lang)}</span>

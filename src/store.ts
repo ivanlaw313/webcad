@@ -4040,7 +4040,7 @@ function sweepPathPointCount(sh: SketchShape): number {
   return sh.pts?.length ?? 0
 }
 function asSweepPathShape(sh: SketchShape | null | undefined): SketchShape | null {
-  if (!sh || sh.type !== 'poly' || sh.construction || sh.centerline) return null
+  if (!sh || sh.type !== 'poly' || sh.construction || (sh as { centerline?: boolean }).centerline) return null
   const n = sweepPathPointCount(sh)
   if (n < 2) return null
   if (sh.open) return sh
@@ -4051,6 +4051,21 @@ function asSweepPathShape(sh: SketchShape | null | undefined): SketchShape | nul
   const bulges = sh.bulges ? sh.bulges.slice(0, 1) : [0]
   while (bulges.length < 1) bulges.push(0)
   return openVertsPoly(verts, bulges)
+}
+// T742：扫掠「草图轮廓」截面 — 闭合实线轮廓（圆/矩形/闭合折线）；排除构造线、草图点、以及开放路径本身。
+function isSweepSectionProfile(sh: SketchShape | null | undefined): boolean {
+  if (!sh || sh.construction || (sh as { centerline?: boolean }).centerline) return false
+  if (asSweepPathShape(sh)) return false
+  if (sh.type === 'circle') return !sh.point
+  if (sh.type === 'rect') return true
+  if (sh.type === 'poly' && !sh.open && (sh.pts?.length ?? 0) >= 3) return true
+  return false
+}
+function findSweepSectionProfile(profiles: SketchShape[]): SketchShape | undefined {
+  return [...profiles].reverse().find(isSweepSectionProfile)
+}
+function sweepSectionSelRef(sh: SketchShape, shapeIdx: number): SkRef {
+  return sh.type === 'circle' ? { kind: 'circle', shape: shapeIdx } : { kind: 'edge', shape: shapeIdx, idx: 0 }
 }
 
 // T760：shape → TrimPath（修剪/延伸用统一路径表示）；样条/椭圆/草图点诚实拒绝
@@ -7358,6 +7373,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     const livePath=asSweepPathShape(s.sketchShape)
     let hasPath=!!livePath||s.polyPts.length>=2
     if(livePath&&livePath!==s.sketchShape)draft={sketchShape:livePath}
+    // Live sketch: path already finishOpenPolyline'd into sketchProfiles (closed section kept alongside).
+    if(!hasPath){
+      const idx=s.sketchProfiles.findIndex((sh)=>!!asSweepPathShape(sh))
+      if(idx>=0){
+        const path=asSweepPathShape(s.sketchProfiles[idx])!
+        const rest=s.sketchProfiles.filter((_,i)=>i!==idx)
+        const keepShape=s.sketchShape&&isSweepSectionProfile(s.sketchShape)?[s.sketchShape]:[]
+        draft={sketchShape:structuredClone(path),sketchProfiles:structuredClone([...rest.filter(isSweepSectionProfile),...keepShape]),polyPts:[]}
+        hasPath=true
+      }
+    }
     if(!hasPath&&s.mode==='model'){
       // SO05 / BUG-SO12-005：独立草图里揾可扫掠路径（显式 open 或两点线段）；唔要求整张草图只有 1 个轮廓
       const candidates: {id:string;source:AppState['sketchSources'][string];path:SketchShape}[]=[]
@@ -7372,12 +7398,21 @@ export const useApp = create<AppState>((rawSet, get) => {
         const {source,path}=pick
         if(source.arb||source.plane!=='XY'||Math.abs(source.baseZ)>1e-8)return {status:'已選路徑不在 XY 原點平面；目前儲存路徑掃掠需先選 XY@0 路徑'}
         if(source.patternData)return {status:'關聯陣列路徑須先分離關聯，再選作掃掠路徑'}
-        draft={sketchShape:structuredClone(path),sketchProfiles:[],skCons:structuredClone(source.cons),skPatternData:null,sketchPlane:source.plane,sketchBaseZ:source.baseZ,sketchArb:null,polyPts:[]}
+        // Keep closed profiles from the same sketch as the sweep section (T742). Do NOT wipe sketchProfiles.
+        const profiles=source.shapes.filter(isSweepSectionProfile)
+        draft={sketchShape:structuredClone(path),sketchProfiles:structuredClone(profiles),skCons:structuredClone(source.cons),skPatternData:null,sketchPlane:source.plane,sketchBaseZ:source.baseZ,sketchArb:null,polyPts:[]}
         hasPath=true
       }
     }
     if(!hasPath&&!s.caxes.length)return {status:'掃掠需要一條開放路徑：畫路徑或在瀏覽器選取已儲存的路徑草圖，再點掃掠'}
-    return {...draft,sweepDlgOpen:true,sketchOp:!hasSolid(s.features)?'new':s.sketchOp,sweepAxis:hasPath?'':s.sweepAxis,status:'掃掠：設 管徑 / 操作（可選構造軸脊線）→ 確定（或取消）'}
+    const sectionChip=(()=>{
+      const profiles=(draft.sketchProfiles as SketchShape[]|undefined)??s.sketchProfiles
+      const shape=(draft.sketchShape as SketchShape|null|undefined)!==undefined?(draft.sketchShape as SketchShape|null):s.sketchShape
+      const pool=[...profiles,...(shape&&isSweepSectionProfile(shape)?[shape]:[])]
+      const idx=pool.map((sh,i)=>isSweepSectionProfile(sh)?i:-1).filter(i=>i>=0).pop()
+      return idx==null?{skSel:[] as SkRef[]}:{skSel:[sweepSectionSelRef(pool[idx],idx)]}
+    })()
+    return {...draft,...(s.sweepSection==='profile'?sectionChip:{}),sweepDlgOpen:true,sketchOp:!hasSolid(s.features)?'new':s.sketchOp,sweepAxis:hasPath?'':s.sweepAxis,status:'掃掠：設 管徑 / 操作（可選構造軸脊線）→ 確定（或取消）'}
   }),
   cancelSweepDlg: () => set({ sweepDlgOpen: false, sweepEditId: null, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], status: '已取消掃掠（路徑保留）' }),
   setSweepDia: (n) => set({ sweepDia: n > 0 ? n : 12 }),
@@ -7390,7 +7425,18 @@ export const useApp = create<AppState>((rawSet, get) => {
   sweepScale: 1,
   setSweepScale: (n) => set({ sweepScale: n > 0 ? n : 1 }),
   sweepSection: 'circle',
-  setSweepSection: (m) => set({ sweepSection: m }),
+  setSweepSection: (m) => set((s) => {
+    if (m !== 'profile') return { sweepSection: m }
+    // Auto-select / highlight the last closed profile so 草圖輪廓 mode shows the section immediately.
+    const pool = [...s.sketchProfiles, ...(s.sketchShape && isSweepSectionProfile(s.sketchShape) ? [s.sketchShape] : [])]
+    let idx = -1
+    for (let i = pool.length - 1; i >= 0; i--) if (isSweepSectionProfile(pool[i])) { idx = i; break }
+    return {
+      sweepSection: m,
+      skSel: idx >= 0 ? [sweepSectionSelRef(pool[idx], idx)] : [],
+      status: idx >= 0 ? `截面=草圖輪廓：已選閉合輪廓（${pool[idx].type === 'circle' ? '圓' : pool[idx].type === 'rect' ? '矩形' : '折線'}）— 可再點另一個輪廓更換，再确定掃掠` : '截面=草圖輪廓：先畫一個閉合輪廓（矩形/圓/折線閉合），再畫路徑折線，先至掃掠',
+    }
+  }),
   // GM-3DV1 S5：截面朝向（Fusion Orientation）— perp=⊥脊线（缺省，逐字节旧行为）/ parallel=保初始朝向不随脊线转。
   sweepOrient: 'perp',
   setSweepOrient: (o) => set({ sweepOrient: o }),
@@ -7855,6 +7901,38 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 放宽：未画草图都可以拣【实体参考几何】（边/角/孔心）—— 例如要约束/标尺寸到实体边。
     const _rg = getRefGeo()
     if (!shapes.length && !(_rg && (_rg.pts.length || _rg.segs.length))) { set({ status: '先畫一個圖形（矩形/圓/折線），或貼住實體面開草圖（就可揀實體邊/角），再選擇/標尺寸' }); return }
+    // Sweep dialog · 草圖輪廓：click a closed profile → highlight + promote to last so confirm uses it.
+    if (s.sweepDlgOpen && s.sweepSection === 'profile') {
+      const tolb = pickTol()
+      let bi = -1, best = Infinity
+      for (let i = 0; i < shapes.length; i++) {
+        const sh = shapes[i] as SketchShape
+        if (!isSweepSectionProfile(sh)) continue
+        const dd = distToShapeOutline(sh, p)
+        if (dd < best) { best = dd; bi = i }
+      }
+      if (bi < 0 || best > tolb * 1.5) { set({ status: '截面=草圖輪廓：點一個閉合輪廓（矩形/圓/折線閉合）做截面' }); return }
+      const picked = shapes[bi] as SketchShape
+      const nProf = s.sketchProfiles.length
+      let nextProfiles: SketchShape[]
+      let nextShape = s.sketchShape
+      if (bi < nProf) {
+        nextProfiles = [...s.sketchProfiles.filter((_, i) => i !== bi), picked]
+      } else {
+        // Closed section is currently sketchShape — bank it into profiles; keep an open path as sketchShape if present.
+        const pathKeep = s.sketchShape && asSweepPathShape(s.sketchShape) ? s.sketchShape : null
+        nextProfiles = [...s.sketchProfiles.filter(isSweepSectionProfile), picked]
+        nextShape = pathKeep
+      }
+      const selIdx = nextProfiles.length - 1
+      set({
+        sketchProfiles: nextProfiles,
+        sketchShape: nextShape,
+        skSel: [sweepSectionSelRef(picked, selIdx)],
+        status: `截面=草圖輪廓：已選${picked.type === 'circle' ? '圓' : picked.type === 'rect' ? '矩形' : '閉合折線'} — 确定掃掠`,
+      })
+      return
+    }
     // T791 D3：合并/剪走「点两个轮廓」一击式拾取（Fusion 流程）— 喺一切尺寸/选择逻辑之前拦截
     if (s.skBoolPending) {
       const bp = s.skBoolPending
@@ -18935,7 +19013,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       const opE: BoolOp = (s.sketchOp === 'cut' || s.sketchOp === 'intersect' || s.sketchOp === 'newbody') && hasSolid(s.features) ? s.sketchOp : 'new'
       let secProfileE: SketchProfile | undefined
       if (s.sweepSection === 'profile') {
-        const candE = [...s.sketchProfiles].reverse().find((sh2) => sh2.type === 'rect' || sh2.type === 'circle' || (sh2.type === 'poly' && !sh2.construction && sh2.pts.length >= 3))
+        const poolE = [...s.sketchProfiles, ...(s.sketchShape && isSweepSectionProfile(s.sketchShape) ? [s.sketchShape] : [])]
+        const candE = findSweepSectionProfile(poolE)
         if (!candE) { set({ status: '截面=草圖輪廓：先畫一個閉合輪廓，或改用「◯ 圓」截面，再沿邊鏈掃掠' }); return }
         secProfileE = shapeToProfile(candE, 'XY')
       }
@@ -18964,7 +19043,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       // 截面：草图轮廓（profile）或圆（管径）
       let secProfileA: SketchProfile | undefined
       if (s.sweepSection === 'profile') {
-        const candA = [...s.sketchProfiles].reverse().find((sh) => sh.type === 'rect' || sh.type === 'circle' || (sh.type === 'poly' && !sh.construction && sh.pts.length >= 3))
+        const poolA = [...s.sketchProfiles, ...(s.sketchShape && isSweepSectionProfile(s.sketchShape) ? [s.sketchShape] : [])]
+        const candA = findSweepSectionProfile(poolA)
         if (!candA) { set({ status: '截面=草圖輪廓：先畫一個閉合輪廓（矩形/圓/折線閉合），再選構造軸脊線，先至掃掠' }); return }
         secProfileA = shapeToProfile(candA, 'XY')
       }
@@ -18989,7 +19069,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     // T742 任意草图截面：揾 profiles 入面最后一个【闭合】轮廓做截面（截面以草图原点为中心，垂直路径放置）
     let secProfile: SketchProfile | undefined
     if (s.sweepSection === 'profile') {
-      const cand = [...s.sketchProfiles].reverse().find((sh) => sh.type === 'rect' || sh.type === 'circle' || (sh.type === 'poly' && !sh.construction && sh.pts.length >= 3))
+      // Include live sketchShape when it is the closed section (path may still be in polyPts).
+      const pool = [...s.sketchProfiles, ...(s.sketchShape && isSweepSectionProfile(s.sketchShape) ? [s.sketchShape] : [])]
+      const cand = findSweepSectionProfile(pool)
       if (!cand) { set({ status: '截面=草圖輪廓：先畫一個閉合輪廓（矩形/圓/折線閉合），再畫路徑折線，先至掃掠' }); return }
       secProfile = shapeToProfile(cand, 'XY')
     }

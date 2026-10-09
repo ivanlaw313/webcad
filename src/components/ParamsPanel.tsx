@@ -159,7 +159,7 @@ export default function ParamsPanel() {
       <div className="pp-add">
         <input className="pp-name-in" aria-label={tz('參數名稱')} placeholder={tz('名稱 d1')} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); add() } }} />
         <input className="pp-val" aria-label={tz('參數數值')} type="text" inputMode="decimal" autoComplete="off" value={val} onChange={(e) => setVal(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); add() } }} />
-        <button className="cs-btn" onClick={add}>{tz('+ 添加')}</button>
+        <button className="cs-btn" onClick={add}>{tz('+ 新增')}</button>
       </div>
       <details><summary>{tz('進階：配置、設計表及導出')}</summary>
       {params.length > 0 && <div className="pp-add" style={{ justifyContent: 'flex-end' }}><button className="cs-btn" title={tz('把參數表導出為 CSV（名稱/值/表達式，方便文檔/分享/Excel）')} onClick={() => exportCsv()}>{tz('📋 導出參數 CSV')}</button></div>}

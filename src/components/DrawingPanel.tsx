@@ -1122,7 +1122,7 @@ export default function DrawingPanel() {
         </div>
         {drawingKind === 'assembly' && bom && bom.length > 0 && (
           <div style={{ padding: '4px 10px', borderTop: '1px solid #ccc', fontSize: 11, color: '#333', maxHeight: 170, overflow: 'auto' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: 3 }}>🔢 {tStatus('BOM 材料清單', lang)}　<span style={{ fontWeight: 'normal', color: '#777' }}>{tStatus('（氣泡編號 = 序號 · 共', lang)} {bom.reduce((t, r) => t + r.qty, 0)} {tStatus('件）', lang)}</span></div>
+            <div style={{ fontWeight: 'bold', marginBottom: 3 }}>🔢 {tStatus('材料清單（BOM）', lang)}　<span style={{ fontWeight: 'normal', color: '#777' }}>{tStatus('（氣泡編號 = 序號 · 共', lang)} {bom.reduce((t, r) => t + r.qty, 0)} {tStatus('件）', lang)}</span></div>
             <table style={{ borderCollapse: 'collapse', width: '100%' }}>
               <thead><tr style={{ background: '#f0f0f0' }}>
                 <th style={{ border: '1px solid #ccc', padding: '1px 8px' }}>{tStatus('序號', lang)}</th>
@@ -1143,7 +1143,7 @@ export default function DrawingPanel() {
                 ))}
               </tbody>
             </table>
-            <button className="cs-btn" style={{ marginTop: 3, fontSize: 11 }} title={tStatus('匯出完整 BOM CSV（含體積/密度/料長等全列）', lang)} onClick={() => useApp.getState().exportBOM(density)}>📥 BOM CSV</button>
+            <button className="cs-btn" style={{ marginTop: 3, fontSize: 11 }} title={tStatus('匯出完整 BOM CSV（含體積/密度/料長等全列）', lang)} onClick={() => useApp.getState().exportBOM(density)}>📥 {tStatus('匯出材料清單 CSV', lang)}</button>
           </div>
         )}
         {(() => {

@@ -129,7 +129,7 @@ import { orientedBBox } from '../cad/obb'                // S121：定向最小�
 import { HDRI_PRESETS, type HdriPresetId } from '../render/hdriPresets'
 import { GradientEquirectTexture } from 'three-gpu-pathtracer'   // 工作模式背景预设：程序化渐变 equirect（同 HdriEnvironment GradientFallback 一致）
 import { msg, tStatus, tLabel, tMaterialName, type LangInput } from '../i18n'
-import { profileSectionName, roundFailLines } from '../ui/featureStatus'
+import { profileSectionName, roundFailLines, plainBuildWarning } from '../ui/featureStatus'
 import { feaStaleBannerText, invalidateSimResultsPatch, hasLiveSimResults } from '../simulation/resultValidity'
 import { evalArith, normalizeWide, parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：單位感知長度輸入（分數英寸）
 import { NumInput } from './NumInput'   // BUG-507/509：受驗數值欄（取代 type="number"）
@@ -8165,7 +8165,7 @@ export default function Viewport() {
               <b>⚠ {tStatus('重建警告', lang)} ×{bw.length}</b>
               <button className="tb-btn" style={{ padding: '0 5px' }} onClick={() => useApp.getState().dismissBuildWarnings()}>✕</button>
             </div>
-            {bw.slice(0, 4).map((w, i) => <div className="vp-build-warning-message" key={i}>{tStatus(w, lang)}</div>)}
+            {bw.slice(0, 4).map((w, i) => <div className="vp-build-warning-message" key={i}>{tStatus(lang === 'en' || lang === 'ja' ? w : plainBuildWarning(w), lang)}</div>)}
             {bw.length > 4 && <div style={{ marginTop: 3, opacity: 0.7 }}>… +{bw.length - 4}</div>}
           </div>
         )
@@ -8572,9 +8572,9 @@ export default function Viewport() {
         </div>
       )}
       {bomDialog && (
-        <div role="dialog" aria-label="BOM" className="cmd-palette" style={{ position: 'fixed', left: '50%', top: 'min(120px, 14vh)', transform: 'translateX(-50%)', width: 'min(720px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: 220, maxHeight: 'calc(78vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column', background: '#fff', border: '1px solid #b6c0c9', borderRadius: 10, boxShadow: '0 12px 40px rgba(0,0,0,.28)', padding: 12 }}>
+        <div role="dialog" aria-label={tStatus('材料清單', lang)} className="cmd-palette" style={{ position: 'fixed', left: '50%', top: 'min(120px, 14vh)', transform: 'translateX(-50%)', width: 'min(720px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: 220, maxHeight: 'calc(78vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column', background: '#fff', border: '1px solid #b6c0c9', borderRadius: 10, boxShadow: '0 12px 40px rgba(0,0,0,.28)', padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <b style={{ fontSize: 14 }}>📋 {tStatus('BOM 材料清單', lang)}</b>
+            <b style={{ fontSize: 14 }}>📋 {tStatus('材料清單（BOM）', lang)}</b>
             <button className="tb-btn" title={tStatus('關閉', lang)} onClick={() => useApp.getState().closeBomDialog()}>✕</button>
           </div>
           <div style={{ fontSize: 12, color: '#5a6b78', marginBottom: 8 }}>{bomDialog.summary}</div>

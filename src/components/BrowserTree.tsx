@@ -47,6 +47,10 @@ function skDelGuard(): boolean {
   return true
 }
 const SK_LOCK_STYLE = { opacity: 0.35, cursor: 'not-allowed' } as const
+// UX1 #7（改名食咗最後一個字）：中文／粵拼輸入法揀字嗰下嘅 Enter 係「組字中」（isComposing / keyCode 229）—
+// 舊碼當咗確認改名，即刻用未落字嘅值提交兼拆走輸入框 → 最後一個字冇咗。組字中嘅 Enter／Escape 一律唔理；
+// 提交一律讀 input 嘅即時值（e.currentTarget.value），唔靠可能慢一拍嘅 state。
+const imeBusy = (e: { nativeEvent: KeyboardEvent; keyCode: number }) => e.nativeEvent.isComposing || e.keyCode === 229
 
 // 用 Record<string> 而非 Record<Feature['type']>：令 cast 加入嘅类型（extgroup/featpattern 等用 `as Feature` 绕过 union）
 // 都摆得入嚟显示靚 label；配合下面 lookup 嘅兜底，任何未知/新版特徵类型都唔会 crash 成个浏览树。
@@ -185,7 +189,7 @@ function SketchRow({ k }: { k: string }) {
   }, [standaloneFeat?.id, k])
   if (!src) return null
   const orphan = !referenced
-  const commit = () => { useApp.getState().renameSketchSrc(k, name); setEditing(false) }
+  const commit = (v: string = name) => { useApp.getState().renameSketchSrc(k, v); setEditing(false) }
   const canDel = (orphan || (standalone && !consumed)) && !skLock
   const del = async () => {
     if (skDelGuard()) return
@@ -209,8 +213,8 @@ function SketchRow({ k }: { k: string }) {
         <input className="tree-rename" aria-label={tStatus('重命名草圖', lang)} value={name} autoFocus
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => setName(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => { if (e.key === 'Enter') commit(); else if (e.key === 'Escape') setEditing(false); e.stopPropagation() }} />
+          onBlur={(e) => commit(e.currentTarget.value)}
+          onKeyDown={(e) => { e.stopPropagation(); if (imeBusy(e)) return; if (e.key === 'Enter') commit(e.currentTarget.value); else if (e.key === 'Escape') setEditing(false) }} />
       ) : (
         <span style={{ flex: 1, opacity: src.visible ? 1 : 0.55 }}>{src.name ? src.name : tStatus(defaultLabel, lang)}{standalone ? tStatus('·獨立', lang) : ''}{orphan ? tStatus('（未使用）', lang) : ''}{src.cons.length ? tStatus(` ·${src.cons.length}約束`, lang) : ''}</span>
       )}
@@ -232,7 +236,7 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
   const custom = (f as { name?: string }).name
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
-  const commit = () => { useApp.getState().renameFeature(f.id, name); setEditing(false) }
+  const commit = (v: string = name) => { { const name = v; useApp.getState().renameFeature(f.id, name) } setEditing(false) }   // UX1 #7：v = input 即時值
   const openFeatureEdit = () => {
     selectFeature(f.id)
     if (FEAT_EDIT_DLG.has(f.type)) { useApp.getState().openFeatDlgForEdit(f.id); return }
@@ -281,8 +285,8 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
         <input className="tree-rename" aria-label={tStatus('重命名特徵', lang)} value={name} autoFocus placeholder={tStatus(meta.label, lang)}
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => setName(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => { if (e.key === 'Enter') commit(); else if (e.key === 'Escape') setEditing(false); e.stopPropagation() }} />
+          onBlur={(e) => commit(e.currentTarget.value)}
+          onKeyDown={(e) => { e.stopPropagation(); if (imeBusy(e)) return; if (e.key === 'Enter') commit(e.currentTarget.value); else if (e.key === 'Escape') setEditing(false) }} />
       ) : (
         <span style={{ flex: 1, cursor: 'pointer' }} title={tStatus('單擊選中 · 雙擊編輯特徵／草圖 · F2／Alt+雙擊改名', lang)} onClick={() => selectFeature(f.id === selected ? null : f.id)} onDoubleClick={(e) => { if (e.altKey) { setName(custom || ''); setEditing(true) } else openFeatureEdit() }}>{custom || tStatus(meta.label, lang)}</span>
       )}
@@ -312,8 +316,8 @@ function GroupRow({ g, depth, collapsed, onToggle }: { g: { id: string; name: st
       <span style={{ fontSize: 12 }}>📁</span>
       {editing ? (
         <input className="tree-rename" aria-label={tStatus('重命名組', lang)} value={name} autoFocus onChange={(e) => setName(e.target.value)}
-          onBlur={() => { app().renameGroup(g.id, name || g.name); setEditing(false) }}
-          onKeyDown={(e) => { if (e.key === 'Enter') { app().renameGroup(g.id, name || g.name); setEditing(false) } }} />
+          onBlur={(e) => { app().renameGroup(g.id, e.currentTarget.value || g.name); setEditing(false) }}
+          onKeyDown={(e) => { e.stopPropagation(); if (imeBusy(e)) return; if (e.key === 'Enter') { app().renameGroup(g.id, e.currentTarget.value || g.name); setEditing(false) } else if (e.key === 'Escape') { setName(g.name); setEditing(false) } }} />
       ) : (
         <span style={{ flex: 1, cursor: 'pointer', fontWeight: 600 }} title={tStatus(`子裝配組「${g.name}」（${deepIds.length} 件，雙擊改名）— 組係組織結構，關節仍係零件級`, lang)} onDoubleClick={() => { setName(g.name); setEditing(true) }}>{g.name}<span style={{ fontWeight: 400, color: '#8a97a2' }}>（{deepIds.length}）</span></span>
       )}
@@ -381,8 +385,8 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
       {editing ? (
         <input className="tree-rename" aria-label={tStatus('重命名組件', lang)} value={name} autoFocus
           onChange={(e) => setName(e.target.value)}
-          onBlur={() => { rename(c.id, name || c.name); setEditing(false) }}
-          onKeyDown={(e) => { if (e.key === 'Enter') { rename(c.id, name || c.name); setEditing(false) } }} />
+          onBlur={(e) => { rename(c.id, e.currentTarget.value || c.name); setEditing(false) }}
+          onKeyDown={(e) => { e.stopPropagation(); if (imeBusy(e)) return; if (e.key === 'Enter') { rename(c.id, e.currentTarget.value || c.name); setEditing(false) } }} />
       ) : (
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} title={tStatus(`「${localizeAsmName(c.name, lang)}」 ${compDimsStr(c.mesh)}（雙擊參數化件=進入編輯；Alt+雙擊=改名；點選=屬性）`, lang)} onClick={(e) => { if (compBoolPending) selectComponent(c.id); else if (e.ctrlKey || e.metaKey || e.shiftKey) useApp.getState().toggleComponentInSelection(c.id); else selectComponent(c.id === sel ? null : c.id) }} onDoubleClick={(e) => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.formSource && !e.altKey) { useApp.getState().editFormComponent(c.id) } else if (cc?.src?.features?.length && !e.altKey) { selectComponent(c.id); void useApp.getState().editComponent(c.id) } else { setName(c.name); setEditing(true) } }}>{localizeAsmName(c.name, lang)}</span>
       )}
@@ -456,7 +460,7 @@ function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; 
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => setName(e.target.value)}
           onBlur={(e) => commit(e.currentTarget.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') commit(e.currentTarget.value); else if (e.key === 'Escape') setEditing(false); e.stopPropagation() }} />
+          onKeyDown={(e) => { e.stopPropagation(); if (imeBusy(e)) return; if (e.key === 'Enter') commit(e.currentTarget.value); else if (e.key === 'Escape') setEditing(false) }} />
       ) : (
         <span style={{ flex: 1 }} title={active ? tStatus('單擊：屬性 · 右鍵：重新命名／刪除 · Alt+雙擊改名', lang) : undefined}
           onDoubleClick={active ? (e) => { if (e.altKey) { e.stopPropagation(); startRename() } } : undefined}>{active && customName ? `${customName} ●` : tStatus(label, lang)}</span>

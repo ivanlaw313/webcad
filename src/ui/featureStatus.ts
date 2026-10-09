@@ -319,12 +319,25 @@ export function roundFailLines(lang: LangInput): string[] {
 }
 
 /** Rebuild-warning suffix: one leading ⚠ (worker warnings often carry their own → was 「⚠ ⚠」), duplicates removed. */
+// UX1 #7：拓撲命名（持久邊名／面名、S1／S2、近點退回）係內部術語 — 用戶見到「持久邊名…漂移」唔知講乜。
+// 顯示層（狀態列＋重建警告 pill）改講人話；worker 原文唔郁（測試／診斷／英文目錄仍用原句）。
+export function plainBuildWarning(w: string): string {
+  const t = String(w)
+  let m: RegExpMatchArray | null
+  if (/^持久邊名.*真拓撲命名 S\d/.test(t)) return '圓角／倒角嘅邊已自動重新配對，請檢查'
+  if (/^持久面名.*真拓撲命名 S\d/.test(t)) return '所選面已自動重新配對，請檢查'
+  if ((m = t.match(/^(圆角|圓角|倒角)：持久[边邊]名.*?([\d.]+)\s*mm/))) return `${m[1] === '倒角' ? '倒角' : '圓角'}嘅邊搵唔返，已改用最近嘅邊（相差 ${m[2]} mm，可能揀錯），請檢查或重新揀邊`
+  if ((m = t.match(/^面[拣揀]：持久面名.*?([\d.]+)\s*mm/))) return `所選面搵唔返，已改用最近嘅面（相差 ${m[1]} mm，可能揀錯），請檢查或重新揀面`
+  if (/^真拓撲命名 S2：/.test(t)) return '部分圓角／倒角嘅邊搵唔返，已改用最近嘅邊，請檢查或重新揀邊'
+  return t
+}
+
 export function formatBuildWarnings(warnings: readonly string[] | null | undefined): string {
   if (!warnings || !warnings.length) return ''
   const seen = new Set<string>()
   const parts: string[] = []
   for (const w of warnings) {
-    const t = String(w).replace(/^(?:\s|⚠|\uFE0F)+/u, '').trim()
+    const t = plainBuildWarning(String(w).replace(/^(?:\s|⚠|\uFE0F)+/u, '').trim())
     if (!t || seen.has(t)) continue
     seen.add(t)
     parts.push(t)

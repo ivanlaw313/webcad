@@ -51,7 +51,7 @@ import { followExtrudeTopEdges } from './cad/extrudeEdgeFollow'
 import { mapKernelFailuresToTimeline } from './cad/featureFailureMap'
 import { formBoxSizeFromPoints, makePlacedBoxCage, newFormBoxDraft, type FormBoxDraft, type FormBoxPlane } from './cad/formBox'
 import { makeFormPipeCage, setSymmetricFormVert } from './cad/subdiv'   // S193：Form 镜像对称编辑（纯函数，Node 测过）
-import { detectLang, tStatus, msg, normalizeLang, type Lang } from './i18n'   // T800 + v1.74 locales
+import { detectLang, tStatus, msg, normalizeLang, tMaterialName, type Lang } from './i18n'   // T800 + v1.74 locales
 import { searchRibbonCommand } from './ribbon'   // P6 AI 教学：把用户问句模糊匹配到真实 ribbon 命令位置
 import { openAeroLab } from './aero/aeroUiStore'   // Aero Design Lab（氣動設計實驗室）面板開關 — 獨立小 store
 import type { MeshData, Feature, SketchProfile, BoolOp, EdgeSel, DrawView, Plane } from './worker/cad.worker'
@@ -7102,7 +7102,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   toggleFaceSketchPick: () => set((s) => ({ faceSketchPick: !s.faceSketchPick, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, pushPullMode: false, shellMode: false, faceFilletMode: false, holeMode: false, featDlg: null, status: !s.faceSketchPick ? '點擊實體的一個面 → 自動在該面上新建草圖（支持平面/軸向面）' : '已取消選面' })),
   // S162 Emboss（Fusion 凸字/凹字）：拾一个平面 → 输入文字 → 沿面法向 凸起(raise)/刻入(engrave)。复用 arb 面坐标系 + 文字特征。（embossPick 初值喺 faceSketchPick 旁边一并初始化）
-  toggleEmboss: () => set((s) => ({ embossPick: !s.embossPick, faceSketchPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, pushPullMode: false, shellMode: false, holeMode: false, delFaceMode: false, thickenMode: false, featDlg: null, status: !s.embossPick ? '✏ Emboss：點實體一個【平面】→ 輸入文字 → 沿面法向凸起/刻入（如標牌/編號/logo）' : '已取消 Emboss' })),
+  toggleEmboss: () => set((s) => ({ embossPick: !s.embossPick, faceSketchPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, pushPullMode: false, shellMode: false, holeMode: false, delFaceMode: false, thickenMode: false, featDlg: null, status: !s.embossPick ? '✏ 浮雕：點實體一個【平面】→ 輸入文字 → 沿面法向凸起／刻入（如標牌／編號／標誌）' : '已取消浮雕' })),
   applyEmbossPick: async (p, n) => {
     if (!get().embossPick) return
     const L = Math.hypot(n[0], n[1], n[2]) || 1
@@ -7114,17 +7114,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     const xl = Math.hypot(xd[0], xd[1], xd[2]) || 1
     xd = [xd[0] / xl, xd[1] / xl, xd[2] / xl]
     set({ embossPick: false })
-    const txt = await get().appPrompt('Emboss 文字（沿所选面法向凸起/刻入）：', 'TEXT', '面上文字')
-    if (txt == null || !txt.trim()) { set({ status: '已取消 Emboss' }); return }
-    const dv = await get().appPrompt('深度 mm（正 = 凸起 raise；负 = 刻入 engrave）：', '2', 'Emboss 深度')
-    if (dv == null) { set({ status: '已取消 Emboss' }); return }
+    const txt = await get().appPrompt('浮雕文字（沿所選面法向凸起／刻入）：', 'TEXT', '浮雕文字')
+    if (txt == null || !txt.trim()) { set({ status: '已取消浮雕' }); return }
+    const dv = await get().appPrompt('深度 mm（正數 = 凸起；負數 = 刻入）：', '2', '浮雕深度')
+    if (dv == null) { set({ status: '已取消浮雕' }); return }
     const depth = parseFloat(dv)
-    if (!Number.isFinite(depth) || Math.abs(depth) < 1e-6) { set({ status: 'Emboss：深度無效' }); return }
-    const sz = await get().appPrompt('字高 mm：', '8', 'Emboss 字高')
-    if (sz == null) { set({ status: '已取消 Emboss' }); return }
+    if (!Number.isFinite(depth) || Math.abs(depth) < 1e-6) { set({ status: '浮雕：深度無效' }); return }
+    const sz = await get().appPrompt('字高 mm：', '8', '浮雕字高')
+    if (sz == null) { set({ status: '已取消浮雕' }); return }
     const size = Math.max(1, parseFloat(sz) || 8)
     const f: Feature = { id: fid(), type: 'text', text: txt, size, height: Math.abs(depth), op: depth < 0 ? 'cut' : 'new', arbPlane: { o, xd, n: nn } }
-    await get().applyFeatures([...get().features, f], `Emboss「${txt}」${depth < 0 ? '刻入' : '凸起'} ${Math.abs(depth)}mm（字高 ${size}）`)
+    await get().applyFeatures([...get().features, f], `浮雕「${txt}」${depth < 0 ? '刻入' : '凸起'} ${Math.abs(depth)}mm（字高 ${size}）`)
   },
   // #174-1：UCS 用户坐标系。拾一个平面帧（点实体平面）→ buildUCS 生成正交基 → 一次落 3 参考面 + 3 构造轴 + 1 构造点。
   ucsPick: false,
@@ -20929,29 +20929,31 @@ export const useApp = create<AppState>((rawSet, get) => {
     // so length(m) = volume(mm³) / 2405.3. This is the SOLID (100% infill) upper bound — real prints with
     // infill/walls use much less; labelled as such so it's honest, not a hollow promise.
     const filamentM = (volCm3: number) => (volCm3 * 1000) / 2405.3
-    const rows = [['序号', '组(子装配)', '名称', '数量', '材质', '尺寸 L×W×H(mm)', '单件体积(cm³)', '密度(g/cm³)', '单件质量(g)', '小计质量(g)', '实心料长(m@1.75线)', '可打印(水密)']]
+    // UX1 #7：BOM 表（畫面＋CSV）欄名改繁體（舊：簡體＋英文 L×W×H／@1.75）；材質顯示用 tMaterialName（MATERIALS 鍵係簡體 id）。
+    const bl = get().lang
+    const rows = [['序號', '組（子裝配）', '名稱', '數量', '材質', '尺寸 長×闊×高 (mm)', '單件體積 (cm³)', '密度 (g/cm³)', '單件質量 (g)', '小計質量 (g)', '實心料長 (m，1.75 線材)', '可列印（水密）']]
     let i = 0, totQty = 0, totMass = 0, totVol = 0, totFil = 0, badParts = 0
     const byMat = new Map<string, { qty: number; mass: number; fil: number }>() // per-material rollup (buy-this-much-filament)
     for (const [key, g] of groups) {
       const name = key.slice(key.indexOf('|') + 1)
       i++; const mass = g.volCm3 * g.density, sub = mass * g.count, filSub = filamentM(g.volCm3) * g.count; totQty += g.count; totMass += sub; totVol += g.volCm3 * g.count; totFil += filSub
       if (!g.wt) badParts++
-      rows.push([String(i), g.grp || '—', name, String(g.count), g.mat, g.dims, g.volCm3.toFixed(2), g.density.toFixed(2), mass.toFixed(1), sub.toFixed(1), filSub.toFixed(1), g.wt ? '✓' : '✗ 非水密'])
-      const mk = g.mat || '(未指定)'; const bm = byMat.get(mk) || { qty: 0, mass: 0, fil: 0 }; bm.qty += g.count; bm.mass += sub; bm.fil += filSub; byMat.set(mk, bm)
+      rows.push([String(i), g.grp || '—', name, String(g.count), g.mat === '—' ? '—' : tMaterialName(g.mat, bl), g.dims, g.volCm3.toFixed(2), g.density.toFixed(2), mass.toFixed(1), sub.toFixed(1), filSub.toFixed(1), g.wt ? '✓' : '✗ 非水密'])
+      const mk = g.mat && g.mat !== '—' ? tMaterialName(g.mat, bl) : '（未指定）'; const bm = byMat.get(mk) || { qty: 0, mass: 0, fil: 0 }; bm.qty += g.count; bm.mass += sub; bm.fil += filSub; byMat.set(mk, bm)
     }
-    rows.push(['合计', '', '', String(totQty), '', '', totVol.toFixed(2), '', '', totMass.toFixed(1), totFil.toFixed(1), badParts ? `${badParts} 种非水密` : '全部水密'])
+    rows.push(['合計', '', '', String(totQty), '', '', totVol.toFixed(2), '', '', totMass.toFixed(1), totFil.toFixed(1), badParts ? `${badParts} 種非水密` : '全部水密'])
     // Per-material rollup — for a multi-material print, how much of each filament/metal to prepare.
     if (byMat.size > 1) {
       rows.push(['', '', '', '', '', '', '', '', '', '', '', ''])
-      rows.push(['按材料汇总', '', '材料', '件数', '', '', '', '', '', '质量(g)', '料长(m@1.75)', ''])
+      rows.push(['按材料彙總', '', '材料', '件數', '', '', '', '', '', '質量 (g)', '料長 (m，1.75)', ''])
       for (const [mat, bm] of byMat) rows.push(['', '', mat, String(bm.qty), '', '', '', '', '', bm.mass.toFixed(1), bm.fil.toFixed(1), ''])
     }
     const csv = '﻿' + rows.map((r) => r.map((f) => (/[",\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f)).join(',')).join('\r\n')
     triggerDownload(new TextEncoder().encode(csv), `${projName(get().projectName)}-BOM.csv`, 'text/csv')
     const anyMat = comps.some((c) => c.material && MATERIALS[c.material]?.density)
-    const summary = `BOM（${groups.size} 種零件 · 共 ${totQty} 件 · 總質量 ${totMass >= 1000 ? (totMass / 1000).toFixed(2) + ' kg' : totMass.toFixed(0) + ' g'}${anyMat ? '，按各組件材質密度' : ` @${density}g/cm³`} · 實心料長 ${totFil.toFixed(1)}m@1.75${badParts ? ` · ⚠${badParts} 种非水密` : ' · 全部水密'}）`
+    const summary = `材料清單（${groups.size} 種零件 · 共 ${totQty} 件 · 總質量 ${totMass >= 1000 ? (totMass / 1000).toFixed(2) + ' kg' : totMass.toFixed(0) + ' g'}${anyMat ? '，按各組件材質密度' : ` @${density}g/cm³`} · 實心料長 ${totFil.toFixed(1)} m（1.75 線材）${badParts ? ` · ⚠${badParts} 種非水密` : ' · 全部水密'}）`
     // BUG-BD-1805：同时弹出可见表格（下载可能被自动化拦截，表格可核验）
-    set({ bomDialog: { rows, summary }, status: `已匯出 ` + summary + ' — 已打開 BOM 表' })
+    set({ bomDialog: { rows, summary }, status: `已匯出 ` + summary + ' — 已打開材料清單' })
   },
   bomDialog: null,
   closeBomDialog: () => set({ bomDialog: null }),

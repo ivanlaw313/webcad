@@ -83,4 +83,32 @@ await runE2E(async (page, ok) => {
   await page.waitForTimeout(500)
   s = await S(); off = all(s).find((x) => x.offsetOf)
   ok('one undo restores −6', !!off && Math.abs(off.offsetOf.d + 6) < 1e-6, { d: off?.offsetOf?.d })
+
+  // ── Open single-edge line (human QA failure mode on DtB) ────────────────────
+  await fresh()
+  await tool('sk_polyline'); await click(0, 0); await click(80, 0); await page.keyboard.press('Escape'); await page.waitForTimeout(400)
+  await tool('sk_offset'); await click(40, 0)
+  await move(40, 12); await page.keyboard.type('6'); await page.waitForTimeout(150)
+  await move(42, 14); await page.keyboard.press('Enter'); await page.waitForTimeout(700)
+  s = await S(); off = all(s).find((x) => x.offsetOf)
+  ok('open-line offset created (|d|=6)', !!off && Math.abs(Math.abs(off.offsetOf.d) - 6) < 1e-6, { d: off?.offsetOf?.d, st: s.st })
+  const openSigned = off.offsetOf.d
+  await tool('sk_select'); await page.waitForTimeout(500)
+  const openRe = openSigned < 0 ? /⇥−?\s*6/ : /⇥\s*6/
+  box = await labelBox(openRe)
+  ok('open-line finished offset label visible on canvas', !!box, { box, openSigned })
+  await page.shot?.('offset-dim-open-line-label')
+  await page.mouse.move(box.x, box.y, { steps: 4 })
+  await page.mouse.dblclick(box.x, box.y); await page.waitForTimeout(350)
+  ok('open-line canvas dblclick opens editor', (await editorOpen()) > 0)
+  await page.locator('[data-dim-editor] input').first().click()
+  await page.keyboard.press('Control+a')
+  await page.keyboard.type('10')
+  await page.keyboard.press('Enter'); await page.waitForTimeout(900)
+  s = await S(); off = all(s).find((x) => x.offsetOf)
+  const side = Math.sign(openSigned)
+  ok('open-line Enter rebuilds to |d|=10 same side', !!off && Math.abs(off.offsetOf.d - side * 10) < 1e-6, { d: off?.offsetOf?.d, st: s.st })
+  ok('open-line geometry at |y|=10', !!off?.pts && Math.abs(Math.abs(off.pts[0][1]) - 10) < 0.05, { pts: off?.pts })
+  await page.shot?.('offset-dim-open-line-edited-10')
+
 }, { port: 4522 })

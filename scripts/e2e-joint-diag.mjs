@@ -69,7 +69,7 @@ try {
 
   // ── #3/#4/#5：ribbon 關節 → 先點軸（要郁件）→ 再點板頂 → 對話框 hover「球」撳確定
   await clickTool('joint')
-  ok('#3 joint pick status says first pick = moving part', /要郁件/.test(await st()), await st())
+  ok('#3 joint pick status says first pick = moving part', /要郁件|要移動的組件/.test(await st()), await st())
   const shaftSide = await compPoint(S, 'side'); await clickAt(page, shaftSide.s)
   const s1 = await st()
   ok('#3 first pick (shaft) accepted as the moving part', /已選(要郁件|移動件)/.test(s1) && !/唔可以做關節子件|不可作為關節子件/.test(s1), s1)

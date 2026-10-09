@@ -1510,7 +1510,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   thickenPreviewBusy: boolean
   thickenPreviewFail: string | null
   scheduleThickenPreview: () => void
-  quiltPickMode: boolean                                  // S201：整张泊车曲面可视化拾取（Face Pattern 后续 Thicken）
+  quiltPickMode: boolean                                  // S201：整张独立曲面可视化拾取（Face Pattern 后续 Thicken）
   startQuiltPick: () => void
   thickenParkedAt: (target: number) => Promise<void>
   offsetSurfMode: boolean                                 // T812：偏移拾取面成平行曲面
@@ -1584,7 +1584,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   caxes: { dir: 'X' | 'Y' | 'Z'; at: [number, number, number]; dirV?: [number, number, number]; src?: { kind: 'cylAxis'; near: [number, number, number]; seedAxis: [number, number, number] }; stale?: boolean }[]   // dirV（T778）任意方向轴；src（datum 关联化 v1）：拾圆柱取轴嘅出处 — rebuild 后配返最近平行圆柱跟住郁
   datumHidden: string[]                                   // S 构造基准隐藏集（内容键，datumVisKey）— 浏览器树眼掣可隐/显逐个参考面/轴/点（视图态，会话内）
   toggleDatumVis: (key: string) => void
-  bodyHidden: string[]                                    // 实体可见性（活动实体 'active' / 泊车实体 parkedBodyKey）— 浏览器树眼掣/右键「隱藏」；随项目存档（空 = 省略键）
+  bodyHidden: string[]                                    // 实体可见性（活动实体 'active' / 独立实体 parkedBodyKey）— 浏览器树眼掣/右键「隱藏」；随项目存档（空 = 省略键）
   toggleBodyHidden: (key: string) => void
   setBodyHidden: (key: string, hide: boolean) => void
   activeBodyName: string                                  // UX1 #6：活動實體自訂名（瀏覽樹右鍵「重新命名」；空 = 預設「活動實體」；隨項目存檔，空則省略鍵）
@@ -2466,11 +2466,11 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   pickParkedForPoles: (idx: number, face?: number) => Promise<void>      // 拣 parked 曲面 #idx 第 face 张面 → loadControlNet + 初始化 deltas 为 0
   cycleEditPolesFace: () => Promise<void>                 // S133+（多面）：循环到下一张面（重读该面网 + 重置 deltas）
   moveEditPole: (poleIndex: number, worldDelta: [number, number, number]) => Promise<void>  // 累加该极点世界偏移入 deltas → editPolesCommit 重建变形
-  startNewBody: () => Promise<void>                                       // 多实体：泊车当前实体开新（T728）
-  selectedParkedIndex: number | null                                      // SO10 / BUG-SO15-002：画布/浏览器树选中的泊车半体索引
-  selectParkedBody: (idx: number | null) => void                          // 选择/取消选择泊车实体（高亮 + 状态栏）
-  measureParkedBody: (idx: number) => Promise<void>                       // 统一测量体过滤：量泊车半体体积（树点选 / 无画布命中时）
-  commitBodyBoolean: (bop: 'fuse' | 'cut' | 'common', target: number) => Promise<void>  // 活动实体 ⊗ 泊车实体（B-rep）
+  startNewBody: () => Promise<void>                                       // 多实体：独立实体当前实体开新（T728）
+  selectedParkedIndex: number | null                                      // SO10 / BUG-SO15-002：画布/浏览器树选中的另一半（独立实体）索引
+  selectParkedBody: (idx: number | null) => void                          // 选择/取消选择独立实体（高亮 + 状态栏）
+  measureParkedBody: (idx: number) => Promise<void>                       // 统一测量体过滤：量另一半（独立实体）体积（树点选 / 无画布命中时）
+  commitBodyBoolean: (bop: 'fuse' | 'cut' | 'common', target: number) => Promise<void>  // 活动实体 ⊗ 独立实体（B-rep）
   openStlDialog: () => void
   /** v1.41: drag-drop mesh onto viewport/app — routes to openMeshInsert / import3MF */
   acceptMeshDropFile: (file: File) => Promise<void>
@@ -2631,7 +2631,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   // Generic feature-param command (Fusion-style set params → 确定) for pattern/cpattern/mirror
   featDlg: { kind: 'pattern' | 'geoPattern' | 'cpattern' | 'circpattern' | 'pathpattern' | 'mirror' | 'move' | 'scale' | 'draft' | 'revolve' | 'rib' | 'pipe' | 'box' | 'cylinder' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie' | 'tube' | 'rtube' | 'profile' | 'rbox' | 'prism' | 'pyramid' | 'coil' | 'plane' | 'cpoint' | 'cptgrid' | 'caxis' | 'thread' | 'cylpatch' | 'sheetmetal' | 'gear' | 'rack' | 'pulley' | 'gearbox' | 'worm' | 'crowngear' | 'othread' | 'ithread' | 'combine' | 'boundaryfill' | 'automatedmodel' | 'offsetsolid' | 'splitbody' | 'extrude-edit' | 'pushpull-edit' | 'fillet-edit' | 'chamfer-edit' | 'shell-edit' | 'emboss'; params: Record<string, number | string>; /** BUG-417/409：用戶打落去嘅【原文】。有 raw 嘅欄位才會受提交閘管 —— 未遷移嘅欄位行為逐字不變。 */ paramRaw?: Record<string, string>; payload?: unknown; editId?: string; expressionContext?: import('./cad/dimensionExpression').DimensionExpression } | null
   openFeatDlg: (kind: 'pattern' | 'geoPattern' | 'cpattern' | 'circpattern' | 'mirror' | 'move' | 'scale' | 'draft' | 'box' | 'cylinder' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie' | 'tube' | 'rtube' | 'profile' | 'rbox' | 'prism' | 'pyramid' | 'coil' | 'plane' | 'cpoint' | 'cptgrid' | 'caxis' | 'thread' | 'cylpatch' | 'sheetmetal' | 'gear' | 'rack' | 'pulley' | 'gearbox' | 'worm' | 'crowngear' | 'othread' | 'ithread' | 'combine' | 'automatedmodel' | 'offsetsolid' | 'splitbody') => void
-  openCombineDlg: () => void   // S128：真 Combine 对话框（活动体⊗泊车工具体，行返 bodyboolean B-rep）
+  openCombineDlg: () => void   // S128：真 Combine 对话框（活动体⊗独立实体工具体，行返 bodyboolean B-rep）
   openBoundaryFillDlg: () => void // 两封闭实体的真实 B-rep cell 分割；范围明确小于 Fusion 完整 Boundary Fill
   buildGearTrain: (spec: { ratio: number; m: number; stages: number; th: number; bore: number; helix: number }) => Promise<void>  // T770（S49）：齿轮箱向导 — 目标速比 → 齿数组合 + 自动摆位 + 关节 + 运动连接
   previewExtrudeEdit: () => Promise<MeshData | null>
@@ -2817,7 +2817,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   patchAddPt: (threePt: [number, number, number]) => void
   undoPatchPt: () => void
   finishPatch: () => Promise<void>
-  // S 边界补面（Boundary Patch）：拾【现有棱】（实体/泊车曲面上）→ BRepOffsetAPI_MakeFilling 填充 N 边洞/封口，可选 G1 相切；输出曲面体
+  // S 边界补面（Boundary Patch）：拾【现有棱】（实体/独立曲面上）→ BRepOffsetAPI_MakeFilling 填充 N 边洞/封口，可选 G1 相切；输出曲面体
   boundaryPatchPick: boolean
   boundaryPatchPicks: [number, number, number][]           // 已拾棱近点（three-world，做橙点标记，行 edgeRoundPicks）
   boundaryPatchTangent: boolean                            // G1 相切（邻面可解析时）
@@ -3585,7 +3585,7 @@ function partSolidRequiredPatch(
     }
   }
   return {
-    status: `${cmd}：當前是組件布爾/網格件「${name}」，不是零件實體 — 點右側「烘焙為零件實體」入零件時間軸後再圓角/抽殼；勿與零件內「實體布爾」混淆（實體布爾=活動⊗泊車 B-rep；組件布爾=網格件之間）`,
+    status: `${cmd}：當前是組件布爾/網格件「${name}」，不是零件實體 — 點右側「烘焙為零件實體」入零件時間軸後再圓角/抽殼；勿與零件內「實體布爾」混淆（實體布爾=活動⊗獨立實體 B-rep；組件布爾=網格件之間）`,
     statusAction: bakeAction,
   }
 }
@@ -5852,7 +5852,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const hint = HINT[lastT]
       const mesh = await cad.rebuild(active)
       if (mesh) {
-        const noTris = (!mesh.triangles || mesh.triangles.length === 0) && !(mesh.parked && mesh.parked.length)  // 全泊车（啱啱开新实体）唔算空
+        const noTris = (!mesh.triangles || mesh.triangles.length === 0) && !(mesh.parked && mesh.parked.length)  // 全独立实体（啱啱开新实体）唔算空
         // T756：净独立草图（无实体特征）零三角形系正常 — 唔好嘈「结果为空」
         const empty = noTris && active.some((f) => SOLID_TYPES.includes(f.type))
         if ((record || strict || active.some(f=>(f.type==='extrude' || f.type==='sketch' || f.type==='revolve') && f.sketchFaceBinding)) && (empty || mesh.failed?.length)) {
@@ -7537,7 +7537,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false,
     measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false,
     thickenMode: false, offsetSurfMode: false, extendSurfMode: false, splitFaceMode: false, replaceFaceMode: false, surfTrimMode: false,
-    status: '➕ 加厚整張曲面：直接點選一張灰色泊車曲面（藍色高亮）→ 輸入板厚；Esc 取消',
+    status: '➕ 加厚整張曲面：直接點選一張灰色獨立曲面（藍色高亮）→ 輸入板厚；Esc 取消',
   }),
   thickenParkedAt: async (target) => {
     const pkt = get().bodyMesh?.parked
@@ -7686,7 +7686,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const ok = await get().applyFeatures([...get().features, f], `已旋轉該面 ${deg}° 绕${ax}軸（鄰面自動癒合）`, true, '旋转面失败（角度过陡 / 边已被圆角食了 / 面识别失败）')
     if (ok) set({ rotateFaceMode: false })
   },
-  // S156 曲面-曲面裁剪 Surface-Surface Trim：用另一张泊车曲面或活动实体做裁刀，沿交线把目标曲面切成多片（cell），
+  // S156 曲面-曲面裁剪 Surface-Surface Trim：用另一张独立曲面或活动实体做裁刀，沿交线把目标曲面切成多片（cell），
   // 留你喺目标上点中嗰张 cell（对标 Fusion「点 region 保留」）。先 prompt 选 target+tool，再进入拾取留 keep 世界点。
   surfTrimMode: false,
   surfTrimSel: null,
@@ -7943,7 +7943,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return { activeBodyName: nm, status: nm ? `實體已改名「${nm}」` : '已清除實體自訂名' }
   }),
   // UX1 #6（Fusion：瀏覽樹實體右鍵「刪除」）：活動實體 = 最後一個「新實體」之後嘅實體特徵；刪除 = 移走呢啲特徵
-  //（之前泊車嘅實體唔郁）。佢哋用過嘅草圖保留做獨立草圖（Fusion 刪實體唔會刪草圖）。一步重建，Ctrl+Z 可還原。
+  //（之前獨立實體嘅實體唔郁）。佢哋用過嘅草圖保留做獨立草圖（Fusion 刪實體唔會刪草圖）。一步重建，Ctrl+Z 可還原。
   deleteActiveBody: async () => {
     const s0 = get()
     if (!s0.bodyMesh?.triangles?.length) { set({ status: '沒有活動實體可刪除' }); return }
@@ -15283,7 +15283,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'surfsurftrim':  // S156 曲面-曲面裁剪（hollow 根因已修：检测改点到三角形 + cell 留最近片，非 union-find）
         return void get().toggleSurfSurfTrim()
-      case 'untrim': {  // S141 去裁 Untrim（surftrim 的逆）：还原泊车曲面到底层几何曲面嘅完整自然 UV 边界
+      case 'untrim': {  // S141 去裁 Untrim（surftrim 的逆）：还原独立曲面到底层几何曲面嘅完整自然 UV 边界
         const pkt = get().bodyMesh?.parked
         if (!pkt || !pkt.length) { set({ status: '去裁：沒有曲面/殼體可還原（先做曲面裁剪 / 補面 / 拉伸）' }); return }
         let tgt = 0
@@ -15296,7 +15296,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         await get().applyFeatures([...get().features, { id: fid(), type: 'untrim', target: tgt }], `去裁 还原 ${pkt[tgt].name} 自然邊界`)
         return
       }
-      case 'mergefaces': {  // S 合并面 Unify-Same-Domain：把泊车曲面/壳上同域（共面/共柱）邻面合并成一张面
+      case 'mergefaces': {  // S 合并面 Unify-Same-Domain：把独立曲面/壳上同域（共面/共柱）邻面合并成一张面
         const pkt = get().bodyMesh?.parked
         if (!pkt || !pkt.length) { set({ status: '合併面：沒有曲面/殼體可合併（先做曲面裁剪 / 補面 / 縫合 / 匯入）' }); return }
         let tgt = 0
@@ -15309,7 +15309,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         await get().applyFeatures([...get().features, { id: fid(), type: 'mergefaces', target: tgt }], `合併面 ${pkt[tgt].name} 同域鄰面`)
         return
       }
-      case 'reversesurf': {  // S157 翻转曲面定向 Reverse Surface：翻泊车曲面壳法向（影响 Thicken/Stitch 方向）
+      case 'reversesurf': {  // S157 翻转曲面定向 Reverse Surface：翻独立曲面壳法向（影响 Thicken/Stitch 方向）
         const pkt = get().bodyMesh?.parked
         if (!pkt || !pkt.length) { set({ status: '翻轉曲面：沒有曲面/殼體可翻（先做曲面拉伸 / 補面 / 偏移）' }); return }
         let tgt = 0
@@ -15322,7 +15322,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         await get().applyFeatures([...get().features, { id: fid(), type: 'reversesurf', target: tgt }], `翻轉曲面定向 ${pkt[tgt].name}（法向反向）`)
         return
       }
-      case 'thickenquilt': {  // S182 加厚整张泊车曲面/quilt → 实体（Fusion Thicken；同 patch-thicken 同款 MakeThickSolidBySimple）
+      case 'thickenquilt': {  // S182 加厚整张独立曲面/quilt → 实体（Fusion Thicken；同 patch-thicken 同款 MakeThickSolidBySimple）
         const pkt = get().bodyMesh?.parked
         if (!pkt || !pkt.length) { set({ status: '加厚曲面：沒有曲面/殼體可加厚（先做曲面放樣 / 拉伸 / 縫合 / 補面）' }); return }
         // S201：多张曲面必须经画布直接拣，避免 Face Pattern 后用户要对照编号猜目标。
@@ -15820,7 +15820,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     if (nDeg) set({ status: `⚠ 跳過 ${nDeg} 個退化輪廓（太細/零面積），其餘 ${all.length} 個照拉伸` })
     let op: BoolOp = get().sketchOp === 'newbody' && !hasSolid(get().features) ? 'new' : get().sketchOp   // P2 New Body：首体永远做活动体（单活动体架构 — 泊走首体会断「画→拉→切」流）
-    if (op === 'newbody') {   // review：多轮廓（嵌套孔）New Body v1 唔支持 — 孔 cut 切唔到独立泊车体 → 降级 Join 并明示
+    if (op === 'newbody') {   // review：多轮廓（嵌套孔）New Body v1 唔支持 — 孔 cut 切唔到独立实体 → 降级 Join 并明示
       // P3（#10）：区域点选活跃时用【拣中区域数】做有效轮廓数 —— 拣单一区域（即使草图有多个图形做辅助）系单实体，唔应降级。
       const _nbShape = get().sketchShape
       const _nbFull = [...get().sketchProfiles, ...(_nbShape ? [_nbShape] : [])].filter((sh) => !sh.construction).length
@@ -16057,9 +16057,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   // ── 多实体（T728）────────────────────────────────────────────────────────
-  // 新实体：泊车当前活动实体（灰显），之后嘅特征全部属于新实体。Fusion bodies 工作流核心：
+  // 新实体：独立实体当前活动实体（灰显），之后嘅特征全部属于新实体。Fusion bodies 工作流核心：
   // 「砌好盒 → 新实体 → 原位砌盖 → 实体布尔切除留间隙」全程 B-rep、全程参数化、全程喺时间轴。
-  // SO10 / BUG-SO15-002：泊车半体可选（画布/浏览器树）+ 可量体积
+  // SO10 / BUG-SO15-002：另一半（独立实体）可选（画布/浏览器树）+ 可量体积
   selectedParkedIndex: null as number | null,
   selectParkedBody: (idx) => set((s) => {
     if (idx == null) {
@@ -16068,19 +16068,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     const n = s.bodyMesh?.parked?.length ?? 0
     if (!Number.isInteger(idx) || idx < 0 || idx >= n) return { selectedParkedIndex: null }
-    const name = s.bodyMesh!.parked![idx].name || `泊車實體${idx + 1}`
+    const name = s.bodyMesh!.parked![idx].name || `獨立實體${idx + 1}`
     const dlg = s.featDlg?.kind === 'move' ? { ...s.featDlg, params: { ...s.featDlg.params, bodyTarget: `parked${idx}` } } : s.featDlg
-    return { selectedParkedIndex: idx, status: `已選擇「${name}」（泊車 · 可測量 / 可作合併工具 / Move 目標）`, ...(dlg !== s.featDlg ? { featDlg: dlg } : {}) }
+    return { selectedParkedIndex: idx, status: `已選擇「${name}」（獨立實體 · 可測量 / 可作合併工具 / Move 目標）`, ...(dlg !== s.featDlg ? { featDlg: dlg } : {}) }
   }),
   measureParkedBody: async (idx) => {
     const s = get()
     if (!s.measureUniMode) { set({ status: '請先打開統一測量，並開啟「體」過濾' }); return }
     const flt = s.measureSelFilter
     if (!(flt.body && !flt.face && !flt.edge)) {
-      // 非纯体过滤时仍允许树点选量体积（用户明确点了泊车体）
+      // 非纯体过滤时仍允许树点选量体积（用户明确点了独立实体）
     }
     const pb = s.bodyMesh?.parked?.[idx]
-    if (!pb?.vertices?.length || !pb.triangles?.length) { set({ status: '泊車實體無效，無法測量' }); return }
+    if (!pb?.vertices?.length || !pb.triangles?.length) { set({ status: '獨立實體無效，無法測量' }); return }
     get().selectParkedBody(idx)
     // Prefer B-rep measureBodyAt at mesh centroid (same path as viewport body filter).
     let sx = 0, sy = 0, sz = 0, n = pb.vertices.length / 3
@@ -16100,27 +16100,27 @@ export const useApp = create<AppState>((rawSet, get) => {
       volume = mp.volume > 0 ? mp.volume : null
     }
     if (volume != null && volume > 0) get().addMeasureUniPick({ kind: 'body', volume })
-    else set({ status: '未能量度選中泊車實體，請點選有效實體' })
+    else set({ status: '未能量度選中獨立實體，請點選有效實體' })
   },
 
   startNewBody: async () => {
-    if (!hasSolid(get().features)) { set({ status: '新實體：先起一個實體（拉伸/原語），先有東西可以泊車' }); return }
+    if (!hasSolid(get().features)) { set({ status: '新實體：先起一個實體（拉伸/原語），才有實體可另存為獨立實體' }); return }
     const n = (get().bodyMesh?.parked?.length ?? 0) + 1
     await get().applyFeatures([...get().features, { id: fid(), type: 'newbody', name: `實體${n}` }],
       newBodySuccessStatus(n))
   },
-  // 实体布尔：活动实体 ⊗ 泊车实体（真 B-rep — 结果仲可以继续圆角/抽壳/导 STEP；对比组件布尔嘅网格级）
+  // 实体布尔：活动实体 ⊗ 独立实体（真 B-rep — 结果仲可以继续圆角/抽壳/导 STEP；对比组件布尔嘅网格级）
   commitBodyBoolean: async (bop, target) => {
     await get().applyFeatures([...get().features, { id: fid(), type: 'bodyboolean', bop, target }],
       booleanSuccessStatus({ kind: 'body', op: bop === 'cut' ? 'cut' : bop === 'common' ? 'common' : 'join' }))
   },
-  // S128：真 Combine 对话框 — 活动实体(目标) ⊗ 泊车实体(工具) — 选 操作 + 一个/多个工具体 → 确定。
+  // S128：真 Combine 对话框 — 活动实体(目标) ⊗ 独立实体(工具) — 选 操作 + 一个/多个工具体 → 确定。
   // 行返现有 bodyboolean B-rep 路径（每个工具一条 bodyboolean 特征，时间轴可改/可删）。取代旧 cut-mode toggle。
   openCombineDlg: () => set((s) => {
     const parked = s.bodyMesh?.parked ?? []
-    if (!parked.length) return { status: '合併：沒有工具體（泊車實體）— 兩個實體必須分開：先建第一個 → 「新實體」泊車 → 再建第二個 → 再合併/布爾。若兩個盒子已在同一活動體，請用「新實體」拆分路徑重做。' }
+    if (!parked.length) return { status: '合併：沒有工具體（獨立實體）— 兩個實體必須分開：先建第一個 → 「新實體」另存為獨立實體 → 再建第二個 → 再合併/布爾。若兩個盒子已在同一活動體，請用「新實體」拆分路徑重做。' }
     if (!s.bodyMesh || !s.bodyMesh.triangles.length) return { status: '合併：沒有活動實體（目標體）— 先建一個新實體' }
-    // P2 audit：对齐 Fusion Combine 默认 — Operation=Join、工具体初始不勾（旧默认 Cut+全勾 → 开对话框直接撳确定会意外切走所有泊车体）
+    // P2 audit：对齐 Fusion Combine 默认 — Operation=Join、工具体初始不勾（旧默认 Cut+全勾 → 开对话框直接撳确定会意外切走所有独立实体）
     const params: Record<string, number | string> = { op: 'fuse' }
     parked.forEach((_, i) => { params['tool' + i] = parked.length === 1 ? 1 : 0 })   // 单一工具体 = 唔使拣，预勾佢（零阻力）；多个先要用户自选
     params.keepTools = 0   // S185 Keep Tools：默认消耗工具体（旧行为）；勾选则保留
@@ -16134,7 +16134,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 完整 Fusion 行为所需的多工具、曲面/平面工具与任意 cell 选择，留待 kernel/选择器扩充。
   openBoundaryFillDlg: () => set((s) => {
     const parked = s.bodyMesh?.parked ?? []
-    if (!parked.length) return { status: 'Boundary Fill：需要活動實體加至少一個泊車實體；先用「新實體」建立第二個封閉實體' }
+    if (!parked.length) return { status: 'Boundary Fill：需要活動實體加至少一個獨立實體；先用「新實體」建立第二個封閉實體' }
     if (!s.bodyMesh || !s.bodyMesh.triangles.length) return { status: 'Boundary Fill：沒有活動實體；先建立封閉實體' }
     const params: Record<string, number | string> = { target: 0, cell: 'overlap' }
     return {
@@ -16625,7 +16625,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       mirror: { plane: 'YZ', offset: 0 },
       // Fusion Move/Copy opens neutral: a selected body is not displaced or rotated until the user
       // enters a value or drags the triad.  This keeps preview, fields and the transform feature aligned.
-      move: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0, moveType: 'free', objectType: 'bodies', bodyTarget: 'active', createCopy: 0, raxis: 'Z', angle: 0, p1x: 0, p1y: 0, p1z: 0, p2x: 0, p2y: 0, p2z: 0 },   // GM-3DV3 M1；bodyTarget=active|parkedN（SO10 可移泊车半体）
+      move: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0, moveType: 'free', objectType: 'bodies', bodyTarget: 'active', createCopy: 0, raxis: 'Z', angle: 0, p1x: 0, p1y: 0, p1z: 0, p2x: 0, p2y: 0, p2z: 0 },   // GM-3DV3 M1；bodyTarget=active|parkedN（SO10 可移另一半（独立实体））
       scale: { factor: 1.5, target: 0, sx: 0, sy: 0, sz: 0, px: 0, py: 0, pz: 0 },   // P2：px/py/pz = 缩放基准点（Fusion Point），开对话框时预填实体中心
       splitbody: { axis: 'Z', offset: 0, keep: 'hi' },   // P2：Split Body；SO10 keep=hi → 高侧为活动体，+轴移动可分离再合并恢复总体积
       offsetsolid: { distance: 2 },
@@ -16683,7 +16683,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       pattern: '矩形陣列：設 X/Y 數量與間距 → 確定', cpattern: '環形陣列：設軸／數量／角度 → 確定', mirror: '鏡像：選擇對象（整個實體／所選特徵／組件）及鏡像平面（XY／XZ／YZ、構造平面，或點選實體上的平面），再選操作（合併／新實體）→ 確定',
       circpattern: '環形陣列：對象（整個實體／時間軸所選特徵）+ 軸（原點＋方向）+ 數量 + 角度模式 → 確定',
       move: '移動/複製：設 dx/dy/dz + 繞Z角 → 確定', scale: '縮放：設比例 → 確定', offsetsolid: '整體偏移：設距離（+外擴 / −內縮，均勻偏移所有面）→ 確定', draft: '拔模：設角度（側面，中性面 XY）→ 確定',
-      splitbody: '分割實體：設 軸/位置/保留側 → 確定（另一半灰顯泊車，可隱藏/導出/布爾）；「平面切」拾面會預填此對話框',
+      splitbody: '分割實體：設 軸/位置/保留側 → 確定（另一半灰顯為獨立實體，可隱藏/導出/布爾）；「平面切」拾面會預填此對話框',
       automatedmodel: 'Automated Modeling（Connector v1）：在畫布依次點選兩張平面面，設連接半徑 → 確定。結果會作為獨立 New Body 保留；此 v1 不含避讓體、曲面面或生成式多方案。',
       box: `長方體：設長/寬/高 → 確定${cutting ? '（切割模式：從實體切除）' : ''}`,
       cylinder: `圓柱：設直徑/高 → 確定${cutting ? '（切割模式）' : ''}`,
@@ -17237,7 +17237,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const sheet = p[0] === 0   // S181：0 厚 → 零厚放样曲面（开放 wire + returnShell），有别于薄壳实体
     const wall = sheet ? 0 : (p[0] > 0 ? p[0] : 2)
     const f: Feature = { id: fid(), type: 'surfloft', sections: secs, wall, ruled: p[1] === 1 || undefined, sheet: sheet || undefined, op: sheet ? undefined : (hasSolid(s.features) ? 'join' : undefined) }
-    await get().applyFeatures([...get().features, f], sheet ? `已放樣零厚曲面（${secs.length} 截面${p[1] === 1 ? ' · 直纹' : ' · 平滑'}）— 泊車曲面件，可「加厚」/「縫合」成實體` : `已曲面放樣（${secs.length} 截面 · 壁厚 ${wall}mm 薄壳${p[1] === 1 ? ' · 直纹' : ''}）`)
+    await get().applyFeatures([...get().features, f], sheet ? `已放樣零厚曲面（${secs.length} 截面${p[1] === 1 ? ' · 直纹' : ' · 平滑'}）— 獨立曲面件，可「加厚」/「縫合」成實體` : `已曲面放樣（${secs.length} 截面 · 壁厚 ${wall}mm 薄壳${p[1] === 1 ? ' · 直纹' : ''}）`)
   },
   // S89：曲面拉伸 — 当前草图截面沿法向 complexExtrude(shellMode)。开放折线 → 零厚曲面片；
   // 闭合轮廓 → 无盖管壳（如圆 → 圆柱面）。出 parked 曲面体（要实体再用「加厚」/「缝合」）。
@@ -17335,7 +17335,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const ok = await get().applyFeatures([...get().features, f], `已補面（${pts.length} 點邊界 → 填充曲面 + 加厚 ${thick}mm 薄板）${joinHint}`, true, '曲面 Patch 失敗（邊界不合理 / 太扭 / 加厚失敗）')
     if (ok) set({ patchMode: false, patchPts: [] })
   },
-  // S 边界补面（Boundary Patch）：Fusion-style 拾【现有棱】（实体/泊车曲面上）→ 设相切/加厚 → 确定 →
+  // S 边界补面（Boundary Patch）：Fusion-style 拾【现有棱】（实体/独立曲面上）→ 设相切/加厚 → 确定 →
   //   BRepOffsetAPI_MakeFilling 填充 N 边洞/封口，输出曲面体（thick>0 加厚薄板）。镜 toggleEdgeRoundPick/roundEdgeAt/commitEdgeRound 选边流。
   boundaryPatchPick: false,
   boundaryPatchPicks: [],
@@ -17373,7 +17373,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     surfBridgePick: !s.surfBridgePick, surfBridgePicks: [],
     boundaryPatchPick: false, boundaryPatchPicks: [], edgeRoundPick: null, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, decalPick: null,
     faceSketchPick: false, embossPick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, delFaceMode: false,
-    status: !s.surfBridgePick ? '橋接面：點選【2 條】現有棱（一邊一條，實體/泊車曲面都得）→ 可設加厚 → 按「確定」（兩棱之間起光滑過渡面）' : '已退出橋接面',
+    status: !s.surfBridgePick ? '橋接面：點選【2 條】現有棱（一邊一條，實體/獨立曲面都得）→ 可設加厚 → 按「確定」（兩棱之間起光滑過渡面）' : '已退出橋接面',
   })),
   surfBridgeEdgeAt: (p) => set((s) => {
     if (!s.surfBridgePick) return {}
@@ -17389,7 +17389,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])   // three-world → CAD
     const thick = get().surfBridgeThick
     const f: Feature = { id: fid(), type: 'surfbridge', nears, ...(thick > 0 ? { thick } : {}) }
-    const ok = await get().applyFeatures([...get().features, f], `已橋接兩棱（光滑過渡面${thick > 0 ? ` · 加厚 ${thick}mm` : ' · 净曲面'} → 泊車曲面體，時間軸可改）`, true, '橋接面失敗（兩棱太扭/退化 — 選方向大致同向的兩條棱）')
+    const ok = await get().applyFeatures([...get().features, f], `已橋接兩棱（光滑過渡面${thick > 0 ? ` · 加厚 ${thick}mm` : ' · 净曲面'} → 獨立曲面體，時間軸可改）`, true, '橋接面失敗（兩棱太扭/退化 — 選方向大致同向的兩條棱）')
     if (ok) set({ surfBridgePick: false, surfBridgePicks: [] })
   },
   cancelSurfBridge: () => set({ surfBridgePick: false, surfBridgePicks: [], status: '已取消橋接面' }),
@@ -18753,7 +18753,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       void get().buildGearTrain({ ratio, m: Math.max(0.5, +p.m), stages: Math.max(0, Math.round(+(p.stages || 0))), th: Math.max(2, +p.th), bore: Math.max(0, +p.bore), helix: +(p.helix || 0) })
       return
     }
-    // S128：真 Combine — 活动实体 ⊗ 选中嘅泊车工具体，每个工具一条 bodyboolean（行返 B-rep 路径）。
+    // S128：真 Combine — 活动实体 ⊗ 选中嘅独立实体工具体，每个工具一条 bodyboolean（行返 B-rep 路径）。
     if (d.kind === 'combine') {
       const parked = get().bodyMesh?.parked ?? []
       const bop = (p.op === 'fuse' || p.op === 'common' || p.op === 'cut') ? p.op as 'fuse' | 'cut' | 'common' : 'cut'
@@ -19011,7 +19011,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const _live = selFs.filter((fid2) => get().features.some((x) => x.id === fid2))
         if (!_live.length) { set({ status: '所選特徵已不存在 — 重新選' }); return }
         { const _nb = _live.map((fid2) => get().features.find((x) => x.id === fid2) as { operation?: string; op?: string } | undefined).filter((tf) => tf && ((tf.operation ?? tf.op) === 'newbody'))
-          if (_nb.length) { set({ status: '「⬡新實體」特徵是獨立泊車體 — 特徵級陣列/鏡像 v1 不適用（snapshot-delta 無法捕泊車幾何）。改用 合併布爾 或對整件實體陣列' }); return } }
+          if (_nb.length) { set({ status: '「⬡新實體」特徵是獨立實體 — 特徵級陣列/鏡像 v1 不適用（snapshot-delta 無法捕捉獨立實體幾何）。改用 合併布爾 或對整件實體陣列' }); return } }
         // Arbitrary-plane feature pattern: derive a stable local Y = normal × local-X.
         // Multiple targets are valid only when they share exactly one sketch plane; mixing planes
         // would make one Direction-1/2 pair ambiguous (Fusion likewise requires a coherent pattern basis).
@@ -19177,7 +19177,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const _live = selFs.filter((fid2) => get().features.some((x) => x.id === fid2))
         if (!_live.length) { set({ status: '所選特徵已不存在 — 重新選' }); return }
         { const _nb = _live.map((fid2) => get().features.find((x) => x.id === fid2) as { operation?: string; op?: string } | undefined).filter((tf) => tf && ((tf.operation ?? tf.op) === 'newbody'))
-          if (_nb.length) { set({ status: '「⬡新實體」特徵是獨立泊車體 — 特徵級陣列/鏡像 v1 不適用（snapshot-delta 無法捕泊車幾何）。改用 合併布爾 或對整件實體陣列' }); return } }
+          if (_nb.length) { set({ status: '「⬡新實體」特徵是獨立實體 — 特徵級陣列/鏡像 v1 不適用（snapshot-delta 無法捕捉獨立實體幾何）。改用 合併布爾 或對整件實體陣列' }); return } }
         targets = _live
       }
       const mode = (p.mode === 'angle' || p.mode === 'sym') ? p.mode as 'angle' | 'sym' : 'full'
@@ -19248,7 +19248,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const _live = selFs.filter((fid2) => get().features.some((x) => x.id === fid2))
         if (!_live.length) { set({ status: '鏡像特徵：請先在時間軸點選要鏡像的特徵（Ctrl＋點選可多選），再按「確定」' }); return }
         { const _nb = _live.map((fid2) => get().features.find((x) => x.id === fid2) as { operation?: string; op?: string } | undefined).filter((tf) => tf && ((tf.operation ?? tf.op) === 'newbody'))
-          if (_nb.length) { set({ status: '「⬡新實體」特徵是獨立泊車體 — 特徵級陣列/鏡像 v1 不適用（snapshot-delta 無法捕泊車幾何）。改用 合併布爾 或對整件實體陣列' }); return } }
+          if (_nb.length) { set({ status: '「⬡新實體」特徵是獨立實體 — 特徵級陣列/鏡像 v1 不適用（snapshot-delta 無法捕捉獨立實體幾何）。改用 合併布爾 或對整件實體陣列' }); return } }
         mrTargets = _live
       }
       if (!mrTargets && !hasSolid(get().features)) { set({ status: '鏡像：目前沒有可鏡像的實體 — 請先建立實體' }); return }
@@ -19315,7 +19315,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         await get().applyFeatures([...get().features, copyMarker, moveCopy], `已複製並移動${parked0 != null ? `獨立實體#${parked0 + 1}` : '實體'}（${tLbl}：dx${sol.dx} dy${sol.dy} dz${sol.dz}　繞X${sol.rx}° Y${sol.ry}° Z${sol.rz}°）${blankNote}`, true)
         return
       }
-      // bodies（缺省）：就地 transform 特征。SO10：bodyTarget=parkedN → 变换泊车实体 N（分割另一半可独立平移后再合并）。
+      // bodies（缺省）：就地 transform 特征。SO10：bodyTarget=parkedN → 变换独立实体 N（分割另一半可独立平移后再合并）。
       const bt = String(p.bodyTarget || 'active')
       const parkedTarget = bt.startsWith('parked') ? Number(bt.slice(6)) : NaN
       const parked = Number.isInteger(parkedTarget) && parkedTarget >= 0 ? parkedTarget : undefined
@@ -19734,7 +19734,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   // S128：分割实体（参数化，保历史）— 把 split 特征推进时间轴 → applyFeatures 重放 → worker 把活动 shape
-  // 切两半（留一半作活动体，另一半泊车进 bodyMesh.parked 灰显）。features[]/undoStack/bodyMesh 全部由
+  // 切两半（留一半作活动体，另一半独立实体进 bodyMesh.parked 灰显）。features[]/undoStack/bodyMesh 全部由
   // applyFeatures 正常维护，可撤销、可改切割位置参数化重切 —— 取代旧 splitBody 嘅破坏性烘焙。
   addSplit: async (axis, offset) => {
     if (!hasSolid(get().features)) { set({ status: '分割需要先有一個活動實體' }); return }
@@ -19744,7 +19744,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // S184：任意平面切（Fusion Split Body by 任意面）—— 拾一个平面（实体面/构造面）→ 沿该面切两半（参数化，保历史）。
   splitPlanePick: false,
-  toggleSplitPlanePick: () => set((s) => ({ splitPlanePick: !s.splitPlanePick, delFaceMode: false, patchMode: false, thickenMode: false, offsetSurfMode: false, pushPullMode: false, shellMode: false, holeMode: false, faceSketchPick: false, embossPick: false, draftPickMode: 0, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, splitFaceMode: false, replaceFaceMode: false, extendSurfMode: false, surfTrimMode: false, datumPick: null, featDlg: null, status: !s.splitPlanePick ? '✂ 任意平面切：點一個【平面】(實體平面/構造面) → 沿該面把實體切兩半（留一半活動 · 另一半灰顯泊車）' : '已退出平面切' })),   // S184 audit：清晒其它专属拾取模式（互斥，否则残留模式喺 Viewport onClick 抢先 fire）
+  toggleSplitPlanePick: () => set((s) => ({ splitPlanePick: !s.splitPlanePick, delFaceMode: false, patchMode: false, thickenMode: false, offsetSurfMode: false, pushPullMode: false, shellMode: false, holeMode: false, faceSketchPick: false, embossPick: false, draftPickMode: 0, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, splitFaceMode: false, replaceFaceMode: false, extendSurfMode: false, surfTrimMode: false, datumPick: null, featDlg: null, status: !s.splitPlanePick ? '✂ 任意平面切：點一個【平面】(實體平面/構造面) → 沿該面把實體切兩半（留一半活動 · 另一半灰顯為獨立實體）' : '已退出平面切' })),   // S184 audit：清晒其它专属拾取模式（互斥，否则残留模式喺 Viewport onClick 抢先 fire）
   applySplitPlanePick: async (p, n) => {
     if (!hasSolid(get().features)) { set({ status: '平面切需要先有一個活動實體', splitPlanePick: false }); return }
     const L = Math.hypot(n[0], n[1], n[2]) || 1
@@ -19787,7 +19787,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   editPolesDeltas: null,
   toggleEditPoles: () => set((s) => s.editPolesMode
     ? { editPolesMode: false, editPolesTarget: null, editPolesFace: null, controlNet: null, editPolesDeltas: null, status: '已退出編輯曲面控制點' }
-    : { editPolesMode: true, status: '編輯曲面控制點：點一個灰顯泊車曲面 → 拖藍色控制點球變形（多面殼可「面 1/N」切面；跨縫 G1 後續）' }),
+    : { editPolesMode: true, status: '編輯曲面控制點：點一個灰顯獨立曲面 → 拖藍色控制點球變形（多面殼可「面 1/N」切面；跨縫 G1 後續）' }),
   // 拣 parked 曲面 #idx 第 face 张面 → 读控制网 + 初始化 deltas 为零（长 nu*nv）。读唔到（非 NURBS / 直纹平面）就提示。
   pickParkedForPoles: async (idx, face = 0) => {
     set({ editPolesTarget: idx, editPolesFace: face, controlNet: null, editPolesDeltas: null })
@@ -19992,9 +19992,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (typeof bodyId === 'string' && bodyId.startsWith('parked:')) {
       const idx = Number(bodyId.slice(7))
       const pb = s.bodyMesh?.parked?.[idx]
-      if (!pb?.triangles?.length) { set({ status: '屬性：該泊車實體無幾何' }); return }
+      if (!pb?.triangles?.length) { set({ status: '屬性：該獨立實體無幾何' }); return }
       mesh = pb
-      name = pb.name || `泊車實體${idx + 1}`
+      name = pb.name || `獨立實體${idx + 1}`
       material = s.physMatName
       density = s.bodyDensity
       get().selectParkedBody(idx)
@@ -20977,7 +20977,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (typeof merged.distanceExpression === 'string') merged.distanceExpression = JSON.parse(merged.distanceExpression)
       return merged as unknown as Feature
     })
-    const ok = await get().applyFeatures(followExtrudeTopEdges(get().features, features, id), '已更新参数并重建')
+    const ok = await get().applyFeatures(followExtrudeTopEdges(get().features, features, id), '已更新參數並重建')
     // SO03: after a successful extrude-edit, sync sketchSources.down/height so sketch regen
     // and feature patterns replay the same reverse/negative direction.
     if (ok) {
@@ -22598,8 +22598,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     // length-based 会重铸已存在 id（例 [C1,C2,C3] 删 C2 → [C1,C3]，再固化 → 'C'+(2+1)='C3' 撞）。S136 edit-in-context
     // 嘅 blocker 放宽令 editComponent 自动调 newComponent 固化活动体并即 keyed-by-id，把此潜伏 bug 变成同一动作内可触发 → 必修。
     const maxN = comps.reduce((m, c) => { const n = parseInt(String(c.id).replace(/^C/, ''), 10); return Number.isFinite(n) && n > m ? n : m }, 0)
-    // BUG(A)：活動實體 + 每個泊車實體各成一個組件（舊版只固化活動體，其餘實體被清走 → 樹顯示「實體 (空)」）。
-    // 幾何都以原點建 → 全部放喺同一 originX，保持相對位置。活動件帶參數化 src；泊車件為淨網格件。
+    // BUG(A)：活動實體 + 每個獨立實體各成一個組件（舊版只固化活動體，其餘實體被清走 → 樹顯示「實體 (空)」）。
+    // 幾何都以原點建 → 全部放喺同一 originX，保持相對位置。活動件帶參數化 src；獨立實體件為淨網格件。
     const live = splitLiveBodies(b)
     if (!live.length) { set({ status: '當前沒有實體——先建一個，再「新建組件」' }); return }
     let defsAcc = get().componentDefs

@@ -38,7 +38,7 @@ test('BD-9301 featDlg pattern/cpattern/circpattern/mirror/pathpattern TC', () =>
   const scNeedles = [
     '对象', '选择', '特征', '阵列', '间距', '数量', '确定', '实例', '编辑',
     '计算', '优化', '调整', '镜像', '活动实体', '整个实体', '组件',
-    '总长', '层数', '自定义', '拾轴', '创建', '参数', '连泊车',
+    '总长', '层数', '自定义', '拾轴', '创建', '参数', '连独立实体',
   ]
   for (const kind of ['pattern', 'cpattern', 'circpattern', 'mirror', 'pathpattern']) {
     const block = featBlock(kind)
@@ -57,7 +57,7 @@ test('BD-9301 featDlg pattern/cpattern/circpattern/mirror/pathpattern TC', () =>
   assert.match(vp, /tStatus\('所選特徵'/)
   assert.match(vp, /tStatus\('抑制實例'/)
   assert.match(vp, /data-testid="mirror-op"[^\n]*tStatus\('新實體'/)   // CORE16 #4：核取方塊改為「操作」合併／新實體
-  assert.match(vp, /tStatus\('連泊車體一齊陣列'/)
+  assert.match(vp, /tStatus\('連獨立實體一起陣列'/)
   assert.match(vp, /featDlg\.editId \? '編輯 · '/)
   assert.match(vp, /tStatus\('編輯模式：改參數 → 確定重建；稜\/面選擇集及輪廓保留原值'/)
   // Scoped: SC forms must not appear as tStatus keys inside the five blocks
@@ -92,7 +92,7 @@ test('BD-9301 tStatus zh-HK / zh-CN / en samples', () => {
     ['所選特徵', /所选特征/, 'Selected Features'],
     ['抑制實例', /抑制实例/, 'Suppress Instances'],
     ['鏡像出獨立實體', /镜像出独立实体/, 'Mirror as New Body'],
-    ['連泊車體一齊陣列', /连泊车体一齐阵列/, 'Pattern parked'],
+    ['連獨立實體一起陣列', /连独立实体一起阵列/, 'Pattern parked'],
     ['草圖', /草图/, 'Sketch'],
     ['歷史標記 — 左右拖動回放／前進重建歷史', /历史标记/, 'History marker'],
   ]

@@ -86,7 +86,7 @@ test('v1.67: store component-boolean prompts use 外擴 / TC chrome', () => {
 test('v1.67: i18n TC keys + tStatus; legacy SC retained', () => {
   // STATUS_PHRASES_X identity: EN mode keeps Chinese (no Done: mangling)
   assert.equal(tStatus('保留工具體（Keep Tools）', 'en'), '保留工具體（Keep Tools）')
-  assert.equal(tStatus('沒有工具體：請先用「新實體」泊車當前體，再建造第二個實體，然後返回合併/布爾。', 'zh'), '沒有工具體：請先用「新實體」泊車當前體，再建造第二個實體，然後返回合併/布爾。')
+  assert.equal(tStatus('沒有工具體：請先用「新實體」把當前體另存為獨立實體，再建造第二個實體，然後返回合併/布爾。', 'zh'), '沒有工具體：請先用「新實體」把當前體另存為獨立實體，再建造第二個實體，然後返回合併/布爾。')
   assert.doesNotMatch(tStatus('保留工具體（Keep Tools）', 'en'), /Done:/)
   assert.match(i18n, /'已實體布爾：活動實體': '已實體布爾：活動實體'/)
   assert.match(i18n, /'已合併：活動實體': '已合併：活動實體'/)

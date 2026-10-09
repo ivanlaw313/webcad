@@ -1,5 +1,5 @@
 // BUG（Coil-3）：螺旋（建立 ▾ → 螺旋）唔可以靜默取代活動實體。
-// 有實體時缺省 = ⬡新實體（獨立泊車，原實體唔郁）；用戶可明確揀 ＋合併 / －切割 / ∩相交。
+// 有實體時缺省 = ⬡新實體（獨立實體，原實體唔郁）；用戶可明確揀 ＋合併 / －切割 / ∩相交。
 export type CoilOp = 'new' | 'newbody' | 'cut' | 'intersect'
 
 export function resolveCoilOp(raw: unknown, hasSolid: boolean, cutMode = false): CoilOp {

@@ -181,9 +181,9 @@ export function transformBodyMeshByMatrix(mesh: MeshData, e: ArrayLike<number>):
   return { ...mesh, vertices, normals }
 }
 
-// BUG(A) 新建組件唔可以丟實體：活動實體 + 每個泊車實體（parked，多實體 T728）各自成為一個組件。
-// 回傳順序 = 活動實體先（保持呼叫者「固化活動體 → 組件 nid」嘅 id 約定），然後泊車實體按原次序。
-// 活動實體 mesh 剝走 parked（泊車體已各自獨立成件，唔好隨活動件重複渲染/匯出）。空三角嘅活動體略過。
+// BUG(A) 新建組件唔可以丟實體：活動實體 + 每個獨立實體（parked，多實體 T728）各自成為一個組件。
+// 回傳順序 = 活動實體先（保持呼叫者「固化活動體 → 組件 nid」嘅 id 約定），然後獨立實體按原次序。
+// 活動實體 mesh 剝走 parked（獨立實體已各自獨立成件，唔好隨活動件重複渲染/匯出）。空三角嘅活動體略過。
 export function splitLiveBodies(b: MeshData): { name?: string; mesh: MeshData; active: boolean }[] {
   const out: { name?: string; mesh: MeshData; active: boolean }[] = []
   const { parked, ...rest } = b

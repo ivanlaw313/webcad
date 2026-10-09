@@ -39,7 +39,7 @@ test('feature edits retain dependent fields and rebuild the complete active hist
   const edit = store.slice(store.indexOf('editFeature: async'), store.indexOf('  removeFeature: async', store.indexOf('editFeature: async')))
   assert.match(edit, /const merged = \{ \.\.\.f, \.\.\.clean/)
   assert.match(edit, /for \(const k of dels\) .*delete merged\[k\]/)
-  assert.match(edit, /await get\(\)\.applyFeatures\(followExtrudeTopEdges\(get\(\)\.features, features, id\), '已更新参数并重建'\)/)
+  assert.match(edit, /await get\(\)\.applyFeatures\(followExtrudeTopEdges\(get\(\)\.features, features, id\), '已更新參數並重建'\)/)
   assert.match(rebuild, /const active = expandFeats\(/)
   assert.match(rebuild, /timelinePos: nextFeatures\.length/)
 })

@@ -44,7 +44,7 @@ export type CircleProfile = { kind: 'circle'; c: [number, number]; r: number }
 export type PolyProfile = { kind: 'poly'; cubics?: CubicBezierSegment[]; pts: [number, number][]; smooth?: boolean; conic?: boolean; arc?: { a: [number, number]; b: [number, number]; m: [number, number] }; verts?: [number, number][]; bulges?: number[]; earc?: EllipseArcGeometry }  // conic（S177）→ smooth 在线点 + 闭合时收笔走【直弦】（唔好 smoothSplineTo 返起点 → 弦边鼓起）  // arc → TRUE circular arc edge (threePointsArcTo), pts are display-only; verts+bulges → mixed line/arc path; earc（S101）→ TRUE elliptical arc edge (ellipseTo)+chord close, pts display-only, sweep 由 store 按草图平面镜射定向（XZ/raw=逆时针 true，XY/YZ=顺时针 false）
 export type EllipseProfile = { kind: 'ellipse'; c: [number, number]; rx: number; ry: number; rot?: number }  // S87：真椭圆边（drawSingleEllipse 单曲线，非 48 边形）— rx/ry = x/y 半轴，rot=旋转°
 export type SketchProfile = (RectProfile | CircleProfile | PolyProfile | EllipseProfile) & { holes?: SketchProfile[]; islands?: SketchProfile[] }
-export type BoolOp = 'new' | 'join' | 'cut' | 'intersect' | 'newbody'   // P2 五选项：newbody=独立泊车体（唔并入活动体；同 type:'newbody' 特征相反 — 嗰个系泊走【当前】体）
+export type BoolOp = 'new' | 'join' | 'cut' | 'intersect' | 'newbody'   // P2 五选项：newbody=独立实体（唔并入活动体；同 type:'newbody' 特征相反 — 嗰个系泊走【当前】体）
 
 // A parametric feature: replayed in order to (re)build the body.
 // A zero-geometry timeline marker paired with transform(copy), matching Fusion's CopyPasteBodies entry.
@@ -61,11 +61,11 @@ export type Feature =
   | { id: string; type: 'fillet'; radius: number; edges?: EdgeSel; near?: [number, number, number]; nears?: [number, number, number][]; radius2?: number; radii?: number[]; chain?: boolean; edgeFp?: string[]; edgeFpV2?: string[]; mode?: 'chord'; chord?: number; setbackRatio?: number; continuity?: 'G1' | 'G2'; continuities?: ('G1' | 'G2')[]; asymmetric?: { offset2: number; flip?: boolean }; rule?: { mode: 'all' | 'between'; faces1: [number, number, number][]; faces2?: [number, number, number][] }; fullRound?: { side1: [number, number, number][]; center: [number, number, number][]; side2: [number, number, number][] } }  // R1 修改圆角：普通多组 + Asymmetric + Rule Fillet + Full Round。Full Round 无半径输入，由三组面推导完整相切圆柱 blend。
   | { id: string; type: 'chamfer'; distance: number; edges?: EdgeSel; near?: [number, number, number]; nears?: [number, number, number][]; dist2?: number; angle?: number; cmode?: 'equal' | 'two' | 'angle'; refFaceNear?: [number, number, number]; flip?: boolean; chain?: boolean; distances?: number[]; edgeFp?: string[]; edgeFpV2?: string[] }  // refFaceNear = Distance and Angle 用户真正点中参考面的内点（重算时从边的两个相邻面中解析）；edgeFp（S122）= 持久边指纹（同上）；edgeFpV2（S134）= 旋转不变指纹（同上）；distances（GM-3DV3 M7）= 逐边距离（equal 模式，与 nears 平行）
   // R1 面圆角 face-fillet（clean-room 窄版）：拾【两张唔相邻嘅面】+ 半径 → 平面/柱面对解析切点 → G1 blend 带（MakeFilling/BridgeG1）。
-  //   near1/near2 = 两拾面近点（CAD 坐标，解析为 TopoDS_Face，行 shell 拾面口径）。产出泊车 blend 曲面 + 试缝回实体（HARD FLOOR：任何失败/退化 → 原实体不变）。
+  //   near1/near2 = 两拾面近点（CAD 坐标，解析为 TopoDS_Face，行 shell 拾面口径）。产出独立实体 blend 曲面 + 试缝回实体（HARD FLOOR：任何失败/退化 → 原实体不变）。
   //   窄版覆盖平面/柱面对（常见工况）；一般曲面滚球后置（诚实标注）。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
   | { id: string; type: 'facefillet'; radius: number; near1: [number, number, number]; near2: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
   | { id: string; type: 'shell'; thickness: number; nears?: [number, number, number][]; direction?: 'inside' | 'outside' | 'both'; closed?: boolean; tangentChain?: boolean; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // faceFp（S125）= 持久面指纹（开口面跨重建跟同一几何面，缺省退回 near-point）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行索引）— 上游刚体旋转后仍跟同一面，仅在框架 wellConditioned 且唯一时采信，否则退回 faceFp；direction（GM-3DV3 M2）= 壁厚方向 inside(缺省,向内,外形保留)/outside(负厚度向外生长)/both(先外扩半壁再向内抽壳,壁跨原边界)；closed=Fusion 封闭实体抽壳（外壳减内核）；tangentChain=沿共享边扩展 G1 面链；缺省字段保持旧档行为
-  | { id: string; type: 'pattern'; countX: number; countY: number; dx: number; dy: number; countZ?: number; dz?: number; targets?: string[] /* T781：净阵列所选特征（snapshot-delta，同 circPattern） */; dir1?: [number, number, number]; dir2?: [number, number, number] /* S 构造轴方向：Direction-1/2 单位方向；缺省 ⇒ 世界轴 [1,0,0]/[0,1,0]（旧档逐字节回放） */; bodies?: boolean /* #7 Object Type=Bodies：连泊车体一齐阵列（每个泊车体 fuse 自己嘅栅格副本）；缺省 ⇒ 只阵列活动体（旧档逐字节） */; symX?: boolean; symY?: boolean; symZ?: boolean /* #pattern：各轴对称（原件居中，副本两边铺；仅奇数计数生效，偶数退单向）；缺省单向逐字节 */; suppress?: boolean[] /* GM-3DV1 S3：逐实例抑制遮罩 — 线性索引 idx=(i*cy+j)*cz+k，suppress[idx]=true 跳过该副本（seed idx=0 恒保留）；缺省 ⇒ 全出（旧档逐字节） */; compute?: 'optimized' | 'identical' | 'adjust' /* GM-3DV1 S3：Compute Option 直通提示（元数据，worker 不读几何）— 仅记录 Fusion 计算模式意图 */; objectType?: 'bodies' | 'faces' | 'features' | 'components'; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
+  | { id: string; type: 'pattern'; countX: number; countY: number; dx: number; dy: number; countZ?: number; dz?: number; targets?: string[] /* T781：净阵列所选特征（snapshot-delta，同 circPattern） */; dir1?: [number, number, number]; dir2?: [number, number, number] /* S 构造轴方向：Direction-1/2 单位方向；缺省 ⇒ 世界轴 [1,0,0]/[0,1,0]（旧档逐字节回放） */; bodies?: boolean /* #7 Object Type=Bodies：连独立实体一起阵列（每个独立实体 fuse 自己嘅栅格副本）；缺省 ⇒ 只阵列活动体（旧档逐字节） */; symX?: boolean; symY?: boolean; symZ?: boolean /* #pattern：各轴对称（原件居中，副本两边铺；仅奇数计数生效，偶数退单向）；缺省单向逐字节 */; suppress?: boolean[] /* GM-3DV1 S3：逐实例抑制遮罩 — 线性索引 idx=(i*cy+j)*cz+k，suppress[idx]=true 跳过该副本（seed idx=0 恒保留）；缺省 ⇒ 全出（旧档逐字节） */; compute?: 'optimized' | 'identical' | 'adjust' /* GM-3DV1 S3：Compute Option 直通提示（元数据，worker 不读几何）— 仅记录 Fusion 计算模式意图 */; objectType?: 'bodies' | 'faces' | 'features' | 'components'; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
   // Geometric Pattern V1: explicit rigid instances of selected timeline features.
   // The seed remains the original feature; instances contains copies only.
   | { id: string; type: 'geoPattern'; targets: string[]; instances: { translation?: [number, number, number]; rotation?: { angle: number; origin: [number, number, number]; axis: [number, number, number] } }[]; suppress?: boolean[]; compute?: 'optimized' | 'identical' | 'adjust'; objectType?: 'features' }
@@ -80,7 +80,7 @@ export type Feature =
   // face-derived seed points. UI may only create this after two planar-face
   // picks; the feature itself stays deterministic and replayable.
   | { id: string; type: 'automatedmodel'; a: [number, number, number]; b: [number, number, number]; radius: number; op?: 'newbody' }
-  | { id: string; type: 'mirror'; plane: Plane; offset?: number; targets?: string[] /* T781：净镜像所选特征（snapshot-delta） */; planeN?: [number, number, number]; planeO?: [number, number, number] /* T781：任意基准面（法向+面上一点，优先于 plane/offset） */; op?: 'newbody' /* #7b（audit REAL）：镜像副本泊车做独立体（唔 fuse 入活动体）；缺省 ⇒ Join 融合（旧档逐字节） */ }
+  | { id: string; type: 'mirror'; plane: Plane; offset?: number; targets?: string[] /* T781：净镜像所选特征（snapshot-delta） */; planeN?: [number, number, number]; planeO?: [number, number, number] /* T781：任意基准面（法向+面上一点，优先于 plane/offset） */; op?: 'newbody' /* #7b（audit REAL）：镜像副本独立实体做独立体（唔 fuse 入活动体）；缺省 ⇒ Join 融合（旧档逐字节） */ }
   | { id: string; type: 'loft'; bottom?: SketchProfile; top?: SketchProfile; height?: number; op?: BoolOp; sections?: { profile: SketchProfile; z: number; plane?: Plane; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[]; ruled?: boolean; wall?: number; sketchIds?: string[] /* T753：逐截面草图源 id（顺序对应 sections）— worker 不读 */; rails?: [number, number][][] /* T772：导轨 — 每條 rail 點列（第 i 點對應 sections 選取次序）；v1 只用 rails[0]（內核單 auxiliary spine 槽） */; capPoint?: [number, number, number]; capEnd?: 'first' | 'last' /* S：放样封口构造点 — capPoint 在 capEnd 端用顶点封口成真水密尖（鼻锥/漏斗/钻尖）；缺省 ⇒ 旧 loftWith 路径逐字节回放 */; continuity?: 'C1' | 'C2' /* S：放样端条件 — C1=切线连续(G1 等价)、C2=曲率连续(G2 等价)，走裸 ThruSections.SetContinuity+SetSmoothing；缺省 ⇒ 旧 loftWith 路径逐字节回放 */; closed?: boolean /* #8 Fusion Loft Closed：末截面接返首截面成闭环回路（环状件）；ThruSections 无 periodic 旗 → 复制首 wire 落尾做 C0 近似(诚实标) */ }
   | { id: string; type: 'sweep'; r: number; op?: BoolOp; path?: [number, number][]; path3?: [number, number, number][]; smoothPath?: boolean; wall?: number; profile?: SketchProfile; sketchId?: string; guide?: [number, number][]; twist?: number; scale?: number; orient?: 'perp' | 'parallel' }  // path3 = TRUE 3D spine; profile = 任意草图截面（T742）; sketchId = 草图源（T748）; guide = 导轨（T755 auxiliarySpine — 截面跟住导轨转向，Fusion guide rail 同款）; twist = 沿路径扭转角°（S：MakePipeShell 多 section RMF）; scale = 末端截面缩放（taper，1=不变）; orient（GM-3DV1 S5）= 截面朝向 Fusion Orientation：perp=⊥脊线（缺省 forceProfileSpine）/ parallel=保持初始朝向不随脊线转（forceProfileSpine:false，逐字节旧档=perp）
   | { id: string; type: 'coil'; pitch: number; height: number; radius: number; wireR: number; op?: BoolOp; r2?: number }
@@ -105,7 +105,7 @@ export type Feature =
   // 環形阵列（T757 — 抄足 Fusion）：对象=整个实体（无 targets）或指定特征（targets=特征 id，snapshot-delta 重切/重融）；
   // 任意轴（origin+dir，CAD 坐标）；mode: full=均分 360（副本唔叠原件）/ angle=端点含 / sym=对称（±k·step，偶数偏 + 侧）
   | { id: string; type: 'circPattern'; targets?: string[]; origin: [number, number, number]; dir: [number, number, number]; count: number; totalAngle: number; mode: 'full' | 'angle' | 'sym'; suppress?: boolean[] /* GM-3DV1 S3：逐实例抑制 — 索引 0=seed(0°)、1..count-1=依 cpAngles 顺序嘅副本；suppress[i]=true 跳过（缺省 ⇒ 全出，旧档逐字节） */; compute?: 'optimized' | 'identical' | 'adjust'; objectType?: 'bodies' | 'faces' | 'features' | 'components'; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
-  | { id: string; type: 'transform'; origin?: [number, number, number]; dx: number; dy: number; dz: number; rz: number; rx?: number; ry?: number; copy?: boolean; parked?: number }   // copy（GM-3DV3 M1 Create Copy）：留原件、fuse 一个变换后副本（Fusion Move/Copy 嘅复制半边）；缺省=就地变换（旧档逐字节）；parked≥0（SO10）=变换泊车实体[parked]而非活动体（缺=活动体逐字节）
+  | { id: string; type: 'transform'; origin?: [number, number, number]; dx: number; dy: number; dz: number; rz: number; rx?: number; ry?: number; copy?: boolean; parked?: number }   // copy（GM-3DV3 M1 Create Copy）：留原件、fuse 一个变换后副本（Fusion Move/Copy 嘅复制半边）；缺省=就地变换（旧档逐字节）；parked≥0（SO10）=变换独立实体[parked]而非活动体（缺=活动体逐字节）
   | { id: string; type: 'pushpull'; near: [number, number, number]; nears?: [number, number, number][]; dist: number; dir?: [number, number, number]; offsetType?: 'modify' | 'new' | 'auto'; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // faceFp（S128/S125 扩展）= 拾取面持久面指纹（缺省退回 near-point）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行）；dir（S192）= 任意方向移面向量（缺省=沿面法向，即旧按拉）；offsetType（GM-3DV3 M5 Offset Type）= Fusion Press Pull 面偏移嘅 Offset Type 元数据（modify/new/auto）— worker 不读几何（webcad 恒加节点=New 语义）
   | { id: string; type: 'rib'; path: [number, number][]; thickness: number; height: number; baseZ?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; op?: BoolOp; draft?: number /* S191：拔模角°——筋身向远端逐渐收窄（注塑/冲压脱模），逐段 base→top 锥化 loft */; thDir?: 'sym' | 'one' /* GM-3DV1 S1：厚度方向 — sym=中心线两側各半（旧行为，缺省）/ one=全部厚度落中心线单侧(+法向) */; extent?: 'next' | 'distance' /* GM-3DV1 S1：范围 — next=有实体时落到实体底并融合（旧行为，缺省）/ distance=永远向上 height（就算有实体） */; flip?: boolean /* GM-3DV1 S1：翻转筋挤出方向（up↔down） */; extend?: boolean /* GM-3DV1 S1（Web Extend Curves）：把开放折线端点沿末段方向外延（有实体时钳到实体 XY 包围盒边，令筋网到墙；无实体 = 固定外延），令交叉/近墙筋网自动闭合 */ }
   | { id: string; type: 'text'; text: string; size: number; sizeMode?: 'cap'; height: number; op: BoolOp; plane?: Plane; baseZ?: number; x?: number; y?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }  // S162 Emboss：arbPlane = 落喺拾中嘅面上（沿法向 raise/engrave），无 = 旧 XY 文字
@@ -119,7 +119,7 @@ export type Feature =
   | { id: string; type: 'delface'; near: [number, number, number]; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // T795：直接编辑删面（去特征 + 治愈，DirectEditWrapper.DeleteFaceNear）; faceFp（S129）= 持久面指纹；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行）
   | { id: string; type: 'surfloft'; sections: { pts: [number, number][]; z: number }[]; wall: number; ruled?: boolean; sheet?: boolean; op?: BoolOp }  // T792：开放截面薄壳放样（曲面工作流 v1）；S181 sheet=零厚放样曲面（开放 wire + returnShell，ruled:false 时为光滑 ThruSections 插值，有别于永远直纹嘅 ruled 命令）
   | { id: string; type: 'surfpatch'; pts: [number, number, number][]; thick: number; op?: BoolOp }  // T805（S74）曲面 Patch：拾闭合边界 3D 点 → 填充曲面 + 加厚薄板（PatchWrapper.FillThicken）
-  | { id: string; type: 'boundarypatch'; nears: [number, number, number][]; edgeFps?: string[]; tangent?: boolean; thick?: number }  // S 边界补面：拾【现有棱】（实体/泊车曲面上）→ BRepOffsetAPI_MakeFilling 填充 N 边洞/封口，可选 G1 相切；输出曲面体（parked）。nears = 拾边近点（CAD 坐标，解析为 TopoDS_Edge，行 fillet near-point lineage）；edgeFps = 持久边指纹（与 nears 平行，未来跨重建追踪用，缺省退回 near 解析）；tangent = G1 相切（邻面可解析时用 Add_2 否则退 C0）；thick>0 = 顺手加厚成实体薄板（缺省 0 = 净曲面）。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
+  | { id: string; type: 'boundarypatch'; nears: [number, number, number][]; edgeFps?: string[]; tangent?: boolean; thick?: number }  // S 边界补面：拾【现有棱】（实体/独立曲面上）→ BRepOffsetAPI_MakeFilling 填充 N 边洞/封口，可选 G1 相切；输出曲面体（parked）。nears = 拾边近点（CAD 坐标，解析为 TopoDS_Edge，行 fillet near-point lineage）；edgeFps = 持久边指纹（与 nears 平行，未来跨重建追踪用，缺省退回 near 解析）；tangent = G1 相切（邻面可解析时用 Add_2 否则退 C0）；thick>0 = 顺手加厚成实体薄板（缺省 0 = 净曲面）。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
   | { id: string; type: 'surfbridge'; nears: [number, number, number][]; thick?: number }  // Surface Bridge v1：拾 2 条现有棱 → ThruSections 两 wire 光滑过渡面（对称 C1；G2=wasm hard-fault 永不加）
   | { id: string; type: 'surfsew'; tol?: number }  // S86 曲面缝合 Stitch：把所有曲面/壳体（parkedBodies）的面缝成一个 shell；闭合则转实体（BRepBuilderAPI_Sewing + ShapeFix_Solid）
   | { id: string; type: 'surfunstitch' }  // S88 取消缝合 Unstitch：把曲面/壳体拆回逐张独立面（缝合的逆操作）
@@ -128,27 +128,27 @@ export type Feature =
   | { id: string; type: 'surfrevolve'; profile: SketchProfile; angle: number; axis?: 'X' | 'Y'; axisV?: [number, number, number]; axisOrigin?: [number, number, number]; plane?: Plane; baseZ?: number; op?: BoolOp }  // S曲面：开放截面绕轴旋转 → 零厚开放旋转曲面壳（灯罩/喷嘴/花瓶皮），出 parked 曲面体。镜 revolve 轴 idiom + surfextrude 开放 wire。
   | { id: string; type: 'ruled'; sections: { pts: [number, number][]; z: number }[]; op?: BoolOp }  // S100 规则曲面 Ruled：两条开放折线间纯零厚直纹 Shell（standalone loft ruled+returnShell），出 parked 曲面体
   | { id: string; type: 'surftrim'; target: number; plane: Plane; offset: number; keep: 'pos' | 'neg'; planeOrigin?: [number, number, number]; planeNormal?: [number, number, number] }  // S100 曲面平面裁剪：半空间盒 intersect parked 曲面壳，留一侧。S157：planeOrigin+planeNormal = 任意平面（拣面/输 origin+normal）裁；缺省退回轴对齐 plane/offset（旧档逐字节回放）。keep 对任意平面 = pos 留法向正侧 / neg 留反侧。
-  | { id: string; type: 'surfsurftrim'; target: number; tool: number; keep: [number, number, number] }  // S155 曲面-曲面裁剪：用第二张泊车曲面（tool>=0）或活动实体（tool=-1）做裁刀，imprint 分割目标曲面，留 keep 世界点最近嗰连通片。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
+  | { id: string; type: 'surfsurftrim'; target: number; tool: number; keep: [number, number, number] }  // S155 曲面-曲面裁剪：用第二张独立曲面（tool>=0）或活动实体（tool=-1）做裁刀，imprint 分割目标曲面，留 keep 世界点最近嗰连通片。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
   | { id: string; type: 'untrim'; target: number }  // S141 去裁 Untrim（surftrim 的逆）：丢弃裁剪边界，把每张面重建到底层几何曲面的完整自然 UV 范围（MakeFace 无 wire）。target=parkedBodies 索引。纯 JS，无内核重建。
-  | { id: string; type: 'mergefaces'; target: number; lin?: number; ang?: number }  // S 合并面 Unify-Same-Domain：把泊车曲面/壳上同域（共面/共柱）邻面合并成一张面（ShapeUpgrade_UnifySameDomain，复用 worker:1050 idiom）。target=parkedBodies 索引；lin/ang=线性/角度容差（缺省 1e-5 / 0.01）。纯 JS，无内核重建。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
+  | { id: string; type: 'mergefaces'; target: number; lin?: number; ang?: number }  // S 合并面 Unify-Same-Domain：把独立曲面/壳上同域（共面/共柱）邻面合并成一张面（ShapeUpgrade_UnifySameDomain，复用 worker:1050 idiom）。target=parkedBodies 索引；lin/ang=线性/角度容差（缺省 1e-5 / 0.01）。纯 JS，无内核重建。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
   | { id: string; type: 'editpoles'; target: number; face?: number; deltas: [number, number, number][] }  // S133 NURBS 曲面极点编辑：target=parkedBodies 索引；deltas=逐极点世界偏移(row-major，长 NbU*NbV，多数[0,0,0])。基极点每次重建由内核 NurbsConvert+Poles_2 重导再叠 deltas（特征小、稳健）。GeomConvert→SetPole_1→MakeShell，行 makeEllipsoid idiom，纯 JS 无内核重建。  // S133+（多面）：face = 编辑【哪一张 B-rep 面】嘅控制网（缺省 0 → 旧档逐字节回放 faces[0]）。多面壳逐面 SetPole + 保 trim MakeFace_21 + Sewing 重组其余 N-1 面，唔再塌成单张全面 patch。
   | { id: string; type: 'thickenface'; near: [number, number, number]; nears?: [number, number, number][]; thick: number; side?: 'pos' | 'neg' | 'both'; op?: 'newbody' | 'join' }  // T811（S曲面）：加厚拾取面成实体薄板（DirectEditWrapper.ThickenFaceNear）。S156：side='neg' → 传负 thick 翻面（C++ MakeThickSolidBySimple 已认 signed thick）；STRICTLY ADDITIVE — 旧档无 side = 正向 = 逐字节回放。
   | { id: string; type: 'offsetsurf'; near: [number, number, number]; dist: number }  // T812（S曲面）：偏移拾取面成平行曲面（DirectEditWrapper.OffsetSurfaceNear）
   | { id: string; type: 'offsetsolid'; distance: number }  // S 整体偏移实体：BRepOffsetAPI_MakeOffsetShape 均匀偏移所有面（加厚铸件 / 3D 打印壁厚补偿 / 外扩缩）。+ = 外扩,- = 内缩。纯 JS 已绑 API,无内核重建
-  | { id: string; type: 'reversesurf'; target: number }  // S157：翻转泊车曲面壳定向（法向反向）— 影响 Thicken/Stitch 方向。target=parkedBodies 索引。.Reversed() 纯拓扑翻向，零内核重建。
-  | { id: string; type: 'thickenquilt'; target: number; thick: number; side?: 'pos' | 'neg' }  // S182：加厚【整张泊车曲面/缝合 quilt】成实体（MakeThickSolidBySimple，同 patch-thicken 同款 op）。target=parkedBodies 索引；side='neg' → 负 thick 朝反侧。
+  | { id: string; type: 'reversesurf'; target: number }  // S157：翻转独立曲面壳定向（法向反向）— 影响 Thicken/Stitch 方向。target=parkedBodies 索引。.Reversed() 纯拓扑翻向，零内核重建。
+  | { id: string; type: 'thickenquilt'; target: number; thick: number; side?: 'pos' | 'neg' }  // S182：加厚【整张独立曲面/缝合 quilt】成实体（MakeThickSolidBySimple，同 patch-thicken 同款 op）。target=parkedBodies 索引；side='neg' → 负 thick 朝反侧。
   | { id: string; type: 'extendface'; near: [number, number, number]; ext: number }  // S103：曲面延伸（DirectEditWrapper.ExtendFaceNear / BRepLib::ExtendFace 沿自然几何外延）
   | { id: string; type: 'splitface'; near: [number, number, number]; planeOrigin: [number, number, number]; planeNormal: [number, number, number]; splitType?: 'surface' | 'vector' | 'closest'; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // S99; faceFp（S129）= 持久面指纹：用平面 imprint 分割拾取面（BRepFeat_SplitShape，等体积、子面可独立拣）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行）；splitType（GM-3DV3 M9）= Fusion Split Type 元数据（surface/vector/closest）— 内核只做平面 imprint（≈Along Vector），surface/closest 记录意图；planeNormal 由 splitFaceAxis 揀（auto=最垂直世界轴 / X/Y/Z=指定方向）
   | { id: string; type: 'silhouettesplit'; view: 'front' | 'back' | 'top' | 'bottom' | 'right' | 'left' }  // Fusion Silhouette Split v1：按已保存嘅正交视图方向分割解析圆柱面；球/自由曲面安全拒绝（不能以展示网格冒充）。
   | { id: string; type: 'replaceface'; near: [number, number, number]; planeOrigin: [number, number, number]; planeNormal: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // S99; faceFp（S129）= 持久面指纹：平面顶替（把拾取面推入/截到新平面，邻面延伸 — BRepAlgoAPI_Splitter）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行）
   | { id: string; type: 'moveface'; near: [number, number, number]; nears?: [number, number, number][]; dist: number; mode?: 'offset' | 'tilt'; angle?: number; axis?: [number, number, number]; offsetType?: 'modify' | 'new' | 'auto'; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // GM-B2 移动面 v1：mode 'offset'（缺省）dist<0=ReplaceFaceNear 朝内重解（邻面/圆角一齐重解）· dist>0=prism fuse 朝外长大（无重解内核路径）；mode 'tilt'=平面绕面心内轴倾 angle°（ReplaceFaceNear 倾斜平面，钳 ±60°）。仅平面面；nears（GM-L2 v2）= 多面串链（缺省=[near] 单面逐字节；逐面顺序内核重解/加料，tilt 只准单面）；offsetType（GM-3DV3 M8 Offset Face）= Fusion Offset Type 元数据（modify/new/auto）— worker 不读几何（webcad 恒加时间轴节点=New 语义；modify/auto 诚实记录）；faceFp/faceFpV2/faceFpTopo = 持久面指纹（与 near/nears 平行，同 pushpull 惯例）
-  // ── 多实体（T728）──：newbody = 泊车当前活动实体（计入 bodies 清单）并开新实体；之后嘅特征作用喺新实体。
-  // bodyboolean = 活动实体 ⊗ 泊车实体[target]（B-rep 级布尔，参数化、可重放），用完该泊车实体被消耗。
+  // ── 多实体（T728）──：newbody = 独立实体当前活动实体（计入 bodies 清单）并开新实体；之后嘅特征作用喺新实体。
+  // bodyboolean = 活动实体 ⊗ 独立实体[target]（B-rep 级布尔，参数化、可重放），用完该独立实体被消耗。
   | { id: string; type: 'newbody'; name?: string }
   | { id: string; type: 'bodyboolean'; bop: 'fuse' | 'cut' | 'common'; target: number; keep?: boolean }  // S185 keep=保留工具体（Fusion Combine「Keep Tools」）；缺省=消耗（逐字节回放旧档）
-  // Boundary Fill（当前可靠范围：两个封闭实体）。把活动实体与一个泊车工具体切成 target-only / overlap / tool-only 三个不重叠 B-rep cell；cell 是要保留为活动体的那格，其余有效格保留为泊车实体。不是把 Common 冒充完整 Boundary Fill。
+  // Boundary Fill（当前可靠范围：两个封闭实体）。把活动实体与一个独立实体工具体切成 target-only / overlap / tool-only 三个不重叠 B-rep cell；cell 是要保留为活动体的那格，其余有效格保留为独立实体。不是把 Common 冒充完整 Boundary Fill。
   | { id: string; type: 'boundaryfill'; target: number; cell: 'target' | 'overlap' | 'tool' }
-  // S128：分割实体（参数化，保历史）— 轴对齐平面把活动实体切两半，留一半作活动 shape，另一半泊车进
+  // S128：分割实体（参数化，保历史）— 轴对齐平面把活动实体切两半，留一半作活动 shape，另一半独立实体进
   // parkedBodies（复用多实体灰显路径）。keep='lo'（默认，留 offset 低侧）/'hi'。offset 沿 axis（CAD mm）。
   // STRICTLY ADDITIVE：旧文档无此 type → 行为不变。取代旧 splitBody 嘅破坏性烘焙（features[] 不再清空）。
   | { id: string; type: 'split'; axis: 'X' | 'Y' | 'Z'; offset: number; keep?: 'lo' | 'hi'; nameA?: string; nameB?: string; planeOrigin?: [number, number, number]; planeNormal?: [number, number, number] }  // S184：planeOrigin/planeNormal 在时 = 任意平面切（轴对齐字段忽略）；缺 = 旧式轴对齐（逐字节回放）
@@ -166,7 +166,7 @@ let _stepDbg = ''   // T762 DEV 探针：importStepAssembly 行到边一步（ge
 let buildWarnings: string[] = []
 // S107 逐特征隔离：buildShape 重放期间 throw 嘅坏特征清单（{id,type,错因}）—— 用嚟标红 timeline + 跳过续建。
 let failedFeatures: { id: string; type: string; msg: string }[] = []
-// 多实体（T728）：buildShape 重放期间被 newbody 泊车嘅实体（活动实体以外嘅 bodies）。
+// 多实体（T728）：buildShape 重放期间被 newbody 独立实体嘅实体（活动实体以外嘅 bodies）。
 let parkedBodies: { name: string; kind?: 'body'; shape: any }[] = []
 // S122 持久边命名：本次重建捕获嘅 fillet/chamfer 解析边指纹（feature.id → fp[]）。rebuild 返回畀 store 写回 feature.edgeFp。
 let _resolvedEdgeFp: Record<string, string[]> = {}
@@ -2964,7 +2964,7 @@ function buildShape(features: Feature[], noCache = false): any {
   const merge = (solid: any, op?: string) => {
     if (op === 'cut' && shape) { const tool = solid.translate(0, 0, -0.5); _recordBool(_curOpIndex, 'cut', tool); shape = shape.cut(tool) } // nudge cut tool to avoid coplanar-face boolean failures
     else if (op === 'intersect' && shape) { _recordBool(_curOpIndex, 'intersect', solid); shape = shape.intersect(solid) }
-    else if (op === 'newbody' && shape) parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape: solid })   // P2 New Body：独立泊车（活动体唔郁）；无活动体时落 else = 做活动体（首体永远活动，Fusion body1 同义）
+    else if (op === 'newbody' && shape) parkedBodies.push({ name: `實體${parkedBodies.length + 1}`, shape: solid })   // P2 New Body：独立实体（活动体唔郁）；无活动体时落 else = 做活动体（首体永远活动，Fusion body1 同义）
     else { if (shape) { _recordBool(_curOpIndex, 'fuse', solid); shape = fuseRobust(shape, solid) } else shape = solid }
   }
   let prevBefore: any = null, prevWasCut = false // for cpattern: shape before the last feature + whether it was a cut
@@ -3469,11 +3469,11 @@ function buildShape(features: Feature[], noCache = false): any {
       if (!sh) buildWarnings.push('⚠ STEP 实体解析失败/未就绪 — 已跳过（检查文件是即有效 STEP）')
       else merge(sh.clone(), f.op)
     } else if (f.type === 'newbody') {
-      // 泊车当前活动实体 → 开新实体（之后嘅特征全部作用喺新实体；泊车实体喺视口灰显）
-      if (!shape) buildWarnings.push('⚠ 新实体：当前没有活动实体可泊车 — 已忽略（先起一个实体）')
+      // 独立实体当前活动实体 → 开新实体（之后嘅特征全部作用喺新实体；独立实体喺视口灰显）
+      if (!shape) buildWarnings.push('⚠ 新实体：当前没有活动实体可另存为独立实体 — 已忽略（先起一个实体）')
       else { parkedBodies.push({ name: f.name || `實體${parkedBodies.length + 1}`, shape }); shape = null }
     } else if (f.type === 'bodyboolean') {
-      // 活动实体 ⊗ 泊车实体（真 B-rep 布尔 — 结果仲可以圆角/抽壳/导 STEP，对比 T723 网格级组件布尔）
+      // 活动实体 ⊗ 独立实体（真 B-rep 布尔 — 结果仲可以圆角/抽壳/导 STEP，对比 T723 网格级组件布尔）
       const t = parkedBodies[f.target]
       if (!shape) throw new Error('实体布尔：没有活动实体')
       else if (!t) throw new Error(`实体布尔：工具实体 #${f.target + 1} 不存在或已被前一步消耗；请重新选择工具体`)
@@ -3484,7 +3484,7 @@ function buildShape(features: Feature[], noCache = false): any {
           // second active as target → contained cut zeros → LIVE rebuild toast).
           const targetSh = _healSolid(shape)
           const toolSh = _healSolid(t.shape)
-          // GM-γ2b：实体布尔（活动体 ⊗ 泊车体）录工具体供 S2 追踪。common → intersect（同款 BRepAlgoAPI_Common）。
+          // GM-γ2b：实体布尔（活动体 ⊗ 独立实体）录工具体供 S2 追踪。common → intersect（同款 BRepAlgoAPI_Common）。
           const bKind = f.bop === 'cut' ? 'cut' : f.bop === 'common' ? 'intersect' : 'fuse'
           if (f.bop === 'cut') {
             let result: any = null
@@ -3499,12 +3499,12 @@ function buildShape(features: Feature[], noCache = false): any {
                   result = rev
                   swapped = true
                   vol = volR
-                  buildWarnings.push('实体布尔切除：目标−工具结果为空，已自动对调为工具−目标（常见于「新实体」后第二体作活动目标且被泊车体完全包含）')
+                  buildWarnings.push('实体布尔切除：目标−工具结果为空，已自动对调为工具−目标（常见于「新实体」后第二体作活动目标且被独立实体完全包含）')
                 }
               } catch { /* reverse also failed */ }
             }
             if (!result || !(vol > 1e-6)) {
-              throw new Error('实体布尔切除结果为空（无有效差集）— 确认两体重叠，或用拉伸「⬡新实体」把工具体泊车并保持目标为活动体')
+              throw new Error('实体布尔切除结果为空（无有效差集）— 确认两体重叠，或用拉伸「⬡新实体」把工具体另存为独立实体并保持目标为活动体')
             }
             _recordBool(_i, bKind, swapped ? targetSh : toolSh)
             shape = _healSolid(result)
@@ -3515,7 +3515,7 @@ function buildShape(features: Feature[], noCache = false): any {
             _recordBool(_i, bKind, toolSh)
             shape = _healSolid(fuseRobust(targetSh, toolSh))
           }
-          if (!f.keep) parkedBodies.splice(f.target, 1)   // S185 Keep Tools：keep 时工具体保留做泊车体（可复用）；缺省=消耗（旧档逐字节回放）
+          if (!f.keep) parkedBodies.splice(f.target, 1)   // S185 Keep Tools：keep 时工具体保留做独立实体（可复用）；缺省=消耗（旧档逐字节回放）
         } catch (e) { throw new Error(`实体布尔失败：${(e as Error)?.message || e}`) }
       }
     } else if (f.type === 'boundaryfill') {
@@ -3538,7 +3538,7 @@ function buildShape(features: Feature[], noCache = false): any {
           if (!selected) {
             buildWarnings.push(`⚠ Boundary Fill：所选 ${f.cell === 'target' ? '目标独有' : f.cell === 'overlap' ? '交集' : '工具独有'} cell 不存在（两体未形成该体积）— 已保留原实体`)
           } else {
-            // 工具体被其分割后的 cells 取代；其他既有泊车体不受影响。
+            // 工具体被其分割后的 cells 取代；其他既有独立实体不受影响。
             parkedBodies.splice(f.target, 1)
             shape = selected.shape
             for (const c of valid) if (c !== selected) parkedBodies.push({ name: c.name, shape: c.shape })
@@ -4015,7 +4015,7 @@ function buildShape(features: Feature[], noCache = false): any {
         }
         shape = acc
       }
-      // #7 Object Type=Bodies：连泊车体一齐阵列 —— 每个泊车体 fuse 自己嘅栅格副本（各自独立体，唔并入活动体）。
+      // #7 Object Type=Bodies：连独立实体一起阵列 —— 每个独立实体 fuse 自己嘅栅格副本（各自独立体，唔并入活动体）。
       if (f.bodies && parkedBodies.length && !f.targets?.length) {
         for (const pb of parkedBodies) {
           try {
@@ -4027,7 +4027,7 @@ function buildShape(features: Feature[], noCache = false): any {
               pacc = fuseRobust(pacc, pbase.clone().translate(tx, ty, tz))
             }
             pb.shape = pacc
-          } catch (e) { buildWarnings.push(`⚠ 矩形阵列泊车体「${pb.name}」失败：` + ((e as any)?.message || e)) }
+          } catch (e) { buildWarnings.push(`⚠ 矩形阵列独立实体「${pb.name}」失败：` + ((e as any)?.message || e)) }
         }
       }
     } else if (f.type === 'geoPattern' && shape) {
@@ -4199,9 +4199,9 @@ function buildShape(features: Feature[], noCache = false): any {
       else {
         // 审计修复：whole-body 镜像跨越镜像面（body bbox 横跨该面）时，镜像副本同原体重叠 → union 互相填埋对方嘅孔 → 净结果零孔。
         // 检测轴对齐镜像面跨体 → 诚实警告（建议把镜像面偏移到实体一侧，或用「镜像特征」targets）。几何照做（union 语义），但唔再静默误导。
-        // #7b（audit REAL）：op='newbody' → 镜像副本泊车做独立体（唔 fuse）；Fusion Mirror Operation=New Bodies。
+        // #7b（audit REAL）：op='newbody' → 镜像副本独立实体做独立体（唔 fuse）；Fusion Mirror Operation=New Bodies。
         if (f.op === 'newbody') {
-          const mcopy = mirrorOf(shape.clone())   // replicad shape（唔好 cast — mirrorOf 已返 replicad Shape，同 split 泊车 parkedHalf 同类）
+          const mcopy = mirrorOf(shape.clone())   // replicad shape（唔好 cast — mirrorOf 已返 replicad Shape，同 split 独立实体 parkedHalf 同类）
           if (mcopy && (mcopy as any).wrapped && !(mcopy as any).wrapped.IsNull()) parkedBodies.push({ name: `镜像${parkedBodies.length + 1}`, shape: mcopy })
           else buildWarnings.push('⚠ 镜像（新实体）：副本为空 — 已跳过')
         } else {
@@ -4246,7 +4246,7 @@ function buildShape(features: Feature[], noCache = false): any {
       } catch (e) { buildWarnings.push('删面失败：' + ((e as any)?.message || e)) }
     } else if (f.type === 'thickenface' && shape) {
       // T811（S曲面）：加厚拾取面成实体薄板（C++ DirectEditWrapper.ThickenFaceNear / MakeThickSolidBySimple）。
-      // CORE16 #1：多面（nears）、方向 pos/neg/both（對稱）、操作 newbody（缺省，泊車獨立體）/ join（併入活動體）。
+      // CORE16 #1：多面（nears）、方向 pos/neg/both（對稱）、操作 newbody（缺省，獨立實體獨立體）/ join（併入活動體）。
       // 內核對負厚度（朝實體內）唔穩定 → 平面面用「正向板 + 沿法向平移」做反向／對稱（同一塊板，位置唔同）；非平面面先試內核負厚度。
       const w = (_oc as Record<string, unknown>).DirectEditWrapper as { ThickenFaceNear?: (s: any, x: number, y: number, z: number, t: number) => any } | undefined
       if (!w || !w.ThickenFaceNear) { buildWarnings.push('⚠ 加厚需要 plus 內核 DirectEditWrapper.ThickenFaceNear（未綁定）— 已跳過') }
@@ -4316,9 +4316,9 @@ function buildShape(features: Feature[], noCache = false): any {
         } else buildWarnings.push(`整体偏移 ${d} 失败（自交/不可偏移${lastErr ? '：' + lastErr : ''}）— 已保旧形`)
       }
     } else if (f.type === 'reversesurf') {
-      // S157 翻转曲面定向 Reverse Surface：翻泊车曲面壳/面定向（法向反向），影响 Thicken/Stitch 朝向。
+      // S157 翻转曲面定向 Reverse Surface：翻独立曲面壳/面定向（法向反向），影响 Thicken/Stitch 朝向。
       // 纯拓扑翻向（TopoDS_Shape.Reversed()，零内核重建）— 所有生 _oc 句柄经 GCWithScope r() 管理（实证未包 r() 触发 9108520）。
-      // HARD FLOOR：null/throw / 结果无界 → parkedBodies[target] 逐字节保持唔变 + 诚实 buildWarning（绝不产破壳/null 现有泊车体）。
+      // HARD FLOOR：null/throw / 结果无界 → parkedBodies[target] 逐字节保持唔变 + 诚实 buildWarning（绝不产破壳/null 现有独立实体）。
       const t = parkedBodies[f.target]
       if (!t) { buildWarnings.push(`⚠ 翻转曲面：找不到目标曲面 #${f.target + 1}`) }
       else if (!t.shape || !(t.shape as any).wrapped || (t.shape as any).wrapped.IsNull()) { buildWarnings.push(`⚠ 翻转曲面：目标曲面 #${f.target + 1} 为空 — 保持不变`) }
@@ -4338,8 +4338,8 @@ function buildShape(features: Feature[], noCache = false): any {
         } catch (e) { buildWarnings.push('翻转曲面失败：' + ((e as any)?.message || e)) }
       }
     } else if (f.type === 'thickenquilt') {
-      // S182 加厚整张泊车曲面/quilt 成实体（Fusion Thicken）：MakeThickSolidBySimple 同 patch-thicken:2511-2516 字节级同款 op，
-      // 但目标系任一【整张泊车曲面件】（loft/sweep/stitch/规则曲面 …），唔似 thickenface 净加厚单一拾取面。
+      // S182 加厚整张独立曲面/quilt 成实体（Fusion Thicken）：MakeThickSolidBySimple 同 patch-thicken:2511-2516 字节级同款 op，
+      // 但目标系任一【整张独立曲面件】（loft/sweep/stitch/规则曲面 …），唔似 thickenface 净加厚单一拾取面。
       // 目标解析 + GCWithScope + result 级 bbox 闸 镜 reversesurf:1711-1728。HARD FLOOR：null/IsDone=false/无界 → parkedBodies 逐字节保持唔变 + 诚实 buildWarning。
       const t = parkedBodies[f.target]
       if (!t) { buildWarnings.push(`⚠ 加厚曲面：找不到目标曲面 #${f.target + 1}`) }
@@ -4358,7 +4358,7 @@ function buildShape(features: Feature[], noCache = false): any {
             let bbOk = false
             try { const bb = (result as any).boundingBox.bounds as [number[], number[]]; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* 无界 */ }
             if (bbOk) {
-              // 出实体：无活动实体 → 设为活动 shape；否则做独立泊车实体（镜 patch-thicken:2523-2524 输出约定）
+              // 出实体：无活动实体 → 设为活动 shape；否则做独立实体（镜 patch-thicken:2523-2524 输出约定）
               if (shape) parkedBodies.push({ name: `加厚实体（${t.name}）`, shape: result })
               else shape = result
               buildWarnings.push(`加厚曲面：${t.name} 已加厚 ${Math.abs(signed)}mm 成实体${f.side === 'neg' ? '（翻面）' : ''}`)
@@ -4791,7 +4791,7 @@ function buildShape(features: Feature[], noCache = false): any {
         } catch (e) { buildWarnings.push('平面裁剪失败：' + ((e as any)?.message || e)) }
       }
     } else if (f.type === 'surfsurftrim') {
-      // S155 曲面-曲面裁剪：用第二张泊车曲面（tool>=0）或活动实体（tool=-1）做裁刀 imprint 分割目标曲面，
+      // S155 曲面-曲面裁剪：用第二张独立曲面（tool>=0）或活动实体（tool=-1）做裁刀 imprint 分割目标曲面，
       // 留 keep 世界点最近嗰张【cell 面】。Fusion「Surface-Surface Trim」对标（你 click 边个 region 就留边个；旧 surftrim 仅轴对齐平面盒）。
       // 内核路径（无重建，复用已绑符号）：BRepAlgoAPI_BuilderAlgo（general-fuse，yml:187）把 target+tool 互相 imprint，
       // 沿交线把目标 sheet 真切成多张 cell 面（live 实证 sheet∩sheet 1→2、sheet∩solid 1→2，GFA 确切开开放 shell）。
@@ -4800,7 +4800,7 @@ function buildShape(features: Feature[], noCache = false): any {
       //   新法：(a) 改【点到三角形】距（Ericson，coarse mesh 一样准）抽样多数判源自目标；(b) 丢并查集，cell = 交线分割出嘅每张面，
       //   直接留 keep 点【点到面三角】最近嗰张 cell（edge-adjacent 两半各自独立 cell，唔会误并）。单 cell（cells===1）= 裁刀未贯穿 → 诚实保持唔变。
       // 局限（诚实）：留单一 cell（对标 Fusion「点 region」交互）；多面壳目标若 keep 侧跨多 cell 只留最近一片 — 需要时再升级 barrier-edge 连通片。
-      // HARD FLOOR：任何 null/空/throw / 结果 bbox 无界 / cells===1 → parkedBodies[target] 逐字节保持唔变 + 诚实 buildWarnings.push（绝不产破壳/null 现有泊车体）。
+      // HARD FLOOR：任何 null/空/throw / 结果 bbox 无界 / cells===1 → parkedBodies[target] 逐字节保持唔变 + 诚实 buildWarnings.push（绝不产破壳/null 现有独立实体）。
       const t = parkedBodies[f.target]
       const toolBody = f.tool >= 0 ? parkedBodies[f.tool] : null
       const toolShape = f.tool >= 0 ? (toolBody ? toolBody.shape : null) : shape
@@ -4903,7 +4903,7 @@ function buildShape(features: Feature[], noCache = false): any {
       // 纯 JS / 零内核重建：对每张面 BRep_Tool.Surface_2 攞底层 Geom_Surface 句柄 → BRepBuilderAPI_MakeFace_8(surf, tol)
       // 【无 wire】over natural bounds（MakeFace_21(surf,wire) 嘅无环孪生，live worker 1854）→ ShapeFix_Face 治愈 →
       // 多面 Sewing 重组（行 surfsew idiom）。所有生 _oc 句柄经 GCWithScope r() 管理（实证未包 r() 触发 9108520）。
-      // HARD FLOOR：任何一步失败 → parkedBodies[target] 逐字节保持唔变 + 诚实 buildWarning（绝不产破壳/null 现有泊车体）。
+      // HARD FLOOR：任何一步失败 → parkedBodies[target] 逐字节保持唔变 + 诚实 buildWarning（绝不产破壳/null 现有独立实体）。
       const t = parkedBodies[f.target]
       if (!t) { buildWarnings.push(`⚠ 去裁：找不到目标曲面 #${f.target + 1}`) }
       else if (!_oc || !_oc.BRep_Tool || !_oc.BRepBuilderAPI_MakeFace_8) { buildWarnings.push('⚠ 去裁需要 plus 内核（BRep_Tool/BRepBuilderAPI_MakeFace 未绑定）— 已跳过，曲面保持不变') }
@@ -4968,10 +4968,10 @@ function buildShape(features: Feature[], noCache = false): any {
         } catch (e) { buildWarnings.push('去裁失败：' + ((e as any)?.message || e)) }
       }
     } else if (f.type === 'mergefaces') {
-      // S 合并面 Unify-Same-Domain：把泊车曲面/壳上同域（共面/共柱）邻面合并成单张面 —
+      // S 合并面 Unify-Same-Domain：把独立曲面/壳上同域（共面/共柱）邻面合并成单张面 —
       // trim/untrim/sew/import 后多张共面/共柱碎面合一，网格更干净、易拾、STEP 更小。
       // 复用 worker:1050 已证实 idiom：new ShapeUpgrade_UnifySameDomain_2(shape,true,true,false) → SetTolerance → Build → Shape。
-      // HARD FLOOR（镜 untrim/surfsurftrim:2020）：null/throw / 结果无界 → parkedBodies[target] 逐字节保持唔变 + 诚实 buildWarning（绝不产破壳/null 现有泊车体）。
+      // HARD FLOOR（镜 untrim/surfsurftrim:2020）：null/throw / 结果无界 → parkedBodies[target] 逐字节保持唔变 + 诚实 buildWarning（绝不产破壳/null 现有独立实体）。
       const t = parkedBodies[f.target]
       if (!t) { buildWarnings.push(`⚠ 合并面：找不到目标曲面 #${f.target + 1}`) }
       else if (!_oc?.ShapeUpgrade_UnifySameDomain_2) { buildWarnings.push('⚠ 合并面需要 plus 内核（ShapeUpgrade_UnifySameDomain 未绑定）— 已跳过，曲面保持不变') }
@@ -5212,9 +5212,9 @@ function buildShape(features: Feature[], noCache = false): any {
         }
       } catch (e) { buildWarnings.push('曲面 Patch 失败：' + ((e as any)?.message || e)) }
     } else if (f.type === 'surfbridge') {
-      // Surface Bridge v1（记分卡 Surface 52 真缺口）：拾 2 条现有棱（活动体/泊车曲面）→ BRepOffsetAPI_ThruSections
+      // Surface Bridge v1（记分卡 Surface 52 真缺口）：拾 2 条现有棱（活动体/独立曲面）→ BRepOffsetAPI_ThruSections
       // 两 wire 光滑过渡面（isSolid=false / ruled=false 对称 C1）。⚠ G2 = 呢个 wasm hard-fault（tests/surface-g2-probe.mjs
-      // 实证）— 永不 SetContinuity(C2)/UI 暴露。解析/HARD FLOOR/加厚/泊车 全套行 boundarypatch 同款。
+      // 实证）— 永不 SetContinuity(C2)/UI 暴露。解析/HARD FLOOR/加厚/独立实体 全套行 boundarypatch 同款。
       try {
         const nears = f.nears || []
         if (!_oc || !(_oc as any).BRepOffsetAPI_ThruSections || !(_oc as any).BRepBuilderAPI_MakeWire_2) {
@@ -5280,7 +5280,7 @@ function buildShape(features: Feature[], noCache = false): any {
         }
       } catch (e) { buildWarnings.push('桥接面失败（异常）— 保持不变：' + ((e as any)?.message || e)) }
     } else if (f.type === 'boundarypatch') {
-      // S 边界补面（Boundary Patch）：拾【现有棱】（活动实体 / 泊车曲面上）→ BRepOffsetAPI_MakeFilling 填充
+      // S 边界补面（Boundary Patch）：拾【现有棱】（活动实体 / 独立曲面上）→ BRepOffsetAPI_MakeFilling 填充
       //   N 边洞 / 封口，可选 G1 相切（拾边邻面可解析时用 Add_2，否则 Add_1 C0）。输出【曲面体】（parked），thick>0 顺手加厚薄板。
       //   解析：每个拾边近点（f.nears，CAD 坐标）→ 跨【活动 shape + 全部 parkedBodies】揾全局最近边（行 fillet near-point lineage：_edgeIndexNearestNear）。
       //   HARD FLOOR：拾边 <2 / 全部解析失败 / MakeFilling 未 IsDone / 结果 null·空·bbox 无界 → 逐字节保持现状 + 诚实 buildWarnings.push（绝不产破壳/null）。
@@ -5291,7 +5291,7 @@ function buildShape(features: Feature[], noCache = false): any {
         } else if (nears.length < 2) {
           buildWarnings.push('边界补面需要 ≥2 条边界棱（拾少了 — 保持不变）')
         } else {
-          // 候选源体：活动 shape（若有）+ 全部泊车体 — 拾边可落喺任一身上。
+          // 候选源体：活动 shape（若有）+ 全部独立实体 — 拾边可落喺任一身上。
           const sources: any[] = []
           if (shape && (shape as any).wrapped && !(shape as any).wrapped.IsNull()) sources.push(shape)
           for (const pb of parkedBodies) if (pb && pb.shape && (pb.shape as any).wrapped && !(pb.shape as any).wrapped.IsNull()) sources.push(pb.shape)
@@ -5927,8 +5927,8 @@ function buildShape(features: Feature[], noCache = false): any {
     } else if (f.type === 'transform' && (shape || (typeof f.parked === 'number' && f.parked >= 0 && parkedBodies[f.parked]))) {
       const rx = f.rx ?? 0, ry = f.ry ?? 0, rz = f.rz ?? 0
       // GM-3DV3 M1 Create Copy：变换一个 clone、留原件（Fusion「复制」半边）。原地变换（缺省）= 直接改 shape（旧档逐字节）。
-      // SO10 / BUG-SO13-001：parked≥0 → 变换泊车实体；分割后两半共面相邻时，朝向兄弟半体的轴平移会翻成分离方向，
-      // 避免「移一半 +5 再合并」因叠入丢 1000 体积（keep=hi 移泊车低侧 / keep=lo 移活动低侧 → 曾测得 7000 而非 8000）。
+      // SO10 / BUG-SO13-001：parked≥0 → 变换独立实体；分割后两半共面相邻时，朝向兄弟半体的轴平移会翻成分离方向，
+      // 避免「移一半 +5 再合并」因叠入丢 1000 体积（keep=hi 移独立实体低侧 / keep=lo 移活动低侧 → 曾测得 7000 而非 8000）。
       // 仅在该轴 AABB 贴面（overlap≈0）时介入；已分离/刻意重叠/正交平移不受影响。
       const faceAdjacent = (a0: number, a1: number, b0: number, b1: number) => Math.abs(Math.min(a1, b1) - Math.max(a0, b0)) <= 1e-3
       const sepDelta = (moving: any, sibling: any, dx0: number, dy0: number, dz0: number): [number, number, number] => {
@@ -6570,7 +6570,7 @@ const api = {
         : undefined
       if (!shape) {
         current = null
-        // 全部实体都被泊车（最后一个特征系 newbody）：仍然返回泊车实体俾视口显示
+        // 全部实体都被独立实体（最后一个特征系 newbody）：仍然返回独立实体俾视口显示
         if (parked && parked.length) return { vertices: [], triangles: [], normals: [], parked, warnings: buildWarnings.length ? buildWarnings.slice() : undefined, failed: failedFeatures.length ? failedFeatures.slice() : undefined }
         // T756 / GM-W5 5.1：净独立草图 + 参考面（全部特征都系 'sketch' / 'datum'，无实体输出）— 正常嘅零实体文档，唔系失败。
         // （首个参考面加喺空零件、或纯草图+datum 文档 → shape 为 null 但唔系错，要返有效空 mesh 令 applyFeatures 提交特征。）
@@ -7302,7 +7302,7 @@ const api = {
   },
 
   // S168：相交曲线（Fusion Surface > Intersection Curve）—— 所有体两两求交，抽交线 edges 采样成 3D polylines 返 store 做参考曲线。
-  // 体集 = 活动实体 current（如有）+ 全部泊车曲面/壳 parkedBodies（皆 module-level，persist between calls）。
+  // 体集 = 活动实体 current（如有）+ 全部独立曲面/壳 parkedBodies（皆 module-level，persist between calls）。
   // 内核路径（live ocProbe 实证 BRepAlgoAPI_Section_1..4 已绑、BRep_Builder/TopoDS_Compound/ListIterator 未绑）：
   //   BRepAlgoAPI_Section_3(S1,S2,PerformNow=true) → .Shape() = 交线 edges 嘅 compound（castable TopoDS_Shape，唔使迭代未绑嘅 list）
   //   → cast → .edges → e.pointAt(t) 采样（复用 measureEdgeAt/pointOnEdgeAt 嘅 .edges/.pointAt idiom）。
@@ -7314,7 +7314,7 @@ const api = {
       const bodies: any[] = []
       if (current && (current as any).wrapped && !(current as any).wrapped.IsNull()) bodies.push(current)
       for (const pb of parkedBodies) { try { if (pb && pb.shape && (pb.shape as any).wrapped && !(pb.shape as any).wrapped.IsNull()) bodies.push(pb.shape) } catch { /* 跳过坏体 */ } }
-      if (bodies.length < 2) return { curves: [], bodies: bodies.length, pairs: 0, edges: 0, warning: '相交曲线需要≥2 个体（活动实体 + 泊车曲面 / 2 张泊车曲面）— 先建多过一个体' }
+      if (bodies.length < 2) return { curves: [], bodies: bodies.length, pairs: 0, edges: 0, warning: '相交曲线需要≥2 个体（活动实体 + 独立曲面 / 2 张独立曲面）— 先建多过一个体' }
       const curves: number[][][] = []
       let pairs = 0, edgeCount = 0
       const MAX_PAIRS = 60, MAX_CURVES = 400
@@ -7360,8 +7360,8 @@ const api = {
   // triangulation) + surface type. Picks the face whose tessellation vertices are closest to the click.
   async measureBodyAt(p: [number, number, number]): Promise<{volume:number}|null> {
     await ready
-    // SO10 / body measure：活动体（可含 fuse 后多 solid compound）+ 泊车体均可量体积。
-    // 点中活动体任一 solid → 回报整个 current 的体积（浏览器「活动实体」一条）；点中泊车体 → 该泊车体体积。
+    // SO10 / body measure：活动体（可含 fuse 后多 solid compound）+ 独立实体均可量体积。
+    // 点中活动体任一 solid → 回报整个 current 的体积（浏览器「活动实体」一条）；点中独立实体 → 该独立实体体积。
     type Cand = { kind: 'active' | 'parked'; shape: any; owned: boolean }
     const cands: Cand[] = []
     const owned: any[] = []

@@ -78,7 +78,7 @@ test('partSolidRequiredPatch: pure mesh offers bakeMeshToPart (not only MeshFit)
   assert.match(block, /v1\.39: pure mesh/)
   assert.match(block, /id: 'bakeMeshToPart'/)
   assert.match(block, /烘焙為零件實體/)
-  assert.match(block, /實體布爾=活動⊗泊車 B-rep/)
+  assert.match(block, /實體布爾=活動⊗獨立實體 B-rep/)
   assert.match(block, /組件布爾=網格件之間/)
   // parametric assembly path still offers MeshFit
   assert.match(block, /id: 'meshfit'/)

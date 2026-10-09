@@ -34,7 +34,7 @@ test('BUG-BD-1901: Ribbon Finish Form/Sketch pinned outside ribbon-panels scroll
 })
 
 test('SO09: openCombineDlg clarifies New Body dual-body path', () => {
-  assert.match(storeSrc, /(?:没有工具体|沒有工具體)（(?:泊车实体|泊車實體)）/)
+  assert.match(storeSrc, /(?:没有工具体|沒有工具體)（(?:泊车实体|泊車實體|獨立實體|独立实体)）/)
   assert.match(storeSrc, /「(?:新实体|新實體)」/)
   assert.match(viewport, /data-testid="combine-need-newbody"/)
 })

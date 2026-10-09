@@ -4194,6 +4194,8 @@ export function p2pDimKind(pa: Pt, pb: Pt, p: Pt): 'hdist' | 'vdist' | 'dist' {
   const off = Math.asin(Math.min(1, Math.abs(dx * ux + dy * uy) / (L * dl)))   // 放置方向與法向夾角
   return off <= band ? 'dist' : hv()
 }
+// SKETCH12 b4：新拉伸預設距離 10 mm（之前 0 → 一開對話框就紅色提示）；0 仍會被拒絕
+export const NEW_EXTRUDE_DEFAULT_MM = 10
 export const AUTO_CON_ANG_TOL = 4
 export const AUTO_CON_POS_TOL = 1
 export function autoHVCons(sh: SketchShape, idx: number, existing: SkCon[], angTolDeg = AUTO_CON_ANG_TOL): SkCon[] {
@@ -8400,7 +8402,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (reg.pfaces.length > 0 && reg.pfaces.length <= 64) regionFaces = reg.pfaces
     } catch { /* 区域检测失败 → 照旧全部拉伸 */ }
     return {
-      extrudeDlgOpen: true, extrudeExpression: null, extrudeExpressionError: null, extrudeSelectionCleared: false, extrudeHeight: 0, extrudeExtent: 'distance', faceCutThrough: false, extrudeFlip: faceExtrudeDefaultFlip(s,op), sketchOp: op, extrudeStart: 0, sketchAsComponent: false,   // #3：每次新拉伸起点偏移由 0 起；#9：New Component 意图由 false 起
+      extrudeDlgOpen: true, extrudeExpression: null, extrudeExpressionError: null, extrudeSelectionCleared: false, extrudeHeight: NEW_EXTRUDE_DEFAULT_MM, extrudeExtent: 'distance', faceCutThrough: false, extrudeFlip: faceExtrudeDefaultFlip(s,op), sketchOp: op, extrudeStart: 0, sketchAsComponent: false,   // #3：每次新拉伸起点偏移由 0 起；#9：New Component 意图由 false 起
       // P4 审计修复：开拉伸对话框前清晒会劫持画布点击嘅拾取模式（按拉 / 直接编辑家族 / 量测 / 孔 / 壳 / 边圆角…）。
       // 否则若按拉等仲开住，Viewport 点击优先序会截走区域点选 → 拉伸拣唔到 profile（同 togglePushPull:3507 嘅互斥补齐一致）。
       pushPullMode: false, pushPullPicks: [], shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null,

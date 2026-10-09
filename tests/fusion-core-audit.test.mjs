@@ -59,7 +59,7 @@ test('picked-edge rounds never replace the requested size with a smaller success
  for(const [name,end] of [['roundNearPoint','// Tangent-chain expansion'],['roundNearPoints','// Asymmetric chamfer']]) {
   const begin=src.indexOf(`function ${name}(`)
   const fn=src.slice(begin,src.indexOf(end,begin))
-  const context=vm.createContext({_fpCapture:()=>({v1:[],v2:[]}),_recordFillet:()=>{},buildWarnings:[],_lastResolvedFp:null,_lastResolvedFpV2:null,_curOpIndex:0,_edgePickRank:()=>0,_nearEdgeBetter:(dmin,rank,bestD,bestRank)=>dmin<bestD-1e-24||(dmin<=bestD+1e-24&&rank<bestRank),hasSolid:()=>true,_fpSelectMids:()=>null,_s1CarryMids:()=>null,_s2CarriedFlag:false})
+  const context=vm.createContext({_fpCapture:()=>({v1:[],v2:[]}),_recordFillet:()=>{},buildWarnings:[],_lastResolvedFp:null,_lastResolvedFpV2:null,_curOpIndex:0,_edgePickRank:()=>0,_nearEdgeBetter:(dmin,rank,bestD,bestRank)=>dmin<bestD-1e-24||(dmin<=bestD+1e-24&&rank<bestRank),_nearestRealEdge:(shape,edges,p)=>edges&&edges[0]?{e:edges[0],d2:0}:null,hasSolid:()=>true,_fpSelectMids:()=>null,_s1CarryMids:()=>null,_s2CarriedFlag:false})
   const api=vm.runInContext(stripTypeScriptTypes(fn+`;${name}`),context)
   const attempts=[]
   const shape={edges:[{pointAt:()=>({x:0,y:0,z:20})}],fillet:r=>{attempts.push(r);if(r>20)throw Error('too large');return {solid:true}}}

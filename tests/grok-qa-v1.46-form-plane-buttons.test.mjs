@@ -14,7 +14,13 @@ const meshDrop = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url),
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.46+', () => {
-  assert.match(version, /APP_VERSION = '2.20'|APP_VERSION = '2.20'|APP_VERSION = '2.20'v1.46: non-box Form create uses XY/XZ/YZ plane buttons (not select)', () => {
+  const m = version.match(/APP_VERSION = '(\d+)\.(\d+)'/)
+  assert.ok(m, 'APP_VERSION missing')
+  const major = Number(m[1]), minor = Number(m[2])
+  assert.ok(major > 1 || (major === 1 && minor >= 46), `expected >= 1.46, got ${m[1]}.${m[2]}`)
+})
+
+test('v1.46: non-box Form create uses XY/XZ/YZ plane buttons (not select)', () => {
   assert.match(viewport, /data-testid=\{`form-\$\{createKind\}-plane-\$\{pl\}`\}/)
   assert.match(viewport, /form-create-plane-hint/)
   assert.match(viewport, /點 XY \/ XZ \/ YZ 選基準面/)

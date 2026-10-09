@@ -118,14 +118,15 @@ const originPlaneLoftContract = [
   "shapeToProfile(sh, src.plane)",
   'function loftSectionSketch',
   'profileOnPlane(s.profile, new RPlane',
-  "_samePlane ? _rawSecs[a].z - _rawSecs[b].z : a - b",
+  'secs[a].z - secs[b].z',
   "plane: ss.plane || 'XY'",
   "{sketchShape && <button className=\"sb-tool\"",
   'const frames = new Set<string>()',
   'const key = src.arb ?',
 ]
 const workerSource = readFileSync(new URL('../src/worker/cad.worker.ts', import.meta.url), 'utf8')
-const missingOriginPlaneLoftContract = originPlaneLoftContract.filter((needle) => !storeSource.includes(needle) && !workerSource.includes(needle) && !viewportSource.includes(needle))
+const loftSectionsSource = readFileSync(new URL('../src/cad/loftSections.ts', import.meta.url), 'utf8')
+const missingOriginPlaneLoftContract = originPlaneLoftContract.filter((needle) => !storeSource.includes(needle) && !workerSource.includes(needle) && !viewportSource.includes(needle) && !loftSectionsSource.includes(needle))
 const loftCommandStart = storeSource.indexOf("case 'loft':")
 const loftCommandEnd = storeSource.indexOf("case 'sweep':", loftCommandStart)
 const loftCommandSource = storeSource.slice(loftCommandStart, loftCommandEnd)

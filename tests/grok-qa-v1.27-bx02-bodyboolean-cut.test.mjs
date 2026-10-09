@@ -18,7 +18,13 @@ const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8
 const viewportSrc = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.27+', () => {
-  assert.match(version, /APP_VERSION = '2.20'|APP_VERSION = '2.20'BX02 v1.27: heal + _cutRobust + auto-swap wired in bodyboolean', () => {
+  const m = version.match(/APP_VERSION = '(\d+)\.(\d+)'/)
+  assert.ok(m, 'APP_VERSION missing')
+  const major = Number(m[1]), minor = Number(m[2])
+  assert.ok(major > 1 || (major === 1 && minor >= 27), `expected >= 1.27, got ${m[1]}.${m[2]}`)
+})
+
+test('BX02 v1.27: heal + _cutRobust + auto-swap wired in bodyboolean', () => {
   assert.match(workerSrc, /function _cutRobust/)
   assert.match(workerSrc, /function _solidVolume/)
   assert.match(workerSrc, /已自动对调为工具−目标/)

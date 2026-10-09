@@ -6408,6 +6408,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     arrayCache=null
     const s=get(),c=s.arrayCfg,revision=copyRevision(s)
     if(s.mode!=='sketch'||s.sketchTool!=='array'){set({arrayPreview:{shapes:null,pending:false,error:null}});return}
+    // FISHING4 P1：關聯陣列在場時獨立預覽亦拒絕（同套用）
+    if(s.skPatternData){set({arrayPreview:{shapes:null,pending:false,error:'已有關聯陣列；請先「解除關聯」，再做獨立副本陣列'}});return}
     set({arrayPreview:{shapes:null,pending:true,error:null}})
     const shapes=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])] as SketchShape[],tgtR=patternTargets(s,shapes)
     // BUG-209：空選擇／失效選擇 → 預覽直接講原因，唔好靜靜陣列成張草圖
@@ -6425,6 +6427,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   let patternRequest=0
   const commitPattern=async(plan:ReturnType<typeof planRectPattern>)=>{
     if(get().mode!=='sketch'||get().arrayPending)return
+    // FISHING4 P1：關聯陣列存在時禁止獨立副本陣列 —— 否則 shapes 增長而 entityIds 不變 → 存檔反覆「Missing pattern or unsupported nested…」
+    if(get().skPatternData){set({status:'已有關聯陣列；請先「解除關聯」，再做獨立副本陣列（避免破壞陣列引用）'});return}
     if(!plan.ok){set({status:`陣列未更改草圖：${plan.reason}`});return}
     // A previous direct geometry drag must be cancelled before taking a source snapshot.
     get().skDragCancel()
@@ -26211,7 +26215,10 @@ if (typeof window !== 'undefined') {
     }, 800)
     idbTimer = setTimeout(() => {
       if (invalid()) return
-      if (s.features.length || s.components.length || s.mode === 'sketch' || s.sketchShape || s.sketchProfiles.length || s.formCage) void saveSnapshot(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>), '自動儲存', 'auto')
+      if (s.features.length || s.components.length || s.mode === 'sketch' || s.sketchShape || s.sketchProfiles.length || s.formCage) {
+        // FISHING4 P1：payload 校驗失敗唔好未捕捉地拋（否則每次 store 變動 +5s 就 console error 刷屏）
+        try { void saveSnapshot(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>), '自動儲存', 'auto') } catch { /* keep last good autosave */ }
+      }
     }, 5000)
   })
   // GM-W7 7.3：入/出草图自动切【正投影】（CAD 正投影防透视变形，Fusion 行为）。

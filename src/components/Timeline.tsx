@@ -208,6 +208,9 @@ export default function Timeline() {
     const base = featEditUndoAtOpen.current
     featEditUndoAtOpen.current = null
     void (async () => {
+      // FISHING4 P2：等在途 rebuild（blur→editFeature）完成後再撤銷，否則 cancel 會早於 undo 入棧 → 改動留下
+      let wait = 120
+      while (wait-- > 0 && useApp.getState().busy) await new Promise((r) => setTimeout(r, 25))
       if (base != null) {
         let guard = 40
         while (guard-- > 0 && useApp.getState().undoStack.length > base) await useApp.getState().undo()
@@ -470,7 +473,7 @@ export default function Timeline() {
           <button className="fe-del" onClick={() => void toggleSuppress(sel.id)}>{suppressedIds.includes(sel.id) ? tStatus('恢復', lang) : tStatus('抑制', lang)}</button>
           <button className="fe-del" onClick={() => { void useApp.getState().requestRemoveFeature(sel.id) }}>{tStatus('刪除', lang)}</button>
           <button className="fe-close" data-testid="fe-confirm" onClick={keepFeatEdit}>{tStatus('確定', lang)}</button>
-          <button className="fe-del" data-testid="fe-cancel" onClick={discardFeatEdit}>{tStatus('取消', lang)}</button>
+          <button className="fe-del" data-testid="fe-cancel" onMouseDown={(e) => e.preventDefault()} onClick={discardFeatEdit}>{tStatus('取消', lang)}</button>
         </div>
       )}
 

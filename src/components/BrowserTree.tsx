@@ -7,6 +7,7 @@ import { ToolIcon } from '../icons'
 import { useApp, MATERIALS, compWorldMatrix, datumVisKey, type AppState } from '../store'
 import { tStatus, msg, tLabel, tMaterialName } from '../i18n'
 import { treeMenuKeys, ACTIVE_BODY_KEY, parkedBodyKey, type TreeNodeKind, type TreeMenuOpts } from '../ui/contextMenus'
+import { clickMod } from '../cad/modelSelection'
 import { useEscapeLayer } from './useEscapeLayer'
 import { FEATURE_RENAME_EVENT, BODY_RENAME_EVENT, COMPONENT_RENAME_EVENT } from '../ui/fieldInput'
 
@@ -218,7 +219,16 @@ function SketchRow({ k }: { k: string }) {
         delete: () => void del(),
       })}
       title={tStatus(`${src.name || defaultLabel} — ${sketchProfileCount(src.shapes as never).closed} 個封閉輪廓（${src.shapes.length} 個圖形）· ${src.cons.length} 個約束${src.arb ? ' · 斜面' : ` · ${src.plane}`}${standalone ? ' · 獨立草圖 — 單擊選中（拉伸/旋轉直接用）' : ''}${orphan ? '（未使用 — 消費特徵已刪；「重開」還原做獨立草圖 / 🗑刪除）' : referenced ? ' — 雙擊重開編輯' : ''}（Alt+雙擊 = 改名）`, lang)}
-      onClick={() => standalone && useApp.getState().setSelSketch(selSketch === k ? null : k)}
+      onClick={(e) => {
+        if (!standalone) return
+        const st = useApp.getState()
+        if (e.ctrlKey || e.metaKey || e.shiftKey) {
+          st.setSelSketch(k)
+          if (standaloneFeat) st.toggleFeatureSel(standaloneFeat.id)
+        } else {
+          st.setSelSketch(selSketch === k ? null : k)
+        }
+      }}
       onDoubleClick={(e) => { if (referenced && !e.altKey) useApp.getState().editSketchBySrc(k); else { setName(src.name || defaultLabel); setEditing(true) } }}>
       <span className="tw-toggle" />
       <span className="tw-ico"><ToolIcon name="sketch" size={13} /></span>
@@ -499,7 +509,7 @@ function BodyMaterialSelect() {
 
 // Root-body row (活動實體 / 獨立實體): eye toggle + app context menu (隱藏/顯示 · 重新命名 · 建立組件 · 外觀 · 物理材質 · 屬性 · 刪除).
 // UX1 #6：活動實體行可改名（右鍵「重新命名」／F2-style 雙擊名）同刪除（= 移除建立佢嘅特徵，草圖保留，可撤銷）— 對齊 Fusion 實體節點。
-function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; visKey: string; sel: boolean; parkedIndex?: number; onClick: () => void }) {
+function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; visKey: string; sel: boolean; parkedIndex?: number; onClick: (e: ReactMouseEvent) => void }) {
   const lang = useApp((s) => s.lang)
   const hidden = useApp((s) => s.bodyHidden.includes(visKey))
   const allOff = useApp((s) => !s.objectVis.bodies)
@@ -648,7 +658,8 @@ export default function BrowserTree() {
   const skLock = useApp((s) => s.mode === 'sketch' || s.formMode)   // GM-W2 2.2：草图态灰化基准删除（草图可能正建喺个参考面上）
   const features = useApp((s) => s.features)
   const bodyMesh = useApp((s) => s.bodyMesh)
-  const selectedParkedIndex = useApp((s) => s.selectedParkedIndex)  // SO10：另一半（獨立實體）树选中高亮
+  const selectedParkedIndex = useApp((s) => s.selectedParkedIndex)
+  const modelSelBodyKeys = useApp((s) => s.modelSel.filter((x) => x.kind === 'body').map((x) => x.key))  // SO10：另一半（獨立實體）树选中高亮
   const sketchSources = useApp((s) => s.sketchSources)   // GM-W6 F2：草图行渲染移入 SketchRow（每行自订名/孤儿重开+删除）
   // UX1 #6（Fusion）：獨立草圖特徵已喺「草圖」資料夾列出 → 特徵資料夾唔再重複（草圖源唔見咗嘅先保留，免得冇得揀）
   const treeFeatures = features.filter((f) => !(f.type === 'sketch' && !!sketchSources[(f as { sketchId?: string }).sketchId ?? '']))
@@ -871,13 +882,27 @@ export default function BrowserTree() {
         )}
         <Section label={`${msg('tree.bodies', lang)}${bodyMesh?.parked?.length ? ` (${(bodyMesh.triangles.length ? 1 : 0) + bodyMesh.parked.length})` : ''}`}>
           {anyBodyHidden && bodyMesh ? <div className="tree-row tree-showall" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().showAllBodies()} title={L2('顯示所有隱藏的實體/組件', 'Show all hidden bodies/components', lang)}>👁 {L2('顯示全部', 'Show All', lang)}</div> : null}
-          {bodyMesh && bodyMesh.triangles.length > 0 ? <BodyRow visKey={ACTIVE_BODY_KEY} label={`${components.length > 0 ? '當前組件' : '活動實體'} ●`} sel={selectedParkedIndex == null} onClick={() => { useApp.getState().selectParkedBody(null); void useApp.getState().openPropertiesDialog(null) }} /> : null}
-          {bodyMesh?.parked?.map((b, i) => <BodyRow key={'pb' + i} parkedIndex={i} visKey={parkedBodyKey(b.name, i)} label={(b as any).kind === 'body' ? localizeAsmName(b.name, lang) : `${localizeAsmName(b.name, lang)}（獨立實體 · 灰顯）`} sel={selectedParkedIndex === i} onClick={() => {
+          {bodyMesh && bodyMesh.triangles.length > 0 ? <BodyRow visKey={ACTIVE_BODY_KEY} label={`${components.length > 0 ? '當前組件' : '活動實體'} ●`} sel={selectedParkedIndex == null || modelSelBodyKeys.includes(ACTIVE_BODY_KEY)} onClick={(e) => {
             const st = useApp.getState()
-            st.selectParkedBody(i)
-            // SO10 / BUG-SO15-002：统一测量 + 体过滤时树点选即量另一半（獨立實體）体积；否则开属性。
-            if (st.measureUniMode && st.measureSelFilter.body) void st.measureParkedBody(i)
-            else void st.openPropertiesDialog(`parked:${i}`)
+            const mod = clickMod(e)
+            st.modelSelClick({ kind: 'body', key: ACTIVE_BODY_KEY }, mod)
+            if (mod === 'replace') { st.selectParkedBody(null); void st.openPropertiesDialog(null) }
+            else { const n = useApp.getState().modelSel.filter((x) => x.kind === 'body').length; useApp.setState({ status: n ? `已多選 ${n} 個實體（Ctrl／Shift 加減選）` : '已取消實體選擇' }) }
+          }} /> : null}
+          {bodyMesh?.parked?.map((b, i) => <BodyRow key={'pb' + i} parkedIndex={i} visKey={parkedBodyKey(b.name, i)} label={(b as any).kind === 'body' ? localizeAsmName(b.name, lang) : `${localizeAsmName(b.name, lang)}（獨立實體 · 灰顯）`} sel={selectedParkedIndex === i || modelSelBodyKeys.includes(parkedBodyKey(b.name, i))} onClick={(e) => {
+            const st = useApp.getState()
+            const key = parkedBodyKey(b.name, i)
+            const mod = clickMod(e)
+            st.modelSelClick({ kind: 'body', key, parked: i }, mod)
+            if (mod === 'replace') {
+              st.selectParkedBody(i)
+              // SO10 / BUG-SO15-002：统一测量 + 体过滤时树点选即量另一半（獨立實體）体积；否则开属性。
+              if (st.measureUniMode && st.measureSelFilter.body) void st.measureParkedBody(i)
+              else void st.openPropertiesDialog(`parked:${i}`)
+            } else {
+              const n = useApp.getState().modelSel.filter((x) => x.kind === 'body').length
+              useApp.setState({ status: n ? `已多選 ${n} 個實體（Ctrl／Shift 加減選）` : '已取消實體選擇' })
+            }
           }} />)}
           {!bodyMesh ? <Leaf icon="default" label="（空）" /> : null}
         </Section>

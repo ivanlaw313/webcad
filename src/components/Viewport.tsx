@@ -8524,7 +8524,7 @@ export default function Viewport() {
         <button className={'tb-btn' + (navTool === 'orbit' ? ' tb-on' : '')} title={tStatus('環繞：左鍵旋轉視角', lang)} onClick={() => setNavTool('orbit')}><ToolIcon name="orbit" size={17} /></button>
         <button className={'tb-btn' + (navTool === 'pan' ? ' tb-on' : '')} title={tStatus('平移：左鍵拖動平移視圖', lang)} onClick={() => setNavTool('pan')}><ToolIcon name="pan" size={17} /></button>
         <button className={'tb-btn' + (navTool === 'zoom' ? ' tb-on' : '')} title={tStatus('縮放：左鍵上下拖動縮放', lang)} onClick={() => setNavTool('zoom')}><ToolIcon name="zoom" size={17} /></button>
-        <button className={'tb-btn' + (navTool === 'select' ? ' tb-on' : '')} title={tStatus('框選：左鍵拖框多選組件 — 左→右=窗選（全包先中，藍實線）；右→左=跨選（相觸即中，綠虛線）；Shift=追加。中/右鍵仍可平移', lang)} onClick={() => setNavTool('select')}><ToolIcon name="select" size={17} /></button>
+        <button className={'tb-btn' + (navTool === 'select' ? ' tb-on' : '')} title={tStatus('框選：左鍵拖框多選組件 — 左→右=窗選（全包先中，藍實線）；右→左=跨選（相觸即中，綠虛線）；Shift=追加。中/右鍵仍可平移；再按／Esc 退出框選', lang)} onClick={() => setNavTool(navTool === 'select' ? 'orbit' : 'select')}><ToolIcon name="select" size={17} /></button>
         <button className="tb-btn" title={tStatus('適應視窗', lang)} onClick={() => requestFit()}><ToolIcon name="fit" size={17} /></button>
         <div style={{ position: 'relative' }}>
           {/* B-rep faces must be recoverable in one click; the full picker beside

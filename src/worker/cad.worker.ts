@@ -25,6 +25,7 @@ import { fullRoundFilletFromFaces } from '../cad/fullRound'
 import { fuseLostMaterial } from '../cad/coilOp'
 import { asymmetricFilletNearPoints } from '../cad/asymmetricFillet'
 import { hasUnsafeLoftShellAdjacency } from '../cad/loftShellSafety'
+import { buildLoft, capFaceFinder, LOFT_MSG, railFollowOffsets, sampleWirePts, shapeVolume, translateWire } from '../cad/loftBuild'
 import { revolveLathePlane, revolveRemapProfile } from '../cad/revolvePreviewFrame'
 import { threadFrameRotation, threadLocalToWorld, type ThreadFrame } from '../cad/threadFrame'
 
@@ -519,16 +520,6 @@ function profileToDrawing(p: SketchProfile): any {
   return drawCircle(p.r).translate(p.c[0], p.c[1])
 }
 
-// #62 GM-L2：截面边界「顶点数」代理 —— 圆/椭圆=平滑单曲线(1)、矩形=4 角、poly 按 verts/pts 数（arc/earc 单弧边+弦≈2）。
-//   实体放样(loftWith/ThruSections)线性配对各截面顶点，数目唔一致（如圆 vs 矩形）会喺角位扭曲 → 用此代理做诚实一致性检查（同 surfloft 嘅 pts.length 检查同款）。
-function profileVertCount(p: SketchProfile): number {
-  if (p.kind === 'circle' || p.kind === 'ellipse') return 1
-  if (p.kind === 'rect') return 4
-  if (p.earc || p.arc) return 2
-  if (p.verts && p.verts.length) return p.verts.length
-  return p.pts?.length ?? 0
-}
-
 function profileToSketch(p: SketchProfile, z = 0, plane: Plane = 'XY') {
   return profileToDrawing(p).sketchOnPlane(plane, z)
 }
@@ -621,6 +612,76 @@ function loftSectionSketch(s: { profile: SketchProfile; z: number; plane?: Plane
     return profileOnPlane(s.profile, new RPlane(ap.o as any, ap.xd as any, ap.n as any))
   }
   return profileToSketch(s.profile, s.z, s.plane || 'XY')
+}
+
+type LoftFeature = Extract<Feature, { type: 'loft' }>
+// 放樣實體（唔做布爾）：截面 wire → 方向一致化 + CheckCompatibility 起點對齊 → ThruSections → 有效性把關。
+// 導軌 = 截面平移跟隨（任何朝向截面都得，按世界 XY 投影）；薄壁 = 移除末端（失敗再試首端）蓋面抽殼。
+// 呢個函數係 buildShape 同 previewLoft 唯一嘅放樣幾何來源。
+function makeLoftSolid(f: LoftFeature, warnings: string[]): any {
+  const secs = f.sections && f.sections.length ? f.sections : []
+  const mkWires = (): any[] => {
+    if (secs.length) return secs.map((s) => (loftSectionSketch(s) as any).wire.wrapped)
+    const out: any[] = []
+    if (f.bottom) out.push((profileToSketch(f.bottom, 0) as any).wire.wrapped)
+    if (f.top) out.push((profileToSketch(f.top, f.height ?? 50) as any).wire.wrapped)
+    return out
+  }
+  let wires = mkWires()
+  if (wires.length < 2 && !(wires.length >= 1 && f.capPoint)) throw new Error(LOFT_MSG.tooFew)
+  // 導軌：每截面一點（點數 = 截面數，次序 = 截面次序）
+  if (f.rails?.length) {
+    const rail = f.rails[0]
+    if (f.rails.length > 1) warnings.push('⚠ 放樣導軌：暫時只用第 1 條導軌，其餘已忽略')
+    if (!rail || rail.length !== wires.length) {
+      warnings.push(`⚠ 放樣導軌：導軌要每個截面一點（而家 ${rail?.length ?? 0} 點、${wires.length} 個截面）— 導軌已忽略`)
+    } else {
+      const loops = wires.map((w) => sampleWirePts(_oc, w, 96))
+      const offs = railFollowOffsets(loops, rail)
+      wires = wires.map((w, i) => translateWire(_oc, w, offs[i]))
+      const maxD = Math.max(...offs.map((d) => Math.hypot(d[0], d[1])))
+      if (maxD > 0.01) warnings.push(`放樣導軌：截面已平移去掂導軌（最大 ${maxD.toFixed(1)}mm，截面形狀不變）`)
+    }
+  }
+  // 閉環：末截面接返首截面（ThruSections 冇 periodic → 首截面 wire 再加一次，接縫 C0）
+  if (f.closed) {
+    if (wires.length >= 3) { wires = [...wires, wires[0]]; warnings.push('閉環放樣：末截面已接返首截面（接縫位只係 C0 連續）') }
+    else warnings.push('⚠ 閉環放樣要 ≥3 個截面 — 已按開放放樣')
+  }
+  const base = { ruled: !!f.ruled }
+  let res: ReturnType<typeof buildLoft> | null = null
+  const extra = !!(f.capPoint || (f.continuity && !f.ruled))
+  try {
+    res = buildLoft(_oc, wires, { ...base, ...(f.continuity && !f.ruled ? { continuity: f.continuity } : {}), ...(f.capPoint ? { capPoint: f.capPoint, capEnd: f.capEnd } : {}) })
+  } catch (e) {
+    if (!extra || wires.length < 2) throw e
+    warnings.push(`⚠ ${f.capPoint ? '封口點' : f.continuity === 'C2' ? '曲率連續' : '切線連續'}放樣失敗，已退回普通放樣`)
+    res = buildLoft(_oc, wires, base)
+  }
+  let lofted: any = res.shape
+  if (f.wall && f.wall > 0) {
+    // 薄壁：OCCT 抽殼要指定開口面 — 用 ThruSections 嘅首/末端蓋面（唔再假設截面喺 XY 平面），減薄重試，驗真挖空。
+    const solidVol = Math.abs(shapeVolume(_oc, lofted.wrapped))
+    let hollowed: any = null
+    const finders = [capFaceFinder(res.last), capFaceFinder(res.first)].filter(Boolean) as ((ff: any) => any)[]
+    for (const fn of finders) {
+      const walls: number[] = [f.wall, f.wall * 0.6, f.wall * 0.35]   // 顯式註解斷推斷循環（TS7022）
+      for (const tw of walls) {
+        try {
+          const sh = lofted.shell(-Math.abs(tw), fn)
+          if (sh && (sh as any).wrapped && !(sh as any).wrapped.IsNull()) {
+            const oriented = cast(_orientSolidOutward((sh as any).wrapped))
+            const v = shapeVolume(_oc, (oriented as any).wrapped)
+            if (v > 1e-6 && (solidVol <= 0 || v < solidVol * 0.98)) { hollowed = oriented; if (tw !== f.wall) warnings.push(`放樣薄壁 ${f.wall}mm 太厚，已減薄到 ${tw.toFixed(1)}mm 先成功`); break }
+          }
+        } catch { /* 試下一個厚度 */ }
+      }
+      if (hollowed) break
+    }
+    if (hollowed) lofted = hollowed
+    else warnings.push(`⚠ 放樣薄壁 ${f.wall}mm 失敗，已退回實心放樣（試減薄壁厚或簡化截面）`)
+  }
+  return lofted
 }
 
 function lastExtrudeHeight(features: Feature[]): number {
@@ -4074,184 +4135,9 @@ function buildShape(features: Feature[], noCache = false): any {
         }
       }
     } else if (f.type === 'loft') {
-      // ruled → developable straight-line (ruled) boundary surface between sections (cleaner, lighter mesh)
-      // vs the default smooth/splined transition. wall>0 → shell the lofted solid into a thin curved panel
-      // (薄壁曲面板：fairing / shroud / curved bracket). Both use proven kernel ops (loftWith ruled + shell).
-      // T772 修潜伏 bug：replicad loft 【默认 ruled=true】— 旧代码 undefined 时其实一直系直纹，「平滑」从未生效。
-      // 修复后未勾直纹嘅旧放样会变真平滑样条过渡（属 bug fix，DEVLOG 已声明）。
-      const opt = { ruled: !!f.ruled }
-      let lofted: any = null
-      // #62 GM-L2：实体放样同曲面放样(surfloft)一样，检查各截面边界顶点数是否一致 —— 唔一致(如圆对矩形)线性配对会扭曲，诚实提示（只加警告，唔改几何）
-      {
-        const _lsProfs: SketchProfile[] = f.sections?.length ? f.sections.map((s) => s.profile) : (f.bottom && f.top ? [f.bottom, f.top] : [])
-        if (_lsProfs.length >= 2 && new Set(_lsProfs.map(profileVertCount)).size > 1) buildWarnings.push('⚠ 放样：各截面边界顶点数不一致（如圆对矩形）— ThruSections 线性配对，形状可能在角位扭曲')
-      }
-      // T772（S52）：导轨放样 — 语义 = 【截面平移跟随】：每个截面整体平移，令佢嘅边界掂到导轨点，
-      // 然后照行证实可靠嘅 loftWith（ThruSections）。圆截面精确（边界点 = 圆心 + r·方向），其它截面用
-      // 多边形边界最大投影点近似。点解唔用 MakePipeShell Contact：实测多截面 Contact 系 OCCT 冷路径，
-      // wasm 单线程会挂死几分钟（e2e 实锤）— 平移跟随确定性 + 快 + 零挂死。截面形状唔变（诚实注明）。
-      if (f.rails?.length && f.sections && f.sections.length >= 2) {
-        const secs = [...f.sections].sort((a, b) => a.z - b.z)
-        const rail = f.rails[0]
-        if (f.rails.length > 1) buildWarnings.push('⚠ 暂时只支持 1 条导轨 — 第 2 条起已忽略')
-        if (!rail || rail.length !== secs.length) {
-          buildWarnings.push('⚠ 导轨点数要同截面数一样（每个截面一点）— 导轨已忽略')
-        } else {
-          try {
-            const moved = secs.map((s2, i) => {
-              const rp = rail[i]
-              let dx = 0, dy = 0
-              if (s2.profile.kind === 'circle') {
-                // 圆：边界点 = c + r·unit(rp−c)（精确）；rp==c 时唔郁
-                const c = s2.profile.c, rr = s2.profile.r
-                const vx = rp[0] - c[0], vy = rp[1] - c[1]
-                const L = Math.hypot(vx, vy)
-                if (L > 1e-9) { dx = rp[0] - (c[0] + (vx / L) * rr); dy = rp[1] - (c[1] + (vy / L) * rr) }
-              } else {
-                // 其它截面：多边形边界喺 rp 方向嘅最大投影点 ≈ 掂点
-                const pts: [number, number][] = s2.profile.kind === 'rect'
-                  ? [[s2.profile.a[0], s2.profile.a[1]], [s2.profile.b[0], s2.profile.a[1]], [s2.profile.b[0], s2.profile.b[1]], [s2.profile.a[0], s2.profile.b[1]]]
-                  : s2.profile.kind === 'ellipse'
-                    ? Array.from({ length: 32 }, (_, i) => { const a = i * 2 * Math.PI / 32, e = s2.profile as EllipseProfile; return [e.c[0] + e.rx * Math.cos(a), e.c[1] + e.ry * Math.sin(a)] as [number, number] })
-                    : (s2.profile.verts ?? s2.profile.pts ?? [])
-                if (pts.length) {
-                  const cx = pts.reduce((t, q) => t + q[0], 0) / pts.length, cy = pts.reduce((t, q) => t + q[1], 0) / pts.length
-                  const vx = rp[0] - cx, vy = rp[1] - cy
-                  const L = Math.hypot(vx, vy)
-                  if (L > 1e-9) {
-                    const ux = vx / L, uy = vy / L
-                    let best = -1e18, bx = cx, by = cy
-                    for (const q of pts) { const pr = q[0] * ux + q[1] * uy; if (pr > best) { best = pr; bx = q[0]; by = q[1] } }
-                    dx = rp[0] - bx; dy = rp[1] - by
-                  }
-                }
-              }
-              // 平移 profile 2D 数据（Sketch 对象冇 translate — 直接喺 profile 坐标层做）
-              const shift = (p: SketchProfile): SketchProfile => {
-                if (Math.abs(dx) < 1e-12 && Math.abs(dy) < 1e-12) return p
-                if (p.kind === 'circle') return { ...p, c: [p.c[0] + dx, p.c[1] + dy] }
-                if (p.kind === 'ellipse') return { ...p, c: [p.c[0] + dx, p.c[1] + dy] }
-                if (p.kind === 'rect') return { ...p, a: [p.a[0] + dx, p.a[1] + dy], b: [p.b[0] + dx, p.b[1] + dy] }
-                return {
-                  ...p,
-                  pts: (p.pts ?? []).map((q) => [q[0] + dx, q[1] + dy] as [number, number]),
-                  verts: p.verts?.map((q) => [q[0] + dx, q[1] + dy] as [number, number]),
-                  cubics:p.cubics?.map(seg=>seg.map(q=>[q[0]+dx,q[1]+dy]) as CubicBezierSegment),
-                  arc: p.arc ? { a: [p.arc.a[0] + dx, p.arc.a[1] + dy], b: [p.arc.b[0] + dx, p.arc.b[1] + dy], m: [p.arc.m[0] + dx, p.arc.m[1] + dy] } : undefined,
-                  earc: p.earc ? { ...p.earc, cx: p.earc.cx + dx, cy: p.earc.cy + dy } : undefined,  // S101：椭圆弧边随平移，唔好同 pts 脱节
-                }
-              }
-              return { sk: profileToSketch(shift(s2.profile), s2.z) as any, d: Math.hypot(dx, dy) }
-            })
-            const sksR = moved.map((m2) => m2.sk)
-            lofted = sksR[0].loftWith(sksR.slice(1), opt)
-            const maxD = Math.max(...moved.map((m2) => m2.d))
-            if (lofted && maxD > 0.01) buildWarnings.push(`⚠ 导轨=截面平移跟随（最大偏移 ${maxD.toFixed(1)}mm，截面形状不变）— 非曲面级 rail 约束`)
-          } catch (e) {
-            lofted = null
-            buildWarnings.push('⚠ rail 引导放样失败，已退回普通放样（rail 被忽略）：' + ((e as any)?.message || e))
-          }
-        }
-      }
-      if (!lofted && f.capPoint) {
-        // S 放样封口构造点 Loft-to-point：一个截面侧用顶点封口，得真水密尖（鼻锥/漏斗/钻尖/finial）—
-        // 取代旧 r:0.05 假小圆 hack 嘅薄片微面。用裸 BRepOffsetAPI_ThruSections（isSolid=true）：
-        // capEnd==='first' 喺 AddWire 循环【前】AddVertex，否则【后】。所有生 _oc 句柄经 GCWithScope r() 管理
-        // （实证未包 r() 触发 9108520，镜 surfrevolve:1831-1838）。返空/无界 → 退回下面普通 loftWith 路径（fail-safe）。
-        try {
-          const secWires: any[] = []
-          if (f.sections && f.sections.length >= 1) { for (const s of f.sections) secWires.push((loftSectionSketch(s) as any).wire.wrapped) }
-          else if (f.bottom && f.top) { secWires.push((profileToSketch(f.bottom, 0) as any).wire.wrapped); secWires.push((profileToSketch(f.top, f.height ?? 50) as any).wire.wrapped) }
-          else if (f.bottom) { secWires.push((profileToSketch(f.bottom, 0) as any).wire.wrapped) }
-          if (secWires.length >= 1) {
-            const r = GCWithScope()
-            const ts = r(new (_oc as any).BRepOffsetAPI_ThruSections(true, !!f.ruled, 1e-6))   // isSolid=true → 水密实体
-            const cp = f.capPoint
-            const v = r(new (_oc as any).BRepBuilderAPI_MakeVertex(r(new (_oc as any).gp_Pnt_3(cp[0], cp[1], cp[2])))).Vertex()
-            if (f.capEnd === 'first') { ts.AddVertex(v); for (const w of secWires) ts.AddWire(w) }
-            else { for (const w of secWires) ts.AddWire(w); ts.AddVertex(v) }
-            ts.Build(r(new (_oc as any).Message_ProgressRange_1()))
-            const sh = ts.IsDone && ts.IsDone() ? ts.Shape() : null
-            let capped: any = (sh && !sh.IsNull()) ? cast(sh) : null
-            // result 级有界性闸（镜 surfrevolve:1842）：无界/返空 → 留 null 退回普通路径。
-            let bbOk = false
-            if (capped?.wrapped && !capped.wrapped.IsNull()) {
-              try { const bb = (capped as any).boundingBox.bounds as [number[], number[]]; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 抛 = 无界 */ }
-            }
-            if (bbOk) lofted = capped
-            else buildWarnings.push('⚠ 放样封口：顶点封口返空 / 无界 — 已退回普通放样')
-          } else buildWarnings.push('⚠ 放样封口：截面不足（需 ≥1 截面）— 已退回普通放样')
-        } catch (e) { buildWarnings.push('⚠ 放样封口失败，已退回普通放样：' + ((e as any)?.message || e)) }
-      }
-      if (!lofted && f.continuity && !f.ruled && f.sections && f.sections.length >= 2) {
-        // S 放样端条件 Tangent/Curvature：裸 BRepOffsetAPI_ThruSections + SetSmoothing + SetContinuity(C1/C2)。
-        // replicad LoftConfig 只得 ruled/startPoint/endPoint 无 tangency → 必须裸内核（现有内核已绑，Node 实证 C1/C2 可 build）。
-        // C1≈G1 切线连续、C2≈G2 曲率连续（ThruSections 用参数连续，等参截面下视觉等同 Fusion 切线/曲率放样）。失败/无界 → 退回普通 loftWith。
-        try {
-          const r = GCWithScope()
-          const ts = r(new (_oc as any).BRepOffsetAPI_ThruSections(true, false, 1e-6))
-          ts.SetSmoothing(true)
-          ts.SetContinuity((_oc as any).GeomAbs_Shape['GeomAbs_' + f.continuity])
-          for (const s of f.sections) ts.AddWire((loftSectionSketch(s) as any).wire.wrapped)
-          ts.Build(r(new (_oc as any).Message_ProgressRange_1()))
-          const sh = ts.IsDone && ts.IsDone() ? ts.Shape() : null
-          const cand: any = (sh && !sh.IsNull()) ? cast(sh) : null
-          let bbOk = false
-          if (cand?.wrapped && !cand.wrapped.IsNull()) {
-            try { const bb = cand.boundingBox.bounds as [number[], number[]]; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* 无界 */ }
-          }
-          if (bbOk) lofted = cand
-          else buildWarnings.push(`⚠ ${f.continuity === 'C2' ? '曲率' : '切线'}连续放样返空 / 无界 — 已退回普通放样`)
-        } catch (e) { buildWarnings.push('⚠ 连续性放样失败，已退回普通放样：' + ((e as any)?.message || e)) }
-      }
-      if (!lofted && f.sections && f.sections.length >= 2) {
-        const sks = f.sections.map((s) => loftSectionSketch(s)) as any[]
-        // #8 Loft Closed：末截面接返首截面成闭环 —— ThruSections 无 periodic 旗，复制首截面 wire 落尾做 C0 近似闭环。
-        // 接缝处 C0（Fusion 系 C1）—— 诚实标；≥3 截面先有意义（2 截面闭环=退化重叠）。
-        if (f.closed && f.sections.length >= 3) {
-          const rest = [...sks.slice(1), loftSectionSketch(f.sections[0]) as any]
-          try { lofted = sks[0].loftWith(rest, opt) } catch { lofted = sks[0].loftWith(sks.slice(1), opt); buildWarnings.push('⚠ 闭环放样失败，已退回开放放样') }
-          if (lofted) buildWarnings.push('闭环放样：末截面已接返首截面（接缝处 C0 连续，非 Fusion C1 — 趋势级闭环）')
-        } else {
-          if (f.closed) buildWarnings.push('⚠ 闭环放样需 ≥3 截面（2 截面闭环会退化重叠）— 已按开放放样')
-          lofted = sks[0].loftWith(sks.slice(1), opt)
-        }
-      } else if (!lofted && f.bottom && f.top) {
-        const s1 = profileToSketch(f.bottom, 0) as any
-        lofted = s1.loftWith(profileToSketch(f.top, f.height ?? 50), opt)
-      }
-      if (lofted) {
-        if (f.wall && f.wall > 0) {
-          // 审计修复：旧版 lofted.shell(-wall) 缺【face finder】→ 此 OCCT-wasm build 对每个放样实体都抛错 →
-          // 「放样→薄壁」100% 静默退回实体（薄壳从未生效）。改：传开口面 finder（bbox 顶/底面）+ 减薄重试 +
-          // _orientSolidOutward 校正定向（带 finder 锥壳可能负体积反转）+ 验体积系真挖空（∈(0, 实心·0.98)）。
-          let solidVol = 0
-          try { const g0 = new _oc.GProp_GProps_1(); _oc.BRepGProp.VolumeProperties_1((lofted as any).wrapped, g0, false, false, false); solidVol = Math.abs(g0.Mass()) } catch { /* */ }
-          let hollowed: any = null
-          try {
-            const bb = (lofted as any).boundingBox.bounds as [number[], number[]]
-            const cands = [(ff: any) => ff.inPlane('XY', bb[1][2]), (ff: any) => ff.inPlane('XY', bb[0][2])]
-            for (const fn of cands) {
-              const walls: number[] = [f.wall, f.wall * 0.6, f.wall * 0.35]   // 显式注解断推断循环（TS7022）
-              for (const tw of walls) {
-                try {
-                  const sh = lofted.shell(-Math.abs(tw), fn)
-                  if (sh && (sh as any).wrapped && !(sh as any).wrapped.IsNull()) {
-                    const oriented = cast(_orientSolidOutward((sh as any).wrapped))
-                    const g = new _oc.GProp_GProps_1(); _oc.BRepGProp.VolumeProperties_1((oriented as any).wrapped, g, false, false, false)
-                    const v = g.Mass()
-                    if (v > 1e-6 && (solidVol <= 0 || v < solidVol * 0.98)) { hollowed = oriented; if (tw !== f.wall) buildWarnings.push(`放样薄壁 ${f.wall}mm 太厚，已减薄到 ${tw.toFixed(1)} 才成功`); break }
-                  }
-                } catch { /* try next thickness */ }
-              }
-              if (hollowed) break
-            }
-          } catch { /* bbox 失败 */ }
-          if (hollowed) lofted = hollowed
-          else buildWarnings.push(`⚠ 放样薄壁 ${f.wall}mm 失败，已退回实体放样（试减薄壁厚或简化截面）`)
-        }
-        merge(lofted, f.op)
-      }
+      // 放樣：同預覽（api.previewLoft）共用 makeLoftSolid —— 預覽同結果逐位一致。失敗 throw 繁體原因（時間軸標紅）。
+      const lofted = makeLoftSolid(f, buildWarnings)
+      merge(lofted, f.op)
     } else if (f.type === 'delface' && shape) {
       // T795（S74）直接编辑：删掉拾取点最近嗰个面 — C++ DirectEditWrapper 用 BRepAlgoAPI_Defeaturing
       // 去特征 + 治愈（删倒角/孔/凸台清理导入件）。失败诚实保旧形 + 警告。
@@ -6537,6 +6423,31 @@ const api = {
     }
   },
 
+  // 放樣即時預覽：只建放樣體本身（同 buildShape 共用 makeLoftSolid → 預覽 = 結果），回傳半透明網格 +
+  // 真 B-rep 邊（截面環 + 側邊配對線），唔郁 current／前綴快取。失敗回傳繁體原因（error）。
+  async previewLoft(f: Feature): Promise<{ mesh: MeshData | null; edges: [number, number, number][][]; warnings: string[]; error?: string; volume?: number }> {
+    await ready
+    const warnings: string[] = []
+    if (f.type !== 'loft') return { mesh: null, edges: [], warnings, error: '放樣預覽：特徵類型唔啱' }
+    try {
+      const solid = makeLoftSolid(f, warnings)
+      const mesh = meshOf(solid, { preview: true })
+      const edges: [number, number, number][][] = []
+      for (const e of (solid as any).edges as any[]) {
+        const pts: [number, number, number][] = []
+        const n = /line/i.test(String(e.geomType)) ? 1 : 32
+        for (let i = 0; i <= n; i++) { const q = e.pointAt(i / n); pts.push([q.x, q.y, q.z]) }
+        edges.push(pts)
+      }
+      let volume: number | undefined
+      try { volume = Math.abs(shapeVolume(_oc, (solid as any).wrapped)) } catch { /* */ }
+      return { mesh, edges, warnings, volume }
+    } catch (e) {
+      const m = typeof e === 'number' ? LOFT_MSG.build : ((e as any)?.message || String(e))
+      return { mesh: null, edges: [], warnings, error: /[\u4e00-\u9fff]/.test(m) ? m : LOFT_MSG.build }
+    }
+  },
+
   // Replay the parametric feature tree and return the resulting mesh (+ parked multibody meshes).
   async rebuild(features: Feature[]): Promise<MeshData | null> {
     await ready
@@ -7369,6 +7280,64 @@ const api = {
       const volume = best.kind === 'active' && current ? measureVolume(current) : measureVolume(best.shape)
       return Number.isFinite(volume) && volume > 0 ? { volume } : null
     } finally { for (const solid of owned) try { solid.delete() } catch { /* */ } }
+  },
+
+  // 放樣截面揀平面：搵 p 附近嘅平面 B-rep 面 → 外環（按邊首尾串好）3D 點 + 平面法向。整個外環係單一圓 → circle（精確）。
+  async planarFaceLoopAt(p: [number, number, number]): Promise<{ loop: [number, number, number][]; normal: [number, number, number]; center: [number, number, number]; circle?: { c: [number, number, number]; r: number } } | { error: string }> {
+    await ready
+    if (!current) return { error: '未有實體可以揀面' }
+    try {
+      const faces = (current as any).faces as any[]
+      let best: any = null, bestD = Infinity
+      for (const f of faces) {
+        const tri = f.triangulation ? f.triangulation() : null
+        if (!tri || !tri.vertices || !tri.vertices.length) continue
+        const V = tri.vertices as number[], T = tri.trianglesIndexes as number[]
+        let dmin = Infinity
+        for (let i = 0; i < T.length; i += 3) {
+          const a = T[i] * 3, b = T[i + 1] * 3, c = T[i + 2] * 3
+          const d = ptTriDist2(p[0], p[1], p[2], V[a], V[a + 1], V[a + 2], V[b], V[b + 1], V[b + 2], V[c], V[c + 1], V[c + 2])
+          if (d < dmin) dmin = d
+        }
+        if (dmin < bestD) { bestD = dmin; best = f }
+      }
+      if (!best) return { error: '搵唔到面' }
+      if (!/plane/i.test(String(best.geomType ?? ''))) return { error: '放樣截面只可以揀平面（呢個係曲面）' }
+      const nv = best.normalAt(); const normal: [number, number, number] = [nv.x, nv.y, nv.z]
+      const cv = best.center; const center: [number, number, number] = [cv.x, cv.y, cv.z]
+      const ow = (best as any).outerWire()
+      const edges = ow.edges as any[]
+      if (edges.length === 1 && /circle/i.test(String(edges[0].geomType))) {
+        const A = edges[0].pointAt(0), C = edges[0].pointAt(0.5)
+        const cx = (A.x + C.x) / 2, cy = (A.y + C.y) / 2, cz = (A.z + C.z) / 2
+        return { loop: [], normal, center, circle: { c: [cx, cy, cz], r: Math.hypot(A.x - cx, A.y - cy, A.z - cz) } }
+      }
+      // 逐邊取樣（直線 2 點、曲線 24 段）→ 首尾串接（必要時反轉）
+      const segs: [number, number, number][][] = edges.map((e) => {
+        const n = /line/i.test(String(e.geomType)) ? 1 : 24
+        const pts: [number, number, number][] = []
+        for (let i = 0; i <= n; i++) { const q = e.pointAt(i / n); pts.push([q.x, q.y, q.z]) }
+        return pts
+      })
+      const d2 = (a: number[], b: number[]) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+      const loop: [number, number, number][] = [...segs[0]]
+      const used = new Array(segs.length).fill(false); used[0] = true
+      for (let k = 1; k < segs.length; k++) {
+        const tail = loop[loop.length - 1]
+        let bi = -1, rev = false, bd = Infinity
+        segs.forEach((sg, i) => { if (used[i]) return; const ds = d2(sg[0], tail), de = d2(sg[sg.length - 1], tail); if (ds < bd) { bd = ds; bi = i; rev = false } if (de < bd) { bd = de; bi = i; rev = true } })
+        if (bi < 0) break
+        used[bi] = true
+        const sg = rev ? [...segs[bi]].reverse() : segs[bi]
+        loop.push(...sg.slice(1))
+      }
+      if (loop.length > 2 && d2(loop[0], loop[loop.length - 1]) < 1e-8) loop.pop()
+      if (loop.length < 3) return { error: '呢個面嘅外框太簡單／退化，揀第二個面' }
+      return { loop, normal, center }
+    } catch (e) {
+      console.error('[cad.worker] planarFaceLoopAt failed:', e)
+      return { error: '讀取面外框失敗' }
+    }
   },
 
   async measureFaceAt(p: [number, number, number]): Promise<{ area: number; kind: string; center: [number, number, number]; radius: number | null } | null> {

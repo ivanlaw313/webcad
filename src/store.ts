@@ -4052,6 +4052,26 @@ function asSweepPathShape(sh: SketchShape | null | undefined): SketchShape | nul
   while (bulges.length < 1) bulges.push(0)
   return openVertsPoly(verts, bulges)
 }
+// 已完成（独立）草图里揾开放路径（开放折线/样条/两点线段）— 加強筋中心线 & 路徑陣列路径共用。
+// 只计仍喺时间轴上嘅 sketch 特征；按时间轴次序返回（最后 = 最新）。
+type FinishedOpenPathCand = { id: string; source: AppState['sketchSources'][string]; paths: Pt[][] }
+function finishedOpenPathCandidates(s: Pick<AppState, 'sketchSources' | 'features'>): FinishedOpenPathCand[] {
+  const out: FinishedOpenPathCand[] = []
+  const order = s.features.filter((f) => f.type === 'sketch').map((f) => (f as { sketchId?: string }).sketchId)
+  for (const id of order) {
+    if (!id || out.some((c) => c.id === id)) continue
+    const source = s.sketchSources[id]
+    if (!source) continue
+    const ps: Pt[][] = []
+    for (const sh of source.shapes) {
+      const path = asSweepPathShape(sh)
+      if (!path || path.type !== 'poly' || !path.pts || path.pts.length < 2) continue
+      ps.push(path.pts.map((p: Pt) => [p[0], p[1]] as Pt))
+    }
+    if (ps.length) out.push({ id, source, paths: ps })
+  }
+  return out
+}
 // T742：扫掠「草图轮廓」截面 — 闭合实线轮廓（圆/矩形/闭合折线）；排除构造线、草图点、以及开放路径本身。
 function isSweepSectionProfile(sh: SketchShape | null | undefined): boolean {
   if (!sh || sh.construction || (sh as { centerline?: boolean }).centerline) return false
@@ -18007,18 +18027,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     let fromFinished = false
 
     if (!paths.length && s.mode === 'model') {
-      type Cand = { id: string; source: AppState['sketchSources'][string]; paths: Pt[][] }
-      const candidates: Cand[] = []
-      for (const [id, source] of Object.entries(s.sketchSources)) {
-        if (!s.features.some((f) => f.type === 'sketch' && f.sketchId === id)) continue
-        const ps: Pt[][] = []
-        for (const sh of source.shapes) {
-          const path = asSweepPathShape(sh)
-          if (!path || path.type !== 'poly' || !path.pts || path.pts.length < 2) continue
-          ps.push(path.pts.map((p: Pt) => [p[0], p[1]] as Pt))
-        }
-        if (ps.length) candidates.push({ id, source, paths: ps })
-      }
+      const candidates = finishedOpenPathCandidates(s)
       const selected = candidates.find((c) => c.id === s.selSketch)
       const pick = selected ?? (candidates.length === 1 ? candidates[0] : undefined)
       if (!pick && candidates.length > 1) {
@@ -18061,24 +18070,57 @@ export const useApp = create<AppState>((rawSet, get) => {
   addPathPattern: async () => {
     const s = get()
     if (!hasSolid(s.features)) { set({ status: '路徑陣列需要先有一個實體 —— 佢會沿你畫嘅路徑複製該實體（先建實體，再畫路徑）' }); return }
-    const src = s.sketchShape && s.sketchShape.type === 'poly' ? s.sketchShape.pts : s.polyPts
-    if (!src || src.length < 2) { set({ status: '路徑陣列需要一條路徑：用「折線 / 樣條」畫一條線（≥2 點），再點「路徑陣列」' }); return }
-    const path = src.map((p) => stToProfile(p, 'XY')) as [number, number][]
-    const patternArb = s.sketchArb ?? (s.sketchPlane !== 'XY' ? cardinalSketchArb(s.sketchPlane, s.sketchBaseZ || 0) : null)
-    const path3 = patternArb ? (() => {
-      return src.map((p) => { const [u, v] = s.sketchArb ? p : stToProfile(p, s.sketchPlane); return localPointToCad(patternArb, u, v) })
-    })() : undefined
-    const bundle = {
-      shapes: JSON.parse(JSON.stringify([...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])])) as SketchShape[],
-      cons: JSON.parse(JSON.stringify(s.skCons)) as SkCon[],
-      plane: s.sketchPlane, baseZ: s.sketchBaseZ,
+    // 路径来源优先序：live 草图（进行中折线 / sketchShape / finishOpenPolyline 入 sketchProfiles 嘅开放线）
+    // → 已完成草图（浏览器所选优先，否则时间轴上最新一张有开放折线/样条嘅草图）— 同 addRib（287260d）。
+    let src: Pt[] | null = null
+    if (s.sketchShape && s.sketchShape.type === 'poly') {
+      const live = asSweepPathShape(s.sketchShape)
+      src = (live && live.type === 'poly' ? live.pts : s.sketchShape.pts) ?? null
+      if (src && src.length < 2) src = null
     }
+    if (!src && s.polyPts && s.polyPts.length >= 2) src = s.polyPts
+    if (!src) {
+      for (let k = s.sketchProfiles.length - 1; k >= 0; k--) {
+        const p = asSweepPathShape(s.sketchProfiles[k])
+        if (p && p.type === 'poly' && p.pts && p.pts.length >= 2) { src = p.pts; break }
+      }
+    }
+    let plane: Plane = s.sketchPlane
+    let baseZ = s.sketchBaseZ || 0
+    let liveArb: ArbBasis | null = s.sketchArb ? JSON.parse(JSON.stringify(s.sketchArb)) as ArbBasis : null
+    let fromFinished = false
+    if (!src && s.mode === 'model') {
+      const candidates = finishedOpenPathCandidates(s)
+      const pick = candidates.find((c) => c.id === s.selSketch) ?? candidates[candidates.length - 1]
+      if (pick) {
+        if (pick.source.patternData) { set({ status: '關聯陣列草圖須先分離關聯，再選作路徑陣列路徑' }); return }
+        src = pick.paths[pick.paths.length - 1]
+        plane = pick.source.plane
+        baseZ = pick.source.baseZ || 0
+        liveArb = pick.source.arb ? JSON.parse(JSON.stringify(pick.source.arb)) as ArbBasis : null
+        fromFinished = true
+      }
+    }
+    if (!src || src.length < 2) { set({ status: '路徑陣列需要一條路徑：用「折線 / 樣條」畫一條線（≥2 點），再點「路徑陣列」' }); return }
+    const pathSrc = src.map((p) => [p[0], p[1]] as Pt)
+    const path = pathSrc.map((p) => stToProfile(p, 'XY')) as [number, number][]
+    const patternArb = liveArb ?? (plane !== 'XY' ? cardinalSketchArb(plane, baseZ) : null)
+    const path3 = patternArb ? (() => {
+      return pathSrc.map((p) => { const [u, v] = liveArb ? p : stToProfile(p, plane); return localPointToCad(patternArb, u, v) })
+    })() : undefined
+    // 取消时只还原 live 草图；已完成草图唔重开 live 副本（同 addRib）
+    const liveShapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
+    const bundle = (!fromFinished && liveShapes.length) ? {
+      shapes: JSON.parse(JSON.stringify(liveShapes)) as SketchShape[],
+      cons: JSON.parse(JSON.stringify(s.skCons)) as SkCon[],
+      plane: s.sketchPlane, baseZ: s.sketchBaseZ, ...(s.sketchArb ? { arb: JSON.parse(JSON.stringify(s.sketchArb)) } : {}),
+    } : undefined
     const hasSelectedFeature = !!s.selectedFeature && s.features.some((x) => x.id === s.selectedFeature)
     set({
       skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model',
-      featDlg: { kind: 'pathpattern', params: { count: 5, target: hasSelectedFeature ? 'feature' : 'body', orient: 'identical' }, payload: { path, path3, bundle } },
+      featDlg: { kind: 'pathpattern', params: { count: 5, target: hasSelectedFeature ? 'feature' : 'body', orient: 'identical' }, payload: { path, path3, ...(bundle ? { bundle } : {}) } },
       holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false,
-      status: patternArb ? `${s.sketchArb ? '任意參考' : s.sketchPlane}平面路徑陣列：沿該平面的 3D 路徑平移複製（不旋轉副本）→ 確定` : '路徑陣列：設數量及對象（整個實體／所選特徵）→ 確定',
+      status: patternArb ? `${liveArb ? '任意參考' : plane}平面路徑陣列：沿該平面的 3D 路徑平移複製（不旋轉副本）→ 確定` : '路徑陣列：設數量及對象（整個實體／所選特徵）→ 確定',
     })
   },
 

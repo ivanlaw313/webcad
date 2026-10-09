@@ -36,9 +36,9 @@ test('en/ja: sentence-length Traditional status falls back to the Simplified key
 
 test('raw-rendered user text now goes through the locale layer (measure text, feature errors, material names)', () => {
   assert.match(read('src/components/InspectorPanel.tsx'), /\{tStatus\(info\.text, lang\)\}/)
-  assert.match(read('src/components/Timeline.tsx'), /\{tStatus\(featureErrors\[sel\.id\], lang\)\}/)
+  assert.match(read('src/components/Timeline.tsx'), /\{tStatus\(plainFeatureError\(sel\.type, featureErrors\[sel\.id\]\), lang\)\}/)   // UX2 #12：先將英文內核原文轉人話再過 locale
   const tree = read('src/components/BrowserTree.tsx')
-  assert.equal((tree.match(/tStatus\('重建失敗：', lang\) \+ tStatus\(err, lang\)/g) ?? []).length, 2)
+  assert.equal((tree.match(/tStatus\('重建失敗：', lang\) \+ tStatus\(plainFeatureError\((?:undefined|f\.type), err\), lang\)/g) ?? []).length, 2)
   assert.equal((tree.match(/<option key=\{k\} value=\{k\}>\{tMaterialName\(k, lang\)\}<\/option>/g) ?? []).length, 2)
   assert.ok(!/<option key=\{k\} value=\{k\}>\{k\}<\/option>/.test(tree))
   const vp = read('src/components/Viewport.tsx')

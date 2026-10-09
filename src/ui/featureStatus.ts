@@ -315,7 +315,23 @@ export function profileSuccessStatus(opts: {
 export function roundFailLines(lang: LangInput): string[] {
   const lg = normalizeLang(lang)
   if (lg === 'en' || lg === 'ja') return ['1 error(s)', 'The fillet/chamfer could not be created at the requested size.', 'Try adjusting the size, deselecting some of the edges (try disabling Tangent Chain), or using multiple separate operations.']
-  return ['1 個錯誤', '無法按指定尺寸建立圓角／倒角。', '請調整尺寸、取消選取部分稜邊（可試關閉「切線鏈」），或分開多次操作。'].map((t) => tStatus(t, lg))
+  return ['1 個錯誤', '無法按指定尺寸建立圓角／倒角。', '請調整尺寸、取消選取部分稜邊（可以試吓剔走「切線鏈」），或分開多次操作。'].map((t) => tStatus(t, lg))
+}
+
+/** UX2 #12：內核失敗原因（worker 原文多數係英文，例如「chamfer near points failed」）→ 用戶睇得明嘅繁體。
+ *  只改顯示層；featureErrors 仍存原文（診斷／測試用）。已經係中文嘅原因原樣返回。 */
+export function plainFeatureError(type: string | undefined, msg: string): string {
+  const t = String(msg ?? '')
+  if (/[\u3400-\u9fff]/.test(t)) return t
+  const round = type === 'chamfer' || type === 'fillet' || /^(chamfer|fillet)\b/i.test(t)
+  if (round) {
+    const kind = type === 'fillet' || /^fillet/i.test(t) ? '圓角' : '倒角'
+    if (/no edges? near points?|no adjacent face|edge (not found|lost)/i.test(t)) return `揀中嘅棱喺而家個實體上搵唔返 — 請重新揀棱再試`
+    if (/did not converge/i.test(t)) return `${kind}計唔到（G2 曲率連續唔收斂）— 試改用 G1 或細啲嘅半徑`
+    return `${kind}做唔到 — ${kind === '倒角' ? '距離' : '半徑'}可能太大（超過相鄰面），或者呢條棱本身${kind}唔到（例如旋轉體接縫）；請減細數值或者重新揀棱`
+  }
+  if (/^\s*$/.test(t)) return '內核未能完成重建'
+  return `內核未能完成呢個特徵（${t}）`
 }
 
 /** Rebuild-warning suffix: one leading ⚠ (worker warnings often carry their own → was 「⚠ ⚠」), duplicates removed. */

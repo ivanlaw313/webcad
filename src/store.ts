@@ -36,7 +36,7 @@ import { removeContourEdges } from './sketch/deleteSketchEdges'
 import { applySelClick, mergeSel, type ModelSelItem, type SelMod } from './cad/modelSelection'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
 import { splitVolumeNoteForMesh } from './ui/splitVolume'
-import { formatBuildWarnings } from './ui/featureStatus'
+import { formatBuildWarnings, plainFeatureError } from './ui/featureStatus'
 import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, extrudeExtraNote, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus, gearSuccessStatus, wormSuccessStatus, profileSuccessStatus, profileSectionName } from './ui/featureStatus'
 import { lengthScale } from './io/units'
 import { meshDropKind, MESH_TAB_DROP_HINT } from './io/meshDrop'
@@ -1876,8 +1876,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   features: Feature[]
   // Undo/redo snapshot the feature tree AND component positions AND（S105 统一撤销栈）参数/约束/抑制/逐面色/配合/分组，
   // 令 Ctrl+Z 覆盖全部文档态。新增 6 字段全 optional：兼容旧栈/持久化条目缺字段（还原一律 ?? 兜底，见 docSnap）。
-  undoStack: { features: Feature[]; components: AppState['components']; componentDefs?: AppState['componentDefs']; joints?: Joint[]; motionLinks?: AppState['motionLinks']; sketchSources?: AppState['sketchSources']; params?: AppState['params']; paramBindings?: AppState['paramBindings']; suppressedIds?: string[]; faceColors?: AppState['faceColors']; mates?: AppState['mates']; groups?: AppState['groups']; jointPoses?: AppState['jointPoses']; jointKeyframes?: AppState['jointKeyframes']; planes?: AppState['planes']; cpoints?: AppState['cpoints']; caxes?: AppState['caxes']; jointOrigins?: AppState['jointOrigins']; rigidGroups?: AppState['rigidGroups']; contactPairs?: AppState['contactPairs'] }[]  // sketchSources 入栈 (T746)：undo 跨草图编辑/删特征唔再令草图源同模型分叉。planes/cpoints/caxes 入栈 (GM-W1 1.5)：datum 建/删/改可撤销。jointOrigins/rigidGroups/contactPairs (GM-3DV4)：关节原点/刚性组/接触集可撤销。componentDefs (R2)：共享定义入栈 → undo def 编辑
-  redoStack: { features: Feature[]; components: AppState['components']; componentDefs?: AppState['componentDefs']; joints?: Joint[]; motionLinks?: AppState['motionLinks']; sketchSources?: AppState['sketchSources']; params?: AppState['params']; paramBindings?: AppState['paramBindings']; suppressedIds?: string[]; faceColors?: AppState['faceColors']; mates?: AppState['mates']; groups?: AppState['groups']; jointPoses?: AppState['jointPoses']; jointKeyframes?: AppState['jointKeyframes']; planes?: AppState['planes']; cpoints?: AppState['cpoints']; caxes?: AppState['caxes']; jointOrigins?: AppState['jointOrigins']; rigidGroups?: AppState['rigidGroups']; contactPairs?: AppState['contactPairs'] }[]
+  undoStack: { features: Feature[]; activeBodyName?: string; components: AppState['components']; componentDefs?: AppState['componentDefs']; joints?: Joint[]; motionLinks?: AppState['motionLinks']; sketchSources?: AppState['sketchSources']; params?: AppState['params']; paramBindings?: AppState['paramBindings']; suppressedIds?: string[]; faceColors?: AppState['faceColors']; mates?: AppState['mates']; groups?: AppState['groups']; jointPoses?: AppState['jointPoses']; jointKeyframes?: AppState['jointKeyframes']; planes?: AppState['planes']; cpoints?: AppState['cpoints']; caxes?: AppState['caxes']; jointOrigins?: AppState['jointOrigins']; rigidGroups?: AppState['rigidGroups']; contactPairs?: AppState['contactPairs'] }[]  // sketchSources 入栈 (T746)：undo 跨草图编辑/删特征唔再令草图源同模型分叉。planes/cpoints/caxes 入栈 (GM-W1 1.5)：datum 建/删/改可撤销。jointOrigins/rigidGroups/contactPairs (GM-3DV4)：关节原点/刚性组/接触集可撤销。componentDefs (R2)：共享定义入栈 → undo def 编辑
+  redoStack: { features: Feature[]; activeBodyName?: string; components: AppState['components']; componentDefs?: AppState['componentDefs']; joints?: Joint[]; motionLinks?: AppState['motionLinks']; sketchSources?: AppState['sketchSources']; params?: AppState['params']; paramBindings?: AppState['paramBindings']; suppressedIds?: string[]; faceColors?: AppState['faceColors']; mates?: AppState['mates']; groups?: AppState['groups']; jointPoses?: AppState['jointPoses']; jointKeyframes?: AppState['jointKeyframes']; planes?: AppState['planes']; cpoints?: AppState['cpoints']; caxes?: AppState['caxes']; jointOrigins?: AppState['jointOrigins']; rigidGroups?: AppState['rigidGroups']; contactPairs?: AppState['contactPairs'] }[]
   sketchUndo: { skFrameRestore?:SketchFrameSnapshot; skConsumerRestore?:SketchConsumerSnapshot; skParameterRestore?:SketchParameterSnapshot; skDof?:number|null; skConflict?:boolean; skConflictIds?:string[]; skFreeShapes?:Set<number>; skPatternData?: SketchPatternData | null; sketchShape: SketchShape | null; sketchProfiles: SketchShape[]; polyPts: Pt[]; sketchStart: Pt | null; skCons?: SkCon[] }[]  // skCons 同几何一齐快照（T746）
   sketchRedo: { skFrameRestore?:SketchFrameSnapshot; skConsumerRestore?:SketchConsumerSnapshot; skParameterRestore?:SketchParameterSnapshot; skDof?:number|null; skConflict?:boolean; skConflictIds?:string[]; skFreeShapes?:Set<number>; skPatternData?: SketchPatternData | null; sketchShape: SketchShape | null; sketchProfiles: SketchShape[]; polyPts: Pt[]; sketchStart: Pt | null }[]
   undo: () => Promise<void>
@@ -5339,9 +5339,12 @@ export const useApp = create<AppState>((rawSet, get) => {
           await cad.rebuild(expandFeats(previousBound.filter(f => !previousSuppressed.includes(f.id))))
           {
             const detail = Object.values(failure.errors)[0]
+            const failedRound = bound.find((f) => failure.ids.includes(f.id) && (f.type === 'chamfer' || f.type === 'fillet'))
             const toast = typeof detail === 'string' && /旋转相交|旋转切割|旋转截面/.test(detail)
               ? '⚠ ' + detail
-              : '⚠ 重建失败 — 已保留上一个有效模型，请修正参数后重试'
+              : failedRound   // UX2 #12：倒角／圓角失敗講返原因（繁體），唔再淨係「重建失败」或英文內核原文
+                ? '⚠ ' + plainFeatureError(failedRound.type, failure.errors[failedRound.id] ?? '') + '（已保留上一個有效模型）'
+                : '⚠ 重建失败 — 已保留上一个有效模型，请修正参数后重试'
             set({ ...(prevDoc ? previousDocument : {}), busy: false, status: toast, failedFeatureIds: failure.ids, featureErrors: failure.errors })
           }
           return false
@@ -6484,10 +6487,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [],
     roundPreviewMesh: null, roundPreviewFail: false,
     status: m === 'two'
-      ? 'Two Distance：請重新選擇邊'
+      ? '兩個距離：請重新揀棱'
       : m === 'angle'
-        ? 'Distance and Angle：請重新選擇面和邊'
-        : 'Equal Distance：請重新選擇邊',
+        ? '距離＋角度：請重新揀面同棱'
+        : '等距離：請重新揀棱',
   }),
   setChamferSize2: (n) => { set({ chamferSize2: Number.isFinite(n) ? Math.max(0, n) : 0 }); get().scheduleRoundPreview() },
   // Fusion permits the 0/90 degree endpoints to be displayed while dragging/typing, but they
@@ -6495,7 +6498,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setChamferAngle: (n) => { set({ chamferAngle: Number.isFinite(n) ? Math.min(90, Math.max(0, n)) : 45 }); get().scheduleRoundPreview() },
   setChamferReferenceFace: (p, faceId) => set((s) => {
     if (s.edgeRoundPick !== 'chamfer' || s.chamferMode !== 'angle' || s.chamferRefFace) return {}
-    return { chamferRefFace: { p, faceId }, roundPreviewMesh: null, roundPreviewFail: false, status: 'Distance and Angle：已選 1 Face，請選參考面邊界的 Edge' }
+    return { chamferRefFace: { p, faceId }, roundPreviewMesh: null, roundPreviewFail: false, status: '距離＋角度：已揀參考面，再揀呢個面邊界上嘅一條棱' }
   }),
   toggleChamferFlip: () => { set((s) => ({ chamferFlip: !s.chamferFlip })); get().scheduleRoundPreview() },
   // Fusion-style: enter fillet/chamfer COMMAND mode (select edges, then 确定). Toggling clears the selection.
@@ -6550,9 +6553,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!pts.length) { set({ status: `請先點選要${kind === 'chamfer' ? '倒角' : '倒圓角'}的棱` }); return }
     if (kind === 'fillet' && get().filletType === 'rule' && get().filletRuleMode === 'between' && !(get().filletRuleFaceSets.includes(1) && get().filletRuleFaceSets.includes(2))) { set({ status: '兩組之間規則：第 1 組同第 2 組都要至少選擇一個面/特徵' }); return }
     if (kind === 'fillet' && get().filletType === 'full' && !([1, 2, 3] as const).every((slot) => get().filletFullFaceSets.includes(slot))) { set({ status: '全圓角：側面組 1、中心面、側面組 2 都要至少選擇一個面' }); return }
-    if (kind === 'chamfer' && get().chamferMode === 'angle' && !get().chamferRefFace) { set({ status: 'Distance and Angle：請在參考面的邊界上選擇 1 Face + 1 Edge' }); return }
-    if (kind === 'chamfer' && get().chamferMode === 'two' && !(get().chamferSize2 > 0)) { set({ status: 'Two Distance：Distance 2 必須大於 0' }); return }
-    if (kind === 'chamfer' && get().chamferMode === 'angle' && !(get().chamferAngle > 0 && get().chamferAngle < 90)) { set({ status: 'Distance and Angle：角度必須大於 0°並小於 90°' }); return }
+    if (kind === 'chamfer' && get().chamferMode === 'angle' && !get().chamferRefFace) { set({ status: '距離＋角度：請先揀 1 個參考面，再揀佢邊界上嘅 1 條棱' }); return }
+    if (kind === 'chamfer' && get().chamferMode === 'two' && !(get().chamferSize2 > 0)) { set({ status: '兩個距離：距離 2 必須大於 0' }); return }
+    if (kind === 'chamfer' && get().chamferMode === 'angle' && !(get().chamferAngle > 0 && get().chamferAngle < 90)) { set({ status: '距離＋角度：角度必須大於 0° 同埋小於 90°' }); return }
     if (!(kind === 'fillet' && get().filletType === 'full' ? true : kind === 'fillet' && get().filletMode === 'chord' ? get().filletChord > 0 : kind === 'fillet' && get().filletMode === 'asymmetric' ? get().filletR2 > 0 && get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : kind === 'fillet' ? get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : sz > 0)) { set({ status: `請輸入大於 0 的${kind === 'chamfer' ? '倒角距離' : get().filletMode === 'chord' ? '弦長' : get().filletMode === 'asymmetric' ? '兩個偏移距離' : '圓角半徑'}` }); return }
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])  // three-world → CAD (x,−z,y)
     const cm = get().chamferMode, d2 = get().chamferSize2, ang = get().chamferAngle
@@ -7380,7 +7383,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!ok) { set({ status: '已取消刪除 — 模型及歷史不變' }); return }
     const cur = get()
     if (cur.features !== s0.features) { set({ status: '模型已變更 — 請再試一次刪除實體' }); return }
-    const before = docSnap(cur)
+    // UX2 P3：撤銷刪除實體要連自訂名一齊還原（以前 Ctrl+Z 返嚟變返「活動實體」）
+    const before = { ...docSnap(cur), activeBodyName: cur.activeBodyName }
     const kept = cur.features.filter((f) => !doomed.has(f.id))
     const refd = (fs: Feature[]) => { const r = new Set<string>(); for (const f of fs) { const sk = (f as { sketchId?: string }).sketchId; if (sk) r.add(sk); for (const k of (f as { sketchIds?: string[] }).sketchIds ?? []) r.add(k) } return r }
     const live = refd(kept)
@@ -14880,9 +14884,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     const matesChanged = (prev.mates ?? cur.mates) !== cur.mates
     const reopenPatch = reopen ? reopenSketchState(reopen) : null
     set((s) => {
-      const redoEntry = docSnap(s)
+      const redoEntry: AppState['undoStack'][number] = prev.activeBodyName !== undefined ? { ...docSnap(s), activeBodyName: s.activeBodyName } : docSnap(s)   // UX2 P3：實體名跟住撤銷／重做
       if (reopen) _sketchFinishUndo.set(redoEntry, reopen)
-      return { undoStack: s.undoStack.slice(0, -1), redoStack: [...s.redoStack, redoEntry], components: prev.components, componentDefs: prev.componentDefs ?? s.componentDefs, joints: prev.joints ?? s.joints, motionLinks: prev.motionLinks ?? s.motionLinks, sketchSources: prev.sketchSources ?? s.sketchSources, params: prev.params ?? s.params, paramBindings: prev.paramBindings ?? s.paramBindings, suppressedIds: prev.suppressedIds ?? s.suppressedIds, faceColors: prev.faceColors ?? s.faceColors, mates: prev.mates ?? s.mates, groups: prev.groups ?? s.groups, jointPoses: prev.jointPoses ?? s.jointPoses, jointKeyframes: prev.jointKeyframes ?? s.jointKeyframes, planes: prev.planes ?? s.planes, cpoints: prev.cpoints ?? s.cpoints, caxes: prev.caxes ?? s.caxes, jointOrigins: prev.jointOrigins ?? s.jointOrigins, rigidGroups: prev.rigidGroups ?? s.rigidGroups, contactPairs: prev.contactPairs ?? s.contactPairs, selectedFeature: null, ...(reopenPatch ?? {}) }
+      return { ...(prev.activeBodyName !== undefined ? { activeBodyName: prev.activeBodyName } : {}), undoStack: s.undoStack.slice(0, -1), redoStack: [...s.redoStack, redoEntry], components: prev.components, componentDefs: prev.componentDefs ?? s.componentDefs, joints: prev.joints ?? s.joints, motionLinks: prev.motionLinks ?? s.motionLinks, sketchSources: prev.sketchSources ?? s.sketchSources, params: prev.params ?? s.params, paramBindings: prev.paramBindings ?? s.paramBindings, suppressedIds: prev.suppressedIds ?? s.suppressedIds, faceColors: prev.faceColors ?? s.faceColors, mates: prev.mates ?? s.mates, groups: prev.groups ?? s.groups, jointPoses: prev.jointPoses ?? s.jointPoses, jointKeyframes: prev.jointKeyframes ?? s.jointKeyframes, planes: prev.planes ?? s.planes, cpoints: prev.cpoints ?? s.cpoints, caxes: prev.caxes ?? s.caxes, jointOrigins: prev.jointOrigins ?? s.jointOrigins, rigidGroups: prev.rigidGroups ?? s.rigidGroups, contactPairs: prev.contactPairs ?? s.contactPairs, selectedFeature: null, ...(reopenPatch ?? {}) }
     })   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随撤销还原（旧栈缺 → 保持当前）。BUG-213：完成草图的条目同时 reopen 草图
     if (!needRebuild) set({ status: reopen ? SKETCH_FINISH_UNDO_STATUS : '已撤銷' })
     else if (!await get().applyFeatures(prev.features, reopen ? SKETCH_FINISH_UNDO_STATUS : '已撤销', false, undefined, docSnap(cur), true)) {
@@ -14945,9 +14949,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     const matesChanged = (next.mates ?? cur.mates) !== cur.mates
     const closePatch = reopen ? closeFinishedSketchState() : null
     set((s) => {
-      const undoEntry = docSnap(s)
+      const undoEntry: AppState['undoStack'][number] = next.activeBodyName !== undefined ? { ...docSnap(s), activeBodyName: s.activeBodyName } : docSnap(s)
       if (reopen) _sketchFinishUndo.set(undoEntry, reopen)
-      return { redoStack: s.redoStack.slice(0, -1), undoStack: [...s.undoStack, undoEntry], components: next.components, componentDefs: next.componentDefs ?? s.componentDefs, joints: next.joints ?? s.joints, motionLinks: next.motionLinks ?? s.motionLinks, sketchSources: next.sketchSources ?? s.sketchSources, params: next.params ?? s.params, paramBindings: next.paramBindings ?? s.paramBindings, suppressedIds: next.suppressedIds ?? s.suppressedIds, faceColors: next.faceColors ?? s.faceColors, mates: next.mates ?? s.mates, groups: next.groups ?? s.groups, jointPoses: next.jointPoses ?? s.jointPoses, jointKeyframes: next.jointKeyframes ?? s.jointKeyframes, planes: next.planes ?? s.planes, cpoints: next.cpoints ?? s.cpoints, caxes: next.caxes ?? s.caxes, jointOrigins: next.jointOrigins ?? s.jointOrigins, rigidGroups: next.rigidGroups ?? s.rigidGroups, contactPairs: next.contactPairs ?? s.contactPairs, selectedFeature: null, ...(closePatch ?? {}) }
+      return { ...(next.activeBodyName !== undefined ? { activeBodyName: next.activeBodyName } : {}), redoStack: s.redoStack.slice(0, -1), undoStack: [...s.undoStack, undoEntry], components: next.components, componentDefs: next.componentDefs ?? s.componentDefs, joints: next.joints ?? s.joints, motionLinks: next.motionLinks ?? s.motionLinks, sketchSources: next.sketchSources ?? s.sketchSources, params: next.params ?? s.params, paramBindings: next.paramBindings ?? s.paramBindings, suppressedIds: next.suppressedIds ?? s.suppressedIds, faceColors: next.faceColors ?? s.faceColors, mates: next.mates ?? s.mates, groups: next.groups ?? s.groups, jointPoses: next.jointPoses ?? s.jointPoses, jointKeyframes: next.jointKeyframes ?? s.jointKeyframes, planes: next.planes ?? s.planes, cpoints: next.cpoints ?? s.cpoints, caxes: next.caxes ?? s.caxes, jointOrigins: next.jointOrigins ?? s.jointOrigins, rigidGroups: next.rigidGroups ?? s.rigidGroups, contactPairs: next.contactPairs ?? s.contactPairs, selectedFeature: null, ...(closePatch ?? {}) }
     })   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随重做还原。BUG-213：重做完成草图时退出编辑
     if (!needRebuild) set({ status: '已重做' })
     else if (!await get().applyFeatures(next.features, '已重做', false, undefined, docSnap(cur), true)) {
@@ -15402,7 +15406,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
   },
 
-  // Hole: drill a vertical cylinder (Ø16) through the whole body at the origin.
+  // Hole: drill a vertical cylinder (Ø = holeD, default Ø5) through the whole body at the origin.
   holeType: 'simple',
   setHoleType: (t) => set({ holeType: t }),
   holeDrillPoint: false,
@@ -15446,9 +15450,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   setHoleSlot: (v) => set({ holeSlot: v }),
   setHoleSlotLen: (n) => set({ holeSlotLen: Math.max(1, n || 20) }),
   setHoleSlotAng: (n) => set({ holeSlotAng: Number.isFinite(n) ? n : 0 }),
-  holeD: 16,
+  holeD: 5,   // UX2 P3：Fusion 預設孔細（Ø5）；舊 Ø16 喺細件上一鑽成個洞
   // BUG-SO18F-001: do not coerce Ø≤0 → 1/16; keep illegal draft so preview can clear and confirm can reject.
-  setHoleD: (n) => set({ holeD: Number.isFinite(n) ? n : 16 }),
+  setHoleD: (n) => set({ holeD: Number.isFinite(n) ? n : 5 }),
   holeDepth: 0,
   setHoleDepth: (n) => set({ holeDepth: n > 0 ? n : 0 }),
   // Drill a hole at CAD (cx,cy). Default (0,0) = body centre (legacy). The Hole command (below) passes the picked point.
@@ -16263,7 +16267,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const dl = Math.hypot(dRaw[0], dRaw[1], dRaw[2])
       if (dl < 1e-9) { set({ status: '鑽孔構造軸方向為零向量 — 重新揀軸（或選頂面沿Z）' }); return }
       const dir: [number, number, number] = [dRaw[0] / dl, dRaw[1] / dl, dRaw[2] / dl]
-      const r = Math.max(0.2, (get().holeD || 16) / 2)
+      const r = Math.max(0.2, (get().holeD || 5) / 2)
       const depth = get().holeDepth > 0 ? get().holeDepth : get().holeD * 1.5   // blind 缺省 ≈1.5×Ø（同 addHole 盲孔深约定）
       set({ status: `正在按 ${s.cpoints.length} 個構造點沿構造軸方向鑽孔…` })
       let feats = get().features

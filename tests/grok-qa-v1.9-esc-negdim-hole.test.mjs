@@ -30,7 +30,7 @@ test('BUG-UI-003: positive length keys reject ≤0 in NumField + editFeature', (
 })
 
 test('BUG-SO18F-001: hole Ø≤0 not coerced; preview/confirm gated', () => {
-  assert.match(storeSrc, /setHoleD:\s*\(n\) => set\(\{ holeD: Number\.isFinite\(n\) \? n : 16 \}\)/)
+  assert.match(storeSrc, /setHoleD:\s*\(n\) => set\(\{ holeD: Number\.isFinite\(n\) \? n : 5 \}\)/)
   assert.doesNotMatch(storeSrc, /setHoleD:\s*\(n\) => set\(\{ holeD: Math\.max\(1/)
   assert.match(sketch, /!\(holeD > 0\)\) return null/)
   assert.match(viewport, /okDisabled=\{\(!holePos && !holeEditId\) \|\| !\(holeD > 0\)\}/)

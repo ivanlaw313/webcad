@@ -8880,7 +8880,8 @@ export default function Viewport() {
         </div>
       )}
       {/* 放樣／掃掠／拉伸對話框開住時唔好用「開始建模」卡遮住預覽（用戶截圖：畫草圖/搜尋命令 掣壓住放樣預覽） */}
-      {!bodyMesh && components.length === 0 && mode === 'model' && !formMode && !fourBar && !sliderCrank && !loftDlgOpen && !sweepDlgOpen && !extrudeDlgOpen && (
+      {/* UX2 P3：一開始建模（有任何特徵/草圖、或者有命令對話框開住）就收起「開始建模」卡，唔好一直遮住畫布 */}
+      {!bodyMesh && components.length === 0 && editPreviewFeatures.length === 0 && !featDlg && !modelingCommandActive && mode === 'model' && !formMode && !fourBar && !sliderCrank && !loftDlgOpen && !sweepDlgOpen && !extrudeDlgOpen && (
         <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', color: '#7a8893', pointerEvents: 'none', maxWidth: 360, lineHeight: 1.55, userSelect: 'none' }}>
           {/* Flux 生成上手插畫（工作台+畫草圖）— 令空文檔畫面唔咁干。縮細免阻視線（用戶反饋大卡阻埞）。 */}
           <img src="/empty-canvas.png" alt="" width={104} height={104} draggable={false} style={{ display: 'block', margin: '0 auto -6px', opacity: 0.9, filter: 'drop-shadow(0 6px 16px rgba(43,108,240,.10))' }} />

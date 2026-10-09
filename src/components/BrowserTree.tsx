@@ -1,3 +1,4 @@
+import { plainFeatureError } from '../ui/featureStatus'
 import { activeModelCommand } from '../cad/commandAvailability'
 import { sketchProfileCount } from '../sketch/profileCount'
 import { localizeAsmName } from '../assembly/names'   // BUG(E)：裝配名繁體顯示
@@ -143,7 +144,7 @@ function Leaf({ icon, label, depth = 1, onClick, sel = false, err }: { icon: str
       <span className="tw-toggle" />
       <span className="tw-ico"><ToolIcon name={icon} size={13} /></span>
       <span>{tStatus(label, lang)}</span>
-      {err && <span className="tw-err" title={tStatus('重建失敗：', lang) + tStatus(err, lang)}>🔴</span>}
+      {err && <span className="tw-err" title={tStatus('重建失敗：', lang) + tStatus(plainFeatureError(undefined, err), lang)}>🔴</span>}
     </div>
   )
 }
@@ -291,7 +292,7 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
       ) : (
         <span style={{ flex: 1, cursor: 'pointer' }} title={tStatus('單擊選中 · 雙擊編輯特徵／草圖 · F2／Alt+雙擊改名', lang)} onClick={() => selectFeature(f.id === selected ? null : f.id)} onDoubleClick={(e) => { if (e.altKey) { setName(custom || ''); setEditing(true) } else openFeatureEdit() }}>{custom || tStatus(meta.label, lang)}</span>
       )}
-      {err && <span className="tw-err" title={tStatus('重建失敗：', lang) + tStatus(err, lang)}>🔴</span>}
+      {err && <span className="tw-err" title={tStatus('重建失敗：', lang) + tStatus(plainFeatureError(f.type, err), lang)}>🔴</span>}
     </div>
   )
 }

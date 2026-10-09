@@ -33,8 +33,22 @@ test('BUG-SO18F-001: hole Ø≤0 not coerced; preview/confirm gated', () => {
   assert.match(storeSrc, /setHoleD:\s*\(n\) => set\(\{ holeD: Number\.isFinite\(n\) \? n : 5 \}\)/)
   assert.doesNotMatch(storeSrc, /setHoleD:\s*\(n\) => set\(\{ holeD: Math\.max\(1/)
   assert.match(sketch, /!\(holeD > 0\)\) return null/)
-  // current CommandDialog gate: numBad OR (no pick && not editing) OR Ø≤0
-  assert.match(viewport, /okDisabled=\{!!numBad \|\| \(\(!holePos && !holeEditId\) \|\| !\(holeD > 0\)\)\}/)
+  // Behaviour (not exact source text): evaluate the hole panel's real okDisabled expression for the gating cases —
+  // numBad OR (no pick && not editing) OR Ø≤0 — so harmless refactors of the JSX don't break the pin.
+  const okLine = viewport.split('\n').find((l) => /okDisabled=\{/.test(l) && /holeD/.test(l) && /holePos/.test(l))
+  assert.ok(okLine, 'hole panel okDisabled expression present')
+  const expr = okLine.slice(okLine.indexOf('okDisabled={') + 'okDisabled={'.length, okLine.lastIndexOf('}'))
+  const vars = [...new Set(expr.match(/[A-Za-z_$][\w$]*/g))].filter((v) => !['true', 'false', 'null', 'undefined'].includes(v))
+  const okDisabled = (env) => new Function(...vars, `return (${expr})`)(...vars.map((v) => env[v]))
+  const base = { numBad: '', holePos: [0, 10, 0], holeEditId: null, holeD: 5 }
+  assert.equal(!!okDisabled(base), false, 'valid Ø + picked position → OK enabled')
+  assert.equal(!!okDisabled({ ...base, holeD: -1 }), true, 'Ø −1 → OK disabled (not coerced)')
+  assert.equal(!!okDisabled({ ...base, holeD: 0 }), true, 'Ø 0 → OK disabled')
+  assert.equal(!!okDisabled({ ...base, holeD: NaN }), true, 'Ø NaN → OK disabled')
+  assert.equal(!!okDisabled({ ...base, holePos: null }), true, 'no position and not editing → OK disabled')
+  assert.equal(!!okDisabled({ ...base, holePos: null, holeEditId: 'h1' }), false, 'editing an existing hole without re-picking → OK enabled')
+  assert.equal(!!okDisabled({ ...base, holePos: null, holeEditId: 'h1', holeD: 0 }), true, 'editing with Ø 0 → OK disabled')
+  assert.equal(!!okDisabled({ ...base, numBad: 'Ø' }), true, 'invalid numeric field → OK disabled')
   assert.match(viewport, /尺寸已拒絕：孔徑Ø必須大於 0|(?:孔径|孔徑) Ø (?:必须大于|必須大於) 0/)
   // LenInput keeps min gate (BUG-551); hole Ø≤0 still gated by okDisabled + preview null
   const lenAt = viewport.indexOf('function LenInput')

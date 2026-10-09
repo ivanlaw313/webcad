@@ -36,7 +36,7 @@ import { applySelClick, mergeSel, type ModelSelItem, type SelMod } from './cad/m
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
 import { splitVolumeNoteForMesh } from './ui/splitVolume'
 import { formatBuildWarnings } from './ui/featureStatus'
-import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus, gearSuccessStatus, wormSuccessStatus, profileSuccessStatus, profileSectionName } from './ui/featureStatus'
+import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, extrudeExtraNote, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus, gearSuccessStatus, wormSuccessStatus, profileSuccessStatus, profileSectionName } from './ui/featureStatus'
 import { lengthScale } from './io/units'
 import { meshDropKind, MESH_TAB_DROP_HINT } from './io/meshDrop'
 import { dimensionExpression, parameterId, parameterExpressionRefs, assertParameterAcyclic, type Parameter } from './cad/dimensionExpression'
@@ -2313,7 +2313,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   runCommand: (id: string, label: string) => void
   applyFeatures: (features: Feature[], okMsg: string, record?: boolean, failMsg?: string, prevDoc?: AppState['undoStack'][number], strict?: boolean) => Promise<boolean>
   extrudeSketch: () => Promise<void>
-  addExtrude: (profile: SketchProfile, height: number, operation: BoolOp, baseZ?: number, opts?: { twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; toFace?: { near: [number, number, number]; offset?: number }; extent?: 'next' }) => Promise<void>
+  addExtrude: (profile: SketchProfile, height: number, operation: BoolOp, baseZ?: number, opts?: { twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; toFace?: { near: [number, number, number]; offset?: number }; extent?: 'next'; /** RETEST17 #5：兩側距離（只用嚟寫狀態） */ twoSides?: [number, number] }) => Promise<void>
   addRevolve: (profile: SketchProfile, angle?: number, axis?: 'X' | 'Y' | 'Z', op?: BoolOp, wall?: number, skBundle?: RevolveSketchBundle, axisSpec?: { axisV: [number, number, number]; axisOrigin: [number, number, number]; name?: string }, symmetric?: boolean, axisReference?: 'sketch'|'world') => Promise<void>  // T781：任意轴（构造轴/Z/偏离原点）；S191：symmetric 两側对称
   addHole: (cx?: number, cy?: number, faceZ?: number | null, dir?: [number, number, number] | null, origin3d?: [number, number, number] | null, group?: { centers: [number, number][]; pattern?: { kind: 'bolt-circle'; origin: [number, number]; count: number; pcd: number } }) => Promise<void>   // P4#6：dir/origin3d = 斜面圆孔沿拾取面法向钻（CAD 坐标）；group = 同一 Hole 命令的多孔父节点
   addText: () => Promise<void>
@@ -14780,9 +14780,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 直接 baseZ−side2 会喺 XZ/YZ 上因 RES_SIGN 唔跨草图面）。对称跨 [effBaseZ−H/2, effBaseZ+H/2]，令 H=side1+side2、
     // effBaseZ=baseZ+(side1−side2)/2 → 跨 [baseZ−side2, baseZ+side1]。arb 路无 symmetric，用 −side2 shift（见 arbShift）。
     let twoSide2 = 0
+    let twoSidesNote: [number, number] | undefined   // RETEST17 #5：狀態報「兩側 側1/側2」
     if (extent === 'twosides') {
       const side1 = Math.abs(rawH), side2 = Math.abs(get().extrudeSide2)
       twoSide2 = side2
+      twoSidesNote = [side1, side2]
       height = side1 + side2
       symmetric = true
       effBaseZ = baseZ + (side1 - side2) / 2
@@ -14884,13 +14886,14 @@ export const useApp = create<AppState>((rawSet, get) => {
         faceOutSign: useInward ? get().faceOutSign : undefined,
         toFace: toFaceRef,
         extent: nextExt ? 'next' : undefined,   // GM-W5 5.2 META 标记（height 已烘焙成实停距）
+        twoSides: twoSidesNote,
       })
     } else if (op === 'intersect') {
-      await get().addExtrude(combinedProfileRegions(profiles), height, 'intersect', effBaseZ, { twist, symmetric, plane, draft, down })
+      await get().addExtrude(combinedProfileRegions(profiles), height, 'intersect', effBaseZ, { twist, symmetric, plane, draft, down, twoSides: twoSidesNote })
     } else if ((op as BoolOp) === 'cut') {
       const through = !nextExt && (throughAll || (fromFace && faceThrough))
       const inward = fromFace && extent === 'distance' && !through && !nextExt
-      await get().addExtrude(combinedProfileRegions(profiles), height, 'cut', effBaseZ, { twist, symmetric, plane, draft, down, through, inward, inwardDepth: inward ? height : undefined, faceOutSign: inward ? get().faceOutSign : undefined, toFace: toFaceRef, extent: nextExt ? 'next' : undefined })
+      await get().addExtrude(combinedProfileRegions(profiles), height, 'cut', effBaseZ, { twist, symmetric, plane, draft, down, through, inward, inwardDepth: inward ? height : undefined, faceOutSign: inward ? get().faceOutSign : undefined, toFace: toFaceRef, extent: nextExt ? 'next' : undefined, twoSides: twoSidesNote })
     } else {
       // Multi-contour: nest by containment depth (even-odd) into one region, then ADD (op=new) or SUBTRACT (op=cut).
       const polys = profiles.map(profilePolyPts)
@@ -14913,7 +14916,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const msg = op === 'cut' ? multiProfileExtrudeStatus({ op: 'cut', count: cuts, groupNodes: subs.length }) : multiProfileExtrudeStatus({ op: 'new', count: profiles.length, holes: cuts, groupNodes: 1 })
       // B：多轮廓一次拉伸 = 一个【拉伸组】节点（时间轴一个 icon，可改高度/删整组），唔再放 N 个 extrude 出嚟刷屏。
       const grp: Feature = { id: fid(), type: 'extgroup', height, subs } as Feature
-      await get().applyFeatures([...get().features, grp], msg)
+      await get().applyFeatures([...get().features, grp], msg + (twoSidesNote ? extrudeExtraNote({}, twoSidesNote) : ''))
     }
     }
     // Did it actually make geometry? (applyFeatures returns true even for an empty mesh, so check tris + feature count.)
@@ -14977,7 +14980,7 @@ export const useApp = create<AppState>((rawSet, get) => {
 
   addExtrude: async (profile, height, operation, baseZ = 0, opts) => {
     const f: Feature = { id: fid(), type: 'extrude', profile, height, operation, baseZ, twist: opts?.twist || undefined, symmetric: opts?.symmetric || undefined, plane: opts?.plane && opts.plane !== 'XY' ? opts.plane : undefined, through: opts?.through || undefined, inward: opts?.inward || undefined, inwardDepth: opts?.inwardDepth, faceOutSign: opts?.faceOutSign, draft: opts?.draft || undefined, down: opts?.down || undefined, toFace: opts?.toFace, extent: opts?.extent }   // GM-W5 5.2：extent:'next' META 标记（worker 不读，height 已烘焙）
-    const extra = (f.symmetric ? '（对称）' : f.twist ? `（扭转 ${f.twist}°）` : '') + (f.draft ? `（拔模 ${f.draft}°）` : '') + (f.through ? '（贯通）' : '')
+    const extra = extrudeExtraNote(f as { symmetric?: boolean; twist?: number; draft?: number; through?: boolean }, opts?.twoSides)   // RETEST17 #5：兩側唔再報「（對稱）」
     const okMsg = extrudeSuccessStatus({ op: operation === 'cut' ? 'cut' : baseZ > 0 ? 'stack' : 'new', extra })   // GM-L2 #59：整个三元包返括号，令 extra（对称/扭转/拔模/贯通）也拼上 cut 分支 — 以前运算符优先级令 cut 永远丢咗备注
     await get().applyFeatures([...get().features, f], okMsg)
   },

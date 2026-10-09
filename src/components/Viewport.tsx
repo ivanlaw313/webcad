@@ -7133,7 +7133,16 @@ export default function Viewport() {
                     for (let i = axIdx; i < vv.length; i += 3) { if (vv[i] < lo) lo = vv[i]; if (vv[i] > hi) hi = vv[i] }
                     setFeatParam('offset', Math.round((lo + hi) / 2 * 10) / 10)
                   }} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
-                  <label title={tStatus('切割位置（CAD 世界坐標，沿選定軸）。長方體預設角落原點時 x=15 把 40 寬切成 15+25 → 體積 3000+5000', lang)}>{tStatus('位置', lang)} <FeatNum k="offset" v={featDlg.params.offset} w={60} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
+                  <label title={tStatus('切割位置：由世界原點起沿所選軸量度（即切割平面的世界座標），並非由實體邊緣起計。例如中心 50 寬板（X −25…25）：位置 0＝正中；位置 10＝高側餘 15', lang)}>{tStatus('位置（由原點起計）', lang)} <FeatNum k="offset" v={featDlg.params.offset} w={60} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
+                  {(() => {
+                    const m = useApp.getState().bodyMesh, ax = String(featDlg.params.axis || 'Z'), off = Number(featDlg.params.offset)
+                    if (!Number.isFinite(off)) return null
+                    const axIdx = ax === 'X' ? 0 : ax === 'Y' ? 1 : 2; let lo = Infinity, hi = -Infinity
+                    const vv = m?.vertices; if (vv) for (let i = axIdx; i < vv.length; i += 3) { if (vv[i] < lo) lo = vv[i]; if (vv[i] > hi) hi = vv[i] }
+                    const en = lang === 'en' || lang === 'ja', has = Number.isFinite(lo) && !featDlg.editId
+                    const rng = has ? (en ? `; body spans ${ax} ${+lo.toFixed(2)} to ${+hi.toFixed(2)}` : tStatus(`；實體範圍 ${ax} ${+lo.toFixed(2)} 至 ${+hi.toFixed(2)}`, lang)) : ''
+                    return <div data-testid="split-plane-pos" style={{ fontSize: 11, color: '#2f6f9f' }}>{en ? `Cut plane: ${ax} = ${+off.toFixed(3)} mm (world coordinates)` : tStatus(`切割平面：${ax} = ${+off.toFixed(3)} mm（世界座標）`, lang)}{rng}</div>
+                  })()}
                   <button className="cs-btn" title={tStatus('把切割位置居中到實體包圍盒中點（當前軸）', lang)} onClick={() => {
                     const m = useApp.getState().bodyMesh; if (!m?.vertices?.length) return
                     const axIdx = featDlg.params.axis === 'X' ? 0 : featDlg.params.axis === 'Y' ? 1 : 2

@@ -1016,8 +1016,10 @@ export function datumVisKey(kind: 'pl' | 'ax' | 'pt', d: unknown): string {
   return `pt:${(d as number[]).map((v) => Math.round(v * 100)).join(',')}`
 }
 export function meshCenter3(mesh: MeshData): [number, number, number] {
+  const v = mesh?.vertices
+  // WORKFLOW2 P1：存檔剥 occ.mesh 後若未 reconcile，空 vertices → Infinity/NaN 旋轉中心 → 世界矩陣壞掉 → 干涉假陰性。
+  if (!v || v.length < 3) return [0, 0, 0]
   const mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity]
-  const v = mesh.vertices
   for (let i = 0; i < v.length; i += 3) for (let k = 0; k < 3; k++) { const c = v[i + k]; if (c < mn[k]) mn[k] = c; if (c > mx[k]) mx[k] = c }
   return [(mn[0] + mx[0]) / 2, (mn[2] + mx[2]) / 2, -(mn[1] + mx[1]) / 2]
 }
@@ -12335,6 +12337,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     const comps = s.interfSubset.length ? visible.filter((c) => s.interfSubset.includes(c.id)) : visible
     if (comps.length < 2) { set({ status: s.interfSubset.length ? '干涉檢查：選定子集需 ≥2 個組件（在瀏覽器勾選後再算）' : '干涉檢查需要 ≥2 個可見組件', interfReport: null, interfPanelOpen: false }); return }
     const fk = computeFK(s.components.map((c) => c.id), s.joints)
+    // S123：同 viewport 一樣左乘子裝配 groupMat，否則成組旋轉後干涉同畫面姿態分叉。
+    const groupFK = buildGroupFK(s.groups)
     // This is an inspection-only aggregate.  Definition bodies remain independent in the model;
     // the temporary mesh merely lets one occurrence participate in collision checks as a union
     // of all of its visible solids.
@@ -12346,8 +12350,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       for (const mesh of bodies) { for (let i = 0; i < mesh.triangles.length; i++) triangles.push(mesh.triangles[i] + offset); offset += mesh.vertices.length / 3 }
       return { vertices: bodies.flatMap((mesh) => mesh.vertices), normals: bodies.flatMap((mesh) => mesh.normals), triangles }
     }
+    // WORKFLOW2 P1：姿態矩陣嘅旋轉中心必須用「實際參與干涉嘅幾何」——存檔剥 occ.mesh 後若仍留非零 rot，
+    // 用空 mesh 計 meshCenter3 → NaN → AABB 全失效 → 關節轉到穿過板仍報「✓ 無干涉」。
+    const poseOf = (c: typeof comps[number]) => {
+      const geo = meshOf(c)
+      const occOk = !!(c.mesh && c.mesh.vertices && c.mesh.vertices.length >= 3)
+      return occOk ? c : { ...c, mesh: geo }
+    }
     const boxOf = (c: typeof comps[number]) => {
-      const M = compWorldMatrix(c, fk.get(c.id))
+      const gm = c.groupId ? groupFK.get(c.groupId) : undefined
+      const M = compWorldMatrix(poseOf(c), fk.get(c.id), gm)
       const v = meshOf(c).vertices
       // Transform EVERY vertex to world for a TIGHT axis-aligned box. (Transforming only the 8 local-AABB
       // corners over-estimates a rotated/curved part's world bounds → spurious interference. This is still
@@ -12527,15 +12539,31 @@ export const useApp = create<AppState>((rawSet, get) => {
       let js = s.joints.map((j) => (j.id === jointId ? { ...j, [key]: v, ...stripLim } : j))
       js = propagateLinks(js, s.motionLinks)
       const fk = computeFK(compIds, js)
+      const groupFK = buildGroupFK(s.groups)
+      const meshOf = (c: typeof comps[number]): MeshData => {
+        const bodies = visibleDefinitionBodies(c, s.componentDefs).map((b) => b.mesh)
+        if (bodies.length <= 1) return bodies[0] ?? c.mesh
+        let offset = 0
+        const triangles: number[] = []
+        for (const mesh of bodies) { for (let i = 0; i < mesh.triangles.length; i++) triangles.push(mesh.triangles[i] + offset); offset += mesh.vertices.length / 3 }
+        return { vertices: bodies.flatMap((mesh) => mesh.vertices), normals: bodies.flatMap((mesh) => mesh.normals), triangles }
+      }
+      const poseOf = (c: typeof comps[number]) => {
+        const geo = meshOf(c)
+        const occOk = !!(c.mesh && c.mesh.vertices && c.mesh.vertices.length >= 3)
+        return occOk ? c : { ...c, mesh: geo }
+      }
       const bx = comps.map((c) => {
-        const M = compWorldMatrix(c, fk.get(c.id))
-        const vts = c.mesh.vertices, wn = [Infinity, Infinity, Infinity], wx = [-Infinity, -Infinity, -Infinity]
+        const gm = c.groupId ? groupFK.get(c.groupId) : undefined
+        const M = compWorldMatrix(poseOf(c), fk.get(c.id), gm)
+        const mesh = meshOf(c)
+        const vts = mesh.vertices, wn = [Infinity, Infinity, Infinity], wx = [-Infinity, -Infinity, -Infinity]
         const p = new Vector3()
         for (let i = 0; i < vts.length; i += 3) {
           p.set(vts[i], vts[i + 1], vts[i + 2]).applyMatrix4(M)
           for (let k = 0; k < 3; k++) { const q = k === 0 ? p.x : k === 1 ? p.y : p.z; if (q < wn[k]) wn[k] = q; if (q > wx[k]) wx[k] = q }
         }
-        return { wn, wx, M }
+        return { wn, wx, M, mesh }
       })
       const T = 0.5
       const out: Hit[] = []
@@ -12545,7 +12573,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const bmin: [number, number, number] = [Math.max(x.wn[0], y.wn[0]), Math.max(x.wn[1], y.wn[1]), Math.max(x.wn[2], y.wn[2])]
         const bmax: [number, number, number] = [Math.min(x.wx[0], y.wx[0]), Math.min(x.wx[1], y.wx[1]), Math.min(x.wx[2], y.wx[2])]
         const inv1 = x.M.clone().invert().elements, inv2 = y.M.clone().invert().elements
-        const r = estimateOverlapVolume(comps[i].mesh.vertices, comps[i].mesh.triangles, inv1 as unknown as number[], comps[k].mesh.vertices, comps[k].mesh.triangles, inv2 as unknown as number[], bmin, bmax, samples)
+        const r = estimateOverlapVolume(x.mesh.vertices, x.mesh.triangles, inv1 as unknown as number[], y.mesh.vertices, y.mesh.triangles, inv2 as unknown as number[], bmin, bmax, samples)
         if (r.volume >= 1) out.push({ name: `${comps[i].name}∩${comps[k].name}`, vol: r.volume, min: bmin, max: bmax })
       }
       return out

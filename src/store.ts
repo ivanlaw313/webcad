@@ -6755,7 +6755,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // worker 遇过大半径会自动收细 + 出 warning（唔 fail）— 预览时即场同用户讲，等佢未撳确定已知
       const warn = mesh!.warnings && mesh!.warnings.length ? `⚠ ${mesh!.warnings.join('；')}` : ''
       _previewFeatures.set(mesh!, active)
-      set({ roundPreviewMesh: mesh, roundPreviewFail: false, roundPreviewBusy: false, ...(warn ? { status: warn } : {}) })
+      set({ roundPreviewMesh: mesh, roundPreviewFail: false, roundPreviewBusy: false, ...(warn ? { status: warn } : /^⚠.*(倒角|圓角|圆角|棱)/.test(get().status) ? { status: '預覽正常 — 撳「確定」套用' } : {}) })   // UX2：之前失敗嘅「距離太大」唔好殘留喺狀態列
     } else {
       // UX2 #1：唔好一律話「距離太大」— 實測 flange 杯 1 mm 失敗嘅真因係揀錯棱／接縫棱。即刻標失敗（唔阻 UI），
       // 再喺背景用 worker 錯誤 + 0.05 mm 探測分辨原因，仍係同一次預覽先改 status。

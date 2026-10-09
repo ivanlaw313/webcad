@@ -58,7 +58,7 @@ await runE2E(async (page, ok) => {
   await fld.press('Control+a'); await fld.pressSequentially('1', { delay: 120 })
   await page.waitForFunction(() => { const s = window.useApp.getState(); return !s.roundPreviewBusy && (s.roundPreviewMesh || s.roundPreviewFail) }, null, { timeout: 20000 }).catch(() => {})
   const pv = await page.evaluate(() => { const s = window.useApp.getState(); return { ok: !!s.roundPreviewMesh, fail: s.roundPreviewFail, status: s.status } })
-  ok('1 mm chamfer previews (no 「距離太大」)', pv.ok && !pv.fail, pv)
+  ok('1 mm chamfer previews (no 「距離太大」)', pv.ok && !pv.fail && !/距離太大/.test(pv.status), pv)
   await page.shot('preview')
   await page.evaluate(() => window.useApp.getState().commitEdgeRound())
   await page.waitForTimeout(2500)

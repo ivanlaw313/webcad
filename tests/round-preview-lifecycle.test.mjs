@@ -24,6 +24,7 @@ function harness() {
     set: patch => { state = { ...state, ...(typeof patch === 'function' ? patch(state) : patch) } },
     cad: { previewRound: () => new Promise((resolve, reject) => pending.push({ resolve, reject })) },
     hasSolid: () => true,
+    roundFailText: () => '⚠ fail', probeTinyRound: async () => null,  // UX2 #1 原因探測（另有 ux2-chamfer-cup-edge 測真實行為）
     buildRoundFeature: () => ({ id: '~pv-round', type: 'fillet' }),
     applyParamBindings: f => f, expandFeats: f => f,
     setTimeout: fn => { timers.set(++timerId, fn); return timerId },

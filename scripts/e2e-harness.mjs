@@ -27,6 +27,12 @@ export async function runE2E(body, { port = Number(arg('--port', 4400 + (process
     const page = await browser.newPage({ viewport })
     page.on('pageerror', (e) => console.log('[pageerror]', e.message))
     page.shot = async (name) => { if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}.png` }) }
+    // CAD (Z-up kernel coords) → page pixel, via the live camera (three = [x, z, -y]).
+    page.cadToScreen = (p) => page.evaluate((p) => {
+      const { camera } = window.__three; const c = document.querySelector('canvas').getBoundingClientRect()
+      const v = camera.position.clone().set(p[0], p[2], -p[1]).project(camera)
+      return [c.left + (v.x + 1) / 2 * c.width, c.top + (1 - v.y) / 2 * c.height]
+    }, p)
     await page.goto(`http://127.0.0.1:${port}${url}`)
     await page.waitForFunction(() => !!window.useApp && !!document.querySelector('canvas'), null, { timeout: 60000 })
     await page.evaluate(() => window.useApp.setState({ introOpen: false, tour: null }))

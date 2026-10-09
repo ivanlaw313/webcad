@@ -293,6 +293,32 @@ function _faceIndexNearestCentroid(shape: any, c: [number, number, number]): { i
   }
   return { idx: best, d2: bestD }
 }
+// UX2 #1：邊點距（揀邊／近點解析）— 舊法每條邊只取 5 個 t（0/¼/½/¾/1）求最近，圓／弧邊上點喺兩個樣本中間時
+// 會輸畀另一條同心圓（實測：杯緣 R40 外頂邊被當成 R38 內圈 → 倒角「距離太大」）。改為 9 樣本＋黃金分割細化
+//（只喺有機會贏 cutoff 嗰啲邊先細化，成本可控）。返回平方距（mm²）。
+function _edgePointD2(e: any, p: [number, number, number], cutoff = Infinity): number {
+  const d2At = (t: number) => { const q = e.pointAt(t); return (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2 }
+  const N = 8
+  let best = Infinity, bt = 0, maxChord2 = 0, prev: any = null
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, q = e.pointAt(t)
+    const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2
+    if (d < best) { best = d; bt = t }
+    if (prev) { const c = (q.x - prev.x) ** 2 + (q.y - prev.y) ** 2 + (q.z - prev.z) ** 2; if (c > maxChord2) maxChord2 = c }
+    prev = q
+  }
+  if (best === 0) return 0
+  if (Number.isFinite(cutoff) && Math.sqrt(best) - 0.6 * Math.sqrt(maxChord2) > Math.sqrt(cutoff)) return best
+  let a = Math.max(0, bt - 1 / N), b = Math.min(1, bt + 1 / N)
+  const gr = 0.6180339887498949
+  let c = b - gr * (b - a), d = a + gr * (b - a), fc = d2At(c), fd = d2At(d)
+  for (let k = 0; k < 18; k++) {
+    if (fc < fd) { b = d; d = c; fd = fc; c = b - gr * (b - a); fc = d2At(c) }
+    else { a = c; c = d; fc = fd; d = a + gr * (b - a); fd = d2At(d) }
+  }
+  return Math.min(best, fc, fd)
+}
+
 // S1 near-at-prior（边）：喺 priorShape.edges 揾返【采样最近】stored near p 嘅边索引 + 平方距。
 //   ⚠ 与 roundNearPoints/roundNearPoint 嘅选边完全同口径（同 5 个 t 采样、同 min-over-t）→ prior（变换前）几何
 //     同 stored near 食正 → d2≈0。供 _s1CarryMids 喺指纹歧义（_fpSelectMids(prior) 返 null）时退回 near 解析 prior 索引。
@@ -302,7 +328,7 @@ function _edgeIndexNearestNear(shape: any, p: [number, number, number]): { idx: 
   let best = -1, bestD = Infinity
   for (let i = 0; i < edges.length; i++) {
     let dmin = Infinity
-    for (const t of [0, 0.25, 0.5, 0.75, 1]) { const q = edges[i].pointAt(t); const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2; if (d < dmin) dmin = d }
+    dmin = _edgePointD2(edges[i], p, bestD)
     if (dmin < bestD) { bestD = dmin; best = i }
   }
   return { idx: best, d2: bestD }
@@ -965,8 +991,8 @@ function _edgePickRank(e: any): number {
   } catch { return 1 }
 }
 function _nearEdgeBetter(dmin: number, rank: number, bestD: number, bestRank: number): boolean {
-  if (dmin < bestD - 1e-24) return true
-  if (dmin > bestD + 1e-24) return false
+  if (dmin < bestD - 1e-10) return true   // UX2 #1：細化後距離有數值噪聲 — 容差 1e-10 mm²（≈1e-5 mm）先當並列
+  if (dmin > bestD + 1e-10) return false
   return rank < bestRank
 }
 
@@ -975,7 +1001,7 @@ function roundNearPoint(shape: any, kind: 'fillet' | 'chamfer', size: number, p:
   let bestMid: any = null, bestD = Infinity, bestRank = 99
   for (const e of edges) {
     let dmin = Infinity
-    for (const t of [0, 0.25, 0.5, 0.75, 1]) { const q = e.pointAt(t); const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2; if (d < dmin) dmin = d }
+    dmin = _edgePointD2(e, p, bestD)
     const rank = _edgePickRank(e)
     if (_nearEdgeBetter(dmin, rank, bestD, bestRank)) { bestD = dmin; bestRank = rank; bestMid = e.pointAt(0.5) }
   }
@@ -1597,7 +1623,7 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
     let bestMid: any = null, bestD = Infinity, bestRank = 99
     for (const e of edges) {
       let dmin = Infinity
-      for (const t of [0, 0.25, 0.5, 0.75, 1]) { const q = e.pointAt(t); const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2; if (d < dmin) dmin = d }
+      dmin = _edgePointD2(e, p, bestD)
       const rank = _edgePickRank(e)
       if (_nearEdgeBetter(dmin, rank, bestD, bestRank)) { bestD = dmin; bestRank = rank; bestMid = e.pointAt(0.5) }
     }
@@ -1729,7 +1755,7 @@ function chamferAsym(shape: any, d1: number, second: number, mode: 'two' | 'angl
     let bestMid: any = null, bestD = Infinity
     for (const e of edges) {
       let dmin = Infinity
-      for (const t of [0, 0.25, 0.5, 0.75, 1]) { const q = e.pointAt(t); const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2; if (d < dmin) dmin = d }
+      dmin = _edgePointD2(e, p, bestD)
       if (dmin < bestD) { bestD = dmin; bestMid = e.pointAt(0.5) }
     }
     if (bestMid) mids.push([bestMid.x, bestMid.y, bestMid.z])
@@ -6719,7 +6745,7 @@ const api = {
     }
     // 当 _fpSelectMids 返 null（v1 真 miss）时，生产路径退回【裸 near-point on stale near】= 今日漂移结果。
     // 复刻 roundNearPoints 嘅最近边选边（sample pointAt），报告佢落边集嗰条 idx。
-    const nearPointIdx = nears.map((p) => { let bi = -1, bd = Infinity; for (let i = 0; i < edges.length; i++) { let dmin = Infinity; for (const t of [0, 0.25, 0.5, 0.75, 1]) { const q = edges[i].pointAt(t); const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2; if (d < dmin) dmin = d } if (dmin < bd) { bd = dmin; bi = i } } return bi })
+    const nearPointIdx = nears.map((p) => { let bi = -1, bd = Infinity; for (let i = 0; i < edges.length; i++) { let dmin = Infinity; dmin = _edgePointD2(edges[i], p, bd); if (dmin < bd) { bd = dmin; bi = i } } return bi })
     return {
       nEdges: edges.length,
       v1SelectIsNull: v1mids === null,                  // true → 生产会退回下面 nearPointIdx（今日漂移）
@@ -7136,7 +7162,7 @@ const api = {
       let best: any = null, bestD = Infinity, bestRank = 99
       for (const e of edges) {
         let dmin = Infinity
-        for (const t of [0, 0.25, 0.5, 0.75, 1]) { const q = e.pointAt(t); const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2; if (d < dmin) dmin = d }
+        dmin = _edgePointD2(e, p, bestD)
         const rank = _edgePickRank(e)
         if (_nearEdgeBetter(dmin, rank, bestD, bestRank)) { bestD = dmin; bestRank = rank; best = e }
       }
@@ -7176,7 +7202,7 @@ const api = {
       let best: any = null, bestD = Infinity
       for (const e of edges) {
         let dmin = Infinity
-        for (const t of [0, 0.25, 0.5, 0.75, 1]) { const q = e.pointAt(t); const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2; if (d < dmin) dmin = d }
+        dmin = _edgePointD2(e, p, bestD)
         if (dmin < bestD) { bestD = dmin; best = e }
       }
       if (!best) return null
@@ -7217,7 +7243,7 @@ const api = {
       let best: any = null, bestD = Infinity
       for (const e of edges) {
         let dmin = Infinity
-        for (const t of [0, 0.25, 0.5, 0.75, 1]) { const q = e.pointAt(t); const d = (q.x - p[0]) ** 2 + (q.y - p[1]) ** 2 + (q.z - p[2]) ** 2; if (d < dmin) dmin = d }
+        dmin = _edgePointD2(e, p, bestD)
         if (dmin < bestD) { bestD = dmin; best = e }
       }
       if (!best) return null

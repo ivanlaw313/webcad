@@ -4608,6 +4608,25 @@ function translateProfile(p: SketchProfile, dx: number, dy: number): SketchProfi
 // 跳过原点 (0,0)（基础组本身已喺 features 序列内）；ids 确定式（只入 worker、唔入 state，唔郁全局 fid 计数）。
 // P2 批7：圆角/倒角实时预览 — 临时特征共用构造器（同 commitEdgeRound 逐字节同一逻辑，防预览≠提交）。
 // id 传入：预览用固定 '~pv-round'（sig 稳定 → 同半径连续预览全中 T730 缓存），提交用 fid()。
+// UX2 #1：倒角/圓角預覽失敗嘅原因（繁體）。tinyOk=同一組棱用 0.05 mm 都得 → 真係數值太大；唔得 → 棱本身倒唔到。
+export function roundFailText(kind: '倒角' | '圓角', workerMsg: string, tinyOk: boolean | null): string {
+  if (/near points? failed|edge.*not found|搵唔返/i.test(workerMsg)) return `⚠ 揀中嘅棱喺而家個實體上搵唔返 — 請重新揀棱再試`
+  if (tinyOk === false) return `⚠ 呢條棱${kind}唔到（可能係旋轉體嘅接縫線，或者幾個面喺度相交）— 同數值無關，請揀另一條棱`
+  return `⚠ ${kind}${kind === '倒角' ? '距離' : '半徑'}太大（超過相鄰面）— 減小數值先撳確定`
+}
+async function probeTinyRound(active: Feature[]): Promise<boolean | null> {
+  const last = active[active.length - 1] as Feature & { distance?: number; dist2?: number; radius?: number; radii?: number[]; distances?: number[] }
+  if (!last || (last.type !== 'chamfer' && last.type !== 'fillet')) return null
+  const T = 0.05
+  const tiny = { ...last } as typeof last
+  if (typeof tiny.distance === 'number') tiny.distance = T
+  if (typeof tiny.dist2 === 'number') tiny.dist2 = T
+  if (typeof tiny.radius === 'number') tiny.radius = T
+  if (Array.isArray(tiny.radii)) tiny.radii = tiny.radii.map(() => T)
+  if (Array.isArray(tiny.distances)) tiny.distances = tiny.distances.map(() => T)
+  if (typeof (tiny as { radius2?: number }).radius2 === 'number') (tiny as { radius2?: number }).radius2 = T
+  try { const m = await cad.previewRound([...active.slice(0, -1), tiny as Feature]); return !!m && !!m.triangles.length && !m.failed?.length } catch { return null }
+}
 function buildRoundFeature(s: { edgeRoundPicks: [number, number, number][]; edgeRoundPick: 'fillet' | 'chamfer' | null; edgeRoundSize: number; chamferMode: 'equal' | 'two' | 'angle'; chamferSize2: number; chamferAngle: number; chamferFlip: boolean; chamferRefFace: { p: [number, number, number]; faceId: number } | null; filletR2: number; edgeRoundRadii: number[]; edgeRoundGroupIds: number[]; edgeRoundChain: boolean; filletMode: 'radius' | 'chord' | 'asymmetric'; filletChord: number; filletSetback: number; filletAsymFlip: boolean; filletContinuity: 'G1' | 'G2'; filletRadiusGroups: { radius: number; continuity: 'G1' | 'G2' }[]; filletType: 'fillet' | 'rule' | 'full'; filletRuleMode: 'all' | 'between'; filletRuleFaceSets: (1 | 2)[]; filletFullFaceSets: (1 | 2 | 3)[] }, id: string): Feature | null {
   const pts = s.edgeRoundPicks, kind = s.edgeRoundPick || 'fillet'
   if (!pts.length) return null
@@ -6543,7 +6562,20 @@ export const useApp = create<AppState>((rawSet, get) => {
       const warn = mesh!.warnings && mesh!.warnings.length ? `⚠ ${mesh!.warnings.join('；')}` : ''
       _previewFeatures.set(mesh!, active)
       set({ roundPreviewMesh: mesh, roundPreviewFail: false, roundPreviewBusy: false, ...(warn ? { status: warn } : {}) })
-    } else set({ roundPreviewMesh: null, roundPreviewFail: true, roundPreviewBusy: false, status: s.edgeRoundPick === 'fillet' && s.filletType === 'full' ? '⚠ 全圓角預覽失敗：檢查三組面是否相鄰，而且兩條邊界是否直線兼互相平行' : s.edgeRoundPick === 'fillet' && s.filletMode === 'asymmetric' ? '⚠ 不對稱圓角預覽失敗：目前要求凸直線邊及兩個互相垂直平面' : `⚠ ${s.edgeRoundPick === 'chamfer' ? '倒角距離' : '圓角半徑'}太大（超過相鄰面）— 減小數值先撳確定` })
+    } else {
+      // UX2 #1：唔好一律話「距離太大」— 實測 flange 杯 1 mm 失敗嘅真因係揀錯棱／接縫棱。即刻標失敗（唔阻 UI），
+      // 再喺背景用 worker 錯誤 + 0.05 mm 探測分辨原因，仍係同一次預覽先改 status。
+      const kind = s.edgeRoundPick === 'chamfer' ? '倒角' : '圓角'
+      const special = s.edgeRoundPick === 'fillet' && s.filletType === 'full' ? '⚠ 全圓角預覽失敗：檢查三組面是否相鄰，而且兩條邊界是否直線兼互相平行' : s.edgeRoundPick === 'fillet' && s.filletMode === 'asymmetric' ? '⚠ 不對稱圓角預覽失敗：目前要求凸直線邊及兩個互相垂直平面' : ''
+      const ownFail = mesh?.failed?.find((x) => x.id === f.id)
+      set({ roundPreviewMesh: null, roundPreviewFail: true, roundPreviewBusy: false, status: special || (mesh?.failed?.length && !ownFail ? '⚠ 前面嘅特徵重建失敗（時間軸紅色嗰個）— 先修正佢再加' + kind : roundFailText(kind, String(ownFail?.msg || ''), true)) })
+      if (!special && (ownFail || !mesh)) {
+        void probeTinyRound(active).then((tinyOk) => {
+          if (seq !== _roundPvSeq || !get().roundPreviewFail || !get().edgeRoundPick) return
+          set({ status: roundFailText(kind, String(ownFail?.msg || ''), tinyOk) })
+        })
+      }
+    }
   },
   // Fusion-style shell command: pick the face(s) to open → set wall thickness → 确定.
   shellPreviewMesh: null,

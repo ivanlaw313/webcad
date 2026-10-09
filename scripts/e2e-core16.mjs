@@ -61,7 +61,7 @@ await runE2E(async (page, okRaw) => {
     const b = page.locator(`.tool-btn[data-cmd="${id}"]:visible`).first()
     if (await b.count()) { await b.click(); await W(500); return 'icon' }
     // child of a quick split button (圓錐 under 圓柱 ▾ / 倒角 under 圓角 ▾ / 環形陣列 under 陣列 ▾)
-    const parent = { cone: 'cylinder', chamfer: 'fillet', circpattern: 'pattern', pathpattern: 'pattern', geopattern: 'pattern' }[id]
+    const parent = { cylinder: 'box', cone: 'box', chamfer: 'fillet', circpattern: 'pattern', pathpattern: 'pattern', geopattern: 'pattern' }[id]
     if (parent) {
       await page.locator(`[data-testid="quick-tool-caret-${parent}"]:visible`).first().click(); await W(250)
       await page.locator(`[data-testid="quick-tool-menu-${parent}"] [data-cmd="${id}"]`).first().click(); await W(500)

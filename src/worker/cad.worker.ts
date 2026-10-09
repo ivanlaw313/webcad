@@ -880,10 +880,36 @@ function _ffFaceFpV2(fc: any, modelVerts: number[]): string | null {
 //     (b) 该 stored v2 fp 喺当前面集【唯一】（v2Counts.get(fp) === 1 → 唔撞 → 无歧义）。
 //   任一闸唔过（degenerate / 撞 / miss / 空 cloud / 空 v2 串）→ 唔采信该面 v2 → fall through 到 v1（再 near-point）。
 //   v2 用模型【真实点云】（_fpModelVerts，PCA 主框架），唔系 bbox 两角；v1 仍用 bbox 两角（字节一致，行为不变）。
+type _FfParts = { n: string; c: number[]; a: number; d: number }
+function _ffParse(fp: string): _FfParts | null {
+  const m = /^f1\|n:([^|]+)\|c:(-?\d+)\/(-?\d+)\/(-?\d+)\|a:(-?\d+)\|d:(-?\d+)/.exec(fp)
+  return m ? { n: m[1], c: [+m[2], +m[3], +m[4]], a: +m[5], d: +m[6] } : null
+}
+function _ffFuzzyFind(fp: string, fpOf: Map<number, string>, near: [number, number, number] | undefined, centroidOf: (i: number) => [number, number, number] | null): number {
+  const w = _ffParse(fp); if (!w) return -1
+  const cands: number[] = []
+  for (const [i, f] of fpOf) {
+    const h = _ffParse(f); if (!h || h.n !== w.n) continue
+    if (h.c.some((v, k) => Math.abs(v - w.c[k]) > 1)) continue
+    if (Math.abs(h.d - w.d) > 1) continue
+    if (Math.abs(h.a - w.a) > Math.max(1, 0.01 * Math.abs(w.a))) continue
+    cands.push(i)
+  }
+  if (cands.length === 1) return cands[0]
+  if (cands.length < 2 || !near) return -1
+  let best = -1, bestD = Infinity, second = Infinity
+  for (const i of cands) { const c = centroidOf(i); if (!c) continue; const d = Math.hypot(c[0] - near[0], c[1] - near[1], c[2] - near[2]); if (d < bestD) { second = bestD; bestD = d; best = i } else if (d < second) second = d }
+  return best >= 0 && bestD < second - 1e-6 ? best : -1
+}
 function _ffSelectPts(shape: any, faceFp: string[], nears?: ([number, number, number] | undefined)[], faceFpV2?: string[], faceFpTopo?: string[]): [number, number, number][] | null {
   const faces = shape.faces as any[]
   if (!faces || !faces.length) return null
   const mv = _fpBboxVerts(shape); if (!mv.length) return null
+  // UX2 #11：face.triangulation() 只係讀【已有】三角化 — 撳「確定」時 _ffCapture 先用固定容差（_fpModelVerts，0.1 mm）
+  //   三角化再取指紋；但載入／自動存檔還原時上游 shape 係新建、未三角化 → 全部面指紋 null → 必 miss → 退回近點，
+  //   而「最近面」只喺啱啱俾顯示三角化過嘅面入面揀 → 「所選面搵唔返，已改用最近嘅面（相差 14.8 mm）」。
+  //   選取前用同一固定容差三角化（有 cache，capture 之後零成本）→ 同一幾何跨存檔／重建出同一指紋。
+  _fpModelVerts(shape)
   let _e2f: Map<number, number[]> | null = null   // #14：edge→faces 邻接表 lazy build（仅歧义分支且带 faceFpTopo 时先算 → 零开销）
   const edgeToFaces = () => (_e2f ?? (_e2f = buildEdgeToFaces(faces)))
   const fpOf = new Map<number, string>()   // 面 idx → 指纹（碰撞消歧复用）
@@ -917,7 +943,14 @@ function _ffSelectPts(shape: any, faceFp: string[], nears?: ([number, number, nu
     }
     // ── v1 路径（原 S125/S131 逻辑，逐字保留）──
     const fp = faceFp[k]
-    const idx = fpToIdx.get(fp)
+    let idx = fpToIdx.get(fp)
+    if (idx == null) {
+      // UX2 #11：指紋係由【三角化】計（t/v 計數、多邊形面積、質心）— 顯示網格／容差唔同（瀏覽器顯示過嘅 shape vs 硬刷新
+      //   新建嘅 shape）就會差一格量化（例：a:3485 vs a:3486）→ 精確字串 miss → 退回近點揀錯面（「相差 30.2 mm」）。
+      //   容差比對：法向完全一致、質心/對角各差 ≤1 格、面積差 ≤1 格或 1%；唯一命中先採信，多個 → 揀最近存低近點嗰張。
+      const hit = _ffFuzzyFind(fp, fpOf, nears?.[k], centroidOf)
+      if (hit >= 0) idx = hit
+    }
     if (idx == null) {
       // ── S1-面 真拓扑命名（TRANSFORM lineage）：faceFp 喺当前 shape 解析唔到（漂移）→ 先试沿上游变换以拓扑顺序追踪该面。
       //   成功（中间全部系变换 op + prior 帧能干净解析整套 pick）→ 用 carried centroids 整套覆盖漂移近点 + 压住 S144 警告。

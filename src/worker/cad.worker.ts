@@ -2272,8 +2272,8 @@ function _copyHealSolid(shape: any): any | null {
  * v1.24: full bilingual phrases (no short-fragment EN mangling like 完成→done / 重建→rebuild). */
 function _shellCavityStatus(kind: 'cavity' | 'prismatic'): string {
   return kind === 'prismatic'
-    ? '抽壳完成（备用：直柱型腔）'
-    : '抽壳完成（备用：开口面偏移型腔）'
+    ? '抽殼完成（備用：直柱型腔）'
+    : '抽殼完成（備用：開口面偏移型腔）'
 }
 
 /** Light sew of solid faces — alternate base when MakeThickSolid fails on dirty cut+fillet (BX02). */
@@ -3598,33 +3598,48 @@ function buildShape(features: Feature[], noCache = false): any {
           if (f.bop === 'cut') {
             let result: any = null
             let swapped = false
+            const volTarget0 = _solidVolume(targetSh)
+            const volTool0 = _solidVolume(toolSh)
             try { result = _cutRobust(targetSh, toolSh) } catch { result = null }
             let vol = _solidVolume(result)
-            if (!(vol > 1e-6)) {
-              try {
-                const rev = _cutRobust(toolSh, targetSh)
-                const volR = _solidVolume(rev)
-                if (volR > 1e-6) {
-                  result = rev
-                  swapped = true
-                  vol = volR
-                  buildWarnings.push('实体布尔切除：目标−工具结果为空，已自动对调为工具−目标（常见于「新实体」后第二体作活动目标且被独立实体完全包含）')
-                }
-              } catch { /* reverse also failed */ }
-            }
+            // Empty forward → swap (v1.27). ASM2 P1 newbody→active also leaves a non-empty
+            // stump (small active − large tool) when the intended hole is tool−target; prefer
+            // reverse when it keeps most of the larger body and forward is only a remnant.
+            try {
+              const rev = _cutRobust(toolSh, targetSh)
+              const volR = _solidVolume(rev)
+              const emptyFwd = !(vol > 1e-6)
+              const stumpFwd = vol > 1e-6 && vol < volTarget0 * 0.5 && volR > volTool0 * 0.5 && volR > vol
+              if (volR > 1e-6 && (emptyFwd || stumpFwd)) {
+                result = rev
+                swapped = true
+                vol = volR
+                buildWarnings.push(emptyFwd
+                  ? '實體布爾切除：目標−工具結果為空，已自動對調為工具−目標（常見於「新實體」後第二體作活動目標且被獨立實體完全包含）'
+                  : '實體布爾切除：目標−工具僅餘殘段，已自動對調為工具−目標（ASM2「新實體」後活動體為刀具時常見）')
+              }
+            } catch { /* reverse also failed */ }
             if (!result || !(vol > 1e-6)) {
-              throw new Error('实体布尔切除结果为空（无有效差集）— 确认两体重叠，或用拉伸「⬡新实体」把工具体另存为独立实体并保持目标为活动体')
+              throw new Error('實體布爾切除結果為空（無有效差集）— 確認兩體重疊，或用拉伸「⬡新實體」把工具體另存為獨立實體並保持目標為活動體')
             }
             _recordBool(_i, bKind, swapped ? targetSh : toolSh)
             shape = _healSolid(result)
+            // S185 Keep Tools；另：切除未去料（不相交）時保留工具體，避免誤消耗。
+            const baseVol = swapped ? volTool0 : volTarget0
+            if (!f.keep && Math.abs(vol - baseVol) >= 1e-3) parkedBodies.splice(f.target, 1)
           } else if (f.bop === 'common') {
             _recordBool(_i, bKind, toolSh)
             shape = _healSolid(targetSh.clone().intersect(toolSh.clone()))
+            if (!f.keep) parkedBodies.splice(f.target, 1)
           } else {
-            _recordBool(_i, bKind, toolSh)
-            shape = _healSolid(fuseRobust(targetSh, toolSh))
+            // Prefer larger body as fuse base — OCCT topology (later fillet/shell) is more stable
+            // when the first operand is the bigger solid (ASM2 newbody→active often inverts order).
+            const volT = _solidVolume(targetSh), volTool = _solidVolume(toolSh)
+            const fuseSwapped = volTool > volT * 1.05
+            _recordBool(_i, bKind, fuseSwapped ? targetSh : toolSh)
+            shape = _healSolid(fuseRobust(fuseSwapped ? toolSh : targetSh, fuseSwapped ? targetSh : toolSh))
+            if (!f.keep) parkedBodies.splice(f.target, 1)
           }
-          if (!f.keep) parkedBodies.splice(f.target, 1)   // S185 Keep Tools：keep 时工具体保留做独立实体（可复用）；缺省=消耗（旧档逐字节回放）
         } catch (e) { throw new Error(`实体布尔失败：${(e as Error)?.message || e}`) }
       }
     } else if (f.type === 'boundaryfill') {

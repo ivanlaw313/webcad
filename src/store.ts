@@ -2203,6 +2203,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   bodyDensity: number
   setBodyDensity: (d: number) => void
   setMaterialPreset: (name: string) => void
+  appearanceName: string                                  // 最近套用嘅外观预设名（纯视觉；swatch 高亮用）
   physMatName: string                                     // GM-3DV3 M14：物理材质名（只影响密度→质量/FEA/BOM，唔郁外观）
   setPhysicalMaterial: (name: string) => void
   // S187：用户外观材质库（save/load/delete 具名预设，localStorage 全局持久，对标 Fusion Appearance 收藏）
@@ -13092,13 +13093,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   // High-contrast neutral blue-grey: a new solid must be distinct from the
   // light construction grid, without looking like a selected face.
   bodyColor: '#4a7296',
-  setBodyColor: (c) => set({ bodyColor: c }),
+  setBodyColor: (c) => set({ bodyColor: c, appearanceName: '' }),   // 自订颜色 → 唔再系某个外观预设（swatch 取消高亮）
   material: { metalness: 0.18, roughness: 0.5, opacity: 1 },
   bodyDensity: 2.7,
   setBodyDensity: (d) => set({ bodyDensity: Math.max(0.01, d) }),
-  // Assigning a body material preset sets colour + finish AND its density (so the mass readout is realistic).
+  // Appearance preset = VISUAL ONLY (colour + PBR finish + texture). Fusion separates Appearance from Physical
+  // Material: density / mass / FEA / BOM are owned by setPhysicalMaterial and must NOT change here.
   // S101[8]：预设带程序化纹理默认（木→木纹 / 不锈钢·铝·钢→拉丝 / 黑塑·ABS→磨砂），可被 setBodyTexture 覆盖。
-  setMaterialPreset: (name) => { const m = MATERIALS[name]; if (m) set((s) => ({ bodyColor: m.color, material: { metalness: m.metalness, roughness: m.roughness, opacity: m.opacity ?? 1, tex: m.tex ?? '', texScale: s.material.texScale ?? 30 }, ...(m.density ? { bodyDensity: m.density } : {}) })) },
+  appearanceName: '',
+  setMaterialPreset: (name) => { const m = MATERIALS[name]; if (m) set((s) => ({ bodyColor: m.color, material: { metalness: m.metalness, roughness: m.roughness, opacity: m.opacity ?? 1, tex: m.tex ?? '', texScale: s.material.texScale ?? 30 }, appearanceName: name, status: `已套用外觀：${name}` })) },
   // GM-3DV3 M14：Physical Material 与 Appearance 分家 —— 物理材质只设【密度】（→ 质量/FEA/BOM），唔郁外观颜色/PBR。
   // （对标 Fusion：可以畀件「钢密度做质量计算」但外观照旧原色；反之外观库只管睇相唔改密度。）
   physMatName: '',
@@ -13298,7 +13301,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const f: Feature = { id: fid(), type: 'text', text: txt, size, height: h, op: engrave ? 'cut' : (hasSolid(get().features) ? 'join' : 'new'), baseZ: engrave ? Math.max(0, top - h) : 0 }
         return mk(f, `${engrave ? '凹刻' : '凸起'}文字「${txt}」字号${size} ${engrave ? '深' : '高'}${h}mm`)
       }
-      case 'set_material': { const nm = String(a.material || '钢'); if (!MATERIALS[nm]) return '✗ 未知材质：' + nm; get().setMaterialPreset(nm); return '✓ 已设材质：' + nm }
+      case 'set_material': { const nm = String(a.material || '钢'); if (!MATERIALS[nm]) return '✗ 未知材质：' + nm; get().setMaterialPreset(nm); get().setPhysicalMaterial(nm); return '✓ 已设材质：' + nm }   // AI「设材质」= 外观 + 物理材质（外观本身唔再改密度）
       case 'mirror_body': { if (!hasSolid(get().features)) return '✗ 需要先有实体'; await get().addMirror(); return '✓ 已镜像（跨 YZ 平面）' }
       case 'load_sample': { const k = String(a.kind || 'plate') as SampleKind; await get().loadSample(k); return '✓ 已载入范本：' + k }
       case 'add_parameter': { const nm = String(a.name || 'd1'); get().addParam(nm, pnum('value')); return `✓ 已加参数 ${nm}=${pnum('value')}` }

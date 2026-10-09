@@ -38,6 +38,7 @@ export const SC2TC_HK_PHRASES: Record<string, string> = {
   '放松': '放鬆',
   '松弛': '鬆弛',
   '松开': '鬆開',
+  '橡胶': '橡膠',
   // --- 并: 並 (also) vs 併 (merge) ---
   '并重建': '並重建',
   '并且': '並且',

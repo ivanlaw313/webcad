@@ -462,6 +462,20 @@ export function tLabel(label: string, lang: LangInput): string {
 }
 
 
+// Material / appearance preset display name. MATERIALS keys (store.ts) are Simplified-Chinese ids and must stay
+// stable (saved docs / AI commands / swatch images use them) — translate only at render time.
+const MATERIAL_EN: Record<string, string> = {
+  钢: 'Steel', 铝: 'Aluminum', 黄铜: 'Brass', 铜: 'Copper', 塑料: 'Plastic', 喷漆: 'Paint', 金: 'Gold', 银: 'Silver',
+  钛: 'Titanium', 黑塑: 'Black Plastic', 不锈钢: 'Stainless Steel', 青铜: 'Bronze', 木: 'Wood', 橡胶: 'Rubber',
+  玻璃: 'Glass', 尼龙PA: 'Nylon PA', 树脂: 'Resin',
+}
+export function tMaterialName(name: string, lang: LangInput): string {
+  const L = normalizeLang(lang)
+  if (L === 'zh-HK') return simplifiedToTraditionalHK(name)
+  if (L === 'zh-CN') return traditionalToSimplified(name)
+  return MATERIAL_EN[name] ?? name
+}
+
 /** Ribbon button caption by command id (v1.83 cmd.* catalog). Variant labels via LABEL_TO_KEY. */
 export function ribbonCmdLabel(id: string, lang: LangInput, fallbackLabel?: string): string {
   const L = normalizeLang(lang)

@@ -7,7 +7,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useApp, MATERIALS, SAMPLE_LABELS, type SampleKind } from '../store'
 import { ToolIcon } from '../icons'
 import { WORKSPACE_TABS, WORKSPACES, SKETCH_PANELS, FORM_PANELS, type Tool } from '../ribbon'
-import { tGroup, tTab, msg, tStatus, normalizeLang, ribbonCmdLabel, type Lang } from '../i18n'   // T800 + v1.83 cmd.*
+import { tGroup, tTab, msg, tStatus, normalizeLang, ribbonCmdLabel, tMaterialName, type Lang } from '../i18n'   // T800 + v1.83 cmd.*
 import { FASTENER_KIND_LABEL, FASTENER_SIZES, type FastenerKind, type FastenerSize } from '../cad/fasteners'
 import { TEXTURE_KEYS } from '../render/procTextures'
 import { parseNumericField, type NumericFieldSpec } from '../cad/numericInput'
@@ -530,10 +530,7 @@ ${r.age}${r.isSelf ? '（本分頁）' : ''}
         <FastenerPicker />
         <select className="tb-mat" title="材質預設" defaultValue="" onChange={(e) => { if (e.target.value) setMaterialPreset(e.target.value) }}>
           <option value="">{msg('ui.materialEllipsis', lang)}</option>
-          {Object.keys(MATERIALS).map((m) => {
-            const MAT_TC: Record<string, string> = { 鋼: '鋼', 鋁: '鋁', 黃銅: '黃銅', 噴漆: '噴漆', 不鏽鋼: '不鏽鋼', 尼龍PA: '尼龍PA', 樹脂: '樹脂' }
-            return <option key={m} value={m}>{MAT_TC[m] || m}</option>
-          })}
+          {Object.keys(MATERIALS).map((m) => <option key={m} value={m}>{tMaterialName(m, lang)}</option>)}
         </select>
         </>)}
         <MaterialSwatchPicker />{/* 材质球视觉拣料（Flux 生成 studio render 球）*/}

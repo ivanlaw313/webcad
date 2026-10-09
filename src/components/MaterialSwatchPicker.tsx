@@ -3,6 +3,7 @@
 // 比纯文字下拉直观好多（Fusion Appearance 式视觉拣料）。下拉保留做后备。
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useApp, MATERIALS } from '../store'
+import { tMaterialName } from '../i18n'
 
 // MATERIALS 中文 key → 生成图档英文名（public/mat/<eng>.png）。冇图嘅 key 回退纯色块。
 const KEY2IMG: Record<string, string> = {
@@ -20,6 +21,9 @@ export default function MaterialSwatchPicker() {
   const setMaterialPreset = useApp((s) => s.setMaterialPreset)
   const setPhysicalMaterial = useApp((s) => s.setPhysicalMaterial)
   const physMatName = useApp((s) => s.physMatName)
+  const appearanceName = useApp((s) => s.appearanceName)   // 当前外观预设 → swatch 高亮
+  const lang = useApp((s) => s.lang)
+  const nm = (k: string) => tMaterialName(k, lang)
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
@@ -57,15 +61,16 @@ export default function MaterialSwatchPicker() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
               {keys.map((k) => {
                 const eng = KEY2IMG[k]
+                const sel = appearanceName === k
                 return (
-                  <button key={k} title={`外觀：${k}`} onClick={() => { setMaterialPreset(k); setOpen(false) }}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, border: '1px solid transparent', borderRadius: 6, padding: 2, background: 'none', cursor: 'pointer' }}
+                  <button key={k} title={`外觀：${nm(k)}（只改外觀，不改密度／質量）`} aria-pressed={sel} data-selected={sel ? 'true' : undefined} onClick={() => { setMaterialPreset(k); setOpen(false) }}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, border: '1px solid ' + (sel ? '#2b6cf0' : 'transparent'), borderRadius: 6, padding: 2, background: sel ? '#eef3fc' : 'none', cursor: 'pointer' }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2b6cf0'; e.currentTarget.style.background = '#eef3fc' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'none' }}>
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = sel ? '#2b6cf0' : 'transparent'; e.currentTarget.style.background = sel ? '#eef3fc' : 'none' }}>
                     {eng
-                      ? <img src={`/mat/${eng}.png`} alt={k} width={44} height={44} style={{ borderRadius: '50%', display: 'block', objectFit: 'cover' }} loading="lazy" />
+                      ? <img src={`/mat/${eng}.png`} alt={nm(k)} width={44} height={44} style={{ borderRadius: '50%', display: 'block', objectFit: 'cover' }} loading="lazy" />
                       : <span style={{ width: 44, height: 44, borderRadius: '50%', background: MATERIALS[k]?.color || '#bbb', display: 'block', boxShadow: 'inset 0 -6px 10px rgba(0,0,0,.25), inset 0 6px 8px rgba(255,255,255,.5)' }} />}
-                    <span style={{ fontSize: 10, color: '#5a6570', lineHeight: 1.1, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 50 }}>{k}</span>
+                    <span style={{ fontSize: 10, color: '#5a6570', lineHeight: 1.1, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 50, fontWeight: sel ? 600 : 400 }}>{nm(k)}</span>
                   </button>
                 )
               })}
@@ -73,14 +78,14 @@ export default function MaterialSwatchPicker() {
           )}
           {tab === 'physical' && (
             <div>
-              <div style={{ fontSize: 10, color: '#8a95a0', marginBottom: 6 }}>只設【密度】→ 質量 / FEA / BOM（外觀顏色不變）。當前：{physMatName || '（未指定，用默認密度）'}</div>
+              <div style={{ fontSize: 10, color: '#8a95a0', marginBottom: 6 }}>只設【密度】→ 質量 / FEA / BOM（外觀顏色不變）。當前：{physMatName ? nm(physMatName) : '（未指定，用預設密度）'}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {physKeys.map((k) => (
-                  <button key={k} title={`物理材質：${k}（密度 ${MATERIALS[k].density} g/cm³）`} onClick={() => { setPhysicalMaterial(k); setOpen(false) }}
+                  <button key={k} title={`物理材質：${nm(k)}（密度 ${MATERIALS[k].density} g/cm³）`} onClick={() => { setPhysicalMaterial(k); setOpen(false) }}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, border: '1px solid ' + (physMatName === k ? '#2b6cf0' : 'transparent'), borderRadius: 6, padding: '3px 8px', background: physMatName === k ? '#eef3fc' : 'none', cursor: 'pointer', fontSize: 12 }}
                     onMouseEnter={(e) => { if (physMatName !== k) e.currentTarget.style.background = '#f2f5f9' }}
                     onMouseLeave={(e) => { if (physMatName !== k) e.currentTarget.style.background = 'none' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: MATERIALS[k]?.color || '#bbb', display: 'inline-block' }} />{k}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: MATERIALS[k]?.color || '#bbb', display: 'inline-block' }} />{nm(k)}</span>
                     <span style={{ color: '#6a7580', fontVariantNumeric: 'tabular-nums' }}>{MATERIALS[k].density} g/cm³</span>
                   </button>
                 ))}

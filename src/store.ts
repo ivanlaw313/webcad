@@ -5199,7 +5199,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         pushHistory()
         // No active body — but an assembly-only doc (components, 0 features) is NOT empty: show the caller's
         // message, not "已清空", or loading/restoring an assembly falsely flashes "cleared" and alarms the user.
-        set({ features: bound, bodyMesh: null, bodyTopZ: 0, timelinePos: bound.length, busy: false, status: (bound.length || get().components.length || get().mode === 'sketch') ? okMsg : '已清空', failedFeatureIds: [], featureErrors: {}, planes: planesFromFeatures(bound, sup), ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('幾何已改') : {}) })   // GM-W5 5.1：空树亦派生 planes（全抑制/空档 → []）
+        set({ features: bound, bodyMesh: null, bodyTopZ: 0, timelinePos: bound.length, busy: false, status: (bound.length || get().components.length || get().mode === 'sketch') ? okMsg : '已清空', failedFeatureIds: [], featureErrors: {}, lastBuildWarnings: [] /* UX1 #2：冇幾何 = 冇重建警告 */, planes: planesFromFeatures(bound, sup), ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('幾何已改') : {}) })   // GM-W5 5.1：空树亦派生 planes（全抑制/空档 → []）
         return true
       }
       // Operation-specific hint (used by both the empty-mesh and kernel-threw paths) — far more actionable
@@ -21917,7 +21917,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // caller right after reset() (e.g. starting a new sketch) would be clobbered when this set
     // ran after the await below.
     cancelSkDimEdit()   // UI02: drop any live dimension ghost before wiping the document
-    set({ kernelNotice: null })   // BUG-535：QA 實測載入崩潰之後撳「新建」，紅色「打開未完成」橫額仲留住 —— 狀態唔同步
+    set({ kernelNotice: null, lastBuildWarnings: [], failedFeatureIds: [], featureErrors: {} })   // UX1 #2：舊檔嘅「重建警告」pill／失敗標記唔准帶入新檔；BUG-535：QA 實測載入崩潰之後撳「新建」，紅色「打開未完成」橫額仲留住 —— 狀態唔同步
 
     set({inspectMode:false,inspectInfo:null,propsDialog:null,propsDialogData:null,hoverFace:null,
       editPreviewMesh:null,roundPreviewMesh:null,shellPreviewMesh:null,roundPreviewBusy:false,shellPreviewBusy:false,roundPreviewFail:false,shellPreviewFail:false,

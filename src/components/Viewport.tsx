@@ -400,15 +400,6 @@ export function exportViewPNG() {
   } catch (e) { useApp.setState({ status: '匯出圖片失敗：' + String(e).slice(0, 60) }) }
 }
 
-function PlaceholderBody() {
-  return (
-    <mesh position={[0, 20, 0]}>
-      <boxGeometry args={[100, 40, 60]} />
-      <meshStandardMaterial color="#cdd4da" metalness={0.1} roughness={0.6} transparent opacity={0.45} />
-      <Edges threshold={20} color="#8a929a" />
-    </mesh>
-  )
-}
 
 // 泊车实体（多实体 T728）：灰显；默认唔接受拾取（圆角/草图仍作用喺活动实体）。
 // S133：编辑曲面控制点 / 加厚曲面模式下变可拾。
@@ -4817,7 +4808,7 @@ export default function Viewport() {
                 : <KernelBody mesh={editPreviewMesh || (shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh) || bodyMesh} selected={modelSelBodyKeys.includes(ACTIVE_BODY_KEY)} displayOnly={!!((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh))} clip={clip} pickable={selPicksBody(selFilter) && mode !== 'sketch' && !formMode} />}
             {((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh)) && <KernelBody mesh={bodyMesh} pickOnly clip={clip} />}
           </>)
-          : (mode === 'model' && !formMode && components.length === 0 && !(bodyMesh?.parked?.length) ? <PlaceholderBody /> : null)}
+          : null}   {/* UX1 #2：空白文件唔再畫 100×40×60 灰色半透明「佔位體」（用戶以為係舊檔殘留線框）— Fusion 新檔係空場景 */}
         {/* 多实体（T728）：泊车实体灰显。圆角/草图仍作用喺活动实体；SO10：测量体过滤 + 普通体选择时可拾泊车半体。
             S133：编辑曲面控制点 / 加厚曲面模式下变可拾。 */}
         {bodyMesh?.parked?.map((b, i) => (!objectVis.bodies || bodyHidden.includes(parkedBodyKey(b.name, i))) ? null : <ParkedBody key={'pk' + i} mesh={b} index={i} pickable={editPolesMode || quiltPickMode || measureUniMode || (mode === 'model' && !formMode && selPicksBody(selFilter))} picked={modelSelBodyKeys.includes(parkedBodyKey(b.name, i)) || (editPolesMode && editPolesTarget === i) || quiltPickMode || (selectedParkedIndex === i)} onPick={(idx, face, threePt, faceN, toggle) => {

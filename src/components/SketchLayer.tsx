@@ -266,7 +266,8 @@ export function CameraRig() {
     | null
   const orientedControls = useRef<unknown>(null)
   // QA 钩：暴露 camera/controls 畀 headless 验证相机取向（同 claudecraft window.cc 惯例；只读引用,无副作用）。
-  useEffect(() => { (window as unknown as { __three?: unknown }).__three = { camera, controls } }, [camera, controls])
+  const qaScene = useThree((s) => s.scene)   // UX1：e2e 要睇 scene 有冇殘留物件（只讀引用）
+  useEffect(() => { (window as unknown as { __three?: unknown }).__three = { camera, controls, scene: qaScene } }, [camera, controls, qaScene])
   // GM-FP4 #1：用户任何输入（pointerdown / wheel）即中断相机 tween（Fusion：一郁就交返控制畀你）。
   useEffect(() => {
     const el = gl?.domElement

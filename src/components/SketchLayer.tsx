@@ -2947,6 +2947,14 @@ export function SketchDimLayer() {
           if(await previewDimension(e,draft)&&editorEpoch===dimEditorEpoch.current){inputRequest=dimInputRequest.current;await useApp.getState().confirmSkDimEdit()}
         }
       }
+      // SKETCH12 b4：尺寸工具啱放低、即刻打值確定 → 建立＋數值合併成一個撤銷步驟（之前第一下 Ctrl+Z 只還原數值，要再撳一次先移除尺寸）
+      if(justPlaced.current===e.conId){
+        justPlaced.current=null
+        const st=useApp.getState(),u=st.sketchUndo
+        const grew=u!==undo0&&u.length>=2&&u[u.length-2]===undo0[undo0.length-1]
+        const top=u[u.length-1] as {skCons?:SkCon[]}|undefined
+        if(grew&&top?.skCons?.some(c=>c.id===e.conId))useApp.setState({sketchUndo:undo0})
+      }
       // applyDimCandidate writes skCons/undo and bumps dimEditEpoch via the store middleware —
       // close when the preview session ends regardless of epoch (BUG-017 / BUG-008).
       const preview=useApp.getState().skDimPreview
@@ -3027,7 +3035,7 @@ export function SketchDimLayer() {
               // GM-FP3 #35：约束徽章 click = 选中该约束（高亮 partner + Delete 删），唔再一撳即删；冲突（红）徽章仍 click=移除（兑现承诺）。
               // GM-FP4 #31：啱啱拖完标签（重定位）→ 唔好误开编辑框（consumedDrag 守卫）。
               l.edit?.conId && skConflictIds.includes(l.edit.conId) ? () => { if (consumedDrag()) return; useApp.getState().removeSkCon(l.edit!.conId!) }
-                : l.edit ? () => { if (consumedDrag()) return; if (l.edit!.dim === 'ext') { beginEdit(l); return } selectDimLabel(l) }
+                : l.edit ? () => { if (consumedDrag()) return; if (l.edit!.dim === 'ext' || useApp.getState().sketchTool === 'dimension') { beginEdit(l); return } selectDimLabel(l) }   // 尺寸工具中單擊標籤＝直接開輸入框（點中圓 Ø／圓弧 R 標籤都一樣）；選取工具中單擊＝選取、雙擊＝編輯
                   : l.remove ? () => { if (skConflictIds.includes(l.remove!)) useApp.getState().removeSkCon(l.remove!); else useApp.getState().selectSkCon(l.remove!) } : undefined
             }
             // SKETCH12 re-check：尺寸數值（含圓 Ø、圓弧 R）單擊＝選取，雙擊＝開啟數值輸入（與線性尺寸一致）。

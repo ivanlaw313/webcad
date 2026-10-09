@@ -4181,6 +4181,19 @@ export function findEndpointTangent(shapes: FShape[], p: Pt, tol: number): { p: 
 // UX4 #7：開放折線（直線工具連續畫）收筆 → 已吸正嘅直段自動落 水平/豎直（Fusion 畫線時即時落）。
 // 連續段之間嘅接點係同一條路徑嘅共享頂點（= 天然重合，DOF 同 Fusion「獨立線 + 重合」一樣），唔使額外 ◉。
 // SKETCH12 WF：一鍵自動約束用嘅容差 — 手畫直線同水平／豎直夾角 ≤ 4° 當作水平／豎直；端點距離 ≤ 1 mm 當作重合
+// SKETCH12 b4：點到點尺寸方向跟放置方向：放置點相對兩點中點嘅方向貼近連線法向 → 對齊（直線）距離；
+// 否則偏左右 → 豎直距離、偏上下 → 水平距離（同遠近無關）。之前喺兩點範圍內一律變對齊距離 → 貼近幾何放就變斜尺寸。
+export function p2pDimKind(pa: Pt, pb: Pt, p: Pt): 'hdist' | 'vdist' | 'dist' {
+  const ux = pb[0] - pa[0], uy = pb[1] - pa[1], L = Math.hypot(ux, uy) || 1
+  const dx = p[0] - (pa[0] + pb[0]) / 2, dy = p[1] - (pa[1] + pb[1]) / 2, dl = Math.hypot(dx, dy)
+  const hv = (): 'hdist' | 'vdist' => Math.abs(dx) > Math.abs(dy) ? 'vdist' : 'hdist'
+  if (dl < 1e-9) return 'dist'
+  // 法向同最近座標軸嘅夾角 → 對齊帶半寬 = min(15°, 該夾角/2)（兩點接近水平／豎直時對齊帶收窄，上下／左右放照樣係水平／豎直距離）
+  const nAxis = Math.min(Math.abs(ux), Math.abs(uy)) / L   // sin(法向與最近軸夾角)
+  const band = Math.min(15 * Math.PI / 180, Math.asin(Math.min(1, nAxis)) / 2)
+  const off = Math.asin(Math.min(1, Math.abs(dx * ux + dy * uy) / (L * dl)))   // 放置方向與法向夾角
+  return off <= band ? 'dist' : hv()
+}
 export const AUTO_CON_ANG_TOL = 4
 export const AUTO_CON_POS_TOL = 1
 export function autoHVCons(sh: SketchShape, idx: number, existing: SkCon[], angTolDeg = AUTO_CON_ANG_TOL): SkCon[] {
@@ -9067,6 +9080,8 @@ export const useApp = create<AppState>((rawSet, get) => {
           }else set({status:'關聯陣列支援長度、半徑、直徑、角度、圓弧長度及點間距離尺寸；此類型尚未接入驗證'})
           return
         }
+        // SKETCH12 b4：放置時用精確量度值（之前用 1 位小數 → 放低即微移幾何，例如 31.62 → 31.6）；顯示／輸入框照舊四捨五入，輸入新值先至改幾何
+        if (con.kind === 'dim' && con.type !== 'angle') { const mv = skMeasureDim(shapes as FShape[], { ...con, value: 0 } as SkCon); if (mv != null && Number.isFinite(mv) && mv > 1e-9 && Math.abs(mv - con.value) < 0.06) con = { ...con, value: mv } }
         set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], skCons: [...s.skCons, con], skDimEditReq: con.id, skPendingPt: null, skPendingEdge: null, ...extra })
         void get().resolveSk({ promptOverconstrain: true })   // GM-FP2 #30：交互放尺寸 → 过约束弹模态问「转从动/取消」
       }
@@ -9075,11 +9090,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (s.skPendingPair) {
         const { a, b } = s.skPendingPair
         const [pa] = skRefPts(shapes, a), [pb] = skRefPts(shapes, b)
-        const minx = Math.min(pa[0], pb[0]), maxx = Math.max(pa[0], pb[0])
-        const miny = Math.min(pa[1], pb[1]), maxy = Math.max(pa[1], pb[1])
-        const outX = p[0] < minx - 1 || p[0] > maxx + 1
-        const outY = p[1] < miny - 1 || p[1] > maxy + 1
-        const kind2: 'hdist' | 'vdist' | 'dist' = outX && !outY ? 'vdist' : outY && !outX ? 'hdist' : 'dist'
+        const kind2 = p2pDimKind(pa, pb, p)
         const value = kind2 === 'hdist' ? Math.abs(pb[0] - pa[0]) : kind2 === 'vdist' ? Math.abs(pb[1] - pa[1]) : Math.hypot(pb[0] - pa[0], pb[1] - pa[1])
         placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: kind2, a, b, value: r1(value) || 1 }, { skPendingPair: null, status: `已標${kind2 === 'hdist' ? '水平距離' : kind2 === 'vdist' ? '豎直距離' : '直線距離'} ${r1(value)}（可直接輸入數值）` })
         return

@@ -666,7 +666,7 @@ export function SketchSurface() {
     if (arcGesture.current) { if (!app.polyArcMode) useApp.setState({ polyArcMode: true, status: '⌒ 相切弧手势：拖到弧终点后放手（沿上段相切引出；放手自动返直线）' }); return }
     if (app.skDrag) app.skDragMove(st)
   }
-  const up = (st: Pt, e?: { clientX?: number; clientY?: number; shiftKey?: boolean }, commit = true) => {
+  const up = (st: Pt, e?: { clientX?: number; clientY?: number; shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }, commit = true) => {
     if (refusedDrag.current) { refusedDrag.current = false; if (controls) controls.enabled = true; return }   // BUG-207 跟進（G）
     if (geometryPointer.current || scalePointer.current) return
     const app = useApp.getState()
@@ -681,7 +681,7 @@ export function SketchSurface() {
       if (controls) controls.enabled = true
       if (!commit) { app.skMarqueeClear(); return }
       const dist = e ? Math.hypot((e.clientX ?? m.cx) - m.cx, (e.clientY ?? m.cy) - m.cy) : 0
-      if (dist > (m.touch ? 12 : 6)) app.skMarqueeCommit([m.stx, m.sty], st, (e?.clientX ?? m.cx) < m.cx, !!e?.shiftKey)
+      if (dist > (m.touch ? 12 : 6)) app.skMarqueeCommit([m.stx, m.sty], st, (e?.clientX ?? m.cx) < m.cx, !!(e?.shiftKey || e?.ctrlKey || e?.metaKey))
       else { app.skMarqueeClear(); app.skClickAt([m.stx, m.sty]) }
       return
     }

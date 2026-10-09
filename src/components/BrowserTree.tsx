@@ -8,7 +8,7 @@ import { useApp, MATERIALS, compWorldMatrix, datumVisKey, type AppState } from '
 import { tStatus, msg, tLabel, tMaterialName } from '../i18n'
 import { treeMenuKeys, ACTIVE_BODY_KEY, parkedBodyKey, type TreeNodeKind, type TreeMenuOpts } from '../ui/contextMenus'
 import { useEscapeLayer } from './useEscapeLayer'
-import { FEATURE_RENAME_EVENT } from '../ui/fieldInput'
+import { FEATURE_RENAME_EVENT, BODY_RENAME_EVENT, COMPONENT_RENAME_EVENT } from '../ui/fieldInput'
 
 // v2.20 P3：構造幾何名稱唔顯示浮點雜訊（34.999999999999986 → 35；12.5 保留小數）
 const fmtNum = (v: number) => String(Number.isFinite(v) ? +(+v).toFixed(4) : v)
@@ -372,6 +372,11 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
   const componentEditing = useApp(s => s.editingComponent)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(c.name)
+  useEffect(() => {
+    const onRename = (e: Event) => { if ((e as CustomEvent).detail === c.id) { setName(c.name); setEditing(true) } }
+    window.addEventListener(COMPONENT_RENAME_EVENT, onRename)
+    return () => window.removeEventListener(COMPONENT_RENAME_EVENT, onRename)
+  }, [c.id, c.name])
   const bodies = useApp((s) => {
     const live = s.components.find((x) => x.id === c.id)
     return live?.defId ? (s.componentDefs.find((d) => d.id === live.defId)?.bodies ?? EMPTY_COMPONENT_BODIES) : EMPTY_COMPONENT_BODIES
@@ -508,6 +513,12 @@ function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; 
   const startRename = () => { setName(customName || tStatus(label.replace(/ ●$/, ''), lang)); setEditing(true) }
   const commit = (v: string) => { setEditing(false); const nm = v.trim(); if (nm === tStatus(label.replace(/ ●$/, ''), lang)) return; useApp.getState().renameActiveBody(nm) }
   const del = () => { if (skDelGuard()) return; void useApp.getState().deleteActiveBody() }
+  useEffect(() => {
+    if (!active) return  // 泊車實體暫無改名 API；F2 只改活動實體／組件
+    const onRename = () => startRename()
+    window.addEventListener(BODY_RENAME_EVENT, onRename)
+    return () => window.removeEventListener(BODY_RENAME_EVENT, onRename)
+  }, [active, customName, lang, label])
   return (
     <div className={'tree-row' + (sel ? ' sel' : '')} style={{ paddingLeft: 18, opacity: hidden || allOff ? 0.55 : 1 }} onClick={editing ? undefined : onClick}
       onContextMenu={(e) => { if ((e.target as HTMLElement).closest?.('input')) { e.stopPropagation(); return } openMenu(e, active ? 'activeBody' : 'parkedBody', { hidden, canDelete: !skLock }, {

@@ -170,6 +170,8 @@ export default function Timeline() {
   const [collapsed, setCollapsed] = useState(false)
   const featureEditorDrag = useDraggable('webcad-feature-editor', { left: 12, bottom: 96 })
   const panelDrag = useDraggable('webcad-timeline', { right: 0, bottom: 0 })
+  // FISHING3 P2：開啟特徵編輯條時記下 undo 深度（見下方 sel/meta 後）。
+  const featEditUndoAtOpen = useRef<number | null>(null)
   useEscapeLayer(!!chipMenu || gearOpen, () => { if (chipMenu) setChipMenu(null); else setGearOpen(false) }, 200)
   // GM-L2 #96：播放重入锁 —— 连撳两下唔会开两条并发 play() 互抢 timelinePos；播放中按钮 disable。
   const [isPlaying, setIsPlaying] = useState(false)
@@ -193,8 +195,29 @@ export default function Timeline() {
 
   const sel = features.find((f) => f.id === selected)
   const meta = sel ? (META[sel.type] || null) : null   // 未知类型 → null（下游已处理 null = 唔显示参数编辑器），唔 crash
-  // BUG-UI-002: Esc closes the timeline feature dimension editor (topmost), before selection-clear cascade.
-  useEscapeLayer(!!sel && !!meta && !commandEditing, () => selectFeature(null), 180)
+  // FISHING3 P2：開啟特徵編輯條時記下 undo 深度；「取消」／Esc 還原至開啟前，「確定」保留已提交變更。
+  useEffect(() => {
+    if (sel && meta && !commandEditing) {
+      if (featEditUndoAtOpen.current == null) featEditUndoAtOpen.current = useApp.getState().undoStack.length
+    } else {
+      featEditUndoAtOpen.current = null
+    }
+  }, [selected, !!meta, commandEditing])
+  const keepFeatEdit = () => { featEditUndoAtOpen.current = null; selectFeature(null) }
+  const discardFeatEdit = () => {
+    const base = featEditUndoAtOpen.current
+    featEditUndoAtOpen.current = null
+    void (async () => {
+      if (base != null) {
+        let guard = 40
+        while (guard-- > 0 && useApp.getState().undoStack.length > base) await useApp.getState().undo()
+      }
+      selectFeature(null)
+      useApp.setState({ status: '已取消特徵尺寸編輯；已還原至開啟前' })
+    })()
+  }
+  // FISHING3 P2：Esc = 取消（還原），同「取消」掣。
+  useEscapeLayer(!!sel && !!meta && !commandEditing, () => discardFeatEdit(), 180)
 
   // Drag-scrub: pointer down on the 4px marker → window listeners (element identity changes as the
   // marker moves between chips, so capture on the element itself would drop mid-drag). gotoStep is a
@@ -446,7 +469,8 @@ export default function Timeline() {
           <button className="fe-del" title={tStatus('下移（更晚重建）', lang)} onClick={() => void moveFeature(sel.id, 1)}>▶</button>
           <button className="fe-del" onClick={() => void toggleSuppress(sel.id)}>{suppressedIds.includes(sel.id) ? tStatus('恢復', lang) : tStatus('抑制', lang)}</button>
           <button className="fe-del" onClick={() => { void useApp.getState().requestRemoveFeature(sel.id) }}>{tStatus('刪除', lang)}</button>
-          <button className="fe-close" onClick={() => selectFeature(null)}>{tStatus('關閉', lang)}</button>
+          <button className="fe-close" data-testid="fe-confirm" onClick={keepFeatEdit}>{tStatus('確定', lang)}</button>
+          <button className="fe-del" data-testid="fe-cancel" onClick={discardFeatEdit}>{tStatus('取消', lang)}</button>
         </div>
       )}
 

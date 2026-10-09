@@ -759,6 +759,7 @@ const messages: Record<string, string> = {
   "sk.array.omitted": "{0} 个外部关系保留在来源，不会复制到副本。",
   "sk.array.previewTotal": " 预览共 {0} 个轮廓。",
   "sk.array.srcIndep": "将独立复制 {0} 个轮廓。建立关联阵列前，请先选取来源。",
+  "sk.array.needSelect": "Sketch has {0} profiles — click source contours on the canvas (multi-select OK; a single profile can apply directly).",
   "sk.array.srcLinked": "{0} 个来源轮廓；修改来源时，关联副本会同步更新。",
   "sk.array.validating": "正在校验预览…",
   "sk.copy.help": "复制会保留选中对象内部的尺寸与关系，并建立独立编号；连到未选对象或原点的关系不会复制。",

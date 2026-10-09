@@ -1,4 +1,5 @@
 import {patternPreviewPlan} from './patternPreviewPlan'
+import {resolvePatternTargets} from '../sketch/patternSourceSelection'
 import { ellipseTangentCandidates } from './ellipseTangentVisual'
 import { ellipseArcContainsAngle } from '../sketch/ellipseArcGeometry'
 import { ellipseLineTangentPair, initialEllipseContact, refPts } from '../sketch/freesolve'
@@ -281,7 +282,11 @@ export function SketchToolPanel() {
       const previewError=associative?patternPreview.error:arrayPreview.error
       const ready=associative?!!patternPreview.document&&!patternPreview.error:!!arrayPreview.shapes&&!arrayPreview.error
       const shapeCount=arrayProfiles.length+(arrayShape?1:0),selectedCount=new Set(arraySelection.flatMap(r=>'shape'in r&&Number.isInteger(r.shape)&&r.shape>=0&&r.shape<shapeCount?[r.shape]:[])).size
-      const validation=patternPreviewPlan(a,selectedCount||shapeCount,shapeCount)
+      // FISHING3 P1：多輪廓須明確選取（與 BUG-209／resolvePatternTargets 一致）；單一輪廓可隱式。
+      const targetRes=resolvePatternTargets(arraySelection,shapeCount,{allowImplicitSingle:true})
+      const effectiveSources=targetRes.ok?targetRes.targets.length:0
+      const validation=patternPreviewPlan(a,effectiveSources,shapeCount)
+      const selectionGate=targetRes.ok?null:targetRes.reason
       const set = (patch: Partial<typeof a>) => g().setArrayCfg(patch)
       body = (<>
         <div style={{display:'flex',flexDirection:'column',gap:5}}>
@@ -289,7 +294,7 @@ export function SketchToolPanel() {
           {!existingPattern&&<button className={'sb-tool'+(patternSession?.mode==='create'?' active':'')} data-pattern-create disabled={!selectedCount||pending} onClick={()=>g().beginSketchPattern('create')}>{m('sk.array.createAssoc')}</button>}
           {existingPattern&&<div style={{display:'flex',gap:5}}><button className={'sb-tool'+(patternSession?.mode==='reconfigure'?' active':'')} data-pattern-edit style={{flex:1}} disabled={pending} onClick={()=>g().beginSketchPattern('reconfigure')}>{m('sk.array.editLinked')}</button><button className="sb-tool" data-pattern-detach style={{flex:1}} disabled={pending} title={m('sk.array.detachTitle')} onClick={()=>g().detachSketchPattern()}>{m('sk.array.detach')}</button></div>}
         </div>
-        <div data-pattern-source-info style={{fontSize:11.5,lineHeight:1.5,color:'#1c6fb8'}}>{associative?m('sk.array.srcLinked', sourceCount??selectedCount):m('sk.array.srcIndep', selectedCount||shapeCount)}{associative&&patternPreview.document&&m('sk.array.previewTotal', patternPreview.document.shapes.length)}</div>
+        <div data-pattern-source-info style={{fontSize:11.5,lineHeight:1.5,color:'#1c6fb8'}}>{associative?m('sk.array.srcLinked', sourceCount??selectedCount):(effectiveSources?m('sk.array.srcIndep', effectiveSources):m('sk.array.needSelect', shapeCount))}{associative&&patternPreview.document&&m('sk.array.previewTotal', patternPreview.document.shapes.length)}</div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button className={'sb-tool' + (a.kind === 'rect' ? ' active' : '')} style={{ flex: 1 }} disabled={patternSession?.mode==='reconfigure'&&existingPattern?.config.kind!=='rectangular'} onClick={() => set({ kind: 'rect' })}>{T('▦ 矩形')}</button>
           <button className={'sb-tool' + (a.kind === 'circ' ? ' active' : '')} style={{ flex: 1 }} disabled={patternSession?.mode==='reconfigure'&&existingPattern?.config.kind!=='circular'} onClick={() => set({ kind: 'circ' })}>{T('✳ 環形')}</button>
@@ -316,8 +321,9 @@ export function SketchToolPanel() {
           <Row label={T('中心 X')}><ScaleValueInput label="Array center X" value={a.cx} onValue={n=>set({cx:n})} width={80} /></Row>
           <Row label={T('中心 Y')}><ScaleValueInput label="Array center Y" value={a.cy} onValue={n=>set({cy:n})} width={80} /></Row>
         </>)}
-        <button className="sb-tool sb-finish" title={T('按上面參數陣列當前輪廓')} data-array-apply disabled={pending||!ready||(!associative&&!validation.ok)} onClick={()=>void g().applyArray()}>{associative?(patternSession?.mode==='create'?m('sk.array.applyLinked'):m('sk.array.applyChanges')):T('應用陣列')}</button>
-        {!associative&&!validation.ok&&<div role="alert" data-array-error style={{color:'#b42318',fontSize:11.5}}>{validation.reason}</div>}
+        <button className="sb-tool sb-finish" title={T('按上面參數陣列當前輪廓')} data-array-apply disabled={pending||!ready||(!associative&&(!validation.ok||!!selectionGate))} onClick={()=>void g().applyArray()}>{associative?(patternSession?.mode==='create'?m('sk.array.applyLinked'):m('sk.array.applyChanges')):T('應用陣列')}</button>
+        {!associative&&selectionGate&&<div role="alert" data-array-error style={{color:'#b42318',fontSize:11.5}}>{selectionGate}</div>}
+        {!associative&&!selectionGate&&!validation.ok&&<div role="alert" data-array-error style={{color:'#b42318',fontSize:11.5}}>{validation.reason}</div>}
         {previewError&&<div role="alert" data-array-error style={{color:'#b42318',fontSize:11.5}}>{previewError}</div>}
         {pending&&<div role="status">{m('sk.array.validating')}</div>}
         {associative&&patternPreview.omitted.length>0&&<div role="status" data-pattern-omitted style={{fontSize:11.5,color:'#8b5b0b'}}>{m('sk.array.omitted', patternPreview.omitted.length)}</div>}

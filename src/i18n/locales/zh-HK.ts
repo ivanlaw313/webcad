@@ -759,6 +759,7 @@ const messages: Record<string, string> = {
   "sk.array.omitted": "{0} 個外部關係保留在來源，不會複製到副本。",
   "sk.array.previewTotal": " 預覽共 {0} 個輪廓。",
   "sk.array.srcIndep": "將獨立複製 {0} 個輪廓。建立關聯陣列前，請先選取來源。",
+  "sk.array.needSelect": "草圖有 {0} 個輪廓 — 請在畫布點選要陣列的來源（可多選；單一輪廓可直接應用）。",
   "sk.array.srcLinked": "{0} 個來源輪廓；修改來源時，關聯副本會同步更新。",
   "sk.array.validating": "正在校驗預覽…",
   "sk.copy.help": "複製會保留選中對象內部的尺寸與關係，並建立獨立編號；連到未選對象或原點的關係不會複製。",

@@ -759,6 +759,7 @@ const messages: Record<string, string> = {
   "sk.array.omitted": "{0} external relationships remain on the sources and will not be copied.",
   "sk.array.previewTotal": " Preview: {0} total shapes.",
   "sk.array.srcIndep": "{0} shapes will be copied independently. Select sources before creating a linked pattern.",
+  "sk.array.needSelect": "Sketch has {0} profiles — click source contours on the canvas (multi-select OK; a single profile can apply directly).",
   "sk.array.srcLinked": "{0} source shapes; linked copies follow source edits.",
   "sk.array.validating": "Validating preview…",
   "sk.copy.help": "Copy includes dimensions and relationships entirely within the selection, with independent IDs. Relationships to unselected geometry or the origin are not copied.",

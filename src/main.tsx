@@ -40,15 +40,25 @@ function showUpdateBanner() {
   _updateBannerShown = true
   const d = document.createElement('div')
   d.setAttribute('role', 'alert')
-  d.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99999;background:#1f2a37;color:#fff;padding:10px 16px;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.38);font:14px/1.45 system-ui,sans-serif;display:flex;gap:12px;align-items:center;max-width:92vw'
+  d.setAttribute('data-testid', 'update-banner')
+  // FISHING3 P2：橫幅唔截獲視口指針（框選／點選），只係「刷新」掣可點；約 25s 後自動收起。
+  d.style.cssText = 'position:fixed;left:50%;bottom:8px;transform:translateX(-50%);z-index:99999;background:#1f2a37;color:#fff;padding:8px 14px;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.38);font:13px/1.45 system-ui,sans-serif;display:flex;gap:12px;align-items:center;max-width:min(420px,92vw);pointer-events:none'
   const span = document.createElement('span')
+  span.style.cssText = 'pointer-events:none'
   span.textContent = '🔄 已發佈新版本 — 請先儲存，再按「刷新」載入新版本。'
   const btn = document.createElement('button')
   btn.textContent = '刷新'
-  btn.style.cssText = 'background:#2b6cf0;color:#fff;border:none;border-radius:6px;padding:5px 14px;cursor:pointer;font-weight:600;flex-shrink:0'
+  btn.style.cssText = 'background:#2b6cf0;color:#fff;border:none;border-radius:6px;padding:5px 14px;cursor:pointer;font-weight:600;flex-shrink:0;pointer-events:auto'
   btn.onclick = () => location.reload()
-  d.append(span, btn)
+  const dismiss = document.createElement('button')
+  dismiss.textContent = '稍後'
+  dismiss.setAttribute('aria-label', '關閉更新提示')
+  dismiss.style.cssText = 'background:transparent;color:#cfd6dd;border:1px solid #5a6570;border-radius:6px;padding:5px 10px;cursor:pointer;flex-shrink:0;pointer-events:auto'
+  const remove = () => { d.remove() }
+  dismiss.onclick = remove
+  d.append(span, btn, dismiss)
   document.body.appendChild(d)
+  window.setTimeout(remove, 25000)
 }
 window.addEventListener('vite:preloadError', (e) => { e.preventDefault(); showUpdateBanner() })
 // 后备：原生动态 import 失败（非经 __vitePreload，或 unhandledrejection）亦兜

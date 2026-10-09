@@ -5641,7 +5641,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // The public preview is isolated from the cached commit candidate.
       const document=result.ok?structuredClone(result.document):null
       set({skPatternPreview:{document,shapes:document?.shapes??null,pending:false,error:result.ok?null:result.reason,omitted:result.ok?structuredClone(result.omitted):[]}})
-    }catch{if(request===associativePreviewRequest)set({skPatternPreview:{...emptyPatternPreview(),error:'关联阵列计算失败'}})}
+    }catch{if(request===associativePreviewRequest)set({skPatternPreview:{...emptyPatternPreview(),error:'關聯陣列計算失敗'}})}
   }
   const runSketchPattern = async (config: PatternConfig, creating: boolean): Promise<void> => {
     const before=get(),request=++_patternDimEditSeq,previewRequest=associativePreviewRequest,initial=patternRevision(before)
@@ -9333,7 +9333,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       return
     }
     // select tool: build a max-3 selection (3rd = symmetric's axis). 非程序员易用化（SEL-1）：
-    const word = (r: SkRef) => (r.kind === 'ellipse-arc-end' ? '椭圆弧端点' : r.kind === 'ellipse-arc' ? '椭圆弧' : r.kind === 'ellipse' ? '椭圆' : r.kind === 'ellipse-axis' ? '椭圆半轴' : r.kind === 'ellipse-point' ? '椭圆控制点' : r.kind === 'center' ? '圆弧中心' : r.kind === 'pt' ? '点' : r.kind === 'edge' ? '边' : r.kind === 'origin' ? '⊕原点' : r.kind === 'refpt' ? '参考点' : r.kind === 'refedge' ? '参考边' : '圆')
+    const word = (r: SkRef) => (r.kind === 'ellipse-arc-end' ? '橢圓弧端點' : r.kind === 'ellipse-arc' ? '橢圓弧' : r.kind === 'ellipse' ? '橢圓' : r.kind === 'ellipse-axis' ? '橢圓半軸' : r.kind === 'ellipse-point' ? '橢圓控制點' : r.kind === 'center' ? '圓弧中心' : r.kind === 'pt' ? '點' : r.kind === 'edge' ? '邊' : r.kind === 'origin' ? '⊕原點' : r.kind === 'refpt' ? '參考點' : r.kind === 'refedge' ? '參考邊' : '圓')
     const eq = (a: SkRef, b: SkRef) => JSON.stringify(a) === JSON.stringify(b)
     const selNow = s.skSel
     // 撳空唔再清走已有选择（只 ESC 清）→ fumble 唔会前功尽废（之前撳偏少少就成个选取归零，多选第 2 点几乎做唔到）
@@ -10932,7 +10932,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (tl === 'offset') { if (get().mode === 'sketch') get().skOffsetAt(raw); return } // T790：点轮廓→偏移
     if (tl === 'cfillet' || tl === 'cchamfer') { if (get().mode === 'sketch') get().skCornerAt(raw); return } // T790：点角→倒圆角/倒角
     if (tl === 'mirror') { if (get().mode === 'sketch') get().skMirrorAt(raw); return } // T790：拣轮廓→画镜像线
-    if (tl === 'array') return  // F1：阵列由底栏面板「应用阵列」驱动，画布点击唔好漏入折线绘制机（否则起 phantom 折线）
+    // FISHING3 P1：陣列工具畫布點選來源輪廓（同選擇工具），唔再吞點；唔入繪圖機以免 phantom 折線。
+    if (tl === 'array') { if (get().mode === 'sketch') get().skClickAt(raw); return }
     if (tl === 'move' || tl === 'scale') return   // GM-FP3 #39 / GM-FP4 #42：Move / Scale 由 gizmo/对话框驱动，画布空点唔好漏入绘制机
     if (tl === 'cline') { if (get().mode === 'sketch') { const csp = snapInSketch(raw, null, [], get().sketchShape, get().sketchProfiles, null, true).pt; get().skAddConstructionLine(csp) } return } // T794：点位置→落水平/竖直构造参考线（#10：用吸附点而非 raw → 真正过端点/格点，同 move 阶段嘅吸附环一致）
     if (tl === 'circle2t' || tl === 'circle3t') { if (get().mode === 'sketch') get().skTanCircleAt(raw); return }  // T777

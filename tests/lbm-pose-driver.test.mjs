@@ -357,7 +357,7 @@ test('★ 跨朝向：Cd 升咗 20% 但阻力实情细咗 40%（分母唔同件�
   assert.equal(row.significant, true)
 
   const line = pc.compareLine()
-  assert.match(line, /阻力細咗/)
+  assert.match(line, /阻力減少了/)
   assert.match(line, /40\.0%/)
   assert.equal(/Cd\s*[=≈]/.test(line), false, '★ 结论嗰行唔可以卖一个绝对 Cd 数字')
   assert.ok(b.step > a.step)
@@ -444,7 +444,7 @@ test('★ 诚实文案同实测常数冇畀人静静鸡改走', () => {
 
   // 2026-10-01：絕對 Cd 已經喺乾淨條件下量到（1.13×），所以 '未定案' / '仍然未量到' 唔再成立，
   // 換成實測事實。必須保留嘅係：舊嗰個 2× 講法唔成立、乾淨條件下嘅實測值、同「用 CPU 引擎」嘅出路。
-  for (const claim of ['唔成立', '堵塞率 14–17%', '0.427', '從未收斂', '2.1%', '1.13', '趨勢級', '比值', 'CPU 引擎']) {
+  for (const claim of ['不成立', '堵塞率 14–17%', '0.427', '從未收斂', '2.1%', '1.13', '趨勢級', '比值', 'CPU 引擎']) {
     assert.ok(POSE_COMPARE_NOTE.includes(claim), `诚实文案唔见咗「${claim}」`)
   }
   // 反向：唔准写成已确认嘅求解器缺陷 / 已确认嘅常数系统增益 / 已确认冇偏差
@@ -456,10 +456,10 @@ test('★ 诚实文案同实测常数冇畀人静静鸡改走', () => {
   for (const claim of ['迎風面積', 'Cd×A', 'dragRatio']) {
     assert.ok(POSE_AREA_NOTE.includes(claim), `面积文案唔见咗「${claim}」`)
   }
-  assert.ok(POSE_UNSETTLED_NOTE.includes('唔好信'))
+  assert.ok(POSE_UNSETTLED_NOTE.includes('不要信'))
 
   // 兄弟文案（两个引擎唔可以直接比）都要企喺度
-  assert.ok(CD_COMPARE_NOTE.includes('唔可以直接比'))
+  assert.ok(CD_COMPARE_NOTE.includes('不可直接比'))
 
   // 对外嘅表一定要带住晒呢啲嘢
   const { sched, pc } = makeRig()

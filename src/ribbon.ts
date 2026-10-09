@@ -392,7 +392,7 @@ const SURFACE: Panel[] = [
     { id: 'formplane', label: 'Form 平面', icon: 'box', tip: 'Form 平面/薄片：由一塊薄盒控製籠開始 → 拖控製點拉出有機曲面/殼片（座椅/翼面/外殼曲面）。✔ 完成後烘焙成網格組件。' },
     { id: 'formsphere', label: 'Form 球', icon: 'box', tip: 'Form 球：由一個球控製籠開始 → 拖控製點捏成 液滴/頭形/有機球。段數越多,越貼近你輸入的半徑（細分會向內略收）。✔ 完成後烘焙成網格組件。' },
     { id: 'formtorus', label: 'Form 環面', icon: 'box', tip: 'Form 環面/甜甜圈：由一個環形控製籠開始 → 拖控製點捏成 把手/O 形/扭環。主半徑 > 管半徑。✔ 完成後烘焙成網格組件。' },
-    { id: 'formpatch', label: 'Form 曲面片', icon: 'box', tip: 'Form 開放曲面片：真·開放的有機曲面（車身板/外殼/有機曲面主用）—— 不似 Form 平面該個薄盒,此是一張真開放網格,邊界自動順滑、四角釘死 → 拖藍點捏出平滑開放曲面。✔ 完成後烘焙成曲面網格（開放、非封閉）。' },
+    { id: 'formpatch', label: 'Form 曲面片', icon: 'box', tip: 'Form 開放曲面片：真·開放的有機曲面（車身板/外殼/有機曲面主用）—— 不同於 Form 平面那個薄盒，這是一張真開放網格,邊界自動順滑、四角釘死 → 拖藍點捏出平滑開放曲面。✔ 完成後烘焙成曲面網格（開放、非封閉）。' },
     { id: 'editpoles', label: '編輯曲面控制點', icon: 'editpoles', quick: true, tip: '編輯曲面控製點：點一個灰顯獨立曲面 → 顯示它的控製點球 → 拖三軸箭嘴就整體扭曲張曲面。誠實局限：目前只支援單張曲面；跨縫順滑接駁後續再做。先用「規則曲面/曲面放樣」整一張彎曲曲面。' },
     { id: 'extrude', label: '拉伸', icon: 'extrude', quick: true },
     { id: 'revolve', label: '旋轉', icon: 'revolve', quick: true },

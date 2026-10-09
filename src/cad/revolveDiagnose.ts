@@ -51,7 +51,7 @@ export function diagnoseRevolve(inp: RevolveDiagInput): string[] {
     if (!ref) out.push('整個截面貼住旋轉軸（離軸距離 0）— 旋無法轉體積，請將截面畫在軸的一邊')
     else {
       const s = radial.map((v) => dot(v, ref) / Math.hypot(...ref))
-      if (s.some((v) => v > tol) && s.some((v) => v < -tol)) out.push('截面跨過了旋轉軸 — 截面要整個在軸的同一邊（可以貼住軸，不可過了去）')
+      if (s.some((v) => v > tol) && s.some((v) => v < -tol)) out.push('截面跨過了旋轉軸 — 截面要整個在軸的同一邊（可以貼住軸，不可越過）')
     }
   }
   // 2) 極短線段（吸附留低嘅碎線）
@@ -74,12 +74,12 @@ export function diagnoseRevolve(inp: RevolveDiagInput): string[] {
   const others = real.filter((s) => s !== main && JSON.stringify(s) !== JSON.stringify(main))
   if (main && main.type === 'poly' && main.open && main.pts && main.pts.length >= 2) {
     const ends = [main.pts[0], main.pts[main.pts.length - 1]].map((p) => { const q = sub(revolvePointToCad(p, inp.source, true, ax), org); const t = dot(q, ax); return Math.hypot(q[0] - ax[0] * t, q[1] - ax[1] * t, q[2] - ax[2] * t) })
-    if (ends.some((d) => d > Math.max(0.01, tol))) out.push(`截面未閉合：半剖面兩端要落在旋轉軸上（目前離軸 ${ends.map((d) => d.toFixed(2)).join(' / ')} mm）— 補返線閉合，或者將端點拉到軸上`)
+    if (ends.some((d) => d > Math.max(0.01, tol))) out.push(`截面未閉合：半剖面兩端要落在旋轉軸上（目前離軸 ${ends.map((d) => d.toFixed(2)).join(' / ')} mm）— 補回線段使其閉合，或者將端點拉到軸上`)
   }
   const closedOthers = others.filter((s) => !(s.type === 'poly' && s.open)).length
   const stray = others.filter((s) => s.type === 'poly' && s.open).length
-  if (closedOthers) out.push(`草圖有 ${closedOthers + 1} 個輪廓 — 旋轉只用選中該個；如要其他都旋轉，請逐個選或者合併成一個輪廓`)
-  if (stray) out.push(`草圖仲有 ${stray} 條沒有接駁的散線 — 刪除，或者接駁到截面上`)
+  if (closedOthers) out.push(`草圖有 ${closedOthers + 1} 個輪廓 — 旋轉只用選中的那個；如要其他都旋轉，請逐個選或者合併成一個輪廓`)
+  if (stray) out.push(`草圖還有 ${stray} 條沒有接駁的散線 — 刪除，或者接駁到截面上`)
   if (!out.length && inp.workerError) {
     if (/跨过|跨過/.test(inp.workerError)) out.push('截面跨過了旋轉軸 — 截面要整個在軸的同一邊')
     else if (/退化|zero-volume/i.test(inp.workerError)) out.push('截面相對旋轉軸退化（例如全部貼軸或者與軸平行的平面）— 換個軸或者截面平面')

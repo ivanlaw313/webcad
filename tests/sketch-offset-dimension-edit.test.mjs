@@ -77,7 +77,7 @@ test('inward offsets keep their side; collapse / zero / duplicate are rejected w
   assert.match(editOffsetLinkDistance([src, inner, outer], 1, 0).error, /正數/)
   assert.match(editOffsetLinkDistance([src, inner, outer], 2, 3.0000000001).shapes ? 'same' : 'x', /same/)
   assert.match(editOffsetLinkDistance([src, inner, { ...outer, offsetOf: { src: 's1', d: -3 } }], 1, 3).error, /相同距離/)
-  assert.match(editOffsetLinkDistance([src, inner], 0, 3).error, /唔係關聯偏移/)
+  assert.match(editOffsetLinkDistance([src, inner], 0, 3).error, /不是關聯偏移/)
   // store: rejected edit leaves geometry and history alone
   await seedOffset()
   const before = JSON.stringify(g().sketchProfiles), depth = g().sketchUndo.length

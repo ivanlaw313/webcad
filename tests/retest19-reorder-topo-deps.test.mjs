@@ -28,7 +28,7 @@ test('move fillet up above its extrude (button, moveFeature, drag index) → ref
   assert.ok(await g().applyFeatures([plate, filOuter], 'x'))
   const tris = g().mesh?.triangles.length
   assert.equal(await g().reorderFeature('f1', 0), false)
-  assert.match(g().status, /不能移動：「.*」引用嘅邊線／幾何由「.*」產生，必須排喺佢之後/)
+  assert.match(g().status, /不能移動：「.*」引用的邊線／幾何由「.*」產生，必須排在它之後/)
   assert.deepEqual(ids(), ['e1', 'f1'])
   await g().moveFeature('f1', -1)
   assert.deepEqual(ids(), ['e1', 'f1'])

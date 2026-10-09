@@ -100,7 +100,7 @@ test('sections on non-parallel planes (horizontal square → vertical circle) lo
 })
 
 test('coincident sections and too few sections fail with a clear Traditional reason', () => {
-  assert.throws(() => L.buildLoft(OC, [W(square().sketchOnPlane('XY', 0)), W(circle().sketchOnPlane('XY', 0))], {}), /放樣失敗：第 1 同第 2 個截面喺同一位置/)
+  assert.throws(() => L.buildLoft(OC, [W(square().sketchOnPlane('XY', 0)), W(circle().sketchOnPlane('XY', 0))], {}), /放樣失敗：第 1 同第 2 個截面在同一位置/)
   assert.throws(() => L.buildLoft(OC, [W(square().sketchOnPlane('XY', 0))], {}), /放樣失敗：至少要 2 個截面/)
 })
 

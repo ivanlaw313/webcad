@@ -8943,7 +8943,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (bi < 0 || best > tolb * 1.5) { set({ status: `${lbl}：點近一個輪廓線（點近一些）` }); return }
       if (bp.first < 0) {
         const hl: SkRef = (shapes[bi] as SketchShape).type === 'circle' ? { kind: 'circle', shape: bi } as SkRef : { kind: 'edge', shape: bi, idx: 0 } as SkRef
-        set({ skBoolPending: { ...bp, first: bi }, skSel: [hl], status: `${lbl}：已選第一個輪廓 → 再點第二個（重疊該個）` })
+        set({ skBoolPending: { ...bp, first: bi }, skSel: [hl], status: `${lbl}：已選第一個輪廓 → 再點第二個（重疊的那個）` })
         return
       }
       if (bi === bp.first) { set({ status: `${lbl}：不要點回同一個 — 點第二個重疊輪廓` }); return }
@@ -14721,8 +14721,8 @@ export const useApp = create<AppState>((rawSet, get) => {
         case 'sk_extend': get().setSketchTool('extend'); set({ status: '⟶ 延伸：點選開放路徑的端段（靠近要延伸的一端），沿原方向或原圓延長至最近的相交幾何' }); return
         case 'sk_break': get().setSketchTool('break'); set({ status: '⊟ 打斷：點曲線想分割嗰點 → 一分為二（兩段都保留；近相交點會吸到精確交點，Ctrl+Z 還原）' }); return
         case 'sk_constr': return get().toggleConstruction()
-        case 'sk_filletc': get().setSketchTool('cfillet'); return set({ status: `倒圓角：點近一個直角頂點即按 R${get().sketchCornerR || 8} 倒該個角（底欄改 R，或按「全部角」一次）` })
-        case 'sk_chamferc': get().setSketchTool('cchamfer'); return set({ status: `倒角：點近一個直角頂點即按 C${get().sketchCornerR || 8} 倒該個角（底欄改值，或按「全部角」一次）` })
+        case 'sk_filletc': get().setSketchTool('cfillet'); return set({ status: `倒圓角：點近一個直角頂點即按 R${get().sketchCornerR || 8} 倒那個角（底欄改 R，或按「全部角」一次）` })
+        case 'sk_chamferc': get().setSketchTool('cchamfer'); return set({ status: `倒角：點近一個直角頂點即按 C${get().sketchCornerR || 8} 倒那個角（底欄改值，或按「全部角」一次）` })
         case 'sk_offset': get().setSketchTool('offset'); return set({ status: `偏移：點中一個輪廓即按 ${get().sketchOffsetD}mm 偏移（底欄可改距離/方向/雙向）` })
         case 'sk_guide': return get().bankSweepGuide()
         case 'sk_union': return get().skBoolShapes('union')
@@ -15588,7 +15588,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           const same = (a: Pt[] | undefined, len: number) => !!a && a.length === len && a.every((p, i) => p[0] === s.polyPts[i][0] && p[1] === s.polyPts[i][1])
           const undoStack = top && same(top.polyPts, n - 1) ? s.sketchUndo.slice(0, -1) : s.sketchUndo
           if (n <= 1) return { polyPts: [], polyBulges: [], sketchStart: null, sketchPreview: null, tanArcSeed: null, sketchDim: null, sketchUndo: undoStack, status: '已撤銷起點 — 點畫布重新開始' }
-          return { polyPts: s.polyPts.slice(0, -1), polyBulges: s.polyBulges.slice(0, Math.max(0, n - 2)), sketchPreview: s.polyPts[n - 2], sketchDim: null, sketchUndo: undoStack, status: `已撤銷最後一段 — 仲有 ${n - 1} 點，繼續畫（再按 Ctrl+Z 再退一段）` }
+          return { polyPts: s.polyPts.slice(0, -1), polyBulges: s.polyBulges.slice(0, Math.max(0, n - 2)), sketchPreview: s.polyPts[n - 2], sketchDim: null, sketchUndo: undoStack, status: `已撤銷最後一段 — 還有 ${n - 1} 點，繼續畫（再按 Ctrl+Z 再退一段）` }
         })
         return
       }
@@ -23788,7 +23788,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       feaMode: 1 as const, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaProbe: null, feaPin: null, feaPinPick: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force' as const, simFocus: null,
       shellMode: false, holeMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false,
       measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, featDlg: null,
-      status: '受力雲圖 ①：點實體的【固定面】（被夾住/鎖實/上螺絲該個面）',
+      status: '受力雲圖 ①：點實體的【固定面】（被夾住/鎖實/上螺絲的那個面）',
     }
   }),
   simFocus: null,

@@ -2248,7 +2248,7 @@ Object.assign(STATUS_PHRASES_X, {
 Object.assign(STATUS_PHRASES_X, {
   // v1.90 BD-8902 SketchToolPanel select/autoconstrain TC
   '按空白 = 清選擇': 'Click empty = Clear selection',
-  '開=按真空白即清選擇（預設）；關=按空不清（防誤清，ESC 先清）': 'On=click empty clears selection (default); Off=empty click keeps selection (Esc to clear)',
+  '開=按真空白即清選擇（預設）；關=按空白不清（防誤清，按 ESC 才清）': 'On=click empty clears selection (default); Off=empty click keeps selection (Esc to clear)',
   '自動約束推斷': 'Auto-constrain inference',
   '畫圖時自動加 水平/豎直/重合/平行/相切… 約束': 'While drawing, auto-add H/V/coincident/parallel/tangent… constraints',
   '✨ 一鍵自動約束': '✨ One-click AutoConstrain',
@@ -3524,7 +3524,7 @@ Object.assign(STATUS_PHRASES_X, {
   '標準件生成失敗': 'Standard part generation failed',
   'FEA 正在計算 — 等它完成': 'FEA solving — wait for it to finish',
   '受力雲圖：需要先有活動實體': 'Stress plot: requires an active body first',
-  '受力雲圖 ①：點實體的【固定面】（被夾住/鎖實/上螺絲該個面）': 'Stress plot ①: pick the body\'s [fixed face] (the clamped/bolted/locked face)',
+  '受力雲圖 ①：點實體的【固定面】（被夾住/鎖實/上螺絲的那個面）': 'Stress plot ①: pick the body\'s [fixed face] (the clamped/bolted/locked face)',
   '受力雲圖 ②：點【受力面】（力作用的面）': 'Stress plot ②: click the load face (where the force is applied)',
   '已選受力面 — 設力/方向/材料/分辨率 → 按「運行」（重點受力面可改選）': 'Load face selected — set force/direction/material/resolution → Run (you can re-pick the load face)',
   '🎯 點一個【圓柱孔面】（孔內壁/圓軸側面）→ 銷/圓柱約束：徑向鎖、軸向+切向自由（銷軸/螺栓支承）': '🎯 Click a 【cylindrical hole face】 (hole wall / shaft side) → Pin / Cylindrical constraint: radial locked, axial + tangential free (pin / bolt support)',

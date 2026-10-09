@@ -853,7 +853,7 @@ export default function WindTunnelGpu() {
       //   否则用户见住零件打咗侧，而个数其实係打直嗰个，仲以为已经算咗。
       if (!pc.enabled && pc.disabledReason) {
         r.warnings = r.warnings.concat(
-          `★ ${pc.disabledReason} —— 此結果是【建 solver 那時的朝向】的，不是你目前見到該個 ★`,
+          `★ ${pc.disabledReason} —— 此結果是【建 solver 那時的朝向】的，不是你目前見到的那個 ★`,
         )
       }
 

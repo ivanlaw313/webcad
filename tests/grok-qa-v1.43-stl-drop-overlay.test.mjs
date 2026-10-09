@@ -114,7 +114,7 @@ test('acceptMeshDropFile still reuses openMeshInsert / import3MF', () => {
   assert.match(block, /openMeshInsert\('obj'/)
   assert.match(block, /import3MF/)
   assert.doesNotMatch(block, /parseStl|parseSTL|parseObj|parse3mf/)
-  assert.match(block, /(?:不支持的网格拖放|不支持的網格拖放)/)
+  assert.match(block, /(?:不支持的网格拖放|不支援的網格拖放)/)
 })
 
 test('i18n keeps mesh-drop Chinese + v1.43 empty/armed', () => {

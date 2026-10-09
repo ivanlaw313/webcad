@@ -41,7 +41,7 @@ test('shaft through plate → auto = new body, placed at X/Y; standing on plate 
   const shaft = await prim('cylinder', { d: 20, h: 60, px: 50, py: 40, pz: -20 })
   assert.equal(shaft.operation, 'newbody', 'overlapping primitive defaults to a new body (not merged into plate)')
   assert.deepEqual(shaft.profile.c, [50, 40]); assert.equal(shaft.baseZ, -20)
-  assert.match(g().status, /新實體（冇合併）/)
+  assert.match(g().status, /新實體（沒有合併）/)
   const pk = g().bodyMesh.parked ?? []
   assert.equal(pk.length, 1, 'shaft is its own body (實體1), plate untouched')
   assert.deepEqual(bbox(g().bodyMesh).mx, [100, 80, 10])

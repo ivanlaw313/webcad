@@ -14,7 +14,7 @@ test('converted store copy is Traditional in source and renders the original Sim
   const pairs = [
     ['抽殼失敗——已倒圓角/倒角的實體抽殼不穩定，建議先抽殼後倒角', '抽壳失败——已倒圆角/倒角的实体抽壳不稳定，建议先抽壳后倒角'],
     ['（獨立薄板體 — 要合併入主體用「實體布爾」）', '（独立薄板体 — 要合并入主体用「实体布尔」）'],
-    ['壓力載荷：算唔到受力面面積（重新點受力面，要揀一個平面）', '压力载荷：算唔到受力面面积（重新点受力面，要拣一个平面）'],
+    ['壓力載荷：無法計算受力面面積（重新點受力面，要選一個平面）', '压力载荷：算唔到受力面面积（重新点受力面，要拣一个平面）'],
   ]
   for (const [tc, sc] of pairs) {
     assert.ok(store.includes(tc), `store carries Traditional copy: ${tc}`)

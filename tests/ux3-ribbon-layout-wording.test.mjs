@@ -25,7 +25,7 @@ test('#3 FORM environment hints are Traditional (no English FORM Box / FINISH FO
   for (const bad of ['FINISH FORM', "'FORM Box：", 'FORM Quadball：', 'FORM Pipe：', 'Edit Form：', '當前 Form，再創建']) assert.ok(!s.includes(bad), bad)
   useApp.setState({ lang: 'zh-HK' })
   await g().runCommand('createform')
-  assert.match(g().status, /^造型（FORM）環境：喺「建立 ▾」揀 長方體/)
+  assert.match(g().status, /^造型（FORM）環境：在「建立 ▾」選 長方體/)
   assert.doesNotMatch(g().status, /FINISH|Quadball|Box/)
 })
 

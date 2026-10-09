@@ -117,9 +117,9 @@ test('★ BUG-524：FORM Box 上限要同 Solid Box 一致（1000000 mm）★', 
 })
 
 test('★ BUG-514 餘下：0 / -5 / -0 要被擋（parse 得到唔等於合法）★', () => {
-  assert.ok(vp.includes('必須大於 0（你打咗'),
+  assert.ok(vp.includes('必須大於 0（你打了'),
     '★ 範圍要喺閘裡面驗 —— 0 同 -5 parse 得到，落到幾何層就畀 Math.max(0.1,…) 夾成 0.1mm ★')
-  assert.ok(store.includes('唔係有效尺寸（要大於 0 且唔超過'), 'store 側冇第二道閘')
+  assert.ok(store.includes('不是有效尺寸（要大於 0 且不超過'), 'store 側冇第二道閘')
 })
 
 /* ── BUG-521：孔圈要報真數目 ───────────────────────────────────────── */

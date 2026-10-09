@@ -69,7 +69,7 @@ test('T2 run0 孔映射: 顶面 (20,15,1) → fx 20 fy 15', () => {
   ok(h.run === 0, `run === 0 (实际 ${h.run})`);
   // 边界文档: z=2 离中线 2mm > T/2+0.6 = 1.6 → 唔喺板面 (候选带规则)
   const off = mapPointToFlat(L, [20, 15, 2], [0, 0, 1]);
-  ok('error' in off && off.error.includes('唔喺钣金面上'), `z=2 超出候选带 → 「唔喺钣金面上」(实际 ${JSON.stringify(off)})`);
+  ok('error' in off && off.error.includes('不在钣金面上'), `z=2 超出候选带 → 「唔喺钣金面上」(实际 ${JSON.stringify(off)})`);
 });
 
 // ============ T3 run1 (垂直腿) 孔映射 ============
@@ -129,7 +129,7 @@ test('T7 错误分支: 超板宽 / 唔喺板面', () => {
   ok('error' in rw2 && rw2.error.includes('超出板宽'), `y=−2 → 「超出板宽」: ${rw2.error}`);
   // 远离所有段同弧
   const ro = mapPointToFlat(L, [20, 15, 10], [0, 0, 1]);
-  ok('error' in ro && ro.error.includes('唔喺钣金面上'), `z=10 → 「唔喺钣金面上」: ${ro.error}`);
+  ok('error' in ro && ro.error.includes('不在钣金面上'), `z=10 → 「唔喺钣金面上」: ${ro.error}`);
 });
 
 // ============ 总表 ============

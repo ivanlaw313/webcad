@@ -103,7 +103,7 @@ test('aero_* guards: second start while running, stop, status with no loop', asy
   f.setLoop(running)
   assert.match(await runAeroTool('aero_start_auto_design', { kind: 'shell' }, f.deps), /^✗ 已經有/)
   assert.equal(f.calls.start.length, 0)
-  assert.match(await runAeroTool('aero_auto_design_status', {}, f.deps), /^⏳ 運行緊/)
+  assert.match(await runAeroTool('aero_auto_design_status', {}, f.deps), /^⏳ 正在運行/)
   assert.match(await runAeroTool('aero_stop_auto_design', {}, f.deps), /^✓/)
   assert.equal(f.calls.stop, 1); assert.equal(running.cancelRequested, true)
 })

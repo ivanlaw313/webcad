@@ -41,7 +41,7 @@ test('QA 表 1：SOLID Box 長度 1e9 / abc / 空 —— 唔准靜默變返 80',
   const abc = parseField('boxLength', 'abc')
   assertNoSubstitutedNumber(abc, 'boxLength abc')
   assert.equal(abc.state, 'invalid')
-  assert.ok(abc.reason.includes('唔係數字'), abc.reason)
+  assert.ok(abc.reason.includes('不是數字'), abc.reason)
   assert.ok(abc.reason.includes('abc'), abc.reason)
 
   const empty = parseField('boxLength', '')

@@ -798,7 +798,7 @@ export class LbmGpu {
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
         if (now > deadline) {
           const names = Array.from(pending).map((m) => nameOf.get(m) ?? m.name ?? '(未命名)')
-          reject(new Error('LBM: shader 編譯 ' + (timeoutMs / 1000) + ' 秒仲未完；仲未好：' + names.join(', ')))
+          reject(new Error('LBM: shader 編譯 ' + (timeoutMs / 1000) + ' 秒仍未完成；尚未就緒：' + names.join(', ')))
           return
         }
         again(poll)

@@ -236,7 +236,7 @@ export const GPU_CD_ABSOLUTE_TRUSTWORTHY = false
  */
 export const POSE_COMPARE_NOTE =
   '⚠ GPU 求解器的【絕對】Cd 只是趨勢級。之前講「球體 Cd 高 2.0–2.2 倍、是求解器的系統偏差」'
-  + '該個講法【不成立】—— 2026-10-01 在真硬件查證：該個實驗跑在堵塞率 14–17%'
+  + '這個說法【不成立】—— 2026-10-01 在真硬件查證：那個實驗跑在堵塞率 14–17%'
   + '（λ = d/D = 0.427）的重度受限域、從未收斂、Re 被 omega 鉗、LES 開。'
   + '改在乾淨條件下量（堵塞率 2.1%、穩態 Re_lb 143、熄 LES、時均）得 1.13 倍 Clift-Gauvin，'
   + '落在 20 格階梯式球體應有的數值誤差（±30%）之內。'
@@ -753,7 +753,7 @@ export class PoseCompare {
       ? '拖曳中：位姿仍在移動，一個樣本都沒有收'
       : this._state === 'settling'
         ? (stepCount < this._relaxUntil
-          ? `流場過渡期（仲要 ${Math.max(0, Math.round(this._relaxUntil - stepCount))} substep 先開始收樣本）`
+          ? `流場過渡期（還需 ${Math.max(0, Math.round(this._relaxUntil - stepCount))} substep 才開始收集樣本）`
           : `流場重建中：已收 ${this.tracker.samples} 個樣本，未夠 / 未收斂`)
         : '未追蹤位姿'
     return {
@@ -823,7 +823,7 @@ export class PoseCompare {
     const sign = cur.dragDeltaPct <= 0 ? '−' : '+'
     const mag = Math.abs(cur.dragDeltaPct).toFixed(1)
     const verdict = cur.significant
-      ? (cur.dragDeltaPct < 0 ? '阻力細了' : '阻力大了')
+      ? (cur.dragDeltaPct < 0 ? '阻力減少了' : '阻力增加了')
       : '同參考無法分（差異小於渦脫落噪聲）'
     const tail = cur.significant ? `${sign}${mag}%` : `${sign}${mag}% vs 噪聲底 ±${cur.noisePct.toFixed(1)}%`
     return `位姿 #${cur.id}（${cur.label}）vs 參考 #${t.referenceId}：${verdict} ${tail}`

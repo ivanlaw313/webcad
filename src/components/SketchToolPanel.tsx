@@ -393,7 +393,7 @@ export function SketchToolPanel() {
           ? <div style={{ fontSize: 12, fontWeight: 700, color: '#1c6fb8', lineHeight: 1.5 }}>{`${T('施約束武裝中')}：${T(SK_CON_LABEL_ZH[armedCon] ?? armedCon)}`}<div style={{ fontWeight: 400, color: '#5a6b78', fontSize: 11.5, marginTop: 2 }}>{T('選要約束的對象（選夠即施加，保持武裝）· ESC 退出')}</div></div>
           : <Hint>{T('點 點/邊/圓 選取（可多選）· 空白左拖=框選（左→右全包/右→左相觸）· 雙擊邊=鏈選 → 按約束/尺寸掣。或先按約束掣（無選擇）= tool-first。')}</Hint>}
         {/* GM-FP4 #47：撳真空白 = 清選擇（Fusion 默認）/ 唔清（防誤清，webcad 舊手感） */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('開=按真空白即清選擇（預設）；關=按空不清（防誤清，ESC 先清）')}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3a4750', cursor: 'pointer' }} title={T('開=按真空白即清選擇（預設）；關=按空白不清（防誤清，按 ESC 才清）')}>
           <input type="checkbox" checked={selEmptyClear} onChange={(e) => g().setSelEmptyClear(e.target.checked)} />
           <span>{T('按空白 = 清選擇')}</span>
         </label>

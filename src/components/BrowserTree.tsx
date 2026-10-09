@@ -628,7 +628,7 @@ export default function BrowserTree() {
   const skLock = useApp((s) => s.mode === 'sketch' || s.formMode)   // GM-W2 2.2：草图态灰化基准删除（草图可能正建喺个参考面上）
   const features = useApp((s) => s.features)
   const bodyMesh = useApp((s) => s.bodyMesh)
-  const selectedParkedIndex = useApp((s) => s.selectedParkedIndex)  // SO10：另一半（独立实体）树选中高亮
+  const selectedParkedIndex = useApp((s) => s.selectedParkedIndex)  // SO10：另一半（獨立實體）树选中高亮
   const sketchSources = useApp((s) => s.sketchSources)   // GM-W6 F2：草图行渲染移入 SketchRow（每行自订名/孤儿重开+删除）
   // UX1 #6（Fusion）：獨立草圖特徵已喺「草圖」資料夾列出 → 特徵資料夾唔再重複（草圖源唔見咗嘅先保留，免得冇得揀）
   const treeFeatures = features.filter((f) => !(f.type === 'sketch' && !!sketchSources[(f as { sketchId?: string }).sketchId ?? '']))
@@ -856,13 +856,13 @@ export default function BrowserTree() {
           {bodyMesh?.parked?.map((b, i) => <BodyRow key={'pb' + i} parkedIndex={i} visKey={parkedBodyKey(b.name, i)} label={(b as any).kind === 'body' ? localizeAsmName(b.name, lang) : `${localizeAsmName(b.name, lang)}（獨立實體 · 灰顯）`} sel={selectedParkedIndex === i} onClick={() => {
             const st = useApp.getState()
             st.selectParkedBody(i)
-            // SO10 / BUG-SO15-002：统一测量 + 体过滤时树点选即量另一半（独立实体）体积；否则开属性。
+            // SO10 / BUG-SO15-002：统一测量 + 体过滤时树点选即量另一半（獨立實體）体积；否则开属性。
             if (st.measureUniMode && st.measureSelFilter.body) void st.measureParkedBody(i)
             else void st.openPropertiesDialog(`parked:${i}`)
           }} />)}
           {!bodyMesh ? <Leaf icon="default" label="（空）" /> : null}
         </Section>
-        {/* i18n: 實體 当前組件 活动實體 独立实体 · 灰显 （空） 草图 特徵 尚无特徵 — wrapped via Leaf/Section internal tStatus */}
+        {/* i18n: 實體 当前組件 活动實體 獨立實體 · 灰显 （空） 草图 特徵 尚无特徵 — wrapped via Leaf/Section internal tStatus */}
         {Object.keys(sketchSources).length > 0 && (
           <Section label={`${msg('tree.sketches', lang)} (${Object.keys(sketchSources).length})`}>
             {Object.keys(sketchSources).map((k) => <SketchRow key={k} k={k} />)}

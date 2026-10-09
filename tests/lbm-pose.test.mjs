@@ -269,7 +269,7 @@ test('rigidPose/safePoseBox + clampPose：任何朝向都唔行埋墙', async (t
 
   await t.test('域装唔落外接球 → feasible = false，唔准扮成功', () => {
     // 尺寸对唔上一定要掟（呢个係最易 copy-paste 错嘅嘢）
-    assert.throws(() => safePoseBox({ DX: 12, DY: 12, DZ: 12 }, phi, 2), /唔等於域/)
+    assert.throws(() => safePoseBox({ DX: 12, DY: 12, DZ: 12 }, phi, 2), /不等於域/)
     // 20³ 嘅域塞一件 15×15×15 嘅零件：外接球直径 ≈ 26 > 20，点摆都贴墙
     const S = 20
     const data = new Float32Array(S * S * S).fill(1)

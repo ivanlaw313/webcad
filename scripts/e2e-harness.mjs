@@ -8,7 +8,7 @@ import { chromium } from 'playwright'
 
 export const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d }
 
-export async function runE2E(body, { port = Number(arg('--port', 4317)), chrome = arg('--chrome', '/usr/bin/google-chrome'), url = '/?ui-test=1', viewport = { width: 1400, height: 900 } } = {}) {
+export async function runE2E(body, { port = Number(arg('--port', 4400 + (process.pid % 500))) /* pid-derived: other workers may hold 4317 */, chrome = arg('--chrome', '/usr/bin/google-chrome'), url = '/?ui-test=1', viewport = { width: 1400, height: 900 } } = {}) {
   const SHOTS = arg('--shots', '')
   if (SHOTS) mkdirSync(SHOTS, { recursive: true })
   const preview = spawn('nice', ['-n', '19', 'npx', 'vite', 'preview', '--port', String(port), '--strictPort', '--host', '127.0.0.1'], { stdio: ['ignore', 'pipe', 'pipe'], detached: true })

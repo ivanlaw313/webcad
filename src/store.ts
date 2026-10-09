@@ -1062,6 +1062,12 @@ export function moldTargetMesh(s: {
 // T804（报告 P2）：范本载入中标记 — 载入时 bindParam 嘅状态改显「✓已载入 XXX」而非「已绑定参数」
 //（之前最后一个 bind 覆盖咗载入确认,用户以为冇载入）。reset() 清,下次 loadSample 重设。
 let _loadingSample = ''
+// UX1 #5：今份文件已經有用戶揀過嘅名（儲存時問過／開檔帶名）→ 之後 Ctrl+S 唔再問。新檔 reset() 清返。
+let _docNamed = false
+export function isUntitledProjectName(n: string | null | undefined): boolean {
+  const t = (n ?? '').trim()
+  return !t || /^(未命名零件|未命名|Untitled)( \(\d+\))?$/i.test(t)
+}
 
 // T805（报告 R3）：当前应用内对话框嘅 resolve 回调（state 唔放函数，靠呢个 module 槽桥接）。
 let _dialogResolve: ((v: string | boolean | null) => void) | null = null
@@ -21050,6 +21056,14 @@ export const useApp = create<AppState>((rawSet, get) => {
   closeDrawing: () => set({ drawingOpen: false }),
 
   saveProject: async () => {
+    // UX1 #5：未命名文件第一次儲存 → 先問檔名（Fusion「儲存」對話框），唔再靜靜雞落「未命名零件 (n).json」。
+    if (!_docNamed && isUntitledProjectName(get().projectName)) {
+      const lang = get().lang
+      const name = await get().appPrompt(lang === 'en' ? 'File name' : lang === 'zh-CN' ? '文件名称' : '檔案名稱', get().projectName || '未命名零件', lang === 'en' ? 'Save' : lang === 'zh-CN' ? '保存' : '儲存')
+      if (name == null || !name.trim()) { set({ status: '已取消儲存（現有模型未動）' }); return }
+      set({ projectName: name.trim().replace(/\.json$/i, '') })
+      _docNamed = true
+    }
     const s = get()
     // v2: persist the FULL document. T746：复用 buildProjectPayload（单一真相）— 以前手砌一份并行 payload，
     // 字段一多就甩漏（实锤：save 写咗 mates 但 open 冇还原 → .json 往返丢配合）。
@@ -21071,6 +21085,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   openProject: () => {
+    // UX1 #5：「開啟舊檔案…」= 系統檔案揀選器。用隱藏 <input type=file>，喺點擊（user gesture）入面【同步】click —
+    // 舊做法先等 showOpenFilePicker 結果，失敗／即時 Abort 先後備 click input：嗰陣 user activation 已經被 picker 用咗，
+    // Chrome 靜靜雞擋咗 input.click()（乜都冇彈）。input 掛喺 DOM（Safari/部分 Chrome 版本要求）用完即拆。
     const openFromText = async (text: string) => {
       try {
         const data = JSON.parse(text)
@@ -21081,43 +21098,22 @@ export const useApp = create<AppState>((rawSet, get) => {
         set({ status: '打開失敗：檔案格式不正確（現有模型未動）' })
       }
     }
-    const pickViaInput = () => {
-      const input = document.createElement('input')
-      input.type = 'file'
-      input.accept = '.json,application/json'
-      input.onchange = async () => {
-        const file = input.files?.[0]
-        if (!file) return
-        await openFromText(await file.text())
-      }
-      input.click()
+    if (typeof document === 'undefined') { set({ status: '此環境無法開啟檔案揀選器' }); return }
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json,application/json'
+    const host = (document as Document).body as HTMLElement | undefined
+    if (input.style) { input.style.position = 'fixed'; input.style.left = '-9999px'; input.style.opacity = '0' }
+    if (host?.appendChild) host.appendChild(input)
+    const cleanup = () => { try { input.remove?.() } catch { /* already gone */ } }
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      cleanup()
+      if (!file) { set({ status: '已取消打開（現有模型未動）' }); return }
+      await openFromText(await file.text())
     }
-    void (async () => {
-      type OpenPickerWindow = Window & {
-        showOpenFilePicker?: (options?: {
-          multiple?: boolean
-          types?: { description?: string; accept: Record<string, string[]> }[]
-        }) => Promise<FileSystemFileHandle[]>
-      }
-      const picker = (window as OpenPickerWindow).showOpenFilePicker
-      if (typeof picker === 'function') {
-        const pickStart = Date.now()
-        try {
-          const [handle] = await picker.call(window, {
-            multiple: false,
-            types: [{ description: 'WebCAD JSON', accept: { 'application/json': ['.json'] } }],
-          })
-          const file = await handle.getFile()
-          await openFromText(await file.text())
-          return
-        } catch (err) {
-          const name = err && typeof err === 'object' && 'name' in err ? String((err as { name: string }).name) : ''
-          if (name === 'AbortError' && !isQuickPickerAbort(pickStart)) { set({ status: '已取消打開（現有模型未動）' }); return }
-          // Unsupported / permission / instant auto-abort (no human could cancel that fast) → fall back to <input type=file>.
-        }
-      }
-      pickViaInput()
-    })()
+    input.addEventListener?.('cancel', () => { cleanup(); set({ status: '已取消打開（現有模型未動）' }) })
+    input.click()
   },
   // T797：共用还原 — 文件 open 同分享链接都行呢条（单一真相，避免两份 schema 漂移）。
   applyProjectData: async (data, statusVerb = '已打開項目') => {   // BUG-302 類：預設文案原本係簡體
@@ -21913,6 +21909,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   reset: async () => {
+    _docNamed = false   // UX1 #5
     _loadingSample = ''   // T804：清范本载入标记（下次 loadSample 会重设）
     if (documentPersistenceEnabled()) try { clearTabAutosave() } catch { /* ignore */ } // so THIS tab reload starts blank (true "New"); sibling tabs keep their own autosave (BUG-UI-006)
     // Clear all doc state synchronously FIRST so reset is atomic — otherwise state set by the

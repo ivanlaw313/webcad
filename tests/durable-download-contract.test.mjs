@@ -58,9 +58,12 @@ test('saveProject uses durableDownloadFrom (picker before JSON) and never claims
   assert.doesNotMatch(body, /await durableDownload\(/)
 })
 
-test('openProject prefers showOpenFilePicker and keeps the document on cancel/bad JSON', () => {
+test('openProject opens the system picker via a synchronous hidden <input type=file> and keeps the document on cancel/bad JSON', () => {
   const body = impl('openProject', 'applyProjectData')
-  assert.match(body, /showOpenFilePicker/)
+  // UX1 #5：showOpenFilePicker → 後備 input.click() 會喺 activation 用完之後先 click（真 Chrome 乜都唔彈）
+  assert.match(body, /input\.type = 'file'/)
+  assert.match(body, /input\.click\(\)\n  \},/)
+  assert.doesNotMatch(body, /await [^\n]*showOpenFilePicker/)
   assert.match(body, /已取消打開（現有模型未動）/)
   assert.match(body, /打開失敗：檔案格式不正確（現有模型未動）/)
   assert.match(body, /applyProjectData/)

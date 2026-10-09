@@ -125,29 +125,31 @@ test('isQuickPickerAbort threshold', () => {
   assert.equal(isQuickPickerAbort(1000, 5000), false)
 })
 
-test('instant AbortError from showOpenFilePicker falls back to <input type=file> and opens the picked file', async () => {
+// UX1 #5：「開啟舊檔案…」改為喺點擊入面【同步】click 隱藏 <input type=file>（系統揀選器）。
+// 舊流程 await showOpenFilePicker 後先後備 click input —— activation 已被用咗，真 Chrome 靜靜雞擋咗（乜都冇彈）。
+test('openProject clicks a hidden <input type=file> synchronously (inside the user gesture) and opens the picked file', async () => {
   freshDoc()
-  await withFakeDom(async () => { throw abortErr() }, async (inputs) => {
+  let pickerCalls = 0
+  await withFakeDom(async () => { pickerCalls++; throw abortErr() }, async (inputs) => {
     g().openProject()
-    await tick(20)
-    assert.equal(inputs.length, 1, 'fallback <input> created')
+    assert.equal(inputs.length, 1, 'input created')
     assert.equal(inputs[0].type, 'file')
-    assert.equal(inputs[0].clicked, 1)
-    assert.doesNotMatch(g().status ?? '', /已取消打開/)
+    assert.equal(inputs[0].clicked, 1, 'clicked synchronously — no await before click')
+    assert.equal(pickerCalls, 0, 'showOpenFilePicker not used (it would consume the activation)')
     inputs[0].files = [{ name: 'plate.json', text: async () => FIXTURE }]
     await inputs[0].onchange()
-    assertRestored('quick-abort fallback')
+    assertRestored('input picker')
   })
 })
 
-test('a slow (human) AbortError still reports cancel and leaves the model untouched', async () => {
+test('closing the system picker (cancel event) reports cancel and leaves the model untouched', async () => {
   freshDoc()
   await g().applyProjectData(JSON.parse(FIXTURE))
   const before = g().features
-  await withFakeDom(() => new Promise((_, rej) => setTimeout(() => rej(abortErr()), 300)), async (inputs) => {
+  await withFakeDom(async () => { throw abortErr() }, async (inputs) => {
     g().openProject()
-    await tick(400)
-    assert.equal(inputs.length, 0, 'no fallback input after a real cancel')
+    inputs[0].listeners.cancel()
+    await tick(10)
     assert.equal(g().status, '已取消打開（現有模型未動）')
     assert.equal(g().features, before)
   })

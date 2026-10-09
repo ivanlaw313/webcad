@@ -3871,6 +3871,7 @@ export default function Viewport() {
   const edgeRoundPickLines = useApp((s) => s.edgeRoundPickLines)   // P2 audit：整条棱高亮 polyline（CAD 坐标）
   const roundPreviewMesh = useApp((s) => s.roundPreviewMesh)   // P2 批7：圆角实时预览网格（edgeRoundPick 关掉即忽略 — 单一 guard，免走 20+ 清理位）
   const roundPreviewFail = useApp((s) => s.roundPreviewFail)
+  const roundPreviewWarn = useApp((s) => s.roundPreviewWarn)
   const edgeRoundRadii = useApp((s) => s.edgeRoundRadii)   // S174：逐边半径
   const edgeRoundGroupIds = useApp((s) => s.edgeRoundGroupIds)
   const filletRadiusGroups = useApp((s) => s.filletRadiusGroups)
@@ -5509,9 +5510,10 @@ export default function Viewport() {
               <div style={{ display: 'flex', gap: 4, marginTop: 4 }}><button type="button" aria-label="新增半徑組" onClick={() => useApp.getState().addFilletRadiusGroup()} style={{ minWidth: 28 }}>＋</button><button type="button" aria-label="刪除半徑組" disabled={filletRadiusGroups.length <= 1} onClick={() => useApp.getState().removeFilletRadiusGroup()} style={{ minWidth: 28 }}>×</button><span style={{ fontSize: 10, color: '#6b7680', alignSelf: 'center' }}>選中第 {filletActiveGroup + 1} 組</span></div>
             </div>
           )}
+          {!roundPreviewFail && roundPreviewWarn && <div role="alert" data-testid="round-preview-warn" style={{ fontSize: 11, color: '#b54708', fontWeight: 600 }}>{tStatus(roundPreviewWarn, lang)}</div>}
           {roundPreviewFail && (edgeRoundPick === 'chamfer'
-            ? <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>{roundFailLines(lang).map((t, i) => <div key={i} style={i === 2 ? { fontWeight: 400 } : undefined}>{t}</div>)}</div>
-            : <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>⚠ {filletType === 'full' ? '三組面必須相鄰，而且當前要求兩條邊界為平行直線' : filletMode === 'asymmetric' ? '目前只支持凸直線邊與互相垂直的兩個平面；幾何保持不變' : '圓角半徑太大（超過相鄰面）— 請減小數值後再按「確定」'}</div>)}
+            ? <div role="alert" data-testid="round-preview-fail" style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>{roundFailLines(lang).map((t, i) => <div key={i} style={i === 2 ? { fontWeight: 400 } : undefined}>{t}</div>)}</div>
+            : <div role="alert" data-testid="round-preview-fail" style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>⚠ {filletType === 'full' ? '三組面必須相鄰，而且當前要求兩條邊界為平行直線' : filletMode === 'asymmetric' ? '目前只支持凸直線邊與互相垂直的兩個平面；幾何保持不變' : '圓角半徑太大（超過相鄰面）— 請減小數值後再按「確定」'}</div>)}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && <label className="sb-hint" title="切線鏈（Fusion tangent chain）：點一條稜，自動連埋同佢相切連續嘅成條邊鏈（例如圓角矩形頂圈 = 4 直邊 + 4 弧一次過倒）">
             <input type="checkbox" checked={edgeRoundChain && filletMode !== 'asymmetric'} disabled={edgeRoundPick === 'fillet' && filletMode === 'asymmetric'} onChange={() => useApp.getState().toggleEdgeRoundChain()} /> 切線鏈（自動連相切稜）
           </label>}

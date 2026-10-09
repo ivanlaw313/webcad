@@ -1401,6 +1401,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   // P2 批7：实时预览（停手 ~120ms 即真内核预览 — T730 前缀缓存令成本≈一次 fillet solve+remesh）
   roundPreviewMesh: MeshData | null
   roundPreviewFail: boolean
+  /** CORE16：預覽成功但內核自動收細（半徑／距離太大）嘅原因 — 對話框內顯示 */
+  roundPreviewWarn: string | null
   roundPreviewBusy: boolean
   scheduleRoundPreview: () => void
   runRoundPreview: () => Promise<void>
@@ -7098,11 +7100,12 @@ export const useApp = create<AppState>((rawSet, get) => {
   // bodyMesh 全程唔郁（预览住喺 roundPreviewMesh，KernelBody 读 preview ?? bodyMesh）→ 取消/ESC 即还原零成本。
   roundPreviewMesh: null,
   roundPreviewFail: false,
+  roundPreviewWarn: null,
   roundPreviewBusy: false,
   scheduleRoundPreview: () => {
     // Invalidate immediately, including the debounce window and invalid inputs.
     ++_roundPvSeq
-    set({ roundPreviewMesh: null, roundPreviewFail: false, roundPreviewBusy: false })
+    set({ roundPreviewMesh: null, roundPreviewFail: false, roundPreviewBusy: false, roundPreviewWarn: null })
     if (_roundPvTimer) clearTimeout(_roundPvTimer)
     _roundPvTimer = setTimeout(() => { _roundPvTimer = null; void get().runRoundPreview() }, 120)
   },
@@ -7137,7 +7140,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // worker 遇过大半径会自动收细 + 出 warning（唔 fail）— 预览时即场同用户讲，等佢未撳确定已知
       const warn = mesh!.warnings && mesh!.warnings.length ? `⚠ ${mesh!.warnings.join('；')}` : ''
       _previewFeatures.set(mesh!, active)
-      set({ roundPreviewMesh: mesh, roundPreviewFail: false, roundPreviewBusy: false, ...(warn ? { status: warn } : /^⚠.*(倒角|圓角|圆角|棱)/.test(get().status) ? { status: '預覽正常 — 按「確定」套用' } : {}) })   // UX2：之前失敗嘅「距離太大」唔好殘留喺狀態列
+      set({ roundPreviewMesh: mesh, roundPreviewFail: false, roundPreviewBusy: false, roundPreviewWarn: warn || null, ...(warn ? { status: warn } : /^⚠.*(倒角|圓角|圆角|棱)/.test(get().status) ? { status: '預覽正常 — 按「確定」套用' } : {}) })   // UX2：之前失敗嘅「距離太大」唔好殘留喺狀態列
     } else {
       // UX2 #1：唔好一律話「距離太大」— 實測 flange 杯 1 mm 失敗嘅真因係揀錯棱／接縫棱。即刻標失敗（唔阻 UI），
       // 再喺背景用 worker 錯誤 + 0.05 mm 探測分辨原因，仍係同一次預覽先改 status。

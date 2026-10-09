@@ -189,6 +189,29 @@ await runE2E(async (page, okRaw) => {
     return { s, d }
   }
 
+  const previewCheck = async (label, sig0, key) => {
+    await waitIdle()
+    const sig = await sceneSig()
+    const pv = key ? await meshVol(key) : null
+    ok(`${label}: preview present`, sig !== sig0 || pv != null, { pv })
+    return pv
+  }
+  const previewMatches = async (pv, v, label = 'preview volume == result volume') => ok(label, pv != null && near(pv, v, 0.02), { pv, v })
+  const featCount = () => S(() => window.useApp.getState().features.length)
+  const genericPreview = 'editPreviewMesh'
+  // CORE16：新拉伸對話框內核預覽 — 等「即時預覽 · 體積」行出現（量由最後一下輸入起計）
+  const xPreview = async (label) => {
+    const t0 = Date.now()
+    const okv = await page.waitForFunction(() => !!document.querySelector('[data-testid="extrude-preview-volume"]'), null, { timeout: 20000 }).then(() => true).catch(() => false)
+    const ms = Date.now() - t0
+    const pv = await S(() => window.useApp.getState().extrudeKernelPreview?.volume ?? null)
+    const line = await S(() => document.querySelector('[data-testid="extrude-preview-volume"]')?.textContent || '')
+    ok(`${label}: kernel preview + volume line shown`, okv && pv != null, { ms, pv, line })
+    ok(`${label}: preview responsive (< 4 s after input)`, okv && ms < 4000, { ms })
+    if (line) await tradOnly(`${label} preview line`, line)
+    return pv
+  }
+
   // ════════════════ 1. 拉伸 Extrude ════════════════
   await run('extrude', '拉伸 Extrude', async () => {
     await frame()
@@ -214,15 +237,27 @@ await runE2E(async (page, okRaw) => {
     await selectIn('拉伸方向', 'symmetric'); const sy = await S(() => window.useApp.getState().extrudeExtent)
     await selectIn('拉伸方向', 'distance')
     ok('方向 單側/對稱 toggle', sy === 'symmetric' && (await S(() => window.useApp.getState().extrudeExtent)) === 'distance')
+    // responsiveness: change the distance with the keyboard → kernel preview for the NEW value within the debounce + build time
+    { const hIn = page.locator('.cmd-palette label', { hasText: /高度|距離/ }).locator('input:visible').first()
+      await hIn.click(); await hIn.press('Control+a'); await hIn.pressSequentially('13', { delay: 60 })
+      const t0 = Date.now()
+      const got = await page.waitForFunction(() => Math.abs((window.useApp.getState().extrudeKernelPreview?.volume ?? 0) - 15600) < 50 && !!document.querySelector('[data-testid="extrude-preview-volume"]'), null, { timeout: 15000 }).then(() => true).catch(() => false)
+      ok('preview follows a new distance (13 → 15600 mm³) within 3 s', got && Date.now() - t0 < 3000, { ms: Date.now() - t0 })
+      await page.screenshot({ path: OUT + '/evidence/core16-extrude-preview.png' })
+      await hIn.press('Control+a'); await hIn.pressSequentially('12.5', { delay: 60 }); await hIn.press('Tab'); await W(300) }
+    const xp1 = await xPreview('extrude 12.5')
     await clickOk()
     const v1 = (await expectVol('extrude 40×30×12.5', 15000)).total
+    await previewMatches(xp1, v1, 'extrude preview volume == result volume')
     // second profile: Ø10 circle → 切割 · 貫通
     await startSketchOn('XY'); await drawCircle('XY', [0, 0], 5); await finishSketch()
     await ribbon('extrude')
     await selectIn('拉伸操作', 'cut'); await selectIn('拉伸範圍', 'through')
     await W(800)
+    const xp2 = await xPreview('cut through')
     await clickOk()
     const vc = (await expectVol('cut Ø10 through', 15000 - Math.PI * 25 * 12.5, 0.02)).total
+    await previewMatches(xp2, vc, 'cut preview volume == result volume')
     // timeline edit: first extrude 12.5 → 20
     await timelineDbl('extrude', 0)
     const dt = await dlgText()
@@ -254,8 +289,10 @@ await runE2E(async (page, okRaw) => {
     await ribbon('extrude')
     await selectIn('拉伸操作', 'cut'); await selectIn('拉伸範圍', 'through'); await W(600)
     await tradOnly('extrude cut panel', await dlgText())
+    const xpp = await xPreview('plate cut-through')
     await clickOk()
     const v = await vol()
+    await previewMatches(xpp, v.total, 'plate cut preview volume == result volume')
     ok('切除·貫通 drills through the 8 mm plate', near(v.total, 19200 - Math.PI * 25 * 8, 0.01), { v, status: await statusBar() })
     await tradOnly('cut status', await statusBar())
     cur.vol = v.total
@@ -271,16 +308,6 @@ await runE2E(async (page, okRaw) => {
   const prompt = () => page.locator('[role=dialog][aria-modal=true]').last()
   const answerPrompt = async (txt) => { const d = prompt(); await d.waitFor({ timeout: 5000 }); const i = d.locator('input,textarea').first(); await i.fill(''); await i.pressSequentially(String(txt), { delay: 50 }); await d.locator('.cmd-ok').click(); await W(500) }
   const hasPalette = async () => (await page.locator('.cmd-palette:visible').count()) > 0
-  const previewCheck = async (label, sig0, key) => {
-    await waitIdle()
-    const sig = await sceneSig()
-    const pv = key ? await meshVol(key) : null
-    ok(`${label}: preview present`, sig !== sig0 || pv != null, { pv })
-    return pv
-  }
-  const previewMatches = async (pv, v, label = 'preview volume == result volume') => ok(label, pv != null && near(pv, v, 0.02), { pv, v })
-  const featCount = () => S(() => window.useApp.getState().features.length)
-  const genericPreview = 'editPreviewMesh'
 
   // ════════════════ 2. 旋轉 Revolve ════════════════
   await run('revolve', '旋轉 Revolve', async () => {
@@ -331,6 +358,15 @@ await runE2E(async (page, okRaw) => {
     const sig0 = await sceneSig()
     await ribbon('sweep')
     ok('sweep dialog open', await S(() => window.useApp.getState().sweepDlgOpen))
+    // error: pipe Ø 0 (circle section) — must be rejected with a message, not silently become 12
+    await page.locator('.cmd-palette button', { hasText: /◯ 圓/ }).first().click().catch(() => {}); await W(300)
+    const dia = page.locator('.cmd-palette input[aria-label="管徑 Ø"]').first()
+    await typeInto(dia, '0'); await page.keyboard.press('Tab'); await W(400)
+    const shown = await dia.inputValue().catch(() => null)
+    ok('sweep Ø0 keeps the typed 0 (no silent 12)', shown === '0', { shown, dia: await S(() => window.useApp.getState().sweepDia) })
+    ok('sweep Ø0 cannot be committed', await okBtn().isDisabled())
+    await errorMsg('sweep Ø0', /管徑|Ø/)
+    await typeInto(dia, '10'); await page.keyboard.press('Tab'); await W(300)
     const prof = page.locator('.cmd-palette button', { hasText: /草圖輪廓/ }).first()
     if (await prof.count()) { await prof.click(); await W(300) }
     await rows.nth(1).click(); await W(300)

@@ -254,7 +254,9 @@ function ThreadSpecSelect({ d, pitch, std, onPick, lang }: { d: number; pitch: n
 }
 
 // featDlg palette: per-kind Chinese title + icon (titles match ribbon.ts labels).
-const FD_TITLE: Record<string, string> = { gearbox: '齒輪箱向導', worm: '蝸桿', crowngear: '冠齒輪', automatedmodel: 'Automated Modeling · Connector v1', pattern: '矩形陣列', cpattern: '環形陣列', circpattern: '環形陣列', pathpattern: '路徑陣列', mirror: '鏡像', move: '移動/複製', scale: '縮放', draft: '拔模', revolve: '旋轉', rib: '加強筋/腹板', pipe: '管道', box: '長方體', cylinder: '圓柱', sphere: '球', torus: '圓環', cone: '圓錐/圓台', wedge: '楔形', dome: '圓頂', halfcyl: '半圓柱', pie: '扇形柱', tube: '圓管/襯套', rtube: '方管', profile: '型材', rbox: '圓角盒', prism: '多邊形棱柱', pyramid: '棱錐', coil: '螺旋', thread: '螺紋桿', cylpatch: '曲面貼花', sheetmetal: '鈑金件', gear: '齒輪', rack: '齒條', pulley: 'V帶輪', plane: '參考平面', cpoint: '構造點', caxis: '構造軸', combine: '合併/布爾', splitbody: '分割實體', 'extrude-edit': '拉伸', 'fillet-edit': '圓角', 'chamfer-edit': '倒角', 'shell-edit': '抽殼' }
+const FD_TITLE: Record<string, string> = { gearbox: '齒輪箱向導', worm: '蝸桿', crowngear: '冠齒輪', automatedmodel: 'Automated Modeling · Connector v1', pattern: '矩形陣列', cpattern: '環形陣列', circpattern: '環形陣列', pathpattern: '路徑陣列', mirror: '鏡像', move: '移動/複製', scale: '縮放', draft: '拔模', revolve: '旋轉', rib: '加強筋/腹板', pipe: '管道', box: '長方體', cylinder: '圓柱', sphere: '球', torus: '圓環', cone: '圓錐/圓台', wedge: '楔形', dome: '圓頂', halfcyl: '半圓柱', pie: '扇形柱', tube: '圓管/襯套', rtube: '方管', profile: '型材', rbox: '圓角盒', prism: '多邊形棱柱', pyramid: '棱錐', coil: '螺旋', thread: '螺紋桿', cylpatch: '曲面貼花', sheetmetal: '鈑金件', gear: '齒輪', rack: '齒條', pulley: 'V帶輪', plane: '參考平面', cpoint: '構造點', caxis: '構造軸', combine: '合併/布爾', splitbody: '分割實體', 'extrude-edit': '拉伸', 'fillet-edit': '圓角', 'chamfer-edit': '倒角', 'shell-edit': '抽殼',
+  // RETEST18 #3：補漏 — 冇標題嘅 kind 會顯示原始 key（「othread」）。
+  othread: '螺紋', ithread: '內螺紋', cptgrid: '構造點陣列', boundaryfill: '邊界填充', offsetsolid: '偏移實體' }
 const FD_ICON: Record<string, string> = { gearbox: 'default', worm: 'default', crowngear: 'default', automatedmodel: 'cylinder', pattern: 'pattern', cpattern: 'pattern', circpattern: 'pattern', pathpattern: 'pattern', mirror: 'mirror', move: 'move', scale: 'scale', draft: 'draft', revolve: 'revolve', rib: 'default', pipe: 'cylinder', box: 'box', cylinder: 'cylinder', sphere: 'sphere', torus: 'cylinder', cone: 'cylinder', wedge: 'box', dome: 'sphere', halfcyl: 'cylinder', pie: 'cylinder', tube: 'cylinder', rtube: 'box', profile: 'box', rbox: 'box', prism: 'box', pyramid: 'cylinder', plane: 'plane', cpoint: 'point', caxis: 'axis', combine: 'combine', splitbody: 'split', 'extrude-edit': 'extrude', 'fillet-edit': 'fillet', 'chamfer-edit': 'chamfer', 'shell-edit': 'shell' }
 
 // Compact per-part fit indicator (🖨️✓/↻/✗) using the shared bed choice — no dropdown, for the move-bar.
@@ -5595,7 +5597,7 @@ export default function Viewport() {
             }
             useApp.getState().clearFea(); useApp.getState().clearModal(); useApp.getState().clearBuckling(); useApp.getState().clearTopopt(); useApp.getState().clearThermal()
           }}
-          summary={<>{feaMat} · 靜力/模態/屈曲/生成式/熱（趨勢，非商用 FEA）</>}
+          summary={<>{tMaterialName(feaMat, lang)} · 靜力/模態/屈曲/生成式/熱（趨勢，非商用 FEA）</>}
         >
           <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
             <button onClick={() => useApp.getState().autoFeaCantilever()} title="自動【懸臂】：夾一端 + 受力另一端(沿最長軸) — 免手動搵端面/撳錯側面。應力最大喺固定端根部。" style={{ flex: 1, padding: '5px 6px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid #2f6fb0', borderRadius: 4, background: '#1e3a5f', color: '#dbe8f5' }}>🔧 懸臂（夾一端·推另一端）</button>
@@ -5697,7 +5699,7 @@ export default function Viewport() {
           <label>
             <span style={{ color: '#6b7680' }}>材料</span>
             <select value={feaMat} onChange={(e) => setFeaOpt({ feaMat: e.target.value })}>
-              {Object.keys(MATERIAL_MECH).map((m) => <option key={m} value={m}>{m}（屈服 {MATERIAL_MECH[m].sy}MPa）</option>)}
+              {Object.keys(MATERIAL_MECH).map((m) => <option key={m} value={m}>{tMaterialName(m, lang)}（{tStatus('屈服', lang)} {MATERIAL_MECH[m].sy}MPa）</option>)}
             </select>
           </label>
           <label>
@@ -5843,7 +5845,7 @@ export default function Viewport() {
                 </div>
               )}
               <div style={{ color: feaResult.sy / Math.max(feaResult.vmMax, 1e-9) >= 2 ? '#16a36b' : feaResult.sy / Math.max(feaResult.vmMax, 1e-9) >= 1 ? '#c77d00' : '#d0342c', fontWeight: 600 }}>
-                安全係數 ≈ {(feaResult.sy / Math.max(feaResult.vmMax, 1e-9)).toFixed(1)}（{feaResult.matName} 屈服 {feaResult.sy}MPa）— {feaField === 'disp' ? '紅球 = 撓度最大位（彎得最勁；切「應力」睇最可能斷位）' : '紅球⚠ = 最可能斷嘅位'}
+                安全係數 ≈ {(feaResult.sy / Math.max(feaResult.vmMax, 1e-9)).toFixed(1)}（{tMaterialName(feaResult.matName, lang)} 屈服 {feaResult.sy}MPa）— {feaField === 'disp' ? '紅球 = 撓度最大位（彎得最勁；切「應力」睇最可能斷位）' : '紅球⚠ = 最可能斷嘅位'}
               </div>
             </div>
           )}
@@ -5861,7 +5863,7 @@ export default function Viewport() {
             {modalResult && (
               <div style={{ fontSize: 11, lineHeight: 1.5, marginTop: 5 }}>
                 <div style={{ color: '#6b7680', marginBottom: 3 }}>
-                  約束模態 · {modalResult.matName} · {modalResult.nVox} 體素 — 點選階睇振型動畫：
+                  約束模態 · {tMaterialName(modalResult.matName, lang)} · {modalResult.nVox} 體素 — 點選階睇振型動畫：
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {modalResult.freqs.map((f, i) => (
@@ -5975,7 +5977,7 @@ export default function Viewport() {
               <div style={{ fontSize: 11, lineHeight: 1.5, marginTop: 5 }}>
                 <div style={{ height: 10, borderRadius: 3, background: 'linear-gradient(90deg,#30123b,#28bceb,#a4fc3c,#fb7e21,#7a0403)' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b7680' }}>
-                  <span>{thermalResult.tMin.toFixed(0)}°C</span><span>溫度（{thermalResult.matName} k={thermalResult.k}）</span><span>{thermalResult.tMax.toFixed(0)}°C</span>
+                  <span>{thermalResult.tMin.toFixed(0)}°C</span><span>溫度（{tMaterialName(thermalResult.matName, lang)} k={thermalResult.k}）</span><span>{thermalResult.tMax.toFixed(0)}°C</span>
                 </div>
                 <div style={{ color: '#6b7680' }}>
                   總熱流 Q ≈ {thermalResult.heatFlowW >= 1000 ? (thermalResult.heatFlowW / 1000).toFixed(2) + 'kW' : thermalResult.heatFlowW.toFixed(1) + 'W'} · {thermalResult.nVox} 體素{thermalResult.converged ? '' : ' · ⚠未完全收斂'}

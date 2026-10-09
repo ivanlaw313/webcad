@@ -9,6 +9,7 @@ import {
   type Mesh,
 } from "three";
 import { MATERIALS, useApp } from "../store";
+import { tMaterialName } from "../i18n";
 import type { Joint } from "../assembly/kinematics";
 import {
   defaultNavigationPolicy,
@@ -5504,7 +5505,7 @@ export default function PhysicsLab() {
                 )}
                 {linkedPeakLoadFea && (
                   <dl className="physics-lab-stats" data-testid="physics-peak-fea-verdict">
-                    <dt>材料</dt><dd>{linkedPeakLoadFea.material}</dd>
+                    <dt>材料</dt><dd>{tMaterialName(linkedPeakLoadFea.material, useApp.getState().lang)}</dd>
                     <dt>最大 von Mises 應力</dt><dd>{linkedPeakLoadFea.maxVonMisesMPa.toFixed(2)} MPa</dd>
                     <dt>屈服強度</dt><dd>{linkedPeakLoadFea.yieldStrengthMPa.toFixed(2)} MPa</dd>
                     <dt>安全係數</dt><dd>{linkedPeakLoadFea.safetyFactor == null ? "—" : linkedPeakLoadFea.safetyFactor.toFixed(2)}</dd>

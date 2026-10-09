@@ -3736,6 +3736,14 @@ Object.assign(STATUS_PHRASES_X, {
   '追蹤流線': 'Tracing streamlines',
   '打包流場': 'Packing flow field',
 })
+// RETEST18 #3：特徵對話框標題（FD_TITLE 補漏 — 之前顯示原始 key「othread」）。
+Object.assign(STATUS_PHRASES_X, {
+  '螺紋': 'Thread',
+  '內螺紋': 'Internal Thread',
+  '邊界填充': 'Boundary Fill',
+  '偏移實體': 'Offset Solid',
+  '屈服': 'yield',
+})
 const _STATUS_EXACT: Record<string, string> = { ...STATUS_PHRASES, ...STATUS_PHRASES_X }
 
 // zh-HK 原樣；zh-CN 整句轉簡體。en/ja 只喺整句／整詞同表完全一致時替換。

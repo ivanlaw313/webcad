@@ -14,7 +14,7 @@ import { useLayoutEffect, useEffect, useMemo, useRef, useState, type ReactNode, 
 import { useThree, useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import { DoubleSide, Raycaster, Plane as ThreePlane, Vector3, BufferGeometry, Float32BufferAttribute, ShapeUtils, Vector2, Matrix4, Quaternion, TextureLoader, SRGBColorSpace, CatmullRomCurve3, TubeGeometry, type Texture } from 'three'
-import { useApp, setSnapScale, arc3, circumcircle, evalExpr, endTangent, tangentArcBulge, type Pt, type SketchShape } from '../store'
+import { useApp, noteSkClickMod, setSnapScale, arc3, circumcircle, evalExpr, endTangent, tangentArcBulge, type Pt, type SketchShape } from '../store'
 import { tStatus, msg } from '../i18n'
 import { parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：单位感知尺寸输入（分数英寸）
 import { ellipseLineTangentPair, initialEllipseContact, refMid, refPts, measureDim, dimGfx, radDiaDisplay, type FShape, type SkCon, type SkRef } from '../sketch/freesolve'
@@ -542,9 +542,11 @@ export function SketchSurface() {
   // Select-tool point dragging (Fusion drag-solve): pointerdown on a point arms the drag and freezes
   // OrbitControls (stopPropagation doesn't reach canvas-level listeners — ExtrudeArrow lesson); a
   // sub-threshold release falls back to a normal click inside skDragEnd.
-  const down = (st: Pt, e: { stopPropagation: () => void; button?: number; clientX?: number; clientY?: number; pointerId?: number; pointerType?: string; shiftKey?: boolean }) => {
+  const down = (st: Pt, e: { stopPropagation: () => void; button?: number; clientX?: number; clientY?: number; pointerId?: number; pointerType?: string; shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
     e.stopPropagation()
     if (geometryPointer.current || scalePointer.current) return
+    // Fusion：选择工具普通点 = 替换选择；Ctrl/Shift+点 = 增减（交 skClickAt 消费一次）
+    if ((e.button ?? 0) === 0) noteSkClickMod(e.shiftKey || e.ctrlKey || e.metaKey ? 'toggle' : 'replace')
     // 第二個 pointer（觸屏第二隻手指 / 拖緊時按右鍵）→ 取消 drag-draw 並解凍相機（俾 pinch 縮放有得行），唔落點
     if (dragDraw.current) { dragDraw.current = null; if (controls) controls.enabled = true; return }
     // GM-W6 A2：净【左键】先落点（对齐 Fusion）——旧版 click(st) 冇 button 判断，中/右键都会画嘢。

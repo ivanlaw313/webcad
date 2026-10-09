@@ -128,11 +128,16 @@ export function segDist2(px: number, py: number, ax: number, ay: number, bx: num
  * `seg2d` = flat [ax,ay,bx,by, …] in pixels; NaN entries (behind camera) are skipped.
  */
 export function nearEdgePx(seg2d: ArrayLike<number>, px: number, py: number, tolPx = 6): boolean {
-  const t2 = tolPx * tolPx
+  return nearestEdgePx(seg2d, px, py, tolPx) >= 0
+}
+/** Index (segment number) of the closest projected segment within tolPx, or -1. */
+export function nearestEdgePx(seg2d: ArrayLike<number>, px: number, py: number, tolPx = 6): number {
+  let best = -1, bd = tolPx * tolPx
   for (let i = 0; i + 3 < seg2d.length; i += 4) {
     const ax = seg2d[i], ay = seg2d[i + 1], bx = seg2d[i + 2], by = seg2d[i + 3]
     if (!(Number.isFinite(ax) && Number.isFinite(ay) && Number.isFinite(bx) && Number.isFinite(by))) continue
-    if (segDist2(px, py, ax, ay, bx, by) <= t2) return true
+    const d = segDist2(px, py, ax, ay, bx, by)
+    if (d <= bd) { bd = d; best = i / 4 }
   }
-  return false
+  return best
 }

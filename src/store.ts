@@ -31,6 +31,8 @@ import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { sanitizeBodyHidden, toggleHiddenKey, setHiddenKey } from './ui/contextMenus'
+import { removeContourEdges } from './sketch/deleteSketchEdges'
+import { applySelClick, mergeSel, type ModelSelItem, type SelMod } from './cad/modelSelection'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
 import { splitVolumeNoteForMesh } from './ui/splitVolume'
 import { formatBuildWarnings } from './ui/featureStatus'
@@ -271,6 +273,10 @@ export function notePlanarFace(three: [number, number, number] | null, n?: [numb
   _selectedPlanarFace = { three: [three[0], three[1], three[2]], n: [n[0], n[1], n[2]] }
 }
 export function peekPlanarFace() { return _selectedPlanarFace }
+// Fusion 式草图选择修饰键：SketchLayer pointerdown 记低（普通点=replace / Ctrl·Shift=toggle），skClickAt 消费一次。
+// 未经 UI（程序/测试直接调 skClickAt）= undefined → 旧行为（累加 toggle）。
+let _skClickMod: 'replace' | 'toggle' | undefined
+export function noteSkClickMod(m: 'replace' | 'toggle' | undefined) { _skClickMod = m }
 let _sketchClip: SketchShape[] | null = null
 let _sketchPasteN = 0
 let _pendingDatumRef: { idx: number; base: Plane; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } } | null = null   // GM-3DV2 R12：arb = 角度/斜 datum 草图创建时嘅 datum arb 签名（datum 郁 → 草图 arb + extgroup arbPlane 跟）
@@ -1525,6 +1531,10 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   toggleBodyHidden: (key: string) => void
   setBodyHidden: (key: string, hide: boolean) => void
   showAllBodies: () => void                                // 「顯示全部」：实体 + 组件 + 组件实体 + 对象可见性·实体
+  modelSel: ModelSelItem[]                                 // Fusion 式模型多选（面/边/实体）：Ctrl/Shift+点 增减；框选按过滤器；圆角/倒角/抽壳/按拉 作预选
+  modelSelClick: (item: ModelSelItem, mod: SelMod) => void
+  modelSelSet: (items: ModelSelItem[], additive: boolean) => void
+  clearModelSel: () => void
   ccurves: [number, number, number][][]   // S168：相交曲线（Fusion Intersection Curve）—— 每条系一串 3D 点 polyline（随项目存档）
   computeIntersectionCurves: () => Promise<void>   // S168：所有体两两求交 → 交线参考曲线（worker intersectionCurves）
   clearCCurves: () => void                         // S168：清除全部相交曲线
@@ -3420,6 +3430,12 @@ function dropCreaseEdgesOnce(creases: [number, number][], rmKeys: string[]): [nu
 const COMP_PALETTE = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#42d4d4', '#f032e6', '#bf9000', '#469990', '#9a6324']
 const SOLID_TYPES = ['extrude', 'extgroup', 'revolve', 'prim', 'loft', 'sweep', 'coil', 'rib', 'thread', 'sheetmetal', 'pathpattern', 'gear', 'rack', 'pulley', 'worm', 'crowngear', 'meshbody', 'surfloft', 'surfpatch', 'boundarypatch', 'surfbridge']
 const hasSolid = (fs: Feature[]) => fs.some((f) => SOLID_TYPES.includes(f.type))
+function modelSelStatus(sel: ModelSelItem[]): string {
+  if (!sel.length) return '已取消選擇'
+  const n = (k: ModelSelItem['kind']) => sel.filter((x) => x.kind === k).length
+  const parts = [n('body') ? `${n('body')} 個實體` : '', n('face') ? `${n('face')} 個面` : '', n('edge') ? `${n('edge')} 條邊` : ''].filter(Boolean)
+  return `已選 ${parts.join('、')}（Ctrl/Shift+點 增減 · Esc 清除）`
+}
 /** v1.23/v1.24: Fillet/Shell need part-timeline solid — guide + optional one-click MeshFit. */
 type StatusAction = { id: 'bakeMeshToPart' | 'meshfit'; label: string; componentId?: string }
 function partSolidRequiredPatch(
@@ -7114,6 +7130,10 @@ export const useApp = create<AppState>((rawSet, get) => {
   planes: [],
   datumHidden: [],
   bodyHidden: [],
+  modelSel: [],
+  modelSelClick: (item, mod) => set((s) => { const modelSel = applySelClick(s.modelSel, item, mod); return { modelSel, status: modelSelStatus(modelSel) } }),
+  modelSelSet: (items, additive) => set((s) => { const modelSel = additive ? mergeSel(s.modelSel, items) : items; return { modelSel, status: modelSelStatus(modelSel) } }),
+  clearModelSel: () => set((s) => (s.modelSel.length ? { modelSel: [] } : {})),
   toggleBodyHidden: (key) => set((s) => { const bodyHidden = toggleHiddenKey(s.bodyHidden, key); return { bodyHidden, status: bodyHidden.includes(key) ? '已隱藏實體' : '已顯示實體' } }),
   setBodyHidden: (key, hide) => set((s) => ({ bodyHidden: setHiddenKey(s.bodyHidden, key, hide), status: hide ? '已隱藏實體' : '已顯示實體' })),
   showAllBodies: () => set((s) => {
@@ -8246,9 +8266,12 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (selNow.length && !s.selEmptyClear) { dbgLog(`skClickAt MISS（保留 ${selNow.length} 選取）`); set({ status: `撳唔中幾何（已保留 ${selNow.length} 個選取）— 放大啲對準 點/邊 再撳，或 ESC 清空` }); return }
       dbgLog(`skClickAt MISS（${selNow.length && s.selEmptyClear ? '撳空清選擇' : '無選取'}）`); set({ skSel: [], skSelCon: null, status: selNow.length && s.selEmptyClear ? '已清空選擇（撳空=清）' : '選擇：點 點/邊/圓 → 按上方約束按鈕' }); return
     }
-    const sel = [...selNow]
+    const clickMod = _skClickMod; _skClickMod = undefined
+    // Fusion：普通点（无 Ctrl/Shift）= 替换选择 — 防止旧选择（例如之前点过嘅圆）残留，Delete 时连带删走（P1 数据丢失）
+    const sel = clickMod === 'replace' && !s.skArmedCon && s.sketchTool === 'select' ? selNow.filter((x) => eq(x, hit)) : [...selNow]
     const i = sel.findIndex((x) => eq(x, hit))
-    if (i >= 0) sel.splice(i, 1)             // 撳返同一个 = 取消选（toggle）
+    if (clickMod === 'replace' && !s.skArmedCon && s.sketchTool === 'select') { if (i < 0) sel.push(hit) }   // 再点已选单个 = 保持选中
+    else if (i >= 0) sel.splice(i, 1)             // 撳返同一个 = 取消选（toggle）
     else sel.push(hit)                        // GM-FP3 #45：无上限多选（拆走旧 `while(sel.length>3)sel.shift()` — 对称轴用第 3 选照读头 3 个）
     dbgLog(`skClickAt ${i >= 0 ? '取消选' : '加选'} ${word(hit)}${('idx' in hit && hit.idx != null) ? '#' + hit.idx : ''} → 共 ${sel.length}`)
     // GM-FP2 #34 tool-first：已武装约束 → 逐个拣，够即施加、保持武装（Fusion「先撳约束掣再拣对象」）
@@ -9106,6 +9129,53 @@ export const useApp = create<AppState>((rawSet, get) => {
           sketchShape: dropIdx === nProf ? upd : s.sketchShape,
           skSel: [], skCons: ncons,
           status: `已刪除頂點（剩 ${nn} 個）${ncons.length < s.skCons.length ? ' · 該輪廓上嘅約束已一並移除' : ''}`,
+        })
+        void get().resolveSk()
+        return
+      }
+    }
+    // —— Fusion 式：只选中矩形/折线嘅【某几条边】→ 只删嗰几条线，其余边保留做开放折线（唔再成个轮廓删走）——
+    {
+      const byShape = new Map<number, SkRef[]>()
+      for (const r of s.skSel) if ('shape' in r) { const k = (r as { shape: number }).shape; byShape.set(k, [...(byShape.get(k) ?? []), r]) }
+      const splits = new Map<number, ReturnType<typeof removeContourEdges>>()
+      for (const [i, refs] of byShape) {
+        if (!refs.every((r) => r.kind === 'edge')) continue
+        const sp = removeContourEdges(shapes[i] as never, refs.map((r) => (r as { idx: number }).idx))
+        if (sp && sp.shapes.length) splits.set(i, sp)
+      }
+      if (splits.size) {
+        const out: SketchShape[] = []
+        const whole = new Map<number, number>()            // kept shape old → new index
+        const base = new Map<number, number>()             // split shape old → first new index
+        shapes.forEach((sh, i) => {
+          const sp = splits.get(i)
+          if (sp) { base.set(i, out.length); out.push(...(sp.shapes as unknown as SketchShape[])) }
+          else if (!byShape.has(i)) { whole.set(i, out.length); out.push(sh) }
+        })
+        type MaybeRef2 = SkRef | undefined
+        const remap2 = (r: MaybeRef2): MaybeRef2 | 'drop' => {
+          if (!r || !('shape' in r)) return r
+          const sp0 = (r as { shape: number }).shape
+          if (whole.has(sp0)) return { ...r, shape: whole.get(sp0)! } as SkRef
+          const sp = splits.get(sp0)
+          if (sp) { const m = sp.mapRef(r as never); return m ? ({ ...m, shape: base.get(sp0)! + (m.shape as number) } as unknown as SkRef) : 'drop' }
+          return 'drop'
+        }
+        const ncons2: SkCon[] = []
+        for (const c of s.skCons) {
+          const a = remap2(c.a), b = remap2(c.b), cc = remap2((c as { c?: SkRef }).c)
+          if (a === 'drop' || b === 'drop' || cc === 'drop') continue
+          ncons2.push({ ...c, a: a as SkRef, b: b as MaybeRef2, c: cc as MaybeRef2 } as SkCon)
+        }
+        const nEdges = [...splits.keys()].reduce((t, i) => t + (byShape.get(i)?.length ?? 0), 0)
+        const nWhole = [...byShape.keys()].filter((i) => !splits.has(i)).length
+        set({
+          sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
+          // 活动轮廓（sketchShape = 最后一个）原样保留就仍做活动轮廓；被拆嘅轮廓变开放折线入 sketchProfiles
+          ...(s.sketchShape && whole.has(nProf) ? { sketchProfiles: out.slice(0, -1), sketchShape: out[out.length - 1] } : { sketchProfiles: out, sketchShape: null }),
+          skSel: [], skCons: ncons2,
+          status: `已刪除 ${nEdges} 條線${nWhole ? `、${nWhole} 個輪廓` : ''}（其餘線段保留）${ncons2.length < s.skCons.length ? `（${s.skCons.length - ncons2.length} 個相關約束一並移除）` : ''}`,
         })
         void get().resolveSk()
         return
@@ -13734,7 +13804,10 @@ export const useApp = create<AppState>((rawSet, get) => {
         set({ status: '舊「約束草圖」已併入主草圖 — 約束/尺寸/ƒx 參數全部喺呢度（仲可以重開編輯）' })
         return get().startSketch()
       }
-      case 'presspull':
+      case 'presspull': {
+        const pre = get().modelSel.filter((x) => x.kind === 'face')
+        if (pre.length && hasSolid(get().features)) { if (!get().pushPullMode) get().togglePushPull(); for (const it of pre) if (it.kind === 'face') get().pushPullAt(it.pt, it.n ?? [0, 1, 0]); set({ modelSel: [] }); return }   // Fusion：预选面直接按拉
+      }
         if (get().sketchShape || get().sketchProfiles.length) return get().openExtrudeDlg()  // Fusion: open the extrude dialog
         if (hasSolid(get().features)) return get().togglePushPull()  // Fusion Q: pick a face → push/pull
         set({ status: '按拉：先畫草圖輪廓再拉伸，或在已有實體的平面上推/拉' }); return
@@ -13869,17 +13942,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'fillet':  // Fusion-style: enter the fillet command (select edges → set radius → 确定), not auto-all
         if (!hasSolid(get().features)) { set(partSolidRequiredPatch('圆角', get())); return }
-        if (get().edgeRoundPick !== 'fillet') get().toggleEdgeRoundPick('fillet'); return
+        { const pre = get().modelSel.filter((x) => x.kind === 'edge'); if (get().edgeRoundPick !== 'fillet') get().toggleEdgeRoundPick('fillet'); for (const it of pre) get().roundEdgeAt(it.pt); if (pre.length) set({ modelSel: [] }) } return   // Fusion：预选边直接带入
       case 'chamfer':
         if (!hasSolid(get().features)) { set(partSolidRequiredPatch('倒角', get())); return }
-        if (get().edgeRoundPick !== 'chamfer') get().toggleEdgeRoundPick('chamfer'); return
+        { const pre = get().modelSel.filter((x) => x.kind === 'edge'); if (get().edgeRoundPick !== 'chamfer') get().toggleEdgeRoundPick('chamfer'); for (const it of pre) get().roundEdgeAt(it.pt); if (pre.length) set({ modelSel: [] }) } return
       case 'filletall':   // T810：一键全棱圆角（免拣边）
         return void get().appPrompt(tStatus('全棱倒圆角 — 半径 mm（对实体所有棱；过大会失败，调细再试）', get().lang), '2').then((v) => { if (v != null) { const r = Number(v.trim()); if (r > 0) void get().filletAllEdges(r) } })
       case 'chamferall':
         return void get().appPrompt(tStatus('全棱倒角 — 距离 mm（对实体所有棱）', get().lang), '1').then((v) => { if (v != null) { const d = Number(v.trim()); if (d > 0) void get().chamferAllEdges(d) } })
       case 'shell':  // Fusion-style: enter shell command (pick face(s) to open → thickness → 确定)
         if (!hasSolid(get().features)) { set(partSolidRequiredPatch('抽壳', get())); return }
-        if (!get().shellMode) get().toggleShell(); return
+        { const pre = get().modelSel.filter((x) => x.kind === 'face'); if (!get().shellMode) get().toggleShell(); for (const it of pre) get().shellPickAt(it.pt); if (pre.length) set({ modelSel: [] }) } return   // Fusion：预选面 = 开口面
       case 'facefillet':  // R1 面圆角：拾两张面 → 半径 → 确定（窄版：平面-平面 / 平面-圆柱 解析）
         if (!hasSolid(get().features)) { set(partSolidRequiredPatch('面圆角', get())); return }
         if (!get().faceFilletMode) get().toggleFaceFillet(); return

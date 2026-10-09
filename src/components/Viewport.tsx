@@ -145,7 +145,8 @@ import { CameraRig, SketchSurface, SketchDraw, DimensionEditPreview, SkSelDraw, 
 import { SketchToolPanel } from './SketchToolPanel'
 import { useDraggable } from './useDraggable'            // GM-W6 A4：草图工具条可拖移（同 AI ✦ / 🩺诊断 钮共用 hook）
 import MarkingMenu, { type MMItem } from './MarkingMenu'
-import { modelMenuLayout, pickItems, nearEdgePx, ACTIVE_BODY_KEY, parkedBodyKey, type ViewportHit } from '../ui/contextMenus'
+import { clickMod, edgeChainAt, chainSegs, allInside, segsTouch, trisTouch, boxSelKind, type ModelSelItem, type Rect } from '../cad/modelSelection'
+import { modelMenuLayout, pickItems, nearestEdgePx, ACTIVE_BODY_KEY, parkedBodyKey, type ViewportHit } from '../ui/contextMenus'
 import { CommandDialog, SelectionChip } from './CommandDialog'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL } from '../ui/illegalInput'
 import { MATERIAL_MECH } from '../analysis/beamStress'
@@ -405,7 +406,7 @@ function PlaceholderBody() {
 // 泊车实体（多实体 T728）：灰显；默认唔接受拾取（圆角/草图仍作用喺活动实体）。
 // S133：编辑曲面控制点 / 加厚曲面模式下变可拾。
 // SO10 / BUG-SO15-002：统一测量（体过滤）+ 普通体选择时亦可拾——分割泊车半体可量体积 / 树与画布可选。
-function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: { mesh: { vertices: number[]; triangles: number[]; normals: number[]; kind?: 'body'; faceGroups?: { start: number; count: number; faceId: number }[] }; index: number; pickable?: boolean; picked?: boolean; onPick?: (i: number, face: number, threePt: [number, number, number], faceNormalWorld?: [number, number, number]) => void }) {
+function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: { mesh: { vertices: number[]; triangles: number[]; normals: number[]; kind?: 'body'; faceGroups?: { start: number; count: number; faceId: number }[] }; index: number; pickable?: boolean; picked?: boolean; onPick?: (i: number, face: number, threePt: [number, number, number], faceNormalWorld?: [number, number, number], toggle?: boolean) => void }) {
   const geom = useMemo(() => {
     const g = new BufferGeometry()
     g.setAttribute('position', new Float32BufferAttribute(mesh.vertices, 3))
@@ -420,7 +421,7 @@ function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: {
         geometry={geom}
         raycast={pickable ? MESH_RAYCAST : NULL_RAYCAST}
         onContextMenu={pickable ? (e) => noteCtxHit(e.nativeEvent, { kind: 'body', parked: index }) : undefined}
-        onClick={pickable ? (e) => { e.stopPropagation(); let face = 0; if (e.faceIndex != null && mesh.faceGroups?.length) { const tri3 = e.faceIndex * 3; const gi = mesh.faceGroups.findIndex((g) => tri3 >= g.start && tri3 < g.start + g.count); if (gi >= 0) face = gi } const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null; onPick?.(index, face, [e.point.x, e.point.y, e.point.z], wn ? [wn.x, wn.y, wn.z] : undefined) } : undefined}
+        onClick={pickable ? (e) => { e.stopPropagation(); let face = 0; if (e.faceIndex != null && mesh.faceGroups?.length) { const tri3 = e.faceIndex * 3; const gi = mesh.faceGroups.findIndex((g) => tri3 >= g.start && tri3 < g.start + g.count); if (gi >= 0) face = gi } const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null; onPick?.(index, face, [e.point.x, e.point.y, e.point.z], wn ? [wn.x, wn.y, wn.z] : undefined, clickMod(e.nativeEvent as MouseEvent) === 'toggle') } : undefined}
       >
         <meshStandardMaterial color={picked ? '#7bb8e8' : mesh.kind === 'body' ? '#aeb9c4' : '#9aa6b0'} transparent={mesh.kind !== 'body'} opacity={mesh.kind === 'body' ? 1 : 0.55} roughness={0.8} metalness={0.05} />
         <Edges threshold={24} color={picked ? '#3a78b5' : mesh.kind === 'body' ? '#59636d' : '#6b7680'} />
@@ -466,14 +467,20 @@ function noteCtxHit(ev: Event, hit: CtxHitInfo) {
   if (!ne.__webcadHit) ne.__webcadHit = hit
 }
 const _edgePosCache = new WeakMap<object, number[] | null>()
-// Screen-space test: is the right-click within a few px of a B-rep edge of this body? (edge vs face menu)
-function ctxNearBrepEdge(mesh: MeshData, e: { object: Object3D; camera: Camera; nativeEvent: MouseEvent }): boolean {
+function cachedEdgePos(mesh: MeshData): number[] | null {
   let pos = _edgePosCache.get(mesh)
   if (pos === undefined) { pos = brepEdgePositions(mesh); _edgePosCache.set(mesh, pos) }
-  if (!pos?.length) return false
+  return pos
+}
+// Screen-space test: is the right-click within a few px of a B-rep edge of this body? (edge vs face menu)
+function ctxNearBrepEdge(mesh: MeshData, e: { object: Object3D; camera: Camera; nativeEvent: MouseEvent }): boolean { return ctxNearestBrepSeg(mesh, e) >= 0 }
+// Nearest B-rep edge segment (index into brepEdgePositions) within 6 px of the pointer, or -1.
+function ctxNearestBrepSeg(mesh: MeshData, e: { object: Object3D; camera: Camera; nativeEvent: MouseEvent }): number {
+  const pos = cachedEdgePos(mesh)
+  if (!pos?.length) return -1
   const el = e.nativeEvent.target as HTMLElement | null
   const r = el?.getBoundingClientRect?.()
-  if (!r || !r.width || !r.height) return false
+  if (!r || !r.width || !r.height) return -1
   const px = e.nativeEvent.clientX - r.left, py = e.nativeEvent.clientY - r.top
   const m = e.object.matrixWorld, v = new Vector3()
   const seg = new Float32Array((pos.length / 6) * 4)
@@ -483,7 +490,7 @@ function ctxNearBrepEdge(mesh: MeshData, e: { object: Object3D; camera: Camera; 
     seg[j] = ok ? (v.x + 1) / 2 * r.width : NaN
     seg[j + 1] = ok ? (1 - v.y) / 2 * r.height : NaN
   }
-  return nearEdgePx(seg, px, py, 6)
+  return nearestEdgePx(seg, px, py, 6)
 }
 
 function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = false, compId, pos = [0, 0, 0], rot, rotationCenter, selected = false, motion, explodeOffset, clip = [], compColor, compOpacity = 1, pickable = true, moldTarget = false, onSelect, onFocus, onFaceMatePick, onPointMatePick }: { mesh: MeshData; pickOnly?: boolean; displayOnly?: boolean; frozen?: boolean; compId?: string; pos?: [number, number, number]; rot?: [number, number, number]; rotationCenter?: [number, number, number]; selected?: boolean; motion?: Matrix4; explodeOffset?: [number, number, number]; clip?: Plane[]; compColor?: string; compOpacity?: number; pickable?: boolean; moldTarget?: boolean; onSelect?: () => void; onFocus?: () => void; onFaceMatePick?: (face: import('../assembly/faceMate').MateFace) => void; onPointMatePick?: (point: [number, number, number]) => void }) {
@@ -940,6 +947,26 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         // GM-X4 ④：priority 参与拾取 tie-break — 点贴近一条棱（歧义区，nearSharpEdge）时按 selFilter.priority 决定选边/面；
         //   Alt 仍强制选边；priority='face'/'body'（含默认）时 = 旧行为逐字节（wantEdge = altKey）。
         // GM-X4 ②：属性检查 = 被动拾取选择，尊重逐类型过滤器（面/边勾选框）→ 该类型关咗即 early-return 唔选（命令路径 hole/fillet 唔受此 gate，走 ① override）。
+        // Fusion 式模型选择：普通点 = 替换；Ctrl/Shift+点 = 增减（面 / 边 / 实体，按选择过滤器 + 优先级）。
+        if (!frozen && !pickOnly && mode === 'model' && e.faceIndex != null) {
+          const st = useApp.getState(), sf = st.selFilter, ne = e.nativeEvent as MouseEvent
+          const segIdx = selAllowsType(sf, 'edge') ? ctxNearestBrepSeg(mesh, e) : -1
+          const pos = segIdx >= 0 ? cachedEdgePos(mesh) : null
+          const tp: [number, number, number] = [e.point.x, e.point.y, e.point.z]
+          let item: ModelSelItem | null = null
+          if (pos && (ne.altKey || sf.priority === 'edge' || sf.priority === 'face')) {
+            const chain = edgeChainAt(pos, segIdx)
+            item = { kind: 'edge', key: 'e' + chain[0], pt: tp, segs: chainSegs(pos, chain) }
+          } else if (sf.priority === 'body' && selAllowsType(sf, 'body')) item = { kind: 'body', key: ACTIVE_BODY_KEY }
+          else if (selAllowsType(sf, 'face')) {
+            const fg = faceGroupTris(mesh, e.faceIndex)
+            const tris = fg.length ? fg : coplanarFaceTris(mesh, e.faceIndex)
+            const gi = mesh.faceGroups?.find((g) => e.faceIndex! * 3 >= g.start && e.faceIndex! * 3 < g.start + g.count)
+            const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null
+            item = { kind: 'face', key: gi ? 'f' + gi.faceId : 't' + e.faceIndex, pt: tp, ...(wn ? { n: [wn.x, wn.y, wn.z] as [number, number, number] } : {}), tris }
+          } else if (selAllowsType(sf, 'body')) item = { kind: 'body', key: ACTIVE_BODY_KEY }
+          if (item) st.modelSelClick(item, clickMod(ne))
+        }
         if (inspectMode && !frozen && mode === 'model' && e.faceIndex != null) {
           e.stopPropagation()
           const sf = useApp.getState().selFilter
@@ -961,6 +988,8 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
           const st = useApp.getState()
           // GM-X4 ②：组件普通选择尊重「组件」类型过滤（默认勾住 = 旧行为逐字节；moldTarget 令 mesh 可拣但类型关咗就唔当选）。
           if (!selAllowsType(st.selFilter, 'component')) return
+          const ne = e.nativeEvent as MouseEvent
+          if (compId && clickMod(ne) === 'toggle') { st.toggleCheckComp(compId); return }   // Fusion：Ctrl/Shift+点组件 = 增减多选
           // GM-X4 ③：穿透选择单击 — selectThrough 时消费 R3F e.intersections（已按距离升序）→ 收全部组件命中入 checkedComps（含被遮挡）；关时保持仅最前（onSelect）。
           if (st.selFilter.selectThrough && Array.isArray(e.intersections) && e.intersections.length > 1) {
             const ids = resolvePickHits(e.intersections, true)
@@ -1098,6 +1127,109 @@ function WallThinView() {
 
 // Face-pick highlight: blue translucent overlay of the coplanar face under the cursor while a face-pick
 // command is armed (sketch-on-face / hole / push-pull / shell). Same −90°X group so it lands on the body.
+// 框选根级实体：活动实体（实体/面/边）+ 泊车实体（实体级）。CAD(x,y,z) → three(x,z,−y) → 屏幕像素。
+// 唔做遮挡剔除（同组件框选一致：框入面嘅都算，近似 Fusion select-through 框选）。
+function boxSelectRootBodies(cam: Camera, w: number, h: number, rect: Rect, winMode: boolean): ModelSelItem[] {
+  const st = useApp.getState(), sf = st.selFilter
+  const bm = st.bodyMesh
+  if (!bm || st.mode !== 'model' || !st.objectVis.bodies) return []
+  const camP = cam as unknown as { matrixWorldInverse: Matrix4; isPerspectiveCamera?: boolean }
+  const pv = new Vector3()
+  const proj = (x: number, y: number, z: number, out: number[]) => {
+    pv.set(x, z, -y)
+    if (camP.isPerspectiveCamera && pv.clone().applyMatrix4(camP.matrixWorldInverse).z > -0.5) { out.push(NaN, NaN); return }
+    pv.project(cam); out.push((pv.x + 1) / 2 * w, (1 - pv.y) / 2 * h)
+  }
+  const projVerts = (v: ArrayLike<number>) => { const o: number[] = []; for (let i = 0; i + 2 < v.length; i += 3) proj(v[i], v[i + 1], v[i + 2], o); return o }
+  const projTris = (m: { vertices: ArrayLike<number>; triangles: ArrayLike<number> }, t0: number, t1: number) => {
+    const o: number[] = []
+    for (let t = t0; t < t1; t++) for (let k = 0; k < 3; k++) { const vi = m.triangles[t * 3 + k] * 3; proj(m.vertices[vi], m.vertices[vi + 1], m.vertices[vi + 2], o) }
+    return o
+  }
+  const toThree = (x: number, y: number, z: number): [number, number, number] => [x, z, -y]
+  const out: ModelSelItem[] = []
+  const bodies: { key: string; parked?: number; mesh: MeshData }[] = []
+  if (bm.triangles.length && !st.bodyHidden.includes(ACTIVE_BODY_KEY)) bodies.push({ key: ACTIVE_BODY_KEY, mesh: bm })
+  bm.parked?.forEach((p, i) => { const k = parkedBodyKey(p.name, i); if (p.triangles.length && !st.bodyHidden.includes(k)) bodies.push({ key: k, parked: i, mesh: p as unknown as MeshData }) })
+  for (const b of bodies) {
+    const vs2 = projVerts(b.mesh.vertices)
+    const full = allInside(rect, vs2)
+    const kind = boxSelKind(sf.priority, sf.types, full, winMode)
+    // 面/边只对活动实体（下游命令 圆角/抽壳/按拉 都作用喺活动实体）；泊车实体退回实体级
+    const k2 = kind && kind !== 'body' && b.parked != null ? (sf.types.includes('body') ? 'body' : null) : kind
+    if (k2 === 'body') {
+      const hit = winMode ? full : trisTouch(rect, projTris(b.mesh, 0, b.mesh.triangles.length / 3))
+      if (hit) out.push({ kind: 'body', key: b.key, ...(b.parked != null ? { parked: b.parked } : {}) })
+    } else if (k2 === 'face') {
+      const groups = new Map<number, { start: number; count: number }[]>()
+      for (const g of b.mesh.faceGroups ?? []) { const a = groups.get(g.faceId); if (a) a.push(g); else groups.set(g.faceId, [g]) }
+      for (const [fid, gs] of groups) {
+        let hit = winMode
+        for (const g of gs) {
+          const t2 = projTris(b.mesh, g.start / 3, (g.start + g.count) / 3)
+          if (winMode) { if (!allInside(rect, t2)) { hit = false; break } } else if (trisTouch(rect, t2)) { hit = true; break }
+        }
+        if (!hit) continue
+        const t0 = gs[0].start / 3, m = b.mesh
+        const ia = m.triangles[t0 * 3] * 3, ib = m.triangles[t0 * 3 + 1] * 3, ic = m.triangles[t0 * 3 + 2] * 3
+        const c = [0, 1, 2].map((k) => (m.vertices[ia + k] + m.vertices[ib + k] + m.vertices[ic + k]) / 3)
+        const n = new Vector3(m.normals[ia], m.normals[ia + 2], -m.normals[ia + 1]).normalize()
+        const tris: number[] = []
+        for (const g of gs) for (let t = g.start / 3; t < (g.start + g.count) / 3; t++) for (let k = 0; k < 3; k++) { const vi = m.triangles[t * 3 + k] * 3; tris.push(m.vertices[vi], m.vertices[vi + 1], m.vertices[vi + 2]) }
+        out.push({ kind: 'face', key: 'f' + fid, pt: toThree(c[0], c[1], c[2]), n: [n.x, n.y, n.z], tris })
+      }
+    } else if (k2 === 'edge') {
+      const pos = cachedEdgePos(b.mesh)
+      if (!pos?.length) continue
+      const seen = new Set<number>()
+      for (let sIdx = 0; sIdx < pos.length / 6; sIdx++) {
+        if (seen.has(sIdx)) continue
+        const chain = edgeChainAt(pos, sIdx)
+        for (const c of chain) seen.add(c)
+        const segs = chainSegs(pos, chain)
+        const p2 = projVerts(segs)
+        if (!(winMode ? allInside(rect, p2) : segsTouch(rect, p2))) continue
+        const mid = chain[Math.floor(chain.length / 2)] * 6
+        out.push({ kind: 'edge', key: 'e' + chain[0], pt: toThree((pos[mid] + pos[mid + 3]) / 2, (pos[mid + 1] + pos[mid + 4]) / 2, (pos[mid + 2] + pos[mid + 5]) / 2), segs })
+      }
+    }
+  }
+  return out
+}
+
+// Fusion 式多选高亮：已选面（蓝色半透覆盖）+ 已选边（蓝色粗线）。CAD 坐标 → 同 −90°X group。
+function ModelSelView() {
+  const sel = useApp((s) => s.modelSel)
+  const faceGeom = useMemo(() => {
+    const pos: number[] = []
+    for (const it of sel) if (it.kind === 'face') for (const v of it.tris) pos.push(v)
+    if (!pos.length) return null
+    const g = new BufferGeometry()
+    g.setAttribute('position', new Float32BufferAttribute(pos, 3))
+    return g
+  }, [sel])
+  const edgeGeom = useMemo(() => {
+    const pos: number[] = []
+    for (const it of sel) if (it.kind === 'edge') for (const v of it.segs) pos.push(v)
+    if (!pos.length) return null
+    const g = new BufferGeometry()
+    g.setAttribute('position', new Float32BufferAttribute(pos, 3))
+    return g
+  }, [sel])
+  useEffect(() => () => { faceGeom?.dispose(); edgeGeom?.dispose() }, [faceGeom, edgeGeom])
+  if (!faceGeom && !edgeGeom) return null
+  return (
+    <group rotation={[-Math.PI / 2, 0, 0]}>
+      {faceGeom && <mesh geometry={faceGeom} renderOrder={997} raycast={NULL_RAYCAST}>
+        <meshBasicMaterial color="#1572c4" transparent opacity={0.45} side={DoubleSide} depthTest={false} polygonOffset polygonOffsetFactor={-2} />
+      </mesh>}
+      {edgeGeom && <lineSegments geometry={edgeGeom} renderOrder={999} raycast={NULL_RAYCAST}>
+        <lineBasicMaterial color="#1572c4" linewidth={3} depthTest={false} />
+      </lineSegments>}
+    </group>
+  )
+}
+
 function FaceHoverView() {
   const hoverFace = useApp((s) => s.hoverFace)
   const geom = useMemo(() => {
@@ -4052,6 +4184,8 @@ export default function Viewport() {
   const objectVis = useApp((s) => s.objectVis)            // #8 对象可见性主开关
   const bodyHidden = useApp((s) => s.bodyHidden)          // 实体可见性（浏览器树眼掣 / 右键隱藏）
   const activeBodyHidden = !objectVis.bodies || bodyHidden.includes(ACTIVE_BODY_KEY)
+  const modelSelBodyKeys = useApp((s) => s.modelSel.filter((x) => x.kind === 'body').map((x) => x.key).join('\n')).split('\n')
+  useEffect(() => { useApp.getState().clearModelSel() }, [bodyMesh])   // 几何重建 → 面/边身份失效，清多选
   const setObjectVis = useApp((s) => s.setObjectVis)
   const setPrefsOpen = useApp((s) => s.setPrefsOpen)      // #12 应用偏好
   // #14 标准视图按钮复用已存在嘅 setView selector（上面已声明）
@@ -4417,8 +4551,14 @@ export default function Viewport() {
     if (R - L < 4 && B - T < 4) { useApp.setState({ status: '框選：拖一個框（左→右全包先中 · 右→左相觸即中）' }); return }
     const winMode = x1 >= x0
     const st = useApp.getState()
+    // 实体 / 面 / 边（活动实体 + 泊车实体）按选择过滤器 + 优先级框选（Fusion window 全包 / crossing 相触）。
+    const rootSel = boxSelectRootBodies(cam, w, h, { L, T, R, B }, winMode)
     // GM-X4 #14/#16：选择过滤器关咗「组件」→ 框选唔抓组件（Fusion 式 filter 门控；默认勾住 = 旧行为逐字节）。
-    if (!selPicksComp(st.selFilter)) { useApp.setState({ status: '框選：選擇過濾已關閉「組件」類型 — 喺 🎯 面板重新勾選' }); return }
+    if (!selPicksComp(st.selFilter)) {
+      st.modelSelSet(rootSel, additive)
+      if (!rootSel.length && !additive) useApp.setState({ status: `框選（${winMode ? '窗選·全包' : '跨選·相觸'}）：冇${winMode ? '完全框住' : '相觸到'}可選對象（選擇過濾：${st.selFilter.types.join('/') || '無'}）` })
+      return
+    }
     const fk = computeFK(st.components.map((c) => c.id), st.joints)
     const hits: string[] = []
     const pv = new Vector3()
@@ -4451,8 +4591,12 @@ export default function Viewport() {
       if (inside) hits.push(c.id)
     }
     const next = additive ? [...new Set([...st.checkedComps, ...hits])] : hits
-    useApp.setState({ checkedComps: next, status: `框選（${winMode ? '窗選·全包' : '跨選·相觸'}${additive ? '·Shift 追加' : ''}）：選中 ${next.length} 個組件 — 瀏覽樹批量欄可 隱藏/配色/匯出/刪除/建組` })
-    if (hits.length === 1 && !additive) st.selectComponent(hits[0])
+    st.modelSelSet(rootSel, additive)
+    const ms = useApp.getState().modelSel
+    const nk = (k: string) => ms.filter((x) => x.kind === k).length
+    const parts = [next.length ? `${next.length} 個組件` : '', nk('body') ? `${nk('body')} 個實體` : '', nk('face') ? `${nk('face')} 個面` : '', nk('edge') ? `${nk('edge')} 條邊` : ''].filter(Boolean)
+    useApp.setState({ checkedComps: next, status: `框選（${winMode ? '窗選·全包' : '跨選·相觸'}${additive ? '·Shift 追加' : ''}）：選中 ${parts.join('、') || '0 個對象'}${next.length ? ' — 瀏覽樹批量欄可 隱藏/配色/匯出/刪除/建組' : ''}` })
+    if (hits.length === 1 && !additive && !rootSel.length) st.selectComponent(hits[0])
   }
   // GM-X4 #17：套索命中 —— 投影组件包围盒中心 + 8 角，任一喺自由多边形内即中（crossing 式，宽容）。
   // 复用 finishMarquee 同一投影管线（_vpCam / computeFK / compWorldMatrix），只把矩形判定换成 pointInPolygon。
@@ -4527,7 +4671,7 @@ export default function Viewport() {
         const onUp = (ev: PointerEvent) => {
           window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp)
           setMarq(null)
-          finishMarquee(sx, sy, ev.clientX - rc.left, ev.clientY - rc.top, rc.width, rc.height, ev.shiftKey)
+          finishMarquee(sx, sy, ev.clientX - rc.left, ev.clientY - rc.top, rc.width, rc.height, ev.shiftKey || ev.ctrlKey || ev.metaKey)
         }
         window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp)
       }}
@@ -4591,7 +4735,7 @@ export default function Viewport() {
         }}
         camera={{ position: [240, 190, 270], fov: 28, near: 0.5, far: 100000 }}
         frameloop={VIEWPORT_FRAMELOOP}
-        onPointerMissed={(e) => { if (e.button === 0 && useApp.getState().selectedComponent && !useApp.getState().compBoolPending) selectComponent(null) }}
+        onPointerMissed={(e) => { if (e.button === 0 && !(e.ctrlKey || e.metaKey || e.shiftKey)) useApp.getState().clearModelSel(); if (e.button === 0 && useApp.getState().selectedComponent && !useApp.getState().compBoolPending) selectComponent(null) }}
       >
         <RenderGovernor />{/* perf：按需渲染（SwiftShader 下 60fps 空转食晒 CPU）— store 变 / 输入 / 心跳先出帧 */}
         {/* S193：正交相机（makeDefault 覆写默认透视）— 开时由 OrbitControls 驱动；FitView/ViewRig 用 camera.zoom 取景。
@@ -4621,25 +4765,31 @@ export default function Viewport() {
           const def = c.defId ? componentDefs.find((d) => d.id === c.defId) : undefined
           const bodies = def?.bodies?.length ? def.bodies : [{ id: c.id + '_B1', name: c.name, mesh: c.mesh }]
           const pivot = meshCenter3(c.mesh)
-          return <Fragment key={c.id}>{bodies.filter((b) => !b.hidden).map((b) => <KernelBody key={b.id} mesh={b.mesh} frozen compId={c.id} pos={c.pos} explodeOffset={o} rot={c.rot} rotationCenter={pivot} selected={c.id === selectedComponent} motion={motion} clip={clip} compColor={b.color || c.color} compOpacity={compOpacity} pickable={pickable || c.id === moldTargetCompId} moldTarget={c.id === moldTargetCompId} onSelect={() => { const st = useApp.getState(); if (st.compBoolPending) { st.selectComponent(c.id); return } selectComponent(c.id === selectedComponent ? null : c.id) }} onFocus={() => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.src?.features?.length) { void useApp.getState().editComponent(c.id) } else { selectComponent(c.id); requestFit(c.id) } }} onFaceMatePick={(face) => { const st = useApp.getState(); if (st.jointHolePick) st.applyJointHolePick(c.id, face); else if (st.screwFitMode) void st.fitScrewToHole(c.id, face); else if (st.jointPickMode) st.pickFaceForJoint(c.id, face); else st.pickFaceForMate(c.id, face) }} onPointMatePick={(point) => useApp.getState().pickPointForMate(c.id, point)} />)}</Fragment>
+          return <Fragment key={c.id}>{bodies.filter((b) => !b.hidden).map((b) => <KernelBody key={b.id} mesh={b.mesh} frozen compId={c.id} pos={c.pos} explodeOffset={o} rot={c.rot} rotationCenter={pivot} selected={c.id === selectedComponent || checkedComps.includes(c.id)} motion={motion} clip={clip} compColor={b.color || c.color} compOpacity={compOpacity} pickable={pickable || c.id === moldTargetCompId} moldTarget={c.id === moldTargetCompId} onSelect={() => { const st = useApp.getState(); if (st.compBoolPending) { st.selectComponent(c.id); return } selectComponent(c.id === selectedComponent ? null : c.id) }} onFocus={() => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.src?.features?.length) { void useApp.getState().editComponent(c.id) } else { selectComponent(c.id); requestFit(c.id) } }} onFaceMatePick={(face) => { const st = useApp.getState(); if (st.jointHolePick) st.applyJointHolePick(c.id, face); else if (st.screwFitMode) void st.fitScrewToHole(c.id, face); else if (st.jointPickMode) st.pickFaceForJoint(c.id, face); else st.pickFaceForMate(c.id, face) }} onPointMatePick={(point) => useApp.getState().pickPointForMate(c.id, point)} />)}</Fragment>
         })}
         {bodyMesh && bodyMesh.triangles.length > 0
           ? (activeBodyHidden ? null : <>
             {section.on && section.capped && sectionCapStatus === 'empty' ? null
               : section.on && section.capped && sectionCapStatus === 'ready' && sectionMesh
                 ? <KernelBody mesh={sectionMesh} displayOnly={!!((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh))} pickable={selPicksBody(selFilter) && mode !== 'sketch' && !formMode} />
-                : <KernelBody mesh={editPreviewMesh || (shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh) || bodyMesh} displayOnly={!!((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh))} clip={clip} pickable={selPicksBody(selFilter) && mode !== 'sketch' && !formMode} />}
+                : <KernelBody mesh={editPreviewMesh || (shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh) || bodyMesh} selected={modelSelBodyKeys.includes(ACTIVE_BODY_KEY)} displayOnly={!!((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh))} clip={clip} pickable={selPicksBody(selFilter) && mode !== 'sketch' && !formMode} />}
             {((shellMode && shellPreviewMesh) || (edgeRoundPick && roundPreviewMesh)) && <KernelBody mesh={bodyMesh} pickOnly clip={clip} />}
           </>)
           : (mode === 'model' && !formMode && components.length === 0 && !(bodyMesh?.parked?.length) ? <PlaceholderBody /> : null)}
         {/* 多实体（T728）：泊车实体灰显。圆角/草图仍作用喺活动实体；SO10：测量体过滤 + 普通体选择时可拾泊车半体。
             S133：编辑曲面控制点 / 加厚曲面模式下变可拾。 */}
-        {bodyMesh?.parked?.map((b, i) => (!objectVis.bodies || bodyHidden.includes(parkedBodyKey(b.name, i))) ? null : <ParkedBody key={'pk' + i} mesh={b} index={i} pickable={editPolesMode || quiltPickMode || measureUniMode || (mode === 'model' && !formMode && selPicksBody(selFilter))} picked={(editPolesMode && editPolesTarget === i) || quiltPickMode || (selectedParkedIndex === i)} onPick={(idx, face, threePt, faceN) => {
+        {bodyMesh?.parked?.map((b, i) => (!objectVis.bodies || bodyHidden.includes(parkedBodyKey(b.name, i))) ? null : <ParkedBody key={'pk' + i} mesh={b} index={i} pickable={editPolesMode || quiltPickMode || measureUniMode || (mode === 'model' && !formMode && selPicksBody(selFilter))} picked={modelSelBodyKeys.includes(parkedBodyKey(b.name, i)) || (editPolesMode && editPolesTarget === i) || quiltPickMode || (selectedParkedIndex === i)} onPick={(idx, face, threePt, faceN, toggle) => {
           if (measureUniMode) { useApp.getState().selectParkedBody(idx); void useApp.getState().pickMeasureUniAt(threePt, faceN, false); return }
           if (quiltPickMode) void useApp.getState().thickenParkedAt(idx)
           else if (editPolesMode) void useApp.getState().pickParkedForPoles(idx, face)
-          else useApp.getState().selectParkedBody(idx)
+          else {
+            // Fusion：Ctrl/Shift+点 = 增减多选实体；普通点 = 单选（保留 selectParkedBody 旧语义）
+            const ss = useApp.getState()
+            ss.modelSelClick({ kind: 'body', key: parkedBodyKey(b.name, idx), parked: idx }, toggle ? 'toggle' : 'replace')
+            if (!toggle) ss.selectParkedBody(idx)
+          }
         }} />)}
+        <ModelSelView />{/* Fusion 式多选高亮（面/边） */}
         {/* S133：NURBS 曲面极点编辑器 — 拣中曲面后显示控制点球 + 拖极点变形（clone FormCage 嘅 axis-swap） */}
         {editPolesMode && <PoleNet />}
         <OverhangView />

@@ -137,7 +137,7 @@ import { visualStyleToRender, renderToVisualStyle, edgeStateToMode, edgeModeToSt
 import { detectPreset, presetById, fmtLenU, fmtMassU, areaVolBaseUnit, type LenU, type MassU, type UnitPreset } from './cad/unitPresets'
 import { makeCanvas, patchCanvas, sanitizeCanvases, archivedCanvases, canvasToLegacyImg, nextCanvasId, decalExtras, patchDecalFields, buildImportSketchSource, preferDxfSketchOnly, forceDxfSketchOnly, rejectDxfImport, DXF_MAX_TEXT_MARKERS, DXF_SCHEMATIC_TEXT_MARKERS, filterByLayers, transformMesh, meshUnitScaleMm, meshInsertPosition, type CanvasItem, type ImpItem, type MeshUnit } from './cad/insertModel'   // GM-X3 插入：多张 Canvas / 逐张字段 / Decal 字段 / SVG·DXF→草图源 / Mesh 单位·flip·摆位（纯逻辑，Node 測過）
 import { DEFAULT_SEL_FILTER, migrateSelFilter, withSelType, withAllTypes, withNoTypes, withPriority, withSelThrough, matchByName, matchBySize, invertSet, SEL_TYPES, type SelFilter, type SelType, type SelPriority, type SizeOp } from './cad/selectionModel'   // GM-X4 选择：selFilter 逐类型过滤 + 优先级 + 穿透 + By-Name/Size + Invert（纯逻辑，Node 测过）
-import { featureDependents, reorderedFeatures, orderViolation } from './cad/featureDeps'   // T1/T2
+import { featureDependents, reorderedFeatures, orderViolation, topoFeaturesToCheck, topoRefsResolvable } from './cad/featureDeps'   // T1/T2 + RETEST19 #1
 
 export type Pt = [number, number] // three.js ground coords [x, z]
 export type PickOption = { value: string; label: string; hint?: string }   // RETEST17 #1：appPick 清單項
@@ -19749,6 +19749,26 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (bad && (bad.feature.id === id || bad.needs.id === id)) {
       set({ status: `不能移動：「${label(bad.feature as unknown as Feature)}」依賴「${label(bad.needs as unknown as Feature)}」，必須排喺佢之後` })
       return false
+    }
+    // RETEST19 #1：拓撲引用（圓角／倒角嘅邊、抽殼／拔模／按拉嘅面…）唔係 id 引用，靜態掃描睇唔到；內核搵唔到邊會靜默跳過
+    // （圓角「消失」冇報錯）。所以凡係前置特徵少咗嘅拓撲特徵，用新順序嘅前綴試建（previewRound：唔改 store／worker 當前形狀），
+    // 拾取點唔再落喺幾何上 → 拒絕移動（Fusion：特徵唔可以移到佢引用嘅幾何之前）。拖放同上移／下移都行呢度。
+    const sup0 = s0.suppressedIds
+    const toCheck = topoFeaturesToCheck(s0.features as unknown as Parameters<typeof topoFeaturesToCheck>[0], next as unknown as Parameters<typeof topoFeaturesToCheck>[1])
+      .filter((c) => !sup0.includes(c.feature.id) && c.lost.some((g) => !sup0.includes(g.id)))
+    for (const c of toCheck) {
+      const at = next.findIndex((f) => f.id === c.feature.id)
+      const bound = applyParamBindings(next.slice(0, at), s0.params, s0.paramBindings)
+      const active = expandFeats(sup0.length ? bound.filter((x) => !sup0.includes(x.id)) : bound)
+      let pm: Awaited<ReturnType<typeof cad.previewRound>> = null
+      try { pm = active.length ? await cad.previewRound(active) : null } catch { pm = null }
+      if (get().features !== s0.features) return false   // 期間文件變咗 → 放棄，唔覆蓋
+      if (!topoRefsResolvable(c.feature, pm)) {
+        const lost = c.lost.filter((g) => !sup0.includes(g.id))
+        const src = lost[lost.length - 1] as unknown as Feature
+        set({ status: `不能移動：「${label(c.feature as unknown as Feature)}」引用嘅邊線／幾何由「${label(src)}」產生，必須排喺佢之後` })
+        return false
+      }
     }
     const from = s0.features.findIndex((f) => f.id === id)
     const ok = await get().applyFeatures(next, `已${to < from ? '上' : '下'}移「${label(s0.features[from])}」並重建（可撤銷）`, true, undefined, docSnap(s0))

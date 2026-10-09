@@ -68,3 +68,106 @@ export function orderViolation(features: readonly F[]): { feature: F; needs: F }
   }
   return null
 }
+
+// ── RETEST19 #1：拓撲引用（邊／面）依賴 ─────────────────────────────────────────────────────────────
+// fillet/chamfer/shell/draft/按拉/面編輯 等特徵唔係引用特徵 id，而係引用【前面幾何】嘅邊／面（近點 nears + 持久指紋）。
+// 靜態 id 掃描睇唔到 → 上移到產生嗰條邊嘅拉伸之前，內核搵唔到邊就靜默跳過（圓角「消失」冇警告）。
+// 做法：移動後，凡係「前置特徵集合」少咗嘢嘅拓撲特徵，用【新順序嘅前綴】試建（唔落 store、唔改 worker 狀態），
+// 檢查拾取點仲喺幾何上：邊類（圓角／倒角）要貼住 ≥2 個面（真係一條棱），面類要貼住實體表面；冇拾取點就至少要有實體。
+type P3 = [number, number, number]
+const EDGE_TYPES = new Set(['fillet', 'chamfer'])
+const TOPO_TYPES = new Set(['fillet', 'chamfer', 'shell', 'draft', 'pushpull', 'delface', 'splitface', 'replaceface', 'moveface', 'offsetsurf', 'rotateface'])
+const PICK_KEYS = ['near', 'nears', 'sideNears', 'refFaceNear'] as const
+
+const isP3 = (v: unknown): v is P3 => Array.isArray(v) && v.length === 3 && v.every((x) => typeof x === 'number' && Number.isFinite(x))
+
+export function isTopoRefFeature(f: F): boolean {
+  if (TOPO_TYPES.has(f.type)) return true
+  return f.type === 'extrude' && !!(f as { toFace?: unknown }).toFace   // 拉伸「到面」亦引用前面嘅面
+}
+
+/** 特徵嘅拾取點（CAD 座標）+ 係咪邊引用。 */
+export function topoPicks(f: F): { pts: P3[]; edge: boolean } {
+  const pts: P3[] = []
+  const src = f.type === 'extrude' ? ((f as { toFace?: Record<string, unknown> }).toFace ?? {}) : (f as Record<string, unknown>)
+  for (const k of PICK_KEYS) {
+    const v = src[k]
+    if (isP3(v)) pts.push(v)
+    else if (Array.isArray(v)) for (const p of v) if (isP3(p)) pts.push(p)
+  }
+  return { pts, edge: EDGE_TYPES.has(f.type) }
+}
+
+/** 移動後要驗證嘅拓撲特徵：佢前面嘅特徵集合少咗（有特徵由佢前面搬到佢後面）。 */
+export function topoFeaturesToCheck<T extends F>(before: readonly T[], after: readonly T[]): { feature: T; lost: T[] }[] {
+  const out: { feature: T; lost: T[] }[] = []
+  const posB = new Map(before.map((f, i) => [f.id, i]))
+  const posA = new Map(after.map((f, i) => [f.id, i]))
+  for (const f of after) {
+    if (!isTopoRefFeature(f)) continue
+    const ib = posB.get(f.id), ia = posA.get(f.id)!
+    if (ib == null) continue
+    const lost = before.slice(0, ib).filter((g) => (posA.get(g.id) ?? -1) > ia && g.type !== 'sketch' && g.type !== 'datum')
+    if (lost.length) out.push({ feature: f, lost })
+  }
+  return out
+}
+
+function closestOnTri(p: P3, a: P3, b: P3, c: P3): number {
+  // Ericson, Real-Time Collision Detection 5.1.5 — 返回距離平方
+  const sub = (u: P3, v: P3): P3 => [u[0] - v[0], u[1] - v[1], u[2] - v[2]]
+  const dot = (u: P3, v: P3) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2]
+  const ab = sub(b, a), ac = sub(c, a), ap = sub(p, a)
+  const d1 = dot(ab, ap), d2 = dot(ac, ap)
+  const d2s = (q: P3) => { const d = sub(p, q); return dot(d, d) }
+  const at = (u: number, v: number): P3 => [a[0] + ab[0] * u + ac[0] * v, a[1] + ab[1] * u + ac[1] * v, a[2] + ab[2] * u + ac[2] * v]
+  if (d1 <= 0 && d2 <= 0) return d2s(a)
+  const bp = sub(p, b), d3 = dot(ab, bp), d4 = dot(ac, bp)
+  if (d3 >= 0 && d4 <= d3) return d2s(b)
+  const vc = d1 * d4 - d3 * d2
+  if (vc <= 0 && d1 >= 0 && d3 <= 0) return d2s(at(d1 / (d1 - d3), 0))
+  const cp = sub(p, c), d5 = dot(ab, cp), d6 = dot(ac, cp)
+  if (d6 >= 0 && d5 <= d6) return d2s(c)
+  const vb = d5 * d2 - d1 * d6
+  if (vb <= 0 && d2 >= 0 && d6 <= 0) return d2s(at(0, d2 / (d2 - d6)))
+  const va = d3 * d6 - d5 * d4
+  if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) { const w = (d4 - d3) / ((d4 - d3) + (d5 - d6)); return d2s([b[0] + (c[0] - b[0]) * w, b[1] + (c[1] - b[1]) * w, b[2] + (c[2] - b[2]) * w]) }
+  const den = 1 / (va + vb + vc)
+  return d2s(at(vb * den, vc * den))
+}
+
+type MeshLike = { vertices: ArrayLike<number>; triangles: ArrayLike<number>; faceGroups?: { start: number; count: number; faceId: number }[] }
+
+/** 拾取點附近（≤tol）有幾多個唔同嘅 B-rep 面（冇 faceGroups → 有貼面就當 1）。 */
+export function pickFaceSupport(p: P3, m: MeshLike, tol: number): number {
+  const V = m.vertices, T = m.triangles, t2 = tol * tol
+  const v = (i: number): P3 => [V[i * 3], V[i * 3 + 1], V[i * 3 + 2]]
+  const faceOf = (tri: number): number => {
+    const fg = m.faceGroups
+    if (!fg) return 0
+    for (const g of fg) if (tri * 3 >= g.start && tri * 3 < g.start + g.count) return g.faceId
+    return -1
+  }
+  const faces = new Set<number>()
+  for (let t = 0; t + 2 < T.length; t += 3) {
+    const a = v(T[t]), b = v(T[t + 1]), c = v(T[t + 2])
+    // 快速 AABB 剔除
+    if (p[0] < Math.min(a[0], b[0], c[0]) - tol || p[0] > Math.max(a[0], b[0], c[0]) + tol) continue
+    if (p[1] < Math.min(a[1], b[1], c[1]) - tol || p[1] > Math.max(a[1], b[1], c[1]) + tol) continue
+    if (p[2] < Math.min(a[2], b[2], c[2]) - tol || p[2] > Math.max(a[2], b[2], c[2]) + tol) continue
+    if (closestOnTri(p, a, b, c) <= t2) faces.add(faceOf(t / 3))
+  }
+  return faces.size
+}
+
+/** 拓撲特徵喺呢個前綴實體上仲搵唔搵到佢引用嘅邊／面。mesh=null（前面冇實體）→ 搵唔到。 */
+export function topoRefsResolvable(f: F, prefixMesh: MeshLike | null): boolean {
+  if (!prefixMesh || !prefixMesh.triangles || prefixMesh.triangles.length < 3) return false
+  const { pts, edge } = topoPicks(f)
+  if (!pts.length) return true
+  const V = prefixMesh.vertices
+  let mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity]
+  for (let i = 0; i + 2 < V.length; i += 3) for (let k = 0; k < 3; k++) { mn[k] = Math.min(mn[k], V[i + k]); mx[k] = Math.max(mx[k], V[i + k]) }
+  const tol = Math.max(0.05, 0.002 * Math.hypot(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]))
+  return pts.every((p) => pickFaceSupport(p, prefixMesh, tol) >= (edge ? 2 : 1))
+}

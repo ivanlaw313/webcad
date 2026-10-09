@@ -34,6 +34,7 @@ const SOLID: Panel[] = [
       { id: 'web', label: '腹板', icon: 'rib', tip: 'Fusion Web：選擇一條或多條開放草圖線建立薄腹板；Extend Curves 預設開啟，會把線端延伸到鄰近實體牆面。' },
       { id: 'emboss', label: 'Emboss', icon: 'emboss', quick: true, tip: 'Emboss（Fusion 凸字/刻字）：點實體一個【平面】→ 輸入文字 → 沿該面法向凸起(正深度)/刻入(負深度)。標牌/編號/logo。' },
       { id: 'hole', label: '孔', icon: 'hole', shortcut: 'H', quick: true, sep: true, tip: '孔：在實體面上鑽孔（通/盲 · 沉頭 · 埋頭 · 螺母槽 · 攻牙底孔），有 M3-M12 標準尺寸。' },
+      { id: 'facethread', label: '螺紋', icon: 'thread', tip: 'Fusion Thread：點一個圓柱面（外圓面=外螺紋／孔內壁=內螺紋）→ 自動讀入直徑/長度；標準尺寸 M3–M24＋螺距、全長／自訂長度＋偏移、外觀（cosmetic，預設）或建模螺紋。v1 只支持 Z 軸圓柱面。' },
       { id: 'thread', label: '螺紋桿', icon: 'thread', tip: '螺紋桿：真漸開螺旋牙（非貼圖）。設大徑Ø/螺距/高。' },
       { id: 'box', label: '長方體', icon: 'box', sep: true, tip: '長方體：直接設長×寬×高建一個盒（最常用起手）。' },
       { id: 'cylinder', label: '圓柱', icon: 'cylinder', tip: '圓柱：設直徑×高直接建圓柱。' },

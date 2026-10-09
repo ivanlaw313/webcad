@@ -13794,6 +13794,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'gearbox': return get().openFeatDlg('gearbox')
       case 'worm': return get().openFeatDlg('worm')
       case 'crowngear': return get().openFeatDlg('crowngear')
+      case 'facethread':   // BUG（Thread-2）：主 CREATE「螺紋」= Fusion Thread（揀圓柱面），唔再只得螺紋桿
       case 'othread': {
         if (!hasSolid(get().features)) { set({ status: '面加外螺紋：先要有實體（圓柱/凸台）' }); return }
         return get().startThreadFacePick()

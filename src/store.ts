@@ -2408,7 +2408,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   resolveDialog: (v: string | boolean | null) => void
   /** T3: confirm with a third button (Fusion「儲存／不儲存／取消」) → 'ok' | 'alt' | null(cancel). */
   appChoice: (msg: string, alt: string, title?: string, okLabel?: string) => Promise<'ok' | 'alt' | null>
-  /** T3: File ▸ New — 儲存 (save, then new only if the save landed) / 確定 (discard) / 取消. */
+  /** T3: File ▸ New — 儲存 (save, then new only if the save landed) / 不儲存·Don't Save (discard) / 取消. */
   newFileFlow: () => Promise<void>
 
   // T809：AI Copilot — 多供应商 LLM（OpenAI/Grok/Gemini/本地）聊天 + 工具调用控制 app。
@@ -14909,9 +14909,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ uiDialog: { kind: 'confirm', title, msg, def: '', alt, ...(okLabel ? { okLabel } : {}) } })
   }),
   newFileFlow: async () => {
+    // FILE-IO dirty-doc：Fusion 同款 Formal Traditional — 儲存 / 不儲存 / 取消
+    // 取消＝保留文件；儲存＝先存再開新檔（存檔失敗／取消則保留）；不儲存＝捨棄後 reset（清警告／幾何）
     const lang = get().lang
-    const newLbl = lang === 'en' ? 'New file' : lang === 'zh-CN' ? '新建文件' : '開新檔案'
-    const choice = await get().appChoice(msg('file.newConfirm', lang), lang === 'en' ? 'Save' : lang === 'zh-CN' ? '保存' : '儲存', newLbl, newLbl)
+    const choice = await get().appChoice(
+      msg('file.newConfirm', lang),
+      msg('file.saveBtn', lang),
+      msg('file.newTitle', lang),
+      msg('file.dontSave', lang),
+    )
     if (choice === null) return
     if (choice === 'alt') {
       await get().saveProject()

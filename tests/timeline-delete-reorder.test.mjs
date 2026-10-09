@@ -68,10 +68,13 @@ test('store wiring: delete confirm + cascade + no red leftovers; reorder = one u
   assert.match(tl, /onDrop=\{[^\n]*reorderFeature\(id, i\)/)
 })
 
-test('T3 New file offers 儲存 (save then new only when saved); T4 F2 rename', () => {
+test('T3 New file offers 儲存／不儲存／取消 (save then new only when saved); T4 F2 rename', () => {
   const store = src('store.ts')
   const flow = store.slice(store.indexOf('  newFileFlow: async () => {'), store.indexOf('  // ── T809 AI Copilot'))
-  assert.match(flow, /appChoice\(msg\('file\.newConfirm', lang\)/)
+  assert.match(flow, /appChoice\(/)
+  assert.match(flow, /msg\('file\.newConfirm', lang\)/)
+  assert.match(flow, /msg\('file\.saveBtn', lang\)/)
+  assert.match(flow, /msg\('file\.dontSave', lang\)/)
   assert.match(flow, /if \(choice === null\) return/)
   assert.match(flow, /await get\(\)\.saveProject\(\)[\s\S]*startsWith\('已儲存專案'\)\) return[\s\S]*await get\(\)\.reset\(\)/)
   assert.match(src('components/PromptDialog.tsx'), /dlg\.kind === 'confirm' && dlg\.alt[\s\S]*resolveDialog\('alt'\)/)

@@ -38,7 +38,7 @@ await runE2E(async (page, ok) => {
   ok('precondition: body in scene', (await sceneBodies(page)).length >= 1, { bodies: await sceneBodies(page) })
   await page.shot('1-before-new')
   const p = page.evaluate(() => window.useApp.getState().newFileFlow())
-  await page.getByRole('button', { name: /^(OK|確定|确定)$/ }).last().click({ timeout: 10000 })
+  await page.getByRole('button', { name: /^(Don't Save|不儲存|不保存)$/ }).last().click({ timeout: 10000 })
   await p; await page.waitForTimeout(2000)
   await page.shot('2-after-new')
   const st = await page.evaluate(() => { const s = window.useApp.getState(); return { w: s.lastBuildWarnings, failed: s.failedFeatureIds, errs: Object.keys(s.featureErrors), feats: s.features.length, params: s.params.length } })

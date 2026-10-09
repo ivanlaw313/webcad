@@ -182,7 +182,7 @@ await runE2E(async (page, ok) => {
     await page.locator('button.tb-btn.tb-text', { hasText: '▾' }).first().click(); await page.waitForTimeout(300)
     await page.locator('.file-menu [role="menuitem"]').first().click(); await page.waitForTimeout(500)
     const dlg = await page.locator('[role="dialog"] button, [role="alertdialog"] button').evaluateAll((els) => els.map((e) => e.textContent))
-    const want = choice === 'OK' ? /^(OK|確定|開新檔案|New file)$/ : /^(Save|儲存|保存)$/
+    const want = choice === 'OK' ? /^(Don't Save|不儲存|不保存|OK|確定)$/ : /^(Save|儲存|保存)$/
     await page.locator('[role="dialog"] button, [role="alertdialog"] button', { hasText: want }).first().click().catch((e) => console.log('no btn', String(e)))
     await page.waitForTimeout(2500)
     page.off('framenavigated', onNav); page.context().off('page', onPop); page.off('download', onDl)

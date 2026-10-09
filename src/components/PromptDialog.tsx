@@ -111,7 +111,7 @@ export default function PromptDialog() {
         </div>
         {/* GM-G4b：脚部按钮统一用 .cmd-cancel / .cmd-ok（与 CommandDialog 同一 palette token），视觉一致、零逻辑改动 */}
         <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          {/* T3：第三掣（例：開新檔案 →「儲存」先存後開，Fusion 同款） */}
+          {/* T3：第三掣（例：開新檔案 →「儲存」先存後開／主掣「不儲存」捨棄，Fusion 同款） */}
           {dlg.kind === 'confirm' && dlg.alt && (
             <button className="cmd-cancel" data-testid="dialog-alt" style={{ marginRight: 'auto' }} onClick={() => resolveDialog('alt')}>
               {dlg.alt}

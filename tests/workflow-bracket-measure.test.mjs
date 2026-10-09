@@ -1,6 +1,6 @@
 // WORKFLOW（測試員支架個案）#1/#2/#3/#4/#5/#6/#7：
 // 兩圓柱孔 → 軸距（平行軸）＋最短距離；兩平行平面 → 厚度（面距）；讀數正式繁體；新建／開啟清走分析；
-// 剖切關閉移除節點；匯出檔名預設；屬性列體積＝B-rep 精確體積；新建檔案主按鈕「開新檔案」。
+// 剖切關閉移除節點；匯出檔名預設；屬性列體積＝B-rep 精確體積；新建檔案主按鈕「不儲存」。
 import test from 'node:test'; import assert from 'node:assert/strict'; import { register, createRequire } from 'node:module'; import { fileURLToPath } from 'node:url'
 globalThis.require = createRequire(import.meta.url); globalThis.__dirname = fileURLToPath(new URL('.', import.meta.url)); register('./native-car-loader.mjs', import.meta.url)
 await import('../src/worker/cad.worker.ts'); const w = globalThis.__wheelWorker; await w.ready()
@@ -126,9 +126,13 @@ test('export STL asks for a file name (default = document name) and cancel downl
   assert.match(g().status, /已取消匯出 STL/)
 })
 
-test('新建檔案 confirm main button reads 開新檔案', async () => {
+test('新建檔案 confirm main button reads 不儲存 (Formal Traditional discard)', async () => {
   useApp.setState({ lang: 'zh-HK' })
   void g().newFileFlow()
   await new Promise((r) => setTimeout(r, 30))
-  assert.equal(g().uiDialog?.okLabel, '開新檔案')
+  const d = g().uiDialog
+  assert.equal(d?.okLabel, '不儲存')
+  assert.equal(d?.alt, '儲存')
+  assert.equal(d?.title, '開新檔案')
+  assert.match(d?.msg || '', /不儲存/)
 })

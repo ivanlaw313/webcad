@@ -1020,7 +1020,7 @@ await runE2E(async (page, okRaw) => {
     await page.locator('button[aria-haspopup="menu"]', { hasText: /檔案|File/ }).first().click(); await W(400)
     await page.locator('[role="menu"] [role="menuitem"]', { hasText: '新建檔案' }).first().click(); await W(500)
     const dlg = await S(() => document.querySelector('[data-testid="dialog-alt"]')?.closest('div')?.parentElement?.innerText || '')
-    ok('New File asks 儲存／開新檔案 first', /開新檔案/.test(dlg), { dlg: dlg.slice(0, 160) })
+    ok('New File asks 儲存／不儲存／取消 first', /不儲存/.test(dlg) && /儲存/.test(dlg) && /取消/.test(dlg), { dlg: dlg.slice(0, 160) })
     await page.locator('button.cmd-ok:visible').last().click(); await W(1500); await waitIdle()
     const after = await S(() => ({ marker: window.__noReloadMarker ?? null, feats: window.useApp.getState().features.length, nav: performance.getEntriesByType('navigation').length + ':' + performance.timeOrigin, entry: [...document.scripts].map((x) => x.src).find((x) => /assets\/index-/.test(x)) || '', status: window.useApp.getState().status }))
     ok('New File did NOT reload the page (same JS realm, same navigation, same bundle)', after.marker === 42 && after.nav === nav0 && after.entry === entry0, { ...after, nav0, entry0 })

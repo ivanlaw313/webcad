@@ -23972,12 +23972,16 @@ if (typeof window !== 'undefined') {
     clearTimeout(saveTimer)
     clearTimeout(idbTimer)
     // Invalid references must not replace or delete the last valid autosave.
-    if (documentReferenceErrors(s).length || (s.mode === 'sketch' && sketchReferenceErrors(s.skCons, s.params).length)) return
+    // perf：校验移入计时器（原本每次 store 变化——含 hover/pointermove 预览——都同步跑全文档引用校验）。
+    // 语义不变：计时器只会喺最后一次变化后触发，用嗰刻嘅 s 校验；无效就唔写。
+    const invalid = () => documentReferenceErrors(s).length > 0 || (s.mode === 'sketch' && sketchReferenceErrors(s.skCons, s.params).length > 0)
     saveTimer = setTimeout(() => {
+      if (invalid()) return
       // BUG-UI-006 / UI05: persist into this browser tab's session slot — never the shared legacy key.
       try { writeTabAutosaveRaw(JSON.stringify(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>)), { name: s.projectName, features: s.features.length, bodies: s.components.length }) } catch { try { clearTabAutosave() } catch { /* ignore */ } }   // R2：配额溢出 → 清除 stale tab slot，令 restoreAutosave 的 if(!data) 正确 fallthrough 到更新嘅 IDB 快照（否则读到旧 stale 存档静默丢工作）
     }, 800)
     idbTimer = setTimeout(() => {
+      if (invalid()) return
       if (s.features.length || s.components.length || s.mode === 'sketch' || s.sketchShape || s.sketchProfiles.length || s.formCage) void saveSnapshot(withTabSessionId(buildProjectPayload(s) as Record<string, unknown>), '自動儲存', 'auto')
     }, 5000)
   })

@@ -37,6 +37,29 @@ const NULL_RAYCAST: typeof MESH_RAYCAST = () => {}
 
 // `pts` are CAD-local (Z-up).  Convert through the rendered occurrence matrix so
 // shared definitions, component transforms, and assembly FK all pick the same edge.
+
+// perf（v2.20 lag）：主视口改 frameloop="demand"。localStorage webcad-frameloop=always 可退回旧行为（诊断用）。
+const VIEWPORT_FRAMELOOP: 'always' | 'demand' = (() => { try { return typeof localStorage !== 'undefined' && localStorage.getItem('webcad-frameloop') === 'always' ? 'always' : 'demand' } catch { return 'demand' } })()
+// perf：局部订阅 status 嘅细组件（避免 Viewport 根组件因 status 变而整体重渲染）。
+function StatusText({ lang, span }: { lang: Parameters<typeof tStatus>[1]; span?: boolean }) {
+  const status = useApp((s) => s.status)
+  const text = tStatus(status, lang)
+  return span ? <span className="vp-status-message" title={text}>{text}</span> : <>{text}</>
+}
+function RenderGovernor() {
+  const invalidate = useThree((s) => s.invalidate)
+  useEffect(() => {
+    if (VIEWPORT_FRAMELOOP === 'always') return
+    return startRenderGovernor({
+      invalidate,
+      subscribe: (cb) => useApp.subscribe(cb),
+      target: typeof window !== 'undefined' ? window : null,
+      isHidden: () => typeof document !== 'undefined' && document.hidden,
+    })
+  }, [invalidate])
+  return null
+}
+
 function nearestSavedBrepLine(edges: import('../assembly/occurrence').BrepEdge[], hit: Vector3, world: Matrix4) {
   let best: { a: Vector3; b: Vector3 } | null = null
   let bestD2 = Infinity
@@ -75,6 +98,7 @@ import { cutFaceGeom } from '../geom/sectionCap'   // S186：剖面盖切面三�
 import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按需预览（避免普通建模首屏载入齿轮搜索）
 import { ToolIcon } from '../icons'
 import { featDlgBlockingReason } from '../cad/featDlgNumeric'   // 純邏輯模組，唔經 monolith
+import { startRenderGovernor } from '../render/renderGovernor'
 import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
@@ -1386,6 +1410,7 @@ function FeaOverlay() {
   useFrame((state) => {
     const im = ref.current
     if (!im || !res || !n || !deform.show || !deform.anim || !canDeform || !res.dispVec) return
+    state.invalidate()   // frameloop="demand"：动画期间持续请求下一帧
     const dv = res.dispVec
     const t = ((1 - Math.cos(state.clock.elapsedTime * 3)) / 2) * amp
     for (let i = 0; i < n; i++) {
@@ -1731,6 +1756,7 @@ function WindFlowArrows() {
   useEffect(() => () => { stream?.segGeo.dispose(); stream?.dotGeo.dispose() }, [stream])
   useFrame((state) => {   // GM-W3 3.1：流动点沿流线向下游行 = 显示流向（步长 ~等弧长，index 分数 ≈ 弧长分数）
     if (!stream) return
+    state.invalidate()   // frameloop="demand"：流动点动画持续请求下一帧
     const t = state.clock.elapsedTime * 0.12
     const arr = stream.dotGeo.attributes.position.array as Float32Array
     const pts = stream.pts
@@ -1798,6 +1824,7 @@ function ModalOverlay() {
   useFrame((state) => {   // 位置：逐帧沿振型摆动
     const im = ref.current
     if (!im || !res || !n) return
+    state.invalidate()   // frameloop="demand"：振型动画持续请求下一帧
     const sh = res.shapes[show] || res.shapes[0]
     const t = Math.sin(state.clock.elapsedTime * 6) * amp
     for (let i = 0; i < n; i++) {
@@ -1841,6 +1868,7 @@ function BucklingOverlay() {
   useFrame((state) => {
     const im = ref.current
     if (!im || !res || !n) return
+    state.invalidate()   // frameloop="demand"：模态动画持续请求下一帧
     const sh = res.shape
     const t = Math.sin(state.clock.elapsedTime * 6) * amp
     for (let i = 0; i < n; i++) {
@@ -2012,9 +2040,10 @@ function Recorder() {
       if (rec.state !== 'inactive') rec.stop()
     }
   }, [req, gl, controls])
-  useFrame(() => {
+  useFrame((state) => {
     const s2 = st.current
     if (!s2 || !req) return
+    state.invalidate()   // frameloop="demand"：录制转盘/爆炸期间持续出帧
     const t = (performance.now() - s2.t0) / s2.dur
     if (t >= 1) { if (s2.rec.state !== 'inactive') s2.rec.stop(); st.current = null; if (controls) controls.autoRotate = false; if (s2.mode === 'explode') useApp.getState().setExplode(0); return }
     if (s2.mode === 'explode') useApp.getState().setExplode(Math.sin(t * Math.PI) * 1.2)
@@ -2764,6 +2793,8 @@ function FormBoxDraftPreview({ draft }: { draft: FormBoxDraft }) {
     g.setAttribute('position', new Float32BufferAttribute(pts, 3))
     return g
   }, [placed])
+  useEffect(() => () => { smoothGeo?.dispose() }, [smoothGeo])   // perf：拖高度每步换代 → 释放旧几何
+  useEffect(() => () => { edgeGeo?.dispose() }, [edgeGeo])
   if (!placed) return null
   const centerCad = formPlanePointForPreview(draft.plane!, draft.center!, draft.planeOffset + (draft.direction === 'symmetric' ? 0 : draft.height))
   const arrowPos = cadPointToThree(centerCad)
@@ -3959,7 +3990,7 @@ export default function Viewport() {
   const setSection = useApp((s) => s.setSection)
   const setView = useApp((s) => s.setView)
   const busy = useApp((s) => s.busy)
-  const status = useApp((s) => s.status)
+  // perf：status 每个动作改好多次 → 唔再喺 8k 行 Viewport 根订阅（原本每次 status 变就成个视口+场景树重渲染）；改由 <StatusText/> 局部订阅。
   const statusAction = useApp((s) => s.statusAction)
   const runStatusAction = useApp((s) => s.runStatusAction)
   const lang = useApp((s) => s.lang)   // T807：状态栏 en 渲染时翻译
@@ -4559,8 +4590,10 @@ export default function Viewport() {
           return r
         }}
         camera={{ position: [240, 190, 270], fov: 28, near: 0.5, far: 100000 }}
+        frameloop={VIEWPORT_FRAMELOOP}
         onPointerMissed={(e) => { if (e.button === 0 && useApp.getState().selectedComponent && !useApp.getState().compBoolPending) selectComponent(null) }}
       >
+        <RenderGovernor />{/* perf：按需渲染（SwiftShader 下 60fps 空转食晒 CPU）— store 变 / 输入 / 心跳先出帧 */}
         {/* S193：正交相机（makeDefault 覆写默认透视）— 开时由 OrbitControls 驱动；FitView/ViewRig 用 camera.zoom 取景。
             near 负值令物体喺相机后面都唔裁切（正交无远近）。关时此元件卸载 → 回退 Canvas 默认透视相机。 */}
         {cameraOrtho && <OrthographicCamera makeDefault position={[240, 190, 270]} near={-100000} far={200000} zoom={4} />}
@@ -8235,7 +8268,7 @@ export default function Viewport() {
         </div>
       </div>
 
-      {busy && <div className="vp-busy">⏳ {tStatus(status, lang)}</div>}
+      {busy && <div className="vp-busy">⏳ <StatusText lang={lang} /></div>}
       {(measureMode || measureEdgeMode || measureFaceMode || measureAngleMode) && (
         <div className="info-card" style={{ position: 'fixed', top: 150, right: 20, width: 230, padding: '12px 14px', zIndex: 200, fontSize: 13 }}>{/* GM-G4b：測量浮卡 → .info-card 共用 token */}
           {measureMode && (<>
@@ -8648,7 +8681,7 @@ export default function Viewport() {
           {feaStaleBannerText()}
         </div>
       )}
-      <div ref={statusDrag.ref} className={'vp-badge' + (statusDrag.isDragged ? ' vp-hud-dragged' : '') + (statusHudCollapsed ? ' vp-hud-collapsed' : '')} style={statusDrag.style}><span className="vp-hud-handle" onPointerDown={statusDrag.onPointerDown} title={tStatus('拖動狀態提示', lang)}>⋮⋮</span><button className="vp-hud-collapse" type="button" title={statusHudCollapsed ? tStatus('展開狀態提示', lang) : tStatus('收合狀態提示', lang)} onClick={() => setStatusHudCollapsed((v) => !v)}>{statusHudCollapsed ? '⌃' : '–'}</button>{statusDrag.isDragged && <button className="vp-hud-reset" type="button" title={tStatus('還原狀態提示預設位置', lang)} onClick={statusDrag.reset}>↺</button>}<span className="vp-status-message" title={tStatus(status, lang)}>{tStatus(status, lang)}</span>{statusAction && !statusHudCollapsed && <button type="button" className="vp-status-action" data-testid="status-action" data-action-id={statusAction.id} title={tStatus(statusAction.label, lang)} onClick={() => { void runStatusAction() }} style={{ marginLeft: 8, flexShrink: 0, padding: '2px 10px', borderRadius: 6, border: '1px solid #3b82f6', background: '#2563eb', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{tStatus(statusAction.label, lang)}</button>}</div>
+      <div ref={statusDrag.ref} className={'vp-badge' + (statusDrag.isDragged ? ' vp-hud-dragged' : '') + (statusHudCollapsed ? ' vp-hud-collapsed' : '')} style={statusDrag.style}><span className="vp-hud-handle" onPointerDown={statusDrag.onPointerDown} title={tStatus('拖動狀態提示', lang)}>⋮⋮</span><button className="vp-hud-collapse" type="button" title={statusHudCollapsed ? tStatus('展開狀態提示', lang) : tStatus('收合狀態提示', lang)} onClick={() => setStatusHudCollapsed((v) => !v)}>{statusHudCollapsed ? '⌃' : '–'}</button>{statusDrag.isDragged && <button className="vp-hud-reset" type="button" title={tStatus('還原狀態提示預設位置', lang)} onClick={statusDrag.reset}>↺</button>}<StatusText lang={lang} span />{statusAction && !statusHudCollapsed && <button type="button" className="vp-status-action" data-testid="status-action" data-action-id={statusAction.id} title={tStatus(statusAction.label, lang)} onClick={() => { void runStatusAction() }} style={{ marginLeft: 8, flexShrink: 0, padding: '2px 10px', borderRadius: 6, border: '1px solid #3b82f6', background: '#2563eb', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{tStatus(statusAction.label, lang)}</button>}</div>
       <InterfClearChip />
       <FormPanel />
       <QuiltPickPanel />

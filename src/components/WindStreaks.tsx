@@ -611,8 +611,9 @@ export default function WindStreaks({ widthMm }: WindStreaksProps = {}) {
 
   const tmpSize = useRef(new Vector2())
 
-  useFrame(() => {
+  useFrame((state) => {
     if (!rs || !st.current.src || !st.current.dst) return
+    state.invalidate()   // frameloop="demand"：流线动画持续请求下一帧
     const s = st.current
 
     // ⚠ 唔好直接用 dt 乘 advect —— 掉 frame 时烟会一嘢跳。用固定 cells-per-frame 稳定得多。

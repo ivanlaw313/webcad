@@ -169,10 +169,11 @@ export function PathTraceLayer() {
   }, [on, gl, scene, camera, controls, hdriPreset])
 
   // priority 1 → 接管渲染。on 为 false 时必须早退，等 R3F 默认 gl.render 恢复（否则视口变黑）。
-  useFrame(() => {
+  useFrame((state) => {
     const t = pt.current
     if (!on || !t) return
     if (t.samples < maxS) {
+      state.invalidate()   // frameloop="demand"：采样未满继续累积
       t.renderSample()
       const p = Math.floor(t.samples)
       if (p !== lastProg.current) {

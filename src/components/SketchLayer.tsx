@@ -277,9 +277,10 @@ export function CameraRig() {
     return () => { el.removeEventListener('pointerdown', cancel); el.removeEventListener('wheel', cancel) }
   }, [gl, controls])
   // GM-FP4 #1：逐帧 lerp 相机由旧视角 → goal（eased）。goal 已即时套喺下面 effect（终态永远正确），呢度只做视觉过渡。
-  useFrame(() => {
+  useFrame((state) => {
     const tw = _camTween
     if (!tw || !controls) return
+    state.invalidate()   // frameloop="demand"：相机过渡期间持续出帧
     let t = (performance.now() - tw.t0) / tw.dur
     if (t >= 1) t = 1
     const e = _easeInOut(t)
@@ -1155,6 +1156,7 @@ export function RegionPickLayer() {
       } catch { return null }
     })
   }, [faces, plane, baseZ, arb])
+  useEffect(() => () => { geos?.forEach((g) => g?.dispose()) }, [geos])   // perf：区域填充几何换代即释放 GPU buffer（原本泄漏）
   if (!open || !faces || !geos) return null
   return (
     <group>

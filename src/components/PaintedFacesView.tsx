@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { BufferGeometry, Float32BufferAttribute } from 'three'
 import { useApp, faceGroupTris } from '../store'
 
@@ -26,6 +26,7 @@ export function PaintedFacesView() {
     }
     return out
   }, [faceColors, bodyMesh])
+  useEffect(() => () => { items.forEach((it) => it.geo.dispose()) }, [items])   // perf：每次重建/改色释放旧逐面几何（原本泄漏 GPU buffer）
 
   if (!bodyMesh?.faceGroups || !items.length) return null
   return (

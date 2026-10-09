@@ -334,8 +334,9 @@ export default function WindSmoke() {
     rs.drawMat.uniforms.uColorMode.value = colorMode === 'age' ? 2 : colorMode === 'speed' ? 1 : 0
   }, [rs, alpha, streakScale, colorMode])
 
-  useFrame(() => {
+  useFrame((state) => {
     if (!rs || !pp.current.src || !pp.current.dst) return
+    state.invalidate()   // frameloop="demand"：烟雾动画持续请求下一帧
     const { src, dst, reset } = pp.current
 
     // ⚠ 陷阱 #10 伴生：唔好直接用 dt 乘 advect —— 掉 frame 时烟会一嘢跳。用固定 cells-per-frame 稳定得多。

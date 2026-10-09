@@ -23506,6 +23506,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     set(clearedAnalysesPatch())   // WORKFLOW #3
     set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], bodyHidden: [], activeBodyName: '', jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, holeBoltCircle: false, holeBcCount: 4, holeBcPcd: 50, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
     set({ ...hydrateSketchDraft(null), ...hydrateFormDraft(null) })
+    // WORKFLOW2 P2：開新檔＝預設外觀＋預設密度（唔跟上一檔紅色／自訂材質）。唔清語言／單位／graphicsPreset／materialLibrary 等用戶偏好。
+    set({
+      bodyColor: '#4a7296',
+      appearanceName: '',
+      material: { metalness: 0.18, roughness: 0.5, opacity: 1 },
+      physMatName: '',
+      bodyDensity: 2.7,
+      faceColors: {},
+      faceColorPick: null,
+    })
     // record=false so "New" is a clean fresh start — undo must NOT resurrect the old document (Fusion-style new doc).
     await get().applyFeatures([], '新建 — 已清空（空白文档）', false)
   },

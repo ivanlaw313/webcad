@@ -6054,11 +6054,20 @@ function buildShape(features: Feature[], noCache = false): any {
       }
       let signedH = Math.max(0.1, f.height)  // standalone: up by height
       // GM-3DV1 S1：extent='distance' 强制向上 height（就算有实体，唔落底）；缺省/'next' = 有实体落到实体底融合（旧行为）。
+      // RETEST5：中心线在实体顶面时，落底只会把筋完全嵌进实体 → fuse 体积不变、看不见墙。顶/底面改沿外法向以 height 立墙（仍 fuse 到面）。
       if (shape && f.extent !== 'distance' && !f.arbPlane) {
         try {
-          const minZ = shape.boundingBox.bounds[0][2]
-          const drop = z - minZ
-          if (drop > 0.5) signedH = -drop  // down to the body floor (rib bottom coplanar with body bottom → fuses)
+          const bb = shape.boundingBox.bounds
+          const minZ = bb[0][2]
+          const maxZ = bb[1][2]
+          const onTop = z >= maxZ - 0.5 && z <= maxZ + 0.5
+          const onBot = !onTop && z >= minZ - 0.5 && z <= minZ + 0.5
+          if (onBot) signedH = -Math.max(0.1, f.height)  // bottom-face outward (−Z)
+          else if (!onTop) {
+            const drop = z - minZ
+            if (drop > 0.5) signedH = -drop  // mid/pocket: down to the body floor
+          }
+          // onTop: keep +height — standing wall on the top face
         } catch { /* keep up-by-height fallback */ }
       }
       if (f.flip) signedH = -signedH   // GM-3DV1 S1：翻转挤出方向

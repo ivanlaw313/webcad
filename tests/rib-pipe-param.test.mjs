@@ -18,9 +18,9 @@ const report = (name, ok, detail) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${na
 const near = (a, b, tol = 0.05) => Math.abs(a - b) < tol
 
 // ── 逐字复刻 worker rib 条带几何（cad.worker.ts type==='rib'）：单段 + 逐侧半宽 + extend 端点外延 ──
-function buildRib({ pts, thickness, height, thDir = 'sym', extent, flip = false, extend = false, hasBody = false, bodyMinZ = 0 }) {
+function buildRib({ pts, thickness, height, thDir = 'sym', extent, flip = false, extend = false, hasBody = false, bodyMinZ = 0, bodyMaxZ, baseZ = 0 }) {
   const hw = Math.max(0.1, thickness) / 2
-  const z = 0
+  const z = baseZ
   const hwPos = thDir === 'one' ? hw * 2 : hw
   const hwNeg = thDir === 'one' ? 0 : hw
   let p = pts.map((q) => [q[0], q[1]])
@@ -32,7 +32,14 @@ function buildRib({ pts, thickness, height, thDir = 'sym', extent, flip = false,
     p[n] = ext(p[n], [p[n][0] - p[n - 1][0], p[n][1] - p[n - 1][1]])
   }
   let signedH = Math.max(0.1, height)
-  if (hasBody && extent !== 'distance') { const drop = z - bodyMinZ; if (drop > 0.5) signedH = -drop }
+  // Mirror cad.worker.ts rib extent='next': top/bottom face → outward height; else drop to floor.
+  if (hasBody && extent !== 'distance') {
+    const maxZ = bodyMaxZ ?? bodyMinZ
+    const onTop = z >= maxZ - 0.5 && z <= maxZ + 0.5
+    const onBot = !onTop && z >= bodyMinZ - 0.5 && z <= bodyMinZ + 0.5
+    if (onBot) signedH = -Math.max(0.1, height)
+    else if (!onTop) { const drop = z - bodyMinZ; if (drop > 0.5) signedH = -drop }
+  }
   if (flip) signedH = -signedH
   let rib = null
   for (let i = 0; i < p.length - 1; i++) {
@@ -69,6 +76,10 @@ const distRib = buildRib({ pts: [[0, 0], [40, 0]], thickness: 6, height: 20, ext
 const nextB = bb(nextRib), distB = bb(distRib)
 report('S1(c) 到实体：向下落到实体底 z=−12（drop-to-body）', near(nextB.zmin, -12) && near(nextB.zmax, 0), nextB)
 report('S1(c) 距离：就算有实体仍向上 height=20', near(distB.zmin, 0) && near(distB.zmax, 20), distB)
+// RETEST5：顶面中心线 + 到实体 → 外向立墙（唔再落底嵌进实体）
+const topRib = buildRib({ pts: [[0, 0], [40, 0]], thickness: 6, height: 20, extent: 'next', hasBody: true, bodyMinZ: 0, bodyMaxZ: 10, baseZ: 10 })
+const topB = bb(topRib)
+report('S1(c) 顶面到实体：向外立墙 z ∈ [10,30]（height=20）', near(topB.zmin, 10) && near(topB.zmax, 30), topB)
 
 // ═══ S1 (d) extend 端点外延（Web Extend Curves，无 bbox → 固定 15mm）═══
 const plainRib = buildRib({ pts: [[0, 0], [40, 0]], thickness: 6, height: 20, extend: false })

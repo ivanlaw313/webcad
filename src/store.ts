@@ -54,7 +54,7 @@ import { findLoops, loopPlane, solveLoop, type Loop } from './assembly/linkage' 
 import { inferAsBuiltAxis, type ExplodeStep } from './assembly/asmUtil'   // GM-3DV4 A10：as-built 推轴；A12：有序爆炸步类型
 import { solveMate, worldAABB, type MateType, type MateAxis, type MateSide } from './assembly/mates'
 import { estimateOverlapVolume } from './assembly/overlapVolume'
-import { nextDefId, reconcileComponents, migrateComponentDefs, makeDefOcc, cloneDef, writeDefFromEdit, writeDefBodyMesh, transformBodyMeshByMatrix, referencedDefs, prunedDefsForPayload, visibleDefinitionBodies, type ComponentDef, type BrepEdge } from './assembly/occurrence'   // R2：occurrence/多体 纯逻辑核（单一真相 + tsx 可测）
+import { nextDefId, reconcileComponents, migrateComponentDefs, makeDefOcc, splitLiveBodies, cloneDef, writeDefFromEdit, writeDefBodyMesh, transformBodyMeshByMatrix, referencedDefs, prunedDefsForPayload, visibleDefinitionBodies, type ComponentDef, type BrepEdge } from './assembly/occurrence'   // R2：occurrence/多体 纯逻辑核（单一真相 + tsx 可测）
 import { buildFastener, fastenerLabel, recommendFastenerSize, tighteningTorque, FASTENER_KIND_LABEL, FASTENER_SIZES, FASTENER_SPEC, type FastenerKind, type FastenerSize } from './cad/fasteners'
 import { beamCheck, torsionCheck, MATERIAL_MECH, DEFAULT_MECH, type Support } from './analysis/beamStress'
 import { runFeaInWorker, runModalInWorker, runBucklingInWorker, runPrestressedModalInWorker, runTopoptInWorker, runThermalInWorker, runThermalStressInWorker } from './analysis/feaClient'
@@ -20877,27 +20877,44 @@ export const useApp = create<AppState>((rawSet, get) => {
     // length-based 会重铸已存在 id（例 [C1,C2,C3] 删 C2 → [C1,C3]，再固化 → 'C'+(2+1)='C3' 撞）。S136 edit-in-context
     // 嘅 blocker 放宽令 editComponent 自动调 newComponent 固化活动体并即 keyed-by-id，把此潜伏 bug 变成同一动作内可触发 → 必修。
     const maxN = comps.reduce((m, c) => { const n = parseInt(String(c.id).replace(/^C/, ''), 10); return Number.isFinite(n) && n > m ? n : m }, 0)
-    const nid = 'C' + (maxN + 1)
-    // R2：建 def + 1 occurrence（而非内联 mesh）。occ.mesh===def.mesh、occ.src===def.src（镜像不变量）。
-    const { def, occ } = makeDefOcc(get().componentDefs, nid, '组件' + (maxN + 1), b, [get().originX, 0, 0], srcSnap.features.length ? { src: srcSnap } : undefined)
-    const comp = occ
+    // BUG(A)：活動實體 + 每個泊車實體各成一個組件（舊版只固化活動體，其餘實體被清走 → 樹顯示「實體 (空)」）。
+    // 幾何都以原點建 → 全部放喺同一 originX，保持相對位置。活動件帶參數化 src；泊車件為淨網格件。
+    const live = splitLiveBodies(b)
+    if (!live.length) { set({ status: '當前沒有實體——先建一個，再「新建組件」' }); return }
+    let defsAcc = get().componentDefs
+    const newComps: typeof comps = []
+    const newDefs: typeof defsAcc = []
+    let activeDef: (typeof defsAcc)[number] | null = null
+    live.forEach((lb, i) => {
+      const n = maxN + 1 + i
+      const nm = lb.active ? '组件' + n : (lb.name ? `${lb.name}` : '组件' + n)
+      const { def, occ } = makeDefOcc(defsAcc, 'C' + n, nm, lb.mesh, [get().originX, 0, 0], lb.active && srcSnap.features.length ? { src: srcSnap } : (i ? { color: COMP_PALETTE[(comps.length + i) % COMP_PALETTE.length] } : undefined))
+      defsAcc = [...defsAcc, def]; newDefs.push(def); newComps.push(occ as (typeof comps)[number])
+      if (lb.active) activeDef = def
+    })
+    const comp = newComps[0]
     // Snapshot the PRE-freeze state so the freeze (and any DXF/SVG import that auto-freezes) is undoable —
     // previously this cleared the undo stack, so a user could not undo a freeze/import. Ctrl+Z now un-freezes.
     const snap = { ...docSnap(get()), components: comps }  // T746 审查 M3：统一不变量 — 全部 undo 快照都带 sketchSources（R2：并带 componentDefs — undo 撤走新 def）
     set({
-      components: [...comps, comp], componentDefs: [...get().componentDefs, def],
+      components: [...comps, ...newComps], componentDefs: [...get().componentDefs, ...newDefs],
       features: [], bodyMesh: null, bodyTopZ: 0, undoStack: [...get().undoStack, snap].slice(-60), redoStack: [],
       selectedFeature: null, sketchShape: null, mode: 'model',
       originX: get().originX + 130,
-      status: `已固化「${comp.name}」；下一個組件將在其右側 (+130mm) 處繪製`,
+      status: newComps.length > 1
+        ? `已固化 ${newComps.length} 個實體為組件（${newComps.map((c) => c.name).join('、')}）；下一個組件將在其右側 (+130mm) 處繪製`
+        : `已固化「${comp.name}」；下一個組件將在其右側 (+130mm) 處繪製`,
       ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('几何已改（已固化为组件）') : {}),
     })
+    const def = activeDef as (typeof defsAcc)[number] | null
+    if (!def) return
+    const bActive = def.mesh
     // The worker still owns the live OCCT shape at this point. Capture its B-rep
     // edges now, before the component becomes a mesh-only occurrence.
     void cad.extractEdgePolylines().then((edges) => {
       if (!edges.length) return
       set((s) => ({
-        componentDefs: s.componentDefs.map((d) => d.id === def.id && d.mesh === b
+        componentDefs: s.componentDefs.map((d) => d.id === def.id && d.mesh === bActive
           ? { ...d, edges: edges as BrepEdge[] }
           : d),
       }))

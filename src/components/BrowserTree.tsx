@@ -1,4 +1,5 @@
 import { activeModelCommand } from '../cad/commandAvailability'
+import { sketchProfileCount } from '../sketch/profileCount'
 import { localizeAsmName } from '../assembly/names'   // BUG(E)：裝配名繁體顯示
 import { useState, useRef, useEffect, createContext, useContext, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react'
 import { ToolIcon } from '../icons'
@@ -204,7 +205,7 @@ function SketchRow({ k }: { k: string }) {
         rename: () => { setName(src.name || defaultLabel); setEditing(true) },
         delete: () => void del(),
       })}
-      title={tStatus(`${src.name || defaultLabel} — ${src.shapes.length} 個輪廓 · ${src.cons.length} 個約束${src.arb ? ' · 斜面' : ` · ${src.plane}`}${standalone ? ' · 獨立草圖 — 單擊選中（拉伸/旋轉直接用）' : ''}${orphan ? '（未使用 — 消費特徵已刪；「重開」還原做獨立草圖 / 🗑刪除）' : referenced ? ' — 雙擊重開編輯' : ''}（Alt+雙擊 = 改名）`, lang)}
+      title={tStatus(`${src.name || defaultLabel} — ${sketchProfileCount(src.shapes as never).closed} 個封閉輪廓（${src.shapes.length} 個圖形）· ${src.cons.length} 個約束${src.arb ? ' · 斜面' : ` · ${src.plane}`}${standalone ? ' · 獨立草圖 — 單擊選中（拉伸/旋轉直接用）' : ''}${orphan ? '（未使用 — 消費特徵已刪；「重開」還原做獨立草圖 / 🗑刪除）' : referenced ? ' — 雙擊重開編輯' : ''}（Alt+雙擊 = 改名）`, lang)}
       onClick={() => standalone && useApp.getState().setSelSketch(selSketch === k ? null : k)}
       onDoubleClick={(e) => { if (referenced && !e.altKey) useApp.getState().editSketchBySrc(k); else { setName(src.name || defaultLabel); setEditing(true) } }}>
       <span className="tw-toggle" />
@@ -216,7 +217,7 @@ function SketchRow({ k }: { k: string }) {
           onBlur={(e) => commit(e.currentTarget.value)}
           onKeyDown={(e) => { e.stopPropagation(); if (imeBusy(e)) return; if (e.key === 'Enter') commit(e.currentTarget.value); else if (e.key === 'Escape') setEditing(false) }} />
       ) : (
-        <span style={{ flex: 1, opacity: src.visible ? 1 : 0.55 }}>{src.name ? src.name : tStatus(defaultLabel, lang)}{standalone ? tStatus('·獨立', lang) : ''}{orphan ? tStatus('（未使用）', lang) : ''}{src.cons.length ? tStatus(` ·${src.cons.length}約束`, lang) : ''}</span>
+        <span style={{ flex: 1, opacity: src.visible ? 1 : 0.55 }}>{src.name ? src.name : tStatus(defaultLabel, lang)}{standalone ? tStatus('·獨立', lang) : ''}{orphan ? tStatus('（未使用）', lang) : ''}{(() => { const pc = sketchProfileCount(src.shapes as never); return <span data-profile-count={pc.closed} style={{ color: '#6b7884' }}>{tStatus(` ·${pc.closed}輪廓`, lang)}{pc.open ? tStatus(` ·${pc.open}開放線`, lang) : ''}</span> })()}{src.cons.length ? tStatus(` ·${src.cons.length}約束`, lang) : ''}</span>
       )}
       {orphan && <span className="tw-act" title={tStatus('重開編輯此未使用草圖（會還原做獨立草圖，之後可拉伸/旋轉/刪除）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().reopenOrphanSketch(k) }}>{tStatus('重開', lang)}</span>}
       <span className="tw-act" title={src.visible ? tStatus('隱藏草圖', lang) : tStatus('喺模型上顯示草圖（紫色線）', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleSketchVis(k) }}>{src.visible ? '👁' : '─'}</span>

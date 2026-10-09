@@ -1502,6 +1502,32 @@ function DragValueHandle({ tip, dir, color, getValue, setValue, unitPerMm, isOpe
   )
 }
 
+// UX2 #8：旋轉對話框開住時，喺畫布高亮【而家用緊嘅旋轉軸】（橙色虛線，長度蓋過截面）— 舊版預設 Y 軸完全睇唔到，用戶唔知繞邊條軸轉。
+export function RevolveAxisLine() {
+  const featDlg = useApp((s) => s.featDlg)
+  const caxes = useApp((s) => s.caxes)
+  const features = useApp((s) => s.features)
+  const pts = useMemo(() => {
+    if (!featDlg || featDlg.kind !== 'revolve') return null
+    const p = featDlg.params as Record<string, number | string>
+    const authored = revolvePreviewContext(featDlg, features)
+    const axis = resolveRevolveAxis(p, caxes as unknown as _CAxLike[], authored.origin); if (!axis) return null
+    const { axO, d } = axis
+    const frame = revolvePreviewContext(featDlg, features, d)
+    const outer = revolveOuterLoop(featDlg as { payload?: unknown; editId?: string }, features as { id: string; type?: string; profile?: unknown }[])
+    let t0 = -20, t1 = 20
+    if (outer && outer.length) {
+      t0 = Infinity; t1 = -Infinity
+      for (const q of outer) { const c = frame.toCad(q); const t = (c[0] - axO[0]) * d[0] + (c[1] - axO[1]) * d[1] + (c[2] - axO[2]) * d[2]; t0 = Math.min(t0, t); t1 = Math.max(t1, t) }
+      const pad = Math.max(5, (t1 - t0) * 0.25); t0 -= pad; t1 += pad
+    }
+    const a = c2tW([axO[0] + d[0] * t0, axO[1] + d[1] * t0, axO[2] + d[2] * t0]), b = c2tW([axO[0] + d[0] * t1, axO[1] + d[1] * t1, axO[2] + d[2] * t1])
+    return [a, b] as [V3, V3]
+  }, [featDlg, caxes, features])
+  if (!pts) return null
+  return <Line points={pts} color="#ff7a00" lineWidth={4} dashed dashSize={4} gapSize={2} depthTest={false} depthWrite={false} transparent opacity={1} renderOrder={999} userData={{ revolveAxis: true }} />
+}
+
 // GM-3DV1 S16 证明接线：revolve 角度画布手柄 —— 抓手坐喺预览弧【前缘】外缘点，沿弧切向拖 → 改 featDlg 角度（钳 1..360）。
 // 对话框「角度」栏系浮动数值框，拖即实时反映（同 ExtrudeArrow 之于 exH tip 文本框）。DragValueHandle 泛化自 ExtrudeArrow，本体不动。
 export function RevolveAngleHandle() {

@@ -147,6 +147,7 @@ import { buildFaceGroupColors } from '../cad/faceGroupColors'   // GM-X1 #16：�
 const FG_PALETTE = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#42d4d4', '#f032e6', '#bf9000', '#469990', '#9a6324']
 import { pathArea, bulgeRadius } from '../sketch/sketchOps'
 import { LoftSectionList } from './LoftSectionList'
+import { RevolveAxisLine } from './SketchLayer'
 import { CameraRig, SketchSurface, SketchDraw, DimensionEditPreview, SkSelDraw, MirrorPickDraw, MarqueeDraw, MoveGizmoDraw, ScaleGizmoDraw, ArrayPreview, ToolHoverPreview, SizingHandle, CommittedSketches, CanvasImageLayer, ExtrudePreview, RevolvePreview, RevolveAngleHandle, RegionPickLayer, ExtrudeArrow, LoftPreview, FitView, ViewRig, BookmarkRig, SketchDimProjector, SketchDimLayer, HolePreview, FaceOffsetGhost, MoveScaleGhost, CoilPreview, SweepPreview } from './SketchLayer'
 import { SketchToolPanel } from './SketchToolPanel'
 import { useDraggable } from './useDraggable'            // GM-W6 A4：草图工具条可拖移（同 AI ✦ / 🩺诊断 钮共用 hook）
@@ -5099,6 +5100,7 @@ export default function Viewport() {
         <DecalOverlay />
         <CosmeticThreadOverlay />
         <ExtrudeArrow />
+        <RevolveAxisLine />{/* UX2 #8：高亮旋轉軸 */}
         <RevolveAngleHandle />{/* GM-3DV1 S16：revolve 角度画布拖拽手柄（泛化自 ExtrudeArrow） */}
         <LoftPreview />
         <PatternPreview />
@@ -7056,6 +7058,17 @@ export default function Viewport() {
             {featDlg.params.axisReference !== undefined && <label>{tStatus('軸參照', lang)} <select aria-label={tStatus('旋轉軸參照', lang)} value={featDlg.params.axisReference} onChange={e=>setFeatParam('axisReference',e.target.value)}><option value="sketch">{tStatus('隨草圖移動', lang)}</option><option value="world">{tStatus('固定世界軸', lang)}</option></select></label>}
             {featDlg.params.axisReference !== undefined && <div style={{fontSize:12, flexBasis:'100%',lineHeight:1.4}}>{tStatus(featDlg.params.axisReference === 'world' ? '來源面移動時，軸點保持當前世界坐標。' : '來源面移動時，軸點與草圖一起移動。',lang)}</div>}
             <label title={tStatus('旋轉軸方向：世界 X/Y/Z；位置由軸點及軸參照決定，或選任意構造軸（先用「構造軸」造軸 — 兩點軸/揀圓柱面取軸，偏離原點車削用呢個）', lang)}>{tStatus('旋轉軸', lang)} <select aria-label={tStatus('旋轉軸', lang)} value={featDlg.params.axis} onChange={(e) => setFeatParam('axis', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option>{useApp.getState().caxes.map((ca, i) => <option key={'A' + i} value={'A' + i}>{tStatus('構造軸', lang)}{i + 1}（{ca.dirV ? ca.dirV.map((v) => +v.toFixed(1)).join(',') : ca.dir}）</option>)}</select></label>
+            {/* UX2 #8：講明預設軸 — 畫布有橙色虛線高亮而家嘅旋轉軸 */}
+            <div data-testid="revolve-axis-hint" style={{fontSize:12, flexBasis:'100%', lineHeight:1.4, color:'#c96a00'}}>{(() => {
+              const ax = String(featDlg.params.axis ?? 'Y')
+              const ov = [+featDlg.params.dx || 0, +featDlg.params.dy || 0, +featDlg.params.dz || 0], oo = [+featDlg.params.ox || 0, +featDlg.params.oy || 0, +featDlg.params.oz || 0]
+              const named: Record<string, number[]> = { X: [1, 0, 0], Y: [0, 1, 0], Z: [0, 0, 1] }
+              const nv = named[ax]
+              // 預設 Y 狀態（dy:1、軸點 0）或方向同所揀 X/Y/Z 一致 = 標準軸；否則（拾軸/草圖線寫入）= 自訂
+              const custom = nv ? !(ov[0] === nv[0] && ov[1] === nv[1] && ov[2] === nv[2]) && !(ov[0] === 0 && ov[1] === 1 && ov[2] === 0 && oo.every((x) => x === 0)) : false
+              const name = custom ? '自訂軸（拾軸／草圖線）' : ax.startsWith('A') ? '構造軸' : ax === 'Y' ? '預設：世界 Y 軸（草圖豎直方向）' : '世界 ' + ax + ' 軸'
+              return tStatus('旋轉軸＝' + name + '，畫布橙色虛線即係軸。想繞其他軸：改「旋轉軸」X／Z、揀構造軸、🎯拾軸，或者揀草圖線。', lang)
+            })()}</div>
             {/* P2：Fusion 最常用工作流 — 画一条（构造）线做中心轴 → Axis 直接揀嗰条草图线。
                 坐标映射同 profile 完全一致：shapeToProfile 默认 XY ⇒ (s,t)→CAD(s,−t,0)。候选 = 草图快照内
                 两点直线（poly pts=2，非弧/样条），构造线（中心线）排先；排除最尾一个（被消费嘅轮廓本身）。 */}

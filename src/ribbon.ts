@@ -59,7 +59,7 @@ const SOLID: Panel[] = [
         ],
       },
       { id: 'mirror', label: '鏡像', icon: 'mirror', quick: true, tip: '鏡像特徵/實體：跨基準面（XY/XZ/YZ 或所選面）對稱複製選中嘅特徵或整個實體。同「陣列」配對嘅常用建模操作。' },
-      { id: 'thicken', label: '加厚', icon: 'shell', sep: true, tip: 'Fusion Thicken：點實體或曲面一個面，沿法向加厚成實體薄板；負值翻轉方向。' },
+      { id: 'thicken', label: '加厚', icon: 'thicken', quick: true, sep: true, tip: 'Fusion Thicken：點實體或曲面一個面，沿法向加厚成實體薄板；負值翻轉方向。' },
       { id: 'boundaryfill', label: 'Boundary Fill', icon: 'combine', tip: '用實體、曲面與工作平面分割空間，再選擇要保留的 cell。' },
       { id: 'basefeature', label: 'Create Base Feature', icon: 'newbody', tip: '進入直接建模 Base Feature 環境。' },
       { id: 'createpcb', label: 'Create PCB', icon: 'component', tip: '創建或關聯 PCB。' },

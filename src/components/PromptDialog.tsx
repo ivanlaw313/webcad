@@ -5,7 +5,7 @@ import { useEscapeLayer } from './useEscapeLayer'
 // appPrompt/appConfirm/appAlert 系 Promise 化,撳确定/取消即 resolve。Enter 确定、Esc 取消。
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
-import { msg } from '../i18n'
+import { msg, tStatus, isZhFamily } from '../i18n'
 
 export default function PromptDialog() {
   const dlg = useApp((s) => s.uiDialog)
@@ -27,6 +27,8 @@ export default function PromptDialog() {
 
   useEscapeLayer(!!dlg, () => resolveDialog(dlg?.kind === 'confirm' ? false : null), 30000)
   if (!dlg) return null
+  // Simplified source strings (store.ts) → HK Traditional in zh-HK; en/ja pass through unchanged.
+  const tx = (s: string) => (isZhFamily(lang) ? tStatus(s, lang) : s)
 
   const ok = () => resolveDialog(dlg.kind === 'prompt' ? val : dlg.kind === 'confirm' ? true : null)
   const cancel = () => resolveDialog(dlg.kind === 'confirm' ? false : null)
@@ -39,7 +41,7 @@ export default function PromptDialog() {
 
   return (
     <div
-      role="dialog" aria-modal="true" aria-label={dlg.title}
+      role="dialog" aria-modal="true" aria-label={tx(dlg.title)}
       onMouseDown={(e) => { if (e.target === e.currentTarget) cancel() }}  // 撳遮罩 = 取消
       style={{
         position: 'fixed', inset: 0, zIndex: 30000, display: 'flex',
@@ -56,16 +58,16 @@ export default function PromptDialog() {
       >
         <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-soft)', fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
           <span>{dlg.kind === 'alert' ? '💬' : dlg.kind === 'confirm' ? '❓' : '✎'}</span>
-          <span>{dlg.title}</span>
+          <span>{tx(dlg.title)}</span>
         </div>
         <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* 讯息支持多行（\n）；用 pre-line 保留换行 */}
-          <div style={{ whiteSpace: 'pre-line', lineHeight: 1.55, color: '#3a4248' }}>{dlg.msg}</div>
+          <div style={{ whiteSpace: 'pre-line', lineHeight: 1.55, color: '#3a4248' }}>{tx(dlg.msg)}</div>
           {dlg.kind === 'prompt' && (
             <input
               ref={inputRef}
               value={val}
-              aria-label={dlg.title}
+              aria-label={tx(dlg.title)}
               onChange={(e) => setDraft({ dialog: dlg, value: e.target.value })}
               style={{
                 padding: '8px 10px', border: '1px solid #c8d0d8', borderRadius: 6,

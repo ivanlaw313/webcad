@@ -9,7 +9,7 @@ import { FormPalette } from './FormPalette'
 import { activeModelCommand } from '../cad/commandAvailability'
 import { ExpressionInput } from './ExpressionInput'
 import { useMemo, useState, useRef, useEffect, useId, Fragment, lazy, Suspense, type ReactNode, type CSSProperties } from 'react'
-import { Canvas, useThree, useFrame } from '@react-three/fiber'
+import { Canvas, useThree, useFrame, type ThreeEvent } from '@react-three/fiber'
 import { PMREMGenerator } from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'   // T783：HDRI 渲染（three 内置，离线可用，MIT）
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'   // S193：环境光遮蔽（GTAO，three 内置，无新 dep）
@@ -18,7 +18,7 @@ import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry.js'   // P2 Render：贴花（three 内置，无新 dep）
 import GcodeBackplot from './GcodeBackplot'   // T790：刀路回放预览（激光 + CNC 共用）
-import { Grid, GizmoHelper, GizmoViewcube, OrbitControls, OrthographicCamera, Edges, Line, TransformControls, ContactShadows, MeshReflectorMaterial, Html } from '@react-three/drei'
+import { Grid, GizmoHelper, GizmoViewcube, useGizmoContext, OrbitControls, OrthographicCamera, Edges, Line, TransformControls, ContactShadows, MeshReflectorMaterial, Html } from '@react-three/drei'
 import { wheelZoomFactor } from '../cad/wheelZoom'
 import { visibleEdgeColor } from '../cad/visibleEdgeColor'
 import { brepEdgePositions } from '../cad/brepEdges'
@@ -102,11 +102,12 @@ import { orientedBBox } from '../cad/obb'                // S121：定向最小�
 import { HDRI_PRESETS, type HdriPresetId } from '../render/hdriPresets'
 import { GradientEquirectTexture } from 'three-gpu-pathtracer'   // 工作模式背景预设：程序化渐变 equirect（同 HdriEnvironment GradientFallback 一致）
 import { msg, tStatus, tLabel, type LangInput } from '../i18n'
-import { profileSectionName } from '../ui/featureStatus'
+import { profileSectionName, roundFailLines } from '../ui/featureStatus'
 import { feaStaleBannerText, invalidateSimResultsPatch, hasLiveSimResults } from '../simulation/resultValidity'
 import { evalArith, normalizeWide, parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：單位感知長度輸入（分數英寸）
 import { NumInput } from './NumInput'   // BUG-507/509：受驗數值欄（取代 type="number"）
 import type { MeshData } from '../worker/cad.worker'
+import { fitCameraDistance } from '../cad/fitCameraDistance'
 import { computeFK, solve4Bar, solveSliderCrank, solveSixBar, jointDragToValue, JOINT_LABEL_TC } from '../assembly/kinematics'
 import { assemblyMassSummary } from '../assembly/asmMass'   // BUG(C)：装配质心用 FK 世界矩阵
 import { getProcTexture } from '../render/procTextures'   // S101[8]：程序化纹理（三平面投影）
@@ -3434,6 +3435,65 @@ function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: num
 // S113：translate-only TransformControls → drei PivotControls 平移+旋转操纵杆（对标 Fusion gumball）。
 // 不传 fkMat（identity）→ worldToPose 係 compWorldMatrix 嘅精确逆 → pos/rot 完美往返；顶层组件
 // c.pos 即世界坐标（关节链驱动嘅子件仍走关节驱动，呢度同旧 gizmo 一样唔追 FK —— 已知一致限制）。
+// ViewCube: drei's default cube is 60px and pale. Scale to ~80px with stronger contrast, and after a
+// face/edge/corner click re-fit the model along the NEW view direction (drei only rotates at constant
+// radius, so corner views of a framed part clipped). Home/standard views are fitted by ViewRig/FitView.
+const VIEWCUBE_SCALE = 4 / 3          // 60px × 4/3 ≈ 80px
+const VIEWCUBE_MARGIN_X = 100, VIEWCUBE_MARGIN_Y = 108
+const VIEWCUBE_TWEEN_MS = 650                // drei turnRate 2π rad/s → ≤ 0.5s for a half turn
+function fitKeepDirection(camera: Camera, controls: { target: Vector3; update: () => void }) {
+  const st = useApp.getState()
+  if (st.mode === 'sketch') return
+  const parts: { mesh: MeshData; off: [number, number, number] }[] = [
+    ...st.components.filter((c) => !c.hidden).map((c) => ({ mesh: c.mesh, off: c.pos })),
+    ...(st.bodyMesh ? [{ mesh: st.bodyMesh, off: [0, 0, 0] as [number, number, number] }] : []),
+  ]
+  let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity
+  for (const { mesh, off } of parts) {
+    const v = mesh.vertices
+    for (let i = 0; i < v.length; i += 3) {
+      const tx = v[i] + off[0], ty = v[i + 2] + off[1], tz = -v[i + 1] + off[2]
+      if (tx < minX) minX = tx; if (tx > maxX) maxX = tx
+      if (ty < minY) minY = ty; if (ty > maxY) maxY = ty
+      if (tz < minZ) minZ = tz; if (tz > maxZ) maxZ = tz
+    }
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(maxX)) return
+  const c = new Vector3((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2)
+  const r = Math.max(0.5 * Math.hypot(maxX - minX, maxY - minY, maxZ - minZ), 8)
+  const dir = camera.position.clone().sub(controls.target)
+  if (dir.lengthSq() < 1e-12) dir.set(0.7, 0.7, 0.9)
+  dir.normalize()
+  const pc = camera as unknown as { isPerspectiveCamera?: boolean; fov: number; aspect: number; zoom: number }
+  const distance = pc.isPerspectiveCamera ? fitCameraDistance(r, pc.fov, pc.aspect, pc.zoom) : r * 4.6
+  camera.position.copy(dir.multiplyScalar(distance).add(c))
+  const oc = camera as unknown as { isOrthographicCamera?: boolean; left: number; right: number; top: number; bottom: number; zoom: number; updateProjectionMatrix: () => void }
+  if (oc.isOrthographicCamera) { const fr = Math.min(oc.right - oc.left, oc.top - oc.bottom) / 2; if (fr > 0) { oc.zoom = fr / (r * 1.15); oc.updateProjectionMatrix() } }
+  controls.target.copy(c)
+  controls.update()
+}
+function FittingViewCube() {
+  const { tweenCamera } = useGizmoContext()
+  const camera = useThree((s) => s.camera)
+  const controls = useThree((s) => s.controls) as unknown as { target: Vector3; update: () => void } | null
+  const timer = useRef<number | null>(null)
+  useEffect(() => () => { if (timer.current != null) window.clearTimeout(timer.current) }, [])
+  const onClick = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation()
+    // Edge/corner meshes sit at their direction vector; the face cube sits at the origin → use the face normal.
+    const dir = e.object.position.lengthSq() > 1e-9 ? e.object.position.clone() : (e.face?.normal.clone() ?? new Vector3(0, 0, 1))
+    tweenCamera(dir)
+    if (timer.current != null) window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => { timer.current = null; if (controls) fitKeepDirection(camera, controls) }, VIEWCUBE_TWEEN_MS)
+    return null
+  }
+  return (
+    <group scale={VIEWCUBE_SCALE}>
+      <GizmoViewcube faces={['+X', '−X', '+Z', '−Z', '−Y', '+Y']} font="bold 22px Inter var, Arial, sans-serif" color="#dfe6ee" textColor="#16212c" strokeColor="#4f5f6e" hoverColor="#9fd3f5" onClick={onClick} />
+    </group>
+  )
+}
+
 function ComponentGizmo() {
   const sel = useApp((s) => s.selectedComponent)
   const components = useApp((s) => s.components)
@@ -3860,6 +3920,20 @@ export default function Viewport() {
   const measureSnapMarkers = useApp((s) => s.measureSnapMarkers)  // #174-6
   const propsDialog = useApp((s) => s.propsDialog)               // GM-X1 #10
   const propsDialogData = useApp((s) => s.propsDialogData)
+  // Physical-properties panel: (a) recompute when the active body changes (timeline rollback/roll-forward,
+  // feature edit) — previously it froze until the body was re-selected; (b) yield to an open command dialog
+  // (both default to the top-right slot) so an edit-feature palette is never covered on open.
+  const propsCommandOpen = useApp((s) => !!s.featDlg || !!s.edgeRoundPick || s.shellMode || s.extrudeDlgOpen || s.holeMode)
+  const propsMeshSeen = useRef(bodyMesh)
+  useEffect(() => {
+    if (propsMeshSeen.current === bodyMesh) return
+    propsMeshSeen.current = bodyMesh
+    const st = useApp.getState()
+    if (!st.propsDialog) return
+    const id = st.propsDialog.bodyId
+    if (id == null && !(bodyMesh && bodyMesh.triangles.length)) { st.closePropertiesDialog(); return }
+    void st.openPropertiesDialog(id ?? undefined)
+  }, [bodyMesh])
   const bomDialog = useApp((s) => s.bomDialog)                   // BUG-BD-1805
   const joints = useApp((s) => s.joints)
   const jointOrigins = useApp((s) => s.jointOrigins)   // GM-3DV4 A1：可复用关节原点标记
@@ -4823,8 +4897,8 @@ export default function Viewport() {
         />
         <WheelZoom maxDistance={camMaxDist} />
 
-        <GizmoHelper alignment="top-right" margin={[78, 92]}>
-          <GizmoViewcube faces={['+X', '−X', '+Z', '−Z', '−Y', '+Y']} color="#e3e9ef" textColor="#33404d" strokeColor="#8c99a6" hoverColor="#cdeafb" />
+        <GizmoHelper alignment="top-right" margin={[VIEWCUBE_MARGIN_X, VIEWCUBE_MARGIN_Y]}>
+          <FittingViewCube />
         </GizmoHelper>
       </Canvas>
       )}
@@ -5017,7 +5091,7 @@ export default function Viewport() {
           icon={edgeRoundPick === 'chamfer' ? 'chamfer' : 'fillet'}
           title={edgeRoundPick === 'chamfer' ? '倒角' : '圓角'}
           width={300}
-          okLabel={edgeRoundPick === 'chamfer' ? 'OK' : `確定（${edgeRoundPicks.length}）`}
+          okLabel={`確定（${edgeRoundPicks.length}）`}
           okDisabled={!!numBad || (!edgeRoundPicks.length || roundPreviewFail || (edgeRoundPick === 'fillet' && filletType === 'rule' && filletRuleMode === 'between' && !(filletRuleFaceSets.includes(1) && filletRuleFaceSets.includes(2))) || (edgeRoundPick === 'fillet' && filletType === 'full' && !([1, 2, 3] as const).every((slot) => filletFullFaceSets.includes(slot))) || (edgeRoundPick === 'fillet' && filletType !== 'full' && (filletMode === 'chord' ? !(filletChord > 0) : filletMode === 'asymmetric' ? !(filletR2 > 0) || edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)) : edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)))) || (edgeRoundPick === 'chamfer' && (!(edgeRoundSize > 0) || (chamferMode === 'two' && !(chamferSize2 > 0)) || (chamferMode === 'angle' && (!chamferRefFace || !(chamferAngle > 0 && chamferAngle < 90))))))}
           okTip="應用（Enter）"
           onOk={() => void commitEdgeRound()}
@@ -5095,7 +5169,7 @@ export default function Viewport() {
             </div>
           )}
           {roundPreviewFail && (edgeRoundPick === 'chamfer'
-            ? <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}><div>1 error(s)</div><div>The fillet/chamfer could not be created at the requested size.</div><div style={{ fontWeight: 400 }}>Try adjusting the size, deselecting some of the edges (try disabling Tangent Chain), or using multiple separate operations.</div></div>
+            ? <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>{roundFailLines(lang).map((t, i) => <div key={i} style={i === 2 ? { fontWeight: 400 } : undefined}>{t}</div>)}</div>
             : <div style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>⚠ {filletType === 'full' ? '三組面必須相鄰，而且當前要求兩條邊界為平行直線' : filletMode === 'asymmetric' ? '目前只支持凸直線邊與互相垂直的兩個平面；幾何保持不變' : '圓角半徑太大（超過相鄰面）— 減小數值先撳得確定'}</div>)}
           {edgeRoundPick === 'fillet' && filletType === 'fillet' && <label className="sb-hint" title="切線鏈（Fusion tangent chain）：點一條稜，自動連埋同佢相切連續嘅成條邊鏈（例如圓角矩形頂圈 = 4 直邊 + 4 弧一次過倒）">
             <input type="checkbox" checked={edgeRoundChain && filletMode !== 'asymmetric'} disabled={edgeRoundPick === 'fillet' && filletMode === 'asymmetric'} onChange={() => useApp.getState().toggleEdgeRoundChain()} /> 切線鏈（自動連相切稜）
@@ -7833,7 +7907,7 @@ export default function Viewport() {
       {/* Fusion 式 ViewCube 旁「Home 小屋仔」（右上角立方左上角）：一键回正等轴测主视图 + 画面置中。对标影片右上角小屋。
           GM-X2 #3：右键小屋 = ViewCube 上下文菜单（回 Home / 投影三态 / 设为前视）—— drei ViewCube 无右键，喺此补返。 */}
       <button title={msg('vp.homeViewTip', lang)}
-        style={{ position: 'absolute', top: 64, right: 116, width: 26, height: 26, zIndex: 20, background: 'rgba(255,255,255,.94)', border: '1px solid #c4ccd4', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.14)', color: '#3b6e8f', padding: 0 }}
+        style={{ position: 'absolute', top: 50, right: 156, width: 26, height: 26, zIndex: 20, background: 'rgba(255,255,255,.94)', border: '1px solid #c4ccd4', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.14)', color: '#3b6e8f', padding: 0 }}
         onClick={() => { setView('iso'); requestFit() }}
         onContextMenu={(e) => { e.preventDefault(); setCubeMenu((v) => !v) }}>
         <ToolIcon name="home" size={15} />
@@ -8245,7 +8319,7 @@ export default function Viewport() {
       )}
       {/* GM-X1 #10：模態 Properties 對話框（面積/密度/質量/體積/材質/包圍盒/質心/慣性 + 精度 + 坐標切換 + 複製） */}
       {propsDialog && propsDialogData && (
-        <div className="cmd-palette" style={{ position: 'fixed', right: 12, top: 'min(150px, 18vh)', width: 'min(320px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: 210, maxHeight: 'calc(82vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div className="cmd-palette" data-testid="props-panel" style={{ position: 'fixed', right: propsCommandOpen ? 296 : 12, top: 'min(150px, 18vh)', width: 'min(320px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: propsCommandOpen ? 190 : 210, maxHeight: 'calc(82vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <b style={{ fontSize: 13 }}>⚖ {tStatus('物理屬性', lang)}</b>
             <button className="tb-btn" title={tStatus('關閉', lang)} onClick={() => useApp.getState().closePropertiesDialog()}>✕</button>
@@ -8266,7 +8340,7 @@ export default function Viewport() {
             {propsDialogData.rows.map((row, i) => (
               <Fragment key={i}>
                 <span style={{ color: '#8a97a2' }}>{tStatus(row.label, lang)}</span>
-                <b style={{ overflowWrap: 'anywhere' }}>{row.value}</b>
+                <b style={{ overflowWrap: 'anywhere' }}>{tStatus(row.value, lang)}</b>
               </Fragment>
             ))}
           </div>

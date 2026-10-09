@@ -32,6 +32,8 @@ import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referen
 import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { sanitizeBodyHidden, toggleHiddenKey, setHiddenKey } from './ui/contextMenus'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
+import { splitVolumeNoteForMesh } from './ui/splitVolume'
+import { formatBuildWarnings } from './ui/featureStatus'
 import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus, gearSuccessStatus, wormSuccessStatus, profileSuccessStatus, profileSectionName } from './ui/featureStatus'
 import { lengthScale } from './io/units'
 import { meshDropKind, MESH_TAB_DROP_HINT } from './io/meshDrop'
@@ -5119,7 +5121,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           return false
         }
         pushHistory()
-        const warn = (mesh.warnings && mesh.warnings.length) ? '　⚠ ' + mesh.warnings.join('；') : ''
+        const warn = formatBuildWarnings(mesh.warnings)
         // S107 逐特征隔离：坏特征 → 时间轴标红 + 状态提示（其余照常 build past，唔 revert 整树）
         const timelineFailures = mapKernelFailuresToTimeline(mesh.failed, bound)
         const failNote = timelineFailures.ids.length ? `　🔴 ${timelineFailures.ids.length} 个特征重建失败（时间轴已标红，可改参数/抑制/删；其余照常重建）` : ''
@@ -7794,7 +7796,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   skBoolShapes: (op) => {
     const s = get()
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
-    const lbl = op === 'union' ? '∪合并' : op === 'subtract' ? '∖剪走' : '∩相交'
+    const lbl = op === 'union' ? '∪合併' : op === 'subtract' ? '∖剪走' : '∩相交'
     const idxs: number[] = []
     for (const r of s.skSel) if ('shape' in r) { const i = (r as { shape: number }).shape; if (!idxs.includes(i)) idxs.push(i) }
     if (idxs.length !== 2) {
@@ -8040,7 +8042,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // T791 D3：合并/剪走「点两个轮廓」一击式拾取（Fusion 流程）— 喺一切尺寸/选择逻辑之前拦截
     if (s.skBoolPending) {
       const bp = s.skBoolPending
-      const lbl = bp.op === 'union' ? '∪合并' : bp.op === 'subtract' ? '∖剪走' : '∩相交'
+      const lbl = bp.op === 'union' ? '∪合併' : bp.op === 'subtract' ? '∖剪走' : '∩相交'
       const tolb = pickTol()
       let bi = -1, best = Infinity
       for (let i = 0; i < shapes.length; i++) { const dd = distToShapeOutline(shapes[i] as SketchShape, p); if (dd < best) { best = dd; bi = i } }
@@ -12105,7 +12107,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (get().components.filter((x) => x.mesh.vertices.length).length < 2) {
       const hasActiveBody = hasSolid(get().features) || !!(get().bodyMesh && get().bodyMesh!.triangles.length)
       if (!hasActiveBody) { set({ status: '組件布爾需要至少兩個有幾何嘅零件（或有一個活動參數化實體可自動固化）' }); return }
-      const ok = await get().appConfirm('参数化实体将固化成网格再布尔（时间轴特征唔再驱动佢）。继续？', '一步式 实体⊗网格 布尔')
+      const ok = await get().appConfirm('參數化實體將固化成網格再布爾（時間軸特徵唔再驅動佢）。繼續？', '一步式 實體⊗網格 布爾')
       if (!ok) { set({ status: '已取消布爾（活動實體保留參數化）' }); return }
       const vf = await get().appPrompt(tStatus(`🧩一步式布爾 —「${c.name}」同【活動實體（將自動固化）】運算：\n1 = 合併（兩件熔成一件）\n2 = 切除（用固化實體喺「${c.name}」上切走重疊部分）\n   切除可加間隙做配對插槽：填 2,0.2 即工具件 XY 外擴 0.2mm\n3 = 相交（只留兩件重疊嘅公共部分）`, get().lang), '1')
       if (vf == null) return
@@ -12136,7 +12138,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (![1, 2, 3].includes(opN)) { await get().appAlert('请输入 1 / 2 / 3 选择操作'); return }
     const op = opN === 1 ? 'union' as const : opN === 2 ? 'subtract' as const : 'intersect' as const
     const clearance = op === 'subtract' && Number.isFinite(p[1]) && p[1]! > 0 ? p[1]! : 0
-    const opLbl = op === 'union' ? '合并' : op === 'subtract' ? '切除' : '相交'
+    const opLbl = op === 'union' ? '合併' : op === 'subtract' ? '切除' : '相交'
     const toolHint = op === 'subtract' ? `工具件会切「${c.name}」` : `与「${c.name}」运算`
     // v1.25: document ALL completable pick paths (Browser / viewport / checkbox / list).
     set({
@@ -12184,7 +12186,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     const bBody = bBodies.find((b) => b.id === (pickedBId ?? bBodies[0]?.id))
     if (!bBody?.mesh.vertices.length) { set({ status: '組件布爾：工具體無實體幾何' }); return }
-    const opLbl = op === 'union' ? '合并' : op === 'subtract' ? '切除' : '相交'
+    const opLbl = op === 'union' ? '合併' : op === 'subtract' ? '切除' : '相交'
     const opSym = op === 'union' ? ' + ' : op === 'subtract' ? ' − ' : ' ∩ '
     set({ status: `正在${opLbl}：「${A.name}」${opSym}「${B.name}」…` })
     try {
@@ -13304,7 +13306,7 @@ export const useApp = create<AppState>((rawSet, get) => {
 
   // T805（报告 R3）：统一应用内对话框 — Promise 化，取代 native prompt/alert/confirm。
   uiDialog: null,
-  appPrompt: (msg, def = '', title = '输入') => new Promise<string | null>((resolve) => {
+  appPrompt: (msg, def = '', title = '輸入') => new Promise<string | null>((resolve) => {
     if (_dialogResolve) { _dialogResolve(null); _dialogResolve = null }  // 旧框未答完即关闭（resolve null）
     _dialogResolve = (v) => resolve(typeof v === 'string' ? v : null)
     set({ uiDialog: { kind: 'prompt', title, msg, def } })
@@ -13373,7 +13375,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const num = (k: string, d = 0) => { const v = Number(a[k]); return Number.isFinite(v) && v > 0 ? v : d }
     const pnum = (k: string, d = 0) => { const v = Number(a[k]); return Number.isFinite(v) ? v : d }   // GM-L2 #83：参数值守卫 — 只查有限（容许负/零：偏移、坐标、间隙、温差等合法）；v>0 限制只应施于几何尺寸（半径等），唔应当作所有参数嘅合法域
     const opOf = (): BoolOp => { const o = String(a.operation || 'new'); return o === 'cut' || o === 'join' ? o : 'new' }
-    const verb = () => { const o = opOf(); return o === 'cut' ? '切割' : o === 'join' ? '合并' : '创建' }
+    const verb = () => { const o = opOf(); return o === 'cut' ? '切割' : o === 'join' ? '合併' : '建立' }
     const mk = async (f: Feature, msg: string) => { const ok = await get().applyFeatures([...get().features, f], msg); return (ok ? '✓ ' : '✗ 失败：') + msg }
     switch (name) {
       case 'get_model_info': {
@@ -18075,7 +18077,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ featDlg: null })
     // 测试报告观察 I：荒谬尺寸软提示（唔阻挡 — 容许大件，但 >100m 远超列印床/常见零件，多数系单位填错 mm/m）。
     const _bigDim = ['l', 'w', 'h', 'd', 'td', 'dt'].some((k) => p[k] !== undefined && Number.isFinite(+p[k]) && +p[k] > 100000)
-    await get().applyFeatures([...get().features, f], _bigDim ? msg + '　⚠ 尺寸异常大（>100m，远超列印床）— 请确认单位为 mm' : msg)
+    const okApplied = await get().applyFeatures([...get().features, f], _bigDim ? msg + '　⚠ 尺寸异常大（>100m，远超列印床）— 请确认单位为 mm' : msg)
+    // Split Body: status used to imply only the active half's volume — append active + total (all bodies).
+    if (okApplied && d.kind === 'splitbody') { const note = splitVolumeNoteForMesh(get().bodyMesh); if (note) set((s) => ({ status: s.status + note })) }
   },
   cancelFeatDlg: () => {
     // T746：取消旋转对话框 → 还原被消费咗嘅草图（以前直接销毁，0 特征都冇）。GM-3DV1 S1/S9：rib/pipe 亦同款 bundle 还原。
@@ -18259,7 +18263,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   addSplit: async (axis, offset) => {
     if (!hasSolid(get().features)) { set({ status: '分割需要先有一個活動實體' }); return }
     const f: Feature = { id: fid(), type: 'split', axis, offset, keep: 'hi', nameA: '分割A', nameB: '分割B' }
-    await get().applyFeatures([...get().features, f], `已沿 ${axis} 轴分割（参数化 — 时间轴可改切割位置/删特征；另一半灰显，可隐藏/导出）`)
+    const ok = await get().applyFeatures([...get().features, f], `已沿 ${axis} 轴分割（参数化 — 时间轴可改切割位置/删特征；另一半灰显，可隐藏/导出）`)
+    if (ok) { const note = splitVolumeNoteForMesh(get().bodyMesh); if (note) set((s) => ({ status: s.status + note })) }
   },
   // S184：任意平面切（Fusion Split Body by 任意面）—— 拾一个平面（实体面/构造面）→ 沿该面切两半（参数化，保历史）。
   splitPlanePick: false,
@@ -18506,13 +18511,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     const acc: PropsAccuracy = s.propsDialog?.accuracy || 'med'
     const frame: PropsFrame = s.propsDialog?.frame || 'com'
     let mesh: { vertices: ArrayLike<number>; triangles: ArrayLike<number> } | null = null
-    let name = '活动实体', material: string | undefined, density = s.bodyDensity
+    let name = '活動實體', material: string | undefined, density = s.bodyDensity
     if (typeof bodyId === 'string' && bodyId.startsWith('parked:')) {
       const idx = Number(bodyId.slice(7))
       const pb = s.bodyMesh?.parked?.[idx]
       if (!pb?.triangles?.length) { set({ status: '屬性：該泊車實體無幾何' }); return }
       mesh = pb
-      name = pb.name || `泊车实体${idx + 1}`
+      name = pb.name || `泊車實體${idx + 1}`
       material = s.physMatName
       density = s.bodyDensity
       get().selectParkedBody(idx)
@@ -19793,14 +19798,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (!m || !m.triangles || !m.triangles.length) { set({ busy: false, status: '沒有可匯出的實體，請先建模' }); return }
       const { compensateMesh } = await import('./io/meshComp')
       const cm = compensateMesh(m, { xyOffset: s0.compXY || undefined, scale: s0.compShrink !== 1 ? [s0.compShrink, s0.compShrink, s0.compShrink] : undefined })
-      triggerDownload(meshesToBinarySTL([{ mesh: cm, matrix: new Matrix4().elements.slice() }]), `${projName(s0.projectName)}.stl`, 'model/stl')
-      set({ busy: false, status: `已匯出 STL（打印補償 XY ${s0.compXY > 0 ? '+' : ''}${s0.compXY}mm${s0.compShrink !== 1 ? ` · 收縮×${s0.compShrink}` : ''}）${wtWarn(cm)}` })
+      const compName = `${projName(s0.projectName)}.stl`
+      triggerDownload(meshesToBinarySTL([{ mesh: cm, matrix: new Matrix4().elements.slice() }]), compName, 'model/stl')
+      set({ busy: false, status: `已匯出 ${compName}（打印補償 XY ${s0.compXY > 0 ? '+' : ''}${s0.compXY}mm${s0.compShrink !== 1 ? ` · 收縮×${s0.compShrink}` : ''}）${wtWarn(cm)}` })
       return
     }
     const buf = await cad.exportSTL(get().exportQuality)
     if (!buf) { set({ busy: false, status: '沒有可匯出的實體，請先建模' }); return }
-    triggerDownload(buf, `${projName(get().projectName)}.stl`, 'model/stl')
-    set({ busy: false, status: `已匯出 webcad-body.stl（細分=${get().exportQuality === 'fine' ? '細' : get().exportQuality === 'coarse' ? '粗' : '中'}）${wtWarn(get().bodyMesh)}` })
+    const stlName = `${projName(get().projectName)}.stl`
+    triggerDownload(buf, stlName, 'model/stl')
+    set({ busy: false, status: `已匯出 ${stlName}（細分=${get().exportQuality === 'fine' ? '細' : get().exportQuality === 'coarse' ? '粗' : '中'}）${wtWarn(get().bodyMesh)}` })
   },
   exportQuality: 'medium',
   setExportQuality: (q) => set({ exportQuality: q, status: `匯出細分精度 = ${q === 'fine' ? '細（面滑檔案大）' : q === 'coarse' ? '粗（快檔案細）' : '中'}` }),
@@ -20076,8 +20083,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     await new Promise((r) => requestAnimationFrame(() => r(null)))
     const buf = await cad.exportSTEP()
     if (!buf) { set({ busy: false, status: '沒有可匯出的實體' }); return }
-    triggerDownload(buf, `${projName(get().projectName)}.step`, 'application/step')
-    set({ busy: false, status: '已匯出 webcad-body.step（可在任何 CAD 打開）' })
+    const stepName = `${projName(get().projectName)}.step`
+    triggerDownload(buf, stepName, 'application/step')
+    set({ busy: false, status: `已匯出 ${stepName}（可在任何 CAD 打開）` })
   },
 
   // Export the WHOLE assembly (all visible components in their posed positions +
@@ -20483,7 +20491,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     try {
       const buf = await meshesToGLB(parts)
       triggerDownload(buf, `${projName(s.projectName)}.glb`, 'model/gltf-binary')
-      set({ status: `已匯出 webcad.glb（${parts.length} 個零件，含顏色，可在 Windows 3D 查看器/網頁打開）` })
+      set({ status: `已匯出 ${projName(s.projectName)}.glb（${parts.length} 個零件，含顏色，可在 Windows 3D 查看器/網頁打開）` })
     } catch (e) {
       set({ status: 'glTF 匯出失敗：' + String(e).slice(0, 60) })
     }

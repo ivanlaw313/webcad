@@ -3067,9 +3067,12 @@ export function ViewRig() {
     }
     if (has) {
       cx = (minX + maxX) / 2; cy = (minY + maxY) / 2; cz = (minZ + maxZ) / 2
-      r = Math.max(maxX - minX, maxY - minY, maxZ - minZ, 20) * 0.5
+      // Bounding-SPHERE radius (half diagonal), same as FitView — half the largest extent under-framed
+      // iso/Home views of boxy parts (corners clipped).
+      r = Math.max(0.5 * Math.hypot(maxX - minX, maxY - minY, maxZ - minZ), 10)
     }
-    const d = r * 3.2
+    const pcam = camera as unknown as { isPerspectiveCamera?: boolean; fov: number; aspect: number; zoom: number }
+    const d = pcam.isPerspectiveCamera ? Math.max(r * 3.2, fitCameraDistance(r, pcam.fov, pcam.aspect, pcam.zoom)) : r * 3.2
     const p = view === 'top' ? [cx + 0.01, cy + d, cz]
       : view === 'bottom' ? [cx + 0.01, cy - d, cz]   // #174-2：底视（望 +Y）
         : view === 'front' ? [cx, cy, cz + d]

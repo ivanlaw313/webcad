@@ -372,6 +372,7 @@ export default function Timeline() {
                   ) : (
                     // #31/#97：数量字段（count/countX/Y/Z、featpattern cols/rows）= 整数 step；环形/路径阵列 count 下限 2（<2 喺 worker 会变 identity 无副本），其余数量场下限 1；commit 时 Math.round 令显示==存储==worker 用值
                     <NumField
+                      key={`${sel.id}:${fd.key}:${String((sel as unknown as Record<string, unknown>)[fd.key])}`}
                       step={isCount ? 1 : 0.5}
                       min={fd.key === 'count' ? 2 : isCount ? 1 : POSITIVE_LENGTH_KEYS.has(fd.key) ? 1e-6 : undefined}
                       rejectDetail={fd.key === 'thickness' ? ILLEGAL_THICKNESS_DETAIL : POSITIVE_LENGTH_KEYS.has(fd.key) ? ILLEGAL_LENGTH_DETAIL : undefined}
@@ -389,6 +390,8 @@ export default function Timeline() {
             <label>
               {tStatus(meta.param, lang)}
               <NumField
+                // Remount on external value change (e.g. edit-feature dialog OK) so the bar never shows a stale draft.
+                key={`${sel.id}:${meta.field}:${String((sel as unknown as Record<string, number>)[meta.field])}`}
                 min={0.1}
                 step={0.5}
                 rejectDetail={meta.field === 'thickness' ? ILLEGAL_THICKNESS_DETAIL : ILLEGAL_LENGTH_DETAIL}

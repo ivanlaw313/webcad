@@ -2,7 +2,7 @@
  * v1.75 — Feature success status builders via 4-locale catalog (msg/detectLang).
  * Keep zh-HK Traditional source strings in locales/zh-HK.ts (pins unchanged).
  */
-import { msg, detectLang, type LangInput } from '../i18n'
+import { msg, detectLang, tStatus, normalizeLang, type LangInput } from '../i18n'
 
 function fmt(template: string, ...args: Array<string | number>): string {
   return template.replace(/\{(\d+)\}/g, (_, i) => String(args[Number(i)] ?? ''))
@@ -301,4 +301,25 @@ export function profileSuccessStatus(opts: {
 }, lang?: LangInput): string {
   const key = opts.op === 'cut' ? 'status.profileCut' : 'status.profileCreated'
   return fmt(msg(key, L(lang)), opts.name, opts.w, opts.h, opts.t, opts.L)
+}
+
+// Fillet/chamfer size-failure banner (Fusion-style 3 lines). en/ja keep Fusion English; zh-HK/zh-CN localized.
+export function roundFailLines(lang: LangInput): string[] {
+  const lg = normalizeLang(lang)
+  if (lg === 'en' || lg === 'ja') return ['1 error(s)', 'The fillet/chamfer could not be created at the requested size.', 'Try adjusting the size, deselecting some of the edges (try disabling Tangent Chain), or using multiple separate operations.']
+  return ['1 個錯誤', '無法按指定尺寸建立圓角／倒角。', '請調整尺寸、取消選取部分稜邊（可試關閉「切線鏈」），或分開多次操作。'].map((t) => tStatus(t, lg))
+}
+
+/** Rebuild-warning suffix: one leading ⚠ (worker warnings often carry their own → was 「⚠ ⚠」), duplicates removed. */
+export function formatBuildWarnings(warnings: readonly string[] | null | undefined): string {
+  if (!warnings || !warnings.length) return ''
+  const seen = new Set<string>()
+  const parts: string[] = []
+  for (const w of warnings) {
+    const t = String(w).replace(/^(?:\s|⚠|\uFE0F)+/u, '').trim()
+    if (!t || seen.has(t)) continue
+    seen.add(t)
+    parts.push(t)
+  }
+  return parts.length ? '　⚠ ' + parts.join('；') : ''
 }

@@ -65,7 +65,7 @@ test('openProject opens the system picker via a synchronous hidden <input type=f
   assert.match(body, /input\.click\(\)\n  \},/)
   assert.doesNotMatch(body, /await [^\n]*showOpenFilePicker/)
   assert.match(body, /已取消打開（現有模型未動）/)
-  assert.match(body, /打開失敗：檔案格式不正確（現有模型未動）/)
+  assert.match(body, /開啟失敗：檔案格式不正確（現有模型未動）/)
   assert.match(body, /applyProjectData/)
 })
 

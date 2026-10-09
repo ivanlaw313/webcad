@@ -192,7 +192,7 @@ test('★ BUG-527：崩潰通知唔准只寫狀態列（下一句成功操作會
 
 test('★ BUG-506/425：載入大檔只重建到一部分，唔准報「已打開項目」★', () => {
   const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
-  assert.ok(store.includes('打開未完成'),
+  assert.ok(store.includes('開啟未完成'),
     '★ 檔案有 222 個特徵但只重建到 0 個，舊版照報「已打開項目（0 活動特徵）」★')
   assert.equal(store.includes("statusVerb = '已打开项目'"), false, '預設文案要繁體')
 })

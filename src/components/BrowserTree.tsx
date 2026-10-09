@@ -176,7 +176,10 @@ function SketchRow({ k }: { k: string }) {
   const openMenu = useTreeMenu()
   const defaultLabel = k.replace('sk', '草圖')
   // 孤儿判定：冇任何特徵经 sketchId 或 sketchIds（loft 截面）引用佢 = 未使用。消费特徵删除后仍可能残留（旧档 liveSketchSources 剪除前保存 / undo）。
-  const referenced = features.some((f) => (f as { sketchId?: string }).sketchId === k || ((f as { sketchIds?: string[] }).sketchIds?.includes(k) ?? false))
+  const refs = (fs: readonly unknown[]) => fs.some((f) => (f as { sketchId?: string }).sketchId === k || ((f as { sketchIds?: string[] }).sketchIds?.includes(k) ?? false))
+  // UX3 #5：固化成組件（新建組件）之後活動特徵清空，但草圖仍被組件嘅參數化 src 引用 —— 唔係「未使用」（舊版一律標（未使用））。
+  const ownerComp = useApp((s) => s.components.find((c) => c.src?.features?.length && refs(c.src.features))?.name ?? null)
+  const referenced = refs(features) || !!ownerComp
   const standaloneFeat = features.find((f) => f.type === 'sketch' && (f as { sketchId?: string }).sketchId === k)
   const standalone = !!standaloneFeat
   // UX1 #6：草圖只喺「草圖」資料夾列一次（Fusion）→ 獨立草圖特徵嘅刪除／時間軸選中／F2 改名都喺呢行處理。
@@ -218,7 +221,7 @@ function SketchRow({ k }: { k: string }) {
           onBlur={(e) => commit(e.currentTarget.value)}
           onKeyDown={(e) => { e.stopPropagation(); if (imeBusy(e)) return; if (e.key === 'Enter') commit(e.currentTarget.value); else if (e.key === 'Escape') setEditing(false) }} />
       ) : (
-        <span style={{ flex: 1, opacity: src.visible ? 1 : 0.55 }}>{src.name ? src.name : tStatus(defaultLabel, lang)}{standalone ? tStatus('·獨立', lang) : ''}{orphan ? tStatus('（未使用）', lang) : ''}{(() => { const pc = sketchProfileCount(src.shapes as never); return <span data-profile-count={pc.closed} style={{ color: '#6b7884' }}>{tStatus(` ·${pc.closed}輪廓`, lang)}{pc.open ? tStatus(` ·${pc.open}開放線`, lang) : ''}</span> })()}{src.cons.length ? tStatus(` ·${src.cons.length}約束`, lang) : ''}</span>
+        <span style={{ flex: 1, opacity: src.visible ? 1 : 0.55 }}>{src.name ? src.name : tStatus(defaultLabel, lang)}{standalone ? tStatus('·獨立', lang) : ''}{orphan ? tStatus('（未使用）', lang) : ''}{ownerComp && !refs(features) ? ` · ${ownerComp}` : ''}{(() => { const pc = sketchProfileCount(src.shapes as never); return <span data-profile-count={pc.closed} style={{ color: '#6b7884' }}>{tStatus(` ·${pc.closed}輪廓`, lang)}{pc.open ? tStatus(` ·${pc.open}開放線`, lang) : ''}</span> })()}{src.cons.length ? tStatus(` ·${src.cons.length}約束`, lang) : ''}</span>
       )}
       {orphan && <span className="tw-act" title={tStatus('重開編輯此未使用草圖（會還原做獨立草圖，之後可拉伸/旋轉/刪除）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().reopenOrphanSketch(k) }}>{tStatus('重開', lang)}</span>}
       <span className="tw-act" title={src.visible ? tStatus('隱藏草圖', lang) : tStatus('喺模型上顯示草圖（紫色線）', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleSketchVis(k) }}>{src.visible ? '👁' : '─'}</span>

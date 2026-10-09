@@ -11259,7 +11259,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         undoStack: [...preUndo, preSnap].slice(-60), redoStack: [],
         joints: [...s2.joints, joint],
-        status: `已建 ${JOINT_LABEL_TC[type]}關節 ${jid}：「${B.name}」⚓「${Acomp.name}」（${geomLbl}）— JOINTS 面板可驅動/加限位`,
+        status: `已建 ${JOINT_LABEL_TC[type]}關節 ${jid}：「${B.name}」⚓「${Acomp.name}」（${geomLbl}）— 右下「關節」面板可驅動／加限位`,
       })
     })()
   },
@@ -19126,8 +19126,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 檔案 → 開啟舊檔案 (applyProjectData: validation + 覆蓋確認 + rebuild).
     if (/\.json$/i.test(file.name)) {
       let data: Record<string, unknown>
-      try { data = JSON.parse(await file.text()) } catch { set({ busy: false, status: '打開失敗：檔案格式不正確（現有模型未動）' }); return }
-      try { await get().applyProjectData(data) } catch { set({ busy: false, status: '打開失敗：檔案格式不正確（現有模型未動）' }) }
+      try { data = JSON.parse(await file.text()) } catch { set({ busy: false, status: '開啟失敗：檔案格式不正確（現有模型未動）' }); return }
+      try { await get().applyProjectData(data) } catch { set({ busy: false, status: '開啟失敗：檔案格式不正確（現有模型未動）' }) }
       return
     }
     const kind = meshDropKind(file.name)
@@ -21460,7 +21460,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       } catch {
         // looksLikeWebcadDoc / applyProjectData already refuse bad docs without clearing;
         // JSON.parse failure must also leave the current document untouched.
-        set({ status: '打開失敗：檔案格式不正確（現有模型未動）' })
+        set({ status: '開啟失敗：檔案格式不正確（現有模型未動）' })
       }
     }
     if (typeof document === 'undefined') { set({ status: '此環境無法開啟檔案揀選器' }); return }
@@ -21481,10 +21481,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     input.click()
   },
   // T797：共用还原 — 文件 open 同分享链接都行呢条（单一真相，避免两份 schema 漂移）。
-  applyProjectData: async (data, statusVerb = '已打開項目') => {   // BUG-302 類：預設文案原本係簡體
+  applyProjectData: async (data, statusVerb = '已開啟檔案') => {   // BUG-302 類：預設文案原本係簡體；UX3 #5：同選單「開啟舊檔案…」用字一致（開啟／檔案）
     // GM-W8 β1-#39：先验证係咪 webcad 项目 — 唔係就拒,唔郁现有模型（以前任何 JSON 都当成功并清空）。
     const referenceErrors = [...documentReferenceErrors(data), ...documentPatternErrors(data), ...sketchDraftErrors(data)]
-    if (referenceErrors.length) { set({status:`打開失敗：尺寸引用失效 — ${referenceErrors.join('；')}；現有模型未動`}); return }
+    if (referenceErrors.length) { set({status:`開啟失敗：尺寸引用失效 — ${referenceErrors.join('；')}；現有模型未動`}); return }
     if (!looksLikeWebcadDoc(data)) { set({ status: '唔似係 webcad 項目檔案 — 未打開（現有模型未動）' }); return }
     // GM-W8 β1-#41：现有模型有内容 → 先确认再覆盖（撤销栈会清,救唔返）。分享链接开页时模型仲系空 → 呢度自然唔弹（cur 为空）。
     const cur = get()
@@ -21554,7 +21554,7 @@ export const useApp = create<AppState>((rawSet, get) => {
      * 都照報「已打開項目（0 組件 · 0 活動特徵）」—— 講「已打開」但乜都冇，用戶以為
      * 係個空檔，唔知其實係崩潰。檔案講明有幾多特徵，就一定要對得返。 */
     if (feats.length > 0 && s.features.length < feats.length) {
-      const head = `⚠ 打開未完成：檔案有 ${feats.length} 個特徵，只重建到 ${s.features.length} 個（幾何內核中途失敗）`
+      const head = `⚠ 開啟未完成：檔案有 ${feats.length} 個特徵，只重建到 ${s.features.length} 個（幾何內核中途失敗）`
       /* BUG-536：QA 實測呢條路徑冇自動彈恢復清單 —— 因為內核重啟嘅對數係喺崩潰
        * 嗰刻記低 UI 特徵數，而載入路徑崩潰嗰陣 UI 仲係空（特徵最後先 apply）。
        * 所以呢度要自己開清單。 */
@@ -21604,7 +21604,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       const data = JSON.parse(new TextDecoder().decode(bytes))
       history.replaceState(null, '', location.pathname)   // 清 hash（避免刷新重复载入 + 唔污染存档）
-      await get().applyProjectData(data, '已从分享链接打开')
+      await get().applyProjectData(data, '已從分享連結開啟')
       return true
     } catch { set({ status: '分享鏈接解析失敗（鏈接可能截斷咗）' }); return false }
   },

@@ -127,7 +127,7 @@ test('★ BUG-535：撳「新建」要清走崩潰橫額 ★', () => {
 })
 
 test('★ BUG-536：載入只重建到一部分 → 要自動彈恢復清單 ★', () => {
-  const i = store.indexOf('打開未完成')
+  const i = store.indexOf('開啟未完成')
   assert.ok(i > 0)
   const blk = store.slice(i - 600, i + 900)
   assert.ok(blk.includes('listRecoverableAutosaves'),

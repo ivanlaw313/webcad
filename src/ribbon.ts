@@ -51,7 +51,7 @@ const SOLID: Panel[] = [
       { id: 'cylinder', label: '圓柱', icon: 'cylinder', tip: '圓柱：設直徑×高直接建圓柱。' },
       { id: 'sphere', label: '球', icon: 'sphere', tip: '球：設直徑建球。' },
       { id: 'torus', label: '圓環', icon: 'torus', tip: '圓環：設外徑+管徑，弧<360° 出 C 形環/卡簧。' },
-      { id: 'cone', label: '圓錐', icon: 'cylinder', quick: true, tip: '圓錐/圓台：設底Ø/頂Ø(0=尖錐)/高，邊數≥3 變 N 棱錐/棱台。' },
+      { id: 'cone', label: '圓錐', icon: 'cone', tip: '圓錐/圓台：設底Ø/頂Ø(0=尖錐)/高，邊數≥3 變 N 棱錐/棱台。' },
       { id: 'coil', label: '螺旋', icon: 'coil', tip: '螺旋/彈簧：設節距/高/底半徑/線徑/頂半徑（頂≠底=錐形彈簧）。' },
       { id: 'pipe', label: '管道', icon: 'pipeicon', tip: '管道：沿路徑掃出空心管（外徑+壁厚）。先畫路徑折線。' },
       {
@@ -288,7 +288,7 @@ const LAB: Panel[] = [
   {
     name: '更多基元',
     tools: [
-      { id: 'cone', label: '圓錐', icon: 'cylinder', quick: true, tip: '圓錐/圓台：設底Ø/頂Ø(0=尖錐)/高，邊數≥3 變 N 棱錐/棱台。' },
+      { id: 'cone', label: '圓錐', icon: 'cone', quick: true, tip: '圓錐/圓台：設底Ø/頂Ø(0=尖錐)/高，邊數≥3 變 N 棱錐/棱台。' },
       { id: 'tube', label: '圓管', icon: 'cylinder', quick: true, tip: '圓管/襯套：設外徑Ø/壁厚/高建空心管。' },
       { id: 'rbox', label: '圓角盒', icon: 'box', quick: true, tip: '圓角長方體/外殼盒：長方體四條豎邊倒圓角。電子外殼常用。' },
       { id: 'wedge', label: '楔形', icon: 'box', tip: '楔形/斜坡：設長/寬/高建一端高、另一端削平的三角塊。' },
@@ -297,7 +297,7 @@ const LAB: Panel[] = [
       { id: 'pie', label: '扇形柱', icon: 'cylinder', tip: '扇形柱/餅塊：圓盤的一塊扇形（設直徑/角度/高）。' },
       { id: 'rtube', label: '方管', icon: 'box', tip: '矩形空心管/方通(RHS)：設截面寬×深/壁厚/長。框架/橫梁常用。' },
       { id: 'profile', label: '型材', icon: 'box', tip: '結構型材：L 角鐵 / U 槽鋼 / T 型材（設截面寬×高/壁厚/長）。' },
-      { id: 'pyramid', label: '棱錐', icon: 'cylinder', tip: '多邊形棱錐：設邊數/底外接Ø/高，底多邊形收到頂尖。' },
+      { id: 'pyramid', label: '棱錐', icon: 'cone', tip: '多邊形棱錐：設邊數/底外接Ø/高，底多邊形收到頂尖。' },
       { id: 'prism', label: '棱柱', icon: 'box', tip: '正多邊形棱柱：設邊數/外接圓Ø/高建六角柱等。' },
     ],
   },

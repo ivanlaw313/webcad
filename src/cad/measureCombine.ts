@@ -29,7 +29,15 @@ export interface MeasurePick {
   surfType?: string
   center?: [number, number, number]
   normal?: [number, number, number]
+  // WORKFLOW #1：解析面幾何（worker measureFaceAt）— 圓柱軸／平面原點＋法向
+  axisO?: [number, number, number]
+  axisD?: [number, number, number]
+  planeO?: [number, number, number]
+  planeN?: [number, number, number]
 }
+
+/** 兩面之間嘅 B-rep 真最短距離（worker measureFaceFaceMin） */
+export interface MeasureExtra { faceMinDist?: number; minPa?: [number, number, number]; minPb?: [number, number, number] }
 
 export type MeasureResultType = 'point' | 'length' | 'area' | 'volume' | 'angle' | 'distance' | 'empty' | 'unsupported'
 
@@ -45,6 +53,8 @@ export interface MeasureResult {
   radius?: number                   // 圆边/柱面半径
   area?: number                     // UX2 #10：柱面/球面主讀數改直徑時，面積仍附上
   supplement?: number               // 夹角补角 180−θ
+  minDist?: number                  // WORKFLOW #1：附加讀數 — 兩面最短距離
+  axisAngle?: number                // WORKFLOW #1：兩圓柱軸線夾角（非平行時）
   parts: MeasurePart[]              // 逐实体自身读数
   note?: string                     // 诚实近似/提示
 }
@@ -71,16 +81,16 @@ function pointLineDist(p: [number, number, number], mid: [number, number, number
 // 单个实体嘅自身读数 part。
 function intrinsicPart(pk: MeasurePick): MeasurePart {
   if (pk.kind === 'body') return { label: '體積', kind: 'body', value: pk.volume, kindUnit: 'vol' }
-  if (pk.kind === 'face') return { label: '面积', kind: 'face', value: pk.area, kindUnit: 'area' }
+  if (pk.kind === 'face') return { label: '面積', kind: 'face', value: pk.area, kindUnit: 'area' }
   if (pk.kind === 'edge') {
-    if (pk.radius != null) return { label: pk.closed ? '孔径Ø' : '弧长', kind: 'edge', value: pk.closed ? pk.radius * 2 : pk.length, kindUnit: 'len' }
-    return { label: '棱长', kind: 'edge', value: pk.length, kindUnit: 'len' }
+    if (pk.radius != null) return { label: pk.closed ? '孔徑Ø' : '弧長', kind: 'edge', value: pk.closed ? pk.radius * 2 : pk.length, kindUnit: 'len' }
+    return { label: '稜長', kind: 'edge', value: pk.length, kindUnit: 'len' }
   }
-  return { label: pk.kind === 'vertex' ? '顶点' : '点', kind: pk.kind }
+  return { label: pk.kind === 'vertex' ? '頂點' : '點', kind: pk.kind }
 }
 
 // 组合派生：核心分派。
-export function combineMeasure(picks: MeasurePick[]): MeasureResult {
+export function combineMeasure(picks: MeasurePick[], extra: MeasureExtra = {}): MeasureResult {
   const parts = picks.map(intrinsicPart)
   if (picks.length === 0) return { type: 'empty', label: '拾取', value: null, valueUnit: 'none', parts }
 
@@ -89,47 +99,74 @@ export function combineMeasure(picks: MeasurePick[]): MeasureResult {
     if (a.kind === 'body') return {type:'volume',label:'體積',value:a.volume??null,valueUnit:'vol',parts}
     // UX2 #10：圓柱面／球面（軸、孔壁、凸台）Fusion 主讀數係直徑 — 唔再淨係俾面積；面積留喺 parts / area
     if (a.kind === 'face' && a.radius != null && a.radius > 0 && /CYL|SPHER/i.test(a.surfType ?? '')) return { type: 'length', label: /SPHER/i.test(a.surfType ?? '') ? '球面直徑Ø' : '圓柱面直徑Ø', value: a.radius * 2, valueUnit: 'len', radius: a.radius, area: a.area, perimeter: a.perimeter, parts }
-    if (a.kind === 'face') return { type: 'area', label: '面积', value: a.area ?? null, valueUnit: 'area', perimeter: a.perimeter, radius: a.radius, parts }
+    if (a.kind === 'face') return { type: 'area', label: '面積', value: a.area ?? null, valueUnit: 'area', perimeter: a.perimeter, radius: a.radius, parts }
     if (a.kind === 'edge') {
-      if (a.radius != null && a.closed) return { type: 'length', label: '孔径Ø', value: a.radius * 2, valueUnit: 'len', radius: a.radius, parts }
-      return { type: 'length', label: a.radius != null ? '弧长' : '棱长', value: a.length ?? null, valueUnit: 'len', radius: a.radius, parts }
+      if (a.radius != null && a.closed) return { type: 'length', label: '孔徑Ø', value: a.radius * 2, valueUnit: 'len', radius: a.radius, parts }
+      return { type: 'length', label: a.radius != null ? '弧長' : '稜長', value: a.length ?? null, valueUnit: 'len', radius: a.radius, parts }
     }
     // point / vertex 单拣 → 坐标（无标量）
-    return { type: 'point', label: '坐标', value: null, valueUnit: 'none', delta: a.p, parts }
+    return { type: 'point', label: '座標', value: null, valueUnit: 'none', delta: a.p, parts }
   }
 
   if (picks.length === 2) {
     const [a, b] = picks
     const kinds = [a.kind, b.kind].map((k) => (k === 'vertex' ? 'point' : k)).sort().join('+')
-    // 2 面 → 夹角（法向）
+    // 2 面（WORKFLOW #1，Fusion 式）：兩圓柱平行軸 → 軸距；兩平行平面 → 厚度（面距）；其餘 → 夾角／最短距離
     if (kinds === 'face+face') {
-      if (!a.normal || !b.normal) return { type: 'unsupported', label: '夹角', value: null, valueUnit: 'none', parts, note: '两面需有法向先量夹角' }
+      const md = extra.faceMinDist != null && Number.isFinite(extra.faceMinDist) ? extra.faceMinDist : undefined
+      const PAR = 0.99985   // ≈ 1° 內當平行
+      if (a.axisO && a.axisD && b.axisO && b.axisD) {
+        const da = norm(a.axisD), db = norm(b.axisD), c = Math.abs(dot(da, db))
+        if (c >= PAR) {
+          const ax = pointLineDist(b.axisO, a.axisO, da)
+          if (ax < 1e-6) return { type: 'unsupported', label: '軸距', value: null, valueUnit: 'none', parts, ...(md != null ? { minDist: md } : {}), note: '兩個圓柱面同軸（軸距為 0）— 如需量直徑請只選一個面' }
+          return { type: 'distance', label: '軸距（平行軸）', value: ax, valueUnit: 'len', parts, ...(md != null ? { minDist: md } : {}), note: '兩條圓柱軸平行；軸距＝兩軸線之間的垂直距離' }
+        }
+        const ang = (Math.acos(Math.max(-1, Math.min(1, c))) * 180) / Math.PI
+        if (md != null) return { type: 'distance', label: '最短距離', value: md, valueUnit: 'len', parts, axisAngle: ang, note: '兩條圓柱軸不平行；顯示兩面最短距離及軸線夾角' }
+        return { type: 'angle', label: '軸線夾角', value: ang, valueUnit: 'angle', supplement: 180 - ang, parts }
+      }
+      if (a.planeO && a.planeN && b.planeO && b.planeN) {
+        const na = norm(a.planeN), nb = norm(b.planeN), c = dot(na, nb)
+        if (Math.abs(c) >= PAR) {
+          const t = Math.abs(dot(sub(b.planeO, a.planeO), na))
+          if (t < 1e-6) return { type: 'unsupported', label: '面距', value: null, valueUnit: 'none', parts, note: '兩面共面（可能選到同一個面）— 請選另一個面' }
+          return { type: 'distance', label: c < 0 ? '厚度（面距）' : '面距（平行面）', value: t, valueUnit: 'len', parts, ...(md != null ? { minDist: md } : {}), note: c < 0 ? '兩個平行且相對的平面；厚度＝兩面之間的垂直距離' : '兩個平行同向的平面；面距＝兩面之間的垂直距離' }
+        }
+      }
+      if (!a.normal || !b.normal) {
+        if (md != null) return { type: 'distance', label: '最短距離', value: md, valueUnit: 'len', parts }
+        return { type: 'unsupported', label: '夾角', value: null, valueUnit: 'none', parts, note: '兩個面都需要有法向才可量度夾角' }
+      }
       const c = Math.max(-1, Math.min(1, dot(norm(a.normal), norm(b.normal))))
       const deg = (Math.acos(c) * 180) / Math.PI
-      if (deg < 0.5) return { type: 'unsupported', label: '夹角', value: null, valueUnit: 'none', parts, note: '两面朝向相同（可能选到同一面）— 选两个不同朝向的面' }
-      return { type: 'angle', label: '夹角', value: deg, valueUnit: 'angle', supplement: 180 - deg, parts }
+      if (deg < 0.5) {
+        if (md != null && md > 1e-6) return { type: 'distance', label: '最短距離', value: md, valueUnit: 'len', parts }
+        return { type: 'unsupported', label: '夾角', value: null, valueUnit: 'none', parts, note: '兩面朝向相同（可能選到同一個面）— 請選另一個不同的面' }
+      }
+      return { type: 'angle', label: '夾角', value: deg, valueUnit: 'angle', supplement: 180 - deg, parts, ...(md != null ? { minDist: md } : {}) }
     }
     // 2 点 → 距离 + ΔXYZ
     if (kinds === 'point+point') {
-      if (!a.p || !b.p) return { type: 'unsupported', label: '距离', value: null, valueUnit: 'none', parts }
+      if (!a.p || !b.p) return { type: 'unsupported', label: '距離', value: null, valueUnit: 'none', parts }
       const d = sub(b.p, a.p)
-      return { type: 'distance', label: '距离', value: len3(d), valueUnit: 'len', delta: [Math.abs(d[0]), Math.abs(d[1]), Math.abs(d[2])], parts }
+      return { type: 'distance', label: '距離', value: len3(d), valueUnit: 'len', delta: [Math.abs(d[0]), Math.abs(d[1]), Math.abs(d[2])], parts }
     }
     // 2 边 → 中点距 + 边向夹角（诚实：中点近似，非线段最短距）
     if (kinds === 'edge+edge') {
-      if (!a.mid || !b.mid) return { type: 'unsupported', label: '距离', value: null, valueUnit: 'none', parts, note: '两边需有中点位置' }
+      if (!a.mid || !b.mid) return { type: 'unsupported', label: '距離', value: null, valueUnit: 'none', parts, note: '兩條邊都需要有中點位置' }
       const closest = a.pts && b.pts && a.pts.length > 1 && b.pts.length > 1 ? closestPolylinePair(a.pts, b.pts) : null
       if (closest) {
         const delta = sub(closest.b, closest.a)
-        return { type: 'distance', label: '最短距离', value: closest.distance, valueUnit: 'len', delta: [Math.abs(delta[0]), Math.abs(delta[1]), Math.abs(delta[2])], parts, note: '两条真边的最近距离（B-rep 采样）' }
+        return { type: 'distance', label: '最短距離', value: closest.distance, valueUnit: 'len', delta: [Math.abs(delta[0]), Math.abs(delta[1]), Math.abs(delta[2])], parts, note: '兩條邊的最近距離（B-rep 取樣）' }
       }
       const d = sub(b.mid, a.mid)
-      let note = '边中点距（近似 · 非线段最短距）'
-      const res: MeasureResult = { type: 'distance', label: '距离', value: len3(d), valueUnit: 'len', delta: [Math.abs(d[0]), Math.abs(d[1]), Math.abs(d[2])], parts, note }
+      let note = '邊中點距離（近似值，並非線段最短距離）'
+      const res: MeasureResult = { type: 'distance', label: '距離', value: len3(d), valueUnit: 'len', delta: [Math.abs(d[0]), Math.abs(d[1]), Math.abs(d[2])], parts, note }
       if (a.dir && b.dir) {
         const c = Math.max(-1, Math.min(1, Math.abs(dot(norm(a.dir), norm(b.dir)))))
         res.supplement = (Math.acos(c) * 180) / Math.PI   // 复用 supplement 传边向夹角
-        note += ` · 边向夹角 ${res.supplement.toFixed(1)}°`
+        note += ` · 邊向夾角 ${res.supplement.toFixed(1)}°`
         res.note = note
       }
       return res
@@ -138,25 +175,25 @@ export function combineMeasure(picks: MeasurePick[]): MeasureResult {
     if (kinds === 'edge+face') {
       const face = a.kind === 'face' ? a : b
       const edge = a.kind === 'edge' ? a : b
-      if (!edge.mid || !face.center || !face.normal) return { type: 'unsupported', label: '最短距', value: null, valueUnit: 'none', parts, note: '需面法向 + 边中点' }
-      return { type: 'distance', label: '最短距', value: pointPlaneDist(edge.mid, face.center, face.normal), valueUnit: 'len', parts, note: '边中点→面平面距（平面面精确 · 曲面近似）' }
+      if (!edge.mid || !face.center || !face.normal) return { type: 'unsupported', label: '最短距離', value: null, valueUnit: 'none', parts, note: '需要面的法向及邊的中點' }
+      return { type: 'distance', label: '最短距離', value: pointPlaneDist(edge.mid, face.center, face.normal), valueUnit: 'len', parts, note: '邊中點至面所在平面的距離（平面精確，曲面為近似值）' }
     }
     // 点 + 面 → 点到面平面距
     if (kinds === 'face+point') {
       const face = a.kind === 'face' ? a : b
       const pt = a.kind === 'face' ? b : a
-      if (!pt.p || !face.center || !face.normal) return { type: 'unsupported', label: '距离', value: null, valueUnit: 'none', parts }
-      return { type: 'distance', label: '距离', value: pointPlaneDist(pt.p, face.center, face.normal), valueUnit: 'len', parts, note: '点→面平面距' }
+      if (!pt.p || !face.center || !face.normal) return { type: 'unsupported', label: '距離', value: null, valueUnit: 'none', parts }
+      return { type: 'distance', label: '距離', value: pointPlaneDist(pt.p, face.center, face.normal), valueUnit: 'len', parts, note: '點至面所在平面的距離' }
     }
     // 点 + 边 → 点到边直线距
     if (kinds === 'edge+point') {
       const edge = a.kind === 'edge' ? a : b
       const pt = a.kind === 'edge' ? b : a
-      if (!pt.p || !edge.mid) return { type: 'unsupported', label: '距离', value: null, valueUnit: 'none', parts }
-      return { type: 'distance', label: '距离', value: pointLineDist(pt.p, edge.mid, edge.dir), valueUnit: 'len', parts, note: '点→边直线距' }
+      if (!pt.p || !edge.mid) return { type: 'unsupported', label: '距離', value: null, valueUnit: 'none', parts }
+      return { type: 'distance', label: '距離', value: pointLineDist(pt.p, edge.mid, edge.dir), valueUnit: 'len', parts, note: '點至邊所在直線的距離' }
     }
-    return { type: 'unsupported', label: '组合', value: null, valueUnit: 'none', parts, note: '此组合暂不支持 — 清空重选' }
+    return { type: 'unsupported', label: '組合', value: null, valueUnit: 'none', parts, note: '暫不支援此組合 — 請清空後重新選取' }
   }
 
-  return { type: 'unsupported', label: '组合', value: null, valueUnit: 'none', parts, note: 'Measure 最多选 2 个实体 — 清空重选' }
+  return { type: 'unsupported', label: '組合', value: null, valueUnit: 'none', parts, note: '測量最多選取 2 個對象 — 請清空後重新選取' }
 }

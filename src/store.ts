@@ -134,7 +134,7 @@ import { meshManifold } from './geom/meshCheck'
 import { chatCompletion, PROVIDER_DEFAULTS, type AiConfig, type AiMsg, type AiProvider } from './ai/providers'
 import { TOOL_DEFS, AI_SYSTEM_PROMPT } from './ai/tools'
 // GM-X1（检查/INSPECT 波次）：统一 Measure 组合内核 + 精度/副单位格式化 + Properties 报告 + 分析节点表 + 网格面组上色。
-import { combineMeasure, type MeasurePick, type MeasureResult } from './cad/measureCombine'
+import { combineMeasure, type MeasurePick, type MeasureResult, type MeasureExtra } from './cad/measureCombine'
 import { fmtLenP, fmtAreaP, fmtVolP } from './cad/measureFmt'
 import { computeMassProps, type MassProps } from './cad/massProps'
 import { buildPropsReport, accuracyToQuality, type PropsFrame, type PropsAccuracy } from './cad/propsReport'
@@ -2514,7 +2514,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   measureUniResult: MeasureResult | null
   measureSelFilter: { face: boolean; edge: boolean; body: boolean; sketch: boolean }   // 面板顶选择过滤（复用 selFilter 语义扩到逐类型）
   toggleMeasureUni: () => void
-  addMeasureUniPick: (pick: MeasurePick) => void          // 直接加拾取（headless 可驱动 / 视口拾取转呢度）
+  addMeasureUniPick: (pick: MeasurePick, extra?: MeasureExtra) => void          // 直接加拾取（headless 可驱动 / 视口拾取转呢度）
   pickMeasureUniAt: (threePt: [number, number, number], faceNormalWorld?: [number, number, number], isEdge?: boolean) => Promise<void>   // 视口点击 → worker 量面/边 → 加拾取
   clearMeasureUniPicks: () => void
   setMeasureSelFilter: (patch: Partial<{ face: boolean; edge: boolean; body: boolean; sketch: boolean }>) => void
@@ -20208,10 +20208,10 @@ export const useApp = create<AppState>((rawSet, get) => {
   toggleMeasureUni: () => set((s) => ({ measureUniMode: !s.measureUniMode, measureUniPicks: [], measureUniResult: null, measureMode: false, measurePts: [], measureDist: null, measureEdgeMode: false, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureAngleMode: false, measureAngleInfo: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureUniMode ? '統一測量：點任意實體（面/邊/點，最多 2 個）→ 自動出面積/夾角/長度/最短距/距離' : '已退出統一測量' })),
   setMeasureSelFilter: (patch) => set((s) => ({ measureSelFilter: { ...s.measureSelFilter, ...patch,...(patch.body===true?{face:false,edge:false}:patch.face===true||patch.edge===true?{body:false}:{}) },measureUniPicks:[],measureUniResult:null })),
   clearMeasureUniPicks: () => set({ measureUniPicks: [], measureUniResult: null, status: '已清空測量拾取 — 重新點選' }),
-  addMeasureUniPick: (pick) => set((s) => {
+  addMeasureUniPick: (pick, extra) => set((s) => {
     // 累积拾取（满 2 个再点 → 从新开始，同旧 addMeasurePoint 手感）
     const picks = pick.kind==='body'||s.measureUniPicks.some(p=>p.kind==='body')||s.measureUniPicks.length >= 2 ? [pick] : [...s.measureUniPicks, pick]
-    const r = combineMeasure(picks)
+    const r = combineMeasure(picks, picks.length === 2 ? (extra ?? {}) : {})
     const u = s.unit, p = s.measurePrecision, sec = s.secondaryUnit
     // 主读数格式化（按 valueUnit）
     let head = ''
@@ -20219,12 +20219,15 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (r.valueUnit === 'len') head = `${r.label} ${fmtLen(r.value, u, p, sec)}`
       else if (r.valueUnit === 'area') head = `${r.label} ${fmtArea(r.value, u, p, sec)}`
       else if (r.valueUnit === 'vol') head = `${r.label} ${fmtVol(r.value, u, p, sec)}`
-      else if (r.valueUnit === 'angle') head = `${r.label} ${r.value.toFixed(p == null ? 2 : Math.max(0, Math.min(8, p)))}°${r.supplement != null && r.type === 'angle' ? `（补角 ${r.supplement.toFixed(2)}°）` : ''}`
+      else if (r.valueUnit === 'angle') head = `${r.label} ${r.value.toFixed(p == null ? 2 : Math.max(0, Math.min(8, p)))}°${r.supplement != null && r.type === 'angle' ? `（補角 ${r.supplement.toFixed(2)}°）` : ''}`
     } else if (r.type === 'point' && r.delta) {
-      head = `坐標 (${r.delta.map((c) => fmtLen(c, u, p, sec)).join(', ')})`
+      head = `座標 (${r.delta.map((c) => fmtLen(c, u, p, sec)).join(', ')})`
     } else {
-      head = r.note || '继续点选第二个实体'
+      head = r.note || '請繼續點選第二個對象'
     }
+    // WORKFLOW #1：附加讀數 — 最短距離／軸線夾角
+    if (r.minDist != null && r.value != null && r.label !== '最短距離') head += `　最短距離 ${fmtLen(r.minDist, u, p, sec)}`
+    if (r.axisAngle != null) head += `　軸線夾角 ${r.axisAngle.toFixed(p == null ? 2 : Math.max(0, Math.min(8, p)))}°`
     const deltaStr = r.delta && r.type === 'distance' ? `　ΔX ${fmtLen(r.delta[0], u, p, sec)} ΔY ${fmtLen(r.delta[1], u, p, sec)} ΔZ ${fmtLen(r.delta[2], u, p, sec)}` : ''
     // 捕获为参数：主标量（长度/面积/角度）
     const lm = r.value != null ? { value: r.value, label: r.label } : s.lastMeasure
@@ -20253,7 +20256,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (r) {
         // 面法向由点击世界法向转 CAD 系（x,-z,y）— 与 center/mid 同系, 令夹角/距离一致
         const nCad: [number, number, number] | undefined = faceNormalWorld ? [faceNormalWorld[0], -faceNormalWorld[2], faceNormalWorld[1]] : undefined
-        get().addMeasureUniPick({ kind: 'face', area: r.area, surfType: r.kind, radius: r.radius ?? undefined, center: r.center, normal: nCad })
+        const pick: MeasurePick = { kind: 'face', area: r.area, surfType: r.kind, radius: r.radius ?? undefined, center: r.center, normal: nCad, p: cp,
+          ...(r.axisO && r.axisD ? { axisO: r.axisO, axisD: r.axisD } : {}), ...(r.planeO && r.planeN ? { planeO: r.planeO, planeN: r.planeN } : {}) }
+        // WORKFLOW #1：第 2 個面 → 同時攞兩面 B-rep 最短距離（Fusion 讀數）
+        const prev = get().measureUniPicks
+        let extra: MeasureExtra | undefined
+        if (prev.length === 1 && prev[0].kind === 'face' && prev[0].p) {
+          try { const m = await cad.measureFaceFaceMin(prev[0].p, cp); if (m) extra = { faceMinDist: m.dist, minPa: m.pa, minPb: m.pb } } catch { /* 冇最短距離照出其他讀數 */ }
+          if (get().measureUniPicks !== prev || get().features !== s.features) return
+        }
+        get().addMeasureUniPick(pick, extra)
         return
       }
     }

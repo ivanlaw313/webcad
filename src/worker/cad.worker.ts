@@ -416,6 +416,46 @@ const ready: Promise<boolean> = (async () => {
 // 审计修复：加厚成实体（thicken/boundarypatch）走 BRepOffsetAPI_MakeThickSolid.MakeThickSolidBySimple，
 // 此内核对正 signed thick 会产出【定向反转(负体积)】实体 → 污染布尔（fuse 静默并丢）、STL 导出（法向朝内→破网格）、3D 打印。
 // 统一在 push 前检测体积 Mass()<0 → Reversed() 重定向到正体积。三条 high（thickenquilt/boundarypatch/ThickenFaceNear）共用。
+// WORKFLOW #1：最近 B-rep 面（同 measureFaceAt 一樣用三角化距離揀）
+function _nearestFace(p: [number, number, number]): { face: any; tri: any } | null {
+  if (!current) return null
+  const faces = (current as any).faces as any[]
+  let best: any = null, bestD = Infinity
+  for (const f of faces) {
+    const tri = f.triangulation ? f.triangulation() : null
+    if (!tri || !tri.vertices || !tri.vertices.length) continue
+    const V = tri.vertices as number[], T = tri.trianglesIndexes as number[]
+    for (let i = 0; i < T.length; i += 3) {
+      const a = T[i] * 3, b = T[i + 1] * 3, c = T[i + 2] * 3
+      const d = ptTriDist2(p[0], p[1], p[2], V[a], V[a + 1], V[a + 2], V[b], V[b + 1], V[b + 2], V[c], V[c + 1], V[c + 2])
+      if (d < bestD) { bestD = d; best = { face: f, tri } }
+    }
+  }
+  return best
+}
+// 圓柱面 → 軸（點＋方向）＋半徑；平面 → 原點＋單位法向（已按面方向 Reversed 修正）
+function _faceAnalytic(face: any): { radius?: number; extra: { axisO?: [number, number, number]; axisD?: [number, number, number]; planeO?: [number, number, number]; planeN?: [number, number, number] } } {
+  try {
+    const oc = _oc as any
+    const ad = new oc.BRepAdaptor_Surface_2(face.wrapped, true)
+    try {
+      const t = ad.GetType(), T = oc.GeomAbs_SurfaceType
+      const eq = (x: any, y: any) => x === y || (x?.value != null && x.value === y?.value)
+      if (eq(t, T.GeomAbs_Cylinder)) {
+        const cyl = ad.Cylinder(), ax = cyl.Axis(), o = ax.Location(), d = ax.Direction()
+        return { radius: cyl.Radius(), extra: { axisO: [o.X(), o.Y(), o.Z()], axisD: [d.X(), d.Y(), d.Z()] } }
+      }
+      if (eq(t, T.GeomAbs_Plane)) {
+        const pl = ad.Plane(), ax = pl.Axis(), o = ax.Location(), d = ax.Direction()
+        let n: [number, number, number] = [d.X(), d.Y(), d.Z()]
+        try { if (eq(face.wrapped.Orientation_1(), oc.TopAbs_Orientation.TopAbs_REVERSED)) n = [-n[0], -n[1], -n[2]] } catch { /* */ }
+        return { extra: { planeO: [o.X(), o.Y(), o.Z()], planeN: n } }
+      }
+    } finally { try { ad.delete?.() } catch { /* */ } }
+  } catch { /* 非解析面 → 冇額外幾何 */ }
+  return { extra: {} }
+}
+
 function _orientSolidOutward(ocShape: any): any {
   try {
     const g = new _oc.GProp_GProps_1()
@@ -7506,7 +7546,25 @@ const api = {
     }
   },
 
-  async measureFaceAt(p: [number, number, number]): Promise<{ area: number; kind: string; center: [number, number, number]; radius: number | null } | null> {
+  // WORKFLOW #1：兩面組合測量 — 兩個 B-rep 面之間嘅真最短距離（BRepExtrema_DistShapeShape）＋最近點
+  async measureFaceFaceMin(pA: [number, number, number], pB: [number, number, number]): Promise<{ dist: number; pa: [number, number, number]; pb: [number, number, number] } | null> {
+    await ready
+    if (!current) return null
+    try {
+      const fa = _nearestFace(pA), fb = _nearestFace(pB)
+      if (!fa || !fb) return null
+      const oc = _oc as any
+      const prog = new oc.Message_ProgressRange_1()
+      const ext = new oc.BRepExtrema_DistShapeShape_1()
+      try {
+        ext.LoadS1(fa.face.wrapped); ext.LoadS2(fb.face.wrapped); ext.Perform(prog)
+        if (!ext.IsDone() || ext.NbSolution() < 1) return null
+        const a = ext.PointOnShape1(1), b = ext.PointOnShape2(1)
+        return { dist: ext.Value(), pa: [a.X(), a.Y(), a.Z()], pb: [b.X(), b.Y(), b.Z()] }
+      } finally { try { ext.delete?.(); prog.delete?.() } catch { /* */ } }
+    } catch (e) { console.error('[cad.worker] measureFaceFaceMin failed:', e); return null }
+  },
+  async measureFaceAt(p: [number, number, number]): Promise<{ area: number; kind: string; center: [number, number, number]; radius: number | null; axisO?: [number, number, number]; axisD?: [number, number, number]; planeO?: [number, number, number]; planeN?: [number, number, number] } | null> {
     await ready
     if (!current) return null
     try {
@@ -7561,7 +7619,9 @@ const api = {
           if (dnl > 1e-6) { const r = dvl / dnl; if (r > 0 && isFinite(r)) radius = r }
         }
       }
-      return { area, kind, center: [c.x, c.y, c.z], radius }
+      // WORKFLOW #1：解析面幾何 — 圓柱軸（軸距）、平面原點＋法向（厚度／面距）
+      const geo = _faceAnalytic(best.face)
+      return { area, kind, center: [c.x, c.y, c.z], radius: geo.radius ?? radius, ...geo.extra }
     } catch (e) {
       console.error('[cad.worker] measureFaceAt failed:', e)
       return null

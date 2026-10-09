@@ -8762,7 +8762,7 @@ export default function Viewport() {
             const r = measureUniResult
             if (!r || r.type === 'empty') return <div style={{ fontSize: 12, color: '#9fb2bf' }}>{tStatus('點任意實體（面/邊/點，最多 2 個）→ 自動讀數', lang)}</div>
             const fmtV = () => {
-              if (r.value == null) return r.type === 'point' && r.delta ? `(${r.delta.map((c) => fmtLen(c, unit, measurePrecision, secondaryUnit)).join(', ')})` : (r.note || tStatus('繼續點第二個實體', lang))
+              if (r.value == null) return r.type === 'point' && r.delta ? `(${r.delta.map((c) => fmtLen(c, unit, measurePrecision, secondaryUnit)).join(', ')})` : tStatus(r.note || '請繼續點選第二個對象', lang)
               if (r.valueUnit === 'len') return fmtLen(r.value, unit, measurePrecision, secondaryUnit)
               if (r.valueUnit === 'vol') return fmtVol(r.value, unit, measurePrecision, secondaryUnit)
               if (r.valueUnit === 'area') return fmtArea(r.value, unit, measurePrecision, secondaryUnit)
@@ -8774,6 +8774,8 @@ export default function Viewport() {
               <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1 }}>{fmtV()}</div>
               {r.radius != null && r.radius > 0 && (r.type === 'length' || r.type === 'area') && <div data-testid="measure-radius" style={{ fontSize: 12, color: "#4a5864", fontWeight: 600 }}>{tStatus('半徑', lang)} R {fmtLen(r.radius, unit, measurePrecision, secondaryUnit)}</div>}
               {r.type === 'angle' && r.supplement != null && <div style={{ fontSize: 11, color: '#9fb2bf' }}>{tStatus('補角', lang)} {r.supplement.toFixed(2)}°</div>}
+              {r.minDist != null && r.value != null && r.label !== '最短距離' && <div data-testid="measure-min-dist" style={{ fontSize: 12, color: '#4a5864', fontWeight: 600 }}>{tStatus('最短距離', lang)} {fmtLen(r.minDist, unit, measurePrecision, secondaryUnit)}</div>}
+              {r.axisAngle != null && <div data-testid="measure-axis-angle" style={{ fontSize: 11, color: '#9fb2bf' }}>{tStatus('軸線夾角', lang)} {r.axisAngle.toFixed(measurePrecision == null ? 2 : measurePrecision)}°</div>}
               {r.type === 'distance' && r.delta && <div style={{ marginTop: 4, fontSize: 11, color: '#9fb2bf' }}>ΔX {fmtLen(r.delta[0], unit, measurePrecision, secondaryUnit)}　ΔY {fmtLen(r.delta[1], unit, measurePrecision, secondaryUnit)}　ΔZ {fmtLen(r.delta[2], unit, measurePrecision, secondaryUnit)}</div>}
               {r.parts.length > 0 && <div style={{ marginTop: 4, fontSize: 11, color: '#7d8b96' }}>{r.parts.map((p, i) => <span key={i}>{tStatus(p.label, lang)}{p.value != null ? ` ${p.kindUnit === 'vol' ? fmtVol(p.value, unit, measurePrecision, secondaryUnit) : p.kindUnit === 'area' ? fmtArea(p.value, unit, measurePrecision, secondaryUnit) : fmtLen(p.value, unit, measurePrecision, secondaryUnit)}` : ''}{i < r.parts.length - 1 ? ' · ' : ''}</span>)}</div>}
               {r.note && <div style={{ marginTop: 3, fontSize: 10, color: '#8a7d5a' }}>{tStatus(r.note, lang)}</div>}

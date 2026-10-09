@@ -51,6 +51,36 @@ try {
     ok('[interf] overlap highlighted + formal status', r.meshes === 1 && /⚠ 干涉 1 處/.test(r.status) && !/manifold|蒙特卡洛|無干涉/.test(r.status), { status: r.status })
     await shot('a2-interf')
     await g(() => window.useApp.getState().clearInterf())
+    // WORKFLOW2: shaft+bushing+plate, revolute to 97° → must name 組件1 with overlap volume
+    await reset()
+    await g(async () => {
+      const s = () => window.useApp.getState()
+      const boxMesh = (x0, y0, z0, x1, y1, z1) => {
+        const v = [], t = [], n = []
+        const face = (p, nn) => { const b = v.length / 3; for (const q of p) v.push(...q); for (let k = 0; k < 4; k++) n.push(...nn); t.push(b, b + 1, b + 2, b, b + 2, b + 3) }
+        face([[x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [x1, y0, z0]], [0, 0, -1])
+        face([[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], [0, 0, 1])
+        face([[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]], [0, -1, 0])
+        face([[x0, y1, z0], [x0, y1, z1], [x1, y1, z1], [x1, y1, z0]], [0, 1, 0])
+        face([[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]], [-1, 0, 0])
+        face([[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]], [1, 0, 0])
+        return { vertices: v, triangles: t, normals: n }
+      }
+      const plate = boxMesh(-50, -40, 0, 50, 40, 8), shaft = boxMesh(-4, -4, 8, 4, 4, 80), bush = boxMesh(15, -10, 8, 25, 10, 30)
+      const C1 = { id: 'C1', name: '組件1', mesh: plate, pos: [0, 0, 0], rot: [0, 0, 0], color: '#888', grounded: true }
+      const C2 = { id: 'C2', name: '組件2', mesh: shaft, pos: [0, 0, 0], rot: [0, 0, 0], color: '#888' }
+      const C3 = { id: 'C3', name: '組件3', mesh: bush, pos: [0, 0, 0], rot: [0, 0, 0], color: '#888' }
+      const joint = { id: 'J1', name: '關節1', type: 'revolute', parent: 'C1', child: 'C2', anchor: [0, 8, 0], axis: [0, 0, 1], angle: 97, slide: 0 }
+      window.useApp.setState({ components: [C1, C2, C3], joints: [joint], componentDefs: [], groups: [], interfSubset: [], interfIncludeCoincident: false, interfReport: null })
+    })
+    await g(() => window.useApp.getState().runCommand('interference', '干涉檢查')); await page.waitForTimeout(300)
+    await page.locator('[data-testid="interf-compute"]').click()
+    await page.waitForFunction(() => !!window.useApp.getState().interfReport, null, { timeout: 60000 }).catch(() => {})
+    const r2 = await g(() => { const s = window.useApp.getState(); return { status: s.status, hits: s.interfReport?.hits ?? [] } })
+    const hit12 = r2.hits.some((h) => h.vol > 100 && ((h.a === '組件1' && h.b === '組件2') || (h.a === '組件2' && h.b === '組件1')))
+    ok('[interf] revolute 97° shaft through plate: names 組件1 with overlap volume (not only 2↔3 gap)', hit12 && /組件1/.test(r2.status) && /⚠ 干涉/.test(r2.status), r2)
+    await shot('a2-interf-revolute')
+    await g(() => window.useApp.getState().clearInterf())
   }
   if (want('newcomp')) {
     await reset()

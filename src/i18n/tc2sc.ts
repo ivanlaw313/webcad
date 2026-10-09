@@ -1,6 +1,9 @@
 /** Minimal Traditional→Simplified char map for zh-CN display fallback (status / unmigrated strings). */
 const MAP: Record<string, string> = {
   '並': '并',
+  '階': '阶',
+  '號': '号',
+  '範': '范',
   '來': '来',
   '個': '个',
   '們': '们',

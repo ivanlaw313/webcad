@@ -1486,6 +1486,20 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   thickenMode: boolean                                    // T811：加厚拾取面成实体薄板（曲面→实体）
   toggleThicken: () => void
   thickenFaceAt: (threePt: [number, number, number]) => Promise<void>
+  // CORE16 #1：加厚對話框（取代 prompt）— 拾面（可多個）、厚度、方向（正向／反向／對稱）、操作（新實體／合併）＋即時預覽
+  thickenPicks: [number, number, number][]               // three 坐標（同 shellPicks）
+  thickenThick: number
+  thickenDir: 'pos' | 'neg' | 'both'
+  thickenOp: 'newbody' | 'join'
+  setThicken: (patch: { thick?: number; dir?: 'pos' | 'neg' | 'both'; op?: 'newbody' | 'join' }) => void
+  flipThicken: () => void
+  clearThickenPicks: () => void
+  commitThicken: () => Promise<void>
+  cancelThicken: () => void
+  thickenPreviewMesh: MeshData | null                    // 預覽：只含新加厚板（MeshData，CAD 坐標）
+  thickenPreviewBusy: boolean
+  thickenPreviewFail: string | null
+  scheduleThickenPreview: () => void
   quiltPickMode: boolean                                  // S201：整张泊车曲面可视化拾取（Face Pattern 后续 Thicken）
   startQuiltPick: () => void
   thickenParkedAt: (target: number) => Promise<void>
@@ -4811,6 +4825,12 @@ function buildRoundFeature(s: { edgeRoundPicks: [number, number, number][]; edge
     ? { id, type: 'chamfer', distance: sz, nears, cmode: cm, dist2: cm === 'two' ? d2 : undefined, angle: cm === 'angle' ? ang : undefined, refFaceNear, flip: cm !== 'equal' ? flip : undefined, ...(perEdgeCh ? { distances: rArr.slice() } : {}), chain }
     : { id, type: 'fillet', radius: sz, ...(fullRound ? { fullRound } : rule ? { rule } : { nears }), ...(chordMode || rule || fullRound ? {} : perEdge ? { radii: rArr.slice() } : varFillet ? { radius2: r2 } : {}), ...(fullRound ? {} : r1Extra), ...(fullRound ? {} : { chain }) }
 }
+// CORE16 #1：加厚特徵（three 拾點 → CAD near/nears）。preview = 一律 newbody（預覽只畫新板；合併時幾何相同）。
+function buildThickenFeature(s: Pick<AppState, 'thickenPicks' | 'thickenThick' | 'thickenDir' | 'thickenOp'>, id: string, preview: boolean): Feature | null {
+  if (!s.thickenPicks.length || !(s.thickenThick > 0)) return null
+  const nears = s.thickenPicks.map((p) => [p[0], -p[2], p[1]] as [number, number, number])
+  return { id, type: 'thickenface', near: nears[0], ...(nears.length > 1 ? { nears } : {}), thick: s.thickenThick, ...(s.thickenDir !== 'pos' ? { side: s.thickenDir } : {}), ...(!preview && s.thickenOp === 'join' ? { op: 'join' as const } : {}) } as Feature
+}
 function buildShellFeature(s: Pick<AppState, 'shellPicks' | 'shellThickness' | 'shellType' | 'shellDir' | 'shellTangentChain'>, id: string): Feature | null {
   if (!s.shellPicks.length || !Number.isFinite(s.shellThickness) || !(s.shellThickness > 0)) return null
   const nears = s.shellPicks.map(p => [p[0], -p[2], p[1]] as [number, number, number])
@@ -4819,6 +4839,8 @@ function buildShellFeature(s: Pick<AppState, 'shellPicks' | 'shellThickness' | '
     ...(s.shellDir === 'inside' ? {} : { direction: s.shellDir }) }
 }
 let _shellPvTimer: ReturnType<typeof setTimeout> | null = null
+let _thkPvTimer: ReturnType<typeof setTimeout> | null = null
+let _thkPvSeq = 0
 let _shellPvSeq = 0
 
 // ── 放樣：對話框／預覽／確定共用同一個特徵構造（預覽 = 結果） ──
@@ -7150,19 +7172,82 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // T811（S曲面）：加厚拾取面成实体薄板（曲面件 → 可打印实体 / 加厚单一面）。出独立件（parkedBodies）。
   thickenMode: false,
-  toggleThicken: () => set((s) => ({ thickenMode: !s.thickenMode, moveFaceMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.thickenMode ? '➕加厚：點實體/曲面一個面 → 沿法向加厚成實體薄板（出獨立件，要合併用「實體布爾」）' : '已退出加厚' })),
+  toggleThicken: () => set((s) => ({ thickenMode: !s.thickenMode, thickenPicks: [], thickenThick: 2, thickenDir: 'pos', thickenOp: 'newbody', thickenPreviewMesh: null, thickenPreviewBusy: false, thickenPreviewFail: null, moveFaceMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.thickenMode ? '加厚：點選實體或曲面上的面（可多個），設定厚度、方向及操作後按「確定」' : '已退出加厚' })),
+  thickenPicks: [],
+  thickenThick: 2,
+  thickenDir: 'pos',
+  thickenOp: 'newbody',
+  thickenPreviewMesh: null,
+  thickenPreviewBusy: false,
+  thickenPreviewFail: null,
   thickenFaceAt: async (p) => {
-    if (!hasSolid(get().features)) { set({ status: '加厚需要先有實體/曲面' }); return }
-    const cad: [number, number, number] = [p[0], -p[2], p[1]]
-    const v = await get().appPrompt(tStatus('加厚 — 板厚 mm（沿面法向加厚成实体薄板；负值 / 前缀「-」= 翻面，朝另一侧加厚）', get().lang), '2')
-    if (v == null) { set({ thickenMode: false }); return }
-    // S156 方向翻面：用户输入负值 / 前缀「-」= 朝面法向【反侧】加厚（C++ 认 signed thick）。thick 存正幅度、side 记方向。
-    const raw = Number(v.trim())
-    const side: 'pos' | 'neg' = (Number.isFinite(raw) && raw < 0) ? 'neg' : 'pos'
-    const thick = Math.max(0.05, Math.abs(Number.isFinite(raw) ? raw : 2))
-    const f: Feature = { id: fid(), type: 'thickenface', near: cad, thick, side }
-    const ok = await get().applyFeatures([...get().features, f], `已加厚該面 ${thick}mm（${side === 'neg' ? '翻面 — 朝反側' : '正向'}，獨立實體薄板 — 要合併入主體用「實體布爾」）`, true, '加厚失敗（該面唔適合加厚 / 厚度過大）')
-    if (ok) set({ thickenMode: false })
+    if (!hasSolid(get().features)) { set({ status: '加厚需要先有實體或曲面' }); return }
+    const picks = get().thickenPicks
+    const hit = picks.findIndex((q) => Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]) < 2.5)
+    const next = hit >= 0 ? picks.filter((_, k) => k !== hit) : [...picks, p]
+    set({ thickenPicks: next, status: hit >= 0 ? `已取消該面（剩 ${next.length} 個）` : `已選 ${next.length} 個面 — 可繼續點選，或設定厚度後按「確定」` })
+    get().scheduleThickenPreview()
+  },
+  setThicken: (patch) => {
+    const cur = get()
+    let thick = patch.thick !== undefined ? (Number.isFinite(patch.thick) ? patch.thick : 0) : cur.thickenThick
+    let dir = patch.dir ?? cur.thickenDir
+    // 負數 = 翻轉方向（正向↔反向），厚度取絕對值
+    if (thick < 0) { thick = -thick; dir = dir === 'pos' ? 'neg' : dir === 'neg' ? 'pos' : dir }
+    set({ thickenThick: thick, thickenDir: dir, thickenOp: patch.op ?? cur.thickenOp, ...(!(thick > 0) ? { status: '加厚：厚度必須大於 0（輸入 0 無效）' } : /^加厚：厚度必須大於 0/.test(cur.status) ? { status: `加厚：厚度 ${thick} mm（${dir === 'neg' ? '反向' : dir === 'both' ? '對稱' : '正向'}）` } : {}) })
+    get().scheduleThickenPreview()
+  },
+  flipThicken: () => { const d = get().thickenDir; set({ thickenDir: d === 'pos' ? 'neg' : d === 'neg' ? 'pos' : 'both' }); get().scheduleThickenPreview() },
+  clearThickenPicks: () => { set({ thickenPicks: [], thickenPreviewMesh: null, thickenPreviewFail: null, status: '已清空所選面 — 請重新點選' }); get().scheduleThickenPreview() },
+  scheduleThickenPreview: () => {
+    ++_thkPvSeq
+    if (_thkPvTimer) clearTimeout(_thkPvTimer)
+    _thkPvTimer = null
+    const s = get()
+    const f = buildThickenFeature(s, '~pv-thicken', true)
+    const ready = s.thickenMode && s.mode === 'model' && !!f && s.features.length > 0
+    set({ thickenPreviewMesh: null, thickenPreviewFail: null, thickenPreviewBusy: ready })
+    if (!ready) return
+    const seq = _thkPvSeq
+    _thkPvTimer = setTimeout(async () => {
+      _thkPvTimer = null
+      const s2 = get()
+      const bound = applyParamBindings([...s2.features, f!], s2.params, s2.paramBindings)
+      const active = expandFeats(bound.filter((x) => !s2.suppressedIds.includes(x.id)))
+      const before = s2.bodyMesh?.parked?.length ?? 0
+      try {
+        try { cancelPreviews() } catch { /* node / 无 kernel */ }
+        const mesh = await cad.previewRound(active, before)
+        if (seq !== _thkPvSeq || !get().thickenMode) return
+        const fail = mesh?.failed?.find((x: { id: string }) => x.id === '~pv-thicken')
+        const added = mesh?.parked ?? []
+        if (fail || !added.length) { set({ thickenPreviewBusy: false, thickenPreviewFail: fail?.msg || '預覽失敗' }); return }
+        const vertices: number[] = [], triangles: number[] = []
+        for (const pm of added) { const off = vertices.length / 3; vertices.push(...pm.vertices); for (const t of pm.triangles) triangles.push(t + off) }
+        set({ thickenPreviewMesh: { vertices, triangles, normals: [] }, thickenPreviewBusy: false, thickenPreviewFail: null })
+      } catch (e) {
+        if (seq !== _thkPvSeq) return
+        const cancelled = typeof isPreviewCancelled === 'function' && isPreviewCancelled(e)
+        set({ thickenPreviewBusy: false, thickenPreviewFail: cancelled ? null : '預覽失敗' })
+      }
+    }, 150)
+  },
+  commitThicken: async () => {
+    { const bad = pendingNumericIssue(); if (bad) { set({ status: bad }); return } }
+    const s = get()
+    if (!s.thickenPicks.length) { set({ status: '加厚：請先點選要加厚的面' }); return }
+    if (!(s.thickenThick > 0)) { set({ status: '加厚：厚度必須大於 0（輸入 0 無效）' }); return }
+    const f = buildThickenFeature(s, fid(), false)!
+    ++_thkPvSeq; if (_thkPvTimer) clearTimeout(_thkPvTimer); _thkPvTimer = null
+    try { cancelPreviews() } catch { /* node / 无 kernel */ }
+    const dirTxt = s.thickenDir === 'neg' ? '反向' : s.thickenDir === 'both' ? '對稱' : '正向'
+    const opTxt = s.thickenOp === 'join' ? '已合併入實體' : '新實體'
+    const ok = await get().applyFeatures([...get().features, f], `已加厚 ${s.thickenPicks.length} 個面 ${s.thickenThick} mm（${dirTxt} · ${opTxt}）`, true, '加厚失敗：該面不適合加厚，或厚度相對幾何過大')
+    if (ok) set({ thickenMode: false, thickenPicks: [], thickenPreviewMesh: null, thickenPreviewBusy: false, thickenPreviewFail: null })
+  },
+  cancelThicken: () => {
+    ++_thkPvSeq; if (_thkPvTimer) clearTimeout(_thkPvTimer); _thkPvTimer = null
+    set({ thickenMode: false, thickenPicks: [], thickenPreviewMesh: null, thickenPreviewBusy: false, thickenPreviewFail: null, status: '已取消加厚' })
   },
   // S201：整张曲面 Thicken 不再要求用户记「曲面 #几」。进入此模式后 Viewport 令 parked
   // 曲面可拾；点中哪一张就只对哪一张询问板厚。这也让 Face Pattern 的每个独立面可直接后加工。
@@ -7182,8 +7267,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     const tv = await get().appPrompt(tStatus(`加厚曲面「${pkt[target].name}」— 板厚 mm（正/负 = 两侧）`, get().lang), '2')
     if (tv == null) { set({ quiltPickMode: false, status: '已取消加厚曲面' }); return }
     const raw = Number(tv.trim())
-    const side: 'pos' | 'neg' = Number.isFinite(raw) && raw < 0 ? 'neg' : 'pos'
-    const thick = Math.max(0.05, Math.abs(Number.isFinite(raw) ? raw : 2))
+    if (!Number.isFinite(raw) || raw === 0) { set({ quiltPickMode: false, status: '加厚曲面：厚度必須為非零數值（負值＝朝反側）' }); return }   // CORE16 #1：0 唔再靜靜變 0.05
+    const side: 'pos' | 'neg' = raw < 0 ? 'neg' : 'pos'
+    const thick = Math.abs(raw)
     const ok = await get().applyFeatures([...get().features, { id: fid(), type: 'thickenquilt', target, thick, side }], `加厚曲面 ${pkt[target].name} ${thick}mm 成實體${side === 'neg' ? '（翻面）' : ''}`, true, '加厚曲面失败（曲面太扭 / 自交 / 厚度过大）')
     if (ok) set({ quiltPickMode: false })
   },
@@ -14846,8 +14932,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         const tv = await get().appPrompt(tStatus('加厚曲面 — 板厚 mm（沿曲面法向加厚成实体；负值 / 前缀「-」= 朝反侧）', get().lang), '2')
         if (tv == null) return
         const raw = Number(tv.trim())
-        const side: 'pos' | 'neg' = (Number.isFinite(raw) && raw < 0) ? 'neg' : 'pos'
-        const thick = Math.max(0.05, Math.abs(Number.isFinite(raw) ? raw : 2))
+        if (!Number.isFinite(raw) || raw === 0) { set({ status: '加厚曲面：厚度必須為非零數值（負值＝朝反側）' }); return }
+        const side: 'pos' | 'neg' = raw < 0 ? 'neg' : 'pos'
+        const thick = Math.abs(raw)
         await get().applyFeatures([...get().features, { id: fid(), type: 'thickenquilt', target: tgt, thick, side }], `加厚曲面 ${pkt[tgt].name} ${thick}mm 成實體${side === 'neg' ? '（翻面）' : ''}`, true, '加厚曲面失败（曲面太扭 / 自交 / 厚度过大）')
         return
       }

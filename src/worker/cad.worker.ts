@@ -132,7 +132,7 @@ export type Feature =
   | { id: string; type: 'untrim'; target: number }  // S141 去裁 Untrim（surftrim 的逆）：丢弃裁剪边界，把每张面重建到底层几何曲面的完整自然 UV 范围（MakeFace 无 wire）。target=parkedBodies 索引。纯 JS，无内核重建。
   | { id: string; type: 'mergefaces'; target: number; lin?: number; ang?: number }  // S 合并面 Unify-Same-Domain：把泊车曲面/壳上同域（共面/共柱）邻面合并成一张面（ShapeUpgrade_UnifySameDomain，复用 worker:1050 idiom）。target=parkedBodies 索引；lin/ang=线性/角度容差（缺省 1e-5 / 0.01）。纯 JS，无内核重建。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
   | { id: string; type: 'editpoles'; target: number; face?: number; deltas: [number, number, number][] }  // S133 NURBS 曲面极点编辑：target=parkedBodies 索引；deltas=逐极点世界偏移(row-major，长 NbU*NbV，多数[0,0,0])。基极点每次重建由内核 NurbsConvert+Poles_2 重导再叠 deltas（特征小、稳健）。GeomConvert→SetPole_1→MakeShell，行 makeEllipsoid idiom，纯 JS 无内核重建。  // S133+（多面）：face = 编辑【哪一张 B-rep 面】嘅控制网（缺省 0 → 旧档逐字节回放 faces[0]）。多面壳逐面 SetPole + 保 trim MakeFace_21 + Sewing 重组其余 N-1 面，唔再塌成单张全面 patch。
-  | { id: string; type: 'thickenface'; near: [number, number, number]; thick: number; side?: 'pos' | 'neg' }  // T811（S曲面）：加厚拾取面成实体薄板（DirectEditWrapper.ThickenFaceNear）。S156：side='neg' → 传负 thick 翻面（C++ MakeThickSolidBySimple 已认 signed thick）；STRICTLY ADDITIVE — 旧档无 side = 正向 = 逐字节回放。
+  | { id: string; type: 'thickenface'; near: [number, number, number]; nears?: [number, number, number][]; thick: number; side?: 'pos' | 'neg' | 'both'; op?: 'newbody' | 'join' }  // T811（S曲面）：加厚拾取面成实体薄板（DirectEditWrapper.ThickenFaceNear）。S156：side='neg' → 传负 thick 翻面（C++ MakeThickSolidBySimple 已认 signed thick）；STRICTLY ADDITIVE — 旧档无 side = 正向 = 逐字节回放。
   | { id: string; type: 'offsetsurf'; near: [number, number, number]; dist: number }  // T812（S曲面）：偏移拾取面成平行曲面（DirectEditWrapper.OffsetSurfaceNear）
   | { id: string; type: 'offsetsolid'; distance: number }  // S 整体偏移实体：BRepOffsetAPI_MakeOffsetShape 均匀偏移所有面（加厚铸件 / 3D 打印壁厚补偿 / 外扩缩）。+ = 外扩,- = 内缩。纯 JS 已绑 API,无内核重建
   | { id: string; type: 'reversesurf'; target: number }  // S157：翻转泊车曲面壳定向（法向反向）— 影响 Thicken/Stitch 方向。target=parkedBodies 索引。.Reversed() 纯拓扑翻向，零内核重建。
@@ -4225,20 +4225,40 @@ function buildShape(features: Feature[], noCache = false): any {
       } catch (e) { buildWarnings.push('删面失败：' + ((e as any)?.message || e)) }
     } else if (f.type === 'thickenface' && shape) {
       // T811（S曲面）：加厚拾取面成实体薄板（C++ DirectEditWrapper.ThickenFaceNear / MakeThickSolidBySimple）。
-      // 出独立实体（parkedBodies，同补面一致 — 避免共面 fuse 不可靠）；失败诚实保旧形 + 警告。
-      try {
-        const w = (_oc as Record<string, unknown>).DirectEditWrapper as { ThickenFaceNear?: (s: any, x: number, y: number, z: number, t: number) => any } | undefined
-        if (!w || !w.ThickenFaceNear) { buildWarnings.push('⚠ 加厚需要 plus 内核 DirectEditWrapper.ThickenFaceNear（未绑定）— 已跳过') }
-        else {
-          // S156 方向翻面：C++ MakeThickSolidBySimple 本身认 signed thick（负 = 板长反侧）；旧码 Math.max(0.05, …) 夹走符号、只向一侧。
-          // 保幅度下限 0.05、保符号：side='neg' → 传负。旧档（无 side）→ 正向 = 逐字节回放（back-compat）。
-          const mag = Math.max(0.05, Math.abs(f.thick || 1))
-          const signed = (f.side === 'neg') ? -mag : mag
-          const res = w.ThickenFaceNear(shape.wrapped, f.near[0], f.near[1], f.near[2], signed)
-          if (res && !res.IsNull()) parkedBodies.push({ name: '加厚件', shape: cast(_orientSolidOutward(res)) })   // 审计修复：MakeThickSolid 反转 → 定向归正
-          else buildWarnings.push('加厚失败（该面唔适合加厚 / 厚度相对几何过大）— 保持原样')
+      // CORE16 #1：多面（nears）、方向 pos/neg/both（對稱）、操作 newbody（缺省，泊車獨立體）/ join（併入活動體）。
+      // 內核對負厚度（朝實體內）唔穩定 → 平面面用「正向板 + 沿法向平移」做反向／對稱（同一塊板，位置唔同）；非平面面先試內核負厚度。
+      const w = (_oc as Record<string, unknown>).DirectEditWrapper as { ThickenFaceNear?: (s: any, x: number, y: number, z: number, t: number) => any } | undefined
+      if (!w || !w.ThickenFaceNear) { buildWarnings.push('⚠ 加厚需要 plus 內核 DirectEditWrapper.ThickenFaceNear（未綁定）— 已跳過') }
+      else {
+        const mag = Math.max(0.05, Math.abs(f.thick || 1))
+        const side = f.side ?? 'pos'
+        const nears = f.nears && f.nears.length ? f.nears : [f.near]
+        const base = shape
+        try { base.mesh({ tolerance: 0.1, angularTolerance: 0.5 }) } catch { /* triangulate for face lookup */ }
+        const plates: any[] = []
+        for (const near of nears) {
+          const thickAt = (t: number) => { const r = w.ThickenFaceNear!(base.wrapped, near[0], near[1], near[2], t); return r && !r.IsNull() ? cast(_orientSolidOutward(r)) : null }
+          let plate: any = null
+          const fi = _faceIndexNearestNear(base, near).idx
+          const face = fi >= 0 ? (base.faces as any[])[fi] : null
+          const planar = (() => { try { return face?.geomType === 'PLANE' } catch { return false } })()
+          if (side === 'pos') plate = thickAt(mag)
+          else if (planar) {
+            const pos = thickAt(mag)
+            if (pos) { const n = face.normalAt(near).normalized(); const k = side === 'neg' ? -mag : -mag / 2; plate = pos.translate(n.x * k, n.y * k, n.z * k) }
+          } else if (side === 'neg') plate = thickAt(-mag)
+          else {
+            const a = thickAt(mag / 2), b = thickAt(-mag / 2)
+            plate = a && b ? fuseRobust(a, b) : null
+          }
+          if (!plate) throw new Error(side === 'pos' ? '加厚失敗：該面不適合加厚，或厚度相對幾何過大' : side === 'neg' ? '加厚失敗：此面不支援反向加厚（曲面請改用正向），或厚度過大' : '加厚失敗：此面不支援對稱加厚（曲面請改用正向），或厚度過大')
+          plates.push(plate)
         }
-      } catch (e) { buildWarnings.push('加厚失败：' + ((e as any)?.message || e)) }
+        let tool = plates[0]
+        for (let k = 1; k < plates.length; k++) tool = fuseRobust(tool, plates[k])
+        if (f.op === 'join') { _recordBool(_i, 'fuse', tool); shape = fuseRobust(shape, tool) }
+        else parkedBodies.push({ name: '加厚件', shape: tool })   // 审计修复：MakeThickSolid 反转 → 定向归正（_orientSolidOutward）
+      }
     } else if (f.type === 'offsetsurf' && shape) {
       // T812（S曲面）：偏移拾取面成平行新曲面（C++ DirectEditWrapper.OffsetSurfaceNear / MakeOffsetShape BySimple）。
       // 出开放曲面壳（parkedBodies「偏移曲面」）；失败诚实保旧形 + 警告。
@@ -6471,14 +6491,19 @@ const api = {
 
   // P2 批7：圆角/倒角实时预览 — 临时 append 特征后重建。T730 前缀缓存令成本 ≈ 一次 fillet solve
   // + remesh（基础特征 sig 逐字节不变 → LCP 全中只算新特征）。唔郁 current（session shape 留返真 rebuild 管）。
-  async previewRound(features: Feature[]): Promise<MeshData | null> {
+  // CORE16 #1：parkedFrom = 同時回傳 parkedBodies[parkedFrom..]（預覽網格）— 加厚「新實體」預覽只畫新板。
+  async previewRound(features: Feature[], parkedFrom?: number): Promise<MeshData | null> {
     await ready
     try {
       _shellBeginMemMode('preview')
       await prepareStepBodies(features)
       const shape = buildShape(features)
-      if (!shape) return null
-      return { ...meshOf(shape, { preview: true }), warnings: buildWarnings.length ? buildWarnings.slice() : undefined, failed: failedFeatures.length ? failedFeatures.slice() : undefined }
+      if (!shape && parkedFrom == null) return null
+      const pk = parkedFrom != null
+        ? parkedBodies.slice(Math.max(0, parkedFrom)).map((b) => { try { return { name: b.name, ...meshOf(b.shape, { preview: true }) } } catch { return null } }).filter(Boolean) as NonNullable<MeshData['parked']>
+        : undefined
+      const base = shape ? meshOf(shape, { preview: true }) : { vertices: [], triangles: [], normals: [] } as unknown as MeshData
+      return { ...base, ...(pk ? { parked: pk } : {}), warnings: buildWarnings.length ? buildWarnings.slice() : undefined, failed: failedFeatures.length ? failedFeatures.slice() : undefined }
     } catch (e) { console.error('[cad.worker] previewRound failed:', e); return null }
     finally {
       // Keep __webcadShellStats from this preview for diagnostics; only restore commit caps.

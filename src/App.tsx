@@ -200,6 +200,10 @@ export default function App() {
         if (e.key === 'Enter') { e.preventDefault(); void s.commitShell(); return }
         if (e.key === 'Escape') { e.preventDefault(); s.cancelShell(); return }
       }
+      if (s.thickenMode) {   // CORE16 #1：加厚對話框 Enter=確定 / Esc=取消
+        if (e.key === 'Enter') { e.preventDefault(); void s.commitThicken(); return }
+        if (e.key === 'Escape') { e.preventDefault(); s.cancelThicken(); return }
+      }
       if (s.pushPullMode) {
         if (e.key === 'Enter') { e.preventDefault(); void s.commitPushPull(); return }
         if (e.key === 'Escape') { e.preventDefault(); s.togglePushPull(); return }

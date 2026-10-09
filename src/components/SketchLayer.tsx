@@ -1687,7 +1687,8 @@ function buildSlabGeom(tris: ArrayLike<number>, off: V3): BufferGeometry | null 
 //   加厚：厚度用 prompt 缺省 2mm（真值系点击后先 prompt，pre-click 未知）→ 蓝。
 //   按拉：偏移 = 实时 pushPullDist，正=拉出蓝 / 负=压入红；只喺未拾面（picks=0）时用 hover 鬼影（拾面后交 PushPullArrow 箱体接手）。
 export function FaceOffsetGhost() {
-  const thicken = useApp((s) => s.thickenMode)
+  const thicken = useApp((s) => s.thickenMode && !s.thickenPicks.length)   // CORE16 #1：有揀面後改由真預覽（ThickenPreviewGhost）顯示
+  const thkSigned = useApp((s) => (s.thickenDir === 'neg' ? -1 : 1) * (s.thickenThick > 0 ? s.thickenThick : 2))
   const pushpull = useApp((s) => s.pushPullMode)
   const ppPicks = useApp((s) => s.pushPullPicks.length)
   const ppDist = useApp((s) => s.pushPullDist)
@@ -1701,14 +1702,14 @@ export function FaceOffsetGhost() {
     if (!hoverFace || hoverFace.length < 9) return null
     const mfActive = moveFace && moveFaceKind === 'offset' && !moveFaceHasPick   // GM-B2：仅 offset 模式、未拾面时预览
     if (!(thicken || (pushpull && ppPicks === 0) || mfActive)) return null
-    const dist = thicken ? 2 : mfActive ? moveFaceDist : ppDist
+    const dist = thicken ? thkSigned : mfActive ? moveFaceDist : ppDist
     if (Math.abs(dist) < 1e-4) return null
     const n = trisNormal(hoverFace)
     const off: V3 = [n[0] * dist, n[1] * dist, n[2] * dist]
     const geom = buildSlabGeom(hoverFace, off)
     if (!geom) return null
     return { geom, color: dist < 0 ? '#ff5a4d' : '#1572c4' }
-  }, [hoverFace, thicken, pushpull, ppPicks, ppDist, moveFace, moveFaceKind, moveFaceHasPick, moveFaceDist])
+  }, [hoverFace, thicken, thkSigned, pushpull, ppPicks, ppDist, moveFace, moveFaceKind, moveFaceHasPick, moveFaceDist])
   useEffect(() => () => { data?.geom?.dispose() }, [data])
   if (!data) return null
   return (

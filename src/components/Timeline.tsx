@@ -14,7 +14,7 @@ const EDIT_DLG_KINDS = new Set<string>(['extrude', 'revolve', 'sweep', 'loft', '
 
 // 测试报告观察 C：时间轴特徵尺寸输入 — 改为本地缓冲 + 失焦/Enter 先提交（之前每个 keystroke 即触发
 // 异步重建，令打字被打断 / 自动化改唔到值）。同 featDlg 输入一致行为。外部值变（参数绑定/撤销）会重新同步。
-function NumField({ value, disabled, min, onCommit, rejectDetail }: { value: number; disabled?: boolean; step?: number; min?: number; onCommit: (n: number) => void; rejectDetail?: string }) {   // step 已不再用（轉了 type=text），保留 prop 令呼叫端不必改
+function NumField({ value, disabled, min, onCommit, rejectDetail }: { value: number; disabled?: boolean; step?: number; min?: number; onCommit: (n: number) => void | boolean; rejectDetail?: string }) {   // step 已不再用（轉了 type=text），保留 prop 令呼叫端不必改
   const unit = useApp((s) => s.unit)
   const [buf, setBuf] = useState(String(value))
   const skipCommit = useRef(false)
@@ -26,7 +26,7 @@ function NumField({ value, disabled, min, onCommit, rejectDetail }: { value: num
      * 但用戶在對話框打得到在時間軸打不到，本身就係不一致。 */
     const n = parseLen(buf, unit) ?? Number(buf)
     // BUG-UI-003 / BUG-UI-001: reject n < min (≤0 length) and announce 尺寸已拒絕 — silent revert hid the reason.
-    if (Number.isFinite(n) && (min == null || n >= min)) { if (n !== value) onCommit(n) }
+    if (Number.isFinite(n) && (min == null || n >= min)) { if (n !== value && onCommit(n) === false) setBuf(toLenInput(value, unit)) }   // onCommit 返 false = 拒絕 → 還原顯示
     else {
       setBuf(toLenInput(value, unit))
       if (min != null) useApp.setState({ status: illegalRejectStatus(rejectDetail || ILLEGAL_LENGTH_DETAIL) })
@@ -102,7 +102,7 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
   transform: { icon: 'move', label: '移動', param: 'X', field: 'dx', unit: 'mm', fields: [{ key: 'dx', label: 'X', unit: 'mm' }, { key: 'dy', label: 'Y', unit: 'mm' }, { key: 'dz', label: 'Z', unit: 'mm' }, { key: 'rx', label: '繞X', unit: '°' }, { key: 'ry', label: '繞Y', unit: '°' }, { key: 'rz', label: '繞Z', unit: '°' }] },
   pushpull: { icon: 'presspull', label: '按拉', param: '距離', field: 'dist', unit: 'mm' },
   delface: { icon: 'delface', label: '刪面', param: '', field: '', unit: '', fields: [] },
-  thickenface: { icon: 'thicken', label: '加厚面', param: '板厚', field: 'thick', unit: 'mm', fields: [{ key: 'thick', label: '板厚', unit: 'mm' }] },
+  thickenface: { icon: 'thicken', label: '加厚', param: '厚度', field: 'thick', unit: 'mm', fields: [{ key: 'thick', label: '厚度', unit: 'mm' }, { key: 'side', label: '方向', unit: '', opts: [{ value: 'pos', label: '正向' }, { value: 'neg', label: '反向' }, { value: 'both', label: '對稱' }] }, { key: 'op', label: '操作', unit: '', opts: [{ value: 'newbody', label: '新實體' }, { value: 'join', label: '合併' }] }] },   // CORE16 #1：厚度有號（負＝翻轉方向）＋方向／操作
   offsetsurf: { icon: 'offsetsurf', label: '偏移曲面', param: '距離', field: 'dist', unit: 'mm', fields: [{ key: 'dist', label: '距離', unit: 'mm' }] },
   reversesurf: { icon: 'shell', label: '翻轉曲面', param: '', field: '', unit: '', fields: [] },  // S157 翻转曲面定向
   thickenquilt: { icon: 'thicken', label: '加厚整張曲面', param: '板厚', field: 'thick', unit: 'mm', fields: [{ key: 'thick', label: '板厚', unit: 'mm' }] },  // S182
@@ -386,7 +386,22 @@ export default function Timeline() {
                     </select>
                   ) : (
                     // #31/#97：数量字段（count/countX/Y/Z、featpattern cols/rows）= 整数 step；环形/路径阵列 count 下限 2（<2 喺 worker 会变 identity 无副本），其余数量场下限 1；commit 时 Math.round 令显示==存储==worker 用值
-                    <NumField
+                    sel.type === 'thickenface' && fd.key === 'thick' ? (() => {
+                      // CORE16 #1：加厚厚度有號顯示（反向＝負數）；輸入負數＝翻轉方向，0 拒絕並提示
+                      const tf = sel as unknown as { thick: number; side?: 'pos' | 'neg' | 'both' }
+                      const shown = tf.side === 'neg' ? -tf.thick : tf.thick
+                      return <NumField
+                        key={`${sel.id}:thick:${tf.thick}:${tf.side ?? 'pos'}`}
+                        step={0.5}
+                        disabled={!!bound}
+                        value={shown}
+                        onCommit={(n) => {
+                          if (!(Math.abs(n) > 0)) { useApp.setState({ status: illegalRejectStatus('加厚厚度不可為 0（輸入負數可翻轉方向）') }); return false }
+                          const side = tf.side === 'both' ? 'both' : n < 0 ? 'neg' : 'pos'
+                          void editFeature(sel.id, { thick: Math.abs(n), side })
+                        }}
+                      />
+                    })() : <NumField
                       key={`${sel.id}:${fd.key}:${String((sel as unknown as Record<string, unknown>)[fd.key])}`}
                       step={isCount ? 1 : 0.5}
                       min={fd.key === 'count' ? 2 : isCount ? 1 : POSITIVE_LENGTH_KEYS.has(fd.key) ? 1e-6 : undefined}
@@ -412,7 +427,7 @@ export default function Timeline() {
                 rejectDetail={meta.field === 'thickness' ? ILLEGAL_THICKNESS_DETAIL : ILLEGAL_LENGTH_DETAIL}
                 disabled={!!paramBindings[`${sel.id}:${meta.field}`]}
                 value={(sel as unknown as Record<string, number>)[meta.field]}
-                onCommit={(n) => editFeature(sel.id, { [meta.field]: n })}
+                onCommit={(n) => { void editFeature(sel.id, { [meta.field]: n }) }}
               />
               {meta.unit}
               {pSelect(meta.field)}

@@ -1298,6 +1298,34 @@ function CutFaceOverlay() {
 // Live ghost preview of pattern / cpattern / mirror while their dialog is open (Fusion-style).
 // Renders translucent copies of the current body at the transforms the worker will use.
 // Same CAD→three frame as KernelBody (outer −90°X group; transforms applied in CAD space inside it).
+// CORE16 #1：加厚預覽 — 只畫新加厚板（MeshData，CAD 坐標 → three 用 group 轉 -90° X），半透明藍；唔參與拾取
+function ThickenPreviewGhost() {
+  const pv = useApp((s) => s.thickenMode ? s.thickenPreviewMesh : null)
+  const picks = useApp((s) => s.thickenMode ? s.thickenPicks : null)
+  const geom = useMemo(() => {
+    if (!pv || !pv.triangles.length) return null
+    const g = new BufferGeometry()
+    g.setAttribute('position', new Float32BufferAttribute(pv.vertices, 3))
+    g.setIndex(pv.triangles)
+    g.computeVertexNormals()
+    return g
+  }, [pv])
+  useEffect(() => () => { geom?.dispose() }, [geom])
+  return (
+    <>
+      {geom && <group rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh geometry={geom} raycast={NULL_RAYCAST} renderOrder={5} userData={{ thickenPreview: true }}>
+          <meshStandardMaterial color="#2f8cff" transparent opacity={0.5} depthWrite={false} side={DoubleSide} />
+        </mesh>
+      </group>}
+      {picks?.map((p, i) => <mesh key={'thkp' + i} position={p} raycast={NULL_RAYCAST} renderOrder={6}>
+        <sphereGeometry args={[0.9, 12, 8]} />
+        <meshBasicMaterial color="#ff8a1f" depthTest={false} />
+      </mesh>)}
+    </>
+  )
+}
+
 function PatternPreview() {
   const featDlg = useApp((s) => s.featDlg)
   const bodyMesh = useApp((s) => s.bodyMesh)
@@ -3857,6 +3885,14 @@ export default function Viewport() {
   const shellThickness = useApp((s) => s.shellThickness)
   const shellPreviewMesh = useApp(s => s.shellPreviewMesh)
   const shellPreviewBusy = useApp(s => s.shellPreviewBusy)
+  const thickenMode = useApp((s) => s.thickenMode)
+  const thickenPicks = useApp((s) => s.thickenPicks)
+  const thickenThick = useApp((s) => s.thickenThick)
+  const thickenDir = useApp((s) => s.thickenDir)
+  const thickenOp = useApp((s) => s.thickenOp)
+  const thickenPreviewMesh = useApp((s) => s.thickenPreviewMesh)
+  const thickenPreviewBusy = useApp((s) => s.thickenPreviewBusy)
+  const thickenPreviewFail = useApp((s) => s.thickenPreviewFail)
   const shellPreviewFail = useApp(s => s.shellPreviewFail)
   const setShellThickness = useApp((s) => s.setShellThickness)
   const shellType = useApp((s) => s.shellType)
@@ -4856,6 +4892,7 @@ export default function Viewport() {
             if (!toggle) ss.selectParkedBody(idx)
           }
         }} />)}
+        <ThickenPreviewGhost />
         <ModelSelView />{/* Fusion 式多选高亮（面/边） */}
         {/* S133：NURBS 曲面极点编辑器 — 拣中曲面后显示控制点球 + 拖极点变形（clone FormCage 嘅 axis-swap） */}
         {editPolesMode && <PoleNet />}
@@ -5523,6 +5560,39 @@ export default function Viewport() {
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, marginTop: 6 }}>
             <span style={{ color: '#6b7680' }}>加厚</span>
             <span><LenInput mm={boundaryPatchThick} onMm={(v) => useApp.getState().setBoundaryPatchThick(v)} unit={unit} w={66} min={0} title="加厚（0＝淨曲面）" /> {unit === 'inch' ? 'in' : unit}</span>
+          </label>
+        </CommandDialog>
+      )}
+
+      {thickenMode && (
+        <CommandDialog
+          icon="thicken"
+          title={tStatus('加厚', lang)}
+          width={252}
+          okLabel={tStatus('確定', lang)}
+          okDisabled={!!numBad || !thickenPicks.length || !(thickenThick > 0)}
+          okTip={tStatus('加厚（Enter）', lang)}
+          onOk={() => void useApp.getState().commitThicken()}
+          onCancel={() => useApp.getState().cancelThicken()}
+          summary={<>{tStatus('加厚', lang)} · {thickenPicks.length} {tStatus('面', lang)} · {thickenDir === 'neg' ? -thickenThick : thickenThick} mm</>}
+        >
+          <div role="status" aria-live="polite" data-testid="thicken-preview-status" style={{ fontSize: 11, color: thickenPreviewFail ? '#b42318' : '#5b6670', minHeight: 30 }}>{thickenPreviewBusy ? tStatus('正在計算預覽…', lang) : thickenPreviewFail ? `⚠ ${thickenPreviewFail}` : thickenPreviewMesh ? tStatus('藍色為加厚預覽；按「確定」後才建立特徵', lang) : tStatus('點選實體或曲面上的面（可多個），再設定厚度', lang)}</div>
+          <SelectionChip label={tStatus('面', lang)} count={thickenPicks.length} hint={tStatus('點選要加厚的面（再點同一面＝取消）', lang)} onClear={() => useApp.getState().clearThickenPicks()} />
+          <label>
+            <span style={{ color: '#6b7680' }}>{tStatus('厚度', lang)}</span>
+            <span data-testid="thicken-thick"><LenInput mm={thickenDir === 'neg' ? -thickenThick : thickenThick} onMm={(v) => useApp.getState().setThicken({ thick: thickenDir === 'neg' ? -v : v })} unit={unit} w={66} max={1000000} title={tStatus('加厚厚度（負數＝翻轉方向）', lang)} /> {unit === 'inch' ? 'in' : unit}</span>
+          </label>
+          {!(thickenThick > 0) && <div role="alert" data-testid="thicken-illegal-alert" style={{ color: '#b42318', fontSize: 12 }}>{tStatus('厚度必須大於 0（輸入 0 無效）', lang)}</div>}
+          <label>
+            <span style={{ color: '#6b7680' }}>{tStatus('方向', lang)}</span>
+            <span style={{ display: 'inline-flex', gap: 4 }}>
+              <select data-testid="thicken-dir" value={thickenDir} onChange={(e) => useApp.getState().setThicken({ dir: e.target.value as 'pos' | 'neg' | 'both' })} style={{ height: 26 }}><option value="pos">{tStatus('正向', lang)}</option><option value="neg">{tStatus('反向', lang)}</option><option value="both">{tStatus('對稱', lang)}</option></select>
+              <button type="button" data-testid="thicken-flip" title={tStatus('翻轉方向', lang)} disabled={thickenDir === 'both'} onClick={() => useApp.getState().flipThicken()} style={{ minWidth: 30 }}>⇅</button>
+            </span>
+          </label>
+          <label>
+            <span style={{ color: '#6b7680' }}>{tStatus('操作', lang)}</span>
+            <span><select data-testid="thicken-op" value={thickenOp} onChange={(e) => useApp.getState().setThicken({ op: e.target.value as 'newbody' | 'join' })} style={{ height: 26 }}><option value="newbody">{tStatus('新實體', lang)}</option><option value="join">{tStatus('合併', lang)}</option></select></span>
           </label>
         </CommandDialog>
       )}

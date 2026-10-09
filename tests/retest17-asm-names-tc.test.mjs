@@ -20,7 +20,8 @@ test('default-name generators emit Traditional (組件/實體/關節), no Simpli
   assert.doesNotMatch(st, /name: '关节' \+ nid/)
   assert.doesNotMatch(st, /type: 'newbody', name: `实体\$\{n\}`/)
   assert.doesNotMatch(st, /' 镜像'/)
-  assert.match(st, /const nm = lb\.active \? '組件' \+ n : \(lb\.name \? `\$\{lb\.name\}` : '組件' \+ n\)/)
+  // ASM2 #3/P3：預設實體名唔再沿用；編號按現有「組件N」名稱（唔跟 id）
+  assert.match(st, /const nm = !lb\.active && lb\.name && !isDefaultBodyName\(lb\.name\) \? lb\.name : '組件' \+ \(nameNo0 \+ nameK\+\+\)/)
   assert.match(st, /name: '關節' \+ n, type,/)
   const wk = rd('../src/worker/cad.worker.ts')
   assert.doesNotMatch(wk, /name: `实体\$\{/)

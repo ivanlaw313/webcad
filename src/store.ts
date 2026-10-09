@@ -222,6 +222,10 @@ function isCompGrounded(s: { components: { id: string; grounded?: boolean }[]; g
 }
 /** ASM2 #3：系統自動起嘅實體名（實體N／实体N／複製實體N／Body N）— 建立組件時改用「組件N」。 */
 export function isDefaultBodyName(name: string): boolean { return /^\s*(複製|复制)?(實體|实体)\s*\d*\s*$|^\s*body\s*\d*\s*$/i.test(name) }
+/** ASM2 P3：組件預設名編號 —— 按現有「組件N」名稱最大值 +1（唔再跟內部 id；刪件／撤銷後 id 會跳號，第一個組件竟叫「組件2」）。 */
+export function nextComponentNameNo(comps: readonly { name: string }[]): number {
+  return comps.reduce((m, c) => { const k = /^\s*(?:組件|组件|Component)\s*(\d+)\s*$/i.exec(c.name); return k ? Math.max(m, +k[1]) : m }, 0) + 1
+}
 function groundedMoveMsg(s: { components: { id: string; name: string }[] }, id: string): string {
   return `「${s.components.find((c) => c.id === id)?.name ?? id}」（已固定）— 請先取消固定才可移動`
 }
@@ -22629,7 +22633,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const comps = s0.components
     const maxN = comps.reduce((m, c) => { const n = parseInt(String(c.id).replace(/^C/, ''), 10); return Number.isFinite(n) && n > m ? n : m }, 0)
     const n = maxN + 1
-    const nm = s0.activeBodyName || '組件' + n
+    const nm = s0.activeBodyName && !isDefaultBodyName(s0.activeBodyName) ? s0.activeBodyName : '組件' + nextComponentNameNo(comps)
     const { def, occ } = makeDefOcc(s0.componentDefs, 'C' + n, nm, act.mesh, [s0.originX, 0, 0], { src: srcSnap })
     // B-rep 邊：worker 仲擁有活動實體 → 移走特徵之前先攞
     let edges: BrepEdge[] = []
@@ -22680,10 +22684,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     const newComps: typeof comps = []
     const newDefs: typeof defsAcc = []
     let activeDef: (typeof defsAcc)[number] | null = null
+    const nameNo0 = nextComponentNameNo(comps)
+    let nameK = 0
     live.forEach((lb, i) => {
       const n = maxN + 1 + i
       // ASM2 #3：名稱一律「組件N」；只有用戶自訂嘅實體名先沿用（預設「實體N／複製實體N／Body N」唔再變成組件名）
-      const nm = !lb.active && lb.name && !isDefaultBodyName(lb.name) ? lb.name : '組件' + n   // RETEST17 #3：預設名繁體（顯示層再按語言 localizeAsmName）
+      const nm = !lb.active && lb.name && !isDefaultBodyName(lb.name) ? lb.name : '組件' + (nameNo0 + nameK++)   // RETEST17 #3：預設名繁體（顯示層再按語言 localizeAsmName）
       const { def, occ } = makeDefOcc(defsAcc, 'C' + n, nm, lb.mesh, [get().originX, 0, 0], lb.active && srcSnap.features.length ? { src: srcSnap } : (i ? { color: COMP_PALETTE[(comps.length + i) % COMP_PALETTE.length] } : undefined))
       defsAcc = [...defsAcc, def]; newDefs.push(def); newComps.push(occ as (typeof comps)[number])
       if (lb.active) activeDef = def

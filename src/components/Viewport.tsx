@@ -3552,6 +3552,17 @@ function PoleNet() {
 
 // T794：单位感知长度输入框 — 当前单位显示（inch 模式可打分数 "1/4"/"1 1/2"、后缀 mm/in/"），内部存 mm。
 // 文本框（非 number — 要容分数斜线）；失焦重格式化对齐显示。解析唔到就保持旧值（唔写）。
+/** CORE16：長度欄原文 → 正式繁體原因（空白／非數值／≤0／超上限）；合法返 '' */
+function lenFieldReason(raw: string | null, unit: LenUnit, label: string, max = 1000000): string {
+  if (raw == null) return ''
+  const t = raw.trim()
+  if (t === '') return `請輸入${label}（必須大於 0）`
+  const v = parseLen(t, unit)
+  if (v == null) return `尺寸已拒絕：${label}必須是有效數值`
+  if (!(v > 0)) return `尺寸已拒絕：${label}必須大於 0`
+  if (v > max) return `尺寸已拒絕：${label}超出上限 ${max} mm`
+  return ''
+}
 function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: number; onMm: (v: number) => void; /** BD16-02：每次改都報【原文】（連 parse 失敗都報）—— onMm 喺 parse 失敗嗰陣根本唔會 call，所以父層單靠 onMm 永遠唔知道欄位而家係非法／空白。 */ onText?: (raw: string) => void; unit: LenUnit; w?: number; min?: number; max?: number; title?: string }) {
   const [txt, setTxt] = useState(() => toLenInput(mm, unit))
   const [foc, setFoc] = useState(false)
@@ -3615,11 +3626,11 @@ function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: num
    *       只有聚焦中／打錯緊／清空咗才顯示用戶自己嗰串字（BUG-409 要嘅行為）。 */
   const shown = (foc || bad || blank) ? txt : toLenInput(mm, unit)
   const reason = overMax
-    ? `超出上限 ${max} mm（你打咗「${txt.trim()}」）`
+    ? `超出上限 ${max} mm（輸入：「${txt.trim()}」）`
     : underMin
-    ? `最小 ${min} mm（你打咗「${txt.trim()}」）`
+    ? `最小 ${min} mm（輸入：「${txt.trim()}」）`
     : bad
-    ? `唔係一個有效長度（你打咗「${txt.trim()}」）${unit === 'inch' ? '；inch 模式可打分數，例如 1/4' : '；例如 80 或 12.5'}`
+    ? `不是有效長度（輸入：「${txt.trim()}」）${unit === 'inch' ? '；inch 模式可輸入分數，例如 1/4' : '；例如 80 或 12.5'}`
     : blank ? '未輸入數值' : ''
   return (
     <input
@@ -3899,6 +3910,8 @@ export default function Viewport() {
   const thickenPreviewFail = useApp((s) => s.thickenPreviewFail)
   const shellPreviewFail = useApp(s => s.shellPreviewFail)
   const setShellThickness = useApp((s) => s.setShellThickness)
+  const [shellThkTxt, setShellThkTxt] = useState<string | null>(null)
+  useEffect(() => { if (!shellMode) setShellThkTxt(null) }, [shellMode])
   const shellType = useApp((s) => s.shellType)
   const setShellType = useApp((s) => s.setShellType)
   const shellTangentChain = useApp((s) => s.shellTangentChain)
@@ -5585,7 +5598,7 @@ export default function Viewport() {
           okTip="補面（Enter）"
           onOk={() => void commitBoundaryPatch()}
           onCancel={() => cancelBoundaryPatch()}
-          summary={<>邊界補面 · {boundaryPatchPicks.length || 0} 條棱{boundaryPatchTangent ? ' · G1' : ''}{boundaryPatchThick > 0 ? ` · 加厚${boundaryPatchThick}` : ''}</>}
+          summary={<>邊界補面 · {boundaryPatchPicks.length || 0} 條稜{boundaryPatchTangent ? ' · G1' : ''}{boundaryPatchThick > 0 ? ` · 加厚${boundaryPatchThick}` : ''}</>}
         >
           <SelectionChip label="邊界棱" count={boundaryPatchPicks.length} hint="① 逐條點選邊界棱（≥2，橙點標記）→ 填充/封口" onClear={() => useApp.getState().clearBoundaryPatchPicks()} />
           <label style={{ display: 'flex', justifyContent: 'flex-start', gap: 6, fontSize: 12, color: '#6b7680', marginTop: 6 }} title="G1 相切：補面與鄰面相切連續（class-A 過渡）；鄰面解析唔到時退回 G0">
@@ -5616,6 +5629,7 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>{tStatus('厚度', lang)}</span>
             <span data-testid="thicken-thick"><LenInput mm={thickenDir === 'neg' ? -thickenThick : thickenThick} onMm={(v) => useApp.getState().setThicken({ thick: thickenDir === 'neg' ? -v : v })} unit={unit} w={66} max={1000000} title={tStatus('加厚厚度（負數＝翻轉方向）', lang)} /> {unit === 'inch' ? 'in' : unit}</span>
           </label>
+          {thickenThick > 0 && thickenDir === 'neg' && <div role="status" data-testid="thicken-flip-note" style={{ color: '#b54708', fontSize: 12 }}>{tStatus(`⇅ 反向：沿面法線反方向加厚 ${thickenThick} mm（負值＝反向）`, lang)}</div>}
           {!(thickenThick > 0) && <div role="alert" data-testid="thicken-illegal-alert" style={{ color: '#b42318', fontSize: 12 }}>{tStatus('厚度必須大於 0（輸入 0 無效）', lang)}</div>}
           <label>
             <span style={{ color: '#6b7680' }}>{tStatus('方向', lang)}</span>
@@ -5652,10 +5666,10 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>抽殼類型</span>
             <span><select value={shellType} onChange={(e) => setShellType(e.target.value as 'open' | 'closed')} style={{ height: 26 }} aria-label="抽殼類型"><option value="open">移除面</option><option value="closed">封閉實體</option></select></span>
           </label>
-          {!(shellThickness > 0) && <div role="alert" data-testid="shell-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div>}
+          {(() => { const why = lenFieldReason(shellThkTxt, unit, '壁厚'); return why || !(shellThickness > 0) ? <div role="alert" data-testid="shell-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{why ? tStatus(why, lang) : illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div> : null })()}
           <label>
             <span style={{ color: '#6b7680' }}>壁厚</span>
-            <span><LenInput mm={shellThickness} onMm={setShellThickness} unit={unit} w={66} min={0.01} max={1000000} title="抽殼壁厚" /> {unit === 'inch' ? 'in' : unit}</span>
+            <span><LenInput mm={shellThickness} onMm={setShellThickness} onText={setShellThkTxt} unit={unit} w={66} min={0.01} max={1000000} title="抽殼壁厚" /> {unit === 'inch' ? 'in' : unit}</span>
           </label>
           <label title={tStatus('壁厚方向（Fusion Direction）：向內=外形保留 · 向外=尺寸外擴 · 兩側=壁跨原邊界（逐面不同厚度請事後用「偏移面」）', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('方向', lang)}</span>

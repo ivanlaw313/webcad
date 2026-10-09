@@ -5963,7 +5963,7 @@ function buildShape(features: Feature[], noCache = false): any {
       if (parkIdx >= 0 && parkedBodies[parkIdx]) {
         const sibling = shape || undefined
         if (f.copy) {
-          parkedBodies.push({ name: `實體${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(parkedBodies[parkIdx].shape.clone(), sibling) })
+          parkedBodies.push({ name: `複製實體${parkedBodies.filter((b) => /^複製實體\d+$/.test(b.name)).length + 1}`, kind: 'body', shape: applyXf(parkedBodies[parkIdx].shape.clone(), sibling) })
         } else {
           const pb = parkedBodies[parkIdx]
           parkedBodies[parkIdx] = { name: pb.name, ...(pb.kind ? { kind: pb.kind } : {}), shape: applyXf(pb.shape, sibling) }
@@ -5972,7 +5972,7 @@ function buildShape(features: Feature[], noCache = false): any {
         const sibling = parkedBodies.length === 1 ? parkedBodies[0].shape : undefined
         if (f.copy) {
           // Create Copy 必须保留原实体并加一个独立实体，绝不能融合成单一固体。
-          parkedBodies.push({ name: `實體${parkedBodies.length + 1} (1)`, kind: 'body', shape: applyXf(shape.clone(), sibling) })
+          parkedBodies.push({ name: `複製實體${parkedBodies.filter((b) => /^複製實體\d+$/.test(b.name)).length + 1}`, kind: 'body', shape: applyXf(shape.clone(), sibling) })
         } else {
           shape = applyXf(shape, sibling)
         }

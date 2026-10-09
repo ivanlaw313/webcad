@@ -503,6 +503,7 @@ const SC2TC_CHARS_EXTRA: Record<string, string> = {
   '浅': '淺', '横': '橫', '拦': '攔', '广': '廣', '叶': '葉', '净': '淨',
   '幂': '冪', '丢': '丟', '仓': '倉', '叠': '疊', '赶': '趕', '荫': '蔭',
   '临': '臨', '衬': '襯',
+  '棱': '稜',   // CORE16：zh-HK 用「稜」（棱＝內地寫法）— 倒角/圓角「稜」、稜柱、稜錐
 }
 
 export const SC2TC_CHARS: Record<string, string> = { ...SC2TC_CHARS_BASE, ...SC2TC_CHARS_EXTRA }

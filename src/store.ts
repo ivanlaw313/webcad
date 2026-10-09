@@ -7410,8 +7410,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     let thick = patch.thick !== undefined ? (Number.isFinite(patch.thick) ? patch.thick : 0) : cur.thickenThick
     let dir = patch.dir ?? cur.thickenDir
     // 負數 = 翻轉方向（正向↔反向），厚度取絕對值
+    const negTyped = thick < 0
     if (thick < 0) { thick = -thick; dir = dir === 'pos' ? 'neg' : dir === 'neg' ? 'pos' : dir }
     set({ thickenThick: thick, thickenDir: dir, thickenOp: patch.op ?? cur.thickenOp, ...(!(thick > 0) ? { status: '加厚：厚度必須大於 0（輸入 0 無效）' } : /^加厚：厚度必須大於 0/.test(cur.status) ? { status: `加厚：厚度 ${thick} mm（${dir === 'neg' ? '反向' : dir === 'both' ? '對稱' : '正向'}）` } : {}) })
+    // CORE16：負數唔再靜默翻轉 — 狀態列明確講「負值＝反向」同而家嘅方向
+    if (negTyped && thick > 0) set({ status: `加厚：負值表示反向 — 方向已改為「${dir === 'neg' ? '反向' : dir === 'pos' ? '正向' : '對稱'}」，厚度 ${thick} mm` })
     get().scheduleThickenPreview()
   },
   flipThicken: () => { const d = get().thickenDir; set({ thickenDir: d === 'pos' ? 'neg' : d === 'neg' ? 'pos' : 'both' }); get().scheduleThickenPreview() },

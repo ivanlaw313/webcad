@@ -599,6 +599,23 @@ await runE2E(async (page, okRaw) => {
     await errorMsg('cylinder Ø0', /尺寸|大於|Ø|直徑/)
   })
 
+  // ════════════════ 7b. 圓柱位置（測試員：X=30 冇效）════════════════
+  await run('cylinder-place', '圓柱位置 X/Y/Z 及 📍 拾位置', async () => {
+    const bbOf = () => S(() => { const m = window.useApp.getState().bodyMesh; const out = []; for (const q of [m, ...(m?.parked ?? [])]) { if (!q) continue; let a = [1e9, 1e9, 1e9], b = [-1e9, -1e9, -1e9]; for (let i = 0; i < q.vertices.length; i += 3) for (let k = 0; k < 3; k++) { a[k] = Math.min(a[k], q.vertices[i + k]); b[k] = Math.max(b[k], q.vertices[i + k]) } out.push([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, a[2], b[2]].map((v) => +v.toFixed(2))) } return out })
+    await ribbon('cylinder')
+    const inputs = page.locator('.cmd-palette input:visible')
+    await typeInto(inputs.nth(0), '10'); await commitField(inputs.nth(0))
+    await typeInto(inputs.nth(1), '10'); await commitField(inputs.nth(1))
+    const place = page.locator('[data-testid="prim-place"] input')
+    await typeInto(place.nth(0), '30'); await commitField(place.nth(0))
+    const px = await S(() => window.useApp.getState().featDlg?.params?.px)
+    ok('typing X=30 updates the dialog parameter', +px === 30, { px })
+    await clickOk()
+    const b1 = await bbOf()
+    ok('cylinder built at X=30 (centre x≈30, y≈0, z 0..10)', b1.length === 1 && Math.abs(b1[0][0] - 30) < 0.2 && Math.abs(b1[0][1]) < 0.2 && Math.abs(b1[0][2]) < 0.2, { b1 })
+    cur.vol = (await vol()).total
+  })
+
   // ════════════════ 8. 陣列 Pattern ════════════════
   await run('pattern', '陣列 Pattern（矩形／環形／路徑）', async () => {
     await build([{ id: 'b1', type: 'extrude', profile: { kind: 'rect', a: [0, 0], b: [10, 10] }, height: 5, operation: 'new' }])
@@ -670,21 +687,35 @@ await runE2E(async (page, okRaw) => {
     ok('thicken opens a command panel (not a prompt)', pal, { status: await statusBar() })
     if (pal) {
       await typeField(/厚度|板厚/, '2.5'); await commitField(field(/厚度|板厚/))
-      await previewCheck('thicken', sig0, genericPreview)
+      await previewCheck('thicken', sig0, 'thickenPreviewMesh')
       await tradOnly('thicken panel', await dlgText())
-      const pv = await meshVol(genericPreview)
+      const pvPlate = await meshVol('thickenPreviewMesh')
       await clickOk()
       const v1 = (await expectVol('thicken top 2.5 (new body)', 12000 + 1200 * 2.5, 0.01)).total
-      await previewMatches(pv, v1)
-      await timelineDbl('thickenface')
-      ok('timeline double-click opens 編輯 · 加厚', /加厚/.test(await dlgText()))
-      await typeField(/厚度|板厚/, '4'); await commitField(field(/厚度|板厚/)); await clickOk()
-      const v2 = (await expectVol('edited to 4', 12000 + 4800, 0.01)).total
+      ok('thicken preview (new plate) == added volume', pvPlate != null && near(pvPlate, v1 - 12000, 0.02), { pvPlate, added: v1 - 12000 })
+      // edit via the timeline bottom edit bar (thicken has no reopen dialog)
+      const tIdx = await S(() => window.useApp.getState().features.findIndex((f) => f.type === 'thickenface'))
+      await page.locator(`.tl-chip[data-fi="${tIdx}"]`).first().click(); await W(500)
+      const tb = page.locator('label', { hasText: /厚度/ }).locator('input:visible').first()
+      await tb.click(); await tb.press('Control+a'); await tb.pressSequentially('4', { delay: 60 }); await tb.press('Enter'); await waitIdle()
+      const v2 = (await expectVol('edit bar → 4', 12000 + 4800, 0.01)).total
       await undoRedo(v1, v2)
+      await page.locator(`.tl-chip[data-fi="${tIdx}"]`).first().click(); await W(500)
+      const tb2 = page.locator('label', { hasText: /厚度/ }).locator('input:visible').first()
+      await tb2.click(); await tb2.press('Control+a'); await tb2.pressSequentially('-1', { delay: 60 }); await tb2.press('Enter'); await waitIdle()
+      const stB = await statusBar()
+      ok('edit bar −1: status says negative = reverse', /負值表示反向/.test(stB), { stB })
+      await page.keyboard.press('Escape'); await W(300)
       await ribbon('thicken'); await clickCad([0, 0, 14]); await W(800)
       await typeField(/厚度|板厚/, '0'); await commitField(field(/厚度|板厚/))
       ok('0 cannot be committed', await okBtn().isDisabled().catch(() => false))
       await errorMsg('thicken 0', /厚度|大於/)
+      // −1 = reverse: must be visible (direction control + note + status), not a silent flip
+      await typeField(/厚度|板厚/, '-1'); await commitField(field(/厚度|板厚/)); await W(500)
+      const th = await S(() => { const s = window.useApp.getState(); return { dir: s.thickenDir, t: s.thickenThick, sel: document.querySelector('[data-testid="thicken-dir"]')?.value, note: document.querySelector('[data-testid="thicken-flip-note"]')?.textContent || '', status: s.status } })
+      ok('thicken −1: direction control shows 反向', th.dir === 'neg' && th.sel === 'neg' && th.t === 1, th)
+      ok('thicken −1: note/status says negative = reverse', /反向/.test(th.note) && /負值表示反向/.test(th.status), th)
+      await tradOnly('thicken −1 note', th.note + ' ' + th.status)
     } else if (await prompt().count()) { await answerPrompt('2.5'); await waitIdle(); cur.vol = (await vol()).total }
   })
 
@@ -749,6 +780,15 @@ await runE2E(async (page, okRaw) => {
     await clickOk()
     const v3 = (await expectVol('+ chamfer 1.5', v2 - 1.5 * 1.5 / 2 * 40, 0.01)).total
     await previewMatches(pvc, v3, 'chamfer preview == result')
+    // zh-HK wording: 「稜」/「邊」, never mainland 「棱」 — command panel, timeline edit dialog and bottom edit bar
+    { const chIdx = await S(() => window.useApp.getState().features.map((f) => f.type).lastIndexOf('chamfer'))
+      await page.locator(`.tl-chip[data-fi="${chIdx}"]`).first().click(); await W(500)
+      const barTxt = await S(() => document.body.innerText)
+      ok('chamfer edit bar / UI has no mainland 「棱」 (zh-HK)', !/棱/.test(barTxt), { hit: (barTxt.match(/.{0,12}棱.{0,12}/g) || []).slice(0, 4) })
+      await page.locator(`.tl-chip[data-fi="${chIdx}"]`).first().dblclick(); await W(800)
+      const edTxt = await dlgText()
+      ok('chamfer edit dialog has no 「棱」', !/棱/.test(edTxt), { hit: (edTxt.match(/.{0,12}棱.{0,12}/g) || []).slice(0, 4) })
+      await page.keyboard.press('Escape'); await W(300); await page.keyboard.press('Escape'); await W(300) }
     // error: radius too large
     await ribbon('fillet'); await clickCad([-20, 0, 9.9]); await W(800)
     const r3 = page.locator('input[aria-label="半徑組 1 半徑"], input[title="半徑組 1 半徑"]').first()
@@ -788,10 +828,21 @@ await runE2E(async (page, okRaw) => {
     await clickCad([0, 0, 10]); await W(800)
     const n = await S(() => window.useApp.getState().shellPicks.length)
     ok('top face picked as opening', n === 1, { n })
-    const t = page.locator('input[title="抽殼壁厚"]').first()
+    const t = page.locator('input[aria-label="抽殼壁厚"]').first()   // title 會變成錯誤原因，用 aria-label
     await typeInto(t, '1.5'); await commitField(t); await waitIdle()
     const pv = await meshVol('shellPreviewMesh')
     ok('shell preview present', pv != null, { pv })
+    // wall 0 / blank: a formal reason line, not just a red field
+    for (const [txt, re] of [['0', /壁厚必須大於 0/], ['', /請輸入壁厚/]]) {
+      await t.click(); await t.press('Control+a'); if (txt) await t.pressSequentially(txt, { delay: 60 }); else await t.press('Backspace')
+      await page.keyboard.press('Tab'); await W(400)
+      const al = await S(() => document.querySelector('[data-testid="shell-illegal-alert"]')?.textContent || '')
+      ok(`shell wall「${txt}」: formal reason shown`, re.test(al), { al })
+      await tradOnly(`shell wall「${txt}」 reason`, al)
+      ok(`shell wall「${txt}」: 確定 disabled`, await okBtn().isDisabled())
+    }
+    await typeInto(t, '1.5'); await commitField(t); await waitIdle()
+    ok('valid wall clears the reason', !(await S(() => document.querySelector('[data-testid="shell-illegal-alert"]')?.textContent || '')))
     await tradOnly('shell panel', await dlgText())
     await selectIn(/^方向/, 'outside'); await selectIn(/^方向/, 'inside'); await waitIdle()
     const pv2 = await meshVol('shellPreviewMesh')
@@ -876,6 +927,9 @@ await runE2E(async (page, okRaw) => {
     await clickOk()
     const v1 = await vol()
     ok('copy moved by 12.5/5 → two bodies 24000', v1.bodies >= 1 && near(v1.total, 24000, 0.01), v1)
+    { const names = await S(() => (window.useApp.getState().bodyMesh?.parked ?? []).map((b) => b.name)); const st0 = await statusBar()
+      const tree = await S(() => [...document.querySelectorAll('.tree-row')].map((e) => e.innerText).join(' | '))
+      ok('copied body is named 複製實體1 (matches status/timeline), not 「實體1 (1)」', names.includes('複製實體1') && !names.some((n) => / \(\d+\)$/.test(n)) && /複製實體1/.test(tree), { names, st0, tree: tree.slice(0, 200) }) }
     cur.vol = v1.total
     const t = await S(() => window.useApp.getState().features.at(-1)?.type)
     try { await timelineDbl(t) } catch { /* */ }

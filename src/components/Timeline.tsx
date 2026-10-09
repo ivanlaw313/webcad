@@ -403,7 +403,7 @@ export default function Timeline() {
                         onCommit={(n) => {
                           if (!(Math.abs(n) > 0)) { useApp.setState({ status: illegalRejectStatus('加厚厚度不可為 0（輸入負數可翻轉方向）') }); return false }
                           const side = tf.side === 'both' ? 'both' : n < 0 ? 'neg' : 'pos'
-                          void editFeature(sel.id, { thick: Math.abs(n), side })
+                          void Promise.resolve(editFeature(sel.id, { thick: Math.abs(n), side })).then(() => { if (n < 0 && side === 'neg' && tf.side !== 'neg') useApp.setState((st) => ({ status: `加厚：負值表示反向 — 方向已改為「反向」，厚度 ${Math.abs(n)} mm　${st.status}` })) })   // CORE16：負數唔再靜默翻轉
                         }}
                       />
                     })() : <NumField

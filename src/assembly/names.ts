@@ -7,11 +7,12 @@ const PREFIX: Record<string, { tc: string; sc: string; en: string }> = {
   组件: { tc: '組件', sc: '组件', en: 'Component ' }, 組件: { tc: '組件', sc: '组件', en: 'Component ' },
   关节: { tc: '關節', sc: '关节', en: 'Joint ' }, 關節: { tc: '關節', sc: '关节', en: 'Joint ' },
   实体: { tc: '實體', sc: '实体', en: 'Body ' }, 實體: { tc: '實體', sc: '实体', en: 'Body ' },
+  复制实体: { tc: '複製實體', sc: '复制实体', en: 'Copy of body ' }, 複製實體: { tc: '複製實體', sc: '复制实体', en: 'Copy of body ' },   // CORE16：Move/Copy 副本
 }
 
 export function localizeAsmName(name: string, lang: string | null | undefined): string {
   if (!name) return name
-  const m = /^(组件|組件|关节|關節|实体|實體)(\d+)( \(\d+\))?$/.exec(name)   // RETEST17 #3：亦認「實體3 (1)」副本預設名
+  const m = /^(组件|組件|关节|關節|复制实体|複製實體|实体|實體)(\d+)( \(\d+\))?$/.exec(name)   // RETEST17 #3：亦認「實體3 (1)」副本預設名
   const L = lang || 'zh-HK'
   if (m) {
     const p = PREFIX[m[1]]

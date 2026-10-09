@@ -2585,6 +2585,12 @@ function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], sh
         return false
       })
       const referenceOnly = framedExtent || !!(sh.arc || sh.ell || sh.earc || sh.smooth || sh.conic)
+      // SKETCH12 #5：開放折線（多段）的外框寬高不對應任何一段；舊版高度讀數置於外框左側（通常在起點或原點附近），
+      //   繪畫後看似殘留文字。多段開放路徑不顯示外框讀數（用尺寸工具標真段長）；單段直線只顯示非零方向。
+      const openSegs = sh.open && !sh.smooth && !sh.conic && !sh.ell && !sh.earc ? ((sh.verts ?? sh.pts).length - 1) : 0
+      if (openSegs > 1) return
+      if (openSegs === 1 && x1 - x0 < 1e-6 && !coversAxis('h')) { out.push({ key: k + 'h', anchor: lift([x0, (y0 + y1) / 2]), pxOff: [-22, 0], text: dimFmtU(y1 - y0, unit), edit: { target, dim: 'h' as const, value: y1 - y0 } }); return }
+      if (openSegs === 1 && y1 - y0 < 1e-6) { if (!coversAxis('w')) out.push({ key: k + 'w', anchor: lift([(x0 + x1) / 2, y0]), pxOff: [0, 18], text: dimFmtU(x1 - x0, unit), edit: { target, dim: 'w' as const, value: x1 - x0 } }); return }
       if (!coversAxis('w')) out.push({ key: k + 'w', anchor: lift([(x0 + x1) / 2, y0]), pxOff: [0, 18], ...(framedExtent?{referenceExtent:'X' as const}:{}), text: referenceOnly ? `${framedExtent?'ΔX ':''}(${dimFmtU(x1 - x0, unit)})` : dimFmtU(x1 - x0, unit), ...(referenceOnly ? { driven: true } : { edit: { target, dim: 'w' as const, value: x1 - x0 } }) })
       if (!coversAxis('h')) out.push({ key: k + 'h', anchor: lift([x0, (y0 + y1) / 2]), pxOff: [-22, 0], ...(framedExtent?{referenceExtent:'Y' as const}:{}), text: referenceOnly ? `${framedExtent?'ΔY ':''}(${dimFmtU(y1 - y0, unit)})` : dimFmtU(y1 - y0, unit), ...(referenceOnly ? { driven: true } : { edit: { target, dim: 'h' as const, value: y1 - y0 } }) })
     }

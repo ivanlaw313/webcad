@@ -19,9 +19,11 @@
 // Pure presentation: all state comes via props from the Viewport (see WIRING block at the bottom of this file).
 // This component renders inside the R3F <Canvas> tree (same place <ComponentGizmo/> is mounted today).
 
-import { useRef, useState, useMemo } from 'react'
+import { useRef, useState, useMemo, useEffect } from 'react'
 import { PivotControls } from '@react-three/drei'
-import { Matrix4, Vector3 } from 'three'
+import { useThree } from '@react-three/fiber'
+import { Matrix4, Vector2, Vector3, Raycaster, type Group, type Intersection } from 'three'
+import { GUMBALL_USERDATA, gumballFirst, isGumballObject, registerGumballHitTester } from '../assembly/gumballPick'
 import { compWorldMatrix, meshCenter3 } from '../store'
 import { worldToPose } from '../assembly/faceMate'
 import type { MeshData } from '../worker/cad.worker'
@@ -112,6 +114,31 @@ export default function ComponentGumball({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [jointFrame, gen])
 
+  // RETEST18 #1：把手指標路徑 — 註冊 hit tester（Viewport 外層 capture 先問：撳中把手 → 唔開框選 + 即刻停 Orbit），
+  // 同埋 R3F filter 將把手命中排最前（零件喺把手前面都拎得到）。卸載時還原。
+  const grp = useRef<Group>(null)
+  const getR3F = useThree((st) => st.get)
+  const setEvents = useThree((st) => st.setEvents)
+  useEffect(() => {
+    if (!show) return
+    const rc = new Raycaster()
+    const ndc = new Vector2()
+    registerGumballHitTester((x, y) => {
+      const g = grp.current
+      const st = getR3F()
+      if (!g) return false
+      const r = st.gl.domElement.getBoundingClientRect()
+      if (r.width <= 0 || r.height <= 0 || x < r.left || x > r.right || y < r.top || y > r.bottom) return false
+      ndc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1)
+      rc.setFromCamera(ndc, st.camera)
+      g.updateWorldMatrix(true, true)
+      return rc.intersectObject(g, true).some((h) => isGumballObject(h.object))
+    }, () => getR3F().controls as unknown as { enabled: boolean } | null)
+    const prevFilter = getR3F().events.filter
+    setEvents({ filter: (hits: Intersection[], st) => gumballFirst(prevFilter ? prevFilter(hits, st) : hits) })
+    return () => { registerGumballHitTester(null); setEvents({ filter: prevFilter }) }
+  }, [show, getR3F, setEvents])
+
   if (!show || !component) return null
   const c = component
 
@@ -120,9 +147,10 @@ export default function ComponentGumball({
     const pv = new Vector3().setFromMatrixPosition(jointSeed)
     const pivot: [number, number, number] = [pv.x, pv.y, pv.z]
     return (
-      <>
+      <group ref={grp}>
         {jointFrame.handles.map((h) => (
           <PivotControls
+            userData={GUMBALL_USERDATA}
             key={c.id + ':' + h + ':' + gen}
             matrix={dragSeed.current ?? jointSeed}
             autoTransform
@@ -145,14 +173,16 @@ export default function ComponentGumball({
             }}
           />
         ))}
-      </>
+      </group>
     )
   }
 
   return (
+    <group ref={grp}>
     <PivotControls
       // key change on commit fully remounts → re-seed at new centre, delta back to identity.
       key={c.id + ':' + gen}
+      userData={GUMBALL_USERDATA}
       matrix={seed}
       // autoTransform lets the gizmo visually follow the drag; we still commit via the captured world delta.
       autoTransform
@@ -192,5 +222,6 @@ export default function ComponentGumball({
         setGen((g) => g + 1)
       }}
     />
+    </group>
   )
 }

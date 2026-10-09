@@ -134,7 +134,8 @@ import { evalArith, normalizeWide, parseLen, toLenInput, type LenUnit } from '..
 import { NumInput } from './NumInput'   // BUG-507/509：受驗數值欄（取代 type="number"）
 import type { MeshData } from '../worker/cad.worker'
 import { fitCameraDistance } from '../cad/fitCameraDistance'
-import { computeFK, solve4Bar, solveSliderCrank, solveSixBar, jointDragFrame, jointDragLiveValue, jointDragStatus, JOINT_LABEL_TC, type Joint } from '../assembly/kinematics'
+import { computeFK, solve4Bar, solveSliderCrank, solveSixBar, jointDragFrame, jointDragLiveValue, jointDragStatus, drivingJointOf, JOINT_LABEL_TC, type Joint } from '../assembly/kinematics'
+import { claimGumballPointer } from '../assembly/gumballPick'   // RETEST18 #1：把手指標路徑
 import { localizeAsmName } from '../assembly/names'   // RETEST17 #3：組件/關節預設名繁體顯示
 import { assemblyMassSummary, threeToCadPoint } from '../assembly/asmMass'   // BUG(C)：装配质心用 FK 世界矩阵
 import { getProcTexture } from '../render/procTextures'   // S101[8]：程序化纹理（三平面投影）
@@ -3673,7 +3674,8 @@ function ComponentGizmo() {
   const joints = useApp((s) => s.joints)
   const c = components.find((x) => x.id === sel)
   // BUG(D)：被關節驅動嘅子件 → gizmo 放喺 FK 位置，拖動投影到關節自由度（更新角度／滑桿），唔改 pos。
-  const childJoint = c ? joints.find((j) => j.child === c.id) : undefined
+  // RETEST18 #1：用 FK 真正採用嗰條關節（同一子件有多條入邊時 computeFK 取最後一條）— 唔係第一條，否則拖動驅動咗一條冇效嘅關節（睇落 0°）。
+  const childJoint = c ? drivingJointOf(c.id, joints) : undefined
   const fk = useMemo(() => (childJoint ? computeFK(components.map((x) => x.id), joints) : null), [childJoint, components, joints])
   // RETEST17 #2：受約束拖動 frame（旋轉環繞關節軸 / 箭頭沿關節軸）— 拖動逐幀即時驅動關節值（Fusion 拖關節子件）。
   const jointFrame = useMemo(() => {
@@ -4676,6 +4678,9 @@ export default function Viewport() {
       data-mesh-drop-capture="1"
       data-mesh-drop-overlay-host="1"
       onPointerDownCapture={(e) => {
+        // RETEST18 #1：撳中組件 gumball 把手（關節旋轉環 / 滑動箭頭 / 移動把手）→ 交俾 R3F/drei：唔開框選、唔 stopPropagation，
+        // 並喺 canvas 上嘅 OrbitControls 收到 pointerdown 之前停用佢（放手先還原）— 拖把手唔會轉鏡頭。
+        if (e.button === 0 && e.target instanceof HTMLCanvasElement && claimGumballPointer(e.clientX, e.clientY)) return
         // GM-W5 5.3：select 工具 + 左键 + 目标系 canvas 先接管（HTML 覆盖层照常运作）
         // Multi-view secondary canvases are orbit-only — skip marquee/lasso outside single layout.
         if (viewLayout !== 'single' || navTool !== 'select' || mode === 'sketch' || e.button !== 0 || !(e.target instanceof HTMLCanvasElement)) return

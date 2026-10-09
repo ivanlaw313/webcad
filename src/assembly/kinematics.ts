@@ -613,3 +613,10 @@ export function jointDragStatus(jointName: string, angle: number | undefined, sl
   const parts = [angle !== undefined ? `角度 ${angle.toFixed(1)}°` : '', slide !== undefined ? `偏移 ${slide.toFixed(2)} mm` : ''].filter(Boolean).join(' · ')
   return `${done ? '已沿' : '拖動中 · 沿'}關節「${jointName}」驅動：${parts}（受關節約束）`
 }
+
+// RETEST18 #1：子件嘅「生效」入邊關節 — 同 computeFK 一致（childJoint Map 逐條 set → 同一 child 最後一條生效）。
+// gumball 拖動 / 狀態必須驅動呢條；之前用 joints.find（第一條）→ 有冗餘關節時拖咗條 FK 唔用嘅關節，零件唔郁。
+export function drivingJointOf(childId: string, joints: readonly Joint[]): Joint | undefined {
+  for (let i = joints.length - 1; i >= 0; i--) if (joints[i].child === childId) return joints[i]
+  return undefined
+}

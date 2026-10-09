@@ -106,6 +106,12 @@ export function findLoops(componentIds: string[], joints: Joint[]): Loop[] {
   return loops
 }
 
+// RETEST18 #1：真機構閉環要 ≥3 個唔同組件。2 件之間多條關節（例：同一對件先建旋轉、再建滑動）只係冗餘/重複約束，
+// computeFK 照樹（同一 child 最後一條生效）解，唔可以行閉環求解器（否則簡單滑動/旋轉報「回路唔係平面」、驅動被拒）。
+export function isMechanismLoop(loop: Loop): boolean {
+  return new Set(loop.bodies).size >= 3
+}
+
 // ── 平面检查 + 正交基 ──────────────────────────────────────────────────────────────────────
 // n̂ = 环内第一个 revolute 嘅轴；逐个关节核对诚实范围。基向量构造照搬 jointMotion planar 基模式
 // （kinematics.ts:67-69）：ref 拣同 n̂ 唔近平行嘅坐标轴，u = n̂×ref，v = n̂×u ⇒ u×v = n̂（右手系，

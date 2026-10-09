@@ -55,8 +55,8 @@ import { detectLang, tStatus, msg, normalizeLang, type Lang } from './i18n'   //
 import { searchRibbonCommand } from './ribbon'   // P6 AI 教学：把用户问句模糊匹配到真实 ribbon 命令位置
 import { openAeroLab } from './aero/aeroUiStore'   // Aero Design Lab（氣動設計實驗室）面板開關 — 獨立小 store
 import type { MeshData, Feature, SketchProfile, BoolOp, EdgeSel, DrawView, Plane } from './worker/cad.worker'
-import { computeFK, _fourbar, solve4Bar, fourBarVelocity, fourBarVelocityProfile, solveSliderCrank, sliderCrankReachability, solveLinkage, solveSixBar, sweepToContact, simulateMotion, JOINT_LABEL_TC, jointTypeMenu, jointTypePickOptions, resolveJointOrigin, type Joint, type JointType, type JointOrigin, type JointOriginMode } from './assembly/kinematics'
-import { findLoops, loopPlane, solveLoop, type Loop } from './assembly/linkage'   // T774（S51）：通用平面闭环求解器
+import { computeFK, drivingJointOf, _fourbar, solve4Bar, fourBarVelocity, fourBarVelocityProfile, solveSliderCrank, sliderCrankReachability, solveLinkage, solveSixBar, sweepToContact, simulateMotion, JOINT_LABEL_TC, jointTypeMenu, jointTypePickOptions, resolveJointOrigin, type Joint, type JointType, type JointOrigin, type JointOriginMode } from './assembly/kinematics'
+import { findLoops, loopPlane, solveLoop, isMechanismLoop, type Loop } from './assembly/linkage'   // T774（S51）：通用平面闭环求解器
 import { inferAsBuiltAxis, type ExplodeStep } from './assembly/asmUtil'   // GM-3DV4 A10：as-built 推轴；A12：有序爆炸步类型
 import { solveMate, worldAABB, type MateType, type MateAxis, type MateSide } from './assembly/mates'
 import { estimateOverlapVolume } from './assembly/overlapVolume'
@@ -12894,7 +12894,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     // T774（S51）：闭环检测 — 驱动关节属于某个环 → 行通用闭环求解器（值空间解，渲染端零改动）。
     // null = 死点/超限/非平面环 → 乜都唔写（写半步会撑开回路），出诚实状态。
     if ((patch.angle !== undefined || patch.slide !== undefined) && s.components.length) {
-      const loops = _loopsOf(s.components.map((c) => c.id), s.joints)
+      // RETEST18 #1：只有 ≥3 件嘅真閉環先行閉環求解器；2 件冗餘關節（同一對件兩條關節）照樹 FK 直接寫值。
+      const loops = _loopsOf(s.components.map((c) => c.id), s.joints).filter(isMechanismLoop)
       const inLoop = loops.some((lp) => lp.joints.some((j) => j.id === id))
       if (inLoop) {
         const lp = loops.find((l) => l.joints.some((j) => j.id === id))!
@@ -12962,6 +12963,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     // Propagate motion links (gear trains) — shared single source of truth (see propagateLinks above).
     // T735 双驱动 + kind:'rack' 角→移 都喺 helper 内处理；从动唔 clamp（自由转），只驱动守自身限位。
     joints = propagateLinks(joints, s.motionLinks)
+    // RETEST18 #1：同一子件有多條入邊關節時，FK 只用最後一條 — 驅動被覆蓋嗰條要誠實講（唔好扮郁咗）。
+    if (!contactNote && (patch.angle !== undefined || patch.slide !== undefined)) {
+      const me = s.joints.find((x) => x.id === id), eff = me ? drivingJointOf(me.child, s.joints) : undefined
+      if (me && eff && eff.id !== id) contactNote = `⚠ 「${me.name}」同「${eff.name}」約束同一子件 — 位置以「${eff.name}」為準（冗餘關節；可刪除其中一條）`
+    }
     return contactNote ? { ...undoP, joints, status: contactNote } : { ...undoP, joints }
   }),
   contactSets: false,

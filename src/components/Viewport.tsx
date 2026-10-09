@@ -6983,6 +6983,7 @@ export default function Viewport() {
             <label>{tStatus('螺距', lang)} <FeatNum k="pitch" v={featDlg.params.pitch} w={46} /></label>
             <label>{tStatus('高', lang)} <FeatNum k="h" v={featDlg.params.h} w={48} /></label>
             <label>{tStatus('絲Ø', lang)} <FeatNum k="wire" v={featDlg.params.wire} w={44} /></label>
+            <label title={tStatus('⬡新實體=獨立實體（原實體唔郁，缺省）· ＋合併=並入活動體 · －切割=由活動體切出螺旋槽 · ∩相交', lang)}>{tStatus('操作', lang)} <select data-testid="coil-op" value={String(featDlg.params.op ?? 'newbody')} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length}><option value="newbody">{tStatus('⬡新實體', lang)}</option><option value="new">{tStatus('＋合併', lang)}</option><option value="cut">{tStatus('－切割', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option></select></label>
             <label title={tStatus('末端外徑 Ø（錐形塔簧）：留空/0 = 圓柱彈簧；填≠起始Ø = 錐形漸變（內核已支持，B樣條變徑螺旋）', lang)}>{tStatus('末端Ø', lang)} <FeatNum k="d2" v={featDlg.params.d2} w={48} /></label>
           </>)}
           {featDlg.kind === 'gear' && (<>

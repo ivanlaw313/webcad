@@ -3965,6 +3965,7 @@ function bulgeFromMid(a: Pt, b: Pt, m: Pt): number {
 export { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'   // BUG(F)：纯函数搬出（node 可测）
 import { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'
 import { sketchPointsOf, finishedSketchPointCandidates, holeSnapTargetsFromSources, snapHoleXY } from './sketch/holePoints'
+import { resolveCoilOp } from './cad/coilOp'
 
 // GM-FP2 #19：独立相切弧工具 —— 揾最近嘅现有【开放曲线端点】+ 该端点外向切线（G1 续弧起手）。
 // 只对开放 poly 端点（画完一条线/弧再由端点引相切弧嘅日常）；verts-poly 用 verts+bulges 算真切线，
@@ -15351,7 +15352,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       pyramid: { sides: 4, d: 50, h: 40 },
       rbox: { l: 60, w: 40, h: 30, r: 8 },
       prism: { sides: 6, d: 40, h: 30 },
-      coil: { d: 60, pitch: 12, h: 80, wire: 10 },
+      coil: { d: 60, pitch: 12, h: 80, wire: 10, op: 'newbody' },   // BUG（Coil-3）：缺省新實體，唔再合併/取代活動體
       thread: { d: 20, pitch: 3, h: 40 },
       cylpatch: { mode: 'boss', ang: 0, arc: 60, zc: 20, h: 20, depth: 4 },
       sheetmetal: { preset: 'L', thickness: 2, radius: 3, kfactor: 0.4, width: 40, legA: 60, legB: 40, flat: 0 },
@@ -17988,7 +17989,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       // Primitives: dialog op (v1.27 box/cylinder expose ⬡新实体) > cutMode > new.
       // BX02: box active + cylinder op=newbody parks the tool while keeping the box as Combine target.
       const rawOp = String(p.op ?? '')
-      const op: BoolOp = (rawOp === 'cut' || rawOp === 'intersect' || rawOp === 'newbody') && hasSolid(get().features)
+      const op: BoolOp = d.kind === 'coil' ? resolveCoilOp(rawOp, hasSolid(get().features), get().cutMode)   // BUG（Coil-3）
+        : (rawOp === 'cut' || rawOp === 'intersect' || rawOp === 'newbody') && hasSolid(get().features)
         ? rawOp as BoolOp
         : (get().cutMode && hasSolid(get().features) ? 'cut' : 'new')
       const verb = op === 'cut' ? '切割' : op === 'newbody' ? '新实体' : op === 'intersect' ? '相交' : '创建'
@@ -19352,7 +19354,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   addCoil: async () => {
-    const op: BoolOp = get().cutMode && hasSolid(get().features) ? 'cut' : 'new'
+    const op: BoolOp = resolveCoilOp(undefined, hasSolid(get().features), get().cutMode)   // BUG（Coil-3）：有實體缺省新實體
     // Optional taper: top radius ≠ bottom → conical / beehive spring (variable-radius helix via B-spline spine).
     const v = await get().appPrompt(tStatus('螺旋弹簧 — 节距, 高度, 底半径, 线半径, 顶半径(=底则圆柱形；填细做锥形)', get().lang), '12,80,30,5,30')
     let pitch = 12, height = 80, radius = 30, wireR = 5, r2 = 30

@@ -22,6 +22,7 @@ import { buildEdgeToFaces, topoFaceHash } from '../cad/topoFingerprint'  // #14�
 import { boolWithHistory, filletWithHistory, collectLineageChain } from '../cad/lineage'  // GM-γ2a：S2 布尔血统 — S1 变换血统喺布尔区间 abort 时，用 OCCT Modified/Generated/IsDeleted 追踪 pick 穿过布尔补位；GM-γ2b：圆角/倒角血统 + 多跳链
 import { chordToRadius, betaFromNormals, buildSetbackLaw, edgesShareVertex, bboxExtentsSane } from '../cad/filletMath'  // 圆角／倒角数学核（纯函数，同 tests 共用）
 import { fullRoundFilletFromFaces } from '../cad/fullRound'
+import { fuseLostMaterial } from '../cad/coilOp'
 import { asymmetricFilletNearPoints } from '../cad/asymmetricFillet'
 import { hasUnsafeLoftShellAdjacency } from '../cad/loftShellSafety'
 import { revolveLathePlane, revolveRemapProfile } from '../cad/revolvePreviewFrame'
@@ -5504,6 +5505,13 @@ function buildShape(features: Feature[], noCache = false): any {
       // Adjacent turns collide when pitch < wire diameter (2·wireR) → self-intersecting sweep (bad mesh/print).
       if (f.pitch < 2 * f.wireR) buildWarnings.push(`⚠ 弹簧节距 ${f.pitch}<线径 ${(2 * f.wireR).toFixed(1)}：相邻圈会相碰/自交，加大节距或减细线径`)
       const profile = drawCircle(f.wireR).sketchOnPlane('XZ', [f.radius, 0]) as any
+      // BUG（Coil-3）：＋合併 若 OCCT 返回垃圾（結果細過原實體 → 原實體「消失」）→ 報錯保留原模型，唔好靜默取代。
+      const coilMerge = (sw: any) => {
+        if ((f.op ?? 'new') !== 'new' || !shape) { merge(sw, f.op); return }
+        const before = shape, v0 = _solidVolume(shape), vt = _solidVolume(sw)
+        merge(sw, 'new')
+        if (fuseLostMaterial(v0, vt, _solidVolume(shape))) { shape = before; throw new Error('螺旋合併失敗：結果會令原實體消失 — 已保留原模型（請改用「⬡新實體」或調整直徑避開實體表面）') }
+      }
       if (f.r2 != null && Math.abs(f.r2 - f.radius) > 1e-6) {
         // Conical / tapered spring: a variable-radius helix can't come from makeHelix, so sample a 3D
         // point cloud r(t)=lerp(radius,r2) along the turns and fit a smooth B-spline spine, then sweep.
@@ -5512,10 +5520,10 @@ function buildShape(features: Feature[], noCache = false): any {
         const pts: [number, number, number][] = []
         for (let i = 0; i <= steps; i++) { const t = i / steps, th = 2 * Math.PI * turns * t, r = f.radius + (f.r2 - f.radius) * t; pts.push([r * Math.cos(th), r * Math.sin(th), f.height * t]) }
         const spine = assembleWire([makeBSplineApproximation(pts)])
-        merge(genericSweep(profile.wire, spine, { forceProfileSpine: true } as any), f.op)
+        coilMerge(genericSweep(profile.wire, spine, { forceProfileSpine: true } as any))
       } else {
         const helix = makeHelix(f.pitch, f.height, f.radius)
-        merge(genericSweep(profile.wire, helix, { forceProfileSpine: true } as any), f.op)
+        coilMerge(genericSweep(profile.wire, helix, { forceProfileSpine: true } as any))
       }
     } else if (f.type === 'thread') {
       // Real external thread (ISO-style): a triangular tooth section swept up a helix

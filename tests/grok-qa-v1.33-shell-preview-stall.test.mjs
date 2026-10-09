@@ -23,7 +23,7 @@ test('APP_VERSION is 1.33+', () => {
 })
 
 test('v1.33 wiring: Confirm ungated + silent preview preempt', () => {
-  assert.match(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\)\}/)
+  assert.match(viewport, /okDisabled=\{!!numBad \|\| \(!shellPicks\.length \|\| !\(shellThickness > 0\)\)\}/)
   assert.doesNotMatch(viewport, /okDisabled=\{!shellPicks\.length \|\| !\(shellThickness > 0\) \|\| shellPreviewBusy/)
   assert.match(serviceSrc, /PREVIEW_CANCELLED_MSG/)
   assert.match(serviceSrc, /function cancelPreviews/)
@@ -78,7 +78,7 @@ test('HARD: hung previewRound must not block rebuild; no restart toast', async (
   await assert.rejects(() => hung, /preview cancelled/)
   assert.equal(committed.triangles.length, 3)
   assert.equal(k.getState().restartCount, 0, 'silent preempt must not count as kernel restart')
-  assert.ok(!toasts.some((t) => /内核已重启/.test(t)), `no restart toast; got ${JSON.stringify(toasts)}`)
+  assert.ok(!toasts.some((t) => /(?:内核已重启|內核已重啟)/.test(t)), `no restart toast; got ${JSON.stringify(toasts)}`)
   assert.ok(elapsed < 150, `rebuild should preempt hung preview quickly, got ${elapsed}ms`)
   assert.ok(term >= 1, 'hung worker must be terminated')
   assert.ok(rebuildCalls >= 2)
@@ -159,8 +159,8 @@ test('true exclusive hang on rebuild still restarts + recover toast', async () =
   const toasts = []
   k.onKernelRestart((m) => toasts.push(m))
   await k.proxy.rebuild([])
-  await assert.rejects(() => k.proxy.rebuild([{ id: 'x', type: 'prim' }]), /内核已重启/)
+  await assert.rejects(() => k.proxy.rebuild([{ id: 'x', type: 'prim' }]), /(?:内核已重启|內核已重啟)/)
   await new Promise((r) => setTimeout(r, 30))
   assert.ok(k.getState().restartCount >= 1)
-  assert.ok(toasts.some((t) => /内核已重启|几何内核崩溃/.test(t)))
+  assert.ok(toasts.some((t) => /(?:内核已重启|內核已重啟)|(?:几何内核崩溃|幾何內核崩潰)/.test(t)))
 })

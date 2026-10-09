@@ -74,6 +74,6 @@ test('store + dialog wire sketchOnly', () => {
   assert.match(storeSrc, /type: 'sketch'/)
   assert.match(storeSrc, /sketchOnly/)
   assert.match(dlgSrc, /dxf-sketch-only/)
-  assert.match(dlgSrc, /(?:仅导入为草图|僅導入為草圖)（不拉伸）/)
+  assert.match(dlgSrc, /(?:仅导入为草图|僅導入為草圖|僅匯入為草圖).{0,8}不拉伸|insert\.sketchOnlyLabel/)
   assert.match(dlgSrc, /sketchOnly/)
 })

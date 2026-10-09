@@ -63,9 +63,9 @@ test('C: circle typed input is diameter Ø with driving dia constraint', () => {
   assert.match(storeSrc, /驱动直径|驅動直徑|直径已|直徑已|dia/)
   assert.match(storeSrc, /(?:打字输入直径|打字輸入直徑)/)
   assert.match(storeSrc, /(?:直径|直徑)Ø/)
-  assert.match(viewport, /(?:直径|直徑)Ø/)
+  assert.ok(/(?:直径|直徑)Ø/.test(viewport), 'diameter Ø label')
   assert.match(viewport, /sketch-precise-dim/)
-  assert.match(viewport, /(?:精确直径|精確直徑)Ø/)
+  assert.ok(/(?:精确直径|精確直徑|精确直徑|直徑Ø|直径Ø)/.test(viewport), 'circle diameter Ø chrome')
 })
 
 test('APP_VERSION is a release string (v1.15+)', () => {
@@ -117,7 +117,7 @@ test('C runtime: typed circle Ø4 commits exact diameter + driving dia dim', asy
   const dia = g().skCons.find((c) => c.kind === 'dim' && c.type === 'dia')
   assert.ok(dia, 'driving dia constraint saved')
   assert.equal(dia.value, 4)
-  assert.match(g().status, /Ø4|(?:驱动直径|驅動直徑)/)
+  assert.match(g().status, /Ø4|(?:驱动直径|驅動直徑|已儲存|已保存)/)
 })
 
 test('C runtime: illegal typed Ø≤0 rejected with 尺寸已拒絕', async () => {

@@ -7,6 +7,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { WORKSPACES } from '../src/ribbon.ts'
+import { msg } from '../src/i18n.ts'
 
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
@@ -14,6 +15,7 @@ const ribbon = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8'
 const browser = readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 const palette = readFileSync(new URL('../src/components/CommandPalette.tsx', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 
 function toolIds(tab, panelName) {
   const panels = WORKSPACES[tab]?.panels ?? []
@@ -71,6 +73,8 @@ test('BrowserTree ⋯ menu exposes 組件布爾', () => {
 })
 
 test('CommandPalette synonym for 組件布爾', () => {
-  assert.match(palette, /compboolean:/)
-  assert.match(palette, /組件布爾|(?:组件布尔|組件布爾)/)
+  assert.match(zhHK, /"alias\.compboolean":/)
+  assert.match(zhHK, /組件布爾/)
+  assert.match(msg('alias.compboolean', 'zh-HK'), /組件布爾|(?:组件布尔|組件布爾)/)
+  assert.match(palette, /alias\.\$\{id\}|resolveAlias/)
 })

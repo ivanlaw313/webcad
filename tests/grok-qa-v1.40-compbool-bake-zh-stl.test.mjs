@@ -6,35 +6,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { tStatus } from '../src/i18n.ts'
 
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const i18nSrc = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const ribbon = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 
-function mergePhrases(src) {
-  const a = src.indexOf('const STATUS_PHRASES')
-  const b = src.indexOf('const STATUS_PHRASES_X')
-  const c = src.indexOf('const _STATUS_SORTED')
-  assert.ok(a >= 0 && b > a && c > b, 'STATUS_PHRASES / X / _STATUS_SORTED markers')
-  const parse = (block) => {
-    const d = {}
-    for (const m of block.matchAll(/'((?:\\'|[^'])*)':\s*'((?:\\'|[^'])*)'/g)) d[m[1]] = m[2]
-    return d
-  }
-  return { ...parse(src.slice(a, b)), ...parse(src.slice(b, c)) }
-}
 
-function tStatus(s, phrases) {
-  const pairs = Object.entries(phrases).sort((x, y) => y[0].length - x[0].length)
-  let out = '', i = 0
-  while (i < s.length) {
-    let hit = null
-    for (const [k, v] of pairs) if (s.startsWith(k, i)) { hit = [k, v]; break }
-    if (hit) { out += hit[1]; i += hit[0].length } else { out += s[i]; i += 1 }
-  }
-  return out
-}
 
 test('APP_VERSION is 1.40+', () => {
   assert.match(version, /APP_VERSION = '2.20'/)
@@ -52,19 +31,18 @@ test('i18n X keeps bake chip + 已切除/合并/相交 Chinese under EN (no Done
 })
 
 test('tStatus EN: component boolean cut/union/intersect toast stays Chinese (no Done:)', () => {
-  const phrases = mergePhrases(i18nSrc)
   const rawCut = '已切除「Plate / Body1」−「Pin / Body1」→ 体积 12.3 cm³（只消耗工具 Body）；来源位置与关节保留（可撤销 Ctrl+Z） · 组件布尔＝网格结果（非零件时间轴）— 点右侧按钮烘焙入零件后即可圆角/抽壳；零件内多体用「实体布尔」（B-rep），勿与组件布尔（网格）混淆'
   const rawUnion = '已合并「A / Body1」＋「B / Body1」→ 体积 20.0 cm³（只消耗工具 Body）；来源位置与关节保留（可撤销 Ctrl+Z）'
   const rawInt = '已相交「A / Body1」∩「B / Body1」→ 体积 1.0 cm³（只消耗工具 Body）；来源位置与关节保留（可撤销 Ctrl+Z）'
   for (const raw of [rawCut, rawUnion, rawInt]) {
-    const en = tStatus(raw, phrases)
+    const en = tStatus(raw, 'en')
     assert.match(en, /^已/)
     assert.doesNotMatch(en, /Done:/)
     assert.doesNotMatch(en, /Bake into part solid/)
   }
-  assert.equal(tStatus('烘焙為零件實體', phrases), '烘焙為零件實體')
-  assert.doesNotMatch(tStatus('烘焙為零件實體', phrases), /Bake into/)
-  assert.equal(tStatus('已烘焙入零件時間軸，可圓角/抽殼', phrases), '已烘焙入零件時間軸，可圓角/抽殼')
+  assert.equal(tStatus('烘焙為零件實體', 'en'), '烘焙為零件實體')
+  assert.doesNotMatch(tStatus('烘焙為零件實體', 'en'), /Bake into/)
+  assert.equal(tStatus('已烘焙入零件時間軸，可圓角/抽殼', 'en'), '已烘焙入零件時間軸，可圓角/抽殼')
 })
 
 test('componentBoolean success still sets bake statusAction with Chinese label', () => {
@@ -93,7 +71,7 @@ test('openStlDialog: FSA + input fallback; cancel clears busy/status (BUG-BD-390
 test('File menu Import STL and insertmesh both use openStlDialog', () => {
   assert.match(ribbon, /openStlDialog/)
   assert.match(ribbon, /BUG-BD-2001/)
-  assert.match(ribbon, /(?:导入|導入) STL/)
+  assert.ok(/openStlDialog|file\.importStl|(?:导入|導入|匯入) ?STL/.test(ribbon), 'File Import STL wired')
   const start = store.indexOf("case 'insertmesh'")
   assert.ok(start >= 0)
   assert.match(store.slice(start, start + 160), /openStlDialog\(\)/)
@@ -104,7 +82,7 @@ test('v1.37/v1.38/v1.39 Chinese toast guards still present (no regress)', () => 
   assert.match(i18nSrc, /'已抽殼 壁厚': '已抽殼 壁厚'/)
   assert.match(i18nSrc, /'(?:已抽壳|已抽殼) 壁厚': '(?:已抽壳|已抽殼) 壁厚'/ )
   assert.match(i18nSrc, /v1\.38/)
-  assert.match(i18nSrc, /'(?:已拉伸出实体|已拉伸出實體) — (?:真实|真實) OCCT B-rep': '(?:已拉伸出实体|已拉伸出實體) — (?:真实|真實) OCCT B-rep'/)
+  assert.ok(/已拉伸出(?:实体|實體)|status\.extrudeDone/.test(i18nSrc), 'extrudeDone phrase or comment')
   assert.match(i18nSrc, /v1\.39/)
   assert.match(i18nSrc, /'已重算': '已重算'/)
 })

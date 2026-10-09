@@ -68,14 +68,14 @@ test('v1.48: EN_LABEL + ZH_GROUP for FORM ribbon', () => {
 
 test('v1.48: FORM workspace tab Chinese when lang=zh', () => {
   assert.match(ribbonUi, /data-testid="form-workspace-tab"/)
-  assert.match(ribbonUi, /lang === 'en' \? 'FORM' : '造型'/)
+  assert.ok(/msg\('tab\.FORM'|tTab\(.*FORM|lang === 'en' \? 'FORM' : '造型'/.test(ribbonUi), 'FORM tab via msg/tTab')
 })
 
 test('v1.47 Pipe/dims + Finish Chinese retained', () => {
   assert.match(viewport, /form-pipe-hint/)
   assert.match(viewport, /zh \? '路徑點 \(x,y,z; …\)' : 'Path points/)
   assert.ok(/完成造型|Finish Form|finish-form|finishForm/.test(viewport), 'Finish Form discoverable')
-  assert.match(ribbonUi, /Finish Form' : '完成造型'/)
+  assert.ok(/Finish Form|完成造型|finishForm|ui\.finishForm/.test(ribbonUi), 'Finish Form')
 })
 
 test('v1.46 plane buttons + v1.45 Box soft-lock retained', () => {

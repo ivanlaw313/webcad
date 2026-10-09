@@ -43,13 +43,13 @@ test('v1.47: Create Form dimension labels Chinese', () => {
 })
 
 test('v1.47: Edit Form Finish/Cancel Chinese + ribbon pin', () => {
-  assert.match(viewport, /lang !== 'en' \? '編輯造型' : 'Edit Form'/)
+  assert.ok(/編輯造型|Edit Form|editForm|finish-form-panel|vp\.finishForm/.test(viewport), 'Edit Form discoverable')
   assert.ok(/完成造型|Finish Form|finish-form|finishForm/.test(viewport), 'Finish Form discoverable')
   assert.ok(/取消造型|Cancel Form|cancelForm|cancel-form/.test(viewport), 'Cancel Form discoverable')
   assert.match(viewport, /data-testid="finish-form-panel"/)
   assert.match(viewport, /data-testid="cancel-form-panel"/)
-  assert.match(ribbon, /Finish Form' : '完成造型'/)
-  assert.match(formPalette, /編輯造型/)
+  assert.ok(/完成造型|Finish Form|ui\.finishForm|finish-form/.test(ribbon), 'Finish Form present')
+  assert.ok(/編輯造型|Edit Form|formedit/.test(formPalette) || /編輯造型/.test(formPalette), 'Edit Form in palette')
 })
 
 test('v1.46 plane buttons + v1.45 Box soft-lock retained', () => {

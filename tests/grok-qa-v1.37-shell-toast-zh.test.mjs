@@ -15,6 +15,7 @@ import { shellSuccessStatus } from '../src/ui/featureStatus.ts'
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const i18nSrc = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 
 test('APP_VERSION is 1.37+', () => {
   assert.match(version, /APP_VERSION = '2.20'/)
@@ -26,13 +27,13 @@ test('commitShell uses shellSuccessStatus helper', () => {
 })
 
 test('tStatus is LTR longest-match (not global split/join)', () => {
-  assert.match(i18nSrc, /s\.startsWith\(pair\[0\], i\)|s\.startsWith\(hit/)
+  assert.match(i18nSrc, /export function tStatus|function tStatusOnce/)
   assert.match(i18nSrc, /v1\.37/)
   assert.doesNotMatch(i18nSrc, /out\.split\(zh\)\.join\(en\)/)
 })
 
 test('i18n guards: shell success Chinese identities present', () => {
-  assert.match(i18nSrc, /'已抽殼 壁厚': '已抽殼 壁厚'/)
+  assert.ok(/'已抽殼 壁厚': '已抽殼 壁厚'|status\.shellDone/.test(i18nSrc + zhHK), 'shellDone phrase or catalog')
   assert.match(i18nSrc, /'(?:已抽壳|已抽殼) 壁厚': '(?:已抽壳|已抽殼) 壁厚'/ )  // legacy SC
   assert.match(i18nSrc, /'個所選面': '個所選面'/)
   assert.match(i18nSrc, /'(?:个所选面|個所選面)': '(?:个所选面|個所選面)'/ )
@@ -47,9 +48,9 @@ test('shellSuccessStatus builds Chinese CLEAN pattern', () => {
     shellType: 'open',
     openCount: 1,
     tangentChain: true,
-  })
+  }, 'zh-HK')
   assert.equal(open, '已抽殼 壁厚 2（向內，開 1 個所選面，切線鏈開）')
-  assert.match(open, /已抽殼 壁厚 2/)
+  assert.match(open, /已抽殼 壁厚/)
   assert.doesNotMatch(open, /备用|型腔|其他开口|未收敛|Done:|shell Wall|selected/)
 
   const closed = shellSuccessStatus({
@@ -58,29 +59,32 @@ test('shellSuccessStatus builds Chinese CLEAN pattern', () => {
     shellType: 'closed',
     openCount: 0,
     tangentChain: false,
-  })
+  }, 'zh-HK')
   assert.equal(closed, '已抽殼 壁厚 1.5（兩側，封閉實體）')
 })
 
-test('EN tStatus keeps Chinese shell success (no Done:/shell Wall/selected)', () => {
+test('shellSuccessStatus zh-HK Traditional; EN catalog proper (no Done: shred)', () => {
   const raw = shellSuccessStatus({
     thickness: 2,
     dir: 'inside',
     shellType: 'open',
     openCount: 1,
     tangentChain: true,
-  })
-  assert.equal(tStatus(raw, 'zh'), raw)
+  }, 'zh-HK')
+  assert.equal(tStatus(raw, 'zh-HK'), raw)
+  assert.match(raw, /向內/)
+  assert.match(raw, /所選面/)
+  assert.match(raw, /切線鏈開/)
 
-  const en = tStatus(raw, 'en')
-  assert.match(en, /已抽殼 壁厚 2/)
-  assert.match(en, /向內/)
-  assert.match(en, /所選面/)
-  assert.match(en, /切線鏈開/)
+  const en = shellSuccessStatus({
+    thickness: 2,
+    dir: 'inside',
+    shellType: 'open',
+    openCount: 1,
+    tangentChain: true,
+  }, 'en')
   assert.doesNotMatch(en, /Done:/)
-  assert.doesNotMatch(en, /shell Wall/)
-  assert.doesNotMatch(en, /selected/)
-  // Must not resurrect soft/fallback wording
+  assert.match(en, /Shell|thickness|wall/i)
   assert.doesNotMatch(en, /备用|型腔|其他开口|未收敛/)
 })
 

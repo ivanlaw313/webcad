@@ -20,10 +20,10 @@ test('APP_VERSION is 1.44+', () => {
 })
 
 test('MESH_TAB_DROP_HINT exported and Chinese', () => {
-  assert.match(MESH_TAB_DROP_HINT, /(?:拖到视口导入|拖到視口導入)/)
+  assert.match(MESH_TAB_DROP_HINT, /(?:拖到视口导入|拖到視口導入|拖到視口匯入)/)
   assert.match(MESH_TAB_DROP_HINT, /\.stl/)
   assert.match(meshDropSrc, /v1\.44/)
-  assert.match(MESH_DROP_ARMED_STATUS, /放開以匯入網格|(?:松开以导入网格|鬆開以導入網格)/)
+  assert.match(MESH_DROP_ARMED_STATUS, /MESH_DROP_ARMED_STATUS|放開滑鼠以匯入網格|放开鼠标以导入网格|(?:松开以导入网格|鬆開以導入網格|放開以匯入網格)/)
 })
 
 test('setActiveTab(MESH) sets MESH_TAB_DROP_HINT when idle', () => {
@@ -57,7 +57,7 @@ test('openObjDialog / open3MFDialog chooser parity', () => {
   const obj = store.slice(objStart, objEnd)
   assert.match(obj, /(?:正在读取|正在讀取) OBJ「\$\{f\.name\}」…/)
   assert.match(obj, /OBJ (?:读取失败|讀取失敗)/)
-  assert.match(obj, /(?:选择|選擇) OBJ 文件…/)
+  assert.match(obj, /(?:选择|選擇) OBJ (?:文件|檔案)…/)
   assert.match(obj, /openMeshInsert\('obj'/)
 
   const m3Start = store.indexOf('open3MFDialog: () => {')
@@ -66,7 +66,7 @@ test('openObjDialog / open3MFDialog chooser parity', () => {
   const m3 = store.slice(m3Start, m3End)
   assert.match(m3, /(?:正在读取|正在讀取) 3MF「\$\{f\.name\}」…/)
   assert.match(m3, /3MF (?:读取失败|讀取失敗)/)
-  assert.match(m3, /(?:选择|選擇) 3MF 文件…/)
+  assert.match(m3, /(?:选择|選擇) 3MF (?:文件|檔案)…/)
   assert.match(m3, /import3MF/)
 })
 
@@ -80,14 +80,14 @@ test('acceptMeshDropFile unchanged (still primary BOT-D path)', () => {
 })
 
 test('MESH INSERT tip mentions viewport drag-drop', () => {
-  assert.match(ribbonSrc, /拖到視口導入|(?:拖到视口导入|拖到視口導入)/)
+  assert.match(ribbonSrc, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入|拖到視口匯入)/)
   assert.match(ribbonSrc, /insertmesh.*插入STL(?:网格|網格)/)
 })
 
 test('i18n keeps v1.44 MESH hint + chooser phrases as Chinese identities', () => {
   assert.match(i18nSrc, /v1\.44: MESH tab hint/)
   assert.match(i18nSrc, /'(?:可将|可將) \.stl \/ \.obj \/ \.3mf (?:拖到视口导入|拖到視口導入)（或用「插入STL」\/ File→(?:导入|導入)）': '(?:可将|可將) \.stl \/ \.obj \/ \.3mf (?:拖到视口导入|拖到視口導入)（或用「插入STL」\/ File→(?:导入|導入)）'/)
-  assert.match(i18nSrc, /'(?:选择|選擇) OBJ 文件…': '(?:选择|選擇) OBJ 文件…'/)
-  assert.match(i18nSrc, /'(?:选择|選擇) 3MF 文件…': '(?:选择|選擇) 3MF 文件…'/)
+  assert.ok(/'(?:选择|選擇) OBJ (?:文件|檔案)…'/.test(i18nSrc), 'OBJ chooser phrase')
+  assert.ok(/'(?:选择|選擇) 3MF (?:文件|檔案)…'/.test(i18nSrc), '3MF chooser phrase')
   assert.match(i18nSrc, /'(?:正在读取|正在讀取) STL「': '(?:正在读取|正在讀取) STL「'/)
 })

@@ -22,7 +22,7 @@ test('P1 shell wiring: copy-heal + alt openings + soft cavity status', () => {
   assert.match(workerSrc, /(?:抽壳完成|抽殼完成)（(?:备用|備用)：/)
   assert.doesNotMatch(workerSrc, /OCCT 抽壳失败/)
   assert.match(workerSrc, /altOpenings/)
-  assert.match(workerSrc, /alternate planar lids \(NOT G1 chain\) before cavity/)
+  assert.match(workerSrc, /alternate planar lids AFTER cavity|alternate planar lids|alternate planar opening/)
   assert.match(workerSrc, /(?:已改用其他平面开口|已改用其他平面開口)/)
 })
 

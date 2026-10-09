@@ -29,14 +29,15 @@ test('BUG-BD-4401: dialog origin-plane quick place API', () => {
 })
 
 test('BUG-BD-4401: commitFormBoxDraft accepts plane with default center', () => {
-  const start = store.indexOf('commitFormBoxDraft: async')
+  const marker = store.indexOf('BUG-BD-4401: allow OK after plane')
+  const start = marker >= 0 ? marker : store.lastIndexOf('commitFormBoxDraft: async')
   assert.ok(start > 0)
-  const block = store.slice(start, start + 700)
+  const block = store.slice(start, start + 900)
   assert.match(block, /!raw\.plane/)
   assert.match(block, /center: raw\.center \?\? \(\[0, 0\]/)
   assert.match(block, /stage: 'ready'/)
   assert.match(viewport, /data-testid="form-box-ok"/)
-  assert.match(viewport, /disabled=\{!boxDraft\.plane\}/)
+  assert.match(viewport, /disabled=\{!boxDraft\.plane/)
 })
 
 test('BUG-BD-4401: finishForm cancels in-flight create (no soft-lock)', () => {

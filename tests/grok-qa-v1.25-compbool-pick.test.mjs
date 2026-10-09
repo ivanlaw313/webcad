@@ -43,7 +43,7 @@ test('startComponentBoolean status documents Browser / viewport / checkbox / lis
   assert.match(store, /document ALL completable pick paths/)
   assert.match(store, /(?:浏览树点另一个零件名|瀏覽樹點另一個零件名)/)
   assert.match(store, /(?:视口点另一个零件|視口點另一個零件)/)
-  assert.match(store, /(?:勾选另一零件复选框|勾選另一零件複選框)/)
+  assert.match(store, /(?:勾选另一零件复选框|勾選另一零件[複復]選框)/)
   assert.match(store, /(?:上方列表按钮|上方列表按鈕)/)
 })
 

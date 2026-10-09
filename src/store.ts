@@ -17988,28 +17988,73 @@ export const useApp = create<AppState>((rawSet, get) => {
 
   // GM-3DV1 S1：加强筋/腹板（Rib/Web）建立对话框 — 收集开放中心线 → 开 featDlg('rib')（厚度/方向/范围/翻转/拔模，多条 = Web + Extend Curves）。
   // 旧 addRib 直接用写死 thickness=6/height=20 建，只 timeline 可改；而家纯 UI 化，worker 已支持参数（commitRib 接线）。
+  // RETEST4：完成草图后 live profiles 已清空 — 同 openSweepDlg，从独立草图 sketchSources 取开放中心线（含面上草图 arb / 无 open 旗标两点线段）。
   addRib: async (asWeb = false) => {
     const s = get()
     const paths: Pt[][] = []
-    for (const sh of s.sketchProfiles) if (sh.type === 'poly' && sh.open && sh.pts.length >= 2) paths.push(sh.pts)
-    if (s.sketchShape && s.sketchShape.type === 'poly' && (s.sketchShape as { open?: boolean }).open && s.sketchShape.pts.length >= 2) paths.push(s.sketchShape.pts)
-    const src = s.sketchShape && s.sketchShape.type === 'poly' && !(s.sketchShape as { open?: boolean }).open ? s.sketchShape.pts : s.polyPts
-    if (!paths.length && src && src.length >= 2) paths.push(src)
-    if (!paths.length) { set({ status: '加強筋需要中心線：用「折線」畫一條或多條線（≥2 點，開放）— 多條 = 筋網 Web 一次過生成' }); return }
-    const baseZ = s.sketchBaseZ || 0
-    const ribArb = s.sketchArb ? JSON.parse(JSON.stringify(s.sketchArb)) as ArbBasis : s.sketchPlane !== 'XY' ? cardinalSketchArb(s.sketchPlane, baseZ) : null
-    // 路径落 XY profile 快照入 payload（对话框确定后 commitRib 消费；取消 → cancelFeatDlg 还原草图）
-    const bundle = {
-      shapes: JSON.parse(JSON.stringify([...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])])) as SketchShape[],
+    const pushCenterline = (sh: SketchShape | null | undefined) => {
+      const path = asSweepPathShape(sh)
+      if (!path || path.type !== 'poly' || !path.pts || path.pts.length < 2) return
+      paths.push(path.pts.map((p: Pt) => [p[0], p[1]] as Pt))
+    }
+    for (const sh of s.sketchProfiles) pushCenterline(sh)
+    pushCenterline(s.sketchShape)
+    if (!paths.length && s.polyPts && s.polyPts.length >= 2) paths.push(s.polyPts.map((p) => [p[0], p[1]] as Pt))
+
+    let plane: Plane = s.sketchPlane
+    let baseZ = s.sketchBaseZ || 0
+    let liveArb: ArbBasis | null = s.sketchArb ? JSON.parse(JSON.stringify(s.sketchArb)) as ArbBasis : null
+    let fromFinished = false
+
+    if (!paths.length && s.mode === 'model') {
+      type Cand = { id: string; source: AppState['sketchSources'][string]; paths: Pt[][] }
+      const candidates: Cand[] = []
+      for (const [id, source] of Object.entries(s.sketchSources)) {
+        if (!s.features.some((f) => f.type === 'sketch' && f.sketchId === id)) continue
+        const ps: Pt[][] = []
+        for (const sh of source.shapes) {
+          const path = asSweepPathShape(sh)
+          if (!path || path.type !== 'poly' || !path.pts || path.pts.length < 2) continue
+          ps.push(path.pts.map((p: Pt) => [p[0], p[1]] as Pt))
+        }
+        if (ps.length) candidates.push({ id, source, paths: ps })
+      }
+      const selected = candidates.find((c) => c.id === s.selSketch)
+      const pick = selected ?? (candidates.length === 1 ? candidates[0] : undefined)
+      if (!pick && candidates.length > 1) {
+        set({ status: '有多張已儲存中心線草圖；請先在瀏覽器選取要做加強筋的草圖' })
+        return
+      }
+      if (pick) {
+        paths.push(...pick.paths)
+        plane = pick.source.plane
+        baseZ = pick.source.baseZ || 0
+        liveArb = pick.source.arb ? JSON.parse(JSON.stringify(pick.source.arb)) as ArbBasis : null
+        fromFinished = true
+      }
+    }
+
+    if (!paths.length) {
+      set({ status: '加強筋需要中心線：用「折線」畫一條或多條線（≥2 點，開放）後「完成草圖」，或在瀏覽器選取已儲存的中心線草圖 — 多條 = 筋網 Web 一次過生成' })
+      return
+    }
+
+    const ribArb = liveArb ? liveArb : plane !== 'XY' ? cardinalSketchArb(plane, baseZ) : null
+    // 路径快照入 payload（对话框确定后 commit；取消 → 仅 live 草图用 bundle 还原；已完成草图不重开一份 live 副本）
+    const liveShapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
+    const bundle = (!fromFinished && liveShapes.length) ? {
+      shapes: JSON.parse(JSON.stringify(liveShapes)) as SketchShape[],
       cons: JSON.parse(JSON.stringify(s.skCons)) as SkCon[],
       plane: s.sketchPlane, baseZ: s.sketchBaseZ, ...(s.sketchArb ? { arb: JSON.parse(JSON.stringify(s.sketchArb)) } : {}),
-    }
+      ...(s.pendingSketchFaceBinding ? { faceBinding: structuredClone(s.pendingSketchFaceBinding) } : {}),
+    } : undefined
     const isWeb = asWeb || paths.length > 1
+    const hasLiveArb = !!liveArb
     set({
       skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model',
-      featDlg: { kind: 'rib', params: { thickness: 6, height: 20, draft: 0, thDir: 'sym', extent: ribArb ? 'distance' : hasSolid(get().features) ? 'next' : 'distance', flip: 0, extend: isWeb ? 1 : 0 }, payload: { paths: paths.map((pp) => pp.map((p) => ribArb ? (s.sketchArb ? p : stToProfile(p, s.sketchPlane)) : stToProfile(p, 'XY'))), baseZ, arb: ribArb ?? undefined, isWeb, bundle } },
+      featDlg: { kind: 'rib', params: { thickness: 6, height: 20, draft: 0, thDir: 'sym', extent: ribArb ? 'distance' : hasSolid(get().features) ? 'next' : 'distance', flip: 0, extend: isWeb ? 1 : 0 }, payload: { paths: paths.map((pp) => pp.map((p) => ribArb ? (hasLiveArb ? p : stToProfile(p, plane)) : stToProfile(p, 'XY'))), baseZ, arb: ribArb ?? undefined, isWeb, ...(bundle ? { bundle } : {}) } },
       holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false,
-      status: ribArb ? `${s.sketchArb ? '任意參考' : s.sketchPlane}平面加強筋：沿該面法向以【距離】建立實體；自動到實體／Extend Curves 暫未支持` : isWeb ? '腹板 Web：設 厚度/方向/範圍（可 Extend Curves 延伸到牆）→ 確定' : '加強筋：設 厚度/方向(對稱·單側)/範圍(到實體·距離)/翻轉/拔模 → 確定',
+      status: ribArb ? `${hasLiveArb ? '任意參考' : plane}平面加強筋：沿該面法向以【距離】建立實體；自動到實體／Extend Curves 暫未支持` : isWeb ? '腹板 Web：設 厚度/方向/範圍（可 Extend Curves 延伸到牆）→ 確定' : '加強筋：設 厚度/方向(對稱·單側)/範圍(到實體·距離)/翻轉/拔模 → 確定',
     })
   },
 

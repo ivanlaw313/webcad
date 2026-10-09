@@ -123,7 +123,8 @@ test('a real ≥3-body loop still goes through the loop solver', () => {
 
 test('wiring: viewport capture lets handle presses through + disables orbit; gumball tags handles + registers tester + filter', () => {
   const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
-  const cap = vp.slice(vp.indexOf('onPointerDownCapture={(e) => {'), vp.indexOf('e.stopPropagation()', vp.indexOf('onPointerDownCapture={(e) => {')))
+  const c0 = vp.indexOf('onPointerDownCapture={(e) => {')
+  const cap = vp.slice(c0, vp.indexOf("navTool !== 'select'", c0) + 40)   // up to the marquee guard (RETEST20 joint-handle claim also stops propagation, before it)
   assert.match(cap, /claimGumballPointer\(e\.clientX, e\.clientY\)\) return/, 'gumball check runs before the select-tool marquee stopPropagation')
   assert.ok(cap.indexOf('claimGumballPointer') < cap.indexOf("navTool !== 'select'"))
   assert.match(vp, /const childJoint = c \? drivingJointOf\(c\.id, joints\) : undefined/)

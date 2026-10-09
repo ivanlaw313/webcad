@@ -111,6 +111,7 @@ import { SlopeOverlay } from './SlopeOverlay'            // S187：斜度分析�
 import { AccessOverlay } from './AccessOverlay'          // #174-7：脱模可达性逐三角着色覆盖层
 import { MeasureSnapMarkers } from './MeasureSnapMarkers'   // #174-6：测量捕捉点标记
 import { JointGizmo, JointOriginView } from './JointGizmo'               // S102[5]：关节 DOF/限位 3D 操纵器；GM-3DV4 A1：关节原点标记
+import { claimJointHandle } from '../assembly/jointHandleDrag'          // RETEST20 #1：可見關節環／滑動軸 = 把手
 import { explodeStepOffsets, type ExplodeStep as ExplodeStepT } from '../assembly/asmUtil'   // GM-3DV4 A12：有序爆炸步 offset
 import { PathTraceLayer } from './PathTraceLayer'       // S105：画布内路径追踪
 import { HdriEnvironment } from './HdriEnvironment'     // S109：HDRI 环境
@@ -4684,6 +4685,8 @@ export default function Viewport() {
         // RETEST18 #1：撳中組件 gumball 把手（關節旋轉環 / 滑動箭頭 / 移動把手）→ 交俾 R3F/drei：唔開框選、唔 stopPropagation，
         // 並喺 canvas 上嘅 OrbitControls 收到 pointerdown 之前停用佢（放手先還原）— 拖把手唔會轉鏡頭。
         if (e.button === 0 && e.target instanceof HTMLCanvasElement && claimGumballPointer(e.clientX, e.clientY)) return
+        // RETEST20 #1：撳中關節環／滑動軸（JointGizmo）→ 自己驅動關節值；stopPropagation（capture 喺 canvas 之前）→ Orbit/R3F 完全收唔到，鏡頭唔轉。
+        if (e.button === 0 && e.target instanceof HTMLCanvasElement && claimJointHandle(e.clientX, e.clientY)) { e.stopPropagation(); e.preventDefault(); return }
         // GM-W5 5.3：select 工具 + 左键 + 目标系 canvas 先接管（HTML 覆盖层照常运作）
         // Multi-view secondary canvases are orbit-only — skip marquee/lasso outside single layout.
         if (viewLayout !== 'single' || navTool !== 'select' || mode === 'sketch' || e.button !== 0 || !(e.target instanceof HTMLCanvasElement)) return

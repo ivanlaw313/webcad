@@ -1,7 +1,10 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useEffect } from 'react'
 import { Line } from '@react-three/drei'
-import { Vector3, Quaternion } from 'three'
+import { useThree } from '@react-three/fiber'
+import { Vector3, Quaternion, Raycaster, Vector2 } from 'three'
 import { type Joint, type JointOrigin, resolveJointOrigin } from '../assembly/kinematics'
+import { jointHandleHit, registerJointHandleClaimer, startJointHandleDrag } from '../assembly/jointHandleDrag'
+import { useApp } from '../store'
 
 // GM-3DV4 A1：可复用 Joint Origin 在场景中的标记 — 十字准星球（Fusion「Joint Origins」帧）+ 沿轴短箭。
 export function JointOriginView({ jo }: { jo: JointOrigin }) {
@@ -50,7 +53,51 @@ const RIGID_COLOR = '#9aa3ab'
 
 const DEG = Math.PI / 180
 
+// RETEST20 #1：呢個環／滑動軸就係用戶會去拖嘅把手 → 註冊 pointer claimer（Viewport 外層 capture 問，命中先於 Orbit）。
+function useJointHandleDrag(j: Joint) {
+  const get = useThree((st) => st.get)
+  useEffect(() => {
+    if (j.type === 'rigid') return
+    const rc = new Raycaster(), ndc = new Vector2()
+    const rayAt = (x: number, y: number) => {
+      const st = get(), r = st.gl.domElement.getBoundingClientRect()
+      ndc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1)
+      rc.setFromCamera(ndc, st.camera)
+      return rc.ray.clone()
+    }
+    registerJointHandleClaimer('joint:' + j.id, (x, y) => {
+      const app = useApp.getState()
+      if (app.mode !== 'model' || app.busy || app.jointPickMode || app.faceMateMode || app.jointOriginPickMode || !app.objectVis.joints) return null
+      const cur = app.joints.find((q) => q.id === j.id)
+      if (!cur) return null
+      const st = get(), r = st.gl.domElement.getBoundingClientRect()
+      if (x < r.left || x > r.right || y < r.top || y > r.bottom) return null
+      const project = (p: Vector3): [number, number] | null => {
+        const q = p.clone().project(st.camera)
+        if (q.z > 1 || q.z < -1) return null
+        return [r.left + (q.x + 1) / 2 * r.width, r.top + (1 - q.y) / 2 * r.height]
+      }
+      const kind = jointHandleHit(cur, project, x, y)
+      if (!kind) return null
+      let drove = false
+      const sess = startJointHandleDrag(cur, kind, rayAt(x, y), (patch) => {
+        if (!drove) { useApp.getState().beginJointDrive(); drove = true }
+        useApp.getState().setJointValue(j.id, patch)
+      }, () => { if (drove) useApp.getState().endJointDrive() })
+      if (!sess) return null
+      st.gl.domElement.style.cursor = 'grabbing'
+      return {
+        move: (mx, my) => sess.move(rayAt(mx, my)),
+        end: () => { st.gl.domElement.style.cursor = ''; sess.end() },
+        controls: st.controls as unknown as { enabled: boolean } | null,
+      }
+    })
+    return () => registerJointHandleClaimer('joint:' + j.id, null)
+  }, [j.id, j.type, get])
+}
+
 export function JointGizmo({ j }: { j: Joint }) {
+  useJointHandleDrag(j)
   // anchor & axis straight from world coords — no swizzle.
   const a = new Vector3(j.anchor[0], j.anchor[1], j.anchor[2])
   const ax = new Vector3(j.axis[0], j.axis[1], j.axis[2])

@@ -1101,6 +1101,19 @@ export function moldTargetMesh(s: {
 let _loadingSample = ''
 // UX1 #5：今份文件已經有用戶揀過嘅名（儲存時問過／開檔帶名）→ 之後 Ctrl+S 唔再問。新檔 reset() 清返。
 let _docNamed = false
+// WORKFLOW #5：匯出檔名預設 — 文件名（已命名）＞活動實體自訂名＞文件名／未命名零件
+export function defaultExportBaseName(projectName: string | null | undefined, activeBodyName?: string | null): string {
+  const pn = (projectName ?? '').trim(), bn = (activeBodyName ?? '').trim()
+  if (pn && !isUntitledProjectName(pn)) return pn
+  if (bn) return bn
+  return pn || '未命名零件'
+}
+/** 用戶輸入嘅檔名 → 安全檔名（去副檔名、非法字元換 _），保證帶 ext */
+export function exportFileNameFrom(input: string, ext: string): string {
+  const e = ext.startsWith('.') ? ext : '.' + ext
+  const base = input.trim().replace(new RegExp(e.replace('.', '\\.') + '$', 'i'), '')
+  return `${projName(base || '未命名零件')}${e}`
+}
 export function isUntitledProjectName(n: string | null | undefined): boolean {
   const t = (n ?? '').trim()
   return !t || /^(未命名零件|未命名|Untitled)( \(\d+\))?$/i.test(t)
@@ -2313,6 +2326,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   applyViewBookmark: (i: number) => void
   deleteViewBookmark: (i: number) => void
   section: { on: boolean; axis: 'X' | 'Y' | 'Z'; offset: number; capped: boolean; flip: boolean; plane?: { origin: [number, number, number]; normal: [number, number, number]; label?: string; sourceIndex?: number } }
+  closeSection: () => void   // WORKFLOW #4：關閉剖切對話框 → 關剖視＋移除瀏覽樹「剖切分析」節點
   setSection: (patch: Partial<{ on: boolean; axis: 'X' | 'Y' | 'Z'; offset: number; capped: boolean; flip: boolean; plane?: { origin: [number, number, number]; normal: [number, number, number]; label?: string; sourceIndex?: number } }>) => void
   sectionCapStatus: 'idle' | 'busy' | 'ready' | 'empty' | 'unavailable'
   editPreviewMesh: MeshData | null
@@ -5395,6 +5409,24 @@ export function holeBlindOverrun(st: Pick<AppState, 'bodyMesh' | 'holeThrough' |
   for (let i = 0; i < m.vertices.length; i += 3) { const t = (m.vertices[i] * dv[0] + m.vertices[i + 1] * dv[1] + m.vertices[i + 2] * dv[2]) / L; if (t < lo) lo = t; if (t > hi) hi = t }
   const thick = hi - lo
   return thick > 0 && st.holeDepth >= thick - 1e-6 ? { thick } : null
+}
+
+// WORKFLOW #3：新建／開啟檔案時清走上一份檔案嘅所有分析（剖切＋紅色封蓋、拔模、斜度、可達性、曲率著色、截面屬性、分析節點）
+export function clearedAnalysesPatch(): Partial<AppState> {
+  return {
+    section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, sectionCapStatus: 'idle', sectionResult: null,
+    draftResult: null, slopeResult: null, accessResult: null, inspectShade: 'off', analyses: [],
+  }
+}
+
+// WORKFLOW #5：匯出前問檔名（預設文件名／實體名，可修改）；取消 → null
+async function askExportName(get: () => AppState, ext: string): Promise<string | null> {
+  const s = get(), lang = s.lang
+  const def = defaultExportBaseName(s.projectName, s.activeBodyName)
+  const fmt = ext.replace('.', '').toUpperCase()
+  const v = await s.appPrompt(lang === 'en' ? `File name for the ${fmt} export (extension added automatically)` : `匯出 ${fmt} 的檔案名稱（副檔名會自動加上）`, def, lang === 'en' ? `Export ${fmt}` : `匯出 ${fmt}`)
+  if (v == null || !v.trim()) return null
+  return exportFileNameFrom(v, ext)
 }
 
 export const useApp = create<AppState>((rawSet, get) => {
@@ -14374,6 +14406,10 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   deleteViewBookmark: (i) => set((s) => ({ viewBookmarks: s.viewBookmarks.filter((_, k) => k !== i) })),
   section: { on: false, axis: 'X', offset: 0, capped: false, flip: false },
+  closeSection: () => {
+    get().setSection({ on: false })
+    set((s) => ({ analyses: s.analyses.filter((a) => a.type !== 'section'), sectionResult: null }))
+  },
   setSection: (patch) => {
     set((s) => ({ section: { ...s.section, ...patch } }))
     const sec = get().section
@@ -21630,6 +21666,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   setCompXY: (n) => set({ compXY: Math.max(-1, Math.min(1, n || 0)) }),
   setCompShrink: (n) => set({ compShrink: n > 0.5 && n < 1.5 ? n : 1 }),
   exportStl: async () => {
+    const stlName = await askExportName(get, '.stl')
+    if (!stlName) { set({ status: '已取消匯出 STL（未下載任何檔案）' }); return }
     const s0 = get()
     set({ busy: true, status: '匯出 STL：生成網格…' })
     await new Promise((r) => requestAnimationFrame(() => r(null)))   // 让加载条先画出
@@ -21639,14 +21677,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (!m || !m.triangles || !m.triangles.length) { set({ busy: false, status: '沒有可匯出的實體，請先建模' }); return }
       const { compensateMesh } = await import('./io/meshComp')
       const cm = compensateMesh(m, { xyOffset: s0.compXY || undefined, scale: s0.compShrink !== 1 ? [s0.compShrink, s0.compShrink, s0.compShrink] : undefined })
-      const compName = `${projName(s0.projectName)}.stl`
+      const compName = stlName
       triggerDownload(meshesToBinarySTL([{ mesh: cm, matrix: new Matrix4().elements.slice() }]), compName, 'model/stl')
       set({ busy: false, status: `已匯出 ${compName}（打印補償 XY ${s0.compXY > 0 ? '+' : ''}${s0.compXY}mm${s0.compShrink !== 1 ? ` · 收縮×${s0.compShrink}` : ''}）${wtWarn(cm)}` })
       return
     }
     const buf = await cad.exportSTL(get().exportQuality)
     if (!buf) { set({ busy: false, status: '沒有可匯出的實體，請先建模' }); return }
-    const stlName = `${projName(get().projectName)}.stl`
     triggerDownload(buf, stlName, 'model/stl')
     set({ busy: false, status: `已匯出 ${stlName}（細分=${get().exportQuality === 'fine' ? '細' : get().exportQuality === 'coarse' ? '粗' : '中'}）${wtWarn(get().bodyMesh)}` })
   },
@@ -21921,11 +21958,12 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   exportStep: async () => {
+    const stepName = await askExportName(get, '.step')
+    if (!stepName) { set({ status: '已取消匯出 STEP（未下載任何檔案）' }); return }
     set({ busy: true, status: '匯出 STEP：生成 B-rep…' })
     await new Promise((r) => requestAnimationFrame(() => r(null)))
     const buf = await cad.exportSTEP()
     if (!buf) { set({ busy: false, status: '沒有可匯出的實體' }); return }
-    const stepName = `${projName(get().projectName)}.step`
     triggerDownload(buf, stepName, 'application/step')
     set({ busy: false, status: `已匯出 ${stepName}（可在任何 CAD 打開）` })
   },
@@ -22459,6 +22497,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const arr = (k: string) => (Array.isArray(d[k]) ? d[k] as unknown[] : [])
     const supOpen = arr('suppressedIds') as string[]
     const migOpen = migrateComponentDefs(d.componentDefs, arr('components') as AppState['components'])   // R2：新档载 defs+reconcile；旧档合成匿名 def
+    set(clearedAnalysesPatch())   // WORKFLOW #3：開啟檔案唔帶入上一份檔案嘅剖切／分析
     set({
       components: migOpen.components, componentDefs: migOpen.componentDefs,
       joints: arr('joints') as AppState['joints'],
@@ -23311,6 +23350,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       measureMode:false,measureEdgeMode:false,measureFaceMode:false,measureAngleMode:false,measureUniMode:false,
       measurePts:[],measureDist:null,measureEdgeInfo:null,measureFaceInfo:null,measureAngleInfo:null,
       measureUniPicks:[],measureUniResult:null,lastMeasure:null,selectedParkedIndex:null})
+    set(clearedAnalysesPatch())   // WORKFLOW #3
     set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], bodyHidden: [], activeBodyName: '', jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, holeBoltCircle: false, holeBcCount: 4, holeBcPcd: 50, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
     set({ ...hydrateSketchDraft(null), ...hydrateFormDraft(null) })
     // record=false so "New" is a clean fresh start — undo must NOT resurrect the old document (Fusion-style new doc).

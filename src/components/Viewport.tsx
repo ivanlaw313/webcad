@@ -8308,7 +8308,7 @@ export default function Viewport() {
           单位→浏览器树 · 面草图→创建草图拣面 · 选边圆角/倒角→MODIFY 对话框 · 量边/面/角+计算器→INSPECT ·
           按拉距离→模式横幅 · 剖视控制→下方对话框 · 爆炸/透视/堆叠/排版/落地→ASSEMBLE */}
       {section.on && (
-        <CommandDialog icon="section" title={tStatus('剖切分析', lang)} width={240} okLabel={tStatus('關閉', lang)} okTip={tStatus('關閉剖視', lang)} onOk={() => setSection({ on: false })} onCancel={() => setSection({ on: false })}
+        <CommandDialog icon="section" title={tStatus('剖切分析', lang)} width={240} okLabel={tStatus('關閉', lang)} okTip={tStatus('關閉剖視', lang)} onOk={() => useApp.getState().closeSection()} onCancel={() => useApp.getState().closeSection()}
           summary={tStatus(`剖切 ${section.plane?.label || `${section.axis}軸`} @ ${section.offset}${section.capped ? ' · 實心' : ''}`, lang)}>
           <div style={{ display: 'flex', gap: 4 }}>
             {(['X', 'Y', 'Z'] as const).map((ax) => <button key={ax} className={'sb-tool' + (!section.plane && section.axis === ax ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSection({ axis: ax, plane: undefined, offset: 0 })}>{ax}</button>)}
@@ -8338,7 +8338,7 @@ export default function Viewport() {
           </label>
           <label className="sb-hint" title={tStatus('實心封蓋：布爾交集真正切開實體（截面填實）— 剖面', lang)}><input type="checkbox" checked={section.capped} onChange={() => setSection({ capped: !section.capped })} /> {tStatus('实心封盖', lang)}</label>
           {section.capped && <div role="status" aria-live="polite" data-testid="section-cap-status" className="sb-hint">{sectionCapStatus === 'busy' ? '正在計算當前模型截面；暫時顯示未封蓋剖視' : sectionCapStatus === 'unavailable' ? '當前截面無法封蓋；顯示未封蓋剖視，請調整平面或參數' : sectionCapStatus === 'empty' ? '此側沒有實體' : sectionCapStatus === 'ready' ? '當前模型截面已封蓋' : ''}</div>}
-          {section.capped && <label className="sb-hint" title={tStatus('保留剖切平面的另一半', lang)}><input type="checkbox" checked={!!section.flip} onChange={() => setSection({ flip: !section.flip })} /> {tStatus('翻面', lang)}</label>}
+          <label className="sb-hint" title={tStatus('反轉剖切方向：改為保留剖切平面的另一側', lang)}><input type="checkbox" data-testid="section-flip" checked={!!section.flip} onChange={() => setSection({ flip: !section.flip })} /> {tStatus('反轉方向', lang)}</label>
           {/* S185：剖面截面属性 — 切面 面积/形心/截面惯矩 实时读出（Fusion Inspect Section） */}
           <button className="sb-tool" style={{ width: '100%', marginTop: 2 }} title={tStatus('量該剖面：面積 / 形心 / 截面慣性矩 Ixx,Iyy / 主軸 / 周長（隨位置滑桿實時更新；網格密鋪近似）', lang)} onClick={() => (sectionResult?.fromCut ? useApp.getState().clearSectionProps() : useApp.getState().computeSectionCut())}>{sectionResult?.fromCut ? tStatus('✕ 關截面屬性', lang) : tStatus('Σ 剖面截面屬性', lang)}</button>
         </CommandDialog>

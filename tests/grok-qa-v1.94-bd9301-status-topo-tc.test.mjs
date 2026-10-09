@@ -26,7 +26,7 @@ test('catalog parity', () => {
 
 test('BD-9301 status tips pattern/mirror TC in store', () => {
   assert.match(store, /pattern: '矩形陣列：設 X\/Y 數量與間距 → 確定'/)
-  assert.match(store, /mirror: '鏡像：設鏡像面／偏移 → 確定'/)
+  assert.ok(store.includes("mirror: '鏡像：選擇對象（整個實體／所選特徵／組件）及鏡像平面（XY／XZ／YZ、構造平面，或點選實體上的平面），再選操作（合併／新實體）→ 確定'"))   // CORE16 #4
   assert.match(store, /cpattern: '環形陣列：設軸／數量／角度 → 確定'/)
   assert.equal(store.includes("pattern: '矩形阵列：设"), false)
   assert.equal(store.includes("mirror: '镜像：设"), false)

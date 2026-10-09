@@ -1278,7 +1278,7 @@ const messages: Record<string, string> = {
   "ui.browserCollapse": "摺疊瀏覽器",
   "ui.browserExpand": "展開瀏覽器",
   "ui.busyCancelSketch": "請先完成或取消（ESC）目前操作 / 完成草圖",
-  "ui.clickFeatureFirst": "← 先喺時間軸單擊選中特徵",
+  "ui.clickFeatureFirst": "← 請先在時間軸點選特徵",
   "ui.collapseRibbon": "收起工具列（淨留標籤，騰畫面）",
   "ui.color": "顏色",
   "ui.design": "設計",

@@ -44,7 +44,7 @@ test('store tip Record residual SC cleared (move/scale/box/…)', () => {
   assert.match(tip, /sheetmetal: '鈑金件：選截面/)
   assert.match(tip, /automatedmodel: 'Automated Modeling（Connector v1）：在畫布依次點選/)
   assert.match(tip, /pattern: '矩形陣列：設 X\/Y 數量與間距 → 確定'/)
-  assert.match(tip, /mirror: '鏡像：設鏡像面／偏移 → 確定'/)
+  assert.ok(tip.includes("mirror: '鏡像：選擇對象（整個實體／所選特徵／組件）及鏡像平面（XY／XZ／YZ、構造平面，或點選實體上的平面），再選操作（合併／新實體）→ 確定'"))   // CORE16 #4
   const scNeedles = [
     '移动/复制', '缩放：设', '整体偏移：设', '长方体：设', '圆柱：设',
     '构造轴：选', '齿轮箱向导', '钣金件：选', '画布依次点选', '从实体切除',

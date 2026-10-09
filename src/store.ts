@@ -16267,7 +16267,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
     }
     const tip: Record<string, string> = {
-      pattern: '矩形陣列：設 X/Y 數量與間距 → 確定', cpattern: '環形陣列：設軸／數量／角度 → 確定', mirror: '鏡像：設鏡像面／偏移 → 確定',
+      pattern: '矩形陣列：設 X/Y 數量與間距 → 確定', cpattern: '環形陣列：設軸／數量／角度 → 確定', mirror: '鏡像：選擇對象（整個實體／所選特徵／組件）及鏡像平面（XY／XZ／YZ、構造平面，或點選實體上的平面），再選操作（合併／新實體）→ 確定',
       circpattern: '環形陣列：對象（整個實體／時間軸所選特徵）+ 軸（原點＋方向）+ 數量 + 角度模式 → 確定',
       move: '移動/複製：設 dx/dy/dz + 繞Z角 → 確定', scale: '縮放：設比例 → 確定', offsetsolid: '整體偏移：設距離（+外擴 / −內縮，均勻偏移所有面）→ 確定', draft: '拔模：設角度（側面，中性面 XY）→ 確定',
       splitbody: '分割實體：設 軸/位置/保留側 → 確定（另一半灰顯泊車，可隱藏/導出/布爾）；「平面切」拾面會預填呢個對話框',
@@ -16305,7 +16305,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 否则默认「整个实体」+ objectPicked=0 → 身份错（active body）或要用户再点一次「选择」。
     const params = { ...defaults[kind] }
     const selFeat = !!(s.selectedFeatures.length || s.selectedFeature)
-    if (kind === 'mirror' && selFeat) {
+    // CORE16 #4：殘留嘅已刪特徵 id 唔再令鏡像預設「所選特徵」（之前一開就報「已唔存在 — 重新選」）
+    const liveSelFeat = [...s.selectedFeatures, ...(s.selectedFeature ? [s.selectedFeature] : [])].some((id) => s.features.some((x) => x.id === id))
+    if (kind === 'mirror' && liveSelFeat) {
       params.target = 'feature'
     }
     if ((kind === 'pattern' || kind === 'circpattern') && selFeat) {
@@ -18788,13 +18790,15 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (p.target === 'feature' && !d.editId) {   // Edit Feature：编辑模式 targets 透传原值（undefined 过滤），唔使时间轴选中
         // P2 audit：多选（Ctrl+点 chip 累积 selectedFeatures）— 一次阵列/镜像多个特征；旧单选照兼容
         const selFs = get().selectedFeatures.length ? get().selectedFeatures : (get().selectedFeature ? [get().selectedFeature as string] : [])
-        if (!selFs.length) { set({ status: '鏡像（所選特徵）：先喺時間軸單擊選中要鏡像嘅特徵，再撳確定（Ctrl+點可多選）' }); return }
+        // CORE16 #4：冇揀（或揀咗嘅已刪）→ 清楚提示點樣揀，唔再講「已唔存在 — 重新選」
         const _live = selFs.filter((fid2) => get().features.some((x) => x.id === fid2))
-        if (!_live.length) { set({ status: '所選特徵已唔存在 — 重新選' }); return }
+        if (!_live.length) { set({ status: '鏡像特徵：請先在時間軸點選要鏡像的特徵（Ctrl＋點選可多選），再按「確定」' }); return }
         { const _nb = _live.map((fid2) => get().features.find((x) => x.id === fid2) as { operation?: string; op?: string } | undefined).filter((tf) => tf && ((tf.operation ?? tf.op) === 'newbody'))
           if (_nb.length) { set({ status: '「⬡新實體」特徵系獨立泊車體 — 特徵級陣列/鏡像 v1 唔適用（snapshot-delta 捕唔到泊車幾何）。改用 合併布爾 或對成件實體陣列' }); return } }
         mrTargets = _live
       }
+      if (!mrTargets && !hasSolid(get().features)) { set({ status: '鏡像：目前沒有可鏡像的實體 — 請先建立實體' }); return }
+      if (String(p.plane) === 'PICK' && (typeof p.pickO !== 'string' || typeof p.pickN !== 'string')) { set({ status: '鏡像：請點選一個平面作為鏡像面（或改選 XY／XZ／YZ）' }); return }
       const mrOp: 'newbody' | undefined = (p.mirrorOp && !mrTargets) ? 'newbody' : undefined   // #7b：镜像出独立体（仅整体镜像；特征级镜像唔适用）
       const plStr = String(p.plane)
       if (plStr === 'PICK' && typeof p.pickO === 'string' && typeof p.pickN === 'string') {
@@ -18805,7 +18809,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         msg = `已鏡像（跨所拾面，法向 [${pn.map((x) => x.toFixed(2)).join(',')}]${mrTargets ? ' · 所选特征' : ''}）`
       } else if (plStr.startsWith('P')) {
         const dp = get().planes[Number(plStr.slice(1))]
-        if (!dp?.arb) { set({ status: '所選構造面已唔存在/非任意面 — 重新揀面' }); return }
+        if (!dp?.arb) { set({ status: '鏡像：所選構造平面已不存在，請重新選擇鏡像平面' }); return }
         f = { id: fid(), type: 'mirror', plane: 'XY', ...(mrTargets ? { targets: mrTargets } : {}), planeN: dp.arb.n, planeO: dp.arb.o, op: mrOp }
         msg = `已鏡像（跨構造面${Number(plStr.slice(1)) + 1}${mrTargets ? ' · 所选特征' : ''}）`
       } else {
@@ -19294,7 +19298,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // P2：镜像画布拾面 — 对话框开住时点任意平面面即定镜像面（法向+面上一点 → worker planeN/planeO 早已支持）
   mirrorFacePick: false,
-  startMirrorFacePick: () => set((s) => (s.featDlg?.kind === 'mirror' ? { mirrorFacePick: true, status: '🎯 點實體上一個【平面】做鏡像面（構造面都得）' } : {})),
+  startMirrorFacePick: () => set((s) => (s.featDlg?.kind === 'mirror' ? { mirrorFacePick: true, status: '鏡像：請點選實體上的一個平面作為鏡像平面' } : {})),
   applyMirrorFacePick: (p, n) => set((s) => {
     if (!s.featDlg || s.featDlg.kind !== 'mirror') return { mirrorFacePick: false }
     const L = Math.hypot(n[0], n[1], n[2]) || 1
@@ -19303,7 +19307,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       mirrorFacePick: false,
       featDlg: { ...s.featDlg, params: { ...s.featDlg.params, plane: 'PICK', pickO: po.join(','), pickN: pn.join(',') } },
-      status: `已拾鏡像面（法向 [${pn.join(',')}]）→ 確定鏡像`,
+      status: `已拾取鏡像平面（法向 [${pn.join(',')}]）— 按「確定」完成鏡像`,
     }
   }),
 

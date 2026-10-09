@@ -56,7 +56,7 @@ test('BD-9301 featDlg pattern/cpattern/circpattern/mirror/pathpattern TC', () =>
   assert.match(vp, /tStatus\('整個實體'/)
   assert.match(vp, /tStatus\('所選特徵'/)
   assert.match(vp, /tStatus\('抑制實例'/)
-  assert.match(vp, /tStatus\('鏡像出獨立實體'/)
+  assert.match(vp, /data-testid="mirror-op"[^\n]*tStatus\('新實體'/)   // CORE16 #4：核取方塊改為「操作」合併／新實體
   assert.match(vp, /tStatus\('連泊車體一齊陣列'/)
   assert.match(vp, /featDlg\.editId \? '編輯 · '/)
   assert.match(vp, /tStatus\('編輯模式：改參數 → 確定重建；稜\/面選擇集及輪廓保留原值'/)

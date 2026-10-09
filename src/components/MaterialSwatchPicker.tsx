@@ -1,7 +1,9 @@
 // 材质球 swatch 选择器（Flux.1-schnell 生成嘅 studio render 材质球）。
 // Ribbon 顶栏「材质…」下拉旁边一粒掣 → 开一个网格弹窗，点材质球即套用（setMaterialPreset）。
 // 比纯文字下拉直观好多（Fusion Appearance 式视觉拣料）。下拉保留做后备。
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
+import { clampPopover, type PopoverPlacement } from '../ui/popoverClamp'
 import { useApp, MATERIALS } from '../store'
 import { tMaterialName } from '../i18n'
 
@@ -12,6 +14,10 @@ const KEY2IMG: Record<string, string> = {
   青铜: 'bronze', 木: 'wood', 橡胶: 'rubber', 玻璃: 'glass', PLA: 'pla', PETG: 'petg',
   ABS: 'abs', TPU: 'tpu', 尼龙PA: 'nylon', 树脂: 'resin',
 }
+
+const PICKER_W = 296
+const SEL_BORDER = '#1a5fd6'                       // selected swatch: 2px solid + outer ring (visible, not hover-only)
+const SEL_RING = '0 0 0 2px rgba(26,95,214,.35)'
 
 export default function MaterialSwatchPicker() {
   const [open, setOpen] = useState(false)
@@ -25,9 +31,25 @@ export default function MaterialSwatchPicker() {
   const lang = useApp((s) => s.lang)
   const nm = (k: string) => tMaterialName(k, lang)
   const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const popRef = useRef<HTMLDivElement>(null)
+  // Fixed + viewport-clamped (was absolute/right:0 inside the scrolling ribbon → off-screen at 1280px).
+  const [place, setPlace] = useState<PopoverPlacement>({ left: 8, top: 40, maxHeight: 480 })
+  useLayoutEffect(() => {
+    if (!open) return
+    const fit = () => {
+      const r = btnRef.current?.getBoundingClientRect()
+      if (!r) return
+      const next = clampPopover(r, { width: PICKER_W }, { width: window.innerWidth, height: window.innerHeight }, { align: 'end' })
+      setPlace((o) => (o.left === next.left && o.top === next.top && o.maxHeight === next.maxHeight ? o : next))
+    }
+    fit()
+    window.addEventListener('resize', fit); window.addEventListener('scroll', fit, true)
+    return () => { window.removeEventListener('resize', fit); window.removeEventListener('scroll', fit, true) }
+  }, [open])
   useEffect(() => {
     if (!open) return
-    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    const onDoc = (e: MouseEvent) => { const t = e.target as Node; if (ref.current && !ref.current.contains(t) && !popRef.current?.contains(t)) setOpen(false) }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('mousedown', onDoc); document.addEventListener('keydown', onKey)
     return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
@@ -49,10 +71,10 @@ export default function MaterialSwatchPicker() {
   })
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
-      <button className="tb-btn" title="材質 / 外觀 — 物理材質(密度→質量) 與 外觀(顏色/PBR) 分兩 tab" onClick={() => setOpen((v) => !v)}
+      <button ref={btnRef} className="tb-btn" aria-expanded={open} title="材質 / 外觀 — 物理材質(密度→質量) 與 外觀(顏色/PBR) 分兩 tab" onClick={() => setOpen((v) => !v)}
         style={{ padding: '2px 6px', fontSize: 13 }}>🎨</button>
-      {open && (
-        <div role="menu" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 30000, background: '#fff', border: '1px solid #cfd6dd', borderRadius: 8, boxShadow: '0 8px 28px rgba(0,0,0,.22)', padding: 8, width: 296, maxHeight: '72vh', overflowY: 'auto' }}>
+      {open && createPortal(
+        <div ref={popRef} role="menu" data-testid="material-swatch-popover" style={{ position: 'fixed', left: place.left, top: place.top, zIndex: 30000, background: '#fff', border: '1px solid #cfd6dd', borderRadius: 8, boxShadow: '0 8px 28px rgba(0,0,0,.22)', padding: 8, width: PICKER_W, maxWidth: 'calc(100vw - 16px)', boxSizing: 'border-box', maxHeight: Math.min(place.maxHeight, Math.round(window.innerHeight * 0.72)), overflowY: 'auto' }}>
           <div style={{ display: 'flex', gap: 0, marginBottom: 8, borderBottom: '1px solid #e3e8ee' }}>
             <button style={tabBtn('appearance')} onClick={() => setTab('appearance')}>🎨 外觀</button>
             <button style={tabBtn('physical')} onClick={() => setTab('physical')}>⚖ 物理材質</button>
@@ -63,10 +85,10 @@ export default function MaterialSwatchPicker() {
                 const eng = KEY2IMG[k]
                 const sel = appearanceName === k
                 return (
-                  <button key={k} title={`外觀：${nm(k)}（只改外觀，不改密度／質量）`} aria-pressed={sel} data-selected={sel ? 'true' : undefined} onClick={() => { setMaterialPreset(k); setOpen(false) }}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, border: '1px solid ' + (sel ? '#2b6cf0' : 'transparent'), borderRadius: 6, padding: 2, background: sel ? '#eef3fc' : 'none', cursor: 'pointer' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2b6cf0'; e.currentTarget.style.background = '#eef3fc' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = sel ? '#2b6cf0' : 'transparent'; e.currentTarget.style.background = sel ? '#eef3fc' : 'none' }}>
+                  <button key={k} className={'mat-swatch' + (sel ? ' mat-swatch-selected' : '')} title={`外觀：${nm(k)}（只改外觀，不改密度／質量）`} aria-pressed={sel} data-selected={sel ? 'true' : undefined} onClick={() => { setMaterialPreset(k); setOpen(false) }}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, border: '2px solid ' + (sel ? SEL_BORDER : 'transparent'), boxShadow: sel ? SEL_RING : 'none', borderRadius: 6, padding: 1, background: sel ? '#e3edff' : 'none', cursor: 'pointer' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = sel ? SEL_BORDER : '#9db8e8'; e.currentTarget.style.background = sel ? '#e3edff' : '#f2f6fc' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = sel ? SEL_BORDER : 'transparent'; e.currentTarget.style.background = sel ? '#e3edff' : 'none' }}>
                     {eng
                       ? <img src={`/mat/${eng}.png`} alt={nm(k)} width={44} height={44} style={{ borderRadius: '50%', display: 'block', objectFit: 'cover' }} loading="lazy" />
                       : <span style={{ width: 44, height: 44, borderRadius: '50%', background: MATERIALS[k]?.color || '#bbb', display: 'block', boxShadow: 'inset 0 -6px 10px rgba(0,0,0,.25), inset 0 6px 8px rgba(255,255,255,.5)' }} />}
@@ -93,7 +115,7 @@ export default function MaterialSwatchPicker() {
             </div>
           )}
         </div>
-      )}
+      , document.body)}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { APP_VERSION } from '../version'
+import { clampPopover } from '../ui/popoverClamp'
 import { useEscapeLayer } from './useEscapeLayer'
 import NarrowHint from './NarrowHint'
 import { createPortal } from 'react-dom'
@@ -85,8 +86,7 @@ function useFloatingMenu(open: boolean, anchor: { current: HTMLElement | null },
     const fit = () => {
       const a = anchor.current?.getBoundingClientRect(), el = menu.current
       if (!a || !el) return
-      const top = Math.max(8, Math.min(a.bottom + 4, window.innerHeight - 160))
-      const next = { left: Math.max(8, Math.min(a.left, window.innerWidth - el.offsetWidth - 8)), top, maxHeight: Math.max(80, window.innerHeight - top - 8) }
+      const next = clampPopover(a, { width: el.offsetWidth }, { width: window.innerWidth, height: window.innerHeight })
       setPlacement(old => old.left === next.left && old.top === next.top && old.maxHeight === next.maxHeight ? old : next)
     }
     fit()

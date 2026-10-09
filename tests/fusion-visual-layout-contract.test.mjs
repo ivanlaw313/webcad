@@ -28,7 +28,9 @@ test('desktop ribbon tabs and cascading menus remain inside a narrow viewport', 
   assert.match(css, /\.panel-menu\s*\{[^}]*max-width:\s*calc\(100vw - 16px\)[^}]*max-height:\s*min\(480px,\s*calc\(100vh - 110px\)\)/s)
   assert.match(ribbon, /data-testid="ribbon-group-menu"/)
   assert.match(ribbon, /data-testid="ribbon-submenu"/)
-  assert.match(ribbon, /createPortal/); assert.match(ribbon, /window\.innerWidth - el\.offsetWidth - 8/)
+  assert.match(ribbon, /createPortal/); assert.match(ribbon, /clampPopover\(a, \{ width: el\.offsetWidth \}, \{ width: window\.innerWidth, height: window\.innerHeight \}\)/)
+  // shared helper keeps the 8px viewport margin (was inline `window.innerWidth - el.offsetWidth - 8`)
+  assert.match(readFileSync(new URL('../src/ui/popoverClamp.ts', import.meta.url), 'utf8'), /viewport\.width - w - margin/)
 })
 
 test('floating CAD panels have viewport-safe dimensions and theme-aware surfaces', () => {

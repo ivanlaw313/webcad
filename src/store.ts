@@ -2108,6 +2108,11 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   addJoint: (j: Omit<Joint, 'id' | 'name'>) => void
   addJointAtPose: (j: Omit<Joint, 'id' | 'name'>, childId: string, pose: { pos: [number, number, number]; rot: [number, number, number] }) => void
   setJointValue: (id: string, patch: Partial<Pick<Joint, 'angle' | 'slide' | 'angle2' | 'angle3' | 'slide2' | 'aMin' | 'aMax' | 'sMin' | 'sMax' | 'lead' | 'rest' | 'offset' | 'originAngle' | 'flip'>>) => void
+  // Fusion-like joint drive undo: a whole drag / slider gesture = ONE undo step. begin captures the document
+  // before the gesture (setJointValue itself stays snapshot-free for continuous drives); end pushes that snapshot
+  // only if a joint value really changed. Both are idempotent (end without begin = no-op).
+  beginJointDrive: () => void
+  endJointDrive: () => boolean
   // S101[9]：Motion Study（趋势级 1-DOF 动力学）— 单可动关节加质量+重力+弹簧+阻尼，半隐式欧拉积分出 q(t) 轨迹 → JointsPanel RAF 逐帧驱动 FK
   // 每个可动坐标一条同步轨迹；保留 key/q 是为旧存档与单自由度调用兼容。
   motionStudy: { jointId: string; key: 'angle' | 'slide'; q: number[]; keys?: ('angle' | 'slide' | 'angle2' | 'angle3' | 'slide2')[]; qs?: Record<string, number[]>; dt: number; tEnd: number } | null
@@ -3212,6 +3217,16 @@ function featureDisplayName(f: Feature, all: readonly Feature[]): string {
   const n = all.filter((g) => (FEATURE_TYPE_LABEL[g.type] ?? g.type) === base).findIndex((g) => g.id === f.id) + 1
   return n > 0 ? `${base}${n}` : base
 }
+// Joint drive gesture (drag / slider) in progress: document snapshot taken at gesture start.
+let _jointDriveStart: ReturnType<typeof docSnap> | null = null
+const JOINT_DRIVE_KEYS = ['angle', 'slide', 'angle2', 'angle3', 'slide2'] as const
+function jointValuesDiffer(a: readonly Joint[], b: readonly Joint[]): boolean {
+  if (a === b) return false
+  if (a.length !== b.length) return true
+  const byId = new Map(a.map((j) => [j.id, j]))
+  return b.some((j) => { const o = byId.get(j.id); return !o || JOINT_DRIVE_KEYS.some((k) => Math.abs(((o as any)[k] ?? 0) - ((j as any)[k] ?? 0)) > 1e-9) })
+}
+
 function docSnap(s: Pick<AppState, 'features' | 'components' | 'componentDefs' | 'joints' | 'motionLinks' | 'sketchSources' | 'params' | 'paramBindings' | 'suppressedIds' | 'faceColors' | 'mates' | 'groups' | 'jointPoses' | 'jointKeyframes' | 'planes' | 'cpoints' | 'caxes' | 'jointOrigins' | 'rigidGroups' | 'contactPairs'>) {
   return {
     features: s.features, components: s.components, componentDefs: referencedDefs(s.components, s.componentDefs), joints: s.joints, motionLinks: s.motionLinks, sketchSources: Object.fromEntries(Object.entries(s.sketchSources).map(([id,src])=>[id,src.patternData?{...src,patternData:structuredClone(src.patternData)}:src])),   // R2：componentDefs 必须入撤销快照（否则撤销 def 编辑 → occurrence 镜像 stale）；剪孤儿 def 防 undo 栈膨胀（占内存嘅是孤儿 def 独持嘅旧 mesh）——快照唔剥 occ.mesh 故即使剪错都零几何丢失
@@ -12859,6 +12874,16 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ motionEnvelope: { min: [mn[0], mn[1]], max: [mx[0], mx[1]] }, status: `已算運動包絡 ${(mx[0] - mn[0]).toFixed(0)}×${(mx[1] - mn[1]).toFixed(0)}mm（機構掃一圈占用範圍 — 設計外殼/避讓用）` })
   },
   clearEnvelope: () => set({ motionEnvelope: null, status: '已清除運動包絡' }),
+  beginJointDrive: () => { if (!_jointDriveStart) _jointDriveStart = docSnap(get()) },
+  endJointDrive: () => {
+    const start = _jointDriveStart
+    _jointDriveStart = null
+    if (!start) return false
+    const s = get()
+    if (!jointValuesDiffer(start.joints, s.joints)) return false
+    set({ undoStack: [...s.undoStack, start].slice(-60), redoStack: [] })
+    return true
+  },
   setJointValue: (id, patch) => set((s) => {
     { const jj = s.joints.find((x) => x.id === id); const drives = Object.keys(patch).some((k) => k === 'angle' || k === 'slide' || k === 'angle2' || k === 'angle3' || k === 'slide2')
       if (jj && drives && isCompGrounded(s, jj.child)) return { status: `「${s.components.find((c) => c.id === jj.child)?.name ?? jj.child}」已固定 — 關節唔會驅動佢（先取消固定）` } }   // BUG(B)

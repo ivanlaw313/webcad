@@ -3692,12 +3692,13 @@ function ComponentGizmo() {
     if (phase === 'start' || !dragJ0.current) {
       const fk0 = computeFK(st.components.map((x) => x.id), st.joints)
       dragJ0.current = { j0: { ...live }, parentM: (fk0.get(live.parent) ?? new Matrix4()).clone(), last: { angle: live.angle, slide: live.slide } }
+      st.beginJointDrive()   // one completed drag = one undo step (pushed on 'end' only if the joint value changed)
       if (phase === 'start') return
     }
     const d = dragJ0.current!
     const v = jointDragLiveValue(d.j0, d.parentM, delta, pivot, d.last)
     if (phase === 'end') dragJ0.current = null
-    if (!v) { useApp.setState({ status: `「${localizeAsmName(c!.name, st.lang)}」受${JOINT_LABEL_TC[childJoint.type]}關節「${localizeAsmName(childJoint.name, st.lang)}」約束 — 拖動已忽略；請用關節面板滑桿調整` }); return }
+    if (!v) { if (phase === 'end') useApp.getState().endJointDrive(); useApp.setState({ status: `「${localizeAsmName(c!.name, st.lang)}」受${JOINT_LABEL_TC[childJoint.type]}關節「${localizeAsmName(childJoint.name, st.lang)}」約束 — 拖動已忽略；請用關節面板滑桿調整` }); return }
     const changed = (v.angle !== undefined && Math.abs(v.angle - (live.angle ?? 0)) > 1e-6) || (v.slide !== undefined && Math.abs(v.slide - (live.slide ?? 0)) > 1e-6)
     const before = useApp.getState().status
     if (changed) st.setJointValue(childJoint.id, v)
@@ -3705,6 +3706,7 @@ function ComponentGizmo() {
     if (phase !== 'end' && !changed) return
     const after = useApp.getState().joints.find((j) => j.id === childJoint.id) ?? live
     if (useApp.getState().status === before) useApp.setState({ status: jointDragStatus(localizeAsmName(childJoint.name, st.lang), v.angle !== undefined ? after.angle : undefined, v.slide !== undefined ? after.slide : undefined, phase === 'end') })
+    if (phase === 'end') useApp.getState().endJointDrive()
   } : undefined
   return (
     <ComponentGumball

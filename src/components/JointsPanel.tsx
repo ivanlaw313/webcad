@@ -12,6 +12,19 @@ import { tStatus } from '../i18n'   // T779：DOF 闭环 Grübler 修正
 const AXES: { k: 'X' | 'Y' | 'Z'; v: [number, number, number] }[] = (['X', 'Y', 'Z'] as const).map((k) => ({ k, v: cadAxisToWorld(k) }))
 const TYPES: JointType[] = ['revolute', 'slider', 'cylindrical', 'pinslot', 'ball', 'planar', 'screw', 'rigid']
 
+// Fusion-like undo: one joint-slider gesture (pointer press → release, or a key-repeat burst) = one undo step.
+// setJointValue stays snapshot-free while sliding; endJointDrive pushes the pre-gesture document if a value changed.
+const beginDrive = () => useApp.getState().beginJointDrive()
+const endDrive = () => { useApp.getState().endJointDrive() }
+// Only keys that move a range slider open a gesture — Ctrl+Z / Ctrl+Y on a focused slider must not (it would
+// record the undo itself as a new joint edit).
+const SLIDER_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'])
+export const isSliderDriveKey = (e: { key: string; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean }) => SLIDER_KEYS.has(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey
+const JOINT_DRIVE_GESTURE = {
+  onPointerDown: beginDrive, onPointerUp: endDrive, onPointerCancel: endDrive, onLostPointerCapture: endDrive,
+  onKeyDown: (e: { key: string; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean }) => { if (isSliderDriveKey(e)) beginDrive() }, onKeyUp: endDrive, onBlur: endDrive,
+} as const
+
 export default function JointsPanel() {
   const lang = useApp((s) => s.lang)
   const components = useApp((s) => s.components)
@@ -280,7 +293,7 @@ export default function JointsPanel() {
           )}
           {(j.type === 'revolute' || j.type === 'cylindrical') && (
             <>
-              <label className="jp-drive">轉 <input type="range" min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
+              <label className="jp-drive">轉 <input type="range" {...JOINT_DRIVE_GESTURE} min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
               <div className="jp-lim">限位 <input type="number" value={j.aMin ?? -180} onChange={(e) => setJointValue(j.id, { aMin: Number(e.target.value) })} /> ~ <input type="number" value={j.aMax ?? 180} onChange={(e) => setJointValue(j.id, { aMax: Number(e.target.value) })} /> °
                 <button className="cs-x" title="停於接觸（T779）：正轉直到撞到第三方組件前一刻停低（5°掃+二分 ~0.01° — 卡扣/棘輪「轉到卡住」）" onClick={() => void useApp.getState().driveJointToContact(j.id, 1, 'angle')}>🧱+</button>
                 <button className="cs-x" title="停於接觸：反轉方向" onClick={() => void useApp.getState().driveJointToContact(j.id, -1, 'angle')}>🧱−</button>
@@ -289,7 +302,7 @@ export default function JointsPanel() {
           )}
           {(j.type === 'slider' || j.type === 'cylindrical') && (
             <>
-              <label className="jp-drive">移 <input type="range" min={j.sMin ?? -120} max={j.sMax ?? 120} value={j.slide} onChange={(e) => setJointValue(j.id, { slide: Number(e.target.value) })} /> {limTag(j.slide, j.sMin ?? -120, j.sMax ?? 120, '', j.sMin != null || j.sMax != null)}</label>
+              <label className="jp-drive">移 <input type="range" {...JOINT_DRIVE_GESTURE} min={j.sMin ?? -120} max={j.sMax ?? 120} value={j.slide} onChange={(e) => setJointValue(j.id, { slide: Number(e.target.value) })} /> {limTag(j.slide, j.sMin ?? -120, j.sMax ?? 120, '', j.sMin != null || j.sMax != null)}</label>
               <div className="jp-lim">限位 <input type="number" value={j.sMin ?? -120} onChange={(e) => setJointValue(j.id, { sMin: Number(e.target.value) })} /> ~ <input type="number" value={j.sMax ?? 120} onChange={(e) => setJointValue(j.id, { sMax: Number(e.target.value) })} /> mm
                 <button className="cs-x" title="停於接觸（S98）：正向滑到撞到第三方組件前一刻停低（2mm 掃+二分 — 卡扣/抽屜「推到頂」）" onClick={() => void useApp.getState().driveJointToContact(j.id, 1, 'slide')}>🧱+</button>
                 <button className="cs-x" title="停於接觸：反向滑" onClick={() => void useApp.getState().driveJointToContact(j.id, -1, 'slide')}>🧱−</button>
@@ -298,28 +311,28 @@ export default function JointsPanel() {
           )}
           {j.type === 'ball' && (
             <>
-              <label className="jp-drive">繞Z <input type="range" min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
-              <label className="jp-drive">繞Y <input type="range" min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle2 ?? 0} onChange={(e) => setJointValue(j.id, { angle2: Number(e.target.value) })} /> {limTag(j.angle2 ?? 0, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
-              <label className="jp-drive">繞X <input type="range" min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle3 ?? 0} onChange={(e) => setJointValue(j.id, { angle3: Number(e.target.value) })} /> {limTag(j.angle3 ?? 0, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
+              <label className="jp-drive">繞Z <input type="range" {...JOINT_DRIVE_GESTURE} min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
+              <label className="jp-drive">繞Y <input type="range" {...JOINT_DRIVE_GESTURE} min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle2 ?? 0} onChange={(e) => setJointValue(j.id, { angle2: Number(e.target.value) })} /> {limTag(j.angle2 ?? 0, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
+              <label className="jp-drive">繞X <input type="range" {...JOINT_DRIVE_GESTURE} min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle3 ?? 0} onChange={(e) => setJointValue(j.id, { angle3: Number(e.target.value) })} /> {limTag(j.angle3 ?? 0, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
             </>
           )}
           {j.type === 'pinslot' && (
             <>
-              <label className="jp-drive" title="繞銷軸轉動">轉 <input type="range" min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
-              <label className="jp-drive" title="沿槽向滑動（槽向 ⊥ 銷軸，自動取基向 — 同平面關節 U 向同約定）">滑 <input type="range" min={j.sMin ?? -120} max={j.sMax ?? 120} value={j.slide} onChange={(e) => setJointValue(j.id, { slide: Number(e.target.value) })} /> {limTag(j.slide, j.sMin ?? -120, j.sMax ?? 120, '', j.sMin != null || j.sMax != null)}</label>
+              <label className="jp-drive" title="繞銷軸轉動">轉 <input type="range" {...JOINT_DRIVE_GESTURE} min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
+              <label className="jp-drive" title="沿槽向滑動（槽向 ⊥ 銷軸，自動取基向 — 同平面關節 U 向同約定）">滑 <input type="range" {...JOINT_DRIVE_GESTURE} min={j.sMin ?? -120} max={j.sMax ?? 120} value={j.slide} onChange={(e) => setJointValue(j.id, { slide: Number(e.target.value) })} /> {limTag(j.slide, j.sMin ?? -120, j.sMax ?? 120, '', j.sMin != null || j.sMax != null)}</label>
               <div className="jp-lim">滑限 <input type="number" value={j.sMin ?? -120} onChange={(e) => setJointValue(j.id, { sMin: Number(e.target.value) })} /> ~ <input type="number" value={j.sMax ?? 120} onChange={(e) => setJointValue(j.id, { sMax: Number(e.target.value) })} /> mm（長槽調節位標準關節）</div>
             </>
           )}
           {j.type === 'planar' && (
             <>
-              <label className="jp-drive">移U <input type="range" min={j.sMin ?? -120} max={j.sMax ?? 120} value={j.slide} onChange={(e) => setJointValue(j.id, { slide: Number(e.target.value) })} /> {limTag(j.slide, j.sMin ?? -120, j.sMax ?? 120, '', j.sMin != null || j.sMax != null)}</label>
-              <label className="jp-drive">移V <input type="range" min={j.sMin ?? -120} max={j.sMax ?? 120} value={j.slide2 ?? 0} onChange={(e) => setJointValue(j.id, { slide2: Number(e.target.value) })} /> {limTag(j.slide2 ?? 0, j.sMin ?? -120, j.sMax ?? 120, '', j.sMin != null || j.sMax != null)}</label>
-              <label className="jp-drive">轉 <input type="range" min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
+              <label className="jp-drive">移U <input type="range" {...JOINT_DRIVE_GESTURE} min={j.sMin ?? -120} max={j.sMax ?? 120} value={j.slide} onChange={(e) => setJointValue(j.id, { slide: Number(e.target.value) })} /> {limTag(j.slide, j.sMin ?? -120, j.sMax ?? 120, '', j.sMin != null || j.sMax != null)}</label>
+              <label className="jp-drive">移V <input type="range" {...JOINT_DRIVE_GESTURE} min={j.sMin ?? -120} max={j.sMax ?? 120} value={j.slide2 ?? 0} onChange={(e) => setJointValue(j.id, { slide2: Number(e.target.value) })} /> {limTag(j.slide2 ?? 0, j.sMin ?? -120, j.sMax ?? 120, '', j.sMin != null || j.sMax != null)}</label>
+              <label className="jp-drive">轉 <input type="range" {...JOINT_DRIVE_GESTURE} min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
             </>
           )}
           {j.type === 'screw' && (
             <>
-              <label className="jp-drive" title="轉動驅動；同步沿軸進給 = 轉角/360 × 導程">轉 <input type="range" min={j.aMin ?? -1080} max={j.aMax ?? 1080} value={j.angle} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -1080, j.aMax ?? 1080, '°', j.aMin != null || j.aMax != null)}</label>
+              <label className="jp-drive" title="轉動驅動；同步沿軸進給 = 轉角/360 × 導程">轉 <input type="range" {...JOINT_DRIVE_GESTURE} min={j.aMin ?? -1080} max={j.aMax ?? 1080} value={j.angle} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -1080, j.aMax ?? 1080, '°', j.aMin != null || j.aMax != null)}</label>
               <div className="jp-lim" title="導程：每轉一圈軸向進給 mm（公制螺紋的螺距×線數）">導程 <input type="number" step={0.1} value={j.lead ?? 1.5} onChange={(e) => setJointValue(j.id, { lead: Number(e.target.value) })} style={{ width: 56 }} /> mm/轉 · 進給 {(((j.angle || 0) / 360) * (j.lead ?? 0)).toFixed(2)}mm</div>
             </>
           )}
@@ -453,7 +466,7 @@ export default function JointsPanel() {
           <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>關鍵幀動畫（Keyframe Animation）</div>
           <div className="jp-row" style={{ fontSize: 12, gap: 6, alignItems: 'center' }}>
             <span style={{ minWidth: 14 }}>t</span>
-            <input type="range" min={0} max={Math.max(1, kfEnd)} step={0.05} value={Math.min(kfTime, Math.max(1, kfEnd))} title="拖動時間軸：相鄰關鍵幀之間線性插值驅動機構（scrub）" onChange={(e) => { const v = Number(e.target.value); setKfPlaying(false); setKfTime(v); useApp.getState().applyJointTime(v) }} style={{ flex: 1 }} />
+            <input type="range" {...JOINT_DRIVE_GESTURE} min={0} max={Math.max(1, kfEnd)} step={0.05} value={Math.min(kfTime, Math.max(1, kfEnd))} title="拖動時間軸：相鄰關鍵幀之間線性插值驅動機構（scrub）" onChange={(e) => { const v = Number(e.target.value); setKfPlaying(false); setKfTime(v); useApp.getState().applyJointTime(v) }} style={{ flex: 1 }} />
             <span style={{ minWidth: 38, color: '#8a939c' }}>{kfTime.toFixed(2)}s</span>
           </div>
           <div className="jp-row" style={{ gap: 6 }}>

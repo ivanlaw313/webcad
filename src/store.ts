@@ -61,6 +61,7 @@ import { searchRibbonCommand } from './ribbon'   // P6 AI 教学：把用户问�
 import { openAeroLab } from './aero/aeroUiStore'   // Aero Design Lab（氣動設計實驗室）面板開關 — 獨立小 store
 import type { MeshData, Feature, SketchProfile, BoolOp, EdgeSel, DrawView, Plane } from './worker/cad.worker'
 import { loftEffectiveOrder, loftMoveOrder, faceLoopToSection } from './cad/loftSections'
+import { planComponentMove, cadMoveToWorld } from './assembly/componentMove'
 import { computeFK, drivingJointOf, _fourbar, solve4Bar, fourBarVelocity, fourBarVelocityProfile, solveSliderCrank, sliderCrankReachability, solveLinkage, solveSixBar, sweepToContact, simulateMotion, JOINT_LABEL_TC, jointTypeMenu, jointTypePickOptions, resolveJointOrigin, type Joint, type JointType, type JointOrigin, type JointOriginMode } from './assembly/kinematics'
 import { findLoops, loopPlane, solveLoop, isMechanismLoop, type Loop } from './assembly/linkage'   // T774（S51）：通用平面闭环求解器
 import { inferAsBuiltAxis, type ExplodeStep } from './assembly/asmUtil'   // GM-3DV4 A10：as-built 推轴；A12：有序爆炸步类型
@@ -2048,6 +2049,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   distributeCheckedComps: (axis: 0 | 1 | 2) => void
   batchDeleteChecked: () => void
   setComponentPos: (id: string, pos: [number, number, number]) => void
+  moveComponentsByUser: (ids: string[], d: [number, number, number], r?: [number, number, number]) => boolean   // ASM2 P2：用戶移動組件（world 位移／旋轉增量）— 尊重關節（見 assembly/componentMove）
   setComponentRot: (id: string, rot: [number, number, number]) => void
   toggleComponentVisible: (id: string) => void
   toggleComponentBodyVisible: (componentId: string, bodyId: string) => void
@@ -12185,6 +12187,31 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
   }),
   setComponentPos: (id, pos) => { if (isCompGrounded(get(), id)) { set({ status: groundedMoveMsg(get(), id) }); return } set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, pos } : c)) })); if (get().mates.some((m) => m.aComp === id)) get().resolveMates() },
+  moveComponentsByUser: (ids, d, r = [0, 0, 0]) => {
+    const s = get()
+    const plan = planComponentMove(ids, d, r, s.components, s.joints, s.grounded)
+    if (plan.kind === 'refuse') { set({ status: plan.msg }); return false }
+    if (plan.kind === 'drive') {
+      const j = s.joints.find((x) => x.id === plan.jointId)!
+      get().beginJointDrive(); get().setJointValue(plan.jointId, { slide: plan.slide }); get().endJointDrive()
+      const now = get().joints.find((x) => x.id === plan.jointId)?.slide ?? 0
+      set({ status: `已沿關節「${j.name || j.id}」的滑動軸移動「${s.components.find((c) => c.id === plan.compId)?.name ?? plan.compId}」（滑動 ${+(now).toFixed(3)} mm，關節保持）` })
+      return Math.abs(now - (j.slide ?? 0)) > 1e-9
+    }
+    const move = new Set(plan.ids), jm = new Set(plan.kind === 'group' ? plan.jointIds : [])
+    const add = (a: [number, number, number], b: [number, number, number]): [number, number, number] => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+    set((st) => ({
+      undoStack: [...st.undoStack, docSnap(st)].slice(-60), redoStack: [],
+      components: st.components.map((c) => (move.has(c.id) ? { ...c, pos: add(c.pos, d), ...(r[0] || r[1] || r[2] ? { rot: add(c.rot ?? [0, 0, 0], r) } : {}) } : c)),
+      ...(jm.size ? { joints: st.joints.map((j) => (jm.has(j.id) ? { ...j, anchor: add(j.anchor, d) } : j)) } : {}),
+    }))
+    if (plan.kind === 'group') {
+      const n0 = s.components.find((c) => c.id === ids[0])?.name ?? ids[0]
+      set({ status: `已將「${n0}」連同以關節連接的 ${plan.ids.length - ids.length} 個組件一併平移（關節保持）` })
+    }
+    if (get().mates.some((m) => move.has(m.aComp))) get().resolveMates()
+    return true
+  },
   setComponentRot: (id, rot) => { if (isCompGrounded(get(), id)) { set({ status: groundedMoveMsg(get(), id) }); return } set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, rot } : c)) })); if (get().mates.some((m) => m.aComp === id)) get().resolveMates() },
   toggleComponentVisible: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, hidden: !c.hidden } : c)) })),   // bt4: 可见性入撤销栈(hidden 在 docSnap+存档)
   // The body list is definition-owned, so its visibility is shared by all occurrences.
@@ -16651,7 +16678,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   openFeatDlg: (kind) => set((s) => {
     // Primitives + reference planes can be created from scratch (no solid needed); other ops modify an existing body.
     const noSolidNeeded = new Set(['box', 'cylinder', 'sphere', 'torus', 'cone', 'wedge', 'dome', 'halfcyl', 'pie', 'tube', 'rtube', 'profile', 'rbox', 'prism', 'pyramid', 'coil', 'plane', 'cpoint', 'cptgrid', 'caxis', 'thread', 'sheetmetal', 'gear', 'rack', 'pulley', 'gearbox', 'worm', 'crowngear'])
-    if (!noSolidNeeded.has(kind) && !hasSolid(s.features)) return { status: '請先建立一個實體' }
+    // ASM2 P2：只有組件（實體已全部轉成組件）都可以「移動／複製」組件
+    const compMove = kind === 'move' && s.components.length > 0 && (!hasSolid(s.features) || !!s.selectedComponent || s.checkedComps.length > 0)
+    if (!noSolidNeeded.has(kind) && !hasSolid(s.features) && !compMove) return { status: '請先建立一個實體' }
     const defaults: Record<string, Record<string, number | string>> = {
       pattern: { countX: 2, dx: 130, countY: 2, dy: 90, countZ: 1, dz: 60, dir1: '', dir2: '', dtype: 'spacing', objectType: 'bodies', objectPicked: 0, compute: 'optimized', suppress: '' },   // P2：dtype = Fusion Distance Type（spacing 间距 | extent 总长）；GM-3DV1 S3：objectType/compute/suppress
       geoPattern: { instances: '[{"translation":[30,0,0]}]', compute: 'optimized', suppress: '' },
@@ -16752,6 +16781,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // SO12 / BUG-SO12-001：时间轴已选孔/特征时，阵列·镜像对话框要预选「所选特征」；
     // 否则默认「整个实体」+ objectPicked=0 → 身份错（active body）或要用户再点一次「选择」。
     const params = { ...defaults[kind] }
+    if (compMove) params.objectType = 'components'   // ASM2 P2：選中組件／只有組件 → 預設移動組件
     const selFeat = !!(s.selectedFeatures.length || s.selectedFeature)
     // CORE16 #4：殘留嘅已刪特徵 id 唔再令鏡像預設「所選特徵」（之前一開就報「已唔存在 — 重新選」）
     const liveSelFeat = [...s.selectedFeatures, ...(s.selectedFeature ? [s.selectedFeature] : [])].some((id) => s.features.some((x) => x.id === id))
@@ -19321,19 +19351,22 @@ export const useApp = create<AppState>((rawSet, get) => {
         // Fusion Move/Copy accepts a component selection set.  Prefer browser checkboxes, then
         // fall back to the canvas's single selected component.
         const ids: string[] = get().checkedComps.length ? [...get().checkedComps] : (get().selectedComponent ? [get().selectedComponent as string] : [])
-        if (!ids.length) { set({ status: '移動組件：請先在瀏覽樹勾選（或畫布選中）一個或多個組件' }); return }
-        set({ featDlg: null })
-        for (const cid of ids) {
-          let target = cid
-          if (copy) { get().duplicateComponent(cid); target = get().selectedComponent || cid }
-          const comp = get().components.find((c) => c.id === target)
-          if (comp) {
-            const pos = comp.pos, rot = comp.rot || [0, 0, 0]
-            get().setComponentPos(target, [pos[0] + sol.dx, pos[1] + sol.dy, pos[2] + sol.dz])
-            if (sol.rx || sol.ry || sol.rz) get().setComponentRot(target, [rot[0] + sol.rx, rot[1] + sol.ry, rot[2] + sol.rz])
-          }
+        if (!ids.length) { set({ status: '移動組件：請先在瀏覽器勾選（或在畫布選取）一個或多個組件' }); return }
+        // ASM2 P2：CAD（Z 向上）→ world（Y 向上）；以前直接加落 pos → 輸入 dz 實際沿 −Y 移動
+        const w = cadMoveToWorld(sol.dx, sol.dy, sol.dz, sol.rx, sol.ry, sol.rz)
+        const desc = `${tLbl}：Δ[${sol.dx},${sol.dy},${sol.dz}]${sol.rx || sol.ry || sol.rz ? `　繞X${sol.rx}°Y${sol.ry}°Z${sol.rz}°` : ''}`
+        if (copy) {
+          set({ featDlg: null })
+          const made: string[] = []
+          for (const cid of ids) { get().duplicateComponent(cid); const t = get().selectedComponent; if (t && t !== cid) made.push(t) }
+          if (made.length) get().moveComponentsByUser(made, w.d, w.r)
+          set({ status: `已複製並移動 ${made.length} 個組件（${desc}）${blankNote}` })
+          return
         }
-        set({ status: `已${copy ? '複製並' : ''}移動 ${ids.length} 個組件（${tLbl}：Δ[${sol.dx},${sol.dy},${sol.dz}]${sol.rx || sol.ry || sol.rz ? `　繞X${sol.rx}°Y${sol.ry}°Z${sol.rz}°` : ''}）` })
+        // 尊重關節：拒絕時保留對話框（狀態列說明原因），成功先關
+        if (!get().moveComponentsByUser(ids, w.d, w.r)) return
+        const st2 = get().status
+        set({ featDlg: null, status: /關節/.test(st2) ? st2 : `已移動 ${ids.length} 個組件（${desc}）${blankNote}` })
         return
       }
       if (objectType === 'faces') { set({ featDlg: null, status: '移動【面】請用「移動面」工具（↕ 內核重解鄰面/圓角）— Move/Copy 對話框專註實體/組件' }); void get().toggleMoveFace?.(); return }

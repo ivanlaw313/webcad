@@ -3824,8 +3824,6 @@ export default function Viewport() {
   const editingComp = useApp((s) => s.editingComponent)
   const vpDlg = useApp((s) => s.vpDlg)
   const setVpDlg = useApp((s) => s.setVpDlg)
-  const setComponentPos = useApp((s) => s.setComponentPos)
-  const setComponentRot = useApp((s) => s.setComponentRot)
   const sketchFromFace = useApp((s) => s.sketchFromFace)
   const faceCutThrough = useApp((s) => s.faceCutThrough)
   const setFaceCutThrough = useApp((s) => s.setFaceCutThrough)
@@ -8250,20 +8248,20 @@ export default function Viewport() {
       )}
 
       {selComp && !editingComp && !modelingCommandActive && mode !== 'sketch' && mode !== 'pickplane' && (   // UX3 #4：揀草圖基準面時唔再蓋住「選擇草圖基準面」欄
-        <div className="sketch-bar">
+        <div className="sketch-bar" data-testid="comp-move-bar" style={{ zIndex: 20 }}>{/* ASM2 P2：唔再被「裝配關節」面板（z 15）蓋住 */}
           <button className="sb-tool" title={compBarMin ? tStatus('展開零件工具欄', lang) : tStatus('折疊零件工具欄（只保留名稱與完成，不擋視圖）', lang)} onClick={toggleCompBar} style={{ fontWeight: 700, minWidth: 22 }}>{compBarMin ? '▸' : '▾'}</button>
           <span className="sb-title">{tStatus('移動/旋轉', lang)} {localizeAsmName(selComp.name, lang)}</span>
           {!compBarMin && (<>
-          <label>X <input type="number" step={5} value={selComp.pos[0]} onChange={(e) => setComponentPos(selComp.id, [Number(e.target.value) || 0, selComp.pos[1], selComp.pos[2]])} /></label>
-          <label>Y <input type="number" step={5} value={selComp.pos[1]} onChange={(e) => setComponentPos(selComp.id, [selComp.pos[0], Number(e.target.value) || 0, selComp.pos[2]])} /></label>
-          <label>Z <input type="number" step={5} value={selComp.pos[2]} onChange={(e) => setComponentPos(selComp.id, [selComp.pos[0], selComp.pos[1], Number(e.target.value) || 0])} /></label>
+          <label>X <input type="number" step={5} value={selComp.pos[0]} onChange={(e) => useApp.getState().moveComponentsByUser([selComp.id], [(Number(e.target.value) || 0) - selComp.pos[0], 0, 0])} /></label>
+          <label>Y <input type="number" step={5} value={selComp.pos[1]} onChange={(e) => useApp.getState().moveComponentsByUser([selComp.id], [0, (Number(e.target.value) || 0) - selComp.pos[1], 0])} /></label>
+          <label>Z <input type="number" step={5} value={selComp.pos[2]} onChange={(e) => useApp.getState().moveComponentsByUser([selComp.id], [0, 0, (Number(e.target.value) || 0) - selComp.pos[2]])} /></label>
           <span className="sb-spacer" />
-          {(() => { const r = selComp.rot || [0, 0, 0]; const setR = (i: number, v: number) => { const n: [number, number, number] = [r[0], r[1], r[2]]; n[i] = v; setComponentRot(selComp.id, n) }; return (
+          {(() => { const r = selComp.rot || [0, 0, 0]; const setR = (i: number, v: number) => { const dr: [number, number, number] = [0, 0, 0]; dr[i] = v - r[i]; if (dr[i]) useApp.getState().moveComponentsByUser([selComp.id], [0, 0, 0], dr) }; return (
             <>
               <label title={tStatus('繞 X 軸旋轉（度）', lang)}>{tStatus('繞X°', lang)} <input type="number" step={15} value={r[0]} onChange={(e) => setR(0, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
               <label title={tStatus('繞 Y 軸（豎直）旋轉（度）— 轉動零件朝向最常用', lang)}>{tStatus('繞Y°', lang)} <input type="number" step={15} value={r[1]} onChange={(e) => setR(1, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
               <label title={tStatus('繞 Z 軸旋轉（度）', lang)}>{tStatus('繞Z°', lang)} <input type="number" step={15} value={r[2]} onChange={(e) => setR(2, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
-              <button className="sb-tool" title={tStatus('清零旋轉', lang)} onClick={() => setComponentRot(selComp.id, [0, 0, 0])}>{tStatus('↺歸零', lang)}</button>
+              <button className="sb-tool" title={tStatus('清零旋轉', lang)} onClick={() => { if (r[0] || r[1] || r[2]) useApp.getState().moveComponentsByUser([selComp.id], [0, 0, 0], [-r[0], -r[1], -r[2]]) }}>{tStatus('↺歸零', lang)}</button>
             </>
           ) })()}
           <button className="sb-tool" title={tStatus('聚焦：鏡頭框到此組件（裝配中快速放大單個零件）', lang)} onClick={() => requestFit(selComp.id)}>{tStatus('🎯聚焦', lang)}</button>

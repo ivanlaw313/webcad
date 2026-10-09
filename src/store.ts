@@ -5463,6 +5463,27 @@ async function askExportName(get: () => AppState, ext: string): Promise<string |
   return exportFileNameFrom(v, ext)
 }
 
+// Ownership of timeline features for the *current* active solid (after newbody / activatebody / op=newbody).
+// Used by「建立組件」so cut/hole features that built the active body stay in the component src.
+export function featureIdsForActiveBody(features: { id: string; type: string; operation?: string; op?: string; target?: number }[]): Set<string> {
+  type Body = { ids: string[] }
+  let active: Body = { ids: [] }
+  const parked: Body[] = []
+  for (const f of features) {
+    if (f.type === 'newbody') { parked.unshift(active); active = { ids: [] }; continue }
+    if (f.type === 'activatebody') {
+      const t = f.target ?? 0
+      if (t >= 0 && t < parked.length) { const sw = parked[t]; parked[t] = active; active = sw }
+      continue
+    }
+    const parksNew = f.operation === 'newbody' || f.op === 'newbody'
+    if (parksNew) { parked.unshift(active); active = { ids: [f.id] }; continue }
+    active.ids.push(f.id)
+  }
+  return new Set(active.ids)
+}
+
+
 export const useApp = create<AppState>((rawSet, get) => {
   // v2.20 P1：參數修改後重建失敗 → 模型及參數已原子還原（見 applyFeatures）。唔可以靜靜咁跳返舊值：
   //   記低使用者輸入嘅值 + 原因，參數面板保留輸入值並以明確訊息說明「未套用，模型仍為舊值」。
@@ -22847,15 +22868,20 @@ export const useApp = create<AppState>((rawSet, get) => {
     const act = live.find((x) => x.active)
     // 冇泊車實體（單一實體）或者活動實體空（全部泊車）→ 原本行為（固化全部）
     if (!b || live.length < 2 || !act) return get().newComponent()
-    const start = s0.features.map((f) => f.type).lastIndexOf('newbody') + 1
-    const keepType = (t: string) => t === 'sketch' || t === 'datum' || t === 'newbody'
-    // 「新實體」操作（operation/op = newbody）出嘅係泊車實體 —— 唔屬活動實體，唔好一齊移走
-    const parksNew = (f: Feature) => (f as { operation?: string }).operation === 'newbody' || (f as { op?: string }).op === 'newbody'
-    const doomed = new Set(s0.features.slice(start).filter((f) => !keepType(f.type) && !parksNew(f)).map((f) => f.id))
+    const keepType = (t: string) => t === 'sketch' || t === 'datum'
+    // 以實體歸屬追蹤（newbody / activatebody / op=newbody）取出活動實體自己嘅特徵 — 含其後續切除／孔
+    const activeIds = featureIdsForActiveBody(s0.features as { id: string; type: string; operation?: string; op?: string; target?: number }[])
+    const doomed = new Set<string>()
+    for (const f of s0.features) {
+      if (activeIds.has(f.id) && !keepType(f.type)) doomed.add(f.id)
+      if (f.type === 'activatebody') doomed.add(f.id)   // 換體元特徵已兌現，轉成組件後唔留喺活模型
+    }
     if (!doomed.size) return get().newComponent()
-    // 組件 src = 淨係建活動實體嘅特徵（+ 草圖/基準），重開編輯唔會連其他實體一齊出
-    const srcFeatures = s0.features.filter((f) => (doomed.has(f.id) || keepType(f.type)) && f.type !== 'newbody')
-    const srcSnap = { features: JSON.parse(JSON.stringify(srcFeatures)) as Feature[], sketchSources: JSON.parse(JSON.stringify(liveSketchSources(s0))) as AppState['sketchSources'] }
+    // 組件 src = 活動實體自己嘅特徵（草圖／基準＋建體／切除），唔帶其他實體嘅特徵
+    const srcFeatures = s0.features.filter((f) => (activeIds.has(f.id) || (keepType(f.type) && activeIds.size > 0)) && f.type !== 'newbody' && f.type !== 'activatebody')
+    // 只保留活動體用過嘅草圖／基準：若 keepType 草圖唔喺 activeIds，唔好塞入（免拖入其他體草圖）
+    const srcFeatures2 = srcFeatures.filter((f) => !keepType(f.type) || activeIds.has(f.id))
+    const srcSnap = { features: JSON.parse(JSON.stringify(srcFeatures2)) as Feature[], sketchSources: JSON.parse(JSON.stringify(liveSketchSources(s0))) as AppState['sketchSources'] }
     const comps = s0.components
     const maxN = comps.reduce((m, c) => { const n = parseInt(String(c.id).replace(/^C/, ''), 10); return Number.isFinite(n) && n > m ? n : m }, 0)
     const n = maxN + 1

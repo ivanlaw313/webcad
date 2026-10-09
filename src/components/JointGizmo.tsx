@@ -3,7 +3,7 @@ import { Line } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { Vector3, Quaternion, Raycaster, Vector2 } from 'three'
 import { type Joint, type JointOrigin, resolveJointOrigin } from '../assembly/kinematics'
-import { jointHandleHitInfo, registerJointHandleClaimer, startJointHandleDrag } from '../assembly/jointHandleDrag'
+import { jointHandleHitInfo, registerJointHandleClaimer, startJointHandleDrag, renderedJointPointer } from '../assembly/jointHandleDrag'
 import { useApp, dbgLog } from '../store'
 
 // GM-3DV4 A1：可复用 Joint Origin 在场景中的标记 — 十字准星球（Fusion「Joint Origins」帧）+ 沿轴短箭。
@@ -81,9 +81,17 @@ function useJointHandleDrag(j: Joint) {
         if (q.z > 1 || q.z < -1) return null
         return [r.left + (q.x + 1) / 2 * r.width, r.top + (1 - q.y) / 2 * r.height]
       }
-      const hit = jointHandleHitInfo(cur, project, x, y)
-      if (app.debugMode) { const near = jointHandleHitInfo(cur, project, x, y, 80); dbgLog(`關節把手 ${j.id}：${hit ? '接 ' + hit.part : '未中'}（最近 ${near ? near.part + ' ' + near.d.toFixed(1) + 'px' : '>80px'}，dpr ${window.devicePixelRatio}）`) }
+      const rp = renderedJointPointer.get(j.id)
+      const hit = jointHandleHitInfo(cur, project, x, y, 10, { pointer: rp })
+      if (app.debugMode) {
+        const near = jointHandleHitInfo(cur, project, x, y, 80, { pointer: rp })
+        // 未中時記低撳位同白色指針兩端螢幕座標（下次報告可以直接睇到差喺邊）
+        const seg = rp ? rp.map((p) => project(p)).map((q) => q ? q.map((n) => Math.round(n)).join(',') : '?').join('→') : '?'
+        dbgLog(`關節把手 ${j.id}：${hit ? '接 ' + hit.part : '未中'}（最近 ${near ? near.part + ' ' + near.d.toFixed(1) + 'px' : '>80px'}，dpr ${window.devicePixelRatio}${hit ? '' : `，撳位 ${Math.round(x)},${Math.round(y)}，指針 ${seg}，角度 ${cur.angle ?? 0}°`}）`)
+      }
       if (!hit) return null
+      // JOINT #2：撳錨點球 —— 以前靜靜雞開咗旋轉 session（要拉出去再繞圈先有反應，用戶以為冇用）→ 講明點用
+      if (hit.part === 'anchor') useApp.setState({ status: `關節錨點（軸心）「${cur.name ?? cur.id}」：按住向外拉再繞圈 = 旋轉；直接拖白色指針／橙環亦得。要搬錨點位置：「關節」面板重新揀幾何` })
       const kind = hit.kind
       let drove = false
       const sess = startJointHandleDrag(cur, kind, rayAt(x, y), (patch) => {
@@ -100,6 +108,7 @@ function useJointHandleDrag(j: Joint) {
     })
     return () => registerJointHandleClaimer('joint:' + j.id, null)
   }, [j.id, j.type, get])
+  useEffect(() => () => { renderedJointPointer.delete(j.id) }, [j.id])
 }
 
 export function JointGizmo({ j }: { j: Joint }) {
@@ -167,6 +176,7 @@ export function JointGizmo({ j }: { j: Joint }) {
       a.y + rc * (Math.cos(tc) * u.y + Math.sin(tc) * v.y),
       a.z + rc * (Math.cos(tc) * u.z + Math.sin(tc) * v.z),
     )
+    renderedJointPointer.set(j.id, [a.clone(), pc.clone()])
     els.push(
       <Line key="rot-ptr" points={[a.clone(), pc]} color="#ffffff" lineWidth={2.5} depthTest={false} renderOrder={998} />,
     )

@@ -615,7 +615,7 @@ export function setSnapTypesFlag(t: SnapTypes) { _snapTypes = t }   // store act
 let _snapPerfPending: string | null = null
 let _snapPerfShown = false
 // 草图诊断：记低最后一次拣取嘅结果（畀「诊断」掣 copy → 用户贴返，AI 一睇就知撳击有冇到/中咗乜）。
-let _skLastClick = '(未撳过)'
+let _skLastClick = '(未撳過)'
 let _skHoverRaw: Pt | null = null   // UX4 #1：最近一次 hover 拾取用嘅【未吸附】游標（Delete 冇選擇時刪 hover 實體前重驗）
 // 防 stale hover（幾何改咗但滑鼠未郁）：游標位置重新命中返同一個實體先算數；只收草圖實體（原點/參考幾何唔刪）
 function validSkHover(s: { skHover: SkRef | null; sketchProfiles: SketchShape[]; sketchShape: SketchShape | null; sketchTool: string; skArmedCon: SkConType | null; skSel: SkRef[] }): SkRef | null {
@@ -1869,9 +1869,10 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   skHitTestAt: (p: Pt) => boolean  // GM-FP3 #44：某点有冇命中几何（分「空白左拖=框选」定「命中=选择」）
   addSkCon: (t: SkConType) => Promise<void>
   copySketchDiag: () => void     // 复制草图诊断到剪贴板（工具/选择/参考几何/最后一次撳中乜）→ 用户贴返畀 AI
-  debugMode: boolean             // 诊断录制模式：记低鼠标动作/撳掣/状态变化 → 复制问题报告畀 AI
+  debugMode: boolean             // 診斷錄製模式：記低滑鼠動作／撳掣／狀態變化 → 複製或匯出問題報告畀 AI
   setDebugMode: (on: boolean) => void
   copyDebugReport: () => void
+  exportDebugReport: () => void   // JOINT #7：問題報告存做 .txt
   placeSketchSpacing: (first:SkRef,second:SkRef,extra?:PatternDimensionPresentation) => Promise<void>
   placePatternSpacing: (first:SkRef,second:SkRef,extra?:PatternDimensionPresentation) => Promise<void>
   placePatternDimension: (con:Extract<SkCon,{kind:'dim'}>,extra?:PatternDimensionPresentation) => Promise<void>
@@ -1939,6 +1940,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   checkGroupMembers: (id: string) => void                 // 组 checkbox → 勾/取消全部成员
   originX: number
   newComponent: () => void
+  newComponentActive: () => Promise<void>   // JOINT #6：用戶命令 —— 有泊車實體時只固化【活動實體】，其餘實體留喺模型（Fusion：Create Component from body）
   // GM-X3 #11：opt 可选 单位换算 + flip-up（Y↔Z）+ 落地摆位（none/center/ground）。
   importStl: (buf: ArrayBuffer, name: string, opt?: MeshInsertOpt) => Promise<void>
   importObj: (text: string, name: string, opt?: MeshInsertOpt) => Promise<void>
@@ -4562,6 +4564,56 @@ async function cornersAll(set: (p: Partial<AppState>) => void, get: () => AppSta
     sketchProfiles: np, ...(s.sketchShape ? { sketchShape: next[s.sketchProfiles.length] } : {}), status: `${body}${note}`,
   })
   if (cons.length) await get().resolveSk({ statusNote: `${body}${note}` })
+}
+// JOINT #5：圓柱 ↔ 平面混合 snap 之後，如果要郁件同父件互相穿透（典型：兩件都喺原點建 → 軸插咗一半入板），
+// 沿平面法向推開要郁件，令軸端面（或板面）啱啱貼住 —— 唔穿透；冇穿透就原樣（保留用戶擺好嘅高度/軸向位置）。
+// 板佔 [板底, 0]（相對板面、沿板面外法向）；對面件喺板面嗰邊 → 要 min ≥ 0，喺板底嗰邊 → 要 max ≤ 板底。
+function jointMixedNoPenetration(
+  parentFace: MateFace, childFace: MateFace, delta: Matrix4,
+  parent: { mesh: MeshData; pos: [number, number, number]; rot?: [number, number, number] },
+  child: { mesh: MeshData; pos: [number, number, number]; rot?: [number, number, number] },
+): Matrix4 {
+  const plateIsParent = parentFace.kind === 'planar'
+  const plane = (plateIsParent ? parentFace : transformFace(childFace, delta)) as Extract<MateFace, { kind: 'planar' }>
+  const n = new Vector3(plane.n[0], plane.n[1], plane.n[2]); if (n.lengthSq() < 1e-12) return delta
+  n.normalize()
+  const pp = new Vector3(plane.p[0], plane.p[1], plane.p[2])
+  const projs = (c: typeof parent, M: Matrix4) => {
+    const v = c.mesh.vertices, out: number[] = [], q = new Vector3()
+    const step = Math.max(3, Math.floor(v.length / 3 / 20000) * 3)   // 大網格抽樣（≤2 萬點）
+    for (let i = 0; i + 2 < v.length; i += step) { q.set(v[i], v[i + 1], v[i + 2]).applyMatrix4(M); out.push(q.sub(pp).dot(n)) }
+    return out
+  }
+  const Mchild = delta.clone().multiply(compWorldMatrix(child)), Mparent = compWorldMatrix(parent)
+  const plate = plateIsParent ? projs(parent, Mparent) : projs(child, Mchild)
+  const other = plateIsParent ? projs(child, Mchild) : projs(parent, Mparent)
+  if (!plate.length || !other.length) return delta
+  const eps = 1e-6
+  const back = Math.min(0, ...plate)
+  const mean = other.reduce((a, b) => a + b, 0) / other.length
+  const lo = Math.min(...other), hi = Math.max(...other)
+  // t = 「對面件」相對板要移嘅量（沿 n）；要郁件係板 → 板反方向移 −t
+  let t = 0
+  if (mean >= back / 2) { if (lo < -eps) t = -lo }
+  else if (hi > back + eps) t = back - hi
+  if (!t) return delta
+  const move = plateIsParent ? t : -t
+  return new Matrix4().makeTranslation(n.x * move, n.y * move, n.z * move).multiply(delta)
+}
+// JOINT #7：問題報告內容（繁體；複製同匯出共用）
+function buildDebugReport(s: AppState): string {
+  const rg = getRefGeo()
+  const ver = (() => { const sc = [...document.scripts].map((x) => x.src).find((x) => /index-/.test(x)); const m = sc && sc.match(/index-[\w-]+/); return m ? m[0] : '?' })()
+  const head = [
+    '【WebCAD 問題報告】貼返畀 AI 即可',
+    `版本 ${ver}`,
+    `模式 ${s.mode} · 草圖工具 ${s.sketchTool} · 平面 ${s.sketchPlane}@${Math.round(s.sketchBaseZ)} · 幾何捕捉 ${s.geoSnap ? '開' : '關'}`,
+    `特徵 ${s.features.length} · 草圖輪廓 ${s.sketchProfiles.length}${s.sketchShape ? '+1未完成' : ''} · 約束 ${s.skCons.length} · 組件 ${s.components.length} · 關節 ${s.joints.length} · 當前選擇 ${s.skSel.length ? s.skSel.map((r) => r.kind).join('+') : '空'}`,
+    `實體參考幾何 ${rg ? `${rg.pts.length}點/${rg.segs.length}邊` : '無'} · 最後一次撳 ${_skLastClick}`,
+    `狀態欄 ${s.status}`,
+    `── 操作記錄（${_dbg.length} 條）──`,
+  ]
+  return head.concat(_dbg.length ? _dbg : ['（冇記錄 — 請先開「診斷錄製」再操作）']).join('\n')
 }
 function shapeCornerPath(sh: SketchShape): { verts: Pt[]; bulges: number[] } | null {
   if (sh.type === 'rect') {
@@ -9156,24 +9208,23 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   debugMode: false,
   setDebugMode: (on) => {
-    if (on) { dbgClear(); dbgLog('=== 诊断录制开始 ===') }
-    set({ debugMode: on, status: on ? '🩺 診斷錄制：開 — 重現你嘅操作（撳掣/畫圖/揀嘢），完咗撳「📋 複製問題報告」貼返畀 AI' : '診斷錄制：已關' })
+    if (on) { dbgClear(); dbgLog('=== 診斷錄製開始 ===') }
+    set({ debugMode: on, status: on ? '🩺 診斷錄製：開 — 重現你嘅操作（撳掣／畫圖／揀嘢），完咗撳「📋 複製問題報告」貼返畀 AI，或「💾 匯出檔案」' : '診斷錄製：已關' })
   },
   copyDebugReport: () => {
-    const s = get(); const rg = getRefGeo()
-    const ver = (() => { const sc = [...document.scripts].map((x) => x.src).find((x) => /index-/.test(x)); const m = sc && sc.match(/index-[\w-]+/); return m ? m[0] : '?' })()
-    const head = [
-      '【WebCAD 问题报告】贴返畀 AI 即可',
-      `版本 ${ver}`,
-      `模式 ${s.mode} · 草图工具 ${s.sketchTool} · 平面 ${s.sketchPlane}@${Math.round(s.sketchBaseZ)} · 几何捕捉 ${s.geoSnap ? '开' : '关'}`,
-      `特征 ${s.features.length} · 草图轮廓 ${s.sketchProfiles.length}${s.sketchShape ? '+1未完成' : ''} · 约束 ${s.skCons.length} · 当前选择 ${s.skSel.length ? s.skSel.map((r) => r.kind).join('+') : '空'}`,
-      `实体参考几何 ${rg ? `${rg.pts.length}点/${rg.segs.length}边` : '无'} · 最后一次撳 ${_skLastClick}`,
-      `状态栏 ${s.status}`,
-      `── 操作记录（${_dbg.length} 条）──`,
-    ]
-    const txt = head.concat(_dbg.length ? _dbg : ['(冇记录 — 请先开「诊断录制」再操作)']).join('\n')
-    const done = () => set({ status: `✅ 已複製問題報告（${_dbg.length} 條記錄）— 貼返畀 AI` })
-    try { navigator.clipboard?.writeText(txt).then(done, () => set({ status: '複製失敗 — 請手動選狀態欄文字' })) } catch { set({ status: '複製失敗' }) }
+    const txt = buildDebugReport(get())
+    const done = () => set({ status: `✅ 已複製問題報告（${_dbg.length} 條記錄）— 貼返畀 AI，或撳「💾 匯出檔案」存做 .txt` })
+    try { navigator.clipboard?.writeText(txt).then(done, () => set({ status: '複製失敗 — 請撳「💾 匯出檔案」存做 .txt' })) } catch { set({ status: '複製失敗 — 請撳「💾 匯出檔案」存做 .txt' }) }
+  },
+  // JOINT #7：問題報告匯出做 .txt 檔（剪貼簿被瀏覽器擋／報告太長貼唔晒時用）
+  exportDebugReport: () => {
+    const txt = buildDebugReport(get())
+    const d = new Date(), z = (n: number) => String(n).padStart(2, '0')
+    const name = `webcad-問題報告-${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}.txt`
+    try {
+      triggerDownload(new TextEncoder().encode('\ufeff' + txt), name, 'text/plain;charset=utf-8')
+      set({ status: `💾 已匯出問題報告「${name}」（${_dbg.length} 條記錄）` })
+    } catch (e) { set({ status: `匯出失敗：${(e as Error)?.message || e}` }) }
   },
   placeSketchSpacing:async(first,second,extra)=>{
     const before=get()
@@ -11446,34 +11497,42 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 唔再係 componentCenter + 硬编码轴嘅估算。贴合 + 建关节共用【单一撤销快照】原子处理（似 Wave-4 4.2）。
   jointPickMode: false,
   jointPick: null,
-  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, status: '關節拾取：先點【父件（接地邊）】一個面（圓柱孔/軸 或 平面），再點【子件（要郁件）】對應面 → 子件貼合 + 喺該幾何建真關節（圓柱=旋轉/滑動/圓柱/剛性 · 平面=剛性/平面 · 圓柱↔平面=軸穿面心，預設旋轉）' }),
+  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, status: '關節拾取（同 Fusion）：先點【要郁嘅組件】一個面（圓柱軸/孔 或 平面），再點【佢接去嘅組件（父件）】對應面 → 要郁件貼合 + 喺該幾何建真關節（圓柱=旋轉/滑動/圓柱 · 平面=剛性/平面 · 圓柱↔平面=軸穿面心，預設旋轉）；第一件已固定會自動對調' }),
   cancelJointPick: () => set({ jointPickMode: false, jointPick: null, status: '已退出關節拾取' }),
   pickFaceForJoint: (compId, face) => {
     const s = get()
-    // 第一拣：记低父件（接地边）
+    // JOINT #3（Fusion Joint）：第一拣 = 要郁嘅組件（子件），第二拣 = 佢接去邊（父件，唔郁）。
+    // 第一拣嘅件係固定（Ground）而第二件唔係 → 自動對調角色（唔再拒絕「已固定，唔可以做關節子件」）。
     if (!s.jointPick) {
-      const kindLbl = face.kind === 'cyl' ? '圆柱面（同轴 → 旋转/滑动关节）' : '平面（贴平 → 刚性/平面关节）'
-      set({ jointPick: { compId, face }, status: `已選父件基準${kindLbl}，再點【子件（要郁件）】對應面（圓柱或平面都得 — 圓柱↔平面 = 軸穿面心）` })
+      const kindLbl = face.kind === 'cyl' ? '圓柱面（同軸 → 旋轉／滑動關節）' : '平面（貼平 → 剛性／平面關節）'
+      const gNote = isCompGrounded(s, compId) ? '（呢件已固定 — 會自動做父件，另一件做要郁件）' : ''
+      set({ jointPick: { compId, face }, status: `已選要郁件嘅${kindLbl}${gNote}，再點【佢要接去嘅組件（父件）】對應面（圓柱或平面都得 — 圓柱↔平面 = 軸穿面心）` })
       return
     }
-    // 第二拣：子件面 —— 唔同件；RETEST18 #2：類型可以混合（圓柱↔平面）
-    const A = s.jointPick   // 父（唔郁）
-    if (A.compId === compId) {
+    // 第二拣 —— 唔同件；RETEST18 #2：類型可以混合（圓柱↔平面）
+    const first = s.jointPick
+    if (first.compId === compId) {
+      const A = first
       // UX3 (a)：講明兩下都落咗邊個組件 + 面類型（測試員回報「圓柱面被當同一件」時即刻睇到係邊件食咗 click）
       const nm = s.components.find((c) => c.id === compId)?.name ?? compId
       const kl = (k: string) => (k === 'cyl' ? '圓柱' : '平')
       dbgLog(`pickFaceForJoint SAME comp=${compId} first=${A.face.kind} second=${face.kind} dupIds=${s.components.filter((c) => c.id === compId).length}`)
       set({ status: `請點【另一個】組件嘅面（關節兩件唔可以係同一件：兩下都點中「${nm}」— 第一下${kl(A.face.kind)}面、今次${kl(face.kind)}面）` }); return
     }
+    // 角色：預設 第一拣 = 子（郁），第二拣 = 父；第一件固定而第二件唔固定 → 對調（Fusion：固定件永遠唔郁）。
+    const g1 = isCompGrounded(s, first.compId), g2 = isCompGrounded(s, compId)
+    if (g1 && g2) { set({ jointPickMode: false, jointPick: null, status: `兩件都已固定（Ground）— 關節要有一件可以郁：先喺瀏覽樹右鍵取消其中一件嘅「固定」` }); return }
+    const swapped = g1 && !g2
+    const A = swapped ? first : { compId, face }   // 父（唔郁）
+    if (!swapped) { compId = first.compId; face = first.face }   // 子（郁）= 第一拣
     // RETEST18 #2：Fusion 容許混合 snap（圓柱軸 ↔ 平面面心/法向）— 唔再拒絕「父平面 + 子圓柱」或相反。
     const Acomp = s.components.find((c) => c.id === A.compId)
     const B = s.components.find((c) => c.id === compId)   // 子（郁）
     if (!Acomp || !B) { set({ jointPickMode: false, jointPick: null, status: '關節拾取失敗：搵唔到組件' }); return }
-    if (isCompGrounded(s, B.id)) { set({ jointPickMode: false, jointPick: null, status: groundedJointMsg(s, B.id) }); return }   // BUG(B)
+    if (isCompGrounded(s, B.id)) { set({ jointPickMode: false, jointPick: null, status: groundedJointMsg(s, B.id) }); return }   // BUG(B)（對調後唔應再發生）
     // ── 贴合：完全复用 solveFaceMateDelta + worldToPose（同拣面配合数学一致），子件 B 贴到父件 A ──
-    const delta = solveFaceMateDelta(A.face, face)   // A=基准（唔郁）, face=B（郁）
+    let delta = solveFaceMateDelta(A.face, face)   // A=基准（唔郁）, face=B（郁）
     const Mb = compWorldMatrix(B)
-    const pose = worldToPose(delta.clone().multiply(Mb), meshCenter3(B.mesh))
     // ── 贴合后取关节几何（world 帧）+ 按几何门控关节类型 ──
     let anchor: [number, number, number], axis: [number, number, number], allowTypes: JointType[], defType: JointType
     if (A.face.kind === 'cyl' && face.kind === 'cyl') {
@@ -11490,6 +11549,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else {
       // RETEST18 #2：圓柱 ↔ 平面（混合 snap）：關節軸 = 圓柱軸（貼合後同平面法向共線）；錨點 = 軸線同平面嘅交點
       // （= 平面父件面心 / 圓柱父件軸上子面心）。預設旋轉（軸穿板 / 輪轂坐落軸肩）。
+      // JOINT #5：沿軸保留高度會令軸「插咗一半入板」（兩件都喺原點起）→ 有穿透先沿法向推開，令軸端面貼住板面（唔穿）。
+      delta = jointMixedNoPenetration(A.face, face, delta, Acomp, B)
       const cylW = (A.face.kind === 'cyl' ? A.face : transformFace(face, delta)) as Extract<MateFace, { kind: 'cyl' }>
       const planeW = (A.face.kind === 'planar' ? A.face : transformFace(face, delta)) as Extract<MateFace, { kind: 'planar' }>
       const ax = new Vector3(cylW.axis[0], cylW.axis[1], cylW.axis[2]); if (ax.lengthSq() < 1e-12) ax.set(0, 1, 0); ax.normalize()
@@ -11500,12 +11561,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       anchor = [hit.x, hit.y, hit.z]; axis = [ax.x, ax.y, ax.z]
       allowTypes = jointTypeMenu(['revolute', 'slider', 'cylindrical']); defType = 'revolute'
     }
+    const pose = worldToPose(delta.clone().multiply(Mb), meshCenter3(B.mesh))
     // ── 先贴合（俾用户睇到 snap，似 Fusion）—— 但【唔即刻推撤销栈】，留返同建关节一齐做单快照（原子）──
     const preUndo = s.undoStack, preSnap = docSnap(s)   // 贴合前撤销栈 + 全文档快照（最终净推一个 → undo 一步同时还原 snap+joint）
     set({
       jointPickMode: false, jointPick: null, selectedComponent: B.id,
       components: s.components.map((c) => (c.id === B.id ? { ...c, pos: pose.pos, rot: pose.rot } : c)),
-      status: `已貼合「${B.name}」→「${Acomp.name}」，請喺彈框選關節類型…`,
+      status: `已貼合「${B.name}」→「${Acomp.name}」${swapped ? '（第一件已固定 → 已自動對調：佢做父件）' : ''}，請喺彈框選關節類型…`,
     })
     // ── 关节类型选择（appPrompt 编号表，按几何门控）——取消 = 保留贴合、唔建关节（诚实状态）──
     void (async () => {
@@ -11522,11 +11584,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       // 建关节：唔用 addJoint（佢自带撤销快照会破坏原子性）—— 此处复用 addJoint 嘅 id/命名规则，同贴合共一快照
       const n = s2.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
       const jid = 'J' + n, joint: Joint = { id: jid, name: '關節' + n, type, parent: A.compId, child: B.id, anchor, axis, angle: 0, slide: 0 }
-      const geomLbl = A.face.kind !== face.kind ? '軸取自圓柱軸、錨點 = 軸線穿過平面處（混合 snap）' : A.face.kind === 'cyl' ? '轴/锚点取自所拣圆柱面' : '锚点取自贴合面心、轴取自平面法向'
+      const geomLbl = A.face.kind !== face.kind ? '軸取自圓柱軸、錨點 = 軸線穿過平面處（混合 snap）' : A.face.kind === 'cyl' ? '軸／錨點取自所揀圓柱面' : '錨點取自貼合面心、軸取自平面法向'
       set({
         undoStack: [...preUndo, preSnap].slice(-60), redoStack: [],
         joints: [...s2.joints, joint],
-        status: `已建 ${JOINT_LABEL_TC[type]}關節 ${jid}：「${B.name}」⚓「${Acomp.name}」（${geomLbl}）— 右下「關節」面板可驅動／加限位`,
+        status: `已建 ${JOINT_LABEL_TC[type]}關節 ${jid}：「${B.name}」⚓「${Acomp.name}」（${geomLbl}）${swapped ? '；第一件已固定 → 已自動對調做父件' : ''}— 右下「關節」面板可驅動／加限位`,
       })
     })()
   },
@@ -14746,7 +14808,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'cpattern': return get().openFeatDlg('cpattern')   // legacy 别名（旧保存/命令面板肌肉记忆）
       case 'circpattern': return get().openFeatDlg('circpattern')  // T757：Fusion 级環形阵列
       case 'cylinder': return get().openFeatDlg('cylinder')
-      case 'newcomp': return get().newComponent()
+      case 'newcomp': return void get().newComponentActive()   // JOINT #6：用戶「新建組件」只固化活動實體
       case 'groundcomp': {   // BUG(B)：ASSEMBLE ▾ 固定／取消固定（作用於瀏覽器選中組件）
         const sc = get().selectedComponent
         if (!sc) { set({ status: '固定組件：先喺瀏覽器選一個組件' }); return }
@@ -22130,6 +22192,54 @@ export const useApp = create<AppState>((rawSet, get) => {
     } catch { /* ignore corrupt autosave */ }
   },
 
+  newComponentActive: async () => {
+    const s0 = get()
+    const b = s0.bodyMesh
+    const live = b ? splitLiveBodies(b) : []
+    const act = live.find((x) => x.active)
+    // 冇泊車實體（單一實體）或者活動實體空（全部泊車）→ 原本行為（固化全部）
+    if (!b || live.length < 2 || !act) return get().newComponent()
+    const start = s0.features.map((f) => f.type).lastIndexOf('newbody') + 1
+    const keepType = (t: string) => t === 'sketch' || t === 'datum' || t === 'newbody'
+    // 「新實體」操作（operation/op = newbody）出嘅係泊車實體 —— 唔屬活動實體，唔好一齊移走
+    const parksNew = (f: Feature) => (f as { operation?: string }).operation === 'newbody' || (f as { op?: string }).op === 'newbody'
+    const doomed = new Set(s0.features.slice(start).filter((f) => !keepType(f.type) && !parksNew(f)).map((f) => f.id))
+    if (!doomed.size) return get().newComponent()
+    // 組件 src = 淨係建活動實體嘅特徵（+ 草圖/基準），重開編輯唔會連其他實體一齊出
+    const srcFeatures = s0.features.filter((f) => (doomed.has(f.id) || keepType(f.type)) && f.type !== 'newbody')
+    const srcSnap = { features: JSON.parse(JSON.stringify(srcFeatures)) as Feature[], sketchSources: JSON.parse(JSON.stringify(liveSketchSources(s0))) as AppState['sketchSources'] }
+    const comps = s0.components
+    const maxN = comps.reduce((m, c) => { const n = parseInt(String(c.id).replace(/^C/, ''), 10); return Number.isFinite(n) && n > m ? n : m }, 0)
+    const n = maxN + 1
+    const nm = s0.activeBodyName || '組件' + n
+    const { def, occ } = makeDefOcc(s0.componentDefs, 'C' + n, nm, act.mesh, [s0.originX, 0, 0], { src: srcSnap })
+    // B-rep 邊：worker 仲擁有活動實體 → 移走特徵之前先攞
+    let edges: BrepEdge[] = []
+    try { edges = (await cad.extractEdgePolylines()) as BrepEdge[] } catch { /* 冇邊 sidecar 都安全 */ }
+    const cur = get()
+    if (cur.features !== s0.features) { set({ status: '模型已變更 — 請再撳一次「新建組件」' }); return }
+    const before = { ...docSnap(cur), activeBodyName: cur.activeBodyName }
+    const kept = cur.features.filter((f) => !doomed.has(f.id))
+    const refd = (fs: Feature[]) => { const r = new Set<string>(); for (const f of fs) { const sk = (f as { sketchId?: string }).sketchId; if (sk) r.add(sk); for (const k of (f as { sketchIds?: string[] }).sketchIds ?? []) r.add(k) } return r }
+    const liveSk = refd(kept)
+    const next: Feature[] = []
+    for (const f of cur.features) {
+      if (!doomed.has(f.id)) { next.push(f); continue }
+      for (const k of [(f as { sketchId?: string }).sketchId, ...((f as { sketchIds?: string[] }).sketchIds ?? [])]) {
+        if (k && cur.sketchSources[k] && !liveSk.has(k)) { liveSk.add(k); next.push({ id: fid(), type: 'sketch', sketchId: k } as Feature) }
+      }
+    }
+    const def2 = edges.length ? { ...def, edges } : def
+    set({ components: [...cur.components, occ as (typeof comps)[number]], componentDefs: [...cur.componentDefs, def2], selectedFeature: null, sketchShape: null, mode: 'model' })
+    set((st) => ({ suppressedIds: st.suppressedIds.filter((x) => !doomed.has(x)) }))
+    const rest = live.length - 1
+    const ok = await get().applyFeatures(next, `已將活動實體固化為「${nm}」；其餘 ${rest} 個實體保留喺模型（可再撳「新建組件」逐個固化）`, true, undefined, before)
+    if (!ok) {
+      set({ components: cur.components, componentDefs: cur.componentDefs, suppressedIds: cur.suppressedIds, failedFeatureIds: [], featureErrors: {}, status: '⚠ 新建組件後重建失敗 — 已保留原模型' })
+      return
+    }
+    set((st) => ({ activeBodyName: '', bodyHidden: st.bodyHidden.filter((k) => k !== 'active'), selectedComponent: occ.id }))
+  },
   newComponent: () => {
     const b = get().bodyMesh
     if (!b) { set({ status: '當前沒有實體——先建一個，再「新建組件」' }); return }

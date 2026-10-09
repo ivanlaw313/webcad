@@ -85,7 +85,7 @@ export type JointHit = { kind: 'rotate' | 'slide'; part: 'ring' | 'pointer' | 'a
  * 螢幕命中（RETEST21 #1 加闊）：旋轉類 = 橙環（tolPx）＋白色指針線／白珠（tolPx+2）＋錨點橙球（tolPx+4，用戶好自然撳正中個波）；
  * 滑動類 = 滑動軸＋兩端箭頭（tolPx+2）。多樣中 → 揀近啲嗰樣（同距離時環 > 軸）。
  */
-export function jointHandleHitInfo(j: JointLike, project: Project, x: number, y: number, tolPx = 10): JointHit | null {
+export function jointHandleHitInfo(j: JointLike, project: Project, x: number, y: number, tolPx = 10, rendered?: { pointer?: [Vector3, Vector3] }): JointHit | null {
   let best: JointHit | null = null
   const consider = (kind: JointHit['kind'], part: JointHit['part'], d: number, tol: number) => { if (d <= tol && (!best || d < best.d)) best = { kind, part, d } }
   const poly = (pts: Vector3[], kind: JointHit['kind'], part: JointHit['part'], tol: number) => {
@@ -100,11 +100,17 @@ export function jointHandleHitInfo(j: JointLike, project: Project, x: number, y:
     poly(jointRingPoints(j), 'rotate', 'ring', tolPx)
     const [p0, p1] = jointPointerSegment(j)
     const sa = project(p0); if (sa) consider('rotate', 'anchor', Math.hypot(x - sa[0], y - sa[1]), tolPx + 4)
-    poly([p0, p1], 'rotate', 'pointer', tolPx + 2)
+    // JOINT DIAG #1：成條白色指針（錨點 → 白珠，再加白珠半徑 2.4mm）都係把手；
+    // 另外用 JointGizmo 實際畫出嚟嗰條（rendered）再試一次 —— 畫面同 store 一刻唔同步（例如 Ctrl+Z 後）都係「見到邊度就撳得中邊度」。
+    const ext = (q0: Vector3, q1: Vector3) => { const d = q1.clone().sub(q0), L = d.length(); return L > 1e-9 ? q1.clone().addScaledVector(d, 2.4 / L) : q1.clone() }
+    poly([p0, ext(p0, p1)], 'rotate', 'pointer', tolPx + 2)
+    if (rendered?.pointer) poly([rendered.pointer[0], ext(rendered.pointer[0], rendered.pointer[1])], 'rotate', 'pointer', tolPx + 2)
   }
   if (SLD.has(j.type)) { const [p0, p1] = jointSlideSegment(j); poly([p0, p1], 'slide', 'axis', tolPx + 2) }   // 箭頭錐 ≈ 端點，加 2px
   return best
 }
+/** JointGizmo 每次 render 記低實際畫出嚟嘅白色指針（world），claimer 命中測試用。 */
+export const renderedJointPointer = new Map<string, [Vector3, Vector3]>()
 export function jointHandleHit(j: JointLike, project: Project, x: number, y: number, tolPx = 10): 'rotate' | 'slide' | null {
   return jointHandleHitInfo(j, project, x, y, tolPx)?.kind ?? null
 }

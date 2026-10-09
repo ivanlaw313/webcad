@@ -17,6 +17,9 @@ export default function PromptDialog() {
   if (draft.dialog !== dlg) setDraft({ dialog: dlg, value: initVal(dlg) })
   const val = draft.dialog === dlg ? draft.value : initVal(dlg)
   const listRef = useRef<HTMLDivElement>(null)
+  // JOINT #4：滑鼠經過選項只係【高亮】，唔改選中值 —— 以前 onMouseEnter 直接改 value，用戶由清單郁落「確定」
+  // 途經「球」就變咗揀球（預設旋轉被覆蓋）。選中只靠撳選項（即確定）或 ↑↓。
+  const [hover, setHover] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // 每次打开新框：重置输入为默认值,聚焦并全选（方便直接覆写）。
@@ -80,12 +83,12 @@ export default function PromptDialog() {
             <div ref={listRef} role="listbox" tabIndex={0} aria-label={tx(dlg.title)} data-testid="dialog-pick-list"
               style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: '50vh', overflowY: 'auto', outline: 'none', border: '1px solid #c8d0d8', borderRadius: 6, padding: 3 }}>
               {opts.map((o) => {
-                const on = o.value === val
+                const on = o.value === val, hov = o.value === hover
                 return (
                   <button key={o.value} type="button" role="option" aria-selected={on} data-testid={`dialog-pick-${o.value}`}
-                    onMouseEnter={() => setDraft({ dialog: dlg, value: o.value })}
+                    onMouseEnter={() => setHover(o.value)} onMouseLeave={() => setHover((h) => (h === o.value ? null : h))}
                     onClick={() => resolveDialog(o.value)}
-                    style={{ display: 'flex', alignItems: 'baseline', gap: 10, textAlign: 'left', padding: '7px 10px', border: 'none', borderRadius: 5, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, background: on ? '#e3effa' : 'transparent', color: '#1f2a33' }}>
+                    style={{ display: 'flex', alignItems: 'baseline', gap: 10, textAlign: 'left', padding: '7px 10px', border: 'none', borderRadius: 5, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, background: on ? '#e3effa' : hov ? '#f2f6fa' : 'transparent', outline: on ? '1px solid #8db7e0' : 'none', color: '#1f2a33' }}>
                     <span style={{ fontWeight: 600, minWidth: 72 }}>{o.label}</span>
                     {o.hint && <span style={{ fontSize: 11.5, color: '#6b7782' }}>{o.hint}</span>}
                   </button>

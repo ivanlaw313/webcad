@@ -39,8 +39,9 @@ async function pickPair(A, B, answer) {
   let asked = null
   useApp.setState({ components: [box('P'), box('S')], joints: [], undoStack: [], redoStack: [], grounded: null, jointPickMode: true, jointPick: null,
     appPick: async (_m, opts, def) => { asked = { opts: opts.map((o) => o.value ?? o.id ?? o), def }; return answer === undefined ? def : answer } })
-  g().pickFaceForJoint('P', A)
+  // JOINT #3（Fusion）：第一拣 = 要郁件（子 S），第二拣 = 父件 P
   g().pickFaceForJoint('S', B)
+  g().pickFaceForJoint('P', A)
   await new Promise((r) => setTimeout(r, 0)); await new Promise((r) => setTimeout(r, 0))
   return asked
 }

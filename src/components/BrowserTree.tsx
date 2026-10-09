@@ -465,7 +465,7 @@ function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; 
       onContextMenu={(e) => { if ((e.target as HTMLElement).closest?.('input')) { e.stopPropagation(); return } openMenu(e, active ? 'activeBody' : 'parkedBody', { hidden, canDelete: !skLock }, {
         hide: toggle, show: toggle,
         ...(active ? { rename: startRename, delete: del } : {}),
-        createComp: () => useApp.getState().newComponent(),
+        createComp: () => void useApp.getState().newComponentActive(),
         appearance: () => void useApp.getState().runCommand('appearance', '外觀'),
         physmat: () => void useApp.getState().runCommand('physicalmaterial', '物理材質'),
         props: () => void useApp.getState().openPropertiesDialog(active ? null : `parked:${parkedIndex}`),

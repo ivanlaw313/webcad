@@ -182,6 +182,7 @@ const SOLID: Panel[] = [
       { id: 'newcomp', label: '新建組件', icon: 'component', quick: true, tip: '新建組件：在裝配中加一個獨立零件（可單獨移動/隱藏/上色，做關節）。' },
       { id: 'compboolean', label: '組件布爾', icon: 'combine', quick: true, tip: '組件布爾（網格級）：先在瀏覽器選一個組件作目標（未選時若剛好只有一個有幾何組件則用它），再點另一個零件作工具件 → 合併/切除/相交。零件時間軸多體請用「合併/切割」或實驗室「實體布爾」。' },
       { id: 'joint', label: '關節', icon: 'joint', shortcut: 'J', quick: true },
+      { id: 'groundcomp', label: '固定組件', icon: 'joint', tip: 'Fusion Ground／Unground：固定（或取消固定）在瀏覽器選中的組件 — 固定件不可拖動，關節亦不會驅動它。' },
       { id: 'asbuiltjoint', label: '按現狀關節', icon: 'joint', quick: true, tip: 'Fusion As-Built Joint：瀏覽器勾選剛好兩個組件，保持目前位置直接建立關節，不會先移動或吸附組件。預設建立轉動關節；可在關節面板修改類型、軸及限位。' },
       { id: 'jointorigin', label: '關節原點', icon: 'joint', sep: true, tip: 'GM-3DV4 A1（Fusion Joint Origin）：點一個 snap 點（實體面心 / 圓柱孔心 / 頂點）→ 落一個【可複用命名幀】，存喺瀏覽器「關節原點」組。之後建關節時可喺下拉引用之，取代預設「組件中心」錨點 — 精準裝配用。' },
       { id: 'rigidgroup', label: '剛性組', icon: 'joint', tip: 'Fusion Rigid Group：在瀏覽器勾選兩個或以上組件，將它們鎖成一個剛體組；組節點可在瀏覽器或關節面板抑製、恢復或刪除。' },

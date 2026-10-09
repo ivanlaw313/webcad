@@ -305,6 +305,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
   const shareCount = useApp((s) => { const self = s.components.find((x) => x.id === c.id); if (!self?.defId) return 0; return s.components.filter((x) => x.defId === self.defId).length })
   const requestFit = useApp((s) => s.requestFit)
   const del = useApp((s) => s.deleteComponent)
+  const grounded = useApp((s) => s.grounded === c.id || !!s.components.find((x) => x.id === c.id)?.grounded)   // BUG(B)
   const checked = useApp((s) => s.checkedComps.includes(c.id))
   const toggleCheck = useApp((s) => s.toggleCheckComp)
   const commandActive = useApp(activeModelCommand)
@@ -342,12 +343,14 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
       ) : (
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} title={tStatus(`「${c.name}」 ${compDimsStr(c.mesh)}（雙擊參數化件=進入編輯；Alt+雙擊=改名；點選=屬性）`, lang)} onClick={() => { if (compBoolPending) selectComponent(c.id); else selectComponent(c.id === sel ? null : c.id) }} onDoubleClick={(e) => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.formSource && !e.altKey) { useApp.getState().editFormComponent(c.id) } else if (cc?.src?.features?.length && !e.altKey) { selectComponent(c.id); void useApp.getState().editComponent(c.id) } else { setName(c.name); setEditing(true) } }}>{c.name}</span>
       )}
+      {grounded && <span data-testid="comp-grounded" title={tStatus('已固定（Ground）— 不可拖動，關節不會驅動', lang)} style={{ fontSize: 10, color: '#8a5a00', marginRight: 2, flexShrink: 0 }}>📌{tStatus('(已固定)', lang)}</span>}
       {shareCount > 1 && <span title={tStatus(`${shareCount} 個實例共享同一定義 — 編輯任一，全部更新（「獨立複製」可脫離）`, lang)} style={{ fontSize: 10, fontWeight: 600, color: '#1572c4', background: 'rgba(21,114,196,.12)', borderRadius: 3, padding: '0 4px', marginRight: 2, flexShrink: 0 }}>×{shareCount}</span>}
       <button className="component-options" aria-label={`組件選項：${c.name}`} aria-expanded={c.id === sel && !componentEditing && !commandActive && !skLock} onClick={() => { if (compBoolPending) selectComponent(c.id); else selectComponent(c.id === sel ? null : c.id) }}>⋯</button>
     </div>
     {c.id === sel && !componentEditing && !commandActive && !skLock && <div className="component-controls" role="group" aria-label={`組件選項：${c.name}`}>
       {!!c.formSource && <button onClick={() => useApp.getState().editFormComponent(c.id)}>✎ 編輯 Form 控制籠</button>}
       {!!c.src?.features.length && <button onClick={() => void useApp.getState().editComponent(c.id)}>✎ 編輯特徵／草圖</button>}
+      <button type="button" data-testid="browser-groundcomp" title={tStatus(grounded ? '取消固定：組件可再拖動／被關節驅動' : '固定（Ground）：組件不可拖動，關節不會驅動它', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleComponentGround(c.id) }}>{grounded ? tStatus('📌 取消固定', lang) : tStatus('📌 固定', lang)}</button>
       <button type="button" data-testid="browser-compboolean" title={tStatus('組件布爾：以此件為目標，再點另一個零件作工具件（合併/切除/相交）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().startComponentBoolean(c.id) }}>🧩 組件布爾</button>
       <select className="tw-mat" title={tStatus('材質（設密度→影響質量/BOM，並改顏色）', lang)} value={c.material || ''} onClick={(e) => e.stopPropagation()} onChange={(e) => { if (e.target.value) setMaterial(c.id, e.target.value) }} style={{ fontSize: 10, maxWidth: 52, border: '1px solid #d0d6dc', borderRadius: 3 }}>
         <option value="">{tStatus('材質…', lang)}</option>

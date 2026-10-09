@@ -202,6 +202,16 @@ function _soleVisibleAnalysis(arr: AnalysisNode[], type: AnalysisType, params?: 
 }
 // 碰撞安全组件 id：现存组件【最大数字后缀 +1】（+offset 供同批多件递增）。length-based 'C'+(len+1)
 // 删组件后数组缩短而唔重编号 → 会重铸已存在 id（例 [C1,C2,C3] 删 C2 → [C1,C3]，'C'+(2+1)='C3' 撞）。
+// BUG(B)：顯式固定（component.grounded）或舊有單一錨（state.grounded）都算固定。
+function isCompGrounded(s: { components: { id: string; grounded?: boolean }[]; grounded: string | null }, id: string): boolean {
+  return s.grounded === id || !!s.components.find((c) => c.id === id)?.grounded
+}
+function groundedMoveMsg(s: { components: { id: string; name: string }[] }, id: string): string {
+  return `「${s.components.find((c) => c.id === id)?.name ?? id}」已固定（Ground）— 先「取消固定」先可移動`
+}
+function groundedJointMsg(s: { components: { id: string; name: string }[] }, id: string): string {
+  return `「${s.components.find((c) => c.id === id)?.name ?? id}」已固定，唔可以做關節子件 — 對調父／子件或先取消固定`
+}
 function nextCid(comps: { id: string }[], offset = 0): string {
   const maxN = comps.reduce((m, c) => { const n = parseInt(String(c.id).replace(/^C/, ''), 10); return Number.isFinite(n) && n > m ? n : m }, 0)
   return 'C' + (maxN + 1 + offset)
@@ -1842,7 +1852,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   // component 记录 = occurrence（R2）。键名/读形状 100% 不变；新增字段全 optional（旧栈/旧档缺 → 匿名单例行为，字节兼容）。
   //   defId = 指向 componentDefs 嘅共享定义；有 defId 时 mesh/src 系 def 嘅镜像（reconcileDefs 维持 c.mesh===def.mesh）。
   //   _rev = 上次镜像时 def 嘅 rev（def.rev 前进 → 重镜像）。matrix/suppress/opacity 为 P2/P2.5 预留（未接渲染，字节兼容）。
-  components: { id: string; name: string; mesh: MeshData; pos: [number, number, number]; rot?: [number, number, number]; hidden?: boolean; color?: string; material?: string; groupId?: string /* T788 子装配：所属组 */; src?: { features: Feature[]; sketchSources: AppState['sketchSources'] }; formSource?: NonNullable<AppState['formCage']>; formMeshSignature?: string; defId?: string; _rev?: number; matrix?: number[]; suppress?: boolean; opacity?: number }[]  // src = 参数化来源（T734 edit-in-place：固化时存特征树+草图源，✎ 可重开编辑；导入件冇 src）
+  components: { id: string; name: string; mesh: MeshData; pos: [number, number, number]; rot?: [number, number, number]; hidden?: boolean; color?: string; material?: string; groupId?: string /* T788 子装配：所属组 */; grounded?: boolean /* BUG(B)：顯式固定（Ground）— 唔可拖動/唔受關節驅動；隨 components 存檔 */; src?: { features: Feature[]; sketchSources: AppState['sketchSources'] }; formSource?: NonNullable<AppState['formCage']>; formMeshSignature?: string; defId?: string; _rev?: number; matrix?: number[]; suppress?: boolean; opacity?: number }[]  // src = 参数化来源（T734 edit-in-place：固化时存特征树+草图源，✎ 可重开编辑；导入件冇 src）
   componentDefs: StoreCompDef[]   // R2：共享组件定义（occurrence.defId 引用之）；旧档载入时每件合成匿名 def「D_<compId>」
   // T788（S66）子装配嵌套树：组（可嵌套 parentId）。S123：组可有【局部坐标系】origin/rot（相对父组/世界）
   // —— 令子装配可作为整体平移+旋转（rotateGroup 全新）。缺省 origin/rot = 单位 = 旧平铺行为（字节一致）。
@@ -2077,6 +2087,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   joints: Joint[]
   grounded: string | null
   setGrounded: (id: string | null) => void
+  toggleComponentGround: (id: string) => void   // BUG(B)：組件 固定／取消固定（Fusion Ground/Unground）
   addJoint: (j: Omit<Joint, 'id' | 'name'>) => void
   addJointAtPose: (j: Omit<Joint, 'id' | 'name'>, childId: string, pose: { pos: [number, number, number]; rot: [number, number, number] }) => void
   setJointValue: (id: string, patch: Partial<Pick<Joint, 'angle' | 'slide' | 'angle2' | 'angle3' | 'slide2' | 'aMin' | 'aMax' | 'sMin' | 'sMax' | 'lead' | 'rest' | 'offset' | 'originAngle' | 'flip'>>) => void
@@ -10675,6 +10686,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const Acomp = s.components.find((c) => c.id === A.compId)
     const B = s.components.find((c) => c.id === compId)   // 子（郁）
     if (!Acomp || !B) { set({ jointPickMode: false, jointPick: null, status: '關節拾取失敗：搵唔到組件' }); return }
+    if (isCompGrounded(s, B.id)) { set({ jointPickMode: false, jointPick: null, status: groundedJointMsg(s, B.id) }); return }   // BUG(B)
     // ── 贴合：完全复用 solveFaceMateDelta + worldToPose（同拣面配合数学一致），子件 B 贴到父件 A ──
     const delta = solveFaceMateDelta(A.face, face)   // A=基准（唔郁）, face=B（郁）
     const Mb = compWorldMatrix(B)
@@ -10783,7 +10795,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       for (let i = 0; i + 2 < V.length; i += step) for (let k = 0; k < 3; k++) { const val = V[i + k] + (c.pos[k] || 0); if (val < mn[k]) mn[k] = val; if (val > mx[k]) mx[k] = val }
     }
     const L0 = Math.max(50, Math.hypot(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]) || 50)
-    const fixedIds = new Set<string>([s.grounded, opts?.pin].filter((x): x is string => !!x))
+    const fixedIds = new Set<string>([s.grounded, opts?.pin, ...s.components.filter((c) => c.grounded).map((c) => c.id)].filter((x): x is string => !!x))   // BUG(B)：顯式固定件亦係錨
     const involved = new Set<string>(); for (const m of s.mates) { involved.add(m.aComp); involved.add(m.bComp) }
     const comps = s.components.filter((c) => involved.has(c.id)).map((c) => ({ id: c.id, pos: [...c.pos] as [number, number, number], rot: [...(c.rot ?? [0, 0, 0])] as [number, number, number] }))
     const r = mateSolve(comps, s.mates, fixedIds, worldMatrixOf, L0)
@@ -11007,8 +11019,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       status: `已刪除 ${del.size} 個組件`,
     }
   }),
-  setComponentPos: (id, pos) => { set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, pos } : c)) })); if (get().mates.some((m) => m.aComp === id)) get().resolveMates() },
-  setComponentRot: (id, rot) => { set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, rot } : c)) })); if (get().mates.some((m) => m.aComp === id)) get().resolveMates() },
+  setComponentPos: (id, pos) => { if (isCompGrounded(get(), id)) { set({ status: groundedMoveMsg(get(), id) }); return } set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, pos } : c)) })); if (get().mates.some((m) => m.aComp === id)) get().resolveMates() },
+  setComponentRot: (id, rot) => { if (isCompGrounded(get(), id)) { set({ status: groundedMoveMsg(get(), id) }); return } set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, rot } : c)) })); if (get().mates.some((m) => m.aComp === id)) get().resolveMates() },
   toggleComponentVisible: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: s.components.map((c) => (c.id === id ? { ...c, hidden: !c.hidden } : c)) })),   // bt4: 可见性入撤销栈(hidden 在 docSnap+存档)
   // The body list is definition-owned, so its visibility is shared by all occurrences.
   // The occurrence remains the assembly selection target, matching Fusion's hierarchy.
@@ -12571,12 +12583,25 @@ export const useApp = create<AppState>((rawSet, get) => {
   joints: [],
   grounded: null,
   setGrounded: (id) => set({ grounded: id }),
+  toggleComponentGround: (id) => set((s) => {
+    const c = s.components.find((x) => x.id === id)
+    if (!c) return {}
+    const on = !isCompGrounded(s, id)
+    return {
+      undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
+      components: s.components.map((x) => (x.id === id ? { ...x, grounded: on || undefined } : x)),
+      ...(!on && s.grounded === id ? { grounded: null } : {}),
+      status: on ? `已固定「${c.name}」（Ground）— 唔可拖動，關節唔會驅動佢` : `已取消固定「${c.name}」`,
+    }
+  }),
   // T774 顺手修 id 碰撞：旧 'J'+(length+1) 删中间再加会撞 id — 改 max现有序号+1（T770 gearbox 嘅 J1..Jn 约定兼容）
   addJoint: (j) => set((s) => {
+    if (isCompGrounded(s, j.child)) return { status: groundedJointMsg(s, j.child) }   // BUG(B)：固定件唔可以做關節子件（會被驅動）
     const n = s.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
     return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints: [...s.joints, { ...j, id: 'J' + n, name: '关节' + n }] }
   }),
   addJointAtPose: (j, childId, pose) => set((s) => {
+    if (isCompGrounded(s, childId)) return { status: groundedJointMsg(s, childId) }
     const n = s.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
@@ -12671,6 +12696,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   clearEnvelope: () => set({ motionEnvelope: null, status: '已清除運動包絡' }),
   setJointValue: (id, patch) => set((s) => {
+    { const jj = s.joints.find((x) => x.id === id); const drives = Object.keys(patch).some((k) => k === 'angle' || k === 'slide' || k === 'angle2' || k === 'angle3' || k === 'slide2')
+      if (jj && drives && isCompGrounded(s, jj.child)) return { status: `「${s.components.find((c) => c.id === jj.child)?.name ?? jj.child}」已固定 — 關節唔會驅動佢（先取消固定）` } }   // BUG(B)
     // 撤销策略：限位/导程 = 离散配置编辑（typed input，应入撤销栈）；angle/slide/angle2… = 滑杆连续驱动
     // （拖一下会高频调用 — 若每 tick 压快照会瞬间灌爆 60 格令 Ctrl+Z 失效）→ 只对 config 编辑压快照。
     const isCfg = patch.aMin !== undefined || patch.aMax !== undefined || patch.sMin !== undefined || patch.sMax !== undefined || patch.lead !== undefined
@@ -13825,6 +13852,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'circpattern': return get().openFeatDlg('circpattern')  // T757：Fusion 级環形阵列
       case 'cylinder': return get().openFeatDlg('cylinder')
       case 'newcomp': return get().newComponent()
+      case 'groundcomp': {   // BUG(B)：ASSEMBLE ▾ 固定／取消固定（作用於瀏覽器選中組件）
+        const sc = get().selectedComponent
+        if (!sc) { set({ status: '固定組件：先喺瀏覽器選一個組件' }); return }
+        return get().toggleComponentGround(sc)
+      }
       // GM-3DV2 R1：Fusion 实际上用同一个 Construction Geometry 对话框；各菜单项只系预设 Type + Method。
       // 所有主菜单分项统一由 openDatumCmd(preset) 进入，令菜单切换 Method、拾取提示同完成流程保持一致。
       case 'datumgeom': return get().openDatumCmd()

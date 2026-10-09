@@ -3460,7 +3460,7 @@ function ComponentGizmo() {
       component={c}
       fkMat={childJoint && fk && c ? fk.get(c.id) : undefined}
       jointDrag={jointDrag}
-      grounded={grounded}
+      grounded={c?.grounded ? c.id : grounded}
       setComponentPos={setComponentPos}
       setComponentRot={setComponentRot}
       resolveMates={resolveMates}

@@ -4736,7 +4736,8 @@ function computeSketchToolPreview(shapes: SketchShape[], tool: SketchTool, p: Pt
     let bi = -1, best = Infinity
     for (let i = 0; i < shapes.length; i++) { const dd = distToShapeOutline(shapes[i], p); if (dd < best) { best = dd; bi = i } }
     if (bi < 0 || best > tol) return null
-    const dirs = both ? [offD, -offD] : [offD]
+    const d = Math.abs(offD) * offsetSideAt(shapes[bi], p)   // SKETCH12：懸停預覽同樣跟游標所在側
+    const dirs = both ? [d, -d] : [d]
     const out: SketchShape[] = []
     for (const dd of dirs) { const r = offsetSketchShape(shapes[bi], dd); if (r) out.push(r) }
     return out.length ? out : null
@@ -4828,18 +4829,25 @@ type Sizing = { tool: 'offset' | 'cfillet' | 'cchamfer'; shapeIdx: number; vi: n
 // SKETCH12 #1（Fusion）：打咗偏移距離之後，方向仍然跟游標喺輪廓邊一面（內 = 內縮、外 = 外擴）；打入值當距離（大小），「⇄ 反向」= 相對游標嗰面再調轉。
 // 淨系封閉輪廓（圓／矩形／封閉折線）先有內外；開放線照用打入嘅正負號。
 function offsetClosed(sh: SketchShape): boolean { return sh.type === 'circle' || sh.type === 'rect' || (sh.type === 'poly' && !sh.open && !!sh.pts && sh.pts.length >= 3) }
+// SKETCH12 re-check：偏移方向一律由游標所在側決定。閉合輪廓 = 內/外；開放路徑（單線、折線、弧）以前固定用正號
+// （結果永遠落在同一側，游標在上方卻偏移到下方）→ 改為試算 ±1 偏移，取較接近游標的一側。
+export function offsetSideAt(sh: SketchShape, cursor: Pt): 1 | -1 {
+  if (offsetClosed(sh)) return pointInsideShape(sh, cursor) ? -1 : 1
+  const a = offsetSketchShape(sh, 1), b = offsetSketchShape(sh, -1)
+  if (!a || !b) return a ? 1 : -1
+  return distToShapeOutline(a, cursor) <= distToShapeOutline(b, cursor) ? 1 : -1
+}
 function offsetTypedSided(shapes: SketchShape[], sz: Sizing, typed: number, cursor: Pt | null | undefined): number {
   const sh = lockedShape(shapes, sz)
-  if (!sh || !cursor || !offsetClosed(sh) || !Number.isFinite(typed) || typed === 0) return typed
-  const side = pointInsideShape(sh, cursor) ? -1 : 1
-  return Math.abs(typed) * side * (sz.flip ? -1 : 1)
+  if (!sh || !cursor || !Number.isFinite(typed) || typed === 0) return typed
+  return Math.abs(typed) * offsetSideAt(sh, cursor) * (sz.flip ? -1 : 1)
 }
 // SIZING-1/4：用锁定形状嘅【身份】(ref) 解析，唔再信 shapeIdx —— 中途删/改轮廓令位置错位时，ref 唔喺数组即返 null（拖柄消失），唔会静静偏移咗第二个轮廓。
 function lockedShape(shapes: SketchShape[], sz: Sizing): SketchShape | null { return shapes.includes(sz.ref) ? sz.ref : null }
 // 由光标算出当前尺寸值（整数 1mm 步进）：offset = 到锁定轮廓嘅有符号距离（外+/内−）；倒角 = 到锁定角点嘅距离（≥1）。
 function sizingValueAt(shapes: SketchShape[], sz: Sizing, cursor: Pt): number {
   const sh = lockedShape(shapes, sz); if (!sh) return 0
-  if (sz.tool === 'offset') { const mag = distToShapeOutline(sh, cursor); return Math.round(pointInsideShape(sh, cursor) ? -mag : mag) }
+  if (sz.tool === 'offset') { const mag = distToShapeOutline(sh, cursor); return Math.round(mag) * offsetSideAt(sh, cursor) }
   return Math.max(1, Math.round(Math.hypot(cursor[0] - sz.anchor[0], cursor[1] - sz.anchor[1])))
 }
 // 锁定目标 + 当前值 → 预览 ghost（唔再用光标拣，用锁定嗰个形状/角）。
@@ -6523,7 +6531,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!s.sketchPreview) return s.toolPreview ? { toolPreview: null } : {}
     const tl = s.sketchTool
     if (tl !== 'offset' && tl !== 'cfillet' && tl !== 'cchamfer' && tl !== 'trim' && tl !== 'extend') return s.toolPreview ? { toolPreview: null } : {}
-    return { toolPreview: computeSketchToolPreview(shapes, tl, s.sketchPreview, s.sketchOffsetD, s.sketchOffsetBoth, s.sketchCornerR) }
+    return { toolPreview: computeSketchToolPreview(shapes, tl, tl === 'offset' && _skHoverRaw ? _skHoverRaw : s.sketchPreview, s.sketchOffsetD, s.sketchOffsetBoth, s.sketchCornerR) }
     })
   },
   // T796b：调尺寸（offset/cfillet/cchamfer 锁定咗目标）时键盘输入。用 dimBuf[0] 做文字 buffer（支援小数 / offset 负号），
@@ -6575,7 +6583,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       // T796-1：锁定即 seed 一个值 + 把 sketchPreview 设到点击处（触屏 tap-tap 无 hover 都见到拖柄、commit 锁定位置而非旧默认）
       // BUG-207 跟進（G）：揀輪廓之前已喺「偏移距離」欄打咗數 → 鎖定即當 typed（黐住），唔再俾游標距離覆蓋（旧版首次偏移 5 變 10）。
       const preTyped = _offsetTypedPre && Number.isFinite(s.sketchOffsetD) && s.sketchOffsetD !== 0
-      set({ sizing: { tool: 'offset', shapeIdx: bi, vi: -1, anchor: p, ref, raw: p, ...(preTyped ? { typed: true, typedValue: s.sketchOffsetD } : {}) }, sketchPreview: p, sketchOffsetD: s.sketchOffsetD || 5, dimBuf: ['', ''], status: preTyped ? `偏移 ${s.sketchOffsetD} mm（用已輸入數值）→ 點一下確定 · 改欄位數值可再調 · ESC 取消` : '偏移：移動滑鼠拖距離（外+/內−，1mm 步進）→ 點一下確定 · 打數字精確 · ESC 取消' })
+      const lockD = Math.abs(s.sketchOffsetD || 5) * offsetSideAt(ref, p)   // 鎖定即按游標所在側定號（未移動就點確定亦正確）
+      set({ sizing: { tool: 'offset', shapeIdx: bi, vi: -1, anchor: p, ref, raw: p, ...(preTyped ? { typed: true, typedValue: s.sketchOffsetD } : {}) }, sketchPreview: p, sketchOffsetD: lockD, dimBuf: ['', ''], status: preTyped ? `偏移 ${s.sketchOffsetD} mm（用已輸入數值）→ 點一下確定 · 改欄位數值可再調 · ESC 取消` : '偏移：移動滑鼠拖距離（外+/內−，1mm 步進）→ 點一下確定 · 打數字精確 · ESC 取消' })
       get().refreshToolPreview()
       return
     }
@@ -6596,7 +6605,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ sizing: null, toolPreview: null, status: `偏移失敗（距離 ${Math.abs(d)} 令輪廓自交/塌陷，試小一些）` }); return
     }
     const linkedShapes = src.sid ? shapes : shapes.map((sh) => sh === src ? { ...sh, sid } as SketchShape : sh)
-    const sideTxt = s.sketchOffsetBoth ? (outOk && inOk ? '（雙向）' : outOk ? '（只有外側，內側塌陷）' : '（只有內側，外側塌陷）') : d > 0 ? '（外）' : '（內）'
+    const sideTxt = s.sketchOffsetBoth ? (outOk && inOk ? '（雙向）' : outOk ? '（只有外側，內側塌陷）' : '（只有內側，外側塌陷）') : !offsetClosed(src) ? '（游標所在側）' : d > 0 ? '（外）' : '（內）'
     set({
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
       sketchProfiles: [...linkedShapes, ...made], sketchShape: null, skSel: [], sizing: null, toolPreview: null,
@@ -11078,7 +11087,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // T792：offset/倒圆角/倒角 悬停 → 实时算结果 ghost（绿虚线），用户点之前即睇到 正/反/双向/半径 效果
     const tl = s.sketchTool
     const toolPreview = (tl === 'offset' || tl === 'cfillet' || tl === 'cchamfer' || tl === 'trim' || tl === 'extend')
-      ? computeSketchToolPreview([...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[], tl, pt, s.sketchOffsetD, s.sketchOffsetBoth, s.sketchCornerR)
+      ? computeSketchToolPreview([...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[], tl, tl === 'offset' ? raw : pt, s.sketchOffsetD, s.sketchOffsetBoth, s.sketchCornerR)   // 偏移懸停：用未吸附游標判斷所在側（吸附點落在線上會失去方向）
       : null
     const snapTag = (!pickTool && onPoint && _snapKind === 'quad') ? '◈ 象限點（圓最遠點）' : (!pickTool && onPoint && _snapKind === 'tan') ? '⌒ 切點 — 該段同圓外徑相切貼合' : (!pickTool && onPoint && _snapKind === 'mid') ? '▲ 邊中點' : (!pickTool && onPoint && _snapKind === 'x') ? '✕ 交點' : ''
     const baseDim = sketchDimText(s.sketchTool, s.sketchStart, s.polyPts, pt, s.ellipseCreation, { mode: s.slotMode, w: s.sketchSlotW })

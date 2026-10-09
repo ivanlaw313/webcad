@@ -162,7 +162,7 @@ test('Rule Fillet exposes Autodesk All Edges and Between Faces/Features rules wi
   assert.match(viewport, /<option value="between">面[\/／](?:特征之间|特徵之間)<\/option>/)
   assert.match(viewport, /filletRuleFaceAt\(\[e\.point\.x, e\.point\.y, e\.point\.z\]/)
   assert.match(worker, /function _ruleFilletMids/)
-  assert.match(worker, /Rule Fillet：(?:两组面之间冇共同边|兩組面之間冇共同邊)/)
+  assert.match(worker, /Rule Fillet：(?:两组面之间没有共同边|兩組面之間沒有共同邊)/)
 })
 
 test('Full Round Fillet has three real face sets and a radius-free B-rep construction path', () => {

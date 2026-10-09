@@ -37,13 +37,13 @@ test('App Esc cancel tip is 港繁', () => {
 
 test('CSketch toolbar titles / prompts are 港繁', () => {
   assert.match(csk, /修剪：點線段 → 刪到最近交點/)
-  assert.match(csk, /延伸：點線段靠近想延長嘅一端/)
+  assert.match(csk, /延伸：點線段靠近想延長的一端/)
   assert.match(csk, /打斷：點線段中間 → 一分為二/)
-  assert.match(csk, /鏡像：先選要鏡像嘅實體（線\/圓）/)
+  assert.match(csk, /鏡像：先選要鏡像的實體（線\/圓）/)
   assert.match(csk, /矩形陣列：先選實體（線\/圓）/)
   assert.match(csk, /環形陣列：先選實體（線\/圓）/)
-  assert.match(csk, /旋轉：先選要轉嘅實體（線\/圓）/)
-  assert.match(csk, /投影實體：把現有 3D 實體嘅外形矩形/)
+  assert.match(csk, /旋轉：先選要轉的實體（線\/圓）/)
+  assert.match(csk, /投影實體：把現有 3D 實體的外形矩形/)
   assert.match(csk, /刪除所選/)
   assert.match(csk, /新建 \/ 加料實體/)
   assert.match(csk, /修剪\/打斷/)

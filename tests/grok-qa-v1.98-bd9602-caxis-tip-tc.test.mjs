@@ -44,7 +44,7 @@ test('Viewport mate/beam/screenshot residuals TC', () => {
   assert.match(vp, />X軸</)
   assert.match(vp, /Y軸\(豎直\)/)
   assert.match(vp, />間隙<input/)
-  assert.match(vp, /▣揀面配合/)
+  assert.match(vp, /▣選面配合/)
   assert.match(vp, /按孔配螺絲/)
   assert.match(vp, /全孔配螺絲/)
   assert.match(vp, /翻轉：平面→同向/)

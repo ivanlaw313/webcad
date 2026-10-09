@@ -25,9 +25,9 @@ test('csketch setTool / empty / trim tips are 港繁', () => {
   assert.match(cs, /點擊落點/)
   assert.match(cs, /繪製/)
   assert.match(cs, /已清空草圖（保留原點 ⊕，可對原點打尺寸定位）/)
-  assert.match(cs, /草圖已經係空白/)
+  assert.match(cs, /草圖已經是空白/)
   assert.match(cs, /已撤銷（Ctrl\+Y 重做）/)
-  assert.match(cs, /修剪：點選要刪除嘅線段（會刪到最近交點；無交點則刪整條）/)
+  assert.match(cs, /修剪：點選要刪除的線段（會刪到最近交點；無交點則刪整條）/)
   assert.match(cs, /該端前方無可延伸/)
   assert.match(cs, /打斷/)
   assert.match(cs, /構造線/)
@@ -39,7 +39,7 @@ test('csketch setTool / empty / trim tips are 港繁', () => {
   assert.match(cs, /繞原點/)
   assert.match(cs, /無法定義/)
   assert.match(cs, /選擇組合/)
-  assert.match(cs, /選咗/)
+  assert.match(cs, /選了/)
 })
 
 test('csketch status tips: key SC forms absent', () => {

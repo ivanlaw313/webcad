@@ -40,7 +40,7 @@ test('VISUAL_STYLE_LABELS all TC; no SC label values', () => {
 test('Viewport B-rep 視覺樣式; no B-rep 视觉样式', () => {
   assert.match(vp, /B-rep 視覺樣式/)
   assert.doesNotMatch(vp, /B-rep 视觉样式/)
-  assert.match(vp, /文檔單位/)
+  assert.match(vp, /文件單位/)
 })
 
 test('store setVisualStyle status TC', () => {
@@ -53,7 +53,7 @@ test('IntroCard TC; no key SC forms', () => {
   assert.match(intro, /載入/)
   assert.match(intro, /手把手教學/)
   assert.match(intro, /第一個零件/)
-  assert.match(intro, /睇完整幫助/)
+  assert.match(intro, /查看完整幫助/)
   assert.match(intro, /知道了，開始/)
   assert.doesNotMatch(intro, /快速开始/)
   assert.doesNotMatch(intro, /手把手教学/)
@@ -67,8 +67,8 @@ test('index.html 代號; no 代号', () => {
 })
 
 test('BrowserTree 文檔單位 leaf; UnitDialog heading present', () => {
-  assert.match(bt, /文檔單位:/)
-  assert.match(vp, /tStatus\('文檔單位', lang\)/)
+  assert.match(bt, /文件單位:/)
+  assert.match(vp, /tStatus\('文件單位', lang\)/)
 })
 
 test('i18n has TC + legacy SC keys for visual styles', () => {

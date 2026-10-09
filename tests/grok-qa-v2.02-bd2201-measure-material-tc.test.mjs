@@ -24,7 +24,7 @@ test('APP_VERSION >= 2.03 and SW cache name matches APP_VERSION', () => {
 test('store measure / material tips are 港繁', () => {
   assert.match(store, /可繼續點擊落點/)
   assert.match(store, /已落草圖點/)
-  assert.match(store, /對佢標尺寸/)
+  assert.match(store, /對它標尺寸/)
   assert.match(store, /測量：點擊實體上兩點量距離/)
   assert.match(store, /已退出測量/)
   assert.match(store, /量邊：點擊實體某條棱 → 顯示其長度；圓孔棱顯示直徑Ø\/半徑/)
@@ -32,7 +32,7 @@ test('store measure / material tips are 港繁', () => {
   assert.match(store, /已設物理材質/)
   assert.match(store, /質量\/FEA\/BOM 用；外觀已跟材質/)   // UX2 #9：物理材質而家會帶外觀
   assert.match(store, /材質庫：請輸入預設名/)
-  assert.match(store, /材質庫：搵唔到預設/)
+  assert.match(store, /材質庫：找不到預設/)
   assert.match(store, /已把量測/)
   assert.match(store, /存為參數/)
   assert.match(store, /已存外觀預設/)

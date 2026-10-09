@@ -63,13 +63,13 @@ test('v1.60: modal always shows 裝配工程圖 kind tab', () => {
 })
 
 test('v1.60: assembly drawing status strings Traditional', () => {
-  assert.match(store, /裝配工程圖：冇可見組件/)
+  assert.match(store, /裝配工程圖：沒有可見組件/)
   assert.match(store, /正在生成裝配工程圖/)
   assert.match(store, /裝配工程圖生成失敗/)
   assert.match(store, /已生成裝配工程圖/)
   assert.doesNotMatch(store, /status: '装配工程图：冇可见组件/)
   assert.doesNotMatch(store, /正在生成装配工程图/)
-  assert.match(i18n, /裝配工程圖：冇可見組件/)
+  assert.match(i18n, /裝配工程圖：沒有可見組件/)
   assert.match(i18n, /裝配工程圖生成失敗/)
 })
 

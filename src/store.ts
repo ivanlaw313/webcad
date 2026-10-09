@@ -12335,6 +12335,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const comps = s.interfSubset.length ? visible.filter((c) => s.interfSubset.includes(c.id)) : visible
     if (comps.length < 2) { set({ status: s.interfSubset.length ? '干涉檢查：選定子集需 ≥2 個組件（在瀏覽器勾選後再算）' : '干涉檢查需要 ≥2 個可見組件', interfReport: null, interfPanelOpen: false }); return }
     const fk = computeFK(s.components.map((c) => c.id), s.joints)
+    const groupFK = buildGroupFK(s.groups)
     // This is an inspection-only aggregate.  Definition bodies remain independent in the model;
     // the temporary mesh merely lets one occurrence participate in collision checks as a union
     // of all of its visible solids.
@@ -12347,7 +12348,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       return { vertices: bodies.flatMap((mesh) => mesh.vertices), normals: bodies.flatMap((mesh) => mesh.normals), triangles }
     }
     const boxOf = (c: typeof comps[number]) => {
-      const M = compWorldMatrix(c, fk.get(c.id))
+      const gm = (c as { groupId?: string }).groupId ? groupFK.get((c as { groupId?: string }).groupId!) : undefined
+      const M = compWorldMatrix(c, fk.get(c.id), gm)
       const v = meshOf(c).vertices
       // Transform EVERY vertex to world for a TIGHT axis-aligned box. (Transforming only the 8 local-AABB
       // corners over-estimates a rotated/curved part's world bounds → spurious interference. This is still
@@ -12368,11 +12370,22 @@ export const useApp = create<AppState>((rawSet, get) => {
       return { wn, wx, pts, M }
     }
     const boxes = comps.map(boxOf)
-    // GM-X1 #6：Include Coincident Faces → 放宽容差 0.5mm→0（接触/共面亦计）；默认排除刚接触。
+    // GM-X1 #6：Include Coincident Faces → 放宽容差；默认 AABB 宽阶段用 0（避免 0.5mm 门槛漏掉浅穿透），真干涉仍以布爾體積門檻為準。
     const coincident = s.interfIncludeCoincident
-    const T = coincident ? 0 : 0.5 // require >0.5mm overlap (just-touching is not interference) unless include-coincident
+    const T = 0
     const overlap = (x: typeof boxes[number], y: typeof boxes[number]) =>
       x.wn[0] < y.wx[0] - T && x.wx[0] > y.wn[0] + T && x.wn[1] < y.wx[1] - T && x.wx[1] > y.wn[1] + T && x.wn[2] < y.wx[2] - T && x.wx[2] > y.wn[2] + T
+    const CONTACT_TOL = coincident ? 0.5 : 0.05   // mm：間隙低於此視為「接觸」
+    const NEAR_MM = 5   // AABB 未重疊但間隙小於此仍做實體布爾（免漏旋轉後淺撞／窄穿透）
+    // 軸對齊貼面：AABB 剛好貼邊時 overlap(T=0) 為 false，且頂點取樣常跳過共面 → 用分離距離補接觸／近距
+    const aabbSep = (x: typeof boxes[number], y: typeof boxes[number]) => {
+      let s = 0
+      for (let k = 0; k < 3; k++) {
+        const gap = Math.max(0, Math.max(x.wn[k] - y.wx[k], y.wn[k] - x.wx[k]))
+        s = Math.hypot(s, gap)
+      }
+      return s
+    }
     // Nearest-gap (clearance) between two parts' strided world point sets (≈ surface gap; vertex-sampled).
     const minGap = (a: typeof boxes[number], b: typeof boxes[number]) => {
       const pa = a.pts, pb = b.pts; let best = Infinity
@@ -12411,40 +12424,44 @@ export const useApp = create<AppState>((rawSet, get) => {
     const hitBoxes: { min: [number, number, number]; max: [number, number, number]; label: string }[] = []
     const hitMeshes: { vertices: number[]; triangles: number[]; label: string; vol: number }[] = []
     let nearest = { gap: Infinity, a: '', b: '' }
-    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
-      if (overlap(boxes[i], boxes[j])) {
-        // ASM2 interference：以前先做蒙特卡洛預篩（射線奇偶），軸對齊方塊嘅射線經常擦正邊／面 → 計到 0 → 嵌入咗都報「無干涉」。
-        // 而家：AABB 重疊嘅每一對都直接做實體布爾相交（manifold intersect，兩件烘焙到世界座標）→ 真重疊體積；
-        // 布爾失敗（非水密網格）先回退蒙特卡洛。
-        let exactMesh: { vertices: number[]; triangles: number[] } | null = null, exactVol = 0, boolOk = false
-        try {
-          const inter = await meshBoolean(bakeWorld(comps[i], boxes[i].M), bakeWorld(comps[j], boxes[j].M), 'intersect')
-          boolOk = true
-          exactVol = meshVolume(inter); exactMesh = inter.vertices.length && inter.triangles.length ? inter : null
-          if (!exactMesh) exactVol = 0
-        } catch (err) { exactMesh = null; if (/相交结果为空|相交結果為空/.test(String((err as Error)?.message ?? err))) boolOk = true }   // 空相交 = 確定冇重疊
-        const ov = overlapVol(boxes[i], boxes[j], comps[i], comps[j])   // 重疊範圍盒（布爾失敗時嘅體積估算）
-        const MIN_VOL = coincident ? 1e-6 : 0.01
-        const realVol = exactMesh ? exactVol : boolOk ? 0 : ov.volume
-        if (realVol >= MIN_VOL) {
-          const label = `${comps[i].name}∩${comps[j].name}`
-          const vol = realVol
-          hits.push({ name: label, vol, exact: !!exactMesh })
-          if (exactMesh) hitMeshes.push({ vertices: exactMesh.vertices, triangles: exactMesh.triangles, label, vol })
-          else hitBoxes.push({ min: ov.bmin, max: ov.bmax, label })
-          let rmin = ov.bmin, rmax = ov.bmax
-          if (exactMesh && exactMesh.vertices.length >= 3) {   // 精确网格 → 用真重叠几何嘅 bbox（较交集盒更贴）
-            const ev = exactMesh.vertices
-            rmin = [Infinity, Infinity, Infinity]; rmax = [-Infinity, -Infinity, -Infinity]
-            for (let k = 0; k < ev.length; k += 3) for (let q = 0; q < 3; q++) { const val = ev[k + q]; if (val < rmin[q]) rmin[q] = val; if (val > rmax[q]) rmax[q] = val }
-          }
-          report.push({ a: comps[i].name, b: comps[j].name, vol, exact: !!exactMesh, min: rmin, max: rmax })
-          continue
-        }
+    const contacts: { a: string; b: string; gap: number }[] = []
+    const tryPairBoolean = async (i: number, j: number) => {
+      // 實體布爾 Common／相交：兩件烘焙到世界座標（含 FK＋子裝配 frame）→ 真重疊體積＋組件名
+      let exactMesh: { vertices: number[]; triangles: number[] } | null = null, exactVol = 0, boolOk = false
+      try {
+        const inter = await meshBoolean(bakeWorld(comps[i], boxes[i].M), bakeWorld(comps[j], boxes[j].M), 'intersect')
+        boolOk = true
+        exactVol = meshVolume(inter); exactMesh = inter.vertices.length && inter.triangles.length ? inter : null
+        if (!exactMesh) exactVol = 0
+      } catch (err) { exactMesh = null; if (/相交结果为空|相交結果為空/.test(String((err as Error)?.message ?? err))) boolOk = true }
+      const ov = overlapVol(boxes[i], boxes[j], comps[i], comps[j])
+      const MIN_VOL = coincident ? 1e-6 : 0.01
+      const realVol = exactMesh ? exactVol : boolOk ? 0 : ov.volume
+      if (realVol < MIN_VOL) return false
+      const label = `${comps[i].name}∩${comps[j].name}`
+      const vol = realVol
+      hits.push({ name: label, vol, exact: !!exactMesh })
+      if (exactMesh) hitMeshes.push({ vertices: exactMesh.vertices, triangles: exactMesh.triangles, label, vol })
+      else hitBoxes.push({ min: ov.bmin, max: ov.bmax, label })
+      let rmin = ov.bmin, rmax = ov.bmax
+      if (exactMesh && exactMesh.vertices.length >= 3) {
+        const ev = exactMesh.vertices
+        rmin = [Infinity, Infinity, Infinity]; rmax = [-Infinity, -Infinity, -Infinity]
+        for (let k = 0; k < ev.length; k += 3) for (let q = 0; q < 3; q++) { const val = ev[k + q]; if (val < rmin[q]) rmin[q] = val; if (val > rmax[q]) rmax[q] = val }
       }
-      const g = minGap(boxes[i], boxes[j])
-      // GM-X1 #6：含共面时，接触/贴面（gap≈0 但无体积重叠）亦列为「接触」命中（vol 0，诚实标）。
-      if (coincident && g < 0.05) {
+      report.push({ a: comps[i].name, b: comps[j].name, vol, exact: !!exactMesh, min: rmin, max: rmax })
+      return true
+    }
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      const aabbHit = overlap(boxes[i], boxes[j])
+      const sep = aabbSep(boxes[i], boxes[j])
+      const gVert = minGap(boxes[i], boxes[j])
+      const g = Math.min(gVert, sep)   // 貼面時 sep≈0，優於漏採樣嘅頂點間隙
+      if (aabbHit || g < NEAR_MM || sep < NEAR_MM) {
+        if (await tryPairBoolean(i, j)) continue
+      }
+      if (g <= CONTACT_TOL || sep <= CONTACT_TOL) {
+        contacts.push({ a: comps[i].name, b: comps[j].name, gap: g })
         const label = `${comps[i].name}∼${comps[j].name}`
         hits.push({ name: label, vol: 0, exact: true })
         hitBoxes.push({ min: [Math.max(boxes[i].wn[0], boxes[j].wn[0]), Math.max(boxes[i].wn[1], boxes[j].wn[1]), Math.max(boxes[i].wn[2], boxes[j].wn[2])], max: [Math.min(boxes[i].wx[0], boxes[j].wx[0]), Math.min(boxes[i].wx[1], boxes[j].wx[1]), Math.min(boxes[i].wx[2], boxes[j].wx[2])], label })
@@ -12453,14 +12470,24 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       if (g < nearest.gap) nearest = { gap: g, a: comps[i].name, b: comps[j].name }
     }
-    const gapStr = nearest.gap < Infinity ? `　最近間隙 ≈${fmtLen(nearest.gap, s.unit)}（${nearest.a}↔${nearest.b}，頂點取樣估算）` : ''
-    const hitStr = hits.map((h) => `${h.name} ${h.vol >= 1000 ? (h.vol / 1000).toFixed(2) + 'cm³' : h.vol.toFixed(0) + 'mm³'}${h.exact ? '' : '≈'}`).join('，')
-    const allExact = hits.length > 0 && hits.every((h) => h.exact)
+    const fmtGap = (mm: number) => mm < 1 ? fmtLen(mm, s.unit, 3) : mm < 10 ? fmtLen(mm, s.unit, 2) : fmtLen(mm, s.unit, 1)
+    const contactStr = contacts.length ? `　接觸 ${contacts.length} 處（${contacts.map((c) => `${c.a}↔${c.b}`).join('，')}）` : ''
+    const gapStr = nearest.gap < Infinity ? `　最近間隙 ${fmtGap(nearest.gap)}（${nearest.a}↔${nearest.b}，頂點取樣估算）` : ''
+    const volHits = hits.filter((h) => h.vol > 0)
+    const hitStr = hits.map((h) => h.vol > 0
+      ? `${h.name} ${h.vol >= 1000 ? (h.vol / 1000).toFixed(2) + 'cm³' : h.vol.toFixed(0) + 'mm³'}${h.exact ? '' : '≈'}`
+      : `${h.name} 接觸`).join('，')
+    const allExact = volHits.length > 0 && volHits.every((h) => h.exact)
+    const hasVol = volHits.length > 0
     set({
       interfHits: hitBoxes, interfMeshes: hitMeshes,
       interfReport: { hits: report, gap: nearest.gap < Infinity ? { a: nearest.a, b: nearest.b, gap: nearest.gap } : null, comps: comps.length },
-      interfPanelOpen: true,   // Fusion 干涉检查完即弹结果对话框（无论有冇干涉都开 — 无干涉本身就系答案）
-      status: hits.length ? `⚠ 干涉 ${hits.length} 處（${allExact ? '實體布爾相交的精確重疊體積，紅色區域為重疊幾何' : '部分為估算值 ≈，紅色區域為重疊範圍'}）：${hitStr}${gapStr}` : `✓ 無干涉（${comps.length} 個組件實體互不重疊）${gapStr}`,
+      interfPanelOpen: true,
+      status: hasVol
+        ? `⚠ 干涉 ${volHits.length} 處（${allExact ? '實體布爾相交的精確重疊體積，紅色區域為重疊幾何' : '部分為估算值 ≈，紅色區域為重疊範圍'}）：${hitStr}${contactStr}${gapStr}`
+        : contacts.length
+          ? `✓ 無體積干涉（${comps.length} 個組件）；${contactStr.trim()}${gapStr}`
+          : `✓ 無干涉（${comps.length} 個組件實體互不重疊）${gapStr}`,
     })
   },
   interfHits: [],

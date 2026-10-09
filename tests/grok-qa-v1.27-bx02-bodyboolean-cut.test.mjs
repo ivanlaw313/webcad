@@ -34,11 +34,15 @@ test('BX02 v1.27: heal + _cutRobust + auto-swap wired in bodyboolean', () => {
 })
 
 test('BX02 v1.27: box/cylinder dialog expose ⬡新實體 op', () => {
-  assert.match(storeSrc, /box: \{ l: 80, w: 60, h: 40, op: 'new' \}/)
-  assert.match(storeSrc, /cylinder: \{ d: 60, h: 50, op: 'new' \}/)
+  // UX3 #2: default op is auto (overlap → newbody); explicit ⬡新實體 still on PrimOpSelect
+  assert.match(storeSrc, /box: \{ l: 80, w: 60, h: 40, op: 'auto'/)
+  assert.match(storeSrc, /cylinder: \{ d: 60, h: 50, op: 'auto'/)
   assert.match(storeSrc, /BX02: box active \+ cylinder op=newbody/)
-  assert.match(viewportSrc, /featDlg\.kind === 'box'[\s\S]*?⬡新實體/)
-  assert.match(viewportSrc, /featDlg\.kind === 'cylinder'[\s\S]*?⬡新實體/)
+  assert.match(viewportSrc, /function PrimOpSelect/)
+  assert.match(viewportSrc, /value="newbody"/)
+  assert.match(viewportSrc, /featDlg\.kind === 'box'[\s\S]*?PrimOpSelect/)
+  assert.match(viewportSrc, /featDlg\.kind === 'cylinder'[\s\S]*?PrimOpSelect/)
+  assert.match(viewportSrc, /BX02：先長方體，再圓柱選「⬡新實體」/)
 })
 
 globalThis.require = createRequire(import.meta.url)

@@ -3,8 +3,8 @@ import type React from 'react'
 import { Euler, Quaternion, Vector3 } from 'three'
 import { useApp } from '../store'
 import { useDraggable } from './useDraggable'
-import { JOINT_LABEL_TC, totalDOF, resolveJointOrigin, cadAxisToWorld, type JointType } from '../assembly/kinematics'
-import { findLoops } from '../assembly/linkage'
+import { JOINT_LABEL_TC, resolveJointOrigin, cadAxisToWorld, type JointType } from '../assembly/kinematics'
+import { mechanismDOF } from '../assembly/linkage'
 import { localizeAsmName } from '../assembly/names'   // BUG(E)：繁體模式顯示名
 import { tStatus } from '../i18n'   // T779：DOF 闭环 Grübler 修正
 import { NumInput } from './NumInput'   // UX3 #5：唔再用 type=number（滑鼠滾輪／誤撳上下箭頭會靜靜改咗限位）
@@ -30,6 +30,7 @@ export default function JointsPanel() {
   const lang = useApp((s) => s.lang)
   const selectedJoint = useApp((s) => s.selectedJoint)   // ASM2 #7：瀏覽樹選取嘅關節
   const components = useApp((s) => s.components)
+  const groundedId = useApp((s) => s.grounded)   // ASM2 P2：自由度唔計子件已固定嘅關節
   const joints = useApp((s) => s.joints)
   const addJoint = useApp((s) => s.addJoint)
   const addJointAtPose = useApp((s) => s.addJointAtPose)
@@ -277,7 +278,8 @@ export default function JointsPanel() {
   const breakdown = Object.entries(byType).map(([t, n]) => `${n}${tStatus(JOINT_LABEL_TC[t as JointType], lang)}`).join(' · ')
   // 闭环 Grübler 修正：每个平面环减 3 — 切口锚点闭合 2 条约束 + back-edge 关节值变从动 1。
   // 验算：四连杆 4−3=1 ✓；曲柄滑块 4−3=1 ✓；Stephenson 六杆 7−2×3=1 ✓。
-  const mechDOF = Math.max(0, totalDOF(joints) - 3 * findLoops(useApp.getState().components.map((c) => c.id), joints).length)
+  // ASM2 P2：只計實際會驅動嘅關節（同一對組件多條關節唔再當閉環扣 3；子件已固定 = 0），≥3 件真閉環照 Grübler。
+  const mechDOF = mechanismDOF(components.map((c) => c.id), joints, (id) => groundedId === id || !!components.find((c) => c.id === id)?.grounded).dof
 
   if (collapsed) {
     // The Assemble menu dispatches assembly-focus to reopen even an empty panel.
@@ -296,7 +298,7 @@ export default function JointsPanel() {
 
   return (
     <div className={'joints-panel' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} ref={(el) => { panelRef.current = el; panelDrag.ref(el) }} style={dockMaxH ? { ...panelDrag.style, maxHeight: dockMaxH } : panelDrag.style} onScroll={(e) => { const el = e.currentTarget; bottomGap.current = el.scrollHeight - el.scrollTop }} onPointerDown={beginPanelDrag} title="拖動面板空白處或標題可移動位置">
-      <div className="jp-title" title="機構自由度 DOF = 獨立運動數（各關節自由度之和 − 閉環約束 ×3/環：錨點閉合 2 + back-edge 從動 1，平面 Grübler 修正 T779。四連桿 = 1 ✓）。0 = 全固定；越大越「松」。">裝配關節 {joints.length} · 自由度 {mechDOF}{breakdown ? `（${breakdown}）` : ''}
+      <div className="jp-title" title="機構自由度 = 實際可驅動的獨立運動數：各有效關節的自由度之和（同一組件有多條關節時以最後一條為準；子件已固定的關節不計），三件或以上組件的閉環每環減 3（四連桿 = 1）。0 = 全部固定；數值越大，機構越鬆。">裝配關節 {joints.length} · 自由度 {mechDOF}{breakdown ? `（${breakdown}）` : ''}
         <button className="cs-x" style={{ float: 'right', marginLeft: 4, ...(contactSetsOn ? { color: '#ff8a2a', fontWeight: 700 } : {}) }} title={contactSetsOn ? '🧱 接觸集正在開啟：拖關節滑桿撞到第三方組件會自動擋停（再按關閉 — 關了可自由穿過）' : '🧱 接觸集（T787 /）：開了之後拖關節滑桿，子件撞到第三方組件即停在接觸前一刻 — 卡扣/棘輪/限位的真實手感'} onClick={() => useApp.getState().toggleContactSets()}>🧱{contactSetsOn ? '開' : ''}</button>
         <span className="pp-x" style={{ float: 'right' }} title="折疊面板" onClick={() => { setUserCollapsed(true); setUserExpanded(false) }}>▾</span></div>
 

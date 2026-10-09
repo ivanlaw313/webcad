@@ -367,3 +367,25 @@ export function solveLoop(
   }
   return out
 }
+
+// ── ASM2 P2：機構自由度（同實際驅動一致）──────────────────────────────────────────────────────
+// 舊算法 = Σ關節自由度 − 3×(所有環)：同一對組件多條關節（例：J1 旋轉之後再加剛性 J3）都當閉環扣 3，
+// 標題顯示「自由度 0」但 J1 照轉。而家：
+//   • ≥3 件嘅真機構閉環：環內關節自由度 − 3／環（平面 Grübler，四連桿 = 1 ✓）
+//   • 其餘關節：只計 computeFK 實際採用嗰條（同一 child 最後一條；更早嘅同 child 關節被覆寫，唔會動）
+//   • 子件已固定嘅關節唔會驅動（setJointValue 拒絕）→ 0
+export function mechanismDOF(componentIds: string[], joints: Joint[], isGrounded: (id: string) => boolean = () => false): { dof: number; effective: Set<string> } {
+  const DOF: Record<string, number> = { rigid: 0, revolute: 1, slider: 1, cylindrical: 2, ball: 3, planar: 3, screw: 1, pinslot: 2 }
+  const loops = findLoops(componentIds, joints).filter(isMechanismLoop)
+  const inLoop = new Set<string>(); loops.forEach((l) => l.joints.forEach((j) => inLoop.add(j.id)))
+  const lastOfChild = new Map<string, string>(); joints.forEach((j) => lastOfChild.set(j.child, j.id))
+  const effective = new Set<string>()
+  let dof = 0, loopSum = 0
+  for (const j of joints) {
+    if (isGrounded(j.child) || j.parent === j.child) continue
+    if (inLoop.has(j.id)) { loopSum += DOF[j.type] ?? 0; effective.add(j.id); continue }
+    if (lastOfChild.get(j.child) !== j.id) continue
+    dof += DOF[j.type] ?? 0; effective.add(j.id)
+  }
+  return { dof: dof + Math.max(0, loopSum - 3 * loops.length), effective }
+}

@@ -13918,10 +13918,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       const inLoop = loops.some((lp) => lp.joints.some((j) => j.id === id))
       if (inLoop) {
         const lp = loops.find((l) => l.joints.some((j) => j.id === id))!
-        if (!lp.cut) return { status: '⚠ 此回路沒有轉動關節可剪開 — 閉環暫時不支援（淨滑動環）' }
-        if (!loopPlane(lp)) return { status: '⚠ 閉環只支援平面機構（回路內轉軸互相平行）— 此回路不是平面，未求解' }
+        if (!lp.cut) return { status: '⚠ 此回路沒有可剪開的旋轉關節 — 暫不支援純滑動閉環' }
+        if (!loopPlane(lp)) return { status: '⚠ 閉環只支援平面機構（回路內轉軸互相平行）— 此回路並非平面機構，未求解' }
         const sol = solveLoop(s.joints, s.components.map((c) => c.id), id, { angle: patch.angle, slide: patch.slide })
-        if (!sol) return { status: '⚠ 機構到死點／目標不可達／撞限位 — 保持上一個可解位置' }
+        if (!sol) return { status: '⚠ 機構已到死點／目標不可達／觸及限位 — 保持上一個可解位置' }
         const joints2 = s.joints.map((j) => {
           const v = sol.get(j.id)
           if (!v) return j

@@ -54,7 +54,7 @@ import { detectLang, tStatus, msg, normalizeLang, type Lang } from './i18n'   //
 import { searchRibbonCommand } from './ribbon'   // P6 AI 教学：把用户问句模糊匹配到真实 ribbon 命令位置
 import { openAeroLab } from './aero/aeroUiStore'   // Aero Design Lab（氣動設計實驗室）面板開關 — 獨立小 store
 import type { MeshData, Feature, SketchProfile, BoolOp, EdgeSel, DrawView, Plane } from './worker/cad.worker'
-import { computeFK, _fourbar, solve4Bar, fourBarVelocity, fourBarVelocityProfile, solveSliderCrank, sliderCrankReachability, solveLinkage, solveSixBar, sweepToContact, simulateMotion, JOINT_LABEL_TC, jointTypeMenu, resolveJointOrigin, type Joint, type JointType, type JointOrigin, type JointOriginMode } from './assembly/kinematics'
+import { computeFK, _fourbar, solve4Bar, fourBarVelocity, fourBarVelocityProfile, solveSliderCrank, sliderCrankReachability, solveLinkage, solveSixBar, sweepToContact, simulateMotion, JOINT_LABEL_TC, jointTypeMenu, jointTypePickOptions, resolveJointOrigin, type Joint, type JointType, type JointOrigin, type JointOriginMode } from './assembly/kinematics'
 import { findLoops, loopPlane, solveLoop, type Loop } from './assembly/linkage'   // T774（S51）：通用平面闭环求解器
 import { inferAsBuiltAxis, type ExplodeStep } from './assembly/asmUtil'   // GM-3DV4 A10：as-built 推轴；A12：有序爆炸步类型
 import { solveMate, worldAABB, type MateType, type MateAxis, type MateSide } from './assembly/mates'
@@ -139,6 +139,7 @@ import { DEFAULT_SEL_FILTER, migrateSelFilter, withSelType, withAllTypes, withNo
 import { featureDependents, reorderedFeatures, orderViolation } from './cad/featureDeps'   // T1/T2
 
 export type Pt = [number, number] // three.js ground coords [x, z]
+export type PickOption = { value: string; label: string; hint?: string }   // RETEST17 #1：appPick 清單項
 // GM-X3 #6/#7/#8：矢量（SVG/DXF）导入选项 —— asSketch=入可编辑草图源（默认 true）；plane/baseZ/zAngle/scale/include（逐层）。
 export type ImportVecOpt = { asSketch?: boolean; sketchOnly?: boolean; plane?: Plane; baseZ?: number; zAngle?: number; scale?: number; include?: string[] | null; labels?: { at: Pt; text: string; height: number; rot?: number; layer?: string }[]; labelShapes?: SketchShape[] }  // sketchOnly（v1.22）= 仅草图不拉伸 — 大图/原理图防 OOM
 // GM-X3 #11：Mesh 插入选项 —— 单位换算 + flip-up（Y↔Z）+ 落地摆位。
@@ -2281,12 +2282,14 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
 
   // T805（报告 R3）：统一应用内对话框 — 取代 native prompt/alert/confirm。
   // 真实浏览器一致 UI + 校验，并且喺自动化/沙箱（Chrome 抑制原生弹窗）下唔会静默失效。
-  uiDialog: { kind: 'prompt' | 'confirm' | 'alert'; title: string; msg: string; def: string; /** T3: optional third button (e.g. 儲存) — resolves 'alt' */ alt?: string } | null
+  uiDialog: { kind: 'prompt' | 'confirm' | 'alert' | 'pick'; title: string; msg: string; def: string; /** T3: optional third button (e.g. 儲存) — resolves 'alt' */ alt?: string; /** RETEST17 #1：kind='pick' 可點選清單（Fusion 下拉式）— value 回傳、label 顯示、hint 次行說明 */ options?: PickOption[] } | null
   /** v1.24: primary one-click action shown next to status (bake / MeshFit). */
   statusAction: { id: 'bakeMeshToPart' | 'meshfit'; label: string; componentId?: string } | null
   runStatusAction: () => Promise<void>
   clearStatusAction: () => void
   appPrompt: (msg: string, def?: string, title?: string) => Promise<string | null>
+  /** RETEST17 #1：可點選清單對話框（取代「輸入編號」prompt）— 撳一項即選定；resolve 該項 value，取消 = null。 */
+  appPick: (msg: string, options: PickOption[], def?: string, title?: string) => Promise<string | null>
   appConfirm: (msg: string, title?: string) => Promise<boolean>
   appAlert: (msg: string, title?: string) => Promise<void>
   resolveDialog: (v: string | boolean | null) => void
@@ -10875,15 +10878,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     // ── 关节类型选择（appPrompt 编号表，按几何门控）——取消 = 保留贴合、唔建关节（诚实状态）──
     void (async () => {
       // BUG(E)/P3：列出全部 8 種類型（同 JOINTS 面板下拉一致），繁體源字串經 tStatus 按語言轉換。
-      const msg = '關節類型（輸入編號）：' + allowTypes.map((t, i) => `${i + 1}=${JOINT_LABEL_TC[t]}${i === 0 ? '（預設）' : ''}`).join('　')
-      const r = await get().appPrompt(tStatus(msg, get().lang), '1', tStatus('關節類型', get().lang))
+      // RETEST17 #1：可點選類型清單（Fusion Joint ▸ Type 下拉）— 唔再要用戶輸入編號。
+      const lang0 = get().lang
+      const r = await get().appPick(tStatus('選擇關節類型（幾何建議者排前）：', lang0), jointTypePickOptions(allowTypes, (x) => tStatus(x, lang0)), defType, tStatus('關節類型', lang0))
       const s2 = get()
       if (r === null) {   // 取消：保留贴合、唔建关节 —— 净推贴合嘅单快照
         set({ undoStack: [...preUndo, preSnap].slice(-60), redoStack: [], status: `已貼合「${B.name}」→「${Acomp.name}」（未建關節 — 可撤銷貼合）` })
         return
       }
-      const pick = parseInt(r.trim(), 10)
-      const type: JointType = allowTypes[(Number.isFinite(pick) ? pick : 1) - 1] ?? defType
+      const type: JointType = (allowTypes as string[]).includes(r) ? (r as JointType) : defType
       // 建关节：唔用 addJoint（佢自带撤销快照会破坏原子性）—— 此处复用 addJoint 嘅 id/命名规则，同贴合共一快照
       const n = s2.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
       const jid = 'J' + n, joint: Joint = { id: jid, name: '關節' + n, type, parent: A.compId, child: B.id, anchor, axis, angle: 0, slide: 0 }
@@ -13469,6 +13472,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (_dialogResolve) { _dialogResolve(null); _dialogResolve = null }  // 旧框未答完即关闭（resolve null）
     _dialogResolve = (v) => resolve(typeof v === 'string' ? v : null)
     set({ uiDialog: { kind: 'prompt', title, msg, def } })
+  }),
+  appPick: (msg, options, def, title = '選擇') => new Promise<string | null>((resolve) => {
+    if (_dialogResolve) { _dialogResolve(null); _dialogResolve = null }
+    const vals = options.map((o) => o.value)
+    _dialogResolve = (v) => resolve(typeof v === 'string' && vals.includes(v) ? v : null)
+    set({ uiDialog: { kind: 'pick', title, msg, def: def != null && vals.includes(def) ? def : (vals[0] ?? ''), options } })
   }),
   appConfirm: (msg, title = '確認') => new Promise<boolean>((resolve) => {   // BUG-511：預設標題原本係簡體「确认」—— 影響全 app 每個確認框，唔止恢復自動存檔嗰個
     if (_dialogResolve) { _dialogResolve(null); _dialogResolve = null }

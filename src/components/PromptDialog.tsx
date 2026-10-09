@@ -11,10 +11,12 @@ export default function PromptDialog() {
   const dlg = useApp((s) => s.uiDialog)
   const resolveDialog = useApp((s) => s.resolveDialog)
   const lang = useApp((s) => s.lang)
-  const [draft, setDraft] = useState({ dialog: dlg, value: dlg?.kind === 'prompt' ? dlg.def : '' })
+  const initVal = (d: typeof dlg) => (d?.kind === 'prompt' || d?.kind === 'pick' ? d.def : '')
+  const [draft, setDraft] = useState({ dialog: dlg, value: initVal(dlg) })
   // Reset before committing a new dialog, never after it becomes editable.
-  if (draft.dialog !== dlg) setDraft({ dialog: dlg, value: dlg?.kind === 'prompt' ? dlg.def : '' })
-  const val = draft.dialog === dlg ? draft.value : dlg?.kind === 'prompt' ? dlg.def : ''
+  if (draft.dialog !== dlg) setDraft({ dialog: dlg, value: initVal(dlg) })
+  const val = draft.dialog === dlg ? draft.value : initVal(dlg)
+  const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // 每次打开新框：重置输入为默认值,聚焦并全选（方便直接覆写）。
@@ -22,6 +24,8 @@ export default function PromptDialog() {
     if (dlg?.kind === 'prompt') {
       inputRef.current?.focus()
       inputRef.current?.select()
+    } else if (dlg?.kind === 'pick') {
+      listRef.current?.focus()   // RETEST17 #1：清單取焦點 → ↑↓/Enter 可用
     }
   }, [dlg])
 
@@ -30,11 +34,19 @@ export default function PromptDialog() {
   // Simplified source strings (store.ts) → HK Traditional in zh-HK; en/ja pass through unchanged.
   const tx = (s: string) => (isZhFamily(lang) ? tStatus(s, lang) : s)
 
-  const ok = () => resolveDialog(dlg.kind === 'prompt' ? val : dlg.kind === 'confirm' ? true : null)
+  const ok = () => resolveDialog(dlg.kind === 'prompt' || dlg.kind === 'pick' ? val : dlg.kind === 'confirm' ? true : null)
+  const opts = dlg.kind === 'pick' ? (dlg.options ?? []) : []
   const cancel = () => resolveDialog(dlg.kind === 'confirm' ? false : null)
   const onKey = (e: React.KeyboardEvent) => {
     e.stopPropagation()
     if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return
+    if (dlg.kind === 'pick' && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && opts.length) {
+      e.preventDefault()
+      const i = Math.max(0, opts.findIndex((o) => o.value === val))
+      const n = (i + (e.key === 'ArrowDown' ? 1 : opts.length - 1)) % opts.length
+      setDraft({ dialog: dlg, value: opts[n].value })
+      return
+    }
     if (e.key === 'Enter') { e.preventDefault(); ok() }
     else if (e.key === 'Escape') { e.preventDefault(); cancel() }
   }
@@ -57,12 +69,30 @@ export default function PromptDialog() {
         }}
       >
         <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-soft)', fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>{dlg.kind === 'alert' ? '💬' : dlg.kind === 'confirm' ? '❓' : '✎'}</span>
+          <span>{dlg.kind === 'alert' ? '💬' : dlg.kind === 'confirm' ? '❓' : dlg.kind === 'pick' ? '☰' : '✎'}</span>
           <span>{tx(dlg.title)}</span>
         </div>
         <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* 讯息支持多行（\n）；用 pre-line 保留换行 */}
           <div style={{ whiteSpace: 'pre-line', lineHeight: 1.55, color: '#3a4248' }}>{tx(dlg.msg)}</div>
+          {/* RETEST17 #1：可點選清單（Fusion 下拉式）— 撳一項即確定；↑↓ 移動、Enter 確定 */}
+          {dlg.kind === 'pick' && (
+            <div ref={listRef} role="listbox" tabIndex={0} aria-label={tx(dlg.title)} data-testid="dialog-pick-list"
+              style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: '50vh', overflowY: 'auto', outline: 'none', border: '1px solid #c8d0d8', borderRadius: 6, padding: 3 }}>
+              {opts.map((o) => {
+                const on = o.value === val
+                return (
+                  <button key={o.value} type="button" role="option" aria-selected={on} data-testid={`dialog-pick-${o.value}`}
+                    onMouseEnter={() => setDraft({ dialog: dlg, value: o.value })}
+                    onClick={() => resolveDialog(o.value)}
+                    style={{ display: 'flex', alignItems: 'baseline', gap: 10, textAlign: 'left', padding: '7px 10px', border: 'none', borderRadius: 5, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, background: on ? '#e3effa' : 'transparent', color: '#1f2a33' }}>
+                    <span style={{ fontWeight: 600, minWidth: 72 }}>{o.label}</span>
+                    {o.hint && <span style={{ fontSize: 11.5, color: '#6b7782' }}>{o.hint}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          )}
           {dlg.kind === 'prompt' && (
             <input
               ref={inputRef}
@@ -89,7 +119,7 @@ export default function PromptDialog() {
               {msg('dlg.cancel', lang)}
             </button>
           )}
-          <button className="cmd-ok" onClick={ok} autoFocus={dlg.kind !== 'prompt'}>
+          <button className="cmd-ok" onClick={ok} autoFocus={dlg.kind !== 'prompt' && dlg.kind !== 'pick'}>
             {dlg.kind === 'alert' ? msg('dlg.gotIt', lang) : msg('dlg.ok', lang)}
           </button>
         </div>

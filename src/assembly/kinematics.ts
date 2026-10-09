@@ -84,6 +84,15 @@ export function jointTypeMenu(preferred: JointType[]): JointType[] {
   return [...preferred, ...ALL_JOINT_TYPES.filter((t) => !preferred.includes(t))]
 }
 
+// RETEST17 #1：關節類型可點選清單（Fusion Joint ▸ Type 下拉）— 繁體源字串（tx 按語言轉換），首項 = 預設。
+export const JOINT_HINT_TC: Record<JointType, string> = {
+  rigid: '完全固定 · 0 自由度', revolute: '繞軸旋轉 · 1 自由度', slider: '沿軸滑動 · 1 自由度', cylindrical: '繞軸旋轉＋沿軸滑動 · 2 自由度',
+  pinslot: '繞軸旋轉＋沿槽滑動 · 2 自由度', ball: '球面三軸旋轉 · 3 自由度', planar: '面內平移＋繞法向旋轉 · 3 自由度', screw: '旋轉帶導程平移 · 1 自由度',
+}
+export function jointTypePickOptions(types: JointType[], tx: (s: string) => string = (x) => x): { value: JointType; label: string; hint: string }[] {
+  return types.map((t, i) => ({ value: t, label: tx(JOINT_LABEL_TC[t] + (i === 0 ? '（預設）' : '')), hint: tx(JOINT_HINT_TC[t]) }))
+}
+
 // The local motion A_J(v) of a joint, expressed in rest-world coords.
 function jointMotion(j: Joint): Matrix4 {
   const axis = new Vector3(j.axis[0], j.axis[1], j.axis[2])

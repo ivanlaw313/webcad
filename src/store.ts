@@ -11064,7 +11064,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     // 第二拣：子件面 —— 唔同件；RETEST18 #2：類型可以混合（圓柱↔平面）
     const A = s.jointPick   // 父（唔郁）
-    if (A.compId === compId) { set({ status: '請點【另一個】組件嘅面（關節兩件唔可以係同一件）' }); return }
+    if (A.compId === compId) {
+      // UX3 (a)：講明兩下都落咗邊個組件 + 面類型（測試員回報「圓柱面被當同一件」時即刻睇到係邊件食咗 click）
+      const nm = s.components.find((c) => c.id === compId)?.name ?? compId
+      const kl = (k: string) => (k === 'cyl' ? '圓柱' : '平')
+      dbgLog(`pickFaceForJoint SAME comp=${compId} first=${A.face.kind} second=${face.kind} dupIds=${s.components.filter((c) => c.id === compId).length}`)
+      set({ status: `請點【另一個】組件嘅面（關節兩件唔可以係同一件：兩下都點中「${nm}」— 第一下${kl(A.face.kind)}面、今次${kl(face.kind)}面）` }); return
+    }
     // RETEST18 #2：Fusion 容許混合 snap（圓柱軸 ↔ 平面面心/法向）— 唔再拒絕「父平面 + 子圓柱」或相反。
     const Acomp = s.components.find((c) => c.id === A.compId)
     const B = s.components.find((c) => c.id === compId)   // 子（郁）

@@ -11,6 +11,7 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const ribbon = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const palette = readFileSync(new URL('../src/components/CommandPalette.tsx', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 const meshDrop = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
@@ -72,9 +73,9 @@ test('v1.54: EN_LABEL + palette SURFACE TC', () => {
   assert.match(i18n, /'縫合 Stitch': 'Stitch'/)
   assert.match(i18n, /'翻轉曲面': 'Reverse Normal'/)
   assert.match(i18n, /'編輯曲面控制點': 'Edit Surface Poles'/)
-  assert.match(palette, /曲面放樣/)
-  assert.match(palette, /補面/)
-  assert.match(palette, /縫合/)
+  assert.match(zhHK, /cmd\.surfloft|tool\.surfloft|曲面放樣/)
+  assert.match(zhHK, /cmd\.boundarypatch|邊界補面|補面/)
+  assert.match(zhHK, /cmd\.surfsew|縫合/)
 })
 
 test('v1.53 ASSEMBLE + v1.52 MODIFY + v1.51 illegal + v1.50 CREATE + v1.49 FORM Traditional retained', () => {

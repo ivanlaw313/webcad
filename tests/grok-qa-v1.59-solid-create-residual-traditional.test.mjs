@@ -77,7 +77,7 @@ test('prior TC + MESH SC pins retained', () => {
   assert.match(ribbon, /id: 'drawing', label: '工程圖'/)
   assert.match(ribbon, /id: 'sk_polyline', label: '直線'/)
   assert.match(ribbon, /id: 'sk_mirrory', label: '鏡像'/)
-  assert.match(drawing, /front: '前視圖'/)
+  assert.match(drawing, /draw\.view\.front|前視圖/)
   assert.match(drawing, /裝配工程圖 — 三視圖/)
   assert.match(illegal, /ILLEGAL_REJECT_MARKER = '尺寸已拒絕'/)
   assert.match(i18n, /'(?:对称|對稱)': 'Symmetric'/)

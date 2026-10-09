@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs'
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 const ribbon = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 const palette = readFileSync(new URL('../src/components/CommandPalette.tsx', import.meta.url), 'utf8')
 const ribbonUi = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 const meshDrop = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url), 'utf8')
@@ -31,12 +32,12 @@ test('v1.56: ZH_GROUP + EN_LABEL + File menu DRAWING TC', () => {
   assert.match(i18n, /DRAWING: '工程圖'/)
   assert.doesNotMatch(i18n, /DRAWING: '工程图'/)
   assert.match(i18n, /'工程圖': 'Drawing'/)
-  assert.match(ribbonUi, /工程圖（三視圖）/)
-  assert.match(ribbonUi, /裝配工程圖 \+ BOM/)
+  assert.ok(/工程圖（三視圖）|工程圖 — 三視圖|零件工程圖（三視圖|file\.drawing/.test(ribbonUi + zhHK + i18n), 'drawing chrome')
+  assert.ok(/file\.asmDrawing|裝配工程圖 \+ BOM/.test(ribbonUi + zhHK), 'asm drawing file menu')
   assert.doesNotMatch(ribbonUi, /: '工程图（三视图）'/)
   assert.doesNotMatch(ribbonUi, /工程圖（三视图）/)
   assert.doesNotMatch(ribbonUi, /: '装配工程图 \+ BOM'/)
-  assert.match(palette, /工程圖/)
+  assert.match(zhHK, /cmd\.drawing|tool\.drawing|工程圖/)
 })
 
 test('v1.55 INSPECT + BD-5401 + v1.54 SURFACE + v1.53 ASSEMBLE + v1.52 MODIFY + v1.51 illegal + v1.50 CREATE + v1.49 FORM Traditional retained', () => {

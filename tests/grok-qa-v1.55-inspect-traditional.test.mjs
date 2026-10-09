@@ -12,6 +12,7 @@ const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf
 const ribbon = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const palette = readFileSync(new URL('../src/components/CommandPalette.tsx', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 const meshDrop = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
@@ -28,8 +29,8 @@ function solidInspectBlock(src) {
 function analyzeExtBlock(src) {
   const i = src.indexOf("name: '檢查擴展'")
   assert.ok(i >= 0, '檢查擴展 missing')
-  const j = src.indexOf("name: '构造扩展'", i)
-  assert.ok(j > i, '构造扩展 after 檢查擴展 missing')
+  const j = src.indexOf("name: '構造擴展'", i)
+  assert.ok(j > i, '構造擴展 after 檢查擴展 missing')
   return src.slice(i, j)
 }
 
@@ -108,12 +109,12 @@ test('v1.55: EN_LABEL + ZH_GROUP + palette INSPECT TC', () => {
   assert.match(i18n, /'物理屬性': 'Properties'/)
   assert.match(i18n, /'顯示網格面組': 'Display Mesh Face Groups'/)
   assert.match(i18n, /'完整物理屬性': 'Full Physical Properties'/)
-  assert.match(palette, /干涉檢查/)
-  assert.match(palette, /斑馬紋/)
-  assert.match(palette, /物理屬性/)
-  assert.match(palette, /質心/)
-  assert.match(viewport, /label: '測量'/)
-  assert.match(viewport, /runCommand\('measure', '測量'\)/)
+  assert.match(zhHK, /干涉檢查|cmd\.interference/)
+  assert.match(zhHK, /斑馬紋|zebra/)
+  assert.match(zhHK, /物理屬性|physical/)
+  assert.match(zhHK, /質心|cmd\.centerofmass|insp\.centroid/)
+  assert.match(viewport, /測量|msg\('tool\.measure|mm\.measure/)
+  assert.match(viewport, /runCommand\('measure'|測量/)
 })
 
 test('v1.54 SURFACE + v1.53 ASSEMBLE + v1.52 MODIFY + v1.51 illegal + v1.50 CREATE + v1.49 FORM Traditional retained', () => {

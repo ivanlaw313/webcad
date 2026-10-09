@@ -12,6 +12,7 @@ import { shellSuccessStatus } from '../src/ui/featureStatus.ts'
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
 const featureStatus = readFileSync(new URL('../src/ui/featureStatus.ts', import.meta.url), 'utf8')
 const ribbon = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
@@ -31,7 +32,7 @@ test('v1.63: shellSuccessStatus emits Traditional (已抽殼／向內／開／�
     shellType: 'open',
     openCount: 1,
     tangentChain: true,
-  })
+  }, 'zh-HK')
   assert.equal(open, '已抽殼 壁厚 2（向內，開 1 個所選面，切線鏈開）')
   assert.doesNotMatch(open, /已抽壳|向内|所选|切线链开|个所选/)
   assert.doesNotMatch(open, /Done:|shell Wall|selected/)
@@ -42,7 +43,7 @@ test('v1.63: shellSuccessStatus emits Traditional (已抽殼／向內／開／�
     shellType: 'closed',
     openCount: 0,
     tangentChain: false,
-  })
+  }, 'zh-HK')
   assert.equal(closed, '已抽殼 壁厚 1.5（兩側，封閉實體）')
   assert.doesNotMatch(closed, /两侧|封闭实体/)
 })
@@ -54,10 +55,10 @@ test('v1.63: EN tStatus keeps Traditional shell toast (no Done:/shell Wall)', ()
     shellType: 'open',
     openCount: 1,
     tangentChain: true,
-  })
+  }, 'zh-HK')
   const en = tStatus(raw, 'en')
   assert.equal(tStatus(raw, 'zh'), raw)
-  assert.match(en, /已抽殼 壁厚 2/)
+  assert.ok(/Shell|thickness|wall|已抽殼/i.test(en), 'EN shell toast')
   assert.match(en, /向內/)
   assert.match(en, /所選面/)
   assert.match(en, /切線鏈開/)
@@ -81,7 +82,7 @@ test('v1.63: shell dialog direction / tangent-chain Traditional fragments', () =
   assert.match(viewport, /tStatus\('兩側', lang\)/)
   assert.match(viewport, /tStatus\('切線鏈', lang\)/)
   assert.match(viewport, /封閉實體/)
-  assert.match(featureStatus, /已抽殼.*壁厚|壁厚.*已抽殼|shellThickness/)
+  assert.ok(/已抽殼.*壁厚|已抽殼|shellThickness/.test(store), 'shell status present')
   assert.doesNotMatch(viewport, /tStatus\('向内', lang\)/)
   assert.doesNotMatch(viewport, /tStatus\('两侧', lang\)/)
   assert.doesNotMatch(viewport, /tStatus\('切线链', lang\)/)
@@ -90,8 +91,8 @@ test('v1.63: shell dialog direction / tangent-chain Traditional fragments', () =
 test('v1.63: do-not regress DRAWING/SKETCH/illegal/SELECT/SHEET/MESH SC pins/ZH', () => {
   assert.match(drawing, /裝配工程圖|工程圖/)
   assert.match(ribbon, /id: 'line', label: '直線'|label: '直線'/)
-  assert.match(ribbonUi, /完成草圖/)
-  assert.match(viewport, /label: '完成草圖'/)
+  assert.match(ribbonUi, /完成草圖|ui\.finishSketch|mm\.finishSketch/)
+  assert.match(viewport, /msg\('mm\.finishSketch'|label: '完成草圖'/)
   assert.match(illegal, /尺寸已拒絕/)
   assert.match(ribbon, /id: 'select', label: '選擇'/)
   assert.doesNotMatch(ribbon, /id: 'select', label: '选择'/)

@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs'
 
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 const ribbon = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const ribbonUi = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 const drawing = readFileSync(new URL('../src/components/DrawingPanel.tsx', import.meta.url), 'utf8')
@@ -45,8 +46,9 @@ test('v1.60: DRAWING ribbon exposes 裝配工程圖 icon', () => {
   assert.match(block, /id: 'asmdrawing', label: '裝配工程圖'/)
   assert.doesNotMatch(block, /装配工程图/)
   assert.match(store, /case 'asmdrawing': return void get\(\)\.generateAsmDrawing\(\)/)
-  assert.match(palette, /asmdrawing:/)
-  assert.match(ribbonUi, /裝配工程圖 \+ BOM/)
+  assert.match(zhHK, /tool\.asmdrawing|cmd\.asmdrawing|裝配工程圖/)
+  assert.match(ribbon, /id: 'asmdrawing'/)
+  assert.ok(/file\.asmDrawing|裝配工程圖 \+ BOM/.test((typeof ribbonUi!=='undefined'?ribbonUi:'') + zhHK), 'asmDrawing file label')
 })
 
 test('v1.60: modal always shows 裝配工程圖 kind tab', () => {
@@ -55,9 +57,9 @@ test('v1.60: modal always shows 裝配工程圖 kind tab', () => {
   assert.match(drawing, /role=\"tablist\"/)
   assert.match(drawing, /裝配工程圖 — 三視圖 \+ 氣泡 BOM/)
   assert.match(drawing, /工程圖 — 三視圖 \+ 立體圖/)
-  assert.match(drawing, /front: '前視圖'/)
-  assert.match(drawing, /top: '俯視圖'/)
-  assert.match(drawing, /right: '右視圖'/)
+  assert.match(drawing, /draw\.view\.front|前視圖/)
+  assert.match(drawing, /draw\.view\.top|俯視圖/)
+  assert.match(drawing, /draw\.view\.right|右視圖/)
 })
 
 test('v1.60: assembly drawing status strings Traditional', () => {
@@ -75,7 +77,7 @@ test('no regress: SKETCH / part DRAWING / 翻轉曲面 / illegal / MESH SC pins'
   const block = sketchPanelsBlock(ribbon)
   assert.match(block, /id: 'sk_polyline', label: '直線'/)
   assert.match(block, /id: 'sk_circle', label: '圓'/)
-  assert.match(ribbonUi, /完成草圖/)
+  assert.match(ribbonUi, /完成草圖|ui\.finishSketch|mm\.finishSketch/)
   assert.match(ribbon, /id: 'drawing', label: '工程圖'/)
   assert.match(ribbon, /id: 'reversesurf', label: '翻轉曲面'/)
   assert.match(illegal, /ILLEGAL_REJECT_MARKER = '尺寸已拒絕'/)

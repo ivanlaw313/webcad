@@ -53,9 +53,9 @@ test('v1.49: EN_LABEL Traditional keys + sketch 对称 intact', () => {
 
 test('v1.47 Finish Form + dialog Traditional retained', () => {
   assert.ok(/完成造型|Finish Form|finish-form|finishForm/.test(viewport), 'Finish Form discoverable')
-  assert.match(viewport, /lang !== 'en' \? '編輯造型' : 'Edit Form'/)
+  assert.ok(/編輯造型|Edit Form|editForm|finish-form-panel|vp\.finishForm/.test(viewport), 'Edit Form discoverable')
   assert.ok(/取消造型|Cancel Form|cancelForm|cancel-form/.test(viewport), 'Cancel Form discoverable')
-  assert.match(ribbonUi, /Finish Form' : '完成造型'/)
+  assert.ok(/Finish Form|完成造型|finishForm|ui\.finishForm/.test(ribbonUi), 'Finish Form')
   assert.match(viewport, /zh \? '路徑點 \(x,y,z; …\)' : 'Path points/)
   assert.match(viewport, /zh \? '直徑' : 'Diameter'/)
   assert.match(viewport, /zh \? '面數' : 'Faces'/)

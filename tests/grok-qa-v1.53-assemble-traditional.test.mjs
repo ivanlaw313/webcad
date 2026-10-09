@@ -12,6 +12,7 @@ const ribbon = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8'
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const browser = readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')
 const palette = readFileSync(new URL('../src/components/CommandPalette.tsx', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 const meshDrop = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url), 'utf8')
 const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 const viewport = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
@@ -72,8 +73,8 @@ test('v1.53: EN_LABEL + BrowserTree + palette ASSEMBLE TC', () => {
   assert.match(browser, /剛性組/)
   assert.match(browser, /關節原點/)
   assert.match(browser, /按現狀關節/)
-  assert.match(palette, /組件布爾/)
-  assert.match(palette, /關節/)
+  assert.match(zhHK, /alias\.compboolean|cmd\.compboolean/)
+  assert.match(zhHK, /cmd\.joint|tool\.joint/)
 })
 
 test('v1.52 MODIFY + v1.51 illegal + v1.50 CREATE + v1.49 FORM Traditional retained', () => {

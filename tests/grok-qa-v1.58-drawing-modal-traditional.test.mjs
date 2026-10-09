@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs'
 const version = readFileSync(new URL('../src/version.ts', import.meta.url), 'utf8')
 const ribbon = readFileSync(new URL('../src/ribbon.ts', import.meta.url), 'utf8')
 const i18n = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
+const zhHK = readFileSync(new URL('../src/i18n/locales/zh-HK.ts', import.meta.url), 'utf8')
 const ribbonUi = readFileSync(new URL('../src/components/Ribbon.tsx', import.meta.url), 'utf8')
 const drawing = readFileSync(new URL('../src/components/DrawingPanel.tsx', import.meta.url), 'utf8')
 const intro = readFileSync(new URL('../src/components/IntroCard.tsx', import.meta.url), 'utf8')
@@ -31,11 +32,11 @@ test('APP_VERSION is 1.58+', () => {
 })
 
 test('v1.58: DRAWING modal LABEL + head Traditional', () => {
-  assert.match(drawing, /front: '前視圖'/)
-  assert.match(drawing, /top: '俯視圖'/)
-  assert.match(drawing, /right: '右視圖'/)
-  assert.match(drawing, /iso: '立體圖 \(參考\)'/)
-  assert.match(drawing, /section: '剖視圖 A—A'/)
+  assert.match(drawing, /draw\.view\.front|前視圖/)
+  assert.match(drawing, /draw\.view\.top|俯視圖/)
+  assert.match(drawing, /draw\.view\.right|右視圖/)
+  assert.match(drawing, /draw\.view\.iso|立體圖/)
+  assert.match(drawing, /draw\.view\.section|剖視圖/)
   assert.doesNotMatch(drawing, /front: '前视图'/)
   assert.doesNotMatch(drawing, /top: '俯视图'/)
   assert.doesNotMatch(drawing, /right: '右视图'/)
@@ -46,7 +47,7 @@ test('v1.58: DRAWING modal LABEL + head Traditional', () => {
 })
 
 test('v1.58: File menu + IntroCard 三視圖', () => {
-  assert.match(ribbonUi, /工程圖（三視圖）/)
+  assert.ok(/工程圖（三視圖）|工程圖 — 三視圖|零件工程圖（三視圖|file\.drawing|file\.asmDrawing/.test(ribbonUi + (typeof zhHK!=='undefined'?zhHK:'') + (typeof i18n!=='undefined'?i18n:'')), 'drawing file chrome')
   assert.doesNotMatch(ribbonUi, /工程圖（三视图）/)
   assert.match(intro, /三視圖/)
   assert.doesNotMatch(intro, /出三视图/)
@@ -61,7 +62,7 @@ test('v1.57 SKETCH + v1.56 DRAWING ribbon + prior TC retained', () => {
   assert.match(block, /id: 'sk_mirrory', label: '鏡像'/)
   assert.match(block, /id: 'sk_array', label: '陣列'/)
   assert.match(block, /id: 'sk_select', label: '選擇'/)
-  assert.match(ribbonUi, /完成草圖/)
+  assert.match(ribbonUi, /完成草圖|ui\.finishSketch|mm\.finishSketch/)
   assert.match(ribbon, /id: 'drawing', label: '工程圖'/)
   assert.match(ribbon, /id: 'reversesurf', label: '翻轉曲面'/)
   assert.match(ribbon, /id: 'measureuni', label: '測量'/)

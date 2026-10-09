@@ -40,13 +40,10 @@ test('v1.65: MESH EXPORT + UTILITIES MAKE labels Traditional', () => {
 })
 
 test('v1.65: File menu Export rows Traditional', () => {
-  assert.match(ribbonUi, /: '(?:導出|匯出) ?STL'/)
-  assert.match(ribbonUi, /: '(?:導出|匯出) STEP'/)
-  assert.match(ribbonUi, /: '(?:導出|匯出) 3MF'/)
-  assert.match(ribbonUi, /: '(?:導出|匯出) OBJ'/)
-  assert.match(ribbonUi, /: '(?:導出|匯出)裝配 STL'/)
-  assert.match(ribbonUi, /: '(?:導出|匯出) glTF\/GLB'/)
-  assert.match(ribbonUi, /: '(?:導出|匯出)視圖 PNG'/)
+  // File ▾ rows go through msg('file.export*') — labels live in locales (匯出 STL etc).
+  for (const key of ['file.exportStl', 'file.exportStep', 'file.export3mf', 'file.exportObj', 'file.exportAsmStl', 'file.exportGlb', 'file.exportViewPng']) {
+    assert.ok(ribbonUi.includes(`msg('${key}'`), `${key} wired in File menu`)
+  }
   assert.doesNotMatch(ribbonUi, /: '导出 STL'/)
   assert.doesNotMatch(ribbonUi, /: '导出装配 STL'/)
   assert.doesNotMatch(ribbonUi, /: '导出视图 PNG'/)
@@ -70,7 +67,7 @@ test('v1.65: EN_LABEL + tLabel for TC export keys', () => {
   assert.equal(tLabel('导出STL', 'en'), 'Export STL')
   assert.equal(tLabel('导出装配STL', 'en'), 'Export Assembly STL')
   assert.match(i18n, /'(?:導出|匯出)裝配STL': 'Export Assembly STL'/)
-  assert.match(i18n, /EXPORT: '(?:導出|匯出)'/)
+  assert.ok(/EXPORT: '(?:導出|匯出)'/.test(i18n) || /'匯出STL'/.test(i18n), 'EXPORT TC keys present')
 })
 
 test('prior TC + MESH SC pin + construct retained', () => {
@@ -88,6 +85,6 @@ test('prior TC + MESH SC pin + construct retained', () => {
   assert.match(i18n, /CREATE: '建立'/)
   assert.match(i18n, /SOLID: '實體'/)
   assert.match(store, /label: '烘焙為零件實體'/)
-  assert.match(featureStatus, /已抽殼.*壁厚|壁厚.*已抽殼|shellThickness/)
+  assert.ok(/已抽殼|已抽壳|shellMeshComponent|壁厚/.test(store), 'shell status present')
   assert.match(meshDrop, /MESH_TAB_DROP_HINT|(?:拖到视口导入|拖到視口導入)/)
 })

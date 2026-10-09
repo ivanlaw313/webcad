@@ -38,7 +38,16 @@ const SOLID: Panel[] = [
       { id: 'hole', label: '孔', icon: 'hole', shortcut: 'H', quick: true, sep: true, tip: '孔：在實體面上鑽孔（通/盲 · 沉頭 · 埋頭 · 螺母槽 · 攻牙底孔），有 M3-M12 標準尺寸。' },
       { id: 'facethread', label: '螺紋', icon: 'thread', tip: 'Fusion Thread：點一個圓柱面（外圓面=外螺紋／孔內壁=內螺紋）→ 自動讀入直徑/長度；標準尺寸 M3–M24＋螺距、全長／自訂長度＋偏移、外觀（cosmetic，預設）或建模螺紋。v1 只支持 Z 軸圓柱面。' },
       { id: 'thread', label: '螺紋桿', icon: 'thread', tip: '螺紋桿：真漸開螺旋牙（非貼圖）。設大徑Ø/螺距/高。' },
-      { id: 'box', label: '長方體', icon: 'box', sep: true, tip: '長方體：直接設長×寬×高建一個盒（最常用起手）。' },
+      // UX3 #3：基本體（長方體／圓柱／球…）一直只喺 CREATE ▾ 入面，工具列只有「圓錐」（仲借用圓柱圖示）→ 有模型時用家搵唔到。
+      // 依家同 Fusion 一樣：工具列有「長方體」快捷掣 + ▾ 展開全部基本體。
+      { id: 'box', label: '長方體', icon: 'box', sep: true, quick: true, tip: '長方體：直接設長×寬×高建一個盒（最常用起手）。旁邊 ▾ 揀圓柱／球／圓環／圓錐／螺旋。', quickChildren: [
+        { id: 'box', label: '長方體', icon: 'box', tip: '長方體：設長×寬×高＋位置。' },
+        { id: 'cylinder', label: '圓柱', icon: 'cylinder', tip: '圓柱：設直徑×高＋位置。' },
+        { id: 'sphere', label: '球', icon: 'sphere', tip: '球：設直徑＋位置。' },
+        { id: 'torus', label: '圓環', icon: 'torus', tip: '圓環：設外徑＋管徑。' },
+        { id: 'cone', label: '圓錐', icon: 'cone', tip: '圓錐／圓台：設底Ø／頂Ø／高＋位置。' },
+        { id: 'coil', label: '螺旋', icon: 'coil', tip: '螺旋／彈簧。' },
+      ] },
       { id: 'cylinder', label: '圓柱', icon: 'cylinder', tip: '圓柱：設直徑×高直接建圓柱。' },
       { id: 'sphere', label: '球', icon: 'sphere', tip: '球：設直徑建球。' },
       { id: 'torus', label: '圓環', icon: 'torus', tip: '圓環：設外徑+管徑，弧<360° 出 C 形環/卡簧。' },

@@ -14150,7 +14150,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (get().formMode) {
       const okInForm = id.startsWith('form') || new Set(['measureuni', 'select', 'offsetplane', 'createform']).has(id)
       if (!okInForm) {
-        set({ status: `「${label}」屬於 SOLID 環境；請先按 FINISH FORM 返回 SOLID。` })
+        set({ status: `「${label}」屬於實體環境；請先撳「✓ 完成造型」返回實體。` })
         return
       }
     }
@@ -14223,19 +14223,19 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
       case 'createpcb': set({ status: 'Create PCB：主選單位置已按 Fusion 對齊；ECAD/PCB 工作流仍在實現中。' }); return
-      case 'formsketch': set({ status: 'FORM 內 Create Sketch 尚未接到 T-spline 面；當前請先用 FORM 基元開始。' }); return
-      case 'formquadball': set({ formCreateKind: 'quadball', status: 'FORM Quadball：選擇基準平面並設半徑／細分。' }); return
-      case 'formpipe': set({ formCreateKind: 'pipe', status: 'FORM Pipe：輸入 3D 路徑點、圓形截面直徑與面數，建立可編輯的開放端細分控制籠。' }); return
-      case 'formface': set({ formCreateKind: 'face', status: 'FORM Face：選擇基準平面並設長、闊及細分。' }); return
+      case 'formsketch': set({ status: '造型環境內「建立草圖」尚未接到 T-spline 面；目前請先用造型基本體開始。' }); return
+      case 'formquadball': set({ formCreateKind: 'quadball', status: '四邊形球體：揀基準平面並設半徑／細分。' }); return
+      case 'formpipe': set({ formCreateKind: 'pipe', status: '造型管道：輸入 3D 路徑點、圓形截面直徑與面數，建立可編輯的開放端細分控制籠。' }); return
+      case 'formface': set({ formCreateKind: 'face', status: '造型面：揀基準平面並設長、闊及細分。' }); return
       case 'formextrude': case 'formrevolve': case 'formsweep': case 'formloft':
         set({ status: `${label}：FORM T-spline 曲線/截面求解仍在實現中；不會改用 SOLID 命令冒充。` }); return
-      case 'formedit': set({ status: get().formCage ? 'Edit Form：點控制點或面，再用畫布 gizmo 移動／旋轉／縮放。' : 'Edit Form：請先在 CREATE 建立一個 Form 基元。' }); return
+      case 'formedit': set({ status: get().formCage ? '編輯造型：點控制點或面，再用畫布把手移動／旋轉／縮放。' : '編輯造型：請先喺「建立 ▾」建立一個造型基本體。' }); return
       case 'formsubdiv': {
         const fc = get().formCage
-        if (!fc) { set({ status: 'Subdivide：請先建立一個 Form 基元。' }); return }
+        if (!fc) { set({ status: '細分：請先建立一個造型基本體。' }); return }
         const next = fc.levels >= 3 ? 1 : fc.levels + 1
         get().setFormLevels(next)
-        set({ status: `Subdivide：細分級 ${next}/3（預覽即時更新；FINISH FORM 烘焙）` })
+        set({ status: `細分：細分級 ${next}/3（預覽即時更新；撳「完成造型」烘焙）` })
         return
       }
       case 'formloop': if (get().formCage?.selFace != null) return void get().formInsertLoop(0); set({ status: 'Insert Edge：先點選一個控制籠面。' }); return
@@ -14245,8 +14245,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'formfillhole': set({ status: 'Fill Hole（FORM）：補洞尚未支援。' }); return
       case 'formerasefill': set({ status: 'Erase & Fill（FORM）：尚未支援。' }); return
       case 'formsymmetry': return get().cycleFormSym()
-      case 'formmirror': if (get().formCage) return void get().formMirror(0); set({ status: 'Mirror：請先建立一個 Form 基元。' }); return
-      case 'formrepair': set({ status: 'Repair Body：目前控制籠會在 FINISH FORM 時做拓撲檢查；完整 Fusion 修復清單仍在實現中。' }); return
+      case 'formmirror': if (get().formCage) return void get().formMirror(0); set({ status: '鏡像：請先建立一個造型基本體。' }); return
+      case 'formrepair': set({ status: '修復實體：目前控制籠會喺「完成造型」時做拓撲檢查；完整 Fusion 修復清單仍在實現中。' }); return
       case 'forminsert': set({ status: 'Insert Mesh（FORM）：網格轉 T-spline 仍在實現中。' }); return
       case 'sketch': return get().startSketch()
       case 'sketcharray': {
@@ -14714,11 +14714,11 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
       case 'formbox': { if (get().formMode) { get().setFormCreateKind('box'); return } const v = await get().appPrompt(tStatus('Form 盒（細分建模起手）：長,闊,高,X段,Y段,Z段\n（段數越多控制點越密 — 3,2,2 啱手柄/旋鈕）', get().lang), '40,30,20,3,2,2'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 3 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 盒：請輸入 6 個正數（長,闊,高,X段,Y段,Z段）' }); return } return void get().startFormBox(p[0], p[1], p[2], p[3] || 2, p[4] || 2, p[5] || 2) }
-      case 'formcyl': { if (get().formMode) { set({ formCreateKind: 'cylinder', status: 'FORM Cylinder：先選擇基準平面，再設直徑、高度與細分。' }); return } const v = await get().appPrompt(tStatus('Form 圓柱（box→squircle 無極點）：半徑,高,周向段數,高度段數\n（段數越多越逼近標稱半徑 — 4 段起跳；CC 細分向內收）', get().lang), '10,20,4,2'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 圓柱：請輸入 半徑,高,周向段,高度段（正數）' }); return } return void get().startFormCylinder(p[0], p[1], p[2] || 4, p[3] || 2) }
-      case 'formplane': { if (get().formMode) { set({ formCreateKind: 'plane', status: 'FORM Plane：先選擇基準平面，再設長、闊與細分。' }); return } const v = await get().appPrompt(tStatus('Form 平面/薄片（拖點出有機曲面）：長,闊,X段,Y段', get().lang), '40,30,4,4'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 平面：請輸入 長,闊,X段,Y段（正數）' }); return } return void get().startFormPlane(p[0], p[1], p[2] || 4, p[3] || 4) }
-      case 'formsphere': { if (get().formMode) { set({ formCreateKind: 'sphere', status: 'FORM Sphere：選擇基準平面並設直徑與細分。' }); return } const v = await get().appPrompt(tStatus('Form 球（cube→sphere 無極點）：半徑,每邊段數\n（段越多越逼近標稱半徑 — 3 段起跳；CC 細分向內收）', get().lang), '12,3'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 1 || !Number.isFinite(p[0]) || p[0] <= 0) { set({ status: 'Form 球：請輸入 半徑[,段數]（正數）' }); return } return void get().startFormSphere(p[0], p[1] || 3) }
-      case 'formtorus': { if (get().formMode) { set({ formCreateKind: 'torus', status: 'FORM Torus：選擇基準平面並設主直徑、管直徑與細分。' }); return } const v = await get().appPrompt(tStatus('Form 環面/甜甜圈：主半徑,管半徑,主向段數,管向段數\n（主半徑 > 管半徑；段越多越圓）', get().lang), '20,6,16,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || !Number.isFinite(p[0]) || !Number.isFinite(p[1]) || p[0] <= 0 || p[1] <= 0 || p[1] >= p[0]) { set({ status: 'Form 環面：請輸入 主半徑,管半徑（主>管>0）[,主段,管段]' }); return } return void get().startFormTorus(p[0], p[1], p[2] || 16, p[3] || 10) }
-      case 'formpatch': { if (get().formMode) { set({ formCreateKind: 'face', status: 'FORM Face：選擇基準平面並設長、闊與細分。' }); return } const v = await get().appPrompt(tStatus('Form 開放曲面片（真開放面 — 車身板/外殼/有機曲面）：長,闊,X段,Y段\n（邊界自動跟 B-spline、4 角钉死；拖藍點捏形）', get().lang), '60,40,4,4'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 開放曲面片：請輸入 長,闊,X段,Y段（正數）' }); return } return void get().startFormOpenPatch(p[0], p[1], p[2] || 4, p[3] || 4) }
+      case 'formcyl': { if (get().formMode) { set({ formCreateKind: 'cylinder', status: '造型圓柱：先揀基準平面，再設直徑、高度與細分。' }); return } const v = await get().appPrompt(tStatus('Form 圓柱（box→squircle 無極點）：半徑,高,周向段數,高度段數\n（段數越多越逼近標稱半徑 — 4 段起跳；CC 細分向內收）', get().lang), '10,20,4,2'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 圓柱：請輸入 半徑,高,周向段,高度段（正數）' }); return } return void get().startFormCylinder(p[0], p[1], p[2] || 4, p[3] || 2) }
+      case 'formplane': { if (get().formMode) { set({ formCreateKind: 'plane', status: '造型平面：先揀基準平面，再設長、闊與細分。' }); return } const v = await get().appPrompt(tStatus('Form 平面/薄片（拖點出有機曲面）：長,闊,X段,Y段', get().lang), '40,30,4,4'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 平面：請輸入 長,闊,X段,Y段（正數）' }); return } return void get().startFormPlane(p[0], p[1], p[2] || 4, p[3] || 4) }
+      case 'formsphere': { if (get().formMode) { set({ formCreateKind: 'sphere', status: '造型球：揀基準平面並設直徑與細分。' }); return } const v = await get().appPrompt(tStatus('Form 球（cube→sphere 無極點）：半徑,每邊段數\n（段越多越逼近標稱半徑 — 3 段起跳；CC 細分向內收）', get().lang), '12,3'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 1 || !Number.isFinite(p[0]) || p[0] <= 0) { set({ status: 'Form 球：請輸入 半徑[,段數]（正數）' }); return } return void get().startFormSphere(p[0], p[1] || 3) }
+      case 'formtorus': { if (get().formMode) { set({ formCreateKind: 'torus', status: '造型圓環：揀基準平面並設主直徑、管直徑與細分。' }); return } const v = await get().appPrompt(tStatus('Form 環面/甜甜圈：主半徑,管半徑,主向段數,管向段數\n（主半徑 > 管半徑；段越多越圓）', get().lang), '20,6,16,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || !Number.isFinite(p[0]) || !Number.isFinite(p[1]) || p[0] <= 0 || p[1] <= 0 || p[1] >= p[0]) { set({ status: 'Form 環面：請輸入 主半徑,管半徑（主>管>0）[,主段,管段]' }); return } return void get().startFormTorus(p[0], p[1], p[2] || 16, p[3] || 10) }
+      case 'formpatch': { if (get().formMode) { set({ formCreateKind: 'face', status: '造型面：揀基準平面並設長、闊與細分。' }); return } const v = await get().appPrompt(tStatus('Form 開放曲面片（真開放面 — 車身板/外殼/有機曲面）：長,闊,X段,Y段\n（邊界自動跟 B-spline、4 角钉死；拖藍點捏形）', get().lang), '60,40,4,4'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean).map(Number); if (p.length < 2 || p.some((x) => !Number.isFinite(x) || x <= 0)) { set({ status: 'Form 開放曲面片：請輸入 長,闊,X段,Y段（正數）' }); return } return void get().startFormOpenPatch(p[0], p[1], p[2] || 4, p[3] || 4) }
       case 'ithread': return get().openFeatDlg('ithread')   // P2：对话框化（取代逗号字串 prompt）；拾孔内壁自动填走 applyThreadFacePick
       case 'insertmesh': return get().openStlDialog()
       case 'insertobj': return get().openObjDialog()
@@ -16670,12 +16670,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     formCreateKind: null,
     formBoxDraft: null,
     activeTab: 'SOLID',
-    status: 'FORM 環境：從 CREATE 選擇 Box、Plane、Cylinder、Sphere、Torus、Quadball、Pipe 或 Face；完成後按 FINISH FORM。',
+    status: '造型（FORM）環境：喺「建立 ▾」揀 長方體、平面、圓柱、球、圓環、四邊形球體、管道或面開始捏形；完成後撳右上「✓ 完成造型」返回實體。',
   }) },
-  setFormCreateKind: (kind) => { ++_formCreateVersion; if (kind && get().formCage) { set({ status: '請先完成或取消當前 Form，再創建另一件' }); return }; set({
+  setFormCreateKind: (kind) => { ++_formCreateVersion; if (kind && get().formCage) { set({ status: '請先完成或取消當前造型，再建立另一件' }); return }; set({
     formCreateKind: kind,
     formBoxDraft: kind === 'box' ? newFormBoxDraft() : null,
-    status: kind === 'box' ? 'FORM Box：選擇一個平面或平面面。' : kind ? `FORM ${kind}：先選擇基準平面，再設尺寸與細分；確定後進入 Edit Form。` : 'FORM：已取消當前創建命令。',
+    status: kind === 'box' ? '造型長方體：揀一個基準平面或實體平面。' : kind ? `造型${({ cylinder: '圓柱', sphere: '球', plane: '平面', torus: '圓環', quadball: '四邊形球體', pipe: '管道', face: '面' } as Record<string, string>)[kind] ?? kind}：先揀基準平面，再設尺寸與細分；確定後進入編輯造型。` : '造型：已取消當前建立命令。',
   }) },
   formBoxDraft: null,
   kernelNotice: null,
@@ -16694,7 +16694,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   chooseFormBoxPlane: (plane, offset = 0) => set((s) => !s.formBoxDraft ? {} : ({
     formBoxDraft: { ...s.formBoxDraft, plane, planeOffset: offset, stage: 'center', center: null, cursor: [0, 0] },
-    status: 'FORM Box：指定中心點。',
+    status: '造型長方體：指定中心點。',
   })),
   /** BUG-BD-4401: dialog / origin-plane quick place — plane + default center → ready (OK commits). */
   placeFormBoxOnOriginPlane: (plane: FormBoxPlane) => set((s) => !s.formBoxDraft ? {} : ({
@@ -16706,7 +16706,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       cursor: [0, 0],
       stage: 'ready',
     },
-    status: 'FORM Box：已選原點平面 ' + plane + '（預設中心）；按 OK 建立，或繼續在視口調整。',
+    status: '造型長方體：已選原點平面 ' + plane + '（預設中心）；撳「確定」建立，或繼續喺視口調整。',
   })),
   setFormBoxPointer: (p) => set((s) => {
     const d = s.formBoxDraft
@@ -16717,10 +16717,10 @@ export const useApp = create<AppState>((rawSet, get) => {
   placeFormBoxPoint: (p, clientY) => set((s) => {
     const d = s.formBoxDraft
     if (!d) return {}
-    if (d.stage === 'center') return { formBoxDraft: { ...d, center: p, cursor: p, stage: 'size' }, status: 'FORM Box：指定矩形大小。' }
+    if (d.stage === 'center') return { formBoxDraft: { ...d, center: p, cursor: p, stage: 'size' }, status: '造型長方體：指定矩形大小。' }
     if (d.stage === 'size' && d.center) {
       const dims = formBoxSizeFromPoints(d.center, p)
-      return { formBoxDraft: { ...d, cursor: p, ...dims, stage: 'height', heightAnchorY: clientY }, status: 'FORM Box：拖動滑鼠指定高度，再單擊確認。' }
+      return { formBoxDraft: { ...d, cursor: p, ...dims, stage: 'height', heightAnchorY: clientY }, status: '造型長方體：拖動滑鼠指定高度，再單擊確認。' }
     }
     return {}
   }),
@@ -16731,7 +16731,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   confirmFormBoxHeight: () => set((s) => !s.formBoxDraft || s.formBoxDraft.stage !== 'height' ? {} : ({
     formBoxDraft: { ...s.formBoxDraft, stage: 'ready' },
-    status: 'FORM Box：尺寸已確定；按 OK 建立並進入 Edit Form。',
+    status: '造型長方體：尺寸已確定；撳「確定」建立並進入編輯造型。',
   })),
   patchFormBoxDraft: (patch) => set((s) => !s.formBoxDraft ? {} : ({ formBoxDraft: { ...s.formBoxDraft, ...patch } })),
   commitFormBoxDraft: async () => {
@@ -16756,7 +16756,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         formCreateKind: null,
         formBoxDraft: null,
         formCage: { ...cage, sel: null, selFace: null, levels: 2, creases: [] },
-        status: 'Form Box 已建立 — 進入 Edit Form；完成後按 FINISH FORM。',
+        status: '造型長方體已建立 — 進入編輯造型；完成後撳「✓ 完成造型」。',
       })
     } catch (e) { set({ status: 'Form Box 失敗：' + ((e as Error)?.message || e) }) }
   },
@@ -16822,7 +16822,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const { makeBoxCage } = await import('./cad/subdiv')
       if (version !== _formCreateVersion) return
       const cage = makeBoxCage(Math.max(2, L), Math.max(2, W), Math.max(2, H), Math.max(1, Math.round(nx)), Math.max(1, Math.round(ny)), Math.max(1, Math.round(nz)))
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formBoxDraft: null, formCage: { L, W, H, nx, ny, nz, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 盒已建 — 點藍點拖捏形 / 點面拉伸（push-pull 抽肢凸台）。完成按 FINISH FORM' })
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formBoxDraft: null, formCage: { L, W, H, nx, ny, nz, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 造型長方體已建 — 點藍點拖捏形 / 點面拉伸（push-pull 抽肢凸台）。完成撳「✓ 完成造型」' })
     } catch (e) { set({ status: 'Form 盒失敗：' + ((e as Error)?.message || e) }) }
   },
   startFormCylinder: async (R, H, nSeg, nH) => {
@@ -16834,7 +16834,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const r = Math.max(1, R), h = Math.max(2, H), ns = Math.max(2, Math.round(nSeg)), nh = Math.max(1, Math.round(nH))
       const cage = makeCylinderCage(r, h, ns, nh)
       // formCage 嘅 L/W/H/nx… 系盒记账位；圆柱用 2R×2R×H、nx=ny=nSeg 占位（编辑机制只食 verts/quads/creases）
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * r, W: 2 * r, H: h, nx: ns, ny: ns, nz: nh, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 圓柱已建（box→squircle 無極點映射）— 點藍點捏形 / 點面拉伸；完成按 FINISH FORM' })
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * r, W: 2 * r, H: h, nx: ns, ny: ns, nz: nh, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 造型圓柱已建（box→squircle 無極點映射）— 點藍點捏形 / 點面拉伸；完成撳「✓ 完成造型」' })
     } catch (e) { set({ status: 'Form 圓柱失敗：' + ((e as Error)?.message || e) }) }
   },
   startFormPlane: async (L, W, nx, ny) => {
@@ -16845,7 +16845,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (version !== _formCreateVersion) return
       const l = Math.max(2, L), w = Math.max(2, W), gx = Math.max(2, Math.round(nx)), gy = Math.max(2, Math.round(ny))
       const cage = makePlaneCage(l, w, gx, gy, 1)
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: l, W: w, H: 1, nx: gx, ny: gy, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 平面/薄片已建 — 點藍點拖出有機曲面；完成按 FINISH FORM' })
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: l, W: w, H: 1, nx: gx, ny: gy, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 造型平面/薄片已建 — 點藍點拖出有機曲面；完成撳「✓ 完成造型」' })
     } catch (e) { set({ status: 'Form 平面失敗：' + ((e as Error)?.message || e) }) }
   },
   startFormOpenPatch: async (L, W, nx, ny) => {
@@ -16856,7 +16856,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (version !== _formCreateVersion) return
       const l = Math.max(2, L), w = Math.max(2, W), gx = Math.max(1, Math.round(nx)), gy = Math.max(1, Math.round(ny))
       const cage = makeOpenPatchCage(l, w, gx, gy)   // S192：真开放 grid（四周开边界）
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: l, W: w, H: 0, nx: gx, ny: gy, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 開放曲面片已建（真開放 grid）。點藍點拖捏；完成按 FINISH FORM' })
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: l, W: w, H: 0, nx: gx, ny: gy, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 造型開放曲面片已建（真開放 grid）。點藍點拖捏；完成撳「✓ 完成造型」' })
     } catch (e) { set({ status: 'Form 開放曲面片失敗：' + ((e as Error)?.message || e) }) }
   },
   startFormPipe: async (path, diameter, radialSegments) => {
@@ -16874,7 +16874,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formBoxDraft: null,
         formCage: { L, W, H, nx: path.length - 1, ny: seg, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] },
-        status: `🫧 FORM Pipe 已建：${path.length} 個路徑點 × ${seg} 面圓截面（開放端細分控制籠）— 拖藍點/選面編輯，完成按 FINISH FORM。`,
+        status: `🫧 造型管道已建：${path.length} 個路徑點 × ${seg} 面圓截面（開放端細分控制籠）— 拖藍點/選面編輯，完成撳「✓ 完成造型」。`,
       })
     } catch (e) { set({ status: 'FORM Pipe 創建失敗：' + ((e as Error)?.message || e) }) }
   },
@@ -16887,7 +16887,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const r = Math.max(1, R), ns = Math.max(2, Math.round(nSeg))
       const cage = makeSphereCage(r, ns)
       // formCage L/W/H/nx… 系盒记账位；球用 2R³、nx=ny=nz=nSeg 占位（编辑机制只食 verts/quads/creases）
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * r, W: 2 * r, H: 2 * r, nx: ns, ny: ns, nz: ns, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 球已建（cube→sphere 無極點映射）— 點藍點捏成有機球/液滴/頭形；完成按 FINISH FORM' })
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * r, W: 2 * r, H: 2 * r, nx: ns, ny: ns, nz: ns, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 造型球已建（cube→sphere 無極點映射）— 點藍點捏成有機球/液滴/頭形；完成撳「✓ 完成造型」' })
     } catch (e) { set({ status: 'Form 球失敗：' + ((e as Error)?.message || e) }) }
   },
   startFormTorus: async (R, r, nMaj, nMin) => {
@@ -16899,7 +16899,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const bigR = Math.max(2, R), tubeR = Math.max(0.5, Math.min(r, bigR - 0.5)), nm = Math.max(3, Math.round(nMaj)), nn = Math.max(3, Math.round(nMin))
       const cage = makeTorusCage(bigR, tubeR, nm, nn)
       // 环面系 genus-1，唔系盒 — L/W=2(R+r) 跨度、H=2r 占位
-      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * (bigR + tubeR), W: 2 * (bigR + tubeR), H: 2 * tubeR, nx: nm, ny: nn, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 Form 環面（甜甜圈）已建 — 點藍點捏成把手/O 形/扭環；完成按 FINISH FORM' })
+      set({ formMode: true, formUndo: [], formRedo: [], formEditStart: null, formCreateKind: null, formCage: { L: 2 * (bigR + tubeR), W: 2 * (bigR + tubeR), H: 2 * tubeR, nx: nm, ny: nn, nz: 1, verts: cage.verts, quads: cage.quads, sel: null, selFace: null, levels: 2, creases: [] }, status: '🫧 造型圓環（甜甜圈）已建 — 點藍點捏成把手/O 形/扭環；完成撳「✓ 完成造型」' })
     } catch (e) { set({ status: 'Form 環面失敗：' + ((e as Error)?.message || e) }) }
   },
   setFormVert: (i, p) => set((s) => {

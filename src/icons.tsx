@@ -26,6 +26,7 @@ const paths: Record<string, ReactNode> = {
   box: <><path d="M12 3 4 7v10l8 4 8-4V7z" /><path d="M4 7l8 4 8-4M12 11v10" /></>,
   cylinder: <><ellipse cx="12" cy="6" rx="6" ry="2.4" /><path d="M6 6v12c0 1.3 2.7 2.4 6 2.4s6-1.1 6-2.4V6" /></>,
   sphere: <><circle cx="12" cy="12" r="8" /><ellipse cx="12" cy="12" rx="8" ry="3" /></>,
+  cone: <><path d="M12 3 5.5 18M12 3l6.5 15" /><ellipse cx="12" cy="18" rx="6.5" ry="2.4" /></>,   // UX3 #5：圓錐唔再借用圓柱圖示
   pattern: <><rect x="4" y="4" width="5" height="5" /><rect x="15" y="4" width="5" height="5" /><rect x="4" y="15" width="5" height="5" /><rect x="15" y="15" width="5" height="5" /></>,
   mirror: <><path d="M12 3v18" /><path d="M9 7 4 12l5 5z" /><path d="m15 7 5 5-5 5z" /></>,
   thicken: <><rect x="4" y="6" width="16" height="12" rx="1" /><path d="M8 10h8" /></>,

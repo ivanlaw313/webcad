@@ -13,7 +13,14 @@ export function straightContour(sh: AnyShape): { pts: Pt[]; closed: boolean } | 
   }
   if (sh.type !== 'poly') return null
   const p = sh as AnyShape & { pts?: Pt[]; verts?: Pt[]; bulges?: number[]; open?: boolean }
-  if (p.arc || p.smooth || p.bspline || p.conic || p.ctrl || p.ell || p.earc || p.projected || p.verts || p.bulges) return null
+  if (p.arc || p.smooth || p.bspline || p.conic || p.ctrl || p.ell || p.earc || p.projected) return null
+  // UX2 #5：折線工具畫出嚟嘅線都帶 verts + 全 0 bulges（直線段）— 舊版一見 verts 就當「唔可拆」→ 撳 Delete 成條折線冇晒。
+  // 全部 bulge = 0 即係純直線輪廓，照拆；真係有弧段先退返整個刪。
+  if (p.verts || p.bulges) {
+    if (!Array.isArray(p.verts) || !Array.isArray(p.bulges) || p.bulges.some((b) => Math.abs(b) > 1e-12)) return null
+    if (p.verts.length < 2) return null
+    return { pts: p.verts.map((q) => [q[0], q[1]] as Pt), closed: !p.open }
+  }
   if (!Array.isArray(p.pts) || p.pts.length < 2) return null
   return { pts: p.pts.map((q) => [q[0], q[1]] as Pt), closed: !p.open }
 }

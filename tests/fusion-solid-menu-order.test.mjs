@@ -31,6 +31,14 @@ eq('Fillet 快捷圖示下拉跟 Fusion 提供 Fillet / Chamfer', modify.find((x
   'fillet', 'chamfer',
 ])
 
+const createTools = panels.find((p) => p.name === 'CREATE')?.tools ?? []
+eq('Pattern 快捷圖示下拉跟 Fusion 提供矩形／環形／幾何／路徑陣列', createTools.find((x) => x.id === 'pattern')?.quickChildren?.map((x) => x.id) ?? [], [
+  'pattern', 'circpattern', 'geopattern', 'pathpattern',
+])
+eq('Pattern CREATE 子菜單同 quickChildren 一致', createTools.find((x) => x.id === 'pattern')?.children?.map((x) => x.id) ?? [], [
+  'pattern', 'circpattern', 'geopattern', 'pathpattern',
+])
+
 const simplify = modify.find((x) => x.id === 'simplify')
 eq('MODIFY 简化子菜单跟 Fusion', simplify?.children?.map((x) => x.id) ?? [], [
   'removefeatures', 'removefaces', 'replaceprimitives',

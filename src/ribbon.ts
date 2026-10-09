@@ -43,8 +43,15 @@ const SOLID: Panel[] = [
       { id: 'coil', label: '螺旋', icon: 'coil', tip: '螺旋/彈簧：設節距/高/底半徑/線徑/頂半徑（頂≠底=錐形彈簧）。' },
       { id: 'pipe', label: '管道', icon: 'pipeicon', tip: '管道：沿路徑掃出空心管（外徑+壁厚）。先畫路徑折線。' },
       {
-        id: 'pattern', label: '陣列', icon: 'pattern', quick: true, sep: true, tip: '陣列：矩形 / 環形 / 沿路徑 複製實體或孔。',
+        id: 'pattern', label: '陣列', icon: 'pattern', quick: true, sep: true, tip: '陣列：矩形 / 環形 / 沿路徑 複製實體或孔。快捷圖示旁 ▾ 可揀環形／路徑／幾何。',
         children: [
+          { id: 'pattern', label: '矩形陣列', icon: 'pattern', tip: '沿 X/Y(/Z) 方向複製實體或孔成網格。' },
+          { id: 'circpattern', label: '環形陣列', icon: 'pattern', tip: '繞任意軸等角度複製（Fusion 同款）：對象 = 整個實體或時間軸所選特徵（螺栓孔圈/輻條），角度 = 完整360°/指定/對稱。' },
+          { id: 'geopattern', label: '幾何陣列', icon: 'pattern', tip: '複製所選時間軸特徵，並為每個實例指定平移或旋轉變換。' },
+          { id: 'pathpattern', label: '路徑陣列', icon: 'pattern', tip: '先建實體→畫折線/樣條路徑→沿路徑等距複製實體。' },
+        ],
+        // Fusion Pattern flyout: quick icon = rectangular default; caret opens circular/path/geo (same list as CREATE ▾ → 陣列 ▸).
+        quickChildren: [
           { id: 'pattern', label: '矩形陣列', icon: 'pattern', tip: '沿 X/Y(/Z) 方向複製實體或孔成網格。' },
           { id: 'circpattern', label: '環形陣列', icon: 'pattern', tip: '繞任意軸等角度複製（Fusion 同款）：對象 = 整個實體或時間軸所選特徵（螺栓孔圈/輻條），角度 = 完整360°/指定/對稱。' },
           { id: 'geopattern', label: '幾何陣列', icon: 'pattern', tip: '複製所選時間軸特徵，並為每個實例指定平移或旋轉變換。' },

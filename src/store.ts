@@ -18908,7 +18908,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     const acc: PropsAccuracy = s.propsDialog?.accuracy || 'med'
     const frame: PropsFrame = s.propsDialog?.frame || 'com'
     let mesh: { vertices: ArrayLike<number>; triangles: ArrayLike<number> } | null = null
-    let name = s.activeBodyName || '活動實體', material: string | undefined, density = s.bodyDensity
+    let name = '活動實體', material: string | undefined, density = s.bodyDensity
+    if (s.activeBodyName) name = s.activeBodyName   // UX1 #6：自訂實體名
     if (typeof bodyId === 'string' && bodyId.startsWith('parked:')) {
       const idx = Number(bodyId.slice(7))
       const pb = s.bodyMesh?.parked?.[idx]

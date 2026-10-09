@@ -47,6 +47,8 @@ export default function JointsPanel() {
   const jointOrigins = useApp((s) => s.jointOrigins)   // GM-3DV4 A1：可复用关节原点
   const contactPairs = useApp((s) => s.contactPairs)   // GM-3DV4 A9：命名逐对接触集
   const rigidGroups = useApp((s) => s.rigidGroups)     // GM-3DV4 A8：一级刚性组节点
+  // RETEST21 #3：屬性檢查器預設就開（inspectMode=true）→ 關節面板預設讓位縮成 pill；以前 pill 喺 inspectMode 下撳都唔展開
+  // （連 ✕／滑桿都摸唔到）。依家：命令對話框開緊先硬性讓位；檢查器只係「預設縮」，用家撳 pill／Assemble 菜單就展開。
   const inspectMode = useApp((s) => s.inspectMode)
 
   const [parent, setParent] = useState('')
@@ -60,9 +62,10 @@ export default function JointsPanel() {
   const [posFor, setPosFor] = useState('')             // GM-3DV4 A2/A3：展开「位置/Rest」编辑嘅关节 id
   // The right-side command palettes (圆角/抽壳/孔/拉伸/featDlg…) live in the same corner — auto-yield
   // while one is open (collapse to a pill) so panels never cover each other. Manual ▾/▸ too.
-  const dlgOpen = useApp((s) => !!(s.featDlg || s.edgeRoundPick || s.shellMode || s.holeMode || s.extrudeDlgOpen || s.sweepDlgOpen || s.loftDlgOpen)) || inspectMode
+  const dlgOpen = useApp((s) => !!(s.featDlg || s.edgeRoundPick || s.shellMode || s.holeMode || s.extrudeDlgOpen || s.sweepDlgOpen || s.loftDlgOpen))
   const [userCollapsed, setUserCollapsed] = useState(false)
-  const collapsed = userCollapsed || dlgOpen
+  const [userExpanded, setUserExpanded] = useState(false)
+  const collapsed = userCollapsed || dlgOpen || (inspectMode && !userExpanded)
   const [mlDrv, setMlDrv] = useState('')
   const [mlDvn, setMlDvn] = useState('')
   const [mlRatio, setMlRatio] = useState(-1)
@@ -102,7 +105,7 @@ export default function JointsPanel() {
   useEffect(() => {
     const focus = (ev: Event) => {
       const d = (ev as CustomEvent<{ section?: string; jointId?: string }>).detail || {}
-      setUserCollapsed(false)
+      setUserCollapsed(false); setUserExpanded(true)
       if (d.section === 'motionstudy' && d.jointId) {
         setDynFor(d.jointId)
         const j = useApp.getState().joints.find((x) => x.id === d.jointId)
@@ -256,8 +259,8 @@ export default function JointsPanel() {
         style={panelDrag.style}
         onPointerDown={panelDrag.onPointerDown}
         title={dlgOpen ? '命令進行中 — 關節面板已讓位（命令完成後自動展開）' : '展開關節面板'}
-        onClick={() => { if (panelDrag.consumeClick()) return; if (!dlgOpen) setUserCollapsed(false) }}
-      >🔧 關節 {joints.length} · DOF {mechDOF}{userCollapsed && !dlgOpen ? ' ▸' : ''}</button>
+        onClick={() => { if (panelDrag.consumeClick()) return; if (!dlgOpen) { setUserCollapsed(false); setUserExpanded(true) } }}
+      >🔧 關節 {joints.length} · DOF {mechDOF}{!dlgOpen ? ' ▸' : ''}</button>
     )
   }
 
@@ -265,7 +268,7 @@ export default function JointsPanel() {
     <div className={'joints-panel' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} ref={(el) => { panelRef.current = el; panelDrag.ref(el) }} style={panelDrag.style} onPointerDown={beginPanelDrag} title="拖動面板空白處或標題可移動位置">
       <div className="jp-title" title="機構自由度 DOF = 獨立運動數（各關節自由度之和 − 閉環約束 ×3/環：錨點閉合 2 + back-edge 從動 1，平面 Grübler 修正 T779。四連桿 = 1 ✓）。0 = 全固定；越大越「松」。">裝配關節 {joints.length} · 自由度 DOF {mechDOF}{breakdown ? `（${breakdown}）` : ''}
         <button className="cs-x" style={{ float: 'right', marginLeft: 4, ...(contactSetsOn ? { color: '#ff8a2a', fontWeight: 700 } : {}) }} title={contactSetsOn ? '🧱 接觸集開緊：拖關節滑桿撞到第三方組件會自動擋停（再撳關閉 — 關咗可自由穿過）' : '🧱 接觸集（T787 / Fusion Enable Contact）：開咗之後拖關節滑桿，子件撞到第三方組件即停喺接觸前一刻 — 卡扣/棘輪/限位嘅真實手感'} onClick={() => useApp.getState().toggleContactSets()}>🧱{contactSetsOn ? '開' : ''}</button>
-        <span className="pp-x" style={{ float: 'right' }} title="折疊面板" onClick={() => setUserCollapsed(true)}>▾</span></div>
+        <span className="pp-x" style={{ float: 'right' }} title="折疊面板" onClick={() => { setUserCollapsed(true); setUserExpanded(false) }}>▾</span></div>
 
       {joints.map((j) => (
         <div key={j.id} className="jp-joint" data-joint-id={j.id}>
@@ -276,7 +279,7 @@ export default function JointsPanel() {
             <button className="cs-x" style={holePicking === j.id ? { color: '#ff8a2a' } : undefined} title="🎯 拾孔定軸：點此後再點零件上一個【圓柱孔/軸面】→ 關節錨點對到孔心、轉軸沿孔軸（鉸鏈/轉軸裝到指定孔位）" onClick={() => startJointHolePick(j.id)}>🎯</button>
             {j.type !== 'rigid' && <button className="cs-x" style={posFor === j.id ? { color: '#ff8a2a' } : undefined} title="GM-3DV4 A2/A3：位置 / Rest — 兩原點之間嘅靜止偏移(X/Y/Z + 角度 + Flip) + 靜止(Rest)位。" onClick={() => setPosFor(posFor === j.id ? '' : j.id)}>⚓</button>}
             {j.type !== 'rigid' && <button className="cs-x" title="🔍 跨運動干涉：自動掃掠呢個關節嘅全行程（含齒輪聯動），二分搵出『首次撞』嘅驅動值 — 唔使逐幀手拖就知機構成程會唔會自撞（Fusion Motion+Interference）。滑動關節需先設行程限位。" onClick={() => useApp.getState().interferenceAcrossMotion(j.id)}>🔍</button>}
-            <button className="cs-x" title="刪除關節" onClick={() => removeJoint(j.id)}>✕</button>
+            <button className="cs-x" data-testid={'joint-card-del-' + j.id} title="刪除關節（Ctrl+Z 可還原）" onClick={() => removeJoint(j.id)}>✕</button>
           </div>
           {posFor === j.id && j.type !== 'rigid' && (
             <div className="jp-lim" style={{ flexWrap: 'wrap', gap: 4, background: 'rgba(21,114,196,.06)', borderRadius: 4, padding: '3px 4px' }}>

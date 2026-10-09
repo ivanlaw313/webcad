@@ -13346,7 +13346,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], motionLinks: [...s.motionLinks, { id: 'ML' + (s.motionLinks.length + 1), driver, driven, ratio, ...(kind ? { kind } : {}), ...(driver2 && ratio2 != null ? { driver2, ratio2 } : {}) }], status: `已加運動連接：${driver}${driver2 ? `+${driver2} 雙驅動` : ' 驅動'} ${driven}（${kind === 'rack' ? '齒條 角→移' : '比'} ${ratio}${driver2 ? ` + ${ratio2}` : ''}）` }
   }),
   removeMotionLink: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], motionLinks: s.motionLinks.filter((l) => l.id !== id) })),
-  removeJoint: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints: s.joints.filter((j) => j.id !== id), motionLinks: s.motionLinks.filter((l) => l.driver !== id && l.driven !== id) })),
+  // RETEST21 #3：關節卡 ✕ 刪除 = 一步撤銷快照（Fusion：刪除可撤銷）；狀態列講明 Ctrl+Z 可還原（連同佢嘅運動連接）。
+  removeJoint: (id) => set((s) => {
+    const j = s.joints.find((x) => x.id === id)
+    if (!j) return {}
+    const links = s.motionLinks.filter((l) => l.driver === id || l.driven === id).length
+    return {
+      undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
+      joints: s.joints.filter((x) => x.id !== id), motionLinks: s.motionLinks.filter((l) => l.driver !== id && l.driven !== id),
+      status: `已刪除關節「${j.name}」${links ? `（連同 ${links} 條運動連接）` : ''} — Ctrl+Z 可還原`,
+    }
+  }),
   // Home all joints: return every joint to its REST value (GM-3DV4 A3 — 缺省 rest=0 → 逐字节旧「归零」行为)。
   //   主自由度：slider=slide、其余转动类=angle；其余 DOF 清零。空机构唔压撤销快照（冇嘢变）。
   homeJoints: () => set((s) => (s.joints.length

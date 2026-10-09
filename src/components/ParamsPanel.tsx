@@ -24,14 +24,23 @@ function parseVals(s: string): number[] {
 
 // Commit complete numeric drafts, so normal typing does not rebuild at each digit.
 // RETEST19 #2：打字期間（focused）外部值變化唔覆蓋草稿；busy 用 readOnly（disabled 會令 Chrome 失焦，後續按鍵漏去全域快捷鍵）。
-function ParameterValue({name,value,disabled,busy,tz,onCommit}:{name:string;value:number;disabled:boolean;busy:boolean;tz:Tz;onCommit:(n:number)=>void}) {
+// v2.20 P1：重建失敗時 store 還原參數（模型保持一致），但輸入框保留使用者打嘅值（attempted），紅框標示未套用；
+// Esc 還原顯示原值並清除失敗提示。
+function ParameterValue({name,value,disabled,busy,tz,attempted,onCommit,onDiscard}:{name:string;value:number;disabled:boolean;busy:boolean;tz:Tz;attempted?:string;onCommit:(n:number)=>void;onDiscard?:()=>void}) {
  const fmt=(v:number)=>String(Number(v.toFixed(6)))
- const [draft,setDraft]=useState(fmt(value))
+ const [draft,setDraft]=useState(attempted ?? fmt(value))
  const editing=useRef(false)
- useEffect(()=>{if(!editing.current)setDraft(fmt(value))},[value])
- const commit=()=>{editing.current=false;if(busy){setDraft(fmt(value));return}const n=Number(draft);if(draft.trim()&&Number.isFinite(n)&&n!==value)onCommit(n);else setDraft(fmt(value))}
+ useEffect(()=>{if(!editing.current)setDraft(attempted ?? fmt(value))},[value,attempted])
+ const commit=()=>{
+  editing.current=false
+  if(busy){setDraft(attempted ?? fmt(value));return}
+  const n=Number(draft)
+  if(!draft.trim()||!Number.isFinite(n)||n===value){setDraft(fmt(value));if(attempted!=null&&n===value)onDiscard?.();return}
+  if(attempted!=null&&draft===attempted)return   // 失焦唔重複試同一個失敗值；Enter 先重試
+  onCommit(n)
+ }
  // UX1 #1：type="text"+inputMode（唔用 number：Chrome 數字框中途值「1.」「-」會報空、滾輪會改值）；草稿只喺 Enter／失焦先 commit 一次。
- return <input className="pp-val" type="text" inputMode="decimal" autoComplete="off" spellCheck={false} aria-label={tz(`參數 ${name} 數值`)} data-param-field="value" disabled={disabled} readOnly={busy} value={draft} onFocus={()=>{editing.current=true}} onChange={e=>setDraft(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.blur()}if(e.key==='Escape'){e.stopPropagation();setDraft(fmt(value))}}}/>
+ return <input className={'pp-val'+(attempted!=null?' pp-val-failed':'')} type="text" inputMode="decimal" autoComplete="off" spellCheck={false} aria-label={tz(`參數 ${name} 數值`)} aria-invalid={attempted!=null||undefined} data-param-field="value" disabled={disabled} readOnly={busy} value={draft} style={attempted!=null?{borderColor:'#e0533d',color:'#ffb4a6'}:undefined} title={attempted!=null?tz(`未套用：模型仍為 ${fmt(value)}`):undefined} onFocus={()=>{editing.current=true}} onChange={e=>setDraft(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing){e.preventDefault();if(attempted!=null&&draft===attempted&&Number(draft)!==value){editing.current=false;onCommit(Number(draft));return}e.currentTarget.blur()}if(e.key==='Escape'){e.stopPropagation();setDraft(fmt(value));onDiscard?.()}}}/>
 }
 
 // RETEST19 #2：名稱欄用本地草稿 —— 打字只改草稿，Enter／失焦先 renameParam（一次），Esc 還原。
@@ -113,6 +122,8 @@ export default function ParamsPanel() {
   const setParam = useApp((s) => s.setParam)
   const setParamExpr = useApp((s) => s.setParamExpr)
   const removeParam = useApp((s) => s.removeParam)
+  const paramFailure = useApp((s) => s.paramFailure)
+  const clearParamFailure = useApp((s) => s.clearParamFailure)
   const renameParam = useApp((s) => s.renameParam)
   const exportCsv = useApp((s) => s.exportParamsCsv)
   const batchExportDesignTable = useApp((s) => s.batchExportDesignTable)
@@ -150,10 +161,14 @@ export default function ParamsPanel() {
       {params.map((p) => (
         <div key={p.id ?? p.name} className="pp-row">
           <ParameterName name={p.name} busy={busy} tz={tz} onCommit={(next) => renameParam(p.name, next)} />
-          <ParameterValue name={p.name} value={p.value} disabled={!!p.expr} busy={busy} tz={tz} onCommit={n => void setParam(p.name,n)} />
+          <ParameterValue name={p.name} value={p.value} disabled={!!p.expr} busy={busy} tz={tz} attempted={paramFailure?.name === p.name && !p.expr ? paramFailure.attempted : undefined} onCommit={n => void setParam(p.name,n)} onDiscard={() => { if (paramFailure?.name === p.name) clearParamFailure() }} />
           <ParameterExpression name={p.name} expression={p.expr ?? ''} disabled={busy} tz={tz} onCommit={expr => setParamExpr(p.name, expr)} />
           <span className="pp-used" title={tz('直接／間接引用：') + (usedBy(p).join('；') || tz('無'))}>×{usedBy(p).length}</span>
           <span className="pp-del" title={tz('刪除參數')} onClick={() => void removeParam(p.name)}>🗑</span>
+          {paramFailure?.name === p.name && <div className="pp-fail" role="alert" data-param-failure={p.name} style={{ gridColumn: '1 / -1', fontSize: 11, color: '#ffb4a6', lineHeight: 1.4, padding: '2px 0 4px' }}>
+            {tz(`⚠ ${p.name} = ${paramFailure.attempted} 未能套用：${paramFailure.reason}。模型及參數仍為 ${p.name} = ${Number(paramFailure.kept.toFixed(6))}。可修正數值後按 Enter 重試，或按 Esc 還原。`)}
+            <span className="pp-x" role="button" title={tz('關閉提示')} style={{ marginLeft: 6, cursor: 'pointer' }} onClick={() => clearParamFailure()}>✕</span>
+          </div>}
         </div>
       ))}
       <div className="pp-add">

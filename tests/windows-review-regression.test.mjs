@@ -46,7 +46,7 @@ test('parameter edits lock during asynchronous solve and restore the document on
  let calls=0
  state.applyParamSketches=()=>new Promise((_,reject)=>{release=()=>reject(Error('solver conflict'))})
  state.applyFeatures=async()=>{calls++;return true}
- const api=vm.runInNewContext(stripTypeScriptTypes('({'+methods+'})'),{get:()=>state,set:p=>state={...state,...(typeof p==='function'?p(state):p)},docSnap:s=>structuredClone({params:s.params,features:s.features,sketchSources:s.sketchSources}),recomputeParams:p=>p,parameterExpressionRefs:()=>({})})
+ const api=vm.runInNewContext(stripTypeScriptTypes('({'+methods+'})'),{get:()=>state,set:p=>state={...state,...(typeof p==='function'?p(state):p)},docSnap:s=>structuredClone({params:s.params,features:s.features,sketchSources:s.sketchSources}),recomputeParams:p=>p,parameterExpressionRefs:()=>({}),reportParamFailure:()=>{}})
  const first=api.setParam('W',193.6)
  assert.equal(state.busy,true)
  await api.setParam('W',200)

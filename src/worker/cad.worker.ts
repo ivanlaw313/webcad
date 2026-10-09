@@ -2859,6 +2859,37 @@ function sketchPlanarDescriptor(face: any): { normal: [number, number, number]; 
   const edgeLengths = face.edges.map((e: any) => e.length).sort((a: number,b: number)=>a-b)
   return { normal, center, offset: center.reduce((sum, x, i)=>sum+x*normal[i],0), area, edgeLengths, outline }
 }
+// v2.20 P1：source face moved along its own normal by an upstream parameter edit. Identity is the
+// generating geometry (same oriented normal, same face "column": the old anchor or old centre slid along
+// the normal lies inside the new face), not its absolute plane position. Returns 0/1 candidates; ties
+// (two equally near stacked faces) stay ambiguous so the caller reports instead of guessing.
+function sketchSlidFaceCandidates(planarFaces: { face: any; desc: ReturnType<typeof sketchPlanarDescriptor> }[], binding: SketchFaceBinding): { face: any; desc: any }[] {
+  const n = binding.normal
+  const kinds = (outline: string[]) => outline.map((o) => o.slice(0, o.indexOf(':'))).sort().join(',')
+  const wantKinds = kinds(binding.outline)
+  const inFace = (face: any, p: number[]): boolean => {
+    const tri = face.triangulation(), v = tri?.vertices, t = tri?.trianglesIndexes
+    if (!v || !t) return false
+    for (let i = 0; i < t.length; i += 3) {
+      const a = t[i] * 3, b = t[i + 1] * 3, c = t[i + 2] * 3
+      if (ptTriDist2(p[0], p[1], p[2], v[a], v[a + 1], v[a + 2], v[b], v[b + 1], v[b + 2], v[c], v[c + 1], v[c + 2]) < 1e-10) return true
+    }
+    return false
+  }
+  const hits = planarFaces.filter(({ face, desc }) => {
+    if (!desc || !desc.normal.every((x, i) => Math.abs(x - n[i]) < 1e-7)) return false
+    const d = desc.offset - binding.offset
+    if (Math.abs(d) < 1e-9) return false   // same plane: handled by the exact/anchored paths
+    return [binding.near, binding.center].some((p) => inFace(face, p.map((x, i) => x + n[i] * d)))
+  })
+  const pick = (list: typeof hits) => {
+    if (list.length <= 1) return list
+    const by = list.map((h) => ({ h, d: Math.abs(h.desc!.offset - binding.offset) })).sort((a, b) => a.d - b.d)
+    return by[1].d - by[0].d > 1e-6 ? [by[0].h] : []
+  }
+  const strict = hits.filter(({ desc }) => kinds(desc!.outline) === wantKinds)
+  return pick(strict.length ? strict : hits)
+}
 function resolveSketchFace(shape: any, binding: SketchFaceBinding): ResolvedSketchFace {
   if (!shape) throw new Error('草图来源面失效：来源实体不存在')
   shape.mesh({ tolerance: 0.1, angularTolerance: 0.5 })
@@ -2909,6 +2940,13 @@ function resolveSketchFace(shape: any, binding: SketchFaceBinding): ResolvedSket
   if (anchoredFaces.length === 1 && (candidates.length !== 1 || candidates[0] !== anchoredFaces[0])) {
     candidates = anchoredFaces
     boundaryChanged = true
+  }
+  if (!candidates.length) {
+    // v2.20 P1：上游參數（例如腳厚 t 8→10）令來源面沿自身法向平移 — 仍係同一張面，只係平面位置變咗，
+    //   唔可以當失效。按「同一法向 + 同一張面沿法向滑動」重新綁定：舊錨點（或舊面心）沿法向投影到候選平面後
+    //   必須落喺該面內；先要求邊類型組合相同，再唔得先放寬；多張 → 揀平移量最細且唯一嘅一張，否則仍報歧義。
+    const slid = sketchSlidFaceCandidates(planarFaces, binding)
+    if (slid.length === 1) { candidates = slid; boundaryChanged = true }
   }
   if (candidates.length !== 1) {throw new Error('草图来源面失效或有歧义：请修复面关联；已保留原模型')}
   // Fingerprints provide the same persistent identity vocabulary as other face

@@ -56,6 +56,7 @@ import { mapKernelFailuresToTimeline } from './cad/featureFailureMap'
 import { formBoxSizeFromPoints, makePlacedBoxCage, newFormBoxDraft, type FormBoxDraft, type FormBoxPlane } from './cad/formBox'
 import { makeFormPipeCage, setSymmetricFormVert } from './cad/subdiv'   // S193：Form 镜像对称编辑（纯函数，Node 测过）
 import { detectLang, tStatus, msg, normalizeLang, tMaterialName, type Lang } from './i18n'   // T800 + v1.74 locales
+import { simplifiedToTraditionalHK } from './i18n/sc2tcHK'
 import { searchRibbonCommand } from './ribbon'   // P6 AI 教学：把用户问句模糊匹配到真实 ribbon 命令位置
 import { openAeroLab } from './aero/aeroUiStore'   // Aero Design Lab（氣動設計實驗室）面板開關 — 獨立小 store
 import type { MeshData, Feature, SketchProfile, BoolOp, EdgeSel, DrawView, Plane } from './worker/cad.worker'
@@ -2705,6 +2706,9 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   params: Parameter[]
   paramBindings: Record<string, string>
   paramsOpen: boolean
+  /** v2.20 P1：上一次參數修改未能套用 — 面板保留使用者輸入值並顯示原因（模型及參數仍為原值）。 */
+  paramFailure: { name: string; attempted: string; kept: number; reason: string } | null
+  clearParamFailure: () => void
   toggleParamsPanel: () => void
   helpOpen: boolean
   toggleHelp: () => void
@@ -5384,6 +5388,25 @@ export function holeBlindOverrun(st: Pick<AppState, 'bodyMesh' | 'holeThrough' |
 }
 
 export const useApp = create<AppState>((rawSet, get) => {
+  // v2.20 P1：參數修改後重建失敗 → 模型及參數已原子還原（見 applyFeatures）。唔可以靜靜咁跳返舊值：
+  //   記低使用者輸入嘅值 + 原因，參數面板保留輸入值並以明確訊息說明「未套用，模型仍為舊值」。
+  function reportParamFailure(name: string, attempted: string, before: { params?: Parameter[] }, isExpr = false, prevFail?: { ids: string[]; errors: Record<string, string> }) {
+    const st = get(), now = st.params.find((p) => p.name === name), was = before.params?.find((p) => p.name === name)
+    if (!now) return
+    const applied = isExpr ? (now.expr ?? '') === attempted : String(now.value) === attempted && !now.expr
+    if (applied) { if (st.paramFailure) set({ paramFailure: null }); return }
+    const cjk = (x: unknown) => typeof x === 'string' && /[\u3400-\u9fff]/.test(x)
+    const first = st.failedFeatureIds?.[0], firstErr = first ? st.featureErrors?.[first] : undefined
+    // 最早失敗嘅特徵先係根因（後面嘅多數係連帶）；佢冇可讀原因（內核數字錯誤碼）→ 用通用說明，唔拎連帶錯誤充數。
+    const raw = (first ? (cjk(firstErr) ? firstErr : undefined) : [...Object.values(st.featureErrors ?? {}), st.status].find(cjk)) as string | undefined
+    const reason = raw
+      ? simplifiedToTraditionalHK(raw).replace(/^⚠\s*/, '').replace(/^參數更新失敗：/, '').replace(/^Error:\s*/, '')
+        .replace(/[，；]?(已保留原模型|已恢復最後有效模型)$/, '').replace(/（已保留上一個有效模型）$/, '').replace(/[。；，\s]+$/, '')
+      : '重建時幾何內核出錯，此數值可能令輪廓或特徵退化'
+    const kept = was?.value ?? now.value
+    // 模型已還原到修改前（有效）狀態：時間軸唔應再標紅「試過但未套用」嘅特徵 — 還原修改前嘅失敗標記。
+    set({ ...(prevFail ? { failedFeatureIds: prevFail.ids, featureErrors: prevFail.errors } : {}), paramFailure: { name, attempted, kept, reason }, status: `⚠ 參數 ${name} = ${attempted} 未能套用：${reason}。模型及參數仍為 ${name} = ${+kept.toFixed(6)}；參數面板保留輸入值，可修正後按 Enter 重試，或按 Esc 還原。` })
+  }
   // Every internal sketch write shares this transaction boundary, including
   // Delete, vertex deletion, Trim, Break and Boolean constraint filtering.
   const set = (update: Partial<AppState> | ((state: AppState) => Partial<AppState>)) => _featDlgDry ? undefined : rawSet(state => {
@@ -21130,6 +21153,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   params: [],
   paramBindings: {},
   paramsOpen: false,
+  paramFailure: null,
+  clearParamFailure: () => set({ paramFailure: null }),
   toggleParamsPanel: () => set((s) => ({ paramsOpen: !s.paramsOpen })),
   helpOpen: false,
   toggleHelp: () => set((s) => ({ helpOpen: !s.helpOpen })),
@@ -21277,10 +21302,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (get().busy) { set({ status: '請等待當前重建完成，再修改參數' }); return }
     if(get().mode==='sketch'){await editActiveSketchParameter(name,{value});return}
     const _pd = docSnap(get())  // S110：操作前快照 → undo 真正还原 params（否则 docSnap 读到新值，撤销变空操作）
+    const _pf = { ids: get().failedFeatureIds, errors: get().featureErrors }
     // setting a value directly clears any expression (manual override), then re-evaluate dependents
     try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, name, value, expr: undefined, refs: undefined } : p))) })) } catch (e) { set({ status: `參數更新失敗：${String(e)}，已保留原值` }); return }
     // T746 批3：先重解 ƒx 绑定嘅草图（compute-only），一次 applyFeatures 重建；srcs 成功后先写（同 applySketchEdit 政策一致）
-    set({ busy: true })
+    set({ busy: true, paramFailure: null })
     try {
     const r = await get().applyParamSketches(_pd)
     if (r) {
@@ -21290,6 +21316,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       await get().applyFeatures(get().features, `參數 ${name} = ${value} — 已聯動重建`, true, undefined, _pd)
     }
     } catch (e) { set({ ..._pd, busy: false, status: `參數更新失敗：${String(e)}，已恢復最後有效模型` }) }
+    reportParamFailure(name, String(value), _pd, false, _pf)
   },
   setParamExpr: async (name, expr) => {
     if (get().busy) { set({ status: '請等待當前重建完成，再修改參數' }); return }
@@ -21297,10 +21324,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     const target = get().params.find(p => p.name === name)
     const refs = parameterExpressionRefs(expr, get().params, target?.refs)
     const _pd = docSnap(get())  // S110：操作前快照（undo 还原 params/绑定）
+    const _pf = { ids: get().failedFeatureIds, errors: get().featureErrors }
     try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, expr: expr || undefined, refs: expr ? refs : undefined } : p))) })) } catch (e) { set({ status: `參數更新失敗：${String(e)}，已保留原值` }); return }
     const p = get().params.find((x) => x.name === name)
     const msg = expr ? `${name} = ${expr} = ${p ? +p.value.toFixed(2) : '?'} — 已聯動` : `已清除 ${name} 的表达式`
-    set({ busy: true })
+    set({ busy: true, paramFailure: null })
     try {
     const r = await get().applyParamSketches(_pd)
     if (r) {
@@ -21310,6 +21338,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       await get().applyFeatures(get().features, msg, true, undefined, _pd)
     }
     } catch (e) { set({ ..._pd, busy: false, status: `參數更新失敗：${String(e)}，已恢復最後有效模型` }) }
+    reportParamFailure(name, expr, _pd, true, _pf)
   },
   removeParam: async (name) => {
     if (get().busy) { set({ status: '請等待當前重建完成，再修改參數' }); return }

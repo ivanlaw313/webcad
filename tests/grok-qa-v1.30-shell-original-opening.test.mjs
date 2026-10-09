@@ -44,7 +44,7 @@ const w = globalThis.__wheelWorker
 await w.ready()
 
 const altRe = /已改用其他平面开口|已启用其他开口面|原开口 OCCT 未收敛/
-const cavityRe = /开口面偏移型腔|直柱型腔|备用/
+const cavityRe = /开口面偏移型腔|開口面偏移型腔|直柱型腔|备用|備用/
 
 const boxCut = { id: 'box', type: 'extrude', profile: { kind: 'rect', a: [-25, -20], b: [25, 20] }, height: 25, operation: 'new' }
 const cylCut = { id: 'cyl', type: 'extrude', profile: { kind: 'circle', c: [10, 0], r: 10 }, height: 30, operation: 'newbody' }

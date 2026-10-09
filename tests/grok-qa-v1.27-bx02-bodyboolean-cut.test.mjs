@@ -27,7 +27,7 @@ test('APP_VERSION is 1.27+', () => {
 test('BX02 v1.27: heal + _cutRobust + auto-swap wired in bodyboolean', () => {
   assert.match(workerSrc, /function _cutRobust/)
   assert.match(workerSrc, /function _solidVolume/)
-  assert.match(workerSrc, /已自动对调为工具−目标/)
+  assert.match(workerSrc, /已自動對調為工具−目標/)
   assert.match(workerSrc, /const targetSh = _healSolid\(shape\)/)
   assert.match(workerSrc, /const toolSh = _healSolid\(t\.shape\)/)
   assert.match(workerSrc, /v1\.27 BX02/)
@@ -62,7 +62,7 @@ test('BX02 LIVE-fail path: box→新实体→contained cyl→cut now rebuilds (a
   assert.deepEqual(m.failed ?? [], [], `rebuild failed: ${JSON.stringify(m.failed)}`)
   assert.ok((m.triangles?.length ?? 0) > 0)
   const warnings = m.warnings ?? []
-  assert.ok(warnings.some((w) => /自动对调/.test(w)), `expected auto-swap warning, got ${JSON.stringify(warnings)}`)
+  assert.ok(warnings.some((w) => /自动对调|自動對調/.test(w)), `expected auto-swap warning, got ${JSON.stringify(warnings)}`)
   const body = await w.measureBodyAt([5, 5, 5])
   assert.ok(body && body.volume > 10000 && body.volume < 50000, `expected holed-box volume, got ${body?.volume}`)
 })

@@ -33,7 +33,7 @@ await import('../src/worker/cad.worker.ts')
 const w = globalThis.__wheelWorker
 await w.ready()
 
-const cavityRe = /开口面偏移型腔|备用：/
+const cavityRe = /开口面偏移型腔|開口面偏移型腔|备用|備用/
 const failAlarmRe = /OCCT 抽壳失败|抽壳失败/
 
 const boxCut = { id: 'box', type: 'extrude', profile: { kind: 'rect', a: [-25, -20], b: [25, 20] }, height: 25, operation: 'new' }

@@ -40,7 +40,7 @@ await import('../src/worker/cad.worker.ts')
 const w = globalThis.__wheelWorker
 await w.ready()
 
-const cavityRe = /开口面偏移型腔|直柱型腔|备用/
+const cavityRe = /开口面偏移型腔|開口面偏移型腔|直柱型腔|备用|備用/
 
 const boxFuse = { id: 'box', type: 'extrude', profile: { kind: 'rect', a: [-25, -20], b: [25, 20] }, height: 25, operation: 'new' }
 const cylFuse = { id: 'cyl', type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: 12 }, height: 35, operation: 'newbody' }

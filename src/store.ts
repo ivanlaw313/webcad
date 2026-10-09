@@ -2353,6 +2353,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   setMaterialPreset: (name: string) => void
   appearanceName: string                                  // 最近套用嘅外观预设名（纯视觉；swatch 高亮用）
   physMatName: string                                     // GM-3DV3 M14：物理材质名（只影响密度→质量/FEA/BOM，唔郁外观）
+  parkedBodyMaterials: (string | undefined)[]             // P1 B：各獨立實體物理材質（同 bodyMesh.parked 對齊）
   setPhysicalMaterial: (name: string) => void
   // S187：用户外观材质库（save/load/delete 具名预设，localStorage 全局持久，对标 Fusion Appearance 收藏）
   materialLibrary: MatLibrary
@@ -3351,7 +3352,50 @@ function jointValuesDiffer(a: readonly Joint[], b: readonly Joint[]): boolean {
   return b.some((j) => { const o = byId.get(j.id); return !o || JOINT_DRIVE_KEYS.some((k) => Math.abs(((o as any)[k] ?? 0) - ((j as any)[k] ?? 0)) > 1e-9) })
 }
 
-function docSnap(s: Pick<AppState, 'features' | 'components' | 'componentDefs' | 'joints' | 'motionLinks' | 'sketchSources' | 'params' | 'paramBindings' | 'suppressedIds' | 'faceColors' | 'mates' | 'groups' | 'jointPoses' | 'jointKeyframes' | 'planes' | 'cpoints' | 'caxes' | 'jointOrigins' | 'rigidGroups' | 'contactPairs'>) {
+
+/** P1 B：跟住重建同步獨立實體材質陣列；newbody 把活動材質泊車；activatebody 對調。 */
+function syncParkedBodyMaterials(
+  s: Pick<AppState, 'physMatName' | 'parkedBodyMaterials' | 'bodyMesh' | 'bodyColor' | 'material' | 'appearanceName'>,
+  mesh: MeshData | null,
+  nextFeatures: Feature[],
+): Partial<AppState> {
+  const nParked = mesh?.parked?.length ?? 0
+  const prevN = s.bodyMesh?.parked?.length ?? 0
+  let phys = s.physMatName || ''
+  let parked = (s.parkedBodyMaterials ?? []).slice(0, nParked)
+  while (parked.length < nParked) parked.push(undefined)
+  const last = nextFeatures.length ? nextFeatures[nextFeatures.length - 1] : null
+  if (last?.type === 'activatebody' && typeof (last as { target?: number }).target === 'number') {
+    const idx = (last as { target: number }).target
+    if (idx >= 0 && idx < parked.length) {
+      const tmp = parked[idx]
+      parked[idx] = phys || undefined
+      phys = tmp || ''
+    }
+  } else if (nParked === prevN + 1) {
+    // 活動體被泊成最新獨立實體 — 帶走其物理材質；新活動體用文件預設密度（physMatName 清空）
+    parked[nParked - 1] = phys || undefined
+    phys = ''
+  } else if (nParked < prevN) {
+    parked = parked.slice(0, nParked)
+  }
+  const patch: Partial<AppState> = { parkedBodyMaterials: parked, physMatName: phys }
+  if (phys !== (s.physMatName || '')) {
+    const m = phys ? MATERIALS[phys] : null
+    if (m) {
+      patch.bodyColor = m.color
+      patch.material = { ...s.material, metalness: m.metalness, roughness: m.roughness, opacity: m.opacity ?? 1, tex: m.tex ?? '' }
+      patch.appearanceName = phys
+    } else if (!phys) {
+      // 新活動體／清材質 → 外觀回到文件預設藍灰（唔改 bodyDensity）
+      patch.bodyColor = '#4a7296'
+      patch.appearanceName = ''
+    }
+  }
+  return patch
+}
+
+function docSnap(s: Pick<AppState, 'features' | 'components' | 'componentDefs' | 'joints' | 'motionLinks' | 'sketchSources' | 'params' | 'paramBindings' | 'suppressedIds' | 'faceColors' | 'mates' | 'groups' | 'jointPoses' | 'jointKeyframes' | 'planes' | 'cpoints' | 'caxes' | 'jointOrigins' | 'rigidGroups' | 'contactPairs'> & Partial<Pick<AppState, 'physMatName' | 'parkedBodyMaterials' | 'bodyColor' | 'material' | 'appearanceName' | 'bodyDensity'>>) {
   return {
     features: s.features, components: s.components, componentDefs: referencedDefs(s.components, s.componentDefs), joints: s.joints, motionLinks: s.motionLinks, sketchSources: Object.fromEntries(Object.entries(s.sketchSources).map(([id,src])=>[id,src.patternData?{...src,patternData:structuredClone(src.patternData)}:src])),   // R2：componentDefs 必须入撤销快照（否则撤销 def 编辑 → occurrence 镜像 stale）；剪孤儿 def 防 undo 栈膨胀（占内存嘅是孤儿 def 独持嘅旧 mesh）——快照唔剥 occ.mesh 故即使剪错都零几何丢失
 
@@ -3359,6 +3403,13 @@ function docSnap(s: Pick<AppState, 'features' | 'components' | 'componentDefs' |
     jointPoses: s.jointPoses, jointKeyframes: s.jointKeyframes,   // S177 audit 修：捕捉位置/关键帧亦入撤销快照（buildProjectPayload 已存佢哋；漏咗会令 undo/redo 丢动画数据）
     planes: s.planes, cpoints: s.cpoints, caxes: s.caxes,   // GM-W1 1.5：参考/角度面 + 构造点/轴入撤销快照 → datum 建/删/改（updatePlane）可 Ctrl+Z（还原侧 ?? 兜底兼容旧栈）
     jointOrigins: s.jointOrigins, rigidGroups: s.rigidGroups, contactPairs: s.contactPairs,   // GM-3DV4 A1/A8/A9：关节原点 / 刚性组 / 命名接触集入撤销快照
+    // P1 B：實體材質入撤銷快照（舊棧缺字段 → undo 側 ?? 兜底）；文件預設 bodyDensity 一併快照以免幾何撤銷殘留密度污染
+    physMatName: s.physMatName ?? '',
+    parkedBodyMaterials: (s.parkedBodyMaterials ?? []).slice(),
+    bodyColor: s.bodyColor ?? '#4a7296',
+    material: s.material ?? { metalness: 0.5, roughness: 0.42, opacity: 1, tex: '' },
+    appearanceName: s.appearanceName ?? '',
+    bodyDensity: s.bodyDensity ?? 2.7,
   }
 }
 // GM-W1 1.5：角度面（addAnglePlane / updatePlane 共用）arb 基推导 —— 基面 @offset 绕自身局部 x/y 轴转 angle°（Rodrigues）。
@@ -6091,7 +6142,8 @@ export const useApp = create<AppState>((rawSet, get) => {
           }
           nextFeatures=nextFeatures.map(f=>{const r=resolved[f.id] ?? (f.type==='extgroup'?resolved[`${f.id}#0`]:undefined);return r?update(f,r):f})
           // GM-W5 5.1：rebuild 成功嘅【单一 choke point】—— 由 nextFeatures 派生 planes[]（datum 特征 → 参考面）。undo/redo/编辑/删/抑制 全部经此。
-          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: noTris ? null : mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: (mesh.warnings ?? []).slice(), failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}), ...(hasLiveSimResults(s2) ? invalidateSimResultsPatch('幾何已改') : {}) }
+          const matSync = syncParkedBodyMaterials(s2, noTris ? null : mesh, nextFeatures)
+          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: noTris ? null : mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: (mesh.warnings ?? []).slice(), failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}), ...(hasLiveSimResults(s2) ? invalidateSimResultsPatch('幾何已改') : {}), ...matSync }
         })
         // Keep a live capped-section solid in sync with model edits (recompute the half from the new body).
         if (!context && get().section.on && get().section.capped) void get().refreshSectionCap()
@@ -11955,7 +12007,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       const post = transformFace(face, delta) as Extract<MateFace, { kind: 'planar' }>
       const n = new Vector3(A.face.n[0], A.face.n[1], A.face.n[2]); if (n.lengthSq() < 1e-12) n.set(0, 1, 0); n.normalize()
       anchor = [post.p[0], post.p[1], post.p[2]]; axis = [n.x, n.y, n.z]
-      allowTypes = jointTypeMenu(['rigid', 'planar']); defType = 'rigid'   // 全部 8 類可選（同 JOINTS 面板一致）；建議 rigid/planar 排前。舊註： 滑动沿法向会分离两面（无意义）、沿面内轴方向歧义 → 只提供 kinematics 支持嘅 planar（面内 U/V 平移 + 绕法向转）
+      // P1 A：無圓柱面 → 旋轉／滑動／圓柱唔入場（要真圓柱軸）；預設剛性
+      allowTypes = jointTypeMenu(['rigid', 'planar']).filter((t) => t !== 'revolute' && t !== 'slider' && t !== 'cylindrical')
+      defType = 'rigid'
     } else {
       // RETEST18 #2：圓柱 ↔ 平面（混合 snap）：關節軸 = 圓柱軸（貼合後同平面法向共線）；錨點 = 軸線同平面嘅交點
       // （= 平面父件面心 / 圓柱父件軸上子面心）。預設旋轉（軸穿板 / 輪轂坐落軸肩）。
@@ -11972,8 +12026,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       allowTypes = jointTypeMenu(['revolute', 'slider', 'cylindrical']); defType = 'revolute'
     }
     // ASM2 P3：預設（高亮＋排第一＋「（預設）」）＝ 用戶已選類型（面板下拉／上次選擇，初始「旋轉」），唔再按幾何默默變「剛性」；
-    // 幾何建議只決定其餘排序。
-    { const pref = s.jointTypePref; if (pref && pref !== defType) { defType = pref; allowTypes = jointTypeMenu([pref, ...allowTypes.filter((t) => t !== pref)]) } }
+    // 幾何建議只決定其餘排序。P1 A：若預設類型唔喺允許清單（例兩平面唔允許旋轉）→ 保持幾何預設。
+    { const pref = s.jointTypePref; if (pref && pref !== defType && allowTypes.includes(pref)) { defType = pref; allowTypes = jointTypeMenu([pref, ...allowTypes.filter((t) => t !== pref)]) } }
     const pose = worldToPose(delta.clone().multiply(Mb), meshCenter3(B.mesh))
     // ── 先贴合（俾用户睇到 snap，似 Fusion）—— 但【唔即刻推撤销栈】，留返同建关节一齐做单快照（原子）──
     const preUndo = s.undoStack, preSnap = docSnap(s)   // 贴合前撤销栈 + 全文档快照（最终净推一个 → undo 一步同时还原 snap+joint）
@@ -11995,10 +12049,32 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       const type: JointType = (allowTypes as string[]).includes(r) ? (r as JointType) : defType
       set({ jointTypePref: type })   // ASM2 P3：記住選擇（面板下拉同步）
+      // P1 A：旋轉／滑動／圓柱必須用真圓柱面軸 — 兩下都係平面 → 拒絕；第二下係平面（混合）→ 澄清確認
+      const needsCylAxis = type === 'revolute' || type === 'slider' || type === 'cylindrical'
+      const secondWasPlanar = A.face.kind === 'planar'   // A = 父 = 第二拣（對調後）
+      if (needsCylAxis && A.face.kind !== 'cyl' && face.kind !== 'cyl') {
+        set({ status: `⚠ ${JOINT_LABEL_TC[type]}關節需要至少一個【圓柱面】取軸 — 兩下都點中平面。請改點圓柱孔／軸壁，或改選剛性／平面關節` })
+        return
+      }
+      if (needsCylAxis && secondWasPlanar && face.kind === 'cyl') {
+        const lang1 = get().lang
+        const ok = await get().appConfirm(
+          tStatus('第二下點中了平面（非圓柱面）。旋轉／滑動軸將取自已選圓柱面（唔係平面法向）。若要軸隨孔壁，請取消後改點圓柱孔／軸壁。', lang1),
+          tStatus('混合面澄清', lang1),
+        )
+        if (!ok) { set({ status: '已取消建關節 — 請再拾取，第二下改點圓柱孔／軸壁' }); return }
+      }
       // 建关节：唔用 addJoint（佢自带撤销快照会破坏原子性）—— 此处复用 addJoint 嘅 id/命名规则，同贴合共一快照
       const n = s2.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
-      const jid = 'J' + n, joint: Joint = { id: jid, name: '關節' + n, type, parent: A.compId, child: B.id, anchor, axis, angle: 0, slide: 0 }
-      const geomLbl = A.face.kind !== face.kind ? '軸取自圓柱軸、錨點 = 軸線穿過平面處（混合 snap）' : A.face.kind === 'cyl' ? '軸／錨點取自所選圓柱面' : '錨點取自貼合面心、軸取自平面法向'
+      const jid = 'J' + n
+      const childNow = get().components.find((c) => c.id === B.id) ?? B
+      const joint: Joint = {
+        id: jid, name: '關節' + n, type, parent: A.compId, child: B.id, anchor, axis, angle: 0, slide: 0,
+        restChildPose: { pos: [...childNow.pos] as [number, number, number], rot: [...(childNow.rot ?? [0, 0, 0])] as [number, number, number] },
+      }
+      const geomLbl = A.face.kind !== face.kind
+        ? (needsCylAxis ? '軸取自真圓柱面、錨點 = 軸線穿過平面處（混合 snap · 已澄清）' : '軸取自圓柱軸、錨點 = 軸線穿過平面處（混合 snap）')
+        : A.face.kind === 'cyl' ? '軸／錨點取自所選圓柱面（真圓柱軸）' : '錨點取自貼合面心、軸取自平面法向'
       set({
         undoStack: [...preUndo, preSnap].slice(-60), redoStack: [],
         joints: [...s2.joints, joint],
@@ -13968,15 +14044,18 @@ export const useApp = create<AppState>((rawSet, get) => {
   addJoint: (j) => set((s) => {
     if (isCompGrounded(s, j.child)) return { status: groundedJointMsg(s, j.child) }   // BUG(B)：固定件唔可以做關節子件（會被驅動）
     const n = s.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints: [...s.joints, { ...j, id: 'J' + n, name: '關節' + n }] }
+    const child = s.components.find((c) => c.id === j.child)
+    const restChildPose = j.restChildPose ?? (child ? { pos: [...child.pos] as [number, number, number], rot: [...(child.rot ?? [0, 0, 0])] as [number, number, number] } : undefined)
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints: [...s.joints, { ...j, id: 'J' + n, name: '關節' + n, ...(restChildPose ? { restChildPose } : {}) }] }
   }),
   addJointAtPose: (j, childId, pose) => set((s) => {
     if (isCompGrounded(s, childId)) return { status: groundedJointMsg(s, childId) }
     const n = s.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
+    const restChildPose = j.restChildPose ?? { pos: [...pose.pos] as [number, number, number], rot: [...pose.rot] as [number, number, number] }
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       components: s.components.map((c) => c.id === childId ? { ...c, pos: pose.pos, rot: pose.rot } : c),
-      joints: [...s.joints, { ...j, id: 'J' + n, name: '關節' + n }],
+      joints: [...s.joints, { ...j, id: 'J' + n, name: '關節' + n, restChildPose }],
     }
   }),
   // Closed-loop 4-bar: a default Grashof crank-rocker (centred, in the XY view plane). Drive the crank
@@ -14352,13 +14431,24 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   // Home all joints: return every joint to its REST value (GM-3DV4 A3 — 缺省 rest=0 → 逐字节旧「归零」行为)。
   //   主自由度：slider=slide、其余转动类=angle；其余 DOF 清零。空机构唔压撤销快照（冇嘢变）。
-  homeJoints: () => set((s) => (s.joints.length
-    ? {
+  homeJoints: () => set((s) => {
+    if (!s.joints.length) return { status: '沒有關節可歸零' }
+    const joints = s.joints.map((j) => ({ ...j, angle: 0, slide: 0, angle2: 0, angle3: 0, slide2: 0, ...(j.type === 'slider' ? { slide: j.rest ?? 0 } : { angle: j.rest ?? 0 }) }))
+    // P1 A：同時還原建關節時嘅子件 as-built 位姿（角度歸零 + FK 單位矩陣仍可能留低誤寫嘅 pos）
+    const poseByChild = new Map<string, { pos: [number, number, number]; rot: [number, number, number] }>()
+    for (const j of s.joints) if (j.restChildPose) poseByChild.set(j.child, j.restChildPose)
+    const components = poseByChild.size
+      ? s.components.map((c) => {
+          const p = poseByChild.get(c.id)
+          return p ? { ...c, pos: [...p.pos] as [number, number, number], rot: [...p.rot] as [number, number, number] } : c
+        })
+      : s.components
+    return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
-      joints: s.joints.map((j) => ({ ...j, angle: 0, slide: 0, angle2: 0, angle3: 0, slide2: 0, ...(j.type === 'slider' ? { slide: j.rest ?? 0 } : { angle: j.rest ?? 0 }) })),
-      status: `已把 ${s.joints.length} 個關節回到靜止位（Rest，預設 0）`,
+      joints, components,
+      status: `已把 ${s.joints.length} 個關節回到靜止位（Rest，預設 0${poseByChild.size ? ' · 已還原子件 as-built 位姿' : ''}）`,
     }
-    : { status: '沒有關節可歸零' })),
+  }),
   // 捕捉位置：快照当前每个关节嘅 5 个 DOF 值（以 id 为键），存为命名姿态。空机构唔压撤销（冇嘢捕捉）。
   jointPoses: [],
   jointKeyframes: [],
@@ -14649,8 +14739,25 @@ export const useApp = create<AppState>((rawSet, get) => {
   // GM-3DV3 M14：Physical Material 与 Appearance 分家 —— 物理材质只设【密度】（→ 质量/FEA/BOM），唔郁外观颜色/PBR。
   // （对标 Fusion：可以畀件「钢密度做质量计算」但外观照旧原色；反之外观库只管睇相唔改密度。）
   physMatName: '',
-  // UX2 #9：Fusion 物理材質自帶外觀 — 揀「鋼」實體即變鋼色（以前只改密度，用戶以為冇生效）。之後再用「外觀」可單獨改色。
-  setPhysicalMaterial: (name) => { const m = MATERIALS[name]; if (m && m.density) set((s) => ({ bodyDensity: m.density, physMatName: name, bodyColor: m.color, material: { ...s.material, metalness: m.metalness, roughness: m.roughness, opacity: m.opacity ?? 1, tex: m.tex ?? '' }, appearanceName: name, status: `已設物理材質「${name}」密度 ${m.density} g/cm³（質量/FEA/BOM 用；外觀已跟材質）` })) },
+  parkedBodyMaterials: [],
+  // UX2 #9 + P1 B：Fusion 物理材質自帶外觀 — 揀「鋼」實體即變鋼色。
+  // P1 B：只改【活動實體】材質／顏色（一撤銷步）；【唔改】文件預設 bodyDensity（新實體仍繼承預設密度）。
+  setPhysicalMaterial: (name) => {
+    const m = MATERIALS[name]
+    if (!m || !m.density) return
+    set((s) => {
+      if (s.physMatName === name && s.appearanceName === name) return { status: `活動實體已是「${name}」` }
+      return {
+        undoStack: [...s.undoStack, docSnap(s)].slice(-60),
+        redoStack: [],
+        physMatName: name,
+        bodyColor: m.color,
+        material: { ...s.material, metalness: m.metalness, roughness: m.roughness, opacity: m.opacity ?? 1, tex: m.tex ?? '' },
+        appearanceName: name,
+        status: `已設活動實體材質「${name}」密度 ${m.density} g/cm³（僅此實體；文件預設密度 ${s.bodyDensity} g/cm³ 不變 — Ctrl+Z 可還原）`,
+      }
+    })
+  },
   // S187：用户外观材质库 — save = 把当前 bodyColor+material 存做具名预设（localStorage 全局持久）；load = 套用；delete = 删。
   materialLibrary: matLoadLibrary(),
   matLibOpen: false,
@@ -15901,7 +16008,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     set((s) => {
       const redoEntry: AppState['undoStack'][number] = prev.activeBodyName !== undefined ? { ...docSnap(s), activeBodyName: s.activeBodyName } : docSnap(s)   // UX2 P3：實體名跟住撤銷／重做
       if (reopen) _sketchFinishUndo.set(redoEntry, reopen)
-      return { ...(prev.activeBodyName !== undefined ? { activeBodyName: prev.activeBodyName } : {}), undoStack: s.undoStack.slice(0, -1), redoStack: [...s.redoStack, redoEntry], components: prev.components, componentDefs: prev.componentDefs ?? s.componentDefs, joints: prev.joints ?? s.joints, motionLinks: prev.motionLinks ?? s.motionLinks, sketchSources: prev.sketchSources ?? s.sketchSources, params: prev.params ?? s.params, paramBindings: prev.paramBindings ?? s.paramBindings, suppressedIds: prev.suppressedIds ?? s.suppressedIds, faceColors: prev.faceColors ?? s.faceColors, mates: prev.mates ?? s.mates, groups: prev.groups ?? s.groups, jointPoses: prev.jointPoses ?? s.jointPoses, jointKeyframes: prev.jointKeyframes ?? s.jointKeyframes, planes: prev.planes ?? s.planes, cpoints: prev.cpoints ?? s.cpoints, caxes: prev.caxes ?? s.caxes, jointOrigins: prev.jointOrigins ?? s.jointOrigins, rigidGroups: prev.rigidGroups ?? s.rigidGroups, contactPairs: prev.contactPairs ?? s.contactPairs, selectedFeature: null, ...(reopenPatch ?? {}) }
+      return { ...(prev.activeBodyName !== undefined ? { activeBodyName: prev.activeBodyName } : {}), undoStack: s.undoStack.slice(0, -1), redoStack: [...s.redoStack, redoEntry], components: prev.components, componentDefs: prev.componentDefs ?? s.componentDefs, joints: prev.joints ?? s.joints, motionLinks: prev.motionLinks ?? s.motionLinks, sketchSources: prev.sketchSources ?? s.sketchSources, params: prev.params ?? s.params, paramBindings: prev.paramBindings ?? s.paramBindings, suppressedIds: prev.suppressedIds ?? s.suppressedIds, faceColors: prev.faceColors ?? s.faceColors, mates: prev.mates ?? s.mates, groups: prev.groups ?? s.groups, jointPoses: prev.jointPoses ?? s.jointPoses, jointKeyframes: prev.jointKeyframes ?? s.jointKeyframes, planes: prev.planes ?? s.planes, cpoints: prev.cpoints ?? s.cpoints, caxes: prev.caxes ?? s.caxes, jointOrigins: prev.jointOrigins ?? s.jointOrigins, rigidGroups: prev.rigidGroups ?? s.rigidGroups, contactPairs: prev.contactPairs ?? s.contactPairs, physMatName: (prev as any).physMatName ?? s.physMatName, parkedBodyMaterials: Array.isArray((prev as any).parkedBodyMaterials) ? (prev as any).parkedBodyMaterials : s.parkedBodyMaterials, bodyColor: (prev as any).bodyColor ?? s.bodyColor, material: (prev as any).material ?? s.material, appearanceName: (prev as any).appearanceName ?? s.appearanceName, bodyDensity: typeof (prev as any).bodyDensity === 'number' ? (prev as any).bodyDensity : s.bodyDensity, selectedFeature: null, ...(reopenPatch ?? {}) }
     })   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随撤销还原（旧栈缺 → 保持当前）。BUG-213：完成草图的条目同时 reopen 草图
     if (!needRebuild) set({ status: reopen ? SKETCH_FINISH_UNDO_STATUS : '已撤銷' })
     else if (!await get().applyFeatures(prev.features, reopen ? SKETCH_FINISH_UNDO_STATUS : '已撤销', false, undefined, docSnap(cur), true)) {
@@ -15977,7 +16084,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     set((s) => {
       const undoEntry: AppState['undoStack'][number] = next.activeBodyName !== undefined ? { ...docSnap(s), activeBodyName: s.activeBodyName } : docSnap(s)
       if (reopen) _sketchFinishUndo.set(undoEntry, reopen)
-      return { ...(next.activeBodyName !== undefined ? { activeBodyName: next.activeBodyName } : {}), redoStack: s.redoStack.slice(0, -1), undoStack: [...s.undoStack, undoEntry], components: next.components, componentDefs: next.componentDefs ?? s.componentDefs, joints: next.joints ?? s.joints, motionLinks: next.motionLinks ?? s.motionLinks, sketchSources: next.sketchSources ?? s.sketchSources, params: next.params ?? s.params, paramBindings: next.paramBindings ?? s.paramBindings, suppressedIds: next.suppressedIds ?? s.suppressedIds, faceColors: next.faceColors ?? s.faceColors, mates: next.mates ?? s.mates, groups: next.groups ?? s.groups, jointPoses: next.jointPoses ?? s.jointPoses, jointKeyframes: next.jointKeyframes ?? s.jointKeyframes, planes: next.planes ?? s.planes, cpoints: next.cpoints ?? s.cpoints, caxes: next.caxes ?? s.caxes, jointOrigins: next.jointOrigins ?? s.jointOrigins, rigidGroups: next.rigidGroups ?? s.rigidGroups, contactPairs: next.contactPairs ?? s.contactPairs, selectedFeature: null, ...(closePatch ?? {}) }
+      return { ...(next.activeBodyName !== undefined ? { activeBodyName: next.activeBodyName } : {}), redoStack: s.redoStack.slice(0, -1), undoStack: [...s.undoStack, undoEntry], components: next.components, componentDefs: next.componentDefs ?? s.componentDefs, joints: next.joints ?? s.joints, motionLinks: next.motionLinks ?? s.motionLinks, sketchSources: next.sketchSources ?? s.sketchSources, params: next.params ?? s.params, paramBindings: next.paramBindings ?? s.paramBindings, suppressedIds: next.suppressedIds ?? s.suppressedIds, faceColors: next.faceColors ?? s.faceColors, mates: next.mates ?? s.mates, groups: next.groups ?? s.groups, jointPoses: next.jointPoses ?? s.jointPoses, jointKeyframes: next.jointKeyframes ?? s.jointKeyframes, planes: next.planes ?? s.planes, cpoints: next.cpoints ?? s.cpoints, caxes: next.caxes ?? s.caxes, jointOrigins: next.jointOrigins ?? s.jointOrigins, rigidGroups: next.rigidGroups ?? s.rigidGroups, contactPairs: next.contactPairs ?? s.contactPairs, physMatName: (next as any).physMatName ?? s.physMatName, parkedBodyMaterials: Array.isArray((next as any).parkedBodyMaterials) ? (next as any).parkedBodyMaterials : s.parkedBodyMaterials, bodyColor: (next as any).bodyColor ?? s.bodyColor, material: (next as any).material ?? s.material, appearanceName: (next as any).appearanceName ?? s.appearanceName, bodyDensity: typeof (next as any).bodyDensity === 'number' ? (next as any).bodyDensity : s.bodyDensity, selectedFeature: null, ...(closePatch ?? {}) }
     })   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随重做还原。BUG-213：重做完成草图时退出编辑
     if (!needRebuild) set({ status: '已重做' })
     else if (!await get().applyFeatures(next.features, '已重做', false, undefined, docSnap(cur), true)) {
@@ -20328,8 +20435,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (!pb?.triangles?.length) { set({ status: '屬性：該獨立實體無幾何' }); return }
       mesh = pb
       name = pb.name || `獨立實體${idx + 1}`
-      material = s.physMatName
-      density = s.bodyDensity
+      material = s.parkedBodyMaterials[idx] || undefined
+      density = (material && MATERIALS[material]?.density) || s.bodyDensity
       get().selectParkedBody(idx)
     } else if (bodyId) {
       const c = s.components.find((x) => x.id === bodyId)
@@ -20353,6 +20460,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else {
       if (!s.bodyMesh || !s.bodyMesh.triangles.length) { set({ status: '屬性：需要活動實體（或在瀏覽器選一個組件右鍵屬性）' }); return }
       mesh = s.bodyMesh; material = s.physMatName
+      density = (s.physMatName && MATERIALS[s.physMatName]?.density) || s.bodyDensity
       // GM-X1 #10：精度档 → 重新细分（仅 B-rep 活动实体）。Med 用现网格；Low/High 请 worker 出 coarse/fine STL 重算。
       if (acc !== 'med' && hasSolid(s.features)) {
         try { const buf = await cad.exportSTL(accuracyToQuality(acc)); if (buf) { const { parseSTL } = await import('./io/stl'); const m = parseSTL(buf); if (m.triangles?.length) mesh = m } } catch { /* 退回现网格 */ }
@@ -22019,7 +22127,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       grounded: (d.grounded ?? null) as AppState['grounded'],
       bodyColor: typeof d.bodyColor === 'string' ? d.bodyColor : '#4a7296',
       material: sanitizeMaterial(d.material),   // battle-test-2 #8：load 端 clamp metalness/roughness ∈[0,1]
-      bodyDensity: typeof d.bodyDensity === 'number' ? d.bodyDensity : 2.7,
+      bodyDensity: typeof d.bodyDensity === 'number' ? d.bodyDensity : 2.7, physMatName: typeof d.physMatName === 'string' ? d.physMatName : '', parkedBodyMaterials: Array.isArray(d.parkedBodyMaterials) ? d.parkedBodyMaterials : [],
       originX: typeof d.originX === 'number' ? d.originX : 0,
       planes: planesFromFeatures(feats, supSnap),   // GM-W5 5.1：planes[] 由 datum 特征派生（有 datum 特征时忽略存档 planes[]；旧档已由上面迁移补 datum）
       cpoints: Array.isArray(d.cpoints) ? d.cpoints as AppState['cpoints'] : [],
@@ -22664,7 +22772,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       customBed: d.customBed && typeof d.customBed === 'object' ? d.customBed as AppState['customBed'] : null,
       grounded: (d.grounded ?? null) as AppState['grounded'],
       bodyColor: (d.bodyColor as string) ?? '#4a7296',
-      material: sanitizeMaterial(d.material), bodyDensity: typeof d.bodyDensity === 'number' ? d.bodyDensity : 2.7,   // battle-test-2 #8
+      material: sanitizeMaterial(d.material), bodyDensity: typeof d.bodyDensity === 'number' ? d.bodyDensity : 2.7, physMatName: typeof d.physMatName === 'string' ? d.physMatName : '', parkedBodyMaterials: Array.isArray(d.parkedBodyMaterials) ? d.parkedBodyMaterials : [],   // battle-test-2 #8
       originX: typeof d.originX === 'number' ? d.originX : 0,
       planes: planesFromFeatures(feats, supOpen), cpoints: arr('cpoints') as AppState['cpoints'], caxes: arr('caxes') as AppState['caxes'], ccurves: arr('ccurves') as AppState['ccurves'], viewBookmarks: sanitizeBookmarks(d.viewBookmarks), bodyHidden: sanitizeBodyHidden(d.bodyHidden), activeBodyName: typeof d.activeBodyName === 'string' ? d.activeBodyName.slice(0, 120) : '', jointPoses: sanitizeJointPoses(d.jointPoses), jointKeyframes: sanitizeJointKeyframes(d.jointKeyframes),   // GM-W5 5.1：planes[] 由 datum 特征派生
       bgPreset: typeof d.bgPreset === 'string' ? d.bgPreset : '',
@@ -22850,7 +22958,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         projectName: typeof data.projectName === 'string' ? data.projectName : '未命名零件',
         grounded: data.grounded ?? null,
         bodyColor: data.bodyColor ?? '#4a7296',
-        material: sanitizeMaterial(data.material), bodyDensity: typeof data.bodyDensity === 'number' ? data.bodyDensity : 2.7,   // battle-test-2 #8
+        material: sanitizeMaterial(data.material), bodyDensity: typeof data.bodyDensity === 'number' ? data.bodyDensity : 2.7, physMatName: typeof data.physMatName === 'string' ? data.physMatName : '', parkedBodyMaterials: Array.isArray(data.parkedBodyMaterials) ? data.parkedBodyMaterials : [],   // battle-test-2 #8
         originX: typeof data.originX === 'number' ? data.originX : 0,
         planes: planesFromFeatures(feats, supAuto), cpoints: Array.isArray(data.cpoints) ? data.cpoints : [], caxes: Array.isArray(data.caxes) ? data.caxes : [], ccurves: Array.isArray(data.ccurves) ? data.ccurves : [], viewBookmarks: sanitizeBookmarks(data.viewBookmarks), bodyHidden: sanitizeBodyHidden(data.bodyHidden), activeBodyName: typeof data.activeBodyName === 'string' ? data.activeBodyName.slice(0, 120) : '', jointPoses: sanitizeJointPoses(data.jointPoses), jointKeyframes: sanitizeJointKeyframes(data.jointKeyframes),   // GM-W5 5.1：planes[] 由 datum 特征派生
         bgPreset: typeof data.bgPreset === 'string' ? data.bgPreset : '',
@@ -23515,6 +23623,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       appearanceName: '',
       material: { metalness: 0.18, roughness: 0.5, opacity: 1 },
       physMatName: '',
+      parkedBodyMaterials: [],
       bodyDensity: 2.7,
       faceColors: {},
       faceColorPick: null,
@@ -26007,7 +26116,7 @@ export function buildProjectPayload(s: AppState) {
     features: s.features, components: serComponents, componentDefs: keptDefs.map((d) => ({ id: d.id, name: d.name, bodies: d.bodies, mesh: d.mesh, rev: d.rev, ...(d.src ? { src: d.src } : {}), ...(d.edges ? { edges: d.edges } : {}) })), joints: s.joints, motionLinks: s.motionLinks, mates: s.mates,
     jointOrigins: s.jointOrigins, rigidGroups: s.rigidGroups, contactPairs: s.contactPairs,   // GM-3DV4 A1/A8/A9：关节原点 / 刚性组 / 命名接触集随项目存档
     fourBar: s.fourBar, sliderCrank: s.sliderCrank, projectName: s.projectName,
-    grounded: s.grounded, bodyColor: s.bodyColor, material: s.material, bodyDensity: s.bodyDensity,
+    grounded: s.grounded, bodyColor: s.bodyColor, material: s.material, bodyDensity: s.bodyDensity, physMatName: s.physMatName, parkedBodyMaterials: s.parkedBodyMaterials,
     originX: s.originX, planes: s.planes, cpoints: s.cpoints, caxes: s.caxes, ccurves: s.ccurves, viewBookmarks: s.viewBookmarks, jointPoses: s.jointPoses, jointKeyframes: s.jointKeyframes, bgPreset: s.bgPreset, edgeDisplay: s.edgeDisplay, suppressedIds: s.suppressedIds,
     params: s.params, paramBindings: s.paramBindings, configs: s.configs, activeConfig: s.activeConfig, unit: s.unit, bedPreset: s.bedPreset, customBed: s.customBed,
     // GM-X2：视觉样式 / 相机三态 / 单位配对预设 随项目存档（新字段可选，旧档缺 → 默认，字节兼容）。

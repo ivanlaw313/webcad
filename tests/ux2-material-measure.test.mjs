@@ -11,17 +11,19 @@ const { combineMeasure } = await import('../src/cad/measureCombine.ts')
 const { treeMenuKeys } = await import('../src/ui/contextMenus.ts')
 const g = () => useApp.getState()
 
-test('#9 choosing physical material 钢 sets density AND the appearance colour', () => {
+test('#9 choosing physical material 钢 sets appearance colour; document default density unchanged (P1 B)', () => {
   useApp.setState({ ...useApp.getInitialState() }, true)
   const c0 = g().bodyColor
+  const d0 = g().bodyDensity
   g().setPhysicalMaterial('钢')
-  assert.equal(g().bodyDensity, 7.85)
+  assert.equal(g().physMatName, '钢')
+  assert.equal(g().bodyDensity, d0, 'document default density unchanged')
   assert.equal(g().bodyColor, MATERIALS['钢'].color)
   assert.notEqual(g().bodyColor, c0)
   assert.equal(g().material.metalness, MATERIALS['钢'].metalness)
   assert.equal(g().appearanceName, '钢')
   // appearance afterwards still overrides colour only
-  g().setMaterialPreset('木'); assert.equal(g().bodyColor, MATERIALS['木'].color); assert.equal(g().bodyDensity, 7.85)
+  g().setMaterialPreset('木'); assert.equal(g().bodyColor, MATERIALS['木'].color); assert.equal(g().bodyDensity, d0)
 })
 test('#9 body row has a 材質 dropdown and the right-click menu has 材質', () => {
   const tree = readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')

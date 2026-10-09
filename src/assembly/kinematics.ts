@@ -37,6 +37,8 @@ export type Joint = {
   originRef2?: string
   // GM-3DV4 A8：所属刚性组节点 id（rigidGroupChecked 建嘅底层 rigid 关节打此标；抑制刚性组即删呢批）。
   groupRef?: string
+  /** P1 A：建關節時子件 as-built 位姿；⌂歸零同時還原角／位移讀數 + 此位姿（防拖動誤寫 pos 後只歸角唔歸位） */
+  restChildPose?: { pos: [number, number, number]; rot: [number, number, number] }
 }
 
 // GM-3DV4 A1：可复用命名 Joint Origin 实体（Fusion CREATE > Joint Origin，唯一实证 live 嘅装配特性）。

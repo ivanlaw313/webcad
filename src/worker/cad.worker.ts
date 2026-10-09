@@ -4326,7 +4326,7 @@ function buildShape(features: Feature[], noCache = false): any {
         // #7b（audit REAL）：op='newbody' → 镜像副本独立实体做独立体（唔 fuse）；Fusion Mirror Operation=New Bodies。
         if (f.op === 'newbody') {
           const mcopy = mirrorOf(shape.clone())   // replicad shape（唔好 cast — mirrorOf 已返 replicad Shape，同 split 独立实体 parkedHalf 同类）
-          if (mcopy && (mcopy as any).wrapped && !(mcopy as any).wrapped.IsNull()) parkedBodies.push({ name: `镜像${parkedBodies.length + 1}`, shape: mcopy })
+          if (mcopy && (mcopy as any).wrapped && !(mcopy as any).wrapped.IsNull()) parkedBodies.push({ name: `鏡像${parkedBodies.length + 1}`, shape: mcopy })
           else buildWarnings.push('⚠ 镜像（新实体）：副本为空 — 已跳过')
         } else {
           let _straddle = false

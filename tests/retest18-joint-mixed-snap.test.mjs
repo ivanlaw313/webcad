@@ -38,7 +38,8 @@ const box = (id, w = 10) => ({ id, name: id, mesh: { vertices: [-w, -w, -w, w, -
 async function pickPair(A, B, answer) {
   let asked = null
   useApp.setState({ components: [box('P'), box('S')], joints: [], undoStack: [], redoStack: [], grounded: null, jointPickMode: true, jointPick: null,
-    appPick: async (_m, opts, def) => { asked = { opts: opts.map((o) => o.value ?? o.id ?? o), def }; return answer === undefined ? def : answer } })
+    appPick: async (_m, opts, def) => { asked = { opts: opts.map((o) => o.value ?? o.id ?? o), def }; return answer === undefined ? def : answer },
+    appConfirm: async () => true })
   // JOINT #3（Fusion）：第一拣 = 要郁件（子 S），第二拣 = 父件 P
   g().pickFaceForJoint('S', B)
   g().pickFaceForJoint('P', A)
@@ -66,12 +67,14 @@ test('store: shaft cylinder (parent) + hub plane (child) also accepted', async (
   assert.ok(near(Math.abs(j.axis[2]), 1) && near(j.anchor[0], 0) && near(j.anchor[1], 0) && near(j.anchor[2], 12), `${j.axis} @ ${j.anchor}`)
 })
 
-test('same-kind picks: dialog default = the user-chosen joint type (ASM2 P3: initially 旋轉, then the last choice) — no silent 剛性', async () => {
+test('same-kind picks: dialog default = the user-chosen joint type when allowed (ASM2 P3); planar+planar refuses revolute (P1 A)', async () => {
   useApp.setState({ jointTypePref: 'revolute' })
+  // P1 A：兩平面無圓柱軸 → 唔俾預設／揀旋轉；預設剛性
   let a = await pickPair({ kind: 'planar', n: [0, 1, 0], p: [0, 0, 0] }, { kind: 'planar', n: [0, 1, 0], p: [0, 30, 0] })
-  assert.equal(a.def, 'revolute'); assert.equal(g().joints[0].type, 'revolute')
-  assert.equal(a.opts[0], 'revolute')   // listed first (and labelled （預設）)
-  useApp.setState({ jointTypePref: 'rigid' })   // e.g. 剛性 chosen in the 關節 panel / last dialog
+  assert.equal(a.def, 'rigid')
+  assert.ok(!a.opts.includes('revolute') && !a.opts.includes('slider') && !a.opts.includes('cylindrical'), a.opts)
+  assert.equal(g().joints[0].type, 'rigid')
+  useApp.setState({ jointTypePref: 'rigid' })
   a = await pickPair({ kind: 'planar', n: [0, 1, 0], p: [0, 0, 0] }, { kind: 'planar', n: [0, 1, 0], p: [0, 30, 0] })
   assert.equal(a.def, 'rigid'); assert.equal(g().joints[0].type, 'rigid')
   useApp.setState({ jointTypePref: 'revolute' })

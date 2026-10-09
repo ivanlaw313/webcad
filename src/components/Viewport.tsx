@@ -4562,7 +4562,10 @@ export default function Viewport() {
   const commitSweepPath = useApp((s) => s.commitSweepPath)
   // WORKFLOW #6：體積用 worker 嘅 B-rep 精確值（同統一測量「體」同一來源、同一 fmtVol 捨入）；網格體積只做後備
   const props = useMemo(() => { const p = computeProps(bodyMesh); const ve = (bodyMesh as { volumeExact?: number } | null)?.volumeExact; return p && ve != null && ve > 0 ? { ...p, vol: ve } : p }, [bodyMesh])
-  const density = useApp((s) => s.bodyDensity) // g/cm³ for the mass readout (synced from body material preset)
+  const bodyDensity = useApp((s) => s.bodyDensity) // 文件預設密度（新實體繼承）
+  const physMatName = useApp((s) => s.physMatName)
+  // P1 B：活動實體質量用其物理材質密度；未指定則用文件預設（唔再俾 setPhysicalMaterial 改壞預設）
+  const density = (physMatName && MATERIALS[physMatName]?.density) || bodyDensity
   // S117：主惯性矩（绕质心主轴 = inertia 张量特征值，与坐标系无关）+ 回转半径 k=√(I/m)。
   // computeProps 只有绕 X/Y/Z 轴对角惯矩；非对称件主轴≠坐标轴，主惯矩先系 Fusion 物理属性嘅标准量。
   const massP = useMemo(() => (bodyMesh && bodyMesh.vertices.length ? computeMassProps(bodyMesh.vertices, bodyMesh.triangles, density) : null), [bodyMesh, density])
@@ -4716,6 +4719,20 @@ export default function Viewport() {
     const margin = Math.max((hi - lo) * 0.1, 5)
     return { min: Math.floor(lo - margin), max: Math.ceil(hi + margin) }
   }, [section.on, section.axis, section.plane, bodyMesh, components, componentDefs])
+  // P2：剖切滑桿 value 必須落喺 min..max（否則 browser 顯示 0 喺 40–60 外）；開剖切／改軸時超出就夾返範圍中點
+  const sectionOffsetClamped = Math.min(sectionRange.max, Math.max(sectionRange.min, section.offset))
+  useEffect(() => {
+    if (!section.on) return
+    if (section.offset !== sectionOffsetClamped) setSection({ offset: sectionOffsetClamped })
+  }, [section.on, section.offset, sectionOffsetClamped, setSection])
+  useEffect(() => {
+    if (!section.on) return
+    // 剛打開或軸／參考面變咗而 offset 仍係舊世界 0（常見落喺 bbox 外）→ 重設到範圍中點
+    if (section.offset < sectionRange.min || section.offset > sectionRange.max) {
+      const mid = Math.round((sectionRange.min + sectionRange.max) / 2)
+      setSection({ offset: mid })
+    }
+  }, [section.on, section.axis, section.plane, sectionRange.min, sectionRange.max]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // GM-W5 5.3：框选 marquee（navTool='select'）——window（左→右全包蓝实线）/ crossing（右→左相触绿虚线）。
   // 事件用【capture 相】拦截：净系目标 = canvas 先接管（HTML 面板/按钮唔受影响），拦截后 R3F 点击唔会触发。
@@ -8360,8 +8377,8 @@ export default function Viewport() {
             </select>
           </label>}
           <label title={tStatus('剖切平面位置 (mm)', lang)}>
-            <span style={{ color: '#6b7680' }}>{section.plane ? tStatus('沿法向偏移', lang) : tStatus('位置', lang)} {section.offset}</span>
-            <input type="range" min={sectionRange.min} max={sectionRange.max} value={section.offset} onChange={(e) => setSection({ offset: Number(e.target.value) })} style={{ width: 130 }} />
+            <span style={{ color: '#6b7680' }}>{section.plane ? tStatus('沿法向偏移', lang) : tStatus('位置', lang)} {sectionOffsetClamped}</span>
+            <input type="range" min={sectionRange.min} max={sectionRange.max} value={sectionOffsetClamped} onChange={(e) => setSection({ offset: Number(e.target.value) })} style={{ width: 130 }} />
           </label>
           <label className="sb-hint" title={tStatus('實心封蓋：布爾交集真正切開實體（截面填實）— 剖面', lang)}><input type="checkbox" checked={section.capped} onChange={() => setSection({ capped: !section.capped })} /> {tStatus('实心封盖', lang)}</label>
           {section.capped && <div role="status" aria-live="polite" data-testid="section-cap-status" className="sb-hint">{sectionCapStatus === 'busy' ? '正在計算當前模型截面；暫時顯示未封蓋剖視' : sectionCapStatus === 'unavailable' ? '當前截面無法封蓋；顯示未封蓋剖視，請調整平面或參數' : sectionCapStatus === 'empty' ? '此側沒有實體' : sectionCapStatus === 'ready' ? '當前模型截面已封蓋' : ''}</div>}

@@ -1,4 +1,6 @@
 import { parseDimensionEditInput } from '../sketch/dimensionEditInput'
+import { slotCenters } from '../sketch/slotCons'
+import { editEllipseSemi } from '../sketch/ellipseDims'
 import { boltCircleCenters, boltCircleRadius } from '../cad/boltCircle'
 import { fixesWholeShape, sketchGeometryVisible } from './sketchFixVisual'
 import { sketchConstraintColor } from './sketchConstraintColor'
@@ -1071,14 +1073,22 @@ export function SketchDraw() {
         }
       }
       else if (tool === 'slot') {
-        const dx = preview[0] - start[0], dy = preview[1] - start[1], L = Math.hypot(dx, dy) || 1
-        const a = Math.atan2(dy / L, dx / L), r = (useApp.getState().sketchSlotW || 20) / 2
-        const pp: V3[] = []
-        const cap = (cx: number, cy: number, s0: number, e0: number) => { for (let i = 0; i <= 16; i++) { const t = s0 + ((e0 - s0) * i) / 16; pp.push(lift([cx + r * Math.cos(t), cy + r * Math.sin(t)])) } }
-        cap(preview[0], preview[1], a + Math.PI / 2, a - Math.PI / 2)
-        cap(start[0], start[1], a - Math.PI / 2, a - (3 * Math.PI) / 2)
-        pp.push(pp[0])
-        els.push(<Line key="live" points={pp} color="#1572c4" lineWidth={1.5} dashed dashSize={4} gapSize={3} />)
+        // SKETCH12 b2：預覽依槽模式（心心距／總長／中心點）換算弧心，與提交 slotCenters 相同；中心點模式另顯示中心與對稱弧心。
+        const st = useApp.getState(), w = st.sketchSlotW, r = w / 2
+        const cc = w > 0 ? slotCenters(st.slotMode, start, preview, r) : null
+        if (cc && !('error' in cc)) {
+          const { c0, c1 } = cc
+          const dx = c1[0] - c0[0], dy = c1[1] - c0[1], L = Math.hypot(dx, dy) || 1
+          const a = Math.atan2(dy / L, dx / L)
+          const pp: V3[] = []
+          const cap = (cx: number, cy: number, s0: number, e0: number) => { for (let i = 0; i <= 16; i++) { const t = s0 + ((e0 - s0) * i) / 16; pp.push(lift([cx + r * Math.cos(t), cy + r * Math.sin(t)])) } }
+          cap(c1[0], c1[1], a + Math.PI / 2, a - Math.PI / 2)
+          cap(c0[0], c0[1], a - Math.PI / 2, a - (3 * Math.PI) / 2)
+          pp.push(pp[0])
+          els.push(<Line key="live" points={pp} color="#1572c4" lineWidth={1.5} dashed dashSize={4} gapSize={3} />)
+          els.push(<Line key="liveAxis" points={[lift(c0), lift(c1)]} color="#8a97a2" lineWidth={1} dashed dashSize={3} gapSize={3} />)
+          if (st.slotMode === 'centerpt') els.push(<Line key="liveCtr" points={circlePts(start, Math.max(0.4, r * 0.12), lift)} color="#1572c4" lineWidth={1} />)
+        }
       }
       // T795：补齐 CREATE 工具 live 预览（虚线 ghost，公式同 store commit 一致）
       else if (tool === 'arc') {   // 三点圆弧：① 起 → ② 终（弦）→ ③ 弧上点（cursor 即真弧）
@@ -2519,7 +2529,7 @@ export function LoftPreview() {
 // (renders nothing). Instead we split the job: SketchDimProjector (inside <Canvas>) reads the
 // camera each frame and writes screen-px transforms imperatively onto plain DOM nodes that
 // SketchDimLayer (a normal react-dom component in the viewport HUD) renders. No reconciler mixing.
-type DimEdit = { target: number | 'shape'; dim: 'w' | 'h' | 'd' | 'r' | 'off' | 'ext' | 'con'; value: number; conId?: string; deg?: boolean; radDia?: { type: 'rad' | 'dia'; flip: boolean } }  // 'ext' = extrude distance · 'con' = constraint dim (planegcs)；deg = 角度尺寸（度数，唔做单位换算）；radDia（GM-FP2 #29）= R↔Ø 翻转态：显示值经 radDiaStore 逆变换折返 stored 自然 value
+type DimEdit = { target: number | 'shape'; dim: 'w' | 'h' | 'd' | 'r' | 'off' | 'ext' | 'con' | 'ea' | 'eb'; value: number; conId?: string; deg?: boolean; radDia?: { type: 'rad' | 'dia'; flip: boolean } }  // 'ext' = extrude distance · 'con' = constraint dim (planegcs)；deg = 角度尺寸（度数，唔做单位换算）；radDia（GM-FP2 #29）= R↔Ø 翻转态：显示值经 radDiaStore 逆变换折返 stored 自然 value
 type DimLabel = { referenceExtent?: 'X' | 'Y'; frameAngleDeg?: number; key: string; anchor: [number, number, number]; text: string; expression?: string; edit?: DimEdit; remove?: string; driven?: boolean; name?: string; pxOff?: [number, number] }  // remove = constraint id (badge click deletes it); driven = 从动尺寸（灰显括号）; name = 尺寸稳定名 d1/d2（hover 显示，expr 可引用，S195）; pxOff = GM-W6 C3/C4 投影后固定屏幕像素偏移（C3 标签移离几何、C4 同锚徽章横向分列）
 const DIM_REG: { labels: DimLabel[]; els: Map<string, HTMLElement> } = { labels: [], els: new Map() }
 const dimFmt = (v: number) => v.toFixed(v % 1 ? 1 : 0)
@@ -2557,6 +2567,16 @@ function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], sh
     } else if (sh.arc) {
       const cc = circumcircle(sh.arc.a, sh.arc.b, sh.arc.m)
       if (cc) out.push({ key: k + 'r', anchor: lift(sh.arc.m), pxOff: [14, -16], text: 'R' + dimFmtU(cc.r, unit), edit: { target, dim: 'r', value: cc.r } })
+    } else if (sh.type === 'poly' && sh.ell && sh.pts.length) {
+      // SKETCH12 b2：橢圓顯示「半長軸／半短軸」可編輯讀數（取代外框 (寬)(高) 參考值，避免重複標籤）；已有驅動尺寸的半軸不再重複顯示。
+      const index = target === 'shape' ? profiles.length : target, e = sh.ell
+      const major = e.rx >= e.ry ? 0 : 1, rot = (e.rot || 0) * Math.PI / 180
+      for (const idx of [0, 1] as const) {
+        if (constraints.some((c) => c.kind === 'dim' && !c.driven && c.type === 'len' && c.a.kind === 'ellipse-axis' && c.a.shape === index && c.a.idx === idx)) continue
+        const semi = idx === 0 ? e.rx : e.ry, ang = rot + (idx === 0 ? 0 : Math.PI / 2)
+        const mid: Pt = [e.cx + Math.cos(ang) * semi / 2, e.cy + Math.sin(ang) * semi / 2]
+        out.push({ key: k + (idx ? 'eb' : 'ea'), anchor: lift(mid), pxOff: idx === 0 ? [0, -14] : [16, 0], text: `${idx === major ? '半長軸' : '半短軸'} ${dimFmtU(semi, unit)}`, edit: { target, dim: idx ? 'eb' : 'ea', value: semi } })
+      }
     } else if (sh.pts.length) {
       const index=target==='shape'?profiles.length:target
       if(constraints.some(c=>c.kind==='dim'&&!c.driven&&(c.type==='hdist'||c.type==='vdist')&&c.frameAngleDeg!==undefined&&[c.a,c.b].some(r=>r&&'shape'in r&&r.shape===index)))return
@@ -2581,6 +2601,13 @@ function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], sh
           if (pts.length < 2) return false
           const dx = Math.abs(pts[1][0] - pts[0][0]), dy = Math.abs(pts[1][1] - pts[0][1])
           return axis === 'w' ? dx >= dy : dy >= dx
+        }
+        // SKETCH12 b2：槽寬等「點到邊」驅動尺寸已標示與該邊垂直的方向 → 不再重複顯示外框讀數
+        if (c.type === 'p2l' && c.b?.kind === 'edge' && c.b.shape === index) {
+          const pts = refPts(shapesArr, c.b)
+          if (pts.length < 2) return false
+          const dx = Math.abs(pts[1][0] - pts[0][0]), dy = Math.abs(pts[1][1] - pts[0][1])
+          return axis === 'h' ? dx >= dy : dy > dx
         }
         return false
       })
@@ -2795,6 +2822,9 @@ export function SketchDimLayer() {
     if(!con||con.kind!=='dim'){setInputError('尺寸已改變，請重新打開');return false}
     const result=parseDimensionEditInput({con,raw:text,unit:state.unit,radDia:e.radDia,params:state.params,cons:state.skCons,evaluate:evalExpr})
     if(!result.ok){state.cancelSkDimEdit();invalidDimDraft.current=true;setInputError(illegalRejectStatus(result.error));useApp.setState({status:illegalRejectStatus(result.error)});return false}
+    // SKETCH12 b2：橢圓半軸尺寸不可令半短軸大於半長軸（求解器會翻轉／旋轉橢圓），與面板編輯同一規則。
+    if(con.a.kind==='ellipse-axis'&&typeof result.patch.value==='number'){const all=[...state.sketchProfiles,...(state.sketchShape?[state.sketchShape]:[])],esh=all[con.a.shape];const ell=esh?.type==='poly'?esh.ell:undefined;const chk=ell?editEllipseSemi(ell,con.a.idx,result.patch.value):null
+      if(chk&&'error' in chk){state.cancelSkDimEdit();invalidDimDraft.current=true;setInputError(illegalRejectStatus(chk.error));useApp.setState({status:illegalRejectStatus(chk.error)});return false}}
     if(invalidDimDraft.current){state.beginSkDimEdit(e.conId);invalidDimDraft.current=false}
     if(useApp.getState().skDimPreview.id!==e.conId){state.beginSkDimEdit(e.conId);if(useApp.getState().skDimPreview.id!==e.conId){setInputError('草圖已改變，請重新打開尺寸');return false}}
     setInputError(null)
@@ -2815,6 +2845,7 @@ export function SketchDimLayer() {
     if(label.edit?.dim==='con'&&label.edit.conId){useApp.getState().beginSkDimEdit(label.edit.conId);void previewDimension(label.edit,next)}
   }
   // GM-FP2 #29：尺寸标签右键上下文菜单（Fusion marking-menu 简版）— 切 R↔Ø（弧/圆）· 转从动/驱动 · 删除。
+  const [conMenu, setConMenu] = useState<{ conId: string; x: number; y: number } | null>(null)   // SKETCH12：約束徽章右鍵選單（刪除約束）
   const [dimMenu, setDimMenu] = useState<{ conId: string; x: number; y: number; driven: boolean; radDia?: { type: 'rad' | 'dia'; flip: boolean } } | null>(null)
   // GM-FP4 #31：尺寸标签拖动重定位 —— pointerdown 记起点+当前偏移；移动 >3px = 拖（live 更新偏移，leader 跟随）；未拖=当 click 改值。
   const labelDragRef = useRef<{ conId: string; sx: number; sy: number; base: [number, number]; moved: boolean } | null>(null)
@@ -2931,6 +2962,7 @@ export function SketchDimLayer() {
     if (v != null && isFinite(v) && v > 0) {
       if (e.dim === 'ext') { const cur = useApp.getState().extrudeHeight; useApp.getState().setExtrudeHeight((cur < 0 ? -1 : 1) * v) }
       // GM-FP2 #29：R↔Ø 翻转态下用户打嘅系【显示值】→ radDiaStore 折返 stored 自然 value 先入 editSkDim
+      else if (e.dim === 'ea' || e.dim === 'eb') useApp.getState().setEllipseAxis(e.target, e.dim === 'ea' ? 0 : 1, v)
       else if(e.dim!=='con')setDim(e.target, e.dim, v)
     } else if (draft.trim() !== '' && draft !== initialValue.current) {
       // BOT-A02: soft/bbox label rejects (≤0) must surface the same status toast as constraint dims
@@ -2987,7 +3019,7 @@ export function SketchDimLayer() {
                 : l.edit ? () => { if (consumedDrag()) return; beginEdit(l) }
                   : l.remove ? () => { if (skConflictIds.includes(l.remove!)) useApp.getState().removeSkCon(l.remove!); else useApp.getState().selectSkCon(l.remove!) } : undefined
             }
-            onContextMenu={l.edit?.dim === 'con' && l.edit.conId ? (e) => { e.preventDefault(); e.stopPropagation(); setDimMenu({ conId: l.edit!.conId!, x: e.clientX, y: e.clientY, driven: !!l.driven, radDia: l.edit!.radDia }) } : undefined}
+            onContextMenu={l.edit?.dim === 'con' && l.edit.conId ? (e) => { e.preventDefault(); e.stopPropagation(); setDimMenu({ conId: l.edit!.conId!, x: e.clientX, y: e.clientY, driven: !!l.driven, radDia: l.edit!.radDia }) } : l.remove ? (e) => { e.preventDefault(); e.stopPropagation(); useApp.getState().selectSkCon(l.remove!); setConMenu({ conId: l.remove!, x: e.clientX, y: e.clientY }) } : undefined}
             style={{ ...LBL, ...(l.remove ? { background: '#5a8fb8', fontSize: 10, lineHeight: '13px', padding: '0 4px' } : {}), ...(l.driven ? { background: '#8a97a2' } : {}), ...(l.remove && skSelCon === l.remove ? { background: '#8e44ad', boxShadow: '0 0 0 2px rgba(142,68,173,.4)' } : {}), ...((l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? { background: '#c9362a', boxShadow: '0 0 0 2px rgba(201,54,42,.35)' } : {}), pointerEvents: l.edit || l.remove || l.referenceExtent ? 'auto' : 'none', cursor: l.edit?.dim === 'con' ? 'move' : l.edit || l.remove ? 'pointer' : 'default' }}
           >
             {l.edit?.dim === 'con' && !l.driven ? <span className="sk-dim-driving-mark" title="驅動尺寸" aria-label="驅動尺寸">◆</span> : null}
@@ -3005,6 +3037,16 @@ export function SketchDimLayer() {
             )}
           </div>
         ))}
+      {conMenu && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 40, pointerEvents: 'auto' }} onClick={() => setConMenu(null)} onContextMenu={(e) => { e.preventDefault(); setConMenu(null) }}>
+          <div data-testid="constraint-menu" role="menu" onClick={(e) => e.stopPropagation()}
+            style={{ position: 'fixed', left: Math.min(conMenu.x, window.innerWidth - 190), top: Math.min(conMenu.y, window.innerHeight - 100), background: '#fff', border: '1px solid #c8d0d8', borderRadius: 8, boxShadow: '0 8px 28px rgba(0,0,0,.24)', padding: 4, minWidth: 176, fontSize: 12.5, color: '#233' }}>
+            <button role="menuitem" data-testid="constraint-menu-delete" className="dim-menu-item" style={{ ...DIM_MENU_ITEM, color: '#c9362a' }} onClick={() => { useApp.getState().removeSkCon(conMenu.conId); setConMenu(null) }}>
+              {tStatus('刪除約束', lang)}
+            </button>
+          </div>
+        </div>
+      )}
       {/* GM-FP2 #29：尺寸右键上下文菜单（R↔Ø / 转从动·驱动 / 删除）。全屏遮罩点击关闭。 */}
       {dimMenu && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 40, pointerEvents: 'auto' }} onClick={() => setDimMenu(null)} onContextMenu={(e) => { e.preventDefault(); setDimMenu(null) }}>

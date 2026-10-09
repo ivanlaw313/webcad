@@ -32,6 +32,8 @@ import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad
 import { sketchReferenceErrors, documentReferenceErrors } from './sketch/referenceIntegrity'
 import { rectangleConstraints } from './sketch/rectangleConstraints'
 import { centerRectExtras } from './sketch/centerRect'
+import { slotConstraints, slotCenters, slotModeReadout, fmt2 as slotFmt, type SlotMode } from './sketch/slotCons'
+import { ellipseAxisPick, ellipseAxisDim, editEllipseSemi, ellipseMajorIdx, normalizeMajorFirst, fmt as ellFmt, type Ell } from './sketch/ellipseDims'
 import { sanitizeBodyHidden, toggleHiddenKey, setHiddenKey, parkedBodyKey as bomParkedKey } from './ui/contextMenus'
 import { removeContourEdges } from './sketch/deleteSketchEdges'
 import { applySelClick, mergeSel, type ModelSelItem, type SelMod } from './cad/modelSelection'
@@ -839,7 +841,7 @@ function snapInSketch(raw: Pt, start: Pt | null, poly: Pt[], shape: SketchShape 
   return { pt: snapPt(raw), onPoint: false }
 }
 // Live dimension readout for the shape being drawn (shown by the sketch bar, Fusion-style).
-function sketchDimText(tool: string, start: Pt | null, poly: Pt[], pt: Pt, ellipseCreation = 'axis-aligned'): string | null {
+function sketchDimText(tool: string, start: Pt | null, poly: Pt[], pt: Pt, ellipseCreation = 'axis-aligned', slot?: { mode: SlotMode; w: number }): string | null {
   if (start) {
     const dx = Math.abs(pt[0] - start[0]), dy = Math.abs(pt[1] - start[1]), L = Math.hypot(pt[0] - start[0], pt[1] - start[1])
     if (tool === 'rectangle' || tool === 'rrect') return `▭ ${dx.toFixed(1)} × ${dy.toFixed(1)} mm`
@@ -848,8 +850,8 @@ function sketchDimText(tool: string, start: Pt | null, poly: Pt[], pt: Pt, ellip
     if (tool === 'polygon') return `◯ R ${L.toFixed(1)} mm`
     if (tool === 'circle2p') return `◯ Ø ${L.toFixed(1)} mm`   // GM-FP1 #15：两点圆 — start→cursor = 直径
     if(tool==='ellipse'&&ellipseCreation==='three-point'){if(!poly.length)return `半轴 rx ${L.toFixed(1)} mm`;const U=poly[0],vx=U[0]-start[0],vy=U[1]-start[1],rx=Math.hypot(vx,vy),ry=Math.abs((pt[0]-start[0])*(-vy/rx)+(pt[1]-start[1])*(vx/rx));return `半轴 rx ${rx.toFixed(1)} · ry ${ry.toFixed(1)} mm`}
-    if (tool === 'ellipse') return `⬯ ${(dx * 2).toFixed(1)} × ${(dy * 2).toFixed(1)} mm`
-    if (tool === 'slot') return `⬭ 长 ${L.toFixed(1)} mm`
+    if (tool === 'ellipse') return `⬯ 水平軸全長 ${(dx * 2).toFixed(1)} × 豎直軸全長 ${(dy * 2).toFixed(1)} mm`
+    if (tool === 'slot') return slot ? slotModeReadout(slot.mode, start, pt, slot.w) : `⬭ 心心距 ${L.toFixed(1)} mm`
   }
   if (poly.length && (tool === 'polyline' || tool === 'spline' || tool === 'bspline' || tool === 'arc')) {
     const last = poly[poly.length - 1]
@@ -874,10 +876,11 @@ function sketchDimText(tool: string, start: Pt | null, poly: Pt[], pt: Pt, ellip
 }
 // Readout while the user is TYPING an exact dimension (Fusion-style: draw → type value → Enter).
 // GM-FP1 #11/#12：每个已打字（非空）字段旁挂 🔒 = 已锁定/驱动（视觉 token，非 Fusion 原图）；激活字段用 [方括号] 高亮；两值字段同屏齐显。
-function typedReadout(tool: string, buf: string[], field: number): string {
+function typedReadout(tool: string, buf: string[], field: number, slotMode: SlotMode = 'cc'): string {
   const f = (i: number) => (i === field ? `[${buf[i] || '_'}]` : (buf[i] || '_')) + (buf[i] ? '🔒' : '')
   if (tool === 'rectangle' || tool === 'crect' || tool === 'rrect') return `▭ 寬 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 換寬/高·Enter 確定)`
-  if (tool === 'ellipse') return `⬯ 寬 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 換寬/高·Enter 確定)`
+  if (tool === 'ellipse') return `⬯ 水平軸全長 ${f(0)} × 豎直軸全長 ${f(1)} mm　（輸入數值，Tab 切換水平／豎直，Enter 確定）`
+  if (tool === 'slot') return `⬭ ${slotMode === 'overall' ? '總長' : slotMode === 'centerpt' ? '心心距（以中心對稱）' : '心心距'} ${f(0)} · 槽寬 ${f(1)} mm　（輸入數值，Tab 切換長度／槽寬，Enter 確定）`
   if (tool === 'circle' || tool === 'circle2p') return `◯ Ø ${f(0)} mm　(打字輸入直徑·Enter 確定)`
   if (tool === 'polygon') return `◯ R ${f(0)} mm　(打字輸入·Enter 確定)`
   if (tool === 'polyline') return `↘ 長 ${f(0)} mm · 角 ${f(1)}°　(Tab 換 長/角·兩值全鎖 Enter=收筆·角相對上段)`   // GM-FP1 #10：折线打字新增角度格
@@ -1358,6 +1361,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   ellipseCreation: 'axis-aligned' | 'three-point'
   setEllipseCreation: (mode: 'axis-aligned' | 'three-point') => void
   sketchTypeKey: (key: string) => void  // route a keystroke into exact-dimension entry while sketching
+  setEllipseAxis: (target: number | 'shape', idx: 0 | 1, value: number) => void  // SKETCH12 b2：修改橢圓半軸（中心與旋轉不變），並存為驅動尺寸
   setSketchDimValue: (target: number | 'shape', dim: 'w' | 'h' | 'd' | 'r' | 'off', value: number) => void  // edit a drawn shape's dimension by clicking its label
   sketchShape: SketchShape | null
   sketchProfiles: SketchShape[]
@@ -4177,6 +4181,25 @@ export function polyRedoApplies(e: PolyRedoEntry, s: Pick<AppState, 'mode' | 'po
   return s.mode === 'sketch' && s.sketchTool === e.tool && s.sketchProfiles === e.profiles && s.sketchShape === e.shape &&
     s.polyPts.length === e.before.length && s.polyPts.every((q, i) => q[0] === e.before[i][0] && q[1] === e.before[i][1])
 }
+let _slotTypedDone = false   // SKETCH12 b2：輸入數值建立槽後的守衛（點擊畫布／換工具／Esc 時清除）
+function slotShape(c0: Pt, c1: Pt, r: number): SketchShape {
+  const dx = c1[0] - c0[0], dy = c1[1] - c0[1], L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, px = -uy, py = ux
+  // True-arc slot: 4 tangent verts + two semicircle caps (bulge from each cap's tip point) — real cylindrical end faces.
+  const V1: Pt = [c1[0] + px * r, c1[1] + py * r], V2: Pt = [c1[0] - px * r, c1[1] - py * r]
+  const V3: Pt = [c0[0] - px * r, c0[1] - py * r], V4: Pt = [c0[0] + px * r, c0[1] + py * r]
+  return vertsPoly([V1, V2, V3, V4], [bulgeFromMid(V1, V2, [c1[0] + ux * r, c1[1] + uy * r]), 0, bulgeFromMid(V3, V4, [c0[0] - ux * r, c0[1] - uy * r]), 0])
+}
+function slotConsFor(s: AppState, idx: number, shape: SketchShape): SkCon[] {
+  if (shape.type !== 'poly' || !shape.verts) return []
+  let acc = s.skCons
+  const out = slotConstraints(idx, shape.verts, () => ({ id: skConId() }), { aligned: s.autoConstrain !== false })
+  return out.map((c) => {
+    if (c.kind !== 'dim') return c
+    const named = { ...c, name: nextDimName({ ...s, skCons: acc }) } as SkCon
+    acc = [...acc, named]
+    return named
+  })
+}
 function afterTypedCommit(pre: AppState) {
   const now = useApp.getState()
   if (now.mode !== 'sketch' || !now.sketchShape || now.sketchShape === pre.sketchShape || now.sketchStart) return
@@ -4193,7 +4216,7 @@ function autoSummary(auto: SkCon[]): string {
   if (!auto.length) return ''
   const n = (t: string) => auto.filter((c) => c.kind === 'con' && c.type === t).length
   const parts = [n('coincident') && `${n('coincident')} 重合`, (n('h') + n('v')) && `${n('h') + n('v')} 水平/豎直`, n('tangent') && `${n('tangent')} 相切`].filter(Boolean)
-  return ` · 自動加咗 ${auto.length} 個約束（${parts.join('、')}）`
+  return ` · 已自動加入 ${auto.length} 個約束（${parts.join('、')}）`
 }
 function vertsPoly(verts: Pt[], bulges: number[]): SketchShape {
   return { type: 'poly', pts: pathPts(verts, bulges), verts, bulges }
@@ -6256,7 +6279,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   const runTrimAt=async(p:Pt,context?:PatternTrimContext):Promise<void>=>{
     const s = get()
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
-    if (!shapes.length) { set({ status: '修剪：先畫嘢先有得剪' }); return }
+    if (!shapes.length) { set({ status: '修剪：請先繪製幾何，再點選要修剪的線段' }); return }
     const tol = pickTol()
     for (const tt of [tol / 3, tol]) {   // 两轮：细容差先（重叠几何攞最近嗰条），唔中先放宽
       for (let i = 0; i < shapes.length; i++) {
@@ -6288,24 +6311,27 @@ export const useApp = create<AppState>((rawSet, get) => {
           return
         }
         const { cons: ncons, dropped } = constraintsAfterTrim(shapes, i, parts, s.skCons)
+        const droppedNote = dropped ? ` · ${dropped} 個相關約束已移除` : ''
+        const trimMsg = r.kind === 'all' || !parts.length
+          ? `已刪除整條輪廓（與其他幾何沒有相交，無相交點可修剪）${droppedNote}（Ctrl+Z 可還原）`
+          : `已修剪至相交點（餘下 ${parts.length} 段${parts.some((q) => q.type === 'poly' && q.open) ? '，開放路徑可與其他線段圍成拉伸區域' : ''}）${droppedNote}（Ctrl+Z 可還原）`
         // GM-FP3 #38 拖扫：一次拖动多删合并成一步 undo — sweep 内第一次成功先推 pristine 快照，其后唔推。
         const pushTrimUndo = context ? (!context.sweep || !_patternTrimPushedSweeps.has(context.sweep)) : (!_skTrimSweep || !_skTrimPushed)
         const undoPatch = pushTrimUndo ? { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [] } : {}
         set({
           ...undoPatch,
           sketchProfiles: [...shapes.filter((_, j) => j !== i), ...parts], sketchShape: null, skSel: [], skCons: ncons, toolPreview: null,   // S158：清悬停红色 ghost（否则将删段虚线会留喺已删位置直到下次郁鼠标）
-          status: r.kind === 'all' || !parts.length
-            ? `已刪除成條輪廓（同其它幾何冇相交）${dropped ? ` · ${dropped} 個相關約束已移除` : ''}（Ctrl+Z 可還原）`
-            : `已修剪到相交點（剩 ${parts.length} 段${parts.some((q) => q.type === 'poly' && q.open) ? '，開放路徑可與其它線圍成拉伸區域' : ''}）${dropped ? ` · ${dropped} 個相關約束已移除` : ''}（Ctrl+Z 可還原）`,
+          status: trimMsg,
         })
         if (_skTrimSweep && !get().skMutationError) _skTrimPushed = true
         if (context?.sweep && !get().skMutationError) _patternTrimPushedSweeps.add(context.sweep)
-        const resolving = get().resolveSk({ statusNote: dropped ? `${dropped} 個已無對應幾何的約束已移除（Ctrl+Z 可還原）` : undefined })
+        // SKETCH12 b2：無相交而整條刪除時，求解狀態不可覆蓋說明訊息（舊版訊息即時被「約束已求解」取代，使用者不知道發生了甚麼）。
+        const resolving = get().resolveSk({ statusNote: trimMsg })
         if (context) await resolving
         return
       }
     }
-    set({ toolPreview: null, status: '修剪：要點中一條邊（點近啲）— 有相交剪到相交點，冇相交成條刪' })
+    set({ toolPreview: null, status: '修剪：請點選一條邊（請靠近線段點選）。有相交時修剪至相交點；沒有相交時刪除整條。' })
   }
   const queuePatternTrim=(p:Pt):Promise<void>=>{
     const context={epoch:_patternTrimRevision,sweep:_skTrimSweep?_patternTrimSweepId:0},point:Pt=[...p]
@@ -6345,7 +6371,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // A fresh document is in navigation/selection mode.  Geometry tools are
   // explicit commands, never an accidental first click.
   sketchTool: 'select',
-  setSketchTool: (t) => { _offsetTypedPre = false; if (t !== 'cfillet' && t !== 'cchamfer') _cornerTypedPre = false; if(get().skScale)discardScale(); get().skDragCancel(); set({ sketchTool: t, sketchStart: null, sketchPreview: null, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, tanRefs: [], skBoolPending: null, toolPreview: null, sizing: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, skMarquee: null, skSelCon: null, ...(t !== 'move' ? { skMove: null } : {}), ...(t !== 'select' ? { skArmedCon: null } : {}), ...(t !== 'mirror' ? { mirrorPick: null } : {}), ...(t !== 'dimension' ? { dimArcLen: false } : {}) }) },  // T777：换工具清相切弧/切点圆 buffer；T790：离开镜像清进行中状态；T791：换工具取消合并拾取；T792：清悬停预览；GM-FP2：换工具清尺寸 pending / 非 select 清 tool-first 武装；GM-FP3：清框选/约束选中，非 move 清 move gizmo
+  setSketchTool: (t) => { _offsetTypedPre = false; _slotTypedDone = false; if (t !== 'cfillet' && t !== 'cchamfer') _cornerTypedPre = false; if(get().skScale)discardScale(); get().skDragCancel(); set({ sketchTool: t, sketchStart: null, sketchPreview: null, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, tanRefs: [], skBoolPending: null, toolPreview: null, sizing: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, skMarquee: null, skSelCon: null, ...(t !== 'move' ? { skMove: null } : {}), ...(t !== 'select' ? { skArmedCon: null } : {}), ...(t !== 'mirror' ? { mirrorPick: null } : {}), ...(t !== 'dimension' ? { dimArcLen: false } : {}) }) },  // T777：换工具清相切弧/切点圆 buffer；T790：离开镜像清进行中状态；T791：换工具取消合并拾取；T792：清悬停预览；GM-FP2：换工具清尺寸 pending / 非 select 清 tool-first 武装；GM-FP3：清框选/约束选中，非 move 清 move gizmo
   hoverFace: null,
   setHoverFace: (t) => set((s) => (s.hoverFace === t || (!s.hoverFace && !t) ? {} : { hoverFace: t })),
   // Fusion ESC behaviour: 1st ESC cancels the in-progress draw (a started rect/circle or polyline points)
@@ -6449,7 +6475,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   polyInscribed: false,
   togglePolyInscribed: () => set((s) => ({ polyInscribed: !s.polyInscribed, status: !s.polyInscribed ? '多邊形：內切圓模式（半徑=對邊距/2，套六角螺母/扳手）' : '多邊形：外接圓模式（半徑=過角點）' })),
   sketchSlotW: 20,
-  setSketchSlotW: (n) => set({ sketchSlotW: Math.max(1, n || 20) }),
+  // SKETCH12 b2：槽寬 ≤0／非數值不再靜默改回 20 —— 拒絕並保留原值，狀態列顯示原因。
+  setSketchSlotW: (n) => set((s) => (Number.isFinite(n) && n > 0 ? { sketchSlotW: n } : { status: illegalRejectStatus(`槽寬必須大於 0（保留原值 ${s.sketchSlotW} mm）`) })),
   sketchCornerR: 8,
   setSketchCornerR: (n) => { if (!get().sizing) _cornerTypedPre = (n || 0) > 0; set((s) => ({ sketchCornerR: Math.max(0, n || 0), ...(s.sizing ? { sizing: { ...s.sizing, typed: true, typedValue: Math.max(0, n || 0), raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改半径即更新倒角预览；T796-3：调尺寸中打数字→标记 typed，下一次鼠标轻微移动唔覆盖打嘅值
   sketchConicRho: 0.5,
@@ -8764,7 +8791,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (s.mode !== 'sketch') return
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
-    if (!shapes.length) { set({ status: '延伸：先畫嘢' }); return }
+    if (!shapes.length) { set({ status: '延伸：請先繪製幾何' }); return }
     const tol = pickTol()
     for (const tt of [tol / 3, tol]) {
       for (let i = 0; i < shapes.length; i++) {
@@ -8817,7 +8844,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
     }
-    set({ toolPreview: null, status: '延伸：點【開放路徑】嘅端段（靠自由端嗰半）— 沿原方向/原圓延長到最近相交；閉合輪廓冇得延伸' })
+    set({ toolPreview: null, status: '延伸：請點選開放路徑的端段（靠近要延伸的一端），沿原方向或原圓延長至最近的相交幾何；閉合輪廓無法延伸，前方沒有相交幾何時亦不會更改' })
   },
   bindSkDimParam: (conId, paramName) => {
     const p = get().params.find((x) => x.name === paramName)
@@ -9029,10 +9056,18 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       if(hit.kind === 'ellipse-axis') {
         const [a,b]=skRefPts(shapes,hit), value=Math.hypot(b[0]-a[0],b[1]-a[1])
-        placeDim({id:skConId(),name:nextDimName(s),kind:'dim',type:'len',a:hit,value}, {skPendingPt:null,status:`已標橢圓半軸 ${value.toFixed(2)} mm；輸入半軸長度`})
+        placeDim({id:skConId(),name:nextDimName(s),kind:'dim',type:'len',a:hit,value}, {skPendingPt:null,status:`已標註橢圓半軸 ${ellFmt(value)} mm（可直接輸入數值）`})
         return
       }
-      if(hit.kind === 'ellipse' || hit.kind === 'ellipse-arc'){set({status:'橢圓尺寸：點中心到軸端點之間的虛線，標註半軸長度'});return}
+      if(hit.kind === 'ellipse' || hit.kind === 'ellipse-arc'){
+        // SKETCH12 b2：點選橢圓曲線即標註較接近點擊方向的半軸（半長軸／半短軸），之後可直接輸入數值修改
+        const esh=shapes[hit.shape] as SketchShape, e=(esh?.type==='poly'?(esh.ell??esh.earc):null) as Ell|null
+        if(!e){set({status:'橢圓尺寸：請點選中心至軸端點的虛線，標註半軸長度'});return}
+        const idx=ellipseAxisPick(e,p), value=idx===0?e.rx:e.ry
+        if(s.skCons.some(c=>c.kind==='dim'&&!c.driven&&c.type==='len'&&c.a.kind==='ellipse-axis'&&c.a.shape===hit.shape&&c.a.idx===idx)){set({status:`此橢圓的${idx===ellipseMajorIdx(e)?'半長軸':'半短軸'}已有驅動尺寸，請點擊該數值修改`});return}
+        placeDim({id:skConId(),name:nextDimName(s),kind:'dim',type:'len',a:{kind:'ellipse-axis',shape:hit.shape,idx},value}, {skPendingPt:null,status:`已標註橢圓${idx===ellipseMajorIdx(e)?'半長軸':'半短軸'} ${ellFmt(value)} mm（可直接輸入數值）`})
+        return
+      }
       if (hit.kind === 'refedge') { set({ status: '參考邊系固定邊，唔可以單獨標長度 — 先點你嘅圖形上一個點，再點呢條參考邊，標「點到邊距離」' }); return }
       if (hit.kind === 'edge') {
         // arc SEGMENT (slot cap / rrect corner / fillet arc) → R radius dim (Fusion convention); straight → length
@@ -9478,6 +9513,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     const target = get().skCons.find(c => c.id === id && c.kind === 'dim')
     const zeroProjection = target?.kind === 'dim' && (target.type === 'hdist' || target.type === 'vdist') && value === 0
     if (!Number.isFinite(value) || value < 0 || value === 0 && !zeroProjection) { set({status:'尺寸已拒絕：尺寸必須為有限正數（水平／垂直投影可為零），未更改草圖'}); return }
+    if (target?.kind === 'dim' && target.a.kind === 'ellipse-axis') {   // SKETCH12 b2：半短軸不可大於半長軸
+      const sh = [...get().sketchProfiles, ...(get().sketchShape ? [get().sketchShape!] : [])][target.a.shape]
+      const chk = sh?.type === 'poly' && sh.ell ? editEllipseSemi(sh.ell as Ell, target.a.idx, value) : null
+      if (chk && 'error' in chk) { set({ status: illegalRejectStatus(chk.error) }); return }
+    }
     await get().commitSkDim(id,{value,driven:undefined,param:undefined,paramId:undefined,refs:undefined,expr:undefined},`尺寸已改為 ${value}`)
   },
   // ── 参数化组件 edit-in-place（T734）──────────────────────────────────────
@@ -10638,7 +10678,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else reEnterOnFail()
   },
 
-  onSketchClick: async (raw) => {
+  onSketchClick: async (raw) => { _slotTypedDone = false
     // ③ 逐条投影优先：开咗 projPickMode → 㩒近一条投影边即投，唔好入绘图机/工具
     if (get().projPickMode) { if (get().mode === 'sketch') get().projectLoopAt(raw); return }
     // select / dimension / trim / extend tools act on COMMITTED geometry (no drawing) — route before the draw machine.
@@ -10805,28 +10845,19 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       if (s.sketchTool === 'slot') {
         // GM-FP4 #18 槽变体：cc=心心（两弧心）· overall=总长（两端最外缘 tip-to-tip）· centerpt=中心点（先点中心 → 再点一弧心，对称）。
-        const mode = s.slotMode, rr = (s.sketchSlotW || 20) / 2
-        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: mode === 'overall' ? '槽(總長)：點另一端最外緣（tip-to-tip = 總長）' : mode === 'centerpt' ? '槽(中心點)：點一個弧心（關於中心對稱）' : '移動並點擊確定槽的另一端中心' }
-        let c0: Pt, c1: Pt
-        if (mode === 'centerpt') { const M = s.sketchStart; c1 = pt; c0 = [2 * M[0] - pt[0], 2 * M[1] - pt[1]] }
-        else if (mode === 'overall') {
-          const p0 = s.sketchStart, p1 = pt, tdx = p1[0] - p0[0], tdy = p1[1] - p0[1], T = Math.hypot(tdx, tdy)
-          if (T <= 2 * rr + 0.5) return { sketchStart: null, status: `槽(總長)：總長(${T.toFixed(0)}) 要 > 槽寬(${(2 * rr).toFixed(0)}) — 拉長啲或減槽寬` }
-          const uX = tdx / T, uY = tdy / T; c0 = [p0[0] + uX * rr, p0[1] + uY * rr]; c1 = [p1[0] - uX * rr, p1[1] - uY * rr]
-        } else { c0 = s.sketchStart; c1 = pt }
+        // SKETCH12 b2：預覽與提交共用 slotCenters；槽寬 ≤0 拒絕；提交時加相切／相等約束及「長度」「槽寬」驅動尺寸（之後可點擊修改）。
+        const mode = s.slotMode, w = s.sketchSlotW
+        if (!(w > 0)) return { sketchStart: null, status: illegalRejectStatus('槽寬必須大於 0，請在工具面板輸入正數槽寬') }
+        const rr = w / 2
+        if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: mode === 'overall' ? '槽（總長模式）：請點選另一端的最外緣（兩端外緣距離＝總長）' : mode === 'centerpt' ? '槽（中心點模式）：請點選其中一個弧心（兩弧心對稱於中心）' : '槽（心心模式）：請點選另一端的弧心' }
+        const cc = slotCenters(mode, s.sketchStart, pt, rr)
+        if ('error' in cc) return { sketchStart: null, status: cc.error }
+        const { c0, c1 } = cc
         const dx = c1[0] - c0[0], dy = c1[1] - c0[1]
-        if (Math.hypot(dx, dy) < 0.5) return { status: '槽太短（兩端中心幾乎重合）— 拉開啲，或打數字定長' }   // GM-L2 #50：两端中心重合会造零长退化槽（两重叠半圆），对齐圆/三点矩形/圆弧槽嘅退化守卫
+        if (Math.hypot(dx, dy) < 0.5) return { status: '槽太短（兩端弧心幾乎重合），請拉開距離或輸入長度' }   // GM-L2 #50：两端中心重合会造零长退化槽
         const L = Math.hypot(dx, dy) || 1
-        const ux = dx / L, uy = dy / L                       // axis unit
-        const px = -uy, py = ux                              // perp-left unit
-        const r = (s.sketchSlotW || 20) / 2
-        // True-arc slot: 4 tangent verts + two semicircle caps (bulge from each cap's tip point) —
-        // extrudes to REAL cylindrical end faces (measurable Ø, filletable, clean STEP).
-        const V1: Pt = [c1[0] + px * r, c1[1] + py * r], V2: Pt = [c1[0] - px * r, c1[1] - py * r]
-        const V3: Pt = [c0[0] - px * r, c0[1] - py * r], V4: Pt = [c0[0] + px * r, c0[1] + py * r]
-        const tipFar: Pt = [c1[0] + ux * r, c1[1] + uy * r], tipNear: Pt = [c0[0] - ux * r, c0[1] - uy * r]
-        const shape = vertsPoly([V1, V2, V3, V4], [bulgeFromMid(V1, V2, tipFar), 0, bulgeFromMid(V3, V4, tipNear), 0])
-        return { sketchShape: shape, sketchStart: null, status: `槽已畫好 (長${L.toFixed(0)} 寬${(r * 2).toFixed(0)}，真圓弧端) — 點「拉伸」` }
+        const shape = slotShape(c0, c1, rr)
+        return { sketchShape: shape, sketchStart: null, skCons: [...s.skCons, ...slotConsFor(s, s.sketchProfiles.length, shape)], status: `槽已建立（心心距 ${slotFmt(L)} mm，總長 ${slotFmt(L + w)} mm，槽寬 ${slotFmt(w)} mm）— 長度及槽寬為驅動尺寸，可點擊數值修改` }
       }
       if (s.sketchTool === 'rrect') {
         if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '移動並點擊確定對角（圓角矩形）' }
@@ -10858,17 +10889,18 @@ export const useApp = create<AppState>((rawSet, get) => {
           if(!s.polyPts.length){if(Math.hypot(pt[0]-C[0],pt[1]-C[1])<1e-6)return {status:'半軸長度必須大於零'};return {polyPts:[pt],sketchPreview:pt,dimBuf:['',''],dimField:0,sketchDim:null,status:'橢圓：點另一半軸，或輸入半軸長度'}}
           const U=s.polyPts[0],dx=U[0]-C[0],dy=U[1]-C[1],rx=Math.hypot(dx,dy),ry=Math.abs((pt[0]-C[0])*(-dy/rx)+(pt[1]-C[1])*(dx/rx))
           if(!Number.isFinite(ry)||ry<1e-6)return {status:'另一半軸必須大於零，請離開軸線再點'}
-          const ell={cx:C[0],cy:C[1],rx,ry,rot:Math.atan2(dy,dx)*180/Math.PI}
-          return {sketchShape:{type:'poly',ell,pts:ellipseSample(ell,48)},sketchStart:null,polyPts:[],dimBuf:['',''],dimField:0,sketchDim:null,status:'已建立旋轉橢圓；可拖控制點或用D標半軸尺寸'}
+          const nm=normalizeMajorFirst({cx:C[0],cy:C[1],rx,ry,rot:Math.atan2(dy,dx)*180/Math.PI}),ell=nm.ell
+          return {sketchShape:{type:'poly',ell,pts:ellipseSample(ell,48)},sketchStart:null,polyPts:[],dimBuf:['',''],dimField:0,sketchDim:null,status:`已建立旋轉橢圓（半長軸 ${ellFmt(ell.rx)} mm，半短軸 ${ellFmt(ell.ry)} mm${nm.swapped?'；第二點較遠，已自動以其方向作長軸':''}）— 點擊尺寸數值或以尺寸工具點選橢圓即可修改半軸`}
         }
         if (!s.sketchStart) return { sketchStart: pt, sketchPreview: pt, status: '移動並點擊確定橢圓的半軸' }
         const cx = s.sketchStart[0], cy = s.sketchStart[1]
-        const rx = Math.abs(pt[0] - cx) || 10, ry = Math.abs(pt[1] - cy) || 10
+        const rx = Math.abs(pt[0] - cx), ry = Math.abs(pt[1] - cy)
+        if (rx < 1e-6 || ry < 1e-6) return { status: '橢圓：兩個半軸都必須大於 0，請將游標斜向離開中心再點選' }   // SKETCH12 b2：不再靜默改成 10
         const SEG = 48
         const poly: Pt[] = []
         for (let i = 0; i < SEG; i++) { const a = (i * 2 * Math.PI) / SEG; poly.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]) }
         // S87：48 边 poly 仅供 2D 显示/布尔；ell 参数令内核画真椭圆单曲线边（光滑面，非 48 facet）
-        return { sketchShape: { type: 'poly', pts: poly, ell: { cx, cy, rx, ry, rot: 0 } }, sketchStart: null, status: `橢圓已畫好 (${(rx * 2).toFixed(0)}×${(ry * 2).toFixed(0)}，真橢圓邊) — 點「拉伸」` }
+        return { sketchShape: { type: 'poly', pts: poly, ell: { cx, cy, rx, ry, rot: 0 } }, sketchStart: null, status: `橢圓已建立（水平軸全長 ${ellFmt(rx * 2)} mm × 豎直軸全長 ${ellFmt(ry * 2)} mm）— 點擊半軸數值或以尺寸工具點選橢圓即可修改` }
       }
       if (s.sketchTool === 'conic') {
         // S177 圆锥曲线（Fusion Conic）：① 起点 P0 → ② 终点 P2 → ③ 顶点 apex(两端切线交点)；底栏 ρ 调充满度。
@@ -11039,7 +11071,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       ? computeSketchToolPreview([...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[], tl, pt, s.sketchOffsetD, s.sketchOffsetBoth, s.sketchCornerR)
       : null
     const snapTag = (!pickTool && onPoint && _snapKind === 'quad') ? '◈ 象限點（圓最遠點）' : (!pickTool && onPoint && _snapKind === 'tan') ? '⌒ 切點 — 該段同圓外徑相切貼合' : (!pickTool && onPoint && _snapKind === 'mid') ? '▲ 邊中點' : (!pickTool && onPoint && _snapKind === 'x') ? '✕ 交點' : ''
-    const baseDim = sketchDimText(s.sketchTool, s.sketchStart, s.polyPts, pt, s.ellipseCreation)
+    const baseDim = sketchDimText(s.sketchTool, s.sketchStart, s.polyPts, pt, s.ellipseCreation, { mode: s.slotMode, w: s.sketchSlotW })
     // GM-W6 C6：选择/尺寸工具嘅悬停反馈 —— 用 skClickAt 同款最近实体拾取（skHitTest + pickTol，收 raw 未吸附点，
     // 同真㩒一致），写 transient skHover。SkSelDraw 见到即淡橙高亮 + 游标转 pointer。非呢两个工具即早退：
     // 若有 stale skHover 就清（null），否则唔郁（skHover=undefined → 唔写入，慳 re-render）。
@@ -11070,6 +11102,20 @@ export const useApp = create<AppState>((rawSet, get) => {
   // in place, preserving the original draw direction (sign). Soft poly bbox edits must update any
   // driving constraint on that axis (BOT-A01) — otherwise Finish saves scaled shapes with stale
   // skCons and reopen resolveSk restores the old value (255 vs 100).
+  setEllipseAxis: (target, idx, value) => {
+    const s = get(), index = target === 'shape' ? s.sketchProfiles.length : target
+    const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
+    const sh = shapes[index]
+    if (!sh || sh.type !== 'poly' || !sh.ell) { set({ status: '橢圓半軸：找不到對應的橢圓' }); return }
+    const r = editEllipseSemi(sh.ell as Ell, idx, value)
+    if ('error' in r) { set({ status: illegalRejectStatus(r.error) }); return }
+    const next: SketchShape = { ...sh, ell: r.ell, pts: ellipseSample(r.ell, 48) }
+    const n = s.sketchProfiles.length
+    const cons = ellipseAxisDim(s.skCons, index, idx, value, () => ({ id: skConId(), name: nextDimName(s) }))
+    set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], ...(index < n ? { sketchProfiles: s.sketchProfiles.map((x, i) => (i === index ? next : x)) } : { sketchShape: next }), skCons: cons,
+      status: `橢圓${idx === ellipseMajorIdx(r.ell) ? '半長軸' : '半短軸'}已設為 ${ellFmt(value)} mm（驅動尺寸，Ctrl+Z 可還原）` })
+    void get().resolveSk({ statusNote: `橢圓${idx === ellipseMajorIdx(r.ell) ? '半長軸' : '半短軸'} ${ellFmt(value)} mm` })
+  },
   setSketchDimValue: (target, dim, value) => {
     const index=target==='shape'?get().sketchProfiles.length:target
     const liveShapes=[...get().sketchProfiles,...(get().sketchShape?[get().sketchShape]:[])] as import('./sketch/freesolve').FShape[]
@@ -11233,6 +11279,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     // Before the FIRST point is placed: typing enters the START / CENTRE point's ABSOLUTE coordinates
     // (X Tab Y Enter). Gives exact position control in the freehand sketch (e.g. circle centre at 20,15).
     const placingStart = s.sketchStart == null && s.polyPts.length === 0
+    // SKETCH12 b2：剛以輸入數值建立槽後，繼續輸入數字不會靜默放下新起點再建立另一個槽 —— 提示先點選起點（Esc 後可輸入起點座標）。
+    if (placingStart && _slotTypedDone && tool === 'slot') {
+      if (key === 'Escape') { _slotTypedDone = false; return { dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '已取消；可輸入起點座標 X Tab Y 後按 Enter，或在畫布點選起點' } }
+      if (/^[0-9.\-]$/.test(key) || key === 'Enter' || key === 'Tab' || key === 'Backspace') return { dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '槽已建立。如需另一個槽，請先在畫布點選起點（或按 Esc 後輸入起點座標）' }
+    }
     if (placingStart) {
       const startReadout = (b: string[], f: number) => `⌖ 起點 X ${f === 0 ? `[${b[0] || '_'}]` : (b[0] || '_')} , Y ${f === 1 ? `[${b[1] || '_'}]` : (b[1] || '_')} mm　(打字定位·Tab 換 X/Y·Enter 放點)`
       if (/^[0-9.\-]$/.test(key)) { buf[s.dimField] = (buf[s.dimField] + key).slice(0, 9); return { dimBuf: buf, sketchDim: startReadout(buf, s.dimField) } }
@@ -11252,7 +11303,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     // GM-W8 A3：多阶段工具用逐阶段标签（半径/扫角/短半轴/ρ…）；其余走原 typedReadout
     const msLabel = tool==='ellipse'&&s.ellipseCreation==='three-point'&&s.sketchStart ? (s.polyPts.length?'另一半轴 ry':'半轴 rx（方向跟光标）') : multiStageTypedLabel(tool, s.sketchStart != null, s.polyPts.length)
-    const readoutFor = (b: string[]) => msLabel === SK_TYPED_UNSUP ? `⚠ ${SK_TYPED_UNSUP}` : msLabel ? `${msLabel} = [${b[s.dimField] || '_'}]　(Enter 确定)` : typedReadout(tool, b, s.dimField)
+    const readoutFor = (b: string[]) => msLabel === SK_TYPED_UNSUP ? `⚠ ${SK_TYPED_UNSUP}` : msLabel ? `${msLabel} = [${b[s.dimField] || '_'}]　(Enter 确定)` : typedReadout(tool, b, s.dimField, s.slotMode)
     // GM-FP1 #10：折线绘制中，锁定嘅长度/角度即时约束 rubber-band 预览 → 打字时几何 live 跟住变（Fusion 手感）。
     const polyPreview = (b: string[]): Pt | undefined => {
       if (tool !== 'polyline' || s.polyPts.length === 0) return undefined
@@ -11263,7 +11314,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     if (/^[0-9.]$/.test(key)) { buf[s.dimField] = (buf[s.dimField] + key).slice(0, 9); const pv = polyPreview(buf); return { dimBuf: buf, sketchDim: readoutFor(buf), ...(pv ? { sketchPreview: pv } : {}) } }
     if (key === 'Backspace') { buf[s.dimField] = buf[s.dimField].slice(0, -1); const pv = polyPreview(buf); return { dimBuf: buf, sketchDim: readoutFor(buf), ...(pv ? { sketchPreview: pv } : {}) } }
-    if (key === 'Tab') { const twoField = tool === 'rectangle' || tool === 'crect' || tool === 'rrect' || (tool === 'ellipse' && s.ellipseCreation==='axis-aligned') || tool === 'polyline'; const nf = twoField && s.dimField === 0 ? 1 : 0; return { dimField: nf, sketchDim: msLabel ? `${msLabel} = [${buf[nf] || '_'}] (Enter 确定)` : typedReadout(tool, buf, nf) } }   // GM-FP1 #10：polyline 加入两字段（长↔角）Tab 循环
+    if (key === 'Tab') { const twoField = tool === 'rectangle' || tool === 'crect' || tool === 'rrect' || (tool === 'ellipse' && s.ellipseCreation==='axis-aligned') || tool === 'polyline' || tool === 'slot'; const nf = twoField && s.dimField === 0 ? 1 : 0; return { dimField: nf, sketchDim: msLabel ? `${msLabel} = [${buf[nf] || '_'}] (Enter 确定)` : typedReadout(tool, buf, nf, s.slotMode) } }   // GM-FP1 #10：polyline 加入两字段（长↔角）Tab 循环
     if (key === 'Escape') return { dimBuf: ['', ''], dimField: 0 }
     if (key !== 'Enter') return {}
     const num = (x: string, fb: number) => { const v = parseFloat(x); return isFinite(v) && v > 0 ? v : fb }
@@ -11330,22 +11381,35 @@ export const useApp = create<AppState>((rawSet, get) => {
       if(!s.polyPts.length){const dx=prev[0]-start[0],dy=prev[1]-start[1],d=Math.hypot(dx,dy),r=buf[0]!==''?Number(buf[0]):d;if(d<1e-6||r<1e-6)return {status:'先移動光標選擇半軸方向'};const U:Pt=[start[0]+dx*r/d,start[1]+dy*r/d];return {sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],polyPts:[U],...clr,sketchPreview:U,status:'已定第一半軸；輸入另一半軸長度或點擊'}}
       const U=s.polyPts[0],dx=U[0]-start[0],dy=U[1]-start[1],rx=Math.hypot(dx,dy),ry=buf[0]!==''?Number(buf[0]):Math.abs((prev[0]-start[0])*(-dy/rx)+(prev[1]-start[1])*(dx/rx))
       if(!Number.isFinite(ry)||ry<1e-6)return {status:'另一半軸必須大於零'}
-      const ell={cx:start[0],cy:start[1],rx,ry,rot:Math.atan2(dy,dx)*180/Math.PI}
-      return {...bank,sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],sketchShape:{type:'poly',ell,pts:ellipseSample(ell,48)},sketchStart:null,polyPts:[],...clr,status:'已按數值建立旋轉橢圓；可用D標半軸尺寸'}
+      const nm=normalizeMajorFirst({cx:start[0],cy:start[1],rx,ry,rot:Math.atan2(dy,dx)*180/Math.PI}),ell=nm.ell
+      return {...bank,sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],sketchShape:{type:'poly',ell,pts:ellipseSample(ell,48)},sketchStart:null,polyPts:[],...clr,status:`已按數值建立旋轉橢圓（半長軸 ${ellFmt(ell.rx)} mm，半短軸 ${ellFmt(ell.ry)} mm${nm.swapped?'；輸入的另一半軸較長，已自動改以其方向作長軸':''}）`}
     }
     if (start && tool === 'ellipse') {  // 椭圆：center=start，打 全宽×全高（= 2rx × 2ry）
+      if (buf.some((v) => v !== '' && (!Number.isFinite(Number(v)) || Number(v) <= 0))) return { status: illegalRejectStatus('橢圓軸長必須大於 0') }
       const W = num(buf[0], Math.abs(prev[0] - start[0]) * 2 || 20), H = num(buf[1], Math.abs(prev[1] - start[1]) * 2 || W)
       const cx = start[0], cy = start[1], rx = W / 2, ry = H / 2, SEG = 48, poly: Pt[] = []
       for (let i = 0; i < SEG; i++) { const a = (i * 2 * Math.PI) / SEG; poly.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]) }
-      return { ...bank, sketchShape: { type: 'poly', pts: poly, ell: { cx, cy, rx, ry, rot: 0 } }, sketchStart: null, ...clr, status: `橢圓 ${W} × ${H} mm（真橢圓邊）— 點「拉伸」` }
+      return { ...bank, sketchShape: { type: 'poly', pts: poly, ell: { cx, cy, rx, ry, rot: 0 } }, sketchStart: null, ...clr, status: `橢圓已建立（水平軸全長 ${ellFmt(W)} mm × 豎直軸全長 ${ellFmt(H)} mm）` }
     }
-    if (start && tool === 'slot') {  // 槽：start=一端中心，打 长度（方向跟预览；槽宽用底栏 sketchSlotW）
+    if (start && tool === 'slot') {  // 槽：打 長度（Tab）槽寬；長度語義跟模式（心心距／總長／以中心對稱的心心距），方向跟預覽
+      const bad = (v: string) => v !== '' && (!Number.isFinite(Number(v)) || Number(v) <= 0)
+      if (bad(buf[1])) return { status: illegalRejectStatus('槽寬必須大於 0') }
+      if (bad(buf[0])) return { status: illegalRejectStatus('槽長度必須大於 0') }
+      const w = buf[1] !== '' ? Number(buf[1]) : s.sketchSlotW
+      if (!(w > 0)) return { status: illegalRejectStatus('槽寬必須大於 0') }
+      const rr = w / 2, mode = s.slotMode
       const dx = prev[0] - start[0], dy = prev[1] - start[1], L0 = Math.hypot(dx, dy)
-      const L = num(buf[0], L0 || 20), ux = L0 > 0.01 ? dx / L0 : 1, uy = L0 > 0.01 ? dy / L0 : 0
-      const c0 = start, c1: Pt = [start[0] + ux * L, start[1] + uy * L], r = (s.sketchSlotW || 20) / 2, px = -uy, py = ux
-      const V1: Pt = [c1[0] + px * r, c1[1] + py * r], V2: Pt = [c1[0] - px * r, c1[1] - py * r], V3: Pt = [c0[0] - px * r, c0[1] - py * r], V4: Pt = [c0[0] + px * r, c0[1] + py * r]
-      const shape = vertsPoly([V1, V2, V3, V4], [bulgeFromMid(V1, V2, [c1[0] + ux * r, c1[1] + uy * r]), 0, bulgeFromMid(V3, V4, [c0[0] - ux * r, c0[1] - uy * r]), 0])
-      return { ...bank, sketchShape: shape, sketchStart: null, ...clr, status: `槽 長${L} 寬${(r * 2).toFixed(0)}（真圓弧端）— 點「拉伸」` }
+      const ux = L0 > 0.01 ? dx / L0 : 1, uy = L0 > 0.01 ? dy / L0 : 0
+      const L = num(buf[0], L0 || 20)
+      // 依模式換算成第二點，再交由 slotCenters（與滑鼠路徑相同）
+      const p1: Pt = mode === 'centerpt' ? [start[0] + ux * L / 2, start[1] + uy * L / 2] : [start[0] + ux * L, start[1] + uy * L]
+      const cc = slotCenters(mode, start, p1, rr)
+      if ('error' in cc) return { status: cc.error }
+      const shape = slotShape(cc.c0, cc.c1, rr)
+      const profiles = bank.sketchProfiles ?? s.sketchProfiles
+      const Lc = Math.hypot(cc.c1[0] - cc.c0[0], cc.c1[1] - cc.c0[1])
+      _slotTypedDone = true
+      return { ...bank, ...(buf[1] !== '' ? { sketchSlotW: w } : {}), skCons: [...s.skCons, ...slotConsFor(s, profiles.length, shape)], sketchShape: shape, sketchStart: null, ...clr, status: `槽已建立（心心距 ${slotFmt(Lc)} mm，總長 ${slotFmt(Lc + w)} mm，槽寬 ${slotFmt(w)} mm）— 如需另一個槽，請先點選起點` }
     }
     if (start && tool === 'rrect') {  // 圆角矩形：start=一角，打 宽×高（角半径用底栏 sketchCornerR）
       const dx = prev[0] - start[0], dy = prev[1] - start[1]
@@ -11536,7 +11600,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           else if (dx < 0.01 && dy > 0.5) auto.push({ id: skConId(), kind: 'con', type: 'v', a: { kind: 'edge', shape: idx, idx: j } } as SkCon)
         }
       }
-      return { sketchShape: { type: 'poly', pts: finalPts, ...(smooth ? { ctrl: s.polyPts, smooth: true, ...(isBSpline ? { bspline: true } : {}) } : {}) }, polyPts: [], skCons: auto.length ? [...s.skCons, ...auto] : s.skCons, status: `${isBSpline ? 'B樣條' : smooth ? '樣條' : '折線'}已閉合${auto.length ? ` · 自動加咗 ${auto.length} 個水平/豎直約束（Fusion 式推斷）` : ''} — 點「拉伸」（${smooth ? '真平滑曲面' : '直邊'}）` }
+      return { sketchShape: { type: 'poly', pts: finalPts, ...(smooth ? { ctrl: s.polyPts, smooth: true, ...(isBSpline ? { bspline: true } : {}) } : {}) }, polyPts: [], skCons: auto.length ? [...s.skCons, ...auto] : s.skCons, status: `${isBSpline ? 'B樣條' : smooth ? '樣條' : '折線'}已閉合${auto.length ? ` · 已自動加入 ${auto.length} 個水平/豎直約束（自動推斷）` : ''} — 點「拉伸」（${smooth ? '真平滑曲面' : '直邊'}）` }
     })
     if (get().mode === 'sketch' && get().skCons.length) void get().resolveSk()
     // T773：折线闭合都推断重合（顶点啱啱落喺既有形状顶点上 → ◉）
@@ -14619,8 +14683,8 @@ export const useApp = create<AppState>((rawSet, get) => {
           // GM-FP3 #39：Move = 画布 gizmo（X/Y 箭头 + 旋转弧，绕形心）+ Create Copy 剔（工具面板）+ 打字精确路径。
           get().startSkMove()
           return
-        case 'sk_trim': get().setSketchTool('trim'); set({ status: '✂ 修剪（T）：點一段剪走 · 或【按住拖掃】一筆多刪 — 剪到同其它輪廓/構造線嘅相交點；冇相交成條刪（Ctrl+Z 可還原）' }); return
-        case 'sk_extend': get().setSketchTool('extend'); set({ status: '⟶ 延伸：點開放路徑嘅端段（靠自由端嗰半）— 沿原方向/原圓延長到最近相交幾何' }); return
+        case 'sk_trim': get().setSketchTool('trim'); set({ status: '✂ 修剪（T）：點選一段即剪去，或按住拖掃一次刪除多段。修剪至與其他輪廓或構造線的相交點；沒有相交時刪除整條（Ctrl+Z 可還原）' }); return
+        case 'sk_extend': get().setSketchTool('extend'); set({ status: '⟶ 延伸：點選開放路徑的端段（靠近要延伸的一端），沿原方向或原圓延長至最近的相交幾何' }); return
         case 'sk_break': get().setSketchTool('break'); set({ status: '⊟ 打斷：點曲線想分割嗰點 → 一分為二（兩段都保留；近相交點會吸到精確交點，Ctrl+Z 還原）' }); return
         case 'sk_constr': return get().toggleConstruction()
         case 'sk_filletc': get().setSketchTool('cfillet'); return set({ status: `倒圓角：點近一個直角頂點即按 R${get().sketchCornerR || 8} 倒嗰個角（底欄改 R，或按「全部角」一次過）` })

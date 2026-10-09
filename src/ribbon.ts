@@ -582,10 +582,10 @@ export const SKETCH_PANELS: Panel[] = [
       { id: 'sk_polygon', label: '多邊形', icon: 'default', glyph: '⬡', quick: true, sep: true, tip: '正多邊形（中心 + 半徑）；草圖欄可設邊數 / 內切外接。' },
       { id: 'sk_spline', label: '樣條', icon: 'sweep', glyph: '∿', quick: true, tip: '樣條曲線：連續點擊一串點 → 畫出一條【經過每一個點】嘅平滑曲線。想畫順滑自由曲線時用（拉伸/旋轉出真平滑曲面）。' },
       { id: 'sk_bspline', label: 'B樣條', icon: 'sweep', glyph: '⟿', quick: true, tip: 'B樣條：連續點擊一串控製點 → 畫出被呢啲點「拉扯」出嚟嘅平滑曲線（唔一定經過控製點,但比樣條更順滑）。想要極順滑曲線時用（拉伸/旋轉出真平滑曲面）。' },
-      { id: 'sk_slot', label: '槽', icon: 'default', glyph: '⬭', quick: true, tip: '腰形槽：兩端中心 + 槽寬（草圖欄設槽寬）。' },
+      { id: 'sk_slot', label: '槽', icon: 'default', glyph: '⬭', quick: true, tip: '槽：可選心心距、總長或中心點模式；槽寬於工具面板設定，亦可輸入長度後按 Tab 輸入槽寬。建立後長度及槽寬為可修改的驅動尺寸。' },
       { id: 'sk_arcslot', label: '圓弧槽', icon: 'default', glyph: '◜', tip: '圓弧槽：弧心 + 一端 + 另一端，沿弧的腰形槽。' },
       { id: 'sk_rrect', label: '圓角矩形', icon: 'box', glyph: '▢', quick: true, tip: '圓角矩形：對角兩點 + 圓角半徑（草圖欄設半徑）。' },
-      { id: 'sk_ellipse', label: '橢圓', icon: 'cylinder', glyph: '⬯', quick: true, tip: '橢圓：中心 + 半軸。' },
+      { id: 'sk_ellipse', label: '橢圓', icon: 'cylinder', glyph: '⬯', quick: true, tip: '橢圓：點選中心，再點選外框角點；建立後可點擊數值修改半長軸及半短軸。' },
       { id: 'sk_earc', label: '橢圓弧', icon: 'cylinder', glyph: '◡', tip: '橢圓弧：中心 → 長軸端（定 rx+旋轉）→ 短軸半徑 → 起角 → 終角（工具面板選擇順 / 逆時針）。真橢圓邊，閉合成弓形可拉伸。' },
       { id: 'sk_conic', label: '圓錐曲線', icon: 'cylinder', glyph: '⌓', tip: '圓錐曲線：起點 → 終點 → 頂點（兩端切線嘅交點）→ 喺底欄調「充滿度」(細 = 扁橢圓弧 / 中 = 拋物線 / 大 = 雙曲線)。畫出真平滑精確邊。' },
       { id: 'sk_point', label: '點', icon: 'default', glyph: '·', quick: true, tip: '草圖點：單擊落一個構造點（可約束/可標尺寸）— 鑽孔定位、對稱錨點日常。' },
@@ -596,8 +596,8 @@ export const SKETCH_PANELS: Panel[] = [
   {
     name: 'MODIFY',
     tools: [
-      { id: 'sk_trim', label: '修剪', icon: 'default', glyph: '✂', shortcut: 'T', quick: true, tip: '修剪（T，Fusion 同款）：點要剪走嗰段 — 剪到同其它幾何嘅相交點；冇相交成條刪。閉合輪廓剪完變開放路徑。' },
-      { id: 'sk_extend', label: '延伸', icon: 'default', glyph: '⟶', quick: true, tip: '延伸：點開放路徑嘅端段 — 沿原方向（直線）/原圓（弧）延長到最近相交幾何。' },
+      { id: 'sk_trim', label: '修剪', icon: 'default', glyph: '✂', shortcut: 'T', quick: true, tip: '修剪（T）：點選要剪去的線段，修剪至與其他幾何的相交點；沒有相交時刪除整條。閉合輪廓修剪後成為開放路徑。' },
+      { id: 'sk_extend', label: '延伸', icon: 'default', glyph: '⟶', quick: true, tip: '延伸：點選開放路徑的端段，沿原方向（直線）或原圓（圓弧）延長至最近的相交幾何。' },
       { id: 'sk_break', label: '打斷', icon: 'default', glyph: '⊟', tip: '打斷（Fusion Break）：點曲線上一點 → 一分為二，兩段都保留（近相交點會吸到精確交點）。' },
       { id: 'sk_filletc', label: '倒圓角', icon: 'fillet', glyph: 'r⌒', quick: true, tip: '點近一個直角頂點倒嗰個角（半徑=草圖欄「圓角R」；或底欄「全部角」一次過倒晒）。' },
       { id: 'sk_chamferc', label: '倒斜角', icon: 'chamfer', glyph: 'C∠', quick: true, tip: '倒斜角：撳近一個直角頂點,把嗰個角倒成一條直斜邊（回縮量 = 草圖欄「圓角R」；或撳底欄「全部角」一次過倒晒）。' },

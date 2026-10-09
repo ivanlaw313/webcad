@@ -38,10 +38,10 @@ const TOOL_HINT: Record<string, string> = {
   rectangle: '點兩個對角點', crect: '點中心 → 點一角', rect3: '點 3 點（可畫斜矩形）',
   circle: '點圓心 → 點半徑', circle2p: '點直徑兩端兩點（打數字=Ø）', circle3: '點圓周 3 點', circle2t: '點兩條相切邊 → 定半徑', circle3t: '點三條相切邊',
   polyline: '連續點擊；回到起點或按「閉合」', mline: '點中點 → 點一端（由中點向兩端對稱）', polygon: '點中心 → 點一角', arc: '點 起點 / 終點 / 中點', arcc: '點圓心 → 起 → 終',
-  earc: '點中心 → 長軸端 → 短軸 → 起角 → 終角', conic: '點 起點 → 終點 → 頂點；ρ 調充滿度', ellipse: '點中心 → 點包圍框角點確定兩個半軸（可輸入寬/高）', spline: '連續點擊控制點；雙擊/閉合收尾',
+  earc: '點中心 → 長軸端 → 短軸 → 起角 → 終角', conic: '點 起點 → 終點 → 頂點；ρ 調充滿度', ellipse: '點選中心，再點選外框角點以確定水平及豎直半軸（可輸入水平軸全長，Tab 切換豎直軸全長）', spline: '連續點擊控制點；雙擊/閉合收尾',
   bspline: '連續點擊控制點（曲線逼近）', point: '點位置落一個草圖點', rrect: '點兩個對角點（角自動倒圓）',
-  slot: '點兩個圓心 → 定槽寬', arcslot: '點弧 3 點 → 定槽寬',
-  trim: '✂ 點要剪走嗰段（剪到相交點；冇相交成條刪）', extend: '⟶ 點開放路徑嘅端段，延到最近相交', break: '⊟ 點曲線上一點 → 一分為二（兩段都保留）',
+  slot: '心心距模式：點選兩個弧心；總長模式：點選兩端外緣；中心點模式：先點中心再點弧心。可輸入長度，Tab 切換槽寬', arcslot: '點弧 3 點 → 定槽寬',
+  trim: '✂ 點選要剪去的線段（修剪至相交點；沒有相交時刪除整條）', extend: '⟶ 點選開放路徑的端段，延長至最近的相交幾何', break: '⊟ 點曲線上一點 → 一分為二（兩段都保留）',
 }
 
 // GM-FP2 #34：tool-first 武裝態顯示用嘅約束中文名
@@ -72,6 +72,7 @@ export function SketchToolPanel() {
   const sides = useApp((s) => s.sketchSides)
   const inscribed = useApp((s) => s.polyInscribed)
   const slotW = useApp((s) => s.sketchSlotW)
+  const [slotTxt, setSlotTxt] = useState<string | null>(null)   // SKETCH12 b2：槽寬輸入草稿（無效值顯示錯誤，不改回 20）
   const tanR = useApp((s) => s.sketchTanR)
   const dimArcLen = useApp((s) => s.dimArcLen)
   const dimCircleRad = useApp((s) => s.dimCircleRad)
@@ -234,14 +235,15 @@ export function SketchToolPanel() {
     case 'slot':
     case 'arcslot':
       body = (<>
-        <Row label={T('槽寬')}><input className="tp-num" type="number" min={1} value={slotW} onFocus={(e) => e.currentTarget.select()} onChange={(e) => g().setSketchSlotW(Number(e.target.value))} style={{ width: 56 }} /><span style={{ fontSize: 11, color: '#8a97a2' }}>mm</span></Row>
+        <Row label={T('槽寬')}><input className="tp-num" data-testid="slot-width" type="number" min={0} step="any" value={slotTxt ?? String(slotW)} aria-invalid={slotTxt != null && !(Number(slotTxt) > 0)} onFocus={(e) => e.currentTarget.select()} onChange={(e) => { const v = e.target.value; setSlotTxt(v); if (v.trim() !== '') g().setSketchSlotW(Number(v)) }} onBlur={() => setSlotTxt(null)} style={{ width: 56, ...(slotTxt != null && slotTxt.trim() !== '' && !(Number(slotTxt) > 0) ? { borderColor: '#c9362a', color: '#c9362a' } : {}) }} /><span style={{ fontSize: 11, color: '#8a97a2' }}>mm</span></Row>
+        {slotTxt != null && slotTxt.trim() !== '' && !(Number(slotTxt) > 0) && <div data-testid="slot-width-error" style={{ fontSize: 11, color: '#c9362a' }}>{T(`槽寬必須大於 0；目前沿用 ${slotW} mm`)}</div>}
         {/* GM-FP4 #18：直槽 3 變體（心心 / 總長 / 中心點）；弧槽維持三點圓弧 */}
         {tool === 'slot' && (
           <div style={{ display: 'flex', gap: 4 }}>
             {(['cc', 'overall', 'centerpt'] as const).map((m) => (
               <button key={m} className={'sb-tool' + (slotMode === m ? ' active' : '')} style={{ flex: 1, fontSize: 11, padding: '2px 4px' }}
-                title={m === 'cc' ? T('心心：點兩個弧心（距離=槽長）') : m === 'overall' ? T('總長：點兩端最外緣（tip-to-tip=總長）') : T('中心點：先點槽中心 → 再點一個弧心（對稱）')}
-                onClick={() => g().setSlotMode(m)}>{m === 'cc' ? T('心心') : m === 'overall' ? T('總長') : T('中心點')}</button>
+                data-testid={`slot-mode-${m}`} title={m === 'cc' ? T('心心模式：點選兩個弧心，兩點距離＝心心距') : m === 'overall' ? T('總長模式：點選兩端最外緣，兩點距離＝總長') : T('中心點模式：先點選槽中心，再點選一個弧心（兩端對稱）')}
+                onClick={() => g().setSlotMode(m)}>{m === 'cc' ? T('心心距') : m === 'overall' ? T('總長') : T('中心點')}</button>
             ))}
           </div>
         )}

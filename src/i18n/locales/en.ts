@@ -849,6 +849,7 @@ const messages: Record<string, string> = {
   "status.cutDone": "Cut (boolean subtract) — real OCCT B-rep",
   "status.cylCreated": "Created cylinder Ø{0}×{1}",
   "status.cylCut": "Cut cylinder Ø{0}×{1}",
+  "status.cylNewBody": "New body · cylinder Ø{0}×{1}",
   "status.dimRejected": "Dimension rejected",
   "status.dimRejectedHole": "Dimension rejected: hole Ø must be > 0 (illegal preview cleared)",
   "status.dimRejectedIllegal": "Dimension rejected: illegal input",

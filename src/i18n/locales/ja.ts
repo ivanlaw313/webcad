@@ -849,6 +849,7 @@ const messages: Record<string, string> = {
   "status.cutDone": "切断（ブール差）完了 — 実OCCT B-rep",
   "status.cylCreated": "円柱を作成しました Ø{0}×{1}",
   "status.cylCut": "円柱で切り取りました Ø{0}×{1}",
+  "status.cylNewBody": "新しいボディ：円柱 Ø{0}×{1}",
   "status.dimRejected": "寸法を拒否しました",
   "status.dimRejectedHole": "寸法を拒否しました：穴径Øは 0 より大きく（不正プレビューをクリア）",
   "status.dimRejectedIllegal": "寸法を拒否しました：不正な入力",

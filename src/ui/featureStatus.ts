@@ -139,7 +139,9 @@ export function cylSuccessStatus(opts: {
   d: number | string
   h: number | string
 }, lang?: LangInput): string {
-  const key = opts.op === 'cut' ? 'status.cylCut' : 'status.cylCreated'
+  const key = opts.op === 'cut' ? 'status.cylCut'
+    : opts.op === 'newbody' ? 'status.cylNewBody'
+    : 'status.cylCreated'
   return fmt(msg(key, L(lang)), opts.d, opts.h)
 }
 

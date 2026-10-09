@@ -19688,9 +19688,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       const at: [number, number, number] = [Number(p.px) || 0, Number(p.py) || 0, Number(p.pz) || 0]
       const placed = at.some((v) => Math.abs(v) > 1e-9)
       const autoOp = rawOp === 'auto'
+      // WORKFLOW2：自動＝模型已有實體時一律新實體（獨立體），唔再靠 AABB 重疊先決定；空白模型首件仍用 new。
+      // 重疊只影響成功狀態後綴（可選），唔再把分離件靜默 Join 成一塊兩坨。
+      let autoOverlapped = false
       if (autoOp) {
-        const bb = primPlacementBox(d.kind, p, at)
-        rawOp = bb && hasSolid(get().features) && meshBoxOverlap(get().bodyMesh, bb) ? 'newbody' : 'new'
+        if (hasSolid(get().features)) {
+          const bb = primPlacementBox(d.kind, p, at)
+          autoOverlapped = !!(bb && meshBoxOverlap(get().bodyMesh, bb))
+          rawOp = 'newbody'
+        } else {
+          rawOp = 'new'
+        }
       }
       const op: BoolOp = d.kind === 'coil' ? resolveCoilOp(rawOp, hasSolid(get().features), get().cutMode)   // BUG（Coil-3）
         : (rawOp === 'cut' || rawOp === 'intersect' || rawOp === 'newbody') && hasSolid(get().features)
@@ -19708,7 +19716,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       else if (d.kind === 'dome') { const cap = Math.max(0, +p.cap || 0), R = (+p.d) / 2; f = { id: fid(), type: 'prim', shape: 'dome', a: R, b: 0, c: cap, op }; msg = domeSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, cap }, get().lang) }
       else if (d.kind === 'halfcyl') { f = { id: fid(), type: 'prim', shape: 'halfcyl', a: (+p.d) / 2, b: 0, c: +p.h, op }; msg = halfcylSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, h: p.h }, get().lang) }
       else if (d.kind === 'pie') { f = { id: fid(), type: 'prim', shape: 'pie', a: (+p.d) / 2, b: Math.max(1, Math.min(360, +p.ang)), c: +p.h, op }; msg = pieSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, ang: p.ang, h: p.h }, get().lang) }
-      else if (d.kind === 'cylinder') { f = { id: fid(), type: 'extrude', profile: { kind: 'circle', c: [at[0], at[1]], r: (+p.d) / 2 }, height: +p.h, operation: op, ...(Math.abs(at[2]) > 1e-9 ? { baseZ: at[2] } : {}) }; msg = cylSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, h: p.h }, get().lang) }
+      else if (d.kind === 'cylinder') { f = { id: fid(), type: 'extrude', profile: { kind: 'circle', c: [at[0], at[1]], r: (+p.d) / 2 }, height: +p.h, operation: op, ...(Math.abs(at[2]) > 1e-9 ? { baseZ: at[2] } : {}) }; msg = cylSuccessStatus({ op: op === 'cut' ? 'cut' : op === 'newbody' ? 'newbody' : 'new', d: p.d, h: p.h }, get().lang) }
       else if (d.kind === 'prism') {
         const n = Math.max(3, Math.min(24, Math.round(+p.sides))), r = (+p.d) / 2
         const pts = Array.from({ length: n }, (_, i) => { const a = (2 * Math.PI * i) / n + Math.PI / 2; return [r * Math.cos(a), r * Math.sin(a)] as [number, number] })
@@ -19717,7 +19725,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       else if (d.kind === 'coil') { const rv = (+p.d) / 2, r2v = (+p.d2 || 0) / 2; f = { id: fid(), type: 'coil', pitch: +p.pitch, height: +p.h, radius: rv, wireR: (+p.wire) / 2, op, ...(r2v > 0 && Math.abs(r2v - rv) > 1e-6 ? { r2: r2v } : {}) }; msg = (r2v > 0 && Math.abs(r2v - rv) > 1e-6) ? coilSuccessStatus({ taper: true, d: p.d, d2: p.d2 }, get().lang) : coilSuccessStatus({}, get().lang) }
       else { f = { id: fid(), type: 'thread', d: +p.d, pitch: +p.pitch, height: +p.h, op }; msg = `已${verb}螺紋桿 Ø${p.d} 螺距${p.pitch} 高${p.h}` }
-      if (autoOp && op === 'newbody') msg = `${msg} — 自動：與現有實體重疊 → 新實體（沒有合併）`
+      if (autoOp && op === 'newbody') msg = autoOverlapped
+        ? `${msg} — 自動：與現有實體重疊 → 新實體（沒有合併）`
+        : `${msg} — 自動：與現有實體分離 → 新實體`
     } else {
       // revolve: the profile (+T746 sketch bundle) was captured into payload when the command opened
       // GM-L2 #60：旋转角度 0/空（清框 → Number('')=0，绕过 UI spinner min=1）唔好静默当整圈 360° — 前置拒绝、保持对话框开等用户改

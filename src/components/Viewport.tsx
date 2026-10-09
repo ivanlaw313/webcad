@@ -9230,14 +9230,14 @@ function QuiltPickPanel() {
  * 呢個組件接上已有嘅 BUG-409/417 通道：setFeatParam(k, value, raw) 會記住原文，
  * featDlgBlockingReason 就閂得到「確定」掣，理由亦夾得到用戶原文。
  * unit='mm' 嘅欄行 parseLen → 連 inch 分數（1/4）同算式（10+5）一齊通。 */
-// UX3 #2：基本體「操作」— 自動（有實體而重疊 → ⬡新實體；否則 ＋加料），同 Fusion 一樣唔會靜靜將新件融入舊件。
+// UX3 #2 / WORKFLOW2：基本體「操作」— 自動（模型已有實體 → ⬡新實體；空白模型 → ＋加料），唔會靜靜將分離件併入活動體。
 function PrimOpSelect() {
   const op = useApp((s) => String(s.featDlg?.params.op ?? 'auto'))
   const has = useApp((s) => !!s.bodyMesh?.triangles?.length)
   const lang = useApp((s) => s.lang)
   return <select data-testid="prim-op" value={has ? op : 'auto'} onChange={(e) => useApp.getState().setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!has}
-    title={tStatus('自動：與現有實體重疊 → ⬡新實體（獨立實體，不會併入）；不重疊 → ＋加料。＋加料=並入活動體；－切割=從活動體切除', lang)}>
-    <option value="auto">{tStatus('自動（重疊→新實體）', lang)}</option>
+    title={tStatus('自動：模型已有實體時 → ⬡新實體（獨立實體，不會併入）；空白模型 → ＋加料。＋加料=並入活動體；－切割=從活動體切除', lang)}>
+    <option value="auto">{tStatus('自動（有實體→新實體）', lang)}</option>
     <option value="new">{tStatus('＋加料', lang)}</option>
     <option value="cut">{tStatus('－切割', lang)}</option>
     <option value="newbody">{tStatus('⬡新實體', lang)}</option>

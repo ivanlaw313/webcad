@@ -849,6 +849,7 @@ const messages: Record<string, string> = {
   "status.cutDone": "已切割（布尔减）— 真实 OCCT B-rep",
   "status.cylCreated": "已创建圆柱 Ø{0}×{1}",
   "status.cylCut": "已切割圆柱 Ø{0}×{1}",
+  "status.cylNewBody": "已新实体圆柱 Ø{0}×{1}",
   "status.dimRejected": "尺寸已拒绝",
   "status.dimRejectedHole": "尺寸已拒绝：孔径Ø必须大于 0（已清除非法预览）",
   "status.dimRejectedIllegal": "尺寸已拒绝：非法输入",

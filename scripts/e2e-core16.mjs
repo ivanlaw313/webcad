@@ -943,6 +943,33 @@ await runE2E(async (page, okRaw) => {
     await ribbon('splitbody'); await selectIn(/^軸/, 'X'); await typeField(/^位置/, '100'); await commitField(field(/^位置/))
     await okBtn().click().catch(() => {}); await waitIdle()
     await errorMsg('split plane outside the body', /外|未|唔|無法|沒有/)
+    // 測試員個案（RE-BuLi-Cbf7 #27）：中心矩形 50×40 拉伸 10（X −25…25）。位置 0 = 世界原點 X=0；時間軸改 10 → 高側 X 10…25 = 6000
+    await fresh(); await build([{ id: 'p1', type: 'extrude', profile: { kind: 'rect', a: [-25, -20], b: [25, 20] }, height: 10, operation: 'new' }])
+    await page.keyboard.press('Escape'); await W(200)
+    await ribbon('splitbody'); await selectIn(/^軸/, 'X')
+    const refLbl = await S(() => [...document.querySelectorAll('.cmd-palette label')].map((l) => l.textContent).find((t) => /位置/.test(t)) || '')
+    ok('split panel labels the reference (由原點起計)', /原點/.test(refLbl), { refLbl })
+    await typeField(/^位置/, '0'); await commitField(field(/^位置/)); await waitIdle()
+    const pvLine = await S(() => document.querySelector('[data-testid="split-plane-pos"]')?.textContent || '')
+    ok('split preview states the plane position (X = 0)', /X\s*=\s*0(\.0+)?\b/.test(pvLine), { pvLine })
+    await clickOk()
+    const bbX = () => S(() => { const v = window.useApp.getState().bodyMesh.vertices; let lo = Infinity, hi = -Infinity; for (let i = 0; i < v.length; i += 3) { lo = Math.min(lo, v[i]); hi = Math.max(hi, v[i]) } return [+lo.toFixed(2), +hi.toFixed(2)] })
+    const s0 = await vol(), bx0 = await bbX()
+    ok('position 0 cuts at world X=0: active X 0…25, 10000 / 10000', near(s0.active, 10000, 0.01) && near(s0.total, 20000, 0.01) && Math.abs(bx0[0]) < 0.05 && Math.abs(bx0[1] - 25) < 0.05, { s0, bx0 })
+    try { await timelineDbl('split') } catch { /* */ }
+    if (await hasPalette()) { await typeField(/^位置/, '10'); await commitField(field(/^位置/)); await clickOk() }
+    const s1 = await vol(), bx1 = await bbX()
+    ok('timeline edit position 10: active X 10…25 = 6000 (from origin, not body edge)', near(s1.active, 6000, 0.01) && near(s1.total, 20000, 0.01) && Math.abs(bx1[0] - 10) < 0.05, { s1, bx1 })
+    // 底部編輯列（單擊時間軸）同一參考：12.5 → 高側 X 12.5…25 = 5000
+    await page.keyboard.press('Escape'); await W(300)
+    const spIdx = await S(() => window.useApp.getState().features.findIndex((f) => f.type === 'split'))
+    await page.locator(`.tl-chip[data-fi="${spIdx}"]`).first().click(); await W(500)
+    const sbar = page.locator('label', { hasText: /切割位置/ }).locator('input:visible').first()
+    const sbarLbl = await page.locator('label', { hasText: /切割位置/ }).first().textContent().catch(() => '')
+    ok('edit bar labels 切割位置（由原點起計）', /原點/.test(sbarLbl || ''), { sbarLbl })
+    if (await sbar.count()) { await sbar.click(); await sbar.press('Control+a'); await sbar.pressSequentially('12.5', { delay: 60 }); await sbar.press('Enter'); await waitIdle() }
+    const s2 = await vol(), bx2 = await bbX()
+    ok('edit bar position 12.5: active X 12.5…25 = 5000', near(s2.active, 5000, 0.01) && Math.abs(bx2[0] - 12.5) < 0.05, { s2, bx2 })
   })
 
   // ════════════════ 16. 移動/複製 Move/Copy ════════════════
@@ -972,6 +999,22 @@ await runE2E(async (page, okRaw) => {
     await ribbon('move'); await typeField(/^dx/, 'abc'); await commitField(field(/^dx/))
     ok('non-numeric dx cannot be committed', await okBtn().isDisabled())
     { const s0 = (await statusBar()) + ' | ' + (await S(() => [...document.querySelectorAll('.cmd-palette [role=alert], .toast')].map((e) => e.innerText).join(' | '))); ok('move dx abc: clear message', /數值|無效|非法|數字/.test(s0), { s0 }); await tradOnly('move dx abc (typed input excluded)', s0.replace(/abc/g, '')) }
+  })
+
+  // ════════════════ 17. 新建檔案（唔可以重新載入頁面）════════════════
+  await run('newfile', '新建檔案 New File（不重新載入）', async () => {
+    await build(BOX)
+    const entry0 = await S(() => { window.__noReloadMarker = 42; return [...document.scripts].map((x) => x.src).find((x) => /assets\/index-/.test(x)) || '' })
+    const nav0 = await S(() => performance.getEntriesByType('navigation').length + ':' + performance.timeOrigin)
+    await page.locator('button[aria-haspopup="menu"]', { hasText: /檔案|File/ }).first().click(); await W(400)
+    await page.locator('[role="menu"] [role="menuitem"]', { hasText: '新建檔案' }).first().click(); await W(500)
+    const dlg = await S(() => document.querySelector('[data-testid="dialog-alt"]')?.closest('div')?.parentElement?.innerText || '')
+    ok('New File asks 儲存／開新檔案 first', /開新檔案/.test(dlg), { dlg: dlg.slice(0, 160) })
+    await page.locator('button.cmd-ok:visible').last().click(); await W(1500); await waitIdle()
+    const after = await S(() => ({ marker: window.__noReloadMarker ?? null, feats: window.useApp.getState().features.length, nav: performance.getEntriesByType('navigation').length + ':' + performance.timeOrigin, entry: [...document.scripts].map((x) => x.src).find((x) => /assets\/index-/.test(x)) || '', status: window.useApp.getState().status }))
+    ok('New File did NOT reload the page (same JS realm, same navigation, same bundle)', after.marker === 42 && after.nav === nav0 && after.entry === entry0, { ...after, nav0, entry0 })
+    ok('New File cleared the document', after.feats === 0, after)
+    await tradOnly('new file status', after.status)
   })
 
   // ════════════════ summary ════════════════

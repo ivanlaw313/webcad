@@ -146,7 +146,10 @@ const TOTAL = Object.values(PER_FILE).reduce((a, b) => a + b, 0)
  * 只因「面／件」喺 LEAK 集而被計入；已用 simplifiedToTraditionalHK 逐條核對所有新增字串（轉換前後一致＝冇簡體）。 */
 /* 2026-10-09（ASM2 P1 + P3 construction UX）：2290 → 2299。設為活動（樹／⋯／●／雙擊／時間軸）、偏移平面提示、軸／平面標籤等新文案；
  * 逐條核對全部係繁體正式書面語，只因共用字形「面／件／實／體」被 LEAK 集計入；冇新增簡體 UI 字串（抽殼備用提示已改繁體並唔在本檔 FILES 清單）。 */
-const MAX_LEAK_STRINGS = 2299
+/* 2026-10-10（58dbd17 merge / sketch-face-copy）：2299 → 2300。+1 來自 7ad0dcb 干涉狀態
+ * 「✓ 無體積干涉（N 個組件）」—— 全部繁體正式書面語，只因共用字形「件」被 LEAK 集計入；
+ * 用簡體獨有字集掃過新增字串，零命中（唔係新簡體 UI）。 */
+const MAX_LEAK_STRINGS = 2300
 
 test('zh-HK lane files do not grow simplified-Chinese string literals', () => {
   assert.ok(TOTAL <= MAX_LEAK_STRINGS, `leak strings ${TOTAL} > ${MAX_LEAK_STRINGS}\n` + JSON.stringify(PER_FILE, null, 2))

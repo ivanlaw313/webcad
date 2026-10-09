@@ -4137,6 +4137,50 @@ function asSweepPathShape(sh: SketchShape | null | undefined): SketchShape | nul
   while (bulges.length < 1) bulges.push(0)
   return openVertsPoly(verts, bulges)
 }
+// RETEST20 #2：Fusion 掃掠「鏈選」— 用戶逐段畫嘅 L 形路徑（40 + 30 兩條線）係兩個 shape；以前只攞第一條（淨掃 40mm）。
+// 由 seed 開始，兩頭搵端點重合（≤ tol）嘅其他開放路徑 shape 接力（必要時反向；分岔 = 多過一條候選 → 停，同 Fusion 鏈選一樣），
+// 合成一條開放折線。只得 1 段 → 原樣返回（逐字節舊行為）。used = 用咗嘅 pool index。
+function chainSweepPath(pool: (SketchShape | null | undefined)[], seed: number, tol = 1e-3): { path: SketchShape; used: number[] } | null {
+  const seedPath = asSweepPathShape(pool[seed])
+  if (!seedPath) return null
+  type Seg = { v: Pt[]; b: number[] }
+  const segOf = (sh: SketchShape): Seg | null => {
+    if (sh.type !== 'poly') return null
+    const dense = sh.smooth || sh.arc || sh.earc || sh.ell || sh.conic
+    const v = (!dense && sh.verts && sh.verts.length >= 2 ? sh.verts : sh.pts).map((p) => [p[0], p[1]] as Pt)
+    if (v.length < 2) return null
+    const b = !dense && sh.verts && sh.bulges ? sh.bulges.slice(0, v.length - 1) : []
+    while (b.length < v.length - 1) b.push(0)
+    return { v, b }
+  }
+  const rev = (sg: Seg): Seg => ({ v: [...sg.v].reverse(), b: [...sg.b].reverse().map((x) => -x) })
+  const same = (a: Pt, c: Pt) => Math.hypot(a[0] - c[0], a[1] - c[1]) <= tol
+  const cands: { i: number; sg: Seg }[] = []
+  pool.forEach((sh, i) => { if (i === seed) return; const ps = asSweepPathShape(sh); const sg = ps && segOf(ps); if (sg) cands.push({ i, sg }) })
+  const first = segOf(seedPath)
+  if (!first) return null
+  let chain: Seg = first
+  const used = [seed]
+  const left = new Set(cands.map((_, k) => k))
+  const grow = (atEnd: boolean): boolean => {
+    const tip = atEnd ? chain.v[chain.v.length - 1] : chain.v[0]
+    if (same(chain.v[0], chain.v[chain.v.length - 1]) && chain.v.length > 2) return false   // 已成環
+    const hits = [...left].filter((k) => same(cands[k].sg.v[0], tip) || same(cands[k].sg.v[cands[k].sg.v.length - 1], tip))
+    if (hits.length !== 1) return false   // 冇 / 分岔 → 停
+    const k = hits[0], c = cands[k].sg
+    left.delete(k); used.push(cands[k].i)
+    if (atEnd) { const sg = same(c.v[0], tip) ? c : rev(c); chain = { v: [...chain.v, ...sg.v.slice(1)], b: [...chain.b, ...sg.b] } }
+    else { const sg = same(c.v[c.v.length - 1], tip) ? c : rev(c); chain = { v: [...sg.v.slice(0, -1), ...chain.v], b: [...sg.b, ...chain.b] } }
+    return true
+  }
+  while (grow(true)) { /* extend tail */ }
+  while (grow(false)) { /* extend head */ }
+  if (used.length === 1) return { path: seedPath, used }
+  const anyArc = chain.b.some((x) => Math.abs(x) > 1e-12)
+  // 有弧段 → 只交密鋪 pts（掃掠用 verts 會變弦）；全直線 → verts/bulges 保留
+  const path: SketchShape = anyArc ? { type: 'poly', pts: openPathPts(chain.v, chain.b), open: true } : openVertsPoly(chain.v, chain.b)
+  return { path, used }
+}
 // 已完成（独立）草图里揾开放路径（开放折线/样条/两点线段）— 加強筋中心线 & 路徑陣列路径共用。
 // 只计仍喺时间轴上嘅 sketch 特征；按时间轴次序返回（最后 = 最新）。
 type FinishedOpenPathCand = { id: string; source: AppState['sketchSources'][string]; paths: Pt[][] }
@@ -7597,13 +7641,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     let draft:Partial<AppState>={}
     const livePath=asSweepPathShape(s.sketchShape)
     let hasPath=!!livePath||s.polyPts.length>=2
-    if(livePath&&livePath!==s.sketchShape)draft={sketchShape:livePath}
+    if(livePath){
+      // RETEST20 #2：活動路徑 + 已提交嘅相連線段 → 鏈成一條（用咗嘅 profile 移走，唔再當截面）
+      const ch=chainSweepPath([s.sketchShape,...s.sketchProfiles],0)
+      if(ch&&ch.used.length>1)draft={sketchShape:ch.path,sketchProfiles:s.sketchProfiles.filter((_,i)=>!ch.used.includes(i+1))}
+      else if(livePath!==s.sketchShape)draft={sketchShape:livePath}
+    }
     // Live sketch: path already finishOpenPolyline'd into sketchProfiles (closed section kept alongside).
     if(!hasPath){
       const idx=s.sketchProfiles.findIndex((sh)=>!!asSweepPathShape(sh))
       if(idx>=0){
-        const path=asSweepPathShape(s.sketchProfiles[idx])!
-        const rest=s.sketchProfiles.filter((_,i)=>i!==idx)
+        const ch=chainSweepPath(s.sketchProfiles,idx)!   // RETEST20 #2：鏈選相連段
+        const path=ch.path
+        const rest=s.sketchProfiles.filter((_,i)=>!ch.used.includes(i))
         const keepShape=s.sketchShape&&isSweepSectionProfile(s.sketchShape)?[s.sketchShape]:[]
         draft={sketchShape:structuredClone(path),sketchProfiles:structuredClone([...rest.filter(isSweepSectionProfile),...keepShape]),polyPts:[]}
         hasPath=true
@@ -7614,7 +7664,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       const candidates: {id:string;source:AppState['sketchSources'][string];path:SketchShape}[]=[]
       for(const [id,source] of Object.entries(s.sketchSources)){
         if(!s.features.some(f=>f.type==='sketch'&&f.sketchId===id))continue
-        const path=source.shapes.map(asSweepPathShape).find((p):p is SketchShape=>!!p)
+        const seed=source.shapes.findIndex((p)=>!!asSweepPathShape(p))
+        const path=seed>=0?chainSweepPath(source.shapes,seed)?.path:undefined   // RETEST20 #2：L 形逐段畫 → 成條鏈
         if(path)candidates.push({id,source,path})
       }
       const selected=candidates.find(c=>c.id===s.selSketch),pick=selected??(candidates.length===1?candidates[0]:undefined)

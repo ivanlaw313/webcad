@@ -28,7 +28,7 @@ test('tree rename inputs ignore the IME candidate Enter and commit the live inpu
   const t = rd('src/components/BrowserTree.tsx')
   assert.match(t, /const imeBusy = \(e: .*\) => e\.nativeEvent\.isComposing \|\| e\.keyCode === 229/)
   const inputs = t.split('className="tree-rename"').slice(1).map((x) => x.slice(0, 900))
-  assert.equal(inputs.length, 5)
+  assert.equal(inputs.length, 6)   // ASM2 #7：「關節」資料夾的關節列亦可重新命名
   for (const x of inputs) { assert.match(x, /if \(imeBusy\(e\)\) return/); assert.match(x, /e\.currentTarget\.value/) }
 })
 test('wording: 「+ 新增」, 浮雕 (zh), 材料清單 table headers in Traditional', () => {

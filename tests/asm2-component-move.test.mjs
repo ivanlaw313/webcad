@@ -47,7 +47,7 @@ test('ribbon 移動/複製 with only components (no body left): opens, defaults 
   reset([comp('A', '組件1'), comp('B', '組件2')])
   g().selectComponent('A')
   g().openFeatDlg('move')
-  assert.ok(g().featDlg, g().status); assert.notEqual(g().status, '請先創建一個實體')
+  assert.ok(g().featDlg, g().status); assert.doesNotMatch(g().status, /請先(創建|建立)一個實體/)
   assert.equal(g().featDlg.params.objectType, 'components')
   g().setFeatParam('dz', 10)
   await g().commitFeatDlg()

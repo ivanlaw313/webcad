@@ -100,7 +100,7 @@ try {
     ok('[move] ribbon 移動/複製 button found', await ribbon('move'), {})
     await page.waitForTimeout(400)
     const d0 = await g(() => { const s = window.useApp.getState(); return { kind: s.featDlg?.kind, ot: s.featDlg?.params?.objectType, status: s.status } })
-    ok('[move] dialog opens for components (no 「請先創建一個實體」), object type = 組件', d0.kind === 'move' && d0.ot === 'components' && !/請先創建一個實體/.test(d0.status), d0)
+    ok('[move] dialog opens for components (no 「請先創建一個實體」), object type = 組件', d0.kind === 'move' && d0.ot === 'components' && !/請先(創建|建立)一個實體/.test(d0.status), d0)
     await g(() => window.useApp.getState().setFeatParam('dz', 15)); await page.waitForTimeout(200)
     await page.locator('[data-testid="command-confirm"]').click(); await page.waitForTimeout(500)
     const p1 = await g((id) => window.useApp.getState().components.find((c) => c.id === id).pos, B)

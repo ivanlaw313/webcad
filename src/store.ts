@@ -46,6 +46,7 @@ import { sourceReferenceGeometry } from './sketch/sourceReferenceGeometry'
 import { cad, onKernelRestart, cancelPreviews, isPreviewCancelled } from './cad/cadService'
 import { cardinalSketchFrame, localPointToCad } from './cad/sketchPlaneFrame'
 import { REVOLVE_AXIS_VEC, revolveCardinalAxis, revolvePersistedAxis } from './cad/revolvePreviewFrame'
+import { diagnoseRevolve, revolveFailStatus } from './cad/revolveDiagnose'
 import { expandHoleFeature } from './cad/holeFeature'
 import { followExtrudeTopEdges } from './cad/extrudeEdgeFollow'
 import { mapKernelFailuresToTimeline } from './cad/featureFailureMap'
@@ -15312,6 +15313,20 @@ export const useApp = create<AppState>((rawSet, get) => {
     const verb = op === 'cut' ? '切割（车槽）' : op === 'intersect' ? '相交' : '生成实体'
     const axName = axisSpec ? (axisSpec.name || `任意轴(${axisSpec.axisV.map((v) => +v.toFixed(2)).join(',')})@(${axisSpec.axisOrigin.map((v) => +v.toFixed(0)).join(',')})`) : `${axis} 轴`
     const ok = await get().applyFeatures([...get().features, f], `已旋轉${verb}（绕 ${axName} ${angle}°${sym ? '·两侧对称' : ''}${wall > 0 ? `，薄壁 ${wall}mm` : ''}${axisSpec && wall > 0 ? '（任意軸薄壁不支持，已出實心）' : ''}）`)
+    if (!ok) {
+      // UX2 #3：唔好淨係「重建失敗」— 講出截面／草圖嘅真原因（跨軸／未閉合／多輪廓／散線／碎線／自交）
+      try {
+        const shapes = (skBundle?.shapes ?? []) as SketchShape[]
+        const causes = diagnoseRevolve({
+          profile: profile as never, mainShape: shapes.length ? shapes[shapes.length - 1] as never : null, shapes: shapes as never,
+          source: { plane: skBundle?.plane as never, baseZ: skBundle?.baseZ, arb: skBundle?.arb as never, faceBinding: skBundle?.faceBinding },
+          axisDir: axisSpec?.axisV ?? REVOLVE_AXIS_VEC[axis === 'X' || axis === 'Z' ? axis : 'Y'], axisOrigin: axisSpec?.axisOrigin,
+          workerError: get().featureErrors[f.id],
+        })
+        const msg = revolveFailStatus(causes)
+        set((st) => ({ status: msg, featureErrors: { ...st.featureErrors, [f.id]: msg.replace(/^⚠ /, '') } }))
+      } catch { /* 診斷唔到就保留原本訊息 */ }
+    }
     // T746：成功后归档草图源（轮廓 + 约束）并打 sketchId — 旋转特征同拉伸一样可双击 timeline 重开草图编辑
     if (ok && skBundle && Array.isArray(skBundle.shapes) && skBundle.shapes.length) {
       const skId = 'sk' + ++_skidN

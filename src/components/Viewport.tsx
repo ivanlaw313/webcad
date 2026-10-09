@@ -135,7 +135,7 @@ import type { MeshData } from '../worker/cad.worker'
 import { fitCameraDistance } from '../cad/fitCameraDistance'
 import { computeFK, solve4Bar, solveSliderCrank, solveSixBar, jointDragFrame, jointDragLiveValue, jointDragStatus, JOINT_LABEL_TC, type Joint } from '../assembly/kinematics'
 import { localizeAsmName } from '../assembly/names'   // RETEST17 #3：組件/關節預設名繁體顯示
-import { assemblyMassSummary } from '../assembly/asmMass'   // BUG(C)：装配质心用 FK 世界矩阵
+import { assemblyMassSummary, threeToCadPoint } from '../assembly/asmMass'   // BUG(C)：装配质心用 FK 世界矩阵
 import { getProcTexture } from '../render/procTextures'   // S101[8]：程序化纹理（三平面投影）
 import { meshManifold } from '../geom/meshCheck'
 import { buildFaceGroupColors } from '../cad/faceGroupColors'   // GM-X1 #16：逐网格面组循环上色
@@ -8815,7 +8815,9 @@ export default function Viewport() {
               if (x < lo[0]) lo[0] = x; if (y < lo[1]) lo[1] = y; if (z < lo[2]) lo[2] = z; if (x > hi[0]) hi[0] = x; if (y > hi[1]) hi[1] = y; if (z > hi[2]) hi[2] = z
             }
           }
-          const com = wsum > 0 ? `　·　質心 (${uLen(cmx / wsum)}, ${uLen(cmy / wsum)}, ${uLen(cmz / wsum)} ${uSuf})` : ''
+          // RETEST17 #4：質心累加喺 three 世界（Y-up）→ 報 CAD 坐標（Z-up），同下面 W×D×H（x / CAD y / CAD z）一致。
+          const comCad = wsum > 0 ? threeToCadPoint([cmx / wsum, cmy / wsum, cmz / wsum]) : null
+          const com = comCad ? `　·　質心 (${uLen(comCad[0])}, ${uLen(comCad[1])}, ${uLen(comCad[2])} ${uSuf})` : ''
           // three-world extents → display as CAD-style W(x)×D(z)×H(y) for continuity with single-part readouts.
           const W = hi[0] - lo[0], D = hi[2] - lo[2], H = hi[1] - lo[1]
           return (<>

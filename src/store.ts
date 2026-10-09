@@ -8263,7 +8263,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   // UX1 #3：取消「編輯特徵」（雙擊時間線重開）→ 連 selectedFeature 一齊清，唔好留低底部「編輯「…」」尺寸條；編輯回填嘅路徑亦清走。
   cancelSweepDlg: () => set((s) => ({ sweepDlgOpen: false, sweepError: null, sweepEditId: null, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], ...(s.sweepEditId ? { selectedFeature: null, polyPts: [], status: '已取消編輯掃掠' } : { status: '已取消掃掠（路徑保留）' }) })),
-  setSweepDia: (n) => set({ sweepDia: n > 0 ? n : 12 }),
+  setSweepDia: (n) => set((st) => ({ sweepDia: Number.isFinite(n) ? n : st.sweepDia, sweepError: null })),   // CORE16：唔再靜默改成 12 — 0／負數照存，commitSweepPath 拒絕並講原因
   sweepWall: 0,
   setSweepWall: (n) => set({ sweepWall: Math.max(0, n || 0) }),
   sweepClimb: 0,
@@ -20456,7 +20456,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // RETEST21 #2：唔可以靜靜雞失敗 — 對話框保留 + 紅字錯誤（sweepError）+ ⚠ 狀態列
     const sweepFail = (msg: string) => set({ sweepError: msg, status: '⚠ 掃掠未能建立：' + msg })
     // CORE16：圓形截面管徑 0／空白唔可以靜靜雞變返 12 — 對話框保留 + 紅字原因
-    if (s.sweepSection !== 'profile' && !(Number(s.sweepDia) > 0)) { sweepFail('管徑必須大於 0（請輸入圓管直徑）'); return }
+    if (s.sweepSection !== 'profile' && !(Number(s.sweepDia) > 0)) { sweepFail('尺寸已拒絕：管徑 Ø 必須大於 0'); return }
     // Timeline edit: only patch parameters.  Keep the original 2D/3D spine, guide and archived profile
     // instead of creating a second Sweep feature or silently flattening a 3D path.
     if (s.sweepEditId) {

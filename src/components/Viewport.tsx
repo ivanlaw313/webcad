@@ -7927,7 +7927,7 @@ export default function Viewport() {
           width={232}
           okTip={tStatus('生成（Enter）', lang)}
           onOk={() => void commitSweepPath()}
-          okDisabled={!!numBad || (sweepSection === 'circle' && sweepDiaTxt != null && !(Number(sweepDiaTxt.trim()) > 0))}
+          okDisabled={!!numBad || (sweepSection === 'circle' && (!(sweepDia > 0) || (sweepDiaTxt != null && !(parseLen(sweepDiaTxt, unit) != null && (parseLen(sweepDiaTxt, unit) as number) > 0))))}
           onCancel={() => cancelSweepDlg()}
           summary={sweepSection === 'profile'
             ? (sketchOp === 'cut' ? tStatus('沿路徑掃掠切割（草圖截面）', lang) : sketchOp === 'intersect' ? tStatus('沿路徑掃掠 ∩ 保留公共部分', lang) : tStatus('沿路徑掃掠成實體（草圖截面）', lang))
@@ -7968,7 +7968,13 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>{tStatus('管徑 Ø', lang)}</span>
             <span><LenInput mm={sweepDia} onMm={(v) => setSweepDia(v)} onText={setSweepDiaTxt} unit={unit} w={66} min={0.01} max={100000} title={tStatus('管徑 Ø', lang)} /> {unit === 'inch' ? 'in' : 'mm'}</span>
           </label>}
-          {sweepSection === 'circle' && sweepDiaTxt != null && sweepDiaTxt.trim() !== '' && Number.isFinite(Number(sweepDiaTxt.trim())) && !(Number(sweepDiaTxt.trim()) > 0) && <div role="alert" data-testid="sweep-dia-alert" style={{ color: '#b42318', fontSize: 11 }}>{tStatus('尺寸已拒絕：管徑 Ø 必須大於 0', lang)}</div>}
+          {sweepSection === 'circle' && (() => {
+            // CORE16：0／負數／空白／非數字 → 正式錯誤訊息 + 確定停用（以前會靜默變返 12）
+            const raw = sweepDiaTxt == null ? null : sweepDiaTxt.trim()
+            const v = raw == null ? sweepDia : parseLen(raw, unit)
+            const why = raw === '' ? '請輸入管徑 Ø（必須大於 0）' : v == null ? '尺寸已拒絕：管徑 Ø 必須是有效數值' : !(v > 0) ? '尺寸已拒絕：管徑 Ø 必須大於 0' : ''
+            return why ? <div role="alert" data-testid="sweep-dia-alert" style={{ color: '#b42318', fontSize: 11 }}>{tStatus(why, lang)}</div> : null
+          })()}
           {sweepSection === 'profile' && (
             <>
               {(() => {

@@ -2131,6 +2131,8 @@ Object.assign(STATUS_PHRASES_X, {
   '體積': 'volume',
   '活動實體體積': 'active body volume',
   '尺寸已拒絕：管徑 Ø 必須大於 0': 'Dimension rejected: pipe Ø must be > 0',
+  '請輸入管徑 Ø（必須大於 0）': 'Enter a pipe Ø (must be > 0)',
+  '尺寸已拒絕：管徑 Ø 必須是有效數值': 'Dimension rejected: pipe Ø must be a valid number',
   '保留工具體': 'Keep tools',
   '編輯：工具體沿用原有設定；可改操作類型或保留工具體': 'Edit: tool bodies stay as originally chosen; change the operation or Keep tools',
   '質量': 'mass',

@@ -562,3 +562,54 @@ export function jointDragToValue(j: Joint, parentM: Matrix4, delta: Matrix4, piv
   if (j.type === 'slider' || j.type === 'cylindrical') out.slide = j.slide + p1.clone().sub(p0).dot(axisW)
   return out
 }
+
+// RETEST17 #2：Fusion 式關節拖動 — gumball 只顯示關節自由度把手（旋轉環繞關節軸 / 滑動箭頭沿關節軸），
+// 拖動時即時驅動關節值。frame = 局部 Z 對齊關節世界軸（含父件 FK、flip），原點 = 子件中心投影到關節軸
+// （旋轉類：環圈住軸心；子件繞軸轉時投影點不變 → 拖動期間 frame 穩定）；滑動類原點 = 子件中心。
+// handles：revolute=['rotate']、slider=['translate']、cylindrical=['rotate','translate']；其他類型 → null（保留舊 gumball）。
+export function jointDragFrame(j: Joint, parentM: Matrix4, childCentreW: [number, number, number]): { matrix: Matrix4; origin: [number, number, number]; axisW: [number, number, number]; handles: ('rotate' | 'translate')[] } | null {
+  if (j.type !== 'revolute' && j.type !== 'slider' && j.type !== 'cylindrical') return null
+  const axis = new Vector3(j.axis[0], j.axis[1], j.axis[2])
+  if (!Number.isFinite(axis.lengthSq()) || axis.lengthSq() < 1e-9) axis.set(0, 1, 0)
+  axis.normalize()
+  if (j.flip) axis.multiplyScalar(-1)
+  const z = axis.clone().transformDirection(parentM).normalize()
+  const anchorW = new Vector3(j.anchor[0], j.anchor[1], j.anchor[2]).applyMatrix4(parentM)
+  const c = new Vector3(childCentreW[0], childCentreW[1], childCentreW[2])
+  const o = j.type === 'slider' ? c : anchorW.clone().add(z.clone().multiplyScalar(c.clone().sub(anchorW).dot(z)))
+  // 任意但確定嘅 x 軸 ⟂ z（揀同 z 最唔平行嘅世界軸）
+  const ref = Math.abs(z.y) < 0.9 ? new Vector3(0, 1, 0) : new Vector3(1, 0, 0)
+  const x = new Vector3().crossVectors(ref, z).normalize()
+  const y = new Vector3().crossVectors(z, x).normalize()
+  const matrix = new Matrix4().makeBasis(x, y, z).setPosition(o)
+  const handles: ('rotate' | 'translate')[] = j.type === 'revolute' ? ['rotate'] : j.type === 'slider' ? ['translate'] : ['rotate', 'translate']
+  return { matrix, origin: [o.x, o.y, o.z], axisW: [z.x, z.y, z.z], handles }
+}
+
+// 即時拖動：以拖動起點嘅關節快照 j0 為基準解值（delta 係由拖動起點累積嘅世界增量），角度按上一幀值展開
+// （避免跨 ±180° 時跳 360°），最後按 aMin/aMax、sMin/sMax 夾限位。null = 呢類關節唔接受拖動。
+export function jointDragLiveValue(j0: Joint, parentM: Matrix4, delta: Matrix4, pivot: [number, number, number], prev?: { angle?: number; slide?: number }): { angle?: number; slide?: number } | null {
+  const v = jointDragToValue(j0, parentM, delta, pivot)
+  if (!v) return null
+  if (v.angle !== undefined) {
+    let a = v.angle
+    const ref = prev?.angle
+    if (ref !== undefined && Number.isFinite(ref)) { while (a - ref > 180) a -= 360; while (a - ref <= -180) a += 360 }
+    if (j0.aMin !== undefined && Number.isFinite(j0.aMin)) a = Math.max(j0.aMin, a)
+    if (j0.aMax !== undefined && Number.isFinite(j0.aMax)) a = Math.min(j0.aMax, a)
+    v.angle = Math.round(a * 1000) / 1000
+  }
+  if (v.slide !== undefined) {
+    let s = v.slide
+    if (j0.sMin !== undefined && Number.isFinite(j0.sMin)) s = Math.max(j0.sMin, s)
+    if (j0.sMax !== undefined && Number.isFinite(j0.sMax)) s = Math.min(j0.sMax, s)
+    v.slide = Math.round(s * 1000) / 1000
+  }
+  return v
+}
+
+// RETEST17 #2：拖動狀態文字 — 報【實際寫入】嘅關節值（拖動中 / 放手），唔再報投影前嘅 0.0°。
+export function jointDragStatus(jointName: string, angle: number | undefined, slide: number | undefined, done: boolean): string {
+  const parts = [angle !== undefined ? `角度 ${angle.toFixed(1)}°` : '', slide !== undefined ? `偏移 ${slide.toFixed(2)} mm` : ''].filter(Boolean).join(' · ')
+  return `${done ? '已沿' : '拖動中 · 沿'}關節「${jointName}」驅動：${parts}（受關節約束）`
+}

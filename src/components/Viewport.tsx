@@ -133,7 +133,7 @@ import { evalArith, normalizeWide, parseLen, toLenInput, type LenUnit } from '..
 import { NumInput } from './NumInput'   // BUG-507/509：受驗數值欄（取代 type="number"）
 import type { MeshData } from '../worker/cad.worker'
 import { fitCameraDistance } from '../cad/fitCameraDistance'
-import { computeFK, solve4Bar, solveSliderCrank, solveSixBar, jointDragToValue, JOINT_LABEL_TC } from '../assembly/kinematics'
+import { computeFK, solve4Bar, solveSliderCrank, solveSixBar, jointDragFrame, jointDragLiveValue, jointDragStatus, JOINT_LABEL_TC, type Joint } from '../assembly/kinematics'
 import { localizeAsmName } from '../assembly/names'   // RETEST17 #3：組件/關節預設名繁體顯示
 import { assemblyMassSummary } from '../assembly/asmMass'   // BUG(C)：装配质心用 FK 世界矩阵
 import { getProcTexture } from '../render/procTextures'   // S101[8]：程序化纹理（三平面投影）
@@ -3673,19 +3673,43 @@ function ComponentGizmo() {
   // BUG(D)：被關節驅動嘅子件 → gizmo 放喺 FK 位置，拖動投影到關節自由度（更新角度／滑桿），唔改 pos。
   const childJoint = c ? joints.find((j) => j.child === c.id) : undefined
   const fk = useMemo(() => (childJoint ? computeFK(components.map((x) => x.id), joints) : null), [childJoint, components, joints])
-  const jointDrag = childJoint && fk ? (delta: Matrix4, pivot: [number, number, number]) => {
+  // RETEST17 #2：受約束拖動 frame（旋轉環繞關節軸 / 箭頭沿關節軸）— 拖動逐幀即時驅動關節值（Fusion 拖關節子件）。
+  const jointFrame = useMemo(() => {
+    if (!childJoint || !fk || !c) return null
+    const M = compWorldMatrix(c, fk.get(c.id))
+    const v = c.mesh.vertices
+    const mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity]
+    for (let i = 0; i < v.length; i += 3) for (let k = 0; k < 3; k++) { const x = v[i + k]; if (x < mn[k]) mn[k] = x; if (x > mx[k]) mx[k] = x }
+    const ctr = v.length ? new Vector3((mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2).applyMatrix4(M) : new Vector3().setFromMatrixPosition(M)
+    return jointDragFrame(childJoint, fk.get(childJoint.parent) ?? new Matrix4(), [ctr.x, ctr.y, ctr.z])
+  }, [childJoint, fk, c])
+  const dragJ0 = useRef<{ j0: Joint; parentM: Matrix4; last?: { angle?: number; slide?: number } } | null>(null)
+  const jointDrag = childJoint && fk ? (delta: Matrix4, pivot: [number, number, number], phase: 'start' | 'move' | 'end') => {
     const st = useApp.getState()
-    const v = jointDragToValue(childJoint, fk.get(childJoint.parent) ?? new Matrix4(), delta, pivot)
-    if (!v) { useApp.setState({ status: `「${c!.name}」受${JOINT_LABEL_TC[childJoint.type]}關節「${childJoint.name}」約束 — 拖動已忽略；請用關節面板滑桿調整` }); return }
+    const live = st.joints.find((j) => j.id === childJoint.id) ?? childJoint
+    if (phase === 'start' || !dragJ0.current) {
+      const fk0 = computeFK(st.components.map((x) => x.id), st.joints)
+      dragJ0.current = { j0: { ...live }, parentM: (fk0.get(live.parent) ?? new Matrix4()).clone(), last: { angle: live.angle, slide: live.slide } }
+      if (phase === 'start') return
+    }
+    const d = dragJ0.current!
+    const v = jointDragLiveValue(d.j0, d.parentM, delta, pivot, d.last)
+    if (phase === 'end') dragJ0.current = null
+    if (!v) { useApp.setState({ status: `「${localizeAsmName(c!.name, st.lang)}」受${JOINT_LABEL_TC[childJoint.type]}關節「${localizeAsmName(childJoint.name, st.lang)}」約束 — 拖動已忽略；請用關節面板滑桿調整` }); return }
+    const changed = (v.angle !== undefined && Math.abs(v.angle - (live.angle ?? 0)) > 1e-6) || (v.slide !== undefined && Math.abs(v.slide - (live.slide ?? 0)) > 1e-6)
     const before = useApp.getState().status
-    st.setJointValue(childJoint.id, v)
-    if (useApp.getState().status === before) useApp.setState({ status: `已沿關節「${childJoint.name}」軸${v.angle !== undefined ? ` 轉到 ${v.angle.toFixed(1)}°` : ''}${v.slide !== undefined ? ` 滑到 ${v.slide.toFixed(2)} mm` : ''}（拖動受關節約束）` })
+    if (changed) st.setJointValue(childJoint.id, v)
+    d.last = v
+    if (phase !== 'end' && !changed) return
+    const after = useApp.getState().joints.find((j) => j.id === childJoint.id) ?? live
+    if (useApp.getState().status === before) useApp.setState({ status: jointDragStatus(localizeAsmName(childJoint.name, st.lang), v.angle !== undefined ? after.angle : undefined, v.slide !== undefined ? after.slide : undefined, phase === 'end') })
   } : undefined
   return (
     <ComponentGumball
       component={c}
       fkMat={childJoint && fk && c ? fk.get(c.id) : undefined}
       jointDrag={jointDrag}
+      jointFrame={jointFrame}
       grounded={c?.grounded ? c.id : grounded}
       setComponentPos={setComponentPos}
       setComponentRot={setComponentRot}

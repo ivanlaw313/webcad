@@ -45,7 +45,7 @@ test('slider/cylindrical take the axial component; parent FK axis respected; rig
 
 test('gumball routes jointed-child drags through jointDragToValue (no free pos write)', () => {
   const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
-  assert.match(vp, /jointDragToValue\(childJoint/)
+  assert.match(vp, /jointDragLiveValue\(d\.j0/)   // RETEST17 #2：即時驅動（jointDragLiveValue 內部用 jointDragToValue）
   assert.match(vp, /st\.setJointValue\(childJoint\.id, v\)/)
   const gb = readFileSync(new URL('../src/components/ComponentGumball.tsx', import.meta.url), 'utf8')
   assert.match(gb, /if \(jointDrag\) \{[\s\S]*?return\s*\n\s*\}/)

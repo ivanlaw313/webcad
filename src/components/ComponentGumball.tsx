@@ -49,8 +49,11 @@ export type ComponentGumballProps = {
   resolveMates: () => void
   /** Hide the gumball outside model mode (pass `mode === 'model'`). Defaults to true. */
   enabled?: boolean
-  /** BUG(D)：關節子件 — 拖動改由關節自由度承接（delta=世界增量，pivot=gizmo 世界支點），唔再寫 pos/rot。 */
-  jointDrag?: (delta: Matrix4, pivot: [number, number, number]) => void
+  /** BUG(D)：關節子件 — 拖動改由關節自由度承接（delta=世界增量，pivot=gizmo 世界支點），唔再寫 pos/rot。
+   *  RETEST17 #2：phase='start'|'move'|'end' — 拖動中逐幀即時驅動關節值（唔係放手先算）。 */
+  jointDrag?: (delta: Matrix4, pivot: [number, number, number], phase: 'start' | 'move' | 'end') => void
+  /** RETEST17 #2：關節自由度 frame（局部 Z = 關節軸）+ 要顯示嘅把手；有就只顯示旋轉環 / 軸向箭頭（Fusion 式受約束拖動）。 */
+  jointFrame?: { matrix: Matrix4; handles: ('rotate' | 'translate')[] } | null
 }
 
 // World-space AABB centre of the part (strided over vertices for perf) — used only as the gizmo anchor.
@@ -80,6 +83,7 @@ export default function ComponentGumball({
   resolveMates,
   enabled = true,
   jointDrag,
+  jointFrame,
 }: ComponentGumballProps) {
   // Latest WORLD-space delta transform captured during the drag (drei onDrag 4th arg). Ref so we read the
   // freshest value in onDragEnd without re-rendering on every drag frame.
@@ -102,8 +106,48 @@ export default function ComponentGumball({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [component, component?.id, component?.pos, component?.rot, fkMat, gen])
 
+  // RETEST17 #2：拖動期間凍結 seed（drei 會就地改寫 matrix 物件；即時驅動關節會令 component/fk 每幀變 → 唔可以換新 seed）。
+  const dragSeed = useRef<Matrix4 | null>(null)
+  const jointSeed = useMemo(() => (jointFrame ? jointFrame.matrix.clone() : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [jointFrame, gen])
+
   if (!show || !component) return null
   const c = component
+
+  if (jointDrag && jointFrame && jointSeed) {
+    // 受約束拖動：每種把手一個 PivotControls（同一 frame）— rotate = 只有繞局部 Z 嘅旋轉環；translate = 只有局部 Z 箭頭。
+    const pv = new Vector3().setFromMatrixPosition(jointSeed)
+    const pivot: [number, number, number] = [pv.x, pv.y, pv.z]
+    return (
+      <>
+        {jointFrame.handles.map((h) => (
+          <PivotControls
+            key={c.id + ':' + h + ':' + gen}
+            matrix={dragSeed.current ?? jointSeed}
+            autoTransform
+            disableScaling
+            disableSliders
+            disableAxes={h === 'rotate'}
+            disableRotations={h === 'translate'}
+            activeAxes={h === 'rotate' ? [true, true, false] : [false, false, true]}
+            depthTest={false}
+            lineWidth={3}
+            scale={90}
+            fixed={false}
+            onDragStart={() => { deltaW.current.identity(); dragSeed.current = jointSeed; jointDrag(new Matrix4(), pivot, 'start') }}
+            onDrag={(_mL, _mdL, _mW, mdW) => { deltaW.current.copy(mdW); jointDrag(deltaW.current.clone(), pivot, 'move') }}
+            onDragEnd={() => {
+              jointDrag(deltaW.current.clone(), pivot, 'end')
+              deltaW.current.identity()
+              dragSeed.current = null
+              setGen((g) => g + 1)
+            }}
+          />
+        ))}
+      </>
+    )
+  }
 
   return (
     <PivotControls
@@ -123,7 +167,7 @@ export default function ComponentGumball({
         if (jointDrag) {
           // BUG(D)：關節子件唔可以自由移動（會離開關節軸）→ 交俾關節投影（旋轉角／滑動量）。
           const pv = new Vector3().setFromMatrixPosition(seed)
-          jointDrag(deltaW.current.clone(), [pv.x, pv.y, pv.z])
+          jointDrag(deltaW.current.clone(), [pv.x, pv.y, pv.z], 'end')
           deltaW.current.identity()
           setGen((g) => g + 1)
           return

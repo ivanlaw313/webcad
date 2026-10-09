@@ -1668,6 +1668,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   skTanCircleAt: (p: Pt) => void
   dimArcLen: boolean                                      // 尺寸工具：弧长模式（⌒）
   toggleDimArcLen: () => void
+  dimCircleRad: boolean   // SKETCH12 (a)：尺寸工具點圓 = 半徑 R（預設 直徑 Ø）
+  setDimCircleRad: (on: boolean) => void
   openExtrudeDlg: () => void
   cancelExtrudeDlg: () => void
   // P2（用户实战 feedback）：Fusion Profile 区域点选 — 相交轮廓围成多个最小封闭面时，画布逐个点选拉边个
@@ -1885,6 +1887,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   confirmSkDimEdit: () => Promise<void>
   flushSkDimEdit: () => Promise<void>  // BOT-A01: apply live dim candidate before Finish Sketch / feature rebuild
   cancelSkDimEdit: () => void
+  rollbackPlacedDim: (id: string, reason: string) => Promise<void>   // SKETCH12 (b)：啱放低嘅尺寸打嘅值被拒 → 成個放置撤回（唔留重複標籤）
   commitSkDim: (id: string, patch: Partial<Extract<SkCon, { kind: 'dim' }>>, message: string) => Promise<void>
   editSkDim: (id: string, value: number) => Promise<void>
   toggleSkDimDriven: (id: string) => void  // 从动 ⇄ 驱动尺寸（右键尺寸标签）
@@ -4771,6 +4774,24 @@ function pointInsideShape(sh: SketchShape, p: Pt): boolean {
   for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const xi = pts[i][0], yi = pts[i][1], xj = pts[j][0], yj = pts[j][1]; if (((yi > p[1]) !== (yj > p[1])) && (p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi)) inside = !inside }
   return inside
 }
+// SKETCH12 (c)：求解前後比較 —— 原本有長度嘅線段／矩形邊／圓半徑，求解後縮到 ≈0 = 靠塌陷先滿足約束（Fusion 會當衝突）。
+function sketchGeometryCollapsed(before: SketchShape[], after: SketchShape[]): boolean {
+  const sizes = (sh: SketchShape | undefined): number[] => {
+    if (!sh) return []
+    if (sh.type === 'circle') return sh.point ? [] : [sh.r]
+    if (sh.type === 'rect') return [Math.abs(sh.b[0] - sh.a[0]), Math.abs(sh.b[1] - sh.a[1])]
+    const p = (sh.verts ?? sh.pts ?? []) as Pt[], out: number[] = []
+    const n = sh.open || sh.arc || sh.ctrl ? p.length - 1 : p.length
+    for (let i = 0; i < n && p.length > 1; i++) { const a = p[i], b = p[(i + 1) % p.length]; out.push(Math.hypot(b[0] - a[0], b[1] - a[1])) }
+    return out
+  }
+  for (let i = 0; i < before.length; i++) {
+    const b0 = sizes(before[i]), b1 = sizes(after[i])
+    if (b0.length !== b1.length) continue
+    for (let k = 0; k < b0.length; k++) if (b0[k] > 1e-3 && b1[k] < 1e-4) return true
+  }
+  return false
+}
 type Sizing = { tool: 'offset' | 'cfillet' | 'cchamfer'; shapeIdx: number; vi: number; anchor: Pt; ref: SketchShape; raw?: Pt; typed?: boolean; typedValue?: number; flip?: boolean }
 // SKETCH12 #1（Fusion）：打咗偏移距離之後，方向仍然跟游標喺輪廓邊一面（內 = 內縮、外 = 外擴）；打入值當距離（大小），「⇄ 反向」= 相對游標嗰面再調轉。
 // 淨系封閉輪廓（圓／矩形／封閉折線）先有內外；開放線照用打入嘅正負號。
@@ -5063,7 +5084,7 @@ export function extrudeFeatsFromShapes(shapes: SketchShape[], src: SkSourceParam
 }
 
 // GM-FP2 #34：tool-first 施约束状态提示用嘅约束中文名（施约束武装态 / 拣对象提示）
-const SK_CON_ZH: Record<SkConType, string> = { h: '水平', v: '竖直', coincident: '重合', parallel: '平行', perp: '垂直', equal: '相等', tangent: '相切', fix: '固定', midpoint: '中点', concentric: '同心', collinear: '共线', symmetric: '对称' }
+const SK_CON_ZH: Record<SkConType, string> = { h: '水平', v: '豎直', coincident: '重合', parallel: '平行', perp: '垂直', equal: '相等', tangent: '相切', fix: '固定', midpoint: '中點', concentric: '同心', collinear: '共線', symmetric: '對稱' }
 
 /** Canonical panel-unit conversion shared by associative preview and apply. */
 export function arrayConfigToPatternConfig(c:AppState['arrayCfg']):PatternConfig {
@@ -9044,7 +9065,9 @@ export const useApp = create<AppState>((rawSet, get) => {
           const cc = circum3(sh.arc.a, sh.arc.m, sh.arc.b)
           placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'rad', a: hit, value: r1(cc?.r ?? 10) || 1 })
         } else if (sh.type === 'circle') {
-          placeDim({ id: skConId(), name: nextDimName(s), kind: 'dim', type: 'dia', a: hit, value: r1(sh.r * 2) || 1 })
+          placeDim(s.dimCircleRad
+            ? { id: skConId(), name: nextDimName(s), kind: 'dim', type: 'rad', a: hit, value: r1(sh.r) || 1 }
+            : { id: skConId(), name: nextDimName(s), kind: 'dim', type: 'dia', a: hit, value: r1(sh.r * 2) || 1 })
         }
         return
       }
@@ -9155,7 +9178,22 @@ export const useApp = create<AppState>((rawSet, get) => {
         status: ellipsePair ? '已加入曲線與直線相切約束；切點保留在曲線內，可沿直線延長線' : '已加入橢圓弧端點相切約束' })
       return
     }
-    const added: SkCon = { id: skConId(), kind: 'con', type: t, a: s.skSel[0], b: s.skSel[1], c: s.skSel[2] }
+    // SKETCH12 (c)：先試解 —— 例如兩條已經平行（平行約束／同係水平）嘅線加「垂直」，求解器唔報衝突但會將其中一條縮成 0 長度。
+    // 呢類「靠塌陷先滿足」或者垂直／平行直接衝突 → 唔加，講清楚原因（同相等／相切衝突提示一致），草圖同歷史保持原狀。
+    const added: SkCon = { id: skConId(), kind: 'con', type: t, a: s.skSel[0], b: s.skSel[1], c: s.skSel[2] } as SkCon
+    const trial = await solveFree(structuredClone(conShapes), withParamVals([...s.skCons, added], s.params))
+    {
+      const now = get()
+      if (now.mode !== 'sketch' || now.sketchProfiles !== s.sketchProfiles || now.sketchShape !== s.sketchShape || now.skCons !== s.skCons || now.skSel !== s.skSel) return
+    }
+    const collapsed = !!trial && !trial.conflict && sketchGeometryCollapsed(conShapes as SketchShape[], trial.shapes as SketchShape[])
+    if (collapsed || (trial?.conflict && (t === 'perp' || t === 'parallel'))) {
+      const why = t === 'perp' ? '兩條線已經被約束成平行（平行／同為水平或豎直），再加垂直只可以將其中一條縮成 0 長度'
+        : t === 'parallel' ? '兩條線已經被約束成垂直，再加平行只可以將其中一條縮成 0 長度'
+          : '加咗之後要將線段／圓縮成 0 先滿足得到'
+      set({ skSel: [], status: `⚠「${SK_CON_ZH[t]}」同現有約束衝突：${why} — 未加入約束，草圖及歷史保持原狀（要改請先刪走衝突嗰個約束）` })
+      return
+    }
     // SKETCH12 #4：兩個形狀之間加關係（相切／平行／垂直…）→ 先試【第一個揀嘅形狀不動】求解（只移動第二個，同主流 CAD 一致），
     //   成功就以結果做起點再正常求解 —— 已標尺寸嘅直線唔會被拉長／縮短或平移，移動嘅係後揀嗰條弧。
     const pinned = await pinFirstSelectionSolve(s, added)
@@ -9422,6 +9460,19 @@ export const useApp = create<AppState>((rawSet, get) => {
   confirmSkDimEdit,
   flushSkDimEdit,
   cancelSkDimEdit,
+  rollbackPlacedDim: async (id, reason) => {
+    const s = get()
+    if (s.mode !== 'sketch' || !s.skCons.some((c) => c.id === id)) return
+    cancelSkDimEdit()
+    const last = s.sketchUndo[s.sketchUndo.length - 1] as (ReturnType<typeof skSnap> | undefined)
+    const pop = !!last && !last.skCons.some((c) => c.id === id)
+    set({
+      skCons: pop ? last!.skCons : s.skCons.filter((c) => c.id !== id), sketchRedo: [], skDimEditReq: null,
+      ...(pop ? { sketchUndo: s.sketchUndo.slice(0, -1), sketchProfiles: last!.sketchProfiles, sketchShape: last!.sketchShape, skPatternData: last!.skPatternData ?? null, ...(last!.skDimLabelOff ? { skDimLabelOff: last!.skDimLabelOff } : {}) } : {}),
+    })
+    await get().resolveSk()
+    if (get().mode === 'sketch') set({ status: `⚠ 尺寸已拒絕：${reason}（已移除啱放低嘅尺寸）` })
+  },
   commitSkDim:commitDimensionEdit,
   editSkDim: async (id, value) => {
     const target = get().skCons.find(c => c.id === id && c.kind === 'dim')
@@ -17052,6 +17103,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     void get().resolveSk()
   },
   dimArcLen: false,
+  dimCircleRad: false,
+  setDimCircleRad: (on) => set({ dimCircleRad: on, sketchTool: 'dimension', status: on ? '尺寸工具：點圓 = 半徑 R（再撳「Ø 直徑」切返）' : '尺寸工具：點圓 = 直徑 Ø' }),
   toggleDimArcLen: () => set((s) => ({ dimArcLen: !s.dimArcLen, sketchTool: 'dimension', status: !s.dimArcLen ? '⌒ 弧長尺寸模式：點一段圓弧（折線弧段/三點弧）落弧長' : '已返回普通尺寸' })),
   // T792（S71 曲面工作流 v1）：曲面放样 — 收集全部【开放折线独立草图】（XY/偏移面，各自高度）做截面，
   // 截面内偏移 ±壁厚/2 成闭合带 → 实体放样 = 薄壳曲面件（导流罩/灯罩/曲面支架）。

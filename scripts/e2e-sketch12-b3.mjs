@@ -49,6 +49,55 @@ await runE2E(async (page, ok) => {
   s = await S(); tri = all(s)[0]
   ok('#3 edited 12.5 → 20 by double-click', near(Math.hypot(tri.pts[1][0] - tri.pts[0][0], tri.pts[1][1] - tri.pts[0][1]), 20, 1e-3), { pts: tri.pts, st: s.st })
 
+  // 放低尺寸即開輸入框：Esc = 保留量度值（斜邊）
+  await tool('sk_dim'); await click(27.1, 15); await click(35, 20)
+  const edOpen = await page.evaluate(() => !!document.querySelector('[data-dim-editor] input'))
+  ok('#3 placing a dimension opens the value input immediately', edOpen)
+  const beforeEsc = await S()
+  await page.keyboard.type('99'); await page.waitForTimeout(300); await page.keyboard.press('Escape'); await page.waitForTimeout(600)
+  s = await S()
+  const slant = s.cons.filter((c) => c.kind === 'dim')
+  ok('#3 Esc keeps the measured value (dimension kept, shape unchanged)', slant.length === 2 && !slant.some((c) => c.value === 99) && JSON.stringify(all(s)) === JSON.stringify(all(beforeEsc)), { dims: slant.map((c) => [c.type, c.value]), st: s.st })
+  // (b) 過約束：同一條底邊再放一個尺寸、打 15 → 繁體訊息、闊框、撤回（冇重複標籤）
+  await page.keyboard.press('Escape'); await tool('sk_dim'); await click(24, 0); await click(24, -14)
+  await page.keyboard.type('15'); await page.waitForTimeout(900)
+  const alert = await page.evaluate(() => { const e = document.querySelector('[data-dim-editor] [role="alert"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { text: e.textContent, w: r.width, h: r.height } })
+  ok('(b) over-constraining value: Traditional message in a wide box (not one letter per line)', !!alert && !/[A-Za-z]{4,}/.test(alert.text) && alert.w >= 150 && alert.h < 80, alert)
+  await page.shot('sk12-b-overconstrain-msg')
+  await page.keyboard.press('Enter'); await page.waitForTimeout(1200)
+  s = await S()
+  const dims2 = s.cons.filter((c) => c.kind === 'dim'), lb2 = await labels()
+  ok('(b) Enter on the rejected value rolls the new dimension back (no duplicate label), Traditional status', dims2.length === 2 && lb2.filter((t) => /^20$/.test(t) || /^15$/.test(t)).length <= 1 && /已拒絕/.test(s.st) && !/[A-Za-z]{4,}/.test(s.st), { dims: dims2.map((c) => [c.type, c.value]), labels: lb2, st: s.st })
+  await page.shot('sk12-b-rolled-back')
+
+  // ── (a) 圓：R 半徑選項 ─────────────────────────────────────────────────────────
+  await fresh()
+  await tool('sk_circle'); await click(0, 0); await click(10, 0); await page.keyboard.press('Escape'); await page.waitForTimeout(400)
+  await tool('sk_dim'); await page.locator('[data-testid="dim-circle-rad"]').click(); await page.waitForTimeout(200)
+  await click(10, 0); await page.waitForTimeout(400)
+  await page.keyboard.type('6'); await page.keyboard.press('Enter'); await page.waitForTimeout(900)
+  s = await S()
+  const cd = s.cons.find((c) => c.kind === 'dim'), circ = all(s)[0]
+  ok('(a) Dimension tool 「R 半徑」 on a circle → radius dimension, typed 6 → r = 6', cd?.type === 'rad' && cd.value === 6 && near(circ.r, 6, 1e-6), { cd, r: circ?.r, st: s.st })
+  await page.keyboard.press('Escape'); await page.waitForTimeout(300)
+  const lbA = await labels()
+  ok('(a) label shows R6', lbA.some((t) => /R\s*6/.test(t)), lbA)
+  await page.shot('sk12-a-circle-radius')
+
+  // ── (c) 兩條平行線加垂直 → 拒絕 ───────────────────────────────────────────────
+  await fresh()
+  await tool('sk_polyline'); await click(0, 0); await click(40, 0); await page.keyboard.press('Escape'); await page.waitForTimeout(300)
+  await tool('sk_polyline'); await click(0, 20); await click(40, 20); await page.keyboard.press('Escape'); await page.waitForTimeout(500)
+  const pc0 = await S()
+  ok('(c) setup: two horizontal (parallel) lines', all(pc0).length === 2 && pc0.cons.filter((c) => c.type === 'h').length === 2, { cons: pc0.cons.map((c) => c.type) })
+  await tool('sk_select'); await page.keyboard.press('Escape')
+  await page.locator('button[data-cmd="sk_c_perp"]:visible').first().click(); await page.waitForTimeout(200)   // Fusion：先撳「垂直」再揀兩條線
+  await click(20, 0); await click(20, 20); await page.waitForTimeout(1200)
+  s = await S()
+  const lens = all(s).map((x) => Math.hypot(x.pts[1][0] - x.pts[0][0], x.pts[1][1] - x.pts[0][1]))
+  ok('(c) Perpendicular on parallel lines is rejected with a Traditional conflict message; no line collapses', !s.cons.some((c) => c.type === 'perp') && lens.every((L) => L > 39) && /衝突/.test(s.st) && /垂直/.test(s.st), { lens, cons: s.cons.map((c) => c.type), st: s.st })
+  await page.shot('sk12-c-perp-rejected')
+
   // ── #1 偏移方向跟游標 + ⇥d 標籤 ────────────────────────────────────────────────
   for (const side of ['inside', 'outside']) {
     await fresh()

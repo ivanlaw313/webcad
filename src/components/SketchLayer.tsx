@@ -2802,8 +2802,10 @@ export function SketchDimLayer() {
     return request===dimInputRequest.current&&useApp.getState().skDimPreview.id===e.conId&&!useApp.getState().skDimPreview.pending&&!useApp.getState().skDimPreview.error&&!!useApp.getState().skDimPreview.shapes
   }
   const initialValue = useRef('')
+  const justPlaced = useRef<string | null>(null)   // SKETCH12 (b)：呢個編輯框係尺寸工具啱放低自動開嘅
   const beginEdit = (label: DimLabel) => {
     if (!label.edit) return
+    justPlaced.current = null
     ++dimEditorEpoch.current;++dimInputRequest.current;useApp.getState().cancelSkDimEdit()
     dimEditorScope.current={key:label.key,mode:useApp.getState().mode,tool:useApp.getState().sketchTool}
     const next = label.expression ?? (label.edit.deg ? String(label.edit.value) : toLenInput(label.edit.value, unit))
@@ -2862,7 +2864,7 @@ export function SketchDimLayer() {
       const current = useApp.getState()
       if(current.mode !== 'sketch' || current.sketchTool !== dimensionRequestScope.current?.tool) { current.setSkDimEditReq(null); return }
       const l = labels.find((x) => x.edit?.conId === skDimEditReq)
-      if (l && l.edit) beginEdit(l)
+      if (l && l.edit) { beginEdit(l); justPlaced.current = skDimEditReq }
       useApp.getState().setSkDimEditReq(null)
     }
     const release = () => { queueMicrotask(open) }
@@ -2886,11 +2888,23 @@ export function SketchDimLayer() {
       // unapplied so Finish Sketch rebuilt the feature from the old constraint value.
       if(draft===initialValue.current){cancelDimension();return}
       if(!await previewDimension(e,draft)||editorEpoch!==dimEditorEpoch.current){
+        // SKETCH12 (b)：啱放低嘅尺寸、打嘅值會過約束 → 撤回成個放置（唔好留低一個重複標籤）
+        const err=useApp.getState().skDimPreview.error
+        if(err&&justPlaced.current===e.conId&&editorEpoch===dimEditorEpoch.current){const id=e.conId;cancelDimension();justPlaced.current=null;await useApp.getState().rollbackPlacedDim(id,err);return}
         if(fromBlur) cancelDimension()
         return
       }
-      const inputRequest=dimInputRequest.current
+      let inputRequest=dimInputRequest.current
+      const undo0=useApp.getState().sketchUndo
       await useApp.getState().confirmSkDimEdit()
+      // SKETCH12 #3：confirm 途中求解器微調咗草圖（resolveSk 遲到）令 session 作廢 → 用最新草圖重開一次再確定（唔好靜靜雞唔生效）
+      {
+        const st=useApp.getState()
+        if(st.sketchUndo===undo0&&!st.skDimPreview.id&&!st.skDimPreview.pending&&!/^尺寸已拒絕/.test(st.status)&&st.mode==='sketch'&&st.skCons.some(c=>c.id===e.conId)&&editorEpoch===dimEditorEpoch.current){
+          st.beginSkDimEdit(e.conId)
+          if(await previewDimension(e,draft)&&editorEpoch===dimEditorEpoch.current){inputRequest=dimInputRequest.current;await useApp.getState().confirmSkDimEdit()}
+        }
+      }
       // applyDimCandidate writes skCons/undo and bumps dimEditEpoch via the store middleware —
       // close when the preview session ends regardless of epoch (BUG-017 / BUG-008).
       const preview=useApp.getState().skDimPreview
@@ -2948,11 +2962,11 @@ export function SketchDimLayer() {
             {l.edit.dim==='con'&&<>
               <button aria-label="Confirm dimension" disabled={!!inputError||dimPreview.pending||!!dimPreview.error||!dimPreview.shapes} onMouseDown={e=>e.preventDefault()} onClick={()=>void commit(l.edit!)}>✓</button>
               <button aria-label="Cancel dimension" onMouseDown={e=>e.preventDefault()} onClick={cancelDimension}>✕</button>
-              {(inputError||dimPreview.error||dimPreview.pending)&&<span role={inputError||dimPreview.error?'alert':'status'} style={{maxWidth:220,minWidth:0,overflowWrap:'anywhere',whiteSpace:'normal',fontSize:11,color:'#b42318'}}>{inputError||dimPreview.error||msg('sk.dim.checkingPreview', lang)}</span>}
+              {(inputError||dimPreview.error||dimPreview.pending)&&<span role={inputError||dimPreview.error?'alert':'status'} style={{display:'inline-block',width:'max-content',maxWidth:280,minWidth:160,overflowWrap:'break-word',whiteSpace:'normal',lineHeight:'14px',fontSize:11,color:'#b42318'}}>{inputError||dimPreview.error||msg('sk.dim.checkingPreview', lang)}</span>}
             </>}
             {l.edit.dim === 'con' && l.name && (
               <span
-                title={tStatus(`参数名 ${l.name} · Dimension Value —— 可喺其它尺寸公式引用（如 ${l.name}*2）`, lang)}
+                title={tStatus(`參數名 ${l.name} · 尺寸數值 —— 可喺其它尺寸公式引用（如 ${l.name}*2）`, lang)}
                 onMouseDown={(e) => e.preventDefault()}
                 style={{ fontSize: 9, color: '#6b7884', borderLeft: '1px solid #cdd8e0', paddingLeft: 2, cursor: 'default', userSelect: 'none' }}
               >⋮{l.name}</span>

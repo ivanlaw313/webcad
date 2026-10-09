@@ -74,6 +74,7 @@ export function SketchToolPanel() {
   const slotW = useApp((s) => s.sketchSlotW)
   const tanR = useApp((s) => s.sketchTanR)
   const dimArcLen = useApp((s) => s.dimArcLen)
+  const dimCircleRad = useApp((s) => s.dimCircleRad)
   const mirrorPick = useApp((s) => s.mirrorPick)
   const movePreview=useApp(s=>s.skMovePreview)
   const arrayPending = useApp(s=>s.arrayPending)
@@ -263,7 +264,11 @@ export function SketchToolPanel() {
     case 'dimension':
       body = (<>
         <button className={'sb-tool' + (dimArcLen ? ' active' : '')} title={T('開住時點圓弧 = 落 ⌒弧長（驅動）；關 = R 半徑')} onClick={() => g().toggleDimArcLen()}>{T('⌒ 弧長尺寸')}</button>
-        <Hint>{T('點 邊 → 放置：垂直偏置=真長(Aligned) · 左右放=豎直投影 · 上下放=水平投影 · 點另一條邊=平行間距/夾角 · 圓=Ø · 右鍵尺寸=R↔Ø/從動')}</Hint>
+        <div style={{ display: 'flex', gap: 4 }} role="group" aria-label={T('圓尺寸')}>
+          <button data-testid="dim-circle-dia" className={'sb-tool' + (!dimCircleRad ? ' active' : '')} style={{ flex: 1 }} title={T('點圓 = 直徑 Ø 尺寸')} onClick={() => g().setDimCircleRad(false)}>{T('Ø 直徑')}</button>
+          <button data-testid="dim-circle-rad" className={'sb-tool' + (dimCircleRad ? ' active' : '')} style={{ flex: 1 }} title={T('點圓 = 半徑 R 尺寸')} onClick={() => g().setDimCircleRad(true)}>{T('R 半徑')}</button>
+        </div>
+        <Hint>{T('點 邊 → 放置：垂直偏置=真長(Aligned) · 左右放=豎直投影 · 上下放=水平投影 · 點另一條邊=平行間距/夾角 · 圓=Ø 直徑或 R 半徑（上面揀）· 圓弧=R · 右鍵尺寸=R↔Ø/從動')}</Hint>
       </>)
       break
     case 'array': {

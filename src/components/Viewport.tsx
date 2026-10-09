@@ -4948,7 +4948,9 @@ export default function Viewport() {
           const pickable = (isEditing ? (!dimmed && selPicksComp(selFilter)) : selPicksComp(selFilter)) && mode !== 'sketch' && !formMode   // GM-X4：selFilter.types 含 component 先可拣（默认全类型 = 旧 'all' 逐字节）；画草图时组件唔接 raycast
           const def = c.defId ? componentDefs.find((d) => d.id === c.defId) : undefined
           const bodies = def?.bodies?.length ? def.bodies : [{ id: c.id + '_B1', name: c.name, mesh: c.mesh }]
-          const pivot = meshCenter3(c.mesh)
+          // WORKFLOW2 P1：存檔剥 occ.mesh 時用可見定義體計旋轉中心（同 checkInterference poseOf），避免 NaN 姿態。
+          const pivotMesh = (c.mesh?.vertices?.length ? c.mesh : null) ?? bodies.find((b) => !b.hidden && b.mesh?.vertices?.length)?.mesh ?? c.mesh
+          const pivot = meshCenter3(pivotMesh)
           return <Fragment key={c.id}>{bodies.filter((b) => !b.hidden).map((b) => <KernelBody key={b.id} mesh={b.mesh} frozen compId={c.id} pos={c.pos} explodeOffset={o} rot={c.rot} rotationCenter={pivot} selected={c.id === selectedComponent || checkedComps.includes(c.id)} motion={motion} clip={clip} compColor={b.color || c.color} compOpacity={compOpacity} pickable={pickable || c.id === moldTargetCompId} moldTarget={c.id === moldTargetCompId} onSelect={() => { const st = useApp.getState(); if (st.compBoolPending) { st.selectComponent(c.id); return } selectComponent(c.id === selectedComponent ? null : c.id) }} onFocus={() => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.src?.features?.length) { void useApp.getState().editComponent(c.id) } else { selectComponent(c.id); requestFit(c.id) } }} onFaceMatePick={(face) => { const st = useApp.getState(); if (st.jointHolePick) st.applyJointHolePick(c.id, face); else if (st.screwFitMode) void st.fitScrewToHole(c.id, face); else if (st.jointPickMode) st.pickFaceForJoint(c.id, face); else st.pickFaceForMate(c.id, face) }} onPointMatePick={(point) => useApp.getState().pickPointForMate(c.id, point)} />)}</Fragment>
         })}
         {bodyMesh && bodyMesh.triangles.length > 0

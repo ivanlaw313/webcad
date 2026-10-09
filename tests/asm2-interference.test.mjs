@@ -74,3 +74,46 @@ test('panel button says 「計算」 (no English), shows 計算中… while busy
   assert.doesNotMatch(vp, /Compute 計算/)
   assert.match(vp, /data-testid="interf-compute"[^\n]*tStatus\(interfBusy \? '計算中…' : '計算', lang\)/)
 })
+
+// WORKFLOW2 P1：關節非零角令轉臂穿過底板 → 必須偵測到干涉；angle=0 乾淨姿態無干涉。
+// 亦覆蓋「occ.mesh 被剥空 + 非零 rot + 幾何只在 componentDefs」——舊碼用空 mesh 計旋轉中心 → NaN → 假陰性。
+test('revolute arm at 90° through plate → interference; angle 0 → clear', async () => {
+  const plate = box(-50, -40, 0, 50, 40, 8)
+  const arm = box(-4, -4, 10, 4, 4, 80)
+  const C1 = { id: 'C1', name: '底板', mesh: plate, pos: [0, 0, 0], rot: [0, 0, 0], color: '#888', grounded: true }
+  const C2 = { id: 'C2', name: '轉臂', mesh: arm, pos: [0, 0, 0], rot: [0, 0, 0], color: '#888' }
+  const joint = { id: 'J1', name: '關節1', type: 'revolute', parent: 'C1', child: 'C2', anchor: [0, 8, 0], axis: [1, 0, 0], angle: 90, slide: 0 }
+  useApp.setState({ components: [C1, C2], joints: [joint], componentDefs: [], interfSubset: [], interfIncludeCoincident: false, interfReport: null })
+  await g().checkInterference()
+  const hit = g()
+  assert.equal(hit.interfReport.hits.length, 1, hit.status)
+  assert.deepEqual([hit.interfReport.hits[0].a, hit.interfReport.hits[0].b].sort(), ['底板', '轉臂'].sort())
+  assert.ok(hit.interfReport.hits[0].vol > 100, `vol ${hit.interfReport.hits[0].vol}`)
+  assert.match(hit.status, /⚠ 干涉/)
+
+  useApp.setState({ joints: [{ ...joint, angle: 0 }], interfReport: null })
+  await g().checkInterference()
+  assert.equal(g().interfReport.hits.length, 0, g().status)
+  assert.match(g().status, /✓ 無干涉/)
+})
+
+test('defs-only empty occ.mesh + non-zero rot + revolute 90° still detects interference (no NaN pose)', async () => {
+  const plate = box(-50, -40, 0, 50, 40, 8)
+  const arm = box(-4, -4, 10, 4, 4, 80)
+  const defs = [
+    { id: 'D1', name: '底板', mesh: plate, rev: 1, bodies: [{ id: 'D1_B1', name: '底板', mesh: plate }] },
+    { id: 'D2', name: '轉臂', mesh: arm, rev: 1, bodies: [{ id: 'D2_B1', name: '轉臂', mesh: arm }] },
+  ]
+  const empty = { vertices: [], triangles: [], normals: [] }
+  const comps = [
+    { id: 'C1', name: '底板', mesh: empty, pos: [0, 0, 0], rot: [0, 0, 0], defId: 'D1', _rev: 1, grounded: true },
+    { id: 'C2', name: '轉臂', mesh: empty, pos: [0, 0, 0], rot: [12, -8, 5], defId: 'D2', _rev: 1 },
+  ]
+  const joint = { id: 'J1', name: '關節1', type: 'revolute', parent: 'C1', child: 'C2', anchor: [0, 8, 0], axis: [1, 0, 0], angle: 90, slide: 0 }
+  useApp.setState({ components: comps, componentDefs: defs, joints: [joint], interfSubset: [], interfIncludeCoincident: false, interfReport: null, groups: [] })
+  await g().checkInterference()
+  const s = g()
+  assert.equal(s.interfReport.hits.length, 1, s.status)
+  assert.match(s.status, /⚠ 干涉/)
+  assert.ok(s.interfReport.hits[0].vol > 50, `vol ${s.interfReport.hits[0].vol}`)
+})

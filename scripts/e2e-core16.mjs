@@ -119,7 +119,16 @@ await runE2E(async (page, okRaw) => {
       // body in the way: the plane-picker bar buttons (XY · 上 / XZ · 前 / YZ · 右)
       await page.locator(`.sketch-plane-picker button[aria-label^="${plane} "]`).first().click(); await W(1200)
     }
-    const s = await S(() => { const s = window.useApp.getState(); return [s.mode, s.sketchPlane, s.sketchBaseZ, !!s.sketchArb] })
+    let s = await S(() => { const s = window.useApp.getState(); return [s.mode, s.sketchPlane, s.sketchBaseZ, !!s.sketchArb] })
+    // 上一個情景留低嘅鏡頭角度可能令點擊落咗另一個原點平面 → 退出草圖，改用平面選擇列按鈕重試一次（仍然係滑鼠點擊）
+    if (s[0] === 'sketch' && !pt && (s[1] !== plane || s[3]) && !(await S(() => window.useApp.getState().sketchShape || window.useApp.getState().sketchProfiles.length))) {
+      await page.keyboard.press('Escape'); await W(200)
+      await S(() => window.useApp.getState().exitSketchMode?.()); await W(400)
+      await ribbon('sketch')
+      const btn = page.locator(`.sketch-plane-picker button[aria-label^="${plane} "]`).first()
+      if (await btn.count()) { await btn.click(); await W(1200) }
+      s = await S(() => { const s = window.useApp.getState(); return [s.mode, s.sketchPlane, s.sketchBaseZ, !!s.sketchArb] })
+    }
     if (s[0] !== 'sketch' || s[1] !== plane || s[2] !== 0 || s[3]) throw new Error('sketch plane not opened: ' + JSON.stringify(s))
   }
   const skTool = async (id) => { await page.locator(`button[data-cmd="${id}"]:visible`).first().click(); await W(200) }
@@ -191,6 +200,8 @@ await runE2E(async (page, okRaw) => {
 
   const previewCheck = async (label, sig0, key) => {
     await waitIdle()
+    // 內核預覽有 debounce（200–250ms）＋計算時間；負載高時 waitIdle 可能早過預覽完成 → 等到有網格（最多 15s）
+    if (key && key !== 'loft') await page.waitForFunction((k) => !!window.useApp.getState()[k]?.vertices?.length, key, { timeout: 15000 }).catch(() => {})
     const sig = await sceneSig()
     const pv = key ? await meshVol(key) : null
     ok(`${label}: preview present`, sig !== sig0 || pv != null, { pv })

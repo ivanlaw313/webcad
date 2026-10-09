@@ -463,6 +463,7 @@ export function SketchSurface() {
   // polyline 拖 = 畫一段然後繼續 rubber-band，跟 Fusion）。冇超閾值 = 普通 click-click 第一點，零行為變化。
   const dragDraw = useRef<{ x: number; y: number; touch: boolean } | null>(null)
   const arcGesture = useRef<{ x: number; y: number; touch: boolean } | null>(null)   // GM-FP1 #13：从折线端点按住拖 = 相切弧手势
+  const refusedDrag = useRef(false)   // BUG-207 跟進（G）：拒動幾何嘅按下 — 鎖住相機直至放手
   const _dblRef = useRef<{ t: number; x: number; y: number } | null>(null)   // GM-W6 B1：双击收笔计时（折线/样条）
   const marquee = useRef<{ stx: number; sty: number; cx: number; cy: number; touch: boolean } | null>(null)   // GM-FP3 #44：草图框选（空白左拖）
   const trimSweep = useRef<{ touch: boolean } | null>(null)   // GM-FP3 #38：拖扫修剪进行中
@@ -597,6 +598,15 @@ export function SketchSurface() {
       // #174-8：双击近样条控制多边形段（非命中曲线本身）→ 插一个拟合点（Fusion Insert Fit Point）。
       if (isDbl && app.insertSplineFitPoint(st)) { _selDbl.current = null; return }
       if (app.skDragStart(st)) { if (controls) controls.enabled = false; if (e.pointerId !== undefined) captureGeometry(e.pointerId); return }
+      // BUG-207 跟進（G）：撳中幾何但拖動被拒（關聯偏移曲線／陣列實例／完全約束）→ 唔好轉去環繞相機，並保留拒動提示。
+      const refusedHint = useApp.getState().status
+      if (app.skHitTestAt(st) && /^(偏移曲線跟隨來源輪廓|陣列實例由來源控制|呢個幾何已完全約束)/.test(refusedHint)) {
+        refusedDrag.current = true
+        if (controls) controls.enabled = false
+        app.skClickAt(st)
+        useApp.setState({ status: refusedHint })
+        return
+      }
       // GM-FP3 #44 框选：净 navTool='select' + 空白（无命中）先开框选（延到 pointerup 定 window/crossing）；
       //   命中几何（含被 #41 拒动嘅完全约束件）→ 即选中；navTool=pan/orbit/zoom → 交返 OrbitControls 平移/环绕。
       const nav = app.navTool
@@ -632,6 +642,7 @@ export function SketchSurface() {
     if (app.skDrag) app.skDragMove(st)
   }
   const up = (st: Pt, e?: { clientX?: number; clientY?: number; shiftKey?: boolean }, commit = true) => {
+    if (refusedDrag.current) { refusedDrag.current = false; if (controls) controls.enabled = true; return }   // BUG-207 跟進（G）
     if (geometryPointer.current || scalePointer.current) return
     const app = useApp.getState()
     // GM-FP3 #39 Move gizmo 手柄放手

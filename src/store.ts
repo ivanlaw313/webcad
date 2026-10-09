@@ -212,6 +212,8 @@ function groundedMoveMsg(s: { components: { id: string; name: string }[] }, id: 
 function groundedJointMsg(s: { components: { id: string; name: string }[] }, id: string): string {
   return `「${s.components.find((c) => c.id === id)?.name ?? id}」已固定，唔可以做關節子件 — 對調父／子件或先取消固定`
 }
+// BUG-207 跟進（G）：用戶喺偏移工具未揀輪廓前已喺欄位打數 → 之後鎖定輪廓時數值優先（換工具即重置）。
+let _offsetTypedPre = false
 function nextCid(comps: { id: string }[], offset = 0): string {
   const maxN = comps.reduce((m, c) => { const n = parseInt(String(c.id).replace(/^C/, ''), 10); return Number.isFinite(n) && n > m ? n : m }, 0)
   return 'C' + (maxN + 1 + offset)
@@ -5590,7 +5592,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // A fresh document is in navigation/selection mode.  Geometry tools are
   // explicit commands, never an accidental first click.
   sketchTool: 'select',
-  setSketchTool: (t) => { if(get().skScale)discardScale(); get().skDragCancel(); set({ sketchTool: t, sketchStart: null, sketchPreview: null, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, tanRefs: [], skBoolPending: null, toolPreview: null, sizing: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, skMarquee: null, skSelCon: null, ...(t !== 'move' ? { skMove: null } : {}), ...(t !== 'select' ? { skArmedCon: null } : {}), ...(t !== 'mirror' ? { mirrorPick: null } : {}), ...(t !== 'dimension' ? { dimArcLen: false } : {}) }) },  // T777：换工具清相切弧/切点圆 buffer；T790：离开镜像清进行中状态；T791：换工具取消合并拾取；T792：清悬停预览；GM-FP2：换工具清尺寸 pending / 非 select 清 tool-first 武装；GM-FP3：清框选/约束选中，非 move 清 move gizmo
+  setSketchTool: (t) => { _offsetTypedPre = false; if(get().skScale)discardScale(); get().skDragCancel(); set({ sketchTool: t, sketchStart: null, sketchPreview: null, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, tanRefs: [], skBoolPending: null, toolPreview: null, sizing: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, skMarquee: null, skSelCon: null, ...(t !== 'move' ? { skMove: null } : {}), ...(t !== 'select' ? { skArmedCon: null } : {}), ...(t !== 'mirror' ? { mirrorPick: null } : {}), ...(t !== 'dimension' ? { dimArcLen: false } : {}) }) },  // T777：换工具清相切弧/切点圆 buffer；T790：离开镜像清进行中状态；T791：换工具取消合并拾取；T792：清悬停预览；GM-FP2：换工具清尺寸 pending / 非 select 清 tool-first 武装；GM-FP3：清框选/约束选中，非 move 清 move gizmo
   hoverFace: null,
   setHoverFace: (t) => set((s) => (s.hoverFace === t || (!s.hoverFace && !t) ? {} : { hoverFace: t })),
   // Fusion ESC behaviour: 1st ESC cancels the in-progress draw (a started rect/circle or polyline points)
@@ -5771,7 +5773,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return { ...undo, sketchProfiles: np, status: minT < d - 1e-6 ? `已對 ${hit} 個輪廓共 ${total} 個角倒角（要求 C${d}，部分角因鄰邊短收窄至 C${minT.toFixed(2)}）` : `已對 ${hit} 個輪廓共 ${total} 個角倒 C${d} 倒角` }
   }),
   sketchOffsetD: 5,
-  setSketchOffsetD: (n) => { set((s) => ({ sketchOffsetD: n || 0, ...(s.sizing ? { sizing: { ...s.sizing, typed: true, typedValue: n || 0, raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改距离即更新预览；T796-3：调尺寸中打数字→标记 typed，唔被鼠标轻微移动覆盖
+  setSketchOffsetD: (n) => { if (!get().sizing) _offsetTypedPre = true; set((s) => ({ sketchOffsetD: n || 0, ...(s.sizing ? { sizing: { ...s.sizing, typed: true, typedValue: n || 0, raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改距离即更新预览；T796-3：调尺寸中打数字→标记 typed，唔被鼠标轻微移动覆盖
   sketchOffsetBoth: false,
   toggleSketchOffsetBoth: () => { set((s) => ({ sketchOffsetBoth: !s.sketchOffsetBoth })); get().refreshToolPreview() },
   toolPreview: null,
@@ -5826,7 +5828,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         set({ status: '偏移：呢個輪廓唔可偏移（試圓、橢圓、樣條、直線或圓弧路徑）' }); return
       }
       // T796-1：锁定即 seed 一个值 + 把 sketchPreview 设到点击处（触屏 tap-tap 无 hover 都见到拖柄、commit 锁定位置而非旧默认）
-      set({ sizing: { tool: 'offset', shapeIdx: bi, vi: -1, anchor: p, ref, raw: p }, sketchPreview: p, sketchOffsetD: s.sketchOffsetD || 5, dimBuf: ['', ''], status: '偏移：移動鼠標拖距離（外+/內−，1mm 步進）→ 點一下確定 · 打數字精確 · ESC 取消' })
+      // BUG-207 跟進（G）：揀輪廓之前已喺「偏移距離」欄打咗數 → 鎖定即當 typed（黐住），唔再俾游標距離覆蓋（旧版首次偏移 5 變 10）。
+      const preTyped = _offsetTypedPre && Number.isFinite(s.sketchOffsetD) && s.sketchOffsetD !== 0
+      set({ sizing: { tool: 'offset', shapeIdx: bi, vi: -1, anchor: p, ref, raw: p, ...(preTyped ? { typed: true, typedValue: s.sketchOffsetD } : {}) }, sketchPreview: p, sketchOffsetD: s.sketchOffsetD || 5, dimBuf: ['', ''], status: preTyped ? `偏移 ${s.sketchOffsetD} mm（用已輸入數值）→ 點一下確定 · 改欄位數值可再調 · ESC 取消` : '偏移：移動鼠標拖距離（外+/內−，1mm 步進）→ 點一下確定 · 打數字精確 · ESC 取消' })
       get().refreshToolPreview()
       return
     }

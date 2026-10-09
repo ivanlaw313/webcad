@@ -129,9 +129,13 @@ export function combineMeasure(picks: MeasurePick[], extra: MeasureExtra = {}): 
       if (a.planeO && a.planeN && b.planeO && b.planeN) {
         const na = norm(a.planeN), nb = norm(b.planeN), c = dot(na, nb)
         if (Math.abs(c) >= PAR) {
-          const t = Math.abs(dot(sub(b.planeO, a.planeO), na))
+          const sd = dot(sub(b.planeO, a.planeO), na), t = Math.abs(sd)
           if (t < 1e-6) return { type: 'unsupported', label: '面距', value: null, valueUnit: 'none', parts, note: '兩面共面（可能選到同一個面）— 請選另一個面' }
-          return { type: 'distance', label: c < 0 ? '厚度（面距）' : '面距（平行面）', value: t, valueUnit: 'len', parts, ...(md != null ? { minDist: md } : {}), note: c < 0 ? '兩個平行且相對的平面；厚度＝兩面之間的垂直距離' : '兩個平行同向的平面；面距＝兩面之間的垂直距離' }
+          // 法向朝外：兩面背向（第二面喺第一面外法向嘅後面）＝中間係材料 → 厚度；兩面相向 → 間隙（槽寬）；同向 → 面距
+          const opp = c < 0, thick = opp && sd < 0
+          const label = !opp ? '面距（平行面）' : thick ? '厚度（面距）' : '間隙（面距）'
+          const note = !opp ? '兩個平行同向的平面；面距＝兩面之間的垂直距離' : thick ? '兩個平行且背向的平面；厚度＝兩面之間的垂直距離' : '兩個平行且相向的平面；間隙＝兩面之間的垂直距離'
+          return { type: 'distance', label, value: t, valueUnit: 'len', parts, ...(md != null ? { minDist: md } : {}), note }
         }
       }
       if (!a.normal || !b.normal) {

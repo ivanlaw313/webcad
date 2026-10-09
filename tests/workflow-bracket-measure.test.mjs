@@ -40,6 +40,8 @@ test('combine: two parallel holes → 軸距 30 + 最短距離 22 (not an angle 
 test('combine: top + bottom planar faces → 厚度（面距）10; same-direction parallel faces → 面距; tilted faces → 夾角 + 最短距離', () => {
   const t = combineMeasure([{ kind: 'face', planeO: [0, 0, 10], planeN: [0, 0, 1], normal: [0, 0, 1] }, { kind: 'face', planeO: [5, 5, 0], planeN: [0, 0, -1], normal: [0, 0, -1] }], { faceMinDist: 10 })
   assert.equal(t.label, '厚度（面距）'); near(t.value, 10)
+  const gap = combineMeasure([{ kind: 'face', planeO: [20, 0, 5], planeN: [1, 0, 0] }, { kind: 'face', planeO: [40, 0, 5], planeN: [-1, 0, 0] }])
+  assert.equal(gap.label, '間隙（面距）'); near(gap.value, 20)
   const s = combineMeasure([{ kind: 'face', planeO: [0, 0, 10], planeN: [0, 0, 1], normal: [0, 0, 1] }, { kind: 'face', planeO: [0, 0, 4], planeN: [0, 0, 1], normal: [0, 0, 1] }])
   assert.equal(s.label, '面距（平行面）'); near(s.value, 6)
   const same = combineMeasure([{ kind: 'face', planeO: [0, 0, 10], planeN: [0, 0, 1], normal: [0, 0, 1] }, { kind: 'face', planeO: [3, 0, 10], planeN: [0, 0, 1], normal: [0, 0, 1] }])

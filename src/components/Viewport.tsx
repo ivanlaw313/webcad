@@ -669,9 +669,12 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
       onContextMenu={(e) => {
         // BUG-272: right-click selects the planar face under the cursor so 建立草圖 can start on it.
         // Flag the native event (runs before the viewport menu) so a miss can drop a stale face.
-        if (frozen || mode === 'sketch') return
+        // The B-rep edge overlay is a child lineSegments. R3F delivers those hits to this
+        // handler too, with faceIndex null, after the triangle. Noting null would wipe the
+        // face while __webcadPlanar stays set, so the radial item sees no face.
+        if (frozen || mode === 'sketch' || e.faceIndex == null) return
         ;(e.nativeEvent as { __webcadPlanar?: boolean }).__webcadPlanar = true
-        const pick = e.faceIndex != null ? planarSketchPick(faceGroupTris(mesh, e.faceIndex), [e.point.x, e.point.y, e.point.z]) : null
+        const pick = planarSketchPick(faceGroupTris(mesh, e.faceIndex), [e.point.x, e.point.y, e.point.z])
         notePlanarFace(pick?.three ?? null, pick?.n)
       }}
       onClick={(e) => {

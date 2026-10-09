@@ -4359,6 +4359,7 @@ export default function Viewport() {
   const interfReport = useApp((s) => s.interfReport)
   const interfIncludeCoincident = useApp((s) => s.interfIncludeCoincident)   // GM-X1 #6
   const interfSubset = useApp((s) => s.interfSubset)
+  const [interfBusy, setInterfBusy] = useState(false)   // ASM2：計算中按鈕停用＋顯示「計算中…」（首次載入布爾核心要幾秒，之前似「撳咗冇反應」）
   const checkedComps = useApp((s) => s.checkedComps)
   const setExtrudeExtent = useApp((s) => s.setExtrudeExtent)
   const extrudeFlip = useApp((s) => s.extrudeFlip)
@@ -8404,10 +8405,10 @@ export default function Viewport() {
               <span>{interfSubset.length ? tStatus(`子集 ${interfSubset.length} 件`, lang) : tStatus('子集：全部可見件', lang)}</span>
               {checkedComps.length >= 2 && <button className="tb-btn" style={{ fontSize: 10, padding: '0 5px' }} title={tStatus('用瀏覽器勾選嘅組件做子集', lang)} onClick={() => useApp.setState({ interfSubset: [...checkedComps] })}>{tStatus('用勾選', lang)} {checkedComps.length}</button>}
               {interfSubset.length > 0 && <button className="tb-btn" style={{ fontSize: 10, padding: '0 5px' }} title={tStatus('清空子集（回全部可見件）', lang)} onClick={() => useApp.getState().clearInterfSubset()}>{tStatus('清子集', lang)}</button>}
-              <button className="tb-btn" style={{ marginLeft: 'auto', background: '#1572c4', color: '#fff', fontSize: 11 }} title={tStatus('計算干涉（Compute）', lang)} onClick={() => void useApp.getState().checkInterference()}>▶ {tStatus('Compute 計算', lang)}</button>
+              <button className="tb-btn" style={{ marginLeft: 'auto', background: '#1572c4', color: '#fff', fontSize: 11 }} data-testid="interf-compute" title={tStatus('計算干涉', lang)} disabled={interfBusy} onClick={() => { if (interfBusy) return; setInterfBusy(true); useApp.setState({ status: '干涉檢查：計算中…' }); void useApp.getState().checkInterference().finally(() => setInterfBusy(false)) }}>▶ {tStatus(interfBusy ? '計算中…' : '計算', lang)}</button>
             </div>
           </div>
-          {!interfReport && <div style={{ fontSize: 11, color: '#8a97a2', padding: '4px 0' }}>{tStatus('配置好上面選項後撳「Compute 計算」', lang)}</div>}
+          {!interfReport && <div style={{ fontSize: 11, color: '#8a97a2', padding: '4px 0' }}>{tStatus('設定上面選項後按「計算」', lang)}</div>}
           {interfReport && <div style={{ overflowY: 'auto', flex: 1 }}>
             {interfReport.hits.map((h, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 2px', borderTop: i ? '1px solid #e3e8ec' : undefined, fontSize: 11 }}>

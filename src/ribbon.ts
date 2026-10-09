@@ -160,7 +160,7 @@ const SOLID: Panel[] = [
     name: 'INSPECT',
     tools: [
       { id: 'measureuni', label: '測量', icon: 'measure', shortcut: 'I', quick: true, tip: 'Fusion Measure：一個命令測量面、邊、點及其組合；顯示長度、面積、角度、最短距離及 ΔXYZ。' },
-      { id: 'interference', label: '干涉檢查', icon: 'interference', tip: 'Fusion Interference：先選擇參與檢查的實體或組件，再按 Compute 計算真實重疊體積。' },
+      { id: 'interference', label: '干涉檢查', icon: 'interference', tip: '干涉檢查：先選擇參與檢查的組件，再按「計算」，以實體布爾相交求出真實重疊體積及所涉組件。' },
       { id: 'curvcomb', label: '曲率梳分析', icon: 'curvature', sep: true, tip: 'Fusion Curvature Comb Analysis：沿曲面顯示曲率梳齒，檢查曲率變化及接縫連續性。' },
       { id: 'zebra', label: '斑馬紋分析', icon: 'section', tip: 'Fusion Zebra Analysis：以反射條紋檢查曲面切向連續及光順度。' },
       { id: 'draftanalysis', label: '拔模分析', icon: 'draft', tip: 'Fusion Draft Analysis：按脫模方向着色正拔模、倒扣及垂直區域。' },

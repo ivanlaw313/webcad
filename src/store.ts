@@ -12249,16 +12249,22 @@ export const useApp = create<AppState>((rawSet, get) => {
     let nearest = { gap: Infinity, a: '', b: '' }
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
       if (overlap(boxes[i], boxes[j])) {
-        const ov = overlapVol(boxes[i], boxes[j], comps[i], comps[j])   // 蒙特卡洛预筛（平价，避免对非重叠对做贵布尔）
-        // <1 mm³ real overlap = AABB false alarm (boxes overlap, solids barely/don't) → treat as a near-touch.
-        if (ov.volume >= 1) {
+        // ASM2 interference：以前先做蒙特卡洛預篩（射線奇偶），軸對齊方塊嘅射線經常擦正邊／面 → 計到 0 → 嵌入咗都報「無干涉」。
+        // 而家：AABB 重疊嘅每一對都直接做實體布爾相交（manifold intersect，兩件烘焙到世界座標）→ 真重疊體積；
+        // 布爾失敗（非水密網格）先回退蒙特卡洛。
+        let exactMesh: { vertices: number[]; triangles: number[] } | null = null, exactVol = 0, boolOk = false
+        try {
+          const inter = await meshBoolean(bakeWorld(comps[i], boxes[i].M), bakeWorld(comps[j], boxes[j].M), 'intersect')
+          boolOk = true
+          exactVol = meshVolume(inter); exactMesh = inter.vertices.length && inter.triangles.length ? inter : null
+          if (!exactMesh) exactVol = 0
+        } catch (err) { exactMesh = null; if (/相交结果为空|相交結果為空/.test(String((err as Error)?.message ?? err))) boolOk = true }   // 空相交 = 確定冇重疊
+        const ov = overlapVol(boxes[i], boxes[j], comps[i], comps[j])   // 重疊範圍盒（布爾失敗時嘅體積估算）
+        const MIN_VOL = coincident ? 1e-6 : 0.01
+        const realVol = exactMesh ? exactVol : boolOk ? 0 : ov.volume
+        if (realVol >= MIN_VOL) {
           const label = `${comps[i].name}∩${comps[j].name}`
-          let exactMesh: { vertices: number[]; triangles: number[] } | null = null, exactVol = 0
-          try {   // 精确：manifold 相交真重叠几何（两件已烘焙到世界系）→ 散度定理精确体积
-            const inter = await meshBoolean(bakeWorld(comps[i], boxes[i].M), bakeWorld(comps[j], boxes[j].M), 'intersect')
-            exactVol = meshVolume(inter); exactMesh = inter
-          } catch { /* 非水密/空相交 → 回退蒙特卡洛 + AABB 盒（诚实，唔扮精确） */ }
-          const vol = exactMesh ? exactVol : ov.volume
+          const vol = realVol
           hits.push({ name: label, vol, exact: !!exactMesh })
           if (exactMesh) hitMeshes.push({ vertices: exactMesh.vertices, triangles: exactMesh.triangles, label, vol })
           else hitBoxes.push({ min: ov.bmin, max: ov.bmax, label })
@@ -12283,14 +12289,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       if (g < nearest.gap) nearest = { gap: g, a: comps[i].name, b: comps[j].name }
     }
-    const gapStr = nearest.gap < Infinity ? `　最近間隙 ≈${fmtLen(nearest.gap, s.unit)}（${nearest.a}↔${nearest.b}，顶点采样）` : ''
+    const gapStr = nearest.gap < Infinity ? `　最近間隙 ≈${fmtLen(nearest.gap, s.unit)}（${nearest.a}↔${nearest.b}，頂點取樣估算）` : ''
     const hitStr = hits.map((h) => `${h.name} ${h.vol >= 1000 ? (h.vol / 1000).toFixed(2) + 'cm³' : h.vol.toFixed(0) + 'mm³'}${h.exact ? '' : '≈'}`).join('，')
     const allExact = hits.length > 0 && hits.every((h) => h.exact)
     set({
       interfHits: hitBoxes, interfMeshes: hitMeshes,
       interfReport: { hits: report, gap: nearest.gap < Infinity ? { a: nearest.a, b: nearest.b, gap: nearest.gap } : null, comps: comps.length },
       interfPanelOpen: true,   // Fusion 干涉检查完即弹结果对话框（无论有冇干涉都开 — 无干涉本身就系答案）
-      status: hits.length ? `⚠ 干涉 ${hits.length} 處（${allExact ? '精確相交體積·manifold 布爾，紅區=真重疊幾何' : '部分回退蒙特卡洛估算 ≈，紅區=重疊範圍'}）：${hitStr}${gapStr}` : `✓ 無干涉（${comps.length} 個組件實體互不重疊）${gapStr}`,
+      status: hits.length ? `⚠ 干涉 ${hits.length} 處（${allExact ? '實體布爾相交的精確重疊體積，紅色區域為重疊幾何' : '部分為估算值 ≈，紅色區域為重疊範圍'}）：${hitStr}${gapStr}` : `✓ 無干涉（${comps.length} 個組件實體互不重疊）${gapStr}`,
     })
   },
   interfHits: [],
@@ -15148,7 +15154,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'preferences': return get().setPrefsOpen(true)   // GM-X2 #12：应用偏好
       case 'docunits': return get().setUnitDlgOpen(true)    // GM-X2 #13：文档单位对话框
       case 'meshfacegroups': return get().toggleMeshFaceGroupColors()   // GM-X1 #16
-      case 'interference': return set({ interfPanelOpen: true, status: '干涉檢查：配置子集/含共面後撳「Compute 計算」（Fusion 兩步：揀集 → 計算）' })   // GM-X1 #6：两步（拣集 → Compute）
+      case 'interference': return set({ interfPanelOpen: true, status: '干涉檢查：設定子集／含共面選項後按「計算」' })   // GM-X1 #6：两步（拣集 → Compute）
       case 'zebra': return get().setInspectShade('zebra')      // S103[6]：斑马纹分析
       case 'curvmap': return get().setInspectShade('curv')     // S103[6]：曲率趋势
       case 'gausscurv': return get().setInspectShade('gausscurv')   // S179：高斯曲率 K 发散色阶

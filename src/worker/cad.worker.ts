@@ -990,6 +990,34 @@ function _edgePickRank(e: any): number {
     return 1
   } catch { return 1 }
 }
+// UX2 #1：OCCT 旋轉體／圓柱嘅「接縫線」(seam) 唔係真棱 — Fusion 根本唔顯示，倒角/圓角永遠失敗。
+// 撳近接縫都應該揀最近嘅【真】棱；淨係成個實體得接縫先退返用佢。檢查只喺候選更新時做（次數≈log n），大模型都平。
+function _seamChecker(shape: any): (e: any) => boolean {
+  let faces: any[] | null = null
+  return (e: any) => {
+    try {
+      faces ??= (shape.faces as any[])
+      const tool = (_oc as any)?.BRep_Tool
+      if (!tool?.IsClosed_2) return false
+      for (const f of faces) if (tool.IsClosed_2(e.wrapped, f.wrapped)) return true
+    } catch { /* 判斷唔到當真棱 */ }
+    return false
+  }
+}
+function _nearestRealEdge(shape: any, edges: any[], p: [number, number, number]): { e: any; d2: number } | null {
+  const isSeam = _seamChecker(shape)
+  let best: any = null, bestD = Infinity, bestRank = 99, seam: any = null, seamD = Infinity
+  for (const e of edges) {
+    const dmin = _edgePointD2(e, p, bestD)
+    const rank = _edgePickRank(e)
+    if (!_nearEdgeBetter(dmin, rank, bestD, bestRank)) continue
+    if (isSeam(e)) { if (dmin < seamD) { seamD = dmin; seam = e } continue }
+    bestD = dmin; bestRank = rank; best = e
+  }
+  // 真棱太遠（>3 mm）就唔好靜靜改揀遠處嘅棱 — 寧願留低接縫等佢誠實失敗（BX02 守衛），store 會講「可能係接縫線」
+  if (best && seam && seamD < bestD && bestD > 9) return { e: seam, d2: seamD }
+  return best ? { e: best, d2: bestD } : seam ? { e: seam, d2: seamD } : null
+}
 function _nearEdgeBetter(dmin: number, rank: number, bestD: number, bestRank: number): boolean {
   if (dmin < bestD - 1e-10) return true   // UX2 #1：細化後距離有數值噪聲 — 容差 1e-10 mm²（≈1e-5 mm）先當並列
   if (dmin > bestD + 1e-10) return false
@@ -998,13 +1026,8 @@ function _nearEdgeBetter(dmin: number, rank: number, bestD: number, bestRank: nu
 
 function roundNearPoint(shape: any, kind: 'fillet' | 'chamfer', size: number, p: [number, number, number], edgeFp?: string[], edgeFpV2?: string[]): any {
   const edges = shape.edges as any[]
-  let bestMid: any = null, bestD = Infinity, bestRank = 99
-  for (const e of edges) {
-    let dmin = Infinity
-    dmin = _edgePointD2(e, p, bestD)
-    const rank = _edgePickRank(e)
-    if (_nearEdgeBetter(dmin, rank, bestD, bestRank)) { bestD = dmin; bestRank = rank; bestMid = e.pointAt(0.5) }
-  }
+  const hit = _nearestRealEdge(shape, edges, p)
+  const bestMid: any = hit ? hit.e.pointAt(0.5) : null
   if (!bestMid) throw new Error('no edge near point')
   let M: [number, number, number] = [bestMid.x, bestMid.y, bestMid.z]
   // S122：edgeFp 存在 → 指纹选边（命中即跟同一几何棱）；否则首次捕获供 store 写回。无 fp 时 M 不变 = 今日行为。
@@ -1620,13 +1643,8 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
   const mids: [number, number, number][] = []
   let maxNearD2 = 0   // S143：每个近点距最近棱嘅最大平方距 — fp miss 退回近点时判选择漂移（对称体旋转）
   for (const p of pts) {
-    let bestMid: any = null, bestD = Infinity, bestRank = 99
-    for (const e of edges) {
-      let dmin = Infinity
-      dmin = _edgePointD2(e, p, bestD)
-      const rank = _edgePickRank(e)
-      if (_nearEdgeBetter(dmin, rank, bestD, bestRank)) { bestD = dmin; bestRank = rank; bestMid = e.pointAt(0.5) }
-    }
+    const hit = _nearestRealEdge(shape, edges, p)
+    const bestMid: any = hit ? hit.e.pointAt(0.5) : null, bestD = hit ? hit.d2 : Infinity
     if (bestMid) { mids.push([bestMid.x, bestMid.y, bestMid.z]); if (bestD > maxNearD2) maxNearD2 = bestD }
   }
   if (!mids.length) throw new Error('no edges near points')
@@ -7159,13 +7177,7 @@ const api = {
     if (!current) return null
     try {
       const edges = (current as any).edges as any[]
-      let best: any = null, bestD = Infinity, bestRank = 99
-      for (const e of edges) {
-        let dmin = Infinity
-        dmin = _edgePointD2(e, p, bestD)
-        const rank = _edgePickRank(e)
-        if (_nearEdgeBetter(dmin, rank, bestD, bestRank)) { bestD = dmin; bestRank = rank; best = e }
-      }
+      const best: any = _nearestRealEdge(current, edges, p)?.e
       if (!best) return null
       const kind = String(best.geomType)
       const closed = !!best.isClosed
@@ -7199,12 +7211,7 @@ const api = {
     if (!current) return null
     try {
       const edges = (current as any).edges as any[]
-      let best: any = null, bestD = Infinity
-      for (const e of edges) {
-        let dmin = Infinity
-        dmin = _edgePointD2(e, p, bestD)
-        if (dmin < bestD) { bestD = dmin; best = e }
-      }
+      const best: any = _nearestRealEdge(current, edges, p)?.e   // UX2 #1：同 roundNearPoint(s) 一樣嘅揀法（排名＋跳接縫）— 高亮＝實際會倒角嗰條
       if (!best) return null
       const N = 32
       const pts: [number, number, number][] = []

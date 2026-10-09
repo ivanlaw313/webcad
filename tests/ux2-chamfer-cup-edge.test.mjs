@@ -19,6 +19,14 @@ test('edgePolylineAt near the flange outer top rim resolves the R40 circle, not 
   }
 })
 
+test('a click right on the revolve seam never resolves the seam line (seam can never be chamfered)', async () => {
+  await w.rebuild(CUP)
+  const ln = (await w.edgePolylineAt([40, 37.5, 0]))?.pts
+  assert.ok(ln && ln.length > 4)
+  const spanXZ = Math.max(...ln.map((q) => Math.hypot(q[0] - ln[0][0], q[2] - ln[0][2])))
+  assert.ok(spanXZ > 5, 'picked a circle, not the vertical seam line')
+})
+
 test('store path: pick that rim, 1 mm chamfer previews and commits', async () => {
   assert.ok(await g().applyFeatures(CUP, 'cup'))
   g().toggleEdgeRoundPick('chamfer')
@@ -35,9 +43,10 @@ test('store path: pick that rim, 1 mm chamfer previews and commits', async () =>
 })
 
 test('failure text names the real cause in Traditional Chinese', () => {
-  assert.match(roundFailText('倒角', 'chamfer near points failed', null), /搵唔返/)
+  assert.match(roundFailText('倒角', 'no edges near points', null), /搵唔返/)
   assert.match(roundFailText('倒角', 'BRep_API: command not done', false), /同數值無關/)
   assert.match(roundFailText('倒角', 'BRep_API: command not done', true), /倒角距離太大/)
+  assert.match(roundFailText('倒角', 'chamfer near points failed', true), /倒角距離太大/)   // 通用內核失敗 ≠ 棱搵唔返
   assert.match(roundFailText('圓角', '', true), /圓角半徑太大/)
 })
 test('done', () => setTimeout(() => process.exit(process.exitCode || 0), 50))

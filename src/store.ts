@@ -4610,7 +4610,7 @@ function translateProfile(p: SketchProfile, dx: number, dy: number): SketchProfi
 // id 传入：预览用固定 '~pv-round'（sig 稳定 → 同半径连续预览全中 T730 缓存），提交用 fid()。
 // UX2 #1：倒角/圓角預覽失敗嘅原因（繁體）。tinyOk=同一組棱用 0.05 mm 都得 → 真係數值太大；唔得 → 棱本身倒唔到。
 export function roundFailText(kind: '倒角' | '圓角', workerMsg: string, tinyOk: boolean | null): string {
-  if (/near points? failed|edge.*not found|搵唔返/i.test(workerMsg)) return `⚠ 揀中嘅棱喺而家個實體上搵唔返 — 請重新揀棱再試`
+  if (/no edges? near points?|no adjacent face/i.test(workerMsg)) return `⚠ 揀中嘅棱喺而家個實體上搵唔返 — 請重新揀棱再試`
   if (tinyOk === false) return `⚠ 呢條棱${kind}唔到（可能係旋轉體嘅接縫線，或者幾個面喺度相交）— 同數值無關，請揀另一條棱`
   return `⚠ ${kind}${kind === '倒角' ? '距離' : '半徑'}太大（超過相鄰面）— 減小數值先撳確定`
 }

@@ -2869,6 +2869,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   exportAllPartsZip: () => void
   componentClearance: (id: string) => void
   exportBOM: (density?: number) => void
+  openBOM: () => void   // UX3 #1/#5：只打開材料清單表（唔下載、唔講「已匯出」）
   bomDialog: { rows: string[][]; summary: string } | null
   closeBomDialog: () => void
   exportFeaCsv: () => void                                 // S173：导出当前 FEA 结果（摘要 + 逐体素场）做 UTF-8 CSV
@@ -4878,6 +4879,103 @@ async function computeParamSketches(context: Pick<AppState, 'params' | 'features
     if (_degenDimNotes.size) throw new Error(`${[..._degenDimNotes].join('、')} 公式失效或求值 ≤0（退化尺寸）`)
     const note = undefined
     return n ? { feats, srcs, n, note } : null
+}
+
+// UX3 #1：材料／密度單一來源 —— 組件有指定材質用佢；否則用文件預設密度（屬性列「材料密度」揀嘅 bodyDensity，
+// 狀態列「總質量(7.85)」都係用佢），並將該密度對返材質名（鋼/鋁…），BOM 唔再自己假設 2.7、材質欄唔再「—」。
+const DENSITY_PREF = ['钢', '铝', '黄铜', '铜', '钛', '不锈钢', 'PLA', 'ABS', 'PETG', 'TPU', '尼龙PA', '树脂', '塑料', '木', '玻璃', '金', '银', '青铜']
+export function materialForDensity(d: number): string | null {
+  for (const k of DENSITY_PREF) if (MATERIALS[k]?.density != null && Math.abs((MATERIALS[k].density as number) - d) < 1e-6) return k
+  return null
+}
+export function effectiveMaterial(s: Pick<AppState, 'bodyDensity' | 'lang'>, c?: { material?: string }, densityOverride?: number): { key: string | null; label: string; density: number } {
+  const lang = s.lang
+  if (c?.material && MATERIALS[c.material]?.density) return { key: c.material, label: tMaterialName(c.material, lang), density: MATERIALS[c.material].density as number }
+  const d = densityOverride ?? s.bodyDensity ?? 2.7
+  const k = materialForDensity(d)
+  return { key: k, label: k ? tMaterialName(k, lang) + '（預設）' : `密度 ${d}`, density: d }
+}
+function buildBOM(s: AppState, density?: number): { rows: string[][]; summary: string; csv: string } | null {
+    let comps = s.components.filter((c) => !c.hidden)
+    if (!comps.length) {
+      // No assembly components — fall back to the single active body so BOM works for single-part designs too.
+      const bm = s.bodyMesh
+      if (bm && bm.vertices.length) comps = [{ id: 'body', name: s.projectName || 'webcad 零件', mesh: bm, pos: [0, 0, 0] }]
+      else { useApp.setState({ status: 'BOM 需要實體或裝配組件（先建模，或載入「齒輪組/軸承」等模板）' }); return null }
+    }
+    const meshVolMm3 = (m: MeshData) => {
+      const t = m.triangles, p = m.vertices; let v6 = 0
+      for (let i = 0; i < t.length; i += 3) {
+        const a = t[i] * 3, b = t[i + 1] * 3, c = t[i + 2] * 3
+        v6 += p[a] * (p[b + 1] * p[c + 2] - p[b + 2] * p[c + 1]) - p[a + 1] * (p[b] * p[c + 2] - p[b + 2] * p[c]) + p[a + 2] * (p[b] * p[c + 1] - p[b + 1] * p[c])
+      }
+      return Math.abs(v6) / 6
+    }
+    // Per-component material density (falls back to the passed density for parts with no assigned material).
+    // Roll up identical parts by a normalized base name: array copies ("齿轮#2") and duplicates ("齿轮副本")
+    // group under the same line with a quantity, like a real Fusion BOM (so ordering/buying is per unique part).
+    // Each part's own bounding-box dims (CAD L×W×H, as modelled) — useful for sourcing / nesting / stock cut.
+    const dimsMm = (m: MeshData) => {
+      const v = m.vertices; if (!v.length) return '—'
+      const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9]
+      for (let i = 0; i < v.length; i += 3) for (let k = 0; k < 3; k++) { const x = v[i + k]; if (x < mn[k]) mn[k] = x; if (x > mx[k]) mx[k] = x }
+      return `${(mx[0] - mn[0]).toFixed(1)}×${(mx[1] - mn[1]).toFixed(1)}×${(mx[2] - mn[2]).toFixed(1)}`
+    }
+    const baseName = (n: string) => n.replace(/(?:#\d+|副本)+$/, '').trim() || n
+    // T788：子装配组路径（「底盘 / 轮组」）— BOM 分层列。同名件喺唔同组分开列（唔同模块各自点数）。
+    const sGroups = s.groups
+    const groupPath = (gid?: string): string => {
+      if (!gid) return ''
+      const parts: string[] = []
+      let cur = sGroups.find((g) => g.id === gid)
+      let guard = 0
+      while (cur && guard++ < 20) { parts.unshift(cur.name); cur = cur.parentId ? sGroups.find((g) => g.id === cur!.parentId) : undefined }
+      return parts.join(' / ')
+    }
+    const groups = new Map<string, { count: number; volCm3: number; density: number; mat: string; dims: string; wt: boolean; grp: string }>()
+    for (const c of comps) {
+      const em = effectiveMaterial(s, c, density)   // UX3 #1：同狀態列／屬性同一來源
+      const dens = em.density
+      const grp = groupPath((c as { groupId?: string }).groupId)
+      const key = grp + '|' + baseName(c.name)
+      const bodies = visibleDefinitionBodies(c, s.componentDefs)
+      const meshes = bodies.length ? bodies.map((b) => b.mesh) : [c.mesh]
+      const volCm3 = meshes.reduce((sum, mesh) => sum + meshVolMm3(mesh) / 1000, 0)
+      const allVerts = meshes.flatMap((mesh) => mesh.vertices)
+      const dims = dimsMm({ vertices: allVerts, triangles: [], normals: [] })
+      const watertight = meshes.every((mesh) => meshManifold(mesh.vertices, mesh.triangles).closed)
+      const g = groups.get(key)
+      if (g) g.count++
+      else groups.set(key, { count: 1, volCm3, density: dens, mat: em.label, dims, wt: watertight, grp })
+    }
+    // Filament estimate for FDM 3D printing: 1.75mm strand cross-section = π·(0.875)² ≈ 2.4053 mm²,
+    // so length(m) = volume(mm³) / 2405.3. This is the SOLID (100% infill) upper bound — real prints with
+    // infill/walls use much less; labelled as such so it's honest, not a hollow promise.
+    const filamentM = (volCm3: number) => (volCm3 * 1000) / 2405.3
+    // UX1 #7：BOM 表（畫面＋CSV）欄名改繁體（舊：簡體＋英文 L×W×H／@1.75）；材質顯示用 tMaterialName（MATERIALS 鍵係簡體 id）。
+    const rows = [['序號', '組（子裝配）', '名稱', '數量', '材質', '尺寸 長×闊×高 (mm)', '單件體積 (cm³)', '密度 (g/cm³)', '單件質量 (g)', '小計質量 (g)', '實心料長 (m，1.75 線材)', '可列印（水密）']]
+    let i = 0, totQty = 0, totMass = 0, totVol = 0, totFil = 0, badParts = 0
+    const byMat = new Map<string, { qty: number; mass: number; fil: number }>() // per-material rollup (buy-this-much-filament)
+    for (const [key, g] of groups) {
+      const name = key.slice(key.indexOf('|') + 1)
+      i++; const mass = g.volCm3 * g.density, sub = mass * g.count, filSub = filamentM(g.volCm3) * g.count; totQty += g.count; totMass += sub; totVol += g.volCm3 * g.count; totFil += filSub
+      if (!g.wt) badParts++
+      rows.push([String(i), g.grp || '—', name, String(g.count), g.mat, g.dims, g.volCm3.toFixed(2), g.density.toFixed(2), mass.toFixed(1), sub.toFixed(1), filSub.toFixed(1), g.wt ? '✓' : '✗ 非水密'])
+      const mk = g.mat; const bm = byMat.get(mk) || { qty: 0, mass: 0, fil: 0 }; bm.qty += g.count; bm.mass += sub; bm.fil += filSub; byMat.set(mk, bm)
+    }
+    rows.push(['合計', '', '', String(totQty), '', '', totVol.toFixed(2), '', '', totMass.toFixed(1), totFil.toFixed(1), badParts ? `${badParts} 種非水密` : '全部水密'])
+    // Per-material rollup — for a multi-material print, how much of each filament/metal to prepare.
+    if (byMat.size > 1) {
+      rows.push(['', '', '', '', '', '', '', '', '', '', '', ''])
+      rows.push(['按材料彙總', '', '材料', '件數', '', '', '', '', '', '質量 (g)', '料長 (m，1.75)', ''])
+      for (const [mat, bm] of byMat) rows.push(['', '', mat, String(bm.qty), '', '', '', '', '', bm.mass.toFixed(1), bm.fil.toFixed(1), ''])
+    }
+    const csv = '﻿' + rows.map((r) => r.map((f) => (/[",\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f)).join(',')).join('\r\n')
+    const anyMat = comps.some((c) => c.material && MATERIALS[c.material]?.density)
+    const defMat = effectiveMaterial(s, undefined, density)
+    const summary = `材料清單（${groups.size} 種零件 · 共 ${totQty} 件 · 總質量 ${totMass >= 1000 ? (totMass / 1000).toFixed(2) + ' kg' : totMass.toFixed(0) + ' g'}${anyMat ? '，按各組件材質密度' : `（${defMat.label} ${defMat.density} g/cm³）`} · 實心料長 ${totFil.toFixed(1)} m（1.75 線材）${badParts ? ` · ⚠${badParts} 種非水密` : ' · 全部水密'}）`
+    // BUG-BD-1805：同时弹出可见表格（下载可能被自动化拦截，表格可核验）
+    return { rows, summary, csv }
 }
 
 export const useApp = create<AppState>((rawSet, get) => {
@@ -14758,7 +14856,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (s0.selectedComponent !== id) get().selectComponent(id)
         return void get().convertMeshComponent(id)
       }
-      case 'bom': return get().exportBOM()
+      case 'bom': return get().openBOM()   // UX3 #5：打開 ≠ 匯出（Fusion：BOM 先睇表，再自己撳匯出）
       case 'centerofmass': return get().toggleCom()
       case 'joint': {
         const comps = get().components
@@ -21122,87 +21220,17 @@ export const useApp = create<AppState>((rawSet, get) => {
 
   // Bill of Materials (BOM): one row per (visible) component name with count, single-part volume &
   // mass (density g/cm³, default aluminium 2.7). Exported as a UTF-8 CSV (Excel-friendly with BOM mark).
-  exportBOM: (density = 2.7) => {
-    let comps = get().components.filter((c) => !c.hidden)
-    if (!comps.length) {
-      // No assembly components — fall back to the single active body so BOM works for single-part designs too.
-      const bm = get().bodyMesh
-      if (bm && bm.vertices.length) comps = [{ id: 'body', name: get().projectName || 'webcad 零件', mesh: bm, pos: [0, 0, 0] }]
-      else { set({ status: 'BOM 需要實體或裝配組件（先建模，或載入「齒輪組/軸承」等模板）' }); return }
-    }
-    const meshVolMm3 = (m: MeshData) => {
-      const t = m.triangles, p = m.vertices; let v6 = 0
-      for (let i = 0; i < t.length; i += 3) {
-        const a = t[i] * 3, b = t[i + 1] * 3, c = t[i + 2] * 3
-        v6 += p[a] * (p[b + 1] * p[c + 2] - p[b + 2] * p[c + 1]) - p[a + 1] * (p[b] * p[c + 2] - p[b + 2] * p[c]) + p[a + 2] * (p[b] * p[c + 1] - p[b + 1] * p[c])
-      }
-      return Math.abs(v6) / 6
-    }
-    // Per-component material density (falls back to the passed density for parts with no assigned material).
-    // Roll up identical parts by a normalized base name: array copies ("齿轮#2") and duplicates ("齿轮副本")
-    // group under the same line with a quantity, like a real Fusion BOM (so ordering/buying is per unique part).
-    // Each part's own bounding-box dims (CAD L×W×H, as modelled) — useful for sourcing / nesting / stock cut.
-    const dimsMm = (m: MeshData) => {
-      const v = m.vertices; if (!v.length) return '—'
-      const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9]
-      for (let i = 0; i < v.length; i += 3) for (let k = 0; k < 3; k++) { const x = v[i + k]; if (x < mn[k]) mn[k] = x; if (x > mx[k]) mx[k] = x }
-      return `${(mx[0] - mn[0]).toFixed(1)}×${(mx[1] - mn[1]).toFixed(1)}×${(mx[2] - mn[2]).toFixed(1)}`
-    }
-    const baseName = (n: string) => n.replace(/(?:#\d+|副本)+$/, '').trim() || n
-    // T788：子装配组路径（「底盘 / 轮组」）— BOM 分层列。同名件喺唔同组分开列（唔同模块各自点数）。
-    const sGroups = get().groups
-    const groupPath = (gid?: string): string => {
-      if (!gid) return ''
-      const parts: string[] = []
-      let cur = sGroups.find((g) => g.id === gid)
-      let guard = 0
-      while (cur && guard++ < 20) { parts.unshift(cur.name); cur = cur.parentId ? sGroups.find((g) => g.id === cur!.parentId) : undefined }
-      return parts.join(' / ')
-    }
-    const groups = new Map<string, { count: number; volCm3: number; density: number; mat: string; dims: string; wt: boolean; grp: string }>()
-    for (const c of comps) {
-      const dens = (c.material && MATERIALS[c.material]?.density) || density
-      const grp = groupPath((c as { groupId?: string }).groupId)
-      const key = grp + '|' + baseName(c.name)
-      const bodies = visibleDefinitionBodies(c, get().componentDefs)
-      const meshes = bodies.length ? bodies.map((b) => b.mesh) : [c.mesh]
-      const volCm3 = meshes.reduce((sum, mesh) => sum + meshVolMm3(mesh) / 1000, 0)
-      const allVerts = meshes.flatMap((mesh) => mesh.vertices)
-      const dims = dimsMm({ vertices: allVerts, triangles: [], normals: [] })
-      const watertight = meshes.every((mesh) => meshManifold(mesh.vertices, mesh.triangles).closed)
-      const g = groups.get(key)
-      if (g) g.count++
-      else groups.set(key, { count: 1, volCm3, density: dens, mat: c.material || '—', dims, wt: watertight, grp })
-    }
-    // Filament estimate for FDM 3D printing: 1.75mm strand cross-section = π·(0.875)² ≈ 2.4053 mm²,
-    // so length(m) = volume(mm³) / 2405.3. This is the SOLID (100% infill) upper bound — real prints with
-    // infill/walls use much less; labelled as such so it's honest, not a hollow promise.
-    const filamentM = (volCm3: number) => (volCm3 * 1000) / 2405.3
-    // UX1 #7：BOM 表（畫面＋CSV）欄名改繁體（舊：簡體＋英文 L×W×H／@1.75）；材質顯示用 tMaterialName（MATERIALS 鍵係簡體 id）。
-    const bl = get().lang
-    const rows = [['序號', '組（子裝配）', '名稱', '數量', '材質', '尺寸 長×闊×高 (mm)', '單件體積 (cm³)', '密度 (g/cm³)', '單件質量 (g)', '小計質量 (g)', '實心料長 (m，1.75 線材)', '可列印（水密）']]
-    let i = 0, totQty = 0, totMass = 0, totVol = 0, totFil = 0, badParts = 0
-    const byMat = new Map<string, { qty: number; mass: number; fil: number }>() // per-material rollup (buy-this-much-filament)
-    for (const [key, g] of groups) {
-      const name = key.slice(key.indexOf('|') + 1)
-      i++; const mass = g.volCm3 * g.density, sub = mass * g.count, filSub = filamentM(g.volCm3) * g.count; totQty += g.count; totMass += sub; totVol += g.volCm3 * g.count; totFil += filSub
-      if (!g.wt) badParts++
-      rows.push([String(i), g.grp || '—', name, String(g.count), g.mat === '—' ? '—' : tMaterialName(g.mat, bl), g.dims, g.volCm3.toFixed(2), g.density.toFixed(2), mass.toFixed(1), sub.toFixed(1), filSub.toFixed(1), g.wt ? '✓' : '✗ 非水密'])
-      const mk = g.mat && g.mat !== '—' ? tMaterialName(g.mat, bl) : '（未指定）'; const bm = byMat.get(mk) || { qty: 0, mass: 0, fil: 0 }; bm.qty += g.count; bm.mass += sub; bm.fil += filSub; byMat.set(mk, bm)
-    }
-    rows.push(['合計', '', '', String(totQty), '', '', totVol.toFixed(2), '', '', totMass.toFixed(1), totFil.toFixed(1), badParts ? `${badParts} 種非水密` : '全部水密'])
-    // Per-material rollup — for a multi-material print, how much of each filament/metal to prepare.
-    if (byMat.size > 1) {
-      rows.push(['', '', '', '', '', '', '', '', '', '', '', ''])
-      rows.push(['按材料彙總', '', '材料', '件數', '', '', '', '', '', '質量 (g)', '料長 (m，1.75)', ''])
-      for (const [mat, bm] of byMat) rows.push(['', '', mat, String(bm.qty), '', '', '', '', '', bm.mass.toFixed(1), bm.fil.toFixed(1), ''])
-    }
-    const csv = '﻿' + rows.map((r) => r.map((f) => (/[",\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f)).join(',')).join('\r\n')
-    triggerDownload(new TextEncoder().encode(csv), `${projName(get().projectName)}-BOM.csv`, 'text/csv')
-    const anyMat = comps.some((c) => c.material && MATERIALS[c.material]?.density)
-    const summary = `材料清單（${groups.size} 種零件 · 共 ${totQty} 件 · 總質量 ${totMass >= 1000 ? (totMass / 1000).toFixed(2) + ' kg' : totMass.toFixed(0) + ' g'}${anyMat ? '，按各組件材質密度' : ` @${density}g/cm³`} · 實心料長 ${totFil.toFixed(1)} m（1.75 線材）${badParts ? ` · ⚠${badParts} 種非水密` : ' · 全部水密'}）`
+  exportBOM: (density) => {
+    const b = buildBOM(get(), density)
+    if (!b) return
+    triggerDownload(new TextEncoder().encode(b.csv), `${projName(get().projectName)}-BOM.csv`, 'text/csv')
     // BUG-BD-1805：同时弹出可见表格（下载可能被自动化拦截，表格可核验）
-    set({ bomDialog: { rows, summary }, status: `已匯出 ` + summary + ' — 已打開材料清單' })
+    set({ bomDialog: { rows: b.rows, summary: b.summary }, status: `已匯出 ` + b.summary + ' — 已打開材料清單' })
+  },
+  openBOM: () => {
+    const b = buildBOM(get())
+    if (!b) return
+    set({ bomDialog: { rows: b.rows, summary: b.summary }, status: '已打開' + b.summary + ' — 撳「匯出 CSV」先會下載' })
   },
   bomDialog: null,
   closeBomDialog: () => set({ bomDialog: null }),

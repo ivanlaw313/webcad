@@ -1139,6 +1139,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "正在生成三视图…": "Generating three views…",
   "正在生成三視圖…": "Generating three views…",
   "已从分享链接打开": "Opened from share link",
+  "匯出 CSV": "Export CSV",
   "，无色件用调色板": ", uncolored parts use the palette",
   "热分析：体素化…": "Thermal: voxelizing…",
   " — 厚段上限值": " — Thick-section upper limit",

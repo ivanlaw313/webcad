@@ -8634,7 +8634,7 @@ export default function Viewport() {
             </table>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
-            <button className="tb-btn" onClick={() => useApp.getState().exportBOM()}>📥 {tStatus('再匯出 CSV', lang)}</button>
+            <button className="tb-btn" onClick={() => useApp.getState().exportBOM()}>📥 {tStatus('匯出 CSV', lang)}</button>
             <button className="tb-btn" onClick={() => useApp.getState().closeBomDialog()}>{tStatus('關閉', lang)}</button>
           </div>
         </div>

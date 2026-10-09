@@ -3,7 +3,7 @@ import { localizeAsmName } from '../assembly/names'   // BUG(E)：裝配名繁�
 import { useState, useRef, useEffect, createContext, useContext, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react'
 import { ToolIcon } from '../icons'
 import { useApp, MATERIALS, compWorldMatrix, datumVisKey, type AppState } from '../store'
-import { tStatus, msg, tLabel } from '../i18n'
+import { tStatus, msg, tLabel, tMaterialName } from '../i18n'
 import { treeMenuKeys, ACTIVE_BODY_KEY, parkedBodyKey, type TreeNodeKind, type TreeMenuOpts } from '../ui/contextMenus'
 import { useEscapeLayer } from './useEscapeLayer'
 import { FEATURE_RENAME_EVENT } from '../ui/fieldInput'
@@ -135,7 +135,7 @@ function Leaf({ icon, label, depth = 1, onClick, sel = false, err }: { icon: str
       <span className="tw-toggle" />
       <span className="tw-ico"><ToolIcon name={icon} size={13} /></span>
       <span>{tStatus(label, lang)}</span>
-      {err && <span className="tw-err" title={tStatus('重建失敗：', lang) + err}>🔴</span>}
+      {err && <span className="tw-err" title={tStatus('重建失敗：', lang) + tStatus(err, lang)}>🔴</span>}
     </div>
   )
 }
@@ -251,7 +251,7 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
       ) : (
         <span style={{ flex: 1, cursor: 'pointer' }} title={tStatus('單擊選中 · 雙擊編輯特徵／草圖 · F2／Alt+雙擊改名', lang)} onClick={() => selectFeature(f.id === selected ? null : f.id)} onDoubleClick={(e) => { if (e.altKey) { setName(custom || ''); setEditing(true) } else openFeatureEdit() }}>{custom || tStatus(meta.label, lang)}</span>
       )}
-      {err && <span className="tw-err" title={tStatus('重建失敗：', lang) + err}>🔴</span>}
+      {err && <span className="tw-err" title={tStatus('重建失敗：', lang) + tStatus(err, lang)}>🔴</span>}
     </div>
   )
 }
@@ -362,7 +362,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
       <button type="button" data-testid="browser-compboolean" title={tStatus('組件布爾：以此件為目標，再點另一個零件作工具件（合併/切除/相交）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().startComponentBoolean(c.id) }}>🧩 組件布爾</button>
       <select className="tw-mat" title={tStatus('材質（設密度→影響質量/BOM，並改顏色）', lang)} value={c.material || ''} onClick={(e) => e.stopPropagation()} onChange={(e) => { if (e.target.value) setMaterial(c.id, e.target.value) }} style={{ fontSize: 10, maxWidth: 52, border: '1px solid #d0d6dc', borderRadius: 3 }}>
         <option value="">{tStatus('材質…', lang)}</option>
-        {Object.keys(MATERIALS).filter((k) => MATERIALS[k].density).map((k) => <option key={k} value={k}>{k}</option>)}
+        {Object.keys(MATERIALS).filter((k) => MATERIALS[k].density).map((k) => <option key={k} value={k}>{tMaterialName(k, lang)}</option>)}
       </select>
       <input className="tw-swatch" type="color" title={tStatus('組件顏色', lang)} value={c.color || '#aab2ba'} onClick={(e) => e.stopPropagation()} onChange={(e) => setColor(c.id, e.target.value)} />
       {!c.hidden && <span className="tw-act" title={tStatus('聚焦：鏡頭框到此組件', lang)} onClick={(e) => { e.stopPropagation(); requestFit(c.id) }}>🎯</span>}
@@ -473,7 +473,7 @@ function CompBatchBar() {
       <span className="tw-act" title={tStatus('批量顯示勾選的組件', lang)} onClick={() => batchHide(false)}>👁{tStatus('顯示', lang)}</span>
       <select title={tStatus('批量設材質（影響顏色 + 質量/BOM 密度）', lang)} defaultValue="" onChange={(e) => { const v = e.target.value; if (v) batchMat(v === '__clear' ? '' : v); e.currentTarget.selectedIndex = 0 }} style={{ fontSize: 11, height: 20 }}>
         <option value="">{tStatus('材質…', lang)}</option>
-        {Object.keys(MATERIALS).map((k) => <option key={k} value={k}>{k}</option>)}
+        {Object.keys(MATERIALS).map((k) => <option key={k} value={k}>{tMaterialName(k, lang)}</option>)}
         <option value="__clear">{tStatus('（清除材質）', lang)}</option>
       </select>
       <span className="tw-act" title={tStatus('把勾選的組件匯出為 STL 打包 zip（只匯出你揀嘅，方便分批 3D 列印）', lang)} onClick={() => batchZip()}>📦{tStatus('匯出zip', lang)}</span>

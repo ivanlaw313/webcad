@@ -136,7 +136,10 @@ const TOTAL = Object.values(PER_FILE).reduce((a, b) => a + b, 0)
  *        新增 code 會令佢嘅字串切割偏移（實測：會把 pickComponentBooleanTool 嗰行
  *        嘅 code 當成字串）。唔係真洩漏。
  * 教訓記錄：註釋入面放反引號亦會令佢偏移（已踩過一次）。 */
-const MAX_LEAK_STRINGS = 2361
+/* 2026-10-09（zh-HK pass 2）：2367 → 2274。store.ts 狀態／警告／錯誤／對話框文案（applyFeatures、appPrompt/Confirm/Alert、
+ * Error、status、warnings、流向 status 嘅變數、tStatus 參數）喺源頭轉繁體；只轉 zh-CN 回轉後逐字不變、en/ja 輸出不變嘅字串。
+ * 保留簡體嘅（刻意）：MATERIALS 等資料鍵、參數名、元件／特徵名、比較用字串、匯出報告、AI 工具回覆。 */
+const MAX_LEAK_STRINGS = 2274
 
 test('zh-HK lane files do not grow simplified-Chinese string literals', () => {
   assert.ok(TOTAL <= MAX_LEAK_STRINGS, `leak strings ${TOTAL} > ${MAX_LEAK_STRINGS}\n` + JSON.stringify(PER_FILE, null, 2))

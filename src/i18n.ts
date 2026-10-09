@@ -3740,7 +3740,24 @@ const _STATUS_EXACT: Record<string, string> = { ...STATUS_PHRASES, ...STATUS_PHR
 
 // zh-HK 原樣；zh-CN 整句轉簡體。en/ja 只喺整句／整詞同表完全一致時替換。
 // 子串匹配已移除：否則「時間軸」會變「時間Axis」、「點擊」會變「Points擊」。
+// en/ja keys are mostly the simplified source text. Status copy in src/store.ts is being converted to
+// Traditional (zh-HK) at the source, so an untranslated Traditional string retries with its simplified form —
+// the same whole-string / catalog lookup, never a substring shred. zh-HK / zh-CN are unaffected.
 export function tStatus(s: string, lang: LangInput): string {
+  const r = tStatusOnce(s, lang)
+  if (r !== s || !s) return r
+  const L = normalizeLang(lang)
+  if (L !== 'en' && L !== 'ja') return r
+  // Short words/labels keep the established rule: a Traditional chrome word is not re-keyed through its
+  // simplified twin (e.g. 「⬡新實體」 stays verbatim on EN). Only sentence-length status copy falls back.
+  if ([...s].length < 8) return r
+  const sc = traditionalToSimplified(s)
+  if (sc === s) return r
+  const r2 = tStatusOnce(sc, lang)
+  return r2 !== sc ? r2 : r
+}
+
+function tStatusOnce(s: string, lang: LangInput): string {
   if (!s) return s
   const L = normalizeLang(lang)
   // BUG-302: store.ts (monolith, off-limits to this lane) still emits simplified

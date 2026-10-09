@@ -4,7 +4,7 @@ import { useApp } from '../store'   // 选中体属性卡（Fusion Inspector 风
 // 仅做展示，不定义任何 store 字段（由 store.ts 并行补充）。
 import { useState } from 'react'
 import { useDraggable } from './useDraggable'
-import { msg } from '../i18n'
+import { msg, tStatus } from '../i18n'
 import { isMinRadiusKind } from '../cad/curvatureAnalysis'
 
 export default function InspectorPanel() {
@@ -56,7 +56,7 @@ export default function InspectorPanel() {
           ✕
         </span>
       </div>
-      <div style={{ fontSize: 14, lineHeight: 1.4 }}>{info.text}</div>
+      <div style={{ fontSize: 14, lineHeight: 1.4 }}>{tStatus(info.text, lang)}</div>
       {info.center && (
         <div style={{ marginTop: 7, fontSize: 12, color: '#9fb2bf' }}>
           {centerLabel} {info.center.map((c: number) => c.toFixed(2)).join(', ')}

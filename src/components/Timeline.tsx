@@ -337,7 +337,7 @@ export default function Timeline() {
         <div className="feat-editor" role="dialog" aria-label={tStatus("特徵尺寸編輯", lang)} ref={featureEditorDrag.ref} style={featureEditorDrag.style}>
           <span className="fe-title" title="拖移特徵編輯面板" onPointerDown={featureEditorDrag.onPointerDown} style={{ cursor: 'grab', touchAction: 'none' }}>⠿ <ToolIcon name={meta.icon} size={14} /> {tStatus(`編輯「${meta.label}」`, lang)}</span>
           <button type="button" aria-label="還原特徵編輯面板位置" onClick={featureEditorDrag.reset}>↺</button>
-          {featureErrors[sel.id] && <div className="fe-errbar">🔴 {tStatus('此特徵重建失敗：', lang)}{featureErrors[sel.id]}<button className="fe-errsup" onClick={() => void toggleSuppress(sel.id)}>{tStatus('抑制此特徵', lang)}</button></div>}
+          {featureErrors[sel.id] && <div className="fe-errbar">🔴 {tStatus('此特徵重建失敗：', lang)}{tStatus(featureErrors[sel.id], lang)}<button className="fe-errsup" onClick={() => void toggleSuppress(sel.id)}>{tStatus('抑制此特徵', lang)}</button></div>}
           {sel.type === 'surfloft' && (sel as unknown as { sheet?: boolean }).sheet && (
             <div className="fe-note">{tStatus('零厚放樣曲面（無壁厚）— 真曲面件，可用「加厚」/「縫合」轉實體', lang)}</div>
           )}

@@ -123,7 +123,7 @@ test('shiftTexts shares profile recenter offset', () => {
 
 test('import path + SketchLayer wire labels (source contract)', () => {
   assert.match(storeSrc, /labels\?: \{ at: Pt; text: string/)
-  assert.match(storeSrc, /保留 \$\{labels\.length\} 个文字标注/)
+  assert.match(storeSrc, /保留 \$\{labels\.length\} (个文字标注|個文字標註)/)
   assert.match(storeSrc, /texts/)
   assert.match(sketchLayer, /dxfLabels/)
   assert.match(sketchLayer, /dxfTxt/)

@@ -390,6 +390,60 @@ await runE2E(async (page, okRaw) => {
     await errorMsg('sweep without path', /路徑|輪廓|截面/)
   })
 
+  // ════════════════ 3b. 掃掠圓管 管徑 Ø 驗證（測試員：0 靜默變 12）════════════════
+  await run('sweep-pipe', '掃掠圓管 管徑驗證', async () => {
+    await frame()
+    await startSketchOn('XY'); await drawPoly('XY', [[0, 0], [40, 0], [40, 30]]); await finishSketch()
+    const rows = page.locator('.tree-row', { hasText: /獨立/ })
+    await rows.nth(0).click(); await W(300)
+    await ribbon('sweep')
+    await page.locator('.cmd-palette button', { hasText: /◯ 圓/ }).first().click(); await W(300)
+    ok('sweep dialog open (circle section)', await S(() => window.useApp.getState().sweepDlgOpen && window.useApp.getState().sweepSection !== 'profile'))
+    const dia = page.locator('.cmd-palette input[aria-label="管徑 Ø"]').first()
+    const alertTxt = () => S(() => document.querySelector('[data-testid="sweep-dia-alert"]')?.textContent || '')
+    const nF0 = await featCount()
+    for (const [txt, re] of [['0', /大於 0/], ['-5', /大於 0/], ['', /請輸入管徑/], ['abc', /有效數值/]]) {
+      await dia.click(); await dia.press('Control+a'); if (txt) await dia.pressSequentially(txt, { delay: 60 }); else await dia.press('Backspace')
+      await page.keyboard.press('Tab'); await W(400)
+      const shown = await dia.inputValue(), al = await alertTxt()
+      ok(`new sweep Ø「${txt}」: typed value kept (no silent 12)`, shown === txt, { shown })
+      ok(`new sweep Ø「${txt}」: formal error shown`, re.test(al), { al })
+      await tradOnly(`new sweep Ø「${txt}」 error`, al)
+      ok(`new sweep Ø「${txt}」: 確定 disabled`, await okBtn().isDisabled())
+      await dia.focus(); await page.keyboard.press('Enter'); await W(400)
+      ok(`new sweep Ø「${txt}」: Enter does not build`, (await featCount()) === nF0 && await S(() => window.useApp.getState().sweepDlgOpen), { n: await featCount(), nF0 })
+    }
+    await dia.click(); await dia.press('Control+a'); await dia.pressSequentially('6', { delay: 60 }); await page.keyboard.press('Tab'); await W(400)
+    ok('valid Ø6 clears the error and enables 確定', !(await alertTxt()) && !(await okBtn().isDisabled()))
+    await clickOk()
+    const v1 = (await expectVol('pipe Ø6 along 40+30 L', Math.PI * 9 * 70, 0.06)).total
+    cur.vol = v1
+    // timeline edit (dialog reopened from the timeline)
+    await timelineDbl('sweep')
+    const dia2 = page.locator('.cmd-palette input[aria-label="管徑 Ø"]').first()
+    ok('timeline edit shows 管徑 Ø = 6', (await dia2.inputValue().catch(() => '')) === '6')
+    await dia2.click(); await dia2.press('Control+a'); await dia2.pressSequentially('0', { delay: 60 }); await page.keyboard.press('Tab'); await W(400)
+    ok('timeline edit Ø0: formal error', /大於 0/.test(await alertTxt()), { al: await alertTxt() })
+    ok('timeline edit Ø0: 確定 disabled', await okBtn().isDisabled())
+    await page.keyboard.press('Escape'); await W(300); await page.keyboard.press('Escape'); await W(300)
+    const v1b = (await vol()).total
+    ok('model unchanged after rejected edit', near(v1b, v1, 0.001), { v1b, v1 })
+    // timeline bottom edit bar (single click on the chip) — 半徑 0 must be rejected, model unchanged
+    const idx = await S(() => window.useApp.getState().features.findIndex((f) => f.type === 'sweep'))
+    await page.locator(`.tl-chip[data-fi="${idx}"]`).first().click(); await W(500)
+    const bar = page.locator('label', { hasText: /半徑/ }).locator('input:visible').first()
+    if (await bar.count()) {
+      await bar.click(); await bar.press('Control+a'); await bar.pressSequentially('0', { delay: 60 }); await bar.press('Enter'); await W(800)
+      const sb = await statusBar(), al = await S(() => [...document.querySelectorAll('[role=alert]')].map((e) => e.textContent).join(' | '))
+      ok('edit bar 半徑 0: rejected with a formal message', /拒絕|大於 0/.test(sb + al), { sb, al: al.slice(0, 200) })
+      await tradOnly('edit bar 半徑 0', sb)
+      await waitIdle()
+      const v2 = (await vol()).total
+      const r = await S(() => window.useApp.getState().features.find((f) => f.type === 'sweep')?.r)
+      ok('edit bar 半徑 0: model unchanged (no silent 12 / 6)', near(v2, v1, 0.001) && r === 3, { v2, v1, r })
+    } else ok('edit bar shows 半徑 for the pipe sweep', false)
+  })
+
   // ════════════════ 4. 放樣 Loft ════════════════
   await run('loft', '放樣 Loft', async () => {
     await frame()

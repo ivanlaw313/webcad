@@ -110,7 +110,7 @@ test('v1.80 JA SketchToolPanel: sk.dimension / toolTitle = 寸法 — no EN Dime
 })
 
 test('v1.80 pins retained', () => {
-  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
+  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL網格')
   assert.equal(msg('tab.LAB', 'zh-HK'), '🧪實驗室')
   assert.equal(msg('status.dimRejected', 'zh-HK'), '尺寸已拒絕')
   assert.equal(msg('tool.cone', 'ja'), '円錐')

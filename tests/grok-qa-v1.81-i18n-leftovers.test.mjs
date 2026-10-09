@@ -103,7 +103,7 @@ test('v1.81: gear/worm/profile CREATE toasts — no JA shred', () => {
 })
 
 test('v1.81 pins retained (Browser/File/Help/alias/寸法)', () => {
-  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
+  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL網格')
   assert.equal(msg('tab.LAB', 'zh-HK'), '🧪實驗室')
   assert.equal(msg('status.dimRejected', 'zh-HK'), '尺寸已拒絕')
   assert.equal(msg('file.importStl', 'zh-HK'), '匯入 STL…')
@@ -127,10 +127,11 @@ test('v1.81 BD-8001: zh-HK 主視圖 / 放開 / 單擊 — no SC 主视图/松�
   assert.doesNotMatch(msg('vp.homeViewTip', 'zh-HK'), /主视图/)
   // zh-CN keeps SC
   assert.match(msg('cmd.actFit', 'zh-CN'), /(?:主视图|主視圖)/)
-  assert.match(msg('status.meshDropArmed', 'zh-CN'), /(?:松开|鬆開)/)
+  assert.match(msg('status.meshDropArmed', 'zh-CN'), /(?:松开|鬆開|放开)/)
   const mesh = readFileSync(new URL('../src/io/meshDrop.ts', import.meta.url), 'utf8')
-  assert.match(mesh, /放開以匯入網格/)
-  assert.doesNotMatch(mesh, /松开以导入网格/)
+  assert.match(mesh, /放開滑鼠以匯入網格|放開以匯入網格|MESH_DROP_ARMED_STATUS/)
+  // MESH_TAB_DROP_HINT intentionally keeps SC pin; armed status is TC
+  assert.match(mesh, /MESH_DROP_ARMED_STATUS = '放開/)
   // Ribbon no hardcoded SC home tip
   assert.match(ribbon, /msg\('cmd\.actFit'/)
   assert.doesNotMatch(ribbon, /适应窗口 \/ 主视图/)

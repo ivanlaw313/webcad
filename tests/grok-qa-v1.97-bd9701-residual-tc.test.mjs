@@ -41,7 +41,7 @@ test('BD-9701 Viewport prefs TC', () => {
   assert.match(vp, /tStatus\('自動', lang\)/)
   assert.match(vp, /tStatus\('淺色', lang\)/)
   assert.match(vp, /tStatus\('深色', lang\)/)
-  assert.match(vp, /label="新文件預設單位"/)
+  assert.match(vp, /label="新檔案預設單位"/)
   assert.match(vp, /label="進入草圖自動正視（正交）"/)
   assert.match(vp, /tStatus\('恢復預設', lang\)/)
   assert.doesNotMatch(vp, /tStatus\('关闭', lang\)/)

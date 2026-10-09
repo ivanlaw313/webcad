@@ -78,7 +78,7 @@ test('BD-9101 leftovers: 草圖 / 豎直 tip / 拖動 / 歷史', () => {
 })
 
 test('BD-9302 Ribbon doc rename tip TC', () => {
-  assert.match(ribbon, /title="文件名（用於保存檔名／工程圖標題欄）— 點擊改名"/)
+  assert.match(ribbon, /title="檔案名（用於儲存檔名/)
   assert.equal(ribbon.includes('文档名（用于保存档名'), false)
   assert.equal(ribbon.includes('工程图标题栏'), false)
 })

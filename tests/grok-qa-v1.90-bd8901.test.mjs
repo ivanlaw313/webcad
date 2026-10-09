@@ -43,7 +43,7 @@ test('BD-8901: fillet dialog 棱→稜 / 半径→半徑', () => {
   assert.equal(vp.includes('要處理的棱'), false)
   assert.match(vp, /自動連相切稜/)
   assert.equal(vp.includes('自動連相切棱'), false)
-  assert.match(vp, /半徑組 \$\{gi \+ 1\} 半徑 mm/)
+  assert.match(vp, /'半徑組 ' \+ \(gi \+ 1\) \+ ' 半徑|半徑組 \$\{gi \+ 1\} 半徑/)
   assert.equal(vp.includes('半径组'), false)
   assert.match(vp, />半徑</)
   assert.match(vp, /末端半徑 \(變徑\)/)
@@ -121,7 +121,7 @@ test('BD-8901 residual: 選中第 N 組 / no 选中第 / 稜 not 棱 in fillet l
 })
 
 test('Pins retained', () => {
-  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
+  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL網格')
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')
   assert.equal(msg('mm.fit', 'zh-HK'), '適應視窗')
   assert.equal(msg('hist.footer', 'zh-HK').includes('清除瀏覽器數據'), true)

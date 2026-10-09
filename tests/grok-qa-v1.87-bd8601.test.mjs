@@ -46,7 +46,7 @@ test('BD-8601b: Viewport/propsReport 體積; no SC 体积 in HUD/props labels', 
 })
 
 test('Pins retained', () => {
-  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL网格')
+  assert.equal(msg('tool.insertmesh', 'zh-HK'), '插入STL網格')
   assert.equal(CATALOGS['zh-HK']['tab.LAB'], '🧪實驗室')
   assert.equal(msg('mm.fit', 'zh-HK'), '適應視窗')
   assert.equal(msg('status.dimRejected', 'zh-HK'), '尺寸已拒絕')

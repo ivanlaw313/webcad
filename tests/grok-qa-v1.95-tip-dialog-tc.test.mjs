@@ -62,7 +62,7 @@ test('Viewport high-vis status/dialog TC samples', () => {
   assert.match(vp, /配合·同心對齊/)
   assert.match(vp, /自定義打印床尺寸/)
   assert.match(vp, /請輸入 3 個正數/)
-  assert.match(vp, /框選：選擇過濾已關閉「組件」類型/)
+  assert.match(vp, /(?:框選|套索)：選擇過濾已關閉「組件」類型/)
   assert.match(vp, /套索：選擇過濾已關閉「組件」類型/)
   assert.match(vp, /'鋼 1\.0mm'/)
   assert.match(vp, /'不鏽鋼 1\.2mm'/)

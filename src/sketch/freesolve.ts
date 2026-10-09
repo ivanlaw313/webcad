@@ -319,6 +319,64 @@ const arcSegOf = (shapes: FShape[], r?: SkRef): string | null => {
   return isVertsPoly(sh) && Math.abs(sh.bulges[r.idx] || 0) > 1e-12 ? said(r.shape, r.idx) : null
 }
 
+
+// Seed free circle/line prims toward nearest infinite-line tangency with contact near
+// the finite segment midpoint. Without this, DogLeg often reports Success with the
+// infinite line tangent while the contact lies outside the short segment — UI shows
+// 「已求解」but circle and line stay visually apart (SK08-RETEST-TANGENT).
+function seedLineCircleTangent(
+  prims: (SketchPrimitive | Constraint)[],
+  shapes: FShape[],
+  lineRef: SkRef,
+  circShape: number,
+): void {
+  const circ = shapes[circShape]
+  if (!circ || circ.type !== 'circle' || circ.point) return
+  const ends = refPts(shapes, lineRef)
+  if (ends.length !== 2) return
+  const A = ends[0], B = ends[1], C = circ.c, r = circ.r
+  if (!(r > 1e-12)) return
+  const dx = B[0] - A[0], dy = B[1] - A[1], len = Math.hypot(dx, dy)
+  if (len < 1e-12) return
+  const ux = dx / len, uy = dy / len, nx = -uy, ny = ux
+  const sd = (C[0] - A[0]) * nx + (C[1] - A[1]) * ny
+  const target = (Math.abs(sd) < 1e-12 ? 1 : Math.sign(sd)) * r
+  const corr = sd - target
+  const footT = ((C[0] - A[0]) * ux + (C[1] - A[1]) * uy) / len
+  const slide = (footT - 0.5) * len  // move segment so foot projects to midpoint
+
+  type PtPrim = SketchPrimitive & { type: 'point'; x: number; y: number; fixed?: boolean }
+  const asPt = (id: string) => {
+    const p = prims.find((q) => q.id === id)
+    return p && p.type === 'point' ? (p as PtPrim) : null
+  }
+  const cPrim = asPt(pid(circShape, 0))
+  let aId: string | null = null, bId: string | null = null
+  if (lineRef.kind === 'refedge') {
+    aId = `rl${lineRef.idx}a`; bId = `rl${lineRef.idx}b`
+  } else if (lineRef.kind === 'edge') {
+    const sh = shapes[lineRef.shape]
+    if (!sh || !solvable(sh)) return
+    const n = sh.type === 'rect' ? 4 : ((sh as { verts?: FPt[]; pts: FPt[] }).verts ?? (sh as { pts: FPt[] }).pts).length
+    aId = pid(lineRef.shape, lineRef.idx)
+    bId = pid(lineRef.shape, (lineRef.idx + 1) % n)
+  } else return
+  const aPrim = asPt(aId), bPrim = asPt(bId)
+  const cFree = !!cPrim && !cPrim.fixed
+  const aFree = !!aPrim && !aPrim.fixed
+  const bFree = !!bPrim && !bPrim.fixed
+  if (aFree && bFree) {
+    aPrim!.x += corr * nx + slide * ux; aPrim!.y += corr * ny + slide * uy
+    bPrim!.x += corr * nx + slide * ux; bPrim!.y += corr * ny + slide * uy
+  } else if (cFree) {
+    cPrim!.x -= corr * nx + slide * ux; cPrim!.y -= corr * ny + slide * uy
+  } else if (aFree || bFree) {
+    // One free endpoint: only nudge that end along the normal (keeps length soft for DogLeg).
+    const p = aFree ? aPrim! : bPrim!
+    p.x += corr * nx; p.y += corr * ny
+  }
+}
+
 // S103[8]：有 ctrl 嘅样条可解（ctrl 当自由点）；冇 ctrl 嘅退化 smooth poly 仍跳过（无可约束目标）。
 const solvable = (sh: FShape | undefined): sh is FShape => !!sh && !(sh.type === 'poly' && sh.smooth && !sh.ctrl)
 
@@ -937,8 +995,13 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
           break
         }
         const arcA = A.kind === 'circle' && isArcPoly(shapes[A.shape]), arcB = B?.kind === 'circle' && isArcPoly(shapes[B.shape])
-        if (aLn && B?.kind === 'circle') prims.push(arcB ? ({ id: c.id, type: 'tangent_la', l_id: aLn, a_id: cid(B.shape) } as Constraint) : ({ id: c.id, type: 'tangent_lc', l_id: aLn, c_id: cid(B.shape) } as Constraint))
-        else if (A.kind === 'circle' && bLn) prims.push(arcA ? ({ id: c.id, type: 'tangent_la', l_id: bLn, a_id: cid(A.shape) } as Constraint) : ({ id: c.id, type: 'tangent_lc', l_id: bLn, c_id: cid(A.shape) } as Constraint))
+        if (aLn && B?.kind === 'circle') {
+          if (!arcB) seedLineCircleTangent(prims, shapes, A, B.shape)
+          prims.push(arcB ? ({ id: c.id, type: 'tangent_la', l_id: aLn, a_id: cid(B.shape) } as Constraint) : ({ id: c.id, type: 'tangent_lc', l_id: aLn, c_id: cid(B.shape) } as Constraint))
+        } else if (A.kind === 'circle' && bLn) {
+          if (!arcA) seedLineCircleTangent(prims, shapes, B!, A.shape)
+          prims.push(arcA ? ({ id: c.id, type: 'tangent_la', l_id: bLn, a_id: cid(A.shape) } as Constraint) : ({ id: c.id, type: 'tangent_lc', l_id: bLn, c_id: cid(A.shape) } as Constraint))
+        }
         else if (A.kind === 'circle' && B?.kind === 'circle') {
           if (arcA && arcB) prims.push({ id: c.id, type: 'tangent_aa', a1_id: cid(A.shape), a2_id: cid(B.shape) } as Constraint)  // 三点弧↔三点弧（T726：tangent_aa 实测可用，撤销 T715 保守跳过）
           else if (arcA) prims.push({ id: c.id, type: 'tangent_ca', c_id: cid(B.shape), a_id: cid(A.shape) } as Constraint)
@@ -1469,7 +1532,18 @@ export async function solveFree(shapes: FShape[], cons: SkCon[], drag?: { ref: S
         if (th < 1e-6 || th > TAU2 - 1e-6) return bu  // degenerate solve → keep old shape
         return Math.sign(bu) * Math.tan(th / 4)
       })
-      return { ...sh, verts: nv, bulges: nb, pts: pathPts(nv, nb) }
+      const openPts = (): FPt[] => {
+        if (!nv.length) return []
+        const out: FPt[] = [[nv[0][0], nv[0][1]]]
+        for (let j = 0; j + 1 < nv.length; j++) {
+          for (const p of tessellateSeg(nv[j], nv[j + 1], nb[j] || 0)) {
+            const last = out[out.length - 1]
+            if (Math.abs(p[0] - last[0]) > 1e-9 || Math.abs(p[1] - last[1]) > 1e-9) out.push(p as FPt)
+          }
+        }
+        return out
+      }
+      return { ...sh, verts: nv, bulges: nb, pts: sh.open ? openPts() : pathPts(nv, nb) }
     }
     if (isSplinePoly(sh)) {
       // S103[8]：读返已解 ctrl 控制点 → 重铺 pts（保显示/布尔同步）。S127：B 样条用 sampleBSpline（逼近型），
@@ -1489,6 +1563,51 @@ export async function solveFree(shapes: FShape[], cons: SkCon[], drag?: { ref: S
   const tangentFailures:string[]=[],relationUpdates:NonNullable<FreeSolveResult['relationUpdates']>=[]
   for(const c of cons)if(c.kind==='con'&&c.type==='tangent'&&c.ellipseContact){const pair=ellipseLineTangentPair(shapes,c.a,c.b);if(pair){const sh=out[pair.ellipse.shape],contact=isEllipse(sh)||isEllipseArc(sh)?decodeEllipseLineContact(pair.ellipse.shape,isEllipse(sh)?sh.ell:sh.earc,c.ellipseContact,pair.pointIds,c.id,res.geometry):null;if(contact&&(!isEllipseArc(sh)||ellipseArcContainsAngle(sh.earc,contact.angleDeg)))relationUpdates.push({id:c.id,ellipseContact:contact});else tangentFailures.push(c.id)}}
   for(const c of cons)if(c.kind==='con'&&c.type==='tangent'&&c.tangentLineEnd!==undefined){const pair=ellipseArcTangentPair(shapes,c.a,c.b);if(pair){const sh=out[pair.arc.shape];if(!isEllipseArc(sh)||!validateEllipseArcTangent(pair.arc.shape,sh.earc,pair.arc.idx,pair.pointIds,c.tangentLineEnd,c.id,res.geometry))tangentFailures.push(c.id)}}
+  // Circle/line (and circle/refedge): planegcs tangent_lc enforces infinite-line distance = r.
+  // Validate |dist−r| and, when the open segment is free, slide it so the contact lies on the finite edge.
+  for (const c of cons) {
+    if (c.kind !== 'con' || c.type !== 'tangent' || c.ellipseContact || c.tangentLineEnd !== undefined) continue
+    const refs = [c.a, c.b]
+    const circRef = refs.find((r) => r && (r.kind === 'circle' || r.kind === 'center') && shapes[r.shape]?.type === 'circle' && !(shapes[r.shape] as { point?: boolean }).point)
+    const lineRef = refs.find((r) => r && (r.kind === 'edge' || r.kind === 'refedge'))
+    if (!circRef || !lineRef || !('shape' in circRef)) continue
+    if (arcSegOf(shapes, lineRef) || isArcPoly(shapes[circRef.shape])) continue
+    const circ = out[circRef.shape]
+    if (!circ || circ.type !== 'circle') continue
+    const ends = refPts(out, lineRef)
+    if (ends.length !== 2) { tangentFailures.push(c.id); continue }
+    const [A, B] = ends, C = circ.c, r = circ.r
+    const dx = B[0] - A[0], dy = B[1] - A[1], len = Math.hypot(dx, dy)
+    if (len < 1e-12 || !(r > 0)) { tangentFailures.push(c.id); continue }
+    const dist = Math.abs((C[0] - A[0]) * dy - (C[1] - A[1]) * dx) / len
+    if (!Number.isFinite(dist) || Math.abs(dist - r) > 1e-4) { tangentFailures.push(c.id); continue }
+    // Slide free open 2-point line so contact sits on the finite segment (preserves |dist|=r).
+    if (lineRef.kind === 'edge') {
+      const lsh = out[lineRef.shape]
+      const open2 = lsh && lsh.type === 'poly' && lsh.open && ((isVertsPoly(lsh) && lsh.verts.length === 2) || (!lsh.verts && lsh.pts.length === 2))
+      const lineFixed = cons.some((o) => o.kind === 'con' && o.type === 'fix' && [o.a, o.b, 'c' in o ? o.c : undefined].some((r) => r && 'shape' in r && r.shape === lineRef.shape))
+      if (open2 && !lineFixed) {
+        const ux = dx / len, uy = dy / len
+        const footT = ((C[0] - A[0]) * ux + (C[1] - A[1]) * uy) / len
+        if (footT < -1e-6 || footT > 1 + 1e-6) {
+          const shift = (footT - 0.5) * len, sx = shift * ux, sy = shift * uy
+          const nA: FPt = [A[0] + sx, A[1] + sy], nB: FPt = [B[0] + sx, B[1] + sy]
+          if (isVertsPoly(lsh)) out[lineRef.shape] = { ...lsh, verts: [nA, nB], pts: (() => { const o: FPt[] = [[nA[0], nA[1]]]; for (const p of tessellateSeg(nA, nB, 0)) { const last = o[o.length - 1]; if (Math.abs(p[0] - last[0]) > 1e-9 || Math.abs(p[1] - last[1]) > 1e-9) o.push(p as FPt) } return o })() }
+          else out[lineRef.shape] = { ...lsh, pts: [nA, nB] }
+        }
+      }
+    }
+  }
+  // Point coincident must actually collapse endpoints. DogLeg can report Success while
+  // leaving a visible gap if the residual was never driven to zero — treat as conflict.
+  for (const c of cons) {
+    if (c.kind !== 'con' || c.type !== 'coincident' || !c.b) continue
+    const aPt = refPtId(out, c.a), bPt = refPtId(out, c.b)
+    if (!aPt || !bPt) continue  // point-on-line / other forms validated by planegcs residual
+    const pa = refPts(out, c.a)[0], pb = refPts(out, c.b)[0]
+    if (!pa || !pb || !Number.isFinite(pa[0]) || !Number.isFinite(pb[0])) { tangentFailures.push(c.id); continue }
+    if (Math.hypot(pa[0] - pb[0], pa[1] - pb[1]) > 1e-4) tangentFailures.push(c.id)
+  }
   const publicConflictId=(id:string)=>cons.find(c=>id===c.id||id.startsWith(c.id+':'))?.id??id
   if(tangentFailures.length)return {shapes:structuredClone(shapes),dof:res.dof,conflict:true,conflictIds:[...new Set([...res.conflicts.map(x=>publicConflictId(String(x))),...tangentFailures])]}
   if((shapes.some(isEllipseArc)||relationUpdates.length>0)&&(invalidEllipse||res.conflicts.length>0||res.status!==0))return {shapes:structuredClone(shapes),dof:res.dof,conflict:true,conflictIds:[...new Set(res.conflicts.map(x=>publicConflictId(String(x))))]}

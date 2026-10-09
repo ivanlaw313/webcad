@@ -5113,7 +5113,10 @@ export const useApp = create<AppState>((rawSet, get) => {
         for(let i=a+1;i<b;i++){const m=features[i];if(m.type!=='sketch'&&!((m.type==='extrude'||m.type==='extgroup')&&m.sketchId===skId))return false}
         return true
       }
-      for(const [skId,oldId]of oldEnds){const nextId=newEnds.get(skId);if(nextId&&nextId!==oldId&&contiguousGroup(skId,oldId,nextId))faceSourceIds.set(oldId,nextId)}
+      // Undo/redo replay a snapshot whose bindings were already resolved when it was built: never remap
+      // them against the live document (that rewrote a face-owner binding A→B on Ctrl+Z).
+      const restoringSnapshot=!record&&strict
+      if(!restoringSnapshot)for(const [skId,oldId]of oldEnds){const nextId=newEnds.get(skId);if(nextId&&nextId!==oldId&&contiguousGroup(skId,oldId,nextId))faceSourceIds.set(oldId,nextId)}
       // Resolve user-parameter bindings (overwrite bound fields), then skip suppressed.
       const bound = applyParamBindings(features, get().params, get().paramBindings).map((f,fi)=> {
         const src = (f.type==='extrude' || f.type==='extgroup' || f.type==='sketch' || f.type==='revolve') && f.sketchId ? get().sketchSources[f.sketchId] : null
@@ -7080,7 +7083,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (before.busy) { set({status:"請等模型重建完成後再選擇草圖面"}); return }
     const source = [...before.features].reverse().find(f=>!before.suppressedIds.includes(f.id) && f.type!=='sketch' && f.type!=='datum')
     if (!source) { set({ status: '面上草圖需要有效的原生來源實體' }); return }
-    const binding = await cad.captureSketchFaceBinding(source.id,[p[0],-p[2],p[1]],n)
+    let binding = await cad.captureSketchFaceBinding(source.id,[p[0],-p[2],p[1]],n)
+    if (binding) {
+      // Bind to the feature that actually owns the picked face (earliest feature after which it exists
+      // unchanged), not simply the last solid feature — Fusion behaviour; only when the worker's
+      // per-feature history is from this very document.
+      const own = await cad.sketchFaceOwners(binding).catch(() => null)
+      const activeIds = expandFeats(before.features.filter(f=>!before.suppressedIds.includes(f.id))).map(f=>f.id)
+      if (own && own.ids.length === activeIds.length && own.ids.every((id,i)=>id===activeIds[i])) {
+        const k = own.owners.findIndex(id=>before.features.some(f=>f.id===id && f.type!=='sketch' && f.type!=='datum') && !before.failedFeatureIds.includes(id))
+        if (k >= 0 && own.owners[k] !== source.id && own.bindings[k]) binding = { ...own.bindings[k], sourceId: own.owners[k] }
+      }
+    }
     if (sequence!==_faceSketchPickSequence || get().features!==before.features || get().mode!==before.mode || get().faceSketchPick!==before.faceSketchPick) return
     if (!binding) { set({status:'無法唯一識別來源平面；請選未分割的平面面或建立參考平面'}); return }
     set((s) => {

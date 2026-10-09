@@ -190,6 +190,8 @@ let _lastResolvedFaceFpTopo: string[] | null = null
 //    null = 非实体特征（sketch）。两个数组平行同长（features.length）。仅 transform/scale 标 true（mirror 喺本仓系 fuse 并集，
 //    非保序 → 唔标，诚实退回今日 fallback）。
 let _shapeHistory: any[] = []
+let _histIds: string[] = []
+let _histAdditive: boolean[] = []   // feature ids of the build that produced _shapeHistory (face-sketch owner lookup)
 let _transformOpAt: boolean[] = []
 let _curOpIndex = -1   // 当前重放到嘅特征序（roundNearPoints 读，决定回望范围）
 let _s1FaceCarryActive = false   // S1-面：防 _s1CarryFacePts 内部回调 _ffSelectPts(prior) 再触发 carry（递归）— 只喺顶层 miss 试一次
@@ -2764,6 +2766,10 @@ function buildShape(features: Feature[], noCache = false): any {
   _resolvedFaceFp = {}; _lastResolvedFaceFp = null   // S125：清空面指纹捕获
   _resolvedFaceFpV2 = {}; _lastResolvedFaceFpV2 = null   // S136：清空 v2 旋转不变面指纹捕获
   _resolvedFaceFpTopo = {}; _lastResolvedFaceFpTopo = null   // #14：清空面拓扑指纹捕获
+  _histIds = features.map((f) => f.id)
+  // A later feature can be "looked through" for face ownership only if it merely adds separate material
+  // (new/join extrude, sketch, datum). Transforms, patterns, cuts, fillets… move or reshape bodies.
+  _histAdditive = features.map((f) => f.type === 'sketch' || f.type === 'datum' || ((f.type === 'extrude' || f.type === 'extgroup' || f.type === 'revolve') && !['cut', 'intersect'].includes(String((f as { operation?: string; op?: string }).operation ?? (f as { op?: string }).op ?? 'new'))))
   _shapeHistory = []; _transformOpAt = []; _curOpIndex = -1   // S1：清空逐特征 shape 历史 + 变换保序标记
   _boolOpAt = []; _boolKindAt = []; _boolToolAt = []; _filletOpAt = []; _s2ReExecCount = 0; _s2Memo = new Map(); _s2NotedCap = false; _s2NotedChainCap = false; _s2CarriedFlag = false   // GM-γ2a：清空 S2 布尔血统逐特征标记 + 成本控制；GM-γ2b：清空圆角血统 + 链上限提示
   let shape: any = null
@@ -7390,6 +7396,28 @@ const api = {
       const binding: SketchFaceBinding = { sourceId, near, center: desc.center, outline: desc.outline, normal: desc.normal, offset: desc.offset, area: desc.area, edgeLengths: desc.edgeLengths, faceFp: refs.v1, faceFpV2: refs.v2, faceFpTopo: refs.topo }
       resolveSketchFace(current,binding)
       return binding
+    } catch { return null }
+  },
+
+  // Fusion-style face ownership for sketch-on-face: the timeline features after which the picked face
+  // already exists unchanged (same plane, outline, area, position) up to the end of the last build,
+  // earliest first. The store binds the sketch to the earliest one, so a later unrelated feature
+  // (e.g. another extrude of the same sketch) is not its source and deleting it does not cascade.
+  async sketchFaceOwners(binding: SketchFaceBinding): Promise<{ ids: string[]; owners: string[]; bindings: SketchFaceBinding[] } | null> {
+    await ready
+    try {
+      const ids = _histIds.slice(), owners: string[] = [], bindings: SketchFaceBinding[] = []
+      const tol = Math.max(1e-5, binding.area * 1e-7)
+      for (let j = ids.length - 1; j >= 0; j--) {
+        const sh = _shapeHistory[j]
+        if (!sh) break
+        let r: ResolvedSketchFace
+        try { r = resolveSketchFace(sh, binding) } catch { break }
+        if (!r.delta.every((x) => Math.abs(x) < 1e-7) || Math.abs(r.binding.area - binding.area) > tol || JSON.stringify(r.binding.outline) !== JSON.stringify(binding.outline)) break
+        owners.unshift(ids[j]); bindings.unshift({ ...r.binding, sourceId: ids[j] })   // fingerprints as seen at that feature
+        if (!_histAdditive[j]) break   // cannot see past a feature that may have moved/reshaped the face
+      }
+      return { ids, owners, bindings }
     } catch { return null }
   },
 

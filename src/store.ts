@@ -14765,6 +14765,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (get().skDrag) { get().skDragCancel(); return }
     // P2 批11：Form 模式局部撤销（群组变换步）优先 — cage 系 scratch buffer，唔入特征树 undo
     if (get().formMode) { get().formUndoPop(); return }
+    // UX2 #4（Fusion）：畫緊折線／樣條時 Ctrl+Z 只撤銷最後一段，唔好成條冇咗；撤到淨返起點再撳先取消起點。
+    {
+      const s0 = get()
+      if (s0.mode === 'sketch' && (s0.sketchTool === 'polyline' || s0.sketchTool === 'spline' || s0.sketchTool === 'bspline') && s0.polyPts.length) {
+        set((s) => {
+          const n = s.polyPts.length
+          if (n <= 1) return { polyPts: [], polyBulges: [], sketchStart: null, sketchPreview: null, tanArcSeed: null, sketchDim: null, status: '已撤銷起點 — 點畫布重新開始' }
+          return { polyPts: s.polyPts.slice(0, -1), polyBulges: s.polyBulges.slice(0, Math.max(0, n - 2)), sketchPreview: s.polyPts[n - 2], sketchDim: null, status: `已撤銷最後一段 — 仲有 ${n - 1} 點，繼續畫（再撳 Ctrl+Z 再退一段）` }
+        })
+        return
+      }
+    }
     // While sketching, Ctrl+Z undoes the last sketch step (geometry), not the feature tree.
     if (get().mode === 'sketch' && get().sketchUndo.length) {
       const historyBefore=get(),historySnap=historyBefore.sketchUndo[historyBefore.sketchUndo.length-1]

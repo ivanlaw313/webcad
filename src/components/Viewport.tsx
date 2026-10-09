@@ -4537,7 +4537,8 @@ export default function Viewport() {
   const openLoftDlg = useApp((s) => s.openLoftDlg)
   const cancelLoftDlg = useApp((s) => s.cancelLoftDlg)
   const commitSweepPath = useApp((s) => s.commitSweepPath)
-  const props = useMemo(() => computeProps(bodyMesh), [bodyMesh])
+  // WORKFLOW #6：體積用 worker 嘅 B-rep 精確值（同統一測量「體」同一來源、同一 fmtVol 捨入）；網格體積只做後備
+  const props = useMemo(() => { const p = computeProps(bodyMesh); const ve = (bodyMesh as { volumeExact?: number } | null)?.volumeExact; return p && ve != null && ve > 0 ? { ...p, vol: ve } : p }, [bodyMesh])
   const density = useApp((s) => s.bodyDensity) // g/cm³ for the mass readout (synced from body material preset)
   // S117：主惯性矩（绕质心主轴 = inertia 张量特征值，与坐标系无关）+ 回转半径 k=√(I/m)。
   // computeProps 只有绕 X/Y/Z 轴对角惯矩；非对称件主轴≠坐标轴，主惯矩先系 Fusion 物理属性嘅标准量。

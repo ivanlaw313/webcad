@@ -463,11 +463,23 @@ export function SketchSurface() {
   // S196【按住拖 press-drag-release】armed：非 select 繪圖工具 pointerdown 真系落咗點（sketchStart/polyPts 有值）
   // 先記低 down 嘅屏幕座標；pointerup 位移超閾值（鼠標/筆 6px、觸屏 12px）→ 當第二擊（Fusion 雙手勢；
   // polyline 拖 = 畫一段然後繼續 rubber-band，跟 Fusion）。冇超閾值 = 普通 click-click 第一點，零行為變化。
-  const dragDraw = useRef<{ x: number; y: number; touch: boolean } | null>(null)
+  const dragDraw = useRef<{ x: number; y: number; touch: boolean; pointerId?: number } | null>(null)
   const arcGesture = useRef<{ x: number; y: number; touch: boolean } | null>(null)   // GM-FP1 #13：从折线端点按住拖 = 相切弧手势
   const refusedDrag = useRef(false)   // BUG-207 跟進（G）：拒動幾何嘅按下 — 鎖住相機直至放手
   const _dblRef = useRef<{ t: number; x: number; y: number } | null>(null)   // GM-W6 B1：双击收笔计时（折线/样条）
   const marquee = useRef<{ stx: number; sty: number; cx: number; cy: number; touch: boolean } | null>(null)   // GM-FP3 #44：草图框选（空白左拖）
+  // RETEST21 #4：揀咗「直線」之後第一下 click 畀食咗。根因：呢個 surface 元件跨工具／跨草圖都唔 unmount，手勢 ref
+  // （dragDraw = 「按住拖」第一點）如果上一個手勢冇收到 pointerup（放手落咗 HTML 覆蓋層／尺寸輸入框／換工具時仲撳住），
+  // 就留低過期值；下一下 pointerdown 會被當成「第二隻手指」→ 清咗 ref 就 return，唔落點。
+  // 修正：①換工具／入出草圖即清晒手勢 ref（並解凍相機）②滑鼠（同一 pointerId）唔可能有兩下同時按住 → 過期值直接清走、照常落點；
+  // 真·第二隻手指（觸屏，不同 pointerId）先保留舊「取消手勢」語義。
+  const gestureTool = useApp((s) => s.sketchTool)
+  const gestureMode = useApp((s) => s.mode)
+  useEffect(() => {
+    const had = !!(dragDraw.current || arcGesture.current || marquee.current || refusedDrag.current)
+    dragDraw.current = null; arcGesture.current = null; marquee.current = null; refusedDrag.current = false; _dblRef.current = null
+    if (had && controls) controls.enabled = true
+  }, [gestureTool, gestureMode, controls])
   const trimSweep = useRef<{ touch: boolean } | null>(null)   // GM-FP3 #38：拖扫修剪进行中
   const moveGizmo = useRef(false)   // GM-FP3 #39：Move gizmo 手柄拖动中
   const _selDbl = useRef<{ t: number; x: number; y: number } | null>(null)   // GM-FP3 #46：select 双击链选计时
@@ -549,7 +561,14 @@ export function SketchSurface() {
     // Fusion：选择工具普通点 = 替换选择；Ctrl/Shift+点 = 增减（交 skClickAt 消费一次）
     if ((e.button ?? 0) === 0) noteSkClickMod(e.shiftKey || e.ctrlKey || e.metaKey ? 'toggle' : 'replace')
     // 第二個 pointer（觸屏第二隻手指 / 拖緊時按右鍵）→ 取消 drag-draw 並解凍相機（俾 pinch 縮放有得行），唔落點
-    if (dragDraw.current) { dragDraw.current = null; if (controls) controls.enabled = true; return }
+    if (dragDraw.current) {
+      const dd0 = dragDraw.current
+      dragDraw.current = null
+      if (controls) controls.enabled = true
+      // RETEST21 #4：只有觸屏／筆嘅【另一個】pointer 先係第二隻手指；滑鼠／同一 pointer = 上一手勢冇收到放手 → 過期，照常落點
+      const secondFinger = e.pointerType !== 'mouse' && e.pointerId !== undefined && dd0.pointerId !== undefined && e.pointerId !== dd0.pointerId
+      if (secondFinger) return
+    }
     // GM-W6 A2：净【左键】先落点（对齐 Fusion）——旧版 click(st) 冇 button 判断，中/右键都会画嘢。
     // 早 return 唔阻 OrbitControls（佢听 canvas 原生事件）→ 中键=平移、右键=平移/菜单，画到一半照调视角。
     if ((e.button ?? 0) !== 0) return
@@ -628,7 +647,7 @@ export function SketchSurface() {
     // 等單擊工具唔寫呢兩個字段 → 自然唔 arm。凍結 OrbitControls 防 navTool=pan 左鍵 / 觸屏單指平移撞手勢。
     const a2 = useApp.getState()
     if ((e.button ?? 0) === 0 && a2.mode === 'sketch' && (a2.sketchStart != null || a2.polyPts.length > 0)) {
-      dragDraw.current = { x: e.clientX ?? 0, y: e.clientY ?? 0, touch: e.pointerType === 'touch' }
+      dragDraw.current = { x: e.clientX ?? 0, y: e.clientY ?? 0, touch: e.pointerType === 'touch', pointerId: e.pointerId }
       if (controls) controls.enabled = false
     }
   }

@@ -1369,7 +1369,29 @@ export type FreeSolveResult = { shapes: FShape[]; dof: number; conflict: boolean
 // drag (ends)（S197）: 拖成条边/弧（Fusion 手感）— 段两端点同步 pin 到平移后目标，一次解 → 欠约束时成条边刚性跟手。
 // ref.kind='edge'（poly/rect 直段、verts-poly 弧段、三点弧 chord）或 'circle'（三点弧 rim）。
 // 弧另加 arc_radius 钉住当前半径：唔钉嘅话圆心只受等距约束，Newton 会沿新弦中垂线搵最近点 → 半径逐帧漂移弧变形。
+// BUG-207：關聯偏移曲線（shape.offsetOf）係由來源輪廓派生嘅幾何 —— 唔係自由幾何。求解前將佢哋換成
+// 不可解佔位（唔貢獻 DOF、唔會被求解器拉走），並略過引用佢哋嘅約束；求解後原樣放返，由 store 按來源重算。
+export const isDerivedOffsetShape = (sh: FShape | undefined): boolean => !!sh && !!(sh as { offsetOf?: unknown }).offsetOf
+function maskDerivedShapes(shapes: FShape[], cons: SkCon[]): { idx: Set<number>; shapes: FShape[]; cons: SkCon[] } | null {
+  const idx = new Set<number>()
+  shapes.forEach((sh, i) => { if (isDerivedOffsetShape(sh)) idx.add(i) })
+  if (!idx.size) return null
+  const touches = (r: SkRef | undefined) => !!r && 'shape' in r && idx.has((r as { shape: number }).shape)
+  return {
+    idx,
+    shapes: shapes.map((sh, i) => idx.has(i) ? ({ type: 'poly', pts: [[0, 0], [0, 0], [0, 0]], smooth: true } as FShape) : sh),
+    cons: cons.filter((c) => !touches(c.a) && !touches(c.b) && !touches((c as { c?: SkRef }).c)),
+  }
+}
 export async function solveFree(shapes: FShape[], cons: SkCon[], drag?: { ref: SkRef; to: FPt } | { ref: SkRef; ends: [FPt, FPt] }): Promise<FreeSolveResult | null> {
+  const m = maskDerivedShapes(shapes, cons)
+  if (!m) return solveFreeCore(shapes, cons, drag)
+  const dragOk = drag && !('shape' in drag.ref && m.idx.has((drag.ref as { shape: number }).shape))
+  const res = await solveFreeCore(m.shapes, m.cons, dragOk ? drag : undefined)
+  if (!res) return res
+  return { ...res, shapes: res.shapes.map((sh, i) => m.idx.has(i) ? structuredClone(shapes[i]) : sh) }
+}
+async function solveFreeCore(shapes: FShape[], cons: SkCon[], drag?: { ref: SkRef; to: FPt } | { ref: SkRef; ends: [FPt, FPt] }): Promise<FreeSolveResult | null> {
   if(drag&&'to' in drag&&drag.ref.kind==='ellipse-arc-end'){
     const sh=shapes[drag.ref.shape];if(isEllipseArc(sh)&&Math.abs(Math.abs(ellipseArcSweep(sh.earc))-360)<1e-8){const current=refPts(shapes,drag.ref)[0];if(Math.hypot(current[0]-drag.to[0],current[1]-drag.to[1])>1e-8)return {shapes:structuredClone(shapes),dof:-1,conflict:true,conflictIds:[]}}
   }
@@ -1644,6 +1666,8 @@ function shapeDofProbes(sh: FShape, i: number): { kind: 'pt' | 'rad'; id: string
 // 半径探针（circle_radius/arc_radius）系审查员要求 — 否则「定咗圆心、半径自由」嘅圆会被错判全约束（pin 圆心 dof 不变）。
 // 纯加法、只读：唔改 shapes/solve 主路。只喺 resolveSk（松手/加约束后）跑一次，唔入 dragMove 热路径。
 export async function probeFreeShapes(shapes: FShape[], cons: SkCon[]): Promise<Set<number>> {
+  const masked = maskDerivedShapes(shapes, cons)
+  if (masked) { shapes = masked.shapes; cons = masked.cons }   // BUG-207：派生偏移曲線唔標欠定
   const free = new Set<number>()
   const base = buildPrims(shapes, cons)
   if (!base) return free

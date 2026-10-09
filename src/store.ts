@@ -138,10 +138,13 @@ export type ImportVecOpt = { asSketch?: boolean; sketchOnly?: boolean; plane?: P
 export type MeshInsertOpt = { unit?: string; flipUp?: boolean; place?: 'none' | 'center' | 'ground' }
 // construction = 构造几何（Fusion X）：虚线显示、可约束可吸附，但唔参与拉伸/导出。
 // circle.point = 草图点（r=0 构造点）：只有圆心一个可约束点，冇 rim。
+// BUG-207：關聯偏移（Fusion 式）。來源輪廓帶穩定 sid；偏移曲線帶 offsetOf={src:來源 sid, d:有號距離（+外/−內）}。
+// 偏移曲線係派生幾何：每次來源改變（拖動/求解/尺寸/移動/撤銷）由來源重算，唔計自由度。連結隨 sketchProfiles 一齊存檔/撤銷。
+export type SketchOffsetLinkFields = { sid?: string; offsetOf?: { src: string; d: number } }
 export type SketchShape =
-  | { type: 'rect'; a: Pt; b: Pt; construction?: boolean }
-  | { type: 'circle'; c: Pt; r: number; construction?: boolean; point?: boolean }
-  | { type: 'poly'; pts: Pt[]; ctrl?: Pt[]; smooth?: boolean; bspline?: boolean; conic?: boolean; arc?: { a: Pt; b: Pt; m: Pt }; verts?: Pt[]; bulges?: number[]; construction?: boolean; centerline?: boolean; projected?: boolean; projectLink?: 'all'; projectLinkIssue?: import('./sketch/projectLinks').ProjectLinkHoldReason; projectLinkSource?: {version:1;points:Pt[];open:boolean}; open?: boolean; _cut?: boolean; ell?: { cx: number; cy: number; rx: number; ry: number; rot: number }; earc?: EllipseArcGeometry }  // projected（GM-3DV2 R3）= 投影几何：紫/洋红专属色渲染；projectLink='all' = 可安全重投影的全投影来源；centerline（GM-FP4 #23）= 中心线语义（旋转轴/对称参照，隐含 construction）
+  | ({ type: 'rect'; a: Pt; b: Pt; construction?: boolean } & SketchOffsetLinkFields)
+  | ({ type: 'circle'; c: Pt; r: number; construction?: boolean; point?: boolean } & SketchOffsetLinkFields)
+  | ({ type: 'poly'; pts: Pt[]; ctrl?: Pt[]; smooth?: boolean; bspline?: boolean; conic?: boolean; arc?: { a: Pt; b: Pt; m: Pt }; verts?: Pt[]; bulges?: number[]; construction?: boolean; centerline?: boolean; projected?: boolean; projectLink?: 'all'; projectLinkIssue?: import('./sketch/projectLinks').ProjectLinkHoldReason; projectLinkSource?: {version:1;points:Pt[];open:boolean}; open?: boolean; _cut?: boolean; ell?: { cx: number; cy: number; rx: number; ry: number; rot: number }; earc?: EllipseArcGeometry } & SketchOffsetLinkFields)  // projected（GM-3DV2 R3）= 投影几何：紫/洋红专属色渲染；projectLink='all' = 可安全重投影的全投影来源；centerline（GM-FP4 #23）= 中心线语义（旋转轴/对称参照，隐含 construction）
 export type SketchTool = 'rectangle' | 'crect' | 'rect3' | 'circle' | 'circle2p' | 'circle3' | 'circle2t' | 'circle3t' | 'polyline' | 'mline' | 'polygon' | 'slot' | 'arcslot' | 'rrect' | 'arc' | 'arcc' | 'earc' | 'ellipse' | 'spline' | 'bspline' | 'point' | 'select' | 'dimension' | 'trim' | 'extend' | 'offset' | 'cfillet' | 'cchamfer' | 'mirror' | 'array' | 'cline' | 'conic' | 'break' | 'move' | 'scale'  // mline = 中点线（GM-FP4 #16：由中点向两端对称画线）; scale = 草图缩放（GM-FP4 #42：顶点绕基点乘系数）; move = 移动/复制 gizmo（GM-FP3 #39：拣中轮廓 → 画布 X/Y 箭头+旋转弧拖动，Create Copy 剔）; break = 打断（点曲线一分为二，两段保留，S179）; conic = 圆锥曲线（Fusion Conic：起点→终点→顶点 + ρ 充满度，<0.5椭圆/0.5抛物/>0.5双曲，S177）; rect3 = 三点矩形（斜矩形）; cline = 构造参考线（点位置落水平/竖直长虚线，做参考/镜像轴，T794）; arcc = 中心点圆弧（T742）; earc = 椭圆弧（中心→长轴端→短轴半径→起角→终角，S101）; trim/extend = 修剪/延伸（T760）; offset = 偏移工具（点轮廓→平行偏移，Fusion 式，T790）; cfillet/cchamfer = 草图单角倒圆角/倒角（点一个直角顶点即用底栏 圆角R 倒嗰个角，Fusion 式，T790）; mirror = 草图镜像（拣轮廓→画任意角度镜像线→反射，Fusion 式，T790）; circle2t/3t = 2/3 切点圆（T777）; bspline = 立方 B 样条（逼近型，曲线不过控制点；S127）
 // GM-3DV2 R1：统一构造几何命令 —— Type 三态 + 累积拾取项（面/圆柱面/边）。
 export type DatumCmdType = 'plane' | 'axis' | 'point'
@@ -4089,6 +4092,46 @@ function sweepSectionSelRef(sh: SketchShape, shapeIdx: number): SkRef {
   return sh.type === 'circle' ? { kind: 'circle', shape: shapeIdx } : { kind: 'edge', shape: shapeIdx, idx: 0 }
 }
 
+let _offsetSidSeq = 0
+const newOffsetSid = () => `os${Date.now().toString(36)}${(++_offsetSidSeq).toString(36)}${Math.random().toString(36).slice(2, 6)}`
+const offsetShapeEqual = (a: SketchShape, b: SketchShape): boolean => {
+  const strip = (sh: SketchShape) => { const { sid: _a, offsetOf: _b, construction: _c, ...rest } = sh as SketchShape & SketchOffsetLinkFields; return rest }
+  const x = JSON.stringify(strip(a), (_k, v) => typeof v === 'number' ? Math.round(v * 1e7) / 1e7 : v)
+  const y = JSON.stringify(strip(b), (_k, v) => typeof v === 'number' ? Math.round(v * 1e7) / 1e7 : v)
+  return x === y && !!a.construction === !!b.construction
+}
+// BUG-207：按來源重算所有關聯偏移曲線。冇變化返 null（俾 subscription 判斷唔使 set）。
+// 來源已刪除 → 解除連結（偏移曲線變返普通自由幾何）；重覆 sid（複製來源）/ 重覆 (src,d) 偏移（複製偏移）→ 只認第一個，其餘解除連結。
+// 來源改到偏移會自交/塌陷 → 保留上一次有效偏移（同 Fusion 一樣唔會令草圖消失）。
+export function regenOffsetLinks(shapes: SketchShape[]): SketchShape[] | null {
+  if (!shapes.some((sh) => sh?.offsetOf || sh?.sid)) return null
+  let out: SketchShape[] | null = null
+  const put = (i: number, sh: SketchShape) => { if (!out) out = [...shapes]; out[i] = sh }
+  const bySid = new Map<string, number>()
+  shapes.forEach((sh, i) => { if (!sh?.sid) return; if (bySid.has(sh.sid)) { const { sid: _x, ...rest } = sh; put(i, rest as SketchShape) } else bySid.set(sh.sid, i) })
+  const seen = new Set<string>()
+  for (let pass = 0; pass < 2; pass++) {
+    const cur = (out ?? shapes) as SketchShape[]
+    cur.forEach((sh, i) => {
+      const link = sh?.offsetOf
+      if (!link) return
+      const dupKey = `${link.src}|${link.d}`
+      const j = bySid.get(link.src)
+      if (pass === 0) {
+        if (seen.has(dupKey) || j === undefined || j === i || !Number.isFinite(link.d) || !link.d) { const { offsetOf: _x, ...rest } = sh; put(i, rest as SketchShape); return }
+        seen.add(dupKey)
+      }
+      const src = cur[j!]
+      if (!src) return
+      const r = offsetSketchShape(src, link.d)
+      if (!r) return
+      const next = { ...r, ...(sh.construction ? { construction: true } : {}), ...(sh.sid ? { sid: sh.sid } : {}), offsetOf: { src: link.src, d: link.d } } as SketchShape
+      if (!offsetShapeEqual(next, sh)) put(i, next)
+    })
+  }
+  return out
+}
+
 // T760：shape → TrimPath（修剪/延伸用统一路径表示）；样条/椭圆/草图点诚实拒绝
 // 草图偏移 helper：把一个 SketchShape 平行偏移 d（正=外扩/负=内缩），支持 圆/矩形/折线。失败返 null（自交/塌陷/不支持）。
 function offsetSketchShape(sh: SketchShape, d: number): SketchShape | null {
@@ -5779,15 +5822,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     const dirs = s.sketchOffsetBoth ? [d, -d] : [d]
     const made: SketchShape[] = []
     let outOk = false, inOk = false
-    for (const dd of dirs) { const r = offsetSketchShape(src, dd); if (r) { made.push(isCon ? { ...r, construction: true } : r); if (dd > 0) outOk = true; else inOk = true } }
+    // BUG-207：記低關聯（來源 sid + 有號距離），之後來源一改偏移曲線就跟住重算。
+    const sid = src.sid ?? newOffsetSid()
+    for (const dd of dirs) { const r = offsetSketchShape(src, dd); if (r) { made.push({ ...r, ...(isCon ? { construction: true } : {}), offsetOf: { src: sid, d: dd } } as SketchShape); if (dd > 0) outOk = true; else inOk = true } }
     if (!made.length) {
       set({ sizing: null, toolPreview: null, status: `偏移失敗（距離 ${Math.abs(d)} 令輪廓自交/塌陷，試細啲）` }); return
     }
+    const linkedShapes = src.sid ? shapes : shapes.map((sh) => sh === src ? { ...sh, sid } as SketchShape : sh)
     const sideTxt = s.sketchOffsetBoth ? (outOk && inOk ? '（双向）' : outOk ? '（仅外侧，内侧塌陷）' : '（仅内侧，外侧塌陷）') : d > 0 ? '（外）' : '（内）'
     set({
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
-      sketchProfiles: [...shapes, ...made], sketchShape: null, skSel: [], sizing: null, toolPreview: null,
-      status: `已偏移 ${Math.abs(d)}mm${sideTxt} — 現 ${shapes.length + made.length} 個輪廓，繼續點其它輪廓或換工具`,
+      sketchProfiles: [...linkedShapes, ...made], sketchShape: null, skSel: [], sizing: null, toolPreview: null,
+      status: `已偏移 ${Math.abs(d)}mm${sideTxt}（關聯：跟隨來源）— 現 ${shapes.length + made.length} 個輪廓，繼續點其它輪廓或換工具`,
     })
   },
   // T790：Fusion 式单角倒圆角/倒角 — 点近一个直角顶点 → 只倒嗰个角（半径取底栏 圆角R）。工具 cfillet=真圆弧、cchamfer=直斜角。
@@ -6066,14 +6112,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     const dirs = s.sketchOffsetBoth ? [d, -d] : [d]
     const made: SketchShape[] = []
     let outOk = false, inOk = false
-    for (const dd of dirs) { const r = offsetSketchShape(sh, dd); if (r) { made.push(isCon ? { ...r, construction: true } : r); if (dd > 0) outOk = true; else inOk = true } }
+    const sid = sh.sid ?? newOffsetSid()   // BUG-207：程序化偏移都記關聯
+    for (const dd of dirs) { const r = offsetSketchShape(sh, dd); if (r) { made.push({ ...r, ...(isCon ? { construction: true } : {}), offsetOf: { src: sid, d: dd } } as SketchShape); if (dd > 0) outOk = true; else inOk = true } }
     if (!made.length) {
       return { status: `偏移失敗（距離 ${Math.abs(d)} 令輪廓自交/塌陷）` }
     }
     const sideTxt = s.sketchOffsetBoth ? (outOk && inOk ? '（双向）' : outOk ? '（仅外侧，内侧塌陷）' : '（仅内侧，外侧塌陷）') : d > 0 ? '（外）' : '（内）'
     return {
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
-      sketchProfiles: [...s.sketchProfiles, sh, ...made], sketchShape: null,
+      sketchProfiles: [...s.sketchProfiles, sh.sid ? sh : { ...sh, sid } as SketchShape, ...made], sketchShape: null,
       status: `已偏移 ${Math.abs(d)}mm${sideTxt} — 現 ${s.sketchProfiles.length + 1 + made.length} 個輪廓`,
     }
   }),
@@ -8644,6 +8691,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     //   返 false 令 SketchLayer 落 skClickAt 当选中（skHitTestAt 会话真有命中，唔会误开框选）。
     const si = (hit as { shape?: number }).shape
     if(s.skPatternData&&typeof si==='number'&&s.skPatternData.patterns.some(pattern=>pattern.instances.some(instance=>instance.entityIds.includes(s.skPatternData!.entityIds[si])))){set({status:'陣列實例由來源控制；請拖動來源，或先解除陣列關聯'});return false}
+    if (typeof si === 'number' && shapes[si] && (shapes[si] as SketchShape).offsetOf) { set({ status: '偏移曲線跟隨來源輪廓（關聯偏移）— 請拖動來源輪廓' }); return false }   // BUG-207
     const solvedFC = s.skDof != null && !s.skConflict
     if (solvedFC && typeof si === 'number' && s.skDof === 0) {
       set({ status: '呢個幾何已完全約束（固定 / 尺寸鎖死）— 拖唔郁，只可選中' })
@@ -23353,6 +23401,17 @@ useApp.subscribe((s, prev) => {
   if ((modelChanged || s.featDlg !== prev.featDlg) && s.editPreviewMesh) { useApp.setState({ editPreviewMesh: null }); return }
   const keys: (keyof AppState)[] = ['section', 'editPreviewMesh', 'shellPreviewMesh', 'shellMode', 'roundPreviewMesh', 'edgeRoundPick']
   if (modelChanged || keys.some(k => s[k] !== prev[k])) void useApp.getState().refreshSectionCap()
+})
+
+// BUG-207：關聯偏移兜底 —— 任何改 sketchProfiles/sketchShape 嘅路徑（拖動預覽/求解/尺寸/移動/縮放/撤銷/開檔）
+// 之後即同步按來源重算偏移曲線。重算結果相等就唔 set（冇循環）；派生幾何唔入撤銷棧（撤銷來源自然帶返偏移）。
+useApp.subscribe((s, prev) => {
+  if (s.sketchProfiles === prev.sketchProfiles && s.sketchShape === prev.sketchShape) return
+  const all = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])]
+  const next = regenOffsetLinks(all)
+  if (!next) return
+  const n = s.sketchProfiles.length
+  useApp.setState({ sketchProfiles: next.slice(0, n), ...(s.sketchShape ? { sketchShape: next[n] } : {}) })
 })
 
 useApp.subscribe((s, prev) => {

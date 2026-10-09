@@ -30,7 +30,7 @@ test('store measure / material tips are 港繁', () => {
   assert.match(store, /量邊：點擊實體某條棱 → 顯示其長度；圓孔棱顯示直徑Ø\/半徑/)
   assert.match(store, /已退出量邊/)
   assert.match(store, /已設物理材質/)
-  assert.match(store, /質量\/FEA\/BOM 用；外觀不變/)
+  assert.match(store, /質量\/FEA\/BOM 用；外觀已跟材質/)   // UX2 #9：物理材質而家會帶外觀
   assert.match(store, /材質庫：請輸入預設名/)
   assert.match(store, /材質庫：搵唔到預設/)
   assert.match(store, /已把量測/)

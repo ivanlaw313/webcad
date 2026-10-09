@@ -43,6 +43,7 @@ export interface MeasureResult {
   delta?: [number, number, number]  // 2 点/点-式距离嘅 ΔXYZ
   perimeter?: number                // 面周长
   radius?: number                   // 圆边/柱面半径
+  area?: number                     // UX2 #10：柱面/球面主讀數改直徑時，面積仍附上
   supplement?: number               // 夹角补角 180−θ
   parts: MeasurePart[]              // 逐实体自身读数
   note?: string                     // 诚实近似/提示
@@ -86,6 +87,8 @@ export function combineMeasure(picks: MeasurePick[]): MeasureResult {
   if (picks.length === 1) {
     const a = picks[0]
     if (a.kind === 'body') return {type:'volume',label:'體積',value:a.volume??null,valueUnit:'vol',parts}
+    // UX2 #10：圓柱面／球面（軸、孔壁、凸台）Fusion 主讀數係直徑 — 唔再淨係俾面積；面積留喺 parts / area
+    if (a.kind === 'face' && a.radius != null && a.radius > 0 && /CYL|SPHER/i.test(a.surfType ?? '')) return { type: 'length', label: /SPHER/i.test(a.surfType ?? '') ? '球面直徑Ø' : '圓柱面直徑Ø', value: a.radius * 2, valueUnit: 'len', radius: a.radius, area: a.area, perimeter: a.perimeter, parts }
     if (a.kind === 'face') return { type: 'area', label: '面积', value: a.area ?? null, valueUnit: 'area', perimeter: a.perimeter, radius: a.radius, parts }
     if (a.kind === 'edge') {
       if (a.radius != null && a.closed) return { type: 'length', label: '孔径Ø', value: a.radius * 2, valueUnit: 'len', radius: a.radius, parts }

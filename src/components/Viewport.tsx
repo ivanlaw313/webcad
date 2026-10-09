@@ -8561,6 +8561,7 @@ export default function Viewport() {
             return <>
               <div style={{ color: '#9fb2bf', fontSize: 11 }}>{tStatus(r.label, lang)}</div>
               <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1 }}>{fmtV()}</div>
+              {r.radius != null && r.radius > 0 && (r.type === 'length' || r.type === 'area') && <div data-testid="measure-radius" style={{ fontSize: 12, color: "#4a5864", fontWeight: 600 }}>{tStatus('半徑', lang)} R {fmtLen(r.radius, unit, measurePrecision, secondaryUnit)}</div>}
               {r.type === 'angle' && r.supplement != null && <div style={{ fontSize: 11, color: '#9fb2bf' }}>{tStatus('補角', lang)} {r.supplement.toFixed(2)}°</div>}
               {r.type === 'distance' && r.delta && <div style={{ marginTop: 4, fontSize: 11, color: '#9fb2bf' }}>ΔX {fmtLen(r.delta[0], unit, measurePrecision, secondaryUnit)}　ΔY {fmtLen(r.delta[1], unit, measurePrecision, secondaryUnit)}　ΔZ {fmtLen(r.delta[2], unit, measurePrecision, secondaryUnit)}</div>}
               {r.parts.length > 0 && <div style={{ marginTop: 4, fontSize: 11, color: '#7d8b96' }}>{r.parts.map((p, i) => <span key={i}>{tStatus(p.label, lang)}{p.value != null ? ` ${p.kindUnit === 'vol' ? fmtVol(p.value, unit, measurePrecision, secondaryUnit) : p.kindUnit === 'area' ? fmtArea(p.value, unit, measurePrecision, secondaryUnit) : fmtLen(p.value, unit, measurePrecision, secondaryUnit)}` : ''}{i < r.parts.length - 1 ? ' · ' : ''}</span>)}</div>}

@@ -39,7 +39,7 @@ test('raw-rendered user text now goes through the locale layer (measure text, fe
   assert.match(read('src/components/Timeline.tsx'), /\{tStatus\(plainFeatureError\(sel\.type, featureErrors\[sel\.id\]\), lang\)\}/)   // UX2 #12：先將英文內核原文轉人話再過 locale
   const tree = read('src/components/BrowserTree.tsx')
   assert.equal((tree.match(/tStatus\('重建失敗：', lang\) \+ tStatus\(plainFeatureError\((?:undefined|f\.type), err\), lang\)/g) ?? []).length, 2)
-  assert.equal((tree.match(/<option key=\{k\} value=\{k\}>\{tMaterialName\(k, lang\)\}<\/option>/g) ?? []).length, 2)
+  assert.equal((tree.match(/<option key=\{k\} value=\{k\}>\{tMaterialName\(k, lang\)\}<\/option>/g) ?? []).length, 3)   // UX2 #9：+ 活動實體行材質下拉
   assert.ok(!/<option key=\{k\} value=\{k\}>\{k\}<\/option>/.test(tree))
   const vp = read('src/components/Viewport.tsx')
   assert.ok(vp.includes('[${tMaterialName(selComp.material, lang)}] '))

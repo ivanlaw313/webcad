@@ -13784,7 +13784,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   // GM-3DV3 M14：Physical Material 与 Appearance 分家 —— 物理材质只设【密度】（→ 质量/FEA/BOM），唔郁外观颜色/PBR。
   // （对标 Fusion：可以畀件「钢密度做质量计算」但外观照旧原色；反之外观库只管睇相唔改密度。）
   physMatName: '',
-  setPhysicalMaterial: (name) => { const m = MATERIALS[name]; if (m && m.density) set({ bodyDensity: m.density, physMatName: name, status: `已設物理材質「${name}」密度 ${m.density} g/cm³（質量/FEA/BOM 用；外觀不變）` }) },
+  // UX2 #9：Fusion 物理材質自帶外觀 — 揀「鋼」實體即變鋼色（以前只改密度，用戶以為冇生效）。之後再用「外觀」可單獨改色。
+  setPhysicalMaterial: (name) => { const m = MATERIALS[name]; if (m && m.density) set((s) => ({ bodyDensity: m.density, physMatName: name, bodyColor: m.color, material: { ...s.material, metalness: m.metalness, roughness: m.roughness, opacity: m.opacity ?? 1, tex: m.tex ?? '' }, appearanceName: name, status: `已設物理材質「${name}」密度 ${m.density} g/cm³（質量/FEA/BOM 用；外觀已跟材質）` })) },
   // S187：用户外观材质库 — save = 把当前 bodyColor+material 存做具名预设（localStorage 全局持久）；load = 套用；delete = 删。
   materialLibrary: matLoadLibrary(),
   matLibOpen: false,

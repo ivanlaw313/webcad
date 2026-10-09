@@ -100,7 +100,7 @@ export default function MaterialSwatchPicker() {
           )}
           {tab === 'physical' && (
             <div>
-              <div style={{ fontSize: 10, color: '#8a95a0', marginBottom: 6 }}>只設【密度】→ 質量 / FEA / BOM（外觀顏色不變）。當前：{physMatName ? nm(physMatName) : '（未指定，用預設密度）'}</div>
+              <div style={{ fontSize: 10, color: '#8a95a0', marginBottom: 6 }}>設材質 → 密度（質量 / FEA / BOM）＋外觀顏色跟材質（之後可喺「外觀」分頁單獨改色）。當前：{physMatName ? nm(physMatName) : '（未指定，用預設密度）'}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {physKeys.map((k) => (
                   <button key={k} title={`物理材質：${nm(k)}（密度 ${MATERIALS[k].density} g/cm³）`} onClick={() => { setPhysicalMaterial(k); setOpen(false) }}

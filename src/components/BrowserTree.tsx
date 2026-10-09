@@ -32,7 +32,7 @@ function treeItemLabel(key: string, lang: string): string {
     case 'focus': return L2('聚焦', 'Focus', lang)
     case 'props': return L2('屬性', 'Properties', lang)
     case 'appearance': return tLabel('外觀', lang as never)
-    case 'physmat': return tLabel('物理材質', lang as never)
+    case 'physmat': return tStatus('材質（物理材質）…', lang as never)   // UX2 #9：Fusion 叫 Physical Material；用戶搵「材質」
     case 'showAll': return L2('顯示全部', 'Show All', lang)
     case 'fit': return L2('適應視窗', 'Fit to Window', lang)
     default: return key
@@ -431,6 +431,19 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
   )
 }
 
+// UX2 #9：活動實體行直接有「材質」下拉（同組件行一樣）— 揀「鋼」即設密度＋外觀顏色。
+function BodyMaterialSelect() {
+  const lang = useApp((s) => s.lang)
+  const phys = useApp((s) => s.physMatName)
+  return (
+    <select className="tw-mat" data-testid="body-material" aria-label={tStatus('實體材質', lang)} title={tStatus('材質（設密度→影響質量/BOM，並改外觀顏色）', lang)} value={phys || ''}
+      onClick={(e) => e.stopPropagation()} onChange={(e) => { if (e.target.value) useApp.getState().setPhysicalMaterial(e.target.value) }}>
+      <option value="">{tStatus('材質…', lang)}</option>
+      {Object.keys(MATERIALS).filter((k) => MATERIALS[k].density).map((k) => <option key={k} value={k}>{tMaterialName(k, lang)}</option>)}
+    </select>
+  )
+}
+
 // Root-body row (活動實體 / 泊車實體): eye toggle + app context menu (隱藏/顯示 · 重新命名 · 建立組件 · 外觀 · 物理材質 · 屬性 · 刪除).
 // UX1 #6：活動實體行可改名（右鍵「重新命名」／F2-style 雙擊名）同刪除（= 移除建立佢嘅特徵，草圖保留，可撤銷）— 對齊 Fusion 實體節點。
 function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; visKey: string; sel: boolean; parkedIndex?: number; onClick: () => void }) {
@@ -470,6 +483,7 @@ function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; 
         <span style={{ flex: 1 }} title={active ? tStatus('單擊：屬性 · 右鍵：重新命名／刪除 · Alt+雙擊改名', lang) : undefined}
           onDoubleClick={active ? (e) => { if (e.altKey) { e.stopPropagation(); startRename() } } : undefined}>{active && customName ? `${customName} ●` : tStatus(label, lang)}</span>
       )}
+      {active && !editing && <BodyMaterialSelect />}
       {active && !editing && <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除實體（移除建立佢嘅特徵，草圖保留；可撤銷）', lang)} onClick={(e) => { e.stopPropagation(); del() }}>🗑</span>}
     </div>
   )

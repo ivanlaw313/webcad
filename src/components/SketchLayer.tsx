@@ -2998,7 +2998,7 @@ export function SketchDimLayer() {
             </>}
             {l.edit.dim === 'con' && l.name && (
               <span
-                title={tStatus(`參數名 ${l.name} · 尺寸數值 —— 可喺其它尺寸公式引用（如 ${l.name}*2）`, lang)}
+                title={tStatus(`參數名 ${l.name} · 尺寸數值 —— 可在其他尺寸公式引用（如 ${l.name}*2）`, lang)}
                 onMouseDown={(e) => e.preventDefault()}
                 style={{ fontSize: 9, color: '#6b7884', borderLeft: '1px solid #cdd8e0', paddingLeft: 2, cursor: 'default', userSelect: 'none' }}
               >⋮{l.name}</span>

@@ -551,8 +551,8 @@ export const SKETCH_PANELS: Panel[] = [
   {
     name: 'CREATE',
     tools: [
-      { id: 'sk_polyline', label: '直線', icon: 'sketch', glyph: '╱', shortcut: 'L', quick: true, tip: '直線/折線：連續點擊畫多段相連直線,回到起點或撳「閉合」成輪廓。畫緊嗰陣撳 A 鍵 = 喺 直線 / 相切弧 之間切換（可以直線接弧再接直線）。打數字 = 精確長度；方向自動吸 水平/豎直/45°/平行/垂直。靠近圓會吸住圓嘅【象限點（上下左右最遠點）】,由上一點拉向圓會吸住【切點】令該段同圓相切。' },
-      { id: 'sk_mline', label: '中點線', icon: 'sketch', glyph: '┿', tip: '中點線（Fusion Midpoint Line）：第一點 = 中點，第二點 = 一端 → 由中點向兩端對稱嘅直線段（做對稱基準/中心參照）。打數字 = 全長。' },
+      { id: 'sk_polyline', label: '直線', icon: 'sketch', glyph: '╱', shortcut: 'L', quick: true, tip: '直線/折線：連續點擊畫多段相連直線,回到起點或按「閉合」成輪廓。繪製時按 A 鍵 = 在 直線 / 相切弧 之間切換（可以直線接弧再接直線）。打數字 = 精確長度；方向自動吸 水平/豎直/45°/平行/垂直。靠近圓會吸住圓的【象限點（上下左右最遠點）】,由上一點拉向圓會吸住【切點】令該段與圓相切。' },
+      { id: 'sk_mline', label: '中點線', icon: 'sketch', glyph: '┿', tip: '中點線：第一點 = 中點，第二點 = 一端 → 由中點向兩端對稱的直線段（做對稱基準/中心參照）。打數字 = 全長。' },
       // SKETCH12 #1：矩形 ▾／圓 ▾／圓弧 ▾ 分拆按鈕 — 快捷圖示執行預設工具，▾ 列出同類全部建立方式（三點矩形、兩點圓、相切圓弧等）。
       { id: 'sk_rect', label: '矩形', icon: 'box', glyph: '▭', shortcut: 'R', quick: true, sep: true, tip: '兩點矩形：依次點選兩個對角點。輸入寬度 → Tab → 高度 → Enter 可得精確尺寸。旁邊 ▾ 可選三點矩形或中心矩形。', quickChildren: [
         { id: 'sk_rect', label: '兩點矩形', icon: 'box', glyph: '▭', tip: '兩點矩形：依次點選兩個對角點。輸入寬度 → Tab → 高度 → Enter 可得精確尺寸。旁邊 ▾ 可選三點矩形或中心矩形。' },
@@ -580,8 +580,8 @@ export const SKETCH_PANELS: Panel[] = [
       { id: 'sk_arcc', label: '中心點弧', icon: 'revolve', glyph: '◠', tip: '中心點圓弧：圓心 → 起點（定半徑）→ 終點（定弧長，取較短方向）。建立真圓弧，可標注半徑及相切。' },
       { id: 'sk_tanarc', label: '相切弧', icon: 'revolve', glyph: '◝', tip: '相切圓弧：點選現有直線或曲線的端點開始，引出與原曲線相切（G1 平滑連接）的圓弧，並自動加入相切約束；可逐點續接。按 A 鍵可切換回直線。' },
       { id: 'sk_polygon', label: '多邊形', icon: 'default', glyph: '⬡', quick: true, sep: true, tip: '正多邊形（中心 + 半徑）；草圖欄可設邊數 / 內切外接。' },
-      { id: 'sk_spline', label: '樣條', icon: 'sweep', glyph: '∿', quick: true, tip: '樣條曲線：連續點擊一串點 → 畫出一條【經過每一個點】嘅平滑曲線。想畫順滑自由曲線時用（拉伸/旋轉出真平滑曲面）。' },
-      { id: 'sk_bspline', label: 'B樣條', icon: 'sweep', glyph: '⟿', quick: true, tip: 'B樣條：連續點擊一串控製點 → 畫出被呢啲點「拉扯」出嚟嘅平滑曲線（唔一定經過控製點,但比樣條更順滑）。想要極順滑曲線時用（拉伸/旋轉出真平滑曲面）。' },
+      { id: 'sk_spline', label: '樣條', icon: 'sweep', glyph: '∿', quick: true, tip: '樣條曲線：連續點擊一串點 → 畫出一條【經過每一個點】的平滑曲線。想畫順滑自由曲線時用（拉伸/旋轉出真平滑曲面）。' },
+      { id: 'sk_bspline', label: 'B樣條', icon: 'sweep', glyph: '⟿', quick: true, tip: 'B樣條：連續點擊一串控製點 → 畫出被這些點「拉扯」出來的平滑曲線（不一定經過控製點,但比樣條更順滑）。想要極順滑曲線時用（拉伸/旋轉出真平滑曲面）。' },
       { id: 'sk_slot', label: '槽', icon: 'default', glyph: '⬭', quick: true, tip: '槽：可選心心距、總長或中心點模式；槽寬於工具面板設定，亦可輸入長度後按 Tab 輸入槽寬。建立後長度及槽寬為可修改的驅動尺寸。' },
       { id: 'sk_arcslot', label: '圓弧槽', icon: 'default', glyph: '◜', tip: '圓弧槽：弧心 + 一端 + 另一端，沿弧的腰形槽。' },
       { id: 'sk_rrect', label: '圓角矩形', icon: 'box', glyph: '▢', quick: true, tip: '圓角矩形：對角兩點 + 圓角半徑（草圖欄設半徑）。' },
@@ -598,9 +598,9 @@ export const SKETCH_PANELS: Panel[] = [
     tools: [
       { id: 'sk_trim', label: '修剪', icon: 'default', glyph: '✂', shortcut: 'T', quick: true, tip: '修剪（T）：點選要剪去的線段，修剪至與其他幾何的相交點；沒有相交時刪除整條。閉合輪廓修剪後成為開放路徑。' },
       { id: 'sk_extend', label: '延伸', icon: 'default', glyph: '⟶', quick: true, tip: '延伸：點選開放路徑的端段，沿原方向（直線）或原圓（圓弧）延長至最近的相交幾何。' },
-      { id: 'sk_break', label: '打斷', icon: 'default', glyph: '⊟', tip: '打斷（Fusion Break）：點曲線上一點 → 一分為二，兩段都保留（近相交點會吸到精確交點）。' },
-      { id: 'sk_filletc', label: '倒圓角', icon: 'fillet', glyph: 'r⌒', quick: true, tip: '點近一個直角頂點倒嗰個角（半徑=草圖欄「圓角R」；或底欄「全部角」一次過倒晒）。' },
-      { id: 'sk_chamferc', label: '倒斜角', icon: 'chamfer', glyph: 'C∠', quick: true, tip: '倒斜角：撳近一個直角頂點,把嗰個角倒成一條直斜邊（回縮量 = 草圖欄「圓角R」；或撳底欄「全部角」一次過倒晒）。' },
+      { id: 'sk_break', label: '打斷', icon: 'default', glyph: '⊟', tip: '打斷：點曲線上一點 → 一分為二，兩段都保留（近相交點會吸到精確交點）。' },
+      { id: 'sk_filletc', label: '倒圓角', icon: 'fillet', glyph: 'r⌒', quick: true, tip: '點近一個直角頂點倒那個角（半徑=草圖欄「圓角R」；或底欄「全部角」一次全部倒角）。' },
+      { id: 'sk_chamferc', label: '倒斜角', icon: 'chamfer', glyph: 'C∠', quick: true, tip: '倒斜角：按近一個直角頂點,把那個角倒成一條直斜邊（回縮量 = 草圖欄「圓角R」；或按底欄「全部角」一次全部倒角）。' },
       { id: 'sk_offset', label: '偏移', icon: 'default', glyph: '⧉', quick: true, tip: '平行偏移當前輪廓（草圖欄設距離，正外/負內）。' },
       { id: 'sk_union', label: '合併輪廓', icon: 'combine', glyph: '∪', quick: true, tip: '合併兩個重疊輪廓做一個外框：按此即入拾取 → 點第一個輪廓 → 點第二個（即合併）。真圓弧保持。（或先用選擇工具選好兩個再按）' },
       { id: 'sk_subtract', label: '剪走輪廓', icon: 'combine', glyph: '∖', tip: '從第一個輪廓剪除第二個（A−B）：按此即入拾取 → 點【保留件】 → 點【剪除件】（即運算）。挖穿出環（外框+孔）/橫切裂體都得 — 拉伸自動嵌套判孔。' },

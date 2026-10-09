@@ -2305,7 +2305,7 @@ Object.assign(STATUS_PHRASES_X, {
   '總長模式：點選兩端最外緣，兩點距離＝總長': 'Overall: click outermost tip-to-tip ends (= overall length)',
   '點中心 → 長軸端 → 短軸 → 起角 → 終角': 'Click center → major-axis end → minor axis → start angle → end angle',
   '中心點模式：先點選槽中心，再點選一個弧心（兩端對稱）': 'Center point: click slot center → then one arc center (symmetric)',
-  '先用選擇工具揀一個或多個輪廓，再撳 Move': 'First select one or more profiles with Select, then click Move',
+  '先用選擇工具選取一個或多個輪廓，再按 Move': 'First select one or more profiles with Select, then click Move',
   '✂ 點選要剪去的線段（修剪至相交點；沒有相交時刪除整條）': '✂ Click the segment to trim (to intersection; if none, deletes the whole)',
   '⊟ 點曲線上一點 → 一分為二（兩段都保留）': '⊟ Click a point on the curve → split in two (keep both)',
   '點 起點 → 終點 → 頂點；ρ 調充滿度': 'Click start → end → vertex; ρ adjusts fullness',
@@ -2314,10 +2314,10 @@ Object.assign(STATUS_PHRASES_X, {
   '工具選項 · 拖動標題移動，拖右下角縮放': 'Tool options · drag title to move, drag bottom-right to resize',
   '間距：X/Y 值 = 相鄰兩格之間的距離': 'Spacing: X/Y = distance between adjacent instances',
   '點中點 → 點一端（由中點向兩端對稱）': 'Click midpoint → one end (symmetric about midpoint)',
-  '喺上方 ribbon「草圖」揀一個工具': 'Pick a tool from the Sketch ribbon above',
+  '在上方 ribbon「草圖」選取一個工具': 'Pick a tool from the Sketch ribbon above',
   '⟶ 點選開放路徑的端段，延長至最近的相交幾何': '⟶ Click an open-path end segment to extend to nearest intersection',
   '整圈：count 份均分 360°': 'Full: divide 360° evenly by count',
-  '剔=複製（原件保留）；唔剔=移動': 'Checked=copy (keep original); unchecked=move',
+  '勾選=複製（原件保留）；不勾選=移動': 'Checked=copy (keep original); unchecked=move',
   '心心模式：點選兩個弧心，兩點距離＝心心距': 'Center-center: click two arc centers (distance=slot length)',
   '┋ 中心線（旋轉軸/對稱參照）': '┋ Centerline (revolve axis / symmetry ref)',
   '連續點擊；回到起點或按「閉合」': 'Click continuously; return to start or press Close',
@@ -3020,7 +3020,7 @@ Object.assign(STATUS_PHRASES_X, {
   "外觀材質庫": "Appearance library",
   "外觀預設名（存當前顏色+金屬度+粗糙度+紋理）": "Appearance preset name (save current colour+metalness+roughness+texture)",
   "我的材質": "My material",
-  "📚 外觀材質庫（S187）：把當前外觀（顏色+金屬度+粗糙度+紋理）存做具名預設，一擊套用。跨文件全局保存。": "📚 Appearance library (S187): save current appearance (colour+metalness+roughness+texture) as a named preset; one-click apply. Persists across documents.",
+  "📚 外觀材質庫（S187）：把當前外觀（顏色+金屬度+粗糙度+紋理）存為具名預設，一擊套用。跨文件全局保存。": "📚 Appearance library (S187): save current appearance (colour+metalness+roughness+texture) as a named preset; one-click apply. Persists across documents.",
   // legacy SC keys (callers / old builds)
   "可继续点击落点": "you can keep clicking to place points",
   "已落草图点": "Sketch point placed",
@@ -3047,7 +3047,7 @@ Object.assign(STATUS_PHRASES_X, {
   "外观材质库": "Appearance library",
   "外观预设名（存当前颜色+金属度+粗糙度+纹理）": "Appearance preset name (save current colour+metalness+roughness+texture)",
   "我的材质": "My material",
-  "📚 外观材质库（S187）：把当前外观（颜色+金属度+粗糙度+纹理）存做具名预设，一击套用。跨文档全局保存。": "📚 Appearance library (S187): save current appearance (colour+metalness+roughness+texture) as a named preset; one-click apply. Persists across documents.",
+  "📚 外观材质库（S187）：把当前外观（颜色+金属度+粗糙度+纹理）存为具名预设，一击套用。跨文档全局保存。": "📚 Appearance library (S187): save current appearance (colour+metalness+roughness+texture) as a named preset; one-click apply. Persists across documents.",
 })
 
 
@@ -3729,7 +3729,7 @@ Object.assign(STATUS_PHRASES_X, {
   '最近間隙': 'Nearest gap',
   '複製文字報告到剪貼板': 'Copy text report to clipboard',
   '複製報告': 'Copy report',
-  '📚 外觀材質庫（S187）：把當前外觀（顏色+金屬度+粗糙度+紋理）存做具名預設，一擊套用。跨文件全局儲存。': '📚 Appearance library (S187): save current appearance (colour+metalness+roughness+texture) as a named preset; one-click apply. Persists across documents.',
+  '📚 外觀材質庫（S187）：把當前外觀（顏色+金屬度+粗糙度+紋理）存為具名預設，一擊套用。跨文件全局儲存。': '📚 Appearance library (S187): save current appearance (colour+metalness+roughness+texture) as a named preset; one-click apply. Persists across documents.',
   '清除法線貼圖': 'Clear normal map',
   '貼花 Decal：載入 logo/標籤圖片 → 點擊實體面放置（；隨項目存檔）': 'Decal: load a logo/label image, then click a face to place it (persists with the project)',
   '取消貼花放置': 'Cancel decal placement',

@@ -93,9 +93,9 @@ test('#7 diagnostics HUD + report are Traditional and can be exported to a file'
   const lits = hud.match(/'[^'\n]*'|`[^`\n]*`|"[^"\n]*"|>[^<>{}\n]+</g) || []
   const sc = lits.filter((x) => [...x].some((c) => SC2TC_CHARS[c] && SC2TC_CHARS[c] !== c))
   assert.deepEqual(sc, [], 'no Simplified UI text in the HUD')
-  assert.match(hud, /📋 複製問題報告/); assert.match(hud, /💾 匯出檔案/); assert.match(hud, /診斷錄製中（撳一下關閉）/)
+  assert.match(hud, /📋 複製問題報告/); assert.match(hud, /💾 匯出檔案/); assert.match(hud, /診斷錄製中（按一下關閉）/)
   const store = read('src/store.ts')
-  assert.match(store, /'【WebCAD 問題報告】貼返畀 AI 即可'/); assert.match(store, /── 操作記錄（\$\{_dbg\.length\} 條）──/)
+  assert.match(store, /'【WebCAD 問題報告】貼回給 AI 即可'/); assert.match(store, /── 操作記錄（\$\{_dbg\.length\} 條）──/)
   assert.doesNotMatch(store, /复制问题报告|操作记录（|问题报告】/)
   assert.equal(typeof g().exportDebugReport, 'function')
 })

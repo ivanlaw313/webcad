@@ -51,18 +51,18 @@ export default function DebugHud() {
 
   if (!debugMode) return null
   return (
-    <div ref={drag.ref} onPointerDown={drag.onPointerDown} title="可拖移：撳住拖去你想要嘅位（位置會記住）" style={{ position: 'fixed', zIndex: 99999, display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end', fontFamily: '-apple-system,Segoe UI,sans-serif', fontSize: 12, cursor: 'grab', touchAction: 'none', ...drag.style }}>
+    <div ref={drag.ref} onPointerDown={drag.onPointerDown} title="可拖移：按住拖到你想要的位置（位置會記住）" style={{ position: 'fixed', zIndex: 99999, display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end', fontFamily: '-apple-system,Segoe UI,sans-serif', fontSize: 12, cursor: 'grab', touchAction: 'none', ...drag.style }}>
       {debugMode && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#1a1d22', border: '1px solid #d6694e', borderRadius: 6, padding: '5px 8px', color: '#e6ebf0', boxShadow: '0 2px 8px rgba(0,0,0,.35)' }}>
           <span style={{ color: '#d6694e' }}>● 錄製中 {count} 條</span>
           <button onClick={() => { if (drag.consumeClick()) return; copyDebugReport() }} style={{ background: '#2f6fb0', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', fontWeight: 600 }}>📋 複製問題報告</button>
-          <button data-testid="dbg-export" title="將問題報告存做 .txt 檔（剪貼簿用唔到或者報告太長時用）" onClick={() => { if (drag.consumeClick()) return; exportDebugReport() }} style={{ background: '#2b7a4b', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', fontWeight: 600 }}>💾 匯出檔案</button>
+          <button data-testid="dbg-export" title="將問題報告存為 .txt 檔（剪貼簿無法使用或者報告太長時用）" onClick={() => { if (drag.consumeClick()) return; exportDebugReport() }} style={{ background: '#2b7a4b', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', fontWeight: 600 }}>💾 匯出檔案</button>
           <button onClick={() => { if (drag.consumeClick()) return; dbgClear(); setCount(0) }} style={{ background: '#3a3f47', color: '#cfd6dd', border: 'none', borderRadius: 4, padding: '4px 6px', cursor: 'pointer' }}>清除</button>
         </div>
       )}
-      <button onClick={() => { if (drag.consumeClick()) return; setDebugMode(!debugMode) }} title="診斷錄製模式：記低你嘅滑鼠／撳掣／狀態變化 → 撳「複製問題報告」貼返畀 AI，或者「匯出檔案」存做 .txt（撳住可拖移）"
+      <button onClick={() => { if (drag.consumeClick()) return; setDebugMode(!debugMode) }} title="診斷錄製模式：記錄你的滑鼠／按鈕／狀態變化 → 按「複製問題報告」貼回給 AI，或者「匯出檔案」存為 .txt（按住可拖移）"
         style={{ background: debugMode ? '#d6694e' : 'rgba(42,46,53,.85)', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 6px rgba(0,0,0,.3)' }}>
-        {debugMode ? '● 診斷錄製中（撳一下關閉）' : '🩺 診斷'}
+        {debugMode ? '● 診斷錄製中（按一下關閉）' : '🩺 診斷'}
       </button>
     </div>
   )

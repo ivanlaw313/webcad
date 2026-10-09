@@ -620,7 +620,7 @@ export function setSnapTypesFlag(t: SnapTypes) { _snapTypes = t }   // store act
 let _snapPerfPending: string | null = null
 let _snapPerfShown = false
 // 草图诊断：记低最后一次拣取嘅结果（畀「诊断」掣 copy → 用户贴返，AI 一睇就知撳击有冇到/中咗乜）。
-let _skLastClick = '(未撳過)'
+let _skLastClick = '(未按過)'
 let _skHoverRaw: Pt | null = null   // UX4 #1：最近一次 hover 拾取用嘅【未吸附】游標（Delete 冇選擇時刪 hover 實體前重驗）
 // 防 stale hover（幾何改咗但滑鼠未郁）：游標位置重新命中返同一個實體先算數；只收草圖實體（原點/參考幾何唔刪）
 function validSkHover(s: { skHover: SkRef | null; sketchProfiles: SketchShape[]; sketchShape: SketchShape | null; sketchTool: string; skArmedCon: SkConType | null; skSel: SkRef[] }): SkRef | null {
@@ -4686,15 +4686,15 @@ function buildDebugReport(s: AppState): string {
   const rg = getRefGeo()
   const ver = (() => { const sc = [...document.scripts].map((x) => x.src).find((x) => /index-/.test(x)); const m = sc && sc.match(/index-[\w-]+/); return m ? m[0] : '?' })()
   const head = [
-    '【WebCAD 問題報告】貼返畀 AI 即可',
+    '【WebCAD 問題報告】貼回給 AI 即可',
     `版本 ${ver}`,
     `模式 ${s.mode} · 草圖工具 ${s.sketchTool} · 平面 ${s.sketchPlane}@${Math.round(s.sketchBaseZ)} · 幾何捕捉 ${s.geoSnap ? '開' : '關'}`,
     `特徵 ${s.features.length} · 草圖輪廓 ${s.sketchProfiles.length}${s.sketchShape ? '+1未完成' : ''} · 約束 ${s.skCons.length} · 組件 ${s.components.length} · 關節 ${s.joints.length} · 當前選擇 ${s.skSel.length ? s.skSel.map((r) => r.kind).join('+') : '空'}`,
-    `實體參考幾何 ${rg ? `${rg.pts.length}點/${rg.segs.length}邊` : '無'} · 最後一次撳 ${_skLastClick}`,
+    `實體參考幾何 ${rg ? `${rg.pts.length}點/${rg.segs.length}邊` : '無'} · 最後一次按 ${_skLastClick}`,
     `狀態欄 ${s.status}`,
     `── 操作記錄（${_dbg.length} 條）──`,
   ]
-  return head.concat(_dbg.length ? _dbg : ['（冇記錄 — 請先開「診斷錄製」再操作）']).join('\n')
+  return head.concat(_dbg.length ? _dbg : ['（沒有記錄 — 請先開「診斷錄製」再操作）']).join('\n')
 }
 function shapeCornerPath(sh: SketchShape): { verts: Pt[]; bulges: number[] } | null {
   if (sh.type === 'rect') {
@@ -9078,7 +9078,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         placeDim({id:skConId(),name:nextDimName(s),kind:'dim',type:'len',a:{kind:'ellipse-axis',shape:hit.shape,idx},value}, {skPendingPt:null,status:`已標註橢圓${idx===ellipseMajorIdx(e)?'半長軸':'半短軸'} ${ellFmt(value)} mm（可直接輸入數值）`})
         return
       }
-      if (hit.kind === 'refedge') { set({ status: '參考邊系固定邊，唔可以單獨標長度 — 先點你嘅圖形上一個點，再點呢條參考邊，標「點到邊距離」' }); return }
+      if (hit.kind === 'refedge') { set({ status: '參考邊是固定邊，不可單獨標註長度 — 先點你的圖形上一個點，再點此參考邊，標「點到邊距離」' }); return }
       if (hit.kind === 'edge') {
         // arc SEGMENT (slot cap / rrect corner / fillet arc) → R radius dim (Fusion convention); straight → length
         const esh = shapes[hit.shape] as SketchShape
@@ -9235,8 +9235,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (collapsed || (trial?.conflict && (t === 'perp' || t === 'parallel'))) {
       const why = t === 'perp' ? '兩條線已經被約束成平行（平行／同為水平或豎直），再加垂直只可以將其中一條縮成 0 長度'
         : t === 'parallel' ? '兩條線已經被約束成垂直，再加平行只可以將其中一條縮成 0 長度'
-          : '加咗之後要將線段／圓縮成 0 先滿足得到'
-      set({ skSel: [], status: `⚠「${SK_CON_ZH[t]}」同現有約束衝突：${why} — 未加入約束，草圖及歷史保持原狀（要改請先刪走衝突嗰個約束）` })
+          : '加入後要將線段／圓縮成 0 才能滿足'
+      set({ skSel: [], status: `⚠「${SK_CON_ZH[t]}」同現有約束衝突：${why} — 未加入約束，草圖及歷史保持原狀（要改請先刪除衝突的那個約束）` })
       return
     }
     // SKETCH12 #4：兩個形狀之間加關係（相切／平行／垂直…）→ 先試【第一個揀嘅形狀不動】求解（只移動第二個，同主流 CAD 一致），
@@ -9409,12 +9409,12 @@ export const useApp = create<AppState>((rawSet, get) => {
   debugMode: false,
   setDebugMode: (on) => {
     if (on) { dbgClear(); dbgLog('=== 診斷錄製開始 ===') }
-    set({ debugMode: on, status: on ? '🩺 診斷錄製：開 — 重現你嘅操作（撳掣／畫圖／揀嘢），完咗撳「📋 複製問題報告」貼返畀 AI，或「💾 匯出檔案」' : '診斷錄製：已關' })
+    set({ debugMode: on, status: on ? '🩺 診斷錄製：開 — 重現你的操作（按鈕／畫圖／選取），完成後按「📋 複製問題報告」貼回給 AI，或「💾 匯出檔案」' : '診斷錄製：已關' })
   },
   copyDebugReport: () => {
     const txt = buildDebugReport(get())
-    const done = () => set({ status: `✅ 已複製問題報告（${_dbg.length} 條記錄）— 貼返畀 AI，或撳「💾 匯出檔案」存做 .txt` })
-    try { navigator.clipboard?.writeText(txt).then(done, () => set({ status: '複製失敗 — 請撳「💾 匯出檔案」存做 .txt' })) } catch { set({ status: '複製失敗 — 請撳「💾 匯出檔案」存做 .txt' }) }
+    const done = () => set({ status: `✅ 已複製問題報告（${_dbg.length} 條記錄）— 貼回給 AI，或按「💾 匯出檔案」存為 .txt` })
+    try { navigator.clipboard?.writeText(txt).then(done, () => set({ status: '複製失敗 — 請按「💾 匯出檔案」存為 .txt' })) } catch { set({ status: '複製失敗 — 請按「💾 匯出檔案」存為 .txt' }) }
   },
   // JOINT #7：問題報告匯出做 .txt 檔（剪貼簿被瀏覽器擋／報告太長貼唔晒時用）
   exportDebugReport: () => {
@@ -9516,7 +9516,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       ...(pop ? { sketchUndo: s.sketchUndo.slice(0, -1), sketchProfiles: last!.sketchProfiles, sketchShape: last!.sketchShape, skPatternData: last!.skPatternData ?? null, ...(last!.skDimLabelOff ? { skDimLabelOff: last!.skDimLabelOff } : {}) } : {}),
     })
     await get().resolveSk()
-    if (get().mode === 'sketch') set({ status: `⚠ 尺寸已拒絕：${reason}（已移除啱放低嘅尺寸）` })
+    if (get().mode === 'sketch') set({ status: `⚠ 尺寸已拒絕：${reason}（已移除剛放下的尺寸）` })
   },
   commitSkDim:commitDimensionEdit,
   editSkDim: async (id, value) => {
@@ -10528,7 +10528,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       return
     }
     if (!hasGeom) { get().exitSketchMode(); return }
-    const ok = await get().appConfirm(tStatus('退出草圖？未保存的輪廓會自動保存做【獨立草圖】（紫線，之後可拉伸/旋轉/重開，不會丟失）。\n確定 = 保存并退出 · 取消 = 留在草圖繼續畫', get().lang), tStatus('退出草圖', get().lang))
+    const ok = await get().appConfirm(tStatus('退出草圖？未保存的輪廓會自動儲存為【獨立草圖】（紫線，之後可拉伸/旋轉/重開，不會丟失）。\n確定 = 儲存並退出 · 取消 = 留在草圖繼續畫', get().lang), tStatus('退出草圖', get().lang))
     if (ok) await get().commitStandaloneSketch()
     // 取消 → 留喺草图（零丢失）
   },
@@ -11784,7 +11784,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // RETEST18 #2：Fusion 容許混合 snap（圓柱軸 ↔ 平面面心/法向）— 唔再拒絕「父平面 + 子圓柱」或相反。
     const Acomp = s.components.find((c) => c.id === A.compId)
     const B = s.components.find((c) => c.id === compId)   // 子（郁）
-    if (!Acomp || !B) { set({ jointPickMode: false, jointPick: null, status: '關節拾取失敗：搵唔到組件' }); return }
+    if (!Acomp || !B) { set({ jointPickMode: false, jointPick: null, status: '關節拾取失敗：找不到組件' }); return }
     if (isCompGrounded(s, B.id)) { set({ jointPickMode: false, jointPick: null, status: groundedJointMsg(s, B.id) }); return }   // BUG(B)（對調後唔應再發生）
     // ── 贴合：完全复用 solveFaceMateDelta + worldToPose（同拣面配合数学一致），子件 B 贴到父件 A ──
     let delta = solveFaceMateDelta(A.face, face)   // A=基准（唔郁）, face=B（郁）
@@ -11823,7 +11823,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({
       jointPickMode: false, jointPick: null, selectedComponent: B.id,
       components: s.components.map((c) => (c.id === B.id ? { ...c, pos: pose.pos, rot: pose.rot } : c)),
-      status: `已貼合「${B.name}」→「${Acomp.name}」${swapped ? '（第一件已固定 → 已自動對調：佢做父件）' : ''}，請喺彈框選關節類型…`,
+      status: `已貼合「${B.name}」→「${Acomp.name}」${swapped ? '（第一件已固定 → 已自動對調：它做父件）' : ''}，請在彈框選關節類型…`,
     })
     // ── 关节类型选择（appPrompt 编号表，按几何门控）——取消 = 保留贴合、唔建关节（诚实状态）──
     void (async () => {
@@ -11840,7 +11840,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // 建关节：唔用 addJoint（佢自带撤销快照会破坏原子性）—— 此处复用 addJoint 嘅 id/命名规则，同贴合共一快照
       const n = s2.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1
       const jid = 'J' + n, joint: Joint = { id: jid, name: '關節' + n, type, parent: A.compId, child: B.id, anchor, axis, angle: 0, slide: 0 }
-      const geomLbl = A.face.kind !== face.kind ? '軸取自圓柱軸、錨點 = 軸線穿過平面處（混合 snap）' : A.face.kind === 'cyl' ? '軸／錨點取自所揀圓柱面' : '錨點取自貼合面心、軸取自平面法向'
+      const geomLbl = A.face.kind !== face.kind ? '軸取自圓柱軸、錨點 = 軸線穿過平面處（混合 snap）' : A.face.kind === 'cyl' ? '軸／錨點取自所選圓柱面' : '錨點取自貼合面心、軸取自平面法向'
       set({
         undoStack: [...preUndo, preSnap].slice(-60), redoStack: [],
         joints: [...s2.joints, joint],
@@ -14719,7 +14719,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           return
         case 'sk_trim': get().setSketchTool('trim'); set({ status: '✂ 修剪（T）：點選一段即剪去，或按住拖掃一次刪除多段。修剪至與其他輪廓或構造線的相交點；沒有相交時刪除整條（Ctrl+Z 可還原）' }); return
         case 'sk_extend': get().setSketchTool('extend'); set({ status: '⟶ 延伸：點選開放路徑的端段（靠近要延伸的一端），沿原方向或原圓延長至最近的相交幾何' }); return
-        case 'sk_break': get().setSketchTool('break'); set({ status: '⊟ 打斷：點曲線想分割嗰點 → 一分為二（兩段都保留；近相交點會吸到精確交點，Ctrl+Z 還原）' }); return
+        case 'sk_break': get().setSketchTool('break'); set({ status: '⊟ 打斷：點曲線上想分割的那點 → 一分為二（兩段都保留；近相交點會吸到精確交點，Ctrl+Z 還原）' }); return
         case 'sk_constr': return get().toggleConstruction()
         case 'sk_filletc': get().setSketchTool('cfillet'); return set({ status: `倒圓角：點近一個直角頂點即按 R${get().sketchCornerR || 8} 倒那個角（底欄改 R，或按「全部角」一次）` })
         case 'sk_chamferc': get().setSketchTool('cchamfer'); return set({ status: `倒角：點近一個直角頂點即按 C${get().sketchCornerR || 8} 倒那個角（底欄改值，或按「全部角」一次）` })
@@ -17208,7 +17208,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   dimArcLen: false,
   dimCircleRad: false,
-  setDimCircleRad: (on) => set({ dimCircleRad: on, sketchTool: 'dimension', status: on ? '尺寸工具：點圓 = 半徑 R（再撳「Ø 直徑」切返）' : '尺寸工具：點圓 = 直徑 Ø' }),
+  setDimCircleRad: (on) => set({ dimCircleRad: on, sketchTool: 'dimension', status: on ? '尺寸工具：點圓 = 半徑 R（再按「Ø 直徑」切回）' : '尺寸工具：點圓 = 直徑 Ø' }),
   toggleDimArcLen: () => set((s) => ({ dimArcLen: !s.dimArcLen, sketchTool: 'dimension', status: !s.dimArcLen ? '⌒ 弧長尺寸模式：點一段圓弧（折線弧段/三點弧）落弧長' : '已返回普通尺寸' })),
   // T792（S71 曲面工作流 v1）：曲面放样 — 收集全部【开放折线独立草图】（XY/偏移面，各自高度）做截面，
   // 截面内偏移 ±壁厚/2 成闭合带 → 实体放样 = 薄壳曲面件（导流罩/灯罩/曲面支架）。
@@ -19354,7 +19354,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const pn = p.planeNormal.split(',').map(Number) as [number, number, number]
         f = { id: fid(), type: 'split', axis: 'Z', offset: 0, keep, nameA: '分割A', nameB: '分割B', planeOrigin: po, planeNormal: pn }
         if (!d.editId) { const miss = splitPlaneMissReason(get().bodyMesh, f as Parameters<typeof splitPlaneMissReason>[1]); if (miss) { set({ status: miss }); return } }   // CORE16：編輯時現有 bodyMesh 已經係分割後半體 — 唔可以用佢判斷（重建失敗由 worker 原因路徑報）
-        msg = `已沿所拾平面分割（法向 [${pn.map((x) => x.toFixed(2)).join(',')}]；保留${keep === 'hi' ? '法向正' : '法向负'}側為活動體，另一半灰顯泊車）`
+        msg = `已沿所拾平面分割（法向 [${pn.map((x) => x.toFixed(2)).join(',')}]；保留${keep === 'hi' ? '法向正' : '法向负'}側為活動體，另一半灰顯為獨立實體）`
       } else {
         const axis = (p.axis === 'X' || p.axis === 'Y' || p.axis === 'Z') ? p.axis : 'Z'
         if (String(p.offset ?? '').trim() === '' || !Number.isFinite(+p.offset)) { set({ status: '分割實體：請輸入分割平面的位置（數字，單位 mm）' }); return }
@@ -19368,7 +19368,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         }
         f = { id: fid(), type: 'split', axis, offset: +p.offset || 0, keep, nameA: '分割A', nameB: '分割B' }
         if (!d.editId) { const miss = splitPlaneMissReason(get().bodyMesh, f as Parameters<typeof splitPlaneMissReason>[1]); if (miss) { set({ status: miss }); return } }   // CORE16：編輯時現有 bodyMesh 已經係分割後半體 — 唔可以用佢判斷（重建失敗由 worker 原因路徑報）
-        msg = `已沿 ${axis}=${+p.offset || 0} 平面分割（保留${keep === 'hi' ? '高' : '低'}側為活動體，另一半灰顯泊車 — 時間軸可改位置/保留側）`
+        msg = `已沿 ${axis}=${+p.offset || 0} 平面分割（保留${keep === 'hi' ? '高' : '低'}側為活動體，另一半灰顯為獨立實體 — 時間軸可改位置/保留側）`
       }
     } else if (d.kind === 'offsetsolid') {
       const dist = +p.distance
@@ -22561,7 +22561,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     let edges: BrepEdge[] = []
     try { edges = (await cad.extractEdgePolylines()) as BrepEdge[] } catch { /* 冇邊 sidecar 都安全 */ }
     const cur = get()
-    if (cur.features !== s0.features) { set({ status: '模型已變更 — 請再撳一次「新建組件」' }); return }
+    if (cur.features !== s0.features) { set({ status: '模型已變更 — 請再按一次「新建組件」' }); return }
     const before = { ...docSnap(cur), activeBodyName: cur.activeBodyName }
     const kept = cur.features.filter((f) => !doomed.has(f.id))
     const refd = (fs: Feature[]) => { const r = new Set<string>(); for (const f of fs) { const sk = (f as { sketchId?: string }).sketchId; if (sk) r.add(sk); for (const k of (f as { sketchIds?: string[] }).sketchIds ?? []) r.add(k) } return r }

@@ -98,7 +98,7 @@ function useJointHandleDrag(j: Joint) {
         const near = jointHandleHitInfo(cur, project, x, y, 80, { pointer: rp })
         // 未中時記低撳位同白色指針兩端螢幕座標（下次報告可以直接睇到差喺邊）
         const seg = rp ? rp.map((p) => project(p)).map((q) => q ? q.map((n) => Math.round(n)).join(',') : '?').join('→') : '?'
-        dbgLog(`關節把手 ${j.id}：${hit ? '接 ' + hit.part : '未中'}（最近 ${near ? near.part + ' ' + near.d.toFixed(1) + 'px' : '>80px'}，dpr ${window.devicePixelRatio}${hit ? '' : `，撳位 ${Math.round(x)},${Math.round(y)}，指針 ${seg}，角度 ${cur.angle ?? 0}°`}）`)
+        dbgLog(`關節把手 ${j.id}：${hit ? '接 ' + hit.part : '未中'}（最近 ${near ? near.part + ' ' + near.d.toFixed(1) + 'px' : '>80px'}，dpr ${window.devicePixelRatio}${hit ? '' : `，點擊位置 ${Math.round(x)},${Math.round(y)}，指針 ${seg}，角度 ${cur.angle ?? 0}°`}）`)
       }
       if (!hit) return null
       // JOINT #2：撳錨點球 —— 以前靜靜雞開咗旋轉 session（要拉出去再繞圈先有反應，用戶以為冇用）→ 講明點用

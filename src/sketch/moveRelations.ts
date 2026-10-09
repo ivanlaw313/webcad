@@ -22,7 +22,7 @@ function fixedGeometry(shapes:SketchShape[],r:SkRef):unknown{
 }
 export function buildMoveCandidate(shapes:SketchShape[],cons:SkCon[],sourceIndices:number[],transform:CopyTransform):MoveCandidate{
  const selectedIndices=[...new Set(sourceIndices)]
- if(!selectedIndices.length||selectedIndices.some(i=>!Number.isInteger(i)||!shapes[i])||!finite(transform))return{ok:false,reason:'移動需要有效嘅已選幾何同有限數值嘅位移。'}
+ if(!selectedIndices.length||selectedIndices.some(i=>!Number.isInteger(i)||!shapes[i])||!finite(transform))return{ok:false,reason:'移動需要有效的已選幾何與有限數值的位移。'}
  const selected=new Set(selectedIndices),next=shapes.map((sh,i)=>{
    if(!selected.has(i))return sh
    const moved=transformCopyShape(sh,transform)
@@ -43,14 +43,14 @@ export function buildMoveCandidate(shapes:SketchShape[],cons:SkCon[],sourceIndic
  * then validate the persistent system without adding permanent Fix constraints. */
 export async function solveMoveCandidate(original:SketchShape[],candidate:Extract<MoveCandidate,{ok:true}>):Promise<{ok:true;shapes:SketchShape[];cons:SkCon[];dof:number;changed:boolean}|{ok:false;reason:string}>{
  const selected=new Set(candidate.selectedIndices),targetValid=(shapes:SketchShape[])=>candidate.selectedIndices.every((i,j)=>!!shapes[i]&&near(geometry(shapes[i]),geometry(candidate.targetShapes[j]))),fixedValid=(shapes:SketchShape[])=>candidate.cons.every(c=>c.kind!=='con'||c.type!=='fix'||near(fixedGeometry(original,c.a),fixedGeometry(shapes,c.a)))
- if(!finite(candidate.shapes)||!targetValid(candidate.shapes)||!fixedValid(candidate.shapes))return{ok:false,reason:'呢個改動會郁到已固定嘅幾何 — 已拒絕。'}
+ if(!finite(candidate.shapes)||!targetValid(candidate.shapes)||!fixedValid(candidate.shapes))return{ok:false,reason:'此改動會移動已固定的幾何 — 已拒絕。'}
  const pins:SkCon[]=[],used=new Set(candidate.cons.map(c=>c.id)),pin=(a:SkRef)=>{let id=`move:target-pin:${pins.length}`;while(used.has(id))id+='_';used.add(id);pins.push({id,kind:'con',type:'fix',a})}
  for(const i of selected){const sh=candidate.shapes[i];if(sh.type==='circle'){pin(sh.point?{kind:'pt',shape:i,idx:0}:{kind:'circle',shape:i});continue}if(sh.type==='poly'&&sh.ell){pin({kind:'ellipse',shape:i});continue}if(sh.type==='poly'&&sh.earc){pin({kind:'ellipse-arc',shape:i});continue}const n=sh.type==='rect'?4:sh.arc?2:(sh.ctrl??sh.verts??sh.pts).length;for(let idx=0;idx<n;idx++)pin({kind:'pt',shape:i,idx});const m=sh.type==='poly'&&sh.arc?1:sh.type==='poly'&&sh.verts?(sh.open?n-1:n):0;for(let idx=0;idx<m;idx++){const r:SkRef={kind:'center',shape:i,idx};if(refValid(candidate.shapes,r))pin(r)}}
  try{
-   const first=await solveFree(candidate.shapes,[...candidate.cons,...pins]);if(!first||first.conflict||!finite(first.shapes)||!targetValid(first.shapes as SketchShape[])||!fixedValid(first.shapes as SketchShape[]))return{ok:false,reason:'現有尺寸或約束唔容許呢個改動（會過約束）— 已拒絕，草圖保持原狀。'}
+   const first=await solveFree(candidate.shapes,[...candidate.cons,...pins]);if(!first||first.conflict||!finite(first.shapes)||!targetValid(first.shapes as SketchShape[])||!fixedValid(first.shapes as SketchShape[]))return{ok:false,reason:'現有尺寸或約束不容許此改動（會過約束）— 已拒絕，草圖保持原狀。'}
    const exact=first.shapes.map((sh,i)=>selected.has(i)?candidate.shapes[i]:sh) as SketchShape[],cons=applyRelationUpdates(candidate.cons,first),last=await solveFree(exact,cons)
-   if(!last||last.conflict||!finite(last.shapes)||!targetValid(last.shapes as SketchShape[])||!fixedValid(last.shapes as SketchShape[]))return{ok:false,reason:'呢個改動滿足唔到草圖現有約束 — 已拒絕，草圖保持原狀。'}
+   if(!last||last.conflict||!finite(last.shapes)||!targetValid(last.shapes as SketchShape[])||!fixedValid(last.shapes as SketchShape[]))return{ok:false,reason:'此改動無法滿足草圖現有約束 — 已拒絕，草圖保持原狀。'}
    const changed=!last.shapes.every((sh,i)=>sketchesNumericallyEqual(geometry(sh as SketchShape),geometry(original[i])))
    return{ok:true,changed,shapes:last.shapes.map((sh,i)=>selected.has(i)?candidate.shapes[i]:near(geometry(sh as SketchShape),geometry(original[i]))?original[i]:sh) as SketchShape[],cons:applyRelationUpdates(cons,last),dof:last.dof}
- }catch{return{ok:false,reason:'草圖求解器驗證唔到呢個改動 — 已拒絕，草圖保持原狀。'}}
+ }catch{return{ok:false,reason:'草圖求解器無法驗證此改動 — 已拒絕，草圖保持原狀。'}}
 }

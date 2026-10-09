@@ -270,7 +270,7 @@ export function SketchToolPanel() {
           <button data-testid="dim-circle-dia" className={'sb-tool' + (!dimCircleRad ? ' active' : '')} style={{ flex: 1 }} title={T('點圓 = 直徑 Ø 尺寸')} onClick={() => g().setDimCircleRad(false)}>{T('Ø 直徑')}</button>
           <button data-testid="dim-circle-rad" className={'sb-tool' + (dimCircleRad ? ' active' : '')} style={{ flex: 1 }} title={T('點圓 = 半徑 R 尺寸')} onClick={() => g().setDimCircleRad(true)}>{T('R 半徑')}</button>
         </div>
-        <Hint>{T('點 邊 → 放置：垂直偏置=真長(Aligned) · 左右放=豎直投影 · 上下放=水平投影 · 點另一條邊=平行間距/夾角 · 圓=Ø 直徑或 R 半徑（上面揀）· 圓弧=R · 右鍵尺寸=R↔Ø/從動')}</Hint>
+        <Hint>{T('點 邊 → 放置：垂直偏置=真長(Aligned) · 左右放=豎直投影 · 上下放=水平投影 · 點另一條邊=平行間距/夾角 · 圓=Ø 直徑或 R 半徑（上方選擇）· 圓弧=R · 右鍵尺寸=R↔Ø/從動')}</Hint>
       </>)
       break
     case 'array': {

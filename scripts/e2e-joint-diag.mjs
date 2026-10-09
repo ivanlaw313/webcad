@@ -72,7 +72,7 @@ try {
   ok('#3 joint pick status says first pick = moving part', /要郁件/.test(await st()), await st())
   const shaftSide = await compPoint(S, 'side'); await clickAt(page, shaftSide.s)
   const s1 = await st()
-  ok('#3 first pick (shaft) accepted as the moving part', /已選要郁件/.test(s1) && !/唔可以做關節子件/.test(s1), s1)
+  ok('#3 first pick (shaft) accepted as the moving part', /已選(要郁件|移動件)/.test(s1) && !/唔可以做關節子件|不可作為關節子件/.test(s1), s1)
   const plateTop = await compPoint(P, 'top'); await clickAt(page, plateTop.s)
   await page.waitForSelector('[data-testid="dialog-pick-list"]', { timeout: 10000 })
   const opts = await g(() => [...document.querySelectorAll('[data-testid="dialog-pick-list"] [role="option"]')].map((e) => ({ v: e.dataset.testid.replace('dialog-pick-', ''), sel: e.getAttribute('aria-selected') })))

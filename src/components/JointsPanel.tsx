@@ -28,6 +28,7 @@ const JOINT_DRIVE_GESTURE = {
 
 export default function JointsPanel() {
   const lang = useApp((s) => s.lang)
+  const selectedJoint = useApp((s) => s.selectedJoint)   // ASM2 #7：瀏覽樹選取嘅關節
   const components = useApp((s) => s.components)
   const joints = useApp((s) => s.joints)
   const addJoint = useApp((s) => s.addJoint)
@@ -300,7 +301,7 @@ export default function JointsPanel() {
         <span className="pp-x" style={{ float: 'right' }} title="折疊面板" onClick={() => { setUserCollapsed(true); setUserExpanded(false) }}>▾</span></div>
 
       {joints.map((j) => (
-        <div key={j.id} className="jp-joint" data-joint-id={j.id}>
+        <div key={j.id} className={'jp-joint' + (j.id === selectedJoint ? ' sel' : '')} data-joint-id={j.id} style={j.id === selectedJoint ? { outline: '2px solid #1572c4', outlineOffset: -1, borderRadius: 4 } : undefined}>
           <div className="jp-row">
             <b>{localizeAsmName(j.name, lang)}</b>
             <span className="jp-type">{tStatus(JOINT_LABEL_TC[j.type], lang)}</span>

@@ -23,8 +23,11 @@ function treeItemLabel(key: string, lang: string): string {
     case 'rename': return L2('重新命名', 'Rename', lang)
     case 'delete': return L2('刪除', 'Delete', lang)
     case 'createComp': return L2('建立組件', 'Create Component', lang)
+    case 'ground': return L2('固定', 'Ground', lang)
+    case 'unground': return L2('取消固定', 'Unground', lang)
     case 'editSketch': return L2('編輯草圖', 'Edit Sketch', lang)
     case 'editFeature': return L2('編輯特徵', 'Edit Feature', lang)
+    case 'editJoint': return L2('編輯關節', 'Edit Joint', lang)
     case 'suppress': return L2('抑制', 'Suppress', lang)
     case 'unsuppress': return L2('恢復', 'Unsuppress', lang)
     case 'edit': return L2('編輯組件', 'Edit Component', lang)
@@ -372,8 +375,9 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
   const selectedBody = useApp((s) => s.selectedComponentBody)
   const selectBody = useApp((s) => s.selectComponentBody)
   const openMenu = useTreeMenu()
-  const onCompMenu = (e: ReactMouseEvent) => openMenu(e, 'component', { hidden: !!c.hidden, canRename: true, canEdit: !!(c.src?.features?.length || c.formSource) }, {
+  const onCompMenu = (e: ReactMouseEvent) => openMenu(e, 'component', { hidden: !!c.hidden, canRename: true, canEdit: !!(c.src?.features?.length || c.formSource), grounded }, {
     hide: () => toggleVis(c.id), show: () => toggleVis(c.id),
+    ground: () => useApp.getState().toggleComponentGround(c.id), unground: () => useApp.getState().toggleComponentGround(c.id),   // ASM2 #4
     isolate: () => isolate(c.id),
     edit: () => { if (c.formSource) useApp.getState().editFormComponent(c.id); else { selectComponent(c.id); void useApp.getState().editComponent(c.id) } },
     rename: () => { setName(c.name); setEditing(true) },
@@ -395,14 +399,14 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
       ) : (
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} title={tStatus(`「${localizeAsmName(c.name, lang)}」 ${compDimsStr(c.mesh)}（雙擊參數化件=進入編輯；Alt+雙擊=改名；點選=屬性）`, lang)} onClick={(e) => { if (compBoolPending) selectComponent(c.id); else if (e.ctrlKey || e.metaKey || e.shiftKey) useApp.getState().toggleComponentInSelection(c.id); else selectComponent(c.id === sel ? null : c.id) }} onDoubleClick={(e) => { const cc = useApp.getState().components.find((x) => x.id === c.id); if (cc?.formSource && !e.altKey) { useApp.getState().editFormComponent(c.id) } else if (cc?.src?.features?.length && !e.altKey) { selectComponent(c.id); void useApp.getState().editComponent(c.id) } else { setName(c.name); setEditing(true) } }}>{localizeAsmName(c.name, lang)}</span>
       )}
-      {grounded && <span data-testid="comp-grounded" title={tStatus('已固定（Ground）— 不可拖動，關節不會驅動', lang)} style={{ fontSize: 10, color: '#8a5a00', marginRight: 2, flexShrink: 0 }}>📌{tStatus('(已固定)', lang)}</span>}
+      {grounded && <span data-testid="comp-grounded" title={tStatus('（已固定）— 不可拖動，關節不會驅動此組件', lang)} style={{ fontSize: 10, color: '#8a5a00', marginRight: 2, flexShrink: 0 }}>📌{tStatus('(已固定)', lang)}</span>}
       {shareCount > 1 && <span title={tStatus(`${shareCount} 個實例共享同一定義 — 編輯任一，全部更新（「獨立複製」可脫離）`, lang)} style={{ fontSize: 10, fontWeight: 600, color: '#1572c4', background: 'rgba(21,114,196,.12)', borderRadius: 3, padding: '0 4px', marginRight: 2, flexShrink: 0 }}>×{shareCount}</span>}
       <button className="component-options" aria-label={`組件選項：${c.name}`} aria-expanded={c.id === sel && !componentEditing && !commandActive && !skLock} onClick={() => { if (compBoolPending) selectComponent(c.id); else selectComponent(c.id === sel ? null : c.id) }}>⋯</button>
     </div>
     {c.id === sel && !componentEditing && !commandActive && !skLock && <div className="component-controls" role="group" aria-label={`組件選項：${c.name}`}>
       {!!c.formSource && <button onClick={() => useApp.getState().editFormComponent(c.id)}>✎ 編輯 Form 控制籠</button>}
       {!!c.src?.features.length && <button onClick={() => void useApp.getState().editComponent(c.id)}>✎ 編輯特徵／草圖</button>}
-      <button type="button" data-testid="browser-groundcomp" title={tStatus(grounded ? '取消固定：組件可再拖動／被關節驅動' : '固定（Ground）：組件不可拖動，關節不會驅動它', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleComponentGround(c.id) }}>{grounded ? tStatus('📌 取消固定', lang) : tStatus('📌 固定', lang)}</button>
+      <button type="button" data-testid="browser-groundcomp" title={tStatus(grounded ? '取消固定：組件可再拖動／被關節驅動' : '固定：組件不可拖動，關節不會驅動它', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleComponentGround(c.id) }}>{grounded ? tStatus('📌 取消固定', lang) : tStatus('📌 固定', lang)}</button>
       <button type="button" data-testid="browser-compboolean" title={tStatus('組件布爾：以此件為目標，再點另一個零件作工具件（合併/切除/相交）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().startComponentBoolean(c.id) }}>🧩 組件布爾</button>
       <select className="tw-mat" title={tStatus('材質（設密度→影響質量/BOM，並改顏色）', lang)} value={c.material || ''} onClick={(e) => e.stopPropagation()} onChange={(e) => { if (e.target.value) setMaterial(c.id, e.target.value) }} style={{ fontSize: 10, maxWidth: 52, border: '1px solid #d0d6dc', borderRadius: 3 }}>
         <option value="">{tStatus('材質…', lang)}</option>
@@ -428,6 +432,45 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
       </div>
     ))}
     </>
+  )
+}
+
+// ASM2 #7：瀏覽樹關節行 — 單擊選取、雙擊／右鍵重新命名、✎ 編輯（展開關節面板）、🗑 刪除（可撤銷）。
+const JOINT_TYPE_TC: Record<string, string> = { rigid: '剛性', revolute: '旋轉', slider: '滑動', cylindrical: '圓柱', pinslot: '銷槽', planar: '平面', ball: '球', screw: '螺旋' }
+function JointRow({ id }: { id: string }) {
+  const lang = useApp((s) => s.lang)
+  const j = useApp((s) => s.joints.find((x) => x.id === id))
+  const sel = useApp((s) => s.selectedJoint === id)
+  const skLock = useApp((s) => s.mode === 'sketch' || s.formMode)
+  const pName = useApp((s) => (j ? s.components.find((c) => c.id === j.parent)?.name ?? j.parent : ''))
+  const cName = useApp((s) => (j ? s.components.find((c) => c.id === j.child)?.name ?? j.child : ''))
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState('')
+  const openMenu = useTreeMenu()
+  if (!j) return null
+  const startRename = () => { setName(j.name); setEditing(true) }
+  const commit = (v: string) => { setEditing(false); useApp.getState().renameJoint(id, v) }
+  const del = () => { if (skDelGuard()) return; useApp.getState().removeJoint(id) }
+  const edit = () => useApp.getState().editJoint(id)
+  return (
+    <div data-testid={'tree-joint-' + id} className={'tree-row' + (sel ? ' sel' : '')} style={{ paddingLeft: 18 }}
+      title={tStatus(`關節「${j.name}」（${JOINT_TYPE_TC[j.type] ?? j.type}）：${pName} → ${cName} — 單擊選取，雙擊重新命名，✎ 編輯`, lang)}
+      onClick={editing ? undefined : () => useApp.getState().selectJoint(sel ? null : id)}
+      onDoubleClick={editing ? undefined : startRename}
+      onContextMenu={(e) => { if ((e.target as HTMLElement).closest?.('input')) { e.stopPropagation(); return } openMenu(e, 'joint', { canDelete: !skLock }, { editJoint: edit, rename: startRename, delete: del }) }}>
+      <span className="tw-toggle" />
+      <span className="tw-ico"><ToolIcon name="joint" size={13} /></span>
+      {editing ? (
+        <input className="tree-rename" aria-label={tStatus('重新命名關節', lang)} value={name} autoFocus
+          onChange={(e) => setName(e.target.value)} onClick={(e) => e.stopPropagation()}
+          onBlur={(e) => commit(e.currentTarget.value)}
+          onKeyDown={(e) => { e.stopPropagation(); if (imeBusy(e)) return; if (e.key === 'Enter') commit(e.currentTarget.value); else if (e.key === 'Escape') setEditing(false) }} />
+      ) : (
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localizeAsmName(j.name, lang)} <span style={{ color: '#6b7680', fontSize: 10 }}>{tStatus(JOINT_TYPE_TC[j.type] ?? j.type, lang)}</span></span>
+      )}
+      <span className="tw-act" data-testid={'tree-joint-edit-' + id} title={tStatus('編輯關節（展開關節面板）', lang)} onClick={(e) => { e.stopPropagation(); edit() }}>✎</span>
+      <span className="tw-act" data-testid={'tree-joint-del-' + id} style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除關節（Ctrl+Z 可還原）', lang)} onClick={(e) => { e.stopPropagation(); del() }}>🗑</span>
+    </div>
   )
 }
 
@@ -465,7 +508,7 @@ function BodyRow({ label, visKey, sel, parkedIndex, onClick }: { label: string; 
       onContextMenu={(e) => { if ((e.target as HTMLElement).closest?.('input')) { e.stopPropagation(); return } openMenu(e, active ? 'activeBody' : 'parkedBody', { hidden, canDelete: !skLock }, {
         hide: toggle, show: toggle,
         ...(active ? { rename: startRename, delete: del } : {}),
-        createComp: () => void useApp.getState().newComponentActive(),
+        createComp: () => void useApp.getState().createComponentFromBody(active ? null : parkedIndex),   // ASM2 #3：只轉換右鍵嗰個實體
         appearance: () => void useApp.getState().runCommand('appearance', '外觀'),
         physmat: () => void useApp.getState().runCommand('physicalmaterial', '物理材質'),
         props: () => void useApp.getState().openPropertiesDialog(active ? null : `parked:${parkedIndex}`),
@@ -591,6 +634,7 @@ export default function BrowserTree() {
   const treeFeatures = features.filter((f) => !(f.type === 'sketch' && !!sketchSources[(f as { sketchId?: string }).sketchId ?? '']))
   const components = useApp((s) => s.components)
   const jointOrigins = useApp((s) => s.jointOrigins)   // GM-3DV4 A1：可复用关节原点
+  const joints = useApp((s) => s.joints)               // ASM2 #7：關節資料夾
   const rigidGroups = useApp((s) => s.rigidGroups)     // GM-3DV4 A8：一级刚性组节点
   const planes = useApp((s) => s.planes)
   const cpoints = useApp((s) => s.cpoints)
@@ -742,6 +786,12 @@ export default function BrowserTree() {
                 <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除構造點', lang)} onClick={(e) => { e.stopPropagation(); if (skDelGuard()) return; useApp.getState().removeCPoint(i) }}>🗑</span>
               </div>
             ))}
+          </Section>
+        )}
+        {/* ASM2 #7：「關節」資料夾 — 選取／重新命名／刪除／編輯（展開關節面板到該卡） */}
+        {joints.length > 0 && (
+          <Section label={`${msg('tree.joints', lang)} (${joints.length})`}>
+            {joints.map((j) => <JointRow key={j.id} id={j.id} />)}
           </Section>
         )}
         {/* GM-3DV4 A1：Joint Origins 组（Fusion 专属「Joint Origins」文件夹） */}

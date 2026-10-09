@@ -92,7 +92,7 @@ try {
     await clickAt(page, shaftPt)
   }
   const p2 = await pickInfo()
-  ok('second pick accepted (not 「另一個組件」 refusal)', !/另一個】組件嘅面/.test(p2.status), { p2 })
+  ok('second pick accepted (not 「另一個組件」 refusal)', !/另一個】組件(嘅|的)面/.test(p2.status), { p2 })
   await page.waitForSelector('[data-testid="dialog-pick-revolute"]', { timeout: 10000 })
   const lbl = await page.locator('[data-testid="dialog-pick-revolute"]').textContent()
   ok('type list offers 旋轉', /旋轉/.test(lbl), { lbl })
@@ -178,7 +178,7 @@ try {
     await clickAt(page, second); const a2 = await pickInfo()
     const expectFirst = order === 'shaftFirst' ? shaftId : plateId
     ok(`(a) existing joint, ${order}: 1st pick on the right component`, a1.pick?.compId === expectFirst, { a1, expectFirst })
-    ok(`(a) existing joint, ${order}: 2nd pick not refused as same component`, !/另一個】組件嘅面/.test(a2.status), { a2 })
+    ok(`(a) existing joint, ${order}: 2nd pick not refused as same component`, !/另一個】組件(嘅|的)面/.test(a2.status), { a2 })
     // close whatever the second pick opened (type dialog → cancel; or leave pick mode)
     await page.keyboard.press('Escape'); await page.waitForTimeout(300)
     await g(() => { const s = window.useApp.getState(); if (s.jointPickMode) s.cancelJointPick() })

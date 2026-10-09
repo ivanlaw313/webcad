@@ -1268,6 +1268,7 @@ const messages: Record<string, string> = {
   "tree.construction": "构造",
   "tree.docSettings": "文档设置",
   "tree.features": "特征",
+  "tree.joints": "关节",
   "tree.jointOrigins": "关节原点",
   "tree.namedViews": "命名视图",
   "tree.origin": "原点",

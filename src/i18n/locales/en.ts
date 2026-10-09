@@ -1268,6 +1268,7 @@ const messages: Record<string, string> = {
   "tree.construction": "Construction",
   "tree.docSettings": "Document Settings",
   "tree.features": "Features",
+  "tree.joints": "Joints",
   "tree.jointOrigins": "Joint Origins",
   "tree.namedViews": "Named Views",
   "tree.origin": "Origin",

@@ -5369,6 +5369,9 @@ export default function Viewport() {
             physmat: { key: 'physmat', glyph: '⚖', label: '物理材質', fn: () => runCommand('physicalmaterial', '物理材質') },
             props: { key: 'props', glyph: 'ℹ', label: L('屬性', 'Properties'), fn: () => void useApp.getState().openPropertiesDialog(hit.kind === 'component' && sc ? sc.id : hit.kind === 'body' && hit.parked != null ? `parked:${hit.parked}` : null) },
             hidebody: bodyMesh ? { key: 'hidebody', glyph: '🙈', label: L('隱藏實體', 'Hide Body'), fn: () => useApp.getState().setBodyHidden(hideKey, true) } : undefined,
+            // ASM2 #3／#4：右鍵實體「建立組件」（只轉換該實體）；右鍵組件「固定／取消固定」
+            createcomp: bodyMesh ? { key: 'createcomp', glyph: '🧩', label: L('建立組件', 'Create Component'), fn: () => void useApp.getState().createComponentFromBody(hit.kind === 'body' && hit.parked != null ? hit.parked : null) } : undefined,
+            ground: sc ? { key: 'ground', glyph: '📌', label: sc.grounded || st.grounded === sc.id ? L('取消固定', 'Unground') : L('固定', 'Ground'), fn: () => useApp.getState().toggleComponentGround(sc.id) } : undefined,
             hidecomp: sc ? { key: 'hidecomp', glyph: '🙈', label: L('隱藏組件', 'Hide Component'), fn: () => { const ss = useApp.getState(); if (ss.selectedComponent === sc.id) ss.selectComponent(null); ss.toggleComponentVisible(sc.id) } } : undefined,
             showall: { key: 'showall', glyph: '👁', label: L('顯示全部', 'Show All'), disabled: !anyHidden, fn: () => useApp.getState().showAllBodies() },
             expq: { key: 'expq', label: `📐 匯出精度：${q === 'fine' ? '細' : q === 'coarse' ? '粗' : '中'}`, fn: () => { const qq = useApp.getState().exportQuality; useApp.getState().setExportQuality(qq === 'medium' ? 'fine' : qq === 'fine' ? 'coarse' : 'medium') } },

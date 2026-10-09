@@ -38,7 +38,7 @@ test('#3 Fusion order: first pick = moving component (child), second = parent', 
 test('#3 first-picked component is grounded → roles swap automatically (no 「已固定，唔可以做關節子件」)', async () => {
   await pick(['SHAFT', shaftSide], ['PLATE', plateTop], { ground: 'SHAFT' })
   const j = g().joints[0]
-  assert.ok(j, g().status); assert.doesNotMatch(g().status, /唔可以做關節子件/)
+  assert.ok(j, g().status); assert.doesNotMatch(g().status, /唔可以做關節子件|不可作為關節子件/)
   assert.equal(j.parent, 'SHAFT'); assert.equal(j.child, 'PLATE')
   assert.equal(g().components.find((c) => c.id === 'SHAFT').pos.join(), '0,0,0', 'grounded shaft never moves')
 })
@@ -48,7 +48,7 @@ test('#3 both grounded → clear message, no joint', async () => {
   await pick(['SHAFT', shaftSide], ['PLATE', plateTop], { ground: 'SHAFT' })   // reset
   useApp.setState({ components: g().components.map((c) => ({ ...c, grounded: true })), joints: [], jointPickMode: true, jointPick: null })
   g().pickFaceForJoint('SHAFT', shaftSide); g().pickFaceForJoint('PLATE', plateTop)
-  assert.match(g().status, /兩件都已固定/); assert.equal(g().joints.length, 0); assert.equal(g().jointPickMode, false)
+  assert.match(g().status, /兩件都已固定|兩個組件均已固定/); assert.equal(g().joints.length, 0); assert.equal(g().jointPickMode, false)
 })
 
 test('#5 cylinder ↔ plate snap: shaft end face sits ON the plate face (no half-sunk penetration)', async () => {

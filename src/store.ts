@@ -218,11 +218,13 @@ function _soleVisibleAnalysis(arr: AnalysisNode[], type: AnalysisType, params?: 
 function isCompGrounded(s: { components: { id: string; grounded?: boolean }[]; grounded: string | null }, id: string): boolean {
   return s.grounded === id || !!s.components.find((c) => c.id === id)?.grounded
 }
+/** ASM2 #3：系統自動起嘅實體名（實體N／实体N／複製實體N／Body N）— 建立組件時改用「組件N」。 */
+export function isDefaultBodyName(name: string): boolean { return /^\s*(複製|复制)?(實體|实体)\s*\d*\s*$|^\s*body\s*\d*\s*$/i.test(name) }
 function groundedMoveMsg(s: { components: { id: string; name: string }[] }, id: string): string {
-  return `「${s.components.find((c) => c.id === id)?.name ?? id}」已固定（Ground）— 先「取消固定」先可移動`
+  return `「${s.components.find((c) => c.id === id)?.name ?? id}」（已固定）— 請先取消固定才可移動`
 }
 function groundedJointMsg(s: { components: { id: string; name: string }[] }, id: string): string {
-  return `「${s.components.find((c) => c.id === id)?.name ?? id}」已固定，唔可以做關節子件 — 對調父／子件或先取消固定`
+  return `「${s.components.find((c) => c.id === id)?.name ?? id}」已固定，不可作為關節子件 — 請對調父／子件或先取消固定`
 }
 // BUG-207 跟進（G）：用戶喺偏移工具未揀輪廓前已喺欄位打數 → 之後鎖定輪廓時數值優先（換工具即重置）。
 let _offsetTypedPre = false
@@ -1952,7 +1954,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   checkGroupMembers: (id: string) => void                 // 组 checkbox → 勾/取消全部成员
   originX: number
   newComponent: () => void
-  newComponentActive: () => Promise<void>   // JOINT #6：用戶命令 —— 有泊車實體時只固化【活動實體】，其餘實體留喺模型（Fusion：Create Component from body）
+  newComponentActive: () => Promise<void>
+  createComponentFromBody: (parked?: number | null) => Promise<void>   // ASM2 #3：實體右鍵「建立組件」—— 只轉換右鍵嗰個實體   // JOINT #6：用戶命令 —— 有泊車實體時只固化【活動實體】，其餘實體留喺模型（Fusion：Create Component from body）
   // GM-X3 #11：opt 可选 单位换算 + flip-up（Y↔Z）+ 落地摆位（none/center/ground）。
   importStl: (buf: ArrayBuffer, name: string, opt?: MeshInsertOpt) => Promise<void>
   importObj: (text: string, name: string, opt?: MeshInsertOpt) => Promise<void>
@@ -2246,6 +2249,10 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   computeEnvelope: () => void
   clearEnvelope: () => void
   removeJoint: (id: string) => void
+  selectedJoint: string | null                         // ASM2 #7：瀏覽樹「關節」資料夾選取嘅關節
+  selectJoint: (id: string | null) => void
+  renameJoint: (id: string, name: string) => void      // ASM2 #7：可撤銷
+  editJoint: (id: string) => void                      // ASM2 #7：展開關節面板並捲到該關節卡
   homeJoints: () => void
   // 捕捉位置 (Capture Position, Fusion 同款)：把当前所有关节驱动值快照存名，一键套回整个机构姿态。
   // 纯 zustand，无内核；vals 以关节 id 为键，缺省关节回 0；apply 走同 setJointValue 嘅 ca/cs 限位 + propagateLinks。随项目存档。
@@ -11746,7 +11753,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 唔再係 componentCenter + 硬编码轴嘅估算。贴合 + 建关节共用【单一撤销快照】原子处理（似 Wave-4 4.2）。
   jointPickMode: false,
   jointPick: null,
-  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, status: '關節拾取（同 Fusion）：先點【要郁嘅組件】一個面（圓柱軸/孔 或 平面），再點【佢接去嘅組件（父件）】對應面 → 要郁件貼合 + 喺該幾何建真關節（圓柱=旋轉/滑動/圓柱 · 平面=剛性/平面 · 圓柱↔平面=軸穿面心，預設旋轉）；第一件已固定會自動對調' }),
+  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, status: '關節拾取：先點選【要移動的組件】的一個面（圓柱軸／孔或平面），再點選【其連接的組件（父件）】對應面 → 移動件貼合，並在該幾何建立關節（圓柱＝旋轉／滑動／圓柱 · 平面＝剛性／平面 · 圓柱↔平面＝軸穿面心，預設旋轉）；先點選已固定的組件會自動對調' }),
   cancelJointPick: () => set({ jointPickMode: false, jointPick: null, status: '已退出關節拾取' }),
   pickFaceForJoint: (compId, face) => {
     const s = get()
@@ -11754,8 +11761,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 第一拣嘅件係固定（Ground）而第二件唔係 → 自動對調角色（唔再拒絕「已固定，唔可以做關節子件」）。
     if (!s.jointPick) {
       const kindLbl = face.kind === 'cyl' ? '圓柱面（同軸 → 旋轉／滑動關節）' : '平面（貼平 → 剛性／平面關節）'
-      const gNote = isCompGrounded(s, compId) ? '（呢件已固定 — 會自動做父件，另一件做要郁件）' : ''
-      set({ jointPick: { compId, face }, status: `已選要郁件嘅${kindLbl}${gNote}，再點【佢要接去嘅組件（父件）】對應面（圓柱或平面都得 — 圓柱↔平面 = 軸穿面心）` })
+      const gNote = isCompGrounded(s, compId) ? '（此組件已固定 — 將自動作為父件，另一組件作為移動件）' : ''
+      set({ jointPick: { compId, face }, status: `已選移動件的${kindLbl}${gNote}，請再點選【其連接的組件（父件）】對應面（圓柱或平面皆可 — 圓柱↔平面＝軸穿面心）` })
       return
     }
     // 第二拣 —— 唔同件；RETEST18 #2：類型可以混合（圓柱↔平面）
@@ -11766,11 +11773,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       const nm = s.components.find((c) => c.id === compId)?.name ?? compId
       const kl = (k: string) => (k === 'cyl' ? '圓柱' : '平')
       dbgLog(`pickFaceForJoint SAME comp=${compId} first=${A.face.kind} second=${face.kind} dupIds=${s.components.filter((c) => c.id === compId).length}`)
-      set({ status: `請點【另一個】組件嘅面（關節兩件唔可以係同一件：兩下都點中「${nm}」— 第一下${kl(A.face.kind)}面、今次${kl(face.kind)}面）` }); return
+      set({ status: `請點選【另一個】組件的面（關節的兩個組件不可相同：兩次都點中「${nm}」— 第一次為${kl(A.face.kind)}面、本次為${kl(face.kind)}面）` }); return
     }
     // 角色：預設 第一拣 = 子（郁），第二拣 = 父；第一件固定而第二件唔固定 → 對調（Fusion：固定件永遠唔郁）。
     const g1 = isCompGrounded(s, first.compId), g2 = isCompGrounded(s, compId)
-    if (g1 && g2) { set({ jointPickMode: false, jointPick: null, status: `兩件都已固定（Ground）— 關節要有一件可以郁：先喺瀏覽樹右鍵取消其中一件嘅「固定」` }); return }
+    if (g1 && g2) { set({ jointPickMode: false, jointPick: null, status: `兩個組件均已固定 — 關節須有一個可移動的組件：請先取消其中一個的「固定」（瀏覽樹右鍵或「裝配」功能區）` }); return }
     const swapped = g1 && !g2
     const A = swapped ? first : { compId, face }   // 父（唔郁）
     if (!swapped) { compId = first.compId; face = first.face }   // 子（郁）= 第一拣
@@ -13720,7 +13727,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       components: s.components.map((x) => (x.id === id ? { ...x, grounded: on || undefined } : x)),
       ...(!on && s.grounded === id ? { grounded: null } : {}),
-      status: on ? `已固定「${c.name}」（Ground）— 唔可拖動，關節唔會驅動佢` : `已取消固定「${c.name}」`,
+      status: on ? `「${c.name}」（已固定）— 不可拖動，關節不會驅動此組件` : `已取消固定「${c.name}」`,
     }
   }),
   // T774 顺手修 id 碰撞：旧 'J'+(length+1) 删中间再加会撞 id — 改 max现有序号+1（T770 gearbox 嘅 J1..Jn 约定兼容）
@@ -13836,7 +13843,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   setJointValue: (id, patch) => set((s) => {
     { const jj = s.joints.find((x) => x.id === id); const drives = Object.keys(patch).some((k) => k === 'angle' || k === 'slide' || k === 'angle2' || k === 'angle3' || k === 'slide2')
-      if (jj && drives && isCompGrounded(s, jj.child)) return { status: `「${s.components.find((c) => c.id === jj.child)?.name ?? jj.child}」已固定 — 關節唔會驅動佢（先取消固定）` } }   // BUG(B)
+      if (jj && drives && isCompGrounded(s, jj.child)) return { status: `「${s.components.find((c) => c.id === jj.child)?.name ?? jj.child}」已固定 — 關節不會驅動此組件（請先取消固定）` } }   // BUG(B)
     // 撤销策略：限位/导程 = 离散配置编辑（typed input，应入撤销栈）；angle/slide/angle2… = 滑杆连续驱动
     // （拖一下会高频调用 — 若每 tick 压快照会瞬间灌爆 60 格令 Ctrl+Z 失效）→ 只对 config 编辑压快照。
     const isCfg = patch.aMin !== undefined || patch.aMax !== undefined || patch.sMin !== undefined || patch.sMax !== undefined || patch.lead !== undefined
@@ -14064,6 +14071,23 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   removeMotionLink: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], motionLinks: s.motionLinks.filter((l) => l.id !== id) })),
   // RETEST21 #3：關節卡 ✕ 刪除 = 一步撤銷快照（Fusion：刪除可撤銷）；狀態列講明 Ctrl+Z 可還原（連同佢嘅運動連接）。
+  selectedJoint: null,
+  selectJoint: (id) => set((s) => {
+    const j = id ? s.joints.find((x) => x.id === id) : null
+    if (!j) return { selectedJoint: null }
+    const nm = (cid: string) => s.components.find((c) => c.id === cid)?.name ?? cid
+    return { selectedJoint: j.id, status: `已選取關節「${j.name}」：${nm(j.parent)} → ${nm(j.child)}` }
+  }),
+  renameJoint: (id, name) => set((s) => {
+    const j = s.joints.find((x) => x.id === id), nm = name.trim().slice(0, 80)
+    if (!j || !nm || nm === j.name) return {}
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], joints: s.joints.map((x) => (x.id === id ? { ...x, name: nm } : x)), status: `已將關節「${j.name}」重新命名為「${nm}」` }
+  }),
+  editJoint: (id) => {
+    if (!get().joints.some((x) => x.id === id)) return
+    set({ selectedJoint: id })
+    try { window.dispatchEvent(new CustomEvent('webcad:assembly-focus', { detail: { section: 'joint', jointId: id } })) } catch { /* 非瀏覽器 */ }
+  },
   removeJoint: (id) => set((s) => {
     const j = s.joints.find((x) => x.id === id)
     if (!j) return {}
@@ -14071,6 +14095,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       joints: s.joints.filter((x) => x.id !== id), motionLinks: s.motionLinks.filter((l) => l.driver !== id && l.driven !== id),
+      ...(s.selectedJoint === id ? { selectedJoint: null } : {}),
       status: `已刪除關節「${j.name}」${links ? `（連同 ${links} 條運動連接）` : ''} — Ctrl+Z 可還原`,
     }
   }),
@@ -15067,7 +15092,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'newcomp': return void get().newComponentActive()   // JOINT #6：用戶「新建組件」只固化活動實體
       case 'groundcomp': {   // BUG(B)：ASSEMBLE ▾ 固定／取消固定（作用於瀏覽器選中組件）
         const sc = get().selectedComponent
-        if (!sc) { set({ status: '固定組件：先喺瀏覽器選一個組件' }); return }
+        if (!sc) { set({ status: '固定組件：請先在瀏覽器或視窗中選取一個組件' }); return }
         return get().toggleComponentGround(sc)
       }
       // GM-3DV2 R1：Fusion 实际上用同一个 Construction Geometry 对话框；各菜单项只系预设 Type + Method。
@@ -22502,6 +22527,15 @@ export const useApp = create<AppState>((rawSet, get) => {
     } catch { /* ignore corrupt autosave */ }
   },
 
+  createComponentFromBody: async (parked) => {
+    const s = get()
+    const live = s.bodyMesh ? splitLiveBodies(s.bodyMesh) : []
+    const hasActive = live.some((x) => x.active)
+    if (parked == null) return get().newComponentActive()
+    if (hasActive) { set({ status: '此實體不是活動實體：請先為活動實體「建立組件」，其餘實體隨後可逐一建立組件' }); return }
+    if (live.length > 1 && !(await get().appConfirm(`目前沒有活動實體 — 將餘下 ${live.length} 個實體分別建立為組件？`))) return
+    get().newComponent()
+  },
   newComponentActive: async () => {
     const s0 = get()
     const b = s0.bodyMesh
@@ -22543,7 +22577,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ components: [...cur.components, occ as (typeof comps)[number]], componentDefs: [...cur.componentDefs, def2], selectedFeature: null, sketchShape: null, mode: 'model' })
     set((st) => ({ suppressedIds: st.suppressedIds.filter((x) => !doomed.has(x)) }))
     const rest = live.length - 1
-    const ok = await get().applyFeatures(next, `已將活動實體固化為「${nm}」；其餘 ${rest} 個實體保留喺模型（可再撳「新建組件」逐個固化）`, true, undefined, before)
+    const ok = await get().applyFeatures(next, `已將活動實體轉換為「${nm}」；其餘 ${rest} 個實體保留在模型中（可再按「新建組件」逐一轉換）`, true, undefined, before)
     if (!ok) {
       set({ components: cur.components, componentDefs: cur.componentDefs, suppressedIds: cur.suppressedIds, failedFeatureIds: [], featureErrors: {}, status: '⚠ 新建組件後重建失敗 — 已保留原模型' })
       return
@@ -22574,7 +22608,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     let activeDef: (typeof defsAcc)[number] | null = null
     live.forEach((lb, i) => {
       const n = maxN + 1 + i
-      const nm = lb.active ? '組件' + n : (lb.name ? `${lb.name}` : '組件' + n)   // RETEST17 #3：預設名繁體（顯示層再按語言 localizeAsmName）
+      // ASM2 #3：名稱一律「組件N」；只有用戶自訂嘅實體名先沿用（預設「實體N／複製實體N／Body N」唔再變成組件名）
+      const nm = !lb.active && lb.name && !isDefaultBodyName(lb.name) ? lb.name : '組件' + n   // RETEST17 #3：預設名繁體（顯示層再按語言 localizeAsmName）
       const { def, occ } = makeDefOcc(defsAcc, 'C' + n, nm, lb.mesh, [get().originX, 0, 0], lb.active && srcSnap.features.length ? { src: srcSnap } : (i ? { color: COMP_PALETTE[(comps.length + i) % COMP_PALETTE.length] } : undefined))
       defsAcc = [...defsAcc, def]; newDefs.push(def); newComps.push(occ as (typeof comps)[number])
       if (lb.active) activeDef = def

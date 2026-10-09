@@ -28,7 +28,7 @@ export function modelMenuLayout(hit: ViewportHit, opts: ModelMenuOpts = {}): Men
     case 'face':
       return {
         sectors: ['repeat', 'sketch', 'presspull', 'measure', 'delface', 'move', 'shell', 'fit'],
-        overflow: ['facefillet', 'appearance', 'physmat', 'hidebody', ...showAll, 'sep', 'bsection', 'expq', 'sep', ...VIEWS],
+        overflow: ['facefillet', 'appearance', 'physmat', 'hidebody', ...showAll, 'sep', 'createcomp', 'sep', 'bsection', 'expq', 'sep', ...VIEWS],
       }
     case 'edge':
       return {
@@ -37,13 +37,13 @@ export function modelMenuLayout(hit: ViewportHit, opts: ModelMenuOpts = {}): Men
       }
     case 'body':
       return {
-        sectors: ['repeat', 'measure', 'move', 'hidebody', null, null, 'props', 'fit'],
+        sectors: ['repeat', 'measure', 'move', 'hidebody', 'createcomp', null, 'props', 'fit'],
         overflow: [...showAll, 'sep', ...VIEWS],
       }
     case 'component':
       return {
         sectors: ['repeat', 'move', 'measure', 'hidecomp', 'del', 'focus', 'props', 'fit'],
-        overflow: [...showAll, 'sep', 'compitems', 'sep', ...VIEWS],
+        overflow: ['ground', ...showAll, 'sep', 'compitems', 'sep', ...VIEWS],
       }
     case 'empty':
     default:
@@ -69,9 +69,9 @@ export function pickItems<T extends { key: string }>(keys: (string | null | 'sep
 }
 
 /** Browser-tree row kinds that get an app context menu. */
-export type TreeNodeKind = 'activeBody' | 'parkedBody' | 'component' | 'componentBody' | 'sketch' | 'feature' | 'root'
+export type TreeNodeKind = 'activeBody' | 'parkedBody' | 'component' | 'componentBody' | 'sketch' | 'feature' | 'joint' | 'root'
 
-export type TreeMenuOpts = { hidden?: boolean; canRename?: boolean; canDelete?: boolean; canEdit?: boolean; anyHidden?: boolean; suppressed?: boolean }
+export type TreeMenuOpts = { hidden?: boolean; canRename?: boolean; canDelete?: boolean; canEdit?: boolean; anyHidden?: boolean; suppressed?: boolean; grounded?: boolean }
 
 /** Item keys for a browser-tree row context menu (Fusion browser right-click). */
 export function treeMenuKeys(kind: TreeNodeKind, o: TreeMenuOpts = {}): string[] {
@@ -79,12 +79,15 @@ export function treeMenuKeys(kind: TreeNodeKind, o: TreeMenuOpts = {}): string[]
   switch (kind) {
     // UX1 #6：活動實體行同 Fusion 實體一樣可「重新命名」／「刪除」
     case 'activeBody': return [vis, 'rename', 'createComp', 'sep', 'appearance', 'physmat', 'props', 'sep', 'fit', ...(o.canDelete === false ? [] : ['sep', 'delete'])]
-    case 'parkedBody': return [vis, 'sep', 'props']
-    case 'component': return [vis, 'isolate', ...(o.canEdit ? ['edit'] : []), ...(o.canRename ? ['rename'] : []), 'sep', 'focus', 'props', 'sep', ...(o.canDelete === false ? [] : ['delete'])]
+    case 'parkedBody': return [vis, 'createComp', 'sep', 'props']
+    // ASM2 #4：組件右鍵亦有「固定／取消固定」（之前只喺 ⋯ 選項列）
+    case 'component': return [vis, 'isolate', ...(o.canEdit ? ['edit'] : []), ...(o.canRename ? ['rename'] : []), 'sep', o.grounded ? 'unground' : 'ground', 'sep', 'focus', 'props', 'sep', ...(o.canDelete === false ? [] : ['delete'])]
     case 'componentBody': return [vis]
     case 'sketch': return ['editSketch', vis, ...(o.canRename ? ['rename'] : []), ...(o.canDelete ? ['sep', 'delete'] : [])]
     // RETEST19 #7：瀏覽樹特徵行（同時間軸 chip 同一套處理：編輯／改名／抑制／刪除＋依賴警告）
     case 'feature': return [...(o.canEdit ? ['editFeature'] : []), 'rename', o.suppressed ? 'unsuppress' : 'suppress', 'sep', 'delete']
+    // ASM2 #7：瀏覽樹「關節」資料夾
+    case 'joint': return ['editJoint', 'rename', 'sep', ...(o.canDelete === false ? [] : ['delete'])]
     case 'root':
     default: return ['showAll', 'fit']
   }

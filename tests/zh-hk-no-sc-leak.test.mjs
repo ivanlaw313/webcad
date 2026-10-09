@@ -139,7 +139,8 @@ const TOTAL = Object.values(PER_FILE).reduce((a, b) => a + b, 0)
 /* 2026-10-09（zh-HK pass 2）：2367 → 2274。store.ts 狀態／警告／錯誤／對話框文案（applyFeatures、appPrompt/Confirm/Alert、
  * Error、status、warnings、流向 status 嘅變數、tStatus 參數）喺源頭轉繁體；只轉 zh-CN 回轉後逐字不變、en/ja 輸出不變嘅字串。
  * 保留簡體嘅（刻意）：MATERIALS 等資料鍵、參數名、元件／特徵名、比較用字串、匯出報告、AI 工具回覆。 */
-const MAX_LEAK_STRINGS = 2274
+/* 2026-10-09（loft-fix）：2274 → 2281。放樣截面清單／揀平面新文案全部係繁體，只因「截面／平面」嘅「面」喺 LEAK 集而被計入（逐條核對過，冇簡體字）。 */
+const MAX_LEAK_STRINGS = 2281
 
 test('zh-HK lane files do not grow simplified-Chinese string literals', () => {
   assert.ok(TOTAL <= MAX_LEAK_STRINGS, `leak strings ${TOTAL} > ${MAX_LEAK_STRINGS}\n` + JSON.stringify(PER_FILE, null, 2))

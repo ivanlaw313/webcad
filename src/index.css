@@ -574,7 +574,11 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .tl-chip.err::before { content: '!'; position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; background: #e0442e; color: #fff; font-size: 9px; font-weight: 700; line-height: 13px; text-align: center; border-radius: 50%; z-index: 2; }
 .tree-row.err > span:nth-child(3) { color: #c0392b; }
 .tw-err { margin-left: 4px; font-size: 10px; }
-.fe-errbar { display: flex; align-items: center; gap: 8px; color: #b5311f; background: #fdecea; border: 1px solid #f3b5ab; border-radius: 6px; padding: 4px 8px; font-size: 11px; margin: 4px 0; }
+.fe-errbar { display: flex; align-items: center; gap: 8px; color: #b5311f; background: #fdecea; border: 1px solid #f3b5ab; border-radius: 6px; padding: 2px 8px; font-size: 11px; margin: 0; height: 100%; box-sizing: border-box; min-width: 0; }
+/* CORE16 #5：特徵編輯條訊息槽 — 永遠佔一行固定高度，最後一行；contain:inline-size 令長訊息唔撐闊面板（唔 reflow）。 */
+.feat-editor .fe-msg { order: 99; flex: 0 0 100%; contain: inline-size; height: 32px; min-width: 0; overflow: hidden; display: flex; align-items: stretch; }
+.feat-editor .fe-msg-text { flex: 1 1 auto; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 14px; align-self: center; }
+.feat-editor .fe-msg-illegal { color: #b42318; font-size: 12px; }
 .fe-errsup { border: 1px solid #e0442e; color: #e0442e; background: #fff; border-radius: 4px; padding: 1px 6px; cursor: pointer; white-space: nowrap; }
 .fe-errsup:hover { background: #e0442e; color: #fff; }
 .feat-editor {

@@ -344,13 +344,18 @@ export default function Timeline() {
         <div className="feat-editor" role="dialog" aria-label={tStatus("特徵尺寸編輯", lang)} ref={featureEditorDrag.ref} style={featureEditorDrag.style}>
           <span className="fe-title" title="拖移特徵編輯面板" onPointerDown={featureEditorDrag.onPointerDown} style={{ cursor: 'grab', touchAction: 'none' }}>⠿ <ToolIcon name={meta.icon} size={14} /> {tStatus(`編輯「${meta.label}」`, lang)}</span>
           <button type="button" aria-label="還原特徵編輯面板位置" onClick={featureEditorDrag.reset}>↺</button>
-          {featureErrors[sel.id] && <div className="fe-errbar">🔴 {tStatus('此特徵重建失敗：', lang)}{tStatus(plainFeatureError(sel.type, featureErrors[sel.id]), lang)}<button className="fe-errsup" onClick={() => void toggleSuppress(sel.id)}>{tStatus('抑制此特徵', lang)}</button></div>}
+
           {sel.type === 'surfloft' && (sel as unknown as { sheet?: boolean }).sheet && (
             <div className="fe-note">{tStatus('零厚放樣曲面（無壁厚）— 真曲面件，可用「加厚」/「縫合」轉實體', lang)}</div>
           )}
-          {isIllegalRejectStatus(status) && (
-            <div role="alert" data-testid="timeline-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{status}</div>
-          )}
+          {/* CORE16 #5：訊息槽固定預留高度、唔計入面板闊度（contain: inline-size）—— 出錯／拒絕訊息出現時欄位唔再跳位 */}
+          <div className="fe-msg" data-testid="fe-msg" aria-live="polite">
+            {isIllegalRejectStatus(status) ? (
+              <div role="alert" data-testid="timeline-illegal-alert" className="fe-msg-text fe-msg-illegal" title={status}>{status}</div>
+            ) : featureErrors[sel.id] ? (
+              <div className="fe-errbar"><span className="fe-msg-text" title={tStatus(plainFeatureError(sel.type, featureErrors[sel.id]), lang)}>🔴 {tStatus('此特徵重建失敗：', lang)}{tStatus(plainFeatureError(sel.type, featureErrors[sel.id]), lang)}</span><button className="fe-errsup" onClick={() => void toggleSuppress(sel.id)}>{tStatus('抑制此特徵', lang)}</button></div>
+            ) : null}
+          </div>
           {meta.fields ? (
             // S181：零厚放样曲面（sheet）冇壁厚可调 → 隐藏 wall 字段
             (sel.type === 'surfloft' && (sel as unknown as { sheet?: boolean }).sheet ? meta.fields.filter((fd) => fd.key !== 'wall') : meta.fields).map((fd) => {

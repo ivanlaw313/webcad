@@ -2620,7 +2620,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   cancelHole: () => void
   clearHolePick: () => void  // SelectionChip ✕ → unset the hole centre, keep the dialog open
   // Generic feature-param command (Fusion-style set params → 确定) for pattern/cpattern/mirror
-  featDlg: { kind: 'pattern' | 'geoPattern' | 'cpattern' | 'circpattern' | 'pathpattern' | 'mirror' | 'move' | 'scale' | 'draft' | 'revolve' | 'rib' | 'pipe' | 'box' | 'cylinder' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie' | 'tube' | 'rtube' | 'profile' | 'rbox' | 'prism' | 'pyramid' | 'coil' | 'plane' | 'cpoint' | 'cptgrid' | 'caxis' | 'thread' | 'cylpatch' | 'sheetmetal' | 'gear' | 'rack' | 'pulley' | 'gearbox' | 'worm' | 'crowngear' | 'othread' | 'ithread' | 'combine' | 'boundaryfill' | 'automatedmodel' | 'offsetsolid' | 'splitbody' | 'extrude-edit' | 'fillet-edit' | 'chamfer-edit' | 'shell-edit' | 'emboss'; params: Record<string, number | string>; /** BUG-417/409：用戶打落去嘅【原文】。有 raw 嘅欄位才會受提交閘管 —— 未遷移嘅欄位行為逐字不變。 */ paramRaw?: Record<string, string>; payload?: unknown; editId?: string; expressionContext?: import('./cad/dimensionExpression').DimensionExpression } | null
+  featDlg: { kind: 'pattern' | 'geoPattern' | 'cpattern' | 'circpattern' | 'pathpattern' | 'mirror' | 'move' | 'scale' | 'draft' | 'revolve' | 'rib' | 'pipe' | 'box' | 'cylinder' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie' | 'tube' | 'rtube' | 'profile' | 'rbox' | 'prism' | 'pyramid' | 'coil' | 'plane' | 'cpoint' | 'cptgrid' | 'caxis' | 'thread' | 'cylpatch' | 'sheetmetal' | 'gear' | 'rack' | 'pulley' | 'gearbox' | 'worm' | 'crowngear' | 'othread' | 'ithread' | 'combine' | 'boundaryfill' | 'automatedmodel' | 'offsetsolid' | 'splitbody' | 'extrude-edit' | 'pushpull-edit' | 'fillet-edit' | 'chamfer-edit' | 'shell-edit' | 'emboss'; params: Record<string, number | string>; /** BUG-417/409：用戶打落去嘅【原文】。有 raw 嘅欄位才會受提交閘管 —— 未遷移嘅欄位行為逐字不變。 */ paramRaw?: Record<string, string>; payload?: unknown; editId?: string; expressionContext?: import('./cad/dimensionExpression').DimensionExpression } | null
   openFeatDlg: (kind: 'pattern' | 'geoPattern' | 'cpattern' | 'circpattern' | 'mirror' | 'move' | 'scale' | 'draft' | 'box' | 'cylinder' | 'sphere' | 'torus' | 'cone' | 'wedge' | 'dome' | 'halfcyl' | 'pie' | 'tube' | 'rtube' | 'profile' | 'rbox' | 'prism' | 'pyramid' | 'coil' | 'plane' | 'cpoint' | 'cptgrid' | 'caxis' | 'thread' | 'cylpatch' | 'sheetmetal' | 'gear' | 'rack' | 'pulley' | 'gearbox' | 'worm' | 'crowngear' | 'othread' | 'ithread' | 'combine' | 'automatedmodel' | 'offsetsolid' | 'splitbody') => void
   openCombineDlg: () => void   // S128：真 Combine 对话框（活动体⊗泊车工具体，行返 bodyboolean B-rep）
   openBoundaryFillDlg: () => void // 两封闭实体的真实 B-rep cell 分割；范围明确小于 Fusion 完整 Boundary Fill
@@ -5040,7 +5040,7 @@ export function extrudePreviewCurrent(s: AppState): ExtrudeKernelPreview | null 
 }
 /** CORE16 dry-run：非 null 時 store 內部 set 唔寫、applyFeatures 只截獲特徵列表（永不 resolve）。 */
 let _featDlgDry: Feature[][] | null = null
-export const FEAT_DLG_DRY_PREVIEW_KINDS = new Set<string>(['cylinder', 'cone', 'box', 'sphere', 'torus', 'wedge', 'pattern', 'circpattern', 'move', 'scale', 'splitbody', 'combine', 'revolve', 'draft', 'offsetsolid', 'emboss'])
+export const FEAT_DLG_DRY_PREVIEW_KINDS = new Set<string>(['cylinder', 'cone', 'box', 'sphere', 'torus', 'wedge', 'pattern', 'circpattern', 'move', 'scale', 'splitbody', 'combine', 'revolve', 'draft', 'offsetsolid', 'emboss', 'pushpull-edit', 'mirror'])
 let _roundPvSeq = 0   // stale-guard：只收最新一发预览结果
 
 function expandFeats(feats: Feature[]): Feature[] {
@@ -16964,6 +16964,10 @@ export const useApp = create<AppState>((rawSet, get) => {
         kind = 'cone'
         params = { d: 2 * f.a, dt: 2 * (f.b || 0), h: f.c, op: f.op || 'new', px: f.at?.[0] ?? 0, py: f.at?.[1] ?? 0, pz: f.at?.[2] ?? 0 }
         break
+      case 'pushpull':
+        kind = 'pushpull-edit'
+        params = { dist: f.dist, faces: (f.nears?.length ?? 1) }
+        break
       case 'bodyboolean':
         kind = 'combine'
         params = { op: f.bop, keepTools: f.keep ? 1 : 0 }
@@ -18881,6 +18885,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (!ap) { set({ status: '浮雕：請先點選要放置文字的面' }); return }
       const f: Feature = { id: fid(), type: 'text', text, size, height: depth, op: engrave ? 'cut' : 'new', arbPlane: ap }
       await get().applyFeatures([...get().features, f], `浮雕「${text}」${engrave ? '刻入' : '凸起'} ${depth}mm（字高 ${size}）`)
+      return
+    }
+    // CORE16：按拉時間軸編輯 — 只改距離（面選擇沿用原值），editFeature 原位重建
+    if (d.kind === 'pushpull-edit' && d.editId) {
+      const dist = Number(p.dist)
+      if (!(Number.isFinite(dist) && dist !== 0)) { set({ status: illegalRejectStatus('按拉距離不可為 0（正數＝拉出、負數＝壓入）') }); return }
+      set({ featDlg: null })
+      await get().editFeature(d.editId, { dist })
       return
     }
     if (d.editId && (d.kind === 'extrude-edit' || d.kind === 'fillet-edit' || d.kind === 'chamfer-edit' || d.kind === 'shell-edit')) {

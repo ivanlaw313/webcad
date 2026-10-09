@@ -80,6 +80,7 @@ export function featDlgBlockingReason(d: FeatDlgLike | null): string | null {
 export function featDlgSemanticReason(d: FeatDlgLike): string | null {
   const p = d.params
   const num = (k: string) => Number(p[k])
+  if (d.kind === 'pushpull-edit' && p.dist !== undefined && Number.isFinite(num('dist')) && num('dist') === 0) return '按拉距離不可為 0（正數＝拉出、負數＝壓入）'
   if (d.kind === 'revolve') {
     const a = num('angle')
     if (!(a > 0 && a <= 360)) return '旋轉角度必須大於 0° 且不超過 360°'

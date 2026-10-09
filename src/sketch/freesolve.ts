@@ -896,6 +896,20 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
       if (!cons.some(c=>c.kind==='con'&&c.type==='v'&&c.a.kind==='edge'&&c.a.shape===i&&c.a.idx===3)) prims.push({ id: `ar${i}v3`, type: 'vertical_l', l_id: lid(i, 3) } as Constraint)
     }
   })
+  // SKETCH12 #4：端點重合關係（pid 對）— 用嚟判斷「直線同弧喺端點相接」，改用非退化嘅端點相切。
+  const coinPairs = new Set<string>()
+  for (const k of cons) if (k.kind === 'con' && k.type === 'coincident' && k.b && refValid(shapes, k.a) && refValid(shapes, k.b)) { const x = refPtId(shapes, k.a), y = refPtId(shapes, k.b); if (x && y) { coinPairs.add(x + '|' + y); coinPairs.add(y + '|' + x) } }
+  const lineEndIds = (sh: FShape[], r: SkRef): [string, string] | null => {
+    if (r.kind !== 'edge') return null
+    const o = sh[r.shape]; if (!o || isArcPoly(o) || o.type === 'circle') return null
+    const n = o.type === 'rect' ? 4 : ((o as { verts?: FPt[]; pts: FPt[] }).verts ?? (o as { pts: FPt[] }).pts).length
+    return [pid(r.shape, r.idx), pid(r.shape, (r.idx + 1) % n)]
+  }
+  const sharedCoincidentEnd = (lineEnds: [string, string] | null, arcEnds: string[]): string | null => {
+    if (!lineEnds) return null
+    for (const a of arcEnds) for (const l of lineEnds) if (coinPairs.has(l + '|' + a)) return a
+    return null
+  }
   for (const c of cons) {
     if (!refValid(shapes, c.a) || (c.b && !refValid(shapes, c.b))) continue
     if (c.kind === 'con' && c.c && !refValid(shapes, c.c)) continue
@@ -1016,12 +1030,26 @@ function buildPrims(shapes: FShape[], cons: SkCon[]): (SketchPrimitive | Constra
                 done = true
               }
             }
+            // SKETCH12 #4：唔同形狀但端點有「重合」約束（相切弧由直線端點引出）→ 同樣用端點相切（線 ⟂ 圓心→共用端點），
+            //   唔用喺共用點退化嘅 tangent_la（DOF 唔跌、可能拖歪有尺寸嘅直線）。
+            if (!done && other?.kind === 'edge' && segRef.kind === 'edge' && other.shape !== segRef.shape && Math.abs(((shapes[other.shape] as {bulges?:number[]}).bulges?.[other.idx]) || 0) < 1e-12) {
+              const sv = shapes[segRef.shape] as FShape & { verts: FPt[] }, n = sv.verts.length
+              const pp = sharedCoincidentEnd(lineEndIds(shapes, other), [pid(segRef.shape, segRef.idx), pid(segRef.shape, (segRef.idx + 1) % n)])
+              if (pp) { const [o0, o1] = lineEndIds(shapes, other)!; prims.push({ id: c.id, type: 'perpendicular_pppp', l1p1_id: o0, l1p2_id: o1, l2p1_id: paid(segRef.shape, segRef.idx), l2p2_id: pp } as Constraint); done = true }
+            }
             const oLn = !done && other ? refLineId(other) : null
             if (oLn) prims.push({ id: c.id, type: 'tangent_la', l_id: oLn, a_id: seg } as Constraint)
           }
           break
         }
         const arcA = A.kind === 'circle' && isArcPoly(shapes[A.shape]), arcB = B?.kind === 'circle' && isArcPoly(shapes[B.shape])
+        // SKETCH12 #4：直線 ↔ 三點弧，端點已「重合」→ 端點相切（線 ⟂ 圓心→共用端點），唔用喺共用點退化嘅 tangent_la。
+        {
+          const lnRef = arcB ? A : arcA ? B : null, arcRef = arcB ? B : arcA ? A : null
+          const ends = lnRef ? lineEndIds(shapes, lnRef) : null
+          const pp = ends && arcRef && 'shape' in arcRef ? sharedCoincidentEnd(ends, [pid(arcRef.shape, 0), pid(arcRef.shape, 1)]) : null
+          if (pp && ends && arcRef && 'shape' in arcRef) { prims.push({ id: c.id, type: 'perpendicular_pppp', l1p1_id: ends[0], l1p2_id: ends[1], l2p1_id: pid(arcRef.shape, 2), l2p2_id: pp } as Constraint); break }
+        }
         if (aLn && B?.kind === 'circle') {
           if (!arcB) seedLineCircleTangent(prims, shapes, A, B.shape)
           prims.push(arcB ? ({ id: c.id, type: 'tangent_la', l_id: aLn, a_id: cid(B.shape) } as Constraint) : ({ id: c.id, type: 'tangent_lc', l_id: aLn, c_id: cid(B.shape) } as Constraint))

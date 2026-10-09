@@ -46,3 +46,72 @@ export function endTangent(pts: Pt[], bulges: number[]): Pt | null {   // GM-FP1
   const dir = bu > 0 ? -1 : 1
   return [(-vy / L) * dir, (vx / L) * dir]
 }
+
+// SKETCH12 #4：相切弧（或 A 鍵弧段）由【另一個形狀】嘅端點引出 → 同嗰條直線／弧加相切約束（之前只得重合，
+// 拖動後會折角）。只對幾何上已 G1（<0.5°）嘅接口加；已有相同相切唔重複。純函數（id 由呼叫者注入）。
+type AnyShape = { type: string; pts?: Pt[]; verts?: Pt[]; bulges?: number[]; open?: boolean; arc?: { a: Pt; b: Pt; m: Pt }; construction?: boolean; smooth?: boolean; ell?: unknown; earc?: unknown }
+type Ref = { kind: 'edge'; shape: number; idx: number } | { kind: 'circle'; shape: number }
+const unit = (x: number, y: number): Pt | null => { const L = Math.hypot(x, y); return L > 1e-12 ? [x / L, y / L] : null }
+function circ3(a: Pt, b: Pt, c: Pt): Pt | null {
+  const d = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]))
+  if (Math.abs(d) < 1e-12) return null
+  const a2 = a[0] ** 2 + a[1] ** 2, b2 = b[0] ** 2 + b[1] ** 2, c2 = c[0] ** 2 + c[1] ** 2
+  return [(a2 * (b[1] - c[1]) + b2 * (c[1] - a[1]) + c2 * (a[1] - b[1])) / d, (a2 * (c[0] - b[0]) + b2 * (a[0] - c[0]) + c2 * (b[0] - a[0])) / d]
+}
+/** Every curve end of shape i that touches point p, with the travel direction ARRIVING at p (continuing out of the curve). */
+function endsAt(sh: AnyShape, i: number, p: Pt, tol: number): { ref: Ref; dir: Pt }[] {
+  const out: { ref: Ref; dir: Pt }[] = []
+  const at = (q: Pt) => Math.hypot(q[0] - p[0], q[1] - p[1]) <= tol
+  if (sh.type !== 'poly' || sh.smooth || sh.ell || sh.earc) return out
+  if (sh.arc) {
+    const { a, b, m } = sh.arc, c = circ3(a, m, b)
+    if (!c) return out
+    const tan = (q: Pt, toward: Pt, sign: 1 | -1) => { let t = unit(-(q[1] - c[1]), q[0] - c[0]); if (!t) return null; if ((t[0] * (toward[0] - q[0]) + t[1] * (toward[1] - q[1])) * sign < 0) t = [-t[0], -t[1]]; return t }
+    if (at(b)) { const t = tan(b, m, -1); if (t) out.push({ ref: { kind: 'circle', shape: i }, dir: t }) }          // arriving at b: away from m
+    if (at(a)) { const t = tan(a, m, -1); if (t) out.push({ ref: { kind: 'circle', shape: i }, dir: t }) }          // arriving at a (reverse travel): away from m
+    return out
+  }
+  const V = sh.verts ?? sh.pts ?? [], B = sh.bulges ?? [], n = V.length
+  if (n < 2) return out
+  const segN = sh.open ? n - 1 : n
+  for (let j = 0; j < segN; j++) {
+    const a = V[j], b = V[(j + 1) % n], bu = B[j] ?? 0
+    const dirAt = (atEnd: boolean): Pt | null => {
+      if (Math.abs(bu) < 1e-12) return unit(b[0] - a[0], b[1] - a[1])
+      const c = bulgeCenter(a, b, bu), q = atEnd ? b : a, d = bu > 0 ? -1 : 1
+      return unit(-(q[1] - c[1]) * d, (q[0] - c[0]) * d)
+    }
+    if (at(b)) { const t = dirAt(true); if (t) out.push({ ref: { kind: 'edge', shape: i, idx: j }, dir: t }) }
+    if (at(a)) { const t = dirAt(false); if (t) out.push({ ref: { kind: 'edge', shape: i, idx: j }, dir: [-t[0], -t[1]] }) }
+  }
+  return out
+}
+export function crossShapeTangentCons(shapes: readonly AnyShape[], newIdx: number, existing: readonly SkCon[], mkId: () => string, tol = 1e-6): SkCon[] {
+  const sh = shapes[newIdx]
+  if (!sh || sh.type !== 'poly' || !sh.verts || !sh.bulges || sh.verts.length < 2) return []
+  const V = sh.verts, B = sh.bulges, n = V.length
+  const out: SkCon[] = []
+  const same = (x: Ref, y: { kind: string; shape?: number; idx?: number } | undefined) => !!y && x.kind === y.kind && x.shape === y.shape && (x.kind !== 'edge' || x.idx === y.idx)
+  const has = (x: Ref, y: Ref) => existing.some((c) => c.kind === 'con' && c.type === 'tangent' && ((same(x, c.a) && same(y, c.b)) || (same(y, c.a) && same(x, c.b))))
+  const segStartDir = (j: number, atEnd: boolean): Pt | null => {
+    const a = V[j], b = V[(j + 1) % n], bu = B[j] ?? 0
+    if (Math.abs(bu) < 1e-12) return unit(b[0] - a[0], b[1] - a[1])
+    const c = bulgeCenter(a, b, bu), q = atEnd ? b : a, d = bu > 0 ? -1 : 1
+    return unit(-(q[1] - c[1]) * d, (q[0] - c[0]) * d)
+  }
+  const tryEnd = (vi: number, seg: number, leaving: Pt | null) => {
+    if (!leaving || Math.abs(B[seg] ?? 0) < 1e-12) return   // only arc segments of the new path
+    const mine: Ref = { kind: 'edge', shape: newIdx, idx: seg }
+    shapes.forEach((o, i) => {
+      if (i === newIdx || o.construction) return
+      for (const e of endsAt(o, i, V[vi], tol)) {
+        if (e.dir[0] * leaving[0] + e.dir[1] * leaving[1] < Math.cos((0.5 * Math.PI) / 180)) continue
+        if (has(e.ref, mine) || out.some((c) => c.kind === 'con' && same(e.ref, c.a) && same(mine, c.b))) continue
+        out.push({ id: mkId(), kind: 'con', type: 'tangent', a: e.ref, b: mine } as SkCon)
+      }
+    })
+  }
+  tryEnd(0, 0, segStartDir(0, false))
+  if (sh.open && n >= 2) { const t = segStartDir(n - 2, true); tryEnd(n - 1, n - 2, t ? [-t[0], -t[1]] : null) }
+  return out
+}

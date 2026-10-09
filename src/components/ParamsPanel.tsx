@@ -30,7 +30,8 @@ function ParameterValue({name,value,disabled,busy,tz,onCommit}:{name:string;valu
  const editing=useRef(false)
  useEffect(()=>{if(!editing.current)setDraft(fmt(value))},[value])
  const commit=()=>{editing.current=false;if(busy){setDraft(fmt(value));return}const n=Number(draft);if(draft.trim()&&Number.isFinite(n)&&n!==value)onCommit(n);else setDraft(fmt(value))}
- return <input className="pp-val" type="number" aria-label={tz(`參數 ${name} 數值`)} data-param-field="value" disabled={disabled} readOnly={busy} value={draft} onFocus={()=>{editing.current=true}} onChange={e=>setDraft(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.blur()}if(e.key==='Escape'){e.stopPropagation();setDraft(fmt(value))}}}/>
+ // UX1 #1：type="text"+inputMode（唔用 number：Chrome 數字框中途值「1.」「-」會報空、滾輪會改值）；草稿只喺 Enter／失焦先 commit 一次。
+ return <input className="pp-val" type="text" inputMode="decimal" autoComplete="off" spellCheck={false} aria-label={tz(`參數 ${name} 數值`)} data-param-field="value" disabled={disabled} readOnly={busy} value={draft} onFocus={()=>{editing.current=true}} onChange={e=>setDraft(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.blur()}if(e.key==='Escape'){e.stopPropagation();setDraft(fmt(value))}}}/>
 }
 
 // RETEST19 #2：名稱欄用本地草稿 —— 打字只改草稿，Enter／失焦先 renameParam（一次），Esc 還原。
@@ -123,7 +124,7 @@ export default function ParamsPanel() {
   const deleteConfig = useApp((s) => s.deleteConfig)
   const [cfgName, setCfgName] = useState('')
   const [name, setName] = useState('')
-  const [val, setVal] = useState(50)
+  const [val, setVal] = useState('50')   // UX1 #1：新參數數值都係字串草稿（唔再每鍵 Number() 重寫）
   const [dtParam, setDtParam] = useState('')
   const [dtVals, setDtVals] = useState('')
   const [collapsed, setCollapsed] = useState(false)
@@ -136,7 +137,7 @@ export default function ParamsPanel() {
     if (el) { el.focus(); el.select() }
     setFocusName(null)
   }, [focusName, params])
-  const add = () => { const auto = !name.trim(); const nm = auto ? `d${params.length + 1}` : ''; addParam(name, val); if (!auto && !useApp.getState().params.some((p) => p.name === name.trim())) return; setName(''); if (auto) setFocusName(nm) }
+  const add = () => { const v = Number(val); if (!val.trim() || !Number.isFinite(v)) { useApp.setState({ status: tz('參數數值要係數字') }); return } const auto = !name.trim(); const nm = auto ? `d${params.length + 1}` : ''; addParam(name, v); if (!auto && !useApp.getState().params.some((p) => p.name === name.trim())) return; setName(''); if (auto) setFocusName(nm) }
   if (!open) return null
   if (collapsed) return <button ref={panelDrag.ref} className={'params-pill' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} type="button" style={panelDrag.style} onPointerDown={panelDrag.onPointerDown} title={tz('展開用戶參數面板')} onClick={() => { if (panelDrag.consumeClick()) return; setCollapsed(false) }}>ƒx {tz('參數')} ▸</button>
   const usedBy = parameterUsage(params, sources, bindings, features, mode === 'sketch' ? live : [])
@@ -157,7 +158,7 @@ export default function ParamsPanel() {
       ))}
       <div className="pp-add">
         <input className="pp-name-in" aria-label={tz('參數名稱')} placeholder={tz('名稱 d1')} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); add() } }} />
-        <input className="pp-val" aria-label={tz('參數數值')} type="number" value={val} onChange={(e) => setVal(Number(e.target.value))} />
+        <input className="pp-val" aria-label={tz('參數數值')} type="text" inputMode="decimal" autoComplete="off" value={val} onChange={(e) => setVal(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); add() } }} />
         <button className="cs-btn" onClick={add}>{tz('+ 添加')}</button>
       </div>
       <details><summary>{tz('進階：配置、設計表及導出')}</summary>

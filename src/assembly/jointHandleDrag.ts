@@ -67,31 +67,58 @@ export function segDist2D(px: number, py: number, ax: number, ay: number, bx: nu
   return Math.hypot(px - (ax + dx * t), py - (ay + dy * t))
 }
 
+/** 白色角度指針（JointGizmo rot-ptr：錨點 → 白珠，角度先 clamp 落限位，多圈螺旋半徑跟住變）。 */
+export function jointPointerSegment(j: JointLike): [Vector3, Vector3] {
+  const { a, u, v } = jointBasis(j)
+  const isScrew = j.type === 'screw'
+  const loD = j.aMin ?? (isScrew ? -1080 : -180), hiD = j.aMax ?? (isScrew ? 1080 : 180)
+  const lo = loD * DEG, hi = hiD * DEG, span = Math.abs(hi - lo), multi = span > 2 * Math.PI + 1e-6
+  const tc = Math.min(j.aMax ?? Infinity, Math.max(j.aMin ?? -Infinity, j.angle ?? 0)) * DEG
+  const f = Math.max(0, Math.min(1, (tc - lo) / ((hi - lo) || 1)))
+  const r = multi ? 12 + (JOINT_RING_R - 12) * f : JOINT_RING_R
+  return [a.clone(), a.clone().addScaledVector(u, r * Math.cos(tc)).addScaledVector(v, r * Math.sin(tc))]
+}
+
 export type Project = (p: Vector3) => [number, number] | null
-/** 螢幕命中：環（旋轉類）或滑動軸＋兩端箭頭（滑動類）喺 tolPx 內。兩樣都中 → 揀近啲嗰樣。 */
-export function jointHandleHit(j: JointLike, project: Project, x: number, y: number, tolPx = 8): 'rotate' | 'slide' | null {
-  let best: { k: 'rotate' | 'slide'; d: number } | null = null
-  const poly = (pts: Vector3[], k: 'rotate' | 'slide', tol: number) => {
+export type JointHit = { kind: 'rotate' | 'slide'; part: 'ring' | 'pointer' | 'anchor' | 'axis'; d: number }
+/**
+ * 螢幕命中（RETEST21 #1 加闊）：旋轉類 = 橙環（tolPx）＋白色指針線／白珠（tolPx+2）＋錨點橙球（tolPx+4，用戶好自然撳正中個波）；
+ * 滑動類 = 滑動軸＋兩端箭頭（tolPx+2）。多樣中 → 揀近啲嗰樣（同距離時環 > 軸）。
+ */
+export function jointHandleHitInfo(j: JointLike, project: Project, x: number, y: number, tolPx = 10): JointHit | null {
+  let best: JointHit | null = null
+  const consider = (kind: JointHit['kind'], part: JointHit['part'], d: number, tol: number) => { if (d <= tol && (!best || d < best.d)) best = { kind, part, d } }
+  const poly = (pts: Vector3[], kind: JointHit['kind'], part: JointHit['part'], tol: number) => {
     let prev: [number, number] | null = null
     for (const p of pts) {
       const s = project(p)
-      if (s && prev) { const d = segDist2D(x, y, prev[0], prev[1], s[0], s[1]); if (d <= tol && (!best || d < best.d)) best = { k, d } }
+      if (s && prev) consider(kind, part, segDist2D(x, y, prev[0], prev[1], s[0], s[1]), tol)
       prev = s
     }
   }
-  if (ROT.has(j.type)) poly(jointRingPoints(j), 'rotate', tolPx)
-  if (SLD.has(j.type)) { const [p0, p1] = jointSlideSegment(j); poly([p0, p1], 'slide', tolPx + 2) }   // 箭頭錐 ≈ 端點，加 2px
-  return best ? (best as { k: 'rotate' | 'slide' }).k : null
+  if (ROT.has(j.type)) {
+    poly(jointRingPoints(j), 'rotate', 'ring', tolPx)
+    const [p0, p1] = jointPointerSegment(j)
+    const sa = project(p0); if (sa) consider('rotate', 'anchor', Math.hypot(x - sa[0], y - sa[1]), tolPx + 4)
+    poly([p0, p1], 'rotate', 'pointer', tolPx + 2)
+  }
+  if (SLD.has(j.type)) { const [p0, p1] = jointSlideSegment(j); poly([p0, p1], 'slide', 'axis', tolPx + 2) }   // 箭頭錐 ≈ 端點，加 2px
+  return best
+}
+export function jointHandleHit(j: JointLike, project: Project, x: number, y: number, tolPx = 10): 'rotate' | 'slide' | null {
+  return jointHandleHitInfo(j, project, x, y, tolPx)?.kind ?? null
 }
 
 /** 射線交關節平面嘅極角（rad，u/v 基）；射線差唔多平行平面 → null。 */
-export function rayPolarAngle(j: JointLike, ray: Ray): number | null {
+export function rayPolarAngle(j: JointLike, ray: Ray, minR = 0): number | null {
   const { a, ax, u, v } = jointBasis(j)
   const den = ray.direction.dot(ax)
   if (Math.abs(den) < 1e-4) return null
   const t = a.clone().sub(ray.origin).dot(ax) / den
   const p = ray.origin.clone().addScaledVector(ray.direction, t).sub(a)
-  return Math.atan2(p.dot(v), p.dot(u))
+  const pu = p.dot(u), pv = p.dot(v)
+  if (Math.hypot(pu, pv) < minR) return null   // 錨點正中：角度未定義 → 等滑鼠拉開先定基準
+  return Math.atan2(pv, pu)
 }
 
 /** 射線同滑動軸最近點喺軸上嘅參數（mm）；平行 → null。 */
@@ -108,12 +135,19 @@ export type JointDragSession = { kind: 'rotate' | 'slide'; move: (ray: Ray) => v
 /** 開一個拖動 session：apply(patch) 寫關節值；角度逐幀 unwrap 累加（可轉多圈）。 */
 export function startJointHandleDrag(j: JointLike, kind: 'rotate' | 'slide', ray0: Ray, apply: (patch: { angle?: number; slide?: number }) => void, end: () => void): JointDragSession | null {
   if (kind === 'rotate') {
-    let last = rayPolarAngle(j, ray0)
-    if (last == null) return null
+    // RETEST21 #1：撳錨點／指針近中心 → 起點角度未定（或視線貼住關節平面）都照開 session（食咗 pointerdown，鏡頭唔轉），
+    // 第一個有效角度做基準，之後跟住轉。
+    const MINR = JOINT_RING_R * 0.08
+    let last = rayPolarAngle(j, ray0, MINR)
     let ang = j.angle ?? 0
     return {
       kind,
-      move: (ray) => { const now = rayPolarAngle(j, ray); if (now == null || last == null) return; ang += wrapPi(now - last) / DEG; last = now; apply({ angle: Math.round(ang * 1000) / 1000 }) },
+      move: (ray) => {
+        const now = rayPolarAngle(j, ray, MINR)
+        if (now == null) return
+        if (last == null) { last = now; return }
+        ang += wrapPi(now - last) / DEG; last = now; apply({ angle: Math.round(ang * 1000) / 1000 })
+      },
       end,
     }
   }
@@ -129,18 +163,19 @@ export function startJointHandleDrag(j: JointLike, kind: 'rotate' | 'slide', ray
 
 // ── registry：JointGizmo（Canvas 內，有相機）註冊；Viewport 外層 capture 問 ──
 type Ctl = { enabled: boolean } | null | undefined
-type Claimer = (clientX: number, clientY: number) => { move: (x: number, y: number) => void; end: () => void; controls?: Ctl } | null
+type Claimer = (clientX: number, clientY: number, target?: EventTarget | null) => { move: (x: number, y: number) => void; end: () => void; controls?: Ctl } | null
 const _claimers = new Map<string, Claimer>()
 export function registerJointHandleClaimer(key: string, c: Claimer | null): void { if (c) _claimers.set(key, c); else _claimers.delete(key) }
 
 /**
- * Viewport onPointerDownCapture：撳中關節把手 → 回傳 true（呼叫者要 stopPropagation，Orbit/R3F 收唔到），
+ * Viewport 嘅 window capture pointerdown（RETEST21 #1：由 React 根 capture 提早到 window capture —— 任何其他監聽
+ * 包括掛喺祖先／document 嘅 Orbit／R3F／gumball 都喺佢之後）：撳中關節把手 → 回傳 true（呼叫者要 stopPropagation，Orbit/R3F 收唔到），
  * 停 Orbit、window capture 聽 move/up 驅動，放手還原。
  */
-export function claimJointHandle(clientX: number, clientY: number, win: Pick<Window, 'addEventListener' | 'removeEventListener'> | null = typeof window !== 'undefined' ? window : null): boolean {
+export function claimJointHandle(clientX: number, clientY: number, win: Pick<Window, 'addEventListener' | 'removeEventListener'> | null = typeof window !== 'undefined' ? window : null, target: EventTarget | null = null): boolean {
   for (const c of _claimers.values()) {
     let s: ReturnType<Claimer> = null
-    try { s = c(clientX, clientY) } catch { s = null }
+    try { s = c(clientX, clientY, target) } catch { s = null }
     if (!s) continue
     const ctl = s.controls; const was = ctl?.enabled
     if (ctl) ctl.enabled = false

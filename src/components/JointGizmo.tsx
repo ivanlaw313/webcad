@@ -3,8 +3,8 @@ import { Line } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { Vector3, Quaternion, Raycaster, Vector2 } from 'three'
 import { type Joint, type JointOrigin, resolveJointOrigin } from '../assembly/kinematics'
-import { jointHandleHit, registerJointHandleClaimer, startJointHandleDrag } from '../assembly/jointHandleDrag'
-import { useApp } from '../store'
+import { jointHandleHitInfo, registerJointHandleClaimer, startJointHandleDrag } from '../assembly/jointHandleDrag'
+import { useApp, dbgLog } from '../store'
 
 // GM-3DV4 A1：可复用 Joint Origin 在场景中的标记 — 十字准星球（Fusion「Joint Origins」帧）+ 沿轴短箭。
 export function JointOriginView({ jo }: { jo: JointOrigin }) {
@@ -65,20 +65,26 @@ function useJointHandleDrag(j: Joint) {
       rc.setFromCamera(ndc, st.camera)
       return rc.ray.clone()
     }
-    registerJointHandleClaimer('joint:' + j.id, (x, y) => {
+    registerJointHandleClaimer('joint:' + j.id, (x, y, target) => {
       const app = useApp.getState()
-      if (app.mode !== 'model' || app.busy || app.jointPickMode || app.faceMateMode || app.jointOriginPickMode || !app.objectVis.joints) return null
+      const st = get()
+      if (target && target !== st.gl.domElement) return null   // 多視窗副 canvas／HTML 覆蓋層唔關事
+      // RETEST21 #1：診斷錄制開住時記低點解冇接（真 Chrome 同 headless 唔同時有得查）
+      const why = app.mode !== 'model' ? 'mode=' + app.mode : app.busy ? 'busy' : app.jointPickMode ? 'jointPick' : app.faceMateMode ? 'faceMate' : app.jointOriginPickMode ? 'jointOriginPick' : !app.objectVis.joints ? 'joints hidden' : ''
+      if (why) { if (app.debugMode) dbgLog(`關節把手 ${j.id}：唔接（${why}）`); return null }
       const cur = app.joints.find((q) => q.id === j.id)
       if (!cur) return null
-      const st = get(), r = st.gl.domElement.getBoundingClientRect()
+      const r = st.gl.domElement.getBoundingClientRect()
       if (x < r.left || x > r.right || y < r.top || y > r.bottom) return null
       const project = (p: Vector3): [number, number] | null => {
         const q = p.clone().project(st.camera)
         if (q.z > 1 || q.z < -1) return null
         return [r.left + (q.x + 1) / 2 * r.width, r.top + (1 - q.y) / 2 * r.height]
       }
-      const kind = jointHandleHit(cur, project, x, y)
-      if (!kind) return null
+      const hit = jointHandleHitInfo(cur, project, x, y)
+      if (app.debugMode) { const near = jointHandleHitInfo(cur, project, x, y, 80); dbgLog(`關節把手 ${j.id}：${hit ? '接 ' + hit.part : '未中'}（最近 ${near ? near.part + ' ' + near.d.toFixed(1) + 'px' : '>80px'}，dpr ${window.devicePixelRatio}）`) }
+      if (!hit) return null
+      const kind = hit.kind
       let drove = false
       const sess = startJointHandleDrag(cur, kind, rayAt(x, y), (patch) => {
         if (!drove) { useApp.getState().beginJointDrive(); drove = true }

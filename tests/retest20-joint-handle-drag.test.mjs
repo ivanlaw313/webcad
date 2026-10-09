@@ -25,7 +25,9 @@ const ringPt = (j, deg) => { const { a, u, v } = H.jointBasis(j); return a.clone
 
 test('visible orange ring / cyan slide axis are hit on screen; empty space / part centre are not', () => {
   for (const d of [-150, -60, 0, 45, 120]) { const [x, y] = project(ringPt(rev, d)); assert.equal(H.jointHandleHit(rev, project, x + 3, y - 2), 'rotate', `ring @${d}°`) }
-  assert.equal(H.jointHandleHit(rev, project, ...project(new Vector3(0, 0, 0))), null, 'ring centre is not a handle')
+  // RETEST21 #1：錨點橙球同白色指針都係旋轉把手（用戶自然會撳）；環入面其他空位唔係
+  assert.equal(H.jointHandleHit(rev, project, ...project(new Vector3(0, 0, 0))), 'rotate', 'anchor ball is a rotate handle (RETEST21)')
+  assert.equal(H.jointHandleHit(rev, project, ...project(ringPt(rev, 135).multiplyScalar(0.5))), null, 'empty fan interior is not a handle')
   assert.equal(H.jointHandleHit(rev, project, 5, 5), null)
   for (const t of [-50, -20, 25, 55]) { const [x, y] = project(new Vector3(t, 0, 0)); assert.equal(H.jointHandleHit(sld, project, x, y + 4), 'slide', `axis @${t}`) }
   assert.equal(H.jointHandleHit(sld, project, ...project(new Vector3(90, 0, 0))), null, 'past the arrow end')
@@ -85,10 +87,10 @@ test('store: a ring drag gesture = joint angle changes, one undo step (same call
   assert.equal(g().undoStack.length, 1)
 })
 
-test('wiring: Viewport claims in pointerdown CAPTURE before the canvas (Orbit/R3F); JointGizmo registers the visible-glyph claimer', () => {
+test('wiring: Viewport claims in WINDOW pointerdown capture (before Orbit/R3F/gumball, RETEST21); JointGizmo registers the visible-glyph claimer', () => {
   const vp = readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
-  assert.match(vp, /claimJointHandle\(e\.clientX, e\.clientY\)\) \{ e\.stopPropagation\(\); e\.preventDefault\(\); return \}/)
-  const i = vp.indexOf('claimJointHandle(e.clientX'); assert.ok(vp.lastIndexOf('onPointerDownCapture', i) > 0)
+  assert.match(vp, /claimJointHandle\(e\.clientX, e\.clientY, window, e\.target\)\) \{ e\.stopPropagation\(\); e\.preventDefault\(\) \}/)
+  assert.match(vp, /window\.addEventListener\('pointerdown', onDown, true\)/)
   const jg = readFileSync(new URL('../src/components/JointGizmo.tsx', import.meta.url), 'utf8')
   assert.match(jg, /registerJointHandleClaimer\('joint:' \+ j\.id/)
   assert.match(jg, /useJointHandleDrag\(j\)/)

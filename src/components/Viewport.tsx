@@ -4303,6 +4303,8 @@ export default function Viewport() {
   const sweepScale = useApp((s) => s.sweepScale)
   const setSweepScale = useApp((s) => s.setSweepScale)
   const sweepSection = useApp((s) => s.sweepSection)
+  const sweepError = useApp((s) => s.sweepError)   // RETEST21 #2
+  useApp((s) => s.selSketch)   // RETEST21 #2：截面晶片跟瀏覽樹選中草圖更新
   const setSweepSection = useApp((s) => s.setSweepSection)
   const sweepOrient = useApp((s) => s.sweepOrient)          // GM-3DV1 S5
   const setSweepOrient = useApp((s) => s.setSweepOrient)
@@ -4343,6 +4345,18 @@ export default function Viewport() {
   const polyArcMode = useApp((s) => s.polyArcMode)   // GM-W6 B6：折线相切弧 submode 掣
   const rcDown = useRef<{ x: number; y: number } | null>(null)
   const viewportDropRef = useRef<HTMLDivElement>(null)
+  // RETEST21 #1：關節把手 claim 用 window capture（最早一層）— 唔靠 React 根 capture 同 OrbitControls／R3F／gumball 嘅監聽次序；
+  // 撳中 → stopPropagation + preventDefault，其他人（Orbit 轉鏡頭、R3F 點選、框選）完全收唔到。
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 0 || !(e.target instanceof HTMLCanvasElement)) return
+      const host = viewportDropRef.current as HTMLElement | null
+      if (!host || !host.contains(e.target)) return
+      if (claimJointHandle(e.clientX, e.clientY, window, e.target)) { e.stopPropagation(); e.preventDefault() }
+    }
+    window.addEventListener('pointerdown', onDown, true)
+    return () => window.removeEventListener('pointerdown', onDown, true)
+  }, [])
   const meshDropOverlayRef = useRef<HTMLDivElement>(null)
 
   // v1.43 BUG-BD-4101: document-level host + overlay above WebGL <canvas> while drag is armed.

@@ -69,9 +69,9 @@ export function pickItems<T extends { key: string }>(keys: (string | null | 'sep
 }
 
 /** Browser-tree row kinds that get an app context menu. */
-export type TreeNodeKind = 'activeBody' | 'parkedBody' | 'component' | 'componentBody' | 'sketch' | 'root'
+export type TreeNodeKind = 'activeBody' | 'parkedBody' | 'component' | 'componentBody' | 'sketch' | 'feature' | 'root'
 
-export type TreeMenuOpts = { hidden?: boolean; canRename?: boolean; canDelete?: boolean; canEdit?: boolean; anyHidden?: boolean }
+export type TreeMenuOpts = { hidden?: boolean; canRename?: boolean; canDelete?: boolean; canEdit?: boolean; anyHidden?: boolean; suppressed?: boolean }
 
 /** Item keys for a browser-tree row context menu (Fusion browser right-click). */
 export function treeMenuKeys(kind: TreeNodeKind, o: TreeMenuOpts = {}): string[] {
@@ -82,6 +82,8 @@ export function treeMenuKeys(kind: TreeNodeKind, o: TreeMenuOpts = {}): string[]
     case 'component': return [vis, 'isolate', ...(o.canEdit ? ['edit'] : []), ...(o.canRename ? ['rename'] : []), 'sep', 'focus', 'props', 'sep', ...(o.canDelete === false ? [] : ['delete'])]
     case 'componentBody': return [vis]
     case 'sketch': return ['editSketch', vis, ...(o.canRename ? ['rename'] : []), ...(o.canDelete ? ['sep', 'delete'] : [])]
+    // RETEST19 #7：瀏覽樹特徵行（同時間軸 chip 同一套處理：編輯／改名／抑制／刪除＋依賴警告）
+    case 'feature': return [...(o.canEdit ? ['editFeature'] : []), 'rename', o.suppressed ? 'unsuppress' : 'suppress', 'sep', 'delete']
     case 'root':
     default: return ['showAll', 'fit']
   }

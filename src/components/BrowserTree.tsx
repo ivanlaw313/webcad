@@ -22,6 +22,9 @@ function treeItemLabel(key: string, lang: string): string {
     case 'delete': return L2('刪除', 'Delete', lang)
     case 'createComp': return L2('建立組件', 'Create Component', lang)
     case 'editSketch': return L2('編輯草圖', 'Edit Sketch', lang)
+    case 'editFeature': return L2('編輯特徵', 'Edit Feature', lang)
+    case 'suppress': return L2('抑制', 'Suppress', lang)
+    case 'unsuppress': return L2('恢復', 'Unsuppress', lang)
     case 'edit': return L2('編輯組件', 'Edit Component', lang)
     case 'isolate': return L2('孤立顯示', 'Isolate', lang)
     case 'focus': return L2('聚焦', 'Focus', lang)
@@ -232,6 +235,21 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
       return () => clearTimeout(t)
     }
   }, [focusNonce, focusId, f.id])
+  // RETEST19 #7：右鍵特徵行 → 同時間軸 chip 一樣嘅處理（選中 + 編輯／改名／抑制／刪除；刪除行 requestRemoveFeature = 依賴警告＋連帶確認）。
+  const openMenu = useTreeMenu()
+  const isSup = useApp((s) => s.suppressedIds.includes(f.id))
+  const canEdit = FEAT_EDIT_DLG.has(f.type) || ((f.type === 'extrude' || f.type === 'revolve' || f.type === 'sweep' || f.type === 'sketch' || f.type === 'extgroup') && !!(f as { sketchId?: string }).sketchId) || (f.type === 'loft' && !!(f as { sketchIds?: string[] }).sketchIds?.length)
+  const onFeatMenu = (e: ReactMouseEvent) => {
+    if ((e.target as HTMLElement).closest?.('input,textarea,select')) { e.stopPropagation(); return }   // 改名框保留原生複製／貼上
+    selectFeature(f.id)
+    openMenu(e, 'feature', { canEdit, suppressed: isSup }, {
+      editFeature: openFeatureEdit,
+      rename: () => { setName(custom || ''); setEditing(true) },
+      suppress: () => void useApp.getState().toggleSuppress(f.id),
+      unsuppress: () => void useApp.getState().toggleSuppress(f.id),
+      delete: () => { if (skDelGuard()) return; void useApp.getState().requestRemoveFeature(f.id) },
+    })
+  }
   // T4：F2（App 全局鍵）→ 呢行變改名輸入框。
   useEffect(() => {
     const onRename = (e: Event) => { if ((e as CustomEvent<string>).detail === f.id) { setName(custom || ''); setEditing(true); rowRef.current?.scrollIntoView({ block: 'nearest' }) } }
@@ -239,7 +257,7 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
     return () => window.removeEventListener(FEATURE_RENAME_EVENT, onRename)
   }, [f.id, custom])
   return (
-    <div ref={rowRef} className={'tree-row' + (f.id === selected ? ' sel' : '') + (err ? ' err' : '')} style={{ paddingLeft: 18, ...(flash ? { background: '#fff3c4', transition: 'background .3s', boxShadow: 'inset 0 0 0 1px #e0a83a' } : {}) }}>
+    <div ref={rowRef} onContextMenu={onFeatMenu} className={'tree-row' + (f.id === selected ? ' sel' : '') + (err ? ' err' : '')} style={{ paddingLeft: 18, ...(flash ? { background: '#fff3c4', transition: 'background .3s', boxShadow: 'inset 0 0 0 1px #e0a83a' } : {}) }}>
       <span className="tw-toggle" />
       <span className="tw-ico"><ToolIcon name={meta.icon} size={13} /></span>
       {editing ? (

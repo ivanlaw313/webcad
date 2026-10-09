@@ -19,6 +19,6 @@ test('typed offset distance entered before picking wins over mouse distance', ()
   assert.match(st, /setSketchOffsetD: \(n\) => \{ if \(!get\(\)\.sizing\) _offsetTypedPre = true;/)
   assert.match(st, /\.\.\.\(preTyped \? \{ typed: true, typedValue: s\.sketchOffsetD \} : \{\}\)/)
   assert.match(st, /setSketchTool: \(t\) => \{ _offsetTypedPre = false;/)
-  // sticky typed value is what the move handler uses
-  assert.match(st, /const value = typedStick \? \(sz\.typedValue as number\) : sizingValueAt/)
+  // sticky typed value (its magnitude) is what the move handler uses; SKETCH12 #1: the side follows the cursor (Fusion)
+  assert.match(st, /const value = typedStick \? \(sz\.tool === 'offset' \? offsetTypedSided\(szShapes, sz, sz\.typedValue as number, raw\) : \(sz\.typedValue as number\)\) : sizingValueAt/)
 })

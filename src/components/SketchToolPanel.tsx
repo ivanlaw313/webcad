@@ -181,7 +181,7 @@ export function SketchToolPanel() {
       body = (<>
         <Row label={T('偏移距離')}><input className="tp-num" type="number" step={1} value={offsetD} onFocus={(e) => e.currentTarget.select()} onChange={(e) => g().setSketchOffsetD(Number(e.target.value))} style={{ width: 64 }} /><span style={{ fontSize: 11, color: '#8a97a2' }}>mm</span></Row>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="sb-tool" style={{ flex: 1 }} title={T('把偏移方向（外↔內）調轉')} onClick={() => g().setSketchOffsetD(-offsetD)}>{T('⇄ 反向')}</button>
+          <button className="sb-tool" style={{ flex: 1 }} title={T('把偏移方向（外↔內）調轉')} onClick={() => g().flipSketchOffset()}>{T('⇄ 反向')}</button>
           <button className={'sb-tool' + (offsetBoth ? ' active' : '')} style={{ flex: 1 }} title={T('兩側各加一條偏移線')} onClick={() => g().toggleSketchOffsetBoth()}>{T('⇆ 雙向')}</button>
         </div>
         <Hint>{T('點一個輪廓鎖定 → 拖滑鼠調距離（外+/內−，1mm 步進）→ 點確定。或喺度打數字精確。')}</Hint>

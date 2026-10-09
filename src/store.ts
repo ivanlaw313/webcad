@@ -1281,11 +1281,12 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   setSketchOffsetD: (n: number) => void
   sketchOffsetBoth: boolean
   toggleSketchOffsetBoth: () => void
+  flipSketchOffset: () => void   // SKETCH12 #1：⇄ 反向（調尺寸中 = 相對游標嗰面再調轉）
   skOffsetAt: (p: Pt) => Promise<void>   // T790：Fusion 式偏移 — 点一个轮廓，按 sketchOffsetD（可正负/双向）平行偏移，保留原件
   skCornerAt: (p: Pt) => void   // T790：Fusion 式单角倒圆角/倒角 — 点近一个直角顶点，按 sketchCornerR + 当前工具(cfillet/cchamfer) 倒嗰个角
   toolPreview: SketchShape[] | null  // T792：offset/倒角 悬停预览 ghost（绿虚线）— 点之前已睇到结果（正/反/双向）
   refreshToolPreview: () => void     // T792：设定（距离/反向/双向/半径）一改即重算预览（用 sketchPreview 作光标位）
-  sizing: { tool: 'offset' | 'cfillet' | 'cchamfer'; shapeIdx: number; vi: number; anchor: Pt; ref: SketchShape; raw?: Pt; typed?: boolean; typedValue?: number } | null  // T796：拖柄实时调尺寸 — 点锁定目标后，移动鼠标拖 距离/半径（1mm 步进），再点确定。ref=锁定形状身份（防中途删/改令 index 错位）；raw/typed=刚打过数字时维持嘅值
+  sizing: { tool: 'offset' | 'cfillet' | 'cchamfer'; shapeIdx: number; vi: number; anchor: Pt; ref: SketchShape; raw?: Pt; typed?: boolean; typedValue?: number; flip?: boolean } | null  // T796：拖柄实时调尺寸 — 点锁定目标后，移动鼠标拖 距离/半径（1mm 步进），再点确定。ref=锁定形状身份（防中途删/改令 index 错位）；raw/typed=刚打过数字时维持嘅值
   sizeTypeKey: (key: string) => void   // T796b：调尺寸时键盘输入（数字设 距离/半径，唔好误入起点坐标）
   offsetSketch: (d: number) => void
   mirrorSketch: (axis: 'x' | 'y') => void
@@ -4728,7 +4729,16 @@ function pointInsideShape(sh: SketchShape, p: Pt): boolean {
   for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const xi = pts[i][0], yi = pts[i][1], xj = pts[j][0], yj = pts[j][1]; if (((yi > p[1]) !== (yj > p[1])) && (p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi)) inside = !inside }
   return inside
 }
-type Sizing = { tool: 'offset' | 'cfillet' | 'cchamfer'; shapeIdx: number; vi: number; anchor: Pt; ref: SketchShape; raw?: Pt; typed?: boolean }
+type Sizing = { tool: 'offset' | 'cfillet' | 'cchamfer'; shapeIdx: number; vi: number; anchor: Pt; ref: SketchShape; raw?: Pt; typed?: boolean; typedValue?: number; flip?: boolean }
+// SKETCH12 #1（Fusion）：打咗偏移距離之後，方向仍然跟游標喺輪廓邊一面（內 = 內縮、外 = 外擴）；打入值當距離（大小），「⇄ 反向」= 相對游標嗰面再調轉。
+// 淨系封閉輪廓（圓／矩形／封閉折線）先有內外；開放線照用打入嘅正負號。
+function offsetClosed(sh: SketchShape): boolean { return sh.type === 'circle' || sh.type === 'rect' || (sh.type === 'poly' && !sh.open && !!sh.pts && sh.pts.length >= 3) }
+function offsetTypedSided(shapes: SketchShape[], sz: Sizing, typed: number, cursor: Pt | null | undefined): number {
+  const sh = lockedShape(shapes, sz)
+  if (!sh || !cursor || !offsetClosed(sh) || !Number.isFinite(typed) || typed === 0) return typed
+  const side = pointInsideShape(sh, cursor) ? -1 : 1
+  return Math.abs(typed) * side * (sz.flip ? -1 : 1)
+}
 // SIZING-1/4：用锁定形状嘅【身份】(ref) 解析，唔再信 shapeIdx —— 中途删/改轮廓令位置错位时，ref 唔喺数组即返 null（拖柄消失），唔会静静偏移咗第二个轮廓。
 function lockedShape(shapes: SketchShape[], sz: Sizing): SketchShape | null { return shapes.includes(sz.ref) ? sz.ref : null }
 // 由光标算出当前尺寸值（整数 1mm 步进）：offset = 到锁定轮廓嘅有符号距离（外+/内−）；倒角 = 到锁定角点嘅距离（≥1）。
@@ -5443,7 +5453,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }
   const emptyDimPreview=()=>({id:null,shapes:null,cons:null,patternData:null,pending:false,error:null})
   const dimPatchKey=(patch:DimPatch)=>JSON.stringify(Object.keys(patch).sort().map(key=>[key,typeof patch[key as keyof DimPatch],patch[key as keyof DimPatch]]))
-  type DimSession={before:AppState;revision:unknown[];id:string;request:number;wanted:DimPatch|null;key:string|null;candidate:DimCandidate|null}
+  type DimSession={before:AppState;revision:unknown[];id:string;request:number;wanted:DimPatch|null;key:string|null;candidate:DimCandidate|null;last?:DimPatch|null}
   let dimSession:DimSession|null=null,dimPreviewWork:Promise<void>|null=null,dimEditEpoch=0
   const dimSessionCurrent=(session:DimSession)=>dimSession===session&&patternRevision(get()).every((v,i)=>v===session.revision[i])
   // Returns true when the sketch changed under us (caller must abort arming).
@@ -5457,6 +5467,23 @@ export const useApp = create<AppState>((rawSet, get) => {
     return false
   }
   const cancelSkDimEdit=()=>{++dimEditEpoch;dimSession=null;set({skDimPreview:emptyDimPreview()})}
+  // SKETCH12 #3：尺寸啱放低時 resolveSk 會將頂點由量度值（39.99999…）求解到整數（40）→ 草圖 revision 變咗，
+  // 舊做法即刻取消編輯 session（編輯框顯示「草圖已改變」、打 12.5 Enter 冇反應）。而家用最新草圖重開 session（同一個尺寸仲喺度先得）。
+  const rebaseDimSession=(session:DimSession):DimSession|null=>{
+    if(dimSession!==session)return null
+    const before=get()
+    // 淨系「求解器微調」先可以重開：除咗草圖幾何之外 revision 全部係同一個物件（冇人改過約束／陣列／撤銷歷史…）、實體數同類型一樣、座標差 ≤ 0.01mm。
+    // 其他改動（撤銷、陣列 metadata、用戶改咗幾何）照舊作廢 —— 唔可以將舊候選套落新草圖。
+    const old=session.before,shapesOf=(x:AppState)=>[...x.sketchProfiles,...(x.sketchShape?[x.sketchShape]:[])]
+    const nums=(v:unknown,out:number[]=[]):number[]=>{if(typeof v==='number')out.push(v);else if(Array.isArray(v))v.forEach(x=>nums(x,out));else if(v&&typeof v==='object')Object.values(v).forEach(x=>nums(x,out));return out}
+    const skel=(v:unknown)=>JSON.stringify(v,(_k,x)=>typeof x==='number'?0:x)
+    const a0=shapesOf(old),a1=shapesOf(before),n0=nums(a0),n1=nums(a1)
+    const settled=patternRevisionKeys.every(k=>k==='sketchProfiles'||k==='sketchShape'||old[k]===before[k])&&
+      skel(a0)===skel(a1)&&n0.length===n1.length&&n0.every((v,i)=>Math.abs(v-n1[i])<=0.01)
+    if(!settled||before.mode!=='sketch'||before.skDrag||before.skMove||before.skScale||!before.skCons.some(c=>c.id===session.id&&c.kind==='dim')){cancelSkDimEdit();return null}
+    dimSession={before,revision:patternRevision(before),id:session.id,request:0,wanted:null,key:null,candidate:null,last:session.last??null}
+    return dimSession
+  }
   const beginSkDimEdit=(id:string)=>{
     cancelSkDimEdit()
     const before=get()
@@ -5472,7 +5499,11 @@ export const useApp = create<AppState>((rawSet, get) => {
         session.wanted=null
         if(!patch)continue
         const candidate=await prepareSkDimEdit(session.before,session.id,patch)
-        if(!dimSessionCurrent(session)){if(dimSession===session)cancelSkDimEdit();continue}
+        if(!dimSessionCurrent(session)){
+          const next=dimSession===session?rebaseDimSession(session):null
+          if(next&&!next.wanted){next.wanted=patch;next.key=dimPatchKey(patch);next.last=patch;++next.request;set({skDimPreview:{...emptyDimPreview(),id:next.id,pending:true}})}
+          continue
+        }
         if(request!==session.request)continue
         session.candidate=candidate
         const publicCandidate=candidate.ok?structuredClone(candidate):null
@@ -5483,12 +5514,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     return dimPreviewWork
   }
   const previewSkDimEdit=async(patch:DimPatch):Promise<void>=>{
-    const session=dimSession
+    let session=dimSession
     if(!session)return
-    if(!dimSessionCurrent(session)){cancelSkDimEdit();return}
+    if(!dimSessionCurrent(session)){session=rebaseDimSession(session);if(!session)return}
     const key=dimPatchKey(patch)
     if(session.key===key){if(dimPreviewWork)await dimPreviewWork;return}
-    session.key=key;session.wanted=structuredClone(patch);session.candidate=null;++session.request
+    session.key=key;session.wanted=structuredClone(patch);session.last=structuredClone(patch);session.candidate=null;++session.request
     set({skDimPreview:{...emptyDimPreview(),id:session.id,pending:true}})
     await drainDimPreview()
   }
@@ -5501,10 +5532,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     cancelSkDimEdit()
   }
   const confirmSkDimEdit=async()=>{
-    const session=dimSession
+    let session=dimSession
     if(!session)return
     if(dimPreviewWork)await dimPreviewWork
-    if(!dimSessionCurrent(session)){if(dimSession===session)cancelSkDimEdit();return}
+    if(dimSession!==session)return
+    if(!dimSessionCurrent(session)){
+      const last=session.last
+      session=rebaseDimSession(session)
+      if(!session||!last){if(session)cancelSkDimEdit();return}
+      await previewSkDimEdit(last)
+      session=dimSession
+      if(!session||!dimSessionCurrent(session)){if(session)cancelSkDimEdit();return}
+    }
     if(!session.candidate){cancelSkDimEdit();return}
     if(!session.candidate.ok){set({status:`尺寸已拒絕：${session.candidate.reason}`});return}
     applyDimCandidate(session.before,session.candidate,'已更新尺寸')
@@ -6361,7 +6400,17 @@ export const useApp = create<AppState>((rawSet, get) => {
   // clamped to 45% of each edge; near-straight/degenerate corners are skipped).
   chamferSketchCorners: (d) => cornersAll(set, get, false, d),
   sketchOffsetD: 5,
-  setSketchOffsetD: (n) => { if (!get().sizing) _offsetTypedPre = true; set((s) => ({ sketchOffsetD: n || 0, ...(s.sizing ? { sizing: { ...s.sizing, typed: true, typedValue: n || 0, raw: s.sketchPreview || s.sizing.raw } } : {}) })); get().refreshToolPreview() },   // T792：改距离即更新预览；T796-3：调尺寸中打数字→标记 typed，唔被鼠标轻微移动覆盖
+  setSketchOffsetD: (n) => { if (!get().sizing) _offsetTypedPre = true; set((s) => {
+    if (!s.sizing) return { sketchOffsetD: n || 0 }
+    const sz = { ...s.sizing, typed: true, typedValue: n || 0, raw: s.sketchPreview || s.sizing.raw }
+    const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[]
+    return { sketchOffsetD: sz.tool === 'offset' ? offsetTypedSided(shapes, sz, n || 0, s.sketchPreview || s.sizing.raw) : n || 0, sizing: sz }
+  }); get().refreshToolPreview() },
+  flipSketchOffset: () => {
+    const s = get()
+    if (s.sizing?.tool === 'offset') { set({ sizing: { ...s.sizing, flip: !s.sizing.flip }, sketchOffsetD: -s.sketchOffsetD }); get().refreshToolPreview(); return }
+    get().setSketchOffsetD(-s.sketchOffsetD)
+  },   // T792：改距离即更新预览；T796-3：调尺寸中打数字→标记 typed，唔被鼠标轻微移动覆盖
   sketchOffsetBoth: false,
   toggleSketchOffsetBoth: () => { set((s) => ({ sketchOffsetBoth: !s.sketchOffsetBoth })); get().refreshToolPreview() },
   toolPreview: null,
@@ -6448,7 +6497,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ sizing: null, toolPreview: null, status: `偏移失敗（距離 ${Math.abs(d)} 令輪廓自交/塌陷，試細啲）` }); return
     }
     const linkedShapes = src.sid ? shapes : shapes.map((sh) => sh === src ? { ...sh, sid } as SketchShape : sh)
-    const sideTxt = s.sketchOffsetBoth ? (outOk && inOk ? '（双向）' : outOk ? '（仅外侧，内侧塌陷）' : '（仅内侧，外侧塌陷）') : d > 0 ? '（外）' : '（内）'
+    const sideTxt = s.sketchOffsetBoth ? (outOk && inOk ? '（雙向）' : outOk ? '（只有外側，內側塌陷）' : '（只有內側，外側塌陷）') : d > 0 ? '（外）' : '（內）'
     set({
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
       sketchProfiles: [...linkedShapes, ...made], sketchShape: null, skSel: [], sizing: null, toolPreview: null,
@@ -6754,7 +6803,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!made.length) {
       return { status: `偏移失敗（距離 ${Math.abs(d)} 令輪廓自交/塌陷）` }
     }
-    const sideTxt = s.sketchOffsetBoth ? (outOk && inOk ? '（双向）' : outOk ? '（仅外侧，内侧塌陷）' : '（仅内侧，外侧塌陷）') : d > 0 ? '（外）' : '（内）'
+    const sideTxt = s.sketchOffsetBoth ? (outOk && inOk ? '（雙向）' : outOk ? '（只有外側，內側塌陷）' : '（只有內側，外側塌陷）') : d > 0 ? '（外）' : '（內）'
     return {
       sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [],
       sketchProfiles: [...s.sketchProfiles, sh.sid ? sh : { ...sh, sid } as SketchShape, ...made], sketchShape: null,
@@ -10860,7 +10909,7 @@ export const useApp = create<AppState>((rawSet, get) => {
        * 但數值一路用打嘅嗰個，直到用戶自己清空輸入／換目標／換工具。 */
       const typedStick = !!(sz.typed && Number.isFinite(sz.typedValue) && sz.typedValue !== 0)
       const clearTyped = {}
-      const value = typedStick ? (sz.typedValue as number) : sizingValueAt(szShapes, sz, raw)
+      const value = typedStick ? (sz.tool === 'offset' ? offsetTypedSided(szShapes, sz, sz.typedValue as number, raw) : (sz.typedValue as number)) : sizingValueAt(szShapes, sz, raw)
       if (sz.tool === 'offset') return { ...clearTyped, sketchPreview: raw, sketchSnap: null, snapSrc: null, sketchOffsetD: value, toolPreview: previewLockedSizing(szShapes, sz, value, s.sketchOffsetBoth, s.sketchCornerR), sketchDim: typedStick ? `偏移 ${value} mm（已鎖定打入值 — 清空輸入框先恢復跟手）` : `偏移 ${value} mm（拖 / 打數字 / 點確定）` }
       const tp = previewLockedSizing(szShapes, sz, s.sketchOffsetD, false, value)
       return { ...clearTyped, sketchPreview: raw, sketchSnap: null, snapSrc: null, sketchCornerR: value, toolPreview: tp, sketchDim: sizingCornerDim(szShapes, sz, value, !!tp) }

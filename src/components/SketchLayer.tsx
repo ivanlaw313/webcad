@@ -2786,11 +2786,11 @@ export function SketchDimLayer() {
   const previewDimension=async(e:DimEdit,text:string)=>{
     if(!e.conId)return false
     const request=++dimInputRequest.current,state=useApp.getState(),con=state.skCons.find(c=>c.id===e.conId&&c.kind==='dim')
-    if(!con||con.kind!=='dim'){setInputError('尺寸已改变，请重新打开');return false}
+    if(!con||con.kind!=='dim'){setInputError('尺寸已改變，請重新打開');return false}
     const result=parseDimensionEditInput({con,raw:text,unit:state.unit,radDia:e.radDia,params:state.params,cons:state.skCons,evaluate:evalExpr})
     if(!result.ok){state.cancelSkDimEdit();invalidDimDraft.current=true;setInputError(illegalRejectStatus(result.error));useApp.setState({status:illegalRejectStatus(result.error)});return false}
     if(invalidDimDraft.current){state.beginSkDimEdit(e.conId);invalidDimDraft.current=false}
-    if(useApp.getState().skDimPreview.id!==e.conId){setInputError('草图已改变，请重新打开尺寸');return false}
+    if(useApp.getState().skDimPreview.id!==e.conId){state.beginSkDimEdit(e.conId);if(useApp.getState().skDimPreview.id!==e.conId){setInputError('草圖已改變，請重新打開尺寸');return false}}
     setInputError(null)
     await useApp.getState().previewSkDimEdit(result.patch)
     return request===dimInputRequest.current&&useApp.getState().skDimPreview.id===e.conId&&!useApp.getState().skDimPreview.pending&&!useApp.getState().skDimPreview.error&&!!useApp.getState().skDimPreview.shapes

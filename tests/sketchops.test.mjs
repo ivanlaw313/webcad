@@ -92,7 +92,7 @@ group('bulge 基础');
   approxPt(bulgeMid([0, 0], [2, 0], 0), [1, 0], 'bulge=0 mid = 弦中点');
   ok(bulgeRadius([0, 0], [2, 0], 0) === Infinity, 'bulge=0 → R = Infinity');
   approx(bulgeRadius([1, 1], [1, 1], 1), 0, '零弦 → R = 0');
-  throws(() => bulgeCenter([0, 0], [2, 0], 0), /无圆心/, 'bulge=0 圆心 throw');
+  throws(() => bulgeCenter([0, 0], [2, 0], 0), /(?:无圆心|無圓心)/, 'bulge=0 圆心 throw');
   throws(() => mirrorPt([1, 1], [0, 0], [0, 0]), /重合/, '镜像轴两点重合 throw');
 }
 
@@ -275,19 +275,19 @@ group('filletAt');
   ok(cur.verts.length === 8, '四角倒圆后 8 顶点');
   approx(pathArea(cur.verts, cur.bulges), 4 - (4 - PI) * r * r, '四角倒圆 = rrect 面积公式');
   // 半径太大 throw (t ≥ 邻段长)
-  throws(() => filletAt(SQ_V, SQ_B, 1, 3), /半径太大/, 'r=3 (t≥边长) throw');
-  throws(() => filletAt(SQ_V, SQ_B, 1, 2), /半径太大/, 'r=2 (t=边长) throw');
+  throws(() => filletAt(SQ_V, SQ_B, 1, 3), /(?:半径太大|半徑太大)/, 'r=3 (t≥边长) throw');
+  throws(() => filletAt(SQ_V, SQ_B, 1, 2), /(?:半径太大|半徑太大)/, 'r=2 (t=边长) throw');
   // 非直线邻段 throw: slot 顶点 1 邻接帽弧
-  throws(() => filletAt(SLOT_V, SLOT_B, 1, 0.2), /直线/, '邻段为弧 throw');
-  throws(() => filletAt(SLOT_V, SLOT_B, 2, 0.2), /直线/, '前段为弧 throw');
+  throws(() => filletAt(SLOT_V, SLOT_B, 1, 0.2), /(?:直线|直線)/, '邻段为弧 throw');
+  throws(() => filletAt(SLOT_V, SLOT_B, 2, 0.2), /(?:直线|直線)/, '前段为弧 throw');
   // 共线角 throw
   throws(
     () => filletAt([[0, 0], [1, 0], [2, 0], [2, 2], [0, 2]], [0, 0, 0, 0, 0], 1, 0.2),
-    /共线/,
+    /(?:共线|共線)/,
     '共线角点 throw',
   );
   // 非法半径
-  throws(() => filletAt(SQ_V, SQ_B, 1, 0), /半径须为正/, 'r=0 throw');
+  throws(() => filletAt(SQ_V, SQ_B, 1, 0), /(?:半径须为正|半徑須為正)/, 'r=0 throw');
 }
 
 console.log(`\n=== 全部通过: ${nGroup} 组 / ${nAssert} 条断言 ===`);

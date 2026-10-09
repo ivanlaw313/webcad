@@ -1728,9 +1728,9 @@ export async function probeFreeShapes(shapes: FShape[], cons: SkCon[]): Promise<
 
 // Validation for the constraint buttons: what does this constraint need?
 export const SK_CON_REQ: Record<SkConType, string> = {
-  h: '选 1 条边 或 2 个点', v: '选 1 条边 或 2 个点', coincident: '选 2 个点（或 点+边）',
-  parallel: '选 2 条边', perp: '选 2 条边', equal: '选 2 条边 / 2 个圆 / 2 段圆弧（等半径）', tangent: '选 1 边 + 1 圆/圆弧段 或 2 个圆', fix: '选 1 个点 / 1 条边 / 1 个圆·弧（整体钉死）',
-  midpoint: '选 1 个点 + 1 条边或弧（点锁到边/弧中点）', concentric: '选 2 个圆（或 圆+弧段，如孔同心于槽端帽）', collinear: '选 2 条边（成同一直线）', symmetric: '选 2 个点 / 2 条边 / 2 个圆·弧 + 1 条轴边',
+  h: '選 1 條邊 或 2 個點', v: '選 1 條邊 或 2 個點', coincident: '選 2 個點（或 點+邊）',
+  parallel: '選 2 條邊', perp: '選 2 條邊', equal: '選 2 條邊 / 2 個圓 / 2 段圓弧（等半徑）', tangent: '選 1 邊 + 1 圓/圓弧段 或 2 個圓', fix: '選 1 個點 / 1 條邊 / 1 個圓·弧（整體釘死）',
+  midpoint: '選 1 個點 + 1 條邊或弧（點鎖到邊/弧中點）', concentric: '選 2 個圓（或 圓+弧段，如孔同心於槽端帽）', collinear: '選 2 條邊（成同一直線）', symmetric: '選 2 個點 / 2 條邊 / 2 個圓·弧 + 1 條軸邊',
 }
 // shapes (optional) lets the check recognise verts-poly ARC SEGMENT edges (circle-like for
 // tangent/equal/concentric). Without shapes the kind-only behaviour is unchanged.

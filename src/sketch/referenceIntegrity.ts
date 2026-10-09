@@ -10,8 +10,8 @@ export function sketchReferenceErrors(cons: SkCon[], params: Parameter[]): strin
   for (const c of cons) {
     if (c.kind !== 'dim') continue
     const label = c.name || c.id
-    if (c.paramId && !parameters.has(c.paramId)) errors.push(`${label} → 参数 ${c.paramId} 不存在`)
-    else if (c.param && !c.paramId && !params.some(p => p.name === c.param)) errors.push(`${label} → 参数 ${c.param} 不存在`)
+    if (c.paramId && !parameters.has(c.paramId)) errors.push(`${label} → 參數 ${c.paramId} 不存在`)
+    else if (c.param && !c.paramId && !params.some(p => p.name === c.param)) errors.push(`${label} → 參數 ${c.param} 不存在`)
     for (const [token, id] of Object.entries(c.refs ?? {})) {
       if (!(id.startsWith('dimension:') ? dimensions : parameters).has(id)) errors.push(`${label} → ${token} [${id}] 不存在`)
     }

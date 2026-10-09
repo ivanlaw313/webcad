@@ -6,11 +6,11 @@ const near=(a:FPt,b:FPt)=>Math.hypot(a[0]-b[0],a[1]-b[1])<1e-5
 /** Whole-edge pointer intent is rigid translation, never independent endpoint
  * movement. Numeric edits continue to use the ordinary strict constraint solver. */
 export async function solveConstrainedEdgeDrag(shapes:FShape[],cons:SkCon[],ref:SkRef,intendedEnds:[FPt,FPt]):Promise<ConstrainedEdgeDragResult>{
- if(ref.kind==='edge'&&!validConstraintEdge(shapes,ref))return{ok:false,reason:'目标线段已不存在'}
+ if(ref.kind==='edge'&&!validConstraintEdge(shapes,ref))return{ok:false,reason:'目標線段已不存在'}
  if(!intendedEnds.every(p=>p.every(Number.isFinite)))return{ok:false,reason:'拖動目標無效'}
  if(cons.some(c=>[c.a,c.b,'c'in c?c.c:undefined].some(r=>r?.kind==='edge'&&!validConstraintEdge(shapes,r))))return{ok:false,reason:'約束引用的線段已不存在'}
  const current=refPts(shapes,ref)
- if(current.length!==2)return{ok:false,reason:'请选择有效线段'}
+ if(current.length!==2)return{ok:false,reason:'請選擇有效線段'}
  const old=current as [FPt,FPt],delta:FPt=[intendedEnds[0][0]-old[0][0],intendedEnds[0][1]-old[0][1]],secondDelta:FPt=[intendedEnds[1][0]-old[1][0],intendedEnds[1][1]-old[1][1]]
  if(!near(delta,secondDelta))return{ok:false,reason:'整條邊拖動必須保持長度和方向'}
  let targetEnds=structuredClone(intendedEnds),projection:'none'|'axis'|'fixed'='none'
@@ -41,7 +41,7 @@ export async function solveConstrainedEdgeDrag(shapes:FShape[],cons:SkCon[],ref:
  try{result=await solveFree(seeded,structuredClone(cons),{ref,ends:targetEnds})}catch{return{ok:false,reason:'整條邊約束求解失敗'}}
  const actual=result?refPts(result.shapes,ref):[]
  const finite=(v:unknown):boolean=>typeof v==='number'?Number.isFinite(v):Array.isArray(v)?v.every(finite):v!==null&&typeof v==='object'?Object.values(v).every(finite):true
- if(!result||result.conflict||!result.shapes.every(finite)||actual.length!==2||!near(actual[0],targetEnds[0])||!near(actual[1],targetEnds[1]))return{ok:false,reason:'其他尺寸或关系阻止整条边平移'}
+ if(!result||result.conflict||!result.shapes.every(finite)||actual.length!==2||!near(actual[0],targetEnds[0])||!near(actual[1],targetEnds[1]))return{ok:false,reason:'其他尺寸或關係阻止整條邊平移'}
  if(sketchesNumericallyEqual(result.shapes,shapes))result={...result,shapes:structuredClone(shapes)}
  return{ok:true,result,targetEnds,intendedEnds:structuredClone(intendedEnds),projection}
 }

@@ -94,6 +94,39 @@ await runE2E(async (page, ok) => {
   ok('Mirror works with dimensions (Traditional message, no conflict)', /已鏡像/.test(s.st) && !s.conflict && !/Mirror|conflict/i.test(s.st), { st: s.st, n: all(s).length })
   await page.shot('ux4-sk-mirror')
 
+  // ── UX4-B #2 fillet next to length dims keeps them; #1 全部角 renumbers + tangents + one undo; #3 Traditional status ──
+  await fresh()
+  await tool('sk_rect'); await click(0, 0); await click(60, 40); await page.keyboard.press('Escape'); await page.waitForTimeout(500)
+  await tool('sk_dim'); await click(30, 0); await click(30, -8); await page.keyboard.press('Enter'); await page.waitForTimeout(500)
+  await click(60, 20); await click(70, 20); await page.keyboard.press('Enter'); await page.waitForTimeout(500)
+  await page.keyboard.press('Escape')
+  const base2 = await S(), dofB = base2.dof
+  const lenDims = (x) => x.cons.filter((c) => c.kind === 'dim' && c.type !== 'rad')
+  const sc = (t) => /倒圆角|剩余|个轮廓|约束|个相切|轮廓/.test(t)
+  await tool('sk_filletc'); await page.keyboard.type('10'); await page.waitForTimeout(200)
+  await click(60, 40); await move(52, 32); await click(52, 32); await page.waitForTimeout(1000)
+  s = await S()
+  ok('UX4-B #2 fillet next to the width/height dims keeps both (virtual-sharp), adds R dim, DOF unchanged', lenDims(base2).length === 2 && lenDims(s).length === 2 && s.cons.some((c) => c.type === 'rad') && s.dof === dofB && !s.conflict && /改掛虛擬尖角/.test(s.st) && !/已移除/.test(s.st),
+    { dofB, dof: s.dof, dims: lenDims(s).map((c) => [c.type, c.value]), st: s.st })
+  ok('UX4-B #3 fillet status is Traditional (倒圓角 / 剩餘, no 倒圆角/剩余)', /倒圓角 R10/.test(s.st) && !sc(s.st), { st: s.st })
+  await page.shot('ux4b-sk-fillet-dims-kept')
+  await page.keyboard.press('Escape'); await page.keyboard.press('Control+z'); await page.waitForTimeout(900)
+  s = await S()
+  ok('UX4-B single-corner Ctrl+Z restores rectangle + both dims', JSON.stringify(all(s)) === JSON.stringify(all(base2)) && s.cons.length === base2.cons.length, { n: s.cons.length, before: base2.cons.length })
+  const undoN = await page.evaluate(() => window.useApp.getState().sketchUndo.length)
+  await tool('sk_filletc'); await page.getByRole('button', { name: /全部角一次過/ }).first().click(); await page.waitForTimeout(1500)
+  s = await S(); p = all(s).find((x) => x.verts?.length === 8)
+  const undoN2 = await page.evaluate(() => window.useApp.getState().sketchUndo.length)
+  const straightOK = !!p && [1, 3, 5, 7].every((i) => near(p.verts[i][0], p.verts[(i + 1) % 8][0], 1e-6) || near(p.verts[i][1], p.verts[(i + 1) % 8][1], 1e-6))
+  ok('UX4-B #1 全部角: 4 arcs, 8 tangents, H/V still on straight edges (axis-aligned), dims kept, DOF unchanged, ONE undo step',
+    !!p && straightOK && types(s).filter((t) => t === 'tangent').length === 8 && lenDims(s).length === 2 && s.dof === dofB && !s.conflict && undoN2 === undoN + 1,
+    { verts: p?.verts, tangents: types(s).filter((t) => t === 'tangent').length, dof: s.dof, dofB, undo: [undoN, undoN2], st: s.st })
+  ok('UX4-B #3 全部角 status Traditional', /個角倒 R10 真圓弧/.test(s.st) && /相切約束/.test(s.st) && !sc(s.st), { st: s.st })
+  await page.shot('ux4b-sk-fillet-all')
+  await page.keyboard.press('Escape'); await page.keyboard.press('Control+z'); await page.waitForTimeout(900)
+  s = await S()
+  ok('UX4-B 全部角: ONE Ctrl+Z restores rectangle + constraints', JSON.stringify(all(s)) === JSON.stringify(all(base2)) && s.cons.length === base2.cons.length, { after: all(s) })
+
   // ── Edited sketch 80→100 applies to the extrude ────────────────────────────────
   await fresh()
   await tool('sk_rect'); await click(0, 0); await click(80, 40); await page.keyboard.press('Escape'); await page.waitForTimeout(400)

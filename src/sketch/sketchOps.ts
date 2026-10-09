@@ -76,8 +76,8 @@ export function bulgeRadius(a: Pt, b: Pt, bulge: number): number {
 /** 圆心: 喺弦垂直平分线上, center = mid + (-dy,dx)·(bulge²−1)/(4·bulge)
  *  (bulge=±1 半圆 → 圆心 = 弦中点; |bulge|>1 包角>180° → 圆心同凸侧同边) */
 export function bulgeCenter(a: Pt, b: Pt, bulge: number): Pt {
-  if (Math.abs(bulge) < EPS) throw new Error('bulge≈0 (直线段) 无圆心');
-  if (dist(a, b) < EPS) throw new Error('零弦弧退化, 无圆心');
+  if (Math.abs(bulge) < EPS) throw new Error('bulge≈0 (直線段) 無圓心');
+  if (dist(a, b) < EPS) throw new Error('零弦弧退化, 無圓心');
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
   const k = (bulge * bulge - 1) / (4 * bulge);
@@ -177,7 +177,7 @@ export function mirrorPt(p: Pt, la: Pt, lb: Pt): Pt {
   const dx = lb[0] - la[0];
   const dy = lb[1] - la[1];
   const L2 = dx * dx + dy * dy;
-  if (L2 < EPS * EPS) throw new Error('镜像轴两点重合');
+  if (L2 < EPS * EPS) throw new Error('鏡像軸兩點重合');
   const t = ((p[0] - la[0]) * dx + (p[1] - la[1]) * dy) / L2;
   const fx = la[0] + t * dx;
   const fy = la[1] + t * dy;
@@ -217,7 +217,7 @@ interface OffSeg {
   aox: number; aoy: number; box: number; boy: number;
 }
 
-const SELF_X = '偏移太大, 轮廓会自交';
+const SELF_X = '偏移太大, 輪廓會自交';
 
 function lineLine(s1: OffSeg, s2: OffSeg): Pt {
   const d1x = s1.qx - s1.px, d1y = s1.qy - s1.py;
@@ -289,12 +289,12 @@ export function offsetPath(
   d: number,
 ): { verts: Pt[]; bulges: number[] } {
   const n = verts.length;
-  if (n < 2) throw new Error('路径至少需 2 个顶点');
+  if (n < 2) throw new Error('路徑至少需 2 個頂點');
   if (Math.abs(d) < EPS) {
     return { verts: verts.map(clonePt), bulges: verts.map((_, i) => bulgeOf(bulges, i)) };
   }
   const sa = signedPathArea(verts, bulges);
-  if (Math.abs(sa) < EPS * EPS) throw new Error('路径退化, 无法偏移');
+  if (Math.abs(sa) < EPS * EPS) throw new Error('路徑退化, 無法偏移');
   const ccwSign = sa > 0 ? 1 : -1; // CCW: 外侧 = 行进方向右侧
 
   const segs: OffSeg[] = [];
@@ -304,7 +304,7 @@ export function offsetPath(
     const bl = bulgeOf(bulges, i);
     const dx = b[0] - a[0], dy = b[1] - a[1];
     const len = Math.hypot(dx, dy);
-    if (len < EPS) throw new Error('路径含重合点, 无法偏移');
+    if (len < EPS) throw new Error('路徑含重合點, 無法偏移');
     if (Math.abs(bl) < EPS) {
       const nx = (ccwSign > 0 ? dy : -dy) / len; // 外法线
       const ny = (ccwSign > 0 ? -dx : dx) / len;
@@ -470,28 +470,28 @@ export function filletAt(
   r: number,
 ): { verts: Pt[]; bulges: number[] } {
   const n = verts.length;
-  if (n < 3) throw new Error('路径至少需 3 个顶点先可倒圆角');
-  if (!Number.isInteger(i) || i < 0 || i >= n) throw new Error('角点索引越界');
-  if (!(r > EPS)) throw new Error('圆角半径须为正');
+  if (n < 3) throw new Error('路徑至少需 3 個頂點先可倒圓角');
+  if (!Number.isInteger(i) || i < 0 || i >= n) throw new Error('角點索引越界');
+  if (!(r > EPS)) throw new Error('圓角半徑須為正');
   const ip = (i - 1 + n) % n;
   if (Math.abs(bulgeOf(bulges, ip)) > EPS || Math.abs(bulgeOf(bulges, i)) > EPS) {
-    throw new Error('暂只支持直线角倒圆角');
+    throw new Error('暫只支持直線角倒圓角');
   }
   const vp = verts[ip];
   const v = verts[i];
   const vn = verts[(i + 1) % n];
   const len1 = dist(vp, v);
   const len2 = dist(v, vn);
-  if (len1 < EPS || len2 < EPS) throw new Error('角点邻段退化 (重合点)');
+  if (len1 < EPS || len2 < EPS) throw new Error('角點鄰段退化 (重合點)');
   const u1x = (v[0] - vp[0]) / len1, u1y = (v[1] - vp[1]) / len1; // 入向
   const u2x = (vn[0] - v[0]) / len2, u2y = (vn[1] - v[1]) / len2; // 出向
   let cosPhi = -(u1x * u2x + u1y * u2y); // 内角 φ = ∠(−u1, u2)
   if (cosPhi > 1) cosPhi = 1;
   if (cosPhi < -1) cosPhi = -1;
   const phi = Math.acos(cosPhi);
-  if (phi > Math.PI - 1e-9) throw new Error('角点两邻段共线, 无法倒圆角');
+  if (phi > Math.PI - 1e-9) throw new Error('角點兩鄰段共線, 無法倒圓角');
   const t = r / Math.tan(phi / 2); // 切点距角点 (φ→0 时 t→∞ 由下面守卫接住)
-  if (!(t < len1 - EPS) || !(t < len2 - EPS)) throw new Error('半径太大');
+  if (!(t < len1 - EPS) || !(t < len2 - EPS)) throw new Error('半徑太大');
   const p1: Pt = [v[0] - u1x * t, v[1] - u1y * t];
   const p2: Pt = [v[0] + u2x * t, v[1] + u2y * t];
   const cross = u1x * u2y - u1y * u2x; // >0 左转, <0 右转

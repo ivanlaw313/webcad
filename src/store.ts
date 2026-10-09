@@ -884,7 +884,7 @@ function typedReadout(tool: string, buf: string[], field: number): string {
 }
 // GM-W8 A3：多阶段工具（rect3/arcc/arcslot/earc/conic）逐阶段打字尺寸嘅提示标签。
 // 返回 null = 该工具/阶段非打字尺寸（走 typedReadout 默认）；返回 SK_TYPED_UNSUP = 此阶段唔支持打字尺寸（诚实提示，keys 仍被吃）。
-const SK_TYPED_UNSUP = '此工具此阶段唔支持打字尺寸'
+const SK_TYPED_UNSUP = '此工具此階段唔支持打字尺寸'
 function multiStageTypedLabel(tool: string, hasStart: boolean, nPoly: number): string | null {
   if (tool === 'rect3') { if (hasStart && nPoly === 0) return '边长 L'; if (nPoly === 1) return '宽度 W'; return null }
   if (tool === 'arcc' || tool === 'arcslot') { if (hasStart && nPoly === 0) return '半径 R'; if (nPoly === 1) return '扫角°'; return null }
@@ -4691,7 +4691,7 @@ function sizingCornerDim(shapes: SketchShape[], sz: Sizing, value: number, fits:
     if (shown < value - 1e-6) return `倒角 C${shown.toFixed(1)}（邻边太短，最多 C${shown.toFixed(1)}）`
     return `倒角 C${value} mm（拖 / 打數字 / 點確定）`
   }
-  if (!cham && !fits) return `圆角 R${value} mm（太大放唔落 — 收细）`
+  if (!cham && !fits) return `圓角 R${value} mm（太大放唔落 — 收細）`
   return `${cham ? '倒角 C' : '圓角 R'}${value} mm（拖 / 打數字 / 點確定）`
 }
 function shapeToTrimPath(sh: SketchShape): TrimPath | null {
@@ -4982,7 +4982,7 @@ async function computeParamSketches(context: Pick<AppState, 'params' | 'features
       }
       const cons = withParamVals(src.cons, s.params)
       const res = await solveFree(JSON.parse(JSON.stringify(src.shapes)) as FShape[], cons)
-      if (!res || res.conflict) throw new Error(`草圖 ${skId} 參數重解${res?.conflict ? '冲突（过约束）' : '失败'}`)
+      if (!res || res.conflict) throw new Error(`草圖 ${skId} 參數重解${res?.conflict ? '衝突（過約束）' : '失敗'}`)
       const shapes = res.shapes as unknown as SketchShape[]
       const r = regenGroupFeatures(feats, skId, src, shapes)
       if (!r) throw new Error(`草圖 ${skId} 參數消費特徵無法重建`)
@@ -5159,14 +5159,14 @@ export const useApp = create<AppState>((rawSet, get) => {
   })
   const patternRevisionKeys: (keyof AppState)[]=['mode','sketchProfiles','sketchShape','skCons','skPatternData','params','paramBindings','skSel','sketchTool','skEditTarget','sketchUndo','sketchRedo','skDimLabelOff','skRefGeo','sketchPlane','sketchArb','sketchBaseZ','features','arrayCfg','polyPts','sketchStart','skDrag','skMove','skScale','sketchSources','skPatternSession']
   const patternRevision=(s:AppState)=>patternRevisionKeys.map(key=>s[key])
-  const patternError=(s:AppState,creating:boolean)=>s.mode!=='sketch'?'请先进入草图':(creating?!!s.skPatternData:s.skPatternData?.patterns.length!==1)?(creating?'已有一个关联阵列；请先解除关联，再建立新阵列':'没有可修改的关联阵列'):(s.skDrag||s.skMove||s.skScale||s.sketchStart||s.polyPts.length)?'请先完成或取消当前绘图／变换，再修改关联阵列':null
+  const patternError=(s:AppState,creating:boolean)=>s.mode!=='sketch'?'請先進入草圖':(creating?!!s.skPatternData:s.skPatternData?.patterns.length!==1)?(creating?'已有一個關聯陣列；請先解除關聯，再建立新陣列':'沒有可修改的關聯陣列'):(s.skDrag||s.skMove||s.skScale||s.sketchStart||s.polyPts.length)?'請先完成或取消當前繪圖／變換，再修改關聯陣列':null
   const prepareSketchPattern=async(before:AppState,config:PatternConfig,creating:boolean)=>{
     const error=patternError(before,creating)
     if(error)return {ok:false as const,reason:error}
-    if(creating&&before.skPatternSession&&!before.skSel.some(r=>'shape'in r))return {ok:false as const,reason:'请明确选择阵列来源轮廓'}
+    if(creating&&before.skPatternSession&&!before.skSel.some(r=>'shape'in r))return {ok:false as const,reason:'請明確選擇陣列來源輪廓'}
       const shapes=[...before.sketchProfiles,...(before.sketchShape?[before.sketchShape]:[])]
       const selected=[...new Set(before.skSel.flatMap(ref=>'shape'in ref?[ref.shape]:[]))]
-      if(!shapes.length)return {ok:false as const,reason:'请先画出阵列来源轮廓'}
+      if(!shapes.length)return {ok:false as const,reason:'請先畫出陣列來源輪廓'}
       const prior={shapes,cons:before.skCons,entityIds:before.skPatternData?.entityIds??[],patterns:before.skPatternData?.patterns??[]}
       const resolved=resolvePatternDimensions(prior,[],{evaluate:evalExpr,parameters:before.params.map(p=>({id:parameterId(p),name:p.name,value:p.value}))})
       if(!resolved.ok)return resolved
@@ -5617,7 +5617,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         if(blockedFace){
           const restoreBound=applyParamBindings(prev,previousDocument.params ?? get().params,previousDocument.paramBindings ?? get().paramBindings)
           await cad.rebuild(expandFeats(restoreBound.filter(f=>!(previousDocument.suppressedIds ?? get().suppressedIds).includes(f.id))))
-          const reason='面上草图含原点／外部参考约束；暂未支持此框架的面内平移，请先修复参考关系'
+          const reason='面上草圖含原點／外部參考約束；暫未支持此框架的面內平移，請先修復參考關係'
           set({...(prevDoc?previousDocument:{}),busy:false,status:reason,failedFeatureIds:[blockedFace.id],featureErrors:{[blockedFace.id]:reason}})
           return false
         }
@@ -5820,7 +5820,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     mirrorPending = true
     let result: Awaited<ReturnType<typeof solveMirrorCandidate>>
     try { result = await solveMirrorCandidate(shapes, {...candidate,cons:withParamVals(candidate.cons,s.params)}) }
-    catch { result = {ok:false,reason:'镜像求解失败'} }
+    catch { result = {ok:false,reason:'鏡像求解失敗'} }
     if (request === mirrorRequest) mirrorPending = false
     if (request !== mirrorRequest || mirrorSnapshot(get()) !== snapshot) return
     if (!result.ok) { set({status:`鏡像未更改草圖：${result.reason}`}); return }
@@ -8298,7 +8298,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const referenced = get().features.some((f) => (f as { sketchId?: string }).sketchId === skId || ((f as { sketchIds?: string[] }).sketchIds?.includes(skId) ?? false))
     if (!referenced) {
       const f: Feature = { id: fid(), type: 'sketch', sketchId: skId }
-      const ok = await get().applyFeatures([...get().features, f], '未使用草图已还原做独立草图 — 重开编辑中')
+      const ok = await get().applyFeatures([...get().features, f], '未使用草圖已還原做獨立草圖 — 重開編輯中')
       if (!ok) { set({ status: '⚠ 還原未使用草圖失敗' }); return }
     }
     get().editSketchBySrc(skId)
@@ -8500,7 +8500,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ status: `參數「${paramName}」唔存在 — 先喺頂欄「ƒx 參數」面板加返（或輸入尺寸名 d1 / 公式 d1*2）` }); return
     }
     if (!Number.isFinite(p.value) || p.value <= 0) { set({status:illegalRejectStatus('參數尺寸必須為有限正數，未更改草圖')}); return }
-    void get().commitSkDim(conId, {param:paramName,paramId:parameterId(p),refs:undefined,expr:undefined,value:p.value,driven:undefined}, `尺寸已绑定 ƒx ${paramName} = ${p.value}`)
+    void get().commitSkDim(conId, {param:paramName,paramId:parameterId(p),refs:undefined,expr:undefined,value:p.value,driven:undefined}, `尺寸已綁定 ƒx ${paramName} = ${p.value}`)
   },
   // S97 公式尺寸：尺寸值 = 表达式（引用参数/常量/函数，如 d1*2+5）。先验证可算（失败报错不改），成功写 value + 解绑纯参数。
   bindSkDimExpr: (conId, expr) => {
@@ -8529,7 +8529,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (cyc) { set({ status: `⚠ 尺寸循環引用：「${selfName} = ${expr}」直接或間接引用返自己 — 已拒絕` }); return }
     }
     if (!Number.isFinite(v) || v <= 0) { set({status:illegalRejectStatus('公式尺寸必須為有限正數，未更改草圖')}); return }
-    void get().commitSkDim(conId, {expr,refs,param:undefined,paramId:undefined,value:v,driven:undefined}, `尺寸已绑定公式 ƒ(${expr}) = ${+v.toFixed(3)}`)
+    void get().commitSkDim(conId, {expr,refs,param:undefined,paramId:undefined,value:v,driven:undefined}, `尺寸已綁定公式 ƒ(${expr}) = ${+v.toFixed(3)}`)
   },
   skClickAt: (p) => {
     const s = get()
@@ -8781,7 +8781,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     const c = s.skCons.find((x) => x.id === id)
     if (!c) { set({ skSelCon: null }); return }
-    const nm = c.kind === 'dim' ? `尺寸 ${c.name ?? ''}（${c.type}）` : `约束「${SK_CON_ZH[c.type] ?? c.type}」`
+    const nm = c.kind === 'dim' ? `尺寸 ${c.name ?? ''}（${c.type}）` : `約束「${SK_CON_ZH[c.type] ?? c.type}」`
     set({ skSelCon: id, skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: `已選中${nm} — 按 Delete 移除（其關聯幾何已高亮）` })
   },
   addSkCon: async (t) => {
@@ -9116,7 +9116,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const target = get().skCons.find(c => c.id === id && c.kind === 'dim')
     const zeroProjection = target?.kind === 'dim' && (target.type === 'hdist' || target.type === 'vdist') && value === 0
     if (!Number.isFinite(value) || value < 0 || value === 0 && !zeroProjection) { set({status:'尺寸已拒絕：尺寸必須為有限正數（水平／垂直投影可為零），未更改草圖'}); return }
-    await get().commitSkDim(id,{value,driven:undefined,param:undefined,paramId:undefined,refs:undefined,expr:undefined},`尺寸已改为 ${value}`)
+    await get().commitSkDim(id,{value,driven:undefined,param:undefined,paramId:undefined,refs:undefined,expr:undefined},`尺寸已改為 ${value}`)
   },
   // ── 参数化组件 edit-in-place（T734）──────────────────────────────────────
   editingComponent: null,
@@ -9769,9 +9769,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (c.driven) {
       const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
       const v = skMeasureDim(shapes, c)
-      await get().commitSkDim(id, { driven: undefined, value: v ?? c.value }, '已转为驱动尺寸（数值控制几何）')
+      await get().commitSkDim(id, { driven: undefined, value: v ?? c.value }, '已轉為驅動尺寸（數值控制幾何）')
     } else {
-      await get().commitSkDim(id, { driven: true }, '已转为从动尺寸（括号显示量度值，唔驱动几何 — 右键标签可转返）')
+      await get().commitSkDim(id, { driven: true }, '已轉為從動尺寸（括號顯示量度值，唔驅動幾何 — 右鍵標簽可轉返）')
     }
   },
   // GM-FP2 #29：R↔Ø 显示翻转（右键弧/圆尺寸标签）。net display flag —— stored type/value 保持自然表示（rad→R、dia→Ø），
@@ -9826,7 +9826,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (!isCurrentSolve()) return
         if (res2 && !res2.conflict) {   // 降从动即可解 → 抉择：模态问 / 自动降
           if (opts?.promptOverconstrain) {
-            const ok = await get().appConfirm('呢个尺寸会令草图过约束 —— 转做【从动（参考）尺寸】？\n\n确定 = 转从动（括号显示、只量度唔驱动几何）\n取消 = 唔加呢个尺寸（草图保持原状）', '过约束')
+            const ok = await get().appConfirm('呢個尺寸會令草圖過約束 —— 轉做【從動（參考）尺寸】？\n\n確定 = 轉從動（括號顯示、只量度唔驅動幾何）\n取消 = 唔加呢個尺寸（草圖保持原狀）', '過約束')
             if (!isCurrentSolve()) return
             if (!ok) {   // 取消：放置路径=移除啱加嘅尺寸；编辑路径（有 target.cancelValue）=还原旧值/旧从动态
               if (opts?.target && opts.target.cancelValue != null) {
@@ -9873,7 +9873,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         ? (res.conflictIds.some((id) => cur.skCons.some((c) => c.id === id))
           ? '⚠ 約束衝突/過約束 — 衝突約束已標紅（點擊紅徽章移除其一）'
           : '⚠ 約束衝突/過約束 — 按「↶撤約束」移除最後一個')
-        : `約束已求解 ✓ 剩余自由度 DOF ${res.dof}`) + (opts?.statusNote ? ` · ${opts.statusNote}` : ''),
+        : `約束已求解 ✓ 剩餘自由度 DOF ${res.dof}`) + (opts?.statusNote ? ` · ${opts.statusNote}` : ''),
     })
     // S103[7]：欠定诊断 — 仅当有剩余自由度且无冲突时跑 DOF 探针（只读、唔入拖拽热路径）
     if (!res.conflict && res.dof > 0) {
@@ -10100,12 +10100,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     const hasGeom = !!s.sketchShape || s.sketchProfiles.length > 0 || s.polyPts.length > 0
     if (s.skEditTarget) {
       if (!hasGeom) { get().finishSketch(); return }
-      const ok = await get().appConfirm(tStatus('保存草图改动并退出？\n确定 = 保存并重建模型 · 取消 = 留喺草图继续改', get().lang), tStatus('退出草图', get().lang))
+      const ok = await get().appConfirm(tStatus('保存草圖改動并退出？\n確定 = 保存並重建模型 · 取消 = 留喺草圖繼續改', get().lang), tStatus('退出草圖', get().lang))
       if (ok) get().finishSketch()
       return
     }
     if (!hasGeom) { get().exitSketchMode(); return }
-    const ok = await get().appConfirm(tStatus('退出草图？未保存嘅轮廓会自动保存做【独立草图】（紫线，之后可拉伸/旋转/重开，唔会丢失）。\n确定 = 保存并退出 · 取消 = 留喺草图继续画', get().lang), tStatus('退出草图', get().lang))
+    const ok = await get().appConfirm(tStatus('退出草圖？未保存嘅輪廓會自動保存做【獨立草圖】（紫線，之後可拉伸/旋轉/重開，唔會丟失）。\n確定 = 保存并退出 · 取消 = 留喺草圖繼續畫', get().lang), tStatus('退出草圖', get().lang))
     if (ok) await get().commitStandaloneSketch()
     // 取消 → 留喺草图（零丢失）
   },
@@ -10663,7 +10663,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const toolPreview = (tl === 'offset' || tl === 'cfillet' || tl === 'cchamfer' || tl === 'trim' || tl === 'extend')
       ? computeSketchToolPreview([...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as SketchShape[], tl, pt, s.sketchOffsetD, s.sketchOffsetBoth, s.sketchCornerR)
       : null
-    const snapTag = (!pickTool && onPoint && _snapKind === 'quad') ? '◈ 象限点（圆最远点）' : (!pickTool && onPoint && _snapKind === 'tan') ? '⌒ 切点 — 该段同圆外径相切贴合' : (!pickTool && onPoint && _snapKind === 'mid') ? '▲ 边中点' : (!pickTool && onPoint && _snapKind === 'x') ? '✕ 交点' : ''
+    const snapTag = (!pickTool && onPoint && _snapKind === 'quad') ? '◈ 象限點（圓最遠點）' : (!pickTool && onPoint && _snapKind === 'tan') ? '⌒ 切點 — 該段同圓外徑相切貼合' : (!pickTool && onPoint && _snapKind === 'mid') ? '▲ 邊中點' : (!pickTool && onPoint && _snapKind === 'x') ? '✕ 交點' : ''
     const baseDim = sketchDimText(s.sketchTool, s.sketchStart, s.polyPts, pt, s.ellipseCreation)
     // GM-W6 C6：选择/尺寸工具嘅悬停反馈 —— 用 skClickAt 同款最近实体拾取（skHitTest + pickTol，收 raw 未吸附点，
     // 同真㩒一致），写 transient skHover。SkSelDraw 见到即淡橙高亮 + 游标转 pointer。非呢两个工具即早退：
@@ -11131,7 +11131,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           // S161：闭合开放曲线时保留真曲线身份（弧/椭圆弧/椭圆/样条）—— 唔好降级做直边多边形
           return { type: 'poly', pts: sh.pts.map((p) => [...p] as Pt), ...(sh.arc ? { arc: sh.arc } : {}), ...(sh.earc ? { earc: sh.earc } : {}), ...(sh.ell ? { ell: sh.ell } : {}), ...(sh.smooth ? { smooth: true } : {}), ...(sh.bspline ? { bspline: true } : {}), ...(sh.conic ? { conic: true } : {}), ...(sh.ctrl ? { ctrl: sh.ctrl } : {}), ...con }
         }
-        const okMsg = (c: SketchShape) => c.construction ? '已闭合开放构造轮廓（虚线·参考用，唔参与拉伸）— 按「构造」掣可转返实线' : '已闭合开放轮廓（实线，可拉伸）— 点「拉伸」'   // D4-3：构造线唔好误报「可拉伸」
+        const okMsg = (c: SketchShape) => c.construction ? '已閉合開放構造輪廓（虛線·參考用，唔參與拉伸）— 按「構造」掣可轉返實線' : '已閉合開放輪廓（實線，可拉伸）— 點「拉伸」'   // D4-3：构造线唔好误报「可拉伸」
         if (s.sketchShape) { const c = closeOpen(s.sketchShape); if (c) { activeClosed = true; return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchShape: c, status: okMsg(c) } } }
         for (let i = s.sketchProfiles.length - 1; i >= 0; i--) { const c = closeOpen(s.sketchProfiles[i]); if (c) { const np = [...s.sketchProfiles]; np[i] = c; return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: np, status: okMsg(c) } } }
         return { status: '至少需要 3 個點才能閉合（或先有一條開放折線可閉合）' }
@@ -11427,7 +11427,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       mateErrors[m.id] = r
       if (r.dist > 0.1 || r.angle > 0.5) bad.push(`${m.id} 错位${r.dist.toFixed(1)}mm/${r.angle.toFixed(0)}°`)   // 容差：>0.1mm 或 >0.5° 当未满足
     }
-    const warn = bad.length ? `（⚠ ${bad.length} 个过约束/冲突：${bad.slice(0, 3).join('；')}${bad.length > 3 ? '…' : ''}）` : ''
+    const warn = bad.length ? `（⚠ ${bad.length} 個過約束/衝突：${bad.slice(0, 3).join('；')}${bad.length > 3 ? '…' : ''}）` : ''
     return { components: s.components.map((c) => ({ ...c, pos: pos.get(c.id) ?? c.pos, rot: rot.get(c.id) ?? c.rot })), mateErrors, status: `已重算 ${s.mates.length} 個配合（從動件跟隨基準件）${warn}` }
   }),
   // #13：3D 闭环 mate 同时求解器 —— 取代 resolveMates 的 directed last-wins snap。所有 mate 残差【同时】最小二乘
@@ -11452,7 +11452,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const comps = s.components.filter((c) => involved.has(c.id)).map((c) => ({ id: c.id, pos: [...c.pos] as [number, number, number], rot: [...(c.rot ?? [0, 0, 0])] as [number, number, number] }))
     const r = mateSolve(comps, s.mates, fixedIds, worldMatrixOf, L0)
     const bad = r.conflictingIds.map((id) => { const e = r.mateErrors[id]; return `${id} 错位${e.dist.toFixed(1)}mm/${e.angle.toFixed(0)}°` })
-    const warn = !r.ok && r.warning ? `（⚠ ${r.warning}）` : bad.length ? `（⚠ ${bad.length} 个过约束/冲突：${bad.slice(0, 3).join('；')}${bad.length > 3 ? '…' : ''}${r.mobility < 0 ? ` · 自由度 ${r.mobility}<0 冗余` : ''}）` : ''
+    const warn = !r.ok && r.warning ? `（⚠ ${r.warning}）` : bad.length ? `（⚠ ${bad.length} 個過約束/衝突：${bad.slice(0, 3).join('；')}${bad.length > 3 ? '…' : ''}${r.mobility < 0 ? ` · 自由度 ${r.mobility}<0 冗余` : ''}）` : ''
     return { components: s.components.map((c) => ({ ...c, pos: r.pos.get(c.id) ?? c.pos, rot: r.rot.get(c.id) ?? c.rot })), mateErrors: r.mateErrors, status: `已閉環求解 ${s.mates.length} 個配合（同時最小二乘 · 殘差 ${r.residual.toExponential(1)} · ${r.iters} 迭代）${warn}` }
   }),
   clearMates: () => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], mates: [], status: s.mates.length ? `已清除 ${s.mates.length} 個配合關係（零件位置不變）` : '無配合關係可清除' })),   // bt4: 清配合可撤销
@@ -24805,7 +24805,7 @@ function regenGroupFeaturesImpl(all: Feature[], skId: string, src: AppState['ske
   const splice = (nf: Feature[]): Feature[] => [...keep.slice(0, keepIdx), ...nf.map(f => { const old = olds.find(o => o.id === f.id); return f.type === 'extrude' && old?.type === 'extrude' && old.distanceExpression ? { ...f, distanceExpression: old.distanceExpression } : f }), ...followNears(keep.slice(keepIdx))]
   // T756：独立草图重生成 — 特征本身无几何，保 id（ƒx 绑定/抑制生还）；shapes/cons 由 commitSrc 写返 sketchSources
   if (olds[0].type === 'sketch') {
-    return { next: splice([{ ...olds[0], id: rid(0) }]), label: '独立草图已更新', live: { height: 0, op: 'new' } }
+    return { next: splice([{ ...olds[0], id: rid(0) }]), label: '獨立草圖已更新', live: { height: 0, op: 'new' } }
   }
   // T753：loft 逐截面重生成 — 只换被编辑嗰个截面嘅 profile（最后画嘅实线轮廓），其余截面/参数原样保留。
   if (olds[0].type === 'loft') {
@@ -24849,7 +24849,7 @@ function regenGroupFeaturesImpl(all: Feature[], skId: string, src: AppState['ske
     // S138：透传任意轴（T781 axisV/axisOrigin）—— 旧 regen 只复制 axis 字母，令构造轴/拾取轴/数值覆写嘅 revolve
     // 经草图重编辑/分割重生时静默退回世界 X/Y、几何变样。conditional-spread 保留自定轴（worker 优先用 axisV）。
     const rFeat: Feature = { ...or, id: rid(0), type: 'revolve', profile: shapeToProfile(solidShapes[solidShapes.length - 1],src.arb?'XZ':src.plane), plane:src.plane,baseZ:src.baseZ,...(src.arb?{arbPlane:src.arb}:{}),...(src.faceBinding?{sketchFaceBinding:src.faceBinding}:{}), angle: or.angle, axis: or.axis, ...(or.axisV ? { axisV: or.axisV } : {}), ...(or.axisOrigin ? { axisOrigin: or.axisOrigin } : {}), ...(or.symmetric ? { symmetric: or.symmetric } : {}), op: or.op, wall: or.wall, sketchId: skId }
-    return { next: splice([rFeat]), label: `旋转特征已重生成${solidShapes.length > 1 ? '；旋转用最后画嘅轮廓' : ''}`, live }
+    return { next: splice([rFeat]), label: `旋轉特徵已重生成${solidShapes.length > 1 ? '；旋轉用最後畫嘅輪廓' : ''}`, live }
   }
   if (src.arb) {
     const rawP = (sh: SketchShape): SketchProfile => shapeToProfile(sh, 'XZ')
@@ -24857,7 +24857,7 @@ function regenGroupFeaturesImpl(all: Feature[], skId: string, src: AppState['ske
     const rawProfiles = solidShapes.map(rawP)
     const regions = liveOp === 'intersect' && o0.profile?.islands ? [combinedProfileRegions(rawProfiles)] : o0.exactDistance || olds.some(f => f.type === 'extrude' && f.profile.holes?.length) ? nestedProfileRegions(rawProfiles) : rawProfiles
     const arbFeats: Feature[] = regions.map((profile, k) => ({ ...(olds[k]?.type === 'extrude' ? olds[k] as Extract<Feature, { type: 'extrude' }> : {}), id: rid(k), type: 'extrude', profile, exactDistance: o0.exactDistance, height: liveH, operation: liveOp, arbPlane: src.arb, down: liveDown, sketchId: skId }))
-    return { next: splice(arbFeats), label: `斜面 ${arbFeats.length} 个轮廓`, live }
+    return { next: splice(arbFeats), label: `斜面 ${arbFeats.length} 個輪廓`, live }
   }
   const profiles = solidShapes.map((sh) => shapeToProfile(sh, src.plane))
   const planeF = src.plane === 'XY' ? undefined : src.plane
@@ -24885,7 +24885,7 @@ function regenGroupFeaturesImpl(all: Feature[], skId: string, src: AppState['ske
       return { id: rid(k), type: 'extrude', profile: p, height: liveH, operation, baseZ: o.baseZ ?? 0, plane: planeF, through: operation === 'cut' ? o.through : undefined, twist: o.twist, symmetric: o.symmetric, draft: o.draft, down: liveDown, sketchId: skId }
     })
   }
-  return { next: splice(newFeats), label: `${profiles.length} 个轮廓`, live }
+  return { next: splice(newFeats), label: `${profiles.length} 個輪廓`, live }
 }
 
 // P2 Render：贴花数组载入清洗 — 坏条目静默丢弃（旧档无此字段 → []）

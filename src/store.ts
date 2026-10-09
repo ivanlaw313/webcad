@@ -1323,7 +1323,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   ellipseCreation: 'axis-aligned' | 'three-point'
   setEllipseCreation: (mode: 'axis-aligned' | 'three-point') => void
   sketchTypeKey: (key: string) => void  // route a keystroke into exact-dimension entry while sketching
-  setSketchDimValue: (target: number | 'shape', dim: 'w' | 'h' | 'd' | 'r', value: number) => void  // edit a drawn shape's dimension by clicking its label
+  setSketchDimValue: (target: number | 'shape', dim: 'w' | 'h' | 'd' | 'r' | 'off', value: number) => void  // edit a drawn shape's dimension by clicking its label
   sketchShape: SketchShape | null
   sketchProfiles: SketchShape[]
   polyPts: Pt[]
@@ -4189,6 +4189,24 @@ export function regenOffsetLinks(shapes: SketchShape[]): SketchShape[] | null {
     })
   }
   return out
+}
+
+// Fusion-style: an associative offset keeps its distance as an editable sketch dimension. Editing it keeps
+// the side (sign of d: + outward / − inward) and re-derives the curve from its source. Pure for tests.
+export function editOffsetLinkDistance(shapes: SketchShape[], index: number, value: number): { shapes: SketchShape[] } | { error: string } {
+  const sh = shapes[index], link = sh?.offsetOf
+  if (!sh || !link) return { error: '偏移尺寸：呢條曲線唔係關聯偏移' }
+  if (!Number.isFinite(value) || value <= 0) return { error: '偏移尺寸必須為有限正數' }
+  const src = shapes.find((x) => x?.sid === link.src)
+  if (!src) return { error: '偏移尺寸：來源輪廓已刪除' }
+  const d = (link.d < 0 ? -1 : 1) * value
+  if (Math.abs(d - link.d) < 1e-9) return { shapes }
+  if (shapes.some((x, i) => i !== index && x?.offsetOf?.src === link.src && Math.abs(x.offsetOf.d - d) < 1e-9)) return { error: '偏移尺寸已拒絕：同一來源已有相同距離嘅偏移' }
+  const r = offsetSketchShape(src, d)
+  if (!r) return { error: '偏移尺寸已拒絕：呢個距離會令偏移曲線自交或塌陷' }
+  const out = [...shapes]
+  out[index] = { ...r, ...(sh.construction ? { construction: true } : {}), ...(sh.sid ? { sid: sh.sid } : {}), offsetOf: { src: link.src, d } } as SketchShape
+  return { shapes: out }
 }
 
 // T760：shape → TrimPath（修剪/延伸用统一路径表示）；样条/椭圆/草图点诚实拒绝
@@ -10211,6 +10229,18 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     if (!isFinite(value) || value <= 0) {
       set({ status: '尺寸已拒絕：尺寸必須為有限正數' })
+      return
+    }
+    if (dim === 'off') {
+      set((s) => {
+        const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])]
+        const r = editOffsetLinkDistance(shapes, index, value)
+        if ('error' in r) return { status: r.error }
+        if (r.shapes === shapes) return {}
+        const n = s.sketchProfiles.length
+        return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: r.shapes.slice(0, n), ...(s.sketchShape ? { sketchShape: r.shapes[n] } : {}), status: `已改偏移距離 → ${value} mm（關聯偏移，來源改動會跟隨）` }
+      })
+      if (get().skCons.length > 0) void get().resolveSk()
       return
     }
     const bound=axisBound()

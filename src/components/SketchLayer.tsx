@@ -2462,7 +2462,7 @@ export function LoftPreview() {
 // (renders nothing). Instead we split the job: SketchDimProjector (inside <Canvas>) reads the
 // camera each frame and writes screen-px transforms imperatively onto plain DOM nodes that
 // SketchDimLayer (a normal react-dom component in the viewport HUD) renders. No reconciler mixing.
-type DimEdit = { target: number | 'shape'; dim: 'w' | 'h' | 'd' | 'r' | 'ext' | 'con'; value: number; conId?: string; deg?: boolean; radDia?: { type: 'rad' | 'dia'; flip: boolean } }  // 'ext' = extrude distance · 'con' = constraint dim (planegcs)；deg = 角度尺寸（度数，唔做单位换算）；radDia（GM-FP2 #29）= R↔Ø 翻转态：显示值经 radDiaStore 逆变换折返 stored 自然 value
+type DimEdit = { target: number | 'shape'; dim: 'w' | 'h' | 'd' | 'r' | 'off' | 'ext' | 'con'; value: number; conId?: string; deg?: boolean; radDia?: { type: 'rad' | 'dia'; flip: boolean } }  // 'ext' = extrude distance · 'con' = constraint dim (planegcs)；deg = 角度尺寸（度数，唔做单位换算）；radDia（GM-FP2 #29）= R↔Ø 翻转态：显示值经 radDiaStore 逆变换折返 stored 自然 value
 type DimLabel = { referenceExtent?: 'X' | 'Y'; frameAngleDeg?: number; key: string; anchor: [number, number, number]; text: string; expression?: string; edit?: DimEdit; remove?: string; driven?: boolean; name?: string; pxOff?: [number, number] }  // remove = constraint id (badge click deletes it); driven = 从动尺寸（灰显括号）; name = 尺寸稳定名 d1/d2（hover 显示，expr 可引用，S195）; pxOff = GM-W6 C3/C4 投影后固定屏幕像素偏移（C3 标签移离几何、C4 同锚徽章横向分列）
 const DIM_REG: { labels: DimLabel[]; els: Map<string, HTMLElement> } = { labels: [], els: new Map() }
 const dimFmt = (v: number) => v.toFixed(v % 1 ? 1 : 0)
@@ -2473,6 +2473,15 @@ function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], sh
   const lift = liftFn ?? ((p: Pt): [number, number, number] => SK[plane].lift(p, baseZ))  // T746 批2：斜面（arb）传入自己嘅 lift
   const out: DimLabel[] = []
   const add = (sh: SketchShape, k: string, target: number | 'shape') => {
+    // Associative offset curve: ONE editable offset-distance dimension (Fusion), not its own W/H/Ø
+    // (those are derived from the source and would be regenerated away).
+    if (sh.offsetOf) {
+      const at: Pt = sh.type === 'rect' ? [(sh.a[0] + sh.b[0]) / 2, Math.max(sh.a[1], sh.b[1])]
+        : sh.type === 'circle' ? [sh.c[0] - sh.r * Math.SQRT1_2, sh.c[1] + sh.r * Math.SQRT1_2]
+          : sh.pts.length > 1 ? [(sh.pts[0][0] + sh.pts[1][0]) / 2, (sh.pts[0][1] + sh.pts[1][1]) / 2] : sh.pts[0]
+      if (at) out.push({ key: k + 'off', anchor: lift(at), pxOff: [0, -18], text: '⇥' + dimFmtU(Math.abs(sh.offsetOf.d), unit), edit: { target, dim: 'off', value: Math.abs(sh.offsetOf.d) } })
+      return
+    }
     if (sh.construction) return   // 用户实战 bug：构造几何（cline ±10000 等）唔出自动尺寸标签 —— Fusion 参考线无 auto dim,净系整乱画面
     // T740：快速标签全部移离几何（Fusion 式）——标签 div 食 click，压住圆心/边中点会抢咗
     // D 工具同选择工具嘅拾取（用户报：点唔到圆心 → 建唔成 圆↔边 尺寸）。

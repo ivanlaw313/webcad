@@ -3,6 +3,7 @@ import { useRef, useState, useEffect, type ReactNode } from 'react'
 import { ToolIcon } from '../icons'
 import { useApp } from '../store'
 import { tStatus, msg } from '../i18n'
+import { fieldKeyOwner } from '../ui/fieldInput'
 
 // 可拖拽数字栏（Fusion/Blender 式）：喺命令对话框（.cmd-palette-body）任何数字输入上【左右拖】= 改值，
 // 唔使打字；对话框本来实时预览 → 拖即见模型变化。拖动 <4px 当普通点击（照样可 focus 打字）。
@@ -143,7 +144,10 @@ export function CommandDialog({ icon = 'default', title, okLabel = '確定', okD
         <button type="button" className="cmd-palette-x" aria-label={collapsed ? msg('dlg.expandOpts', lang) : msg('dlg.collapseOpts', lang)} aria-expanded={!collapsed} onClick={() => setCollapsed(v => !v)}>{collapsed ? '▸' : '▾'}</button>
         <button type="button" className="cmd-palette-x" aria-label={tStatus('取消（Esc）', lang)} title={tStatus('取消（Esc）', lang)} onClick={onCancel}>✕</button>
       </div>
-      <div className="cmd-palette-body" hidden={collapsed}>{children}</div>
+      {/* Every feature dialog (extrude, fillet, chamfer, shell, offset, pattern…): typing / caret keys /
+        * Ctrl+A/C/V/X/Z/Y inside a field stay with that field — never window sketch/viewport hotkeys.
+        * Enter/Esc still bubble to the dialog handler above (commit / cancel). */}
+      <div className="cmd-palette-body" hidden={collapsed} onKeyDown={(e) => { if (fieldKeyOwner(e, e.target as HTMLElement, document.activeElement as HTMLElement | null) === 'field') e.stopPropagation() }}>{children}</div>
       {!collapsed && summary != null && <div className="cmd-palette-summary">{summary}</div>}
       <div className="cmd-palette-foot">
         <button className="cmd-ok" data-testid="command-confirm" disabled={okDisabled} title={okTip ? tStatus(okTip, lang) : tStatus('確定（Enter）', lang)} onClick={onOk}>{tStatus(okLabel, lang)}</button>

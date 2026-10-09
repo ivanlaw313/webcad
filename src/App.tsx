@@ -90,6 +90,9 @@ export default function App() {
       const isField = (el: HTMLElement | null) => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)
       const editingText = isField(t) || isField(ae)
       if (editingText && (e.ctrlKey || e.metaKey) && ['z', 'y'].includes(e.key.toLowerCase())) return
+      // Select-all / clipboard stay native in a field (fieldKeyOwner → 'field'): Ctrl+A must select the
+      // dialog value, and sketch-mode Ctrl+C/V (Extrude dialog lives in sketch mode) must not hijack paste.
+      if (editingText && (e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) return
       if (editingText && !e.ctrlKey && !e.metaKey && e.key !== 'Enter' && e.key !== 'Escape') return
       // UI02: Escape in a free text/number field (dimension edit, document name, …)
       // cancels only that field. SOLID/command dialogs keep global Esc via
@@ -152,12 +155,13 @@ export default function App() {
       if (s.mode === 'sketch' && s.skMove && e.key === 'Enter') { e.preventDefault(); s.commitSkMove(); return }
       // T796b：拖柄调尺寸中（offset/cfillet/cchamfer 已锁定目标）— 键盘数字直接设 距离/半径，Enter 确定、Esc 取消。
       // 必须喺下面「起点坐标」分支之前拦截，否则数字会误入幽灵起点、第一下 ESC 又取消唔到调尺寸。
-      if (s.mode === 'sketch' && s.sizing &&
+      // Enter/Esc typed in a dialog field are dialog keys only (fieldKeyOwner → 'dialog'): never sizing / type-to-place.
+      if (!editingText && s.mode === 'sketch' && s.sizing &&
           (/^[0-9.]$/.test(e.key) || (s.sizing.tool === 'offset' && e.key === '-') || e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Escape')) {
         e.preventDefault(); s.sizeTypeKey(e.key); return
       }
       // Exact-dimension typing while sketching: digits/'.'/Tab/Enter/Backspace go to the dim entry.
-      if (s.mode === 'sketch' && (s.sketchStart != null || s.polyPts.length > 0) &&
+      if (!editingText && s.mode === 'sketch' && (s.sketchStart != null || s.polyPts.length > 0) &&
           (/^[0-9.]$/.test(e.key) || e.key === 'Enter' || e.key === 'Tab' || e.key === 'Backspace')) {
         // GM-W6 B2：折线/样条画紧时【空 buffer 嘅裸 Enter = 收笔】（对齐 Fusion）——旧版会静默经
         // sketchTypeKey 落一个幽灵点（空 buffer parseFloat=NaN → 回落上一长度照加点）。有数字先走精确尺寸。
@@ -171,7 +175,7 @@ export default function App() {
       // for the active draw tool. Tab/Enter/Backspace only when a buffer's started (avoid placing 0,0 by accident).
       // Not for pick tools (select/dimension) nor while a dimension editor session is open — there a stray
       // digit (focus lost mid-edit) used to arm a ghost 「起點」 entry instead of reaching the dimension.
-      if (s.mode === 'sketch' && s.sketchStart == null && s.polyPts.length === 0 && s.sketchTool !== 'select' && s.sketchTool !== 'dimension' && !s.skDimPreview.id) {
+      if (!editingText && s.mode === 'sketch' && s.sketchStart == null && s.polyPts.length === 0 && s.sketchTool !== 'select' && s.sketchTool !== 'dimension' && !s.skDimPreview.id) {
         const hasBuf = !!(s.dimBuf[0] || s.dimBuf[1])
         if (/^[0-9.\-]$/.test(e.key) || ((e.key === 'Enter' || e.key === 'Tab' || e.key === 'Backspace') && hasBuf)) {
           e.preventDefault(); s.sketchTypeKey(e.key); return

@@ -80,13 +80,14 @@ export function jointPointerSegment(j: JointLike): [Vector3, Vector3] {
 }
 
 export type Project = (p: Vector3) => [number, number] | null
-export type JointHit = { kind: 'rotate' | 'slide'; part: 'ring' | 'pointer' | 'anchor' | 'axis'; d: number }
+export type JointHit = { kind: 'rotate' | 'slide'; part: 'ring' | 'pointer' | 'anchor' | 'axis' | 'bead'; d: number }
 /**
  * 螢幕命中（RETEST21 #1 加闊）：旋轉類 = 橙環（tolPx）＋白色指針線／白珠（tolPx+2）＋錨點橙球（tolPx+4，用戶好自然撳正中個波）；
  * 滑動類 = 滑動軸＋兩端箭頭（tolPx+2）。多樣中 → 揀近啲嗰樣（同距離時環 > 軸）。
  */
 export function jointHandleHitInfo(j: JointLike, project: Project, x: number, y: number, tolPx = 10, rendered?: { pointer?: [Vector3, Vector3] }): JointHit | null {
   let best: JointHit | null = null
+  let anchorScr: [number, number] | null = null
   const consider = (kind: JointHit['kind'], part: JointHit['part'], d: number, tol: number) => { if (d <= tol && (!best || d < best.d)) best = { kind, part, d } }
   const poly = (pts: Vector3[], kind: JointHit['kind'], part: JointHit['part'], tol: number) => {
     let prev: [number, number] | null = null
@@ -99,14 +100,26 @@ export function jointHandleHitInfo(j: JointLike, project: Project, x: number, y:
   if (ROT.has(j.type)) {
     poly(jointRingPoints(j), 'rotate', 'ring', tolPx)
     const [p0, p1] = jointPointerSegment(j)
-    const sa = project(p0); if (sa) consider('rotate', 'anchor', Math.hypot(x - sa[0], y - sa[1]), tolPx + 4)
+    const sa = project(p0); anchorScr = sa; if (sa) consider('rotate', 'anchor', Math.hypot(x - sa[0], y - sa[1]), tolPx + 4)
     // JOINT DIAG #1：成條白色指針（錨點 → 白珠，再加白珠半徑 2.4mm）都係把手；
     // 另外用 JointGizmo 實際畫出嚟嗰條（rendered）再試一次 —— 畫面同 store 一刻唔同步（例如 Ctrl+Z 後）都係「見到邊度就撳得中邊度」。
     const ext = (q0: Vector3, q1: Vector3) => { const d = q1.clone().sub(q0), L = d.length(); return L > 1e-9 ? q1.clone().addScaledVector(d, 2.4 / L) : q1.clone() }
     poly([p0, ext(p0, p1)], 'rotate', 'pointer', tolPx + 2)
     if (rendered?.pointer) poly([rendered.pointer[0], ext(rendered.pointer[0], rendered.pointer[1])], 'rotate', 'pointer', tolPx + 2)
   }
-  if (SLD.has(j.type)) { const [p0, p1] = jointSlideSegment(j); poly([p0, p1], 'slide', 'axis', tolPx + 2) }   // 箭頭錐 ≈ 端點，加 2px
+  if (SLD.has(j.type)) {
+    // ASM2：箭頭錐（高 6mm，中心喺端點）伸出端點 3mm → 線段兩端各延長 4mm，撳箭頭尖都算（以前撳箭頭 = 轉鏡頭）
+    const [p0, p1] = jointSlideSegment(j), d = p1.clone().sub(p0), L = d.length()
+    const e0 = L > 1e-9 ? p0.clone().addScaledVector(d, -4 / L) : p0, e1 = L > 1e-9 ? p1.clone().addScaledVector(d, 4 / L) : p1
+    poly([e0, e1], 'slide', 'axis', tolPx + 2)
+    // 青色滑動珠（目前滑動位置）
+    const bead = project(jointBasis(j).a.clone().addScaledVector(jointSlideDir(j), j.slide ?? 0))
+    if (bead) consider('slide', 'bead', Math.max(0, Math.hypot(x - bead[0], y - bead[1]) - 1), tolPx + 2)
+  }
+  // ASM2：白色指針由錨點出發 —— 撳正錨點球時指針距離都係 ≈0，但喺軸心拖動角度冇定義（轉唔到）；
+  // 錨點球半徑（8px）內一律當「錨點」計，令多關節共用錨點時讓位畀滑動軸／珠。
+  const b = best as JointHit | null
+  if (b && b.part === 'pointer' && anchorScr && Math.hypot(x - anchorScr[0], y - anchorScr[1]) <= 8) return { ...b, part: 'anchor' }
   return best
 }
 /** JointGizmo 每次 render 記低實際畫出嚟嘅白色指針（world），claimer 命中測試用。 */
@@ -137,22 +150,85 @@ export function rayAxisParam(j: JointLike, ray: Ray): number | null {
 
 const wrapPi = (x: number) => { let y = (x + Math.PI) % (2 * Math.PI); if (y < 0) y += 2 * Math.PI; return y - Math.PI }
 
-export type JointDragSession = { kind: 'rotate' | 'slide'; move: (ray: Ray) => void; end: () => void }
+export type JointDragSession = { kind: 'rotate' | 'slide'; move: (ray: Ray, x?: number, y?: number) => void; end: () => void; mode?: 'plane' | 'screen' }
+/** 螢幕資料（選填）：投影函數＋按下點像素。有咗先可以喺「環近乎側面」時改用螢幕切線模式。 */
+export type JointDragScreen = { project: Project; x: number; y: number }
+
+/** 環平面同視線夾角太細（|cos| < 呢個值，約 20°）→ 射線交平面數值病態（正交側視時完全平行），改用螢幕切線模式。 */
+export const RING_EDGE_ON_COS = 0.35
+
+/**
+ * ASM2 #1：環近乎側面（正交前視／低角度）時嘅螢幕切線拖動參數。
+ * 用戶見到嘅環係一條扁橢圓／直線，佢會沿住條線拖 —— 射線交平面要麼平行（null），要麼交喺好遠處（極角幾乎唔變）。
+ * 改為：揀按下點最近嘅環參數 θg，用該點螢幕切線（d 投影 / dθ）；切線太短（側面兩端）就用「最近鏡頭嗰邊」嘅切線。
+ * 回傳單位切線 t 同每弧度像素 k：Δθ = (Δ滑鼠 · t) / k。
+ */
+export function ringScreenTangent(j: JointLike, project: Project, x: number, y: number, viewDir: Vector3): { t: [number, number]; k: number } | null {
+  const { a, u, v } = jointBasis(j)
+  const P = (th: number) => a.clone().addScaledVector(u, JOINT_RING_R * Math.cos(th)).addScaledVector(v, JOINT_RING_R * Math.sin(th))
+  const sa = project(a)
+  if (!sa) return null
+  // 環喺螢幕上嘅半徑（最大投影距離）同按下點最近嘅參數
+  let best = Infinity, thg = 0, rScr = 0
+  for (let i = 0; i < 360; i += 2) {
+    const th = i * DEG, s = project(P(th))
+    if (!s) continue
+    rScr = Math.max(rScr, Math.hypot(s[0] - sa[0], s[1] - sa[1]))
+    const d = Math.hypot(s[0] - x, s[1] - y)
+    if (d < best) { best = d; thg = th }
+  }
+  if (rScr < 1e-6) return null
+  const tan = (th: number): [number, number] | null => {
+    const h = 0.01, s0 = project(P(th - h)), s1 = project(P(th + h))
+    if (!s0 || !s1) return null
+    return [(s1[0] - s0[0]) / (2 * h), (s1[1] - s0[1]) / (2 * h)]
+  }
+  let T = tan(thg)
+  if (!T || Math.hypot(T[0], T[1]) < 0.35 * rScr) {
+    // 「近鏡頭」嗰點：視線反方向投影落環平面
+    const toCam = viewDir.clone().multiplyScalar(-1)
+    const pu = toCam.dot(u), pv = toCam.dot(v)
+    const thf = Math.hypot(pu, pv) > 1e-9 ? Math.atan2(pv, pu) : 0
+    T = tan(thf)
+  }
+  if (!T) return null
+  const L = Math.hypot(T[0], T[1])
+  if (L < 1e-6) return null
+  return { t: [T[0] / L, T[1] / L], k: Math.max(L, 0.35 * rScr, 20) }
+}
+
 /** 開一個拖動 session：apply(patch) 寫關節值；角度逐幀 unwrap 累加（可轉多圈）。 */
-export function startJointHandleDrag(j: JointLike, kind: 'rotate' | 'slide', ray0: Ray, apply: (patch: { angle?: number; slide?: number }) => void, end: () => void): JointDragSession | null {
+export function startJointHandleDrag(j: JointLike, kind: 'rotate' | 'slide', ray0: Ray, apply: (patch: { angle?: number; slide?: number }) => void, end: () => void, scr?: JointDragScreen): JointDragSession | null {
   if (kind === 'rotate') {
+    let ang = j.angle ?? 0
+    const put = () => apply({ angle: Math.round(ang * 1000) / 1000 })
+    // ASM2 #1：環近乎側面（|視線·軸| 細）→ 螢幕切線模式，否則射線交平面極角模式（跟住游標）。
+    const { ax } = jointBasis(j)
+    const edgeOn = Math.abs(ray0.direction.clone().normalize().dot(ax)) < RING_EDGE_ON_COS
+    const st = edgeOn && scr ? ringScreenTangent(j, scr.project, scr.x, scr.y, ray0.direction.clone().normalize()) : null
+    if (st && scr) {
+      const a0 = ang
+      return {
+        kind, mode: 'screen',
+        move: (_ray, x, y) => {
+          if (x == null || y == null) return
+          const d = ((x - scr.x) * st.t[0] + (y - scr.y) * st.t[1]) / st.k
+          ang = a0 + d / DEG; put()
+        },
+        end,
+      }
+    }
     // RETEST21 #1：撳錨點／指針近中心 → 起點角度未定（或視線貼住關節平面）都照開 session（食咗 pointerdown，鏡頭唔轉），
     // 第一個有效角度做基準，之後跟住轉。
     const MINR = JOINT_RING_R * 0.08
     let last = rayPolarAngle(j, ray0, MINR)
-    let ang = j.angle ?? 0
     return {
-      kind,
+      kind, mode: 'plane',
       move: (ray) => {
         const now = rayPolarAngle(j, ray, MINR)
         if (now == null) return
         if (last == null) { last = now; return }
-        ang += wrapPi(now - last) / DEG; last = now; apply({ angle: Math.round(ang * 1000) / 1000 })
+        ang += wrapPi(now - last) / DEG; last = now; put()
       },
       end,
     }
@@ -170,8 +246,31 @@ export function startJointHandleDrag(j: JointLike, kind: 'rotate' | 'slide', ray
 // ── registry：JointGizmo（Canvas 內，有相機）註冊；Viewport 外層 capture 問 ──
 type Ctl = { enabled: boolean } | null | undefined
 type Claimer = (clientX: number, clientY: number, target?: EventTarget | null) => { move: (x: number, y: number) => void; end: () => void; controls?: Ctl } | null
+/** 只量命中距離（唔開 session、唔寫診斷）：細 = 優先；null = 唔中。 */
+type Probe = (clientX: number, clientY: number, target?: EventTarget | null) => number | null
 const _claimers = new Map<string, Claimer>()
-export function registerJointHandleClaimer(key: string, c: Claimer | null): void { if (c) _claimers.set(key, c); else _claimers.delete(key) }
+const _probes = new Map<string, Probe>()
+export function registerJointHandleClaimer(key: string, c: Claimer | null, probe?: Probe | null): void {
+  if (c) _claimers.set(key, c); else _claimers.delete(key)
+  if (c && probe) _probes.set(key, probe); else _probes.delete(key)
+}
+/** ASM2：命中優先分數 —— 錨點球（幾條關節共用同一錨點時最易重疊）讓位畀其他關節嘅具體把手（環／指針／滑動軸／珠）。 */
+export function jointHitScore(h: JointHit | null): number | null { return h ? h.d + (h.part === 'anchor' ? 6 : 0) : null }
+/** ASM2：多條關節把手重疊時，按 probe 分數由近到遠試（以前按註冊次序 → 撳青色滑動珠竟然轉咗 J1）。 */
+export function orderedClaimers(clientX: number, clientY: number, target: EventTarget | null): Claimer[] {
+  const scored: { k: string; c: Claimer; s: number; i: number }[] = []
+  let i = 0
+  for (const [k, c] of _claimers) {
+    const p = _probes.get(k)
+    let s: number | null = Infinity
+    if (p) { try { s = p(clientX, clientY, target) } catch { s = null } }
+    if (s != null) scored.push({ k, c, s, i: i++ })
+  }
+  scored.sort((a, b) => a.s - b.s || a.i - b.i)
+  // 診斷／e2e：最後一次排序（關節 key + 分數）
+  ;(globalThis as { __jointProbeLast?: unknown }).__jointProbeLast = scored.map((x) => [x.k, x.s])
+  return scored.map((x) => x.c)
+}
 
 /**
  * Viewport 嘅 window capture pointerdown（RETEST21 #1：由 React 根 capture 提早到 window capture —— 任何其他監聽
@@ -179,14 +278,15 @@ export function registerJointHandleClaimer(key: string, c: Claimer | null): void
  * 停 Orbit、window capture 聽 move/up 驅動，放手還原。
  */
 export function claimJointHandle(clientX: number, clientY: number, win: Pick<Window, 'addEventListener' | 'removeEventListener'> | null = typeof window !== 'undefined' ? window : null, target: EventTarget | null = null): boolean {
-  for (const c of _claimers.values()) {
+  for (const c of orderedClaimers(clientX, clientY, target)) {
     let s: ReturnType<Claimer> = null
     try { s = c(clientX, clientY, target) } catch { s = null }
     if (!s) continue
     const ctl = s.controls; const was = ctl?.enabled
     if (ctl) ctl.enabled = false
     if (win) {
-      const mv = (e: Event) => { const p = e as PointerEvent; s!.move(p.clientX, p.clientY) }
+      // ASM2 #1：拖動期間 pointermove 唔再傳落去（Orbit／R3F hover／框選都收唔到），鏡頭絕對唔會跟住轉。
+      const mv = (e: Event) => { const p = e as PointerEvent; e.stopPropagation?.(); s!.move(p.clientX, p.clientY) }
       // 放手後瀏覽器仲會派一個 click 落 canvas → R3F 會當咗「點選組件」；食咗佢（只呢一下）。
       const swallow = (e: Event) => { e.stopPropagation(); e.preventDefault?.() }
       const up = () => {

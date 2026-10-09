@@ -9,11 +9,13 @@ export const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ?
 export async function launch({ port = Number(arg('--port', 4317)), chrome = arg('--chrome', '/usr/bin/google-chrome'), dpr = Number(arg('--dpr', 1)) } = {}) {
   const shots = arg('--shots', '')
   if (shots) mkdirSync(shots, { recursive: true })
-  const preview = spawn('nice', ['-n', '19', 'npx', 'vite', 'preview', '--port', String(port), '--strictPort', '--host', '127.0.0.1'], { stdio: ['ignore', 'pipe', 'pipe'], detached: true })
-  const killPreview = () => { try { process.kill(-preview.pid, 'SIGTERM') } catch { /* gone */ } }
+  // --url <base>: test an already-served build (e.g. the live site) instead of starting `vite preview`.
+  const baseUrl = arg('--url', '')
+  const preview = baseUrl ? null : spawn('nice', ['-n', '19', 'npx', 'vite', 'preview', '--port', String(port), '--strictPort', '--host', '127.0.0.1'], { stdio: ['ignore', 'pipe', 'pipe'], detached: true })
+  const killPreview = () => { if (!preview) return; try { process.kill(-preview.pid, 'SIGTERM') } catch { /* gone */ } }
   process.on('exit', killPreview)
   for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { killPreview(); process.exit(130) })
-  await new Promise((res, rej) => {
+  if (preview) await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('vite preview did not start')), 30000)
     preview.stdout.on('data', (d) => { if (String(d).includes(String(port))) { clearTimeout(t); res() } })
     preview.on('exit', (c) => rej(new Error('vite preview exited ' + c)))
@@ -21,7 +23,7 @@ export async function launch({ port = Number(arg('--port', 4317)), chrome = arg(
   const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
   const page = await browser.newPage({ viewport: { width: Number(arg('--vw', 1400)), height: Number(arg('--vh', 900)) }, deviceScaleFactor: dpr })
   page.on('pageerror', (e) => console.log('[pageerror]', e.message))
-  await page.goto(`http://127.0.0.1:${port}/?ui-test=1`)
+  await page.goto(baseUrl ? `${baseUrl.replace(/\/$/, '')}/?ui-test=1` : `http://127.0.0.1:${port}/?ui-test=1`)
   await page.waitForFunction(() => !!window.useApp && !!window.__three?.camera, null, { timeout: 60000 })
   await page.waitForFunction(() => !!document.querySelector('canvas'), null, { timeout: 60000 })
   await page.keyboard.press('Escape').catch(() => {})

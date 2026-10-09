@@ -3,7 +3,7 @@ import { Line } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { Vector3, Quaternion, Raycaster, Vector2 } from 'three'
 import { type Joint, type JointOrigin, resolveJointOrigin } from '../assembly/kinematics'
-import { jointHandleHitInfo, registerJointHandleClaimer, startJointHandleDrag, renderedJointPointer } from '../assembly/jointHandleDrag'
+import { jointHandleHitInfo, jointHitScore, registerJointHandleClaimer, startJointHandleDrag, renderedJointPointer } from '../assembly/jointHandleDrag'
 import { useApp, dbgLog } from '../store'
 
 // GM-3DV4 A1：可复用 Joint Origin 在场景中的标记 — 十字准星球（Fusion「Joint Origins」帧）+ 沿轴短箭。
@@ -65,6 +65,17 @@ function useJointHandleDrag(j: Joint) {
       rc.setFromCamera(ndc, st.camera)
       return rc.ray.clone()
     }
+    // ASM2：多條關節把手重疊 → Viewport 先問每條關節嘅 probe（純命中距離），由最近嗰條開始 claim。
+    const probe = (x: number, y: number, target?: EventTarget | null): number | null => {
+      const app = useApp.getState(), st = get()
+      if (target && target !== st.gl.domElement) return null
+      if (app.mode !== 'model' || app.busy || app.jointPickMode || app.faceMateMode || app.jointOriginPickMode || !app.objectVis.joints) return null
+      const cur = app.joints.find((q) => q.id === j.id); if (!cur) return null
+      const r = st.gl.domElement.getBoundingClientRect()
+      if (x < r.left || x > r.right || y < r.top || y > r.bottom) return null
+      const project = (p: Vector3): [number, number] | null => { const q = p.clone().project(st.camera); if (q.z > 1 || q.z < -1) return null; return [r.left + (q.x + 1) / 2 * r.width, r.top + (1 - q.y) / 2 * r.height] }
+      return jointHitScore(jointHandleHitInfo(cur, project, x, y, 10, { pointer: renderedJointPointer.get(j.id) }))
+    }
     registerJointHandleClaimer('joint:' + j.id, (x, y, target) => {
       const app = useApp.getState()
       const st = get()
@@ -91,21 +102,22 @@ function useJointHandleDrag(j: Joint) {
       }
       if (!hit) return null
       // JOINT #2：撳錨點球 —— 以前靜靜雞開咗旋轉 session（要拉出去再繞圈先有反應，用戶以為冇用）→ 講明點用
-      if (hit.part === 'anchor') useApp.setState({ status: `關節錨點（軸心）「${cur.name ?? cur.id}」：按住向外拉再繞圈 = 旋轉；直接拖白色指針／橙環亦得。要搬錨點位置：「關節」面板重新揀幾何` })
+      if (hit.part === 'anchor') useApp.setState({ status: `關節錨點（軸心）「${cur.name ?? cur.id}」：按住並向外拖出後繞圈即可旋轉；亦可直接拖動白色指針或橙色環。如需移動錨點位置，請在「關節」面板重新選取幾何` })
       const kind = hit.kind
       let drove = false
       const sess = startJointHandleDrag(cur, kind, rayAt(x, y), (patch) => {
         if (!drove) { useApp.getState().beginJointDrive(); drove = true }
         useApp.getState().setJointValue(j.id, patch)
-      }, () => { if (drove) useApp.getState().endJointDrive() })
+      }, () => { if (drove) useApp.getState().endJointDrive() }, { project, x, y })   // ASM2 #1：環近乎側面 → 螢幕切線模式
       if (!sess) return null
+      if (app.debugMode && sess.mode) dbgLog(`關節把手 ${j.id}：拖動模式 ${sess.mode === 'screen' ? '螢幕切線（環近乎側面）' : '平面極角'}`)
       st.gl.domElement.style.cursor = 'grabbing'
       return {
-        move: (mx, my) => sess.move(rayAt(mx, my)),
+        move: (mx, my) => sess.move(rayAt(mx, my), mx, my),
         end: () => { st.gl.domElement.style.cursor = ''; sess.end() },
         controls: st.controls as unknown as { enabled: boolean } | null,
       }
-    })
+    }, probe)
     return () => registerJointHandleClaimer('joint:' + j.id, null)
   }, [j.id, j.type, get])
   useEffect(() => () => { renderedJointPointer.delete(j.id) }, [j.id])

@@ -14,7 +14,7 @@ import { useLayoutEffect, useEffect, useMemo, useRef, useState, type ReactNode, 
 import { useThree, useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import { DoubleSide, Raycaster, Plane as ThreePlane, Vector3, BufferGeometry, Float32BufferAttribute, ShapeUtils, Vector2, Matrix4, Quaternion, TextureLoader, SRGBColorSpace, CatmullRomCurve3, TubeGeometry, type Texture } from 'three'
-import { useApp, setSnapScale, arc3, circumcircle, evalExpr, endTangent, type Pt, type SketchShape } from '../store'
+import { useApp, setSnapScale, arc3, circumcircle, evalExpr, endTangent, tangentArcBulge, type Pt, type SketchShape } from '../store'
 import { tStatus, msg } from '../i18n'
 import { parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：单位感知尺寸输入（分数英寸）
 import { ellipseLineTangentPair, initialEllipseContact, refMid, refPts, measureDim, dimGfx, radDiaDisplay, type FShape, type SkCon, type SkRef } from '../sketch/freesolve'
@@ -898,7 +898,7 @@ export function SketchDraw() {
       if (t) {
         const v: Pt = [preview[0] - P[0], preview[1] - P[1]]
         const phi = Math.atan2(t[0] * v[1] - t[1] * v[0], t[0] * v[0] + t[1] * v[1])
-        if (Math.abs(phi) > 1e-3 && Math.abs(phi) < (170 * Math.PI) / 180 / 2 && Math.hypot(v[0], v[1]) > 1e-3) arcSeg = tessellateSeg(P, preview, Math.tan(phi / 2))
+        if (Math.abs(phi) > 1e-3 && Math.abs(phi) < (170 * Math.PI) / 180 / 2 && Math.hypot(v[0], v[1]) > 1e-3) arcSeg = tessellateSeg(P, preview, tangentArcBulge(phi))
       }
       els.push(<Line key="live" points={[...straight, ...arcSeg.map(lift)]} color="#1572c4" lineWidth={1.8} />)
     } else if ((tool === 'polyline' || tool === 'spline' || tool === 'bspline') && polyPts.length > 0) {

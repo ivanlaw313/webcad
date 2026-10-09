@@ -3958,17 +3958,8 @@ function bulgeFromMid(a: Pt, b: Pt, m: Pt): number {
 }
 // Canonical builder for a mixed line/arc poly — pts is ALWAYS derived via pathPts (the invariant).
 // T777：折线末段切线方向（相切弧续画用）— 直线段 = 段方向；弧段 = 终点半径向量旋 90°（方向跟弧行进）
-export function endTangent(pts: Pt[], bulges: number[]): Pt | null {   // GM-FP1 #13：SketchLayer 相切弧 live 预览复用（准确切线，支持弧接弧）
-  if (pts.length < 2) return null
-  const a = pts[pts.length - 2], b = pts[pts.length - 1]
-  const bu = bulges[pts.length - 2] ?? 0
-  if (Math.abs(bu) < 1e-12) { const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; return [(b[0] - a[0]) / L, (b[1] - a[1]) / L] }
-  const c = bulgeCenter(a, b, bu)
-  const vx = b[0] - c[0], vy = b[1] - c[1]
-  const L = Math.hypot(vx, vy) || 1
-  const dir = bu > 0 ? 1 : -1   // bulge>0 = 凸向行进左侧（逆时针绕心）→ 切线 = perp(radial) 逆时针
-  return [(-vy / L) * dir, (vx / L) * dir]
-}
+export { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'   // BUG(F)：纯函数搬出（node 可测）
+import { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'
 
 // GM-FP2 #19：独立相切弧工具 —— 揾最近嘅现有【开放曲线端点】+ 该端点外向切线（G1 续弧起手）。
 // 只对开放 poly 端点（画完一条线/弧再由端点引相切弧嘅日常）；verts-poly 用 verts+bulges 算真切线，
@@ -6074,7 +6065,7 @@ export const useApp = create<AppState>((rawSet, get) => {
 
     if(s.drawConstruction)sh={...sh,construction:true}
     const originals=[...s.sketchProfiles,...(s.sketchShape?[s.sketchShape]:[])],candidate=[...originals,sh]
-    const auto=s.autoConstrain?inferCoincident(candidate,originals.length,s.skCons):[]
+    const auto=s.autoConstrain?[...inferCoincident(candidate,originals.length,s.skCons),...polyTangentArcCons(sh,originals.length,s.skCons,skConId)]:[]   // BUG(F)：相切弧段同时补相切约束
     let completed=candidate,cons=[...s.skCons,...auto],dof=s.skDof
     if(auto.length){
       const current=()=>{const c=get();return c.mode===s.mode&&c.sketchTool===s.sketchTool&&c.sketchProfiles===s.sketchProfiles&&c.sketchShape===s.sketchShape&&c.polyPts===s.polyPts&&c.polyBulges===s.polyBulges&&c.skCons===s.skCons&&c.params===s.params&&c.drawConstruction===s.drawConstruction&&c.autoConstrain===s.autoConstrain}
@@ -9342,10 +9333,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.mode !== 'sketch') return
     const shapes = [...s.sketchProfiles, ...(s.sketchShape ? [s.sketchShape] : [])] as FShape[]
     if (shapes.length < 1) return
-    const auto = inferCoincident(shapes, shapes.length - 1, s.skCons)
+    const coin = inferCoincident(shapes, shapes.length - 1, s.skCons)
+    const tan = polyTangentArcCons(shapes[shapes.length - 1] as SketchShape, shapes.length - 1, s.skCons, skConId)   // BUG(F)：相切弧段 ↔ 前一段 相切
+    const auto = [...coin, ...tan]
     if (!auto.length) return
     const ids = new Set(auto.map((c) => c.id))
-    set((s2) => ({ skCons: [...s2.skCons, ...auto], status: `✓ 重合推斷：自動加 ${auto.length} 個 ◉ 重合約束（點擊徽章可移除；只對精確吸附點生效）` }))
+    set((s2) => ({ skCons: [...s2.skCons, ...auto], status: coin.length ? `✓ 重合推斷：自動加 ${coin.length} 個 ◉ 重合約束${tan.length ? `＋${tan.length} 個相切` : ''}（點擊徽章可移除；只對精確吸附點生效）` : `✓ 相切弧：自動加 ${tan.length} 個相切約束（端點重合＋切線連續）` }))
     await get().resolveSk()
     if (get().skConflict) {
       set((s2) => ({ skCons: s2.skCons.filter((c) => !ids.has(c.id)), status: '⚠ 自動重合約束同現有約束衝突，已自動撤銷' }))
@@ -9957,7 +9950,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           let closingBulge = 0
           if (s.polyArcMode && !isSpline) {
             const t = endTangent(pts, bulges)
-            if (t) { const v: Pt = [f[0] - pts[pts.length - 1][0], f[1] - pts[pts.length - 1][1]]; const phi = Math.atan2(t[0] * v[1] - t[1] * v[0], t[0] * v[0] + t[1] * v[1]); if (Math.abs(phi) < (170 * Math.PI) / 180 / 2) closingBulge = Math.tan(phi / 2) }
+            if (t) { const v: Pt = [f[0] - pts[pts.length - 1][0], f[1] - pts[pts.length - 1][1]]; const phi = Math.atan2(t[0] * v[1] - t[1] * v[0], t[0] * v[0] + t[1] * v[1]); if (Math.abs(phi) < (170 * Math.PI) / 180 / 2) closingBulge = tangentArcBulge(phi) }
           }
           if (!isSpline && (closingBulge !== 0 || bulges.some((b) => Math.abs(b) > 1e-12))) {
             return { sketchShape: vertsPoly(pts, [...bulges, closingBulge]), polyPts: [], polyBulges: [], polyArcMode: false, status: '折線已閉合（含真圓弧段）— 點「拉伸」' }
@@ -9976,7 +9969,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (!t || chord < 0.5) return { status: '相切弧：點遠啲（弦長 ≥0.5mm）' }
         const phi = Math.atan2(t[0] * v[1] - t[1] * v[0], t[0] * v[0] + t[1] * v[1])
         if (Math.abs(phi) > (170 * Math.PI) / 180 / 2) return { status: '相切弧太翻（>170°）— 收細角度或分兩段' }
-        const bulge = Math.tan(phi / 2)
+        const bulge = tangentArcBulge(phi)   // BUG(F)：左转（phi>0）= 负 bulge（sketchOps 约定）
         return { polyPts: [...pts, pt], polyBulges: [...s.polyBulges, bulge], sketchPreview: pt, tanArcSeed: null, status: `相切弧已加（R${Math.abs(bulgeRadius(last, pt, bulge)).toFixed(1)}）— 繼續點（A 返回直線）` }
       }
       // GM-W6 B4：同上一点去重（<0.3mm = 手震连击/触屏双 tap）→ 忽略，唔好产生零长段流入轮廓/求解器
@@ -10001,6 +9994,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     // GM-FP2 #33：AutoConstrain 关咗 → 画图唔再自动推断约束（Fusion palette toggle 同款）。
     if (get().sketchTool === 'rectangle' && _preStart && !get().sketchStart && get().sketchShape?.type === 'rect' && get().sketchShape !== _preShape) { void get().resolveSk(); return }
     if (get().autoConstrain && _preStart && !get().sketchStart && get().sketchShape && get().sketchShape !== _preShape && get().mode === 'sketch') void get().applyCoincidentInference().then(() => get().applyDrawInference())
+    // BUG(F)：折线（含相切弧）点回起点闭合 → 都要补相切约束（折线唔一定经 sketchStart 路径）
+    else if (get().sketchTool === 'polyline' && get().sketchShape && get().sketchShape !== _preShape && get().mode === 'sketch' && (get().sketchShape as { bulges?: number[] }).bulges?.some((b) => Math.abs(b) > 1e-12)) void get().applyCoincidentInference()
   },
 
   onSketchMove: (raw) => set((s) => {

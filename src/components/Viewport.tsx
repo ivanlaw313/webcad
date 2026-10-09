@@ -47,6 +47,8 @@ const VIEWPORT_FRAMELOOP: 'always' | 'demand' = (() => { try { return typeof loc
 // v2.20 P4：狀態列尾段嘅重建警告（formatBuildWarnings 以「　⚠ 」接上）同警告 pill 一樣，BUILD_WARN_MS 後自動收起；
 // 主訊息保留。整句本身就係錯誤（⚠ 開頭）唔郁 — 嗰啲係失敗原因唔係警告。
 const BUILD_WARN_MS = 10000
+// v2.20 P3：細圓柱面（細孔壁）拾取容差，螢幕像素
+const CYL_PICK_PX = 10
 function StatusText({ lang, span }: { lang: Parameters<typeof tStatus>[1]; span?: boolean }) {
   const raw = useApp((s) => s.status)
   const [expired, setExpired] = useState<string | null>(null)
@@ -107,7 +109,7 @@ function loadNormalTexture(url: string): Texture {
   if (!t) { t = new TextureLoader().load(url); t.wrapS = t.wrapT = RepeatWrapping; t.colorSpace = NoColorSpace; _nrmTexCache.set(url, t) }
   return t
 }
-import { detectFace, nearSharpEdge } from '../geom/faceDetect'
+import { detectFace, detectFacePreferCyl, nearSharpEdge } from '../geom/faceDetect'
 import { cutFaceGeom } from '../geom/sectionCap'   // S186：剖面盖切面三角抽取（切面上色）
 import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按需预览（避免普通建模首屏载入齿轮搜索）
 import { ToolIcon } from '../icons'
@@ -759,6 +761,26 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         notePlanarFace(pick?.three ?? null, pick?.n)
       }}
       onClick={(e) => {
+        // v2.20 P3：需要圓柱面的拾取 — 點擊鄰近平面時，若 CYL_PICK_PX 螢幕像素內有細孔壁則改選孔壁。
+        const cylDetect = (): ReturnType<typeof detectFace> => {
+          if (!e.point) return null
+          const cam = e.camera as { fov?: number } | undefined
+          const wpp = cam && typeof cam.fov === 'number' ? (2 * e.distance * Math.tan((cam.fov * Math.PI) / 360)) / Math.max(1, window.innerHeight) : 0.15
+          return detectFacePreferCyl(mesh, e.faceIndex ?? -1, [e.point.x, -e.point.z, e.point.y], Math.max(0.2, CYL_PICK_PX * wpp))
+        }
+        // 射線先擊中孔口邊線（faceIndex 為空）：附近有圓柱則直接視為選中孔壁；否則交回後續三角形命中處理。
+        if (!frozen && e.faceIndex == null && e.point && (cpatAxisPick || feaPinPick || feaBearingPick || threadFacePick)) {
+          const det = cylDetect()
+          if (det && det.kind === 'cyl') {
+            e.stopPropagation()
+            const c = { p: det.p, axis: det.axis, r: det.r }
+            if (cpatAxisPick) useApp.getState().applyCpatAxisPick(c)
+            else if (feaPinPick) useApp.getState().applyFeaPinPick(c)
+            else if (feaBearingPick) useApp.getState().applyFeaBearingPick(c)
+            else useApp.getState().applyThreadFacePick(det)
+            return
+          }
+        }
         if (automatedModelPicking && !frozen && e.faceIndex != null) {
           e.stopPropagation()
           const det = detectFace(mesh, e.faceIndex)
@@ -769,21 +791,21 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         //（嗰个变换系俾摆咗位嘅冻结组件用 — 乘咗会转去 three Y-up 世界系，轴向即错）
         if (cpatAxisPick && !frozen && e.faceIndex != null) {
           e.stopPropagation()
-          const det = detectFace(mesh, e.faceIndex)
+          const det = cylDetect()
           useApp.getState().applyCpatAxisPick(det && det.kind === 'cyl' ? { p: det.p, axis: det.axis, r: det.r } : null)
           return
         }
         // S116：拾销/圆柱约束孔（同 cpatAxisPick 一样喺活动实体 CAD 系 — 唔行 faceMate matrixWorld 分支）
         if (feaPinPick && !frozen && e.faceIndex != null) {
           e.stopPropagation()
-          const det = detectFace(mesh, e.faceIndex)
+          const det = cylDetect()
           useApp.getState().applyFeaPinPick(det && det.kind === 'cyl' ? { p: det.p, axis: det.axis, r: det.r } : null)
           return
         }
         // S171：拾轴承载荷孔（同销孔 — 圆柱面 → 轴点/轴向/半径）
         if (feaBearingPick && !frozen && e.faceIndex != null) {
           e.stopPropagation()
-          const det = detectFace(mesh, e.faceIndex)
+          const det = cylDetect()
           useApp.getState().applyFeaBearingPick(det && det.kind === 'cyl' ? { p: det.p, axis: det.axis, r: det.r } : null)
           return
         }
@@ -932,12 +954,13 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         // Hole To Object: target selection uses CAD planar-face detection, never a display face index.
         if (holeToObjectPick && !frozen && e.faceIndex != null) { e.stopPropagation(); const det = detectFace(mesh, e.faceIndex); useApp.getState().applyHoleToObjectPick(det && det.kind === 'planar' ? { kind: 'planar', p: det.p, n: det.n } : null); return }
         // T775：选圆柱面加外螺纹
-        if (threadFacePick && !frozen && e.faceIndex != null) { e.stopPropagation(); useApp.getState().applyThreadFacePick(detectFace(mesh, e.faceIndex)); return }
+        if (threadFacePick && !frozen && e.faceIndex != null) { e.stopPropagation(); useApp.getState().applyThreadFacePick(cylDetect()); return }
         // T778：datum 拾取（相切面 / 两面中面）— click 点转 CAD
-        if (datumPicking && !frozen && e.faceIndex != null) { e.stopPropagation(); useApp.getState().applyDatumPick(detectFace(mesh, e.faceIndex), [e.point.x, -e.point.z, e.point.y]); return }
+        if (datumPicking && !frozen && e.faceIndex == null && e.point && ['tanplane', 'circcenter'].includes(useApp.getState().datumPick?.kind ?? '')) { const det = cylDetect(); if (det) { e.stopPropagation(); useApp.getState().applyDatumPick(det, [e.point.x, -e.point.z, e.point.y]); return } }
+        if (datumPicking && !frozen && e.faceIndex != null) { e.stopPropagation(); const dk = useApp.getState().datumPick?.kind; useApp.getState().applyDatumPick(dk === 'tanplane' || dk === 'circcenter' ? cylDetect() : detectFace(mesh, e.faceIndex), [e.point.x, -e.point.z, e.point.y]); return }
         // GM-3DV2 R1：统一构造几何 · 累积拾取法（过两边/垂直面/圆柱轴/两边交点/三面交点/边穿面/圆边取心）— 边槽用 e.point 交 store 解析最近边，面槽用 detectFace。
         if (datumCmdOffsetFace && !frozen && e.faceIndex != null) { e.stopPropagation(); useApp.getState().datumCmdFieldFacePick(detectFace(mesh, e.faceIndex)); return }
-        if (datumCmdAcc && !frozen && e.point) { e.stopPropagation(); const det = e.faceIndex != null ? detectFace(mesh, e.faceIndex) : null; void useApp.getState().datumCmdClickAt(det, [e.point.x, e.point.y, e.point.z], 'modelVertex'); return }
+        if (datumCmdAcc && !frozen && e.point) { e.stopPropagation(); const dcs = useApp.getState().datumCmd; const wantCyl = !!dcs && DATUM_CMD_ACC[dcs.type + ':' + dcs.method]?.[dcs.picks.length] === 'c'; const det = wantCyl ? cylDetect() : e.faceIndex != null ? detectFace(mesh, e.faceIndex) : null; void useApp.getState().datumCmdClickAt(det, [e.point.x, e.point.y, e.point.z], 'modelVertex'); return }
         if (shellMode && !frozen && e.face) { e.stopPropagation(); shellPickAt([e.point.x, e.point.y, e.point.z]); return }
         if (faceFilletMode && !frozen && e.face) { e.stopPropagation(); faceFilletPickAt([e.point.x, e.point.y, e.point.z]); return }   // R1 面圆角：拾面（guarded — 需 e.face，行 shell 同款）
         if (holeMode && !frozen && e.face) { e.stopPropagation(); holePickAt([e.point.x, e.point.y, e.point.z], e.face.normal.clone().transformDirection(e.object.matrixWorld).y, e.faceIndex != null ? detectFace(mesh, e.faceIndex) : null); return }   // P2 修：世界法线 y 判上向面 → 盲孔/沉头由揀面起计；detectFace → 圆柱面对心（Fusion At Center）
@@ -7596,7 +7619,7 @@ export default function Viewport() {
             })()}
             {key === 'plane:offset' && dc.picks.length === 0 && (<>
               <div className="sb-hint" style={{ width: '100%', fontSize: 11, lineHeight: 1.4 }}>
-                {tStatus('可在畫布點選實體平面作偏移基準（偏移由該面起計）；點選兩個平行面則建立中間平面。不選面時，由下面的原點面 XY／XZ／YZ 起計。', lang)}
+                {tStatus('可在畫布點選實體平面作偏移基準（偏移由該面起計）；點選兩個平行面則建立中間平面。圓柱／圓錐側面不能當偏移基準。不選面時，由下面的原點面 XY／XZ／YZ 起計。', lang)}
               </div>
               <label>{tStatus('基準面', lang)} <select value={String(P.base ?? 'XY')} onChange={(e) => dp('base', e.target.value)} style={{ height: 26 }}><option value="XY">{tStatus('XY(上)', lang)}</option><option value="XZ">{tStatus('XZ(前)', lang)}</option><option value="YZ">{tStatus('YZ(右)', lang)}</option><option value="midXY">{tStatus('XY 中間面', lang)}</option><option value="midXZ">{tStatus('XZ 中間面', lang)}</option><option value="midYZ">{tStatus('YZ 中間面', lang)}</option></select></label>
               {!String(P.base).startsWith('mid') && <label>{tStatus('偏移', lang)} <input type="number" step={5} value={Number(P.offset ?? 0)} onChange={(e) => dp('offset', Number(e.target.value))} style={{ width: 60 }} /> mm</label>}
@@ -7745,7 +7768,7 @@ export default function Viewport() {
             <button className="sb-tool sb-finish" title={tStatus('閉合輪廓（回起點成閉合面，可拉伸）', lang)} onClick={() => closePolyline()}>{tStatus('✓ 閉合', lang)}</button>
           )}
           <span className="sb-hint">{sketchTool === 'rectangle' ? tStatus('點兩個角點', lang) : sketchTool === 'circle' ? tStatus('點圓心再點半徑／打數字定精確Ø', lang) : sketchTool === 'trim' ? tStatus('✂ 點選要剪去的線段（修剪至相交點）', lang) : sketchTool === 'extend' ? tStatus('⟶ 點選開放路徑的端段', lang) : sketchTool === 'offset' ? tStatus('⇉ 點一個輪廓鎖定 → 拖滑鼠調距離(外+/內−,1mm步進) → 點確定 · 打數字 · ESC', lang) : sketchTool === 'cfillet' ? tStatus('⌒ 點近一個直角頂點鎖定 → 拖滑鼠調半徑 → 點確定（或底欄「全部角」）', lang) : sketchTool === 'cchamfer' ? tStatus('◣ 點近一個直角頂點鎖定 → 拖滑鼠調回縮 → 點確定（或底欄「全部角」）', lang) : sketchTool === 'mirror' ? tStatus('⇋ ①點選輪廓（綠）→「✓選軸線」→ ②點一條直線邊做鏡像軸', lang) : sketchTool === 'array' ? tStatus('▦ 底欄面板設 矩形/環形 參數（綠虛線預覽）→ 應用陣列', lang) : sketchTool === 'cline' ? tStatus('┊ 點位置落構造參考線（工具面板切 豎直/水平）— 做對中參考 / 鏡像軸', lang) : (sketchTool === 'polyline' || sketchTool === 'spline' || sketchTool === 'bspline') ? tStatus('連續點擊；畫好按「✓ 完成線」（開放直線）或回起點/「✓ 閉合」（閉合面）', lang) : sketchTool === 'select' ? tStatus('選擇點／邊／尺寸；拖動檢驗約束', lang) : ''}</span>
-          {!sketchArb && <label className="sb-hint" title={tStatus('草圖平面沿其法向的偏移（XY=高度 Z；XZ=沿 Y；YZ=沿 X），mm', lang)}>{sketchPlane === 'XY' ? tStatus('基準Z', lang) : sketchPlane === 'XZ' ? tStatus('偏移Y', lang) : tStatus('偏移X', lang)} <input type="number" value={Math.round(sketchBaseZ)} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setSketchBaseZ(Number(e.target.value) || 0)} style={{ width: 50 }} /></label>}
+          {!sketchArb && <label className="sb-hint" title={tStatus('草圖平面沿其法向的偏移（XY=高度 Z；XZ=沿 Y；YZ=沿 X），mm', lang)}>{sketchPlane === 'XY' ? tStatus('基準Z', lang) : sketchPlane === 'XZ' ? tStatus('偏移Y', lang) : tStatus('偏移X', lang)} <input type="number" step="any" data-testid="sketch-base-offset" value={+sketchBaseZ.toFixed(4)} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setSketchBaseZ(Number(e.target.value) || 0)} style={{ width: 62 }} /></label>}
           {/* GM-W2 2.3：网格捕捉步长 已收纳入「更多▾」弹层；几何捕捉 常用 → 留喺底栏 */}
           <button className={'sb-tool' + (geoSnap ? ' active' : '')} title={tStatus('幾何捕捉：吸到孔心/邊/點/線（開）。關了可自由精準落點；畫圖時按住 Alt 可臨時停', lang)} onClick={() => setGeoSnap(!geoSnap)}>{geoSnap ? tStatus('🧲 幾何捕捉', lang) : tStatus('⊘ 捕捉關', lang)}</button>
           {/* GM-W6 A1：草图透视 —— 实体半透明，喺实体中间/背面画草图睇得到线（用户报「实心遮住个圆」）。默认开 */}

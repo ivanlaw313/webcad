@@ -135,10 +135,10 @@ const SOLID: Panel[] = [
     tools: [
       { id: 'ucs', label: '用戶坐標系', icon: 'axis', quick: true, tip: '點實體平面建立一套局部原點、三軸及三正交參考面。' },
       { id: 'datumgeom', label: '構造幾何', icon: 'plane', tip: '在一個面板中建立參考平面、構造軸或構造點；適用於圓柱、圓錐等沒有可用平面側面的實體。' },
-      { id: 'offsetplane', label: '偏移平面', icon: 'plane', quick: true, sep: true, tip: '先選原點 XY/XZ/YZ 基準面（或中間面），輸入距離建立平行參考面；如需由實體平面開始，可在方法選擇「偏移面（拾面+距離）」。' },
+      { id: 'offsetplane', label: '偏移平面', icon: 'plane', quick: true, sep: true, tip: '在畫布點選實體平面作偏移基準（偏移由該面起計；點選兩個平行面則建立中間平面），或不選面而由原點 XY／XZ／YZ 基準面起計，輸入距離建立平行參考面。' },
       { id: 'planeangedge', label: '成角平面', icon: 'plane', tip: '拾取直邊／軸並輸入角度，建立包含該邊的傾斜平面。' },
       { id: 'planetan', label: '相切平面', icon: 'plane', tip: '拾取圓柱面及參考方向，在指定位置建立相切平面。' },
-      { id: 'planemid', label: '中間平面', icon: 'plane', tip: '拾取兩個平面或平坦面，在兩者正中建立參考面。' },
+      { id: 'planemid', label: '中間平面', icon: 'plane', tip: '請選取兩個平行面，在兩者正中建立參考面。' },
       { id: 'planeperp', label: '垂直平面', icon: 'plane', tip: '拾取平面及參考邊，在指定距離建立垂直平面。' },
       { id: 'plane2edge', label: '過兩邊平面', icon: 'plane', tip: '順序拾取兩條邊，建立同時包含兩邊的參考面。' },
       { id: 'plane3pt', label: '過三點平面', icon: 'plane', tip: '用最後三個構造點建立參考面。' },

@@ -3420,6 +3420,7 @@ Object.assign(STATUS_PHRASES_X, {
   '圓心點：點一個【圓柱面】（孔壁/圓軸/凸台側）— 在軸上（點擊高度）落構造點': 'Center point: pick a [cylindrical face] (hole wall/shaft/boss side) — places a construction point on the axis (at click height)',
   '兩面軸：點【兩個不平行的平面】— 沿其交線生成構造軸': 'Two-face axis: pick two non-parallel planar faces — construction axis along their intersection',
   '過點平行面：點一個【平面】— 生成平行該面、且過【最後一個構造點】的參考平面（先落構造點）': 'Parallel plane through point: pick a [plane] — creates a reference plane parallel to it passing through the [last construction point] (place a point first)',
+  '可在畫布點選實體平面作偏移基準（偏移由該面起計）；點選兩個平行面則建立中間平面。圓柱／圓錐側面不能當偏移基準。不選面時，由下面的原點面 XY／XZ／YZ 起計。': 'Click a solid planar face as the offset base (offset measured from that face); two parallel faces create a midplane. Cylindrical/conical faces cannot be an offset base. With no face picked, measure from the origin plane XY/XZ/YZ below.',
   '中間平面：請選取兩個平行面 — 在兩面正中建立參考平面': 'Midplane: select two parallel faces — reference plane created midway',
   '中間平面：請選取兩個平行面': 'Midplane: select two parallel faces',
   '中間平面：兩個面並不平行 — 請選取兩個平行面': 'Midplane: the faces are not parallel — select two parallel faces',

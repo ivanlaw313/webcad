@@ -199,3 +199,45 @@ export function detectAllCylinders(mesh: { vertices: ArrayLike<number>; triangle
   }
   return dedup
 }
+
+// v2.20 P3：細孔（Ø3～Ø8）喺正常縮放下孔壁只得幾個像素闊，好難正正點中。要圓柱面嘅命令（取軸／圓心點／相切面／
+// 包牙／銷孔等）點中旁邊平面時，喺點擊點 tol（世界距離，caller 由螢幕像素換算）之內搵最近、可擬合成圓柱嘅三角形。
+// 已經點中圓柱 → 原樣返回；範圍內冇圓柱 → 返回原本偵測結果（唔會亂揀）。pt 同 mesh 一樣用 CAD 坐標。
+export function detectFacePreferCyl(
+  mesh: { vertices: ArrayLike<number>; triangles: ArrayLike<number> }, fi: number, pt: V3, tol: number,
+): DetectedFace | null {
+  // fi < 0：射線打中嘅係 B-rep 邊線疊加（孔口圓邊）而唔係三角形 — 正正係「點細孔」最常見情況；直接喺附近搵圓柱。
+  const direct = fi >= 0 ? detectFace(mesh, fi) : null
+  if ((fi >= 0 && !direct) || direct?.kind === 'cyl' || !(tol > 0)) return direct
+  const v = mesh.vertices, t = mesh.triangles, nt = (t.length / 3) | 0
+  const P = (k: number, j: number): V3 => { const o = t[3 * k + j] * 3; return [v[o], v[o + 1], v[o + 2]] }
+  const triDist = (p: V3, a: V3, b: V3, c: V3): number => {
+    // closest point on triangle (Ericson)
+    const ab = sub(b, a), ac = sub(c, a), ap = sub(p, a)
+    const d1 = dot(ab, ap), d2 = dot(ac, ap); if (d1 <= 0 && d2 <= 0) return len(ap)
+    const bp = sub(p, b), d3 = dot(ab, bp), d4 = dot(ac, bp); if (d3 >= 0 && d4 <= d3) return len(bp)
+    const vc = d1 * d4 - d3 * d2; if (vc <= 0 && d1 >= 0 && d3 <= 0) { const s = d1 / (d1 - d3); return len(sub(p, [a[0] + s * ab[0], a[1] + s * ab[1], a[2] + s * ab[2]])) }
+    const cp = sub(p, c), d5 = dot(ab, cp), d6 = dot(ac, cp); if (d6 >= 0 && d5 <= d6) return len(cp)
+    const vb = d5 * d2 - d1 * d6; if (vb <= 0 && d2 >= 0 && d6 <= 0) { const s = d2 / (d2 - d6); return len(sub(p, [a[0] + s * ac[0], a[1] + s * ac[1], a[2] + s * ac[2]])) }
+    const va = d3 * d6 - d5 * d4; if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) { const s = (d4 - d3) / ((d4 - d3) + (d5 - d6)); const bc = sub(c, b); return len(sub(p, [b[0] + s * bc[0], b[1] + s * bc[1], b[2] + s * bc[2]])) }
+    const den = 1 / (va + vb + vc), sv = vb * den, sw = vc * den
+    return len(sub(p, [a[0] + ab[0] * sv + ac[0] * sw, a[1] + ab[1] * sv + ac[1] * sw, a[2] + ab[2] * sv + ac[2] * sw]))
+  }
+  const near: { k: number; d: number }[] = []
+  for (let k = 0; k < nt; k++) {
+    if (k === fi) continue
+    const d = triDist(pt, P(k, 0), P(k, 1), P(k, 2))
+    if (d <= tol) near.push({ k, d })
+  }
+  near.sort((x, y) => x.d - y.d)
+  const n0 = direct?.n
+  let tries = 0
+  for (const { k } of near) {
+    const a = P(k, 0), nk = norm(cross(sub(P(k, 1), a), sub(P(k, 2), a)))
+    if (n0 && Math.abs(dot(nk, n0)) > 0.999) continue   // same flat face as the click — not a candidate
+    const det = detectFace(mesh, k)
+    if (det && det.kind === 'cyl') return det
+    if (++tries >= 6) break   // each detectFace is O(mesh); a handful of nearest candidates is enough
+  }
+  return direct
+}

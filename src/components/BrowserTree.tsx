@@ -10,6 +10,9 @@ import { treeMenuKeys, ACTIVE_BODY_KEY, parkedBodyKey, type TreeNodeKind, type T
 import { useEscapeLayer } from './useEscapeLayer'
 import { FEATURE_RENAME_EVENT } from '../ui/fieldInput'
 
+// v2.20 P3：構造幾何名稱唔顯示浮點雜訊（34.999999999999986 → 35；12.5 保留小數）
+const fmtNum = (v: number) => String(Number.isFinite(v) ? +(+v).toFixed(4) : v)
+
 // Browser-tree app context menu (Fusion browser right-click) — replaces Chrome's native menu on tree rows.
 type TreeMenuItem = { key: string; label: string; fn: () => void; disabled?: boolean }
 type TreeMenuAction = Partial<Record<string, (() => void) | undefined>>
@@ -746,48 +749,47 @@ export default function BrowserTree() {
         {(planes.length + cpoints.length + caxes.length) > 0 && (
           <Section label={`${msg('tree.construction', lang)} (${planes.length + cpoints.length + caxes.length})`}>
             {planes.map((pl, i) => (
-              <div key={'cpl' + i} className="tree-row" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().sketchOnDatumPlane(pl.base, pl.offset)} title={tStatus(`在參考平面 ${pl.base}@${pl.offset} 上新建草圖`, lang)}>
+              <div key={'cpl' + i} className="tree-row" style={{ paddingLeft: 18 }} onClick={() => useApp.getState().sketchOnDatumPlane(pl.base, pl.offset)} title={tStatus(`在參考平面 ${pl.base}@${fmtNum(pl.offset)} 上新建草圖`, lang)}>
                 <span className="tw-toggle" />
                 <span className="tw-ico"><ToolIcon name="plane" size={13} /></span>
-                <span style={{ flex: 1 }}>{tStatus('參考面', lang)} {pl.base}@{pl.offset}{pl.src && !pl.stale && <span title={tStatus('關聯基準：隨源面自動更新', lang)} style={{ marginLeft: 3, fontSize: 10 }}>🔗</span>}{pl.stale && <span title={tStatus('源面已改動/消失，無法自動更新此基準 — 改回或刪除重建', lang)} style={{ marginLeft: 3, color: '#c98a00' }}>⚠</span>}</span>
+                <span style={{ flex: 1 }}>{tStatus('參考面', lang)} {pl.base}@{fmtNum(pl.offset)}{pl.src && !pl.stale && <span title={tStatus('關聯基準：隨源面自動更新', lang)} style={{ marginLeft: 3, fontSize: 10 }}>🔗</span>}{pl.stale && <span title={tStatus('源面已改動/消失，無法自動更新此基準 — 改回或刪除重建', lang)} style={{ marginLeft: 3, color: '#c98a00' }}>⚠</span>}</span>
                 <span className="tw-act" title={tStatus('顯示 / 隱藏此參考面', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleDatumVis(datumVisKey('pl', pl)) }}>{datumHidden.includes(datumVisKey('pl', pl)) ? '🙈' : '👁'}</span>
                 {/* GM-W1 1.5：编辑 offset（角度面另可改 angle）。诚实：只郁呢块 datum 本身 — 已经喺佢上面拉伸/开咗嘅草图唔会跟住重算（timeline 关联系后续功能）。datum-pick 固定 arb 面（有 arb 无 aaxis）唔畀改 offset（无实义）。*/}
                 {(pl.aaxis != null || !pl.arb) && (
-                  <span className="tw-act" title={tStatus(`編輯偏移${pl.aaxis != null ? '/角度' : ''} — 改動只影響之後新畫的草圖（不會重算已拉伸的特徵）`, lang)} onClick={(e) => { e.stopPropagation(); void (async () => {
+                  <span className="tw-act" title={tStatus(`編輯參考面偏移${pl.aaxis != null ? '／角度' : ''}（點選整行則在此參考面上新建草圖）`, lang)} onClick={(e) => { e.stopPropagation(); void (async () => {
                     const ap = useApp.getState()
-                    const ov = await ap.appPrompt(tStatus('新偏移 mm（沿基面法向平移此參考面）', lang), String(pl.offset), tStatus('編輯參考面', lang))
+                    const ov = await ap.appPrompt(tStatus('新偏移 mm（沿基面法向平移此參考面）', lang), fmtNum(pl.offset), tStatus('編輯參考面', lang))
                     if (ov == null) return
                     const offset = Number(ov.trim())
-                    if (!Number.isFinite(offset)) { useApp.setState({ status: tStatus('偏移要系數字 — 已取消', lang) }); return }
+                    if (!Number.isFinite(offset)) { useApp.setState({ status: tStatus('偏移必須是數字 — 已取消', lang) }); return }
                     let angle: number | undefined
                     if (pl.aaxis != null) {
                       const av = await ap.appPrompt(tStatus('新角度°（繞基面局部軸傾斜）', lang), String(pl.angle ?? 0), tStatus('編輯角度面', lang))
                       if (av == null) return
                       const a = Number(av.trim())
-                      if (!Number.isFinite(a)) { useApp.setState({ status: tStatus('角度要系數字 — 已取消', lang) }); return }
+                      if (!Number.isFinite(a)) { useApp.setState({ status: tStatus('角度必須是數字 — 已取消', lang) }); return }
                       angle = a
                     }
                     ap.updatePlane(i, { offset, ...(angle != null ? { angle } : {}) })
-                  })() }}>✏️</span>
+                  })() }} data-testid="plane-edit">✎</span>
                 )}
-                <span className="tw-act" title={tStatus('新建草圖', lang)}>✎</span>
                 <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除參考平面', lang)} onClick={(e) => { e.stopPropagation(); if (skDelGuard()) return; useApp.getState().removePlane(i) }}>🗑</span>
               </div>
             ))}
             {caxes.map((ax, i) => (
-              <div key={'cax' + i} className="tree-row" style={{ paddingLeft: 18 }} title={tStatus(`構造軸 ${ax.dir} @(${ax.at.join(',')})`, lang)}>
+              <div key={'cax' + i} className="tree-row" style={{ paddingLeft: 18 }} title={tStatus(`構造軸 ${ax.dir} @(${ax.at.map(fmtNum).join(',')})`, lang)}>
                 <span className="tw-toggle" />
                 <span className="tw-ico"><ToolIcon name="axis" size={13} /></span>
-                <span style={{ flex: 1 }}>{tStatus('構造軸', lang)} {ax.dir}@({ax.at.join(',')})</span>
+                <span style={{ flex: 1 }}>{tStatus('構造軸', lang)} {ax.dir}@({ax.at.map(fmtNum).join(',')})</span>
                 <span className="tw-act" title={tStatus('顯示 / 隱藏此構造軸', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleDatumVis(datumVisKey('ax', ax)) }}>{datumHidden.includes(datumVisKey('ax', ax)) ? '🙈' : '👁'}</span>
                 <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除構造軸', lang)} onClick={(e) => { e.stopPropagation(); if (skDelGuard()) return; useApp.getState().removeCAxis(i) }}>🗑</span>
               </div>
             ))}
             {cpoints.map((p, i) => (
-              <div key={'cpt' + i} className="tree-row" style={{ paddingLeft: 18 }} title={tStatus(`構造點 (${p.join(',')})`, lang)}>
+              <div key={'cpt' + i} className="tree-row" style={{ paddingLeft: 18 }} title={tStatus(`構造點 (${p.map(fmtNum).join(',')})`, lang)}>
                 <span className="tw-toggle" />
                 <span className="tw-ico"><ToolIcon name="default" size={13} /></span>
-                <span style={{ flex: 1 }}>{tStatus('構造點', lang)} ({p.join(',')})</span>
+                <span style={{ flex: 1 }}>{tStatus('構造點', lang)} ({p.map(fmtNum).join(',')})</span>
                 <span className="tw-act" title={tStatus('顯示 / 隱藏此構造點', lang)} onClick={(e) => { e.stopPropagation(); useApp.getState().toggleDatumVis(datumVisKey('pt', p)) }}>{datumHidden.includes(datumVisKey('pt', p)) ? '🙈' : '👁'}</span>
                 <span className="tw-act" style={skLock ? SK_LOCK_STYLE : undefined} title={tStatus(skLock ? '草圖模式中鎖定 — 完成草圖後可刪除' : '刪除構造點', lang)} onClick={(e) => { e.stopPropagation(); if (skDelGuard()) return; useApp.getState().removeCPoint(i) }}>🗑</span>
               </div>

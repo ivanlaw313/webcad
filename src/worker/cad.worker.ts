@@ -12,7 +12,7 @@ import opencascade from '../kernel/replicad_plus.js'
 import wasmUrl from '../kernel/replicad_plus.wasm?url'
 import { measureVolume, measureArea, setOC, cast, iterTopo, draw, drawCircle, drawSingleEllipse, makeBaseBox, makeBox, makeSphere, makeCylinder, makeHelix, genericSweep, complexExtrude, loft, makeCompound, makeBSplineApproximation, assembleWire, importSTEP, drawProjection, ProjectionCamera, basicFaceExtrusion, loadFont, getFont, drawText, makePolygon, Vector, Plane as RPlane, GCWithScope } from 'replicad'
 import { frameTwistTaperSweep } from '../cad/sweepTwist'
-import { textToSketchShapes } from '../sketch/textShapes'   // S189：草图文字 → 草图几何（worker 有 'cad' 字体）
+import { textToSketchShapes, emSizeForCapHeight, type GlyphFontLike } from '../sketch/textShapes'   // S189：草图文字 → 草图几何（worker 有 'cad' 字体）
 import fontUrl from '../fonts/Roboto-Regular.ttf?url'  // S120：Roboto（Apache-2.0）真矢量字体 — 字母有真实内孔（O/A/B/e/8 counters）；取代 kenpixel 像素字体（无孔）。无 GPL/AGPL。
 import { edgeFingerprint, edgeFingerprintV2, principalFrame } from '../cad/edgeFingerprint'  // S122：持久边命名 — fillet/chamfer 选边跨重建跟同一几何棱；S134：edgeFingerprintV2/principalFrame = 旋转不变指纹（advisory）
 import { fitPrimitives, detectAxisBox, classifyBoxHole } from '../geom/meshFit'  // B4（Mesh→B-rep 参数化推断）：worker 侧重跑分析层（B1-B3 纯 JS）→ 砌真圆柱面；#2b：detectAxisBox/classifyBoxHole = box−cylinder v2 分解
@@ -106,7 +106,7 @@ export type Feature =
   | { id: string; type: 'transform'; origin?: [number, number, number]; dx: number; dy: number; dz: number; rz: number; rx?: number; ry?: number; copy?: boolean; parked?: number }   // copy（GM-3DV3 M1 Create Copy）：留原件、fuse 一个变换后副本（Fusion Move/Copy 嘅复制半边）；缺省=就地变换（旧档逐字节）；parked≥0（SO10）=变换泊车实体[parked]而非活动体（缺=活动体逐字节）
   | { id: string; type: 'pushpull'; near: [number, number, number]; nears?: [number, number, number][]; dist: number; dir?: [number, number, number]; offsetType?: 'modify' | 'new' | 'auto'; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // faceFp（S128/S125 扩展）= 拾取面持久面指纹（缺省退回 near-point）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行）；dir（S192）= 任意方向移面向量（缺省=沿面法向，即旧按拉）；offsetType（GM-3DV3 M5 Offset Type）= Fusion Press Pull 面偏移嘅 Offset Type 元数据（modify/new/auto）— worker 不读几何（webcad 恒加节点=New 语义）
   | { id: string; type: 'rib'; path: [number, number][]; thickness: number; height: number; baseZ?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; op?: BoolOp; draft?: number /* S191：拔模角°——筋身向远端逐渐收窄（注塑/冲压脱模），逐段 base→top 锥化 loft */; thDir?: 'sym' | 'one' /* GM-3DV1 S1：厚度方向 — sym=中心线两側各半（旧行为，缺省）/ one=全部厚度落中心线单侧(+法向) */; extent?: 'next' | 'distance' /* GM-3DV1 S1：范围 — next=有实体时落到实体底并融合（旧行为，缺省）/ distance=永远向上 height（就算有实体） */; flip?: boolean /* GM-3DV1 S1：翻转筋挤出方向（up↔down） */; extend?: boolean /* GM-3DV1 S1（Web Extend Curves）：把开放折线端点沿末段方向外延（有实体时钳到实体 XY 包围盒边，令筋网到墙；无实体 = 固定外延），令交叉/近墙筋网自动闭合 */ }
-  | { id: string; type: 'text'; text: string; size: number; height: number; op: BoolOp; plane?: Plane; baseZ?: number; x?: number; y?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }  // S162 Emboss：arbPlane = 落喺拾中嘅面上（沿法向 raise/engrave），无 = 旧 XY 文字
+  | { id: string; type: 'text'; text: string; size: number; sizeMode?: 'cap'; height: number; op: BoolOp; plane?: Plane; baseZ?: number; x?: number; y?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }  // S162 Emboss：arbPlane = 落喺拾中嘅面上（沿法向 raise/engrave），无 = 旧 XY 文字
   // 独立草图（T756）：纯 2D 草图特征 — 无实体输出，净系喺时间轴锚住一个 sketchSources 入口（Fusion「完成草图」同款）。
   // 对 pattern/cpattern 嘅 prevBefore 邻接逻辑完全透明（见 buildShape 三处 sketch 跳过）。
   | { id: string; type: 'sketch'; sketchId?: string; sketchFaceBinding?: SketchFaceBinding; plane?: Plane; baseZ?: number; arbPlane?: { o: [number,number,number]; xd: [number,number,number]; n: [number,number,number] } }
@@ -6121,7 +6121,9 @@ function buildShape(features: Feature[], noCache = false): any {
     } else if (f.type === 'text') {
       // Emboss/engrave text: outline the glyphs (CC0 font) → sketch on the plane → extrude → fuse/cut.
       try {
-        const d = drawText(f.text || 'TEXT', { fontSize: f.size || 12, fontFamily: 'cad', startX: f.x ?? 0, startY: f.y ?? 0 })
+        // sizeMode 'cap'（新草圖文字）：字高 = 大楷高（Fusion）；舊檔冇呢個欄位 → 照舊 em，幾何逐字節不變。
+        const fontSize = f.sizeMode === 'cap' ? emSizeForCapHeight(getFont('cad') as unknown as GlyphFontLike, f.size || 12) : (f.size || 12)
+        const d = drawText(f.text || 'TEXT', { fontSize, fontFamily: 'cad', startX: f.x ?? 0, startY: f.y ?? 0 })
         const th = f.height || 5
         if (f.arbPlane) {
           // S162 Emboss：喺拾中嘅面上落字，沿面法向 raise（fuse，向外 +th）/ engrave（cut，向内 −th）。

@@ -34,6 +34,31 @@ export type GlyphCommand =
 // 鸭子类型嘅 opentype Font（只用到 getPath）。调用方喺 app 传 replicad getFont('cad')。
 export interface GlyphFontLike {
   getPath(text: string, x: number, y: number, fontSize: number, options?: unknown): { commands: GlyphCommand[] }
+  unitsPerEm?: number
+  tables?: { os2?: { sCapHeight?: number } }
+}
+
+// Fusion 字高 = 大楷字母高（cap height），唔係 em。opentype 字号係 em → 用字體嘅 capHeight/unitsPerEm
+// 換算（Roboto 1456/2048 ≈ 0.711 —— 正正係舊版「10 mm 字高得 7.1 mm」嘅來源）。字體冇 OS/2 capHeight
+// 就量「H」字形高度；量唔到返 null（調用方退回 em 語義）。
+export function capHeightRatio(font: GlyphFontLike | null | undefined): number | null {
+  if (!font) return null
+  const upm = font.unitsPerEm
+  const cap = font.tables?.os2?.sCapHeight
+  if (upm && upm > 0 && cap && cap > 0) return cap / upm
+  try {
+    const cmds = font.getPath('H', 0, 0, 1).commands
+    let lo = Infinity, hi = -Infinity
+    for (const c of cmds) if (c.type !== 'Z') { const y = -c.y; if (y < lo) lo = y; if (y > hi) hi = y }
+    const h = hi - lo
+    return Number.isFinite(h) && h > 0.2 && h < 2 ? h : null
+  } catch { return null }
+}
+
+// 字高（大楷高, mm）→ 交畀字體引擎嘅 em 字號。
+export function emSizeForCapHeight(font: GlyphFontLike | null | undefined, capHeight: number): number {
+  const r = capHeightRatio(font)
+  return r ? capHeight / r : capHeight
 }
 
 // 命令 provider：俾文字 + 字号 → 全串字形路径命令（已含字距 / advance / kerning，由字体引擎排版）。
@@ -41,7 +66,9 @@ export interface GlyphFontLike {
 export type GlyphCommandProvider = (text: string, fontSize: number) => GlyphCommand[]
 
 export interface TextToShapesOpts {
-  size: number                       // 字高（em 高 → mm），同 3D text 特征嘅 fontSize 语义一致
+  size: number                       // 字高（mm）。heightMode 'cap'（傳 font 時預設）= 大楷高（Fusion）；'em' = 字體 em
+  heightMode?: 'cap' | 'em'          // provider 冇字體度量 → 一律 em（除非畀 capRatio）
+  capRatio?: number                  // provider 用：capHeight / em
   pos: [number, number]              // 草图平面坐标：基线左端（align:'left'）或基线中点（align:'center'）
   spacing?: number                   // 额外【附加】字距（mm，加喺字体自身 advance 之上；负 = 收紧），默认 0
   align?: 'left' | 'center'          // 'left'（默认）= pos 系左基线起点；'center' = 整体 bbox 关于 pos.x 对称
@@ -157,6 +184,9 @@ export function textToSketchShapes(text: string, opts: TextToShapesOpts): Sketch
   const provider: GlyphCommandProvider | undefined =
     opts.provider ?? (opts.font ? (t, s) => opts.font!.getPath(t, 0, 0, s).commands : undefined)
   if (!provider) throw new Error('textToSketchShapes: 需要 opts.font（opentype/replicad Font）或 opts.provider')
+  // 字高 → 字體 em 字號（Fusion：字高 = 大楷高）。之後所有排版/字距都用 em。
+  const ratio = opts.heightMode === 'em' ? null : (opts.capRatio && opts.capRatio > 0 ? opts.capRatio : capHeightRatio(opts.font))
+  const em = ratio ? size / ratio : size
 
   const align = opts.align ?? 'left'
   const spacing = opts.spacing ?? 0
@@ -166,7 +196,7 @@ export function textToSketchShapes(text: string, opts: TextToShapesOpts): Sketch
     : Math.min(0.6, Math.max(0.05, size * 0.02))
 
   // 1) 攞字形命令（字距/advance/kerning 已由字体排版）。size 直接做 fontSize → 命令已系 mm 尺度。
-  let cmds = provider(text, size)
+  let cmds = provider(text, em)
   if (!Array.isArray(cmds)) cmds = []
 
   // 2) 额外字距 spacing：若有，逐字重排（字体 advance 之上每个字符再加 spacing 累进）。
@@ -176,15 +206,15 @@ export function textToSketchShapes(text: string, opts: TextToShapesOpts): Sketch
     loops = []
     let cursorX = 0
     for (const ch of text) {
-      const cc = provider(ch, size)
+      const cc = provider(ch, em)
       // 量呢个字嘅 advance：用「字 + 占位」差值唔可靠，改用 bbox 右沿 + 一个名义字距；
       // 但最稳阵系直接攞单字命令嘅 x 范围做宽度，再加 size 嘅一成做字间默认 advance。
       const sub = commandsToLoops(Array.isArray(cc) ? cc : [], cursorX, 0, tol)
       for (const lp of sub) loops.push(lp)
       let maxx = -Infinity, minx = Infinity
       for (const lp of sub) for (const p of lp) { if (p[0] > maxx) maxx = p[0]; if (p[0] < minx) minx = p[0] }
-      const w = maxx > minx ? (maxx - cursorX) : size * 0.5  // 空白字符（如空格）退化用半字宽
-      cursorX += w + spacing + size * 0.08
+      const w = maxx > minx ? (maxx - cursorX) : em * 0.5  // 空白字符（如空格）退化用半字宽
+      cursorX += w + spacing + em * 0.08
     }
   } else {
     loops = commandsToLoops(cmds, 0, 0, tol)

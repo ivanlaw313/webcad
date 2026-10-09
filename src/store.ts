@@ -8556,7 +8556,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       return
     }
     const op2: BoolOp = s2.cutMode && hasSolid(s2.features) ? 'cut' : 'new'
-    const f: Feature = { id: fid(), type: 'text', text: txt, size, height: h, op: op2, plane: s2.sketchPlane !== 'XY' ? s2.sketchPlane : undefined, baseZ: s2.sketchBaseZ }
+    const f: Feature = { id: fid(), type: 'text', text: txt, size, sizeMode: 'cap', height: h, op: op2, plane: s2.sketchPlane !== 'XY' ? s2.sketchPlane : undefined, baseZ: s2.sketchBaseZ }   // 字高 = 大楷高（Fusion）
     set({ skTextDlg: null })
     return void get().applyFeatures([...s2.features, f], `已加草图文字「${txt}」（${op2 === 'cut' ? '刻字' : '凸字'} 字号${size} 高${h} — 时间轴可改）`, true, '文字几何生成失败')
   },

@@ -564,7 +564,7 @@ export const SKETCH_PANELS: Panel[] = [
       { id: 'sk_conic', label: '圓錐曲線', icon: 'cylinder', glyph: '⌓', tip: '圓錐曲線：起點 → 終點 → 頂點（兩端切線嘅交點）→ 喺底欄調「充滿度」(細 = 扁橢圓弧 / 中 = 拋物線 / 大 = 雙曲線)。畫出真平滑精確邊。' },
       { id: 'sk_point', label: '點', icon: 'default', glyph: '·', quick: true, tip: '草圖點：單擊落一個構造點（可約束/可標尺寸）— 鑽孔定位、對稱錨點日常。' },
       { id: 'sk_cline', label: '構造線', icon: 'default', glyph: '┊', quick: true, tip: '構造參考線：點位置即落一條 豎直/水平 長虛線（工具面板切方向）。做對中參考、或做鏡像嘅【中心軸】。唔參與拉伸。' },
-      { id: 'sk_text', label: '文字', icon: 'default', glyph: 'T', tip: '草圖文字（Fusion 流程一步到位）：輸入 文字/字號/凸高 → 凸字（切割模式=刻字）特徵，時間軸可改。' },
+      { id: 'sk_text', label: '文字', icon: 'default', glyph: 'T', quick: true, tip: '草圖文字（Fusion 流程一步到位）：輸入 文字/字號/凸高 → 凸字（切割模式=刻字）特徵，時間軸可改。' },
     ],
   },
   {

@@ -2901,6 +2901,7 @@ function FormBoxCameraRig() {
 
 // GM-FP4 #52：草图文字富对话框（Fusion Text 面板）—— Type / 字高 / 凸高 / 对齐（左中右）。
 // 诚实标注：字体家族 / 粗体·斜体 / 沿路径 = worker 单字体（'cad'）架构限，暂唔提供（唔造假 UI）。
+// BUG（Text-4）：字高/凸高欄唔可以喺每次按鍵 clamp（打「10」：「1」被夾成 2 → 變「20」）；夾值只喺 commitSkTextDlg 做。
 function SkTextDialog() {
   const dlg = useApp((s) => s.skTextDlg)
   const mode = useApp((s) => s.mode)
@@ -2918,11 +2919,11 @@ function SkTextDialog() {
           style={{ padding: '4px 6px', border: '1px solid #c4ccd4', borderRadius: 4, fontSize: 14 }} />
       </label>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#3a4750' }}><span style={{ minWidth: 64 }}>{T('字高 mm')}</span>
-        <input type="number" min={2} value={dlg.size} onChange={(e) => g().setSkTextDlg({ size: Math.max(2, Number(e.target.value) || 12) })} style={{ width: 64, padding: '3px 5px', border: '1px solid #c4ccd4', borderRadius: 4 }} />
+        <input type="number" min={2} data-testid="sktext-size" value={dlg.size || ''} onChange={(e) => g().setSkTextDlg({ size: Number(e.target.value) || 0 })} style={{ width: 64, padding: '3px 5px', border: '1px solid #c4ccd4', borderRadius: 4 }} />
       </label>
       {!inSketch && (
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#3a4750' }}><span style={{ minWidth: 64 }}>{T('凸高 mm')}</span>
-          <input type="number" min={0.2} step={0.2} value={dlg.height} onChange={(e) => g().setSkTextDlg({ height: Math.max(0.2, Number(e.target.value) || 4) })} style={{ width: 64, padding: '3px 5px', border: '1px solid #c4ccd4', borderRadius: 4 }} />
+          <input type="number" min={0.2} step={0.2} data-testid="sktext-height" value={dlg.height || ''} onChange={(e) => g().setSkTextDlg({ height: Number(e.target.value) || 0 })} style={{ width: 64, padding: '3px 5px', border: '1px solid #c4ccd4', borderRadius: 4 }} />
         </label>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

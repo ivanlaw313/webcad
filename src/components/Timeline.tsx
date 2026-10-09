@@ -395,7 +395,7 @@ export default function Timeline() {
                 </label>
               )
             })
-          ) : meta.field ? (
+          ) : meta.field && Number.isFinite((sel as unknown as Record<string, number>)[meta.field]) ? (   // UX4：多截面放樣冇 height → 唔再顯示「高度 NaN」
             <label>
               {tStatus(meta.param, lang)}
               <NumField

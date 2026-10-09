@@ -285,6 +285,7 @@ let _sketchClip: SketchShape[] | null = null
 let _sketchPasteN = 0
 let _pendingDatumRef: { idx: number; base: Plane; arb?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } } | null = null   // GM-3DV2 R12：arb = 角度/斜 datum 草图创建时嘅 datum arb 签名（datum 郁 → 草图 arb + extgroup arbPlane 跟）
 let _datumRepassGuard = false   // 防 datum 重烘焙第二趟 rebuild 无限递归
+let _loftEditRollback = false   // UX4：編輯放樣時時間軸已回卷到放樣之前 → 取消要還原返最尾
 let _skEditRollback = false     // GM-W6 F1：重开草图编辑时时间轴已回卷（gotoStep(featIdx)）→ 非重建退出路径要还原返最尾
 // BUG-213：完成草图写入时间轴之后，Ctrl+Z 要回到草图编辑（矩形还在），不能把文档弹成空档。
 // 会话挂在「完成前」那条撤销条目上，不进存档。再按 Ctrl+Z 仍走草图逐步撤销。
@@ -16124,9 +16125,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'loft': {
         const sections = f.sections ?? (f.bottom && f.top ? [{ profile: f.bottom, z: 0 }, { profile: f.top, z: f.height ?? 1 }] : [])
         if (sections.length < 2) { get().selectFeature(featId); return }
+        // UX4：編輯現有放樣 = Fusion 式可加／排／移除截面。由 sketchIds 重建逐截面來源（次序對應 sections），
+        // 確定後 sketchIds 跟住新清單；時間軸回卷到放樣之前（預覽唔再同舊放樣實體重疊到花晒）。
+        const st0 = get()
+        const ids = f.sketchIds && f.sketchIds.length === sections.length && f.sketchIds.every((id) => st0.sketchSources[id]) ? f.sketchIds : null
+        const secSrcs = ids ? ids.map((skId, i) => { const src = st0.sketchSources[skId]; return { label: src.name || skId.replace('sk', '草圖'), skId, shapes: JSON.parse(JSON.stringify(src.shapes)) as SketchShape[], cons: JSON.parse(JSON.stringify(src.cons)) as SkCon[], z: sections[i].z, plane: src.plane, ...(src.arb ? { arb: JSON.parse(JSON.stringify(src.arb)) } : {}), ...(src.datumRef ? { datumRef: structuredClone(src.datumRef) } : {}) } }) : []
+        const fIdx = st0.features.findIndex((x) => x.id === featId)
+        if (fIdx >= 0 && st0.timelinePos > fIdx && !st0.busy) { _loftEditRollback = true; void get().gotoStep(fIdx) }
         set({
           loftDlgOpen: true, loftEditId: featId, selectedFeature: featId,
-          loftSections: JSON.parse(JSON.stringify(sections)) as typeof sections, loftSecSrcs: [], loftOrderManual: true, loftFacePick: false,
+          loftSections: JSON.parse(JSON.stringify(sections)) as typeof sections, loftSecSrcs: secSrcs as AppState['loftSecSrcs'], loftOrderManual: true, loftFacePick: false,
           loftRuled: !!f.ruled, loftWall: f.wall ?? 0, loftClosed: !!f.closed,
           loftContinuity: f.continuity ?? '', loftCapEnd: f.capEnd ?? 'last',
           sketchOp: f.op ?? 'new', holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null,
@@ -19662,12 +19670,29 @@ export const useApp = create<AppState>((rawSet, get) => {
       const old = get().features.find((x) => x.id === editId)
       if (!old || old.type !== 'loft') { set({ loftEditId: null, loftDlgOpen: false, loftPreview: null, status: '原放樣已不存在，無法重建' }); return }
       set({ loftDlgOpen: false, loftEditId: null, loftFacePick: false, loftPreview: null, loftPreviewBusy: false })
+      // 截面清單改咗（加／排／移除）→ sketchIds 跟新次序；新截面嚟自未歸檔嘅草圖就即場歸檔（同新建放樣一致）
+      let sketchIds: string[] | undefined = undefined
+      const entries: AppState['sketchSources'] = {}
+      if (secSrcs.length === secs.length && !secSrcs.some((x) => x.face)) {
+        sketchIds = secSrcs.map((ss0) => {
+          const { label: _lb, skId: _sk, face: _fc, ...ss } = ss0; void _lb; void _fc
+          if (_sk && get().sketchSources[_sk]) return _sk
+          const skId = 'sk' + ++_skidN
+          entries[skId] = { ...(ss.datumRef ? { datumRef: structuredClone(ss.datumRef) } : {}), patternData: clonePatternData(ss.patternData) ?? undefined, shapes: ss.shapes, cons: ss.cons, plane: ss.plane || 'XY', baseZ: ss.z, ...(ss.arb ? { arb: ss.arb } : {}), op, height: 0 }
+          return skId
+        })
+      }
+      if (Object.keys(entries).length) set((st) => ({ sketchSources: { ...st.sketchSources, ...entries } }))
+      _loftEditRollback = false
       await get().editFeature(editId, {
         sections: secs as unknown as number[], op,
         ruled: ruled || undefined, wall: wall > 0 ? wall : undefined,
         continuity, closed: closed || undefined,
+        sketchIds: sketchIds as unknown as number[],
         // Existing rails / capPoint stay attached unless a future explicit re-selection replaces them.
       })
+      { const n = get().features.length; if (get().timelinePos < n && !get().busy) void get().gotoStep(n) }
+      set({ loftSections: [], loftSecSrcs: [], loftOrderManual: false })
       return
     }
     set({ loftSections: [], loftSecSrcs: [], loftOrderManual: false, loftFacePick: false, loftPreview: null, loftPreviewBusy: false, loftRail: null, loftCapPoint: null, skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model', loftDlgOpen: false })
@@ -19680,7 +19705,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       const ids: string[] = []
       const entries: AppState['sketchSources'] = {}
       for (const ss0 of secSrcs) {
-        const { label: _lb, skId: _sk, face: _fc, ...ss } = ss0; void _lb; void _sk; void _fc
+        const { label: _lb, skId: _sk, face: _fc, ...ss } = ss0; void _lb; void _fc
+        // UX4 #11：截面嚟自【已存在】嘅獨立草圖 → 直接引用佢嘅 skId（瀏覽樹標「已用」），唔好再複製一份新草圖源（以前多咗灰色 草圖4/5）
+        if (_sk && get().sketchSources[_sk]) { ids.push(_sk); continue }
         const skId = 'sk' + ++_skidN
         ids.push(skId)
         entries[skId] = { ...(ss.datumRef?{datumRef:structuredClone(ss.datumRef)}:{}), patternData: clonePatternData(ss.patternData) ?? undefined, shapes: ss.shapes, cons: ss.cons, plane: ss.plane || 'XY', baseZ: ss.z, ...(ss.arb ? { arb: ss.arb } : {}), op, height: 0 }
@@ -19694,7 +19721,6 @@ export const useApp = create<AppState>((rawSet, get) => {
   loftOrderManual: false,
   moveLoftSection: (i, dir) => {
     const s = get()
-    if (s.loftEditId) { set({ status: '編輯現有放樣時唔可以改截面清單 — 喺時間軸重開對應草圖修改' }); return }
     const ord = loftMoveOrder(s.loftSections, s.loftOrderManual, i, dir)
     if (!ord) return
     const aligned = s.loftSecSrcs.length === s.loftSections.length
@@ -19702,7 +19728,6 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   removeLoftSection: (i) => {
     const s = get()
-    if (s.loftEditId) { set({ status: '編輯現有放樣時唔可以改截面清單 — 喺時間軸重開對應草圖修改' }); return }
     const ord = loftEffectiveOrder(s.loftSections, s.loftOrderManual)
     const k = ord[i]
     if (k == null) return
@@ -19713,8 +19738,6 @@ export const useApp = create<AppState>((rawSet, get) => {
   loftFacePick: false,
   setLoftFacePick: (on) => set({ loftFacePick: on, status: on ? '揀平面：點實體上嘅一個平面，佢嘅外框會加做放樣截面（Esc／再按一次取消）' : '已退出揀平面' }),
   addLoftSectionFromFace: async (p, n) => {
-    const s = get()
-    if (s.loftEditId) { set({ status: '編輯現有放樣時唔可以加截面' }); return }
     let res: Awaited<ReturnType<typeof cad.planarFaceLoopAt>> | null = null
     try { res = await cad.planarFaceLoopAt(p) } catch { res = null }
     if (!res || 'error' in res) { set({ status: `⚠ 揀平面失敗：${res && 'error' in res ? res.error : '內核未能讀取呢個面'}` }); return }
@@ -19756,9 +19779,15 @@ export const useApp = create<AppState>((rawSet, get) => {
   setLoftOpt: (p) => set(p),
   openLoftDlg: () => set((s) => {
     if (s.loftSections.length < 2) return { status: '放樣需要≥2個截面：畫輪廓→「＋放樣截面」→改基準Z畫下一個→≥2 個後再放樣' }
-    return { loftDlgOpen: true, sketchOp: !hasSolid(s.features) ? 'new' : s.sketchOp, status: '放樣：設 操作 → 確定（截面已預覽）' }
+    // UX4 P3：新放樣對話框每次由預設開始（Fusion）——唔再沿用上一個放樣嘅薄壁／直紋／閉環／連續性設定
+    const fresh = s.loftEditId ? {} : { loftWall: 0, loftRuled: false, loftClosed: false, loftContinuity: '' as const, loftCapPoint: null, loftCapEnd: 'last' as const }
+    return { ...fresh, loftDlgOpen: true, sketchOp: !hasSolid(s.features) ? 'new' : s.sketchOp, status: '放樣：設 操作 → 確定（截面已預覽）' }
   }),
-  cancelLoftDlg: () => set((s) => ({ loftDlgOpen: false, loftEditId: null, loftFacePick: false, loftPreview: null, loftPreviewBusy: false, ...(s.loftEditId ? { selectedFeature: null, loftSections: [], status: '已取消編輯放樣' } : { status: '已取消放樣（截面保留）' }) })),   // UX1 #3
+  cancelLoftDlg: () => {
+    const editing = !!get().loftEditId
+    set((s) => ({ loftDlgOpen: false, loftEditId: null, loftFacePick: false, loftPreview: null, loftPreviewBusy: false, ...(s.loftEditId ? { selectedFeature: null, loftSections: [], loftSecSrcs: [], status: '已取消編輯放樣' } : { status: '已取消放樣（截面保留）' }) }))
+    if (editing && _loftEditRollback) { _loftEditRollback = false; const n = get().features.length; if (get().timelinePos < n) void get().gotoStep(n) }
+  },   // UX1 #3
 
   // T772（S52）：放样导轨 — 同 sweepGuide 同款银行流程：画折线 → 记低（橙虚线）→ 放样时透传 rails
   loftRail: null,
@@ -19985,7 +20014,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // Signed dims (extrude height, transform, draft angle, offsets) are intentionally unconstrained.
     const positiveKeys = ['a', 'b', 'c', 'diameter', 'radius', 'thickness', 'distance', 'pitch', 'module', 'width', 'bore', 'wireR', 'size', 'thick', 'wall', 'ext', 'length', 'depth', 'd', 'r', 'r2'] as const
     for (const k of positiveKeys) {
-      if (k in patch && !(Number(patch[k]) > 0)) { set({ status: illegalRejectStatus(ILLEGAL_LENGTH_DETAIL) }); return }
+      if (k in patch && patch[k] !== undefined && !(Number(patch[k]) > 0)) { set({ status: illegalRejectStatus(ILLEGAL_LENGTH_DETAIL) }); return }   // UX4：顯式 undefined = 清除可選欄（例如放樣薄壁 0 → 實心），唔係非法尺寸
     }
     const features = get().features.map((f) => {
       if (f.id !== id) return f

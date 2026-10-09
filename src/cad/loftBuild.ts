@@ -214,3 +214,27 @@ export function capFaceFinder(cap: any): ((ff: any) => any) | null {
   if (!cap || cap.IsNull?.()) return null
   return (ff: any) => ff.when(({ element }: any) => !!element?.wrapped?.IsSame?.(cap))
 }
+
+/** 平面截面 wire 向內偏移 d（2D MakeOffset，圓角接駁）。用面積判斷方向：結果面積必須細過原截面，否則反方向再試。
+ *  失敗 / 退化（太薄、偏移後消失）→ null。 */
+export function insetPlanarWire(oc: any, wire: any, d: number): any | null {
+  const area0 = loopFrame(sampleWirePts(oc, wire, 96)).area
+  for (const sign of [-1, 1]) {
+    let mo: any = null
+    try {
+      mo = new oc.BRepOffsetAPI_MakeOffset_3(wire, oc.GeomAbs_JoinType.GeomAbs_Arc, false)
+      mo.Perform(sign * d, 0)
+      if (mo.IsDone && !mo.IsDone()) continue
+      const sh = mo.Shape()
+      if (!sh || sh.IsNull()) continue
+      const exp = new oc.TopExp_Explorer_2(sh, oc.TopAbs_ShapeEnum.TopAbs_WIRE, oc.TopAbs_ShapeEnum.TopAbs_SHAPE)
+      const wires: any[] = []
+      for (; exp.More(); exp.Next()) wires.push(oc.TopoDS.Wire_1(exp.Current()))
+      exp.delete?.()
+      if (wires.length !== 1) continue
+      const area = loopFrame(sampleWirePts(oc, wires[0], 96)).area
+      if (area > 1e-6 && area < area0 - 1e-9) return wires[0]
+    } catch { /* 試另一方向 */ } finally { mo?.delete?.() }
+  }
+  return null
+}

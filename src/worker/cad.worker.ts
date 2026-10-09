@@ -25,7 +25,7 @@ import { fullRoundFilletFromFaces } from '../cad/fullRound'
 import { fuseLostMaterial } from '../cad/coilOp'
 import { asymmetricFilletNearPoints } from '../cad/asymmetricFillet'
 import { hasUnsafeLoftShellAdjacency } from '../cad/loftShellSafety'
-import { buildLoft, capFaceFinder, LOFT_MSG, railFollowOffsets, sampleWirePts, shapeVolume, translateWire } from '../cad/loftBuild'
+import { buildLoft, capFaceFinder, insetPlanarWire, LOFT_MSG, loopFrame, railFollowOffsets, sampleWirePts, shapeVolume, translateWire } from '../cad/loftBuild'
 import { revolveLathePlane, revolveRemapProfile } from '../cad/revolvePreviewFrame'
 import { threadFrameRotation, threadLocalToWorld, type ThreadFrame } from '../cad/threadFrame'
 
@@ -660,24 +660,39 @@ function makeLoftSolid(f: LoftFeature, warnings: string[]): any {
   }
   let lofted: any = res.shape
   if (f.wall && f.wall > 0) {
-    // 薄壁：OCCT 抽殼要指定開口面 — 用 ThruSections 嘅首/末端蓋面（唔再假設截面喺 XY 平面），減薄重試，驗真挖空。
+    // 薄壁：OCCT 抽殼要指定開口面 — 用 ThruSections 嘅首/末端蓋面（唔再假設截面喺 XY 平面），驗真挖空。
+    // UX4：舊做法首/末端 × 3 個厚度 = 最多 6 次 MakeThickSolid；多截面（方→圓→方）每次都失敗、瀏覽器入面
+    // 轉圈 >30 秒，最後靜靜退回實心（體積唔變）。而家：抽殼只試一次（末端、原厚度）；失敗就用「截面向內偏移
+    // 再放樣 → 外減內 → 首端加底」嘅幾何做法（快、多截面都穩）；再唔得先試首端抽殼，之後誠實報失敗。
     const solidVol = Math.abs(shapeVolume(_oc, lofted.wrapped))
-    let hollowed: any = null
-    const finders = [capFaceFinder(res.last), capFaceFinder(res.first)].filter(Boolean) as ((ff: any) => any)[]
-    for (const fn of finders) {
-      const walls: number[] = [f.wall, f.wall * 0.6, f.wall * 0.35]   // 顯式註解斷推斷循環（TS7022）
-      for (const tw of walls) {
-        try {
-          const sh = lofted.shell(-Math.abs(tw), fn)
-          if (sh && (sh as any).wrapped && !(sh as any).wrapped.IsNull()) {
-            const oriented = cast(_orientSolidOutward((sh as any).wrapped))
-            const v = shapeVolume(_oc, (oriented as any).wrapped)
-            if (v > 1e-6 && (solidVol <= 0 || v < solidVol * 0.98)) { hollowed = oriented; if (tw !== f.wall) warnings.push(`放樣薄壁 ${f.wall}mm 太厚，已減薄到 ${tw.toFixed(1)}mm 先成功`); break }
-          }
-        } catch { /* 試下一個厚度 */ }
-      }
-      if (hollowed) break
+    const okHollow = (shp: any): any => {
+      if (!shp || !shp.wrapped || shp.wrapped.IsNull()) return null
+      const oriented = cast(_orientSolidOutward(shp.wrapped))
+      const v = shapeVolume(_oc, (oriented as any).wrapped)
+      return v > 1e-6 && (solidVol <= 0 || v < solidVol * 0.98) ? oriented : null
     }
+    const tryShell = (cap: any, tw: number): any => { const fn = capFaceFinder(cap); if (!fn) return null; try { return okHollow(lofted.shell(-Math.abs(tw), fn)) } catch { return null } }
+    const insetLoft = (): any => {
+      if (f.capPoint || f.closed || wires.length < 2) return null
+      try {
+        const inner = wires.map((w) => insetPlanarWire(_oc, w, f.wall!))
+        if (inner.some((w) => !w)) return null
+        // 首端封底：內放樣嘅首截面沿行進方向推入壁厚（底厚 = 壁厚），外減內一次布爾就得（末端內外截面共面 → 開口）
+        const fr0 = loopFrame(sampleWirePts(_oc, wires[0], 96)), fr1 = loopFrame(sampleWirePts(_oc, wires[1], 96))
+        const nl = Math.hypot(...fr0.n) || 1
+        let nx = fr0.n[0] / nl, ny = fr0.n[1] / nl, nz = fr0.n[2] / nl
+        if ((fr1.c[0] - fr0.c[0]) * nx + (fr1.c[1] - fr0.c[1]) * ny + (fr1.c[2] - fr0.c[2]) * nz < 0) { nx = -nx; ny = -ny; nz = -nz }
+        const gap = (fr1.c[0] - fr0.c[0]) * nx + (fr1.c[1] - fr0.c[1]) * ny + (fr1.c[2] - fr0.c[2]) * nz
+        if (!(gap > f.wall! * 1.5)) return null
+        inner[0] = translateWire(_oc, inner[0], [nx * f.wall!, ny * f.wall!, nz * f.wall!])
+        const innerRes = buildLoft(_oc, inner, base)
+        const hollow: any = lofted.cut(innerRes.shape)
+        return okHollow(hollow)
+      } catch { return null }
+    }
+    let hollowed: any = tryShell(res.last, f.wall)
+    if (!hollowed) hollowed = insetLoft()
+    if (!hollowed) hollowed = tryShell(res.first, f.wall)
     if (hollowed) lofted = hollowed
     else warnings.push(`⚠ 放樣薄壁 ${f.wall}mm 失敗，已退回實心放樣（試減薄壁厚或簡化截面）`)
   }

@@ -7690,7 +7690,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     })()
     return {...draft,...(s.sweepSection==='profile'?sectionChip:{}),sweepDlgOpen:true,sketchOp:!hasSolid(s.features)?'new':s.sketchOp,sweepAxis:hasPath?'':s.sweepAxis,status:'掃掠：設 管徑 / 操作（可選構造軸脊線）→ 確定（或取消）'}
   }),
-  cancelSweepDlg: () => set({ sweepDlgOpen: false, sweepEditId: null, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], status: '已取消掃掠（路徑保留）' }),
+  // UX1 #3：取消「編輯特徵」（雙擊時間線重開）→ 連 selectedFeature 一齊清，唔好留低底部「編輯「…」」尺寸條；編輯回填嘅路徑亦清走。
+  cancelSweepDlg: () => set((s) => ({ sweepDlgOpen: false, sweepEditId: null, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], ...(s.sweepEditId ? { selectedFeature: null, polyPts: [], status: '已取消編輯掃掠' } : { status: '已取消掃掠（路徑保留）' }) })),
   setSweepDia: (n) => set({ sweepDia: n > 0 ? n : 12 }),
   sweepWall: 0,
   setSweepWall: (n) => set({ sweepWall: Math.max(0, n || 0) }),
@@ -15630,7 +15631,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     await get().addHole(cx, cy, get().holeFaceZ, dir, o3d)
     set({ holeMode: false, holePos: null, holeFaceZ: null, holeDir: null })
   },
-  cancelHole: () => set({ holeMode: false, holeEditId: null, holePos: null, holeFaceZ: null, holeDir: null, status: '已取消孔命令' }),
+  cancelHole: () => set((s) => ({ holeMode: false, holeEditId: null, holePos: null, holeFaceZ: null, holeDir: null, ...(s.holeEditId ? { selectedFeature: null, status: '已取消編輯孔' } : { status: '已取消孔命令' }) })),   // UX1 #3
   clearHolePick: () => set({ holePos: null, holeFaceZ: null, holeDir: null, status: '已清除孔心 — 重新點實體面定位（不點=中心）' }),
 
   // ── Generic feature-param command bar (Fusion-style: invoke → set params → 确定) ──
@@ -18450,7 +18451,8 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
     }
-    set({ featDlg: null, revAxisPtPick: false, status: '已取消' })
+    // UX1 #3：編輯現有特徵（editId）取消 → 清 selectedFeature，唔留「編輯「拉伸」」條
+    set({ featDlg: null, revAxisPtPick: false, ...(d?.editId ? { selectedFeature: null, status: '已取消編輯特徵' } : { status: '已取消' }) })
   },
 
   // GM-3DV1 S9：管道（Pipe）建立对话框 — 收集路径 → 开 featDlg('pipe')（截面/尺寸/空心厚度/距离0-1/操作）。
@@ -19517,7 +19519,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.loftSections.length < 2) return { status: '放樣需要≥2個截面：畫輪廓→「＋放樣截面」→改基準Z畫下一個→≥2 個後再放樣' }
     return { loftDlgOpen: true, sketchOp: !hasSolid(s.features) ? 'new' : s.sketchOp, status: '放樣：設 操作 → 確定（截面已預覽）' }
   }),
-  cancelLoftDlg: () => set({ loftDlgOpen: false, loftEditId: null, status: '已取消放樣（截面保留）' }),
+  cancelLoftDlg: () => set((s) => ({ loftDlgOpen: false, loftEditId: null, ...(s.loftEditId ? { selectedFeature: null, loftSections: [], status: '已取消編輯放樣' } : { status: '已取消放樣（截面保留）' }) })),   // UX1 #3
 
   // T772（S52）：放样导轨 — 同 sweepGuide 同款银行流程：画折线 → 记低（橙虚线）→ 放样时透传 rails
   loftRail: null,

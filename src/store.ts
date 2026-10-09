@@ -19241,7 +19241,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const po = p.planeOrigin.split(',').map(Number) as [number, number, number]
         const pn = p.planeNormal.split(',').map(Number) as [number, number, number]
         f = { id: fid(), type: 'split', axis: 'Z', offset: 0, keep, nameA: '分割A', nameB: '分割B', planeOrigin: po, planeNormal: pn }
-        { const miss = splitPlaneMissReason(get().bodyMesh, f as Parameters<typeof splitPlaneMissReason>[1]); if (miss) { set({ status: miss }); return } }
+        if (!d.editId) { const miss = splitPlaneMissReason(get().bodyMesh, f as Parameters<typeof splitPlaneMissReason>[1]); if (miss) { set({ status: miss }); return } }   // CORE16：編輯時現有 bodyMesh 已經係分割後半體 — 唔可以用佢判斷（重建失敗由 worker 原因路徑報）
         msg = `已沿所拾平面分割（法向 [${pn.map((x) => x.toFixed(2)).join(',')}]；保留${keep === 'hi' ? '法向正' : '法向负'}側為活動體，另一半灰顯泊車）`
       } else {
         const axis = (p.axis === 'X' || p.axis === 'Y' || p.axis === 'Z') ? p.axis : 'Z'
@@ -19255,7 +19255,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           if (!(off > lo + 1e-6 && off < hi - 1e-6)) { set({ status: `分割平面沒有穿過實體（${axis} 範圍 ${+lo.toFixed(2)} 至 ${+hi.toFixed(2)}）— 請把位置設在此範圍內` }); return }
         }
         f = { id: fid(), type: 'split', axis, offset: +p.offset || 0, keep, nameA: '分割A', nameB: '分割B' }
-        { const miss = splitPlaneMissReason(get().bodyMesh, f as Parameters<typeof splitPlaneMissReason>[1]); if (miss) { set({ status: miss }); return } }
+        if (!d.editId) { const miss = splitPlaneMissReason(get().bodyMesh, f as Parameters<typeof splitPlaneMissReason>[1]); if (miss) { set({ status: miss }); return } }   // CORE16：編輯時現有 bodyMesh 已經係分割後半體 — 唔可以用佢判斷（重建失敗由 worker 原因路徑報）
         msg = `已沿 ${axis}=${+p.offset || 0} 平面分割（保留${keep === 'hi' ? '高' : '低'}側為活動體，另一半灰顯泊車 — 時間軸可改位置/保留側）`
       }
     } else if (d.kind === 'offsetsolid') {

@@ -19,7 +19,15 @@ if (typeof window !== 'undefined' && (import.meta.env.DEV || new URLSearchParams
 // PWA 离线（T739）：生产先注册（dev 注册会同 Vite HMR 打交）。SW 策略见 public/sw.js ——
 // 导航 network-first（永远攞最新版）、/assets+wasm cache-first（断网照开 app，免重复下载 wasm）。
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => { /* 注册失败（如 http 非 localhost）静默 — app 照行 */ }) })
+  // updateViaCache:'none' = 檢查 sw.js 更新時永遠繞過 HTTP 快取；分頁重新可見時再查一次。新 SW skipWaiting 接管後，
+  // 呢個分頁仍行緊舊 bundle → 唔自動重新載入（會失去未儲存嘅工作），只顯示「新版本，請刷新」橫幅。
+  const hadController = !!navigator.serviceWorker.controller
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController) showUpdateBanner() })
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void reg.update().catch(() => {}) })
+    }).catch(() => { /* 注册失败（如 http 非 localhost）静默 — app 照行 */ })
+  })
 }
 
 // T808（测试报告观察 J）：stale-chunk 全局兜底。重新部署后资产 hash 全变、旧 lazy chunk 被删，
@@ -34,7 +42,7 @@ function showUpdateBanner() {
   d.setAttribute('role', 'alert')
   d.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99999;background:#1f2a37;color:#fff;padding:10px 16px;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.38);font:14px/1.45 system-ui,sans-serif;display:flex;gap:12px;align-items:center;max-width:92vw'
   const span = document.createElement('span')
-  span.textContent = '🔄 已发布新版本 — 部分功能需刷新后先可用。'
+  span.textContent = '🔄 已發佈新版本 — 請先儲存，再按「刷新」載入新版本。'
   const btn = document.createElement('button')
   btn.textContent = '刷新'
   btn.style.cssText = 'background:#2b6cf0;color:#fff;border:none;border-radius:6px;padding:5px 14px;cursor:pointer;font-weight:600;flex-shrink:0'

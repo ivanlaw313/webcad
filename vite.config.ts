@@ -1,9 +1,28 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+// 每次 build 把 dist/sw.js 嘅 __WEBCAD_BUILD_ID__ 換成唯一 id（時間 + 隨機）→ 每次部署 sw.js 位元組都變，
+// 瀏覽器即刻更新 SW、清走舊 build 快取，唔會再由 SW 返回舊 index.html／舊 bundle。
+function webcadSwBuildId() {
+  let outDir = 'dist'
+  return {
+    name: 'webcad-sw-build-id',
+    apply: 'build' as const,
+    configResolved(c: { root: string; build: { outDir: string } }) { outDir = resolve(c.root, c.build.outDir) },
+    closeBundle() {
+      const f = resolve(outDir, 'sw.js')
+      if (!existsSync(f)) return
+      const id = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14) + '-' + Math.random().toString(36).slice(2, 8)
+      writeFileSync(f, readFileSync(f, 'utf8').replace(/__WEBCAD_BUILD_ID__/g, id))
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), webcadSwBuildId()],
   // The OCCT (C++ -> WASM) glue must not be pre-bundled by esbuild.
   optimizeDeps: { exclude: ['replicad-opencascadejs', 'replicad', '@salusoft89/planegcs'] },
   // Build the CAD worker as an ES module so `import.meta` + `?url` resolve correctly.

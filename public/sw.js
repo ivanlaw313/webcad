@@ -6,14 +6,18 @@
 // 版本：CACHE 名带版本号；activate 时清旧缓存。部署新版后首次在线访问会自动换新（导航 network-first 保证）。
 // RELEASE: CACHE 必须随每次发版改名（例 webcad-v1.99），否则 activate 唔会删旧缓存 → 硬刷新仍见旧 badge（Solid @1.66 GATE）。
 const CACHE = 'webcad-v2.20'
+// 每次 build 由 vite 插件（vite.config.ts webcadSwBuildId）換成唯一 build id → sw.js 位元組每次部署都變：
+// 瀏覽器即刻裝新 SW（skipWaiting + clients.claim），activate 清走舊 build 嘅快取（舊 index.html / 舊 bundle 唔會再被返回）。
+const BUILD = '__WEBCAD_BUILD_ID__'
+const CACHE_NAME = CACHE + '-' + BUILD
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/'])).then(() => self.skipWaiting()))
+  e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(['/'])).then(() => self.skipWaiting()))
 })
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()),
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))).then(() => self.clients.claim()),
   )
 })
 
@@ -24,11 +28,13 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== self.location.origin) return // 第三方请求唔掂
 
   // 导航（HTML）：network-first，离线退缓存 index
+  // 繞過 HTTP 快取（cache: 'no-store'）— 永遠由伺服器攞最新 index.html；只有真正離線（網絡錯誤）先退回快取，
+  // 而且快取嘅 index 只嚟自今次 build（CACHE_NAME 每次部署都唔同），唔會再載入舊 bundle。
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req)
-        .then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put('/', copy)); return res })
-        .catch(() => caches.match('/')),
+      fetch(req.url, { cache: 'no-store', credentials: 'same-origin', redirect: 'follow' })
+        .then((res) => { if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put('/', copy)) } return res })
+        .catch(() => caches.match('/', { cacheName: CACHE_NAME }).then((hit) => hit || Response.error())),
     )
     return
   }
@@ -38,7 +44,7 @@ self.addEventListener('fetch', (e) => {
   if (immutable) {
     e.respondWith(
       caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)) }
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, copy)) }
         return res
       })),
     )
@@ -49,7 +55,7 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     fetch(req)
       .then((res) => {
-        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)) }
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, copy)) }
         return res
       })
       .catch(() => caches.match(req)),

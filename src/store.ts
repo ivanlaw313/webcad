@@ -5536,6 +5536,28 @@ export function featureIdsForActiveBody(features: { id: string; type: string; op
   return new Set(active.ids)
 }
 
+/** Stable key of the active body after features[0..endExclusive). Used to refuse cut moves that would silently retarget another body. */
+export function activeBodyKeyAfter(features: { id: string; type: string; operation?: string; op?: string; target?: number }[], endExclusive: number): string {
+  let active = 'root'
+  const parked: string[] = []
+  const n = Math.max(0, Math.min(endExclusive, features.length))
+  for (let i = 0; i < n; i++) {
+    const f = features[i]
+    if (f.type === 'newbody') { parked.unshift(active); active = `nb:${f.id}`; continue }
+    if (f.type === 'activatebody') {
+      const t = f.target ?? 0
+      if (t >= 0 && t < parked.length) { const sw = parked[t]; parked[t] = active; active = sw }
+      continue
+    }
+    if (f.operation === 'newbody' || f.op === 'newbody') { parked.unshift(active); active = `op:${f.id}`; continue }
+  }
+  return active
+}
+
+function isCutOp(f: { operation?: string; op?: string }): boolean {
+  return f.operation === 'cut' || f.op === 'cut'
+}
+
 
 export const useApp = create<AppState>((rawSet, get) => {
   // v2.20 P1：參數修改後重建失敗 → 模型及參數已原子還原（見 applyFeatures）。唔可以靜靜咁跳返舊值：
@@ -8131,12 +8153,18 @@ export const useApp = create<AppState>((rawSet, get) => {
   deleteActiveBody: async () => {
     const s0 = get()
     if (!s0.bodyMesh?.triangles?.length) { set({ status: '沒有活動實體可刪除' }); return }
-    const start = s0.features.map((f) => f.type).lastIndexOf('newbody') + 1
+    // P1：ribbon「新實體」寫 op/operation:newbody，唔係 timeline type:newbody — 用 featureIdsForActiveBody 只刪活動體自己嘅特徵
     const keepType = (t: string) => t === 'sketch' || t === 'datum' || t === 'newbody' || t === 'activatebody'
-    const doomed = new Set(s0.features.slice(start).filter((f) => !keepType(f.type)).map((f) => f.id))
+    const activeIds = featureIdsForActiveBody(s0.features as { id: string; type: string; operation?: string; op?: string; target?: number }[])
+    const doomed = new Set<string>()
+    for (const f of s0.features) {
+      if (activeIds.has(f.id) && !keepType(f.type)) doomed.add(f.id)
+    }
     if (!doomed.size) { set({ status: '沒有可刪除的實體特徵' }); return }
     const nm = s0.activeBodyName || '活動實體'
-    const ok = await get().appConfirm(`刪除「${nm}」？\n會移除建立它的 ${doomed.size} 個特徵（草圖保留做獨立草圖）。\n\n可用 Ctrl+Z 還原。`, '刪除實體')
+    const doomedFeats = s0.features.filter((f) => doomed.has(f.id))
+    const list = doomedFeats.map((f) => '・' + featureDisplayName(f, s0.features)).join('\n')
+    const ok = await get().appConfirm(`刪除「${nm}」？\n會移除建立它的 ${doomed.size} 個特徵：\n${list}\n（草圖保留做獨立草圖。）\n\n可用 Ctrl+Z 還原。`, '刪除實體')
     if (!ok) { set({ status: '已取消刪除 — 模型及歷史不變' }); return }
     const cur = get()
     if (cur.features !== s0.features) { set({ status: '模型已變更 — 請再試一次刪除實體' }); return }
@@ -21473,6 +21501,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (deps.length) {
       const ok = await get().appConfirm(`「${label(target)}」被以下特徵依賴：\n${deps.map((f) => '・' + label(f)).join('\n')}\n\n確定：連同依賴特徵一併刪除（可撤銷）\n取消：保留全部`, '刪除特徵')
       if (!ok) { set({ status: '已取消刪除 — 模型及歷史不變' }); return }
+    } else {
+      // P2：樹／時間軸／編輯列刪除特徵一律先確認（Esc／取消中止；確認後仍可用 Ctrl+Z 還原）
+      const ok = await get().appConfirm(`刪除「${label(target)}」？\n\n可用 Ctrl+Z 還原。`, '刪除特徵')
+      if (!ok) { set({ status: '已取消刪除 — 模型及歷史不變' }); return }
     }
     let doomed = new Set([id, ...deps.map((f) => f.id)])
     for (let round = 0; round < 4; round++) {
@@ -21527,6 +21559,21 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (bad && (bad.feature.id === id || bad.needs.id === id)) {
       set({ status: `不能移動：「${label(bad.feature as unknown as Feature)}」依賴「${label(bad.needs as unknown as Feature)}」，必須排在它之後` })
       return false
+    }
+    // P2：切割特徵上移／下移若會改切另一個實體 → 拒絕（唔 silently 改目標）
+    {
+      const moved = s0.features.find((f) => f.id === id)
+      if (moved && isCutOp(moved as { operation?: string; op?: string })) {
+        const from = s0.features.findIndex((f) => f.id === id)
+        const toIdx = next.findIndex((f) => f.id === id)
+        const oldKey = activeBodyKeyAfter(s0.features as { id: string; type: string; operation?: string; op?: string; target?: number }[], from)
+        const newKey = activeBodyKeyAfter(next as { id: string; type: string; operation?: string; op?: string; target?: number }[], toIdx)
+        if (oldKey !== newKey) {
+          const dir = toIdx < from ? '上移' : '下移'
+          set({ status: `不能${dir}：「${label(moved)}」— 移動後切割目標會變成另一個實體（切割目標必須保持不變）` })
+          return false
+        }
+      }
     }
     // RETEST19 #1：拓撲引用（圓角／倒角嘅邊、抽殼／拔模／按拉嘅面…）唔係 id 引用，靜態掃描睇唔到；內核搵唔到邊會靜默跳過
     // （圓角「消失」冇報錯）。所以凡係前置特徵少咗嘅拓撲特徵，用新順序嘅前綴試建（previewRound：唔改 store／worker 當前形狀），

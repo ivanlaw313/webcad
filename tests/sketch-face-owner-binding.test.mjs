@@ -55,7 +55,7 @@ test('sketch on A’s face (made after B) binds to A; deleting B keeps it; undo 
   assert.equal(await g().applyFeatures(g().features.slice(),'rebuild',false,undefined,undefined,true),true,g().status)
   assert.equal(await step(),before.step)
   await g().requestRemoveFeature(B.id)
-  assert.equal(confirms.length,0,'no dependency prompt: the face sketch does not depend on B\n'+confirms.join('\n'))
+  assert.equal(confirms.length,1,'P2 always confirms delete; must NOT be a dependency cascade\n'+confirms.join('\n')); assert.match(confirms[0], /刪除「/); assert.doesNotMatch(confirms[0], /依賴/)
   assert.deepEqual(g().features.map(f=>f.id),JSON.parse(before.features).map(f=>f.id).filter(id=>id!==B.id),g().status)
   assert.deepEqual(g().failedFeatureIds,[])
   assert.ok(g().sketchSources[boss.sketchId],'boss sketch source survives')

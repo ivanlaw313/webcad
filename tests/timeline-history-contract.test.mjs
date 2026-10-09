@@ -17,7 +17,9 @@ const rebuildStart = store.indexOf('  const runFeatures = async')
 const rebuildEnd = store.indexOf('  const editActiveSketchParameter=', rebuildStart)
 assert.ok(rebuildStart >= 0 && rebuildEnd > rebuildStart)
 const rebuild = store.slice(rebuildStart, rebuildEnd)
-assert.match(store, /applyFeatures: async \(\.\.\.args\) => \(await runFeatures\(args\)\)\.ok/)
+// CORE16 featDlg kernel preview: a dry-run guard may capture the feature list first (no rebuild, no history);
+// every real call still goes through the single runFeatures transaction.
+assert.match(store, /applyFeatures: async \(\.\.\.args\) => (\(await runFeatures\(args\)\)\.ok|\{\s*if \(_featDlgDry\) \{ _featDlgDry\.push\(args\[0\]\); return new Promise<boolean>\(\(\) => \{\}\) \}\s*return \(await runFeatures\(args\)\)\.ok)/)
 
 
 test('timeline replay rebuilds the visible prefix and keeps datum state in sync', () => {

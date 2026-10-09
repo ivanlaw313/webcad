@@ -10,7 +10,7 @@ import { useDraggable } from './useDraggable'
 import { computeScrubIndex, chipSwatchColor } from '../cad/selectionModel'   // GM-X4 #9：色板 + hideInactive 稳健回卷索引
 
 // P2 Edit Feature：双击呢啲 kind 重开原创建对话框（其余 sketch 类照旧开草图编辑器 / fallback 内联条）
-const EDIT_DLG_KINDS = new Set<string>(['extrude', 'revolve', 'sweep', 'loft', 'fillet', 'chamfer', 'shell', 'mirror', 'pattern', 'geoPattern', 'circPattern', 'pathpattern', 'coil', 'rib', 'scale', 'transform', 'draft', 'othread', 'ithread', 'hole', 'split', 'text'])
+const EDIT_DLG_KINDS = new Set<string>(['extrude', 'revolve', 'sweep', 'loft', 'fillet', 'chamfer', 'shell', 'mirror', 'pattern', 'geoPattern', 'circPattern', 'pathpattern', 'coil', 'rib', 'scale', 'transform', 'draft', 'othread', 'ithread', 'hole', 'split', 'text', 'prim', 'bodyboolean'])
 
 // 测试报告观察 C：时间轴特徵尺寸输入 — 改为本地缓冲 + 失焦/Enter 先提交（之前每个 keystroke 即触发
 // 异步重建，令打字被打断 / 自动化改唔到值）。同 featDlg 输入一致行为。外部值变（参数绑定/撤销）会重新同步。
@@ -56,8 +56,8 @@ type FieldDef = { key: string; label: string; unit: string; opts?: { value: stri
 const META: Record<string, { icon: string; label: string; param: string; field: string; unit: string; fields?: FieldDef[] }> = {
   hole: { icon: 'hole', label: '孔', param: '直徑', field: 'diameter', unit: 'mm', fields: [{ key: 'diameter', label: '直徑', unit: 'mm' }, { key: 'depth', label: '深度', unit: 'mm' }] },
   offsetsolid: { icon: 'scale', label: '整體偏移', param: '距離', field: 'distance', unit: 'mm', fields: [{ key: 'distance', label: '距離', unit: 'mm' }] },
-  extrude: { icon: 'extrude', label: '拉伸', param: '高度', field: 'height', unit: 'mm', fields: [{ key: 'height', label: '高度', unit: 'mm' }, { key: 'twist', label: '扭轉', unit: '°' }, { key: 'operation', label: '操作', unit: '', opts: [{ value: 'new', label: '加料' }, { value: 'cut', label: '切割' }] }, { key: 'plane', label: '草圖面', unit: '', opts: [{ value: 'XY', label: '上 XY' }, { value: 'XZ', label: '前 XZ' }, { value: 'YZ', label: '右 YZ' }] }] },
-  revolve: { icon: 'revolve', label: '旋轉', param: '角度', field: 'angle', unit: '°', fields: [{ key: 'angle', label: '角度', unit: '°' }, { key: 'axis', label: '繞軸', unit: '', opts: [{ value: 'Y', label: 'Y 軸（預設）' }, { value: 'X', label: 'X 軸' }, { value: 'Z', label: 'Z 軸' }] }, { key: 'op', label: '操作', unit: '', opts: [{ value: 'new', label: '加料' }, { value: 'cut', label: '切割(車槽)' }, { value: 'intersect', label: '相交' }] }] },
+  extrude: { icon: 'extrude', label: '拉伸', param: '高度', field: 'height', unit: 'mm', fields: [{ key: 'height', label: '高度', unit: 'mm' }, { key: 'twist', label: '扭轉', unit: '°' }, { key: 'operation', label: '操作', unit: '', opts: [{ value: 'new', label: '加料' }, { value: 'newbody', label: '新實體' }, { value: 'cut', label: '切割' }, { value: 'intersect', label: '相交' }] }, { key: 'plane', label: '草圖面', unit: '', opts: [{ value: 'XY', label: '上 XY' }, { value: 'XZ', label: '前 XZ' }, { value: 'YZ', label: '右 YZ' }] }] },
+  revolve: { icon: 'revolve', label: '旋轉', param: '角度', field: 'angle', unit: '°', fields: [{ key: 'angle', label: '角度', unit: '°' }, { key: 'axis', label: '繞軸', unit: '', opts: [{ value: 'Y', label: 'Y 軸（預設）' }, { value: 'X', label: 'X 軸' }, { value: 'Z', label: 'Z 軸' }] }, { key: 'op', label: '操作', unit: '', opts: [{ value: 'new', label: '加料' }, { value: 'newbody', label: '新實體' }, { value: 'cut', label: '切割(車槽)' }, { value: 'intersect', label: '相交' }] }] },
   fillet: { icon: 'fillet', label: '圓角', param: '半徑', field: 'radius', unit: 'mm' },
   facefillet: { icon: 'fillet', label: '面圓角', param: '半徑', field: 'radius', unit: 'mm', fields: [{ key: 'radius', label: '半徑', unit: 'mm' }] },
   chamfer: { icon: 'chamfer', label: '倒角', param: '距離', field: 'distance', unit: 'mm' },

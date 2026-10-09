@@ -6739,7 +6739,7 @@ export default function Viewport() {
           {(() => { const w = patternOverlapWarning(featDlg, meshBboxSize(bodyMesh)); return w ? <div role="status" data-testid="pattern-overlap-warning" style={{ color: '#b54708', fontSize: 12, marginBottom: 6 }}>{tStatus(w, lang)}</div> : null })()}
           {!featDlgBlockingReason(featDlg) && editPreviewMesh && featDlg.kind !== 'extrude-edit' && (() => {
             const vt = meshVolumeMm3(editPreviewMesh.vertices, editPreviewMesh.triangles) + (editPreviewMesh.parked ?? []).reduce((a, pb) => a + meshVolumeMm3(pb.vertices, pb.triangles), 0)
-            return <div data-testid="feat-preview-volume" style={{ fontSize: 11, color: '#16a36b', marginBottom: 6 }}>{tStatus('即時預覽（同確定後結果一樣）', lang)} · {tStatus('體積', lang)} {vt >= 1000 ? (vt / 1000).toFixed(2) + ' cm³' : vt.toFixed(1) + ' mm³'}</div>
+            return <div data-testid="feat-preview-volume" style={{ fontSize: 11, color: '#16a36b', marginBottom: 6 }}>{tStatus('即時預覽（同確定後結果一樣）', lang)} · {tStatus(featDlg.kind === 'splitbody' ? '活動實體體積' : '體積', lang)} {vt >= 1000 ? (vt / 1000).toFixed(2) + ' cm³' : vt.toFixed(1) + ' mm³'}</div>
           })()}
           {featDlg.kind === 'shell-edit' && !(+featDlg.params.thickness > 0) && <div role="alert" data-testid="shell-edit-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div>}
           {(featDlg.kind === 'box' || featDlg.kind === 'wedge') && [featDlg.params.l, featDlg.params.w, featDlg.params.h].some((v) => !(+v > 0)) && <div role="alert" data-testid="prim-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_LENGTH_DETAIL)}</div>}
@@ -6950,12 +6950,13 @@ export default function Viewport() {
           {featDlg.kind === 'combine' && (<>
             <label title={tStatus('合併=兩體並集 · 切除=目標減工具 · 相交=公共體（真 B-rep）。若切除結果為空且對調後有體積，會自動對調（「新實體」後第二體作活動目標時常見）', lang)}>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'cut'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }}><option value="fuse">{tStatus('＋合併', lang)}</option><option value="cut">{tStatus('－切除(目標−工具)', lang)}</option><option value="common">{tStatus('∩相交', lang)}</option></select></label>
             <div style={{ fontSize: 11, color: '#6b7680', margin: '2px 0' }}>{tStatus('目標 = 活動實體；勾選工具體（泊車）。挖孔：保持大塊為活動體，用工具體（⬡新實體/新實體泊車）切除。', lang)}</div>
-            {!(bodyMesh?.parked?.length) && (
+            {featDlg.editId && <div role="status" data-testid="combine-edit-note" style={{ fontSize: 11, color: '#6b7680', margin: '2px 0' }}>{tStatus('編輯：工具體沿用原有設定；可改操作類型或保留工具體', lang)}</div>}
+            {!featDlg.editId && !(bodyMesh?.parked?.length) && (
               <div role="status" data-testid="combine-need-newbody" style={{ fontSize: 11, color: '#b42318', margin: '4px 0' }}>
                 {tStatus('沒有工具體：請先用「新實體」泊車當前體，再建造第二個實體，然後返回合併/布爾。', lang)}
               </div>
             )}
-            {(bodyMesh?.parked ?? []).map((b, i) => (
+            {!featDlg.editId && (bodyMesh?.parked ?? []).map((b, i) => (
               <label key={i} style={{ justifyContent: 'flex-start', gap: 6 }}>
                 <input type="checkbox" checked={+(featDlg.params['tool' + i] ?? 0) > 0} onChange={(e) => setFeatParam('tool' + i, e.target.checked ? 1 : 0)} />
                 <span>{b.name || (tStatus('實體', lang) + (i + 1))}</span>
@@ -6964,7 +6965,7 @@ export default function Viewport() {
             {/* S185 Keep Tools（Fusion Combine）：保留工具体做独立泊车体（可复用 / 重复布尔），唔消耗 */}
             <label style={{ justifyContent: 'flex-start', gap: 6, marginTop: 2 }} title={tStatus('保留工具體：運算後工具體仍作為獨立泊車實體保留（可再次布爾/匯出）；預設消耗', lang)}>
               <input type="checkbox" checked={+(featDlg.params.keepTools ?? 0) > 0} onChange={(e) => setFeatParam('keepTools', e.target.checked ? 1 : 0)} />
-              <span>{tStatus('保留工具體（Keep Tools）', lang)}</span>
+              <span>{tStatus('保留工具體', lang)}</span>
             </label>
           </>)}
           {featDlg.kind === 'boundaryfill' && (<>

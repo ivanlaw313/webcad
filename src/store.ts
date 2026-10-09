@@ -16343,6 +16343,12 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
         }
       case 'extrude':
+        // CORE16：沒有草圖的圓形拉伸＝「圓柱」基本體 → 重開圓柱對話框（直徑／高／位置），而非通用拉伸編輯
+        if (f.profile?.kind === 'circle' && !f.sketchId && !f.arbPlane && !f.plane && !f.twist && !f.draft && !f.symmetric && !f.through && !f.down && !f.distanceExpression && !f.extent && !f.toFace && !f.inward) {
+          kind = 'cylinder'
+          params = { d: +(2 * f.profile.r).toFixed(6), h: f.height, px: f.profile.c[0], py: f.profile.c[1], pz: f.baseZ ?? 0, op: f.operation || 'new' }
+          break
+        }
         kind = 'extrude-edit'
         params = { height: f.height, heightExpr: f.distanceExpression?.expression ?? String(f.height), heightExprScale: f.distanceExpression?.implicitScale ?? 1, heightExprFlip: Number(f.distanceExpression?.flip ?? !!f.down), symMeasure: f.distanceExpression?.measure ?? 'whole', op: f.operation || 'new', twist: f.twist ?? 0, draft: f.draft ?? 0, extent: f.extent === 'next' ? 'next' : f.through ? 'through' : f.symmetric ? 'symmetric' : f.toFace ? 'toface' : 'distance', sketchId: f.sketchId ?? '' }   // GM-W5 5.2：反填到下一面
         break
@@ -16454,6 +16460,16 @@ export const useApp = create<AppState>((rawSet, get) => {
           raxis: 'Z', angle: 0,
           p1x: 0, p1y: 0, p1z: 0, p2x: 0, p2y: 0, p2z: 0,
         }
+        break
+      case 'prim':
+        // CORE16：圓錐基本體雙擊 → 重開圓錐對話框（底Ø／頂Ø／高）；其他基本體照舊只選中
+        if (f.shape !== 'cone' || f.sides) { get().selectFeature(featId); return }
+        kind = 'cone'
+        params = { d: 2 * f.a, dt: 2 * (f.b || 0), h: f.c, op: f.op || 'new', px: f.at?.[0] ?? 0, py: f.at?.[1] ?? 0, pz: f.at?.[2] ?? 0 }
+        break
+      case 'bodyboolean':
+        kind = 'combine'
+        params = { op: f.bop, keepTools: f.keep ? 1 : 0 }
         break
       case 'text':
         kind = 'emboss'
@@ -18203,6 +18219,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       const parked = get().bodyMesh?.parked ?? []
       const bop = (p.op === 'fuse' || p.op === 'common' || p.op === 'cut') ? p.op as 'fuse' | 'cut' | 'common' : 'cut'
       // 收集勾选嘅工具索引；按【降序】排，咁 worker splice(target) 唔会令未处理嘅索引偏移。
+      // CORE16：時間軸雙擊編輯 — 工具體沿用原值，只改操作類型／保留工具體
+      if (d.editId) { set({ featDlg: null }); await get().editFeature(d.editId, { bop, keep: +(p.keepTools ?? 0) > 0 ? true : undefined }); return }
       const tools = parked.map((_, i) => i).filter((i) => +(p['tool' + i] ?? 0) > 0).sort((a, b) => b - a)
       if (!tools.length) { set({ status: '合併：至少勾選一個工具體' }); return }
       const keep = +(p.keepTools ?? 0) > 0   // S185 Keep Tools：保留工具体（可复用 / 留独立体）
@@ -18948,7 +18966,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           angle: Math.max(1, Math.min(360, +p.angle || 360)),
           axis: persistedAxis,
           op: String(p.op || 'new'),
-          wall: +p.wall || 0,
+          wall: +p.wall > 0 ? +p.wall : undefined,   // CORE16：0 = 實心（刪除 wall），唔好當成非法尺寸
           symmetric: !!p.sym,
           ...(p.axisReference==='sketch'||p.axisReference==='world'?{axisReference:p.axisReference}:{}),
           ...(axisSpec ? { axisV: axisSpec.axisV, axisOrigin: axisSpec.axisOrigin } : (persistedAxis === 'Y' ? { axisV: undefined, axisOrigin: undefined } : { axisV: REVOLVE_AXIS_VEC[persistedAxis], axisOrigin: [0, 0, 0] })),

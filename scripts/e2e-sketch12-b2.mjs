@@ -22,7 +22,7 @@ await runE2E(async (page, ok) => {
   const labels = () => page.evaluate(() => [...document.querySelectorAll('[data-dim]')].filter((e) => e.offsetParent).map((e) => e.getAttribute('data-dim')))
   const editLabel = async (re, value, sel = '[data-dim]') => {
     const loc = page.locator(sel).filter({ hasText: re }).first()
-    await loc.click(); await page.waitForTimeout(300)
+    await loc.click(); await page.waitForTimeout(250); await loc.dblclick(); await page.waitForTimeout(300)
     const ed = page.locator('[data-dim-editor] input, input:focus').first()
     await ed.click(); await page.keyboard.press('Control+a'); await page.keyboard.type(String(value)); await page.keyboard.press('Enter'); await page.waitForTimeout(800)
   }

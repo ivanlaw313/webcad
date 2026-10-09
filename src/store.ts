@@ -5083,12 +5083,26 @@ export const useApp = create<AppState>((rawSet, get) => {
         return ends
       }
       const oldEnds=groupEnds(get().features),newEnds=groupEnds(features),faceSourceIds=new Map<string,string>()
-      for(const [skId,oldId]of oldEnds){const nextId=newEnds.get(skId);if(nextId&&nextId!==oldId)faceSourceIds.set(oldId,nextId)}
+      // Only a contiguous regeneration of the same group moves its end. Two extrudes that merely share a
+      // sketch but have other features between them (e.g. undo restoring a deleted later extrude of that
+      // sketch) are not a group: remapping there re-bound an earlier face sketch to a FUTURE feature, the
+      // boss failed and Ctrl+Z reported 撤銷失敗 instead of restoring the pre-delete model.
+      const featureAt=new Map(features.map((f,i)=>[f.id,i] as const))
+      const contiguousGroup=(skId:string,oldId:string,nextId:string)=>{
+        const a=featureAt.get(oldId),b=featureAt.get(nextId)
+        if(a===undefined||b===undefined)return true   // old end removed/replaced → group regenerated
+        if(b<a)return false
+        for(let i=a+1;i<b;i++){const m=features[i];if(m.type!=='sketch'&&!((m.type==='extrude'||m.type==='extgroup')&&m.sketchId===skId))return false}
+        return true
+      }
+      for(const [skId,oldId]of oldEnds){const nextId=newEnds.get(skId);if(nextId&&nextId!==oldId&&contiguousGroup(skId,oldId,nextId))faceSourceIds.set(oldId,nextId)}
       // Resolve user-parameter bindings (overwrite bound fields), then skip suppressed.
-      const bound = applyParamBindings(features, get().params, get().paramBindings).map(f=> {
+      const bound = applyParamBindings(features, get().params, get().paramBindings).map((f,fi)=> {
         const src = (f.type==='extrude' || f.type==='extgroup' || f.type==='sketch' || f.type==='revolve') && f.sketchId ? get().sketchSources[f.sketchId] : null
         const prior=src?.faceBinding??('sketchFaceBinding'in f?f.sketchFaceBinding:undefined)
-        const binding=prior&&faceSourceIds.has(prior.sourceId)?{...prior,sourceId:faceSourceIds.get(prior.sourceId)!}:prior
+        const remapTo=prior?faceSourceIds.get(prior.sourceId):undefined
+        // A face can never be taken from a feature that comes later in the timeline.
+        const binding=prior&&remapTo&&(featureAt.get(remapTo)??-1)<fi?{...prior,sourceId:remapTo}:prior
         return binding ? {...f, sketchFaceBinding:binding,...(f.type==='sketch'&&src?{plane:src.plane,baseZ:src.baseZ,arbPlane:src.arb}: {})} : f
       })
       const sup = get().suppressedIds

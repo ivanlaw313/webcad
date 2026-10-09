@@ -1644,6 +1644,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   setExtrudeSide2: (n: number) => void
   // Fusion-style sweep dialog: set tube diameter + operation before sweeping the drawn path.
   sweepDlgOpen: boolean
+  sweepError: string | null   // RETEST21 #2：掃掠確定失敗原因（對話框紅字；開／取消／成功清空）
   // 非空代表由時間軸重開現有 Sweep；確認時改同一個特徵而非新增一個。
   sweepEditId: string | null
   sweepDia: number
@@ -4165,7 +4166,7 @@ function asSweepPathShape(sh: SketchShape | null | undefined): SketchShape | nul
 // RETEST20 #2：Fusion 掃掠「鏈選」— 用戶逐段畫嘅 L 形路徑（40 + 30 兩條線）係兩個 shape；以前只攞第一條（淨掃 40mm）。
 // 由 seed 開始，兩頭搵端點重合（≤ tol）嘅其他開放路徑 shape 接力（必要時反向；分岔 = 多過一條候選 → 停，同 Fusion 鏈選一樣），
 // 合成一條開放折線。只得 1 段 → 原樣返回（逐字節舊行為）。used = 用咗嘅 pool index。
-function chainSweepPath(pool: (SketchShape | null | undefined)[], seed: number, tol = 1e-3): { path: SketchShape; used: number[] } | null {
+function chainSweepPath(pool: (SketchShape | null | undefined)[], seed: number, tol = 1e-2): { path: SketchShape; used: number[] } | null {
   const seedPath = asSweepPathShape(pool[seed])
   if (!seedPath) return null
   type Seg = { v: Pt[]; b: number[] }
@@ -4237,6 +4238,31 @@ function isSweepSectionProfile(sh: SketchShape | null | undefined): boolean {
 }
 function findSweepSectionProfile(profiles: SketchShape[]): SketchShape | undefined {
   return [...profiles].reverse().find(isSweepSectionProfile)
+}
+// RETEST21 #2：Fusion 掃掠「截面 = 另一張草圖嘅閉合輪廓」— 用戶通常喺【垂直平面】另開一張草圖畫截面圓，
+// 唔會同路徑擺喺同一張草圖。以前 profile 模式只喺路徑草圖入面搵 → 「先畫一個閉合輪廓…」卡住、冇特徵。
+// 揀法：瀏覽樹／畫布選中嘅草圖（selSketch）優先，否則時間軸最新一張有閉合輪廓、又唔係路徑嘅已完成草圖。
+// 截面坐標：喺佢自己平面嘅 2D 坐標減去路徑起點投影（截面以路徑起點為中心放置，同 worker「截面原點對齊路徑起點」一致）。
+export function externalSweepSection(
+  s: Pick<AppState, 'sketchSources' | 'features' | 'selSketch'>,
+  pathStartCad: [number, number, number] = [0, 0, 0],
+): { id: string; shape: SketchShape; local: SketchShape } | null {
+  const order = s.features.filter((f) => f.type === 'sketch' && (f as { sketchId?: string }).sketchId && !(f as { suppressed?: boolean }).suppressed).map((f) => (f as { sketchId?: string }).sketchId as string)
+  const ok = (id: string) => {
+    const src = s.sketchSources[id]
+    if (!src || src.arb || !order.includes(id)) return null
+    if (src.shapes.some((sh) => !!asSweepPathShape(sh)) && !src.shapes.some(isSweepSectionProfile)) return null
+    return findSweepSectionProfile(src.shapes) ?? null
+  }
+  const ids = [...(s.selSketch ? [s.selSketch] : []), ...[...order].reverse()]
+  for (const id of ids) {
+    const shape = ok(id)
+    if (!shape) continue
+    const src = s.sketchSources[id]
+    const [ps, pt] = projCardinal(pathStartCad[0], pathStartCad[1], pathStartCad[2], src.plane)
+    return { id, shape, local: translateSketchShape(shape, -ps, -pt) }
+  }
+  return null
 }
 function sweepSectionSelRef(sh: SketchShape, shapeIdx: number): SkRef {
   return sh.type === 'circle' ? { kind: 'circle', shape: shapeIdx } : { kind: 'edge', shape: shapeIdx, idx: 0 }
@@ -7754,6 +7780,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
   }),
   sweepDlgOpen: false,
+  sweepError: null,
   sweepEditId: null,
   sweepDia: 12,
   openSweepDlg: () => set((s) => {
@@ -7807,10 +7834,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       const idx=pool.map((sh,i)=>isSweepSectionProfile(sh)?i:-1).filter(i=>i>=0).pop()
       return idx==null?{skSel:[] as SkRef[]}:{skSel:[sweepSectionSelRef(pool[idx],idx)]}
     })()
-    return {...draft,...(s.sweepSection==='profile'?sectionChip:{}),sweepDlgOpen:true,sketchOp:!hasSolid(s.features)?'new':s.sketchOp,sweepAxis:hasPath?'':s.sweepAxis,status:'掃掠：設 管徑 / 操作（可選構造軸脊線）→ 確定（或取消）'}
+    return {...draft,...(s.sweepSection==='profile'?sectionChip:{}),sweepDlgOpen:true,sweepError:null,sketchOp:!hasSolid(s.features)?'new':s.sketchOp,sweepAxis:hasPath?'':s.sweepAxis,status:'掃掠：設 管徑 / 操作（可選構造軸脊線）→ 確定（或取消）'}
   }),
   // UX1 #3：取消「編輯特徵」（雙擊時間線重開）→ 連 selectedFeature 一齊清，唔好留低底部「編輯「…」」尺寸條；編輯回填嘅路徑亦清走。
-  cancelSweepDlg: () => set((s) => ({ sweepDlgOpen: false, sweepEditId: null, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], ...(s.sweepEditId ? { selectedFeature: null, polyPts: [], status: '已取消編輯掃掠' } : { status: '已取消掃掠（路徑保留）' }) })),
+  cancelSweepDlg: () => set((s) => ({ sweepDlgOpen: false, sweepError: null, sweepEditId: null, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], ...(s.sweepEditId ? { selectedFeature: null, polyPts: [], status: '已取消編輯掃掠' } : { status: '已取消掃掠（路徑保留）' }) })),
   setSweepDia: (n) => set({ sweepDia: n > 0 ? n : 12 }),
   sweepWall: 0,
   setSweepWall: (n) => set({ sweepWall: Math.max(0, n || 0) }),
@@ -19751,6 +19778,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   // Sweep a round tube along the user's drawn (open) polyline/spline path on the ground.
   commitSweepPath: async () => {
     const s = get()
+    // RETEST21 #2：唔可以靜靜雞失敗 — 對話框保留 + 紅字錯誤（sweepError）+ ⚠ 狀態列
+    const sweepFail = (msg: string) => set({ sweepError: msg, status: '⚠ 掃掠未能建立：' + msg })
     // Timeline edit: only patch parameters.  Keep the original 2D/3D spine, guide and archived profile
     // instead of creating a second Sweep feature or silently flattening a 3D path.
     if (s.sweepEditId) {
@@ -19782,16 +19811,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     // ── GM-3DV1 S5：沿实体边链扫掠 —— 拾嘅边多段线（CAD 3D）首尾接力串成 path3 脊线，喂现有 worker sweep path3 分支。
     // 截面/操作/壁厚/朝向同画线路径一致。截面 profile 由 sketchProfiles 尾件（若有），否则圆管。
     if (s.sweepEdgePick || s.sweepEdgeLines.length) {
-      if (s.sweepEdgeLines.length < 1) { set({ status: '掃掠邊鏈：先逐條點選相連嘅實體棱邊（≥1 條）' }); return }
+      if (s.sweepEdgeLines.length < 1) { sweepFail('掃掠邊鏈：先逐條點選相連嘅實體棱邊（≥1 條）'); return }
       const path3 = chainEdgePolylines(s.sweepEdgeLines)
-      if (!path3 || path3.length < 2) { set({ status: '掃掠邊鏈：拾嘅邊接唔埋成一條連續路徑 — 揀首尾相連嘅邊（容差 1.5mm）' }); return }
+      if (!path3 || path3.length < 2) { sweepFail('掃掠邊鏈：拾嘅邊接唔埋成一條連續路徑 — 揀首尾相連嘅邊（容差 1.5mm）'); return }
       const opE: BoolOp = (s.sketchOp === 'cut' || s.sketchOp === 'intersect' || s.sketchOp === 'newbody') && hasSolid(s.features) ? s.sketchOp : 'new'
       let secProfileE: SketchProfile | undefined
       if (s.sweepSection === 'profile') {
         const poolE = [...s.sketchProfiles, ...(s.sketchShape && isSweepSectionProfile(s.sketchShape) ? [s.sketchShape] : [])]
         const candE = findSweepSectionProfile(poolE)
-        if (!candE) { set({ status: '截面=草圖輪廓：先畫一個閉合輪廓，或改用「◯ 圓」截面，再沿邊鏈掃掠' }); return }
-        secProfileE = shapeToProfile(candE, 'XY')
+        const extE = candE ? null : externalSweepSection(s, path3[0])   // RETEST21 #2：截面可喺另一張草圖
+        if (!candE && !extE) { sweepFail('截面=草圖輪廓：先畫一個閉合輪廓，或改用「◯ 圓」截面，再沿邊鏈掃掠'); return }
+        secProfileE = shapeToProfile(candE ?? extE!.local, 'XY')
       }
       const diaE = Math.max(0.2, s.sweepDia || 12)
       const wallE = opE === 'cut' || secProfileE ? 0 : Math.max(0, Math.min(s.sweepWall || 0, diaE / 2 - 0.2))
@@ -19807,11 +19837,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 截面同旧路一致（circle 管径 / profile 草图轮廓）。旧画线路径分支逐字节保留（sweepAxis==='' 时）。
     if (s.sweepAxis && s.sweepAxis.startsWith('A')) {
       const ca = s.caxes[Number(s.sweepAxis.slice(1))]
-      if (!ca) { set({ status: '所選構造軸已唔存在 — 重新揀軸（或選「畫線路徑」）' }); return }
+      if (!ca) { sweepFail('所選構造軸已唔存在 — 重新揀軸（或選「畫線路徑」）'); return }
       const LV: Record<string, [number, number, number]> = { X: [1, 0, 0], Y: [0, 1, 0], Z: [0, 0, 1] }
       const dRaw = ca.dirV ?? LV[ca.dir]
       const dl = Math.hypot(dRaw[0], dRaw[1], dRaw[2])
-      if (dl < 1e-9) { set({ status: '構造軸方向為零向量 — 重新揀軸' }); return }
+      if (dl < 1e-9) { sweepFail('構造軸方向為零向量 — 重新揀軸'); return }
       const dir: [number, number, number] = [dRaw[0] / dl, dRaw[1] / dl, dRaw[2] / dl]
       const L = s.sweepAxisLen > 0 ? s.sweepAxisLen : 100
       const opA: BoolOp = (s.sketchOp === 'cut' || s.sketchOp === 'intersect' || s.sketchOp === 'newbody') && hasSolid(s.features) ? s.sketchOp : 'new'   // P2：sweep 补 ∩相交 + New Body
@@ -19820,8 +19850,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (s.sweepSection === 'profile') {
         const poolA = [...s.sketchProfiles, ...(s.sketchShape && isSweepSectionProfile(s.sketchShape) ? [s.sketchShape] : [])]
         const candA = findSweepSectionProfile(poolA)
-        if (!candA) { set({ status: '截面=草圖輪廓：先畫一個閉合輪廓（矩形/圓/折線閉合），再選構造軸脊線，先至掃掠' }); return }
-        secProfileA = shapeToProfile(candA, 'XY')
+        const extA = candA ? null : externalSweepSection(s, ca.at)   // RETEST21 #2
+        if (!candA && !extA) { sweepFail('截面=草圖輪廓：先畫一個閉合輪廓（矩形/圓/折線閉合），再選構造軸脊線，先至掃掠'); return }
+        secProfileA = shapeToProfile(candA ?? extA!.local, 'XY')
       }
       const diaA = Math.max(0.2, s.sweepDia || 12)
       const wallA = opA === 'cut' || secProfileA ? 0 : Math.max(0, Math.min(s.sweepWall || 0, diaA / 2 - 0.2))
@@ -19838,7 +19869,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const pathShape = asSweepPathShape(sk) ?? (sk && sk.type === 'poly' && sk.open ? sk : null)
     const isSpline = !!(pathShape && pathShape.type === 'poly' && pathShape.smooth)
     const src = pathShape && pathShape.type === 'poly' ? (isSpline && pathShape.ctrl ? pathShape.ctrl : (pathShape.verts ?? pathShape.pts)) : s.polyPts
-    if (!src || src.length < 2) { set({ status: '先用「折線」畫一條路徑（≥2 點，可不閉合），再點「沿路徑掃掠」' }); return }
+    if (!src || src.length < 2) { sweepFail('先用「折線」畫一條路徑（≥2 點，可不閉合），再點「沿路徑掃掠」'); return }
     const path = src.map((p) => stToProfile(p, 'XY'))
     const op: BoolOp = (s.sketchOp === 'cut' || s.sketchOp === 'intersect' || s.sketchOp === 'newbody') && hasSolid(s.features) ? s.sketchOp : 'new'   // P2：sweep 补 ∩相交 + New Body
     // T742 任意草图截面：揾 profiles 入面最后一个【闭合】轮廓做截面（截面以草图原点为中心，垂直路径放置）
@@ -19847,8 +19878,14 @@ export const useApp = create<AppState>((rawSet, get) => {
       // Include live sketchShape when it is the closed section (path may still be in polyPts).
       const pool = [...s.sketchProfiles, ...(s.sketchShape && isSweepSectionProfile(s.sketchShape) ? [s.sketchShape] : [])]
       const cand = findSweepSectionProfile(pool)
-      if (!cand) { set({ status: '截面=草圖輪廓：先畫一個閉合輪廓（矩形/圓/折線閉合），再畫路徑折線，先至掃掠' }); return }
-      secProfile = shapeToProfile(cand, 'XY')
+      if (cand) secProfile = shapeToProfile(cand, 'XY')
+      else {
+        // RETEST21 #2：截面喺另一張（垂直平面）草圖 — Fusion 最常見做法
+        const p0 = path[0]
+        const ext = externalSweepSection(s, [p0[0], p0[1], s.sketchBaseZ || 0])
+        if (!ext) { sweepFail('截面=草圖輪廓：搵唔到閉合輪廓 — 喺路徑草圖或另一張草圖（例如垂直平面）畫一個圓／矩形／閉合折線，喺瀏覽樹點選佢，或改用「◯ 圓」截面'); return }
+        secProfile = shapeToProfile(ext.local, 'XY')
+      }
     }
     const dia = Math.max(0.2, s.sweepDia || 12)
     const wall = op === 'cut' || secProfile ? 0 : Math.max(0, Math.min(s.sweepWall || 0, dia / 2 - 0.2))   // hollow only for additive circle sweeps
@@ -19882,9 +19919,16 @@ export const useApp = create<AppState>((rawSet, get) => {
       : op === 'intersect'
         ? `已沿 ${path.length} 點路徑掃掠相交（保留掃掠體同實體嘅公共部分）`
         : `已沿 ${path.length} 點路徑掃掠成${secProfile ? '实体（任意草图截面 — Fusion 式）' : wall > 0 ? `空心管（外Ø${dia} 壁厚${wall}）` : `圆管（管径 Ø${dia}）`}${guideSt && Math.abs(climb) <= 1e-6 ? ' · 跟导轨转向' : ''}${Math.abs(climb) > 1e-6 ? ` · 3D 爬升 ${climb}mm` : ''}`) + (guideDropped ? ' · ⚠ 导轨已忽略（爬升优先）' : ''))
+    if (!ok) {
+      // RETEST21 #2：內核建唔到（自交／截面太大轉角等）→ 明確錯誤，唔好淨係留低舊提示
+      const why = get().status || '內核未能生成掃掠體'
+      set({ sweepError: why, status: '⚠ 掃掠未能建立：' + why })
+      void get().appAlert(tStatus('掃掠未能建立：', get().lang) + why, tStatus('掃掠', get().lang))
+    }
     if (ok) {
       const skId = 'sk' + ++_skidN
       set((st) => ({
+        sweepError: null,
         features: st.features.map((x) => (x.id === f.id && x.type === 'sweep' ? { ...x, sketchId: skId } : x)),
         sketchSources: { ...st.sketchSources, [skId]: { patternData: clonePatternData(skBundle.patternData) ?? undefined, shapes: skBundle.shapes, cons: skBundle.cons, plane: 'XY' as Plane, baseZ: skBundle.baseZ, op, height: 0, sweepPath: skBundle.sweepPath, sweepClimb: Math.abs(climb) > 1e-6 ? climb : undefined, sweepGuide: guideSt } },
       }))

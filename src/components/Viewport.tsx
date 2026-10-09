@@ -101,7 +101,7 @@ import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按
 import { ToolIcon } from '../icons'
 import { featDlgBlockingReason } from '../cad/featDlgNumeric'   // 純邏輯模組，唔經 monolith
 import { startRenderGovernor } from '../render/renderGovernor'
-import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC } from '../store'
+import { useApp, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
 import { cadPointToThree, formBoxRectCadCorners, makePlacedBoxCage, type FormBoxDraft, type FormBoxPlane } from '../cad/formBox'
@@ -4699,8 +4699,7 @@ export default function Viewport() {
         // RETEST18 #1：撳中組件 gumball 把手（關節旋轉環 / 滑動箭頭 / 移動把手）→ 交俾 R3F/drei：唔開框選、唔 stopPropagation，
         // 並喺 canvas 上嘅 OrbitControls 收到 pointerdown 之前停用佢（放手先還原）— 拖把手唔會轉鏡頭。
         if (e.button === 0 && e.target instanceof HTMLCanvasElement && claimGumballPointer(e.clientX, e.clientY)) return
-        // RETEST20 #1：撳中關節環／滑動軸（JointGizmo）→ 自己驅動關節值；stopPropagation（capture 喺 canvas 之前）→ Orbit/R3F 完全收唔到，鏡頭唔轉。
-        if (e.button === 0 && e.target instanceof HTMLCanvasElement && claimJointHandle(e.clientX, e.clientY)) { e.stopPropagation(); e.preventDefault(); return }
+        // RETEST20/21 #1：關節環／指針／錨點／滑動軸嘅 claim 已提早到 window capture（見下面 useEffect）— 呢度唔使再做。
         // GM-W5 5.3：select 工具 + 左键 + 目标系 canvas 先接管（HTML 覆盖层照常运作）
         // Multi-view secondary canvases are orbit-only — skip marquee/lasso outside single layout.
         if (viewLayout !== 'single' || navTool !== 'select' || mode === 'sketch' || e.button !== 0 || !(e.target instanceof HTMLCanvasElement)) return
@@ -7823,17 +7822,24 @@ export default function Viewport() {
             <button className={'sb-tool' + (sweepSection === 'circle' ? ' active' : '')} style={{ flex: 1 }} onClick={() => setSweepSection('circle')}>{tStatus('◯ 圓', lang)}</button>
             <button className={'sb-tool' + (sweepSection === 'profile' ? ' active' : '')} style={{ flex: 1 }} title={tStatus('任意草圖截面（Fusion 式）：先畫一個閉合輪廓（以原點為中心），再畫路徑折線 — 截面垂直路徑掃過', lang)} onClick={() => setSweepSection('profile')}>{tStatus('▱ 草圖輪廓', lang)}</button>
           </div>
+          {sweepError && <div className="sb-hint" role="alert" style={{ color: '#e03131', fontSize: 11 }}>⚠ {tStatus(sweepError, lang)}</div>}{/* RETEST21 #2：唔可以靜靜雞失敗 */}
           {sweepSection === 'circle' && <label title={tStatus('圓形截面的直徑，沿路徑掃掠', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('管徑 Ø', lang)}</span>
             <span><input type="number" min={0.5} step={1} value={sweepDia} onChange={(e) => setSweepDia(Number(e.target.value) || 12)} style={{ width: 66 }} /> mm</span>
           </label>}
           {sweepSection === 'profile' && (
             <>
-              <SelectionChip
-                label={tStatus('截面輪廓', lang)}
-                count={sketchProfiles.filter((sh) => sh.type === 'rect' || sh.type === 'circle' || (sh.type === 'poly' && !sh.construction && !sh.open && sh.pts.length >= 3)).length + (sketchShape && (sketchShape.type === 'rect' || sketchShape.type === 'circle' || (sketchShape.type === 'poly' && !sketchShape.construction && !sketchShape.open && sketchShape.pts.length >= 3)) ? 1 : 0)}
-                hint={tStatus('點畫布上的閉合輪廓（圓/矩形/閉合折線）選做截面；缺省用最後一個閉合輪廓', lang)}
-              />
+              {(() => {
+                const local = sketchProfiles.filter((sh) => sh.type === 'rect' || sh.type === 'circle' || (sh.type === 'poly' && !sh.construction && !sh.open && sh.pts.length >= 3)).length + (sketchShape && (sketchShape.type === 'rect' || sketchShape.type === 'circle' || (sketchShape.type === 'poly' && !sketchShape.construction && !sketchShape.open && sketchShape.pts.length >= 3)) ? 1 : 0)
+                // RETEST21 #2：截面喺另一張草圖（垂直平面）都算 — 顯示用緊邊張
+                const ext = local ? null : externalSweepSection(useApp.getState())
+                return <SelectionChip
+                  label={tStatus('截面輪廓', lang)}
+                  count={local || (ext ? 1 : 0)}
+                  selectedText={ext ? `${tStatus('草圖', lang)} ${ext.id} · ${ext.shape.type === 'circle' ? tStatus('圓', lang) + ' Ø' + +(ext.shape.r * 2).toFixed(3) : ext.shape.type === 'rect' ? tStatus('矩形', lang) : tStatus('閉合折線', lang)}` : undefined}
+                  hint={tStatus('點畫布上的閉合輪廓（圓/矩形/閉合折線）選做截面，或喺瀏覽樹點選另一張草圖；缺省用最後一個閉合輪廓', lang)}
+                />
+              })()}
               <div className="sb-hint" style={{ fontSize: 11 }}>{tStatus('點閉合輪廓選截面（畫輪廓 → 畫路徑折線 → 确定）', lang)}</div>
             </>
           )}

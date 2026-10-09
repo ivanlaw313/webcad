@@ -25,6 +25,7 @@ import { ellipseArcSample, ellipseArcSweep, ellipseArcWithSweep, mapEllipseArc, 
 import { ellipseSample } from './sketch/ellipseGeometry'
 import { splineBezier, type CubicBezierSegment } from './sketch/splineBezier'
 import { solveExtension } from './sketch/extendTransaction'
+import { threadFrameFromFace, isZAxis, type ThreadFrame } from './cad/threadFrame'
 import { boundSketchOrigin, shiftBoundSketchFeature, translateBoundShape, faceSketchDelta, type SketchFaceBinding, type ResolvedSketchFace } from './cad/sketchFaceBinding'
 import { activeModelCommand, commandDisabledReason } from './cad/commandAvailability'
 import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad/viewBookmark'
@@ -2867,7 +2868,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   applySnapshot: (data: unknown) => Promise<void>
   // 激光切割 G-code（GRBL，kerf 补偿）
   exportLaserGcode: (opts?: { feed?: number; power?: number; passes?: number; kerf?: number }) => void
-  addInternalThread: (d: number, pitch: number, height: number, cx: number, cy: number, z0?: number, modeled?: boolean, lefthand?: boolean, cls?: string, standard?: string) => Promise<void>  // 内螺纹孔；modeled=true 真螺旋牙（compound），默认 cosmetic 外观标注（B-rep 乾净）；lefthand=左旋牙；cls/standard（GM-3DV1 S11）=配合等级/标准库元数据
+  addInternalThread: (d: number, pitch: number, height: number, cx: number, cy: number, z0?: number, modeled?: boolean, lefthand?: boolean, cls?: string, standard?: string, frame?: ThreadFrame) => Promise<void>  // 内螺纹孔；modeled=true 真螺旋牙（compound），默认 cosmetic 外观标注（B-rep 乾净）；lefthand=左旋牙；cls/standard（GM-3DV1 S11）=配合等级/标准库元数据
   saveProject: () => Promise<void>
   openProject: () => void
   applyProjectData: (data: Record<string, unknown>, statusVerb?: string) => Promise<void>   // T797：共用还原（文件/分享链接）
@@ -15869,8 +15870,24 @@ export const useApp = create<AppState>((rawSet, get) => {
   startThreadFacePick: () => set({ threadFacePick: true, holeMode: false, holePos: null, holeFaceZ: null, shellMode: false, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, cpatAxisPick: false, status: '🔩 點一個【圓柱面】— 外圓面=包外螺紋 / 孔內壁=攻內螺紋，直徑/高度/位置自動讀入（Fusion Thread 同款）' }),
   applyThreadFacePick: (det) => {
     if (!det || det.kind !== 'cyl' || !det.axis || !det.p || det.r == null) { set({ status: '要點【圓柱面】— 平面冇得包牙' }); return }
-    const az = Math.abs(det.axis[2]) / (Math.hypot(det.axis[0], det.axis[1], det.axis[2]) || 1)
-    if (az < 0.996) { set({ status: '內/外螺紋 v1 只支持 Z 軸圓柱面（直立軸/凸台/孔）— 呢個面斜咗' }); return }
+    if (!isZAxis(det.axis)) {
+      // Any-axis cylinder (X / Y / slanted): the thread is built in a local frame whose +Z runs along the
+      // picked face from its start end (frame carried in the dialog payload → feature.frame).
+      const { frame, height } = threadFrameFromFace({ p: det.p, axis: det.axis, h0: det.h0, h1: det.h1 })
+      const h = Math.max(1, Math.round(height * 10) / 10)
+      const measD = det.r * 2
+      const kind = det.concave ? 'ithread' : 'othread'
+      const d = det.concave ? nearestIsoNom(measD) : Math.round(measD * 10) / 10
+      set({ threadFacePick: false })
+      get().openFeatDlg(kind)
+      set((s) => (s.featDlg && s.featDlg.kind === kind ? {
+        featDlg: { ...s.featDlg, payload: { threadFrame: frame }, params: { ...s.featDlg.params, d, ...(det.concave ? { pitch: ISO_COARSE[d as number] } : {}), height: h, x: 0, y: 0, z0: 0 } },
+        status: det.concave
+          ? `已讀入孔內壁（軸 ${frame.axis.map((v) => +v.toFixed(3)).join(',')}）實測Ø${measD.toFixed(1)} → M${d}×${ISO_COARSE[d as number]} 深${h} — 可改 → 確定攻牙`
+          : `已讀入圓柱面（軸 ${frame.axis.map((v) => +v.toFixed(3)).join(',')}）Ø${measD.toFixed(1)} × 長${h} — 設螺距 → 確定包牙`,
+      } : {}))
+      return
+    }
     if (det.concave) {
       // P2：孔内壁 → 内螺纹对话框自动填（Fusion Thread 对内外面一视同仁）。Ø snap 到最近 ISO 公称 + 粗牙螺距；
       // 深度 = 孔壁轴向跨距；z0 = 孔底 z（盲孔由孔底向上攻，通孔 z0≈0 = 旧全程行为）。全部可改后再确定。
@@ -17873,7 +17890,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       const oToff = oFull ? 0 : Math.max(0, +(p.toff || 0))
       const oCls = (typeof p.cls === 'string' && p.cls.trim()) ? p.cls : undefined
       const oStd = (typeof p.standard === 'string' && p.standard && p.standard !== 'iso') ? p.standard : undefined
-      f = { id: fid(), type: 'othread', d: +p.d, pitch: Math.max(0.3, +p.pitch), height: +p.height, x: +(p.x || 0), y: +(p.y || 0), z0: +(p.z0 || 0) + oToff, cosmetic: +(p.modeled || 0) ? undefined : true, lefthand: +(p.lefthand || 0) ? true : undefined, cls: oCls, standard: oStd }   // #thread：左旋牙 value-or-undefined（edit 可清）；S11 cls/standard/局部偏移
+      const oFrame = (d.payload as { threadFrame?: ThreadFrame } | undefined)?.threadFrame
+      f = { id: fid(), type: 'othread', ...(oFrame && !d.editId ? { frame: oFrame } : {}), d: +p.d, pitch: Math.max(0.3, +p.pitch), height: +p.height, x: +(p.x || 0), y: +(p.y || 0), z0: +(p.z0 || 0) + oToff, cosmetic: +(p.modeled || 0) ? undefined : true, lefthand: +(p.lefthand || 0) ? true : undefined, cls: oCls, standard: oStd }   // #thread：左旋牙 value-or-undefined（edit 可清）；S11 cls/standard/局部偏移
       const dep = Math.min(+p.pitch * 0.6, (+p.d / 2) * 0.45)
       msg = +(p.modeled || 0)
         ? `已喺圆柱面包真螺旋牙 Ø${+p.d} 螺距${+p.pitch}（牙向外 +${dep.toFixed(1)}mm，复合体 — 之后唔好倒角/STEP 导出，STL 正常）`
@@ -17894,7 +17912,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
       set({ featDlg: null })
-      return void get().addInternalThread(dd, pp2, hh, +(p.x || 0), +(p.y || 0), iZ0, !!+(p.modeled || 0), !!+(p.lefthand || 0), iCls, iStd)
+      return void get().addInternalThread(dd, pp2, hh, +(p.x || 0), +(p.y || 0), iZ0, !!+(p.modeled || 0), !!+(p.lefthand || 0), iCls, iStd, (d.payload as { threadFrame?: ThreadFrame } | undefined)?.threadFrame)
     } else if (d.kind === 'rack') {
       const op: BoolOp = get().cutMode && hasSolid(get().features) ? 'cut' : 'new'
       f = { id: fid(), type: 'rack', module: +p.module, length: +p.length, baseH: +p.baseH, thickness: +p.thickness, op }
@@ -20210,12 +20228,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     const next = [...s.features.slice(0, lastIdx + 1), fp, ...s.features.slice(lastIdx + 1)]
     await get().applyFeatures(next, `已阵列 ${cx}×${cy}（共 ${cx * cy} 个${src.arb ? ' · 斜面局部 XY' : ''} — 时间轴一个「阵列」节点，可改 X/Y 数量或删除整组）`, true, '⚠ 特征阵列重建失败 — 已回退')
   },
-  addInternalThread: async (d, pitch, height, cx, cy, z0 = 0, modeled = false, lefthand = false, cls, standard) => {
+  addInternalThread: async (d, pitch, height, cx, cy, z0 = 0, modeled = false, lefthand = false, cls, standard, frame) => {
     if (!hasSolid(get().features)) { set({ status: '內螺紋孔要喺實體上做 — 先建一個實體' }); return }
     // P2：z0 = 孔底 z（可选）— 由孔壁拾面/对话框传入，牙由 z0 向上攻 height；0 = 旧行为（由 z=0 起）
     // P2 Cosmetic：默认外观标注（B-rep 零触碰，可继续任何操作 — Fusion Modeled=OFF 默认）；modeled=true 先出真牙 compound
     // GM-3DV1 S11：cls/standard 纯元数据（配合等级/标准库），value-or-omit 保旧档逐字节。
-    const f: Feature = { id: fid(), type: 'ithread', d: Math.max(1, d), pitch: Math.max(0.3, pitch), height: Math.max(pitch, height), x: cx || 0, y: cy || 0, ...(z0 > 0 ? { z0 } : {}), ...(modeled ? {} : { cosmetic: true }), ...(lefthand ? { lefthand: true } : {}), ...(cls ? { cls } : {}), ...(standard && standard !== 'iso' ? { standard } : {}) }
+    const f: Feature = { id: fid(), type: 'ithread', ...(frame ? { frame } : {}), d: Math.max(1, d), pitch: Math.max(0.3, pitch), height: Math.max(pitch, height), x: cx || 0, y: cy || 0, ...(z0 > 0 ? { z0 } : {}), ...(modeled ? {} : { cosmetic: true }), ...(lefthand ? { lefthand: true } : {}), ...(cls ? { cls } : {}), ...(standard && standard !== 'iso' ? { standard } : {}) }
     const okMsg = modeled
       ? `已攻内螺纹 M${d}×${pitch}（深 ${height}mm${z0 > 0 ? ` · 孔底 z${z0}` : ''} · 真螺旋牙，重叠水密壳，STL 打印有效；compound — 之后唔好再倒圆角/导 STEP）`
       : `已加 cosmetic 内螺纹标注 M${d}×${pitch}（深 ${height}mm · 外观螺旋线圈，B-rep 乾净 — 可继续圆角/抽壳/STEP；要真牙勾「建模螺纹」；孔身用「孔」工具钻）`

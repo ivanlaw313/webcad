@@ -1,4 +1,5 @@
 import { LiveSketchReadout } from './LiveSketchReadout'
+import { threadLocalToWorld } from '../cad/threadFrame'
 import { HoleSketchPointsButton } from './HoleSketchPoints'
 import { revolvePointToCad, type RevolveFrameSource } from '../cad/revolvePreviewFrame'
 import { FloatingViewMenu } from './FloatingViewMenu'
@@ -2521,7 +2522,8 @@ function CosmeticThreadOverlay() {
       const pts: [number, number, number][] = []
       for (let k = 0; k <= seg; k++) {
         const t = k / seg, th = 2 * Math.PI * turns * t, z = z0 + H * t
-        pts.push([cx + r * Math.cos(th), z, -(cy + r * Math.sin(th))])   // CAD(x,y,z)→three-world(x,z,−y)
+        const w = threadLocalToWorld(f.frame, [cx + r * Math.cos(th), cy + r * Math.sin(th), z])   // any-axis thread: local → model
+        pts.push([w[0], w[2], -w[1]])   // CAD(x,y,z)→three-world(x,z,−y)
       }
       out.push({ id: f.id, pts })
     })

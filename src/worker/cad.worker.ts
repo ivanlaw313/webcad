@@ -26,6 +26,7 @@ import { fuseLostMaterial } from '../cad/coilOp'
 import { asymmetricFilletNearPoints } from '../cad/asymmetricFillet'
 import { hasUnsafeLoftShellAdjacency } from '../cad/loftShellSafety'
 import { revolveLathePlane, revolveRemapProfile } from '../cad/revolvePreviewFrame'
+import { threadFrameRotation, threadLocalToWorld, type ThreadFrame } from '../cad/threadFrame'
 
 export type MeshData = { resolvedSketchFaces?: Record<string, ResolvedSketchFace>; vertices: number[]; triangles: number[]; normals: number[]; faceGroups?: { start: number; count: number; faceId: number }[]; warnings?: string[]; failed?: { id: string; type: string; msg: string }[]; parked?: { name: string; vertices: number[]; triangles: number[]; normals: number[]; faceGroups?: { start: number; count: number; faceId: number }[] }[]; resolvedEdgeFp?: Record<string, string[]>; resolvedEdgeFpV2?: Record<string, string[]>; resolvedFaceFp?: Record<string, string[]>; resolvedFaceFpV2?: Record<string, string[]>; resolvedFaceFpTopo?: Record<string, string[]> }  // resolvedEdgeFp（S122）= 本次首次解析嘅 fillet/chamfer 边指纹；resolvedEdgeFpV2（S134）= 平行嘅旋转不变指纹；resolvedFaceFp（S125）= shell 抽壳面指纹；resolvedFaceFpV2（S136）= 平行嘅旋转不变面指纹；store 写回 feature.edgeFp/edgeFpV2/faceFp/faceFpV2 做持久命名  // failed（S107）= 逐特征隔离：重建时 throw 嘅坏特征 {id,type,错因}，其余照常建（build past，唔 revert 整树）。parked = 多实体（T728）：活动实体以外嘅 bodies（灰显渲染）; faceGroups（S99）= 逐 B-rep 面三角 run（start/count 系 triangles 下标，faceId=hashCode）→ 共面分割子面可分开拣/着色
 export type EdgeSel = 'all' | 'top' | 'bottom' | 'vertical'
@@ -85,8 +86,8 @@ export type Feature =
   | { id: string; type: 'thread'; d: number; pitch: number; height: number; op?: BoolOp }
   // T775（S55-③）：选面加外螺纹 — 喺【现有圆柱面】身上包牙（d=面直径=牙底，向外加牙深）。
   // 结果系 compound（螺旋面 fuse 唔可三角化 — thread/ithread 同一教训）：之后唔好倒角/STEP，STL 正常。
-  | { id: string; type: 'othread'; d: number; pitch: number; height: number; x?: number; y?: number; z0?: number; cosmetic?: boolean; lefthand?: boolean; cls?: string; standard?: string }   // cosmetic=纯外观标注（B-rep 零触碰 — 可继续圆角/STEP）；缺省=真牙旧行为；lefthand=左旋牙（Fusion Left hand，缺省右旋逐字节）；cls/standard（GM-3DV1 S11）=配合等级/标准库，纯元数据（几何用 60° ISO 形，牙深由 pitch 定）
-  | { id: string; type: 'ithread'; d: number; pitch: number; height: number; x?: number; y?: number; z0?: number; cosmetic?: boolean; lefthand?: boolean; cls?: string; standard?: string }  // 内螺纹孔（母螺纹）；cosmetic=纯外观标注（连钻孔都唔做 — 孔身用「孔」工具）：喺实体 cut 一个有牙嘅孔；z0 = 孔底 z（P2 孔对话框「建模螺纹」盲孔由顶面向下切 — 缺省 0 = 旧行为，旧档逐字节兼容）；lefthand=左旋牙；cls/standard（GM-3DV1 S11）=纯元数据
+  | { id: string; type: 'othread'; d: number; pitch: number; height: number; x?: number; y?: number; z0?: number; frame?: ThreadFrame; cosmetic?: boolean; lefthand?: boolean; cls?: string; standard?: string }   // cosmetic=纯外观标注（B-rep 零触碰 — 可继续圆角/STEP）；缺省=真牙旧行为；lefthand=左旋牙（Fusion Left hand，缺省右旋逐字节）；cls/standard（GM-3DV1 S11）=配合等级/标准库，纯元数据（几何用 60° ISO 形，牙深由 pitch 定）
+  | { id: string; type: 'ithread'; d: number; pitch: number; height: number; x?: number; y?: number; z0?: number; frame?: ThreadFrame; cosmetic?: boolean; lefthand?: boolean; cls?: string; standard?: string }  // 内螺纹孔（母螺纹）；cosmetic=纯外观标注（连钻孔都唔做 — 孔身用「孔」工具）：喺实体 cut 一个有牙嘅孔；z0 = 孔底 z（P2 孔对话框「建模螺纹」盲孔由顶面向下切 — 缺省 0 = 旧行为，旧档逐字节兼容）；lefthand=左旋牙；cls/standard（GM-3DV1 S11）=纯元数据
   | { id: string; type: 'cylpatch'; mode: 'boss' | 'pocket' | 'flat'; ang: number; arc: number; zc: number; h: number; depth: number }
   | { id: string; type: 'sheetmetal'; thickness: number; radius: number; kfactor: number; width: number; segs: number[]; angles: number[]; flat?: boolean }
   | { id: string; type: 'gear'; module: number; teeth: number; thickness: number; bore: number; phase?: number; helix?: number; op?: BoolOp }  // helix（T770 斜齿轮）：螺旋角 β°，正=右旋 — 端面渐开线扭转近似（m 当端面模数，中心距公式不变）
@@ -2752,6 +2753,19 @@ function resolveSketchFace(shape: any, binding: SketchFaceBinding): ResolvedSket
   const refs = _ffCapture(shape,[near])
   return { delta, binding: { ...binding, near, center:desc.center, outline:desc.outline, area:desc.area, edgeLengths:desc.edgeLengths, offset: desc.offset, faceFp: refs.v1, faceFpV2: refs.v2, faceFpTopo: refs.topo } }
 
+}
+
+// Thread on a cylinder of any axis: tools are built in the thread's local frame (original Z code) and
+// placed by frame (local +Z → frame.axis, origin → frame.o). No frame = original Z-axis behaviour.
+function placeThreadTool(tool: any, frame?: ThreadFrame): any {
+  if (!frame) return tool
+  const r = threadFrameRotation(frame.axis)
+  const t = r ? tool.rotate(r.deg, [0, 0, 0], r.dir) : tool
+  return t.translate(frame.o[0], frame.o[1], frame.o[2])
+}
+// Material probe (no OCCT classifier in this build): a tiny cube at p intersected with the body.
+function materialAt(shape: any, p: [number, number, number]): boolean {
+  try { const h = 0.05; return measureVolume(shape.intersect(makeBox([p[0] - h, p[1] - h, p[2] - h], [p[0] + h, p[1] + h, p[2] + h]) as any)) > 1e-6 } catch { return false }
 }
 
 function buildShape(features: Feature[], noCache = false): any {
@@ -5578,7 +5592,7 @@ function buildShape(features: Feature[], noCache = false): any {
         let ridge = genericSweep(tri.wire, helix, { forceProfileSpine: true } as any)
         try { ridge = ridge.intersect(makeBaseBox(4 * (r + depth), 4 * (r + depth), H) as any) } catch { /* 裁唔到照用 */ }
         // GM-γ2b：外螺纹叠加系 makeCompound（纯并组，唔系 cut/fuse/intersect 布尔）→ 唔录 S2，诚实跳过（无有效布尔可重跑）。
-        shape = makeCompound([shape, ridge.translate(cx, cy, z0)])
+        shape = makeCompound([shape, placeThreadTool(ridge.translate(cx, cy, z0), f.frame)])
       } catch (e) { buildWarnings.push('外螺纹生成失败（实体保持原样）：' + ((e as any)?.message || e)) }
     } else if (f.type === 'ithread' && shape) {
       // Internal thread (tapped hole). Like the external thread, a helical ridge FUSED/CUT against a wall
@@ -5598,8 +5612,17 @@ function buildShape(features: Feature[], noCache = false): any {
       let drilled = false
       try {
         // zb=0（旧行为）：[-1, H+1] 上下各冲 1；zb>0（盲）：孔底准确落 zb，只向上冲 1（唔好越钻越深）
-        const drill = drawCircle(Rmaj).sketchOnPlane('XY', zb ? zb : -1).extrude(zb ? H + 1 : H + 2) as any  // bore = valley Ø (widest), watertight
-        const drillTool = drill.translate(cx, cy, 0)
+        let drillTool: any
+        if (f.frame) {
+          // Any-axis hole: overshoot 1 mm only past an OPEN end (no material just beyond it on the axis) —
+          // a blind bottom must not be drilled deeper.
+          const beyond = (t: number) => threadLocalToWorld(f.frame, [cx, cy, t])
+          const lo = materialAt(res, beyond(zb - 0.6)) ? zb : zb - 1, hi = materialAt(res, beyond(zb + H + 0.6)) ? zb + H : zb + H + 1
+          drillTool = placeThreadTool(drawCircle(Rmaj).sketchOnPlane('XY', lo).extrude(hi - lo).translate(cx, cy, 0) as any, f.frame)
+        } else {
+          const drill = drawCircle(Rmaj).sketchOnPlane('XY', zb ? zb : -1).extrude(zb ? H + 1 : H + 2) as any  // bore = valley Ø (widest), watertight
+          drillTool = drill.translate(cx, cy, 0)
+        }
         res = res.cut(drillTool); _recordBool(_i, 'cut', drillTool); drilled = true   // GM-γ2b：内螺纹钻孔 = 单 cut → cut 成功后先录工具体供 S2（下面牙环 makeCompound 唔系布尔 → 唔录，诚实跳过）
       } catch (e) { buildWarnings.push('内螺纹钻孔失败：' + ((e as any)?.message || e)) }
       if (drilled) {
@@ -5614,7 +5637,7 @@ function buildShape(features: Feature[], noCache = false): any {
           const tri = draw([eps, -kAx * P / 2]).lineTo([eps, kAx * P / 2]).lineTo([-depth, 0]).close().sketchOnPlane('XZ', [Rmaj, z0]) as any
           let ridge = genericSweep(tri.wire, helix, { forceProfileSpine: true } as any)
           try { ridge = ridge.intersect(makeBaseBox(4 * Rmaj, 4 * Rmaj, H) as any) } catch { /* keep untrimmed if trim fails */ }  // makeBaseBox spans z∈[0,H] already (同外螺纹) — NO translate, else threads shift +H/2 & poke out the top
-          res = makeCompound([res, ridge.translate(cx, cy, zb)])
+          res = makeCompound([res, placeThreadTool(ridge.translate(cx, cy, zb), f.frame)])
         } catch (e) { buildWarnings.push('内螺纹螺旋牙失败（已退回光孔）：' + ((e as any)?.message || e)) }
       }
       shape = res

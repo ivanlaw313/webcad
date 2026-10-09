@@ -12,8 +12,11 @@ test('Ctrl+Z while drawing a polyline removes only the last segment, then the st
   g().startSketch(); g().chooseSketchPlane('XY'); g().setSketchTool('polyline')
   for (const p of P) g().onSketchClick(p)
   assert.equal(g().polyPts.length, 5)
+  const L = g().sketchUndo.length
   await g().undo()
   assert.equal(g().polyPts.length, 4, 'one segment undone')
+  assert.ok(g().sketchUndo.length <= L, 'no snapshot left that would resurrect the undone point')
+  if (L) assert.ok(!g().sketchUndo.some((u) => u.polyPts?.length === 5 || (u.polyPts?.length === 4 && g().sketchUndo.indexOf(u) === g().sketchUndo.length - 1)))
   assert.equal(g().mode, 'sketch'); assert.equal(g().sketchTool, 'polyline')
   await g().undo(); await g().undo(); await g().undo()
   assert.equal(g().polyPts.length, 1)

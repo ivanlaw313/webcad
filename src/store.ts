@@ -590,7 +590,11 @@ let _snap = 5 // sketch grid-snap size in mm (0 = off); set via setSnapSize
 let _snapBd = 49
 let _mmPerPx = 0.7  // 未夹帽嘅屏幕比例（select/dimension 拾取容差用 — T731：拾取唔受 12mm 画图吸附帽限制）
 // 几何捕捉半径 = ~7 屏幕 px，封顶 7mm（之前 10px/12mm 太阔，密集几何下易吸错隔篱 → 收细令更精准）。
-export function setSnapScale(mmPerPx: number) { _mmPerPx = mmPerPx; const r = Math.max(1.2, Math.min(7, 7 * mmPerPx)); _snapBd = r * r }
+// UX2 #7：舊版下限 1.2 mm — 放大睇細零件時 1.2 mm 可以係 20+ 屏幕 px，一點就吸去隔籬點 → 斜線／碎線。改為純屏幕 px（下限 0.02 mm 只防 0）。
+export function setSnapScale(mmPerPx: number) { _mmPerPx = mmPerPx; const r = Math.max(0.02, Math.min(7, 7 * mmPerPx)); _snapBd = r * r }
+// UX2 #7：「同一位置」／「點回起點閉合」容差都跟屏幕 px（舊版 0.3 mm／4 mm 絕對值：放大時 4 mm 好大、細特徵一點就自動閉合）。
+export const sketchDupTol = () => Math.max(0.01, Math.min(2, 3 * _mmPerPx))
+export const sketchCloseTol = () => Math.max(0.05, Math.min(4, 10 * _mmPerPx))
 // 几何捕捉开关（工具栏掣 = _geoSnap）+ 按住 Alt 临时停（_geoSnapAlt）—— 关咗只剩网格捕捉，自由精准落点。
 let _geoSnap = true, _geoSnapAlt = false
 export function setGeoSnapAlt(held: boolean) { _geoSnapAlt = held }
@@ -852,11 +856,11 @@ function sketchDimText(tool: string, start: Pt | null, poly: Pt[], pt: Pt, ellip
 // GM-FP1 #11/#12：每个已打字（非空）字段旁挂 🔒 = 已锁定/驱动（视觉 token，非 Fusion 原图）；激活字段用 [方括号] 高亮；两值字段同屏齐显。
 function typedReadout(tool: string, buf: string[], field: number): string {
   const f = (i: number) => (i === field ? `[${buf[i] || '_'}]` : (buf[i] || '_')) + (buf[i] ? '🔒' : '')
-  if (tool === 'rectangle' || tool === 'crect' || tool === 'rrect') return `▭ 宽 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 換寬/高·Enter 確定)`
-  if (tool === 'ellipse') return `⬯ 宽 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 換寬/高·Enter 確定)`
+  if (tool === 'rectangle' || tool === 'crect' || tool === 'rrect') return `▭ 寬 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 換寬/高·Enter 確定)`
+  if (tool === 'ellipse') return `⬯ 寬 ${f(0)} × 高 ${f(1)} mm　(打字·Tab 換寬/高·Enter 確定)`
   if (tool === 'circle' || tool === 'circle2p') return `◯ Ø ${f(0)} mm　(打字輸入直徑·Enter 確定)`
   if (tool === 'polygon') return `◯ R ${f(0)} mm　(打字輸入·Enter 確定)`
-  if (tool === 'polyline') return `↘ 长 ${f(0)} mm · 角 ${f(1)}°　(Tab 換 長/角·兩值全鎖 Enter=收筆·角相對上段)`   // GM-FP1 #10：折线打字新增角度格
+  if (tool === 'polyline') return `↘ 長 ${f(0)} mm · 角 ${f(1)}°　(Tab 換 長/角·兩值全鎖 Enter=收筆·角相對上段)`   // GM-FP1 #10：折线打字新增角度格
   return `↘ ${f(0)} mm　(僅定段長，方向跟光標·Enter 確定)`   // 样条/B样条：单值段长，方向永远跟随光标（无角度格）
 }
 // GM-W8 A3：多阶段工具（rect3/arcc/arcslot/earc/conic）逐阶段打字尺寸嘅提示标签。
@@ -10279,7 +10283,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       if (pts.length >= 2) {
         const f = pts[0]
-        if (Math.hypot(pt[0] - f[0], pt[1] - f[1]) < 4) {
+        if (Math.hypot(pt[0] - f[0], pt[1] - f[1]) < sketchCloseTol()) {
           // SO05：两点折线点回起点唔好做成退化闭合 digon（无面积又无 open 旗标 → 扫掠拒收）。当开放路径收笔。
           if (pts.length < 3 && !isSpline) {
             const bulges = s.polyBulges.slice(0, Math.max(0, pts.length - 1))
@@ -10316,7 +10320,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         return { polyPts: [...pts, pt], polyBulges: [...s.polyBulges, bulge], sketchPreview: pt, tanArcSeed: null, status: `相切弧已加（R${Math.abs(bulgeRadius(last, pt, bulge)).toFixed(1)}）— 繼續點（A 返回直線）` }
       }
       // GM-W6 B4：同上一点去重（<0.3mm = 手震连击/触屏双 tap）→ 忽略，唔好产生零长段流入轮廓/求解器
-      if (pts.length > 0) { const lp = pts[pts.length - 1]; if (Math.hypot(pt[0] - lp[0], pt[1] - lp[1]) < 0.3) return { status: '同一位置 — 雙擊/Enter 可收筆，或點遠啲繼續畫' } }
+      if (pts.length > 0) { const lp = pts[pts.length - 1]; if (Math.hypot(pt[0] - lp[0], pt[1] - lp[1]) < sketchDupTol()) return { status: '同一位置 — 雙擊/Enter 可收筆，或點遠啲繼續畫' } }
       return { polyPts: [...pts, pt], polyBulges: pts.length >= 1 ? [...s.polyBulges, 0] : s.polyBulges, sketchPreview: pt, status: `${isSpline ? '樣條' : '折線'}：已 ${pts.length + 1} 點，點回起點或按「閉合輪廓」結束${s.polyArcMode ? '（相切弧模式）' : ''}` }
       })()
       // GM-FP4 #22：draw-as-construction 预开关 —— 新落嘅 shape 即时带 construction:true（Fusion Linetype 预切换，同折线中途切换等价）。
@@ -10330,7 +10334,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       if((s.sketchTool==='earc'||s.sketchTool==='ellipse'&&s.ellipseCreation==='three-point')&&!changed)return r
       const us = [...s.sketchUndo, skSnap(s)].slice(-80)  // T746：统一用宽快照（含 skCons）— 唔好留窄快照陷阱
       const base = (startingNew && s.sketchShape) ? { ...r, sketchProfiles: [...s.sketchProfiles, s.sketchShape], sketchShape: null } : r
-      return { ...base, sketchUndo: us, sketchRedo: [] }
+      // UX2 #6：用滑鼠落點後，之前打開一半嘅長度／角度緩衝（同 Tab 揀咗嘅第 2 格）要清走 — 否則下一段打嘅數會入咗舊嗰格（角度 d2）
+      const typedReset = changed && (s.dimBuf[0] || s.dimBuf[1] || s.dimField) ? { dimBuf: ['', ''] as [string, string], dimField: 0, sketchDim: null } : {}
+      return { ...base, ...typedReset, sketchUndo: us, sketchRedo: [] }
     })
     // T773（S53）：第二击落形侦测 — 头先画紧（sketchStart 有值）而家收笔（null）且出咗新 shape
     // → 重合推断（rect/crect/圆/槽/圆角矩/椭圆/多边形 全部命中；折线行 closePolyline 嗰边嘅钩）
@@ -14771,8 +14777,12 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (s0.mode === 'sketch' && (s0.sketchTool === 'polyline' || s0.sketchTool === 'spline' || s0.sketchTool === 'bspline') && s0.polyPts.length) {
         set((s) => {
           const n = s.polyPts.length
-          if (n <= 1) return { polyPts: [], polyBulges: [], sketchStart: null, sketchPreview: null, tanArcSeed: null, sketchDim: null, status: '已撤銷起點 — 點畫布重新開始' }
-          return { polyPts: s.polyPts.slice(0, -1), polyBulges: s.polyBulges.slice(0, Math.max(0, n - 2)), sketchPreview: s.polyPts[n - 2], sketchDim: null, status: `已撤銷最後一段 — 仲有 ${n - 1} 點，繼續畫（再撳 Ctrl+Z 再退一段）` }
+          // 逐點加入時可能已推咗快照（點擊路徑有、打字長度路徑冇）— 頂層快照正係「加呢點之前」就一併彈走，免得之後 Ctrl+Z 復活已撤嘅點
+          const top = s.sketchUndo[s.sketchUndo.length - 1] as { polyPts?: Pt[] } | undefined
+          const same = (a: Pt[] | undefined, len: number) => !!a && a.length === len && a.every((p, i) => p[0] === s.polyPts[i][0] && p[1] === s.polyPts[i][1])
+          const undoStack = top && same(top.polyPts, n - 1) ? s.sketchUndo.slice(0, -1) : s.sketchUndo
+          if (n <= 1) return { polyPts: [], polyBulges: [], sketchStart: null, sketchPreview: null, tanArcSeed: null, sketchDim: null, sketchUndo: undoStack, status: '已撤銷起點 — 點畫布重新開始' }
+          return { polyPts: s.polyPts.slice(0, -1), polyBulges: s.polyBulges.slice(0, Math.max(0, n - 2)), sketchPreview: s.polyPts[n - 2], sketchDim: null, sketchUndo: undoStack, status: `已撤銷最後一段 — 仲有 ${n - 1} 點，繼續畫（再撳 Ctrl+Z 再退一段）` }
         })
         return
       }

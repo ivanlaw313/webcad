@@ -108,6 +108,7 @@ import { evalArith, normalizeWide, parseLen, toLenInput, type LenUnit } from '..
 import { NumInput } from './NumInput'   // BUG-507/509：受驗數值欄（取代 type="number"）
 import type { MeshData } from '../worker/cad.worker'
 import { computeFK, solve4Bar, solveSliderCrank, solveSixBar } from '../assembly/kinematics'
+import { assemblyMassSummary } from '../assembly/asmMass'   // BUG(C)：装配质心用 FK 世界矩阵
 import { getProcTexture } from '../render/procTextures'   // S101[8]：程序化纹理（三平面投影）
 import { meshManifold } from '../geom/meshCheck'
 import { buildFaceGroupColors } from '../cad/faceGroupColors'   // GM-X1 #16：逐网格面组循环上色
@@ -2557,6 +2558,7 @@ function CoMMarker() {
   const bodyMesh = useApp((s) => s.bodyMesh)
   const components = useApp((s) => s.components)
   const componentDefs = useApp((s) => s.componentDefs)
+  const joints = useApp((s) => s.joints)
   if (!show) return null
   if (bodyMesh) {
     const p = computeProps(bodyMesh)
@@ -2565,15 +2567,11 @@ function CoMMarker() {
   }
   const vis = components.filter((c) => !c.hidden)
   if (!vis.length) return null
-  let wx = 0, wy = 0, wz = 0, wsum = 0
-  for (const c of vis) for (const body of visibleDefinitionBodies(c, componentDefs)) {
-    const cp = computeProps(body.mesh); if (!cp || cp.vol <= 0) continue
-    // component centroid CAD → three (x, z, −y) + component world pos
-    const cx = cp.com[0] + c.pos[0], cy = cp.com[2] + c.pos[1], cz = -cp.com[1] + c.pos[2]
-    wx += cx * cp.vol; wy += cy * cp.vol; wz += cz * cp.vol; wsum += cp.vol
-  }
-  if (wsum <= 0) return null
-  return <CoMCross p={[wx / wsum, wy / wsum, wz / wsum]} />
+  // BUG(C)：用单一真相世界矩阵（pos + rot + 关节 FK + CAD→three），唔好手算 pos 偏移（旧版漏 rot/FK）。
+  const fk = computeFK(components.map((c) => c.id), joints)
+  const sum = assemblyMassSummary(vis.map((c) => ({ meshes: visibleDefinitionBodies(c, componentDefs).map((b) => b.mesh), M: compWorldMatrix(c, fk.get(c.id)).elements })))
+  if (!sum.centroid) return null
+  return <CoMCross p={sum.centroid} />
 }
 
 type Props = { dx: number; dy: number; dz: number; vol: number; area: number; com: [number, number, number]; inertia: [number, number, number]; watertight: { closed: boolean; boundary: number; nonManifold: number } } | null
@@ -8449,11 +8447,12 @@ export default function Viewport() {
         <div ref={propsDrag.ref} className={'vp-props' + (propsDrag.isDragged ? ' vp-hud-dragged' : '') + (propsHudCollapsed ? ' vp-hud-collapsed' : '')} style={propsDrag.style}><span className="vp-hud-handle" onPointerDown={propsDrag.onPointerDown} title={tStatus('拖動屬性面板', lang)}>⋮⋮</span><button className="vp-hud-collapse" type="button" title={propsHudCollapsed ? tStatus('展開屬性面板', lang) : tStatus('收合屬性面板', lang)} onClick={() => setPropsHudCollapsed((v) => !v)}>{propsHudCollapsed ? '⌃' : '–'}</button>{propsDrag.isDragged && <button className="vp-hud-reset" type="button" title={tStatus('還原屬性面板預設位置', lang)} onClick={propsDrag.reset}>↺</button>}{(() => {
           const vis = components.filter((c) => !c.hidden) // exclude hidden 機架/ground from counts & totals
           let vol = 0, area = 0, gm = 0, anyMat = false, cmx = 0, cmy = 0, cmz = 0, wsum = 0; const lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9]
+          const asmFk = computeFK(components.map((c) => c.id), joints)   // BUG(C)：质心/bbox 要跟关节 FK（刚性关节后子件已被拉到父件处）
           for (const c of vis) {
             // Transform into true three-world via the single-source-of-truth matrix — this accounts for the
             // component's rotation (rot) AND the CAD(Z-up)→three(Y-up) frame, so a moved/rotated/arrayed part
             // contributes its real placed geometry to the assembly bbox & centroid (not the raw CAD mesh).
-            const M = compWorldMatrix(c).elements
+            const M = compWorldMatrix(c, asmFk.get(c.id)).elements
             const cp = computeProps(c.mesh)
             const cd = (c.material && MATERIALS[c.material]?.density) || density
             if (c.material && MATERIALS[c.material]?.density) anyMat = true

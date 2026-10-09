@@ -54,6 +54,7 @@ import { findLoops, loopPlane, solveLoop, type Loop } from './assembly/linkage' 
 import { inferAsBuiltAxis, type ExplodeStep } from './assembly/asmUtil'   // GM-3DV4 A10：as-built 推轴；A12：有序爆炸步类型
 import { solveMate, worldAABB, type MateType, type MateAxis, type MateSide } from './assembly/mates'
 import { estimateOverlapVolume } from './assembly/overlapVolume'
+import { transformVertices } from './assembly/asmMass'   // BUG(C)：组件属性用世界坐标
 import { nextDefId, reconcileComponents, migrateComponentDefs, makeDefOcc, splitLiveBodies, cloneDef, writeDefFromEdit, writeDefBodyMesh, transformBodyMeshByMatrix, referencedDefs, prunedDefsForPayload, visibleDefinitionBodies, type ComponentDef, type BrepEdge } from './assembly/occurrence'   // R2：occurrence/多体 纯逻辑核（单一真相 + tsx 可测）
 import { buildFastener, fastenerLabel, recommendFastenerSize, tighteningTorque, FASTENER_KIND_LABEL, FASTENER_SIZES, FASTENER_SPEC, type FastenerKind, type FastenerSize } from './cad/fasteners'
 import { beamCheck, torsionCheck, MATERIAL_MECH, DEFAULT_MECH, type Support } from './analysis/beamStress'
@@ -18478,6 +18479,11 @@ export const useApp = create<AppState>((rawSet, get) => {
         for (const body of bodies) { for (let i = 0; i < body.triangles.length; i++) triangles.push(body.triangles[i] + offset); offset += body.vertices.length / 3 }
         mesh = { vertices: bodies.flatMap((body) => body.vertices), triangles }
       }
+      // BUG(C)：组件属性（质心/bbox）报【装配世界 CAD 坐标】— 套 pos + rot + 关节 FK（旧版用件内局部网格坐标，
+      // 刚性关节后质心报 (260,7.1,0) 落喺装配 bbox 外）。Rx(+90) = three(Y-up) → CAD(Z-up)。
+      const fkP = computeFK(s.components.map((x) => x.id), s.joints)
+      const Mw = new Matrix4().makeRotationX(Math.PI / 2).multiply(compWorldMatrix(c, fkP.get(c.id)))
+      mesh = { vertices: transformVertices(mesh.vertices, Mw.elements), triangles: mesh.triangles }
       name = c.name; material = c.material
       density = (c.material && MATERIALS[c.material]?.density) || s.bodyDensity
     } else {

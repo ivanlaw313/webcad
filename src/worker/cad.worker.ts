@@ -838,7 +838,7 @@ function makeLoftSolid(f: LoftFeature, warnings: string[]): any {
     if (!hollowed) hollowed = insetLoft()
     if (!hollowed) hollowed = tryShell(res.first, f.wall)
     if (hollowed) lofted = hollowed
-    else warnings.push(`⚠ 放樣薄壁 ${f.wall}mm 失敗，已退回實心放樣（試減薄壁厚或簡化截面）`)
+    else warnings.push(`⚠ 放樣薄壁 ${f.wall}mm 失敗，已退回實心放樣（請減小薄壁厚度或簡化截面）`)
   }
   return lofted
 }
@@ -3576,7 +3576,7 @@ function buildShape(features: Feature[], noCache = false): any {
       // the rotation-axis "top" (Y-revolve → XZ plane at maxY; X-revolve → YZ at maxX), like the shell feature.
       // Retry thinner + fall back to the solid (honest note) if OCCT can't shell this shape.
       if (f.wall && f.wall > 0 && f.axisV) {
-        buildWarnings.push('旋转薄壁暂只支持世界 X/Y 轴（开面方位假设）— 任意轴已出实心体')
+        buildWarnings.push('旋轉薄壁暫只支援世界 X/Y 軸（開面方位假設）— 任意軸已出實心體')
       } else if (f.wall && f.wall > 0) {
         const bb = solid.boundingBox.bounds as [number[], number[]]
         const cands = f.axis === 'X'
@@ -3588,7 +3588,7 @@ function buildShape(features: Feature[], noCache = false): any {
           if (shelled) { if (t !== f.wall) buildWarnings.push(`旋转薄壁 ${f.wall} 太厚，已减薄到 ${t.toFixed(1)} 才成功`); break }
         }
         if (shelled) solid = shelled
-        else buildWarnings.push(`⚠ 旋转薄壁 ${f.wall}mm 失败，已退回实体（试减薄壁厚或让截面贴轴）`)
+        else buildWarnings.push(`⚠ 旋轉薄壁 ${f.wall}mm 失敗，已退回實體（請減小薄壁厚度或讓截面貼軸）`)
       }
       // Operation (Fusion): new/join → fuse, cut → lathe a groove/recess, intersect → common volume.
       // SO04: partial-angle revolve defaults to the right-hand sense (XY about +Y → −Z). Cut/intersect
@@ -3807,7 +3807,7 @@ function buildShape(features: Feature[], noCache = false): any {
       if (followsUnsafeLoft) {
         // A synchronous OCCT shell call cannot be cancelled from this worker.
         // Keep the predecessor solid intact rather than freezing the CAD UI.
-        buildWarnings.push('⚠ 抽壳：紧接变截面／导轨／连续性放样的通用 Shell 可能令核心长时间无响应，已安全跳过。请在「放样」对话框直接设定薄壁，或改为不变截面放样后再抽壳。')
+        buildWarnings.push('⚠ 抽殼：緊接變截面／導軌／連續性放樣的通用 Shell 可能令核心長時間無響應，已安全跳過。請在「放樣」對話框直接設定薄壁，或改為不變截面放樣後再抽殼。')
       } else {
       // P2/P1: heal once at shell start so face resolve + MakeThickSolid see cleaned topology.
       shape = _healSolid(shape)

@@ -22,7 +22,7 @@ export type LoftBuildOpts = {
 
 export const LOFT_MSG = {
   tooFew: '放樣失敗：至少要 2 個截面（或 1 個截面加封口點）',
-  coincident: (i: number, j: number) => `放樣失敗：第 ${i} 同第 ${j} 個截面在同一位置（重疊）— 請移開其中一個截面`,
+  coincident: (i: number, j: number) => `放樣失敗：第 ${i} 與第 ${j} 個截面在同一位置（重疊）— 請移開其中一個截面`,
   notClosed: (i: number) => `放樣失敗：第 ${i} 個截面不是閉合輪廓 — 請用閉合草圖輪廓或平面`,
   build: '放樣失敗：內核無法將各截面連成實體 — 請檢查截面是否有自交、截面之間是否會互相穿插，或者嘗試「直紋」',
   invalid: '放樣失敗：生成的實體自交／無效 — 請調整截面次序或位置（截面之間不要交叉），或者嘗試「直紋」',

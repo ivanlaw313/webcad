@@ -101,3 +101,61 @@ export function frameTwistTaperSweep(
   b.MakeSolid()
   return cast(b.Shape())
 }
+
+export type Pt2 = [number, number]
+
+/**
+ * Auto-fillet sharp corners of an OPEN 2D polyline (corner indices 1..n-2).
+ * bulge = tan(θ/4), same convention as sketchOps.filletAt / profileToDrawing.
+ * Used by sweep twist: sharp polylines get rounded before frameTwistTaperSweep.
+ */
+export function filletOpenPolylineCorners(
+  pts: Pt2[],
+  radius: number,
+  sharpDot = 0.978,
+): { verts: Pt2[]; bulges: number[]; count: number } {
+  if (!(radius > 1e-9) || pts.length < 3) {
+    return { verts: pts.map((p) => [p[0], p[1]] as Pt2), bulges: pts.map(() => 0), count: 0 }
+  }
+  const verts: Pt2[] = pts.map((p) => [p[0], p[1]])
+  const bulges: number[] = verts.map(() => 0) // bulges[i] = segment verts[i]→verts[i+1]; last unused
+  let count = 0
+  for (let i = verts.length - 2; i >= 1; i--) {
+    if (Math.abs(bulges[i - 1]) > 1e-9 || Math.abs(bulges[i]) > 1e-9) continue
+    const vp = verts[i - 1], v = verts[i], vn = verts[i + 1]
+    const len1 = Math.hypot(v[0] - vp[0], v[1] - vp[1])
+    const len2 = Math.hypot(vn[0] - v[0], vn[1] - v[1])
+    if (len1 < 1e-9 || len2 < 1e-9) continue
+    const u1x = (v[0] - vp[0]) / len1, u1y = (v[1] - vp[1]) / len1
+    const u2x = (vn[0] - v[0]) / len2, u2y = (vn[1] - v[1]) / len2
+    const dot = u1x * u2x + u1y * u2y
+    if (dot >= sharpDot) continue
+    let cosPhi = -dot
+    if (cosPhi > 1) cosPhi = 1
+    if (cosPhi < -1) cosPhi = -1
+    const phi = Math.acos(cosPhi)
+    if (phi > Math.PI - 1e-9) continue
+    const t = radius / Math.tan(phi / 2)
+    if (!(t < len1 - 1e-9) || !(t < len2 - 1e-9)) continue
+    const p1: Pt2 = [v[0] - u1x * t, v[1] - u1y * t]
+    const p2: Pt2 = [v[0] + u2x * t, v[1] + u2y * t]
+    const cross = u1x * u2y - u1y * u2x
+    const bulgeF = -Math.sign(cross || 1) * Math.tan((Math.PI - phi) / 4)
+    verts.splice(i, 1, p1, p2)
+    bulges.splice(i, 0, bulgeF)
+    count++
+  }
+  return { verts, bulges, count }
+}
+
+/** Preferred auto-fillet radius for a sweep path given tube/profile size and segment lengths. */
+export function autoFilletRadiusForPath(pts: Pt2[], profileR: number): number {
+  let minSeg = Infinity
+  for (let i = 1; i < pts.length; i++) {
+    const L = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])
+    if (L > 1e-9 && L < minSeg) minSeg = L
+  }
+  if (!(minSeg < Infinity)) return 0
+  // Cap by half profile radius and 25% of shortest segment so both legs keep positive length after fillet.
+  return Math.max(0, Math.min(Math.max(profileR, 0.5) * 0.5, 0.25 * minSeg))
+}

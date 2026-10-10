@@ -11,7 +11,7 @@ import { expose, transfer } from 'comlink'
 import opencascade from '../kernel/replicad_plus.js'
 import wasmUrl from '../kernel/replicad_plus.wasm?url'
 import { measureVolume, measureArea, setOC, cast, iterTopo, draw, drawCircle, drawSingleEllipse, makeBaseBox, makeBox, makeSphere, makeCylinder, makeHelix, genericSweep, complexExtrude, loft, makeCompound, makeBSplineApproximation, assembleWire, importSTEP, drawProjection, ProjectionCamera, basicFaceExtrusion, loadFont, getFont, drawText, makePolygon, Vector, Plane as RPlane, GCWithScope } from 'replicad'
-import { frameTwistTaperSweep } from '../cad/sweepTwist'
+import { frameTwistTaperSweep, filletOpenPolylineCorners, autoFilletRadiusForPath } from '../cad/sweepTwist'
 import { textToSketchShapes, emSizeForCapHeight, type GlyphFontLike } from '../sketch/textShapes'   // S189：草图文字 → 草图几何（worker 有 'cad' 字体）
 import fontUrl from '../fonts/Roboto-Regular.ttf?url'  // S120：Roboto（Apache-2.0）真矢量字体 — 字母有真实内孔（O/A/B/e/8 counters）；取代 kenpixel 像素字体（无孔）。无 GPL/AGPL。
 import { edgeFingerprint, edgeFingerprintV2, principalFrame } from '../cad/edgeFingerprint'  // S122：持久边命名 — fillet/chamfer 选边跨重建跟同一几何棱；S134：edgeFingerprintV2/principalFrame = 旋转不变指纹（advisory）
@@ -5590,12 +5590,41 @@ function buildShape(features: Feature[], noCache = false): any {
     } else if (f.type === 'sweep') {
       // Rebuild the spine sketch per sweep — sweepSketch consumes its Sketch, so a hollow pipe (outer − inner)
       // needs two independent spines, not one reused.
+      // P1 C：扭轉／縮放 + 尖角折線 → 自動圓角尖角再 frameTwistTaperSweep（preview=result 同一條路徑）。
+      // 圓角唔到（段過短）→ 仍交 volume gate／throw Formal Traditional 拒絕，唔好靜默剝扭轉。
+      const swTwist = f.twist || 0, swScale = (f.scale == null || f.scale === 1) ? 1 : f.scale
+      let spineVerts: [number, number][] | null = null
+      let spineBulges: number[] | null = null
+      if ((swTwist || swScale !== 1) && f.path && f.path.length >= 3 && !f.smoothPath) {
+        const rFillet = autoFilletRadiusForPath(f.path as [number, number][], f.r)
+        if (rFillet > 1e-9) {
+          const fr = filletOpenPolylineCorners(f.path as [number, number][], rFillet)
+          if (fr.count > 0) {
+            spineVerts = fr.verts
+            spineBulges = fr.bulges
+            buildWarnings.push(`扭轉／縮放掃掠：路徑 ${fr.count} 個尖角已自動圓角（R${rFillet.toFixed(2)}）以保持可靠幾何`)
+          }
+        }
+      }
       const makeSpine = (): any => {
         if (f.path && f.path.length >= 2) {
-          let pen = draw([f.path[0][0], f.path[0][1]])
+          const vs = spineVerts || (f.path as [number, number][])
+          const bu = spineBulges
+          let pen = draw([vs[0][0], vs[0][1]])
           // smoothPath → fit a smooth B-spline through the path points (flowing tube round bends) vs sharp kinks.
-          if (f.smoothPath && f.path.length >= 3) for (let i = 1; i < f.path.length; i++) pen = pen.smoothSplineTo([f.path[i][0], f.path[i][1]])
-          else for (let i = 1; i < f.path.length; i++) pen = pen.lineTo([f.path[i][0], f.path[i][1]])
+          if (!bu && f.smoothPath && f.path.length >= 3) for (let i = 1; i < f.path.length; i++) pen = pen.smoothSplineTo([f.path[i][0], f.path[i][1]])
+          else if (bu) {
+            for (let i = 0; i < vs.length - 1; i++) {
+              const a = vs[i], b = vs[i + 1], bvg = bu[i] || 0
+              const dx = b[0] - a[0], dy = b[1] - a[1]
+              if (Math.hypot(dx, dy) < 1e-9) continue
+              if (Math.abs(bvg) < 1e-6) pen = pen.lineTo([b[0], b[1]])
+              else {
+                const m: [number, number] = [(a[0] + b[0]) / 2 - dy * bvg / 2, (a[1] + b[1]) / 2 + dx * bvg / 2]
+                pen = pen.threePointsArcTo([b[0], b[1]], m)
+              }
+            }
+          } else for (let i = 1; i < vs.length; i++) pen = pen.lineTo([vs[i][0], vs[i][1]])
           return pen.done().sketchOnPlane('XY')
         }
         return draw([0, 0]).ellipseTo([60, 60], 60, 60).done().sketchOnPlane('XZ')
@@ -5630,7 +5659,6 @@ function buildShape(features: Feature[], noCache = false): any {
         b.MakeSolid()
         return cast(b.Shape())
       }
-      const swTwist = f.twist || 0, swScale = (f.scale == null || f.scale === 1) ? 1 : f.scale
       const tube = (rad: number, useGuide = true, plain = false): any => {
         // S：twist 扭转 / 末端 scale 缩放（裸 MakePipeShell 多 section RMF，sweepTwist.ts）。twist=0&scale=1 ⇒ 行旧路径逐字节回放。
         // plain=true 强制普通扫掠（twist/缩放失败 / 返无界几何退回，gotcha e）。
@@ -5674,7 +5702,7 @@ function buildShape(features: Feature[], noCache = false): any {
         try {
           const ref = tube(f.r, true, true), vt = _solidVolume(swept), vr = _solidVolume(ref)
           if (vr > 1e-9 && !(Math.abs(vt - vr) / vr <= 0.1)) {
-            throw new Error('扭轉掃掠在此路徑（尖角折線）產生錯誤幾何 — 請把路徑轉角改為圓角或樣條，或將扭轉設為 0°')
+            throw new Error('不能套用扭轉：此路徑在自動圓角後仍產生錯誤幾何 — 請把轉角改為更大圓角或樣條，或將「扭轉」設為 0°')
           }
         } catch (e) {
           if (e instanceof Error && e.message.startsWith('扭轉掃掠')) throw e

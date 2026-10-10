@@ -21411,22 +21411,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     const isSpline = !!(pathShape && pathShape.type === 'poly' && pathShape.smooth)
     const src = pathShape && pathShape.type === 'poly' ? (isSpline && pathShape.ctrl ? pathShape.ctrl : (pathShape.verts ?? pathShape.pts)) : s.polyPts
     if (!src || src.length < 2) { sweepFail('先用「折線」畫一條路徑（≥2 點，可不閉合），再點「沿路徑掃掠」'); return }
-    // P1 C：扭轉 + 尖角折線 → 提交前拒絕（唔好建成無扭轉再警告）
-    if (swTwist && !isSpline) {
-      const sharp = (() => {
-        const pts = src as Pt[]
-        if (!pts || pts.length < 3) return false
-        for (let i = 1; i < pts.length - 1; i++) {
-          const ax = pts[i][0] - pts[i - 1][0], ay = pts[i][1] - pts[i - 1][1]
-          const bx = pts[i + 1][0] - pts[i][0], by = pts[i + 1][1] - pts[i][1]
-          const la = Math.hypot(ax, ay), lb = Math.hypot(bx, by)
-          if (la < 1e-9 || lb < 1e-9) continue
-          if ((ax * bx + ay * by) / (la * lb) < 0.978) return true
-        }
-        return false
-      })()
-      if (sharp) { sweepFail('不能套用扭轉：路徑含尖角折線 — 請把轉角改為圓角或樣條，或將「扭轉」設為 0°（未變更模型）'); return }
-    }
+    // P1 C：扭轉 + 尖角折線 → 交內核自動圓角尖角後 frameTwistTaperSweep（preview=result）；
+    // 自動圓角後仍不可靠 → worker throw Formal Traditional，applyFeatures 拒絕並保留原模型（唔好靜默剝扭轉）。
     const path = src.map((p) => stToProfile(p, 'XY'))
     const op: BoolOp = (s.sketchOp === 'cut' || s.sketchOp === 'intersect' || s.sketchOp === 'newbody') && hasSolid(s.features) ? s.sketchOp : 'new'   // P2：sweep 补 ∩相交 + New Body
     // T742 任意草图截面：揾 profiles 入面最后一个【闭合】轮廓做截面（截面以草图原点为中心，垂直路径放置）
@@ -22012,10 +21998,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.configs.length) {
       for (const c of s.configs) rows.push([c.name, ...drivers.map((d) => (c.values[d] != null ? String(c.values[d]) : ''))])
     } else {
-      rows.push(['当前值', ...drivers.map((d) => String(s.params.find((p) => p.name === d)?.value ?? ''))])  // 模板行
+      rows.push(['當前值', ...drivers.map((d) => String(s.params.find((p) => p.name === d)?.value ?? ''))])  // 模板行
     }
     const csv = '﻿' + rows.map((r) => r.map((f) => (/[",\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f)).join(',')).join('\r\n')
-    triggerDownload(new TextEncoder().encode(csv), `${projName(s.projectName)}-设计表.csv`, 'text/csv')
+    triggerDownload(new TextEncoder().encode(csv), `${projName(s.projectName)}-設計表.csv`, 'text/csv')
     set({ status: `已匯出設計表 CSV（${Math.max(s.configs.length, 1)} 行 × ${drivers.length} 參數）— Excel 改完「匯入設計表」即批量建配置` })
   },
   importConfigsCsv: (text) => {
@@ -22136,7 +22122,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     await get().setParam(paramName, origVal) // restore the original value
     if (origExpr) await get().setParamExpr(paramName, origExpr)   // GM-W8 β1-#37：还原公式 — 否则公式驱动参数经 sweep 后永久变成驱动值(丢失 ƒx 联动)
     if (!files.length) { set({ status: '設計表匯出：所有變體都無幾何（檢查參數會否令模型變空）' }); return }
-    triggerDownload(makeZip(files), `${base}-设计表-${paramName}.zip`, 'application/zip')
+    triggerDownload(makeZip(files), `${base}-設計表-${paramName}.zip`, 'application/zip')
     set({ status: `已匯出設計表：${paramName} = [${vals.join(', ')}] 共 ${files.length} 個 STL（打包 zip，已還原原值 ${origVal}）` })
   },
 
@@ -22203,7 +22189,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     const shapes = [...(s.sketchShape ? [s.sketchShape] : []), ...s.sketchProfiles].filter((sh) => !sh.construction)  // 构造几何唔导出
     if (!shapes.length) { set({ status: 'DXF 匯出：先畫一個草圖輪廓（矩形/圓/折線…），再匯出（可激光切割 / 匯入其它 CAD）' }); return }
-    triggerDownload(new TextEncoder().encode(shapesToDxfEntities(shapes)), `${projName(get().projectName)}-草图.dxf`, 'application/dxf')
+    triggerDownload(new TextEncoder().encode(shapesToDxfEntities(shapes)), `${projName(get().projectName)}-草圖.dxf`, 'application/dxf')
     set({ status: `已匯出 DXF 真實體（${shapes.length} 個輪廓 → CIRCLE/ARC/LWPOLYLINE，可編輯半徑 / 匯入 AutoCAD / 激光 CAM）` })
   },
   // 激光切割 G-code（GRBL）：同 DXF 同源攞当前草图轮廓，kerf 补偿（外扩/孔缩），先切孔后切外框。

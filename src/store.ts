@@ -5374,12 +5374,18 @@ export function meshBoxOverlap(mesh: { vertices: number[] } | null | undefined, 
   return true
 }
 
-// UX3 #1：材料／密度單一來源 —— 組件有指定材質用佢；否則用文件預設密度（屬性列「材料密度」揀嘅 bodyDensity，
-// 狀態列「總質量(7.85)」都係用佢），並將該密度對返材質名（鋼/鋁…），BOM 唔再自己假設 2.7、材質欄唔再「—」。
+// UX3 #1 + FISHING14 E：材料／密度單一來源 —— 組件／實體有指定物理材質用佢嘅密度；否則用文件預設 bodyDensity
+//（屬性列「材料密度」；新實體繼承）。唔好用活動體 physMatName 做裝配／其他組件嘅後備密度。
+// 狀態列總質量要按各件有效密度加總；混合材質標「（各材質）」而非「（7.85）」。
 const DENSITY_PREF = ['钢', '铝', '黄铜', '铜', '钛', '不锈钢', 'PLA', 'ABS', 'PETG', 'TPU', '尼龙PA', '树脂', '塑料', '木', '玻璃', '金', '银', '青铜']
 export function materialForDensity(d: number): string | null {
   for (const k of DENSITY_PREF) if (MATERIALS[k]?.density != null && Math.abs((MATERIALS[k].density as number) - d) < 1e-6) return k
   return null
+}
+/** 組件有效密度：c.material → MATERIALS；否則文件預設 bodyDensity（唔讀 physMatName）。 */
+export function effectiveComponentDensity(c: { material?: string } | undefined | null, bodyDensity: number): number {
+  if (c?.material && MATERIALS[c.material]?.density != null) return MATERIALS[c.material].density as number
+  return bodyDensity ?? 2.7
 }
 export function effectiveMaterial(s: Pick<AppState, 'bodyDensity' | 'lang'>, c?: { material?: string }, densityOverride?: number): { key: string | null; label: string; density: number } {
   const lang = s.lang
@@ -5431,11 +5437,12 @@ function buildBOM(s: AppState, density?: number): { rows: string[][]; summary: s
       const hid = s.bodyHidden ?? []
       if (bm && showBodies) {
         const list: typeof comps = []
-        if (bm.vertices.length && !hid.includes('active')) list.push({ id: 'body', name: s.projectName || 'webcad 零件', mesh: bm, pos: [0, 0, 0] })
+        // FISHING14 E：多實體 BOM 亦跟 physMat／parkedBodyMaterials（唔再一律 bodyDensity）
+        if (bm.vertices.length && !hid.includes('active')) list.push({ id: 'body', name: s.projectName || 'webcad 零件', mesh: bm, pos: [0, 0, 0], material: s.physMatName || undefined })
         ;(bm.parked ?? []).forEach((pb, i) => {
           if (!pb.vertices.length || hid.includes(bomParkedKey(pb.name, i))) return
           if (/曲面|surface|補面|补面|桥接面|橋接面|Patch/i.test(pb.name || '')) return   // 開放曲面唔係實體
-          list.push({ id: 'parked' + i, name: pb.name || `實體${i + 2}`, mesh: pb as MeshData, pos: [0, 0, 0] })
+          list.push({ id: 'parked' + i, name: pb.name || `實體${i + 2}`, mesh: pb as MeshData, pos: [0, 0, 0], material: s.parkedBodyMaterials?.[i] || undefined })
         })
         comps = list
       }
@@ -14943,13 +14950,27 @@ export const useApp = create<AppState>((rawSet, get) => {
   // （对标 Fusion：可以畀件「钢密度做质量计算」但外观照旧原色；反之外观库只管睇相唔改密度。）
   physMatName: '',
   parkedBodyMaterials: [],
-  // UX2 #9 + P1 B：Fusion 物理材質自帶外觀 — 揀「鋼」實體即變鋼色。
-  // P1 B：只改【活動實體】材質／顏色（一撤銷步）；【唔改】文件預設 bodyDensity（新實體仍繼承預設密度）。
+  // UX2 #9 + P1 B + FISHING14 E：Fusion 物理材質自帶外觀 — 揀「鋼」即變鋼色＋密度。
+  // 有選中組件 → 只改該組件 material（HUD／物理屬性／BOM／裝配總質量同一來源）；
+  // 否則改活動實體 physMatName。一律【唔改】文件預設 bodyDensity。
   setPhysicalMaterial: (name) => {
     const m = MATERIALS[name]
     if (!m || !m.density) return
     set((s) => {
-      if (s.physMatName === name && s.appearanceName === name) return { status: `活動實體已是「${name}」` }
+      const selId = s.selectedComponent
+      if (selId) {
+        const c = s.components.find((x) => x.id === selId)
+        if (c) {
+          if (c.material === name) return { status: `「${c.name}」已是「${tMaterialName(name, s.lang)}」` }
+          return {
+            undoStack: [...s.undoStack, docSnap(s)].slice(-60),
+            redoStack: [],
+            components: s.components.map((x) => (x.id === selId ? { ...x, material: name, color: m.color } : x)),
+            status: `已設「${c.name}」材質「${tMaterialName(name, s.lang)}」密度 ${m.density} g/cm³（僅此組件；文件預設密度 ${s.bodyDensity} g/cm³ 不變 — Ctrl+Z 可還原）`,
+          }
+        }
+      }
+      if (s.physMatName === name && s.appearanceName === name) return { status: `活動實體已是「${tMaterialName(name, s.lang)}」` }
       return {
         undoStack: [...s.undoStack, docSnap(s)].slice(-60),
         redoStack: [],
@@ -14957,7 +14978,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         bodyColor: m.color,
         material: { ...s.material, metalness: m.metalness, roughness: m.roughness, opacity: m.opacity ?? 1, tex: m.tex ?? '' },
         appearanceName: name,
-        status: `已設活動實體材質「${name}」密度 ${m.density} g/cm³（僅此實體；文件預設密度 ${s.bodyDensity} g/cm³ 不變 — Ctrl+Z 可還原）`,
+        status: `已設活動實體材質「${tMaterialName(name, s.lang)}」密度 ${m.density} g/cm³（僅此實體；文件預設密度 ${s.bodyDensity} g/cm³ 不變 — Ctrl+Z 可還原）`,
       }
     })
   },
@@ -20695,7 +20716,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     // GM-X2 #13：propsReport 用 measureFmt（mm/cm/inch）→ m/ft 预设长度回落 cm/inch 系；副单位同。
     const pu = isMF(s.unit) ? s.unit : (areaVolBaseUnit(s.unit) as 'cm' | 'inch')
     const psec = s.secondaryUnit && isMF(s.secondaryUnit) ? s.secondaryUnit : null
-    const { rows, text } = buildPropsReport(mp, { frame, density, material, unit: pu, prec: s.measurePrecision, secondary: psec, bbox: { min: mn, max: mx }, accuracy: acc, name })
+    const matLabel = material ? tMaterialName(material, s.lang) : material
+    const { rows, text } = buildPropsReport(mp, { frame, density, material: matLabel, unit: pu, prec: s.measurePrecision, secondary: psec, bbox: { min: mn, max: mx }, accuracy: acc, name })
     // GM-X2 #13：质量按 massUnit 重格式（g 保留 propsReport 默认 g/kg 自动切；kg/oz/lb 覆盖）。
     if (s.massUnit !== 'g') {
       const massG = (mp.mass ?? density * 1e-9 * mp.volume) * 1e6
@@ -23407,7 +23429,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     const maxN = comps.reduce((m, c) => { const n = parseInt(String(c.id).replace(/^C/, ''), 10); return Number.isFinite(n) && n > m ? n : m }, 0)
     const n = maxN + 1
     const nm = s0.activeBodyName && !isDefaultBodyName(s0.activeBodyName) ? s0.activeBodyName : '組件' + nextComponentNameNo(comps)
-    const { def, occ } = makeDefOcc(s0.componentDefs, 'C' + n, nm, act.mesh, [s0.originX, 0, 0], { src: srcSnap })
+    const matName = s0.physMatName || undefined
+    const mat = matName && MATERIALS[matName]?.density ? MATERIALS[matName] : undefined
+    const { def, occ: occ0 } = makeDefOcc(s0.componentDefs, 'C' + n, nm, act.mesh, [s0.originX, 0, 0], { src: srcSnap, ...(mat?.color ? { color: mat.color } : {}) })
+    const occ = matName && mat ? { ...occ0, material: matName, color: mat.color } : occ0
     // B-rep 邊：worker 仲擁有活動實體 → 移走特徵之前先攞
     let edges: BrepEdge[] = []
     try { edges = (await cad.extractEdgePolylines()) as BrepEdge[] } catch { /* 冇邊 sidecar 都安全 */ }
@@ -23433,7 +23458,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ components: cur.components, componentDefs: cur.componentDefs, suppressedIds: cur.suppressedIds, failedFeatureIds: [], featureErrors: {}, status: '⚠ 新建組件後重建失敗 — 已保留原模型' })
       return
     }
-    set((st) => ({ activeBodyName: '', bodyHidden: st.bodyHidden.filter((k) => k !== 'active'), selectedComponent: occ.id }))
+    set((st) => ({ activeBodyName: '', bodyHidden: st.bodyHidden.filter((k) => k !== 'active'), selectedComponent: occ.id, physMatName: '', appearanceName: st.appearanceName === matName ? '' : st.appearanceName }))
   },
   newComponent: () => {
     const b = get().bodyMesh
@@ -23459,12 +23484,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     let activeDef: (typeof defsAcc)[number] | null = null
     const nameNo0 = nextComponentNameNo(comps)
     let nameK = 0
+    const stMat = get()
+    let parkedMatI = 0
     live.forEach((lb, i) => {
       const n = maxN + 1 + i
       // ASM2 #3：名稱一律「組件N」；只有用戶自訂嘅實體名先沿用（預設「實體N／複製實體N／Body N」唔再變成組件名）
       const nm = !lb.active && lb.name && !isDefaultBodyName(lb.name) ? lb.name : '組件' + (nameNo0 + nameK++)   // RETEST17 #3：預設名繁體（顯示層再按語言 localizeAsmName）
-      const { def, occ } = makeDefOcc(defsAcc, 'C' + n, nm, lb.mesh, [get().originX, 0, 0], lb.active && srcSnap.features.length ? { src: srcSnap } : (i ? { color: COMP_PALETTE[(comps.length + i) % COMP_PALETTE.length] } : undefined))
-      defsAcc = [...defsAcc, def]; newDefs.push(def); newComps.push(occ as (typeof comps)[number])
+      const matName = lb.active ? (stMat.physMatName || undefined) : (stMat.parkedBodyMaterials?.[parkedMatI++] || undefined)
+      const mat = matName && MATERIALS[matName]?.density ? MATERIALS[matName] : undefined
+      const { def, occ } = makeDefOcc(defsAcc, 'C' + n, nm, lb.mesh, [get().originX, 0, 0], lb.active && srcSnap.features.length ? { src: srcSnap } : (i ? { color: (mat?.color) || COMP_PALETTE[(comps.length + i) % COMP_PALETTE.length] } : undefined))
+      const occ2 = matName && mat ? { ...occ, material: matName, color: mat.color || occ.color } : occ
+      defsAcc = [...defsAcc, def]; newDefs.push(def); newComps.push(occ2 as (typeof comps)[number])
       if (lb.active) activeDef = def
     })
     const comp = newComps[0]
@@ -23475,6 +23505,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       components: [...comps, ...newComps], componentDefs: [...get().componentDefs, ...newDefs],
       features: [], bodyMesh: null, bodyTopZ: 0, undoStack: [...get().undoStack, snap].slice(-60), redoStack: [],
       selectedFeature: null, sketchShape: null, mode: 'model',
+      physMatName: '', parkedBodyMaterials: [],   // FISHING14 E：材質已轉入各組件.material
       originX: get().originX + 130,
       status: newComps.length > 1
         ? `已固化 ${newComps.length} 個實體為組件（${newComps.map((c) => c.name).join('、')}）；下一個組件將在其右側 (+130mm) 處繪製`

@@ -1,5 +1,11 @@
 # DEVLOG
 
+## 2026-10-10 — FISHING14 E P1：物理材質密度單一來源（HUD／物理屬性／BOM／裝配總質量）
+- **根因**：頂欄「物理材質」在已選組件時仍只寫活動體 `physMatName`；Viewport 選取 HUD／裝配總質量用 `physMatName` 做無材質組件後備 → 整裝配誤套 7.85；`openPropertiesDialog`／BOM 卻用 `bodyDensity` 2.7 → 三處質量分裂。
+- **修**：`setPhysicalMaterial` 有選中組件時寫 `c.material`（唔改 `bodyDensity`）；`effectiveComponentDensity` 統一後備為文件預設；裝配總質量按件加總、混合標「（各材質）」；BOM 多實體跟 physMat／parked；固化組件帶走材質；屬性／狀態用正式繁體「鋼」。
+- **測**：unit `tests/fishing14e-physmat-mass.test.mjs` + 既有 p1/ux2/ux3 material；e2e `scripts/e2e-fishing14e-physmat-mass.mjs`（ALL PASS）。APP_VERSION 2.20。
+
+
 ## 2026-10-10 — FISHING14 B P1/P2：關節拾取面贏過組件選取（圓柱側面 → 圓柱面，不開移動／旋轉 HUD）
 - **根因**：`edgeDisplay: on` 時 B-rep 邊線疊加（lineSegments）搶 raycast → `faceIndex` 空，關節面拾取門檻 `e.faceIndex != null` 跳過，落到組件 `onSelect` → 移動／旋轉 HUD；`startJointPick`／Esc 亦不清 `selectedComponent`。
 - **修**：`asmFacePickArmed` + `resolveAsmFaceIndex`（從 intersections 找回三角面）+ `detectFacePreferCyl`；面拾取武裝時拒組件選取／隱藏 gumball；開始／取消關節（及選面配合）清選取。

@@ -50,6 +50,8 @@ export const SC2TC_HK_PHRASES: Record<string, string> = {
   '并入': '併入',
   // --- 复: 復 (resume) vs 複 (duplicate) ---
   '复制': '複製',
+  '复合': '複合',
+  '复合体': '複合體',
   '复杂': '複雜',
   '复选': '複選',
   '重复': '重複',

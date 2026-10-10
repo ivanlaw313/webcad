@@ -55,8 +55,8 @@ export function extrudeSuccessStatus(opts: {
  *  twoSides=[側1, 側2]（mm，絕對值）時報「（兩側 側1 a · 側2 b mm）」；否則 symmetric →「（對稱）」。 */
 export function extrudeExtraNote(f: { symmetric?: boolean; twist?: number; draft?: number; through?: boolean }, twoSides?: [number, number] | null): string {
   const n = (x: number) => String(Math.round(Math.abs(x) * 1000) / 1000)
-  const sideNote = twoSides ? `（兩側 側1 ${n(twoSides[0])} · 側2 ${n(twoSides[1])} mm）` : f.symmetric ? '（对称）' : ''
-  return (sideNote || (f.twist ? `（扭转 ${f.twist}°）` : '')) + (f.draft ? `（拔模 ${f.draft}°）` : '') + (f.through ? '（贯通）' : '')
+  const sideNote = twoSides ? `（兩側 側1 ${n(twoSides[0])} · 側2 ${n(twoSides[1])} mm）` : f.symmetric ? '（對稱）' : ''
+  return (sideNote || (f.twist ? `（扭轉 ${f.twist}°）` : '')) + (f.draft ? `（拔模 ${f.draft}°）` : '') + (f.through ? '（貫通）' : '')
 }
 
 /** Multi-profile Extrude / Cut success. */

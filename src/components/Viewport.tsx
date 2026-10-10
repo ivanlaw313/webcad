@@ -7429,7 +7429,7 @@ export default function Viewport() {
             <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={56} />°</label>
             <label title={tStatus('薄壁 mm：>0 把旋轉體抽成薄殼（燈罩/碗殼/漏斗等曲面殼），0=實心', lang)}>{tStatus('薄壁', lang)} <FeatNum k="wall" v={featDlg.params.wall} w={48} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
             {Number(featDlg.params.angle) > 0 && Number(featDlg.params.angle) < 360 && (
-              <label title={tStatus('兩側對稱：部分角旋轉時把角度均分跨越截面平面兩側', lang)}><input type="checkbox" checked={!!featDlg.params.sym} onChange={(e) => setFeatParam('sym', e.target.checked ? 1 : 0)} /> {tStatus('两侧对称', lang)}</label>
+              <label title={tStatus('兩側對稱：部分角旋轉時把角度均分跨越截面平面兩側', lang)}><input type="checkbox" checked={!!featDlg.params.sym} onChange={(e) => setFeatParam('sym', e.target.checked ? 1 : 0)} /> {tStatus('兩側對稱', lang)}</label>
             )}
             {/* P2：Operation 排最尾（Fusion 肌肉记忆：轴→参数→最后定布尔） */}
             <label>{tStatus('操作', lang)} <select value={featDlg.params.op ?? 'new'} onChange={(e) => setFeatParam('op', e.target.value)} style={{ height: 26 }} disabled={!bodyMesh?.triangles?.length} title={bodyMesh?.triangles?.length ? tStatus('加料/切割(車槽)/相交', lang) : tStatus('沒有實體，只能加料', lang)}><option value="new">{tStatus('＋加料', lang)}</option><option value="cut">{tStatus('－切割(車槽)', lang)}</option><option value="intersect">{tStatus('∩相交', lang)}</option><option value="newbody">{tStatus('⬡新實體', lang)}</option></select></label>

@@ -16765,9 +16765,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     const ownership=axisReference ?? (skBundle?.faceBinding ? (axisSpec ? 'world' : 'sketch') : undefined)
     const sketchOrigin=boundSketchOrigin(skBundle ?? {})
     const f: Feature = { id: fid(), type: 'revolve', ...(skBundle?.faceBinding?{sketchFaceBinding:structuredClone(skBundle.faceBinding)}:{}), ...(ownership?{axisReference:ownership,axisOrigin:axisSpec?.axisOrigin ?? sketchOrigin}:{}), profile, angle, axis, op: op !== 'new' ? op : undefined, ...(skBundle ? { plane: skBundle.plane, baseZ: skBundle.baseZ } : {}), ...(skBundle?.arb ? { arbPlane: skBundle.arb } : {}), ...(wall > 0 ? { wall } : {}), ...(axisSpec ? { axisV: axisSpec.axisV, axisOrigin: axisSpec.axisOrigin } : {}), ...(sym ? { symmetric: true } : {}) }
-    const verb = op === 'cut' ? '切割（车槽）' : op === 'intersect' ? '相交' : '生成实体'
-    const axName = axisSpec ? (axisSpec.name || `任意轴(${axisSpec.axisV.map((v) => +v.toFixed(2)).join(',')})@(${axisSpec.axisOrigin.map((v) => +v.toFixed(0)).join(',')})`) : `${axis} 轴`
-    const ok = await get().applyFeatures([...get().features, f], `已旋轉${verb}（绕 ${axName} ${angle}°${sym ? '·两侧对称' : ''}${wall > 0 ? `，薄壁 ${wall}mm` : ''}${axisSpec && wall > 0 ? '（任意軸薄壁不支援，已出實心）' : ''}）`)
+    const verb = op === 'cut' ? '切割（車槽）' : op === 'intersect' ? '相交' : '生成實體'
+    const axName = axisSpec ? (axisSpec.name || `任意軸(${axisSpec.axisV.map((v) => +v.toFixed(2)).join(',')})@(${axisSpec.axisOrigin.map((v) => +v.toFixed(0)).join(',')})`) : `${axis} 軸`
+    const ok = await get().applyFeatures([...get().features, f], `已旋轉${verb}（繞 ${axName} ${angle}°${sym ? '·兩側對稱' : ''}${wall > 0 ? `，薄壁 ${wall}mm` : ''}${axisSpec && wall > 0 ? '（任意軸薄壁不支援，已出實心）' : ''}）`)
     if (!ok) {
       // UX2 #3：唔好淨係「重建失敗」— 講出截面／草圖嘅真原因（跨軸／未閉合／多輪廓／散線／碎線／自交）
       try {
@@ -17902,7 +17902,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 但出 type:'surfrevolve' 且喂【开放截面】（无需先做实体再壳）。出 parked 曲面体（要实体再「加厚」/「缝合」）。
   addSurfRevolve: async (profile, angle = 360, axis = 'Y', op = 'new', axisSpec) => {
     const f: Feature = { id: fid(), type: 'surfrevolve', profile, angle, axis, op: op !== 'new' ? op : undefined, ...(axisSpec ? { axisV: axisSpec.axisV, axisOrigin: axisSpec.axisOrigin } : {}) }
-    const axName = axisSpec ? (axisSpec.name || `任意轴(${axisSpec.axisV.map((v) => +v.toFixed(2)).join(',')})`) : `${axis} 轴`
+    const axName = axisSpec ? (axisSpec.name || `任意軸(${axisSpec.axisV.map((v) => +v.toFixed(2)).join(',')})`) : `${axis} 軸`
     await get().applyFeatures([...get().features, f], `已旋轉曲面（繞 ${axName} ${angle}° · 零厚開放殼，要實體再「加厚」/「縫合」）`)
   },
   // S100：规则曲面 — 收集全部【开放折线独立草图】（XY/偏移面，各自 z）做截面，standalone loft(ruled) 出纯零厚直纹面。

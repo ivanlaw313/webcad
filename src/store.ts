@@ -7290,10 +7290,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [],
     roundPreviewMesh: null, roundPreviewFail: false,
     status: m === 'two'
-      ? '雙距離：請重新選取棱'
+      ? '雙距離：請重新選取稜'
       : m === 'angle'
         ? '距離＋角度：請重新選取面與棱'
-        : '等距離：請重新選取棱',
+        : '等距離：請重新選取稜',
   }),
   setChamferSize2: (n) => { set({ chamferSize2: Number.isFinite(n) ? Math.max(0, n) : 0 }); get().scheduleRoundPreview() },
   // Fusion permits the 0/90 degree endpoints to be displayed while dragging/typing, but they

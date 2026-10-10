@@ -7205,7 +7205,7 @@ export default function Viewport() {
               <label title={tStatus('範圍：到實體=向下落到實體底面並融合（需實體在下）/ 距離=向上按固定高度', lang)}>{tStatus('範圍', lang)} <select value={String(featDlg.params.extent ?? 'next')} onChange={(e) => setFeatParam('extent', e.target.value)} style={{ height: 26 }}><option value="next">{tStatus('到實體', lang)}</option><option value="distance">{tStatus('距離', lang)}</option></select></label>
               {featDlg.params.extent === 'distance' && <label>{tStatus('高度', lang)} <FeatNum k="height" v={featDlg.params.height} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>}
               <label title={tStatus('拔模角°：筋身向遠端逐漸收窄（注塑/衝壓脫模）', lang)}>{tStatus('拔模角', lang)} <FeatNum k="draft" v={featDlg.params.draft} w={50} />°</label>
-              <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('翻轉筋擠出方向（up↔down）', lang)}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} /> {tStatus('翻转方向', lang)}</label>
+              <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('翻轉筋擠出方向（up↔down）', lang)}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} /> {tStatus('翻轉方向', lang)}</label>
               {isWeb && <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('延伸曲線：把開放折線端點外延到實體牆面，令交叉/近牆筋網自動閉合', lang)}><input type="checkbox" checked={!!+(featDlg.params.extend || 0)} onChange={(e) => setFeatParam('extend', e.target.checked ? 1 : 0)} /> {tStatus('延伸曲线到墙', lang)}</label>}
             </>)
           })()}
@@ -7323,12 +7323,12 @@ export default function Viewport() {
             </>)
           })()}
           {featDlg.kind === 'fillet-edit' && (<>
-            <SelectionChip label={tStatus('棱', lang)} count={Math.max(1, +(featDlg.params.nearsN || 0))} hint="" />
+            <SelectionChip label={tStatus('稜', lang)} count={Math.max(1, +(featDlg.params.nearsN || 0))} hint="" />
             {typeof featDlg.params.radii === 'string' && String(featDlg.params.radii).trim() ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <div style={{ fontSize: 11, color: '#8a97a2' }}>{tStatus('多半徑圓角 — 逐棱半徑：', lang)}</div>
                 {String(featDlg.params.radii).split(',').map((r, i) => (
-                  <label key={i} style={{ fontSize: 11 }}>{tStatus('棱', lang)}{i + 1} <input type="number" step={0.5} min={0.1} value={+r} onChange={(e) => { const arr = String(featDlg.params.radii).split(','); arr[i] = e.target.value; setFeatParam('radii', arr.join(',')) }} style={{ width: 52 }} /> mm</label>
+                  <label key={i} style={{ fontSize: 11 }}>{tStatus('稜', lang)}{i + 1} <input type="number" step={0.5} min={0.1} value={+r} onChange={(e) => { const arr = String(featDlg.params.radii).split(','); arr[i] = e.target.value; setFeatParam('radii', arr.join(',')) }} style={{ width: 52 }} /> mm</label>
                 ))}
               </div>
             ) : (<>
@@ -7338,13 +7338,13 @@ export default function Viewport() {
             <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.chain || 0)} onChange={(e) => setFeatParam('chain', e.target.checked ? 1 : 0)} />{tStatus('切線鏈', lang)}</label>
           </>)}
           {featDlg.kind === 'chamfer-edit' && (<>
-            <SelectionChip label={tStatus('棱', lang)} count={Math.max(1, +(featDlg.params.nearsN || 0))} hint="" />
+            <SelectionChip label={tStatus('稜', lang)} count={Math.max(1, +(featDlg.params.nearsN || 0))} hint="" />
             <label>{tStatus('類型', lang)} <select value={String(featDlg.params.cmode)} onChange={(e) => setFeatParam('cmode', e.target.value)} style={{ height: 26 }}>
               <option value="equal">{tStatus('等距', lang)}</option><option value="two">{tStatus('雙距離', lang)}</option><option value="angle">{tStatus('距離+角度', lang)}</option></select></label>
             <label>{tStatus('距離', lang)} <FeatNum k="distance" v={featDlg.params.distance} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
             {featDlg.params.cmode === 'two' && <label>{tStatus('距離2', lang)} <FeatNum k="dist2" v={featDlg.params.dist2} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>}
             {featDlg.params.cmode === 'angle' && <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={50} />°</label>}
-            {featDlg.params.cmode !== 'equal' && <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} />{tStatus('翻转', lang)}</label>}
+            {featDlg.params.cmode !== 'equal' && <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} />{tStatus('翻轉', lang)}</label>}
             <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.chain || 0)} onChange={(e) => setFeatParam('chain', e.target.checked ? 1 : 0)} />{tStatus('切線鏈', lang)}</label>
           </>)}
           {featDlg.kind === 'shell-edit' && (<>

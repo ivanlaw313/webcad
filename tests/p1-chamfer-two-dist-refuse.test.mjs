@@ -12,7 +12,7 @@ test('setChamferMode(two) enables 雙距離 and clears selection (Fusion type tr
   assert.ok(start > 0)
   const scm = store.slice(start, store.indexOf('  setChamferSize2:', start))
   assert.match(scm, /chamferMode: m/)
-  assert.match(scm, /雙距離：請重新選取棱/)
+  assert.match(scm, /雙距離：請重新選取稜/)
   assert.match(scm, /edgeRoundPicks:\s*\[\]/)
   // commit requires dist2 > 0 — never a blanket refuse of mode two
   assert.match(store, /if \(kind === 'chamfer' && get\(\)\.chamferMode === 'two' && !\(get\(\)\.chamferSize2 > 0\)\) \{ set\(\{ status: '雙距離：距離 2 必須大於 0'/)

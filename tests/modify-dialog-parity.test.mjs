@@ -192,10 +192,22 @@ test('Asymmetric Fillet is enabled, keeps Fusion G1/Setback rules and reaches a 
   assert.match(viewport, /<option value="asymmetric">(?:不对称|不對稱)<\/option>/)
   assert.doesNotMatch(viewport, /<option value="asymmetric" disabled>/)
   assert.ok(/不对称圆角偏移|不對稱圓角偏移|asymmetric/.test(viewport), "asymmetric offset control labelled")
-  assert.match(viewport, /(?:翻转偏移方向|翻轉偏移方向)/)
+  assert.match(viewport, /翻轉偏移方向/)
+  assert.doesNotMatch(viewport, /翻转偏移方向/)
   assert.match(viewport, /filletMode === 'asymmetric' \? 'G1'/)
   assert.match(viewport, /filletMode === 'asymmetric' \? 'setback'/)
   assert.match(worker, /asymmetricFilletNearPoints\(shape, f\.nears, f\.radii \?\? f\.radius, f\.asymmetric\.offset2/)
   assert.match(asymmetric, /drawSingleEllipse\(d1, d2\)/)
   assert.match(asymmetric, /\(corner as any\)\.cut\(ellipse\)/)
 })
+
+test('Chamfer/Fillet edit chrome uses Formal TC 翻轉 / 稜 (not Simplified 翻转 / 棱)', () => {
+  assert.match(viewport, /featDlg\.kind === 'chamfer-edit'/)
+  assert.match(viewport, /tStatus\('翻轉', lang\)/)
+  assert.doesNotMatch(viewport, /tStatus\('翻转', lang\)/)
+  assert.match(viewport, /tStatus\('翻轉方向', lang\)/)
+  assert.doesNotMatch(viewport, /tStatus\('翻转方向', lang\)/)
+  assert.match(viewport, /featDlg\.kind === 'fillet-edit'[\s\S]{0,500}?tStatus\('稜', lang\)/)
+  assert.match(viewport, /featDlg\.kind === 'chamfer-edit'[\s\S]{0,500}?tStatus\('稜', lang\)/)
+})
+

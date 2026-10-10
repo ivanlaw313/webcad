@@ -421,7 +421,7 @@ export function exportViewPNG() {
 // 独立实体（多实体 T728）：灰显；默认唔接受拾取（圆角/草图仍作用喺活动实体）。
 // S133：编辑曲面控制点 / 加厚曲面模式下变可拾。
 // SO10 / BUG-SO15-002：统一测量（体过滤）+ 普通体选择时亦可拾——分割另一半（独立实体）可量体积 / 树与画布可选。
-function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: { mesh: { vertices: number[]; triangles: number[]; normals: number[]; kind?: 'body'; faceGroups?: { start: number; count: number; faceId: number }[] }; index: number; pickable?: boolean; picked?: boolean; onPick?: (i: number, face: number, threePt: [number, number, number], faceNormalWorld?: [number, number, number], toggle?: boolean) => void }) {
+function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: { mesh: { vertices: number[]; triangles: number[]; normals: number[]; kind?: 'body'; faceGroups?: { start: number; count: number; faceId: number }[] }; index: number; pickable?: boolean; picked?: boolean; onPick?: (i: number, face: number, threePt: [number, number, number], faceNormalWorld?: [number, number, number], toggle?: boolean, faceIndex?: number) => void }) {
   const geom = useMemo(() => {
     const g = new BufferGeometry()
     g.setAttribute('position', new Float32BufferAttribute(mesh.vertices, 3))
@@ -436,7 +436,7 @@ function ParkedBody({ mesh, index, pickable = false, picked = false, onPick }: {
         geometry={geom}
         raycast={pickable ? MESH_RAYCAST : NULL_RAYCAST}
         onContextMenu={pickable ? (e) => noteCtxHit(e.nativeEvent, { kind: 'body', parked: index }) : undefined}
-        onClick={pickable ? (e) => { e.stopPropagation(); let face = 0; if (e.faceIndex != null && mesh.faceGroups?.length) { const tri3 = e.faceIndex * 3; const gi = mesh.faceGroups.findIndex((g) => tri3 >= g.start && tri3 < g.start + g.count); if (gi >= 0) face = gi } const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null; onPick?.(index, face, [e.point.x, e.point.y, e.point.z], wn ? [wn.x, wn.y, wn.z] : undefined, clickMod(e.nativeEvent as MouseEvent) === 'toggle') } : undefined}
+        onClick={pickable ? (e) => { e.stopPropagation(); let face = 0; if (e.faceIndex != null && mesh.faceGroups?.length) { const tri3 = e.faceIndex * 3; const gi = mesh.faceGroups.findIndex((g) => tri3 >= g.start && tri3 < g.start + g.count); if (gi >= 0) face = gi } const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null; onPick?.(index, face, [e.point.x, e.point.y, e.point.z], wn ? [wn.x, wn.y, wn.z] : undefined, clickMod(e.nativeEvent as MouseEvent) === 'toggle', e.faceIndex ?? undefined) } : undefined}
       >
         <meshStandardMaterial color={picked ? '#7bb8e8' : mesh.kind === 'body' ? '#aeb9c4' : '#9aa6b0'} transparent={mesh.kind !== 'body'} opacity={mesh.kind === 'body' ? 1 : 0.55} roughness={0.8} metalness={0.05} />
         <Edges threshold={24} color={picked ? '#3a78b5' : mesh.kind === 'body' ? '#59636d' : '#6b7680'} />
@@ -719,7 +719,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
   // frozen 组件：只对作用于 frozen 件嘅命令绕过过滤器（faceMate/screwFit/joint/量边·面·角/网格件画草图/浇口目标）。
   const compCmdArmed = frozen && !!(
     faceMateMode || screwFitMode || jointHolePicking || jointPickMode || jointOriginPickMode ||
-    (compId && (measureEdgeMode || measureFaceMode || measureAngleMode)) ||
+    (compId && (measureEdgeMode || measureFaceMode || measureAngleMode || measureUniMode)) ||
     (compId && (faceSketchPick || mode === 'pickplane')) ||
     (moldMode && moldTarget)
   )
@@ -736,7 +736,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         // pick command is armed (fillet/chamfer/measure/hole/shell/press-pull/sketch-on-face/pick-plane).
         if (frozen && (faceSketchPick || mode === 'pickplane')) cv.style.cursor = 'crosshair'   // GM-W4 4.3：网格件都可拾面画草图 → 十字光标
         else if (frozen) cv.style.cursor = 'pointer'
-        else if (edgeRoundPick || boundaryPatchPick || measureMode || measureEdgeMode || measureFaceMode || measureAngleMode || holeMode || shellMode || feaMode || moldMode || pushPullMode || delFaceMode || patchMode || thickenMode || offsetSurfMode || extendSurfMode || splitFaceMode || replaceFaceMode || rotateFaceMode || moveFaceMode || surfTrimMode || draftPickMode || splitPlanePick || faceSketchPick || loftFacePick || automatedModelPicking || embossPick || cpatAxisPick || feaPinPick || feaBearingPick || mode === 'pickplane' || formBoxDraft?.stage === 'plane') cv.style.cursor = 'crosshair'
+        else if (edgeRoundPick || boundaryPatchPick || measureMode || measureEdgeMode || measureFaceMode || measureAngleMode || measureUniMode || holeMode || shellMode || feaMode || moldMode || pushPullMode || delFaceMode || patchMode || thickenMode || offsetSurfMode || extendSurfMode || splitFaceMode || replaceFaceMode || rotateFaceMode || moveFaceMode || surfTrimMode || draftPickMode || splitPlanePick || faceSketchPick || loftFacePick || automatedModelPicking || embossPick || cpatAxisPick || feaPinPick || feaBearingPick || mode === 'pickplane' || formBoxDraft?.stage === 'plane') cv.style.cursor = 'crosshair'
       }}
       onPointerOut={() => { setHovered(false); setHoverFace(null); const cv = document.querySelector('canvas'); if (cv) cv.style.cursor = '' }}
       onPointerMove={(e) => {
@@ -883,6 +883,8 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         if (measureAngleMode && (!frozen || compId) && e.face) { e.stopPropagation(); const wn = e.face.normal.clone().transformDirection(e.object.matrixWorld); measureAngleAt([wn.x, wn.y, wn.z]); return }
         // GM-X1 #1/#2：统一测量 —— 点任意实体 → worker 量面/边 → 组合派生读数。Alt/⌘ = 优先量边。活动实体 B-rep 路径。
         if (measureUniMode && !frozen) { e.stopPropagation(); useApp.getState().selectParkedBody(null); const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null; const isEdge = e.nativeEvent && (e.nativeEvent as MouseEvent).altKey; void useApp.getState().pickMeasureUniAt([e.point.x, e.point.y, e.point.z], wn ? [wn.x, wn.y, wn.z] : undefined, !!isEdge); return }
+        // P2：統一測量揀組件面（frozen）— 先前 !frozen 令面點靜默無讀數；兩點測量無此限制。網格面 → 面積／圓柱直徑Ø（Formal Traditional）。
+        if (measureUniMode && frozen && compId && e.faceIndex != null) { e.stopPropagation(); const wn = e.face ? e.face.normal.clone().transformDirection(e.object.matrixWorld) : null; useApp.getState().pickMeasureUniFromMesh(mesh, e.faceIndex, [e.point.x, e.point.y, e.point.z], wn ? [wn.x, wn.y, wn.z] : undefined, { compId }); return }
         if (embossPick && !frozen && e.face) { e.stopPropagation(); void useApp.getState().applyEmbossPick([e.point.x, e.point.y, e.point.z], [e.face.normal.x, e.face.normal.y, e.face.normal.z]); return }   // S162 Emboss 拾面
         if (ucsPick && !frozen && e.face) { e.stopPropagation(); void useApp.getState().makeUCS([e.point.x, e.point.y, e.point.z], [e.face.normal.x, e.face.normal.y, e.face.normal.z]); return }   // #174-1 UCS 拾面帧
         if (formBoxDraft?.stage === 'plane' && !frozen && e.faceIndex != null) {
@@ -4987,8 +4989,8 @@ export default function Viewport() {
         {/* UX1 #2：空白文件唔再畫 100×40×60 灰色半透明「佔位體」（用戶以為係舊檔殘留線框）— Fusion 新檔係空場景 */}
         {/* 多实体（T728）：泊车实体灰显。圆角/草图仍作用喺活动实体；SO10：测量体过滤 + 普通体选择时可拾泊车半体。
             S133：编辑曲面控制点 / 加厚曲面模式下变可拾。 */}
-        {bodyMesh?.parked?.map((b, i) => (!objectVis.bodies || bodyHidden.includes(parkedBodyKey(b.name, i))) ? null : <ParkedBody key={'pk' + i} mesh={b} index={i} pickable={editPolesMode || quiltPickMode || measureUniMode || (mode === 'model' && !formMode && selPicksBody(selFilter))} picked={modelSelBodyKeys.includes(parkedBodyKey(b.name, i)) || (editPolesMode && editPolesTarget === i) || quiltPickMode || (selectedParkedIndex === i)} onPick={(idx, face, threePt, faceN, toggle) => {
-          if (measureUniMode) { useApp.getState().selectParkedBody(idx); void useApp.getState().pickMeasureUniAt(threePt, faceN, false); return }
+        {bodyMesh?.parked?.map((b, i) => (!objectVis.bodies || bodyHidden.includes(parkedBodyKey(b.name, i))) ? null : <ParkedBody key={'pk' + i} mesh={b} index={i} pickable={editPolesMode || quiltPickMode || measureUniMode || (mode === 'model' && !formMode && selPicksBody(selFilter))} picked={modelSelBodyKeys.includes(parkedBodyKey(b.name, i)) || (editPolesMode && editPolesTarget === i) || quiltPickMode || (selectedParkedIndex === i)} onPick={(idx, face, threePt, faceN, toggle, faceIndex) => {
+          if (measureUniMode) { useApp.getState().selectParkedBody(idx); if (faceIndex != null) useApp.getState().pickMeasureUniFromMesh(b, faceIndex, threePt, faceN, { parked: idx }); else void useApp.getState().pickMeasureUniAt(threePt, faceN, false); return }
           if (quiltPickMode) void useApp.getState().thickenParkedAt(idx)
           else if (editPolesMode) void useApp.getState().pickParkedForPoles(idx, face)
           else {

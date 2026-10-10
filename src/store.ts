@@ -2534,6 +2534,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   toggleMeasureUni: () => void
   addMeasureUniPick: (pick: MeasurePick, extra?: MeasureExtra) => void          // 直接加拾取（headless 可驱动 / 视口拾取转呢度）
   pickMeasureUniAt: (threePt: [number, number, number], faceNormalWorld?: [number, number, number], isEdge?: boolean) => Promise<void>   // 视口点击 → worker 量面/边 → 加拾取
+  /** 統一測量：組件／泊車體網格面（frozen）→ 面積／圓柱直徑（同量面 Formal Traditional） */
+  pickMeasureUniFromMesh: (mesh: { vertices: number[]; triangles: number[]; normals?: number[] }, faceIndex: number, threePt: [number, number, number], faceNormalWorld?: [number, number, number], opts?: { compId?: string; parked?: number }) => void
   clearMeasureUniPicks: () => void
   setMeasureSelFilter: (patch: Partial<{ face: boolean; edge: boolean; body: boolean; sketch: boolean }>) => void
   // ── GM-X1 #3/#4/#5：测量精度 + 副单位 + 捕捉标记 ──
@@ -20590,7 +20592,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (sc?.hidden) {
         set({
           components: s.components.map((c) => (c.id === sc.id ? { ...c, hidden: false } : c)),
-          status: '量度目標組件已隱藏 — 已自動顯示，請再點一次面/邊',
+          status: '請先顯示組件 — 已自動顯示量度目標，請再點一次面/邊',
         })
         return
       }
@@ -20629,6 +20631,40 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     // 兜底：自由点（顶点/空间点）
     get().addMeasureUniPick({ kind: 'point', p: cp })
+  },
+  pickMeasureUniFromMesh: (mesh, faceIndex, threePt, faceNormalWorld, opts) => {
+    const s = get()
+    if (!s.measureUniMode) return
+    // Optional：隱藏組件 — 自動顯示或提示「請先顯示組件」
+    if (opts?.compId) {
+      const sc = s.components.find((c) => c.id === opts.compId)
+      if (sc?.hidden) {
+        set({
+          components: s.components.map((c) => (c.id === sc.id ? { ...c, hidden: false } : c)),
+          selectedComponent: opts.compId,
+          status: '請先顯示組件 — 已自動顯示，請再點一次面量面積／直徑',
+        })
+        return
+      }
+    }
+    const r = measureMeshFaceRegion(mesh.vertices, mesh.triangles, faceIndex)
+    if (!r || !(r.area > 0)) { set({ status: '沒找到面（請點在某個面上）' }); return }
+    const det = detectFace(mesh, faceIndex)
+    const cp: [number, number, number] = [threePt[0], -threePt[2], threePt[1]]
+    const nCad: [number, number, number] | undefined = faceNormalWorld
+      ? [faceNormalWorld[0], -faceNormalWorld[2], faceNormalWorld[1]]
+      : (r.normal as [number, number, number] | undefined)
+    const pick: MeasurePick = {
+      kind: 'face',
+      area: r.area,
+      center: cp,
+      normal: nCad,
+      p: cp,
+      ...(det?.kind === 'cyl' ? { surfType: 'CYLINDRE', radius: det.r, axisO: det.p, axisD: det.axis } : {}),
+      ...(det?.kind === 'planar' ? { surfType: 'PLANE', planeO: det.p, planeN: det.n } : {}),
+      ...(!det ? { surfType: r.planar ? 'PLANE' : 'FACE' } : {}),
+    }
+    get().addMeasureUniPick(pick)
   },
   // ── GM-X1 #3/#4/#5：测量精度 + 副单位 + 捕捉标记 ──
   measurePrecision: null,
@@ -20931,8 +20967,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     const cp: [number, number, number] = [p[0], -p[2], p[1]]
     const r = await cad.measureFaceAt(cp)
     if (!r) { set({ measureFaceInfo: null, status: '沒找到面（請點在某個面上）' }); return }
-    const TY: Record<string, string> = { PLANE: '平面', CYLINDRE: '圆柱面', CONE: '圆锥面', SPHERE: '球面', TORUS: '环面' }
-    const ty = TY[r.kind] || r.kind || '面'
+    const TY: Record<string, string> = { PLANE: '平面', CYLINDRE: '圓柱面', CONE: '圓錐面', SPHERE: '球面', TORUS: '環面' }
+    const ty = TY[r.kind] || (/CYL/i.test(r.kind) ? '圓柱面' : /CONE/i.test(r.kind) ? '圓錐面' : /TOR/i.test(r.kind) ? '環面' : (r.kind || '面'))
     const uf = get().unit
     // For a cylindrical face (boss/shaft/bore), suggest the nearest ISO screw size by its diameter.
     let fit = ''
@@ -20940,8 +20976,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     const info = r.radius != null
       ? `${ty}：Ø${fmtLen(r.radius * 2, uf)} · R${fmtLen(r.radius, uf)} · 面積 ${fmtArea(r.area, uf)}${fit}`
       : `${ty}：面積 ${fmtArea(r.area, uf)}`
-    // S102[1]：柱面→直径Ø / 其余→面积（原始 mm/mm² number 留俾捕获为参数）
-    const lm = r.radius != null ? { value: r.radius * 2, label: '柱面Ø' } : { value: r.area, label: '面积' }
+    // S102[1]：柱面→直徑Ø / 其餘→面積（原始 mm/mm² number 留俾捕獲為參數）
+    const lm = r.radius != null ? { value: r.radius * 2, label: '圓柱面直徑Ø' } : { value: r.area, label: '面積' }
     set({ measureFaceInfo: info, lastMeasure: lm, status: info })
   },
   // GM-W4 4.4(a)：网格件量面 —— 导入件冇 B-rep 面拓扑，用【共面区 region-grow】近似面积（meshMeasure 纯几何）。

@@ -4328,7 +4328,7 @@ export default function Viewport() {
   const objectVis = useApp((s) => s.objectVis)            // #8 对象可见性主开关
   const bodyHidden = useApp((s) => s.bodyHidden)          // 实体可见性（浏览器树眼掣 / 右键隱藏）
   const activeBodyHidden = !objectVis.bodies || bodyHidden.includes(ACTIVE_BODY_KEY)
-  const modelSelBodyKeys = useApp((s) => s.modelSel.filter((x) => x.kind === 'body').map((x) => x.key).join('\n')).split('\n')
+  const modelSelBodyKeys = useApp((s) => (s.modelSel ?? []).filter((x) => x.kind === 'body').map((x) => x.key).join('\n')).split('\n').filter(Boolean)
   useEffect(() => { useApp.getState().clearModelSel() }, [bodyMesh])   // 几何重建 → 面/边身份失效，清多选
   const setObjectVis = useApp((s) => s.setObjectVis)
   const setPrefsOpen = useApp((s) => s.setPrefsOpen)      // #12 应用偏好

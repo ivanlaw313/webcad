@@ -8190,9 +8190,9 @@ export const useApp = create<AppState>((rawSet, get) => {
     set((st) => ({ activeBodyName: '', bodyHidden: st.bodyHidden.filter((k) => k !== 'active'), ...(doomed.has(st.selectedFeature ?? '') ? { selectedFeature: null } : {}) }))
   },
   modelSel: [],
-  modelSelClick: (item, mod) => set((s) => { const modelSel = applySelClick(s.modelSel, item, mod); return { modelSel, status: modelSelStatus(modelSel) } }),
-  modelSelSet: (items, additive) => set((s) => { const modelSel = additive ? mergeSel(s.modelSel, items) : items; return { modelSel, status: modelSelStatus(modelSel) } }),
-  clearModelSel: () => set((s) => (s.modelSel.length ? { modelSel: [] } : {})),
+  modelSelClick: (item, mod) => set((s) => { const modelSel = applySelClick(s.modelSel ?? [], item, mod); return { modelSel, status: modelSelStatus(modelSel) } }),
+  modelSelSet: (items, additive) => set((s) => { const modelSel = additive ? mergeSel(s.modelSel ?? [], items ?? []) : (items ?? []); return { modelSel, status: modelSelStatus(modelSel) } }),
+  clearModelSel: () => set((s) => ((s.modelSel ?? []).length ? { modelSel: [] } : {})),
   toggleBodyHidden: (key) => set((s) => { const bodyHidden = toggleHiddenKey(s.bodyHidden, key); return { bodyHidden, status: bodyHidden.includes(key) ? '已隱藏實體' : '已顯示實體' } }),
   setBodyHidden: (key, hide) => set((s) => ({ bodyHidden: setHiddenKey(s.bodyHidden, key, hide), status: hide ? '已隱藏實體' : '已顯示實體' })),
   showAllBodies: () => set((s) => {
@@ -20539,7 +20539,20 @@ export const useApp = create<AppState>((rawSet, get) => {
   measureUniPicks: [],
   measureUniResult: null,
   measureSelFilter: { face: true, edge: true, body: true, sketch: true },
-  toggleMeasureUni: () => set((s) => ({ measureUniMode: !s.measureUniMode, measureUniPicks: [], measureUniResult: null, measureMode: false, measurePts: [], measureDist: null, measureEdgeMode: false, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureAngleMode: false, measureAngleInfo: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureUniMode ? '統一測量：點任意實體（面/邊/點，最多 2 個）→ 自動出面積/夾角/長度/最短距/距離' : '已退出統一測量' })),
+  toggleMeasureUni: () => set((s) => {
+    const turningOn = !s.measureUniMode
+    // Optional P1：隱藏組件後量度冇讀數 — 開啟測量時若所選組件已隱藏，自動顯示並提示
+    let components = s.components
+    let status = turningOn ? '統一測量：點任意實體（面/邊/點，最多 2 個）→ 自動出面積/夾角/長度/最短距/距離' : '已退出統一測量'
+    if (turningOn && s.selectedComponent) {
+      const sc = s.components.find((c) => c.id === s.selectedComponent)
+      if (sc?.hidden) {
+        components = s.components.map((c) => (c.id === sc.id ? { ...c, hidden: false } : c))
+        status = '統一測量：已自動顯示隱藏組件 — 點面/邊/點即可讀數'
+      }
+    }
+    return { measureUniMode: turningOn, measureUniPicks: [], measureUniResult: null, measureMode: false, measurePts: [], measureDist: null, measureEdgeMode: false, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureAngleMode: false, measureAngleInfo: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, components, status }
+  }),
   setMeasureSelFilter: (patch) => set((s) => ({ measureSelFilter: { ...s.measureSelFilter, ...patch,...(patch.body===true?{face:false,edge:false}:patch.face===true||patch.edge===true?{body:false}:{}) },measureUniPicks:[],measureUniResult:null })),
   clearMeasureUniPicks: () => set({ measureUniPicks: [], measureUniResult: null, status: '已清空測量拾取 — 重新點選' }),
   addMeasureUniPick: (pick, extra) => set((s) => {
@@ -20571,8 +20584,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     const cp: [number, number, number] = [threePt[0], -threePt[2], threePt[1]]   // three world → CAD
     const flt = s.measureSelFilter
+    // 隱藏組件：拒絕靜默無讀數（自動顯示所選，或提示顯示後再量）
+    if (s.selectedComponent) {
+      const sc = s.components.find((c) => c.id === s.selectedComponent)
+      if (sc?.hidden) {
+        set({
+          components: s.components.map((c) => (c.id === sc.id ? { ...c, hidden: false } : c)),
+          status: '量度目標組件已隱藏 — 已自動顯示，請再點一次面/邊',
+        })
+        return
+      }
+    }
     if(flt.body&&!flt.face&&!flt.edge){
-      if(!hasSolid(s.features))return
+      if(!hasSolid(s.features)){ set({status:'未能量度：文件無實體幾何（若組件已隱藏，請先在瀏覽樹顯示）'}); return }
       const result=await cad.measureBodyAt(cp)
       const latest=get()
       if(latest.features!==s.features||latest.measureSelFilter!==flt||latest.measureUniMode!==s.measureUniMode)return
@@ -23671,7 +23695,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       arrayPreview:{shapes:null,pending:false,error:null},arrayPending:false,
       measureMode:false,measureEdgeMode:false,measureFaceMode:false,measureAngleMode:false,measureUniMode:false,
       measurePts:[],measureDist:null,measureEdgeInfo:null,measureFaceInfo:null,measureAngleInfo:null,
-      measureUniPicks:[],measureUniResult:null,lastMeasure:null,selectedParkedIndex:null})
+      measureUniPicks:[],measureUniResult:null,lastMeasure:null,selectedParkedIndex:null,modelSel:[],selectedFeatures:[]})
     set(clearedAnalysesPatch())   // WORKFLOW #3
     set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], bodyHidden: [], activeBodyName: '', jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, holeBoltCircle: false, holeBcCount: 4, holeBcPcd: 50, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
     set({ ...hydrateSketchDraft(null), ...hydrateFormDraft(null) })

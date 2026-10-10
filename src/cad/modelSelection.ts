@@ -14,16 +14,18 @@ export function clickMod(e: { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: b
 }
 export const selKey = (it: ModelSelItem) => it.kind + ':' + it.key
 
-export function applySelClick(list: readonly ModelSelItem[], item: ModelSelItem, mod: SelMod): ModelSelItem[] {
+export function applySelClick(list: readonly ModelSelItem[] | null | undefined, item: ModelSelItem, mod: SelMod): ModelSelItem[] {
+  const cur = list ?? []
   if (mod === 'replace') return [item]
   const k = selKey(item)
-  return list.some((x) => selKey(x) === k) ? list.filter((x) => selKey(x) !== k) : [...list, item]
+  return cur.some((x) => selKey(x) === k) ? cur.filter((x) => selKey(x) !== k) : [...cur, item]
 }
 /** Union for additive box select (keeps existing order, appends new keys). */
-export function mergeSel(list: readonly ModelSelItem[], add: readonly ModelSelItem[]): ModelSelItem[] {
-  const seen = new Set(list.map(selKey))
-  const out = [...list]
-  for (const it of add) { const k = selKey(it); if (!seen.has(k)) { seen.add(k); out.push(it) } }
+export function mergeSel(list: readonly ModelSelItem[] | null | undefined, add: readonly ModelSelItem[] | null | undefined): ModelSelItem[] {
+  const cur = list ?? []
+  const seen = new Set(cur.map(selKey))
+  const out = [...cur]
+  for (const it of (add ?? [])) { const k = selKey(it); if (!seen.has(k)) { seen.add(k); out.push(it) } }
   return out
 }
 

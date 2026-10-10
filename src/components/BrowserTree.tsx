@@ -659,7 +659,9 @@ export default function BrowserTree() {
   const features = useApp((s) => s.features)
   const bodyMesh = useApp((s) => s.bodyMesh)
   const selectedParkedIndex = useApp((s) => s.selectedParkedIndex)
-  const modelSelBodyKeys = useApp((s) => s.modelSel.filter((x) => x.kind === 'body').map((x) => x.key))  // SO10：另一半（獨立實體）树选中高亮
+  // FISHING4 P1：zustand v5 useSyncExternalStore — selector 唔可以每次 new array（否則 React #185 Maximum update depth）
+  // 用 join 令 snapshot 係穩定 string；再 split 出 keys。同時 guard null/undefined modelSel。
+  const modelSelBodyKeys = useApp((s) => (s.modelSel ?? []).filter((x) => x.kind === 'body').map((x) => x.key).join('\n')).split('\n').filter(Boolean)
   const sketchSources = useApp((s) => s.sketchSources)   // GM-W6 F2：草图行渲染移入 SketchRow（每行自订名/孤儿重开+删除）
   // UX1 #6（Fusion）：獨立草圖特徵已喺「草圖」資料夾列出 → 特徵資料夾唔再重複（草圖源唔見咗嘅先保留，免得冇得揀）
   const treeFeatures = features.filter((f) => !(f.type === 'sketch' && !!sketchSources[(f as { sketchId?: string }).sketchId ?? '']))
@@ -887,7 +889,7 @@ export default function BrowserTree() {
             const mod = clickMod(e)
             st.modelSelClick({ kind: 'body', key: ACTIVE_BODY_KEY }, mod)
             if (mod === 'replace') { st.selectParkedBody(null); void st.openPropertiesDialog(null) }
-            else { const n = useApp.getState().modelSel.filter((x) => x.kind === 'body').length; useApp.setState({ status: n ? `已多選 ${n} 個實體（Ctrl／Shift 加減選）` : '已取消實體選擇' }) }
+            else { const n = (useApp.getState().modelSel ?? []).filter((x) => x.kind === 'body').length; useApp.setState({ status: n ? `已多選 ${n} 個實體（Ctrl／Shift 加減選）` : '已取消實體選擇' }) }
           }} /> : null}
           {bodyMesh?.parked?.map((b, i) => <BodyRow key={'pb' + i} parkedIndex={i} visKey={parkedBodyKey(b.name, i)} label={(b as any).kind === 'body' ? localizeAsmName(b.name, lang) : `${localizeAsmName(b.name, lang)}（獨立實體 · 灰顯）`} sel={selectedParkedIndex === i || modelSelBodyKeys.includes(parkedBodyKey(b.name, i))} onClick={(e) => {
             const st = useApp.getState()
@@ -900,7 +902,7 @@ export default function BrowserTree() {
               if (st.measureUniMode && st.measureSelFilter.body) void st.measureParkedBody(i)
               else void st.openPropertiesDialog(`parked:${i}`)
             } else {
-              const n = useApp.getState().modelSel.filter((x) => x.kind === 'body').length
+              const n = (useApp.getState().modelSel ?? []).filter((x) => x.kind === 'body').length
               useApp.setState({ status: n ? `已多選 ${n} 個實體（Ctrl／Shift 加減選）` : '已取消實體選擇' })
             }
           }} />)}

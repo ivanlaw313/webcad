@@ -81,6 +81,7 @@ import { chainSegments } from './sketch/chainsegs'   // S176：投影参考几�
 import { getProjectRelinkCandidates, prepareProjectRelink, projectLinkIssueText, type ProjectRelinkCandidate, refreshSafeProjectLinks } from './sketch/projectLinks'
 import { runRepairInWorker, runQemInWorker, runRemeshInWorker } from './analysis/meshClient'  // S108：网格运算搬 worker（消主线程卡顿）
 import { solveFaceMateDelta, solvePointMateDelta, worldToPose, transformFace, mateResidual, type MateFace } from './assembly/faceMate'
+import { asmFacePickArmed } from './assembly/jointFacePick'   // FISHING14 B：關節拾取時拒組件選取／清 HUD
 import { mateSolve } from './assembly/mateSolve'   // #13：3D 闭环 mate 求解器（同时最小二乘，取代 resolveMates 的 last-wins snap）
 import { detectAllCylinders, detectFace, type DetectedFace } from './geom/faceDetect'
 import { arbitraryPlaneSection } from './geom/arbitraryPlaneSection'
@@ -11995,6 +11996,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   selectedComponent: null,
   selectedComponentBody: null,
   selectComponent: (id) => {
+    // FISHING14 B：關節／選面配合等面拾取武裝時拒選組件（允許清選），避免移動／旋轉 HUD 搶面。
+    if (id && asmFacePickArmed(get())) return
     // A pending two-click pick (measure / mate / boolean) completes when a DIFFERENT component is selected.
     const bp = get().compBoolPending
     // v1.25: never silently drop compBoolPending on null / re-click source — finish only via other component.
@@ -12059,10 +12062,10 @@ export const useApp = create<AppState>((rawSet, get) => {
   setFaceMateOpt: (p) => set(p),
   // T776（S56-③）：Align 薄壳 — oneShot 模式 = 解算后净 snap 唔记录持久 mate（数学完全复用 solveFaceMateDelta，零新解算器）
   faceMateOneShot: false,
-  startFaceMate: (oneShot?: boolean) => set({ faceMateMode: true, faceMatePick: null, faceMatePointPick: null, compMateFrom: null, faceMateOneShot: !!oneShot, status: oneShot
+  startFaceMate: (oneShot?: boolean) => set({ faceMateMode: true, faceMatePick: null, faceMatePointPick: null, compMateFrom: null, faceMateOneShot: !!oneShot, selectedComponent: null, selectedComponentBody: null, status: oneShot
     ? '對齊：點【基準面】再點【要移動件】的面（平面貼平 / 圓柱同軸）；或按住 Shift 點兩個實體點作精确點對點對齊。一次性，不記錄配合。'
     : '選面配合：先點【基準件】一個面（平面 或 圓柱孔/軸），再點【要移動件】對應面 → 平面對平面貼平 / 圓柱對圓柱同軸' }),
-  cancelFaceMate: () => set({ faceMateMode: false, faceMatePick: null, faceMatePointPick: null, status: '已退出選面配合' }),
+  cancelFaceMate: () => set({ faceMateMode: false, faceMatePick: null, faceMatePointPick: null, selectedComponent: null, selectedComponentBody: null, status: '已退出選面配合' }),
   pickFaceForMate: (compId, face) => { const _nm = get().mates.length; set((s) => {
     if (!s.faceMatePick) { const kindLbl = face.kind === 'cyl' ? '圓柱面（同軸）' : '平面（貼平）'; return { faceMatePick: { compId, face }, status: `已選基準${kindLbl}，再點【要移動件】對應面` } }
     const A = s.faceMatePick
@@ -12118,8 +12121,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   // 唔再係 componentCenter + 硬编码轴嘅估算。贴合 + 建关节共用【单一撤销快照】原子处理（似 Wave-4 4.2）。
   jointPickMode: false,
   jointPick: null,
-  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, status: '關節拾取：先點選【要移動的組件】的一個面（圓柱軸／孔或平面），再點選【其連接的組件（父件）】對應面 → 移動件貼合，並在該幾何建立關節（圓柱＝旋轉／滑動／圓柱 · 平面＝剛性／平面 · 圓柱↔平面＝軸穿面心，預設旋轉）；先點選已固定的組件會自動對調' }),
-  cancelJointPick: () => set({ jointPickMode: false, jointPick: null, status: '已退出關節拾取' }),
+  // FISHING14 B：開始／取消關節拾取時清掉組件選取，避免移動／旋轉 HUD 殘留或搶圓柱側面 click。
+  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, selectedComponent: null, selectedComponentBody: null, status: '關節拾取：先點選【要移動的組件】的一個面（圓柱軸／孔或平面），再點選【其連接的組件（父件）】對應面 → 移動件貼合，並在該幾何建立關節（圓柱＝旋轉／滑動／圓柱 · 平面＝剛性／平面 · 圓柱↔平面＝軸穿面心，預設旋轉）；先點選已固定的組件會自動對調' }),
+  cancelJointPick: () => set({ jointPickMode: false, jointPick: null, selectedComponent: null, selectedComponentBody: null, status: '已退出關節拾取' }),
   pickFaceForJoint: (compId, face) => {
     const s = get()
     // JOINT #3（Fusion Joint）：第一拣 = 要郁嘅組件（子件），第二拣 = 佢接去邊（父件，唔郁）。

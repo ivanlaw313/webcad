@@ -1,3 +1,11 @@
+# DEVLOG
+
+## 2026-10-10 — FISHING14 B P1/P2：關節拾取面贏過組件選取（圓柱側面 → 圓柱面，不開移動／旋轉 HUD）
+- **根因**：`edgeDisplay: on` 時 B-rep 邊線疊加（lineSegments）搶 raycast → `faceIndex` 空，關節面拾取門檻 `e.faceIndex != null` 跳過，落到組件 `onSelect` → 移動／旋轉 HUD；`startJointPick`／Esc 亦不清 `selectedComponent`。
+- **修**：`asmFacePickArmed` + `resolveAsmFaceIndex`（從 intersections 找回三角面）+ `detectFacePreferCyl`；面拾取武裝時拒組件選取／隱藏 gumball；開始／取消關節（及選面配合）清選取。
+- **測**：`tests/fishing14-joint-face-over-comp.test.mjs`；e2e `scripts/e2e-fishing14-joint-face-pick.mjs`（真滑鼠：已選軸 → 關節 → 圓柱側面 → cyl face；混合圓柱↔平面類型窗；Esc 無殘留 HUD）。
+- APP_VERSION 2.20；bundle 見部署。
+
 # WebCAD 开发日志 (DEVLOG)
 
 ## [PHYSICS-LAB 2026-07-23 R6] CAD Assembly 有限關節致動器

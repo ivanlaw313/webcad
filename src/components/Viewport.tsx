@@ -128,6 +128,7 @@ import { AccessOverlay } from './AccessOverlay'          // #174-7：脱模可�
 import { MeasureSnapMarkers } from './MeasureSnapMarkers'   // #174-6：测量捕捉点标记
 import { JointGizmo, JointOriginView } from './JointGizmo'               // S102[5]：关节 DOF/限位 3D 操纵器；GM-3DV4 A1：关节原点标记
 import { claimJointHandle } from '../assembly/jointHandleDrag'          // RETEST20 #1：可見關節環／滑動軸 = 把手
+import { asmFacePickArmed, resolveAsmFaceIndex } from '../assembly/jointFacePick'   // FISHING14 B：關節拾取面贏過組件選取
 import { explodeStepOffsets, type ExplodeStep as ExplodeStepT } from '../assembly/asmUtil'   // GM-3DV4 A12：有序爆炸步 offset
 import { PathTraceLayer } from './PathTraceLayer'       // S105：画布内路径追踪
 import { HdriEnvironment } from './HdriEnvironment'     // S109：HDRI 环境
@@ -854,12 +855,29 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
           onPointMatePick([e.point.x, e.point.y, e.point.z])
           return
         }
-        // Face-pick mate (assembly, works on frozen parts). Detect the clicked face KIND from the CAD-coords
-        // mesh (planar vs cylinder), then transform its geometry to world via the mesh's world matrix.
-        if ((faceMateMode || screwFitMode || jointHolePicking || jointPickMode) && e.faceIndex != null && onFaceMatePick) {
+        // Face-pick mate / joint (assembly, works on frozen parts). Detect the clicked face KIND from the
+        // CAD-coords mesh (planar vs cylinder), then transform its geometry to world via the mesh's world matrix.
+        // FISHING14 B：關節／選面配合武裝時面必須贏過組件選取。B-rep 邊線疊加常搶命中（faceIndex 空）→ 從
+        // intersections 找回三角面，再用 detectFacePreferCyl（歧義時偏圓柱面）。即使偵測失敗亦 return，永不落到 onSelect。
+        if ((faceMateMode || screwFitMode || jointHolePicking || jointPickMode) && onFaceMatePick) {
           e.stopPropagation()
-          const det = detectFace(mesh, e.faceIndex)
-          const mw = e.object.matrixWorld
+          const fi = resolveAsmFaceIndex(
+            e.faceIndex,
+            e.intersections as { faceIndex?: number | null; object?: { userData?: { cadBody?: boolean; compId?: string } } }[] | undefined,
+            compId,
+            e.eventObject as { userData?: { cadBody?: boolean; compId?: string } } | undefined,
+          )
+          const cam = e.camera as { fov?: number } | undefined
+          const wpp = cam && typeof cam.fov === 'number' && e.point
+            ? (2 * e.distance * Math.tan((cam.fov * Math.PI) / 360)) / Math.max(1, window.innerHeight)
+            : 0.15
+          const tol = Math.max(0.2, CYL_PICK_PX * wpp)
+          const det = e.point
+            ? detectFacePreferCyl(mesh, fi ?? -1, [e.point.x, -e.point.z, e.point.y], tol)
+            : (fi != null ? detectFace(mesh, fi) : null)
+          // World matrix: edge-overlay hits use the lineSegments object — prefer the KernelBody mesh matrix.
+          const mwHost = e.eventObject as { matrixWorld?: typeof e.object.matrixWorld } | undefined
+          const mw = mwHost?.matrixWorld ?? e.object.matrixWorld
           if (det && det.kind === 'cyl') {
             const ax = new Vector3(det.axis[0], det.axis[1], det.axis[2]).transformDirection(mw)
             const p = new Vector3(det.p[0], det.p[1], det.p[2]).applyMatrix4(mw)
@@ -871,6 +889,8 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
           } else if (e.face) {
             const wn = e.face.normal.clone().transformDirection(mw)
             onFaceMatePick({ kind: 'planar', n: [wn.x, wn.y, wn.z], p: [e.point.x, e.point.y, e.point.z] })
+          } else {
+            useApp.setState({ status: '關節／選面配合：請點在實體面上（圓柱側面或平面）— 不要點空白處' })
           }
           return
         }
@@ -1033,9 +1053,11 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
           void useApp.getState().inspectAt([e.point.x, e.point.y, e.point.z], wantEdge); return
         }
         // Plain click on a component (frozen mesh) with no active pick/command mode → select it (Fusion-style direct 3D selection).
+        // FISHING14 B：關節／選面配合等面拾取武裝時永不選組件（避免移動／旋轉 HUD 搶走圓柱側面點擊）。
         if (frozen && onSelect && !measureMode && !measureEdgeMode && !measureFaceMode && !measureAngleMode && !measureUniMode && mode !== 'pickplane' && !faceSketchPick && !pushPullMode && !shellMode && !faceFilletMode && !holeMode && !edgeRoundPick) {
           e.stopPropagation()
           const st = useApp.getState()
+          if (asmFacePickArmed(st)) return
           // GM-X4 ②：组件普通选择尊重「组件」类型过滤（默认勾住 = 旧行为逐字节；moldTarget 令 mesh 可拣但类型关咗就唔当选）。
           if (!selAllowsType(st.selFilter, 'component')) return
           const ne = e.nativeEvent as MouseEvent
@@ -1052,7 +1074,10 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
       }}
       onDoubleClick={(e) => {
         // Double-click a component (no active pick mode) → select + zoom-to (Fusion-style "fit to selection").
-        if (frozen && onFocus && !measureMode && !measureEdgeMode && !measureFaceMode && !measureAngleMode && !measureUniMode && mode !== 'pickplane' && !faceSketchPick && !pushPullMode && !shellMode && !faceFilletMode && !holeMode && !edgeRoundPick) { e.stopPropagation(); onFocus() }
+        if (frozen && onFocus && !measureMode && !measureEdgeMode && !measureFaceMode && !measureAngleMode && !measureUniMode && mode !== 'pickplane' && !faceSketchPick && !pushPullMode && !shellMode && !faceFilletMode && !holeMode && !edgeRoundPick) {
+          if (asmFacePickArmed(useApp.getState())) { e.stopPropagation(); return }
+          e.stopPropagation(); onFocus()
+        }
       }}
     >
       <meshStandardMaterial
@@ -3786,6 +3811,8 @@ function ComponentGizmo() {
   const grounded = useApp((s) => s.grounded)
   const mode = useApp((s) => s.mode)
   const joints = useApp((s) => s.joints)
+  // FISHING14 B：面拾取武裝期間隱藏移動／旋轉 HUD，唔好同關節揀面搶 click。
+  const facePickArmed = useApp((s) => asmFacePickArmed(s))
   const c = components.find((x) => x.id === sel)
   // BUG(D)：被關節驅動嘅子件 → gizmo 放喺 FK 位置，拖動投影到關節自由度（更新角度／滑桿），唔改 pos。
   // RETEST18 #1：用 FK 真正採用嗰條關節（同一子件有多條入邊時 computeFK 取最後一條）— 唔係第一條，否則拖動驅動咗一條冇效嘅關節（睇落 0°）。
@@ -3834,7 +3861,7 @@ function ComponentGizmo() {
       setComponentPos={setComponentPos}
       setComponentRot={setComponentRot}
       resolveMates={resolveMates}
-      enabled={mode === 'model'}
+      enabled={mode === 'model' && !facePickArmed}
     />
   )
 }

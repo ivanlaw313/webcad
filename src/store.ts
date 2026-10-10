@@ -7214,28 +7214,17 @@ export const useApp = create<AppState>((rawSet, get) => {
   // Fusion 360 clears the edge/face selection when the Chamfer Type changes.
   // Keep the typed values, but require a fresh selection because Two Distance and
   // Distance and Angle use a different selection contract from Equal Distance.
-  setChamferMode: (m) => {
-    // P1 B：雙距離暫未支援 — 唔好讓 UI 選中後確定再靜默改等距；直接拒絕並講明繁體原因。
-    if (m === 'two') {
-      set({
-        chamferMode: 'equal',
-        chamferRefFace: null,
-        edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [],
-        roundPreviewMesh: null, roundPreviewFail: false,
-        status: '雙距離倒角暫未支援：內核未能對一般稜邊建立不對稱斜面 — 請改用等距（或距離與角度）',
-      })
-      return
-    }
-    set({
-      chamferMode: m,
-      chamferRefFace: null,
-      edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [],
-      roundPreviewMesh: null, roundPreviewFail: false,
-      status: m === 'angle'
+  setChamferMode: (m) => set({
+    chamferMode: m,
+    chamferRefFace: null,
+    edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [],
+    roundPreviewMesh: null, roundPreviewFail: false,
+    status: m === 'two'
+      ? '雙距離：請重新選取棱'
+      : m === 'angle'
         ? '距離＋角度：請重新選取面與棱'
         : '等距離：請重新選取棱',
-    })
-  },
+  }),
   setChamferSize2: (n) => { set({ chamferSize2: Number.isFinite(n) ? Math.max(0, n) : 0 }); get().scheduleRoundPreview() },
   // Fusion permits the 0/90 degree endpoints to be displayed while dragging/typing, but they
   // are degenerate and therefore stay preview/commit-invalid (guards require 0 < angle < 90).
@@ -7298,7 +7287,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (kind === 'fillet' && get().filletType === 'rule' && get().filletRuleMode === 'between' && !(get().filletRuleFaceSets.includes(1) && get().filletRuleFaceSets.includes(2))) { set({ status: '兩組之間規則：第 1 組與第 2 組都要至少選擇一個面/特徵' }); return }
     if (kind === 'fillet' && get().filletType === 'full' && !([1, 2, 3] as const).every((slot) => get().filletFullFaceSets.includes(slot))) { set({ status: '全圓角：側面組 1、中心面、側面組 2 都要至少選擇一個面' }); return }
     if (kind === 'chamfer' && get().chamferMode === 'angle' && !get().chamferRefFace) { set({ status: '距離與角度：請先選取 1 個參考面，再選取其邊界上的 1 條稜邊' }); return }
-    if (kind === 'chamfer' && get().chamferMode === 'two') { set({ status: '雙距離倒角暫未支援：內核未能對一般稜邊建立不對稱斜面 — 請改用等距（未變更模型）' }); return }
+    if (kind === 'chamfer' && get().chamferMode === 'two' && !(get().chamferSize2 > 0)) { set({ status: '雙距離：距離 2 必須大於 0' }); return }
     if (kind === 'chamfer' && get().chamferMode === 'angle' && !(get().chamferAngle > 0 && get().chamferAngle < 90)) { set({ status: '距離＋角度：角度必須大於 0° 以及小於 90°' }); return }
     if (!(kind === 'fillet' && get().filletType === 'full' ? true : kind === 'fillet' && get().filletMode === 'chord' ? get().filletChord > 0 : kind === 'fillet' && get().filletMode === 'asymmetric' ? get().filletR2 > 0 && get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : kind === 'fillet' ? get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : sz > 0)) { set({ status: `請輸入大於 0 的${kind === 'chamfer' ? '倒角距離' : get().filletMode === 'chord' ? '弦長' : get().filletMode === 'asymmetric' ? '兩個偏移距離' : '圓角半徑'}` }); return }
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])  // three-world → CAD (x,−z,y)
@@ -19448,7 +19437,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (typeof p.radii === 'string' && p.radii.trim()) patch.radii = p.radii.split(',').map((x) => Math.max(0.05, +x || 1))
       } else if (d.kind === 'chamfer-edit') {
         if (!(+p.distance > 0)) { set({ status: illegalRejectStatus(ILLEGAL_LENGTH_DETAIL) }); return }   // CORE16 #3：0／負數唔再靜靜變 0.05
-        patch = { distance: +p.distance, cmode: String(p.cmode || 'equal'), dist2: +p.dist2 || 0, angle: +p.angle || 45, flip: !!+(p.flip || 0), chain: !!+(p.chain || 0) }
+        const cmEdit = String(p.cmode || 'equal')
+        if (cmEdit === 'two' && !(+p.dist2 > 0)) { set({ status: illegalRejectStatus('雙距離：距離 2 必須大於 0') }); return }
+        patch = { distance: +p.distance, cmode: cmEdit, dist2: cmEdit === 'two' ? +p.dist2 : 0, angle: +p.angle || 45, flip: !!+(p.flip || 0), chain: !!+(p.chain || 0) }
       } else {
         // GM-3DV3 M2：shell-edit 带 direction（inside→undefined 清 key 保逐字节）
         // Illegal t≤0 must REJECT on confirm — never coerce 0→1 / negative→0.1 (SO02 / handoff P1).

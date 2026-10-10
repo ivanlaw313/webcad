@@ -17,10 +17,12 @@ const comp = (id, mesh) => ({ id, name: id, mesh, pos: [0, 0, 0], rot: [0, 0, 0]
 const plateTop = { kind: 'planar', n: [0, 1, 0], p: [0, 8, 0] }            // plate CAD z 0..8 → world y 0..8
 const shaftSide = { kind: 'cyl', axis: [0, 1, 0], p: [0, 15, 0], r: 5 }      // shaft CAD z 0..30 → world y 0..30
 const worldYs = (c) => { const M = compWorldMatrix(c), v = c.mesh.vertices, out = []; for (let i = 0; i < v.length; i += 3) out.push(new Vector3(v[i], v[i + 1], v[i + 2]).applyMatrix4(M).y); return out }
-async function pick(first, second, { ground = null, answer } = {}) {
+async function pick(first, second, { ground = null, answer, confirm = true } = {}) {
   let asked = null
   useApp.setState({ components: [comp('PLATE', boxMesh(-30, -30, 0, 30, 30, 8)), comp('SHAFT', boxMesh(-5, -5, 0, 5, 5, 30))], joints: [], undoStack: [], redoStack: [], grounded: ground, jointPickMode: true, jointPick: null,
-    appPick: async (_m, opts, def) => { asked = { opts: opts.map((o) => o.value), def }; return answer === undefined ? def : answer } })
+    appPick: async (_m, opts, def) => { asked = { opts: opts.map((o) => o.value), def }; return answer === undefined ? def : answer },
+    // P1 A：混合面（圓柱↔平面）選旋轉等需軸類型時會再確認一次 — 測試預設同意以免卡在彈框
+    appConfirm: async () => confirm })
   g().pickFaceForJoint(first[0], first[1])
   g().pickFaceForJoint(second[0], second[1])
   await new Promise((r) => setTimeout(r, 0)); await new Promise((r) => setTimeout(r, 0))
@@ -74,7 +76,7 @@ test('#5 no penetration → height kept (user placement respected)', async () =>
   const above = { kind: 'cyl', axis: [0, 1, 0], p: [0, 65, 0], r: 5 }
   useApp.setState({ components: [comp('PLATE', boxMesh(-30, -30, 0, 30, 30, 8)), { ...comp('SHAFT', boxMesh(-5, -5, 0, 5, 5, 30)), pos: [0, 50, 0] }] })
   let asked = null
-  useApp.setState({ joints: [], undoStack: [], grounded: null, jointPickMode: true, jointPick: null, appPick: async (_m, o, d) => { asked = d; return d } })
+  useApp.setState({ joints: [], undoStack: [], grounded: null, jointPickMode: true, jointPick: null, appPick: async (_m, o, d) => { asked = d; return d }, appConfirm: async () => true })
   g().pickFaceForJoint('SHAFT', above); g().pickFaceForJoint('PLATE', plateTop)
   await new Promise((r) => setTimeout(r, 0)); await new Promise((r) => setTimeout(r, 0))
   assert.deepEqual(g().components.find((c) => c.id === 'SHAFT').pos, [0, 50, 0])

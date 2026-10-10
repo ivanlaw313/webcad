@@ -759,6 +759,7 @@ const messages: Record<string, string> = {
   "sk.array.omitted": "{0} 個の外部関係はソースに残り、コピーされません。",
   "sk.array.previewTotal": " プレビュー合計 {0} 輪郭。",
   "sk.array.srcIndep": "{0} 個の輪郭を独立コピーします。リンクパターン作成前にソースを選択してください。",
+  "sk.array.needSelect": "スケッチに {0} 個の輪郭があります — キャンバスで配列の元を選択してください（複数選択可；単一輪郭は直接適用できます）。",
   "sk.array.srcLinked": "{0} 個のソース輪郭；リンク済みコピーはソース編集に追従します。",
   "sk.array.validating": "プレビューを検証中…",
   "sk.copy.help": "コピーは選択内の寸法・関係を独立IDで保持。未選択や原点への関係はコピーしません。",

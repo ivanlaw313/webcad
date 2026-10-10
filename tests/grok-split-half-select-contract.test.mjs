@@ -14,7 +14,7 @@ const store = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
 
 test('BUG-SO15-002: ParkedBody is pickable during measureUniMode / body select', () => {
   assert.match(viewport, /pickable=\{editPolesMode \|\| quiltPickMode \|\| measureUniMode \|\| \(mode === 'model' && !formMode && selPicksBody\(selFilter\)\)\}/)
-  assert.match(viewport, /if \(measureUniMode\) \{ useApp\.getState\(\)\.selectParkedBody\(idx\); void useApp\.getState\(\)\.pickMeasureUniAt\(threePt/)
+  assert.match(viewport, /if \(measureUniMode\) \{ useApp\.getState\(\)\.selectParkedBody\(idx\); if \(faceIndex != null\) useApp\.getState\(\)\.pickMeasureUniFromMesh\(b, faceIndex, threePt/)
   assert.match(viewport, /selectedParkedIndex === i/)
 })
 

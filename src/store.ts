@@ -5986,7 +5986,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // S110：prevDoc = 调用方喺 mutating set【之前】get() 出嘅完整快照。toggleSuppress/setParam/setParamExpr/removeParam
     // 系「先改 suppressedIds/params/paramBindings 再调本函数」，内部 docSnap(s) 会读到新值令撤销变空操作 →
     // 佢哋传 prevDoc（操作前快照），pushHistory 优先用佢，确保 undo 真正还原抑制/参数。
-    const pushHistory = () => { if (record) set((s) => ({ undoStack: [...s.undoStack, prevDoc ?? { ...docSnap(s), features: prev, sketchSources: prevSrcs }].slice(-60), redoStack: [] })) }
+    const pushHistory = () => { if (record) { clearTimelineRefuseUndoGuard(); set((s) => ({ undoStack: [...s.undoStack, prevDoc ?? { ...docSnap(s), features: prev, sketchSources: prevSrcs }].slice(-60), redoStack: [] })) } }
     set({ busy: true })
     try {
       // A sketch extrusion group can regenerate from one extgroup into several
@@ -12101,7 +12101,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (needsCylAxis && secondWasPlanar && face.kind === 'cyl') {
         const lang1 = get().lang
         const ok = await get().appConfirm(
-          tStatus('第二下點中了平面（非圓柱面）。旋轉／滑動軸將取自已選圓柱面（唔係平面法向）。若要軸隨孔壁，請取消後改點圓柱孔／軸壁。', lang1),
+          tStatus('第二下點中了平面（非圓柱面）。旋轉／滑動軸將取自已選圓柱面（不是平面法向）。若要軸隨孔壁，請取消後改點圓柱孔／軸壁。', lang1),
           tStatus('混合面澄清', lang1),
         )
         if (!ok) { set({ status: '已取消建關節 — 請再拾取，第二下改點圓柱孔／軸壁' }); return }
@@ -23744,6 +23744,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   reset: async () => {
+    clearTimelineRefuseUndoGuard()   // P1-RECHECK A：新檔／reset 後唔再擋無關嘅 Ctrl+Z
     _docNamed = false   // UX1 #5
     _loadingSample = ''   // T804：清范本载入标记（下次 loadSample 会重设）
     if (documentPersistenceEnabled()) try { clearTabAutosave() } catch { /* ignore */ } // so THIS tab reload starts blank (true "New"); sibling tabs keep their own autosave (BUG-UI-006)

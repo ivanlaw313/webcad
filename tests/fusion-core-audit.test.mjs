@@ -106,7 +106,7 @@ test('failed model Undo/Redo restores both document metadata and history stacks'
   const target={features:[{id:'old'}],components:['old-component']}
   let state={features:[{id:'current'}],components:['current-component'],mode:'model',bodyMesh:{tag:'valid'},bodyTopZ:30,timelinePos:1,undoStack:action==='undo'?[target]:[],redoStack:action==='redo'?[target]:[],applyFeatures:async()=>false}
   const initial=state
-  const api=vm.runInNewContext(stripTypeScriptTypes(`({${body}})`),{get:()=>state,set:p=>state={...state,...(typeof p==='function'?p(state):p)},enqueueHistoryTransition:f=>f(),docSnap:s=>({features:s.features,components:s.components}),_sketchFinishUndo:new WeakMap(),SKETCH_FINISH_UNDO_STATUS:'sketch-finish-undo',_pendingDatumRef:null,_liveFeatureSession:null,_polyRedo:[]})
+  const api=vm.runInNewContext(stripTypeScriptTypes(`({${body}})`),{get:()=>state,set:p=>state={...state,...(typeof p==='function'?p(state):p)},enqueueHistoryTransition:f=>f(),docSnap:s=>({features:s.features,components:s.components}),_sketchFinishUndo:new WeakMap(),SKETCH_FINISH_UNDO_STATUS:'sketch-finish-undo',_pendingDatumRef:null,_liveFeatureSession:null,_polyRedo:[],_timelineRefuseUndoGuard:null,clearTimelineRefuseUndoGuard:()=>{}})
   await api[action]()
   assert.equal(state.features,initial.features);assert.equal(state.components,initial.components);assert.equal(state.bodyMesh,initial.bodyMesh)
   assert.equal(state.undoStack,initial.undoStack);assert.equal(state.redoStack,initial.redoStack)

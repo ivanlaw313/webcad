@@ -14,7 +14,8 @@ const g = () => useApp.getState()
 // 10×10×10 mm closed cube (outward CCW triangles)
 const V = new Float32Array([0,0,0, 10,0,0, 10,10,0, 0,10,0, 0,0,10, 10,0,10, 10,10,10, 0,10,10])
 const T = new Uint32Array([0,2,1, 0,3,2, 4,5,6, 4,6,7, 0,1,5, 0,5,4, 1,2,6, 1,6,5, 2,3,7, 2,7,6, 3,0,4, 3,4,7])
-const mass = () => computeMassProps(V, T, g().bodyDensity).mass
+const dens = () => (g().physMatName && MATERIALS[g().physMatName]?.density) || g().bodyDensity
+const mass = () => computeMassProps(V, T, dens()).mass
 
 test('appearance gold changes colour/PBR only; density and mass unchanged', () => {
   useApp.setState({ ...useApp.getInitialState() }, true)
@@ -32,11 +33,17 @@ test('appearance gold changes colour/PBR only; density and mass unchanged', () =
 
 test('physical material still drives mass, and appearance afterwards keeps it', () => {
   useApp.setState({ ...useApp.getInitialState() }, true)
+  const fileDens = g().bodyDensity
   g().setPhysicalMaterial('钢')
+  // P1 B：physMatName 驅動質量；文件預設 bodyDensity 不變（新實體仍繼承預設密度）
+  assert.equal(g().physMatName, '钢')
+  assert.equal(g().bodyDensity, fileDens, 'file default density unchanged')
+  assert.equal(dens(), 7.85)
   const mSteel = mass()
-  assert.equal(g().bodyDensity, 7.85)
+  assert.ok(Math.abs(mSteel - computeMassProps(V, T, 7.85).mass) < 1e-9)
   g().setMaterialPreset('木')
-  assert.equal(g().bodyDensity, 7.85)
+  assert.equal(g().bodyDensity, fileDens)
+  assert.equal(dens(), 7.85)
   assert.equal(mass(), mSteel)
   assert.equal(g().physMatName, '钢')
 })

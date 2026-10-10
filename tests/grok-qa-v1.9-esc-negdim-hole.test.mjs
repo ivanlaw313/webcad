@@ -17,7 +17,7 @@ const storeSrc = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8
 test('BUG-UI-002: Esc in feature-editor fields reaches dialog cancel path', () => {
   assert.match(app, /\.feat-editor/)
   assert.match(timeline, /role="dialog"/)
-  assert.match(timeline, /useEscapeLayer\(!!sel && !!meta && !commandEditing,\s*\(\) => selectFeature\(null\)/)
+  assert.match(timeline, /useEscapeLayer\(!!sel && !!meta && !commandEditing,\s*\(\) => discardFeatEdit\(\)/)
   assert.match(timeline, /skipCommit/)
   assert.match(timeline, /e\.key === 'Escape'/)
 })

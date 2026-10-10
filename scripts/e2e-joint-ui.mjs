@@ -97,7 +97,9 @@ try {
   const lbl = await page.locator('[data-testid="dialog-pick-revolute"]').textContent()
   ok('type list offers 旋轉', /旋轉/.test(lbl), { lbl })
   await page.locator('[data-testid="dialog-pick-revolute"]').click()
-  await page.waitForTimeout(900)
+  await page.waitForTimeout(500)
+  // cylinder ↔ planar (mixed) pick + 旋轉 → 「混合面澄清」 confirm (FISHING14: 取消 would restore the pose) → 確定
+  if (await g(() => window.useApp.getState().uiDialog?.kind === 'confirm')) { await page.locator('[role="dialog"] button', { hasText: '確定' }).first().click(); await page.waitForTimeout(400) }
   const j0 = await g(() => window.useApp.getState().joints[0])
   ok('revolute joint created via UI', j0?.type === 'revolute', { j0 })
   console.log('joint', JSON.stringify(j0), 'selected', await g(() => window.useApp.getState().selectedComponent))

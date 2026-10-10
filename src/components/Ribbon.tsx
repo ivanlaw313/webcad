@@ -1,4 +1,5 @@
 import { APP_VERSION } from '../version'
+import { releaseSketchToolFocus } from '../sketch/sketchPointerUx'
 import { clampPopover } from '../ui/popoverClamp'
 import { useEscapeLayer } from './useEscapeLayer'
 import NarrowHint from './NarrowHint'
@@ -152,7 +153,7 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
     aria-pressed={active || childActive || undefined}
     disabled={off}
     style={off ? { opacity: 0.32, cursor: 'not-allowed' } : undefined}
-    onClick={() => { if (off) return; if (onRun) onRun(); else run(cmd.id, cmd.label) }}
+    onClick={(e) => { if (off) return; if (onRun) onRun(); else run(cmd.id, cmd.label); releaseSketchToolFocus(e) }}
   >
     <span className="sk-glyph">{t.glyph}</span>
     <span className="sk-label">{resolveRibbonCmd(t.id, lang, t.label)}</span>

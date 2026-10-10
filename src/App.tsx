@@ -188,7 +188,9 @@ export default function App() {
       // digit (focus lost mid-edit) used to arm a ghost 「起點」 entry instead of reaching the dimension.
       if (!editingText && s.mode === 'sketch' && s.sketchStart == null && s.polyPts.length === 0 && s.sketchTool !== 'select' && s.sketchTool !== 'dimension' && !s.skDimPreview.id) {
         const hasBuf = !!(s.dimBuf[0] || s.dimBuf[1])
-        if (/^[0-9.\-]$/.test(e.key) || ((e.key === 'Enter' || e.key === 'Tab' || e.key === 'Backspace') && hasBuf)) {
+        // FISHING14 P3：起點階段 Tab 一律 = 換 X→Y 欄（Fusion），即使 X 欄仲係空 —— 以前空緩衝時 Tab 交俾瀏覽器做焦點導航，
+        // 焦點跳去工具列／草圖列欄位，之後打嘅「25」落咗第一欄 → 起點變 (25, 0)。
+        if (/^[0-9.\-]$/.test(e.key) || e.key === 'Tab' || ((e.key === 'Enter' || e.key === 'Backspace') && hasBuf)) {
           e.preventDefault(); s.sketchTypeKey(e.key); return
         }
       }

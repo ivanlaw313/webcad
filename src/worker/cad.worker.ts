@@ -1207,7 +1207,19 @@ function roundNearPoint(shape: any, kind: 'fillet' | 'chamfer', size: number, p:
   if (edgeFp && edgeFp.length) {
     const sel = _fpSelectMids(shape, edgeFp, [p], edgeFpV2)   // S131：near-biased 消歧（[p] = 拾边点）
     if (sel && sel.length) M = sel[0]
-    else { const s1 = _s1CarryMids(shape, edgeFp, edgeFpV2, [p]); if (s1 && s1.mids.length) { M = s1.mids[0]; if (_s2CarriedFlag) _s2CarriedFlag = false; else buildWarnings.push('持久邊名經上游變換以拓撲順序追蹤解析（真拓撲命名 S1）') } }   // S1：漂移 → 沿上游变换以拓扑顺序追踪（或 S2 布尔血统）；任何闸唔过 → M 留近点 = 今日行为
+    else {
+      const s1 = _s1CarryMids(shape, edgeFp, edgeFpV2, [p])
+      if (s1 && s1.mids.length) { M = s1.mids[0]; if (_s2CarriedFlag) _s2CarriedFlag = false; else buildWarnings.push('持久邊名經上游變換以拓撲順序追蹤解析（真拓撲命名 S1）') }
+      else {
+        // FISHING7：fp miss 且近点距当前体最近棱过远 → 拒绝跨体改绑（同 roundNearPoints S143）
+        const nd = Math.hypot(p[0] - M[0], p[1] - M[1], p[2] - M[2])
+        const bb = _fpBboxVerts(shape); let diag = 0
+        if (bb.length >= 6) { const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9]; for (let i = 0; i < bb.length; i += 3) for (let k = 0; k < 3; k++) { if (bb[i + k] < mn[k]) mn[k] = bb[i + k]; if (bb[i + k] > mx[k]) mx[k] = bb[i + k] } diag = Math.hypot(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]) }
+        if (diag > 0 && nd > Math.max(2, 0.06 * diag)) {
+          throw new Error(`${kind === 'fillet' ? '圓角' : '倒角'}：所選邊已不在目前實體上（相差 ${nd.toFixed(1)} mm）— 已拒絕改用其他實體的邊，請將特徵排回原實體之後或重新選邊`)
+        }
+      }
+    }
   }
   else { const cap = _fpCapture(shape, [M]); _lastResolvedFp = cap.v1; _lastResolvedFpV2 = cap.v2 }
   for (const s of [size]) {
@@ -1847,13 +1859,15 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
         if (_s2CarriedFlag) _s2CarriedFlag = false   // GM-γ2a：实际经 S2 布尔血统解析（已出准确警告）→ 唔叠 S1 那句
         else buildWarnings.push('持久邊名經上游變換以拓撲順序追蹤解析（真拓撲命名 S1）')
       } else {
-      // S143：edgeFp 存在但喺当前边集解析唔到（true miss）→ 已退回近点拣边（mids 系上面近点解析）。
-      // 若存低嘅 near 距最近棱过远（上游变换/旋转令 body 移走 — 尤其【对称体旋转】，v2 折叠失效退回 v1、
-      // v1 bbox 归一化亦漂移），近点会拣错棱、圆角可能落错位/缩小 → 诚实警告，唔好静默出错几何。
+      // S143 / FISHING7：edgeFp miss → 近点拣边。若近点距最近棱过远（典型：时间轴把无关 newbody
+      // 插到圆角之前，活动体换成另一箱），旧行为会「改用最近的边（相差 118 mm）」把圆角落错体。
+      // Fusion-like：拒绝跨体近点改绑 — throw 令该特征失败（store 重排闸亦会拒），唔 silent remapping。
       const bb = _fpBboxVerts(shape); let diag = 0
       if (bb.length >= 6) { const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9]; for (let i = 0; i < bb.length; i += 3) for (let k = 0; k < 3; k++) { if (bb[i + k] < mn[k]) mn[k] = bb[i + k]; if (bb[i + k] > mx[k]) mx[k] = bb[i + k] } diag = Math.hypot(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]) }
       const nd = Math.sqrt(maxNearD2)
-      if (diag > 0 && nd > Math.max(2, 0.06 * diag)) buildWarnings.push(`${kind === 'fillet' ? '圆角' : '倒角'}：持久边名在当前实体上无法解析、已退回近点选边，但近点距最近棱 ${nd.toFixed(1)}mm（疑上游变换/旋转令选择漂移 — 对称体旋转后边命名会失效）。如结果不正确请重新拾边。`)
+      if (diag > 0 && nd > Math.max(2, 0.06 * diag)) {
+        throw new Error(`${kind === 'fillet' ? '圓角' : '倒角'}：所選邊已不在目前實體上（相差 ${nd.toFixed(1)} mm）— 已拒絕改用其他實體的邊，請將特徵排回原實體之後或重新選邊`)
+      }
       }
     }
   }

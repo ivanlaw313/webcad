@@ -5545,7 +5545,7 @@ export function featureIdsForActiveBody(features: { id: string; type: string; op
   return new Set(active.ids)
 }
 
-/** Stable key of the active body after features[0..endExclusive). Used to refuse cut moves that would silently retarget another body. */
+/** Stable key of the active body after features[0..endExclusive). Used to refuse cut / fillet / chamfer moves that would silently retarget another body. */
 export function activeBodyKeyAfter(features: { id: string; type: string; operation?: string; op?: string; target?: number }[], endExclusive: number): string {
   let active = 'root'
   const parked: string[] = []
@@ -5565,6 +5565,29 @@ export function activeBodyKeyAfter(features: { id: string; type: string; operati
 
 function isCutOp(f: { operation?: string; op?: string }): boolean {
   return f.operation === 'cut' || f.op === 'cut'
+}
+
+/** Edge topo features that bind to the active body (fillet / chamfer). Body-key change on reorder → silent wrong-body remapping. */
+function isEdgeTopoOp(f: { type: string }): boolean {
+  return f.type === 'fillet' || f.type === 'chamfer'
+}
+
+/** First fillet/chamfer whose active-body key would change under `next` order, or null. */
+export function edgeTopoBodyRetarget(
+  before: { id: string; type: string; operation?: string; op?: string; target?: number }[],
+  after: { id: string; type: string; operation?: string; op?: string; target?: number }[],
+): { feature: { id: string; type: string }; oldKey: string; newKey: string } | null {
+  const posB = new Map(before.map((f, i) => [f.id, i]))
+  for (let i = 0; i < after.length; i++) {
+    const f = after[i]
+    if (!isEdgeTopoOp(f)) continue
+    const ib = posB.get(f.id)
+    if (ib == null) continue
+    const oldKey = activeBodyKeyAfter(before, ib)
+    const newKey = activeBodyKeyAfter(after, i)
+    if (oldKey !== newKey) return { feature: f, oldKey, newKey }
+  }
+  return null
 }
 
 
@@ -21668,6 +21691,24 @@ export const useApp = create<AppState>((rawSet, get) => {
           set({ status: `不能${dir}：「${label(moved)}」— 移動後切割目標會變成另一個實體（切割目標必須保持不變）` })
           return false
         }
+      }
+    }
+    // FISHING7 / P1：無關獨立基本體（op:newbody）拖到圓角／倒角之前會改活動體 →
+    // 內核近點退回會把邊改綁到另一個體（「相差 118 mm，可能選錯」）。Fusion：拒絕，唔 silent remapping。
+    {
+      const retarget = edgeTopoBodyRetarget(
+        s0.features as { id: string; type: string; operation?: string; op?: string; target?: number }[],
+        next as { id: string; type: string; operation?: string; op?: string; target?: number }[],
+      )
+      if (retarget) {
+        const moved = s0.features.find((f) => f.id === id)!
+        const from = s0.features.findIndex((f) => f.id === id)
+        const toIdx = next.findIndex((f) => f.id === id)
+        const dir = toIdx < from ? '上移' : '下移'
+        const kind = retarget.feature.type === 'chamfer' ? '倒角' : '圓角'
+        noteTimelineReorderRefused(s0.features)
+        set({ status: `不能${dir}：「${label(moved)}」— 移動後「${label(retarget.feature as unknown as Feature)}」會套用到另一個實體（${kind}邊線目標必須保持不變）` })
+        return false
       }
     }
     // RETEST19 #1：拓撲引用（圓角／倒角嘅邊、抽殼／拔模／按拉嘅面…）唔係 id 引用，靜態掃描睇唔到；內核搵唔到邊會靜默跳過

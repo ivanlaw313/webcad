@@ -4220,6 +4220,7 @@ function bulgeFromMid(a: Pt, b: Pt, m: Pt): number {
 export { tangentArcBulge, polyTangentArcCons, endTangent } from './sketch/tangentArc'   // BUG(F)：纯函数搬出（node 可测）
 import { tangentArcBulge, polyTangentArcCons, endTangent, crossShapeTangentCons } from './sketch/tangentArc'
 import { remapCornerConstraints, maxFilletRadius } from './sketch/cornerRemap'   // UX4 #2/#4/#5
+import { cornerIndexAllowed, mergeOpenAtJoint, nearestCorner, normalizeCornerResult, openPolyCornerPath, type CornerPath } from './sketch/openCorner'   // FISHING13 P2-3：開放折線內部角
 import { sketchPointsOf, finishedSketchPointCandidates, holeSnapTargetsFromSources, snapHoleXY } from './sketch/holePoints'
 import { sketchLocalToPlane } from './sketch/planeCoords'
 import { resolveCoilOp } from './cad/coilOp'
@@ -4322,6 +4323,9 @@ export function polyRedoApplies(e: PolyRedoEntry, s: Pick<AppState, 'mode' | 'po
     s.polyPts.length === e.before.length && s.polyPts.every((q, i) => q[0] === e.before[i][0] && q[1] === e.before[i][1])
 }
 let _slotTypedDone = false   // SKETCH12 b2：輸入數值建立槽後的守衛（點擊畫布／換工具／Esc 時清除）
+// FISHING13 P3：新檔／開檔時關閉構造幾何面板（構造軸／平面／點對話框 + 進行中拾取）。
+export function closedConstructionPanelsPatch() { return { datumCmd: null, datumPick: null, featDlg: null, edgePtPick: null, cpatAxisPick: false, revAxisPtPick: false } as const }
+let _rectTypedDone = false   // FISHING13 P2-1：輸入數值建立矩形後，緊接打嘅數字唔好漏入下一個矩形嘅起點 X（點擊畫布／換工具／Esc 時清除）
 function slotShape(c0: Pt, c1: Pt, r: number): SketchShape {
   const dx = c1[0] - c0[0], dy = c1[1] - c0[1], L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, px = -uy, py = ux
   // True-arc slot: 4 tangent verts + two semicircle caps (bulge from each cap's tip point) — real cylindrical end faces.
@@ -4724,9 +4728,11 @@ function cornersAllOnShape(
   if (!cp0) return null
   let cur: SketchShape = sh, verts = cp0.verts, bulges = cp0.bulges, cc = cons
   let done = 0, tangents = 0, kept = 0, dropped = 0, minT = Infinity
+  const isOpen = !!cp0.open
   for (let i = verts.length - 1; i >= 0; i--) {
+    if (isOpen && (i === 0 || i === verts.length - 1)) continue   // FISHING13：開放路徑兩端唔係角
     let res: { verts: Pt[]; bulges: number[] }
-    try { res = fillet ? filletAt(verts, bulges, i, r) : chamferAtIdx(verts, bulges, i, r) } catch { continue }
+    try { res = normalizeCornerResult(fillet ? filletAt(verts, bulges, i, r) : chamferAtIdx(verts, bulges, i, r), isOpen) } catch { continue }
     if (!fillet) {
       const n = verts.length, A = verts[(i - 1 + n) % n], B = verts[i], C = verts[(i + 1) % n]
       minT = Math.min(minT, r, Math.hypot(A[0] - B[0], A[1] - B[1]) * 0.45, Math.hypot(C[0] - B[0], C[1] - B[1]) * 0.45)
@@ -4740,11 +4746,11 @@ function cornersAllOnShape(
       else { const id = skConId(); radAnchor.id = id; cc = [...cc, { id, name: radAnchor.mkName(), kind: 'dim', type: 'rad', a: arc, value: r } as SkCon] }
     }
     verts = res.verts; bulges = res.bulges; done++
-    cur = vertsPoly(verts, bulges)
+    cur = isOpen ? openVertsPoly(verts, bulges) : vertsPoly(verts, bulges)
   }
   if (!done) return null
   const hasArc = bulges.some((b) => Math.abs(b) > 1e-12)
-  const out: SketchShape = hasArc ? vertsPoly(verts, bulges) : { type: 'poly', pts: verts } as SketchShape
+  const out: SketchShape = isOpen ? openVertsPoly(verts, bulges) : hasArc ? vertsPoly(verts, bulges) : { type: 'poly', pts: verts } as SketchShape
   return { shape: sh.construction ? { ...out, construction: true } as SketchShape : out, cons: cc, done, tangents, kept, dropped, minT }
 }
 async function cornersAll(set: (p: Partial<AppState>) => void, get: () => AppState, fillet: boolean, r: number): Promise<void> {
@@ -4827,7 +4833,8 @@ function buildDebugReport(s: AppState): string {
   ]
   return head.concat(_dbg.length ? _dbg : ['（沒有記錄 — 請先開「診斷錄製」再操作）']).join('\n')
 }
-function shapeCornerPath(sh: SketchShape): { verts: Pt[]; bulges: number[] } | null {
+function shapeCornerPath(sh: SketchShape): CornerPath | null {
+  if (sh.type === 'poly' && sh.open) return openPolyCornerPath(sh)   // FISHING13 P2-3：開放折線 → 只有內部頂點係角
   if (sh.type === 'rect') {
     const x0 = Math.min(sh.a[0], sh.b[0]), x1 = Math.max(sh.a[0], sh.b[0]), y0 = Math.min(sh.a[1], sh.b[1]), y1 = Math.max(sh.a[1], sh.b[1])
     return { verts: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]], bulges: [0, 0, 0, 0] }
@@ -4838,6 +4845,11 @@ function shapeCornerPath(sh: SketchShape): { verts: Pt[]; bulges: number[] } | n
     return { verts, bulges }
   }
   return null
+}
+// FISHING13 P2-3：倒角結果 → 形狀（開放路徑保持開放，唔好封口）。
+function cornerResultShape(res: { verts: Pt[]; bulges: number[] }, cp: CornerPath): SketchShape {
+  if (cp.open) { const r = normalizeCornerResult(res, true); return openVertsPoly(r.verts, r.bulges) }
+  return vertsPoly(res.verts, res.bulges)
 }
 // 在角点 i 倒直角斜角（chamfer，回缩 d，夹到邻段 45%）。弧邻角/共线/退化 → throw（同 chamferSketchCorners 单角逻辑一致）。
 function chamferAtIdx(verts: Pt[], bulges: number[], i: number, d: number): { verts: Pt[]; bulges: number[] } {
@@ -4877,13 +4889,12 @@ function computeSketchToolPreview(shapes: SketchShape[], tool: SketchTool, p: Pt
     if (!(cornerR > 0)) return null
     const isCh = tool === 'cchamfer'
     const paths = shapes.map(shapeCornerPath)
-    let bi = -1, vi = -1, best = Infinity
-    for (let i = 0; i < shapes.length; i++) { const cp = paths[i]; if (!cp) continue; for (let k = 0; k < cp.verts.length; k++) { const dd = Math.hypot(p[0] - cp.verts[k][0], p[1] - cp.verts[k][1]); if (dd < best) { best = dd; bi = i; vi = k } } }
+    const { bi, vi, best } = nearestCorner(paths, p)   // FISHING13：開放折線端點唔係角
     if (bi < 0 || best > tol) return null
     const cp = paths[bi]!
     const n = cp.verts.length, prevI = (vi - 1 + n) % n
     if (Math.abs(cp.bulges[vi] || 0) > 1e-9 || Math.abs(cp.bulges[prevI] || 0) > 1e-9) return null   // 已倒角嘅角唔预览
-    try { const res = isCh ? chamferAtIdx(cp.verts, cp.bulges, vi, cornerR) : filletAt(cp.verts, cp.bulges, vi, cornerR); return [vertsPoly(res.verts, res.bulges)] } catch { return null }
+    try { const res = isCh ? chamferAtIdx(cp.verts, cp.bulges, vi, cornerR) : filletAt(cp.verts, cp.bulges, vi, cornerR); return [cornerResultShape(res, cp)] } catch { return null }
   }
   // S158：修剪悬停 → 红色 ghost 显示「将删段」（trimRemovedSpanAt）；延伸悬停 → 绿色 ghost 显示延伸结果。
   // 命中逻辑同 skTrimAt/skExtendAt 一致（同样嘅 cutters 装配 + pickTol 两轮容差），故预览 == 点击后实际结果。
@@ -4991,8 +5002,8 @@ function previewLockedSizing(shapes: SketchShape[], sz: Sizing, offD: number, bo
     return out.length ? out : null
   }
   if (!(cornerR > 0)) return null
-  const cp = shapeCornerPath(sh); if (!cp || sz.vi < 0 || sz.vi >= cp.verts.length) return null
-  try { const res = sz.tool === 'cchamfer' ? chamferAtIdx(cp.verts, cp.bulges, sz.vi, cornerR) : filletAt(cp.verts, cp.bulges, sz.vi, cornerR); return [vertsPoly(res.verts, res.bulges)] } catch { return null }
+  const cp = shapeCornerPath(sh); if (!cp || !cornerIndexAllowed(cp, sz.vi)) return null
+  try { const res = sz.tool === 'cchamfer' ? chamferAtIdx(cp.verts, cp.bulges, sz.vi, cornerR) : filletAt(cp.verts, cp.bulges, sz.vi, cornerR); return [cornerResultShape(res, cp)] } catch { return null }
 }
 // T796-1：倒角/圆角拖动时显示值，同 ghost 一致。倒角 clamp 到邻边 0.45（chamferAtIdx 嘅上限）；圆角放唔落（ghost 消失）→ 提示收细。
 function sizingCornerDim(shapes: SketchShape[], sz: Sizing, value: number, fits: boolean): string {
@@ -6629,12 +6640,13 @@ export const useApp = create<AppState>((rawSet, get) => {
   // A fresh document is in navigation/selection mode.  Geometry tools are
   // explicit commands, never an accidental first click.
   sketchTool: 'select',
-  setSketchTool: (t) => { _offsetTypedPre = false; _slotTypedDone = false; if (t !== 'cfillet' && t !== 'cchamfer') _cornerTypedPre = false; if(get().skScale)discardScale(); get().skDragCancel(); set({ sketchTool: t, sketchStart: null, sketchPreview: null, sketchDim: null, dimBuf: ['', ''], dimField: 0, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, tanRefs: [], skBoolPending: null, toolPreview: null, sizing: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, skMarquee: null, skSelCon: null, ...(t !== 'move' ? { skMove: null } : {}), ...(t !== 'select' ? { skArmedCon: null } : {}), ...(t !== 'mirror' ? { mirrorPick: null } : {}), ...(t !== 'dimension' ? { dimArcLen: false } : {}) }) },  // T777：换工具清相切弧/切点圆 buffer；T790：离开镜像清进行中状态；T791：换工具取消合并拾取；T792：清悬停预览；GM-FP2：换工具清尺寸 pending / 非 select 清 tool-first 武装；GM-FP3：清框选/约束选中，非 move 清 move gizmo；偏移完成後殘留 sketchDim「偏移 N mm」HUD 一併清掉
+  setSketchTool: (t) => { _offsetTypedPre = false; _slotTypedDone = false; _rectTypedDone = false; if (t !== 'cfillet' && t !== 'cchamfer') _cornerTypedPre = false; if(get().skScale)discardScale(); get().skDragCancel(); set({ sketchTool: t, sketchStart: null, sketchPreview: null, sketchDim: null, dimBuf: ['', ''], dimField: 0, polyPts: [], polyBulges: [], polyArcMode: false, tanArcSeed: null, tanRefs: [], skBoolPending: null, toolPreview: null, sizing: null, skPendingPt: null, skPendingPair: null, skPendingEdge: null, skMarquee: null, skSelCon: null, ...(t !== 'move' ? { skMove: null } : {}), ...(t !== 'select' ? { skArmedCon: null } : {}), ...(t !== 'mirror' ? { mirrorPick: null } : {}), ...(t !== 'dimension' ? { dimArcLen: false } : {}) }) },  // T777：换工具清相切弧/切点圆 buffer；T790：离开镜像清进行中状态；T791：换工具取消合并拾取；T792：清悬停预览；GM-FP2：换工具清尺寸 pending / 非 select 清 tool-first 武装；GM-FP3：清框选/约束选中，非 move 清 move gizmo；偏移完成後殘留 sketchDim「偏移 N mm」HUD 一併清掉
   hoverFace: null,
   setHoverFace: (t) => set((s) => (s.hoverFace === t || (!s.hoverFace && !t) ? {} : { hoverFace: t })),
   // Fusion ESC behaviour: 1st ESC cancels the in-progress draw (a started rect/circle or polyline points)
   // WITHOUT leaving the sketch; the sketch stays open until Finish Sketch is chosen.
   escSketch: () => {
+    _rectTypedDone = false
     const hadDimEdit=!!dimSession
     cancelSkDimEdit()
     if(hadDimEdit)return true
@@ -6866,9 +6878,19 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!s.sizing) {
       const paths = shapes.map(shapeCornerPath)
       const tol = pickTol()
-      let bi = -1, vi = -1, best = Infinity
-      for (let i = 0; i < shapes.length; i++) { const cp = paths[i]; if (!cp) continue; for (let k = 0; k < cp.verts.length; k++) { const dd = Math.hypot(p[0] - cp.verts[k][0], p[1] - cp.verts[k][1]); if (dd < best) { best = dd; bi = i; vi = k } } }
-      if (bi < 0 || best > tol * 1.5) { set({ status: `${lbl}：要點近一個直角頂點（圓沒有角；點近一些）` }); return }
+      const { bi, vi, best, nearEnd, endBest } = nearestCorner(paths, p)   // FISHING13 P2-3：開放折線內部頂點亦係角
+      if ((bi < 0 || best > tol * 1.5) && !s.skPatternData) {
+        // FISHING13 P2-3：兩條獨立直線共用端點 → 先合併成一條開放折線（一個撤銷步），再鎖定嗰個共用頂點
+        const mg = mergeOpenAtJoint(shapes, s.skCons, p, tol * 1.5)
+        if (mg) {
+          const ns = mg.shapes.map((sh, i) => i === mg.shapeIdx ? ({ ...openVertsPoly(mg.merged.verts, mg.merged.bulges), ...(sh.construction ? { construction: true } : {}) } as SketchShape) : sh)
+          set({ sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: ns, sketchShape: null, skCons: mg.cons, skSel: [], skHover: null })
+          return get().skCornerAt(p)
+        }
+      }
+      if (bi < 0 || best > tol * 1.5) {
+        set({ status: nearEnd && endBest <= tol * 1.5 ? `${lbl}：開放路徑的端點不是角 — 請點兩段線段共用的頂點` : !paths.some(Boolean) ? `${lbl}：此草圖沒有可倒${isCh ? '角' : '圓角'}的角（圓、樣條及單一線段沒有角）— 請畫矩形或兩段以上相連的直線` : `${lbl}：請點近一個角頂點（兩段直線相交處；點近一些）` }); return
+      }
       const cp = paths[bi]!, nC = cp.verts.length, prevI = (vi - 1 + nC) % nC
       if (Math.abs(cp.bulges[vi] || 0) > 1e-9 || Math.abs(cp.bulges[prevI] || 0) > 1e-9) { set({ status: `${lbl}：此角已經是圓弧角，無需再倒；想倒請點其它直角頂點` }); return }
       // T796-1：锁定即把 sketchPreview 设到点击处 + seed 半径（触屏 tap-tap 见到拖柄、commit 锁定角而非旧默认）
@@ -6883,10 +6905,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!(r > 0)) { set({ sizing: null, toolPreview: null, status: `${lbl}：半徑為 0，已取消` }); return }
     const bi = shapes.indexOf(s.sizing.ref)
     const sh = bi >= 0 ? shapes[bi] : null, cp = sh ? shapeCornerPath(sh) : null
-    if (!sh || !cp || vi < 0 || vi >= cp.verts.length) { set({ sizing: null, toolPreview: null, status: `${lbl}：所選角已改動/刪除 — 重新點角` }); return }
+    if (!sh || !cp || !cornerIndexAllowed(cp, vi)) { set({ sizing: null, toolPreview: null, status: `${lbl}：所選角已改動/刪除 — 重新點角` }); return }
     const nC = cp.verts.length, prevI = (vi - 1 + nC) % nC
     let res: { verts: Pt[]; bulges: number[] }
-    try { res = isCh ? chamferAtIdx(cp.verts, cp.bulges, vi, r) : filletAt(cp.verts, cp.bulges, vi, r) }
+    try { res = normalizeCornerResult(isCh ? chamferAtIdx(cp.verts, cp.bulges, vi, r) : filletAt(cp.verts, cp.bulges, vi, r), cp.open) }
     catch (e) {
       // UX4 #5：半徑太大唔好靜靜雞失敗 —— 講明最大可用 R，並【保持鎖定】呢個角，直接打細啲再確定就得
       const rMax = isCh ? 0 : maxFilletRadius(cp.verts, vi)
@@ -6897,7 +6919,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     _cornerTypedPre = false
     const isCon = !!sh.construction
-    const nv = vertsPoly(res.verts, res.bulges)
+    const nv = cp.open ? openVertsPoly(res.verts, res.bulges) : vertsPoly(res.verts, res.bulges)   // FISHING13：開放折線保持開放
     const newShape: SketchShape = isCon ? { ...nv, construction: true } : nv
     const isActive = !!s.sketchShape && bi === s.sketchProfiles.length
     // UX4 #2/#4：約束跟住新頂點/邊 index 重映射（以前錯位 → 求解後邊變斜），倒圓角補 2 個相切約束（Fusion 同款）。
@@ -11008,7 +11030,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else reEnterOnFail()
   },
 
-  onSketchClick: async (raw) => { _slotTypedDone = false
+  onSketchClick: async (raw) => { _slotTypedDone = false; _rectTypedDone = false
     // ③ 逐条投影优先：开咗 projPickMode → 㩒近一条投影边即投，唔好入绘图机/工具
     if (get().projPickMode) { if (get().mode === 'sketch') get().projectLoopAt(raw); return }
     // select / dimension / trim / extend tools act on COMMITTED geometry (no drawing) — route before the draw machine.
@@ -11617,6 +11639,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (key === 'Escape') { _slotTypedDone = false; return { dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '已取消；可輸入起點座標 X Tab Y 後按 Enter，或在畫布點選起點' } }
       if (/^[0-9.\-]$/.test(key) || key === 'Enter' || key === 'Tab' || key === 'Backspace') return { dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '槽已建立。如需另一個槽，請先在畫布點選起點（或按 Esc 後輸入起點座標）' }
     }
+    if (placingStart && _rectTypedDone && (tool === 'rectangle' || tool === 'crect')) {
+      if (key === 'Escape') { _rectTypedDone = false; return { dimBuf: ['', ''], dimField: 0, sketchDim: null } }
+      if (/^[0-9.\-]$/.test(key) || key === 'Enter' || key === 'Tab' || key === 'Backspace') return { dimBuf: ['', ''], dimField: 0, sketchDim: null, status: '矩形已建立。如需另一個矩形，請先在畫布點選起點（或按 Esc 後輸入起點座標）' }
+    }
     if (placingStart) {
       const startReadout = (b: string[], f: number) => `⌖ 起點 X ${f === 0 ? `[${b[0] || '_'}]` : (b[0] || '_')} , Y ${f === 1 ? `[${b[1] || '_'}]` : (b[1] || '_')} mm　(打字定位·Tab 換 X/Y·Enter 放點)`
       if (/^[0-9.\-]$/.test(key)) { buf[s.dimField] = (buf[s.dimField] + key).slice(0, 9); return { dimBuf: buf, sketchDim: startReadout(buf, s.dimField) } }
@@ -11665,6 +11691,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const seq=maxDimSeq(s.sketchSources,s.skCons,s.params)+1
       const added=rectangleConstraints([...profiles,shape] as FShape[],profiles.length,s.skCons,[`d${seq}`,`d${seq+1}`],[buf[0]?W:null,buf[1]?H:null],s.autoConstrain)
       rectangleCommitted=true
+      _rectTypedDone = true
       return { ...bank, sketchUndo:[...s.sketchUndo,skSnap(s)].slice(-80),sketchRedo:[],skCons:[...s.skCons,...added], sketchShape: shape, sketchStart: null, sketchPreview: null, sketchSnap: null, dimBuf: ['', ''], dimField: 0, sketchDim: null, status: `矩形 ${W} × ${H} mm — 驅動尺寸及關係已儲存` }
     }
     if (start && tool === 'circle') {
@@ -11707,6 +11734,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const W = num(buf[0], Math.abs(2 * dx) || 20), H = num(buf[1], Math.abs(2 * dy) || W)
       const sx = dx < 0 ? -1 : 1, sy = dy < 0 ? -1 : 1
       const rect: SketchShape = { type: 'rect', a: [start[0] - sx * W / 2, start[1] - sy * H / 2], b: [start[0] + sx * W / 2, start[1] + sy * H / 2] }
+      _rectTypedDone = true
       return { ...centerRectCommit({ ...s, ...bank, sketchShape: null }, rect, start), sketchStart: null, ...clr, status: `中心矩形 ${W} × ${H} mm — 點「拉伸」` }
     }
     if(start && tool==='ellipse' && s.ellipseCreation==='three-point'){
@@ -23054,6 +23082,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const supOpen = arr('suppressedIds') as string[]
     const migOpen = migrateComponentDefs(d.componentDefs, arr('components') as AppState['components'])   // R2：新档载 defs+reconcile；旧档合成匿名 def
     set(clearedAnalysesPatch())   // WORKFLOW #3：開啟檔案唔帶入上一份檔案嘅剖切／分析
+    set(closedConstructionPanelsPatch())   // FISHING13 P3：開啟檔案關閉上一份檔案嘅「構造軸／構造平面／構造點」面板及拾取
     set({
       components: migOpen.components, componentDefs: migOpen.componentDefs,
       joints: arr('joints') as AppState['joints'],
@@ -24063,6 +24092,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       measurePts:[],measureDist:null,measureEdgeInfo:null,measureFaceInfo:null,measureAngleInfo:null,
       measureUniPicks:[],measureUniResult:null,lastMeasure:null,selectedParkedIndex:null,modelSel:[],selectedFeatures:[]})
     set(clearedAnalysesPatch())   // WORKFLOW #3
+    set(closedConstructionPanelsPatch())   // FISHING13 P3：新檔關閉舊「構造軸」等構造幾何面板（以前殘留喺新檔）
     set({ selectedFeature: null, selectedComponent: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchSnap: null, sketchDim: null, sketchArb: null, mode: 'model', components: [], componentDefs: [], originX: 0, joints: [], motionLinks: [], mates: [], faceMateMode: false, faceMatePick: null, screwFitMode: false, grounded: null, planes: [], cpoints: [], caxes: [], ccurves: [], viewBookmarks: [], bodyHidden: [], activeBodyName: '', jointPoses: [], jointKeyframes: [], revAxisPtPick: false, inspectShade: 'off', bgPreset: '', renderMode: false, hdriPreset: '', hdriIntensity: 1, hdriRotation: 0, groundShadow: false, groundReflection: false, suppressedIds: [], params: [], paramBindings: {}, configs: [], activeConfig: null, holeMode: false, holePos: null, holeBoltCircle: false, holeBcCount: 4, holeBcPcd: 50, shellMode: false, edgeRoundPick: null, edgePtPick: null, pushPullMode: false, featDlg: null, csketchOpen: false, extrudeDlgOpen: false, sweepDlgOpen: false, sweepEditId: null, loftDlgOpen: false, loftEditId: null, fourBar: null, sliderCrank: null, sectionMesh: null, sectionResult: null, draftResult: null, slopeResult: null, section: { on: false, axis: 'X', offset: 0, capped: false, flip: false }, beamReport: '', projectName: '未命名零件', undoStack: [], redoStack: [], sketchSources: {}, skCons: [], skPatternData: null, skEditTarget: null, skSel: [], skPendingPt: null, skPendingPair: null, editingComponent: null, feaMode: 0, feaFixed: null, feaLoad: null, feaResult: null, feaStale: false, feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 }, feaProbe: null, feaProbeOn: false, feaBearing: null, feaBearingPick: false, feaLoadMode: 'force', moldMode: 0, moldGates: [], moldResult: null, moldReport: '', windMode: 0, windResult: null, windReport: '', loftSections: [], loftSecSrcs: [], groups: [], interfHits: [], interfMeshes: [], interfReport: null, interfPanelOpen: false, decals: [], decalPick: null, canvases: [], activeCanvas: null, canvasImg: null, fitBBox: null, drawingAnno: EMPTY_ANNO, checkedComps: [] })
     set({ ...hydrateSketchDraft(null), ...hydrateFormDraft(null) })
     // WORKFLOW2 P2：開新檔＝預設外觀＋預設密度（唔跟上一檔紅色／自訂材質）。唔清語言／單位／graphicsPreset／materialLibrary 等用戶偏好。

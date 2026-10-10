@@ -4602,19 +4602,24 @@ export default function Viewport() {
   // GM-W8 β2-#B4：触屏精确输入 —— sketch-bar 一个真 <input>，绘制中打尺寸经既有 sketchTypeKey 管线（uncontrolled，commit 时重放）。
   // 另一粒「⏸吸附」toggle 用 setGeoSnapAlt（触屏版按住 Alt）。snapPaused 系本地视觉态（geoSnapAlt 唔喺 store）。
   const skDimInputRef = useRef<HTMLInputElement>(null)
+  const skDimField = useApp((s) => s.dimField)   // FISHING13：欄位提示 寬／高（Tab 換欄）
   const [snapPaused, setSnapPaused] = useState(false)
-  const commitSkDimInput = () => {
+  // FISHING13 P2-1（Fusion）：欄位入面打數字 → 只寫入【當前欄】（寬／高）；Tab = 換去下一欄（唔確定）；
+  // 淨係 Enter 先確定。以前 onBlur = 確定 → 打寬度後按 Tab 一失焦就即刻用滑鼠位置做高度建立咗矩形。
+  const feedSkDimInput = () => {
     const el = skDimInputRef.current
-    if (!el) return
+    if (!el) return false
     const buf = el.value.trim()
-    if (buf) {
-      const tk = useApp.getState().sketchTypeKey
-      tk('Escape')                       // 清残留 dimBuf → 重放确定（Escape 只清缓冲，唔取消绘制）
-      for (const ch of buf) tk(ch)       // 逐字送入（sketchTypeKey 只收 0-9/'.'，其余自动忽略）
-      tk('Enter')                        // 确定尺寸
-    }
     el.value = ''
+    if (!buf) return false
+    const tk = useApp.getState().sketchTypeKey
+    for (let i = 0; i < 10; i++) tk('Backspace')   // 清當前欄（只清呢一欄，另一欄已輸入值保留）
+    for (const ch of buf) tk(ch)                    // 逐字送入（sketchTypeKey 只收 0-9/'.'，其余自动忽略）
+    return true
   }
+  const commitSkDimInput = () => { feedSkDimInput(); useApp.getState().sketchTypeKey('Enter') }
+  const tabSkDimInput = () => { feedSkDimInput(); useApp.getState().sketchTypeKey('Tab') }
+  const blurSkDimInput = (el: HTMLInputElement) => { el.value = ''; el.blur() }
   // GM-W6 A4：草图工具条可收起 + 可拖移。收起 → 缩成一粒「▤ 草图工具」pill；拖移用 useDraggable（同 AI ✦ / 🩺诊断 钮）。
   const [skBarMin, setSkBarMin] = useState(false)   // 默认展开
   const skBarDrag = useDraggable('webcad-sketch-bar', { right: 0, bottom: 0 })   // anchor 不用（未拖时靠 CSS left:50% 居中）
@@ -7759,10 +7764,10 @@ export default function Viewport() {
             <span className="sb-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }} data-testid="sketch-precise-dim-wrap">
               {tStatus(sketchTool === 'circle' || sketchTool === 'circle2p' ? '直徑Ø' : '尺寸', lang)}
               <input ref={skDimInputRef} inputMode="decimal" enterKeyHint="done" data-testid="sketch-precise-dim"
-                placeholder={sketchTool === 'circle' || sketchTool === 'circle2p' ? 'Ø mm' : 'mm'}
-                title={tStatus(sketchTool === 'circle' || sketchTool === 'circle2p' ? '精确直徑Ø：輸入如 4 → Enter（切割特徵用此精确值）' : '觸屏精确尺寸：打數字 → 完成/離開确定（經打字尺寸管線；等同鍵盤直接打）', lang)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitSkDimInput() } }}
-                onBlur={commitSkDimInput}
+                placeholder={sketchTool === 'circle' || sketchTool === 'circle2p' ? 'Ø mm' : ['rectangle', 'crect', 'rrect', 'ellipse'].includes(sketchTool) ? tStatus(skDimField === 0 ? '寬 mm' : '高 mm', lang) : 'mm'}
+                title={tStatus(sketchTool === 'circle' || sketchTool === 'circle2p' ? '精確直徑Ø：輸入如 4 → Enter（切割特徵用此精確值）' : '精確尺寸：打數字 → Tab 換下一欄（寬 ↔ 高）→ Enter 確定（等同鍵盤直接打）', lang)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitSkDimInput() } else if (e.key === 'Tab') { e.preventDefault(); tabSkDimInput() } else if (e.key === 'Escape') { blurSkDimInput(e.currentTarget) } }}
+                onBlur={() => { feedSkDimInput() }}
                 style={{ width: 60 }} />
               <button className={'sb-tool' + (snapPaused ? ' active' : '')} title={tStatus('⏸吸附：臨時停幾何捕捉（觸屏版「按住 Alt」— 精準落點）。再按恢復。', lang)}
                 style={snapPaused ? { background: '#1572c4', color: '#fff' } : undefined}

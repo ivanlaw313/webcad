@@ -31,6 +31,7 @@ import { batchSketchPositions, SKETCH_BATCH_THRESHOLD, SKETCH_FILL_SKIP_THRESHOL
 import { solveMove } from '../cad/moveSolve'
 import { useEscapeLayer } from './useEscapeLayer'
 import { illegalRejectStatus } from '../ui/illegalInput'
+import { isDragDrawRelease, edgeBadgeOffset } from '../sketch/sketchPointerUx'
 import type { MeshData, Plane } from '../worker/cad.worker'
 
 type V3 = [number, number, number]
@@ -465,7 +466,7 @@ export function SketchSurface() {
   // S196【按住拖 press-drag-release】armed：非 select 繪圖工具 pointerdown 真系落咗點（sketchStart/polyPts 有值）
   // 先記低 down 嘅屏幕座標；pointerup 位移超閾值（鼠標/筆 6px、觸屏 12px）→ 當第二擊（Fusion 雙手勢；
   // polyline 拖 = 畫一段然後繼續 rubber-band，跟 Fusion）。冇超閾值 = 普通 click-click 第一點，零行為變化。
-  const dragDraw = useRef<{ x: number; y: number; touch: boolean; pointerId?: number } | null>(null)
+  const dragDraw = useRef<{ x: number; y: number; touch: boolean; pointerId?: number; t: number; tool: string } | null>(null)
   const arcGesture = useRef<{ x: number; y: number; touch: boolean } | null>(null)   // GM-FP1 #13：从折线端点按住拖 = 相切弧手势
   const refusedDrag = useRef(false)   // BUG-207 跟進（G）：拒動幾何嘅按下 — 鎖住相機直至放手
   const _dblRef = useRef<{ t: number; x: number; y: number } | null>(null)   // GM-W6 B1：双击收笔计时（折线/样条）
@@ -478,6 +479,9 @@ export function SketchSurface() {
   const gestureTool = useApp((s) => s.sketchTool)
   const gestureMode = useApp((s) => s.mode)
   useEffect(() => {
+    // FISHING13 P2-2：effect 喺 commit 之後先跑（可能遲過用戶第一下快速點擊）—— 只清【屬於舊工具】嘅手勢，
+    // 唔好清走新工具已經落咗嘅第一點手勢（以前快速連點會食咗頭兩點）。
+    if (dragDraw.current && dragDraw.current.tool === gestureTool) return
     const had = !!(dragDraw.current || arcGesture.current || marquee.current || refusedDrag.current)
     dragDraw.current = null; arcGesture.current = null; marquee.current = null; refusedDrag.current = false; _dblRef.current = null
     if (had && controls) controls.enabled = true
@@ -566,10 +570,13 @@ export function SketchSurface() {
     if (dragDraw.current) {
       const dd0 = dragDraw.current
       dragDraw.current = null
+      // FISHING13 P2-2：舊工具留低嘅手勢（換工具後 effect 未跑）= 過期，照常落點（工具喺 click 時已同步武裝）
+      if (dd0.tool !== useApp.getState().sketchTool) { if (controls) controls.enabled = true } else {
       if (controls) controls.enabled = true
       // RETEST21 #4：只有觸屏／筆嘅【另一個】pointer 先係第二隻手指；滑鼠／同一 pointer = 上一手勢冇收到放手 → 過期，照常落點
       const secondFinger = e.pointerType !== 'mouse' && e.pointerId !== undefined && dd0.pointerId !== undefined && e.pointerId !== dd0.pointerId
       if (secondFinger) return
+      }
     }
     // GM-W6 A2：净【左键】先落点（对齐 Fusion）——旧版 click(st) 冇 button 判断，中/右键都会画嘢。
     // 早 return 唔阻 OrbitControls（佢听 canvas 原生事件）→ 中键=平移、右键=平移/菜单，画到一半照调视角。
@@ -649,7 +656,7 @@ export function SketchSurface() {
     // 等單擊工具唔寫呢兩個字段 → 自然唔 arm。凍結 OrbitControls 防 navTool=pan 左鍵 / 觸屏單指平移撞手勢。
     const a2 = useApp.getState()
     if ((e.button ?? 0) === 0 && a2.mode === 'sketch' && (a2.sketchStart != null || a2.polyPts.length > 0)) {
-      dragDraw.current = { x: e.clientX ?? 0, y: e.clientY ?? 0, touch: e.pointerType === 'touch', pointerId: e.pointerId }
+      dragDraw.current = { x: e.clientX ?? 0, y: e.clientY ?? 0, touch: e.pointerType === 'touch', t: performance.now(), tool: a2.sketchTool, pointerId: e.pointerId }
       if (controls) controls.enabled = false
     }
   }
@@ -701,8 +708,10 @@ export function SketchSurface() {
       dragDraw.current = null
       if (controls) controls.enabled = true
       // 超閾值先當第二擊 — click-click 用戶按下手震微移（<6px）唔會誤判成拖
+      // FISHING13 P2-2：快速連點時按下期間滑鼠已經移動（>6px 但只按咗幾十 ms）—— 以前當咗「按住拖」第二點，
+      // 第一下就建立咗細小矩形／圓，第二下變咗新起點 = 頭兩點好似被食咗。而家要真係按住（≥ DRAG_DRAW_MIN_MS）先當拖。
       const dist = e ? Math.hypot((e.clientX ?? dd.x) - dd.x, (e.clientY ?? dd.y) - dd.y) : 0
-      if (commit && dist > (dd.touch ? 12 : 6)) click(st)
+      if (commit && isDragDrawRelease(dist, performance.now() - dd.t, dd.touch)) click(st)
     }
   }
   if (arb) {
@@ -2700,6 +2709,7 @@ export function SketchDimProjector() {
   const size = useThree((s) => s.size)
   const controls = useThree((s) => s.controls) as unknown as { target?: { x: number; y: number; z: number } } | null
   const v = useRef(new Vector3()).current
+  const labelDelta = useRef(new Map<string, [number, number]>()).current   // FISHING13 P3：標籤避讓位移（編輯框沿用）
   useFrame(() => {
     if (mode !== 'sketch') return
     // Screen-space snap: mm-per-pixel at the sketch plane → ~10px snap radius (Fusion-like).
@@ -2730,9 +2740,21 @@ export function SketchDimProjector() {
       let x = (v.x * 0.5 + 0.5) * size.width + (l.pxOff ? l.pxOff[0] : 0)
       let y = (-v.y * 0.5 + 0.5) * size.height + (l.pxOff ? l.pxOff[1] : 0)
       if (!behind) {
-        const box = placeDimensionLabel({ x, y, w: el.offsetWidth, h: el.offsetHeight }, placed, size.width, size.height, obstacles)
-        x = box.x; y = box.y
-        placed.push(box)
+        // FISHING13 P3：編輯框（比標籤闊）唔再行「避讓」搜尋 —— 以前會撞到幾何錨點而被推去好遠（甚至左上角）。
+        // 改為沿用該標籤最後一次避讓後嘅位移（跟住相機移動），只夾返入視口 → 輸入框出現喺尺寸標籤原位。
+        const isEditor = el.hasAttribute('data-dim-editor')
+        const rawX = x, rawY = y
+        if (isEditor) {
+          const d = labelDelta.get(l.key)
+          const box = placeDimensionLabel({ x: rawX + (d ? d[0] : 0), y: rawY + (d ? d[1] : 0), w: el.offsetWidth, h: el.offsetHeight }, [], size.width, size.height, [])
+          x = box.x; y = box.y
+          placed.push(box)
+        } else {
+          const box = placeDimensionLabel({ x, y, w: el.offsetWidth, h: el.offsetHeight }, placed, size.width, size.height, obstacles)
+          x = box.x; y = box.y
+          placed.push(box)
+          labelDelta.set(l.key, [x - rawX, y - rawY])
+        }
       }
       el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%)`
       el.style.opacity = behind ? '0' : '1'
@@ -2815,7 +2837,7 @@ export function SketchDimLayer() {
         const gi = badgeGroup.get(gk) ?? 0
         badgeGroup.set(gk, gi + 1)
         const frame=(c as SkCon & {frameAngleDeg?:number}).frameAngleDeg,local=frame!==undefined&&Math.abs(frame%180)>1e-8
-        out.push({ key: c.id, frameAngleDeg:frame, anchor: lift([m[0], m[1]]), text: local&&(c.type==='h'||c.type==='v')?(c.type==='h'?'H′':'V′'):CON_GLYPH[c.type] ?? '·', remove: c.id, pxOff: c.a.kind === 'center' || c.a.kind === 'pt' || c.a.kind === 'origin' || c.a.kind === 'refpt' ? [18 * (gi + 1), -18] : [18 * gi, 0] })
+        out.push({ key: c.id, frameAngleDeg:frame, anchor: lift([m[0], m[1]]), text: local&&(c.type==='h'||c.type==='v')?(c.type==='h'?'H′':'V′'):CON_GLYPH[c.type] ?? '·', remove: c.id, pxOff: c.a.kind === 'center' || c.a.kind === 'pt' || c.a.kind === 'origin' || c.a.kind === 'refpt' ? [18 * (gi + 1), -18] : edgeBadgeOffset(gi) })
       }
     }
     // Extrude-manipulator tip textbox (Fusion ghost+arrow+inline-distance triad): label at the arrow

@@ -17,7 +17,7 @@ test('stale dragDraw on mouse press is cleared and the press proceeds (only a di
 })
 
 test('gesture refs reset whenever the sketch tool or mode changes', () => {
-  const m = src.match(/useEffect\(\(\) => \{\n\s*const had = [^\n]*\n\s*dragDraw\.current = null; arcGesture\.current = null; marquee\.current = null; refusedDrag\.current = false[^\n]*\n[^\n]*\n\s*\}, \[gestureTool, gestureMode, controls\]\)/)
+  const m = src.match(/useEffect\(\(\) => \{\n(?:\s*\/\/[^\n]*\n)*\s*if \(dragDraw\.current && dragDraw\.current\.tool === gestureTool\) return\n\s*const had = [^\n]*\n\s*dragDraw\.current = null; arcGesture\.current = null; marquee\.current = null; refusedDrag\.current = false[^\n]*\n[^\n]*\n\s*\}, \[gestureTool, gestureMode, controls\]\)/)
   assert.ok(m, 'reset effect keyed on sketchTool/mode')
   assert.ok(src.indexOf(m[0]) < src.indexOf("if (mode !== 'sketch') return null"), 'effect declared before the early return (hook order)')
 })

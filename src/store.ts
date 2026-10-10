@@ -69,6 +69,7 @@ import { solveMate, worldAABB, type MateType, type MateAxis, type MateSide } fro
 import { estimateOverlapVolume } from './assembly/overlapVolume'
 import { transformVertices } from './assembly/asmMass'   // BUG(C)：组件属性用世界坐标
 import { nextDefId, reconcileComponents, migrateComponentDefs, makeDefOcc, splitLiveBodies, cloneDef, writeDefFromEdit, writeDefBodyMesh, transformBodyMeshByMatrix, referencedDefs, prunedDefsForPayload, visibleDefinitionBodies, type ComponentDef, type BrepEdge } from './assembly/occurrence'   // R2：occurrence/多体 纯逻辑核（单一真相 + tsx 可测）
+import { INSERT_COMPONENT_ACCEPT, INSERT_COMPONENT_BAD_FILE, INSERT_COMPONENT_EMPTY, INSERT_COMPONENT_STEP_FAIL, detectInsertComponentKind, mapInsertComponentError, bufferHeadText } from './cad/insertComponentFile'
 import { buildFastener, fastenerLabel, recommendFastenerSize, tighteningTorque, FASTENER_KIND_LABEL, FASTENER_SIZES, FASTENER_SPEC, type FastenerKind, type FastenerSize } from './cad/fasteners'
 import { beamCheck, torsionCheck, MATERIAL_MECH, DEFAULT_MECH, type Support } from './analysis/beamStress'
 import { runFeaInWorker, runModalInWorker, runBucklingInWorker, runPrestressedModalInWorker, runTopoptInWorker, runThermalInWorker, runThermalStressInWorker } from './analysis/feaClient'
@@ -1997,7 +1998,8 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   cancelInsertMesh: () => void
   import3MF: (buf: ArrayBuffer, name: string) => Promise<void>
   open3MFDialog: () => void
-  openStepComponentDialog: () => void // Fusion Insert Component：STEP/STP → independent assembly occurrence(s), never a fake cloud link
+  openStepComponentDialog: () => void // Fusion Insert Component：STEP/STP/WebCAD JSON → independent assembly occurrence(s), never a fake cloud link
+  insertWebcadPartJson: (text: string, name: string) => Promise<void> // Insert Component JSON path：clone document bodies into new components under current assembly
   openStepBrepDialog: (asDerived?: boolean) => void  // STEP → B-rep stepbody 特征（入时间轴，可继续切/圆角/导出；asDerived=Fusion Derive 的非关联快照）
   importStep: (buf: ArrayBuffer, name: string) => Promise<void>
   importDxf: (text: string, height?: number, opt?: ImportVecOpt, parseCache?: { profiles: unknown[]; texts: unknown[]; note: string; skipped: string[]; layers: string[]; stats?: unknown }) => Promise<void>
@@ -23473,20 +23475,170 @@ export const useApp = create<AppState>((rawSet, get) => {
   // it creates one or more independent assembly occurrences, preserving a STEP
   // assembly's relative placement.  A browser cannot establish Fusion's cloud
   // F3D live reference, so we never present this snapshot import as one.
+  // Also accepts saved WebCAD part/project .json — insert as independent components
+  // (open-part-into-assembly), never replacing the current document (File ▸ Open does that).
   openStepComponentDialog: () => {
+    if (typeof document === 'undefined') { set({ status: '此環境無法開啟檔案選取器' }); return }
     const inp = document.createElement('input')
-    inp.type = 'file'; inp.accept = '.step,.stp'
+    inp.type = 'file'; inp.accept = INSERT_COMPONENT_ACCEPT
+    const host = (document as Document).body as HTMLElement | undefined
+    if (inp.style) { inp.style.position = 'fixed'; inp.style.left = '-9999px'; inp.style.opacity = '0' }
+    if (host?.appendChild) host.appendChild(inp)
+    const cleanup = () => { try { inp.remove?.() } catch { /* already gone */ } }
     inp.onchange = async () => {
-      const f = inp.files?.[0]; if (!f) return
+      const f = inp.files?.[0]
+      cleanup()
+      if (!f) return
       const limit = 32 * 1024 * 1024
       if (f.size > limit) {
-        set({ status: `插入組件：STEP 檔案 ${(f.size / 1048576).toFixed(1)}MB 超過 ${limit / 1048576}MB 安全匯入上限；請先在外部簡化模型。` })
+        set({ status: `插入組件：檔案 ${(f.size / 1048576).toFixed(1)}MB 超過 ${limit / 1048576}MB 安全匯入上限；請先在外部簡化模型。` })
         return
       }
-      set({ status: `正在插入 STEP 組件「${f.name}」…（讀取裝配結構、相對位置與可用顏色）` })
-      await get().importStep(await f.arrayBuffer(), f.name.replace(/\.[^.]+$/, ''))
+      const base = f.name.replace(/\.[^.]+$/, '')
+      try {
+        const buf = await f.arrayBuffer()
+        const kind = detectInsertComponentKind(f.name, bufferHeadText(buf))
+        if (kind === 'json') {
+          set({ status: `正在插入 WebCAD 零件「${f.name}」…（作為獨立組件加入當前設計，不取代現有模型）` })
+          await get().insertWebcadPartJson(new TextDecoder().decode(buf), base)
+          return
+        }
+        if (kind === 'step') {
+          set({ status: `正在插入 STEP 組件「${f.name}」…（讀取裝配結構、相對位置與可用顏色）` })
+          await get().importStep(buf, base)
+          return
+        }
+        set({ status: INSERT_COMPONENT_BAD_FILE })
+      } catch (e) {
+        set({ status: mapInsertComponentError(e) })
+      }
     }
+    inp.addEventListener?.('cancel', () => { cleanup() })
     inp.click()
+  },
+  // WebCAD part/project JSON → independent component(s) under the current assembly.
+  // Preserves parametric src when the file has an active feature tree; rematerializes
+  // existing components/defs with fresh ids so they do not collide with the host doc.
+  insertWebcadPartJson: async (text, name) => {
+    set({ busy: true, status: `正在插入 WebCAD 零件「${name || '零件'}」…` })
+    const s0 = get()
+    const restoreWorker = async () => {
+      try {
+        const cur = get()
+        const bound = applyParamBindings(cur.features, cur.params, cur.paramBindings)
+        await cad.rebuild(expandFeats(bound.filter((f) => !cur.suppressedIds.includes(f.id))))
+      } catch { /* host body restore best-effort */ }
+    }
+    try {
+      let data: unknown
+      try { data = JSON.parse(text) } catch {
+        set({ status: INSERT_COMPONENT_BAD_FILE }); return
+      }
+      if (!looksLikeWebcadDoc(data)) { set({ status: INSERT_COMPONENT_BAD_FILE }); return }
+      const d = (Array.isArray(data) ? { features: data } : data) as Record<string, unknown>
+      const rawFeats: Feature[] = Array.isArray(d.features) ? (d.features as Feature[]).map((f) => ({ ...f })) : []
+      for (const f of rawFeats) if (!f.id) f.id = fid()
+      const rawComps = (Array.isArray(d.components) ? d.components : []) as AppState['components']
+      const sketchSources = normalizeSrcs(d.sketchSources)
+      const fileParams = (Array.isArray(d.params) ? d.params : []) as Parameter[]
+      const fileBindings = (d.paramBindings && typeof d.paramBindings === 'object' ? d.paramBindings : {}) as AppState['paramBindings']
+      const fileSup = (Array.isArray(d.suppressedIds) ? d.suppressedIds : []) as string[]
+      const addedOcc: AppState['components'] = []
+      const addedDefs: AppState['componentDefs'] = []
+      let defsAcc = s0.componentDefs
+      const placeOf = (pos: [number, number, number] | undefined): [number, number, number] =>
+        [(pos?.[0] ?? 0) + s0.originX, pos?.[1] ?? 0, pos?.[2] ?? 0]
+
+      // Path A — file already has assembly components: clone defs/occs with fresh ids.
+      if (rawComps.length) {
+        const mig = migrateComponentDefs(d.componentDefs, rawComps)
+        for (const c of mig.components) {
+          const mesh = c.mesh
+          if (!mesh?.vertices?.length || !mesh?.triangles?.length) continue
+          const nid = nextCid([...s0.components, ...addedOcc])
+          const oldDef = c.defId ? mig.componentDefs.find((dd) => dd.id === c.defId) : undefined
+          if (oldDef) {
+            const newDef = { ...cloneDef(defsAcc, oldDef), name: c.name || oldDef.name }
+            const occ = {
+              id: nid, name: c.name || name || nid, mesh: newDef.mesh, pos: placeOf(c.pos as [number, number, number] | undefined),
+              defId: newDef.id, _rev: 0,
+              ...(c.color ? { color: c.color } : {}),
+              ...(newDef.src !== undefined ? { src: newDef.src } : {}),
+            } as AppState['components'][number]
+            defsAcc = [...defsAcc, newDef]; addedDefs.push(newDef); addedOcc.push(occ)
+          } else {
+            const { def, occ } = makeDefOcc(
+              defsAcc, nid, c.name || name || ('組件' + (addedOcc.length + 1)), mesh, placeOf(c.pos as [number, number, number] | undefined),
+              { color: c.color || COMP_PALETTE[(s0.components.length + addedOcc.length) % COMP_PALETTE.length], ...(c.src !== undefined ? { src: c.src } : {}) },
+            )
+            defsAcc = [...defsAcc, def]; addedDefs.push(def); addedOcc.push(occ as AppState['components'][number])
+          }
+        }
+      }
+
+      // Path B — active feature tree → rebuild meshes, insert as independent component(s) with src.
+      const hasSolidFeat = rawFeats.some((f) => f.type !== 'sketch' && f.type !== 'datum')
+      if (hasSolidFeat) {
+        let mesh: MeshData | null = null
+        try {
+          const active = rawFeats.filter((f) => !fileSup.includes(f.id))
+          const bound = fileParams.length
+            ? applyParamBindings(active, fileParams.map((p) => ({ ...p, id: parameterId(p) })), fileBindings)
+            : active
+          mesh = await cad.rebuild(expandFeats(bound))
+        } catch (e) {
+          await restoreWorker()
+          set({ status: mapInsertComponentError(e) }); return
+        }
+        await restoreWorker()
+        const live = mesh ? splitLiveBodies(mesh) : []
+        if (!live.length && !(mesh?.vertices?.length && mesh?.triangles?.length)) {
+          // no solid from features — fall through; may still have Path A comps
+        } else {
+          const bodies = live.length ? live : [{ mesh: mesh!, active: true, name: name || '組件' }]
+          const srcSnap = {
+            features: JSON.parse(JSON.stringify(rawFeats)) as Feature[],
+            sketchSources: JSON.parse(JSON.stringify(sketchSources)) as AppState['sketchSources'],
+          }
+          const baseName = (typeof d.projectName === 'string' && d.projectName.trim()) ? d.projectName.trim() : (name || '組件')
+          bodies.forEach((lb, i) => {
+            if (!lb.mesh?.vertices?.length || !lb.mesh?.triangles?.length) return
+            const nid = nextCid([...s0.components, ...addedOcc])
+            const nm = bodies.length > 1
+              ? `${baseName}·${(lb as { name?: string }).name || ('實體' + (i + 1))}`
+              : baseName
+            const { def, occ } = makeDefOcc(
+              defsAcc, nid, nm, lb.mesh, [s0.originX + i * 10, 0, 0],
+              {
+                color: COMP_PALETTE[(s0.components.length + addedOcc.length) % COMP_PALETTE.length],
+                defIdOffset: i,
+                ...(lb.active ? { src: srcSnap } : {}),
+              },
+            )
+            defsAcc = [...defsAcc, def]; addedDefs.push(def); addedOcc.push(occ as AppState['components'][number])
+          })
+        }
+      } else {
+        await restoreWorker()
+      }
+
+      if (!addedOcc.length) { set({ status: INSERT_COMPONENT_EMPTY }); return }
+
+      set({
+        undoStack: [...s0.undoStack, docSnap(s0)].slice(-60), redoStack: [],
+        components: [...s0.components, ...addedOcc],
+        componentDefs: [...s0.componentDefs, ...addedDefs],
+        originX: s0.originX + 130,
+        selectedComponent: addedOcc[0].id,
+        status: `已插入 WebCAD 零件「${name || addedOcc[0].name}」：${addedOcc.length} 個獨立組件（未取代當前設計；可雙擊編輯帶參數來源的組件）`,
+      })
+      get().requestFit()
+    } catch (e) {
+      await restoreWorker()
+      set({ status: mapInsertComponentError(e) })
+    } finally {
+      set({ busy: false })
+    }
   },
   // STEP 导入保留 B-rep（T729）：STEP 做时间轴 stepbody 特征 — 导入件可以继续切/圆角/抽壳/再导出 STEP。
   openStepBrepDialog: (asDerived = false) => {
@@ -23530,8 +23682,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
     } catch { /* 装配路失败 → 单件路兜底 */ }
     let mesh: MeshData | null = null
-    try { mesh = await cad.importStep(buf) } catch { set({ status: 'STEP 匯入失敗：檔案無法解析（可能損壞或非 STEP）' }); return } // defensive: never let a malformed STEP throw unhandled
-    if (!mesh || !mesh.vertices.length) { set({ status: 'STEP 匯入失敗或為空' }); return }
+    try { mesh = await cad.importStep(buf) } catch (e) { set({ status: mapInsertComponentError(e) }); return } // defensive: map kernel English (e.g. This shape has not type) → Formal TC
+    if (!mesh || !mesh.vertices.length) { set({ status: INSERT_COMPONENT_STEP_FAIL }); return }
     const comps = get().components
     const nid = nextCid(comps)
     const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('导入' + (comps.length + 1)), mesh, [get().originX, 0, 0], { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence

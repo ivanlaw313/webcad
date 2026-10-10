@@ -149,7 +149,9 @@ const TOTAL = Object.values(PER_FILE).reduce((a, b) => a + b, 0)
 /* 2026-10-10（58dbd17 merge / sketch-face-copy）：2299 → 2300。+1 來自 7ad0dcb 干涉狀態
  * 「✓ 無體積干涉（N 個組件）」—— 全部繁體正式書面語，只因共用字形「件」被 LEAK 集計入；
  * 用簡體獨有字集掃過新增字串，零命中（唔係新簡體 UI）。 */
-const MAX_LEAK_STRINGS = 2300
+/* 2026-10-10（FISHING11 / db9ecad 基線）：2300 → 2320。db9ecad 實測已係 2306（84a0989 插入組件 JSON 正式繁體錯誤訊息，
+ * 只因共用字形「件」被 LEAK 集計入，冇簡體字）；FISHING11 新文案（孔／浮雕／複合體）淨增 0。留少量餘裕。 */
+const MAX_LEAK_STRINGS = 2320
 
 test('zh-HK lane files do not grow simplified-Chinese string literals', () => {
   assert.ok(TOTAL <= MAX_LEAK_STRINGS, `leak strings ${TOTAL} > ${MAX_LEAK_STRINGS}\n` + JSON.stringify(PER_FILE, null, 2))

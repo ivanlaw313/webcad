@@ -16887,7 +16887,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const f: Feature = blind
           ? { id: fid(), type: 'ithread', d: nom, pitch, height: depth, x: cx, y: cy, z0: Math.max(0, top - depth) }
           : { id: fid(), type: 'ithread', d: nom, pitch, height: top, x: cx, y: cy }
-        await get().applyFeatures([...fs, f], `已攻建模螺纹 M${nom}×${pitch}${fine ? '细牙' : ''}（真螺旋牙 · ${blind ? '盲 深' + depth.toFixed(0) : '通'}${at}；compound — 之後不要再倒角/導 STEP，STL 正常）`, true, '⚠ 建模螺纹失败 — 已回退（可改用净底孔模式）')
+        await get().applyFeatures([...fs, f], `已攻建模螺紋 M${nom}×${pitch}${fine ? '細牙' : ''}（真螺旋牙 · ${blind ? '盲 深' + depth.toFixed(0) : '通'}${at}；複合體 — 之後不要再倒角/導 STEP，STL 正常）`, true, '⚠ 建模螺纹失败 — 已回退（可改用净底孔模式）')
         return
       }
       const baseZ = blind ? top - depth : 0
@@ -19670,7 +19670,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       f = { id: fid(), type: 'othread', ...(oFrame && !d.editId ? { frame: oFrame } : {}), d: +p.d, pitch: Math.max(0.3, +p.pitch), height: +p.height, x: +(p.x || 0), y: +(p.y || 0), z0: +(p.z0 || 0) + oToff, cosmetic: +(p.modeled || 0) ? undefined : true, lefthand: +(p.lefthand || 0) ? true : undefined, cls: oCls, standard: oStd }   // #thread：左旋牙 value-or-undefined（edit 可清）；S11 cls/standard/局部偏移
       const dep = Math.min(+p.pitch * 0.6, (+p.d / 2) * 0.45)
       msg = +(p.modeled || 0)
-        ? `已在圓柱面包真螺旋牙 Ø${+p.d} 螺距${+p.pitch}（牙向外 +${dep.toFixed(1)}mm，复合體 — 之後不要倒角/STEP 導出，STL 正常）`
+        ? `已在圓柱面包真螺旋牙 Ø${+p.d} 螺距${+p.pitch}（牙向外 +${dep.toFixed(1)}mm，複合體 — 之後不要倒角/STEP 導出，STL 正常）`
         : `已包 cosmetic 螺紋標註 M${+p.d}×${+p.pitch}（外观螺旋线圈，B-rep 乾净 — 可继续圆角/抽壳/STEP；要真牙勾「建模螺纹」）`
     } else if (d.kind === 'ithread') {
       // P2：内螺纹对话框 commit — 直接走 addInternalThread（同 pattern/revolve 一样早 return，唔行共享尾）
@@ -22327,7 +22327,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // GM-3DV1 S11：cls/standard 纯元数据（配合等级/标准库），value-or-omit 保旧档逐字节。
     const f: Feature = { id: fid(), type: 'ithread', ...(frame ? { frame } : {}), d: Math.max(1, d), pitch: Math.max(0.3, pitch), height: Math.max(pitch, height), x: cx || 0, y: cy || 0, ...(z0 > 0 ? { z0 } : {}), ...(modeled ? {} : { cosmetic: true }), ...(lefthand ? { lefthand: true } : {}), ...(cls ? { cls } : {}), ...(standard && standard !== 'iso' ? { standard } : {}) }
     const okMsg = modeled
-      ? `已攻内螺纹 M${d}×${pitch}（深 ${height}mm${z0 > 0 ? ` · 孔底 z${z0}` : ''} · 真螺旋牙，重疊水密殼，STL 打印有效；compound — 之後不要再倒圓角/導 STEP）`
+      ? `已攻內螺紋 M${d}×${pitch}（深 ${height}mm${z0 > 0 ? ` · 孔底 z${z0}` : ''} · 真螺旋牙，重疊水密殼，STL 打印有效；複合體 — 之後不要再倒圓角/導 STEP）`
       : `已加 cosmetic 內螺紋標註 M${d}×${pitch}（深 ${height}mm · 外观螺旋线圈，B-rep 乾净 — 可继续圆角/抽壳/STEP；要真牙勾「建模螺纹」；孔身用「孔」工具钻）`
     await get().applyFeatures([...get().features, f], okMsg, true, '⚠ 内螺纹几何失败 — 已退回光孔/原状（OCCT-wasm 螺旋布尔限制）')
   },

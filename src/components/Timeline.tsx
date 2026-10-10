@@ -309,7 +309,7 @@ export default function Timeline() {
               const m = META[f.type] || { icon: 'default', label: f.type, param: '', field: '', unit: '' }   // 兜底：未知/新版特徵类型唔会令时间轴 crash
               const r = f as unknown as Record<string, unknown>
               const isCut = r.operation === 'cut' || r.op === 'cut'  // extrude uses `operation`, the rest use `op`
-              const label = (f as unknown as { name?: string }).name || (f.type === 'extrude' && f.operation === 'cut' ? '切割' : m.label)   // GM-W6 F2：有自订名（浏览树双击改）就显示自订名
+              const label = (f as unknown as { name?: string }).name || (f.type === 'text' && (f as { arbPlane?: unknown }).arbPlane ? '浮雕' : f.type === 'extrude' && f.operation === 'cut' ? '切割' : m.label)   // GM-W6 F2：自订名优先；FISHING11 P3：emboss(arbPlane)→浮雕
               const threadTag = (f.type === 'othread' || f.type === 'ithread') ? ` M${f.d}×${f.pitch}${f.cosmetic ? '（cosmetic 外觀）' : '（真牙）'}` : ''   // P2 Cosmetic：designation 入 tooltip
               // GM-G4b：悬停 tooltip 领头 = 类型 + 名称 + 关键参数值（前 3 个字段；选项字段显示中文标签）。纯 title 文案，唔改任何行为。
               const paramSummary = (() => {

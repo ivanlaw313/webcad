@@ -6359,15 +6359,21 @@ function buildShape(features: Feature[], noCache = false): any {
         if (f.arbPlane) {
           // S162 Emboss：喺拾中嘅面上落字，沿面法向 raise（fuse，向外 +th）/ engrave（cut，向内 −th）。
           // 镜 arbPlane extrude:1176-1183 直接布尔（唔行 merge()）—— merge cut 用世界 -Z nudge，对非 +Z 面会歪 + 无 overshoot 令文字外盖同面共面（布尔失败）。
-          // 改：cut 沿真面法向 overshoot（−(th+1)）+ 直接 shape.cut；boss/intersect 同 arbPlane extrude 一致。
+          // 改：cut 沿真面法向 overshoot（−(th+1)）+ 直接 shape.cut。
+          // FISHING11 P2：凸起 fuse 唔好用裸 shape.fuse — 曲面（圆柱侧）切平面共面/相切时 OCCT 会「成功」但体残缺（预览体积变细、同确定后不一致）。
+          //   工具体沿面法向微沉 eps 再 fuseRobust（同 arbPlane extrude 凸台），保证与母体有体积重叠；预览／提交同一路径。
           const ap = f.arbPlane
+          const nl = Math.hypot(ap.n[0], ap.n[1], ap.n[2]) || 1
+          const nn: [number, number, number] = [ap.n[0] / nl, ap.n[1] / nl, ap.n[2] / nl]
           const pl = new RPlane(ap.o as any, ap.xd as any, ap.n as any)
           const op = f.op || 'new'
-          const solid = (d as any).sketchOnPlane(pl).extrude(op === 'cut' ? -(th + 1) : th)
+          const eps = 0.02
+          let solid = (d as any).sketchOnPlane(pl).extrude(op === 'cut' ? -(th + 1) : (th + eps))
+          if (op !== 'cut') solid = solid.translate(-nn[0] * eps, -nn[1] * eps, -nn[2] * eps)  // 沉入母体 eps → 真重叠，曲面切面相切不再假成功
           if (!shape) shape = solid
           else if (op === 'cut') { _recordBool(_i, 'cut', solid); shape = shape.cut(solid) }   // GM-γ2b：面上刻/凸字 = 单布尔 → 录工具体供 S2
           else if (op === 'intersect') { _recordBool(_i, 'intersect', solid); shape = shape.intersect(solid) }
-          else { _recordBool(_i, 'fuse', solid); shape = shape.fuse(solid) }
+          else { _recordBool(_i, 'fuse', solid); shape = fuseRobust(shape, solid, nn) }
         } else {
           merge((d as any).sketchOnPlane(f.plane && f.plane !== 'XY' ? f.plane : 'XY', f.baseZ || 0).extrude(th), f.op || 'new')
         }
@@ -6697,7 +6703,10 @@ const api = {
         ? parkedBodies.slice(Math.max(0, parkedFrom)).map((b) => { try { return { name: b.name, ...meshOf(b.shape, { preview: true }) } } catch { return null } }).filter(Boolean) as NonNullable<MeshData['parked']>
         : undefined
       const base = shape ? meshOf(shape, { preview: true }) : { vertices: [], triangles: [], normals: [] } as unknown as MeshData
-      return { ...base, ...(pk ? { parked: pk } : {}), warnings: buildWarnings.length ? buildWarnings.slice() : undefined, failed: failedFeatures.length ? failedFeatures.slice() : undefined }
+      // FISHING11 P2：预览体积用 B-rep（同 rebuild.volumeExact），唔好单靠粗网格体积（曲面/圆柱会低估，对话框「同确定后一样」会假）
+      let volumeExact: number | undefined
+      try { if (shape) { const v = Math.abs(measureVolume(shape)); if (Number.isFinite(v) && v > 0) volumeExact = v } } catch { /* 网格体积做后备 */ }
+      return { ...base, ...(volumeExact != null ? { volumeExact } : {}), ...(pk ? { parked: pk } : {}), warnings: buildWarnings.length ? buildWarnings.slice() : undefined, failed: failedFeatures.length ? failedFeatures.slice() : undefined }
     } catch (e) { console.error('[cad.worker] previewRound failed:', e); return null }
     finally {
       // Keep __webcadShellStats from this preview for diagnostics; only restore commit caps.

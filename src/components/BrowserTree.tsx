@@ -74,6 +74,7 @@ const FEAT: Record<string, { icon: string; label: string }> = {
   pattern: { icon: 'pattern', label: '陣列' },
   prim: { icon: 'box', label: '原語' },
   thread: { icon: 'default', label: '螺紋桿' },
+  hole: { icon: 'hole', label: '孔' },
   ithread: { icon: 'hole', label: '內螺紋孔' },
   cylpatch: { icon: 'default', label: '曲面貼花' },
   sheetmetal: { icon: 'default', label: '鈑金件' },
@@ -255,7 +256,9 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
   const selected = useApp((s) => s.selectedFeature)
   const err = useApp((s) => s.featureErrors[f.id])
   const selectFeature = useApp((s) => s.selectFeature)
-  const meta = FEAT[f.type] || { icon: 'default', label: f.type }   // 兜底：未知/新版/cast 类型都唔会 undefined.icon crash
+  const meta0 = FEAT[f.type] || { icon: 'default', label: f.type }   // 兜底：未知/新版/cast 类型都唔会 undefined.icon crash
+  // FISHING11 P3：浮雕命令落嘅 text（有 arbPlane）树名显示「浮雕」；旧 XY 文字仍叫「文字」
+  const meta = (f.type === 'text' && (f as { arbPlane?: unknown }).arbPlane) ? { icon: meta0.icon === 'default' ? 'emboss' : meta0.icon, label: '浮雕' } : meta0
   const custom = (f as { name?: string }).name
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')

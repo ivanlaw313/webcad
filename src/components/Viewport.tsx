@@ -6929,7 +6929,9 @@ export default function Viewport() {
           )}
           {(() => { const w = patternOverlapWarning(featDlg, meshBboxSize(bodyMesh)); return w ? <div role="status" data-testid="pattern-overlap-warning" style={{ color: '#b54708', fontSize: 12, marginBottom: 6 }}>{tStatus(w, lang)}</div> : null })()}
           {!featDlgBlockingReason(featDlg) && editPreviewMesh && featDlg.kind !== 'extrude-edit' && (() => {
-            const vt = meshVolumeMm3(editPreviewMesh.vertices, editPreviewMesh.triangles) + (editPreviewMesh.parked ?? []).reduce((a, pb) => a + meshVolumeMm3(pb.vertices, pb.triangles), 0)
+            // FISHING11 P2：優先 B-rep volumeExact（previewRound 同 rebuild），粗网格体积只做后备 — 曲面浮雕先唔会低估／同确定后对唔齐
+            const ve = (editPreviewMesh as { volumeExact?: number }).volumeExact
+            const vt = (ve != null && ve > 0) ? ve : meshVolumeMm3(editPreviewMesh.vertices, editPreviewMesh.triangles) + (editPreviewMesh.parked ?? []).reduce((a, pb) => a + meshVolumeMm3(pb.vertices, pb.triangles), 0)
             return <div data-testid="feat-preview-volume" style={{ fontSize: 11, color: '#16a36b', marginBottom: 6 }}>{tStatus('即時預覽（同確定後結果一樣）', lang)} · {tStatus(featDlg.kind === 'splitbody' ? '活動實體體積' : '體積', lang)} {vt >= 1000 ? (vt / 1000).toFixed(2) + ' cm³' : vt.toFixed(1) + ' mm³'}</div>
           })()}
           {featDlg.kind === 'shell-edit' && !(+featDlg.params.thickness > 0) && <div role="alert" data-testid="shell-edit-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div>}

@@ -1,9 +1,9 @@
 import { useEscapeLayer } from './useEscapeLayer'
-import { useRef, useState, useEffect, type ReactNode } from 'react'
+import { useRef, useState, useEffect, type ReactNode, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { ToolIcon } from '../icons'
 import { useApp } from '../store'
 import { tStatus, msg } from '../i18n'
-import { fieldKeyOwner } from '../ui/fieldInput'
+import { fieldKeyOwner, trapTabIndex, FOCUSABLE_SEL } from '../ui/fieldInput'
 
 // 可拖拽数字栏（Fusion/Blender 式）：喺命令对话框（.cmd-palette-body）任何数字输入上【左右拖】= 改值，
 // 唔使打字；对话框本来实时预览 → 拖即见模型变化。拖动 <4px 当普通点击（照样可 focus 打字）。
@@ -78,6 +78,9 @@ export function CommandDialog({ icon = 'default', title, okLabel = '確定', okD
   // could accidentally trigger another shortcut instead of changing a field.
   useEffect(() => {
     const id = window.setTimeout(() => {
+      // FISHING14 P2：用家已經喺面板入面（點咗／Tab 咗某欄）就唔好搶焦點兼全選第一欄
+      const ae = document.activeElement
+      if (ae && ae !== dialogRef.current && dialogRef.current?.contains(ae)) return
       const first = dialogRef.current?.querySelector<HTMLElement>('input:not(:disabled), textarea:not(:disabled)') ?? dialogRef.current?.querySelector<HTMLElement>('select:not(:disabled), button:not(:disabled)')
       first?.focus()
       if (first instanceof HTMLInputElement) first.select()
@@ -96,6 +99,20 @@ export function CommandDialog({ icon = 'default', title, okLabel = '確定', okD
       dy: Math.max(8, Math.min(maxTop, baseTop + dy)) - baseTop,
     }
   }
+  /* FISHING14 P2：Tab／Shift+Tab 喺面板內循環 — 以前 Shift+Tab 由第一欄走出頁面去 Chrome 工具列，之後打嘅字落咗網址列。 */
+  const trapTab = (e: ReactKeyboardEvent): boolean => {
+    if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return false
+    const root = dialogRef.current
+    if (!root) return false
+    const list = [...root.querySelectorAll<HTMLElement>(FOCUSABLE_SEL)].filter((el) => !el.closest('[hidden]') && el.getClientRects().length > 0)
+    const next = trapTabIndex(list.length, list.indexOf(document.activeElement as HTMLElement), e.shiftKey)
+    if (next == null) return false
+    e.preventDefault()
+    const el = list[next]
+    el.focus()
+    if (el instanceof HTMLInputElement && el.type === 'text') el.select()
+    return true
+  }
   useEffect(() => {
     const repair = () => setOff((cur) => { const next = clampOffset(cur.dx, cur.dy); return next.dx === cur.dx && next.dy === cur.dy ? cur : next })
     const observer = new ResizeObserver(repair)
@@ -112,6 +129,7 @@ export function CommandDialog({ icon = 'default', title, okLabel = '確定', okD
       role="dialog" aria-modal="true" tabIndex={-1}
       aria-label={tStatus(title, lang)}
       style={{ width, maxWidth: 'calc(100vw - 16px)', maxHeight: 'calc(100vh - 16px)', transform: off.dx || off.dy ? `translate(${off.dx}px, ${off.dy}px)` : undefined }}
+      onKeyDownCapture={(e) => { if (!e.nativeEvent.isComposing && trapTab(e)) e.stopPropagation() }}
       onKeyDown={(e) => {
         // Numeric CAD command dialogs must submit with Enter just like Fusion.
         // Keep multi-line text editing intact, and never submit while an IME

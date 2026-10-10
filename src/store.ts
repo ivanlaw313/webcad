@@ -1,4 +1,5 @@
 import { offsetPatternSources } from './sketch/offsetPatternSources'
+import { sketchDimLabel } from './sketch/dimLabel'
 import { boltCircleCenters, boltCircleCount, checkBoltCircle } from './cad/boltCircle'
 import { resolvePatternTargets, type PatternSelectionRef } from './sketch/patternSourceSelection'
 import { captureSketchParameters, restoreSketchParameters, type SketchParameterSnapshot } from './sketch/sketchParameterHistory'
@@ -9478,7 +9479,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     const c = s.skCons.find((x) => x.id === id)
     if (!c) { set({ skSelCon: null }); return }
-    const nm = c.kind === 'dim' ? `尺寸 ${c.name ?? ''}（${c.type}）` : `約束「${SK_CON_ZH[c.type] ?? c.type}」`
+    const nm = c.kind === 'dim' ? `尺寸 ${c.name ?? ''}（${sketchDimLabel(c, s.unit === 'inch' ? 'inch' : 'mm')}）` :   // FISHING14 P3：唔再印內部類型「rad」
+      `約束「${SK_CON_ZH[c.type] ?? c.type}」`
     set({ skSelCon: id, skSel: [], skPendingPt: null, skPendingPair: null, skPendingEdge: null, status: `已選中${nm} — 按 Delete 移除（其關聯幾何已高亮）` })
   },
   addSkCon: async (t) => {

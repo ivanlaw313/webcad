@@ -11,7 +11,8 @@ import { FormTransformFields } from './FormTransformFields'
 import { FormPalette } from './FormPalette'
 import { activeModelCommand } from '../cad/commandAvailability'
 import { ExpressionInput } from './ExpressionInput'
-import { useMemo, useState, useRef, useEffect, useId, Fragment, lazy, Suspense, type ReactNode, type CSSProperties } from 'react'
+import { useMemo, useState, useRef, useEffect, useId, Fragment, lazy, Suspense, createContext, useContext, type ReactNode, type CSSProperties } from 'react'
+import { createSettledCommit, PRIM_PANEL_KINDS } from '../ui/fieldInput'
 import { Canvas, useThree, useFrame, type ThreeEvent } from '@react-three/fiber'
 import { PMREMGenerator } from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'   // T783：HDRI 渲染（three 内置，离线可用，MIT）
@@ -115,7 +116,7 @@ import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按
 import { ToolIcon } from '../icons'
 import { featDlgBlockingReason, patternOverlapWarning } from '../cad/featDlgNumeric'   // 純邏輯模組，唔經 monolith
 import { startRenderGovernor } from '../render/renderGovernor'
-import { PRIM_PLACE_KINDS, shellFailReason } from '../store'   // UX3 #2 / CORE16 b4
+import { PRIM_PLACE_KINDS, FEAT_DLG_DRY_PREVIEW_KINDS, shellFailReason } from '../store'   // UX3 #2 / CORE16 b4
 import { useApp, holeBlindOverrun, meshBboxSize, extrudePreviewKey, extrudePreviewCurrent, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
@@ -3601,6 +3602,28 @@ function lenFieldReason(raw: string | null, unit: LenUnit, label: string, max = 
   if (v > max) return `尺寸已拒絕：${label}超出上限 ${max} mm`
   return ''
 }
+/* FISHING14 P2：基本體面板欄位 = 本地草稿 + 停手／Tab／Enter／失焦先寫 store（見 ui/fieldInput.ts）。
+ * 其他對話框（孔、拉伸…）照舊每粒鍵即寫，唔受影響。 */
+const PrimFieldCtx = createContext(false)
+function useSettledField(report: (raw: string) => void) {
+  const settle = useContext(PrimFieldCtx)
+  const reportRef = useRef(report); reportRef.current = report
+  const ref = useRef<ReturnType<typeof createSettledCommit> | null>(null)
+  if (!ref.current) ref.current = createSettledCommit((raw) => reportRef.current(raw))
+  useEffect(() => () => { ref.current?.flush() }, [])   // 卸載（確定／取消關面板）前最後寫一次
+  const selectOnMouseUp = useRef(false)
+  return {
+    settle,
+    change: (raw: string) => { if (settle) ref.current!.push(raw); else report(raw) },
+    flush: () => { ref.current!.flush() },
+    /** 聚焦即全選（Fusion 式；Tab 入嚟直接打字＝取代），滑鼠點嘅 mouseup 唔會清走選取。 */
+    focusProps: settle ? {
+      onMouseDown: (e: React.MouseEvent<HTMLInputElement>) => { selectOnMouseUp.current = document.activeElement !== e.currentTarget },
+      onMouseUp: (e: React.MouseEvent<HTMLInputElement>) => { if (selectOnMouseUp.current) { selectOnMouseUp.current = false; e.preventDefault(); e.currentTarget.select() } },
+      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter' || e.key === 'Tab') ref.current!.flush() },
+    } : {},
+  }
+}
 function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: number; onMm: (v: number) => void; /** BD16-02：每次改都報【原文】（連 parse 失敗都報）—— onMm 喺 parse 失敗嗰陣根本唔會 call，所以父層單靠 onMm 永遠唔知道欄位而家係非法／空白。 */ onText?: (raw: string) => void; unit: LenUnit; w?: number; min?: number; max?: number; title?: string }) {
   const [txt, setTxt] = useState(() => toLenInput(mm, unit))
   const [foc, setFoc] = useState(false)
@@ -3663,6 +3686,8 @@ function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: num
    *       冇 effect、冇同步窗口，所以欄位根本冇可能同 model 唔一致。
    *       只有聚焦中／打錯緊／清空咗才顯示用戶自己嗰串字（BUG-409 要嘅行為）。 */
   const shown = (foc || bad || blank) ? txt : toLenInput(mm, unit)
+  // BUG-SO18F-001: notify parent even when below min (Ø-1) so preview/confirm can reject+clear instead of keeping a stale legal value.
+  const fld = useSettledField((raw) => { const v = parseLen(raw, unit); if (v != null && !(max != null && v > max) && !(min != null && v < min)) onMm(v); onText?.(raw) })
   const reason = overMax
     ? `超出上限 ${max} mm（輸入：「${txt.trim()}」）`
     : underMin
@@ -3674,13 +3699,13 @@ function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: num
     <input
       type="text" inputMode="decimal" value={shown} title={reason || title} aria-label={title || '數值輸入'}
       aria-invalid={bad || blank || undefined}
-      onFocus={() => setFoc(true)}
+      {...fld.focusProps}
+      onFocus={(e) => { setFoc(true); if (fld.settle) e.currentTarget.select() }}
       /* ★ 唔好 snap ★：打錯咗／清空咗要睇得到，唔係畀人靜靜換走。
        * BD16-02：QA 報「清空仍靜默變返 80」—— 舊版 blank 唔算 bad，於是 onBlur 照 snap。
        * 而家 blank 同 bad 一樣唔 snap。 */
-      onBlur={() => { setFoc(false); if (!bad && !blank) setTxt(toLenInput(mm, unit)) }}
-      // BUG-SO18F-001: notify parent even when below min (Ø-1) so preview/confirm can reject+clear instead of keeping a stale legal value.
-      onChange={(e) => { setTxt(e.target.value); const v = parseLen(e.target.value, unit); if (v != null && !(max != null && v > max) && !(min != null && v < min)) onMm(v); onText?.(e.target.value) }}
+      onBlur={() => { fld.flush(); setFoc(false); if (!bad && !blank) setTxt(toLenInput(fld.settle && parsed != null ? parsed : mm, unit)) }}
+      onChange={(e) => { setTxt(e.target.value); fld.change(e.target.value) }}
       style={{ width: w, ...(bad || blank ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
     />
   )
@@ -4180,6 +4205,9 @@ export default function Viewport() {
     return () => { cancelled = true; clearTimeout(timer) }
   }, [featDlg, bodyMesh, editPreviewParams, editPreviewBindings, editPreviewSuppressed, editPreviewFeatures])
   const editPreviewMesh = useApp(s => s.editPreviewMesh)
+  // FISHING14 P2：記住預覽係為邊個 featDlg 計 → 參數改咗未重算就顯示「更新中…」，唔再把舊體積當即時結果
+  const [pvFor, setPvFor] = useState<{ mesh: unknown; dlg: unknown }>({ mesh: null, dlg: null })
+  useEffect(() => { setPvFor({ mesh: editPreviewMesh, dlg: useApp.getState().featDlg }) }, [editPreviewMesh])
   // CORE16：新拉伸對話框內核預覽 — 輸入停 250ms 先算（打字唔會卡）；舊結果一失效即退回即時近似鬼影
   const xPv = useApp(s => extrudePreviewCurrent(s))
   const xpKey = useApp(s => s.extrudeDlgOpen ? extrudePreviewKey(s) : '')
@@ -4885,7 +4913,7 @@ export default function Viewport() {
         // clicking the canvas blurs any focused input — otherwise single-letter shortcuts (D/E/F/...)
         // stay dead after typing in a field (the global keydown handler ignores INPUT targets)
         const ae = document.activeElement as HTMLElement | null
-        if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.tagName === 'TEXTAREA') && !(e.target as HTMLElement).closest?.('input,select,textarea,[data-dim-editor]')) ae.blur()   // dim editor's own ✓/✕/⋮ keep its input focused
+        if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.tagName === 'TEXTAREA') && !(e.target as HTMLElement).closest?.('input,select,textarea,[data-dim-editor],.cmd-palette')) ae.blur()   // FISHING14 P2：點面板空白／標籤唔好甩走欄位焦點（之後打嘅字會冇咗）   // dim editor's own ✓/✕/⋮ keep its input focused
         if (e.button === 2) rcDown.current = { x: e.clientX, y: e.clientY }
       }}
       onContextMenu={(e) => {
@@ -6925,6 +6953,24 @@ export default function Viewport() {
            * 唔好兩邊各寫一套 —— 兩套遲早會唔同步。*/
           !!featDlgBlockingReason(featDlg)
         )} onOk={() => void commitFeatDlg()} onCancel={() => cancelFeatDlg()}>
+          <PrimFieldCtx.Provider value={PRIM_PANEL_KINDS.has(featDlg.kind)}>
+          {PRIM_PANEL_KINDS.has(featDlg.kind) ? (() => {
+            /* FISHING14 P2：基本體面板頂只得【一行】訊息，而且預留固定高度 —— 錯誤／預覽／計算中互相取代，
+             * 欄位同「確定」唔會再因為訊息出現／消失而上下跳（以前 y 292↔320↔343，點擊落空／落錯欄）。 */
+            const block = featDlgBlockingReason(featDlg)
+            const primBad = (featDlg.kind === 'box' || featDlg.kind === 'wedge') && [featDlg.params.l, featDlg.params.w, featDlg.params.h].some((v) => !(+v > 0))
+            const ve = editPreviewMesh ? (editPreviewMesh as { volumeExact?: number }).volumeExact : undefined
+            const vt = !editPreviewMesh ? 0 : (ve != null && ve > 0) ? ve : meshVolumeMm3(editPreviewMesh.vertices, editPreviewMesh.triangles) + (editPreviewMesh.parked ?? []).reduce((a, pb) => a + meshVolumeMm3(pb.vertices, pb.triangles), 0)
+            const fresh = !!editPreviewMesh && pvFor.mesh === editPreviewMesh && pvFor.dlg === featDlg
+            const slot: CSSProperties = { height: 32, flex: '0 0 32px', overflowY: 'auto', fontSize: 11.5, lineHeight: 1.35 }
+            return <div data-testid="feat-msg-slot" aria-live="polite" style={slot}>
+              {block ? <div role="alert" data-testid="feat-numeric-alert" style={{ color: '#b42318' }}>尺寸已拒絕：{block}</div>
+                : primBad ? <div role="alert" data-testid="prim-illegal-alert" style={{ color: '#b42318' }}>{illegalRejectStatus(ILLEGAL_LENGTH_DETAIL)}</div>
+                : numBad ? <div role="alert" data-testid="feat-field-alert" style={{ color: '#b42318' }}>{tStatus(numBad, lang)}</div>
+                : editPreviewMesh && fresh ? <div data-testid="feat-preview-volume" style={{ color: '#16a36b' }}>{tStatus('即時預覽（同確定後結果一樣）', lang)} · {tStatus('體積', lang)} {vt >= 1000 ? (vt / 1000).toFixed(2) + ' cm³' : vt.toFixed(1) + ' mm³'}</div>
+                : FEAT_DLG_DRY_PREVIEW_KINDS.has(featDlg.kind) ? <div data-testid="feat-preview-pending" style={{ color: '#8a97a2' }}>{tStatus('即時預覽更新中…', lang)}</div> : null}
+            </div>
+          })() : <>
           {/* 真原因（含用戶打咗乜）—— 取代舊嘅籠統訊息。QA 實測舊行為：
             * 打 1e9 顯示「必須大於 0」、打 0 顯示「半徑太大」，理由完全錯。*/}
           {!!featDlgBlockingReason(featDlg) && (
@@ -6941,6 +6987,7 @@ export default function Viewport() {
           })()}
           {featDlg.kind === 'shell-edit' && !(+featDlg.params.thickness > 0) && <div role="alert" data-testid="shell-edit-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_THICKNESS_DETAIL)}</div>}
           {(featDlg.kind === 'box' || featDlg.kind === 'wedge') && [featDlg.params.l, featDlg.params.w, featDlg.params.h].some((v) => !(+v > 0)) && <div role="alert" data-testid="prim-illegal-alert" style={{ color: '#b42318', fontSize: 12, marginBottom: 6 }}>{illegalRejectStatus(ILLEGAL_LENGTH_DETAIL)}</div>}
+          </>}
           {featDlg.kind === 'extrude-edit' && <div role="status">{!currentEditPreview ? '正在計算上游預覽…' : currentEditPreview.failed ? '預覽失敗，請檢查距離及輪廓' : '上游預覽；確定後重建下游特徵'}</div>}
           {featDlg.editId && <div style={{ fontSize: 11, color: '#8a97a2', marginBottom: 4 }}>{tStatus('編輯模式：改參數 → 確定重建；稜/面選擇集及輪廓保留原值', lang)}</div>}
           {featDlg.kind === 'automatedmodel' && (() => {
@@ -7596,6 +7643,7 @@ export default function Viewport() {
             <button className="cs-btn" title={tStatus('兩面軸（S167）：點兩個【不平行】平面 → 沿其交線生成構造軸（折線/對稱中線/兩壁相交線）', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); useApp.getState().startDatumPick('planeaxis') }}>{tStatus('兩面軸', lang)}</button>
             <button className="cs-btn" title={tStatus('沿邊軸（S178）：點一條直邊 → 沿該邊方向生成構造軸（旋轉軸/環形陣列軸）', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); void useApp.getState().startEdgePointPick('edgeaxis') }}>{tStatus('沿邊軸', lang)}</button>
           </>)}
+          </PrimFieldCtx.Provider>
         </CommandDialog>
       )}
 
@@ -9350,21 +9398,21 @@ function FeatNum({ k, v, w = 56, unit = '', min, max, title }: { k: string; v: u
   // 除名只喺 unmount（見 NumInput 嘅 BUG-560 註）
   useEffect(() => () => reportNumericInvalid(gateId, null), [gateId, reportNumericInvalid])
   const shown = (foc || bad) ? txt : shownVal
+  const fld = useSettledField((raw) => {
+    const n = parse(raw)
+    const out = n != null && ((min != null && n < min) || (max != null && n > max))
+    setFeatParam(k, (n == null || out) ? NaN : n, raw)   // 連原文一齊傳 → 確定掣閂得到、理由夾得到原文
+  })
   return (
     <input
       type="text" inputMode="decimal" value={shown} style={{ width: w, ...(bad ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
       title={outRange ? `超出範圍${min != null ? ` 最小 ${min}` : ''}${max != null ? ` 最大 ${max}` : ''}（你打了「${txt.trim()}」）` : bad ? `不是有效數值（你打了「${txt.trim()}」）` : title} aria-label={title || undefined} aria-invalid={bad || undefined}
       /* ★ 唔好用 k 做 aria-label ★ 內部參數名（countX／dx）會蓋過旁邊可見嘅中文標籤，
        * 螢幕閱讀器反而讀到更差嘅名。冇 title 就留返畀 <label> 自己關聯。 */
-      onFocus={() => { setFoc(true); setTxt(shownVal) }}
-      onBlur={() => { setFoc(false); if (!bad) setTxt('') }}
-      onChange={(e) => {
-        const raw = e.target.value
-        setTxt(raw)
-        const n = parse(raw)
-        const out = n != null && ((min != null && n < min) || (max != null && n > max))
-        setFeatParam(k, (n == null || out) ? NaN : n, raw)   // 連原文一齊傳 → 確定掣閂得到、理由夾得到原文
-      }}
+      {...fld.focusProps}
+      onFocus={(e) => { setFoc(true); setTxt(shownVal); if (fld.settle) e.currentTarget.select() }}   // 同步全選；唔好延後（rAF 會把已打嘅第一個字再選走 → 「110」變「10」）
+      onBlur={() => { fld.flush(); setFoc(false); if (!bad) setTxt('') }}
+      onChange={(e) => { setTxt(e.target.value); fld.change(e.target.value) }}
     />
   )
 }

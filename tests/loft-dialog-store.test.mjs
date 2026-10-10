@@ -120,7 +120,7 @@ test('coincident sections fail with a clear Traditional reason in the preview', 
   ] }
   const r = await W.previewLoft(f)
   assert.equal(r.mesh, null)
-  assert.match(r.error, /放樣失敗：第 1 同第 2 個截面在同一位置/)
+  assert.match(r.error, /放樣失敗：第 1 與第 2 個截面在同一位置/)
 })
 
 test('a planar face of the body can be picked as a loft section (top face → circle above)', async () => {

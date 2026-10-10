@@ -3343,7 +3343,7 @@ type FeaSolveInput = { vertices: number[] | Float32Array; triangles: number[] | 
 // S105 统一撤销快照：一次过捕捉 11 个文档字段（5 旧 + 6 新：参数/绑定/抑制/逐面色/配合/分组）。
 // 接收 s / s2 / get() 任一 state-like 对象。新增字段在还原侧用 ?? 兜底（兼容旧 5 字段栈条目）。
 // T1/T2：human label for confirm/status text — custom name, else type label + timeline ordinal.
-const FEATURE_TYPE_LABEL: Record<string, string> = { extrude: '拉伸', extgroup: '拉伸', sketch: '草圖', revolve: '旋轉', sweep: '掃掠', loft: '放樣', fillet: '圓角', chamfer: '倒角', shell: '抽殼', hole: '孔', mirror: '鏡像', pattern: '陣列', circPattern: '環形陣列', pathpattern: '路徑陣列', draft: '拔模', rib: '加強筋', transform: '移動', scale: '縮放', pushpull: '按拉' }
+const FEATURE_TYPE_LABEL: Record<string, string> = { extrude: '拉伸', extgroup: '拉伸', sketch: '草圖', revolve: '旋轉', sweep: '掃掠', loft: '放樣', fillet: '圓角', chamfer: '倒角', shell: '抽殼', hole: '孔', mirror: '鏡像', pattern: '陣列', circPattern: '環形陣列', pathpattern: '路徑陣列', draft: '拔模', rib: '加強筋', transform: '移動', scale: '縮放', pushpull: '按拉', prim: '原語' }
 function featureDisplayName(f: Feature, all: readonly Feature[]): string {
   const custom = (f as { name?: string }).name
   if (custom) return custom

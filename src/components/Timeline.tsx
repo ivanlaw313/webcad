@@ -1,4 +1,5 @@
 import { plainFeatureError } from '../ui/featureStatus'
+import { chamferTimelineParamSummary } from '../ui/chamferLabel'
 import { useEscapeLayer } from './useEscapeLayer'
 import { parseLen, toLenInput } from '../io/units'   // BUG-507/509：時間軸編輯條跟對話框同一條解析
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react'
@@ -312,6 +313,10 @@ export default function Timeline() {
               const threadTag = (f.type === 'othread' || f.type === 'ithread') ? ` M${f.d}×${f.pitch}${f.cosmetic ? '（cosmetic 外觀）' : '（真牙）'}` : ''   // P2 Cosmetic：designation 入 tooltip
               // GM-G4b：悬停 tooltip 领头 = 类型 + 名称 + 关键参数值（前 3 个字段；选项字段显示中文标签）。纯 title 文案，唔改任何行为。
               const paramSummary = (() => {
+                if (f.type === 'chamfer') {
+                  const ch = chamferTimelineParamSummary(r as { distance?: number; dist2?: number; cmode?: string; angle?: number })
+                  if (ch) return ch
+                }
                 const fds: FieldDef[] = (m as { fields?: FieldDef[] }).fields?.length ? (m as { fields: FieldDef[] }).fields : (m.field ? [{ key: m.field, label: m.param, unit: m.unit }] : [])
                 return fds.slice(0, 3).map((fd) => {
                   const v = r[fd.key]

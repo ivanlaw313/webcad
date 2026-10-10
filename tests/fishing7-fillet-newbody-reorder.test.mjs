@@ -46,6 +46,8 @@ test('reorder unrelated newbody before R5 fillet → refused; no wrong-body rema
   assert.match(g().status, /不能(上移|移動)/)
   assert.match(g().status, /另一個實體/)
   assert.match(g().status, /圓角/)
+  assert.match(g().status, /原語/, 'refuse must use tree display name 原語, not internal id')
+  assert.doesNotMatch(g().status, /「prim\d*」/, 'refuse must not quote internal feature id')
   const warn = (g().lastBuildWarnings ?? []).join('\n') + '\n' + (g().status ?? '')
   assert.doesNotMatch(warn, /已改用最近的邊/)
   const vol = g().mesh?.volumeExact

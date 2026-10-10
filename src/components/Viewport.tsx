@@ -4422,6 +4422,8 @@ export default function Viewport() {
   const setSweepScale = useApp((s) => s.setSweepScale)
   const sweepSection = useApp((s) => s.sweepSection)
   const sweepError = useApp((s) => s.sweepError)   // RETEST21 #2
+  const sweepPreview = useApp((s) => s.sweepPreview)
+  const sweepPreviewBusy = useApp((s) => s.sweepPreviewBusy)
   useApp((s) => s.selSketch)   // RETEST21 #2：截面晶片跟瀏覽樹選中草圖更新
   const setSweepSection = useApp((s) => s.setSweepSection)
   const sweepOrient = useApp((s) => s.sweepOrient)          // GM-3DV1 S5
@@ -8147,6 +8149,17 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>{tStatus('末端縮放', lang)}</span>
             <span><input type="number" min={0.05} step={0.1} value={sweepScale} onChange={(e) => setSweepScale(Number(e.target.value) || 1)} style={{ width: 66 }} /> ×</span>
           </label>
+          {sweepSection === 'profile' && (!!sweepTwist || (sweepScale > 0 && Math.abs(sweepScale - 1) > 1e-9)) && (
+            <div data-testid="sweep-twist-preview-status" role="status" aria-live="polite" style={{ fontSize: 11, color: sweepPreview?.error ? '#c0392b' : '#6b7680', lineHeight: 1.35, margin: '2px 0 4px' }}>
+              {sweepPreviewBusy
+                ? tStatus('預覽計算中', lang)
+                : sweepPreview?.error
+                  ? <>⚠ {tStatus(sweepPreview.error, lang)}</>
+                  : sweepPreview?.mesh
+                    ? <>{tStatus('即時預覽（同確定後結果一樣）', lang)}{sweepPreview.volume != null ? ` · ${tStatus('體積', lang)} ${sweepPreview.volume >= 1000 ? (sweepPreview.volume / 1000).toFixed(1) + ' cm³' : sweepPreview.volume.toFixed(0) + ' mm³'}` : ''}{sweepPreview.warnings?.length ? <div style={{ color: '#9a6a00' }}>{sweepPreview.warnings.map((w) => tStatus(w, lang)).join('；')}</div> : null}</>
+                    : tStatus('請確認已選路徑與草圖截面，方可預覽扭轉／縮放', lang)}
+            </div>
+          )}
           {/* P2：Operation 排最尾（Fusion 肌肉记忆：揀轮廓→设几何→最后定布尔）+ 补 ∩相交（对齐 loft） */}
           <div style={{ color: '#6b7680' }}>{tStatus('操作', lang)}</div>
           <div style={{ display: 'flex', gap: 4 }}>

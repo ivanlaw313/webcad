@@ -1730,6 +1730,10 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   setSweepTwist: (n: number) => void
   sweepScale: number      // S 末端截面缩放（taper，1=不变；0.5=末端收一半；>1=放大）— Fusion sweep scale
   setSweepScale: (n: number) => void
+  // P3：扭轉／縮放 + 草圖截面 → 內核即時預覽（同 commit：自動圓角尖角 + frameTwistTaperSweep）
+  sweepPreview: { mesh: MeshData | null; edges: [number, number, number][][]; error?: string; warnings: string[]; volume?: number } | null
+  sweepPreviewBusy: boolean
+  scheduleSweepPreview: () => void
   sweepSection: 'circle' | 'profile'   // 截面：圆（管径）/ 草图轮廓（T742 任意截面 — Fusion 式）
   setSweepSection: (m: 'circle' | 'profile') => void
   sweepOrient: 'perp' | 'parallel'     // GM-3DV1 S5：截面朝向（Fusion Orientation）
@@ -5140,6 +5144,8 @@ let _shellPvSeq = 0
 // ── 放樣：對話框／預覽／確定共用同一個特徵構造（預覽 = 結果） ──
 let _loftPvTimer: ReturnType<typeof setTimeout> | null = null
 let _loftPvSeq = 0
+let _sweepPvTimer: ReturnType<typeof setTimeout> | null = null
+let _sweepPvSeq = 0
 function buildLoftFeature(s: AppState, id: string) {
   const ord = loftEffectiveOrder(s.loftSections, s.loftOrderManual)
   const secs = ord.map((i) => s.loftSections[i])
@@ -8661,10 +8667,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       const idx=pool.map((sh,i)=>isSweepSectionProfile(sh)?i:-1).filter(i=>i>=0).pop()
       return idx==null?{skSel:[] as SkRef[]}:{skSel:[sweepSectionSelRef(pool[idx],idx)]}
     })()
-    return {...draft,...(s.sweepSection==='profile'?sectionChip:{}),sweepDlgOpen:true,sweepError:null,sketchOp:!hasSolid(s.features)?'new':s.sketchOp,sweepAxis:hasPath?'':s.sweepAxis,status:'掃掠：設 管徑 / 操作（可選構造軸脊線）→ 確定（或取消）'}
+    return {...draft,...(s.sweepSection==='profile'?sectionChip:{}),sweepDlgOpen:true,sweepError:null,sweepPreview:null,sweepPreviewBusy:false,sketchOp:!hasSolid(s.features)?'new':s.sketchOp,sweepAxis:hasPath?'':s.sweepAxis,status:'掃掠：設 管徑 / 操作（可選構造軸脊線）→ 確定（或取消）'}
   }),
   // UX1 #3：取消「編輯特徵」（雙擊時間線重開）→ 連 selectedFeature 一齊清，唔好留低底部「編輯「…」」尺寸條；編輯回填嘅路徑亦清走。
-  cancelSweepDlg: () => set((s) => ({ sweepDlgOpen: false, sweepError: null, sweepEditId: null, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], ...(s.sweepEditId ? { selectedFeature: null, polyPts: [], status: '已取消編輯掃掠' } : { status: '已取消掃掠（路徑保留）' }) })),
+  cancelSweepDlg: () => set((s) => ({ sweepDlgOpen: false, sweepError: null, sweepPreview: null, sweepPreviewBusy: false, sweepEditId: null, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], ...(s.sweepEditId ? { selectedFeature: null, polyPts: [], status: '已取消編輯掃掠' } : { status: '已取消掃掠（路徑保留）' }) })),
   setSweepDia: (n) => set((st) => ({ sweepDia: Number.isFinite(n) ? n : st.sweepDia, sweepError: null })),   // CORE16：唔再靜默改成 12 — 0／負數照存，commitSweepPath 拒絕並講原因
   sweepWall: 0,
   setSweepWall: (n) => set({ sweepWall: Math.max(0, n || 0) }),
@@ -8674,6 +8680,49 @@ export const useApp = create<AppState>((rawSet, get) => {
   setSweepTwist: (n) => set({ sweepTwist: Number.isFinite(n) ? n : 0 }),
   sweepScale: 1,
   setSweepScale: (n) => set({ sweepScale: n > 0 ? n : 1 }),
+  sweepPreview: null,
+  sweepPreviewBusy: false,
+  scheduleSweepPreview: () => {
+    if (_sweepPvTimer) clearTimeout(_sweepPvTimer)
+    const seq = ++_sweepPvSeq
+    const s0 = get()
+    const twistOn = !!(s0.sweepTwist) || (s0.sweepScale > 0 && Math.abs(s0.sweepScale - 1) > 1e-9)
+    // P3：只喺「路徑 + 草圖截面 + 扭轉／縮放」時跑內核預覽（圓截面扭轉無視覺差，維持 TubeGeometry 鬼影）
+    const want = !!(s0.sweepDlgOpen && twistOn && s0.sweepSection === 'profile')
+    if (!want) { set({ sweepPreview: null, sweepPreviewBusy: false }); return }
+    set({ sweepPreviewBusy: true })
+    _sweepPvTimer = setTimeout(async () => {
+      _sweepPvTimer = null
+      const s = get()
+      if (!s.sweepDlgOpen || seq !== _sweepPvSeq) return
+      // Dry-run commitSweepPath：同確定共用組裝（含自動圓角路徑），預覽 = 結果；set() 喺 dry 模式係 no-op。
+      const cap: Feature[][] = []
+      _featDlgDry = cap
+      try { void get().commitSweepPath().catch(() => {}) } catch { /* 組裝期錯誤 */ } finally { _featDlgDry = null }
+      if (seq !== _sweepPvSeq || !get().sweepDlgOpen) return
+      const feats = cap[0]
+      if (!feats?.length) {
+        set({ sweepPreview: { mesh: null, edges: [], warnings: [], error: undefined }, sweepPreviewBusy: false })
+        return
+      }
+      let sweepFeat = s.sweepEditId
+        ? feats.find((f) => f.id === s.sweepEditId && f.type === 'sweep')
+        : [...feats].reverse().find((f) => f.type === 'sweep')
+      if (!sweepFeat || sweepFeat.type !== 'sweep') {
+        set({ sweepPreview: { mesh: null, edges: [], warnings: [], error: '預覽暫時不可用 — 仍可按「確定」' }, sweepPreviewBusy: false })
+        return
+      }
+      const fpv = { ...sweepFeat, op: 'new' as const }
+      let r: { mesh: MeshData | null; edges: [number, number, number][][]; warnings: string[]; error?: string; volume?: number } | null = null
+      try {
+        const api = cad as { previewSweep?: (f: Feature) => Promise<typeof r> }
+        r = typeof api.previewSweep === 'function' ? await api.previewSweep(fpv) : null
+      } catch { r = null }
+      if (seq !== _sweepPvSeq || !get().sweepDlgOpen) return
+      if (!r) { set({ sweepPreview: { mesh: null, edges: [], warnings: [], error: '預覽暫時不可用 — 仍可按「確定」' }, sweepPreviewBusy: false }); return }
+      set({ sweepPreview: r, sweepPreviewBusy: false })
+    }, 200)
+  },
   sweepSection: 'circle',
   setSweepSection: (m) => set((s) => {
     if (m !== 'profile') return { sweepSection: m }
@@ -21363,7 +21412,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         scale: s.sweepScale && Math.abs(s.sweepScale - 1) > 1e-9 ? s.sweepScale : undefined,
         orient: s.sweepOrient === 'parallel' ? 'parallel' as const : undefined,
       }
-      set({ sweepDlgOpen: false, sweepEditId: null, sweepEdgePick: false })
+      set({ sweepDlgOpen: false, sweepEditId: null, sweepEdgePick: false, sweepPreview: null, sweepPreviewBusy: false })
       await get().editFeature(old.id, patch as unknown as Record<string, number | string | number[] | string[] | boolean | undefined>)
       return
     }
@@ -21392,7 +21441,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const diaE = Math.max(0.2, s.sweepDia || 12)
       const wallE = opE === 'cut' || secProfileE ? 0 : Math.max(0, Math.min(s.sweepWall || 0, diaE / 2 - 0.2))
       const fE: Feature = { id: fid(), type: 'sweep', r: diaE / 2, path3, op: opE, ...(wallE > 0 ? { wall: wallE } : {}), ...(secProfileE ? { profile: secProfileE } : {}), ...twSc, ...orientF }
-      set({ sweepDlgOpen: false, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [] })
+      set({ sweepDlgOpen: false, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], sweepPreview: null, sweepPreviewBusy: false })
       await get().applyFeatures([...get().features, fE], opE === 'cut'
         ? `已沿 ${s.sweepEdgeLines.length} 條實體邊鏈掃掠切割${secProfileE ? '（草图截面）' : `圆槽 Ø${diaE}`}`
         : `已沿 ${s.sweepEdgeLines.length} 條實體邊鏈掃出${secProfileE ? '实体（草图截面）' : wallE > 0 ? `空心管（外Ø${diaE} 壁厚${wallE}）` : `圆管 Ø${diaE}`}（${s.sweepOrient === 'parallel' ? '平行朝向' : '垂直朝向'}）`)
@@ -21424,7 +21473,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const wallA = opA === 'cut' || secProfileA ? 0 : Math.max(0, Math.min(s.sweepWall || 0, diaA / 2 - 0.2))
       const path3: [number, number, number][] = [ca.at, [ca.at[0] + dir[0] * L, ca.at[1] + dir[1] * L, ca.at[2] + dir[2] * L]]
       const fA: Feature = { id: fid(), type: 'sweep', r: diaA / 2, path3, op: opA, ...(wallA > 0 ? { wall: wallA } : {}), ...(secProfileA ? { profile: secProfileA } : {}), ...twSc, ...orientF }
-      set({ skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model', sweepDlgOpen: false, sweepGuide: null, sweepAxis: '' })
+      set({ skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model', sweepDlgOpen: false, sweepGuide: null, sweepAxis: '', sweepPreview: null, sweepPreviewBusy: false })
       await get().applyFeatures([...get().features, fA], opA === 'cut'
         ? `已沿構造軸脊線（長 ${L}mm）扫掠切割${secProfileA ? '（草图截面）' : `出圆槽 Ø${diaA}`}（時間軸可改）`
         : `已沿構造軸脊線（長 ${L}mm）扫出${secProfileA ? '实体（草图截面）' : wallA > 0 ? `空心管（外Ø${diaA} 壁厚${wallA}）` : `圆管 Ø${diaA}`}`)
@@ -21467,7 +21516,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       sweepPath: JSON.parse(JSON.stringify(src)) as Pt[],
       baseZ: s.sketchBaseZ || 0,
     }
-    set({ skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model', sweepDlgOpen: false, sweepGuide: null })
+    set({ skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model', sweepDlgOpen: false, sweepGuide: null, sweepPreview: null, sweepPreviewBusy: false })
     let f: Feature
     if (Math.abs(climb) > 1e-6) {
       // 3D 路径：Z 按弧长比例均匀爬升（楼梯扶手/排水管/缆线坡道）。内核走平滑 B-spline 脊线。

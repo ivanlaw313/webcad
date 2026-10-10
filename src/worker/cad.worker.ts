@@ -6731,6 +6731,41 @@ const api = {
     }
   },
 
+  // P3：掃掠扭轉／縮放即時預覽 — 同 buildShape 掃掠分支（含尖角自動圓角 + frameTwistTaperSweep），
+  // 只建工具實體（op 強制 new），預覽 = 確定後結果。唔郁 current。
+  async previewSweep(f: Feature): Promise<{ mesh: MeshData | null; edges: [number, number, number][][]; warnings: string[]; error?: string; volume?: number }> {
+    await ready
+    if (f.type !== 'sweep') return { mesh: null, edges: [], warnings: [], error: '掃掠預覽：特徵類型不正確' }
+    try {
+      _shellBeginMemMode('preview')
+      const solid = buildShape([{ ...f, op: 'new' }], true)
+      const warnings = buildWarnings.slice()
+      if (!solid) {
+        const fail = failedFeatures.find((x) => x.type === 'sweep') || failedFeatures[0]
+        return { mesh: null, edges: [], warnings, error: fail?.msg || '掃掠預覽失敗' }
+      }
+      const mesh = meshOf(solid, { preview: true })
+      const edges: [number, number, number][][] = []
+      try {
+        for (const e of (solid as any).edges as any[]) {
+          const pts: [number, number, number][] = []
+          const n = /line/i.test(String(e.geomType)) ? 1 : 24
+          for (let i = 0; i <= n; i++) { const q = e.pointAt(i / n); pts.push([q.x, q.y, q.z]) }
+          edges.push(pts)
+        }
+      } catch { /* edges optional */ }
+      let volume: number | undefined
+      try { volume = Math.abs(shapeVolume(_oc, (solid as any).wrapped)) } catch { /* */ }
+      return { mesh, edges, warnings, volume }
+    } catch (e) {
+      const m = ((e as any)?.message || String(e))
+      return { mesh: null, edges: [], warnings: buildWarnings.slice(), error: /[\u4e00-\u9fff]/.test(m) ? m : '掃掠預覽失敗' }
+    } finally {
+      _shellJoinMode = 'commit'
+      _shellJoinFeatureUsed = 0
+    }
+  },
+
   // Replay the parametric feature tree and return the resulting mesh (+ parked multibody meshes).
   async rebuild(features: Feature[]): Promise<MeshData | null> {
     await ready

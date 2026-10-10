@@ -1813,11 +1813,39 @@ export function SweepPreview() {
   const op = useApp((s) => s.sketchOp)
   const polyPts = useApp((s) => s.polyPts)
   const sketchShape = useApp((s) => s.sketchShape)
+  const profiles = useApp((s) => s.sketchProfiles)
   const plane = useApp((s) => s.sketchPlane)
   const baseZ = useApp((s) => s.sketchBaseZ)
   const arb = useApp((s) => s.sketchArb)
-  const geom = useMemo(() => {
+  const twist = useApp((s) => s.sweepTwist)
+  const scale = useApp((s) => s.sweepScale)
+  const orient = useApp((s) => s.sweepOrient)
+  const wall = useApp((s) => s.sweepWall)
+  const climb = useApp((s) => s.sweepClimb)
+  const guide = useApp((s) => s.sweepGuide)
+  const axis = useApp((s) => s.sweepAxis)
+  const axisLen = useApp((s) => s.sweepAxisLen)
+  const edgeLines = useApp((s) => s.sweepEdgeLines)
+  const pv = useApp((s) => s.sweepPreview)
+  // P3：路徑 + 草圖截面 + 扭轉／縮放 → 排內核預覽（同確定：自動圓角 + frameTwistTaperSweep）
+  useEffect(() => {
+    useApp.getState().scheduleSweepPreview()
+  }, [open, section, twist, scale, dia, polyPts, sketchShape, profiles, plane, baseZ, arb, orient, wall, climb, guide, axis, axisLen, edgeLines, op])
+  const kernelGeom = useMemo(() => {
+    const m = pv?.mesh
+    if (!m || !m.triangles.length) return null
+    const g = new BufferGeometry()
+    g.setAttribute('position', new Float32BufferAttribute(m.vertices, 3))
+    if (m.normals?.length === m.vertices.length) g.setAttribute('normal', new Float32BufferAttribute(m.normals, 3))
+    g.setIndex(m.triangles)
+    if (!(m.normals?.length === m.vertices.length)) g.computeVertexNormals()
+    return g
+  }, [pv?.mesh])
+  useEffect(() => () => { kernelGeom?.dispose() }, [kernelGeom])
+  const tubeGeom = useMemo(() => {
+    // 圓截面鬼影：扭轉／縮放內核預覽優先；否則維持舊 TubeGeometry
     if (!open || section !== 'circle') return null
+    if (pv?.mesh?.triangles?.length) return null
     const path2d: Pt[] = polyPts.length >= 2 ? polyPts : (sketchShape && sketchShape.type === 'poly' && sketchShape.pts.length >= 2 ? sketchShape.pts : [])
     if (path2d.length < 2) return null
     const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }).lift : null
@@ -1827,12 +1855,22 @@ export function SweepPreview() {
     if (clean.length < 2) return null
     const r = Math.max(0.3, (dia || 12) / 2), seg = Math.min(400, Math.max(16, clean.length * 8))
     return new TubeGeometry(new CatmullRomCurve3(clean), seg, r, 12, false)
-  }, [open, section, dia, polyPts, sketchShape, plane, baseZ, arb])
-  useEffect(() => () => { geom?.dispose() }, [geom])
-  if (!geom) return null
+  }, [open, section, dia, polyPts, sketchShape, plane, baseZ, arb, pv?.mesh])
+  useEffect(() => () => { tubeGeom?.dispose() }, [tubeGeom])
   const color = op === 'cut' ? '#ff5a4d' : op === 'intersect' ? '#c78ae0' : '#1572c4'
+  if (open && kernelGeom) {
+    return (
+      <group rotation={[-Math.PI / 2, 0, 0]} renderOrder={40} userData={{ sweepPreview: true }}>
+        <mesh geometry={kernelGeom} raycast={() => null}>
+          <meshStandardMaterial color={color} transparent opacity={0.32} depthWrite={false} side={DoubleSide} />
+        </mesh>
+        {(pv?.edges || []).map((pts, i) => pts.length >= 2 ? <Line key={'spe' + i} points={pts} color={color} lineWidth={1.6} /> : null)}
+      </group>
+    )
+  }
+  if (!tubeGeom) return null
   return (
-    <mesh geometry={geom} renderOrder={2} raycast={() => null}>
+    <mesh geometry={tubeGeom} renderOrder={2} raycast={() => null}>
       <meshBasicMaterial color={color} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide} />
     </mesh>
   )

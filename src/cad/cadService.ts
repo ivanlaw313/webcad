@@ -41,7 +41,7 @@ const LONG_TIMEOUT = 120_000
 const LONG_METHODS = new Set([
   'rebuild', 'importStep', 'splitBuild', 'ready',
   'exportAssemblySTEP', 'importStepAssembly', 'projectAssemblyViews',
-  'previewRound',
+  'previewRound', 'previewSweep', 'previewLoft',
 ])
 
 // v1.33: 提交类方法可静默抢占 previewRound（释放单飞槽 + worker），避免 Confirm/commit 卡喺预览后面
@@ -49,7 +49,7 @@ const PRIORITY_METHODS = new Set([
   'rebuild', 'splitBuild', 'importStep', 'importStepAssembly',
   'exportAssemblySTEP', 'projectAssemblyViews',
 ])
-const PREVIEW_METHODS = new Set(['previewRound'])
+const PREVIEW_METHODS = new Set(['previewRound', 'previewSweep', 'previewLoft'])
 
 // 一个 rejection 似唔似 wasm 内核崩溃（Emscripten "Aborted(...)" / "unreachable executed" / 内存爆）
 // v1.32: 收紧匹配 — 单字 "abort"/"memory" 太易误伤业务错误（例如 AbortController / "out of memory hint"），

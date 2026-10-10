@@ -18,3 +18,9 @@ export const EDGE_BADGE_OFFSET: [number, number] = [14, -16]
 export function edgeBadgeOffset(groupIndex: number): [number, number] {
   return [EDGE_BADGE_OFFSET[0] + 18 * groupIndex, EDGE_BADGE_OFFSET[1]]
 }
+
+// FISHING14 P2/P3：滑鼠揀草圖工具後，焦點唔好留喺工具列按鈕 —— 否則 Tab 會做瀏覽器焦點導航、Enter／空白鍵會再撳一次按鈕
+// （重設進行中的起點／打字緩衝），而第一下畫布點擊亦要先處理按鈕失焦。鍵盤啟用（detail = 0）保留焦點，方便無障礙操作。
+export function releaseSketchToolFocus(e: { detail: number; currentTarget: { blur?: () => void } }) {
+  if (e.detail > 0) e.currentTarget.blur?.()
+}

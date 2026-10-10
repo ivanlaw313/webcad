@@ -20,7 +20,7 @@ test('pick options: all 8 types, Traditional labels + DOF hints, preferred first
 test('face-pick joint flow uses appPick (clickable list), not a numbered prompt', () => {
   const st = readFileSync(new URL('../src/store.ts', import.meta.url), 'utf8')
   assert.doesNotMatch(st, /關節類型（輸入編號）/)
-  assert.match(st, /get\(\)\.appPick\(tStatus\('選擇關節類型[^']*', lang0\), jointTypePickOptions\(allowTypes/)
+  assert.match(st, /get\(\)\.appPick\(tStatus\('選擇關節類型[^']*', lang0\)( \+ mixedNote)?, jointTypePickOptions\(allowTypes/)   // FISHING14：混合拾取附加說明
   assert.match(st, /const type: JointType = \(allowTypes as string\[\]\)\.includes\(r\) \? \(r as JointType\) : defType/)
   assert.match(st, /appPick: \(msg, options, def, title = '選擇'\) => new Promise/)
   assert.match(st, /kind: 'prompt' \| 'confirm' \| 'alert' \| 'pick'/)

@@ -4783,6 +4783,12 @@ async function cornersAll(set: (p: Partial<AppState>) => void, get: () => AppSta
   })
   if (cons.length) await get().resolveSk({ statusNote: `${body}${note}` })
 }
+// FISHING14 P1：關節拾取嘅貼合係預覽 —— 記低子件原本姿態（深拷貝），取消時原樣還原（pos / rot 都係新陣列，唔共用引用）。
+export function jointPreviewRestorePose(c: { id: string; pos: [number, number, number]; rot?: [number, number, number] }): { id: string; pos: [number, number, number]; rot: [number, number, number] | undefined } {
+  return { id: c.id, pos: [c.pos[0], c.pos[1], c.pos[2]], rot: c.rot ? [c.rot[0], c.rot[1], c.rot[2]] : undefined }
+}
+// FISHING14 P1：混合拾取（圓柱面 ↔ 平面）喺「關節類型」視窗講明預設幾何（Fusion：圓柱面原點＝軸心、Z＝軸；平面原點＝面心、Z＝法向 → 軸對正法向）。
+export const JOINT_MIXED_PICK_NOTE = '混合拾取（圓柱面 ↔ 平面）：軸取自圓柱面並對正平面法向，錨點＝軸線穿過平面處（圓柱直立、端面貼住平面、不穿透）。按「取消」會還原位置。'
 // JOINT #5：圓柱 ↔ 平面混合 snap 之後，如果要郁件同父件互相穿透（典型：兩件都喺原點建 → 軸插咗一半入板），
 // 沿平面法向推開要郁件，令軸端面（或板面）啱啱貼住 —— 唔穿透；冇穿透就原樣（保留用戶擺好嘅高度/軸向位置）。
 // 板佔 [板底, 0]（相對板面、沿板面外法向）；對面件喺板面嗰邊 → 要 min ≥ 0，喺板底嗰邊 → 要 max ≤ 板底。
@@ -12174,22 +12180,34 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 幾何建議只決定其餘排序。P1 A：若預設類型唔喺允許清單（例兩平面唔允許旋轉）→ 保持幾何預設。
     { const pref = s.jointTypePref; if (pref && pref !== defType && allowTypes.includes(pref)) { defType = pref; allowTypes = jointTypeMenu([pref, ...allowTypes.filter((t) => t !== pref)]) } }
     const pose = worldToPose(delta.clone().multiply(Mb), meshCenter3(B.mesh))
-    // ── 先贴合（俾用户睇到 snap，似 Fusion）—— 但【唔即刻推撤销栈】，留返同建关节一齐做单快照（原子）──
-    const preUndo = s.undoStack, preSnap = docSnap(s)   // 贴合前撤销栈 + 全文档快照（最终净推一个 → undo 一步同时还原 snap+joint）
+    // ── 先貼合【預覽】（俾用戶睇到 snap，似 Fusion）—— 唔推撤銷棧；只有「確定」先同建關節一齊做單快照（原子）──
+    const preUndo = s.undoStack, preSnap = docSnap(s)   // 貼合前撤銷棧 + 全文檔快照（最終淨推一個 → undo 一步同時還原 snap+joint）
+    // FISHING14 P1（Fusion）：貼合只係預覽 —— 類型視窗「取消」／Esc、或「混合面澄清」取消 → 子件姿態【原樣】還原，
+    // 撤銷棧不變（以前取消會保留貼合並推一步撤銷，用戶要 Ctrl+Z 先還原）。
+    const prePose = jointPreviewRestorePose(B)
+    const preSel = s.selectedComponent
+    const restorePreview = (status: string) => set((st) => ({
+      components: st.components.map((c) => (c.id === prePose.id ? { ...c, pos: prePose.pos, rot: prePose.rot } : c)),
+      selectedComponent: st.selectedComponent === B.id ? preSel : st.selectedComponent,
+      status,
+    }))
+    const mixedPick = A.face.kind !== face.kind
     set({
       jointPickMode: false, jointPick: null, selectedComponent: B.id,
       components: s.components.map((c) => (c.id === B.id ? { ...c, pos: pose.pos, rot: pose.rot } : c)),
-      status: `已貼合「${B.name}」→「${Acomp.name}」${swapped ? '（第一件已固定 → 已自動對調為父件）' : ''}，請在彈出視窗選擇關節類型…`,
+      status: `貼合預覽「${B.name}」→「${Acomp.name}」${swapped ? '（第一件已固定 → 已自動對調為父件）' : ''}：請在彈出視窗選擇關節類型（按「確定」才會套用；「取消」會還原位置）`,
     })
-    // ── 关节类型选择（appPrompt 编号表，按几何门控）——取消 = 保留贴合、唔建关节（诚实状态）──
+    // ── 關節類型選擇（可點選清單，按幾何門控）——取消 / Esc = 還原預覽、唔建關節、撤銷棧不變 ──
     void (async () => {
       // BUG(E)/P3：列出全部 8 種類型（同 JOINTS 面板下拉一致），繁體源字串經 tStatus 按語言轉換。
       // RETEST17 #1：可點選類型清單（Fusion Joint ▸ Type 下拉）— 唔再要用戶輸入編號。
       const lang0 = get().lang
-      const r = await get().appPick(tStatus('選擇關節類型（幾何建議者排前）：', lang0), jointTypePickOptions(allowTypes, (x) => tStatus(x, lang0)), defType, tStatus('關節類型', lang0))
+      // FISHING14 P1：圓柱面 ↔ 平面（混合拾取）—— 喺類型視窗即刻講明預設幾何（軸取自圓柱面、錨點＝軸線穿過平面處）
+      const mixedNote = mixedPick ? '\n' + tStatus(JOINT_MIXED_PICK_NOTE, lang0) : ''
+      const r = await get().appPick(tStatus('選擇關節類型（幾何建議者排前）：', lang0) + mixedNote, jointTypePickOptions(allowTypes, (x) => tStatus(x, lang0)), defType, tStatus('關節類型', lang0))
       const s2 = get()
-      if (r === null) {   // 取消：保留贴合、唔建关节 —— 净推贴合嘅单快照
-        set({ undoStack: [...preUndo, preSnap].slice(-60), redoStack: [], status: `已貼合「${B.name}」→「${Acomp.name}」（未建關節 — 可撤銷貼合）` })
+      if (r === null) {   // 取消 / Esc：還原預覽，唔建關節，唔推撤銷
+        restorePreview(`已取消建關節 — 「${B.name}」已還原原來位置（沒有任何更改）`)
         return
       }
       const type: JointType = (allowTypes as string[]).includes(r) ? (r as JointType) : defType
@@ -12198,7 +12216,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const needsCylAxis = type === 'revolute' || type === 'slider' || type === 'cylindrical'
       const secondWasPlanar = A.face.kind === 'planar'   // A = 父 = 第二拣（對調後）
       if (needsCylAxis && A.face.kind !== 'cyl' && face.kind !== 'cyl') {
-        set({ status: `⚠ ${JOINT_LABEL_TC[type]}關節需要至少一個【圓柱面】取軸 — 兩下都點中平面。請改點圓柱孔／軸壁，或改選剛性／平面關節` })
+        restorePreview(`⚠ ${JOINT_LABEL_TC[type]}關節需要至少一個【圓柱面】取軸 — 兩下都點中平面。位置已還原；請改點圓柱孔／軸壁，或改選剛性／平面關節`)
         return
       }
       if (needsCylAxis && secondWasPlanar && face.kind === 'cyl') {
@@ -12207,7 +12225,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           tStatus('第二下點中了平面（非圓柱面）。旋轉／滑動軸將取自已選圓柱面（不是平面法向）。若要軸隨孔壁，請取消後改點圓柱孔／軸壁。', lang1),
           tStatus('混合面澄清', lang1),
         )
-        if (!ok) { set({ status: '已取消建關節 — 請再拾取，第二下改點圓柱孔／軸壁' }); return }
+        if (!ok) { restorePreview(`已取消建關節 — 「${B.name}」已還原原來位置；請再拾取，第二下改點圓柱孔／軸壁`); return }
       }
       // 建关节：唔用 addJoint（佢自带撤销快照会破坏原子性）—— 此处复用 addJoint 嘅 id/命名规则，同贴合共一快照
       const n = s2.joints.reduce((m, jj) => Math.max(m, Number(jj.id.replace(/^J/, '')) || 0), 0) + 1

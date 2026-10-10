@@ -171,3 +171,56 @@ export function topoRefsResolvable(f: F, prefixMesh: MeshLike | null): boolean {
   const tol = Math.max(0.05, 0.002 * Math.hypot(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]))
   return pts.every((p) => pickFaceSupport(p, prefixMesh, tol) >= (edge ? 2 : 1))
 }
+
+// ── FISHING12 P1：「作用於實體」特徵嘅重排依賴 ──────────────────────────────────────────────────────
+// 孔／切割／刻字凸字（emboss）／面上螺紋／面上草圖（sketchFaceBinding）等，靠前面已有實體嘅面先有意義，
+// 但唔一定有 id 或拾取點引用 → 靜態掃描同 topoRefsResolvable 都睇唔到。上移到產生實體嘅原語之前，
+// 內核切／刻空氣就靜默無效（「已上移「孔1」並重建」但孔消失）。做法：凡係前置特徵少咗實體特徵，
+// 用新順序前綴「有／冇呢個特徵」各試建一次比體積；原本有效、移動後變無效（或前面冇咗實體）→ 拒絕。
+const BODY_DEP_TYPES = new Set(['hole', 'othread', 'ithread', 'cylpatch'])
+const opOf = (f: Record<string, unknown>): unknown => f.operation ?? f.op
+
+export function isBodyDependentFeature(f: F): boolean {
+  if (isTopoRefFeature(f)) return false   // 已由 topoFeaturesToCheck + topoRefsResolvable 處理
+  if (f.type === 'sketch' || f.type === 'datum') return false
+  if (BODY_DEP_TYPES.has(f.type)) return true
+  if ((f as { sketchFaceBinding?: unknown }).sketchFaceBinding) return true
+  if (f.type === 'text' && (f as { arbPlane?: unknown }).arbPlane) return true   // 面上凸字／刻字
+  const op = opOf(f)
+  if (op === 'cut' || op === 'intersect') return true
+  const subs = (f as { subs?: Record<string, unknown>[] }).subs
+  if (Array.isArray(subs) && subs.some((x) => x && (opOf(x) === 'cut' || opOf(x) === 'intersect'))) return true
+  return false
+}
+
+/** 移動後要試建驗證嘅「作用於實體」特徵：佢前面少咗（非草圖／基準）特徵。 */
+export function bodyFeaturesToCheck<T extends F>(before: readonly T[], after: readonly T[]): { feature: T; lost: T[] }[] {
+  const out: { feature: T; lost: T[] }[] = []
+  const posB = new Map(before.map((f, i) => [f.id, i]))
+  const posA = new Map(after.map((f, i) => [f.id, i]))
+  for (const f of after) {
+    if (!isBodyDependentFeature(f)) continue
+    const ib = posB.get(f.id), ia = posA.get(f.id)!
+    if (ib == null) continue
+    const lost = before.slice(0, ib).filter((g) => (posA.get(g.id) ?? -1) > ia && g.type !== 'sketch' && g.type !== 'datum')
+    if (lost.length) out.push({ feature: f, lost })
+  }
+  return out
+}
+
+/** 一個特徵喺某前綴上嘅效果：前綴體積（冇實體＝0）同加入特徵後體積。 */
+export type FeatureEffect = { without: number; with: number }
+const effectTol = (e: FeatureEffect) => Math.max(1e-3, 1e-6 * Math.max(Math.abs(e.without), Math.abs(e.with)))
+/** 特徵有冇真係改變到實體（體積差大過容差）。 */
+export function featureHasEffect(e: FeatureEffect): boolean {
+  return Math.abs(e.with - e.without) > effectTol(e)
+}
+/**
+ * 移動後特徵變成「靜默無效」：原本有效（改到實體），而移動後 ① 前面已冇實體（孔／刻字冇面可落），或 ② 加入後體積冇變。
+ * 原本已經無效嘅舊檔特徵唔當新違規（只拒絕今次移動引入嘅問題）。
+ */
+export function effectLostByMove(orig: FeatureEffect, moved: FeatureEffect): boolean {
+  if (!featureHasEffect(orig)) return false
+  if (orig.without > 0 && !(moved.without > effectTol(moved))) return true
+  return !featureHasEffect(moved)
+}

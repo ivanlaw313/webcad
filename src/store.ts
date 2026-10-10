@@ -26,6 +26,7 @@ import { ellipseSample } from './sketch/ellipseGeometry'
 import { splineBezier, type CubicBezierSegment } from './sketch/splineBezier'
 import { solveExtension } from './sketch/extendTransaction'
 import { threadFrameFromFace, isZAxis, type ThreadFrame } from './cad/threadFrame'
+import { measureMeshFace } from './cad/meshFaceMeasure'
 import { boundSketchOrigin, shiftBoundSketchFeature, translateBoundShape, faceSketchDelta, type SketchFaceBinding, type ResolvedSketchFace } from './cad/sketchFaceBinding'
 import { activeModelCommand, commandDisabledReason } from './cad/commandAvailability'
 import { sanitizeViewBookmark, type ViewBookmark, type ViewCapture } from './cad/viewBookmark'
@@ -145,7 +146,7 @@ import { visualStyleToRender, renderToVisualStyle, edgeStateToMode, edgeModeToSt
 import { detectPreset, presetById, fmtLenU, fmtMassU, areaVolBaseUnit, type LenU, type MassU, type UnitPreset } from './cad/unitPresets'
 import { makeCanvas, patchCanvas, sanitizeCanvases, archivedCanvases, canvasToLegacyImg, nextCanvasId, decalExtras, patchDecalFields, buildImportSketchSource, preferDxfSketchOnly, forceDxfSketchOnly, rejectDxfImport, DXF_MAX_TEXT_MARKERS, DXF_SCHEMATIC_TEXT_MARKERS, filterByLayers, transformMesh, meshUnitScaleMm, meshInsertPosition, type CanvasItem, type ImpItem, type MeshUnit } from './cad/insertModel'   // GM-X3 插入：多张 Canvas / 逐张字段 / Decal 字段 / SVG·DXF→草图源 / Mesh 单位·flip·摆位（纯逻辑，Node 測過）
 import { DEFAULT_SEL_FILTER, migrateSelFilter, withSelType, withAllTypes, withNoTypes, withPriority, withSelThrough, matchByName, matchBySize, invertSet, SEL_TYPES, type SelFilter, type SelType, type SelPriority, type SizeOp } from './cad/selectionModel'   // GM-X4 选择：selFilter 逐类型过滤 + 优先级 + 穿透 + By-Name/Size + Invert（纯逻辑，Node 测过）
-import { featureDependents, reorderedFeatures, orderViolation, topoFeaturesToCheck, topoRefsResolvable, isTopoRefFeature } from './cad/featureDeps'   // T1/T2 + RETEST19 #1
+import { featureDependents, reorderedFeatures, orderViolation, topoFeaturesToCheck, topoRefsResolvable, isTopoRefFeature, bodyFeaturesToCheck, featureHasEffect, effectLostByMove } from './cad/featureDeps'   // T1/T2 + RETEST19 #1
 
 export type Pt = [number, number] // three.js ground coords [x, z]
 export type PickOption = { value: string; label: string; hint?: string }   // RETEST17 #1：appPick 清單項
@@ -2548,7 +2549,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   addMeasureUniPick: (pick: MeasurePick, extra?: MeasureExtra) => void          // 直接加拾取（headless 可驱动 / 视口拾取转呢度）
   pickMeasureUniAt: (threePt: [number, number, number], faceNormalWorld?: [number, number, number], isEdge?: boolean) => Promise<void>   // 视口点击 → worker 量面/边 → 加拾取
   /** 統一測量：組件／泊車體網格面（frozen）→ 面積／圓柱直徑（同量面 Formal Traditional） */
-  pickMeasureUniFromMesh: (mesh: { vertices: number[]; triangles: number[]; normals?: number[] }, faceIndex: number, threePt: [number, number, number], faceNormalWorld?: [number, number, number], opts?: { compId?: string; parked?: number }) => void
+  pickMeasureUniFromMesh: (mesh: { vertices: number[]; triangles: number[]; normals?: number[]; faceGroups?: { start: number; count: number; faceId: number }[] }, faceIndex: number, threePt: [number, number, number], faceNormalWorld?: [number, number, number], opts?: { compId?: string; parked?: number; matrix?: ArrayLike<number> }) => void | Promise<void>
   clearMeasureUniPicks: () => void
   setMeasureSelFilter: (patch: Partial<{ face: boolean; edge: boolean; body: boolean; sketch: boolean }>) => void
   // ── GM-X1 #3/#4/#5：测量精度 + 副单位 + 捕捉标记 ──
@@ -20741,22 +20742,33 @@ export const useApp = create<AppState>((rawSet, get) => {
         return
       }
     }
-    const r = measureMeshFaceRegion(mesh.vertices, mesh.triangles, faceIndex)
+    // FISHING12 P2：泊車（獨立）實體喺內核有 B-rep → 用精確面積／解析軸／平面（同活動實體一樣），網格只做後備
+    if (opts?.parked != null && hasSolid(s.features)) {
+      return (async () => {
+        const cp0: [number, number, number] = [threePt[0], -threePt[2], threePt[1]]
+        let hit = false
+        try { const r0 = await cad.measureFaceAt(cp0); hit = !!r0 && r0.body === opts.parked } catch { hit = false }
+        if (get().features !== s.features || !get().measureUniMode) return
+        if (hit) { await get().pickMeasureUniAt(threePt, faceNormalWorld, false); return }
+        get().pickMeasureUniFromMesh(mesh, faceIndex, threePt, faceNormalWorld, { ...opts, parked: undefined })
+      })()
+    }
+    // 組件／匯入網格：整個 B-rep 面（faceGroups）＋ matrixWorld 轉世界 CAD 座標（唔再用局部座標計軸距／面距）
+    const r = measureMeshFace(mesh, faceIndex, opts?.matrix)
     if (!r || !(r.area > 0)) { set({ status: '沒找到面（請點在某個面上）' }); return }
-    const det = detectFace(mesh, faceIndex)
     const cp: [number, number, number] = [threePt[0], -threePt[2], threePt[1]]
     const nCad: [number, number, number] | undefined = faceNormalWorld
       ? [faceNormalWorld[0], -faceNormalWorld[2], faceNormalWorld[1]]
-      : (r.normal as [number, number, number] | undefined)
+      : r.planeN
     const pick: MeasurePick = {
       kind: 'face',
       area: r.area,
       center: cp,
       normal: nCad,
       p: cp,
-      ...(det?.kind === 'cyl' ? { surfType: 'CYLINDRE', radius: det.r, axisO: det.p, axisD: det.axis } : {}),
-      ...(det?.kind === 'planar' ? { surfType: 'PLANE', planeO: det.p, planeN: det.n } : {}),
-      ...(!det ? { surfType: r.planar ? 'PLANE' : 'FACE' } : {}),
+      surfType: r.surfType,
+      ...(r.surfType === 'CYLINDRE' && r.radius != null && r.axisO && r.axisD ? { radius: r.radius, axisO: r.axisO, axisD: r.axisD } : {}),
+      ...(r.surfType === 'PLANE' && r.planeO && r.planeN ? { planeO: r.planeO, planeN: r.planeN } : {}),
     }
     get().addMeasureUniPick(pick)
   },
@@ -21780,6 +21792,50 @@ export const useApp = create<AppState>((rawSet, get) => {
         const src = lost[lost.length - 1] as unknown as Feature
         noteTimelineReorderRefused(s0.features)
         set({ status: `不能移動：「${label(c.feature as unknown as Feature)}」引用的邊線／幾何由「${label(src)}」產生，必須排在它之後` })
+        return false
+      }
+    }
+    // FISHING12 P1：孔／切割／面上凸字刻字／面上螺紋／面上草圖 — 冇 id／拾取點引用，但要前面實體嘅面先有效。
+    // 用新順序前綴試建「有／冇呢個特徵」比 B-rep 體積：原本有效、移動後變靜默無效 → 拒絕（唔入 undo、順序不變）。
+    {
+      const fromIdx = s0.features.findIndex((f) => f.id === id)
+      const toIdx = next.findIndex((f) => f.id === id)
+      const dir = toIdx < fromIdx ? '上移' : '下移'
+      const volOf = (m: Awaited<ReturnType<typeof cad.previewRound>>): number => {
+        if (!m || !m.triangles || m.triangles.length < 3) return 0
+        if (m.volumeExact != null && Number.isFinite(m.volumeExact)) return Math.abs(m.volumeExact)
+        const V = m.vertices, T = m.triangles
+        let v6 = 0
+        for (let i = 0; i + 2 < T.length; i += 3) {
+          const a = T[i] * 3, b = T[i + 1] * 3, c = T[i + 2] * 3
+          v6 += V[a] * (V[b + 1] * V[c + 2] - V[b + 2] * V[c + 1]) - V[a + 1] * (V[b] * V[c + 2] - V[b + 2] * V[c]) + V[a + 2] * (V[b] * V[c + 1] - V[b + 1] * V[c])
+        }
+        return Math.abs(v6 / 6)
+      }
+      const effectAt = async (list: Feature[], at: number): Promise<{ without: number; with: number } | null> => {
+        const bound = applyParamBindings(list.slice(0, at + 1), s0.params, s0.paramBindings)
+        const active = sup0.length ? bound.filter((x) => !sup0.includes(x.id)) : bound
+        const withF = expandFeats(active), withoutF = expandFeats(active.filter((x) => x.id !== list[at].id))
+        try {
+          const mw = withoutF.length ? await cad.previewRound(withoutF) : null
+          const m1 = withF.length ? await cad.previewRound(withF) : null
+          return { without: volOf(mw), with: volOf(m1) }
+        } catch { return null }
+      }
+      const bodyChecks = bodyFeaturesToCheck(s0.features as unknown as Parameters<typeof bodyFeaturesToCheck>[0], next as unknown as Parameters<typeof bodyFeaturesToCheck>[1])
+        .filter((c) => !sup0.includes(c.feature.id) && c.lost.some((g) => !sup0.includes(g.id)))
+      for (const c of bodyChecks) {
+        const moved = await effectAt(next, next.findIndex((f) => f.id === c.feature.id))
+        if (get().features !== s0.features) return false
+        if (!moved) continue
+        if (featureHasEffect(moved) && moved.without > 0) continue   // 快路徑：移動後仍然有效
+        const orig = await effectAt(s0.features, s0.features.findIndex((f) => f.id === c.feature.id))
+        if (get().features !== s0.features) return false
+        if (!orig || !effectLostByMove(orig, moved)) continue
+        const lost = c.lost.filter((g) => !sup0.includes(g.id))
+        const src = lost[lost.length - 1] as unknown as Feature
+        noteTimelineReorderRefused(s0.features)
+        set({ status: `不能${dir}：「${label(c.feature as unknown as Feature)}」引用的面由「${label(src)}」產生，必須排在它之後` })
         return false
       }
     }

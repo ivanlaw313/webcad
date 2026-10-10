@@ -126,16 +126,22 @@ export function combineMeasure(picks: MeasurePick[], extra: MeasureExtra = {}): 
         if (md != null) return { type: 'distance', label: '最短距離', value: md, valueUnit: 'len', parts, axisAngle: ang, note: '兩條圓柱軸不平行；顯示兩面最短距離及軸線夾角' }
         return { type: 'angle', label: '軸線夾角', value: ang, valueUnit: 'angle', supplement: 180 - ang, parts }
       }
-      if (a.planeO && a.planeN && b.planeO && b.planeN) {
-        const na = norm(a.planeN), nb = norm(b.planeN), c = dot(na, nb)
+      // FISHING12 P2：平面解析資料缺失時（舊路徑／網格），兩個 PLANE 面用拾取點＋法向計（拾取點喺平面上 → 同樣精確）
+      const planeOf = (f: MeasurePick): { o: [number, number, number]; n: [number, number, number] } | null =>
+        f.planeO && f.planeN ? { o: f.planeO, n: f.planeN } : /PLANE/i.test(f.surfType ?? '') && f.p && f.normal ? { o: f.p, n: f.normal } : null
+      const pa = planeOf(a), pb = planeOf(b)
+      if (pa && pb) {
+        const na = norm(pa.n), nb = norm(pb.n), c = dot(na, nb)
         if (Math.abs(c) >= PAR) {
-          const sd = dot(sub(b.planeO, a.planeO), na), t = Math.abs(sd)
+          const sd = dot(sub(pb.o, pa.o), na), t = Math.abs(sd)
           if (t < 1e-6) return { type: 'unsupported', label: '面距', value: null, valueUnit: 'none', parts, note: '兩面共面（可能選到同一個面）— 請選另一個面' }
           // 法向朝外：兩面背向（第二面喺第一面外法向嘅後面）＝中間係材料 → 厚度；兩面相向 → 間隙（槽寬）；同向 → 面距
           const opp = c < 0, thick = opp && sd < 0
           const label = !opp ? '面距（平行面）' : thick ? '厚度（面距）' : '間隙（面距）'
           const note = !opp ? '兩個平行同向的平面；面距＝兩面之間的垂直距離' : thick ? '兩個平行且背向的平面；厚度＝兩面之間的垂直距離' : '兩個平行且相向的平面；間隙＝兩面之間的垂直距離'
-          return { type: 'distance', label, value: t, valueUnit: 'len', parts, ...(md != null ? { minDist: md } : {}), note }
+          // 平行平面：主讀數＝B-rep 平面距離（精確）。最短距離只喺兩面橫向錯開（真係大過面距）先附上；細過面距係揀錯面 → 唔顯示
+          const mdOk = md != null && md > t + 1e-3
+          return { type: 'distance', label, value: t, valueUnit: 'len', parts, ...(mdOk ? { minDist: md } : {}), note }
         }
       }
       if (!a.normal || !b.normal) {

@@ -418,22 +418,103 @@ const ready: Promise<boolean> = (async () => {
 // 审计修复：加厚成实体（thicken/boundarypatch）走 BRepOffsetAPI_MakeThickSolid.MakeThickSolidBySimple，
 // 此内核对正 signed thick 会产出【定向反转(负体积)】实体 → 污染布尔（fuse 静默并丢）、STL 导出（法向朝内→破网格）、3D 打印。
 // 统一在 push 前检测体积 Mass()<0 → Reversed() 重定向到正体积。三条 high（thickenquilt/boundarypatch/ThickenFaceNear）共用。
-// WORKFLOW #1：最近 B-rep 面（同 measureFaceAt 一樣用三角化距離揀）
-function _nearestFace(p: [number, number, number]): { face: any; tri: any } | null {
-  if (!current) return null
-  const faces = (current as any).faces as any[]
-  let best: any = null, bestD = Infinity
-  for (const f of faces) {
-    const tri = f.triangulation ? f.triangulation() : null
-    if (!tri || !tri.vertices || !tri.vertices.length) continue
-    const V = tri.vertices as number[], T = tri.trianglesIndexes as number[]
-    for (let i = 0; i < T.length; i += 3) {
-      const a = T[i] * 3, b = T[i + 1] * 3, c = T[i + 2] * 3
-      const d = ptTriDist2(p[0], p[1], p[2], V[a], V[a + 1], V[a + 2], V[b], V[b + 1], V[b + 2], V[c], V[c + 1], V[c + 2])
-      if (d < bestD) { bestD = d; best = { face: f, tri } }
-    }
+// WORKFLOW #1 / FISHING12 P2：最近 B-rep 面 — 活動實體＋所有泊車（獨立）實體。
+// 先用面三角化距離做粗篩（冇三角化嘅面先補 mesh，唔再靜默跳過 → 揀錯面），再用 BRepExtrema 點到面真距離精選。
+function _faceTriDist2(p: [number, number, number], tri: any): number {
+  const V = tri.vertices as number[], T = tri.trianglesIndexes as number[]
+  let dmin = Infinity
+  for (let i = 0; i < T.length; i += 3) {
+    const a = T[i] * 3, b = T[i + 1] * 3, c = T[i + 2] * 3
+    const d = ptTriDist2(p[0], p[1], p[2], V[a], V[a + 1], V[a + 2], V[b], V[b + 1], V[b + 2], V[c], V[c + 1], V[c + 2])
+    if (d < dmin) dmin = d
   }
-  return best
+  return dmin
+}
+function _pointFaceExact(p: [number, number, number], face: any): number {
+  const oc = _oc as any
+  let vtx: any = null, prog: any = null, ext: any = null
+  try {
+    const pn = new oc.gp_Pnt_3(p[0], p[1], p[2])
+    const mk = new oc.BRepBuilderAPI_MakeVertex(pn)
+    vtx = mk.Vertex(); try { mk.delete(); pn.delete() } catch { /* */ }
+    prog = new oc.Message_ProgressRange_1(); ext = new oc.BRepExtrema_DistShapeShape_1()
+    ext.LoadS1(vtx); ext.LoadS2(face.wrapped); ext.Perform(prog)
+    return ext.IsDone() && ext.NbSolution() > 0 ? ext.Value() : Infinity
+  } catch { return Infinity } finally { try { ext?.delete?.(); prog?.delete?.(); vtx?.delete?.() } catch { /* */ } }
+}
+function _measureBodies(): { shape: any; body: number }[] {
+  const out: { shape: any; body: number }[] = []
+  if (current) out.push({ shape: current, body: -1 })
+  parkedBodies.forEach((pb, i) => { if (pb?.shape?.wrapped && !pb.shape.wrapped.IsNull?.()) out.push({ shape: pb.shape, body: i }) })
+  return out
+}
+function _nearestFace(p: [number, number, number], only?: number): { face: any; tri: any; body: number } | null {
+  const cands: { face: any; tri: any; body: number; d: number }[] = []
+  for (const b of _measureBodies()) {
+    if (only != null && b.body !== only) continue
+    let faces: any[]
+    try { faces = (b.shape as any).faces as any[] } catch { continue }
+    let tris = faces.map((f) => (f.triangulation ? f.triangulation() : null))
+    if (tris.some((t) => !t || !t.vertices || !t.vertices.length)) {
+      try { b.shape.mesh({ tolerance: 0.05, angularTolerance: 0.2 }); tris = faces.map((f) => (f.triangulation ? f.triangulation() : null)) } catch { /* 用現有三角化 */ }
+    }
+    faces.forEach((f, i) => { const tri = tris[i]; if (tri && tri.vertices && tri.vertices.length) cands.push({ face: f, tri, body: b.body, d: Math.sqrt(_faceTriDist2(p, tri)) }) })
+  }
+  if (!cands.length) return null
+  cands.sort((a, b) => a.d - b.d)
+  // 粗篩門檻：三角化弦高誤差（曲面）可令錯面「睇落」更近 → 近距離候選全部用真 B-rep 距離覆核
+  const gate = cands[0].d + 0.5
+  let best = cands[0], bestD = Infinity
+  for (const c of cands) {
+    if (c.d > gate) break
+    const d = _pointFaceExact(p, c.face)
+    if (d < bestD - 1e-9) { bestD = d; best = c }
+  }
+  return { face: best.face, tri: best.tri, body: best.body }
+}
+// FISHING12 P2：草圖圓拉伸嘅側面喺 OCCT 係兩張半圓柱面（接縫切開）；Fusion 當一個圓柱面。
+// 同一實體入面、同軸同半徑、經共邊相連嘅圓柱面 → 合併計面積（各自都係 B-rep 精確面積）。
+function _sameDomainCylFaces(shape: any, face: any, geo: { radius?: number; extra: { axisO?: [number, number, number]; axisD?: [number, number, number] } }): any[] {
+  const r0 = geo.radius, o0 = geo.extra.axisO, d0 = geo.extra.axisD
+  if (r0 == null || !o0 || !d0) return [face]
+  try {
+    const same = (f: any): boolean => {
+      const g2 = _faceAnalytic(f)
+      const o = g2.extra.axisO, d = g2.extra.axisD
+      if (g2.radius == null || !o || !d || Math.abs(g2.radius - r0) > 1e-7 * Math.max(1, r0)) return false
+      if (Math.abs(Math.abs(d[0] * d0[0] + d[1] * d0[1] + d[2] * d0[2]) - 1) > 1e-9) return false
+      const w = [o[0] - o0[0], o[1] - o0[1], o[2] - o0[2]], t = w[0] * d0[0] + w[1] * d0[1] + w[2] * d0[2]
+      return Math.hypot(w[0] - t * d0[0], w[1] - t * d0[1], w[2] - t * d0[2]) < 1e-6 * Math.max(1, r0)
+    }
+    const all = ((shape as any).faces as any[]).filter((f) => f.isSame?.(face) || same(f))
+    if (all.length < 2) return [face]
+    const edgesOf = all.map((f) => (f.edges as any[]))
+    const start = all.findIndex((f) => f.isSame?.(face))
+    if (start < 0) return [face]
+    const seen = new Set([start]), queue = [start]
+    while (queue.length) {
+      const i = queue.shift()!
+      for (let j = 0; j < all.length; j++) {
+        if (seen.has(j)) continue
+        if (edgesOf[i].some((e: any) => edgesOf[j].some((e2: any) => e.isSame(e2)))) { seen.add(j); queue.push(j) }
+      }
+    }
+    return [...seen].map((i) => all[i])
+  } catch { return [face] }
+}
+// FISHING12 P2：B-rep 精確面積（BRepGProp 曲面積分）— 唔用網格／部分三角形近似；失敗先退回三角化面積
+function _faceAreaExact(face: any, tri: any): number {
+  try { const a = Math.abs(measureArea(face)); if (Number.isFinite(a) && a > 0) return a } catch { /* 退回三角化 */ }
+  const V = tri.vertices as number[], T = tri.trianglesIndexes as number[]
+  let area = 0
+  for (let i = 0; i < T.length; i += 3) {
+    const a = T[i] * 3, b = T[i + 1] * 3, c = T[i + 2] * 3
+    const abx = V[b] - V[a], aby = V[b + 1] - V[a + 1], abz = V[b + 2] - V[a + 2]
+    const acx = V[c] - V[a], acy = V[c + 1] - V[a + 1], acz = V[c + 2] - V[a + 2]
+    const cx = aby * acz - abz * acy, cy = abz * acx - abx * acz, cz = abx * acy - aby * acx
+    area += Math.sqrt(cx * cx + cy * cy + cz * cz) / 2
+  }
+  return area
 }
 // 圓柱面 → 軸（點＋方向）＋半徑；平面 → 原點＋單位法向（已按面方向 Reversed 修正）
 function _faceAnalytic(face: any): { radius?: number; extra: { axisO?: [number, number, number]; axisD?: [number, number, number]; planeO?: [number, number, number]; planeN?: [number, number, number] } } {
@@ -7673,7 +7754,7 @@ const api = {
   // WORKFLOW #1：兩面組合測量 — 兩個 B-rep 面之間嘅真最短距離（BRepExtrema_DistShapeShape）＋最近點
   async measureFaceFaceMin(pA: [number, number, number], pB: [number, number, number]): Promise<{ dist: number; pa: [number, number, number]; pb: [number, number, number] } | null> {
     await ready
-    if (!current) return null
+    if (!current && !parkedBodies.length) return null
     try {
       const fa = _nearestFace(pA), fb = _nearestFace(pB)
       if (!fa || !fb) return null
@@ -7688,34 +7769,15 @@ const api = {
       } finally { try { ext.delete?.(); prog.delete?.() } catch { /* */ } }
     } catch (e) { console.error('[cad.worker] measureFaceFaceMin failed:', e); return null }
   },
-  async measureFaceAt(p: [number, number, number]): Promise<{ area: number; kind: string; center: [number, number, number]; radius: number | null; axisO?: [number, number, number]; axisD?: [number, number, number]; planeO?: [number, number, number]; planeN?: [number, number, number] } | null> {
+  async measureFaceAt(p: [number, number, number]): Promise<{ area: number; kind: string; center: [number, number, number]; radius: number | null; body?: number; axisO?: [number, number, number]; axisD?: [number, number, number]; planeO?: [number, number, number]; planeN?: [number, number, number] } | null> {
     await ready
-    if (!current) return null
+    if (!current && !parkedBodies.length) return null
     try {
-      const faces = (current as any).faces as any[]
-      let best: any = null, bestD = Infinity
-      for (const f of faces) {
-        const tri = f.triangulation ? f.triangulation() : null
-        if (!tri || !tri.vertices || !tri.vertices.length) continue
-        const V = tri.vertices as number[], T = tri.trianglesIndexes as number[]
-        let dmin = Infinity
-        for (let i = 0; i < T.length; i += 3) {
-          const a = T[i] * 3, b = T[i + 1] * 3, c = T[i + 2] * 3
-          const d = ptTriDist2(p[0], p[1], p[2], V[a], V[a + 1], V[a + 2], V[b], V[b + 1], V[b + 2], V[c], V[c + 1], V[c + 2])
-          if (d < dmin) dmin = d
-        }
-        if (dmin < bestD) { bestD = dmin; best = { face: f, tri } }
-      }
+      // FISHING12 P2：活動實體＋泊車實體一齊揀（點獨立實體唔再落網格近似路徑）；面積 = B-rep 精確
+      const best = _nearestFace(p)
       if (!best) return null
-      const V = best.tri.vertices as number[], T = best.tri.trianglesIndexes as number[]
-      let area = 0
-      for (let i = 0; i < T.length; i += 3) {
-        const a = T[i] * 3, b = T[i + 1] * 3, c = T[i + 2] * 3
-        const abx = V[b] - V[a], aby = V[b + 1] - V[a + 1], abz = V[b + 2] - V[a + 2]
-        const acx = V[c] - V[a], acy = V[c + 1] - V[a + 1], acz = V[c + 2] - V[a + 2]
-        const cx = aby * acz - abz * acy, cy = abz * acx - abx * acz, cz = abx * acy - aby * acx
-        area += Math.sqrt(cx * cx + cy * cy + cz * cz) / 2
-      }
+      const V = best.tri.vertices as number[]
+      let area = _faceAreaExact(best.face, best.tri)
       const c = best.face.center
       const kind = String(best.face.geomType ?? '')
       // For a cylindrical face, derive its radius in closed form from two vertices with opposite
@@ -7745,7 +7807,12 @@ const api = {
       }
       // WORKFLOW #1：解析面幾何 — 圓柱軸（軸距）、平面原點＋法向（厚度／面距）
       const geo = _faceAnalytic(best.face)
-      return { area, kind, center: [c.x, c.y, c.z], radius: geo.radius ?? radius, ...geo.extra }
+      if (geo.extra.axisO) {
+        const host = _measureBodies().find((b) => b.body === best.body)
+        const group = host ? _sameDomainCylFaces(host.shape, best.face, geo) : [best.face]
+        if (group.length > 1) { let sum = 0; for (const f of group) { try { sum += Math.abs(measureArea(f)) } catch { sum = NaN } } if (Number.isFinite(sum) && sum > 0) area = sum }
+      }
+      return { area, kind, center: [c.x, c.y, c.z], radius: geo.radius ?? radius, body: best.body, ...geo.extra }
     } catch (e) {
       console.error('[cad.worker] measureFaceAt failed:', e)
       return null

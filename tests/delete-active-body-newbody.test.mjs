@@ -91,3 +91,39 @@ test('requestRemoveFeature always confirms (no deps); Esc/cancel aborts; confirm
   await g().undo()
   assert.equal(g().features.length, 1)
 })
+
+test('deleteActiveBody after 設為活動: only active features go; parked newbody body remains; activatebody stripped; one undo', async () => {
+  // Reproduce Bbm / tip gap: A + ⬡新實體 B + set A active + delete active → B must stay (not rebuild-fail / wipe).
+  await g().reset()
+  assert.ok(await g().applyFeatures([box('b1'), cylNewbody('c1')], 'two'))
+  assert.equal(g().bodyMesh?.parked?.length, 1)
+  await g().activateParkedBody(0)
+  assert.ok(g().features.some((f) => f.type === 'activatebody'))
+  assert.deepEqual([...featureIdsForActiveBody(g().features)], ['b1'])
+  const beforeIds = g().features.map((f) => f.id)
+  const msgs = await withConfirm(true, () => g().deleteActiveBody())
+  assert.equal(msgs.length, 1)
+  assert.match(msgs[0], /會移除建立它的 1 個特徵/)
+  assert.doesNotMatch(msgs[0], /設為活動/)  // confirm lists solid features only
+  assert.deepEqual(g().features.map((f) => f.id), ['c1'])
+  assert.equal(g().features.some((f) => f.type === 'activatebody'), false)
+  assert.ok(g().bodyMesh?.triangles?.length)
+  assert.equal(g().bodyMesh?.parked?.length ?? 0, 0)
+  await g().undo()
+  assert.deepEqual(g().features.map((f) => f.id), beforeIds)
+  assert.equal(g().bodyMesh?.parked?.length, 1)
+  assert.ok(g().features.some((f) => f.type === 'activatebody'))
+})
+
+test('deleteActiveBody after 設為活動 with prim op:newbody (ribbon auto-new path)', async () => {
+  await g().reset()
+  const p1 = { id: 'p1', type: 'prim', shape: 'box', a: 30, b: 30, c: 10, op: 'new', cornerOrigin: true }
+  const p2 = { id: 'p2', type: 'prim', shape: 'box', a: 20, b: 20, c: 20, op: 'newbody', cornerOrigin: true }
+  assert.ok(await g().applyFeatures([p1, p2], 'prims'))
+  await g().activateParkedBody(0)
+  const msgs = await withConfirm(true, () => g().deleteActiveBody())
+  assert.match(msgs[0], /會移除建立它的 1 個特徵/)
+  assert.deepEqual(g().features.map((f) => f.id), ['p2'])
+  assert.ok(g().bodyMesh?.triangles?.length)
+  assert.equal(g().bodyMesh?.parked?.length ?? 0, 0)
+})

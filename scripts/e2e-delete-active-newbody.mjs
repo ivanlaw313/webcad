@@ -52,6 +52,43 @@ await runE2E(async (page, ok) => {
   ok('one undo restores both bodies', undone.n === 2 && undone.ids.includes('b1') && undone.ids.includes('c1') && undone.parked === 1, undone)
   await page.shot('after-undo')
 
+  // P1 gap: set parked box active, delete active → cylinder (independent) must remain; Ctrl+Z restores
+  await page.evaluate(async () => {
+    const g = () => window.useApp.getState()
+    await g().activateParkedBody(0)
+  })
+  await page.waitForFunction(() => window.useApp.getState().features.some((f) => f.type === 'activatebody'), null, { timeout: 15000 })
+  const afterAct = await page.evaluate(() => {
+    const s = window.useApp.getState()
+    return { ids: s.features.map((f) => f.id), types: s.features.map((f) => f.type), parked: s.bodyMesh?.parked?.length ?? 0 }
+  })
+  ok('after 設為活動: box active, cylinder parked, activatebody present', afterAct.ids.includes('b1') && afterAct.ids.includes('c1') && afterAct.types.includes('activatebody') && afterAct.parked === 1, afterAct)
+  const active3 = page.locator('[data-testid="tree-body-active"]')
+  await active3.click({ button: 'right' })
+  await page.locator('.tree-ctx-menu [data-key="delete"]').waitFor({ timeout: 3000 })
+  await page.locator('.tree-ctx-menu [data-key="delete"]').click()
+  await dlg.waitFor({ timeout: 5000 })
+  const dlgText2 = await dlg.textContent()
+  ok('confirm after 設為活動 lists 1 solid feature only (Traditional)', /會移除建立它的 1 個特徵/.test(dlgText2) && /刪除/.test(dlgText2) && !/设为活动|會移除建立它的 2/.test(dlgText2), { dlgText2 })
+  const btn2 = dlg.locator('button').filter({ hasText: /確定|刪除|OK/ }).first()
+  if (await btn2.count()) await btn2.click()
+  else await page.keyboard.press('Enter')
+  await page.waitForTimeout(2500)
+  const afterDelA = await page.evaluate(() => {
+    const s = window.useApp.getState()
+    return { ids: s.features.map((f) => f.id), types: s.features.map((f) => f.type), parked: s.bodyMesh?.parked?.length ?? 0, tris: s.bodyMesh?.triangles?.length ?? 0, status: s.status }
+  })
+  ok('after delete active (was A): cylinder remains, activatebody gone, no wipe', afterDelA.ids.includes('c1') && !afterDelA.ids.includes('b1') && !afterDelA.types.includes('activatebody') && afterDelA.tris > 0 && !/重建失敗/.test(afterDelA.status || ''), afterDelA)
+  await page.shot('after-delete-activated')
+  await page.mouse.click(700, 450)
+  await page.keyboard.press('Control+z')
+  await page.waitForTimeout(2000)
+  const undoneAct = await page.evaluate(() => {
+    const s = window.useApp.getState()
+    return { ids: s.features.map((f) => f.id), types: s.features.map((f) => f.type), parked: s.bodyMesh?.parked?.length ?? 0 }
+  })
+  ok('Ctrl+Z restores A+B and activatebody', undoneAct.ids.includes('b1') && undoneAct.ids.includes('c1') && undoneAct.types.includes('activatebody') && undoneAct.parked === 1, undoneAct)
+
   // Esc abort path (real mouse + Esc)
   await page.waitForTimeout(500)
   const active2 = page.locator('[data-testid="tree-body-active"]')

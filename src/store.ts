@@ -8244,20 +8244,26 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (cur.features !== s0.features) { set({ status: '模型已變更 — 請再試一次刪除實體' }); return }
     // UX2 P3：撤銷刪除實體要連自訂名一齊還原（以前 Ctrl+Z 返嚟變返「活動實體」）
     const before = { ...docSnap(cur), activeBodyName: cur.activeBodyName }
-    const kept = cur.features.filter((f) => !doomed.has(f.id))
+    // P1（Bbm 重現）：設為活動寫入 activatebody；刪走活動體特徵後若留低呢啲標記，重建會因獨立實體槽唔再存在而失敗，獨立體一齊冇。
+    // 確認框只列活動體自己嘅實體特徵；套用時一併清走全部 activatebody（換體歷史已失效，同「建立組件」一致）。
+    const drop = new Set(doomed)
+    for (const f of cur.features) {
+      if (f.type === 'activatebody') drop.add(f.id)
+    }
+    const kept = cur.features.filter((f) => !drop.has(f.id))
     const refd = (fs: Feature[]) => { const r = new Set<string>(); for (const f of fs) { const sk = (f as { sketchId?: string }).sketchId; if (sk) r.add(sk); for (const k of (f as { sketchIds?: string[] }).sketchIds ?? []) r.add(k) } return r }
     const live = refd(kept)
     const next: Feature[] = []
     for (const f of cur.features) {
-      if (!doomed.has(f.id)) { next.push(f); continue }
+      if (!drop.has(f.id)) { next.push(f); continue }
       for (const k of [(f as { sketchId?: string }).sketchId, ...((f as { sketchIds?: string[] }).sketchIds ?? [])]) {
         if (k && cur.sketchSources[k] && !live.has(k)) { live.add(k); next.push({ id: fid(), type: 'sketch', sketchId: k } as Feature) }
       }
     }
-    set((st) => ({ suppressedIds: st.suppressedIds.filter((x) => !doomed.has(x)) }))
+    set((st) => ({ suppressedIds: st.suppressedIds.filter((x) => !drop.has(x)) }))
     const done = await get().applyFeatures(next, `已刪除「${nm}」（${doomed.size} 個特徵；草圖保留）`, true, undefined, before)
     if (!done) { set({ suppressedIds: cur.suppressedIds, failedFeatureIds: [], featureErrors: {}, status: '⚠ 刪除實體後重建失敗 — 已保留原模型及歷史' }); return }
-    set((st) => ({ activeBodyName: '', bodyHidden: st.bodyHidden.filter((k) => k !== 'active'), ...(doomed.has(st.selectedFeature ?? '') ? { selectedFeature: null } : {}) }))
+    set((st) => ({ activeBodyName: '', bodyHidden: st.bodyHidden.filter((k) => k !== 'active'), ...(drop.has(st.selectedFeature ?? '') ? { selectedFeature: null } : {}) }))
   },
   modelSel: [],
   modelSelClick: (item, mod) => set((s) => { const modelSel = applySelClick(s.modelSel ?? [], item, mod); return { modelSel, status: modelSelStatus(modelSel) } }),

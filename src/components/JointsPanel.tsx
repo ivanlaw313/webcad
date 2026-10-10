@@ -45,7 +45,7 @@ export default function JointsPanel() {
   const runMotionStudy = useApp((s) => s.runMotionStudy)
   const motionStudy = useApp((s) => s.motionStudy)
   const clearMotionStudy = useApp((s) => s.clearMotionStudy)
-  const jointPoses = useApp((s) => s.jointPoses)   // S172 捕捉位置（Capture Position）
+  const jointPoses = useApp((s) => s.jointPoses)   // S172 捕捉位置
   const jointKeyframes = useApp((s) => s.jointKeyframes)   // S177 关键帧动画
   const jointOrigins = useApp((s) => s.jointOrigins)   // GM-3DV4 A1：可复用关节原点
   const contactPairs = useApp((s) => s.contactPairs)   // GM-3DV4 A9：命名逐对接触集
@@ -83,14 +83,14 @@ export default function JointsPanel() {
   const contactSetsOn = useApp((s) => s.contactSets)   // T787：接触集开关高亮
   const [playing, setPlaying] = useState(false)
   const raf = useRef(0)
-  // ⚙ 动力学（趋势级单自由度）：哪条关节展开了 Motion Study 设定 + 各输入（本地态，质量以 kg 计）
+  // ⚙ 動力學（趨勢級單自由度）：哪條關節展開了運動研究設定 + 各輸入（本地態，質量以 kg 計）
   const [dynFor, setDynFor] = useState('')
   const [dynMass, setDynMass] = useState(0.5)   // kg
   const [dynK, setDynK] = useState(0)           // 弹簧 k
   const [dynC, setDynC] = useState(0.5)         // 阻尼 c
   const [dynQ0, setDynQ0] = useState(0)         // 弹簧自然位
   const [dynQ0v, setDynQ0v] = useState(30)      // 初始位（revolute 默认 30°，slider 0 — 见展开时同步）
-  const [msPlaying, setMsPlaying] = useState(false)  // Motion Study 回放中
+  const [msPlaying, setMsPlaying] = useState(false)  // 運動研究回放中
   const msRaf = useRef(0)
   // S177 关键帧动画：当前时间 t（秒）、播放态、RAF ref
   const [kfTime, setKfTime] = useState(0)
@@ -177,7 +177,7 @@ export default function JointsPanel() {
     return () => cancelAnimationFrame(raf.current)
   }, [playing])
 
-  // Motion Study 回放：按真实时间步进 motionStudy.q（帧序 = elapsed/dt），每帧 setJointValue 驱动 FK；
+  // 運動研究回放：按真實時間步進 motionStudy.q（幀序 = elapsed/dt），每幀 setJointValue 驅動 FK；
   // 同前面 ▷运动 一样嘅 RAF 骨架，但独立 ref/state，唔会同连续转动相冲。到尾自动停；卸载/切换时清理。
   useEffect(() => {
     if (!msPlaying) return
@@ -239,7 +239,7 @@ export default function JointsPanel() {
     const childFrame = childJo ? resolveJointOrigin(childJo, false) : null
     const pairFrame = jo ? resolveJointOrigin(jo) : null
     const childPairFrame = childJo ? resolveJointOrigin(childJo) : null
-    // A pair of Joint Origins establishes the initial position before the
+    // A pair of joint origins establishes the initial position before the
     // constraint is created: first align the child frame axis, then translate
     // the rotated child origin exactly onto the parent origin.
     let pairedPose: { pos: [number, number, number]; rot: [number, number, number] } | null = null
@@ -312,21 +312,21 @@ export default function JointsPanel() {
             <select className="jp-type" data-testid={`jp-type-${j.id}`} title={tStatus('更改關節類型', lang)} value={j.type} onChange={(e) => useApp.getState().setJointType(j.id, e.target.value as JointType)} style={{ font: 'inherit', cursor: 'pointer' }}>{TYPES.map((t) => <option key={t} value={t}>{tStatus(JOINT_LABEL_TC[t], lang)}</option>)}</select>
             <span className="jp-cc">{name(j.parent)} → {name(j.child)}</span>
             <button className="cs-x" style={holePicking === j.id ? { color: '#ff8a2a' } : undefined} title="🎯 拾孔定軸：點此後再點零件上一個【圓柱孔/軸面】→ 關節錨點對到孔心、轉軸沿孔軸（鉸鏈/轉軸裝到指定孔位）" onClick={() => startJointHolePick(j.id)}>🎯</button>
-            {j.type !== 'rigid' && <button className="cs-x" style={posFor === j.id ? { color: '#ff8a2a' } : undefined} title="GM-3DV4 A2/A3：位置 / Rest — 兩原點之間的靜止偏移(X/Y/Z + 角度 + Flip) + 靜止(Rest)位。" onClick={() => setPosFor(posFor === j.id ? '' : j.id)}>⚓</button>}
+            {j.type !== 'rigid' && <button className="cs-x" style={posFor === j.id ? { color: '#ff8a2a' } : undefined} title="位置／靜止位：兩原點之間的靜止偏移（X/Y/Z + 角度 + 反轉）+ 靜止位。" onClick={() => setPosFor(posFor === j.id ? '' : j.id)}>⚓</button>}
             {j.type !== 'rigid' && <button className="cs-x" title="🔍 跨運動干涉：自動掃掠此關節的全行程（含齒輪聯動），二分找出『首次撞』的驅動值 — 無需逐幀手拖就知機構成程是否會自撞。滑動關節需先設行程限位。" onClick={() => useApp.getState().interferenceAcrossMotion(j.id)}>🔍</button>}
             <button className="cs-x" data-testid={'joint-card-del-' + j.id} title="刪除關節（Ctrl+Z 可還原）" onClick={() => removeJoint(j.id)}>✕</button>
           </div>
           {posFor === j.id && j.type !== 'rigid' && (
             <div className="jp-lim" style={{ flexWrap: 'wrap', gap: 4, background: 'rgba(21,114,196,.06)', borderRadius: 4, padding: '3px 4px' }}>
-              <span style={{ color: '#6b7680', fontWeight: 600 }} title="GM-3DV4 A2：兩 joint-origin 之間的靜止偏移（關節基 U/V/軸）+ 靜止轉角 + Flip；GM-3DV4 A3：Rest 靜止位（歸零回此）">位置</span>
+              <span style={{ color: '#6b7680', fontWeight: 600 }} title="兩關節原點之間的靜止偏移（關節基 U/V/軸）+ 靜止轉角 + 反轉；靜止位（歸零回此）">位置</span>
               {j.originRef && <span style={{ color: '#12b886', fontSize: 11 }} title="此關節引用了可復用關節原點">⚓{jointOrigins.find((o) => o.id === j.originRef)?.name ?? j.originRef}</span>}
-              靜 <NumInput value={j.rest ?? 0} onValue={(v) => { setJointValue(j.id, { rest: v }) }} label={`Rest 靜止位（${j.type === 'slider' ? 'mm' : '°'}）— ⌂歸零即回此`} w={48} title={`Rest 靜止位（${j.type === 'slider' ? 'mm' : '°'}）— ⌂歸零即回此`} />{j.type === 'slider' ? 'mm' : '°'}
+              靜 <NumInput value={j.rest ?? 0} onValue={(v) => { setJointValue(j.id, { rest: v }) }} label={`靜止位（${j.type === 'slider' ? 'mm' : '°'}）— ⌂歸零即回此`} w={48} title={`靜止位（${j.type === 'slider' ? 'mm' : '°'}）— ⌂歸零即回此`} />{j.type === 'slider' ? 'mm' : '°'}
               <span title="兩原點之間靜止偏移（關節基：沿U / 沿V / 沿軸 mm）">偏</span>
               <NumInput value={j.offset?.[0] ?? 0} onValue={(v) => { setJointValue(j.id, { offset: [v, j.offset?.[1] ?? 0, j.offset?.[2] ?? 0] }) }} label="沿 U 偏移 mm" w={42} title="沿 U 偏移 mm" />
               <NumInput value={j.offset?.[1] ?? 0} onValue={(v) => { setJointValue(j.id, { offset: [j.offset?.[0] ?? 0, v, j.offset?.[2] ?? 0] }) }} label="沿 V 偏移 mm" w={42} title="沿 V 偏移 mm" />
               <NumInput value={j.offset?.[2] ?? 0} onValue={(v) => { setJointValue(j.id, { offset: [j.offset?.[0] ?? 0, j.offset?.[1] ?? 0, v] }) }} label="沿軸偏移 mm" w={42} title="沿軸偏移 mm" />
               ∠ <NumInput value={j.originAngle ?? 0} onValue={(v) => { setJointValue(j.id, { originAngle: v }) }} label="靜止轉角°（繞關節軸）" w={44} title="靜止轉角°（繞關節軸）" />°
-              <label style={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} title="Flip：反轉關節軸向（旋轉/滑動方向反）"><input type="checkbox" checked={!!j.flip} onChange={(e) => setJointValue(j.id, { flip: e.target.checked })} /> Flip</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} title="反轉：反轉關節軸向（旋轉／滑動方向相反）"><input type="checkbox" checked={!!j.flip} onChange={(e) => setJointValue(j.id, { flip: e.target.checked })} /> 反轉</label>
             </div>
           )}
           {(j.type === 'revolute' || j.type === 'cylindrical') && (
@@ -404,7 +404,7 @@ export default function JointsPanel() {
               {motionStudy && motionStudy.jointId === j.id && (
                 <>
                   <button className={'cs-btn' + (msPlaying ? ' on' : '')} title={`回放 ${motionStudy.q.length} 幀 / ${motionStudy.tEnd}s（真實時間步進）`} onClick={() => { setPlaying(false); setKfPlaying(false); setMsPlaying((p) => !p) }}>{msPlaying ? '⏸ 停' : '▶ 播放'}</button>
-                  <button className="cs-x" title="清除 Motion Study 軌跡" onClick={() => { setMsPlaying(false); clearMotionStudy() }}>✕清</button>
+                  <button className="cs-x" title="清除運動研究軌跡" onClick={() => { setMsPlaying(false); clearMotionStudy() }}>✕清</button>
                   <span style={{ color: '#8a939c', fontSize: 11 }}>{motionStudy.q.length}幀/{motionStudy.tEnd}s</span>
                 </>
               )}
@@ -439,7 +439,7 @@ export default function JointsPanel() {
 
       {jointOrigins.length > 0 && (
         <div className="jp-mlink">
-          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>關節原點（Joint Origins）</div>
+          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>關節原點</div>
           {jointOrigins.map((jo) => (
             <div key={jo.id} className="jp-row" style={{ flexWrap: 'wrap', gap: 4, fontSize: 12 }}>
               <span style={{ flex: 1 }} title={`${jo.mode === 'twoFaces' ? '兩面之間' : '簡單'} · ${jo.point.map((v) => v.toFixed(1)).join(', ')}`}>⚓ {jo.name}</span>
@@ -457,7 +457,7 @@ export default function JointsPanel() {
       {/* GM-3DV4 A8：一级刚性组节点（可抑制/删除；亦见浏览器「刚性组」组） */}
       {rigidGroups.length > 0 && (
         <div className="jp-mlink">
-          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>剛性組（Rigid Group）</div>
+          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>剛性組</div>
           {rigidGroups.map((g) => (
             <div key={g.id} className="jp-row" style={{ fontSize: 12 }}>
               <span style={{ flex: 1, opacity: g.suppressed ? 0.5 : 1 }} title={`${g.members.length} 件焊為一體${g.suppressed ? '（已抑制 — 各自自由）' : ''}`}>🔗 {g.name}（{g.members.length}）{g.suppressed ? ' · 已抑制' : ''}</span>
@@ -489,7 +489,7 @@ export default function JointsPanel() {
 
       {jointPoses.length > 0 && (
         <div className="jp-mlink">
-          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>捕捉位置（Capture Position）</div>
+          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>捕捉位置</div>
           {jointPoses.map((p, i) => (
             <div key={i} className="jp-row" style={{ fontSize: 12 }}>
               <button className="cs-btn" style={{ flex: 1, textAlign: 'left' }} title="套用此姿態（機構跳到捕捉時的角度/位移）" onClick={() => { setPlaying(false); setMsPlaying(false); setKfPlaying(false); useApp.getState().applyJointPose(i) }}>▷ {p.name}</button>
@@ -501,7 +501,7 @@ export default function JointsPanel() {
 
       {joints.length > 0 && (
         <div className="jp-mlink">
-          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>關鍵幀動畫（Keyframe Animation）</div>
+          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>關鍵幀動畫</div>
           <div className="jp-row" style={{ fontSize: 12, gap: 6, alignItems: 'center' }}>
             <span style={{ minWidth: 14 }}>t</span>
             <input type="range" {...JOINT_DRIVE_GESTURE} min={0} max={Math.max(1, kfEnd)} step={0.05} value={Math.min(kfTime, Math.max(1, kfEnd))} title="拖動時間軸：相鄰關鍵幀之間線性插值驅動機構（scrub）" onChange={(e) => { const v = Number(e.target.value); setKfPlaying(false); setKfTime(v); useApp.getState().applyJointTime(v) }} style={{ flex: 1 }} />

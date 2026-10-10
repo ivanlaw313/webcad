@@ -65,16 +65,18 @@ export function LoftSectionList() {
             </select>
             <button className={'sb-tool' + (facePick ? ' active' : '')} data-testid="loft-pick-face" disabled={!bodyTris} style={{ height: 24 }} title={tStatus(bodyTris ? '選實體上的平面做截面（它的外框）' : '未有實體可以選平面', lang)} onClick={() => st().setLoftFacePick(!facePick)}>{tStatus('＋ 選平面', lang)}</button>
           </div>}
-      <label title={tStatus('導軌（可選）：一條連接各截面的折線，每個截面一點（點數 = 截面數）。放樣時每個截面會水平平移去掂導軌點，截面形狀不變。導軌要在 XY（水平）草圖畫。', lang)}>
+      <label data-testid="loft-rail-row" title={tStatus('導軌（可選）：一條連接各截面的折線，每個截面一點（點數 = 截面數）。放樣時每個截面會水平平移去掂導軌點，截面形狀不變。導軌要在 XY（水平）草圖畫。', lang)}>
         <span style={{ color: '#6b7680' }}>{tStatus('導軌', lang)}</span>
         {rail
-          ? <span className="sel-chip" style={railBad ? { borderColor: '#e0a030', color: '#9a6a00' } : undefined}>{tStatus(railBad ? `⚠ ${rail.length} 點 ≠ ${sections.length} 截面` : `已選（${rail.length} 點）`, lang)}<span className="sel-chip-x" onClick={() => st().clearLoftRail()}>✕</span></span>
-          : railCands.length
-            ? <select data-testid="loft-rail-sketch" value="" onChange={(e) => { if (e.target.value) st().setLoftRailFromSketch(e.target.value) }} style={{ height: 24, maxWidth: 130 }}>
+          ? <span className="sel-chip" data-testid="loft-rail-chip" style={railBad ? { borderColor: '#e0a030', color: '#9a6a00' } : undefined}>{tStatus(railBad ? `⚠ ${rail.length} 點 ≠ ${sections.length} 截面` : `已選（${rail.length} 點）`, lang)}<span className="sel-chip-x" onClick={() => st().clearLoftRail()}>✕</span></span>
+          : sections.length >= 2 && railCands.length
+            ? <select data-testid="loft-rail-sketch" value="" onChange={(e) => { if (e.target.value) st().setLoftRailFromSketch(e.target.value) }} style={{ height: 24, maxWidth: 160 }}>
                 <option value="">{tStatus('可選：選導軌草圖', lang)}</option>
                 {railCands.map((c) => <option key={c.skId} value={c.skId}>{c.label}</option>)}
               </select>
-            : <span className="sel-chip empty" data-testid="loft-rail-empty">{tStatus(sections.length < 2 ? '導軌：先加滿 ≥2 個截面後可選' : '可選：選一條連接各截面的曲線', lang)}</span>}
+            : <span className="sel-chip empty" data-testid="loft-rail-empty">{tStatus(sections.length < 2
+              ? '請先加入至少兩個截面，方可選用導軌'
+              : '尚無可選導軌：請在 XY 平面草圖繪製連接各截面的開放折線（點數＝截面數）', lang)}</span>}
       </label>
       <div data-testid="loft-preview-status" role="status" aria-live="polite" style={{ fontSize: 11, color: pv?.error ? '#c0392b' : '#6b7680', lineHeight: 1.35 }}>
         {sections.length < 2

@@ -609,7 +609,7 @@ export const SKETCH_PANELS: Panel[] = [
       { id: 'sk_array', label: '陣列', icon: 'pattern', glyph: '▦', quick: true, tip: '陣列：按此入陣列模式 → 底欄面板設 矩形(行列+間距) / 環形(數量+角度+中心)，綠虛線實時預覽 → 按「應用陣列」。對【一個】輪廓。' },
       { id: 'sk_move', label: '移動/複製', icon: 'move', glyph: '✥', tip: '移動/複製當前輪廓：dx,dy 平移 + 繞形心旋轉，可出 N 份副本。' },
       { id: 'sk_scale', label: '縮放', icon: 'scale', glyph: '⤢', tip: '草圖縮放：選中輪廓（無選擇=全部）繞形心乘系數 k（>1 放大 / <1 縮小；真圓弧/橢圓半徑同步縮放）。快捷鍵在草圖內可用（M=移動 / 縮放在 ribbon）。' },
-      { id: 'sk_project', label: '投影幾何', icon: 'default', glyph: '⧉', quick: true, tip: '投影幾何：把實體的邊「印」落當前草圖做【真草圖曲線】(藍紫參考線) —— 印落來的線可標注/拉伸/修改,不再只是參考。想沿住實體輪廓畫東西時用：按掣後點實體的邊即可。（要在有實體的面、或穿過實體的平面開草圖先印到）' },
+      { id: 'sk_project', label: '投影幾何', icon: 'default', glyph: '⧉', quick: true, tip: '投影幾何：把實體的邊「印」落當前草圖做【真草圖曲線】(藍紫參考線) —— 印落來的線可標注/拉伸/修改,不再只是參考。想沿住實體輪廓畫東西時用：按掣後點實體的邊即可。（要在有實體的面、或穿過實體的平面開草圖先印到）。兩張曲面／實體之間的【體－體交線】請改用工作區 SURFACE → CREATE → 相交曲線（非草圖內命令）。' },
       { id: 'sk_constr', label: '構造', icon: 'default', glyph: '╳', shortcut: 'X', tip: '構造幾何（X）：把選中輪廓（或當前輪廓）轉為虛線參考幾何 — 可約束可吸附，不參與拉伸。再按一次轉回實線。' },
       { id: 'sk_guide', label: '掃掠導軌', icon: 'sweep', glyph: '⤳', tip: '導軌掃掠：先畫一條折線做【導軌】→ 按此記低（橙虛線）→ 再畫掃掠【路徑】→「沿路徑掃掠」— 截面沿路徑行進時跟隨導軌轉向。' },
       { id: 'sk_close', label: '閉合', icon: 'default', glyph: '✓', sep: true, quick: true, tip: '把折線/樣條回到起點閉合成輪廓。' },

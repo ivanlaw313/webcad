@@ -2296,6 +2296,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   renameJoint: (id: string, name: string) => void      // ASM2 #7：可撤銷
   editJoint: (id: string) => void                      // ASM2 #7：展開關節面板並捲到該關節卡
   homeJoints: () => void
+  homeJoint: (id: string) => void   // FISHING14 B：單關節歸零（HUD ↺歸零 / 面板逐關節 ↺）— 驅動角／位移 → Rest + 還原 restChildPose；一步撤銷
   // 捕捉位置 (Capture Position, Fusion 同款)：把当前所有关节驱动值快照存名，一键套回整个机构姿态。
   // 纯 zustand，无内核；vals 以关节 id 为键，缺省关节回 0；apply 走同 setJointValue 嘅 ca/cs 限位 + propagateLinks。随项目存档。
   jointPoses: { name: string; vals: Record<string, { angle?: number; slide?: number; angle2?: number; angle3?: number; slide2?: number }> }[]
@@ -14604,12 +14605,17 @@ export const useApp = create<AppState>((rawSet, get) => {
       status: `已刪除關節「${j.name}」${links ? `（連同 ${links} 條運動連接）` : ''} — Ctrl+Z 可還原`,
     }
   }),
-  // Home all joints: return every joint to its REST value (GM-3DV4 A3 — 缺省 rest=0 → 逐字节旧「归零」行为)。
-  //   主自由度：slider=slide、其余转动类=angle；其余 DOF 清零。空机构唔压撤销快照（冇嘢变）。
-  homeJoints: () => set((s) => {
-    if (!s.joints.length) return { status: '沒有關節可歸零' }
-    const joints = s.joints.map((j) => ({ ...j, angle: 0, slide: 0, angle2: 0, angle3: 0, slide2: 0, ...(j.type === 'slider' ? { slide: j.rest ?? 0 } : { angle: j.rest ?? 0 }) }))
-    // P1 A：同時還原建關節時嘅子件 as-built 位姿（角度歸零 + FK 單位矩陣仍可能留低誤寫嘅 pos）
+  // Home all / one joint: drive values → Rest（缺省 0）+ 還原 restChildPose。一步撤銷。
+  // FISHING14 B：橙環可轉到限位外（例如 −230°）；歸零必須寫回 angle/slide（唔只清組件歐拉），面板讀數／白柄／FK 一齊回靜止位。
+  // 廣播 webcad:joints-home → JointsPanel 停播放並把關鍵幀 scrub 拉回 t=0。
+  homeJoints: () => {
+    const s = get()
+    if (!s.joints.length) { set({ status: '沒有關節可歸零' }); return }
+    const restOf = (j: Joint) => (Number.isFinite(j.rest as number) ? (j.rest as number) : 0)
+    const joints = s.joints.map((j) => {
+      const rest = restOf(j)
+      return { ...j, angle: 0, slide: 0, angle2: 0, angle3: 0, slide2: 0, ...(j.type === 'slider' ? { slide: rest } : { angle: rest }) }
+    })
     const poseByChild = new Map<string, { pos: [number, number, number]; rot: [number, number, number] }>()
     for (const j of s.joints) if (j.restChildPose) poseByChild.set(j.child, j.restChildPose)
     const components = poseByChild.size
@@ -14618,12 +14624,34 @@ export const useApp = create<AppState>((rawSet, get) => {
           return p ? { ...c, pos: [...p.pos] as [number, number, number], rot: [...p.rot] as [number, number, number] } : c
         })
       : s.components
-    return {
+    set({
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       joints, components,
       status: `已把 ${s.joints.length} 個關節回到靜止位（Rest，預設 0${poseByChild.size ? ' · 已還原子件 as-built 位姿' : ''}）`,
-    }
-  }),
+    })
+    try { window.dispatchEvent(new CustomEvent('webcad:joints-home', { detail: { all: true } })) } catch { /* 非瀏覽器 */ }
+  },
+  homeJoint: (id) => {
+    const s = get()
+    const j0 = s.joints.find((x) => x.id === id)
+    if (!j0) { set({ status: '找不到關節可歸零' }); return }
+    const rest = Number.isFinite(j0.rest as number) ? (j0.rest as number) : 0
+    const joints = s.joints.map((j) => {
+      if (j.id !== id) return j
+      return { ...j, angle: 0, slide: 0, angle2: 0, angle3: 0, slide2: 0, ...(j.type === 'slider' ? { slide: rest } : { angle: rest }) }
+    })
+    const pose = j0.restChildPose
+    const components = pose
+      ? s.components.map((c) => (c.id === j0.child ? { ...c, pos: [...pose.pos] as [number, number, number], rot: [...pose.rot] as [number, number, number] } : c))
+      : s.components
+    const unit = j0.type === 'slider' ? 'mm' : '°'
+    set({
+      undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
+      joints, components,
+      status: `已將關節「${j0.name}」回到靜止位（${rest}${unit}${pose ? ' · 已還原子件 as-built 位姿' : ''}）`,
+    })
+    try { window.dispatchEvent(new CustomEvent('webcad:joints-home', { detail: { jointId: id } })) } catch { /* 非瀏覽器 */ }
+  },
   // 捕捉位置：快照当前每个关节嘅 5 个 DOF 值（以 id 为键），存为命名姿态。空机构唔压撤销（冇嘢捕捉）。
   jointPoses: [],
   jointKeyframes: [],

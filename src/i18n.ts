@@ -2131,6 +2131,7 @@ Object.assign(STATUS_PHRASES_X, {
   '繞Y°': 'Rot Y°',
   '繞Z°': 'Rot Z°',
   '↺歸零': '↺ Reset',
+  '歸零：關節驅動角／位移回靜止位；無關節則清零歐拉旋轉': 'Home: restore joint drive to rest; clear Euler if free',
   '體積': 'volume',
   '活動實體體積': 'active body volume',
   '軸距（平行軸）': 'Axis distance (parallel axes)',

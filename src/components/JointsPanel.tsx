@@ -223,6 +223,13 @@ export default function JointsPanel() {
     return () => cancelAnimationFrame(kfRaf.current)
   }, [kfPlaying])
 
+  // FISHING14 B：⌂／↺歸零後把關鍵幀 scrub 拉回 t=0（唔自動套用關鍵幀值 — 驅動已由 homeJoint(s) 寫回 Rest）
+  useEffect(() => {
+    const onHome = () => { setPlaying(false); setMsPlaying(false); setKfPlaying(false); setKfTime(0) }
+    window.addEventListener('webcad:joints-home', onHome)
+    return () => window.removeEventListener('webcad:joints-home', onHome)
+  }, [])
+
   if (components.length < 2) return null
   const name = (id: string) => localizeAsmName(components.find((c) => c.id === id)?.name ?? id, lang)   // RETEST17 #3：標題行「組件1 → 實體1」繁體
   const kfEnd = jointKeyframes.length ? jointKeyframes[jointKeyframes.length - 1].t : 5   // S177 时间轴末端 = 末帧 t（无帧默认 5s）
@@ -331,7 +338,9 @@ export default function JointsPanel() {
           )}
           {(j.type === 'revolute' || j.type === 'cylindrical') && (
             <>
-              <label className="jp-drive">轉 <input type="range" {...JOINT_DRIVE_GESTURE} min={j.aMin ?? -180} max={j.aMax ?? 180} value={j.angle} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}</label>
+              <label className="jp-drive">轉 <input type="range" {...JOINT_DRIVE_GESTURE} min={j.aMin ?? -180} max={j.aMax ?? 180} value={Math.min(j.aMax ?? 180, Math.max(j.aMin ?? -180, j.angle ?? 0))} onChange={(e) => setJointValue(j.id, { angle: Number(e.target.value) })} /> {limTag(j.angle, j.aMin ?? -180, j.aMax ?? 180, '°', j.aMin != null || j.aMax != null)}
+                <button type="button" className="cs-x" data-testid={`joint-home-${j.id}`} title="↺歸零：此關節驅動角回到靜止位（Rest，預設 0），並還原子件 as-built 位姿" onClick={() => { setPlaying(false); setMsPlaying(false); setKfPlaying(false); useApp.getState().homeJoint(j.id) }}>↺歸零</button>
+              </label>
               <div className="jp-lim">限位 <NumInput value={j.aMin ?? -180} onValue={(v) => { setJointValue(j.id, { aMin: v }) }} label="下限" w={48} /> ~ <NumInput value={j.aMax ?? 180} onValue={(v) => { setJointValue(j.id, { aMax: v }) }} label="上限" w={48} /> °
                 <button className="cs-x" title="停於接觸（T779）：正轉直到撞到第三方組件前一刻停低（5°掃+二分 ~0.01° — 卡扣/棘輪「轉到卡住」）" onClick={() => void useApp.getState().driveJointToContact(j.id, 1, 'angle')}>🧱+</button>
                 <button className="cs-x" title="停於接觸：反轉方向" onClick={() => void useApp.getState().driveJointToContact(j.id, -1, 'angle')}>🧱−</button>
@@ -340,7 +349,9 @@ export default function JointsPanel() {
           )}
           {(j.type === 'slider' || j.type === 'cylindrical') && (
             <>
-              <label className="jp-drive">移 <input type="range" {...JOINT_DRIVE_GESTURE} min={j.sMin ?? -120} max={j.sMax ?? 120} value={j.slide} onChange={(e) => setJointValue(j.id, { slide: Number(e.target.value) })} /> {limTag(j.slide, j.sMin ?? -120, j.sMax ?? 120, '', j.sMin != null || j.sMax != null)}</label>
+              <label className="jp-drive">移 <input type="range" {...JOINT_DRIVE_GESTURE} min={j.sMin ?? -120} max={j.sMax ?? 120} value={Math.min(j.sMax ?? 120, Math.max(j.sMin ?? -120, j.slide ?? 0))} onChange={(e) => setJointValue(j.id, { slide: Number(e.target.value) })} /> {limTag(j.slide, j.sMin ?? -120, j.sMax ?? 120, '', j.sMin != null || j.sMax != null)}
+                {j.type === 'slider' && <button type="button" className="cs-x" data-testid={`joint-home-${j.id}`} title="↺歸零：此關節滑動偏移回到靜止位（Rest，預設 0），並還原子件 as-built 位姿" onClick={() => { setPlaying(false); setMsPlaying(false); setKfPlaying(false); useApp.getState().homeJoint(j.id) }}>↺歸零</button>}
+              </label>
               <div className="jp-lim">限位 <NumInput value={j.sMin ?? -120} onValue={(v) => { setJointValue(j.id, { sMin: v }) }} label="下限" w={48} /> ~ <NumInput value={j.sMax ?? 120} onValue={(v) => { setJointValue(j.id, { sMax: v }) }} label="上限" w={48} /> mm
                 <button className="cs-x" title="停於接觸（S98）：正向滑到撞到第三方組件前一刻停低（2mm 掃+二分 — 卡扣/抽屜「推到頂」）" onClick={() => void useApp.getState().driveJointToContact(j.id, 1, 'slide')}>🧱+</button>
                 <button className="cs-x" title="停於接觸：反向滑" onClick={() => void useApp.getState().driveJointToContact(j.id, -1, 'slide')}>🧱−</button>
@@ -433,7 +444,7 @@ export default function JointsPanel() {
         )}
         <button className="cs-btn" onClick={add}>+ 關節</button>
         {hasMovable && <button className={'cs-btn' + (playing ? ' on' : '')} onClick={() => { setMsPlaying(false); setKfPlaying(false); setPlaying((p) => !p) }}>{playing ? '⏸ 停' : '▷ 運動'}</button>}
-        {joints.length > 0 && <button className="cs-btn" title="把所有關節角度/位移歸零，機構回到初始姿態" onClick={() => { setPlaying(false); setMsPlaying(false); setKfPlaying(false); useApp.getState().homeJoints() }}>⌂ 歸零</button>}
+        {joints.length > 0 && <button className="cs-btn" data-testid="joints-home-all" title="把所有關節角度/位移歸零，機構回到初始姿態（Rest；還原 as-built 位姿）" onClick={() => { setPlaying(false); setMsPlaying(false); setKfPlaying(false); useApp.getState().homeJoints() }}>⌂ 歸零</button>}
         {joints.length > 0 && <button className="cs-btn" title="捕捉位置：把當前所有關節角度/位移存為命名姿態，一鍵套回" onClick={async () => { const nm = await useApp.getState().appPrompt('姿態名稱', `姿態${jointPoses.length + 1}`); if (nm != null) useApp.getState().saveJointPose(nm) }}>📍 捕捉位置</button>}
       </div>
 

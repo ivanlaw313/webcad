@@ -8433,7 +8433,12 @@ export default function Viewport() {
               <label title={tStatus('繞 X 軸旋轉（度）', lang)}>{tStatus('繞X°', lang)} <input type="number" step={15} value={r[0]} onChange={(e) => setR(0, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
               <label title={tStatus('繞 Y 軸（豎直）旋轉（度）— 轉動零件朝向最常用', lang)}>{tStatus('繞Y°', lang)} <input type="number" step={15} value={r[1]} onChange={(e) => setR(1, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
               <label title={tStatus('繞 Z 軸旋轉（度）', lang)}>{tStatus('繞Z°', lang)} <input type="number" step={15} value={r[2]} onChange={(e) => setR(2, Number(e.target.value) || 0)} style={{ width: 52 }} /></label>
-              <button className="sb-tool" title={tStatus('清零旋轉', lang)} onClick={() => { if (r[0] || r[1] || r[2]) useApp.getState().moveComponentsByUser([selComp.id], [0, 0, 0], [-r[0], -r[1], -r[2]]) }}>{tStatus('↺歸零', lang)}</button>
+              <button className="sb-tool" data-testid="comp-home" title={tStatus('歸零：關節驅動角／位移回靜止位；無關節則清零歐拉旋轉', lang)} onClick={() => {
+                const st = useApp.getState()
+                const dj = drivingJointOf(selComp.id, st.joints)
+                if (dj) { st.homeJoint(dj.id); return }
+                if (r[0] || r[1] || r[2]) st.moveComponentsByUser([selComp.id], [0, 0, 0], [-r[0], -r[1], -r[2]])
+              }}>{tStatus('↺歸零', lang)}</button>
             </>
           ) })()}
           <button className="sb-tool" title={tStatus('聚焦：鏡頭框到此組件（裝配中快速放大單個零件）', lang)} onClick={() => requestFit(selComp.id)}>{tStatus('🎯聚焦', lang)}</button>

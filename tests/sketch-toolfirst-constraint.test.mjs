@@ -89,7 +89,7 @@ test('keyboard type-to-place never runs for pick tools or an open dimension edit
   assert.match(app,/s\.sketchTool !== 'select' && s\.sketchTool !== 'dimension' && !s\.skDimPreview\.id/)
   assert.match(app,/document\.activeElement/,'global keydown must honour the focused field, not only e.target')
   const vp=readFileSync(new URL('../src/components/Viewport.tsx',import.meta.url),'utf8')
-  assert.match(vp,/closest\?\.\('input,select,textarea,\[data-dim-editor\]'\)/)
+  assert.match(vp,/closest\?\.\('input,select,textarea,\[data-dim-editor\],\.cmd-palette'\)/)
   const sl=readFileSync(new URL('../src/components/SketchLayer.tsx',import.meta.url),'utf8')
   assert.match(sl,/data-dim-editor=""/)
   const st=readFileSync(new URL('../src/store.ts',import.meta.url),'utf8')

@@ -7207,17 +7207,28 @@ export const useApp = create<AppState>((rawSet, get) => {
   // Fusion 360 clears the edge/face selection when the Chamfer Type changes.
   // Keep the typed values, but require a fresh selection because Two Distance and
   // Distance and Angle use a different selection contract from Equal Distance.
-  setChamferMode: (m) => set({
-    chamferMode: m,
-    chamferRefFace: null,
-    edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [],
-    roundPreviewMesh: null, roundPreviewFail: false,
-    status: m === 'two'
-      ? '兩個距離：請重新選取棱'
-      : m === 'angle'
+  setChamferMode: (m) => {
+    // P1 B：雙距離暫未支援 — 唔好讓 UI 選中後確定再靜默改等距；直接拒絕並講明繁體原因。
+    if (m === 'two') {
+      set({
+        chamferMode: 'equal',
+        chamferRefFace: null,
+        edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [],
+        roundPreviewMesh: null, roundPreviewFail: false,
+        status: '雙距離倒角暫未支援：內核未能對一般稜邊建立不對稱斜面 — 請改用等距（或距離與角度）',
+      })
+      return
+    }
+    set({
+      chamferMode: m,
+      chamferRefFace: null,
+      edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [],
+      roundPreviewMesh: null, roundPreviewFail: false,
+      status: m === 'angle'
         ? '距離＋角度：請重新選取面與棱'
         : '等距離：請重新選取棱',
-  }),
+    })
+  },
   setChamferSize2: (n) => { set({ chamferSize2: Number.isFinite(n) ? Math.max(0, n) : 0 }); get().scheduleRoundPreview() },
   // Fusion permits the 0/90 degree endpoints to be displayed while dragging/typing, but they
   // are degenerate and therefore stay preview/commit-invalid (guards require 0 < angle < 90).
@@ -7280,7 +7291,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (kind === 'fillet' && get().filletType === 'rule' && get().filletRuleMode === 'between' && !(get().filletRuleFaceSets.includes(1) && get().filletRuleFaceSets.includes(2))) { set({ status: '兩組之間規則：第 1 組與第 2 組都要至少選擇一個面/特徵' }); return }
     if (kind === 'fillet' && get().filletType === 'full' && !([1, 2, 3] as const).every((slot) => get().filletFullFaceSets.includes(slot))) { set({ status: '全圓角：側面組 1、中心面、側面組 2 都要至少選擇一個面' }); return }
     if (kind === 'chamfer' && get().chamferMode === 'angle' && !get().chamferRefFace) { set({ status: '距離與角度：請先選取 1 個參考面，再選取其邊界上的 1 條稜邊' }); return }
-    if (kind === 'chamfer' && get().chamferMode === 'two' && !(get().chamferSize2 > 0)) { set({ status: '兩個距離：距離 2 必須大於 0' }); return }
+    if (kind === 'chamfer' && get().chamferMode === 'two') { set({ status: '雙距離倒角暫未支援：內核未能對一般稜邊建立不對稱斜面 — 請改用等距（未變更模型）' }); return }
     if (kind === 'chamfer' && get().chamferMode === 'angle' && !(get().chamferAngle > 0 && get().chamferAngle < 90)) { set({ status: '距離＋角度：角度必須大於 0° 以及小於 90°' }); return }
     if (!(kind === 'fillet' && get().filletType === 'full' ? true : kind === 'fillet' && get().filletMode === 'chord' ? get().filletChord > 0 : kind === 'fillet' && get().filletMode === 'asymmetric' ? get().filletR2 > 0 && get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : kind === 'fillet' ? get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : sz > 0)) { set({ status: `請輸入大於 0 的${kind === 'chamfer' ? '倒角距離' : get().filletMode === 'chord' ? '弦長' : get().filletMode === 'asymmetric' ? '兩個偏移距離' : '圓角半徑'}` }); return }
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])  // three-world → CAD (x,−z,y)
@@ -21391,6 +21402,22 @@ export const useApp = create<AppState>((rawSet, get) => {
     const isSpline = !!(pathShape && pathShape.type === 'poly' && pathShape.smooth)
     const src = pathShape && pathShape.type === 'poly' ? (isSpline && pathShape.ctrl ? pathShape.ctrl : (pathShape.verts ?? pathShape.pts)) : s.polyPts
     if (!src || src.length < 2) { sweepFail('先用「折線」畫一條路徑（≥2 點，可不閉合），再點「沿路徑掃掠」'); return }
+    // P1 C：扭轉 + 尖角折線 → 提交前拒絕（唔好建成無扭轉再警告）
+    if (swTwist && !isSpline) {
+      const sharp = (() => {
+        const pts = src as Pt[]
+        if (!pts || pts.length < 3) return false
+        for (let i = 1; i < pts.length - 1; i++) {
+          const ax = pts[i][0] - pts[i - 1][0], ay = pts[i][1] - pts[i - 1][1]
+          const bx = pts[i + 1][0] - pts[i][0], by = pts[i + 1][1] - pts[i][1]
+          const la = Math.hypot(ax, ay), lb = Math.hypot(bx, by)
+          if (la < 1e-9 || lb < 1e-9) continue
+          if ((ax * bx + ay * by) / (la * lb) < 0.978) return true
+        }
+        return false
+      })()
+      if (sharp) { sweepFail('不能套用扭轉：路徑含尖角折線 — 請把轉角改為圓角或樣條，或將「扭轉」設為 0°（未變更模型）'); return }
+    }
     const path = src.map((p) => stToProfile(p, 'XY'))
     const op: BoolOp = (s.sketchOp === 'cut' || s.sketchOp === 'intersect' || s.sketchOp === 'newbody') && hasSolid(s.features) ? s.sketchOp : 'new'   // P2：sweep 补 ∩相交 + New Body
     // T742 任意草图截面：揾 profiles 入面最后一个【闭合】轮廓做截面（截面以草图原点为中心，垂直路径放置）
@@ -21667,7 +21694,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
     }
     const from = s0.features.findIndex((f) => f.id === id)
-    const ok = await get().applyFeatures(next, `已${to < from ? '上' : '下'}移「${label(s0.features[from])}」並重建（可撤銷）`, true, undefined, docSnap(s0))
+    // P1 A：重排必須係「一個」可撤銷步驟，且還原精確到重排前嘅時間軸+模型。
+    // docSnap 只淺拷 features 陣列引用；重排重建會寫回 edgeFp／nears 到同一物件 → 污染撤銷快照。
+    // 拒絕路徑唔入 undo（下面早退）；成功路徑用 structuredClone 凍結重排前特徵樹。
+    const before = { ...docSnap(s0), features: structuredClone(s0.features) }
+    const ok = await get().applyFeatures(next, `已${to < from ? '上' : '下'}移「${label(s0.features[from])}」並重建（可撤銷）`, true, undefined, before)
     if (!ok) {
       const why = Object.values(get().featureErrors)[0]
       set({ failedFeatureIds: [], featureErrors: {}, status: `⚠ 移動後重建失敗${why ? '（' + why + '）' : ''} — 已還原原順序` })

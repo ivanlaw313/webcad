@@ -1989,9 +1989,10 @@ function chamferAsym(shape: any, d1: number, second: number, mode: 'two' | 'angl
   _recordFillet(_curOpIndex, 'chamfer', mids, mids.map(() => d1))
   try {
     return shape.chamfer(cfg as any, finder)
-  } catch {
-    buildWarnings.push(`两${mode === 'angle' ? '(距离+角度)' : '距离'}倒角失败（所选棱不在顶/底面边缘）— 已改为等距 C${d1}`)
-    return shape.chamfer(d1, finder)
+  } catch (e) {
+    // P1 B：唔可以確定後靜默改等距 — 誠實失敗，保留上一個有效模型（commit／rebuild 會顯示繁體原因）。
+    const kind = mode === 'angle' ? '距離與角度' : '雙距離'
+    throw new Error(`${kind}倒角失敗（內核未能建立不對稱斜面：${(e as Error)?.message || e}）— 請改用等距，或調整所選稜／尺寸`)
   }
 }
 
@@ -5578,7 +5579,7 @@ function buildShape(features: Feature[], noCache = false): any {
           if (!bbOk) throw new Error('twist/缩放返无界或退化几何')
         }
       } catch (e) {
-        if (swTwist || swScale !== 1) { buildWarnings.push(`⚠ 3D 扫掠 twist/缩放失败（${(e as Error)?.message || e}）— 已退回普通扫掠`); swept3 = makeTube3(f.r, true); plain3 = true }
+        if (swTwist || swScale !== 1) { throw new Error(`扭轉／縮放 3D 掃掠失敗（${(e as Error)?.message || e}）— 請將路徑改為圓角或樣條，或將扭轉設為 0°`) }
         else throw e
       }
       if (!f.profile && f.wall && f.wall > 0 && f.wall < f.r) {
@@ -5656,23 +5657,29 @@ function buildShape(features: Feature[], noCache = false): any {
       let swept: any, plain2 = false
       try { swept = tube(f.r) }
       catch (e) {
-        if (f.guide && f.guide.length >= 2) { buildWarnings.push(`⚠ 导轨扫掠失败（${(e as Error)?.message || e}）— 已退回普通扫掠`); swept = tube(f.r, false) }
-        else if (swTwist || swScale !== 1) { buildWarnings.push(`⚠ 扫掠 twist/缩放失败（${(e as Error)?.message || e}）— 已退回普通扫掠`); swept = tube(f.r, false, true); plain2 = true }
+        if (f.guide && f.guide.length >= 2 && !(swTwist || swScale !== 1)) { buildWarnings.push(`⚠ 导轨扫掠失败（${(e as Error)?.message || e}）— 已退回普通扫掠`); swept = tube(f.r, false) }
+        else if (swTwist || swScale !== 1) { throw new Error(`扭轉／縮放掃掠失敗（${(e as Error)?.message || e}）— 請將路徑改為圓角或樣條，或將扭轉設為 0°`) }
         else throw e
       }
-      // twist/缩放 bbox 有界闸（gotcha e）：返无界/退化几何 → 退回普通扫掠
+      // twist/缩放 bbox 有界闸（gotcha e）：返无界/退化 → 誠實失敗（P1 C：唔好靜默剝扭轉）
       if ((swTwist || swScale !== 1) && !plain2) {
         let bbOk = false
         try { const bb = swept.boundingBox.bounds; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 失败当无界 */ }
-        if (!bbOk) { buildWarnings.push('⚠ 扫掠 twist/缩放返无界或退化几何 — 已退回普通扫掠'); swept = tube(f.r, false, true); plain2 = true }
+        if (!bbOk) { throw new Error('扭轉／縮放掃掠返無界或退化幾何 — 請將路徑改為圓角或樣條，或將扭轉設為 0°') }
       }
-      // CORE16：純扭轉（無縮放）唔應該改變體積。尖角折線路徑上 frame 扭轉會出自交／塌陷幾何（實測 Ø10 L 形 5484→388），
-      // 體積偏差 >10% → 退回無扭轉掃掠並講明，唔好靜默出錯誤實體。
-      if (swTwist && swScale === 1 && !plain2) {
+      // CORE16 + P1 C：純扭轉（無縮放）唔應該改變體積。尖角折線上 frame 扭轉會自交／塌陷。
+      // 圓截面扭轉無視覺效果 — 跳過體積閘（避免誤報「尖角」後退回）。
+      // 有草圖截面時：體積偏差 >10% → 誠實失敗（唔好靜默剝扭轉再提交成功）。
+      if (swTwist && swScale === 1 && !plain2 && f.profile) {
         try {
           const ref = tube(f.r, true, true), vt = _solidVolume(swept), vr = _solidVolume(ref)
-          if (vr > 1e-9 && !(Math.abs(vt - vr) / vr <= 0.1)) { buildWarnings.push('⚠ 扭轉掃掠在此路徑（尖角）產生錯誤幾何 — 已退回無扭轉掃掠；請把路徑轉角改為圓角或樣條'); swept = ref; plain2 = true }
-        } catch { /* 參考掃掠失敗 → 保留扭轉結果 */ }
+          if (vr > 1e-9 && !(Math.abs(vt - vr) / vr <= 0.1)) {
+            throw new Error('扭轉掃掠在此路徑（尖角折線）產生錯誤幾何 — 請把路徑轉角改為圓角或樣條，或將扭轉設為 0°')
+          }
+        } catch (e) {
+          if (e instanceof Error && e.message.startsWith('扭轉掃掠')) throw e
+          /* 參考掃掠失敗 → 保留扭轉結果 */
+        }
       }
       // wall>0 → hollow pipe: subtract an inner tube (r − wall) swept along the same spine (导管/水管/扶手/线管).
       if (!f.profile && f.wall && f.wall > 0 && f.wall < f.r) {

@@ -5546,7 +5546,7 @@ export default function Viewport() {
             </label>}
             <label>
               <span style={{ color: '#6b7680' }}>類型</span>
-              <span><select value={chamferMode} onChange={(e) => setChamferMode(e.target.value as 'equal' | 'two' | 'angle')} style={{ height: 26 }} aria-label="倒角類型"><option value="equal">等距</option><option value="two">雙距離</option><option value="angle">距離與角度</option></select></span>
+              <span><select value={chamferMode === 'two' ? 'equal' : chamferMode} onChange={(e) => setChamferMode(e.target.value as 'equal' | 'two' | 'angle')} style={{ height: 26 }} aria-label="倒角類型" title="雙距離暫未支援：內核未能對一般稜邊建立不對稱斜面；請用等距，或待後續版本"><option value="equal">等距</option><option value="two" disabled title="雙距離暫未支援：內核未能對一般稜邊建立不對稱斜面；請用等距">雙距離（暫未支援）</option><option value="angle">距離與角度</option></select></span>
             </label>
             <SelectionChip label="邊／面／特徵" count={edgeRoundPicks.length + (chamferMode === 'angle' && chamferRefFace ? 1 : 0)} hint="選擇" selectedText={chamferMode === 'angle' ? `${chamferRefFace ? 1 : 0} 個面，${edgeRoundPicks.length} 條邊` : undefined} onClear={() => useApp.getState().clearEdgeRoundPicks()} />
             <label className="sb-hint" title="相切鏈：點選一條稜邊時，自動連同與其相切連續的邊一併選取">
@@ -7257,7 +7257,7 @@ export default function Viewport() {
           {featDlg.kind === 'chamfer-edit' && (<>
             <SelectionChip label={tStatus('棱', lang)} count={Math.max(1, +(featDlg.params.nearsN || 0))} hint="" />
             <label>{tStatus('類型', lang)} <select value={String(featDlg.params.cmode)} onChange={(e) => setFeatParam('cmode', e.target.value)} style={{ height: 26 }}>
-              <option value="equal">{tStatus('等距', lang)}</option><option value="two">{tStatus('兩距離', lang)}</option><option value="angle">{tStatus('距離+角度', lang)}</option></select></label>
+              <option value="equal">{tStatus('等距', lang)}</option><option value="two" disabled title={tStatus('雙距離暫未支援：內核未能對一般稜邊建立不對稱斜面；請用等距', lang)}>{tStatus('雙距離（暫未支援）', lang)}</option><option value="angle">{tStatus('距離+角度', lang)}</option></select></label>
             <label>{tStatus('距離', lang)} <FeatNum k="distance" v={featDlg.params.distance} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
             {featDlg.params.cmode === 'two' && <label>{tStatus('距離2', lang)} <FeatNum k="dist2" v={featDlg.params.dist2} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>}
             {featDlg.params.cmode === 'angle' && <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={50} />°</label>}

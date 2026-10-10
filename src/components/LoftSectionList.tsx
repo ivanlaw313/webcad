@@ -74,7 +74,7 @@ export function LoftSectionList() {
                 <option value="">{tStatus('可選：選導軌草圖', lang)}</option>
                 {railCands.map((c) => <option key={c.skId} value={c.skId}>{c.label}</option>)}
               </select>
-            : <span className="sel-chip empty">{tStatus('可選：選一條連接各截面的曲線', lang)}</span>}
+            : <span className="sel-chip empty" data-testid="loft-rail-empty">{tStatus(sections.length < 2 ? '導軌：先加滿 ≥2 個截面後可選' : '可選：選一條連接各截面的曲線', lang)}</span>}
       </label>
       <div data-testid="loft-preview-status" role="status" aria-live="polite" style={{ fontSize: 11, color: pv?.error ? '#c0392b' : '#6b7680', lineHeight: 1.35 }}>
         {sections.length < 2

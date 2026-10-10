@@ -299,6 +299,13 @@ let _pendingDatumRef: { idx: number; base: Plane; arb?: { o: [number, number, nu
 let _datumRepassGuard = false   // 防 datum 重烘焙第二趟 rebuild 无限递归
 let _loftEditRollback = false   // UX4：編輯放樣時時間軸已回卷到放樣之前 → 取消要還原返最尾
 let _skEditRollback = false     // GM-W6 F1：重开草图编辑时时间轴已回卷（gotoStep(featIdx)）→ 非重建退出路径要还原返最尾
+// P1-RECHECK A：時間軸重排被拒絕後，下一擊 Ctrl+Z 唔可以食咗拒絕前已存在嘅特徵（拒絕本身唔入 undo，
+// 但用戶預期「拒絕未改模型 → Z 亦唔好刪圓角」）。Guard 只擋「會令特徵數變少」嘅一次撤銷；唔 pushHistory。
+let _timelineRefuseUndoGuard: { n: number; ids: string[] } | null = null
+const noteTimelineReorderRefused = (features: { id: string }[]) => {
+  _timelineRefuseUndoGuard = { n: features.length, ids: features.map((f) => f.id) }
+}
+const clearTimelineRefuseUndoGuard = () => { _timelineRefuseUndoGuard = null }
 // BUG-213：完成草图写入时间轴之后，Ctrl+Z 要回到草图编辑（矩形还在），不能把文档弹成空档。
 // 会话挂在「完成前」那条撤销条目上，不进存档。再按 Ctrl+Z 仍走草图逐步撤销。
 const SKETCH_FINISH_UNDO_STATUS = '已撤銷完成草圖 — 返回編輯'
@@ -16045,6 +16052,17 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     const u = get().undoStack
     if (!u.length) { set({ status: '沒有可撤銷的操作' }); return }
+    // P1-RECHECK A：剛拒絕嘅時間軸重排冇入 undo；擋一次「會刪走拒絕前特徵」嘅 Ctrl+Z。
+    if (_timelineRefuseUndoGuard) {
+      const guard = _timelineRefuseUndoGuard
+      clearTimelineRefuseUndoGuard()
+      const top = u[u.length - 1]
+      const topN = top?.features?.length ?? 0
+      if (topN < guard.n) {
+        set({ status: '拒絕移動未改變模型 — 沒有可撤銷的時間軸重排（模型保持完整）' })
+        return
+      }
+    }
     const prev = u[u.length - 1]
     const cur = get()
     const reopen = _sketchFinishUndo.get(prev) ?? null
@@ -21655,6 +21673,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // Only refuse violations the move introduces (legacy files may already carry odd orders elsewhere).
     const bad = orderViolation(next as unknown as Parameters<typeof orderViolation>[0])
     if (bad && (bad.feature.id === id || bad.needs.id === id)) {
+      noteTimelineReorderRefused(s0.features)
       set({ status: `不能移動：「${label(bad.feature as unknown as Feature)}」依賴「${label(bad.needs as unknown as Feature)}」，必須排在它之後` })
       return false
     }
@@ -21668,6 +21687,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const newKey = activeBodyKeyAfter(next as { id: string; type: string; operation?: string; op?: string; target?: number }[], toIdx)
         if (oldKey !== newKey) {
           const dir = toIdx < from ? '上移' : '下移'
+          noteTimelineReorderRefused(s0.features)
           set({ status: `不能${dir}：「${label(moved)}」— 移動後切割目標會變成另一個實體（切割目標必須保持不變）` })
           return false
         }
@@ -21689,6 +21709,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (!topoRefsResolvable(c.feature, pm)) {
         const lost = c.lost.filter((g) => !sup0.includes(g.id))
         const src = lost[lost.length - 1] as unknown as Feature
+        noteTimelineReorderRefused(s0.features)
         set({ status: `不能移動：「${label(c.feature as unknown as Feature)}」引用的邊線／幾何由「${label(src)}」產生，必須排在它之後` })
         return false
       }
@@ -21701,9 +21722,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     const ok = await get().applyFeatures(next, `已${to < from ? '上' : '下'}移「${label(s0.features[from])}」並重建（可撤銷）`, true, undefined, before)
     if (!ok) {
       const why = Object.values(get().featureErrors)[0]
+      noteTimelineReorderRefused(s0.features)
       set({ failedFeatureIds: [], featureErrors: {}, status: `⚠ 移動後重建失敗${why ? '（' + why + '）' : ''} — 已還原原順序` })
       return false
     }
+    clearTimelineRefuseUndoGuard()
     return true
   },
   // GM-W6 F2：浏览树双击特征行改名（存喺 feature.name — worker 唔读，纯 metadata；同 sketchId 一样喺 store-side feature 上持久，regenGroupFeatures/moveFeature 等 spread {...f} 时自动保留）。改名唔重建几何，undo 安全（docSnap 含 features）。
@@ -22179,9 +22202,9 @@ export const useApp = create<AppState>((rawSet, get) => {
   exportParamsCsv: () => {
     const ps = get().params
     if (!ps.length) { set({ status: '沒有用戶參數可匯出（先在 ƒx 參數表加參數）' }); return }
-    const rows = [['参数名', '值', '表达式'], ...ps.map((p) => [p.name, String(+p.value.toFixed(6)), p.expr || ''])]
+    const rows = [['參數名', '值', '表達式'], ...ps.map((p) => [p.name, String(+p.value.toFixed(6)), p.expr || ''])]
     const csv = '﻿' + rows.map((r) => r.map((f) => (/[",\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f)).join(',')).join('\r\n')
-    triggerDownload(new TextEncoder().encode(csv), `${projName(get().projectName)}-参数.csv`, 'text/csv')
+    triggerDownload(new TextEncoder().encode(csv), `${projName(get().projectName)}-參數.csv`, 'text/csv')
     set({ status: `已匯出 ${ps.length} 個用戶參數 → CSV` })
   },
 

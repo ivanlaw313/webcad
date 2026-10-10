@@ -167,6 +167,7 @@ export default function Timeline() {
   const [gearOpen, setGearOpen] = useState(false)
   const [dragId, setDragId] = useState<string | null>(null)   // T2：拖放重排中嘅特徵
   const [dropAt, setDropAt] = useState<number | null>(null)
+  const chipDragActive = useRef(false)   // P1-RECHECK A：HTML5 拖放後唔好再觸發 click 選中／開編輯條（blur→editFeature 會污染 undo）
   const [collapsed, setCollapsed] = useState(false)
   const featureEditorDrag = useDraggable('webcad-feature-editor', { left: 12, bottom: 96 })
   const panelDrag = useDraggable('webcad-timeline', { right: 0, bottom: 0 })
@@ -337,15 +338,17 @@ export default function Timeline() {
                     style={{ ...chipStyle, ...(dropAt === i && dragId && dragId !== f.id ? { outline: '2px solid #1572c4', outlineOffset: 1 } : {}) }}
                     // T2：拖放重排（Fusion 同款）— 放落邊個 chip 就移去佢嘅位置；依賴檢查 + 失敗自動還原喺 store.reorderFeature。
                     draggable={!commandEditing}
-                    onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-webcad-feature', f.id); setDragId(f.id) }}
+                    onDragStart={(e) => { chipDragActive.current = true; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-webcad-feature', f.id); setDragId(f.id) }}
                     onDragOver={(e) => { if (!dragId) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dropAt !== i) setDropAt(i) }}
                     onDragLeave={() => { if (dropAt === i) setDropAt(null) }}
                     onDrop={(e) => { e.preventDefault(); const id = dragId; setDragId(null); setDropAt(null); if (id && id !== f.id) void useApp.getState().reorderFeature(id, i) }}
-                    onDragEnd={() => { setDragId(null); setDropAt(null) }}
+                    onDragEnd={() => { setDragId(null); setDropAt(null); /* chipDragActive 留到下一次 click 消化 */ }}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); selectFeature(f.id); setChipMenu({ x: e.clientX, y: e.clientY, id: f.id, i }) }}
                     title={tStatus(`【${m.label}】${nameTag}${threadTag}${paramSummary ? ' · ' + paramSummary : ''}${isCut && f.type !== 'extrude' ? '（切割）' : ''}${rolled ? ' · 已回退到此步之前 — 點擊重建到這' : suppressedIds.includes(f.id) ? ' · 已抑制（點擊編輯/恢復）' : ' · 點擊：選中編輯（參數條在下方；回卷用拖時間線 marker）'}${editDlg ? ' · 雙擊：編輯特徵（重開對話框）' : hasSketch ? ' · 雙擊：重開草圖編輯（改輪廓/約束 → 全樹重建）' : ''}${featureErrors[f.id] ? ' · 🔴 重建失敗：' + featureErrors[f.id] + '（請檢查參數後重試；以狀態欄的保留／重建結果為準）' : ''}`, lang)}
                     onClick={(e) => {   // detail>1 = 双击第二下（俾 onDoubleClick）。单击=只选中高亮；Ctrl/⌘+点=多选（阵列/镜像多目标）；rolled chip 点击重建到该步
                       if (e.detail > 1) return
+                      // P1-RECHECK A：啱啱完成 HTML5 拖放 → 吞掉合成 click，避免開編輯條／blur 提交污染 undo
+                      if (chipDragActive.current) { chipDragActive.current = false; return }
                       if (e.ctrlKey || e.metaKey) { useApp.getState().toggleFeatureSel(f.id); return }
                       const wasSel = f.id === selected
                       selectFeature(wasSel ? null : f.id)

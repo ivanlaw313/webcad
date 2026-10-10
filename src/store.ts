@@ -22621,13 +22621,22 @@ export const useApp = create<AppState>((rawSet, get) => {
     set({ status: `已匯出鈑金展開 DXF（料長 ${DL.toFixed(1)} × 寬 ${W}，${bends.length} 條折彎線 [BEND]${holes.length ? ` · ${holes.length} 個孔已展開定位` : ''}${skipStr}，可激光下料）` })
   },
 
+  // FISHING15：裝配根（多組件有實體、唔喺編輯組件中）→ File ▸ 匯出 STEP 走多實體／裝配 STEP（世界位姿），
+  // 同「匯出裝配 STEP」一致；淨空裝配仍 Formal TC 拒絕「沒有可匯出的實體，請先建模」。
   exportStep: async () => {
+    const s0 = get()
+    const atAsmRoot = !s0.editingComponent
+    const visibleComps = s0.components.filter((c) => !c.hidden)
+    if (atAsmRoot && visibleComps.length) {
+      // 有可見組件時一律走裝配路徑（含位姿）；單零件編輯仍用下面 current.blobSTEP
+      return get().exportAssemblyStep()
+    }
     const stepName = await askExportName(get, '.step')
     if (!stepName) { set({ status: '已取消匯出 STEP（未下載任何檔案）' }); return }
     set({ busy: true, status: '匯出 STEP：生成 B-rep…' })
     await new Promise((r) => requestAnimationFrame(() => r(null)))
     const buf = await cad.exportSTEP()
-    if (!buf) { set({ busy: false, status: '沒有可匯出的實體' }); return }
+    if (!buf) { set({ busy: false, status: '沒有可匯出的實體，請先建模' }); return }
     triggerDownload(buf, stepName, 'application/step')
     set({ busy: false, status: `已匯出 ${stepName}（可在任何 CAD 打開）` })
   },
@@ -22817,6 +22826,13 @@ export const useApp = create<AppState>((rawSet, get) => {
       const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4))
       return [lin(parseInt(h.slice(1, 3), 16) / 255), lin(parseInt(h.slice(3, 5), 16) / 255), lin(parseInt(h.slice(5, 7), 16) / 255)]
     }
+    // FISHING15：features 可能只喺 componentDefs.src（occ.mesh 被剥空後仍可靠）
+    const featsOf = (c: (typeof s.components)[number]): Feature[] | undefined => {
+      if (c.src?.features?.length) return c.src.features
+      const def = c.defId ? s.componentDefs.find((d) => d.id === c.defId) : undefined
+      const df = def?.src && typeof def.src === 'object' && 'features' in (def.src as object) ? (def.src as { features?: Feature[] }).features : undefined
+      return df?.length ? df : undefined
+    }
     const Rfix = new Matrix4().makeRotationX(Math.PI / 2)  // three Y-up world → CAD Z-up（compWorldMatrix 尾巴系 Rx(−90°)，呢度抵消）
     const parts: { name: string; color?: [number, number, number]; trsf: number[]; features?: Feature[]; useCurrent?: boolean }[] = []
     const meshOnly: string[] = []
@@ -22824,10 +22840,15 @@ export const useApp = create<AppState>((rawSet, get) => {
       const fk = computeFK(s.components.map((c) => c.id), s.joints)
       for (const c of s.components) {
         if (c.hidden) continue
-        if (!c.src || !c.src.features.length) { if (c.mesh.triangles.length > 2) meshOnly.push(c.name); continue }
+        const feats = featsOf(c)
+        if (!feats?.length) {
+          const hasMesh = visibleDefinitionBodies(c, s.componentDefs).some((b) => b.mesh.triangles.length > 2) || c.mesh.triangles.length > 2
+          if (hasMesh) meshOnly.push(c.name)
+          continue
+        }
         const M = new Matrix4().multiplyMatrices(Rfix, compWorldMatrix(c, fk.get(c.id)))
         const e = M.elements  // column-major → gp_Trsf.SetValues 要 row-major 3×4
-        const bound = applyParamBindings(JSON.parse(JSON.stringify(c.src.features)) as Feature[], s.params, s.paramBindings)
+        const bound = applyParamBindings(JSON.parse(JSON.stringify(feats)) as Feature[], s.params, s.paramBindings)
         const sup = s.suppressedIds
         parts.push({
           name: c.name, color: hex2rgb(c.color),
@@ -22840,7 +22861,13 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.bodyMesh && s.bodyMesh.triangles.length && !s.editingComponent && hasSolid(s.features)) {
       parts.push({ name: '本体', trsf: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0], useCurrent: true, color: hex2rgb(s.bodyColor) })
     }
-    if (!parts.length) { set({ status: `沒有可匯出的 B-rep 零件${meshOnly.length ? `（淨網格件不支援 STEP：${meshOnly.join('、')}）` : ' — 先建組件或實體'}` }); return }
+    if (!parts.length) {
+      // FISHING15 Formal TC：空裝配／無可匯出 B-rep → 清晰拒絕（同 File ▸ 匯出 STEP）
+      set({ status: meshOnly.length
+        ? `沒有可匯出的 B-rep 零件（淨網格件不支援 STEP：${meshOnly.join('、')}）`
+        : '沒有可匯出的實體，請先建模' })
+      return
+    }
     set({ busy: true, status: `正在重建 ${parts.length} 個零件的 B-rep 並寫入彩色 STEP…` })
     try {
       const res = await cad.exportAssemblySTEP(projName(s.projectName), parts)

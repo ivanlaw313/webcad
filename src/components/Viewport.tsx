@@ -8580,7 +8580,14 @@ export default function Viewport() {
       {interfPanelOpen && (
         <div className="cmd-palette" style={{ position: 'fixed', right: 12, top: 'min(208px, 18vh)', width: 'min(316px, calc(100vw - 24px))', boxSizing: 'border-box', zIndex: 70, maxHeight: 'calc(82vh - 12px)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <b style={{ fontSize: 12 }}>{interfReport ? (interfReport.hits.length ? `⚠ ${tStatus('干涉', lang)} ${interfReport.hits.length} ${msg('vp.hits', lang)}` : `✓ ${tStatus('無干涉', lang)}`) : `🔍 ${tStatus('干涉檢查', lang)}`}</b>
+            <b style={{ fontSize: 12 }}>{interfReport ? (() => {
+              // P3：全部為體積 0（接觸）時唔好標「干涉 N 處」— 用「接觸 N 處」；有真干涉時可附接觸數
+              const volN = interfReport.hits.filter((h) => h.vol > 0).length
+              const contactN = interfReport.hits.filter((h) => h.vol <= 0).length
+              if (volN > 0) return `⚠ ${tStatus('干涉', lang)} ${volN} ${msg('vp.hits', lang)}${contactN ? ` · ${tStatus('接觸', lang)} ${contactN} ${msg('vp.hits', lang)}` : ''}`
+              if (contactN > 0) return `⚠ ${tStatus('接觸', lang)} ${contactN} ${msg('vp.hits', lang)}`
+              return `✓ ${tStatus('無干涉', lang)}`
+            })() : `🔍 ${tStatus('干涉檢查', lang)}`}</b>
             <button className="tb-btn" onClick={() => useApp.getState().setInterfPanelOpen(false)}>✕</button>
           </div>
           {/* GM-X1 #6：拣集 + 含共面（拆自动跑）*/}
@@ -8600,7 +8607,7 @@ export default function Viewport() {
             {interfReport.hits.map((h, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 2px', borderTop: i ? '1px solid #e3e8ec' : undefined, fontSize: 11 }}>
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${h.a} ∩ ${h.b}`}>{h.a} ∩ {h.b}</span>
-                <span style={{ color: '#c9362a', fontWeight: 600, whiteSpace: 'nowrap' }}>{h.vol >= 1000 ? (h.vol / 1000).toFixed(2) + 'cm³' : h.vol.toFixed(1) + 'mm³'}{h.exact ? '' : '≈'}</span>
+                <span style={{ color: h.vol > 0 ? '#c9362a' : '#8a6d3b', fontWeight: 600, whiteSpace: 'nowrap' }}>{h.vol > 0 ? (h.vol >= 1000 ? (h.vol / 1000).toFixed(2) + 'cm³' : h.vol.toFixed(1) + 'mm³') + (h.exact ? '' : '≈') : tStatus('接觸', lang)}</span>
                 <button className="tb-btn" title={tStatus('框到此重疊區', lang)} onClick={() => useApp.getState().requestFitBBox(h.min, h.max)}>🔍</button>
               </div>
             ))}

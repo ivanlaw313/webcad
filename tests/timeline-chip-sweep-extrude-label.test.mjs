@@ -89,3 +89,27 @@ test('Timeline quick-edit bar shows 貫通 for through-all (no height NumField c
   // Must not leave height NumField as the only through-all path for extrude fields
   assert.match(tl, /FISHING23/)
 })
+
+test('Timeline extrude quick-edit META has no twist/扭轉 field (FISHING24)', () => {
+  const tl = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
+  // One-line extrude META (fields may nest opts []); assert that line has no twist NumField
+  const line = tl.split('\n').find((l) => /^\s*extrude:\s*\{/.test(l))
+  assert.ok(line, 'extrude META line present')
+  assert.doesNotMatch(line, /key:\s*'twist'/)
+  assert.doesNotMatch(line, /扭轉/)
+  assert.match(line, /key:\s*'height'/)
+  assert.match(line, /key:\s*'operation'/)
+  assert.match(line, /key:\s*'plane'/)
+  assert.match(tl, /FISHING24/)
+  // Sweep chip summary may still mention 扭轉 — that lives on sweepTimelineParamSummary, not extrude fields
+  assert.match(tl, /sweepTimelineParamSummary/)
+})
+
+test('through-all extrude quick-edit: 貫通 + no twist in extrude fields', () => {
+  const tl = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
+  assert.match(tl, /fe-extrude-through/)
+  assert.match(tl, /fd\.key === 'height' && sel\.type === 'extrude' && isExtrudeThroughAll/)
+  const line = tl.split('\n').find((l) => /^\s*extrude:\s*\{/.test(l))
+  assert.ok(line)
+  assert.doesNotMatch(line, /key:\s*'twist'/)
+})

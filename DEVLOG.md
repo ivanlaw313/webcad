@@ -1,5 +1,11 @@
 # DEVLOG
 
+## 2026-10-11 — FISHING24 P1：拉伸 Timeline quick-edit 隱藏「扭轉」
+- **跟進** f4a6414 through-all 已顯示「貫通」、無假「高度」；單擊仍出「扭轉 0°」NumField（拉伸唔係掃掠）。
+- **修**：`Timeline` extrude META `fields` 移除 `twist`；掃掠 chip 扭轉摘要不受影響。through-all quick-edit = 貫通＋操作＋草圖面。
+- **測**：`tests/timeline-chip-sweep-extrude-label.test.mjs`；APP_VERSION 2.20。
+
+
 ## 2026-10-11 — FISHING23：Timeline quick-edit through-all 顯示「貫通」（唔再假「高度」）
 - **跟進** tip 9148267 chip/title 已顯示「貫通」；單擊 Timeline chip 嘅 quick-edit 條仍出「高度 10」NumField，會 commit 距離。
 - **修**：`isExtrudeThroughAll`；extrude + height 且 through/extent=through 時 quick-edit 只顯示正式繁體「貫通」，無距離輸入。

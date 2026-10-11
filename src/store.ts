@@ -5540,6 +5540,27 @@ export function meshBboxSize(m: { vertices?: ArrayLike<number> } | null | undefi
   return [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]]
 }
 
+/** Absolute ceiling for thicken (100 m) — same order as prim soft-warn (>100 m). */
+export const THICKEN_ABS_MAX_MM = 100_000
+/**
+ * FISHING29：加厚厚度相對實體 bbox／絕對上限過大 → Formal TC 拒絕原因（否則內核可「成功」造出荒谬薄板）。
+ * null = 可接受。相對閘：> max(最長邊×50, 對角×20)。
+ */
+export function thickenOversizeReason(mesh: MeshData | null | undefined, t: number): string | null {
+  if (!(Number.isFinite(t) && t > 0)) return null
+  const sz = meshBboxSize(mesh)
+  if (sz) {
+    const maxDim = Math.max(sz[0], sz[1], sz[2])
+    const diag = Math.hypot(sz[0], sz[1], sz[2])
+    const relMax = Math.max(maxDim * 50, diag * 20, 1)
+    if (t > relMax) {
+      return `加厚厚度 ${t} mm 過大 — 實體最長方向約 ${+maxDim.toFixed(2)} mm，請減小厚度（上限約 ${+relMax.toFixed(2)} mm）`
+    }
+  }
+  if (t > THICKEN_ABS_MAX_MM) return `加厚厚度 ${t} mm 超過上限 ${THICKEN_ABS_MAX_MM} mm`
+  return null
+}
+
 /** CORE16：盲孔深度 ≥ 實體沿鑽孔方向嘅包圍厚度 → 回傳厚度（保守：包圍盒只會高估厚度 → 唔會誤報）。 */
 export function holeBlindOverrun(st: Pick<AppState, 'bodyMesh' | 'holeThrough' | 'holeToNext' | 'holeToObject' | 'holeDepth' | 'holeDir'>): { thick: number } | null {
   const m = st.bodyMesh
@@ -7767,7 +7788,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 負數 = 翻轉方向（正向↔反向），厚度取絕對值
     const negTyped = thick < 0
     if (thick < 0) { thick = -thick; dir = dir === 'pos' ? 'neg' : dir === 'neg' ? 'pos' : dir }
-    set({ thickenThick: thick, thickenDir: dir, thickenOp: patch.op ?? cur.thickenOp, ...(!(thick > 0) ? { status: '加厚：厚度必須大於 0（輸入 0 無效）' } : /^加厚：厚度必須大於 0/.test(cur.status) ? { status: `加厚：厚度 ${thick} mm（${dir === 'neg' ? '反向' : dir === 'both' ? '對稱' : '正向'}）` } : {}) })
+    set({ thickenThick: thick, thickenDir: dir, thickenOp: patch.op ?? cur.thickenOp, ...(!(thick > 0) ? { status: illegalRejectStatus('加厚厚度必須大於 0') } : /尺寸已拒絕：加厚厚度必須大於 0|加厚：厚度必須大於 0/.test(cur.status) ? { status: `加厚：厚度 ${thick} mm（${dir === 'neg' ? '反向' : dir === 'both' ? '對稱' : '正向'}）` } : {}) })
     // CORE16：負數唔再靜默翻轉 — 狀態列明確講「負值＝反向」同而家嘅方向
     if (negTyped && thick > 0) set({ status: `加厚：負值表示反向 — 方向已改為「${dir === 'neg' ? '反向' : dir === 'pos' ? '正向' : '對稱'}」，厚度 ${thick} mm` })
     get().scheduleThickenPreview()
@@ -7811,7 +7832,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     { const bad = pendingNumericIssue(); if (bad) { set({ status: bad }); return } }
     const s = get()
     if (!s.thickenPicks.length) { set({ status: '加厚：請先點選要加厚的面' }); return }
-    if (!(s.thickenThick > 0)) { set({ status: '加厚：厚度必須大於 0（輸入 0 無效）' }); return }
+    if (!(s.thickenThick > 0)) { set({ status: illegalRejectStatus('加厚厚度必須大於 0') }); return }
+    { const over = thickenOversizeReason(s.bodyMesh, s.thickenThick); if (over) { set({ status: illegalRejectStatus(over) }); return } }
     const f = buildThickenFeature(s, fid(), false)!
     ++_thkPvSeq; if (_thkPvTimer) clearTimeout(_thkPvTimer); _thkPvTimer = null
     try { cancelPreviews() } catch { /* node / 无 kernel */ }
@@ -7845,6 +7867,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!Number.isFinite(raw) || raw === 0) { set({ quiltPickMode: false, status: '加厚曲面：厚度必須為非零數值（負值＝朝反側）' }); return }   // CORE16 #1：0 唔再靜靜變 0.05
     const side: 'pos' | 'neg' = raw < 0 ? 'neg' : 'pos'
     const thick = Math.abs(raw)
+    { const over = thickenOversizeReason(get().bodyMesh, thick); if (over) { set({ quiltPickMode: false, status: illegalRejectStatus(over) }); return } }
     const ok = await get().applyFeatures([...get().features, { id: fid(), type: 'thickenquilt', target, thick, side }], `加厚曲面 ${pkt[target].name} ${thick}mm 成實體${side === 'neg' ? '（翻面）' : ''}`, true, '加厚曲面失败（曲面太扭 / 自交 / 厚度过大）')
     if (ok) set({ quiltPickMode: false })
   },

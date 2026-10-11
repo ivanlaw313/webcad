@@ -1,5 +1,10 @@
 # DEVLOG
 
+## 2026-10-11 — Timeline chip Formal TC：掃掠草圖截面（無誤導「半徑」）+ 拉伸貫通「貫通」
+- **Sweep**：草圖截面掃掠 chip/title 改為路徑／草圖截面／扭轉（及縮放／導軌）正式繁體摘要；不再顯示誤導「半徑」（r 仍由 Ø/2 存檔）。圓管模式顯示「管徑 Ø」。
+- **Extrude**：through-all 切割 chip/title 顯示「貫通」，不再只報距離高度。
+- **測**：`tests/timeline-chip-sweep-extrude-label.test.mjs`；APP_VERSION 2.20。
+
 ## 2026-10-10 — FISHING14 E P1：物理材質密度單一來源（HUD／物理屬性／BOM／裝配總質量）
 - **根因**：頂欄「物理材質」在已選組件時仍只寫活動體 `physMatName`；Viewport 選取 HUD／裝配總質量用 `physMatName` 做無材質組件後備 → 整裝配誤套 7.85；`openPropertiesDialog`／BOM 卻用 `bodyDensity` 2.7 → 三處質量分裂。
 - **修**：`setPhysicalMaterial` 有選中組件時寫 `c.material`（唔改 `bodyDensity`）；`effectiveComponentDensity` 統一後備為文件預設；裝配總質量按件加總、混合標「（各材質）」；BOM 多實體跟 physMat／parked；固化組件帶走材質；屬性／狀態用正式繁體「鋼」。

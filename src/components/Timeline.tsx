@@ -1,5 +1,7 @@
 import { plainFeatureError } from '../ui/featureStatus'
 import { chamferTimelineParamSummary } from '../ui/chamferLabel'
+import { sweepTimelineParamSummary } from '../ui/sweepLabel'
+import { extrudeTimelineParamSummary } from '../ui/extrudeLabel'
 import { useEscapeLayer } from './useEscapeLayer'
 import { parseLen, toLenInput } from '../io/units'   // BUG-507/509：時間軸編輯條跟對話框同一條解析
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react'
@@ -82,7 +84,7 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
   untrim: { icon: 'shell', label: '去裁/還原', param: '', field: '', unit: '', fields: [] },
   mergefaces: { icon: 'shell', label: '合併面', param: '', field: '', unit: '', fields: [] },  // S 合并同域邻面 Unify-Same-Domain
   editpoles: { icon: 'editpoles', label: '編輯曲面控制點', param: '', field: '', unit: '', fields: [] },  // S133 NURBS 极点编辑
-  sweep: { icon: 'sweep', label: '掃掠', param: '半徑', field: 'r', unit: 'mm' },
+  sweep: { icon: 'sweep', label: '掃掠', param: '半徑', field: 'r', unit: 'mm' },  // chip/title：sweepTimelineParamSummary（草圖截面→路徑/截面/扭轉，不顯示誤導半徑）
   coil: { icon: 'coil', label: '螺旋', param: '螺距', field: 'pitch', unit: 'mm', fields: [{ key: 'pitch', label: '螺距', unit: 'mm' }, { key: 'height', label: '高度', unit: 'mm' }, { key: 'radius', label: '半徑', unit: 'mm' }, { key: 'r2', label: '頂半徑', unit: 'mm', defKey: 'radius' }, { key: 'wireR', label: '絲徑', unit: 'mm' }] },  // GM-L2 #61：顶半径 r2（锥形弹簧）恒显，缺省=底半径；老档 r2 absent 保持 absent，改动先烘焙
   thread: { icon: 'thread', label: '螺紋桿', param: '螺距', field: 'pitch', unit: 'mm', fields: [{ key: 'd', label: '直徑Ø', unit: 'mm' }, { key: 'pitch', label: '螺距', unit: 'mm' }, { key: 'height', label: '高度', unit: 'mm' }] },
   ithread: { icon: 'hole', label: '內螺紋孔', param: '公稱Ø', field: 'd', unit: 'mm', fields: [{ key: 'd', label: '公稱Ø', unit: 'mm' }, { key: 'pitch', label: '螺距', unit: 'mm' }, { key: 'height', label: '深度', unit: 'mm' }, { key: 'x', label: '中心X', unit: 'mm' }, { key: 'y', label: '中心Y', unit: 'mm' }] },
@@ -317,6 +319,14 @@ export default function Timeline() {
                   const ch = chamferTimelineParamSummary(r as { distance?: number; dist2?: number; cmode?: string; angle?: number })
                   if (ch) return ch
                 }
+                if (f.type === 'sweep') {
+                  const sw = sweepTimelineParamSummary(r as { r?: number; profile?: { kind?: string } | null; path?: unknown[]; path3?: unknown[]; twist?: number; scale?: number; wall?: number; guide?: unknown[] })
+                  if (sw) return sw
+                }
+                if (f.type === 'extrude') {
+                  const ex = extrudeTimelineParamSummary(r as { height?: number; through?: boolean; operation?: string; twist?: number; plane?: string; symmetric?: boolean; extent?: string })
+                  if (ex) return ex
+                }
                 const fds: FieldDef[] = (m as { fields?: FieldDef[] }).fields?.length ? (m as { fields: FieldDef[] }).fields : (m.field ? [{ key: m.field, label: m.param, unit: m.unit }] : [])
                 return fds.slice(0, 3).map((fd) => {
                   const v = r[fd.key]
@@ -457,7 +467,7 @@ export default function Timeline() {
                 </label>
               )
             })
-          ) : meta.field && Number.isFinite((sel as unknown as Record<string, number>)[meta.field]) ? (   // UX4：多截面放樣冇 height → 唔再顯示「高度 NaN」
+          ) : meta.field && Number.isFinite((sel as unknown as Record<string, number>)[meta.field]) && !(sel.type === 'sweep' && (sel as { profile?: unknown }).profile) ? (   // UX4：多截面放樣冇 height → 唔再顯示「高度 NaN」；草圖截面掃掠不顯示誤導「半徑」
             <label>
               {tStatus(meta.param, lang)}
               <NumField

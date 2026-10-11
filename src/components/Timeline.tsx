@@ -2,6 +2,7 @@ import { plainFeatureError } from '../ui/featureStatus'
 import { chamferTimelineParamSummary } from '../ui/chamferLabel'
 import { sweepTimelineParamSummary } from '../ui/sweepLabel'
 import { extrudeTimelineParamSummary, isExtrudeThroughAll } from '../ui/extrudeLabel'
+import { featureKindLabel, isCylinderPrimitive } from '../ui/featureLabel'
 import { useEscapeLayer } from './useEscapeLayer'
 import { parseLen, toLenInput } from '../io/units'   // BUG-507/509：時間軸編輯條跟對話框同一條解析
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react'
@@ -199,7 +200,9 @@ export default function Timeline() {
   )
 
   const sel = features.find((f) => f.id === selected)
-  const meta = sel ? (META[sel.type] || null) : null   // 未知类型 → null（下游已处理 null = 唔显示参数编辑器），唔 crash
+  const meta0 = sel ? (META[sel.type] || null) : null   // 未知类型 → null（下游已处理 null = 唔显示参数编辑器），唔 crash
+  // FISHING27 P3：編輯條標題對圓柱／圓錐用 Formal TC 種別名
+  const meta = meta0 && sel ? { ...meta0, label: featureKindLabel(sel as Parameters<typeof featureKindLabel>[0], meta0.label) } : meta0
   // FISHING3 P2：開啟特徵編輯條時記下 undo 深度；「取消」／Esc 還原至開啟前，「確定」保留已提交變更。
   useEffect(() => {
     if (sel && meta && !commandEditing) {
@@ -312,7 +315,9 @@ export default function Timeline() {
               const m = META[f.type] || { icon: 'default', label: f.type, param: '', field: '', unit: '' }   // 兜底：未知/新版特徵类型唔会令时间轴 crash
               const r = f as unknown as Record<string, unknown>
               const isCut = r.operation === 'cut' || r.op === 'cut'  // extrude uses `operation`, the rest use `op`
-              const label = (f as unknown as { name?: string }).name || (f.type === 'text' && (f as { arbPlane?: unknown }).arbPlane ? '浮雕' : f.type === 'extrude' && f.operation === 'cut' ? '切割' : m.label)   // GM-W6 F2：自订名优先；FISHING11 P3：emboss(arbPlane)→浮雕
+              // FISHING27 P3：圓柱／圓錐基本體唔好顯示成通用「拉伸」／「原語」
+              const kindLabel = featureKindLabel(f as Parameters<typeof featureKindLabel>[0], m.label)
+              const label = (f as unknown as { name?: string }).name || (f.type === 'text' && (f as { arbPlane?: unknown }).arbPlane ? '浮雕' : f.type === 'extrude' && f.operation === 'cut' && !isCylinderPrimitive(f as Parameters<typeof isCylinderPrimitive>[0]) ? '切割' : kindLabel)   // GM-W6 F2：自订名优先；FISHING11 P3：emboss(arbPlane)→浮雕；FISHING27：圓柱優先於「切割」
               const threadTag = (f.type === 'othread' || f.type === 'ithread') ? ` M${f.d}×${f.pitch}${f.cosmetic ? '（cosmetic 外觀）' : '（真牙）'}` : ''   // P2 Cosmetic：designation 入 tooltip
               // GM-G4b：悬停 tooltip 领头 = 类型 + 名称 + 关键参数值（前 3 个字段；选项字段显示中文标签）。纯 title 文案，唔改任何行为。
               const paramSummary = (() => {
@@ -336,7 +341,8 @@ export default function Timeline() {
                   return `${fd.label} ${disp}${fd.opts ? '' : fd.unit}`
                 }).filter(Boolean).join(' · ')
               })()
-              const nameTag = label && label !== m.label ? ` 「${label}」` : ''   // 有自订名先显示
+              const titleKind = kindLabel   // FISHING27：tooltip【圓柱】/【圓錐】而非【拉伸】/【原語】
+              const nameTag = (f as unknown as { name?: string }).name ? ` 「${(f as unknown as { name?: string }).name}」` : (label && label !== titleKind && label !== m.label ? ` 「${label}」` : '')   // 自订名／切割別名
               const rolled = i >= timelinePos || (editIndex >= 0 && i > editIndex)  // rolled back: not built at the current scrub position
               const hasSketch = ((f.type === 'extrude' || f.type === 'revolve' || f.type === 'sweep' || f.type === 'sketch' || f.type === 'extgroup') && !!f.sketchId) || (f.type === 'loft' && !!f.sketchIds?.length)  // T746/T748/T753/T756：revolve/sweep/loft/独立草图都可重开；P2 audit：extgroup（多轮廓拉伸组）都有 sketchId — 原本漏咗
               // P2 Edit Feature：白名单 kind 双击重开原对话框（Fusion Edit Feature）；改轮廓入口收入对话框「✎编辑草图」
@@ -360,7 +366,7 @@ export default function Timeline() {
                     onDrop={(e) => { e.preventDefault(); const id = dragId; setDragId(null); setDropAt(null); if (id && id !== f.id) void useApp.getState().reorderFeature(id, i) }}
                     onDragEnd={() => { setDragId(null); setDropAt(null); /* chipDragActive 留到下一次 click 消化 */ }}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); selectFeature(f.id); setChipMenu({ x: e.clientX, y: e.clientY, id: f.id, i }) }}
-                    title={tStatus(`【${m.label}】${nameTag}${threadTag}${paramSummary ? ' · ' + paramSummary : ''}${isCut && f.type !== 'extrude' ? '（切割）' : ''}${rolled ? ' · 已回退到此步之前 — 點擊重建到這' : suppressedIds.includes(f.id) ? ' · 已抑制（點擊編輯/恢復）' : ' · 點擊：選中編輯（參數條在下方；回卷用拖時間線 marker）'}${editDlg ? ' · 雙擊：編輯特徵（重開對話框）' : hasSketch ? ' · 雙擊：重開草圖編輯（改輪廓/約束 → 全樹重建）' : ''}${featureErrors[f.id] ? ' · 🔴 重建失敗：' + featureErrors[f.id] + '（請檢查參數後重試；以狀態欄的保留／重建結果為準）' : ''}`, lang)}
+                    title={tStatus(`【${titleKind}】${nameTag}${threadTag}${paramSummary ? ' · ' + paramSummary : ''}${isCut && f.type !== 'extrude' ? '（切割）' : ''}${rolled ? ' · 已回退到此步之前 — 點擊重建到這' : suppressedIds.includes(f.id) ? ' · 已抑制（點擊編輯/恢復）' : ' · 點擊：選中編輯（參數條在下方；回卷用拖時間線 marker）'}${editDlg ? ' · 雙擊：編輯特徵（重開對話框）' : hasSketch ? ' · 雙擊：重開草圖編輯（改輪廓/約束 → 全樹重建）' : ''}${featureErrors[f.id] ? ' · 🔴 重建失敗：' + featureErrors[f.id] + '（請檢查參數後重試；以狀態欄的保留／重建結果為準）' : ''}`, lang)}
                     onClick={(e) => {   // detail>1 = 双击第二下（俾 onDoubleClick）。单击=只选中高亮；Ctrl/⌘+点=多选（阵列/镜像多目标）；rolled chip 点击重建到该步
                       if (e.detail > 1) return
                       // P1-RECHECK A：啱啱完成 HTML5 拖放 → 吞掉合成 click，避免開編輯條／blur 提交污染 undo

@@ -42,6 +42,7 @@ import { applySelClick, mergeSel, type ModelSelItem, type SelMod } from './cad/m
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
 import { splitVolumeNoteForMesh, meshVolumeMm3 } from './ui/splitVolume'
 import { formatBuildWarnings, plainFeatureError } from './ui/featureStatus'
+import { featureKindLabel } from './ui/featureLabel'
 import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, extrudeExtraNote, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus, gearSuccessStatus, wormSuccessStatus, profileSuccessStatus, profileSectionName } from './ui/featureStatus'
 import { lengthScale } from './io/units'
 import { meshDropKind, MESH_TAB_DROP_HINT } from './io/meshDrop'
@@ -3354,11 +3355,15 @@ type FeaSolveInput = { vertices: number[] | Float32Array; triangles: number[] | 
 // 接收 s / s2 / get() 任一 state-like 对象。新增字段在还原侧用 ?? 兜底（兼容旧 5 字段栈条目）。
 // T1/T2：human label for confirm/status text — custom name, else type label + timeline ordinal.
 const FEATURE_TYPE_LABEL: Record<string, string> = { extrude: '拉伸', extgroup: '拉伸', sketch: '草圖', revolve: '旋轉', sweep: '掃掠', loft: '放樣', fillet: '圓角', chamfer: '倒角', shell: '抽殼', hole: '孔', mirror: '鏡像', pattern: '陣列', circPattern: '環形陣列', pathpattern: '路徑陣列', draft: '拔模', rib: '加強筋', transform: '移動', scale: '縮放', pushpull: '按拉', prim: '原語' }
+function featureTypeBase(f: Feature): string {
+  // FISHING27 P3：圓柱／圓錐基本體用 Formal TC 種別名（唔好「拉伸」／「原語」）
+  return featureKindLabel(f as Parameters<typeof featureKindLabel>[0], FEATURE_TYPE_LABEL[f.type] ?? f.type)
+}
 function featureDisplayName(f: Feature, all: readonly Feature[]): string {
   const custom = (f as { name?: string }).name
   if (custom) return custom
-  const base = FEATURE_TYPE_LABEL[f.type] ?? f.type
-  const n = all.filter((g) => (FEATURE_TYPE_LABEL[g.type] ?? g.type) === base).findIndex((g) => g.id === f.id) + 1
+  const base = featureTypeBase(f)
+  const n = all.filter((g) => featureTypeBase(g) === base).findIndex((g) => g.id === f.id) + 1
   return n > 0 ? `${base}${n}` : base
 }
 // Joint drive gesture (drag / slider) in progress: document snapshot taken at gesture start.

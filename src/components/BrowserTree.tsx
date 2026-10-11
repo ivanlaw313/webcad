@@ -1,4 +1,5 @@
 import { plainFeatureError } from '../ui/featureStatus'
+import { featureKindLabel } from '../ui/featureLabel'
 import { activeModelCommand } from '../cad/commandAvailability'
 import { sketchProfileCount } from '../sketch/profileCount'
 import { localizeAsmName } from '../assembly/names'   // BUG(E)：裝配名繁體顯示
@@ -258,7 +259,9 @@ function FeatRow({ f }: { f: AppState['features'][number] }) {
   const selectFeature = useApp((s) => s.selectFeature)
   const meta0 = FEAT[f.type] || { icon: 'default', label: f.type }   // 兜底：未知/新版/cast 类型都唔会 undefined.icon crash
   // FISHING11 P3：浮雕命令落嘅 text（有 arbPlane）树名显示「浮雕」；旧 XY 文字仍叫「文字」
-  const meta = (f.type === 'text' && (f as { arbPlane?: unknown }).arbPlane) ? { icon: meta0.icon === 'default' ? 'emboss' : meta0.icon, label: '浮雕' } : meta0
+  // FISHING27 P3：圓柱／圓錐基本體 →「圓柱」／「圓錐」（唔好顯示「拉伸」／「原語」）
+  const metaEmboss = (f.type === 'text' && (f as { arbPlane?: unknown }).arbPlane) ? { icon: meta0.icon === 'default' ? 'emboss' : meta0.icon, label: '浮雕' } : meta0
+  const meta = { ...metaEmboss, label: featureKindLabel(f as Parameters<typeof featureKindLabel>[0], metaEmboss.label) }
   const custom = (f as { name?: string }).name
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')

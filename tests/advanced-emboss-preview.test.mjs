@@ -67,8 +67,13 @@ test('B4: cylindrical engrave (cut) preview ≈ commit', async () => {
 
 test('B5: depth edit changes volume; empty-text Formal TC in featDlgNumeric + tree 浮雕', () => {
   const num = fs.readFileSync(new URL('../src/cad/featDlgNumeric.ts', import.meta.url), 'utf8')
-  assert.match(num, /尺寸已拒絕：請輸入浮雕文字/)
-  assert.match(num, /尺寸已拒絕：浮雕深度必須大於 0/)
+  // Detail-only in semantic reason — Viewport prefixes 「尺寸已拒絕：」 once (no duplicated marker).
+  assert.match(num, /return '請輸入浮雕文字'/)
+  assert.match(num, /return '浮雕深度必須大於 0/)
+  assert.doesNotMatch(num, /return '尺寸已拒絕：請輸入浮雕文字'/)
+  const vp = fs.readFileSync(new URL('../src/components/Viewport.tsx', import.meta.url), 'utf8')
+  assert.match(vp, /尺寸已拒絕：\{block\}/)
+  assert.match(vp, /尺寸已拒絕：\{featDlgBlockingReason\(featDlg\)\}/)
   const tl = fs.readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
   assert.match(tl, /arbPlane \? '浮雕'/)
   const bt = fs.readFileSync(new URL('../src/components/BrowserTree.tsx', import.meta.url), 'utf8')

@@ -114,7 +114,8 @@ import { detectFace, detectFacePreferCyl, nearSharpEdge } from '../geom/faceDete
 import { cutFaceGeom } from '../geom/sectionCap'   // S186：剖面盖切面三角抽取（切面上色）
 import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按需预览（避免普通建模首屏载入齿轮搜索）
 import { ToolIcon } from '../icons'
-import { featDlgBlockingReason, patternOverlapWarning } from '../cad/featDlgNumeric'   // 純邏輯模組，唔經 monolith
+import { featDlgBlockingReason, patternOverlapWarning } from '../cad/featDlgNumeric'
+import { parseSweepTwistDraft, parseSweepScaleDraft } from '../cad/sweepTwistFields'   // 純邏輯模組，唔經 monolith
 import { startRenderGovernor } from '../render/renderGovernor'
 import { PRIM_PLACE_KINDS, FEAT_DLG_DRY_PREVIEW_KINDS, shellFailReason, effectiveComponentDensity } from '../store'   // UX3 #2 / CORE16 b4
 import { useApp, holeBlindOverrun, meshBboxSize, extrudePreviewKey, extrudePreviewCurrent, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection } from '../store'
@@ -4491,7 +4492,13 @@ export default function Viewport() {
   const setSweepDia = useApp((s) => s.setSweepDia)
   // CORE16：管徑 Ø 打 0／負數唔再靜默變返 12 — 留原文、紅框、閂確定、講原因
   const [sweepDiaTxt, setSweepDiaTxt] = useState<string | null>(null)
-  useEffect(() => { if (!sweepDlgOpen) setSweepDiaTxt(null) }, [sweepDlgOpen])
+  // Goal A：扭轉／末端縮放本地草稿（同管徑 Ø）— 打字唔即 Number()，唔食字；0／空白扭轉 OK
+  const [sweepTwistTxt, setSweepTwistTxt] = useState<string | null>(null)
+  const [sweepScaleTxt, setSweepScaleTxt] = useState<string | null>(null)
+  useEffect(() => { if (!sweepDlgOpen) { setSweepDiaTxt(null); setSweepTwistTxt(null); setSweepScaleTxt(null) } }, [sweepDlgOpen])
+  const twistDraft = parseSweepTwistDraft(sweepTwistTxt ?? String(sweepTwist))
+  const scaleDraft = parseSweepScaleDraft(sweepScaleTxt ?? String(sweepScale))
+  const sweepTwistScaleBad = !twistDraft.ok || !scaleDraft.ok
   const sketchProfiles = useApp((s) => s.sketchProfiles)
   const sketchShape = useApp((s) => s.sketchShape)
   const sketchUndoN = useApp((s) => s.sketchUndo.length)
@@ -8141,15 +8148,15 @@ export default function Viewport() {
           width={232}
           okTip={tStatus('生成（Enter）', lang)}
           onOk={() => void commitSweepPath()}
-          okDisabled={!!numBad || (sweepSection === 'circle' && (!(sweepDia > 0) || (sweepDiaTxt != null && !(parseLen(sweepDiaTxt, unit) != null && (parseLen(sweepDiaTxt, unit) as number) > 0))))}
+          okDisabled={!!numBad || sweepTwistScaleBad || (sweepSection === 'circle' && (!(sweepDia > 0) || (sweepDiaTxt != null && !(parseLen(sweepDiaTxt, unit) != null && (parseLen(sweepDiaTxt, unit) as number) > 0))))}
           onCancel={() => cancelSweepDlg()}
           summary={sweepSection === 'profile'
             ? (sketchOp === 'cut' ? tStatus('沿路徑掃掠切割（草圖截面）', lang) : sketchOp === 'intersect' ? tStatus('沿路徑掃掠 ∩ 保留公共部分', lang) : tStatus('沿路徑掃掠成實體（草圖截面）', lang))
             : (sketchOp === 'cut' ? tStatus(`沿路徑切圓槽 Ø${sweepDia}`, lang) : sketchOp === 'intersect' ? tStatus('沿路徑掃掠 ∩ 保留公共部分', lang) : tStatus(`沿路徑掃圓管 Ø${sweepDia}`, lang))}
         >
-          <SelectionChip label={tStatus('路徑', lang)} count={sweepEdgeLinesV.length ? sweepEdgeLinesV.length : (sweepAxis || sweepEditId ? 1 : ((sketchShape && sketchShape.type === 'poly') || polyPts.length >= 2 ? 1 : 0))} hint={tStatus(sweepEditId ? '編輯模式會保留原本的 2D/3D 路徑與導軌；改參數後按确定重建' : '先畫折線/樣條作路徑，或選構造軸脊線，或用下面「拾實體邊」逐條接力', lang)} onClear={sweepEdgeLinesV.length ? () => useApp.getState().clearSweepEdges() : undefined} />
+          <SelectionChip label={tStatus('路徑', lang)} count={sweepEdgeLinesV.length ? sweepEdgeLinesV.length : (sweepAxis || sweepEditId ? 1 : ((sketchShape && sketchShape.type === 'poly') || polyPts.length >= 2 ? 1 : 0))} hint={tStatus(sweepEditId ? '編輯模式會保留原本的 2D/3D 路徑與導軌；改參數後按確定重建' : '先畫折線/樣條作路徑，或選構造軸脊線，或用下面「拾實體邊」逐條接力', lang)} onClear={sweepEdgeLinesV.length ? () => useApp.getState().clearSweepEdges() : undefined} />
           {/* GM-3DV1 S5：沿实体边链拾路径（Fusion Chain Path）+ S15 active pick-slot 高亮 */}
-          <label title={tStatus('沿實體邊鏈做路徑：按「拾實體邊」→ 在實體上逐條點相連的棱邊接力（青色高亮），截面沿邊鏈掃掠。适合沿已有實體邊加管/導軌。', lang)}>
+          <label title={tStatus('沿實體邊鏈做路徑：按「拾實體邊」→ 在實體上逐條點相連的棱邊接力（青色高亮），截面沿邊鏈掃掠。適合沿已有實體邊加管/導軌。', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('實體邊鏈', lang)}</span>
             <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <button className={'cs-btn pick-slot' + (sweepEdgePickV ? ' active' : '')} onClick={() => useApp.getState().toggleSweepEdgePick()}>{sweepEdgePickV ? tStatus('拾邊中…', lang) : tStatus('🎯拾實體邊', lang)}</button>
@@ -8202,7 +8209,7 @@ export default function Viewport() {
                   hint={tStatus('點畫布上的閉合輪廓（圓/矩形/閉合折線）選做截面，或在瀏覽樹點選另一張草圖；預設用最後一個閉合輪廓', lang)}
                 />
               })()}
-              <div className="sb-hint" style={{ fontSize: 11 }}>{tStatus('點閉合輪廓選截面（畫輪廓 → 畫路徑折線 → 确定）', lang)}</div>
+              <div className="sb-hint" style={{ fontSize: 11 }}>{tStatus('點閉合輪廓選截面（畫輪廓 → 畫路徑折線 → 確定）', lang)}</div>
             </>
           )}
           {/* GM-3DV1 S5：截面朝向（Fusion Orientation）— 垂直=截面恒⊥脊线（缺省）；平行=截面保初始朝向不随脊线转（对圆截面无视觉差，配草图轮廓/扭转用） */}
@@ -8223,14 +8230,16 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>{tStatus('爬升 Z (3D)', lang)}</span>
             <span><input type="number" step={5} value={sweepClimb} onChange={(e) => setSweepClimb(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
           </label>
-          <label title={tStatus('扭轉：截面沿脊線行進時繞路徑方向旋轉的總角度。0=不扭。對圓截面無視覺效果，配草圖輪廓截面用。', lang)}>
+          <label title={tStatus('扭轉：截面沿脊線行進時繞路徑方向旋轉的總角度。0 或空白＝不扭。對圓截面無視覺效果，配草圖輪廓截面用。', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('扭轉', lang)}</span>
-            <span><input type="number" step={15} value={sweepTwist} onChange={(e) => setSweepTwist(Number(e.target.value))} style={{ width: 66 }} /> °</span>
+            <span><input type="text" inputMode="decimal" data-testid="sweep-twist-input" aria-label={tStatus('扭轉', lang)} aria-invalid={twistDraft.ok ? undefined : true} value={sweepTwistTxt ?? String(sweepTwist)} onFocus={(e) => { setSweepTwistTxt(String(sweepTwist)); e.currentTarget.select() }} onChange={(e) => { const raw = e.target.value; setSweepTwistTxt(raw); const r = parseSweepTwistDraft(raw); if (r.ok) setSweepTwist(r.value) }} onBlur={() => { const r = parseSweepTwistDraft(sweepTwistTxt ?? ''); if (r.ok) { setSweepTwist(r.value); setSweepTwistTxt(null) } }} style={{ width: 66, ...(!twistDraft.ok ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }} /> °</span>
           </label>
-          <label title={tStatus('末端縮放：末端截面相對起端等比縮放（錐度）。1=不變；0.5=末端收一半；>1=放大。喇叭口/錐管/收口。', lang)}>
+          {!twistDraft.ok && <div role="alert" data-testid="sweep-twist-alert" style={{ color: '#b42318', fontSize: 11 }}>{tStatus(twistDraft.reason!, lang)}</div>}
+          <label title={tStatus('末端縮放：末端截面相對起端等比縮放（錐度）。1＝不變；0.5＝末端收一半；>1＝放大。喇叭口／錐管／收口。', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('末端縮放', lang)}</span>
-            <span><input type="number" min={0.05} step={0.1} value={sweepScale} onChange={(e) => setSweepScale(Number(e.target.value) || 1)} style={{ width: 66 }} /> ×</span>
+            <span><input type="text" inputMode="decimal" data-testid="sweep-scale-input" aria-label={tStatus('末端縮放', lang)} aria-invalid={scaleDraft.ok ? undefined : true} value={sweepScaleTxt ?? String(sweepScale)} onFocus={(e) => { setSweepScaleTxt(String(sweepScale)); e.currentTarget.select() }} onChange={(e) => { const raw = e.target.value; setSweepScaleTxt(raw); const r = parseSweepScaleDraft(raw); if (r.ok) setSweepScale(r.value) }} onBlur={() => { const r = parseSweepScaleDraft(sweepScaleTxt ?? ''); if (r.ok) { setSweepScale(r.value); setSweepScaleTxt(null) } }} style={{ width: 66, ...(!scaleDraft.ok ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }} /> ×</span>
           </label>
+          {!scaleDraft.ok && <div role="alert" data-testid="sweep-scale-alert" style={{ color: '#b42318', fontSize: 11 }}>{tStatus(scaleDraft.reason!, lang)}</div>}
           {sweepSection === 'profile' && (!!sweepTwist || (sweepScale > 0 && Math.abs(sweepScale - 1) > 1e-9)) && (
             <div data-testid="sweep-twist-preview-status" role="status" aria-live="polite" style={{ fontSize: 11, color: sweepPreview?.error ? '#c0392b' : '#6b7680', lineHeight: 1.35, margin: '2px 0 4px' }}>
               {sweepPreviewBusy

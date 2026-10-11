@@ -1094,6 +1094,8 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "已清除图片贴图": "Image texture cleared",
   "✓ 已清空文档": "✓ Document cleared",
   "已撤销草图一步": "Undid one sketch step",
+  "已撤銷草圖一步": "Undid one sketch step",
+  "已撤銷": "Undone",
   "已重做草图一步": "Redid one sketch step",
   "孔需要先有实体": "Hole requires a body first",
   "已返回直线模式": "Back to Line mode",

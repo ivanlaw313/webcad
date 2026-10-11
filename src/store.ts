@@ -8076,7 +8076,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   toggleFaceSketchPick: () => set((s) => ({ faceSketchPick: !s.faceSketchPick, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, pushPullMode: false, shellMode: false, faceFilletMode: false, holeMode: false, featDlg: null, status: !s.faceSketchPick ? '點擊實體的一個面 → 自動在該面上新建草圖（支援平面/軸向面）' : '已取消選面' })),
   // S162 Emboss（Fusion 凸字/凹字）：拾一个平面 → 输入文字 → 沿面法向 凸起(raise)/刻入(engrave)。复用 arb 面坐标系 + 文字特征。（embossPick 初值喺 faceSketchPick 旁边一并初始化）
-  toggleEmboss: () => set((s) => ({ embossPick: !s.embossPick, faceSketchPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, pushPullMode: false, shellMode: false, holeMode: false, delFaceMode: false, thickenMode: false, featDlg: null, status: !s.embossPick ? '✏ 浮雕：點實體一個【平面】→ 輸入文字 → 沿面法向凸起／刻入（如標牌／編號／標誌）' : '已取消浮雕' })),
+  toggleEmboss: () => set((s) => ({ embossPick: !s.embossPick, faceSketchPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, edgeRoundPick: null, pushPullMode: false, shellMode: false, holeMode: false, delFaceMode: false, thickenMode: false, featDlg: null, status: !s.embossPick ? '✏ 浮雕：點實體一個面（平面或圓柱側面）→ 輸入文字 → 沿面法向凸起／刻入（標牌／編號）' : '已取消浮雕' })),
   applyEmbossPick: async (p, n) => {
     if (!get().embossPick) return
     const L = Math.hypot(n[0], n[1], n[2]) || 1
@@ -8089,7 +8089,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     xd = [xd[0] / xl, xd[1] / xl, xd[2] / xl]
     // CORE16：一個對話框（文字／字型／字高／深度／凸起或刻入）+ 即時內核預覽，取代三個連續 prompt。
     set({ embossPick: false, featDlg: { kind: 'emboss', params: { text: 'TEXT', font: 'cad', size: 8, depth: 2, mode: 'emboss' }, payload: { arbPlane: { o, xd, n: nn } } },
-      status: '浮雕：輸入文字、字高、深度，選擇凸起或刻入 → 確定' })
+      status: '浮雕：輸入文字、字高、深度，選擇凸起（加料）或刻入（切除）→ 確定' })
   },
   // #174-1：UCS 用户坐标系。拾一个平面帧（点实体平面）→ buildUCS 生成正交基 → 一次落 3 参考面 + 3 构造轴 + 1 构造点。
   ucsPick: false,
@@ -8724,7 +8724,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   sweepTwist: 0,
   setSweepTwist: (n) => set({ sweepTwist: Number.isFinite(n) ? n : 0 }),
   sweepScale: 1,
-  setSweepScale: (n) => set({ sweepScale: n > 0 ? n : 1 }),
+  setSweepScale: (n) => set((st) => ({ sweepScale: (Number.isFinite(n) && n > 0) ? n : st.sweepScale })),   // Goal A：唔靜默變 1；非法由對話框本地草稿 Formal TC 擋
   sweepPreview: null,
   sweepPreviewBusy: false,
   scheduleSweepPreview: () => {
@@ -16252,7 +16252,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       return { ...(prev.activeBodyName !== undefined ? { activeBodyName: prev.activeBodyName } : {}), undoStack: s.undoStack.slice(0, -1), redoStack: [...s.redoStack, redoEntry], components: prev.components, componentDefs: prev.componentDefs ?? s.componentDefs, joints: prev.joints ?? s.joints, motionLinks: prev.motionLinks ?? s.motionLinks, sketchSources: prev.sketchSources ?? s.sketchSources, params: prev.params ?? s.params, paramBindings: prev.paramBindings ?? s.paramBindings, suppressedIds: prev.suppressedIds ?? s.suppressedIds, faceColors: prev.faceColors ?? s.faceColors, mates: prev.mates ?? s.mates, groups: prev.groups ?? s.groups, jointPoses: prev.jointPoses ?? s.jointPoses, jointKeyframes: prev.jointKeyframes ?? s.jointKeyframes, planes: prev.planes ?? s.planes, cpoints: prev.cpoints ?? s.cpoints, caxes: prev.caxes ?? s.caxes, jointOrigins: prev.jointOrigins ?? s.jointOrigins, rigidGroups: prev.rigidGroups ?? s.rigidGroups, contactPairs: prev.contactPairs ?? s.contactPairs, physMatName: (prev as any).physMatName ?? s.physMatName, parkedBodyMaterials: Array.isArray((prev as any).parkedBodyMaterials) ? (prev as any).parkedBodyMaterials : s.parkedBodyMaterials, bodyColor: (prev as any).bodyColor ?? s.bodyColor, material: (prev as any).material ?? s.material, appearanceName: (prev as any).appearanceName ?? s.appearanceName, bodyDensity: typeof (prev as any).bodyDensity === 'number' ? (prev as any).bodyDensity : s.bodyDensity, selectedFeature: null, ...(reopenPatch ?? {}) }
     })   // GM-W1 1.5：planes/cpoints/caxes；GM-3DV4：关节原点/刚性组/接触集（旧栈缺字段 → ?? 兜底）；R2：componentDefs 随撤销还原（旧栈缺 → 保持当前）。BUG-213：完成草图的条目同时 reopen 草图
     if (!needRebuild) set({ status: reopen ? SKETCH_FINISH_UNDO_STATUS : '已撤銷' })
-    else if (!await get().applyFeatures(prev.features, reopen ? SKETCH_FINISH_UNDO_STATUS : '已撤销', false, undefined, docSnap(cur), true)) {
+    else if (!await get().applyFeatures(prev.features, reopen ? SKETCH_FINISH_UNDO_STATUS : '已撤銷', false, undefined, docSnap(cur), true)) {
       const failureStatus = get().status
       if (reopen) { setRefGeo(cur.skRefGeo); _pendingDatumRef = datumBefore }
       set({ ...docSnap(cur), bodyMesh: cur.bodyMesh, bodyTopZ: cur.bodyTopZ, timelinePos: cur.timelinePos,
@@ -19581,8 +19581,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (d.kind === 'extrude-edit' && !(Math.abs(dimensionExpression(String(p.heightExpr ?? p.height), get().params, evalExpr, 'mm', d.expressionContext?.refs, Number(p.heightExprScale ?? 1)).value ?? 0) > 1e-6)) { set({ status: '請輸入非零拉伸距離' }); return }
     if (d.kind === 'emboss') {
       const text = String(p.text ?? '').trim(), size = +p.size, depth = +p.depth, engrave = p.mode === 'engrave'
-      if (!text) { set({ status: '請輸入浮雕文字' }); return }
-      if (!(depth > 0) || !(size > 0)) { set({ status: '浮雕：字高和深度都必須大於 0' }); return }
+      if (!text) { set({ status: '尺寸已拒絕：請輸入浮雕文字' }); return }
+      if (!(depth > 0) || !(size > 0)) { set({ status: '尺寸已拒絕：浮雕字高和深度都必須大於 0' }); return }
       set({ featDlg: null })
       if (d.editId) { await get().editFeature(d.editId, { text, size, height: depth, op: engrave ? 'cut' : 'new' }); return }
       const ap = (d.payload as { arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } } | undefined)?.arbPlane

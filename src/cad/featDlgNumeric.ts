@@ -100,9 +100,9 @@ export function featDlgSemanticReason(d: FeatDlgLike): string | null {
     if (num('dt') < 0) return '頂部直徑不可為負數'
   }
   if (d.kind === 'emboss') {
-    if (!String(p.text ?? '').trim()) return '請輸入浮雕文字'
-    if (!(num('depth') > 0)) return '浮雕深度必須大於 0（凸起／刻入用下方選項切換）'
-    if (!(num('size') > 0)) return '字高必須大於 0'
+    if (!String(p.text ?? '').trim()) return '尺寸已拒絕：請輸入浮雕文字'
+    if (!(num('depth') > 0)) return '尺寸已拒絕：浮雕深度必須大於 0（凸起／刻入用下方選項切換）'
+    if (!(num('size') > 0)) return '尺寸已拒絕：字高必須大於 0'
   }
   if (d.kind === 'move') for (const k of ['dx', 'dy', 'dz', 'rx', 'ry', 'rz']) if (p[k] !== undefined && p[k] !== '' && !Number.isFinite(num(k))) return '移動距離／角度必須是數值'
   return null

@@ -61,7 +61,7 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
   revolve: { icon: 'revolve', label: '旋轉', param: '角度', field: 'angle', unit: '°', fields: [{ key: 'angle', label: '角度', unit: '°' }, { key: 'axis', label: '繞軸', unit: '', opts: [{ value: 'Y', label: 'Y 軸（預設）' }, { value: 'X', label: 'X 軸' }, { value: 'Z', label: 'Z 軸' }] }, { key: 'op', label: '操作', unit: '', opts: [{ value: 'new', label: '加料' }, { value: 'newbody', label: '新實體' }, { value: 'cut', label: '切割(車槽)' }, { value: 'intersect', label: '相交' }] }] },
   fillet: { icon: 'fillet', label: '圓角', param: '半徑', field: 'radius', unit: 'mm' },
   facefillet: { icon: 'fillet', label: '面圓角', param: '半徑', field: 'radius', unit: 'mm', fields: [{ key: 'radius', label: '半徑', unit: 'mm' }] },
-  chamfer: { icon: 'chamfer', label: '倒角', param: '距離', field: 'distance', unit: 'mm' },
+  chamfer: { icon: 'chamfer', label: '倒角', param: '距離', field: 'distance', unit: 'mm', fields: [{ key: 'distance', label: '距離', unit: 'mm' }, { key: 'dist2', label: '距離2', unit: 'mm' }] },  // FISHING20 P3：雙距倒角 quick bar 同時顯示距離＋距離2（equal/angle 唔強制 dist2）
   shell: { icon: 'shell', label: '抽殼', param: '壁厚', field: 'thickness', unit: 'mm' },
   pattern: { icon: 'pattern', label: '陣列', param: 'X 數量', field: 'countX', unit: '', fields: [{ key: 'countX', label: 'X數量', unit: '' }, { key: 'countY', label: 'Y數量', unit: '' }, { key: 'countZ', label: 'Z數量', unit: '' }, { key: 'dx', label: 'X間距', unit: 'mm' }, { key: 'dy', label: 'Y間距', unit: 'mm' }, { key: 'dz', label: 'Z間距', unit: 'mm' }] },
   prim: { icon: 'box', label: '原語', param: '尺寸', field: 'a', unit: 'mm', fields: [{ key: 'a', label: '尺寸A', unit: 'mm' }, { key: 'b', label: '尺寸B', unit: 'mm' }, { key: 'c', label: '尺寸C', unit: 'mm' }] },
@@ -128,7 +128,7 @@ const META: Record<string, { icon: string; label: string; param: string; field: 
 // BUG-UI-003: length-like timeline fields must stay strictly positive (prim a/b/c, Ø, wall…).
 // Signed fields (extrude height/down, transform dx, draft angle, offsets) stay unconstrained here.
 const POSITIVE_LENGTH_KEYS = new Set([
-  'a', 'b', 'c', 'diameter', 'radius', 'thickness', 'distance', 'pitch', 'module', 'width', 'bore',
+  'a', 'b', 'c', 'diameter', 'radius', 'thickness', 'distance', 'dist2', 'pitch', 'module', 'width', 'bore',
   'wireR', 'size', 'thick', 'wall', 'ext', 'discH', 'faceW', 'baseH', 'length', 'depth', 'd', 'r', 'r2',
 ])
 
@@ -397,6 +397,7 @@ export default function Timeline() {
               const bound = paramBindings[`${sel.id}:${fd.key}`]
               const isCount = /^count/.test(fd.key) || fd.key === 'cols' || fd.key === 'rows'   // #97 数量类整数场（阵列 X/Y/Z 数量、环形/路径 count、featpattern cols/rows）— 整数 step、有下限、commit 时取整
               if (fd.key === 'totalAngle' && (sel as unknown as Record<string, unknown>).mode === 'full') return null   // 环形阵列「完整 360°」时总角度无意义 → 隐藏，免显示同几何脱节
+              if (fd.key === 'dist2' && (sel as unknown as { cmode?: string }).cmode !== 'two') return null   // FISHING20 P3：雙距倒角先顯示距離2；equal/angle 唔出無用欄
               return (
                 <label key={fd.key}>
                   {tStatus(fd.label, lang)}

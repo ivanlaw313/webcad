@@ -30,3 +30,15 @@ test('FEATURE_TYPE_LABEL maps prim → 原語 (reorder refuse, not raw id)', () 
   assert.match(store, /prim:\s*'原語'/)
   assert.match(store, /function featureDisplayName/)
 })
+
+test('Timeline META/feat-editor exposes dist2 for dual-distance chamfer only', () => {
+  const tl = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
+  // META lists both 距離 + 距離2
+  assert.match(tl, /chamfer:[\s\S]*?fields:\s*\[[\s\S]*?key:\s*'distance'[\s\S]*?key:\s*'dist2'[\s\S]*?label:\s*'距離2'/)
+  // Quick bar hides dist2 unless cmode === 'two'
+  assert.match(tl, /fd\.key === 'dist2'.*cmode !== 'two'/)
+  // equal/angle must not force dist2 (guard present)
+  assert.match(tl, /cmode !== 'two'.*return null/)
+  // dist2 is a positive-length key (refuse ≤0 like distance)
+  assert.match(tl, /'distance',\s*'dist2'/)
+})

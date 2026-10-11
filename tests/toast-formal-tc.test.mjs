@@ -68,8 +68,10 @@ test('loft thin-wall failure warning is Formal TC', () => {
 
 
 test('sweep success status strings are Formal TC (no SC 实体/草图, no dangling em-dash)', () => {
-  assert.match(store, /實體（任意草圖截面）/)
+  // Success toast aligned with status bar: 實體（草圖截面）— drop 任意
   assert.match(store, /實體（草圖截面）/)
+  assert.doesNotMatch(store, /實體（任意草圖截面）/)
+  assert.doesNotMatch(store, /任意草圖截面/)  // success toast must not say 任意
   assert.match(store, /圓管（管徑 Ø\$\{dia\}）/)
   assert.match(store, /跟導軌轉向/)
   assert.match(store, /導軌已忽略（爬升優先）/)

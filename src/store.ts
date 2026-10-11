@@ -21665,7 +21665,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       ? `已沿 ${path.length} 點路徑掃掠切割${secProfile ? '（草圖截面）' : `出圓槽（Ø${dia}`}，時間軸可改）`
       : op === 'intersect'
         ? `已沿 ${path.length} 點路徑掃掠相交（保留掃掠體與實體的公共部分）`
-        : `已沿 ${path.length} 點路徑掃掠成${secProfile ? '實體（任意草圖截面）' : wall > 0 ? `空心管（外Ø${dia} 壁厚${wall}）` : `圓管（管徑 Ø${dia}）`}${guideSt && Math.abs(climb) <= 1e-6 ? ' · 跟導軌轉向' : ''}${Math.abs(climb) > 1e-6 ? ` · 3D 爬升 ${climb}mm` : ''}`) + (guideDropped ? ' · ⚠ 導軌已忽略（爬升優先）' : ''))
+        : `已沿 ${path.length} 點路徑掃掠成${secProfile ? '實體（草圖截面）' : wall > 0 ? `空心管（外Ø${dia} 壁厚${wall}）` : `圓管（管徑 Ø${dia}）`}${guideSt && Math.abs(climb) <= 1e-6 ? ' · 跟導軌轉向' : ''}${Math.abs(climb) > 1e-6 ? ` · 3D 爬升 ${climb}mm` : ''}`) + (guideDropped ? ' · ⚠ 導軌已忽略（爬升優先）' : ''))
     if (!ok) {
       // RETEST21 #2：內核建唔到（自交／截面太大轉角等）→ 明確錯誤，唔好淨係留低舊提示
       const why = get().status || '內核未能生成掃掠體'

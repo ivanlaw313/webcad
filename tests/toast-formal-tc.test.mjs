@@ -66,6 +66,22 @@ test('loft thin-wall failure warning is Formal TC', () => {
   assert.doesNotMatch(worker, /試減薄壁厚或簡化截面/)
 })
 
+
+test('sweep success status strings are Formal TC (no SC 实体/草图, no dangling em-dash)', () => {
+  assert.match(store, /實體（任意草圖截面）/)
+  assert.match(store, /實體（草圖截面）/)
+  assert.match(store, /圓管（管徑 Ø\$\{dia\}）/)
+  assert.match(store, /跟導軌轉向/)
+  assert.match(store, /導軌已忽略（爬升優先）/)
+  assert.doesNotMatch(store, /实体（任意草图截面 —）/)
+  assert.doesNotMatch(store, /实体（草图截面）/)
+  assert.doesNotMatch(store, /（草图截面）/)
+  assert.doesNotMatch(store, /任意草图截面 —/)
+  assert.doesNotMatch(store, /任意草圖截面 —/)
+  assert.doesNotMatch(store, /跟导轨转向/)
+  assert.doesNotMatch(store, /导轨已忽略（爬升优先）/)
+})
+
 test('sc2tcHK still maps legacy SC toast fragments', () => {
   assert.equal(simplifiedToTraditionalHK('已对所有棱倒圆角'), '已對所有稜倒圓角')
   assert.equal(simplifiedToTraditionalHK('直纹边界曲面'), '直紋邊界曲面')

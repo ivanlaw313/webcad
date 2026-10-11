@@ -21573,8 +21573,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       const fE: Feature = { id: fid(), type: 'sweep', r: diaE / 2, path3, op: opE, ...(wallE > 0 ? { wall: wallE } : {}), ...(secProfileE ? { profile: secProfileE } : {}), ...twSc, ...orientF }
       set({ sweepDlgOpen: false, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], sweepPreview: null, sweepPreviewBusy: false })
       await get().applyFeatures([...get().features, fE], opE === 'cut'
-        ? `已沿 ${s.sweepEdgeLines.length} 條實體邊鏈掃掠切割${secProfileE ? '（草图截面）' : `圆槽 Ø${diaE}`}`
-        : `已沿 ${s.sweepEdgeLines.length} 條實體邊鏈掃出${secProfileE ? '实体（草图截面）' : wallE > 0 ? `空心管（外Ø${diaE} 壁厚${wallE}）` : `圆管 Ø${diaE}`}（${s.sweepOrient === 'parallel' ? '平行朝向' : '垂直朝向'}）`)
+        ? `已沿 ${s.sweepEdgeLines.length} 條實體邊鏈掃掠切割${secProfileE ? '（草圖截面）' : `圓槽 Ø${diaE}`}`
+        : `已沿 ${s.sweepEdgeLines.length} 條實體邊鏈掃出${secProfileE ? '實體（草圖截面）' : wallE > 0 ? `空心管（外Ø${diaE} 壁厚${wallE}）` : `圓管 Ø${diaE}`}（${s.sweepOrient === 'parallel' ? '平行朝向' : '垂直朝向'}）`)
       return
     }
     // ── 构造轴作脊线（A<i>）：构造轴系一条直线 → path3 = [at, at + dir*L]，喂现有 worker sweep path3 分支
@@ -21605,8 +21605,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       const fA: Feature = { id: fid(), type: 'sweep', r: diaA / 2, path3, op: opA, ...(wallA > 0 ? { wall: wallA } : {}), ...(secProfileA ? { profile: secProfileA } : {}), ...twSc, ...orientF }
       set({ skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model', sweepDlgOpen: false, sweepGuide: null, sweepAxis: '', sweepPreview: null, sweepPreviewBusy: false })
       await get().applyFeatures([...get().features, fA], opA === 'cut'
-        ? `已沿構造軸脊線（長 ${L}mm）扫掠切割${secProfileA ? '（草图截面）' : `出圆槽 Ø${diaA}`}（時間軸可改）`
-        : `已沿構造軸脊線（長 ${L}mm）扫出${secProfileA ? '实体（草图截面）' : wallA > 0 ? `空心管（外Ø${diaA} 壁厚${wallA}）` : `圆管 Ø${diaA}`}`)
+        ? `已沿構造軸脊線（長 ${L}mm）掃掠切割${secProfileA ? '（草圖截面）' : `出圓槽 Ø${diaA}`}（時間軸可改）`
+        : `已沿構造軸脊線（長 ${L}mm）掃出${secProfileA ? '實體（草圖截面）' : wallA > 0 ? `空心管（外Ø${diaA} 壁厚${wallA}）` : `圓管 Ø${diaA}`}`)
       return
     }
     // A spline path → smooth swept tube. Use the spline's CONTROL points + smoothPath so the kernel fits a
@@ -21662,10 +21662,10 @@ export const useApp = create<AppState>((rawSet, get) => {
     // GM-L2 #63：导轨同 3D 爬升冲突（导轨被丢）→ 把提示并入 applyFeatures 成功讯息，唔好用独立 set（会即刻被成功 status 覆盖，用户睇唔到）
     const guideDropped = guideSt && Math.abs(climb) > 1e-6
     const ok = await get().applyFeatures([...get().features, f], (op === 'cut'
-      ? `已沿 ${path.length} 點路徑掃掠切割${secProfile ? '（草图截面）' : `出圆槽（Ø${dia}`}，時間軸可改）`
+      ? `已沿 ${path.length} 點路徑掃掠切割${secProfile ? '（草圖截面）' : `出圓槽（Ø${dia}`}，時間軸可改）`
       : op === 'intersect'
         ? `已沿 ${path.length} 點路徑掃掠相交（保留掃掠體與實體的公共部分）`
-        : `已沿 ${path.length} 點路徑掃掠成${secProfile ? '实体（任意草图截面 —）' : wall > 0 ? `空心管（外Ø${dia} 壁厚${wall}）` : `圆管（管径 Ø${dia}）`}${guideSt && Math.abs(climb) <= 1e-6 ? ' · 跟导轨转向' : ''}${Math.abs(climb) > 1e-6 ? ` · 3D 爬升 ${climb}mm` : ''}`) + (guideDropped ? ' · ⚠ 导轨已忽略（爬升优先）' : ''))
+        : `已沿 ${path.length} 點路徑掃掠成${secProfile ? '實體（任意草圖截面）' : wall > 0 ? `空心管（外Ø${dia} 壁厚${wall}）` : `圓管（管徑 Ø${dia}）`}${guideSt && Math.abs(climb) <= 1e-6 ? ' · 跟導軌轉向' : ''}${Math.abs(climb) > 1e-6 ? ` · 3D 爬升 ${climb}mm` : ''}`) + (guideDropped ? ' · ⚠ 導軌已忽略（爬升優先）' : ''))
     if (!ok) {
       // RETEST21 #2：內核建唔到（自交／截面太大轉角等）→ 明確錯誤，唔好淨係留低舊提示
       const why = get().status || '內核未能生成掃掠體'

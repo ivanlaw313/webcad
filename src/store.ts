@@ -19726,7 +19726,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       // GM-3DV1 S3：逐实例抑制遮罩 — 解析逗号分隔实例索引（0=seed，(i*cy+j)*cz+k 顺序）→ boolean[]；compute/objectType 直通元数据。
       const suppress = parseSuppressMask(p.suppress, cX * cY * cZ)
       const compute = (p.compute === 'identical' || p.compute === 'adjust') ? p.compute as 'identical' | 'adjust' : undefined
-      const objectType = (p.objectType === 'features' || p.objectType === 'components' || p.objectType === 'faces') ? p.objectType as 'features' | 'components' | 'faces' : undefined
+      // FISHING24：bodies 要寫入 feature（唔好剥成 undefined），worker 先識得跳過 prevWasCut 孔陣列誤判
+      const objectType = (p.objectType === 'features' || p.objectType === 'components' || p.objectType === 'faces' || p.objectType === 'bodies') ? p.objectType as 'features' | 'components' | 'faces' | 'bodies' : undefined
       if (p.objectType === 'components') {
         const ids = get().checkedComps.length ? [...get().checkedComps] : (get().selectedComponent ? [get().selectedComponent] : [])
         const seeds = get().components.filter((c) => ids.includes(c.id))

@@ -4212,8 +4212,10 @@ function buildShape(features: Feature[], noCache = false): any {
         // #70 GM-L2：矩形阵列兜底微沉方向 = 主间距方向（u1/u2/世界 Z），唔再写死世界 Z（非 Z 主导阵列共面失败先救得到）
         const _nudge: [number, number, number] = (cx > 1 && Math.abs(f.dx) > 1e-9) ? u1 : (cy > 1 && Math.abs(f.dy) > 1e-9) ? u2 : [0, 0, 1]
         applyTargetDeltas(f.targets, xforms, '矩形阵列', _nudge)
-      } else if (prevBefore && prevWasCut) {
+      } else if (prevBefore && prevWasCut && f.objectType !== 'bodies') {
         // Pattern a HOLE across the grid: re-cut the removed region (fusing whole copies would fill holes).
+        // FISHING24 P1：objectType==='bodies'（「整個實體」）必須走下面 fuse 整體路徑，同 circPattern 無 targets 時一致。
+        // 舊的 prevWasCut 自動偵測會在切除之後把「整個實體」誤當孔陣列；間距把切除刀移出實體時幾何零變化卻仍 toast+chip。
         const removed = prevBefore.clone().cut(shape.clone())
         let acc = shape
         for (let i = 0; i < cx; i++) for (let j = 0; j < cy; j++) for (let k = 0; k < cz; k++) {
@@ -4223,7 +4225,7 @@ function buildShape(features: Feature[], noCache = false): any {
         }
         shape = acc
       } else {
-        // Additive grid (bosses/tiles): fuse translated copies of the whole solid (unchanged).
+        // Additive grid / 整個實體：fuse translated copies of the whole solid (circPattern body path 同款).
         // 审计修复：退化间距守卫 —— 所有阵列方向步距=0 但 count>1 → 副本全重叠、几何零变化（假成功）。诚实警告。
         if ((cx > 1 || cy > 1 || cz > 1) && (cx <= 1 || f.dx === 0) && (cy <= 1 || f.dy === 0) && (cz <= 1 || dz === 0)) buildWarnings.push('⚠ 矩形阵列：阵列方向间距为 0，副本全部重叠（几何无变化）— 请设非零间距')
         const base = shape

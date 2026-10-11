@@ -4225,7 +4225,7 @@ import { tangentArcBulge, polyTangentArcCons, endTangent, crossShapeTangentCons 
 import { remapCornerConstraints, maxFilletRadius } from './sketch/cornerRemap'   // UX4 #2/#4/#5
 import { cornerIndexAllowed, mergeOpenAtJoint, nearestCorner, normalizeCornerResult, openPolyCornerPath, type CornerPath } from './sketch/openCorner'   // FISHING13 P2-3：開放折線內部角
 import { sketchPointsOf, finishedSketchPointCandidates, holeSnapTargetsFromSources, snapHoleXY } from './sketch/holePoints'
-import { sketchLocalToPlane } from './sketch/planeCoords'
+import { sketchLocalToPlane, planeToSketchLocal } from './sketch/planeCoords'
 import { resolveCoilOp } from './cad/coilOp'
 
 // GM-FP2 #19：独立相切弧工具 —— 揾最近嘅现有【开放曲线端点】+ 该端点外向切线（G1 续弧起手）。
@@ -5183,9 +5183,12 @@ function buildLoftFeature(s: AppState, id: string) {
   const closed = s.loftClosed && secs.length >= 3   // #8：闭环需 ≥3 截面（worker 亦守）
   let feature: Feature = { id, type: 'loft', op, sections: secs, ...(ruled ? { ruled: true } : {}), ...(wall > 0 ? { wall } : {}), ...(rail && rail.length >= 2 ? { rails: [rail.map((p) => stToProfile(p, 'XY'))] } : {}), ...(capPt ? { capPoint: capPt, capEnd } : {}), ...(continuity ? { continuity } : {}), ...(closed ? { closed: true } : {}) }
   if (s.loftEditId) {
-    // 編輯：保留原特徵嘅導軌／封口點（同 commit 一致），預覽先會同結果一樣
+    // FISHING17：開編輯已回填 loftRail；預覽／確定以對話框為真源（清咗導軌就唔好再偷用舊 rails）。
+    // 封口點若對話框未揀，仍可從原特徵補（loftCapPoint 指數尚未回填時）。
     const old = s.features.find((x) => x.id === s.loftEditId)
-    if (old && old.type === 'loft') feature = { ...(feature as object), ...(old.rails ? { rails: old.rails } : {}), ...(old.capPoint ? { capPoint: old.capPoint, capEnd: old.capEnd } : {}) } as Feature
+    if (old && old.type === 'loft' && capIdx == null && old.capPoint) {
+      feature = { ...(feature as object), capPoint: old.capPoint, capEnd: old.capEnd ?? capEnd } as Feature
+    }
   }
   return { feature, secs, secSrcs, ruled, wall, rail, capPt, capEnd, continuity, closed }
 }
@@ -17578,9 +17581,13 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (sections.length < 2) { get().selectFeature(featId); return }
         // UX4：編輯現有放樣 = Fusion 式可加／排／移除截面。由 sketchIds 重建逐截面來源（次序對應 sections），
         // 確定後 sketchIds 跟住新清單；時間軸回卷到放樣之前（預覽唔再同舊放樣實體重疊到花晒）。
+        // FISHING17：同時由特徵回填 loftRail（導軌 chip／下拉），UI 先同預覽／模型一致（以前只留 rails 喺特徵，對話框 loftRail 空）。
         const st0 = get()
         const ids = f.sketchIds && f.sketchIds.length === sections.length && f.sketchIds.every((id) => st0.sketchSources[id]) ? f.sketchIds : null
         const secSrcs = ids ? ids.map((skId, i) => { const src = st0.sketchSources[skId]; return { label: src.name || skId.replace('sk', '草圖'), skId, shapes: JSON.parse(JSON.stringify(src.shapes)) as SketchShape[], cons: JSON.parse(JSON.stringify(src.cons)) as SkCon[], z: sections[i].z, plane: src.plane, ...(src.arb ? { arb: JSON.parse(JSON.stringify(src.arb)) } : {}), ...(src.datumRef ? { datumRef: structuredClone(src.datumRef) } : {}) } }) : []
+        const railPts = (f.rails?.[0] && f.rails[0].length >= 2)
+          ? f.rails[0].map((p) => planeToSketchLocal(p, 'XY') as Pt)
+          : null
         const fIdx = st0.features.findIndex((x) => x.id === featId)
         if (fIdx >= 0 && st0.timelinePos > fIdx && !st0.busy) { _loftEditRollback = true; void get().gotoStep(fIdx) }
         set({
@@ -17588,8 +17595,9 @@ export const useApp = create<AppState>((rawSet, get) => {
           loftSections: JSON.parse(JSON.stringify(sections)) as typeof sections, loftSecSrcs: secSrcs as AppState['loftSecSrcs'], loftOrderManual: true, loftFacePick: false,
           loftRuled: !!f.ruled, loftWall: f.wall ?? 0, loftClosed: !!f.closed,
           loftContinuity: f.continuity ?? '', loftCapEnd: f.capEnd ?? 'last',
+          loftRail: railPts ? JSON.parse(JSON.stringify(railPts)) as Pt[] : null,
           sketchOp: f.op ?? 'new', holeMode: false, shellMode: false, pushPullMode: false, edgeRoundPick: null,
-          status: '編輯放樣：截面及參數已回填；改參數後按確定重建',
+          status: '編輯放樣：截面、導軌及參數已回填；改參數後按確定重建',
         })
         return
       }
@@ -21373,10 +21381,12 @@ export const useApp = create<AppState>((rawSet, get) => {
         ruled: ruled || undefined, wall: wall > 0 ? wall : undefined,
         continuity, closed: closed || undefined,
         sketchIds: sketchIds as unknown as number[],
-        // Existing rails / capPoint stay attached unless a future explicit re-selection replaces them.
+        // FISHING17：導軌跟對話框（開編輯已回填；清咗就刪 rails；改咗就寫新）
+        rails: (rail && rail.length >= 2 ? [rail.map((p) => stToProfile(p, 'XY'))] : undefined) as unknown as number[],
+        ...(capPt ? { capPoint: capPt as unknown as number[], capEnd } : {}),
       })
       { const n = get().features.length; if (get().timelinePos < n && !get().busy) void get().gotoStep(n) }
-      set({ loftSections: [], loftSecSrcs: [], loftOrderManual: false })
+      set({ loftSections: [], loftSecSrcs: [], loftOrderManual: false, loftRail: null })
       return
     }
     set({ loftSections: [], loftSecSrcs: [], loftOrderManual: false, loftFacePick: false, loftPreview: null, loftPreviewBusy: false, loftRail: null, loftCapPoint: null, skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model', loftDlgOpen: false })
@@ -21469,7 +21479,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   cancelLoftDlg: () => {
     const editing = !!get().loftEditId
-    set((s) => ({ loftDlgOpen: false, loftEditId: null, loftFacePick: false, loftPreview: null, loftPreviewBusy: false, ...(s.loftEditId ? { selectedFeature: null, loftSections: [], loftSecSrcs: [], status: '已取消編輯放樣' } : { status: '已取消放樣（截面保留）' }) }))
+    set((s) => ({ loftDlgOpen: false, loftEditId: null, loftFacePick: false, loftPreview: null, loftPreviewBusy: false, ...(s.loftEditId ? { selectedFeature: null, loftSections: [], loftSecSrcs: [], loftRail: null, status: '已取消編輯放樣' } : { status: '已取消放樣（截面保留）' }) }))
     if (editing && _loftEditRollback) { _loftEditRollback = false; const n = get().features.length; if (get().timelinePos < n) void get().gotoStep(n) }
   },   // UX1 #3
 

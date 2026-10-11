@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { sweepTimelineParamSummary } from '../src/ui/sweepLabel.ts'
-import { extrudeTimelineParamSummary } from '../src/ui/extrudeLabel.ts'
+import { extrudeTimelineParamSummary, isExtrudeThroughAll } from '../src/ui/extrudeLabel.ts'
 
 test('sweep circle-pipe chip shows 管徑 Ø (radius meaningful)', () => {
   assert.equal(sweepTimelineParamSummary({ r: 6 }), '管徑 Ø12')
@@ -71,4 +71,21 @@ test('Timeline wires sweep/extrude summaries into chip title', () => {
   assert.match(tl, /f\.type === 'extrude'/)
   // Profile sweep must not show misleading 半徑 in quick bar
   assert.match(tl, /sel\.type === 'sweep' && \(sel as \{ profile\?: unknown \}\)\.profile/)
+})
+
+test('isExtrudeThroughAll detects through flag and extent', () => {
+  assert.equal(isExtrudeThroughAll({ through: true }), true)
+  assert.equal(isExtrudeThroughAll({ extent: 'through' }), true)
+  assert.equal(isExtrudeThroughAll({ height: 10 }), false)
+  assert.equal(isExtrudeThroughAll({ extent: 'distance' }), false)
+})
+
+test('Timeline quick-edit bar shows 貫通 for through-all (no height NumField commit)', () => {
+  const tl = readFileSync(new URL('../src/components/Timeline.tsx', import.meta.url), 'utf8')
+  assert.match(tl, /isExtrudeThroughAll/)
+  assert.match(tl, /fe-extrude-through/)
+  assert.match(tl, /fd\.key === 'height' && sel\.type === 'extrude' && isExtrudeThroughAll/)
+  assert.match(tl, /tStatus\('貫通', lang\)/)
+  // Must not leave height NumField as the only through-all path for extrude fields
+  assert.match(tl, /FISHING23/)
 })

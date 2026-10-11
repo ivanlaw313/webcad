@@ -1,7 +1,7 @@
 import { plainFeatureError } from '../ui/featureStatus'
 import { chamferTimelineParamSummary } from '../ui/chamferLabel'
 import { sweepTimelineParamSummary } from '../ui/sweepLabel'
-import { extrudeTimelineParamSummary } from '../ui/extrudeLabel'
+import { extrudeTimelineParamSummary, isExtrudeThroughAll } from '../ui/extrudeLabel'
 import { useEscapeLayer } from './useEscapeLayer'
 import { parseLen, toLenInput } from '../io/units'   // BUG-507/509：時間軸編輯條跟對話框同一條解析
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react'
@@ -408,6 +408,14 @@ export default function Timeline() {
               const isCount = /^count/.test(fd.key) || fd.key === 'cols' || fd.key === 'rows'   // #97 数量类整数场（阵列 X/Y/Z 数量、环形/路径 count、featpattern cols/rows）— 整数 step、有下限、commit 时取整
               if (fd.key === 'totalAngle' && (sel as unknown as Record<string, unknown>).mode === 'full') return null   // 环形阵列「完整 360°」时总角度无意义 → 隐藏，免显示同几何脱节
               if (fd.key === 'dist2' && (sel as unknown as { cmode?: string }).cmode !== 'two') return null   // FISHING20 P3：雙距倒角先顯示距離2；equal/angle 唔出無用欄
+              // FISHING23：through-all 切割 quick-edit 顯示「貫通」，唔出會 commit 距離嘅假「高度」欄
+              if (fd.key === 'height' && sel.type === 'extrude' && isExtrudeThroughAll(sel as { through?: boolean; extent?: string })) {
+                return (
+                  <label key={fd.key} data-testid="fe-extrude-through">
+                    {tStatus('貫通', lang)}
+                  </label>
+                )
+              }
               return (
                 <label key={fd.key}>
                   {tStatus(fd.label, lang)}

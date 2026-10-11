@@ -34,10 +34,15 @@ const PLANE_LABEL: Record<string, string> = {
   YZ: '右 YZ',
 }
 
+/** True when extrude extent is through-all (chip + quick-edit must show 貫通, not height). */
+export function isExtrudeThroughAll(f: Pick<ExtrudeLabelFeat, 'through' | 'extent'>): boolean {
+  return !!f.through || f.extent === 'through'
+}
+
 /** Param fragment for timeline chip tooltip (after 【拉伸】/【切割】). */
 export function extrudeTimelineParamSummary(f: ExtrudeLabelFeat): string | null {
   const parts: string[] = []
-  const throughAll = !!f.through || f.extent === 'through'
+  const throughAll = isExtrudeThroughAll(f)
   if (throughAll) {
     parts.push('貫通')
   } else if (typeof f.height === 'number' && Number.isFinite(f.height)) {

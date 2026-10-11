@@ -1,5 +1,10 @@
 # DEVLOG
 
+## 2026-10-11 — FISHING23：Timeline quick-edit through-all 顯示「貫通」（唔再假「高度」）
+- **跟進** tip 9148267 chip/title 已顯示「貫通」；單擊 Timeline chip 嘅 quick-edit 條仍出「高度 10」NumField，會 commit 距離。
+- **修**：`isExtrudeThroughAll`；extrude + height 且 through/extent=through 時 quick-edit 只顯示正式繁體「貫通」，無距離輸入。
+- **測**：`tests/timeline-chip-sweep-extrude-label.test.mjs`；APP_VERSION 2.20。
+
 ## 2026-10-11 — Timeline chip Formal TC：掃掠草圖截面（無誤導「半徑」）+ 拉伸貫通「貫通」
 - **Sweep**：草圖截面掃掠 chip/title 改為路徑／草圖截面／扭轉（及縮放／導軌）正式繁體摘要；不再顯示誤導「半徑」（r 仍由 Ø/2 存檔）。圓管模式顯示「管徑 Ø」。
 - **Extrude**：through-all 切割 chip/title 顯示「貫通」，不再只報距離高度。

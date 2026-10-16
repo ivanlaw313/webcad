@@ -9,7 +9,7 @@
  *   rigidgroup    → rigid
  *   motionlink    → motionlink
  *   enablecontact → contact
- *   newcontactset → contact
+ *   newcontactset → contactnew
  *   motionstudy   → motionstudy
  *   drivejoints   → drive
  *
@@ -31,14 +31,14 @@ const PHASE2_EXPECT = {
   rigidgroup: 'rigid',
   motionlink: 'motionlink',
   enablecontact: 'contact',
-  newcontactset: 'contact',
+  newcontactset: 'contactnew',
   motionstudy: 'motionstudy',
   drivejoints: 'drive',
 }
 
 const PHASE2_PATH_KEYS = [
   'joint', 'ground', 'asbuilt', 'jointorigin', 'rigid',
-  'motionlink', 'contact', 'motionstudy', 'drive',
+  'motionlink', 'contact', 'contactnew', 'motionstudy', 'drive',
 ]
 
 const ASSEMBLE_TOOL_IDS = Object.keys(PHASE2_EXPECT)

@@ -25,7 +25,7 @@ function assembleBlock(ribbon) {
 
 test('Assemble distinct icon keys exist in paths', () => {
   const keys = definedKeys(rd('src/icons.tsx'))
-  for (const k of ['joint', 'jointorigin', 'rigid', 'ground', 'asbuilt', 'motionlink', 'contact', 'motionstudy', 'drive']) {
+  for (const k of ['joint', 'jointorigin', 'rigid', 'ground', 'asbuilt', 'motionlink', 'contact', 'contactnew', 'motionstudy', 'drive']) {
     assert.ok(keys.has(k), `missing icon key: ${k}`)
   }
 })
@@ -44,7 +44,7 @@ test('ASSEMBLE ribbon quick tools no longer reuse joint except joint itself', ()
     rigidgroup: 'rigid',
     motionlink: 'motionlink',
     enablecontact: 'contact',
-    newcontactset: 'contact',
+    newcontactset: 'contactnew',
     motionstudy: 'motionstudy',
     drivejoints: 'drive',
   }

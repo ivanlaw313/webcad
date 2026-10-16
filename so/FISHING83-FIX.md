@@ -5,7 +5,7 @@ F82 leftover UX: access info-card close **關閉可達性分析 → 關閉脫模
 Draft legend typo **無法開啟模 → 無法開模**. 檢查擴展 access tip aligned with INSPECT.
 
 ## Live after cut
-- Tip: `3c370fb513aed3090ffe8b919b52e6b8e176c032` (fix/fishing83-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `0ca2772a4ca195a530388ab74c33c4749732e1e4` (fix/fishing83-behavior-ux → FF fix/sketch-face-copy)
 - Stamp: `v2.20-20261016-231506`
 - Bundle: `index-BYceU1jz-r2.js` (md5 `26ce76f96826f83ce7c92f664630fb35`)
 - Bak: `index-2SJnc8l1-r2.js` / `v2.20-20261016-230832` (kept)

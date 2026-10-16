@@ -2,7 +2,7 @@
 // Stable keys. Missing → fall back zh-HK → key.
 
 const messages: Record<string, string> = {
-  "alias.accessanalysis": "アクセス解析 accessibility accessanalysis",
+  "alias.accessanalysis": "離型到達性 アクセス解析 accessibility accessanalysis",
   "alias.aicopilot": "AI copilot 助手 助理 chatbot 聊天 人工智能 人工智慧 アシスタント assistant",
   "alias.align": "整列 位置合わせ align",
   "alias.appearance": "外観 色 マテリアル appearance color material",
@@ -122,7 +122,7 @@ const messages: Record<string, string> = {
   "alias.wedge": "くさび ウェッジ スロープ wedge ramp",
   "alias.worm": "ウォーム ウォームギヤ worm",
   "alias.zebra": "ゼブラ解析 zebra stripe",
-  "cmd.accessanalysis": "アクセス解析",
+  "cmd.accessanalysis": "離型到達性",
   "cmd.actFit": "フィット / ホームビュー",
   "cmd.actHelp": "ヘルプ / ショートカット",
   "cmd.actOpen": "プロジェクトを開く (JSON)",
@@ -957,7 +957,7 @@ const messages: Record<string, string> = {
   "tip.topopt": "位相最適化（SIMP）：設計空間で材料を配分し、軽く硬い荷重経路を作る。傾向レベル（非認証）。先に固定面と荷重面を指定。",
   "tip.torus": "トーラス：大径と管径。",
   "tip.worm": "ウォーム：モジュール/条数/長さ（ZA近似）。",
-  "tool.accessanalysis": "アクセス解析",
+  "tool.accessanalysis": "離型到達性",
   "tool.aicopilot": "AI アシスタント",
   "tool.align": "位置合わせ",
   "tool.appearance": "外観",

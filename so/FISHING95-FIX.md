@@ -6,7 +6,7 @@ Cherry **more50** (`e7094186` → `fec3e06e`) before nginx.
 more51 NOT cherry (F96).
 
 ## Live after cut
-- Tip: `1859fe0e22962ea955898c5253bfe2bc20d6521d` (fix/fishing95-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `5e6e625a9b258050f7fcdc84fb6bf46c4ab8b89c` (fix/fishing95-behavior-ux → FF fix/sketch-face-copy)
 - Product: `bb16482ec3df58d45ef4ff561f3cb08229438fd0` closeDemold/demoldClosed catalog; test pin `ec9a9b7b`
 - more50 cherry: `fec3e06e06ba8685f0c04e64036a8701fa905442` (from `e7094186`)
 - Stamp: `v2.20-20261017-003921`

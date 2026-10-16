@@ -10,12 +10,12 @@ Deploy also copies PREV F102 lazy chunks (AeroLab/WindTunnelGpu/autoLoopStore/Ph
 - stamp: `v2.20-20261017-014118`
 - bundle: `index-OQKjCB7p-r2.js`
 - md5: `8d6bf0c2145a9fe963c3c231c9a63c72`
-- tip: `TIP_PENDING`
+- tip: `TIP_SELF`
 - product: `273be406483b88aa16f135ee8ce5a17d81809b6d`
 - more58 cherry: `bdb9d591` (from `cdfb9d8368684cf86567a79106e44b217a6bb392`)
 
 ## Live after cut
-- Tip: `TIP_PENDING` (fix/fishing103-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `TIP_SELF` (fix/fishing103-behavior-ux → FF fix/sketch-face-copy)
 - Product: `273be406483b88aa16f135ee8ce5a17d81809b6d` GcodeBackplot header i18n
 - more58 cherry: `bdb9d591`
 - Stamp: `v2.20-20261017-014118`

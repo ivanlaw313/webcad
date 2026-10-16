@@ -120,5 +120,7 @@ const paths: Record<string, ReactNode> = {
 }
 
 export function ToolIcon({ name, size = 20 }: { name: string; size?: number }) {
-  return <Svg size={size}>{paths[name] ?? paths.default}</Svg>
+  // FISHING35: guard module/record .default — never read .default of undefined (icon map / interop).
+  const node = (paths && (paths[name] ?? paths.default)) || null
+  return <Svg size={size}>{node}</Svg>
 }

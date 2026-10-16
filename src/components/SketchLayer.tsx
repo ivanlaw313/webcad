@@ -88,6 +88,11 @@ const SK: Record<Plane, {
   },
 }
 
+/** FISHING35: never throw on bad/missing plane (reading lift/rot/…). Fall back to XY. */
+function skOf(plane: Plane | string | null | undefined) {
+  return SK[(plane === 'XZ' || plane === 'YZ' || plane === 'XY') ? plane : 'XY']
+}
+
 // Arbitrary sketch plane (sketch on any flat face): build lift/toST + the surface orientation from the
 // CAD basis {origin o, xDir xd, normal n}. yDir = n × xd. CAD↔three: (x,y,z)⇄(x,z,−y).
 function arbFrame(arb: { o: V3; xd: V3; n: V3 }) {
@@ -139,7 +144,7 @@ function polyArea(poly: Pt[]): number { let a = 0; for (let i = 0, j = poly.leng
 function buildFillGeometry(loops: Pt[][], plane: Plane, baseZ: number, liftFn?: Lift): BufferGeometry | null {
   const valid = loops.filter((l) => l.length >= 3)
   if (!valid.length) return null
-  const lift = liftFn ?? ((p: Pt) => SK[plane].lift(p, baseZ))   // GM-W6 C5：斜面（arb）传入 arbFrame lift；卡片面照旧 SK[plane]
+  const lift = liftFn ?? ((p: Pt) => skOf(plane).lift(p, baseZ))   // GM-W6 C5：斜面（arb）传入 arbFrame lift；卡片面照旧 skOf(plane)
   const cen = valid.map(polyCentroid)
   const area = valid.map(polyArea)
   // containers[i] = loops that contain loop i. Gate by area (only a LARGER loop can contain a
@@ -365,8 +370,8 @@ export function CameraRig() {
     // GM-W6 C2：focus-first（唔再畀 arb 支覆盖 skGeoFocus）——有对焦面永远优先框佢。
     if (mode === 'sketch' && focus && !arb) {
       // Auto zoom/pan onto the picked face / body footprint (Fusion frames the sketch target).
-      const tgt = SK[plane].lift(focus.c, baseZ)
-      const up = SK[plane].lift(focus.c, baseZ + 1)
+      const tgt = skOf(plane).lift(focus.c, baseZ)
+      const up = skOf(plane).lift(focus.c, baseZ + 1)
       const n: [number, number, number] = [up[0] - tgt[0], up[1] - tgt[1], up[2] - tgt[2]]
       fitSpan = Math.max(focus.size || 0, inPlaneSpan() || 0) || focus.size   // GM-W7 7.2：面尺寸 ∪ 轮廓/参考 bbox
       const d = distFrom(fitSpan, 340)   // GM-W6 C2：面尺寸定距（原 size*1.7 兼硬夹 1600）
@@ -389,14 +394,14 @@ export function CameraRig() {
       controls.target.set(ot[0], ot[1], ot[2])
     } else if (mode === 'sketch') {
       // GM-W6 C2：默认卡片面框视 — 有实体用 bbox 定距，冇实体保留 SK.cam 原距离（≈340/360，空草图零回归）。
-      const { pos, tgt } = SK[plane].cam(baseZ, originX)
+      const { pos, tgt } = skOf(plane).cam(baseZ, originX)
       const dir = new Vector3(pos[0] - tgt[0], pos[1] - tgt[1], pos[2] - tgt[2])
       fitSpan = inPlaneSpan() ?? bodyDiag()   // GM-W7 7.2：轮廓/参考 bbox 优先，否则实体 bbox
       dir.setLength(distFrom(fitSpan, dir.length()))
       camera.position.set(tgt[0] + dir.x, tgt[1] + dir.y, tgt[2] + dir.z)
       controls.target.set(tgt[0], tgt[1], tgt[2])
       if (sketchCenter) {
-        const centered = SK[plane].lift(sketchCenter, baseZ)
+        const centered = skOf(plane).lift(sketchCenter, baseZ)
         camera.position.add(new Vector3(centered[0] - tgt[0], centered[1] - tgt[1], centered[2] - tgt[2]))
         controls.target.set(...centered)
       }
@@ -454,8 +459,8 @@ export function SketchSurface() {
   const plane = useApp((s) => s.sketchPlane)
   const arb = useApp((s) => s.sketchArb)
   const raycast = useMemo(() => {
-    const lift=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}).lift:(p:Pt)=>SK[plane].lift(p,baseZ)
-    const p=lift([0,0]),o=arb?p:SK[plane].pos(baseZ)
+    const lift=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}).lift:(p:Pt)=>skOf(plane).lift(p,baseZ)
+    const p=lift([0,0]),o=arb?p:skOf(plane).pos(baseZ)
     const shift=(q:V3):V3=>[q[0]-p[0]+o[0],q[1]-p[1]+o[1],q[2]-p[2]+o[2]]
     return sketchPlaneRaycast(o,shift(lift([1,0])),shift(lift([0,1])))
   },[arb,plane,baseZ])
@@ -523,9 +528,9 @@ export function SketchSurface() {
   const captureScale=(pointerId:number)=>{
     scaleStart.current=useApp.getState().skScale?.handleStart??null
     const frame=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}):null
-    const lift=frame?.lift??((p:Pt)=>SK[plane].lift(p,baseZ)),toST=frame?.toST??SK[plane].toST
+    const lift=frame?.lift??((p:Pt)=>skOf(plane).lift(p,baseZ)),toST=frame?.toST??skOf(plane).toST
     const surface=new ThreePlane().setFromCoplanarPoints(new Vector3(...lift([0,0])),new Vector3(...lift([1,0])),new Vector3(...lift([0,1])))
-    if(!frame)surface.setFromNormalAndCoplanarPoint(surface.normal,new Vector3(...SK[plane].pos(baseZ)))
+    if(!frame)surface.setFromNormalAndCoplanarPoint(surface.normal,new Vector3(...skOf(plane).pos(baseZ)))
     const ray=new Raycaster(),hit=new Vector3()
     scalePointer.current=startGeometryPointerSession({canvas:geometryCanvas,pointerId,
       project:(x,y)=>{const r=geometryCanvas.getBoundingClientRect();if(!r.width||!r.height||x<r.left||x>r.right||y<r.top||y>r.bottom)return null;ray.setFromCamera(new Vector2((x-r.left)/r.width*2-1,1-(y-r.top)/r.height*2),camera);return ray.ray.intersectPlane(surface,hit)?toST(hit):null},
@@ -537,10 +542,10 @@ export function SketchSurface() {
   const captureGeometry = (pointerId: number) => {
     geometrySnapshot.current = useApp.getState().skDrag?.undoSnap
     const frame = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
-    const lift = frame?.lift ?? ((p: Pt) => SK[plane].lift(p, baseZ))
-    const toST = frame?.toST ?? SK[plane].toST
+    const lift = frame?.lift ?? ((p: Pt) => skOf(plane).lift(p, baseZ))
+    const toST = frame?.toST ?? skOf(plane).toST
     const surface = new ThreePlane().setFromCoplanarPoints(new Vector3(...lift([0,0])), new Vector3(...lift([1,0])), new Vector3(...lift([0,1])))
-    if (!frame) surface.setFromNormalAndCoplanarPoint(surface.normal, new Vector3(...SK[plane].pos(baseZ)))
+    if (!frame) surface.setFromNormalAndCoplanarPoint(surface.normal, new Vector3(...skOf(plane).pos(baseZ)))
     const ray = new Raycaster(), hit = new Vector3()
     geometryPointer.current = startGeometryPointerSession({
       canvas: geometryCanvas, pointerId,
@@ -725,11 +730,11 @@ export function SketchSurface() {
         onPointerLeave={(e) => up(fr.toST(e.point), e, false)}
         onPointerCancel={(e) => up(fr.toST(e.point), e, false)}>
         <planeGeometry args={[8000, 8000]} />
-        <meshBasicMaterial visible={false} side={DoubleSide} />
+        <meshBasicMaterial visible={false} side={DoubleSide ?? 2} />
       </mesh>
     )
   }
-  const cfg = SK[plane]
+  const cfg = skOf(plane)
   return (
     <mesh key={plane} raycast={raycast}
       rotation={cfg.rot}
@@ -741,7 +746,7 @@ export function SketchSurface() {
       onPointerCancel={(e) => up(cfg.toST(e.point), e, false)}
     >
       <planeGeometry args={[8000, 8000]} />
-      <meshBasicMaterial visible={false} side={DoubleSide} />
+      <meshBasicMaterial visible={false} side={DoubleSide ?? 2} />
     </mesh>
   )
 }
@@ -772,7 +777,7 @@ export function SketchDraw() {
   const baseZ = useApp((s) => s.sketchBaseZ)
   const arb = useApp((s) => s.sketchArb)
   const arbLiftFn = useMemo(() => (arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }).lift : null), [arb])
-  const lift: Lift = arbLiftFn ?? ((p) => SK[plane].lift(p, baseZ))
+  const lift: Lift = arbLiftFn ?? ((p) => skOf(plane).lift(p, baseZ))
   const shapeToPts = (sh: NonNullable<typeof shape>) =>
     sh.type === 'rect' ? rectPts(sh.a, sh.b, lift)
       : sh.type === 'circle' ? circlePts(sh.c, sh.r, lift)
@@ -900,7 +905,7 @@ export function SketchDraw() {
     }
   }
   if (!useBatch) profiles.forEach((sh, i) => { const glyph = fixedGlyph(sh, 'cp' + i, i); if (glyph) els.push(glyph) })
-  if (fillGeom && skView.fill) els.unshift(<mesh key="fill" geometry={fillGeom} renderOrder={-1}><meshBasicMaterial color="#5b8fd9" transparent opacity={0.3} side={DoubleSide} depthWrite={false} /></mesh>)
+  if (fillGeom && skView.fill) els.unshift(<mesh key="fill" geometry={fillGeom} renderOrder={-1}><meshBasicMaterial color="#5b8fd9" transparent opacity={0.3} side={DoubleSide ?? 2} depthWrite={false} /></mesh>)
   // Point-snap marker (Fusion-style): a small ring where the cursor snaps to an existing point.
   // 用户实战 feedback：旧版写死世界半径 3mm — 放大画面时变成巨环，遮住尺寸标签/落点。改屏幕空间恒定 ~9px：
   // 正交（草图默认视角）r=px/zoom；透视按吸附点距离换算 mm/px。缩放画面时 snap 状态本身会随鼠标刷新 → 半径实时跟。
@@ -1174,12 +1179,12 @@ export function RegionPickLayer() {
   const arb = useApp((s) => s.sketchArb)
   const geos = useMemo(() => {
     if (!faces) return null
-    // P3（#5/#10）：斜面（arb）区域点选 —— lift 走 arbFrame + 沿法向微抬 0.06；cardinal 走 SK[plane]。
+    // P3（#5/#10）：斜面（arb）区域点选 —— lift 走 arbFrame + 沿法向微抬 0.06；cardinal 走 skOf(plane)。
     const arbFr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
     const nT: V3 = arb ? [arb.n[0], arb.n[2], -arb.n[1]] : [0, 0, 0]
     const lift: Lift = arbFr
       ? (p) => { const b = arbFr.lift(p); return [b[0] + 0.06 * nT[0], b[1] + 0.06 * nT[1], b[2] + 0.06 * nT[2]] }
-      : (p) => SK[plane].lift(p, baseZ + 0.06)   // 微抬离草图面，raycast 先中填充唔中画图平面
+      : (p) => skOf(plane).lift(p, baseZ + 0.06)   // 微抬离草图面，raycast 先中填充唔中画图平面
     return faces.map((face) => {
       try {
         // P2v2：Fusion Profile 含孔（嵌套环+碟）— triangulateShape 索引入 [outer, ...holes] 扁平点集
@@ -1207,7 +1212,7 @@ export function RegionPickLayer() {
           onPointerDown={(e) => e.stopPropagation()}
           onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
           onPointerOut={() => { document.body.style.cursor = '' }}>
-          <meshBasicMaterial color={sel[i] ? '#1572c4' : '#8a97a2'} transparent opacity={sel[i] ? 0.28 : 0.10} side={DoubleSide} depthWrite={false} />
+          <meshBasicMaterial color={sel[i] ? '#1572c4' : '#8a97a2'} transparent opacity={sel[i] ? 0.28 : 0.10} side={DoubleSide ?? 2} depthWrite={false} />
         </mesh>
       ))}
     </group>
@@ -1273,7 +1278,7 @@ export function ExtrudePreview() {
     }
     const liftAt = arbFr
       ? (p: Pt, z: number): V3 => { const b = arbFr.lift(p); return [b[0] + z * nThree[0], b[1] + z * nThree[1], b[2] + z * nThree[2]] }
-      : (p: Pt, z: number): V3 => SK[plane].lift(p, z)
+      : (p: Pt, z: number): V3 => skOf(plane).lift(p, z)
     const outline2D = (sh: SketchShape): Pt[] =>
       sh.type === 'rect' ? [sh.a, [sh.b[0], sh.a[1]], sh.b, [sh.a[0], sh.b[1]]]
         : sh.type === 'circle' ? Array.from({ length: 48 }, (_, i) => { const a = (i / 48) * Math.PI * 2; return [sh.c[0] + sh.r * Math.cos(a), sh.c[1] + sh.r * Math.sin(a)] as Pt })
@@ -1306,7 +1311,7 @@ export function ExtrudePreview() {
   if (geom) els.push(
     <mesh key="vol" geometry={geom} renderOrder={2} raycast={() => null}>
       {/* GM-W7 7.6：depthTest false → 半透明体【透过实体】睇到（Fusion x-ray 式,盲切埋见到),契合「浮喺实体之上」。 */}
-      <meshBasicMaterial color={color} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+      <meshBasicMaterial color={color} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide ?? 2} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
     </mesh>)
   // 原线框鬼影（保留）：底环 + 顶环 + 若干斜连虚线。
   bases.forEach((base, i) => {
@@ -1450,7 +1455,7 @@ export function RevolvePreview() {
   if (!vol) return null
   return (
     <mesh geometry={vol.geom} renderOrder={2} raycast={() => null}>
-      <meshBasicMaterial color={vol.color} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+      <meshBasicMaterial color={vol.color} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide ?? 2} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
     </mesh>
   )
 }
@@ -1638,7 +1643,7 @@ export function HolePreview() {
   }, [holeMode, holePos, holeDir, holeD, holeDepth, holeThrough, holeType, holeCbD, holeCbDepth, holeBoltCircle, holeBcCount, holeBcPcd])
   if (!cfg || !holePos) return null
   const RED = '#ff5a4d'
-  const mat = <meshBasicMaterial color={RED} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide} />
+  const mat = <meshBasicMaterial color={RED} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide ?? 2} />
   // 節圓（PCD）線 — 令用戶一眼睇到「呢批孔排喺幾大個圈上」。
   const pcdRing = cfg.pcdR > 0
     ? Array.from({ length: 65 }, (_, i) => { const a = (i / 64) * Math.PI * 2; return [cfg.pcdR * Math.cos(a), 0, -cfg.pcdR * Math.sin(a)] as V3 })
@@ -1734,7 +1739,7 @@ export function FaceOffsetGhost() {
   return (
     <group rotation={[-Math.PI / 2, 0, 0]}>
       <mesh geometry={data.geom} renderOrder={2} raycast={() => null}>
-        <meshBasicMaterial color={data.color} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+        <meshBasicMaterial color={data.color} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide ?? 2} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
       </mesh>
     </group>
   )
@@ -1785,7 +1790,7 @@ export function MoveScaleGhost() {
   return (
     <group rotation={[-Math.PI / 2, 0, 0]}>
       <mesh geometry={geom} renderOrder={2} raycast={() => null}>
-        <meshBasicMaterial color="#1572c4" transparent opacity={0.25} depthWrite={false} side={DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+        <meshBasicMaterial color="#1572c4" transparent opacity={0.25} depthWrite={false} side={DoubleSide ?? 2} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
       </mesh>
     </group>
   )
@@ -1808,7 +1813,7 @@ export function CoilPreview() {
   if (!geom) return null
   return (
     <mesh geometry={geom} renderOrder={2} raycast={() => null}>
-      <meshBasicMaterial color="#1572c4" transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide} />
+      <meshBasicMaterial color="#1572c4" transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide ?? 2} />
     </mesh>
   )
 }
@@ -1853,17 +1858,22 @@ export function SweepPreview() {
   useEffect(() => () => { kernelGeom?.dispose() }, [kernelGeom])
   const tubeGeom = useMemo(() => {
     // 圓截面鬼影：扭轉／縮放內核預覽優先；否則維持舊 TubeGeometry
+    // FISHING35：XZ／YZ 路徑開 dlg 時 skOf 守門 + TubeGeometry 組裝失敗唔可炸 Viewport（reading 'default'／lift）
     if (!open || section !== 'circle') return null
     if (pv?.mesh?.triangles?.length) return null
-    const path2d: Pt[] = polyPts.length >= 2 ? polyPts : (sketchShape && sketchShape.type === 'poly' && sketchShape.pts.length >= 2 ? sketchShape.pts : [])
-    if (path2d.length < 2) return null
-    const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }).lift : null
-    const lift: Lift = fr ?? ((q) => SK[plane].lift(q, baseZ))
-    const clean: Vector3[] = []
-    for (const q of path2d) { const w = lift(q); const vv = new Vector3(w[0], w[1], w[2]); if (!clean.length || clean[clean.length - 1].distanceTo(vv) > 1e-4) clean.push(vv) }
-    if (clean.length < 2) return null
-    const r = Math.max(0.3, (dia || 12) / 2), seg = Math.min(400, Math.max(16, clean.length * 8))
-    return new TubeGeometry(new CatmullRomCurve3(clean), seg, r, 12, false)
+    try {
+      const path2d: Pt[] = polyPts.length >= 2 ? polyPts : (sketchShape && sketchShape.type === 'poly' && sketchShape.pts.length >= 2 ? sketchShape.pts : [])
+      if (path2d.length < 2) return null
+      const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }).lift : null
+      const lift: Lift = fr ?? ((q) => skOf(plane).lift(q, baseZ))
+      const clean: Vector3[] = []
+      for (const q of path2d) { const w = lift(q); const vv = new Vector3(w[0], w[1], w[2]); if (!clean.length || clean[clean.length - 1].distanceTo(vv) > 1e-4) clean.push(vv) }
+      if (clean.length < 2) return null
+      const r = Math.max(0.3, (dia || 12) / 2), seg = Math.min(400, Math.max(16, clean.length * 8))
+      return new TubeGeometry(new CatmullRomCurve3(clean), seg, r, 12, false)
+    } catch {
+      return null
+    }
   }, [open, section, dia, polyPts, sketchShape, plane, baseZ, arb, pv?.mesh])
   useEffect(() => () => { tubeGeom?.dispose() }, [tubeGeom])
   const color = op === 'cut' ? '#ff5a4d' : op === 'intersect' ? '#c78ae0' : '#1572c4'
@@ -1871,7 +1881,7 @@ export function SweepPreview() {
     return (
       <group rotation={[-Math.PI / 2, 0, 0]} renderOrder={40} userData={{ sweepPreview: true }}>
         <mesh geometry={kernelGeom} raycast={() => null}>
-          <meshStandardMaterial color={color} transparent opacity={0.32} depthWrite={false} side={DoubleSide} />
+          <meshStandardMaterial color={color} transparent opacity={0.32} depthWrite={false} side={DoubleSide ?? 2} />
         </mesh>
         {(pv?.edges || []).map((pts, i) => pts.length >= 2 ? <Line key={'spe' + i} points={pts} color={color} lineWidth={1.6} /> : null)}
       </group>
@@ -1880,7 +1890,7 @@ export function SweepPreview() {
   if (!tubeGeom) return null
   return (
     <mesh geometry={tubeGeom} renderOrder={2} raycast={() => null}>
-      <meshBasicMaterial color={color} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide} />
+      <meshBasicMaterial color={color} transparent opacity={0.3} depthWrite={false} depthTest={false} side={DoubleSide ?? 2} />
     </mesh>
   )
 }
@@ -1901,7 +1911,7 @@ function CanvasQuad({ c, sketchMode }: { c: CanvasItem; sketchMode: boolean }) {
   const geom = useMemo(() => {
     if (!tex) return null
     const fr = c.arb ? arbFrame(c.arb as { o: V3; xd: V3; n: V3 }) : null
-    const lift: Lift = fr ? fr.lift : (p) => SK[c.plane as Plane].lift(p, c.baseZ)
+    const lift: Lift = fr ? fr.lift : (p) => skOf(c.plane as Plane).lift(p, c.baseZ)
     const cs = canvasQuad(c, aspect) as Pt[]   // 非等比 scaleX/Y + 绕中心 zAngle
     const v = cs.map(lift)
     const g = new BufferGeometry()
@@ -1959,7 +1969,7 @@ export function CommittedSketches() {
       if (!src.visible || !Array.isArray(src.shapes)) continue
       const hot = k === selSketch
       const fr = src.arb ? arbFrame(src.arb as { o: V3; xd: V3; n: V3 }) : null
-      const lift: Lift = fr ? fr.lift : (p) => SK[src.plane].lift(p, src.baseZ + 0.05)
+      const lift: Lift = fr ? fr.lift : (p) => skOf(src.plane).lift(p, src.baseZ + 0.05)
       const shapes = src.shapes as BatchShape[]
       // Large schematic: one solid + one construction LineSegments (not N drei Lines).
       if (shapes.length >= SKETCH_BATCH_THRESHOLD) {
@@ -2031,7 +2041,7 @@ export function SkSelDraw() {
   // T746 批2（GAP6）：斜面重开都有尺寸线/顶点标记/原点⊕ — arb lift + 沿法向抬 0.1mm 防 z-fight
   const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
   const nOff: V3 = fr && arb ? [(arb as { n: V3 }).n[0] * 0.1, (arb as { n: V3 }).n[2] * 0.1, -(arb as { n: V3 }).n[1] * 0.1] : [0, 0, 0]
-  const liftP = (p: Pt): V3 => { if (!fr) return SK[plane].lift(p, baseZ + 0.1); const w = fr.lift(p); return [w[0] + nOff[0], w[1] + nOff[1], w[2] + nOff[2]] }
+  const liftP = (p: Pt): V3 => { if (!fr) return skOf(plane).lift(p, baseZ + 0.1); const w = fr.lift(p); return [w[0] + nOff[0], w[1] + nOff[1], w[2] + nOff[2]] }
   const els: ReactNode[] = []
   // ── 尺寸线（T731）：每个尺寸画真延伸线+尺寸线（标签锚同源 dimGfx，正好坐喺线上）──
   skCons.forEach((c, k) => {
@@ -2231,7 +2241,7 @@ export function MirrorPickDraw() {
   const preview = useApp((s) => s.sketchPreview)
   if (mode !== 'sketch' || !mp) return null
   const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
-  const lift: Lift = fr ? fr.lift : (p) => SK[plane].lift(p, baseZ + 0.12)
+  const lift: Lift = fr ? fr.lift : (p) => skOf(plane).lift(p, baseZ + 0.12)
   const shapes = [...profiles, ...(shape ? [shape] : [])] as SketchShape[]
   const els: ReactNode[] = []
   mp.shapes.forEach((idx, j) => {
@@ -2256,7 +2266,7 @@ export function MarqueeDraw() {
   const arb = useApp((s) => s.sketchArb)
   if (mode !== 'sketch' || !mq) return null
   const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
-  const lift: Lift = fr ? fr.lift : (p) => SK[plane].lift(p, baseZ + 0.2)
+  const lift: Lift = fr ? fr.lift : (p) => skOf(plane).lift(p, baseZ + 0.2)
   const { a, b } = mq
   const c0 = lift([a[0], a[1]]), c1 = lift([b[0], a[1]]), c2 = lift([b[0], b[1]]), c3 = lift([a[0], b[1]])
   const col = mq.crossing ? '#f4b400' : '#ff7a1a'   // 黄=crossing（相触）/ 橙=window（全包）
@@ -2265,7 +2275,7 @@ export function MarqueeDraw() {
     <group renderOrder={44}>
       <mesh frustumCulled={false}>
         <bufferGeometry><bufferAttribute attach="attributes-position" args={[pos, 3]} /></bufferGeometry>
-        <meshBasicMaterial color={col} transparent opacity={0.14} depthTest={false} side={DoubleSide} />
+        <meshBasicMaterial color={col} transparent opacity={0.14} depthTest={false} side={DoubleSide ?? 2} />
       </mesh>
       <Line points={[c0, c1, c2, c3, c0]} color={col} lineWidth={1.7} dashed={mq.crossing} dashSize={4} gapSize={3} />
     </group>
@@ -2276,7 +2286,7 @@ export function MarqueeDraw() {
 export function DimensionEditPreview(){
  const candidate=useApp(s=>s.skDimPreview),mode=useApp(s=>s.mode),plane=useApp(s=>s.sketchPlane),baseZ=useApp(s=>s.sketchBaseZ),arb=useApp(s=>s.sketchArb),view=useApp(s=>s.skView)
  if(mode!=='sketch'||!candidate.shapes||candidate.pending||candidate.error)return null
- const frame=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}):null,lift:Lift=frame?frame.lift:p=>SK[plane].lift(p,baseZ+.24)
+ const frame=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}):null,lift:Lift=frame?frame.lift:p=>skOf(plane).lift(p,baseZ+.24)
  return <group name="dimension-edit-preview" renderOrder={44}>{candidate.shapes.map((sh,i)=>{if(!sketchGeometryVisible(sh,view))return null;const pts=patternOutline(sh,lift);return pts.length>1?<Line key={i} points={pts} color="#1aa06b" lineWidth={2} dashed dashSize={2.5} gapSize={1.5}/>:null})}</group>
 }
 
@@ -2293,7 +2303,7 @@ export function MoveGizmoDraw() {
   useLayoutEffect(()=>{void useApp.getState().previewSkMove()},[mode,mv,profiles,shape,plane,baseZ,arb,moveState.skCons,moveState.params,moveState.skPatternData,moveState.features,moveState.paramBindings,moveState.skEditTarget,moveState.sketchUndo,moveState.sketchRedo,moveState.skSel,moveState.skRefGeo,moveState.sketchTool,moveState.skDimLabelOff,moveState.sketchSources])
   if (mode !== 'sketch' || !mv) return null
   const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
-  const lift: Lift = fr ? fr.lift : (p) => SK[plane].lift(p, baseZ + 0.24)
+  const lift: Lift = fr ? fr.lift : (p) => skOf(plane).lift(p, baseZ + 0.24)
   const cc = camera as unknown as { isOrthographicCamera?: boolean; zoom?: number }
   const arm = cc?.isOrthographicCamera ? Math.min(200, Math.max(6, 46 / (cc.zoom || 1))) : 30
   const px = mv.cx + mv.dx, py = mv.cy + mv.dy
@@ -2332,7 +2342,7 @@ export function ScaleGizmoDraw(){
   const sc=useApp(s=>s.skScale),mode=useApp(s=>s.mode),plane=useApp(s=>s.sketchPlane),baseZ=useApp(s=>s.sketchBaseZ),arb=useApp(s=>s.sketchArb),camera=useThree(s=>s.camera)
   const profiles=useApp(s=>s.sketchProfiles),shape=useApp(s=>s.sketchShape)
   if(mode!=='sketch'||!sc)return null
-  const frame=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}):null,lift:Lift=frame?frame.lift:p=>SK[plane].lift(p,baseZ+.24)
+  const frame=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}):null,lift:Lift=frame?frame.lift:p=>skOf(plane).lift(p,baseZ+.24)
   const c=camera as unknown as {isOrthographicCamera?:boolean;zoom?:number},arm=c.isOrthographicCamera?Math.min(200,Math.max(6,46/(c.zoom||1))):30
   const center:Pt=[sc.cx,sc.cy],handle:Pt=[sc.cx+arm*sc.factor,sc.cy],col=sc.error?'#c9362a':'#1aa06b',out:ReactNode[]=[]
   const originals=[...profiles,...(shape?[shape]:[])]
@@ -2357,7 +2367,7 @@ export function ArrayPreview() {
   const candidate=session?pattern:preview
   if(mode!=='sketch'||tool!=='array'||candidate.pending||candidate.error||!candidate.shapes||(session&&!pattern.document))return null
   const fr=arb?arbFrame(arb as {o:V3;xd:V3;n:V3}):null
-  const lift:Lift=fr?fr.lift:p=>SK[plane].lift(p,baseZ+.1)
+  const lift:Lift=fr?fr.lift:p=>skOf(plane).lift(p,baseZ+.1)
   const els:ReactNode[]=[]
   for(const [i,sh] of candidate.shapes.entries()){
     if(sh.type==='circle'&&sh.point){
@@ -2380,7 +2390,7 @@ export function ToolHoverPreview() {
   const arb = useApp((s) => s.sketchArb)
   if (mode !== 'sketch' || !prev || !prev.length) return null
   const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
-  const lift: Lift = fr ? fr.lift : (p) => SK[plane].lift(p, baseZ + 0.14)
+  const lift: Lift = fr ? fr.lift : (p) => skOf(plane).lift(p, baseZ + 0.14)
   const els: ReactNode[] = []
   prev.forEach((sh, i) => {
     const pts = sh.type === 'rect' ? rectPts(sh.a, sh.b, lift) : sh.type === 'circle' ? circlePts(sh.c, sh.r, lift) : (sh.pts && sh.pts.length ? (sh.open ? sh.pts.map(lift) : [...sh.pts.map(lift), lift(sh.pts[0])]) : null)
@@ -2400,7 +2410,7 @@ export function SizingHandle() {
   const arb = useApp((s) => s.sketchArb)
   if (mode !== 'sketch' || !sz || !cursor) return null
   const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
-  const lift: Lift = fr ? fr.lift : (p) => SK[plane].lift(p, baseZ + 0.16)
+  const lift: Lift = fr ? fr.lift : (p) => skOf(plane).lift(p, baseZ + 0.16)
   return (
     <group renderOrder={43}>
       <Line points={[lift(sz.anchor), lift(cursor)]} color="#ff8c00" lineWidth={1.6} dashed dashSize={3} gapSize={2} />
@@ -2429,8 +2439,8 @@ function extrudeTipFrame(plane: Plane, baseZ: number, h: number, flip: boolean, 
   let z0 = extent === 'symmetric' ? baseZ - H / 2 : baseZ
   let z1 = extent === 'symmetric' ? baseZ + H / 2 : baseZ + (down ? -H : H) * RES
   if (blindFace) { const sgn = (faceCut!.faceOutSign || 1) * (down ? -1 : 1); z0 = baseZ + 0.5 * sgn; z1 = baseZ - H * sgn }
-  const tip = SK[plane].lift(c, z1)
-  const b0 = SK[plane].lift(c, z0)
+  const tip = skOf(plane).lift(c, z1)
+  const b0 = skOf(plane).lift(c, z0)
   const d = new Vector3(tip[0] - b0[0], tip[1] - b0[1], tip[2] - b0[2])
   if (d.lengthSq() < 1e-9) return null
   d.normalize()
@@ -2564,7 +2574,7 @@ export function LoftPreview() {
   return (
     <group rotation={[-Math.PI / 2, 0, 0]} renderOrder={40} userData={{ loftPreview: true }}>
       <mesh geometry={geom} raycast={() => null}>
-        <meshStandardMaterial color={color} transparent opacity={0.32} depthWrite={false} side={DoubleSide} />
+        <meshStandardMaterial color={color} transparent opacity={0.32} depthWrite={false} side={DoubleSide ?? 2} />
       </mesh>
       {pv.edges.map((pts, i) => pts.length >= 2 ? <Line key={'lpe' + i} points={pts} color={color} lineWidth={1.6} /> : null)}
     </group>
@@ -2584,7 +2594,7 @@ const dimFmt = (v: number) => v.toFixed(v % 1 ? 1 : 0)
 const dimFmtU = (v: number, unit: LenUnit) => (unit === 'mm' ? dimFmt(v) : toLenInput(v, unit))
 
 function buildDimLabels(plane: Plane, baseZ: number, profiles: SketchShape[], shape: SketchShape | null, unit: LenUnit, constraints: SkCon[], liftFn?: (p: Pt) => [number, number, number]): DimLabel[] {
-  const lift = liftFn ?? ((p: Pt): [number, number, number] => SK[plane].lift(p, baseZ))  // T746 批2：斜面（arb）传入自己嘅 lift
+  const lift = liftFn ?? ((p: Pt): [number, number, number] => skOf(plane).lift(p, baseZ))  // T746 批2：斜面（arb）传入自己嘅 lift
   const out: DimLabel[] = []
   const add = (sh: SketchShape, k: string, target: number | 'shape') => {
     // Associative offset curve: ONE editable offset-distance dimension (Fusion), not its own W/H/Ø
@@ -2685,7 +2695,7 @@ export function SketchDimProjector() {
   const baseZ = useApp(s => s.sketchBaseZ)
   const arb = useApp(s => s.sketchArb)
   const geometryAnchors = useMemo(() => {
-    const lift = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }).lift : (p: Pt) => SK[plane].lift(p, baseZ)
+    const lift = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }).lift : (p: Pt) => skOf(plane).lift(p, baseZ)
     const points: Pt[] = [[0,0]]
     for (const sh of [...profiles, ...(shape ? [shape] : [])]) {
       if (sh.type === 'circle') { points.push(sh.c); if (!sh.point) for (const a of [0, Math.PI/2, Math.PI, Math.PI*1.5]) points.push([sh.c[0]+sh.r*Math.cos(a),sh.c[1]+sh.r*Math.sin(a)]); continue }
@@ -2800,7 +2810,7 @@ export function SketchDimLayer() {
     const drawnCons=candidate?candidate.cons!:skCons
     // T746 批2（GAP6 修复）：斜面重开都有尺寸标签/约束徽章 — 用 arbFrame.lift 替平面 lift
     const fr = arb ? arbFrame(arb as { o: V3; xd: V3; n: V3 }) : null
-    const lift: (p: Pt) => [number, number, number] = fr ? fr.lift : (p) => SK[plane].lift(p, baseZ)
+    const lift: (p: Pt) => [number, number, number] = fr ? fr.lift : (p) => skOf(plane).lift(p, baseZ)
     const out = skAnnot ? buildDimLabels(plane, baseZ, drawnProfiles, drawnShape, unit, drawnCons, fr ? fr.lift : undefined) : []
     // Constraint dims (D tool) → editable blue labels; constraint glyphs (∥/⊥/＝/…) → tiny badges (click = remove).
     const CON_GLYPH: Record<string, string> = { h: '━', v: '┃', coincident: '◉', parallel: '∥', perp: '⊥', equal: '＝', tangent: '⌒', fix: '⚓', midpoint: '⊹', concentric: '◎', collinear: '≣', symmetric: '⇆' }

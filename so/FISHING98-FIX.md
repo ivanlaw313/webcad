@@ -10,12 +10,12 @@ Deploy also copies PREV F97 lazy chunks (AeroLab/WindTunnelGpu/autoLoopStore + i
 - stamp: `v2.20-20261017-010046`
 - bundle: `index-Da2AFr5h-r2.js`
 - md5: `fe7713da7d6dcd19c660bf71774dfe0d`
-- tip: `TIP_STAMP_PLACEHOLDER`
+- tip: `730f00e6272ef8cfb5ecfd82663e32c98dbd7ec9`
 - product: `43203cd369ada4b09202090352f7f8d1b64068ae`
 - more53 cherry: `926bae85cc1598a45c9677fe3e2a3f61c4c5b785`
 
 ## Live after cut
-- Tip: `TIP_STAMP_PLACEHOLDER` (fix/fishing98-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `730f00e6272ef8cfb5ecfd82663e32c98dbd7ec9` (fix/fishing98-behavior-ux → FF fix/sketch-face-copy)
 - Product: `43203cd369ada4b09202090352f7f8d1b64068ae` IntroCard i18n
 - more53 cherry: `926bae85cc1598a45c9677fe3e2a3f61c4c5b785` (from `8241061b` on test/unit-core16-more53)
 - Stamp: `v2.20-20261017-010046`

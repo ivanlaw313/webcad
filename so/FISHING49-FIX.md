@@ -4,7 +4,7 @@
 **Branch:** `fix/fishing49-sc-leftovers-fusion-css`  
 **Product fix:** `981ca9b3a2da76488ba3514d516a37ecda699e3e`  
 **Base:** tip `bc5e24f` (FISHING48 live; product = `fix/sketch-face-copy`)  
-**Tip:** `dd6fe22742bc2e088ea3b434ba74d1dc496c4190` (`dd6fe22742bc2e088ea3b434ba74d1dc496c4190`)
+**Tip:** `880dc29c66adfe949e1b50704c8fa67a9e16f176` (`880dc29c66adfe949e1b50704c8fa67a9e16f176`)
 
 ## Scan
 

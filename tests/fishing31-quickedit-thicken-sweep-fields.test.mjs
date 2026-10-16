@@ -103,8 +103,8 @@ test('build warnings dedupe: same set shown once, re-shown on change, reset when
   const W = ['掃掠路徑尖角已自動圓角 R3']
   let r = dedupeBuildWarnings('', W); assert.deepEqual(r.show, W)
   r = dedupeBuildWarnings(r.key, W); assert.deepEqual(r.show, [], 'second identical rebuild → no pill')
-  const r2 = dedupeBuildWarnings(r.key, [...W, 'x']); assert.equal(r2.show.length, 2)
+  const r2 = dedupeBuildWarnings(r.key, [...W, 'x']); assert.deepEqual(r2.show, ['x'], 'FISHING31-recheck：逐條去重 — 只顯示新警告')
   const r3 = dedupeBuildWarnings(r2.key, []); assert.equal(r3.key, '')
   assert.deepEqual(dedupeBuildWarnings(r3.key, W).show, W)
-  assert.match(rd('src/store.ts'), /lastBuildWarnings: nextBuildWarnings\(mesh\.warnings\)/)
+  assert.match(rd('src/store.ts'), /const shownWarns = nextBuildWarnings\(mesh\.warnings/); assert.match(rd('src/store.ts'), /lastBuildWarnings: shownWarns/)
 })

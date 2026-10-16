@@ -351,12 +351,21 @@ export function plainBuildWarning(w: string): string {
   return t
 }
 
+/** 去走警告開頭自帶嘅 ⚠（worker 原文有時已帶 ⚠ → 顯示層再加就變「⚠ ⚠」）。 */
+export function stripWarnMark(w: string): string {
+  return String(w ?? '').replace(/^(?:\s|⚠|\uFE0F)+/u, '').trim()
+}
+/** 預覽／對話框用：單一 ⚠ 前綴＋去重＋人話（同 formatBuildWarnings 一致，但唔帶狀態列前導空白）。 */
+export function formatWarnList(warnings: readonly string[] | null | undefined): string {
+  return formatBuildWarnings(warnings).replace(/^\u3000/, '')
+}
+
 export function formatBuildWarnings(warnings: readonly string[] | null | undefined): string {
   if (!warnings || !warnings.length) return ''
   const seen = new Set<string>()
   const parts: string[] = []
   for (const w of warnings) {
-    const t = plainBuildWarning(String(w).replace(/^(?:\s|⚠|\uFE0F)+/u, '').trim())
+    const t = plainBuildWarning(stripWarnMark(w))
     if (!t || seen.has(t)) continue
     seen.add(t)
     parts.push(t)

@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react'
 import { useApp } from '../store'
 import { tStatus } from '../i18n'
+import { stripWarnMark } from '../ui/featureStatus'   // 放樣預覽：單一 ⚠ 前綴（唔再「⚠ ⚠」）
 import { loftEffectiveOrder, loftSectionLabel } from '../cad/loftSections'
 
 const btn: CSSProperties = { border: '1px solid #c7d0d8', background: '#f7f9fb', borderRadius: 4, padding: '0 5px', height: 20, lineHeight: '18px', fontSize: 11, cursor: 'pointer' }
@@ -82,8 +83,8 @@ export function LoftSectionList() {
         {sections.length < 2
           ? tStatus('放樣要 ≥2 個截面', lang)
           : busy ? tStatus('正在計算預覽…', lang)
-          : pv?.error ? `⚠ ${tStatus(pv.error, lang)}`
-          : pv?.mesh ? <>{tStatus('即時預覽（同確定後結果一樣）', lang)}{pv.volume != null ? ` · ${tStatus('體積', lang)} ${pv.volume >= 1000 ? (pv.volume / 1000).toFixed(1) + ' cm³' : pv.volume.toFixed(0) + ' mm³'}` : ''}{pv.warnings.length ? <div style={{ color: '#9a6a00' }}>{pv.warnings.map((w) => tStatus(w, lang)).join('；')}</div> : null}</>
+          : pv?.error ? `⚠ ${tStatus(stripWarnMark(pv.error), lang)}`
+          : pv?.mesh ? <>{tStatus('即時預覽（同確定後結果一樣）', lang)}{pv.volume != null ? ` · ${tStatus('體積', lang)} ${pv.volume >= 1000 ? (pv.volume / 1000).toFixed(1) + ' cm³' : pv.volume.toFixed(0) + ' mm³'}` : ''}{pv.warnings.length ? <div style={{ color: '#9a6a00' }}>{'⚠ ' + [...new Set(pv.warnings.map((w) => stripWarnMark(w)).filter(Boolean))].map((w) => tStatus(w, lang)).join('；')}</div> : null}</>
           : ''}
       </div>
     </>

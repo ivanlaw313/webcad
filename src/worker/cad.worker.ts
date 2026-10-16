@@ -5644,15 +5644,19 @@ function buildShape(features: Feature[], noCache = false): any {
       // at the start point with its normal along the start tangent.
       const pts3 = f.path3
       const swTwist = f.twist || 0, swScale = (f.scale == null || f.scale === 1) ? 1 : f.scale
+      // 圓管／圓截面：扭轉係視覺 no-op；MakePipeShell 多 section 會跟接縫參數扭成自交 → volume≈0。
+      // 有效扭轉強制 0（縮放仍走 frameTwistTaperSweep）。
+      const circPipe3 = !f.profile || (f.profile as { kind?: string }).kind === 'circle'
+      const effTwist3 = circPipe3 ? 0 : swTwist
       const makeTube3 = (rad: number, plain = false): any => {
         const spine = assembleWire([makeBSplineApproximation(pts3 as any)])
         // S：沿 3D 路径 twist 扭转 / 末端 scale 缩放（解锁 replicad GenericSweepConfig 封死嘅缺口）—
         // 走裸 MakePipeShell 多 section RMF（sweepTwist.ts，Node 实证直/弧 spine 体积精确）。twist=0&scale=1 ⇒ 行旧 genericSweep 逐字节回放。
         // plain=true 强制行普通扫掠（twist/缩放失败 / 返无界几何时退回，gotcha e）。
-        if (!plain && (swTwist || swScale !== 1)) {
+        if (!plain && (effTwist3 || swScale !== 1)) {
           return frameTwistTaperSweep(_oc, (spine as any).wrapped,
             (plane: any) => ((f.profile ? profileToDrawing(f.profile) : drawCircle(rad)).sketchOnPlane(plane) as any).wire,
-            { twistDeg: swTwist, scaleEnd: swScale })
+            { twistDeg: effTwist3, scaleEnd: swScale })
         }
         const t0raw = [pts3[1][0] - pts3[0][0], pts3[1][1] - pts3[0][1], pts3[1][2] - pts3[0][2]]
         const L0 = Math.hypot(t0raw[0], t0raw[1], t0raw[2]) || 1
@@ -5671,13 +5675,13 @@ function buildShape(features: Feature[], noCache = false): any {
       let swept3: any, plain3 = false
       try {
         swept3 = makeTube3(f.r)
-        if (swTwist || swScale !== 1) {   // twist/缩放可能产无界/退化几何 → bbox 有界闸（gotcha e），失败抛去下面退回普通扫掠
+        if (effTwist3 || swScale !== 1) {   // twist/缩放可能产无界/退化几何 → bbox 有界闸（gotcha e），失败抛去下面退回普通扫掠
           let bbOk = false
           try { const bb = swept3.boundingBox.bounds; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 失败当无界 */ }
           if (!bbOk) throw new Error('twist/缩放返无界或退化几何')
         }
       } catch (e) {
-        if (swTwist || swScale !== 1) { throw new Error(`扭轉／縮放 3D 掃掠失敗（${(e as Error)?.message || e}）— 請將路徑改為圓角或樣條，或將扭轉設為 0°`) }
+        if (effTwist3 || swScale !== 1) { throw new Error(`扭轉／縮放 3D 掃掠失敗（${(e as Error)?.message || e}）— 請將路徑改為圓角或樣條，或將扭轉設為 0°`) }
         else throw e
       }
       if (!f.profile && f.wall && f.wall > 0 && f.wall < f.r) {
@@ -5691,9 +5695,13 @@ function buildShape(features: Feature[], noCache = false): any {
       // P1 C：扭轉／縮放 + 尖角折線 → 自動圓角尖角再 frameTwistTaperSweep（preview=result 同一條路徑）。
       // 圓角唔到（段過短）→ 仍交 volume gate／throw Formal Traditional 拒絕，唔好靜默剝扭轉。
       const swTwist = f.twist || 0, swScale = (f.scale == null || f.scale === 1) ? 1 : f.scale
+      // 圓管（無 profile）／圓截面：扭轉視覺 no-op；多 section MakePipeShell 跟接縫扭成自交 → volume≈0。
+      // 有效扭轉強制 0（僅縮放時仍走 frameTwistTaperSweep）；尖角自動圓角亦跟有效扭轉，避免圓管誤報。
+      const circPipe = !f.profile || (f.profile as { kind?: string }).kind === 'circle'
+      const effTwist = circPipe ? 0 : swTwist
       let spineVerts: [number, number][] | null = null
       let spineBulges: number[] | null = null
-      if ((swTwist || swScale !== 1) && f.path && f.path.length >= 3 && !f.smoothPath) {
+      if ((effTwist || swScale !== 1) && f.path && f.path.length >= 3 && !f.smoothPath) {
         const rFillet = autoFilletRadiusForPath(f.path as [number, number][], f.r)
         if (rFillet > 1e-9) {
           const fr = filletOpenPolylineCorners(f.path as [number, number][], rFillet)
@@ -5760,7 +5768,7 @@ function buildShape(features: Feature[], noCache = false): any {
       const tube = (rad: number, useGuide = true, plain = false): any => {
         // S：twist 扭转 / 末端 scale 缩放（裸 MakePipeShell 多 section RMF，sweepTwist.ts）。twist=0&scale=1 ⇒ 行旧路径逐字节回放。
         // plain=true 强制普通扫掠（twist/缩放失败 / 返无界几何退回，gotcha e）。
-        if (!plain && (swTwist || swScale !== 1)) {
+        if (!plain && (effTwist || swScale !== 1)) {
           const spineW = (makeSpine() as any).wire
           // S：twist/缩放 + 导轨【同用】—— 导轨 wire 传入 frameTwistTaperSweep，每站截面朝向导轨点（投影⊥切向），
           // twist 叠加其上（纯 frame 数学 + 既有 Add_1 路径，无 SetMode_5 冲突）。Node 实证 tests/sweeptwist-guide.test.mjs 5/5。
@@ -5772,7 +5780,7 @@ function buildShape(features: Feature[], noCache = false): any {
           }
           return frameTwistTaperSweep(_oc, spineW.wrapped,
             (plane: any) => ((f.profile ? profileToDrawing(f.profile) : drawCircle(rad)).sketchOnPlane(plane) as any).wire,
-            { twistDeg: swTwist, scaleEnd: swScale }, guideWrapped)
+            { twistDeg: effTwist, scaleEnd: swScale }, guideWrapped)
         }
         return useGuide && f.guide && f.guide.length >= 2 && f.path && f.path.length >= 2
           ? guidedTube(rad)
@@ -5783,27 +5791,27 @@ function buildShape(features: Feature[], noCache = false): any {
       let swept: any, plain2 = false
       try { swept = tube(f.r) }
       catch (e) {
-        if (f.guide && f.guide.length >= 2 && !(swTwist || swScale !== 1)) { buildWarnings.push(`⚠ 导轨扫掠失败（${(e as Error)?.message || e}）— 已退回普通扫掠`); swept = tube(f.r, false) }
-        else if (swTwist || swScale !== 1) { throw new Error(`扭轉／縮放掃掠失敗（${(e as Error)?.message || e}）— 請將路徑改為圓角或樣條，或將扭轉設為 0°`) }
+        if (f.guide && f.guide.length >= 2 && !(effTwist || swScale !== 1)) { buildWarnings.push(`⚠ 导轨扫掠失败（${(e as Error)?.message || e}）— 已退回普通扫掠`); swept = tube(f.r, false) }
+        else if (effTwist || swScale !== 1) { throw new Error(`扭轉／縮放掃掠失敗（${(e as Error)?.message || e}）— 請將路徑改為圓角或樣條，或將扭轉設為 0°`) }
         else throw e
       }
       // twist/缩放 bbox 有界闸（gotcha e）：返无界/退化 → 誠實失敗（P1 C：唔好靜默剝扭轉）
-      if ((swTwist || swScale !== 1) && !plain2) {
+      if ((effTwist || swScale !== 1) && !plain2) {
         let bbOk = false
         try { const bb = swept.boundingBox.bounds; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 失败当无界 */ }
         if (!bbOk) { throw new Error('扭轉／縮放掃掠返無界或退化幾何 — 請將路徑改為圓角或樣條，或將扭轉設為 0°') }
       }
       // CORE16 + P1 C：純扭轉（無縮放）唔應該改變體積。尖角折線上 frame 扭轉會自交／塌陷。
-      // 圓截面扭轉無視覺效果 — 跳過體積閘（避免誤報「尖角」後退回）。
-      // 有草圖截面時：體積偏差 >10% → 誠實失敗（唔好靜默剝扭轉再提交成功）。
-      if (swTwist && swScale === 1 && !plain2 && f.profile) {
+      // 圓管／圓截面：扭轉已強制 effTwist=0（視覺 no-op），跳過體積閘。
+      // 有非圓草圖截面時：體積偏差 >10% → 誠實失敗（唔好靜默剝扭轉再提交成功）。
+      if (effTwist && swScale === 1 && !plain2 && f.profile) {
         try {
           const ref = tube(f.r, true, true), vt = _solidVolume(swept), vr = _solidVolume(ref)
           if (vr > 1e-9 && !(Math.abs(vt - vr) / vr <= 0.1)) {
             throw new Error('不能套用扭轉：此路徑在自動圓角後仍產生錯誤幾何 — 請把轉角改為更大圓角或樣條，或將「扭轉」設為 0°')
           }
         } catch (e) {
-          if (e instanceof Error && e.message.startsWith('扭轉掃掠')) throw e
+          if (e instanceof Error && e.message.startsWith('不能套用扭轉')) throw e
           /* 參考掃掠失敗 → 保留扭轉結果 */
         }
       }

@@ -5,7 +5,7 @@
 **Product fix:** `c88d1c5`  
 **more41 soft-prep:** **READY `1dbcebc` but AFTER nginx cut** — **no cherry this wave** (defer F80; no second deploy)  
 **Base:** tip `f6d6ca3` (FISHING78 live)  
-**Tip:** (after FF docs — see remotes)
+**Tip:** `7cfa9288f5bfa8f70249f812340521f5cf580ddd`
 
 ## Scan
 

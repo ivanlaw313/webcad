@@ -1,6 +1,6 @@
 import { createShortcutGuard } from './cad/shortcutGuard'
 import { protectEscape } from './cad/escapeKey'
-import { useEffect, lazy, Suspense, useState, useRef } from 'react'
+import { useEffect, lazy, Suspense, useState, useRef, type ComponentType } from 'react'
 import Ribbon from './components/Ribbon'
 import BrowserTree from './components/BrowserTree'
 import Viewport from './components/Viewport'
@@ -12,15 +12,26 @@ import InspectorPanel from './components/InspectorPanel'   // S103[4]：选择�
 // 移出初始 bundle，加快首屏 TTI。佢哋本身就系条件渲染，lazy 自然贴合。
 import JointOriginPalette from './components/JointOriginPalette'
 
-const CSketch = lazy(() => import('./components/CSketch'))
-const HelpPanelLazy = lazy(() => import('./components/HelpPanel'))
-const CommandPaletteLazy = lazy(() => import('./components/CommandPalette'))
-const AiCopilotLazy = lazy(() => import('./components/AiCopilot'))
-const SlicePanel = lazy(() => import('./components/SlicePanel'))
-const HistoryPanel = lazy(() => import('./components/HistoryPanel'))
-const DrawingPanel = lazy(() => import('./components/DrawingPanel'))
-const PhysicsLab = lazy(() => import('./components/PhysicsLab'))
-const AeroLab = lazy(() => import('./components/AeroLab'))
+// FISHING88: F86 WindTunnel pattern — stale/404 panel chunks must not crash App reading 'default'.
+function lazySafe(loader: () => Promise<{ default?: ComponentType<any> }>) {
+  return lazy(async () => {
+    try {
+      const m = await loader()
+      const C = m.default
+      if (typeof C === 'function') return { default: C }
+    } catch { /* chunk 404 / network */ }
+    return { default: function LazyChunkFallback() { return null } }
+  })
+}
+const CSketch = lazySafe(() => import('./components/CSketch'))
+const HelpPanelLazy = lazySafe(() => import('./components/HelpPanel'))
+const CommandPaletteLazy = lazySafe(() => import('./components/CommandPalette'))
+const AiCopilotLazy = lazySafe(() => import('./components/AiCopilot'))
+const SlicePanel = lazySafe(() => import('./components/SlicePanel'))
+const HistoryPanel = lazySafe(() => import('./components/HistoryPanel'))
+const DrawingPanel = lazySafe(() => import('./components/DrawingPanel'))
+const PhysicsLab = lazySafe(() => import('./components/PhysicsLab'))
+const AeroLab = lazySafe(() => import('./components/AeroLab'))
 import { useAeroUi } from './aero/aeroUiStore'
 import IntroCard from './components/IntroCard'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -387,7 +398,7 @@ export default function App() {
       {physicsLabOpen && <ErrorBoundary name="環境模擬實驗室" compact><Suspense fallback={null}><PhysicsLab /></Suspense></ErrorBoundary>}
       {aeroLabOpen && <ErrorBoundary name="氣動設計實驗室" compact><Suspense fallback={null}><AeroLab /></Suspense></ErrorBoundary>}
       {sliceOpen && sliceMesh && <ErrorBoundary name="切層預覽" compact><Suspense fallback={null}><SlicePanel mesh={sliceMesh} onClose={() => useApp.getState().setSliceOpen(false)} /></Suspense></ErrorBoundary>}
-      {historyOpen && <Suspense fallback={null}><HistoryPanel onClose={() => useApp.getState().setHistoryOpen(false)} onSaveNamed={(label) => useApp.getState().saveVersion(label)} onRestore={(data) => void useApp.getState().applySnapshot(data)} /></Suspense>}
+      {historyOpen && <Suspense fallback={null}><HistoryPanel onClose={() => useApp.getState().setHistoryOpen(false)} onSaveNamed={(label: string) => useApp.getState().saveVersion(label)} onRestore={(data: unknown) => void useApp.getState().applySnapshot(data)} /></Suspense>}
       {helpOpen && <Suspense fallback={null}><HelpPanelLazy /></Suspense>}
       <ErrorBoundary name="屬性檢查器" compact><InspectorPanel /></ErrorBoundary>
       <IntroCard />

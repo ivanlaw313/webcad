@@ -1,6 +1,6 @@
 // Aero Design Lab / 氣動設計實驗室 — brief → design space → optimisation (worker) → candidates →
 // preview / insert as CAD body / wind tunnel / CFD hand-off. Lazy-loaded from App.
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from 'react'
 import { useApp } from '../store'
 import type { Feature } from '../worker/cad.worker'
 import { closeAeroLab, useAeroUi } from '../aero/aeroUiStore'
@@ -17,7 +17,18 @@ import { useAutoLoop } from '../aero/autoLoopStore'
 import { runAccurateWind, type AccurateWind } from '../aero/windBridge'
 import { ParetoChart, ConvergenceChart } from './AeroLabCharts'
 
-const AeroLabPreview = lazy(() => import('./AeroLabPreview'))
+// FISHING89: F86/F88 pattern — stale/404 AeroLabPreview chunk must not crash reading 'default'.
+function aeroLabPreviewLazySafe(loader: () => Promise<{ default?: ComponentType<any> }>) {
+  return lazy(async () => {
+    try {
+      const m = await loader()
+      const C = m.default
+      if (typeof C === 'function') return { default: C }
+    } catch { /* chunk 404 / network */ }
+    return { default: function AeroLabPreviewChunkFallback() { return null } }
+  })
+}
+const AeroLabPreview = aeroLabPreviewLazySafe(() => import('./AeroLabPreview'))
 
 const KEY_METRICS: Record<AeroKind, string[]> = {
   prop: ['eff', 'thrust', 'power', 'noise', 'tipMach'],

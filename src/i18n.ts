@@ -76,7 +76,7 @@ export const EN_LABEL: Record<string, string> = {
   '装配辅助': 'Assembly Assist', '裝配輔助': 'Assembly Assist',
   '直接编辑扩展': 'Direct Edit Ext', '直接編輯擴展': 'Direct Edit Ext', '模流分析': 'Mold Flow', '壁厚检查': 'Wall Thickness',
   '曲率梳分析': 'Curvature Comb Analysis', '斑马纹分析': 'Zebra Analysis',
-  '曲率图分析': 'Curvature Map Analysis', '可达性分析': 'Accessibility Analysis',
+  '曲率图分析': 'Curvature Map Analysis', '可达性分析': 'Demold Accessibility',
   '最小半径分析': 'Minimum Radius Analysis', '质心': 'Center of Mass', '显示网格面组': 'Display Mesh Face Groups',
   '悬垂分析': 'Overhang', '懸垂分析': 'Overhang', '自动摆正': 'Auto Orient', '切层预览': 'Slice Preview', '切層預覽': 'Slice Preview', '全落地': 'Drop to Floor',
   // INSERT
@@ -347,7 +347,7 @@ export const EN_LABEL: Record<string, string> = {
   '干涉檢查': 'Interference',
   '斑馬紋分析': 'Zebra Analysis',
   '曲率圖分析': 'Curvature Map Analysis',
-  '可達性分析': 'Accessibility Analysis',
+  '可達性分析': 'Demold Accessibility',
   '最小半徑分析': 'Minimum Radius Analysis',
   '質心': 'Center of Mass',
   '物理屬性': 'Properties',

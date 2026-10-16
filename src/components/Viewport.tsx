@@ -181,9 +181,16 @@ import { MATERIAL_MECH } from '../analysis/beamStress'
 // Curvature fields can be expensive on dense meshes and are only relevant to
 // Inspect. Keep them out of the normal modelling startup path; React will fetch
 // this chunk the first time a curvature/min-radius inspection is requested.
-const CurvatureAnalysisOverlays = lazy(() => import('./CurvatureOverlay').then((m) => ({
-  default: () => <><m.CurvatureOverlay /><m.CurvatureCombOverlay /><m.MinRadiusMarker /></>,
-})))
+const CurvatureAnalysisOverlays = lazy(() => import('./CurvatureOverlay').then((m) => {
+  // FISHING35: React.lazy reads module.default — never resolve to undefined.
+  const CurvatureOverlay = m?.CurvatureOverlay
+  const CurvatureCombOverlay = m?.CurvatureCombOverlay
+  const MinRadiusMarker = m?.MinRadiusMarker
+  if (!CurvatureOverlay || !CurvatureCombOverlay || !MinRadiusMarker) {
+    return { default: () => null }
+  }
+  return { default: () => <><CurvatureOverlay /><CurvatureCombOverlay /><MinRadiusMarker /></> }
+}))
 import { GATE_TYPES, type GateType } from '../analysis/gateTypes'   // 浇口类型谱（轻模块）
 import WindCfdVerify from './WindCfdVerify'   // cfd-link: OpenFOAM verification of the tunnel body
 // GM-W8 β3：模流 Stage-2 热耦合 per-material 缺省熔体/模壁温度 °C（对齐 moldsolve MOLD_CROSS 嘅 tMelt/tMold；此处硬编码免 import 求解器模块入主 bundle — 同 gateTypes 抽轻模块同一理由）。留空输入 → store null → 求解器用材料缺省。
@@ -1109,7 +1116,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         // surface against which it can identify hidden dashed lines.
         colorWrite={!pickOnly && !wire}
         depthWrite={!pickOnly && (wire ? edgeDisplay !== 'off' : !(xray || skSee || feaGhost || compOpacity < 1 || (!frozen && material.opacity < 1)))}
-        side={xray || skSee || feaGhost || compOpacity < 1 || clip.length || (!frozen && material.opacity < 1) ? DoubleSide : undefined}
+        side={xray || skSee || feaGhost || compOpacity < 1 || clip.length || (!frozen && material.opacity < 1) ? (DoubleSide ?? 2) : undefined}
       />
       {!pickOnly && (wire || edgeDisplay !== 'off' || selected || hot) && <BrepEdgeOverlay mesh={mesh} clip={clip} through={wire && edgeDisplay === 'off'} color={selected ? '#e08a2b' : hot ? '#0a5a85' : wire ? '#425466' : visibleEdgeColor(color)} />}
       {/* GM-X2 #1：隐藏边暗显 —— 第二层 <Edges> 关深度测试、淡显被遮挡边（对标 Fusion Hidden Edge Dimming）。 */}
@@ -1132,7 +1139,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
         <group rotation={[-Math.PI / 2, 0, 0]}>
           {windPosed(
             <mesh geometry={geom} raycast={NULL_RAYCAST} renderOrder={-1}>
-              <meshBasicMaterial colorWrite={false} depthWrite depthTest clippingPlanes={clip} side={clip.length ? DoubleSide : undefined} />
+              <meshBasicMaterial colorWrite={false} depthWrite depthTest clippingPlanes={clip} side={clip.length ? (DoubleSide ?? 2) : undefined} />
             </mesh>,
           )}
         </group>
@@ -1175,7 +1182,7 @@ function OverhangView() {
   return (
     <group rotation={[-Math.PI / 2, 0, 0]}>
       <mesh geometry={geom} renderOrder={999}>
-        <meshBasicMaterial color="#ff3b30" transparent opacity={0.55} side={DoubleSide} depthTest={false} polygonOffset polygonOffsetFactor={-2} />
+        <meshBasicMaterial color="#ff3b30" transparent opacity={0.55} side={DoubleSide ?? 2} depthTest={false} polygonOffset polygonOffsetFactor={-2} />
       </mesh>
     </group>
   )
@@ -1197,7 +1204,7 @@ function WallThinView() {
   return (
     <group rotation={[-Math.PI / 2, 0, 0]}>
       <mesh geometry={geom} renderOrder={999}>
-        <meshBasicMaterial color="#ff9500" transparent opacity={0.6} side={DoubleSide} depthTest={false} polygonOffset polygonOffsetFactor={-2} />
+        <meshBasicMaterial color="#ff9500" transparent opacity={0.6} side={DoubleSide ?? 2} depthTest={false} polygonOffset polygonOffsetFactor={-2} />
       </mesh>
     </group>
   )
@@ -1299,7 +1306,7 @@ function ModelSelView() {
   return (
     <group rotation={[-Math.PI / 2, 0, 0]}>
       {faceGeom && <mesh geometry={faceGeom} renderOrder={997} raycast={NULL_RAYCAST}>
-        <meshBasicMaterial color="#1572c4" transparent opacity={0.45} side={DoubleSide} depthTest={false} polygonOffset polygonOffsetFactor={-2} />
+        <meshBasicMaterial color="#1572c4" transparent opacity={0.45} side={DoubleSide ?? 2} depthTest={false} polygonOffset polygonOffsetFactor={-2} />
       </mesh>}
       {edgeGeom && <lineSegments geometry={edgeGeom} renderOrder={999} raycast={NULL_RAYCAST}>
         <lineBasicMaterial color="#1572c4" linewidth={3} depthTest={false} />
@@ -1324,7 +1331,7 @@ function FaceHoverView() {
   return (
     <group rotation={[-Math.PI / 2, 0, 0]}>
       <mesh geometry={geom} renderOrder={998}>
-        <meshBasicMaterial color="#1aa0ff" transparent opacity={0.4} side={DoubleSide} depthTest={false} polygonOffset polygonOffsetFactor={-2} />
+        <meshBasicMaterial color="#1aa0ff" transparent opacity={0.4} side={DoubleSide ?? 2} depthTest={false} polygonOffset polygonOffsetFactor={-2} />
       </mesh>
     </group>
   )
@@ -1355,7 +1362,7 @@ function CutFaceOverlay() {
   return (
     <group rotation={[-Math.PI / 2, 0, 0]}>
       <mesh geometry={geom} renderOrder={3}>
-        <meshStandardMaterial color="#d98a4a" metalness={0.08} roughness={0.72} side={DoubleSide} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
+        <meshStandardMaterial color="#d98a4a" metalness={0.08} roughness={0.72} side={DoubleSide ?? 2} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
         <Edges threshold={1} color="#9c531a" />
       </mesh>
     </group>
@@ -1382,7 +1389,7 @@ function ThickenPreviewGhost() {
     <>
       {geom && <group rotation={[-Math.PI / 2, 0, 0]}>
         <mesh geometry={geom} raycast={NULL_RAYCAST} renderOrder={5} userData={{ thickenPreview: true }}>
-          <meshStandardMaterial color="#2f8cff" transparent opacity={0.5} depthWrite={false} side={DoubleSide} />
+          <meshStandardMaterial color="#2f8cff" transparent opacity={0.5} depthWrite={false} side={DoubleSide ?? 2} />
         </mesh>
       </group>}
       {picks?.map((p, i) => <mesh key={'thkp' + i} position={p} raycast={NULL_RAYCAST} renderOrder={6}>
@@ -1437,7 +1444,7 @@ function PatternPreview() {
       <group rotation={[-Math.PI / 2, 0, 0]}>
         {gmesh2}
         <group position={pos} quaternion={quat}>
-          <mesh><planeGeometry args={[w, h]} /><meshBasicMaterial color="#e0a81e" transparent opacity={0.35} side={DoubleSide} depthWrite={false} /></mesh>
+          <mesh><planeGeometry args={[w, h]} /><meshBasicMaterial color="#e0a81e" transparent opacity={0.35} side={DoubleSide ?? 2} depthWrite={false} /></mesh>
         </group>
       </group>
     )
@@ -2704,7 +2711,7 @@ function InterfMeshes() {
       {geos.map((g, i) => (
         <group key={'ifm' + i}>
           <mesh geometry={g} renderOrder={997} raycast={() => null}>
-            <meshBasicMaterial color="#e03131" transparent opacity={0.4} depthTest={false} side={DoubleSide} />
+            <meshBasicMaterial color="#e03131" transparent opacity={0.4} depthTest={false} side={DoubleSide ?? 2} />
           </mesh>
           <mesh geometry={g} renderOrder={998} raycast={() => null}>
             <meshBasicMaterial color="#c92a2a" wireframe depthTest={false} />
@@ -2946,7 +2953,7 @@ function DatumPlane({ rot, color, size, onPick }: { rot: [number, number, number
       onPointerOut={() => { setHov(false); document.body.style.cursor = '' }}
       onClick={(e) => { e.stopPropagation(); onPick() }}>
       <planeGeometry args={[size, size]} />
-      <meshBasicMaterial color={color} transparent opacity={hov ? 0.5 : 0.16} side={DoubleSide} depthWrite={false} depthTest={false} />
+      <meshBasicMaterial color={color} transparent opacity={hov ? 0.5 : 0.16} side={DoubleSide ?? 2} depthWrite={false} depthTest={false} />
       <Edges color={color} lineWidth={hov ? 2.6 : 1} />
     </mesh>
   )
@@ -2966,7 +2973,7 @@ function PickPlaneQuad({ pos, quaternion, rotation, baseColor, size = 220, picka
       onPointerOver={pickable ? (e) => { e.stopPropagation(); setHov(true); document.body.style.cursor = 'crosshair' } : undefined}
       onPointerOut={pickable ? () => { setHov(false); document.body.style.cursor = '' } : undefined}>
       <planeGeometry args={[size, size]} />
-      <meshBasicMaterial color={active ? '#1572c4' : pickable ? '#f0a020' : baseColor} transparent opacity={active ? 0.35 : pickable ? 0.2 : 0.1} side={DoubleSide} depthWrite={false} />
+      <meshBasicMaterial color={active ? '#1572c4' : pickable ? '#f0a020' : baseColor} transparent opacity={active ? 0.35 : pickable ? 0.2 : 0.1} side={DoubleSide ?? 2} depthWrite={false} />
       <Edges color={active ? '#1572c4' : pickable ? '#f0a020' : baseColor} lineWidth={active ? 2.4 : 1} />
     </mesh>
   )
@@ -3096,7 +3103,7 @@ function FormBoxTool() {
           onPointerMove={(e) => { e.stopPropagation(); useApp.getState().setFormBoxPointer(formBoxUv(draft.plane!, e.point)) }}
           onClick={(e) => { e.stopPropagation(); useApp.getState().placeFormBoxPoint(formBoxUv(draft.plane!, e.point), e.nativeEvent.clientY) }}>
           <planeGeometry args={[20000, 20000]} />
-          <meshBasicMaterial transparent opacity={0.001} side={DoubleSide} depthWrite={false} />
+          <meshBasicMaterial transparent opacity={0.001} side={DoubleSide ?? 2} depthWrite={false} />
         </mesh>
         {rect.length > 0 && <Line points={rect} color="#2d86d3" lineWidth={2} depthTest={false} />}
         {c3 && <mesh position={c3}><sphereGeometry args={[1.25, 12, 12]} /><meshBasicMaterial color="#2d86d3" depthTest={false} /></mesh>}
@@ -3494,7 +3501,7 @@ function FormCage() {
         {/* S165：可拣 cage 面（点选 → 面板拉伸）。选中=橙色高亮，未选=近透明但可拣。 */}
         {faceGeos && faceGeos.map((fg, i) => (
           <mesh key={'ff' + i} geometry={fg} onClick={(e) => { e.stopPropagation(); useApp.getState().selFormFace(i === cage.selFace ? null : i) }}>
-            <meshBasicMaterial color="#ff8a2a" transparent opacity={i === cage.selFace ? 0.5 : 0.001} side={DoubleSide} depthWrite={false} />
+            <meshBasicMaterial color="#ff8a2a" transparent opacity={i === cage.selFace ? 0.5 : 0.001} side={DoubleSide ?? 2} depthWrite={false} />
           </mesh>
         ))}
         {cage.verts.map((v, i) => {
@@ -7998,7 +8005,7 @@ export default function Viewport() {
           {loftSections.length >= 2 && <button className="sb-tool" title={tStatus('放樣導軌（可選）：在 XY 草圖畫一條連接各截面的折線（每個截面一點，點數 = 截面數）→ 按此記低；放樣時截面會水平平移去掂導軌點', lang)} onClick={() => useApp.getState().bankLoftRail()}>{tStatus('⤳放樣導軌', lang)}</button>}
           {loftSections.length > 0 && <span className="sb-hint">{tStatus('放樣截面', lang)} {loftSections.length}</span>}
           {loftSections.length >= 2 && <button className="sb-tool sb-finish" title={tStatus('在各截面之間放樣：彈面板設 操作（加料/切割）+ 截面預覽', lang)} onClick={() => openLoftDlg()}>{tStatus('放樣', lang)}{loftSections.length}{tStatus('截面…', lang)}</button>}
-          {sketchPlane === 'XY' && ((sketchShape && sketchShape.type === 'poly') || polyPts.length >= 2) && <button className="sb-tool" title={tStatus('把當前折線/樣條作為路徑掃掠：彈面板設 管徑 + 操作（加料/切割）', lang)} onClick={() => openSweepDlg()}>{tStatus('沿路徑掃掠…', lang)}</button>}
+          {!sketchArb && (sketchPlane === 'XY' || sketchPlane === 'XZ' || sketchPlane === 'YZ') && ((sketchShape && sketchShape.type === 'poly') || polyPts.length >= 2) && <button className="sb-tool" data-testid="sketch-bar-sweep" title={tStatus('把當前折線/樣條作為路徑掃掠：彈面板設 管徑 + 操作（加料/切割）', lang)} onClick={() => openSweepDlg()}>{tStatus('沿路徑掃掠…', lang)}</button>}
           {(sketchShape || sketchProfiles.length === 1) && (
             <button className="sb-tool" title={tStatus('陣列：底欄面板設 矩形/環形 參數，實時預覽 → 應用（例如一個孔陣成一片孔）', lang)} onClick={() => useApp.getState().runCommand('sk_array', '陣列')}>{tStatus('▦ 陣列', lang)}</button>
           )}

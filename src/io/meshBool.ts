@@ -11,7 +11,8 @@ let modP: Promise<any> | null = null
 async function manifoldMod(): Promise<any> {
   if (!modP) {
     modP = (async () => {
-      const Module = (await import('manifold-3d')).default
+      const mod = await import('manifold-3d')
+      const Module = (mod as { default?: unknown }).default ?? mod
       const wasm = await Module()
       wasm.setup()
       return wasm

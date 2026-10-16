@@ -532,9 +532,13 @@ export default function JointsPanel() {
         </div>
       )}
 
-      {rotJoints.length >= 2 && (
-        <div className="jp-mlink" ref={motionLinkRef}>
+      {/* FISHING71: always mount 運動連結區 so ribbon focus + single-joint panel still show Formal heading (F69 PARTIAL) */}
+      <div className="jp-mlink" ref={motionLinkRef}>
           <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>運動連結（齒輪比）</div>
+          {rotJoints.length < 2 ? (
+            <div style={{ fontSize: 11, color: '#8a939c' }}>需要最少 2 個轉動／圓柱關節才可加運動連結（齒輪比／齒條）。</div>
+          ) : (
+            <>
           {motionLinks.map((l) => (
             <div key={l.id} className="jp-row" style={{ fontSize: 12 }}>
               <span>{l.driver}{l.driver2 ? `+${l.driver2}` : ''} 驅動 {l.driven} · {l.kind === 'rack' ? `齒條 角→移 ${l.ratio.toFixed(3)} mm/°` : l.driver2 ? `= ${l.ratio}×${l.driver} + ${l.ratio2}×${l.driver2}` : `比 ${l.ratio}`}</span>
@@ -546,10 +550,10 @@ export default function JointsPanel() {
             <span>→</span>
             <select value={mlDvn || rotJoints[1]?.id} onChange={(e) => setMlDvn(e.target.value)} title="從動關節">{rotJoints.map((j) => <option key={j.id} value={j.id}>{localizeAsmName(j.name, lang)}</option>)}</select>
             <NumInput value={mlRatio} onValue={(v) => { setMlRatio(v) }} label="傳動比：齒輪齧合用 -(主齒數/從齒數)，例 -1（同徑反向）" w={52} title="傳動比：齒輪齧合用 -(主齒數/從齒數)，例 -1（同徑反向）" />
-            <button className="cs-btn" onClick={() => addMotionLink(mlDrv || rotJoints[0]?.id, mlDvn || rotJoints[1]?.id, mlRatio, undefined, ml2On && rotJoints.length >= 3 ? (mlDrv2 || rotJoints[2]?.id) : undefined, ml2On ? mlRatio2 : undefined)}>+ 連接</button>
+            <button className="cs-btn" onClick={() => addMotionLink(mlDrv || rotJoints[0]?.id, mlDvn || rotJoints[1]?.id, mlRatio, undefined, ml2On && rotJoints.length >= 3 ? (mlDrv2 || rotJoints[2]?.id) : undefined, ml2On ? mlRatio2 : undefined)}>+ 連結</button>
           </div>
           {rotJoints.length >= 3 && (
-            <div className="jp-add" style={{ fontSize: 11, alignItems: 'center', gap: 4, marginTop: 2 }} title="雙驅動（行星動畫）：從動 = 比1×驅動1 + 比2×驅動2 — 行星輪自轉 = a×太陽 + b×行星架。勾選後「+ 連接」帶埋第二驅動">
+            <div className="jp-add" style={{ fontSize: 11, alignItems: 'center', gap: 4, marginTop: 2 }} title="雙驅動（行星動畫）：從動 = 比1×驅動1 + 比2×驅動2 — 行星輪自轉 = a×太陽 + b×行星架。勾選後「+ 連結」帶埋第二驅動">
               <label style={{ display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer' }}><input type="checkbox" checked={ml2On} onChange={(e) => setMl2On(e.target.checked)} /> 雙驅動</label>
               {ml2On && (<>
                 <span>＋</span>
@@ -566,8 +570,9 @@ export default function JointsPanel() {
             <NumInput value={mlZ2} onValue={(v) => { setMlZ2(Math.max(1, v)) }} label="從動齒輪齒數 z2" min={1} integer w={44} title="從動齒輪齒數 z2" />
             <button className="cs-btn" title="齒輪比 = −z1/z2（齧合反向）" onClick={() => setMlRatio(-(mlZ1 / mlZ2))}>算比 = −{(mlZ1 / mlZ2).toFixed(3)}</button>
           </div>
+            </>
+          )}
         </div>
-      )}
     </div>
   )
 }

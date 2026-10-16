@@ -16270,9 +16270,12 @@ export const useApp = create<AppState>((rawSet, get) => {
         get().addContactPair(ids[0], ids[1]); get().clearCheckedComps(); return
       }
       case 'motionlink': {
-        if (get().joints.filter((j) => j.type === 'revolute' || j.type === 'cylindrical').length < 2) { set({ status: '運動連結需要最少 2 個轉動／圓柱關節' }); return }
+        // FISHING71: always open 關節面板運動連結區 (empty-state hint when <2 轉動／圓柱)
         window.dispatchEvent(new CustomEvent('webcad:assembly-focus', { detail: { section: 'motionlink' } }))
-        set({ status: '運動連結：在關節面板選擇主動／從動關節及傳動比，再按「+ 連接」' }); return
+        if (get().joints.filter((j) => j.type === 'revolute' || j.type === 'cylindrical').length < 2) {
+          set({ status: '運動連結：需要最少 2 個轉動／圓柱關節 — 已開啟關節面板運動連結區' }); return
+        }
+        set({ status: '運動連結：在關節面板選擇主動／從動關節及傳動比，再按「+ 連結」' }); return
       }
       case 'motionstudy': {
         const j = get().joints.find((x) => x.type === 'revolute' || x.type === 'slider')

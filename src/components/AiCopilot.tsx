@@ -29,7 +29,7 @@ export default function AiCopilot() {
 
   if (!open) {
     return (
-      <button onPointerDown={drag.onPointerDown} onClick={() => { if (drag.consumeClick()) return; toggle() }} title={tStatus('AI Copilot — 用自然语言控制 / 协助使用 app（OpenAI / Grok / Gemini / 本地 LLM）', lang) + ' · 按住可拖移'}
+      <button onPointerDown={drag.onPointerDown} onClick={() => { if (drag.consumeClick()) return; toggle() }} title={tStatus('AI Copilot — 用自然語言控制 / 協助使用 app（OpenAI / Grok / Gemini / 本地 LLM）', lang) + ' · 按住可拖移'}
         style={{ position: 'fixed', zIndex: 24000, width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6d4ef0,#2b6cf0)', color: '#fff', fontSize: 22, boxShadow: '0 4px 16px rgba(0,0,0,.3)', touchAction: 'none', ...drag.style }}>✦</button>
     )
   }
@@ -67,7 +67,7 @@ export default function AiCopilot() {
             <input value={cfg.baseUrl} onChange={(e) => setCfg({ baseUrl: e.target.value })} style={cfgIn} />
           </label>
           <span style={{ fontSize: 11, color: '#8a97a2', lineHeight: 1.4 }}>
-            {tStatus('🔒 Key 只存在你浏览器、直连供应商（零服务器）。本地 LLM（Ollama/LM Studio）在线上 https 站可能被「混合内容」拦 —— 用 localhost 开发版或 https 端点。', lang)}
+            {tStatus('🔒 Key 只存在你瀏覽器、直連供應商（零服務器）。本地 LLM（Ollama/LM Studio）在線上 https 站可能被「混合內容」攔 —— 用 localhost 開發版或 https 端點。', lang)}
           </span>
         </div>
       )}
@@ -77,7 +77,7 @@ export default function AiCopilot() {
         {msgs.length === 0 && (
           <div style={{ color: '#8a97a2', fontSize: 12, lineHeight: 1.6 }}>
             {tStatus('👋 我可以帮你', lang)}<b>{tStatus('操作 app', lang)}</b>{tStatus('或', lang)}<b>{tStatus('解答用法', lang)}</b>{tStatus('。试下：', lang)}<br />
-            {tStatus('• 「做个 60×40×20 的盒，中间挖个 Ø20 通孔」', lang)}<br />
+            {tStatus('• 「做個 60×40×20 的盒，中間挖個 Ø20 通孔」', lang)}<br />
             {tStatus('• 「载入齿轮范本，然后话我知体积」', lang)}<br />
             {tStatus('• 「如何在一条边倒 R5 圆角？」', lang)}<br />
             {tStatus('• 「加个参数 厚度=3，再设成 5」', lang)}
@@ -98,7 +98,7 @@ export default function AiCopilot() {
 
       {/* 输入 */}
       <div style={{ padding: 8, borderTop: '1px solid #e6eaee', display: 'flex', gap: 6, alignItems: 'flex-end' }}>
-        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={2} placeholder={tStatus('问我，或叫我做… (Enter 发送 · Shift+Enter 换行)', lang)}
+        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={2} placeholder={tStatus('問我，或叫我做… (Enter 發送 · Shift+Enter 換行)', lang)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit() } }}
           style={{ flex: 1, resize: 'none', border: '1px solid #ccd3da', borderRadius: 8, padding: '6px 9px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
         <button onClick={submit} disabled={busy || !draft.trim()} style={{ background: busy || !draft.trim() ? '#9bb6e8' : '#2b6cf0', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: busy ? 'default' : 'pointer', fontWeight: 600 }}>↑</button>

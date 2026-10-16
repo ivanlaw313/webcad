@@ -896,7 +896,7 @@ const STATUS_PHRASES: Record<string, string> = {
   '。试下：': '. Try:', '• 「做个 60×40×20 的盒，中间挖个 Ø20 通孔」': '• “Make a 60×40×20 box with a Ø20 through-hole in the middle”',
   '• 「载入齿轮范本，然后话我知体积」': '• “Load the gear template, then tell me its volume”', '• 「如何在一条边倒 R5 圆角？」': '• “How do I fillet an edge with R5?”',
   '• 「加个参数 厚度=3，再设成 5」': '• “Add a parameter thickness=3, then set it to 5”', '✦ 思考中…': '✦ Thinking…',
-  '问我，或叫我做… (Enter 发送 · Shift+Enter 换行)': 'Ask me, or tell me to do something… (Enter to send · Shift+Enter for newline)', '⚠ AI 出错：': '⚠ AI error: ',
+  '问我，或叫我做… (Enter 发送 · Shift+Enter 换行)': 'Ask me, or tell me to do something… (Enter to send · Shift+Enter for newline)', '問我，或叫我做… (Enter 發送 · Shift+Enter 換行)': 'Ask me, or tell me to do something… (Enter to send · Shift+Enter for newline)', '⚠ AI 出错：': '⚠ AI error: ',
   '工具出错：': 'Tool error: ', '取消（Esc）': 'Cancel (Esc)',
   '确定（Enter）': 'OK (Enter)', '✕ = 清空所选重新点选': '✕ = clear selection and re-pick',
   '✕ = 清空所選重新點選': '✕ = clear selection and re-pick',
@@ -960,6 +960,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   '曲面裁剪：没有活动实体可做裁刀': 'Surface trim: no active body to use as cutting tool',
   '曲面裁剪：裁刀索引无效（不可与目标同一张）': "Surface trim: cutting-tool index invalid (cannot be the same as the target)",
   '拔模②：点要加斜度的【侧面】(可多点选)，再按命令栏「确定拔模」': "Draft ②: click the side faces to draft (multiple allowed), then click 'Finish Draft' in the command bar",
+  '拔模②：點要加斜度的【側面】(可多點選)，再按命令欄「確定拔模」': "Draft ②: click the side faces to draft (multiple allowed), then click 'Finish Draft' in the command bar",
   '请先点中性面': 'Pick the neutral face first',
   '已在斜面上建草图（任意朝向）— 画轮廓后拉伸沿该面法向出料': 'Sketch created on the angled face (any orientation) — draw a profile then extrude along the face normal',
   '已在角度面上建草图 — 画轮廓后拉伸沿该面法向出料': 'Sketch created on the angle plane — draw a profile then extrude along the plane normal',
@@ -1494,6 +1495,7 @@ const STATUS_PHRASES_X: Record<string, string> = {
   "没有可导出的零件（先载入装配模板或「新建组件」）": "No parts to export — load an assembly template or create a component first",
   "· 注射量假设 50 cm³/s；开合模 5 s": "· Assumes 50 cm³/s injection rate; 5 s mold open/close",
   "模流分析报告  Mold Flow Report": "Mold Flow Report",
+  "模流分析報告  Mold Flow Report": "Mold Flow Report",
   "转速：请输入 刀具直径d, 切削速度Vc（正数）": "Spindle speed: enter tool diameter d, cutting speed Vc (positive)",
   "镜像：目前点一条现有【直线边 / 构造线】做镜像轴": "Mirror: now pick an existing straight edge or construction line as the axis",
   "分割面失败（切割平面与该面不相交 — 换个面再试）": "Split face failed (cut plane doesn't intersect the face — try another face)",
@@ -3639,6 +3641,7 @@ Object.assign(STATUS_PHRASES_X, {
   '螺栓夾緊力：格式如「M8,15,0.2」（M 號 + 扭矩 N·m + 摩擦係數）': 'Bolt clamp force: format like "M8,15,0.2" (M size + torque N·m + friction coefficient)',
   '絲桿：請輸入 導程,轉速,扭矩[,效率]（如 8,300,0.5,0.9）': 'Lead screw: enter lead, speed, torque[, efficiency] (e.g. 8,300,0.5,0.9)',
   '請先「🔩受力估算」再匯出報告': 'Run 🔩 Load Estimate before exporting report',
+  'WebCAD 工程分析報告（梁理論·示意，非 3D 有限元）': 'WebCAD engineering analysis report (beam theory · illustrative, not 3D FEA)',
   '已匯出工程分析報告 .txt': 'Engineering analysis report exported (.txt)',
 })
 

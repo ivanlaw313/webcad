@@ -5915,7 +5915,7 @@ export default function Viewport() {
           onCancel={() => cancelFaceFillet()}
           summary={<>面圓角 R{faceFilletRadius} · {faceFilletPicks.length}/2 面</>}
         >
-          <SelectionChip label="兩張面" count={faceFilletPicks.length} hint="① 點選兩張相鄰面；确認前會驗證共同 B-rep 邊" onClear={() => useApp.getState().clearFaceFilletPicks()} />
+          <SelectionChip label="兩張面" count={faceFilletPicks.length} hint="① 點選兩張相鄰面；確認前會驗證共同 B-rep 邊" onClear={() => useApp.getState().clearFaceFilletPicks()} />
           <label>
             <span style={{ color: '#6b7680' }}>半徑</span>
             <span><LenInput mm={faceFilletRadius} onMm={setFaceFilletRadius} unit={unit} w={66} min={0.1} max={1000000} title="面圓角半徑" /> {unit === 'inch' ? 'in' : unit}</span>
@@ -5949,7 +5949,7 @@ export default function Viewport() {
           <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title="雙面/分模線拔模：中性面兩側各朝自己脫模方向收（需兩側都選了側面；跨分模線的整張面只算一側）">
             <input type="checkbox" checked={draftTwoSided} onChange={(e) => useApp.getState().setDraftTwoSided(e.target.checked)} /> 雙面（分模線兩側）
           </label>
-          <div style={{ fontSize: 11, color: '#6b7680' }}>{draftPickMode === 1 ? '點【中性面】' : '點【側面】(可多選) → 确定拔模'}</div>
+          <div style={{ fontSize: 11, color: '#6b7680' }}>{draftPickMode === 1 ? '點【中性面】' : '點【側面】(可多選) → 確定拔模'}</div>
         </CommandDialog>
       )}
 
@@ -6646,11 +6646,11 @@ export default function Viewport() {
                 }
                 return (
                   <div style={{ display: 'flex', gap: 10, margin: '1px 0 4px', paddingLeft: 18, fontSize: 11, color: '#6b7680' }}>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={`熔體入口溫度（留空 = 材料 ${moldMat} 缺省 ${def.melt}°C）`}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={`熔體入口溫度（留空 = 材料 ${moldMat} 預設 ${def.melt}°C）`}>
                       熔體°C
                       <input type="number" min={120} max={400} step={5} value={moldTMelt ?? ''} placeholder={String(def.melt)} onChange={onT('moldTMelt')} style={{ width: 52, fontSize: 11 }} />
                     </label>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={`模壁溫度（留空 = 材料 ${moldMat} 缺省 ${def.mold}°C）`}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={`模壁溫度（留空 = 材料 ${moldMat} 預設 ${def.mold}°C）`}>
                       模具°C
                       <input type="number" min={20} max={200} step={5} value={moldTMold ?? ''} placeholder={String(def.mold)} onChange={onT('moldTMold')} style={{ width: 52, fontSize: 11 }} />
                     </label>
@@ -7530,7 +7530,7 @@ export default function Viewport() {
             <label>{tStatus('長', lang)} <LenInput mm={Number(featDlg.params.l)} onMm={(v) => setFeatParam('l', v)} onText={(raw) => setFeatParam('l', parseLen(raw, unit) ?? Number(featDlg.params.l), raw)} unit={unit} w={52} min={0.1} /></label>
             <label>{tStatus('寬', lang)} <LenInput mm={Number(featDlg.params.w)} onMm={(v) => setFeatParam('w', v)} onText={(raw) => setFeatParam('w', parseLen(raw, unit) ?? Number(featDlg.params.w), raw)} unit={unit} w={52} min={0.1} /></label>
             <label>{tStatus('高', lang)} <LenInput mm={Number(featDlg.params.h)} onMm={(v) => setFeatParam('h', v)} onText={(raw) => setFeatParam('h', parseLen(raw, unit) ?? Number(featDlg.params.h), raw)} unit={unit} w={52} min={0.1} /></label>
-            <label title={tStatus('＋加料=並入活動體；⬡新實體=獨立實體（活動體保持為目標，适合後續合併/切割挖孔）；－切割=從活動體切除', lang)}>{tStatus('操作', lang)} <PrimOpSelect /></label>
+            <label title={tStatus('＋加料=並入活動體；⬡新實體=獨立實體（活動體保持為目標，適合後續合併/切割挖孔）；－切割=從活動體切除', lang)}>{tStatus('操作', lang)} <PrimOpSelect /></label>
             <PrimPlaceFields />
           </>)}
           {featDlg.kind === 'cylinder' && (<>
@@ -7652,7 +7652,7 @@ export default function Viewport() {
               <ThreadSpecSelect d={+featDlg.params.d} pitch={+featDlg.params.pitch} std={std} lang={lang} onPick={(dd, pp) => { setFeatParam('d', dd); setFeatParam('pitch', pp) }} />
               <label title={isI ? tStatus('公稱螺紋直徑（M 值）：M8=8', lang) : tStatus('圓柱面直徑（牙底 Ø）', lang)}>{tStatus(isI ? '公稱Ø' : '直徑Ø', lang)} <FeatNum k="d" v={featDlg.params.d} w={50} /></label>
               <label title={tStatus('螺距（mm）', lang)}>{tStatus('螺距', lang)} <FeatNum k="pitch" v={featDlg.params.pitch} w={46} /></label>
-              <label title={tStatus('配合等級：外螺紋 6g/2A… 內螺紋 6H/2B…。純公差元數据，v1 不改牙幾何。', lang)}>{tStatus('等級', lang)} <select value={String(featDlg.params.cls ?? '')} onChange={(e) => setFeatParam('cls', e.target.value)} style={{ height: 26 }}><option value="">{tStatus('（預設）', lang)}</option>{classes.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
+              <label title={tStatus('配合等級：外螺紋 6g/2A… 內螺紋 6H/2B…。純公差元數據，v1 不改牙幾何。', lang)}>{tStatus('等級', lang)} <select value={String(featDlg.params.cls ?? '')} onChange={(e) => setFeatParam('cls', e.target.value)} style={{ height: 26 }}><option value="">{tStatus('（預設）', lang)}</option>{classes.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={tStatus('全長：勾=攻/包整段（長度=下面高度/深度）；不勾=局部螺紋（露出 長度 + 偏移 字段）', lang)}><input type="checkbox" checked={full} onChange={(e) => setFeatParam('fullLen', e.target.checked ? 1 : 0)} />{tStatus('全长', lang)}</label>
               <label title={isI ? tStatus('攻牙深度/長度（由孔底 z + 偏移 向上）', lang) : tStatus('螺紋長度（沿圓柱面軸向）', lang)}>{tStatus(full ? (isI ? '深度' : '高度') : '長度', lang)} <FeatNum k="height" v={featDlg.params.height} w={48} /></label>
               {!full && <label title={tStatus('偏移：由面/孔起點沿軸向偏移一段再開始上牙（局部螺紋起點）', lang)}>{tStatus('偏移', lang)} <FeatNum k="toff" v={featDlg.params.toff} w={48} /></label>}
@@ -7737,7 +7737,7 @@ export default function Viewport() {
             <button className="cs-btn" title={tStatus('構造點批量孔（S151）：按所有構造點的 XY 位置一次鑽孔（孔徑/類型用「孔」設定）。鑽向=頂面沿Z（預設）或選構造軸方向斜鑽/側鑽 — 令構造點驅動幾何，不再只是參考點', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); void useApp.getState().addHolesAtCpoints() }}>{tStatus('⊙ 批量孔', lang)}</button>
           </>)}
           {featDlg.kind === 'cptgrid' && (<>
-            <label title={tStatus('矩形陣列（行×列，居中於原點）/ 极坐標陣列（個數均布於半徑圓）', lang)}>{tStatus('模式', lang)} <select value={featDlg.params.mode} onChange={(e) => setFeatParam('mode', e.target.value)} style={{ height: 26 }}><option value="rect">{tStatus('矩形', lang)}</option><option value="polar">{tStatus('极坐標', lang)}</option></select></label>
+            <label title={tStatus('矩形陣列（行×列，居中於原點）/ 極坐標陣列（個數均布於半徑圓）', lang)}>{tStatus('模式', lang)} <select value={featDlg.params.mode} onChange={(e) => setFeatParam('mode', e.target.value)} style={{ height: 26 }}><option value="rect">{tStatus('矩形', lang)}</option><option value="polar">{tStatus('极坐標', lang)}</option></select></label>
             {featDlg.params.mode !== 'polar' && (<>
               <label>{tStatus('行', lang)} <FeatNum k="rows" v={featDlg.params.rows} w={44} /></label>
               <label>{tStatus('列', lang)} <FeatNum k="cols" v={featDlg.params.cols} w={44} /></label>
@@ -7777,8 +7777,8 @@ export default function Viewport() {
         const P = dc.params
         const ready = !!acc && dc.picks.length >= acc.length
         const summary = acc
-          ? tStatus(ready ? `已拾取 ${dc.picks.length}/${acc.length} · 按确定建立` : `拾取 ${dc.picks.length}/${acc.length}`, lang)
-          : isField ? tStatus('填字段 → 确定', lang)
+          ? tStatus(ready ? `已拾取 ${dc.picks.length}/${acc.length} · 按確定建立` : `拾取 ${dc.picks.length}/${acc.length}`, lang)
+          : isField ? tStatus('填字段 → 確定', lang)
             : isButton ? tStatus('用已落的構造點', lang) : tStatus('在畫布拾取', lang)
         return (
           <CommandDialog icon="plane" title={dc.type === 'axis' ? '構造軸' : dc.type === 'point' ? '構造點' : '構造幾何'} width={288} summary={summary}
@@ -8247,7 +8247,7 @@ export default function Viewport() {
         >
           <SelectionChip label={tStatus('路徑', lang)} count={sweepEdgeLinesV.length ? sweepEdgeLinesV.length : (sweepAxis || sweepEditId ? 1 : ((sketchShape && sketchShape.type === 'poly') || polyPts.length >= 2 ? 1 : 0))} hint={tStatus(sweepEditId ? '編輯模式會保留原本的 2D/3D 路徑與導軌；改參數後按確定重建' : '先畫折線/樣條作路徑，或選構造軸脊線，或用下面「拾實體邊」逐條接力', lang)} onClear={sweepEdgeLinesV.length ? () => useApp.getState().clearSweepEdges() : undefined} />
           {/* GM-3DV1 S5：沿实体边链拾路径（Fusion Chain Path）+ S15 active pick-slot 高亮 */}
-          <label title={tStatus('沿實體邊鏈做路徑：按「拾實體邊」→ 在實體上逐條點相連的棱邊接力（青色高亮），截面沿邊鏈掃掠。適合沿已有實體邊加管/導軌。', lang)}>
+          <label title={tStatus('沿實體邊鏈做路徑：按「拾實體邊」→ 在實體上逐條點相連的稜邊接力（青色高亮），截面沿邊鏈掃掠。適合沿已有實體邊加管/導軌。', lang)}>
             <span style={{ color: '#6b7680' }}>{tStatus('實體邊鏈', lang)}</span>
             <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <button className={'cs-btn pick-slot' + (sweepEdgePickV ? ' active' : '')} onClick={() => useApp.getState().toggleSweepEdgePick()}>{sweepEdgePickV ? tStatus('拾邊中…', lang) : tStatus('🎯拾實體邊', lang)}</button>
@@ -8806,7 +8806,7 @@ export default function Viewport() {
         {navAdvanced && <div className="vp-nav-advanced" role="group" aria-label="外觀與出圖">
         <button className={'tb-btn' + (renderModeOn ? ' tb-on' : '')} title={tStatus('🌅 渲染模式（T783）：HDRI 環境反射 + 軟陰影 + ACES 曝光 — 發布截圖/展示用（金屬玻璃質感真實）。再按返回工作模式', lang)} onClick={() => useApp.getState().toggleRenderMode()}>🌅</button>
         <button className={'tb-btn' + (ssao ? ' tb-on' : '')} title={tStatus('🌑 環境光遮蔽 GTAO（S193）：縫隙 / 接觸 / 內角 / 凹陷處加暗（接觸陰影），立體感與真實感大升 — 發布截圖 / 裝配審視用。正交模式下不生效。再按關。', lang)} style={ssao && !cameraOrtho ? { background: '#3a3050', color: '#fff' } : undefined} disabled={cameraOrtho} onClick={() => useApp.getState().toggleSsao()}>🌑</button>
-        {!cameraOrtho && <span title={tStatus('視野角 FOV（S193）：細 = 接近正交、透視失真小（產品出圖）；大 = 广角夸張透視（戲劇感 / 局促空間）。預設 28°。', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
+        {!cameraOrtho && <span title={tStatus('視野角 FOV（S193）：細 = 接近正交、透視失真小（產品出圖）；大 = 廣角夸張透視（戲劇感 / 局促空間）。預設 28°。', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
           <span style={{ opacity: 0.8 }}>FOV</span>
           <input type="range" min={12} max={55} step={1} value={cameraFov} onChange={(e) => useApp.getState().setCameraFov(Number(e.target.value))} style={{ width: 58, accentColor: '#1572c4', cursor: 'ew-resize' }} />
           <span style={{ minWidth: 30, whiteSpace: 'nowrap', flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{cameraFov}°</span>
@@ -8851,7 +8851,7 @@ export default function Viewport() {
         {renderModeOn && <span title="HDRI 環境（S109）：真實照片級環境光照 + 反射（Poly Haven CC0）— 關=內置影棚" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>🌐<select value={hdriPreset} onChange={(e) => useApp.getState().setHdriPreset(e.target.value)} title="HDRI 環境預設（CC0）" style={{ fontSize: 11, maxWidth: 96 }}><option value="">影棚(內置)</option>{HDRI_PRESETS.map((p) => <option key={p.id} value={p.id} title={p.hint}>{p.label}</option>)}</select>{hdriPreset !== '' && <input type="range" min={0.1} max={3} step={0.1} value={hdriIntensity} onChange={(e) => useApp.getState().setHdriIntensity(Number(e.target.value))} title="HDRI 強度" style={{ width: 46 }} />}{hdriPreset !== '' && <span title={`HDRI 環境旋轉 ${Math.round(hdriRotation * 57.2958)}°（繞 Y 軸定向環境光照/反射）`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>↻<input type="range" min={0} max={Math.PI * 2} step={0.05} value={hdriRotation} onChange={(e) => useApp.getState().setHdriRotation(Number(e.target.value))} style={{ width: 46 }} /></span>}</span>}
         <button className={'tb-btn' + (rtMode ? ' tb-on' : '')} title={tStatus('🔆 畫布內光追（S105）：漸進路徑追蹤 — 全局光照 + 真反射/折射 + 軟陰影 + 焦散。靜置等收斂，相機一動重新累積。注：不渲染程序化紋理/檢視着色', lang)} onClick={() => useApp.getState().toggleRtMode()}>🔆</button>
         {rtMode && <span title={tStatus('路徑追蹤采樣數：越高越乾淨越慢（拖動滑桿調上限）', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>{tStatus('采樣', lang)}<input type="range" min={16} max={1024} step={16} value={rtSamples} onChange={(e) => useApp.getState().setRtSamples(Number(e.target.value))} style={{ width: 60 }} />{rtProgress}/{rtSamples}</span>}
-        <span title={tStatus('📷 高清出圖（S192）：離屏超采樣渲染當前視圖為 PNG（1×/2×/4× 遠超視口分辨率，MSAA 抗鋸齒）+ 可勾透明背景（貼 alpha 合成）。發布 / 產品圖用，胜過普通視口截圖', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
+        <span title={tStatus('📷 高清出圖（S192）：離屏超采樣渲染當前視圖為 PNG（1×/2×/4× 遠超視口分辨率，MSAA 抗鋸齒）+ 可勾透明背景（貼 alpha 合成）。發布 / 產品圖用，勝過普通視口截圖', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
           <button className="tb-btn" title={tStatus('出高清 PNG', lang)} onClick={() => useApp.getState().requestStill()}>📷</button>
           <select value={exportScale} onChange={(e) => useApp.getState().setExportScale(Number(e.target.value))} title={tStatus('出圖倍率', lang)} style={{ fontSize: 11 }}><option value={1}>1×</option><option value={2}>2×</option><option value={4}>4×</option></select>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} title={tStatus('透明背景 PNG（alpha）', lang)}><input type="checkbox" checked={exportTransparent} onChange={(e) => useApp.getState().setExportTransparent(e.target.checked)} />{tStatus('透明', lang)}</label>
@@ -8902,7 +8902,7 @@ export default function Viewport() {
         )}
         </>)}{/* GM-W2 2.2 草圖收納集群結束 */}
         <div style={{ position: 'relative' }}>
-          <button className={'tb-btn' + (navPop === 'grid' ? ' tb-on' : '')} title={tStatus('網格設定：顯示 / 自适應 / 主間距 / 次分格 / 參考數字', lang)} onClick={() => setNavPop(navPop === 'grid' ? null : 'grid')}><ToolIcon name="grid" size={17} /><span style={{ fontSize: 9 }}>▾</span></button>
+          <button className={'tb-btn' + (navPop === 'grid' ? ' tb-on' : '')} title={tStatus('網格設定：顯示 / 自適應 / 主間距 / 次分格 / 參考數字', lang)} onClick={() => setNavPop(navPop === 'grid' ? null : 'grid')}><ToolIcon name="grid" size={17} /><span style={{ fontSize: 9 }}>▾</span></button>
           {navPop === 'grid' && (
             <div className="panel-menu" style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 6, zIndex: 120, minWidth: 210 }}>
               <div className="panel-menu-item" onClick={() => { toggleGrid() }}>{showGrid ? '✓ ' : '　'}{tStatus('顯示網格', lang)}</div>
@@ -9221,7 +9221,7 @@ export default function Viewport() {
             ? <><input data-testid="move-face-distance" className="tb-num" type="number" step={1} value={moveFaceDist} onChange={(e) => setMoveFaceDist(Number(e.target.value))} style={{ width: 56 }} title={tStatus('距離 mm（負=朝內內核重解鄰面/圓角 / 正=朝外加料）', lang)} /> mm</>
             : <><input className="tb-num" type="number" step={1} value={moveFaceAngle} onChange={(e) => setMoveFaceAngle(Number(e.target.value))} style={{ width: 56 }} title={tStatus('傾斜角°（鉗 ±60°，繞面心最長內軸）', lang)} /> °</>}
           {/* GM-3DV3 M8：Offset Type（Fusion Offset Face）— webcad 恆加時間軸節點(New 語義)，modify/auto 記錄意圖 */}
-          {moveFaceKind === 'offset' && <select value={offsetType} onChange={(e) => setOffsetType(e.target.value as 'modify' | 'new' | 'auto')} style={{ fontSize: 11 }} title={tStatus('Offset Type：自動 / 新特徵 / 改現有特徵（webcad 恆加時間軸節點，改現有=元數据記錄）', lang)}><option value="auto">{tStatus('自動', lang)}</option><option value="new">{tStatus('新特徵', lang)}</option><option value="modify">{tStatus('改現有', lang)}</option></select>}
+          {moveFaceKind === 'offset' && <select value={offsetType} onChange={(e) => setOffsetType(e.target.value as 'modify' | 'new' | 'auto')} style={{ fontSize: 11 }} title={tStatus('Offset Type：自動 / 新特徵 / 改現有特徵（webcad 恆加時間軸節點，改現有=元數據記錄）', lang)}><option value="auto">{tStatus('自動', lang)}</option><option value="new">{tStatus('新特徵', lang)}</option><option value="modify">{tStatus('改現有', lang)}</option></select>}
           <span style={{ fontSize: 12, color: moveFacePicks.length ? '#16a36b' : '#8a97a2' }}>{moveFacePicks.length} {tStatus('面', lang)}</span>
           {moveFaceKind === 'tilt' && moveFacePicks.length > 1 && <span style={{ fontSize: 11, color: '#c47f17' }} title={tStatus('傾斜每面方向有歧義 — 只留一個面，或改用「偏移」', lang)}>{tStatus('⚠ 傾斜只支援單面', lang)}</span>}
           {moveFacePicks.length > 0 && <button className="tb-btn" title={tStatus('清空所選面', lang)} onClick={() => useApp.getState().clearMoveFacePick()}>✕</button>}
@@ -9775,12 +9775,12 @@ function FormPanel() {
       {cage.sel != null && <fieldset style={{ minWidth: 0, width: '100%', display: 'flex', flexWrap: 'wrap', gap: 6 }}><legend>{msg('vp.ctrlPoint', lang)}</legend>{(['X','Y','Z'] as const).map((axis,k) => <label key={axis}>{axis} <input aria-label={'Form point '+axis} key={cage.sel+'|'+cage.verts[cage.sel!][k]} type="number" defaultValue={cage.verts[cage.sel!][k]} style={{ width: 64 }} onBlur={e => { const n=Number(e.currentTarget.value), c=useApp.getState().formCage; if (e.currentTarget.value.trim() && Number.isFinite(n) && c?.sel != null) { const p=[...c.verts[c.sel]] as [number,number,number];p[k]=n;useApp.getState().setFormVert(c.sel,p) } }} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){e.currentTarget.value=String(cage.verts[cage.sel!][k]);e.currentTarget.blur()}}}/></label>)}</fieldset>}
       <label title={tStatus('细分级数：越高越圆滑（三角数 ×4/级）', lang)}>{tStatus('級數', lang)} <select value={cage.levels} onChange={(e) => useApp.getState().setFormLevels(Number(e.target.value))} style={{ height: 22 }}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
       <button className="cs-btn" title={tStatus('Subdivide：循环提高细分级 1→2→3→1', lang)} onClick={() => useApp.getState().runCommand('formsubdiv', 'Subdivide')}>{tStatus('Subdivide', lang)}</button>
-      <button className={'cs-btn' + (formSym !== null ? ' on' : '')} title={tStatus('对称编辑（S193）：开后拖一边控制点，对面镜像点自动同步（X/Y 轴镜像，对称平面 0）。再按切换 关→X→Y', lang)} style={formSym !== null ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().cycleFormSym()}>{tStatus('對稱', lang)}{formSym === 0 ? ':X' : formSym === 1 ? ':Y' : ''}</button>
+      <button className={'cs-btn' + (formSym !== null ? ' on' : '')} title={tStatus('對稱編輯（S193）：開後拖一邊控制點，對面鏡像點自動同步（X/Y 軸鏡像，對稱平面 0）。再按切換 關→X→Y', lang)} style={formSym !== null ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().cycleFormSym()}>{tStatus('對稱', lang)}{formSym === 0 ? ':X' : formSym === 1 ? ':Y' : ''}</button>
       {(cage.msel ?? []).length >= 2 && <FormTransformFields />}
       {(cage.msel ?? []).length >= 2 && (() => {
         const gm = formGizmoMode
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('群组变换：对选中控制点集 移/旋/缩（绕选集中心）。Shift+点加选；Ctrl+Z 撤销变换步。', lang)}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('群組變換：對選中控制點集 移/旋/縮（繞選集中心）。Shift+點加選；Ctrl+Z 撤銷變換步。', lang)}>
             <span style={{ color: '#c77d00', fontWeight: 600 }}>{(cage.msel ?? []).length}{tStatus('点', lang)}</span>
             {(['move', 'rotate', 'scale'] as const).map((m) => (
               <button key={m} className={'cs-btn' + (gm === m ? ' on' : '')} style={gm === m ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().setFormGizmoMode(m)}>{m === 'move' ? tStatus('移', lang) : m === 'rotate' ? tStatus('旋', lang) : tStatus('缩', lang)}</button>
@@ -9790,7 +9790,7 @@ function FormPanel() {
         )
       })()}
       {cage.selFace != null && (
-        <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('拉伸选中 cage 面（push-pull）：外推 = 抽肢/凸台，内压 = 凹陷/孔。可连续拉抽长。', lang)}>
+        <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('拉伸選中 cage 面（push-pull）：外推 = 抽肢/凸台，內壓 = 凹陷/孔。可連續拉抽長。', lang)}>
           <span style={{ color: '#c77d00', fontWeight: 600 }}>{tStatus('拉伸面', lang)}</span>
           <input type="number" step={1} value={extD} onChange={(e) => setExtD(Number(e.target.value))} style={{ width: 46 }} />mm
           <button className="cs-btn" title={tStatus('外推（凸出/抽肢）', lang)} onClick={() => void useApp.getState().formExtrudeFace(Math.abs(extD) || 5)}>{tStatus('外推▲', lang)}</button>
@@ -9798,18 +9798,18 @@ function FormPanel() {
           {/* S172：折痕 / Crease — 折硬选中面 4 条边界边（二元无限锐），细分时稜角企硬唔被磨圆；再撳取消 */}
           <button className="cs-btn" title={tStatus('折痕 Crease：折硬此面 4 條邊界邊（細分時稜角企硬，做凸台/筋/硬邊）。再按取消。', lang)} onClick={() => useApp.getState().formCrease()}>{tStatus('◣ 折痕', lang)}</button>
           {/* S180：插入边线环（Fusion Insert Edge Loop）— 两个方向（↔ 切 0/2 对边、↕ 切 1/3 对边），环绕笼加一圈细分密度 */}
-          <button className="cs-btn" title={tStatus('插入边线环（横向）：沿此面一对边方向环绕笼加一圈边线，增加局部细分密度；平滑外形可能改变。', lang)} onClick={() => void useApp.getState().formInsertLoop(0)}>{tStatus('⊞环↔', lang)}</button>
-          <button className="cs-btn" title={tStatus('插入边线环（纵向）：沿此面另一对边方向环绕笼加一圈边线。', lang)} onClick={() => void useApp.getState().formInsertLoop(1)}>{tStatus('⊞环↕', lang)}</button>
+          <button className="cs-btn" title={tStatus('插入邊線環（橫向）：沿此面一對邊方向環繞籠加一圈邊線，增加局部細分密度；平滑外形可能改變。', lang)} onClick={() => void useApp.getState().formInsertLoop(0)}>{tStatus('⊞环↔', lang)}</button>
+          <button className="cs-btn" title={tStatus('插入邊線環（縱向）：沿此面另一對邊方向環繞籠加一圈邊線。', lang)} onClick={() => void useApp.getState().formInsertLoop(1)}>{tStatus('⊞环↕', lang)}</button>
         </span>
       )}
       {cage.creases.length > 0 && <span style={{ color: '#c0392b', fontWeight: 600 }} title={tStatus('当前折痕（锐边）数', lang)}>◣ {new Set(cage.creases.map(([a, b]) => (a < b ? a : b) + '_' + (a < b ? b : a))).size}</span>}
-      {cage.creases.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6b7680' }} title={tStatus('折痕软硬（semi-sharp crease）：1=硬稜角（旧二元锐），拖细 = 软棱 / 倒角感渐变（车身板/有机硬边过渡）。即时预览。', lang)}>
+      {cage.creases.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6b7680' }} title={tStatus('折痕軟硬（semi-sharp crease）：1=硬稜角（舊二元銳），拖細 = 軟稜 / 倒角感漸變（車身板/有機硬邊過渡）。即時預覽。', lang)}>
         <span>软硬</span>
         <input aria-label="接地阴影深浅" type="range" min={0.05} max={1} step={0.05} value={cage.creaseSoft ?? 1} onChange={(e) => useApp.getState().setFormCreaseSoft(Number(e.target.value))} style={{ width: 64, accentColor: '#c0392b' }} />
         <span style={{ minWidth: 30, whiteSpace: 'nowrap', flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(cage.creaseSoft ?? 1).toFixed(2)}</span>
       </span>}
       {/* S169：Form 镜像/对称 — cage 沿该轴最小边界面反射焊接成对称翻倍笼（Fusion T-spline Mirror） */}
-      <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('镜像/对称：cage 沿该轴最小边界面反射并焊接成对称翻倍笼（先造一半再镜成对称形）。', lang)}>
+      <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('鏡像/對稱：cage 沿該軸最小邊界面反射并焊接成對稱翻倍籠（先造一半再鏡成對稱形）。', lang)}>
         <span style={{ color: '#2a6fb0', fontWeight: 600 }}>{tStatus('鏡像', lang)}</span>
         <button className="cs-btn" title={tStatus('沿 X 最小边界面镜像', lang)} onClick={() => void useApp.getState().formMirror(0)}>X</button>
         <button className="cs-btn" title={tStatus('沿 Y 最小边界面镜像', lang)} onClick={() => void useApp.getState().formMirror(1)}>Y</button>
@@ -9834,7 +9834,7 @@ function EditPolesPanel() {
       <b style={{ color: '#1572c4' }}>{tStatus('🔵 編輯曲面控制點', lang)}</b>
       <span style={{ color: '#5a6b78' }}>{tStatus('曲面', lang)} #{target + 1}　{controlNet.nu}×{controlNet.nv} {tStatus('极点', lang)}</span>
       {nFaces > 1 && (
-        <button className="cs-btn" title={tStatus('多面壳：切换到下一张 B-rep 面编辑（切面会重置未提交的拖动）', lang)} onClick={() => void useApp.getState().cycleEditPolesFace()}>
+        <button className="cs-btn" title={tStatus('多面殼：切換到下一張 B-rep 面編輯（切面會重置未提交的拖動）', lang)} onClick={() => void useApp.getState().cycleEditPolesFace()}>
           {tStatus('面', lang)} {(face ?? 0) + 1}/{nFaces} ⟳
         </button>
       )}
@@ -9852,7 +9852,7 @@ function InterfClearChip() {
     <button
       className="vp-measure"
       style={{ left: '50%', transform: 'translateX(-50%)', bottom: 64, top: 'auto', position: 'absolute', background: '#fff0f0', border: '1px solid #e03131', color: '#c92a2a', cursor: 'pointer', fontWeight: 600 }}
-      title={tStatus('清除视口中的红色干涉重叠区高亮（再按「干涉检查」会重新计算）', lang)}
+      title={tStatus('清除視口中的紅色干涉重疊區高亮（再按「干涉檢查」會重新計算）', lang)}
       onClick={() => useApp.getState().clearInterf()}
     >{tStatus('✕ 清除干涉高亮（', lang)}{n} {tStatus('处红区）', lang)}</button>
   )

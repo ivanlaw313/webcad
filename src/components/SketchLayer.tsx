@@ -675,7 +675,7 @@ export function SketchSurface() {
     move(st)
     const app = useApp.getState()
     // GM-FP1 #13：相切弧手势拖动中 → 一旦移动即入 polyArcMode（arc 预览 + 落点用弧）
-    if (arcGesture.current) { if (!app.polyArcMode) useApp.setState({ polyArcMode: true, status: '⌒ 相切弧手势：拖到弧终点后放手（沿上段相切引出；放手自动返直线）' }); return }
+    if (arcGesture.current) { if (!app.polyArcMode) useApp.setState({ polyArcMode: true, status: '⌒ 相切弧手勢：拖到弧終點後放手（沿上段相切引出；放手自動返直線）' }); return }
     if (app.skDrag) app.skDragMove(st)
   }
   const up = (st: Pt, e?: { clientX?: number; clientY?: number; shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }, commit = true) => {

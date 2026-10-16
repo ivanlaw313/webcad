@@ -5350,8 +5350,8 @@ function buildShape(features: Feature[], noCache = false): any {
                         const sewn = cast(out)
                         if (sewn && sewn.wrapped && !sewn.wrapped.IsNull()) {
                           parkedBodies[f.target] = { name: t.name, shape: sewn }
-                          const cm = comoveFaces > 0 ? `，跨面 co-move ${comoveFaces} 张邻面共 ${comovePoles} 个共享极点` : ''
-                          const cont = freeEdges < 0 ? '（连续性未验证）' : freeEdges === 0 ? '；壳水密（freeEdges=0）' : `；共享边保持（freeEdges=${freeEdges}＝基线 ${baseFree}）`
+                          const cm = comoveFaces > 0 ? `，跨面 co-move ${comoveFaces} 張鄰面共 ${comovePoles} 個共享極點` : ''
+                          const cont = freeEdges < 0 ? '（连续性未验证）' : freeEdges === 0 ? '；壳水密（freeEdges=0）' : `；共享邊保持（freeEdges=${freeEdges}＝基線 ${baseFree}）`
                           buildWarnings.push(`極點編輯：${t.name} 面 ${fi + 1}/${faces.length} 改了 ${totalMoved} 個控制點（${fiP.nu}×${fiP.nv} 網格）${cm}${cont}`)
                         } else buildWarnings.push(`極點編輯：面 ${fi + 1} 重組結果空 — 保持不變`)
                       }
@@ -7200,7 +7200,7 @@ const api = {
       const filShape = (_oc.ChFi3d_FilletShape && (_oc.ChFi3d_FilletShape.ChFi3d_Rational ?? _oc.ChFi3d_FilletShape.ChFi3d_Polynomial)) ?? 0
       // 试 (shape, ChFi3d 枚举) → fall back (shape)
       try { mk = r(new MF(box.wrapped, filShape)); notes.push('MakeFillet 构造：new MF(shape, ChFi3d enum) OK') } catch (e1) {
-        try { mk = r(new MF(box.wrapped)); notes.push('MakeFillet 构造：new MF(shape) OK（无枚举）') } catch (e2) {
+        try { mk = r(new MF(box.wrapped)); notes.push('MakeFillet 構造：new MF(shape) OK（無枚举）') } catch (e2) {
           notes.push('MakeFillet 構造失敗：' + ((e1 as any)?.message || e1) + ' / ' + ((e2 as any)?.message || e2)); return result
         }
       }

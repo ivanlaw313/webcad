@@ -1373,7 +1373,7 @@ function CutFaceOverlay() {
 // Live ghost preview of pattern / cpattern / mirror while their dialog is open (Fusion-style).
 // Renders translucent copies of the current body at the transforms the worker will use.
 // Same CAD→three frame as KernelBody (outer −90°X group; transforms applied in CAD space inside it).
-// CORE16 #1：加厚預覽 — 只畫新加厚板（MeshData，CAD 坐標 → three 用 group 轉 -90° X），半透明藍；唔參與拾取
+// CORE16 #1：加厚預覽 — 只畫新加厚板（MeshData，CAD 座標 → three 用 group 轉 -90° X），半透明藍；唔參與拾取
 function ThickenPreviewGhost() {
   const pv = useApp((s) => s.thickenMode ? s.thickenPreviewMesh : null)
   const picks = useApp((s) => s.thickenMode ? s.thickenPicks : null)
@@ -9333,7 +9333,7 @@ export default function Viewport() {
               if (x < lo[0]) lo[0] = x; if (y < lo[1]) lo[1] = y; if (z < lo[2]) lo[2] = z; if (x > hi[0]) hi[0] = x; if (y > hi[1]) hi[1] = y; if (z > hi[2]) hi[2] = z
             }
           }
-          // RETEST17 #4：質心累加喺 three 世界（Y-up）→ 報 CAD 坐標（Z-up），同下面 W×D×H（x / CAD y / CAD z）一致。
+          // RETEST17 #4：質心累加喺 three 世界（Y-up）→ 報 CAD 座標（Z-up），同下面 W×D×H（x / CAD y / CAD z）一致。
           const comCad = wsum > 0 ? threeToCadPoint([cmx / wsum, cmy / wsum, cmz / wsum]) : null
           const com = comCad ? `　·　質心 (${uLen(comCad[0])}, ${uLen(comCad[1])}, ${uLen(comCad[2])} ${uSuf})` : ''
           // three-world extents → display as CAD-style W(x)×D(z)×H(y) for continuity with single-part readouts.
@@ -9798,8 +9798,8 @@ function FormPanel() {
           {/* S172：折痕 / Crease — 折硬选中面 4 条边界边（二元无限锐），细分时稜角企硬唔被磨圆；再撳取消 */}
           <button className="cs-btn" title={tStatus('折痕 Crease：折硬此面 4 條邊界邊（細分時稜角企硬，做凸台/筋/硬邊）。再按取消。', lang)} onClick={() => useApp.getState().formCrease()}>{tStatus('◣ 折痕', lang)}</button>
           {/* S180：插入边线环（Fusion Insert Edge Loop）— 两个方向（↔ 切 0/2 对边、↕ 切 1/3 对边），环绕笼加一圈细分密度 */}
-          <button className="cs-btn" title={tStatus('插入邊線環（橫向）：沿此面一對邊方向環繞籠加一圈邊線，增加局部細分密度；平滑外形可能改變。', lang)} onClick={() => void useApp.getState().formInsertLoop(0)}>{tStatus('⊞环↔', lang)}</button>
-          <button className="cs-btn" title={tStatus('插入邊線環（縱向）：沿此面另一對邊方向環繞籠加一圈邊線。', lang)} onClick={() => void useApp.getState().formInsertLoop(1)}>{tStatus('⊞环↕', lang)}</button>
+          <button className="cs-btn" title={tStatus('插入邊線環（橫向）：沿此面一對邊方向環繞籠加一圈邊線，增加局部細分密度；平滑外形可能改變。', lang)} onClick={() => void useApp.getState().formInsertLoop(0)}>{tStatus('⊞環↔', lang)}</button>
+          <button className="cs-btn" title={tStatus('插入邊線環（縱向）：沿此面另一對邊方向環繞籠加一圈邊線。', lang)} onClick={() => void useApp.getState().formInsertLoop(1)}>{tStatus('⊞環↕', lang)}</button>
         </span>
       )}
       {cage.creases.length > 0 && <span style={{ color: '#c0392b', fontWeight: 600 }} title={tStatus('當前折痕（銳邊）數', lang)}>◣ {new Set(cage.creases.map(([a, b]) => (a < b ? a : b) + '_' + (a < b ? b : a))).size}</span>}

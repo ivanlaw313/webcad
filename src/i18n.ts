@@ -2528,6 +2528,11 @@ Object.assign(STATUS_PHRASES_X, {
   '關節座標幀': 'Joint Coordinate Frame',
   '世界座標': 'World Coordinates',
   'CAD 座標': 'CAD Coordinates',
+  /* FISHING48 Formal TC AiCopilot / Form loop chrome */
+  '供應商': 'Provider',
+  '。試下：': '. Try:',
+  '⊞環↔': '⊞ Loop ↔',
+  '⊞環↕': '⊞ Loop ↕',
   '孤立顯示（隱藏其餘）': 'Isolate (hide others)',
   '關閉預覽': 'Close preview',
   '已清空所選稜 — 重新點選邊界稜': 'Cleared selected edges — pick boundary edges again',

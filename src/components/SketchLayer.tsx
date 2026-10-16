@@ -2018,7 +2018,7 @@ export function SkSelDraw() {
   const tool = useApp((s) => s.sketchTool)
   const skCons = useApp((s) => s.skCons)
   const skSelCon = useApp((s) => s.skSelCon)   // GM-FP3 #35：选中约束 → 高亮其关联几何（partner）
-  const skAnnot = useApp((s) => s.skView.annot)   // 标注显示开关（尺寸线 + 标签层）
+  const skAnnot = useApp((s) => s.skView.annot)   // 標註顯示開關（尺寸线 + 标签层）
   const skHover = useApp((s) => s.skHover)   // GM-W6 C6：select/dimension 悬停实体（淡橙高亮 + pointer 游标）
   // GM-W6 C6：悬停中 → 画布游标转 pointer（提示可拣）；清 hover 时只还原返自己设过嘅 pointer（唔硬清第三方游标）。
   useEffect(() => {
@@ -2794,7 +2794,7 @@ export function SketchDimLayer() {
   const exFaceThrough = useApp((s) => s.faceCutThrough)
   const exOp = useApp((s) => s.sketchOp)
   const skCons = useApp((s) => s.skCons)
-  const skAnnot = useApp((s) => s.skView.annot)   // 标注（尺寸）显示开关
+  const skAnnot = useApp((s) => s.skView.annot)   // 標註（尺寸）顯示開關
   const skConsVis = useApp((s) => s.skView.cons)   // GM-FP4 #5：约束徽章独立显示开关（Fusion Dimensions/Constraints 分开 gate）
   const skDimLabelOff = useApp((s) => s.skDimLabelOff)   // GM-FP4 #31：尺寸标签拖动重定位偏移（按 conId）
   const unit = useApp((s) => s.unit)   // T794：单位感知尺寸（显示 + 输入解析）
@@ -2869,7 +2869,7 @@ export function SketchDimLayer() {
       }
       if (dxfLabels.length > nShow) {
         const L0 = dxfLabels[0]
-        out.push({ key: 'dxfTxtMore', anchor: lift(L0.at), text: `…+${dxfLabels.length - nShow} 标注`, driven: true, pxOff: [8, 6] })
+        out.push({ key: 'dxfTxtMore', anchor: lift(L0.at), text: `…+${dxfLabels.length - nShow} 標註`, driven: true, pxOff: [8, 6] })
       }
     }
     const positioned=out.map(label=>editing===label.key&&editingLabel.current?.key===label.key?editingLabel.current:label)

@@ -1,4 +1,4 @@
-// T809：AI Copilot 面板 — 聊天 + 工具调用控制 app。多供应商（OpenAI/Grok/Gemini/本地）。
+// T809：AI Copilot 面板 — 聊天 + 工具调用控制 app。多供應商（OpenAI/Grok/Gemini/本地）。
 // 一个浮动启动钮（右下 ✦）+ 一个聊天面板（设置/对话/输入）。纯 client，API key 存自己浏览器。
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
@@ -44,13 +44,13 @@ export default function AiCopilot() {
         <span style={{ fontSize: 11, opacity: 0.85 }}>{PROVIDER_DEFAULTS[cfg.provider].label}</span>
         <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowCfg((v) => !v)} title={tStatus('設置（供應商 / API Key / 模型）', lang)} style={hdrBtn}>⚙</button>
         <button onPointerDown={(e) => e.stopPropagation()} onClick={clear} title={tStatus('清空對話', lang)} style={hdrBtn}>🗑</button>
-        <button onPointerDown={(e) => e.stopPropagation()} onClick={toggle} title={tStatus('关闭', lang)} style={hdrBtn}>✕</button>
+        <button onPointerDown={(e) => e.stopPropagation()} onClick={toggle} title={tStatus('關閉', lang)} style={hdrBtn}>✕</button>
       </div>
 
       {/* 设置 */}
       {showCfg && (
         <div style={{ padding: 10, background: '#f6f8fa', borderBottom: '1px solid #e6eaee', display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <label style={cfgRow}><span style={cfgLbl}>{tStatus('供应商', lang)}</span>
+          <label style={cfgRow}><span style={cfgLbl}>{tStatus('供應商', lang)}</span>
             <select value={cfg.provider} onChange={(e) => setCfg({ provider: e.target.value as AiProvider })} style={cfgIn}>
               {PROVIDERS.map((p) => <option key={p} value={p}>{PROVIDER_DEFAULTS[p].label}</option>)}
             </select>
@@ -76,7 +76,7 @@ export default function AiCopilot() {
       <div ref={logRef} style={{ flex: 1, overflowY: 'auto', padding: 10, display: 'flex', flexDirection: 'column', gap: 8, background: '#fbfcfd' }}>
         {msgs.length === 0 && (
           <div style={{ color: '#8a97a2', fontSize: 12, lineHeight: 1.6 }}>
-            {tStatus('👋 我可以幫你', lang)}<b>{tStatus('操作 app', lang)}</b>{tStatus('或', lang)}<b>{tStatus('解答用法', lang)}</b>{tStatus('。试下：', lang)}<br />
+            {tStatus('👋 我可以幫你', lang)}<b>{tStatus('操作 app', lang)}</b>{tStatus('或', lang)}<b>{tStatus('解答用法', lang)}</b>{tStatus('。試下：', lang)}<br />
             {tStatus('• 「做個 60×40×20 的盒，中間挖個 Ø20 通孔」', lang)}<br />
             {tStatus('• 「載入齒輪範本，然後話我知體積」', lang)}<br />
             {tStatus('• 「如何在一條邊倒 R5 圓角？」', lang)}<br />

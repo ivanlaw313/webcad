@@ -3305,12 +3305,12 @@ export const SAMPLE_LABELS: Record<SampleKind, string> = {
   plate: '參數化底板',
   enclosure: '外殼/盒（抽殼）',
   flange: '法蘭盤/皮帶輪',
-  bracket: 'L 型角铁',
+  bracket: 'L 型角鐵',
   hexnut: '六角螺母坯',
-  shaft: '阶梯轴',
-  washer: '垫圈/环',
+  shaft: '階梯軸',
+  washer: '墊圈/環',
   indexplate: '分度盤（等分孔）',
-  parkey: '平键 DIN6885',
+  parkey: '平鍵 DIN6885',
   angleiron: 'L 角鐵/角鋼',
   bowl: '碗（平滑旋轉面）',
   boltflange: '螺栓法蘭（孔環）',
@@ -3681,7 +3681,7 @@ function partSolidRequiredPatch(
   const body0 = def?.bodies?.[0]
   const hasSrc = !!(focus.src?.features?.length || body0?.src?.features?.length || def?.src?.features?.length)
   const name = focus.name || '組件'
-  const meshfitAction: StatusAction = { id: 'meshfit', label: 'MeshFit / 转 B-rep', componentId: focus.id }
+  const meshfitAction: StatusAction = { id: 'meshfit', label: 'MeshFit / 轉 B-rep', componentId: focus.id }
   // v1.39: pure mesh (组件布尔结果 / 导入 STL) → primary bake chip (same as post-boolean), not MeshFit.
   const bakeAction: StatusAction = { id: 'bakeMeshToPart', label: '烘焙為零件實體', componentId: focus.id }
   if (hasSrc) {
@@ -15205,7 +15205,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (a.id === 'meshfit') {
       const id = a.componentId
       if (id) set({ selectedComponent: id })
-      get().runCommand('meshfit', 'MeshFit / 转 B-rep')
+      get().runCommand('meshfit', 'MeshFit / 轉 B-rep')
     }
   },
 
@@ -15378,7 +15378,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'create_dome': { const d = num('diameter', 20), ch = Number(a.cap_height); return mk({ id: fid(), type: 'prim', shape: 'dome', a: d / 2, b: 0, c: (Number.isFinite(ch) && ch > 0 ? ch : 0), op: opOf() }, `${verb()}圓頂 Ø${d}${(Number.isFinite(ch) && ch > 0) ? ' 冠高' + ch : '（半球）'}mm`) }   // P6：a=半径 c=冠高（0=半球）
       case 'create_half_cylinder': return mk({ id: fid(), type: 'prim', shape: 'halfcyl', a: num('diameter', 20) / 2, b: 0, c: num('height', 20), op: opOf() }, `${verb()}半圓柱/D形 Ø${num('diameter', 20)}×${num('height', 20)}mm`)   // P6：a=半径 c=高（切走 x<0 半边）
       case 'create_pie': { const d = num('diameter', 30), ang = num('angle', 360); return mk({ id: fid(), type: 'prim', shape: 'pie', a: d / 2, b: ang, c: num('height', 10), op: opOf() }, `${verb()}扇形柱 Ø${d} ${ang}°×${num('height', 10)}mm`) }   // P6：a=半径 b=角度° c=高
-      case 'create_pyramid': { const bd = num('base_diameter', 20), td = Math.max(0, Number(a.top_diameter) || 0), sd = Math.min(12, Math.max(3, Math.round(Number(a.sides)) || 4)); return mk({ id: fid(), type: 'prim', shape: 'cone', a: bd / 2, b: td / 2, c: num('height', 20), sides: sd, op: opOf() }, `${verb()}${td > 0 ? sd + '棱台' : sd + '棱锥'} 底Ø${bd}${td > 0 ? ' 顶Ø' + td : ''}×${num('height', 20)}mm`) }   // P6：cone + sides≥3 = 正多边形棱锥/棱台
+      case 'create_pyramid': { const bd = num('base_diameter', 20), td = Math.max(0, Number(a.top_diameter) || 0), sd = Math.min(12, Math.max(3, Math.round(Number(a.sides)) || 4)); return mk({ id: fid(), type: 'prim', shape: 'cone', a: bd / 2, b: td / 2, c: num('height', 20), sides: sd, op: opOf() }, `${verb()}${td > 0 ? sd + '稜台' : sd + '稜錐'} 底Ø${bd}${td > 0 ? ' 頂Ø' + td : ''}×${num('height', 20)}mm`) }   // P6：cone + sides≥3 = 正多边形棱锥/棱台
       case 'fillet_all_edges': { if (!hasSolid(get().features)) return '✗ 需要先有實體'; const ok = await get().filletAllEdges(num('radius', 2)); return ok ? `✓ 已對所有稜倒圓角 R${num('radius', 2)}` : '✗ 全稜倒圓角失敗（半徑相對幾何過大 — 請調細再試）' }
       case 'chamfer_all_edges': { if (!hasSolid(get().features)) return '✗ 需要先有實體'; const ok = await get().chamferAllEdges(num('distance', 1)); return ok ? `✓ 已對所有稜倒角 ${num('distance', 1)}mm` : '✗ 全稜倒角失敗（距離過大 — 請調細再試）' }
       default: {
@@ -19904,7 +19904,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else if (d.kind === 'cylpatch') {
       const mode = (p.mode as 'boss' | 'pocket' | 'flat') || 'boss'
       f = { id: fid(), type: 'cylpatch', mode, ang: +p.ang, arc: +p.arc, zc: +p.zc, h: +p.h, depth: +p.depth }
-      msg = `已${mode === 'boss' ? '加曲面凸台' : mode === 'pocket' ? '切曲面凹槽' : '锉平面'}（圓柱面 @${+p.ang}°）`
+      msg = `已${mode === 'boss' ? '加曲面凸台' : mode === 'pocket' ? '切曲面凹槽' : '銼平面'}（圓柱面 @${+p.ang}°）`
     } else if (d.kind === 'gear') {
       const op: BoolOp = get().cutMode && hasSolid(get().features) ? 'cut' : 'new'
       f = { id: fid(), type: 'gear', module: +p.module, teeth: Math.max(5, Math.round(+p.teeth)), thickness: +p.thickness, bore: +p.bore, helix: +(p.helix || 0) || undefined, op }
@@ -20165,7 +20165,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       } else {
         if (!(Number.isFinite(fac) && fac > 0)) { set({ status: '比例要大於 0（請填正數）' }); return }
         f = { id: fid(), type: 'scale', factor: fac, sx: undefined, sy: undefined, sz: undefined, ...scalePt(p) }   // review：edit 由非等比改返等比 — 显式清 sx/sy/sz（worker sx 优先）
-        msg = target > 0 ? `已縮放到最長邊 ${target}（×${fac.toFixed(3)}）` : `已缩放 ×${fac}`
+        msg = target > 0 ? `已縮放到最長邊 ${target}（×${fac.toFixed(3)}）` : `已縮放 ×${fac}`
       }
     } else if (d.kind === 'splitbody') {
       // P2：Split Body 对话框 commit — 轴向平面 或「平面切」预填嘅任意平面（planeOrigin/Normal 逗号字串）
@@ -20195,7 +20195,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const dist = +p.distance
       if (!(Number.isFinite(dist) && Math.abs(dist) > 1e-6)) { set({ status: '整體偏移：距離要是非零數字' }); return }
       f = { id: fid(), type: 'offsetsolid', distance: dist }
-      msg = `已整體偏移${dist > 0 ? '外扩' : '内缩'} ${Math.abs(dist)}mm（均勻偏移所有面）`
+      msg = `已整體偏移${dist > 0 ? '外擴' : '內縮'} ${Math.abs(dist)}mm（均勻偏移所有面）`
     } else if (d.kind === 'draft') {
       f = { id: fid(), type: 'draft', angle: +p.angle }
       msg = `已拔模 ${f.angle}°（側面，中性面 XY）`
@@ -20286,7 +20286,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (d.kind === 'box') { f = { id: fid(), type: 'prim', shape: 'box', a: +p.l, b: +p.w, c: +p.h, op, cornerOrigin: true, ...(placed ? { at } : {}) }; msg = boxSuccessStatus({ op: op === 'cut' ? 'cut' : op === 'newbody' ? 'newbody' : op === 'intersect' ? 'intersect' : 'new', l: p.l, w: p.w, h: p.h }, get().lang) }
       else if (d.kind === 'sphere') { f = { id: fid(), type: 'prim', shape: 'sphere', a: (+p.d) / 2, b: 0, c: 0, op, ...(placed ? { at } : {}) }; msg = sphereSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d }, get().lang) }
       else if (d.kind === 'torus') { const arc = Math.max(0, Math.min(360, +p.arc || 360)); if (!(+p.d > 2 * +p.td)) { set({ status: `圓環：管徑要細過外徑一半（管Ø<${(+p.d / 2).toFixed(1)}），否則中孔閉合/管自交退化 — 請調大外徑或調細管徑` }); return } f = { id: fid(), type: 'prim', shape: 'torus', a: (+p.d) / 2, b: (+p.td) / 2, c: arc < 360 ? arc : 0, op, outerTrue: true }; msg = (arc > 0 && arc < 360) ? `已${verb}部分圓環 ${arc}° 外Ø${p.d} 管Ø${p.td}` : torusSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', od: p.d, td: p.td }, get().lang) }   // GM-W8 β1-#29：a=真外半径 + outerTrue,worker 换算中线半径(tr=a−tb),令外Ø输入=真外Ø。GM-L2 #65：outerTrue 语义下中线半径=d/2−td/2、管半径=td/2，无自交要求 d/2−td/2>td/2 ⇒ d>2·td（旧 d>td 阈值太松，td<d≤2td 会自交）
-      else if (d.kind === 'cone') { const sd = Math.round(+p.sides) || 0; f = { id: fid(), type: 'prim', shape: 'cone', a: (+p.d) / 2, b: Math.max(0, +p.dt) / 2, c: +p.h, op, ...(sd >= 3 ? { sides: sd } : {}), ...(placed ? { at } : {}) }; const poly = sd >= 3; msg = poly ? `已${verb}${((+p.dt) > 0 ? sd + '棱台' : sd + '棱锥')} 底Ø${p.d}${(+p.dt) > 0 ? ' 顶Ø' + p.dt : ''}×${p.h}` : coneSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, dt: Math.max(0, +p.dt), h: p.h }, get().lang) }
+      else if (d.kind === 'cone') { const sd = Math.round(+p.sides) || 0; f = { id: fid(), type: 'prim', shape: 'cone', a: (+p.d) / 2, b: Math.max(0, +p.dt) / 2, c: +p.h, op, ...(sd >= 3 ? { sides: sd } : {}), ...(placed ? { at } : {}) }; const poly = sd >= 3; msg = poly ? `已${verb}${((+p.dt) > 0 ? sd + '稜台' : sd + '稜錐')} 底Ø${p.d}${(+p.dt) > 0 ? ' 頂Ø' + p.dt : ''}×${p.h}` : coneSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, dt: Math.max(0, +p.dt), h: p.h }, get().lang) }
       else if (d.kind === 'wedge') { f = { id: fid(), type: 'prim', shape: 'wedge', a: +p.l, b: +p.w, c: +p.h, op }; msg = wedgeSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', l: p.l, w: p.w, h: p.h }, get().lang) }
       else if (d.kind === 'dome') { const cap = Math.max(0, +p.cap || 0), R = (+p.d) / 2; f = { id: fid(), type: 'prim', shape: 'dome', a: R, b: 0, c: cap, op }; msg = domeSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, cap }, get().lang) }
       else if (d.kind === 'halfcyl') { f = { id: fid(), type: 'prim', shape: 'halfcyl', a: (+p.d) / 2, b: 0, c: +p.h, op }; msg = halfcylSuccessStatus({ op: op === 'cut' ? 'cut' : 'new', d: p.d, h: p.h }, get().lang) }
@@ -24669,7 +24669,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         components: [
           { id: 'GND', name: '機架(固定)', mesh: ground, pos: [0, 0, 0], hidden: true },
-          { id: 'PINION', name: `小齿轮 z${z}`, mesh: pinion, pos: [0, 0, 0], color: '#d8af48', material: '钢' },
+          { id: 'PINION', name: `小齒輪 z${z}`, mesh: pinion, pos: [0, 0, 0], color: '#d8af48', material: '钢' },
           { id: 'RACK', name: '齿条', mesh: rack, pos: [-L / 2, 0, rackZ], color: '#b8bfc6', material: '钢' },
         ],
         joints: [], motionLinks: [], componentDefs: [], jointOrigins: [], rigidGroups: [], contactPairs: [], explodeSteps: [],
@@ -25773,8 +25773,8 @@ export const useApp = create<AppState>((rawSet, get) => {
           : `最大壓力趨勢：相對值 1.0（無真實流變 — 淨是查看哪里難充填，不是 MPa）`,
         `冷卻時間估算：${fT(r.tCool)}（1D 板式公式按最厚壁${r.moldable !== 'ok' ? ' — 厚段上限值' : ''}）`,
         `周期估算：${fT(r.cycle)}（注射 + 冷卻 + 開合模 5s 假設）`,
-        `焊接線體素：${weldN} 個${weldN ? '（云图紫红色位 — 留意外观/强度）' : '（沒有明顯焊接線）'}`,
-        `困氣/最後充填點：${trapN} 個${trapN ? '（云图橙色位 — 前沿在此终止，建议加排气槽防烧焦/短射）' : '（无明显死腔）'}`,
+        `焊接線體素：${weldN} 個${weldN ? '（雲圖紫紅色位 — 留意外觀/強度）' : '（沒有明顯焊接線）'}`,
+        `困氣/最後充填點：${trapN} 個${trapN ? '（雲圖橙色位 — 前沿在此終止，建議加排氣槽防燒焦/短射）' : '（無明顯死腔）'}`,
         `縮痕風險體素：${sinkN} 個${sinkN ? '（厚壁/凸台/筋位慢冷收缩 — 切「缩痕」场查看分布）' : '（壁厚均匀，缩痕风险低）'}`,
         ...gateLines,
         r.warnings.length ? `警告：${r.warnings.join('；')}` : '',
@@ -26016,7 +26016,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       for (let i = 0; i < barW; i++) { const c = turbo(i / barW); ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillRect(barX + i, barY, 1, 12) }
       ctx.fillStyle = '#cfd6dd'; ctx.font = '15px sans-serif'; ctx.textAlign = 'left'
       ctx.fillText('充填時間：早', barX, barY + 30); ctx.fillText(`迟（满充 ${tEnd.toFixed(2)}s）`, barX + barW + 8, barY + 9)
-      ctx.fillStyle = 'rgb(214,45,160)'; ctx.fillText('■ 焊接线', barX + barW + 230, barY - 4)
+      ctx.fillStyle = 'rgb(214,45,160)'; ctx.fillText('■ 焊接線', barX + barW + 230, barY - 4)
       ctx.fillStyle = 'rgb(255,140,0)'; ctx.fillText('■ 困氣/最後充填', barX + barW + 230, barY + 20)
       ctx.fillStyle = '#aeb6bf'; ctx.font = '14px sans-serif'; ctx.textAlign = 'right'; ctx.fillText('俯視充填時間圖', panelX + panelW - 12, panelY + 16); ctx.textAlign = 'left'
       y = panelY + panelH + 34

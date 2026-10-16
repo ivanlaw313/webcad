@@ -967,3 +967,11 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .cmd-palette-head { gap: 8px; padding: 8px 12px; }
 .panel-label { letter-spacing: 0.03em; }
 
+/* FISHING48: Fusion-like browser-tree / dialog / timeline rhythm */
+.browser-tree { padding: 4px 0; }
+.browser-tree .tree-row { min-height: 24px; border-radius: 4px; }
+.feat-dlg .dlg-head { letter-spacing: 0.02em; padding: 8px 12px; }
+.timeline-bar { gap: 4px; padding: 4px 8px; min-height: 28px; }
+.inspector .section-title { letter-spacing: 0.03em; }
+
+

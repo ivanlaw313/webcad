@@ -15361,7 +15361,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'buckling_analysis': {
         if (!get().bodyMesh || !get().bodyMesh!.vertices.length) return '✗ 需要先有活動實體先做屈曲分析'
-        if (!get().feaFixed || !get().feaLoad) return '✗ 需要先在 FEA 面板（分析 → 受力雲圖）點【固定面】+【受力面】并設力 —— 請用戶在 3D 視圖點此兩個面，再叫我跑屈曲分析'
+        if (!get().feaFixed || !get().feaLoad) return '✗ 需要先在 FEA 面板（分析 → 受力雲圖）點【固定面】+【受力面】並設定力 —— 請用戶在 3D 視圖點此兩個面，再叫我跑屈曲分析'
         await get().runBucklingSolve()
         const br = get().bucklingResult
         if (!br) return '✗ 屈曲分析失敗（查看狀態欄）'
@@ -25071,7 +25071,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   openSimPanel: (focus) => set((s) => {
     const need = focus === 'topopt' ? '生成式設計：需要先有活動實體' : '熱分析：需要先有活動實體'
     const hint = focus === 'topopt'
-      ? '生成式設計：點①固定面（保留區）+ ②受力面 + 設力，再在面板按「生成式設計（拓撲優化）」'
+      ? '生成式設計：點①固定面（保留區）+ ②受力面 + 設定力，再在面板按「生成式設計（拓撲優化）」'
       : '熱分析：點①固定面=熱面、②受力面=冷面，再設溫度，按面板「熱分析（穩態導熱）」'
     if (s.feaBusy || s.topoptBusy || s.thermalBusy || s.thermalStressBusy || s.modalBusy || s.bucklingBusy) {
       return { simFocus: focus, status: hint }
@@ -25109,7 +25109,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const cadTris: number[] | undefined = (faceTris && faceTris.length >= 9) ? faceTris : undefined
     const stale = hasLiveSimResults(s) ? invalidateSimResultsPatch(s.feaMode === 1 ? '固定面已改' : '受力面已改') : null
     if (s.feaMode === 1) return { ...(stale ?? {}), feaFixed: { point: cadP, normal: cadN, faceTris: cadTris }, feaMode: 2 as const, status: stale ? stale.status : '受力雲圖 ②：點【受力面】（力作用的面）' }
-    return { ...(stale ?? {}), feaLoad: { point: cadP, normal: cadN, faceTris: cadTris }, status: stale ? stale.status : '已選受力面 — 設力/方向/材料/分辨率 → 按「運行」（重點受力面可改選）' }
+    return { ...(stale ?? {}), feaLoad: { point: cadP, normal: cadN, faceTris: cadTris }, status: stale ? stale.status : '已選受力面 — 設定力/方向/材料/分辨率 → 按「運行」（重點受力面可改選）' }
   }),
   // S116：拾销/圆柱约束孔。复用 detectFace（同 cpatAxisPick 一样喺活动实体 CAD 系，唔乘 matrixWorld）。
   // 点圆柱面（孔内壁/圆轴侧面）→ {p=轴点, axis=轴向, r=半径} → PinConstraint。径向 DOF 锁、轴向+切向自由。
@@ -25455,7 +25455,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     if (s.topoptBusy || s.feaBusy || s.modalBusy || s.bucklingBusy) return
     const mesh = s.bodyMesh
-    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '生成式設計：先點固定面（保留區）+ 受力面 + 設力（同受力雲圖一樣）' }); return }
+    if (!s.feaFixed || !s.feaLoad || !mesh) { set({ status: '生成式設計：先點固定面（保留區）+ 受力面 + 設定力（同受力雲圖一樣）' }); return }
     const mech = MATERIAL_MECH[s.feaMat] || DEFAULT_MECH
     const F = Math.abs(s.feaForceN) || 50
     let dir: [number, number, number]

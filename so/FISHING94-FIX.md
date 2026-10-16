@@ -6,7 +6,7 @@ Cherry **more49** (`6b321e31` → `142df5ad`) before nginx.
 more50 NOT cherry (F95).
 
 ## Live after cut
-- Tip: `TIP_PENDING` (fix/fishing94-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `06f428d069a01af41d4d919c6e4980a5a4f473d1` (fix/fishing94-behavior-ux → FF fix/sketch-face-copy)
 - Product: `ae5c6673a1e8fa45389ef2a317e9899993aabfff` demold status prefix JA/EN
 - more49 cherry: `142df5add65cafc15199014e75360c699cd442f1` (from `6b321e31` on test/unit-core16-more49)
 - Stamp: `v2.20-20261017-003330`

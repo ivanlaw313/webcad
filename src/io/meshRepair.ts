@@ -302,15 +302,15 @@ export function repairMesh(vertices: ArrayLike<number>, triangles: ArrayLike<num
   const outTris = new Array<number>(nT * 3)
   for (let i = 0; i < nT * 3; i++) outTris[i] = triangles[i]
   if (nV === 0 || nT === 0) {
-    warnings.push('空网格 — 无东西可修')
+    warnings.push('空網格 — 無東西可修')
     return {
       mesh: { vertices: outVerts, triangles: outTris, normals: new Array<number>(outVerts.length).fill(0) },
       holesFilled: 0, boundaryEdgesBefore: 0, boundaryEdgesAfter: 0, warnings,
     }
   }
   const info = analyzeBoundary(vertices, triangles)
-  if (info.degenerate > 0) warnings.push(`焊接后跳过 ${info.degenerate} 个退化/非法三角形（不参与边界统计）`)
-  if (info.openChains > 0) warnings.push(`${info.openChains} 条边界链无法闭合（悬挂/非流形边界）— 跳过`)
+  if (info.degenerate > 0) warnings.push(`焊接後跳過 ${info.degenerate} 個退化/非法三角形（不參與邊界統計）`)
+  if (info.openChains > 0) warnings.push(`${info.openChains} 條邊界鏈無法閉合（懸挂/非流形邊界）— 跳過`)
   const posOf = (id: number): V3 => {
     const o = info.rep[id] * 3
     return [vertices[o], vertices[o + 1], vertices[o + 2]]
@@ -318,9 +318,9 @@ export function repairMesh(vertices: ArrayLike<number>, triangles: ArrayLike<num
   let holesFilled = 0
   const fillCanon: number[] = []
   for (const loop of info.loops) {
-    if (loop.length > 64) { warnings.push('大洞（>64 边）未填 — 简化后再试'); continue }
+    if (loop.length > 64) { warnings.push('大洞（>64 邊）未填 — 簡化後再試'); continue }
     const patch = fillLoop(loop, posOf)
-    if (patch === null) { warnings.push(`边界环退化（共线/零投影面积，${loop.length} 边）— 未填`); continue }
+    if (patch === null) { warnings.push(`邊界環退化（共線/零投影面積，${loop.length} 邊）— 未填`); continue }
     holesFilled++
     for (let i = 0; i < patch.length; i++) fillCanon.push(patch[i])
   }
@@ -391,7 +391,7 @@ export function simplifyMesh(vertices: ArrayLike<number>, triangles: ArrayLike<n
   const nV = Math.floor(vertices.length / 3)
   const trisBefore = Math.floor(triangles.length / 3)
   const empty = (): SimplifyResult => ({ mesh: { vertices: [], triangles: [], normals: [] }, trisBefore, trisAfter: 0, warnings })
-  if (nV === 0 || trisBefore === 0) { warnings.push('空网格输入 — 无东西可简化'); return empty() }
+  if (nV === 0 || trisBefore === 0) { warnings.push('空網格輸入 — 無東西可簡化'); return empty() }
   let ratio = targetRatio
   if (!Number.isFinite(ratio)) { ratio = 0.5; warnings.push('targetRatio 非法 — 改用 0.5') }
   if (ratio < 0.05 || ratio > 0.9) { ratio = Math.min(0.9, Math.max(0.05, ratio)); warnings.push('targetRatio 截到 [0.05, 0.9]') }
@@ -404,7 +404,7 @@ export function simplifyMesh(vertices: ArrayLike<number>, triangles: ArrayLike<n
     if (z < mnz) mnz = z; if (z > mxz) mxz = z
   }
   const diag = Math.hypot(mxx - mnx, mxy - mny, mxz - mnz)
-  if (!(diag > 0)) { warnings.push('所有顶点重合 — 输出空网格'); return empty() }
+  if (!(diag > 0)) { warnings.push('所有頂點重合 — 輸出空網格'); return empty() }
   const targetTris = Math.max(1, Math.round(trisBefore * ratio))
   let h = diag / Math.sqrt(targetTris) // 初猜：表面网格 tris ∝ 1/h²
   let best: { tris: number[]; cx: number[]; cy: number[]; cz: number[] } | null = null
@@ -418,7 +418,7 @@ export function simplifyMesh(vertices: ArrayLike<number>, triangles: ArrayLike<n
     h = got === 0 ? h / 2 : h * Math.sqrt(got / targetTris)
     h = Math.min(diag, Math.max(diag / 1e6, h))
   }
-  if (best === null || best.tris.length === 0) { warnings.push('简化后全部三角形退化 — 输出空网格'); return empty() }
+  if (best === null || best.tris.length === 0) { warnings.push('簡化後全部三角形退化 — 輸出空網格'); return empty() }
   // 压实：只输出被引用嘅簇（代表点 = 簇平均位置）
   const remap = new Map<number, number>()
   const outVerts: number[] = []
@@ -430,7 +430,7 @@ export function simplifyMesh(vertices: ArrayLike<number>, triangles: ArrayLike<n
     outTris.push(m)
   }
   const trisAfter = outTris.length / 3
-  if (trisAfter > targetTris * 2 || trisAfter * 2 < targetTris) warnings.push('简化比例偏离目标（顶点聚类是近似法）')
+  if (trisAfter > targetTris * 2 || trisAfter * 2 < targetTris) warnings.push('簡化比例偏離目標（頂點聚類是近似法）')
   return {
     mesh: { vertices: outVerts, triangles: outTris, normals: recomputeNormals(outVerts, outTris) },
     trisBefore,

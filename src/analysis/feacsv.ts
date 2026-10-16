@@ -30,26 +30,26 @@ export function buildFeaCsv(r: FeaResultLike): string {
   const n = (x: number | undefined) => (x != null && Number.isFinite(x) ? String(Math.round(x * 1e4) / 1e4) : '')
   const sf = r.vmMax > 0 ? r.sy / r.vmMax : 0
   const summary: [string, string][] = [
-    ['webcad FEA 结果', ''],
+    ['webcad FEA 結果', ''],
     ['材料', r.matName],
-    ['屈服强度 σy (MPa)', n(r.sy)],
+    ['屈服強度 σy (MPa)', n(r.sy)],
     ['最大 von Mises (MPa)', n(r.vmMax)],
     ['最大位移 (mm)', n(r.dispMax)],
-    ['安全系数 SF', sf > 0 ? n(sf) : 'N/A'],
+    ['安全系數 SF', sf > 0 ? n(sf) : 'N/A'],
     ...(r.reaction ? ([['支座反力 Rx/Ry/Rz (N)', `${n(r.reaction[0])} / ${n(r.reaction[1])} / ${n(r.reaction[2])}`]] as [string, string][]) : []),
     ...(r.reactionMag != null ? ([['|反力| (N)', n(r.reactionMag)]] as [string, string][]) : []),
-    ['残差', n(r.residual)],
-    ['收敛', r.converged ? '是' : '否'],
-    ['体素数', String(r.nVox)],
-    ['体素边长 (mm)', n(r.h)],
+    ['殘差', n(r.residual)],
+    ['收斂', r.converged ? '是' : '否'],
+    ['體素數', String(r.nVox)],
+    ['體素邊長 (mm)', n(r.h)],
     ['警告', r.warnings && r.warnings.length ? r.warnings.join('; ') : '（无）'],
   ]
   const lines: string[] = summary.map(([k, v]) => esc(k) + ',' + esc(v))
   lines.push('')
   const hasS = !!(r.s1 && r.s3 && r.shear)
-  const hdr = ['序号', 'x(mm)', 'y(mm)', 'z(mm)', 'vonMises(MPa)', '平滑vm(MPa)', '位移(mm)']
+  const hdr = ['序號', 'x(mm)', 'y(mm)', 'z(mm)', 'vonMises(MPa)', '平滑vm(MPa)', '位移(mm)']
   if (hasS) hdr.push('σ1(MPa)', 'σ3(MPa)', 'τmax(MPa)')
-  if (r.sed) hdr.push('应变能密度')
+  if (r.sed) hdr.push('應變能密度')
   lines.push(hdr.map(esc).join(','))
   const c = r.centers
   for (let i = 0; i < r.nVox; i++) {

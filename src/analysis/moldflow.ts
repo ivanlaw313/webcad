@@ -62,7 +62,7 @@ export interface MoldInput {
   gates: [number, number, number][]      // CAD 坐标浇口点（≥1，自动吸附最近实体体素）
   material: string                       // MOLD_MATERIALS key
   resolution?: number                    // 最长边体素数，默认 28，cap 64
-  solver?: boolean                       // true = 真 2.5D Hele-Shaw 压力求解器（耦合前沿/真 MPa/race-track）；false/缺省 = 趋势级 Dijkstra
+  solver?: boolean                       // true = 真 2.5D Hele-Shaw 壓力求解器（耦合前沿/真 MPa/race-track）；false/缺省 = 趋势级 Dijkstra
   gateSpecs?: GateSpec[]                  // 逐浇口规格（对齐 gates；缺省 = edge 类型、权重 1）
   runnerBalance?: boolean                 // true = 自动流道平衡（按各浇口几何责任域体积分配流量 → 同步填满）
   // ── GM-W8 C5-S2 Stage-2 温度耦合（仅 solver 模式有效；缺省 off → 等温 Stage-1 逐位一致）──
@@ -590,17 +590,17 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
   const warnings: string[] = []
 
   // ---- 0. 输入校验
-  if (!inp || !inp.vertices || !inp.triangles) throw new Error('空网格：无顶点/三角形数组')
-  if (inp.vertices.length < 9 || inp.triangles.length < 3) throw new Error('空网格：顶点/三角形不足')
-  if (!inp.gates || inp.gates.length < 1) throw new Error('至少需要 1 个浇口（gates）')
+  if (!inp || !inp.vertices || !inp.triangles) throw new Error('空網格：無頂點/三角形數組')
+  if (inp.vertices.length < 9 || inp.triangles.length < 3) throw new Error('空網格：頂點/三角形不足')
+  if (!inp.gates || inp.gates.length < 1) throw new Error('至少需要 1 個澆口（gates）')
   for (let g = 0; g < inp.gates.length; g++) {
     const pt = inp.gates[g]
     if (!pt || pt.length < 3 || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1]) || !Number.isFinite(pt[2])) {
-      throw new Error(`浇口 ${g + 1} 坐标无效（需 3 个有限数值）`)
+      throw new Error(`澆口 ${g + 1} 坐標無效（需 3 個有限數值）`)
     }
   }
   const mat = MOLD_MATERIALS[inp.material]
-  if (!mat) throw new Error(`未知材料「${inp.material}」：可选 ${Object.keys(MOLD_MATERIALS).join(' / ')}`)
+  if (!mat) throw new Error(`未知材料「${inp.material}」：可選 ${Object.keys(MOLD_MATERIALS).join(' / ')}`)
 
   const prog = (pct: number, note: string): void => {
     const cb = inp.onProgress
@@ -608,7 +608,7 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
   }
 
   // 诚实假设声明（恒列，UI 报告直接显示）
-  warnings.push(`趋势级模拟：Hele-Shaw h³ 流导 + 恒定 ${VDOT / 1000} cm³/s 注射 + 板式冷却假设；pressure/warp 为归一化相对值，非真实 MPa/mm`)
+  warnings.push(`趨勢級模擬：Hele-Shaw h³ 流導 + 恆定 ${VDOT / 1000} cm³/s 注射 + 板式冷卻假設；pressure/warp 為歸一化相對值，非真實 MPa/mm`)
 
   // ---- 1. 体素化（复用 voxelfea T745 z 列奇偶体素化）
   // ★ 薄壁件自动加密：大盒 + 薄壁喺粗分辨率下，体素粗过壁厚 → z列奇偶【漏壁】→ 实体占比过低
@@ -632,11 +632,11 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
       const volRatio = Math.max(1e-9, (ex * ey * ez) / (longest * longest * longest))   // 包围盒「方正度」（薄件 ≪ 1）；格数 ≈ res³·volRatio
       const rBudget = Math.floor(Math.cbrt(CELL_BUDGET / volRatio))
       const rMax = Math.max(8, Math.min(MOLD_MAXRES, rBudget))
-      if (res > rMax) { warnings.push(`分辨率 ${res} 会超出约 ${(CELL_BUDGET / 1e6).toFixed(0)}M 格内存预算，已回退到 ${rMax}（厚/大件可先抽壳或降精度）`); res = rMax }
+      if (res > rMax) { warnings.push(`分辨率 ${res} 會超出約 ${(CELL_BUDGET / 1e6).toFixed(0)}M 格記憶體預算，已回退到 ${rMax}（厚/大件可先抽殼或降精度）`); res = rMax }
     }
   }
   let grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog(35 * fr, '体素化'), MOLD_MAXRES)
-  if (!(grid.h > 0)) throw new Error('包围盒退化：网格无体积范围')
+  if (!(grid.h > 0)) throw new Error('包圍盒退化：網格無體積範圍')
   const AUTO_CAP = 64
   // 审计修复（用户报：一幅薄墙完全冇填 + 柱周围空格 + 唔够细）：根因系体素【中心点】判定 —— 当 h > 壁厚 时，
   //   1.9mm 墙带可整幅跌喺体素中心之间 → 嗰幅墙零体素（对齐依赖，所以净系「1 幅」漏）。
@@ -658,7 +658,7 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
     res = next
     grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog(35 * fr, '体素化（薄壁加密）'), MOLD_MAXRES)
   }
-  if (res !== reqRes) warnings.push(`薄壁件自动加密：原分辨率 ${reqRes} 体素粗过壁厚（会漏整幅薄墙），已自动升到 ${res}（h≤壁厚→墙必填、更细）`)
+  if (res !== reqRes) warnings.push(`薄壁件自動加密：原分辨率 ${reqRes} 體素粗過壁厚（會漏整幅薄墙），已自動升到 ${res}（h≤壁厚→墙必填、更細）`)
   // 审计修复（用户实件：1mm 壁 @98mm 件，加密封顶 res64 仍 h=1.5>1mm → 整幅墙稀疏/漏）：
   //   保守表面体素回收 —— 中心点判定漏嘅薄墙，用「任何三角形扫过嘅 cell 都补做实体」补返（与分辨率无关，1mm 墙都密填）。
   //   大过体素嘅孔只标边、内部保留（孔唔会被填）；亚体素孔会填（分辨率极限）。逐三角按 ~h/2 重心采样 → 标 voxel。
@@ -672,7 +672,7 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
     for (let p = 0; p < _dt.length; p++) if (grid.solid[p]) _hh.push(_dt[p])
     if (_hh.length) { _hh.sort((a, b) => a - b); if (_hh[(_hh.length - 1) >> 1] >= grid.h * 0.65) needRecovery = false }
   }
-  if (needRecovery) warnings.push('薄墙未被分辨率完全解析 → 已启用表面体素回收（保住整幅薄墙）：细于体素的小孔可能被填实，请提高「精细度」以解析小孔')
+  if (needRecovery) warnings.push('薄墙未被分辨率完全解析 → 已啟用表面體素回收（保住整幅薄墙）：細於體素的小孔可能被填實，請提高「精細度」以解析小孔')
   if (needRecovery) {
     const _V = inp.vertices, _T = inp.triangles, _s = grid.solid
     const _nx = grid.nx, _ny = grid.ny, _nz = grid.nz, _h = grid.h, _ox = grid.ox, _oy = grid.oy, _oz = grid.oz
@@ -698,12 +698,12 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
     grid.nVox += _added
   }
   const { h, nx, ny, nz, ox, oy, oz, solid, nVox, oddColumns } = grid
-  if (nVox < 1) throw new Error('体素化后无实体体素：网格可能非水密或过细，请提高 resolution')
+  if (nVox < 1) throw new Error('體素化後無實體體素：網格可能非水密或過細，請提高 resolution')
   const solidRatio = nVox / (nx * ny * nz)
   if (solidRatio < 0.05) {
-    throw new Error(`实体体素占比 ${(solidRatio * 100).toFixed(1)}% < 5%（已自动试到分辨率 ${res}）：网格疑似非水密或退化薄壳，体素趋势结果不可信`)
+    throw new Error(`實體體素占比 ${(solidRatio * 100).toFixed(1)}% < 5%（已自動試到分辨率 ${res}）：網格疑似非水密或退化薄殼，體素趨勢結果不可信`)
   }
-  if (oddColumns > 0) warnings.push(`奇异列 ${oddColumns} 条（网格边/缝，疑似非水密）`)
+  if (oddColumns > 0) warnings.push(`奇異列 ${oddColumns} 條（網格邊/縫，疑似非水密）`)
 
   // 紧凑索引（k→j→i 升序，同 voxelfea 单元顺序一致）+ 体素中心 + grid→compact 反查（#89 浇口吸附空间加速）
   const gridOf = new Int32Array(nVox)
@@ -751,7 +751,7 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
     const best = snap.e, bestD2 = snap.d2
     gateIdx.push(best)
     const d = Math.sqrt(bestD2)
-    if (d > 3 * h) warnings.push(`浇口 ${gI + 1} 离最近实体 ${d.toFixed(1)} mm（> 3×体素）：已吸附到最近体素，请确认浇口位置`)
+    if (d > 3 * h) warnings.push(`澆口 ${gI + 1} 離最近實體 ${d.toFixed(1)} mm（> 3×體素）：已吸附到最近體素，請確認澆口位置`)
     const spec = (inp.gateSpecs && inp.gateSpecs[gI]) || {}
     const gt: GateType = (spec.type && GATE_TYPES[spec.type]) ? spec.type : 'edge'
     gateType.push(gt)
@@ -816,7 +816,7 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
   const GATE_DP_CF = 75   // 浇口压降校准常数 Pa·mm³/(mm³/s)：ΔP=K·Qg/dia³·Cf（pin K4/dia1/Qg5e4 ≈ 15 MPa）
   if (solverUsed) {
     const cross: CrossCoef = MOLD_CROSS[inp.material] || { eta0: 1500 * mat.visc, n: 0.3, tauStar: 1e5 }
-    const sol = solveMoldFill(grid, hHalf, sources, cross, { injRate: VDOT, srcInj, srcLabel, thermal: inp.thermal, tMelt: inp.tMelt, tMold: inp.tMold, viscousHeating: inp.viscousHeating, enablePacking: inp.enablePacking, packPressure: inp.packPressure, packTime: inp.packTime, tait: MOLD_TAIT[inp.material], onProgress: (fr) => prog(55 + 25 * fr, '压力求解') })
+    const sol = solveMoldFill(grid, hHalf, sources, cross, { injRate: VDOT, srcInj, srcLabel, thermal: inp.thermal, tMelt: inp.tMelt, tMold: inp.tMold, viscousHeating: inp.viscousHeating, enablePacking: inp.enablePacking, packPressure: inp.packPressure, packTime: inp.packTime, tait: MOLD_TAIT[inp.material], onProgress: (fr) => prog(55 + 25 * fr, '壓力求解') })
     tau = sol.fillTime          // 真充填时间 s（当 tau 用，单调代理）
     let mx = 0
     for (let p = 0; p < tau.length; p++) if (Number.isFinite(tau[p]) && tau[p] > mx) mx = tau[p]
@@ -864,17 +864,17 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
     }
     pPeakPa = Math.max(pPeakPa, peakInj)   // 头条峰值注射压力计入浇口压降（点/潜伏浇口会显著升）
     fillImbalance = (nGate > 1 && fMax > 0 && Number.isFinite(fMin)) ? (fMax - fMin) / fMax : 0
-    if (sol.nReached < nVox) warnings.push(`求解器：${nVox - sol.nReached} 个体素前沿无法到达（困气孤岛/窄缝）`)
-    if (nVox > 8000) warnings.push(`求解器体素 ${nVox} 较多，计算较慢（每步重解压力）—— 薄壁件建议；厚实件可降分辨率`)
+    if (sol.nReached < nVox) warnings.push(`求解器：${nVox - sol.nReached} 個體素前沿無法到達（困氣孤島/窄縫）`)
+    if (nVox > 8000) warnings.push(`求解器體素 ${nVox} 較多，計算較慢（每步重解壓力）—— 薄壁件建議；厚實件可降分辨率`)
     if (nGate > 1) warnings.push(balanced ? `已启用自动流道平衡：按责任域体积分配流量，浇口充填不平衡度 ${(fillImbalance * 100).toFixed(0)}%（越细越同步）` : `多浇口未平衡（各 ${(100 / nGate).toFixed(0)}% 均分或手动权重）：充填不平衡度 ${(fillImbalance * 100).toFixed(0)}% — 可开「流道平衡」自动分配`)
-    warnings.push('求解器：工程级 2.5D Hele-Shaw（Cross 黏度 + 移动前沿 FVM）；材料系数为文献家族典型值，非牌号实测 — 压力/锁模力/浇口压降是同阶估算')
+    warnings.push('求解器：工程級 2.5D Hele-Shaw（Cross 黏度 + 移動前沿 FVM）；材料系數為文獻家族典型值，非牌號實測 — 壓力/鎖模力/澆口壓降是同階估算')
     // #88 锁模力诚实注记：已改用峰压投影积分（修正旧法系统性低估），旧值保留于 clampForceAvgKN
-    if (clampForcePeakN > 0) warnings.push(`锁模力估算 ${(clampForcePeakN / 1e3).toFixed(0)} kN：用峰值压力×投影面积积分（Σ每列历时峰压·h²），修正旧「充填末瞬时全场均压×单层面积」系统性低估（旧值 ${(clampForceN / 1e3).toFixed(0)} kN）—— 趋势级同阶、方向偏保守。`)
+    if (clampForcePeakN > 0) warnings.push(`鎖模力估算 ${(clampForcePeakN / 1e3).toFixed(0)} kN：用峰值壓力×投影面積積分（Σ每列歷時峰壓·h²），修正舊「充填末瞬時全場均壓×單層面積」系統性低估（舊值 ${(clampForceN / 1e3).toFixed(0)} kN）—— 趨勢級同階、方向偏保守。`)
     // #42 精神：诚实标出锁模力超出标准最大机台量程（3200t），避免下游「建议机台」静默封顶 3200t 误导
     {
       const fit = clampMachineFit(clampForcePeakN / 1e3)
       if (fit.overRange) {
-        warnings.push(`⚠ 估算锁模力 ${(clampForcePeakN / 1e3).toFixed(0)} kN（需 ≈ ${fit.requiredTonne.toFixed(0)} 公吨力 + 15% 裕度）超出标准最大机台 3200 吨【量程】—— 需大型/特种注塑机，或分模/减投影面积/降注射压。下游「建议机台」达上限即封顶，非真够用。`)
+        warnings.push(`⚠ 估算鎖模力 ${(clampForcePeakN / 1e3).toFixed(0)} kN（需 ≈ ${fit.requiredTonne.toFixed(0)} 公噸力 + 15% 裕度）超出標準最大機台 3200 噸【量程】—— 需大型/特種注塑機，或分模/減投影面積/降注射壓。下游「建議機台」達上限即封頂，非真夠用。`)
       }
     }
   } else {
@@ -932,7 +932,7 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
     if (warpFull[p] > warpMax) warpMax = warpFull[p]
   }
   if (warpMax > 0) for (let e = 0; e < nVox; e++) warp[e] = warpFull[gridOf[e]] / warpMax
-  if (nUnreached > 0) warnings.push(`${nUnreached} 个体素未连通浇口（孤岛/窄缝）：fill/pressure 以最大值填充`)
+  if (nUnreached > 0) warnings.push(`${nUnreached} 個體素未連通澆口（孤島/窄縫）：fill/pressure 以最大值填充`)
 
   const sinkMark = sinkMarkField(hhSolid, nVox)
 
@@ -940,12 +940,12 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
   // 真正有信息嘅系比值，所以入 warnings）
   const tauMed = median(reachedTau)
   if (tauMed > 0 && tauMax / tauMed > 10) {
-    warnings.push(`充填难度（最大/中位流阻比）${(tauMax / tauMed).toFixed(1)} > 10：薄壁远端供料困难趋势`)
+    warnings.push(`充填難度（最大/中位流阻比）${(tauMax / tauMed).toFixed(1)} > 10：薄壁遠端供料困難趨勢`)
   }
   // 薄壁量化提示：半厚中位数 < 1.5 体素 → 厚度场量化误差大
   const hMed = median(hhSolid)
   if (hMed < 1.5 * h) {
-    warnings.push(`壁厚中位数 ${(2 * hMed).toFixed(2)} mm 接近体素尺寸（半厚 < 1.5×h=${(1.5 * h).toFixed(2)} mm）：厚度量化误差大，建议提高 resolution`)
+    warnings.push(`壁厚中位數 ${(2 * hMed).toFixed(2)} mm 接近體素尺寸（半厚 < 1.5×h=${(1.5 * h).toFixed(2)} mm）：厚度量化誤差大，建議提高 resolution`)
   }
 
   // ★ 注塑适用性判定（诚实）：注塑模流假设【薄壁件】。冷却用经典 1D 板式公式 t=s²/(π²α)·ln(…)，

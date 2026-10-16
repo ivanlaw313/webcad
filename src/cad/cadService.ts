@@ -25,7 +25,7 @@ export type KernelRestartInfo = { replayed?: number }
 
 export const KERNEL_RESTART_MSG = '內核已重啟（上次操作令幾何內核崩潰）— 模型已恢復到上一個成功狀態，請簡化該步操作再試'
 
-// v1.33: 预览被提交/取消抢占时嘅 benign 错误（唔触发「内核已重启」toast，唔加 restartCount）
+// v1.33: 预览被提交/取消抢占时嘅 benign 错误（唔触发「內核已重啟」toast，唔加 restartCount）
 export const PREVIEW_CANCELLED_MSG = 'preview cancelled'
 
 export function isPreviewCancelled(reason: unknown): boolean {
@@ -60,7 +60,7 @@ export function looksLikeKernelCrash(reason: unknown): boolean {
   // 自愈文案本身唔好再当崩溃（防连环）
   // ⚠ 兩種字體都要認：呢個守衛用字串比對。只認一種，改文案就會令守衛失效 →
   //   「重啟訊息」被當成新崩潰，可能觸發重啟迴圈。保留簡體係為咗兼容舊字串。
-  if (m.includes('內核已重啟') || m.includes('内核已重启') || m.includes('kernel restart')) return false
+  if (m.includes('內核已重啟') || m.includes('內核已重啟') || m.includes('kernel restart')) return false
   if (m.includes('preview cancelled')) return false
   return (
     /\baborted\s*\(/.test(m) ||
@@ -132,7 +132,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
 
   // v1.32: 单飞队列 —— 同一时间只跑一个内核调用。Timeout 只从【真正拿到执行权】起计，
   // 唔再从「入队时刻」起计。否则 shell/fillet 连续 previewRound 会叠计时：后一个喺队列里
-  // 等前一个时已烧晒 60s → 伪超时 → terminate + 「内核已重启」toast（BX01/BX02 @v1.31 实证）。
+  // 等前一个时已烧晒 60s → 伪超时 → terminate + 「內核已重啟」toast（BX01/BX02 @v1.31 实证）。
   let gate: Promise<void> = Promise.resolve()
 
   function spawn() {
@@ -154,7 +154,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
     }
   }
 
-  // v1.33: 静默抢占预览 — terminate + 重放快照，但不发「内核已重启」toast、唔加 restartCount。
+  // v1.33: 静默抢占预览 — terminate + 重放快照，但不发「內核已重啟」toast、唔加 restartCount。
   // 用嚟：用户 Confirm/Esc 时唔好俾 hung previewRound 卡住 rebuild；worker 必须杀掉先放得脱 OCCT。
   function silentRecoverAfterPreviewPreempt() {
     if (restarting) return

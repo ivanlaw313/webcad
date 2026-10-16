@@ -9,12 +9,12 @@ export type SelPriority = 'body' | 'face' | 'edge'
 export type SelFilter = { priority: SelPriority; types: SelType[]; selectThrough: boolean }
 
 export const SEL_TYPES: { key: SelType; label: string }[] = [
-  { key: 'component', label: '组件' },
-  { key: 'body', label: '实体' },
+  { key: 'component', label: '組件' },
+  { key: 'body', label: '實體' },
   { key: 'face', label: '面' },
-  { key: 'edge', label: '边' },
-  { key: 'vertex', label: '顶点' },
-  { key: 'sketch', label: '草图' },
+  { key: 'edge', label: '邊' },
+  { key: 'vertex', label: '頂點' },
+  { key: 'sketch', label: '草圖' },
 ]
 const ALL_TYPES: SelType[] = SEL_TYPES.map((t) => t.key)
 const TYPE_ORDER: Record<SelType, number> = { component: 0, body: 1, face: 2, edge: 3, vertex: 4, sketch: 5 }
@@ -87,7 +87,7 @@ export function resolvePickHits<T>(sortedHits: T[], through: boolean): T[] {
 
 // ── #3 命令激活【覆盖】选择过滤器（真回归修）────────────────────────────
 // Fusion 语义：pick 命令武装时，对应 mesh 无视 types 过滤仍可 raycast（否则清空 types → 命令静默失灵）。
-// baseAllowed = 过滤器基础允许（活动实体 selPicksBody(sf)&&mode!=='sketch'；组件 selPicksComp(sf)&&…）。
+// baseAllowed = 过滤器基础允许（活动實體 selPicksBody(sf)&&mode!=='sketch'；組件 selPicksComp(sf)&&…）。
 // Viewport raycast 判定与此逐字节一致（单一真相，headless 可测覆盖语义）。
 export function pickableWithCmdOverride(baseAllowed: boolean, commandArmed: boolean): boolean {
   return baseAllowed || commandArmed

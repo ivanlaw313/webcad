@@ -733,16 +733,16 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
   })
   try {
     // ---- 输入校验
-    if (!inp || !inp.vertices || !inp.triangles) return fail('空网格（无顶点/三角形数组）')
-    if (inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空网格（顶点/三角形不足）')
-    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 无效（需 > 0）')
-    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 无效（需 -1 < nu < 0.5）')
+    if (!inp || !inp.vertices || !inp.triangles) return fail('空網格（無頂點/三角形數組）')
+    if (inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空網格（頂點/三角形不足）')
+    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 無效（需 > 0）')
+    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 無效（需 -1 < nu < 0.5）')
     const force = inp.force
     if (!force || !Number.isFinite(force[0]) || !Number.isFinite(force[1]) || !Number.isFinite(force[2])) {
-      return fail('force 无效（需 3 个有限分量）')
+      return fail('force 無效（需 3 個有限分量）')
     }
-    if (!inp.fixed || !inp.fixed.point || !inp.fixed.normal) return fail('fixed 平面无效')
-    if (!inp.load || !inp.load.point || !inp.load.normal) return fail('load 平面无效')
+    if (!inp.fixed || !inp.fixed.point || !inp.fixed.normal) return fail('fixed 平面無效')
+    if (!inp.load || !inp.load.point || !inp.load.normal) return fail('load 平面無效')
 
     const prog = (phase: string, frac: number): void => {
       const cb = inp.onProgress
@@ -806,7 +806,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
                 ? `截面自适应加密：分辨率 ${res} → ${resEff}（幼长件截面只得 ${((thin / longest) * res).toFixed(1)} 层体素，弯曲算不得；已加到 ${got.toFixed(1)} 层）`
                 : `截面自适应加密：分辨率 ${res} → ${resEff}，但受体素预算限制截面仍只得 ${got.toFixed(1)} 层（< ${MIN_SECTION_VOX}）：弯曲应力偏低、属趋势级参考`)
             } else {
-              warnings.push(`⚠ 幼长件截面只得 ${((thin / longest) * res).toFixed(1)} 层体素（长细比 ${(longest / thin).toFixed(0)}:1），体素预算不足加密：弯曲位移/应力会明显偏低，只可当趋势参考`)
+              warnings.push(`⚠ 幼長件截面只得 ${((thin / longest) * res).toFixed(1)} 層體素（長細比 ${(longest / thin).toFixed(0)}:1），體素預算不足加密：彎曲位移/應力會明顯偏低，只可當趨勢參考`)
             }
           }
         }
@@ -814,7 +814,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     }
 
     if (Number.isFinite(inp.resolution) && Math.round(inp.resolution) !== resEff) {
-      warnings.push(`分辨率 ${inp.resolution} 超出可用范围（下限 4 / 上限由体素预算定），已用 ${resEff}`)
+      warnings.push(`分辨率 ${inp.resolution} 超出可用範圍（下限 4 / 上限由體素預算定），已用 ${resEff}`)
     }
 
     // ---- 1. 体素化
@@ -823,10 +823,10 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     const grid = voxelize(inp.vertices, inp.triangles, resEff, (fr) => prog('voxelize', fr), Math.max(64, resEff))
     h = grid.h
     nVox = grid.nVox
-    if (grid.oddColumns > 0) warnings.push(`奇异列 ${grid.oddColumns} 条（网格边/缝）`)
-    if (!(h > 0)) return fail('包围盒退化（网格无体积范围）')
-    if (nVox < 8) return fail(`实体体素不足（${nVox} < 8）：请提高 resolution 或检查网格水密性`)
-    if (nVox > 80000) return fail(`体素过多（${nVox} > 80000）：请降低 resolution`)
+    if (grid.oddColumns > 0) warnings.push(`奇異列 ${grid.oddColumns} 條（網格邊/縫）`)
+    if (!(h > 0)) return fail('包圍盒退化（網格無體積範圍）')
+    if (nVox < 8) return fail(`實體體素不足（${nVox} < 8）：請提高 resolution 或檢查網格水密性`)
+    if (nVox > 80000) return fail(`體素過多（${nVox} > 80000）：請降低 resolution`)
 
     const { nx, ny, nz, ox, oy, oz, solid } = grid
     const nnx = nx + 1, nny = ny + 1, nnz = nz + 1
@@ -849,9 +849,9 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     const bandTol = (inp.bandTol !== undefined && Number.isFinite(inp.bandTol) && inp.bandTol > 0)
       ? inp.bandTol : 0.6 * h
     const nF = normalize3(inp.fixed.normal)
-    if (!nF) return fail('固定面法向量为零')
+    if (!nF) return fail('固定面法向量為零')
     const nL = normalize3(inp.load.normal)
-    if (!nL) return fail('受力面法向量为零')
+    if (!nL) return fail('受力面法向量為零')
     const pF = inp.fixed.point, pL = inp.load.point
 
     // ---- S133：真 B-rep 面 → 节点集合（present 即取代对应 PlanePick band 测试；缺省回退）。
@@ -865,7 +865,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         fixedFaceMask = new Uint8Array(nNodes)
         for (let i = 0; i < fsel.nodes.length; i++) { const c = fsel.nodes[i]; if (c >= 0 && c < nNodes) fixedFaceMask[c] = 1 }
       } else {
-        warnings.push(`固定面三角解算失败（${fsel.error || '空节点'}）：已回退到固定平面 band 选点`)
+        warnings.push(`固定面三角解算失敗（${fsel.error || '空節點'}）：已回退到固定平面 band 選點`)
       }
     }
     let loadFaceMask: Uint8Array | null = null
@@ -875,7 +875,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         loadFaceMask = new Uint8Array(nNodes)
         for (let i = 0; i < lsel.nodes.length; i++) { const c = lsel.nodes[i]; if (c >= 0 && c < nNodes) loadFaceMask[c] = 1 }
       } else {
-        warnings.push(`受力面三角解算失败（${lsel.error || '空节点'}）：已回退到受力平面 band 选点`)
+        warnings.push(`受力面三角解算失敗（${lsel.error || '空節點'}）：已回退到受力平面 band 選點`)
       }
     }
 
@@ -906,14 +906,14 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         else loadList.push(cId)
       }
     }
-    if (overlap > 0) warnings.push(`固定带与受力带重叠：已从受力节点移除 ${overlap} 个共享节点`)
-    if (fixedCount < 3) return fail(`固定节点不足（${fixedCount} < 3）：fixed 平面可能未接触实体（试调 bandTol）`)
+    if (overlap > 0) warnings.push(`固定帶與受力帶重疊：已從受力節點移除 ${overlap} 個共享節點`)
+    if (fixedCount < 3) return fail(`固定節點不足（${fixedCount} < 3）：fixed 平面可能未接觸實體（試調 bandTol）`)
     // ★ 过度约束警告（用户实测：幼杆/曲面件撳侧弧面做固定 → 径向法向令约束带沿成条杆 → 几乎全锁 → 位移失真细到唔合理）。
-    if (fixedCount > 0.4 * nNodes) warnings.push(`⚠ 固定面覆盖了 ${(fixedCount / nNodes * 100).toFixed(0)}% 体素节点（零件几乎全锁）：位移会偏细、结果失真。悬臂/受力测试应净夹【一个端面】、受力按【另一端面】；细杆/曲面件不要按侧弧面（侧面法向是径向，约束会沿整条杆走）。`)
+    if (fixedCount > 0.4 * nNodes) warnings.push(`⚠ 固定面覆蓋了 ${(fixedCount / nNodes * 100).toFixed(0)}% 體素節點（零件幾乎全鎖）：位移會偏細、結果失真。懸臂/受力測試應淨夾【一個端面】、受力按【另一端面】；細桿/曲面件不要按側弧面（側面法向是徑向，約束會沿整條桿走）。`)
     loadCount = loadList.length
     // ★ 退化（用户实测）：受力区完全喺固定区内（侧面点固定+受力，两带重叠）→ 无意义。唔好用下面就近兜底乱揾节点【掩盖】，明确报错引导。
     if (loadCount < 1 && overlap > 0 && !inp.bearing) {
-      return fail('受力面与固定面是同一区域（受力区完全在固定区内）：约束过度、无法分析 — 请夹【一端】、受力【另一端】（细杆/曲面件按两端的平面，不要按侧弧面）')
+      return fail('受力面與固定面是同一區域（受力區完全在固定區內）：約束過度、無法分析 — 請夾【一端】、受力【另一端】（細桿/曲面件按兩端的平面，不要按側弧面）')
     }
     // ★ 就近兜底（仅【真‧band 漏空】overlap===0）：薄件/曲面/中段点击拣唔到受力节点 → 自动补，唔好静默 fail。
     //   ① 放宽 band 到 3h 重拣（仍系一带分布载荷）；② 仍 0 → 取离受力点最近(≤6h)嘅单节点。bearing 模式唔行此路。
@@ -938,9 +938,9 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         if (best >= 0 && bestD <= maxNear * maxNear) loadList.push(best)
       }
       loadCount = loadList.length
-      if (loadCount > 0) warnings.push(`受力面无法选取节点（薄件/曲面/中段点击）：已自动就近补 ${loadCount} 个受力节点`)
+      if (loadCount > 0) warnings.push(`受力面無法選取節點（薄件/曲面/中段點擊）：已自動就近補 ${loadCount} 個受力節點`)
     }
-    if (loadCount < 1 && !inp.bearing) return fail('受力节点为 0：load 平面可能未接触实体（试调 bandTol）')
+    if (loadCount < 1 && !inp.bearing) return fail('受力節點為 0：load 平面可能未接觸實體（試調 bandTol）')
 
     const f = new Float64Array(nDof)
     if (loadCount > 0) {   // S171：bearing-only 时 loadCount=0 → 跳过均布散布（免 force/0=Infinity；载荷由 4d 轴承散布）
@@ -953,18 +953,18 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     const gravity = inp.gravity
     const hasGravity = !!gravity && (gravity[0] !== 0 || gravity[1] !== 0 || gravity[2] !== 0)
     if (gravity && !(Number.isFinite(gravity[0]) && Number.isFinite(gravity[1]) && Number.isFinite(gravity[2]))) {
-      return fail('gravity 无效（需 3 个有限分量 mm/s²）')
+      return fail('gravity 無效（需 3 個有限分量 mm/s²）')
     }
     let rhoCons = 0   // tonne/mm³
     if (hasGravity) {
       const dens = inp.density
       if (!Number.isFinite(dens as number) || !((dens as number) > 0)) {
-        return fail('开启 gravity 但 density 无效（需 > 0 g/cm³）：无密度无法计算自重')
+        return fail('開啟 gravity 但 density 無效（需 > 0 g/cm³）：無密度無法計算自重')
       }
       rhoCons = (dens as number) * 1e-9   // g/cm³ → tonne/mm³（同 runVoxelModal 同款）
     }
     const forceZero = force[0] === 0 && force[1] === 0 && force[2] === 0
-    if (forceZero && !hasGravity) warnings.push('合力为零：位移/应力全为 0')
+    if (forceZero && !hasGravity) warnings.push('合力為零：位移/應力全為 0')
     // S100：约束类型。fixed=全 DOF 锁；roller/sym=只锁固定面法向主轴 DOF（准面内滑；轴对齐 voxel 下 sym=roller）。
     const fixedMask = new Uint8Array(nDof)
     const fixCon = inp.fixCon || 'fixed'
@@ -973,7 +973,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
       const ax = Math.abs(nF[0]), ay = Math.abs(nF[1]), az = Math.abs(nF[2])
       na = ax >= ay && ax >= az ? 0 : ay >= az ? 1 : 2
       const dom = Math.max(ax, ay, az)
-      if (dom < 0.94) warnings.push(`滚子/对称约束法向非轴向（主轴 ${(dom * 100).toFixed(0)}%）：已近似为只锁 ${['X', 'Y', 'Z'][na]} 轴`)
+      if (dom < 0.94) warnings.push(`滾子/對稱約束法向非軸向（主軸 ${(dom * 100).toFixed(0)}%）：已近似為只鎖 ${['X', 'Y', 'Z'][na]} 軸`)
     }
     if (b3) {
       // 简支梁 / 3 点弯：真‧铰-滚（pin-roller）。★只锁支撑【接触面那一行】(载荷方向嘅极值边)嘅竖直 DOF
@@ -1072,10 +1072,10 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     if (inp.pin) {
       const pin = inp.pin
       const aDir = normalize3(pin.axisDir)
-      if (!aDir) return fail('pin 轴向量为零')
+      if (!aDir) return fail('pin 軸向量為零')
       const ap = pin.axisPoint
-      if (!ap || !Number.isFinite(ap[0]) || !Number.isFinite(ap[1]) || !Number.isFinite(ap[2])) return fail('pin 轴点无效')
-      if (!Number.isFinite(pin.radius) || !(pin.radius > 0)) return fail('pin 半径无效（需 > 0 mm）')
+      if (!ap || !Number.isFinite(ap[0]) || !Number.isFinite(ap[1]) || !Number.isFinite(ap[2])) return fail('pin 軸點無效')
+      if (!Number.isFinite(pin.radius) || !(pin.radius > 0)) return fail('pin 半徑無效（需 > 0 mm）')
       const pinBand = (pin.bandTol !== undefined && Number.isFinite(pin.bandTol) && pin.bandTol > 0) ? pin.bandTol : bandTol
       const pinNodes: number[] = []
       const pinDirs: number[] = []
@@ -1095,7 +1095,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         pinDirs.push(rx * inv, ry * inv, rz * inv)   // 单位径向方向
       }
       if (pinNodes.length < 1) {
-        warnings.push('pin 圆柱面带内无实体节点（半径/容差/轴线可能不正确）：销约束未生效')
+        warnings.push('pin 圓柱面帶內無實體節點（半徑/容差/軸線可能不正確）：銷約束未生效')
       } else {
         // 自适应罚刚度：结构对角中位量级 × 1e6（足以锁径向又唔致病态）。
         // 用 buildKe 对角元素（24 个）嘅最大值做量级估计（同单元对角同阶）。
@@ -1113,9 +1113,9 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
       const bl = inp.bearing
       const aDir = normalize3(bl.axisDir)
       const fmag = Math.hypot(bl.force[0], bl.force[1], bl.force[2])
-      if (!aDir) warnings.push('轴承载荷：轴向量为零，已跳过')
-      else if (!Number.isFinite(bl.radius) || !(bl.radius > 0)) warnings.push('轴承载荷：半径无效（需 > 0），已跳过')
-      else if (!(fmag > 1e-12)) warnings.push('轴承载荷：合力为零，已跳过')
+      if (!aDir) warnings.push('軸承載荷：軸向量為零，已跳過')
+      else if (!Number.isFinite(bl.radius) || !(bl.radius > 0)) warnings.push('軸承載荷：半徑無效（需 > 0），已跳過')
+      else if (!(fmag > 1e-12)) warnings.push('軸承載荷：合力為零，已跳過')
       else {
         const ap = bl.axisPoint
         const lh: [number, number, number] = [bl.force[0] / fmag, bl.force[1] / fmag, bl.force[2] / fmag]
@@ -1147,7 +1147,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
             ? '轴承载荷：载荷方向≈孔轴向，轴承推力须【垂直】孔轴 → 用「自定义」指定径向方向（未生效）'
             : '轴承载荷：孔面带内无受推节点（半径/容差/轴线不正确？）：未生效')
         } else {
-          if (ovFixed > 0) warnings.push(`轴承孔面与固定带重叠：${ovFixed} 个受推节点已固定（跳过；合力归一到余下节点）— 若孔本身被夹紧，结果可能偏保守`)
+          if (ovFixed > 0) warnings.push(`軸承孔面與固定帶重疊：${ovFixed} 個受推節點已固定（跳過；合力歸一到餘下節點）— 若孔本身被夾緊，結果可能偏保守`)
           for (let k = 0; k < bNodes.length; k++) {
             const cId = bNodes[k], wk = bW[k] / wSum
             f[cId * 3] += bl.force[0] * wk; f[cId * 3 + 1] += bl.force[1] * wk; f[cId * 3 + 2] += bl.force[2] * wk
@@ -1176,7 +1176,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         occ[el] = fr
       }
       elemScale = occ
-      if (nBoundary === 0) warnings.push('cut-cell：无部分体积边界单元（轴对齐方块？）— 结果与二值一致')
+      if (nBoundary === 0) warnings.push('cut-cell：無部分體積邊界單元（軸對齊方塊？）— 結果與二值一致')
     }
 
     // ---- 5. 求解
@@ -1186,7 +1186,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
       ? Math.floor(inp.maxIter) : 4000
     prog('solve', 0)
     const sol = solveCG(nDof, elemDofs, nVox, Ke, f, fixedMask, tol, maxIter, (fr) => prog('solve', fr), penalty, elemScale, true)   // S163：静力解要固定支座反力
-    if (!sol.converged) warnings.push(`CG 未收敛：${sol.iters} 次后相对残差 ${sol.residual.toExponential(2)}`)
+    if (!sol.converged) warnings.push(`CG 未收斂：${sol.iters} 次後相對殘差 ${sol.residual.toExponential(2)}`)
 
     // ---- 6. 应力（单元中心）
     prog('stress', 0)
@@ -1292,16 +1292,16 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     // 诚实守卫①：应力本身非有限（f64 已溢出/NaN）→ vmMax 故意设 NaN，唔可以静默归零
     if (vmNonFinite) {
       vmMax = NaN
-      warnings.push('应力非有限（NaN/Infinity）：E/载荷数值极端，结果不可信')
+      warnings.push('應力非有限（NaN/Infinity）：E/載荷數值極端，結果不可信')
     } else if (!Number.isFinite(Math.fround(vmMax))) {
       // 诚实守卫②：vm 数组系 Float32，元素 >~3.40e38 写入后变 Infinity。
       // vmMax（f64 全体上界）+ fround 单调 → 检查一次即覆盖所有元素。
-      warnings.push(`应力超出 Float32 上限（vmMax=${vmMax.toExponential(3)} MPa）：vm 数组含 Infinity，云图/数值不可信`)
+      warnings.push(`應力超出 Float32 上限（vmMax=${vmMax.toExponential(3)} MPa）：vm 數組含 Infinity，雲圖/數值不可信`)
     }
     // S167 诚实守卫：sed 同 vm 一样系 Float32（u≈½σ²/E 可独立溢出）。应力非有限→sedMax 设 NaN；
     // f64 有限但 fround 溢出（>3.4e38）→ sed 数组含 Infinity，示警（对齐 vm 守卫，免 legend 显假数）。
     if (vmNonFinite) sedMax = NaN
-    else if (!Number.isFinite(Math.fround(sedMax))) warnings.push(`应变能密度超出 Float32 上限（${sedMax.toExponential(3)} mJ/mm³）：sed 数组含 Infinity，云图/数值不可信`)
+    else if (!Number.isFinite(Math.fround(sedMax))) warnings.push(`應變能密度超出 Float32 上限（${sedMax.toExponential(3)} mJ/mm³）：sed 數組含 Infinity，雲圖/數值不可信`)
 
     // Math.hypot：平方和喺 |u|>~1.3e154 会上溢（Infinity）、|u|<~1e-162 会下溢（0），
     // hypot 内部缩放避免两者（仅 nNodes 次调用，成本可忽略）。
@@ -1316,7 +1316,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
     // 防御：真实 |u| 本身非有限（E/力极端到解超出 f64）→ dispMax 故意设 NaN，唔可以静默返回
     if (dispNonFinite) {
       dispMax = NaN
-      warnings.push('位移非有限（NaN/Infinity）：E/载荷数值极端，结果不可信')
+      warnings.push('位移非有限（NaN/Infinity）：E/載荷數值極端，結果不可信')
     }
     const vmMaxAt: [number, number, number] = [
       ox + (elemIdx[vmMaxE * 3] + 0.5) * h,
@@ -1337,7 +1337,7 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
       sed, sedMax,
     }
   } catch (err) {
-    return fail(`内部错误：${err instanceof Error ? err.message : String(err)}`)
+    return fail(`內部錯誤：${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -1394,12 +1394,12 @@ export function smoothVmNodal(inp: SmoothInput): SmoothResult {
     method: 'nodal-averaging',
   })
   try {
-    if (!inp || !inp.centers || !inp.vm) return fail('空输入（缺 centers/vm）')
+    if (!inp || !inp.centers || !inp.vm) return fail('空輸入（缺 centers/vm）')
     const nVox = inp.nVox | 0
     if (!(nVox > 0)) return fail('nVox ≤ 0')
-    if (inp.centers.length < nVox * 3 || inp.vm.length < nVox) return fail('centers/vm 长度同 nVox 不一致')
+    if (inp.centers.length < nVox * 3 || inp.vm.length < nVox) return fail('centers/vm 長度同 nVox 不一致')
     const h = inp.h
-    if (!Number.isFinite(h) || !(h > 0)) return fail('h 无效（需 > 0）')
+    if (!Number.isFinite(h) || !(h > 0)) return fail('h 無效（需 > 0）')
 
     // 1. 由 centers 还原网格原点（最小角）+ 每单元整数索引
     let minX = Infinity, minY = Infinity, minZ = Infinity
@@ -1416,7 +1416,7 @@ export function smoothVmNodal(inp: SmoothInput): SmoothResult {
       const i = Math.round((inp.centers[el * 3] - ox) / h - 0.5)
       const j = Math.round((inp.centers[el * 3 + 1] - oy) / h - 0.5)
       const k = Math.round((inp.centers[el * 3 + 2] - oz) / h - 0.5)
-      if (i < 0 || j < 0 || k < 0) return fail('网格索引还原失败（centers 不是规则体素网格？）')
+      if (i < 0 || j < 0 || k < 0) return fail('網格索引還原失敗（centers 不是規則體素網格？）')
       eI[el] = i; eJ[el] = j; eK[el] = k
       if (i > mi) mi = i; if (j > mj) mj = j; if (k > mk) mk = k
     }
@@ -1433,7 +1433,7 @@ export function smoothVmNodal(inp: SmoothInput): SmoothResult {
     }
     let nNodes = 0
     for (let g = 0; g < nodeId.length; g++) if (nodeId[g] === 0) nodeId[g] = nNodes++
-    if (nNodes < 1) return fail('无角节点（网格退化）')
+    if (nNodes < 1) return fail('無角節點（網格退化）')
 
     // 3. 节点 vm = 相邻单元 vm 体积加权平均（等体素 → 等权算术平均）
     const nodeSum = new Float64Array(nNodes)
@@ -1488,7 +1488,7 @@ export function smoothVmNodal(inp: SmoothInput): SmoothResult {
       ...(vmHasNonFinite ? { error: '部分单元 vm 非有限：已跳过不参与平均（保留原值）' } : {}),
     }
   } catch (err) {
-    return fail(`内部错误：${err instanceof Error ? err.message : String(err)}`)
+    return fail(`內部錯誤：${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -1546,12 +1546,12 @@ export function runVoxelModal(inp: ModalInput): ModalResult {
     modeIters: [], modeConverged: [], fixedCount,
   })
   try {
-    if (!inp || !inp.vertices || !inp.triangles) return fail('空网格（无顶点/三角形数组）')
-    if (inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空网格（顶点/三角形不足）')
-    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 无效（需 > 0）')
-    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 无效（需 -1 < nu < 0.5）')
-    if (!Number.isFinite(inp.rho) || !(inp.rho > 0)) return fail('密度 rho 无效（需 > 0，g/cm³）')
-    if (!inp.fixed || !inp.fixed.point || !inp.fixed.normal) return fail('fixed 平面无效')
+    if (!inp || !inp.vertices || !inp.triangles) return fail('空網格（無頂點/三角形數組）')
+    if (inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空網格（頂點/三角形不足）')
+    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 無效（需 > 0）')
+    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 無效（需 -1 < nu < 0.5）')
+    if (!Number.isFinite(inp.rho) || !(inp.rho > 0)) return fail('密度 rho 無效（需 > 0，g/cm³）')
+    if (!inp.fixed || !inp.fixed.point || !inp.fixed.normal) return fail('fixed 平面無效')
 
     const prog = (phase: string, frac: number): void => {
       const cb = inp.onProgress
@@ -1565,15 +1565,15 @@ export function runVoxelModal(inp: ModalInput): ModalResult {
     const grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog('voxelize', fr))
     h = grid.h
     nVox = grid.nVox
-    if (grid.oddColumns > 0) warnings.push(`奇异列 ${grid.oddColumns} 条（网格边/缝）`)
-    if (!(h > 0)) return fail('包围盒退化（网格无体积范围）')
-    if (nVox < 8) return fail(`实体体素不足（${nVox} < 8）：请提高 resolution 或检查网格水密性`)
-    if (nVox > 60000) return fail(`体素过多（${nVox} > 60000）：模态求解请降低 resolution`)
+    if (grid.oddColumns > 0) warnings.push(`奇異列 ${grid.oddColumns} 條（網格邊/縫）`)
+    if (!(h > 0)) return fail('包圍盒退化（網格無體積範圍）')
+    if (nVox < 8) return fail(`實體體素不足（${nVox} < 8）：請提高 resolution 或檢查網格水密性`)
+    if (nVox > 60000) return fail(`體素過多（${nVox} > 60000）：模態求解請降低 resolution`)
 
     const { nx, ny, nz, ox, oy, oz, solid } = grid
     const nnx = nx + 1, nny = ny + 1, nnz = nz + 1
     // P5 可信度：最短轴体素跨度 < 4 时低阶 hex 无法表达弯曲曲率 → 固有频率误差非单调可达 30%+（P5 报告 §2.2）。纯诚实警告，不改结果。
-    { const _across = Math.min(nx, ny, nz); if (_across < 4) warnings.push(`截面仅 ${_across} 体素跨度（最短轴）：细长/薄壁件模态频率欠解析、误差可能非单调偏大 — 建议提高 resolution 令最短截面跨 ≥4 体素`) }
+    { const _across = Math.min(nx, ny, nz); if (_across < 4) warnings.push(`截面僅 ${_across} 體素跨度（最短軸）：細長/薄壁件模態頻率欠解析、誤差可能非單調偏大 — 建議提高 resolution 令最短截面跨 ≥4 體素`) }
 
     // ---- 2. 节点紧凑映射（同 runVoxelFea）
     const nodeId = new Int32Array(nnx * nny * nnz).fill(-1)
@@ -1592,7 +1592,7 @@ export function runVoxelModal(inp: ModalInput): ModalResult {
     // ---- 3. 固定带（约束模态边界）
     const bandTol = (inp.bandTol !== undefined && Number.isFinite(inp.bandTol) && inp.bandTol > 0) ? inp.bandTol : 0.6 * h
     const nF = normalize3(inp.fixed.normal)
-    if (!nF) return fail('固定面法向量为零')
+    if (!nF) return fail('固定面法向量為零')
     const pF = inp.fixed.point
     const fixedNode = new Uint8Array(nNodes)
     for (let cId = 0; cId < nNodes; cId++) {
@@ -1602,7 +1602,7 @@ export function runVoxelModal(inp: ModalInput): ModalResult {
       const dF = Math.abs((px - pF[0]) * nF[0] + (py - pF[1]) * nF[1] + (pz - pF[2]) * nF[2])
       if (dF <= bandTol) { fixedNode[cId] = 1; fixedCount++ }
     }
-    if (fixedCount < 3) return fail(`固定节点不足（${fixedCount} < 3）：fixed 平面可能未接触实体（试调 bandTol）`)
+    if (fixedCount < 3) return fail(`固定節點不足（${fixedCount} < 3）：fixed 平面可能未接觸實體（試調 bandTol）`)
     const fixedMask = new Uint8Array(nDof)
     for (let cId = 0; cId < nNodes; cId++) {
       if (fixedNode[cId]) { fixedMask[cId * 3] = 1; fixedMask[cId * 3 + 1] = 1; fixedMask[cId * 3 + 2] = 1 }
@@ -1736,15 +1736,15 @@ export function runVoxelModal(inp: ModalInput): ModalResult {
       outFreqs.push(freqs[oi]); outIters.push(modeIters[oi]); outConv.push(modeConverged[oi])
     }
 
-    if (outFreqs.length && outFreqs[0] < 1) warnings.push('最低阶频率接近 0：固定面可能约束不足（刚体模态），结果失真')
-    if (outConv.some((c) => !c)) warnings.push('部分阶未在迭代上限内收敛（频率为近似值）')
+    if (outFreqs.length && outFreqs[0] < 1) warnings.push('最低階頻率接近 0：固定面可能約束不足（剛體模態），結果失真')
+    if (outConv.some((c) => !c)) warnings.push('部分階未在迭代上限內收斂（頻率為近似值）')
 
     return {
       ok: true, warnings, h, nVox, nDof, centers,
       freqs: outFreqs, shapes, amps, modeIters: outIters, modeConverged: outConv, fixedCount,
     }
   } catch (err) {
-    return fail(`内部错误：${err instanceof Error ? err.message : String(err)}`)
+    return fail(`內部錯誤：${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -1800,16 +1800,16 @@ export function runVoxelBuckling(inp: BucklingInput): BucklingResult {
     iters: 0, converged: false, fixedCount, loadCount,
   })
   try {
-    if (!inp || !inp.vertices || !inp.triangles) return fail('空网格（无顶点/三角形数组）')
-    if (inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空网格（顶点/三角形不足）')
-    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 无效（需 > 0）')
-    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 无效')
+    if (!inp || !inp.vertices || !inp.triangles) return fail('空網格（無頂點/三角形數組）')
+    if (inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空網格（頂點/三角形不足）')
+    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 無效（需 > 0）')
+    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 無效')
     const force = inp.force
-    if (!force || !Number.isFinite(force[0]) || !Number.isFinite(force[1]) || !Number.isFinite(force[2])) return fail('force 无效')
-    if (!inp.fixed || !inp.fixed.point || !inp.fixed.normal) return fail('fixed 平面无效')
-    if (!inp.load || !inp.load.point || !inp.load.normal) return fail('load 平面无效')
+    if (!force || !Number.isFinite(force[0]) || !Number.isFinite(force[1]) || !Number.isFinite(force[2])) return fail('force 無效')
+    if (!inp.fixed || !inp.fixed.point || !inp.fixed.normal) return fail('fixed 平面無效')
+    if (!inp.load || !inp.load.point || !inp.load.normal) return fail('load 平面無效')
     const forceN = Math.hypot(force[0], force[1], force[2])
-    if (!(forceN > 0)) return fail('合力为零：屈曲分析需要施加载荷')
+    if (!(forceN > 0)) return fail('合力為零：屈曲分析需要施加載荷')
 
     const prog = (phase: string, frac: number): void => {
       const cb = inp.onProgress
@@ -1820,13 +1820,13 @@ export function runVoxelBuckling(inp: BucklingInput): BucklingResult {
     // ---- 1. 体素化 + 节点映射（同 runVoxelFea）
     const grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog('voxelize', fr))
     h = grid.h; nVox = grid.nVox
-    if (!(h > 0)) return fail('包围盒退化')
-    if (nVox < 8) return fail(`实体体素不足（${nVox} < 8）`)
-    if (nVox > 12000) return fail(`体素过多（${nVox} > 12000）：屈曲（存逐单元 Kg）请降低 resolution`)
+    if (!(h > 0)) return fail('包圍盒退化')
+    if (nVox < 8) return fail(`實體體素不足（${nVox} < 8）`)
+    if (nVox > 12000) return fail(`體素過多（${nVox} > 12000）：屈曲（存逐單元 Kg）請降低 resolution`)
     const { nx, ny, nz, ox, oy, oz, solid } = grid
     const nnx = nx + 1, nny = ny + 1, nnz = nz + 1
     // P5 可信度：屈曲对网格极敏感，最短轴截面 < 4 体素时 Pcr 随 res 非单调跳 −43%…+100%（P5 报告 §2.3）。纯诚实警告，不改结果。
-    { const _across = Math.min(nx, ny, nz); if (_across < 4) warnings.push(`截面仅 ${_across} 体素跨度（最短轴）：屈曲临界载荷 Pcr 在欠解析截面上非单调跳变、不可信 — 建议提高 resolution 令最短截面跨 ≥4~6 体素`) }
+    { const _across = Math.min(nx, ny, nz); if (_across < 4) warnings.push(`截面僅 ${_across} 體素跨度（最短軸）：屈曲臨界載荷 Pcr 在欠解析截面上非單調跳變、不可信 — 建議提高 resolution 令最短截面跨 ≥4~6 體素`) }
     const nodeId = new Int32Array(nnx * nny * nnz).fill(-1)
     for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
       if (!solid[i + nx * (j + ny * k)]) continue
@@ -1842,8 +1842,8 @@ export function runVoxelBuckling(inp: BucklingInput): BucklingResult {
 
     // ---- 2. 边界（同 runVoxelFea）
     const bandTol = (inp.bandTol !== undefined && Number.isFinite(inp.bandTol) && inp.bandTol > 0) ? inp.bandTol : 0.6 * h
-    const nF = normalize3(inp.fixed.normal); if (!nF) return fail('固定面法向量为零')
-    const nL = normalize3(inp.load.normal); if (!nL) return fail('受力面法向量为零')
+    const nF = normalize3(inp.fixed.normal); if (!nF) return fail('固定面法向量為零')
+    const nL = normalize3(inp.load.normal); if (!nL) return fail('受力面法向量為零')
     const pF = inp.fixed.point, pL = inp.load.point
     const fixedNode = new Uint8Array(nNodes); const loadList: number[] = []
     for (let cId = 0; cId < nNodes; cId++) {
@@ -1856,9 +1856,9 @@ export function runVoxelBuckling(inp: BucklingInput): BucklingResult {
       const dL = Math.abs((px - pL[0]) * nL[0] + (py - pL[1]) * nL[1] + (pz - pL[2]) * nL[2])
       if (dL <= bandTol && !isFixed) loadList.push(cId)
     }
-    if (fixedCount < 3) return fail(`固定节点不足（${fixedCount} < 3）`)
+    if (fixedCount < 3) return fail(`固定節點不足（${fixedCount} < 3）`)
     loadCount = loadList.length
-    if (loadCount < 1) return fail('受力节点为 0')
+    if (loadCount < 1) return fail('受力節點為 0')
     const fixedMask = new Uint8Array(nDof)
     for (let cId = 0; cId < nNodes; cId++) if (fixedNode[cId]) { fixedMask[cId * 3] = 1; fixedMask[cId * 3 + 1] = 1; fixedMask[cId * 3 + 2] = 1 }
     const f = new Float64Array(nDof)
@@ -1887,7 +1887,7 @@ export function runVoxelBuckling(inp: BucklingInput): BucklingResult {
     const cgMax = (inp.maxIter !== undefined && Number.isFinite(inp.maxIter) && inp.maxIter > 0) ? Math.floor(inp.maxIter) : 4000
     prog('solve', 0)
     const stat = solveCG(nDof, elemDofs, nVox, Ke, f.slice(), fixedMask, cgTol, cgMax, (fr) => prog('solve', fr))
-    if (!stat.converged) warnings.push(`静力 CG 未收敛（残差 ${stat.residual.toExponential(2)}）：预应力近似`)
+    if (!stat.converged) warnings.push(`靜力 CG 未收斂（殘差 ${stat.residual.toExponential(2)}）：預應力近似`)
     const u = stat.u
 
     // ---- 5. 单元中心应力 → 几何刚度 −Kg（逐单元存）
@@ -1987,15 +1987,15 @@ export function runVoxelBuckling(inp: BucklingInput): BucklingResult {
 
     const lambda1 = lambda
     const Pcr = lambda1 * forceN
-    if (!conv) warnings.push('屈曲逆幂迭代未在上限内收敛（载荷因子为近似值）')
-    if (lambda1 <= 0) warnings.push('最低屈曲因子 ≤ 0：该载荷方向不会屈曲（受拉或方向相反）— 试反向施力或检查约束')
+    if (!conv) warnings.push('屈曲逆冪迭代未在上限內收斂（載荷因子為近似值）')
+    if (lambda1 <= 0) warnings.push('最低屈曲因子 ≤ 0：該載荷方向不會屈曲（受拉或方向相反）— 試反向施力或檢查約束')
 
     return {
       ok: true, warnings, h, nVox, nDof, centers,
       lambda1, Pcr, forceN, shape, amp, iters: used, converged: conv, fixedCount, loadCount,
     }
   } catch (err) {
-    return fail(`内部错误：${err instanceof Error ? err.message : String(err)}`)
+    return fail(`內部錯誤：${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -2095,17 +2095,17 @@ export function runVoxelPrestressedModal(inp: PrestressedModalInput): ModalResul
     modeIters: [], modeConverged: [], fixedCount,
   })
   try {
-    if (!inp || !inp.vertices || !inp.triangles) return fail('空网格（无顶点/三角形数组）')
-    if (inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空网格（顶点/三角形不足）')
-    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 无效（需 > 0）')
-    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 无效（需 -1 < nu < 0.5）')
-    if (!Number.isFinite(inp.rho) || !(inp.rho > 0)) return fail('密度 rho 无效（需 > 0，g/cm³）')
-    if (!inp.fixed || !inp.fixed.point || !inp.fixed.normal) return fail('fixed 平面无效')
-    if (!inp.load || !inp.load.point || !inp.load.normal) return fail('预载 load 平面无效')
+    if (!inp || !inp.vertices || !inp.triangles) return fail('空網格（無頂點/三角形數組）')
+    if (inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空網格（頂點/三角形不足）')
+    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 無效（需 > 0）')
+    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 無效（需 -1 < nu < 0.5）')
+    if (!Number.isFinite(inp.rho) || !(inp.rho > 0)) return fail('密度 rho 無效（需 > 0，g/cm³）')
+    if (!inp.fixed || !inp.fixed.point || !inp.fixed.normal) return fail('fixed 平面無效')
+    if (!inp.load || !inp.load.point || !inp.load.normal) return fail('預載 load 平面無效')
     const force = inp.force
-    if (!force || !Number.isFinite(force[0]) || !Number.isFinite(force[1]) || !Number.isFinite(force[2])) return fail('预载 force 无效')
+    if (!force || !Number.isFinite(force[0]) || !Number.isFinite(force[1]) || !Number.isFinite(force[2])) return fail('預載 force 無效')
     const forceN = Math.hypot(force[0], force[1], force[2])
-    if (!(forceN > 0)) return fail('预载合力为零：预应力模态需要施加预载（拉/压）')
+    if (!(forceN > 0)) return fail('預載合力為零：預應力模態需要施加預載（拉/壓）')
 
     const prog = (phase: string, frac: number): void => {
       const cb = inp.onProgress
@@ -2117,10 +2117,10 @@ export function runVoxelPrestressedModal(inp: PrestressedModalInput): ModalResul
     // ---- 1. 体素化（同 modal/buckling）；预应力存逐单元 Kg → 用屈曲嘅 12000 上限（非 modal 60000）
     const grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog('voxelize', fr))
     h = grid.h; nVox = grid.nVox
-    if (grid.oddColumns > 0) warnings.push(`奇异列 ${grid.oddColumns} 条（网格边/缝）`)
-    if (!(h > 0)) return fail('包围盒退化（网格无体积范围）')
-    if (nVox < 8) return fail(`实体体素不足（${nVox} < 8）：请提高 resolution 或检查网格水密性`)
-    if (nVox > 12000) return fail(`体素过多（${nVox} > 12000）：预应力模态（存逐单元 Kg）请降低 resolution`)
+    if (grid.oddColumns > 0) warnings.push(`奇異列 ${grid.oddColumns} 條（網格邊/縫）`)
+    if (!(h > 0)) return fail('包圍盒退化（網格無體積範圍）')
+    if (nVox < 8) return fail(`實體體素不足（${nVox} < 8）：請提高 resolution 或檢查網格水密性`)
+    if (nVox > 12000) return fail(`體素過多（${nVox} > 12000）：預應力模態（存逐單元 Kg）請降低 resolution`)
 
     const { nx, ny, nz, ox, oy, oz, solid } = grid
     const nnx = nx + 1, nny = ny + 1, nnz = nz + 1
@@ -2141,8 +2141,8 @@ export function runVoxelPrestressedModal(inp: PrestressedModalInput): ModalResul
 
     // ---- 3. 固定带 + 预载面（固定镜 modal，受力镜 buckling）
     const bandTol = (inp.bandTol !== undefined && Number.isFinite(inp.bandTol) && inp.bandTol > 0) ? inp.bandTol : 0.6 * h
-    const nF = normalize3(inp.fixed.normal); if (!nF) return fail('固定面法向量为零')
-    const nL = normalize3(inp.load.normal); if (!nL) return fail('预载面法向量为零')
+    const nF = normalize3(inp.fixed.normal); if (!nF) return fail('固定面法向量為零')
+    const nL = normalize3(inp.load.normal); if (!nL) return fail('預載面法向量為零')
     const pF = inp.fixed.point, pL = inp.load.point
     const fixedNode = new Uint8Array(nNodes); const loadList: number[] = []
     for (let cId = 0; cId < nNodes; cId++) {
@@ -2155,8 +2155,8 @@ export function runVoxelPrestressedModal(inp: PrestressedModalInput): ModalResul
       const dL = Math.abs((px - pL[0]) * nL[0] + (py - pL[1]) * nL[1] + (pz - pL[2]) * nL[2])
       if (dL <= bandTol && !isFixed) loadList.push(cId)
     }
-    if (fixedCount < 3) return fail(`固定节点不足（${fixedCount} < 3）：fixed 平面可能未接触实体（试调 bandTol）`)
-    if (loadList.length < 1) return fail('预载受力节点为 0：load 平面可能未接触实体')
+    if (fixedCount < 3) return fail(`固定節點不足（${fixedCount} < 3）：fixed 平面可能未接觸實體（試調 bandTol）`)
+    if (loadList.length < 1) return fail('預載受力節點為 0：load 平面可能未接觸實體')
     const fixedMask = new Uint8Array(nDof)
     for (let cId = 0; cId < nNodes; cId++) if (fixedNode[cId]) { fixedMask[cId * 3] = 1; fixedMask[cId * 3 + 1] = 1; fixedMask[cId * 3 + 2] = 1 }
     const fLoad = new Float64Array(nDof)
@@ -2187,7 +2187,7 @@ export function runVoxelPrestressedModal(inp: PrestressedModalInput): ModalResul
     const cgMax = (inp.maxIter !== undefined && Number.isFinite(inp.maxIter) && inp.maxIter > 0) ? Math.floor(inp.maxIter) : 4000
     prog('preload', 0)
     const stat = solveCG(nDof, elemDofs, nVox, Ke, fLoad.slice(), fixedMask, cgTol, cgMax, (fr) => prog('preload', fr))
-    if (!stat.converged) warnings.push(`预载静力 CG 未收敛（残差 ${stat.residual.toExponential(2)}）：预应力近似`)
+    if (!stat.converged) warnings.push(`預載靜力 CG 未收斂（殘差 ${stat.residual.toExponential(2)}）：預應力近似`)
     const u0 = stat.u
 
     // ---- 6. 单元中心应力 → 几何刚度 Kg（逐单元存，【未取负】，镜 buckling 但 kgPerElem = +Kg）
@@ -2314,16 +2314,16 @@ export function runVoxelPrestressedModal(inp: PrestressedModalInput): ModalResul
       outFreqs.push(freqs[oi]); outIters.push(modeIters[oi]); outConv.push(modeConverged[oi])
     }
 
-    if (outFreqs.length && outFreqs[0] < 1e-6) warnings.push('最低阶频率 ≈ 0：预载接近/超过屈曲临界载荷（切线刚度失稳）— 减小压载或检查约束')
-    else if (nonPosDef) warnings.push('预载接近屈曲临界：内层 (K+Kg) 求解病态，频率为近似值（趋势级）')
-    if (outConv.some((c) => !c)) warnings.push('部分阶未在迭代上限内收敛（频率为近似值）')
+    if (outFreqs.length && outFreqs[0] < 1e-6) warnings.push('最低階頻率 ≈ 0：預載接近/超過屈曲臨界載荷（切線剛度失穩）— 減小壓載或檢查約束')
+    else if (nonPosDef) warnings.push('預載接近屈曲臨界：內層 (K+Kg) 求解病態，頻率為近似值（趨勢級）')
+    if (outConv.some((c) => !c)) warnings.push('部分階未在迭代上限內收斂（頻率為近似值）')
 
     return {
       ok: true, warnings, h, nVox, nDof, centers,
       freqs: outFreqs, shapes, amps, modeIters: outIters, modeConverged: outConv, fixedCount,
     }
   } catch (err) {
-    return fail(`内部错误：${err instanceof Error ? err.message : String(err)}`)
+    return fail(`內部錯誤：${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -2410,12 +2410,12 @@ export function runTopologyOpt(inp: TopoptInput): TopoptResult {
     complianceHistory: [], volfrac: 0, finalVol: 0, iters: 0, fixedCount, loadCount,
   })
   try {
-    if (!inp || !inp.vertices || !inp.triangles || inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空网格')
-    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 无效')
-    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 无效')
-    if (!inp.fixed?.point || !inp.fixed?.normal || !inp.load?.point || !inp.load?.normal) return fail('fixed/load 平面无效')
+    if (!inp || !inp.vertices || !inp.triangles || inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空網格')
+    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 無效')
+    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 無效')
+    if (!inp.fixed?.point || !inp.fixed?.normal || !inp.load?.point || !inp.load?.normal) return fail('fixed/load 平面無效')
     const force = inp.force
-    if (!force || !Number.isFinite(force[0] + force[1] + force[2]) || Math.hypot(force[0], force[1], force[2]) === 0) return fail('force 无效或为零')
+    if (!force || !Number.isFinite(force[0] + force[1] + force[2]) || Math.hypot(force[0], force[1], force[2]) === 0) return fail('force 無效或為零')
     const volfrac = Math.min(0.9, Math.max(0.05, Number.isFinite(inp.volfrac as number) ? (inp.volfrac as number) : 0.4))
     const penal = Math.min(5, Math.max(1, Number.isFinite(inp.penal as number) ? (inp.penal as number) : 3))
     const rmin = Math.min(6, Math.max(1.1, Number.isFinite(inp.rmin as number) ? (inp.rmin as number) : 1.5))
@@ -2426,9 +2426,9 @@ export function runTopologyOpt(inp: TopoptInput): TopoptResult {
     // 体素化 + 节点映射（同 runVoxelFea）
     const grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog('voxelize', fr))
     h = grid.h; nVox = grid.nVox
-    if (!(h > 0)) return fail('包围盒退化')
-    if (nVox < 8) return fail(`实体体素不足（${nVox} < 8）`)
-    if (nVox > 30000) return fail(`体素过多（${nVox} > 30000）：拓扑优化请降低 resolution`)
+    if (!(h > 0)) return fail('包圍盒退化')
+    if (nVox < 8) return fail(`實體體素不足（${nVox} < 8）`)
+    if (nVox > 30000) return fail(`體素過多（${nVox} > 30000）：拓撲最佳化請降低 resolution`)
     const { nx, ny, nz, ox, oy, oz, solid } = grid
     const nnx = nx + 1, nny = ny + 1, nnz = nz + 1
     const nodeId = new Int32Array(nnx * nny * nnz).fill(-1)
@@ -2444,8 +2444,8 @@ export function runTopologyOpt(inp: TopoptInput): TopoptResult {
 
     // 边界 + 载荷（同 runVoxelFea）
     const bandTol = (inp.bandTol !== undefined && Number.isFinite(inp.bandTol) && inp.bandTol > 0) ? inp.bandTol : 0.6 * h
-    const nF = normalize3(inp.fixed.normal); if (!nF) return fail('固定面法向量为零')
-    const nL = normalize3(inp.load.normal); if (!nL) return fail('受力面法向量为零')
+    const nF = normalize3(inp.fixed.normal); if (!nF) return fail('固定面法向量為零')
+    const nL = normalize3(inp.load.normal); if (!nL) return fail('受力面法向量為零')
     const pF = inp.fixed.point, pL = inp.load.point
     const fixedNode = new Uint8Array(nNodes); const loadList: number[] = []
     for (let cId = 0; cId < nNodes; cId++) {
@@ -2458,9 +2458,9 @@ export function runTopologyOpt(inp: TopoptInput): TopoptResult {
       const dL = Math.abs((px - pL[0]) * nL[0] + (py - pL[1]) * nL[1] + (pz - pL[2]) * nL[2])
       if (dL <= bandTol && !isFixed) loadList.push(cId)
     }
-    if (fixedCount < 3) return fail(`固定节点不足（${fixedCount} < 3）`)
+    if (fixedCount < 3) return fail(`固定節點不足（${fixedCount} < 3）`)
     loadCount = loadList.length
-    if (loadCount < 1) return fail('受力节点为 0')
+    if (loadCount < 1) return fail('受力節點為 0')
     const fixedMask = new Uint8Array(nDof)
     for (let cId = 0; cId < nNodes; cId++) if (fixedNode[cId]) { fixedMask[cId * 3] = 1; fixedMask[cId * 3 + 1] = 1; fixedMask[cId * 3 + 2] = 1 }
     const f = new Float64Array(nDof)
@@ -2563,14 +2563,14 @@ export function runTopologyOpt(inp: TopoptInput): TopoptResult {
 
     let finalVol = 0; for (let el = 0; el < nVox; el++) finalVol += x[el]
     finalVol /= nVox
-    if (loop >= maxLoop && change > 0.01) warnings.push(`未在 ${maxLoop} 迭代内收敛（密度变化 ${change.toFixed(3)}）`)
+    if (loop >= maxLoop && change > 0.01) warnings.push(`未在 ${maxLoop} 迭代內收斂（密度變化 ${change.toFixed(3)}）`)
     return {
       ok: true, warnings, h, nVox, nDof, centers,
       density: Float32Array.from(x), complianceHistory, volfrac, finalVol,
       iters: loop, fixedCount, loadCount,
     }
   } catch (err) {
-    return fail(`内部错误：${err instanceof Error ? err.message : String(err)}`)
+    return fail(`內部錯誤：${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -2643,18 +2643,18 @@ export function runVoxelThermal(inp: ThermalInput): ThermalResult {
     tMin: 0, tMax: 0, heatFlowW: 0, hotCount, coldCount, converged: false,
   })
   try {
-    if (!inp || !inp.vertices || !inp.triangles || inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空网格')
-    if (!inp.hot?.point || !inp.hot?.normal || !inp.cold?.point || !inp.cold?.normal) return fail('热/冷面无效')
-    if (!Number.isFinite(inp.Thot) || !Number.isFinite(inp.Tcold)) return fail('温度无效')
-    if (!Number.isFinite(inp.k) || !(inp.k > 0)) return fail('导热系数 k 无效（需 > 0 W/mK）')
+    if (!inp || !inp.vertices || !inp.triangles || inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空網格')
+    if (!inp.hot?.point || !inp.hot?.normal || !inp.cold?.point || !inp.cold?.normal) return fail('熱/冷面無效')
+    if (!Number.isFinite(inp.Thot) || !Number.isFinite(inp.Tcold)) return fail('溫度無效')
+    if (!Number.isFinite(inp.k) || !(inp.k > 0)) return fail('導熱系數 k 無效（需 > 0 W/mK）')
     const prog = (phase: string, frac: number): void => { const cb = inp.onProgress; if (cb) { try { cb(phase, frac) } catch { /* ignore */ } } }
     const res = clampResolution(inp.resolution)
 
     const grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog('voxelize', fr))
     h = grid.h; nVox = grid.nVox
-    if (!(h > 0)) return fail('包围盒退化')
-    if (nVox < 8) return fail(`实体体素不足（${nVox} < 8）`)
-    if (nVox > 200000) return fail(`体素过多（${nVox} > 200000）`)
+    if (!(h > 0)) return fail('包圍盒退化')
+    if (nVox < 8) return fail(`實體體素不足（${nVox} < 8）`)
+    if (nVox > 200000) return fail(`體素過多（${nVox} > 200000）`)
     const { nx, ny, nz, ox, oy, oz, solid } = grid
     const nnx = nx + 1, nny = ny + 1, nnz = nz + 1
     const nodeId = new Int32Array(nnx * nny * nnz).fill(-1)
@@ -2669,8 +2669,8 @@ export function runVoxelThermal(inp: ThermalInput): ThermalResult {
 
     // 两温度面带（Dirichlet）
     const bandTol = (inp.bandTol !== undefined && Number.isFinite(inp.bandTol) && inp.bandTol > 0) ? inp.bandTol : 0.6 * h
-    const nH = normalize3(inp.hot.normal); if (!nH) return fail('热面法向量为零')
-    const nC = normalize3(inp.cold.normal); if (!nC) return fail('冷面法向量为零')
+    const nH = normalize3(inp.hot.normal); if (!nH) return fail('熱面法向量為零')
+    const nC = normalize3(inp.cold.normal); if (!nC) return fail('冷面法向量為零')
     const pH = inp.hot.point, pC = inp.cold.point
     const Tp = new Float64Array(nNodes)
     const fixedMask = new Uint8Array(nNodes)
@@ -2686,8 +2686,8 @@ export function runVoxelThermal(inp: ThermalInput): ThermalResult {
       if (isHot) { Tp[cId] = inp.Thot; fixedMask[cId] = 1; hotCount++ }
       else if (isCold) { Tp[cId] = inp.Tcold; fixedMask[cId] = 1; coldCount++ }
     }
-    if (overlap > 0) warnings.push(`热/冷带重叠 ${overlap} 节点（已跳过）`)
-    if (hotCount < 1 || coldCount < 1) return fail(`定温节点不足（热 ${hotCount} / 冷 ${coldCount}）：面可能未接触实体`)
+    if (overlap > 0) warnings.push(`熱/冷帶重疊 ${overlap} 節點（已跳過）`)
+    if (hotCount < 1 || coldCount < 1) return fail(`定溫節點不足（熱 ${hotCount} / 冷 ${coldCount}）：面可能未接觸實體`)
 
     // 单元节点表（标量：每节点 1 DOF）
     const elemNodes = new Int32Array(nVox * 8)
@@ -2751,7 +2751,7 @@ export function runVoxelThermal(inp: ThermalInput): ThermalResult {
         if ((it & 63) === 0) prog('solve', it / cgMax)
       }
     }
-    if (!converged) warnings.push('热传导 CG 未完全收敛（温度场近似）')
+    if (!converged) warnings.push('熱傳導 CG 未完全收斂（溫度場近似）')
 
     // T = Tp + t'
     const T = new Float64Array(nNodes)
@@ -2773,7 +2773,7 @@ export function runVoxelThermal(inp: ThermalInput): ThermalResult {
     prog('solve', 1)
     return { ok: true, warnings, h, nVox, nNodes, centers, temp, tMin, tMax, heatFlowW, hotCount, coldCount, converged }
   } catch (err) {
-    return fail(`内部错误：${err instanceof Error ? err.message : String(err)}`)
+    return fail(`內部錯誤：${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -2836,16 +2836,16 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
   })
   try {
     // ---- 输入校验
-    if (!inp || !inp.vertices || !inp.triangles) return fail('空网格（无顶点/三角形数组）')
-    if (inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空网格（顶点/三角形不足）')
-    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 无效（需 > 0）')
-    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 无效（需 -1 < nu < 0.5）')
-    if (!Number.isFinite(inp.cte)) return fail('cte 无效（需有限值，×10⁻⁶/°C）')
-    if (!Number.isFinite(inp.k) || !(inp.k > 0)) return fail('导热系数 k 无效（需 > 0 W/mK）')
-    if (!Number.isFinite(inp.Thot) || !Number.isFinite(inp.Tcold) || !Number.isFinite(inp.Tref)) return fail('温度无效（Thot/Tcold/Tref 需有限）')
-    if (!inp.fixed || !inp.fixed.point || !inp.fixed.normal) return fail('fixed 平面无效')
-    if (!inp.hot || !inp.hot.point || !inp.hot.normal) return fail('hot 平面无效')
-    if (!inp.cold || !inp.cold.point || !inp.cold.normal) return fail('cold 平面无效')
+    if (!inp || !inp.vertices || !inp.triangles) return fail('空網格（無頂點/三角形數組）')
+    if (inp.vertices.length < 9 || inp.triangles.length < 3) return fail('空網格（頂點/三角形不足）')
+    if (!Number.isFinite(inp.E) || !(inp.E > 0)) return fail('E 無效（需 > 0）')
+    if (!Number.isFinite(inp.nu) || !(inp.nu > -0.999 && inp.nu < 0.499)) return fail('nu 無效（需 -1 < nu < 0.5）')
+    if (!Number.isFinite(inp.cte)) return fail('cte 無效（需有限值，×10⁻⁶/°C）')
+    if (!Number.isFinite(inp.k) || !(inp.k > 0)) return fail('導熱系數 k 無效（需 > 0 W/mK）')
+    if (!Number.isFinite(inp.Thot) || !Number.isFinite(inp.Tcold) || !Number.isFinite(inp.Tref)) return fail('溫度無效（Thot/Tcold/Tref 需有限）')
+    if (!inp.fixed || !inp.fixed.point || !inp.fixed.normal) return fail('fixed 平面無效')
+    if (!inp.hot || !inp.hot.point || !inp.hot.normal) return fail('hot 平面無效')
+    if (!inp.cold || !inp.cold.point || !inp.cold.normal) return fail('cold 平面無效')
 
     const prog = (phase: string, frac: number): void => {
       const cb = inp.onProgress
@@ -2861,10 +2861,10 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
     const grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog('voxelize', fr))
     h = grid.h
     nVox = grid.nVox
-    if (grid.oddColumns > 0) warnings.push(`奇异列 ${grid.oddColumns} 条（网格边/缝）`)
-    if (!(h > 0)) return fail('包围盒退化（网格无体积范围）')
-    if (nVox < 8) return fail(`实体体素不足（${nVox} < 8）：请提高 resolution 或检查网格水密性`)
-    if (nVox > 80000) return fail(`体素过多（${nVox} > 80000）：请降低 resolution`)
+    if (grid.oddColumns > 0) warnings.push(`奇異列 ${grid.oddColumns} 條（網格邊/縫）`)
+    if (!(h > 0)) return fail('包圍盒退化（網格無體積範圍）')
+    if (nVox < 8) return fail(`實體體素不足（${nVox} < 8）：請提高 resolution 或檢查網格水密性`)
+    if (nVox > 80000) return fail(`體素過多（${nVox} > 80000）：請降低 resolution`)
 
     const { nx, ny, nz, ox, oy, oz, solid } = grid
     const nnx = nx + 1, nny = ny + 1, nnz = nz + 1
@@ -2913,8 +2913,8 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
     }
 
     // ---- 4. 阶段 1：稳态温度场 T[node]（标量 Dirichlet 提升 + Jacobi-PCG，同 runVoxelThermal）
-    const nH = normalize3(inp.hot.normal); if (!nH) return fail('热面法向量为零')
-    const nC = normalize3(inp.cold.normal); if (!nC) return fail('冷面法向量为零')
+    const nH = normalize3(inp.hot.normal); if (!nH) return fail('熱面法向量為零')
+    const nC = normalize3(inp.cold.normal); if (!nC) return fail('冷面法向量為零')
     const pH = inp.hot.point, pC = inp.cold.point
     const Tp = new Float64Array(nNodes)
     const tFixed = new Uint8Array(nNodes)
@@ -2930,8 +2930,8 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
       if (isHot) { Tp[cId] = inp.Thot; tFixed[cId] = 1; hotCount++ }
       else if (isCold) { Tp[cId] = inp.Tcold; tFixed[cId] = 1; coldCount++ }
     }
-    if (tOverlap > 0) warnings.push(`热/冷带重叠 ${tOverlap} 节点（已跳过）`)
-    if (hotCount < 1 || coldCount < 1) return fail(`定温节点不足（热 ${hotCount} / 冷 ${coldCount}）：热/冷面可能未接触实体（试调 bandTol）`)
+    if (tOverlap > 0) warnings.push(`熱/冷帶重疊 ${tOverlap} 節點（已跳過）`)
+    if (hotCount < 1 || coldCount < 1) return fail(`定溫節點不足（熱 ${hotCount} / 冷 ${coldCount}）：熱/冷面可能未接觸實體（試調 bandTol）`)
 
     const kmm = inp.k * 1e-3   // W/(m·K) → W/(mm·K)
     const Kth = buildKth(kmm, h)
@@ -2975,7 +2975,7 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
         if ((it & 63) === 0) prog('thermal', it / thCgMax)
       }
     }
-    if (!thConverged) warnings.push('热传导 CG 未完全收敛（温度场近似）')
+    if (!thConverged) warnings.push('熱傳導 CG 未完全收斂（溫度場近似）')
     const T = new Float64Array(nNodes)
     for (let i = 0; i < nNodes; i++) T[i] = Tp[i] + tpv[i]
     prog('thermal', 1)
@@ -3028,7 +3028,7 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
       const ax = Math.abs(nv[0]), ay = Math.abs(nv[1]), az = Math.abs(nv[2])
       const axis = ax >= ay && ax >= az ? 0 : ay >= az ? 1 : 2
       if (fixCon === 'roller' && Math.max(ax, ay, az) < 0.94) {
-        warnings.push(`滚子约束法向非轴向（主轴 ${(Math.max(ax, ay, az) * 100).toFixed(0)}%）：已近似为只锁 ${['X', 'Y', 'Z'][axis]} 轴`)
+        warnings.push(`滾子約束法向非軸向（主軸 ${(Math.max(ax, ay, az) * 100).toFixed(0)}%）：已近似為只鎖 ${['X', 'Y', 'Z'][axis]} 軸`)
       }
       bands.push({ n: nv, p: pick.point, axis })
       return true
@@ -3052,7 +3052,7 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
       }
       if (touched) fixedCount++
     }
-    if (fixedCount < 3) return fail(`固定节点不足（${fixedCount} < 3）：fixed 平面可能未接触实体（试调 bandTol）`)
+    if (fixedCount < 3) return fail(`固定節點不足（${fixedCount} < 3）：fixed 平面可能未接觸實體（試調 bandTol）`)
     // loadCount 记热载荷带节点数（热/冷定温节点）— 同结构 load 概念对应。
     loadCount = hotCount + coldCount
 
@@ -3063,7 +3063,7 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
       ? Math.floor(inp.maxIter) : 4000
     prog('solve', 0)
     const sol = solveCG(nDof, elemDofs, nVox, Ke, f, fixedMask, tol, maxIter, (fr) => prog('solve', fr))
-    if (!sol.converged) warnings.push(`CG 未收敛：${sol.iters} 次后相对残差 ${sol.residual.toExponential(2)}`)
+    if (!sol.converged) warnings.push(`CG 未收斂：${sol.iters} 次後相對殘差 ${sol.residual.toExponential(2)}`)
 
     // ---- 8. 应力 σ = D·(B·u_e − ε₀)（−ε₀ 减项系关键），von Mises
     prog('stress', 0)
@@ -3100,9 +3100,9 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
     prog('stress', 1)
     if (vmNonFinite) {
       vmMax = NaN
-      warnings.push('应力非有限（NaN/Infinity）：数值极端，结果不可信')
+      warnings.push('應力非有限（NaN/Infinity）：數值極端，結果不可信')
     } else if (!Number.isFinite(Math.fround(vmMax))) {
-      warnings.push(`应力超出 Float32 上限（vmMax=${vmMax.toExponential(3)} MPa）：vm 数组含 Infinity，云图/数值不可信`)
+      warnings.push(`應力超出 Float32 上限（vmMax=${vmMax.toExponential(3)} MPa）：vm 數組含 Infinity，雲圖/數值不可信`)
     }
 
     let dispMax = 0, dispNonFinite = false
@@ -3113,7 +3113,7 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
     }
     if (dispNonFinite) {
       dispMax = NaN
-      warnings.push('位移非有限（NaN/Infinity）：数值极端，结果不可信')
+      warnings.push('位移非有限（NaN/Infinity）：數值極端，結果不可信')
     }
     const vmMaxAt: [number, number, number] = [
       ox + (elemIdx[vmMaxE * 3] + 0.5) * h,
@@ -3128,7 +3128,7 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
       fixedCount, loadCount,
     }
   } catch (err) {
-    return fail(`内部错误：${err instanceof Error ? err.message : String(err)}`)
+    return fail(`內部錯誤：${err instanceof Error ? err.message : String(err)}`)
   }
 }
 

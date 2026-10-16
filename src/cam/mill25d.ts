@@ -142,7 +142,7 @@ function toCCWLoop(p: Profile2D, cleaned: Pt[]): Loop {
  *  退化（段反向 / 段塌缩）→ throw。 */
 function offsetOutward(verts: Pt[], bulges: number[], d: number): Loop {
   const n = verts.length
-  if (n < 2) throw new Error('路径至少需 2 个顶点')
+  if (n < 2) throw new Error('路徑至少需 2 個頂點')
   // 每段「天然偏移」：新端点 + 原切向（接缝判向用）
   type NSeg = {
     line: boolean
@@ -155,7 +155,7 @@ function offsetOutward(verts: Pt[], bulges: number[], d: number): Loop {
     const a = verts[i], b = verts[(i + 1) % n], bu = bulges[i] ?? 0
     const dx = b[0] - a[0], dy = b[1] - a[1]
     const len = Math.hypot(dx, dy)
-    if (len < EPS) throw new Error('路径含重合点, 无法偏移')
+    if (len < EPS) throw new Error('路徑含重合點, 無法偏移')
     if (Math.abs(bu) < EPS) {
       const ux = dx / len, uy = dy / len
       const nx = uy, ny = -ux // CCW 外法线 = 行进右手边
@@ -167,7 +167,7 @@ function offsetOutward(verts: Pt[], bulges: number[], d: number): Loop {
     } else {
       const c = bulgeCenter(a, b, bu), R = bulgeRadius(a, b, bu), sgn = bu > 0 ? 1 : -1
       const r2 = bu < 0 ? R + d : R - d // CCW：bulge<0 凸向外 → 半径加；bulge>0 凹 → 减
-      if (r2 < EPS) throw new Error('凹位圆弧细过刀半径')
+      if (r2 < EPS) throw new Error('凹位圓弧細過刀半徑')
       const k = r2 / R
       // 切向 = 半径向量转 90°，方向睇绕心走向（bulge>0 = 绕心顺时针）
       const tang = (p: Pt): Pt => {
@@ -204,7 +204,7 @@ function offsetOutward(verts: Pt[], bulges: number[], d: number): Loop {
     } else {
       // 凹角（右转）→ 重叠 → 修剪。v1 净支持直-直求交（凹角连弧好少见，
       // 圆角矩形/slot 全部系相切接缝行唔到呢度）。
-      if (!(sp.line && sq.line)) throw new Error('凹角连弧段 v1 偏移未支持')
+      if (!(sp.line && sq.line)) throw new Error('凹角連弧段 v1 偏移未支持')
       const d1x = sp.b[0] - sp.a[0], d1y = sp.b[1] - sp.a[1]
       const d2x = sq.b[0] - sq.a[0], d2y = sq.b[1] - sq.a[1]
       const cr = d1x * d2y - d1y * d2x
@@ -221,9 +221,9 @@ function offsetOutward(verts: Pt[], bulges: number[], d: number): Loop {
     const si = spanSeg[k]
     if (si < 0) { outB.push(spanArc[k]); continue }
     const sg = segs[si]
-    if (dist(A, B) < EPS) throw new Error('偏移后段塌缩')
+    if (dist(A, B) < EPS) throw new Error('偏移後段塌縮')
     if (sg.line) {
-      if ((B[0] - A[0]) * sg.dIn[0] + (B[1] - A[1]) * sg.dIn[1] <= 0) throw new Error('偏移后段反向')
+      if ((B[0] - A[0]) * sg.dIn[0] + (B[1] - A[1]) * sg.dIn[1] <= 0) throw new Error('偏移後段反向')
       outB.push(0)
     } else {
       const phiA = Math.atan2(A[1] - sg.cy, A[0] - sg.cx)
@@ -367,7 +367,7 @@ export function profilesToMillGcode(profiles: Profile2D[], opts: MillOpts): { gc
     ['feedXY', opts.feedXY], ['feedZ', opts.feedZ], ['rpm', opts.rpm], ['safeZ', opts.safeZ],
   ]
   for (const [k, v] of checks) {
-    if (!(Number.isFinite(v) && v > 0)) throw new Error(`参数 ${k} 必须为正数（目前是 ${v}）`)
+    if (!(Number.isFinite(v) && v > 0)) throw new Error(`參數 ${k} 必須為正數（目前是 ${v}）`)
   }
   // stepover clamp 到 [toolD*0.2, toolD*0.9]：太细嘥时间，太大留脊
   const stepover = Math.min(opts.toolD * 0.9, Math.max(opts.toolD * 0.2, opts.stepover ?? opts.toolD * 0.45))

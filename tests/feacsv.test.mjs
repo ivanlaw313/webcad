@@ -15,8 +15,8 @@ const linesMin = csvMin.split('\r\n');
 ok(csvMin.charCodeAt(0) === 0xFEFF, `UTF-8 BOM 前缀 (charCode ${csvMin.charCodeAt(0).toString(16)})`);
 // summary 11 行 + blank + header + 2 data = 15
 ok(linesMin.length === 15, `最小：行数 = 11摘要+1空+1头+2体素 = 15 (实际 ${linesMin.length})`);
-ok(linesMin.some((l) => l.startsWith('安全系数 SF,2.5')), `SF = sy/vmMax = 250/100 = 2.5 (${linesMin.find((l) => l.startsWith('安全系数'))})`);
-const hdrMin = linesMin.find((l) => l.startsWith('序号'));
+ok(linesMin.some((l) => l.startsWith('安全系數 SF,2.5')), `SF = sy/vmMax = 250/100 = 2.5 (${linesMin.find((l) => l.startsWith('安全系數'))})`);
+const hdrMin = linesMin.find((l) => l.startsWith('序號'));
 ok(hdrMin.split(',').length === 7, `最小表头 7 列（无 σ/sed）(实际 ${hdrMin.split(',').length})`);
 const dataMin = linesMin[linesMin.length - 2]; // first data row (序号 1)
 ok(dataMin.startsWith('1,0,0,0,100,,0.1'), `首体素行：1,x,y,z,vm,(空平滑),disp = "${dataMin}"`);
@@ -30,11 +30,11 @@ const full = {
 };
 const csvFull = buildFeaCsv(full);
 const linesFull = csvFull.split('\r\n');
-const hdrFull = linesFull.find((l) => l.startsWith('序号'));
+const hdrFull = linesFull.find((l) => l.startsWith('序號'));
 ok(hdrFull.split(',').length === 11, `完整表头 11 列（+σ1/σ3/τ +应变能）(实际 ${hdrFull.split(',').length})`);
 ok(linesFull.some((l) => l.startsWith('支座反力')), '完整：有支座反力行');
 ok(linesFull.some((l) => l.startsWith('|反力| (N),37.4')), '完整：|反力| 行 = 37.4');
-ok(linesFull.some((l) => l.startsWith('收敛,否')), '完整：收敛=否');
+ok(linesFull.some((l) => l.startsWith('收斂,否')), '完整：收敛=否');
 ok(linesFull.some((l) => l.includes('网格粗; 近边界')), '完整：警告用 ; 连接');
 const dataFull = linesFull[linesFull.length - 1];
 ok(dataFull === '1,1,2,3,120,118,0.2,130,-15,72,0.0042', `完整体素行全列 = "${dataFull}"`);
@@ -46,7 +46,7 @@ ok(csvC.includes('材料,"钢, AISI 1045"'), `含逗号材质名被引号包裹 
 
 // ---- T4 vmMax=0 → SF = N/A（无除零）----
 const zero = { ...minimal, vmMax: 0, vm: [0, 0] };
-ok(buildFeaCsv(zero).split('\r\n').some((l) => l === '安全系数 SF,N/A'), 'vmMax=0 → SF=N/A（唔除零）');
+ok(buildFeaCsv(zero).split('\r\n').some((l) => l === '安全系數 SF,N/A'), 'vmMax=0 → SF=N/A（唔除零）');
 
 // ---- T5 行数随 nVox 线性（大网格）----
 const big = { ...minimal, nVox: 100, centers: new Float32Array(300), vm: new Float32Array(100), disp: new Float32Array(100) };

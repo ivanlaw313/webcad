@@ -25,16 +25,16 @@ export interface HdriPreset {
 
 // drei 官方支持嘅全部 10 个 CC0 preset（次序按由「中性影棚」到「室外/特殊」排）。
 export const HDRI_PRESETS: readonly HdriPreset[] = [
-  { id: 'studio',    label: '影棚 Studio',       hint: '柔和均匀，中性白 — 产品/工业件展示首选' },
-  { id: 'apartment', label: '室内 Apartment',    hint: '暖调室内漫射光，柔反射' },
-  { id: 'lobby',     label: '大堂 Lobby',        hint: '室内大空间，多向柔光 + 暖木色' },
-  { id: 'warehouse', label: '仓库 Warehouse',    hint: '空旷工业室内，冷顶光' },
-  { id: 'city',      label: '城市 City',         hint: '都市广场，中性偏冷，多反射细节' },
-  { id: 'park',      label: '公园 Park',         hint: '室外绿地天光，自然柔和' },
-  { id: 'forest',    label: '森林 Forest',       hint: '林间斜光，绿色环境反射' },
-  { id: 'dawn',      label: '黎明 Dawn',         hint: '低角度暖橙日出光，长阴影' },
-  { id: 'sunset',    label: '日落 Sunset',       hint: '威尼斯日落，强暖调 + 高对比' },
-  { id: 'night',     label: '夜晚 Night',        hint: '低照度夜空，需调高曝光' },
+  { id: 'studio',    label: '影棚 Studio',       hint: '柔和均勻，中性白 — 產品/工業件展示首選' },
+  { id: 'apartment', label: '室內 Apartment',    hint: '暖調室內漫射光，柔反射' },
+  { id: 'lobby',     label: '大堂 Lobby',        hint: '室內大空間，多向柔光 + 暖木色' },
+  { id: 'warehouse', label: '倉庫 Warehouse',    hint: '空曠工業室內，冷頂光' },
+  { id: 'city',      label: '城市 City',         hint: '都市廣場，中性偏冷，多反射細節' },
+  { id: 'park',      label: '公園 Park',         hint: '室外綠地天光，自然柔和' },
+  { id: 'forest',    label: '森林 Forest',       hint: '林間斜光，綠色環境反射' },
+  { id: 'dawn',      label: '黎明 Dawn',         hint: '低角度暖橙日出光，長陰影' },
+  { id: 'sunset',    label: '日落 Sunset',       hint: '威尼斯日落，強暖調 + 高對比' },
+  { id: 'night',     label: '夜晚 Night',        hint: '低照度夜空，需調高曝光' },
 ] as const
 
 export const DEFAULT_HDRI_PRESET: HdriPresetId = 'studio'

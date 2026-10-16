@@ -84,11 +84,11 @@ export function invalidateSimResultsPatch(reason: string): {
     windReport: '',
     feaDeform: { show: false, anim: false, scale: 1, real: true, mag: 1 },
     feaStale: true,
-    status: `⚠ 仿真结果已失效（${reason}）— 请重新运行`,
+    status: `⚠ 模擬結果已失效（${reason}）— 請重新運行`,
   }
 }
 
 /** Visible copy for FEA panel + viewport strip (QA looks for 失效). */
 export function feaStaleBannerText(): string {
-  return '⚠ 结果已失效 — 约束或几何已改，请重新运行（旧彩图已清除）'
+  return '⚠ 結果已失效 — 約束或幾何已改，請重新運行（舊彩圖已清除）'
 }

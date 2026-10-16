@@ -57,9 +57,9 @@ export function meshToFinishGcode(
     warnings.push(msg)
     return { gcode: '', warnings, nx: 0, ny: 0, gridPitch: 0, passes: 0, points: 0, cutLen: 0, zRange: [0, 0] }
   }
-  if (!vertices || !triangles || vertices.length < 9 || triangles.length < 3) return empty('空网格（顶点/三角形不足）')
+  if (!vertices || !triangles || vertices.length < 9 || triangles.length < 3) return empty('空網格（頂點/三角形不足）')
   const r = opts.toolD / 2
-  if (!(r > 0)) return empty('刀径无效（需 > 0）')
+  if (!(r > 0)) return empty('刀徑無效（需 > 0）')
 
   // ---- 包围盒（CAD）
   let minx = Infinity, miny = Infinity, minz = Infinity, maxx = -Infinity, maxy = -Infinity, maxz = -Infinity
@@ -69,12 +69,12 @@ export function meshToFinishGcode(
     if (x > maxx) maxx = x; if (y > maxy) maxy = y; if (z > maxz) maxz = z
   }
   const spanX = maxx - minx, spanY = maxy - miny
-  if (!(spanX > 0) || !(spanY > 0)) return empty('包围盒退化（XY 无范围）')
+  if (!(spanX > 0) || !(spanY > 0)) return empty('包圍盒退化（XY 無範圍）')
 
   const pitch = clamp(opts.gridPitch && opts.gridPitch > 0 ? opts.gridPitch : Math.min(opts.stepover, r) / 1.5, 0.15, 2)
   const nx = Math.max(2, Math.ceil(spanX / pitch) + 1)
   const ny = Math.max(2, Math.ceil(spanY / pitch) + 1)
-  if (nx * ny > 4_000_000) return empty(`zmap 过大（${nx}×${ny}）：请放大 gridPitch 或缩小模型`)
+  if (nx * ny > 4_000_000) return empty(`zmap 過大（${nx}×${ny}）：請放大 gridPitch 或縮小模型`)
 
   // ---- ① 顶面高度图 zmap（-Inf = 无料）
   const NEG = -Infinity
@@ -121,11 +121,11 @@ export function meshToFinishGcode(
   // 有料格数
   let filled = 0
   for (let i = 0; i < zmap.length; i++) if (zmap[i] > NEG) filled++
-  if (filled === 0) return empty('栅格化后无顶面（网格可能无水平投影面）')
+  if (filled === 0) return empty('栅格化後無頂面（網格可能無水平投影面）')
 
   const zFloor = (opts.zFloor !== undefined && Number.isFinite(opts.zFloor)) ? opts.zFloor : minz
   const safeZ = (Number.isFinite(opts.safeZ) ? opts.safeZ : maxz + 5)
-  if (safeZ <= maxz) warnings.push(`安全高 ${safeZ} ≤ 顶面 ${maxz.toFixed(2)}：可能撞料，建议调高`)
+  if (safeZ <= maxz) warnings.push(`安全高 ${safeZ} ≤ 頂面 ${maxz.toFixed(2)}：可能撞料，建議調高`)
 
   // footprint 内格偏移（相对刀心格），预算 √(r²−d²)
   const rCells = Math.max(1, Math.ceil(r / pitch))
@@ -199,7 +199,7 @@ export function meshToFinishGcode(
   }
   L.push(`G0 Z${fmt(safeZ)}`, 'M5', 'M2')
 
-  if (points === 0) return empty('无切削点（footprint 全程无料 — 检查刀径/模型）')
+  if (points === 0) return empty('無切削點（footprint 全程無料 — 檢查刀徑/模型）')
   if (!Number.isFinite(zMinTip)) { zMinTip = zFloor; zMaxTip = maxz }
 
   return {
@@ -234,10 +234,10 @@ export interface Rough3DResult {
 export function meshToRoughGcode(vertices: ArrayLike<number>, triangles: ArrayLike<number>, opts: Rough3DOpts): Rough3DResult {
   const warnings: string[] = []
   const empty = (msg: string): Rough3DResult => { warnings.push(msg); return { gcode: '', warnings, nx: 0, ny: 0, gridPitch: 0, layers: 0, points: 0, cutLen: 0, minClearance: 0 } }
-  if (!vertices || !triangles || vertices.length < 9 || triangles.length < 3) return empty('空网格（顶点/三角形不足）')
+  if (!vertices || !triangles || vertices.length < 9 || triangles.length < 3) return empty('空網格（頂點/三角形不足）')
   const r = opts.toolD / 2
-  if (!(r > 0)) return empty('刀径无效')
-  if (!(opts.stepdown > 0)) return empty('每层切深 stepdown 需 > 0')
+  if (!(r > 0)) return empty('刀徑無效')
+  if (!(opts.stepdown > 0)) return empty('每層切深 stepdown 需 > 0')
 
   let minx = Infinity, miny = Infinity, minz = Infinity, maxx = -Infinity, maxy = -Infinity, maxz = -Infinity
   for (let i = 0; i < vertices.length; i += 3) {
@@ -246,12 +246,12 @@ export function meshToRoughGcode(vertices: ArrayLike<number>, triangles: ArrayLi
     if (x > maxx) maxx = x; if (y > maxy) maxy = y; if (z > maxz) maxz = z
   }
   const spanX = maxx - minx, spanY = maxy - miny
-  if (!(spanX > 0) || !(spanY > 0)) return empty('包围盒退化（XY 无范围）')
+  if (!(spanX > 0) || !(spanY > 0)) return empty('包圍盒退化（XY 無範圍）')
   const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x))
   const fmt = (x: number) => String(+(Math.abs(x) < 1e-9 ? 0 : x).toFixed(3))
   const pitch = clamp(opts.gridPitch && opts.gridPitch > 0 ? opts.gridPitch : Math.min(opts.stepover, r) / 1.5, 0.15, 2)
   const nx = Math.max(2, Math.ceil(spanX / pitch) + 1), ny = Math.max(2, Math.ceil(spanY / pitch) + 1)
-  if (nx * ny > 4_000_000) return empty(`zmap 过大（${nx}×${ny}）`)
+  if (nx * ny > 4_000_000) return empty(`zmap 過大（${nx}×${ny}）`)
 
   // 顶面高度图（同 finish）
   const NEG = -Infinity
@@ -291,7 +291,7 @@ export function meshToRoughGcode(vertices: ArrayLike<number>, triangles: ArrayLi
   const allowance = (opts.allowance !== undefined && opts.allowance >= 0) ? opts.allowance : 0.5
   const stockTop = (opts.stockTop !== undefined && Number.isFinite(opts.stockTop)) ? opts.stockTop : maxz
   const safeZ = Number.isFinite(opts.safeZ) ? opts.safeZ : maxz + 5
-  if (safeZ <= stockTop) warnings.push(`安全高 ${safeZ} ≤ 毛坯顶 ${stockTop.toFixed(2)}：建议调高`)
+  if (safeZ <= stockTop) warnings.push(`安全高 ${safeZ} ≤ 毛坯頂 ${stockTop.toFixed(2)}：建議調高`)
   const samplePitch = clamp(opts.samplePitch && opts.samplePitch > 0 ? opts.samplePitch : pitch, 0.1, 5)
   const stepover = opts.stepover > 0 ? opts.stepover : r * 0.8
 
@@ -335,7 +335,7 @@ export function meshToRoughGcode(vertices: ArrayLike<number>, triangles: ArrayLi
     }
   }
   L.push(`G0 Z${fmt(safeZ)}`, 'M5', 'M2')
-  if (points === 0) return empty('无粗加工切削点（零件已填满毛坯，或余量太大）')
+  if (points === 0) return empty('無粗加工切削點（零件已填滿毛坯，或餘量太大）')
   if (!Number.isFinite(minClear)) minClear = 0
   return { gcode: L.join('\n') + '\n', warnings, nx, ny, gridPitch: pitch, layers: levels.length, points, cutLen, minClearance: minClear }
 }

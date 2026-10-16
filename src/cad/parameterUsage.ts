@@ -9,7 +9,7 @@ export function parameterUsage(params: Parameter[], sources: Record<string,{cons
   for (const c of cons) if(c.kind==='dim') nodes.set(`dimension:${c.id}`,{label:`${sketch} · ${c.name || c.id}`,refs:[...Object.values(c.refs??{}),...(c.paramId?[c.paramId]:c.param?[parameterId(params.find(p=>p.name===c.param)??{name:c.param,value:0})]:[])]})
  }
  for(const [id,src] of Object.entries(sources)) dimensions(src.cons??[],id)
- dimensions(live,'当前草图')
+ dimensions(live,'當前草圖')
  for(const f of features) if(f.distanceExpression) nodes.set(`feature:${f.id}`,{label:`特征 ${f.id}`,refs:Object.values(f.distanceExpression.refs)})
  for(const [key,name] of Object.entries(bindings)) { const p=params.find(p=>p.name===name);if(p)nodes.set(`binding:${key}`,{label:`特征尺寸 ${key}`,refs:[parameterId(p)]}) }
  return (p:Parameter):string[] => {

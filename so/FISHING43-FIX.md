@@ -3,7 +3,7 @@
 **Date:** 2026-10-16 (HK)  
 **Branch:** `fix/fishing43-sc-leftovers-formal-tc`  
 **Base:** tip `d7f0b03` (FISHING42 live)  
-**Tip:** `87085f7` (`87085f7915f4e79c838aa9b79ba823cea4a7f286`)
+**Tip:** `2cf191b` (`2cf191bc467df0710af41732612df0924aed2bb6`)
 
 ## Scan
 

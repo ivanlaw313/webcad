@@ -776,9 +776,9 @@ function makeLoftSolid(f: LoftFeature, warnings: string[]): any {
   // 導軌：每截面一點（點數 = 截面數，次序 = 截面次序）
   if (f.rails?.length) {
     const rail = f.rails[0]
-    if (f.rails.length > 1) warnings.push('⚠ 放樣導軌：暫時只用第 1 條導軌，其餘已忽略')
+    if (f.rails.length > 1) warnings.push('放樣導軌：暫時只用第 1 條導軌，其餘已忽略')
     if (!rail || rail.length !== wires.length) {
-      warnings.push(`⚠ 放樣導軌：導軌要每個截面一點（目前 ${rail?.length ?? 0} 點、${wires.length} 個截面）— 導軌已忽略`)
+      warnings.push(`放樣導軌：導軌要每個截面一點（目前 ${rail?.length ?? 0} 點、${wires.length} 個截面）— 導軌已忽略`)
     } else {
       const loops = wires.map((w) => sampleWirePts(_oc, w, 96))
       const offs = railFollowOffsets(loops, rail)
@@ -790,7 +790,7 @@ function makeLoftSolid(f: LoftFeature, warnings: string[]): any {
   // 閉環：末截面接返首截面（ThruSections 冇 periodic → 首截面 wire 再加一次，接縫 C0）
   if (f.closed) {
     if (wires.length >= 3) { wires = [...wires, wires[0]]; warnings.push('閉環放樣：末截面已接回首截面（接縫位只是 C0 連續）') }
-    else warnings.push('⚠ 閉環放樣要 ≥3 個截面 — 已按開放放樣')
+    else warnings.push('閉環放樣要 ≥3 個截面 — 已按開放放樣')
   }
   const base = { ruled: !!f.ruled }
   let res: ReturnType<typeof buildLoft> | null = null
@@ -799,7 +799,7 @@ function makeLoftSolid(f: LoftFeature, warnings: string[]): any {
     res = buildLoft(_oc, wires, { ...base, ...(f.continuity && !f.ruled ? { continuity: f.continuity } : {}), ...(f.capPoint ? { capPoint: f.capPoint, capEnd: f.capEnd } : {}) })
   } catch (e) {
     if (!extra || wires.length < 2) throw e
-    warnings.push(`⚠ ${f.capPoint ? '封口點' : f.continuity === 'C2' ? '曲率連續' : '切線連續'}放樣失敗，已退回普通放樣`)
+    warnings.push(`${f.capPoint ? '封口點' : f.continuity === 'C2' ? '曲率連續' : '切線連續'}放樣失敗，已退回普通放樣`)
     res = buildLoft(_oc, wires, base)
   }
   let lofted: any = res.shape
@@ -838,7 +838,7 @@ function makeLoftSolid(f: LoftFeature, warnings: string[]): any {
     if (!hollowed) hollowed = insetLoft()
     if (!hollowed) hollowed = tryShell(res.first, f.wall)
     if (hollowed) lofted = hollowed
-    else warnings.push(`⚠ 放樣薄壁 ${f.wall}mm 失敗，已退回實心放樣（請減小薄壁厚度或簡化截面）`)
+    else warnings.push(`放樣薄壁 ${f.wall}mm 失敗，已退回實心放樣（請減小薄壁厚度或簡化截面）`)
   }
   return lofted
 }
@@ -2087,7 +2087,8 @@ function chamferAsym(shape: any, d1: number, second: number, mode: 'two' | 'angl
   } catch (e) {
     // P1 B：唔可以確定後靜默改等距 — 誠實失敗，保留上一個有效模型（commit／rebuild 會顯示繁體原因）。
     const kind = mode === 'angle' ? '距離與角度' : '雙距離'
-    throw new Error(`${kind}倒角失敗（內核未能建立不對稱斜面：${(e as Error)?.message || e}）— 請改用等距，或調整所選稜／尺寸`)
+    console.warn('[chamfer] asymmetric kernel failure:', (e as Error)?.message || e)   // 內核英文原文只留 console（診斷）
+    throw new Error(`${kind}倒角失敗（內核未能建立不對稱斜面）— 請改用等距，或調整所選稜／尺寸`)
   }
 }
 
@@ -4948,7 +4949,7 @@ function buildShape(features: Feature[], noCache = false): any {
             for (let i = 1; i < s.pts.length; i++) pen = pen.lineTo([s.pts[i][0], s.pts[i][1]])
             return (pen.done().sketchOnPlane('XY', s.z) as any).wire
           })
-          if (new Set(secs.map((s) => s.pts.length)).size > 1) buildWarnings.push('⚠ 规则曲面：各截面顶点数不一致 — ThruSections 线性配对，形状可能扭曲')
+          if (new Set(secs.map((s) => s.pts.length)).size > 1) buildWarnings.push('規則曲面：各截面頂點數不一致 — ThruSections 線性配對，形狀可能扭曲')
           const sheet: any = loft(wires as any, { ruled: true } as any, true as any)   // returnShell=true → 开放直纹 Shell
           if (sheet && sheet.wrapped && !sheet.wrapped.IsNull()) parkedBodies.push({ name: '规则曲面', shape: sheet })
           else buildWarnings.push('规则曲面失败（截面无效 / ThruSections 返空）')
@@ -5378,7 +5379,7 @@ function buildShape(features: Feature[], noCache = false): any {
             for (let i = 1; i < s.pts.length; i++) pen = pen.lineTo([s.pts[i][0], s.pts[i][1]])
             return (pen.done().sketchOnPlane('XY', s.z) as any).wire
           })
-          if (new Set(secs.map((s) => s.pts.length)).size > 1) buildWarnings.push('⚠ 放样曲面：各截面顶点数不一致 — ThruSections 线性配对，形状可能扭曲')
+          if (new Set(secs.map((s) => s.pts.length)).size > 1) buildWarnings.push('放樣曲面：各截面頂點數不一致 — ThruSections 線性配對，形狀可能扭曲')
           const shell: any = loft(wires as any, { ruled: !!f.ruled } as any, true as any)   // returnShell=true → 零厚开放 Shell
           if (shell && shell.wrapped && !shell.wrapped.IsNull()) parkedBodies.push({ name: '放样曲面', shape: shell })
           else buildWarnings.push('放样曲面失败（截面无效 / ThruSections 返空）')

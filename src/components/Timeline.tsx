@@ -371,7 +371,7 @@ export default function Timeline() {
                     onDrop={(e) => { e.preventDefault(); const id = dragId; setDragId(null); setDropAt(null); if (id && id !== f.id) void useApp.getState().reorderFeature(id, i) }}
                     onDragEnd={() => { setDragId(null); setDropAt(null); /* chipDragActive 留到下一次 click 消化 */ }}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); selectFeature(f.id); setChipMenu({ x: e.clientX, y: e.clientY, id: f.id, i }) }}
-                    title={tStatus(`【${titleKind}】${nameTag}${threadTag}${paramSummary ? ' · ' + paramSummary : ''}${isCut && f.type !== 'extrude' ? '（切割）' : ''}${rolled ? ' · 已回退到此步之前 — 點擊重建到這' : suppressedIds.includes(f.id) ? ' · 已抑制（點擊編輯/恢復）' : ' · 點擊：選中編輯（參數條在下方；回卷用拖時間線 marker）'}${editDlg ? ' · 雙擊：編輯特徵（重開對話框）' : hasSketch ? ' · 雙擊：重開草圖編輯（改輪廓/約束 → 全樹重建）' : ''}${featureErrors[f.id] ? ' · 🔴 重建失敗：' + featureErrors[f.id] + '（請檢查參數後重試；以狀態欄的保留／重建結果為準）' : ''}`, lang)}
+                    title={tStatus(`【${titleKind}】${nameTag}${threadTag}${paramSummary ? ' · ' + paramSummary : ''}${isCut && f.type !== 'extrude' ? '（切割）' : ''}${rolled ? ' · 已回退到此步之前 — 點擊重建到這' : suppressedIds.includes(f.id) ? ' · 已抑制（點擊編輯/恢復）' : ' · 點擊：選中編輯（參數條在下方；回卷用拖時間線 marker）'}${editDlg ? ' · 雙擊：編輯特徵（重開對話框）' : hasSketch ? ' · 雙擊：重開草圖編輯（改輪廓/約束 → 全樹重建）' : ''}${featureErrors[f.id] ? ' · 🔴 重建失敗：' + plainFeatureError(f.type, featureErrors[f.id]) + '（請檢查參數後重試；以狀態欄的保留／重建結果為準）' : ''}`, lang)}
                     onClick={(e) => {   // detail>1 = 双击第二下（俾 onDoubleClick）。单击=只选中高亮；Ctrl/⌘+点=多选（阵列/镜像多目标）；rolled chip 点击重建到该步
                       if (e.detail > 1) return
                       // P1-RECHECK A：啱啱完成 HTML5 拖放 → 吞掉合成 click，避免開編輯條／blur 提交污染 undo

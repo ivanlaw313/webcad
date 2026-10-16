@@ -41,7 +41,7 @@ import { removeContourEdges } from './sketch/deleteSketchEdges'
 import { applySelClick, mergeSel, type ModelSelItem, type SelMod } from './cad/modelSelection'
 import { illegalRejectStatus, ILLEGAL_THICKNESS_DETAIL, ILLEGAL_LENGTH_DETAIL, ILLEGAL_HOLE_DETAIL, isNonPositiveDim } from './ui/illegalInput'
 import { splitVolumeNoteForMesh, meshVolumeMm3 } from './ui/splitVolume'
-import { formatBuildWarnings, plainFeatureError } from './ui/featureStatus'
+import { formatBuildWarnings, formatWarnList, plainFeatureError } from './ui/featureStatus'
 import { featureKindLabel } from './ui/featureLabel'
 import { boxSuccessStatus, cylSuccessStatus, sphereSuccessStatus, coneSuccessStatus, torusSuccessStatus, wedgeSuccessStatus, domeSuccessStatus, halfcylSuccessStatus, pieSuccessStatus, prismSuccessStatus, tubeSuccessStatus, rtubeSuccessStatus, coilSuccessStatus, shellSuccessStatus, extrudeSuccessStatus, extrudeExtraNote, multiProfileExtrudeStatus, booleanSuccessStatus, newBodySuccessStatus, gearSuccessStatus, wormSuccessStatus, profileSuccessStatus, profileSectionName } from './ui/featureStatus'
 import { lengthScale } from './io/units'
@@ -5561,6 +5561,25 @@ export function thickenOversizeReason(mesh: MeshData | null | undefined, t: numb
   return null
 }
 
+/** FISHING31-recheck：倒角對話框輸入閘（同加厚 thickenOversizeReason 做法一致）—— 對話框即時紅字＋閂「確定」，commitEdgeRound 亦用同一函數。
+ *  null = 可接受。距離 > 實體最長方向 → 必定做唔到（倒角距離唔可能大過相鄰面），直接拒，唔使等內核預覽失敗。 */
+export function chamferInputReason(s: { edgeRoundSize: number; chamferMode?: 'equal' | 'two' | 'angle'; chamferSize2?: number; chamferAngle?: number; bodyMesh?: { vertices?: ArrayLike<number> } | null }): string | null {
+  const d1 = Number(s.edgeRoundSize), mode = s.chamferMode ?? 'equal'
+  if (!(Number.isFinite(d1) && d1 > 0)) return mode === 'two' ? '距離 1 必須大於 0（輸入 0 無效）' : '倒角距離必須大於 0（輸入 0 無效）'
+  if (mode === 'two' && !(Number(s.chamferSize2) > 0)) return '距離 2 必須大於 0（輸入 0 無效）'
+  if (mode === 'angle' && !(Number(s.chamferAngle) > 0 && Number(s.chamferAngle) < 90)) return '角度必須大於 0° 以及小於 90°'
+  // 保守：活動體＋泊車實體一齊計最長方向（倒角可以落喺泊車實體條邊），寧願少拒都唔好誤拒
+  let maxDim = 0
+  for (const m of [s.bodyMesh, ...(((s.bodyMesh as { parked?: { vertices?: ArrayLike<number> }[] } | null | undefined)?.parked) ?? [])]) {
+    const sz = meshBboxSize(m); if (sz) maxDim = Math.max(maxDim, sz[0], sz[1], sz[2])
+  }
+  {
+    const d = Math.max(d1, mode === 'two' ? Number(s.chamferSize2) || 0 : 0)
+    if (maxDim > 0 && d > maxDim) return `尺寸已拒絕：倒角距離 ${d} mm 大過實體最長方向約 ${+maxDim.toFixed(2)} mm — 請減小距離`
+  }
+  return null
+}
+
 /** FISHING31：加厚過大閘嘅參考網格 —— 活動體；冇就用組件網格（曲面／多體情況下 bodyMesh 可能為 null，令相對閘失效）。 */
 export function thickenGateMesh(s: { bodyMesh: MeshData | null; components?: { mesh?: { vertices?: ArrayLike<number> } | null }[] }): { vertices?: ArrayLike<number> } | null {
   if (s.bodyMesh?.vertices?.length) return s.bodyMesh
@@ -5582,17 +5601,49 @@ export function thickenFeaturesOversizeReason(prev: readonly { id: string; type:
   return null
 }
 
-/** FISHING31 P2：重建警告去重 —— 同一組警告（例如掃掠尖角自動圓角 R3）只喺「改變」時顯示一次，唔再每次重建都彈。 */
+/** FISHING31 P2：重建警告去重 —— 同一條警告（例如掃掠尖角自動圓角 R3）只喺「新出現」時顯示一次，唔再每次重建都彈。
+ *  FISHING31-recheck P1：逐條去重（唔再係成組）；而且狀態提示（「已更新參數並重建 ⚠ …」）同 pill 用同一份結果。
+ *  `forced(w)` = true → 即使已顯示過都再顯示（該警告所屬嘅特徵本身今次被改／新增）。 */
 let _shownBuildWarnKey = ''
-export function dedupeBuildWarnings(prevKey: string, warnings: readonly string[]): { show: string[]; key: string } {
-  const key = [...warnings].sort().join('\u0001')
+export function dedupeBuildWarnings(prevKey: string, warnings: readonly string[], forced?: (w: string) => boolean): { show: string[]; key: string } {
   if (!warnings.length) return { show: [], key: '' }
-  return { show: key === prevKey ? [] : warnings.slice(), key }
+  const key = [...new Set(warnings)].sort().join('\u0001')
+  const seen = new Set(prevKey ? prevKey.split('\u0001') : [])
+  return { show: warnings.filter((w) => !seen.has(w) || !!forced?.(w)), key }
 }
-export function nextBuildWarnings(warnings: readonly string[] | undefined): string[] {
-  const r = dedupeBuildWarnings(_shownBuildWarnKey, warnings ?? [])
+export function nextBuildWarnings(warnings: readonly string[] | undefined, forced?: (w: string) => boolean): string[] {
+  const r = dedupeBuildWarnings(_shownBuildWarnKey, warnings ?? [], forced)
   _shownBuildWarnKey = r.key
   return r.show
+}
+/** 新檔／清空：警告去重記憶歸零（新文件第一次重建應該照顯示）。 */
+export function resetBuildWarnDedupe(): void { _shownBuildWarnKey = '' }
+/** 警告「所屬特徵類型」：按警告開頭（第一個「：」之前／頭 12 字）認關鍵字。認唔到 → null（只按內容去重）。 */
+const BUILD_WARN_OWNER: readonly [RegExp, readonly string[]][] = [
+  [/掃掠|扫掠/, ['sweep']], [/放樣|放样/, ['loft', 'loftsurface']], [/圓角|圆角/, ['fillet', 'facefillet']], [/倒角/, ['chamfer']],
+  [/抽殼|抽壳/, ['shell']], [/拔模/, ['draft']], [/加厚/, ['thickenface', 'thickenquilt']], [/拉伸/, ['extrude', 'extgroup']], [/旋轉|旋转/, ['revolve']],
+]
+export function buildWarningOwnerTypes(w: string): readonly string[] | null {
+  const t = String(w).replace(/^(?:\s|⚠|\uFE0F)+/u, '')
+  const ci = t.search(/[：:]/)
+  const head = ci > 0 ? t.slice(0, ci) : t.slice(0, 12)
+  for (const [re, types] of BUILD_WARN_OWNER) if (re.test(head)) return types
+  return null
+}
+/** 今次重建新增／改動咗嘅特徵類型（同 id 但內容唔同、或新 id）。 */
+export function changedFeatureTypes(prev: readonly { id: string; type: string }[], next: readonly { id: string; type: string }[]): Set<string> {
+  const old = new Map(prev.map((f) => [f.id, f]))
+  const out = new Set<string>()
+  for (const f of next) {
+    const o = old.get(f.id)
+    if (o === f) continue
+    if (!o || o.type !== f.type || JSON.stringify(o) !== JSON.stringify(f)) out.add(f.type)
+  }
+  return out
+}
+/** 該警告所屬特徵今次有冇被改 → 應再顯示。 */
+export function buildWarnForcedBy(changed: ReadonlySet<string>): (w: string) => boolean {
+  return (w) => { const ts = buildWarningOwnerTypes(w); return !!ts && ts.some((t) => changed.has(t)) }
 }
 
 /** CORE16：盲孔深度 ≥ 實體沿鑽孔方向嘅包圍厚度 → 回傳厚度（保守：包圍盒只會高估厚度 → 唔會誤報）。 */
@@ -6238,7 +6289,10 @@ export const useApp = create<AppState>((rawSet, get) => {
           return false
         }
         pushHistory()
-        const warn = formatBuildWarnings(mesh.warnings)
+        // FISHING31-recheck P1：狀態提示同 pill 共用去重結果 —— 已顯示過嘅警告（例如掃掠 R3 自動圓角）改其他特徵重建時唔再附喺「已更新參數並重建」後面；
+        // 除非該警告所屬特徵（掃掠）今次被改／警告內容變咗。
+        const shownWarns = nextBuildWarnings(mesh.warnings, buildWarnForcedBy(changedFeatureTypes(prev, features)))
+        const warn = formatBuildWarnings(shownWarns)
         // S107 逐特征隔离：坏特征 → 时间轴标红 + 状态提示（其余照常 build past，唔 revert 整树）
         const timelineFailures = mapKernelFailuresToTimeline(mesh.failed, bound)
         const failNote = timelineFailures.ids.length ? `　🔴 ${timelineFailures.ids.length} 個特徵重建失敗（時間軸已標紅，可改參數/抑制/刪；其餘照常重建）` : ''
@@ -6296,7 +6350,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           nextFeatures=nextFeatures.map(f=>{const r=resolved[f.id] ?? (f.type==='extgroup'?resolved[`${f.id}#0`]:undefined);return r?update(f,r):f})
           // GM-W5 5.1：rebuild 成功嘅【单一 choke point】—— 由 nextFeatures 派生 planes[]（datum 特征 → 参考面）。undo/redo/编辑/删/抑制 全部经此。
           const matSync = syncParkedBodyMaterials(s2, noTris ? null : mesh, nextFeatures)
-          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: noTris ? null : mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: nextBuildWarnings(mesh.warnings),   /* FISHING31：同一組警告唔重複彈 */ failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}), ...(hasLiveSimResults(s2) ? invalidateSimResultsPatch('幾何已改') : {}), ...matSync }
+          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: noTris ? null : mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: shownWarns,   /* FISHING31：同一警告唔重複彈（pill＋狀態提示一致） */ failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}), ...(hasLiveSimResults(s2) ? invalidateSimResultsPatch('幾何已改') : {}), ...matSync }
         })
         // Keep a live capped-section solid in sync with model edits (recompute the half from the new body).
         if (!context && get().section.on && get().section.capped) void get().refreshSectionCap()
@@ -7422,6 +7476,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (kind === 'chamfer' && get().chamferMode === 'angle' && !get().chamferRefFace) { set({ status: '距離與角度：請先選取 1 個參考面，再選取其邊界上的 1 條稜邊' }); return }
     if (kind === 'chamfer' && get().chamferMode === 'two' && !(get().chamferSize2 > 0)) { set({ status: '雙距離：距離 2 必須大於 0' }); return }
     if (kind === 'chamfer' && get().chamferMode === 'angle' && !(get().chamferAngle > 0 && get().chamferAngle < 90)) { set({ status: '距離＋角度：角度必須大於 0° 以及小於 90°' }); return }
+    if (kind === 'chamfer') { const bad = chamferInputReason(get()); if (bad) { set({ status: illegalRejectStatus(bad) }); return } }   // FISHING31-recheck：同對話框閘一致
     if (!(kind === 'fillet' && get().filletType === 'full' ? true : kind === 'fillet' && get().filletMode === 'chord' ? get().filletChord > 0 : kind === 'fillet' && get().filletMode === 'asymmetric' ? get().filletR2 > 0 && get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : kind === 'fillet' ? get().edgeRoundRadii.length === pts.length && get().edgeRoundRadii.every((r) => r > 0) : sz > 0)) { set({ status: `請輸入大於 0 的${kind === 'chamfer' ? '倒角距離' : get().filletMode === 'chord' ? '弦長' : get().filletMode === 'asymmetric' ? '兩個偏移距離' : '圓角半徑'}` }); return }
     const nears = pts.map((p) => [p[0], -p[2], p[1]] as [number, number, number])  // three-world → CAD (x,−z,y)
     const cm = get().chamferMode, d2 = get().chamferSize2, ang = get().chamferAngle
@@ -7497,7 +7552,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const failedPv = !mesh || !mesh.triangles.length || !!mesh.failed?.length
     if (!failedPv) {
       // worker 遇过大半径会自动收细 + 出 warning（唔 fail）— 预览时即场同用户讲，等佢未撳确定已知
-      const warn = mesh!.warnings && mesh!.warnings.length ? `⚠ ${mesh!.warnings.join('；')}` : ''
+      const warn = formatWarnList(mesh!.warnings)   // 單一 ⚠＋去重＋人話（worker 原文自帶 ⚠ 時唔再「⚠ ⚠」）
       _previewFeatures.set(mesh!, active)
       set({ roundPreviewMesh: mesh, roundPreviewFail: false, roundPreviewBusy: false, roundPreviewWarn: warn || null, ...(warn ? { status: warn } : /^⚠.*(倒角|圓角|圆角|棱)/.test(get().status) ? { status: '預覽正常 — 按「確定」套用' } : {}) })   // UX2：之前失敗嘅「距離太大」唔好殘留喺狀態列
     } else {
@@ -24275,6 +24330,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // caller right after reset() (e.g. starting a new sketch) would be clobbered when this set
     // ran after the await below.
     cancelSkDimEdit()   // UI02: drop any live dimension ghost before wiping the document
+    resetBuildWarnDedupe()   // FISHING31-recheck：新檔第一次重建嘅警告照顯示
     set({ kernelNotice: null, lastBuildWarnings: [], failedFeatureIds: [], featureErrors: {} })   // UX1 #2：舊檔嘅「重建警告」pill／失敗標記唔准帶入新檔；BUG-535：QA 實測載入崩潰之後撳「新建」，紅色「打開未完成」橫額仲留住 —— 狀態唔同步
 
     set({inspectMode:false,inspectInfo:null,propsDialog:null,propsDialogData:null,hoverFace:null,

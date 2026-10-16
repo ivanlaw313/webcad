@@ -118,7 +118,7 @@ import { featDlgBlockingReason, patternOverlapWarning } from '../cad/featDlgNume
 import { parseSweepTwistDraft, parseSweepScaleDraft, sweepDraftShown, sweepDraftType, sweepDraftBlur } from '../cad/sweepTwistFields'   // 純邏輯模組，唔經 monolith
 import { startRenderGovernor } from '../render/renderGovernor'
 import { PRIM_PLACE_KINDS, FEAT_DLG_DRY_PREVIEW_KINDS, shellFailReason, effectiveComponentDensity } from '../store'   // UX3 #2 / CORE16 b4
-import { useApp, holeBlindOverrun, meshBboxSize, extrudePreviewKey, extrudePreviewCurrent, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection, thickenOversizeReason } from '../store'
+import { useApp, chamferInputReason, holeBlindOverrun, meshBboxSize, extrudePreviewKey, extrudePreviewCurrent, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection, thickenOversizeReason } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
 import { cadPointToThree, formBoxRectCadCorners, makePlacedBoxCage, type FormBoxDraft, type FormBoxPlane } from '../cad/formBox'
@@ -147,7 +147,7 @@ import { orientedBBox } from '../cad/obb'                // S121：定向最小�
 import { HDRI_PRESETS, type HdriPresetId } from '../render/hdriPresets'
 import { GradientEquirectTexture } from 'three-gpu-pathtracer'   // 工作模式背景预设：程序化渐变 equirect（同 HdriEnvironment GradientFallback 一致）
 import { msg, tStatus, tLabel, tMaterialName, ribbonCmdLabel, type LangInput } from '../i18n'
-import { profileSectionName, roundFailLines, plainBuildWarning } from '../ui/featureStatus'
+import { profileSectionName, roundFailLines, plainBuildWarning, stripWarnMark } from '../ui/featureStatus'
 import { feaStaleBannerText, invalidateSimResultsPatch, hasLiveSimResults } from '../simulation/resultValidity'
 import { evalArith, normalizeWide, parseLen, toLenInput, type LenUnit } from '../io/units'   // T794：單位感知長度輸入（分數英寸）
 import { NumInput } from './NumInput'   // BUG-507/509：受驗數值欄（取代 type="number"）
@@ -4026,6 +4026,8 @@ export default function Viewport() {
   const thickenThick = useApp((s) => s.thickenThick)
   // FISHING30 P1：加厚過大（相對實體包圍盒／絕對上限）—— 對話框即時閘：閂「確定」＋紅字，與 commitThicken 同一函數
   const thickenOver = useApp((s) => (s.thickenMode ? thickenOversizeReason(s.bodyMesh, s.thickenThick) : null))
+  // FISHING31-recheck：倒角對話框同加厚一樣 —— 無效輸入（0／負／角度出界／大過實體）即時紅字＋閂「確定」；同 commitEdgeRound 同一函數
+  const chamferBad = useApp((s) => (s.edgeRoundPick === 'chamfer' ? chamferInputReason(s) : null))
   const thickenDir = useApp((s) => s.thickenDir)
   const thickenOp = useApp((s) => s.thickenOp)
   const thickenPreviewMesh = useApp((s) => s.thickenPreviewMesh)
@@ -5602,8 +5604,8 @@ export default function Viewport() {
           icon={edgeRoundPick === 'chamfer' ? 'chamfer' : 'fillet'}
           title={edgeRoundPick === 'chamfer' ? '倒角' : '圓角'}
           width={300}
-          okLabel={`確定（${edgeRoundPicks.length}）`}
-          okDisabled={!!numBad || (!edgeRoundPicks.length || roundPreviewFail || (edgeRoundPick === 'fillet' && filletType === 'rule' && filletRuleMode === 'between' && !(filletRuleFaceSets.includes(1) && filletRuleFaceSets.includes(2))) || (edgeRoundPick === 'fillet' && filletType === 'full' && !([1, 2, 3] as const).every((slot) => filletFullFaceSets.includes(slot))) || (edgeRoundPick === 'fillet' && filletType !== 'full' && (filletMode === 'chord' ? !(filletChord > 0) : filletMode === 'asymmetric' ? !(filletR2 > 0) || edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)) : edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)))) || (edgeRoundPick === 'chamfer' && (!(edgeRoundSize > 0) || (chamferMode === 'two' && !(chamferSize2 > 0)) || (chamferMode === 'angle' && (!chamferRefFace || !(chamferAngle > 0 && chamferAngle < 90))))))}
+          okLabel={`${tStatus('確定', lang)}（${edgeRoundPicks.length}）`}
+          okDisabled={!!numBad || !!chamferBad || (!edgeRoundPicks.length || roundPreviewFail || (edgeRoundPick === 'fillet' && filletType === 'rule' && filletRuleMode === 'between' && !(filletRuleFaceSets.includes(1) && filletRuleFaceSets.includes(2))) || (edgeRoundPick === 'fillet' && filletType === 'full' && !([1, 2, 3] as const).every((slot) => filletFullFaceSets.includes(slot))) || (edgeRoundPick === 'fillet' && filletType !== 'full' && (filletMode === 'chord' ? !(filletChord > 0) : filletMode === 'asymmetric' ? !(filletR2 > 0) || edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)) : edgeRoundRadii.length !== edgeRoundPicks.length || edgeRoundRadii.some((r) => !(r > 0)))) || (edgeRoundPick === 'chamfer' && (!(edgeRoundSize > 0) || (chamferMode === 'two' && !(chamferSize2 > 0)) || (chamferMode === 'angle' && (!chamferRefFace || !(chamferAngle > 0 && chamferAngle < 90))))))}
           okTip="應用（Enter）"
           onOk={() => void commitEdgeRound()}
           onCancel={() => cancelEdgeRound()}
@@ -5679,6 +5681,7 @@ export default function Viewport() {
               <div style={{ display: 'flex', gap: 4, marginTop: 4 }}><button type="button" aria-label="新增半徑組" onClick={() => useApp.getState().addFilletRadiusGroup()} style={{ minWidth: 28 }}>＋</button><button type="button" aria-label="刪除半徑組" disabled={filletRadiusGroups.length <= 1} onClick={() => useApp.getState().removeFilletRadiusGroup()} style={{ minWidth: 28 }}>×</button><span style={{ fontSize: 10, color: '#6b7680', alignSelf: 'center' }}>選中第 {filletActiveGroup + 1} 組</span></div>
             </div>
           )}
+          {chamferBad && (edgeRoundPicks.length > 0 || /^尺寸已拒絕/.test(chamferBad)) && <div role="alert" data-testid="chamfer-illegal-alert" style={{ color: '#b42318', fontSize: 12 }}>{tStatus(chamferBad, lang)}</div>}
           {!roundPreviewFail && roundPreviewWarn && <div role="alert" data-testid="round-preview-warn" style={{ fontSize: 11, color: '#b54708', fontWeight: 600 }}>{tStatus(roundPreviewWarn, lang)}</div>}
           {roundPreviewFail && (edgeRoundPick === 'chamfer'
             ? <div role="alert" data-testid="round-preview-fail" style={{ fontSize: 11, color: '#c9362a', fontWeight: 600 }}>{roundFailLines(lang).map((t, i) => <div key={i} style={i === 2 ? { fontWeight: 400 } : undefined}>{t}</div>)}</div>
@@ -8605,7 +8608,7 @@ export default function Viewport() {
               <b>⚠ {tStatus('重建警告', lang)} ×{bw.length}</b>
               <button className="tb-btn" style={{ padding: '0 5px' }} onClick={() => useApp.getState().dismissBuildWarnings()}>✕</button>
             </div>
-            {bw.slice(0, 4).map((w, i) => <div className="vp-build-warning-message" key={i}>{tStatus(lang === 'en' || lang === 'ja' ? w : plainBuildWarning(w), lang)}</div>)}
+            {bw.slice(0, 4).map((w0, i) => { const w = stripWarnMark(w0); /* 標題已有 ⚠ —— 逐行唔再重複 */ return <div className="vp-build-warning-message" key={i}>{tStatus(lang === 'en' || lang === 'ja' ? w : plainBuildWarning(w), lang)}</div> })}
             {bw.length > 4 && <div style={{ marginTop: 3, opacity: 0.7 }}>… +{bw.length - 4}</div>}
           </div>
         )

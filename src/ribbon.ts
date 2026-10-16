@@ -12,7 +12,7 @@ export type Panel = { name: string; tools: Tool[] }
 export type Workspace = { id: string; panels: Panel[] }
 
 // The workspace tabs across the top of the ribbon (matches Fusion's SOLID row).
-// 🧪實驗室 = webcad 特色功能（Fusion 冇嘅：齿轮/机构/仿真/CAM/3D打印辅助/更多基元）统一收纳处 —
+// 🧪實驗室 = webcad 特色功能（Fusion 冇嘅：齿轮/机构/模擬/CAM/3D打印辅助/更多基元）统一收纳处 —
 // 主 tabs 100% 跟 Fusion（P0 用户确认方案：主 ribbon 干净、特色功能唔遗失）。
 export const WORKSPACE_TABS = [
   'SOLID', 'SURFACE', 'MESH', 'SHEET METAL', 'PLASTIC', 'MANAGE', 'UTILITIES', '🧪實驗室',
@@ -51,7 +51,7 @@ const SOLID: Panel[] = [
       { id: 'cylinder', label: '圓柱', icon: 'cylinder', tip: '圓柱：設直徑×高直接建圓柱。' },
       { id: 'sphere', label: '球', icon: 'sphere', tip: '球：設直徑建球。' },
       { id: 'torus', label: '圓環', icon: 'torus', tip: '圓環：設外徑+管徑，弧<360° 出 C 形環/卡簧。' },
-      { id: 'cone', label: '圓錐', icon: 'cone', tip: '圓錐/圓台：設底Ø/頂Ø(0=尖錐)/高，邊數≥3 變 N 棱錐/棱台。' },
+      { id: 'cone', label: '圓錐', icon: 'cone', tip: '圓錐/圓台：設底Ø/頂Ø(0=尖錐)/高，邊數≥3 變 N 稜錐/稜台。' },
       { id: 'coil', label: '螺旋', icon: 'coil', tip: '螺旋/彈簧：設節距/高/底半徑/線徑/頂半徑（頂≠底=錐形彈簧）。' },
       { id: 'pipe', label: '管道', icon: 'pipeicon', tip: '管道：沿路徑掃出空心管（外徑+壁厚）。先畫路徑折線。' },
       {
@@ -83,11 +83,11 @@ const SOLID: Panel[] = [
     tools: [
       { id: 'presspull', label: '按拉', icon: 'presspull', shortcut: 'Q', quick: true, tip: '按/拉：點實體一個平面，沿法向推出或壓入（快速加/減料）。' },
       { id: 'editface', label: '編輯面', icon: 'move', tip: '選擇一個或多個平面面，直接偏移或傾斜並重解相鄰面。' },
-      { id: 'fillet', label: '圓角', icon: 'fillet', shortcut: 'F', quick: true, sep: true, tip: '圓角：點選棱（可多條）倒成圓弧，設半徑（末端半徑≠起始=變半徑圓角）。', quickChildren: [
-        { id: 'fillet', label: '圓角', icon: 'fillet', shortcut: 'F', tip: '圓角：點選棱（可多條）倒成圓弧。' },
+      { id: 'fillet', label: '圓角', icon: 'fillet', shortcut: 'F', quick: true, sep: true, tip: '圓角：點選稜（可多條）倒成圓弧，設半徑（末端半徑≠起始=變半徑圓角）。', quickChildren: [
+        { id: 'fillet', label: '圓角', icon: 'fillet', shortcut: 'F', tip: '圓角：點選稜（可多條）倒成圓弧。' },
         { id: 'chamfer', label: '倒角', icon: 'chamfer', shortcut: 'C', tip: '倒角：等距 / 兩距離 / 距離+角度。' },
       ] },
-      { id: 'chamfer', label: '倒角', icon: 'chamfer', shortcut: 'C', tip: '倒角（Chamfer）：點選棱切斜角。支援等距 / 兩距離 / 距離+角度。' },
+      { id: 'chamfer', label: '倒角', icon: 'chamfer', shortcut: 'C', tip: '倒角（Chamfer）：點選稜切斜角。支援等距 / 兩距離 / 距離+角度。' },
       { id: 'shell', label: '抽殼', icon: 'shell', quick: true, sep: true, tip: '抽殼：把實體掏空成等壁厚殼，選開口面。建議在圓角之前做。' },
       { id: 'draft', label: '拔模', icon: 'draft', tip: '拔模：給側面加脫模斜度（注塑/鑄造件必備）。' },
       { id: 'scale', label: '縮放', icon: 'scale', tip: '縮放：按比例放大/縮小實體。' },
@@ -119,7 +119,7 @@ const SOLID: Panel[] = [
       { id: 'params', label: '更改參數', icon: 'param', sep: true, tip: '打開用戶參數及表達式面板。' },
       { id: 'computeall', label: '全部計算', icon: 'param', shortcut: 'Ctrl+B', tip: '由時間軸起點重新計算全部特徵。' },
       { id: 'computeunresolved', label: '計算未解析', icon: 'param', tip: '只計算與未解析外部組件有關的特徵。' },
-      { id: 'convert', label: '轉換', icon: 'component', sep: true, tip: 'Convert / MeshFit：網格組件 → 可編輯 B-rep（自動識別圓柱/棱柱；否則 faceted）。BRep↔T-Spline 仍在實現。亦可搜「meshfit」。' },
+      { id: 'convert', label: '轉換', icon: 'component', sep: true, tip: 'Convert / MeshFit：網格組件 → 可編輯 B-rep（自動識別圓柱/稜柱；否則 faceted）。BRep↔T-Spline 仍在實現。亦可搜「meshfit」。' },
       { id: 'bom', label: 'BOM 表', icon: 'drawing', quick: true, sep: true, tip: '打開此設計的材料清單；WebCAD 可按組件名稱、數量、物理材質及質量匯出 CSV。' },
     ],
   },
@@ -256,11 +256,11 @@ const LAB: Panel[] = [
     ],
   },
   {
-    name: '仿真',
+    name: '模擬',
     tools: [
       { id: 'fea', label: '受力雲圖', icon: 'stress', quick: true, tip: '受力分析（趨勢級）：點固定面 → 點受力面 → 設力 → 出應力雲圖,紅色 = 最受力 = 最容易斷的位。屬趨勢着色,非商用分析精度。' },
       { id: 'moldflow', label: '模流分析', icon: 'moldflow', quick: true, tip: '注塑模流趨勢：點澆口位（可多個）→ 選塑料 → 出充填時間/壓力/冷卻/變形趨勢雲圖 + 焊接線 + 充填動畫。可開「壓力求解器」出真實壓力值。' },
-      { id: 'windtunnel', label: '風洞水洞', icon: 'wind', quick: true, tip: '風洞 / 水洞趋势模擬：把零件放入虛擬風道/水道解流場 → 風阻系數 Cd + 阻力 + 表面壓力/流場。可調風速 · 流體(空氣/水) · 吹向。屬趋势級,相對比較可信,非商用驗證級。' },
+      { id: 'windtunnel', label: '風洞水洞', icon: 'wind', quick: true, tip: '風洞 / 水洞趨勢模擬：把零件放入虛擬風道/水道解流場 → 風阻系數 Cd + 阻力 + 表面壓力/流場。可調風速 · 流體(空氣/水) · 吹向。屬趨勢級,相對比較可信,非商用驗證級。' },
       { id: 'physicslab', label: '環境實驗室', icon: 'contact', quick: true, tip: 'Physics Lab：將 CAD 零件放入剛體實驗室，即時模擬重力、碰撞、摩擦、反彈和統一風。互動級模擬，非工程認證。' },
       { id: 'topopt', label: '生成式設計', icon: 'topopt', quick: true, tip: '拓撲優化（SIMP）：在設計域內按保留體積分配材料，得出較省料又較硬的承力結構。趨勢級，非商用認證。先點固定面與受力面。' },
       { id: 'thermal', label: '熱分析', icon: 'thermal', quick: true, tip: '穩態熱分析（導熱）：①固定面＝熱面、②受力面＝冷面，求溫度場與總熱流。趨勢級，非商用認證。' },
@@ -288,7 +288,7 @@ const LAB: Panel[] = [
   {
     name: '更多基元',
     tools: [
-      { id: 'cone', label: '圓錐', icon: 'cone', quick: true, tip: '圓錐/圓台：設底Ø/頂Ø(0=尖錐)/高，邊數≥3 變 N 棱錐/棱台。' },
+      { id: 'cone', label: '圓錐', icon: 'cone', quick: true, tip: '圓錐/圓台：設底Ø/頂Ø(0=尖錐)/高，邊數≥3 變 N 稜錐/稜台。' },
       { id: 'tube', label: '圓管', icon: 'cylinder', quick: true, tip: '圓管/襯套：設外徑Ø/壁厚/高建空心管。' },
       { id: 'rbox', label: '圓角盒', icon: 'box', quick: true, tip: '圓角長方體/外殼盒：長方體四條豎邊倒圓角。電子外殼常用。' },
       { id: 'wedge', label: '楔形', icon: 'box', tip: '楔形/斜坡：設長/寬/高建一端高、另一端削平的三角塊。' },
@@ -297,8 +297,8 @@ const LAB: Panel[] = [
       { id: 'pie', label: '扇形柱', icon: 'cylinder', tip: '扇形柱/餅塊：圓盤的一塊扇形（設直徑/角度/高）。' },
       { id: 'rtube', label: '方管', icon: 'box', tip: '矩形空心管/方通(RHS)：設截面寬×深/壁厚/長。框架/橫梁常用。' },
       { id: 'profile', label: '型材', icon: 'box', tip: '結構型材：L 角鐵 / U 槽鋼 / T 型材（設截面寬×高/壁厚/長）。' },
-      { id: 'pyramid', label: '棱錐', icon: 'cone', tip: '多邊形棱錐：設邊數/底外接Ø/高，底多邊形收到頂尖。' },
-      { id: 'prism', label: '棱柱', icon: 'box', tip: '正多邊形棱柱：設邊數/外接圓Ø/高建六角柱等。' },
+      { id: 'pyramid', label: '稜錐', icon: 'cone', tip: '多邊形稜錐：設邊數/底外接Ø/高，底多邊形收到頂尖。' },
+      { id: 'prism', label: '稜柱', icon: 'box', tip: '正多邊形稜柱：設邊數/外接圓Ø/高建六角柱等。' },
     ],
   },
   {
@@ -319,8 +319,8 @@ const LAB: Panel[] = [
     name: '直接編輯擴展',
     tools: [
       { id: 'moveface', label: '移動面', icon: 'replaceface', quick: true, tip: 'WebCAD 擴展：偏移或傾斜平面面，內核重解相鄰面。' },
-      { id: 'filletall', label: '全棱圓角', icon: 'fillet', tip: 'WebCAD 擴展：對實體全部邊一次應用相同圓角。' },
-      { id: 'chamferall', label: '全棱倒角', icon: 'chamfer', tip: 'WebCAD 擴展：對實體全部邊一次應用相同倒角。' },
+      { id: 'filletall', label: '全稜圓角', icon: 'fillet', tip: 'WebCAD 擴展：對實體全部邊一次應用相同圓角。' },
+      { id: 'chamferall', label: '全稜倒角', icon: 'chamfer', tip: 'WebCAD 擴展：對實體全部邊一次應用相同倒角。' },
       { id: 'delface', label: '刪面治癒', icon: 'presspull', tip: 'WebCAD 擴展：刪除所選面並嘗試延伸鄰面治癒實體。' },
       { id: 'offsetsolid', label: '整體偏移', icon: 'scale', tip: 'WebCAD 擴展：均勻外擴或內縮實體全部面。' },
       { id: 'cylpatch', label: '圓柱曲面貼花', icon: 'cylpatch', tip: 'WebCAD 擴展：在圓柱面建立凸台、凹槽或平面。' },
@@ -370,8 +370,8 @@ const SURFACE: Panel[] = [
     { id: 'surfsweep', label: '曲面掃掠', icon: 'sweep', quick: true, tip: '曲面掃掠：開放截面沿你畫的開放路徑掃成零厚開放曲面（風道/導流板/管壁皮）。先畫開放折線截面 → 完成草圖 → 再畫一條開放折線路徑 → 按此。出獨立曲面體（要實體再「加厚」/「縫合」）。' },
     { id: 'surfrevolve', label: '曲面旋轉', icon: 'revolve', quick: true, tip: '曲面旋轉：開放截面繞軸旋成零厚旋轉曲面（燈罩/噴嘴/花瓶皮/渦輪轂），無需先做實體再殼。先畫開放折線截面 → 按此 → 輸角度,軸(Y/X)。出獨立曲面體（要實體再「加厚」/「縫合」）。' },
     { id: 'surfpatch', label: '補面 Patch', icon: 'loft', quick: true, tip: '補面 Patch：在實體表面/空間順序點 ≥3 個點、圈出一個閉合邊界 → 填充成曲面 + 加厚成薄板。補洞 / 加蒙皮 / 駁面時用。' },
-    { id: 'surfbridge', label: '橋接面', icon: 'loft', quick: true, tip: '橋接：點選 2 條現有棱（實體 / 獨立曲面）→ 在兩稜之間起一張光滑過渡面,可加厚。想駁通兩條邊、封個缺口時用。' },
-    { id: 'boundarypatch', label: '邊界補面', icon: 'loft', quick: true, tip: '邊界補面：拾幾條【現有棱】（實體/獨立曲面上）填補一個多邊洞 / 封口,可勾相切令接邊順滑；出【曲面體】。先有個帶缺口的實體/曲面 → 按此 → 逐條點選邊界棱（≥2）→ 可勾相切 / 設加厚 → 確定。' },
+    { id: 'surfbridge', label: '橋接面', icon: 'loft', quick: true, tip: '橋接：點選 2 條現有稜（實體 / 獨立曲面）→ 在兩稜之間起一張光滑過渡面,可加厚。想駁通兩條邊、封個缺口時用。' },
+    { id: 'boundarypatch', label: '邊界補面', icon: 'loft', quick: true, tip: '邊界補面：拾幾條【現有稜】（實體/獨立曲面上）填補一個多邊洞 / 封口,可勾相切令接邊順滑；出【曲面體】。先有個帶缺口的實體/曲面 → 按此 → 逐條點選邊界稜（≥2）→ 可勾相切 / 設加厚 → 確定。' },
     { id: 'thicken', label: '加厚 Thicken', icon: 'shell', quick: true, tip: '加厚：點實體/曲面一個面 → 沿法向加厚成實體薄板（曲面件轉成可打印實體 / 加厚單一面）。出獨立件,想合並用「實體布爾」。方向：板厚輸負值、或前綴「-」= 翻轉、朝另一邊加厚。' },
     { id: 'thickenquilt', label: '加厚整張曲面', icon: 'shell', quick: true, tip: '加厚整張曲面：選一張【完整獨立曲面/縫合面】（放樣/掃掠/旋轉/縫合/補面出的）→ 整張一次加厚成實體（不似「加厚」淨加單一拾取面）。曲面變實體最常用的一步。板厚輸負值 = 朝另一邊。' },
     { id: 'offsetsurf', label: '偏移曲面', icon: 'loft', tip: '偏移曲面：點一個面 → 偏出一張平行的新曲面（正 = 外偏 / 負 = 內偏）。兩側：距離用 ±（如 ±5）= 一次出內外兩張平行面（關於原面對稱）。出獨立開放曲面件。' },
@@ -416,7 +416,7 @@ const MESH: Panel[] = [
     { id: 'sphere', label: '球', icon: 'sphere', quick: true },
   ] },
   { name: 'MODIFY', tools: [
-    { id: 'meshfit', label: '網格擬合 / 轉 B-rep', icon: 'component', quick: true, tip: 'MeshFit：把所選（或唯一／最近匯入）網格組件縫合為可編輯 B-rep 實體（平面/圓柱可參數化；其余 faceted）。完成後可圓角/抽殼/布爾/匯出 STEP。有機掃掠件可能僅 faceted。' },
+    { id: 'meshfit', label: '網格擬合 / 轉 B-rep', icon: 'component', quick: true, tip: 'MeshFit：把所選（或唯一／最近匯入）網格組件縫合為可編輯 B-rep 實體（平面/圓柱可參數化；其餘 faceted）。完成後可圓角/抽殼/布爾/匯出 STEP。有機掃掠件可能僅 faceted。' },
     { id: 'compboolean', label: '組件布爾', icon: 'combine', quick: true, tip: '組件布爾（網格級）：先選目標組件（或唯一有幾何組件），再點工具件 → 合併/切除/相交。亦可在 SOLID → ASSEMBLE 找到同名工具。' },
     { id: 'convert', label: '轉換', icon: 'component', tip: '網格→B-rep（同 MeshFit）。BRep↔T-Spline 仍在實現。' },
   ] },

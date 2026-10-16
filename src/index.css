@@ -938,3 +938,9 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .cmd-palette-body label:has(input[type=checkbox]) { gap: 8px; margin: 1px 0; }
 .cmd-palette-body [data-testid="combine-need-newbody"],
 .cmd-palette-body [data-testid="combine-edit-note"] { line-height: 1.45; letter-spacing: 0.01em; }
+
+/* FISHING43: Fusion-like status refuse / zero-alert rhythm */
+[data-testid="extrude-side2-zero-alert"],
+.status-bar .status-warn,
+.cmd-palette-body .input-error { line-height: 1.45; letter-spacing: 0.01em; }
+.cmd-palette-summary { line-height: 1.4; }

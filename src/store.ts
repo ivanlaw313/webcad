@@ -15300,7 +15300,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         break
       }
     } catch (e) {
-      set((s) => ({ aiMessages: [...s.aiMessages, { role: 'assistant', content: '⚠ AI 出错：' + ((e as Error)?.message || e) }] }))
+      set((s) => ({ aiMessages: [...s.aiMessages, { role: 'assistant', content: '⚠ AI 出錯：' + ((e as Error)?.message || e) }] }))
     }
     set({ aiBusy: false })
   },
@@ -15330,11 +15330,11 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'engineering_calc': {
         const c = String(a.calc)
-        if (c === 'gear_mesh') { const m = num('module'), z1 = num('teeth1'), z2 = num('teeth2'); if (!(m > 0 && z1 > 0 && z2 > 0)) return '✗ 需要 module/teeth1/teeth2 正数'; return `齿轮啮合 m${m} z${z1}/z${z2}：分度圆 Ø${m * z1}/Ø${m * z2} · 中心距 ${(m * (z1 + z2) / 2).toFixed(2)}mm · 传动比 ${(Math.max(z1, z2) / Math.min(z1, z2)).toFixed(3)}:1 · 齿距 ${(Math.PI * m).toFixed(2)}mm` }
-        if (c === 'bolt_preload') { const d = num('bolt_d'), T = num('torque_Nm'), K = num('friction_K') || 0.2; if (!(d > 0 && T > 0)) return '✗ 需要 bolt_d/torque_Nm 正数'; const F = T / (K * d / 1000); return `螺栓预紧 M${d} 扭矩${T}N·m K${K}：预紧/夹紧力 F≈${(F / 1000).toFixed(2)}kN（${F.toFixed(0)}N），F=T/(K·d)` }
-        if (c === 'belt_length') { const D1 = num('pulley1_d'), D2 = num('pulley2_d'), C = num('center'); if (!(D1 > 0 && D2 > 0 && C > 0)) return '✗ 需要 pulley1_d/pulley2_d/center 正数'; const L = 2 * C + Math.PI * (D1 + D2) / 2 + (D2 - D1) ** 2 / (4 * C); return `皮带（开口）D1${D1}/D2${D2}/中心距${C}：皮带长 L≈${L.toFixed(1)}mm · 速比 ${(D2 / D1).toFixed(2)}:1` }
-        if (c === 'spindle_rpm') { const d = num('tool_d'), vc = num('cutting_speed'); if (!(d > 0 && vc > 0)) return '✗ 需要 tool_d/cutting_speed 正数'; const rpm = 1000 * vc / (Math.PI * d); return `主轴转速 Ø${d}mm @ Vc${vc}m/min：n≈${rpm.toFixed(0)} RPM（n=1000·Vc/πd）` }
-        return '✗ 未知计算类型：' + c
+        if (c === 'gear_mesh') { const m = num('module'), z1 = num('teeth1'), z2 = num('teeth2'); if (!(m > 0 && z1 > 0 && z2 > 0)) return '✗ 需要 module/teeth1/teeth2 正數'; return `齿轮啮合 m${m} z${z1}/z${z2}：分度圆 Ø${m * z1}/Ø${m * z2} · 中心距 ${(m * (z1 + z2) / 2).toFixed(2)}mm · 传动比 ${(Math.max(z1, z2) / Math.min(z1, z2)).toFixed(3)}:1 · 齿距 ${(Math.PI * m).toFixed(2)}mm` }
+        if (c === 'bolt_preload') { const d = num('bolt_d'), T = num('torque_Nm'), K = num('friction_K') || 0.2; if (!(d > 0 && T > 0)) return '✗ 需要 bolt_d/torque_Nm 正數'; const F = T / (K * d / 1000); return `螺栓预紧 M${d} 扭矩${T}N·m K${K}：预紧/夹紧力 F≈${(F / 1000).toFixed(2)}kN（${F.toFixed(0)}N），F=T/(K·d)` }
+        if (c === 'belt_length') { const D1 = num('pulley1_d'), D2 = num('pulley2_d'), C = num('center'); if (!(D1 > 0 && D2 > 0 && C > 0)) return '✗ 需要 pulley1_d/pulley2_d/center 正數'; const L = 2 * C + Math.PI * (D1 + D2) / 2 + (D2 - D1) ** 2 / (4 * C); return `皮带（开口）D1${D1}/D2${D2}/中心距${C}：皮带长 L≈${L.toFixed(1)}mm · 速比 ${(D2 / D1).toFixed(2)}:1` }
+        if (c === 'spindle_rpm') { const d = num('tool_d'), vc = num('cutting_speed'); if (!(d > 0 && vc > 0)) return '✗ 需要 tool_d/cutting_speed 正數'; const rpm = 1000 * vc / (Math.PI * d); return `主轴转速 Ø${d}mm @ Vc${vc}m/min：n≈${rpm.toFixed(0)} RPM（n=1000·Vc/πd）` }
+        return '✗ 未知計算類型：' + c
       }
       case 'create_text': {
         const txt = String(a.text || 'TEXT'), size = num('size', 12), h = num('height', 4)
@@ -15344,11 +15344,11 @@ export const useApp = create<AppState>((rawSet, get) => {
         const f: Feature = { id: fid(), type: 'text', text: txt, size, height: h, op: engrave ? 'cut' : (hasSolid(get().features) ? 'join' : 'new'), baseZ: engrave ? Math.max(0, top - h) : 0 }
         return mk(f, `${engrave ? '凹刻' : '凸起'}文字「${txt}」字號${size} ${engrave ? '深' : '高'}${h}mm`)
       }
-      case 'set_material': { const nm = String(a.material || '钢'); if (!MATERIALS[nm]) return '✗ 未知材质：' + nm; get().setMaterialPreset(nm); get().setPhysicalMaterial(nm); return '✓ 已设材质：' + nm }   // AI「设材质」= 外观 + 物理材质（外观本身唔再改密度）
+      case 'set_material': { const nm = String(a.material || '钢'); if (!MATERIALS[nm]) return '✗ 未知材質：' + nm; get().setMaterialPreset(nm); get().setPhysicalMaterial(nm); return '✓ 已设材质：' + nm }   // AI「设材质」= 外观 + 物理材质（外观本身唔再改密度）
       case 'mirror_body': { if (!hasSolid(get().features)) return '✗ 需要先有實體'; await get().addMirror(); return '✓ 已鏡像（跨 YZ 平面）' }
       case 'load_sample': { const k = String(a.kind || 'plate') as SampleKind; await get().loadSample(k); return '✓ 已载入范本：' + k }
       case 'add_parameter': { const nm = String(a.name || 'd1'); get().addParam(nm, pnum('value')); return `✓ 已加參數 ${nm}=${pnum('value')}` }
-      case 'set_parameter': { const nm = String(a.name || ''); if (!nm) return '✗ 缺参数名'; await get().setParam(nm, pnum('value')); return `✓ 已设 ${nm}=${pnum('value')}` }
+      case 'set_parameter': { const nm = String(a.name || ''); if (!nm) return '✗ 缺參數名'; await get().setParam(nm, pnum('value')); return `✓ 已设 ${nm}=${pnum('value')}` }
       case 'export_model': { const fmt = String(a.format || 'stl'); if (fmt === 'step') await get().exportStep(); else await get().exportStl(); return '✓ 已导出 ' + fmt.toUpperCase() }
       case 'modal_analysis': {
         if (!get().bodyMesh || !get().bodyMesh!.vertices.length) return '✗ 需要先有活動實體先做模態分析'
@@ -15373,7 +15373,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'create_cylinder': { const D=num('diameter',10),H=num('height',10); const o=opOf(); return mk({ id: fid(), type: 'extrude', profile: { kind: 'circle', c: [0, 0], r: D / 2 }, height: H, operation: o }, cylSuccessStatus({ op: o === 'cut' ? 'cut' : 'new', d: D, h: H }, get().lang)) }
       case 'create_sphere': { const D=num('diameter', 20); const o=opOf(); return mk({ id: fid(), type: 'prim', shape: 'sphere', a: D / 2, b: 0, c: 0, op: o }, sphereSuccessStatus({ op: o === 'cut' ? 'cut' : 'new', d: D }, get().lang)) }
       case 'create_cone': { const D=num('bottom_diameter', 20), DT=num('top_diameter', 0), H=num('height', 20); const o=opOf(); return mk({ id: fid(), type: 'prim', shape: 'cone', a: D / 2, b: DT / 2, c: H, op: o }, coneSuccessStatus({ op: o === 'cut' ? 'cut' : 'new', d: D, dt: DT, h: H }, get().lang)) }
-      case 'create_torus': { const od = num('outer_diameter', 30), tdia = num('tube_diameter', 8); if (!(od > 2 * tdia)) return '✗ 圆环：管径要细过外径一半（否则管自交/退化）'; const o=opOf(); return mk({ id: fid(), type: 'prim', shape: 'torus', a: od / 2, b: tdia / 2, c: 0, op: o, outerTrue: true }, torusSuccessStatus({ op: o === 'cut' ? 'cut' : 'new', od, td: tdia }, get().lang)) }   // GM-W8 β1-#29：a=真外半径 + outerTrue（外Ø输入=真外Ø）。GM-L2 #65：outerTrue 语义无自交要求 od>2·tdia（同对话框守卫一致）
+      case 'create_torus': { const od = num('outer_diameter', 30), tdia = num('tube_diameter', 8); if (!(od > 2 * tdia)) return '✗ 圓環：管徑要細過外徑一半（否則管自交/退化）'; const o=opOf(); return mk({ id: fid(), type: 'prim', shape: 'torus', a: od / 2, b: tdia / 2, c: 0, op: o, outerTrue: true }, torusSuccessStatus({ op: o === 'cut' ? 'cut' : 'new', od, td: tdia }, get().lang)) }   // GM-W8 β1-#29：a=真外半径 + outerTrue（外Ø输入=真外Ø）。GM-L2 #65：outerTrue 语义无自交要求 od>2·tdia（同对话框守卫一致）
       case 'create_wedge': return mk({ id: fid(), type: 'prim', shape: 'wedge', a: num('length', 20), b: num('width', 20), c: num('height', 10), op: opOf() }, `${verb()}楔形/斜坡 ${num('length', 20)}×${num('width', 20)}×${num('height', 10)}mm`)   // P6：a=长X b=宽Y c=高Z（直角三角截面拉伸）
       case 'create_dome': { const d = num('diameter', 20), ch = Number(a.cap_height); return mk({ id: fid(), type: 'prim', shape: 'dome', a: d / 2, b: 0, c: (Number.isFinite(ch) && ch > 0 ? ch : 0), op: opOf() }, `${verb()}圆顶 Ø${d}${(Number.isFinite(ch) && ch > 0) ? ' 冠高' + ch : '（半球）'}mm`) }   // P6：a=半径 c=冠高（0=半球）
       case 'create_half_cylinder': return mk({ id: fid(), type: 'prim', shape: 'halfcyl', a: num('diameter', 20) / 2, b: 0, c: num('height', 20), op: opOf() }, `${verb()}半圆柱/D形 Ø${num('diameter', 20)}×${num('height', 20)}mm`)   // P6：a=半径 c=高（切走 x<0 半边）
@@ -22659,7 +22659,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const okMsg = modeled
       ? `已攻內螺紋 M${d}×${pitch}（深 ${height}mm${z0 > 0 ? ` · 孔底 z${z0}` : ''} · 真螺旋牙，重疊水密殼，STL 打印有效；複合體 — 之後不要再倒圓角/導 STEP）`
       : `已加 cosmetic 內螺紋標註 M${d}×${pitch}（深 ${height}mm · 外观螺旋线圈，B-rep 乾净 — 可继续圆角/抽壳/STEP；要真牙勾「建模螺纹」；孔身用「孔」工具钻）`
-    await get().applyFeatures([...get().features, f], okMsg, true, '⚠ 内螺纹几何失败 — 已退回光孔/原状（OCCT-wasm 螺旋布尔限制）')
+    await get().applyFeatures([...get().features, f], okMsg, true, '⚠ 內螺紋幾何失敗 — 已退回光孔/原狀（OCCT-wasm 螺旋布爾限制）')
   },
   // 切层预览 + 版本历史 面板开关
   sliceOpen: false,
@@ -24069,7 +24069,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const ok = await get().applyFeatures([...get().features, { id: fid(), type: 'stepbody', step: text, op }],
         asDerived
           ? `已派生 STEP B-rep 快照「${f.name.replace(/\.[^.]+$/, '')}」— 真 B-rep 入時間軸：可繼續切割/圓角/抽殼/導出 STEP。當前為非關聯快照；來源更新需重新 Derive（${(f.size / 1024).toFixed(0)}KB 已入存档）`
-          : `已導入 STEP 為 B-rep 實體「${f.name.replace(/\.[^.]+$/, '')}」— 真 B-rep 入時間軸：可繼續 切割/圓角/抽殼/再導出 STEP（${(f.size / 1024).toFixed(0)}KB 已入存档）`, true, 'STEP B-rep 導入失敗 — 文件可能損壞／非實體 STEP（可試「導入 STEP…」網格路線）')
+          : `已導入 STEP 為 B-rep 實體「${f.name.replace(/\.[^.]+$/, '')}」— 真 B-rep 入時間軸：可繼續 切割/圓角/抽殼/再導出 STEP（${(f.size / 1024).toFixed(0)}KB 已入存檔）`, true, 'STEP B-rep 導入失敗 — 文件可能損壞／非實體 STEP（可試「導入 STEP…」網格路線）')
       if (ok) get().requestFit()
     }
     inp.click()
@@ -25205,7 +25205,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       const sf = r.vmMax > 1e-9 ? mech.sy / r.vmMax : Infinity
       const f2 = (x: number) => x >= 100 ? x.toFixed(0) : x >= 1 ? x.toFixed(1) : x.toFixed(3)
-      const verdict = sf >= 2 ? '✅ 安全(SF≥2)' : sf >= 1 ? '⚠ 偏险(1≤SF<2)' : '❌ 可能屈服(SF<1)'
+      const verdict = sf >= 2 ? '✅ 安全(SF≥2)' : sf >= 1 ? '⚠ 偏險(1≤SF<2)' : '❌ 可能屈服(SF<1)'
       // S115：节点平均应力平滑（去体素阶梯）—— 纯函数主线程跑；返回 per-voxel vmSmooth，喂返同一 overlay。
       // 失败（退化网格）则降级用原 vm（诚实，唔崩）。vmSmoothMax 用平滑场自身峰值做归一。
       const sm = smoothVmNodal({ centers: r.centers, vm: r.vm, h: r.h, nVox: r.nVox })
@@ -25361,7 +25361,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (!r.ok) { set({ bucklingBusy: false, status: `屈曲分析失敗：${r.error || '未知錯誤'}` }); return }
       const f2 = (x: number) => x >= 100 ? x.toFixed(0) : x >= 1 ? x.toFixed(2) : x.toFixed(3)
       const lam = r.lambda1
-      const verdict = lam <= 0 ? '⚠ 该方向不会屈曲（受拉/方向相反）' : lam >= 2 ? `✅ 安全（屈曲因子 ${f2(lam)}≥2）` : lam >= 1 ? `⚠ 偏险（1≤${f2(lam)}<2）` : `❌ 会屈曲（因子 ${f2(lam)}<1，临界 ${f2(r.Pcr)}N < 施加 ${f2(F)}N）`
+      const verdict = lam <= 0 ? '⚠ 該方向不會屈曲（受拉/方向相反）' : lam >= 2 ? `✅ 安全（屈曲因子 ${f2(lam)}≥2）` : lam >= 1 ? `⚠ 偏險（1≤${f2(lam)}<2）` : `❌ 會屈曲（因子 ${f2(lam)}<1，臨界 ${f2(r.Pcr)}N < 施加 ${f2(F)}N）`
       set({
         bucklingBusy: false, feaMode: 0,
         bucklingResult: { h: r.h, nVox: r.nVox, centers: r.centers, shape: r.shape, amp: r.amp, lambda1: r.lambda1, Pcr: r.Pcr, forceN: r.forceN, converged: r.converged, warnings: r.warnings, matName: s.feaMat },
@@ -25520,7 +25520,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       L.push('【静力应力 Static Stress】', `  材料：${fea.matName}（屈服 ${fea.sy} MPa）· ${fea.nVox} 体素`,
         `  最大 von Mises：${f2(fea.vmMax)} MPa @ (${fea.vmMaxAt.map((x) => f2(x)).join(', ')})`,
         `  最大位移：${f2(fea.dispMax)} mm`,
-        `  安全系数 SF ≈ ${sf === Infinity ? '∞' : f2(sf)}（${sf >= 2 ? '✅ 安全' : sf >= 1 ? '⚠ 偏险' : '❌ 可能屈服'}）${fea.converged ? '' : ' · ⚠未完全收敛'}`, '')
+        `  安全系數 SF ≈ ${sf === Infinity ? '∞' : f2(sf)}（${sf >= 2 ? '✅ 安全' : sf >= 1 ? '⚠ 偏險' : '❌ 可能屈服'}）${fea.converged ? '' : ' · ⚠未完全收斂'}`, '')
     }
     if (modal) L.push('【模态 Modal（约束模态固有频率）】', `  材料：${modal.matName} · ${modal.nVox} 体素`,
       ...modal.freqs.map((fr, i) => `  f${i + 1} ≈ ${fr >= 1000 ? (fr / 1000).toFixed(2) + ' kHz' : fr.toFixed(1) + ' Hz'}${modal.converged[i] ? '' : ' (近似)'}`), '')
@@ -25594,7 +25594,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (!r.ok) { set({ thermalStressBusy: false, status: `熱應力FEM失敗：${r.error || '未知錯誤'}` }); return }
       const sf = r.vmMax > 1e-9 ? mech.sy / r.vmMax : Infinity
       const f2 = (x: number) => x >= 100 ? x.toFixed(0) : x >= 1 ? x.toFixed(1) : x.toFixed(3)
-      const verdict = sf >= 2 ? '✅ 安全(SF≥2)' : sf >= 1 ? '⚠ 偏险(1≤SF<2)' : '❌ 可能屈服(SF<1)'
+      const verdict = sf >= 2 ? '✅ 安全(SF≥2)' : sf >= 1 ? '⚠ 偏險(1≤SF<2)' : '❌ 可能屈服(SF<1)'
       set({
         thermalStressBusy: false, feaMode: 0, feaField: 'vm', feaProbe: null, feaStale: false,
         feaResult: { h: r.h, nVox: r.nVox, centers: r.centers, vm: r.vm, vmMax: r.vmMax, vmMaxAt: r.vmMaxAt, vmMaxE: r.vmMaxE, dispMax: r.dispMax, disp: r.disp, dispVec: r.dispVec, converged: r.converged, residual: r.residual, warnings: r.warnings, sy: mech.sy, se: mech.se, su: mech.su, matName: s.feaMat },
@@ -25740,9 +25740,9 @@ export const useApp = create<AppState>((rawSet, get) => {
       // 大时间转人话（≥120s 加分钟）—— 非程序员唔使心算 2254s 系几耐
       const fT = (x: number) => (x >= 120 ? `${f1(x)} s（≈${(x / 60).toFixed(1)} 分钟）` : `${f1(x)} s`)
       const verdict = r.moldable === 'solid'
-        ? `⚠ 适用性：零件偏厚/实心（中位壁厚 ${r.wallMedian.toFixed(1)}mm，最厚 ${r.wallMax.toFixed(1)}mm）— 注塑只适合薄壁件，此几何不适合直接注塑，建议先「抽壳」到 2–4mm 再分析`
+        ? `⚠ 適用性：零件偏厚/實心（中位壁厚 ${r.wallMedian.toFixed(1)}mm，最厚 ${r.wallMax.toFixed(1)}mm）— 注塑只適合薄壁件，此幾何不適合直接注塑，建議先「抽殼」到 2–4mm 再分析`
         : r.moldable === 'thick'
-          ? `⚠ 适用性：有局部厚段（最厚 ${r.wallMax.toFixed(1)}mm）— 厚位冷却慢 + 易缩痕，周期由最厚位主导，可挖空/减薄`
+          ? `⚠ 適用性：有局部厚段（最厚 ${r.wallMax.toFixed(1)}mm）— 厚位冷卻慢 + 易縮痕，周期由最厚位主導，可挖空/減薄`
           : `✓ 适用性：薄壁件（中位壁厚 ${r.wallMedian.toFixed(1)}mm，最厚 ${r.wallMax.toFixed(1)}mm）— 适合注塑`
       // 逐浇口表（类型/流量/注射压力/充填平衡）
       const gateLines: string[] = []
@@ -25784,7 +25784,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const lead = r.moldable === 'solid'
         ? `⚠ 零件偏厚/實心（中位壁厚 ${r.wallMedian.toFixed(1)}mm）— 注塑只適合薄壁件，建議先「抽殼」再分析；`
         : r.moldable === 'thick'
-          ? `⚠ 有厚段（最厚 ${r.wallMax.toFixed(1)}mm）冷却慢/易缩痕；`
+          ? `⚠ 有厚段（最厚 ${r.wallMax.toFixed(1)}mm）冷卻慢/易縮痕；`
           : ''
       // GM-P3UI：若上次揀咗「缩水率」但今次结果冇 packing（关咗保压）→ 回退到「充填时间」，免 select 空白 / 云图错场。
       const nextField = (get().moldField === 'shrink' && !r.packing) ? 'fill' as const : get().moldField
@@ -26060,7 +26060,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const supLbl = support === 'cantilever' ? '悬臂(一端固定·末端受力)' : '简支(两端支撑·中点受力)'
     const slender = r.L / Math.max(r.h, 0.1)
     const slenderWarn = slender < 4 ? '⚠ 長/高<4，非細長梁，梁理論誤差大（實際更剛）' : ''
-    const verdict = r.safety >= 2 ? '✅ 安全 (SF≥2)' : r.safety >= 1 ? '⚠ 偏险 (1≤SF<2)' : '❌ 可能屈服 (SF<1)'
+    const verdict = r.safety >= 2 ? '✅ 安全 (SF≥2)' : r.safety >= 1 ? '⚠ 偏險 (1≤SF<2)' : '❌ 可能屈服 (SF<1)'
     // Column-buckling readout: if the same F were applied AXIALLY (compression), would the column buckle?
     const euler = r.Pcr < r.area * mech.sy   // Euler (slender) governs vs squash (stubby) crush
     const bSF = r.bucklingSafety
@@ -26273,7 +26273,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const sigma = F / At                                   // MPa
     // 8.8 级钢屈服 ≈640MPa；预紧一般取 0.7σp（σp≈580）。判级。
     const ratio = sigma / 640
-    const tag = ratio > 1 ? '⚠ 超 8.8 级屈服' : ratio > 0.9 ? '偏高（接近 8.8 级上限）' : '合理'
+    const tag = ratio > 1 ? '⚠ 超 8.8 級屈服' : ratio > 0.9 ? '偏高（接近 8.8 级上限）' : '合理'
     set({ status: `${key} 夾緊力：扭矩 ${T}N·m / K${K} → 預緊力 F≈${(F / 1000).toFixed(2)} kN · 應力截面 At=${At.toFixed(1)}mm² · 軸向應力 σ≈${sigma.toFixed(0)} MPa（占 8.8 級屈服 ${(ratio * 100).toFixed(0)}%，${tag}）` })
   },
   leadScrewCalc: async () => {
@@ -26508,7 +26508,7 @@ function wtWarn(m?: { vertices: number[]; triangles: number[] } | null): string 
   if (!m || !m.vertices.length || !m.triangles.length) return ''
   const w = meshManifold(m.vertices, m.triangles)
   if (w.closed) return ''
-  return `　⚠ 网格非水密（${w.boundary} 开放边${w.nonManifold ? ' · ' + w.nonManifold + ' 非流形边' : ''}）—— 切片器可能出错，建议检查模型`
+  return `　⚠ 網格非水密（${w.boundary} 開放邊${w.nonManifold ? ' · ' + w.nonManifold + ' 非流形邊' : ''}）—— 切片器可能出錯，建議檢查模型`
 }
 // Multi-part variant for assembly exports — counts how many parts are not watertight.
 function wtWarnParts(meshes: ({ vertices: number[]; triangles: number[] } | null | undefined)[]): string {

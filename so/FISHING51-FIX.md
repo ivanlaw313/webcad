@@ -5,7 +5,7 @@
 **Product fix:** `a28a23f092084304975e6d67db96447e4f267f2e`  
 **Harden:** `3f281c554aba12d8d142b7e628b93560fc04c782` (more31 soft→hard + 潛伏式)  
 **Base:** tip `9a49f4a` / product `0d803a5` (FISHING50 live)  
-**Tip:** `3f281c554aba12d8d142b7e628b93560fc04c782`
+**Tip:** `4a29bdcd38957555db6d378a5ac3a77ad716f49f`
 
 ## Scan
 

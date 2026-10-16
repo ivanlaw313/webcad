@@ -43,9 +43,16 @@ const paths: Record<string, ReactNode> = {
   material: <><circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 0 0 0 16" /></>,
   appearance: <><circle cx="12" cy="12" r="8" /><circle cx="9" cy="9" r="1.4" /><circle cx="15" cy="10" r="1.4" /><circle cx="11" cy="15" r="1.4" /></>,
 
-  joint: <><circle cx="8" cy="12" r="3" /><circle cx="16" cy="12" r="3" /><path d="M11 12h2" /></>,
-  jointorigin: <><circle cx="12" cy="12" r="2.2" /><path d="M12 3v5M12 16v5M3 12h5M16 12h5" /></>,
-  rigid: <><rect x="5" y="9" width="6" height="6" /><rect x="13" y="9" width="6" height="6" /><path d="M11 12h2" /></>,
+  // Phase2 Assemble: distinct metaphors (was shared `joint` on quick strip)
+  joint: <><circle cx="7.5" cy="12" r="3.1" /><circle cx="16.5" cy="12" r="3.1" /><path d="M10.6 12h2.8" /><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" opacity=".45" /></>,   // two links + pivot
+  jointorigin: <><circle cx="12" cy="12" r="2.2" /><path d="M12 3v5M12 16v5M3 12h5M16 12h5" /><path d="M9.2 9.2l1.6 1.6M13.2 13.2l1.6 1.6M13.2 10.8l1.6-1.6M9.2 14.8l1.6-1.6" opacity=".35" /></>,   // named frame cross
+  rigid: <><rect x="4.5" y="8.5" width="6.2" height="7" rx=".6" /><rect x="13.3" y="8.5" width="6.2" height="7" rx=".6" /><path d="M10.7 10.2h2.6M10.7 13.8h2.6" /><path d="M12 10.2v3.6" opacity=".5" /></>,   // locked pair
+  ground: <><path d="M6 8.5h12v7.5H6z" /><path d="M4 16h16" /><path d="M6 18.5h2.2M10.4 18.5h2.2M14.8 18.5h2.2" /><path d="M12 5.2v3.3M10.2 7l1.8 1.5L14 7" opacity=".85" /></>,   // fixed / grounded component
+  asbuilt: <><rect x="3.5" y="7.5" width="7" height="9" rx=".8" /><rect x="13.5" y="7.5" width="7" height="9" rx=".8" /><path d="M10.5 12h3" /><circle cx="12" cy="12" r="1.3" /><path d="M5.5 5.5h5M15.5 5.5h3" opacity=".4" /></>,   // joint in current pose (no move)
+  motionlink: <><circle cx="8" cy="12" r="4.2" /><circle cx="16" cy="12" r="3" /><path d="M8 7.8v8.4M16 9v6" opacity=".35" /><path d="M11.8 10.5 13.5 12l-1.7 1.5" /></>,   // gear ratio / linked motion
+  contact: <><rect x="3.2" y="6.5" width="8.2" height="11" rx=".8" /><rect x="12.6" y="6.5" width="8.2" height="11" rx=".8" /><path d="M11.4 9.5v5" /><path d="M11.4 12h1.2" opacity=".5" /></>,   // bodies touching
+  motionstudy: <><rect x="4" y="5" width="16" height="11" rx="1.2" /><path d="M8 9.5l5 2.5L8 14.5z" fill="currentColor" stroke="none" opacity=".55" /><path d="M6 19h2M11 19h2M16 19h2" /></>,   // study / play
+  drive: <><path d="M5 12h10" /><circle cx="17.5" cy="12" r="2.3" /><path d="M8 8.5v7M5 12l2.2-2.2M5 12l2.2 2.2" /><path d="M12 8.5v7" opacity=".45" /></>,   // drive / slider
 
   plane: <><path d="m3 8 12-4 6 4-12 4z" /><path d="m3 8 0 4 12 4 6-4 0-4" opacity=".4" /></>,
   axis: <><path d="M5 19 19 5" /><circle cx="5" cy="19" r="1.6" /><circle cx="19" cy="5" r="1.6" /></>,

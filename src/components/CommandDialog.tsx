@@ -158,6 +158,8 @@ export function CommandDialog({ icon = 'default', title, okLabel = '確定', okD
       >
         <ToolIcon name={icon} size={16} />
         <span style={{ fontWeight: 700, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{tStatus(title, lang)}</span>
+        {/* Phase2: Fusion-like header ✓ — same onOk as footer command-confirm (footer kept for e2e). */}
+        <button type="button" className="cmd-palette-ok" disabled={okDisabled} aria-label={okTip ? tStatus(okTip, lang) : tStatus('確定（Enter）', lang)} title={okTip ? tStatus(okTip, lang) : tStatus('確定（Enter）', lang)} onClick={() => { if (!okDisabled) onOk() }}>✓</button>
         {!docked && <button type="button" className="cmd-palette-x" aria-label={msg('dlg.resetPanelPos', lang)} onClick={() => setOff({ dx: 0, dy: 0 })}>↺</button>}
         <button type="button" className="cmd-palette-x" aria-label={collapsed ? msg('dlg.expandOpts', lang) : msg('dlg.collapseOpts', lang)} aria-expanded={!collapsed} onClick={() => setCollapsed(v => !v)}>{collapsed ? '▸' : '▾'}</button>
         <button type="button" className="cmd-palette-x" aria-label={tStatus('取消（Esc）', lang)} title={tStatus('取消（Esc）', lang)} onClick={onCancel}>✕</button>

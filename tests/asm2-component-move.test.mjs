@@ -22,7 +22,7 @@ test('plan: jointed to a grounded part → refused (would leave the axis); slide
   const C = [comp('P', '組件1', { grounded: true }), comp('S', '組件2')]
   const rev = [J('J1', 'revolute', 'P', 'S')]
   const r = planComponentMove(['S'], [5, 0, 0], [0, 0, 0], C, rev)
-  assert.equal(r.kind, 'refuse'); assert.match(r.msg, /以關節「J1」連接到已固定的「組件1」— 直接移動會令其脫離關節軸線/)
+  assert.equal(r.kind, 'refuse'); assert.match(r.msg, /以關節「J1」連結到已固定的「組件1」— 直接移動會令其脫離關節軸線/)
   assert.doesNotMatch(r.msg, /唔|嘅|喺|冇|咗|啲|Fusion/)
   const sl = [J('J1', 'slider', 'P', 'S', [1, 0, 0])]
   assert.deepEqual(planComponentMove(['S'], [7, 0, 0], [0, 0, 0], C, sl), { kind: 'drive', jointId: 'J1', slide: 7, compId: 'S' })
@@ -76,6 +76,6 @@ test('store: ungrounded jointed group moves together and the joint anchor follow
   assert.equal(g().moveComponentsByUser(['B'], [0, 0, 4]), true)
   assert.deepEqual(g().components.map((c) => c.pos), [[0, 0, 4], [0, 0, 4]])
   assert.deepEqual(g().joints[0].anchor, [0, 10, 4])
-  assert.match(g().status, /連同以關節連接的 1 個組件一併平移（關節保持）/)
+  assert.match(g().status, /連同以關節連結的 1 個組件一併平移（關節保持）/)
   await g().undo(); assert.deepEqual(g().joints[0].anchor, [0, 10, 0]); assert.deepEqual(g().components[1].pos, [0, 0, 0])
 })

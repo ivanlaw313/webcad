@@ -19,7 +19,7 @@ export type MovePlan =
 
 const SLIDING = new Set(['slider', 'cylindrical', 'pinslot'])
 
-/** 以關節（任一方向）連接嘅組件集合（含自己）。 */
+/** 以關節（任一方向）連結嘅組件集合（含自己）。 */
 export function jointGroupOf(id: string, joints: readonly MoveJoint[]): Set<string> {
   const g = new Set([id]); const q = [id]
   while (q.length) {
@@ -55,11 +55,11 @@ export function planComponentMove(ids: readonly string[], d: V3, r: V3, comps: r
     }
   }
   const id0 = jointed[0], j0 = joints.find((j) => j.parent === id0 || j.child === id0)!
-  if (rot) return { kind: 'refuse', msg: `「${name(id0)}」以關節「${jn(j0)}」連接 — 直接旋轉會令其脫離關節軸線。請以關節驅動（拖動關節把手或「關節」面板滑桿），或先刪除關節` }
+  if (rot) return { kind: 'refuse', msg: `「${name(id0)}」以關節「${jn(j0)}」連結 — 直接旋轉會令其脫離關節軸線。請以關節驅動（拖動關節把手或「關節」面板滑桿），或先刪除關節` }
   const gid = [...all].find(isG)
   if (gid) {
     const slideHint = (() => { const own = [...joints].reverse().find((j) => j.child === id0); return own && SLIDING.has(own.type) ? `（只可沿關節「${jn(own)}」的滑動軸移動）` : '' })()
-    return { kind: 'refuse', msg: `「${name(id0)}」以關節「${jn(j0)}」連接到已固定的「${name(gid)}」— 直接移動會令其脫離關節軸線${slideHint}。請拖動關節把手或「關節」面板滑桿驅動；如需重新定位，請先刪除關節或取消固定` }
+    return { kind: 'refuse', msg: `「${name(id0)}」以關節「${jn(j0)}」連結到已固定的「${name(gid)}」— 直接移動會令其脫離關節軸線${slideHint}。請拖動關節把手或「關節」面板滑桿驅動；如需重新定位，請先刪除關節或取消固定` }
   }
   return { kind: 'group', ids: [...all], jointIds: joints.filter((j) => all.has(j.parent) && all.has(j.child)).map((j) => j.id) }
 }

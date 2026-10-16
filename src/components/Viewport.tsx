@@ -142,8 +142,24 @@ import WindLegend from './WindLegend'                    // 流场图例（色�
 import WindStreaks from './WindStreaks'                  // S3：烟耙条带流线（ribbon streaklines — 真风洞白烟带质感）
 import WindPoseCompare from './WindPoseCompare'          // S4：唔同朝向阻力对比卡（★ 只出比值/Δ%，绝对 Cd 未校正 ★）
 // ★ lazy ★ 呢两个拉住 shaders.ts(54KB GLSL 生成器) + lbmGpu + voxelfea —— 唔好入初始 bundle
-const WindTunnelGpuLazy = lazy(() => import('./WindTunnelGpu'))
-const WindObjectGizmoLazy = lazy(() => import('./WindObjectGizmo'))
+// FISHING86: same FISHING35 guard — stale deploy / 404 chunk must not crash Viewport
+// (F81 recheck: Cannot read properties of undefined (reading 'default') + WindTunnelGpu-*.js 404).
+const WindTunnelGpuLazy = lazy(async () => {
+  try {
+    const m = await import('./WindTunnelGpu') as { default?: typeof import('./WindTunnelGpu').default }
+    const C = m.default
+    if (typeof C === 'function') return { default: C }
+  } catch { /* chunk 404 / network */ }
+  return { default: function WindTunnelGpuChunkFallback() { return null } }
+})
+const WindObjectGizmoLazy = lazy(async () => {
+  try {
+    const m = await import('./WindObjectGizmo') as { default?: typeof import('./WindObjectGizmo').default }
+    const C = m.default
+    if (typeof C === 'function') return { default: C }
+  } catch { /* chunk 404 / network */ }
+  return { default: function WindObjectGizmoChunkFallback() { return null } }
+})
 import { computeMassProps } from '../cad/massProps'      // S117：主惯性矩 + 回转半径（Fusion 物理属性）
 import { orientedBBox } from '../cad/obb'                // S121：定向最小包围盒（料块/排版/省料）
 import { HDRI_PRESETS, type HdriPresetId } from '../render/hdriPresets'

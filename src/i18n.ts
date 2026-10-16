@@ -2521,6 +2521,13 @@ Object.assign(STATUS_PHRASES_X, {
   '處紅區）': 'red zones)',
   '應用變換': 'Apply Transform',
   '控制籠局部座標；也可拖動軸向控制柄。': 'Cage local coords; or drag axis handles.',
+
+  /* FISHING47 Formal TC UI leftovers (WindTunnel / CAD 座標 / ribbon construct) */
+  '用戶座標系': 'User Coordinate System',
+  '座標構造點': 'Coordinate Construction Point',
+  '關節座標幀': 'Joint Coordinate Frame',
+  '世界座標': 'World Coordinates',
+  'CAD 座標': 'CAD Coordinates',
   '孤立顯示（隱藏其餘）': 'Isolate (hide others)',
   '關閉預覽': 'Close preview',
   '已清空所選稜 — 重新點選邊界稜': 'Cleared selected edges — pick boundary edges again',

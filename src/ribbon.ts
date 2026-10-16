@@ -75,7 +75,7 @@ const SOLID: Panel[] = [
       { id: 'boundaryfill', label: 'Boundary Fill', icon: 'combine', tip: '用實體、曲面與工作平面分割空間，再選擇要保留的 cell。' },
       { id: 'basefeature', label: 'Create Base Feature', icon: 'newbody', tip: '進入直接建模 Base Feature 環境。' },
       { id: 'createpcb', label: 'Create PCB', icon: 'component', tip: '建立或關聯 PCB。' },
-      { id: 'jointorigin', label: '關節原點', icon: 'jointorigin', sep: true, tip: '點實體面心、圓柱孔心或頂點建立可複用命名關節坐標幀。' },
+      { id: 'jointorigin', label: '關節原點', icon: 'jointorigin', sep: true, tip: '點實體面心、圓柱孔心或頂點建立可複用命名關節座標幀。' },
     ],
   },
   {
@@ -133,7 +133,7 @@ const SOLID: Panel[] = [
     name: 'CONSTRUCT',
     // Fusion live-capture 次序；每项预设同一个 Construction Geometry 对话框嘅 Type + Method。
     tools: [
-      { id: 'ucs', label: '用戶坐標系', icon: 'axis', quick: true, tip: '點實體平面建立一套局部原點、三軸及三正交參考面。' },
+      { id: 'ucs', label: '用戶座標系', icon: 'axis', quick: true, tip: '點實體平面建立一套局部原點、三軸及三正交參考面。' },
       { id: 'datumgeom', label: '構造幾何', icon: 'plane', tip: '在一個面板中建立參考平面、構造軸或構造點；適用於圓柱、圓錐等沒有可用平面側面的實體。' },
       { id: 'offsetplane', label: '偏移平面', icon: 'plane', quick: true, sep: true, tip: '在畫布點選實體平面作偏移基準（偏移由該面起計；點選兩個平行面則建立中間平面），或不選面而由原點 XY／XZ／YZ 基準面起計，輸入距離建立平行參考面。' },
       { id: 'planeangedge', label: '成角平面', icon: 'plane', tip: '拾取直邊／軸並輸入角度，建立包含該邊的傾斜平面。' },
@@ -349,8 +349,8 @@ const LAB: Panel[] = [
     tools: [
       { id: 'datumgeom', label: '統一構造幾何', icon: 'plane', quick: true, tip: 'WebCAD 擴展入口：在同一個面板切換平面／軸／點及全部方法。' },
       { id: 'planeparpt', label: '過點平行面', icon: 'plane', tip: '以最後一個構造點及所拾平面建立平行參考面。' },
-      { id: 'caxis', label: '構造軸', icon: 'axis', tip: '以 X／Y／Z 方向及指定坐標建立構造軸。' },
-      { id: 'cpoint', label: '坐標構造點', icon: 'cpoint', tip: '輸入 X／Y／Z 坐標建立構造點。' },
+      { id: 'caxis', label: '構造軸', icon: 'axis', tip: '以 X／Y／Z 方向及指定座標建立構造軸。' },
+      { id: 'cpoint', label: '座標構造點', icon: 'cpoint', tip: '輸入 X／Y／Z 座標建立構造點。' },
       { id: 'midcpoint', label: '兩點中點', icon: 'cpoint', tip: '在最後兩個構造點正中建立新構造點。' },
       { id: 'cptgrid', label: '構造點陣列', icon: 'cpoint', tip: '一次建立矩形或極坐標構造點陣列。' },
       { id: 'projsurf', label: '投影到圓柱面', icon: 'axis', tip: '把平面草圖路徑按弧長映射到可展圓柱面，產生 3D 參考曲線。' },

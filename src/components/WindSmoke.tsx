@@ -33,13 +33,13 @@ const UPDATE_FS = /* glsl */`
 precision highp float;
 precision highp sampler3D;
 
-uniform sampler2D uPos;      // xyz = lattice cell-centre 坐标, w = 年龄（已行 cell 数）
+uniform sampler2D uPos;      // xyz = lattice cell-centre 座標, w = 年龄（已行 cell 數）
 uniform sampler2D uPrev;
-uniform sampler3D uVol;      // rgb = 速度(bias 128), a = 固体
+uniform sampler3D uVol;      // rgb = 速度(bias 128), a = 固體
 uniform vec3  uGridN;
-uniform float uUMax;         // volUMax（格子单位）
-uniform float uAdvect;       // 今 frame 行几多「格子步」
-uniform float uLife;         // 寿命（以「已行 cell 数」计，唔用秒 —— 陷阱 #10）
+uniform float uUMax;         // volUMax（格子單位）
+uniform float uAdvect;       // 今 frame 行幾多「格子步」
+uniform float uLife;         // 壽命（以「已行 cell 數」計，唔用秒 —— 陷阱 #10）
 uniform float uUref;         // latInletU
 uniform vec4  uRakeX;        // x, y0, y1, (w 未用)
 uniform vec2  uRakeZ;        // z0, z1
@@ -51,14 +51,14 @@ layout(location = 1) out vec4 oPrev;
 
 in vec2 vUV;
 
-// ⚠ 陷阱 #1（半格）：cell i 嘅值存喺 texel i，texel 中心喺 (i+0.5)/N；我哋 p 用 cell-centre 约定
-//   （cell i 中心 = i+0.5）→ uvw = p/N。写成 (p+0.5)/N 会令【成个流场向下游偏半格】—— 睇落完全正常但全错。
+// ⚠ 陷阱 #1（半格）：cell i 嘅值存喺 texel i，texel 中心喺 (i+0.5)/N；我哋 p 用 cell-centre 約定
+//   （cell i 中心 = i+0.5）→ uvw = p/N。寫成 (p+0.5)/N 會令【成個流場向下游偏半格】—— 睇落完全正常但全錯。
 vec3 toUVW(vec3 p) { return p / uGridN; }
 bool outside(vec3 p) { return any(lessThan(p, vec3(0.5))) || any(greaterThan(p, uGridN - 0.5)); }
 vec4 volAt(vec3 p) { return texture(uVol, toUVW(p)); }
 vec3 velAt(vec3 p) {
   if (outside(p)) return vec3(0.0);
-  // 128 系中点；×255/254 补偿 128 唔系啱啱好喺 [0,255] 正中
+  // 128 系中點；×255/254 補償 128 唔系啱啱好喺 [0,255] 正中
   return (volAt(p).xyz * 2.0 - 1.0) * (uUMax * 255.0 / 254.0);
 }
 bool inSolid(vec3 p) { return !outside(p) && volAt(p).w > 0.5; }
@@ -69,7 +69,7 @@ vec3 hash33(vec3 p) {
   return fract((p.xxy + p.yxx) * p.zyx);
 }
 
-// 烟耙：上游一块矩形平面出生（唔系成个域乱撒 —— 乱撒会令自由流一片糊，睇唔到绕流结构）
+// 烟耙：上游一塊矩形平面出生（唔系成個域亂撒 —— 亂撒會令自由流一片糊，睇唔到繞流結構）
 vec3 spawn(vec2 uv, float salt) {
   vec3 h = hash33(vec3(uv * 1024.0, uSeed + salt));
   return vec3(uRakeX.x, mix(uRakeX.y, uRakeX.z, h.y), mix(uRakeZ.x, uRakeZ.y, h.z));
@@ -81,14 +81,14 @@ void main() {
   float age = P.w;
 
   if (uReset > 0.5) {
-    // 初始年龄撒开成个寿命 —— 唔系嘅话第一秒会见到一整块粒子【齐步】向下游行
+    // 初始年龄撒開成個壽命 —— 唔系嘅話第一秒會見到一整塊粒子【齊步】向下游行
     float a0 = hash33(vec3(vUV * 512.0, uSeed)).x * uLife;
     vec3 s = spawn(vUV, 3.7);
     oPos = vec4(s, a0); oPrev = vec4(s, a0);
     return;
   }
 
-  // RK2 中点法。Euler 会明显「切」走涡嘅弯位，令 tracer 向涡心螺旋 —— 直接睇得出嚟。
+  // RK2 中點法。Euler 會明顯「切」走涡嘅彎位，令 tracer 向涡心螺旋 —— 直接睇得出嚟。
   vec3 v0 = velAt(p);
   vec3 pm = p + v0 * (0.5 * uAdvect);
   vec3 v1 = velAt(pm);
@@ -96,9 +96,9 @@ void main() {
 
   float speed = length(v1);
 
-  // 年龄 = 已行 cell 数（唔用秒）。咁样改 frame rate 或者拉「流速」slider 都唔会令烟飞唔到零件度就死。
+  // 年龄 = 已行 cell 數（唔用秒）。咁樣改 frame rate 或者拉「流速」slider 都唔會令烟飛唔到零件度就死。
   float travel = speed * uAdvect;
-  // 陷阱 #4：卡住嘅粒子加速老化 —— 唔做嘅话一分钟后粒子全部积喺尾流回流泡，自由流变空、画面死掉。
+  // 陷阱 #4：卡住嘅粒子加速老化 —— 唔做嘅話一分鐘後粒子全部積喺尾流回流泡，自由流變空、畫面死掉。
   if (speed < 0.05 * uUref) travel = 8.0 * uUref * uAdvect;
   age += travel;
 
@@ -107,7 +107,7 @@ void main() {
   if (dead) {
     vec3 s = spawn(vUV, floor(age * 13.0) + uSeed);
     oPos  = vec4(s, 0.0);
-    oPrev = vec4(s, 0.0);   // ⚠ 陷阱 #3：新生嗰 frame prev 必须 = pos，否则会由死亡位置扯一条线横跨成个域
+    oPrev = vec4(s, 0.0);   // ⚠ 陷阱 #3：新生嗰 frame prev 必須 = pos，否則會由死亡位置扯一條線橫跨成個域
   } else {
     oPos  = vec4(pn, age);
     oPrev = vec4(p,  age);
@@ -128,7 +128,7 @@ uniform vec3  uGridN;
 uniform float uUMax;
 uniform float uSideF;
 uniform float uLife;
-uniform float uStreakScale;  // 0=短点 1=全尾
+uniform float uStreakScale;  // 0=短點 1=全尾
 
 out float vAge;
 out float vSpeed;
@@ -140,7 +140,7 @@ void main() {
   vec4 P = texelFetch(uPos,  t, 0);
   vec4 Q = texelFetch(uPrev, t, 0);
 
-  // 偶数顶点 = 尾(prev)，奇数 = 头(cur) → 每粒 tracer 一条同自己运动方向对齐嘅短划
+  // 偶數頂點 = 尾(prev)，奇數 = 頭(cur) → 每粒 tracer 一條同自己運動方向對齊嘅短劃
   vec3 lp = ((gl_VertexID & 1) == 0) ? mix(P.xyz, Q.xyz, uStreakScale) : P.xyz;
 
   vec3 uvw = clamp(lp / uGridN, vec3(0.002), vec3(0.998));
@@ -153,8 +153,8 @@ void main() {
 
 const DRAW_FS = /* glsl */`
 precision highp float;
-// ⚠ three r184：ShaderMaterial + GLSL3 时，three【唔会】帮你声明 pc_fragColor，亦唔会 #define gl_FragColor
-//   （WebGLProgram.js:816-817 明确喺 GLSL3 分支跳过）→ 一定要自己声明 out，写 gl_FragColor 会编译失败。
+// ⚠ three r184：ShaderMaterial + GLSL3 時，three【唔會】幫你聲明 pc_fragColor，亦唔會 #define gl_FragColor
+//   （WebGLProgram.js:816-817 明確喺 GLSL3 分支跳過）→ 一定要自己聲明 out，寫 gl_FragColor 會編譯失敗。
 layout(location = 0) out highp vec4 oColor;
 in float vAge;
 in float vSpeed;
@@ -162,7 +162,7 @@ uniform float uAlpha;
 uniform float uUrefLat;
 uniform float uColorMode;   // 0=白烟 1=速度(turbo) 2=年龄
 
-// turbo colormap（Mikhailov / Google 2019 五阶多项式拟合）
+// turbo colormap（Mikhailov / Google 2019 五階多項式擬合）
 vec3 turboSRGB(float x) {
   const vec4 kR4 = vec4( 0.13572138,  4.61539260, -42.66032258, 132.13108234);
   const vec4 kG4 = vec4( 0.09140261,  2.19418839,   4.84296658, -14.18503333);
@@ -179,7 +179,7 @@ vec3 turboSRGB(float x) {
 }
 
 void main() {
-  // 陷阱 #6 伴生：出生淡入 + 老死淡出。冇呢两下粒子会「啪啪」跳出跳入。
+  // 陷阱 #6 伴生：出生淡入 + 老死淡出。冇呢兩下粒子會「啪啪」跳出跳入。
   float a = uAlpha * smoothstep(0.0, 0.05, vAge) * pow(1.0 - vAge, 1.5);
   if (a <= 0.002) discard;
 

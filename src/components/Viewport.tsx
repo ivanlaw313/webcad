@@ -5538,7 +5538,7 @@ export default function Viewport() {
             if (face) void useApp.getState().startSketchOnFace(face.three, face.n)
             else startSketch()
           } }
-          const sectionPrompt = async (compId?: string) => { const v = await useApp.getState().appPrompt(compId ? '截面：軸,位置mm（世界坐標，跟隨擺位/旋轉）— 切一刀，閉合輪廓變可編輯草圖（STL remix：取輪廓→改尺寸→重新拉伸）\n例：Z,10 = 水平切；X,0 / Y,5 亦可' : '截面：軸,位置mm — 在活動實體此位置切一刀，閉合輪廓變成可編輯草圖\n例：Z,10 = 在 z=10 水平切；X,0 / Y,5 亦可（世界坐標）', 'Z,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (ax.length !== 1 || !'XYZ'.includes(ax)) { await useApp.getState().appAlert('軸要是 X / Y / Z（例 Z,10）'); return } const c = Number(p[1]); if (!Number.isFinite(c)) { await useApp.getState().appAlert('請輸入數字位置，例 Z,10'); return } useApp.getState().meshSectionToSketch(compId, ax as 'X' | 'Y' | 'Z', c) }
+          const sectionPrompt = async (compId?: string) => { const v = await useApp.getState().appPrompt(compId ? '截面：軸,位置mm（世界座標，跟隨擺位/旋轉）— 切一刀，閉合輪廓變可編輯草圖（STL remix：取輪廓→改尺寸→重新拉伸）\n例：Z,10 = 水平切；X,0 / Y,5 亦可' : '截面：軸,位置mm — 在活動實體此位置切一刀，閉合輪廓變成可編輯草圖\n例：Z,10 = 在 z=10 水平切；X,0 / Y,5 亦可（世界座標）', 'Z,10'); if (v == null) return; const p = v.split(/[,，\s]+/).filter(Boolean); const ax = (p[0] || 'Z').toUpperCase(); if (ax.length !== 1 || !'XYZ'.includes(ax)) { await useApp.getState().appAlert('軸要是 X / Y / Z（例 Z,10）'); return } const c = Number(p[1]); if (!Number.isFinite(c)) { await useApp.getState().appAlert('請輸入數字位置，例 Z,10'); return } useApp.getState().meshSectionToSketch(compId, ax as 'X' | 'Y' | 'Z', c) }
           const compItems: MMItem[] = sc ? [
             ...(hit.kind === 'component' ? [] : [{ key: 'focus', label: `🎯 聚焦「${sc.name}」`, fn: () => requestFit(sc.id) } as MMItem]),
             { key: 'cstl', label: `📥 匯出「${sc.name}」STL`, fn: () => useApp.getState().exportComponentStl(sc.id) },
@@ -7189,7 +7189,7 @@ export default function Viewport() {
             <label>{tStatus('軸', lang)} <select value={featDlg.params.axis} onChange={(e) => setFeatParam('axis', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
             <label>{tStatus('數量', lang)} <FeatNum k="count" v={featDlg.params.count} w={46} /></label>
             <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={56} />°</label>
-            <label title={tStatus('旋轉中心（CAD 坐標，預設原點）。繞偏心軸陣列時設定。', lang)}>{tStatus('中心', lang)} <FeatNum k="cx" v={featDlg.params.cx} w={40} /><FeatNum k="cy" v={featDlg.params.cy} w={40} /><FeatNum k="cz" v={featDlg.params.cz} w={40} /></label>
+            <label title={tStatus('旋轉中心（CAD 座標，預設原點）。繞偏心軸陣列時設定。', lang)}>{tStatus('中心', lang)} <FeatNum k="cx" v={featDlg.params.cx} w={40} /><FeatNum k="cy" v={featDlg.params.cy} w={40} /><FeatNum k="cz" v={featDlg.params.cz} w={40} /></label>
             {useApp.getState().cpoints.length > 0 && (
               <label title={tStatus('用已建構造點做旋轉中心：選中後自動填中心 cx/cy/cz（『繞此點陣列』）', lang)}>{tStatus('構造點', lang)} <select value="" onChange={(e) => { const i = Number(e.target.value); if (!Number.isInteger(i)) return; const cp = useApp.getState().cpoints[i]; if (!cp) return; setFeatParam('cx', cp[0]); setFeatParam('cy', cp[1]); setFeatParam('cz', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{useApp.getState().cpoints.map((cp, i) => <option key={'CP' + i} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>
             )}
@@ -7215,7 +7215,7 @@ export default function Viewport() {
             {useApp.getState().cpoints.length > 0 && (
               <label title={tStatus('用已建構造點做陣列軸點（origin）：選中後自動填軸點 ox/oy/oz（『繞此點陣列』）', lang)}>{tStatus('構造點', lang)} <select value="" onChange={(e) => { const i = Number(e.target.value); if (!Number.isInteger(i)) return; const cp = useApp.getState().cpoints[i]; if (!cp) return; setFeatParam('ox', cp[0]); setFeatParam('oy', cp[1]); setFeatParam('oz', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{useApp.getState().cpoints.map((cp, i) => <option key={'CP' + i} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>
             )}
-            <label title={tStatus('軸經過的點（CAD 坐標）— 繞偏心軸陣列時設定', lang)}>{tStatus('軸點', lang)} <FeatNum k="ox" v={featDlg.params.ox} w={40} /><FeatNum k="oy" v={featDlg.params.oy} w={40} /><FeatNum k="oz" v={featDlg.params.oz} w={40} /></label>
+            <label title={tStatus('軸經過的點（CAD 座標）— 繞偏心軸陣列時設定', lang)}>{tStatus('軸點', lang)} <FeatNum k="ox" v={featDlg.params.ox} w={40} /><FeatNum k="oy" v={featDlg.params.oy} w={40} /><FeatNum k="oz" v={featDlg.params.oz} w={40} /></label>
             <label title={tStatus('軸方向分量（可以斜軸，例 1,0,1）', lang)}>{tStatus('方向', lang)} <FeatNum k="dx" v={featDlg.params.dx} w={36} /><FeatNum k="dy" v={featDlg.params.dy} w={36} /><FeatNum k="dz" v={featDlg.params.dz} w={36} /></label>
             <label>{tStatus('數量', lang)} <FeatNum k="count" v={featDlg.params.count} w={46} /></label>
             <label title={tStatus('完整 = 360° 均分；指定角度 = 副本鋪滿指定角（端點含）；對稱 = 以原件為中心 ± 對稱分布', lang)}>{tStatus('角度', lang)} <select value={featDlg.params.mode} onChange={(e) => setFeatParam('mode', e.target.value)} style={{ height: 26 }}><option value="full">{tStatus('完整 360°', lang)}</option><option value="angle">{tStatus('指定角度', lang)}</option><option value="sym">{tStatus('對稱', lang)}</option></select></label>
@@ -7249,7 +7249,7 @@ export default function Viewport() {
             const mt = String(featDlg.params.moveType ?? 'free')
             const objectType = String(featDlg.params.objectType ?? 'bodies')
             const moveComponentCount = checkedComps.length || (selectedComponent ? 1 : 0)
-            const modes: [string, string, string][] = [['free', '自由', '六自由度：dx/dy/dz + 繞件中心 X/Y/Z'], ['translate', '平移', '只平移 dx/dy/dz'], ['rotate', '旋轉', '單軸 + 角度（繞件中心）'], ['ptp', '點對點', '把 P1 搬到 P2（兩點坐標）'], ['ptpos', '點對位', '把 P1 搬到目的坐標 P2']]
+            const modes: [string, string, string][] = [['free', '自由', '六自由度：dx/dy/dz + 繞件中心 X/Y/Z'], ['translate', '平移', '只平移 dx/dy/dz'], ['rotate', '旋轉', '單軸 + 角度（繞件中心）'], ['ptp', '點對點', '把 P1 搬到 P2（兩點座標）'], ['ptpos', '點對位', '把 P1 搬到目的座標 P2']]
             return (<>
               <label title={tStatus('對象類型：目前支援實體及已選組件；面與草圖請使用專屬工具。', lang)}>{tStatus('對象', lang)} <select value={objectType} onChange={(e) => setFeatParam('objectType', e.target.value)} style={{ height: 26 }}><option value="bodies">{tStatus('實體', lang)}</option><option value="components">{tStatus('組件', lang)}</option><option value="faces" disabled>{tStatus('面（用移動面）', lang)}</option><option value="sketch" disabled>{tStatus('草圖（草圖環境）', lang)}</option></select></label>
               {objectType === 'bodies' ? (<>
@@ -7277,7 +7277,7 @@ export default function Viewport() {
                 <label title={tStatus('旋轉角°', lang)}>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={56} />°</label>
               </>)}
               {(mt === 'ptp' || mt === 'ptpos') && (<>
-                <div style={{ fontSize: 11, color: '#6b7680', width: '100%' }}>{tStatus(mt === 'ptp' ? 'P1=起點、P2=目標點（世界坐標）→ 平移 P2−P1' : 'P1=點、P2=目的坐標（世界坐標）→ 把 P1 搬到 P2', lang)}</div>
+                <div style={{ fontSize: 11, color: '#6b7680', width: '100%' }}>{tStatus(mt === 'ptp' ? 'P1=起點、P2=目標點（世界座標）→ 平移 P2−P1' : 'P1=點、P2=目的座標（世界座標）→ 把 P1 搬到 P2', lang)}</div>
                 <label>P1x <FeatNum k="p1x" v={featDlg.params.p1x} w={48} /></label>
                 <label>P1y <FeatNum k="p1y" v={featDlg.params.p1y} w={48} /></label>
                 <label>P1z <FeatNum k="p1z" v={featDlg.params.p1z} w={48} /></label>
@@ -7347,7 +7347,7 @@ export default function Viewport() {
             <label title={tStatus('或直接輸入目標最長邊尺寸（mm）→ 自動算比例；0=用上面比例', lang)}>{tStatus('或 目標最長邊', lang)} <FeatNum k="target" v={featDlg.params.target} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
             <label title={tStatus('非等比三軸縮放（T762 GTransform 真 B-rep）：任一軸 >0 即生效，0=該軸不縮放；填了就忽略上面等比', lang)}>{tStatus('非等比 X', lang)} <FeatNum k="sx" v={featDlg.params.sx} w={44} />Y <FeatNum k="sy" v={featDlg.params.sy} w={44} />Z <FeatNum k="sz" v={featDlg.params.sz} w={44} /></label>
             {/* P2（Fusion Scale Point）：缩放基准点 — 默认实体中心（开对话框预填）；0,0,0=世界原点（旧行为） */}
-            <label title={tStatus('縮放基準點（CAD 坐標）：實體繞此點縮放，不會飛離。預設=實體包圍盒中心；0,0,0=世界原點（舊行為）', lang)}>{tStatus('基準點', lang)} <FeatNum k="px" v={featDlg.params.px} w={44} /><FeatNum k="py" v={featDlg.params.py} w={44} /><FeatNum k="pz" v={featDlg.params.pz} w={44} /></label>
+            <label title={tStatus('縮放基準點（CAD 座標）：實體繞此點縮放，不會飛離。預設=實體包圍盒中心；0,0,0=世界原點（舊行為）', lang)}>{tStatus('基準點', lang)} <FeatNum k="px" v={featDlg.params.px} w={44} /><FeatNum k="py" v={featDlg.params.py} w={44} /><FeatNum k="pz" v={featDlg.params.pz} w={44} /></label>
             <button className="cs-btn" title={tStatus('把基準點設到實體包圍盒中心（原地縮放）', lang)} onClick={() => {
               const m = useApp.getState().bodyMesh; if (!m?.vertices?.length) return
               const vv = m.vertices; let xn = 1e9, xp = -1e9, yn = 1e9, yp = -1e9, zn = 1e9, zp = -1e9
@@ -7459,7 +7459,7 @@ export default function Viewport() {
           )}
           {featDlg.kind === 'revolve' && (<>
             {featDlg.params.axisReference !== undefined && <label>{tStatus('軸參照', lang)} <select aria-label={tStatus('旋轉軸參照', lang)} value={featDlg.params.axisReference} onChange={e=>setFeatParam('axisReference',e.target.value)}><option value="sketch">{tStatus('隨草圖移動', lang)}</option><option value="world">{tStatus('固定世界軸', lang)}</option></select></label>}
-            {featDlg.params.axisReference !== undefined && <div style={{fontSize:12, flexBasis:'100%',lineHeight:1.4}}>{tStatus(featDlg.params.axisReference === 'world' ? '來源面移動時，軸點保持當前世界坐標。' : '來源面移動時，軸點與草圖一起移動。',lang)}</div>}
+            {featDlg.params.axisReference !== undefined && <div style={{fontSize:12, flexBasis:'100%',lineHeight:1.4}}>{tStatus(featDlg.params.axisReference === 'world' ? '來源面移動時，軸點保持當前世界座標。' : '來源面移動時，軸點與草圖一起移動。',lang)}</div>}
             <label title={tStatus('旋轉軸方向：世界 X/Y/Z；位置由軸點及軸參照決定，或選任意構造軸（先用「構造軸」造軸 — 兩點軸/選圓柱面取軸，偏離原點車削用此）', lang)}>{tStatus('旋轉軸', lang)} <select aria-label={tStatus('旋轉軸', lang)} value={featDlg.params.axis} onChange={(e) => setFeatParam('axis', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option>{useApp.getState().caxes.map((ca, i) => <option key={'A' + i} value={'A' + i}>{tStatus('構造軸', lang)}{i + 1}（{ca.dirV ? ca.dirV.map((v) => +v.toFixed(1)).join(',') : ca.dir}）</option>)}</select></label>
             {/* UX2 #8：講明預設軸 — 畫布有橙色虛線高亮而家嘅旋轉軸 */}
             <div data-testid="revolve-axis-hint" style={{fontSize:12, flexBasis:'100%', lineHeight:1.4, color:'#c96a00'}}>{(() => {
@@ -7516,7 +7516,7 @@ export default function Viewport() {
             <span title={tStatus('方向：過上面軸點，沿 X / Y / Z 做旋轉軸', lang)} style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }}>{tStatus('軸向', lang)}
               {(['X', 'Y', 'Z'] as const).map((ax) => { const on = (ax === 'X' && featDlg.params.dx === 1 && !featDlg.params.dy && !featDlg.params.dz) || (ax === 'Y' && featDlg.params.dy === 1 && !featDlg.params.dx && !featDlg.params.dz) || (ax === 'Z' && featDlg.params.dz === 1 && !featDlg.params.dx && !featDlg.params.dy); return <button key={ax} className={'cs-btn' + (on ? ' on' : '')} title={tStatus(`沿 ${ax} 軸（過上面軸點）`, lang)} onClick={() => { setFeatParam('axis', ax); setFeatParam('dx', ax === 'X' ? 1 : 0); setFeatParam('dy', ax === 'Y' ? 1 : 0); setFeatParam('dz', ax === 'Z' ? 1 : 0) }} style={{ padding: '2px 7px', ...(on ? { background: '#1572c4', color: '#fff' } : {}) }}>{ax}</button> })}
             </span>
-            <label title={tStatus('旋轉軸經過的點（CAD 坐標）— 偏離原點車削設定；預設 0,0,0 = 用上面旋轉軸預設', lang)}>{tStatus('軸點', lang)} <FeatNum k="ox" v={featDlg.params.ox} w={40} /><FeatNum k="oy" v={featDlg.params.oy} w={40} /><FeatNum k="oz" v={featDlg.params.oz} w={40} /></label>
+            <label title={tStatus('旋轉軸經過的點（CAD 座標）— 偏離原點車削設定；預設 0,0,0 = 用上面旋轉軸預設', lang)}>{tStatus('軸點', lang)} <FeatNum k="ox" v={featDlg.params.ox} w={40} /><FeatNum k="oy" v={featDlg.params.oy} w={40} /><FeatNum k="oz" v={featDlg.params.oz} w={40} /></label>
             <label title={tStatus('旋轉軸方向分量（可斜軸，例 1,0,1）— 預設 0,1,0 = 世界 Y。注意：輪廓必須完全在軸一側，否則建模失敗', lang)}>{tStatus('方向', lang)} <FeatNum k="dx" v={featDlg.params.dx} w={36} /><FeatNum k="dy" v={featDlg.params.dy} w={36} /><FeatNum k="dz" v={featDlg.params.dz} w={36} /></label>
             <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={56} />°</label>
             <label title={tStatus('薄壁 mm：>0 把旋轉體抽成薄殼（燈罩/碗殼/漏斗等曲面殼），0=實心', lang)}>{tStatus('薄壁', lang)} <FeatNum k="wall" v={featDlg.params.wall} w={48} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
@@ -7657,7 +7657,7 @@ export default function Viewport() {
               <label title={isI ? tStatus('攻牙深度/長度（由孔底 z + 偏移 向上）', lang) : tStatus('螺紋長度（沿圓柱面軸向）', lang)}>{tStatus(full ? (isI ? '深度' : '高度') : '長度', lang)} <FeatNum k="height" v={featDlg.params.height} w={48} /></label>
               {!full && <label title={tStatus('偏移：由面/孔起點沿軸向偏移一段再開始上牙（局部螺紋起點）', lang)}>{tStatus('偏移', lang)} <FeatNum k="toff" v={featDlg.params.toff} w={48} /></label>}
               {isI && <label title={tStatus('孔底 z（盲孔攻牙由此處向上；0=由底面起 — 舊行為）', lang)}>{tStatus('孔底z', lang)} <FeatNum k="z0" v={featDlg.params.z0} w={48} /></label>}
-              {isI && <label title={tStatus('孔心 CAD 坐標（拾孔內壁自動填）', lang)}>{tStatus('中心', lang)} <FeatNum k="x" v={featDlg.params.x} w={44} /><FeatNum k="y" v={featDlg.params.y} w={44} /></label>}
+              {isI && <label title={tStatus('孔心 CAD 座標（拾孔內壁自動填）', lang)}>{tStatus('中心', lang)} <FeatNum k="x" v={featDlg.params.x} w={44} /><FeatNum k="y" v={featDlg.params.y} w={44} /></label>}
               {!isI && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('位置', lang)} ({featDlg.params.x},{featDlg.params.y}) z{featDlg.params.z0}{tStatus('（拾面自動填）', lang)}</span>}
               <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={tStatus('建模螺紋 Modeled：勾=真螺旋牙（compound，之後不要圓角/STEP）；不勾=cosmetic 外觀標注（B-rep 乾淨 —預設）', lang)}><input type="checkbox" checked={!!+(featDlg.params.modeled || 0)} onChange={(e) => setFeatParam('modeled', e.target.checked ? 1 : 0)} />{tStatus('建模螺紋', lang)}</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={tStatus('左旋牙 Left hand：勾=左旋（逆時針旋轉入）；預設=右旋（標準）', lang)}><input type="checkbox" checked={!!+(featDlg.params.lefthand || 0)} onChange={(e) => setFeatParam('lefthand', e.target.checked ? 1 : 0)} />{tStatus('左旋牙', lang)}</label>
@@ -7832,7 +7832,7 @@ export default function Viewport() {
             {key === 'axis:dirPoint' && (<>
               <label>{tStatus('方向', lang)} <select value={String(P.dir ?? 'X')} onChange={(e) => dp('dir', e.target.value)} style={{ height: 26 }}><option>X</option><option>Y</option><option>Z</option></select></label>
               <label>{tStatus('經過', lang)} <input type="number" step={5} value={Number(P.x ?? 0)} onChange={(e) => dp('x', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={Number(P.y ?? 0)} onChange={(e) => dp('y', Number(e.target.value))} style={{ width: 44 }} /><input type="number" step={5} value={Number(P.z ?? 0)} onChange={(e) => dp('z', Number(e.target.value))} style={{ width: 44 }} /></label>
-              {cpoints.length > 0 && <label title={tStatus('使用已建立的構造點作為構造軸經過點；選擇後會填入 XYZ 坐標。', lang)}>{tStatus('構造點', lang)} <select data-testid="datum-axis-point" value="" onChange={(e) => { const i = Number(e.target.value); const cp = cpoints[i]; if (!Number.isInteger(i) || !cp) return; dp('x', cp[0]); dp('y', cp[1]); dp('z', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{cpoints.map((cp, i) => <option key={`datumAxisPoint${i}`} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>}
+              {cpoints.length > 0 && <label title={tStatus('使用已建立的構造點作為構造軸經過點；選擇後會填入 XYZ 座標。', lang)}>{tStatus('構造點', lang)} <select data-testid="datum-axis-point" value="" onChange={(e) => { const i = Number(e.target.value); const cp = cpoints[i]; if (!Number.isInteger(i) || !cp) return; dp('x', cp[0]); dp('y', cp[1]); dp('z', cp[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造點 —', lang)}</option>{cpoints.map((cp, i) => <option key={`datumAxisPoint${i}`} value={i}>{tStatus('構造點', lang)}{i + 1}（{cp.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>}
             </>)}
             {/* 垂直面（累积法 + 距离字段） */}
             {key === 'plane:perp' && <label title={tStatus('沿垂直面法向偏移距離', lang)}>{tStatus('偏移', lang)} <input type="number" step={5} value={Number(P.dist ?? 0)} onChange={(e) => dp('dist', Number(e.target.value))} style={{ width: 56 }} /> mm</label>}
@@ -7941,7 +7941,7 @@ export default function Viewport() {
                 onClick={() => { const n = !snapPaused; setSnapPaused(n); setGeoSnapAlt(n) }}>{tStatus('⏸吸附', lang)}</button>
             </span>
           )}
-          {sketchPreview && <span className="sb-hint" title={tStatus('當前光標在草圖平面的 (X, Y) 坐標 mm（已吸附）', lang)} style={{ fontVariantNumeric: 'tabular-nums', color: '#5a6b78' }}>⌖ {(() => { const r = sketchCursorReadout(sketchPreview, sketchPlane, !!sketchArb); return `${r[0].toFixed(1)}, ${r[1].toFixed(1)}` })()}</span>}
+          {sketchPreview && <span className="sb-hint" title={tStatus('當前光標在草圖平面的 (X, Y) 座標 mm（已吸附）', lang)} style={{ fontVariantNumeric: 'tabular-nums', color: '#5a6b78' }}>⌖ {(() => { const r = sketchCursorReadout(sketchPreview, sketchPlane, !!sketchArb); return `${r[0].toFixed(1)}, ${r[1].toFixed(1)}` })()}</span>}
           {sketchArb ? <span className="sb-hint">{tStatus('自定草圖平面', lang)}</span> : <label className="sb-hint" title={tStatus('草圖平面：上=水平面 XY；前=豎直面 XZ（拉伸沿 Y 出料）；右=豎直面 YZ（拉伸沿 X 出料）。做 L 形件/加強筋時選豎直面。', lang)}>{tStatus('面', lang)}
             <select value={sketchPlane} onChange={(e) => setSketchOrient(e.target.value as 'XY' | 'XZ' | 'YZ')}>
               <option value="XY">{tStatus('上 XY', lang)}</option>
@@ -8080,7 +8080,7 @@ export default function Viewport() {
                     <label className="sb-hint" title={tStatus('透明度', lang)}>{tStatus('透明', lang)} <input type="range" min={0.1} max={1} step={0.05} value={canvasImg.opacity} onChange={(e) => updateCanvasImg({ opacity: Number(e.target.value) })} style={{ width: 56, verticalAlign: 'middle' }} /></label>
                   </div>
                   <div className="panel-menu-item" style={{ cursor: 'default' }}>
-                    <label className="sb-hint" title={tStatus('圖中心（草圖坐標 mm）', lang)}>@ <input type="number" step={5} value={Math.round(canvasImg.cx)} onChange={(e) => updateCanvasImg({ cx: Number(e.target.value) || 0 })} style={{ width: 42 }} /><input type="number" step={5} value={Math.round(canvasImg.cy)} onChange={(e) => updateCanvasImg({ cy: Number(e.target.value) || 0 })} style={{ width: 42 }} /></label>
+                    <label className="sb-hint" title={tStatus('圖中心（草圖座標 mm）', lang)}>@ <input type="number" step={5} value={Math.round(canvasImg.cx)} onChange={(e) => updateCanvasImg({ cx: Number(e.target.value) || 0 })} style={{ width: 42 }} /><input type="number" step={5} value={Math.round(canvasImg.cy)} onChange={(e) => updateCanvasImg({ cy: Number(e.target.value) || 0 })} style={{ width: 42 }} /></label>
                   </div>
                   {activeCv && (<>
                     <div className="panel-menu-item" style={{ cursor: 'default', gap: 6 }}>
@@ -9060,7 +9060,7 @@ export default function Viewport() {
                 <option value="low">{tStatus('低', lang)}</option><option value="med">{tStatus('中', lang)}</option><option value="high">{tStatus('高', lang)}</option>
               </select>
             </label>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={tStatus('坐標系：慣性張量參考 世界(原點) / COM(質心)', lang)}>{tStatus('坐標', lang)}
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }} title={tStatus('座標系：慣性張量參考 世界(原點) / COM(質心)', lang)}>{tStatus('坐標', lang)}
               <select value={propsDialog.frame} onChange={(e) => useApp.getState().setPropsFrame(e.target.value as 'world' | 'com')} style={{ fontSize: 11 }}>
                 <option value="com">{tStatus('質心 COM', lang)}</option><option value="world">{tStatus('世界/原點', lang)}</option>
               </select>
@@ -9205,10 +9205,10 @@ export default function Viewport() {
             <span style={{ color: '#9fb2bf' }}>{tStatus('周長', lang)}</span><b>{fmtLen(sectionResult.perimeter, unit)}</b>
             <span style={{ color: '#9fb2bf' }} title={tStatus('關於形心、繞 X/Y 軸的截面慣性矩 + 慣性積（mm⁴）— 梁彎曲剛度', lang)}>Ixx/Iyy</span><b>{sectionResult.Ixx.toExponential(3)} / {sectionResult.Iyy.toExponential(3)}</b>
             <span style={{ color: '#9fb2bf' }}>Ixy</span><b>{sectionResult.Ixy.toExponential(3)}</b>
-            <span style={{ color: '#9fb2bf' }} title={tStatus('主慣性矩 I₁≥I₂ + 主軸相對 X 軸角度（繞形心，與坐標系無關）', lang)}>{tStatus('主軸 I₁/I₂', lang)}</span><b>{sectionResult.principal.I1.toExponential(3)} / {sectionResult.principal.I2.toExponential(3)}</b>
+            <span style={{ color: '#9fb2bf' }} title={tStatus('主慣性矩 I₁≥I₂ + 主軸相對 X 軸角度（繞形心，與座標系無關）', lang)}>{tStatus('主軸 I₁/I₂', lang)}</span><b>{sectionResult.principal.I1.toExponential(3)} / {sectionResult.principal.I2.toExponential(3)}</b>
             <span style={{ color: '#9fb2bf' }}>{tStatus('主軸角', lang)}</span><b>{sectionResult.principal.angleDeg.toFixed(2)}°</b>
           </div>
-          <div style={{ marginTop: 6, color: '#6b7680', fontSize: 11 }}>{tStatus(`實體區塊 ${sectionResult.nBodies || 1}`, lang)}{sectionResult.nHoles ? tStatus(` · 孔 ${sectionResult.nHoles}（已扣除）`, lang) : ''} · {sectionResult.fromCut ? tStatus('網格密鋪近似 · 剖面坐標系', lang) : tStatus('圓按 96 邊近似', lang)}{sectionResult.openWarn ? tStatus(' · ⚠ 網格非水密', lang) : ''}</div>
+          <div style={{ marginTop: 6, color: '#6b7680', fontSize: 11 }}>{tStatus(`實體區塊 ${sectionResult.nBodies || 1}`, lang)}{sectionResult.nHoles ? tStatus(` · 孔 ${sectionResult.nHoles}（已扣除）`, lang) : ''} · {sectionResult.fromCut ? tStatus('網格密鋪近似 · 剖面座標系', lang) : tStatus('圓按 96 邊近似', lang)}{sectionResult.openWarn ? tStatus(' · ⚠ 網格非水密', lang) : ''}</div>
         </div>
       )}
       {moveFaceMode && (
@@ -9265,7 +9265,7 @@ export default function Viewport() {
           <span title={tStatus('FDM 打印粗估（實心100%上限）：時間≈體積÷10cm³/h（0.4mm嘴·0.2層高典型擠出率）；料費≈實心質量×¥0.12/g（PLA約¥120/kg）。實際按填充率通常少好多。', lang)} style={{ color: '#8a97a2' }}>　·　{tStatus('打印~', lang)}{(() => { const h = (props.vol / 1000) / 10; return h >= 1 ? h.toFixed(1) + 'h' : Math.round(h * 60) + 'min' })()} · {tStatus('料費~', lang)}¥{((props.vol / 1000) * density * 0.12).toFixed(1)}</span>
           <span title={tStatus('繞質心 X/Y/Z 軸的轉動慣量（按當前密度，g·cm²）—— 機構動力學 / 轉動平衡 / 飛輪用', lang)} style={{ color: '#8a97a2' }}>　·　{tStatus('慣性矩', lang)} {props.inertia.map((j) => (j * density / 1e5).toFixed(1)).join(' / ')} g·cm²</span>
           {massP && massP.mass != null && massP.mass > 0 && (
-            <span title={tStatus('S117 主慣性矩 I₁≤I₂≤I₃（繞質心【主軸】= 慣性張量特徵值，與坐標系無關；非對稱件主軸≠XYZ軸）+ 回轉半徑 k=√(I/m)。。', lang)} style={{ color: '#8a97a2' }}>　·　{tStatus('主慣矩', lang)} {massP.principalMoments.map((I) => (I * 1e4).toFixed(1)).join('/')} g·cm² · {tStatus('回轉半徑', lang)} {massP.principalMoments.map((I) => Math.sqrt(I / massP.mass!).toFixed(1)).join('/')} mm</span>
+            <span title={tStatus('S117 主慣性矩 I₁≤I₂≤I₃（繞質心【主軸】= 慣性張量特徵值，與座標系無關；非對稱件主軸≠XYZ軸）+ 回轉半徑 k=√(I/m)。。', lang)} style={{ color: '#8a97a2' }}>　·　{tStatus('主慣矩', lang)} {massP.principalMoments.map((I) => (I * 1e4).toFixed(1)).join('/')} g·cm² · {tStatus('回轉半徑', lang)} {massP.principalMoments.map((I) => Math.sqrt(I / massP.mass!).toFixed(1)).join('/')} mm</span>
           )}
           {obb && obb.volume > 0 && (() => { const aabb = props.dx * props.dy * props.dz; const save = aabb > 1e-9 ? (1 - obb.volume / aabb) * 100 : 0; const sz = [...obb.size].sort((a, b) => b - a); return (
             <span title={tStatus('S121 定向最小包圍盒（PCA-OBB，近似非保證全局最優）：旋轉件最貼體的盒。比軸對齊 AABB 細 → 用最細料塊/排料省料；省料% = 1−OBB體積/AABB體積。', lang)} style={{ color: '#8a97a2' }}>　·　{tStatus('定向盒', lang)} {sz.map((s) => uLen(s)).join('×')} {uSuf}（{fmtVol(obb.volume, unit)}{save > 0.5 ? tStatus(` · 省料 ${save.toFixed(0)}%`, lang) : ''}）</span>
@@ -9473,7 +9473,7 @@ function PrimPlaceFields() {
   const picking = useApp((s) => s.primPtPick)
   const lang = useApp((s) => s.lang)
   if (!params || !kind) return null
-  return <label data-testid="prim-place" title={tStatus(kind === 'box' ? '位置：長方體角點（CAD 坐標）' : '位置：底面中心（CAD 坐標）', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+  return <label data-testid="prim-place" title={tStatus(kind === 'box' ? '位置：長方體角點（CAD 座標）' : '位置：底面中心（CAD 座標）', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
     {tStatus(kind === 'box' ? '角點' : '底心', lang)} X<FeatNum k="px" v={params.px ?? 0} w={44} /> Y<FeatNum k="py" v={params.py ?? 0} w={44} /> Z<FeatNum k="pz" v={params.pz ?? 0} w={44} />
     <button type="button" data-testid="prim-pick-pt" className={'cs-btn pick-slot' + (picking ? ' active' : '')} onClick={() => useApp.getState().startPrimPtPick()} title={tStatus('📍 在 3D 點實體面上一點，或空白處（地面 Z=0）做位置', lang)} style={{ padding: '2px 6px' }}>📍</button>
   </label>

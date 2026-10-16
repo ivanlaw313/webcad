@@ -913,7 +913,7 @@ export default function WindTunnelGpu() {
           enabled: pc.enabled,
           disabledReason: pc.disabledReason,
           state: pc.state,
-          matrixOrder: 'column-major (three Matrix4.elements)，语义 = 相对烘焙几何的 delta',
+          matrixOrder: 'column-major (three Matrix4.elements)，語義 = 相對烘焙幾何的 delta',
           pose: pc.pose,
           key: pc.poseKey,
           stepCount: step,
@@ -1067,21 +1067,21 @@ export async function runGpuValidation(
   }
 
   // ── fixture ①：五个 RGBA32F 要真係 clear 得（唔止 COMPLETE）──
-  await run('★ 五个 RGBA32F 要真是 clear 得（不止 COMPLETE）', async () => {
+  await run('★ 五個 RGBA32F 要真是 clear 得（不止 COMPLETE）', async () => {
     const r = probeMRT(gl)
-    vAssert(r.webgl2, '应该是 WebGL2')
-    vAssert(r.levels.length >= 4, '起码要试四组')
+    vAssert(r.webgl2, '應該是 WebGL2')
+    vAssert(r.levels.length >= 4, '起碼要試四組')
     if (r.ok) {
       vAssert(r.supported.indexOf('5 x RGBA32F') >= 0, 'ok=true 但 supported 沒有列出來')
-      vAssert(r.colorBufferFloat, 'RGBA32F 画得但没有 EXT_color_buffer_float？')
+      vAssert(r.colorBufferFloat, 'RGBA32F 畫得但沒有 EXT_color_buffer_float？')
     }
     vAssert(gl.getError() === gl.NO_ERROR, 'probe 留低了 GL error')
     return { supported: r.supported, force7: r.force7, renderer: r.renderer }
   })
 
   // ── fixture ②：空周期盒行 1000 substep，macro 场要 machine-zero 咁均匀 ──
-  await run('★ GPU：空周期盒行 1000 substep，macro 场要 machine-zero 如此均匀', async () => {
-    vAssert(caps.ok, 'GPU 不支援五个 RGBA32F：' + caps.reason)
+  await run('★ GPU：空周期盒行 1000 substep，macro 場要 machine-zero 如此均勻', async () => {
+    vAssert(caps.ok, 'GPU 不支援五個 RGBA32F：' + caps.reason)
     const dom = emptyDomain(16)
     const phi = bakePhi(dom)             // 全部 +1：一格固体都冇
     let solver: LbmGpu | null = null
@@ -1103,7 +1103,7 @@ export async function runGpuValidation(
         solver.advance(10)
         if (f % 10 === 9) await yieldToBrowser()     // 唔好锁死成个 tab
       }
-      vAssert(solver.stepCount === 1000, 'substep 数不正确：' + solver.stepCount)
+      vAssert(solver.stepCount === 1000, 'substep 數不正確：' + solver.stepCount)
       const m = solver.readMacro()
       let maxD = 0, maxUx = 0, maxUyz = 0
       for (let i = 0; i < m.delta.length; i++) {
@@ -1112,9 +1112,9 @@ export async function runGpuValidation(
         maxUyz = Math.max(maxUyz, Math.abs(m.uy[i]), Math.abs(m.uz[i]))
       }
       // fp32 十九项求和误差 ~1e-8；1000 步随机游走最多再放大 sqrt(1000) ≈ 32 倍
-      vAssert(maxD < 1e-6, '★ 空盒生出了密度扰动：max|delta| = ' + maxD)
+      vAssert(maxD < 1e-6, '★ 空盒生出了密度擾動：max|delta| = ' + maxD)
       vAssert(maxUx < 1e-6, '★ 空盒的 ux 飘了：max|ux − U_LB| = ' + maxUx)
-      vAssert(maxUyz < 1e-6, '★ 空盒生出了横向速度：max|uy,uz| = ' + maxUyz)
+      vAssert(maxUyz < 1e-6, '★ 空盒生出了橫向速度：max|uy,uz| = ' + maxUyz)
       return { maxDelta: maxD, maxUx, maxUyz, steps: solver.stepCount }
     } finally {
       solver?.dispose()
@@ -1122,8 +1122,8 @@ export async function runGpuValidation(
   })
 
   // ── fixture ③：球嘅 Cd 落喺 Clift-Gauvin ±50% 之内 ──
-  await run('★ GPU：球的 Cd 落在 Clift-Gauvin ±50% 之内（趋势级）', async () => {
-    vAssert(caps.ok, 'GPU 不支援五个 RGBA32F：' + caps.reason)
+  await run('★ GPU：球的 Cd 落在 Clift-Gauvin ±50% 之內（趨勢級）', async () => {
+    vAssert(caps.ok, 'GPU 不支援五個 RGBA32F：' + caps.reason)
     vAssert(caps.force7, '無法量力就沒有 Cd：' + caps.reason)
     let solver: LbmGpu | null = null
     try {
@@ -1137,7 +1137,7 @@ export async function runGpuValidation(
       })
       await solver.ready()
       const f = solver.report().flow
-      vAssert(dom.dLb > 12, '球僅得 ' + dom.dLb.toFixed(1) + ' 格直径，边界层无法解，测此没有意义')
+      vAssert(dom.dLb > 12, '球僅得 ' + dom.dLb.toFixed(1) + ' 格直徑，邊界層無法解，測此沒有意義')
 
       // 收敛：★ 由「成功读到几多次」驱动，唔係由帧数 ★（见 asyncReader.ts）
       const samples: number[] = []
@@ -1157,7 +1157,7 @@ export async function runGpuValidation(
         const s = solver.pollForce()
         await yieldToBrowser()
         if (!s || !s.rampDone) continue
-        vAssert(s.links > 0, '★ 一条反弹 link 都没有 —— 条流根本无法掂零件（phi 上传错了？）')
+        vAssert(s.links > 0, '★ 一條反彈 link 都沒有 —— 條流根本無法掂零件（phi 上傳錯了？）')
         samples.push(s.cd)
         if (solver.stepCount > minSteps && samples.length >= 12) {
           const w = samples.slice(-10)
@@ -1166,12 +1166,12 @@ export async function runGpuValidation(
           if ((mx - mn) / (Math.abs(mean) + 1e-9) < 0.012) break
         }
       }
-      vAssert(samples.length >= 12, '只取到 ' + samples.length + ' 个 Cd 样本 —— async readback 没有回东西？')
+      vAssert(samples.length >= 12, '只取到 ' + samples.length + ' 個 Cd 樣本 —— async readback 沒有回東西？')
       const tail = samples.slice(-Math.max(6, Math.round(samples.length * 0.25)))
       const cd = tail.reduce((a, b) => a + b, 0) / tail.length
       // ★ 唔好 Math.abs ★：来流係域嘅 +X，阻力就一定係 +X。取绝对值会把一个
       //   「动量交换符号搞反咗」嘅 bug 变成一个睇落几靓嘅 Cd。
-      vAssert(Number.isFinite(cd) && cd > 0, 'Cd 不是一个正数（' + cd + '）—— 动量交换的符号反了？')
+      vAssert(Number.isFinite(cd) && cd > 0, 'Cd 不是一個正數（' + cd + '）—— 動量交換的符號反了？')
       const want = sphereCd(f.reLbEffective)
       vRel(cd, want, 0.5, '球 @Re_lb=' + f.reLbEffective.toFixed(0) + ' 的 Cd（' + tail.length + ' 个样本）')
       return {
@@ -1185,8 +1185,8 @@ export async function runGpuValidation(
 
   // ── fixture ④：分配失败要自己 dispose 自己（walk-down 嘅前提）──
   if (opts.includeOom !== false) {
-    await run('★ 分配失败要自己 dispose 自己（walk-down 的前提）', async () => {
-      vAssert(caps.ok, 'GPU 不支援五个 RGBA32F：' + caps.reason)
+    await run('★ 分配失敗要自己 dispose 自己（walk-down 的前提）', async () => {
+      vAssert(caps.ok, 'GPU 不支援五個 RGBA32F：' + caps.reason)
       // ★ 用完即弃嘅 renderer ★：呢条 fixture 蓄意撞一次 OOM。喺 CAD 视窗自己嗰个 context
       //   上面咁做，最坏情况係成个 viewport 嘅 context 被 driver 收返（用户见到黑屏）。
       const canvas = document.createElement('canvas')
@@ -1195,7 +1195,7 @@ export async function runGpuValidation(
       try {
         const scaps = probeMRT(scratch.getContext() as WebGL2RenderingContext)
         scratch.resetState()
-        vAssert(scaps.ok, '用完即弃该个 context 无法撑起五个 RGBA32F：' + scaps.reason)
+        vAssert(scaps.ok, '用完即棄該個 context 無法撐起五個 RGBA32F：' + scaps.reason)
         const base = scratch.info.memory.textures
         // 大到冇任何消费级 GPU 撑得起（atlas ~16384²，五个 target ping-pong = 几十 GB）
         const dom = emptyDomain(256)
@@ -1205,16 +1205,16 @@ export async function runGpuValidation(
         let threw = false
         try { built = new LbmGpu(scratch, huge, phi, { measure: true, caps: scaps }) }
         catch { threw = true }
-        if (!threw) { built?.dispose(); throw new Error('此部 GPU 竟然分配到 ~40 GB？测试无效，换个更大的尺寸') }
+        if (!threw) { built?.dispose(); throw new Error('此部 GPU 竟然分配到 ~40 GB？測試無效，換個更大的尺寸') }
         const after = scratch.info.memory.textures
-        vAssert(after <= base, '分配失败之后仍漏低了 ' + (after - base) + ' 张 texture —— walk-down 无法救')
+        vAssert(after <= base, '分配失敗之後仍漏低了 ' + (after - base) + ' 張 texture —— walk-down 無法救')
 
         // 而且【成功】嘅 solver dispose 完都要归零
         const okDom = buildDomain(sphereGrid(16, 100))
         const s = new LbmGpu(scratch, okDom, bakePhi(okDom), { measure: true, needVolume: false, caps: scaps })
-        vAssert(scratch.info.memory.textures > base, '正常建构应该真是取了 texture')
+        vAssert(scratch.info.memory.textures > base, '正常建構應該真是取了 texture')
         s.dispose()
-        vAssert(scratch.info.memory.textures <= base, 'dispose() 之后仲有 texture 未放')
+        vAssert(scratch.info.memory.textures <= base, 'dispose() 之後仲有 texture 未放')
         return { baseTextures: base }
       } finally {
         scratch.dispose()

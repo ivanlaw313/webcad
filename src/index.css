@@ -957,3 +957,13 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .panel-menu-item { min-height: 28px; }
 .browser-head { letter-spacing: 0.04em; }
 
+/* FISHING47: Fusion-like sketch-bar / ribbon-tab / status rhythm */
+.sketch-bar { gap: 6px; padding: 6px 10px; }
+.sketch-bar button { min-height: 28px; border-radius: 6px; }
+.ribbon-tabs { gap: 2px; padding: 0 4px; }
+.ribbon-tab { padding: 6px 12px; letter-spacing: 0.02em; }
+.status-bar { gap: 8px; padding: 0 10px; min-height: 26px; }
+.status-bar .status-msg { letter-spacing: 0.01em; line-height: 1.35; }
+.cmd-palette-head { gap: 8px; padding: 8px 12px; }
+.panel-label { letter-spacing: 0.03em; }
+

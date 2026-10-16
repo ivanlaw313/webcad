@@ -55,31 +55,31 @@ const UPDATE_FS = /* glsl */`
 precision highp float;
 precision highp sampler3D;
 
-uniform sampler2D uPos;      // xyz = lattice cell-centre 坐标, w = alive(1)/dead(0)
-uniform sampler3D uVol;      // rgb = 速度(bias 128), a = 固体
+uniform sampler2D uPos;      // xyz = lattice cell-centre 座標, w = alive(1)/dead(0)
+uniform sampler3D uVol;      // rgb = 速度(bias 128), a = 固體
 uniform vec3  uGridN;
-uniform float uUMax;         // volUMax（格子单位）
-uniform float uAdvect;       // 今 frame 行几多「格子步」（乘落格子速度度）
-uniform int   uHead;         // 今 frame 重生嗰个 ring slot；−1 = 唔发射
+uniform float uUMax;         // volUMax（格子單位）
+uniform float uAdvect;       // 今 frame 行幾多「格子步」（乘落格子速度度）
+uniform int   uHead;         // 今 frame 重生嗰個 ring slot；−1 = 唔發射
 uniform int   uRakeRows;
 uniform int   uRakeCols;
 uniform vec3  uRakeO;        // 耙中心（lattice cell-centre）
-uniform vec3  uRakeU;        // 沿 row 方向嘅【全长】跨度向量
-uniform vec3  uRakeV;        // 沿 col 方向嘅【全长】跨度向量
+uniform vec3  uRakeU;        // 沿 row 方向嘅【全長】跨度向量
+uniform vec3  uRakeV;        // 沿 col 方向嘅【全長】跨度向量
 uniform float uJitter;
 uniform float uSeed;
 uniform float uReset;
 
 layout(location = 0) out vec4 oPos;
 
-// ⚠ 陷阱 #1（半格）：cell i 嘅值存喺 texel i，texel 中心喺 (i+0.5)/N；我哋 p 用 cell-centre 约定
-//   （cell i 中心 = i+0.5）→ uvw = p/N。写成 (p+0.5)/N 会令【成个流场向下游偏半格】—— 睇落完全正常但全错。
+// ⚠ 陷阱 #1（半格）：cell i 嘅值存喺 texel i，texel 中心喺 (i+0.5)/N；我哋 p 用 cell-centre 約定
+//   （cell i 中心 = i+0.5）→ uvw = p/N。寫成 (p+0.5)/N 會令【成個流場向下游偏半格】—— 睇落完全正常但全錯。
 vec3 toUVW(vec3 p) { return p / uGridN; }
 bool outside(vec3 p) { return any(lessThan(p, vec3(0.5))) || any(greaterThan(p, uGridN - 0.5)); }
 vec4 volAt(vec3 p) { return texture(uVol, toUVW(p)); }
 vec3 velAt(vec3 p) {
   if (outside(p)) return vec3(0.0);
-  // 128 系中点；×255/254 补偿 128 唔系啱啱好喺 [0,255] 正中（同 WindSmoke 逐字一样）
+  // 128 系中點；×255/254 補償 128 唔系啱啱好喺 [0,255] 正中（同 WindSmoke 逐字一樣）
   return (volAt(p).xyz * 2.0 - 1.0) * (uUMax * 255.0 / 254.0);
 }
 bool inSolid(vec3 p) { return !outside(p) && volAt(p).w > 0.5; }
@@ -90,15 +90,15 @@ vec3 hash33(vec3 p) {
   return fract((p.xxy + p.yxx) * p.zyx);
 }
 
-// 第 row 个喷嘴喺个梳(comb)边一格
+// 第 row 個噴嘴喺個梳(comb)邊一格
 vec3 nozzle(int row) {
-  int i = row / uRakeCols;          // 边一行
-  int j = row - i * uRakeCols;      // 边一列
+  int i = row / uRakeCols;          // 邊一行
+  int j = row - i * uRakeCols;      // 邊一列
   float fu = uRakeRows > 1 ? (float(i) / float(uRakeRows - 1) - 0.5) : 0.0;
   float fv = uRakeCols > 1 ? (float(j) / float(uRakeCols - 1) - 0.5) : 0.0;
   vec3 p = uRakeO + uRakeU * fu + uRakeV * fv;
-  // 出生位微抖：凍结场入面，如果每粒都由【一模一样】嘅点出发，成条 filament 就永远一条死线。
-  // 抖一抖 = 一个真嘅 Lagrangian 扰动，畀流场自己带住走（唔系画上去嘅假纹理）。
+  // 出生位微抖：凍結場入面，如果每粒都由【一模一樣】嘅點出發，成條 filament 就永遠一條死線。
+  // 抖一抖 = 一個真嘅 Lagrangian 擾動，畀流場自己帶住走（唔系畫上去嘅假紋理）。
   if (uJitter > 0.0) p += (hash33(vec3(float(row), uSeed, 1.7)) - 0.5) * uJitter;
   return p;
 }
@@ -107,25 +107,25 @@ void main() {
   ivec2 t = ivec2(gl_FragCoord.xy);
   int col = t.x, row = t.y;
 
-  if (uReset > 0.5) { oPos = vec4(nozzle(row), 0.0); return; }   // 全部 dead → 未有嘢画
+  if (uReset > 0.5) { oPos = vec4(nozzle(row), 0.0); return; }   // 全部 dead → 未有嘢畫
 
   if (col == uHead) { oPos = vec4(nozzle(row), 1.0); return; }   // 今 frame 出世
 
   vec4 P = texelFetch(uPos, t, 0);
   if (P.w < 0.5) { oPos = P; return; }                          // 已死：冻住佢，等 head 兜返嚟
 
-  // RK2 中点法。Euler 会明显「切」走涡嘅弯位，令 filament 向涡心螺旋 —— 直接睇得出嚟。
+  // RK2 中點法。Euler 會明顯「切」走涡嘅彎位，令 filament 向涡心螺旋 —— 直接睇得出嚟。
   vec3 p = P.xyz;
   vec3 v0 = velAt(p);
   vec3 v1 = velAt(p + v0 * (0.5 * uAdvect));
   vec3 pn = p + v1 * uAdvect;
-  // 极轻微扩散：唔好令成把耙永远系一叠完美薄片。幅度 ~0.012 格（亚像素），唔会搞乱连续性。
+  // 極輕微擴散：唔好令成把耙永遠系一疊完美薄片。幅度 ~0.012 格（亚像素），唔會搞亂連續性。
   if (uJitter > 0.0) pn += (hash33(vec3(pn.xy * 37.0, uSeed + float(col))) - 0.5) * uJitter;
 
-  // 出咗域 → 【终结呢条 filament】，唔重生。（重生会由死亡位置扯一条线横跨成个域。）
+  // 出咗域 → 【終結呢條 filament】，唔重生。（重生會由死亡位置扯一條線橫跨成個域。）
   if (outside(pn)) { oPos = vec4(p, 0.0); return; }
-  // ⚠ 唔好杀：HOLD 住。壁面速度系 0，理论上 tracer 永远入唔到固体，但三线性插值跨过壁面就会。
-  //   真 streakline 就系会喺驻点(stagnation point)度堆埋一嚿 —— 呢个堆积本身有物理意义，值得睇。
+  // ⚠ 唔好杀：HOLD 住。壁面速度系 0，理論上 tracer 永遠入唔到固體，但三線性插值跨過壁面就會。
+  //   真 streakline 就系會喺驻點(stagnation point)度堆埋一嚿 —— 呢個堆積本身有物理意義，值得睇。
   if (inSolid(pn)) { oPos = vec4(p, 1.0); return; }
   oPos = vec4(pn, 1.0);
 }
@@ -141,9 +141,9 @@ uniform mat4  uVolMatrix;    // lattice cell-centre → CAD mm
 uniform int   uSamples;
 uniform int   uHead;
 uniform vec2  uRes;          // drawing buffer 尺寸（device pixel）
-uniform float uWidthM;       // filament 直径，【世界长度】(mm)
-uniform float uSpread;       // 老化时胀几多倍
-uniform float uMinHalfPx;    // 再幼都唔可以细过呢个半宽；用 alpha 补返
+uniform float uWidthM;       // filament 直徑，【世界長度】(mm)
+uniform float uSpread;       // 老化時脹幾多倍
+uniform float uMinHalfPx;    // 再幼都唔可以細過呢個半寬；用 alpha 補返
 
 out float vSide;
 out float vAge;
@@ -151,11 +151,11 @@ out float vShrink;
 out vec3  vWorld;
 out vec3  vTanW;
 
-// 两个三角形：(0,-1) (0,+1) (1,-1) / (0,+1) (1,+1) (1,-1)
+// 兩個三角形：(0,-1) (0,+1) (1,-1) / (0,+1) (1,+1) (1,-1)
 const vec2 CORNER[6] = vec2[6](vec2(0.0, -1.0), vec2(0.0, 1.0), vec2(1.0, -1.0),
                                vec2(0.0,  1.0), vec2(1.0, 1.0), vec2(1.0, -1.0));
 
-// 正交相机冇「相机位置」呢回事（视线平行）；用 view 矩阵第 3 行（= 相机世界 +Z，指向观察者）。
+// 正交相機冇「相機位置」呢回事（視線平行）；用 view 矩陣第 3 行（= 相機世界 +Z，指向觀察者）。
 vec3 eyeDirAt(vec3 W) {
   return isOrthographic
     ? normalize(vec3(viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2]))
@@ -169,13 +169,13 @@ void main() {
   int nz = seg / perNozzle;
   int j  = seg - nz * perNozzle;
 
-  // 出生次序，由旧到新：head+1, head+2, … head+samples（即系 head 自己）。
+  // 出生次序，由舊到新：head+1, head+2, … head+samples（即系 head 自己）。
   int i0 = (uHead + 1 + j) % uSamples;
   int i1 = (uHead + 2 + j) % uSamples;
   vec4 A = texelFetch(uPos, ivec2(i0, nz), 0);
   vec4 B = texelFetch(uPos, ivec2(i1, nz), 0);
 
-  // 有一端死咗：把 quad 塌到近平面后面，等佢畀裁走（唔好画一嚿散三角形）。
+  // 有一端死咗：把 quad 塌到近平面後面，等佢畀裁走（唔好畫一嚿散三角形）。
   if (A.w < 0.5 || B.w < 0.5) { gl_Position = vec4(0.0, 0.0, 2.0, 1.0); vSide = 9.0; return; }
 
   vec4 lA = uVolMatrix * vec4(A.xyz, 1.0);
@@ -184,8 +184,8 @@ void main() {
   vec4 c1 = projectionMatrix * modelViewMatrix * lB;
   if (c0.w <= 1e-4 || c1.w <= 1e-4) { gl_Position = vec4(0.0, 0.0, 2.0, 1.0); vSide = 9.0; return; }
 
-  // 喺【像素空间】撑开（gl.lineWidth 处处钳死 1.0），但个尺寸由【世界宽度】换算 —— 咁 filament
-  // 先会随距离变幼，似一件真嘢。用屏幕空间宽度嘅话，域尾同域头一样粗，睇落即刻变返铁丝网。
+  // 喺【像素空間】撐開（gl.lineWidth 處處钳死 1.0），但個尺寸由【世界寬度】換算 —— 咁 filament
+  // 先會隨距離變幼，似一件真嘢。用螢幕空間寬度嘅話，域尾同域頭一樣粗，睇落即刻變返鐵絲網。
   vec2 p0 = c0.xy / c0.w * 0.5 * uRes;
   vec2 p1 = c1.xy / c1.w * 0.5 * uRes;
   vec2 d = p1 - p0;
@@ -200,12 +200,12 @@ void main() {
   vec3 T  = W1 - W0;
   T = length(T) > 1e-9 ? normalize(T) : vec3(1.0, 0.0, 0.0);
 
-  float ageF = float(j) / float(perNozzle);   // 0 = 最旧（远下游），1 = 喺喷嘴度
-  // streakline 系一条曲线，本身冇厚度；呢度画嘅厚度系渲染选择，而【随年龄变粗】系入面唯一有物理
-  // 意义嗰一半 —— 真烟丝行落去会畀流场搅散。
+  float ageF = float(j) / float(perNozzle);   // 0 = 最舊（遠下游），1 = 喺噴嘴度
+  // streakline 系一條曲線，本身冇厚度；呢度畫嘅厚度系渲染選擇，而【隨年龄變粗】系入面唯一有物理
+  // 意義嗰一半 —— 真烟絲行落去會畀流場搅散。
   float halfW = 0.5 * uWidthM * (1.0 + uSpread * (1.0 - ageF));
 
-  // 「呢一点」每世界单位几多像素 —— 唔靠一个标量估，直接投影一条偏移出去量。
+  // 「呢一點」每世界單位幾多像素 —— 唔靠一個標量估，直接投影一條偏移出去量。
   vec3 V = eyeDirAt(W);
   vec3 acrossW = cross(T, V);
   acrossW = length(acrossW) > 1e-6 ? normalize(acrossW) : vec3(0.0, 1.0, 0.0);
@@ -213,9 +213,9 @@ void main() {
   vec2 pHere = c.xy / c.w * 0.5 * uRes;
   float halfPx = (cOff.w > 1e-4) ? length(cOff.xy / cOff.w * 0.5 * uRes - pHere) : uMinHalfPx;
 
-  // ★ 亚像素规则（唔係可选）：细过一个像素嘅管画唔到细过一个像素，咁就【照住一个像素画】，再按
-  //   佢真正覆盖几多，把 alpha 调暗。冇呢下：远处每条 filament 都钳成一个全亮像素，深度线索会
-  //   反转，成幅嘢读落系铁丝网而唔係烟。
+  // ★ 亚像素規則（唔係可選）：細過一個像素嘅管畫唔到細過一個像素，咁就【照住一個像素畫】，再按
+  //   佢真正覆蓋幾多，把 alpha 調暗。冇呢下：遠處每條 filament 都钳成一個全亮像素，深度線索會
+  //   反轉，成幅嘢讀落系鐵絲網而唔係烟。
   float drawPx = max(halfPx, uMinHalfPx);
   vShrink = halfPx / drawPx;
 
@@ -232,8 +232,8 @@ void main() {
 
 const DRAW_FS = /* glsl */`
 precision highp float;
-// ⚠ three r184：ShaderMaterial + GLSL3 时，three【唔会】帮你声明 pc_fragColor，亦唔会 #define
-//   gl_FragColor（WebGLProgram.js 喺 GLSL3 分支明确跳过）→ 一定要自己声明 out。
+// ⚠ three r184：ShaderMaterial + GLSL3 時，three【唔會】幫你聲明 pc_fragColor，亦唔會 #define
+//   gl_FragColor（WebGLProgram.js 喺 GLSL3 分支明確跳過）→ 一定要自己聲明 out。
 layout(location = 0) out highp vec4 oColor;
 
 in float vSide;
@@ -242,29 +242,29 @@ in float vShrink;
 in vec3  vWorld;
 in vec3  vTanW;
 
-uniform vec3  uLightDir;      // 指向【光】嗰边
-uniform vec3  uLightColor;    // 太阳辐照度：故意 > 1（HDR），最尾靠 tonemap 收返落嚟
+uniform vec3  uLightDir;      // 指向【光】嗰邊
+uniform vec3  uLightColor;    // 太陽辐照度：故意 > 1（HDR），最尾靠 tonemap 收返落嚟
 uniform vec3  uAmbient;
 uniform float uAlpha;
-uniform float uTubeSigma;     // 管中心嘅光学厚度
-uniform float uG;             // 相函数各向异性
+uniform float uTubeSigma;     // 管中心嘅光學厚度
+uniform float uG;             // 相函數各向異性
 uniform float uExposure;
-uniform float uInlineTonemap; // 1 = 喺呢度做 ACES + sRGB（8-bit 目标）；0 = 留畀将来嘅 HDR composite
-uniform float uPhase;         // 流体锁相时钟（累加 head 步进 / perNozzle）
-uniform float uPhaseK;        // 沿 filament 几多个「puff」× 2π
+uniform float uInlineTonemap; // 1 = 喺呢度做 ACES + sRGB（8-bit 目標）；0 = 留畀將來嘅 HDR composite
+uniform float uPhase;         // 流體鎖相時鐘（累加 head 步進 / perNozzle）
+uniform float uPhaseK;        // 沿 filament 幾多個「puff」× 2π
 
 const float K_PI = 3.141592653589793;
 
-// Henyey-Greenstein。g=0 各向同性，g→1 强前向散射。烟同云滴 g≈0.6-0.9，所以背光嘅云会「发光」。
-// 已经含 1/4π，调用者唔好再除。
+// Henyey-Greenstein。g=0 各向同性，g→1 強前向散射。烟同雲滴 g≈0.6-0.9，所以背光嘅雲會「發光」。
+// 已經含 1/4π，調用者唔好再除。
 float hg(float cosT, float g) {
   float g2 = g * g;
   float d = 1.0 + g2 - 2.0 * g * cosT;
   return (1.0 - g2) / (4.0 * K_PI * max(d * sqrt(max(d, 1e-6)), 1e-6));
 }
 
-// ACES（Stephen Hill 拟合 RRT + sRGB ODT）。GLSL 矩阵系【列主序】，所以呢两个字面量系你喺参考
-// 文献见到嗰啲【行主序】嘅转置。高光变紫红 = 你冇转置。
+// ACES（Stephen Hill 擬合 RRT + sRGB ODT）。GLSL 矩陣系【列主序】，所以呢兩個字面量系你喺參考
+// 文獻見到嗰啲【行主序】嘅轉置。高光變紫紅 = 你冇轉置。
 const mat3 ACESInput = mat3(
   0.59719, 0.07600, 0.02840,
   0.35458, 0.90834, 0.13383,
@@ -296,10 +296,10 @@ void main() {
   if (vSide > 2.0) discard;    // 塌咗嘅 quad
 
   /*
-   * 呢条带系一条【烟嘅圆柱】，唔係一片平嘅纸。两个後果：
-   *  ① 不透明度 = 视线切过佢嘅【弦长】上做 Beer-Lambert：中心最厚、边缘归零。呢个系物理剖面，
-   *     顺手就送咗个柔边畀你（唔使 blur、唔使猜一条 pow 曲线）。
-   *  ② 打光要法线，而屏幕空间 quad 冇。重建返圆柱嘅：喺横向坐标 s，可见面法线 = s×across
+   * 呢條帶系一條【烟嘅圓柱】，唔係一片平嘅紙。兩個後果：
+   *  ① 不透明度 = 視線切過佢嘅【弦長】上做 Beer-Lambert：中心最厚、邊緣歸零。呢個系物理剖面，
+   *     順手就送咗個柔邊畀你（唔使 blur、唔使猜一條 pow 曲線）。
+   *  ② 打光要法線，而螢幕空間 quad 冇。重建返圓柱嘅：喺橫向座標 s，可見面法線 = s×across
    *     + sqrt(1−s²)×toEye。
    */
   float s = clamp(vSide, -1.0, 1.0);
@@ -312,27 +312,27 @@ void main() {
   vec3 toEye = normalize(cross(across, T));
   vec3 N = normalize(across * s + toEye * chord);
 
-  // Wrap lighting：一条几毫米粗嘅烟丝光学上系薄嘅，太阳连背面都照到、仲会透过嚟。
-  // 用 Lambert 半空间嘅话背光面会全黑 —— 嗰个系煤烟，唔係烟。
+  // Wrap lighting：一條幾毫米粗嘅烟絲光學上系薄嘅，太陽連背面都照到、仲會透過嚟。
+  // 用 Lambert 半空間嘅話背光面會全黑 —— 嗰個系煤烟，唔係烟。
   float wrap = clamp((dot(N, uLightDir) + 0.7) / 1.7, 0.0, 1.0);
-  // …而且佢强烈前向散射，所以夹喺你同光之间嗰条会「着」起嚟。
+  // …而且佢強烈前向散射，所以夾喺你同光之間嗰條會「着」起嚟。
   float phase = hg(dot(-V, uLightDir), uG);
   vec3 lit = uLightColor * (wrap * 0.42 + phase * 1.15) + uAmbient;
 
-  // 无彩色 tint：新鲜 = 纯白，老 = 微冷灰。★ 唔用 turbo —— 会同表面 Cp 色图打交，读者分唔清
-  //   边个颜色讲紧压力、边个讲紧烟。
+  // 無彩色 tint：新鲜 = 純白，老 = 微冷灰。★ 唔用 turbo —— 會同表面 Cp 色圖打交，讀者分唔清
+  //   邊個顏色講緊壓力、邊個講緊烟。
   vec3 tint = mix(vec3(1.0), vec3(0.776, 0.804, 0.827), 1.0 - vAge);
 
   float a = (1.0 - exp(-uTubeSigma * chord)) * uAlpha * vShrink;
-  // 尾巴溶解：filament 淡出，而唔係「啪」一声断喺半空
+  // 尾巴溶解：filament 淡出，而唔係「啪」一聲斷喺半空
   a *= 0.30 + 0.70 * smoothstep(0.0, 0.18, vAge);
-  // 密度相位：凍结场唯一嘅「动」。相位锁死喺流体上（uPhase 跟住 head 步进走），所以呢啲 puff
-  // 系【跟住烟顺流行】，唔係逆流飘 —— 后者一睇就知系贴上去嘅假动画。
+  // 密度相位：凍結場唯一嘅「動」。相位鎖死喺流體上（uPhase 跟住 head 步進走），所以呢啲 puff
+  // 系【跟住烟順流行】，唔係逆流飘 —— 後者一睇就知系貼上去嘅假動畫。
   a *= 0.72 + 0.28 * sin((vAge + uPhase) * uPhaseK);
   if (a <= 0.002) discard;
 
-  // 我哋个目标系 8-bit + toneMapped:false，所以 tonemap 一定要喺【premultiply 之前】喺呢度做完。
-  // 参考实现系画入 HDR buffer、留畀 composite 做；将来如果我哋都有 HDR composite，uInlineTonemap = 0。
+  // 我哋個目標系 8-bit + toneMapped:false，所以 tonemap 一定要喺【premultiply 之前】喺呢度做完。
+  // 參考實現系畫入 HDR buffer、留畀 composite 做；將來如果我哋都有 HDR composite，uInlineTonemap = 0。
   vec3 rgb = tint * lit * uExposure;
   if (uInlineTonemap > 0.5) rgb = linearToSRGB(tonemapACES(rgb));
   oColor = vec4(rgb * a, a);   // premultiplied，配 (ONE, ONE)

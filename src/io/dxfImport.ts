@@ -389,7 +389,7 @@ export function parseDxfToProfiles(text: string, opt?: ParseDxfOpt): ParseDxfRes
       if (isAborted(opt?.signal)) {
         const layers = ['0']
         return {
-          profiles: [], texts: [], note: 'DXF 導入已取消', skipped: [], layers,
+          profiles: [], texts: [], note: 'DXF 匯入已取消', skipped: [], layers,
           stats: { bytes: text.length, entityCount: model.length, textTotal, textKept: 0, textTruncated: 0, cancelled: true },
         }
       }

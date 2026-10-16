@@ -176,11 +176,11 @@ export default function ParamsPanel() {
         <input className="pp-val" aria-label={tz('參數數值')} type="text" inputMode="decimal" autoComplete="off" value={val} onChange={(e) => setVal(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); add() } }} />
         <button className="cs-btn" onClick={add}>{tz('+ 新增')}</button>
       </div>
-      <details><summary>{tz('進階：配置、設計表及導出')}</summary>
+      <details><summary>{tz('進階：配置、設計表及匯出')}</summary>
       {params.length > 0 && <div className="pp-add" style={{ justifyContent: 'flex-end' }}><button className="cs-btn" title={tz('把參數表匯出為 CSV（名稱/值/表達式，方便文件/分享/Excel）')} onClick={() => exportCsv()}>{tz('📋 匯出參數 CSV')}</button></div>}
       {params.length > 0 && (
         <div className="pp-add" style={{ flexWrap: 'wrap', gap: 4, borderTop: '1px solid #2a2e33', paddingTop: 6, marginTop: 4 }}>
-          <span style={{ fontSize: 11, color: '#888', width: '100%' }}>{tz('🗂 設計表：改一個參數掃多個值 → 一次導出 N 個 STL（zip）')}</span>
+          <span style={{ fontSize: 11, color: '#888', width: '100%' }}>{tz('🗂 設計表：改一個參數掃多個值 → 一次匯出 N 個 STL（zip）')}</span>
           <select value={dtParam || params[0].name} onChange={(e) => setDtParam(e.target.value)} title={tz('要掃描的參數')} style={{ maxWidth: 110 }}>
             {params.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
           </select>
@@ -200,8 +200,8 @@ export default function ParamsPanel() {
           <input className="pp-name-in" placeholder={tz('配置名 如 M5版')} value={cfgName} onChange={(e) => setCfgName(e.target.value)} style={{ flex: 1, minWidth: 80 }} />
           <button className="cs-btn" title={tz('把當前所有驅動參數（非表達式）存為一個命名配置')} onClick={() => { saveConfig(cfgName); setCfgName('') }}>{tz('💾 存配置')}</button>
           {configs.length > 0 && <button className="cs-btn" title={tz('把每個配置各導出一個 STL，打包成 zip（一次過製造所有變體；完成後還原當前配置）')} onClick={() => void useApp.getState().exportAllConfigs()}>{tz('📦 導出全部配置')}</button>}
-          <button className="cs-btn" title={tz('設計表 CSV 導出：配置 × 驅動參數矩陣（無配置時出一行當前值模板）— Excel 排變體')} onClick={() => useApp.getState().exportConfigsCsv()}>{tz('📤 設計表CSV')}</button>
-          <button className="cs-btn" title={tz('設計表 CSV 導入：每行一個配置（列名 = ƒx 參數名）→ 批量新增/更新配置，再一鍵切換或「導出全部配置」匯出所有變體 STL')} onClick={() => useApp.getState().openConfigsCsvDialog()}>{tz('📥 導入設計表')}</button>
+          <button className="cs-btn" title={tz('設計表 CSV 匯出：配置 × 驅動參數矩陣（無配置時出一行當前值模板）— Excel 排變體')} onClick={() => useApp.getState().exportConfigsCsv()}>{tz('📤 設計表CSV')}</button>
+          <button className="cs-btn" title={tz('設計表 CSV 匯入：每行一個配置（列名 = ƒx 參數名）→ 批量新增/更新配置，再一鍵切換或「匯出全部配置」匯出所有變體 STL')} onClick={() => useApp.getState().openConfigsCsvDialog()}>{tz('📥 匯入設計表')}</button>
         </div>
       )}
       {/* GM-3DV3 M15：Change Parameters 设计表格视图（行=配置 × 列=参数）— 对标 Fusion/SolidWorks 设计表。点行 = 应用该配置。 */}

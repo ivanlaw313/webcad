@@ -98,7 +98,7 @@ const SOLID: Panel[] = [
       { id: 'splitbody', label: '分割實體', icon: 'split', quick: true, tip: '分割實體：用切割平面把一個實體切成兩個獨立體（參數化）。' },
       { id: 'silhouettesplit', label: '輪廓分割', icon: 'splitface', tip: '按所選平面或軸的視圖方向，由輪廓曲線生成曲面，再分割面、抽殼實體或實體。' },
       { id: 'move', label: '移動/複製', icon: 'move', shortcut: 'M', quick: true, sep: true, tip: '移動／複製：平移、自由移動、旋轉或點到點移動實體／組件，並可建立副本。' },
-      { id: 'align', label: '對齊', icon: 'combine', tip: '對齊：先點基準面（不移動該件）再點要移動件的面 —— 平面貼平 / 圓柱對準同軸。一次性快捷,不記錄配合；想要持久配合用「關節(選面)」。' },
+      { id: 'align', label: '對齊', icon: 'combine', tip: '對齊：先點基準面（不移動該件）再點要移動件的面 —— 平面貼平 / 圓柱對準同軸。一次性快捷,不記錄配合；想要持久配合用 ASSEMBLE「選面配合」。' },
       { id: 'delete', label: '刪除', icon: 'trash', tip: '刪除：刪除選中的特徵或組件。' },
       { id: 'remove', label: '移除', icon: 'trash', tip: '從當前設計移除所選組件實例；外部來源設計仍然保留。' },
       { id: 'arrange', label: '排列', icon: 'pattern', sep: true, tip: '選擇組件、排列平面及包覆面參數，為製造自動排料。' },

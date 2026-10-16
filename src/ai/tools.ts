@@ -25,9 +25,9 @@ export const TOOL_DEFS: ToolDef[] = [
   { name: 'add_parameter', description: '新增一個用戶參數（ƒx），之後可被尺寸引用 / 聯動重建。', parameters: { type: 'object', properties: { name: { type: 'string' }, value: { type: 'number' } }, required: ['name', 'value'] } },
   { name: 'set_parameter', description: '修改一個已存在用戶參數的值（觸發聯動重建）。', parameters: { type: 'object', properties: { name: { type: 'string' }, value: { type: 'number' } }, required: ['name', 'value'] } },
   { name: 'create_text', description: '加凸起/凹刻文字（英數；放在 XY 面，時間軸可改字號/高度/基準Z）。emboss=凸字，engrave=凹刻（需已有實體承接）。', parameters: { type: 'object', properties: { text: { type: 'string' }, size: { type: 'number', description: '字號 mm（預設 12）' }, height: { type: 'number', description: '凸/凹深 mm（預設 4）' }, mode: { type: 'string', enum: ['emboss', 'engrave'], description: 'emboss 凸 / engrave 凹刻' } }, required: ['text'] } },
-  { name: 'set_material', description: '設置實體材質/外觀（影響顏色 + 質量密度計算）。', parameters: { type: 'object', properties: { material: { type: 'string', enum: ['鋼', '鋁', '黃銅', '銅', '塑料', '金', '銀', '鈦'], description: '材質名' } }, required: ['material'] } },
+  { name: 'set_material', description: '設定實體材質/外觀（影響顏色 + 質量密度計算）。', parameters: { type: 'object', properties: { material: { type: 'string', enum: ['鋼', '鋁', '黃銅', '銅', '塑料', '金', '銀', '鈦'], description: '材質名' } }, required: ['material'] } },
   { name: 'mirror_body', description: '把實體跨 YZ 平面鏡像（做左右對稱件）。', parameters: { type: 'object', properties: {} } },
-  { name: 'engineering_calc', description: '機械設計速算（只返回結果，不改模型）。支持齒輪嚙合 / 螺栓預緊 / 皮帶長度 / 主軸轉速。', parameters: { type: 'object', properties: {
+  { name: 'engineering_calc', description: '機械設計速算（只返回結果，不改模型）。支援齒輪嚙合 / 螺栓預緊 / 皮帶長度 / 主軸轉速。', parameters: { type: 'object', properties: {
     calc: { type: 'string', enum: ['gear_mesh', 'bolt_preload', 'belt_length', 'spindle_rpm'], description: '計算類型' },
     module: { type: 'number', description: 'gear_mesh: 模數 m' }, teeth1: { type: 'number', description: 'gear_mesh: 齒數1' }, teeth2: { type: 'number', description: 'gear_mesh: 齒數2' },
     bolt_d: { type: 'number', description: 'bolt_preload: 螺紋公稱直徑 mm（M8→8）' }, torque_Nm: { type: 'number', description: 'bolt_preload: 擰緊扭矩 N·m' }, friction_K: { type: 'number', description: 'bolt_preload: 扭矩系數（干0.2/潤滑0.14）' },
@@ -35,9 +35,9 @@ export const TOOL_DEFS: ToolDef[] = [
     tool_d: { type: 'number', description: 'spindle_rpm: 刀具直徑 mm' }, cutting_speed: { type: 'number', description: 'spindle_rpm: 切削速度 Vc m/min' },
   }, required: ['calc'] } },
   { name: 'fit_view', description: '將視圖縮放到剛好框住模型（適應窗口）。', parameters: { type: 'object', properties: {} } },
-  { name: 'export_model', description: '導出當前模型為檔案（觸發下載）。', parameters: { type: 'object', properties: { format: { type: 'string', enum: ['stl', 'step'], description: '格式' } }, required: ['format'] } },
+  { name: 'export_model', description: '匯出當前模型為檔案（觸發下載）。', parameters: { type: 'object', properties: { format: { type: 'string', enum: ['stl', 'step'], description: '格式' } }, required: ['format'] } },
   { name: 'modal_analysis', description: '運行模態分析（體素 FEM 約束模態固有頻率，趨勢級）。需要用戶先在 FEA 面板點一個【固定面】—— 若已點則直接求解並返回最低各階頻率(Hz)，否則回傳指引叫用戶先點固定面（不要假裝做了）。', parameters: { type: 'object', properties: {} } },
-  { name: 'buckling_analysis', description: '運行線性屈曲分析（體素 FEM，趨勢級），返最低屈曲載荷因子 λ₁ 與臨界載荷 Pcr。需要用戶先在 FEA 面板點【固定面】+【受力面】并設力（與受力雲圖一樣）—— 若齊備則直接求解，否則回傳指引（不要假裝做了）。', parameters: { type: 'object', properties: {} } },
+  { name: 'buckling_analysis', description: '運行線性屈曲分析（體素 FEM，趨勢級），返最低屈曲載荷因子 λ₁ 與臨界載荷 Pcr。需要用戶先在 FEA 面板點【固定面】+【受力面】並設力（與受力雲圖一樣）—— 若齊備則直接求解，否則回傳指引（不要假裝做了）。', parameters: { type: 'object', properties: {} } },
   { name: 'aero_open_lab', description: '打開【氣動設計實驗室】並按需求設定設計空間（螺旋槳/風扇、機翼、流線外殼）。brief = 一句設計需求（例如「120mm 靜音風扇 2500rpm 最高效率」「水底推進器外殼最低水阻」），或者直接用 kind 選內置範本。返回設計空間（變數範圍/目標/約束）。', parameters: { type: 'object', properties: { brief: { type: 'string', description: '一句自然語言設計需求（可選；有就優先）' }, kind: { type: 'string', enum: ['prop', 'wing', 'shell'], description: '沒有 brief 時用的內置範本：prop=螺旋槳/風扇，wing=機翼，shell=流線外殼' } } } },
   { name: 'aero_start_auto_design', description: '開始【自動設計模式】（AI 閉環）：每輪用（已修正的）工程估算優化 → 選頭 N 個不同設計送本機 OpenFOAM CFD → 用 CFD 結果訓練修正模型 → 再優化，直到輪數/CFD 額度/時間用完或者改善少於 ε。CFD 服務離線時自動改為只用估算（會講明未驗證）。螺旋槳/風扇的轉子 CFD 未驗證，預設不用，除非 use_rotor_cfd=true。此工具立即返回（循環在背景跑，每個 CFD 工作要幾分鐘）— 之後用 aero_auto_design_status 查進度。', parameters: { type: 'object', properties: {
     brief: { type: 'string', description: '一句設計需求（可選；沒有就用 kind 或實驗室目前的設計空間）' },

@@ -3473,12 +3473,12 @@ function buildShape(features: Feature[], noCache = false): any {
               solid = dr.sketchOnPlane(plane, planeOffset).loftWith(topDr.sketchOnPlane(plane, planeOffset + eh), { ruled: true })
             }
           } catch {
-            buildWarnings.push(`拔模 ${draftDeg}° 失败（轮廓偏移自相交/太陡）— 已改为直拉伸`)
+            buildWarnings.push(`拔模 ${draftDeg}° 失敗（輪廓偏移自相交／太陡）— 已改為直拉伸`)
             solid = sk.extrude(eh)
           }
         } else {
           // #57 GM-L2：扭转同拔模互斥（拔模行 loft 偏移路径、扭转行 sk.extrude twistAngle）—— 两者同设时拔模会被静默吞，诚实提示只应用扭转
-          if (f.twist && Math.abs(draftDeg) > 0.01) buildWarnings.push('扭转与拔模不可同时使用，已只应用扭转')
+          if (f.twist && Math.abs(draftDeg) > 0.01) buildWarnings.push('扭轉與拔模不可同時使用，已只應用扭轉')
           solid = f.twist ? sk.extrude(eh, { twistAngle: f.twist }) : sk.extrude(eh)
         }
         // Symmetric: center the extrusion on the sketch plane (span -h/2 .. +h/2).
@@ -3504,7 +3504,7 @@ function buildShape(features: Feature[], noCache = false): any {
       let rax: [number, number, number] = f.axis === 'X' ? [1, 0, 0] : f.axis === 'Z' ? [0, 0, 1] : [0, 1, 0]
       if (f.axisV) {
         const al = Math.hypot(f.axisV[0], f.axisV[1], f.axisV[2])
-        if (al < 1e-9) { buildWarnings.push('旋转：轴方向为零向量 — 已用世界 Y 轴') }
+        if (al < 1e-9) { buildWarnings.push('旋轉：軸方向為零向量 — 已用世界 Y 軸') }
         else rax = [f.axisV[0] / al, f.axisV[1] / al, f.axisV[2] / al]
       }
       // Keep a Revolve profile in the sketch frame it was authored on — except BUG-SO16-001:
@@ -3519,7 +3519,7 @@ function buildShape(features: Feature[], noCache = false): any {
       const prof = remapped ? revolveRemapProfile(f.profile as any, authoredPlane, lathePlane) : f.profile
       const rcfg: Record<string, unknown> = {}
       if (ang > 0 && ang < 360) rcfg.angle = ang
-      else if (!(ang > 0)) buildWarnings.push('旋转：角度必须 > 0（值 ' + ang + '° 非法,可能参数驱动绕过 UI 下限）— 已用整圈 360°')   // 0/负角 → revolve 出退化几何;退回整圈
+      else if (!(ang > 0)) buildWarnings.push('旋轉：角度必須 > 0（值 ' + ang + '° 非法，可能參數驅動繞過 UI 下限）— 已用整圈 360°')   // 0/负角 → revolve 出退化几何;退回整圈
       if (f.axisOrigin) rcfg.origin = f.axisOrigin
       const _volOf = (sh: any): number => {
         try {
@@ -3563,14 +3563,14 @@ function buildShape(features: Feature[], noCache = false): any {
         if (remapped) retries.push(mapProfileUv(prof, ([u, v]) => [u, -v] as [number, number]))
         for (const pv of retries) {
           made = revolveOf(pv)
-          if (made.solid) { buildWarnings.push('旋转：截面跨轴 — 已按预览侧半平面重建（BUG-SO17-001）'); revolveErr = undefined; break }
+          if (made.solid) { buildWarnings.push('旋轉：截面跨軸 — 已按預覽側半平面重建（BUG-SO17-001）'); revolveErr = undefined; break }
           if (made.err) revolveErr = made.err
         }
       }
       if (!made.solid) {
         throw new Error(/^\d+$/.test(revolveErr || '')
-          ? '旋转截面跨过了旋转轴 — 把截面移到轴的一侧'
-          : (revolveErr && revolveErr !== 'zero-volume' ? revolveErr : '旋转失败 — 截面相对轴退化（已保留原模型）'))
+          ? '旋轉截面跨過了旋轉軸 — 把截面移到軸的一側'
+          : (revolveErr && revolveErr !== 'zero-volume' ? revolveErr : '旋轉失敗 — 截面相對軸退化（已保留原模型）'))
       }
       let solid: any = made.solid
       // wall>0 → hollow the revolved solid into a thin curved shell (灯罩/漏斗/碗壳/导流罩). Open the face on
@@ -3586,7 +3586,7 @@ function buildShape(features: Feature[], noCache = false): any {
         let shelled: any = null
         for (const t of [f.wall, f.wall * 0.6, f.wall * 0.35]) {
           for (const fn of cands) { try { shelled = solid.shell(t, fn); break } catch { /* next face */ } }
-          if (shelled) { if (t !== f.wall) buildWarnings.push(`旋转薄壁 ${f.wall} 太厚，已减薄到 ${t.toFixed(1)} 才成功`); break }
+          if (shelled) { if (t !== f.wall) buildWarnings.push(`旋轉薄壁 ${f.wall} 太厚，已減薄到 ${t.toFixed(1)} 才成功`); break }
         }
         if (shelled) solid = shelled
         else buildWarnings.push(`⚠ 旋轉薄壁 ${f.wall}mm 失敗，已退回實體（請減小薄壁厚度或讓截面貼軸）`)
@@ -3647,14 +3647,14 @@ function buildShape(features: Feature[], noCache = false): any {
             extras.push(m.solid)
             for (const cand of extras) {
               const hit = _tryBool(cand)
-              if (hit) { out = hit; tool = cand; buildWarnings.push('旋转：已用与预览同侧的轴向镜像/半平面完成相交（BUG-SO17-001）'); break }
+              if (hit) { out = hit; tool = cand; buildWarnings.push('旋轉：已用與預覽同側的軸向鏡像／半平面完成相交（BUG-SO17-001）'); break }
             }
             if (out) break
           }
         }
         if (!out) throw new Error(f.op === 'intersect'
-          ? '旋转相交区域为空 — 旋转体与现有实体没有重叠（已保留原模型）'
-          : '旋转切割未改实体 — 车削体未切入材料（已保留原模型）')
+          ? '旋轉相交區域為空 — 旋轉體與現有實體沒有重疊（已保留原模型）'
+          : '旋轉切割未改實體 — 車削體未切入材料（已保留原模型）')
         _recordBool(_i, f.op === 'cut' ? 'cut' : 'intersect', tool)   // GM-γ2b：车削布尔亦录工具体供 S2
         shape = out
       }
@@ -5686,7 +5686,7 @@ function buildShape(features: Feature[], noCache = false): any {
       }
       if (!f.profile && f.wall && f.wall > 0 && f.wall < f.r) {
         try { swept3 = swept3.cut(makeTube3(f.r - f.wall, plain3)) }
-        catch { buildWarnings.push(`⚠ 3D 扫掠空心壁 ${f.wall}mm 失败，已退回实心（试减壁厚或加大半径）`) }
+        catch { buildWarnings.push(`⚠ 3D 掃掠空心壁 ${f.wall}mm 失敗，已退回實心（請減小壁厚或加大半徑）`) }
       }
       merge(swept3, f.op)
     } else if (f.type === 'sweep') {
@@ -5818,7 +5818,7 @@ function buildShape(features: Feature[], noCache = false): any {
       // wall>0 → hollow pipe: subtract an inner tube (r − wall) swept along the same spine (导管/水管/扶手/线管).
       if (!f.profile && f.wall && f.wall > 0 && f.wall < f.r) {
         try { swept = swept.cut(tube(f.r - f.wall, true, plain2)) }
-        catch { buildWarnings.push(`⚠ 扫掠空心壁 ${f.wall}mm 失败，已退回实心（试减壁厚或加大半径）`) }
+        catch { buildWarnings.push(`⚠ 掃掠空心壁 ${f.wall}mm 失敗，已退回實心（請減小壁厚或加大半徑）`) }
       }
       merge(swept, f.op)
     } else if (f.type === 'coil') {

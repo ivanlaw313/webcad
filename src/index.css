@@ -135,14 +135,15 @@ button { font-family: inherit; }
 .ribbon-tab.active { color: #222; border-bottom-color: #333; font-weight: 700; }
 
 .ribbon-panels {
-  display: flex; align-items: stretch; height: 76px; padding: 3px 4px 16px;
+  display: flex; align-items: stretch; height: 76px; padding: 4px 6px 16px;
   overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
   scrollbar-gutter: stable both-edges; scrollbar-width: thin;
 }
 .ribbon-panels::-webkit-scrollbar { height: 5px; }
-.panel { display: flex; flex: 0 0 auto; flex-direction: column; padding: 0 2px; min-width: max-content; }
+.panel { display: flex; flex: 0 0 auto; flex-direction: column; padding: 0 3px; min-width: max-content; }
 .panel-tools {
-  display: flex; align-items: center; gap: 1px; padding: 0 2px; height: 40px;
+  /* FISHING38: Fusion-like tool breathing room (was gap 1px — crushed after Phase3 dual sketch icons) */
+  display: flex; align-items: center; gap: 2px; padding: 0 3px; height: 40px;
 }
 .panel-label {
   flex: 0 0 16px; min-height: 16px;
@@ -150,7 +151,7 @@ button { font-family: inherit; }
   white-space: nowrap;
 }
 .panel-label:hover { color: #333; }
-.panel-divider { width: 1px; background: var(--border-soft); margin: 2px 4px 2px; }
+.panel-divider { width: 1px; background: var(--border-soft); margin: 2px 6px 2px; }
 .ribbon-panels > .panel:last-of-type .panel-divider { display: none; }
 
 .tool-btn {
@@ -170,7 +171,8 @@ button { font-family: inherit; }
 @media (min-width: 821px) and (max-width: 1440px) {
   .ribbon-panels { padding-inline: 2px; }
   .panel { padding-inline: 1px; }
-  .panel-tools { gap: 0; padding-inline: 1px; }
+  /* FISHING38: keep 1px gap on laptop (was 0 — Phase3 sk-dual too tight) */
+  .panel-tools { gap: 1px; padding-inline: 1px; }
   .tool-btn { flex-basis: 30px; width: 30px; }
 }
 .tool-btn:hover { background: var(--hover); border-color: var(--hover-bd); }
@@ -251,7 +253,7 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .sk-label { font-size: 10.5px; color: #4a545e; line-height: 1.15; white-space: nowrap; flex: 0 0 auto; }
 /* Phase3: line/rect/circle/arc/offset — ToolIcon primary + glyph kept for QA recognition */
 .tool-btn.sk.sk-dual { min-width: 56px; }
-.tool-btn.sk.sk-dual .sk-icon-row { display: flex; align-items: center; justify-content: center; gap: 3px; flex: 0 0 auto; line-height: 1; }
+.tool-btn.sk.sk-dual .sk-icon-row { display: flex; align-items: center; justify-content: center; gap: 4px; flex: 0 0 auto; line-height: 1; }
 .tool-btn.sk.sk-dual .sk-tool-icon { display: inline-flex; color: inherit; flex: 0 0 auto; }
 .tool-btn.sk.sk-dual .sk-glyph { font-size: 12px; color: #28556e; }
 .ribbon .tool-btn.sk.sk-dual.active .sk-glyph { color: #173f58; }

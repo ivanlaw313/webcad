@@ -1,12 +1,11 @@
 /**
- * more25 Assemble P1 prep: icon distinctness for rigid／motionlink／joint
- * and soft gate for 啟用接觸集 vs 新建接觸集.
+ * more25 Assemble P1: icon distinctness for rigid／motionlink／joint
+ * and hard gate for 啟用接觸集 vs 新建接觸集 (FISHING39 contactnew).
  *
- * Hard (tip ≥1dc1d0a): joint/rigid/motionlink path markup pairwise distinct;
+ * Hard (tip ≥65cf689 FISHING39): joint/rigid/motionlink path markup pairwise distinct;
  *   ribbon rigidgroup→rigid, motionlink→motionlink, joint→joint;
- *   enablecontact + newcontactset exist in ASSEMBLE.
- * Soft: enablecontact vs newcontactset — skip while they still share icon key
- *   and/or path body (both `contact` on tip); hard-green once keys AND paths differ.
+ *   enablecontact + newcontactset exist in ASSEMBLE;
+ *   newcontactset→contactnew (≠ contact); enable vs new keys AND path bodies differ.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -93,17 +92,16 @@ test('Assemble P1 hard: enablecontact + newcontactset exist in ASSEMBLE', () => 
   assert.ok(keys.has(nw), `newcontactset icon key ${nw} missing from paths`)
 })
 
-const enableKey = assembleIcon(block, 'enablecontact')
-const newKey = assembleIcon(block, 'newcontactset')
-const enablePath = pathBody(iconsSrc, enableKey)
-const newPath = pathBody(iconsSrc, newKey)
-const contactStillShared = enableKey === newKey || enablePath === newPath
-
-test(
-  'Assemble P1: enablecontact vs newcontactset distinct icon key and path',
-  { skip: contactStillShared && 'Assemble P1: contact enable vs new still share key/path (Phase pending distinct keys e.g. contact vs contactnew)' },
-  () => {
-    assert.notEqual(enableKey, newKey, 'enablecontact and newcontactset must use different icon keys')
-    assert.notEqual(enablePath, newPath, 'enablecontact and newcontactset path markup must differ')
-  },
-)
+test('Assemble P1 hard: enablecontact vs newcontactset distinct icon key and path', () => {
+  const enableKey = assembleIcon(block, 'enablecontact')
+  const newKey = assembleIcon(block, 'newcontactset')
+  assert.equal(enableKey, 'contact', 'enablecontact must use contact')
+  assert.equal(newKey, 'contactnew', 'newcontactset must use contactnew (FISHING39)')
+  assert.ok(keys.has('contactnew'), 'paths.contactnew missing')
+  assert.notEqual(enableKey, newKey, 'enablecontact and newcontactset must use different icon keys')
+  const enablePath = pathBody(iconsSrc, enableKey)
+  const newPath = pathBody(iconsSrc, newKey)
+  assert.notEqual(enablePath, newPath, 'enablecontact and newcontactset path markup must differ')
+  // path body for contactnew must also differ from the contact key explicitly
+  assert.notEqual(pathBody(iconsSrc, 'contactnew'), pathBody(iconsSrc, 'contact'), 'contactnew path === contact path')
+})

@@ -345,7 +345,7 @@ const LAB: Panel[] = [
       { id: 'slopeanalysis', label: '斜度分析', icon: 'draft' },
       // FISHING55: F52 recheck looked here for 斑馬紋／脫模可達性 — surface them in 檢查擴展 (cmds already routed).
       { id: 'zebra', label: '斑馬紋', icon: 'section', tip: '以反射條紋檢查曲面切向連續及光順度。' },
-      { id: 'accessanalysis', label: '脫模可達性', icon: 'draft', tip: '沿指定方向檢查被實體自身遮擋、模具不可達的區域。' },
+      { id: 'accessanalysis', label: '脫模可達性', icon: 'draft', tip: '沿指定方向檢查被實體自身遮擋、模具不可達的區域（脫模／刀具到達）。' },
     ],
   },
   {

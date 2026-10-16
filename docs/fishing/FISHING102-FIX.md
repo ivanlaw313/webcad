@@ -10,12 +10,12 @@ Deploy also copies PREV F101 lazy chunks (AeroLab/WindTunnelGpu/autoLoopStore/Ph
 - stamp: `v2.20-20261017-013313`
 - bundle: `index-DC3XiK2C-r2.js`
 - md5: `6ef23bb0cee9acd5893413031c1f16ff`
-- tip: (branch HEAD after tip-docs)
+- tip: `7b158c74866bfc0a39faa03bdc8c015a3e4eac89`
 - product: `aa01e72c0e61e78dfd3dd8840b3a1ccb46c405ef`
 - more57 cherry: `ade7a28d` (from `592342d748219a1e37f8de176b758e0066b30bb3`)
 
 ## Live after cut
-- Tip: (see tip-docs commit)
+- Tip: `7b158c74866bfc0a39faa03bdc8c015a3e4eac89` (fix/fishing102-behavior-ux → FF fix/sketch-face-copy)
 - Product: `aa01e72c0e61e78dfd3dd8840b3a1ccb46c405ef` PhysicsLab header i18n
 - more57 cherry: `ade7a28d`
 - Stamp: `v2.20-20261017-013313`

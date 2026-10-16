@@ -7,7 +7,7 @@ import { useEscapeLayer } from './useEscapeLayer'
 import { parseLen, toLenInput } from '../io/units'   // BUG-507/509：時間軸編輯條跟對話框同一條解析
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react'
 import { ToolIcon } from '../icons'
-import { useApp } from '../store'
+import { useApp, thickenOversizeReason } from '../store'
 import { tStatus } from '../i18n'
 import { illegalRejectStatus, isIllegalRejectStatus, ILLEGAL_LENGTH_DETAIL, ILLEGAL_THICKNESS_DETAIL } from '../ui/illegalInput'
 import { useDraggable } from './useDraggable'
@@ -463,6 +463,7 @@ export default function Timeline() {
                         value={shown}
                         onCommit={(n) => {
                           if (!(Math.abs(n) > 0)) { useApp.setState({ status: illegalRejectStatus('加厚厚度不可為 0（輸入負數可翻轉方向）') }); return false }
+                          { const over = thickenOversizeReason(useApp.getState().bodyMesh, Math.abs(n)); if (over) { useApp.setState({ status: illegalRejectStatus(over) }); return false } }   // FISHING30 P1：時間軸改厚度同樣受過大閘
                           const side = tf.side === 'both' ? 'both' : n < 0 ? 'neg' : 'pos'
                           void Promise.resolve(editFeature(sel.id, { thick: Math.abs(n), side })).then(() => { if (n < 0 && side === 'neg' && tf.side !== 'neg') useApp.setState((st) => ({ status: `加厚：負值表示反向 — 方向已改為「反向」，厚度 ${Math.abs(n)} mm　${st.status}` })) })   // CORE16：負數唔再靜默翻轉
                         }}

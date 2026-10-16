@@ -7788,9 +7788,11 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 負數 = 翻轉方向（正向↔反向），厚度取絕對值
     const negTyped = thick < 0
     if (thick < 0) { thick = -thick; dir = dir === 'pos' ? 'neg' : dir === 'neg' ? 'pos' : dir }
-    set({ thickenThick: thick, thickenDir: dir, thickenOp: patch.op ?? cur.thickenOp, ...(!(thick > 0) ? { status: illegalRejectStatus('加厚厚度必須大於 0') } : /尺寸已拒絕：加厚厚度必須大於 0|加厚：厚度必須大於 0/.test(cur.status) ? { status: `加厚：厚度 ${thick} mm（${dir === 'neg' ? '反向' : dir === 'both' ? '對稱' : '正向'}）` } : {}) })
+    // FISHING30 P1：過大厚度喺輸入當下已拒絕（與 0 mm 一致）—— 狀態列／提示即時出「尺寸已拒絕」，預覽亦唔再計出巨型實體
+    const over = thick > 0 ? thickenOversizeReason(cur.bodyMesh, thick) : null
+    set({ thickenThick: thick, thickenDir: dir, thickenOp: patch.op ?? cur.thickenOp, ...(!(thick > 0) ? { status: illegalRejectStatus('加厚厚度必須大於 0') } : over ? { status: illegalRejectStatus(over) } : /尺寸已拒絕：加厚(厚度必須大於 0|厚度 .* 過大|厚度 .* 超過上限)|加厚：厚度必須大於 0/.test(cur.status) ? { status: `加厚：厚度 ${thick} mm（${dir === 'neg' ? '反向' : dir === 'both' ? '對稱' : '正向'}）` } : {}) })
     // CORE16：負數唔再靜默翻轉 — 狀態列明確講「負值＝反向」同而家嘅方向
-    if (negTyped && thick > 0) set({ status: `加厚：負值表示反向 — 方向已改為「${dir === 'neg' ? '反向' : dir === 'pos' ? '正向' : '對稱'}」，厚度 ${thick} mm` })
+    if (negTyped && thick > 0 && !over) set({ status: `加厚：負值表示反向 — 方向已改為「${dir === 'neg' ? '反向' : dir === 'pos' ? '正向' : '對稱'}」，厚度 ${thick} mm` })
     get().scheduleThickenPreview()
   },
   flipThicken: () => { const d = get().thickenDir; set({ thickenDir: d === 'pos' ? 'neg' : d === 'neg' ? 'pos' : 'both' }); get().scheduleThickenPreview() },
@@ -7801,7 +7803,8 @@ export const useApp = create<AppState>((rawSet, get) => {
     _thkPvTimer = null
     const s = get()
     const f = buildThickenFeature(s, '~pv-thicken', true)
-    const ready = s.thickenMode && s.mode === 'model' && !!f && s.features.length > 0
+    // FISHING30 P1：過大厚度唔計預覽（以前會畫出 99999 mm 藍色巨板，睇落似已建立實體）
+    const ready = s.thickenMode && s.mode === 'model' && !!f && s.features.length > 0 && !thickenOversizeReason(s.bodyMesh, s.thickenThick)
     set({ thickenPreviewMesh: null, thickenPreviewFail: null, thickenPreviewBusy: ready })
     if (!ready) return
     const seq = _thkPvSeq

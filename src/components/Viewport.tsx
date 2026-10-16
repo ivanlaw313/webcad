@@ -118,7 +118,7 @@ import { featDlgBlockingReason, patternOverlapWarning } from '../cad/featDlgNume
 import { parseSweepTwistDraft, parseSweepScaleDraft } from '../cad/sweepTwistFields'   // 純邏輯模組，唔經 monolith
 import { startRenderGovernor } from '../render/renderGovernor'
 import { PRIM_PLACE_KINDS, FEAT_DLG_DRY_PREVIEW_KINDS, shellFailReason, effectiveComponentDensity } from '../store'   // UX3 #2 / CORE16 b4
-import { useApp, holeBlindOverrun, meshBboxSize, extrudePreviewKey, extrudePreviewCurrent, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection } from '../store'
+import { useApp, holeBlindOverrun, meshBboxSize, extrudePreviewKey, extrudePreviewCurrent, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection, thickenOversizeReason } from '../store'
 import { ensureMeshDropHost, setMeshDropOverlay } from '../io/meshDropHost'
 import { visibleDefinitionBodies, type ComponentDef } from '../assembly/occurrence'
 import { cadPointToThree, formBoxRectCadCorners, makePlacedBoxCage, type FormBoxDraft, type FormBoxPlane } from '../cad/formBox'
@@ -3995,6 +3995,8 @@ export default function Viewport() {
   const thickenMode = useApp((s) => s.thickenMode)
   const thickenPicks = useApp((s) => s.thickenPicks)
   const thickenThick = useApp((s) => s.thickenThick)
+  // FISHING30 P1：加厚過大（相對實體包圍盒／絕對上限）—— 對話框即時閘：閂「確定」＋紅字，與 commitThicken 同一函數
+  const thickenOver = useApp((s) => (s.thickenMode ? thickenOversizeReason(s.bodyMesh, s.thickenThick) : null))
   const thickenDir = useApp((s) => s.thickenDir)
   const thickenOp = useApp((s) => s.thickenOp)
   const thickenPreviewMesh = useApp((s) => s.thickenPreviewMesh)
@@ -5759,7 +5761,7 @@ export default function Viewport() {
           title={tStatus('加厚', lang)}
           width={252}
           okLabel={tStatus('確定', lang)}
-          okDisabled={!!numBad || !thickenPicks.length || !(thickenThick > 0)}
+          okDisabled={!!numBad || !thickenPicks.length || !(thickenThick > 0) || !!thickenOver}
           okTip={tStatus('加厚（Enter）', lang)}
           onOk={() => void useApp.getState().commitThicken()}
           onCancel={() => useApp.getState().cancelThicken()}
@@ -5772,6 +5774,7 @@ export default function Viewport() {
             <span data-testid="thicken-thick"><LenInput mm={thickenDir === 'neg' ? -thickenThick : thickenThick} onMm={(v) => useApp.getState().setThicken({ thick: thickenDir === 'neg' ? -v : v })} unit={unit} w={66} max={1000000} title={tStatus('加厚厚度（負數＝翻轉方向）', lang)} /> {unit === 'inch' ? 'in' : unit}</span>
           </label>
           {thickenThick > 0 && thickenDir === 'neg' && <div role="status" data-testid="thicken-flip-note" style={{ color: '#b54708', fontSize: 12 }}>{tStatus(`⇅ 反向：沿面法線反方向加厚 ${thickenThick} mm（負值＝反向）`, lang)}</div>}
+          {thickenThick > 0 && thickenOver && <div role="alert" data-testid="thicken-oversize-alert" style={{ color: '#b42318', fontSize: 12 }}>{tStatus(`尺寸已拒絕：${thickenOver}`, lang)}</div>}
           {!(thickenThick > 0) && <div role="alert" data-testid="thicken-illegal-alert" style={{ color: '#b42318', fontSize: 12 }}>{tStatus('厚度必須大於 0（輸入 0 無效）', lang)}</div>}
           <label>
             <span style={{ color: '#6b7680' }}>{tStatus('方向', lang)}</span>

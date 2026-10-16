@@ -2,8 +2,9 @@
 
 **Date:** 2026-10-16 (HK)  
 **Branch:** `fix/fishing47-sc-leftovers-fusion-css`  
+**Product fix:** `e16d682`
 **Base:** tip `59b4c75` (FISHING46 live; product = `fix/sketch-face-copy`)  
-**Tip:** `e16d682` (`e16d682bc4e90b6abf63955da65c3b38f32fb3be`)
+**Tip:** `a53bfdf` (`a53bfdf5486e66b5af4f2c042a94c8a0fe92fc34`)
 
 ## Scan
 

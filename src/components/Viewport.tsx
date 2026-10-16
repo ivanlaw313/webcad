@@ -6078,7 +6078,7 @@ export default function Viewport() {
             </select>
           </label>
           <label>
-            <span style={{ color: '#6b7680' }}>分辨率</span>
+            <span style={{ color: '#6b7680' }}>解析度</span>
             <select value={feaRes} onChange={(e) => setFeaOpt({ feaRes: Number(e.target.value) })}>
               <option value={20}>粗（快）</option>
               <option value={28}>中</option>
@@ -6190,7 +6190,7 @@ export default function Viewport() {
                   title="結果探針：開後在 3D 雲圖點任一體素，讀其精確場值（von Mises / 位移 / SF / 主應力 / 應變能 + 位置）。關時雲圖不攔截點擊。"
                   style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: feaProbeOn ? '1px solid #4a9eff' : '1px solid #3a3e44', background: feaProbeOn ? '#1e3a5f' : '#23272d', color: '#d8dde2' }}>📍 探針{feaProbeOn ? '（開·點體素讀值）' : ''}</button>
                 {feaProbe != null && <button type="button" onClick={() => useApp.getState().setFeaOpt({ feaProbe: null })} title="清除探針讀數" style={{ padding: '2px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer', border: '1px solid #3a3e44', background: '#23272d', color: '#9aa6af' }}>清</button>}
-                {feaProbeOn && feaResult.nVox > 40000 && <span style={{ color: '#c77d00', fontSize: 10 }}>體素 {feaResult.nVox} &gt; 4萬，探針已禁用（降分辨率再用）</span>}
+                {feaProbeOn && feaResult.nVox > 40000 && <span style={{ color: '#c77d00', fontSize: 10 }}>體素 {feaResult.nVox} &gt; 4萬，探針已禁用（降解析度再用）</span>}
               </div>
               {feaProbe != null && feaProbe < feaResult.nVox && (() => {
                 const i = feaProbe, c = feaResult.centers
@@ -6382,7 +6382,7 @@ export default function Viewport() {
             {/* S171 audit（HIGH）：轴承模式载荷系 feaBearing（feaLoad 已清）→ 门控按模式判载荷就绪，否则收敛研究喺轴承模式永远 disabled */}
             <button type="button"
               disabled={feaConvBusy || feaBusy || modalBusy || bucklingBusy || topoptBusy || thermalBusy || !feaFixed || (feaLoadMode === 'bearing' ? !feaBearing : !feaLoad)}
-              title={(feaFixed && (feaLoadMode === 'bearing' ? feaBearing : feaLoad)) ? '同一模型、同一載荷跑 3 檔體素分辨率(20/28/40)，看 vmMax 是否趨穩 + 外推收斂值（網格無關性）' : (feaLoadMode === 'bearing' ? '先點①固定面 + 🎯拾軸承孔' : '先點①固定面 + ②受力面')}
+              title={(feaFixed && (feaLoadMode === 'bearing' ? feaBearing : feaLoad)) ? '同一模型、同一載荷跑 3 檔體素解析度(20/28/40)，看 vmMax 是否趨穩 + 外推收斂值（網格無關性）' : (feaLoadMode === 'bearing' ? '先點①固定面 + 🎯拾軸承孔' : '先點①固定面 + ②受力面')}
               onClick={() => void runFeaConvergence()}
               className="cs-btn"
               style={{ width: '100%', opacity: (feaConvBusy || !feaFixed || (feaLoadMode === 'bearing' ? !feaBearing : !feaLoad)) ? 0.5 : 1 }}>
@@ -6464,7 +6464,7 @@ export default function Viewport() {
             </select>
             <button type="button" onClick={() => setWindOpt({ windSign: windSign < 0 ? 1 : -1 })} title="反轉來流方向" style={{ marginLeft: 4 }}>{windSign < 0 ? '−向' : '+向'}</button>
           </label>
-          <label title="精細度（體素分辨率）：越高越準但越慢。24≈快趨勢 / 36≈細 / 48≈最細（大件慎用）">
+          <label title="精細度（體素解析度）：越高越準但越慢。24≈快趨勢 / 36≈細 / 48≈最細（大件慎用）">
             <span style={{ color: '#6b7680' }}>精細度 {windRes}{windRes <= 24 ? '（快）' : windRes <= 36 ? '（細）' : '（最細·慢）'}</span>
             <input type="range" min={12} max={48} step={2} value={windRes} onChange={(e) => setWindOpt({ windRes: Number(e.target.value) })} style={{ width: 128, verticalAlign: 'middle' }} />
           </label>
@@ -6549,7 +6549,7 @@ export default function Viewport() {
               <div style={{ color: '#9aa3ad' }}>Re ≈ {windResult.re.toExponential(1)} · 迎風面積 {windResult.frontalAreaMM2 >= 100 ? windResult.frontalAreaMM2.toFixed(0) : windResult.frontalAreaMM2.toFixed(1)} mm²</div>
               <div style={{ color: '#9aa3ad' }}>表面 Cp：{windResult.cpMin.toFixed(2)} ~ {windResult.cpMax.toFixed(2)}（紅高壓·藍吸力）{windResult.converged ? '' : ' · ⚠未完全收斂'}</div>
               {windResult.reClamped && <div style={{ color: '#e0a800' }}>⚠ Re 已鉗至穩定帶（量級/相對比較可信，絕對值偏趨勢）</div>}
-              {windResult.bumped && <div style={{ color: '#2f9e44' }}>🧩 薄件自動加密：分辨率 → {windResult.res}（最薄方向夠體素，Cd 較可信）</div>}
+              {windResult.bumped && <div style={{ color: '#2f9e44' }}>🧩 薄件自動加密：解析度 → {windResult.res}（最薄方向夠體素，Cd 較可信）</div>}
               <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => useApp.getState().downloadWindReport()}>📄 下載報告</button>
                 <button type="button" data-testid="wind-clear-result" onClick={() => useApp.getState().clearWind()}>🗑 清除結果</button>
@@ -6618,7 +6618,7 @@ export default function Viewport() {
               {['ABS', 'PP', 'PC', 'PA6', 'POM', 'PMMA', 'TPU'].map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </label>
-          <label title="精細度（體素分辨率）：越高越細越準（薄壁/細節/孔），但越慢。肯等就拉右邊。20≈粗 / 40≈細 / 64≈超細 / 128+≈極致 / 256=最盡（大件慎用，查看預計耗時）。運行前查看面預計耗時。">
+          <label title="精細度（體素解析度）：越高越細越準（薄壁/細節/孔），但越慢。肯等就拉右邊。20≈粗 / 40≈細 / 64≈超細 / 128+≈極致 / 256=最盡（大件慎用，查看預計耗時）。運行前查看面預計耗時。">
             <span style={{ color: '#6b7680' }}>精細度 {moldRes}{moldRes <= 24 ? '（粗·快）' : moldRes <= 44 ? '（細）' : moldRes <= 72 ? '（超細）' : moldRes <= 160 ? '（極致·慢）' : '（最盡·好慢）'}</span>
             <input type="range" min={20} max={lowPower ? 96 : 256} step={4} value={moldRes} onChange={(e) => setMoldOpt({ moldRes: Number(e.target.value) })} style={{ width: 130, verticalAlign: 'middle' }} />
           </label>
@@ -6762,7 +6762,7 @@ export default function Viewport() {
                 )}
                 <div style={{ color: '#6b7680' }}>
                   {/* #87 GM-L2：显示【实际】用嘅体素分辨率（薄壁自动加密后真值 resActual），唔再净印用户请求值 —— 体素数对得返。 */}
-                  註射≈{fmtSec(moldResult.tFill)} · 冷卻≈{fmtSec(moldResult.tCool)} · 周期≈{fmtSec(moldResult.cycle)} · {moldResult.nVox} 體素（分辨率 {moldResult.resActual}{moldResult.resActual > moldRes ? `，自動加密自 ${moldRes}` : ''}）
+                  註射≈{fmtSec(moldResult.tFill)} · 冷卻≈{fmtSec(moldResult.tCool)} · 周期≈{fmtSec(moldResult.cycle)} · {moldResult.nVox} 體素（解析度 {moldResult.resActual}{moldResult.resActual > moldRes ? `，自動加密自 ${moldRes}` : ''}）
                 </div>
                 <div style={{ color: '#6b7680' }}>
                   壁厚：中位 {moldResult.wallMedian.toFixed(1)}mm · 最厚 {moldResult.wallMax.toFixed(1)}mm
@@ -8851,7 +8851,7 @@ export default function Viewport() {
         {renderModeOn && <span title="HDRI 環境（S109）：真實照片級環境光照 + 反射（Poly Haven CC0）— 關=內置影棚" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>🌐<select value={hdriPreset} onChange={(e) => useApp.getState().setHdriPreset(e.target.value)} title="HDRI 環境預設（CC0）" style={{ fontSize: 11, maxWidth: 96 }}><option value="">影棚(內置)</option>{HDRI_PRESETS.map((p) => <option key={p.id} value={p.id} title={p.hint}>{p.label}</option>)}</select>{hdriPreset !== '' && <input type="range" min={0.1} max={3} step={0.1} value={hdriIntensity} onChange={(e) => useApp.getState().setHdriIntensity(Number(e.target.value))} title="HDRI 強度" style={{ width: 46 }} />}{hdriPreset !== '' && <span title={`HDRI 環境旋轉 ${Math.round(hdriRotation * 57.2958)}°（繞 Y 軸定向環境光照/反射）`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>↻<input type="range" min={0} max={Math.PI * 2} step={0.05} value={hdriRotation} onChange={(e) => useApp.getState().setHdriRotation(Number(e.target.value))} style={{ width: 46 }} /></span>}</span>}
         <button className={'tb-btn' + (rtMode ? ' tb-on' : '')} title={tStatus('🔆 畫布內光追（S105）：漸進路徑追蹤 — 全局光照 + 真反射/折射 + 軟陰影 + 焦散。靜置等收斂，相機一動重新累積。注：不渲染程序化紋理/檢視著色', lang)} onClick={() => useApp.getState().toggleRtMode()}>🔆</button>
         {rtMode && <span title={tStatus('路徑追蹤采樣數：越高越乾淨越慢（拖動滑桿調上限）', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>{tStatus('采樣', lang)}<input type="range" min={16} max={1024} step={16} value={rtSamples} onChange={(e) => useApp.getState().setRtSamples(Number(e.target.value))} style={{ width: 60 }} />{rtProgress}/{rtSamples}</span>}
-        <span title={tStatus('📷 高清出圖（S192）：離屏超采樣渲染當前視圖為 PNG（1×/2×/4× 遠超視口分辨率，MSAA 抗鋸齒）+ 可勾透明背景（貼 alpha 合成）。發布 / 產品圖用，勝過普通視口截圖', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
+        <span title={tStatus('📷 高清出圖（S192）：離屏超采樣渲染當前視圖為 PNG（1×/2×/4× 遠超視口解析度，MSAA 抗鋸齒）+ 可勾透明背景（貼 alpha 合成）。發布 / 產品圖用，勝過普通視口截圖', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
           <button className="tb-btn" title={tStatus('出高清 PNG', lang)} onClick={() => useApp.getState().requestStill()}>📷</button>
           <select value={exportScale} onChange={(e) => useApp.getState().setExportScale(Number(e.target.value))} title={tStatus('出圖倍率', lang)} style={{ fontSize: 11 }}><option value={1}>1×</option><option value={2}>2×</option><option value={4}>4×</option></select>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} title={tStatus('透明背景 PNG（alpha）', lang)}><input type="checkbox" checked={exportTransparent} onChange={(e) => useApp.getState().setExportTransparent(e.target.checked)} />{tStatus('透明', lang)}</label>

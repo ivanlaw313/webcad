@@ -25072,7 +25072,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const need = focus === 'topopt' ? '生成式設計：需要先有活動實體' : '熱分析：需要先有活動實體'
     const hint = focus === 'topopt'
       ? '生成式設計：點①固定面（保留區）+ ②受力面 + 設定力，再在面板按「生成式設計（拓撲優化）」'
-      : '熱分析：點①固定面=熱面、②受力面=冷面，再設溫度，按面板「熱分析（穩態導熱）」'
+      : '熱分析：點①固定面=熱面、②受力面=冷面，再設定溫度，按面板「熱分析（穩態導熱）」'
     if (s.feaBusy || s.topoptBusy || s.thermalBusy || s.thermalStressBusy || s.modalBusy || s.bucklingBusy) {
       return { simFocus: focus, status: hint }
     }
@@ -25109,7 +25109,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const cadTris: number[] | undefined = (faceTris && faceTris.length >= 9) ? faceTris : undefined
     const stale = hasLiveSimResults(s) ? invalidateSimResultsPatch(s.feaMode === 1 ? '固定面已改' : '受力面已改') : null
     if (s.feaMode === 1) return { ...(stale ?? {}), feaFixed: { point: cadP, normal: cadN, faceTris: cadTris }, feaMode: 2 as const, status: stale ? stale.status : '受力雲圖 ②：點【受力面】（力作用的面）' }
-    return { ...(stale ?? {}), feaLoad: { point: cadP, normal: cadN, faceTris: cadTris }, status: stale ? stale.status : '已選受力面 — 設定力/方向/材料/分辨率 → 按「運行」（重點受力面可改選）' }
+    return { ...(stale ?? {}), feaLoad: { point: cadP, normal: cadN, faceTris: cadTris }, status: stale ? stale.status : '已選受力面 — 設定力/方向/材料/解析度 → 按「運行」（重點受力面可改選）' }
   }),
   // S116：拾销/圆柱约束孔。复用 detectFace（同 cpatAxisPick 一样喺活动实体 CAD 系，唔乘 matrixWorld）。
   // 点圆柱面（孔内壁/圆轴侧面）→ {p=轴点, axis=轴向, r=半径} → PinConstraint。径向 DOF 锁、轴向+切向自由。
@@ -25288,12 +25288,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     const built = buildFeaSolveInput(s)
     if ('error' in built) { set({ status: `收斂研究：${built.error}` }); return }
     const levels = [20, 28, 40]
-    set({ feaConvBusy: true, feaResult: null, feaProbe: null, modalResult: null, status: '收斂研究：跑 3 檔分辨率…' })
+    set({ feaConvBusy: true, feaResult: null, feaProbe: null, modalResult: null, status: '收斂研究：跑 3 檔解析度…' })
     try {
       const rows: { res: number; nVox: number; nDof: number; vmMax: number; dispMax: number; converged: boolean }[] = []
       for (let li = 0; li < levels.length; li++) {
         const res = levels[li]
-        set({ status: `收斂研究：第 ${li + 1}/3 檔（分辨率 ${res}）…` })
+        set({ status: `收斂研究：第 ${li + 1}/3 檔（解析度 ${res}）…` })
         const r = await runFeaInWorker({
           vertices: Float32Array.from(built.vertices), triangles: Uint32Array.from(built.triangles),
           // S171 audit（HIGH）：轴承模式同 runFeaSolve 一样 — 传远虚拟受力面（loadList 空）+ 透传 bearing，否则收敛研究会用 stale 受力面把轴承合力均布散布（错载荷工况、悄悄畀用户看错数）。
@@ -25304,7 +25304,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           ...(s.feaGravity ? { gravity: [s.feaAccel[0] * 9810, s.feaAccel[1] * 9810, s.feaAccel[2] * 9810] as [number, number, number], density: MATERIALS[s.feaMat]?.density ?? s.bodyDensity } : {}),
           ...(s.feaPin ? { pin: { axisPoint: s.feaPin.axisPoint, axisDir: s.feaPin.axisDir, radius: s.feaPin.radius } } : {}),
         })
-        if (!r.ok) { set({ feaConvBusy: false, status: `收斂研究失敗（分辨率 ${res}）：${r.error || '未知'}` }); return }
+        if (!r.ok) { set({ feaConvBusy: false, status: `收斂研究失敗（解析度 ${res}）：${r.error || '未知'}` }); return }
         // S189：与 runFeaSolve 同款欠约束诚实拦截 —— 滚子/对称只锁法向 DOF，载荷不沿法向则模型刚体漂移，kernel 返 ok:true 但 converged:false + 垃圾值（dispMax 暴涨/非有限、vmMax 各档乱跳）。中止收敛研究而非把无意义行记进 verdict（否则同一输入主线求解诚实报错、这里却悄悄畀用户看似是而非嘅数）。
         if (s.feaFixMode !== 'fixed' && (!Number.isFinite(r.dispMax) || r.dispMax > 1e4)) {
           set({ feaConvBusy: false, status: `⚠ 滾子/對稱約束下模型【欠約束】— 位移發散（${Number.isFinite(r.dispMax) ? r.dispMax.toExponential(1) + 'mm' : '非有限'}），結果不可信。滾子只鎖法向，要載荷沿法向、或再加一個固定面擋住剛體漂移（面內平動/轉動）。` })
@@ -25797,7 +25797,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           ? 'WebCAD 模流報告（真 2.5D Hele-Shaw 壓力求解器 — 工程級，非商用驗證級）'
           : 'WebCAD 模流趨勢報告（Hele-Shaw 體素趨勢 — 非商用模流精度）',
         `零件：${s.projectName} · 材料：${s.moldMat}（熔體 ${mat.melt}°C / 模溫 ${mat.mold}°C / 頂出 ${mat.eject}°C / 收縮 ${mat.shrink}%）`,
-        `澆口：${gates.length} 個${autoGateNote ? '（自動·頂部中心）' : ''} · 體素：${r.nVox}（分辨率 ${r.resActual ?? s.moldRes}${r.resActual && r.resActual !== s.moldRes ? `·自動加密自 ${s.moldRes}` : ''}）· 方法：${r.solverUsed ? '壓力求解器（Cross 黏度 + 移動前沿 FVM）' : '趨勢 Dijkstra'}`,
+        `澆口：${gates.length} 個${autoGateNote ? '（自動·頂部中心）' : ''} · 體素：${r.nVox}（解析度 ${r.resActual ?? s.moldRes}${r.resActual && r.resActual !== s.moldRes ? `·自動加密自 ${s.moldRes}` : ''}）· 方法：${r.solverUsed ? '壓力求解器（Cross 黏度 + 移動前沿 FVM）' : '趨勢 Dijkstra'}`,
         `壁厚：中位 ${r.wallMedian.toFixed(1)}mm · 最厚 ${r.wallMax.toFixed(1)}mm`,
         verdict,
         `── 結果 ──`,
@@ -25920,7 +25920,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const report = [
         'WebCAD 風洞 / 水洞趨勢報告（格子玻爾茲曼 LBM D3Q19 + Smagorinsky LES — 趨勢級，非商用 CFD 驗證級）',
         `零件：${s.projectName} · 流體：${r.fluidName}（ρ=${r.rho} kg/m³, μ=${r.mu.toExponential(2)} Pa·s）`,
-        `工況：來流 ${r.speed} m/s · 方向：${axisCN}${s.windSign < 0 ? '(−)' : '(+)'} · 體素分辨率：${r.res}${r.bumped ? `（薄件自動加密：${s.windRes}→${r.res}）` : ''}`,
+        `工況：來流 ${r.speed} m/s · 方向：${axisCN}${s.windSign < 0 ? '(−)' : '(+)'} · 體素解析度：${r.res}${r.bumped ? `（薄件自動加密：${s.windRes}→${r.res}）` : ''}`,
         `── 結果 ──`,
         `風阻係數 Cd ≈ ${cdHead.toFixed(3)}（無量綱；Maskell 堵塞修正後；形阻由壓力場積分 + 摩擦阻經驗補）`,
         r.cdCorr !== undefined ? `原始 Cd ${r.cd.toFixed(3)} · 堵塞率 ${((r.blockage ?? 0) * 100).toFixed(0)}% · 原始阻力 ${nStr(r.dragNRaw ?? r.cd * r.dragN / cdHead)}` : '',

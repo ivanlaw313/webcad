@@ -5,7 +5,7 @@
 Cherry `ef905c37` → `76c97ab1` on tip `1085c40` **BEFORE nginx**.
 
 ## Live after cut
-- Tip: `76c97ab100db5c61e37607181e78cea8d9a887f4` (fix/fishing87-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `86627fa9d5bb36125830e2c526464e0f21150ede` (fix/fishing87-behavior-ux → FF fix/sketch-face-copy)
 - Stamp: `v2.20-20261016-233751`
 - Bundle: `index-BdZ38Vhs-r2.js` (md5 `abd86b12fe6e0417d2be9dfe31622e3e`) — **unchanged** vs F86 (tests-only)
 - Bak: `index-BdZ38Vhs-r2.js` / `v2.20-20261016-233223` (kept)

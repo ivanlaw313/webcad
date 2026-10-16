@@ -8974,7 +8974,7 @@ export default function Viewport() {
           </>)}
           {measureEdgeMode && (<>
             <div style={{ fontWeight: 700, color: '#7fd1b9', marginBottom: 6 }}>{tStatus('📐 量邊 / 孔徑', lang)}</div>
-            <div style={{ fontSize: 14, lineHeight: 1.4 }}>{measureEdgeInfo || tStatus('點實體的一條稜（圓孔稜顯示 Ø）', lang)}</div>
+            <div style={{ fontSize: 14, lineHeight: 1.4 }}>{measureEdgeInfo || tStatus('點實體的一條稜（圓稜／弧稜顯示 Ø、R 與弧長／周長）', lang)}</div>
           </>)}
           {measureFaceMode && (<>
             <div style={{ fontWeight: 700, color: '#7fd1b9', marginBottom: 6 }}>{tStatus('▦ 量面', lang)}</div>

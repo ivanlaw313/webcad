@@ -270,7 +270,7 @@ export function forceDxfSketchOnly(profileCount: number, textCount: number, byte
 }
 
 export function rejectDxfImport(bytes: number, entityCount = 0): string | null {
-  if ((bytes || 0) > DXF_REJECT_BYTES) return `DXF 過大（${(bytes / (1024 * 1024)).toFixed(1)} MB > 8 MB）— 請拆分圖層或簡化後導入`
+  if ((bytes || 0) > DXF_REJECT_BYTES) return `DXF 過大（${(bytes / (1024 * 1024)).toFixed(1)} MB > 8 MB）— 請拆分圖層或簡化後匯入`
   if ((entityCount || 0) > DXF_REJECT_ENTITIES) return `DXF 實體過多（${entityCount} > ${DXF_REJECT_ENTITIES}）— 已拒絕以防記憶體溢出`
   return null
 }

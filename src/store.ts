@@ -21297,7 +21297,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   measureEdgeMode: false,
   measureEdgeInfo: null,
-  toggleMeasureEdge: () => set((s) => ({ measureEdgeMode: !s.measureEdgeMode, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureMode: false, measureAngleMode: false, measureAngleInfo: null, measureUniMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureEdgeMode ? '量邊：點擊實體某條稜 → 顯示其長度；圓孔稜顯示直徑Ø/半徑（匯入網格件亦可 · 特徵稜鏈近似）' : '已退出量邊' })),
+  toggleMeasureEdge: () => set((s) => ({ measureEdgeMode: !s.measureEdgeMode, measureEdgeInfo: null, measureFaceMode: false, measureFaceInfo: null, measureMode: false, measureAngleMode: false, measureAngleInfo: null, measureUniMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, status: !s.measureEdgeMode ? '量邊：點擊實體某條稜 → 顯示長度；圓稜／弧稜顯示 Ø、R 與弧長／周長（匯入網格件亦可 · 特徵稜鏈近似）' : '已退出量邊' })),
   // Click an edge → report its length, and for a closed circular edge its diameter/radius (a hole's bore Ø).
   measureEdgeAt: async (p) => {
     if (!hasSolid(get().features)) { set({ status: '量邊需要先有實體' }); return }
@@ -23738,7 +23738,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const risk = meshImportRisk(buf)
     if (risk.requiresConfirm) {
       set({ busy: false })
-      const ok = await get().appConfirm(`「${name || 'STL'}」含 ${risk.reason}。目前瀏覽器版會在主線程解析並建立多份網格數據，可能佔用大量記憶體或短暫無響應。繼續導入？`, '大型網格導入')
+      const ok = await get().appConfirm(`「${name || 'STL'}」含 ${risk.reason}。目前瀏覽器版會在主線程解析並建立多份網格數據，可能佔用大量記憶體或短暫無響應。繼續匯入？`, '大型網格匯入')
       if (!ok) { set({ status: '已取消大型 STL 匯入' }); return }
       set({ busy: true, status: `匯入 STL：正在解析大型網格（${risk.reason}）…` })
     }
@@ -23753,7 +23753,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // "seat" helpers after this set used to create two history entries, so one
     // Ctrl+Z only moved a just-imported part instead of removing the import.
     const placedAt = meshInsertPosition(mesh.vertices, get().originX, opt?.place)
-    const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('導入' + (comps.length + 1)), mesh, placedAt, { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence
+    const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('匯入' + (comps.length + 1)), mesh, placedAt, { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence
     const comp = occ
     set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, busy: false, selectedComponent: nid, status: `已匯入「${comp.name}」（${mesh.triangles.length / 3} 三角面）${opt?.unit && opt.unit !== 'mm' ? ` · 單位 ${opt.unit}→mm` : ''}${opt?.flipUp ? ' · 已翻正 Y↔Z' : ''}${wtWarn(mesh) || '　·　水密 ✓ 可打印'} · 可用 MeshFit/轉 B-rep` }))
     get().requestFit()
@@ -23762,7 +23762,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const { textMeshImportRisk } = await import('./io/meshBudget')
     const risk = textMeshImportRisk(text)
     if (risk.requiresConfirm) {
-      const ok = await get().appConfirm(`「${name || 'OBJ'}」是 ${risk.reason}。目前瀏覽器版會在主線程解析 OBJ，可能佔用大量記憶體或短暫無響應。繼續導入？`, '大型 OBJ 導入')
+      const ok = await get().appConfirm(`「${name || 'OBJ'}」是 ${risk.reason}。目前瀏覽器版會在主線程解析 OBJ，可能佔用大量記憶體或短暫無響應。繼續匯入？`, '大型 OBJ 匯入')
       if (!ok) { set({ status: '已取消大型 OBJ 匯入' }); return }
     }
     let mesh: MeshData
@@ -23773,7 +23773,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const nid = nextCid(comps)
     // Keep optional Assembly placement in the same undoable Insert action.
     const placedAt = meshInsertPosition(mesh.vertices, get().originX, opt?.place)
-    const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('導入' + (comps.length + 1)), mesh, placedAt, { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence
+    const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('匯入' + (comps.length + 1)), mesh, placedAt, { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence
     const comp = occ
     set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, selectedComponent: nid, status: `已匯入 OBJ「${comp.name}」（${mesh.triangles.length / 3} 三角面）${opt?.unit && opt.unit !== 'mm' ? ` · 單位 ${opt.unit}→mm` : ''}${opt?.flipUp ? ' · 已翻正 Y↔Z' : ''}${wtWarn(mesh) || '　·　水密 ✓ 可打印'} · 可用 MeshFit/轉 B-rep` }))
     get().requestFit()
@@ -23841,7 +23841,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const { meshImportRisk } = await import('./io/meshBudget')
     const risk = meshImportRisk(buf, '3mf')
     if (risk.requiresConfirm) {
-      const ok = await get().appConfirm(`「${name || '3MF'}」是 ${risk.reason}。解壓及解析會占用較多瀏覽器記憶體；繼續導入？`, '大型 3MF 導入')
+      const ok = await get().appConfirm(`「${name || '3MF'}」是 ${risk.reason}。解壓及解析會占用較多瀏覽器記憶體；繼續匯入？`, '大型 3MF 匯入')
       if (!ok) { set({ status: '已取消大型 3MF 匯入' }); return }
     }
     let r: Awaited<ReturnType<typeof import('./analysis/meshClient').parse3mfInWorker>>
@@ -23849,7 +23849,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const comps = get().components
     const px = get().originX
     const defs0 = get().componentDefs
-    const pairs = r.meshes.map((m, i) => makeDefOcc(defs0, nextCid(comps, i), r.meshes.length > 1 ? m.name : (name || m.name || ('導入' + (comps.length + 1))), { vertices: m.vertices, triangles: m.triangles } as MeshData, [px, 0, 0], { color: m.color || COMP_PALETTE[(comps.length + i) % COMP_PALETTE.length], defIdOffset: i }))   // R2：每件建 def+occurrence
+    const pairs = r.meshes.map((m, i) => makeDefOcc(defs0, nextCid(comps, i), r.meshes.length > 1 ? m.name : (name || m.name || ('匯入' + (comps.length + 1))), { vertices: m.vertices, triangles: m.triangles } as MeshData, [px, 0, 0], { color: m.color || COMP_PALETTE[(comps.length + i) % COMP_PALETTE.length], defIdOffset: i }))   // R2：每件建 def+occurrence
     const added = pairs.map((p) => p.occ), addedDefs = pairs.map((p) => p.def)
     const tris = r.meshes.reduce((s2, m) => s2 + m.triangles.length / 3, 0)
     set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, ...added], componentDefs: [...s.componentDefs, ...addedDefs], originX: px + 130, status: `已匯入 3MF「${name}」（${added.length} 個零件 · ${tris} 三角面 · 單位 ${r.unit} 已轉 mm）${added.length === 1 ? (wtWarn(added[0].mesh) || '　·　水密 ✓ 可打印') : ''}` }))
@@ -23882,19 +23882,26 @@ export const useApp = create<AppState>((rawSet, get) => {
           if (name === 'AbortError' && !isQuickPickerAbort(pickStart)) { set({ busy: false, status: '已取消 3MF 插入' }); return }
         }
       }
+      // FISHING58: mount <input> on body — parity with openDxfDialog (F55); detached click can silent-fail.
+      if (typeof document === 'undefined') { set({ busy: false, status: '此環境無法開啟檔案選取器' }); return }
       const inp = document.createElement('input')
       inp.type = 'file'; inp.accept = '.3mf'
+      const host = (document as Document).body as HTMLElement | undefined
+      if (inp.style) { inp.style.position = 'fixed'; inp.style.left = '-9999px'; inp.style.opacity = '0' }
+      if (host?.appendChild) host.appendChild(inp)
       let settled = false
+      const cleanup = () => { try { inp.remove?.() } catch { /* already gone */ } }
       const finish = async (f: File | undefined) => {
         if (settled) return
         settled = true
         window.removeEventListener('focus', onFocus)
+        cleanup()
         if (!f) { set({ busy: false, status: '已取消 3MF 插入' }); return }
         await openFile(f)
       }
       const onFocus = () => { window.setTimeout(() => { void finish(inp.files?.[0] ?? undefined) }, 300) }
       inp.onchange = () => { void finish(inp.files?.[0] ?? undefined) }
-      inp.addEventListener('cancel', () => { void finish(undefined) })
+      inp.addEventListener?.('cancel', () => { void finish(undefined) })
       window.addEventListener('focus', onFocus)
       inp.click()
     })()
@@ -24081,7 +24088,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const ok = await get().applyFeatures([...get().features, { id: fid(), type: 'stepbody', step: text, op }],
         asDerived
           ? `已派生 STEP B-rep 快照「${f.name.replace(/\.[^.]+$/, '')}」— 真 B-rep 入時間軸：可繼續切割/圓角/抽殼/導出 STEP。當前為非關聯快照；來源更新需重新 Derive（${(f.size / 1024).toFixed(0)}KB 已入存檔）`
-          : `已導入 STEP 為 B-rep 實體「${f.name.replace(/\.[^.]+$/, '')}」— 真 B-rep 入時間軸：可繼續 切割/圓角/抽殼/再導出 STEP（${(f.size / 1024).toFixed(0)}KB 已入存檔）`, true, 'STEP B-rep 導入失敗 — 文件可能損壞／非實體 STEP（可試「導入 STEP…」網格路線）')
+          : `已匯入 STEP 為 B-rep 實體「${f.name.replace(/\.[^.]+$/, '')}」— 真 B-rep 入時間軸：可繼續 切割/圓角/抽殼/再導出 STEP（${(f.size / 1024).toFixed(0)}KB 已入存檔）`, true, 'STEP B-rep 匯入失敗 — 文件可能損壞／非實體 STEP（可試「匯入 STEP…」網格路線）')
       if (ok) get().requestFit()
     }
     inp.click()
@@ -24114,7 +24121,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!mesh || !mesh.vertices.length) { set({ status: INSERT_COMPONENT_STEP_FAIL }); return }
     const comps = get().components
     const nid = nextCid(comps)
-    const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('導入' + (comps.length + 1)), mesh, [get().originX, 0, 0], { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence
+    const { def, occ } = makeDefOcc(get().componentDefs, nid, name || ('匯入' + (comps.length + 1)), mesh, [get().originX, 0, 0], { color: COMP_PALETTE[comps.length % COMP_PALETTE.length] })   // R2：建 def+occurrence
     const comp = occ
     set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], components: [...comps, comp], componentDefs: [...s.componentDefs, def], originX: get().originX + 130, status: `已匯入 STEP「${comp.name}」（${mesh.triangles.length / 3} 三角面；參考網格，精確編輯請用 STEP 實體匯入）` }))
     get().requestFit()
@@ -24141,7 +24148,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // Force sketchOnly for huge schematic even if caller forgot (belt+suspenders).
     const forced = forceDxfSketchOnly(profiles.length, (texts && texts.length) || 0, text.length)
     const nextOpt = { ...opt, sketchOnly: !!(opt?.sketchOnly || forced), labels: shiftedTexts }
-    await get().importProfiles2D(items, `已導入 DXF：${note}`, skipped, height, nextOpt)
+    await get().importProfiles2D(items, `已匯入 DXF：${note}`, skipped, height, nextOpt)
   },
   // Build a recentred, outer/hole-classified set of 2D profiles into a body. Shared by DXF + SVG import.
   // GM-X3 #6/#8：opt.asSketch（默认 true）→ 走【草图源管线】：生成带 sketchId 的 extrude 组 + 归档 sketchSources[skId]，
@@ -24207,7 +24214,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const shapesCopy = (typeof structuredClone === 'function' ? structuredClone(shapes) : JSON.parse(JSON.stringify(shapes))) as SketchShape[]
       const labelsCopy = labels.length ? (typeof structuredClone === 'function' ? structuredClone(labels) : JSON.parse(JSON.stringify(labels))) : undefined
       await yieldFrame()
-      const ok = await get().applyFeatures([f], `${label}：僅導入為草圖（${use.length} 輪廓${labels.length ? ` + ${labels.length} 標註` : ''}，未拉伸 — 可重開後按需拉伸）${skipped && skipped.length ? `；跳過未支援實體 ${skipped.join('/')}` : ''}${markerNote}`)
+      const ok = await get().applyFeatures([f], `${label}：僅匯入為草圖（${use.length} 輪廓${labels.length ? ` + ${labels.length} 標註` : ''}，未拉伸 — 可重開後按需拉伸）${skipped && skipped.length ? `；跳過未支援實體 ${skipped.join('/')}` : ''}${markerNote}`)
       await yieldFrame()
       if (ok) {
         set((st) => ({ sketchSources: { ...st.sketchSources, [skId]: { shapes: shapesCopy, cons: [], plane, baseZ, op: 'new' as BoolOp, height: 0, visible: true, ...(labelsCopy ? { labels: labelsCopy } : {}), name: 'DXF草圖' } } }))
@@ -24248,7 +24255,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const { classifyProfiles } = await import('./io/dxfImport')
     const { profiles, note, skipped } = parseSvgToProfiles(text)
     if (!profiles.length) { set({ status: 'SVG 匯入失敗：' + note }); return }
-    await get().importProfiles2D(classifyProfiles(profiles), `已導入 SVG：${note}`, skipped, height, opt)
+    await get().importProfiles2D(classifyProfiles(profiles), `已匯入 SVG：${note}`, skipped, height, opt)
   },
   openSvgDialog: () => {
     // FISHING55: mount <input> on body — parity with openDxfDialog / openProject (chooser must open).

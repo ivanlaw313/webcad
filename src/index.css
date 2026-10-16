@@ -995,6 +995,12 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .mill-ops .op-warn { letter-spacing: 0.01em; line-height: 1.35; }
 .import-drop-hint { letter-spacing: 0.01em; line-height: 1.4; }
 
+/* FISHING54: Fusion-like assembly-template / FEA-mold / param rhythm (freebie) */
+.asm-template-name { letter-spacing: 0.01em; line-height: 1.35; }
+.fea-phase-chip { border-radius: 6px; letter-spacing: 0.01em; }
+.mold-report-hdr { letter-spacing: 0.01em; line-height: 1.35; }
+.param-formal-label { letter-spacing: 0.01em; }
+
 /* FISHING53: Fusion-like AI copilot / moldflow / fea / geom-fit rhythm (freebie) */
 .ai-tool-hint { letter-spacing: 0.01em; line-height: 1.4; }
 .moldflow-prog { letter-spacing: 0.01em; line-height: 1.35; }

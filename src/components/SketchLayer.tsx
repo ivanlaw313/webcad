@@ -3044,8 +3044,8 @@ export function SketchDimLayer() {
     // ƒx 绑定（T746 批3）：约束尺寸输入「参数名」或「=参数名」→ 绑定用户参数（改参数即全树联动）
     const raw = draft.trim()
     const body = raw.replace(/^=/, '').trim()
-    const isPureLen = /^[\d.\s/]+(?:mm|cm|in|")?$/i.test(body)   // 数字/分数/带单位 = 唔系公式
-    // S97：尺寸标签输入 — 纯数值/分数/带单位 → 照旧数值；纯参数名 → 绑参数；含运算符/函数嘅公式 → 绑表达式
+    const isPureLen = /^[\d.\s/]+(?:mm|cm|in|")?$/i.test(body)   // 數字/分數/帶單位 = 唔系公式
+    // S97：尺寸標籤輸入 — 純數值/分數/帶單位 → 照舊數值；純參數名 → 綁參數；含運算符/函數嘅公式 → 綁表達式
     // S194（Fusion 同款）：任何尺寸框食【纯算术表达式】— 10*2+5 → 25、(30-4)/2 → 13（无参数名一次性求值）。
     // 纯数字/分数（1/2、1 1/2）行先照旧 parseLen（保分数英寸语义）；有字母行咗上面 param/expr 路径。
     const arith = (!isPureLen && /^[\d.\s+\-*/()^%]+$/.test(body) && /[+\-*/^%(]/.test(body.slice(1)))

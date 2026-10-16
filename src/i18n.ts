@@ -4179,6 +4179,12 @@ function tStatusOnce(s: string, lang: LangInput): string {
   // (tool.accessanalysis → JA 離型到達性) over EN-only _STATUS_EXACT ('脫模可達性'→Demold…).
   const catalogKey = LABEL_TO_KEY[s]
   if (catalogKey) return msg(catalogKey, L)
+  // FISHING94: status result sentences still start with TC 脫模可達性 — replace prefix with
+  // catalog tool name so JA shows 離型到達性… (EN Demold Accessibility…) not raw TC.
+  if (s.includes('脫模可達性') || s.includes('脱模可达性')) {
+    const name = msg('tool.accessanalysis', L)
+    return s.split('脫模可達性').join(name).split('脱模可达性').join(name)
+  }
   // Exact key only. Single-character entries (軸 / 點 / 圓 / 面) still translate when the
   // whole string is that word; they must not match inside a longer Chinese sentence.
   const exact = _STATUS_EXACT[s]

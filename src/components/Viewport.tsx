@@ -5645,7 +5645,7 @@ export default function Viewport() {
             </label>}
             {chamferMode === 'angle' && <label>
               <span style={{ color: '#6b7680' }}>角度</span>
-              <span><NumInput value={chamferAngle} onValue={setChamferAngle} label="倒角角度" unit="°" min={0} max={90} w={66} /> deg</span>
+              <span><NumInput value={chamferAngle} onValue={setChamferAngle} label="倒角角度" unit="°" min={0} w={66} /> deg</span>
             </label>}
             <label>
               <span style={{ color: '#6b7680' }}>類型</span>

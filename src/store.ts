@@ -7413,9 +7413,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         : '等距離：請重新選取稜',
   }),
   setChamferSize2: (n) => { set({ chamferSize2: Number.isFinite(n) ? Math.max(0, n) : 0 }); get().scheduleRoundPreview() },
-  // Fusion permits the 0/90 degree endpoints to be displayed while dragging/typing, but they
-  // are degenerate and therefore stay preview/commit-invalid (guards require 0 < angle < 90).
-  setChamferAngle: (n) => { set({ chamferAngle: Number.isFinite(n) ? Math.min(90, Math.max(0, n)) : 45 }); get().scheduleRoundPreview() },
+  // BUG-409 / FISHING31 P1：打字路徑唔准靜默夾角。120° 要原樣入 store，由 chamferInputReason
+  // （0 < θ < 90）出 Formal 繁中紅字＋灰確定。非有限數才回落 45。拖曳仍由 chamferAngleFromDrag 夾。
+  setChamferAngle: (n) => { set({ chamferAngle: Number.isFinite(n) ? n : 45 }); get().scheduleRoundPreview() },
   setChamferReferenceFace: (p, faceId) => set((s) => {
     if (s.edgeRoundPick !== 'chamfer' || s.chamferMode !== 'angle' || s.chamferRefFace) return {}
     return { chamferRefFace: { p, faceId }, roundPreviewMesh: null, roundPreviewFail: false, status: '距離與角度：已選取參考面，請再選取此面邊界上的一條稜邊' }

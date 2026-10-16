@@ -5,7 +5,7 @@
 **Product fix:** `e6cff5a`  
 **more40 soft-prep:** **none** (not present — defer F67)  
 **Base:** tip `b8b507e` (FISHING65 live)  
-**Tip:** `f46c8c12e3f905105eea70109330363063c9aab7`
+**Tip:** `e7dc77ffe3daba218ba3327340d2f2d57555c160`
 
 ## Scan
 

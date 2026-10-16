@@ -6293,7 +6293,7 @@ export default function Viewport() {
             <button
               type="button"
               disabled={bucklingBusy || feaBusy || modalBusy || !feaFixed || !feaLoad}
-              title={(feaFixed && feaLoad) ? '預應力模態：先靜力加預載（拉/壓）→ 切線剛度 (K+Kg) 算固有頻率。受拉↑剛化升頻、受壓↓軟化降頻、近屈曲→0。復用模態振型動畫。' : '先點①固定面 + ②預載面 + 設力'}
+              title={(feaFixed && feaLoad) ? '預應力模態：先靜力加預載（拉/壓）→ 切線剛度 (K+Kg) 算固有頻率。受拉↑剛化升頻、受壓↓軟化降頻、近屈曲→0。複用模態振型動畫。' : '先點①固定面 + ②預載面 + 設力'}
               onClick={() => void runPrestressedModalSolve()}
               style={{ width: '100%', padding: '5px 8px', fontSize: 12, marginTop: 6, cursor: (modalBusy || !feaFixed || !feaLoad) ? 'default' : 'pointer', opacity: (modalBusy || !feaFixed || !feaLoad) ? 0.5 : 1 }}
             >

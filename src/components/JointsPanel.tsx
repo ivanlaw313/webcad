@@ -432,7 +432,7 @@ export default function JointsPanel() {
         <select value={axis} onChange={(e) => setAxis(e.target.value as 'X' | 'Y' | 'Z')} disabled={!!originRef} title={originRef ? '已引用關節原點 — 軸由原點決定' : '關節軸（X/Y/Z）'}>{AXES.map((a) => <option key={a.k} value={a.k}>{a.k} 軸</option>)}</select>
         {jointOrigins.length > 0 && (
           <select value={originRef} onChange={(e) => setOriginRef(e.target.value)} title="父件關節原點：作為關節錨點與軸。選擇兩個原點可先對準子件位置。">
-            <option value="">父件：預設件心</option>
+            <option value="">父件：預設組件中心</option>
             {jointOrigins.map((o) => <option key={o.id} value={o.id}>⚓ {o.name}</option>)}
           </select>
         )}

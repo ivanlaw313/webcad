@@ -14578,7 +14578,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   jointOriginPickMode: false,
   jointOriginMode: 'simple',
   jointOriginFirst: null,
-  startJointOriginPick: (mode = 'simple') => set({ jointOriginPickMode: true, jointOriginMode: mode, jointOriginFirst: null, jointPickMode: false, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, status: mode === 'twoFaces' ? '關節原點（兩面之間）：先點第一個平面或圓柱面中心，再點第二個面建立中間原點' : mode === 'twoEdges' ? '關節原點（兩邊交點）：先點第一條實體邊，再點第二條相交邊' : '關節原點：點一個 snap 點（實體面心 / 圓柱孔心 / 頂點）→ 落一個可複用命名幀（之後建關節可引用之，取代預設件心）' }),
+  startJointOriginPick: (mode = 'simple') => set({ jointOriginPickMode: true, jointOriginMode: mode, jointOriginFirst: null, jointPickMode: false, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, status: mode === 'twoFaces' ? '關節原點（兩面之間）：先點第一個平面或圓柱面中心，再點第二個面建立中間原點' : mode === 'twoEdges' ? '關節原點（兩邊交點）：先點第一條實體邊，再點第二條相交邊' : '關節原點：點一個 snap 點（實體面心 / 圓柱孔心 / 頂點）→ 落一個可複用命名幀（之後建關節可引用之，取代預設組件中心）' }),
   cancelJointOriginPick: () => set({ jointOriginPickMode: false, jointOriginFirst: null, status: '已退出關節原點拾取' }),
   addJointOrigin: (jo) => {
     const s = get()

@@ -836,7 +836,7 @@ export default function BrowserTree() {
         {jointOrigins.length > 0 && (
           <Section label={`${msg('tree.jointOrigins', lang)} (${jointOrigins.length})`}>
             {jointOrigins.map((jo) => (
-              <div key={jo.id} className="tree-row" style={{ paddingLeft: 18 }} title={tStatus(`可複用關節原點「${jo.name}」@(${jo.point.map((x) => x.toFixed(1)).join(', ')}) — 建關節時在關節面板下拉引用之（取代預設件心）`, lang)}>
+              <div key={jo.id} className="tree-row" style={{ paddingLeft: 18 }} title={tStatus(`可複用關節原點「${jo.name}」@(${jo.point.map((x) => x.toFixed(1)).join(', ')}) — 建關節時在關節面板下拉引用之（取代預設組件中心）`, lang)}>
                 <span className="tw-toggle" />
                 <span className="tw-ico"><ToolIcon name="joint" size={13} /></span>
                 <span style={{ flex: 1 }}>⚓ {jo.name}</span>

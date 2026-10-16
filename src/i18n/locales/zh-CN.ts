@@ -912,7 +912,7 @@ const messages: Record<string, string> = {
   "tab.SURFACE": "曲面",
   "tab.UTILITIES": "工具",
   "tip.aicopilot": "用自然语言操作并协助使用本程序（OpenAI / Grok / Gemini / 本地模型）。快捷键 Ctrl+Shift+A。",
-  "tip.align": "对齐：先点基准面再点要移动件的面 —— 平面贴平 / 圆柱对准同轴。",
+  "tip.align": "对齐：先点基准面（不移动该件）再点要移动件的面 —— 平面贴平 / 圆柱对准同轴。一次性快捷，不记录配合；想要持久配合用 ASSEMBLE「选面配合」。",
   "tip.appearance": "外观：打开材质球面板，修改颜色、金属度、粗糙度及纹理。",
   "tip.box": "长方体：直接设长×宽×高建一个盒（最常用起手）。",
   "tip.chamfer": "倒角：选边设距离（或两距离），做斜切边。",

@@ -912,7 +912,7 @@ const messages: Record<string, string> = {
   "tab.SURFACE": "SURFACE",
   "tab.UTILITIES": "UTILITIES",
   "tip.aicopilot": "Control and ask about WebCAD in natural language (OpenAI / Grok / Gemini / local model). Shortcut Ctrl+Shift+A.",
-  "tip.align": "Align: pick reference face then moving face — planar mate / cylinder coaxial.",
+  "tip.align": "Align: pick reference face (stays put) then moving face — planar mate / cylinder coaxial. One-shot, no mate recorded; for a persistent mate use ASSEMBLE Face Mate.",
   "tip.appearance": "Appearance: open material balls — color, metalness, roughness, texture.",
   "tip.box": "Box: set L×W×H to create a box (common starter).",
   "tip.chamfer": "Chamfer: pick edges and set distance(s) for beveled edges.",

@@ -177,7 +177,7 @@ function commandsToLoops(cmds: GlyphCommand[], ox: number, oy: number, tol: numb
 // align:'center' = 量出全部 loop 嘅 bbox，整体平移令 bbox 中心 x == pos.x（y 仍以基线 = pos.y）。
 export function textToSketchShapes(text: string, opts: TextToShapesOpts): SketchShape[] {
   const size = opts.size
-  if (!isFin(size) || size <= 0) throw new Error(`textToSketchShapes: 非法字号 size=${size}`)
+  if (!isFin(size) || size <= 0) throw new Error(`textToSketchShapes: 非法字號 size=${size}`)
   if (!opts.pos || !isFin(opts.pos[0]) || !isFin(opts.pos[1])) throw new Error('textToSketchShapes: 非法 pos')
   if (!text) return []
 

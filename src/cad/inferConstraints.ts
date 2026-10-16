@@ -193,7 +193,7 @@ export function inferConstraints(
           if (!Number.isFinite(radDir)) continue
           const between = angBetween(lineDir, radDir)          // 线 vs 半径 [0,90]
           if (Math.abs(between - 90) < angTol) {               // ⊥ 半径 → 相切
-            out.push({ type: 'tangent', refs: ['self', e.id], reason: `端點貼圓周(|d−r|=${Math.abs(dC - e.r).toFixed(3)}) 且線⊥半徑(夹角 ${between.toFixed(2)}°)—— 相切` })
+            out.push({ type: 'tangent', refs: ['self', e.id], reason: `端點貼圓周(|d−r|=${Math.abs(dC - e.r).toFixed(3)}) 且線⊥半徑(夾角 ${between.toFixed(2)}°)—— 相切` })
             break   // 一条线对同一个圆最多出一次相切（两端都满足时取先到嘅）
           }
         }

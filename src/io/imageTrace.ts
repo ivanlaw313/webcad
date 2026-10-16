@@ -920,7 +920,7 @@ export function traceBitmap(img: GrayImage, opt: TraceOptions = {}): TraceResult
   const nCircle = contours.filter((c) => c.circle).length
   const worst = contours.reduce((m, c) => Math.max(m, c.maxDev), 0)
   if (worst > tol * 2) warnings.push(`部分輪廓擬合偏差 ${worst.toFixed(2)}px 超容差（形狀可能有自由曲線，已用多段直線逼近）`)
-  const note = `识别 ${contours.length} 个轮廓（${nCircle} 整圆 + ${contours.length - nCircle} 线弧轮廓 · ${lines.length} 直线 / ${arcs.length} 圆弧${contours.some((c) => c.isHole) ? ` · ${contours.filter((c) => c.isHole).length} 孔` : ''}）`
+  const note = `識別 ${contours.length} 個輪廓（${nCircle} 整圓 + ${contours.length - nCircle} 線弧輪廓 · ${lines.length} 直線 / ${arcs.length} 圓弧${contours.some((c) => c.isHole) ? ` · ${contours.filter((c) => c.isHole).length} 孔` : ''}）`
   return { profiles, shapes, contours, geometry: { lines, arcs }, threshold: bin.threshold, inkIsDark: bin.inkIsDark, note, warnings }
 }
 

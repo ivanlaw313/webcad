@@ -42,7 +42,7 @@ export function buildFeaCsv(r: FeaResultLike): string {
     ['收斂', r.converged ? '是' : '否'],
     ['體素數', String(r.nVox)],
     ['體素邊長 (mm)', n(r.h)],
-    ['警告', r.warnings && r.warnings.length ? r.warnings.join('; ') : '（无）'],
+    ['警告', r.warnings && r.warnings.length ? r.warnings.join('; ') : '（無）'],
   ]
   const lines: string[] = summary.map(([k, v]) => esc(k) + ',' + esc(v))
   lines.push('')

@@ -186,7 +186,7 @@ export function profilesToGcode(profiles: Profile2D[], opts: LaserGcodeOpts = {}
   const L: string[] = []
   L.push(
     '; webcad laser',
-    `; GRBL · 單位 mm (G21) · 絕對坐標 (G90) · F${fmt(feed)} mm/min · S${power}/1000 · ${passes} 道 · kerf ${fmt(kerf)} mm（光束半宽）`,
+    `; GRBL · 單位 mm (G21) · 絕對坐標 (G90) · F${fmt(feed)} mm/min · S${power}/1000 · ${passes} 道 · kerf ${fmt(kerf)} mm（光束半寬）`,
     '; 先切孔後切外輪廓（避免工件先脫落）',
     'G21',
     'G90',

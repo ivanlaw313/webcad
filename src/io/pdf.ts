@@ -29,7 +29,7 @@ const num = (n: number) => +n.toFixed(2) + '' // PDF 数字：最多 2 位小数
 // 将一张 JPEG（imgW×imgH 像素）嵌入一页 PDF：图片等比缩放适配页面（减去 margin）并居中。
 // 返回完整 PDF 字节（含正确 xref 字节偏移表 + startxref）。
 export function jpegToPdf(jpeg: Uint8Array, imgW: number, imgH: number, opts: PdfPageOpts = {}): Uint8Array {
-  if (!(imgW > 0) || !(imgH > 0) || !jpeg.length) throw new Error('jpegToPdf: 无效图像')
+  if (!(imgW > 0) || !(imgH > 0) || !jpeg.length) throw new Error('jpegToPdf: 無效圖像')
   const pageW = opts.pageW ?? 842, pageH = opts.pageH ?? 595, m = opts.margin ?? 14
   // 等比适配 + 居中（pt 坐标，PDF y 向上，原点左下）
   const k = Math.min((pageW - 2 * m) / imgW, (pageH - 2 * m) / imgH)

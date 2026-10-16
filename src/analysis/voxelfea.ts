@@ -803,8 +803,8 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
               resEff = target
               const got = (thin / longest) * resEff
               warnings.push(got + 1e-9 >= MIN_SECTION_VOX
-                ? `截面自适应加密：分辨率 ${res} → ${resEff}（幼长件截面只得 ${((thin / longest) * res).toFixed(1)} 层体素，弯曲算不得；已加到 ${got.toFixed(1)} 层）`
-                : `截面自适应加密：分辨率 ${res} → ${resEff}，但受体素预算限制截面仍只得 ${got.toFixed(1)} 层（< ${MIN_SECTION_VOX}）：弯曲应力偏低、属趋势级参考`)
+                ? `截面自適應加密：分辨率 ${res} → ${resEff}（幼長件截面只得 ${((thin / longest) * res).toFixed(1)} 層體素，彎曲算不得；已加到 ${got.toFixed(1)} 層）`
+                : `截面自適應加密：分辨率 ${res} → ${resEff}，但受體素預算限制截面仍只得 ${got.toFixed(1)} 層（< ${MIN_SECTION_VOX}）：彎曲應力偏低、屬趨勢級參考`)
             } else {
               warnings.push(`⚠ 幼長件截面只得 ${((thin / longest) * res).toFixed(1)} 層體素（長細比 ${(longest / thin).toFixed(0)}:1），體素預算不足加密：彎曲位移/應力會明顯偏低，只可當趨勢參考`)
             }
@@ -1144,8 +1144,8 @@ export function runVoxelFea(inp: FeaInput): FeaResult {
         }
         if (!bNodes.length || !(wSum > 1e-12)) {
           warnings.push(axialDot > 0.99
-            ? '轴承载荷：载荷方向≈孔轴向，轴承推力须【垂直】孔轴 → 用「自定义」指定径向方向（未生效）'
-            : '轴承载荷：孔面带内无受推节点（半径/容差/轴线不正确？）：未生效')
+            ? '軸承載荷：載荷方向≈孔軸向，軸承推力須【垂直】孔軸 → 用「自定義」指定徑向方向（未生效）'
+            : '軸承載荷：孔面帶內無受推節點（半徑/容差/軸線不正確？）：未生效')
         } else {
           if (ovFixed > 0) warnings.push(`軸承孔面與固定帶重疊：${ovFixed} 個受推節點已固定（跳過；合力歸一到餘下節點）— 若孔本身被夾緊，結果可能偏保守`)
           for (let k = 0; k < bNodes.length; k++) {
@@ -1485,7 +1485,7 @@ export function smoothVmNodal(inp: SmoothInput): SmoothResult {
       ok: true, vmSmooth, nodeVm, nNodes,
       spanBefore, spanAfter, integralBefore: intB, integralAfter: intA,
       method: 'nodal-averaging',
-      ...(vmHasNonFinite ? { error: '部分单元 vm 非有限：已跳过不参与平均（保留原值）' } : {}),
+      ...(vmHasNonFinite ? { error: '部分單元 vm 非有限：已跳過不參與平均（保留原值）' } : {}),
     }
   } catch (err) {
     return fail(`內部錯誤：${err instanceof Error ? err.message : String(err)}`)
@@ -3024,7 +3024,7 @@ export function runVoxelThermalStress(inp: ThermalStressInput): FeaResult {
     const bands: Band[] = []
     const makeBand = (pick: PlanePick | undefined, label: string): true | string => {
       if (!pick || !pick.point || !pick.normal) return true   // 缺省面：跳过
-      const nv = normalize3(pick.normal); if (!nv) return `${label} 法向量为零`
+      const nv = normalize3(pick.normal); if (!nv) return `${label} 法向量為零`
       const ax = Math.abs(nv[0]), ay = Math.abs(nv[1]), az = Math.abs(nv[2])
       const axis = ax >= ay && ax >= az ? 0 : ay >= az ? 1 : 2
       if (fixCon === 'roller' && Math.max(ax, ay, az) < 0.94) {

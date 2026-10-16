@@ -20,7 +20,7 @@ export function sanitizeViewBookmark(value: unknown): ViewBookmark | null {
   if (crossLength() < 1e-8 * Math.hypot(...d) * Math.max(1, Math.hypot(...up))) up = Math.abs(d[2]) < Math.hypot(...d)*0.9 ? [0,0,-1] : [1,0,0]
   const length = Math.hypot(...up)
   up = up.map(v => v/length) as typeof up
-  return {name: typeof b.name === 'string' ? b.name : '视图', pos:[...b.pos], target:[...b.target], up,
+  return {name: typeof b.name === 'string' ? b.name : '視圖', pos:[...b.pos], target:[...b.target], up,
     ...(typeof b.zoom === 'number' && Number.isFinite(b.zoom) && b.zoom > 0 ? {zoom:b.zoom} : {}),
     ...(b.projection === 'ortho' || b.projection === 'persp' ? {projection:b.projection} : {})}
 }

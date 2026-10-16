@@ -228,7 +228,7 @@ export function analyzeSlices(mesh: MeshLike, layerH: number): SliceAnalysis {
   if (layers > 400) {
     step = height / 400
     layers = Math.max(1, Math.ceil(height / step - 0.5))
-    note = `模型高 ${height.toFixed(1)}mm 超 400 层上限，分析层距已加大到 ${step.toFixed(3)}mm`
+    note = `模型高 ${height.toFixed(1)}mm 超 400 層上限，分析層距已加大到 ${step.toFixed(3)}mm`
   }
   // 扫描线：三角形按 zlo 排序，逐层推入 active、剔走 zhi < z 嘅 → 每层只切跨越嗰层嘅三角形
   const nT = (t.length / 3) | 0

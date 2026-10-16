@@ -580,7 +580,7 @@ function fitSphereCandidate(rd: RegionData): Candidate | null {
   const params: SphereParams = { kind: 'sphere', centre: [p[0], p[1], p[2]], radius }
   const m = measure(params, rd)
   const ill = radius > rd.diag * 5
-  return { kind: 'sphere', params, rms: m.rms, maxErr: m.maxErr, normalDevDeg: m.normalDevDeg, ok: !ill, note: ill ? '半径 > 5× 包围盒（其实是平面）' : '', illConditioned: ill }
+  return { kind: 'sphere', params, rms: m.rms, maxErr: m.maxErr, normalDevDeg: m.normalDevDeg, ok: !ill, note: ill ? '半徑 > 5× 包圍盒（其實是平面）' : '', illConditioned: ill }
 }
 
 /** 由擬合好嘅轴/点/半径砌完整 CylinderParams（轴范围、周向范围、凸凹）。 */
@@ -611,7 +611,7 @@ function finishCylinder(rd: RegionData, axisIn: Vec3, pointIn: Vec3, radius: num
   return {
     kind: 'cylinder', params, rms: m.rms, maxErr: m.maxErr, normalDevDeg: m.normalDevDeg,
     ok: radius > 0 && isFinite(radius) && radius <= rd.diag * 5,
-    note: ill ? `弧覆盖 ${span.coverageDeg.toFixed(0)}° / 半径 ${radius.toFixed(2)}` : '',
+    note: ill ? `弧覆蓋 ${span.coverageDeg.toFixed(0)}° / 半徑 ${radius.toFixed(2)}` : '',
     arcCoverageDeg: span.coverageDeg, illConditioned: ill,
   }
 }
@@ -675,7 +675,7 @@ function finishCone(rd: RegionData, apex: Vec3, axisIn: Vec3, alpha: number, min
   return {
     kind: 'cone', params, rms: m.rms, maxErr: m.maxErr, normalDevDeg: m.normalDevDeg,
     ok: !degenerate && isFinite(halfAngleDeg),
-    note: degenerate ? `半顶角 ${halfAngleDeg.toFixed(1)}° 退化（≈圆柱/平面）` : (ill ? `弧覆盖 ${span.coverageDeg.toFixed(0)}°` : ''),
+    note: degenerate ? `半頂角 ${halfAngleDeg.toFixed(1)}° 退化（≈圓柱/平面）` : (ill ? `弧覆蓋 ${span.coverageDeg.toFixed(0)}°` : ''),
     arcCoverageDeg: span.coverageDeg, illConditioned: ill,
   }
 }
@@ -831,7 +831,7 @@ function fitOneRegion(rd: RegionData, eps: number, alphaDeg: number, ratio: numb
     if (viable) {
       if (!best) best = c
       else if (c.rms * ratio <= best.rms) best = c    // 简约律：复杂者要赢 ≥ratio× 先上位
-      else note = note || `不足简单者 ${ratio}× 好（${c.rms.toExponential(2)} vs ${best.rms.toExponential(2)}）`
+      else note = note || `不足簡單者 ${ratio}× 好（${c.rms.toExponential(2)} vs ${best.rms.toExponential(2)}）`
     }
     notes.push(note)
   }
@@ -1097,7 +1097,7 @@ function runSnapPass(
     // 就算偏差係 1e-17（本来就轴对齐），照样【重写成精确 (0,0,1)】：M2 拎住 gp_Dir 唔想食到
     // −0 同 1e-17 呢啲垃圾。但只有真係校正过（> 1e-9°）先记一条 snap，唔好谷爆 UI 清单。
     snapped[i] = refitFixedDir(snapped[i], bestAx, datas[i], opt.minArcDeg)
-    if (bestAng > 1e-9) snaps.push({ kind: 'axisGlobal', regions: [i], applied: true, before: bestAng, after: 0, detail: `区 ${i} 轴 → 全域 [${bestAx.join(',')}]（原偏 ${bestAng.toFixed(3)}°）` })
+    if (bestAng > 1e-9) snaps.push({ kind: 'axisGlobal', regions: [i], applied: true, before: bestAng, after: 0, detail: `區 ${i} 軸 → 全域 [${bestAx.join(',')}]（原偏 ${bestAng.toFixed(3)}°）` })
   }
 
   // ② 共轴（轴平行 + 轴线重合）→ 合并成一条公共轴线（面积大者主导）
@@ -1118,7 +1118,7 @@ function runSnapPass(
     if (perp > opt.distTol) continue
     const ri = find(i), rj = find(j)
     if (ri !== rj) parent[rj] = ri
-    snaps.push({ kind: 'coaxial', regions: [i, j], applied: true, before: perp, after: 0, detail: `区 ${i} / ${j} 共轴（轴距 ${perp.toExponential(2)}mm，夹角 ${ang.toFixed(3)}°）` })
+    snaps.push({ kind: 'coaxial', regions: [i, j], applied: true, before: perp, after: 0, detail: `區 ${i} / ${j} 共軸（軸距 ${perp.toExponential(2)}mm，夾角 ${ang.toFixed(3)}°）` })
   }
   const groups = new Map<number, number[]>()
   for (const i of axial) { const r = find(i); const g = groups.get(r); if (g) g.push(i); else groups.set(r, [i]) }
@@ -1153,14 +1153,14 @@ function runSnapPass(
       const ds = dirOfParams(snapped[small]) as Vec3
       const target: Vec3 = dot3(dl, ds) < 0 ? [-dl[0], -dl[1], -dl[2]] : dl
       snapped[small] = refitFixedDir(snapped[small], target, datas[small], opt.minArcDeg)
-      snaps.push({ kind: 'parallel', regions: [large, small], applied: true, before: par, after: 0, detail: `区 ${small} 轴 ∥ 区 ${large}（原偏 ${par.toFixed(3)}°）` })
+      snaps.push({ kind: 'parallel', regions: [large, small], applied: true, before: par, after: 0, detail: `區 ${small} 軸 ∥ 區 ${large}（原偏 ${par.toFixed(3)}°）` })
     } else if (perpAng > 0 && perpAng <= opt.angleDeg) {
       const dl = dirOfParams(snapped[large]) as Vec3
       const ds = dirOfParams(snapped[small]) as Vec3
       const k = dot3(ds, dl)
       const target = norm3([ds[0] - k * dl[0], ds[1] - k * dl[1], ds[2] - k * dl[2]])
       snapped[small] = refitFixedDir(snapped[small], target, datas[small], opt.minArcDeg)
-      snaps.push({ kind: 'perpendicular', regions: [large, small], applied: true, before: perpAng, after: 0, detail: `区 ${small} ⊥ 区 ${large}（原偏 ${perpAng.toFixed(3)}°）` })
+      snaps.push({ kind: 'perpendicular', regions: [large, small], applied: true, before: perpAng, after: 0, detail: `區 ${small} ⊥ 區 ${large}（原偏 ${perpAng.toFixed(3)}°）` })
     }
   }
 
@@ -1184,7 +1184,7 @@ function runSnapPass(
       const rAvg = sum / wsum
       for (const i of cluster) spread = Math.max(spread, Math.abs((radiusOfParams(snapped[i]) as number) - rAvg))
       for (const i of cluster) setRadius(snapped[i], rAvg)
-      snaps.push({ kind: 'equalRadius', regions: cluster.slice(), applied: true, before: spread, after: 0, detail: `区 [${cluster.join(',')}] 等半径 → ${rAvg.toFixed(4)}mm（原散布 ${spread.toExponential(2)}mm）` })
+      snaps.push({ kind: 'equalRadius', regions: cluster.slice(), applied: true, before: spread, after: 0, detail: `區 [${cluster.join(',')}] 等半徑 → ${rAvg.toFixed(4)}mm（原散布 ${spread.toExponential(2)}mm）` })
     }
     ci = cj
   }
@@ -1199,7 +1199,7 @@ function runSnapPass(
     const delta = Math.abs(rr - r)
     if (delta <= Math.max(opt.eps, r * 0.01) && delta > 0) {
       if (opt.roundRadii) setRadius(snapped[i], rr)
-      snaps.push({ kind: 'roundRadius', regions: [i], applied: opt.roundRadii, before: r, after: rr, detail: `区 ${i} 半径 ${r.toFixed(4)} ≈ ${rr}mm` })
+      snaps.push({ kind: 'roundRadius', regions: [i], applied: opt.roundRadii, before: r, after: rr, detail: `區 ${i} 半徑 ${r.toFixed(4)} ≈ ${rr}mm` })
     }
   }
   return snaps

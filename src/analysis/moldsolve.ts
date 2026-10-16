@@ -780,7 +780,7 @@ function computeWarpage(
   const warpRaw = rmsGrad * Math.max(0, shrinkAvg)
   const warpIndex = 100 * (1 - Math.exp(-warpRaw / WREF))
   const warpNote = `趨勢級 Stage-4 翹曲指數 ${warpIndex.toFixed(0)}/100：微分收縮彎矩 proxy（面內 |∇體積收縮| rms=${rmsGrad.toFixed(3)}%/mm × 平均收縮 ${shrinkAvg.toFixed(2)}%），` +
-    `主導微分收縮軸 [${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)}]。此為差異收縮彎矩趨勢，非 FEM 翘曲位移（未解残余应力/约束刚度/结晶取向/回弹）。`
+    `主導微分收縮軸 [${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)}]。此為差異收縮彎矩趨勢，非 FEM 翹曲位移（未解殘餘應力/約束剛度/結晶取向/回彈）。`
   return { warpField, warpMaxDir: [vx, vy, vz], warpIndex, warpNote }
 }
 

@@ -140,9 +140,9 @@ export function parse3MF(buf: ArrayBuffer): { meshes: ThreeMFMesh[]; unit: strin
 
   // ── 3. 解 XML ──
   let doc: XmlDocument
-  try { doc = parseXmlDocument(modelXml) } catch { return fail('模型 XML 格式有错') }
+  try { doc = parseXmlDocument(modelXml) } catch { return fail('模型 XML 格式有錯') }
   const model = doc.getElementsByTagName('model')[0]
-  if (!model) return fail('XML 内没有 <model> 根节点')
+  if (!model) return fail('XML 內沒有 <model> 根節點')
   // Bambu Studio commonly stores tessellation in 3D/Objects/*.model and leaves
   // the root model with only component p:path references.  Collect those model
   // resources too, or such a project would import as an empty model.
@@ -201,7 +201,7 @@ export function parse3MF(buf: ArrayBuffer): { meshes: ThreeMFMesh[]; unit: strin
         // silently bending a malformed 3MF model toward the origin.
         const sx = vEls[j].getAttribute('x'), sy = vEls[j].getAttribute('y'), sz = vEls[j].getAttribute('z')
         const x = sx == null ? NaN : Number(sx), y = sy == null ? NaN : Number(sy), z = sz == null ? NaN : Number(sz)
-        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return fail('顶点坐标不是有效数字')
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return fail('頂點坐標不是有效數字')
         v.push(x, y, z)
       }
       const nv = v.length / 3
@@ -210,7 +210,7 @@ export function parse3MF(buf: ArrayBuffer): { meshes: ThreeMFMesh[]; unit: strin
         const sa = tEls[j].getAttribute('v1'), sb = tEls[j].getAttribute('v2'), sc = tEls[j].getAttribute('v3')
         const a = sa == null ? NaN : Number(sa), b = sb == null ? NaN : Number(sb), c = sc == null ? NaN : Number(sc)
         if (!Number.isInteger(a) || !Number.isInteger(b) || !Number.isInteger(c) || a < 0 || b < 0 || c < 0 || a >= nv || b >= nv || c >= nv)
-          return fail('三角形索引超出顶点范围')
+          return fail('三角形索引超出頂點範圍')
         t.push(a, b, c)
       }
       // 逐三角颜色我哋唔支持（MeshData 系单色）——取第一个三角嘅 pid/p1 做整体色兜底
@@ -283,6 +283,6 @@ export function parse3MF(buf: ArrayBuffer): { meshes: ThreeMFMesh[]; unit: strin
     for (const o of objs.values()) for (const c of o.comps ?? []) children.add(c.id)
     for (const id of objs.keys()) if (!children.has(id)) emit(id, IDENT, 0, new Set())
   }
-  if (!out.length) return fail('内没有任何网格几何')
+  if (!out.length) return fail('內沒有任何網格幾何')
   return { meshes: out, unit }
 }

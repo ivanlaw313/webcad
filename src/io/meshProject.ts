@@ -68,7 +68,7 @@ export function projectMeshEdges(
     return { segs, bbox: [0, 0, 0, 0] };
   }
   if (matrix.length < 16) {
-    throw new Error('projectMeshEdges: matrix 需要 16 个元素（column-major）');
+    throw new Error('projectMeshEdges: matrix 需要 16 個元素（column-major）');
   }
 
   // ── 1. 顶点世界变换（column-major：x' = m0·x + m4·y + m8·z + m12 …） ──

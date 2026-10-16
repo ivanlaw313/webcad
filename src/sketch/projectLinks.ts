@@ -129,7 +129,7 @@ export function getProjectRelinkCandidates(shape: SketchShape, refGeo: RefGeo | 
   const chains=chainSegments(refGeo.segs.map(([a,b])=>[[...a] as Pt,[...b] as Pt])).filter(c=>c.pts.length>=2)
   const candidates:ProjectRelinkCandidate[]=chains.map(c=>{
     const points=clonePoints(c.pts),open=!c.closed,x=points.map(p=>p[0]),y=points.map(p=>p[1])
-    return {id:curveKey(points,open),points,open,compatible:true,label:`${open?'开放':'闭合'} · ${points.length} 点 · X ${Math.min(...x).toFixed(2)}…${Math.max(...x).toFixed(2)} · Y ${Math.min(...y).toFixed(2)}…${Math.max(...y).toFixed(2)}`}
+    return {id:curveKey(points,open),points,open,compatible:true,label:`${open?'開放':'閉合'} · ${points.length} 點 · X ${Math.min(...x).toFixed(2)}…${Math.max(...x).toFixed(2)} · Y ${Math.min(...y).toFixed(2)}…${Math.max(...y).toFixed(2)}`}
   })
   return candidates.map<ProjectRelinkCandidate>(c=>{
     if(candidates.filter(q=>q.id===c.id).length>1)return {...c,compatible:false,reason:'ambiguous-source'}

@@ -662,7 +662,7 @@ export function planRebuild(seg: SegmentationResult, opts: RebuildOptions = {}):
         for (const q of p2) { uMin = Math.min(uMin, q.u); uMax = Math.max(uMax, q.u); vMin = Math.min(vMin, q.v); vMax = Math.max(vMax, q.v) }
         planned.push(plan)
       }
-      if (!planned.length) { fp.note = '平面没有边界环（网格坏）'; skipped.push(g.id); warnings.push(`組 ${g.id}: 平面沒有邊界環，跳過`); faces.push(fp); continue }
+      if (!planned.length) { fp.note = '平面沒有邊界環（網格壞）'; skipped.push(g.id); warnings.push(`組 ${g.id}: 平面沒有邊界環，跳過`); faces.push(fp); continue }
       let oi = 0
       for (let i = 1; i < planned.length; i++) if (planned[i].area > planned[oi].area) oi = i
       planned[oi].isOuter = true
@@ -700,7 +700,7 @@ export function planRebuild(seg: SegmentationResult, opts: RebuildOptions = {}):
       fp.uvBounds = []
       fp.naturalClosed = loops.length === 0
       fp.loops = loops.map((lp) => ({ kind: 'polygon' as const, isOuter: false, pts: flat3(seg, lp), area: 0, neighbour: loopNeighbour(lp, g.id) }))
-      fp.note = `sphere r=${prm.radius.toFixed(4)}${fp.naturalClosed ? ' natural-closed' : ' 有边界环（v1 用自然整球，会缝不埋）'}`
+      fp.note = `sphere r=${prm.radius.toFixed(4)}${fp.naturalClosed ? ' natural-closed' : ' 有邊界環（v1 用自然整球，會縫不埋）'}`
       if (!fp.naturalClosed) warnings.push(`組 ${g.id}: 部分球面 v1 未裁（用整球面）`)
     } else if (prm.kind === 'torus') {
       fp.build = 'analytic'
@@ -719,7 +719,7 @@ export function planRebuild(seg: SegmentationResult, opts: RebuildOptions = {}):
         fp.note = `freeform → FitBSplineFace ${grid.nu}×${grid.nv}`
       } else {
         fp.build = 'skip'
-        fp.note = 'freeform 无法参数化（网格投影不单射）'
+        fp.note = 'freeform 無法參數化（網格投影不單射）'
         skipped.push(g.id)
         warnings.push(`組 ${g.id}: freeform 區（${g.tris.length} 三角）無法起解析/樣條面 → 不會入縫合`)
       }

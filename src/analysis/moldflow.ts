@@ -635,7 +635,7 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
       if (res > rMax) { warnings.push(`分辨率 ${res} 會超出約 ${(CELL_BUDGET / 1e6).toFixed(0)}M 格記憶體預算，已回退到 ${rMax}（厚/大件可先抽殼或降精度）`); res = rMax }
     }
   }
-  let grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog(35 * fr, '体素化'), MOLD_MAXRES)
+  let grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog(35 * fr, '體素化'), MOLD_MAXRES)
   if (!(grid.h > 0)) throw new Error('包圍盒退化：網格無體積範圍')
   const AUTO_CAP = 64
   // 审计修复（用户报：一幅薄墙完全冇填 + 柱周围空格 + 唔够细）：根因系体素【中心点】判定 —— 当 h > 壁厚 时，
@@ -656,7 +656,7 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
     const next = Math.min(AUTO_CAP, Math.max(res + 4, Math.round(res * 1.4)))
     if (next <= res) break
     res = next
-    grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog(35 * fr, '体素化（薄壁加密）'), MOLD_MAXRES)
+    grid = voxelize(inp.vertices, inp.triangles, res, (fr) => prog(35 * fr, '體素化（薄壁加密）'), MOLD_MAXRES)
   }
   if (res !== reqRes) warnings.push(`薄壁件自動加密：原分辨率 ${reqRes} 體素粗過壁厚（會漏整幅薄墙），已自動升到 ${res}（h≤壁厚→墙必填、更細）`)
   // 审计修复（用户实件：1mm 壁 @98mm 件，加密封顶 res64 仍 h=1.5>1mm → 整幅墙稀疏/漏）：
@@ -724,9 +724,9 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
   }
 
   // ---- 2. 半壁厚场
-  prog(38, '厚度场')
+  prog(38, '厚度場')
   const hHalf = distanceTransform(grid)
-  prog(50, '厚度场')
+  prog(50, '厚度場')
 
   // ---- 3. 浇口吸附 + 类型/扇形展开 + 流道平衡（per-source 注射流率）
   const nGate = inp.gates.length
@@ -866,7 +866,7 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
     fillImbalance = (nGate > 1 && fMax > 0 && Number.isFinite(fMin)) ? (fMax - fMin) / fMax : 0
     if (sol.nReached < nVox) warnings.push(`求解器：${nVox - sol.nReached} 個體素前沿無法到達（困氣孤島/窄縫）`)
     if (nVox > 8000) warnings.push(`求解器體素 ${nVox} 較多，計算較慢（每步重解壓力）—— 薄壁件建議；厚實件可降分辨率`)
-    if (nGate > 1) warnings.push(balanced ? `已启用自动流道平衡：按责任域体积分配流量，浇口充填不平衡度 ${(fillImbalance * 100).toFixed(0)}%（越细越同步）` : `多浇口未平衡（各 ${(100 / nGate).toFixed(0)}% 均分或手动权重）：充填不平衡度 ${(fillImbalance * 100).toFixed(0)}% — 可开「流道平衡」自动分配`)
+    if (nGate > 1) warnings.push(balanced ? `已啟用自動流道平衡：按責任域體積分配流量，澆口充填不平衡度 ${(fillImbalance * 100).toFixed(0)}%（越細越同步）` : `多澆口未平衡（各 ${(100 / nGate).toFixed(0)}% 均分或手動權重）：充填不平衡度 ${(fillImbalance * 100).toFixed(0)}% — 可開「流道平衡」自動分配`)
     warnings.push('求解器：工程級 2.5D Hele-Shaw（Cross 黏度 + 移動前沿 FVM）；材料系數為文獻家族典型值，非牌號實測 — 壓力/鎖模力/澆口壓降是同階估算')
     // #88 锁模力诚实注记：已改用峰压投影积分（修正旧法系统性低估），旧值保留于 clampForceAvgKN
     if (clampForcePeakN > 0) warnings.push(`鎖模力估算 ${(clampForcePeakN / 1e3).toFixed(0)} kN：用峰值壓力×投影面積積分（Σ每列歷時峰壓·h²），修正舊「充填末瞬時全場均壓×單層面積」系統性低估（舊值 ${(clampForceN / 1e3).toFixed(0)} kN）—— 趨勢級同階、方向偏保守。`)
@@ -888,7 +888,7 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
 
   // ---- 5. 变形趋势（全网格 → 后面压缩）
   const warpFull = warpGradient(grid, hHalf, mat.shrink)
-  prog(90, '后处理')
+  prog(90, '後處理')
 
   // ---- 6. 压缩输出场 + 统计
   // 注射时间：求解器模式 = 真求解出嘅总充填时间（=tauMax）；趋势模式 = 恒定体积流 V_part/V̇
@@ -960,10 +960,10 @@ export function runMoldFlow(inp: MoldInput): MoldResult {
   let moldable: 'ok' | 'thick' | 'solid' = 'ok'
   if (wallMedian > THIN_WALL_MAX) {
     moldable = 'solid'
-    warnings.unshift(`⚠ 零件偏厚/实心（中位壁厚 ${wallMedian.toFixed(1)} mm，最厚 ${wallMax.toFixed(1)} mm）：注塑模流假设薄壁件（约 1–${THIN_WALL_TYP} mm，上限 ~${THIN_WALL_MAX} mm）。实心/厚件实际会缩水、内部空洞、冷却超长 —— 不适合直接注塑。建议先用「抽壳」整空到 2–4 mm 壁厚再分析。下列冷却/周期为厚段【上限】估算（1D 板式公式）。`)
+    warnings.unshift(`⚠ 零件偏厚/實心（中位壁厚 ${wallMedian.toFixed(1)} mm，最厚 ${wallMax.toFixed(1)} mm）：注塑模流假設薄壁件（約 1–${THIN_WALL_TYP} mm，上限 ~${THIN_WALL_MAX} mm）。實心/厚件實際會縮水、內部空洞、冷卻超長 —— 不適合直接注塑。建議先用「抽殼」整空到 2–4 mm 壁厚再分析。下列冷卻/周期為厚段【上限】估算（1D 板式公式）。`)
   } else if (wallMax > THIN_WALL_MAX) {
     moldable = 'thick'
-    warnings.unshift(`⚠ 局部厚段（最厚 ${wallMax.toFixed(1)} mm > 薄壁建议 ~${THIN_WALL_MAX} mm）：厚位（凸台/筋根/芯部）冷却慢 + 易缩痕，周期由最厚位主导。可挖空厚位或加圆角过渡减薄。冷却为该处 1D 板式【上限】估算。`)
+    warnings.unshift(`⚠ 局部厚段（最厚 ${wallMax.toFixed(1)} mm > 薄壁建議 ~${THIN_WALL_MAX} mm）：厚位（凸台/筋根/芯部）冷卻慢 + 易縮痕，周期由最厚位主導。可挖空厚位或加圓角過渡減薄。冷卻為該處 1D 板式【上限】估算。`)
   }
 
   const pMaxRel = tauMax > 0 ? 1 : 0          // 归一化后恒 1（退化单体素 → 0）

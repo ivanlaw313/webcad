@@ -5,7 +5,7 @@
 **Product fix:** `93348ac2e20983dd8859741e45b73aa0b48c4b7d`  
 **more35 soft-prep:** `e3761ebe99b1f8e4fec415f8873b367a811e7a2c` (cherry-pick `2eb3ce2`; Formal soft pins **0** — CORE16 behavior sample 11/11 already-hard)  
 **Base:** tip `659e894` (FISHING55 live)  
-**Tip:** `41c608bbfcb47b84c54ecabc597eac529c4ede74`
+**Tip:** `8c42654855173ad15f16e5f3fbfa530551a05797`
 
 ## Scan
 

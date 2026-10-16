@@ -6,7 +6,7 @@ User-visible FEA/analysis chrome: **分辨率 → 解析度** (HK Formal; LBM co
 Also: heat status **再設定溫度** (align 設定力), ribbon tip.fea **出應力雲圖。紅色** punctuation.
 
 ## Live after cut
-- Tip: `3a22107f57c9300891372936f8bd2491369d7e92` (fix/fishing81-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `8668ae2100c307fbc49471ef1f415caf4fd24186` (fix/fishing81-behavior-ux → FF fix/sketch-face-copy)
 - Stamp: `v2.20-20261016-225846`
 - Bundle: `index-DOZZPmOV-r2.js` (md5 `72ac1c240cd5b610dfebd59cb0492ab2`)
 - Bak: `index-BWU5nLRf-r2.js` / `v2.20-20261016-225256` (kept)

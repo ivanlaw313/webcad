@@ -59,7 +59,9 @@ test('source: symmetric + twosides share Formal zero gate (commit + Viewport ale
   assert.match(vp, /data-testid="extrude-zero-alert"/)
   assert.match(vp, /data-testid="extrude-side2-zero-alert"/)
   assert.match(vp, /\['distance', 'symmetric', 'twosides'\]\.includes\(extrudeExtent\) && !\(Math\.abs\(extrudeHeight\) > 1e-6\)/)
-  assert.match(vp, /extrudeExtent === 'twosides' && !\(Math\.abs\(extrudeSide2\) > 1e-6\)/)
+  // FISHING35: side2 zero gate uses draft IIFE (extrudeSide2Txt), not bare extrudeSide2
+  assert.match(vp, /extrudeSide2Txt/)
+  assert.match(vp, /extrudeExtent === 'twosides' && \(\(\) => \{[\s\S]*?extrudeSide2Txt[\s\S]*?!\(Math\.abs\(v\) > 1e-6\)/)
   assert.match(vp, /距離不可為 0 — 請輸入非零距離（負數＝反方向）/)
   assert.match(vp, /第二側距離不可為 0 — 請輸入非零距離/)
   assert.doesNotMatch(vp, /距离不可为 0/)

@@ -175,7 +175,7 @@ function buildFillGeometry(loops: Pt[][], plane: Plane, baseZ: number, liftFn?: 
 
 // GM-W7 7.6：拉伸/切除嘅【实心体】半透明预览（Fusion 式）——喺原线框鬼影【之外】多起一个扫掠体网格,
 // 令用户睇到「切走/加咗几多料」。体 = 两块盖（fill 三角化,分别抬到 z0/z1）+ 侧壁（每条外/孔环 z0→z1 嘅四边形带）。
-// 面/孔判定完全复用 buildFillGeometry 嗰套（面积 + even-odd 内含）;拔模时顶盖用 loopsTop（各环按自身中心缩细,同线框一致）。
+// 面/孔判定完全复用 buildFillGeometry 嗰套（面積 + even-odd 内含）;拔模时顶盖用 loopsTop（各环按自身中心缩细,同线框一致）。
 // loopsBot / loopsTop 必须逐环平行（同长）。材质 DoubleSide → 绕向净装饰,底盖照旧反绕。
 function buildExtrudeVolume(loopsBot: Pt[][], loopsTop: Pt[][], liftBot: Lift, liftTop: Lift): BufferGeometry | null {
   const idx = loopsBot.map((_, i) => i).filter((i) => loopsBot[i].length >= 3 && loopsTop[i]?.length === loopsBot[i].length)
@@ -1819,7 +1819,7 @@ export function CoilPreview() {
 }
 
 // A1.7 扫掠/管（Sweep/Pipe = 沿路径扫掠对话框，pipe 即 wall>0 空心管）：沿绘制路径（polyPts / poly sketchShape，lift 到 3D）
-//   套 TubeGeometry（半径 sweepDia/2）→ 鬼影。诚实局部：只覆盖圆截面；忽略 爬升/扭转/末端缩放/草图轮廓截面/构造轴脊线（见汇报）。
+//   套 TubeGeometry（半径 sweepDia/2）→ 鬼影。诚实局部：只覆盖圆截面；忽略 爬升/扭转/末端缩放/草图轮廓截面/構造軸脊线（见汇报）。
 export function SweepPreview() {
   const open = useApp((s) => s.sweepDlgOpen)
   const section = useApp((s) => s.sweepSection)
@@ -3050,7 +3050,7 @@ export function SketchDimLayer() {
     // 纯数字/分数（1/2、1 1/2）行先照旧 parseLen（保分数英寸语义）；有字母行咗上面 param/expr 路径。
     const arith = (!isPureLen && /^[\d.\s+\-*/()^%]+$/.test(body) && /[+\-*/^%(]/.test(body.slice(1)))
       ? evalExpr(body, new Map()) : null
-    // T794：长度用 parseLen（当前单位 + 分数英寸 "1/4"/"1 1/2" + 后缀 mm/in/"）；角度照旧 parseFloat（度）
+    // T794：长度用 parseLen（当前单位 + 分数英寸 "1/4"/"1 1/2" + 後綴 mm/in/"）；角度照旧 parseFloat（度）
     const u = useApp.getState().unit
     const v = e.deg
       ? (arith != null && isFinite(arith) ? arith : parseFloat(draft))

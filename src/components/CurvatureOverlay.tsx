@@ -5,7 +5,7 @@ import { meshCurvature, principalCurvaturesHK, isMinRadiusKind } from '../cad/cu
 import { principalCurvature } from '../cad/curvatureComb'   // S190：曲率梳主方向
 
 // S118b 真曲率分析 overlay（Fusion Inspect › Curvature）：升级原 inspectShade:'curv' 嘅【屏幕空间
-// fwidth(N) 近似】为【真·逐顶点平均曲率】(cotangent Laplace-Beltrami + 混合 Voronoi 面积，Meyer 2003)。
+// fwidth(N) 近似】为【真·逐顶点平均曲率】(cotangent Laplace-Beltrami + 混合 Voronoi 面積，Meyer 2003)。
 // 逐顶点 |H| → 冷暖配色（蓝=平坦 → 红=高曲率/尖）。B-rep 锐边顶点跨面去重 = 边界 → H=0（诚实：
 // 锐棱唔系光滑曲率，平/柱/球/圆角面内共享顶点先算到真曲率）。同 PaintedFacesView 一样喺 −90°X 组。
 // 唔接 zebra（zebra 仍走原 shader）；inspectShade==='curv' 时由本 overlay 取代屏幕空间近似。

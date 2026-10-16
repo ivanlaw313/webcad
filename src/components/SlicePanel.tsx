@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { analyzeSlices, sliceMesh, classifyLoops, layerIslands, netArea, pointInLoop, type MeshLike, type Pt2 } from '../geom/slicePreview'
 
-// 切層預覽面板 —— 打印前逐层检查：悬空孤岛（红）/ 首层接触面积 / 最薄层 / 未闭合轮廓。
+// 切層預覽面板 —— 打印前逐层检查：悬空孤岛（红）/ 首层接触面積 / 最薄层 / 未闭合轮廓。
 // 完全受控组件：mesh 由外部传入（整合方传 bodyMesh），唔 import store；
 // 复用 DrawingPanel 嘅 modal 样式（.drawing-overlay / .drawing-modal / .dw-head / .dw-foot / .cs-btn），冇新 CSS。
 const fmtA = (n: number) => (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2))
@@ -10,7 +10,7 @@ export default function SlicePanel({ mesh, onClose }: { mesh: MeshLike; onClose:
   const [layerH, setLayerH] = useState(0.2)
   const [layerIdx, setLayerIdx] = useState(0)
 
-  // 全模型逐层分析（孤岛层 / 首层面积 / 最薄层 / 未闭合层数）
+  // 全模型逐层分析（孤岛层 / 首层面積 / 最薄层 / 未闭合层数）
   const ana = useMemo(() => analyzeSlices(mesh, layerH), [mesh, layerH])
   const li = Math.max(0, Math.min(layerIdx, ana.layers - 1))
   const z = ana.zMin + ana.step / 2 + li * ana.step

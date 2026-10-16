@@ -50,7 +50,7 @@ function treeItemLabel(key: string, lang: string): string {
 function useTreeMenu() { return useContext(TreeMenuCtx) }
 
 // GM-W2 2.2 情境化（对标 Fusion）：草图模式中锁破坏性删除 — 正画紧嘅草图可能依赖被删对象
-//（参考面/組件面/构造轴），完成草图先至俾删。返回 true = 已拦截（调用处直接 return）。
+//（参考面/組件面/構造軸），完成草图先至俾删。返回 true = 已拦截（调用处直接 return）。
 function skDelGuard(): boolean {
   const s = useApp.getState()
   if (s.mode !== 'sketch') return false

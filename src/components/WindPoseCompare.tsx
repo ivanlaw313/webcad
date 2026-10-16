@@ -1,6 +1,6 @@
 // WindPoseCompare.tsx —— 风洞位姿比较浮卡（DOM，唔喺 Canvas 入面）。
 //
-// 显示用户用 WindObjectGizmo 摆过嘅位姿点比较：朝向 label + 迎风面积 + 相对阻力比值/Δ%，
+// 显示用户用 WindObjectGizmo 摆过嘅位姿点比较：朝向 label + 迎风面積 + 相对阻力比值/Δ%，
 // 畀用户睇「边个朝向阻力细」。同 WindObjectGizmo.tsx 系两个独立组件——净系透过 store 沟通，
 // 唔互相 import，冇任何一方存在都唔会累另一方炒。
 //

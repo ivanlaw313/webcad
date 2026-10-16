@@ -996,7 +996,7 @@ function sphereGrid(res: number, diameterMM = 100) {
   return { h, nx: n, ny: n, nz: n, ox: 0, oy: 0, oz: 0, solid }
 }
 
-/** 一个【冇零件】嘅立方域（手砌：buildDomain 一定要有零件先有迎风面积）。 */
+/** 一个【冇零件】嘅立方域（手砌：buildDomain 一定要有零件先有迎风面積）。 */
 function emptyDomain(n: number): WindDomain {
   return {
     DX: n, DY: n, DZ: n, cells: n * n * n,
@@ -1173,7 +1173,7 @@ export async function runGpuValidation(
       //   「动量交换符号搞反咗」嘅 bug 变成一个睇落几靓嘅 Cd。
       vAssert(Number.isFinite(cd) && cd > 0, 'Cd 不是一個正數（' + cd + '）—— 動量交換的符號反了？')
       const want = sphereCd(f.reLbEffective)
-      vRel(cd, want, 0.5, '球 @Re_lb=' + f.reLbEffective.toFixed(0) + ' 的 Cd（' + tail.length + ' 个样本）')
+      vRel(cd, want, 0.5, '球 @Re_lb=' + f.reLbEffective.toFixed(0) + ' 的 Cd（' + tail.length + ' 個樣本）')
       return {
         cd, want, reLb: f.reLbEffective, dLb: dom.dLb,
         steps: solver.stepCount, samples: samples.length, domain: [dom.DX, dom.DY, dom.DZ],

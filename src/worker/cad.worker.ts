@@ -57,7 +57,7 @@ export type Feature =
   // never needs a parallel Hole implementation.
   | { id: string; type: 'hole'; kind: 'simple' | 'counterbore' | 'countersink' | 'tapped'; center: [number, number]; centers?: [number, number][]; pattern?: { kind: 'bolt-circle'; origin: [number, number]; count: number; pcd: number }; top: number; diameter: number; nominalDiameter?: number; clearance?: number; through?: boolean; depth?: number; extent?: 'distance' | 'through-all' | 'to-next' | 'to-object'; nextFaceZ?: number | null; toFace?: { near: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[]; offset?: number }; chamfer?: number; drillPoint?: { angle: number }; counterbore?: { diameter: number; depth: number }; countersink?: { diameter: number; angle: number }; tap?: { drillDiameter: number; nominalDiameter: number; pitch: number; fine?: boolean } }
   | { id: string; type: 'extrude'; sketchFaceBinding?: SketchFaceBinding; exactDistance?: boolean; distanceExpression?: DimensionExpression & { measure: 'whole' | 'half'; flip?: boolean }; profile: SketchProfile; height: number; operation: BoolOp; baseZ?: number; twist?: number; symmetric?: boolean; plane?: Plane; through?: boolean; inward?: boolean; inwardDepth?: number; faceOutSign?: number; draft?: number; down?: boolean; toFace?: { near: [number, number, number]; n?: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[]; offset?: number }; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] }; extent?: 'next' /* GM-W5 5.2：到下一面标记 — worker 不读几何（height 创建时已烘焙成实停距，净系 META 显示/编辑对话框认得 */; sketchId?: string /* 草图源 id（store.sketchSources）— 重开草图编辑用，worker 不读 */ }
-  | { id: string; type: 'revolve'; sketchFaceBinding?: SketchFaceBinding; axisReference?: 'sketch' | 'world'; profile: SketchProfile; angle: number; axis?: 'X' | 'Y' | 'Z'; axisV?: [number, number, number]; axisOrigin?: [number, number, number] /* T781：任意轴（构造轴/Z/偏离原点），优先于 axis */; plane?: Plane; baseZ?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } /* Arbitrary datum/planar-face sketch frame. */; op?: BoolOp; wall?: number; symmetric?: boolean /* S191：两侧/对称 — 部分角(0<ang<360)绕轴均分跨越截面平面（Fusion symmetric revolve）*/; sketchId?: string /* T746：旋转特征都可重开草图编辑 — worker 不读 */ }
+  | { id: string; type: 'revolve'; sketchFaceBinding?: SketchFaceBinding; axisReference?: 'sketch' | 'world'; profile: SketchProfile; angle: number; axis?: 'X' | 'Y' | 'Z'; axisV?: [number, number, number]; axisOrigin?: [number, number, number] /* T781：任意轴（構造軸/Z/偏离原点），优先于 axis */; plane?: Plane; baseZ?: number; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } /* Arbitrary datum/planar-face sketch frame. */; op?: BoolOp; wall?: number; symmetric?: boolean /* S191：两侧/对称 — 部分角(0<ang<360)绕轴均分跨越截面平面（Fusion symmetric revolve）*/; sketchId?: string /* T746：旋转特征都可重开草图编辑 — worker 不读 */ }
   | { id: string; type: 'fillet'; radius: number; edges?: EdgeSel; near?: [number, number, number]; nears?: [number, number, number][]; radius2?: number; radii?: number[]; chain?: boolean; edgeFp?: string[]; edgeFpV2?: string[]; mode?: 'chord'; chord?: number; setbackRatio?: number; continuity?: 'G1' | 'G2'; continuities?: ('G1' | 'G2')[]; asymmetric?: { offset2: number; flip?: boolean }; rule?: { mode: 'all' | 'between'; faces1: [number, number, number][]; faces2?: [number, number, number][] }; fullRound?: { side1: [number, number, number][]; center: [number, number, number][]; side2: [number, number, number][] } }  // R1 修改圆角：普通多组 + Asymmetric + Rule Fillet + Full Round。Full Round 无半径输入，由三组面推导完整相切圆柱 blend。
   | { id: string; type: 'chamfer'; distance: number; edges?: EdgeSel; near?: [number, number, number]; nears?: [number, number, number][]; dist2?: number; angle?: number; cmode?: 'equal' | 'two' | 'angle'; refFaceNear?: [number, number, number]; flip?: boolean; chain?: boolean; distances?: number[]; edgeFp?: string[]; edgeFpV2?: string[] }  // refFaceNear = Distance and Angle 用户真正点中参考面的内点（重算时从边的两个相邻面中解析）；edgeFp（S122）= 持久边指纹（同上）；edgeFpV2（S134）= 旋转不变指纹（同上）；distances（GM-3DV3 M7）= 逐边距离（equal 模式，与 nears 平行）
   // R1 面圆角 face-fillet（clean-room 窄版）：拾【两张唔相邻嘅面】+ 半径 → 平面/柱面对解析切点 → G1 blend 带（MakeFilling/BridgeG1）。
@@ -65,7 +65,7 @@ export type Feature =
   //   窄版覆盖平面/柱面对（常见工况）；一般曲面滚球后置（诚实標註）。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
   | { id: string; type: 'facefillet'; radius: number; near1: [number, number, number]; near2: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
   | { id: string; type: 'shell'; thickness: number; nears?: [number, number, number][]; direction?: 'inside' | 'outside' | 'both'; closed?: boolean; tangentChain?: boolean; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // faceFp（S125）= 持久面指纹（开口面跨重建跟同一几何面，缺省退回 near-point）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行索引）— 上游刚体旋转后仍跟同一面，仅在框架 wellConditioned 且唯一时采信，否则退回 faceFp；direction（GM-3DV3 M2）= 壁厚方向 inside(缺省,向内,外形保留)/outside(负厚度向外生长)/both(先外擴半壁再向内抽壳,壁跨原边界)；closed=Fusion 封闭实体抽壳（外壳减内核）；tangentChain=沿共享边扩展 G1 面链；缺省字段保持旧档行为
-  | { id: string; type: 'pattern'; countX: number; countY: number; dx: number; dy: number; countZ?: number; dz?: number; targets?: string[] /* T781：净阵列所選特徵（snapshot-delta，同 circPattern） */; dir1?: [number, number, number]; dir2?: [number, number, number] /* S 构造轴方向：Direction-1/2 单位方向；缺省 ⇒ 世界轴 [1,0,0]/[0,1,0]（旧档逐字节回放） */; bodies?: boolean /* #7 Object Type=Bodies：连独立实体一起阵列（每个独立实体 fuse 自己嘅栅格副本）；缺省 ⇒ 只阵列活动体（旧档逐字节） */; symX?: boolean; symY?: boolean; symZ?: boolean /* #pattern：各轴对称（原件居中，副本两边铺；仅奇数计数生效，偶数退单向）；缺省单向逐字节 */; suppress?: boolean[] /* GM-3DV1 S3：逐实例抑制遮罩 — 线性索引 idx=(i*cy+j)*cz+k，suppress[idx]=true 跳过该副本（seed idx=0 恒保留）；缺省 ⇒ 全出（旧档逐字节） */; compute?: 'optimized' | 'identical' | 'adjust' /* GM-3DV1 S3：Compute Option 直通提示（元数据，worker 不读几何）— 仅记录 Fusion 计算模式意图 */; objectType?: 'bodies' | 'faces' | 'features' | 'components'; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
+  | { id: string; type: 'pattern'; countX: number; countY: number; dx: number; dy: number; countZ?: number; dz?: number; targets?: string[] /* T781：净阵列所選特徵（snapshot-delta，同 circPattern） */; dir1?: [number, number, number]; dir2?: [number, number, number] /* S 構造軸方向：Direction-1/2 单位方向；缺省 ⇒ 世界轴 [1,0,0]/[0,1,0]（旧档逐字节回放） */; bodies?: boolean /* #7 Object Type=Bodies：连独立实体一起阵列（每个独立实体 fuse 自己嘅栅格副本）；缺省 ⇒ 只阵列活动体（旧档逐字节） */; symX?: boolean; symY?: boolean; symZ?: boolean /* #pattern：各轴对称（原件居中，副本两边铺；仅奇数计数生效，偶数退单向）；缺省单向逐字节 */; suppress?: boolean[] /* GM-3DV1 S3：逐实例抑制遮罩 — 线性索引 idx=(i*cy+j)*cz+k，suppress[idx]=true 跳过该副本（seed idx=0 恒保留）；缺省 ⇒ 全出（旧档逐字节） */; compute?: 'optimized' | 'identical' | 'adjust' /* GM-3DV1 S3：Compute Option 直通提示（元数据，worker 不读几何）— 仅记录 Fusion 计算模式意图 */; objectType?: 'bodies' | 'faces' | 'features' | 'components'; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
   // Geometric Pattern V1: explicit rigid instances of selected timeline features.
   // The seed remains the original feature; instances contains copies only.
   | { id: string; type: 'geoPattern'; targets: string[]; instances: { translation?: [number, number, number]; rotation?: { angle: number; origin: [number, number, number]; axis: [number, number, number] } }[]; suppress?: boolean[]; compute?: 'optimized' | 'identical' | 'adjust'; objectType?: 'features' }
@@ -2894,7 +2894,7 @@ function meshToSolidShape(v: number[], t: number[]): any {
     const pa: [number, number, number] = [v[a], v[a + 1], v[a + 2]]
     const pb: [number, number, number] = [v[b], v[b + 1], v[b + 2]]
     const pc: [number, number, number] = [v[c], v[c + 1], v[c + 2]]
-    // 零面积守卫（叉积模）— 烂三角唔好喂落去
+    // 零面積守卫（叉积模）— 烂三角唔好喂落去
     const ux = pb[0] - pa[0], uy = pb[1] - pa[1], uz = pb[2] - pa[2]
     const wx = pc[0] - pa[0], wy = pc[1] - pa[1], wz = pc[2] - pa[2]
     const cx2 = uy * wz - uz * wy, cy2 = uz * wx - ux * wz, cz2 = ux * wy - uy * wx
@@ -3497,7 +3497,7 @@ function buildShape(features: Feature[], noCache = false): any {
       }
     } else if (f.type === 'revolve') {
       // Revolve around the chosen world axis (Y default, or X/Z), or T781: an arbitrary axis（axisV 方向 +
-      // axisOrigin 轴上一点 — 构造轴/草图线/偏离原点车削）。profile must sit on one side of the axis.
+      // axisOrigin 轴上一点 — 構造軸/草图线/偏离原点车削）。profile must sit on one side of the axis.
       const ang = f.angle ?? 360
       // BUG-SO17-001: persist/honor world Z. Dropdown-Z used to store axis:'Y' and, without axisV,
       // defaulted rax to Y → SO16 remapped XZ→XY (planar sheet / V-flip) while preview lathed about Z.
@@ -4156,7 +4156,7 @@ function buildShape(features: Feature[], noCache = false): any {
       // fractional/zero count, and an unguarded `i < 2.5` would silently make 3 copies (≠ countZ's rounding).
       const cx = Math.max(1, Math.round(f.countX ?? 1)), cy = Math.max(1, Math.round(f.countY ?? 1))
       const cz = Math.max(1, Math.round(f.countZ ?? 1)), dz = f.dz ?? 0
-      // S 构造轴方向：dir1/dir2 = Direction-1/2 单位方向（构造轴 → 矩形阵列）。
+      // S 構造軸方向：dir1/dir2 = Direction-1/2 单位方向（構造軸 → 矩形阵列）。
       //   STRICT DEFAULT-TO-WORLD：两者皆缺省 ⇒ hasDir=false ⇒ 行下面【完全原样】嘅 (i*dx, j*dy, k*dz) 表达式 —
       //   逐字节回放旧档（replicad RC cache byte-fragile，绝不可改无 dir 时嘅算式）。仅当任一 dir 有值才走方向式。
       const _norm = (v: [number, number, number]): [number, number, number] => { const L = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / L, v[1] / L, v[2] / L] }
@@ -4418,7 +4418,7 @@ function buildShape(features: Feature[], noCache = false): any {
         if (off) { const n = PLANE_N[f.plane]; cl = cl.translate(2 * off * n[0], 2 * off * n[1], 2 * off * n[2]) }
         return cl
       }
-      if (f.targets?.length) applyTargetDeltas(f.targets, [mirrorOf], '镜像')
+      if (f.targets?.length) applyTargetDeltas(f.targets, [mirrorOf], '鏡像')
       else {
         // 审计修复：whole-body 镜像跨越镜像面（body bbox 横跨该面）时，镜像副本同原体重叠 → union 互相填埋对方嘅孔 → 净结果零孔。
         // 检测轴对齐镜像面跨体 → 诚实警告（建议把镜像面偏移到实体一侧，或用「镜像特征」targets）。几何照做（union 语义），但唔再静默误导。
@@ -4693,7 +4693,7 @@ function buildShape(features: Feature[], noCache = false): any {
           let okCount = 0
           for (let fi = 0; fi < ns.length; fi++) {
             const P = ns[fi]
-            const tag = multi ? `第 ${fi + 1} 面` : '该面'
+            const tag = multi ? `第 ${fi + 1} 面` : '該面'
             // 逐面重三角化 + 揾最近面（上一面串链改动后 faces/triangulation 要新鲜，镜 delface/pushpull 多面循环）
             try { shape.mesh({ tolerance: 0.1, angularTolerance: 0.5 }) } catch { /* 新鲜三角化供最近面查找 */ }
             const faces = (shape as any).faces as any[]
@@ -5309,8 +5309,8 @@ function buildShape(features: Feature[], noCache = false): any {
                     if (!mf.IsDone()) { buildWarnings.push(`極點編輯：面 ${j + 1} 修剪失效（極點位移過大令舊 trim pcurve 無效）— 保持不變`); abort = true; break }
                     const _fcast = cast(mf.Face())
                     rebuilt[j] = _fcast.wrapped
-                    // 审计修复：MakeFace_21 用旧外环 trim，极点移动后旧 pcurve 失效 → 塌成【零面积面】，但 IsDone()=true 检测唔到
-                    // → 被静默缝入、编辑嘅面凭空消失。验重建面网格面积：≈0 → abort（保持 parkedBodies 不变，诚实失败）。
+                    // 审计修复：MakeFace_21 用旧外环 trim，极点移动后旧 pcurve 失效 → 塌成【零面積面】，但 IsDone()=true 检测唔到
+                    // → 被静默缝入、编辑嘅面凭空消失。验重建面网格面積：≈0 → abort（保持 parkedBodies 不变，诚实失败）。
                     let _faceArea = -1
                     try { const fm = (_fcast as any).mesh({ tolerance: 1, angularTolerance: 1 }); if (fm && fm.vertices && fm.triangles) { let a = 0; const v = fm.vertices, t = fm.triangles; for (let i = 0; i + 2 < t.length; i += 3) { const p = t[i] * 3, q = t[i + 1] * 3, w = t[i + 2] * 3; const ux = v[q] - v[p], uy = v[q + 1] - v[p + 1], uz = v[q + 2] - v[p + 2], vx = v[w] - v[p], vy = v[w + 1] - v[p + 1], vz = v[w + 2] - v[p + 2]; const cx = uy * vz - uz * vy, cy = uz * vx - ux * vz, cz = ux * vy - uy * vx; a += Math.hypot(cx, cy, cz) / 2 } _faceArea = a } } catch { /* mesh 失败 → 保守唔 abort */ }
                     if (_faceArea >= 0 && _faceArea < 1e-4) { buildWarnings.push(`極點編輯：面 ${j + 1} 重建後面積塌陷（舊 trim pcurve 失效）— 保持不變`); abort = true; break }
@@ -5394,7 +5394,7 @@ function buildShape(features: Feature[], noCache = false): any {
               segN.push([-dy / L, dx / L])
             }
             // 顶点 = 真 miter：邻段法向平均归一 ÷ cos(半角)（clamp 3× 防尖角爆炸）。
-            // miter 保面积（外角加嘅楔 = 内角减嘅楔）→ 壳体积 = 中线长 × 壁厚 × 层高 精确（e2e 实证）。
+            // miter 保面積（外角加嘅楔 = 内角减嘅楔）→ 壳体积 = 中线长 × 壁厚 × 层高 精确（e2e 实证）。
             const off: [number, number][] = []
             for (let i = 0; i < n; i++) {
               const a = segN[Math.max(0, i - 1)], b = segN[Math.min(segN.length - 1, i)]

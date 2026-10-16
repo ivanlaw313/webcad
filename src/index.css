@@ -974,4 +974,11 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .timeline-bar { gap: 4px; padding: 4px 8px; min-height: 28px; }
 .inspector .section-title { letter-spacing: 0.03em; }
 
-
+/* FISHING49: Fusion-like marking-menu / feat-editor / toast / mill-chrome rhythm */
+.mm-label { letter-spacing: 0.01em; line-height: 1.15; }
+.mm-item { border-radius: 8px; }
+.feat-editor .fe-title { letter-spacing: 0.02em; }
+.feat-editor .fe-close, .feat-editor .fe-del { min-height: 26px; border-radius: 6px; }
+.toast, .status-toast { letter-spacing: 0.01em; line-height: 1.4; }
+.cs-btn { min-height: 26px; border-radius: 5px; letter-spacing: 0.01em; }
+.browser-head { padding: 0 10px; }

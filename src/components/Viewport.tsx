@@ -667,7 +667,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
   const jointPickMode = useApp((s) => s.jointPickMode)   // GM-W5 5.4：关节拾取模式（拣面建真关节）
   const jointOriginPickMode = useApp((s) => s.jointOriginPickMode)   // GM-3DV4 A1：拾 snap 点建可复用关节原点
 
-  const cpatAxisPick = useApp((s) => s.cpatAxisPick)   // T763：拾圆柱面取轴（環形阵列/构造轴）
+  const cpatAxisPick = useApp((s) => s.cpatAxisPick)   // T763：拾圆柱面取轴（環形阵列/構造軸）
   const feaPinPick = useApp((s) => s.feaPinPick)       // S116：拾销/圆柱约束孔（click handler 用）
   const feaBearingPick = useApp((s) => s.feaBearingPick)   // S171：拾轴承载荷孔（click handler 用）
   const moldMode = useApp((s) => s.moldMode)           // T771：模流浇口拾取
@@ -1700,7 +1700,7 @@ function fmtSec(x: number): string {
   return x >= 120 ? `${f}s（≈${(x / 60).toFixed(1)}分鍾）` : `${f}s`
 }
 
-// 模流精细度滑杆嘅【预计耗时 + 体素数】估算（运行前畀用户确认）。由 bodyMesh bbox/体积/面积估壁厚→自动加密后有效分辨率→体素数→时间。
+// 模流精细度滑杆嘅【预计耗时 + 体素数】估算（运行前畀用户确认）。由 bodyMesh bbox/体积/面積估壁厚→自动加密后有效分辨率→体素数→时间。
 // 时间系数由实测校准（用户件 6824 体素求解器 ≈ 12–15s 浏览器）。系估算，标「约」。
 function estimateMold(mesh: { vertices: ArrayLike<number>; triangles: ArrayLike<number> } | null, res: number, solver: boolean): { effRes: number; nVox: number; sec: number; bumped: boolean } | null {
   if (!mesh || !mesh.vertices || !mesh.vertices.length || !mesh.triangles || !mesh.triangles.length) return null
@@ -3625,7 +3625,7 @@ function PoleNet() {
   )
 }
 
-// T794：单位感知长度输入框 — 当前单位显示（inch 模式可打分数 "1/4"/"1 1/2"、后缀 mm/in/"），内部存 mm。
+// T794：单位感知长度输入框 — 当前单位显示（inch 模式可打分数 "1/4"/"1 1/2"、後綴 mm/in/"），内部存 mm。
 // 文本框（非 number — 要容分数斜线）；失焦重格式化对齐显示。解析唔到就保持旧值（唔写）。
 /** CORE16：長度欄原文 → 正式繁體原因（空白／非數值／≤0／超上限）；合法返 '' */
 function lenFieldReason(raw: string | null, unit: LenUnit, label: string, max = 1000000): string {
@@ -4235,7 +4235,7 @@ export default function Viewport() {
   const moldSelComp = useApp((s) => s.selectedComponent)
   const moldJoints = useApp((s) => s.joints)
   // 模流目标网格（活动实体 或 选中/唯一网格组件）—— 同 store.moldTargetMesh / runMoldSolve 一致。
-  // estimateMold 只用 bbox/体积/面积（刚体变换不变），故用 bake 后嘅 mesh 一样准。
+  // estimateMold 只用 bbox/体积/面積（刚体变换不变），故用 bake 后嘅 mesh 一样准。
   const moldSrcMesh = useMemo(() => moldTargetMesh({ bodyMesh: moldBodyMesh, components: moldComponents, selectedComponent: moldSelComp, joints: moldJoints }), [moldBodyMesh, moldComponents, moldSelComp, moldJoints])
   const moldEst = useMemo(() => estimateMold(moldSrcMesh, moldRes, moldSolver), [moldSrcMesh, moldRes, moldSolver])   // 精细度滑杆预计耗时/体素数
   const holeMode = useApp((s) => s.holeMode)
@@ -4791,7 +4791,7 @@ export default function Viewport() {
   const mirrorFacePickA = useApp((s) => s.mirrorFacePick)   // GM-3DV1 S15：拾镜像面槽 active 高亮（响应式）
   const sweepEdgePickV = useApp((s) => s.sweepEdgePick)      // GM-3DV1 S5：边链高亮 + 对话框 chip
   const sweepEdgeLinesV = useApp((s) => s.sweepEdgeLines)
-  const drillCaxis = useApp((s) => s.drillCaxis)   // S 构造点孔钻孔方向（沿构造轴 / 顶面沿Z）
+  const drillCaxis = useApp((s) => s.drillCaxis)   // S 构造点孔钻孔方向（沿構造軸 / 顶面沿Z）
   const explode = useApp((s) => s.explode)
   const xray = useApp((s) => s.xray)
   const toggleXray = useApp((s) => s.toggleXray)
@@ -5349,7 +5349,7 @@ export default function Viewport() {
             <meshBasicMaterial color={datumPointPick ? '#1572c4' : '#e0a81e'} depthTest={false} />
           </mesh>
         ))}
-        {/* S173：旋转轴拾中心点 — 武装时喺所有候选中心（构造点 + 构造轴原点 + 世界原点）放可点蓝球，
+        {/* S173：旋转轴拾中心点 — 武装时喺所有候选中心（构造点 + 構造軸原点 + 世界原点）放可点蓝球，
             点中即把【该中心精确坐标】填入旋转轴点（唔系点击位置 → 解决「点范围内取咗 raw 而非中心」）。 */}
         {revAxisPtPick && featDlg?.kind === 'revolve' && (() => {   // S173 audit：双门控 — 旋转对话框关咗/切走即唔渲染（防 toggle/openFeatDlg 漏清 flag 留下幽灵球）
           const seen = new Set<string>()
@@ -5366,7 +5366,7 @@ export default function Viewport() {
           ))
         })()}
         {/* construction axes (datum lines through a point along X/Y/Z) */}
-        {objectVis.axes && caxes.map((ax, i) => {   /* GM-X2 #8：构造轴主开关 */
+        {objectVis.axes && caxes.map((ax, i) => {   /* GM-X2 #8：構造軸主开关 */
           if (datumHidden.includes(datumVisKey('ax', ax))) return null   // S 浏览器树眼掣隐藏
           const c: [number, number, number] = [ax.at[0], ax.at[2], -ax.at[1]]
           // T778：dirV = 任意方向轴（CAD→three swizzle）；冇就照字母
@@ -7500,7 +7500,7 @@ export default function Viewport() {
                 </select></label>
               )
             })()}
-            {/* WIN 2：构造轴覆写层（mirror circpattern）— 拣构造轴 / 拾圆柱面 / 手填轴点+方向 → 写入 ox/oy/oz/dx/dy/dz；resolver 仅当非默认（dy:1,ox/oy/oz:0）时采用，向后兼容 */}
+            {/* WIN 2：構造軸覆写层（mirror circpattern）— 拣構造軸 / 拾圆柱面 / 手填轴点+方向 → 写入 ox/oy/oz/dx/dy/dz；resolver 仅当非默认（dy:1,ox/oy/oz:0）时采用，向后兼容 */}
             <button className={'cs-btn pick-slot' + (cpatAxisPickA ? ' active' : '')} title={tStatus('拾軸：點活動實體的圓柱面（孔壁/圓軸/凸台側面）— 軸點+方向自動填（繞該軸車削/偏心車削）', lang)} onClick={() => useApp.getState().startCpatAxisPick()}>{tStatus('🎯拾軸', lang)}</button>
             {useApp.getState().caxes.length > 0 && (
               <label title={tStatus('用已建構造軸驅動旋轉軸：選中後自動填軸點(origin)+方向(dir，含任意斜向 dirV)', lang)}>{tStatus('構造軸', lang)} <select value="" onChange={(e) => { const i = Number(e.target.value); if (!Number.isInteger(i)) return; const ca = useApp.getState().caxes[i]; if (!ca) return; const LV: Record<string, [number, number, number]> = { X: [1, 0, 0], Y: [0, 1, 0], Z: [0, 0, 1] }; const dv = ca.dirV ?? LV[ca.dir]; setFeatParam('ox', ca.at[0]); setFeatParam('oy', ca.at[1]); setFeatParam('oz', ca.at[2]); setFeatParam('dx', dv[0]); setFeatParam('dy', dv[1]); setFeatParam('dz', dv[2]) }} style={{ height: 26 }}><option value="">{tStatus('— 選構造軸 —', lang)}</option>{useApp.getState().caxes.map((ca, i) => <option key={'RCA' + i} value={i}>{tStatus('構造軸', lang)}{i + 1}（{ca.dirV ? ca.dirV.map((v) => +v.toFixed(1)).join(',') : ca.dir} @ {ca.at.map((v) => +v.toFixed(0)).join(',')}）</option>)}</select></label>
@@ -8577,7 +8577,7 @@ export default function Viewport() {
           <label className="sb-hint" title={tStatus('實心封蓋：布爾交集真正切開實體（截面填實）— 剖面', lang)}><input type="checkbox" checked={section.capped} onChange={() => setSection({ capped: !section.capped })} /> {tStatus('實心封蓋', lang)}</label>
           {section.capped && <div role="status" aria-live="polite" data-testid="section-cap-status" className="sb-hint">{sectionCapStatus === 'busy' ? '正在計算當前模型截面；暫時顯示未封蓋剖視' : sectionCapStatus === 'unavailable' ? '當前截面無法封蓋；顯示未封蓋剖視，請調整平面或參數' : sectionCapStatus === 'empty' ? '此側沒有實體' : sectionCapStatus === 'ready' ? '當前模型截面已封蓋' : ''}</div>}
           <label className="sb-hint" title={tStatus('反轉剖切方向：改為保留剖切平面的另一側', lang)}><input type="checkbox" data-testid="section-flip" checked={!!section.flip} onChange={() => setSection({ flip: !section.flip })} /> {tStatus('反轉方向', lang)}</label>
-          {/* S185：剖面截面属性 — 切面 面积/形心/截面惯矩 实时读出（Fusion Inspect Section） */}
+          {/* S185：剖面截面属性 — 切面 面積/形心/截面惯矩 实时读出（Fusion Inspect Section） */}
           <button className="sb-tool" style={{ width: '100%', marginTop: 2 }} title={tStatus('量該剖面：面積 / 形心 / 截面慣性矩 Ixx,Iyy / 主軸 / 周長（隨位置滑桿實時更新；網格密鋪近似）', lang)} onClick={() => (sectionResult?.fromCut ? useApp.getState().clearSectionProps() : useApp.getState().computeSectionCut())}>{sectionResult?.fromCut ? tStatus('✕ 關截面屬性', lang) : tStatus('Σ 剖面截面屬性', lang)}</button>
         </CommandDialog>
       )}
@@ -9771,7 +9771,7 @@ function FormPanel() {
       )}
     >
       <b style={{ color: '#1572c4' }}>{tStatus('🫧 Form 細分建模', lang)}</b>
-      <span style={{ color: '#5a6b78' }}>{tStatus('點控制點拖箭嘴捏形 / 點面拉伸（', lang)}{cage.verts.length} {tStatus('点）', lang)}</span>
+      <span style={{ color: '#5a6b78' }}>{tStatus('點控制點拖箭嘴捏形 / 點面拉伸（', lang)}{cage.verts.length} {tStatus('點）', lang)}</span>
       {cage.sel != null && <fieldset style={{ minWidth: 0, width: '100%', display: 'flex', flexWrap: 'wrap', gap: 6 }}><legend>{msg('vp.ctrlPoint', lang)}</legend>{(['X','Y','Z'] as const).map((axis,k) => <label key={axis}>{axis} <input aria-label={'Form point '+axis} key={cage.sel+'|'+cage.verts[cage.sel!][k]} type="number" defaultValue={cage.verts[cage.sel!][k]} style={{ width: 64 }} onBlur={e => { const n=Number(e.currentTarget.value), c=useApp.getState().formCage; if (e.currentTarget.value.trim() && Number.isFinite(n) && c?.sel != null) { const p=[...c.verts[c.sel]] as [number,number,number];p[k]=n;useApp.getState().setFormVert(c.sel,p) } }} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){e.currentTarget.value=String(cage.verts[cage.sel!][k]);e.currentTarget.blur()}}}/></label>)}</fieldset>}
       <label title={tStatus('細分級數：越高越圓滑（三角數 ×4/級）', lang)}>{tStatus('級數', lang)} <select value={cage.levels} onChange={(e) => useApp.getState().setFormLevels(Number(e.target.value))} style={{ height: 22 }}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
       <button className="cs-btn" title={tStatus('Subdivide：循環提高細分級 1→2→3→1', lang)} onClick={() => useApp.getState().runCommand('formsubdiv', 'Subdivide')}>{tStatus('Subdivide', lang)}</button>
@@ -9781,9 +9781,9 @@ function FormPanel() {
         const gm = formGizmoMode
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('群組變換：對選中控制點集 移/旋/縮（繞選集中心）。Shift+點加選；Ctrl+Z 撤銷變換步。', lang)}>
-            <span style={{ color: '#c77d00', fontWeight: 600 }}>{(cage.msel ?? []).length}{tStatus('点', lang)}</span>
+            <span style={{ color: '#c77d00', fontWeight: 600 }}>{(cage.msel ?? []).length}{tStatus('點', lang)}</span>
             {(['move', 'rotate', 'scale'] as const).map((m) => (
-              <button key={m} className={'cs-btn' + (gm === m ? ' on' : '')} style={gm === m ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().setFormGizmoMode(m)}>{m === 'move' ? tStatus('移', lang) : m === 'rotate' ? tStatus('旋', lang) : tStatus('缩', lang)}</button>
+              <button key={m} className={'cs-btn' + (gm === m ? ' on' : '')} style={gm === m ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().setFormGizmoMode(m)}>{m === 'move' ? tStatus('移', lang) : m === 'rotate' ? tStatus('旋', lang) : tStatus('縮', lang)}</button>
             ))}
             <button className="cs-btn" title={tStatus('撤銷上一步群組變換（Ctrl+Z）', lang)} onClick={() => useApp.getState().formUndoPop()}>↩</button>
           </span>

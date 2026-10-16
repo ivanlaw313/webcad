@@ -77,7 +77,7 @@ export function cadAxisToWorld(k: 'X' | 'Y' | 'Z'): [number, number, number] {
 }
 
 export const JOINT_DOF: Record<JointType, number> = { rigid: 0, revolute: 1, slider: 1, cylindrical: 2, ball: 3, planar: 3, screw: 1, pinslot: 2 }
-export const JOINT_LABEL: Record<JointType, string> = { rigid: '刚性', revolute: '旋转', slider: '滑动', cylindrical: '圆柱', ball: '球', planar: '平面', screw: '螺旋', pinslot: '销槽' }
+export const JOINT_LABEL: Record<JointType, string> = { rigid: '剛性', revolute: '旋转', slider: '滑動', cylindrical: '圓柱', ball: '球', planar: '平面', screw: '螺旋', pinslot: '销槽' }
 // BUG(E)：繁體（港）標籤 — UI 以此為源，再經 tStatus(lang) 轉 zh-CN/en。JOINT_LABEL（簡體）保留畀舊呼叫者。
 export const JOINT_LABEL_TC: Record<JointType, string> = { rigid: '剛性', revolute: '旋轉', slider: '滑動', cylindrical: '圓柱', ball: '球', planar: '平面', screw: '螺旋', pinslot: '銷槽' }
 // 關節拾取彈框：全部 8 種類型，幾何建議嘅類型排第一（預設 1）。

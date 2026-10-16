@@ -65,7 +65,7 @@ export type Feature =
   //   窄版覆盖平面/柱面对（常见工况）；一般曲面滚球后置（诚实标注）。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
   | { id: string; type: 'facefillet'; radius: number; near1: [number, number, number]; near2: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
   | { id: string; type: 'shell'; thickness: number; nears?: [number, number, number][]; direction?: 'inside' | 'outside' | 'both'; closed?: boolean; tangentChain?: boolean; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // faceFp（S125）= 持久面指纹（开口面跨重建跟同一几何面，缺省退回 near-point）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行索引）— 上游刚体旋转后仍跟同一面，仅在框架 wellConditioned 且唯一时采信，否则退回 faceFp；direction（GM-3DV3 M2）= 壁厚方向 inside(缺省,向内,外形保留)/outside(负厚度向外生长)/both(先外扩半壁再向内抽壳,壁跨原边界)；closed=Fusion 封闭实体抽壳（外壳减内核）；tangentChain=沿共享边扩展 G1 面链；缺省字段保持旧档行为
-  | { id: string; type: 'pattern'; countX: number; countY: number; dx: number; dy: number; countZ?: number; dz?: number; targets?: string[] /* T781：净阵列所选特征（snapshot-delta，同 circPattern） */; dir1?: [number, number, number]; dir2?: [number, number, number] /* S 构造轴方向：Direction-1/2 单位方向；缺省 ⇒ 世界轴 [1,0,0]/[0,1,0]（旧档逐字节回放） */; bodies?: boolean /* #7 Object Type=Bodies：连独立实体一起阵列（每个独立实体 fuse 自己嘅栅格副本）；缺省 ⇒ 只阵列活动体（旧档逐字节） */; symX?: boolean; symY?: boolean; symZ?: boolean /* #pattern：各轴对称（原件居中，副本两边铺；仅奇数计数生效，偶数退单向）；缺省单向逐字节 */; suppress?: boolean[] /* GM-3DV1 S3：逐实例抑制遮罩 — 线性索引 idx=(i*cy+j)*cz+k，suppress[idx]=true 跳过该副本（seed idx=0 恒保留）；缺省 ⇒ 全出（旧档逐字节） */; compute?: 'optimized' | 'identical' | 'adjust' /* GM-3DV1 S3：Compute Option 直通提示（元数据，worker 不读几何）— 仅记录 Fusion 计算模式意图 */; objectType?: 'bodies' | 'faces' | 'features' | 'components'; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
+  | { id: string; type: 'pattern'; countX: number; countY: number; dx: number; dy: number; countZ?: number; dz?: number; targets?: string[] /* T781：净阵列所選特徵（snapshot-delta，同 circPattern） */; dir1?: [number, number, number]; dir2?: [number, number, number] /* S 构造轴方向：Direction-1/2 单位方向；缺省 ⇒ 世界轴 [1,0,0]/[0,1,0]（旧档逐字节回放） */; bodies?: boolean /* #7 Object Type=Bodies：连独立实体一起阵列（每个独立实体 fuse 自己嘅栅格副本）；缺省 ⇒ 只阵列活动体（旧档逐字节） */; symX?: boolean; symY?: boolean; symZ?: boolean /* #pattern：各轴对称（原件居中，副本两边铺；仅奇数计数生效，偶数退单向）；缺省单向逐字节 */; suppress?: boolean[] /* GM-3DV1 S3：逐实例抑制遮罩 — 线性索引 idx=(i*cy+j)*cz+k，suppress[idx]=true 跳过该副本（seed idx=0 恒保留）；缺省 ⇒ 全出（旧档逐字节） */; compute?: 'optimized' | 'identical' | 'adjust' /* GM-3DV1 S3：Compute Option 直通提示（元数据，worker 不读几何）— 仅记录 Fusion 计算模式意图 */; objectType?: 'bodies' | 'faces' | 'features' | 'components'; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
   // Geometric Pattern V1: explicit rigid instances of selected timeline features.
   // The seed remains the original feature; instances contains copies only.
   | { id: string; type: 'geoPattern'; targets: string[]; instances: { translation?: [number, number, number]; rotation?: { angle: number; origin: [number, number, number]; axis: [number, number, number] } }[]; suppress?: boolean[]; compute?: 'optimized' | 'identical' | 'adjust'; objectType?: 'features' }
@@ -80,7 +80,7 @@ export type Feature =
   // face-derived seed points. UI may only create this after two planar-face
   // picks; the feature itself stays deterministic and replayable.
   | { id: string; type: 'automatedmodel'; a: [number, number, number]; b: [number, number, number]; radius: number; op?: 'newbody' }
-  | { id: string; type: 'mirror'; plane: Plane; offset?: number; targets?: string[] /* T781：净镜像所选特征（snapshot-delta） */; planeN?: [number, number, number]; planeO?: [number, number, number] /* T781：任意基准面（法向+面上一点，优先于 plane/offset） */; op?: 'newbody' /* #7b（audit REAL）：镜像副本独立实体做独立体（唔 fuse 入活动体）；缺省 ⇒ Join 融合（旧档逐字节） */ }
+  | { id: string; type: 'mirror'; plane: Plane; offset?: number; targets?: string[] /* T781：净镜像所選特徵（snapshot-delta） */; planeN?: [number, number, number]; planeO?: [number, number, number] /* T781：任意基准面（法向+面上一点，优先于 plane/offset） */; op?: 'newbody' /* #7b（audit REAL）：镜像副本独立实体做独立体（唔 fuse 入活动体）；缺省 ⇒ Join 融合（旧档逐字节） */ }
   | { id: string; type: 'loft'; bottom?: SketchProfile; top?: SketchProfile; height?: number; op?: BoolOp; sections?: { profile: SketchProfile; z: number; plane?: Plane; arbPlane?: { o: [number, number, number]; xd: [number, number, number]; n: [number, number, number] } }[]; ruled?: boolean; wall?: number; sketchIds?: string[] /* T753：逐截面草图源 id（顺序对应 sections）— worker 不读 */; rails?: [number, number][][] /* T772：导轨 — 每條 rail 點列（第 i 點對應 sections 選取次序）；v1 只用 rails[0]（內核單 auxiliary spine 槽） */; capPoint?: [number, number, number]; capEnd?: 'first' | 'last' /* S：放样封口构造点 — capPoint 在 capEnd 端用顶点封口成真水密尖（鼻锥/漏斗/钻尖）；缺省 ⇒ 旧 loftWith 路径逐字节回放 */; continuity?: 'C1' | 'C2' /* S：放样端条件 — C1=切线连续(G1 等价)、C2=曲率连续(G2 等价)，走裸 ThruSections.SetContinuity+SetSmoothing；缺省 ⇒ 旧 loftWith 路径逐字节回放 */; closed?: boolean /* #8 Fusion Loft Closed：末截面接返首截面成闭环回路（环状件）；ThruSections 无 periodic 旗 → 复制首 wire 落尾做 C0 近似(诚实标) */ }
   | { id: string; type: 'sweep'; r: number; op?: BoolOp; path?: [number, number][]; path3?: [number, number, number][]; smoothPath?: boolean; wall?: number; profile?: SketchProfile; sketchId?: string; guide?: [number, number][]; twist?: number; scale?: number; orient?: 'perp' | 'parallel' }  // path3 = TRUE 3D spine; profile = 任意草图截面（T742）; sketchId = 草图源（T748）; guide = 导轨（T755 auxiliarySpine — 截面跟住导轨转向，Fusion guide rail 同款）; twist = 沿路径扭转角°（S：MakePipeShell 多 section RMF）; scale = 末端截面缩放（taper，1=不变）; orient（GM-3DV1 S5）= 截面朝向 Fusion Orientation：perp=⊥脊线（缺省 forceProfileSpine）/ parallel=保持初始朝向不随脊线转（forceProfileSpine:false，逐字节旧档=perp）
   | { id: string; type: 'coil'; pitch: number; height: number; radius: number; wireR: number; op?: BoolOp; r2?: number }
@@ -3681,8 +3681,8 @@ function buildShape(features: Feature[], noCache = false): any {
     } else if (f.type === 'bodyboolean') {
       // 活动实体 ⊗ 独立实体（真 B-rep 布尔 — 结果仲可以圆角/抽壳/导 STEP，对比 T723 网格级组件布尔）
       const t = parkedBodies[f.target]
-      if (!shape) throw new Error('实体布尔：没有活动实体')
-      else if (!t) throw new Error(`实体布尔：工具实体 #${f.target + 1} 不存在或已被前一步消耗；请重新选择工具体`)
+      if (!shape) throw new Error('實體布爾：沒有活動實體')
+      else if (!t) throw new Error(`實體布爾：工具實體 #${f.target + 1} 不存在或已被前一步消耗；請重新選擇工具體`)
       else {
         try {
           // v1.27 BX02: heal operands before boolean; robust cut; auto-swap when target−tool
@@ -3737,34 +3737,34 @@ function buildShape(features: Feature[], noCache = false): any {
             shape = _healSolid(fuseRobust(fuseSwapped ? toolSh : targetSh, fuseSwapped ? targetSh : toolSh))
             if (!f.keep) parkedBodies.splice(f.target, 1)
           }
-        } catch (e) { throw new Error(`实体布尔失败：${(e as Error)?.message || e}`) }
+        } catch (e) { throw new Error(`實體布爾失敗：${(e as Error)?.message || e}`) }
       }
     } else if (f.type === 'boundaryfill') {
       // 两个封闭 solid 的 Boundary Fill：用独立 clone 构建 3 个互斥 cell。切勿复用布尔 operand，OCCT/replicad
       // 可能会消费底层 shape；split 分支同样采用 clone 以保持可重放。
       const t = parkedBodies[f.target]
-      if (!shape) buildWarnings.push('⚠ Boundary Fill：没有活动实体 — 已忽略')
-      else if (!t) buildWarnings.push(`⚠ Boundary Fill：找不到工具实体 #${f.target + 1} — 已忽略`)
+      if (!shape) buildWarnings.push('⚠ Boundary Fill：沒有活動實體 — 已忽略')
+      else if (!t) buildWarnings.push(`⚠ Boundary Fill：找不到工具實體 #${f.target + 1} — 已忽略`)
       else {
         try {
           const source = shape
           const tool = t.shape
           const cells: { key: 'target' | 'overlap' | 'tool'; name: string; shape: any }[] = [
-            { key: 'target', name: 'Boundary Fill：目标独有', shape: source.clone().cut(tool.clone()) },
+            { key: 'target', name: 'Boundary Fill：目標獨有', shape: source.clone().cut(tool.clone()) },
             { key: 'overlap', name: 'Boundary Fill：交集', shape: source.clone().intersect(tool.clone()) },
-            { key: 'tool', name: 'Boundary Fill：工具独有', shape: tool.clone().cut(source.clone()) },
+            { key: 'tool', name: 'Boundary Fill：工具獨有', shape: tool.clone().cut(source.clone()) },
           ]
           const valid = cells.filter((c) => c.shape && !c.shape.wrapped?.IsNull?.())
           const selected = valid.find((c) => c.key === f.cell)
           if (!selected) {
-            buildWarnings.push(`⚠ Boundary Fill：所选 ${f.cell === 'target' ? '目标独有' : f.cell === 'overlap' ? '交集' : '工具独有'} cell 不存在（两体未形成该体积）— 已保留原实体`)
+            buildWarnings.push(`⚠ Boundary Fill：所選 ${f.cell === 'target' ? '目標獨有' : f.cell === 'overlap' ? '交集' : '工具獨有'} cell 不存在（兩體未形成該體積）— 已保留原實體`)
           } else {
             // 工具体被其分割后的 cells 取代；其他既有独立实体不受影响。
             parkedBodies.splice(f.target, 1)
             shape = selected.shape
             for (const c of valid) if (c !== selected) parkedBodies.push({ name: c.name, shape: c.shape })
           }
-        } catch (e) { buildWarnings.push(`⚠ Boundary Fill 失败（${(e as Error)?.message || e}）— 已保留原实体`) }
+        } catch (e) { buildWarnings.push(`⚠ Boundary Fill 失敗（${(e as Error)?.message || e}）— 已保留原實體`) }
       }
     } else if (f.type === 'fillet' && shape) {
       _lastResolvedFp = null; _lastResolvedFpV2 = null   // S122/S134：解析器首次解析会写低 v1+v2 指纹（feature 未有 edgeFp 时）
@@ -4203,7 +4203,7 @@ function buildShape(features: Feature[], noCache = false): any {
           const c = _lastResolvedFaceFpTopo; if (c?.length) _resolvedFaceFpTopo[f.id] = c
         } else buildWarnings.push('Face Pattern：未能解析所選面或沒有可建立的副本 — 已保持原實體')
       } else if (f.targets?.length) {
-        // T781：特征级矩形阵列 — 净阵列所选特征嘅 delta（孔阵/凸台阵），唔郁实体其余部分
+        // T781：特征级矩形阵列 — 净阵列所選特徵嘅 delta（孔阵/凸台阵），唔郁实体其余部分
         const xforms: ((s: any) => any)[] = []
         for (let i = 0; i < cx; i++) for (let j = 0; j < cy; j++) for (let k = 0; k < cz; k++) {
           if (atOrigin(i, j, k) || suppAt(i, j, k)) continue
@@ -4312,7 +4312,7 @@ function buildShape(features: Feature[], noCache = false): any {
         return turned.translate(pt[0] - ox, pt[1] - oy, dz)
       }
       if (f.targets?.length) {
-        // T781：特征级路径阵列 — 所选特征嘅 delta 沿路径等弧长复制
+        // T781：特征级路径阵列 — 所選特徵嘅 delta 沿路径等弧长复制
         const xforms = pts.slice(1).map((pt, i) => transformAt(pt, i + 1))
         // #70 GM-L2：路径阵列兜底微沉方向 = 路径总走向（首→尾），退化则世界 Z
         const _pend = pts[pts.length - 1], _pdx = _pend[0] - ox, _pdy = _pend[1] - oy, _pdz = pts3 ? (_pend as [number, number, number])[2] - oz : 0, _pl = Math.hypot(_pdx, _pdy, _pdz)
@@ -4406,7 +4406,7 @@ function buildShape(features: Feature[], noCache = false): any {
     } else if (f.type === 'mirror' && shape) {
       // Mirror across the plane (optionally offset along its normal by `offset`):
       // reflect about the origin plane, then translate 2·offset along the normal.
-      // T781：planeN+planeO → 任意基准面（构造面）镜像；targets → 净镜像所选特征嘅 delta。
+      // T781：planeN+planeO → 任意基准面（构造面）镜像；targets → 净镜像所選特徵嘅 delta。
       const mirrorOf = (s: any) => {
         if (f.planeN && f.planeO) {
           const nl = Math.hypot(f.planeN[0], f.planeN[1], f.planeN[2]) || 1
@@ -4610,7 +4610,7 @@ function buildShape(features: Feature[], noCache = false): any {
       // S99 Split Face：用平面喺最近面 imprint 一条交线，把面拓扑切两半（等体积，子面 faceGroups 各自独立可拣）。
       try {
         const w = (_oc as Record<string, unknown>).DirectEditWrapper as { SplitFaceNearByPlane?: (s: any, nx: number, ny: number, nz: number, ox: number, oy: number, oz: number, dx: number, dy: number, dz: number) => any } | undefined
-        if (!w || !w.SplitFaceNearByPlane) { buildWarnings.push('⚠ 分割面需要 plus 内核 DirectEditWrapper.SplitFaceNearByPlane（未綁定）— 已跳過') }
+        if (!w || !w.SplitFaceNearByPlane) { buildWarnings.push('⚠ 分割面需要 plus 內核 DirectEditWrapper.SplitFaceNearByPlane（未綁定）— 已跳過') }
         else {
           // S129 面指纹（镜 pushpull）：仅指纹拓扑【拣面】点；planeOrigin/planeNormal 维持原样。
           let P: [number, number, number] = [f.near[0], f.near[1], f.near[2]]
@@ -4620,9 +4620,9 @@ function buildShape(features: Feature[], noCache = false): any {
           else { const _c = _ffCapture(shape, [f.near]); _lastResolvedFaceFp = _c.v1; _lastResolvedFaceFpV2 = _c.v2; _lastResolvedFaceFpTopo = _c.topo }
           const res = w.SplitFaceNearByPlane(shape.wrapped, P[0], P[1], P[2], f.planeOrigin[0], f.planeOrigin[1], f.planeOrigin[2], f.planeNormal[0], f.planeNormal[1], f.planeNormal[2])
           if (res && !res.IsNull()) { shape = cast(res); const _cap = _lastResolvedFaceFp as string[] | null; if (_cap && _cap.length) { _resolvedFaceFp[f.id] = _cap; _lastResolvedFaceFp = null } { const _capV2 = _lastResolvedFaceFpV2 as string[] | null; if (_capV2 && _capV2.length) { _resolvedFaceFpV2[f.id] = _capV2; _lastResolvedFaceFpV2 = null } { const _capTopo = _lastResolvedFaceFpTopo as string[] | null; if (_capTopo && _capTopo.length) { _resolvedFaceFpTopo[f.id] = _capTopo; _lastResolvedFaceFpTopo = null } } } }   // S136：v2 平行写回
-          else buildWarnings.push('分割面失败（切割平面与该面不相交）— 保持原样')
+          else buildWarnings.push('分割面失敗（切割平面與該面不相交）— 保持原樣')
         }
-      } catch (e) { buildWarnings.push('分割面失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('分割面失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'silhouettesplit' && shape) {
       // Fusion Silhouette Split v1: exact HLR outlines only.  The custom
       // kernel gates accept analytic cylindrical and conical source faces and reject
@@ -4636,7 +4636,7 @@ function buildShape(features: Feature[], noCache = false): any {
         const dirs: Record<typeof f.view, [number, number, number]> = {
           front: [0, -1, 0], back: [0, 1, 0], top: [0, 0, 1], bottom: [0, 0, -1], right: [1, 0, 0], left: [-1, 0, 0],
         }
-        if (!w?.SplitByHlrOutline3dSafe || !w?.SplitByHlrOutline3dConesOnly) buildWarnings.push('⚠ 轮廓分割需要已验证的 plus 内核 — 已跳过')
+        if (!w?.SplitByHlrOutline3dSafe || !w?.SplitByHlrOutline3dConesOnly) buildWarnings.push('⚠ 輪廓分割需要已驗證的 plus 內核 — 已跳過')
         else {
           const d = dirs[f.view]
           // First gate is deliberately cylinder-only.  A null result is then
@@ -4644,9 +4644,9 @@ function buildShape(features: Feature[], noCache = false): any {
           // either kernel path to spheres or arbitrary/freeform B-rep faces.
           const res = w.SplitByHlrOutline3dSafe(shape.wrapped, d[0], d[1], d[2]) || w.SplitByHlrOutline3dConesOnly(shape.wrapped, d[0], d[1], d[2])
           if (res && !res.IsNull()) shape = cast(res)
-          else buildWarnings.push('轮廓分割：当前正交视图没有可安全分割的圆柱或圆锥轮廓（球体、自由曲面和其他面暂不支持）— 已保持原样')
+          else buildWarnings.push('輪廓分割：當前正交視圖沒有可安全分割的圓柱或圓錐輪廓（球體、自由曲面和其他面暫不支持）— 已保持原樣')
         }
-      } catch (e) { buildWarnings.push('轮廓分割失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('輪廓分割失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'replaceface' && shape) {
       // S99 Replace Face（平面顶替）：用无界平面截断实体，保留远离拾取面嗰侧（邻面 BOP 自动延伸）。
       try {
@@ -5210,9 +5210,9 @@ function buildShape(features: Feature[], noCache = false): any {
           if (result?.wrapped && !result.wrapped.IsNull()) {
             try { const bb = (result as any).boundingBox.bounds as [number[], number[]]; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 抛 = 无界 */ }
           }
-          if (bbOk) { parkedBodies[f.target] = { name: t.name, shape: result }; buildWarnings.push('合并面：' + t.name + ' 已合并同域邻面') }
-          else buildWarnings.push('合并面：返空 / 无界 — 已 fail-safe 保持不变')
-        } catch (e) { buildWarnings.push('合并面失败：' + ((e as any)?.message || e)) }
+          if (bbOk) { parkedBodies[f.target] = { name: t.name, shape: result }; buildWarnings.push('合併面：' + t.name + ' 已合併同域鄰面') }
+          else buildWarnings.push('合併面：返空 / 無界 — 已 fail-safe 保持不變')
+        } catch (e) { buildWarnings.push('合併面失敗：' + ((e as any)?.message || e)) }
       }
     } else if (f.type === 'editpoles') {
       // S133 NURBS 曲面极点编辑：parked 曲面 → GeomConvert 转 B 样条 → 叠 deltas 改极点 → 保 trim 重建。
@@ -5443,7 +5443,7 @@ function buildShape(features: Feature[], noCache = false): any {
         if (!_oc || !(_oc as any).BRepOffsetAPI_ThruSections || !(_oc as any).BRepBuilderAPI_MakeWire_2) {
           buildWarnings.push('⚠ 橋接面需要 plus 內核（ThruSections/MakeWire 未綁定）— 已跳過')
         } else if (nears.length !== 2) {
-          buildWarnings.push('橋接面需要恰好 2 條棱（一邊一條）— 保持不變')
+          buildWarnings.push('橋接面需要恰好 2 條稜（一邊一條）— 保持不變')
         } else {
           const sources: any[] = []
           if (shape && (shape as any).wrapped && !(shape as any).wrapped.IsNull()) sources.push(shape)
@@ -5460,7 +5460,7 @@ function buildShape(features: Feature[], noCache = false): any {
             if (best) { const key = `${sources.indexOf(best.src)}#${best.idx}`; if (!bseen.has(key)) { bseen.add(key); bpicks.push(best) } }
           }
           if (bpicks.length < 2) {
-            buildWarnings.push('橋接面：兩個拾點解析到同一條棱／解析失敗 — 分開點兩條不同的棱')
+            buildWarnings.push('橋接面：兩個拾點解析到同一條稜／解析失敗 — 分開點兩條不同的棱')
           } else {
             const r = GCWithScope()
             const wireOf = (pk: BPick): any => {
@@ -5477,7 +5477,7 @@ function buildShape(features: Feature[], noCache = false): any {
               const ts = r(new (_oc as any).BRepOffsetAPI_ThruSections(false, false, 1e-6))   // 面输出 / 光滑（非直纹）
               ts.AddWire(w1); ts.AddWire(w2)
               ts.Build(r(new (_oc as any).Message_ProgressRange_1()))
-              if (!(ts.IsDone && ts.IsDone())) { buildWarnings.push('橋接面失敗（ThruSections 未收斂 — 兩棱太扭／退化／方向相反）— 保持不變') }
+              if (!(ts.IsDone && ts.IsDone())) { buildWarnings.push('橋接面失敗（ThruSections 未收斂 — 兩稜太扭／退化／方向相反）— 保持不變') }
               else {
                 const sh2 = ts.Shape()
                 if (!sh2 || sh2.IsNull()) { buildWarnings.push('橋接面失敗（結果空）— 保持不變') }
@@ -5512,7 +5512,7 @@ function buildShape(features: Feature[], noCache = false): any {
         if (!_oc || !(_oc as any).BRepOffsetAPI_MakeFilling || !(_oc as any).Message_ProgressRange_1 || !(_oc as any).GeomAbs_Shape) {
           buildWarnings.push('⚠ 邊界補面需要 plus 內核（BRepOffsetAPI_MakeFilling 未綁定）— 已跳過')
         } else if (nears.length < 2) {
-          buildWarnings.push('邊界補面需要 ≥2 條邊界棱（拾少了 — 保持不變）')
+          buildWarnings.push('邊界補面需要 ≥2 條邊界稜（拾少了 — 保持不變）')
         } else {
           // 候选源体：活动 shape（若有）+ 全部独立实体 — 拾边可落喺任一身上。
           const sources: any[] = []
@@ -5872,7 +5872,7 @@ function buildShape(features: Feature[], noCache = false): any {
         // OCCT-wasm build; a compound of the two independently-meshable solids renders as one rod and
         // exports as overlapping watertight shells (valid for STL / 3D-printing).
         rod = makeCompound([core, ridge])
-      } catch (e) { buildWarnings.push('螺纹生成失败（已退回光轴）：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('螺紋生成失敗（已退回光軸）：' + ((e as any)?.message || e)) }
       merge(rod, f.op)
     } else if (f.type === 'othread' && shape) {
       // T775：面加外螺纹 — 牙底 = 所拣圆柱面半径 r=d/2，三角牙向【外】（thread 嘅外向牙 + ithread 嘅
@@ -5893,7 +5893,7 @@ function buildShape(features: Feature[], noCache = false): any {
         try { ridge = ridge.intersect(makeBaseBox(4 * (r + depth), 4 * (r + depth), H) as any) } catch { /* 裁唔到照用 */ }
         // GM-γ2b：外螺纹叠加系 makeCompound（纯并组，唔系 cut/fuse/intersect 布尔）→ 唔录 S2，诚实跳过（无有效布尔可重跑）。
         shape = makeCompound([shape, placeThreadTool(ridge.translate(cx, cy, z0), f.frame)])
-      } catch (e) { buildWarnings.push('外螺纹生成失败（实体保持原样）：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('外螺紋生成失敗（實體保持原樣）：' + ((e as any)?.message || e)) }
     } else if (f.type === 'ithread' && shape) {
       // Internal thread (tapped hole). Like the external thread, a helical ridge FUSED/CUT against a wall
       // yields a face this OCCT-wasm build's BRepMesh tessellates into a NON-watertight soup. So instead:
@@ -5924,7 +5924,7 @@ function buildShape(features: Feature[], noCache = false): any {
           drillTool = drill.translate(cx, cy, 0)
         }
         res = res.cut(drillTool); _recordBool(_i, 'cut', drillTool); drilled = true   // GM-γ2b：内螺纹钻孔 = 单 cut → cut 成功后先录工具体供 S2（下面牙环 makeCompound 唔系布尔 → 唔录，诚实跳过）
-      } catch (e) { buildWarnings.push('内螺纹钻孔失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('內螺紋鑽孔失敗：' + ((e as any)?.message || e)) }
       if (drilled) {
         try {
           // 牙环【永远喺原点 z∈[0,H] 砌】（同旧码逐字节一样 — 呢版 makeHelix 嘅 center 参数唔生效，
@@ -5938,7 +5938,7 @@ function buildShape(features: Feature[], noCache = false): any {
           let ridge = genericSweep(tri.wire, helix, { forceProfileSpine: true } as any)
           try { ridge = ridge.intersect(makeBaseBox(4 * Rmaj, 4 * Rmaj, H) as any) } catch { /* keep untrimmed if trim fails */ }  // makeBaseBox spans z∈[0,H] already (同外螺纹) — NO translate, else threads shift +H/2 & poke out the top
           res = makeCompound([res, placeThreadTool(ridge.translate(cx, cy, zb), f.frame)])
-        } catch (e) { buildWarnings.push('内螺纹螺旋牙失败（已退回光孔）：' + ((e as any)?.message || e)) }
+        } catch (e) { buildWarnings.push('內螺紋螺旋牙失敗（已退回光孔）：' + ((e as any)?.message || e)) }
       }
       shape = res
       }
@@ -5972,7 +5972,7 @@ function buildShape(features: Feature[], noCache = false): any {
           const patch = pen.close().sketchOnPlane('XY', z0).extrude(f.h) as any
           if (f.mode === 'boss') { _recordBool(_i, 'fuse', patch); shape = shape.fuse(patch) } else { _recordBool(_i, 'cut', patch); shape = shape.cut(patch) }   // GM-γ2b：曲面凸台/凹槽 = 单布尔 → 录工具体供 S2
         }
-      } catch (e) { buildWarnings.push('曲面贴花失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('曲面貼花失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'sheetmetal') {
       // Sheet-metal kernel: a constant-thickness folded part defined by a cross-section (straight runs
       // `segs` joined by bends `angles`). Folded = centre-line (bend radius R) offset ±T/2 → closed
@@ -6017,7 +6017,7 @@ function buildShape(features: Feature[], noCache = false): any {
           for (let i = 1; i < poly.length; i++) pen = pen.lineTo(poly[i])
           shape = pen.close().sketchOnPlane('XZ').extrude(W) as any   // extrude along Y by width
         }
-      } catch (e) { buildWarnings.push('钣金件生成失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('鈑金件生成失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'gear') {
       // Involute spur gear: real involute tooth profile → extrude; optional centre bore.
       try {
@@ -6036,7 +6036,7 @@ function buildShape(features: Feature[], noCache = false): any {
         const br = (f.bore || 0) / 2
         if (br > 0.2) { const bmax = Math.min(br, (m * z) / 2 - 1.25 * m - 0.5); if (bmax > 0.2) gear = gear.cut(drawCircle(bmax).sketchOnPlane('XY').extrude(h + 2).translate(0, 0, -1)) }
         merge(gear, f.op)
-      } catch (e) { buildWarnings.push('齿轮生成失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('齒輪生成失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'worm') {
       // T770 蜗杆（ZA 近似）：芯柱 + 梯形牙沿螺旋扫掠 — thread 同款 compound（螺旋面 fuse 唔可三角化）。
       try {
@@ -6057,9 +6057,9 @@ function buildShape(features: Feature[], noCache = false): any {
           let ridge = genericSweep(tri.wire, helix, { forceProfileSpine: true } as any)
           try { ridge = ridge.intersect(makeBaseBox(4 * d, 4 * d, L) as any) } catch { /* 裁唔到照用 */ }
           res = makeCompound([core, ridge])
-        } catch (e) { buildWarnings.push('蜗杆螺旋牙失败（已退回光柱）：' + ((e as any)?.message || e)) }
+        } catch (e) { buildWarnings.push('蝸桿螺旋牙失敗（已退回光柱）：' + ((e as any)?.message || e)) }
         merge(res, f.op)
-      } catch (e) { buildWarnings.push('蜗杆生成失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('蝸桿生成失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'crowngear') {
       // T770 冠齿轮（面齿轮近似形）：盘 + z 个径向梯形齿喺顶面分度圆 — compound（N 次 fuse 慢/易爆）。
       try {
@@ -6079,7 +6079,7 @@ function buildShape(features: Feature[], noCache = false): any {
           parts.push(tooth)
         }
         merge(makeCompound(parts), f.op)
-      } catch (e) { buildWarnings.push('冠齿轮生成失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('冠齒輪生成失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'rack') {
       // Rack = pinion's mate: a bar with straight-flank (20°) involute-rack teeth on top. Meshes with the gear.
       try {
@@ -6097,7 +6097,7 @@ function buildShape(features: Feature[], noCache = false): any {
         const poly: [number, number][] = [...top, [L, 0], [0, 0]]
         let pen = draw(poly[0]); for (let i = 1; i < poly.length; i++) pen = pen.lineTo(poly[i])
         merge(pen.close().sketchOnPlane('XY').extrude(h) as any, f.op)
-      } catch (e) { buildWarnings.push('齿条生成失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('齒條生成失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'pulley') {
       // V-belt pulley: half cross-section (radial×axial) with a V-groove on the rim + centre bore,
       // revolved 360° about Z. Profile starts at the bore radius → the bore is built in (no extra cut).
@@ -6111,7 +6111,7 @@ function buildShape(features: Feature[], noCache = false): any {
         const pts: [number, number][] = [[rb, 0], [R, 0], [R, gz0], [R - depth, W / 2], [R, gz1], [R, W], [rb, W]]
         let pen = draw(pts[0]); for (let i = 1; i < pts.length; i++) pen = pen.lineTo(pts[i])
         merge((pen.close().sketchOnPlane('XZ').revolve([0, 0, 1]) as any), f.op)
-      } catch (e) { buildWarnings.push('带轮生成失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('帶輪生成失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'scale' && shape) {
       const sx = f.sx ?? 0, sy = f.sy ?? 0, sz = f.sz ?? 0
       // P2：缩放基准点 px/py/pz（Fusion Point）— 缺省 0,0,0 = 世界原点 = 旧档逐字节回放
@@ -6276,7 +6276,7 @@ function buildShape(features: Feature[], noCache = false): any {
           try { const bb = (shape as any).boundingBox.bounds as [number[], number[]]; bbDiag = Math.hypot(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]) } catch { /* 无 bbox → 不闸 */ }
           const drift = Math.sqrt(Math.max(0, bestD))
           if (bbDiag > 0 && drift > Math.max(bbDiag * 0.03, 0.5)) {
-            buildWarnings.push(`按拉：拾取点离最近面 ${drift.toFixed(1)}mm（超模型 ${(bbDiag * 0.03).toFixed(1)}mm 阈值）— 疑上游编辑后漂移，已跳过免推错面`)
+            buildWarnings.push(`按拉：拾取點離最近面 ${drift.toFixed(1)}mm（超模型 ${(bbDiag * 0.03).toFixed(1)}mm 閾值）— 疑上游編輯後漂移，已跳過免推錯面`)
             bestF = null
           }
         }
@@ -6307,21 +6307,21 @@ function buildShape(features: Feature[], noCache = false): any {
                 if (concave) {
                   if (dist < 0) shape = shape.cut(cyl(r + Math.abs(dist)))   // 孔变大
                   else {
-                    if (r - dist <= 0.2) throw new Error('孔会变到无（半径剩 ≤0.2）— 减少距离')
+                    if (r - dist <= 0.2) throw new Error('孔會變到無（半徑剩 ≤0.2）— 減少距離')
                     shape = shape.fuse(cyl(r + 0.05)).cut(cyl(r - dist))     // 孔变细：先填实（微过盈防共面）再重钻
                   }
                 } else {
                   if (dist > 0) shape = shape.fuse(cyl(r + dist))            // 凸台变粗
                   else {
-                    if (r - Math.abs(dist) <= 0.2) throw new Error('柱会变到无（半径剩 ≤0.2）— 减少距离')
+                    if (r - Math.abs(dist) <= 0.2) throw new Error('柱會變到無（半徑剩 ≤0.2）— 減少距離')
                     shape = shape.cut(cyl(r + 0.5).cut(cyl(r - Math.abs(dist))))   // 变幼：环形刀
                   }
                 }
                 did = true
               } else {
-                buildWarnings.push('非直立/局部圆柱面（圆角/横置/弧面）— 按旧方式平推（不会改半径）')
+                buildWarnings.push('非直立／局部圓柱面（圓角／橫置／弧面）— 按舊方式平推（不會改半徑）')
               }
-            } catch (e2) { buildWarnings.push('圆柱按拉失败：' + ((e2 as any)?.message || e2)); did = true }
+            } catch (e2) { buildWarnings.push('圓柱按拉失敗：' + ((e2 as any)?.message || e2)); did = true }
           }
           if (!did) {
             // GM-γ2b：平面按拉 = 单次 fuse/cut（prism 工具体）→ 录供 S2。⚠ 圆柱变半径路径（上面 did=true）系
@@ -6591,12 +6591,12 @@ function buildShape(features: Feature[], noCache = false): any {
         const active = keepLo ? partLo : partHi
         const parkedHalf = keepLo ? partHi : partLo
         if (!active || active.wrapped?.IsNull?.() || !parkedHalf || parkedHalf.wrapped?.IsNull?.()) {
-          buildWarnings.push('⚠ 分割：平面没穿过实体 — 已保持原样')
+          buildWarnings.push('⚠ 分割：平面沒穿過實體 — 已保持原樣')
         } else {
           shape = active
           parkedBodies.push({ name: (keepLo ? f.nameB : f.nameA) || `分割${parkedBodies.length + 1}`, shape: parkedHalf })
         }
-      } catch (e) { buildWarnings.push('分割失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('分割失敗：' + ((e as any)?.message || e)) }
     }
     // 审计修复：移除型特征（cut/intersect 拉伸·旋转 / bodyboolean / 分割）把实体完全切空（vol≈0 但 IsNull=false，唔抛错）
     // → 空体静默往后传、后续特征连锁失效、几何静默丢失。喺此验体积：切空 → 回滚 _shapeBefore + 标 failed（同 S107 口径）。SO04 含 revolve intersect。

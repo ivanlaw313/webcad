@@ -36,7 +36,7 @@ const CBTN: { k: ConstraintKind; label: string; title: string }[] = [
   { k: 'coordx', label: 'X坐标', title: '锁定点的 X 坐标（选 1 点，可双击改/绑参）' },
   { k: 'coordy', label: 'Y坐标', title: '锁定点的 Y 坐标（选 1 点，可双击改/绑参）' },
   { k: 'cdist', label: '孔距', title: '两圆中心距尺寸（选 2 圆，可双击改/绑参）' },
-  { k: 'collinear', label: '共线', title: '两条线共线（在同一直线上，选 2 线）' },
+  { k: 'collinear', label: '共線', title: '两条线共線（在同一直线上，选 2 线）' },
   { k: 'fix', label: '固定', title: '固定/取消固定 點' },
   { k: 'distance', label: '⟺尺寸', title: '距離尺寸（兩點或一條線）' },
   { k: 'radius', label: '⌀半徑', title: '圓半徑尺寸' },

@@ -216,7 +216,7 @@ class HdriErrorBoundary extends Component<EBProps, EBState> {
     return { failed: true }
   }
   componentDidCatch(err: unknown) {
-    console.warn('[HdriEnvironment] HDRI 加载/应用失败，已 fallback 程序化天空：', err)
+    console.warn('[HdriEnvironment] HDRI 加載／應用失敗，已 fallback 程序化天空：', err)
     this.props.onError?.(err)
   }
   componentDidUpdate(prev: EBProps) {

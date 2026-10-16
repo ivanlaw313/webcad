@@ -130,7 +130,7 @@ export function PathTraceLayer() {
       restoreEnv()
       try { tracer.dispose() } catch { /* ignore */ }
       pt.current = null
-      useApp.setState({ rtMode: false, status: '⚠ 画布内光追启动失败（场景含追踪器不支持的材质）— 已退出' })
+      useApp.setState({ rtMode: false, status: '⚠ 畫布內光追啟動失敗（場景含追蹤器不支持的材質）— 已退出' })
       return
     }
 

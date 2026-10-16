@@ -933,3 +933,8 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .cmd-palette-body label { gap: 8px; }
 .cmd-palette-foot { padding: 10px 14px; gap: 8px; }
 .panel-label { padding-top: 2px; letter-spacing: 0.02em; }
+
+/* FISHING41: Fusion-like combine/split tool checklist rhythm */
+.cmd-palette-body label:has(input[type=checkbox]) { gap: 8px; margin: 1px 0; }
+.cmd-palette-body [data-testid="combine-need-newbody"],
+.cmd-palette-body [data-testid="combine-edit-note"] { line-height: 1.45; letter-spacing: 0.01em; }

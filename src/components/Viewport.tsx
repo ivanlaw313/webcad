@@ -960,7 +960,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
               const st = useApp.getState()
               st.toggleEdgeRoundPick('fillet')   // 互斥切换：清 pushPullMode + 武装圆角选边
               st.roundEdgeAt([e.point.x, e.point.y, e.point.z])
-              useApp.setState({ status: '按拉 → 圓角：點中了一條棱（語義）— 可繼續點棱/設半徑，按「確定」' })
+              useApp.setState({ status: '按拉 → 圓角：點中了一條稜（語義）— 可繼續點棱/設半徑，按「確定」' })
               return
             }
           }
@@ -4334,7 +4334,7 @@ export default function Viewport() {
   const numericInvalid = useApp((s) => s.numericInvalid)
   const numBad = Object.values(numericInvalid)[0] ?? ''
   const cancelFeatDlg = useApp((s) => s.cancelFeatDlg)
-  const cpSelFeat = useApp((s) => s.selectedFeature)   // T757：環形阵列「所选特征」对象提示
+  const cpSelFeat = useApp((s) => s.selectedFeature)   // T757：環形阵列「所選特徵」对象提示
   const facePatternPicks = useApp((s) => s.facePatternPicks)
   const facePatternPick = useApp((s) => s.facePatternPick)
   const cpSelCompCount = useApp((s) => s.checkedComps.length || (s.selectedComponent ? 1 : 0))
@@ -5808,7 +5808,7 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>{tStatus('加厚', lang)}</span>
             <span><LenInput mm={surfBridgeThick} onMm={(v) => useApp.getState().setSurfBridgeThick(v)} unit={unit} w={66} min={0} title="橋接厚度" /> {unit === 'inch' ? 'in' : unit}</span>
           </label>
-          <div style={{ fontSize: 11, color: '#8a97a2', marginTop: 4 }}>{tStatus('對稱 C1 光滑過渡（兩棱方向要大致同向）；結果另存為獨立曲面體', lang)}</div>
+          <div style={{ fontSize: 11, color: '#8a97a2', marginTop: 4 }}>{tStatus('對稱 C1 光滑過渡（兩稜方向要大致同向）；結果另存為獨立曲面體', lang)}</div>
         </CommandDialog>
       )}
 
@@ -6932,7 +6932,7 @@ export default function Viewport() {
           )}
           {holeType === 'tapped' && (<>
             <label style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 4, fontSize: 12, marginBottom: 4, color: '#6b7680' }} title="細牙（ISO 262 fine）：螺距更細、牙更淺，底孔更大；用於薄壁件/精密調整。關=粗牙（標準）">
-              <input type="checkbox" checked={holeFinePitch} onChange={(e) => setHoleFinePitch(e.target.checked)} /> 细牙 fine pitch（薄壁/精調）
+              <input type="checkbox" checked={holeFinePitch} onChange={(e) => setHoleFinePitch(e.target.checked)} /> 細牙 fine pitch（薄壁/精調）
             </label>
             <label style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 4, fontSize: 12, marginBottom: 8, color: '#6b7680' }} title="建模螺紋：切出真螺旋牙幾何（3D 打印直接有牙）。結果是 compound — 之後不要再倒角/導 STEP，STL 正常。關=只鑽攻絲底孔（省料，實物自己攻牙）">
               <input type="checkbox" checked={holeTapModeled} onChange={(e) => useApp.getState().setHoleTapModeled(e.target.checked)} /> 建模螺纹 modeled（真螺旋牙）
@@ -7039,7 +7039,7 @@ export default function Viewport() {
 
       {laserDlg && (
         <CommandDialog icon="default" title="激光切割參數" onOk={() => { useApp.getState().exportLaserGcode(useApp.getState().laserOpts); useApp.getState().closeLaserDlg() }} onCancel={() => useApp.getState().closeLaserDlg()}>
-          <label title="材料預設（10W 級二极管激光 GRBL 起步參考值 — 每部機/每批料都不同，務必在廢料試切校準！透明亞克力二极管無法切割，要黑色/深色）">預設 <select defaultValue="" onChange={(e) => {
+          <label title="材料預設（10W 級二極管激光 GRBL 起步參考值 — 每部機/每批料都不同，務必在廢料試切校準！透明亞克力二极管無法切割，要黑色/深色）">預設 <select defaultValue="" onChange={(e) => {
             const P: Record<string, { feed: number; power: number; passes: number; kerf: number }> = {
               ply3: { feed: 240, power: 1000, passes: 3, kerf: 0.15 }, ply5: { feed: 160, power: 1000, passes: 5, kerf: 0.18 },
               acr3: { feed: 140, power: 1000, passes: 4, kerf: 0.2 }, card: { feed: 800, power: 550, passes: 1, kerf: 0.08 },
@@ -7147,7 +7147,7 @@ export default function Viewport() {
             </>
           })()}
           {featDlg.kind === 'pattern' && (<>
-            {/* GM-3DV1 S3：对象类型（Fusion Object Type）— 整个实体/所选特征已实现；面/组件 v1 诚实拒绝 */}
+            {/* GM-3DV1 S3：对象类型（Fusion Object Type）— 整个实体/所選特徵已实现；面/组件 v1 诚实拒绝 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
               <span>{tStatus('對象', lang)}</span>
               {String(featDlg.params.objectType ?? 'bodies') === 'features'
@@ -7298,7 +7298,7 @@ export default function Viewport() {
               {featDlg.params.extent === 'distance' && <label>{tStatus('高度', lang)} <FeatNum k="height" v={featDlg.params.height} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>}
               <label title={tStatus('拔模角°：筋身向遠端逐漸收窄（注塑/衝壓脫模）', lang)}>{tStatus('拔模角', lang)} <FeatNum k="draft" v={featDlg.params.draft} w={50} />°</label>
               <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('翻轉筋擠出方向（up↔down）', lang)}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} /> {tStatus('翻轉方向', lang)}</label>
-              {isWeb && <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('延伸曲線：把開放折線端點外延到實體牆面，令交叉/近牆筋網自動閉合', lang)}><input type="checkbox" checked={!!+(featDlg.params.extend || 0)} onChange={(e) => setFeatParam('extend', e.target.checked ? 1 : 0)} /> {tStatus('延伸曲线到墙', lang)}</label>}
+              {isWeb && <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('延伸曲線：把開放折線端點外延到實體牆面，令交叉/近牆筋網自動閉合', lang)}><input type="checkbox" checked={!!+(featDlg.params.extend || 0)} onChange={(e) => setFeatParam('extend', e.target.checked ? 1 : 0)} /> {tStatus('延伸曲線到牆', lang)}</label>}
             </>)
           })()}
           {/* GM-3DV1 S9：Pipe 建立对话框 — 截面/尺寸/空心壁厚/距离/操作 */}
@@ -7340,7 +7340,7 @@ export default function Viewport() {
           {featDlg.kind === 'boundaryfill' && (<>
             <div style={{ fontSize: 11, color: '#6b7680', margin: '2px 0' }}>{tStatus('當前版本：兩個封閉實體的真實 B-rep cell 分割。多工具、曲面／平面工具及任意多 cell 選擇尚未提供。', lang)}</div>
             <label>{tStatus('工具實體', lang)} <select value={String(featDlg.params.target ?? 0)} onChange={(e) => setFeatParam('target', Number(e.target.value))} style={{ height: 26 }}>{(bodyMesh?.parked ?? []).map((b, i) => <option key={i} value={i}>{b.name || (tStatus('實體', lang) + (i + 1))}</option>)}</select></label>
-            <label title={tStatus('把兩實體空間切成三個不重疊體積；所選 cell 成為活動實體，其余有效 cell 保留為灰顯獨立實體。', lang)}>{tStatus('保留 cell', lang)} <select value={String(featDlg.params.cell ?? 'overlap')} onChange={(e) => setFeatParam('cell', e.target.value)} style={{ height: 26 }}><option value="target">{tStatus('目標獨有（目標 − 工具）', lang)}</option><option value="overlap">{tStatus('交集（目標 ∩ 工具）', lang)}</option><option value="tool">{tStatus('工具獨有（工具 − 目標）', lang)}</option></select></label>
+            <label title={tStatus('把兩實體空間切成三個不重疊體積；所選 cell 成為活動實體，其餘有效 cell 保留為灰顯獨立實體。', lang)}>{tStatus('保留 cell', lang)} <select value={String(featDlg.params.cell ?? 'overlap')} onChange={(e) => setFeatParam('cell', e.target.value)} style={{ height: 26 }}><option value="target">{tStatus('目標獨有（目標 − 工具）', lang)}</option><option value="overlap">{tStatus('交集（目標 ∩ 工具）', lang)}</option><option value="tool">{tStatus('工具獨有（工具 − 目標）', lang)}</option></select></label>
           </>)}
           {featDlg.kind === 'scale' && (<>
             <label title={tStatus('均勻縮放比例', lang)}>{tStatus('比例', lang)} <FeatNum k="factor" v={featDlg.params.factor} w={56} /> ×</label>
@@ -8974,7 +8974,7 @@ export default function Viewport() {
           </>)}
           {measureEdgeMode && (<>
             <div style={{ fontWeight: 700, color: '#7fd1b9', marginBottom: 6 }}>{tStatus('📐 量邊 / 孔徑', lang)}</div>
-            <div style={{ fontSize: 14, lineHeight: 1.4 }}>{measureEdgeInfo || tStatus('點實體的一條棱（圓孔棱顯示 Ø）', lang)}</div>
+            <div style={{ fontSize: 14, lineHeight: 1.4 }}>{measureEdgeInfo || tStatus('點實體的一條稜（圓孔棱顯示 Ø）', lang)}</div>
           </>)}
           {measureFaceMode && (<>
             <div style={{ fontWeight: 700, color: '#7fd1b9', marginBottom: 6 }}>{tStatus('▦ 量面', lang)}</div>
@@ -9795,15 +9795,15 @@ function FormPanel() {
           <input type="number" step={1} value={extD} onChange={(e) => setExtD(Number(e.target.value))} style={{ width: 46 }} />mm
           <button className="cs-btn" title={tStatus('外推（凸出/抽肢）', lang)} onClick={() => void useApp.getState().formExtrudeFace(Math.abs(extD) || 5)}>{tStatus('外推▲', lang)}</button>
           <button className="cs-btn" title={tStatus('内压（凹入/孔）', lang)} onClick={() => void useApp.getState().formExtrudeFace(-(Math.abs(extD) || 5))}>{tStatus('内压▼', lang)}</button>
-          {/* S172：折痕 / Crease — 折硬选中面 4 条边界边（二元无限锐），细分时棱角企硬唔被磨圆；再撳取消 */}
-          <button className="cs-btn" title={tStatus('折痕 Crease：折硬此面 4 条边界边（细分时棱角企硬，做凸台/筋/硬边）。再按取消。', lang)} onClick={() => useApp.getState().formCrease()}>{tStatus('◣ 折痕', lang)}</button>
+          {/* S172：折痕 / Crease — 折硬选中面 4 条边界边（二元无限锐），细分时稜角企硬唔被磨圆；再撳取消 */}
+          <button className="cs-btn" title={tStatus('折痕 Crease：折硬此面 4 条边界边（细分时稜角企硬，做凸台/筋/硬边）。再按取消。', lang)} onClick={() => useApp.getState().formCrease()}>{tStatus('◣ 折痕', lang)}</button>
           {/* S180：插入边线环（Fusion Insert Edge Loop）— 两个方向（↔ 切 0/2 对边、↕ 切 1/3 对边），环绕笼加一圈细分密度 */}
           <button className="cs-btn" title={tStatus('插入边线环（横向）：沿此面一对边方向环绕笼加一圈边线，增加局部细分密度；平滑外形可能改变。', lang)} onClick={() => void useApp.getState().formInsertLoop(0)}>{tStatus('⊞环↔', lang)}</button>
           <button className="cs-btn" title={tStatus('插入边线环（纵向）：沿此面另一对边方向环绕笼加一圈边线。', lang)} onClick={() => void useApp.getState().formInsertLoop(1)}>{tStatus('⊞环↕', lang)}</button>
         </span>
       )}
       {cage.creases.length > 0 && <span style={{ color: '#c0392b', fontWeight: 600 }} title={tStatus('当前折痕（锐边）数', lang)}>◣ {new Set(cage.creases.map(([a, b]) => (a < b ? a : b) + '_' + (a < b ? b : a))).size}</span>}
-      {cage.creases.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6b7680' }} title={tStatus('折痕软硬（semi-sharp crease）：1=硬棱角（旧二元锐），拖细 = 软棱 / 倒角感渐变（车身板/有机硬边过渡）。即时预览。', lang)}>
+      {cage.creases.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6b7680' }} title={tStatus('折痕软硬（semi-sharp crease）：1=硬稜角（旧二元锐），拖细 = 软棱 / 倒角感渐变（车身板/有机硬边过渡）。即时预览。', lang)}>
         <span>软硬</span>
         <input aria-label="接地阴影深浅" type="range" min={0.05} max={1} step={0.05} value={cage.creaseSoft ?? 1} onChange={(e) => useApp.getState().setFormCreaseSoft(Number(e.target.value))} style={{ width: 64, accentColor: '#c0392b' }} />
         <span style={{ minWidth: 30, whiteSpace: 'nowrap', flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(cage.creaseSoft ?? 1).toFixed(2)}</span>

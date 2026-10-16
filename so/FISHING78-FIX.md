@@ -5,7 +5,7 @@
 **Product fix:** `ecbb202`  
 **more41 soft-prep:** **none** (absent — defer F79)  
 **Base:** tip `4b5626f` (FISHING77 live)  
-**Tip:** (after FF docs — see remotes)
+**Tip:** `682e7c969abe8e328a5a28d9a3b79091114ffcec`
 
 ## Scan
 

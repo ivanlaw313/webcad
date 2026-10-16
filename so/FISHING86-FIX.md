@@ -5,7 +5,7 @@
 F81 recheck crash was stale-tab 404 `WindTunnelGpu-Cn07ATH9.js` → `reading 'default'`. Live chunk already 200 on tip; guard prevents Viewport ErrorBoundary on future cut/stale tabs.
 
 ## Live after cut
-- Tip: `a08c8fc401a04d1ece357b801f588cdd50998929` (fix/fishing86-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `7fdb2869b6b727e4a276bd7a3cf1ab5aebbac104` (fix/fishing86-behavior-ux → FF fix/sketch-face-copy)
 - Stamp: `v2.20-20261016-233223`
 - Bundle: `index-BdZ38Vhs-r2.js` (md5 `abd86b12fe6e0417d2be9dfe31622e3e`)
 - Bak: `index-lwNuJHc--r2.js` / `v2.20-20261016-232559` (kept)

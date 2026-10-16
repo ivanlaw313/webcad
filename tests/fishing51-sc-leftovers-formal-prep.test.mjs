@@ -386,8 +386,9 @@ test("Formal TC: gates name: '潜伏式' → '潛伏式'", (t) => {
   softRefuse(t, gates, "name: '潜伏式'", "name: '潛伏式'", 'gateTypes')
 })
 
-test("Formal TC: gates name: '直接/主流道' → '直接/主流道'", (t) => {
-  softRefuse(t, gates, "name: '直接/主流道'", "name: '直接/主流道'", 'gateTypes')
+test("Formal TC: gates name: '直接/主流道' (SC≡TC — hard pin)", () => {
+  // No SC/TC glyph delta; softRefuse would forever skip. Harden as presence pin.
+  assert.match(gates, /name: '直接\/主流道'/)
 })
 
 // ── soft: feacsv ─────────────────────────────────────────────────
@@ -460,8 +461,9 @@ test('Formal TC: fea 固定节点不足 → 固定節點不足', (t) => {
 
 // ── soft: resultValidity ─────────────────────────────────────────
 
-test('Formal TC: sim 仿真结果已失效 → 仿真結果已失效', (t) => {
-  softRefuse(t, sim, '仿真结果已失效', '仿真結果已失效', 'resultValidity')
+test('Formal TC: sim 仿真结果已失效 → 模擬結果已失效', (t) => {
+  // sc2tcHK maps 仿真→模擬 (HK Formal); pin the converted form
+  softRefuse(t, sim, '仿真结果已失效', '模擬結果已失效', 'resultValidity')
 })
 
 test('Formal TC: sim 结果已失效 — 约束或几何已改 → 結果已失效', (t) => {

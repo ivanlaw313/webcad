@@ -6,7 +6,7 @@ Cherry **more45** CORE16 sample (`c7d7ebd2` → `f5556d47`) before nginx.
 No bare lazy left; more46 NOT cherry.
 
 ## Live after cut
-- Tip: `83f8f8504e12fe78d2dd5fbdef3e9dc515f15446` (fix/fishing90-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `e620eebc49780dba6a154b138660c39fadc3ebb0` (fix/fishing90-behavior-ux → FF fix/sketch-face-copy)
 - Product: `709e871744e0f0e7a43bcd71d7f283d6a8a11eeb` zhCNLabels 脱模可达性 Formal leftover
 - more45 cherry: `f5556d4766856537eb74b9873d3435e2f768bc03` (from `c7d7ebd2` on test/unit-core16-more45)
 - Stamp: `v2.20-20261017-000425`

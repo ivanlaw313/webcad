@@ -7998,7 +7998,7 @@ export default function Viewport() {
           {loftSections.length >= 2 && <button className="sb-tool" title={tStatus('放樣導軌（可選）：在 XY 草圖畫一條連接各截面的折線（每個截面一點，點數 = 截面數）→ 按此記低；放樣時截面會水平平移去掂導軌點', lang)} onClick={() => useApp.getState().bankLoftRail()}>{tStatus('⤳放樣導軌', lang)}</button>}
           {loftSections.length > 0 && <span className="sb-hint">{tStatus('放樣截面', lang)} {loftSections.length}</span>}
           {loftSections.length >= 2 && <button className="sb-tool sb-finish" title={tStatus('在各截面之間放樣：彈面板設 操作（加料/切割）+ 截面預覽', lang)} onClick={() => openLoftDlg()}>{tStatus('放樣', lang)}{loftSections.length}{tStatus('截面…', lang)}</button>}
-          {sketchPlane === 'XY' && ((sketchShape && sketchShape.type === 'poly') || polyPts.length >= 2) && <button className="sb-tool" title={tStatus('把當前折線/樣條作為路徑掃掠：彈面板設 管徑 + 操作（加料/切割）', lang)} onClick={() => openSweepDlg()}>{tStatus('沿路徑掃掠…', lang)}</button>}
+          {!sketchArb && ((sketchShape && sketchShape.type === 'poly') || polyPts.length >= 2) && <button className="sb-tool" title={tStatus('把當前折線/樣條作為路徑掃掠：彈面板設 管徑 + 操作（加料/切割）', lang)} onClick={() => openSweepDlg()}>{tStatus('沿路徑掃掠…', lang)}</button>}
           {(sketchShape || sketchProfiles.length === 1) && (
             <button className="sb-tool" title={tStatus('陣列：底欄面板設 矩形/環形 參數，實時預覽 → 應用（例如一個孔陣成一片孔）', lang)} onClick={() => useApp.getState().runCommand('sk_array', '陣列')}>{tStatus('▦ 陣列', lang)}</button>
           )}

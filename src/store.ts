@@ -12210,7 +12210,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   faceMateOneShot: false,
   startFaceMate: (oneShot?: boolean) => set({ faceMateMode: true, faceMatePick: null, faceMatePointPick: null, compMateFrom: null, faceMateOneShot: !!oneShot, selectedComponent: null, selectedComponentBody: null, status: oneShot
     ? '對齊：點【基準面】再點【要移動件】的面（平面貼平 / 圓柱同軸）；或按住 Shift 點兩個實體點作精確點對點對齊。一次性，不記錄配合。'
-    : '選面配合：先點【基準件】一個面（平面 或 圓柱孔/軸），再點【要移動件】對應面 → 平面對平面貼平 / 圓柱對圓柱同軸' }),
+    : '面貼合：先點【基準件】一個面（平面 或 圓柱孔/軸），再點【要移動件】對應面 → 平面對平面貼平 / 圓柱對圓柱同軸' }),
   cancelFaceMate: () => set({ faceMateMode: false, faceMatePick: null, faceMatePointPick: null, selectedComponent: null, selectedComponentBody: null, status: '已退出選面配合' }),
   pickFaceForMate: (compId, face) => { const _nm = get().mates.length; set((s) => {
     if (!s.faceMatePick) { const kindLbl = face.kind === 'cyl' ? '圓柱面（同軸）' : '平面（貼平）'; return { faceMatePick: { compId, face }, status: `已選基準${kindLbl}，再點【要移動件】對應面` } }
@@ -12275,7 +12275,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // JOINT #3（Fusion Joint）：第一拣 = 要郁嘅組件（子件），第二拣 = 佢接去邊（父件，唔郁）。
     // 第一拣嘅件係固定（Ground）而第二件唔係 → 自動對調角色（唔再拒絕「已固定，唔可以做關節子件」）。
     if (!s.jointPick) {
-      const kindLbl = face.kind === 'cyl' ? '圓柱面（同軸 → 旋轉／滑動關節）' : '平面（貼平 → 剛性／平面關節）'
+      const kindLbl = face.kind === 'cyl' ? '圓柱面（同軸 → 轉動／滑動關節）' : '平面（貼平 → 剛性／平面關節）'
       const gNote = isCompGrounded(s, compId) ? '（此組件已固定 — 將自動作為父件，另一組件作為移動件）' : ''
       set({ jointPick: { compId, face }, status: `已選移動件的${kindLbl}${gNote}，請再點選【其連接的組件（父件）】對應面（圓柱或平面皆可 — 圓柱↔平面＝軸穿面心）` })
       return
@@ -14490,7 +14490,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const inLoop = loops.some((lp) => lp.joints.some((j) => j.id === id))
       if (inLoop) {
         const lp = loops.find((l) => l.joints.some((j) => j.id === id))!
-        if (!lp.cut) return { status: '⚠ 此回路沒有可剪開的旋轉關節 — 暫不支援純滑動閉環' }
+        if (!lp.cut) return { status: '⚠ 此回路沒有可剪開的轉動關節 — 暫不支援純滑動閉環' }
         if (!loopPlane(lp)) return { status: '⚠ 閉環只支援平面機構（回路內轉軸互相平行）— 此回路並非平面機構，未求解' }
         const sol = solveLoop(s.joints, s.components.map((c) => c.id), id, { angle: patch.angle, slide: patch.slide })
         if (!sol) return { status: '⚠ 機構已到死點／目標不可達／觸及限位 — 保持上一個可解位置' }

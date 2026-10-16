@@ -63,3 +63,21 @@ test('FISHING60 MATERIALS / DENSITY_PREF stay SC', () => {
   assert.match(st, /DENSITY_PREF = \['钢', '铝', '黄铜'/)
   assert.match(st, /material: '钢'/)
 })
+
+test('FISHING60 P1 ASSEMBLE 關節 tip Formal 轉動 not 旋轉', () => {
+  const hk = read('src/i18n/locales/zh-HK.ts')
+  assert.match(hk, /"tip\.joint": "關節：組件之間建立運動關節（轉動\/滑動\/剛性等）。"/)
+  assert.doesNotMatch(hk, /tip\.joint.*旋轉\/滑動/)
+})
+
+test('FISHING60 optional 選面配合 status header → 面貼合', () => {
+  const st = read('src/store.ts')
+  assert.match(st, /'面貼合：先點【基準件】一個面/)
+  assert.doesNotMatch(st, /'選面配合：先點【基準件】一個面/)
+})
+
+test('FISHING60 P1 joint pick cyl status 轉動／滑動關節 not 旋轉', () => {
+  const st = read('src/store.ts')
+  assert.match(st, /同軸 → 轉動／滑動關節/)
+  assert.doesNotMatch(st, /同軸 → 旋轉／滑動關節/)
+})

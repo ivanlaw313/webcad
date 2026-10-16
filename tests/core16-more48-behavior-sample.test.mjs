@@ -98,16 +98,20 @@ test('always-hard: FISHING88 lazySafe panel chunks + draft Formal 无法开模�
   assert.match(vp, /倒扣（無法開模）/)
 })
 
-test('always-hard: FISHING91 ja Formal 離型到達性 (≠ more47 F90 zhCN 脱模可达性)', () => {
+test('always-hard: FISHING91 ja Formal 離型到達性 + F92 ja locale (≠ more47 F90 zhCN 脱模可达性)', () => {
+  // Soft-prep more48 pinned F91 tip (ja locale still アクセス解析). F92 tip already
+  // renamed cmd/tool → 離型到達性; keep jaLabels F91 pin + F92 locale pin on F93.
   const jaLabels = rd('src/i18n/jaLabels.ts')
   const jaLoc = rd('src/i18n/locales/ja.ts')
   assert.match(jaLabels, /"可达性分析": "離型到達性"/)
   assert.match(jaLabels, /"可達性分析": "離型到達性"/)
-  assert.match(jaLoc, /"cmd.accessanalysis": "アクセス解析"/)
-  assert.match(jaLoc, /"tool.accessanalysis": "アクセス解析"/)
+  assert.match(jaLoc, /"cmd.accessanalysis": "離型到達性"/)
+  assert.match(jaLoc, /"tool.accessanalysis": "離型到達性"/)
+  assert.match(jaLoc, /"alias.accessanalysis": "[^"]*離型到達性[^"]*"/)
   assert.doesNotMatch(jaLabels, /"可达性分析": "脱模可达性"/)
   assert.doesNotMatch(jaLabels, /"可达性分析": "可達性分析"/)
-  assert.doesNotMatch(jaLoc, /"tool.accessanalysis": "離型到達性"/)
+  assert.doesNotMatch(jaLoc, /"cmd.accessanalysis": "アクセス解析"/)
+  assert.doesNotMatch(jaLoc, /"tool.accessanalysis": "アクセス解析"/)
 })
 
 // ── offsetsolid no-solid (≠ more43 offsetsolid dist 0) ──

@@ -1,5 +1,5 @@
 /**
- * BOT-D more34 / FISHING55 prep — CORE16 true behavior sample on tip f86e16b.
+ * FISHING55: CORE16 true behavior sample (cherry-pick BOT-D more34 2da0543; Formal soft pins 0).
  * Complements smoke-21 / existing core16-* without duplicating those files.
  * Focus: prim cut volume sanity + measureVolume after revolve/sweep refuse paths.
  * Always-hard: MATERIALS SC keep + FISHING54 Formal regressions (太陽輪 / 精確布爾 / 長L / 建立長方體).

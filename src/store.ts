@@ -20763,10 +20763,20 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
 
   openDxfDialog: () => {
+    // FISHING55: mount <input> on body (same as openProject / openStepComponentDialog).
+    // Detached inp.click() can silently fail to open the chooser in some Chromium hosts —
+    // F52 recheck: 匯入DXF icon click did not open a chooser.
+    if (typeof document === 'undefined') { set({ status: '此環境無法開啟檔案選取器' }); return }
     const inp = document.createElement('input')
     inp.type = 'file'; inp.accept = '.dxf'
+    const host = (document as Document).body as HTMLElement | undefined
+    if (inp.style) { inp.style.position = 'fixed'; inp.style.left = '-9999px'; inp.style.opacity = '0' }
+    if (host?.appendChild) host.appendChild(inp)
+    const cleanup = () => { try { inp.remove?.() } catch { /* already gone */ } }
     inp.onchange = async () => {
-      const f = inp.files?.[0]; if (!f) return
+      const f = inp.files?.[0]
+      cleanup()
+      if (!f) return
       const bytes = f.size || 0
       const reject = rejectDxfImport(bytes)
       if (reject) { set({ status: reject }); return }
@@ -20803,6 +20813,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         set({ busy: false, status: 'DXF 解析失敗：' + ((e as Error)?.message || e) })
       }
     }
+    inp.addEventListener?.('cancel', () => { cleanup() })
     inp.click()
   },
 
@@ -24239,9 +24250,21 @@ export const useApp = create<AppState>((rawSet, get) => {
     await get().importProfiles2D(classifyProfiles(profiles), `已導入 SVG：${note}`, skipped, height, opt)
   },
   openSvgDialog: () => {
+    // FISHING55: mount <input> on body — parity with openDxfDialog / openProject (chooser must open).
+    if (typeof document === 'undefined') { set({ status: '此環境無法開啟檔案選取器' }); return }
     const inp = document.createElement('input')
     inp.type = 'file'; inp.accept = '.svg'
-    inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; get().openInsertVec('svg', await f.text(), []) }   // GM-X3 #7：开对话框（平面/Z角/缩放/入草图源）
+    const host = (document as Document).body as HTMLElement | undefined
+    if (inp.style) { inp.style.position = 'fixed'; inp.style.left = '-9999px'; inp.style.opacity = '0' }
+    if (host?.appendChild) host.appendChild(inp)
+    const cleanup = () => { try { inp.remove?.() } catch { /* already gone */ } }
+    inp.onchange = async () => {
+      const f = inp.files?.[0]
+      cleanup()
+      if (!f) return
+      get().openInsertVec('svg', await f.text(), [])   // GM-X3 #7：开对话框（平面/Z角/缩放/入草图源）
+    }
+    inp.addEventListener?.('cancel', () => { cleanup() })
     inp.click()
   },
   // GM-X3 #7/#8：矢量导入对话框 —— 平面 / Z角 / 缩放 / (DXF)单位 / 逐层包含 / 入草图源。

@@ -5,7 +5,7 @@
 **Product fix:** `0d9a76a5a7ddd876f033e04896eaff30106b791d`  
 **more32 soft-prep:** `4f75c3946106ca0428e0bfcb3f311abde5959b89` (cherry-pick `2fcb480`)  
 **Base:** tip `e66fe1f` (FISHING51 live)  
-**Tip:** _(filled after docs tip commit)_
+**Tip:** `3c280987b2bb9a6e6ac133641ffd42c3e4717fcd`
 
 ## Scan
 

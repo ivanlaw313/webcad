@@ -5,15 +5,18 @@ import { readFileSync } from 'node:fs'
 
 const src = (p) => readFileSync(new URL(`../src/${p}`, import.meta.url), 'utf8')
 
-test('setChamferMode(two) enables 雙距離 and clears selection (Fusion type transition)', () => {
+test('setChamferMode(two) enables 雙距離 and keeps edge selection (FISHING32)', () => {
   const store = src('store.ts')
   assert.doesNotMatch(store, /雙距離倒角暫未支援|雙距離暫未支援/)
   const start = store.indexOf('  setChamferMode: (m) =>')
   assert.ok(start > 0)
   const scm = store.slice(start, store.indexOf('  setChamferSize2:', start))
   assert.match(scm, /chamferMode: m/)
-  assert.match(scm, /雙距離：請重新選取稜/)
-  assert.match(scm, /edgeRoundPicks:\s*\[\]/)
+  assert.match(scm, /已改為雙距離（保留已選稜）/)
+  assert.doesNotMatch(scm, /請重新選取稜/)
+  // Must NOT clear edge picks on type switch
+  assert.doesNotMatch(scm, /edgeRoundPicks:\s*\[\]/)
+  assert.match(scm, /scheduleRoundPreview\(\)/)
   // commit requires dist2 > 0 — never a blanket refuse of mode two
   assert.match(store, /if \(kind === 'chamfer' && get\(\)\.chamferMode === 'two' && !\(get\(\)\.chamferSize2 > 0\)\) \{ set\(\{ status: '雙距離：距離 2 必須大於 0'/)
   assert.doesNotMatch(store, /if \(kind === 'chamfer' && get\(\)\.chamferMode === 'two'\) \{ set\(\{ status: '雙距離倒角暫未支援/)

@@ -99,7 +99,10 @@ test('Fillet and Chamfer expose the native type fields and reject zero size', ()
 
 test('Chamfer type transitions follow the measured Fusion selection and validation state machine', () => {
   assert.match(store, /chamferSize2:\s*0,/)
-  assert.match(store, /setChamferMode:\s*\(m\)\s*=>\s*set\(\{[\s\S]*?edgeRoundPicks:\s*\[\],[\s\S]*?edgeRoundPickLines:\s*\[\],[\s\S]*?roundPreviewMesh:\s*null/)
+  // FISHING32: type switch keeps picks; still clears preview + schedules re-preview
+  assert.match(store, /setChamferMode:\s*\(m\)\s*=>\s*\{[\s\S]*?roundPreviewMesh:\s*null[\s\S]*?scheduleRoundPreview\(\)/)
+  assert.match(store, /已改為雙距離（保留已選稜）/)
+  assert.doesNotMatch(store, /Fusion 360 clears the edge\/face selection/)
   assert.match(store, /setChamferSize2:\s*\(n\)\s*=>\s*\{[\s\S]*?scheduleRoundPreview\(\)/)
   assert.match(store, /setChamferAngle:\s*\(n\)\s*=>\s*\{[\s\S]*?scheduleRoundPreview\(\)/)
   assert.match(store, /chamferRefFace:\s*null,/)

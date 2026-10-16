@@ -7398,20 +7398,32 @@ export const useApp = create<AppState>((rawSet, get) => {
   chamferAngle: 45,
   chamferFlip: false,
   chamferRefFace: null,
-  // Fusion 360 clears the edge/face selection when the Chamfer Type changes.
-  // Keep the typed values, but require a fresh selection because Two Distance and
-  // Distance and Angle use a different selection contract from Equal Distance.
-  setChamferMode: (m) => set({
-    chamferMode: m,
-    chamferRefFace: null,
-    edgeRoundPicks: [], edgeRoundPickLines: [], edgeRoundRadii: [], edgeRoundGroupIds: [],
-    roundPreviewMesh: null, roundPreviewFail: false,
-    status: m === 'two'
-      ? '雙距離：請重新選取稜'
-      : m === 'angle'
-        ? '距離＋角度：請重新選取面與棱'
-        : '等距離：請重新選取稜',
-  }),
+  // FISHING32 P2：切換倒角類型（等距／雙距離／距離與角度）保留已選稜邊，唔逼用戶重揀。
+  // 離開 angle 先清 chamferRefFace；進入 angle 若未有參考面只更新 status 提示再揀面。
+  setChamferMode: (m) => {
+    set((s) => {
+      const nextRef = m === 'angle' ? s.chamferRefFace : null
+      const hasPicks = s.edgeRoundPicks.length > 0
+      let status: string
+      if (m === 'angle') {
+        status = nextRef
+          ? (hasPicks ? '已改為距離與角度（保留已選稜）' : '距離與角度：已保留參考面，請選取稜邊')
+          : '距離與角度：請選取 1 個參考面（已保留稜邊選擇）'
+      } else if (m === 'two') {
+        status = hasPicks ? '已改為雙距離（保留已選稜）' : '雙距離：請選取稜邊'
+      } else {
+        status = hasPicks ? '已改為等距（保留已選稜）' : '等距：請選取稜邊'
+      }
+      return {
+        chamferMode: m,
+        chamferRefFace: nextRef,
+        roundPreviewMesh: null,
+        roundPreviewFail: false,
+        status,
+      }
+    })
+    get().scheduleRoundPreview()
+  },
   setChamferSize2: (n) => { set({ chamferSize2: Number.isFinite(n) ? Math.max(0, n) : 0 }); get().scheduleRoundPreview() },
   // BUG-409 / FISHING31 P1：打字路徑唔准靜默夾角。120° 要原樣入 store，由 chamferInputReason
   // （0 < θ < 90）出 Formal 繁中紅字＋灰確定。非有限數才回落 45。拖曳仍由 chamferAngleFromDrag 夾。

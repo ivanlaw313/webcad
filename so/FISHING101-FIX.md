@@ -10,12 +10,12 @@ Deploy also copies PREV F100 lazy chunks (AeroLab/WindTunnelGpu/autoLoopStore + 
 - stamp: `v2.20-20261017-012414`
 - bundle: `index-CmiPgzPU-r2.js`
 - md5: `b0c649d305fd46383005cbb3c01c2362`
-- tip: (pending tip-docs commit)
+- tip: `424ac888`
 - product: `674f096c719aa8317eb858547558ddaf741f07fe`
 - more56 cherry: `c15290cd88ce88d658fd795c1225c3c53fc4e919`
 
 ## Live after cut
-- Tip: (pending tip-docs; fix/fishing101-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `424ac888` (fix/fishing101-behavior-ux → FF fix/sketch-face-copy)
 - Product: `674f096c719aa8317eb858547558ddaf741f07fe` JointOriginPalette i18n
 - more56 cherry: `c15290cd88ce88d658fd795c1225c3c53fc4e919` (from `1dab2d37` on test/unit-core16-more56)
 - Stamp: `v2.20-20261017-012414`

@@ -14,9 +14,9 @@ export type FastenerKind = 'capscrew' | 'hexbolt' | 'flathead' | 'button' | 'set
 export type FastenerSize = 'M3' | 'M4' | 'M5' | 'M6' | 'M8' | 'M10' | 'M12'
 
 export const FASTENER_KIND_LABEL: Record<FastenerKind, string> = {
-  capscrew: '内六角螺丝 (ISO 4762)', hexbolt: '六角头螺栓 (ISO 4017)', flathead: '沉头螺丝 (ISO 10642)',
-  button: '圆头螺丝 (ISO 7380)', setscrew: '机米/无头螺丝 (ISO 4026)',
-  hexnut: '六角螺母 (ISO 4032)', washer: '平垫圈 (ISO 7089)', dowel: '定位销 (ISO 2338)',
+  capscrew: '內六角螺絲 (ISO 4762)', hexbolt: '六角頭螺栓 (ISO 4017)', flathead: '沉頭螺絲 (ISO 10642)',
+  button: '圓頭螺絲 (ISO 7380)', setscrew: '機米/無頭螺絲 (ISO 4026)',
+  hexnut: '六角螺母 (ISO 4032)', washer: '平墊圈 (ISO 7089)', dowel: '定位銷 (ISO 2338)',
 }
 export const FASTENER_SIZES: FastenerSize[] = ['M3', 'M4', 'M5', 'M6', 'M8', 'M10', 'M12']
 
@@ -154,14 +154,14 @@ export function recommendFastenerSize(holeDia: number): { size: FastenerSize; cl
 }
 
 export function fastenerLabel(kind: FastenerKind, size: FastenerSize, length = 16): string {
-  if (kind === 'capscrew') return `${size}×${length} 内六角螺丝`
-  if (kind === 'hexbolt') return `${size}×${length} 六角头螺栓`
-  if (kind === 'flathead') return `${size}×${length} 沉头螺丝`
-  if (kind === 'button') return `${size}×${length} 圆头螺丝`
-  if (kind === 'setscrew') return `${size}×${length} 机米螺丝`
-  if (kind === 'dowel') return `${size}×${length} 定位销`
+  if (kind === 'capscrew') return `${size}×${length} 內六角螺絲`
+  if (kind === 'hexbolt') return `${size}×${length} 六角頭螺栓`
+  if (kind === 'flathead') return `${size}×${length} 沉頭螺絲`
+  if (kind === 'button') return `${size}×${length} 圓頭螺絲`
+  if (kind === 'setscrew') return `${size}×${length} 機米螺絲`
+  if (kind === 'dowel') return `${size}×${length} 定位銷`
   if (kind === 'hexnut') return `${size} 六角螺母`
-  return `${size} 平垫圈`
+  return `${size} 平墊圈`
 }
 
 // Recommended tightening torque (N·m) for a steel screw, property class 8.8 / 10.9 / 12.9, dry (K≈0.2).

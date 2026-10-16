@@ -813,15 +813,15 @@ const EMPTY = (note: string): TraceResult => ({ profiles: [], shapes: [], contou
 /** 位图（灰度）→ 轮廓向量。所有 tol 单位 = 像素；输出坐标 = 像素 × scale。 */
 export function traceBitmap(img: GrayImage, opt: TraceOptions = {}): TraceResult {
   const w = Math.floor(img.width), h = Math.floor(img.height)
-  if (!(w >= 3 && h >= 3)) return EMPTY('图太细（至少 3×3 像素）')
-  if (!img.data || img.data.length < w * h) return EMPTY('灰度数据长度不足 width×height')
+  if (!(w >= 3 && h >= 3)) return EMPTY('圖太細（至少 3×3 像素）')
+  if (!img.data || img.data.length < w * h) return EMPTY('灰度數據長度不足 width×height')
 
   const bin = binarize(img, { threshold: opt.threshold, foreground: opt.foreground, blur: opt.blur, minArea: opt.minArea })
   const warnings: string[] = []
   let ink = 0
   for (let i = 0; i < bin.mask.length; i++) ink += bin.mask[i]
-  if (ink === 0 || ink === w * h) return EMPTY('阈值化后没有图形（整张全背景或全前景）— 尝试手动 threshold 或 foreground')
-  if (bin.removed > 0) warnings.push(`去麻点 ${bin.removed} 像素`)
+  if (ink === 0 || ink === w * h) return EMPTY('閾值化後沒有圖形（整張全背景或全前景）— 嘗試手動 threshold 或 foreground')
+  if (bin.removed > 0) warnings.push(`去麻點 ${bin.removed} 像素`)
 
   // ── 场（pad 一圈背景保证闭环）
   const W = w + 2, H = h + 2
@@ -845,10 +845,10 @@ export function traceBitmap(img: GrayImage, opt: TraceOptions = {}): TraceResult
   let loops = marchingSquares(f, W, H).map((l) => dedupe(l.map(work), true))
   const minPeri = opt.minPerimeter ?? 6
   loops = loops.filter((l) => l.length >= 6 && perimeter(l) >= minPeri && Math.abs(signedArea(l)) >= 1)
-  if (!loops.length) return { ...EMPTY('未找到闭合轮廓（图形太细或全是噪点）'), threshold: bin.threshold, inkIsDark: bin.inkIsDark, warnings }
+  if (!loops.length) return { ...EMPTY('未找到閉合輪廓（圖形太細或全是噪點）'), threshold: bin.threshold, inkIsDark: bin.inkIsDark, warnings }
   const maxC = opt.maxContours ?? 400
   if (loops.length > maxC) {
-    warnings.push(`轮廓 ${loops.length} 条超上限 ${maxC}，只保留面积最大的 ${maxC} 条（图可能是照片/带网点，建议先做清理）`)
+    warnings.push(`輪廓 ${loops.length} 條超上限 ${maxC}，只保留面積最大的 ${maxC} 條（圖可能是照片/帶網點，建議先做清理）`)
     loops = loops.map((l) => ({ l, a: Math.abs(signedArea(l)) })).sort((p, q) => q.a - p.a).slice(0, maxC).map((x) => x.l)
   }
 
@@ -919,7 +919,7 @@ export function traceBitmap(img: GrayImage, opt: TraceOptions = {}): TraceResult
   }
   const nCircle = contours.filter((c) => c.circle).length
   const worst = contours.reduce((m, c) => Math.max(m, c.maxDev), 0)
-  if (worst > tol * 2) warnings.push(`部分轮廓拟合偏差 ${worst.toFixed(2)}px 超容差（形状可能有自由曲线，已用多段直线逼近）`)
+  if (worst > tol * 2) warnings.push(`部分輪廓擬合偏差 ${worst.toFixed(2)}px 超容差（形狀可能有自由曲線，已用多段直線逼近）`)
   const note = `识别 ${contours.length} 个轮廓（${nCircle} 整圆 + ${contours.length - nCircle} 线弧轮廓 · ${lines.length} 直线 / ${arcs.length} 圆弧${contours.some((c) => c.isHole) ? ` · ${contours.filter((c) => c.isHole).length} 孔` : ''}）`
   return { profiles, shapes, contours, geometry: { lines, arcs }, threshold: bin.threshold, inkIsDark: bin.inkIsDark, note, warnings }
 }

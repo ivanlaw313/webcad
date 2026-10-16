@@ -35,9 +35,9 @@ export interface CrossCoef {
   A1?: number      // WLF 系数（无量纲，文献典型 ~20–30）
   A2?: number      // WLF 系数 K（文献典型 51.6 = WLF 通用值）
   Tstar?: number   // WLF 参考温度 °C（≈D2≈Tg）
-  tMelt?: number   // 典型熔体入口温度 °C（eta0 锚定于此）
+  tMelt?: number   // 典型熔體入口温度 °C（eta0 锚定于此）
   tMold?: number   // 典型模壁温度 °C
-  tNoFlow?: number // 无流动温度 °C（前沿熔温 < 此 → 冻结/短射判据）
+  tNoFlow?: number // 無流動溫度 °C（前沿熔温 < 此 → 冻结/短射判据）
   rho?: number     // 熔体密度 kg/m³
   cp?: number      // 比热容 J/(kg·K)
   kt?: number      // 热导率 W/(m·K)
@@ -66,7 +66,7 @@ export function crossVisc(c: CrossCoef, shearRate: number): number {
  * GM-W8 C5-S2：Cross-WLF 温度耦合黏度 η(γ̇, T)。
  *   η(γ̇,T) = η₀(T) / (1 + (η₀(T)·γ̇/τ*)^(1−n))
  *   η₀(T)   = eta0 · exp( A1·[ f(meltRef) − f(T) ] ),  f(t) = (t−T*)/(A2 + (t−T*))
- * 呢个系标准 Cross-WLF 嘅【锚定於熔温】形式：D1 用 eta0=η₀(meltRef) 取代 → η₀(meltRef)=eta0（等温极限逐位退回 Stage-1）。
+ * 呢个系标准 Cross-WLF 嘅【锚定於熔温】形式：D1 用 eta0=η₀(meltRef) 取代 → η₀(meltRef)=eta0（等溫極限逐位退回 Stage-1）。
  * f(t) 随温度单调增（A2>0），T<meltRef → 括号 >0 → exp>1 → η₀ 升（冷 → 稠）；T=meltRef → η₀=eta0；物理正确。
  * 温度钳：T < T*−A2+5 时（远低於 Tg）分母近零 → 钳住令 f 有限单调；shift 钳 ±30（防 exp 溢出）。
  */
@@ -89,7 +89,7 @@ export function crossWLFVisc(c: CrossCoef, shearRate: number, T: number, meltRef
 //
 // ★ 诚实定位（同 Stage-1/2 一脉）：呢个系【趋势级】保压 + 收缩预测，唔系商用 Moldflow/Moldex3D。
 //   保压压力衰减用 quasi-static 代理（浇口沿流程线性压降 + 冻结即锁压），唔系真解耦合 PVT 连续方程；
-//   收缩系单元 seal 态 vs 室温态嘅 Tait 比容差（体积收缩），忽略取向/结晶动力学/翘曲/模具刚度。
+//   收缩系单元 seal 态 vs 室温态嘅 Tait 比容差（體積收縮），忽略取向/结晶动力学/翘曲/模具刚度。
 //   出嘅系「边度缩得多、保压升边度改善」嘅同阶趋势，唔可当尺寸公差用。
 //
 // ── 2-domain modified Tait PVT 方程（标准形式，见 polymer PVT 文献 / Moldflow 材料库家族）──
@@ -158,8 +158,8 @@ export interface MoldSolveOpts {
   cgMaxIter?: number        // CG 每次最大迭代（默认 400）
   onProgress?: (frac: number) => void   // 充填进度 0..1
   // ── GM-W8 C5-S2 Stage-2 能量方程耦合（缺省 off → Stage-1 等温路径逐位一致）──
-  thermal?: boolean         // true = 解温度场 + Cross-WLF η(γ̇,T)；缺省/false = 等温 crossVisc
-  tMelt?: number            // 熔体入口温度 °C（缺省用材料 cross.tMelt；浇口/热流道恒温源）
+  thermal?: boolean         // true = 解溫度場 + Cross-WLF η(γ̇,T)；缺省/false = 等温 crossVisc
+  tMelt?: number            // 熔體入口温度 °C（缺省用材料 cross.tMelt；浇口/热流道恒温源）
   tMold?: number            // 模壁温度 °C（缺省用材料 cross.tMold）
   viscousHeating?: boolean  // 黏性耗散升温开关（缺省 true）
   // ── GM-P3 Stage-3 保压 / PVT（全部可选，缺省 off → 唔分配/唔运行 → 结果逐位一致於 Stage-2）──
@@ -185,22 +185,22 @@ export interface MoldSolveOut {
   tempField?: Float32Array // 全网格最终温度 °C（未填 = NaN）
   tMin?: number            // 已填 CV 最低温度 °C
   tMax?: number            // 已填 CV 最高温度 °C
-  frozenFraction?: number  // 入口熔温 < 无流动温度 而充填嘅 CV 占比（潜在短射指标）
-  shortShotRisk?: boolean  // frozenFraction 超阈值 → 短射风险
+  frozenFraction?: number  // 入口熔温 < 無流動溫度 而充填嘅 CV 占比（潜在短射指标）
+  shortShotRisk?: boolean  // frozenFraction 超阈值 → 短射風險
   notes?: string[]         // 诚实假设 / 风险注记
   thermalUsed?: boolean    // true = 行咗 Stage-2 能量耦合路径
   // ── GM-P3 Stage-3 保压 / PVT 结果（仅 enablePacking 开时有；关时 undefined → 逐位一致於 Stage-2）──
   packing?: {
     sealedPressure: Float32Array   // 全网格逐 CV 冻结（seal）瞬间锁定嘅局部压力 Pa（未填 = 0）
-    shrinkageField: Float32Array   // 全网格逐 CV 体积收缩率 %（Tait：seal 态 vs 室温常压比容差；未填 = NaN）
-    shrinkMax: number              // 最大体积收缩率 %（缩水最严重位 —— 潜在缩痕/尺寸偏差）
-    shrinkAvg: number              // 平均体积收缩率 %（已填 CV）
+    shrinkageField: Float32Array   // 全网格逐 CV 體積收縮率 %（Tait：seal 态 vs 室温常压比容差；未填 = NaN）
+    shrinkMax: number              // 最大體積收縮率 %（缩水最严重位 —— 潜在缩痕/尺寸偏差）
+    shrinkAvg: number              // 平均體積收縮率 %（已填 CV）
     shrinkUniformity: number       // 收缩均匀度 0..1（1=处处一致；低=厚薄/远近浇口收缩差大 → 翘曲风险）
     packTraceNote: string          // 诚实注记：保压参数 + 趋势级假设摊牌
     // ── GM-S4 Stage-4 翘曲（趋势级；仅保压开时有；差异收缩弯矩 proxy，非 FEM 位移）──
-    warpField: Float32Array        // 全网格逐 CV 翘曲风险 0..1 归一（= |面内 ∇体积收缩| 归一；未填/浇口 = NaN/0）
-    warpMaxDir: [number, number, number]   // 主导微分收缩轴单位向量（结构张量主特征向量；CAD 坐标）
-    warpIndex: number              // 翘曲趋势指数 0..100（微分收缩弯矩 proxy × 收缩幅度 → 饱和映射）
+    warpField: Float32Array        // 全网格逐 CV 翘曲风险 0..1 归一（= |面內 ∇體積收縮| 归一；未填/浇口 = NaN/0）
+    warpMaxDir: [number, number, number]   // 主導微分收縮軸单位向量（结构张量主特征向量；CAD 坐标）
+    warpIndex: number              // 翘曲趋势指数 0..100（微分收縮彎矩 proxy × 收缩幅度 → 饱和映射）
     warpNote: string               // 诚实注记：趋势级差异收缩弯矩 proxy，非 FEM 翘曲位移
   }
 }
@@ -251,9 +251,9 @@ export function solveMoldFill(
   const wlfA1 = cross.A1 ?? 22
   const wlfA2 = cross.A2 ?? 51.6
   const wlfTstar = cross.Tstar ?? -20
-  const tMeltIn = opts.tMelt ?? cross.tMelt ?? 230         // 熔体入口温度 °C（浇口/热流道恒温源）
+  const tMeltIn = opts.tMelt ?? cross.tMelt ?? 230         // 熔體入口温度 °C（浇口/热流道恒温源）
   const tMold = opts.tMold ?? cross.tMold ?? 60            // 模壁温度 °C
-  const tNoFlow = cross.tNoFlow ?? (tMold + 0.55 * (meltRef - tMold))  // 无流动温度 °C
+  const tNoFlow = cross.tNoFlow ?? (tMold + 0.55 * (meltRef - tMold))  // 無流動溫度 °C
   const rhoT = cross.rho ?? 940
   const cpT = cross.cp ?? 2000
   const ktT = cross.kt ?? 0.18
@@ -261,7 +261,7 @@ export function solveMoldFill(
   const PI2 = Math.PI * Math.PI
   const THERM_MAXSUB = 25
   const tCapHi = tMeltIn + 150                             // 升温安全上限（防耗散数值失控）
-  // 温度场 + 对流速度矢量 v=−λ∇p + 浇口恒温遮罩（只喺 thermal 开时分配）
+  // 溫度場 + 对流速度矢量 v=−λ∇p + 浇口恒温遮罩（只喺 thermal 开时分配）
   const T = thermalOn ? new Float64Array(n).fill(tMeltIn) : null
   const Tbuf = thermalOn ? new Float64Array(n) : null
   const velx = thermalOn ? new Float64Array(n) : null
@@ -446,7 +446,7 @@ export function solveMoldFill(
         vel[p0] = u
         const shear = (3 * u) / Math.max(hHalf[p0], 1e-6)           // 壁面剪切率 ≈ 3·v̄/h
         if (thermalOn) {
-          // GM-W8 C5-S2：存对流速度矢量 v=−λ∇p（mm/s），黏度改用 Cross-WLF η(γ̇,T)（T lag 上一步温度场）
+          // GM-W8 C5-S2：存对流速度矢量 v=−λ∇p（mm/s），黏度改用 Cross-WLF η(γ̇,T)（T lag 上一步溫度場）
           velx![p0] = (-lam[p0] * gx) / h
           vely![p0] = (-lam[p0] * gy) / h
           velz![p0] = (-lam[p0] * gz) / h
@@ -492,7 +492,7 @@ export function solveMoldFill(
     // 超填 CV 钳 f=1（趋势级可接受嘅守恒小误差；压力场/充填次序/焊接/困气位置不受影响）。
     const dt = Math.max(dtMin, totalRate > 1e-30 ? batchVol / totalRate : dtMin)
 
-    // ── GM-W8 C5-S2 能量方程推进（对流迎风 + 黏性耗散 显式；壁面导热汇 隐式）——喺推进前沿【之前】march 旧充填集 ──
+    // ── GM-W8 C5-S2 能量方程推进（對流迎風 + 黏性耗散 显式；壁面導熱匯 隐式）——喺推进前沿【之前】march 旧充填集 ──
     //   ρcp(∂T/∂t + u·∇T) = η·γ̇² − ρcp·β(T−T_mold)，β = α·π²/H²（Hele-Shaw gap 导热首模衰减，H=全壁厚 2·hHalf；
     //   参 Kennedy & Zheng, "Flow Analysis of Injection Molds" gap-wise 平均能量方程）。
     //   隐式汇：T=(T + dt·(conv+diss) + dt·β·T_mold)/(1 + dt·β)。对流受 CFL（|u|·dt/h≤1）→ 按 maxU 子步；汇隐式无条件稳定。
@@ -518,7 +518,7 @@ export function solveMoldFill(
           // gap-averaged 黏性耗散：抛物线速度剖面 ⟨γ̇²⟩ = γ̇_wall²/3（∫₀ᵇγ̇²dy /b）→ 用 γ̇_wall² 会高估 3×
           const diss = viscHeat ? (eta[p0] * gdot * gdot) / (3 * rhoT * cpT) : 0   // η·⟨γ̇²⟩/(ρcp) [K/s]（SI 体积热率抵消）
           const Hgap = 2 * Math.max(hHalf[p0], 1e-6)
-          const beta = (alphaMM2 * PI2) / (Hgap * Hgap)                  // 壁面导热汇系数 [1/s]
+          const beta = (alphaMM2 * PI2) / (Hgap * Hgap)                  // 壁面導熱匯系数 [1/s]
           let Tn = (Tf[p0] + dts * (conv + diss) + dts * beta * tMold) / (1 + dts * beta)
           if (Tn < tMold) Tn = tMold                                    // 隐式汇下界 = 模壁温（唔可冷过壁）
           else if (Tn > tCapHi) Tn = tCapHi                             // 升温安全上限
@@ -548,7 +548,7 @@ export function solveMoldFill(
         if (multi) weld[p0] = 1          // 唔同来源前沿喺此对冲合流 = 焊接线
         nFilled++
         if (thermalOn) {
-          // GM-W8 C5-S2：新充 CV 继承主贡献上游邻居嘅（已冷）入口熔温；低於无流动温度 → 记冻结前沿（潜在短射）
+          // GM-W8 C5-S2：新充 CV 继承主贡献上游邻居嘅（已冷）入口熔温；低於無流動溫度 → 记冻结前沿（潜在短射）
           const inT = frontTemp!.get(p0) ?? tMeltIn
           T![p0] = inT
           if (inT < tNoFlow) frozenCount++
@@ -591,7 +591,7 @@ export function solveMoldFill(
   const airtrap = markAirTrapsLocal(grid, fillTime)
   const out: MoldSolveOut = { fillTime, pressure: p, label, weld, airtrap, tFill: t, pPeak, clampForce, clampForcePeak, nReached: nF, iters: totalIters }
 
-  // ── GM-W8 C5-S2 Stage-2 温度场结果（thermal 关 → 唔加，返回逐位一致於 Stage-1）──
+  // ── GM-W8 C5-S2 Stage-2 溫度場结果（thermal 关 → 唔加，返回逐位一致於 Stage-1）──
   if (thermalOn) {
     const Tf = T!
     const tempField = new Float32Array(n)
@@ -607,19 +607,19 @@ export function solveMoldFill(
     out.shortShotRisk = (out.frozenFraction ?? 0) > 0.01
     out.thermalUsed = true
     out.notes = [
-      '工程级 Stage-2 能量耦合：gap-averaged 温度场（对流迎风 + 黏性耗散 η·γ̇² + 壁面导热汇 β=α·π²/H²）+ Cross-WLF η(γ̇,T)',
-      'WLF 位移系数 / 热物性 = 文献家族典型值（非牌号实测）；eta0 锚定於 tMelt → η₀(tMelt)=eta0 → 等温极限逐位退回 Stage-1',
-      `熔体入口 ${tMeltIn}°C · 模壁 ${tMold}°C · 无流动温度 ${tNoFlow.toFixed(0)}°C · 冻结前沿占比 ${((out.frozenFraction ?? 0) * 100).toFixed(1)}%`,
+      '工程級 Stage-2 能量耦合：gap-averaged 溫度場（對流迎風 + 黏性耗散 η·γ̇² + 壁面導熱匯 β=α·π²/H²）+ Cross-WLF η(γ̇,T)',
+      'WLF 位移系數 / 熱物性 = 文獻家族典型值（非牌號實測）；eta0 錨定於 tMelt → η₀(tMelt)=eta0 → 等溫極限逐位退回 Stage-1',
+      `熔體入口 ${tMeltIn}°C · 模壁 ${tMold}°C · 無流動溫度 ${tNoFlow.toFixed(0)}°C · 冻結前沿占比 ${((out.frozenFraction ?? 0) * 100).toFixed(1)}%`,
     ]
-    if (out.shortShotRisk) out.notes.push('⚠ 短射风险：部分前沿熔温已降至无流动温度以下（长薄流程冷却过快）—— 建议升熔温/模温、增大浇口、缩短流程或加浇口')
+    if (out.shortShotRisk) out.notes.push('⚠ 短射風險：部分前沿熔溫已降至無流動溫度以下（長薄流程冷卻過快）—— 建議升熔溫/模溫、增大澆口、縮短流程或加澆口')
   }
 
   // ── GM-P3 Stage-3 保压 / PVT 收缩预测（enablePacking 关 → 下面全部唔行 → 逐位一致於 Stage-2）──
   //   算法（趋势级 quasi-static，O(cells × timesteps)，步数封顶 PACK_MAXSTEPS）：
-  //     1. 各 CV seed 温度：Stage-2 开 → 用充填末温度场；否则 → 均匀熔温（保压期只导热冷却，无流 → 无对流/耗散）。
+  //     1. 各 CV seed 温度：Stage-2 开 → 用充填末溫度場；否则 → 均匀熔温（保压期只导热冷却，无流 → 无对流/耗散）。
   //     2. 空间压降代理 reach_i = 1 − LOSS·(fillTime_i/tFill)：近浇口≈保压压力、远端按流程线性衰减（真解会解压力场，此处代理）。
-  //     3. 显式时间 march 保压期：每步只行壁面导热汇 T←(T+dt·β·Tmold)/(1+dt·β)（隐式无条件稳定，β=α·π²/H²）。
-  //        CV 温度跌穿无流动温度 tNoFlow ⇒ 冻结（seal）→ 锁定当刻局部压力 sealedPressure = packPressure·reach_i。
+  //     3. 显式时间 march 保压期：每步只行壁面導熱匯 T←(T+dt·β·Tmold)/(1+dt·β)（隐式无条件稳定，β=α·π²/H²）。
+  //        CV 温度跌穿無流動溫度 tNoFlow ⇒ 冻结（seal）→ 锁定当刻局部压力 sealedPressure = packPressure·reach_i。
   //     4. 保压期结束仍未冻结嘅 CV：浇口泄压、无补缩 → seal 於残余压力（packPressure·reach·RESIDUAL，趋势级低压）。
   //     5. 收缩 = Tait 比容差：(ṽ(T_seal,P_seal) − ṽ(室温,常压)) / ṽ(T_seal,P_seal) × 100%。
   //        保压压力升 → P_seal 升 → ṽ_seal 降（压实）→ 收缩降；远浇口 seal 压低 → 收缩高（经典缩水型态）。
@@ -657,7 +657,7 @@ export function solveMoldFill(
       for (let p0 = 0; p0 < n; p0++) {
         if (!filled[p0] || frozenPk[p0] || gateMask?.[p0]) continue   // 浇口恒温源唔 seal
         const Hgap = 2 * Math.max(hHalf[p0], 1e-6)
-        const beta = (alphaMM2 * PI2) / (Hgap * Hgap)                 // 壁面导热汇 [1/s]（同 Stage-2）
+        const beta = (alphaMM2 * PI2) / (Hgap * Hgap)                 // 壁面導熱匯 [1/s]（同 Stage-2）
         let Tn = (Tpk[p0] + dtP * beta * tMold) / (1 + dtP * beta)
         if (Tn < tMold) Tn = tMold
         Tpk[p0] = Tn
@@ -673,14 +673,14 @@ export function solveMoldFill(
       frozenPk[p0] = 1
     }
 
-    // Tait 体积收缩：seal 态 vs 室温常压
+    // Tait 體積收縮：seal 态 vs 室温常压
     const vRoom = taitVolume(tait, T_ROOM_K, P_ATM)
     const shrinkageField = new Float32Array(n)
     let shMax = -Infinity, shMin = Infinity, shSum = 0, shN = 0
     for (let p0 = 0; p0 < n; p0++) {
       if (!filled[p0]) { shrinkageField[p0] = NaN; continue }
       const vSeal = taitVolume(tait, sealTemp[p0] + 273.15, sealedPressure[p0])
-      let sh = vSeal > 1e-12 ? ((vSeal - vRoom) / vSeal) * 100 : 0    // 体积收缩 %
+      let sh = vSeal > 1e-12 ? ((vSeal - vRoom) / vSeal) * 100 : 0    // 體積收縮 %
       if (sh < 0) sh = 0                                              // seal 态比容 < 室温（罕见高压过压）→ 钳 0
       shrinkageField[p0] = sh
       if (sh > shMax) shMax = sh
@@ -692,15 +692,15 @@ export function solveMoldFill(
     const shrinkMinV = shN > 0 && Number.isFinite(shMin) ? shMin : 0
     // 均匀度 0..1：1 − 相对极差（越均匀越接近 1；厚薄/远近浇口差大 → 低 → 翘曲风险）
     const shrinkUniformity = shrinkMax > 1e-9 ? Math.max(0, 1 - (shrinkMax - shrinkMinV) / shrinkMax) : 1
-    // ── GM-S4 Stage-4 翘曲（趋势级）：微分收缩弯矩 proxy = 面内 ∇体积收缩 —— 排除浇口 CV（熔态 seal 伪峰会污染场/方向）──
+    // ── GM-S4 Stage-4 翘曲（趋势级）：微分收縮彎矩 proxy = 面內 ∇體積收縮 —— 排除浇口 CV（熔态 seal 伪峰会污染场/方向）──
     const gateFlagW = new Uint8Array(n)
     for (const g of gateVox) gateFlagW[g] = 1
     const warp = computeWarpage(grid, filled, shrinkageField, gateFlagW, shrinkAvg)
     out.packing = {
       sealedPressure, shrinkageField, shrinkMax, shrinkAvg, shrinkUniformity,
-      packTraceNote: `趋势级 Stage-3 保压/PVT（2-domain Tait，文献典型系数非牌号实测）：保压 ${(packP / 1e6).toFixed(1)} MPa · ${packT.toFixed(2)} s → ` +
-        `平均体积收缩 ${shrinkAvg.toFixed(2)}% · 最大 ${shrinkMax.toFixed(2)}% · 均匀度 ${(shrinkUniformity * 100).toFixed(0)}%。` +
-        `压降/冻结锁压为 quasi-static 代理，忽略取向/结晶动力学/翘曲 —— 同阶趋势，非尺寸公差。`,
+      packTraceNote: `趨勢級 Stage-3 保壓/PVT（2-domain Tait，文獻典型系數非牌號實測）：保壓 ${(packP / 1e6).toFixed(1)} MPa · ${packT.toFixed(2)} s → ` +
+        `平均體積收縮 ${shrinkAvg.toFixed(2)}% · 最大 ${shrinkMax.toFixed(2)}% · 均匀度 ${(shrinkUniformity * 100).toFixed(0)}%。` +
+        `壓降/冻結鎖壓為 quasi-static 代理，忽略取向/結晶動力學/翹曲 —— 同階趨勢，非尺寸公差。`,
       warpField: warp.warpField, warpMaxDir: warp.warpMaxDir, warpIndex: warp.warpIndex, warpNote: warp.warpNote,
     }
   }
@@ -713,9 +713,9 @@ export function solveMoldFill(
 /**
  * GM-S4 Stage-4 翘曲趋势指标（趋势级，非 FEM 翘曲位移）。
  *
- * 物理 proxy：翘曲由【差异收缩】驱动 —— 零件各处体积收缩唔一致 → 内部约束应力 → 弯矩 → 变形。
- *   逐 CV 面内梯度 |∇(体积收缩)|（中央/单侧差分，%/mm）= 局部弯矩 proxy（warpField 归一 0..1 供着色）。
- *   主导微分收缩轴 = 梯度结构张量 Σ(g⊗g) 主特征向量（幂迭代）—— 零件最易「揻」嘅方向（warpMaxDir）。
+ * 物理 proxy：翘曲由【差异收缩】驱动 —— 零件各处體積收縮唔一致 → 内部约束应力 → 弯矩 → 变形。
+ *   逐 CV 面内梯度 |∇(體積收縮)|（中央/单侧差分，%/mm）= 局部弯矩 proxy（warpField 归一 0..1 供着色）。
+ *   主導微分收縮軸 = 梯度结构张量 Σ(g⊗g) 主特征向量（幂迭代）—— 零件最易「揻」嘅方向（warpMaxDir）。
  *   翘曲指数 warpIndex 0..100 = rms|∇收缩|（弯矩 proxy）× 平均收缩幅度 → 饱和映射。
  *
  * ★ 诚实定位：呢个系【差异收缩弯矩趋势】，唔系 FEM 翘曲位移 —— 未解残余应力场、约束刚度、结晶取向、
@@ -779,8 +779,8 @@ function computeWarpage(
   const WREF = 0.30
   const warpRaw = rmsGrad * Math.max(0, shrinkAvg)
   const warpIndex = 100 * (1 - Math.exp(-warpRaw / WREF))
-  const warpNote = `趋势级 Stage-4 翘曲指数 ${warpIndex.toFixed(0)}/100：微分收缩弯矩 proxy（面内 |∇体积收缩| rms=${rmsGrad.toFixed(3)}%/mm × 平均收缩 ${shrinkAvg.toFixed(2)}%），` +
-    `主导微分收缩轴 [${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)}]。此为差异收缩弯矩趋势，非 FEM 翘曲位移（未解残余应力/约束刚度/结晶取向/回弹）。`
+  const warpNote = `趨勢級 Stage-4 翹曲指數 ${warpIndex.toFixed(0)}/100：微分收縮彎矩 proxy（面內 |∇體積收縮| rms=${rmsGrad.toFixed(3)}%/mm × 平均收縮 ${shrinkAvg.toFixed(2)}%），` +
+    `主導微分收縮軸 [${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)}]。此為差異收縮彎矩趨勢，非 FEM 翘曲位移（未解残余应力/约束刚度/结晶取向/回弹）。`
   return { warpField, warpMaxDir: [vx, vy, vz], warpIndex, warpNote }
 }
 

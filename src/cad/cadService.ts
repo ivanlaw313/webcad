@@ -273,7 +273,7 @@ export function createKernelProxy(spawnRaw: () => RawKernel, opts: KernelOpts = 
                 (e) => {
                   if (!pending.has(entry)) return       // 已被重启/抢占拒绝
                   settle()
-                  if (looksLikeKernelCrash(e)) { restart(`${method} 抛出疑似内核崩溃错误`); reject(new Error(KERNEL_RESTART_MSG)) }
+                  if (looksLikeKernelCrash(e)) { restart(`${method} 拋出疑似內核崩潰錯誤`); reject(new Error(KERNEL_RESTART_MSG)) }
                   else reject(e as Error)               // 普通业务错误原样透传
                 },
               )

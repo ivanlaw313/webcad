@@ -139,10 +139,10 @@ export function latheToGcode(
     ['rpm', opts.rpm], ['safeX', opts.safeX], ['safeZ', opts.safeZ],
   ]
   for (const [k, v] of checks) {
-    if (!(Number.isFinite(v) && v > 0)) throw new Error(`参数 ${k} 必须为正数（目前是 ${v}）`)
+    if (!(Number.isFinite(v) && v > 0)) throw new Error(`參數 ${k} 必須為正數（目前是 ${v}）`)
   }
   if (opts.safeX <= opts.stockD) {
-    throw new Error(`安全直径要大于毛坯（safeX ${fmt(opts.safeX)} ≤ stockD ${fmt(opts.stockD)}）`)
+    throw new Error(`安全直徑要大於毛坯（safeX ${fmt(opts.safeX)} ≤ stockD ${fmt(opts.stockD)}）`)
   }
 
   const toolNoseR = opts.toolNoseR ?? 0.4
@@ -158,12 +158,12 @@ export function latheToGcode(
 
   if (opts.op === 'turn') {
     // ── 外圆粗车 + 精车 ──
-    if (profile.length < 2) throw new Error('turn 轮廓最少要 2 点')
+    if (profile.length < 2) throw new Error('turn 輪廓最少要 2 點')
 
     // 轮廓超毛坯检查：任何成品半径 > 毛坯半径 → 该处唔切，钳到毛坯（warning）
     const clampedRaw = profile.map((p) => {
       if (p.r > stockR + EPS) {
-        warn(`轮廓超出毛坯（r ${fmt(p.r)} > 毛坯半径 ${fmt(stockR)}）— 该处钳到毛坯, 不切`)
+        warn(`輪廓超出毛坯（r ${fmt(p.r)} > 毛坯半徑 ${fmt(stockR)}）— 該處钳到毛坯, 不切`)
         return { z: p.z, r: stockR }
       }
       return { z: p.z, r: p.r }
@@ -179,7 +179,7 @@ export function latheToGcode(
 
     // 刀尖半径 vs 精车留量：刀尖大过留量 → 内圆角 / 锥面会过切（v1 唔补偿只警告）
     if (toolNoseR > finishStep + EPS) {
-      warn(`刀尖半径 ${fmt(toolNoseR)} > 精车留量 ${fmt(finishStep)} — 内圆角/锥面会过切`)
+      warn(`刀尖半徑 ${fmt(toolNoseR)} > 精車留量 ${fmt(finishStep)} — 內圓角/錐面會過切`)
     }
 
     // 成品最大需切半径（粗车要逼近到呢度 + 精车留量先收）
@@ -193,7 +193,7 @@ export function latheToGcode(
     const nRough = stockR > finishLine + EPS ? Math.ceil((stockR - finishLine) / opts.doc) : 0
     for (let i = 1; i <= nRough; i++) {
       const layerR = Math.max(finishLine, stockR - i * opts.doc) // 最后一层 clamp 到 finishLine
-      st.L.push(`(turn 粗车 第 ${i}/${nRough} 层 半径 ${fmt(layerR)} 直径 ${dia(layerR)})`)
+      st.L.push(`(turn 粗車 第 ${i}/${nRough} 層 半徑 ${fmt(layerR)} 直徑 ${dia(layerR)})`)
       st.L.push(`G0 X${dia(layerR)}`) // 退到该层直径（仲喺 safeZ 外）
       st.L.push(`G0 Z${fmt(zRight)}`) // 飞去轮廓右端起点
       // 沿轮廓由右到左：每个 Z 攞 max(成品半径, 当前层半径) → 阶梯逼近（粗车唔密铺）
@@ -202,18 +202,18 @@ export function latheToGcode(
     }
 
     // 精车一刀：沿成品轮廓由右到左光车到最终尺寸（floorR = -Infinity 即纯走轮廓）
-    st.L.push('(turn 精车 沿成品轮廓一刀)')
+    st.L.push('(turn 精車 沿成品輪廓一刀)')
     st.L.push(`G0 X${dia(profileRadiusAt(clamped, zRight))}`) // 退到右端点直径起手
     st.L.push(`G0 Z${fmt(zRight)}`)
     emitProfilePass(st, clamped, -Infinity, opts.feed, true) // 精车密铺锥/圆弧段
     st.L.push(`G0 X${dia(safeXr)}`)
   } else if (opts.op === 'face') {
     // ── 端面车平：由安全直径分层径向 G1 由外向心车 faceZ 端面 ──
-    if (profile.length < 2) throw new Error('face 轮廓最少要 2 点')
+    if (profile.length < 2) throw new Error('face 輪廓最少要 2 點')
     const faceZ = opts.faceZ ?? 0
     // 端面由毛坯外缘（stockR）径向车到中心（半径 0）；分层用 doc 做径向步距。
     // 一刀 = 喺 faceZ 由外向心 G1 X 递减（直径递减序列）。
-    st.L.push(`(face 端面车平 Z${fmt(faceZ)})`)
+    st.L.push(`(face 端面車平 Z${fmt(faceZ)})`)
     st.L.push(`G0 X${dia(stockR)}`) // 退到毛坯外缘直径
     st.L.push(`G0 Z${fmt(faceZ)}`) // 落到端面 Z
     // 由外缘半径递减到 0，每步 doc（最后一步精确到 0）
@@ -231,21 +231,21 @@ export function latheToGcode(
     const grooveW = opts.grooveW ?? opts.doc
     const grooveDepth = opts.grooveDepth ?? 0
     if (!(Number.isFinite(grooveDepth) && grooveDepth > 0)) {
-      throw new Error(`参数 grooveDepth 必须为正数（目前是 ${grooveDepth}）`)
+      throw new Error(`參數 grooveDepth 必須為正數（目前是 ${grooveDepth}）`)
     }
     // 槽口起始半径 = 该 Z 处毛坯外圆（呢度成品 = 毛坯外径，简化用 stockR；
     // 槽底半径 = 起始 − grooveDepth），切到底直径要 ≥ 0。
     const startR = stockR
     const bottomR = Math.max(0, startR - grooveDepth)
     if (bottomR < EPS && startR - grooveDepth < -EPS) {
-      warn(`槽深 ${fmt(grooveDepth)} 超过毛坯半径 ${fmt(startR)} — 已钳到中心 X0`)
+      warn(`槽深 ${fmt(grooveDepth)} 超過毛坯半徑 ${fmt(startR)} — 已钳到中心 X0`)
     }
     // 刀宽 = doc；槽宽 > 刀宽要多刀沿 Z 偏移清宽。
     const toolW = opts.doc
     let passes = 1
     if (grooveW > toolW + EPS) {
       passes = Math.ceil(grooveW / toolW)
-      warn(`槽宽 ${fmt(grooveW)} > 刀宽 ${fmt(toolW)} — 需 ${passes} 刀沿 Z 偏移清宽`)
+      warn(`槽寬 ${fmt(grooveW)} > 刀寬 ${fmt(toolW)} — 需 ${passes} 刀沿 Z 偏移清寬`)
     }
     // 多刀沿槽宽分布：槽中心 grooveZ，槽两边 [grooveZ − W/2, grooveZ + W/2]；
     // 每刀刀中心由右边缘向左偏一个刀宽（passes=1 时就喺 grooveZ）。

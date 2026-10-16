@@ -95,7 +95,7 @@ export function mapPointToFlat(
   const { runs, bends } = walk(spec)
   const P: [number, number] = [p[0], p[2]]            // XZ 投影
   const v = p[1]                                      // 宽度坐标
-  if (v < -0.5 || v > W + 0.5) return { error: '孔超出板宽' }
+  if (v < -0.5 || v > W + 0.5) return { error: '孔超出板寬' }
 
   // 逐直段搵候选：t 喺段范围内、|d| 喺板厚带内 → 攞 |d| 最细嗰段
   let best = -1, bestD = Infinity, bestT = 0
@@ -121,22 +121,22 @@ export function mapPointToFlat(
         ? (((phi - b.phi0) % TAU) + TAU) % TAU
         : (((b.phi0 - phi) % TAU) + TAU) % TAU
       if (delta <= Math.abs(b.a) + 1e-6) {
-        return { error: '孔在折弯区 — 真实折弯会变形，展开图不标' }
+        return { error: '孔在折彎區 — 真實折彎會變形，展開圖不標' }
       }
     }
-    return { error: '孔不在钣金面上' }
+    return { error: '孔不在鈑金面上' }
   }
 
   // 轴向检查：要近乎垂直板面（XZ 分量贴段 normal、Y 分量够细）先保形
   const al = Math.hypot(axis[0], axis[1], axis[2])
   if (!(al > 1e-9) || Math.abs(axis[1] / al) >= 0.35) {
-    return { error: '孔轴不垂直于板面 — 斜孔展开不保形' }
+    return { error: '孔軸不垂直於板面 — 斜孔展開不保形' }
   }
   const xzLen = Math.hypot(axis[0], axis[2])
   const r = runs[best]
   const dot = (axis[0] / xzLen) * r.normal[0] + (axis[2] / xzLen) * r.normal[1]
   if (Math.abs(dot) <= 0.9) {
-    return { error: '孔轴不垂直于板面 — 斜孔展开不保形' }
+    return { error: '孔軸不垂直於板面 — 斜孔展開不保形' }
   }
 
   return { fx: r.flatStart + Math.min(Math.max(bestT, 0), r.len), fy: v, run: best }

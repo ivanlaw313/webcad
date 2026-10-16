@@ -19,7 +19,7 @@ export const THREE_MF_MAX_TRIANGLES = 2_000_000
 // 规范允许嘅 6 种单位 → mm 比例（millimeter 系默认）
 const UNIT_MM: Record<string, number> = { micron: 0.001, millimeter: 1, centimeter: 10, inch: 25.4, foot: 304.8, meter: 1000 }
 
-const fail = (reason: string): never => { throw new Error(`此 3MF 文件无法解析（${reason}）`) }
+const fail = (reason: string): never => { throw new Error(`此 3MF 文件無法解析（${reason}）`) }
 
 // 3MF transform = 12 个数 "m00 m01 m02 m10 m11 m12 m20 m21 m22 m30 m31 m32"（行向量约定 [x y z 1]·M，
 // 最尾 3 个 m30 m31 m32 系平移）。即 x' = m00·x + m10·y + m20·z + m30 — 同 three.js 列优先唔同，唔好搞混。
@@ -118,7 +118,7 @@ function parseXmlDocument(xml: string): XmlDocument {
 export function parse3MF(buf: ArrayBuffer): { meshes: ThreeMFMesh[]; unit: string } {
   // ── 1. 解 ZIP ──
   let entries: Record<string, Uint8Array>
-  try { entries = unzipSync(new Uint8Array(buf)) } catch { return fail('不是有效的 ZIP 压缩包') }
+  try { entries = unzipSync(new Uint8Array(buf)) } catch { return fail('不是有效的 ZIP 壓縮包') }
   const names = Object.keys(entries)
   const unpackedBytes = names.reduce((total, name) => total + entries[name].byteLength, 0)
   if (names.length > THREE_MF_MAX_ENTRIES) return fail(`ZIP has too many entries (limit ${THREE_MF_MAX_ENTRIES})`)

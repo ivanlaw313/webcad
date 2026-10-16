@@ -138,7 +138,7 @@ export function suggestGearTrain(target: number, m: number, opts?: { stages?: nu
   const maxReach = Math.pow(rMax, n)
   const ok = errPct <= GEARTRAIN_ERR_TOL
   const warning = ok ? undefined
-    : `${n} 级最多约 ${maxReach >= 100 ? maxReach.toFixed(0) : maxReach.toFixed(1)} 倍，目标 ${t} 倍无法达（实得 ${achieved.toFixed(2)}，误差 ${errPct.toFixed(1)}%）— 请加级数`
+    : `${n} 級最多約 ${maxReach >= 100 ? maxReach.toFixed(0) : maxReach.toFixed(1)} 倍，目标 ${t} 倍无法达（实得 ${achieved.toFixed(2)}，误差 ${errPct.toFixed(1)}%）— 请加级数`
   return {
     stages,
     achieved,
@@ -171,21 +171,21 @@ export function wormFeature(m: number, starts: number, length: number): Feature 
 }
 
 /** #90 蜗杆诚实标记：本模块【只造蜗杆本体】，从不生成配对蜗轮几何，亦无运动连接。 GM-L2 */
-export const WORM_NO_WHEEL_NOTE = '仅蜗杆（无蜗轮配对）'
+export const WORM_NO_WHEEL_NOTE = '僅蝸桿（無蝸輪配對）'
 export interface WormBuild {
   feature: Feature                       // 蜗杆本体 Feature（同 wormFeature 一致）
   hasWheel: false                        // 恒 false — 本模块无配套蜗轮生成器
-  status: string                         // 诚实状态串（含「仅蜗杆（无蜗轮配对）」）— UI 直接显示，杜绝「做到蜗杆蜗轮传动」嘅误会
+  status: string                         // 诚实状态串（含「僅蝸桿（無蝸輪配對）」）— UI 直接显示，杜绝「做到蜗杆蜗轮传动」嘅误会
   meshRatio: (zWheel: number) => number  // 传动比 = zWheel/starts —— 纯运动学参考数，并无对应蜗轮几何
 }
-/** 蜗杆生成（带诚实元数据）：造一条蜗杆，并明确声明「仅蜗杆（无蜗轮配对）」，
+/** 蜗杆生成（带诚实元数据）：造一条蜗杆，并明确声明「僅蝸桿（無蝸輪配對）」，
  *  防止 UI 令用户误以为做到蜗杆-蜗轮减速传动。meshRatio 只系纯运动学参考，无实际蜗轮落地。 */
 export function wormBuild(m: number, starts: number, length: number): WormBuild {
   const s = Math.max(1, Math.round(starts))
   return {
     feature: wormFeature(m, s, length),
     hasWheel: false,
-    status: `蜗杆 m${m} ${s}头 × 长${length}（ZA 近似形）— ${WORM_NO_WHEEL_NOTE}；传动比 = 蜗轮齿数:${s}（纯运动学参考，本模块不生成蜗轮）`,
+    status: `蝸桿 m${m} ${s}頭 × 長${length}（ZA 近似形）— ${WORM_NO_WHEEL_NOTE}；傳動比 = 蝸輪齒數:${s}（纯运动学参考，本模块不生成蜗轮）`,
     meshRatio: (zWheel: number) => zWheel / s,
   }
 }

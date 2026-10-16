@@ -83,7 +83,7 @@ export function makeFormPipeCage(path: [number, number, number][], radius: numbe
 export function makeBoxCage(L: number, W: number, H: number, nx: number, ny: number, nz: number): QuadMesh {
   if (!(L > 0 && W > 0 && H > 0)) throw new Error('makeBoxCage: 尺寸要 > 0')
   if (!Number.isInteger(nx) || !Number.isInteger(ny) || !Number.isInteger(nz) || nx < 1 || ny < 1 || nz < 1) {
-    throw new Error('makeBoxCage: 分段数要是 ≥1 的整数')
+    throw new Error('makeBoxCage: 分段數要是 ≥1 的整數')
   }
   const verts: [number, number, number][] = []
   const quads: [number, number, number, number][] = []
@@ -130,7 +130,7 @@ export function makeBoxCage(L: number, W: number, H: number, nx: number, ny: num
  *  @param nSeg 饼盖每边格数（亦 = 每象限壁段数），默认 2；@param nH 高度分段，默认 1。 */
 export function makeCylinderCage(R: number, H: number, nSeg = 2, nH = 1): QuadMesh {
   if (!(R > 0 && H > 0)) throw new Error('makeCylinderCage: 尺寸要 > 0')
-  if (!Number.isInteger(nSeg) || !Number.isInteger(nH) || nSeg < 1 || nH < 1) throw new Error('makeCylinderCage: 分段数要 ≥1 整数')
+  if (!Number.isInteger(nSeg) || !Number.isInteger(nH) || nSeg < 1 || nH < 1) throw new Error('makeCylinderCage: 分段數要 ≥1 整數')
   const box = makeBoxCage(2 * R, 2 * R, H, nSeg, nSeg, nH)
   // 方([-1,1]²)→圆 椭圆映射（FG-squircle）：边界映去单位圆、内部双射、无翻转。z 不变。
   const verts = box.verts.map(([x, y, z]) => {
@@ -153,7 +153,7 @@ export function makePlaneCage(L: number, W: number, nx = 2, ny = 2, thick = 1): 
  *  需闭合流形故对开放片 no-op（诚实 v1 限制）。 */
 export function makeOpenPatchCage(L: number, W: number, nx = 3, ny = 3): QuadMesh {
   if (!(L > 0 && W > 0)) throw new Error('makeOpenPatchCage: 尺寸要 > 0')
-  if (!Number.isInteger(nx) || !Number.isInteger(ny) || nx < 1 || ny < 1) throw new Error('makeOpenPatchCage: 分段数要是 ≥1 整数')
+  if (!Number.isInteger(nx) || !Number.isInteger(ny) || nx < 1 || ny < 1) throw new Error('makeOpenPatchCage: 分段數要是 ≥1 整數')
   const verts: [number, number, number][] = []
   const quads: [number, number, number, number][] = []
   const dx = L / nx, dy = W / ny, x0 = -L / 2, y0 = -W / 2
@@ -169,8 +169,8 @@ export function makeOpenPatchCage(L: number, W: number, nx = 3, ny = 3): QuadMes
  *  注：makeBoxCage z∈[0,2R] 唔居中 → 先 w=(z−R)/R 居中映射，再 +R 上移令球底落 z=0（与圆柱底落 z=0 一致）。
  *  只移顶点唔改盒拓扑/绕向 → signed-vol>0。CC 系逼近型，细分体积向内收（粗笼 undershoot 正常，nSeg≥3 较逼近）。 */
 export function makeSphereCage(R: number, nSeg = 3): QuadMesh {
-  if (!(R > 0)) throw new Error('makeSphereCage: 半径要 > 0')
-  if (!Number.isInteger(nSeg) || nSeg < 1) throw new Error('makeSphereCage: 分段数要 ≥1 整数')
+  if (!(R > 0)) throw new Error('makeSphereCage: 半徑要 > 0')
+  if (!Number.isInteger(nSeg) || nSeg < 1) throw new Error('makeSphereCage: 分段數要 ≥1 整數')
   const box = makeBoxCage(2 * R, 2 * R, 2 * R, nSeg, nSeg, nSeg)
   const cl = (t: number) => Math.max(-1, Math.min(1, t))
   const verts = box.verts.map(([x, y, z]) => {
@@ -190,9 +190,9 @@ export function makeSphereCage(R: number, nSeg = 3): QuadMesh {
  *  点 = ((R+r·cosφ)·cosθ, (R+r·cosφ)·sinθ, r + r·sinφ)（+r 令管底落 z=0）。每顶点 valence-4、每边恰 2 quad
  *  ⇒ 闭合 2-流形、全 quad、Euler V−E+F=0（genus 1）。绕向 [v(i,j),v(i+1,j),v(i+1,j+1),v(i,j+1)] = θ×φ 外法向。 */
 export function makeTorusCage(R: number, r: number, nMaj = 12, nMin = 8): QuadMesh {
-  if (!(R > 0 && r > 0)) throw new Error('makeTorusCage: 半径要 > 0')
-  if (!(R > r)) throw new Error('makeTorusCage: 主半径要 > 管半径（否则自交）')
-  if (!Number.isInteger(nMaj) || !Number.isInteger(nMin) || nMaj < 3 || nMin < 3) throw new Error('makeTorusCage: 分段数要 ≥3 整数')
+  if (!(R > 0 && r > 0)) throw new Error('makeTorusCage: 半徑要 > 0')
+  if (!(R > r)) throw new Error('makeTorusCage: 主半徑要 > 管半徑（否則自交）')
+  if (!Number.isInteger(nMaj) || !Number.isInteger(nMin) || nMaj < 3 || nMin < 3) throw new Error('makeTorusCage: 分段數要 ≥3 整數')
   const verts: [number, number, number][] = []
   for (let i = 0; i < nMaj; i++) {
     const th = (2 * Math.PI * i) / nMaj, ct = Math.cos(th), st = Math.sin(th)
@@ -377,7 +377,7 @@ export function setSymmetricFormVert(m: QuadMesh, i: number, p: [number, number,
  *  边界顶点 = 立方 B-spline 边界规则、patch 角点（边界顶点 valence-2）钉死。3 面共边 = 非流形仍 throw。
  *  闭合无折痕输入逐字节同旧实现一致（回归门保住）。 */
 export function ccSubdivide(m: QuadMesh, levels: number, creases?: [number, number][], creaseW?: number[]): QuadMesh {
-  if (!Number.isInteger(levels) || levels < 1) throw new Error('ccSubdivide: levels 要是 ≥1 的整数')
+  if (!Number.isInteger(levels) || levels < 1) throw new Error('ccSubdivide: levels 要是 ≥1 的整數')
   let cur = m
   // S172/S 折痕：二元无限锐（旧）或【分数 sharpness】w∈(0,1]（creaseW 平行 creases；缺省 w=1=无限锐，
   // 逐字节同旧二元一致 → 回归门保住）。转成 edge-key → 权重 Map（key = lo·nV + hi，同 edge map 编码）。
@@ -449,7 +449,7 @@ function ccStep(m: QuadMesh, creaseW: Map<number, number>): { mesh: QuadMesh; ch
         eV0.push(lo); eV1.push(hi); eF0.push(f); eF1.push(-1)
         sharpW.push(hasCrease ? (creaseW.get(key) ?? 0) : 0)
       } else {
-        if (eF1[e] !== -1) throw new Error('细分要求闭合流形 quad 网格')   // 同一条边 ≥3 面 → 非流形
+        if (eF1[e] !== -1) throw new Error('細分要求閉合流形 quad 網格')   // 同一条边 ≥3 面 → 非流形
         eF1[e] = f
       }
       faceEdge[f * 4 + s] = e

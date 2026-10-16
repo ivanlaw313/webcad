@@ -114,9 +114,9 @@ export function inferConstraints(
       const offH = Math.min(ang, 180 - ang)     // 到水平轴嘅夹角 [0,90]
       const offV = Math.abs(ang - 90)            // 到竖直轴嘅夹角 [0,90]
       if (offH < angTol) {
-        out.push({ type: 'horizontal', refs: ['self'], reason: `线方向偏离水平仅 ${offH.toFixed(2)}°（< ${angTol}°）` })
+        out.push({ type: 'horizontal', refs: ['self'], reason: `線方向偏離水平僅 ${offH.toFixed(2)}°（< ${angTol}°）` })
       } else if (offV < angTol) {
-        out.push({ type: 'vertical', refs: ['self'], reason: `线方向偏离竖直仅 ${offV.toFixed(2)}°（< ${angTol}°）` })
+        out.push({ type: 'vertical', refs: ['self'], reason: `線方向偏離豎直僅 ${offV.toFixed(2)}°（< ${angTol}°）` })
       }
     }
   }
@@ -150,7 +150,7 @@ export function inferConstraints(
       if (d < posTol && (!best || d < best.d)) best = { ref: ep.ref, d }
     }
     if (best) {
-      out.push({ type: 'coincident', refs: [sp.tag, best.ref], reason: `端点距离 ${best.d.toFixed(3)} < ${posTol} —— 吸附为重合` })
+      out.push({ type: 'coincident', refs: [sp.tag, best.ref], reason: `端點距離 ${best.d.toFixed(3)} < ${posTol} —— 吸附為重合` })
     }
   }
 
@@ -167,9 +167,9 @@ export function inferConstraints(
         if (!Number.isFinite(eAng)) continue
         const between = angBetween(selfAng, eAng)   // [0,90]
         if (between < angTol) {
-          out.push({ type: 'parallel', refs: ['self', e.id], reason: `两线夹角 ${between.toFixed(2)}° < ${angTol}° —— 平行` })
+          out.push({ type: 'parallel', refs: ['self', e.id], reason: `兩線夾角 ${between.toFixed(2)}° < ${angTol}° —— 平行` })
         } else if (Math.abs(between - 90) < angTol) {
-          out.push({ type: 'perpendicular', refs: ['self', e.id], reason: `两线夹角 ${between.toFixed(2)}°（≈90°）—— 垂直` })
+          out.push({ type: 'perpendicular', refs: ['self', e.id], reason: `兩線夾角 ${between.toFixed(2)}°（≈90°）—— 垂直` })
         }
       }
     }
@@ -193,7 +193,7 @@ export function inferConstraints(
           if (!Number.isFinite(radDir)) continue
           const between = angBetween(lineDir, radDir)          // 线 vs 半径 [0,90]
           if (Math.abs(between - 90) < angTol) {               // ⊥ 半径 → 相切
-            out.push({ type: 'tangent', refs: ['self', e.id], reason: `端点贴圆周(|d−r|=${Math.abs(dC - e.r).toFixed(3)}) 且线⊥半径(夹角 ${between.toFixed(2)}°)—— 相切` })
+            out.push({ type: 'tangent', refs: ['self', e.id], reason: `端點貼圓周(|d−r|=${Math.abs(dC - e.r).toFixed(3)}) 且線⊥半徑(夹角 ${between.toFixed(2)}°)—— 相切` })
             break   // 一条线对同一个圆最多出一次相切（两端都满足时取先到嘅）
           }
         }
@@ -208,7 +208,7 @@ export function inferConstraints(
       if (e.kind !== 'circle' || !(e.r > 1e-9)) continue
       const dr = Math.abs(seg.r - e.r)
       if (dr < posTol) {
-        out.push({ type: 'equal', refs: ['self', e.id], reason: `半径差 |${seg.r}−${e.r}| = ${dr.toFixed(3)} < ${posTol} —— 半径相等` })
+        out.push({ type: 'equal', refs: ['self', e.id], reason: `半徑差 |${seg.r}−${e.r}| = ${dr.toFixed(3)} < ${posTol} —— 半徑相等` })
       }
     }
   }

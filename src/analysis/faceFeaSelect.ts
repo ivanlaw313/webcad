@@ -134,13 +134,13 @@ export function faceFeaSelect(inp: FaceFeaSelectInput): FaceFeaSelectResult {
     ok: false, error, nodes: new Int32Array(0), nNodes: 0, nNodesTotal: 0,
     area: 0, normal: [0, 0, 0], centroid: [0, 0, 0],
   })
-  if (!inp || !inp.grid || !inp.faceTris) return fail('空输入（缺 grid/faceTris）')
+  if (!inp || !inp.grid || !inp.faceTris) return fail('空輸入（缺 grid/faceTris）')
   const { h, nx, ny, nz, ox, oy, oz, solid } = inp.grid
-  if (!(h > 0) || !Number.isFinite(h)) return fail('h 无效（需 > 0）')
-  if (!(nx > 0 && ny > 0 && nz > 0)) return fail('nx/ny/nz 无效（需 > 0）')
-  if (!solid || solid.length < nx * ny * nz) return fail('solid 长度同 nx*ny*nz 不一致')
+  if (!(h > 0) || !Number.isFinite(h)) return fail('h 無效（需 > 0）')
+  if (!(nx > 0 && ny > 0 && nz > 0)) return fail('nx/ny/nz 無效（需 > 0）')
+  if (!solid || solid.length < nx * ny * nz) return fail('solid 長度同 nx*ny*nz 不一致')
   const nTri = Math.floor(inp.faceTris.length / 9)
-  if (nTri < 1) return fail('面三角不足（faceTris 需 ≥ 9 个数 = 1 三角）')
+  if (nTri < 1) return fail('面三角不足（faceTris 需 ≥ 9 個數 = 1 三角）')
 
   // ---- 1. 复算紧凑 nodeId（镜 runVoxelFea L662-673：实体体素 8 角标记 → 升序编号）
   const nnx = nx + 1, nny = ny + 1, nnz = nz + 1
@@ -154,7 +154,7 @@ export function faceFeaSelect(inp: FaceFeaSelectInput): FaceFeaSelectResult {
   let nNodesTotal = 0
   // nodeGrid[cId] = grid 索引 g（反查节点坐标）。先数 nNodesTotal 再填。
   for (let g = 0; g < nodeId.length; g++) if (nodeId[g] === 0) nodeId[g] = nNodesTotal++
-  if (nNodesTotal < 1) return fail('无实体角节点（solid 全空？）')
+  if (nNodesTotal < 1) return fail('無實體角節點（solid 全空？）')
   const nodeGrid = new Int32Array(nNodesTotal)
   for (let g = 0; g < nodeId.length; g++) { const cId = nodeId[g]; if (cId >= 0) nodeGrid[cId] = g }
 

@@ -46,7 +46,7 @@ export function sampleBSpline(ctrl: Vec2[], opts: BSplineOpts = {}): Vec2[] {
 
   const n = ctrl.length;
   if (n === 0) return [];
-  if (degree < 1) throw new Error('bspline2d: degree 须 ≥ 1');
+  if (degree < 1) throw new Error('bspline2d: degree 須 ≥ 1');
   if (n === 1) {
     // 单控制点 → 退化为该点重复。
     const out: Vec2[] = [];

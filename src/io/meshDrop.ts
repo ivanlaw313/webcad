@@ -18,14 +18,14 @@ export const MESH_DROP_EXTS = ['.stl', '.obj', '.3mf'] as const
 
 /** Shown when drop fires but no File payload could be read (remote DnD / automation). */
 export const MESH_DROP_EMPTY_STATUS =
-  '未能读取拖放文件（请确认拖的是本地 .stl/.obj/.3mf，或改用 File→导入 STL）'
+  '未能讀取拖放文件（請確認拖的是本地 .stl/.obj/.3mf，或改用 File→導入 STL）'
 
 /** Brief status while a file-like drag is over the viewport overlay. */
 export const MESH_DROP_ARMED_STATUS = '放開滑鼠以匯入網格（.stl / .obj / .3mf）'
 
 /** v1.44: status when user switches to MESH tab — surfaces drag-drop as primary import path. */
 export const MESH_TAB_DROP_HINT =
-  '可将 .stl / .obj / .3mf 拖到视口导入（或用「插入STL」/ File→导入）'
+  '可將 .stl / .obj / .3mf 拖到視口導入（或用「插入STL」/ File→導入）'
 
 export function meshDropKind(filename: string): MeshDropKind | null {
   const m = /\.([^.]+)$/.exec(String(filename || '').trim().toLowerCase())

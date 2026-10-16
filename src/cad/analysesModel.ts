@@ -15,9 +15,9 @@ export interface AnalysisNode {
 }
 
 export const ANALYSIS_LABELS: Record<AnalysisType, string> = {
-  zebra: '斑马纹', curv: '曲率趋势', gausscurv: '高斯曲率', comb: '曲率梳',
+  zebra: '斑馬紋', curv: '曲率趨勢', gausscurv: '高斯曲率', comb: '曲率梳',
   kmax: '最大主曲率', kmin: '最小主曲率',
-  draft: '拔模分析', slope: '斜度分析', minradius: '最小曲率半径', section: '剖切分析', access: '脱模可达性',
+  draft: '拔模分析', slope: '斜度分析', minradius: '最小曲率半徑', section: '剖切分析', access: '脫模可達性',
 }
 
 // 加 / 更新一个分析节点。同 type 已存在 → 就地更新参数 + 设为可见（对标「重跑同类分析覆盖」）。

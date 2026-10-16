@@ -23,7 +23,7 @@ export function parseSvgToProfiles(text: string): { profiles: ImpProfile[]; note
   let doc: Document
   try { doc = new DOMParser().parseFromString(text, 'image/svg+xml') } catch { return { profiles: [], note: '不是有效 SVG', skipped: [] } }
   const root = doc.querySelector('svg')
-  if (!root || doc.querySelector('parsererror')) return { profiles: [], note: '不是有效 SVG 或解析失败', skipped: [] }
+  if (!root || doc.querySelector('parsererror')) return { profiles: [], note: '不是有效 SVG 或解析失敗', skipped: [] }
 
   const profiles: ImpProfile[] = []
   const skipped = new Set<string>()
@@ -87,6 +87,6 @@ export function parseSvgToProfiles(text: string): { profiles: ImpProfile[]; note
   } finally { host.remove() }
 
   for (const t of ['text', 'image', 'use']) if (root.querySelector(t)) skipped.add(t)
-  const note = profiles.length ? `识别 ${profiles.length} 个轮廓` : '未找到可用轮廓（支持 path / rect / circle / polygon）'
+  const note = profiles.length ? `識別 ${profiles.length} 個輪廓` : '未找到可用輪廓（支持 path / rect / circle / polygon）'
   return { profiles, note, skipped: [...skipped] }
 }

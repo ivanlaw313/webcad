@@ -338,8 +338,8 @@ export function parseDxfToProfiles(text: string, opt?: ParseDxfOpt): ParseDxfRes
       // 2 block name · 10/20 insertion point · 41/42 x/y scale (default 1) · 50 rotation (degrees)
       const name = str(e.pairs, 2).toUpperCase()
       const b = name ? blocks.get(name) : undefined
-      if (!b) { skipped.add(name ? `INSERT(${name}未定义)` : 'INSERT'); return }
-      if (depth >= 4) { skipped.add('INSERT(嵌套>4层)'); return }
+      if (!b) { skipped.add(name ? `INSERT(${name}未定義)` : 'INSERT'); return }
+      if (depth >= 4) { skipped.add('INSERT(嵌套>4層)'); return }
       const ix = numOr(e.pairs, 10, 0), iy = numOr(e.pairs, 20, 0)
       const sx = numOr(e.pairs, 41, 1) || 1, sy = numOr(e.pairs, 42, 1) || 1
       const rot = (numOr(e.pairs, 50, 0) * Math.PI) / 180, co = Math.cos(rot), si = Math.sin(rot)
@@ -389,7 +389,7 @@ export function parseDxfToProfiles(text: string, opt?: ParseDxfOpt): ParseDxfRes
       if (isAborted(opt?.signal)) {
         const layers = ['0']
         return {
-          profiles: [], texts: [], note: 'DXF 导入已取消', skipped: [], layers,
+          profiles: [], texts: [], note: 'DXF 導入已取消', skipped: [], layers,
           stats: { bytes: text.length, entityCount: model.length, textTotal, textKept: 0, textTruncated: 0, cancelled: true },
         }
       }
@@ -458,10 +458,10 @@ export function parseDxfToProfiles(text: string, opt?: ParseDxfOpt): ParseDxfRes
   const textTruncated = Math.max(0, textTotal - textKept)
   const textNote = textTotal ? ` · ${textTotal} 文字標註${textTruncated ? `（保留 ${textKept}）` : ''}` : ''
   const note = profiles.length
-    ? `识别 ${profiles.length} 个轮廓（${circles.length} 圆 + ${profiles.length - circles.length} 多段线${layers.length > 1 ? ` · ${layers.length} 层` : ''}）${textNote}`
+    ? `識別 ${profiles.length} 個輪廓（${circles.length} 圓 + ${profiles.length - circles.length} 多段線${layers.length > 1 ? ` · ${layers.length} 層` : ''}）${textNote}`
     : textTotal
-      ? `未找到轮廓，但识别 ${textTotal} 个文字標註（TEXT/MTEXT）`
-      : '未找到可用轮廓（支持 LINE / LWPOLYLINE / CIRCLE / ARC / SPLINE / ELLIPSE / INSERT 块 · TEXT/MTEXT 標註）'
+      ? `未找到輪廓，但識別 ${textTotal} 個文字標註（TEXT/MTEXT）`
+      : '未找到可用輪廓（支持 LINE / LWPOLYLINE / CIRCLE / ARC / SPLINE / ELLIPSE / INSERT 塊 · TEXT/MTEXT 標註）'
   opt?.onProgress?.({ phase: 'done', done: model.length, total: model.length })
   void t0
   return {

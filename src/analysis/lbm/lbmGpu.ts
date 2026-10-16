@@ -755,7 +755,7 @@ export class LbmGpu {
    * 嗰阵改用 setTimeout；而且 30 秒之后要 reject，并且【讲埋边几个 program 仲未好】。
    */
   ready(timeoutMs = 30000): Promise<void> {
-    if (this.disposed) return Promise.reject(new Error('LBM: solver 已经 dispose'))
+    if (this.disposed) return Promise.reject(new Error('LBM: solver 已經 dispose'))
     const scene = this.scene as Scene, cam = this.cam as OrthographicCamera
     // compile() 要喺一个同实际用嗰阵一样嘅 render target 之下行，否则 three 嘅 program
     // cache key（outputColorSpace 等）会唔同 → 第一帧再编译一次，即係白等。

@@ -42,7 +42,7 @@ export function frameTwistTaperSweep(
   const cc = r(new oc.BRepAdaptor_CompCurve_2(spineWireWrapped, true)) // curvilinear abscissa → U = 弧长
   const u0 = cc.FirstParameter(), u1 = cc.LastParameter(), len = u1 - u0
   // 退化守卫：零/极短弧长路径 → ds = 1e-4/len = Infinity → 切向/取点全 NaN → 破壳。抛错俾调用方 try/catch 退回普通扫掠（gotcha e）。
-  if (!(len > 1e-6) || !Number.isFinite(len)) throw new Error('frameTwistTaperSweep: spine 弧长太短/退化（len=' + len + '）')
+  if (!(len > 1e-6) || !Number.isFinite(len)) throw new Error('frameTwistTaperSweep: spine 弧長太短/退化（len=' + len + '）')
   const pAt = (s: number): V3 => { const p = cc.Value(u0 + len * Math.min(1, Math.max(0, s))); return [p.X(), p.Y(), p.Z()] }
   const ds = Math.max(1e-4, len * 1e-3) / len
   const tAt = (s: number): V3 => norm(sub(pAt(Math.min(1, s + ds)), pAt(Math.max(0, s - ds))))

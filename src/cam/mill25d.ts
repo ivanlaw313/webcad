@@ -415,11 +415,11 @@ export function profilesToMillGcode(profiles: Profile2D[], opts: MillOpts): { gc
           const o2 = offsetPath(lp.verts, lp.bulges, -r) // 孔向内偏 → 切出嚟先系图纸孔径
           ring = { verts: o2.verts as Pt[], bulges: o2.bulges }
         } catch {
-          warn(`孔${circ ? ` Ø${fmt(circ.dia)}` : ` ${nh}`} 细过刀径 Ø${fmt(opts.toolD)} — 已跳过`)
+          warn(`孔${circ ? ` Ø${fmt(circ.dia)}` : ` ${nh}`} 細過刀徑 Ø${fmt(opts.toolD)} — 已跳過`)
           continue
         }
         zs.forEach((z, li) => {
-          emitLoopLayer(st, ring, z, opts, `contour 孔 ${nh}/${totH} 第 ${li + 1}/${zs.length} 层 Z${fmt(z)}`)
+          emitLoopLayer(st, ring, z, opts, `contour 孔 ${nh}/${totH} 第 ${li + 1}/${zs.length} 層 Z${fmt(z)}`)
         })
       } else {
         no++
@@ -427,21 +427,21 @@ export function profilesToMillGcode(profiles: Profile2D[], opts: MillOpts): { gc
         try {
           ring = offsetOutward(lp.verts, lp.bulges, r) // 外框向外偏（凸角出圆角弧）
         } catch (e) {
-          warn(`外框 ${no} 向外偏移失败（${e instanceof Error ? e.message : String(e)}）— 已跳过`)
+          warn(`外框 ${no} 向外偏移失敗（${e instanceof Error ? e.message : String(e)}）— 已跳過`)
           continue
         }
         // 留料桥可行性：桥高 1mm，depth 太浅（<1.5）桥同底冇分别 → 唔做
         let doTabs = nTabs > 0
         if (doTabs && opts.depth < 1.5) {
-          warn(`深度 ${fmt(opts.depth)}mm < 1.5mm 不足位做留料桥 — tabs 已略过`)
+          warn(`深度 ${fmt(opts.depth)}mm < 1.5mm 不足位做留料橋 — tabs 已略過`)
           doTabs = false
         }
         zs.forEach((z, li) => {
-          const lab = `contour 外框 ${no}/${totO} 第 ${li + 1}/${zs.length} 层 Z${fmt(z)}`
+          const lab = `contour 外框 ${no}/${totO} 第 ${li + 1}/${zs.length} 層 Z${fmt(z)}`
           if (doTabs && li === zs.length - 1) {
             // 桥位等弧长分布要喺折线上行先准 → 密铺（弧改直线逼近，损失 <0.1mm）
-            warn('桥层直线密铺（留料桥层弧段改用折线逼近）')
-            emitTabLayer(st, ring, opts, nTabs, `${lab} 留料桥 ×${nTabs}`)
+            warn('橋層直線密鋪（留料橋層弧段改用折線逼近）')
+            emitTabLayer(st, ring, opts, nTabs, `${lab} 留料橋 ×${nTabs}`)
           } else {
             emitLoopLayer(st, ring, z, opts, lab)
           }
@@ -456,7 +456,7 @@ export function profilesToMillGcode(profiles: Profile2D[], opts: MillOpts): { gc
       pn++
       // 岛检测：有其他轮廓匿喺入面 → v1 唔识避，照挖但提醒
       if (idxs.some((j) => j !== i && pointInPoly(loops[j][0], loops[i]))) {
-        warn(`挖槽 ${pn}: 岛屿未避让 — v1 挖槽净支持无岛轮廓`)
+        warn(`挖槽 ${pn}: 島嶼未避讓 — v1 挖槽淨支持無島輪廓`)
       }
       const lp = toCCWLoop(profiles[i], loops[i])
       const rings: Loop[] = []
@@ -464,7 +464,7 @@ export function profilesToMillGcode(profiles: Profile2D[], opts: MillOpts): { gc
         const o2 = offsetPath(lp.verts, lp.bulges, -r) // 边界环 = 向内偏 toolD/2
         rings.push({ verts: o2.verts as Pt[], bulges: o2.bulges })
       } catch {
-        warn(`挖槽 ${pn} 细过刀径 Ø${fmt(opts.toolD)} — 已跳过`)
+        warn(`挖槽 ${pn} 細過刀徑 Ø${fmt(opts.toolD)} — 已跳過`)
         continue
       }
       // 逐次再向内偏 stepover 直到塌陷。停环规则（v1）：环嘅刀内缘
@@ -480,15 +480,15 @@ export function profilesToMillGcode(profiles: Profile2D[], opts: MillOpts): { gc
         try { offsetPath(lp.verts, lp.bulges, -(din + r)) } catch { break }
         rings.push(ring)
       }
-      warn('直插下刀 — 铝/亚克力建议细 stepdown')
+      warn('直插下刀 — 鋁/亞克力建議細 stepdown')
       const inner = rings[rings.length - 1]
       zs.forEach((z, li) => {
-        st.L.push(`(挖槽 ${pn}/${tops.length} 第 ${li + 1}/${zs.length} 层 Z${fmt(z)} 环×${rings.length})`)
+        st.L.push(`(挖槽 ${pn}/${tops.length} 第 ${li + 1}/${zs.length} 層 Z${fmt(z)} 環×${rings.length})`)
         st.L.push(`G0 Z${fmt(opts.safeZ)}`)
         st.L.push(`G0 ${xy(inner.verts[0])}`)
         st.L.push(`G1 Z${fmt(z)}${fw(st, opts.feedZ)}`) // 直插下刀喺最内环起点
         for (let q = rings.length - 1; q >= 0; q--) {   // 由内环切到外环
-          st.L.push(`(环 ${rings.length - q}/${rings.length})`)
+          st.L.push(`(環 ${rings.length - q}/${rings.length})`)
           if (q < rings.length - 1) st.L.push(`G1 ${xy(rings[q].verts[0])}${fw(st, opts.feedXY)}`) // 环间切深平移
           emitRing(st, rings[q], opts.feedXY)
         }
@@ -503,13 +503,13 @@ export function profilesToMillGcode(profiles: Profile2D[], opts: MillOpts): { gc
       const poly = loops[i]   // 用清洗后顶点（线性化；面铣对弧不敏感）
       let ymn = Infinity, ymx = -Infinity
       for (const p of poly) { if (p[1] < ymn) ymn = p[1]; if (p[1] > ymx) ymx = p[1] }
-      if (!(ymx - ymn > 2 * r)) { warn(`面铣 ${fn}: 轮廓太窄（< 刀径）— 已跳过`); continue }
+      if (!(ymx - ymn > 2 * r)) { warn(`面銑 ${fn}: 輪廓太窄（< 刀徑）— 已跳過`); continue }
       // 行 y：由 ymn+r 到 ymx-r，步距 stepover
       const rows: number[] = []
       for (let y = ymn + r; y < ymx - r + 1e-9; y += stepover) rows.push(y)
       if (!rows.length || rows[rows.length - 1] < ymx - r - 1e-9) rows.push(ymx - r)
       zs.forEach((z, li) => {
-        st.L.push(`(面铣 ${fn}/${tops.length} 第 ${li + 1}/${zs.length} 层 Z${fmt(z)} ${rows.length}行)`)
+        st.L.push(`(面銑 ${fn}/${tops.length} 第 ${li + 1}/${zs.length} 層 Z${fmt(z)} ${rows.length}行)`)
         rows.forEach((y, ri) => {
           const xs = scanlineX(poly, y)
           // 配对成内部 span，行内两端各缩 r（留刀半径）；zigzag：奇数行反向
@@ -531,17 +531,17 @@ export function profilesToMillGcode(profiles: Profile2D[], opts: MillOpts): { gc
     profiles.forEach((p, i) => {
       if (!valid[i]) return
       const circ = circleOf(p)
-      if (!circ) { warn(`轮廓 ${i + 1} 非圆形 — drill 净支持圆, 已跳过`); return }
-      if (circ.dia > drillMaxD + 1e-9) { warn(`Ø${fmt(circ.dia)} 大过 drillMaxD Ø${fmt(drillMaxD)} — 已跳过`); return }
+      if (!circ) { warn(`輪廓 ${i + 1} 非圓形 — drill 淨支持圓, 已跳過`); return }
+      if (circ.dia > drillMaxD + 1e-9) { warn(`Ø${fmt(circ.dia)} 大過 drillMaxD Ø${fmt(drillMaxD)} — 已跳過`); return }
       if (circ.dia > opts.toolD * 1.05 + 1e-9) {
-        warn(`Ø${fmt(circ.dia)} 大过刀径 Ø${fmt(opts.toolD)}（位置钻净适合 ≤ ×1.05）— 请改 op:'contour' 当孔铣`)
+        warn(`Ø${fmt(circ.dia)} 大過刀徑 Ø${fmt(opts.toolD)}（位置鑽淨適合 ≤ ×1.05）— 請改 op:'contour' 當孔銑`)
         return
       }
       dn++
       if (canned) holes.push(circ.c)
-      else emitDrill(st, circ.c, zs, opts, `钻 ${dn} Ø${fmt(circ.dia)} X${fmt(circ.c[0])} Y${fmt(circ.c[1])} 啄×${zs.length}`)
+      else emitDrill(st, circ.c, zs, opts, `鑽 ${dn} Ø${fmt(circ.dia)} X${fmt(circ.c[0])} Y${fmt(circ.c[1])} 啄×${zs.length}`)
     })
-    if (canned && holes.length) { emitDrillCanned(st, holes, opts); warn('canned 模式输出 G81/G83 — GRBL 不识，要 Fanuc/Haas 等工业控制器') }
+    if (canned && holes.length) { emitDrillCanned(st, holes, opts); warn('canned 模式輸出 G81/G83 — GRBL 不識，要 Fanuc/Haas 等工業控制器') }
   }
 
   // 尾：升安全高 → 熄主轴 → 完

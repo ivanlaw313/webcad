@@ -1,4 +1,4 @@
-// 激光切割 G-code 导出 — GRBL 方言（M3/M5 激光开关 + S 功率字 0–1000，G21 mm，G90 绝对坐标）。
+// 激光切割 G-code 导出 — GRBL 方言（M3/M5 激光开关 + S 功率字 0–1000，G21 mm，G90 絕對坐標）。
 // Imports only the pure sketchOps module (bulge math) — store / worker / node(tsx) tests all fine.
 //
 // T737 真圆弧输出：profile 带 verts/bulges（T724 bulge 路径）时——kerf 用解析 offsetPath（直段平移、
@@ -186,15 +186,15 @@ export function profilesToGcode(profiles: Profile2D[], opts: LaserGcodeOpts = {}
   const L: string[] = []
   L.push(
     '; webcad laser',
-    `; GRBL · 单位 mm (G21) · 绝对坐标 (G90) · F${fmt(feed)} mm/min · S${power}/1000 · ${passes} 道 · kerf ${fmt(kerf)} mm（光束半宽）`,
-    '; 先切孔后切外轮廓（避免工件先脱落）',
+    `; GRBL · 單位 mm (G21) · 絕對坐標 (G90) · F${fmt(feed)} mm/min · S${power}/1000 · ${passes} 道 · kerf ${fmt(kerf)} mm（光束半宽）`,
+    '; 先切孔後切外輪廓（避免工件先脫落）',
     'G21',
     'G90',
   )
-  if (!ordered.length) L.push('; 无有效轮廓')
+  if (!ordered.length) L.push('; 無有效輪廓')
   ordered.forEach((it, idx) => {
-    if (it.dropped) { L.push('; 孔太细 kerf 后消失，已跳过'); return }
-    const label = it.hole ? '孔' : '外轮廓'
+    if (it.dropped) { L.push('; 孔太細 kerf 後消失，已跳過'); return }
+    const label = it.hole ? '孔' : '外輪廓'
     for (let pass = 1; pass <= passes; pass++) {
       L.push(`; ${label} ${idx + 1}/${ordered.length}${passes > 1 ? ` · 第 ${pass}/${passes} 道` : ''}`)
       if (it.verts && it.bulges) {

@@ -100,11 +100,11 @@ export function mateSolve(
   if (n === 0) { const R = computeR(); res = R.reduce((mx, v) => Math.max(mx, Math.abs(v)), 0); return finish(res < tol * 10) }
   for (; it < iters; it++) {
     const R = computeR()
-    if (!isFin(R)) { revert(); return finish(false, '残差非有限（几何退化）— 已还原求解前姿态') }
+    if (!isFin(R)) { revert(); return finish(false, '殘差非有限（幾何退化）— 已還原求解前姿態') }
     const maxr = R.reduce((mx, v) => Math.max(mx, Math.abs(v)), 0)
     res = maxr
     if (maxr < tol) break
-    if (maxr > prevRes + 1e-12) { if (++worse >= 3) { revert(); return finish(false, '发散（残差连升 3 次）— 已还原求解前姿态（约束可能矛盾）') } } else worse = 0
+    if (maxr > prevRes + 1e-12) { if (++worse >= 3) { revert(); return finish(false, '發散（殘差連升 3 次）— 已還原求解前姿態（約束可能矛盾）') } } else worse = 0
     prevRes = maxr
     const mR = R.length
     const J: number[][] = Array.from({ length: mR }, () => new Array(n).fill(0))
@@ -124,12 +124,12 @@ export function mateSolve(
     const lam = Math.max(1e-9, 1e-6 * maxDiag)
     for (let d = 0; d < n; d++) JTJ[d][d] += lam
     const delta = gaussSolve(JTJ, JTr.map((v) => -v))
-    if (!delta || !isFin(delta)) { revert(); return finish(false, '奇异 / 非有限步长 — 已还原求解前姿态') }
+    if (!delta || !isFin(delta)) { revert(); return finish(false, '奇異 / 非有限步長 — 已還原求解前姿態') }
     let maxT = 0, maxRo = 0
     for (const id of free) { const c0 = colOf.get(id)!; for (let k = 0; k < 3; k++) maxT = Math.max(maxT, Math.abs(delta[c0 + k])); for (let k = 3; k < 6; k++) maxRo = Math.max(maxRo, Math.abs(delta[c0 + k])) }
     const scale = Math.min(maxT > L0 ? L0 / maxT : 1, maxRo > 15 ? 15 / maxRo : 1)   // step cap: ≤L0 mm / ≤15° per iter
     for (const id of free) { const c0 = colOf.get(id)!; for (let k = 0; k < 6; k++) sp(id, k, gp(id, k) + scale * delta[c0 + k]) }
   }
-  for (const [, v] of pose) if (!isFin(v.pos) || !isFin(v.rot)) { revert(); return finish(false, '姿态非有限 — 已还原求解前姿态') }
+  for (const [, v] of pose) if (!isFin(v.pos) || !isFin(v.rot)) { revert(); return finish(false, '姿態非有限 — 已還原求解前姿態') }
   return finish(res < tol * 10)
 }

@@ -4175,6 +4175,10 @@ function tStatusOnce(s: string, lang: LangInput): string {
     }
   }
   if (L !== 'en' && L !== 'ja') return s
+  // FISHING93: BrowserTree analysis row uses tStatus(ANALYSIS_LABELS.*) — prefer catalog
+  // (tool.accessanalysis → JA 離型到達性) over EN-only _STATUS_EXACT ('脫模可達性'→Demold…).
+  const catalogKey = LABEL_TO_KEY[s]
+  if (catalogKey) return msg(catalogKey, L)
   // Exact key only. Single-character entries (軸 / 點 / 圓 / 面) still translate when the
   // whole string is that word; they must not match inside a longer Chinese sentence.
   const exact = _STATUS_EXACT[s]

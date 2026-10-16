@@ -184,7 +184,7 @@ export function SelectionChip({ label, count, hint, onClear, selectedText }: { l
     <label>
       <span style={{ color: '#6b7680' }}>{tStatus(label, lang)}</span>
       {count > 0 ? (
-        <span className="sel-chip" title={onClear ? tStatus('✕ = 清空所选重新点选', lang) : undefined}>
+        <span className="sel-chip" title={onClear ? tStatus('✕ = 清空所選重新點選', lang) : undefined}>
           {selectedText ?? <>{tStatus('已選', lang)} {count}</>}
           {onClear && <span className="sel-chip-x" onClick={onClear}>✕</span>}
         </span>

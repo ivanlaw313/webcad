@@ -1306,7 +1306,7 @@ function roundNearPoint(shape: any, kind: 'fillet' | 'chamfer', size: number, p:
   for (const s of [size]) {
     try {
       const r = kind === 'fillet' ? shape.fillet(s, (e: any) => e.containsPoint(M)) : shape.chamfer(s, (e: any) => e.containsPoint(M))
-      if (s !== size) buildWarnings.push(`${kind === 'fillet' ? '圆角' : '倒角'} ${size} 太大，已自动缩小到 ${s.toFixed(1)} 以贴合该棱`)
+      if (s !== size) buildWarnings.push(`${kind === 'fillet' ? '圓角' : '倒角'} ${size} 太大，已自動縮小到 ${s.toFixed(1)} 以貼合該稜`)
       return r
     } catch { /* report the requested size as failed */ }
   }
@@ -2016,13 +2016,13 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
           const fdr = gm.length === 1 ? (e: any) => e.containsPoint(gm[0]) : (e: any) => e.either(gm.map((M) => (f: any) => f.containsPoint(M)))
           sh = kind === 'fillet' ? sh.fillet(rv, fdr) : sh.chamfer(rv, fdr)   // GM-3DV3 M7：chamfer 逐边距离亦走分组 scalar 路径
         }
-        if (s !== size) buildWarnings.push(`${kind === 'fillet' ? '圆角（逐边半径）' : '倒角（逐边距离）'}${size} 太大，已自动缩小到 ${(sc * 100).toFixed(0)}% 以贴合所选棱`)
+        if (s !== size) buildWarnings.push(`${kind === 'fillet' ? '圓角（逐邊半徑）' : '倒角（逐邊距離）'}${size} 太大，已自動縮小到 ${(sc * 100).toFixed(0)}% 以貼合所選稜`)
         _recordFillet(_curOpIndex, kind, mids, midRad.map((r) => r * sc))   // GM-γ2b：录逐边圆角/倒角（实际成功嘅缩放尺寸）供 S2 重跑
         return sh
       }
       const rad: any = variable ? [s, s * (size2! / size)] : s
       const r = kind === 'fillet' ? shape.fillet(rad, finder) : shape.chamfer(s, finder)
-      if (s !== size) buildWarnings.push(`${kind === 'fillet' ? '圆角' : '倒角'} ${size} 太大，已自动缩小到 ${s.toFixed(1)} 以贴合所选棱`)
+      if (s !== size) buildWarnings.push(`${kind === 'fillet' ? '圓角' : '倒角'} ${size} 太大，已自動縮小到 ${s.toFixed(1)} 以貼合所選稜`)
       // GM-γ2b：录圆角/倒角 op（实际成功半径 s；变半径圆角以起点半径 s 近似 — S2 只追拓扑对应，半径廓形不影响哪面被改）供 S2 重跑。
       _recordFillet(_curOpIndex, kind, mids, mids.map(() => s))
       return r
@@ -4528,14 +4528,14 @@ function buildShape(features: Feature[], noCache = false): any {
             const r = GCWithScope()
             const mos: any = r(new (_oc as any).BRepOffsetAPI_MakeOffsetShape())
             mos.PerformByJoin(shape.wrapped, dd, 1e-3, (_oc as any).BRepOffset_Mode.BRepOffset_Skin, false, false, (_oc as any).GeomAbs_JoinType.GeomAbs_Arc, false, r(new (_oc as any).Message_ProgressRange_1()))
-            if (mos.IsDone && mos.IsDone()) { const off = r(mos.Shape()); if (off && !off.IsNull()) { done = cast(off); if (dd !== d) buildWarnings.push(`整体偏移 ${d} 自交,已减到 ${dd.toFixed(2)} 才成功`); break } }
+            if (mos.IsDone && mos.IsDone()) { const off = r(mos.Shape()); if (off && !off.IsNull()) { done = cast(off); if (dd !== d) buildWarnings.push(`整體偏移 ${d} 自交,已減到 ${dd.toFixed(2)} 才成功`); break } }
           } catch (e) { lastErr = (e as any)?.message || String(e) }
         }
         if (done && done.wrapped && !done.wrapped.IsNull()) {
           let bbOk = false
           try { const bb = (done as any).boundingBox.bounds as [number[], number[]]; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* 无界 */ }
           if (bbOk) shape = done
-          else buildWarnings.push('整体偏移：结果无界 — 已保旧形')
+          else buildWarnings.push('整體偏移：結果無界 — 已保舊形')
         } else buildWarnings.push(`整體偏移 ${d} 失敗（自交/不可偏移${lastErr ? '：' + lastErr : ''}）— 已保舊形`)
       }
     } else if (f.type === 'reversesurf') {
@@ -4719,7 +4719,7 @@ function buildShape(features: Feature[], noCache = false): any {
                 // v1 单面：NULL/vol≤0 → 退回 prism-cut（逐字节保 v1 行为）
                 const prism = basicFaceExtrusion(bestF, n.multiply(f.dist))   // dist<0 → 朝内柱 → cut（pushpull 足迹）
                 _recordBool(_i, 'cut', prism); shape = shape.cut(prism); okCount++
-                buildWarnings.push('移动面：内核朝内重解退化 → 已退回 prism 切除（邻面/圆角未由内核重解，只切走该面下方料）')
+                buildWarnings.push('移動面：內核朝內重解退化 → 已退回 prism 切除（鄰面/圓角未由內核重解，只切走該面下方料）')
               } else {
                 // v2 多面：NULL/vol 守卫 → 诚实跳该面继续串链（唔退 prism，免多面语义混淆）
                 buildWarnings.push(`⚠ 移動面${tag}朝內內核重解失敗（退化 / 距離過大）— 已跳過該面，繼續下一面`)
@@ -4917,7 +4917,7 @@ function buildShape(features: Feature[], noCache = false): any {
         let rax: [number, number, number] = f.axis === 'X' ? [1, 0, 0] : [0, 1, 0]
         if (f.axisV) {
           const al = Math.hypot(f.axisV[0], f.axisV[1], f.axisV[2])
-          if (al < 1e-9) { buildWarnings.push('曲面旋转：轴方向为零向量 — 已用世界 Y 轴') }
+          if (al < 1e-9) { buildWarnings.push('曲面旋轉：軸方向為零向量 — 已用世界 Y 軸') }
           else rax = [f.axisV[0] / al, f.axisV[1] / al, f.axisV[2] / al]
         }
         // 修 blocker（对抗 verify 揪出）：直接 revolve 开放 WIRE 出零厚旋转壳。Sketch.revolve 会 makeFace(wire)
@@ -5007,7 +5007,7 @@ function buildShape(features: Feature[], noCache = false): any {
             // 修 result 级有界性闸：任何无界结果逃过 IsNull → mesh 时炸 → 凭空消失。提交前验 bbox 有界（HARD FLOOR：无界 → 保持唔变）。
             let bbOk = false
             try { const bb = (r as any).boundingBox.bounds as [number[], number[]]; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 抛 = 无界 */ }
-            if (bbOk) { parkedBodies[f.target] = { name: t.name, shape: r }; buildWarnings.push(f.planeOrigin && f.planeNormal ? `平面裁剪：${t.name} 已裁（任意平面 @${f.planeOrigin.map((x) => +x.toFixed(0)).join(',')}）保留${f.keep === 'neg' ? '−' : '+'}侧` : `平面裁剪：${t.name} 已裁 ${f.plane}=${f.offset} 保留${f.keep === 'neg' ? '−' : '+'}侧`) }
+            if (bbOk) { parkedBodies[f.target] = { name: t.name, shape: r }; buildWarnings.push(f.planeOrigin && f.planeNormal ? `平面裁剪：${t.name} 已裁（任意平面 @${f.planeOrigin.map((x) => +x.toFixed(0)).join(',')}）保留${f.keep === 'neg' ? '−' : '+'}側` : `平面裁剪：${t.name} 已裁 ${f.plane}=${f.offset} 保留${f.keep === 'neg' ? '−' : '+'}側`) }
             else buildWarnings.push('平面裁剪失敗（結果無界）— 保持不變')
           }
           else buildWarnings.push('平面裁剪失敗（平面未與曲面相交 / 結果空）— 保持不變')
@@ -5028,7 +5028,7 @@ function buildShape(features: Feature[], noCache = false): any {
       const toolBody = f.tool >= 0 ? parkedBodies[f.tool] : null
       const toolShape = f.tool >= 0 ? (toolBody ? toolBody.shape : null) : shape
       if (!t) { buildWarnings.push(`⚠ 曲面裁剪：找不到目標曲面 #${f.target + 1}`) }
-      else if (!toolShape || !(toolShape as any).wrapped || (toolShape as any).wrapped.IsNull()) { buildWarnings.push(`⚠ 曲面裁剪：找不到裁刀（${f.tool >= 0 ? `曲面 #${f.tool + 1}` : '活动实体'}）— 保持不变`) }
+      else if (!toolShape || !(toolShape as any).wrapped || (toolShape as any).wrapped.IsNull()) { buildWarnings.push(`⚠ 曲面裁剪：找不到裁刀（${f.tool >= 0 ? `曲面 #${f.tool + 1}` : '活動實體'}）— 保持不變`) }
       else if (!_oc || !_oc.BRepAlgoAPI_BuilderAlgo_1 || !_oc.TopTools_ListOfShape_1 || !_oc.Message_ProgressRange_1) { buildWarnings.push('⚠ 曲面裁剪需要 plus 內核（BRepAlgoAPI_BuilderAlgo 未綁定）— 已跳過，曲面保持不變') }
       else {
         try {
@@ -5102,7 +5102,7 @@ function buildShape(features: Feature[], noCache = false): any {
                 if (tot > 0 && on / tot >= 0.6) cells.push({ fc, tris })   // 落选 = 源自裁刀嘅面（唔留）
               }
               if (!cells.length) { buildWarnings.push('曲面裁剪失敗（結果中無源自目標的面 — 裁刀可能未真正相交）— 保持不變') }
-              else if (cells.length === 1) { buildWarnings.push('曲面裁剪：裁刀未把目标切开（交线未贯穿目标）— 保持不变') }
+              else if (cells.length === 1) { buildWarnings.push('曲面裁剪：裁刀未把目標切開（交線未貫穿目標）— 保持不變') }
               else {
                 // ── 3. 留 keep 世界点最近嗰张 cell 面（点到面三角最短距；cell = 交线分割出嘅区域，edge-adjacent 唔会误并）──
                 let best = -1, bestD = Infinity
@@ -5114,8 +5114,8 @@ function buildShape(features: Feature[], noCache = false): any {
                 if (result && result.wrapped && !result.wrapped.IsNull()) {
                   try { const bb = (result as any).boundingBox.bounds as [number[], number[]]; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 抛 = 无界 */ }
                 }
-                if (bbOk) { parkedBodies[f.target] = { name: t.name, shape: result }; buildWarnings.push(`曲面裁剪：${t.name} 已用${f.tool >= 0 ? `曲面 #${f.tool + 1}` : '活动实体'}裁切，保留 keep 点最近 cell（共 ${cells.length} cell）`) }
-                else buildWarnings.push('曲面裁剪：保留片无界 / 返空 — 已 fail-safe 保持不变（避免曲面消失）')
+                if (bbOk) { parkedBodies[f.target] = { name: t.name, shape: result }; buildWarnings.push(`曲面裁剪：${t.name} 已用${f.tool >= 0 ? `曲面 #${f.tool + 1}` : '活動實體'}裁切，保留 keep 點最近 cell（共 ${cells.length} cell）`) }
+                else buildWarnings.push('曲面裁剪：保留片無界 / 返空 — 已 fail-safe 保持不變（避免曲面消失）')
               }
             }
           }
@@ -5183,8 +5183,8 @@ function buildShape(features: Feature[], noCache = false): any {
                 try { const bb = (result as any).boundingBox.bounds as [number[], number[]]; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 抛 = 无界 */ }
                 if (bbOk) {
                   parkedBodies[f.target] = { name: t.name, shape: result }
-                  buildWarnings.push(`去裁：${t.name} 已还原到自然边界（${faces.length} 面，${ok} 张重建成功）`)
-                } else { buildWarnings.push('去裁：重建含无界面（无限曲面）— 已 fail-safe 保持不变（避免曲面消失）') }
+                  buildWarnings.push(`去裁：${t.name} 已還原到自然邊界（${faces.length} 面，${ok} 張重建成功）`)
+                } else { buildWarnings.push('去裁：重建含無界面（無限曲面）— 已 fail-safe 保持不變（避免曲面消失）') }
               } else { buildWarnings.push('去裁失敗（重建結果空 / 縫合返回空）— 曲面保持不變') }
             }
           }
@@ -5249,7 +5249,7 @@ function buildShape(features: Feature[], noCache = false): any {
                 moved++
               }
               const shell = cast(r(new _oc.BRepBuilderAPI_MakeShell_2(bs.UReversed(), false)).Shell())
-              if (shell && shell.wrapped && !shell.wrapped.IsNull()) { parkedBodies[f.target] = { name: t.name, shape: shell }; buildWarnings.push(`极点编辑：${t.name} 改了 ${moved} 个控制点（${nu}×${nv} 网格）`) }
+              if (shell && shell.wrapped && !shell.wrapped.IsNull()) { parkedBodies[f.target] = { name: t.name, shape: shell }; buildWarnings.push(`極點編輯：${t.name} 改了 ${moved} 個控制點（${nu}×${nv} 網格）`) }
               else buildWarnings.push('極點編輯失敗（重建殼為空）— 保持不變')
             } else {
               // ── 多面壳：CROSS-FACE SHARED-POLE CO-MOVE（S140）──（planar-guard NurbsConvert-FIRST，读路径同写路径一致 _nurbsNetOfFace）。
@@ -5259,7 +5259,7 @@ function buildShape(features: Feature[], noCache = false): any {
               // 令共享边两侧始终重合（保 G0/C0 连续）→ Sewing 重组焊得埋（freeEdges 不升）→ N 面保留、几何真变形。
               // ① 比对邻面极点世界位（容差内）→ 揾出几何重合极点；② 同一 delta 施于跨面所有重合极点；③ 沿用既有逐面 MakeFace_21 + Sewing。
               const netFi = _nurbsNetOfFace(r, faces[fi].wrapped)
-              if (!netFi) { buildWarnings.push(`极点编辑：曲面 #${f.target + 1} 面 ${fi + 1} 是平/直面（无可动极点）或退化 — 保持不变（圆柱/锥面接缝处会被 OCCT 拆成两半，显示的网可能只是半边）`) }
+              if (!netFi) { buildWarnings.push(`極點編輯：曲面 #${f.target + 1} 面 ${fi + 1} 是平／直面（無可動極點）或退化 — 保持不變（圓柱／錐面接縫處會被 OCCT 拆成兩半，顯示的網可能只是半邊）`) }
               else {
                 // 读一张面嘅极点阵 meta（1-based 索引基准）。
                 const polesOf = (bs: any): { pa: any; r0: number; c0: number; nu: number; nv: number } => {
@@ -5313,7 +5313,7 @@ function buildShape(features: Feature[], noCache = false): any {
                     // → 被静默缝入、编辑嘅面凭空消失。验重建面网格面积：≈0 → abort（保持 parkedBodies 不变，诚实失败）。
                     let _faceArea = -1
                     try { const fm = (_fcast as any).mesh({ tolerance: 1, angularTolerance: 1 }); if (fm && fm.vertices && fm.triangles) { let a = 0; const v = fm.vertices, t = fm.triangles; for (let i = 0; i + 2 < t.length; i += 3) { const p = t[i] * 3, q = t[i + 1] * 3, w = t[i + 2] * 3; const ux = v[q] - v[p], uy = v[q + 1] - v[p + 1], uz = v[q + 2] - v[p + 2], vx = v[w] - v[p], vy = v[w + 1] - v[p + 1], vz = v[w + 2] - v[p + 2]; const cx = uy * vz - uz * vy, cy = uz * vx - ux * vz, cz = ux * vy - uy * vx; a += Math.hypot(cx, cy, cz) / 2 } _faceArea = a } } catch { /* mesh 失败 → 保守唔 abort */ }
-                    if (_faceArea >= 0 && _faceArea < 1e-4) { buildWarnings.push(`极点编辑：面 ${j + 1} 重建后面积塌陷（旧 trim pcurve 失效）— 保持不变`); abort = true; break }
+                    if (_faceArea >= 0 && _faceArea < 1e-4) { buildWarnings.push(`極點編輯：面 ${j + 1} 重建後面積塌陷（舊 trim pcurve 失效）— 保持不變`); abort = true; break }
                   }
                   if (!abort) {
                     // ── (c) 重组：Sewing [改完面 + 未动原面]（行 surfsew idiom，tol 1e-4 配 surfsew）。 ──
@@ -5323,7 +5323,7 @@ function buildShape(features: Feature[], noCache = false): any {
                     sew.Perform(prog); prog.delete()
                     let out: any = sew.SewedShape()
                     const freeEdges = (typeof (sew as any).NbFreeEdges === 'function') ? (sew as any).NbFreeEdges() : -1
-                    if (!out || out.IsNull()) { buildWarnings.push(`极点编辑：面 ${fi + 1} 重组缝合為空 — 保持不變`) }
+                    if (!out || out.IsNull()) { buildWarnings.push(`極點編輯：面 ${fi + 1} 重組縫合為空 — 保持不變`) }
                     else {
                       // 接受判据（S140 升级）：开放壳（直纹 ribbon／无盖管）基线本身就有自由【外】边界 → 唔可用「freeEdges>0 绝拒」。
                       // 改判「freeEdges 是否超过基线（未动壳）」：co-move 把共享边两侧一齐郁 → 内共享边焊回 → freeEdges = 基线 → 收；
@@ -5352,8 +5352,8 @@ function buildShape(features: Feature[], noCache = false): any {
                           parkedBodies[f.target] = { name: t.name, shape: sewn }
                           const cm = comoveFaces > 0 ? `，跨面 co-move ${comoveFaces} 张邻面共 ${comovePoles} 个共享极点` : ''
                           const cont = freeEdges < 0 ? '（连续性未验证）' : freeEdges === 0 ? '；壳水密（freeEdges=0）' : `；共享边保持（freeEdges=${freeEdges}＝基线 ${baseFree}）`
-                          buildWarnings.push(`极点编辑：${t.name} 面 ${fi + 1}/${faces.length} 改了 ${totalMoved} 个控制点（${fiP.nu}×${fiP.nv} 网格）${cm}${cont}`)
-                        } else buildWarnings.push(`极点编辑：面 ${fi + 1} 重组结果空 — 保持不变`)
+                          buildWarnings.push(`極點編輯：${t.name} 面 ${fi + 1}/${faces.length} 改了 ${totalMoved} 個控制點（${fiP.nu}×${fiP.nv} 網格）${cm}${cont}`)
+                        } else buildWarnings.push(`極點編輯：面 ${fi + 1} 重組結果空 — 保持不變`)
                       }
                     }
                   }
@@ -5577,7 +5577,7 @@ function buildShape(features: Feature[], noCache = false): any {
                   if (!usedG1) { fill.Add_1(e.wrapped, C0, true); added++ }
                 } catch { /* 单条边加唔到 — 跳过，继续其余 */ }
               }
-              if (added < 2) { buildWarnings.push('邊界補面：成功加入的邊界棱 <2（邊界不成環／太退化）— 保持不變') }
+              if (added < 2) { buildWarnings.push('邊界補面：成功加入的邊界稜 <2（邊界不成環／太退化）— 保持不變') }
               else {
                 fill.Build(r(new (_oc as any).Message_ProgressRange_1()))
                 if (!fill.IsDone()) { buildWarnings.push('邊界補面失敗（MakeFilling 未收斂 — 邊界不成閉環／太扭）— 保持不變') }
@@ -6605,7 +6605,7 @@ function buildShape(features: Feature[], noCache = false): any {
       try { const g = new _oc.GProp_GProps_1(); _oc.BRepGProp.VolumeProperties_1((shape as any).wrapped, g, false, false, false); _vNow = Math.abs(g.Mass()) } catch { /* */ }
       if (Number.isFinite(_vNow) && _vNow < 1e-6) {
         shape = _shapeBefore; parkedBodies = _parkedBefore
-        failedFeatures.push({ id: f.id, type: f.type, msg: '该特征把实体完全切空（结果零体积）— 已回滚保留上一步几何' })
+        failedFeatures.push({ id: f.id, type: f.type, msg: '該特徵把實體完全切空（結果零體積）— 已回滾保留上一步幾何' })
         buildWarnings.push('⚠ 特徵令實體變空（零體積）— 已回滾，不污染後續特徵')
         if (!noCache) { _rcSnaps[_i] = null; _rcSigs[_i] = sigs[_i] }
         recordHistory(_i)
@@ -7187,7 +7187,7 @@ const api = {
       const box: any = makeBaseBox(40, 30, 20)
       const edges = box.edges as any[]
       const faces = box.faces as any[]
-      if (!edges || !edges.length || !faces || !faces.length) { notes.push('box 没有 edges/faces — 包装读取失败'); return result }
+      if (!edges || !edges.length || !faces || !faces.length) { notes.push('box 沒有 edges/faces — 包裝讀取失敗'); return result }
       const edge0 = edges[0]
       const face0 = faces[0]
       notes.push(`box: ${edges.length} edges, ${faces.length} faces`)
@@ -7195,13 +7195,13 @@ const api = {
       // ── 2. RAW fillet op：揾返实际绑定嘅 BRepFilletAPI_MakeFillet 构造签名（_1=单 shape / 或带 ChFi3d 枚举）──
       // 实证 emscripten 绑定常以 _1/_2 后缀分 overload；优先最简单嗰个，逐个 fall back。
       const MF: any = _oc.BRepFilletAPI_MakeFillet_2 || _oc.BRepFilletAPI_MakeFillet_1 || _oc.BRepFilletAPI_MakeFillet
-      if (!MF) { notes.push('BRepFilletAPI_MakeFillet 完全未绑定 — raw fillet op 无法起'); return result }
+      if (!MF) { notes.push('BRepFilletAPI_MakeFillet 完全未綁定 — raw fillet op 無法起'); return result }
       let mk: any = null
       const filShape = (_oc.ChFi3d_FilletShape && (_oc.ChFi3d_FilletShape.ChFi3d_Rational ?? _oc.ChFi3d_FilletShape.ChFi3d_Polynomial)) ?? 0
       // 试 (shape, ChFi3d 枚举) → fall back (shape)
       try { mk = r(new MF(box.wrapped, filShape)); notes.push('MakeFillet 构造：new MF(shape, ChFi3d enum) OK') } catch (e1) {
         try { mk = r(new MF(box.wrapped)); notes.push('MakeFillet 构造：new MF(shape) OK（无枚举）') } catch (e2) {
-          notes.push('MakeFillet 构造失败：' + ((e1 as any)?.message || e1) + ' / ' + ((e2 as any)?.message || e2)); return result
+          notes.push('MakeFillet 構造失敗：' + ((e1 as any)?.message || e1) + ' / ' + ((e2 as any)?.message || e2)); return result
         }
       }
 
@@ -7214,7 +7214,7 @@ const api = {
           catch (e) { notes.push(`mk.${nm}(radius, edge) threw: ` + ((e as any)?.message || e)) }
         }
       }
-      if (!added) { notes.push('所有 Add overload 都失败 — 无法加边给 fillet'); return result }
+      if (!added) { notes.push('所有 Add overload 都失敗 — 無法加邊給 fillet'); return result }
 
       // Build：试带 Message_ProgressRange → 无参
       let built = false
@@ -7222,7 +7222,7 @@ const api = {
         const prog = _oc.Message_ProgressRange_1 ? r(new _oc.Message_ProgressRange_1()) : undefined
         try { mk.Build(prog); built = true; notes.push('Build(ProgressRange) OK') }
         catch (eb) { try { mk.Build(); built = true; notes.push('Build() 无参 OK') } catch (eb2) { notes.push('Build 失败：' + ((eb as any)?.message || eb) + ' / ' + ((eb2 as any)?.message || eb2)) } }
-      } catch { try { mk.Build(); built = true; notes.push('Build() 无参 OK（ProgressRange 无法起）') } catch (eb3) { notes.push('Build 失败：' + ((eb3 as any)?.message || eb3)) } }
+      } catch { try { mk.Build(); built = true; notes.push('Build() 無參 OK（ProgressRange 無法起）') } catch (eb3) { notes.push('Build 失败：' + ((eb3 as any)?.message || eb3)) } }
       if (!built) { notes.push('Build 全失败'); return result }
 
       // IsDone 校验（fillet op 真系做成）

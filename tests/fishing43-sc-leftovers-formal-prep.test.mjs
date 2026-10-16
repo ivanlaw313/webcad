@@ -6,7 +6,7 @@
  * Hard: when SC removed and Formal TC present → PASS (no soft).
  * Always-hard: files readable + FISHING40/41/42 Formal regressions.
  *
- * Tests-only — no product/src edits. FISHING43 will harden later.
+ * FISHING44 hardens remaining softs on tip after FISHING43 live.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -156,7 +156,7 @@ test('Formal TC: store 内螺纹几何失败', (t) => {
     t,
     st,
     '⚠ 内螺纹几何失败 — 已退回光孔/原状（OCCT-wasm 螺旋布尔限制）',
-    '⚠ 內螺紋幾何失敗 — 已退回光孔／原狀（OCCT-wasm 螺旋布爾限制）',
+    '⚠ 內螺紋幾何失敗 — 已退回光孔/原狀（OCCT-wasm 螺旋布爾限制）',
     'store',
   )
 })

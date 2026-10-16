@@ -3140,7 +3140,7 @@ export function SketchDimLayer() {
             {/* 尺寸约束专属 ✕ 仔：一撳即删（stopPropagation 免误开编辑框）。徽章本身 click=移除,唔使 ✕。 */}
             {l.edit?.dim === 'con' && l.edit.conId && (
               <span
-                title={tStatus('删除此尺寸', lang)}
+                title={tStatus('刪除此尺寸', lang)}
                 onClick={(e) => { e.stopPropagation(); useApp.getState().removeSkCon(l.edit!.conId!) }}
                 style={{ marginLeft: 4, padding: '0 2px', opacity: 0.72, cursor: 'pointer', fontWeight: 700 }}
                 onPointerEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}

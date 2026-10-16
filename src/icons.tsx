@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 function Svg({ size = 20, children }: { size?: number; children: ReactNode }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"
-      stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+      stroke="currentColor" strokeWidth={1.55} strokeLinecap="round" strokeLinejoin="round">
       {children}
     </svg>
   )
@@ -18,27 +18,26 @@ const paths: Record<string, ReactNode> = {
 
   component: <><path d="M12 3 4 7v10l8 4 8-4V7z" /><path d="M4 7l8 4 8-4M12 11v10" /></>,
   sketch: <><rect x="4" y="4" width="12" height="12" rx="1" /><path d="m8 16 11-11" /><path d="m17 3 4 0 0 4" /></>,
-  extrude: <><rect x="5" y="13" width="8" height="6" /><path d="M9 13V4" /><path d="m6 7 3-3 3 3" /></>,
-  revolve: <><path d="M12 3v18" /><path d="M8 6a6 5 0 1 0 0 12" /><path d="m8 6-2 1 2 1" /></>,
-  sweep: <><path d="M4 19c5 0 4-11 10-11" /><rect x="13" y="5" width="6" height="6" rx="1" /></>,
-  loft: <><ellipse cx="8" cy="7" rx="4" ry="2" /><ellipse cx="16" cy="17" rx="4" ry="2" /><path d="m5 8 8 9M11 6l8 10" /></>,
-  hole: <><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="3" /></>,
+  extrude: <><path d="M5 14h9v6H5z" /><path d="M9.5 14V5" /><path d="m6.5 8 3-3 3 3" /><path d="M14 14l4-2.2V17.8L14 20" opacity=".45" /></>,   // Phase1: profile + vertical pull (vs presspull face push)
+  revolve: <><path d="M11 3.5v17" /><path d="M11 6.5c5.2 0 8.5 2.2 8.5 5.5S16.2 17.5 11 17.5" /><path d="m18.2 10.2 1.8 1.8-2.4.6" /><path d="M7.5 8.5v7" opacity=".4" /></>,   // Phase1: axis + revolution arc + profile
+  sweep: <><path d="M3.5 18.5c3.5.2 5-6.5 8.5-9.5 2.2-1.9 4.3-2.6 7-2.6" /><rect x="14.2" y="4.2" width="5.6" height="5.6" rx="1" /><path d="M14.2 7h5.6M17 4.2v5.6" opacity=".35" /></>,   // Phase1: section + curved path
+  loft: <><ellipse cx="7.5" cy="6.5" rx="4.2" ry="2.1" /><path d="M12 11.5h7.5v5H12z" /><path d="m4.2 8 8.5 8.2M10.5 5.2l8.2 11" opacity=".75" /></>,   // Phase1: dissimilar sections + blend rails
+  hole: <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3.2" /><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none" opacity=".35" /><path d="M12 4v2.2M12 17.8V20M4 12h2.2M17.8 12H20" opacity=".35" /></>,   // Phase1: counterbore top view
   box: <><path d="M12 3 4 7v10l8 4 8-4V7z" /><path d="M4 7l8 4 8-4M12 11v10" /></>,
-  cylinder: <><ellipse cx="12" cy="6" rx="6" ry="2.4" /><path d="M6 6v12c0 1.3 2.7 2.4 6 2.4s6-1.1 6-2.4V6" /></>,
+  cylinder: <><ellipse cx="12" cy="5.8" rx="6.2" ry="2.5" /><path d="M5.8 5.8v11.6c0 1.4 2.8 2.5 6.2 2.5s6.2-1.1 6.2-2.5V5.8" /><ellipse cx="12" cy="17.4" rx="6.2" ry="2.5" opacity=".35" /></>,   // Phase1: isometric cylinder
   sphere: <><circle cx="12" cy="12" r="8" /><ellipse cx="12" cy="12" rx="8" ry="3" /></>,
-  cone: <><path d="M12 3 5.5 18M12 3l6.5 15" /><ellipse cx="12" cy="18" rx="6.5" ry="2.4" /></>,   // UX3 #5：圓錐唔再借用圓柱圖示
-  pattern: <><rect x="4" y="4" width="5" height="5" /><rect x="15" y="4" width="5" height="5" /><rect x="4" y="15" width="5" height="5" /><rect x="15" y="15" width="5" height="5" /></>,
-  mirror: <><path d="M12 3v18" /><path d="M9 7 4 12l5 5z" /><path d="m15 7 5 5-5 5z" /></>,
-  thicken: <><rect x="4" y="6" width="16" height="12" rx="1" /><path d="M8 10h8" /></>,
-
-  presspull: <><rect x="6" y="11" width="12" height="8" rx="1" /><path d="M12 11V4" /><path d="m9 7 3-3 3 3" /></>,
-  fillet: <><path d="M5 20v-9a6 6 0 0 1 6-6h9" /></>,
-  chamfer: <><path d="M5 20V9l5-5h10" /></>,
-  shell: <><rect x="3.5" y="3.5" width="17" height="17" rx="1" /><rect x="8" y="8" width="8" height="8" /></>,
+  cone: <><path d="M12 3.2 5.2 17.2" /><path d="M12 3.2l6.8 14" /><ellipse cx="12" cy="17.6" rx="6.8" ry="2.5" /><path d="M8.2 10.5h7.6" opacity=".35" /></>,   // Phase1: isometric cone
+  pattern: <><rect x="3.5" y="3.5" width="6" height="6" rx=".8" /><rect x="14.5" y="3.5" width="6" height="6" rx=".8" /><rect x="3.5" y="14.5" width="6" height="6" rx=".8" /><rect x="14.5" y="14.5" width="6" height="6" rx=".8" /><path d="M9.5 6.5h5M6.5 9.5v5" opacity=".35" /></>,   // Phase1: 2×2 rect grid
+  mirror: <><path d="M12 3v18" strokeDasharray="2.2 2" /><path d="M4.5 8.5 9 12l-4.5 3.5z" /><path d="M19.5 8.5 15 12l4.5 3.5z" opacity=".85" /><path d="M9 12h6" opacity=".35" /></>,   // Phase1: dashed plane + reflection
+  thicken: <><path d="M4 8.5h16" /><path d="M4 15.5h16" /><path d="M4 8.5c0 0 2.5 2.2 8 2.2s8-2.2 8-2.2" opacity=".45" /><path d="M12 8.5v7" /><path d="m9.5 11 2.5-2.5L14.5 11M9.5 13l2.5 2.5L14.5 13" opacity=".8" /></>,   // Phase1: surface + parallel offset thickness
+  presspull: <><path d="M5 9.5h14v8.5H5z" /><path d="M5 9.5l3-4h8l3 4" /><path d="M12 5.5V2.8" /><path d="m9.8 4.3 2.2-2.2 2.2 2.2" /><path d="M12 18V21" /><path d="m9.8 19.5 2.2 2.2 2.2-2.2" /></>,   // Phase1: face + bidirectional normal arrows
+  fillet: <><path d="M4.5 19.5V10a6.5 6.5 0 0 1 6.5-6.5H20" /><path d="M4.5 19.5H20V3.5" opacity=".22" /><path d="M11 10.5h3.5M11 10.5v3.5" opacity=".4" /></>,   // Phase1: sharp→radius blend
+  chamfer: <><path d="M4.5 19.5V9.5L10 4h10" /><path d="M4.5 19.5H20V4" opacity=".22" /><path d="M7.2 9.5h4.2M10 6.5v4.2" opacity=".4" /></>,   // Phase1: sharp→flat cut (distinct from fillet)
+  shell: <><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="1.4" /><rect x="7.6" y="7.6" width="8.8" height="8.8" rx=".8" /><path d="M7.6 7.6 3.8 3.8M16.4 7.6l3.8-3.8M7.6 16.4l-3.8 3.8M16.4 16.4l3.8 3.8" opacity=".35" /></>,   // Phase1: hollow inner shell
   draft: <><path d="M6 20 9 4h6l3 16z" /></>,
   scale: <><rect x="4" y="4" width="9" height="9" /><path d="m13 13 7 7M20 13v7h-7" /></>,
-  combine: <><circle cx="9.5" cy="12" r="6" /><circle cx="14.5" cy="12" r="6" /></>,
-  move: <><path d="M12 3v18M3 12h18" /><path d="m9 6 3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3" /></>,
+  combine: <><circle cx="9" cy="12" r="6.2" /><circle cx="15" cy="12" r="6.2" /><path d="M12 7.2a6.2 6.2 0 0 0 0 9.6" opacity=".4" /></>,   // Phase1: boolean lenses
+  move: <><path d="M12 3.2v17.6M3.2 12h17.6" /><path d="m9.2 6.2 2.8-2.8 2.8 2.8M9.2 17.8l2.8 2.8 2.8-2.8M6.2 9.2l-2.8 2.8 2.8 2.8M17.8 9.2l2.8 2.8-2.8 2.8" /></>,   // Phase1: tri-axis gizmo
   align: <><path d="M4 4v16" /><rect x="8" y="7" width="9" height="4" /><rect x="8" y="14" width="6" height="3" /></>,
   trash: <><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13" /></>,
   material: <><circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 0 0 0 16" /></>,
@@ -82,8 +81,8 @@ const paths: Record<string, ReactNode> = {
   splitface: <><rect x="4" y="4" width="16" height="16" rx="1" /><path d="M4 14 20 9" /></>,
   replaceface: <><rect x="4" y="4" width="16" height="16" rx="1" /><path d="M8 11h7M13 8l3 3-3 3" /></>,
   delface: <><rect x="4" y="4" width="16" height="16" rx="1" /><path d="M9 9l6 6M15 9l-6 6" /></>,
-  cpattern: <><circle cx="12" cy="12" r="1.9" /><circle cx="12" cy="4.6" r="1.6" /><circle cx="18.4" cy="15" r="1.6" /><circle cx="5.6" cy="15" r="1.6" /><path d="M12 12V6.2M12 12l5 2.9M12 12l-5 2.9" opacity=".4" /></>,
-  pathpattern: <><path d="M4 16c4-9 12-9 16 0" opacity=".5" /><circle cx="5" cy="13.3" r="1.3" /><circle cx="10" cy="8.8" r="1.3" /><circle cx="14" cy="8.8" r="1.3" /><circle cx="19" cy="13.3" r="1.3" /></>,
+  cpattern: <><circle cx="12" cy="12" r="2" /><circle cx="12" cy="4.4" r="1.7" /><circle cx="18.6" cy="15.2" r="1.7" /><circle cx="5.4" cy="15.2" r="1.7" /><path d="M12 10V6.2M13.7 13.1l3.2 1.9M10.3 13.1 7.1 15" opacity=".45" /><path d="M12 4.4a7.6 7.6 0 0 1 6.6 10.8" opacity=".3" /></>,   // Phase1: circular instances around center
+  pathpattern: <><path d="M3.5 16.5c4.2-9.5 12.8-9.5 17 0" opacity=".45" /><rect x="3.2" y="11.2" width="3.4" height="3.4" rx=".5" /><rect x="9.3" y="6.8" width="3.4" height="3.4" rx=".5" /><rect x="14.3" y="6.8" width="3.4" height="3.4" rx=".5" /><rect x="17.4" y="11.2" width="3.4" height="3.4" rx=".5" /></>,   // Phase1: instances along path
   surf: <><path d="M3 14c5-6 13 6 18 0" /><path d="M3 14v3c5 6 13-6 18 0v-3" opacity=".4" /></>,
   offsetsurf: <><path d="M3 12c5-6 13 6 18 0" /><path d="M3 16c5-6 13 6 18 0" opacity=".5" /></>,
   editpoles: <><path d="M4 15c5-7 11 7 16 0" /><circle cx="4" cy="15" r="1.2" /><circle cx="12" cy="11.4" r="1.2" /><circle cx="20" cy="15" r="1.2" /></>,
@@ -95,7 +94,7 @@ const paths: Record<string, ReactNode> = {
 
   // —— 第二批专属图标（消除 section/interference/default/insert 一图多用，用户报「重复/无意义方框」）——
   param: <><path d="M4 8h16M4 16h16" /><circle cx="8" cy="8" r="2.3" fill="currentColor" stroke="none" /><circle cx="16" cy="16" r="2.3" fill="currentColor" stroke="none" /></>,   // 参数 = 滑杆
-  emboss: <><rect x="3" y="6" width="18" height="12" rx="1.5" /><path d="M9 15.5 12 8l3 7.5M10.2 13.2h3.6" /></>,   // 凸字：板上凸起「A」
+  emboss: <><rect x="3.2" y="5.5" width="17.6" height="13" rx="1.4" /><path d="M8.5 15.8 12 8.2l3.5 7.6M9.6 13.4h4.8" /><path d="M5.2 7.2h2.2M16.6 7.2h2.2" opacity=".4" /></>,   // Phase1: raised stamp letter on face
   cpoint: <><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none" /><path d="M12 4v3.5M12 16.5V20M4 12h3.5M16.5 12H20" /></>,   // 构造点（实心点+十字）
   cam: <><path d="M10 3h4v6l-2 3-2-3z" /><path d="M4 19c3.5 0 3.5-3 7-3s3.5 3 7 3" /></>,   // CNC 加工：铣刀 + 加工波纹面
   stress: <><path d="M3 4v16" /><path d="M3 9h13a5 5 0 0 1 0 8" /><path d="M16 16.5v4M14 18.5l2 2 2-2" /></>,   // 受力：悬臂弯 + 力箭头
@@ -106,7 +105,7 @@ const paths: Record<string, ReactNode> = {
   importmesh: <><path d="M3 19 8 9l5 10z" /><path d="M13 19l4-8 3 8z" opacity=".55" /></>,   // 网格导入：三角网
   importdxf: <><path d="M4 6h8l4 5-4 5H4z" opacity=".95" /><path d="M20 3v6m-2-2 2 2 2-2" /></>,   // 2D DXF 轮廓 + 导入箭头
   importsvg: <><path d="M3 15c3-9 15 9 18 0" /><rect x="1.7" y="13.6" width="2.6" height="2.6" fill="currentColor" stroke="none" /><rect x="19.7" y="13.6" width="2.6" height="2.6" fill="currentColor" stroke="none" /><path d="M12 3v5m-1.8-1.8L12 8l1.8-1.8" /></>,   // 矢量曲线 + 节点 + 导入
-  split: <><rect x="5" y="6" width="14" height="12" rx="1" /><path d="M12 3v18" /><path d="M8 12H5.5M18.5 12H16" opacity=".5" /></>,   // 分割：实体 + 切面
+  split: <><path d="M5 6.5h14v11H5z" /><path d="M12 3.2v17.6" /><path d="M8.5 3.8 12 6.5l3.5-2.7" /><path d="M5 12h2.8M16.2 12H19" opacity=".45" /></>,   // Phase1: body cleaved by plane tool
   exportfile: <><path d="M6 3h7l5 5v13H6z" /><path d="M13 3v5h5" opacity=".5" /><path d="M9 14h7m-3-3 3 3-3 3" /></>,   // 导出：文档 + 向外箭头（区别于导入）
   overhang: <><path d="M4 20h16" /><path d="M8 20V7l9 13" /><path d="M8 14a5 5 0 0 0 4.5 0" opacity=".5" /></>,   // 悬垂：斜面 + 角度弧
   wallcheck: <><path d="M6 4v16M16 4v16" /><path d="M6 12h10m-3-3 3 3-3 3" opacity=".85" /></>,   // 壁厚：两壁 + 量度箭头
@@ -114,6 +113,13 @@ const paths: Record<string, ReactNode> = {
   torus: <><ellipse cx="12" cy="12" rx="9" ry="5.2" /><ellipse cx="12" cy="12" rx="3.4" ry="1.7" /></>,   // 圆环
   calc: <><rect x="5" y="3" width="14" height="18" rx="1.6" /><rect x="7.5" y="5.5" width="9" height="3" /><path d="M9 13h0M12.5 13h0M16 13h0M9 17h0M12.5 17h0M16 17h0" strokeWidth="2.2" /></>,   // 工程计算器
   pipeicon: <><ellipse cx="7" cy="6" rx="3.2" ry="1.4" /><path d="M3.8 6v6c0 4 8 4 12 4" /><path d="M10 16h6M16 13l3 3-3 3" opacity=".8" /></>,   // 管道（弯管+出口）
+
+  // —— Phase1 sketch 2D icons (menus / marking menu; ribbon glyphs stay primary) ——
+  line: <><path d="M5 18.5 19 5.5" /><circle cx="5" cy="18.5" r="1.2" fill="currentColor" stroke="none" /><circle cx="19" cy="5.5" r="1.2" fill="currentColor" stroke="none" /></>,   // 直線：兩端點 + 段
+  rect: <><rect x="4.5" y="6" width="15" height="12" rx="1" /><path d="M4.5 6h15M4.5 18h15" opacity=".25" /></>,   // 兩點矩形
+  circle: <><circle cx="12" cy="12" r="7.2" /><path d="M12 12h7.2" /><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none" /></>,   // 圓心+半徑
+  arc: <><path d="M5.5 16.5a8 8 0 0 1 13-1.2" /><circle cx="5.5" cy="16.5" r="1.15" fill="currentColor" stroke="none" /><circle cx="18.5" cy="15.3" r="1.15" fill="currentColor" stroke="none" /><circle cx="12.2" cy="8.2" r="1" fill="currentColor" stroke="none" opacity=".55" /></>,   // 三點弧
+  offset: <><path d="M5 8.5h11v9H5z" /><path d="M9 4.5h11v9" /><path d="M9 4.5v4M20 4.5v4M20 13.5h-4" opacity=".55" /></>,   // 平行偏移（formloop + sketch offset）
 
   ai: <><path d="M12 3.2 13.4 8.6 18.8 10 13.4 11.4 12 16.8 10.6 11.4 5.2 10 10.6 8.6z" /><path d="M17.5 14.5 18.2 16.8 20.5 17.5 18.2 18.2 17.5 20.5 16.8 18.2 14.5 17.5 16.8 16.8z" /></>,
   default: <><rect x="4.5" y="4.5" width="15" height="15" rx="2" /></>,
@@ -123,4 +129,11 @@ export function ToolIcon({ name, size = 20 }: { name: string; size?: number }) {
   // FISHING35: guard module/record .default — never read .default of undefined (icon map / interop).
   const node = (paths && (paths[name] ?? paths.default)) || null
   return <Svg size={size}>{node}</Svg>
+}
+
+/** Stable icon keys for ribbon resolve checks (Phase1). */
+export const ICON_PATH_KEYS: readonly string[] = Object.freeze(Object.keys(paths))
+
+export function hasToolIcon(name: string): boolean {
+  return !!(paths && Object.prototype.hasOwnProperty.call(paths, name))
 }

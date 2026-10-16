@@ -157,8 +157,12 @@ button { font-family: inherit; }
   display: flex; align-items: center; justify-content: center;
   flex: 0 0 34px; width: 34px; height: 36px; padding: 0;
   border: 1px solid transparent; border-radius: 3px; background: transparent;
-  color: #3b6e8f; cursor: pointer;
+  /* Phase1 Fusion-align: slightly deeper steel for monoline icon contrast (no layout change) */
+  color: #2f5f7a; cursor: pointer;
 }
+.tool-btn svg { color: inherit; opacity: 1; }
+.ribbon .tool-btn:not(.active):not(:disabled) { color: #2f5f7a; }
+.ribbon .tool-btn:hover:not(:disabled) { color: #245570; }
 /* A 1366px laptop still needs every SOLID group name visible.  Fusion's
    ribbon is intentionally dense at this width; compact only the generic 3D
    buttons (Sketch owns its larger labelled buttons below) instead of hiding
@@ -243,7 +247,7 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 @keyframes teachFade { from { opacity: 0; } to { opacity: 1; } }
 /* Sketch quick tools: 2D glyph + Chinese label (recognisable 圆/矩形/折线 for non-coders) */
 .tool-btn.sk { width: auto; min-width: 52px; height: 40px; flex-basis: auto; padding: 2px 7px; flex-direction: column; gap: 2px; overflow: hidden; }
-.sk-glyph { font-size: 19px; line-height: 1; color: #2a5d80; flex: 0 0 auto; }
+.sk-glyph { font-size: 19px; line-height: 1; color: #245570; flex: 0 0 auto; }
 .sk-label { font-size: 10.5px; color: #4a545e; line-height: 1.15; white-space: nowrap; flex: 0 0 auto; }
 
 /* Fusion right-side command palette (header icon+title+✕, rows body, blue OK footer) */
@@ -890,9 +894,9 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .ribbon .sk-label, .ribbon .sk-glyph, .ribbon .ribbon-tab { color: var(--text); }
 .ribbon .panel-label { color: var(--text-dim); }
 .ribbon .tool-btn.active .sk-label, .ribbon .tool-btn.active .sk-glyph { color: #173f58; }
-:root[data-theme="dark"] .ribbon .tool-btn svg { filter: brightness(1.8) saturate(.7); }
+:root[data-theme="dark"] .ribbon .tool-btn svg { filter: brightness(1.55) saturate(.75); } /* Phase1: avoid blowout with stroke 1.55 */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .ribbon .tool-btn svg { filter: brightness(1.8) saturate(.7); }
+  :root:not([data-theme]) .ribbon .tool-btn svg { filter: brightness(1.55) saturate(.75); }
 }
 
 .ribbon .ribbon-tab.ctx { color: #333; }

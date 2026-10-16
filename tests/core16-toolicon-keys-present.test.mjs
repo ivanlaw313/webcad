@@ -88,21 +88,11 @@ test('audit: full ribbon icon keys vs paths (report orphans; CORE16 must stay cl
   const all = [...ribbon.matchAll(/icon:\s*'([^']+)'/g)].map((m) => m[1])
   assert.ok(all.length >= 50, `ribbon icon refs sanity: ${all.length}`)
   const missing = [...new Set(all.filter((ic) => !keys.has(ic)))].sort()
-  // Known non-CORE16 gap (FORM formloop): icon 'offset' not in paths → default box.
-  // Do not silent-fix product; pin the orphan list so a new CORE16 gap fails loudly.
-  const ALLOWED_ORPHANS = ['offset']
-  const unexpected = missing.filter((ic) => !ALLOWED_ORPHANS.includes(ic))
+  // Phase1 added paths.offset for FORM formloop (+ sketch offset). No ribbon orphans allowed.
   assert.equal(
-    unexpected.length,
+    missing.length,
     0,
-    `unexpected ribbon icon orphans (not in paths):\n${unexpected.join('\n')}`,
+    `ribbon icon orphans (not in paths):\n${missing.join('\n')}`,
   )
-  for (const ic of ALLOWED_ORPHANS) {
-    if (missing.includes(ic)) {
-      assert.ok(
-        /icon:\s*'offset'/.test(ribbon),
-        'allowed orphan offset still referenced (formloop) — product A until icon added',
-      )
-    }
-  }
+  assert.ok(/icon:\s*'offset'/.test(ribbon) && /\boffset:\s*</.test(icons), 'formloop offset key must stay defined')
 })

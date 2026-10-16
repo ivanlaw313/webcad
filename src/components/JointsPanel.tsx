@@ -326,7 +326,7 @@ export default function JointsPanel() {
           {posFor === j.id && j.type !== 'rigid' && (
             <div className="jp-lim" style={{ flexWrap: 'wrap', gap: 4, background: 'rgba(21,114,196,.06)', borderRadius: 4, padding: '3px 4px' }}>
               <span style={{ color: '#6b7680', fontWeight: 600 }} title="兩關節原點之間的靜止偏移（關節基 U/V/軸）+ 靜止轉角 + 反轉；靜止位（歸零回此）">位置</span>
-              {j.originRef && <span style={{ color: '#12b886', fontSize: 11 }} title="此關節引用了可復用關節原點">⚓{jointOrigins.find((o) => o.id === j.originRef)?.name ?? j.originRef}</span>}
+              {j.originRef && <span style={{ color: '#12b886', fontSize: 11 }} title="此關節引用了可複用關節原點">⚓{jointOrigins.find((o) => o.id === j.originRef)?.name ?? j.originRef}</span>}
               靜 <NumInput value={j.rest ?? 0} onValue={(v) => { setJointValue(j.id, { rest: v }) }} label={`靜止位（${j.type === 'slider' ? 'mm' : '°'}）— ⌂歸零即回此`} w={48} title={`靜止位（${j.type === 'slider' ? 'mm' : '°'}）— ⌂歸零即回此`} />{j.type === 'slider' ? 'mm' : '°'}
               <span title="兩原點之間靜止偏移（關節基：沿U / 沿V / 沿軸 mm）">偏</span>
               <NumInput value={j.offset?.[0] ?? 0} onValue={(v) => { setJointValue(j.id, { offset: [v, j.offset?.[1] ?? 0, j.offset?.[2] ?? 0] }) }} label="沿 U 偏移 mm" w={42} title="沿 U 偏移 mm" />

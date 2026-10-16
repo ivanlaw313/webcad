@@ -12725,7 +12725,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }))
     if (plan.kind === 'group') {
       const n0 = s.components.find((c) => c.id === ids[0])?.name ?? ids[0]
-      set({ status: `已將「${n0}」連同以關節連接的 ${plan.ids.length - ids.length} 個組件一併平移（關節保持）` })
+      set({ status: `已將「${n0}」連同以關節連結的 ${plan.ids.length - ids.length} 個組件一併平移（關節保持）` })
     }
     if (get().mates.some((m) => move.has(m.aComp))) get().resolveMates()
     return true
@@ -14578,14 +14578,14 @@ export const useApp = create<AppState>((rawSet, get) => {
   jointOriginPickMode: false,
   jointOriginMode: 'simple',
   jointOriginFirst: null,
-  startJointOriginPick: (mode = 'simple') => set({ jointOriginPickMode: true, jointOriginMode: mode, jointOriginFirst: null, jointPickMode: false, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, status: mode === 'twoFaces' ? '關節原點（兩面之間）：先點第一個平面或圓柱面中心，再點第二個面建立中間原點' : mode === 'twoEdges' ? '關節原點（兩邊交點）：先點第一條實體邊，再點第二條相交邊' : '關節原點：點一個 snap 點（實體面心 / 圓柱孔心 / 頂點）→ 落一個可復用命名幀（之後建關節可引用之，取代預設件心）' }),
+  startJointOriginPick: (mode = 'simple') => set({ jointOriginPickMode: true, jointOriginMode: mode, jointOriginFirst: null, jointPickMode: false, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, status: mode === 'twoFaces' ? '關節原點（兩面之間）：先點第一個平面或圓柱面中心，再點第二個面建立中間原點' : mode === 'twoEdges' ? '關節原點（兩邊交點）：先點第一條實體邊，再點第二條相交邊' : '關節原點：點一個 snap 點（實體面心 / 圓柱孔心 / 頂點）→ 落一個可複用命名幀（之後建關節可引用之，取代預設件心）' }),
   cancelJointOriginPick: () => set({ jointOriginPickMode: false, jointOriginFirst: null, status: '已退出關節原點拾取' }),
   addJointOrigin: (jo) => {
     const s = get()
     const n = s.jointOrigins.reduce((m, o) => Math.max(m, Number(o.id.replace(/^JO/, '')) || 0), 0) + 1
     const id = 'JO' + n
     const full: JointOrigin = { id, name: jo.name || ('關節原點' + n), point: jo.point, mode: jo.mode ?? 'simple', angle: jo.angle ?? 0, offset: jo.offset ?? [0, 0, 0], flip: jo.flip ?? false, ...(jo.axis ? { axis: jo.axis } : {}), ...(jo.compId ? { compId: jo.compId } : {}) }
-    set({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], jointOrigins: [...s.jointOrigins, full], status: `已建可復用「${full.name}」@(${full.point.map((x) => x.toFixed(1)).join(', ')})（存在瀏覽器「關節原點」組；建關節時在下拉引用之）` })
+    set({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], jointOrigins: [...s.jointOrigins, full], status: `已建可複用「${full.name}」@(${full.point.map((x) => x.toFixed(1)).join(', ')})（存在瀏覽器「關節原點」組；建關節時在下拉引用之）` })
     return id
   },
   removeJointOrigin: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], jointOrigins: s.jointOrigins.filter((o) => o.id !== id), joints: s.joints.map((j) => ((j.originRef === id || j.originRef2 === id) ? { ...j, ...(j.originRef === id ? { originRef: undefined } : {}), ...(j.originRef2 === id ? { originRef2: undefined } : {}) } : j)), status: '已刪關節原點（引用它的關節保留當前錨點，只解除關聯）' })),

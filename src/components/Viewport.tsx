@@ -8358,7 +8358,7 @@ export default function Viewport() {
           <LoftSectionList />
           <div style={{ color: '#6b7680' }}>{tStatus('曲面選項', lang)}</div>
           <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('直紋邊界曲面：截面之間用直線連接（developable，乾淨輕量），關＝平滑樣條過渡', lang)}>
-            <input type="checkbox" checked={loftRuled} onChange={(e) => setLoftOpt({ loftRuled: e.target.checked })} /> {tStatus('直纹边界曲面', lang)}
+            <input type="checkbox" checked={loftRuled} onChange={(e) => setLoftOpt({ loftRuled: e.target.checked })} /> {tStatus('直紋邊界曲面', lang)}
           </label>
           {loftSections.length >= 3 && (
             <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('閉環：末截面接回首截面成環狀回路（輪圈/管環）。需≥3 截面。接縫處 C0 連續（趨勢級閉環）。', lang)}>

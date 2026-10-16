@@ -811,7 +811,7 @@ const STATUS_PHRASES: Record<string, string> = {
   '爬升 Z (3D)': 'Climb Z (3D)', '放样（Enter）': 'Loft (Enter)',
   '画轮廓 →「＋放样截面」逐个加': 'Draw a profile → add via "+ Loft Section"', '导轨': 'Rail',
   '从实体切除放样体': 'cut the loft body from the part', '曲面选项': 'Surface Options',
-  '直纹边界曲面': 'Ruled boundary surface', '薄壁': 'Wall',
+  '直紋邊界曲面': 'Ruled boundary surface', '薄壁': 'Wall',
   'mm（0=实体）': 'mm (0 = solid)', '⬚ 四连杆机构（闭环）': '⬚ Four-Bar Linkage (closed loop)', '⬚ 四連桿機構（閉環）': '⬚ Four-Bar Linkage (closed loop)',
   '✓ 约束求解 — 杆长刚性保持': '✓ Constraint solved — link lengths rigid', '⚠ 当前角度超出可达范围（曲柄转不到这）': '⚠ Angle out of reach (crank can\'t reach here)',
   '曲柄': 'Crank', '连杆': 'Coupler',

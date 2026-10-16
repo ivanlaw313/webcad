@@ -2860,7 +2860,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   addSurfLoft: () => Promise<void>                        // T792：曲面放样（开放截面薄壳 — SURFACE tab v1）
   addSurfExtrude: () => Promise<void>                     // S89：曲面拉伸（当前草图截面 → 零厚 sheet / 无盖 tube，出 parked 曲面体）
   addSurfSweep: () => Promise<void>                       // S曲面：曲面扫掠（开放截面沿开放路径 → 零厚开放曲面壳，出 parked 曲面体）
-  addSurfRevolve: (profile: SketchProfile, angle?: number, axis?: 'X' | 'Y', op?: BoolOp, axisSpec?: { axisV: [number, number, number]; axisOrigin: [number, number, number]; name?: string }) => Promise<void>  // S曲面：曲面旋转（开放截面绕轴 → 零厚旋转曲面壳，出 parked 曲面体）
+  addSurfRevolve: (profile: SketchProfile, angle?: number, axis?: 'X' | 'Y', op?: BoolOp, axisSpec?: { axisV: [number, number, number]; axisOrigin: [number, number, number]; name?: string }) => Promise<void>  // S曲面：曲面旋轉（開放截面繞軸 → 零厚旋轉曲面殼，出 parked 曲面體）
   addRuled: () => Promise<void>                           // S100：规则曲面（≥2 条开放折线独立草图 → 纯零厚直纹 Shell）
   // T805（S74）曲面 Patch：拾闭合边界点 → 填充曲面 + 加厚薄板（PatchWrapper.FillThicken）
   patchMode: boolean
@@ -7965,14 +7965,14 @@ export const useApp = create<AppState>((rawSet, get) => {
   thickenParkedAt: async (target) => {
     const pkt = get().bodyMesh?.parked
     if (!get().quiltPickMode || !pkt?.[target]) { set({ quiltPickMode: false, status: '加厚曲面：目標曲面已不存在，請重新選擇' }); return }
-    const tv = await get().appPrompt(tStatus(`加厚曲面「${pkt[target].name}」— 板厚 mm（正/负 = 两侧）`, get().lang), '2')
+    const tv = await get().appPrompt(tStatus(`加厚曲面「${pkt[target].name}」— 板厚 mm（正／負 = 兩側）`, get().lang), '2')
     if (tv == null) { set({ quiltPickMode: false, status: '已取消加厚曲面' }); return }
     const raw = Number(tv.trim())
     if (!Number.isFinite(raw) || raw === 0) { set({ quiltPickMode: false, status: '加厚曲面：厚度必須為非零數值（負值＝朝反側）' }); return }   // CORE16 #1：0 唔再靜靜變 0.05
     const side: 'pos' | 'neg' = raw < 0 ? 'neg' : 'pos'
     const thick = Math.abs(raw)
     { const over = thickenOversizeReason(get().bodyMesh, thick); if (over) { set({ quiltPickMode: false, status: illegalRejectStatus(over) }); return } }
-    const ok = await get().applyFeatures([...get().features, { id: fid(), type: 'thickenquilt', target, thick, side }], `加厚曲面 ${pkt[target].name} ${thick}mm 成實體${side === 'neg' ? '（翻面）' : ''}`, true, '加厚曲面失败（曲面太扭 / 自交 / 厚度过大）')
+    const ok = await get().applyFeatures([...get().features, { id: fid(), type: 'thickenquilt', target, thick, side }], `加厚曲面 ${pkt[target].name} ${thick}mm 成實體${side === 'neg' ? '（翻面）' : ''}`, true, '加厚曲面失敗（曲面太扭／自交／厚度過大）')
     if (ok) set({ quiltPickMode: false })
   },
   // T812（S曲面）：偏移拾取面成平行新曲面（开放壳，独立件）。dist 正/负 = 外/内偏。
@@ -15960,7 +15960,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const sh0 = get().sketchShape
         if (!sh0) { set({ status: '曲面旋轉需要先畫一個【開放折線截面】，或瀏覽樹單擊選一個已完成的開放草圖' }); return }
         const prof0 = shapeToProfile(sh0, get().sketchPlane)
-        const v = await get().appPrompt(tStatus('曲面旋转（开放截面绕轴 → 零厚旋转曲面壳。要实体再用「加厚」/「缝合」）：\n旋转角度°,轴(Y/X)', get().lang), '360,Y')
+        const v = await get().appPrompt(tStatus('曲面旋轉（開放截面繞軸 → 零厚旋轉曲面殼。要實體再用「加厚」／「縫合」）：\n旋轉角度°,軸(Y/X)', get().lang), '360,Y')
         if (v == null) return
         const parts = String(v).split(/[,，\s]+/)
         const ang = parseFloat(parts[0]); const ax: 'X' | 'Y' = String(parts[1] || 'Y').toUpperCase() === 'X' ? 'X' : 'Y'
@@ -15976,7 +15976,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'surfsew': {  // S86 曲面缝合 Stitch：把现有曲面/壳体缝成一个 shell，闭合则转实体
         const pk = get().bodyMesh?.parked
         if (!pk || !pk.length) { set({ status: '曲面縫合 Stitch：先做曲面放樣 / 補面 / 加厚 / 偏移曲面（要有曲面/殼體先縫得）' }); return }
-        await get().applyFeatures([...get().features, { id: fid(), type: 'surfsew' }], '缝合曲面 Stitch（闭合则转实体）')
+        await get().applyFeatures([...get().features, { id: fid(), type: 'surfsew' }], '縫合曲面 Stitch（閉合則轉實體）')
         return
       }
       case 'intersectcurve': return void get().computeIntersectionCurves()   // S168 相交曲线（Fusion Intersection Curve）：所有体两两求交 → 交线参考曲线
@@ -16060,13 +16060,13 @@ export const useApp = create<AppState>((rawSet, get) => {
         // 单张保留原有一步完成路径，既有快捷操作不会变慢。
         if (pkt.length > 1) { get().startQuiltPick(); return }
         let tgt = 0
-        const tv = await get().appPrompt(tStatus('加厚曲面 — 板厚 mm（沿曲面法向加厚成实体；负值 / 前缀「-」= 朝反侧）', get().lang), '2')
+        const tv = await get().appPrompt(tStatus('加厚曲面 — 板厚 mm（沿曲面法向加厚成實體；負值／前綴「-」= 朝反側）', get().lang), '2')
         if (tv == null) return
         const raw = Number(tv.trim())
         if (!Number.isFinite(raw) || raw === 0) { set({ status: '加厚曲面：厚度必須為非零數值（負值＝朝反側）' }); return }
         const side: 'pos' | 'neg' = raw < 0 ? 'neg' : 'pos'
         const thick = Math.abs(raw)
-        await get().applyFeatures([...get().features, { id: fid(), type: 'thickenquilt', target: tgt, thick, side }], `加厚曲面 ${pkt[tgt].name} ${thick}mm 成實體${side === 'neg' ? '（翻面）' : ''}`, true, '加厚曲面失败（曲面太扭 / 自交 / 厚度过大）')
+        await get().applyFeatures([...get().features, { id: fid(), type: 'thickenquilt', target: tgt, thick, side }], `加厚曲面 ${pkt[tgt].name} ${thick}mm 成實體${side === 'neg' ? '（翻面）' : ''}`, true, '加厚曲面失敗（曲面太扭／自交／厚度過大）')
         return
       }
       case 'surfunstitch': {  // S88 取消缝合：把曲面/壳体拆回逐张独立面
@@ -17997,7 +17997,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({ status: `曲面放樣：要 ≥2 張【開放折線獨立草圖】（XY/偏移面、不同高度）— 畫開放折線 → 完成草圖 → 換個高度再畫一張，重復${skippedArb ? `（${skippedArb} 張斜面草圖 v1 不支援，已跳過）` : ''}` })
       return
     }
-    const v = await get().appPrompt(tStatus(`曲面放样（${secs.length} 个开放截面）：\n壁厚 mm（输 0 = 零厚放样曲面 / 真曲面件）[,直纹 1]\n直纹 = 截面间直线过渡；默认平滑样条。零厚曲面要实体再用「加厚」/「缝合」。\n注：薄壳厚度在截面平面内量度 — 竖直曲面精确，斜面有 cos 损失`, get().lang), '2')
+    const v = await get().appPrompt(tStatus(`曲面放樣（${secs.length} 個開放截面）：\n壁厚 mm（輸 0 = 零厚放樣曲面／真曲面件）[,直紋 1]\n直紋 = 截面間直線過渡；預設平滑樣條。零厚曲面要實體再用「加厚」／「縫合」。\n注：薄殼厚度在截面平面內量度 — 豎直曲面精確，斜面有 cos 損失`, get().lang), '2')
     if (v == null) return
     const p = v.split(/[,，\s]+/).filter(Boolean).map(Number)
     const sheet = p[0] === 0   // S181：0 厚 → 零厚放样曲面（开放 wire + returnShell），有别于薄壳实体
@@ -18011,7 +18011,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const s = get()
     const sh = s.sketchShape || (s.sketchProfiles.length ? s.sketchProfiles[0] : null)
     if (!sh) { set({ status: '曲面拉伸：先畫一個截面（開放折線 = 曲面片 / 閉合輪廓 = 無蓋管殼）' }); return }
-    const v = await get().appPrompt(tStatus('曲面拉伸（开放折线 → 零厚曲面片；闭合轮廓 → 无盖管壳。要实体再用「加厚」/「缝合」）：\n高度 mm（负 = 反向；前加 s = 对称双向，例 s20）', get().lang), '20')
+    const v = await get().appPrompt(tStatus('曲面拉伸（開放折線 → 零厚曲面片；閉合輪廓 → 無蓋管殼。要實體再用「加厚」／「縫合」）：\n高度 mm（負 = 反向；前加 s = 對稱雙向，例 s20）', get().lang), '20')
     if (v == null) return
     const raw = v.trim()
     const symmetric = /^s/i.test(raw)   // S162：s 前缀 = 对称双向（±h/2）
@@ -18023,7 +18023,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const open = sh.type === 'poly' && !!(sh as { open?: boolean }).open
     const f: Feature = { id: fid(), type: 'surfextrude', profile: prof, height: Math.abs(h), plane, baseZ: s.sketchBaseZ || 0, open, symmetric: symmetric || undefined, down: down || undefined }
     set({ skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], sketchStart: null, sketchTool: 'select', mode: 'model' })
-    await get().applyFeatures([...s.features, f], `曲面拉伸 ${Math.abs(h)}mm（${symmetric ? '对称双向' : down ? '反向' : '单向'} · ${open ? '曲面片' : '无盖管壳'}）`)
+    await get().applyFeatures([...s.features, f], `曲面拉伸 ${Math.abs(h)}mm（${symmetric ? '對稱雙向' : down ? '反向' : '單向'} · ${open ? '曲面片' : '無蓋管殼'}）`)
   },
   // S曲面：曲面扫掠 — 开放截面沿你画嘅开放路径 genericSweep → 零厚开放曲面壳（风道/导流板/管壁皮）。
   // 截面 = sketchProfiles 入面一个【开放折线】轮廓（先画开放折线截面、完成草图）；路径 = 当前画嘅开放折线
@@ -18093,7 +18093,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   finishPatch: async () => {
     const pts = get().patchPts
     if (pts.length < 3) { set({ status: '曲面 Patch 需要 ≥3 個邊界點' }); return }
-    const v = await get().appPrompt(tStatus('曲面 Patch — 板厚 mm（0 = 净曲面薄片；>0 = 加厚成实体薄板）', get().lang), '2')
+    const v = await get().appPrompt(tStatus('曲面 Patch — 板厚 mm（0 = 淨曲面薄片；>0 = 加厚成實體薄板）', get().lang), '2')
     if (v == null) return
     const thick = Math.max(0, Number(v.trim()) || 0)
     const f: Feature = { id: fid(), type: 'surfpatch', pts: pts.map((q) => [...q] as [number, number, number]), thick }

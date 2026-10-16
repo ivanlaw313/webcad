@@ -927,3 +927,9 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 
 .app-version { min-height: 20px; padding: 2px 8px; box-sizing: border-box; background: var(--chrome); color: var(--text); font-size: 11px; font-weight: 600; }
 .file-menu .panel-menu-item { white-space: normal; min-height: 34px; }
+
+/* FISHING40: Fusion-like command dialog field rhythm + panel label breathing */
+.cmd-palette-body { gap: 8px; padding: 10px 14px; }
+.cmd-palette-body label { gap: 8px; }
+.cmd-palette-foot { padding: 10px 14px; gap: 8px; }
+.panel-label { padding-top: 2px; letter-spacing: 0.02em; }

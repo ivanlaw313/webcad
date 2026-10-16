@@ -5,7 +5,7 @@
 **Product fix:** `e7998a5` (`e7998a5`)  
 **more40 soft-prep:** **none** (absent — defer F71)  
 **Base:** tip `9586e5c` (FISHING69 live)  
-**Tip:** (after FF docs — see remotes)
+**Tip:** `1c45dff28d4ac8b4ea78a703c7a56205d912244e`
 
 ## Scan (prefer REAL P1/P2 — NOT tip Formal fill)
 

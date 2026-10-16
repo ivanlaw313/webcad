@@ -5,7 +5,7 @@
 Cherry `39fb468f` → `bd4fa4db` on tip `a166807` **BEFORE nginx**.
 
 ## Live after cut
-- Tip: `bd4fa4db110ff8d13461de67eaad38749e7209b1` (fix/fishing84-more42-cherry → FF fix/sketch-face-copy)
+- Tip: `5cdb1f1ecb1ec73212059ce031cfd53120864e94` (fix/fishing84-more42-cherry → FF fix/sketch-face-copy)
 - Stamp: `v2.20-20261016-232008`
 - Bundle: `index-BYceU1jz-r2.js` (md5 `26ce76f96826f83ce7c92f664630fb35`) — **unchanged** vs F83 (tests-only)
 - Bak: `index-BYceU1jz-r2.js` / `v2.20-20261016-231506` (kept)

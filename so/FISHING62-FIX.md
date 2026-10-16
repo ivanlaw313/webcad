@@ -5,7 +5,7 @@
 **Product fix:** `fb65711` (tip.align i18n)  
 **more38 cherry:** `008b56c` ← `75c18ef` on `test/unit-core16-more38` (cherry-pick -x)  
 **Base:** tip `58e473e` (FISHING61 live)  
-**Tip:** `PLACEHOLDER_TIP`
+**Tip:** `aaefac5e097c14f37b2a4b0859a5158489505078`
 
 ## Scan
 

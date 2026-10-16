@@ -120,11 +120,12 @@ test('runtime: cut that does not touch solid → warning (not silent); volume/fe
   await g().extrudeSketch()
   const st = g().status || ''
   assert.match(st, /⚠/)
-  // Either-script: product source still has SC in this toast (reported separately as bug A).
+  // Formal 繁中 (HK) cut-miss toast — product fixed from SC.
   assert.ok(
-    includesEither(st, '切割没有接触到实体') || includesEither(st, '体积没有变化') || /切割.*接觸|體積.*變化|切割沒有/.test(st),
+    includesEither(st, '切割沒有碰觸實體') || includesEither(st, '體積沒有變化') || /切割.*接觸|體積.*變化|切割沒有/.test(st),
     `expected cut-miss warning, got: ${st}`,
   )
+  assert.doesNotMatch(st, /切割没有接触到实体|体积没有变化/)
   assert.doesNotMatch(st, /已切割（布爾減）/)
   assert.equal(g().features.length, n0, 'no cut feature added')
   assert.ok(Math.abs((await vol()) - v0) < 1e-3, 'volume unchanged after miss')

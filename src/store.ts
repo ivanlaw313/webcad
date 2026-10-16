@@ -6296,7 +6296,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         // S107 逐特征隔离：坏特征 → 时间轴标红 + 状态提示（其余照常 build past，唔 revert 整树）
         const timelineFailures = mapKernelFailuresToTimeline(mesh.failed, bound)
         const failNote = timelineFailures.ids.length ? `　🔴 ${timelineFailures.ids.length} 個特徵重建失敗（時間軸已標紅，可改參數/抑制/刪；其餘照常重建）` : ''
-        const emptyMsg = '⚠ 结果为空 — ' + (hint || '該操作切掉了全部材料，或輪廓無效（請檢查切割大小 / 草圖是否閉合）')
+        const emptyMsg = '⚠ 結果為空 — ' + (hint || '該操作切掉了全部材料，或輪廓無效（請檢查切割大小 / 草圖是否閉合）')
         // S114：逐面色跨重建持久化 —— 取代「任何重建一律清空」。用几何指纹将旧 faceId→新 faceId 迁移
         // （remapFaceColors）：面几何未变 → 指纹一致 → 色跟住返（改参数/抑制无关特征都保住）；面几何变咗/无咗
         // → 该面色丢失（诚实，可接受）。s2.bodyMesh = 重建前嘅旧 mesh，s2.faceColors keyed 到佢；前向编辑
@@ -16775,8 +16775,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       _hydraSk = null
       // Failed/empty: roll back to the previous body and KEEP the sketch (re-shown as a model-mode outline).
       await get().applyFeatures(prevFeatures, cutMissed
-        ? '⚠ 切割没有接触到实体（体积没有变化）—— 草图已保留。请检查：① 方向（按 ⇅ 反向）② 距离是否足够长去到实体　③ 轮廓位置是否对准实体（或者用 范围=贯通 一刀切穿）'
-        : '⚠ 拉伸没有产生实体 —— 草图已保留。请检查：① 拉伸高度要 > 0　② 轮廓要闭合　③「切割/相交」需要已有实体且与轮廓重叠（要新建实体请把操作设为「＋新建」）', false)
+        ? '⚠ 切割沒有碰觸實體（體積沒有變化）— 草圖已保留。請檢查：① 方向（按 ⇅ 反向）② 距離是否足夠長去到實體　③ 輪廓位置是否對準實體（或者用 範圍=貫通 一刀切穿）'
+        : '⚠ 拉伸沒有產生實體 — 草圖已保留。請檢查：① 拉伸高度要 > 0　② 輪廓要閉合　③「切割/相交」需要已有實體且與輪廓重疊（要新建實體請把操作設為「＋新建」）', false)
       set({ sketchShape: savedShape, sketchProfiles: savedProfiles, sketchArb: savedArb, mode: savedMode, extrudeDlgOpen: false, extrudeRegionFaces: null, extrudeRegionSel: [] })
     }
     } finally {

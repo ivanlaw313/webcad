@@ -5,7 +5,7 @@ Genuine product: App panel chunks use **lazySafe** (F86 WindTunnel pattern — n
 Draft i18n Formal **无法开启模 → 无法开模** / TC **無法開模**; drop English undercut in SC key.
 
 ## Live after cut
-- Tip: `1187e9257ab2b554d92d166349c50ad91412c0dd` (fix/fishing88-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `51ab3b345f839aa855c1e4748c3f5ab5ac74c766` (fix/fishing88-behavior-ux → FF fix/sketch-face-copy)
 - Stamp: `v2.20-20261016-234555`
 - Bundle: `index-BPlnpMNW-r2.js` (md5 `f76000b0376c8f25546cf56d14e40858`)
 - Bak: `index-BdZ38Vhs-r2.js` / `v2.20-20261016-233751` (kept)

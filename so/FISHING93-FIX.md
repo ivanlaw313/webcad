@@ -7,7 +7,7 @@ Cherry **more48** (`43f8be3d` → `284b0475`); resolve always-hard pin for F92 j
 more49 NOT cherry.
 
 ## Live after cut
-- Tip: `8dddab08236f201f4c3daa7d69af180f3664c13d` (fix/fishing93-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `e6ed6b7d00a8edd6093f24f7c1c599eb2e1226db` (fix/fishing93-behavior-ux → FF fix/sketch-face-copy)
 - Product: `1298b0de3091e79b66cb3f68baffe53dc1e24370` en alias.accessanalysis prepend Demold Accessibility
 - more48 cherry: `284b047519de0456a3b1cac7befb4b37e5b2f3fb` (from `43f8be3d`); pin resolve `64f48adafe76f829d2068501b5f00dc9616d5bd7`
 - Stamp: `v2.20-20261017-002232`

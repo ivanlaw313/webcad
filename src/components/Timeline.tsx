@@ -7,7 +7,7 @@ import { useEscapeLayer } from './useEscapeLayer'
 import { parseLen, toLenInput } from '../io/units'   // BUG-507/509：時間軸編輯條跟對話框同一條解析
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react'
 import { ToolIcon } from '../icons'
-import { useApp, thickenOversizeReason } from '../store'
+import { useApp, thickenOversizeReason, thickenGateMesh } from '../store'
 import { tStatus } from '../i18n'
 import { illegalRejectStatus, isIllegalRejectStatus, ILLEGAL_LENGTH_DETAIL, ILLEGAL_THICKNESS_DETAIL } from '../ui/illegalInput'
 import { useDraggable } from './useDraggable'
@@ -18,13 +18,17 @@ const EDIT_DLG_KINDS = new Set<string>(['extrude', 'revolve', 'sweep', 'loft', '
 
 // 测试报告观察 C：时间轴特徵尺寸输入 — 改为本地缓冲 + 失焦/Enter 先提交（之前每个 keystroke 即触发
 // 异步重建，令打字被打断 / 自动化改唔到值）。同 featDlg 输入一致行为。外部值变（参数绑定/撤销）会重新同步。
-function NumField({ value, disabled, min, onCommit, rejectDetail }: { value: number; disabled?: boolean; step?: number; min?: number; onCommit: (n: number) => void | boolean; rejectDetail?: string }) {   // step 已不再用（轉了 type=text），保留 prop 令呼叫端不必改
+function NumField({ value, disabled, min, onCommit, rejectDetail, liveReject, onLiveReject }: { value: number; disabled?: boolean; step?: number; min?: number; onCommit: (n: number) => void | boolean; rejectDetail?: string; liveReject?: (n: number) => string | null; onLiveReject?: (reason: string | null) => void }) {   // step 已不再用（轉了 type=text），保留 prop 令呼叫端不必改
   const unit = useApp((s) => s.unit)
   const [buf, setBuf] = useState(String(value))
   const skipCommit = useRef(false)
   useEffect(() => { setBuf(toLenInput(value, unit)) }, [value, unit])
+  // FISHING31：逐鍵即時檢查（例如加厚過大）→ 即刻紅色警示＋停用「確定」
+  const liveReason = liveReject ? (() => { const n = parseLen(buf, unit) ?? Number(buf); return Number.isFinite(n) ? liveReject(n) : null })() : null
+  useEffect(() => { onLiveReject?.(liveReason); return () => onLiveReject?.(null) }, [liveReason])   // eslint-disable-line react-hooks/exhaustive-deps
   const commit = () => {
     if (skipCommit.current) { skipCommit.current = false; setBuf(toLenInput(value, unit)); return }
+    if (liveReason) { useApp.setState({ status: illegalRejectStatus(liveReason) }); return }   // 保留草稿＋警示，唔 commit
     /* ★ BUG-507/509 ★ 跟對話框行同一條解析：inch 分數（1 1/2）、算式（2*3）、全角。
      * 舊版 Number(buf) 會把「1 1/2」變 NaN（已經好過 type=number 剥成 112），
      * 但用戶在對話框打得到在時間軸打不到，本身就係不一致。 */
@@ -43,7 +47,7 @@ function NumField({ value, disabled, min, onCommit, rejectDetail }: { value: num
       /* ★ BUG-507/509 ★ 唔准用 type="number"：瀏覽器會在 JS 見到之前剥走 / + * ( )。
        * QA 實測時間軸編輯條打「1 1/2」變「112」、「2*3」變「23」，静默落錯值。
        * 本身已經有 commit 時的 reject 邏輯，所以只要把原文交到手就正確。 */
-      type="text" inputMode="decimal" disabled={disabled} value={buf}
+      type="text" inputMode="decimal" disabled={disabled} value={buf} aria-invalid={liveReason ? true : undefined}
       onChange={(e) => setBuf(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => {
@@ -211,6 +215,7 @@ export default function Timeline() {
       featEditUndoAtOpen.current = null
     }
   }, [selected, !!meta, commandEditing])
+  const [liveReject, setLiveReject] = useState<string | null>(null)   // FISHING31：quick-edit 草稿即時拒絕原因
   const keepFeatEdit = () => { featEditUndoAtOpen.current = null; selectFeature(null) }
   const discardFeatEdit = () => {
     const base = featEditUndoAtOpen.current
@@ -402,7 +407,9 @@ export default function Timeline() {
           )}
           {/* CORE16 #5：訊息槽固定預留高度、唔計入面板闊度（contain: inline-size）—— 出錯／拒絕訊息出現時欄位唔再跳位 */}
           <div className="fe-msg" data-testid="fe-msg" aria-live="polite">
-            {isIllegalRejectStatus(status) ? (
+            {liveReject ? (
+              <div role="alert" data-testid="timeline-illegal-alert" className="fe-msg-text fe-msg-illegal" title={illegalRejectStatus(liveReject)}>{illegalRejectStatus(liveReject)}</div>
+            ) : isIllegalRejectStatus(status) ? (
               <div role="alert" data-testid="timeline-illegal-alert" className="fe-msg-text fe-msg-illegal" title={status}>{status}</div>
             ) : featureErrors[sel.id] ? (
               <div className="fe-errbar"><span className="fe-msg-text" title={tStatus(plainFeatureError(sel.type, featureErrors[sel.id]), lang)}>🔴 {tStatus('此特徵重建失敗：', lang)}{tStatus(plainFeatureError(sel.type, featureErrors[sel.id]), lang)}</span><button className="fe-errsup" onClick={() => void toggleSuppress(sel.id)}>{tStatus('抑制此特徵', lang)}</button></div>
@@ -461,9 +468,11 @@ export default function Timeline() {
                         step={0.5}
                         disabled={!!bound}
                         value={shown}
+                        liveReject={(n) => (Math.abs(n) > 0 ? thickenOversizeReason(thickenGateMesh(useApp.getState() as unknown as Parameters<typeof thickenGateMesh>[0]) as never, Math.abs(n)) : null)}
+                        onLiveReject={setLiveReject}
                         onCommit={(n) => {
                           if (!(Math.abs(n) > 0)) { useApp.setState({ status: illegalRejectStatus('加厚厚度不可為 0（輸入負數可翻轉方向）') }); return false }
-                          { const over = thickenOversizeReason(useApp.getState().bodyMesh, Math.abs(n)); if (over) { useApp.setState({ status: illegalRejectStatus(over) }); return false } }   // FISHING30 P1：時間軸改厚度同樣受過大閘
+                          { const over = thickenOversizeReason(thickenGateMesh(useApp.getState() as unknown as Parameters<typeof thickenGateMesh>[0]) as never, Math.abs(n)); if (over) { useApp.setState({ status: illegalRejectStatus(over) }); return false } }   // FISHING30 P1：時間軸改厚度同樣受過大閘
                           const side = tf.side === 'both' ? 'both' : n < 0 ? 'neg' : 'pos'
                           void Promise.resolve(editFeature(sel.id, { thick: Math.abs(n), side })).then(() => { if (n < 0 && side === 'neg' && tf.side !== 'neg') useApp.setState((st) => ({ status: `加厚：負值表示反向 — 方向已改為「反向」，厚度 ${Math.abs(n)} mm　${st.status}` })) })   // CORE16：負數唔再靜默翻轉
                         }}
@@ -474,6 +483,8 @@ export default function Timeline() {
                       min={fd.key === 'count' ? 2 : isCount ? 1 : POSITIVE_LENGTH_KEYS.has(fd.key) ? 1e-6 : undefined}
                       rejectDetail={fd.key === 'thickness' ? ILLEGAL_THICKNESS_DETAIL : POSITIVE_LENGTH_KEYS.has(fd.key) ? ILLEGAL_LENGTH_DETAIL : undefined}
                       disabled={!!bound}
+                      liveReject={sel.type === 'thickenquilt' && fd.key === 'thick' ? (n) => thickenOversizeReason(thickenGateMesh(useApp.getState() as unknown as Parameters<typeof thickenGateMesh>[0]) as never, Math.abs(n)) : undefined}
+                      onLiveReject={sel.type === 'thickenquilt' && fd.key === 'thick' ? setLiveReject : undefined}
                       value={(sel as unknown as Record<string, number>)[fd.key] ?? (fd.defKey ? (sel as unknown as Record<string, number>)[fd.defKey] : undefined) ?? 0}
                       onCommit={(n) => { if (sel.type === 'pushpull' && fd.key === 'dist' && n === 0) { useApp.setState({ status: illegalRejectStatus('按拉距離不可為 0（正數＝拉出，負數＝推入）') }); return false } void editFeature(sel.id, { [fd.key]: isCount ? Math.max(fd.key === 'count' ? 2 : 1, Math.round(n)) : n }) }}
                     />
@@ -507,7 +518,7 @@ export default function Timeline() {
           <button className="fe-del" title={tStatus('下移（更晚重建）', lang)} onClick={() => void moveFeature(sel.id, 1)}>▶</button>
           <button className="fe-del" onClick={() => void toggleSuppress(sel.id)}>{suppressedIds.includes(sel.id) ? tStatus('恢復', lang) : tStatus('抑制', lang)}</button>
           <button className="fe-del" onClick={() => { void useApp.getState().requestRemoveFeature(sel.id) }}>{tStatus('刪除', lang)}</button>
-          <button className="fe-close" data-testid="fe-confirm" onClick={keepFeatEdit}>{tStatus('確定', lang)}</button>
+          <button className="fe-close" data-testid="fe-confirm" disabled={!!liveReject} aria-disabled={!!liveReject || undefined} onMouseDown={(e) => { if (liveReject) e.preventDefault() }} onClick={() => { if (liveReject) { useApp.setState({ status: illegalRejectStatus(liveReject) }); return } keepFeatEdit() }}>{tStatus('確定', lang)}</button>
           <button className="fe-del" data-testid="fe-cancel" onMouseDown={(e) => e.preventDefault()} onClick={discardFeatEdit}>{tStatus('取消', lang)}</button>
         </div>
       )}

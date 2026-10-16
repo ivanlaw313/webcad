@@ -74,5 +74,5 @@ test('every entry point gated (dialog OK, alert, preview, timeline edit)', () =>
   assert.match(vp, /data-testid="thicken-oversize-alert"/)
   const st = rd('src/store.ts')
   assert.match(st, /features\.length > 0 && !thickenOversizeReason\(s\.bodyMesh, s\.thickenThick\)/)
-  assert.match(rd('src/components/Timeline.tsx'), /thickenOversizeReason\(useApp\.getState\(\)\.bodyMesh, Math\.abs\(n\)\)/)
+  assert.match(rd('src/components/Timeline.tsx'), /thickenOversizeReason\(thickenGateMesh\(useApp\.getState\(\)/)
 })

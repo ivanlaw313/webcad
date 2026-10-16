@@ -115,7 +115,7 @@ import { cutFaceGeom } from '../geom/sectionCap'   // S186：剖面盖切面三�
 import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按需预览（避免普通建模首屏载入齿轮搜索）
 import { ToolIcon } from '../icons'
 import { featDlgBlockingReason, patternOverlapWarning } from '../cad/featDlgNumeric'
-import { parseSweepTwistDraft, parseSweepScaleDraft } from '../cad/sweepTwistFields'   // 純邏輯模組，唔經 monolith
+import { parseSweepTwistDraft, parseSweepScaleDraft, sweepDraftShown, sweepDraftType, sweepDraftBlur } from '../cad/sweepTwistFields'   // 純邏輯模組，唔經 monolith
 import { startRenderGovernor } from '../render/renderGovernor'
 import { PRIM_PLACE_KINDS, FEAT_DLG_DRY_PREVIEW_KINDS, shellFailReason, effectiveComponentDensity } from '../store'   // UX3 #2 / CORE16 b4
 import { useApp, holeBlindOverrun, meshBboxSize, extrudePreviewKey, extrudePreviewCurrent, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection, thickenOversizeReason } from '../store'
@@ -3652,6 +3652,35 @@ function useSettledField(report: (raw: string) => void) {
     } : {},
   }
 }
+/** FISHING31 P1：掃掠「扭轉／末端縮放」—— 獨立（模組級、穩定 key）草稿欄。
+ *  · 聚焦期間只顯示本地草稿，store 值／預覽重建唔會覆寫、唔會 remount；
+ *  · 每鍵 parse 合法即 onValue（預覽跟打字），非法留原文＋紅框＋Formal TC 警示；
+ *  · 唔再每次 focus 全選／重設草稿（舊版 onFocus 會用 store 值覆寫草稿並全選，下一鍵就食晒之前嘅字）。 */
+function SweepDraftField({ testid, label, title, unit, value, parse, onValue, onBadChange, lang }: { testid: 'sweep-twist' | 'sweep-scale'; label: string; title: string; unit: string; value: number; parse: (raw: string) => { ok: boolean; value: number | null; reason: string | null }; onValue: (n: number) => void; onBadChange: (bad: boolean) => void; lang: Parameters<typeof tStatus>[1] }) {
+  const [draft, setDraft] = useState<string | null>(null)   // null = 未編輯 → 顯示 store 值
+  const shown = sweepDraftShown({ draft }, value)
+  const r = parse(shown)
+  const bad = !r.ok
+  const badRef = useRef<boolean | null>(null)
+  useEffect(() => { if (badRef.current !== bad) { badRef.current = bad; onBadChange(bad) } })
+  useEffect(() => () => onBadChange(false), [])   // eslint-disable-line react-hooks/exhaustive-deps
+  const selectOnMouseUp = useRef(false)
+  return (
+    <>
+      <label title={tStatus(title, lang)}>
+        <span style={{ color: '#6b7680' }}>{tStatus(label, lang)}</span>
+        <span><input type="text" inputMode="decimal" data-testid={`${testid}-input`} aria-label={tStatus(label, lang)} aria-invalid={bad ? true : undefined}
+          value={shown}
+          onMouseDown={(e) => { selectOnMouseUp.current = document.activeElement !== e.currentTarget }}
+          onMouseUp={(e) => { if (selectOnMouseUp.current) { selectOnMouseUp.current = false; e.preventDefault(); e.currentTarget.select() } }}
+          onChange={(e) => { const st = sweepDraftType(e.target.value, value, parse as Parameters<typeof sweepDraftType>[2]); setDraft(st.next.draft); if (st.write != null) onValue(st.write) }}
+          onBlur={() => { const st = sweepDraftBlur({ draft }, value, parse as Parameters<typeof sweepDraftBlur>[2]); if (st.write != null) onValue(st.write); setDraft(st.next.draft) }}
+          style={{ width: 66, ...(bad ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }} /> {unit}</span>
+      </label>
+      {bad && <div role="alert" data-testid={`${testid}-alert`} style={{ color: '#b42318', fontSize: 11 }}>{tStatus(r.reason!, lang)}</div>}
+    </>
+  )
+}
 function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: number; onMm: (v: number) => void; /** BD16-02：每次改都報【原文】（連 parse 失敗都報）—— onMm 喺 parse 失敗嗰陣根本唔會 call，所以父層單靠 onMm 永遠唔知道欄位而家係非法／空白。 */ onText?: (raw: string) => void; unit: LenUnit; w?: number; min?: number; max?: number; title?: string }) {
   const [txt, setTxt] = useState(() => toLenInput(mm, unit))
   const [foc, setFoc] = useState(false)
@@ -4497,12 +4526,11 @@ export default function Viewport() {
   // CORE16：管徑 Ø 打 0／負數唔再靜默變返 12 — 留原文、紅框、閂確定、講原因
   const [sweepDiaTxt, setSweepDiaTxt] = useState<string | null>(null)
   // Goal A：扭轉／末端縮放本地草稿（同管徑 Ø）— 打字唔即 Number()，唔食字；0／空白扭轉 OK
-  const [sweepTwistTxt, setSweepTwistTxt] = useState<string | null>(null)
-  const [sweepScaleTxt, setSweepScaleTxt] = useState<string | null>(null)
-  useEffect(() => { if (!sweepDlgOpen) { setSweepDiaTxt(null); setSweepTwistTxt(null); setSweepScaleTxt(null) } }, [sweepDlgOpen])
-  const twistDraft = parseSweepTwistDraft(sweepTwistTxt ?? String(sweepTwist))
-  const scaleDraft = parseSweepScaleDraft(sweepScaleTxt ?? String(sweepScale))
-  const sweepTwistScaleBad = !twistDraft.ok || !scaleDraft.ok
+  // FISHING31：草稿搬入 <SweepDraftField>（本地 state，唔隨 Viewport 重繪重設）；父層只收「非法與否」閂確定
+  const [sweepTwistBad, setSweepTwistBad] = useState(false)
+  const [sweepScaleBad, setSweepScaleBad] = useState(false)
+  useEffect(() => { if (!sweepDlgOpen) { setSweepDiaTxt(null) } }, [sweepDlgOpen])
+  const sweepTwistScaleBad = sweepTwistBad || sweepScaleBad
   const sketchProfiles = useApp((s) => s.sketchProfiles)
   const sketchShape = useApp((s) => s.sketchShape)
   const sketchUndoN = useApp((s) => s.sketchUndo.length)
@@ -8235,16 +8263,8 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>{tStatus('爬升 Z (3D)', lang)}</span>
             <span><input type="number" step={5} value={sweepClimb} onChange={(e) => setSweepClimb(Number(e.target.value))} style={{ width: 66 }} /> mm</span>
           </label>
-          <label title={tStatus('扭轉：截面沿脊線行進時繞路徑方向旋轉的總角度。0 或空白＝不扭。對圓截面無視覺效果，配草圖輪廓截面用。', lang)}>
-            <span style={{ color: '#6b7680' }}>{tStatus('扭轉', lang)}</span>
-            <span><input type="text" inputMode="decimal" data-testid="sweep-twist-input" aria-label={tStatus('扭轉', lang)} aria-invalid={twistDraft.ok ? undefined : true} value={sweepTwistTxt ?? String(sweepTwist)} onFocus={(e) => { setSweepTwistTxt(String(sweepTwist)); e.currentTarget.select() }} onChange={(e) => { const raw = e.target.value; setSweepTwistTxt(raw); const r = parseSweepTwistDraft(raw); if (r.ok) setSweepTwist(r.value) }} onBlur={() => { const r = parseSweepTwistDraft(sweepTwistTxt ?? ''); if (r.ok) { setSweepTwist(r.value); setSweepTwistTxt(null) } }} style={{ width: 66, ...(!twistDraft.ok ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }} /> °</span>
-          </label>
-          {!twistDraft.ok && <div role="alert" data-testid="sweep-twist-alert" style={{ color: '#b42318', fontSize: 11 }}>{tStatus(twistDraft.reason!, lang)}</div>}
-          <label title={tStatus('末端縮放：末端截面相對起端等比縮放（錐度）。1＝不變；0.5＝末端收一半；>1＝放大。喇叭口／錐管／收口。', lang)}>
-            <span style={{ color: '#6b7680' }}>{tStatus('末端縮放', lang)}</span>
-            <span><input type="text" inputMode="decimal" data-testid="sweep-scale-input" aria-label={tStatus('末端縮放', lang)} aria-invalid={scaleDraft.ok ? undefined : true} value={sweepScaleTxt ?? String(sweepScale)} onFocus={(e) => { setSweepScaleTxt(String(sweepScale)); e.currentTarget.select() }} onChange={(e) => { const raw = e.target.value; setSweepScaleTxt(raw); const r = parseSweepScaleDraft(raw); if (r.ok) setSweepScale(r.value) }} onBlur={() => { const r = parseSweepScaleDraft(sweepScaleTxt ?? ''); if (r.ok) { setSweepScale(r.value); setSweepScaleTxt(null) } }} style={{ width: 66, ...(!scaleDraft.ok ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }} /> ×</span>
-          </label>
-          {!scaleDraft.ok && <div role="alert" data-testid="sweep-scale-alert" style={{ color: '#b42318', fontSize: 11 }}>{tStatus(scaleDraft.reason!, lang)}</div>}
+          <SweepDraftField key="sweep-twist" testid="sweep-twist" lang={lang} label="扭轉" unit="°" title="扭轉：截面沿脊線行進時繞路徑方向旋轉的總角度。0 或空白＝不扭。對圓截面無視覺效果，配草圖輪廓截面用。" value={sweepTwist} parse={parseSweepTwistDraft} onValue={setSweepTwist} onBadChange={setSweepTwistBad} />
+          <SweepDraftField key="sweep-scale" testid="sweep-scale" lang={lang} label="末端縮放" unit="×" title="末端縮放：末端截面相對起端等比縮放（錐度）。1＝不變；0.5＝末端收一半；>1＝放大。喇叭口／錐管／收口。" value={sweepScale} parse={parseSweepScaleDraft} onValue={setSweepScale} onBadChange={setSweepScaleBad} />
           {sweepSection === 'profile' && (!!sweepTwist || (sweepScale > 0 && Math.abs(sweepScale - 1) > 1e-9)) && (
             <div data-testid="sweep-twist-preview-status" role="status" aria-live="polite" style={{ fontSize: 11, color: sweepPreview?.error ? '#c0392b' : '#6b7680', lineHeight: 1.35, margin: '2px 0 4px' }}>
               {sweepPreviewBusy

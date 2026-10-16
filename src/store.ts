@@ -5561,6 +5561,40 @@ export function thickenOversizeReason(mesh: MeshData | null | undefined, t: numb
   return null
 }
 
+/** FISHING31：加厚過大閘嘅參考網格 —— 活動體；冇就用組件網格（曲面／多體情況下 bodyMesh 可能為 null，令相對閘失效）。 */
+export function thickenGateMesh(s: { bodyMesh: MeshData | null; components?: { mesh?: { vertices?: ArrayLike<number> } | null }[] }): { vertices?: ArrayLike<number> } | null {
+  if (s.bodyMesh?.vertices?.length) return s.bodyMesh
+  const vs: number[] = []
+  for (const c of s.components ?? []) { const v = c.mesh?.vertices; if (v?.length) for (let i = 0; i < v.length; i++) vs.push(v[i]) }
+  return vs.length ? { vertices: vs } : null
+}
+/** FISHING31：時間軸／任何 rebuild 路徑 —— 新增或改動咗厚度嘅加厚特徵如過大，回傳拒絕原因。 */
+export function thickenFeaturesOversizeReason(prev: readonly { id: string; type: string }[], next: readonly { id: string; type: string }[], mesh: { vertices?: ArrayLike<number> } | null | undefined): string | null {
+  const old = new Map(prev.map((f) => [f.id, f as unknown as { thick?: number }]))
+  for (const f of next) {
+    if (f.type !== 'thickenface' && f.type !== 'thickenquilt') continue
+    const t = Math.abs(Number((f as unknown as { thick?: number }).thick))
+    const o = old.get(f.id)
+    if (o && Math.abs(Number(o.thick)) === t) continue
+    const r = thickenOversizeReason(mesh as MeshData | null, t)
+    if (r) return r
+  }
+  return null
+}
+
+/** FISHING31 P2：重建警告去重 —— 同一組警告（例如掃掠尖角自動圓角 R3）只喺「改變」時顯示一次，唔再每次重建都彈。 */
+let _shownBuildWarnKey = ''
+export function dedupeBuildWarnings(prevKey: string, warnings: readonly string[]): { show: string[]; key: string } {
+  const key = [...warnings].sort().join('\u0001')
+  if (!warnings.length) return { show: [], key: '' }
+  return { show: key === prevKey ? [] : warnings.slice(), key }
+}
+export function nextBuildWarnings(warnings: readonly string[] | undefined): string[] {
+  const r = dedupeBuildWarnings(_shownBuildWarnKey, warnings ?? [])
+  _shownBuildWarnKey = r.key
+  return r.show
+}
+
 /** CORE16：盲孔深度 ≥ 實體沿鑽孔方向嘅包圍厚度 → 回傳厚度（保守：包圍盒只會高估厚度 → 唔會誤報）。 */
 export function holeBlindOverrun(st: Pick<AppState, 'bodyMesh' | 'holeThrough' | 'holeToNext' | 'holeToObject' | 'holeDepth' | 'holeDir'>): { thick: number } | null {
   const m = st.bodyMesh
@@ -6262,7 +6296,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           nextFeatures=nextFeatures.map(f=>{const r=resolved[f.id] ?? (f.type==='extgroup'?resolved[`${f.id}#0`]:undefined);return r?update(f,r):f})
           // GM-W5 5.1：rebuild 成功嘅【单一 choke point】—— 由 nextFeatures 派生 planes[]（datum 特征 → 参考面）。undo/redo/编辑/删/抑制 全部经此。
           const matSync = syncParkedBodyMaterials(s2, noTris ? null : mesh, nextFeatures)
-          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: noTris ? null : mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: (mesh.warnings ?? []).slice(), failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}), ...(hasLiveSimResults(s2) ? invalidateSimResultsPatch('幾何已改') : {}), ...matSync }
+          return { features: nextFeatures, sketchSources: nextSources, bodyMesh: noTris ? null : mesh, bodyTopZ: noTris ? 0 : meshTopZ(mesh), timelinePos: nextFeatures.length, busy: false, status: empty ? emptyMsg : (okMsg + warn + failNote), lastBuildWarnings: nextBuildWarnings(mesh.warnings),   /* FISHING31：同一組警告唔重複彈 */ failedFeatureIds: timelineFailures.ids, featureErrors: timelineFailures.errors, planes: planesFromFeatures(nextFeatures, s2.suppressedIds), ...(hasColors ? { faceColors: nextColors! } : {}), ...(hasLiveSimResults(s2) ? invalidateSimResultsPatch('幾何已改') : {}), ...matSync }
         })
         // Keep a live capped-section solid in sync with model edits (recompute the half from the new body).
         if (!context && get().section.on && get().section.capped) void get().refreshSectionCap()
@@ -16195,6 +16229,10 @@ export const useApp = create<AppState>((rawSet, get) => {
 
   applyFeatures: async (...args) => {
     if (_featDlgDry) { _featDlgDry.push(args[0]); return new Promise<boolean>(() => {}) }
+    { // FISHING31 P1：所有 rebuild 路徑（時間軸 quick-edit／editFeature／對話框）都唔准 commit 過大加厚
+      const st = get(), over = thickenFeaturesOversizeReason(st.features, args[0], thickenGateMesh(st as unknown as Parameters<typeof thickenGateMesh>[0]))
+      if (over) { set({ status: illegalRejectStatus(over) }); return false }
+    }
     return (await runFeatures(args)).ok
   },
 

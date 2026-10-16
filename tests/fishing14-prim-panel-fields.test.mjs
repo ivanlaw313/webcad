@@ -52,10 +52,13 @@ test('every primitive panel kind uses the draft/settle fields', () => {
   for (const k of ['pattern', 'move', 'shell-edit', 'extrude-edit']) assert.ok(!PRIM_PANEL_KINDS.has(k), k + ' keeps per-keystroke reporting')
 })
 
-test('wiring: LenInput / FeatNum settle inside primitive panels; dialog traps Tab and never steals focus; message slot fixed height', () => {
+test('wiring: LenInput / FeatNum live-report inside primitive panels; dialog traps Tab and never steals focus; message slot fixed height', () => {
   const vp = src('components/Viewport.tsx')
   assert.match(vp, /<PrimFieldCtx\.Provider value=\{PRIM_PANEL_KINDS\.has\(featDlg\.kind\)\}>/)
   assert.equal((vp.match(/useSettledField\(/g) || []).length, 3, 'hook defined once + used by LenInput and FeatNum')
+  // preview-lag：每鍵即時 report(raw)，唔再 if (settle) push —— 預覽／體積跟欄位草稿
+  assert.match(vp, /change: \(raw: string\) => \{ report\(raw\) \}/)
+  assert.doesNotMatch(vp, /if \(settle\) ref\.current!\.push\(raw\)/)
   assert.match(vp, /onBlur=\{\(\) => \{ fld\.flush\(\)/)
   assert.match(vp, /data-testid="feat-msg-slot"[^>]*style=\{slot\}/)
   assert.match(vp, /height: 32, flex: '0 0 32px'/)
@@ -64,6 +67,14 @@ test('wiring: LenInput / FeatNum settle inside primitive panels; dialog traps Ta
   const cd = src('components/CommandDialog.tsx')
   assert.match(cd, /trapTabIndex\(list\.length/)
   assert.match(cd, /if \(ae && ae !== dialogRef\.current && dialogRef\.current\?\.contains\(ae\)\) return/)
+})
+
+test('preview-lag: prim panel docs require live store report (not settle-before-preview)', () => {
+  const fi = src('ui/fieldInput.ts')
+  assert.match(fi, /每粒鍵即時 report/)
+  assert.match(fi, /基本體面板改走 live report|基本體面板改用即時 report/)
+  const vp = src('components/Viewport.tsx')
+  assert.match(vp, /每鍵即時 report store/)
 })
 
 test('P3: sketch radius / diameter dimension labels use R / Ø + length unit, never "rad"', () => {

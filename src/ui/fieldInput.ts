@@ -77,26 +77,27 @@ export const FEATURE_RENAME_EVENT = 'webcad:rename-feature'
 export const BODY_RENAME_EVENT = 'webcad:rename-body'
 export const COMPONENT_RENAME_EVENT = 'webcad:rename-component'
 
-/* ── FISHING14 P2：基本體面板（長方體／圓柱／球／圓錐／圓環…）欄位 ─────────────────────────────
- * 真 Chrome 正常速度打字：每粒鍵都 setFeatParam → featDlg 換新物件 → 成個 Viewport（近萬行）重繪、
- * 200 ms 後又以中途值（例如「110」嘅「1」）起預覽 → 主線程忙、畫面落後、預覽停喺舊值；面板頂嘅
- * 錯誤／預覽行時有時冇 → 欄位同「確定」上下跳，滑鼠點落另一欄；Tab／Shift+Tab 走出面板去 Chrome 工具列。
- * 規則：
- *   · 欄位持有本地草稿；打字只改草稿，停手 PRIM_FIELD_SETTLE_MS 或 Tab／Enter／失焦先寫入 store（一次）；
- *   · 預覽由寫入後嘅值計（唔會用半截數字），計緊都唔會改寫欄位；
- *   · Tab／Shift+Tab 喺面板內循環（focus trap），開面板自動聚焦只做一次、焦點已在面板內就唔搶；
- *   · 面板頂訊息行預留固定高度，出現／消失都唔推郁欄位同按鈕。 */
+/* ── FISHING14 P2／preview-lag：基本體面板（長方體／圓柱／球／圓錐／圓環…）欄位 ─────────────
+ * FISHING14 原為避免每鍵 setFeatParam 令 Viewport 重繪＋半截數字起預覽，用 settle 延遲寫 store。
+ * FISHING27/28/29 實測：欄位已係「25」時預覽／體積仍按「2」（Tab／失焦先對）—— settle 令
+ * store／featDlg 落後一字，即時體積同內核預覽讀舊 params。
+ * 規則（同檔頂 Extrude ExpressionInput）：
+ *   · 欄位持有本地草稿；聚焦中外部值唔覆寫、唔亂 format、唔「吃數字」；
+ *   · 每粒鍵即時 report → store（預覽／OK 閘／體積跟草稿）；內核預覽另有 ~200ms debounce 合併計算；
+ *   · Tab／Enter／失焦仍可 flush（幂等）；Tab／Shift+Tab 面板內循環（focus trap）；
+ *   · 面板頂訊息行預留固定高度，出現／消失都唔推郁欄位同按鈕。
+ * createSettledCommit 保留畀測試／可選 debounce；基本體面板改走 live report。 */
 export const PRIM_PANEL_KINDS = new Set<string>([
   'box', 'cylinder', 'sphere', 'cone', 'torus', 'wedge', 'dome', 'halfcyl', 'pie', 'prism', 'pyramid',
   'tube', 'rtube', 'rbox', 'coil', 'thread', 'othread', 'ithread', 'gear', 'crowngear', 'gearbox', 'rack', 'pulley', 'worm', 'profile',
 ])
-/** 停手幾耐先把草稿寫入 store（觸發預覽）。 */
+/** @deprecated 基本體面板改 live report；保留常數畀舊測試／可選 debounce。 */
 export const PRIM_FIELD_SETTLE_MS = 180
 
 type Timers = { set: (fn: () => void, ms: number) => unknown; clear: (h: unknown) => void }
 const realTimers: Timers = { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as ReturnType<typeof setTimeout>) }
 
-/** 草稿 → store 嘅延遲寫入：push 每粒鍵、flush 喺 Tab/Enter/失焦/卸載；同一值唔重寫。 */
+/** 可選：草稿 → store 延遲寫入（push／flush）。基本體面板改用即時 report，唔再靠呢個延遲預覽。 */
 export function createSettledCommit(commit: (raw: string) => void, ms = PRIM_FIELD_SETTLE_MS, timers: Timers = realTimers) {
   let pending: string | null = null
   let handle: unknown = null

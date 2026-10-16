@@ -3628,25 +3628,27 @@ function lenFieldReason(raw: string | null, unit: LenUnit, label: string, max = 
   if (v > max) return `尺寸已拒絕：${label}超出上限 ${max} mm`
   return ''
 }
-/* FISHING14 P2：基本體面板欄位 = 本地草稿 + 停手／Tab／Enter／失焦先寫 store（見 ui/fieldInput.ts）。
- * 其他對話框（孔、拉伸…）照舊每粒鍵即寫，唔受影響。 */
+/* FISHING14 P2／preview-lag：基本體面板 = 本地草稿（顯示）+ 每鍵即時 report store（預覽／閘／體積）。
+ * 以前 settle 延遲寫 store → 欄位「25」預覽仍「2」；而家同其他對話框一樣即寫。
+ * PrimFieldCtx 仍開：select-on-focus、Tab flush（幂等）、訊息行固定高度。加厚面板唔喺 ctx 內，本來已即寫。 */
 const PrimFieldCtx = createContext(false)
 function useSettledField(report: (raw: string) => void) {
   const settle = useContext(PrimFieldCtx)
   const reportRef = useRef(report); reportRef.current = report
+  // 仍備 settle flush：Tab／Enter／失焦／卸載再報一次（幂等）；唔再用 timer 延遲每鍵。
   const ref = useRef<ReturnType<typeof createSettledCommit> | null>(null)
-  if (!ref.current) ref.current = createSettledCommit((raw) => reportRef.current(raw))
-  useEffect(() => () => { ref.current?.flush() }, [])   // 卸載（確定／取消關面板）前最後寫一次
+  if (!ref.current) ref.current = createSettledCommit((raw) => reportRef.current(raw), 0)
+  useEffect(() => () => { ref.current?.flush() }, [])
   const selectOnMouseUp = useRef(false)
   return {
     settle,
-    change: (raw: string) => { if (settle) ref.current!.push(raw); else report(raw) },
+    change: (raw: string) => { report(raw) },
     flush: () => { ref.current!.flush() },
     /** 聚焦即全選（Fusion 式；Tab 入嚟直接打字＝取代），滑鼠點嘅 mouseup 唔會清走選取。 */
     focusProps: settle ? {
       onMouseDown: (e: React.MouseEvent<HTMLInputElement>) => { selectOnMouseUp.current = document.activeElement !== e.currentTarget },
       onMouseUp: (e: React.MouseEvent<HTMLInputElement>) => { if (selectOnMouseUp.current) { selectOnMouseUp.current = false; e.preventDefault(); e.currentTarget.select() } },
-      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter' || e.key === 'Tab') ref.current!.flush() },
+      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter' || e.key === 'Tab') { reportRef.current((e.currentTarget as HTMLInputElement).value); ref.current!.flush() } },
     } : {},
   }
 }

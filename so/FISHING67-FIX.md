@@ -5,7 +5,7 @@
 **Product fix:** `96afb57`  
 **more40 soft-prep:** **none** (not present — defer F68)  
 **Base:** tip `6640392` (FISHING66 live)  
-**Tip:** `PLACEHOLDER_TIP`
+**Tip:** `776855f33d21b10e5aa208e330e2e27a88530b1c`
 
 ## Scan
 

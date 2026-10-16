@@ -10,12 +10,12 @@ Deploy also copies PREV F99 lazy chunks (AeroLab/WindTunnelGpu/autoLoopStore + i
 - stamp: `v2.20-20261017-011803`
 - bundle: `index-hT3qICVW-r2.js`
 - md5: `1bd2d85cda37ded6642f544a9eb8e74b`
-- tip: `TIP_STAMP_PLACEHOLDER`
+- tip: `fe555e72eab97673d0ae6cc8431c38dfe5c5c41c`
 - product: `94332e3cb0b0cccb7ede07d026a71323db974ebf`
 - more55 cherry: `274d057bfa549df893e8f21d94237417ac00aae9`
 
 ## Live after cut
-- Tip: `TIP_STAMP_PLACEHOLDER` (fix/fishing100-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `fe555e72eab97673d0ae6cc8431c38dfe5c5c41c` (fix/fishing100-behavior-ux → FF fix/sketch-face-copy)
 - Product: `94332e3cb0b0cccb7ede07d026a71323db974ebf` JointsPanel i18n
 - more55 cherry: `274d057bfa549df893e8f21d94237417ac00aae9` (from `e27f5561` on test/unit-core16-more55)
 - Stamp: `v2.20-20261017-011803`

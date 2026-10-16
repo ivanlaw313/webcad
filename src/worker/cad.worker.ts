@@ -62,9 +62,9 @@ export type Feature =
   | { id: string; type: 'chamfer'; distance: number; edges?: EdgeSel; near?: [number, number, number]; nears?: [number, number, number][]; dist2?: number; angle?: number; cmode?: 'equal' | 'two' | 'angle'; refFaceNear?: [number, number, number]; flip?: boolean; chain?: boolean; distances?: number[]; edgeFp?: string[]; edgeFpV2?: string[] }  // refFaceNear = Distance and Angle 用户真正点中参考面的内点（重算时从边的两个相邻面中解析）；edgeFp（S122）= 持久边指纹（同上）；edgeFpV2（S134）= 旋转不变指纹（同上）；distances（GM-3DV3 M7）= 逐边距离（equal 模式，与 nears 平行）
   // R1 面圆角 face-fillet（clean-room 窄版）：拾【两张唔相邻嘅面】+ 半径 → 平面/柱面对解析切点 → G1 blend 带（MakeFilling/BridgeG1）。
   //   near1/near2 = 两拾面近点（CAD 坐标，解析为 TopoDS_Face，行 shell 拾面口径）。产出独立实体 blend 曲面 + 试缝回实体（HARD FLOOR：任何失败/退化 → 原实体不变）。
-  //   窄版覆盖平面/柱面对（常见工况）；一般曲面滚球后置（诚实标注）。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
+  //   窄版覆盖平面/柱面对（常见工况）；一般曲面滚球后置（诚实標註）。STRICTLY ADDITIVE — 旧档无此 type 行为不变。
   | { id: string; type: 'facefillet'; radius: number; near1: [number, number, number]; near2: [number, number, number]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
-  | { id: string; type: 'shell'; thickness: number; nears?: [number, number, number][]; direction?: 'inside' | 'outside' | 'both'; closed?: boolean; tangentChain?: boolean; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // faceFp（S125）= 持久面指纹（开口面跨重建跟同一几何面，缺省退回 near-point）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行索引）— 上游刚体旋转后仍跟同一面，仅在框架 wellConditioned 且唯一时采信，否则退回 faceFp；direction（GM-3DV3 M2）= 壁厚方向 inside(缺省,向内,外形保留)/outside(负厚度向外生长)/both(先外扩半壁再向内抽壳,壁跨原边界)；closed=Fusion 封闭实体抽壳（外壳减内核）；tangentChain=沿共享边扩展 G1 面链；缺省字段保持旧档行为
+  | { id: string; type: 'shell'; thickness: number; nears?: [number, number, number][]; direction?: 'inside' | 'outside' | 'both'; closed?: boolean; tangentChain?: boolean; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }  // faceFp（S125）= 持久面指纹（开口面跨重建跟同一几何面，缺省退回 near-point）；faceFpV2（S136）= 旋转不变面指纹（与 faceFp 平行索引）— 上游刚体旋转后仍跟同一面，仅在框架 wellConditioned 且唯一时采信，否则退回 faceFp；direction（GM-3DV3 M2）= 壁厚方向 inside(缺省,向内,外形保留)/outside(负厚度向外生长)/both(先外擴半壁再向内抽壳,壁跨原边界)；closed=Fusion 封闭实体抽壳（外壳减内核）；tangentChain=沿共享边扩展 G1 面链；缺省字段保持旧档行为
   | { id: string; type: 'pattern'; countX: number; countY: number; dx: number; dy: number; countZ?: number; dz?: number; targets?: string[] /* T781：净阵列所選特徵（snapshot-delta，同 circPattern） */; dir1?: [number, number, number]; dir2?: [number, number, number] /* S 构造轴方向：Direction-1/2 单位方向；缺省 ⇒ 世界轴 [1,0,0]/[0,1,0]（旧档逐字节回放） */; bodies?: boolean /* #7 Object Type=Bodies：连独立实体一起阵列（每个独立实体 fuse 自己嘅栅格副本）；缺省 ⇒ 只阵列活动体（旧档逐字节） */; symX?: boolean; symY?: boolean; symZ?: boolean /* #pattern：各轴对称（原件居中，副本两边铺；仅奇数计数生效，偶数退单向）；缺省单向逐字节 */; suppress?: boolean[] /* GM-3DV1 S3：逐实例抑制遮罩 — 线性索引 idx=(i*cy+j)*cz+k，suppress[idx]=true 跳过该副本（seed idx=0 恒保留）；缺省 ⇒ 全出（旧档逐字节） */; compute?: 'optimized' | 'identical' | 'adjust' /* GM-3DV1 S3：Compute Option 直通提示（元数据，worker 不读几何）— 仅记录 Fusion 计算模式意图 */; objectType?: 'bodies' | 'faces' | 'features' | 'components'; nears?: [number, number, number][]; faceFp?: string[]; faceFpV2?: string[]; faceFpTopo?: string[] }
   // Geometric Pattern V1: explicit rigid instances of selected timeline features.
   // The seed remains the original feature; instances contains copies only.
@@ -87,8 +87,8 @@ export type Feature =
   | { id: string; type: 'thread'; d: number; pitch: number; height: number; op?: BoolOp }
   // T775（S55-③）：选面加外螺纹 — 喺【现有圆柱面】身上包牙（d=面直径=牙底，向外加牙深）。
   // 结果系 compound（螺旋面 fuse 唔可三角化 — thread/ithread 同一教训）：之后唔好倒角/STEP，STL 正常。
-  | { id: string; type: 'othread'; d: number; pitch: number; height: number; x?: number; y?: number; z0?: number; frame?: ThreadFrame; cosmetic?: boolean; lefthand?: boolean; cls?: string; standard?: string }   // cosmetic=纯外观标注（B-rep 零触碰 — 可继续圆角/STEP）；缺省=真牙旧行为；lefthand=左旋牙（Fusion Left hand，缺省右旋逐字节）；cls/standard（GM-3DV1 S11）=配合等级/标准库，纯元数据（几何用 60° ISO 形，牙深由 pitch 定）
-  | { id: string; type: 'ithread'; d: number; pitch: number; height: number; x?: number; y?: number; z0?: number; frame?: ThreadFrame; cosmetic?: boolean; lefthand?: boolean; cls?: string; standard?: string }  // 内螺纹孔（母螺纹）；cosmetic=纯外观标注（连钻孔都唔做 — 孔身用「孔」工具）：喺实体 cut 一个有牙嘅孔；z0 = 孔底 z（P2 孔对话框「建模螺纹」盲孔由顶面向下切 — 缺省 0 = 旧行为，旧档逐字节兼容）；lefthand=左旋牙；cls/standard（GM-3DV1 S11）=纯元数据
+  | { id: string; type: 'othread'; d: number; pitch: number; height: number; x?: number; y?: number; z0?: number; frame?: ThreadFrame; cosmetic?: boolean; lefthand?: boolean; cls?: string; standard?: string }   // cosmetic=纯外观標註（B-rep 零触碰 — 可继续圆角/STEP）；缺省=真牙旧行为；lefthand=左旋牙（Fusion Left hand，缺省右旋逐字节）；cls/standard（GM-3DV1 S11）=配合等级/标准库，纯元数据（几何用 60° ISO 形，牙深由 pitch 定）
+  | { id: string; type: 'ithread'; d: number; pitch: number; height: number; x?: number; y?: number; z0?: number; frame?: ThreadFrame; cosmetic?: boolean; lefthand?: boolean; cls?: string; standard?: string }  // 内螺纹孔（母螺纹）；cosmetic=纯外观標註（连钻孔都唔做 — 孔身用「孔」工具）：喺实体 cut 一个有牙嘅孔；z0 = 孔底 z（P2 孔对话框「建模螺纹」盲孔由顶面向下切 — 缺省 0 = 旧行为，旧档逐字节兼容）；lefthand=左旋牙；cls/standard（GM-3DV1 S11）=纯元数据
   | { id: string; type: 'cylpatch'; mode: 'boss' | 'pocket' | 'flat'; ang: number; arc: number; zc: number; h: number; depth: number }
   | { id: string; type: 'sheetmetal'; thickness: number; radius: number; kfactor: number; width: number; segs: number[]; angles: number[]; flat?: boolean }
   | { id: string; type: 'gear'; module: number; teeth: number; thickness: number; bore: number; phase?: number; helix?: number; op?: BoolOp }  // helix（T770 斜齿轮）：螺旋角 β°，正=右旋 — 端面渐开线扭转近似（m 当端面模数，中心距公式不变）
@@ -134,7 +134,7 @@ export type Feature =
   | { id: string; type: 'editpoles'; target: number; face?: number; deltas: [number, number, number][] }  // S133 NURBS 曲面极点编辑：target=parkedBodies 索引；deltas=逐极点世界偏移(row-major，长 NbU*NbV，多数[0,0,0])。基极点每次重建由内核 NurbsConvert+Poles_2 重导再叠 deltas（特征小、稳健）。GeomConvert→SetPole_1→MakeShell，行 makeEllipsoid idiom，纯 JS 无内核重建。  // S133+（多面）：face = 编辑【哪一张 B-rep 面】嘅控制网（缺省 0 → 旧档逐字节回放 faces[0]）。多面壳逐面 SetPole + 保 trim MakeFace_21 + Sewing 重组其余 N-1 面，唔再塌成单张全面 patch。
   | { id: string; type: 'thickenface'; near: [number, number, number]; nears?: [number, number, number][]; thick: number; side?: 'pos' | 'neg' | 'both'; op?: 'newbody' | 'join' }  // T811（S曲面）：加厚拾取面成实体薄板（DirectEditWrapper.ThickenFaceNear）。S156：side='neg' → 传负 thick 翻面（C++ MakeThickSolidBySimple 已认 signed thick）；STRICTLY ADDITIVE — 旧档无 side = 正向 = 逐字节回放。
   | { id: string; type: 'offsetsurf'; near: [number, number, number]; dist: number }  // T812（S曲面）：偏移拾取面成平行曲面（DirectEditWrapper.OffsetSurfaceNear）
-  | { id: string; type: 'offsetsolid'; distance: number }  // S 整体偏移实体：BRepOffsetAPI_MakeOffsetShape 均匀偏移所有面（加厚铸件 / 3D 打印壁厚补偿 / 外扩缩）。+ = 外扩,- = 内缩。纯 JS 已绑 API,无内核重建
+  | { id: string; type: 'offsetsolid'; distance: number }  // S 整体偏移实体：BRepOffsetAPI_MakeOffsetShape 均匀偏移所有面（加厚铸件 / 3D 打印壁厚补偿 / 外擴缩）。+ = 外擴,- = 內縮。纯 JS 已绑 API,无内核重建
   | { id: string; type: 'reversesurf'; target: number }  // S157：翻转独立曲面壳定向（法向反向）— 影响 Thicken/Stitch 方向。target=parkedBodies 索引。.Reversed() 纯拓扑翻向，零内核重建。
   | { id: string; type: 'thickenquilt'; target: number; thick: number; side?: 'pos' | 'neg' }  // S182：加厚【整张独立曲面/缝合 quilt】成实体（MakeThickSolidBySimple，同 patch-thicken 同款 op）。target=parkedBodies 索引；side='neg' → 负 thick 朝反侧。
   | { id: string; type: 'extendface'; near: [number, number, number]; ext: number }  // S103：曲面延伸（DirectEditWrapper.ExtendFaceNear / BRepLib::ExtendFace 沿自然几何外延）
@@ -3835,7 +3835,7 @@ function buildShape(features: Feature[], noCache = false): any {
       // GM-3DV3 M2 壁厚方向 Direction（Inside/Outside/Both）—— 取代旧「负壁厚一律当非法」嘅 guard：
       //   inside（缺省）: shell(+t)，墙向内长、外形保留（旧行为逐字节）。
       //   outside: shell(−t)，墙向外长（replicad/OCCT 负厚度 = 向外壳；外尺寸 +t）。
-      //   both: 先把实体外扩 t/2（MakeOffsetShape），再向内 shell(+t) → 墙跨越原边界（半内半外，Fusion Both 近似）。
+      //   both: 先把实体外擴 t/2（MakeOffsetShape），再向内 shell(+t) → 墙跨越原边界（半内半外，Fusion Both 近似）。
       // 仍保留「thickness<=0 非法」守卫（参数驱动绕过 UI 下限喂 0/负 → 诚实跳过），方向由 direction 明示、唔靠符号。
       const _dir = f.direction || 'inside'
       const _sign = _dir === 'outside' ? -1 : 1
@@ -3843,8 +3843,8 @@ function buildShape(features: Feature[], noCache = false): any {
       if (f.thickness > 0) {
         const retry = [f.thickness]
         if (f.closed) {
-          // Fusion Closed Body：零移除面先得到内缩/外扩实体，再以布林差集形成真正封闭空腔。
-          // inside = 原体−内缩体；outside = 外扩体−原体；both = 外扩半厚−内缩半厚。
+          // Fusion Closed Body：零移除面先得到內縮/外擴实体，再以布林差集形成真正封闭空腔。
+          // inside = 原体−內縮体；outside = 外擴体−原体；both = 外擴半厚−內縮半厚。
           for (const t of retry) {
             try {
               if (_dir === 'inside') shelled = shape.cut(_shellExactFaces(shape, t, []))
@@ -4516,7 +4516,7 @@ function buildShape(features: Feature[], noCache = false): any {
         }
       } catch (e) { buildWarnings.push('偏移曲面失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'offsetsolid' && shape) {
-      // S 整体偏移实体 Offset Solid：均匀偏移实体所有面（加厚铸件壁/3D 打印补偿/外扩缩）。BRepOffsetAPI_MakeOffsetShape
+      // S 整体偏移实体 Offset Solid：均匀偏移实体所有面（加厚铸件壁/3D 打印补偿/外擴缩）。BRepOffsetAPI_MakeOffsetShape
       // PerformByJoin（Skin 模式 + Arc 接合圆角凸边）。raw _oc 经 GCWithScope r() 管理（实证未包 r() 触发 9108520）。
       // HARD FLOOR：零距/null/IsDone=false/无界 → shape 逐字节保持唔变 + 诚实 buildWarning（绝不产破体）。大偏移自交 → shrink-retry。
       const d = f.distance
@@ -5899,7 +5899,7 @@ function buildShape(features: Feature[], noCache = false): any {
       // yields a face this OCCT-wasm build's BRepMesh tessellates into a NON-watertight soup. So instead:
       // drill the major-Ø bore (clean watertight body) and COMPOUND an independently-meshable helical ridge
       // ring inside it (crest → minor Ø). Each shell is watertight; overlapping shells are valid for STL/print.
-      // P2 Cosmetic：外观攻牙 — 连钻孔都唔做（纯标注；孔身用「孔」工具）。B-rep 零触碰。
+      // P2 Cosmetic：外观攻牙 — 连钻孔都唔做（纯標註；孔身用「孔」工具）。B-rep 零触碰。
       if (!f.cosmetic) {
       const Rmaj = Math.max(1, f.d / 2)
       const P = Math.max(0.3, f.pitch)

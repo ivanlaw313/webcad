@@ -58,7 +58,7 @@ export function PathTraceLayer() {
 
   useEffect(() => {
     if (!on) {
-      // 关闭时确保 tracer 清空 → useFrame 早退 → R3F 默认渲染管线恢复（否则视口变黑）。
+      // 關閉时确保 tracer 清空 → useFrame 早退 → R3F 默认渲染管线恢复（否则视口变黑）。
       pt.current = null
       return
     }

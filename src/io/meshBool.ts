@@ -160,13 +160,13 @@ export async function shellMesh(m: MeshLike, t: number): Promise<OutMesh> {
   return res
 }
 
-// S188：网格 3D 均匀偏移（Fusion Mesh > Offset）。沿【全方向】平移壁面 d —— 正=外扩、负=内缩。
+// S188：网格 3D 均匀偏移（Fusion Mesh > Offset）。沿【全方向】平移壁面 d —— 正=外擴、负=內縮。
 // 用 manifold 嘅 minkowskiSum / minkowskiDifference 与半径 |d| 嘅球做【形态学膨胀 / 腐蚀】：
 //   · minkowskiSum(球) = 把实体每点向外扫一个 |d| 半径球 = 均匀外偏移（平面精确平移 d、棱按球面圆角、角变球面）；
 //   · minkowskiDifference(球) = 均匀内偏移（腐蚀）。
 // 数学上系真·3D 偏移（唔似 shellMesh 掏空成壳；呢个系整体胀/缩）。球分段数 sphereSeg 控质量/速度
 // （越高越圆越慢；Minkowski 对非凸网格本身偏贵，默认 16 段平衡）。
-//   d≈0 → 焊接复制（保持输出格式一致）。非流形输入 → 诚实抛错。内缩蚀剩空 → 抛错。
+//   d≈0 → 焊接复制（保持输出格式一致）。非流形输入 → 诚实抛错。內縮蚀剩空 → 抛错。
 export async function offsetMesh(m: MeshLike, d: number, sphereSeg = 16): Promise<OutMesh> {
   // S188 关键：minkowski 要求【CCW-外向 正定向】输入，否则 dilation 出错值/翻转（实测 inward-wound cube
   // SUM 得 671 而非 1698）。先用带符号体积归一化绕向（同 shellMesh 处理 inward STL 一致）。
@@ -184,7 +184,7 @@ export async function offsetMesh(m: MeshLike, d: number, sphereSeg = 16): Promis
     sp = wasm.Manifold.sphere(Math.abs(d), Math.max(8, Math.min(64, Math.round(sphereSeg))))
     mr = d > 0 ? ma.minkowskiSum(sp) : ma.minkowskiDifference(sp)
     const out = fromManifold(mr)
-    if (!out.triangles.length) throw new Error(d < 0 ? '内缩量太大 — 网格被蚀剩空（试细一些偏移量）' : '偏移结果为空')
+    if (!out.triangles.length) throw new Error(d < 0 ? '內縮量太大 — 网格被蚀剩空（试细一些偏移量）' : '偏移结果为空')
     return out
   } finally {
     try { ma?.delete?.() } catch { /* wasm cleanup best-effort */ }

@@ -84,7 +84,7 @@ export default function MarkingMenu({ x, y, sectors, overflow, onClose }: {
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, zIndex: 60 }} onClick={onClose} onContextMenu={(e) => { e.preventDefault(); onClose() }} />
-      {/* 中心点 = 关闭：pointer-events none → 点中心即穿透落背幕 onClose（Fusion center-dismiss 语义） */}
+      {/* 中心点 = 關閉：pointer-events none → 点中心即穿透落背幕 onClose（Fusion center-dismiss 语义） */}
       {fine && <div className="mm-center" style={{ left: cx, top: cy }} />}
       {fine && sectors.map((it, i) => it && (
         <button

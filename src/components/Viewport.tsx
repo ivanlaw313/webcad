@@ -694,7 +694,7 @@ function KernelBody({ mesh, pickOnly = false, displayOnly = false, frozen = fals
   const moldHideMesh = useApp((s) => !!s.moldResult || !!s.windResult || !!s.feaResult || !!s.modalResult || !!s.bucklingResult || !!s.topoptResult || !!s.thermalResult) && (!frozen || moldTarget)
   // ★穿模修★：上面为咗 perf 收埋咗原网格 → 风洞时【成个零件冇入过深度缓冲】，流线/箭头/烟一律画喺件上面，
   //   用户睇落就係「风穿过个模型」（实测流线几何上 0/4625 顶点入过固体 —— 纯粹係深度问题，唔係流场错）。
-  //   唯一喺轮廓内写深度嘅 Cp 体素壳边长系 h*0.96（每格 4% 罅）+ 中心缩喺真表面内 ~0.5–1 格 → 罅位同内缩带漏光。
+  //   唯一喺轮廓内写深度嘅 Cp 体素壳边长系 h*0.96（每格 4% 罅）+ 中心缩喺真表面内 ~0.5–1 格 → 罅位同內縮带漏光。
   //   下面会补一块【只写深度、唔写颜色】嘅真零件面。勾咗「透明」就唔挂（嗰阵用户就係要睇穿）。
   const windDepthMask = useApp((s) => !!s.windResult && !s.windXray) && (!frozen || moldTarget)
   /* ★ S4 可拖位姿 ★ —— 冇呢段，操纵杆郁但【零件唔会跟】，用户会以为个 gizmo 坏咗。
@@ -3147,7 +3147,7 @@ function FormBoxCameraRig() {
 }
 
 // GM-FP4 #52：草图文字富对话框（Fusion Text 面板）—— Type / 字高 / 凸高 / 对齐（左中右）。
-// 诚实标注：字体家族 / 粗体·斜体 / 沿路径 = worker 单字体（'cad'）架构限，暂唔提供（唔造假 UI）。
+// 诚实標註：字体家族 / 粗体·斜体 / 沿路径 = worker 单字体（'cad'）架构限，暂唔提供（唔造假 UI）。
 // BUG（Text-4）：字高/凸高欄唔可以喺每次按鍵 clamp（打「10」：「1」被夾成 2 → 變「20」）；夾值只喺 commitSkTextDlg 做。
 function SkTextDialog() {
   const dlg = useApp((s) => s.skTextDlg)
@@ -3357,7 +3357,7 @@ function ConfigGrid({ show, xform }: { show: boolean; xform: { quaternion: [numb
   )
 }
 
-// GM-X2 #4：网格参考数字 —— 沿 X/Z 主格线标注刻度值（当前显示单位），drei Html 轻量 DOM 标签（用户 opt-in）。
+// GM-X2 #4：网格参考数字 —— 沿 X/Z 主格线標註刻度值（当前显示单位），drei Html 轻量 DOM 标签（用户 opt-in）。
 const GRID_LBL_STYLE: CSSProperties = { fontSize: 10, color: '#6a7783', background: 'rgba(255,255,255,0.55)', padding: '0 3px', borderRadius: 3, whiteSpace: 'nowrap', pointerEvents: 'none', userSelect: 'none' }
 function GridRefNumbers({ spacing }: { spacing: number }) {
   const unit = useApp((s) => s.unit)

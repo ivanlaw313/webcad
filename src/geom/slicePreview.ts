@@ -20,7 +20,7 @@
 //   三角形按 zlo 排序 + 扫描线维护 active 集（成个分析 ≈ O(T log T + Σactive)，唔使每层扫全表）。
 //   每层：闭合 loop 按「包含深度」规整方向（被偶数个其他 loop 包住 = 实体外轮廓，奇数 = 孔 ——
 //   唔依赖网格法线方向，反咗法线嘅网格照样啱）；实体区净面积 = Σ(偶深 |A| − 奇深 |A|)。
-//   孤岛判定：第 N 层每个实体 loop 取样（质心 + 最多 8 个沿轮廓、向质心内缩嘅点 —— 单靠质心
+//   孤岛判定：第 N 层每个实体 loop 取样（质心 + 最多 8 个沿轮廓、向质心內縮嘅点 —— 单靠质心
 //   会喺环形截面出假阳性：圆环质心喺孔入面！），只保留落喺本层实体内嘅样本；冇一个样本落喺
 //   N−1 层实体内 → 呢个区浮空 = 孤岛。第 0 层贴住打印床，唔算孤岛。
 export type MeshLike = { vertices: Float32Array | number[]; triangles: Uint32Array | number[] }
@@ -136,7 +136,7 @@ export function signedArea(loop: Pt2[]): number {
   return s / 2
 }
 
-// 射线法点喺多边形内（边界上唔保证，调用方自己内缩样本）。
+// 射线法点喺多边形内（边界上唔保证，调用方自己內縮样本）。
 export function pointInLoop(x: number, y: number, loop: Pt2[]): boolean {
   let inside = false
   for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {
@@ -187,7 +187,7 @@ export function netArea(cls: LoopClass): number {
 }
 
 // 本层（cur）相对上一层（prev）嘅孤岛：返回 cur 中浮空实体 loop 嘅索引。
-// 取样 = 质心 + 沿轮廓最多 8 个向质心内缩嘅点（内缩距按面积自适应，0.02~0.5mm）；
+// 取样 = 质心 + 沿轮廓最多 8 个向质心內縮嘅点（內縮距按面积自适应，0.02~0.5mm）；
 // 先过滤剩落喺本层实体内嘅样本（环形截面质心喺孔入面 → 被剔走，靠轮廓样本，免假阳性）；
 // 全部样本都唔喺 prev 实体内 → 孤岛。prev 为空层 = 下面冇任何嘢 → 全部都系孤岛（啱）。
 export function layerIslands(cur: Pt2[][], prev: Pt2[][], cls?: LoopClass): number[] {

@@ -333,7 +333,7 @@ const kernel = typeof Worker !== 'undefined' ? createKernelProxy(realSpawn) : nu
 
 export const cad = (kernel ? kernel.proxy : ({} as unknown)) as Remote<CadAPI>
 
-// DEV：暴露内核句柄到 window 供控制台验证（window.cad.rebuild / getControlNet）。生产关闭 → 无副作用。
+// DEV：暴露内核句柄到 window 供控制台验证（window.cad.rebuild / getControlNet）。生产關閉 → 无副作用。
 if (typeof window !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }).env?.DEV) (window as { cad?: unknown }).cad = cad
 
 // UI 订阅内核重启状态（integration：store 可以 onKernelRestart((msg) => set({ status: msg }))）

@@ -202,7 +202,7 @@ export function detectAllCylinders(mesh: { vertices: ArrayLike<number>; triangle
 
 // v2.20 P3：細孔（Ø3～Ø8）喺正常縮放下孔壁只得幾個像素闊，好難正正點中。要圓柱面嘅命令（取軸／圓心點／相切面／
 // 包牙／銷孔等）點中旁邊平面時，喺點擊點 tol（世界距離，caller 由螢幕像素換算）之內搵最近、可擬合成圓柱嘅三角形。
-// 已經點中圓柱 → 原樣返回；範圍內冇圓柱 → 返回原本偵測結果（唔會亂揀）。pt 同 mesh 一樣用 CAD 坐標。
+// 已經點中圓柱 → 原樣返回；範圍內冇圓柱 → 返回原本偵測結果（唔會亂揀）。pt 同 mesh 一樣用 CAD 座標。
 export function detectFacePreferCyl(
   mesh: { vertices: ArrayLike<number>; triangles: ArrayLike<number> }, fi: number, pt: V3, tol: number,
 ): DetectedFace | null {

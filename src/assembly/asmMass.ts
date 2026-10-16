@@ -38,7 +38,7 @@ export function assemblyMassSummary(parts: AsmMassPart[]): { volume: number; mas
 }
 
 // RETEST17 #4：three 世界（Y-up）→ CAD（Z-up）報數：compWorldMatrix 用 Rx(−90°) 把 CAD (x,y,z) 映到 three (x, z, −y)，
-// 反向 = CAD (x, −z, y)。裝配 HUD 嘅總尺寸已按 W(x)×D(CAD y)×H(CAD z) 報 → 質心都要用同一 CAD 坐標（舊版直接報 three xyz，
+// 反向 = CAD (x, −z, y)。裝配 HUD 嘅總尺寸已按 W(x)×D(CAD y)×H(CAD z) 報 → 質心都要用同一 CAD 座標（舊版直接報 three xyz，
 // Z 向高嘅零件質心 Y/Z 對調）。−0 歸一為 0（免顯示「-0.0」）。
 export function threeToCadPoint(p: ArrayLike<number>): Vec3 {
   const z0 = (x: number) => (Object.is(x, -0) || Math.abs(x) < 1e-12 ? 0 : x)

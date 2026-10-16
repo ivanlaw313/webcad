@@ -10,7 +10,7 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// DEV：暴露 store 到 window 供控制台验证（window.useApp.getState() — 同 cadService 暴露 window.cad 一致）。生产关闭 → 无副作用。
+// DEV：暴露 store 到 window 供控制台验证（window.useApp.getState() — 同 cadService 暴露 window.cad 一致）。生产關閉 → 无副作用。
 // DEV / isolated browser acceptance only: expose state for deterministic e2e
 // assertions. `?ui-test=1` bypasses project restore/autosave, so it never
 // exposes an operator's live document through the normal production UI.

@@ -6,7 +6,7 @@
 // qemSimplify/isotropicRemesh），所以 store 接线只需将「同步调用」改成「await runXxxInWorker」。
 //
 // 传输：大网格（vertices/triangles）转成 typed array（Float32Array / Uint32Array）并经 comlink
-// transfer 标注 buffer → 过 worker 边界零拷贝（structured-clone 唔会复制成份巨大嘅平数组）。
+// transfer 標註 buffer → 过 worker 边界零拷贝（structured-clone 唔会复制成份巨大嘅平数组）。
 // 原算法收 ArrayLike<number>，同 typed array 完全相容；输出照 structured-clone 返回，
 // 保持 RepairResult / SimplifyResult / RemeshResult / 裸 {vertices,triangles,normals} 嘅完整形状。
 import { wrap, transfer, type Remote } from 'comlink'

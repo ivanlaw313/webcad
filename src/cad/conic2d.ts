@@ -50,14 +50,14 @@ export function sampleConic(p0: Pt2, p2: Pt2, apex: Pt2, rho = 0.5, samples = 64
   return out;
 }
 
-/** 肩点（曲线 t=0.5 上点）= 弦中点 M 向 apex 移 rho。供预览/标注，不依赖采样。 */
+/** 肩点（曲线 t=0.5 上点）= 弦中点 M 向 apex 移 rho。供预览/標註，不依赖采样。 */
 export function conicShoulder(p0: Pt2, p2: Pt2, apex: Pt2, rho = 0.5): Pt2 {
   const r = Math.min(0.999, Math.max(0.001, rho));
   const mx = (p0[0] + p2[0]) / 2, my = (p0[1] + p2[1]) / 2;
   return [mx + r * (apex[0] - mx), my + r * (apex[1] - my)];
 }
 
-// ── S193：曲率半径（radius of curvature）—— 供曲率检视/标注/G2 匹配（纯几何，零 import、零 solver） ──
+// ── S193：曲率半径（radius of curvature）—— 供曲率检视/標註/G2 匹配（纯几何，零 import、零 solver） ──
 
 /** bulge 圆弧嘅曲率半径。圆弧曲率恒定 → 曲率半径 = 弧半径 R（处处一样，唔似 conic 变化）。
  *  bulge b：含角 θ=4·atan|b|；弦长 c；R = c·(1+b²)/(4|b|)。直线（|b|≈0）→ ∞（曲率 0）。退化弦→0。 */

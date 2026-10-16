@@ -89,7 +89,7 @@ function repPoint(oc: any, r: (h: any) => any, sub: any): [number, number, numbe
 }
 
 // 读一个 TopTools_ListOfShape：Size() + First()/Last()。TopTools_ListIteratorOfListOfShape 未绑定（见 ocProbe）→
-//   只可靠读首末。Size>2 → 中间入口不可达（truncated 诚实标注）。返回可读到嘅子形状（const-ref into lst）。
+//   只可靠读首末。Size>2 → 中间入口不可达（truncated 诚实標註）。返回可读到嘅子形状（const-ref into lst）。
 function readList(lst: any): { shapes: any[]; truncated: boolean } {
   const shapes: any[] = []
   if (!lst) return { shapes, truncated: false }

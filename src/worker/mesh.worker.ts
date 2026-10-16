@@ -8,7 +8,7 @@
 // 呢啲函数本身唔报进度（无 onProgress 参数），所以呢度唔做 progress proxy（唔作假进度）。
 //
 // 输入网格（vertices/triangles）经 comlink 由主线程传入：meshClient 会将佢哋转成
-// typed array 并用 transfer 标注 buffer 减拷贝。原算法签名收 ArrayLike<number>，
+// typed array 并用 transfer 標註 buffer 减拷贝。原算法签名收 ArrayLike<number>，
 // 同 Float32Array / Uint32Array 完全相容，所以 worker 这边直接转交即可。
 import { expose } from 'comlink'
 import {

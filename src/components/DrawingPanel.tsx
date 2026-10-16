@@ -5,7 +5,7 @@ import { tStatus, msg } from '../i18n'
 import { useState, useEffect, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import { jpegToPdf, dataUrlToBytes } from '../io/pdf'
 import { durableDownload, type DownloadResult } from '../io/download'
-// T784：标注类型搬入共享模块（store 持久化同款形状）— 别名保持本文件原有名字
+// T784：標註类型搬入共享模块（store 持久化同款形状）— 别名保持本文件原有名字
 import { type DrawingAnno, type DTol as Tol, type DMDim as MDim, type DRDim as RDim, type DADim as ADim, type DNote as Note, type DNoteKind as NoteKind, type DDatum as Datum, type DFCF as FCF, type DDetail as Detail } from '../io/drawingAnno'
 
 const LABEL_KEY: Record<string, string> = { front: 'draw.view.front', top: 'draw.view.top', right: 'draw.view.right', iso: 'draw.view.iso', section: 'draw.view.section' }
@@ -69,7 +69,7 @@ export default function DrawingPanel() {
   const generateAsmDrawing = useApp((s) => s.generateAsmDrawing)
   const balloons = useApp((s) => s.drawingBalloons)
   const bom = useApp((s) => s.drawingBom)
-  // T784：标注数据 + 图纸设置全部 store 驱动（drawingAnno）— 重生成/关面板/存档往返生还。
+  // T784：標註数据 + 图纸设置全部 store 驱动（drawingAnno）— 重生成/关面板/存档往返生还。
   // annoSet(key) 造一个兼容 useState setter 签名嘅包装（支持函数式更新），call site 一行不改。
   const anno = useApp((s) => s.drawingAnno)
   const annoSet = <K extends keyof DrawingAnno>(k: K) => (u: DrawingAnno[K] | ((p: DrawingAnno[K]) => DrawingAnno[K])) =>
@@ -120,7 +120,7 @@ export default function DrawingPanel() {
   // T749 局部放大：点一个视图 → 该处圆形区域放大 2:1 做 detail 视图（I/II…）。clipPath 纯渲染，导出 SVG 同步。
   const [detailMode, setDetailMode] = useState(false)
   const details = anno.details; const setDetails = annoSet('details')
-  // T791：坐标式标注（多孔板）— 首点 = 原点 ⊕，之后逐点出 (dx, dy) 标注（自动吸附圆心）。持久化。
+  // T791：坐标式標註（多孔板）— 首点 = 原点 ⊕，之后逐点出 (dx, dy) 標註（自动吸附圆心）。持久化。
   const [ordMode, setOrdMode] = useState(false)
   const ordinates = anno.ordinates; const setOrdinates = annoSet('ordinates')
   // T791：图幅（GB 图框 A4/A3）+ 剖切轴 + 半剖（半剖系渲染级合成 — session 开关）
@@ -131,11 +131,11 @@ export default function DrawingPanel() {
   const sectionFrac = useApp((s) => s.drawingSectionFrac)
   const setSectionFrac = useApp((s) => s.setDrawingSectionFrac)
   const regen = useApp((s) => s.generateDrawing)
-  // Usability: a LIFO history of every manual annotation added (kind + view), so a single「↶ 撤销标注」undoes
+  // Usability: a LIFO history of every manual annotation added (kind + view), so a single「↶ 撤销標註」undoes
   // them one-by-one (within a kind+view the last pushed is always the array's last element). Beats nuke-all.
   const [annoHist, setAnnoHist] = useState<{ kind: 'dim' | 'rdim' | 'adim' | 'datum' | 'fcf' | 'note' | 'detail'; view: string }[]>([])
-  // T784：重新生成【唔再清空标注】— 标注锚定纸面坐标（视图原点/比例稳定）所以重生成后照样有效；
-  // 几何大改时标注可能错位 → 用「🧹清空」手动重来。呢度净 reset 模式/半完成状态，防止悬空 pending。
+  // T784：重新生成【唔再清空標註】— 標註锚定纸面坐标（视图原点/比例稳定）所以重生成后照样有效；
+  // 几何大改时標註可能错位 → 用「🧹清空」手动重来。呢度净 reset 模式/半完成状态，防止悬空 pending。
   useEffect(() => { setAnnoHist([]); setPendPt(null); setPendSeg(null); setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false) }, [views])
   // BUG-UI-004: Esc cancels pending pick, then exits the active annotation mode (matches Accept).
   useEffect(() => {
@@ -147,7 +147,7 @@ export default function DrawingPanel() {
       setDimMode(false); setRadMode(null); setAngMode(false); setDatumMode(false); setFcfMode(false); setNoteMode(false); setDetailMode(false); setOrdMode(false)
     }, 900)
   }, [dimMode, radMode, angMode, datumMode, fcfMode, noteMode, detailMode, ordMode, pendPt, pendSeg])
-  // 🧹 一键清空全部手动标注（store action — 重生成后错位/想重标时用）
+  // 🧹 一键清空全部手动標註（store action — 重生成后错位/想重标时用）
   const clearAllAnno = () => { useApp.getState().setDrawingAnno({ manualDims: {}, manualRDims: {}, manualADims: {}, manualDatums: {}, manualFCF: {}, manualNotes: {}, details: {}, ordinates: {} }); setAnnoHist([]) }
   if (!open || !views) return null
 
@@ -418,7 +418,7 @@ export default function DrawingPanel() {
     const svg = e.currentTarget, ctm = svg.getScreenCTM(); if (!ctm) return
     const u = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse())
     const [, , vw, vh] = v.vb.split(/\s+/).map(Number)
-    if (ordMode) { // T791 坐标式标注：首点 = 原点 ⊕，之后逐点 (dx,dy)；自动吸附圆心（多孔板就系点孔）
+    if (ordMode) { // T791 坐标式標註：首点 = 原点 ⊕，之后逐点 (dx,dy)；自动吸附圆心（多孔板就系点孔）
       const cs = parseCircles(v)
       let px = u.x, py = u.y
       const tol = Math.max(vw - 12, vh - 12) * 0.08
@@ -673,7 +673,7 @@ export default function DrawingPanel() {
             {g.lines.map((l, j) => <line key={j} x1={l[0]} y1={l[1]} x2={l[2]} y2={l[3]} stroke="#5d4037" strokeWidth={1} vectorEffect="non-scaling-stroke" />)}
             <text x={g.text.x} y={g.text.y} fontSize={g.text.size} fill="#5d4037" textAnchor="start">{g.text.t}</text>
           </g>) })}
-        {/* T791 坐标式标注：⊕ 原点 + 逐点 (dx, dy)（y 向上为正 — 钻床/CNC 坐标惯例） */}
+        {/* T791 坐标式標註：⊕ 原点 + 逐点 (dx, dy)（y 向上为正 — 钻床/CNC 坐标惯例） */}
         {(() => { const o = ordinates[v.name]; if (!o) return null; return (
           <g key="ord">
             <circle cx={o.ox} cy={o.oy} r={mfs * 0.45} fill="none" stroke="#2e7d32" strokeWidth={1.2} vectorEffect="non-scaling-stroke" />

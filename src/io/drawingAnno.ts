@@ -1,6 +1,6 @@
-// T784（S63）：工程图手动标注嘅持久化数据形状 — store 同 DrawingPanel 共用（独立模块避免循环 import）。
-// 标注全部锚定喺【视图 mm 坐标系】（纸面空间）：模型重生成后视图原点/比例不变 → 标注生还；
-// 但几何本身改咗（孔搬位/件变大）标注唔会跟住郁 — 呢个限制喺 UI title 写明（纸面锚定，非几何关联）。
+// T784（S63）：工程图手动標註嘅持久化数据形状 — store 同 DrawingPanel 共用（独立模块避免循环 import）。
+// 標註全部锚定喺【视图 mm 坐标系】（纸面空间）：模型重生成后视图原点/比例不变 → 標註生还；
+// 但几何本身改咗（孔搬位/件变大）標註唔会跟住郁 — 呢个限制喺 UI title 写明（纸面锚定，非几何关联）。
 
 export type DTol = { u: number; l: number }                       // 上/下偏差 mm
 export type DMDim = { offset?: number; x1: number; y1: number; x2: number; y2: number; tol?: DTol }   // 两点线性尺寸
@@ -11,9 +11,9 @@ export type DNote = { ax: number; ay: number; text: string; kind: DNoteKind }   
 export type DDatum = { x: number; y: number; label: string }                          // GD&T 基准
 export type DFCF = { x: number; y: number; sym: string; tol: string; datum: string }  // 形位公差框
 export type DDetail = { cx: number; cy: number; r: number }                           // 局部放大圈
-export type DOrd = { ox: number; oy: number; pts: [number, number][] }                // T791 坐标式标注：原点 + 逐点（多孔板）
+export type DOrd = { ox: number; oy: number; pts: [number, number][] }                // T791 坐标式標註：原点 + 逐点（多孔板）
 
-// 全套手动标注 + 图纸设置（标题栏/公差/制式）— 一个对象入 save payload。
+// 全套手动標註 + 图纸设置（标题栏/公差/制式）— 一个对象入 save payload。
 export type DrawingAnno = {
   manualDims: Record<string, DMDim[]>
   manualRDims: Record<string, DRDim[]>

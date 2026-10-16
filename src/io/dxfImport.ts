@@ -456,12 +456,12 @@ export function parseDxfToProfiles(text: string, opt?: ParseDxfOpt): ParseDxfRes
   ])].sort()
   const textKept = texts.length
   const textTruncated = Math.max(0, textTotal - textKept)
-  const textNote = textTotal ? ` · ${textTotal} 文字标注${textTruncated ? `（保留 ${textKept}）` : ''}` : ''
+  const textNote = textTotal ? ` · ${textTotal} 文字標註${textTruncated ? `（保留 ${textKept}）` : ''}` : ''
   const note = profiles.length
     ? `识别 ${profiles.length} 个轮廓（${circles.length} 圆 + ${profiles.length - circles.length} 多段线${layers.length > 1 ? ` · ${layers.length} 层` : ''}）${textNote}`
     : textTotal
-      ? `未找到轮廓，但识别 ${textTotal} 个文字标注（TEXT/MTEXT）`
-      : '未找到可用轮廓（支持 LINE / LWPOLYLINE / CIRCLE / ARC / SPLINE / ELLIPSE / INSERT 块 · TEXT/MTEXT 标注）'
+      ? `未找到轮廓，但识别 ${textTotal} 个文字標註（TEXT/MTEXT）`
+      : '未找到可用轮廓（支持 LINE / LWPOLYLINE / CIRCLE / ARC / SPLINE / ELLIPSE / INSERT 块 · TEXT/MTEXT 標註）'
   opt?.onProgress?.({ phase: 'done', done: model.length, total: model.length })
   void t0
   return {

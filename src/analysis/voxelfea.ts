@@ -1379,7 +1379,7 @@ export interface SmoothResult {
   spanAfter: number            // 平滑后 max-min（应 ≤ spanBefore）
   integralBefore: number       // Σ vm_e·V（平滑前，守恒检查用）
   integralAfter: number        // Σ vmSmooth_e·V（平滑后）
-  method: 'nodal-averaging'    // 诚实标注：节点平均，非真 SPR
+  method: 'nodal-averaging'    // 诚实標註：节点平均，非真 SPR
 }
 
 /**

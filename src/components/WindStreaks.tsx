@@ -434,7 +434,7 @@ export default function WindStreaks({ widthMm }: WindStreaksProps = {}) {
       spanY = 1.35 * (sb.y1 - sb.y0 + 1)
       spanZ = 1.50 * (sb.z1 - sb.z0 + 1)
     } else {
-      // 冇实体（空场）：退返求解器畀嘅播种矩形（佢已经系 ±35% 外扩 ⇒ 1.7×），缩返去 1.35 / 1.5。
+      // 冇实体（空场）：退返求解器畀嘅播种矩形（佢已经系 ±35% 外擴 ⇒ 1.7×），缩返去 1.35 / 1.5。
       rakeX = fb.x
       cy = (fb.y0 + fb.y1) * 0.5
       cz = (fb.z0 + fb.z1) * 0.5

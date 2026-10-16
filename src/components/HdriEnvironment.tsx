@@ -21,7 +21,7 @@
 //
 // 用法：挂喺 <Canvas> 内（同 EnvLight / PathTraceLayer 同级）。例如：
 //   <HdriEnvironment preset="studio" background intensity={1} rotationY={0} />
-// 唔传 preset 又唔传 url 时组件唔做嘢（return null）—— 即「关闭 HDRI，沿用现有程序化环境」。
+// 唔传 preset 又唔传 url 时组件唔做嘢（return null）—— 即「關閉 HDRI，沿用现有程序化环境」。
 
 import { Suspense, useEffect, useMemo, useRef, Component, type ReactNode } from 'react'
 import { useThree } from '@react-three/fiber'

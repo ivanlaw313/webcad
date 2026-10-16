@@ -149,7 +149,7 @@ export function JointGizmo({ j }: { j: Joint }) {
     const isScrew = j.type === 'screw'
     const lo = (j.aMin ?? (isScrew ? -1080 : -180)) * DEG
     const hi = (j.aMax ?? (isScrew ? 1080 : 180)) * DEG
-    // #74：跨度超过一整圈 → 用外扩螺旋显示每一圈进度（平面扇区绕 N 圈会重叠成一个盘，睇唔出真实圈数/行程）。
+    // #74：跨度超过一整圈 → 用外擴螺旋显示每一圈进度（平面扇区绕 N 圈会重叠成一个盘，睇唔出真实圈数/行程）。
     const span = Math.abs(hi - lo)
     const multiTurn = span > 2 * Math.PI + 1e-6
     const denom = hi - lo || 1

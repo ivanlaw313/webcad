@@ -16,7 +16,7 @@
 //                  + contours/shapes（verts+bulges 真圆弧，可直落 sketchSources → 内核真 ARC 边）
 //
 // 诚实边界：本模块做「剪影/实心图形 → 轮廓」。灰度照片、带渐变/阴影嘅图、扫描工程图纸（线框+文字+尺寸线）
-// 唔喺范围内 —— 前者阈值化后噪声成片，后者需要中线追踪（见 centerlineTrace.ts）同埋文字/标注分离（未做）。
+// 唔喺范围内 —— 前者阈值化后噪声成片，后者需要中线追踪（见 centerlineTrace.ts）同埋文字/標註分离（未做）。
 import { pathPts, tessellateSeg } from '../sketch/sketchOps.ts'
 import type { ImpProfile } from './dxfImport.ts'
 
@@ -94,7 +94,7 @@ export type BinarizeResult = { mask: Uint8Array; gray: Float64Array; threshold: 
  * 灰度 → 二值墨迹掩码（1 = 图形）。极性 auto 时按边框像素多数者判背景。
  * ★ threshold（Otsu）同 iso（等值线电平）系两样嘢 ★：Otsu 只求「分得开两类」，喺纯 0/255 图上
  * 佢可以停喺任何一个分得开嘅值（例如 5）；若果直接攞佢做亚像素插值电平，半覆盖边缘像素就会被
- * 当成几乎全背景 → 边界系统性内缩接近一个像素。所以插值电平另计：iso = (墨迹均值 + 背景均值)/2
+ * 当成几乎全背景 → 边界系统性內縮接近一个像素。所以插值电平另计：iso = (墨迹均值 + 背景均值)/2
  * = 「50% 覆盖率」嗰个灰度 → 抗锯齿边缘落喺真几何边上（正片/负片亦对称，结果完全一致）。
  */
 export function binarize(img: GrayImage, opt: { threshold?: number; foreground?: 'auto' | 'dark' | 'light'; blur?: number; minArea?: number } = {}): BinarizeResult {

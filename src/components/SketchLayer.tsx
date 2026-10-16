@@ -2860,7 +2860,7 @@ export function SketchDimLayer() {
         out.push({ key: 'exh', anchor: [a.x, a.y, a.z], text: dimFmtU(Math.abs(exH) || 1, unit) + (unit === 'inch' ? 'in' : unit), edit: { target: 'shape', dim: 'ext', value: Math.abs(exH) || 1 } })
       }
     }
-    // v1.21/v1.35：DXF TEXT/MTEXT 导入标注（重开草图可见；model 保留全部；HUD 显示封顶防 DOM OOM）
+    // v1.21/v1.35：DXF TEXT/MTEXT 导入標註（重开草图可见；model 保留全部；HUD 显示封顶防 DOM OOM）
     if (skAnnot && dxfLabels && dxfLabels.length) {
       const nShow = Math.min(dxfLabels.length, DXF_LABEL_DISPLAY_CAP)
       for (let i = 0; i < nShow; i++) {
@@ -3159,7 +3159,7 @@ export function SketchDimLayer() {
           </div>
         </div>
       )}
-      {/* GM-FP2 #29：尺寸右键上下文菜单（R↔Ø / 转从动·驱动 / 删除）。全屏遮罩点击关闭。 */}
+      {/* GM-FP2 #29：尺寸右键上下文菜单（R↔Ø / 转从动·驱动 / 删除）。全屏遮罩点击關閉。 */}
       {dimMenu && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 40, pointerEvents: 'auto' }} onClick={() => setDimMenu(null)} onContextMenu={(e) => { e.preventDefault(); setDimMenu(null) }}>
           <div

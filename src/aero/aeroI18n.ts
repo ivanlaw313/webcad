@@ -50,7 +50,7 @@ const S: Record<string, L4> = {
   building: ['建立 CAD 實體中…（首次需載入內核，約數秒）', 'Building CAD body… (first time loads the kernel)', '建立 CAD 实体中…（首次需加载内核）', 'CAD ボディ作成中…（初回はカーネル読込）'],
   inserted: ['已插入為時間軸「STEP實體」— 可以繼續用正常 CAD 工具編輯、切割、圓角、導出。', 'Inserted as a timeline STEP body — edit, cut, fillet, export with normal CAD tools.', '已插入为时间轴「STEP实体」— 可以继续用正常 CAD 工具编辑。', 'タイムラインに STEP ボディとして挿入しました。'],
   failed: ['失敗', 'Failed', '失败', '失敗'],
-  close: ['關閉', 'Close', '关闭', '閉じる'],
+  close: ['關閉', 'Close', '關閉', '閉じる'],
   pick: ['選取', 'Select', '选择', '選択'],
   selected: ['已選', 'Selected', '已选', '選択中'],
   estimate: ['估算', 'estimate', '估算', '推定'],

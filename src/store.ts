@@ -110,7 +110,7 @@ import { repairMesh, simplifyMesh, unifyWinding } from './geom/meshRepair'
 import { taubinSmooth } from './geom/meshSmooth'   // S160：网格平滑
 import { segmentPlanarRegions, planarRegionSummary, measureMeshEdgeChain, measureMeshFaceRegion } from './geom/meshSegment'   // S：网格平面区识别（参数化推断基石，Node 测过）；GM-W4 4.4：网格量边/量面（近似）
 import { sliceMesh, classifyLoops } from './geom/slicePreview'   // T782：网格截面→草图；S186：classifyLoops 嵌套深度奇偶分类（多体/嵌套岛截面属性）
-import { EMPTY_ANNO, hydrateAnno, type DrawingAnno } from './io/drawingAnno'   // T784：工程图标注持久化
+import { EMPTY_ANNO, hydrateAnno, type DrawingAnno } from './io/drawingAnno'   // T784：工程图標註持久化
 import { documentPersistenceEnabled } from './runtime/uiTestIsolation'
 import { featDlgBlockingReason, patternOverlapWarning } from './cad/featDlgNumeric'
 import { FEAT_PARAM_SPEC } from './cad/featDlgNumeric'
@@ -1136,7 +1136,7 @@ export function isUntitledProjectName(n: string | null | undefined): boolean {
 // T805（报告 R3）：当前应用内对话框嘅 resolve 回调（state 唔放函数，靠呢个 module 槽桥接）。
 let _dialogResolve: ((v: string | boolean | null) => void) | null = null
 
-// T809：AI Copilot 配置初始化（localStorage 记住供应商/key/model/baseUrl）。
+// T809：AI Copilot 配置初始化（localStorage 记住供應商/key/model/baseUrl）。
 function _initAiConfig(): AiConfig {
   try {
     const s = JSON.parse(localStorage.getItem('webcad-ai-config') || 'null')
@@ -1368,7 +1368,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   cancelSkScale: () => void
   stepBackSkScale: () => void
   skScalePrompt: () => Promise<void>
-  // GM-FP4 #52：草图文字【富对话框】（Fusion Text 面板）—— Type/字高/凸高/对齐（font/粗斜/沿路径 = 内核字体限，honestly 标注）。
+  // GM-FP4 #52：草图文字【富对话框】（Fusion Text 面板）—— Type/字高/凸高/对齐（font/粗斜/沿路径 = 内核字体限，honestly 標註）。
   skTextDlg: { text: string; size: number; height: number; align: 'left' | 'center' | 'right' } | null
   openSkTextDlg: () => void
   setSkTextDlg: (patch: Partial<{ text: string; size: number; height: number; align: 'left' | 'center' | 'right' }>) => void
@@ -1539,7 +1539,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   clearThickenPicks: () => void
   commitThicken: () => Promise<void>
   cancelThicken: () => void
-  thickenPreviewMesh: MeshData | null                    // 預覽：只含新加厚板（MeshData，CAD 坐標）
+  thickenPreviewMesh: MeshData | null                    // 預覽：只含新加厚板（MeshData，CAD 座標）
   thickenPreviewBusy: boolean
   thickenPreviewFail: string | null
   scheduleThickenPreview: () => void
@@ -1885,7 +1885,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   skPendingPair: { a: SkRef; b: SkRef } | null  // dimension tool: two points picked, 3rd click places → 横放=竖直距离 / 上下放=水平距离 / 斜=直线
   skPendingEdge: SkRef | null    // GM-FP2 #27/#28：尺寸工具拣咗一条直边，等第二击 —— 放置位置定 Aligned(真长len)/H(hdist)/V(vdist)投影；或点另一条边 → 平行=间距(p2l) / 非平行=角度(angle)
   skArmedCon: SkConType | null   // GM-FP2 #34：tool-first 施约束 —— 先撳约束掣（无选择）进入「拣对象」武装态，逐个拣够即施加、保持武装（ESC 退）
-  skRefGeo: RefGeo | null        // projected reference geometry（实体喺草图面上嘅边界/截交，固定可标注）
+  skRefGeo: RefGeo | null        // projected reference geometry（实体喺草图面上嘅边界/截交，固定可標註）
   sketchFocus: { c: Pt; size: number } | null  // auto camera framing of the picked face / body footprint
   skDof: number | null           // remaining DOF after last solve (null = never solved)
   skFreeShapes: Set<number>      // S103[7]：欠定诊断 — 仍可自由移动嘅 shape 下标集（DOF 探针；空集=全约束/未解）
@@ -2429,7 +2429,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   /** T3: File ▸ New — 儲存 (save, then new only if the save landed) / 不儲存·Don't Save (discard) / 取消. */
   newFileFlow: () => Promise<void>
 
-  // T809：AI Copilot — 多供应商 LLM（OpenAI/Grok/Gemini/本地）聊天 + 工具调用控制 app。
+  // T809：AI Copilot — 多供應商 LLM（OpenAI/Grok/Gemini/本地）聊天 + 工具调用控制 app。
   aiOpen: boolean
   aiBusy: boolean
   aiConfig: AiConfig
@@ -2965,7 +2965,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   smoothComponentMesh: (compId: string, passes: number) => void  // S160：Taubin λ|μ 网格平滑（shrink-free，边界钉住，拓扑不变）
   measureMeshComponent: (compId: string) => void  // S160：网格属性只读测量（体积/表面积/包围盒/三角数/水密）
   shellMeshComponent: (compId: string, thickness: number) => Promise<void>  // S165：网格抽壳/加厚（Fusion Mesh Thicken）— 闭合网格掏空成壁厚 t 嘅壳
-  offsetMeshComponent: (compId: string, distance: number) => Promise<void>  // S188：网格 3D 均匀偏移（Fusion Mesh Offset）— minkowski 膨胀/腐蚀，正=外扩 / 负=内缩
+  offsetMeshComponent: (compId: string, distance: number) => Promise<void>  // S188：网格 3D 均匀偏移（Fusion Mesh Offset）— minkowski 膨胀/腐蚀，正=外擴 / 负=內縮
   convexHullComponent: (compId: string) => Promise<void>  // S178：网格凸包（Fusion Convex Hull）— 顶点云 3D QuickHull 包成新组件
   exportStlAscii: () => void
   // 3D 打印补偿（导出 STL/装配 STL 时套用；Cura「水平扩展」同款语义：正=外胀+孔细，FDM 修正常用细负值）
@@ -2993,7 +2993,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   exportSketchDxf: () => void
   exportFlatDxf: () => void
   drawingOpen: boolean
-  drawingAnno: DrawingAnno                         // T784：工程图手动标注 + 图纸设置（持久化 — 重生成/关面板/存档生还）
+  drawingAnno: DrawingAnno                         // T784：工程图手动標註 + 图纸设置（持久化 — 重生成/关面板/存档生还）
   setDrawingAnno: (p: Partial<DrawingAnno>) => void
   drawingViews: DrawView[] | null
   drawingKind: 'part' | 'assembly'  // assembly = 装配工程图（mesh 投影 + 气泡 + BOM，T732）
@@ -3018,7 +3018,7 @@ export type AppState = {   // GM-W6 E：export 畀 Tour.tsx 嘅 step done(s) 谓
   applySnapshot: (data: unknown) => Promise<void>
   // 激光切割 G-code（GRBL，kerf 补偿）
   exportLaserGcode: (opts?: { feed?: number; power?: number; passes?: number; kerf?: number }) => void
-  addInternalThread: (d: number, pitch: number, height: number, cx: number, cy: number, z0?: number, modeled?: boolean, lefthand?: boolean, cls?: string, standard?: string, frame?: ThreadFrame) => Promise<void>  // 内螺纹孔；modeled=true 真螺旋牙（compound），默认 cosmetic 外观标注（B-rep 乾净）；lefthand=左旋牙；cls/standard（GM-3DV1 S11）=配合等级/标准库元数据
+  addInternalThread: (d: number, pitch: number, height: number, cx: number, cy: number, z0?: number, modeled?: boolean, lefthand?: boolean, cls?: string, standard?: string, frame?: ThreadFrame) => Promise<void>  // 内螺纹孔；modeled=true 真螺旋牙（compound），默认 cosmetic 外观標註（B-rep 乾净）；lefthand=左旋牙；cls/standard（GM-3DV1 S11）=配合等级/标准库元数据
   saveProject: () => Promise<void>
   openProject: () => void
   applyProjectData: (data: Record<string, unknown>, statusVerb?: string) => Promise<void>   // T797：共用还原（文件/分享链接）
@@ -3787,7 +3787,7 @@ export const ISO_FINE: Record<number, number> = { 8: 1.0, 10: 1.25, 12: 1.25, 14
 export const nearestIsoNom = (d: number): number => ISO_NOMS.reduce((a, b) => (Math.abs(b - d) < Math.abs(a - d) ? b : a))
 
 // GM-3DV1 S11：螺纹多标准库 + 配合等级（Fusion Thread Type/Class）。
-// 每个标准畀 公称Ø(mm) → 粗牙/細牙 螺距(mm)（几何仍用 60° ISO 牙形；只公称Ø/螺距按标准换算——UNC/UNF 亦 60° 形，BSP 55° 未做几何、只作近似标注）。
+// 每个标准畀 公称Ø(mm) → 粗牙/細牙 螺距(mm)（几何仍用 60° ISO 牙形；只公称Ø/螺距按标准换算——UNC/UNF 亦 60° 形，BSP 55° 未做几何、只作近似標註）。
 // 配合等级系【纯元数据】（tolerance，唔改牙几何）：外螺纹/内螺纹各一组。
 export type ThreadStd = { label: string; noms: number[]; coarse: Record<number, number>; fine: Record<number, number>; clsExt: string[]; clsInt: string[]; inch?: boolean }
 // UNC/UNF：常用英制尺寸（mm）+ 螺距=25.4/tpi。
@@ -4614,7 +4614,7 @@ export function editOffsetLinkDistance(shapes: SketchShape[], index: number, val
 }
 
 // T760：shape → TrimPath（修剪/延伸用统一路径表示）；样条/椭圆/草图点诚实拒绝
-// 草图偏移 helper：把一个 SketchShape 平行偏移 d（正=外扩/负=内缩），支持 圆/矩形/折线。失败返 null（自交/塌陷/不支持）。
+// 草图偏移 helper：把一个 SketchShape 平行偏移 d（正=外擴/负=內縮），支持 圆/矩形/折线。失败返 null（自交/塌陷/不支持）。
 function offsetSketchShape(sh: SketchShape, d: number): SketchShape | null {
   if (!d) return null
   if (sh.type === 'circle') { if (sh.point || sh.r < 1e-6) return null; const r = sh.r + d; return r > 0.05 ? { type: 'circle', c: sh.c, r } : null }   // A5：草图点（point/零半径）唔可偏移
@@ -5402,7 +5402,7 @@ export function effectiveMaterial(s: Pick<AppState, 'bodyDensity' | 'lang'>, c?:
   const k = materialForDensity(d)
   return { key: k, label: k ? tMaterialName(k, lang) + '（預設）' : `密度 ${d}`, density: d }
 }
-// CORE16 b4 (b)：抽殼／分割實體失敗講具體原因（唔再淨係「重建失敗」）。mesh = 上一個有效模型（CAD 坐標）。
+// CORE16 b4 (b)：抽殼／分割實體失敗講具體原因（唔再淨係「重建失敗」）。mesh = 上一個有效模型（CAD 座標）。
 function bodySpanAlong(mesh: MeshData | null | undefined, o: [number, number, number], n: [number, number, number]): [number, number] | null {
   const v = mesh?.vertices; if (!v || !v.length) return null
   const L = Math.hypot(n[0], n[1], n[2]) || 1
@@ -6948,7 +6948,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     else get().setSketchCornerR(isFinite(v) && v > 0 ? v : 0)
   },
   // T790：Fusion 式偏移 — 点中一个轮廓（圆/矩形/折线/弧路径），按 sketchOffsetD 平行偏移；保留原件，新增偏移线做新轮廓。
-  // 正 d = 外扩、负 d = 内缩；sketchOffsetBoth → 两侧各加一条。点中处的轮廓由 distToShapeOutline 最近命中。
+  // 正 d = 外擴、负 d = 內縮；sketchOffsetBoth → 两侧各加一条。点中处的轮廓由 distToShapeOutline 最近命中。
   skOffsetAt: async (p) => {
     const s = get()
     if (s.mode !== 'sketch') return
@@ -7084,7 +7084,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     await commitMirror(s,prepared.shapes,[...s.skCons,...prepared.cons],picked,prepared.axis,prefix)
   },
   // S176：投影几何入草图（Fusion Project / Include）— 把投影参考几何（skRefGeo.segs = 实体边界/截交喺草图面嘅 2D 投影）
-  // 连成 polyline/闭环、做【真草图曲线】加入轮廓（可拉伸/标注/修改），唔再只系参考。闭环→闭合 poly（可拉伸），开放链→开放 poly。
+  // 连成 polyline/闭环、做【真草图曲线】加入轮廓（可拉伸/標註/修改），唔再只系参考。闭环→闭合 poly（可拉伸），开放链→开放 poly。
   projectRefToSketch: () => set((s) => {
     if (s.mode !== 'sketch') return { status: '投影幾何：先開/重開一個草圖' }
     const rg = s.skRefGeo
@@ -7293,7 +7293,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     }
     return { sketchUndo: [...s.sketchUndo, skSnap(s)].slice(-80), sketchRedo: [], sketchProfiles: [...s.sketchProfiles, line], skCons, status: `已加${s.clineOrient === 'h' ? '水平' : '豎直'}${s.clineCenterline ? '中心線' : '構造參考線'}（過 ${p[0].toFixed(0)},${p[1].toFixed(0)}）— 可做對中參考 / 鏡像軸 / 旋轉軸` }
   }),
-  // 平行偏移当前轮廓（d>0 外扩 / d<0 内缩）。支持 圆/矩形/折线（含真圆弧路径）。保留原件，偏移线做新轮廓（Fusion 行为）。
+  // 平行偏移当前轮廓（d>0 外擴 / d<0 內縮）。支持 圆/矩形/折线（含真圆弧路径）。保留原件，偏移线做新轮廓（Fusion 行为）。
   // 注：sk_offset 命令而家进 offset 工具模式（点轮廓偏移）；呢个 action 留作程序化/无拣中时嘅 fallback。
   offsetSketch: (d) => set((s) => {
     const sh = s.sketchShape
@@ -13025,7 +13025,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       return out
     }
     const valAt = (k: number) => lo + span * (k / N)
-    // 多自由度关节只扫主轴（angle 或 slide），其余 DOF 冻结于现值 — 诚实标注，免用户误信「全程已查」。
+    // 多自由度关节只扫主轴（angle 或 slide），其余 DOF 冻结于现值 — 诚实標註，免用户误信「全程已查」。
     const multiDof = j0.type === 'cylindrical' || j0.type === 'ball' || j0.type === 'planar' || j0.type === 'pinslot'
     const dofNote = multiDof ? `（注：此關節多自由度，只掃了主${useAngle ? '转' : '滑'}軸，其餘 DOF 固定現值）` : ''
     const degNote = degen ? '（限位鎖死，按全圈 0–360° 探查）' : ''
@@ -13666,7 +13666,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }))
     } catch (e2) { set({ status: `抽殼失敗：${(e2 as Error)?.message || e2}` }) }
   },
-  // S188：网格 3D 均匀偏移（Fusion Mesh > Offset）—— minkowski 与球膨胀/腐蚀，正=全方向外扩、负=内缩。
+  // S188：网格 3D 均匀偏移（Fusion Mesh > Offset）—— minkowski 与球膨胀/腐蚀，正=全方向外擴、负=內縮。
   // 烘焙级（同 shellMesh：清 src）。需水密闭合网格。offsetMesh 内部归一化绕向（inward STL 都啱）。
   offsetMeshComponent: async (id, distance) => {
     const s = get()
@@ -15212,7 +15212,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   // T805（报告 R3）：统一应用内对话框 — Promise 化，取代 native prompt/alert/confirm。
   uiDialog: null,
   appPrompt: (msg, def = '', title = '輸入') => new Promise<string | null>((resolve) => {
-    if (_dialogResolve) { _dialogResolve(null); _dialogResolve = null }  // 旧框未答完即关闭（resolve null）
+    if (_dialogResolve) { _dialogResolve(null); _dialogResolve = null }  // 旧框未答完即關閉（resolve null）
     _dialogResolve = (v) => resolve(typeof v === 'string' ? v : null)
     set({ uiDialog: { kind: 'prompt', title, msg, def } })
   }),
@@ -15261,7 +15261,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     await get().reset()
   },
 
-  // ── T809 AI Copilot ──：多供应商 LLM 聊天 + 工具调用控制 app。
+  // ── T809 AI Copilot ──：多供應商 LLM 聊天 + 工具调用控制 app。
   aiOpen: false,
   aiBusy: false,
   aiConfig: _initAiConfig(),
@@ -15269,7 +15269,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   toggleAiPanel: () => set((s) => ({ aiOpen: !s.aiOpen })),
   setAiConfig: (patch) => set((s) => {
     let cfg: AiConfig = { ...s.aiConfig, ...patch }
-    if (patch.provider && patch.provider !== s.aiConfig.provider) {   // 切供应商 → 套该供应商默认 baseUrl/model
+    if (patch.provider && patch.provider !== s.aiConfig.provider) {   // 切供應商 → 套该供應商默认 baseUrl/model
       const d = PROVIDER_DEFAULTS[patch.provider]
       cfg = { ...cfg, baseUrl: patch.baseUrl ?? d.baseUrl, model: patch.model ?? d.model }
     }
@@ -15378,7 +15378,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'create_dome': { const d = num('diameter', 20), ch = Number(a.cap_height); return mk({ id: fid(), type: 'prim', shape: 'dome', a: d / 2, b: 0, c: (Number.isFinite(ch) && ch > 0 ? ch : 0), op: opOf() }, `${verb()}圓頂 Ø${d}${(Number.isFinite(ch) && ch > 0) ? ' 冠高' + ch : '（半球）'}mm`) }   // P6：a=半径 c=冠高（0=半球）
       case 'create_half_cylinder': return mk({ id: fid(), type: 'prim', shape: 'halfcyl', a: num('diameter', 20) / 2, b: 0, c: num('height', 20), op: opOf() }, `${verb()}半圓柱/D形 Ø${num('diameter', 20)}×${num('height', 20)}mm`)   // P6：a=半径 c=高（切走 x<0 半边）
       case 'create_pie': { const d = num('diameter', 30), ang = num('angle', 360); return mk({ id: fid(), type: 'prim', shape: 'pie', a: d / 2, b: ang, c: num('height', 10), op: opOf() }, `${verb()}扇形柱 Ø${d} ${ang}°×${num('height', 10)}mm`) }   // P6：a=半径 b=角度° c=高
-      case 'create_pyramid': { const bd = num('base_diameter', 20), td = Math.max(0, Number(a.top_diameter) || 0), sd = Math.min(12, Math.max(3, Math.round(Number(a.sides)) || 4)); return mk({ id: fid(), type: 'prim', shape: 'cone', a: bd / 2, b: td / 2, c: num('height', 20), sides: sd, op: opOf() }, `${verb()}${td > 0 ? sd + '稜台' : sd + '稜錐'} 底Ø${bd}${td > 0 ? ' 頂Ø' + td : ''}×${num('height', 20)}mm`) }   // P6：cone + sides≥3 = 正多边形棱锥/棱台
+      case 'create_pyramid': { const bd = num('base_diameter', 20), td = Math.max(0, Number(a.top_diameter) || 0), sd = Math.min(12, Math.max(3, Math.round(Number(a.sides)) || 4)); return mk({ id: fid(), type: 'prim', shape: 'cone', a: bd / 2, b: td / 2, c: num('height', 20), sides: sd, op: opOf() }, `${verb()}${td > 0 ? sd + '稜台' : sd + '稜錐'} 底Ø${bd}${td > 0 ? ' 頂Ø' + td : ''}×${num('height', 20)}mm`) }   // P6：cone + sides≥3 = 正多边形稜錐/稜台
       case 'fillet_all_edges': { if (!hasSolid(get().features)) return '✗ 需要先有實體'; const ok = await get().filletAllEdges(num('radius', 2)); return ok ? `✓ 已對所有稜倒圓角 R${num('radius', 2)}` : '✗ 全稜倒圓角失敗（半徑相對幾何過大 — 請調細再試）' }
       case 'chamfer_all_edges': { if (!hasSolid(get().features)) return '✗ 需要先有實體'; const ok = await get().chamferAllEdges(num('distance', 1)); return ok ? `✓ 已對所有稜倒角 ${num('distance', 1)}mm` : '✗ 全稜倒角失敗（距離過大 — 請調細再試）' }
       default: {
@@ -15411,7 +15411,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         splitFaceMode: false, replaceFaceMode: false, surfTrimMode: false, patchMode: false, boundaryPatchPick: false,
         datumPick: null, decalPick: null, edgePtPick: null, revAxisPtPick: false, screwFitMode: false,
         faceMateMode: false, faceMatePick: null, jointPickMode: false, jointPick: null, jointOriginPickMode: false, jointOriginFirst: null, jointHolePick: null, feaMode: 0, moldMode: 0, windMode: 0,
-        datumCmd: null,   // GM-3DV2 R1：切去别嘅创建命令 → 关闭构造几何对话框
+        datumCmd: null,   // GM-3DV2 R1：切去别嘅创建命令 → 關閉构造几何对话框
         status: `已退出拾取模式 → 執行「${label}」`,
       })
     }
@@ -19132,7 +19132,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         const cadP: [number, number, number] = [threeWorld[0], -threeWorld[2], threeWorld[1]]   // three 世界 → CAD（同 roundEdgeAt/edgePointAt）
         const r = await cad.edgePolylineAt(cadP)
         if (!r?.pts || r.pts.length < 2) { set({ status: '構造幾何：此處找不到邊 — 請點住實體的一條邊再試' }); return }
-        if (!get().datumCmd) return   // 解析期间已关闭
+        if (!get().datumCmd) return   // 解析期间已關閉
         const a = r.pts[0], b = r.pts[r.pts.length - 1]
         pick = { kind: 'edge', p1: a, dir: [b[0] - a[0], b[1] - a[1], b[2] - a[2]], pts: r.pts }
       } else if (want === 'c') {
@@ -19916,7 +19916,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       f = { id: fid(), type: 'crowngear', module: +p.module, teeth: Math.max(8, Math.round(+p.teeth)), discH: +p.discH, faceW: +p.faceW, bore: +p.bore, op: 'new' }
       msg = `已建立冠齒輪 m${+p.module}×${f.teeth}齒（面齒輪近似形 — 垂直軸嚙合示意）`
     } else if (d.kind === 'othread') {
-      // P2 Cosmetic：默认外观标注；cosmetic 显式发（undefined=modeled ⇒ edit 时删 key，勾/唔勾双向切换乾净）
+      // P2 Cosmetic：默认外观標註；cosmetic 显式发（undefined=modeled ⇒ edit 时删 key，勾/唔勾双向切换乾净）
       // GM-3DV1 S11：cls/standard 元数据；局部长度（Full Length off）→ 起点沿轴偏移 toff（加落 z0，牙由此向上/沿轴 height）。
       const oFull = !!+(p.fullLen ?? 1)
       const oToff = oFull ? 0 : Math.max(0, +(p.toff || 0))
@@ -21271,7 +21271,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const u = s.unit
     return {
       sectionResult: { ...r, nHoles, nBodies, fromCut: true, openWarn: open.length > 0 },
-      // GM-L2 #81：X/Y 轴剖切时 2D 坐标经 remap（X→(y,z)/Y→(z,x)/Z→(x,y)），形心/Ixx/Iyy 都喺呢个旋转后标架 — 明确标注平面，免用户当世界坐标误用
+      // GM-L2 #81：X/Y 轴剖切时 2D 坐标经 remap（X→(y,z)/Y→(z,x)/Z→(x,y)），形心/Ixx/Iyy 都喺呢个旋转后标架 — 明确標註平面，免用户当世界坐标误用
       status: `剖面截面屬性（${sectionLabel}=${off}${open.length ? ' ⚠非水密' : ''}）：面積 ${fmtArea(r.area, u)} · 形心 (${r.centroid.map((c) => c.toFixed(2)).join(', ')})（${ref ? '局部 UV' : ax === 'X' ? 'YZ' : ax === 'Y' ? 'ZX' : 'XY'} 平面座標）· Ixx ${r.Ixx.toExponential(2)} Iyy ${r.Iyy.toExponential(2)} mm⁴ · 主軸 ${r.principal.I1.toExponential(2)}/${r.principal.I2.toExponential(2)}@${r.principal.angleDeg.toFixed(1)}° · 周長 ${fmtLen(r.perimeter, u)}${nBodies > 1 ? ` · ${nBodies}塊` : ''}${nHoles ? ` · ${nHoles}孔` : ''}`,
     }
   }),
@@ -22614,7 +22614,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     triggerDownload(new TextEncoder().encode(shapesToDxfEntities(shapes)), `${projName(get().projectName)}-草圖.dxf`, 'application/dxf')
     set({ status: `已匯出 DXF 真實體（${shapes.length} 個輪廓 → CIRCLE/ARC/LWPOLYLINE，可編輯半徑 / 匯入 AutoCAD / 激光 CAM）` })
   },
-  // 激光切割 G-code（GRBL）：同 DXF 同源攞当前草图轮廓，kerf 补偿（外扩/孔缩），先切孔后切外框。
+  // 激光切割 G-code（GRBL）：同 DXF 同源攞当前草图轮廓，kerf 补偿（外擴/孔缩），先切孔后切外框。
   exportLaserGcode: (opts) => {
     const s = get()
     const shapes = [...(s.sketchShape ? [s.sketchShape] : []), ...s.sketchProfiles].filter((sh) => !sh.construction)  // 构造几何唔切割
@@ -22653,7 +22653,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   addInternalThread: async (d, pitch, height, cx, cy, z0 = 0, modeled = false, lefthand = false, cls, standard, frame) => {
     if (!hasSolid(get().features)) { set({ status: '內螺紋孔要在實體上做 — 先建一個實體' }); return }
     // P2：z0 = 孔底 z（可选）— 由孔壁拾面/对话框传入，牙由 z0 向上攻 height；0 = 旧行为（由 z=0 起）
-    // P2 Cosmetic：默认外观标注（B-rep 零触碰，可继续任何操作 — Fusion Modeled=OFF 默认）；modeled=true 先出真牙 compound
+    // P2 Cosmetic：默认外观標註（B-rep 零触碰，可继续任何操作 — Fusion Modeled=OFF 默认）；modeled=true 先出真牙 compound
     // GM-3DV1 S11：cls/standard 纯元数据（配合等级/标准库），value-or-omit 保旧档逐字节。
     const f: Feature = { id: fid(), type: 'ithread', ...(frame ? { frame } : {}), d: Math.max(1, d), pitch: Math.max(0.3, pitch), height: Math.max(pitch, height), x: cx || 0, y: cy || 0, ...(z0 > 0 ? { z0 } : {}), ...(modeled ? {} : { cosmetic: true }), ...(lefthand ? { lefthand: true } : {}), ...(cls ? { cls } : {}), ...(standard && standard !== 'iso' ? { standard } : {}) }
     const okMsg = modeled
@@ -22727,7 +22727,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       bedPreset: typeof d.bedPreset === 'number' ? d.bedPreset : 0,
       customBed: (d.customBed && typeof d.customBed === 'object' ? d.customBed : null) as AppState['customBed'],
       sketchSources: normalizeSrcs(d.sketchSources),
-      drawingAnno: hydrateAnno(d.drawingAnno),                                                              // battle-test-2 #6：版本史还原原本漏标注
+      drawingAnno: hydrateAnno(d.drawingAnno),                                                              // battle-test-2 #6：版本史还原原本漏標註
       groups: Array.isArray(d.groups) ? d.groups as AppState['groups'] : [],                               // battle-test-2 #6：版本史还原原本漏子装配组树
       faceColors: d.faceColors && typeof d.faceColors === 'object' ? d.faceColors as AppState['faceColors'] : {},   // battle-test-2 #5：逐面色
       compXY: typeof d.compXY === 'number' ? d.compXY : 0, compShrink: typeof d.compShrink === 'number' ? d.compShrink : 1,   // bt4
@@ -23191,7 +23191,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   },
   // 装配工程图 + 气泡 BOM（T732，BIG3 ★ 最大出图缺口）：全部可见组件按 posed 世界矩阵做
   // 网格边投影（轮廓边 + 边界边 + 24° 特征边 — 同视口 Edges 同款判据），三视图叠加 + 每件气泡
-  // 编号（同 BOM 分组同源）+ BOM 表。诚实：mesh 级近似 — 冇隐藏线消除、圆出折线（自动 Ø 标注静默）。
+  // 编号（同 BOM 分组同源）+ BOM 表。诚实：mesh 级近似 — 冇隐藏线消除、圆出折线（自动 Ø 標註静默）。
   generateAsmDrawing: async () => {
     const s = get()
     const comps = s.components.filter((c) => !c.hidden && c.mesh.vertices.length)
@@ -25149,14 +25149,14 @@ export const useApp = create<AppState>((rawSet, get) => {
     const lo = ax === 0 ? mnx : ax === 1 ? mny : mnz, hi = ax === 0 ? mxx : ax === 1 ? mxy : mxz
     const ptAt = (t: number): [number, number, number] => ax === 0 ? [t, cy, cz] : ax === 1 ? [cx, t, cz] : [cx, cy, t]
     const dirCustom: [number, number, number] = ax === 2 ? [1, 0, 0] : [0, 0, -1]   // 受力垂直最长轴：横梁向下、竖梁侧推
-    // ★ 支撑由两端【内缩 12%】：模拟真实 3 点弯夹具（梁两端有少少悬出）。
-    //   支撑啱啱喺自由端角 → 端角应力奇异（线接触 + 端角双重集中），内缩后端角≈0，跨中弯曲/挠度成为主角。
+    // ★ 支撑由两端【內縮 12%】：模拟真实 3 点弯夹具（梁两端有少少悬出）。
+    //   支撑啱啱喺自由端角 → 端角应力奇异（线接触 + 端角双重集中），內縮后端角≈0，跨中弯曲/挠度成为主角。
     const inset = (hi - lo) * 0.12
     const loS = lo + inset, hiS = hi - inset
     const stale = hasLiveSimResults(get()) ? invalidateSimResultsPatch('已改簡支梁約束') : null
     set({
       ...(stale ?? {}),
-      feaFixed: { point: ptAt(loS), normal: nrm }, feaFixed2: { point: ptAt(hiS), normal: nrm },   // 两端支撑（内缩）
+      feaFixed: { point: ptAt(loS), normal: nrm }, feaFixed2: { point: ptAt(hiS), normal: nrm },   // 两端支撑（內縮）
       feaLoad: { point: ptAt((lo + hi) / 2), normal: nrm },                                        // 中间施力
       feaBeam3pt: true, feaLoadMode: 'force', feaDir: ax === 2 ? 'custom' : 'down', feaCustomDir: dirCustom,
       feaField: 'disp',   // ★ 默认用【位移】着色：梁中间凹最多 = 中间最红，最直觉、无支撑接触奇异；想睇应力随时切「应力」
@@ -26883,7 +26883,7 @@ export function buildProjectPayload(s: AppState) {
     // GM-X2：视觉样式 / 相机三态 / 单位配对预设 随项目存档（新字段可选，旧档缺 → 默认，字节兼容）。
     visualStyle: s.visualStyle, hiddenEdges: s.hiddenEdges, cameraProj: s.cameraProj, unitPreset: s.unitPreset, massUnit: s.massUnit,
     sketchSources: liveSketchSources(s),
-    drawingAnno: s.drawingAnno,   // T784：工程图标注 + 图纸设置随项目存档
+    drawingAnno: s.drawingAnno,   // T784：工程图標註 + 图纸设置随项目存档
     groups: s.groups,             // T788：子装配组树（成员 groupId 喺 components 自带）
     faceColors: s.faceColors,     // S105 逐面上色 — battle-test-2 #5：原本漏序列化 → 存档/分享/版本史/自动保存全部丢色
     compXY: s.compXY, compShrink: s.compShrink,   // bt4: 3D 打印补偿(原本漏存 → 存档往返丢失用户调校)

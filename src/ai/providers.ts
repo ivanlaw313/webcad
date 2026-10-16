@@ -1,7 +1,7 @@
-// T809：AI Copilot — 多供应商聊天 + 工具调用（function calling）适配层。
+// T809：AI Copilot — 多供應商聊天 + 工具调用（function calling）适配层。
 // OpenAI / xAI(Grok) / 本地(Ollama·LM Studio) 全部 OpenAI-compatible（/chat/completions + tools）；
 // Google Gemini 用自己格式（generateContent + functionDeclarations）。全部纯浏览器 fetch、零服务器、零依赖。
-// 安全：API key 系用户自己嘅、存喺自己浏览器 localStorage，直连供应商（同 webcad serverless 一致）。
+// 安全：API key 系用户自己嘅、存喺自己浏览器 localStorage，直连供應商（同 webcad serverless 一致）。
 export type AiProvider = 'openai' | 'grok' | 'gemini' | 'local'
 export type AiConfig = { provider: AiProvider; apiKey: string; model: string; baseUrl: string }
 export type ToolCall = { id: string; name: string; args: Record<string, unknown> }
@@ -9,7 +9,7 @@ export type AiMsg = { role: 'user' | 'assistant' | 'tool'; content: string; tool
 export type ToolDef = { name: string; description: string; parameters: Record<string, unknown> }
 export type ChatResult = { text: string; toolCalls: ToolCall[] }
 
-// 每个供应商嘅合理默认（用户可改）。
+// 每个供應商嘅合理默认（用户可改）。
 export const PROVIDER_DEFAULTS: Record<AiProvider, { baseUrl: string; model: string; label: string; needsKey: boolean }> = {
   openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini', label: 'OpenAI', needsKey: true },
   grok: { baseUrl: 'https://api.x.ai/v1', model: 'grok-4.3', label: 'xAI Grok', needsKey: true },   // grok-2-latest 已下架（"Model not found"）→ 改默认为 grok-4.3（实测 tool-calling OK）；更省可改 grok-4.20-0309-non-reasoning

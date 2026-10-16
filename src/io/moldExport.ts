@@ -26,7 +26,7 @@ export function machineTonnage(clampForceKN: number, marginPct = 15): { required
   const withMargin = reqTf * (1 + marginPct / 100)
   let rec = MACHINE_TONNES[MACHINE_TONNES.length - 1]
   for (const m of MACHINE_TONNES) { if (m >= withMargin) { rec = m; break } }
-  // GM-L2 #42/#88：超出标准最大档时唔好静默封顶 —— 出 overRange 旗畀调用方诚实标注
+  // GM-L2 #42/#88：超出标准最大档时唔好静默封顶 —— 出 overRange 旗畀调用方诚实標註
   return { requiredTonne: reqTf, recommendTonne: rec, marginPct, overRange: withMargin > MACHINE_TONNES[MACHINE_TONNES.length - 1] }
 }
 

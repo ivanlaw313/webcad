@@ -6,7 +6,7 @@
 **more37 cherry:** `2560f88` ← `127b65a` on `test/unit-core16-more37` (cherry-pick -x)  
 **P1 關節 tip/status:** `7b38d98` (tip.joint 轉動; kindLbl 轉動／滑動關節; faceMate status 面貼合)  
 **Base:** tip `70f5596` (FISHING59 live)  
-**Tip:** `7b38d980afd34fe8a14af24d67ac94c5dd886e88`
+**Tip:** `553eee0cd202bbe33a84a404ba7072cd69f5207d`
 
 ## Scan
 

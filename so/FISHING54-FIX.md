@@ -5,7 +5,7 @@
 **Product fix:** `f86e16b6e0cd10f86ce0f5c9917500beb563b19a`  
 **more34 soft-prep:** **none** (no `unit/more34-soft-prep.md`; local `test/unit-core16-more34` = F53 tip `317e38a`, 0 unique commits) — deploy product as-is  
 **Base:** tip `317e38a` (FISHING53 live)  
-**Tip:** `TIP_PLACEHOLDER`
+**Tip:** `eaf6a5f92417a64d1851c45fb27f874821d2d06b`
 
 ## Scan
 

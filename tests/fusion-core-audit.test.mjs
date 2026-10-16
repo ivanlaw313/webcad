@@ -86,6 +86,8 @@ test('partial downstream rebuild cannot replace committed geometry or create his
  const builds=[]
  const api=vm.runInNewContext(stripTypeScriptTypes(`(()=>{${shared};return {${wrapper}}})()`),{
   featureLiveGet:()=>state,featureLiveSet:p=>state={...state,...(typeof p==='function'?p(state):p)},
+  get:()=>state,set:p=>state={...state,...(typeof p==='function'?p(state):p)},
+  thickenFeaturesOversizeReason:()=>null,thickenGateMesh:()=>null,illegalRejectStatus:s=>s,
   cad:{rebuild:async f=>{builds.push(f);return builds.length===1?{triangles:[0,1,2],failed:[{id:'f',error:'radius too large'}]}:mesh}},
   applyParamBindings:f=>f,expandFeats:f=>f,SOLID_TYPES:['extrude'],hasSolid:fs=>fs.some(f=>f.type==='extrude'),
   mapKernelFailuresToTimeline:()=>({ids:['f'],errors:{f:'radius too large'}}),docSnap:s=>s,console,

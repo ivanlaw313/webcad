@@ -3135,7 +3135,7 @@ export function SketchDimLayer() {
             style={{ ...LBL, ...(l.remove ? { background: '#5a8fb8', fontSize: 10, lineHeight: '13px', padding: '0 4px' } : {}), ...(l.driven ? { background: '#8a97a2' } : {}), ...(l.remove && skSelCon === l.remove ? { background: '#8e44ad', boxShadow: '0 0 0 2px rgba(142,68,173,.4)' } : {}), ...((l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? { background: '#c9362a', boxShadow: '0 0 0 2px rgba(201,54,42,.35)' } : {}), pointerEvents: l.edit || l.remove || l.referenceExtent ? 'auto' : 'none', cursor: l.edit?.dim === 'con' ? 'move' : l.edit || l.remove ? 'pointer' : 'default' }}
           >
             {l.edit?.dim === 'con' && !l.driven ? <span className="sk-dim-driving-mark" title="驅動尺寸" aria-label="驅動尺寸">◆</span> : null}
-            {l.edit && l.edit.dim !== 'con' && !l.driven ? <span className="sk-dim-soft-mark" title="軟尺寸／參考讀數" aria-label="软尺寸">·</span> : null}
+            {l.edit && l.edit.dim !== 'con' && !l.driven ? <span className="sk-dim-soft-mark" title="軟尺寸／參考讀數" aria-label="軟尺寸">·</span> : null}
             {l.text}
             {/* 尺寸约束专属 ✕ 仔：一撳即删（stopPropagation 免误开编辑框）。徽章本身 click=移除,唔使 ✕。 */}
             {l.edit?.dim === 'con' && l.edit.conId && (

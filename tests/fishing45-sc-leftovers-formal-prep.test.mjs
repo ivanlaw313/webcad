@@ -64,7 +64,7 @@ function hasSlashTol(src, s) {
 function softRefuse(t, src, sc, tc, where) {
   const hasSC = hasSlashTol(src, sc)
   if (hasSC) {
-    t.skip(`FISHING45 pending: still SC «${sc}» (${where})`)
+    t.skip(`FISHING46 pending: still SC «${sc}» (${where})`)
     return
   }
   assert.ok(hasSlashTol(src, tc), `expected Formal TC «${tc}» (or slash alt) in ${where}`)

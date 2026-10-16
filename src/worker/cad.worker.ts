@@ -7221,7 +7221,7 @@ const api = {
       try {
         const prog = _oc.Message_ProgressRange_1 ? r(new _oc.Message_ProgressRange_1()) : undefined
         try { mk.Build(prog); built = true; notes.push('Build(ProgressRange) OK') }
-        catch (eb) { try { mk.Build(); built = true; notes.push('Build() 无参 OK') } catch (eb2) { notes.push('Build 失敗：' + ((eb as any)?.message || eb) + ' / ' + ((eb2 as any)?.message || eb2)) } }
+        catch (eb) { try { mk.Build(); built = true; notes.push('Build() 無參 OK') } catch (eb2) { notes.push('Build 失敗：' + ((eb as any)?.message || eb) + ' / ' + ((eb2 as any)?.message || eb2)) } }
       } catch { try { mk.Build(); built = true; notes.push('Build() 無參 OK（ProgressRange 無法起）') } catch (eb3) { notes.push('Build 失敗：' + ((eb3 as any)?.message || eb3)) } }
       if (!built) { notes.push('Build 全失敗'); return result }
 

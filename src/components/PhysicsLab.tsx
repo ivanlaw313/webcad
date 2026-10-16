@@ -9,7 +9,7 @@ import {
   type Mesh,
 } from "three";
 import { MATERIALS, useApp } from "../store";
-import { tMaterialName } from "../i18n";
+import { tMaterialName, normalizeLang, type Lang } from "../i18n";
 import type { Joint } from "../assembly/kinematics";
 import {
   defaultNavigationPolicy,
@@ -2658,8 +2658,72 @@ function fmt(n: number) {
   return Number.isFinite(n) ? n.toFixed(2) : "—";
 }
 
+
+// FISHING102：panel title / header chrome i18n en/ja/zh-CN/zh-HK（JA/EN 唔再 TC 環境模擬實驗室 fallback）。
+// ⚠ 唔好用 tStatus() 译【面板標題】长句—— EN 会出半中半英；改显式四套字串（同 JointOriginPalette FISHING101）。
+// 只改 header chrome；body 區塊唔做 Formal soft-pin churn。
+
+type PhysicsLabChrome = {
+  title: string
+  subtitle: string
+  building: string
+  pause: string
+  play: string
+  reset: string
+  report: string
+  closeAria: string
+}
+
+const ZH_PL: PhysicsLabChrome = {
+  title: '環境模擬實驗室',
+  subtitle: '互動級剛體模擬 · 重力、碰撞、摩擦、反彈、統一風',
+  building: '建立物理世界…',
+  pause: '❚❚ 暫停',
+  play: '▶ 播放',
+  reset: '↺ 重設',
+  report: '⇩ 報告',
+  closeAria: '關閉環境模擬實驗室',
+}
+const EN_PL: PhysicsLabChrome = {
+  title: 'Environment simulation lab',
+  subtitle: 'Interactive rigid-body sim · gravity, collision, friction, bounce, wind',
+  building: 'Building physics world…',
+  pause: '❚❚ Pause',
+  play: '▶ Play',
+  reset: '↺ Reset',
+  report: '⇩ Report',
+  closeAria: 'Close environment simulation lab',
+}
+const JA_PL: PhysicsLabChrome = {
+  title: '環境シミュレーションラボ',
+  subtitle: 'インタラクティブ剛体シミュ · 重力・衝突・摩擦・反発・風',
+  building: '物理ワールドを構築中…',
+  pause: '❚❚ 一時停止',
+  play: '▶ 再生',
+  reset: '↺ リセット',
+  report: '⇩ レポート',
+  closeAria: '環境シミュレーションラボを閉じる',
+}
+const ZH_CN_PL: PhysicsLabChrome = {
+  title: '环境模拟实验室',
+  subtitle: '互动级刚体模拟 · 重力、碰撞、摩擦、反弹、统一风',
+  building: '建立物理世界…',
+  pause: '❚❚ 暂停',
+  play: '▶ 播放',
+  reset: '↺ 重置',
+  report: '⇩ 报告',
+  closeAria: '关闭环境模拟实验室',
+}
+
+function pickPhysicsLabChrome(lang: Lang | string | undefined): PhysicsLabChrome {
+  const L = normalizeLang(lang)
+  return L === 'en' ? EN_PL : L === 'ja' ? JA_PL : L === 'zh-CN' ? ZH_CN_PL : ZH_PL
+}
+
 export default function PhysicsLab() {
   const close = useApp((s) => s.setPhysicsLabOpen);
+  const lang = useApp((s) => s.lang);
+  const chrome = pickPhysicsLabChrome(lang);
   const body = useApp((s) => s.bodyMesh);
   const bodyDensity = useApp((s) => s.bodyDensity);
   const components = useApp((s) => s.components);
@@ -4166,13 +4230,13 @@ export default function PhysicsLab() {
       className="physics-lab-backdrop"
       role="dialog"
       aria-modal="true"
-      aria-label="環境模擬實驗室"
+      aria-label={chrome.title}
     >
       <section className="physics-lab">
         <header>
           <div>
-            <b>🧪 環境模擬實驗室</b>
-            <small>互動級剛體模擬 · 重力、碰撞、摩擦、反彈、統一風</small>
+            <b>🧪 {chrome.title}</b>
+            <small>{chrome.subtitle}</small>
           </div>
           <div className="physics-lab-header-actions">
             <button
@@ -4180,9 +4244,9 @@ export default function PhysicsLab() {
               disabled={!worldReady}
               onClick={() => setRunning((v) => !v)}
             >
-              {!worldReady ? "建立物理世界…" : running ? "❚❚ 暫停" : "▶ 播放"}
+              {!worldReady ? chrome.building : running ? chrome.pause : chrome.play}
             </button>
-            <button onClick={resetLab}>↺ 重設</button>
+            <button onClick={resetLab}>{chrome.reset}</button>
             <button
               onClick={exportReport}
               disabled={
@@ -4194,12 +4258,12 @@ export default function PhysicsLab() {
                 !collisions.length
               }
             >
-              ⇩ 報告
+              {chrome.report}
             </button>
             <button
               className="close"
               onClick={() => close(false)}
-              aria-label="關閉環境模擬實驗室"
+              aria-label={chrome.closeAria}
             >
               ×
             </button>

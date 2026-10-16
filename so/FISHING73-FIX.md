@@ -5,7 +5,7 @@
 **Product fix:** tests-only (no src) — cherry `c1884ef` ← `7fee924`  
 **more40 cherry:** `c1884ef` ← `7fee924` on `test/unit-core16-more40` (cherry-pick -x)  
 **Base:** tip `c32e5e7` (FISHING72 live)  
-**Tip:** (after FF docs — see remotes)
+**Tip:** `053bd8dbdfe6e1c4b0a7a5a5c3e894a230579ba8`
 
 ## Scan
 

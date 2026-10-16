@@ -521,7 +521,7 @@ export const FORM_PANELS: Panel[] = [
     { id: 'formsubdiv', label: '細分', icon: 'param', quick: true, tip: '細分：提高控製籠細分級（1–3）。預覽即時圓滑；完成造型時烘焙。' },
     { id: 'formloop', label: '插入邊', icon: 'offset', quick: true },
     { id: 'formcrease', label: '折痕', icon: 'chamfer', tip: '折痕：折硬所選 cage 面四邊（細分時稜角企硬）。再執行可取消。' },
-    { id: 'formbridge', label: '橋接', icon: 'loft', tip: '橋接（FORM T-spline）：尚未支援 — 請用實體/曲面「橋接面」對實體棱。' },
+    { id: 'formbridge', label: '橋接', icon: 'loft', tip: '橋接（FORM T-spline）：尚未支援 — 請用實體/曲面「橋接面」對實體稜。' },
     { id: 'formweld', label: '焊接', icon: 'combine', tip: '焊接（FORM 頂點）：尚未支援。' },
     { id: 'formfillhole', label: '填補孔', icon: 'loft', tip: '填補孔（FORM）：尚未支援。' },
     { id: 'formerasefill', label: '擦除並填充', icon: 'delface', tip: '擦除並填充：尚未支援。' },

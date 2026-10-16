@@ -862,17 +862,17 @@ function edgeFilter(shape: any, edges?: EdgeSel): ((e: any) => any) | undefined 
     const zs = [0,.25,.5,.75,1].map(t => edge.pointAt(t).z)
     if (zs.every(Number.isFinite) && Math.max(...zs)-Math.min(...zs) < 1e-7) levels.push(zs[0])
   }
-  if (!levels.length) throw new Error('没有可用的水平顶边／底边，请直接选择边')
+  if (!levels.length) throw new Error('沒有可用的水平頂邊／底邊，請直接選擇邊')
   const z = edges === 'top' ? Math.max(...levels) : Math.min(...levels)
   return (e: any) => e.inPlane('XY', z)
 }
 // Apply the requested size exactly; a failed group must not silently shrink or become a no-op.
 function roundEdges(shape: any, kind: 'fillet' | 'chamfer', size: number, edges?: EdgeSel): any {
-  if (!Number.isFinite(size) || size <= 0) throw new Error('圆角／倒角尺寸必须大于零')
+  if (!Number.isFinite(size) || size <= 0) throw new Error('圓角／倒角尺寸必須大於零')
   const filt = edgeFilter(shape, edges)
   const result = filt ? (kind === 'fillet' ? shape.fillet(size, filt) : shape.chamfer(size, filt)) : (kind === 'fillet' ? shape.fillet(size) : shape.chamfer(size))
   const mesh = result.mesh({ tolerance: 0.2, angularTolerance: 0.5 })
-  if (!mesh?.triangles?.length || !mesh.vertices.every(Number.isFinite)) throw new Error('圆角／倒角结果无法显示，请缩小尺寸或减少选择的边')
+  if (!mesh?.triangles?.length || !mesh.vertices.every(Number.isFinite)) throw new Error('圓角／倒角結果無法顯示，請縮小尺寸或減少選擇的邊')
   return result
 }
 
@@ -1117,7 +1117,7 @@ function _ffSelectPts(shape: any, faceFp: string[], nears?: ([number, number, nu
         const nd = Math.sqrt(nearFaceD2)
         // ⚠ S1-面：呢个 _ffSelectPts 若系畀 _s1CarryFacePts 内部回调（解析 prior 帧）调用 → 唔出 S144 漂移警告
         //   （prior miss 系 walk-back 内部记账，唔系用户可见漂移；顶层若最终 carry 唔成功，会喺顶层正常出呢句）。
-        if (!_s1FaceCarryActive && diag > 0 && Number.isFinite(nd) && nd > Math.max(2, 0.06 * diag)) buildWarnings.push(`面选：持久面名在当前实体上无法解析、已退回近点选面，但近点距最近面 ${nd.toFixed(1)}mm（疑上游变换/旋转令选择漂移 — 对称体旋转后面命名会失效）。如结果不正确请重新拾面。`)
+        if (!_s1FaceCarryActive && diag > 0 && Number.isFinite(nd) && nd > Math.max(2, 0.06 * diag)) buildWarnings.push(`面選：持久面名在當前實體上無法解析、已退回近點選面，但近點距最近面 ${nd.toFixed(1)}mm（疑上游變換/旋轉令選擇漂移 — 對稱體旋轉後面命名會失效）。如結果不正確請重新拾面。`)
       }
       return null                                      // 真 miss → 全退回 near-point（行为不变，只加警告）
     }
@@ -1840,10 +1840,10 @@ function _rawContinuityFillet(shape: any, mids: [number, number, number][], midR
 // Non-adjacent face blends remain unsupported and fail without changing the source.
 function faceFillet(shape: any, radius: number, near1: [number, number, number], near2: [number, number, number]): any {
   const r = radius
-  if (!Number.isFinite(r) || r <= 0) throw new Error('面圆角半径必须大于零')
+  if (!Number.isFinite(r) || r <= 0) throw new Error('面圓角半徑必須大於零')
   try { shape.mesh({ tolerance: 0.1, angularTolerance: 0.5 }) } catch { /* 三角化供拾面/法向 */ }
   const faces = shape.faces as any[]
-  if (!faces || !faces.length) throw new Error('面圆角：实体无面 — 已保留原实体')
+  if (!faces || !faces.length) throw new Error('面圓角：實體無面 — 已保留原實體')
   const pickFace = (p: [number, number, number]): any => {
     let bf: any = null, bd = Infinity
     for (const fc of faces) {
@@ -1857,8 +1857,8 @@ function faceFillet(shape: any, radius: number, near1: [number, number, number],
     return bf
   }
   const f1 = pickFace(near1), f2 = pickFace(near2)
-  if (!f1 || !f2) throw new Error('面圆角：拾面无法解析 — 已保留原实体')
-  if (f1 === f2) throw new Error('面圆角：两次拾中同一张面 — 请拾两张不同的面')
+  if (!f1 || !f2) throw new Error('面圓角：拾面無法解析 — 已保留原實體')
+  if (f1 === f2) throw new Error('面圓角：兩次拾中同一張面 — 請拾兩張不同的面')
   const sharedMid = (() => {
     const d2 = (a: any, b: any) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2
     for (const a of (f1.edges as any[])) {
@@ -1870,7 +1870,7 @@ function faceFillet(shape: any, radius: number, near1: [number, number, number],
     }
     return null
   })()
-  if (!sharedMid) throw new Error('面圆角：两张面没有共同 B-rep 边 — 当前可靠模式只支持相邻面；已保留原实体')
+  if (!sharedMid) throw new Error('面圓角：兩張面沒有共同 B-rep 邊 — 當前可靠模式只支持相鄰面；已保留原實體')
   // Use the exact requested radius; the rebuild transaction records failure
   // and keeps the predecessor if this adjacent-face blend cannot be made.
   const rr = r
@@ -1878,7 +1878,7 @@ function faceFillet(shape: any, radius: number, near1: [number, number, number],
     const out = shape.fillet(rr, (edge: any) => edge.containsPoint(sharedMid))
     if (validShellSolid(out)) return out
   } catch { /* report the exact-radius failure below */ }
-  throw new Error(`面圆角 R${r} 无法在两面共同边生成有效 B-rep — 已保留原实体`)
+  throw new Error(`面圓角 R${r} 無法在兩面共同邊生成有效 B-rep — 已保留原實體`)
 
 }
 
@@ -1921,7 +1921,7 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
       const k = `${Math.round(cm[0] * 100)},${Math.round(cm[1] * 100)},${Math.round(cm[2] * 100)}`
       if (!seen.has(k)) { seen.add(k); expanded.push(cm) }
     }
-    if (expanded.length > mids.length) buildWarnings.push(`切线链：${mids.length} 条所选棱扩展到 ${expanded.length} 条相切连续棱`)
+    if (expanded.length > mids.length) buildWarnings.push(`切線鏈：${mids.length} 條所選稜擴展到 ${expanded.length} 條相切連續稜`)
     mids.length = 0; mids.push(...expanded)
   }
   // S122：持久边命名 — 此时 mids = 最终解析边集（含切线链扩展）。edgeFp 存在 → 用指纹喺当前边集选边
@@ -1965,7 +1965,7 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
       const rr = chordToRadius(chord, b ?? Math.PI / 2)   // 揾唔到二面角 → 缺省当直角
       return Math.min(Math.max(0.05, rr), chord * 4)       // 钳绝对上限防 β→π 离谱
     })
-    if (anyFallback) buildWarnings.push(`弦高圆角：部分棱找不到相邻两面、局部二面角退回 90° 换算（如结果不正确请改用「半径」模式）`)
+    if (anyFallback) buildWarnings.push(`弦高圓角：部分稜找不到相鄰兩面、局部二面角退回 90° 換算（如結果不正確請改用「半徑」模式）`)
   }
   // OR the per-edge finders: match any edge containing one of the picked midpoints (replicad Finder DSL).
   const finder = mids.length === 1
@@ -1995,7 +1995,7 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
     const baseR = perEdge ? midRad : mids.map(() => Math.max(0.05, size))
     const sb = _rawSetbackFillet(shape, mids, baseR, setbackRatio, continuity)
     if (sb) { _recordFillet(_curOpIndex, 'fillet', mids, baseR); return sb }
-    buildWarnings.push('收进圆角：内核变半径律（Add_5）不可达或未收敛 — 已退回等半径圆角（结果安全）')
+    buildWarnings.push('收進圓角：內核變半徑律（Add_5）不可達或未收斂 — 已退回等半徑圓角（結果安全）')
   }
   for (const s of [size]) {
     try {
@@ -2004,7 +2004,7 @@ function roundNearPoints(shape: any, kind: 'fillet' | 'chamfer', size: number, p
         const actualR = perEdge ? midRad.map((v) => v * sc) : mids.map(() => s)
         const g2 = _rawContinuityFillet(shape, mids, actualR, 'G2', variable ? size2! / size : undefined)
         if (!g2) throw new Error('G2 fillet did not converge')
-        if (s !== size) buildWarnings.push(`曲率连续（G2）圆角 ${size} 太大，已自动缩小到 ${s.toFixed(1)} 以贴合所选棱`)
+        if (s !== size) buildWarnings.push(`曲率連續（G2）圓角 ${size} 太大，已自動縮小到 ${s.toFixed(1)} 以貼合所選稜`)
         _recordFillet(_curOpIndex, 'fillet', mids, actualR)
         return g2
       }
@@ -2841,7 +2841,7 @@ function fuseRobust(base: any, solid: any, n: [number, number, number] = [0, 0, 
   catch {
     const s2 = solid.translate(-n[0] * 0.02, -n[1] * 0.02, -n[2] * 0.02)
     const r = base.fuse(s2)
-    buildWarnings.push('合并兜底：凸台与底面共面致布尔失败 — 已沿法向微沉 0.02mm 重试成功（打印无感）')
+    buildWarnings.push('合併兜底：凸台與底面共面致布爾失敗 — 已沿法向微沉 0.02mm 重試成功（打印無感）')
     return r
   }
 }
@@ -2862,7 +2862,7 @@ function _cutRobust(target: any, tool: any): any {
   catch {
     const nudged = tool.clone().translate(0, 0, -0.02)
     const r = target.clone().cut(nudged)
-    buildWarnings.push('切除兜底：共面致布尔失败 — 已沿 Z 微沉工具体 0.02mm 重试成功（打印无感）')
+    buildWarnings.push('切除兜底：共面致布爾失敗 — 已沿 Z 微沉工具體 0.02mm 重試成功（打印無感）')
     return r
   }
 }
@@ -2911,7 +2911,7 @@ function meshToSolidShape(v: number[], t: number[]): any {
     const shell = _oc.TopoDS.Shell_1(sewed)
     const solid = new _oc.ShapeFix_Solid_1().SolidFromShell(shell)
     if (solid && !solid.IsNull()) out = solid
-  } catch { buildWarnings.push('网格转换：缝合后不是单一闭合壳（有破洞/多块）— 已按开放壳处理，布尔可能不稳') }
+  } catch { buildWarnings.push('網格轉換：縫合後不是單一閉合殼（有破洞/多塊）— 已按開放殼處理，布爾可能不穩') }
   try {
     const u = new _oc.ShapeUpgrade_UnifySameDomain_2(out, true, true, false)
     u.SetLinearTolerance(1e-5); u.SetAngularTolerance(0.01)
@@ -3030,7 +3030,7 @@ function sketchSlidFaceCandidates(planarFaces: { face: any; desc: ReturnType<typ
   return pick(strict.length ? strict : hits)
 }
 function resolveSketchFace(shape: any, binding: SketchFaceBinding): ResolvedSketchFace {
-  if (!shape) throw new Error('草图来源面失效：来源实体不存在')
+  if (!shape) throw new Error('草圖來源面失效：來源實體不存在')
   shape.mesh({ tolerance: 0.1, angularTolerance: 0.5 })
   // Exact geometric containment is independent of the display triangulation
   // fingerprint. It is never a nearest-face or nearest-point selection.
@@ -3087,7 +3087,7 @@ function resolveSketchFace(shape: any, binding: SketchFaceBinding): ResolvedSket
     const slid = sketchSlidFaceCandidates(planarFaces, binding)
     if (slid.length === 1) { candidates = slid; boundaryChanged = true }
   }
-  if (candidates.length !== 1) {throw new Error('草图来源面失效或有歧义：请修复面关联；已保留原模型')}
+  if (candidates.length !== 1) {throw new Error('草圖來源面失效或有歧義：請修復面關聯；已保留原模型')}
   // Fingerprints provide the same persistent identity vocabulary as other face
   // tools. Descriptor uniqueness is additionally required even if an old near
   // point would let the general face picker choose one of multiple candidates.
@@ -3098,7 +3098,7 @@ function resolveSketchFace(shape: any, binding: SketchFaceBinding): ResolvedSket
   const selected = _ffSelectPts(shape,binding.faceFp,[binding.near],binding.faceFpV2,binding.faceFpTopo)
   buildWarnings.splice(warningCount)
   if (!boundaryChanged && selected?.length && Math.abs(selected[0].reduce((sum: number,x: number,i: number)=>sum+x*desc.normal[i],0)-desc.offset)>1e-5)
-    throw new Error('草图来源面引用不一致：请重新选择来源面')
+    throw new Error('草圖來源面引用不一致：請重新選擇來源面')
   const delta = (boundaryChanged ? binding.normal.map(x=>x*(desc.offset-binding.offset)) : desc.center.map((x: number,i: number)=>x-binding.center[i])) as [number,number,number]
   const near=binding.near.map((x,i)=>x+delta[i]) as [number,number,number]
   const refs = _ffCapture(shape,[near])
@@ -3174,7 +3174,7 @@ function buildShape(features: Feature[], noCache = false): any {
   const applyTargetDeltas = (targets: string[], xforms: ((s: any) => any)[], label: string, nudge: [number, number, number] = [0, 0, 1]) => {
     for (const tid of targets) {
       const snap = cpSnap[tid]
-      if (!snap || !snap.after) throw new Error(`${label}：目标特征不存在或已被抑制，原模型保留`)
+      if (!snap || !snap.after) throw new Error(`${label}：目標特徵不存在或已被抑制，原模型保留`)
       const tf = features.find((x) => x.id === tid) as { operation?: string; op?: string } | undefined
       const wasCut = !!tf && (tf.operation === 'cut' || tf.op === 'cut' || (tf as { type?: string }).type === 'hole')
       try {
@@ -3189,7 +3189,7 @@ function buildShape(features: Feature[], noCache = false): any {
           const added = snap.before ? snap.after.clone().cut(snap.before.clone()) : snap.after.clone()
           if (added.faces.length) for (const xf of xforms) shape = fuseRobust(shape, xf(added.clone()), nudge)   // #70：兜底微沉沿真正错开方向（阵列轴/平移方向），唔再写死世界 Z
         }
-      } catch (e) { throw new Error(`${label}副本失败（目标 delta 布尔）：` + ((e as any)?.message || e)) }
+      } catch (e) { throw new Error(`${label}副本失敗（目標 delta 布爾）：` + ((e as any)?.message || e)) }
     }
   }
   // ── 增量重建（T730）：揾同上次特征序列嘅最长公共前缀，由该处快照续算 ──
@@ -3283,7 +3283,7 @@ function buildShape(features: Feature[], noCache = false): any {
       if ((candidate.type === 'extrude' || candidate.type === 'sketch' || candidate.type === 'revolve') && candidate.sketchFaceBinding) {
         const binding = candidate.sketchFaceBinding
         const sourceIndex = features.findIndex(x=>x.id===binding.sourceId)
-        if (sourceIndex < 0 || sourceIndex >= _i || failedFeatures.some(x=>x.id===binding.sourceId)) throw new Error('草图来源面失效：来源时间轴特征不存在或顺序无效')
+        if (sourceIndex < 0 || sourceIndex >= _i || failedFeatures.some(x=>x.id===binding.sourceId)) throw new Error('草圖來源面失效：來源時間軸特徵不存在或順序無效')
         const resolved = resolveSketchFace(_shapeHistory[sourceIndex],binding)
         resolvedSketchFaces[candidate.id] = resolved
         const d = resolved.delta
@@ -3338,12 +3338,12 @@ function buildShape(features: Feature[], noCache = false): any {
             if (bestPc != null) {
               const d = bestPc + (tf.offset || 0)
               if (Math.abs(d) >= 0.1) { effHeight = Math.abs(d); effDown = ((f.operation === 'cut' ? -1 : 1) * d) < 0 }
-              else buildWarnings.push('到面拉伸：目标面（含偏移）同草图面重合 — 已用上次已知高度')
-            } else buildWarnings.push('到面拉伸：找不到与任意草图面平行的目标面 — 已用上次已知高度')
+              else buildWarnings.push('到面拉伸：目標面（含偏移）同草圖面重合 — 已用上次已知高度')
+            } else buildWarnings.push('到面拉伸：找不到與任意草圖面平行的目標面 — 已用上次已知高度')
             if (_lastResolvedFaceFp?.length) { _resolvedFaceFp[f.id] = _lastResolvedFaceFp; _lastResolvedFaceFp = null }
             if (_lastResolvedFaceFpV2?.length) { _resolvedFaceFpV2[f.id] = _lastResolvedFaceFpV2; _lastResolvedFaceFpV2 = null }
             if (_lastResolvedFaceFpTopo?.length) { _resolvedFaceFpTopo[f.id] = _lastResolvedFaceFpTopo; _lastResolvedFaceFpTopo = null }
-          } catch (e) { buildWarnings.push('任意面到面拉伸解析失败：' + ((e as any)?.message || e) + ' — 已用上次已知高度') }
+          } catch (e) { buildWarnings.push('任意面到面拉伸解析失敗：' + ((e as any)?.message || e) + ' — 已用上次已知高度') }
         }
         const h = f.operation === 'cut' && !f.exactDistance ? effHeight + 1 : effHeight
         // GM-W1 1.3：尊重 f.down（⇅ 反向）— 旧版方向硬编 cut→−n / add→+n，斜面/角度面草图撳反向完全无效
@@ -3420,12 +3420,12 @@ function buildShape(features: Feature[], noCache = false): any {
             const tOff = bestPc + (tf.offset || 0)
             const d = tOff - base
             if (Math.abs(d) >= 0.1) { effHeight = Math.abs(d); effDown = (RES_SIGN[plane] * d) < 0 }
-            else buildWarnings.push('到面拉伸：目标面（含偏移）同草图面重合 — 已用上次已知高度')
-          } else buildWarnings.push('到面拉伸：找不到目标面（可能被上游特征食了/删除/转向）— 已用上次已知高度')
+            else buildWarnings.push('到面拉伸：目標面（含偏移）同草圖面重合 — 已用上次已知高度')
+          } else buildWarnings.push('到面拉伸：找不到目標面（可能被上游特徵食了/刪除/轉向）— 已用上次已知高度')
           { const _cap = _lastResolvedFaceFp; if (_cap && _cap.length) { _resolvedFaceFp[f.id] = _cap; _lastResolvedFaceFp = null } }
           { const _capV2 = _lastResolvedFaceFpV2; if (_capV2 && _capV2.length) { _resolvedFaceFpV2[f.id] = _capV2; _lastResolvedFaceFpV2 = null } }
           { const _capTopo = _lastResolvedFaceFpTopo; if (_capTopo && _capTopo.length) { _resolvedFaceFpTopo[f.id] = _capTopo; _lastResolvedFaceFpTopo = null } }
-        } catch (e) { buildWarnings.push('到面拉伸解析失败：' + ((e as any)?.message || e) + ' — 已用上次已知高度') }
+        } catch (e) { buildWarnings.push('到面拉伸解析失敗：' + ((e as any)?.message || e) + ' — 已用上次已知高度') }
       }
       if (f.operation === 'cut' && f.through) {
         // "Through-all" cut (used by face sketches): a huge prism centred on the sketch
@@ -3539,7 +3539,7 @@ function buildShape(features: Feature[], noCache = false): any {
           let s: any = Object.keys(rcfg).length ? (sk as any).revolve(rax, rcfg) : sk.revolve(rax)
           if (f.symmetric && ang > 0 && ang < 360) {
             const org = (f.axisOrigin || [0, 0, 0]) as [number, number, number]
-            try { s = s.rotate(-ang / 2, org, rax) } catch (e) { buildWarnings.push('对称旋转回转失败（' + ((e as Error)?.message || e) + '）— 已用单向') }
+            try { s = s.rotate(-ang / 2, org, rax) } catch (e) { buildWarnings.push('對稱旋轉回轉失敗（' + ((e as Error)?.message || e) + '）— 已用单向') }
           }
           if (!(_volOf(s) > 1e-6)) return { solid: null, err: 'zero-volume' }
           return { solid: s }
@@ -3664,11 +3664,11 @@ function buildShape(features: Feature[], noCache = false): any {
     } else if (f.type === 'stepbody') {
       // STEP B-rep 导入（T729）：预解析缓存攞 shape，clone 落树（缓存母本唔俾布尔消耗）
       const sh = stepCache.get(stepCacheKey(f))
-      if (!sh) buildWarnings.push('⚠ STEP 实体解析失败/未就绪 — 已跳过（检查文件是即有效 STEP）')
+      if (!sh) buildWarnings.push('⚠ STEP 實體解析失敗/未就緒 — 已跳過（檢查文件是即有效 STEP）')
       else merge(sh.clone(), f.op)
     } else if (f.type === 'newbody') {
       // 独立实体当前活动实体 → 开新实体（之后嘅特征全部作用喺新实体；独立实体喺视口灰显）
-      if (!shape) buildWarnings.push('⚠ 新实体：当前没有活动实体可另存为独立实体 — 已忽略（先起一个实体）')
+      if (!shape) buildWarnings.push('⚠ 新實體：當前沒有活動實體可另存為獨立實體 — 已忽略（先起一個實體）')
       else { parkedBodies.push({ name: f.name || `實體${parkedBodies.length + 1}`, shape }); shape = null }
     } else if (f.type === 'activatebody') {
       // ASM2 P1：獨立實體 → 活動實體（與當前活動實體對調；無活動實體則提升並移出清單）
@@ -3771,7 +3771,7 @@ function buildShape(features: Feature[], noCache = false): any {
       if (f.fullRound) {
         shape = _fullRoundFillet(shape, f.fullRound)
       } else if (f.asymmetric) {
-        if (!f.nears?.length) throw new Error('不对称圆角：请至少选择一条边')
+        if (!f.nears?.length) throw new Error('不對稱圓角：請至少選擇一條邊')
         shape = asymmetricFilletNearPoints(shape, f.nears, f.radii ?? f.radius, f.asymmetric.offset2, !!f.asymmetric.flip)
       } else if (f.rule) {
         const mids = _ruleFilletMids(shape, f.rule)
@@ -3799,7 +3799,7 @@ function buildShape(features: Feature[], noCache = false): any {
       if (f.faceFp?.length === 2) {
         const resolved = _ffSelectPts(shape, f.faceFp, [f.near1, f.near2], f.faceFpV2, f.faceFpTopo)
         if (resolved?.length === 2) { n1 = resolved[0]; n2 = resolved[1] }
-        else buildWarnings.push('面圆角：面指纹无法唯一解析，已退回原拾面点')
+        else buildWarnings.push('面圓角：面指紋無法唯一解析，已退回原拾面點')
       }
       shape = faceFillet(shape, f.radius, n1, n2)
     } else if (f.type === 'shell' && shape) {
@@ -4058,7 +4058,7 @@ function buildShape(features: Feature[], noCache = false): any {
                 if (chain.length > seeds.length && faces.length === chain.length && faces.every((v, j) => v === chain[j])) continue // defer G1 chain
                 const got = tryBases(faces, false) || tryBases(faces, true)
                 if (got) {
-                  buildWarnings.push('抽壳：已用共面开口集合完成')
+                  buildWarnings.push('抽殼：已用共面開口集合完成')
                   return got
                 }
               }
@@ -4083,7 +4083,7 @@ function buildShape(features: Feature[], noCache = false): any {
               for (const faces of altOpenings) {
                 const got = tryBases(faces, false) || tryBases(faces, true)
                 if (got) {
-                  buildWarnings.push('抽壳：原开口 OCCT 未收敛，已改用其他平面开口')
+                  buildWarnings.push('抽殼：原開口 OCCT 未收斂，已改用其他平面開口')
                   return got
                 }
               }
@@ -4093,7 +4093,7 @@ function buildShape(features: Feature[], noCache = false): any {
                 const got = tryBases(faces, false) || tryBases(faces, true)
                 if (got) {
                   if (!chainReported && chain.length > seeds.length && faces.length === chain.length && faces.every((v, j) => v === chain[j])) {
-                    buildWarnings.push(`抽壳切线链：由 ${seeds.length} 个所选面扩展到 ${chain.length} 个 G1 连续面`)
+                    buildWarnings.push(`抽殼切線鏈：由 ${seeds.length} 個所選面擴展到 ${chain.length} 個 G1 連續面`)
                     chainReported = true
                   }
                   return got
@@ -4146,7 +4146,7 @@ function buildShape(features: Feature[], noCache = false): any {
         }
         shape = shelled
       }
-      else if (!(f.thickness > 0)) throw new Error(`抽壳：壁厚必须 > 0（值 ${f.thickness} 非法）`)   // t≤0 must fail (rollback) — never silently skip / keep illegal shell in history
+      else if (!(f.thickness > 0)) throw new Error(`抽殼：壁厚必須 > 0（值 ${f.thickness} 非法）`)   // t≤0 must fail (rollback) — never silently skip / keep illegal shell in history
       else throw new Error('抽殼無法按指定壁厚及方向完成，已保留原模型；請調整壁厚或開口面')
       { const _cap = _lastResolvedFaceFp as string[] | null; if (_cap && _cap.length) { _resolvedFaceFp[f.id] = _cap; _lastResolvedFaceFp = null } }
       { const _capV2 = _lastResolvedFaceFpV2 as string[] | null; if (_capV2 && _capV2.length) { _resolvedFaceFpV2[f.id] = _capV2; _lastResolvedFaceFpV2 = null } { const _capTopo = _lastResolvedFaceFpTopo as string[] | null; if (_capTopo && _capTopo.length) { _resolvedFaceFpTopo[f.id] = _capTopo; _lastResolvedFaceFpTopo = null } } }   // S136：v2 平行写回
@@ -4166,7 +4166,7 @@ function buildShape(features: Feature[], noCache = false): any {
       // #pattern（audit）：对称模式 —— 原件居中，副本向两边铺（Fusion Symmetric direction）。缺省单向（i:0..n−1）逐字节不变。
       //   symX/symY/symZ 各轴独立：sym ⇒ 有效索引 = i − (count−1)/2（居中）。
       //   【只对奇数计数套用】：偶数计数居中会令原件夹喺副本之间产生 count+1 个实例（语义歧义）→ 偶数退单向 + 诚实警告，杜绝错误输出。
-      if ((f.symX && cx % 2 === 0) || (f.symY && cy % 2 === 0) || (f.symZ && cz % 2 === 0)) buildWarnings.push('⚠ 对称阵列：某轴数量为偶数 → 该轴已退回单向（对称居中需奇数数量，原件占中心）')
+      if ((f.symX && cx % 2 === 0) || (f.symY && cy % 2 === 0) || (f.symZ && cz % 2 === 0)) buildWarnings.push('⚠ 對稱陣列：某軸數量為偶數 → 該軸已退回單向（對稱居中需奇數數量，原件占中心）')
       const sX = (f.symX && cx % 2 === 1) ? (cx - 1) / 2 : 0, sY = (f.symY && cy % 2 === 1) ? (cy - 1) / 2 : 0, sZ = (f.symZ && cz % 2 === 1) ? (cz - 1) / 2 : 0
       const ei = (i: number) => i - sX, ej = (j: number) => j - sY, ek = (k: number) => k - sZ
       // 阵列平移量（i,j,k）：hasDir ⇒ i*dx 沿 u1 + j*dy 沿 u2（+k*dz 沿世界 Z）；否则原样世界轴算式（byte-identical 当无 sym）。
@@ -4228,7 +4228,7 @@ function buildShape(features: Feature[], noCache = false): any {
       } else {
         // Additive grid / 整個實體：fuse translated copies of the whole solid (circPattern body path 同款).
         // 审计修复：退化间距守卫 —— 所有阵列方向步距=0 但 count>1 → 副本全重叠、几何零变化（假成功）。诚实警告。
-        if ((cx > 1 || cy > 1 || cz > 1) && (cx <= 1 || f.dx === 0) && (cy <= 1 || f.dy === 0) && (cz <= 1 || dz === 0)) buildWarnings.push('⚠ 矩形阵列：阵列方向间距为 0，副本全部重叠（几何无变化）— 请设非零间距')
+        if ((cx > 1 || cy > 1 || cz > 1) && (cx <= 1 || f.dx === 0) && (cy <= 1 || f.dy === 0) && (cz <= 1 || dz === 0)) buildWarnings.push('⚠ 矩形陣列：陣列方向間距為 0，副本全部重疊（幾何無變化）— 請設非零間距')
         const base = shape
         let acc = base
         for (let i = 0; i < cx; i++) for (let j = 0; j < cy; j++) for (let k = 0; k < cz; k++) {
@@ -4250,14 +4250,14 @@ function buildShape(features: Feature[], noCache = false): any {
               pacc = fuseRobust(pacc, pbase.clone().translate(tx, ty, tz))
             }
             pb.shape = pacc
-          } catch (e) { buildWarnings.push(`⚠ 矩形阵列独立实体「${pb.name}」失败：` + ((e as any)?.message || e)) }
+          } catch (e) { buildWarnings.push(`⚠ 矩形陣列獨立實體「${pb.name}」失敗：` + ((e as any)?.message || e)) }
         }
       }
     } else if (f.type === 'geoPattern' && shape) {
       // Fusion-style Geometric Pattern V1.  Unlike rectangular/circular patterns,
       // each copy has an explicit rigid transform.  We deliberately reuse the
       // snapshot-delta path so cut features remain cuts rather than filling holes.
-      if (!f.targets?.length) buildWarnings.push('Geometric Pattern：未选择时间轴特征 — 已跳过')
+      if (!f.targets?.length) buildWarnings.push('Geometric Pattern：未選擇時間軸特徵 — 已跳過')
       else {
         const xforms = (f.instances || []).flatMap((inst, index) => {
           if (f.suppress?.[index]) return []
@@ -4266,7 +4266,7 @@ function buildShape(features: Feature[], noCache = false): any {
           const hasMove = Math.hypot(t[0], t[1], t[2]) > 1e-8
           const axisLen = r ? Math.hypot(r.axis[0], r.axis[1], r.axis[2]) : 0
           const hasTurn = !!r && axisLen > 1e-8 && Math.abs(r.angle) > 1e-8
-          if (!hasMove && !hasTurn) { buildWarnings.push(`Geometric Pattern：实例 ${index + 1} 变换为零，已跳过`); return [] }
+          if (!hasMove && !hasTurn) { buildWarnings.push(`Geometric Pattern：實例 ${index + 1} 變換為零，已跳過`); return [] }
           return [(s: any) => {
             let out = s
             if (hasTurn && r) out = out.rotate(r.angle, r.origin, [r.axis[0] / axisLen, r.axis[1] / axisLen, r.axis[2] / axisLen])
@@ -4378,7 +4378,7 @@ function buildShape(features: Feature[], noCache = false): any {
         // full hemisphere z∈[0,r]; 0<c<r → shallow cap z∈[0,c] of a larger sphere — watch-glass/lens/button).
         const r = Math.max(0.1, f.a), h = (f.c && f.c > 0 && f.c < r) ? f.c : r, cutZ = r - h   // bt3: 守 r≤0 退化球冠
         // #66 GM-L2：冠高超过半径时只可能封顶为半球（h 上面已钳 = r，几何不变）—— 诚实提示用户实际得到半球，唔好静默当成功
-        if (f.c && f.c > r) buildWarnings.push('球冠高超过半径，已封顶为半球')
+        if (f.c && f.c > r) buildWarnings.push('球冠高超過半徑，已封頂為半球')
         let dome = makeSphere(r).cut(makeBaseBox(4 * r + 20, 4 * r + 20, 2 * r + 20).translate(0, 0, -(2 * r + 20) + cutZ))
         if (cutZ !== 0) dome = dome.translate(0, 0, -cutZ)
         solid = dome
@@ -4466,7 +4466,7 @@ function buildShape(features: Feature[], noCache = false): any {
           }
           if (okCount) { const _cap = _lastResolvedFaceFp as string[] | null; if (_cap && _cap.length) { _resolvedFaceFp[f.id] = _cap; _lastResolvedFaceFp = null } { const _capV2 = _lastResolvedFaceFpV2 as string[] | null; if (_capV2 && _capV2.length) { _resolvedFaceFpV2[f.id] = _capV2; _lastResolvedFaceFpV2 = null } { const _capTopo = _lastResolvedFaceFpTopo as string[] | null; if (_capTopo && _capTopo.length) { _resolvedFaceFpTopo[f.id] = _capTopo; _lastResolvedFaceFpTopo = null } } } }   // S136：v2 平行写回（有成功先写）
         }
-      } catch (e) { buildWarnings.push('删面失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('刪面失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'thickenface' && shape) {
       // T811（S曲面）：加厚拾取面成实体薄板（C++ DirectEditWrapper.ThickenFaceNear / MakeThickSolidBySimple）。
       // CORE16 #1：多面（nears）、方向 pos/neg/both（對稱）、操作 newbody（缺省，獨立實體獨立體）/ join（併入活動體）。
@@ -4512,9 +4512,9 @@ function buildShape(features: Feature[], noCache = false): any {
         else {
           const res = w.OffsetSurfaceNear(shape.wrapped, f.near[0], f.near[1], f.near[2], f.dist || 2)
           if (res && !res.IsNull()) parkedBodies.push({ name: '偏移曲面', shape: cast(res) })
-          else buildWarnings.push('偏移曲面失败（该面不适合偏移 / 距离过大自交）— 保持原样')
+          else buildWarnings.push('偏移曲面失敗（該面不適合偏移 / 距離過大自交）— 保持原樣')
         }
-      } catch (e) { buildWarnings.push('偏移曲面失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('偏移曲面失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'offsetsolid' && shape) {
       // S 整体偏移实体 Offset Solid：均匀偏移实体所有面（加厚铸件壁/3D 打印补偿/外扩缩）。BRepOffsetAPI_MakeOffsetShape
       // PerformByJoin（Skin 模式 + Arc 接合圆角凸边）。raw _oc 经 GCWithScope r() 管理（实证未包 r() 触发 9108520）。
@@ -4603,9 +4603,9 @@ function buildShape(features: Feature[], noCache = false): any {
             const res = w.ExtendFaceNear(src.wrapped, f.near[0], f.near[1], f.near[2], Math.max(0.05, f.ext || 5))
             if (res && !res.IsNull()) { parkedBodies.push({ name: '延伸曲面', shape: cast(res) }); done = true; break }
           }
-          if (!done) buildWarnings.push('曲面延伸失败（该面不适合延伸 / 长度过大）— 保持原样')
+          if (!done) buildWarnings.push('曲面延伸失敗（該面不適合延伸 / 長度過大）— 保持原樣')
         }
-      } catch (e) { buildWarnings.push('曲面延伸失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('曲面延伸失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'splitface' && shape) {
       // S99 Split Face：用平面喺最近面 imprint 一条交线，把面拓扑切两半（等体积，子面 faceGroups 各自独立可拣）。
       try {
@@ -4661,9 +4661,9 @@ function buildShape(features: Feature[], noCache = false): any {
           else { const _c = _ffCapture(shape, [f.near]); _lastResolvedFaceFp = _c.v1; _lastResolvedFaceFpV2 = _c.v2; _lastResolvedFaceFpTopo = _c.topo }
           const res = w.ReplaceFaceNear(shape.wrapped, P[0], P[1], P[2], f.planeOrigin[0], f.planeOrigin[1], f.planeOrigin[2], f.planeNormal[0], f.planeNormal[1], f.planeNormal[2])
           if (res && !res.IsNull()) { shape = cast(res); const _cap = _lastResolvedFaceFp as string[] | null; if (_cap && _cap.length) { _resolvedFaceFp[f.id] = _cap; _lastResolvedFaceFp = null } { const _capV2 = _lastResolvedFaceFpV2 as string[] | null; if (_capV2 && _capV2.length) { _resolvedFaceFpV2[f.id] = _capV2; _lastResolvedFaceFpV2 = null } { const _capTopo = _lastResolvedFaceFpTopo as string[] | null; if (_capTopo && _capTopo.length) { _resolvedFaceFpTopo[f.id] = _capTopo; _lastResolvedFaceFpTopo = null } } } }   // S136：v2 平行写回
-          else buildWarnings.push('替换面失败（平面与实体不相交 / 退化）— 保持原样')
+          else buildWarnings.push('替換面失敗（平面與實體不相交 / 退化）— 保持原樣')
         }
-      } catch (e) { buildWarnings.push('替换面失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('替換面失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'moveface' && shape) {
       // GM-B2 移动面 Move Face v1 + GM-L2 v2 多面串链：拾一张或多张【平面】面 →
       //   offset（缺省）：dist<0 用 ReplaceFaceNear 把面朝内推、邻面（含相邻圆角）由内核重解（probe P1c/P7b）；
@@ -4731,7 +4731,7 @@ function buildShape(features: Feature[], noCache = false): any {
             } else {
               // tilt（plan 保证单面）：平面绕【过面心嘅面内轴】倾 angle°（Rodrigues），ReplaceFaceNear 喂倾斜平面（probe P4）
               const tri = bestF.triangulation ? bestF.triangulation() : null
-              if (!tri || !tri.vertices || !tri.vertices.length) { buildWarnings.push('移动面倾斜：面三角化失败 — 跳过') }
+              if (!tri || !tri.vertices || !tri.vertices.length) { buildWarnings.push('移動面傾斜：面三角化失敗 — 跳過') }
               else {
                 const V = tri.vertices as number[]; const nv = V.length / 3
                 let cxf = 0, cyf = 0, czf = 0; for (let i = 0; i < V.length; i += 3) { cxf += V[i]; cyf += V[i + 1]; czf += V[i + 2] }
@@ -4775,7 +4775,7 @@ function buildShape(features: Feature[], noCache = false): any {
             { const _capTopo = _lastResolvedFaceFpTopo as string[] | null; if (_capTopo && _capTopo.length) { _resolvedFaceFpTopo[f.id] = _capTopo; _lastResolvedFaceFpTopo = null } }
           }
         }
-      } catch (e) { buildWarnings.push('移动面失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('移動面失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'surfsew') {
       // S86 曲面缝合 Stitch：把所有曲面/壳体（parkedBodies）的面缝成一个 shell（BRepBuilderAPI_Sewing
       // 共边焊接）；NbFreeEdges()==0（闭合）→ ShapeFix_Solid 转实体。结果取代 parkedBodies；
@@ -4853,8 +4853,8 @@ function buildShape(features: Feature[], noCache = false): any {
         if (shell && shell.wrapped && !shell.wrapped.IsNull()) {
           if (f.symmetric) { const o = -h0 / 2; const t: [number, number, number] = plane === 'XZ' ? [0, o, 0] : plane === 'YZ' ? [o, 0, 0] : [0, 0, o]; shell = shell.translate(t[0], t[1], t[2]) }
           parkedBodies.push({ name: '拉伸曲面', shape: shell })
-        } else buildWarnings.push('曲面拉伸失败（截面无效）')
-      } catch (e) { buildWarnings.push('曲面拉伸失败：' + ((e as any)?.message || e)) }
+        } else buildWarnings.push('曲面拉伸失敗（截面無效）')
+      } catch (e) { buildWarnings.push('曲面拉伸失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'surfsweep') {
       // S曲面 曲面扫掠：开放截面 wire 沿你画的开放路径 spine 做 genericSweep → 零厚开放曲面壳（风道/导流板/管壁皮）。
       // 出 parked 曲面体（唔强转实体；要实体用「加厚」或「缝合」）。开放截面镜 surfextrude:1738-1742 .done() 开放 wire；
@@ -4883,15 +4883,15 @@ function buildShape(features: Feature[], noCache = false): any {
           let pen = draw([f.path[0][0], f.path[0][1]])
           for (let i = 1; i < f.path.length; i++) pen = pen.lineTo([f.path[i][0], f.path[i][1]])
           spine = (pen.done().sketchOnPlane('XY') as any).wire
-        } else { buildWarnings.push('曲面扫掠：路径无效（需 ≥2 点开放折线）') }
+        } else { buildWarnings.push('曲面掃掠：路徑無效（需 ≥2 點開放折線）') }
         if (spine) {
           const shell: any = genericSweep(profWire, spine, { forceProfileSpine: true } as any)
           let bbOk = false
           try { const bb = (shell as any).boundingBox.bounds as [number[], number[]]; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 抛 = 无界 */ }
           if (shell && shell.wrapped && !shell.wrapped.IsNull() && bbOk) parkedBodies.push({ name: '扫掠曲面', shape: shell })
-          else buildWarnings.push('曲面扫掠失败（截面/路径无效或扫出无界形）')
+          else buildWarnings.push('曲面掃掠失敗（截面／路徑無效或掃出無界形）')
         }
-      } catch (e) { buildWarnings.push('曲面扫掠失败：' + ((e as any)?.message || e)) }
+      } catch (e) { buildWarnings.push('曲面掃掠失敗：' + ((e as any)?.message || e)) }
     } else if (f.type === 'surfrevolve') {
       // S曲面 曲面旋转：开放截面 Sketch 绕轴 .revolve → 零厚开放旋转曲面壳（灯罩/喷嘴/花瓶皮/涡轮毂）。
       // 出 parked 曲面体（唔强转实体；要实体用「加厚」或「缝合」）。开放 Sketch 镜 surfextrude:1738-1742 .done()
@@ -5008,10 +5008,10 @@ function buildShape(features: Feature[], noCache = false): any {
             let bbOk = false
             try { const bb = (r as any).boundingBox.bounds as [number[], number[]]; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 抛 = 无界 */ }
             if (bbOk) { parkedBodies[f.target] = { name: t.name, shape: r }; buildWarnings.push(f.planeOrigin && f.planeNormal ? `平面裁剪：${t.name} 已裁（任意平面 @${f.planeOrigin.map((x) => +x.toFixed(0)).join(',')}）保留${f.keep === 'neg' ? '−' : '+'}侧` : `平面裁剪：${t.name} 已裁 ${f.plane}=${f.offset} 保留${f.keep === 'neg' ? '−' : '+'}侧`) }
-            else buildWarnings.push('平面裁剪失败（结果无界）— 保持不变')
+            else buildWarnings.push('平面裁剪失敗（結果無界）— 保持不變')
           }
-          else buildWarnings.push('平面裁剪失败（平面未与曲面相交 / 结果空）— 保持不变')
-        } catch (e) { buildWarnings.push('平面裁剪失败：' + ((e as any)?.message || e)) }
+          else buildWarnings.push('平面裁剪失敗（平面未與曲面相交 / 結果空）— 保持不變')
+        } catch (e) { buildWarnings.push('平面裁剪失敗：' + ((e as any)?.message || e)) }
       }
     } else if (f.type === 'surfsurftrim') {
       // S155 曲面-曲面裁剪：用第二张独立曲面（tool>=0）或活动实体（tool=-1）做裁刀 imprint 分割目标曲面，
@@ -5044,7 +5044,7 @@ function buildShape(features: Feature[], noCache = false): any {
           ba.Build(ip)
           let fused: any = null
           if (ba.IsDone()) { const sh = ba.Shape(); if (sh && !sh.IsNull()) fused = cast(sh) }
-          if (!fused || !fused.wrapped || fused.wrapped.IsNull()) { buildWarnings.push('曲面裁剪失败（裁刀与曲面不相交 / general-fuse 返空）— 保持不变') }
+          if (!fused || !fused.wrapped || fused.wrapped.IsNull()) { buildWarnings.push('曲面裁剪失敗（裁刀與曲面不相交 / general-fuse 返空）— 保持不變') }
           else {
             try { fused.mesh({ tolerance: 0.1, angularTolerance: 0.3 }) } catch { /* 三角化供下面逐面采样 */ }
             try { (t.shape as any).mesh({ tolerance: 0.1, angularTolerance: 0.3 }) } catch { /* 原目标三角化供「源自目标」判定 */ }
@@ -5090,7 +5090,7 @@ function buildShape(features: Feature[], noCache = false): any {
             let scale = 1
             try { const bb = (t.shape as any).boundingBox.bounds as [number[], number[]]; scale = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]) || 1 } catch { scale = 1 }
             const onTol2 = Math.pow(Math.max(1e-3, scale * 2e-3), 2)
-            if (!allFaces || !allFaces.length || !tgtTris.length) { buildWarnings.push('曲面裁剪失败（结果无面 / 目标无三角化）— 保持不变') }
+            if (!allFaces || !allFaces.length || !tgtTris.length) { buildWarnings.push('曲面裁剪失敗（結果無面 / 目標無三角化）— 保持不變') }
             else {
               // ── 2. 分类【源自目标】嘅结果面（cell）：抽样面三角质心，多数落喺目标曲面上 → 用 BOP imprint 后真实拓扑，唔靠 bbox 猜 ──
               const cells: { fc: any; tris: number[][] }[] = []
@@ -5101,7 +5101,7 @@ function buildShape(features: Feature[], noCache = false): any {
                 for (let i = 0; i < tris.length; i += step) { const T = tris[i]; const cx = (T[0] + T[3] + T[6]) / 3, cy = (T[1] + T[4] + T[7]) / 3, cz = (T[2] + T[5] + T[8]) / 3; tot++; if (minToTris(cx, cy, cz, tgtTris) <= onTol2) on++ }
                 if (tot > 0 && on / tot >= 0.6) cells.push({ fc, tris })   // 落选 = 源自裁刀嘅面（唔留）
               }
-              if (!cells.length) { buildWarnings.push('曲面裁剪失败（结果中无源自目标的面 — 裁刀可能未真正相交）— 保持不变') }
+              if (!cells.length) { buildWarnings.push('曲面裁剪失敗（結果中無源自目標的面 — 裁刀可能未真正相交）— 保持不變') }
               else if (cells.length === 1) { buildWarnings.push('曲面裁剪：裁刀未把目标切开（交线未贯穿目标）— 保持不变') }
               else {
                 // ── 3. 留 keep 世界点最近嗰张 cell 面（点到面三角最短距；cell = 交线分割出嘅区域，edge-adjacent 唔会误并）──
@@ -5119,7 +5119,7 @@ function buildShape(features: Feature[], noCache = false): any {
               }
             }
           }
-        } catch (e) { buildWarnings.push('曲面裁剪失败：' + ((e as any)?.message || e)) }
+        } catch (e) { buildWarnings.push('曲面裁剪失敗：' + ((e as any)?.message || e)) }
       }
     } else if (f.type === 'untrim') {
       // S150 去裁 Untrim（surftrim 的逆）：丢弃每张面嘅裁剪边界，把面重建到底层几何曲面嘅【完整自然 UV 范围】。
@@ -5163,7 +5163,7 @@ function buildShape(features: Feature[], noCache = false): any {
                 if (fw && !fw.IsNull()) { rebuilt.push(fw); ok++ } else rebuilt.push(faces[i].wrapped)
               } catch { rebuilt.push(faces[i].wrapped) }
             }
-            if (ok < 1) { buildWarnings.push('去裁失败（所有面都重无法建自然边界 / 底层曲面无界）— 曲面保持不变') }
+            if (ok < 1) { buildWarnings.push('去裁失敗（所有面都重無法建自然邊界 / 底層曲面無界）— 曲面保持不變') }
             else {
               let result: any = null
               if (rebuilt.length === 1) { result = cast(rebuilt[0]) }
@@ -5185,10 +5185,10 @@ function buildShape(features: Feature[], noCache = false): any {
                   parkedBodies[f.target] = { name: t.name, shape: result }
                   buildWarnings.push(`去裁：${t.name} 已还原到自然边界（${faces.length} 面，${ok} 张重建成功）`)
                 } else { buildWarnings.push('去裁：重建含无界面（无限曲面）— 已 fail-safe 保持不变（避免曲面消失）') }
-              } else { buildWarnings.push('去裁失败（重建结果空 / 缝合返回空）— 曲面保持不变') }
+              } else { buildWarnings.push('去裁失敗（重建結果空 / 縫合返回空）— 曲面保持不變') }
             }
           }
-        } catch (e) { buildWarnings.push('去裁失败：' + ((e as any)?.message || e)) }
+        } catch (e) { buildWarnings.push('去裁失敗：' + ((e as any)?.message || e)) }
       }
     } else if (f.type === 'mergefaces') {
       // S 合并面 Unify-Same-Domain：把独立曲面/壳上同域（共面/共柱）邻面合并成单张面 —
@@ -5250,7 +5250,7 @@ function buildShape(features: Feature[], noCache = false): any {
               }
               const shell = cast(r(new _oc.BRepBuilderAPI_MakeShell_2(bs.UReversed(), false)).Shell())
               if (shell && shell.wrapped && !shell.wrapped.IsNull()) { parkedBodies[f.target] = { name: t.name, shape: shell }; buildWarnings.push(`极点编辑：${t.name} 改了 ${moved} 个控制点（${nu}×${nv} 网格）`) }
-              else buildWarnings.push('极点编辑失败（重建壳为空）— 保持不变')
+              else buildWarnings.push('極點編輯失敗（重建殼為空）— 保持不變')
             } else {
               // ── 多面壳：CROSS-FACE SHARED-POLE CO-MOVE（S140）──（planar-guard NurbsConvert-FIRST，读路径同写路径一致 _nurbsNetOfFace）。
               // 旧 S139：只变形 face fi、其余 N-1 张原样 → 任何落喺共享边嘅极点一动即撕（freeEdges 升）→ HARD-FLOOR 拒。
@@ -5361,7 +5361,7 @@ function buildShape(features: Feature[], noCache = false): any {
               }
             }
           }
-        } catch (e) { buildWarnings.push('极点编辑失败：' + ((e as any)?.message || e)) }
+        } catch (e) { buildWarnings.push('極點編輯失敗：' + ((e as any)?.message || e)) }
       }
     } else if (f.type === 'surfloft') {
       // T792（S71 曲面工作流 v1）：开放折线截面「薄壳放样」— 截面喺自己平面内向两侧偏 ±wall/2 +
@@ -5533,7 +5533,7 @@ function buildShape(features: Feature[], noCache = false): any {
             if (best) { const key = `${sources.indexOf(best.src)}#${best.idx}`; if (!seen.has(key)) { seen.add(key); picks.push(best) } }
           }
           if (picks.length < 2) {
-            buildWarnings.push('邊界補面：拾邊無法解析足夠棱（≥2）— 保持不變')
+            buildWarnings.push('邊界補面：拾邊無法解析足夠稜（≥2）— 保持不變')
           } else {
             const r = GCWithScope()
             // MakeFilling 默认构造未导出 → 试无参，再退回 10 参 OCCT 默认值（Degree=3,NbPtsOnCur=15,NbIter=2,Anisotropie=false,Tol2d=1e-5,Tol3d=1e-4,TolAng=1e-2,TolCurv=0.1,MaxDeg=8,MaxSeg=9）。
@@ -6132,9 +6132,9 @@ function buildShape(features: Feature[], noCache = false): any {
           const b = new _oc.BRepBuilderAPI_GTransform_2(shape.wrapped, g, true)
           const out = cast(b.Shape())
           if (out && out.wrapped && !out.wrapped.IsNull()) shape = out
-          else buildWarnings.push('非等比缩放失败 — 已保持原形')
+          else buildWarnings.push('非等比縮放失敗 — 已保持原形')
           g.delete()
-        } catch (e) { buildWarnings.push('非等比缩放失败：' + ((e as any)?.message || e)) }
+        } catch (e) { buildWarnings.push('非等比縮放失敗：' + ((e as any)?.message || e)) }
       } else if (sx > 0 && sx === sy && sy === sz) {
         shape = hasPt ? shape.translate(-px, -py, -pz).scale(sx).translate(px, py, pz) : shape.scale(sx)   // 三轴相同 → 行返等比（B-rep 更稳）
       } else {
@@ -6166,7 +6166,7 @@ function buildShape(features: Feature[], noCache = false): any {
         else shape = shape.draft(-f.angle, sel, neutral)
         { const _cap = _lastResolvedFaceFp as string[] | null; if (_cap && _cap.length) { _resolvedFaceFp[f.id] = _cap; _lastResolvedFaceFp = null } }   // S129：捕获嘅侧面指纹交 store 写回
         { const _capV2 = _lastResolvedFaceFpV2 as string[] | null; if (_capV2 && _capV2.length) { _resolvedFaceFpV2[f.id] = _capV2; _lastResolvedFaceFpV2 = null } { const _capTopo = _lastResolvedFaceFpTopo as string[] | null; if (_capTopo && _capTopo.length) { _resolvedFaceFpTopo[f.id] = _capTopo; _lastResolvedFaceFpTopo = null } } }   // S136：v2 平行写回
-      } catch (e) { buildWarnings.push('拔模失败：' + ((e as any)?.message || e)); failedFeatures.push({ id: f.id, type: 'draft', msg: '拔模失败（边已被圆角/倒角吃掉或侧面识别失败）— 已保留原形' }) }   // 审计修复：标 failed 令时间轴标红 + store 唔再硬报「已拔模」（fillet→draft 矛盾状态）
+      } catch (e) { buildWarnings.push('拔模失敗：' + ((e as any)?.message || e)); failedFeatures.push({ id: f.id, type: 'draft', msg: '拔模失敗（邊已被圓角/倒角吃掉或側面識別失敗）— 已保留原形' }) }   // 审计修复：标 failed 令时间轴标红 + store 唔再硬报「已拔模」（fillet→draft 矛盾状态）
     } else if (f.type === 'cpattern' && shape) {
       const n = Math.max(1, Math.round(f.count))   // 审计修复：旧版 Math.max(2,..) 把 count=1 静默钳到 2 多复制一个（与矩形阵列 Math.max(1,..) 不一致）；n=1 → 下面循环 i<1 不执行 = identity
       const ax: [number, number, number] = f.axis === 'X' ? [1, 0, 0] : f.axis === 'Y' ? [0, 1, 0] : [0, 0, 1]

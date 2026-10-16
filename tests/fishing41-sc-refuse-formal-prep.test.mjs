@@ -1,11 +1,10 @@
 /**
- * BOT-D more26 / FISHING41 harden — Formal TC pins for high-priority
+ * BOT-D more26 / FISHING41+42 harden — Formal TC pins for high-priority
  * store/worker common refuse / fail / gate strings.
  *
- * Hard (tip ≥440f105 FISHING41): store refuse/fail/gate Formal TC present,
- *   SC gone; FISHING40 loft/thicken Formal regression.
- * Soft→hard remaining: worker face-fillet / offset / delete-face / surf-sweep
- *   refuses still SC on tip — FISHING42 converts → hard PASS (no soft).
+ * Hard (tip ≥440f105 FISHING41): store refuse/fail/gate Formal TC.
+ * Hard (FISHING42): worker facefillet / offset / deleteface / surfsweep Formal TC.
+ * Always-hard: FISHING40 loft/thicken Formal regression.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -20,25 +19,11 @@ const workerPath = join(root, 'src/worker/cad.worker.ts')
 const st = readFileSync(storePath, 'utf8')
 const w = readFileSync(workerPath, 'utf8')
 
-/** Soft→hard Formal pin (worker leftovers until FISHING42). */
-function softRefuse(t, src, sc, tc, where) {
-  const hasTC = src.includes(tc)
-  const hasSC = src.includes(sc)
-  if (hasSC) {
-    t.skip(`FISHING42 pending: still SC «${sc}» (${where})`)
-    return
-  }
-  assert.ok(hasTC, `expected Formal TC «${tc}» in ${where}`)
-  assert.equal(hasSC, false, `must not keep SC «${sc}» in ${where}`)
-}
-
 /** Hard Formal pin — SC gone, TC present. */
 function hardRefuse(src, sc, tc, where) {
   assert.ok(src.includes(tc), `expected Formal TC «${tc}» in ${where}`)
   assert.equal(src.includes(sc), false, `must not keep SC «${sc}» in ${where}`)
 }
-
-// ── always-hard sanity ──────────────────────────────────────────────
 
 test('sanity: store.ts + cad.worker.ts readable', () => {
   assert.ok(existsSync(storePath), 'src/store.ts missing')
@@ -56,8 +41,6 @@ test('FISHING40 regression: thicken / surfloft Formal TC still on tip', () => {
   assert.match(st, /加厚曲面失敗（曲面太扭／自交／厚度過大）/)
   assert.doesNotMatch(st, /加厚曲面失败（曲面太扭 \/ 自交 \/ 厚度过大）/)
 })
-
-// ── store hard refuses (FISHING41 converted) ────────────────────────
 
 test('Formal TC hard: store 共线角无法倒角', () => {
   hardRefuse(st, '共线角无法倒角', '共線角無法倒角', 'store')
@@ -140,11 +123,8 @@ test('Formal TC hard: store 橋接面失敗 棱→稜', () => {
   )
 })
 
-// ── worker soft→hard (FISHING42 converts remaining) ─────────────────
-
-test('Formal TC: worker 面圆角拾面无法解析', (t) => {
-  softRefuse(
-    t,
+test('Formal TC hard: worker 面圆角拾面无法解析', () => {
+  hardRefuse(
     w,
     '面圆角：拾面无法解析 — 已保留原实体',
     '面圓角：拾面無法解析 — 已保留原實體',
@@ -152,9 +132,8 @@ test('Formal TC: worker 面圆角拾面无法解析', (t) => {
   )
 })
 
-test('Formal TC: worker 圆角／倒角结果无法显示', (t) => {
-  softRefuse(
-    t,
+test('Formal TC hard: worker 圆角／倒角结果无法显示', () => {
+  hardRefuse(
     w,
     '圆角／倒角结果无法显示，请缩小尺寸或减少选择的边',
     '圓角／倒角結果無法顯示，請縮小尺寸或減少選擇的邊',
@@ -162,9 +141,8 @@ test('Formal TC: worker 圆角／倒角结果无法显示', (t) => {
   )
 })
 
-test('Formal TC: worker 没有可用的水平顶边', (t) => {
-  softRefuse(
-    t,
+test('Formal TC hard: worker 没有可用的水平顶边', () => {
+  hardRefuse(
     w,
     '没有可用的水平顶边／底边，请直接选择边',
     '沒有可用的水平頂邊／底邊，請直接選擇邊',
@@ -172,9 +150,8 @@ test('Formal TC: worker 没有可用的水平顶边', (t) => {
   )
 })
 
-test('Formal TC: worker 偏移曲面失败', (t) => {
-  softRefuse(
-    t,
+test('Formal TC hard: worker 偏移曲面失败', () => {
+  hardRefuse(
     w,
     '偏移曲面失败（该面不适合偏移 / 距离过大自交）— 保持原样',
     '偏移曲面失敗（該面不適合偏移 / 距離過大自交）— 保持原樣',
@@ -182,13 +159,12 @@ test('Formal TC: worker 偏移曲面失败', (t) => {
   )
 })
 
-test('Formal TC: worker 删面失败', (t) => {
-  softRefuse(t, w, '删面失败：', '刪面失敗：', 'worker')
+test('Formal TC hard: worker 删面失败', () => {
+  hardRefuse(w, '删面失败：', '刪面失敗：', 'worker')
 })
 
-test('Formal TC: worker 曲面扫掠失败', (t) => {
-  softRefuse(
-    t,
+test('Formal TC hard: worker 曲面扫掠失败', () => {
+  hardRefuse(
     w,
     '曲面扫掠失败（截面/路径无效或扫出无界形）',
     '曲面掃掠失敗（截面／路徑無效或掃出無界形）',

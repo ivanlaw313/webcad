@@ -12268,7 +12268,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   jointPickMode: false,
   jointPick: null,
   // FISHING14 B：開始／取消關節拾取時清掉組件選取，避免移動／旋轉 HUD 殘留或搶圓柱側面 click。
-  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, selectedComponent: null, selectedComponentBody: null, status: '關節拾取：先點選【要移動的組件】的一個面（圓柱軸／孔或平面），再點選【其連接的組件（父件）】對應面 → 移動件貼合，並在該幾何建立關節（圓柱＝轉動／滑動關節／圓柱 · 平面＝剛性／平面 · 圓柱↔平面＝軸穿面心，預設轉動）；先點選已固定的組件會自動對調' }),
+  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, selectedComponent: null, selectedComponentBody: null, status: '關節拾取：先點選【要移動的組件】的一個面（圓柱軸／孔或平面），再點選【其連結的組件（父件）】對應面 → 移動件貼合，並在該幾何建立關節（圓柱＝轉動／滑動關節／圓柱 · 平面＝剛性／平面 · 圓柱↔平面＝轉動／滑動軸取自圓柱並穿面心，預設轉動）；先點選已固定的組件會自動對調' }),
   cancelJointPick: () => set({ jointPickMode: false, jointPick: null, selectedComponent: null, selectedComponentBody: null, status: '已退出關節拾取' }),
   pickFaceForJoint: (compId, face) => {
     const s = get()
@@ -12277,7 +12277,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!s.jointPick) {
       const kindLbl = face.kind === 'cyl' ? '圓柱面（同軸 → 轉動／滑動關節）' : '平面（貼平 → 剛性／平面關節）'
       const gNote = isCompGrounded(s, compId) ? '（此組件已固定 — 將自動作為父件，另一組件作為移動件）' : ''
-      set({ jointPick: { compId, face }, status: `已選移動件的${kindLbl}${gNote}，請再點選【其連接的組件（父件）】對應面（圓柱或平面皆可 — 圓柱↔平面＝軸穿面心）` })
+      set({ jointPick: { compId, face }, status: `已選移動件的${kindLbl}${gNote}，請再點選【其連結的組件（父件）】對應面（圓柱或平面皆可 — 圓柱↔平面＝轉動／滑動軸取自圓柱並穿面心）` })
       return
     }
     // 第二拣 —— 唔同件；RETEST18 #2：類型可以混合（圓柱↔平面）

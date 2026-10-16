@@ -1,12 +1,11 @@
 /**
- * BOT-D more26 / FISHING41 prep — soft→hard Formal TC pins for high-priority
- * store/worker common refuse / fail / gate strings still SC on tip 9edd246.
+ * BOT-D more26 / FISHING41 harden — Formal TC pins for high-priority
+ * store/worker common refuse / fail / gate strings.
  *
- * Soft: t.skip while SC phrase remains (product not yet converted).
- * Hard: when SC gone and Formal TC present → PASS (no soft).
- * Always-hard: files readable + FISHING40 loft/thicken Formal regression.
- *
- * Tests-only — no product/src edits.
+ * Hard (tip ≥440f105 FISHING41): store refuse/fail/gate Formal TC present,
+ *   SC gone; FISHING40 loft/thicken Formal regression.
+ * Soft→hard remaining: worker face-fillet / offset / delete-face / surf-sweep
+ *   refuses still SC on tip — FISHING42 converts → hard PASS (no soft).
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -21,20 +20,22 @@ const workerPath = join(root, 'src/worker/cad.worker.ts')
 const st = readFileSync(storePath, 'utf8')
 const w = readFileSync(workerPath, 'utf8')
 
-/**
- * Soft→hard Formal pin.
- * While SC remains → skip (FISHING41 pending).
- * When SC removed and TC present → hard PASS.
- */
+/** Soft→hard Formal pin (worker leftovers until FISHING42). */
 function softRefuse(t, src, sc, tc, where) {
   const hasTC = src.includes(tc)
   const hasSC = src.includes(sc)
   if (hasSC) {
-    t.skip(`FISHING41 pending: still SC «${sc}» (${where})`)
+    t.skip(`FISHING42 pending: still SC «${sc}» (${where})`)
     return
   }
   assert.ok(hasTC, `expected Formal TC «${tc}» in ${where}`)
   assert.equal(hasSC, false, `must not keep SC «${sc}» in ${where}`)
+}
+
+/** Hard Formal pin — SC gone, TC present. */
+function hardRefuse(src, sc, tc, where) {
+  assert.ok(src.includes(tc), `expected Formal TC «${tc}» in ${where}`)
+  assert.equal(src.includes(sc), false, `must not keep SC «${sc}» in ${where}`)
 }
 
 // ── always-hard sanity ──────────────────────────────────────────────
@@ -56,15 +57,14 @@ test('FISHING40 regression: thicken / surfloft Formal TC still on tip', () => {
   assert.doesNotMatch(st, /加厚曲面失败（曲面太扭 \/ 自交 \/ 厚度过大）/)
 })
 
-// ── store soft refuses (high-priority user-visible) ─────────────────
+// ── store hard refuses (FISHING41 converted) ────────────────────────
 
-test('Formal TC: store 共线角无法倒角', (t) => {
-  softRefuse(t, st, '共线角无法倒角', '共線角無法倒角', 'store')
+test('Formal TC hard: store 共线角无法倒角', () => {
+  hardRefuse(st, '共线角无法倒角', '共線角無法倒角', 'store')
 })
 
-test('Formal TC: store 重建失败 — 已保留上一个有效模型', (t) => {
-  softRefuse(
-    t,
+test('Formal TC hard: store 重建失败 — 已保留上一个有效模型', () => {
+  hardRefuse(
     st,
     '⚠ 重建失败 — 已保留上一个有效模型，请修正参数后重试',
     '⚠ 重建失敗 — 已保留上一個有效模型，請修正參數後重試',
@@ -72,29 +72,28 @@ test('Formal TC: store 重建失败 — 已保留上一个有效模型', (t) => 
   )
 })
 
-test('Formal TC: store 圆角失败 refuse', (t) => {
-  softRefuse(t, st, '圆角失败', '圓角失敗', 'store')
+test('Formal TC hard: store 圆角失败 refuse', () => {
+  hardRefuse(st, '圆角失败', '圓角失敗', 'store')
 })
 
-test('Formal TC: store 倒角失败 refuse', (t) => {
-  softRefuse(t, st, '倒角失败', '倒角失敗', 'store')
+test('Formal TC hard: store 倒角失败 refuse', () => {
+  hardRefuse(st, '倒角失败', '倒角失敗', 'store')
 })
 
-test('Formal TC: store 文字几何生成失败', (t) => {
-  softRefuse(t, st, '文字几何生成失败', '文字幾何生成失敗', 'store')
+test('Formal TC hard: store 文字几何生成失败', () => {
+  hardRefuse(st, '文字几何生成失败', '文字幾何生成失敗', 'store')
 })
 
-test('Formal TC: store 请输入 1 / 2 / 3 选择操作', (t) => {
-  softRefuse(t, st, '请输入 1 / 2 / 3 选择操作', '請輸入 1 / 2 / 3 選擇操作', 'store')
+test('Formal TC hard: store 请输入 1 / 2 / 3 选择操作', () => {
+  hardRefuse(st, '请输入 1 / 2 / 3 选择操作', '請輸入 1 / 2 / 3 選擇操作', 'store')
 })
 
-test('Formal TC: store 齿轮生成失败', (t) => {
-  softRefuse(t, st, '齿轮生成失败', '齒輪生成失敗', 'store')
+test('Formal TC hard: store 齿轮生成失败', () => {
+  hardRefuse(st, '齿轮生成失败', '齒輪生成失敗', 'store')
 })
 
-test('Formal TC: store 建模螺纹失败 / 净底孔', (t) => {
-  softRefuse(
-    t,
+test('Formal TC hard: store 建模螺纹失败 / 净底孔', () => {
+  hardRefuse(
     st,
     '⚠ 建模螺纹失败 — 已回退（可改用净底孔模式）',
     '⚠ 建模螺紋失敗 — 已回退（可改用淨底孔模式）',
@@ -102,17 +101,16 @@ test('Formal TC: store 建模螺纹失败 / 净底孔', (t) => {
   )
 })
 
-test('Formal TC: store 删除特征 confirm title', (t) => {
-  softRefuse(t, st, "'删除特征'", "'刪除特徵'", 'store')
+test('Formal TC hard: store 删除特征 confirm title', () => {
+  hardRefuse(st, "'删除特征'", "'刪除特徵'", 'store')
 })
 
-test('Formal TC: store 使用基本体替换', (t) => {
-  softRefuse(t, st, '使用基本体替换', '使用基本體替換', 'store')
+test('Formal TC hard: store 使用基本体替换', () => {
+  hardRefuse(st, '使用基本体替换', '使用基本體替換', 'store')
 })
 
-test('Formal TC: store 沒找到棱 → 稜', (t) => {
-  softRefuse(
-    t,
+test('Formal TC hard: store 沒找到棱 → 稜', () => {
+  hardRefuse(
     st,
     '沒找到棱（請點在某條棱附近）',
     '沒找到稜（請點在某條稜附近）',
@@ -120,13 +118,12 @@ test('Formal TC: store 沒找到棱 → 稜', (t) => {
   )
 })
 
-test('Formal TC: store 「所有棱邊」→「所有稜邊」', (t) => {
-  softRefuse(t, st, '「所有棱邊」', '「所有稜邊」', 'store')
+test('Formal TC hard: store 「所有棱边」→「所有稜邊」', () => {
+  hardRefuse(st, '「所有棱边」', '「所有稜邊」', 'store')
 })
 
-test('Formal TC: store 邊界補面 棱→稜', (t) => {
-  softRefuse(
-    t,
+test('Formal TC hard: store 邊界補面 棱→稜', () => {
+  hardRefuse(
     st,
     '邊界補面需要 ≥2 條邊界棱（請逐條點選）',
     '邊界補面需要 ≥2 條邊界稜（請逐條點選）',
@@ -134,9 +131,8 @@ test('Formal TC: store 邊界補面 棱→稜', (t) => {
   )
 })
 
-test('Formal TC: store 橋接面失敗 棱→稜', (t) => {
-  softRefuse(
-    t,
+test('Formal TC hard: store 橋接面失敗 棱→稜', () => {
+  hardRefuse(
     st,
     '橋接面失敗（兩棱太扭/退化 — 選方向大致同向的兩條棱）',
     '橋接面失敗（兩稜太扭/退化 — 選方向大致同向的兩條稜）',
@@ -144,7 +140,7 @@ test('Formal TC: store 橋接面失敗 棱→稜', (t) => {
   )
 })
 
-// ── worker soft refuses (common, NOT fishing40 thicken/surfloft set) ─
+// ── worker soft→hard (FISHING42 converts remaining) ─────────────────
 
 test('Formal TC: worker 面圆角拾面无法解析', (t) => {
   softRefuse(

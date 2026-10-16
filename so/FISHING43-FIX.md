@@ -3,7 +3,7 @@
 **Date:** 2026-10-16 (HK)  
 **Branch:** `fix/fishing43-sc-leftovers-formal-tc`  
 **Base:** tip `d7f0b03` (FISHING42 live)  
-**Tip:** `2cf191b` (`2cf191bc467df0710af41732612df0924aed2bb6`)
+**Tip:** `87085f7` (`87085f7915f4e79c838aa9b79ba823cea4a7f286`)
 
 ## Scan
 
@@ -23,7 +23,7 @@
 - 整體偏移／移動面／拔模角度過小／環形陣列／特徵令實體變空
 - 齒輪根切／彈簧節距／筋拔模角已鉗到／相交曲線 plus 內核
 
-`src/store.ts` — ~22 FEA/moldflow/AI refuses:
+`src/store.ts` — ~23 FEA/moldflow/AI refuses:
 - 偏險 / 不會屈曲 / 適用性偏厚 / 內螺紋幾何失敗 / AI 出錯 / 未知計算類型 / 需要…正數
 
 `src/components/Viewport.tsx` — 二極管、稜柱/稜錐 labels、橋接「現有稜」、逐面外觀不適用  

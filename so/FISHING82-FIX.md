@@ -5,7 +5,7 @@ Genuine UX product fix: INSPECT **可達性分析 → 脫模可達性** so ribbo
 Also: tip.fea leftover punct **屬趨勢著色。非商用**; SC FEA i18n bare **设力 → 设定力** (TC already 設定力 since F79).
 
 ## Live after cut
-- Tip: `1650cee7137022469ff92f4671b9b70a56e9de7c` (fix/fishing82-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `6d81c8aaa7094f19affa9e4b89faca0405c457cb` (fix/fishing82-behavior-ux → FF fix/sketch-face-copy)
 - Stamp: `v2.20-20261016-230832`
 - Bundle: `index-2SJnc8l1-r2.js` (md5 `f5468d6660d68a52b45510bb8bcdf423`)
 - Bak: `index-DOZZPmOV-r2.js` / `v2.20-20261016-225846` (kept)

@@ -6470,7 +6470,7 @@ export default function Viewport() {
           </label>
           {lowPower && <div style={{ fontSize: 10.5, color: '#2f9e44', margin: '-2px 0 6px' }}>📱 已為你設備（手機/弱機）自動調低預設，本機計算不卡；可手動拉高（會慢）</div>}
           <div style={{ display: 'flex', gap: 10, margin: '2px 0 6px', fontSize: 11, flexWrap: 'wrap', alignItems: 'center' }}>
-            <label title="表面着色：Cp 壓力係數（紅=迎風高壓 / 藍=背風吸力）或 表面流速"><span style={{ color: '#6b7680' }}>着色 </span>
+            <label title="表面著色：Cp 壓力係數（紅=迎風高壓 / 藍=背風吸力）或 表面流速"><span style={{ color: '#6b7680' }}>著色 </span>
               <select value={windField} onChange={(e) => setWindOpt({ windField: e.target.value as 'cp' | 'speed' })} style={{ fontSize: 11 }}>
                 <option value="cp">壓力 Cp</option><option value="speed">表面流速</option>
               </select>
@@ -6578,7 +6578,7 @@ export default function Viewport() {
           okTip="運行充填/冷卻/壓力/變形趨勢（Enter）— 未點澆口會自動放在頂部中心"
           onOk={() => void runMoldSolve()}
           onCancel={() => useApp.getState().clearMold()}
-          summary={<>{moldMat} · {moldGates.length} 個澆口 · 趨勢着色（非商用模流精度）</>}
+          summary={<>{moldMat} · {moldGates.length} 個澆口 · 趨勢著色（非商用模流精度）</>}
         >
           {moldBusy && (
             <div style={{ marginBottom: 8 }}>
@@ -7008,7 +7008,7 @@ export default function Viewport() {
           <label title="安全高度 mm（快移層）">安Z <input type="number" step={1} min={1} value={millOpts.safeZ} onChange={(e) => useApp.getState().setMillOpts({ safeZ: Number(e.target.value) })} style={{ width: 40 }} /></label>
           {(millOpts.op === 'pocket' || millOpts.op === 'face') && <label title="相鄰行/環距 mm（一般 = 刀徑 40-50%）">行距 <input type="number" step={0.2} min={0.5} value={millOpts.stepover} onChange={(e) => useApp.getState().setMillOpts({ stepover: Number(e.target.value) })} style={{ width: 48 }} /></label>}
           {millOpts.op === 'contour' && <label title="留料橋數（切穿時防止工件飛出 — 0 = 不留；橋高 1mm 長 6mm，完工手鋸斷）">料橋 <input type="number" step={1} min={0} max={8} value={millOpts.tabs} onChange={(e) => useApp.getState().setMillOpts({ tabs: Number(e.target.value) })} style={{ width: 40 }} /></label>}
-          <button className="cs-btn" title="👁 出 G-code 前先查看刀路（頂視圖 — 快移虛線、切削按深度着色）" onClick={() => void useApp.getState().previewGcode('mill')}>👁 預覽刀路</button>
+          <button className="cs-btn" title="👁 出 G-code 前先查看刀路（頂視圖 — 快移虛線、切削按深度著色）" onClick={() => void useApp.getState().previewGcode('mill')}>👁 預覽刀路</button>
         </CommandDialog>
       )}
       {finish3dDlg && (
@@ -7033,7 +7033,7 @@ export default function Viewport() {
           <label title="Z 下刀進給 mm/min（進料/抬刀間下扎）">下刀 <input type="number" step={20} min={10} value={finish3dOpts.feedZ} onChange={(e) => useApp.getState().setFinish3dOpts({ feedZ: Number(e.target.value) })} style={{ width: 50 }} /></label>
           <label title="主軸轉速 S 字（M3）">轉速 <input type="number" step={500} min={1000} value={finish3dOpts.rpm} onChange={(e) => useApp.getState().setFinish3dOpts({ rpm: Number(e.target.value) })} style={{ width: 56 }} /></label>
           <label title="安全餘量高 mm（加到頂面之上做快移層）">安Z <input type="number" step={1} min={1} value={finish3dOpts.safeZ} onChange={(e) => useApp.getState().setFinish3dOpts({ safeZ: Number(e.target.value) })} style={{ width: 40 }} /></label>
-          <button className="cs-btn" title="👁 出 G-code 前先查看刀路（頂視圖 — 快移虛線、切削按深度着色）" onClick={() => void useApp.getState().runFinish3d('preview')}>👁 預覽刀路</button>
+          <button className="cs-btn" title="👁 出 G-code 前先查看刀路（頂視圖 — 快移虛線、切削按深度著色）" onClick={() => void useApp.getState().runFinish3d('preview')}>👁 預覽刀路</button>
         </CommandDialog>
       )}
 
@@ -8849,7 +8849,7 @@ export default function Viewport() {
         </select></span>
         {renderModeOn && <span title="渲染曝光（ACES tone-mapping）：調亮暗" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>☀<input type="range" min={0.2} max={3} step={0.05} value={renderExposure} onChange={(e) => useApp.getState().setRenderExposure(Number(e.target.value))} style={{ width: 60 }} />{renderExposure.toFixed(2)}</span>}
         {renderModeOn && <span title="HDRI 環境（S109）：真實照片級環境光照 + 反射（Poly Haven CC0）— 關=內置影棚" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>🌐<select value={hdriPreset} onChange={(e) => useApp.getState().setHdriPreset(e.target.value)} title="HDRI 環境預設（CC0）" style={{ fontSize: 11, maxWidth: 96 }}><option value="">影棚(內置)</option>{HDRI_PRESETS.map((p) => <option key={p.id} value={p.id} title={p.hint}>{p.label}</option>)}</select>{hdriPreset !== '' && <input type="range" min={0.1} max={3} step={0.1} value={hdriIntensity} onChange={(e) => useApp.getState().setHdriIntensity(Number(e.target.value))} title="HDRI 強度" style={{ width: 46 }} />}{hdriPreset !== '' && <span title={`HDRI 環境旋轉 ${Math.round(hdriRotation * 57.2958)}°（繞 Y 軸定向環境光照/反射）`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>↻<input type="range" min={0} max={Math.PI * 2} step={0.05} value={hdriRotation} onChange={(e) => useApp.getState().setHdriRotation(Number(e.target.value))} style={{ width: 46 }} /></span>}</span>}
-        <button className={'tb-btn' + (rtMode ? ' tb-on' : '')} title={tStatus('🔆 畫布內光追（S105）：漸進路徑追蹤 — 全局光照 + 真反射/折射 + 軟陰影 + 焦散。靜置等收斂，相機一動重新累積。注：不渲染程序化紋理/檢視着色', lang)} onClick={() => useApp.getState().toggleRtMode()}>🔆</button>
+        <button className={'tb-btn' + (rtMode ? ' tb-on' : '')} title={tStatus('🔆 畫布內光追（S105）：漸進路徑追蹤 — 全局光照 + 真反射/折射 + 軟陰影 + 焦散。靜置等收斂，相機一動重新累積。注：不渲染程序化紋理/檢視著色', lang)} onClick={() => useApp.getState().toggleRtMode()}>🔆</button>
         {rtMode && <span title={tStatus('路徑追蹤采樣數：越高越乾淨越慢（拖動滑桿調上限）', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>{tStatus('采樣', lang)}<input type="range" min={16} max={1024} step={16} value={rtSamples} onChange={(e) => useApp.getState().setRtSamples(Number(e.target.value))} style={{ width: 60 }} />{rtProgress}/{rtSamples}</span>}
         <span title={tStatus('📷 高清出圖（S192）：離屏超采樣渲染當前視圖為 PNG（1×/2×/4× 遠超視口分辨率，MSAA 抗鋸齒）+ 可勾透明背景（貼 alpha 合成）。發布 / 產品圖用，勝過普通視口截圖', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
           <button className="tb-btn" title={tStatus('出高清 PNG', lang)} onClick={() => useApp.getState().requestStill()}>📷</button>
@@ -9127,7 +9127,7 @@ export default function Viewport() {
           {/* #174-4：逐三角連續梯度着色開關（睇面內漸變，補足逐面平均掩蓋最差點） */}
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, cursor: 'pointer', color: '#9fb2bf' }}>
             <input type="checkbox" checked={draftGradient} onChange={() => useApp.getState().toggleDraftGradient()} />
-            {tStatus('逐三角梯度着色（面內漸變）', lang)}
+            {tStatus('逐三角梯度著色（面內漸變）', lang)}
           </label>
           {(() => {
             const nPos = draftResult.faces.filter((f) => f.cls === 'positive').length

@@ -8023,7 +8023,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   setSplitFaceAxis: (a) => set({ splitFaceAxis: a }),
   splitFaceType: 'vector',
   setSplitFaceType: (t) => set({ splitFaceType: t }),
-  toggleSplitFace: () => set((s) => ({ splitFaceMode: !s.splitFaceMode, moveFaceMode: false, replaceFaceMode: false, offsetSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.splitFaceMode ? '✂ 分割面：點一個面 → 用切割平面把它切成兩半（方向可選 自動/X/Y/Z；之後可單獨選/着色/拔模）' : '已退出分割面' })),
+  toggleSplitFace: () => set((s) => ({ splitFaceMode: !s.splitFaceMode, moveFaceMode: false, replaceFaceMode: false, offsetSurfMode: false, thickenMode: false, delFaceMode: false, patchMode: false, pushPullMode: false, shellMode: false, holeMode: false, featDlg: null, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: !s.splitFaceMode ? '✂ 分割面：點一個面 → 用切割平面把它切成兩半（方向可選 自動/X/Y/Z；之後可單獨選/著色/拔模）' : '已退出分割面' })),
   splitFaceAt: async (p, n) => {
     if (!hasSolid(get().features)) { set({ status: '分割面需要先有實體' }); return }
     const cad: [number, number, number] = [p[0], -p[2], p[1]]
@@ -13107,7 +13107,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   rtMode: false,
   rtSamples: 256,
   rtProgress: 0,
-  toggleRtMode: () => set((s) => ({ rtMode: !s.rtMode, renderMode: !s.rtMode ? true : s.renderMode, rtProgress: 0, status: !s.rtMode ? '🔆 畫布內光追：漸進路徑追蹤（GI / 真反射折射 / 軟陰影 / 焦散）— 靜置等收斂，相機一動重新累積。註：不渲染程序化紋理/檢視着色' : '已退出光追' })),
+  toggleRtMode: () => set((s) => ({ rtMode: !s.rtMode, renderMode: !s.rtMode ? true : s.renderMode, rtProgress: 0, status: !s.rtMode ? '🔆 畫布內光追：漸進路徑追蹤（GI / 真反射折射 / 軟陰影 / 焦散）— 靜置等收斂，相機一動重新累積。註：不渲染程序化紋理/檢視著色' : '已退出光追' })),
   setRtSamples: (n) => set({ rtSamples: Math.max(16, Math.min(2048, n | 0)) }),
   // T789：CNC 铣削（GRBL 3018/Shapeoko 级 — 默认 1/8" 刀、椴木保守参数）
   millDlg: false,
@@ -21134,7 +21134,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   draftResult: null,
   draftPull: [0, 0, 1],
   draftGradient: false,   // #174-4：默认逐面分类色；开 = 逐三角连续梯度（睇面内最差点）
-  toggleDraftGradient: () => set((s) => ({ draftGradient: !s.draftGradient, status: !s.draftGradient ? '拔模：逐三角梯度着色（綠→黃→紅連續，查看面內漸變）' : '拔模：逐面分類色（綠=正/黃=垂直/紅=倒扣）' })),
+  toggleDraftGradient: () => set((s) => ({ draftGradient: !s.draftGradient, status: !s.draftGradient ? '拔模：逐三角梯度著色（綠→黃→紅連續，查看面內漸變）' : '拔模：逐面分類色（綠=正/黃=垂直/紅=倒扣）' })),
   // S180：最小曲率半径（Fusion Inspect › Minimum Radius）— 复用 meshCurvature（已算 H/K），主曲率 κmax=|H|+√(max(0,H²−K))，R_min=1/maxκ。
   runMinRadius: async () => {
     const s = get()
@@ -22187,7 +22187,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   toggleGroundReflection: () => set((s) => ({ groundReflection: !s.groundReflection, graphicsPreset: 'custom' as GraphicsPreset, status: !s.groundReflection ? '地面反射：開（光面地板鏡出模型 — 產品展示/截圖質感）' : '地面反射：關' })),
   wireframe: false,
   // GM-X2 #1：旧着色/线框掣同步 visualStyle 枚举。
-  toggleWireframe: () => set((s) => { const wf = !s.wireframe; return { wireframe: wf, visualStyle: renderToVisualStyle(wf, edgeStateToMode(s.edgeDisplay, s.hiddenEdges)), ...(wf ? { inspectShade: 'off' as const, draftResult: null, slopeResult: null, accessResult: null } : {}), status: wf ? '線框顯示模式' : '着色顯示模式' } }),   // S179 audit：开线框同时关曲率/斑马 overlay（对称互斥）；S187：连拔模/斜度面 overlay 一齐关
+  toggleWireframe: () => set((s) => { const wf = !s.wireframe; return { wireframe: wf, visualStyle: renderToVisualStyle(wf, edgeStateToMode(s.edgeDisplay, s.hiddenEdges)), ...(wf ? { inspectShade: 'off' as const, draftResult: null, slopeResult: null, accessResult: null } : {}), status: wf ? '線框顯示模式' : '著色顯示模式' } }),   // S179 audit：开线框同时关曲率/斑马 overlay（对称互斥）；S187：连拔模/斜度面 overlay 一齐关
   // ── GM-X2 视图显示设定实现 ────────────────────────────────────────────
   // #1 视觉样式枚举：单一入口设 6 态 → 派生 wireframe + edgeDisplay + hiddenEdges（渲染管线仍读三者，零回归）。
   visualStyle: 'shadedVisible',
@@ -25258,7 +25258,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         feaBusy: false, feaMode: 0, feaProbe: null, feaStale: false, feaDeform: autoDeform,
         feaResult: { h: r.h, nVox: r.nVox, centers: r.centers, vm: r.vm, vmMax: r.vmMax, vmMaxAt: r.vmMaxAt, vmMaxE: r.vmMaxE, dispMax: r.dispMax, disp: r.disp, dispVec: r.dispVec, converged: r.converged, residual: r.residual, warnings: r.warnings, sy: mech.sy, se: mech.se, su: mech.su, matName: s.feaMat, vmSmooth, vmSmoothMax, smoothSpan, reaction: r.reaction, reactionMag: r.reactionMag, s1: r.s1, s3: r.s3, shear: r.shear, s1Max: r.s1Max, s3Min: r.s3Min, shearMax: r.shearMax, sed: r.sed, sedMax: r.sedMax },
-        status: `受力雲圖（${s.feaMat}·${loadNote || F.toFixed(0) + 'N'}·${r.nVox}體素）：最大 von Mises ≈ ${f2(r.vmMax)} MPa（紅⚠位=最可能斷）· 位移 ≈ ${f2(r.dispMax)}mm${deformNote ? `（${deformNote}）` : ''} · 屈服 ${mech.sy} → SF≈${sf === Infinity ? '∞' : f2(sf)} ${verdict}${r.converged ? '' : ` · ⚠未完全收斂(殘差${r.residual.toExponential(1)})`}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 體素趨勢着色（線彈性），查看哪裡紅，數值非商用 FEA 級`,
+        status: `受力雲圖（${s.feaMat}·${loadNote || F.toFixed(0) + 'N'}·${r.nVox}體素）：最大 von Mises ≈ ${f2(r.vmMax)} MPa（紅⚠位=最可能斷）· 位移 ≈ ${f2(r.dispMax)}mm${deformNote ? `（${deformNote}）` : ''} · 屈服 ${mech.sy} → SF≈${sf === Infinity ? '∞' : f2(sf)} ${verdict}${r.converged ? '' : ` · ⚠未完全收斂(殘差${r.residual.toExponential(1)})`}${r.warnings.length ? ' · ' + r.warnings.join('；') : ''} — 體素趨勢著色（線彈性），查看哪裡紅，數值非商用 FEA 級`,
       })
     } catch (err) {
       set({ feaBusy: false, status: `受力雲圖異常：${err instanceof Error ? err.message : String(err)}` })
@@ -25814,7 +25814,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set({
         moldBusy: false, moldMode: 0, moldT: 1, moldField: nextField,
         moldResult: { ...r, matName: s.moldMat }, moldReport: report,
-        status: `${lead}模流（${s.moldMat}·${gates.length}澆口·${r.nVox}體素）：註射≈${fT(r.tFill)} · 冷卻≈${fT(r.tCool)} · 周期≈${fT(r.cycle)}${weldN ? ` · ⚠焊接線 ${weldN} 體素` : ''}${autoGateNote} — 體素趨勢着色，壓力/變形是相對值`,
+        status: `${lead}模流（${s.moldMat}·${gates.length}澆口·${r.nVox}體素）：註射≈${fT(r.tFill)} · 冷卻≈${fT(r.tCool)} · 周期≈${fT(r.cycle)}${weldN ? ` · ⚠焊接線 ${weldN} 體素` : ''}${autoGateNote} — 體素趨勢著色，壓力/變形是相對值`,
       })
     } catch (err) {
       set({ moldBusy: false, status: `模流異常：${err instanceof Error ? err.message : String(err)}` })

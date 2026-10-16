@@ -163,7 +163,7 @@ const SOLID: Panel[] = [
       { id: 'interference', label: '干涉檢查', icon: 'interference', tip: '干涉檢查：先選擇參與檢查的組件，再按「計算」，以實體布爾相交求出真實重疊體積及所涉組件。' },
       { id: 'curvcomb', label: '曲率梳分析', icon: 'curvature', sep: true, tip: '沿曲面顯示曲率梳齒，檢查曲率變化及接縫連續性。' },
       { id: 'zebra', label: '斑馬紋分析', icon: 'section', tip: '以反射條紋檢查曲面切向連續及光順度。' },
-      { id: 'draftanalysis', label: '拔模分析', icon: 'draft', tip: '按脫模方向着色正拔模、倒扣及垂直區域。' },
+      { id: 'draftanalysis', label: '拔模分析', icon: 'draft', tip: '按脫模方向著色正拔模、倒扣及垂直區域。' },
       { id: 'curvmap', label: '曲率圖分析', icon: 'curvature', tip: '以色譜顯示曲面彎曲趨勢。' },
       { id: 'accessanalysis', label: '可達性分析', icon: 'draft', tip: '沿指定方向檢查被實體自身遮擋、工具或模具不可達的區域。' },
       { id: 'minradius', label: '最小半徑分析', icon: 'curvature', tip: '找出模型最小局部曲率半徑及位置。' },
@@ -258,7 +258,7 @@ const LAB: Panel[] = [
   {
     name: '模擬',
     tools: [
-      { id: 'fea', label: '受力雲圖', icon: 'stress', quick: true, tip: '受力分析（趨勢級）：點固定面 → 點受力面 → 設力 → 出應力雲圖,紅色 = 最受力 = 最容易斷的位。屬趨勢着色,非商用分析精度。' },
+      { id: 'fea', label: '受力雲圖', icon: 'stress', quick: true, tip: '受力分析（趨勢級）：點固定面 → 點受力面 → 設力 → 出應力雲圖,紅色 = 最受力 = 最容易斷的位。屬趨勢著色,非商用分析精度。' },
       { id: 'moldflow', label: '模流分析', icon: 'moldflow', quick: true, tip: '注塑模流趨勢：點澆口位（可多個）→ 選塑料 → 出充填時間/壓力/冷卻/變形趨勢雲圖 + 焊接線 + 充填動畫。可開「壓力求解器」出真實壓力值。' },
       { id: 'windtunnel', label: '風洞水洞', icon: 'wind', quick: true, tip: '風洞 / 水洞趨勢模擬：把零件放入虛擬風道/水道解流場 → 風阻系數 Cd + 阻力 + 表面壓力/流場。可調風速 · 流體(空氣/水) · 吹向。屬趨勢級,相對比較可信,非商用驗證級。' },
       { id: 'physicslab', label: '環境實驗室', icon: 'contact', quick: true, tip: 'Physics Lab：將 CAD 零件放入剛體實驗室，即時模擬重力、碰撞、摩擦、反彈和統一風。互動級模擬，非工程認證。' },
@@ -334,7 +334,7 @@ const LAB: Panel[] = [
     name: '檢查擴展',
     tools: [
       { id: 'measure', label: '兩點距離', icon: 'measure' },
-      { id: 'measureedge', label: '邊長／孔徑', icon: 'measure' },
+      { id: 'measureedge', label: '邊長／孔徑', icon: 'measure', tip: '量邊：直稜長度；圓稜／弧稜顯示 Ø、R 與弧長／周長（檢查擴展 · 對標 INSPECT「測量」邊模式）。' },
       { id: 'measureface', label: '面積', icon: 'measure' },
       { id: 'measureangle', label: '面夾角', icon: 'measure' },
       { id: 'properties', label: '完整物理屬性', icon: 'measure', quick: true, tip: '面積、密度、質量、體積、包圍盒、質心及慣量的詳細對話框。' },
@@ -378,7 +378,7 @@ const SURFACE: Panel[] = [
     { id: 'thicken', label: '加厚 Thicken', icon: 'shell', quick: true, tip: '加厚：點實體/曲面一個面 → 沿法向加厚成實體薄板（曲面件轉成可打印實體 / 加厚單一面）。出獨立件,想合並用「實體布爾」。方向：板厚輸負值、或前綴「-」= 翻轉、朝另一邊加厚。' },
     { id: 'thickenquilt', label: '加厚整張曲面', icon: 'shell', quick: true, tip: '加厚整張曲面：選一張【完整獨立曲面/縫合面】（放樣/掃掠/旋轉/縫合/補面出的）→ 整張一次加厚成實體（不似「加厚」淨加單一拾取面）。曲面變實體最常用的一步。板厚輸負值 = 朝另一邊。' },
     { id: 'offsetsurf', label: '偏移曲面', icon: 'loft', tip: '偏移曲面：點一個面 → 偏出一張平行的新曲面（正 = 外偏 / 負 = 內偏）。兩側：距離用 ±（如 ±5）= 一次出內外兩張平行面（關於原面對稱）。出獨立開放曲面件。' },
-    { id: 'splitface', label: '分割面', icon: 'splitface', tip: '分割面：點一個面 → 在點擊處用一個垂直平面把它切成兩半（體積不變,兩塊子面可各自單獨選/着色/拔模）。' },
+    { id: 'splitface', label: '分割面', icon: 'splitface', tip: '分割面：點一個面 → 在點擊處用一個垂直平面把它切成兩半（體積不變,兩塊子面可各自單獨選/著色/拔模）。' },
     { id: 'replaceface', label: '替換面', icon: 'replaceface', tip: '替換面（平面頂替）：點一個面 → 輸入推入距離 → 把該面沿法向推去一個新位置,鄰面自動延伸接回順。誠實局限：只做平面頂替（不支援任意曲面替換）。' },
     { id: 'rotateface', label: '旋轉面', icon: 'replaceface', tip: '旋轉面：點一個【平面】→ 輸入鉸軸(X/Y/Z) + 角度 → 該面繞住經過點擊點的鉸線傾斜,鄰面自動癒合成梯形（實體保留）。改匯入件/斜面角度用。僅限平面。' },
     { id: 'surfsew', label: '縫合 Stitch', icon: 'shell', quick: true, tip: '縫合 Stitch：把現有所有曲面/殼片（放樣/補面/加厚/偏移出的）沿住共用邊焊埋成一個殼；若完全封閉 → 自動轉成實體（可繼續布爾/匯出/打印）。' },

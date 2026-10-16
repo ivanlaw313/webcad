@@ -7,7 +7,7 @@ No clearer P1/P2 crash/404 found during scan — jaLabels is the genuine leftove
 more47 NOT cherry.
 
 ## Live after cut
-- Tip: `TIP_PENDING` (fix/fishing91-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `8e0247011356d1efc2a19a53e289866e480e38d3` (fix/fishing91-behavior-ux → FF fix/sketch-face-copy)
 - Product: `87b9ebc7c0d5991d83101a181fd449e5ce469f5f` jaLabels 離型到達性 Formal leftover
 - more46 cherry: `53b7668ae985efa68f6227af4b528f4c227e258d` (from `22d41c0b` on test/unit-core16-more46)
 - Stamp: `v2.20-20261017-001016`

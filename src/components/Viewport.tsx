@@ -181,16 +181,17 @@ import { MATERIAL_MECH } from '../analysis/beamStress'
 // Curvature fields can be expensive on dense meshes and are only relevant to
 // Inspect. Keep them out of the normal modelling startup path; React will fetch
 // this chunk the first time a curvature/min-radius inspection is requested.
-const CurvatureAnalysisOverlays = lazy(() => import('./CurvatureOverlay').then((m) => {
-  // FISHING35: React.lazy reads module.default — never resolve to undefined.
-  const CurvatureOverlay = m?.CurvatureOverlay
-  const CurvatureCombOverlay = m?.CurvatureCombOverlay
-  const MinRadiusMarker = m?.MinRadiusMarker
-  if (!CurvatureOverlay || !CurvatureCombOverlay || !MinRadiusMarker) {
-    return { default: () => null }
+const CurvatureAnalysisOverlays = lazy(async () => {
+  // FISHING35: React.lazy does module.default — a 404 chunk resolves undefined → reading 'default'.
+  // Always return a real { default: Component }; never let the promise fulfill with undefined.
+  try {
+    const m = await import('./CurvatureOverlay')
+    const A = m.CurvatureOverlay, B = m.CurvatureCombOverlay, C = m.MinRadiusMarker
+    return { default: function CurvatureAnalysisOverlaysInner() { return <><A /><B /><C /></> } }
+  } catch {
+    return { default: function CurvatureAnalysisOverlaysFallback() { return <></> } }
   }
-  return { default: () => <><CurvatureOverlay /><CurvatureCombOverlay /><MinRadiusMarker /></> }
-}))
+})
 import { GATE_TYPES, type GateType } from '../analysis/gateTypes'   // 浇口类型谱（轻模块）
 import WindCfdVerify from './WindCfdVerify'   // cfd-link: OpenFOAM verification of the tunnel body
 // GM-W8 β3：模流 Stage-2 热耦合 per-material 缺省熔体/模壁温度 °C（对齐 moldsolve MOLD_CROSS 嘅 tMelt/tMold；此处硬编码免 import 求解器模块入主 bundle — 同 gateTypes 抽轻模块同一理由）。留空输入 → store null → 求解器用材料缺省。
@@ -3794,7 +3795,14 @@ function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: num
       /* ★ 唔好 snap ★：打錯咗／清空咗要睇得到，唔係畀人靜靜換走。
        * BD16-02：QA 報「清空仍靜默變返 80」—— 舊版 blank 唔算 bad，於是 onBlur 照 snap。
        * 而家 blank 同 bad 一樣唔 snap。 */
-      onBlur={() => { fld.flush(); setFoc(false); if (!bad && !blank) setTxt(toLenInput(fld.settle && parsed != null ? parsed : mm, unit)) }}
+      onBlur={() => {
+        fld.flush()
+        setFoc(false)
+        // FISHING35：合法 0（側2等）必須留「0」，唔好用舊 mm（常係 10）覆寫 — 否則 blur 靜默 0→10。
+        if (bad || blank) return
+        const keep = parsed != null ? parsed : mm
+        setTxt(toLenInput(keep, unit))
+      }}
       onChange={(e) => {
         const raw = e.target.value
         flushSync(() => setTxt(raw))   // FISHING33：先提交原文，避免 zustand onMm 同步重繪用舊 txt 回顯（99999 中途似被截成 999）
@@ -4505,6 +4513,9 @@ export default function Viewport() {
   const skLookAt = useApp((s) => s.skLookAt)   // GM-FP1 #9：正对草图平面
   const extrudeSketch = useApp((s) => s.extrudeSketch)
   const extrudeDlgOpen = useApp((s) => s.extrudeDlgOpen)
+  // FISHING35：側2本地草稿 — blur 唔准把「0」靜默變返 10；紅字／okDisabled 跟草稿。
+  const [extrudeSide2Txt, setExtrudeSide2Txt] = useState<string | null>(null)
+  useEffect(() => { if (!extrudeDlgOpen) setExtrudeSide2Txt(null) }, [extrudeDlgOpen])
   const openExtrudeDlg = useApp((s) => s.openExtrudeDlg)
   const cancelExtrudeDlg = useApp((s) => s.cancelExtrudeDlg)
   const extrudeDraft = useApp((s) => s.extrudeDraft)
@@ -8120,7 +8131,7 @@ export default function Viewport() {
           title={tStatus('拉伸', lang)}
           width={320}
           okTip={extrudeRegionTotal > 0 && extrudeRegionSelCount === 0 ? tStatus('先點畫布選要拉伸的輪廓區域', lang) : tStatus('生成（Enter）', lang)}
-          okDisabled={!!numBad || !!extrudeExpressionError || (busy || (!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) || !!extrudeExpressionError || extrudeSelectionCleared || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6)) || (extrudeExtent === 'twosides' && !(Math.abs(extrudeSide2) > 1e-6)))}
+          okDisabled={!!numBad || !!extrudeExpressionError || (busy || (!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) || !!extrudeExpressionError || extrudeSelectionCleared || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6)) || (extrudeExtent === 'twosides' && (() => { const raw = extrudeSide2Txt; const v = raw != null ? (raw.trim() === '' ? 0 : parseLen(raw.trim(), unit)) : extrudeSide2; return v == null || !(Math.abs(v) > 1e-6) })()))}
           onOk={() => void extrudeSketch()}
           onCancel={() => cancelExtrudeDlg()}
 
@@ -8129,7 +8140,12 @@ export default function Viewport() {
           {extrudeRegionTotal > 1 && <button className="sb-tool" onClick={() => useApp.setState({ extrudeSelectionCleared: false, extrudeRegionSel: useApp.getState().extrudeRegionSel.map(() => true) })}>全選輪廓</button>}
           {(!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) && <p role="alert">公式暫支援單輪廓的單側／對稱距離；其他方式請用數值。</p>}
           {['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6) && <p role="alert" data-testid="extrude-zero-alert" style={{ color: '#b42318', fontSize: 12, margin: '2px 0' }}>{tStatus('距離不可為 0 — 請輸入非零距離（負數＝反方向）', lang)}</p>}
-          {extrudeExtent === 'twosides' && !(Math.abs(extrudeSide2) > 1e-6) && <p role="alert" data-testid="extrude-side2-zero-alert" style={{ color: '#b42318', fontSize: 12, margin: '2px 0' }}>{tStatus('第二側距離不可為 0 — 請輸入非零距離', lang)}</p>}
+          {extrudeExtent === 'twosides' && (() => {
+            const raw = extrudeSide2Txt
+            const v = raw != null ? (raw.trim() === '' ? 0 : parseLen(raw.trim(), unit)) : extrudeSide2
+            const zero = v == null || !(Math.abs(v) > 1e-6)
+            return zero ? <p role="alert" data-testid="extrude-side2-zero-alert" style={{ color: '#b42318', fontSize: 12, margin: '2px 0' }}>{tStatus('第二側距離不可為 0 — 請輸入非零距離', lang)}</p> : null
+          })()}
           {xPv && <div data-testid="extrude-preview-volume" style={{ fontSize: 11, color: '#16a36b', margin: '2px 0 4px' }}>{tStatus('即時預覽（同確定後結果一樣）', lang)} · {tStatus('體積', lang)} {xPv.volume >= 1000 ? (xPv.volume / 1000).toFixed(2) + ' cm³' : xPv.volume.toFixed(1) + ' mm³'}</div>}
           {extrudeExtent === 'distance' && extrudeHeight < -1e-6 && <p role="status" data-testid="extrude-flip-note" style={{ color: '#b54708', fontSize: 12, margin: '2px 0' }}>{tStatus(`⇅ 負距離：向反方向拉伸 ${+Math.abs(extrudeHeight).toFixed(4)} mm`, lang)}</p>}
           <label>起點 <span>草圖平面</span></label>
@@ -8161,9 +8177,9 @@ export default function Viewport() {
             </label>
           )}
           {extrudeExtent === 'twosides' && (
-            <label title={tStatus('兩側：側2距離（草圖面另一邊，反法向）', lang)}>
+            <label title={tStatus('兩側：側2距離（草圖面另一邊，反法向）', lang)} data-testid="extrude-side2-field">
               <span style={{ color: 'var(--text-dim)' }}>{tStatus('側2距離', lang)}</span>
-              <span><LenInput mm={extrudeSide2} onMm={(v) => useApp.getState().setExtrudeSide2(v)} unit={unit} w={66} title={tStatus('側2距離（反法向）', lang)} /> {unit === 'inch' ? 'in' : unit}</span>
+              <span><LenInput mm={extrudeSide2} onMm={(v) => useApp.getState().setExtrudeSide2(Math.abs(v))} onText={setExtrudeSide2Txt} unit={unit} w={66} title={tStatus('側2距離（反法向）', lang)} /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
           )}
           {/* GM-3DV1 S12：Two Sides 侧2独立拔模（Fusion Side 2 Taper）— 与下面侧1拔模各自锥化，仅 XY 草图 */}

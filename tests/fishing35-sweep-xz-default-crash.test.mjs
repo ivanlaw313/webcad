@@ -99,3 +99,31 @@ test('runtime: live XZ polyline (pre-commit) openSweepDlg no throw', async () =>
   assert.equal(g().sweepDlgOpen, true, g().status)
   g().cancelSweepDlg()
 })
+
+test('source: Viewport side2 draft keeps 0 on blur (no silent 0→10)', () => {
+  const vp = rd('src/components/Viewport.tsx')
+  assert.match(vp, /extrudeSide2Txt/)
+  assert.match(vp, /onText=\{setExtrudeSide2Txt\}/)
+  assert.match(vp, /合法 0（側2等）必須留「0」/)
+  assert.match(vp, /extrude-side2-zero-alert/)
+  // okDisabled / alert must consult draft, not store alone
+  assert.match(vp, /extrudeSide2Txt[\s\S]{0,80}parseLen/)
+})
+
+test('runtime: setExtrudeSide2(0) stays 0; Formal refuse (store path)', async () => {
+  useApp.setState({ ...useApp.getInitialState(), lang: 'zh-HK', appConfirm: async () => true }, true)
+  g().startSketch()
+  g().chooseSketchPlane('XY')
+  useApp.setState({
+    sketchShape: { type: 'rect', a: [0, 0], b: [20, 10] },
+    sketchProfiles: [],
+  })
+  g().openExtrudeDlg()
+  useApp.setState({ extrudeExtent: 'twosides', extrudeHeight: 10 })
+  g().setExtrudeSide2(0)
+  assert.equal(g().extrudeSide2, 0, 'must not coerce 0→10')
+  await g().extrudeSketch()
+  assert.match(g().status, /第二側|非零/)
+  assert.equal(g().extrudeDlgOpen, true, 'dlg stays open on refuse')
+  assert.equal(g().extrudeSide2, 0)
+})

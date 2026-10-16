@@ -94,21 +94,16 @@ test('runtime: editFeature sweep wall=-1 → Formal 尺寸已拒絕; tree unchan
   assert.ok(f.wall === 0 || f.wall == null, `wall after 0: ${f.wall}`)
 })
 
-test('runtime: setSweepWall negative — tip silent-clamps (A); desired Formal keep-prior', () => {
-  // Product A (tests-only; no silent fix): setSweepWall Math.max(0, n||0) clamps −3 → 0.
-  // Desired Formal parity with setSweepDia/setSweepScale: keep prior 2 or store illegal for commit refuse.
+test('runtime: setSweepWall negative — Formal keep-prior (FISHING35)', () => {
+  // Product: setSweepWall(-n) keeps prior (parity with Ø/scale); wall 0 = solid rod.
   reset()
   g().setSweepWall(2)
   assert.equal(g().sweepWall, 2)
   g().setSweepWall(-3)
   const st = rd('src/store.ts')
-  assert.match(st, /setSweepWall:\s*\(n\)\s*=>\s*set\(\{\s*sweepWall:\s*Math\.max\(0,\s*n\s*\|\|\s*0\)/)
-  if (g().sweepWall === 0) {
-    // A present on tip — document clamp; suite stays green for residual push
-    assert.equal(g().sweepWall, 0, 'A: setSweepWall(-3) silent-clamped to 0')
-  } else {
-    assert.ok(g().sweepWall === 2 || g().sweepWall === -3, `Formal refuse shape: ${g().sweepWall}`)
-  }
+  assert.match(st, /setSweepWall:\s*\(n\)\s*=>\s*set\(\(st\)\s*=>/)
+  assert.doesNotMatch(st, /setSweepWall:[^\n]*Math\.max\(0,\s*n\s*\|\|\s*0\)/)
+  assert.equal(g().sweepWall, 2, 'negative must keep prior 2 (not silent-clamp to 0)')
 })
 
 test('runtime: setSweepWall(0) stays 0 (solid rod — not Formal refuse)', () => {

@@ -8855,7 +8855,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   cancelSweepDlg: () => set((s) => ({ sweepDlgOpen: false, sweepError: null, sweepPreview: null, sweepPreviewBusy: false, sweepEditId: null, sweepEdgePick: false, sweepEdgePicks: [], sweepEdgeLines: [], ...(s.sweepEditId ? { selectedFeature: null, polyPts: [], status: '已取消編輯掃掠' } : { status: '已取消掃掠（路徑保留）' }) })),
   setSweepDia: (n) => set((st) => ({ sweepDia: Number.isFinite(n) ? n : st.sweepDia, sweepError: null })),   // CORE16：唔再靜默改成 12 — 0／負數照存，commitSweepPath 拒絕並講原因
   sweepWall: 0,
-  setSweepWall: (n) => set({ sweepWall: Math.max(0, n || 0) }),
+  // FISHING35: negative wall → keep prior (Formal parity with Ø/scale); 0 = solid rod OK.
+  setSweepWall: (n) => set((st) => ({ sweepWall: Number.isFinite(n) && n >= 0 ? n : st.sweepWall })),
   sweepClimb: 0,
   setSweepClimb: (n) => set({ sweepClimb: Number.isFinite(n) ? n : 0 }),
   sweepTwist: 0,

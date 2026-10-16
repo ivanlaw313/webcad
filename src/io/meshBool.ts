@@ -11,8 +11,10 @@ let modP: Promise<any> | null = null
 async function manifoldMod(): Promise<any> {
   if (!modP) {
     modP = (async () => {
-      const mod = await import('manifold-3d')
-      const Module = (mod as { default?: unknown }).default ?? mod
+      // FISHING35: guard .default — missing/CJS interop must not throw reading 'default'
+      const mod: any = await import('manifold-3d')
+      const Module = typeof mod?.default === 'function' ? mod.default : mod
+      if (typeof Module !== 'function') throw new Error('manifold-3d: no callable export')
       const wasm = await Module()
       wasm.setup()
       return wasm

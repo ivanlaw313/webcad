@@ -845,6 +845,8 @@ const messages: Record<string, string> = {
   "status.chamferDone": "面取り完了",
   "status.coilCreated": "コイル（ばね）を作成しました",
   "status.coilTaperCreated": "テーパばねを作成しました（底Ø{0}→頂Ø{1}）",
+  "status.closeDemold": "離型到達性を閉じる",
+  "status.demoldClosed": "離型到達性を閉じました",
   "status.combineCut": "結合：アクティブ {0} ツールボディ {1}（切除{2}，B-rep — タイムラインで編集/削除可）",
   "status.combineIntersect": "結合：アクティブ {0} ツールボディ {1}（交差{2}，B-rep — タイムラインで編集/削除可）",
   "status.combineUnite": "結合：アクティブ {0} ツールボディ {1}（結合{2}，B-rep — タイムラインで編集/削除可）",

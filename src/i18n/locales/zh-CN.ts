@@ -845,6 +845,8 @@ const messages: Record<string, string> = {
   "status.chamferDone": "已倒角",
   "status.coilCreated": "已创建螺旋（弹簧）",
   "status.coilTaperCreated": "已创建锥形弹簧（底Ø{0}→顶Ø{1}）",
+  "status.closeDemold": "关闭脱模可达性",
+  "status.demoldClosed": "已关脱模可达性",
   "status.combineCut": "已合并：活动实体 {0} {1} 个工具体（切除{2}，B-rep 级 — 时间轴可改/可删）",
   "status.combineIntersect": "已合并：活动实体 {0} {1} 个工具体（相交{2}，B-rep 级 — 时间轴可改/可删）",
   "status.combineUnite": "已合并：活动实体 {0} {1} 个工具体（合并{2}，B-rep 级 — 时间轴可改/可删）",

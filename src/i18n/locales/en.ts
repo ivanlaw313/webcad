@@ -845,6 +845,8 @@ const messages: Record<string, string> = {
   "status.chamferDone": "Chamfer applied",
   "status.coilCreated": "Created coil (spring)",
   "status.coilTaperCreated": "Created tapered spring (baseØ{0}→topØ{1})",
+  "status.closeDemold": "Close demold accessibility",
+  "status.demoldClosed": "Demold accessibility closed",
   "status.combineCut": "Combined: active {0} {1} tool bodies (cut{2}, B-rep — editable/deletable on timeline)",
   "status.combineIntersect": "Combined: active {0} {1} tool bodies (intersect{2}, B-rep — editable/deletable on timeline)",
   "status.combineUnite": "Combined: active {0} {1} tool bodies (unite{2}, B-rep — editable/deletable on timeline)",

@@ -6,7 +6,9 @@ import { useDraggable } from './useDraggable'
 import { JOINT_LABEL_TC, resolveJointOrigin, cadAxisToWorld, type JointType } from '../assembly/kinematics'
 import { mechanismDOF } from '../assembly/linkage'
 import { localizeAsmName } from '../assembly/names'   // BUG(E)：繁體模式顯示名
-import { tStatus } from '../i18n'   // T779：DOF 闭环 Grübler 修正
+import { tStatus, normalizeLang, type Lang } from '../i18n'   // T779：DOF 闭环 Grübler 修正
+// FISHING100：panel title / section chrome i18n en/ja/zh-CN/zh-HK（JA/EN 唔再 TC 裝配關節 fallback）。
+// ⚠ 唔好用 tStatus() 译【面板標題】长句—— EN 会出半中半英；改显式四套字串（同 Tour FISHING99 / Slice FISHING97）。
 import { NumInput } from './NumInput'   // UX3 #5：唔再用 type=number（滑鼠滾輪／誤撳上下箭頭會靜靜改咗限位）
 
 // BUG(D-axis)：X/Y/Z = CAD 軸（Z 向上）→ three 世界向量（cadAxisToWorld）。
@@ -26,8 +28,72 @@ const JOINT_DRIVE_GESTURE = {
   onKeyDown: (e: { key: string; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean }) => { if (isSliderDriveKey(e)) beginDrive() }, onKeyUp: endDrive, onBlur: endDrive,
 } as const
 
+
+type JointsChrome = {
+  panelTitle: (n: number, dof: number) => string
+  jointOrigins: string
+  rigidGroups: string
+  poses: string
+  keyframes: string
+  motionLinks: string
+  expandPanel: string
+  collapsePanel: string
+  dlgYield: string
+}
+
+const ZH: JointsChrome = {
+  panelTitle: (n, dof) => `裝配關節 ${n} · 自由度 ${dof}`,
+  jointOrigins: '關節原點',
+  rigidGroups: '剛性組',
+  poses: '捕捉位置',
+  keyframes: '關鍵幀動畫',
+  motionLinks: '運動連結（齒輪比）',
+  expandPanel: '展開關節面板',
+  collapsePanel: '折疊面板',
+  dlgYield: '命令進行中 — 關節面板已讓位（命令完成後自動展開）',
+}
+const EN: JointsChrome = {
+  panelTitle: (n, dof) => `Assembly joints ${n} · DOF ${dof}`,
+  jointOrigins: 'Joint origins',
+  rigidGroups: 'Rigid groups',
+  poses: 'Captured poses',
+  keyframes: 'Keyframe animation',
+  motionLinks: 'Motion links (gear ratio)',
+  expandPanel: 'Expand joints panel',
+  collapsePanel: 'Collapse panel',
+  dlgYield: 'Command in progress — joints panel yielded (re-expands when done)',
+}
+const JA: JointsChrome = {
+  panelTitle: (n, dof) => `アセンブリジョイント ${n} · 自由度 ${dof}`,
+  jointOrigins: 'ジョイント原点',
+  rigidGroups: '剛体グループ',
+  poses: 'キャプチャ姿勢',
+  keyframes: 'キーフレームアニメ',
+  motionLinks: 'モーションリンク（ギア比）',
+  expandPanel: 'ジョイントパネルを展開',
+  collapsePanel: 'パネルを折りたたむ',
+  dlgYield: 'コマンド実行中 — ジョイントパネルは退避（完了後に再展開）',
+}
+const ZH_CN: JointsChrome = {
+  panelTitle: (n, dof) => `装配关节 ${n} · 自由度 ${dof}`,
+  jointOrigins: '关节原点',
+  rigidGroups: '刚性组',
+  poses: '捕捉位置',
+  keyframes: '关键帧动画',
+  motionLinks: '运动连接（齿轮比）',
+  expandPanel: '展开关节面板',
+  collapsePanel: '折叠面板',
+  dlgYield: '命令进行中 — 关节面板已让位（命令完成后自动展开）',
+}
+
+function pickJointsChrome(lang: Lang | string | undefined): JointsChrome {
+  const L = normalizeLang(lang)
+  return L === 'en' ? EN : L === 'ja' ? JA : L === 'zh-CN' ? ZH_CN : ZH
+}
+
 export default function JointsPanel() {
   const lang = useApp((s) => s.lang)
+  const chrome = pickJointsChrome(lang)
   const selectedJoint = useApp((s) => s.selectedJoint)   // ASM2 #7：瀏覽樹選取嘅關節
   const components = useApp((s) => s.components)
   const groundedId = useApp((s) => s.grounded)   // ASM2 P2：自由度唔計子件已固定嘅關節
@@ -299,7 +365,7 @@ export default function JointsPanel() {
         className={'joints-pill' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')}
         style={panelDrag.style}
         onPointerDown={panelDrag.onPointerDown}
-        title={dlgOpen ? '命令進行中 — 關節面板已讓位（命令完成後自動展開）' : '展開關節面板'}
+        title={dlgOpen ? chrome.dlgYield : chrome.expandPanel}
         onClick={() => { if (panelDrag.consumeClick()) return; if (!dlgOpen) { setUserCollapsed(false); setUserExpanded(true) } }}
       >🔧 {tStatus('關節', lang)} {joints.length} · {tStatus('自由度', lang)} {mechDOF}{!dlgOpen ? ' ▸' : ''}</button>
     )
@@ -307,9 +373,9 @@ export default function JointsPanel() {
 
   return (
     <div className={'joints-panel' + (panelDrag.isDragged ? ' vp-hud-dragged' : '')} ref={(el) => { panelRef.current = el; panelDrag.ref(el) }} style={dockMaxH ? { ...panelDrag.style, maxHeight: dockMaxH } : panelDrag.style} onScroll={(e) => { const el = e.currentTarget; bottomGap.current = el.scrollHeight - el.scrollTop }} onPointerDown={beginPanelDrag} title="拖動面板空白處或標題可移動位置">
-      <div className="jp-title" title="機構自由度 = 實際可驅動的獨立運動數：各有效關節的自由度之和（同一組件有多條關節時以最後一條為準；子件已固定的關節不計），三件或以上組件的閉環每環減 3（四連桿 = 1）。0 = 全部固定；數值越大，機構越鬆。">裝配關節 {joints.length} · 自由度 {mechDOF}{breakdown ? `（${breakdown}）` : ''}
+      <div className="jp-title" title="機構自由度 = 實際可驅動的獨立運動數：各有效關節的自由度之和（同一組件有多條關節時以最後一條為準；子件已固定的關節不計），三件或以上組件的閉環每環減 3（四連桿 = 1）。0 = 全部固定；數值越大，機構越鬆。">{chrome.panelTitle(joints.length, mechDOF)}{breakdown ? `（${breakdown}）` : ''}
         <button className="cs-x" style={{ float: 'right', marginLeft: 4, ...(contactSetsOn ? { color: '#ff8a2a', fontWeight: 700 } : {}) }} title={contactSetsOn ? '🧱 接觸集正在開啟：拖關節滑桿撞到第三方組件會自動擋停（再按關閉 — 關了可自由穿過）' : '🧱 接觸集（T787 /）：開了之後拖關節滑桿，子件撞到第三方組件即停在接觸前一刻 — 卡扣/棘輪/限位的真實手感'} onClick={() => useApp.getState().toggleContactSets()}>🧱{contactSetsOn ? '開' : ''}</button>
-        <span className="pp-x" style={{ float: 'right' }} title="折疊面板" onClick={() => { setUserCollapsed(true); setUserExpanded(false) }}>▾</span></div>
+        <span className="pp-x" style={{ float: 'right' }} title={chrome.collapsePanel} onClick={() => { setUserCollapsed(true); setUserExpanded(false) }}>▾</span></div>
 
       {joints.map((j) => (
         <div key={j.id} className={'jp-joint' + (j.id === selectedJoint ? ' sel' : '')} data-joint-id={j.id} style={j.id === selectedJoint ? { outline: '2px solid #1572c4', outlineOffset: -1, borderRadius: 4 } : undefined}>
@@ -450,7 +516,7 @@ export default function JointsPanel() {
 
       {jointOrigins.length > 0 && (
         <div className="jp-mlink">
-          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>關節原點</div>
+          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>{chrome.jointOrigins}</div>
           {jointOrigins.map((jo) => (
             <div key={jo.id} className="jp-row" style={{ flexWrap: 'wrap', gap: 4, fontSize: 12 }}>
               <span style={{ flex: 1 }} title={`${jo.mode === 'twoFaces' ? '兩面之間' : '簡單'} · ${jo.point.map((v) => v.toFixed(1)).join(', ')}`}>⚓ {jo.name}</span>
@@ -468,7 +534,7 @@ export default function JointsPanel() {
       {/* GM-3DV4 A8：一级刚性组节点（可抑制/删除；亦见浏览器「刚性组」组） */}
       {rigidGroups.length > 0 && (
         <div className="jp-mlink">
-          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>剛性組</div>
+          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>{chrome.rigidGroups}</div>
           {rigidGroups.map((g) => (
             <div key={g.id} className="jp-row" style={{ fontSize: 12 }}>
               <span style={{ flex: 1, opacity: g.suppressed ? 0.5 : 1 }} title={`${g.members.length} 件焊為一體${g.suppressed ? '（已抑制 — 各自自由）' : ''}`}>🔗 {g.name}（{g.members.length}）{g.suppressed ? ' · 已抑制' : ''}</span>
@@ -500,7 +566,7 @@ export default function JointsPanel() {
 
       {jointPoses.length > 0 && (
         <div className="jp-mlink">
-          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>捕捉位置</div>
+          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>{chrome.poses}</div>
           {jointPoses.map((p, i) => (
             <div key={i} className="jp-row" style={{ fontSize: 12 }}>
               <button className="cs-btn" style={{ flex: 1, textAlign: 'left' }} title="套用此姿態（機構跳到捕捉時的角度/位移）" onClick={() => { setPlaying(false); setMsPlaying(false); setKfPlaying(false); useApp.getState().applyJointPose(i) }}>▷ {p.name}</button>
@@ -512,7 +578,7 @@ export default function JointsPanel() {
 
       {joints.length > 0 && (
         <div className="jp-mlink">
-          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>關鍵幀動畫</div>
+          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>{chrome.keyframes}</div>
           <div className="jp-row" style={{ fontSize: 12, gap: 6, alignItems: 'center' }}>
             <span style={{ minWidth: 14 }}>t</span>
             <input type="range" {...JOINT_DRIVE_GESTURE} min={0} max={Math.max(1, kfEnd)} step={0.05} value={Math.min(kfTime, Math.max(1, kfEnd))} title="拖動時間軸：相鄰關鍵幀之間線性插值驅動機構（scrub）" onChange={(e) => { const v = Number(e.target.value); setKfPlaying(false); setKfTime(v); useApp.getState().applyJointTime(v) }} style={{ flex: 1 }} />
@@ -534,7 +600,7 @@ export default function JointsPanel() {
 
       {/* FISHING71: always mount 運動連結區 so ribbon focus + single-joint panel still show Formal heading (F69 PARTIAL) */}
       <div className="jp-mlink" ref={motionLinkRef}>
-          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>運動連結（齒輪比）</div>
+          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>{chrome.motionLinks}</div>
           {rotJoints.length < 2 ? (
             <div style={{ fontSize: 11, color: '#8a939c' }}>需要最少 2 個轉動／圓柱關節才可加運動連結（齒輪比／齒條）。</div>
           ) : (

@@ -92,10 +92,12 @@ test('sweep fields: per-keystroke drafts keep every digit (90, 0.5) even if stor
   const r = sweepDraftType('0', 1, parseSweepScaleDraft); assert.equal(r.write, null)
   assert.deepEqual(sweepDraftBlur(r.next, 1, parseSweepScaleDraft).next, { draft: '0' })
   const vp = rd('src/components/Viewport.tsx')
-  assert.match(vp, /^function SweepDraftField\(/m, 'module-level component → stable identity, no remount')
+  assert.match(vp, /function SweepDraftField\(/, 'module-level component → stable identity, no remount')
+  assert.match(vp, /const SweepDraftField = memo\(function SweepDraftField/, 'memo: preview re-renders skip when props unchanged')
   assert.match(vp, /<SweepDraftField key="sweep-twist"/); assert.match(vp, /<SweepDraftField key="sweep-scale"/)
   const comp = vp.slice(vp.indexOf('function SweepDraftField('), vp.indexOf('function LenInput('))
   assert.doesNotMatch(comp, /onFocus=/, 'focus no longer resets/selects the draft')
+  assert.match(comp, /flushSync\(\(\) => setDraft/, 'draft commits before store write (no mid-type store echo)')
   assert.match(comp, /sweepDraftType\(/); assert.match(comp, /sweepDraftBlur\(/)
 })
 

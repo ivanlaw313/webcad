@@ -11,7 +11,8 @@ import { FormTransformFields } from './FormTransformFields'
 import { FormPalette } from './FormPalette'
 import { activeModelCommand } from '../cad/commandAvailability'
 import { ExpressionInput } from './ExpressionInput'
-import { useMemo, useState, useRef, useEffect, useId, Fragment, lazy, Suspense, createContext, useContext, type ReactNode, type CSSProperties } from 'react'
+import { useMemo, useState, useRef, useEffect, useId, Fragment, lazy, Suspense, createContext, useContext, memo, type ReactNode, type CSSProperties } from 'react'
+import { flushSync } from 'react-dom'
 import { createSettledCommit, PRIM_PANEL_KINDS } from '../ui/fieldInput'
 import { Canvas, useThree, useFrame, type ThreeEvent } from '@react-three/fiber'
 import { PMREMGenerator } from 'three'
@@ -3655,8 +3656,10 @@ function useSettledField(report: (raw: string) => void) {
 /** FISHING31 P1：掃掠「扭轉／末端縮放」—— 獨立（模組級、穩定 key）草稿欄。
  *  · 聚焦期間只顯示本地草稿，store 值／預覽重建唔會覆寫、唔會 remount；
  *  · 每鍵 parse 合法即 onValue（預覽跟打字），非法留原文＋紅框＋Formal TC 警示；
- *  · 唔再每次 focus 全選／重設草稿（舊版 onFocus 會用 store 值覆寫草稿並全選，下一鍵就食晒之前嘅字）。 */
-function SweepDraftField({ testid, label, title, unit, value, parse, onValue, onBadChange, lang }: { testid: 'sweep-twist' | 'sweep-scale'; label: string; title: string; unit: string; value: number; parse: (raw: string) => { ok: boolean; value: number | null; reason: string | null }; onValue: (n: number) => void; onBadChange: (bad: boolean) => void; lang: Parameters<typeof tStatus>[1] }) {
+ *  · 唔再每次 focus 全選／重設草稿（舊版 onFocus 會用 store 值覆寫草稿並全選，下一鍵就食晒之前嘅字）。
+ *  · FISHING33：flushSync 草稿先於 store 寫入 — zustand 同步重繪唔好喺 draft commit 前用舊 draft／store 回顯（真瀏覽器中「0.5」中途曾見「5」）。
+ *  · memo：預覽 mesh／busy 令 Viewport 重繪時，props 不變就跳過，減輸入延遲。 */
+const SweepDraftField = memo(function SweepDraftField({ testid, label, title, unit, value, parse, onValue, onBadChange, lang }: { testid: 'sweep-twist' | 'sweep-scale'; label: string; title: string; unit: string; value: number; parse: (raw: string) => { ok: boolean; value: number | null; reason: string | null }; onValue: (n: number) => void; onBadChange: (bad: boolean) => void; lang: Parameters<typeof tStatus>[1] }) {
   const [draft, setDraft] = useState<string | null>(null)   // null = 未編輯 → 顯示 store 值
   const shown = sweepDraftShown({ draft }, value)
   const r = parse(shown)
@@ -3673,14 +3676,18 @@ function SweepDraftField({ testid, label, title, unit, value, parse, onValue, on
           value={shown}
           onMouseDown={(e) => { selectOnMouseUp.current = document.activeElement !== e.currentTarget }}
           onMouseUp={(e) => { if (selectOnMouseUp.current) { selectOnMouseUp.current = false; e.preventDefault(); e.currentTarget.select() } }}
-          onChange={(e) => { const st = sweepDraftType(e.target.value, value, parse as Parameters<typeof sweepDraftType>[2]); setDraft(st.next.draft); if (st.write != null) onValue(st.write) }}
+          onChange={(e) => {
+            const st = sweepDraftType(e.target.value, value, parse as Parameters<typeof sweepDraftType>[2])
+            flushSync(() => setDraft(st.next.draft))   // draft 必須先入 DOM；之後先至寫 store／觸發預覽
+            if (st.write != null) onValue(st.write)
+          }}
           onBlur={() => { const st = sweepDraftBlur({ draft }, value, parse as Parameters<typeof sweepDraftBlur>[2]); if (st.write != null) onValue(st.write); setDraft(st.next.draft) }}
-          style={{ width: 66, ...(bad ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }} /> {unit}</span>
+          style={{ width: 66, boxSizing: 'border-box', ...(bad ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }} /> {unit}</span>
       </label>
       {bad && <div role="alert" data-testid={`${testid}-alert`} style={{ color: '#b42318', fontSize: 11 }}>{tStatus(r.reason!, lang)}</div>}
     </>
   )
-}
+})
 function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: number; onMm: (v: number) => void; /** BD16-02：每次改都報【原文】（連 parse 失敗都報）—— onMm 喺 parse 失敗嗰陣根本唔會 call，所以父層單靠 onMm 永遠唔知道欄位而家係非法／空白。 */ onText?: (raw: string) => void; unit: LenUnit; w?: number; min?: number; max?: number; title?: string }) {
   const [txt, setTxt] = useState(() => toLenInput(mm, unit))
   const [foc, setFoc] = useState(false)
@@ -3762,8 +3769,13 @@ function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: num
        * BD16-02：QA 報「清空仍靜默變返 80」—— 舊版 blank 唔算 bad，於是 onBlur 照 snap。
        * 而家 blank 同 bad 一樣唔 snap。 */
       onBlur={() => { fld.flush(); setFoc(false); if (!bad && !blank) setTxt(toLenInput(fld.settle && parsed != null ? parsed : mm, unit)) }}
-      onChange={(e) => { setTxt(e.target.value); fld.change(e.target.value) }}
-      style={{ width: w, ...(bad || blank ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
+      onChange={(e) => {
+        const raw = e.target.value
+        flushSync(() => setTxt(raw))   // FISHING33：先提交原文，避免 zustand onMm 同步重繪用舊 txt 回顯（99999 中途似被截成 999）
+        fld.change(raw)
+      }}
+      /* FISHING33：寬度跟字數增長 — w=66 會視覺裁切「99999」；唔夾值、唔 maxLength */
+      style={{ width: Math.max(w, 12 + shown.length * 14), minWidth: w, boxSizing: 'border-box', ...(bad || blank ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
     />
   )
 }
@@ -5637,11 +5649,11 @@ export default function Viewport() {
             {/* Chamfer palette order: parameter row → Type → selection → Tangent Chain → Flip → Corner Type（CORE16 #3：全部繁體）. */}
             <label>
               <span style={{ color: '#6b7680' }}>{chamferMode === 'two' ? '距離 1' : '距離'}</span>
-              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={66} min={0} max={1000000} title="倒角距離（inch 模式可輸入分數 1/16；亦接受算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
+              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={88} min={0} max={1000000} title="倒角距離（inch 模式可輸入分數 1/16；亦接受算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
             {chamferMode === 'two' && <label>
               <span style={{ color: '#6b7680' }}>距離 2</span>
-              <span><LenInput mm={chamferSize2} onMm={setChamferSize2} unit={unit} w={66} min={0} title="倒角第二距離" /> {unit === 'inch' ? 'in' : unit}</span>
+              <span><LenInput mm={chamferSize2} onMm={setChamferSize2} unit={unit} w={88} min={0} title="倒角第二距離" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>}
             {chamferMode === 'angle' && <label>
               <span style={{ color: '#6b7680' }}>角度</span>

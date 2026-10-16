@@ -6,9 +6,9 @@ i18n SC/TC leftover EN: `可达性分析` / `可達性分析` → **Demold Acces
 Cherry **more44** CORE16 sample (`bac7f41a` → `4073d18e`) before nginx.
 
 ## Live after cut
-- Tip: `1b78655c42d2db99c4c43b747608be8f5b50b28a` (fix/fishing89-behavior-ux → FF fix/sketch-face-copy)
-- Product: `31154358fb4e57a6a11882550660063349f4140b` AeroLabPreview lazySafe + Demold Accessibility EN
-- more44 cherry: `4073d18e4cd94fb4cc37b27bd50f706534dc90b9` (from `bac7f41a` on test/unit-core16-more44)
+- Tip: `f23e2fb367052a60ec986dbd0f87474f7c1152d2` (fix/fishing89-behavior-ux → FF fix/sketch-face-copy)
+- Product: `f23e2fb367052a60ec986dbd0f87474f7c1152d2` AeroLabPreview lazySafe + Demold Accessibility EN
+- more44 cherry: `f23e2fb367052a60ec986dbd0f87474f7c1152d2` (from `bac7f41a` on test/unit-core16-more44)
 - Stamp: `v2.20-20261016-235705`
 - Bundle: `index-Do4BZCUk-r2.js` (md5 `705b7c928b05112df124b4cbc55b4f8f`)
 - Bak: `index-BPlnpMNW-r2.js` / `v2.20-20261016-234555` (F88 kept as PREV)

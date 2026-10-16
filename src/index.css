@@ -592,7 +592,7 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 }
 .feat-editor .fe-title { font-weight: 600; color: var(--accent); display: inline-flex; align-items: center; gap: 5px; }
 .feat-editor label { display: inline-flex; align-items: center; gap: 6px; }
-.feat-editor input { width: 64px; padding: 3px 6px; border: 1px solid var(--border-soft); border-radius: 4px; }
+.feat-editor input { width: 88px; min-width: 88px; box-sizing: border-box; overflow: visible; padding: 3px 6px; border: 1px solid var(--border-soft); border-radius: 4px; }
 .feat-editor .fe-del { color: #c0392b; background: #fff; border: 1px solid #e3b4ae; border-radius: 5px; padding: 4px 12px; cursor: pointer; }
 .feat-editor .fe-del:hover { background: #fdf0ee; }
 .feat-editor .fe-close { color: #555; background: #fff; border: 1px solid var(--border-soft); border-radius: 5px; padding: 4px 12px; cursor: pointer; }

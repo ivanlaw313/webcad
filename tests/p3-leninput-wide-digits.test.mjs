@@ -19,8 +19,9 @@ test('LenInput grows width with digit count (99999 visible); no maxLength clamp'
 })
 
 test('chamfer distance LenInput base width fits ≥5 digits', () => {
-  assert.match(vp, /edgeRoundSize[^\n]*w=\{88\}/, 'chamfer 距離 base w=88')
-  assert.match(vp, /chamferSize2[^\n]*w=\{88\}/, 'chamfer 距離2 base w=88')
+  // live tip uses CHAMFER_DIST_INPUT_W (=88); keep constant so both widen strategies compose
+  assert.match(vp, /edgeRoundSize[^\n]*w=\{CHAMFER_DIST_INPUT_W\}/, 'chamfer 距離 uses CHAMFER_DIST_INPUT_W (=88)')
+  assert.match(vp, /chamferSize2[^\n]*w=\{CHAMFER_DIST_INPUT_W\}/, 'chamfer 距離2 uses CHAMFER_DIST_INPUT_W (=88)')
 })
 
 test('cmd-palette text inputs use border-box (inner width not eaten by padding)', () => {

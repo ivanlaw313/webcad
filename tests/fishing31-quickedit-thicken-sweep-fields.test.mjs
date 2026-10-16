@@ -75,21 +75,22 @@ test('Timeline quick-edit wiring: live red alert while typing, confirm disabled,
   assert.match(tl, /\{liveReject \? \(\s*<div role="alert" data-testid="timeline-illegal-alert"/)
 })
 
-test('sweep fields: per-keystroke drafts keep every digit (90, 0.5) even if store/preview re-render in between', () => {
+test('sweep fields: per-keystroke drafts keep every digit (90, 0.5); type never writes — blur/debounce does', () => {
   for (const [parse, keys, want, init] of [[parseSweepTwistDraft, ['9', '90'], 90, 0], [parseSweepScaleDraft, ['0', '0.', '0.5'], 0.5, 1]]) {
     let st = { draft: null }, store = init
-    const writes = []
     for (const k of keys) {
       const r = sweepDraftType(k, store, parse); st = r.next
-      if (r.write != null) { writes.push(r.write); store = r.write }
+      assert.equal(r.write, null, 'type never writes store (FISHING33 debounce)')
       assert.equal(sweepDraftShown(st, store), k, 'shown text is exactly what was typed, never the store echo')
     }
-    assert.equal(store, want)
+    assert.equal(store, init, 'store unchanged until blur/debounce')
     const b = sweepDraftBlur(st, store, parse)
-    assert.equal(b.write, null); assert.equal(sweepDraftShown(b.next, store), String(want))
+    assert.equal(b.write, want)
+    store = b.write
+    assert.equal(sweepDraftShown(b.next, store), String(want))
   }
   // invalid scale keeps text, no store write
-  const r = sweepDraftType('0', 1, parseSweepScaleDraft); assert.equal(r.write, null)
+  const r = sweepDraftType('0', 1, parseSweepScaleDraft); assert.equal(r.write, null); assert.equal(r.pending, null)
   assert.deepEqual(sweepDraftBlur(r.next, 1, parseSweepScaleDraft).next, { draft: '0' })
   const vp = rd('src/components/Viewport.tsx')
   assert.match(vp, /function SweepDraftField\(/, 'module-level component → stable identity, no remount')
@@ -99,6 +100,7 @@ test('sweep fields: per-keystroke drafts keep every digit (90, 0.5) even if stor
   assert.doesNotMatch(comp, /onFocus=/, 'focus no longer resets/selects the draft')
   assert.match(comp, /flushSync\(\(\) => setDraft/, 'draft commits before store write (no mid-type store echo)')
   assert.match(comp, /sweepDraftType\(/); assert.match(comp, /sweepDraftBlur\(/)
+  assert.match(comp, /SWEEP_DRAFT_DEBOUNCE_MS/); assert.match(comp, /sweepDraftDebounceFlush/)
 })
 
 test('build warnings dedupe: same set shown once, re-shown on change, reset when clean', () => {

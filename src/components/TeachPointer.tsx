@@ -20,6 +20,7 @@ type Box = { cx: number; bottom: number; label: string }
 export default function TeachPointer() {
   const teachHi = useApp((s) => s.teachHi)
   const tour = useApp((s) => s.tour)
+  const lang = useApp((s) => s.lang)   // FISHING99：Tour sticky label follows lang
   const [box, setBox] = useState<Box | null>(null)          // 一次性 AI 教学箭头
   const [sticky, setSticky] = useState<Box | null>(null)    // GM-W6 E：教学步骤常驻箭头
   const dismissRef = useRef<number | null>(null)
@@ -72,7 +73,7 @@ export default function TeachPointer() {
       window.removeEventListener('resize', onMove)
       window.removeEventListener('scroll', onMove, true)
     }
-  }, [tour])
+  }, [tour, lang])
 
   return (
     <>

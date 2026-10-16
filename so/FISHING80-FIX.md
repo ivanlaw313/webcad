@@ -5,7 +5,7 @@
 **Product fix:** tests-only — cherry `5dedec8` ← `1dbcebc`  
 **more41 cherry:** `5dedec8` ← `1dbcebc` on `test/unit-core16-more41` (cherry-pick -x) **BEFORE nginx**  
 **Base:** tip `6a7ff1a` (FISHING79 live)  
-**Tip:** (after FF docs — see remotes)
+**Tip:** `27f7953f2bb1f79cebca57f02d2197d367de27fc`
 
 ## Scan
 

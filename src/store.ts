@@ -12380,7 +12380,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (needsCylAxis && secondWasPlanar && face.kind === 'cyl') {
         const lang1 = get().lang
         const ok = await get().appConfirm(
-          tStatus('第二下點中了平面（非圓柱面）。旋轉／滑動軸將取自已選圓柱面（不是平面法向）。若要軸隨孔壁，請取消後改點圓柱孔／軸壁。', lang1),
+          tStatus('第二下點中了平面（非圓柱面）。轉動／滑動軸將取自已選圓柱面（不是平面法向）。若要軸隨孔壁，請取消後改點圓柱孔／軸壁。', lang1),
           tStatus('混合面澄清', lang1),
         )
         if (!ok) { restorePreview(`已取消建關節 — 「${B.name}」已還原原來位置；請再拾取，第二下改點圓柱孔／軸壁`); return }

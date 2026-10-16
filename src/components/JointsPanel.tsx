@@ -333,7 +333,7 @@ export default function JointsPanel() {
               <NumInput value={j.offset?.[1] ?? 0} onValue={(v) => { setJointValue(j.id, { offset: [j.offset?.[0] ?? 0, v, j.offset?.[2] ?? 0] }) }} label="沿 V 偏移 mm" w={42} title="沿 V 偏移 mm" />
               <NumInput value={j.offset?.[2] ?? 0} onValue={(v) => { setJointValue(j.id, { offset: [j.offset?.[0] ?? 0, j.offset?.[1] ?? 0, v] }) }} label="沿軸偏移 mm" w={42} title="沿軸偏移 mm" />
               ∠ <NumInput value={j.originAngle ?? 0} onValue={(v) => { setJointValue(j.id, { originAngle: v }) }} label="靜止轉角°（繞關節軸）" w={44} title="靜止轉角°（繞關節軸）" />°
-              <label style={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} title="反轉：反轉關節軸向（旋轉／滑動方向相反）"><input type="checkbox" checked={!!j.flip} onChange={(e) => setJointValue(j.id, { flip: e.target.checked })} /> 反轉</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} title="反轉：反轉關節軸向（轉動／滑動方向相反）"><input type="checkbox" checked={!!j.flip} onChange={(e) => setJointValue(j.id, { flip: e.target.checked })} /> 反轉</label>
             </div>
           )}
           {(j.type === 'revolute' || j.type === 'cylindrical') && (

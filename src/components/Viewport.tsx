@@ -8811,7 +8811,7 @@ export default function Viewport() {
           <input type="range" min={12} max={55} step={1} value={cameraFov} onChange={(e) => useApp.getState().setCameraFov(Number(e.target.value))} style={{ width: 58, accentColor: '#1572c4', cursor: 'ew-resize' }} />
           <span style={{ minWidth: 30, whiteSpace: 'nowrap', flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{cameraFov}°</span>
         </span>}
-        <button className={'tb-btn' + (matLibOpen ? ' tb-on' : '')} title={tStatus('📚 外觀材質庫（S187）：把當前外觀（顏色+金屬度+粗糙度+紋理）存為具名預設，一擊套用。跨文件全局儲存。', lang)} onClick={() => useApp.getState().setMatLibOpen(!matLibOpen)}>📚</button>
+        <button className={'tb-btn' + (matLibOpen ? ' tb-on' : '')} title={tStatus('📚 外觀材質庫（S187）：把當前外觀（顏色+金屬度+粗糙度+紋理）存為具名預設，一擊套用。跨檔案全局儲存。', lang)} onClick={() => useApp.getState().setMatLibOpen(!matLibOpen)}>📚</button>
         <span title={tStatus('實時微調當前實體外觀：金屬度（0 漫反射→1 金屬）/ 粗糙度（0 鏡面→1 啞光）—— 脫離預設直接拖（滑桿）', lang)} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#8a97a2', padding: '0 4px' }}>
           ⬤<input type="range" min={0} max={1} step={0.02} value={material.metalness} onChange={(e) => useApp.getState().setMatProp('metalness', Number(e.target.value))} title={tStatus('金屬度', lang) + ' ' + material.metalness.toFixed(2)} style={{ width: 50 }} />
           ◗<input type="range" min={0} max={1} step={0.02} value={material.roughness} onChange={(e) => useApp.getState().setMatProp('roughness', Number(e.target.value))} title={tStatus('粗糙度', lang) + ' ' + material.roughness.toFixed(2)} style={{ width: 50 }} />

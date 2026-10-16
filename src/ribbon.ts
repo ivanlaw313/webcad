@@ -176,7 +176,7 @@ const SOLID: Panel[] = [
   {
     name: 'INSERT',
     tools: [
-      { id: 'insertcomponent', label: '插入組件', icon: 'component', quick: true, tip: '從 STEP／STP 或 WebCAD 零件 JSON 選取零件或裝配，作為獨立組件插入當前設計；保留多零件的相對位置。JSON 不會取代當前文件（開啟舊檔案才會）。當前不建立雲端/F3D 的關聯鏈接。' },
+      { id: 'insertcomponent', label: '插入組件', icon: 'component', quick: true, tip: '從 STEP／STP 或 WebCAD 零件 JSON 選取零件或裝配，作為獨立組件插入當前設計；保留多零件的相對位置。JSON 不會取代當前檔案（開啟舊檔案才會）。當前不建立雲端/F3D 的關聯鏈接。' },
       { id: 'insertfastener', label: '插入緊固件', icon: 'component', quick: true, tip: '選內建 ISO 緊固件類型、M 規格與長度後插入獨立裝配組件。幾何尺寸真實；螺紋以簡化光桿表示，不偽稱 Autodesk 雲端供應商庫。' },
       { id: 'insertmesh', label: '插入STL網格', icon: 'importmesh', quick: true },
       { id: 'insert3mf', label: '插入3MF網格', icon: 'importmesh', quick: true, tip: 'MakerWorld / Printables 下載的 3MF 直接匯入做組件——多零件保留擺位與顏色，單位自動轉 mm。' },

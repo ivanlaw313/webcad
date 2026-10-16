@@ -4812,7 +4812,7 @@ export default function PhysicsLab() {
               {cadAeroCalibration
                 ? `已套用趨勢級 LBM：Cd ${cadAeroCalibration.cd.toFixed(3)} · 面積 ${(cadAeroCalibration.frontalAreaM2 * 1e4).toFixed(2)} cm² · ${cadAeroCalibration.speedMps.toFixed(1)} m/s · Re ${cadAeroCalibration.reynolds.toExponential(2)}${cadAeroCalibration.converged ? "" : " · 未完全收斂"}`
                 : windResult
-                  ? "已有同一 WebCAD 文件的風洞結果，可套用 Cd、迎風面積、流體密度及工況速度。"
+                  ? "已有同一 WebCAD 檔案的風洞結果，可套用 Cd、迎風面積、流體密度及工況速度。"
                   : "尚未有風洞結果；先在 INSPECT／風洞完成一次趨勢級 LBM 分析。"}
             </p>
             <label className="physics-lab-toggle">

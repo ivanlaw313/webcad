@@ -3664,7 +3664,7 @@ function buildShape(features: Feature[], noCache = false): any {
     } else if (f.type === 'stepbody') {
       // STEP B-rep 导入（T729）：预解析缓存攞 shape，clone 落树（缓存母本唔俾布尔消耗）
       const sh = stepCache.get(stepCacheKey(f))
-      if (!sh) buildWarnings.push('⚠ STEP 實體解析失敗/未就緒 — 已跳過（檢查文件是即有效 STEP）')
+      if (!sh) buildWarnings.push('⚠ STEP 實體解析失敗/未就緒 — 已跳過（檢查檔案是即有效 STEP）')
       else merge(sh.clone(), f.op)
     } else if (f.type === 'newbody') {
       // 独立实体当前活动实体 → 开新实体（之后嘅特征全部作用喺新实体；独立实体喺视口灰显）
@@ -6483,7 +6483,7 @@ function buildShape(features: Feature[], noCache = false): any {
             const pr = meshToBrepParametric(f.v, f.t, f.fit)
             if (pr && pr.shape) { solid = pr.shape
               const what = f.fit === 'prismatic' ? `真參數化盒實體${pr.cylCount ? `＋${pr.cylCount} 個圓柱孔` : ''}` : '真圓柱實體'   // #2b：v2 prismatic = 盒−圆柱布尔；v1 param = 纯圆柱
-              buildWarnings.push(`網格參數化：重建為${what}（覆蓋 ${Math.round(pr.coverage * 100)}%）— 可精確圓角/量 Ø/導出 STEP`) }
+              buildWarnings.push(`網格參數化：重建為${what}（覆蓋 ${Math.round(pr.coverage * 100)}%）— 可精確圓角/量 Ø/匯出 STEP`) }
           } catch { /* 参数化异常 → 静默退 faceted */ }
         }
         if (!solid) solid = meshToSolidShape(f.v, f.t)   // faceted 退路（param 失败 / 非纯圆柱 / mode 未设 → 逐字节旧路）

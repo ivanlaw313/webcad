@@ -3485,7 +3485,7 @@ Object.assign(STATUS_PHRASES_X, {
   '運動包絡：先載入機構（四連桿 / 滑塊曲柄 / 六桿）': 'Motion envelope: load a mechanism first (four-bar / slider-crank / six-bar)',
   '機構掃描未收斂，無法計算包絡': 'Mechanism sweep did not converge, cannot compute envelope',
   '已清除運動包絡': 'Motion envelope cleared',
-  '⚠ 此回路沒有可剪開的旋轉關節 — 暫不支援純滑動閉環': '⚠ No revolute joint in this loop to cut — closed loops not yet supported (slider-only loop)',
+  '⚠ 此回路沒有可剪開的轉動關節 — 暫不支援純滑動閉環': '⚠ No revolute joint in this loop to cut — closed loops not yet supported (slider-only loop)',
   '⚠ 閉環只支援平面機構（回路內轉軸互相平行）— 此回路並非平面機構，未求解': '⚠ Closed loops support only planar mechanisms (parallel axes within the loop) — this loop isn\'t planar, not solved',
   '⚠ 機構已到死點／目標不可達／觸及限位 — 保持上一個可解位置': '⚠ Mechanism at dead point / target unreachable / limit hit — holding last solvable pose',
   '🧱 接觸集已開：拖關節滑桿撞到第三方組件會自動挡停（卡扣/棘輪/限位手感）— 蒙特卡洛 >2mm³ 判觸': '🧱 Contact set on: dragging a joint slider into a third-party component auto-stops (snap / ratchet / limit feel) — Monte Carlo >2mm³ counts as contact',

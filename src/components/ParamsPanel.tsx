@@ -177,7 +177,7 @@ export default function ParamsPanel() {
         <button className="cs-btn" onClick={add}>{tz('+ 新增')}</button>
       </div>
       <details><summary>{tz('進階：配置、設計表及匯出')}</summary>
-      {params.length > 0 && <div className="pp-add" style={{ justifyContent: 'flex-end' }}><button className="cs-btn" title={tz('把參數表匯出為 CSV（名稱/值/表達式，方便文件/分享/Excel）')} onClick={() => exportCsv()}>{tz('📋 匯出參數 CSV')}</button></div>}
+      {params.length > 0 && <div className="pp-add" style={{ justifyContent: 'flex-end' }}><button className="cs-btn" title={tz('把參數表匯出為 CSV（名稱/值/表達式，方便檔案/分享/Excel）')} onClick={() => exportCsv()}>{tz('📋 匯出參數 CSV')}</button></div>}
       {params.length > 0 && (
         <div className="pp-add" style={{ flexWrap: 'wrap', gap: 4, borderTop: '1px solid #2a2e33', paddingTop: 6, marginTop: 4 }}>
           <span style={{ fontSize: 11, color: '#888', width: '100%' }}>{tz('🗂 設計表：改一個參數掃多個值 → 一次匯出 N 個 STL（zip）')}</span>

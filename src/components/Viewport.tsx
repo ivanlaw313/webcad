@@ -115,7 +115,8 @@ import { cutFaceGeom } from '../geom/sectionCap'   // S186：剖面盖切面三�
 import type { GearTrainPlan } from '../cad/gears'   // T770：齿轮箱向导按需预览（避免普通建模首屏载入齿轮搜索）
 import { ToolIcon } from '../icons'
 import { featDlgBlockingReason, patternOverlapWarning } from '../cad/featDlgNumeric'
-import { parseSweepTwistDraft, parseSweepScaleDraft, sweepDraftShown, sweepDraftType, sweepDraftBlur } from '../cad/sweepTwistFields'   // 純邏輯模組，唔經 monolith
+import { parseSweepTwistDraft, parseSweepScaleDraft, sweepDraftShown, sweepDraftType, sweepDraftBlur, sweepDraftDebounceFlush, SWEEP_DRAFT_DEBOUNCE_MS } from '../cad/sweepTwistFields'   // 純邏輯模組，唔經 monolith
+import { CHAMFER_DIST_INPUT_W } from '../ui/chamferDistDisplay'
 import { startRenderGovernor } from '../render/renderGovernor'
 import { PRIM_PLACE_KINDS, FEAT_DLG_DRY_PREVIEW_KINDS, shellFailReason, effectiveComponentDensity } from '../store'   // UX3 #2 / CORE16 b4
 import { useApp, chamferInputReason, holeBlindOverrun, meshBboxSize, extrudePreviewKey, extrudePreviewCurrent, meshCenter3, MATERIALS, fmtVol, fmtArea, fmtLen, projName, compWorldMatrix, buildGroupFK, moldTargetMesh, PRINT_BEDS, bedFit, coplanarFaceTris, faceGroupTris, faceIdAt, notePlanarFace, peekPlanarFace, datumVisKey, setGeoSnapAlt, screwSpec, THREAD_STDS, inchLabel, ISO_NOMS, ISO_COARSE, ISO_FINE, DATUM_CMD_METHODS, DATUM_CMD_ACC, externalSweepSection, thickenOversizeReason } from '../store'
@@ -3652,9 +3653,9 @@ function useSettledField(report: (raw: string) => void) {
     } : {},
   }
 }
-/** FISHING31 P1：掃掠「扭轉／末端縮放」—— 獨立（模組級、穩定 key）草稿欄。
+/** FISHING31／FISHING33：掃掠「扭轉／末端縮放」—— 獨立（模組級、穩定 key）草稿欄。
  *  · 聚焦期間只顯示本地草稿，store 值／預覽重建唔會覆寫、唔會 remount；
- *  · 每鍵 parse 合法即 onValue（預覽跟打字），非法留原文＋紅框＋Formal TC 警示；
+ *  · 打字只更新 draft；blur 或 debounce（SWEEP_DRAFT_DEBOUNCE_MS）先 onValue → 預覽；非法即時紅框、唔寫 store；
  *  · 唔再每次 focus 全選／重設草稿（舊版 onFocus 會用 store 值覆寫草稿並全選，下一鍵就食晒之前嘅字）。 */
 function SweepDraftField({ testid, label, title, unit, value, parse, onValue, onBadChange, lang }: { testid: 'sweep-twist' | 'sweep-scale'; label: string; title: string; unit: string; value: number; parse: (raw: string) => { ok: boolean; value: number | null; reason: string | null }; onValue: (n: number) => void; onBadChange: (bad: boolean) => void; lang: Parameters<typeof tStatus>[1] }) {
   const [draft, setDraft] = useState<string | null>(null)   // null = 未編輯 → 顯示 store 值
@@ -3662,9 +3663,13 @@ function SweepDraftField({ testid, label, title, unit, value, parse, onValue, on
   const r = parse(shown)
   const bad = !r.ok
   const badRef = useRef<boolean | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const valueRef = useRef(value)
+  valueRef.current = value
   useEffect(() => { if (badRef.current !== bad) { badRef.current = bad; onBadChange(bad) } })
-  useEffect(() => () => onBadChange(false), [])   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { onBadChange(false); if (debounceRef.current) clearTimeout(debounceRef.current) }, [])   // eslint-disable-line react-hooks/exhaustive-deps
   const selectOnMouseUp = useRef(false)
+  const clearDebounce = () => { if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null } }
   return (
     <>
       <label title={tStatus(title, lang)}>
@@ -3673,9 +3678,27 @@ function SweepDraftField({ testid, label, title, unit, value, parse, onValue, on
           value={shown}
           onMouseDown={(e) => { selectOnMouseUp.current = document.activeElement !== e.currentTarget }}
           onMouseUp={(e) => { if (selectOnMouseUp.current) { selectOnMouseUp.current = false; e.preventDefault(); e.currentTarget.select() } }}
-          onChange={(e) => { const st = sweepDraftType(e.target.value, value, parse as Parameters<typeof sweepDraftType>[2]); setDraft(st.next.draft); if (st.write != null) onValue(st.write) }}
-          onBlur={() => { const st = sweepDraftBlur({ draft }, value, parse as Parameters<typeof sweepDraftBlur>[2]); if (st.write != null) onValue(st.write); setDraft(st.next.draft) }}
-          style={{ width: 66, ...(bad ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }} /> {unit}</span>
+          onChange={(e) => {
+            const st = sweepDraftType(e.target.value, valueRef.current, parse as Parameters<typeof sweepDraftType>[2])
+            setDraft(st.next.draft)
+            clearDebounce()
+            // 合法中途：debounce 先寫 store（唔每鍵預覽）；非法唔寫
+            if (st.pending != null) {
+              const pending = st.pending
+              debounceRef.current = setTimeout(() => {
+                debounceRef.current = null
+                const fl = sweepDraftDebounceFlush(pending, valueRef.current)
+                if (fl.write != null) onValue(fl.write)
+              }, SWEEP_DRAFT_DEBOUNCE_MS)
+            }
+          }}
+          onBlur={() => {
+            clearDebounce()
+            const st = sweepDraftBlur({ draft }, valueRef.current, parse as Parameters<typeof sweepDraftBlur>[2])
+            if (st.write != null) onValue(st.write)
+            setDraft(st.next.draft)
+          }}
+          style={{ width: 66, boxSizing: 'border-box', overflow: 'visible', ...(bad ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }} /> {unit}</span>
       </label>
       {bad && <div role="alert" data-testid={`${testid}-alert`} style={{ color: '#b42318', fontSize: 11 }}>{tStatus(r.reason!, lang)}</div>}
     </>
@@ -3763,7 +3786,7 @@ function LenInput({ mm, onMm, onText, unit, w = 56, min, max, title }: { mm: num
        * 而家 blank 同 bad 一樣唔 snap。 */
       onBlur={() => { fld.flush(); setFoc(false); if (!bad && !blank) setTxt(toLenInput(fld.settle && parsed != null ? parsed : mm, unit)) }}
       onChange={(e) => { setTxt(e.target.value); fld.change(e.target.value) }}
-      style={{ width: w, ...(bad || blank ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
+      style={{ width: w, boxSizing: 'border-box', overflow: 'visible', ...(bad || blank ? { borderColor: '#b42318', outline: '1px solid #b42318' } : {}) }}
     />
   )
 }
@@ -5637,11 +5660,11 @@ export default function Viewport() {
             {/* Chamfer palette order: parameter row → Type → selection → Tangent Chain → Flip → Corner Type（CORE16 #3：全部繁體）. */}
             <label>
               <span style={{ color: '#6b7680' }}>{chamferMode === 'two' ? '距離 1' : '距離'}</span>
-              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={66} min={0} max={1000000} title="倒角距離（inch 模式可輸入分數 1/16；亦接受算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
+              <span><LenInput mm={edgeRoundSize} onMm={setEdgeRoundSize} unit={unit} w={CHAMFER_DIST_INPUT_W} min={0} max={1000000} title="倒角距離（inch 模式可輸入分數 1/16；亦接受算式 10+5）" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>
             {chamferMode === 'two' && <label>
               <span style={{ color: '#6b7680' }}>距離 2</span>
-              <span><LenInput mm={chamferSize2} onMm={setChamferSize2} unit={unit} w={66} min={0} title="倒角第二距離" /> {unit === 'inch' ? 'in' : unit}</span>
+              <span><LenInput mm={chamferSize2} onMm={setChamferSize2} unit={unit} w={CHAMFER_DIST_INPUT_W} min={0} title="倒角第二距離" /> {unit === 'inch' ? 'in' : unit}</span>
             </label>}
             {chamferMode === 'angle' && <label>
               <span style={{ color: '#6b7680' }}>角度</span>
@@ -7384,8 +7407,8 @@ export default function Viewport() {
             <SelectionChip label={tStatus('稜', lang)} count={Math.max(1, +(featDlg.params.nearsN || 0))} hint="" />
             <label>{tStatus('類型', lang)} <select value={String(featDlg.params.cmode)} onChange={(e) => setFeatParam('cmode', e.target.value)} style={{ height: 26 }}>
               <option value="equal">{tStatus('等距', lang)}</option><option value="two">{tStatus('雙距離', lang)}</option><option value="angle">{tStatus('距離+角度', lang)}</option></select></label>
-            <label>{tStatus('距離', lang)} <FeatNum k="distance" v={featDlg.params.distance} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
-            {featDlg.params.cmode === 'two' && <label>{tStatus('距離2', lang)} <FeatNum k="dist2" v={featDlg.params.dist2} w={56} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>}
+            <label>{tStatus('距離', lang)} <FeatNum k="distance" v={featDlg.params.distance} w={CHAMFER_DIST_INPUT_W} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>
+            {featDlg.params.cmode === 'two' && <label>{tStatus('距離2', lang)} <FeatNum k="dist2" v={featDlg.params.dist2} w={CHAMFER_DIST_INPUT_W} unit="mm" /> {unit === 'inch' ? 'in' : unit}</label>}
             {featDlg.params.cmode === 'angle' && <label>{tStatus('角度', lang)} <FeatNum k="angle" v={featDlg.params.angle} w={50} />°</label>}
             {featDlg.params.cmode !== 'equal' && <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.flip || 0)} onChange={(e) => setFeatParam('flip', e.target.checked ? 1 : 0)} />{tStatus('翻轉', lang)}</label>}
             <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={!!+(featDlg.params.chain || 0)} onChange={(e) => setFeatParam('chain', e.target.checked ? 1 : 0)} />{tStatus('切線鏈', lang)}</label>

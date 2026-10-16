@@ -2,7 +2,7 @@
 // Stable keys. Missing → fall back zh-HK → key.
 
 const messages: Record<string, string> = {
-  "alias.accessanalysis": "可達性 可達性分析 accessibility 可达性",
+  "alias.accessanalysis": "脫模可達性 可達性 可達性分析 accessibility 可达性",
   "alias.aicopilot": "AI copilot 助手 助理 chatbot 聊天 人工智能 人工智慧 アシスタント assistant",
   "alias.align": "對齊 align 貼合 貼平 同軸快捷 对齐 贴合 贴平 同轴快捷",
   "alias.appearance": "顏色 上色 染色 材質 color material 外觀 颜色 材质 外观",
@@ -122,7 +122,7 @@ const messages: Record<string, string> = {
   "alias.wedge": "楔形 楔 斜坡 坡道 門擋 三角塊 三角支撐 ramp wedge 门挡 三角块 三角支撑",
   "alias.worm": "蝸桿 蝸輪 worm 大減速 蜗杆 蜗轮",
   "alias.zebra": "斑馬紋 斑馬紋分析 zebra stripe 斑马纹",
-  "cmd.accessanalysis": "可達性分析",
+  "cmd.accessanalysis": "脫模可達性",
   "cmd.actFit": "適應視窗 / 主視圖",
   "cmd.actHelp": "幫助 / 快捷鍵",
   "cmd.actOpen": "開啟專案 (JSON)",
@@ -978,7 +978,7 @@ const messages: Record<string, string> = {
   "tip.topopt": "拓撲優化（SIMP）：在設計域內按保留體積分配材料，得出較省料又較硬的承力結構。趨勢級，非商用認證。先點固定面與受力面。",
   "tip.torus": "圓環：設大徑與管徑。",
   "tip.worm": "蝸桿（ZA 近似形）：模數/頭數/長度 — 同蝸輪比 = 頭數:齒數（純運動學）。",
-  "tool.accessanalysis": "可達性分析",
+  "tool.accessanalysis": "脫模可達性",
   "tool.aicopilot": "AI 助手",
   "tool.align": "對齊",
   "tool.appearance": "外觀",

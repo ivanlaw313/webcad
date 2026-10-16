@@ -21184,16 +21184,16 @@ export const useApp = create<AppState>((rawSet, get) => {
   runAccessibility: (pull) => {
     const s = get()
     const bm = s.bodyMesh
-    if (!bm || !bm.vertices.length || !bm.triangles.length) { set({ status: '可達性分析：需要活動實體' }); return }
+    if (!bm || !bm.vertices.length || !bm.triangles.length) { set({ status: '脫模可達性：需要活動實體' }); return }
     const L = Math.hypot(pull[0], pull[1], pull[2])
-    if (!(L > 1e-9)) { set({ status: '可達性分析：脫模方向不可是零向量' }); return }
+    if (!(L > 1e-9)) { set({ status: '脫模可達性：脫模方向不可是零向量' }); return }
     import('./cad/accessibilityAnalysis').then(({ analyzeAccessibility }) => {
       const rep = analyzeAccessibility(bm.vertices as number[], bm.triangles as number[], pull)
-      if (rep.tooLarge) { set({ status: `可達性分析：網格 ${rep.nTotal} 三角太多（暴力射線 O(F²) 會卡）— 誠實跳過，請先簡化網格或用拔模分析` }); return }
+      if (rep.tooLarge) { set({ status: `脫模可達性：網格 ${rep.nTotal} 三角太多（暴力射線 O(F²) 會卡）— 誠實跳過，請先簡化網格或用拔模分析` }); return }
       set((st) => ({ accessResult: { positions: rep.positions, colors: rep.colors, nBlocked: rep.nBlocked, nTotal: rep.nTotal, tooLarge: false }, draftResult: null, slopeResult: null, inspectShade: 'off', analyses: _soleVisibleAnalysis(st.analyses, 'access', { pull }), status: `脫模可達性（方向 [${pull.map((x) => +x.toFixed(2)).join(',')}]）：${rep.nTotal} 三角 · 🔴倒扣不可脫 ${rep.nBlocked} · 🟢可脫 ${rep.nTotal - rep.nBlocked}（趨勢/近似，逐三角自身遮擋）` }))
-    }).catch((e) => set({ status: '可達性分析失敗：' + ((e as Error)?.message || e) }))
+    }).catch((e) => set({ status: '脫模可達性失敗：' + ((e as Error)?.message || e) }))
   },
-  clearAccessibility: () => set((s) => ({ accessResult: null, analyses: s.analyses.map((a) => (a.type === 'access' ? { ...a, visible: false } : a)), status: '已關可達性分析' })),
+  clearAccessibility: () => set((s) => ({ accessResult: null, analyses: s.analyses.map((a) => (a.type === 'access' ? { ...a, visible: false } : a)), status: '已關脫模可達性' })),
   // S119：草图截面属性 — 收集所有非构造闭合轮廓 → 转闭合多段线 → 最大者为外形、内含者为孔（pointInPoly）、
   // 分离轮廓忽略（诚实计数）→ sectionProps（shoelace 面積/形心/截面惯矩/主轴）。纯函数主线程跑。
   sectionResult: null,

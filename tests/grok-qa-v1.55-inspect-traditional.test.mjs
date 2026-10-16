@@ -69,7 +69,7 @@ test('v1.55: SOLID INSPECT Traditional labels', () => {
     ['interference', '干涉檢查'],
     ['zebra', '斑馬紋分析'],
     ['curvmap', '曲率圖分析'],
-    ['accessanalysis', '可達性分析'],
+    ['accessanalysis', '脫模可達性'],
     ['minradius', '最小半徑分析'],
     ['centerofmass', '質心'],
     ['properties', '物理屬性'],

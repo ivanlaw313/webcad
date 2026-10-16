@@ -165,7 +165,7 @@ const SOLID: Panel[] = [
       { id: 'zebra', label: '斑馬紋分析', icon: 'section', tip: '以反射條紋檢查曲面切向連續及光順度。' },
       { id: 'draftanalysis', label: '拔模分析', icon: 'draft', tip: '按脫模方向著色正拔模、倒扣及垂直區域。' },
       { id: 'curvmap', label: '曲率圖分析', icon: 'curvature', tip: '以色譜顯示曲面彎曲趨勢。' },
-      { id: 'accessanalysis', label: '可達性分析', icon: 'draft', tip: '沿指定方向檢查被實體自身遮擋、工具或模具不可達的區域。' },
+      { id: 'accessanalysis', label: '脫模可達性', icon: 'draft', tip: '沿指定方向檢查被實體自身遮擋、模具不可達的區域（脫模／刀具到達）。' },
       { id: 'minradius', label: '最小半徑分析', icon: 'curvature', tip: '找出模型最小局部曲率半徑及位置。' },
       { id: 'section', label: '剖切分析', icon: 'section', quick: true, tip: '以可調剖切平面檢查實體內部。' },
       { id: 'centerofmass', label: '質心', icon: 'measure', sep: true, tip: '切換顯示實體或裝配的體積加權質心標記。' },
@@ -259,7 +259,7 @@ const LAB: Panel[] = [
   {
     name: '模擬',
     tools: [
-      { id: 'fea', label: '受力雲圖', icon: 'stress', quick: true, tip: '受力分析（趨勢級）：點固定面 → 點受力面 → 設定力 → 出應力雲圖。紅色 = 最受力 = 最容易斷的位。屬趨勢著色,非商用分析精度。' },
+      { id: 'fea', label: '受力雲圖', icon: 'stress', quick: true, tip: '受力分析（趨勢級）：點固定面 → 點受力面 → 設定力 → 出應力雲圖。紅色 = 最受力 = 最容易斷的位。屬趨勢著色。非商用分析精度。' },
       { id: 'moldflow', label: '模流分析', icon: 'moldflow', quick: true, tip: '注塑模流趨勢：點澆口位（可多個）→ 選塑料 → 出充填時間/壓力/冷卻/變形趨勢雲圖 + 焊接線 + 充填動畫。可開「壓力求解器」出真實壓力值。' },
       { id: 'windtunnel', label: '風洞水洞', icon: 'wind', quick: true, tip: '風洞 / 水洞趨勢模擬：把零件放入虛擬風道/水道解流場 → 風阻系數 Cd + 阻力 + 表面壓力/流場。可調風速 · 流體(空氣/水) · 吹向。屬趨勢級,相對比較可信,非商用驗證級。' },
       { id: 'physicslab', label: '環境實驗室', icon: 'contact', quick: true, tip: 'Physics Lab：將 CAD 零件放入剛體實驗室，即時模擬重力、碰撞、摩擦、反彈和統一風。互動級模擬，非工程認證。' },

@@ -2,7 +2,7 @@
 // Stable keys. Missing → fall back zh-HK → key.
 
 const messages: Record<string, string> = {
-  "alias.accessanalysis": "可达性 可达性分析 accessibility 可達性 可達性分析",
+  "alias.accessanalysis": "脱模可达性 可达性 可达性分析 accessibility 可達性 可達性分析",
   "alias.aicopilot": "AI copilot 助手 助理 chatbot 聊天 人工智能 人工智慧 アシスタント assistant",
   "alias.align": "对齐 align 贴合 贴平 同轴快捷",
   "alias.appearance": "颜色 上色 染色 材质 color material 外观",
@@ -122,7 +122,7 @@ const messages: Record<string, string> = {
   "alias.wedge": "楔形 楔 斜坡 坡道 门挡 三角块 三角支撑 ramp wedge",
   "alias.worm": "蜗杆 蜗轮 worm 大减速 蝸桿 蝸輪 大減速",
   "alias.zebra": "斑马纹 斑马纹分析 zebra stripe 斑馬紋 斑馬紋分析",
-  "cmd.accessanalysis": "可达性分析",
+  "cmd.accessanalysis": "脱模可达性",
   "cmd.actFit": "适应窗口 / 主视图",
   "cmd.actHelp": "帮助 / 快捷键",
   "cmd.actOpen": "打开项目 (JSON)",
@@ -957,7 +957,7 @@ const messages: Record<string, string> = {
   "tip.topopt": "拓扑优化（SIMP）：在设计域内按保留体积分配材料，得出较省料又较硬的承力结构。趋势级，非商用认证。先点固定面与受力面。",
   "tip.torus": "圆环：设大径与管径。",
   "tip.worm": "蜗杆：设模数/头数/长度（ZA 近似）。",
-  "tool.accessanalysis": "可达性分析",
+  "tool.accessanalysis": "脱模可达性",
   "tool.aicopilot": "AI 助手",
   "tool.align": "对齐",
   "tool.appearance": "外观",

@@ -2,7 +2,7 @@
 // Stable keys. Missing → fall back zh-HK → key.
 
 const messages: Record<string, string> = {
-  "alias.accessanalysis": "accessibility accessanalysis 可达性 可达性分析",
+  "alias.accessanalysis": "Demold Accessibility accessibility accessanalysis 可达性 可达性分析",
   "alias.aicopilot": "AI copilot 助手 助理 chatbot 聊天 人工智能 人工智慧 アシスタント assistant",
   "alias.align": "align 对齐 贴合 贴平 同轴快捷",
   "alias.appearance": "color material appearance 颜色 上色 染色 材质 外观",

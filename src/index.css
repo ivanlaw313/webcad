@@ -249,6 +249,12 @@ button.panel-menu-item { width: 100%; border: 0; background: transparent; text-a
 .tool-btn.sk { width: auto; min-width: 52px; height: 40px; flex-basis: auto; padding: 2px 7px; flex-direction: column; gap: 2px; overflow: hidden; }
 .sk-glyph { font-size: 19px; line-height: 1; color: #245570; flex: 0 0 auto; }
 .sk-label { font-size: 10.5px; color: #4a545e; line-height: 1.15; white-space: nowrap; flex: 0 0 auto; }
+/* Phase3: line/rect/circle/arc/offset — ToolIcon primary + glyph kept for QA recognition */
+.tool-btn.sk.sk-dual { min-width: 56px; }
+.tool-btn.sk.sk-dual .sk-icon-row { display: flex; align-items: center; justify-content: center; gap: 3px; flex: 0 0 auto; line-height: 1; }
+.tool-btn.sk.sk-dual .sk-tool-icon { display: inline-flex; color: inherit; flex: 0 0 auto; }
+.tool-btn.sk.sk-dual .sk-glyph { font-size: 12px; color: #28556e; }
+.ribbon .tool-btn.sk.sk-dual.active .sk-glyph { color: #173f58; }
 
 /* Fusion right-side command palette (header icon+title+✕, rows body, blue OK footer) */
 /* 命令对话框数字栏：ew-resize 光标暗示「可左右拖改值」（Fusion 式 scrub），仍可点入打字 */

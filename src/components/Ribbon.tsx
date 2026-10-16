@@ -101,6 +101,9 @@ function useFloatingMenu(open: boolean, anchor: { current: HTMLElement | null },
   return placement
 }
 
+// Phase3: sketch strip tools that pair Fusion ToolIcon with the QA glyph (line/rect/circle/arc/offset).
+const DUAL_SKETCH_ICON_KEYS = new Set(['line', 'rect', 'circle', 'arc', 'offset'])
+
 // Which sk_* tool id is currently the active freehand sketch tool (for Fusion-style pressed highlight).
 const SK_TOOL_OF_ID: Record<string, string> = {
   sk_polyline: 'polyline', sk_mline: 'mline', sk_rect: 'rectangle', sk_crect: 'crect', sk_circle: 'circle', sk_circle2p: 'circle2p', sk_circle3: 'circle3', sk_circle2t: 'circle2t', sk_circle3t: 'circle3t',
@@ -143,19 +146,27 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
   const cmd = t.children?.length ? t.children[0] : t
   // Sketch tools render a 2D text glyph (◯ ▭ ⊿ …) + their Chinese label below, so a non-coder can
   // recognise 圆/矩形/折线 at a glance (the SVG icon set has no 2D-sketch shapes).
+  // Phase3：line/rect/circle/arc/offset also show ToolIcon (Fusion SVG) beside the glyph — glyphs kept for QA.
   // SKETCH12 #1：草圖工具嘅 ▾ 分拆按鈕（矩形／圓／圓弧）— 子工具任何一個啟用時，主按鈕都顯示為啟用。
   const childActive = inSketch && !armedCon && !!t.quickChildren?.some((c) => SK_TOOL_OF_ID[c.id] === skTool)
+  const dualSketchIcon = !!(t.glyph && DUAL_SKETCH_ICON_KEYS.has(t.icon))
+  const skAria = dualSketchIcon
+    ? `${resolveRibbonCmd(t.id, lang, t.label)} ${t.glyph}`
+    : resolveRibbonCmd(t.id, lang, t.label)
   const mainButton = t.glyph ? <button
     data-cmd={t.id}
-    className={'tool-btn sk' + (active || childActive ? ' active' : '')}
+    className={'tool-btn sk' + (dualSketchIcon ? ' sk-dual' : '') + (active || childActive ? ' active' : '')}
     title={title}
-    aria-label={resolveRibbonCmd(t.id, lang, t.label)}
+    aria-label={skAria}
     aria-pressed={active || childActive || undefined}
     disabled={off}
     style={off ? { opacity: 0.32, cursor: 'not-allowed' } : undefined}
     onClick={(e) => { if (off) return; if (onRun) onRun(); else run(cmd.id, cmd.label); releaseSketchToolFocus(e) }}
   >
-    <span className="sk-glyph">{t.glyph}</span>
+    {dualSketchIcon ? <span className="sk-icon-row">
+      <span className="sk-tool-icon" aria-hidden="true"><ToolIcon name={t.icon} size={18} /></span>
+      <span className="sk-glyph">{t.glyph}</span>
+    </span> : <span className="sk-glyph">{t.glyph}</span>}
     <span className="sk-label">{resolveRibbonCmd(t.id, lang, t.label)}</span>
   </button> : <button
     data-cmd={t.id}
@@ -189,7 +200,7 @@ function ToolButton({ t, onRun }: { t: Tool; onRun?: () => void }) {
           title={resolveRibbonTip(child.id, lang, child.tip) || resolveRibbonCmd(child.id, lang, child.label)}
           role="menuitem" tabIndex={gate(child.id) ? -1 : 0} aria-disabled={gate(child.id)} onKeyDown={e => { if (!gate(child.id) && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setQuickOpen(false); run(child.id, child.label) } }}
           onClick={() => { if (gate(child.id)) return; setQuickOpen(false); run(child.id, child.label) }}
-        >{child.glyph ? <span style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{child.glyph}</span> : <ToolIcon name={child.icon} size={16} />}{resolveRibbonCmd(child.id, lang, child.label)}{child.shortcut && <span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>{child.shortcut}</span>}</div>)}
+        >{child.glyph && DUAL_SKETCH_ICON_KEYS.has(child.icon) ? <><span aria-hidden="true"><ToolIcon name={child.icon} size={16} /></span><span className="sk-glyph" style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{child.glyph}</span></> : child.glyph ? <span className="sk-glyph" style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{child.glyph}</span> : <ToolIcon name={child.icon} size={16} />}{resolveRibbonCmd(child.id, lang, child.label)}{child.shortcut && <span className="panel-menu-kbd" style={{ marginLeft: 'auto' }}>{child.shortcut}</span>}</div>)}
       </div>
     </>, document.body)}
   </div>
@@ -210,7 +221,7 @@ function MenuRow({ t, off, onPick }: { t: Tool; off: boolean; onPick: (t: Tool) 
       onKeyDown={e => { if (e.target !== e.currentTarget || off) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); if (hasSub) setSubOpen(!subOpen); else onPick(t) } if (e.key === 'Escape') setSubOpen(false) }}
       onClick={() => { if (off) return; if (hasSub) { setSubOpen(!subOpen); return }; onPick(t) }}
     >
-      {t.glyph ? <span style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{t.glyph}</span> : <ToolIcon name={t.icon} size={16} />}{resolveRibbonCmd(t.id, lang, t.label)}
+      {t.glyph && DUAL_SKETCH_ICON_KEYS.has(t.icon) ? <><span aria-hidden="true"><ToolIcon name={t.icon} size={16} /></span><span className="sk-glyph" style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{t.glyph}</span></> : t.glyph ? <span className="sk-glyph" style={{ width: 16, textAlign: 'center', fontSize: 13 }}>{t.glyph}</span> : <ToolIcon name={t.icon} size={16} />}{resolveRibbonCmd(t.id, lang, t.label)}
       <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         {t.shortcut && <span className="panel-menu-kbd">{t.shortcut}</span>}
         {hasSub && <span style={{ fontSize: 10, color: '#888' }}>{subOpen ? '▾' : '▸'}</span>}

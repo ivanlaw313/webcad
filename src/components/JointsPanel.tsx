@@ -534,11 +534,11 @@ export default function JointsPanel() {
 
       {rotJoints.length >= 2 && (
         <div className="jp-mlink" ref={motionLinkRef}>
-          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>運動連接（齒輪比）</div>
+          <div className="jp-title" style={{ fontSize: 12, marginTop: 8 }}>運動連結（齒輪比）</div>
           {motionLinks.map((l) => (
             <div key={l.id} className="jp-row" style={{ fontSize: 12 }}>
               <span>{l.driver}{l.driver2 ? `+${l.driver2}` : ''} 驅動 {l.driven} · {l.kind === 'rack' ? `齒條 角→移 ${l.ratio.toFixed(3)} mm/°` : l.driver2 ? `= ${l.ratio}×${l.driver} + ${l.ratio2}×${l.driver2}` : `比 ${l.ratio}`}</span>
-              <button className="cs-x" title="刪除運動連接" onClick={() => removeMotionLink(l.id)}>✕</button>
+              <button className="cs-x" title="刪除運動連結" onClick={() => removeMotionLink(l.id)}>✕</button>
             </div>
           ))}
           <div className="jp-add">

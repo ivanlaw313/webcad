@@ -14694,17 +14694,17 @@ export const useApp = create<AppState>((rawSet, get) => {
   toggleExplodeLeaders: () => set((s) => ({ explodeLeaders: !s.explodeLeaders })),
   motionLinks: [],
   addMotionLink: (driver, driven, ratio, kind, driver2, ratio2) => set((s) => {
-    if (!(driver && driven && driver !== driven && driver2 !== driven)) return { status: '運動連接需要不同關節（從動不可做自己的驅動）' }
+    if (!(driver && driven && driver !== driven && driver2 !== driven)) return { status: '運動連結需要不同關節（從動不可做自己的驅動）' }
     // 审计修复：环检测 —— motionLinks = 有向图 driver→driven。若 driven 已能到达 driver(或 driver2)，
     // 加呢条 link 会成环 → propagateLinks 定点迭代发散、用户驱动值被静默覆写/暴走。拒绝并报错。
     const adj = new Map<string, string[]>()
     for (const l of s.motionLinks) { (adj.get(l.driver) ?? adj.set(l.driver, []).get(l.driver)!).push(l.driven); if (l.driver2) (adj.get(l.driver2) ?? adj.set(l.driver2, []).get(l.driver2)!).push(l.driven) }
     const reaches = (from: string, target: string) => { const seen = new Set<string>(); const stk = [from]; while (stk.length) { const u = stk.pop()!; if (u === target) return true; if (seen.has(u)) continue; seen.add(u); for (const v of (adj.get(u) ?? [])) stk.push(v) } return false }
-    if (reaches(driven, driver) || (driver2 && reaches(driven, driver2))) return { status: '運動連接會成環（機構會發散 / 驅動值亂跳）— 已拒絕' }
-    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], motionLinks: [...s.motionLinks, { id: 'ML' + (s.motionLinks.length + 1), driver, driven, ratio, ...(kind ? { kind } : {}), ...(driver2 && ratio2 != null ? { driver2, ratio2 } : {}) }], status: `已加運動連接：${driver}${driver2 ? `+${driver2} 雙驅動` : ' 驅動'} ${driven}（${kind === 'rack' ? '齒條 角→移' : '比'} ${ratio}${driver2 ? ` + ${ratio2}` : ''}）` }
+    if (reaches(driven, driver) || (driver2 && reaches(driven, driver2))) return { status: '運動連結會成環（機構會發散 / 驅動值亂跳）— 已拒絕' }
+    return { undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], motionLinks: [...s.motionLinks, { id: 'ML' + (s.motionLinks.length + 1), driver, driven, ratio, ...(kind ? { kind } : {}), ...(driver2 && ratio2 != null ? { driver2, ratio2 } : {}) }], status: `已加運動連結：${driver}${driver2 ? `+${driver2} 雙驅動` : ' 驅動'} ${driven}（${kind === 'rack' ? '齒條 角→移' : '比'} ${ratio}${driver2 ? ` + ${ratio2}` : ''}）` }
   }),
   removeMotionLink: (id) => set((s) => ({ undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [], motionLinks: s.motionLinks.filter((l) => l.id !== id) })),
-  // RETEST21 #3：關節卡 ✕ 刪除 = 一步撤銷快照（Fusion：刪除可撤銷）；狀態列講明 Ctrl+Z 可還原（連同佢嘅運動連接）。
+  // RETEST21 #3：關節卡 ✕ 刪除 = 一步撤銷快照（Fusion：刪除可撤銷）；狀態列講明 Ctrl+Z 可還原（連同佢嘅運動連結）。
   jointTypePref: 'revolute' as JointType,
   setJointTypePref: (t) => set({ jointTypePref: t }),
   setJointType: (id, type) => set((s) => {
@@ -14747,7 +14747,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       joints: s.joints.filter((x) => x.id !== id), motionLinks: s.motionLinks.filter((l) => l.driver !== id && l.driven !== id),
       ...(s.selectedJoint === id ? { selectedJoint: null } : {}),
-      status: `已刪除關節「${j.name}」${links ? `（連同 ${links} 條運動連接）` : ''} — Ctrl+Z 可還原`,
+      status: `已刪除關節「${j.name}」${links ? `（連同 ${links} 條運動連結）` : ''} — Ctrl+Z 可還原`,
     }
   }),
   // Home all / one joint: drive values → Rest（缺省 0）+ 還原 restChildPose。一步撤銷。
@@ -16270,9 +16270,9 @@ export const useApp = create<AppState>((rawSet, get) => {
         get().addContactPair(ids[0], ids[1]); get().clearCheckedComps(); return
       }
       case 'motionlink': {
-        if (get().joints.filter((j) => j.type === 'revolute' || j.type === 'cylindrical').length < 2) { set({ status: '運動連接需要最少 2 個轉動／圓柱關節' }); return }
+        if (get().joints.filter((j) => j.type === 'revolute' || j.type === 'cylindrical').length < 2) { set({ status: '運動連結需要最少 2 個轉動／圓柱關節' }); return }
         window.dispatchEvent(new CustomEvent('webcad:assembly-focus', { detail: { section: 'motionlink' } }))
-        set({ status: '運動連接：在關節面板選擇主動／從動關節及傳動比，再按「+ 連接」' }); return
+        set({ status: '運動連結：在關節面板選擇主動／從動關節及傳動比，再按「+ 連接」' }); return
       }
       case 'motionstudy': {
         const j = get().joints.find((x) => x.type === 'revolute' || x.type === 'slider')
@@ -17465,7 +17465,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       gear: '漸開線正齒輪：設 模數 m / 齒數 z / 厚度 / 中心孔Ø（螺旋角β>0=斜齒輪扭轉近似）→ 確定。分度圓Ø = m×z，標準 20° 壓力角。',
       rack: '齒條（齒輪齒條機構）：設 模數 m（要與齒輪一致才嚙合）/ 長度 / 底座高 / 厚度 → 確定。',
       pulley: 'V 帶輪（皮帶傳動）：設 外徑 / 寬度 / 中心孔Ø → 確定。帶 V 形槽。',
-      gearbox: '齒輪箱向導（T770）：目標速比 + 模數 + 級數 → 自動齒數組合、按精確中心距擺位、自動關節+運動連接 — 確定後 ▷運動 即轉，微調用組件移動',
+      gearbox: '齒輪箱向導（T770）：目標速比 + 模數 + 級數 → 自動齒數組合、按精確中心距擺位、自動關節+運動連結 — 確定後 ▷運動 即轉，微調用組件移動',
       worm: '蝸桿：設 模數 / 頭數 / 長度 → 確定。ZA 近似形（梯形廓螺旋）— 同蝸輪嚙合比 = 頭數:蝸輪齒數（純運動學）',
       crowngear: '冠齒輪（面齒輪近似形）：設 模數 / 齒數 / 盤厚 / 齒寬 / 孔Ø → 確定。垂直軸嚙合示意。',
       othread: '面加外螺紋：直徑/高度/位置已由所選圓柱面讀入 — 設螺距 → 確定（結果是複合體：之後不要倒角/STEP，STL 正常）',
@@ -24620,7 +24620,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       // Involute spur gear; module & teeth are user-parameters (change ƒx → re-cuts the gear).
       get().addParam('模數m', 2); get().addParam('齒數z', 24)
       const gid = fid()
-      await get().applyFeatures([{ id: gid, type: 'gear', module: 2, teeth: 24, thickness: 10, bore: 8 }], '已載入示例：漸開線齒輪（頂欄「ƒx 參數」改 模數/齒數 → 聯動重切；可再加第二個齒輪 + 關節 + 運動連接做傳動）')
+      await get().applyFeatures([{ id: gid, type: 'gear', module: 2, teeth: 24, thickness: 10, bore: 8 }], '已載入示例：漸開線齒輪（頂欄「ƒx 參數」改 模數/齒數 → 聯動重切；可再加第二個齒輪 + 關節 + 運動連結做傳動）')
       await get().bindParam(gid, 'module', '模數m'); await get().bindParam(gid, 'teeth', '齒數z')
       get().requestFit(); return
     }
@@ -24809,7 +24809,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         ],
         joints: [], motionLinks: [], componentDefs: [], jointOrigins: [], rigidGroups: [], contactPairs: [], explodeSteps: [],
         features: [], bodyMesh: null, bodyTopZ: 0, selectedFeature: null,
-        status: `已載入齒輪組：大齒輪 z${z1} + 小齒輪 z${z2}（已自動加關節+運動連接，比 ${-(z1 / z2).toFixed(2)}）。按「裝配關節」面板的 ▷運動 即查看兩齒輪反向嚙合轉`,
+        status: `已載入齒輪組：大齒輪 z${z1} + 小齒輪 z${z2}（已自動加關節+運動連結，比 ${-(z1 / z2).toFixed(2)}）。按「裝配關節」面板的 ▷運動 即查看兩齒輪反向嚙合轉`,
       })
       // Auto-wire: each gear spins about its own axis (three-Y, through its centre); motion-link couples them at -z1/z2.
       get().addJoint({ type: 'revolute', parent: 'GND', child: 'C1', anchor: get().componentCenter('C1'), axis: [0, 1, 0], angle: 0, slide: 0 })

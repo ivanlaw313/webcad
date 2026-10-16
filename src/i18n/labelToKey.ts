@@ -449,7 +449,7 @@ export const LABEL_TO_KEY: Record<string, string> = {
   '造型对称': 'tool.formsymmetry',
   '運動研究': 'tool.motionstudy',
   '运动研究': 'tool.motionstudy',
-  '運動連接': 'tool.motionlink',
+  '運動連結': 'tool.motionlink',
   '运动连接': 'tool.motionlink',
   '過三點平面': 'tool.plane3pt',
   '过三点平面': 'tool.plane3pt',

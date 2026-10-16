@@ -3,7 +3,7 @@
 **Date:** 2026-10-16 (HK)  
 **Branch:** `fix/fishing48-sc-leftovers-harden`  
 **Product fix:** `affa56184d44d5b1a8c78c5860e18be6c9b2e514`  
-**Tip:** `64615a1c8db688736f9cac9bc8971f55fe429d91` (`64615a1c8db688736f9cac9bc8971f55fe429d91`)  
+**Tip:** `b93d3087e1e3a10cd52403f5a6a971a163a564c7` (`b93d3087e1e3a10cd52403f5a6a971a163a564c7`)  
 **Base:** tip `6861151` (FISHING47 live; product = `fix/sketch-face-copy`)  
 **more29:** `fd7da4f` on `test/unit-core16-more29` (79 soft pins) — hardened
 

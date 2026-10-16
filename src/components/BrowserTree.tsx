@@ -441,7 +441,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
       <input className="tw-swatch" type="color" title={tStatus('組件顏色', lang)} value={c.color || '#aab2ba'} onClick={(e) => e.stopPropagation()} onChange={(e) => setColor(c.id, e.target.value)} />
       {!c.hidden && <span className="tw-act" title={tStatus('聚焦：鏡頭框到此組件', lang)} onClick={(e) => { e.stopPropagation(); requestFit(c.id) }}>🎯</span>}
       <span className="tw-act" title={tStatus('物理屬性（面積/質量/體積/質心/慣性，精度可調，可複製）', lang)} onClick={(e) => { e.stopPropagation(); void useApp.getState().openPropertiesDialog(c.id) }}>⚖</span>
-      <span className="tw-act" title={tStatus('孤立顯示（隱藏其余）', lang)} onClick={(e) => { e.stopPropagation(); isolate(c.id) }}>◎</span>
+      <span className="tw-act" title={tStatus('孤立顯示（隱藏其餘）', lang)} onClick={(e) => { e.stopPropagation(); isolate(c.id) }}>◎</span>
       <span className="tw-act" title={tStatus('複製組件（共享定義 — 編輯任一實例全部更新）', lang)} onClick={(e) => { e.stopPropagation(); duplicate(c.id) }}>⧉</span>
       <span className="tw-act" title={tStatus('獨立複製 / Paste-New（新定義 — 改任一不影響對方）', lang)} onClick={(e) => { e.stopPropagation(); independentize(c.id) }}>⧉+</span>
       <span className="tw-act" title={tStatus('鏡像組件：左右對稱（跨 YZ 面）', lang)} onClick={(e) => { e.stopPropagation(); mirror(c.id, 'lr') }}>⇋</span>

@@ -3083,7 +3083,7 @@ export function SketchDimLayer() {
           // editor and the next digits fell through to sketch type-to-place (only "8" of "80" applied).
           <div key={l.key} ref={reg(l.key)} data-dim-editor="" style={{ ...LBL, background: '#fff', color: '#0d4f8c', border: '1px solid #0d4f8c', padding: '1px 3px', display: 'inline-flex', minWidth: 0, alignItems: 'center', pointerEvents: 'auto', overflow: 'visible' }}>
             <input
-              autoFocus value={val} aria-label={tStatus('尺寸数值', lang)}
+              autoFocus value={val} aria-label={tStatus('尺寸數值', lang)}
               onFocus={(e) => e.currentTarget.select()}
               onChange={(e) => {setVal(e.target.value);if(l.edit?.dim==='con')void previewDimension(l.edit,e.target.value)}}
               onBlur={() => {void commit(l.edit!, true)}}
@@ -3135,7 +3135,7 @@ export function SketchDimLayer() {
             style={{ ...LBL, ...(l.remove ? { background: '#5a8fb8', fontSize: 10, lineHeight: '13px', padding: '0 4px' } : {}), ...(l.driven ? { background: '#8a97a2' } : {}), ...(l.remove && skSelCon === l.remove ? { background: '#8e44ad', boxShadow: '0 0 0 2px rgba(142,68,173,.4)' } : {}), ...((l.remove || l.edit?.conId) && skConflictIds.includes((l.remove || l.edit?.conId)!) ? { background: '#c9362a', boxShadow: '0 0 0 2px rgba(201,54,42,.35)' } : {}), pointerEvents: l.edit || l.remove || l.referenceExtent ? 'auto' : 'none', cursor: l.edit?.dim === 'con' ? 'move' : l.edit || l.remove ? 'pointer' : 'default' }}
           >
             {l.edit?.dim === 'con' && !l.driven ? <span className="sk-dim-driving-mark" title="驅動尺寸" aria-label="驅動尺寸">◆</span> : null}
-            {l.edit && l.edit.dim !== 'con' && !l.driven ? <span className="sk-dim-soft-mark" title="软尺寸／参考读数" aria-label="软尺寸">·</span> : null}
+            {l.edit && l.edit.dim !== 'con' && !l.driven ? <span className="sk-dim-soft-mark" title="軟尺寸／參考讀數" aria-label="软尺寸">·</span> : null}
             {l.text}
             {/* 尺寸约束专属 ✕ 仔：一撳即删（stopPropagation 免误开编辑框）。徽章本身 click=移除,唔使 ✕。 */}
             {l.edit?.dim === 'con' && l.edit.conId && (
@@ -3168,14 +3168,14 @@ export function SketchDimLayer() {
           >
             {dimMenu.radDia && (
               <button className="dim-menu-item" style={DIM_MENU_ITEM} onClick={() => { useApp.getState().toggleSkDimRadDia(dimMenu.conId); setDimMenu(null) }}>
-                {dimMenu.radDia.type === 'rad' ? (dimMenu.radDia.flip ? tStatus('显示为半径 R', lang) : tStatus('显示为直径 Ø', lang)) : (dimMenu.radDia.flip ? tStatus('显示为直径 Ø', lang) : tStatus('显示为半径 R', lang))}
+                {dimMenu.radDia.type === 'rad' ? (dimMenu.radDia.flip ? tStatus('顯示為半徑 R', lang) : tStatus('顯示為直徑 Ø', lang)) : (dimMenu.radDia.flip ? tStatus('顯示為直徑 Ø', lang) : tStatus('顯示為半徑 R', lang))}
               </button>
             )}
             <button className="dim-menu-item" style={DIM_MENU_ITEM} onClick={() => { useApp.getState().toggleSkDimDriven(dimMenu.conId); setDimMenu(null) }}>
               {dimMenu.driven ? tStatus('轉為驅動尺寸', lang) : tStatus('轉為從動（參考）尺寸', lang)}
             </button>
             <button className="dim-menu-item" style={{ ...DIM_MENU_ITEM, color: '#c9362a' }} onClick={() => { useApp.getState().removeSkCon(dimMenu.conId); setDimMenu(null) }}>
-              {tStatus('删除尺寸', lang)}
+              {tStatus('刪除尺寸', lang)}
             </button>
           </div>
         </div>

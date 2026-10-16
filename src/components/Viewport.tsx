@@ -5824,7 +5824,7 @@ export default function Viewport() {
           onCancel={() => cancelBoundaryPatch()}
           summary={<>邊界補面 · {boundaryPatchPicks.length || 0} 條稜{boundaryPatchTangent ? ' · G1' : ''}{boundaryPatchThick > 0 ? ` · 加厚${boundaryPatchThick}` : ''}</>}
         >
-          <SelectionChip label="邊界棱" count={boundaryPatchPicks.length} hint="① 逐條點選邊界棱（≥2，橙點標記）→ 填充/封口" onClear={() => useApp.getState().clearBoundaryPatchPicks()} />
+          <SelectionChip label="邊界稜" count={boundaryPatchPicks.length} hint="① 逐條點選邊界稜（≥2，橙點標記）→ 填充/封口" onClear={() => useApp.getState().clearBoundaryPatchPicks()} />
           <label style={{ display: 'flex', justifyContent: 'flex-start', gap: 6, fontSize: 12, color: '#6b7680', marginTop: 6 }} title="G1 相切：補面與鄰面相切連續（class-A 過渡）；鄰面無法解析時退回 G0">
             <input type="checkbox" checked={boundaryPatchTangent} onChange={(e) => useApp.getState().setBoundaryPatchTangent(e.target.checked)} /> G1 相切（與鄰面）
           </label>
@@ -7418,7 +7418,7 @@ export default function Viewport() {
             <SelectionChip label={tStatus('稜', lang)} count={Math.max(1, +(featDlg.params.nearsN || 0))} hint="" />
             {typeof featDlg.params.radii === 'string' && String(featDlg.params.radii).trim() ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <div style={{ fontSize: 11, color: '#8a97a2' }}>{tStatus('多半徑圓角 — 逐棱半徑：', lang)}</div>
+                <div style={{ fontSize: 11, color: '#8a97a2' }}>{tStatus('多半徑圓角 — 逐稜半徑：', lang)}</div>
                 {String(featDlg.params.radii).split(',').map((r, i) => (
                   <label key={i} style={{ fontSize: 11 }}>{tStatus('稜', lang)}{i + 1} <input type="number" step={0.5} min={0.1} value={+r} onChange={(e) => { const arr = String(featDlg.params.radii).split(','); arr[i] = e.target.value; setFeatParam('radii', arr.join(',')) }} style={{ width: 52 }} /> mm</label>
                 ))}
@@ -7653,13 +7653,13 @@ export default function Viewport() {
               <label title={isI ? tStatus('公稱螺紋直徑（M 值）：M8=8', lang) : tStatus('圓柱面直徑（牙底 Ø）', lang)}>{tStatus(isI ? '公稱Ø' : '直徑Ø', lang)} <FeatNum k="d" v={featDlg.params.d} w={50} /></label>
               <label title={tStatus('螺距（mm）', lang)}>{tStatus('螺距', lang)} <FeatNum k="pitch" v={featDlg.params.pitch} w={46} /></label>
               <label title={tStatus('配合等級：外螺紋 6g/2A… 內螺紋 6H/2B…。純公差元數據，v1 不改牙幾何。', lang)}>{tStatus('等級', lang)} <select value={String(featDlg.params.cls ?? '')} onChange={(e) => setFeatParam('cls', e.target.value)} style={{ height: 26 }}><option value="">{tStatus('（預設）', lang)}</option>{classes.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={tStatus('全長：勾=攻/包整段（長度=下面高度/深度）；不勾=局部螺紋（露出 長度 + 偏移 字段）', lang)}><input type="checkbox" checked={full} onChange={(e) => setFeatParam('fullLen', e.target.checked ? 1 : 0)} />{tStatus('全长', lang)}</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={tStatus('全長：勾=攻/包整段（長度=下面高度/深度）；不勾=局部螺紋（露出 長度 + 偏移 字段）', lang)}><input type="checkbox" checked={full} onChange={(e) => setFeatParam('fullLen', e.target.checked ? 1 : 0)} />{tStatus('全長', lang)}</label>
               <label title={isI ? tStatus('攻牙深度/長度（由孔底 z + 偏移 向上）', lang) : tStatus('螺紋長度（沿圓柱面軸向）', lang)}>{tStatus(full ? (isI ? '深度' : '高度') : '長度', lang)} <FeatNum k="height" v={featDlg.params.height} w={48} /></label>
               {!full && <label title={tStatus('偏移：由面/孔起點沿軸向偏移一段再開始上牙（局部螺紋起點）', lang)}>{tStatus('偏移', lang)} <FeatNum k="toff" v={featDlg.params.toff} w={48} /></label>}
               {isI && <label title={tStatus('孔底 z（盲孔攻牙由此處向上；0=由底面起 — 舊行為）', lang)}>{tStatus('孔底z', lang)} <FeatNum k="z0" v={featDlg.params.z0} w={48} /></label>}
               {isI && <label title={tStatus('孔心 CAD 坐標（拾孔內壁自動填）', lang)}>{tStatus('中心', lang)} <FeatNum k="x" v={featDlg.params.x} w={44} /><FeatNum k="y" v={featDlg.params.y} w={44} /></label>}
               {!isI && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('位置', lang)} ({featDlg.params.x},{featDlg.params.y}) z{featDlg.params.z0}{tStatus('（拾面自動填）', lang)}</span>}
-              <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={tStatus('建模螺紋 Modeled：勾=真螺旋牙（compound，之後不要圓角/STEP）；不勾=cosmetic 外觀標注（B-rep 乾淨 —預設）', lang)}><input type="checkbox" checked={!!+(featDlg.params.modeled || 0)} onChange={(e) => setFeatParam('modeled', e.target.checked ? 1 : 0)} />{tStatus('建模螺纹', lang)}</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={tStatus('建模螺紋 Modeled：勾=真螺旋牙（compound，之後不要圓角/STEP）；不勾=cosmetic 外觀標注（B-rep 乾淨 —預設）', lang)}><input type="checkbox" checked={!!+(featDlg.params.modeled || 0)} onChange={(e) => setFeatParam('modeled', e.target.checked ? 1 : 0)} />{tStatus('建模螺紋', lang)}</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={tStatus('左旋牙 Left hand：勾=左旋（逆時針旋轉入）；預設=右旋（標準）', lang)}><input type="checkbox" checked={!!+(featDlg.params.lefthand || 0)} onChange={(e) => setFeatParam('lefthand', e.target.checked ? 1 : 0)} />{tStatus('左旋牙', lang)}</label>
               {isI && <span style={{ fontSize: 11, color: '#8a939c' }}>{tStatus('提示：用「面加螺紋」直接點孔內壁可自動填全部字段', lang)}</span>}
             </>)
@@ -7737,7 +7737,7 @@ export default function Viewport() {
             <button className="cs-btn" title={tStatus('構造點批量孔（S151）：按所有構造點的 XY 位置一次鑽孔（孔徑/類型用「孔」設定）。鑽向=頂面沿Z（預設）或選構造軸方向斜鑽/側鑽 — 令構造點驅動幾何，不再只是參考點', lang)} onClick={() => { useApp.getState().cancelFeatDlg(); void useApp.getState().addHolesAtCpoints() }}>{tStatus('⊙ 批量孔', lang)}</button>
           </>)}
           {featDlg.kind === 'cptgrid' && (<>
-            <label title={tStatus('矩形陣列（行×列，居中於原點）/ 極坐標陣列（個數均布於半徑圓）', lang)}>{tStatus('模式', lang)} <select value={featDlg.params.mode} onChange={(e) => setFeatParam('mode', e.target.value)} style={{ height: 26 }}><option value="rect">{tStatus('矩形', lang)}</option><option value="polar">{tStatus('极坐標', lang)}</option></select></label>
+            <label title={tStatus('矩形陣列（行×列，居中於原點）/ 極坐標陣列（個數均布於半徑圓）', lang)}>{tStatus('模式', lang)} <select value={featDlg.params.mode} onChange={(e) => setFeatParam('mode', e.target.value)} style={{ height: 26 }}><option value="rect">{tStatus('矩形', lang)}</option><option value="polar">{tStatus('極坐標', lang)}</option></select></label>
             {featDlg.params.mode !== 'polar' && (<>
               <label>{tStatus('行', lang)} <FeatNum k="rows" v={featDlg.params.rows} w={44} /></label>
               <label>{tStatus('列', lang)} <FeatNum k="cols" v={featDlg.params.cols} w={44} /></label>
@@ -8362,7 +8362,7 @@ export default function Viewport() {
           </label>
           {loftSections.length >= 3 && (
             <label style={{ justifyContent: 'flex-start', gap: 6, fontSize: 12 }} title={tStatus('閉環：末截面接回首截面成環狀回路（輪圈/管環）。需≥3 截面。接縫處 C0 連續（趨勢級閉環）。', lang)}>
-              <input type="checkbox" checked={loftClosed} onChange={(e) => setLoftOpt({ loftClosed: e.target.checked })} /> {tStatus('闭环（末接首）', lang)}
+              <input type="checkbox" checked={loftClosed} onChange={(e) => setLoftOpt({ loftClosed: e.target.checked })} /> {tStatus('閉環（末接首）', lang)}
             </label>
           )}
           {!loftRuled && (
@@ -8574,7 +8574,7 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>{section.plane ? tStatus('沿法向偏移', lang) : tStatus('位置', lang)} {sectionOffsetClamped}</span>
             <input type="range" min={sectionRange.min} max={sectionRange.max} value={sectionOffsetClamped} onChange={(e) => setSection({ offset: Number(e.target.value) })} style={{ width: 130 }} />
           </label>
-          <label className="sb-hint" title={tStatus('實心封蓋：布爾交集真正切開實體（截面填實）— 剖面', lang)}><input type="checkbox" checked={section.capped} onChange={() => setSection({ capped: !section.capped })} /> {tStatus('实心封盖', lang)}</label>
+          <label className="sb-hint" title={tStatus('實心封蓋：布爾交集真正切開實體（截面填實）— 剖面', lang)}><input type="checkbox" checked={section.capped} onChange={() => setSection({ capped: !section.capped })} /> {tStatus('實心封蓋', lang)}</label>
           {section.capped && <div role="status" aria-live="polite" data-testid="section-cap-status" className="sb-hint">{sectionCapStatus === 'busy' ? '正在計算當前模型截面；暫時顯示未封蓋剖視' : sectionCapStatus === 'unavailable' ? '當前截面無法封蓋；顯示未封蓋剖視，請調整平面或參數' : sectionCapStatus === 'empty' ? '此側沒有實體' : sectionCapStatus === 'ready' ? '當前模型截面已封蓋' : ''}</div>}
           <label className="sb-hint" title={tStatus('反轉剖切方向：改為保留剖切平面的另一側', lang)}><input type="checkbox" data-testid="section-flip" checked={!!section.flip} onChange={() => setSection({ flip: !section.flip })} /> {tStatus('反轉方向', lang)}</label>
           {/* S185：剖面截面属性 — 切面 面积/形心/截面惯矩 实时读出（Fusion Inspect Section） */}
@@ -8601,7 +8601,7 @@ export default function Viewport() {
             <span style={{ color: '#6b7680' }}>{tStatus('爆炸度', lang)} {Math.round(explode * 100)}%</span>
             <input type="range" min={0} max={200} value={Math.round(explode * 100)} onChange={(e) => setExplode(Number(e.target.value) / 100)} style={{ width: 130 }} />
           </label>
-          <label className="sb-hint" title={tStatus('X-ray 透視：半透明查看裝配內部', lang)}><input type="checkbox" checked={xray} onChange={() => toggleXray()} /> {tStatus('透视 X-ray', lang)}</label>
+          <label className="sb-hint" title={tStatus('X-ray 透視：半透明查看裝配內部', lang)}><input type="checkbox" checked={xray} onChange={() => toggleXray()} /> {tStatus('透視 X-ray', lang)}</label>
           {/* GM-3DV4 A12：有序爆炸步（径向滑杆做 step-0 缺省；加步后滑杆变全序进度） */}
           <div style={{ borderTop: '1px solid #e2e6ea', marginTop: 6, paddingTop: 6 }}>
             <div style={{ color: '#6b7680', fontSize: 12, marginBottom: 4 }} title={tStatus('有序爆炸：勾選組件 + 選方向 → 加一步；多步按序展開（滑桿當全序進度）。無步 = 單一徑向散開。', lang)}>{tStatus('有序步驟', lang)}{explodeSteps.length ? `（${explodeSteps.length}）` : tStatus('（未定義 → 徑向）', lang)}</div>
@@ -8619,7 +8619,7 @@ export default function Viewport() {
               })}
               {explodeSteps.length > 0 && <button className="cs-x" title={tStatus('清除全部步（回徑向滑桿）', lang)} onClick={() => useApp.getState().clearExplodeSteps()}>{tStatus('清步', lang)}</button>}
             </div>
-            <label className="sb-hint" title={tStatus('引線：各件由原位到爆炸位畫虛線', lang)}><input type="checkbox" checked={explodeLeaders} onChange={() => useApp.getState().toggleExplodeLeaders()} /> {tStatus('引线 Leaders', lang)}</label>
+            <label className="sb-hint" title={tStatus('引線：各件由原位到爆炸位畫虛線', lang)}><input type="checkbox" checked={explodeLeaders} onChange={() => useApp.getState().toggleExplodeLeaders()} /> {tStatus('引線 Leaders', lang)}</label>
           </div>
         </CommandDialog>
       )}
@@ -8907,7 +8907,7 @@ export default function Viewport() {
             <div className="panel-menu" style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 6, zIndex: 120, minWidth: 210 }}>
               <div className="panel-menu-item" onClick={() => { toggleGrid() }}>{showGrid ? '✓ ' : '　'}{tStatus('顯示網格', lang)}</div>
               {/* GM-X2 #4：自适應 / 固定 */}
-              <div className="panel-menu-item" title={tStatus('自适應：網格隨縮放自動縮放。', lang)} onClick={() => setGridConfig({ adaptive: true })}>{gridAdaptive ? '● ' : '○ '}{tStatus('自适應', lang)}</div>
+              <div className="panel-menu-item" title={tStatus('自適應：網格隨縮放自動縮放。', lang)} onClick={() => setGridConfig({ adaptive: true })}>{gridAdaptive ? '● ' : '○ '}{tStatus('自適應', lang)}</div>
               <div className="panel-menu-item" title={tStatus('固定：主間距 + 次分格。', lang)} onClick={() => setGridConfig({ adaptive: false })}>{!gridAdaptive ? '● ' : '○ '}{tStatus('固定間距', lang)}</div>
               {!gridAdaptive && <div className="panel-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'default' }} onClick={(e) => e.stopPropagation()}>
                 <span style={{ opacity: 0.7, minWidth: 52 }}>{tStatus('主間距', lang)}</span>
@@ -8974,7 +8974,7 @@ export default function Viewport() {
           </>)}
           {measureEdgeMode && (<>
             <div style={{ fontWeight: 700, color: '#7fd1b9', marginBottom: 6 }}>{tStatus('📐 量邊 / 孔徑', lang)}</div>
-            <div style={{ fontSize: 14, lineHeight: 1.4 }}>{measureEdgeInfo || tStatus('點實體的一條稜（圓孔棱顯示 Ø）', lang)}</div>
+            <div style={{ fontSize: 14, lineHeight: 1.4 }}>{measureEdgeInfo || tStatus('點實體的一條稜（圓孔稜顯示 Ø）', lang)}</div>
           </>)}
           {measureFaceMode && (<>
             <div style={{ fontWeight: 700, color: '#7fd1b9', marginBottom: 6 }}>{tStatus('▦ 量面', lang)}</div>
@@ -9770,11 +9770,11 @@ function FormPanel() {
         </>
       )}
     >
-      <b style={{ color: '#1572c4' }}>{tStatus('🫧 Form 细分建模', lang)}</b>
-      <span style={{ color: '#5a6b78' }}>{tStatus('点控制点拖箭嘴捏形 / 点面拉伸（', lang)}{cage.verts.length} {tStatus('点）', lang)}</span>
+      <b style={{ color: '#1572c4' }}>{tStatus('🫧 Form 細分建模', lang)}</b>
+      <span style={{ color: '#5a6b78' }}>{tStatus('點控制點拖箭嘴捏形 / 點面拉伸（', lang)}{cage.verts.length} {tStatus('点）', lang)}</span>
       {cage.sel != null && <fieldset style={{ minWidth: 0, width: '100%', display: 'flex', flexWrap: 'wrap', gap: 6 }}><legend>{msg('vp.ctrlPoint', lang)}</legend>{(['X','Y','Z'] as const).map((axis,k) => <label key={axis}>{axis} <input aria-label={'Form point '+axis} key={cage.sel+'|'+cage.verts[cage.sel!][k]} type="number" defaultValue={cage.verts[cage.sel!][k]} style={{ width: 64 }} onBlur={e => { const n=Number(e.currentTarget.value), c=useApp.getState().formCage; if (e.currentTarget.value.trim() && Number.isFinite(n) && c?.sel != null) { const p=[...c.verts[c.sel]] as [number,number,number];p[k]=n;useApp.getState().setFormVert(c.sel,p) } }} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){e.currentTarget.value=String(cage.verts[cage.sel!][k]);e.currentTarget.blur()}}}/></label>)}</fieldset>}
-      <label title={tStatus('细分级数：越高越圆滑（三角数 ×4/级）', lang)}>{tStatus('級數', lang)} <select value={cage.levels} onChange={(e) => useApp.getState().setFormLevels(Number(e.target.value))} style={{ height: 22 }}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
-      <button className="cs-btn" title={tStatus('Subdivide：循环提高细分级 1→2→3→1', lang)} onClick={() => useApp.getState().runCommand('formsubdiv', 'Subdivide')}>{tStatus('Subdivide', lang)}</button>
+      <label title={tStatus('細分級數：越高越圓滑（三角數 ×4/級）', lang)}>{tStatus('級數', lang)} <select value={cage.levels} onChange={(e) => useApp.getState().setFormLevels(Number(e.target.value))} style={{ height: 22 }}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
+      <button className="cs-btn" title={tStatus('Subdivide：循環提高細分級 1→2→3→1', lang)} onClick={() => useApp.getState().runCommand('formsubdiv', 'Subdivide')}>{tStatus('Subdivide', lang)}</button>
       <button className={'cs-btn' + (formSym !== null ? ' on' : '')} title={tStatus('對稱編輯（S193）：開後拖一邊控制點，對面鏡像點自動同步（X/Y 軸鏡像，對稱平面 0）。再按切換 關→X→Y', lang)} style={formSym !== null ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().cycleFormSym()}>{tStatus('對稱', lang)}{formSym === 0 ? ':X' : formSym === 1 ? ':Y' : ''}</button>
       {(cage.msel ?? []).length >= 2 && <FormTransformFields />}
       {(cage.msel ?? []).length >= 2 && (() => {
@@ -9785,7 +9785,7 @@ function FormPanel() {
             {(['move', 'rotate', 'scale'] as const).map((m) => (
               <button key={m} className={'cs-btn' + (gm === m ? ' on' : '')} style={gm === m ? { background: '#1572c4', color: '#fff' } : undefined} onClick={() => useApp.getState().setFormGizmoMode(m)}>{m === 'move' ? tStatus('移', lang) : m === 'rotate' ? tStatus('旋', lang) : tStatus('缩', lang)}</button>
             ))}
-            <button className="cs-btn" title={tStatus('撤销上一步群组变换（Ctrl+Z）', lang)} onClick={() => useApp.getState().formUndoPop()}>↩</button>
+            <button className="cs-btn" title={tStatus('撤銷上一步群組變換（Ctrl+Z）', lang)} onClick={() => useApp.getState().formUndoPop()}>↩</button>
           </span>
         )
       })()}
@@ -9794,7 +9794,7 @@ function FormPanel() {
           <span style={{ color: '#c77d00', fontWeight: 600 }}>{tStatus('拉伸面', lang)}</span>
           <input type="number" step={1} value={extD} onChange={(e) => setExtD(Number(e.target.value))} style={{ width: 46 }} />mm
           <button className="cs-btn" title={tStatus('外推（凸出/抽肢）', lang)} onClick={() => void useApp.getState().formExtrudeFace(Math.abs(extD) || 5)}>{tStatus('外推▲', lang)}</button>
-          <button className="cs-btn" title={tStatus('内压（凹入/孔）', lang)} onClick={() => void useApp.getState().formExtrudeFace(-(Math.abs(extD) || 5))}>{tStatus('内压▼', lang)}</button>
+          <button className="cs-btn" title={tStatus('內壓（凹入/孔）', lang)} onClick={() => void useApp.getState().formExtrudeFace(-(Math.abs(extD) || 5))}>{tStatus('內壓▼', lang)}</button>
           {/* S172：折痕 / Crease — 折硬选中面 4 条边界边（二元无限锐），细分时稜角企硬唔被磨圆；再撳取消 */}
           <button className="cs-btn" title={tStatus('折痕 Crease：折硬此面 4 條邊界邊（細分時稜角企硬，做凸台/筋/硬邊）。再按取消。', lang)} onClick={() => useApp.getState().formCrease()}>{tStatus('◣ 折痕', lang)}</button>
           {/* S180：插入边线环（Fusion Insert Edge Loop）— 两个方向（↔ 切 0/2 对边、↕ 切 1/3 对边），环绕笼加一圈细分密度 */}
@@ -9802,18 +9802,18 @@ function FormPanel() {
           <button className="cs-btn" title={tStatus('插入邊線環（縱向）：沿此面另一對邊方向環繞籠加一圈邊線。', lang)} onClick={() => void useApp.getState().formInsertLoop(1)}>{tStatus('⊞环↕', lang)}</button>
         </span>
       )}
-      {cage.creases.length > 0 && <span style={{ color: '#c0392b', fontWeight: 600 }} title={tStatus('当前折痕（锐边）数', lang)}>◣ {new Set(cage.creases.map(([a, b]) => (a < b ? a : b) + '_' + (a < b ? b : a))).size}</span>}
+      {cage.creases.length > 0 && <span style={{ color: '#c0392b', fontWeight: 600 }} title={tStatus('當前折痕（銳邊）數', lang)}>◣ {new Set(cage.creases.map(([a, b]) => (a < b ? a : b) + '_' + (a < b ? b : a))).size}</span>}
       {cage.creases.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6b7680' }} title={tStatus('折痕軟硬（semi-sharp crease）：1=硬稜角（舊二元銳），拖細 = 軟稜 / 倒角感漸變（車身板/有機硬邊過渡）。即時預覽。', lang)}>
         <span>软硬</span>
-        <input aria-label="接地阴影深浅" type="range" min={0.05} max={1} step={0.05} value={cage.creaseSoft ?? 1} onChange={(e) => useApp.getState().setFormCreaseSoft(Number(e.target.value))} style={{ width: 64, accentColor: '#c0392b' }} />
+        <input aria-label="接地陰影深淺" type="range" min={0.05} max={1} step={0.05} value={cage.creaseSoft ?? 1} onChange={(e) => useApp.getState().setFormCreaseSoft(Number(e.target.value))} style={{ width: 64, accentColor: '#c0392b' }} />
         <span style={{ minWidth: 30, whiteSpace: 'nowrap', flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{(cage.creaseSoft ?? 1).toFixed(2)}</span>
       </span>}
       {/* S169：Form 镜像/对称 — cage 沿该轴最小边界面反射焊接成对称翻倍笼（Fusion T-spline Mirror） */}
       <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, borderLeft: '1px solid #cde', paddingLeft: 8 }} title={tStatus('鏡像/對稱：cage 沿該軸最小邊界面反射并焊接成對稱翻倍籠（先造一半再鏡成對稱形）。', lang)}>
         <span style={{ color: '#2a6fb0', fontWeight: 600 }}>{tStatus('鏡像', lang)}</span>
-        <button className="cs-btn" title={tStatus('沿 X 最小边界面镜像', lang)} onClick={() => void useApp.getState().formMirror(0)}>X</button>
-        <button className="cs-btn" title={tStatus('沿 Y 最小边界面镜像', lang)} onClick={() => void useApp.getState().formMirror(1)}>Y</button>
-        <button className="cs-btn" title={tStatus('沿 Z 最小边界面镜像', lang)} onClick={() => void useApp.getState().formMirror(2)}>Z</button>
+        <button className="cs-btn" title={tStatus('沿 X 最小邊界面鏡像', lang)} onClick={() => void useApp.getState().formMirror(0)}>X</button>
+        <button className="cs-btn" title={tStatus('沿 Y 最小邊界面鏡像', lang)} onClick={() => void useApp.getState().formMirror(1)}>Y</button>
+        <button className="cs-btn" title={tStatus('沿 Z 最小邊界面鏡像', lang)} onClick={() => void useApp.getState().formMirror(2)}>Z</button>
       </span>
     </FormPalette>
   )
@@ -9832,7 +9832,7 @@ function EditPolesPanel() {
   return (
     <div style={{ position: 'absolute', top: 64, left: '50%', transform: 'translateX(-50%)', background: '#fff', border: '1px solid #7bb8e8', borderRadius: 8, padding: '6px 12px', display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, boxShadow: '0 2px 10px rgba(0,0,0,.12)', zIndex: 60 }}>
       <b style={{ color: '#1572c4' }}>{tStatus('🔵 編輯曲面控制點', lang)}</b>
-      <span style={{ color: '#5a6b78' }}>{tStatus('曲面', lang)} #{target + 1}　{controlNet.nu}×{controlNet.nv} {tStatus('极点', lang)}</span>
+      <span style={{ color: '#5a6b78' }}>{tStatus('曲面', lang)} #{target + 1}　{controlNet.nu}×{controlNet.nv} {tStatus('極點', lang)}</span>
       {nFaces > 1 && (
         <button className="cs-btn" title={tStatus('多面殼：切換到下一張 B-rep 面編輯（切面會重置未提交的拖動）', lang)} onClick={() => void useApp.getState().cycleEditPolesFace()}>
           {tStatus('面', lang)} {(face ?? 0) + 1}/{nFaces} ⟳
@@ -9854,6 +9854,6 @@ function InterfClearChip() {
       style={{ left: '50%', transform: 'translateX(-50%)', bottom: 64, top: 'auto', position: 'absolute', background: '#fff0f0', border: '1px solid #e03131', color: '#c92a2a', cursor: 'pointer', fontWeight: 600 }}
       title={tStatus('清除視口中的紅色干涉重疊區高亮（再按「干涉檢查」會重新計算）', lang)}
       onClick={() => useApp.getState().clearInterf()}
-    >{tStatus('✕ 清除干涉高亮（', lang)}{n} {tStatus('处红区）', lang)}</button>
+    >{tStatus('✕ 清除干涉高亮（', lang)}{n} {tStatus('處紅區）', lang)}</button>
   )
 }

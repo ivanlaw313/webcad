@@ -2510,6 +2510,24 @@ Object.assign(STATUS_PHRASES_X, {
   '倒斜角': 'Chamfer',
 })
 
+Object.assign(STATUS_PHRASES_X, {
+  // FISHING46 Formal TC UI leftovers
+  '極坐標': 'Polar',
+  '透視 X-ray': 'X-ray',
+  '引線 Leaders': 'Leaders',
+  '自適應': 'Adaptive',
+  '內壓▼': 'Inset▼',
+  '極點': 'Poles',
+  '處紅區）': 'red zones)',
+  '應用變換': 'Apply Transform',
+  '控制籠局部座標；也可拖動軸向控制柄。': 'Cage local coords; or drag axis handles.',
+  '孤立顯示（隱藏其餘）': 'Isolate (hide others)',
+  '關閉預覽': 'Close preview',
+  '已清空所選稜 — 重新點選邊界稜': 'Cleared selected edges — pick boundary edges again',
+})
+
+
+
 
 Object.assign(STATUS_PHRASES_X, {
   // v1.92 BD-9101/BD-9201 Viewport sketch chrome / mini-toolbar / plane helper / display-toggle TC

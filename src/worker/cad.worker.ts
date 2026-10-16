@@ -4212,7 +4212,7 @@ function buildShape(features: Feature[], noCache = false): any {
         }
         // #70 GM-L2：矩形阵列兜底微沉方向 = 主间距方向（u1/u2/世界 Z），唔再写死世界 Z（非 Z 主导阵列共面失败先救得到）
         const _nudge: [number, number, number] = (cx > 1 && Math.abs(f.dx) > 1e-9) ? u1 : (cy > 1 && Math.abs(f.dy) > 1e-9) ? u2 : [0, 0, 1]
-        applyTargetDeltas(f.targets, xforms, '矩形阵列', _nudge)
+        applyTargetDeltas(f.targets, xforms, '矩形陣列', _nudge)
       } else if (prevBefore && prevWasCut && f.objectType !== 'bodies') {
         // Pattern a HOLE across the grid: re-cut the removed region (fusing whole copies would fill holes).
         // FISHING24 P1：objectType==='bodies'（「整個實體」）必須走下面 fuse 整體路徑，同 circPattern 無 targets 時一致。
@@ -4317,7 +4317,7 @@ function buildShape(features: Feature[], noCache = false): any {
         // #70 GM-L2：路径阵列兜底微沉方向 = 路径总走向（首→尾），退化则世界 Z
         const _pend = pts[pts.length - 1], _pdx = _pend[0] - ox, _pdy = _pend[1] - oy, _pdz = pts3 ? (_pend as [number, number, number])[2] - oz : 0, _pl = Math.hypot(_pdx, _pdy, _pdz)
         const _nudge: [number, number, number] = _pl > 1e-9 ? [_pdx / _pl, _pdy / _pl, _pdz / _pl] : [0, 0, 1]
-        applyTargetDeltas(f.targets, xforms, '路径阵列', _nudge)
+        applyTargetDeltas(f.targets, xforms, '路徑陣列', _nudge)
       } else if (prevBefore && prevWasCut) {
         const removed = prevBefore.clone().cut(shape.clone())
         let acc = shape
@@ -4679,8 +4679,8 @@ function buildShape(features: Feature[], noCache = false): any {
         const ns0: [number, number, number][] = (f.nears && f.nears.length ? f.nears : [f.near])   // GM-L2：多面缺省退 [near]（旧档逐字节）
         const multi = ns0.length > 1
         const plan = _moveFacePlan({ mode: f.mode, dist: f.dist, angle: f.angle, nfaces: ns0.length })   // 走边条内核路径（同 tests 共用同一决策核）
-        if (plan.op === 'skip-zero') { buildWarnings.push('移动面：' + (plan.note || '距離/角度為 0 — 跳過')) }
-        else if (plan.op === 'reject-multi-tilt') { buildWarnings.push('⚠ 移动面：' + (plan.note || '傾斜暫不支持多面') + ' — 已跳過（保持原樣）') }
+        if (plan.op === 'skip-zero') { buildWarnings.push('移動面：' + (plan.note || '距離/角度為 0 — 跳過')) }
+        else if (plan.op === 'reject-multi-tilt') { buildWarnings.push('⚠ 移動面：' + (plan.note || '傾斜暫不支持多面') + ' — 已跳過（保持原樣）') }
         else if ((plan.op === 'replace-inward' || plan.op === 'tilt') && (!w || !w.ReplaceFaceNear)) { buildWarnings.push('⚠ 移動面（朝內/傾斜）需要 plus 內核 DirectEditWrapper.ReplaceFaceNear（未綁定）— 已跳過') }
         else {
           // ── 逐面解析拾取点（镜 delface/pushpull：faceFp 与 nears 平行数组消歧 / 首解捕获）──
@@ -4888,7 +4888,7 @@ function buildShape(features: Feature[], noCache = false): any {
           const shell: any = genericSweep(profWire, spine, { forceProfileSpine: true } as any)
           let bbOk = false
           try { const bb = (shell as any).boundingBox.bounds as [number[], number[]]; const ext = Math.max(bb[1][0] - bb[0][0], bb[1][1] - bb[0][1], bb[1][2] - bb[0][2]); if (Number.isFinite(ext) && ext > 1e-6 && ext < 1e6) bbOk = true } catch { /* boundingBox 抛 = 无界 */ }
-          if (shell && shell.wrapped && !shell.wrapped.IsNull() && bbOk) parkedBodies.push({ name: '扫掠曲面', shape: shell })
+          if (shell && shell.wrapped && !shell.wrapped.IsNull() && bbOk) parkedBodies.push({ name: '掃掠曲面', shape: shell })
           else buildWarnings.push('曲面掃掠失敗（截面／路徑無效或掃出無界形）')
         }
       } catch (e) { buildWarnings.push('曲面掃掠失敗：' + ((e as any)?.message || e)) }
@@ -5351,7 +5351,7 @@ function buildShape(features: Feature[], noCache = false): any {
                         if (sewn && sewn.wrapped && !sewn.wrapped.IsNull()) {
                           parkedBodies[f.target] = { name: t.name, shape: sewn }
                           const cm = comoveFaces > 0 ? `，跨面 co-move ${comoveFaces} 張鄰面共 ${comovePoles} 個共享極點` : ''
-                          const cont = freeEdges < 0 ? '（连续性未验证）' : freeEdges === 0 ? '；壳水密（freeEdges=0）' : `；共享邊保持（freeEdges=${freeEdges}＝基線 ${baseFree}）`
+                          const cont = freeEdges < 0 ? '（連續性未驗證）' : freeEdges === 0 ? '；壳水密（freeEdges=0）' : `；共享邊保持（freeEdges=${freeEdges}＝基線 ${baseFree}）`
                           buildWarnings.push(`極點編輯：${t.name} 面 ${fi + 1}/${faces.length} 改了 ${totalMoved} 個控制點（${fiP.nu}×${fiP.nv} 網格）${cm}${cont}`)
                         } else buildWarnings.push(`極點編輯：面 ${fi + 1} 重組結果空 — 保持不變`)
                       }
@@ -7221,9 +7221,9 @@ const api = {
       try {
         const prog = _oc.Message_ProgressRange_1 ? r(new _oc.Message_ProgressRange_1()) : undefined
         try { mk.Build(prog); built = true; notes.push('Build(ProgressRange) OK') }
-        catch (eb) { try { mk.Build(); built = true; notes.push('Build() 无参 OK') } catch (eb2) { notes.push('Build 失败：' + ((eb as any)?.message || eb) + ' / ' + ((eb2 as any)?.message || eb2)) } }
-      } catch { try { mk.Build(); built = true; notes.push('Build() 無參 OK（ProgressRange 無法起）') } catch (eb3) { notes.push('Build 失败：' + ((eb3 as any)?.message || eb3)) } }
-      if (!built) { notes.push('Build 全失败'); return result }
+        catch (eb) { try { mk.Build(); built = true; notes.push('Build() 无参 OK') } catch (eb2) { notes.push('Build 失敗：' + ((eb as any)?.message || eb) + ' / ' + ((eb2 as any)?.message || eb2)) } }
+      } catch { try { mk.Build(); built = true; notes.push('Build() 無參 OK（ProgressRange 無法起）') } catch (eb3) { notes.push('Build 失敗：' + ((eb3 as any)?.message || eb3)) } }
+      if (!built) { notes.push('Build 全失敗'); return result }
 
       // IsDone 校验（fillet op 真系做成）
       let done = false
@@ -7231,7 +7231,7 @@ const api = {
       result.filletWorked = done
       notes.push('IsDone：' + done)
       // 攞 fillet 结果（证实真系出到几何，唔系 lineage 探针所必需但用嚟 sanity check）
-      try { if (done && typeof mk.Shape === 'function') { const sh = mk.Shape(); if (sh && !sh.IsNull()) { const out = cast(sh); notes.push('fillet 结果面数：' + ((out as any).faces?.length ?? '?')) } } } catch (e) { notes.push('读 fillet Shape 失败：' + ((e as any)?.message || e)) }
+      try { if (done && typeof mk.Shape === 'function') { const sh = mk.Shape(); if (sh && !sh.IsNull()) { const out = cast(sh); notes.push('fillet 結果面數：' + ((out as any).faces?.length ?? '?')) } } } catch (e) { notes.push('讀 fillet Shape 失敗：' + ((e as any)?.message || e)) }
 
       // ── 3. 关键 LINEAGE 探针 — 喺 fillet op 上调 Modified/Generated/IsDeleted，报存在 + 非空 ──
       // 工具：读一个 TopTools_ListOfShape 嘅大小（试 Size/Extent）+ 可迭代性（First/Last，因为
@@ -7658,8 +7658,8 @@ const api = {
           } catch { /* 该 pair section 失败 → 跳过（唔影响其它 pair） */ }
         }
       }
-      const warning = curves.length === 0 ? '未发现相交曲线（这些体之间不相交）'
-        : truncated ? '相交曲线过多，已截断（只返回前若干条）' : undefined
+      const warning = curves.length === 0 ? '未發現相交曲線（這些體之間不相交）'
+        : truncated ? '相交曲線過多，已截斷（只返回前若干條）' : undefined
       return { curves, bodies: bodies.length, pairs, edges: edgeCount, warning }
     } catch (e) {
       console.error('[cad.worker] intersectionCurves failed:', e)

@@ -42,8 +42,8 @@ export default function AiCopilot() {
       <div onPointerDown={drag.onPointerDown} title="拖移 AI 面板" style={{ padding: '8px 12px', background: 'linear-gradient(135deg,#6d4ef0,#2b6cf0)', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, cursor: 'grab', touchAction: 'none' }}>
         <b style={{ flex: 1 }}>✦ AI Copilot</b>
         <span style={{ fontSize: 11, opacity: 0.85 }}>{PROVIDER_DEFAULTS[cfg.provider].label}</span>
-        <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowCfg((v) => !v)} title={tStatus('设置（供应商 / API Key / 模型）', lang)} style={hdrBtn}>⚙</button>
-        <button onPointerDown={(e) => e.stopPropagation()} onClick={clear} title={tStatus('清空对话', lang)} style={hdrBtn}>🗑</button>
+        <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowCfg((v) => !v)} title={tStatus('設置（供應商 / API Key / 模型）', lang)} style={hdrBtn}>⚙</button>
+        <button onPointerDown={(e) => e.stopPropagation()} onClick={clear} title={tStatus('清空對話', lang)} style={hdrBtn}>🗑</button>
         <button onPointerDown={(e) => e.stopPropagation()} onClick={toggle} title={tStatus('关闭', lang)} style={hdrBtn}>✕</button>
       </div>
 
@@ -57,7 +57,7 @@ export default function AiCopilot() {
           </label>
           {PROVIDER_DEFAULTS[cfg.provider].needsKey && (
             <label style={cfgRow}><span style={cfgLbl}>{tStatus('API Key', lang)}</span>
-              <input type="password" value={cfg.apiKey} placeholder={tStatus('sk-… / 你的 key（存本地浏览器）', lang)} onChange={(e) => setCfg({ apiKey: e.target.value })} style={cfgIn} />
+              <input type="password" value={cfg.apiKey} placeholder={tStatus('sk-… / 你的 key（存本地瀏覽器）', lang)} onChange={(e) => setCfg({ apiKey: e.target.value })} style={cfgIn} />
             </label>
           )}
           <label style={cfgRow}><span style={cfgLbl}>{tStatus('模型', lang)}</span>
@@ -76,11 +76,11 @@ export default function AiCopilot() {
       <div ref={logRef} style={{ flex: 1, overflowY: 'auto', padding: 10, display: 'flex', flexDirection: 'column', gap: 8, background: '#fbfcfd' }}>
         {msgs.length === 0 && (
           <div style={{ color: '#8a97a2', fontSize: 12, lineHeight: 1.6 }}>
-            {tStatus('👋 我可以帮你', lang)}<b>{tStatus('操作 app', lang)}</b>{tStatus('或', lang)}<b>{tStatus('解答用法', lang)}</b>{tStatus('。试下：', lang)}<br />
+            {tStatus('👋 我可以幫你', lang)}<b>{tStatus('操作 app', lang)}</b>{tStatus('或', lang)}<b>{tStatus('解答用法', lang)}</b>{tStatus('。试下：', lang)}<br />
             {tStatus('• 「做個 60×40×20 的盒，中間挖個 Ø20 通孔」', lang)}<br />
-            {tStatus('• 「载入齿轮范本，然后话我知体积」', lang)}<br />
-            {tStatus('• 「如何在一条边倒 R5 圆角？」', lang)}<br />
-            {tStatus('• 「加个参数 厚度=3，再设成 5」', lang)}
+            {tStatus('• 「載入齒輪範本，然後話我知體積」', lang)}<br />
+            {tStatus('• 「如何在一條邊倒 R5 圓角？」', lang)}<br />
+            {tStatus('• 「加個參數 厚度=3，再設成 5」', lang)}
           </div>
         )}
         {msgs.map((m, i) => {

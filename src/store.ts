@@ -801,7 +801,7 @@ function snapInSketch(raw: Pt, start: Pt | null, poly: Pt[], shape: SketchShape 
           cand.push(q); xPts.push(q)
         }
       }
-    } else if (!_snapPerfShown) { _snapPerfShown = true; _snapPerfPending = '线段太多，交点吸附已暂停（性能保护）' }   // GM-W8 A2：一次性性能提示
+    } else if (!_snapPerfShown) { _snapPerfShown = true; _snapPerfPending = '線段太多，交點吸附已暫停（性能保護）' }   // GM-W8 A2：一次性性能提示
   }
   // For 2-click shapes (rect/circle/…) the defining 2nd point must NOT snap back to the shape's own
   // start/centre (that collapses it to zero size — e.g. a circle smaller than the 7mm snap radius).
@@ -3303,38 +3303,38 @@ export function fmtArea(mm2: number, u: Unit = 'mm', prec?: number | null, secon
 // Human labels for the starter templates (shown in the Ribbon picker).
 export const SAMPLE_LABELS: Record<SampleKind, string> = {
   plate: '参数化底板',
-  enclosure: '外壳/盒（抽壳）',
-  flange: '法兰盘/皮带轮',
+  enclosure: '外殼/盒（抽殼）',
+  flange: '法蘭盤/皮帶輪',
   bracket: 'L 型角铁',
   hexnut: '六角螺母坯',
   shaft: '阶梯轴',
   washer: '垫圈/环',
-  indexplate: '分度盘（等分孔）',
+  indexplate: '分度盤（等分孔）',
   parkey: '平键 DIN6885',
-  angleiron: 'L 角铁/角钢',
-  bowl: '碗（平滑旋转面）',
-  boltflange: '螺栓法兰（孔环）',
+  angleiron: 'L 角鐵/角鋼',
+  bowl: '碗（平滑旋轉面）',
+  boltflange: '螺栓法蘭（孔環）',
   gear: '渐开线齿轮',
-  smbracket: '钣金 L 支架',
-  gearpair: '齿轮组（啮合对）',
-  fourbarAsm: '闭环四连杆（真组件）',
+  smbracket: '鈑金 L 支架',
+  gearpair: '齒輪組（嚙合對）',
+  fourbarAsm: '閉環四連桿（真組件）',
   bolt: '六角头螺栓',
-  gearring: '内齿圈（环齿轮）',
-  bearing: '滚珠轴承 608',
-  rackpinion: '齿轮齿条（齿条机构）',
-  planetary: '行星齿轮组（太阳+行星+内齿圈）',
-  coupling: '联轴器/轴套（带键孔）',
+  gearring: '內齒圈（環齒輪）',
+  bearing: '滾珠軸承 608',
+  rackpinion: '齒輪齒條（齒條機構）',
+  planetary: '行星齒輪組（太陽+行星+內齒圈）',
+  coupling: '聯軸器/軸套（帶鍵孔）',
   standoff: '六角間隔柱 (M3 standoff)',
-  nema17: 'NEMA17 电机安装板',
-  bushing: '法兰轴套/衬套',
-  vent: '通风板 / 散热孔板',
-  knob: '旋钮 (D 形轴孔)',
-  keyshaft: '键槽轴 (DIN 6885 平键)',
-  vase: '花瓶 (平滑旋转曲面)',
-  elbow: '弯管 90° (平滑扫掠)',
-  spring: '压缩弹簧 (含刚度 k)',
-  heatsink: '散热片 (鳍片阵列)',
-  tslot: '2020 铝型材 (T槽)',
+  nema17: 'NEMA17 電機安裝板',
+  bushing: '法蘭軸套/襯套',
+  vent: '通風板 / 散熱孔板',
+  knob: '旋鈕 (D 形軸孔)',
+  keyshaft: '鍵槽軸 (DIN 6885 平鍵)',
+  vase: '花瓶 (平滑旋轉曲面)',
+  elbow: '彎管 90° (平滑掃掠)',
+  spring: '壓縮彈簧 (含剛度 k)',
+  heatsink: '散熱片 (鰭片陣列)',
+  tslot: '2020 鋁型材 (T槽)',
   honeycomb: '蜂窝镂空板',
 }
 // DIN 6885 / ISO 773 parallel-key sizing by shaft diameter d (mm): cross-section b×h, keyseat depth in the
@@ -6213,7 +6213,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const lastT = active.length ? active[active.length - 1].type : ''
       const lastOp = active.length ? (active[active.length - 1] as { operation?: string }).operation : ''
       const HINT: Record<string, string> = {
-        extrude: lastOp === 'cut' ? '切割輪廓太大/位置超出零件 — 縮小切割或移動位置' : (lastOp === 'intersect' ? '相交区域为空 — 两形状没有重叠' : '拉伸轮廓无效 — 要闭合且面积>0'),
+        extrude: lastOp === 'cut' ? '切割輪廓太大/位置超出零件 — 縮小切割或移動位置' : (lastOp === 'intersect' ? '相交區域為空 — 兩形狀沒有重疊' : '拉伸輪廓無效 — 要閉合且面積>0'),
         // SO04 / BUG-SO15-001: Intersect with no prior solid is meaningless — don't blame "empty overlap".
         // Independent-sketch empty bodyMesh used to enable ∩ in the dialog; coerce+gate fix that, but keep honest hint.
         revolve: (() => {
@@ -7779,7 +7779,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const picks = hit >= 0 ? s.moveFacePicks.filter((_, i) => i !== hit) : [...s.moveFacePicks, { p: cp, n }]
     const last = picks.length ? picks[picks.length - 1] : null   // moveFacePick 便捷镜 = 最后一个（SketchLayer ghost 读 !!moveFacePick）
     const cur = s.moveFaceKind === 'tilt' ? `倾斜 ${s.moveFaceAngle}°` : `偏移 ${s.moveFaceDist}mm`
-    const tiltWarn = picks.length > 1 && s.moveFaceKind === 'tilt' ? '；⚠ 倾斜只支持单面' : ''
+    const tiltWarn = picks.length > 1 && s.moveFaceKind === 'tilt' ? '；⚠ 傾斜只支持單面' : ''
     return { moveFacePicks: picks, moveFacePick: last, status: picks.length ? `已選 ${picks.length} 個面 — 設距離/角度 → 「確定」（當前：${cur}${tiltWarn}）` : '已清空所選面 — 重新點選' }
   }),
   clearMoveFacePick: () => set({ moveFacePick: null, moveFacePicks: [], status: '已清空所選面 — 重新點選' }),
@@ -8238,7 +8238,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // 3 正交参考面（arb）逐个入时间轴（datum 特征，同现有参考面创建路径共用 addDatumFeature）。
     await get().addDatumFeature({ base: 'XY', offset: 0, angle: 0, arb: u.planes[0] }, 'UCS：XY 參考面（局部 Z 法向）')
     await get().addDatumFeature({ base: 'XY', offset: 0, angle: 0, arb: u.planes[1] }, 'UCS：XZ 參考面（局部 Y 法向）')
-    await get().addDatumFeature({ base: 'XY', offset: 0, angle: 0, arb: u.planes[2] }, 'UCS：YZ 参考面（局部 X 法向）')
+    await get().addDatumFeature({ base: 'XY', offset: 0, angle: 0, arb: u.planes[2] }, 'UCS：YZ 參考面（局部 X 法向）')
     // 3 构造轴 + 1 构造点（同 caxes/cpoints 现有结构，逐字节兼容）。
     set((s) => ({
       caxes: [...s.caxes,
@@ -11685,7 +11685,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         // geometry, not a scaled display polyline.
         const { a, b, m } = sh.arc, old = circumcircle(a, b, m)
         const dx = b[0] - a[0], dy = b[1] - a[1], chord = Math.hypot(dx, dy)
-        if (!old || chord < 1e-9) { editError = '圆弧半径：原弧退化，不能改半径'; return sh }
+        if (!old || chord < 1e-9) { editError = '圓弧半徑：原弧退化，不能改半徑'; return sh }
         if (value + 1e-8 < chord / 2) { editError = `圓弧半徑至少要 ${((chord / 2)).toFixed(3)} mm（半弦長）`; return sh }
         const mid: Pt = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
         const side = Math.sign(dx * (m[1] - a[1]) - dy * (m[0] - a[0])) || 1
@@ -11822,7 +11822,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       return {}
     }
     // GM-W8 A3：多阶段工具用逐阶段标签（半径/扫角/短半轴/ρ…）；其余走原 typedReadout
-    const msLabel = tool==='ellipse'&&s.ellipseCreation==='three-point'&&s.sketchStart ? (s.polyPts.length?'另一半轴 ry':'半轴 rx（方向跟光标）') : multiStageTypedLabel(tool, s.sketchStart != null, s.polyPts.length)
+    const msLabel = tool==='ellipse'&&s.ellipseCreation==='three-point'&&s.sketchStart ? (s.polyPts.length?'另一半軸 ry':'半軸 rx（方向跟光標）') : multiStageTypedLabel(tool, s.sketchStart != null, s.polyPts.length)
     const readoutFor = (b: string[]) => msLabel === SK_TYPED_UNSUP ? `⚠ ${SK_TYPED_UNSUP}` : msLabel ? `${msLabel} = [${b[s.dimField] || '_'}]　(Enter 確定)` : typedReadout(tool, b, s.dimField, s.slotMode)
     // GM-FP1 #10：折线绘制中，锁定嘅长度/角度即时约束 rubber-band 预览 → 打字时几何 live 跟住变（Fusion 手感）。
     const polyPreview = (b: string[]): Pt | undefined => {
@@ -12939,7 +12939,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const fmtV = (v: number) => (v >= 1000 ? (v / 1000).toFixed(2) + ' cm³' : v.toFixed(1) + ' mm³')
     const fmtP = (a: [number, number, number]) => `(${a.map((x) => x.toFixed(1)).join(', ')})`
     const lines = [`干涉檢查報告 — ${new Date().toLocaleString()}`, `可見組件 ${r.comps} 個，干涉 ${r.hits.length} 處`, '']
-    if (!r.hits.length) lines.push('✓ 无干涉')
+    if (!r.hits.length) lines.push('✓ 無干涉')
     r.hits.forEach((h, i) => lines.push(`${i + 1}. ${h.a} ∩ ${h.b}：${fmtV(h.vol)}${h.exact ? '（manifold 精确布尔）' : '（蒙特卡洛估算 ≈）'}　區域 ${fmtP(h.min)} → ${fmtP(h.max)}`))
     if (r.gap) lines.push('', `最近間隙 ≈ ${r.gap.gap.toFixed(2)} mm（${r.gap.a} ↔ ${r.gap.b}，頂點取樣）`)
     try { void navigator.clipboard?.writeText(lines.join('\n')) } catch { /* 剪贴板唔可用 → status 照提示 */ }
@@ -13029,7 +13029,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const multiDof = j0.type === 'cylindrical' || j0.type === 'ball' || j0.type === 'planar' || j0.type === 'pinslot'
     const dofNote = multiDof ? `（注：此關節多自由度，只掃了主${useAngle ? '转' : '滑'}軸，其餘 DOF 固定現值）` : ''
     const degNote = degen ? '（限位鎖死，按全圈 0–360° 探查）' : ''
-    const heavyNote = heavy ? '（大装配·已降密采样）' : ''
+    const heavyNote = heavy ? '（大裝配·已降密取樣）' : ''
     // 扫掠搵首次撞击步；记低最后一次非空命中（蒙特卡洛抖动守卫用）
     let firstStep = -1, lastHits: Hit[] = []
     for (let k = 0; k <= N; k++) { const h = clashAt(valAt(k)); if (h.length) { firstStep = k; lastHits = h; break } }
@@ -14177,7 +14177,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           const pureCyl = cy.length === 1 && (cy[0] as { full?: boolean }).full === true &&
             an.totalTriCount > 0 && an.facetedTriCount <= an.totalTriCount * 0.05 &&
             an.primitives.every((p) => p.kind !== 'plane' || Math.abs((p as { normal: number[] }).normal[0] * (cy[0] as { axis: number[] }).axis[0] + (p as { normal: number[] }).normal[1] * (cy[0] as { axis: number[] }).axis[1] + (p as { normal: number[] }).normal[2] * (cy[0] as { axis: number[] }).axis[2]) >= 0.9)
-          if (pureCyl) { fit = 'param'; cylNote = '（识别为纯圆柱坯 → 重建真圆柱实体）' }
+          if (pureCyl) { fit = 'param'; cylNote = '（識別為純圓柱坯 → 重建真圓柱實體）' }
         }
       } catch { fit = 'faceted' }
     }
@@ -15068,7 +15068,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (s.best === '+Z') { set({ overhang: { on: true, tris: s.flaggedZ }, status: `已經是最省支撐朝向（+Z 朝上，需支撐 ${s.pctZ.toFixed(1)}%），無需擺正` }); return }
     const r = ORIENT_ROT[s.best] || {}
     const f: Feature = { id: fid(), type: 'transform', dx: 0, dy: 0, dz: 0, rz: 0, rx: r.rx || 0, ry: r.ry || 0 }
-    await get().applyFeatures([...get().features, f], `正在摆正到 ${s.best} 朝上…`)
+    await get().applyFeatures([...get().features, f], `正在擺正到 ${s.best} 朝上…`)
     const m2 = get().bodyMesh // re-scan the rebuilt (rotated) body and re-highlight on the new pose
     if (m2 && m2.triangles && m2.triangles.length) { const s2 = overhangScan(m2, 45); set({ overhang: { on: true, tris: s2.flaggedZ }, status: `已自動擺正到 ${s.best} 朝上：需支撐面 ${s.pctZ.toFixed(1)}% → ${s2.pctZ.toFixed(1)}%（紅色高亮；時間軸可撤銷）` }) }
   },
@@ -15318,7 +15318,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         if (m && m.vertices.length) { const v = m.vertices; let xn = 1e9, yn = 1e9, zn = 1e9, xx = -1e9, yx = -1e9, zx = -1e9; for (let i = 0; i < v.length; i += 3) { xn = Math.min(xn, v[i]); xx = Math.max(xx, v[i]); yn = Math.min(yn, v[i + 1]); yx = Math.max(yx, v[i + 1]); zn = Math.min(zn, v[i + 2]); zx = Math.max(zx, v[i + 2]) } dims = `${(xx - xn).toFixed(1)}×${(zx - zn).toFixed(1)}×${(yx - yn).toFixed(1)}mm` }
         return JSON.stringify({ featureCount: feats.length, featureTypes: feats.map((f) => f.type), componentCount: get().components.length, triangles: m ? m.triangles.length / 3 : 0, bbox: dims, parameters: get().params.map((p) => `${p.name}=${p.value}`) })
       }
-      case 'reset_document': await get().reset(); return '✓ 已清空文档'
+      case 'reset_document': await get().reset(); return '✓ 已清空文檔'
       case 'fit_view': get().requestFit(); return '✓ 已適應視窗'
       case 'explain_command': {   // P6 教学：查真实 ribbon 位置 + 高亮个掣「指出畀用户睇」，返 grounded 位置畀 AI 组织「示范」步骤
         const q = String(a.query || a.command || '').trim()
@@ -15346,7 +15346,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
       case 'set_material': { const nm = String(a.material || '钢'); if (!MATERIALS[nm]) return '✗ 未知材質：' + nm; get().setMaterialPreset(nm); get().setPhysicalMaterial(nm); return '✓ 已设材质：' + nm }   // AI「设材质」= 外观 + 物理材质（外观本身唔再改密度）
       case 'mirror_body': { if (!hasSolid(get().features)) return '✗ 需要先有實體'; await get().addMirror(); return '✓ 已鏡像（跨 YZ 平面）' }
-      case 'load_sample': { const k = String(a.kind || 'plate') as SampleKind; await get().loadSample(k); return '✓ 已载入范本：' + k }
+      case 'load_sample': { const k = String(a.kind || 'plate') as SampleKind; await get().loadSample(k); return '✓ 已載入範本：' + k }
       case 'add_parameter': { const nm = String(a.name || 'd1'); get().addParam(nm, pnum('value')); return `✓ 已加參數 ${nm}=${pnum('value')}` }
       case 'set_parameter': { const nm = String(a.name || ''); if (!nm) return '✗ 缺參數名'; await get().setParam(nm, pnum('value')); return `✓ 已設 ${nm}=${pnum('value')}` }
       case 'export_model': { const fmt = String(a.format || 'stl'); if (fmt === 'step') await get().exportStep(); else await get().exportStl(); return '✓ 已导出 ' + fmt.toUpperCase() }
@@ -18120,7 +18120,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   }),
   setBoundaryPatchTangent: (v) => set({ boundaryPatchTangent: !!v }),
   setBoundaryPatchThick: (n) => set({ boundaryPatchThick: Math.max(0, n || 0) }),
-  clearBoundaryPatchPicks: () => set({ boundaryPatchPicks: [], status: '已清空所選稜 — 重新點選邊界棱' }),
+  clearBoundaryPatchPicks: () => set({ boundaryPatchPicks: [], status: '已清空所選稜 — 重新點選邊界稜' }),
   commitBoundaryPatch: async () => {
     const pts = get().boundaryPatchPicks
     if (pts.length < 2) { set({ status: '邊界補面需要 ≥2 條邊界稜（請逐條點選）' }); return }
@@ -18968,7 +18968,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       let xd: [number, number, number] = [ref[0] - dd * n1[0], ref[1] - dd * n1[1], ref[2] - dd * n1[2]]
       const xl = Math.hypot(xd[0], xd[1], xd[2]) || 1
       xd = [xd[0] / xl, xd[1] / xl, xd[2] / xl]
-      await get().addDatumFeature({ base: 'XY', offset: 0, angle: 0, arb: { o, xd, n: n1 } }, '已建两面中面（斜向 — arb 基准）')
+      await get().addDatumFeature({ base: 'XY', offset: 0, angle: 0, arb: { o, xd, n: n1 } }, '已建兩面中面（斜向 — arb 基準）')
     }
   },
   // ── GM-3DV2 R1：统一「构造几何」命令（Fusion Construction Geometry）──────────────────────
@@ -19248,7 +19248,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       const e = asEdge(picks[0]), f = asFace(picks[1])
       const r = edgePlaneIntersection(e.p1, e.dir, f.p, f.n)
       if (!r) { set({ status: '邊穿面：邊平行於面 — 無交點' }); return }
-      const out = (r.t < -0.01 || r.t > 1.01) ? '（交点在边延长线上）' : ''
+      const out = (r.t < -0.01 || r.t > 1.01) ? '（交點在邊延長線上）' : ''
       set((s) => ({ ...(s.datumCmd ? { datumCmd: { ...s.datumCmd, picks: [] } } : {}), cpoints: [...s.cpoints, r.point], status: `已建邊穿面構造點 (${r.point.map((x) => x.toFixed(1)).join(', ')})${out}` })); return
     }
     if (key === 'point:centerEdge') {
@@ -21317,7 +21317,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       : r.feature
         ? `${r.closed ? '网格闭合棱链（近似）：周长' : `网格特征棱链（近似 · ${r.segCount} 段）：长`} ${fmtLen(r.length, ue)}`
         : `網格三角邊（近似 · 非特徵稜）：長 ${fmtLen(r.length, ue)}`
-    const lm = r.radius != null ? { value: r.radius * 2, label: '网格孔径Ø' } : { value: r.length, label: '网格棱长' }
+    const lm = r.radius != null ? { value: r.radius * 2, label: '网格孔径Ø' } : { value: r.length, label: '網格稜長' }
     set({ measureEdgeInfo: info, lastMeasure: lm, status: info })
   },
   measureFaceMode: false,
@@ -21380,7 +21380,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   addFillet: async () => {
     if (!hasSolid(get().features)) { set({ status: '請先建立一個實體' }); return }
     const want = get().filletEdges
-    const scopeOf = (e: EdgeSel) => (e === 'all' ? '所有棱边' : e === 'top' ? '顶面棱' : e === 'bottom' ? '底面棱' : '竖直棱')
+    const scopeOf = (e: EdgeSel) => (e === 'all' ? '所有棱边' : e === 'top' ? '頂面稜' : e === 'bottom' ? '底面稜' : '豎直稜')
     // Try the requested edge set; if "all" fails (common on complex parts), fall back to safer subsets so the user still gets a fillet (with an honest message).
     const chain: EdgeSel[] = want === 'all' ? ['all', 'vertical', 'top'] : [want]
     for (let i = 0; i < chain.length; i++) {
@@ -21394,7 +21394,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   addChamfer: async () => {
     if (!hasSolid(get().features)) { set({ status: '請先建立一個實體' }); return }
     const want = get().filletEdges
-    const scopeOf = (e: EdgeSel) => (e === 'all' ? '所有棱边' : e === 'top' ? '顶面棱' : e === 'bottom' ? '底面棱' : '竖直棱')
+    const scopeOf = (e: EdgeSel) => (e === 'all' ? '所有棱边' : e === 'top' ? '頂面稜' : e === 'bottom' ? '底面稜' : '豎直稜')
     const chain: EdgeSel[] = want === 'all' ? ['all', 'vertical', 'top'] : [want]
     for (let i = 0; i < chain.length; i++) {
       const edges = chain[i]
@@ -21851,13 +21851,13 @@ export const useApp = create<AppState>((rawSet, get) => {
   addScale: async () => {
     if (!hasSolid(get().features)) { set({ status: '請先建立實體' }); return }
     const f: Feature = { id: fid(), type: 'scale', factor: 1.5 }
-    await get().applyFeatures([...get().features, f], '已缩放 ×1.5（点时间轴节点改比例）')
+    await get().applyFeatures([...get().features, f], '已縮放 ×1.5（點時間軸節點改比例）')
   },
 
   addDraft: async () => {
     if (!hasSolid(get().features)) { set({ status: '請先建立實體' }); return }
     const f: Feature = { id: fid(), type: 'draft', angle: 10 }
-    await get().applyFeatures([...get().features, f], '已拔模 10°（侧面，中性面 XY）')
+    await get().applyFeatures([...get().features, f], '已拔模 10°（側面，中性面 XY）')
   },
 
   editFeature: async (id, patch) => {
@@ -22316,7 +22316,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const _pf = { ids: get().failedFeatureIds, errors: get().featureErrors }
     try { set((s) => ({ params: recomputeParams(s.params.map((p) => (p.name === name ? { ...p, expr: expr || undefined, refs: expr ? refs : undefined } : p))) })) } catch (e) { set({ status: `參數更新失敗：${String(e)}，已保留原值` }); return }
     const p = get().params.find((x) => x.name === name)
-    const msg = expr ? `${name} = ${expr} = ${p ? +p.value.toFixed(2) : '?'} — 已聯動` : `已清除 ${name} 的表达式`
+    const msg = expr ? `${name} = ${expr} = ${p ? +p.value.toFixed(2) : '?'} — 已聯動` : `已清除 ${name} 的表達式`
     set({ busy: true, paramFailure: null })
     try {
     const r = await get().applyParamSketches(_pd)
@@ -22478,7 +22478,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (name) paramBindings[key] = name; else delete paramBindings[key]
       return { paramBindings }
     })
-    await get().applyFeatures(get().features, name ? (_loadingSample ? `✓ 已載入【${_loadingSample}】範本 — 改 ƒx 參數即聯動重建` : `已把该尺寸绑定到参数 ${name}`) : '已解绑参数')
+    await get().applyFeatures(get().features, name ? (_loadingSample ? `✓ 已載入【${_loadingSample}】範本 — 改 ƒx 參數即聯動重建` : `已把該尺寸綁定到參數 ${name}`) : '已解绑参数')
   },
   suppressedIds: [],
   failedFeatureIds: [],
@@ -23298,7 +23298,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       else set({ status: `儲存失敗：無法寫入檔案${result.message ? ' — ' + result.message : ''}（現有模型未動）` })
       return
     }
-    const where = result.method === 'file-picker' ? ' · 已写入所选位置' : (result.method === 'anchor' ? ' · 已下载到浏览器下载目录' : '')
+    const where = result.method === 'file-picker' ? ' · 已寫入所選位置' : (result.method === 'anchor' ? ' · 已下載到瀏覽器下載目錄' : '')
     set({ status: `已儲存專案（${s.components.length} 組件 · ${s.joints.length} 關節 · ${s.features.length} 活動特徵 · ${s.components.reduce((n, c) => n + (c.src?.features.length ?? 0), 0)} 組件特徵）${where}` })
   },
 
@@ -23703,7 +23703,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       status: newComps.length > 1
         ? `已固化 ${newComps.length} 個實體為組件（${newComps.map((c) => c.name).join('、')}）；下一個組件將在其右側 (+130mm) 處繪製`
         : `已固化「${comp.name}」；下一個組件將在其右側 (+130mm) 處繪製`,
-      ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('几何已改（已固化为组件）') : {}),
+      ...(hasLiveSimResults(get()) ? invalidateSimResultsPatch('幾何已改（已固化為組件）') : {}),
     })
     const def = activeDef as (typeof defsAcc)[number] | null
     if (!def) return
@@ -24129,7 +24129,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // Force sketchOnly for huge schematic even if caller forgot (belt+suspenders).
     const forced = forceDxfSketchOnly(profiles.length, (texts && texts.length) || 0, text.length)
     const nextOpt = { ...opt, sketchOnly: !!(opt?.sketchOnly || forced), labels: shiftedTexts }
-    await get().importProfiles2D(items, `已导入 DXF：${note}`, skipped, height, nextOpt)
+    await get().importProfiles2D(items, `已導入 DXF：${note}`, skipped, height, nextOpt)
   },
   // Build a recentred, outer/hole-classified set of 2D profiles into a body. Shared by DXF + SVG import.
   // GM-X3 #6/#8：opt.asSketch（默认 true）→ 走【草图源管线】：生成带 sketchId 的 extrude 组 + 归档 sketchSources[skId]，
@@ -24236,7 +24236,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const { classifyProfiles } = await import('./io/dxfImport')
     const { profiles, note, skipped } = parseSvgToProfiles(text)
     if (!profiles.length) { set({ status: 'SVG 匯入失敗：' + note }); return }
-    await get().importProfiles2D(classifyProfiles(profiles), `已导入 SVG：${note}`, skipped, height, opt)
+    await get().importProfiles2D(classifyProfiles(profiles), `已導入 SVG：${note}`, skipped, height, opt)
   },
   openSvgDialog: () => {
     const inp = document.createElement('input')
@@ -25526,10 +25526,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       ...modal.freqs.map((fr, i) => `  f${i + 1} ≈ ${fr >= 1000 ? (fr / 1000).toFixed(2) + ' kHz' : fr.toFixed(1) + ' Hz'}${modal.converged[i] ? '' : ' (近似)'}`), '')
     if (buck) L.push('【屈曲 Buckling】', `  材料：${buck.matName} · ${buck.nVox} 體素 · 施加 ${f2(buck.forceN)} N`,
       buck.lambda1 <= 0 ? '  該方向不會屈曲（受拉／方向相反）' : `  屈曲載荷因子 λ₁ ≈ ${buck.lambda1.toFixed(2)} → 臨界載荷 Pcr ≈ ${f2(buck.Pcr)} N（λ₁≥2 較安全）`, '')
-    if (therm) L.push('【热分析 Thermal（稳态导热）】', `  材料：${therm.matName}（k=${therm.k} W/mK）· ${therm.nVox} 體素`,
+    if (therm) L.push('【熱分析 Thermal（穩態導熱）】', `  材料：${therm.matName}（k=${therm.k} W/mK）· ${therm.nVox} 體素`,
       `  溫度範圍：${f2(therm.tMin)} ~ ${f2(therm.tMax)} °C`, `  总热流 Q ≈ ${wk(therm.heatFlowW)}`, '')
     if (topo) { const ch = topo.complianceHistory; const gain = ch.length && ch[ch.length - 1] > 1e-9 ? ch[0] / ch[ch.length - 1] : 1
-      L.push('【生成式设计 / 拓扑优化 SIMP】', `  材料：${topo.matName} · ${topo.nVox} 體素 · 目標體積比 ${(topo.volfrac * 100).toFixed(0)}%`,
+      L.push('【生成式設計 / 拓撲最佳化 SIMP】', `  材料：${topo.matName} · ${topo.nVox} 體素 · 目標體積比 ${(topo.volfrac * 100).toFixed(0)}%`,
         `  柔度：${ch[0].toFixed(0)} → ${ch[ch.length - 1].toFixed(0)}（剛度 ↑${gain.toFixed(1)}×，同體積）· 實際體積 ${(topo.finalVol * 100).toFixed(0)}%`, '') }
     L.push('='.repeat(50), '方法：自寫體素六面體 FEM（線彈性 / 集中質量逆冪迭代 / 幾何剛度屈曲 / SIMP / 標量導熱）+ matrix-free Jacobi-PCG。',
       '誠實聲明：均匀體素階梯網格，曲面/應力集中處誤差大；非 tet/曲面單元商用 FEA 精度，數值供趨勢參考。')
@@ -25773,7 +25773,7 @@ export const useApp = create<AppState>((rawSet, get) => {
           : `最大壓力趨勢：相對值 1.0（無真實流變 — 淨是查看哪里難充填，不是 MPa）`,
         `冷卻時間估算：${fT(r.tCool)}（1D 板式公式按最厚壁${r.moldable !== 'ok' ? ' — 厚段上限值' : ''}）`,
         `周期估算：${fT(r.cycle)}（注射 + 冷卻 + 開合模 5s 假設）`,
-        `焊接線體素：${weldN} 個${weldN ? '（云图紫红色位 — 留意外观/强度）' : '（没有明显焊接线）'}`,
+        `焊接線體素：${weldN} 個${weldN ? '（云图紫红色位 — 留意外观/强度）' : '（沒有明顯焊接線）'}`,
         `困氣/最後充填點：${trapN} 個${trapN ? '（云图橙色位 — 前沿在此终止，建议加排气槽防烧焦/短射）' : '（无明显死腔）'}`,
         `縮痕風險體素：${sinkN} 個${sinkN ? '（厚壁/凸台/筋位慢冷收缩 — 切「缩痕」场查看分布）' : '（壁厚均匀，缩痕风险低）'}`,
         ...gateLines,
@@ -26017,7 +26017,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       ctx.fillStyle = '#cfd6dd'; ctx.font = '15px sans-serif'; ctx.textAlign = 'left'
       ctx.fillText('充填时间：早', barX, barY + 30); ctx.fillText(`迟（满充 ${tEnd.toFixed(2)}s）`, barX + barW + 8, barY + 9)
       ctx.fillStyle = 'rgb(214,45,160)'; ctx.fillText('■ 焊接线', barX + barW + 230, barY - 4)
-      ctx.fillStyle = 'rgb(255,140,0)'; ctx.fillText('■ 困气/最后充填', barX + barW + 230, barY + 20)
+      ctx.fillStyle = 'rgb(255,140,0)'; ctx.fillText('■ 困氣/最後充填', barX + barW + 230, barY + 20)
       ctx.fillStyle = '#aeb6bf'; ctx.font = '14px sans-serif'; ctx.textAlign = 'right'; ctx.fillText('俯视充填时间图', panelX + panelW - 12, panelY + 16); ctx.textAlign = 'left'
       y = panelY + panelH + 34
       const lines = s.moldReport.split('\n')
@@ -26027,7 +26027,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         ctx.fillText(ln, M, y); y += 26
       }
       const mt = machineTonnage(res.clampForceKN)
-      y += 6; ctx.font = 'bold 19px sans-serif'; ctx.fillStyle = '#13294a'; ctx.fillText('── 建议注塑机 ──', M, y); y += 26
+      y += 6; ctx.font = 'bold 19px sans-serif'; ctx.fillStyle = '#13294a'; ctx.fillText('── 建議注塑機 ──', M, y); y += 26
       ctx.font = '18px sans-serif'; ctx.fillStyle = '#23272e'
       if (mt) {
         ctx.fillText(`所需鎖模力 ≈ ${res.clampForceKN.toFixed(0)} kN（${mt.requiredTonne.toFixed(1)} 公噸力）· 含 ${mt.marginPct}% 裕度`, M, y); y += 26
@@ -26057,7 +26057,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const size: [number, number, number] = [box.mx[0] - box.mn[0], box.mx[1] - box.mn[1], box.mx[2] - box.mn[2]]
     const mech = (matName && MATERIAL_MECH[matName]) || DEFAULT_MECH
     const r = beamCheck(size, force, support, mech.E, mech.sy, mech.rho, shape, wallT)
-    const supLbl = support === 'cantilever' ? '悬臂(一端固定·末端受力)' : '简支(两端支撑·中点受力)'
+    const supLbl = support === 'cantilever' ? '懸臂(一端固定·末端受力)' : '簡支(兩端支撐·中點受力)'
     const slender = r.L / Math.max(r.h, 0.1)
     const slenderWarn = slender < 4 ? '⚠ 長/高<4，非細長梁，梁理論誤差大（實際更剛）' : ''
     const verdict = r.safety >= 2 ? '✅ 安全 (SF≥2)' : r.safety >= 1 ? '⚠ 偏險 (1≤SF<2)' : '❌ 可能屈服 (SF<1)'
@@ -26203,7 +26203,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const Wahl = (4 * C - 1) / (4 * C - 4) + 0.615 / C     // Wahl 应力修正系数
     const tau = F > 0 ? Wahl * 8 * F * D / (Math.PI * d ** 3) : 0   // 工作剪应力 MPa
     const defl = F > 0 ? F / k : 0                         // 压缩量 mm
-    const cIdx = C < 4 ? '（C<4 偏硬难绕）' : C > 12 ? '（C>12 偏软易缠绕）' : '（C 合理）'
+    const cIdx = C < 4 ? '（C<4 偏硬難繞）' : C > 12 ? '（C>12 偏軟易纏繞）' : '（C 合理）'
     set({ status: `壓縮彈簧 d${d}/D${D}/n${n}：剛度 k=${k.toFixed(3)} N/mm · 彈簧指數 C=${C.toFixed(1)}${cIdx} · Wahl=${Wahl.toFixed(3)}${F > 0 ? ` · 力${F}N → 壓縮 ${defl.toFixed(2)}mm · 剪應力 τ=${tau.toFixed(1)}MPa` : ''}（鋼 G=79300）` })
   },
   isoFitCalc: async () => {
@@ -26273,7 +26273,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const sigma = F / At                                   // MPa
     // 8.8 级钢屈服 ≈640MPa；预紧一般取 0.7σp（σp≈580）。判级。
     const ratio = sigma / 640
-    const tag = ratio > 1 ? '⚠ 超 8.8 級屈服' : ratio > 0.9 ? '偏高（接近 8.8 级上限）' : '合理'
+    const tag = ratio > 1 ? '⚠ 超 8.8 級屈服' : ratio > 0.9 ? '偏高（接近 8.8 級上限）' : '合理'
     set({ status: `${key} 夾緊力：扭矩 ${T}N·m / K${K} → 預緊力 F≈${(F / 1000).toFixed(2)} kN · 應力截面 At=${At.toFixed(1)}mm² · 軸向應力 σ≈${sigma.toFixed(0)} MPa（占 8.8 級屈服 ${(ratio * 100).toFixed(0)}%，${tag}）` })
   },
   leadScrewCalc: async () => {

@@ -107,7 +107,7 @@ function ApplyHdri({
       const n = Math.min(data.length, 4096)
       for (let i = 0; i < n; i++) {
         if (!Number.isFinite(data[i])) {
-          throw new Error('[HdriEnvironment] HDRI 含非有限像素（NaN/Inf）— 触发 fallback')
+          throw new Error('[HdriEnvironment] HDRI 含非有限像素（NaN/Inf）— 觸發 fallback')
         }
       }
     }

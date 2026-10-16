@@ -85,7 +85,7 @@ export default function GcodeBackplot() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <b style={{ fontSize: 13 }}>{pv.title}</b>
           <span style={{ fontSize: 11, color: '#5a6b78' }}>切削 {cutLen.toFixed(0)}mm{zMin < 0 ? ` · 最深 Z${zMin.toFixed(1)}` : ''} · 虚线=快移 · 颜色=深度（蓝浅红深）</span>
-          <button className="cs-x" style={{ marginLeft: 'auto' }} title="关闭预览" onClick={() => useApp.getState().closeGcodePreview()}>✕</button>
+          <button className="cs-x" style={{ marginLeft: 'auto' }} title="關閉預覽" onClick={() => useApp.getState().closeGcodePreview()}>✕</button>
         </div>
         <canvas ref={ref} width={640} height={480} style={{ border: '1px solid #dde4ea', borderRadius: 6, background: '#fafcfe' }} />
       </div>

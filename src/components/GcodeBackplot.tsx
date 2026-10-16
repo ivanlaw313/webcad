@@ -3,6 +3,7 @@
 // 圆弧密铺 24 段。出咗 G-code 唔使拖去 ncviewer 先敢落机 — 信任闭环。
 import { useEffect, useRef } from 'react'
 import { useApp } from '../store'
+import { normalizeLang } from '../i18n'
 
 type Seg = { x1: number; y1: number; x2: number; y2: number; z: number; rapid: boolean }
 
@@ -45,8 +46,51 @@ function parseGcode(g: string): { segs: Seg[]; zMin: number; cutLen: number } {
   return { segs, zMin, cutLen }
 }
 
+// FISHING103：G-code backplot panel header chrome i18n en/ja/zh-CN/zh-HK（JA/EN 唔再 TC 關閉預覽／切削 legend fallback）。
+// ⚠ 唔好用 tStatus() 译【面板標題】长句—— EN 会出半中半英；改显式四套字串（同 PhysicsLab FISHING102）。
+// 只改 header chrome（legend + close）；pv.title 由 store 传入，唔做 Formal soft-pin churn。
+
+type GcodeBackplotChrome = {
+  cutPrefix: string
+  deepest: (z: string) => string
+  legend: string
+  closeTitle: string
+}
+
+const ZH_GB: GcodeBackplotChrome = {
+  cutPrefix: '切削',
+  deepest: (z) => ` · 最深 Z${z}`,
+  legend: ' · 虚线=快移 · 顏色=深度（藍淺紅深）',
+  closeTitle: '關閉預覽',
+}
+const EN_GB: GcodeBackplotChrome = {
+  cutPrefix: 'Cut',
+  deepest: (z) => ` · deepest Z${z}`,
+  legend: ' · dashed = rapid · color = depth (blue shallow → red deep)',
+  closeTitle: 'Close preview',
+}
+const JA_GB: GcodeBackplotChrome = {
+  cutPrefix: '切削',
+  deepest: (z) => ` · 最深 Z${z}`,
+  legend: ' · 破線=早送り · 色=深さ（青浅→赤深）',
+  closeTitle: 'プレビューを閉じる',
+}
+const ZH_CN_GB: GcodeBackplotChrome = {
+  cutPrefix: '切削',
+  deepest: (z) => ` · 最深 Z${z}`,
+  legend: ' · 虚线=快移 · 颜色=深度（蓝浅→红深）',
+  closeTitle: '关闭预览',
+}
+
+function pickGcodeBackplotChrome(lang: string | undefined): GcodeBackplotChrome {
+  const L = normalizeLang(lang)
+  return L === 'en' ? EN_GB : L === 'ja' ? JA_GB : L === 'zh-CN' ? ZH_CN_GB : ZH_GB
+}
+
 export default function GcodeBackplot() {
   const pv = useApp((s) => s.gcodePreview)
+  const lang = useApp((s) => s.lang)
+  const chrome = pickGcodeBackplotChrome(lang)
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     if (!pv || !ref.current) return
@@ -84,8 +128,8 @@ export default function GcodeBackplot() {
       <div style={{ background: '#fff', borderRadius: 10, padding: 14, boxShadow: '0 8px 40px rgba(0,0,0,.3)', maxWidth: '92vw' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <b style={{ fontSize: 13 }}>{pv.title}</b>
-          <span style={{ fontSize: 11, color: '#5a6b78' }}>切削 {cutLen.toFixed(0)}mm{zMin < 0 ? ` · 最深 Z${zMin.toFixed(1)}` : ''} · 虚线=快移 · 顏色=深度（藍淺紅深）</span>
-          <button className="cs-x" style={{ marginLeft: 'auto' }} title="關閉預覽" onClick={() => useApp.getState().closeGcodePreview()}>✕</button>
+          <span style={{ fontSize: 11, color: '#5a6b78' }}>{chrome.cutPrefix} {cutLen.toFixed(0)}mm{zMin < 0 ? chrome.deepest(zMin.toFixed(1)) : ''}{chrome.legend}</span>
+          <button className="cs-x" style={{ marginLeft: 'auto' }} title={chrome.closeTitle} aria-label={chrome.closeTitle} onClick={() => useApp.getState().closeGcodePreview()}>✕</button>
         </div>
         <canvas ref={ref} width={640} height={480} style={{ border: '1px solid #dde4ea', borderRadius: 6, background: '#fafcfe' }} />
       </div>

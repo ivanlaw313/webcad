@@ -4,7 +4,7 @@
 **Branch:** `fix/fishing50-store-formal-leftovers`  
 **Product fix:** `0d803a5bae7a1fcc305f75f1567cf9287e34827d`  
 **Base:** tip `981ca9b` (FISHING49 live product) → rebased onto `fix/sketch-face-copy` docs tip `1de3583`  
-**Tip:** `cc670a32e6f037ca5519abff1899c060c3d88316`
+**Tip:** `53b7060eaee7c865fc5b236d0ddacb372f0504dc`
 
 ## Scan
 

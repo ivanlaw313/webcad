@@ -5,7 +5,7 @@ Genuine Formal product: user statuses **重復 → 重複** (texture/mesh/loft; 
 Demold EN **Draft accessibility → Demold Accessibility**; draft legend drop English **undercut**.
 
 ## Live after cut
-- Tip: `dcec12ca329492ee3d32b8140855d47b0f48f7df` (fix/fishing85-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `c35679fc426be19fbe23ff1564e50a7cce88b9e4` (fix/fishing85-behavior-ux → FF fix/sketch-face-copy)
 - Stamp: `v2.20-20261016-232559`
 - Bundle: `index-lwNuJHc--r2.js` (md5 `c836bd678ac3b62ea0cfaf16bf174878`)
 - Bak: `index-BYceU1jz-r2.js` / `v2.20-20261016-232008` (kept)

@@ -5,7 +5,7 @@
 **Product fix:** `8e0a309`  
 **more40 soft-prep:** **none READY** (WT `/workspace/webcad-v220-more40` @ d6c23b5 empty — no test commit / soft-prep.md / vps ref → defer F73)  
 **Base:** tip `ffd6d75` (FISHING71 live)  
-**Tip:** (after FF docs — see remotes)
+**Tip:** `7f56456fdcad22bcd112d13f5d1026e9cf7b8273`
 
 ## Scan
 

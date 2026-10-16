@@ -200,7 +200,7 @@ const SOLID: Panel[] = [
       { id: 'rigidgroup', label: '剛性組', icon: 'rigid', tip: '在瀏覽器勾選兩個或以上組件，將它們鎖成一個剛體組；組節點可在瀏覽器或關節面板抑製、恢復或刪除。' },
       { id: 'motionlink', label: '運動連接', icon: 'motionlink', sep: true, tip: '開啟關節面板的運動連接區，為兩個轉動／滑動關節設傳動比（齒輪可用負比反向）。' },
       { id: 'enablecontact', label: '啟用接觸集', icon: 'contact', tip: '切換裝配接觸求解；啟用後驅動關節會在組件發生實體接觸前停止。' },
-      { id: 'newcontactset', label: '新建接觸集', icon: 'contact', tip: '在瀏覽器勾選剛好兩個組件，登記為命名接觸對。' },
+      { id: 'newcontactset', label: '新建接觸集', icon: 'contactnew', tip: '在瀏覽器勾選剛好兩個組件，登記為命名接觸對。' },
       { id: 'motionstudy', label: '運動研究', icon: 'motionstudy', sep: true, tip: '開啟第一個可驅動關節的動力學設定，設質量、剛度、阻尼及初始位置後求解和播放。' },
       { id: 'drivejoints', label: '驅動關節', icon: 'drive', tip: '展開關節面板，以滑桿、限位、停於接觸及播放控製驅動裝配。' },
     ],

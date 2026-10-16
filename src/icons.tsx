@@ -43,14 +43,15 @@ const paths: Record<string, ReactNode> = {
   material: <><circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 0 0 0 16" /></>,
   appearance: <><circle cx="12" cy="12" r="8" /><circle cx="9" cy="9" r="1.4" /><circle cx="15" cy="10" r="1.4" /><circle cx="11" cy="15" r="1.4" /></>,
 
-  // Phase2 Assemble: distinct metaphors (was shared `joint` on quick strip)
-  joint: <><circle cx="7.5" cy="12" r="3.1" /><circle cx="16.5" cy="12" r="3.1" /><path d="M10.6 12h2.8" /><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" opacity=".45" /></>,   // two links + pivot
+  // FISHING39 Assemble: redraw so joint/rigid/motionlink are NOT chain-link lookalikes; split contact enable vs create
+  joint: <><path d="M8.5 4.5v15" strokeWidth="2.2" /><circle cx="8.5" cy="12" r="2.2" fill="currentColor" stroke="none" opacity=".35" /><path d="M8.5 12h9.5" /><path d="M18 9.5v5" /><path d="M14.2 6.8a5.2 5.2 0 0 1 0 10.4" opacity=".85" /><path d="m16.6 5.6 1.6 2.2-2.6.4" /></>,   // revolute pin + arm + rotation arc (not chain)
   jointorigin: <><circle cx="12" cy="12" r="2.2" /><path d="M12 3v5M12 16v5M3 12h5M16 12h5" /><path d="M9.2 9.2l1.6 1.6M13.2 13.2l1.6 1.6M13.2 10.8l1.6-1.6M9.2 14.8l1.6-1.6" opacity=".35" /></>,   // named frame cross
-  rigid: <><rect x="4.5" y="8.5" width="6.2" height="7" rx=".6" /><rect x="13.3" y="8.5" width="6.2" height="7" rx=".6" /><path d="M10.7 10.2h2.6M10.7 13.8h2.6" /><path d="M12 10.2v3.6" opacity=".5" /></>,   // locked pair
+  rigid: <><rect x="3.5" y="9" width="17" height="9.5" rx="1.2" /><path d="M9.5 9V7.2a2.5 2.5 0 0 1 5 0V9" /><rect x="9.2" y="9" width="5.6" height="5.2" rx=".7" /><circle cx="12" cy="11.6" r=".7" fill="currentColor" stroke="none" /></>,   // fused block + padlock (lock, not chain)
   ground: <><path d="M6 8.5h12v7.5H6z" /><path d="M4 16h16" /><path d="M6 18.5h2.2M10.4 18.5h2.2M14.8 18.5h2.2" /><path d="M12 5.2v3.3M10.2 7l1.8 1.5L14 7" opacity=".85" /></>,   // fixed / grounded component
   asbuilt: <><rect x="3.5" y="7.5" width="7" height="9" rx=".8" /><rect x="13.5" y="7.5" width="7" height="9" rx=".8" /><path d="M10.5 12h3" /><circle cx="12" cy="12" r="1.3" /><path d="M5.5 5.5h5M15.5 5.5h3" opacity=".4" /></>,   // joint in current pose (no move)
-  motionlink: <><circle cx="8" cy="12" r="4.2" /><circle cx="16" cy="12" r="3" /><path d="M8 7.8v8.4M16 9v6" opacity=".35" /><path d="M11.8 10.5 13.5 12l-1.7 1.5" /></>,   // gear ratio / linked motion
-  contact: <><rect x="3.2" y="6.5" width="8.2" height="11" rx=".8" /><rect x="12.6" y="6.5" width="8.2" height="11" rx=".8" /><path d="M11.4 9.5v5" /><path d="M11.4 12h1.2" opacity=".5" /></>,   // bodies touching
+  motionlink: <><circle cx="8" cy="12" r="3.4" /><circle cx="8" cy="12" r="1.15" /><path d="M8 7.2v1.1M8 15.7v1.1M3.2 12h1.1M11.7 12h1.1M4.6 8.6l.8.8M10.6 14.6l.8.8M10.6 9.4l.8-.8M4.6 15.4l.8-.8" /><circle cx="16.4" cy="12" r="2.5" /><circle cx="16.4" cy="12" r=".85" /><path d="M16.4 8.3v.85M16.4 14.85v.85M12.9 12h.85M19.05 12h.85" /><path d="M11.6 10.2h2.2l-.7 1.3 1.1 1.3H12" opacity=".7" /></>,   // toothed gears + ratio (not plain loops)
+  contact: <><rect x="3.2" y="7" width="7.6" height="10" rx=".8" /><rect x="13.2" y="7" width="7.6" height="10" rx=".8" /><path d="M10.8 9.5v5" /><path d="M16.2 3.6v2.8" /><path d="M14.1 5.6a2.6 2.6 0 1 0 4.2 0" /></>,   // enable contact: bodies + power toggle (not plus)
+  contactnew: <><rect x="3.2" y="7.5" width="7.6" height="10" rx=".8" /><rect x="13.2" y="7.5" width="7.6" height="10" rx=".8" /><path d="M10.8 10v5" /><circle cx="18.2" cy="6.2" r="3.3" /><path d="M18.2 4.6v3.2M16.6 6.2h3.2" /></>,   // new contact set: bodies + plus badge
   motionstudy: <><rect x="4" y="5" width="16" height="11" rx="1.2" /><path d="M8 9.5l5 2.5L8 14.5z" fill="currentColor" stroke="none" opacity=".55" /><path d="M6 19h2M11 19h2M16 19h2" /></>,   // study / play
   drive: <><path d="M5 12h10" /><circle cx="17.5" cy="12" r="2.3" /><path d="M8 8.5v7M5 12l2.2-2.2M5 12l2.2 2.2" /><path d="M12 8.5v7" opacity=".45" /></>,   // drive / slider
 

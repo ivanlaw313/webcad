@@ -9,12 +9,12 @@ more52 NOT cherry (F97).
 - stamp: `v2.20-20261017-004527`
 - bundle: `index-CGLkCiJB-r2.js`
 - md5: `e360d917285559753a4ee24ee8ea9aad`
-- tip: `11177189fb37e7254d957986b8bd364b8aa93a00`
+- tip: `f0a89dede9d096bbd6cbb5aa649fe8f69088e3d9`
 - product: `7c066f69e0acd3a2fa6dd24091dcd6c7243dc2e7`
 - more51 cherry: `1de280ae6f7981ee87d280d7ad16156cf2f0e0ee`
 
 ## Live after cut
-- Tip: `11177189fb37e7254d957986b8bd364b8aa93a00` (fix/fishing96-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `f0a89dede9d096bbd6cbb5aa649fe8f69088e3d9` (fix/fishing96-behavior-ux → FF fix/sketch-face-copy)
 - Product: `7c066f69e0acd3a2fa6dd24091dcd6c7243dc2e7` WindLegend/WindPoseCompare i18n
 - more51 cherry: `1de280ae6f7981ee87d280d7ad16156cf2f0e0ee` (from `c1b4b923`)
 - Stamp: `v2.20-20261017-004527`

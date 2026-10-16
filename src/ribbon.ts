@@ -194,6 +194,7 @@ const SOLID: Panel[] = [
       { id: 'newcomp', label: '新建組件', icon: 'component', quick: true, tip: '新建組件：在裝配中加一個獨立零件（可單獨移動/隱藏/上色，做關節）。' },
       { id: 'compboolean', label: '組件布爾', icon: 'combine', quick: true, tip: '組件布爾（網格級）：先在瀏覽器選一個組件作目標（未選時若剛好只有一個有幾何組件則用它），再點另一個零件作工具件 → 合併/切除/相交。零件時間軸多體請用「合併/切割」或實驗室「實體布爾」。' },
       { id: 'joint', label: '關節', icon: 'joint', shortcut: 'J', quick: true },
+      { id: 'facemate', label: '選面配合', icon: 'combine', quick: true, tip: '選面配合（面貼合／同軸）：先點基準件一個面（平面或圓柱），再點要移動件對應面 → 平面貼平或圓柱同軸；持久配合（移動基準會跟隨）。一次性對齊請用 Modify「對齊」。' },
       { id: 'groundcomp', label: '固定組件', icon: 'ground', quick: true, tip: '固定／取消固定：固定（或取消固定）在瀏覽器或視窗中選取的組件 — 已固定的組件不可拖動，關節亦不會驅動它。' },
       { id: 'asbuiltjoint', label: '按現狀關節', icon: 'asbuilt', quick: true, tip: '瀏覽器勾選剛好兩個組件，保持目前位置直接建立關節，不會先移動或吸附組件。預設建立轉動關節；可在關節面板修改類型、軸及限位。' },
       { id: 'jointorigin', label: '關節原點', icon: 'jointorigin', sep: true, tip: 'GM-3DV4 A1：點一個 snap 點（實體面心 / 圓柱孔心 / 頂點）→ 落一個【可複用命名幀】，存在瀏覽器「關節原點」組。之後建關節時可在下拉引用之，取代預設「組件中心」錨點 — 精準裝配用。' },

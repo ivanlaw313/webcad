@@ -79,7 +79,8 @@ export function cadAxisToWorld(k: 'X' | 'Y' | 'Z'): [number, number, number] {
 export const JOINT_DOF: Record<JointType, number> = { rigid: 0, revolute: 1, slider: 1, cylindrical: 2, ball: 3, planar: 3, screw: 1, pinslot: 2 }
 export const JOINT_LABEL: Record<JointType, string> = { rigid: '剛性', revolute: '旋转', slider: '滑動', cylindrical: '圓柱', ball: '球', planar: '平面', screw: '螺旋', pinslot: '销槽' }
 // BUG(E)：繁體（港）標籤 — UI 以此為源，再經 tStatus(lang) 轉 zh-CN/en。JOINT_LABEL（簡體）保留畀舊呼叫者。
-export const JOINT_LABEL_TC: Record<JointType, string> = { rigid: '剛性', revolute: '旋轉', slider: '滑動', cylindrical: '圓柱', ball: '球', planar: '平面', screw: '螺旋', pinslot: '銷槽' }
+// FISHING57：revolute Formal「轉動」（對齊 Fusion／ribbon「轉動關節」；唔再用「旋轉」以免同 Revolve 特徵混淆）。
+export const JOINT_LABEL_TC: Record<JointType, string> = { rigid: '剛性', revolute: '轉動', slider: '滑動', cylindrical: '圓柱', ball: '球', planar: '平面', screw: '螺旋', pinslot: '銷槽' }
 // 關節拾取彈框：全部 8 種類型，幾何建議嘅類型排第一（預設 1）。
 export const ALL_JOINT_TYPES: JointType[] = ['revolute', 'slider', 'cylindrical', 'pinslot', 'ball', 'planar', 'screw', 'rigid']
 export function jointTypeMenu(preferred: JointType[]): JointType[] {
@@ -88,8 +89,8 @@ export function jointTypeMenu(preferred: JointType[]): JointType[] {
 
 // RETEST17 #1：關節類型可點選清單（Fusion Joint ▸ Type 下拉）— 繁體源字串（tx 按語言轉換），首項 = 預設。
 export const JOINT_HINT_TC: Record<JointType, string> = {
-  rigid: '完全固定 · 0 自由度', revolute: '繞軸旋轉 · 1 自由度', slider: '沿軸滑動 · 1 自由度', cylindrical: '繞軸旋轉＋沿軸滑動 · 2 自由度',
-  pinslot: '繞軸旋轉＋沿槽滑動 · 2 自由度', ball: '球面三軸旋轉 · 3 自由度', planar: '面內平移＋繞法向旋轉 · 3 自由度', screw: '旋轉帶導程平移 · 1 自由度',
+  rigid: '完全固定 · 0 自由度', revolute: '繞軸轉動 · 1 自由度', slider: '沿軸滑動 · 1 自由度', cylindrical: '繞軸轉動＋沿軸滑動 · 2 自由度',
+  pinslot: '繞軸轉動＋沿槽滑動 · 2 自由度', ball: '球面三軸轉動 · 3 自由度', planar: '面內平移＋繞法向轉動 · 3 自由度', screw: '轉動帶導程平移 · 1 自由度',
 }
 export function jointTypePickOptions(types: JointType[], tx: (s: string) => string = (x) => x): { value: JointType; label: string; hint: string }[] {
   return types.map((t, i) => ({ value: t, label: tx(JOINT_LABEL_TC[t] + (i === 0 ? '（預設）' : '')), hint: tx(JOINT_HINT_TC[t]) }))

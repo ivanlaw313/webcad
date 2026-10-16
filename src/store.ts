@@ -12268,7 +12268,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   jointPickMode: false,
   jointPick: null,
   // FISHING14 B：開始／取消關節拾取時清掉組件選取，避免移動／旋轉 HUD 殘留或搶圓柱側面 click。
-  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, selectedComponent: null, selectedComponentBody: null, status: '關節拾取：先點選【要移動的組件】的一個面（圓柱軸／孔或平面），再點選【其連接的組件（父件）】對應面 → 移動件貼合，並在該幾何建立關節（圓柱＝旋轉／滑動／圓柱 · 平面＝剛性／平面 · 圓柱↔平面＝軸穿面心，預設旋轉）；先點選已固定的組件會自動對調' }),
+  startJointPick: () => set({ jointPickMode: true, jointPick: null, faceMateMode: false, faceMatePick: null, screwFitMode: false, jointHolePick: null, compMateFrom: null, selectedComponent: null, selectedComponentBody: null, status: '關節拾取：先點選【要移動的組件】的一個面（圓柱軸／孔或平面），再點選【其連接的組件（父件）】對應面 → 移動件貼合，並在該幾何建立關節（圓柱＝轉動／滑動／圓柱 · 平面＝剛性／平面 · 圓柱↔平面＝軸穿面心，預設轉動）；先點選已固定的組件會自動對調' }),
   cancelJointPick: () => set({ jointPickMode: false, jointPick: null, selectedComponent: null, selectedComponentBody: null, status: '已退出關節拾取' }),
   pickFaceForJoint: (compId, face) => {
     const s = get()
@@ -15880,6 +15880,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'splitplane': return hasSolid(get().features) ? get().toggleSplitPlanePick() : set({ status: '任意平面切需要先有實體' })   // S184：拾任意平面切
       case 'splitsketch': return void get().splitBodyBySketch()
       case 'align': return get().startFaceMate(true)
+      case 'facemate': return get().startFaceMate(false)
       case 'newbody': return void get().startNewBody()
       case 'bodyboolean': return get().openCombineDlg()   // S128：同 combine 共用真对话框（旧 appPrompt 已退役）
       case 'combine': return get().openCombineDlg()   // S128：真 Combine 对话框（取代旧 cutMode toggle）

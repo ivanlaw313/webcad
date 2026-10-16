@@ -462,7 +462,7 @@ function CompRow({ c, depth = 0 }: { c: { id: string; name: string; hidden?: boo
 }
 
 // ASM2 #7：瀏覽樹關節行 — 單擊選取、雙擊／右鍵重新命名、✎ 編輯（展開關節面板）、🗑 刪除（可撤銷）。
-const JOINT_TYPE_TC: Record<string, string> = { rigid: '剛性', revolute: '旋轉', slider: '滑動', cylindrical: '圓柱', pinslot: '銷槽', planar: '平面', ball: '球', screw: '螺旋' }
+const JOINT_TYPE_TC: Record<string, string> = { rigid: '剛性', revolute: '轉動', slider: '滑動', cylindrical: '圓柱', pinslot: '銷槽', planar: '平面', ball: '球', screw: '螺旋' }
 function JointRow({ id }: { id: string }) {
   const lang = useApp((s) => s.lang)
   const j = useApp((s) => s.joints.find((x) => x.id === id))

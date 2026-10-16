@@ -47,5 +47,5 @@ test('JointsPanel uses CAD axis mapping; joint-pick popup lists all 8 types in T
   assert.equal(jointTypeMenu(['rigid', 'planar']).length, 8)
   assert.deepEqual(jointTypeMenu(['rigid', 'planar']).slice(0, 2), ['rigid', 'planar'])
   assert.equal(new Set(jointTypeMenu(['revolute'])).size, ALL_JOINT_TYPES.length)
-  assert.deepEqual(ALL_JOINT_TYPES.map((t) => JOINT_LABEL_TC[t]), ['旋轉', '滑動', '圓柱', '銷槽', '球', '平面', '螺旋', '剛性'])
+  assert.deepEqual(ALL_JOINT_TYPES.map((t) => JOINT_LABEL_TC[t]), ['轉動', '滑動', '圓柱', '銷槽', '球', '平面', '螺旋', '剛性'])
 })

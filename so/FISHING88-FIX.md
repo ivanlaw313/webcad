@@ -5,13 +5,13 @@ Genuine product: App panel chunks use **lazySafe** (F86 WindTunnel pattern — n
 Draft i18n Formal **无法开启模 → 无法开模** / TC **無法開模**; drop English undercut in SC key.
 
 ## Live after cut
-- Tip: `13b2f4316e18b2cc567762fd2bcaf101ae0f49a0` (fix/fishing88-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `9fcbe9af2c5cdc92fb10974d649f5db57ca047fa` (fix/fishing88-behavior-ux → FF fix/sketch-face-copy)
 - Stamp: `v2.20-20261016-234555`
 - Bundle: `index-BPlnpMNW-r2.js` (md5 `f76000b0376c8f25546cf56d14e40858`)
 - Bak: `index-BdZ38Vhs-r2.js` / `v2.20-20261016-233751` (kept)
 - Site: https://cad.neuralworkshk.com/
 - APP_VERSION 2.20
-- more44 cherry: **no** (absent → F89)
+- more44 cherry: **no** (soft-prep open / not READY → F89)
 
 ## Product changes
 | File | Change |
@@ -23,7 +23,7 @@ Draft i18n Formal **无法开启模 → 无法开模** / TC **無法開模**; dr
 ## Kept
 - MATERIALS / DENSITY_PREF SC keys untouched
 - No tip Formal invent / Formal chrome soft
-- more44 absent → defer F89
+- more44 soft-prep not READY → defer F89
 
 ## Tests
 - fishing88-lazy-draft-formal 3/3 PASS
@@ -32,4 +32,4 @@ Draft i18n Formal **无法开启模 → 无法开模** / TC **無法開模**; dr
 
 ## Deploy
 - Bak prior live BdZ38Vhs / 233751
-- Soft-prep: more44 absent → no cherry before nginx
+- Soft-prep: more44 WT open @ 5bd79329 / not READY → no cherry before nginx

@@ -7,7 +7,7 @@ No clearer P1/P2 crash/404 found — ja locale demold trail after F91 jaLabels.
 more48 NOT cherry.
 
 ## Live after cut
-- Tip: `dca06b9a6a6fd4abd28f154feeefbe72db2efb8e` (fix/fishing92-behavior-ux → FF fix/sketch-face-copy)
+- Tip: `d8ff617ed46d4f51a4a56af46caf46673ba0821f` (fix/fishing92-behavior-ux → FF fix/sketch-face-copy)
 - Product: `f1021246e40272d6660094ef5023684cec089d3f` ja locale accessanalysis → 離型到達性
 - more47 cherry: `81b7760438cbc095102c51cd07dcbc2d4de81e8d` (from `3a32559f` on test/unit-core16-more47)
 - Stamp: `v2.20-20261017-001554`

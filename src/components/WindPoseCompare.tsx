@@ -26,12 +26,13 @@
 // 文件头都写死中文）。跟返 store.ts setLang 自己嘅先例（"Language: English (ribbon / nav). Status
 // messages still 中文 in v1."）——即係「状态类文案容许维持中文」系呢个项目已有政策，唔係我自创，
 // 所以呢几句喺 EN 模式都照原文显示，唔会拆词砌做半中半英（嗰个係 tStatus() 嘅坑，本组件冇用佢）。
-// UI 边个字/掣先至跟 lang 严格切 ZH/EN 显式字串对象。
+// UI 边个字/掣跟 lang 切 zh-HK/zh-CN/en/ja 显式字串（FISHING96）。poseCompare note 仍原文中文。
 //
 // 资料源：store.windPoseReadout。未接线（undefined）→ 成张卡 return null，唔画 placeholder 假数。
 import type { CSSProperties } from 'react'
 import type { PoseCompareRow, PoseReadout } from '../analysis/lbm/poseCompare'
 import { useApp } from '../store'
+import { normalizeLang } from '../i18n'
 
 /* ════════════════════════════════ store 旁路（key/action 未落地都照编译、照跑） ════════════════════════════════ */
 type WindPoseCompareKnobs = {
@@ -75,6 +76,23 @@ const EN = {
   state: { idle: 'Not tracking a pose', dragging: 'Dragging…', settling: 'Flow re-settling…' } as Record<string, string>,
 }
 
+
+const JA = {
+  title: '風洞姿勢比較',
+  empty: '記録された姿勢がまだありません — 試験体をドラッグして離すと、流れが再収束したあと自動で1行追加されます',
+  ref: '基準', cur: '現在', finalize: '今すぐ記録（未収束）', setRef: '基準にする', clear: 'クリア', reset: '姿勢をリセット',
+  area: '迎風面積', noSetter: '未配線', notSignificant: '渦放出ノイズ床より小さく有意差なし', samples: 'サンプル',
+  state: { idle: '姿勢未追跡', dragging: 'ドラッグ中…', settling: '流れ再構築中…' } as Record<string, string>,
+}
+const ZH_CN = {
+  title: '风洞位姿比较',
+  empty: '尚无已记录位姿 — 拖动测试件、放手等流场重新收敛，就会自动记一笔',
+  ref: '参考', cur: '目前', finalize: '立即记录（未收敛）', setRef: '设为参考', clear: '清除', reset: '重置位姿',
+  area: '迎风面积', noSetter: '未接线', notSignificant: '差异小于涡脱落噪声底，无法讲东西', samples: '样本',
+  state: { idle: '未追踪位姿', dragging: '拖曳中…', settling: '流场重建中…' } as Record<string, string>,
+}
+
+
 function fmtArea(mm2: number): string {
   return (mm2 >= 100 ? mm2.toFixed(0) : mm2.toFixed(1)) + ' mm²'
 }
@@ -104,7 +122,8 @@ export default function WindPoseCompare({ onFinalizePose, onSetReference, onClea
   const setRefAction = useApp((s) => (s as unknown as WindPoseCompareKnobs).setWindPoseReference)
   const clearAction = useApp((s) => (s as unknown as WindPoseCompareKnobs).clearWindPoseCompare)
   const setPoseAction = useApp((s) => (s as unknown as WindPoseCompareKnobs).setWindPose)
-  const t = lang === 'en' ? EN : ZH
+  const L = normalizeLang(lang)
+  const t = L === 'en' ? EN : L === 'ja' ? JA : L === 'zh-CN' ? ZH_CN : ZH
 
   if (!readout) return null   // 资料源未接线——成张卡唔显示，唔画 placeholder 假数
 

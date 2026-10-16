@@ -3,10 +3,11 @@
 //
 // ⚠ 两个已修嘅坑：
 //  ① 唔好用 tStatus() 译【长句】—— 佢系词典式替换，EN 模式会出「part表面: 压力系数 Cp」呢种半中半英。
-//    图例句子改成显式 zh/en 两套字串。
+//    图例句子改成显式 zh-HK/zh-CN/en/ja 四套字串（FISHING96）。
 //  ② 用返 index.css 嘅 .info-card 深色 token（同 测量/拔模/斜度/截面 浮卡一致，刻意深色 = 叠喺模型上够对比），
 //    唔好再 ad-hoc 内联 chrome。
 import { useApp } from '../store'
+import { normalizeLang } from '../i18n'
 
 // 同 Viewport 嘅 WIND_CMAP 一致（深蓝 → 青 → 黄 → 红）；喺度写返 CSS 色，免同 Viewport 循环 import。
 const SPEED_RAMP = 'linear-gradient(90deg,#081f7a 0%,#0dbff2 33%,#fadb26 67%,#e62115 100%)'
@@ -46,6 +47,41 @@ const EN = {
   stag: 'stagnation / dead air', accel: 'accelerated',
 }
 
+
+const JA = {
+  title: '風洞凡例', flow: '流れ場', smoke: '煙粒子', stream: '流線', arrow: '矢印', rake: '煙レーキリボン',
+  rakeIs: '各リボン = 上流レーキの【同一ノズル】から出た煙跡（streakline）',
+  rakeWhite: '純白 = 煙そのもの（厚みで発光）— 速度色は付けず、部品表面の Cp と競合しない（速度色は「流線」へ）',
+  rakeSolid: '部品に当たると停滞点で堆積（貫通しない）',
+  lineIsPath: '線 = 流体の経路 · 線色 = その点の風速',
+  arrowIs: '矢印 = 速度ベクトル · 色 = 風速',
+  smokeIs: '短い線 = 煙粒子の一歩 · 線色 = その点の風速',
+  smokeWhite: '白煙：白（直後）→ 淡青（消散）— 実風洞に近い',
+  smokeAge: '線色 = 煙の年齢（レーキからの距離）',
+  slow: '遅い / 後流停滞', fast: '速い / 加速', fresh: '直後', old: '消散',
+  mid: '黄 / 橙 = 中速', dots: '白点 = 流線に沿う下流マーカー（向きと速さ。粒子本体ではない）',
+  inflow: '一様流', surf: '部品表面', cp: '圧力係数 Cp', sspeed: '壁面流速',
+  cpHi: '赤 = 風上高圧', cpLo: '青 = 風下吸力', cpMid: '白 = 一様流と同圧（Cp≈0）',
+  stag: '停滞 / 死水域', accel: '加速域',
+}
+const ZH_CN = {
+  title: '风洞图例', flow: '流场', smoke: '烟流雾粒', stream: '流线', arrow: '箭头', rake: '烟耙条带',
+  rakeIs: '每条缎带 = 上游烟耙【同一个喷嘴】放出的烟迹（streakline）',
+  rakeWhite: '纯白 = 烟本身，靠光照和厚度发光 —— 刻意不按速度上色，免与零件表面 Cp 压力图争眼球（想查看速度色请切「流线」）',
+  rakeSolid: '撞到零件 = 在驻点停下堆积（不会穿过去）',
+  lineIsPath: '线 = 流体行经的路径 · 线色 = 该处风速',
+  arrowIs: '箭头 = 该点速度向量 · 色 = 风速',
+  smokeIs: '每条短线 = 一粒烟走过的一步 · 线色 = 该处风速',
+  smokeWhite: '白烟：由白（刚出）渐变到淡蓝（将消散）— 最似真风洞',
+  smokeAge: '线色 = 烟的年龄（离开烟耙后行了多远）',
+  slow: '慢 / 尾流停滞', fast: '快 / 绕流加速', fresh: '刚出', old: '将消散',
+  mid: '黄 / 橙 = 中速', dots: '白点 = 沿流线向下游行的标记，查看【流向】和快慢（不是粒子本身）',
+  inflow: '来流', surf: '零件表面', cp: '压力系数 Cp', sspeed: '贴面流速',
+  cpHi: '红 = 迎风高压', cpLo: '蓝 = 背风吸力', cpMid: '白 = 同来流压力一样（Cp≈0）',
+  stag: '滞点 / 死水', accel: '加速区',
+}
+
+
 function Bar({ ramp, lo, hi, loNote, hiNote }: { ramp: string; lo: string; hi: string; loNote?: string; hiNote?: string }) {
   return (
     <div style={{ margin: '3px 0 5px' }}>
@@ -69,7 +105,8 @@ export default function WindLegend() {
   const field = useApp((s) => s.windField)
   const smokeColor = useApp((s) => s.windSmokeColor)
   const lang = useApp((s) => s.lang)
-  const t = lang === 'en' ? EN : ZH
+  const L = normalizeLang(lang)
+  const t = L === 'en' ? EN : L === 'ja' ? JA : L === 'zh-CN' ? ZH_CN : ZH
   if (!res) return null
 
   const f1 = (x: number) => (x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2))

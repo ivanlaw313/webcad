@@ -5,7 +5,7 @@
 **Product fix:** `2d7a83e`  
 **more40 soft-prep:** **none** (absent — defer F72)  
 **Base:** tip `d6c23b5` (FISHING70 live)  
-**Tip:** (after FF docs — see remotes)
+**Tip:** `c77f18bda0980ba8ffb5f58a5c50fb8bab8841ce`
 
 ## Scan
 

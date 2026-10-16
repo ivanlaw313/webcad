@@ -6293,7 +6293,7 @@ export default function Viewport() {
             <button
               type="button"
               disabled={bucklingBusy || feaBusy || modalBusy || !feaFixed || !feaLoad}
-              title={(feaFixed && feaLoad) ? '預應力模態：先靜力加預載（拉/壓）→ 切線剛度 (K+Kg) 算固有頻率。受拉↑剛化升頻、受壓↓軟化降頻、近屈曲→0。複用模態振型動畫。' : '先點①固定面 + ②預載面 + 設力'}
+              title={(feaFixed && feaLoad) ? '預應力模態：先靜力加預載（拉/壓）→ 切線剛度 (K+Kg) 算固有頻率。受拉↑剛化升頻、受壓↓軟化降頻、近屈曲→0。複用模態振型動畫。' : '先點①固定面 + ②預載面 + 設定力'}
               onClick={() => void runPrestressedModalSolve()}
               style={{ width: '100%', padding: '5px 8px', fontSize: 12, marginTop: 6, cursor: (modalBusy || !feaFixed || !feaLoad) ? 'default' : 'pointer', opacity: (modalBusy || !feaFixed || !feaLoad) ? 0.5 : 1 }}
             >
@@ -6310,7 +6310,7 @@ export default function Viewport() {
             <button
               type="button"
               disabled={topoptBusy || feaBusy || modalBusy || bucklingBusy || !feaFixed || !feaLoad}
-              title={(feaFixed && feaLoad) ? '生成式設計：在設計域內最小柔度分配材料（保留固定/受力區），長出最省料又最硬的承力結構' : '先點①固定面 + ②受力面 + 設力'}
+              title={(feaFixed && feaLoad) ? '生成式設計：在設計域內最小柔度分配材料（保留固定/受力區），長出最省料又最硬的承力結構' : '先點①固定面 + ②受力面 + 設定力'}
               onClick={() => void runTopoptSolve()}
               style={{ width: '100%', padding: '5px 8px', fontSize: 12, cursor: (topoptBusy || !feaFixed || !feaLoad) ? 'default' : 'pointer', opacity: (topoptBusy || !feaFixed || !feaLoad) ? 0.5 : 1 }}
             >

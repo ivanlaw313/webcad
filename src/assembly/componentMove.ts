@@ -4,7 +4,7 @@
 //   • 冇關節嘅組件：照舊直接移動（已固定 → 拒絕）
 //   • 單一組件係滑動類關節（slider／cylindrical／pinslot）子件、純平移且平行滑動軸 → 改為驅動該關節（slide += d·軸）
 //   • 以關節連結嘅整組（無一件已固定）平移 → 成組一齊平移，組內關節錨點同步平移（關節保持）
-//   • 其餘（組內有已固定件、或旋轉關節組）→ 拒絕並說明原因
+//   • 其餘（組內有已固定件、或轉動關節組）→ 拒絕並說明原因
 import { Vector3 } from 'three'
 import { jointSlideDir } from './jointHandleDrag'
 

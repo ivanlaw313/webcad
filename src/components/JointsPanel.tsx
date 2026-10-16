@@ -454,8 +454,8 @@ export default function JointsPanel() {
           {jointOrigins.map((jo) => (
             <div key={jo.id} className="jp-row" style={{ flexWrap: 'wrap', gap: 4, fontSize: 12 }}>
               <span style={{ flex: 1 }} title={`${jo.mode === 'twoFaces' ? '兩面之間' : '簡單'} · ${jo.point.map((v) => v.toFixed(1)).join(', ')}`}>⚓ {jo.name}</span>
-              <span title="繞原點 Z 軸旋轉角度">∠</span>
-              <NumInput value={jo.angle} onValue={(v) => { useApp.getState().updateJointOrigin(jo.id, { angle: v }) }} label="角度（°）" w={43} title="角度（°）" />°
+              <span title="繞原點 Z 軸轉角">∠</span>
+              <NumInput value={jo.angle} onValue={(v) => { useApp.getState().updateJointOrigin(jo.id, { angle: v }) }} label="轉角（°）" w={43} title="關節原點繞 Z 軸轉角（°）" />°
               <span title="世界 X/Y/Z 偏移（mm）">偏</span>
               {[0, 1, 2].map((i) => <NumInput key={i} value={jo.offset[i]} onValue={(v) => { { const offset: [number, number, number] = [...jo.offset] as [number, number, number]; offset[i as 0 | 1 | 2] = v; useApp.getState().updateJointOrigin(jo.id, { offset }) } }} label={`${['X', 'Y', 'Z'][i]} 偏移（mm）`} w={39} title={`${['X', 'Y', 'Z'][i]} 偏移（mm）`} />)}
               <button className={'cs-btn' + (jo.flip ? ' on' : '')} title="反轉關節原點 Z 軸" onClick={() => useApp.getState().updateJointOrigin(jo.id, { flip: !jo.flip })}>⇅</button>

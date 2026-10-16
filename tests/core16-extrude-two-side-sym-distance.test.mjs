@@ -2,7 +2,8 @@
  * CORE16 residual more10: Extrude Two Sides / Symmetric distance gates.
  * Illegal 0 (and near-zero) → Formal 繁中拒; legal distances apply volume.
  * Complements core16-extrude-distance-gate (single-side + side2=0 snippet) with
- * full symmetric + twosides refuse/apply matrix — tests only, no product change.
+ * full symmetric + twosides refuse/apply matrix.
+ * Product: setExtrudeSide2(0) must NOT coerce to 10; Formal TC red alert + okDisabled.
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -51,10 +52,16 @@ test('source: symmetric + twosides share Formal zero gate (commit + Viewport ale
   // Twosides side2 dedicated Formal refuse
   assert.match(st, /請輸入有限非零的第二側拉伸距離/)
   assert.doesNotMatch(st, /请输入有限非零的第二侧/)
-  // Viewport alert + okDisabled include symmetric/twosides height
+  // setExtrudeSide2 must keep 0 (no silent coerce to 10)
+  assert.match(st, /setExtrudeSide2:\s*\(n\)\s*=>\s*set\(\{ extrudeSide2:\s*Number\.isFinite\(n\)\s*\?\s*Math\.abs\(n\)\s*:\s*0 \}\)/)
+  assert.doesNotMatch(st, /setExtrudeSide2:[^\n]*:\s*10 \}/)
+  // Viewport alert + okDisabled include symmetric/twosides height + side2
   assert.match(vp, /data-testid="extrude-zero-alert"/)
+  assert.match(vp, /data-testid="extrude-side2-zero-alert"/)
   assert.match(vp, /\['distance', 'symmetric', 'twosides'\]\.includes\(extrudeExtent\) && !\(Math\.abs\(extrudeHeight\) > 1e-6\)/)
+  assert.match(vp, /extrudeExtent === 'twosides' && !\(Math\.abs\(extrudeSide2\) > 1e-6\)/)
   assert.match(vp, /距離不可為 0 — 請輸入非零距離（負數＝反方向）/)
+  assert.match(vp, /第二側距離不可為 0 — 請輸入非零距離/)
   assert.doesNotMatch(vp, /距离不可为 0/)
 })
 
@@ -88,8 +95,9 @@ test('runtime: twosides side1=0 → Formal refuse (same height gate)', async () 
 test('runtime: twosides side2=0 → Formal 第二側 refuse; no feature', async () => {
   reset()
   seedSketchRect()
-  // setExtrudeSide2 coerces 0→10 — bypass via setState to hit commit gate (product quirk noted in report).
-  useApp.setState({ extrudeExtent: 'twosides', extrudeHeight: 10, extrudeSide2: 0 })
+  useApp.setState({ extrudeExtent: 'twosides', extrudeHeight: 10, extrudeSide2: 10 })
+  g().setExtrudeSide2(0)
+  assert.equal(g().extrudeSide2, 0, 'setExtrudeSide2(0) must stay 0 — never coerce to 10')
   const n0 = g().features.length
   await g().extrudeSketch()
   assert.match(g().status, /第二側|非零/)
@@ -97,6 +105,7 @@ test('runtime: twosides side2=0 → Formal 第二側 refuse; no feature', async 
   assert.doesNotMatch(g().status, /第二侧/)
   assert.equal(g().features.length, n0)
   assert.equal(g().mode, 'sketch')
+  assert.equal(g().extrudeSide2, 0, 'refused commit must leave side2 at 0')
 })
 
 test('runtime: legal twosides (10 / 5) applies; volume ≈ side1+side2 span', async () => {

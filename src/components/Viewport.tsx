@@ -8113,7 +8113,7 @@ export default function Viewport() {
           title={tStatus('拉伸', lang)}
           width={320}
           okTip={extrudeRegionTotal > 0 && extrudeRegionSelCount === 0 ? tStatus('先點畫布選要拉伸的輪廓區域', lang) : tStatus('生成（Enter）', lang)}
-          okDisabled={!!numBad || !!extrudeExpressionError || (busy || (!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) || !!extrudeExpressionError || extrudeSelectionCleared || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6)))}
+          okDisabled={!!numBad || !!extrudeExpressionError || (busy || (!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) || !!extrudeExpressionError || extrudeSelectionCleared || (extrudeRegionTotal > 0 && extrudeRegionSelCount === 0) || (['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6)) || (extrudeExtent === 'twosides' && !(Math.abs(extrudeSide2) > 1e-6)))}
           onOk={() => void extrudeSketch()}
           onCancel={() => cancelExtrudeDlg()}
 
@@ -8122,6 +8122,7 @@ export default function Viewport() {
           {extrudeRegionTotal > 1 && <button className="sb-tool" onClick={() => useApp.setState({ extrudeSelectionCleared: false, extrudeRegionSel: useApp.getState().extrudeRegionSel.map(() => true) })}>全選輪廓</button>}
           {(!!extrudeExpression && !/^[+-]?(?:\d*\.)?\d+$/.test(extrudeExpression.trim()) && (extrudeRegionSelCount > 1 || !['distance', 'symmetric'].includes(extrudeExtent))) && <p role="alert">公式暫支援單輪廓的單側／對稱距離；其他方式請用數值。</p>}
           {['distance', 'symmetric', 'twosides'].includes(extrudeExtent) && !(Math.abs(extrudeHeight) > 1e-6) && <p role="alert" data-testid="extrude-zero-alert" style={{ color: '#b42318', fontSize: 12, margin: '2px 0' }}>{tStatus('距離不可為 0 — 請輸入非零距離（負數＝反方向）', lang)}</p>}
+          {extrudeExtent === 'twosides' && !(Math.abs(extrudeSide2) > 1e-6) && <p role="alert" data-testid="extrude-side2-zero-alert" style={{ color: '#b42318', fontSize: 12, margin: '2px 0' }}>{tStatus('第二側距離不可為 0 — 請輸入非零距離', lang)}</p>}
           {xPv && <div data-testid="extrude-preview-volume" style={{ fontSize: 11, color: '#16a36b', margin: '2px 0 4px' }}>{tStatus('即時預覽（同確定後結果一樣）', lang)} · {tStatus('體積', lang)} {xPv.volume >= 1000 ? (xPv.volume / 1000).toFixed(2) + ' cm³' : xPv.volume.toFixed(1) + ' mm³'}</div>}
           {extrudeExtent === 'distance' && extrudeHeight < -1e-6 && <p role="status" data-testid="extrude-flip-note" style={{ color: '#b54708', fontSize: 12, margin: '2px 0' }}>{tStatus(`⇅ 負距離：向反方向拉伸 ${+Math.abs(extrudeHeight).toFixed(4)} mm`, lang)}</p>}
           <label>起點 <span>草圖平面</span></label>

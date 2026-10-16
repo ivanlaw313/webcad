@@ -50,8 +50,9 @@ test('source: featDlgSemantic + commitFeatDlg share Formal angle 0..360 gate', (
   // commitFeatDlg uses featDlgBlockingReason before building (dlg stays open)
   assert.match(st, /const blocked = featDlgBlockingReason\(d\)/)
   assert.match(st, /if \(blocked\) \{ set\(\{ status: `未提交：\$\{blocked\}` \}\); return \}/)
-  // Legacy belt-and-braces still present (angle ≤0) — Formal TC, not colloquial
-  assert.match(st, /旋轉角度要 >0（請填 1–360）/)
+  // Legacy belt-and-braces aligned to same Formal TC as featDlgBlockingReason
+  assert.match(st, /旋轉角度必須大於 0° 且不超過 360°/)
+  assert.doesNotMatch(st, /旋轉角度要 >0（請填 1–360）/)
   assert.doesNotMatch(ANGLE0_MSG, COLLOQ)
 })
 

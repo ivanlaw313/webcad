@@ -8759,7 +8759,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   extrudeStart: 0,   // #3（Fusion Start:Offset）：拉伸起点沿草图面【+法向】偏移（+=向法向正方向、−=反）；0=由草图面起（旧档逐字节）
   setExtrudeStart: (n) => set({ extrudeStart: Number.isFinite(n) ? n : 0 }),
   extrudeSide2: 10,  // #4 Two Sides — 第二侧（反法向）距离
-  setExtrudeSide2: (n) => set({ extrudeSide2: Number.isFinite(n) && Math.abs(n) > 1e-6 ? Math.abs(n) : 10 }),
+  // Keep zero while entering a side2 distance; preview/commit Formal-TC reject zero. Do NOT coerce 0→10.
+  setExtrudeSide2: (n) => set({ extrudeSide2: Number.isFinite(n) ? Math.abs(n) : 0 }),
   setExtrudeExtent: (e) => set({ extrudeExtent: e, faceCutThrough: e === 'through', sketchSymmetric: e === 'symmetric', toFacePick: e === 'toface', ...(e === 'toface' ? { status: '到面拉伸：點【平面目標面】；平行目標面會保持關聯重建' } : e === 'next' ? { status: '到下一面：拉伸/切割會停在前方遇到的第一塊實體面（方向用 ⇅ 反向；前方沒有面會誠實報錯）' } : {}) }),
   // T775（S55-①）：到面拉伸 — 拣目标面 → 净系计 height/down，行返现有 distance 路径（零 worker 改动）
   toFacePick: false,
@@ -8831,7 +8832,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       if(!pick&&candidates.length>1)return {status:'有多條已儲存路徑；請先在瀏覽器選取要掃掠的路徑草圖'}
       if(pick){
         const {source,path}=pick
-        if(source.arb||source.plane!=='XY'||Math.abs(source.baseZ)>1e-8)return {status:'已選路徑不在 XY 原點平面；目前儲存路徑掃掠需先選 XY@0 路徑'}
+        // FISHING34 P1：卡片平面（XY／XZ／YZ，含非零 baseZ）開放路徑可開掃掠（同 Fusion）；僅斜面 arb 暫拒。
+        if(source.arb)return {status:'已選路徑在斜面草圖上；掃掠請改用卡片平面（XY／XZ／YZ）上的開放路徑'}
         if(source.patternData)return {status:'關聯陣列路徑須先分離關聯，再選作掃掠路徑'}
         // Keep closed profiles from the same sketch as the sweep section (T742). Do NOT wipe sketchProfiles.
         const profiles=source.shapes.filter(isSweepSectionProfile)
@@ -20303,7 +20305,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     } else {
       // revolve: the profile (+T746 sketch bundle) was captured into payload when the command opened
       // GM-L2 #60：旋转角度 0/空（清框 → Number('')=0，绕过 UI spinner min=1）唔好静默当整圈 360° — 前置拒绝、保持对话框开等用户改
-      if (!(+p.angle > 0)) { set({ status: '旋轉角度要 >0（請填 1–360）' }); return }
+      if (!(+p.angle > 0 && +p.angle <= 360)) { set({ status: '旋轉角度必須大於 0° 且不超過 360°' }); return }
       set({ featDlg: null, revAxisPtPick: false })
       const pay = d.payload as { prof?: SketchProfile; bundle?: RevolveSketchBundle } | SketchProfile
       const prof = (pay && typeof pay === 'object' && 'prof' in pay && pay.prof) ? pay.prof : pay as SketchProfile
@@ -20392,7 +20394,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (b && Array.isArray(b.shapes) && b.shapes.length) {
         const shapes = JSON.parse(JSON.stringify(b.shapes)) as SketchShape[]
         _pendingDatumRef = b.datumRef ? structuredClone(b.datumRef) : null
-        const lbl = d.kind === 'revolve' ? '旋转' : d.kind === 'rib' ? '加强筋' : d.kind === 'pipe' ? '管道' : '路径阵列'
+        const lbl = d.kind === 'revolve' ? '旋轉' : d.kind === 'rib' ? '加強筋' : d.kind === 'pipe' ? '管道' : '路徑陣列'
         set({
           featDlg: null, revAxisPtPick: false, mode: 'sketch', sketchPlane: b.plane, sketchBaseZ: b.baseZ, sketchArb:b.arb??null,pendingSketchFaceBinding:b.faceBinding??null, sketchTool: 'select', sizing: null, toolPreview: null,
           sketchProfiles: shapes.slice(0, -1), sketchShape: shapes[shapes.length - 1],
@@ -21754,7 +21756,12 @@ export const useApp = create<AppState>((rawSet, get) => {
     if (!src || src.length < 2) { sweepFail('先用「折線」畫一條路徑（≥2 點，可不閉合），再點「沿路徑掃掠」'); return }
     // P1 C：扭轉 + 尖角折線 → 交內核自動圓角尖角後 frameTwistTaperSweep（preview=result）；
     // 自動圓角後仍不可靠 → worker throw Formal Traditional，applyFeatures 拒絕並保留原模型（唔好靜默剝扭轉）。
-    const path = src.map((p) => stToProfile(p, 'XY'))
+    // FISHING34 P1：卡片平面 XZ／YZ（或 XY@非零 baseZ）→ path3 CAD 脊線；XY@0 仍走舊 2D path（逐字節相容）。
+    const pathPlane = s.sketchPlane
+    const pathBaseZ = s.sketchBaseZ || 0
+    const path = src.map((p) => stToProfile(p, pathPlane === 'XY' ? 'XY' : pathPlane))
+    const offPlane = pathPlane !== 'XY' || Math.abs(pathBaseZ) > 1e-8
+    const planeFrame = offPlane ? cardinalSketchFrame(pathPlane, pathBaseZ) : null
     const op: BoolOp = (s.sketchOp === 'cut' || s.sketchOp === 'intersect' || s.sketchOp === 'newbody') && hasSolid(s.features) ? s.sketchOp : 'new'   // P2：sweep 补 ∩相交 + New Body
     // T742 任意草图截面：揾 profiles 入面最后一个【闭合】轮廓做截面（截面以草图原点为中心，垂直路径放置）
     let secProfile: SketchProfile | undefined
@@ -21765,8 +21772,10 @@ export const useApp = create<AppState>((rawSet, get) => {
       if (cand) secProfile = shapeToProfile(cand, 'XY')
       else {
         // RETEST21 #2：截面喺另一張（垂直平面）草圖 — Fusion 最常見做法
-        const p0 = path[0]
-        const ext = externalSweepSection(s, [p0[0], p0[1], s.sketchBaseZ || 0])
+        const p0 = planeFrame
+          ? localPointToCad(planeFrame, path[0][0], path[0][1])
+          : [path[0][0], path[0][1], pathBaseZ] as [number, number, number]
+        const ext = externalSweepSection(s, p0)
         if (!ext) { sweepFail('截面=草圖輪廓：找不到閉合輪廓 — 在路徑草圖或另一張草圖（例如垂直平面）畫一個圓／矩形／閉合折線，在瀏覽樹點選它，或改用「◯ 圓」截面'); return }
         secProfile = shapeToProfile(ext.local, 'XY')
       }
@@ -21781,16 +21790,25 @@ export const useApp = create<AppState>((rawSet, get) => {
       shapes: JSON.parse(JSON.stringify([...s.sketchProfiles, ...((pathShape ?? sk) ? [pathShape ?? sk!] : [])])) as SketchShape[],
       cons: JSON.parse(JSON.stringify(s.skCons)) as SkCon[],
       sweepPath: JSON.parse(JSON.stringify(src)) as Pt[],
-      baseZ: s.sketchBaseZ || 0,
+      baseZ: pathBaseZ,
+      plane: pathPlane,
     }
     set({ skPatternData: null, sketchShape: null, sketchProfiles: [], polyPts: [], mode: 'model', sweepDlgOpen: false, sweepGuide: null, sweepPreview: null, sweepPreviewBusy: false })
     let f: Feature
-    if (Math.abs(climb) > 1e-6) {
-      // 3D 路径：Z 按弧长比例均匀爬升（楼梯扶手/排水管/缆线坡道）。内核走平滑 B-spline 脊线。
+    if (planeFrame || Math.abs(climb) > 1e-6) {
+      // 3D 脊線：非 XY@0 用平面 frame；XY@0 + 爬升則沿 Z 按弧長比例升（舊行為）。
       const segL: number[] = [0]
       for (let i = 1; i < path.length; i++) segL.push(segL[i - 1] + Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]))
       const total = segL[segL.length - 1] || 1
-      const path3 = path.map((p, i) => [p[0], p[1], (segL[i] / total) * climb] as [number, number, number])
+      const path3 = path.map((p, i) => {
+        const base = planeFrame
+          ? localPointToCad(planeFrame, p[0], p[1])
+          : [p[0], p[1], pathBaseZ] as [number, number, number]
+        if (!(Math.abs(climb) > 1e-6)) return base
+        const n = planeFrame ? planeFrame.n : ([0, 0, 1] as [number, number, number])
+        const k = (segL[i] / total) * climb
+        return [base[0] + n[0] * k, base[1] + n[1] * k, base[2] + n[2] * k] as [number, number, number]
+      })
       f = { id: fid(), type: 'sweep', r: dia / 2, path3, op, ...(wall > 0 ? { wall } : {}), ...(secProfile ? { profile: secProfile } : {}), ...twSc, ...orientF }
     } else {
       const guide = guideSt ? guideSt.map((p) => stToProfile(p, 'XY')) : undefined
@@ -21814,7 +21832,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       set((st) => ({
         sweepError: null,
         features: st.features.map((x) => (x.id === f.id && x.type === 'sweep' ? { ...x, sketchId: skId } : x)),
-        sketchSources: { ...st.sketchSources, [skId]: { patternData: clonePatternData(skBundle.patternData) ?? undefined, shapes: skBundle.shapes, cons: skBundle.cons, plane: 'XY' as Plane, baseZ: skBundle.baseZ, op, height: 0, sweepPath: skBundle.sweepPath, sweepClimb: Math.abs(climb) > 1e-6 ? climb : undefined, sweepGuide: guideSt } },
+        sketchSources: { ...st.sketchSources, [skId]: { patternData: clonePatternData(skBundle.patternData) ?? undefined, shapes: skBundle.shapes, cons: skBundle.cons, plane: skBundle.plane as Plane, baseZ: skBundle.baseZ, op, height: 0, sweepPath: skBundle.sweepPath, sweepClimb: Math.abs(climb) > 1e-6 ? climb : undefined, sweepGuide: guideSt } },
       }))
     }
   },

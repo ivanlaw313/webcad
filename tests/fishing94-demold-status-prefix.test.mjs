@@ -31,7 +31,9 @@ test('FISHING94 runtime status prefix JA 離型到達性 / EN Demold Accessibili
   assert.match(en, /^Demold Accessibility/)
   assert.doesNotMatch(en, /脫模可達性/)
   assert.equal(tStatus('脫模可達性：需要活動實體', 'ja'), '離型到達性：需要活動實體')
-  assert.equal(tStatus('已關脫模可達性', 'ja'), '已關離型到達性')
+  // F95: exact 已關脫模可達性 → status.demoldClosed (離型到達性を閉じました), not prefix-only
+  assert.match(tStatus('已關脫模可達性', 'ja'), /離型/)
+  assert.doesNotMatch(tStatus('已關脫模可達性', 'ja'), /脫模可達性/)
   // zh unchanged Formal
   assert.equal(tStatus(sample, 'zh-HK'), sample)
 })

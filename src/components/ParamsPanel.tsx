@@ -177,6 +177,12 @@ export default function ParamsPanel() {
         <button className="cs-btn" onClick={add}>{tz('+ 新增')}</button>
       </div>
       <details><summary>{tz('進階：配置、設計表及匯出')}</summary>
+      {params.length === 0 && <div className="pp-empty" style={{ marginTop: 6 }}>{tz('還沒有參數時也可匯入設計表 CSV（列名須同稍後建立的 ƒx 參數名）；或先「+ 新增」參數再匯出模板。')}</div>}
+      {/* FISHING63：匯入／設計表 CSV 唔再被 params.length 閘死（F59 recheck：空 details 睇唔到「匯入設計表」） */}
+      <div className="pp-add" style={{ flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+          <button className="cs-btn" title={tz('設計表 CSV 匯出：配置 × 驅動參數矩陣（無配置時出一行當前值模板）— Excel 排變體')} onClick={() => useApp.getState().exportConfigsCsv()}>{tz('📤 設計表CSV')}</button>
+          <button className="cs-btn" data-testid="params-import-design-table" title={tz('設計表 CSV 匯入：每行一個配置（列名 = ƒx 參數名）→ 批量新增/更新配置，再一鍵切換或「匯出全部配置」匯出所有變體 STL')} onClick={() => useApp.getState().openConfigsCsvDialog()}>{tz('📥 匯入設計表')}</button>
+      </div>
       {params.length > 0 && <div className="pp-add" style={{ justifyContent: 'flex-end' }}><button className="cs-btn" title={tz('把參數表匯出為 CSV（名稱/值/表達式，方便檔案/分享/Excel）')} onClick={() => exportCsv()}>{tz('📋 匯出參數 CSV')}</button></div>}
       {params.length > 0 && (
         <div className="pp-add" style={{ flexWrap: 'wrap', gap: 4, borderTop: '1px solid #2a2e33', paddingTop: 6, marginTop: 4 }}>
@@ -200,8 +206,6 @@ export default function ParamsPanel() {
           <input className="pp-name-in" placeholder={tz('配置名 如 M5版')} value={cfgName} onChange={(e) => setCfgName(e.target.value)} style={{ flex: 1, minWidth: 80 }} />
           <button className="cs-btn" title={tz('把當前所有驅動參數（非表達式）存為一個命名配置')} onClick={() => { saveConfig(cfgName); setCfgName('') }}>{tz('💾 存配置')}</button>
           {configs.length > 0 && <button className="cs-btn" title={tz('把每個配置各匯出一個 STL，打包成 zip（一次過製造所有變體；完成後還原當前配置）')} onClick={() => void useApp.getState().exportAllConfigs()}>{tz('📦 匯出全部配置')}</button>}
-          <button className="cs-btn" title={tz('設計表 CSV 匯出：配置 × 驅動參數矩陣（無配置時出一行當前值模板）— Excel 排變體')} onClick={() => useApp.getState().exportConfigsCsv()}>{tz('📤 設計表CSV')}</button>
-          <button className="cs-btn" title={tz('設計表 CSV 匯入：每行一個配置（列名 = ƒx 參數名）→ 批量新增/更新配置，再一鍵切換或「匯出全部配置」匯出所有變體 STL')} onClick={() => useApp.getState().openConfigsCsvDialog()}>{tz('📥 匯入設計表')}</button>
         </div>
       )}
       {/* GM-3DV3 M15：Change Parameters 设计表格视图（行=配置 × 列=参数）— 对标 Fusion/SolidWorks 设计表。点行 = 应用该配置。 */}

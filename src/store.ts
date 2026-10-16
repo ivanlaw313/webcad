@@ -13574,7 +13574,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     return {
       undoStack: [...s.undoStack, docSnap(s)].slice(-60), redoStack: [],
       ...(def && picked ? (() => { const defs = s.componentDefs.map((d) => d.id === def.id ? writeDefBodyMesh(d, picked.id, { vertices: w.vertices, triangles: w.triangles, normals: w.normals }) : d); return { componentDefs: defs, components: reconcileComponents(s.components, defs) } })() : { components: s.components.map((x) => (x.id === id ? { ...x, mesh: { vertices: w.vertices, triangles: w.triangles, normals: w.normals }, ...DETACH_DEF } : x)) }),
-      status: `已修復「${c.name}${picked ? ' / ' + picked.name : ''}」：焊接 ${fixed} 重復頂點（${r.stats.vIn}→${r.stats.vOut}）· 刪 ${r.stats.degenerate} 退化 + ${r.stats.duplicate} 重復三角${windNote} → ${wt.closed ? '✅ 現已水密' : `仍有 ${wt.boundary} 條開放邊（真實孔洞，需補面）`}`,
+      status: `已修復「${c.name}${picked ? ' / ' + picked.name : ''}」：焊接 ${fixed} 重複頂點（${r.stats.vIn}→${r.stats.vOut}）· 刪 ${r.stats.degenerate} 退化 + ${r.stats.duplicate} 重複三角${windNote} → ${wt.closed ? '✅ 現已水密' : `仍有 ${wt.boundary} 條開放邊（真實孔洞，需補面）`}`,
     }
   }),
   // Lighten a heavy mesh by vertex-clustering decimation (cell mm). Bigger cell → fewer triangles (softer).
@@ -15144,8 +15144,8 @@ export const useApp = create<AppState>((rawSet, get) => {
   // S101[8]：活动实体程序化纹理（三平面投影，无需 UV）。tex='' 清除。随 material 入 snapshot 自动持久化。
   setBodyTexture: (key, scale) => set((s) => ({ material: { ...s.material, tex: key, texScale: scale ?? s.material.texScale ?? 30 } })),
   setMatProp: (key, value) => set((s) => ({ material: { ...s.material, [key]: Math.max(0, Math.min(1, Number.isFinite(value) ? value : s.material[key] ?? 0)) } })),
-  setBodyImageTexture: (url) => set((s) => ({ material: { ...s.material, imageUrl: url || undefined, texScale: s.material.texScale ?? 30 }, status: url ? '已套用自訂圖片貼圖（三平面投影 — 調「紋理尺度」改重復密度，無 UV 縫）' : '已清除圖片貼圖' })),
-  setBodyNormalMap: (url) => set((s) => ({ material: { ...s.material, normalUrl: url || undefined, texScale: s.material.texScale ?? 30 }, status: url ? '已套用法線貼圖（三平面投影凹凸細節 — 同「紋理尺度」共用重復密度）' : '已清除法線貼圖' })),
+  setBodyImageTexture: (url) => set((s) => ({ material: { ...s.material, imageUrl: url || undefined, texScale: s.material.texScale ?? 30 }, status: url ? '已套用自訂圖片貼圖（三平面投影 — 調「紋理尺度」改重複密度，無 UV 縫）' : '已清除圖片貼圖' })),
+  setBodyNormalMap: (url) => set((s) => ({ material: { ...s.material, normalUrl: url || undefined, texScale: s.material.texScale ?? 30 }, status: url ? '已套用法線貼圖（三平面投影凹凸細節 — 同「紋理尺度」共用重複密度）' : '已清除法線貼圖' })),
   decals: [],
   decalPick: null,
   startDecalPick: (url) => set({ decalPick: url, shellMode: false, shellPicks: [], holeMode: false, holePos: null, pushPullMode: false, edgeRoundPick: null, faceSketchPick: false, embossPick: false, splitPlanePick: false, measureMode: false, measureEdgeMode: false, measureFaceMode: false, measureAngleMode: false, status: '貼花：點擊活動實體的一個面放置（logo/標籤貼在點擊處，之後可調大小/旋轉/刪除；ESC 取消）' }),   // review HIGH：贴花同其他拾取模式互斥（同 toggleShell 同款清单）
@@ -17998,7 +17998,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       secs.push({ pts: open.pts.map((p) => stToProfile(p, 'XY') as [number, number]), z: src.baseZ || 0 })
     }
     if (secs.length < 2) {
-      set({ status: `曲面放樣：要 ≥2 張【開放折線獨立草圖】（XY/偏移面、不同高度）— 畫開放折線 → 完成草圖 → 換個高度再畫一張，重復${skippedArb ? `（${skippedArb} 張斜面草圖 v1 不支援，已跳過）` : ''}` })
+      set({ status: `曲面放樣：要 ≥2 張【開放折線獨立草圖】（XY/偏移面、不同高度）— 畫開放折線 → 完成草圖 → 換個高度再畫一張，重複${skippedArb ? `（${skippedArb} 張斜面草圖 v1 不支援，已跳過）` : ''}` })
       return
     }
     const v = await get().appPrompt(tStatus(`曲面放樣（${secs.length} 個開放截面）：\n壁厚 mm（輸 0 = 零厚放樣曲面／真曲面件）[,直紋 1]\n直紋 = 截面間直線過渡；預設平滑樣條。零厚曲面要實體再用「加厚」／「縫合」。\n注：薄殼厚度在截面平面內量度 — 豎直曲面精確，斜面有 cos 損失`, get().lang), '2')

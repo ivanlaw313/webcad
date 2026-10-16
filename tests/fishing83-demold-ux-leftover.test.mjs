@@ -19,7 +19,8 @@ test('FISHING83 access info-card close title 關閉脫模可達性', () => {
 
 test('FISHING83 draft legend 無法開模 not 開啟模', () => {
   const vp = read('src/components/Viewport.tsx')
-  assert.match(vp, /倒扣 undercut（無法開模）/)
+  assert.match(vp, /倒扣（無法開模）/)
+  assert.doesNotMatch(vp, /undercut/)
   assert.doesNotMatch(vp, /無法開啟模/)
 })
 

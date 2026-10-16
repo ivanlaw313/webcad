@@ -9136,7 +9136,7 @@ export default function Viewport() {
             const row = (c: string, lab: string, n: number) => <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}><span style={{ width: 12, height: 12, borderRadius: 2, background: c, display: 'inline-block' }} /><span style={{ flex: 1 }}>{lab}</span><b>{n}</b></div>
             return <>
               {row('#2e9e5b', tStatus('正拔模（可脫模）', lang), nPos)}
-              {row('#d23b30', tStatus('倒扣 undercut（無法開模）', lang), nNeg)}
+              {row('#d23b30', tStatus('倒扣（無法開模）', lang), nNeg)}
               {row('#e0b020', tStatus('垂直（≈0°，要側抽）', lang), nVert)}
               <div style={{ marginTop: 6, color: '#9fb2bf' }}>{tStatus('角度範圍', lang)} {draftResult.min.toFixed(1)}° ~ {draftResult.max.toFixed(1)}° · {tStatus('共', lang)} {draftResult.faces.length} {tStatus('面', lang)}</div>
               <div style={{ marginTop: 4, color: '#6b7680', fontSize: 11 }}>{tStatus('面積加權法向 · 注塑/鑄造脫模檢查', lang)}</div>

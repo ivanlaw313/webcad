@@ -19,7 +19,7 @@ export const THREE_MF_MAX_TRIANGLES = 2_000_000
 // 规范允许嘅 6 种单位 → mm 比例（millimeter 系默认）
 const UNIT_MM: Record<string, number> = { micron: 0.001, millimeter: 1, centimeter: 10, inch: 25.4, foot: 304.8, meter: 1000 }
 
-const fail = (reason: string): never => { throw new Error(`此 3MF 文件無法解析（${reason}）`) }
+const fail = (reason: string): never => { throw new Error(`此 3MF 檔案無法解析（${reason}）`) }
 
 // 3MF transform = 12 个数 "m00 m01 m02 m10 m11 m12 m20 m21 m22 m30 m31 m32"（行向量约定 [x y z 1]·M，
 // 最尾 3 个 m30 m31 m32 系平移）。即 x' = m00·x + m10·y + m20·z + m30 — 同 three.js 列优先唔同，唔好搞混。
@@ -134,7 +134,7 @@ export function parse3MF(buf: ArrayBuffer): { meshes: ThreeMFMesh[]; unit: strin
   }
   if (!modelXml) {
     const k = names.find((n) => /\.model$/i.test(n))
-    if (!k) return fail('找不到 3D/3dmodel.model 模型文件')
+    if (!k) return fail('找不到 3D/3dmodel.model 模型檔案')
     modelXml = strFromU8(entries[k])
   }
 

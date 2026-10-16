@@ -3397,7 +3397,7 @@ function syncParkedBodyMaterials(
       phys = tmp || ''
     }
   } else if (nParked === prevN + 1) {
-    // 活動體被泊成最新獨立實體 — 帶走其物理材質；新活動體用文件預設密度（physMatName 清空）
+    // 活動體被泊成最新獨立實體 — 帶走其物理材質；新活動體用檔案預設密度（physMatName 清空）
     parked[nParked - 1] = phys || undefined
     phys = ''
   } else if (nParked < prevN) {
@@ -14184,7 +14184,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const isParam = fit === 'param' || fit === 'prismatic'
     set({ status: `正在縫合 ${nTriEff.toFixed(0)} 個三角 → B-rep…${isParam ? cylNote : ''}${nTriEff > 8000 ? '（較多三角，可能要等十幾秒）' : ''}` })
     const f: Feature = { id: fid(), type: 'meshbody', v: local, t: tArr, op: 'new', fit }
-    const ok = await get().applyFeatures([...get().features, f], `已轉換「${c.name}」→ B-rep 實體（${nTriEff.toFixed(0)} 三角${isParam ? cylNote + '，' : ' 縫合，共面已合併'}${decimNote}）— 目前可以圓角/抽殼/布爾/導出 STEP`)
+    const ok = await get().applyFeatures([...get().features, f], `已轉換「${c.name}」→ B-rep 實體（${nTriEff.toFixed(0)} 三角${isParam ? cylNote + '，' : ' 縫合，共面已合併'}${decimNote}）— 目前可以圓角/抽殼/布爾/匯出 STEP`)
     if (ok && get().bodyMesh && get().bodyMesh!.triangles.length) {
       const rebuilt = get().bodyMesh!
       const srcSnap = {
@@ -15104,7 +15104,7 @@ export const useApp = create<AppState>((rawSet, get) => {
             undoStack: [...s.undoStack, docSnap(s)].slice(-60),
             redoStack: [],
             components: s.components.map((x) => (x.id === selId ? { ...x, material: name, color: m.color } : x)),
-            status: `已設「${c.name}」材質「${tMaterialName(name, s.lang)}」密度 ${m.density} g/cm³（僅此組件；文件預設密度 ${s.bodyDensity} g/cm³ 不變 — Ctrl+Z 可還原）`,
+            status: `已設「${c.name}」材質「${tMaterialName(name, s.lang)}」密度 ${m.density} g/cm³（僅此組件；檔案預設密度 ${s.bodyDensity} g/cm³ 不變 — Ctrl+Z 可還原）`,
           }
         }
       }
@@ -15116,7 +15116,7 @@ export const useApp = create<AppState>((rawSet, get) => {
         bodyColor: m.color,
         material: { ...s.material, metalness: m.metalness, roughness: m.roughness, opacity: m.opacity ?? 1, tex: m.tex ?? '' },
         appearanceName: name,
-        status: `已設活動實體材質「${tMaterialName(name, s.lang)}」密度 ${m.density} g/cm³（僅此實體；文件預設密度 ${s.bodyDensity} g/cm³ 不變 — Ctrl+Z 可還原）`,
+        status: `已設活動實體材質「${tMaterialName(name, s.lang)}」密度 ${m.density} g/cm³（僅此實體；檔案預設密度 ${s.bodyDensity} g/cm³ 不變 — Ctrl+Z 可還原）`,
       }
     })
   },
@@ -15281,7 +15281,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     const t = text.trim(); if (!t || get().aiBusy) return
     const cfg = get().aiConfig
     if (PROVIDER_DEFAULTS[cfg.provider].needsKey && !cfg.apiKey) {
-      set((s) => ({ aiMessages: [...s.aiMessages, { role: 'user', content: t }, { role: 'assistant', content: '⚠ 請先在設置（齒輪圖標）填入 API Key。' }] }))
+      set((s) => ({ aiMessages: [...s.aiMessages, { role: 'user', content: t }, { role: 'assistant', content: '⚠ 請先在設定（齒輪圖標）填入 API Key。' }] }))
       return
     }
     set((s) => ({ aiMessages: [...s.aiMessages, { role: 'user', content: t }], aiBusy: true }))
@@ -15349,7 +15349,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       case 'load_sample': { const k = String(a.kind || 'plate') as SampleKind; await get().loadSample(k); return '✓ 已載入範本：' + k }
       case 'add_parameter': { const nm = String(a.name || 'd1'); get().addParam(nm, pnum('value')); return `✓ 已加參數 ${nm}=${pnum('value')}` }
       case 'set_parameter': { const nm = String(a.name || ''); if (!nm) return '✗ 缺參數名'; await get().setParam(nm, pnum('value')); return `✓ 已設 ${nm}=${pnum('value')}` }
-      case 'export_model': { const fmt = String(a.format || 'stl'); if (fmt === 'step') await get().exportStep(); else await get().exportStl(); return '✓ 已導出 ' + fmt.toUpperCase() }
+      case 'export_model': { const fmt = String(a.format || 'stl'); if (fmt === 'step') await get().exportStep(); else await get().exportStl(); return '✓ 已匯出 ' + fmt.toUpperCase() }
       case 'modal_analysis': {
         if (!get().bodyMesh || !get().bodyMesh!.vertices.length) return '✗ 需要先有活動實體先做模態分析'
         if (!get().feaFixed) return '✗ 需要先在 FEA 面板（分析 → 受力雲圖）點一個【固定面】做約束 —— 請用戶在 3D 視圖點一個被夾住的面，再叫我跑模態分析'
@@ -17444,7 +17444,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       pattern: '矩形陣列：設 X/Y 數量與間距 → 確定', cpattern: '環形陣列：設軸／數量／角度 → 確定', mirror: '鏡像：選擇對象（整個實體／所選特徵／組件）及鏡像平面（XY／XZ／YZ、構造平面，或點選實體上的平面），再選操作（合併／新實體）→ 確定',
       circpattern: '環形陣列：對象（整個實體／時間軸所選特徵）+ 軸（原點＋方向）+ 數量 + 角度模式 → 確定',
       move: '移動/複製：設 dx/dy/dz + 繞Z角 → 確定', scale: '縮放：設比例 → 確定', offsetsolid: '整體偏移：設距離（+外擴 / −內縮，均勻偏移所有面）→ 確定', draft: '拔模：設角度（側面，中性面 XY）→ 確定',
-      splitbody: '分割實體：設 軸/位置/保留側 → 確定（另一半灰顯為獨立實體，可隱藏/導出/布爾）；「平面切」拾面會預填此對話框',
+      splitbody: '分割實體：設 軸/位置/保留側 → 確定（另一半灰顯為獨立實體，可隱藏/匯出/布爾）；「平面切」拾面會預填此對話框',
       automatedmodel: 'Automated Modeling（Connector v1）：在畫布依次點選兩張平面面，設連接半徑 → 確定。結果會作為獨立 New Body 保留；此 v1 不含避讓體、曲面面或生成式多方案。',
       box: `長方體：設長/寬/高 → 確定${cutting ? '（切割模式：從實體切除）' : ''}`,
       cylinder: `圓柱：設直徑/高 → 確定${cutting ? '（切割模式）' : ''}`,
@@ -19927,7 +19927,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       f = { id: fid(), type: 'othread', ...(oFrame && !d.editId ? { frame: oFrame } : {}), d: +p.d, pitch: Math.max(0.3, +p.pitch), height: +p.height, x: +(p.x || 0), y: +(p.y || 0), z0: +(p.z0 || 0) + oToff, cosmetic: +(p.modeled || 0) ? undefined : true, lefthand: +(p.lefthand || 0) ? true : undefined, cls: oCls, standard: oStd }   // #thread：左旋牙 value-or-undefined（edit 可清）；S11 cls/standard/局部偏移
       const dep = Math.min(+p.pitch * 0.6, (+p.d / 2) * 0.45)
       msg = +(p.modeled || 0)
-        ? `已在圓柱面包真螺旋牙 Ø${+p.d} 螺距${+p.pitch}（牙向外 +${dep.toFixed(1)}mm，複合體 — 之後不要倒角/STEP 導出，STL 正常）`
+        ? `已在圓柱面包真螺旋牙 Ø${+p.d} 螺距${+p.pitch}（牙向外 +${dep.toFixed(1)}mm，複合體 — 之後不要倒角/STEP 匯出，STL 正常）`
         : `已包 cosmetic 螺紋標註 M${+p.d}×${+p.pitch}（外觀螺旋線圈，B-rep 乾淨 — 可繼續圓角／抽殼／STEP；要真牙勾「建模螺紋」）`
     } else if (d.kind === 'ithread') {
       // P2：内螺纹对话框 commit — 直接走 addInternalThread（同 pattern/revolve 一样早 return，唔行共享尾）
@@ -20571,7 +20571,7 @@ export const useApp = create<AppState>((rawSet, get) => {
   addSplit: async (axis, offset) => {
     if (!hasSolid(get().features)) { set({ status: '分割需要先有一個活動實體' }); return }
     const f: Feature = { id: fid(), type: 'split', axis, offset, keep: 'hi', nameA: '分割A', nameB: '分割B' }
-    const ok = await get().applyFeatures([...get().features, f], `已沿 ${axis} 軸分割（參數化 — 時間軸可改切割位置/刪特徵；另一半灰顯，可隱藏/導出）`)
+    const ok = await get().applyFeatures([...get().features, f], `已沿 ${axis} 軸分割（參數化 — 時間軸可改切割位置/刪特徵；另一半灰顯，可隱藏/匯出）`)
     if (ok) { const note = splitVolumeNoteForMesh(get().bodyMesh); if (note) set((s) => ({ status: s.status + note })) }
   },
   // S184：任意平面切（Fusion Split Body by 任意面）—— 拾一个平面（实体面/构造面）→ 沿该面切两半（参数化，保历史）。
@@ -20961,7 +20961,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       }
     }
     if(flt.body&&!flt.face&&!flt.edge){
-      if(!hasSolid(s.features)){ set({status:'未能量度：文件無實體幾何（若組件已隱藏，請先在瀏覽樹顯示）'}); return }
+      if(!hasSolid(s.features)){ set({status:'未能量度：檔案無實體幾何（若組件已隱藏，請先在瀏覽樹顯示）'}); return }
       const result=await cad.measureBodyAt(cp)
       const latest=get()
       if(latest.features!==s.features||latest.measureSelFilter!==flt||latest.measureUniMode!==s.measureUniMode)return
@@ -23354,7 +23354,7 @@ export const useApp = create<AppState>((rawSet, get) => {
     // GM-W8 β1-#41：现有模型有内容 → 先确认再覆盖（撤销栈会清,救唔返）。分享链接开页时模型仲系空 → 呢度自然唔弹（cur 为空）。
     const cur = get()
     if (cur.features.length || cur.components.length || cur.formCage || cur.sketchProfiles.length || cur.sketchShape || cur.polyPts.length || cur.sketchStart || Object.keys(cur.sketchSources).length || cur.params.length || cur.canvases.length) {
-      const ok = await get().appConfirm('目前文件有內容，包括未完成草圖。開啟會取代目前文件，請先取消並儲存需要保留的改動。繼續開啟？', '打開新文件')
+      const ok = await get().appConfirm('目前檔案有內容，包括未完成草圖。開啟會取代目前檔案，請先取消並儲存需要保留的改動。繼續開啟？', '打開新檔案')
       if (!ok) { set({ status: '已取消打開（現有模型未動）' }); return }
     }
     const raw: Feature[] = Array.isArray(data) ? (data as Feature[]) : ((data.features as Feature[]) ?? [])
@@ -24087,8 +24087,8 @@ export const useApp = create<AppState>((rawSet, get) => {
       const op: BoolOp = get().cutMode && hasSolid(get().features) ? 'cut' : 'new'
       const ok = await get().applyFeatures([...get().features, { id: fid(), type: 'stepbody', step: text, op }],
         asDerived
-          ? `已派生 STEP B-rep 快照「${f.name.replace(/\.[^.]+$/, '')}」— 真 B-rep 入時間軸：可繼續切割/圓角/抽殼/導出 STEP。當前為非關聯快照；來源更新需重新 Derive（${(f.size / 1024).toFixed(0)}KB 已入存檔）`
-          : `已匯入 STEP 為 B-rep 實體「${f.name.replace(/\.[^.]+$/, '')}」— 真 B-rep 入時間軸：可繼續 切割/圓角/抽殼/再導出 STEP（${(f.size / 1024).toFixed(0)}KB 已入存檔）`, true, 'STEP B-rep 匯入失敗 — 文件可能損壞／非實體 STEP（可試「匯入 STEP…」網格路線）')
+          ? `已派生 STEP B-rep 快照「${f.name.replace(/\.[^.]+$/, '')}」— 真 B-rep 入時間軸：可繼續切割/圓角/抽殼/匯出 STEP。當前為非關聯快照；來源更新需重新 Derive（${(f.size / 1024).toFixed(0)}KB 已入存檔）`
+          : `已匯入 STEP 為 B-rep 實體「${f.name.replace(/\.[^.]+$/, '')}」— 真 B-rep 入時間軸：可繼續 切割/圓角/抽殼/再匯出 STEP（${(f.size / 1024).toFixed(0)}KB 已入存檔）`, true, 'STEP B-rep 匯入失敗 — 檔案可能損壞／非實體 STEP（可試「匯入 STEP…」網格路線）')
       if (ok) get().requestFit()
     }
     inp.click()
@@ -24421,7 +24421,7 @@ export const useApp = create<AppState>((rawSet, get) => {
       faceColorPick: null,
     })
     // record=false so "New" is a clean fresh start — undo must NOT resurrect the old document (Fusion-style new doc).
-    await get().applyFeatures([], '新建 — 已清空（空白文件）', false)
+    await get().applyFeatures([], '新建 — 已清空（空白檔案）', false)
   },
   // Load a complete parametric demo part (for first-time users to explore): a mounting plate
   // with two holes + rounded corners, whose 长/宽/高 are driven by user parameters.

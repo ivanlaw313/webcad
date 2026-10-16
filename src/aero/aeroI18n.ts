@@ -48,7 +48,7 @@ const S: Record<string, L4> = {
   cfdOk: ['已送出 CFD 驗證工作', 'CFD job submitted', '已提交 CFD 验证任务', 'CFD ジョブ送信済み'],
   cfdFail: ['無法連接 CFD 服務 → 已改為下載案例 ZIP（case.json + STL），可稍後手動提交', 'CFD service unreachable → downloaded the case ZIP (case.json + STL) instead', '连不上 CFD 服务 → 已改为下载案例 ZIP（case.json + STL）', 'CFD サービスに接続できません → ケース ZIP をダウンロードしました'],
   building: ['建立 CAD 實體中…（首次需載入內核，約數秒）', 'Building CAD body… (first time loads the kernel)', '建立 CAD 实体中…（首次需加载内核）', 'CAD ボディ作成中…（初回はカーネル読込）'],
-  inserted: ['已插入為時間軸「STEP實體」— 可以繼續用正常 CAD 工具編輯、切割、圓角、導出。', 'Inserted as a timeline STEP body — edit, cut, fillet, export with normal CAD tools.', '已插入为时间轴「STEP实体」— 可以继续用正常 CAD 工具编辑。', 'タイムラインに STEP ボディとして挿入しました。'],
+  inserted: ['已插入為時間軸「STEP實體」— 可以繼續用正常 CAD 工具編輯、切割、圓角、匯出。', 'Inserted as a timeline STEP body — edit, cut, fillet, export with normal CAD tools.', '已插入为时间轴「STEP实体」— 可以继续用正常 CAD 工具编辑。', 'タイムラインに STEP ボディとして挿入しました。'],
   failed: ['失敗', 'Failed', '失败', '失敗'],
   close: ['關閉', 'Close', '關閉', '閉じる'],
   pick: ['選取', 'Select', '选择', '選択'],

@@ -1233,7 +1233,7 @@ export default function DrawingPanel() {
               <select value={sectionAxis} onChange={(e) => setSectionAxis(e.target.value as 'Y' | 'X')} style={{ fontSize: 11 }} title={tStatus('剖切軸（T791）', lang)}><option value="Y">{tStatus('Y 深度', lang)}</option><option value="X">{tStatus('X 闊度', lang)}</option></select>
               <input type="number" aria-label={tStatus('剖切位置百分比', lang)} min={5} max={95} step={5} value={Math.round(sectionFrac * 100)} onChange={(e) => setSectionFrac((+e.target.value || 50) / 100)} style={{ width: 46 }} />%
               <button className="cs-btn" onClick={() => void regen()} title={tStatus('按新剖切位置/軸重新生成剖視圖', lang)}>↻</button>
-              <label style={{ fontSize: 11, color: '#2e7d32', display: 'inline-flex', alignItems: 'center', gap: 2 }} title={tStatus('半剖（T791）：剖視圖格仔左半顯示外形、右半顯示剖切 — 對稱件一圖全部查看內外（機械圖慣例；導出同步）', lang)}><input type="checkbox" checked={halfSec} onChange={(e) => setHalfSec(e.target.checked)} />{tStatus('半剖', lang)}</label>
+              <label style={{ fontSize: 11, color: '#2e7d32', display: 'inline-flex', alignItems: 'center', gap: 2 }} title={tStatus('半剖（T791）：剖視圖格仔左半顯示外形、右半顯示剖切 — 對稱件一圖全部查看內外（機械圖慣例；匯出同步）', lang)}><input type="checkbox" checked={halfSec} onChange={(e) => setHalfSec(e.target.checked)} />{tStatus('半剖', lang)}</label>
             </span>
           )}
           {annoHist.length > 0 && <button className="cs-btn" onClick={undoAnno} title={tStatus('撤銷最後加的一個標註（逐個撤，不會全部清）', lang)}>{tStatus('↶ 撤銷標註', lang)}</button>}
@@ -1241,9 +1241,9 @@ export default function DrawingPanel() {
           {annoHist.length > 0 && <button className="cs-btn" onClick={() => { setManualDims({}); setManualRDims({}); setManualADims({}); setManualDatums({}); setManualFCF({}); setManualNotes({}); setDetails({}); setAnnoHist([]); setPendPt(null); setPendSeg(null) }}>{tStatus('清除標註', lang)}</button>}
           <span style={{ fontSize: 11, color: '#888', marginLeft: 8, borderLeft: '1px solid #ddd', paddingLeft: 8 }}>📤 {tStatus('匯出：', lang)}</span>
           <button className="cs-btn" onClick={exportSVG}>{tStatus('匯出 SVG', lang)}</button>
-          <button className="cs-btn" onClick={exportPNG} title={tStatus('導出工程圖為 PNG 圖片（高清位圖，方便貼文件 / 聊天 / 郵件）', lang)}>{tStatus('匯出 PNG', lang)}</button>
+          <button className="cs-btn" onClick={exportPNG} title={tStatus('匯出工程圖為 PNG 圖片（高清位圖，方便貼檔案 / 聊天 / 郵件）', lang)}>{tStatus('匯出 PNG', lang)}</button>
           <button className="cs-btn" onClick={exportPDF} title={tStatus('PDF（位圖嵌入，A4 橫向）', lang)}>{tStatus('匯出 PDF', lang)}</button>
-          <button className="cs-btn" onClick={exportDXF} title={tStatus('導出三視圖為 DXF（2D CAD/CAM 標準交換格式，可在 AutoCAD 等打開）', lang)}>{tStatus('匯出 DXF', lang)}</button>
+          <button className="cs-btn" onClick={exportDXF} title={tStatus('匯出三視圖為 DXF（2D CAD/CAM 標準交換格式，可在 AutoCAD 等打開）', lang)}>{tStatus('匯出 DXF', lang)}</button>
           <button className="cs-btn" onClick={close}>{tStatus('關閉', lang)}</button>
         </div>
       </div>

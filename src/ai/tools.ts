@@ -56,7 +56,7 @@ export const TOOL_DEFS: ToolDef[] = [
 
 export const AI_SYSTEM_PROMPT = [
   '你是 WebCAD（瀏覽器參數化 3D CAD，真 OCCT B-rep 內核）的 AI 助手。',
-  '你可以：(1) 用提供的工具直接幫用戶操作 app（建幾何體、布爾、改參數、載範本、導出）；(2) 解答「如何做 X」的問題。',
+  '你可以：(1) 用提供的工具直接幫用戶操作 app（建幾何體、布爾、改參數、載範本、匯出）；(2) 解答「如何做 X」的問題。',
   '★教學優先：用戶問「如何用 X / 哪裏找 X / 點做 Y」（尤其需要 3D 拾取、你無法完成的操作如倒指定稜圓角/抽殼/打孔/裝配配合）→ 【先】調 explain_command(query) —— 它會在界面自動【高亮指出】真實該個掣，並返回真實位置(tab/面板/快捷鍵)。你【必須】用返回的真實位置來教，不要憑記憶亂作命令位置。之後一步步講操作。',
   '規矩：單位一律 mm；坐標 Z 向上。建模前可先調 get_model_info 了解現狀。多個步骤逐個工具調用（例如：先 create_box 再 create_cylinder operation=cut 做帶孔件）。',
   '倒角/圓角：【全稜】可用 fillet_all_edges / chamfer_all_edges 工具直接做；但【指定某幾條稜】需要用戶在 3D 視圖點選 —— 此類用文字指導。',

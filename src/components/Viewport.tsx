@@ -426,7 +426,7 @@ export function exportViewPNG() {
     const name = projName(useApp.getState().projectName)   // GM-L2 #86：同 STL/zip 单一净化口径，空名唔会塌成 '.png'
     const a = document.createElement('a'); a.href = url; a.download = `${name}.png`
     document.body.appendChild(a); a.click(); a.remove()
-    useApp.setState({ status: '已匯出當前視圖為 PNG 圖片（截圖，可貼文件/郵件分享）' })
+    useApp.setState({ status: '已匯出當前視圖為 PNG 圖片（截圖，可貼檔案/郵件分享）' })
   } catch (e) { useApp.setState({ status: '匯出圖片失敗：' + String(e).slice(0, 60) }) }
 }
 
@@ -3293,7 +3293,7 @@ function UnitDialog() {
     <div className="modal-backdrop" onClick={close}>
       <div className="cmd-palette" style={{ width: 340 }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <b style={{ fontSize: 14 }}>📐 {tStatus('文件單位', lang)}</b>
+          <b style={{ fontSize: 14 }}>📐 {tStatus('檔案單位', lang)}</b>
           <button className="tb-btn" title={tStatus('關閉', lang)} onClick={close}>✕</button>
         </div>
         <div style={{ fontSize: 11, color: '#8a97a2', marginBottom: 6 }}>{tStatus('僅影響屏上讀數（量測/屬性）；模型與匯出 STL/STEP/DXF 恆 mm。', lang)}</div>

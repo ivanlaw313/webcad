@@ -67,7 +67,7 @@ export function buildPropsReport(mp: MassProps, opts: PropsReportOpts): { rows: 
   const accLbl = accuracy === 'high' ? '高' : accuracy === 'low' ? '低' : '中'
   const lines = [
     `物理屬性${name ? ' — ' + name : ''}（精度=${accLbl} · 坐標=${frame === 'world' ? '世界/原點' : '质心/COM'}）`,
-    `導出時間 ${new Date().toLocaleString()}`,
+    `匯出時間 ${new Date().toLocaleString()}`,
     '',
     ...rows.map((r) => (r.value ? `${r.label}：${r.value}` : `${r.label}`)),
   ]

@@ -185,7 +185,7 @@ export default function ParamsPanel() {
             {params.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
           </select>
           <input className="pp-name-in" placeholder={tz('如 3,4,5,6 或 3:1:6')} value={dtVals} onChange={(e) => setDtVals(e.target.value)} style={{ flex: 1, minWidth: 90 }} title={tz('逗號分隔多個值，或 起:步:止 範圍（最多 24 個）')} />
-          <button className="cs-btn" title={tz('對每個值重建並導出 STL，打包成 zip（最多 24 個；完成後還原原值）')} onClick={() => { const vs = parseVals(dtVals); if (!vs.length) return; void batchExportDesignTable(dtParam || params[0].name, vs) }}>{tz('🗂 導出變體')}</button>
+          <button className="cs-btn" title={tz('對每個值重建並匯出 STL，打包成 zip（最多 24 個；完成後還原原值）')} onClick={() => { const vs = parseVals(dtVals); if (!vs.length) return; void batchExportDesignTable(dtParam || params[0].name, vs) }}>{tz('🗂 匯出變體')}</button>
         </div>
       )}
       {params.length > 0 && (
@@ -199,7 +199,7 @@ export default function ParamsPanel() {
           ))}
           <input className="pp-name-in" placeholder={tz('配置名 如 M5版')} value={cfgName} onChange={(e) => setCfgName(e.target.value)} style={{ flex: 1, minWidth: 80 }} />
           <button className="cs-btn" title={tz('把當前所有驅動參數（非表達式）存為一個命名配置')} onClick={() => { saveConfig(cfgName); setCfgName('') }}>{tz('💾 存配置')}</button>
-          {configs.length > 0 && <button className="cs-btn" title={tz('把每個配置各導出一個 STL，打包成 zip（一次過製造所有變體；完成後還原當前配置）')} onClick={() => void useApp.getState().exportAllConfigs()}>{tz('📦 導出全部配置')}</button>}
+          {configs.length > 0 && <button className="cs-btn" title={tz('把每個配置各匯出一個 STL，打包成 zip（一次過製造所有變體；完成後還原當前配置）')} onClick={() => void useApp.getState().exportAllConfigs()}>{tz('📦 匯出全部配置')}</button>}
           <button className="cs-btn" title={tz('設計表 CSV 匯出：配置 × 驅動參數矩陣（無配置時出一行當前值模板）— Excel 排變體')} onClick={() => useApp.getState().exportConfigsCsv()}>{tz('📤 設計表CSV')}</button>
           <button className="cs-btn" title={tz('設計表 CSV 匯入：每行一個配置（列名 = ƒx 參數名）→ 批量新增/更新配置，再一鍵切換或「匯出全部配置」匯出所有變體 STL')} onClick={() => useApp.getState().openConfigsCsvDialog()}>{tz('📥 匯入設計表')}</button>
         </div>

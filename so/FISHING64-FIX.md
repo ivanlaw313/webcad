@@ -5,7 +5,7 @@
 **Product fix:** `6bcf5e5`  
 **more39 cherry:** `e1e1879` ← `1e396ad` on `test/unit-core16-more39` (cherry-pick -x)  
 **Base:** tip `bcf97a5` (FISHING63 live)  
-**Tip:** `PLACEHOLDER_TIP`
+**Tip:** `46dfe2ea1c16c200f4b65da6a24e68adbf09eb81`
 
 ## Scan
 
